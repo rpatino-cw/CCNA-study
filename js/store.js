@@ -54,8 +54,11 @@
 
   function initProficiency(topicsData) {
     if (get(KEYS.PROFICIENCY) !== null) return;
+    // First visit ever: seed from resumeRating defaults
+    // After reset: proficiency key is gone, but we check a reset flag
+    const wasReset = sessionStorage.getItem('ccna_was_reset');
     const proficiency = {};
-    if (topicsData && Array.isArray(topicsData.domains)) {
+    if (!wasReset && topicsData && Array.isArray(topicsData.domains)) {
       for (const domain of topicsData.domains) {
         if (!Array.isArray(domain.topics)) continue;
         for (const topic of domain.topics) {
@@ -63,6 +66,7 @@
         }
       }
     }
+    sessionStorage.removeItem('ccna_was_reset');
     set(KEYS.PROFICIENCY, proficiency);
   }
 
