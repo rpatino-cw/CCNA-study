@@ -348,7 +348,7 @@
       <h1>CCNA 200-301</h1>
       <div class="masthead-meta">
         <span>Study Dashboard</span>
-        <span>Exam target: TBD</span>
+        <span id="examTarget" style="cursor:pointer;border-bottom:1px dashed var(--ink-muted)" onclick="promptExamDate()">Exam target: set date</span>
         <span class="countdown" id="countdown"></span>
       </div>
     </header>
@@ -371,7 +371,27 @@
   <script src="./js/quiz-engine.js"></script>
   <script>
     const START_DATE = new Date();
-    const EXAM_DATE  = new Date(Date.now() + 70 * 24 * 60 * 60 * 1000); // 70 days from now
+    const savedExamDate = localStorage.getItem('ccna_exam_date');
+    const EXAM_DATE = savedExamDate ? new Date(savedExamDate) : null;
+
+    function promptExamDate() {
+      const current = savedExamDate || '';
+      const input = prompt('Enter your exam date (YYYY-MM-DD):', current);
+      if (!input) return;
+      const d = new Date(input + 'T00:00:00');
+      if (isNaN(d.getTime())) { alert('Invalid date. Use YYYY-MM-DD format.'); return; }
+      localStorage.setItem('ccna_exam_date', input);
+      location.reload();
+    }
+
+    function updateExamDisplay() {
+      const el = document.getElementById('examTarget');
+      if (EXAM_DATE) {
+        el.textContent = 'Exam: ' + EXAM_DATE.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+      } else {
+        el.textContent = 'Set exam date';
+      }
+    }
 
     const SCHEDULE = [
       { week: 1, label: 'Week 1 — Diagnostic + IOS + VLANs', range: '', days: [
@@ -484,7 +504,7 @@
       const ds = dateDiffDays(START_DATE, getToday());
       return ds < 0 ? { week: 0, day: 0, daysSinceStart: ds } : { week: Math.floor(ds / 7), day: ds % 7, daysSinceStart: ds };
     }
-    function getDaysUntilExam() { return dateDiffDays(getToday(), EXAM_DATE); }
+    function getDaysUntilExam() { return EXAM_DATE ? dateDiffDays(getToday(), EXAM_DATE) : null; }
     function isFirstVisit() { return Object.keys(store.getAllProficiency()).length === 0 && store.getQuizHistory().length === 0 && !store.getDiagnostic(); }
     function profColor(s) { return s >= 0.7 ? 'green' : s >= 0.4 ? 'yellow' : 'red'; }
     function profColorVar(s) { return s >= 0.7 ? 'var(--prof-strong)' : s >= 0.4 ? 'var(--prof-mid)' : 'var(--prof-weak)'; }
@@ -492,6 +512,7 @@
     // ── Render ────────────────────────────────────────────
     function renderCountdown() {
       const d = getDaysUntilExam(), el = document.getElementById('countdown');
+      if (d === null) { el.textContent = ''; return; }
       el.textContent = d > 0 ? `${d} days remaining` : d === 0 ? 'Exam day' : 'Exam completed';
     }
 
@@ -730,13 +751,15 @@
     }
 
     function resetEntireSite() {
-      if (!confirm('Reset ALL progress across the entire site? Quiz scores, proficiency ratings, study logs — everything goes to zero. This cannot be undone.')) return;
+      if (!confirm('Reset ALL progress across the entire site? Quiz scores, proficiency ratings, study logs, exam date — everything goes to zero. This cannot be undone.')) return;
       store.clearAll();
       localStorage.removeItem('ccna-objectives-v2');
+      localStorage.removeItem('ccna_exam_date');
       location.reload();
     }
 
     // ── Init ─────────────────────────────────────────────
+    updateExamDisplay();
     renderCountdown();
     try {
       renderApp(window.topicsData);

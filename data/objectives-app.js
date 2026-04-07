@@ -308,6 +308,7 @@ window.resetAllStats = function() {
     if (k && k.startsWith('ccna_')) toRemove.push(k);
   }
   toRemove.forEach(k => localStorage.removeItem(k));
+  localStorage.removeItem('ccna_exam_date');
   location.reload();
 };
 
