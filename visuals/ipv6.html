@@ -1,0 +1,1042 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>IPv6 Addressing — CCNA Study</title>
+  <link rel="stylesheet" href="../css/shared.css">
+  <style>
+    .tool-section { margin-bottom: 32px; }
+    .tool-section h2 { margin-bottom: 16px; font-size: 1.2rem; }
+
+    /* Tabs */
+    .tab-row {
+      display: flex; gap: 4px; margin-bottom: 24px;
+      border-bottom: 1px solid var(--border); padding-bottom: 0;
+    }
+    .tab-btn {
+      padding: 10px 20px; background: none; border: none;
+      color: var(--text-secondary); cursor: pointer;
+      font-size: 0.9rem; font-family: inherit;
+      border-bottom: 2px solid transparent; transition: all var(--transition);
+    }
+    .tab-btn:hover { color: var(--text-primary); }
+    .tab-btn.active { color: var(--red); border-bottom-color: var(--red); }
+
+    /* Topic badge */
+    .topic-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 3px 12px; border-radius: 100px; font-size: 0.75rem;
+      font-weight: 600; background: var(--red-dim); color: var(--red);
+    }
+
+    /* ═══ Tab 1: Address Types ═══ */
+    .addr-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 16px; }
+
+    .addr-card {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--radius-md); overflow: hidden;
+      cursor: pointer; transition: all var(--transition);
+      border-left: 4px solid var(--border);
+    }
+    .addr-card:hover { border-color: rgba(91, 141, 239, 0.3); transform: translateY(-1px); }
+    .addr-card.expanded { border-color: rgba(91, 141, 239, 0.3); }
+
+    .addr-card-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 16px 20px; user-select: none;
+    }
+    .addr-card-header .type-name {
+      font-size: 1rem; font-weight: 600;
+    }
+    .addr-card-header .prefix-badge {
+      font-family: var(--font-mono); font-size: 0.82rem;
+      padding: 3px 10px; border-radius: var(--radius-sm);
+      background: var(--bg-input); color: var(--text-secondary);
+    }
+    .addr-card-header .expand-icon {
+      font-size: 0.8rem; color: var(--text-muted); transition: transform 0.2s ease;
+    }
+    .addr-card.expanded .expand-icon { transform: rotate(180deg); }
+
+    .addr-card-body {
+      max-height: 0; overflow: hidden; transition: max-height 0.3s ease;
+      padding: 0 20px;
+    }
+    .addr-card.expanded .addr-card-body {
+      max-height: 400px; padding: 0 20px 16px;
+    }
+
+    .addr-detail-row {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 6px 0; border-top: 1px solid var(--border);
+      font-size: 0.85rem;
+    }
+    .addr-detail-row .detail-label { color: var(--text-muted); }
+    .addr-detail-row .detail-value { font-family: var(--font-mono); color: var(--text-primary); }
+
+    .addr-use-case {
+      margin-top: 10px; padding: 10px 14px;
+      background: var(--bg-secondary); border-radius: var(--radius-sm);
+      font-size: 0.83rem; color: var(--text-secondary); line-height: 1.5;
+    }
+
+    /* Card border colors */
+    .addr-card[data-type="gua"] { border-left-color: #34d399; }
+    .addr-card[data-type="link-local"] { border-left-color: #5b8def; }
+    .addr-card[data-type="unique-local"] { border-left-color: #a78bfa; }
+    .addr-card[data-type="multicast"] { border-left-color: #f87171; }
+    .addr-card[data-type="loopback"] { border-left-color: #fbbf24; }
+    .addr-card[data-type="unspecified"] { border-left-color: #636a80; }
+    .addr-card[data-type="solicited"] { border-left-color: #22d3ee; }
+
+    .addr-card[data-type="gua"] .type-name { color: #34d399; }
+    .addr-card[data-type="link-local"] .type-name { color: #5b8def; }
+    .addr-card[data-type="unique-local"] .type-name { color: #a78bfa; }
+    .addr-card[data-type="multicast"] .type-name { color: #f87171; }
+    .addr-card[data-type="loopback"] .type-name { color: #fbbf24; }
+    .addr-card[data-type="unspecified"] .type-name { color: #636a80; }
+    .addr-card[data-type="solicited"] .type-name { color: #22d3ee; }
+
+    /* Multicast table */
+    .mcast-table { margin-top: 24px; }
+    .mcast-table td { font-family: var(--font-mono); font-size: 0.85rem; padding: 8px 16px; }
+    .mcast-table td:first-child { color: var(--red); }
+    .mcast-table td:last-child { color: var(--text-secondary); font-family: var(--font-sans); }
+
+    /* ═══ Tab 2: EUI-64 Calculator ═══ */
+    .eui-input-row {
+      display: flex; gap: 12px; align-items: end; flex-wrap: wrap;
+    }
+    .eui-input-row label {
+      display: flex; flex-direction: column; gap: 4px;
+      font-size: 0.82rem; color: var(--text-secondary);
+    }
+    .eui-input-row input, .eui-input-row select {
+      background: var(--bg-input); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); padding: 10px 14px;
+      color: var(--text-primary); font-family: var(--font-mono);
+      font-size: 0.95rem; outline: none; transition: border-color var(--transition);
+    }
+    .eui-input-row input:focus { border-color: var(--blue); }
+    .eui-input-row input { width: 260px; }
+
+    .eui-steps {
+      margin-top: 24px; display: flex; flex-direction: column; gap: 16px;
+    }
+    .eui-step {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--radius-md); padding: 18px 22px;
+      display: flex; gap: 16px; align-items: flex-start;
+      animation: fadeIn 0.3s ease forwards;
+    }
+    .eui-step-num {
+      background: var(--blue); color: #fff; width: 28px; height: 28px;
+      border-radius: 50%; display: flex; align-items: center; justify-content: center;
+      font-size: 0.82rem; font-weight: 700; flex-shrink: 0; margin-top: 2px;
+    }
+    .eui-step-content { flex: 1; }
+    .eui-step-content .step-title {
+      font-size: 0.9rem; font-weight: 600; margin-bottom: 6px;
+    }
+    .eui-step-content .step-value {
+      font-family: var(--font-mono); font-size: 1rem;
+      padding: 8px 14px; background: var(--bg-secondary);
+      border-radius: var(--radius-sm); display: inline-block;
+    }
+    .eui-step-content .step-note {
+      font-size: 0.8rem; color: var(--text-muted); margin-top: 6px;
+    }
+    .highlight-char { color: var(--yellow); font-weight: 700; }
+    .highlight-insert { color: var(--green); font-weight: 700; }
+    .highlight-flip { color: var(--red); font-weight: 700; }
+    .highlight-result { color: var(--cyan); font-weight: 700; }
+
+    /* Comparison cards */
+    .comparison-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 16px; margin-top: 16px;
+    }
+    .comparison-card {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--radius-md); padding: 20px;
+      border-top: 3px solid var(--border);
+    }
+    .comparison-card h4 {
+      font-size: 0.95rem; font-weight: 600; margin-bottom: 10px;
+    }
+    .comparison-card ul {
+      list-style: none; padding: 0;
+    }
+    .comparison-card ul li {
+      padding: 5px 0; font-size: 0.85rem; color: var(--text-secondary);
+      padding-left: 18px; position: relative; line-height: 1.5;
+    }
+    .comparison-card ul li::before {
+      content: ''; position: absolute; left: 0; top: 12px;
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--text-muted);
+    }
+    .comparison-card.slaac { border-top-color: var(--green); }
+    .comparison-card.slaac h4 { color: var(--green); }
+    .comparison-card.slaac ul li::before { background: var(--green); }
+    .comparison-card.stateful { border-top-color: var(--blue); }
+    .comparison-card.stateful h4 { color: var(--blue); }
+    .comparison-card.stateful ul li::before { background: var(--blue); }
+    .comparison-card.stateless { border-top-color: var(--purple); }
+    .comparison-card.stateless h4 { color: var(--purple); }
+    .comparison-card.stateless ul li::before { background: var(--purple); }
+
+    /* NDP Flow Diagram */
+    .ndp-flow {
+      display: flex; flex-direction: column; gap: 0; margin-top: 16px;
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--radius-md); padding: 24px; overflow-x: auto;
+    }
+    .ndp-exchange {
+      display: flex; align-items: center; gap: 12px; padding: 10px 0;
+    }
+    .ndp-exchange + .ndp-exchange { border-top: 1px solid var(--border); }
+    .ndp-device {
+      font-size: 0.82rem; font-weight: 600; width: 80px; text-align: center;
+      flex-shrink: 0;
+    }
+    .ndp-arrow {
+      flex: 1; display: flex; align-items: center; position: relative;
+      min-width: 200px;
+    }
+    .ndp-arrow-line {
+      flex: 1; height: 2px; background: var(--border);
+    }
+    .ndp-arrow-head {
+      width: 0; height: 0; border-top: 6px solid transparent;
+      border-bottom: 6px solid transparent; flex-shrink: 0;
+    }
+    .ndp-arrow-head.right { border-left: 10px solid var(--border); }
+    .ndp-arrow-head.left { border-right: 10px solid var(--border); }
+    .ndp-arrow-label {
+      position: absolute; top: -18px; left: 50%; transform: translateX(-50%);
+      font-size: 0.78rem; font-weight: 600; white-space: nowrap;
+      padding: 2px 8px; border-radius: var(--radius-sm);
+    }
+    .ndp-arrow-sub {
+      position: absolute; bottom: -16px; left: 50%; transform: translateX(-50%);
+      font-size: 0.7rem; color: var(--text-muted); white-space: nowrap;
+    }
+
+    .ndp-exchange.rs .ndp-arrow-line { background: var(--green); }
+    .ndp-exchange.rs .ndp-arrow-head.right { border-left-color: var(--green); }
+    .ndp-exchange.rs .ndp-arrow-label { color: var(--green); background: var(--green-dim); }
+
+    .ndp-exchange.ra .ndp-arrow-line { background: var(--blue); }
+    .ndp-exchange.ra .ndp-arrow-head.left { border-right-color: var(--blue); }
+    .ndp-exchange.ra .ndp-arrow-label { color: var(--blue); background: var(--blue-dim); }
+
+    .ndp-exchange.ns .ndp-arrow-line { background: var(--yellow); }
+    .ndp-exchange.ns .ndp-arrow-head.right { border-left-color: var(--yellow); }
+    .ndp-exchange.ns .ndp-arrow-label { color: var(--yellow); background: var(--yellow-dim); }
+
+    .ndp-exchange.na .ndp-arrow-line { background: var(--purple); }
+    .ndp-exchange.na .ndp-arrow-head.left { border-right-color: var(--purple); }
+    .ndp-exchange.na .ndp-arrow-label { color: var(--purple); background: var(--purple-dim); }
+
+    .ndp-exchange.dad .ndp-arrow-line { background: var(--red); }
+    .ndp-exchange.dad .ndp-arrow-head.right { border-left-color: var(--red); }
+    .ndp-exchange.dad .ndp-arrow-label { color: var(--red); background: var(--red-dim); }
+
+    .ndp-section-label {
+      font-size: 0.78rem; color: var(--text-muted); text-transform: uppercase;
+      letter-spacing: 0.05em; font-weight: 600; padding: 12px 0 4px;
+      border-top: 2px dashed var(--border); margin-top: 8px;
+    }
+    .ndp-section-label:first-child { border-top: none; margin-top: 0; }
+
+    /* ═══ Tab 3: Commands Reference ═══ */
+    .cmd-block {
+      background: var(--bg-secondary); border: 1px solid var(--border);
+      border-radius: var(--radius-md); padding: 20px; margin-bottom: 16px;
+      font-family: var(--font-mono); font-size: 0.85rem; line-height: 1.9;
+      overflow-x: auto; position: relative;
+    }
+    .cmd-block .cmd-title {
+      font-family: var(--font-sans); font-size: 0.82rem;
+      color: var(--text-muted); text-transform: uppercase;
+      letter-spacing: 0.04em; font-weight: 600; margin-bottom: 10px;
+    }
+    .cmd-line { color: var(--text-secondary); }
+    .cmd-keyword { color: var(--cyan); }
+    .cmd-value { color: var(--green); }
+    .cmd-comment { color: var(--text-muted); font-style: italic; }
+    .cmd-indent { padding-left: 24px; }
+
+    .cmd-copy-btn {
+      position: absolute; top: 12px; right: 12px;
+      background: var(--bg-hover); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); color: var(--text-muted);
+      padding: 4px 10px; font-size: 0.72rem; cursor: pointer;
+      transition: all var(--transition); font-family: var(--font-sans);
+    }
+    .cmd-copy-btn:hover { color: var(--text-primary); border-color: var(--text-muted); }
+
+    /* Shortening tool */
+    .shortening-rules {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 16px; margin-top: 16px;
+    }
+    .rule-card {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--radius-md); padding: 18px;
+    }
+    .rule-card .rule-num {
+      font-size: 0.78rem; color: var(--text-muted); font-weight: 600;
+      text-transform: uppercase; letter-spacing: 0.04em;
+    }
+    .rule-card .rule-title { font-size: 0.95rem; font-weight: 600; margin: 6px 0; }
+    .rule-card .rule-example {
+      font-family: var(--font-mono); font-size: 0.88rem; margin-top: 8px;
+      padding: 8px 12px; background: var(--bg-secondary); border-radius: var(--radius-sm);
+      color: var(--text-secondary);
+    }
+    .rule-card .rule-example .before { color: var(--text-muted); }
+    .rule-card .rule-example .after { color: var(--green); }
+
+    .shorten-tool {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--radius-md); padding: 24px; margin-top: 16px;
+    }
+    .shorten-tool h3 { font-size: 1rem; font-weight: 600; margin-bottom: 14px; }
+    .shorten-input-row {
+      display: flex; gap: 12px; align-items: end; flex-wrap: wrap;
+    }
+    .shorten-input-row label {
+      display: flex; flex-direction: column; gap: 4px;
+      font-size: 0.82rem; color: var(--text-secondary);
+    }
+    .shorten-input-row input {
+      background: var(--bg-input); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); padding: 10px 14px;
+      color: var(--text-primary); font-family: var(--font-mono);
+      font-size: 0.95rem; outline: none; transition: border-color var(--transition);
+      width: 400px; max-width: 100%;
+    }
+    .shorten-input-row input:focus { border-color: var(--blue); }
+    .shorten-result {
+      margin-top: 16px; padding: 14px 18px;
+      background: var(--bg-secondary); border-radius: var(--radius-sm);
+      font-family: var(--font-mono); font-size: 1rem;
+    }
+    .shorten-result .label {
+      font-family: var(--font-sans); font-size: 0.78rem;
+      color: var(--text-muted); text-transform: uppercase;
+      letter-spacing: 0.04em; margin-bottom: 4px;
+    }
+
+    /* Responsive */
+    @media (max-width: 600px) {
+      .addr-cards { grid-template-columns: 1fr; }
+      .eui-input-row { flex-direction: column; }
+      .eui-input-row input { width: 100%; }
+      .shorten-input-row input { width: 100%; }
+      .ndp-device { width: 60px; font-size: 0.72rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Nav -->
+    <nav class="top-nav" style="margin-bottom: 16px;">
+      <a href="../index.html">Dashboard</a>
+      <a href="../knowledge-map.html">Knowledge Map</a>
+      <a href="../diagnostic.html">Diagnostic</a>
+      <a href="../quiz.html">Quiz</a>
+    </nav>
+
+    <div class="page-header">
+      <div>
+        <h1>IPv6 Addressing</h1>
+        <div class="subtitle">Address types, EUI-64 conversion, NDP, and IOS commands</div>
+      </div>
+      <div style="display:flex; align-items:center; gap:12px;">
+        <span class="topic-badge">RED TOPIC</span>
+        <a href="../index.html" class="back-link">&larr; Back to Dashboard</a>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tab-row">
+      <button class="tab-btn active" data-tab="types">IPv6 Address Types</button>
+      <button class="tab-btn" data-tab="eui64">EUI-64 Calculator</button>
+      <button class="tab-btn" data-tab="commands">Commands Reference</button>
+    </div>
+
+    <!-- ================================================================ -->
+    <!-- TAB 1: IPv6 Address Types                                        -->
+    <!-- ================================================================ -->
+    <div id="tab-types" class="tool-section">
+      <h2>Address Type Reference</h2>
+      <p class="text-secondary mb-2" style="font-size:0.88rem;">Click any card to expand details. Each IPv6 address type has a unique prefix range and scope.</p>
+
+      <div class="addr-cards" id="addr-cards"></div>
+
+      <h2 class="mt-3">Common Multicast Addresses</h2>
+      <div class="card">
+        <table class="mcast-table" style="width:100%;">
+          <thead>
+            <tr>
+              <th>Address</th>
+              <th>Description</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>FF02::1</td><td>All nodes (link-local scope)</td></tr>
+            <tr><td>FF02::2</td><td>All routers (link-local scope)</td></tr>
+            <tr><td>FF02::5</td><td>All OSPF routers</td></tr>
+            <tr><td>FF02::6</td><td>All OSPF Designated Routers</td></tr>
+            <tr><td>FF02::1:FF<em>[last 24 bits]</em></td><td>Solicited-node multicast (Neighbor Discovery)</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ================================================================ -->
+    <!-- TAB 2: EUI-64 Calculator                                         -->
+    <!-- ================================================================ -->
+    <div id="tab-eui64" class="tool-section hidden">
+      <h2>EUI-64 Interface ID Calculator</h2>
+      <p class="text-secondary mb-2" style="font-size:0.88rem;">Enter a MAC address and optional prefix to see the step-by-step EUI-64 conversion.</p>
+
+      <div class="eui-input-row">
+        <label>
+          MAC Address
+          <input type="text" id="eui-mac" placeholder="AA:BB:CC:DD:EE:FF" value="00:1A:2B:3C:4D:5E">
+        </label>
+        <label>
+          IPv6 Prefix (optional)
+          <input type="text" id="eui-prefix" placeholder="2001:db8:1::" value="2001:db8:1::">
+        </label>
+        <button class="btn btn-primary" id="eui-calc-btn">Convert</button>
+      </div>
+
+      <div id="eui-steps" class="eui-steps"></div>
+
+      <!-- SLAAC vs DHCPv6 -->
+      <h2 class="mt-4">SLAAC vs DHCPv6</h2>
+      <div class="comparison-grid">
+        <div class="comparison-card slaac">
+          <h4>SLAAC (Stateless Address Autoconfiguration)</h4>
+          <ul>
+            <li>Router sends RA (Router Advertisement) with prefix</li>
+            <li>Host generates Interface ID via EUI-64 or random</li>
+            <li>No DHCP server needed</li>
+            <li>Host gets: prefix + interface ID = full GUA</li>
+            <li>Uses ICMPv6 RS/RA messages</li>
+          </ul>
+        </div>
+        <div class="comparison-card stateful">
+          <h4>DHCPv6 Stateful</h4>
+          <ul>
+            <li>Server assigns the full IPv6 address</li>
+            <li>Like DHCP for IPv4</li>
+            <li>Server tracks which addresses are assigned</li>
+            <li>RA flag: M=1 (Managed)</li>
+            <li>Can also provide DNS, domain name, etc.</li>
+          </ul>
+        </div>
+        <div class="comparison-card stateless">
+          <h4>DHCPv6 Stateless</h4>
+          <ul>
+            <li>SLAAC provides the IPv6 address</li>
+            <li>DHCPv6 provides DNS, domain name, etc.</li>
+            <li>Server does NOT track addresses</li>
+            <li>RA flag: O=1 (Other config)</li>
+            <li>Best of both: simple address + extra config</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- NDP Flow Diagram -->
+      <h2 class="mt-4">Neighbor Discovery Protocol (NDP)</h2>
+      <p class="text-secondary mb-2" style="font-size:0.88rem;">NDP replaces ARP, ICMP Router Discovery, and ICMP Redirect in IPv6. It uses ICMPv6 messages.</p>
+
+      <div class="ndp-flow">
+        <div class="ndp-section-label">Address Autoconfiguration</div>
+
+        <div class="ndp-exchange rs">
+          <div class="ndp-device" style="color:var(--green);">HOST</div>
+          <div class="ndp-arrow">
+            <div class="ndp-arrow-line"></div>
+            <div class="ndp-arrow-head right"></div>
+            <div class="ndp-arrow-label">RS (Type 133)</div>
+            <div class="ndp-arrow-sub">Router Solicitation &mdash; "Any routers out there?"</div>
+          </div>
+          <div class="ndp-device" style="color:var(--blue);">ROUTER</div>
+        </div>
+
+        <div class="ndp-exchange ra" style="margin-top: 10px;">
+          <div class="ndp-device" style="color:var(--green);">HOST</div>
+          <div class="ndp-arrow">
+            <div class="ndp-arrow-head left"></div>
+            <div class="ndp-arrow-line"></div>
+            <div class="ndp-arrow-label">RA (Type 134)</div>
+            <div class="ndp-arrow-sub">Router Advertisement &mdash; "Here's your prefix + flags"</div>
+          </div>
+          <div class="ndp-device" style="color:var(--blue);">ROUTER</div>
+        </div>
+
+        <div class="ndp-section-label">Address Resolution (replaces ARP)</div>
+
+        <div class="ndp-exchange ns">
+          <div class="ndp-device" style="color:var(--yellow);">HOST A</div>
+          <div class="ndp-arrow">
+            <div class="ndp-arrow-line"></div>
+            <div class="ndp-arrow-head right"></div>
+            <div class="ndp-arrow-label">NS (Type 135)</div>
+            <div class="ndp-arrow-sub">Neighbor Solicitation &mdash; "What's your MAC?"</div>
+          </div>
+          <div class="ndp-device" style="color:var(--purple);">HOST B</div>
+        </div>
+
+        <div class="ndp-exchange na" style="margin-top: 10px;">
+          <div class="ndp-device" style="color:var(--yellow);">HOST A</div>
+          <div class="ndp-arrow">
+            <div class="ndp-arrow-head left"></div>
+            <div class="ndp-arrow-line"></div>
+            <div class="ndp-arrow-label">NA (Type 136)</div>
+            <div class="ndp-arrow-sub">Neighbor Advertisement &mdash; "Here's my MAC address"</div>
+          </div>
+          <div class="ndp-device" style="color:var(--purple);">HOST B</div>
+        </div>
+
+        <div class="ndp-section-label">Duplicate Address Detection (DAD)</div>
+
+        <div class="ndp-exchange dad">
+          <div class="ndp-device" style="color:var(--red);">HOST</div>
+          <div class="ndp-arrow">
+            <div class="ndp-arrow-line"></div>
+            <div class="ndp-arrow-head right"></div>
+            <div class="ndp-arrow-label">NS (DAD)</div>
+            <div class="ndp-arrow-sub">Sends NS to its own tentative address &mdash; "Is anyone using this?"</div>
+          </div>
+          <div class="ndp-device" style="color:var(--text-muted);">NETWORK</div>
+        </div>
+
+        <div style="padding:12px 0 4px; font-size:0.82rem; color:var(--text-secondary); line-height:1.6;">
+          <strong style="color:var(--text-primary);">DAD Process:</strong> Before using any IPv6 address, the host sends an NS to its own tentative address (solicited-node multicast). If no NA is received back, the address is unique and safe to use. If an NA comes back, there is a duplicate and the address is not assigned.
+        </div>
+      </div>
+    </div>
+
+    <!-- ================================================================ -->
+    <!-- TAB 3: Commands Reference                                        -->
+    <!-- ================================================================ -->
+    <div id="tab-commands" class="tool-section hidden">
+      <h2>IPv6 Configuration Commands</h2>
+
+      <div class="cmd-block" id="cmd-config">
+        <div class="cmd-title">Global &amp; Interface Configuration</div>
+        <button class="cmd-copy-btn" onclick="copyCmd('cmd-config')">Copy</button>
+        <div class="cmd-line"><span class="cmd-keyword">ipv6 unicast-routing</span> <span class="cmd-comment">! Enable IPv6 routing globally</span></div>
+        <div class="cmd-line">&nbsp;</div>
+        <div class="cmd-line"><span class="cmd-keyword">interface</span> <span class="cmd-value">GigabitEthernet0/0</span></div>
+        <div class="cmd-line cmd-indent"><span class="cmd-keyword">ipv6 address</span> <span class="cmd-value">2001:db8:1::1/64</span> <span class="cmd-comment">! Assign GUA</span></div>
+        <div class="cmd-line cmd-indent"><span class="cmd-keyword">ipv6 address</span> <span class="cmd-value">fe80::1</span> <span class="cmd-keyword">link-local</span> <span class="cmd-comment">! Assign link-local</span></div>
+        <div class="cmd-line cmd-indent"><span class="cmd-keyword">ipv6 address autoconfig</span> <span class="cmd-comment">! Use SLAAC</span></div>
+        <div class="cmd-line cmd-indent"><span class="cmd-keyword">ipv6 enable</span> <span class="cmd-comment">! Enable IPv6, auto-generates link-local</span></div>
+        <div class="cmd-line cmd-indent"><span class="cmd-keyword">no shutdown</span></div>
+      </div>
+
+      <div class="cmd-block" id="cmd-show">
+        <div class="cmd-title">Show Commands</div>
+        <button class="cmd-copy-btn" onclick="copyCmd('cmd-show')">Copy</button>
+        <div class="cmd-line"><span class="cmd-keyword">show ipv6 interface brief</span> <span class="cmd-comment">! Quick view of IPv6 addresses on all interfaces</span></div>
+        <div class="cmd-line"><span class="cmd-keyword">show ipv6 interface</span> <span class="cmd-value">GigabitEthernet0/0</span> <span class="cmd-comment">! Detailed IPv6 info for an interface</span></div>
+        <div class="cmd-line"><span class="cmd-keyword">show ipv6 route</span> <span class="cmd-comment">! IPv6 routing table</span></div>
+        <div class="cmd-line"><span class="cmd-keyword">show ipv6 neighbors</span> <span class="cmd-comment">! NDP neighbor cache (like ARP table)</span></div>
+        <div class="cmd-line"><span class="cmd-keyword">show ipv6 protocols</span> <span class="cmd-comment">! IPv6 routing protocols</span></div>
+      </div>
+
+      <div class="cmd-block" id="cmd-routing">
+        <div class="cmd-title">Static Routing</div>
+        <button class="cmd-copy-btn" onclick="copyCmd('cmd-routing')">Copy</button>
+        <div class="cmd-line"><span class="cmd-keyword">ipv6 route</span> <span class="cmd-value">::/0</span> <span class="cmd-value">2001:db8:1::1</span> <span class="cmd-comment">! Default route via next-hop</span></div>
+        <div class="cmd-line"><span class="cmd-keyword">ipv6 route</span> <span class="cmd-value">::/0</span> <span class="cmd-value">GigabitEthernet0/1</span> <span class="cmd-comment">! Default route via exit interface</span></div>
+        <div class="cmd-line"><span class="cmd-keyword">ipv6 route</span> <span class="cmd-value">2001:db8:2::/64</span> <span class="cmd-value">2001:db8:1::1</span> <span class="cmd-comment">! Static route to subnet</span></div>
+      </div>
+
+      <!-- Shortening Rules -->
+      <h2 class="mt-3">IPv6 Address Shortening Rules</h2>
+      <div class="shortening-rules">
+        <div class="rule-card">
+          <div class="rule-num">Rule 1</div>
+          <div class="rule-title">Remove Leading Zeros</div>
+          <p style="font-size:0.84rem; color:var(--text-secondary);">Leading zeros in each 16-bit group can be omitted. Each group must keep at least one digit.</p>
+          <div class="rule-example">
+            <div class="before">2001:0db8:0042:0000:0000:0000:0000:0001</div>
+            <div style="padding:4px 0; color:var(--text-muted);">&darr;</div>
+            <div class="after">2001:db8:42:0:0:0:0:1</div>
+          </div>
+        </div>
+        <div class="rule-card">
+          <div class="rule-num">Rule 2</div>
+          <div class="rule-title">Replace Consecutive All-Zero Groups with ::</div>
+          <p style="font-size:0.84rem; color:var(--text-secondary);">One consecutive group of all-zero groups can be replaced with <code style="background:var(--bg-secondary);padding:1px 6px;border-radius:3px;font-family:var(--font-mono);">::</code> but <strong style="color:var(--red);">only once</strong> per address!</p>
+          <div class="rule-example">
+            <div class="before">2001:db8:42:0:0:0:0:1</div>
+            <div style="padding:4px 0; color:var(--text-muted);">&darr;</div>
+            <div class="after">2001:db8:42::1</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Interactive shortening/expanding tools -->
+      <div class="shorten-tool">
+        <h3>Shorten an IPv6 Address</h3>
+        <div class="shorten-input-row">
+          <label>
+            Full IPv6 Address
+            <input type="text" id="shorten-input" placeholder="2001:0db8:0000:0000:0000:0000:0000:0001">
+          </label>
+          <button class="btn btn-primary" id="shorten-btn">Shorten</button>
+        </div>
+        <div id="shorten-result" class="shorten-result hidden">
+          <div class="label">Shortened Form</div>
+          <div id="shorten-output" style="color:var(--green); font-size:1.05rem;"></div>
+        </div>
+      </div>
+
+      <div class="shorten-tool">
+        <h3>Expand an IPv6 Address</h3>
+        <div class="shorten-input-row">
+          <label>
+            Shortened IPv6 Address
+            <input type="text" id="expand-input" placeholder="2001:db8::1">
+          </label>
+          <button class="btn btn-primary" id="expand-btn">Expand</button>
+        </div>
+        <div id="expand-result" class="shorten-result hidden">
+          <div class="label">Full Expanded Form</div>
+          <div id="expand-output" style="color:var(--cyan); font-size:1.05rem;"></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    // ══════════════════════════════════════════════
+    // Tab switching
+    // ══════════════════════════════════════════════
+    document.querySelectorAll('.tab-btn').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        document.querySelectorAll('.tab-btn').forEach(function(b) { b.classList.remove('active'); });
+        btn.classList.add('active');
+        document.querySelectorAll('.tool-section').forEach(function(s) { s.classList.add('hidden'); });
+        document.getElementById('tab-' + btn.dataset.tab).classList.remove('hidden');
+      });
+    });
+
+    // ══════════════════════════════════════════════
+    // TAB 1: IPv6 Address Types
+    // ══════════════════════════════════════════════
+    var addressTypes = [
+      {
+        type: 'gua', name: 'Global Unicast (GUA)',
+        prefix: '2000::/3', range: '2000:: - 3FFF::',
+        scope: 'Internet-routable',
+        useCase: 'Equivalent to public IPv4 addresses. Assigned by ISPs and used for communication across the internet. Structure: 48-bit global routing prefix + 16-bit subnet ID + 64-bit interface ID.',
+        example: '2001:0db8:acad:0001::0001/64'
+      },
+      {
+        type: 'link-local', name: 'Link-Local',
+        prefix: 'FE80::/10', range: 'FE80:: - FEBF::',
+        scope: 'Single link only',
+        useCase: 'Automatically assigned on every IPv6-enabled interface. Used for local communication on a single link: NDP, routing protocol next-hops (OSPF, EIGRP), and default gateway. NOT routable beyond the link.',
+        example: 'FE80::1'
+      },
+      {
+        type: 'unique-local', name: 'Unique Local (ULA)',
+        prefix: 'FC00::/7', range: 'FC00:: - FDFF::',
+        scope: 'Private (like RFC 1918)',
+        useCase: 'Similar to IPv4 private addresses (10.x, 172.16.x, 192.168.x). Used for internal communications within a site. Not routable on the global internet. Typically uses FD00::/8 prefix.',
+        example: 'FD00:1234:ABCD:1::1/64'
+      },
+      {
+        type: 'multicast', name: 'Multicast',
+        prefix: 'FF00::/8', range: 'FF00:: - FFFF::',
+        scope: 'Various scopes',
+        useCase: 'Replaces broadcast in IPv6 (there is NO broadcast in IPv6). Sends packets to a group of interested receivers. Scope varies: FF02:: = link-local, FF05:: = site-local, FF0E:: = global.',
+        example: 'FF02::1 (all nodes)'
+      },
+      {
+        type: 'loopback', name: 'Loopback',
+        prefix: '::1/128', range: '::1',
+        scope: 'This device only',
+        useCase: 'Equivalent to 127.0.0.1 in IPv4. Used for a device to send packets to itself. Testing and diagnostic purposes.',
+        example: '::1'
+      },
+      {
+        type: 'unspecified', name: 'Unspecified',
+        prefix: '::/128', range: '::',
+        scope: 'No address assigned',
+        useCase: 'Indicates the absence of an address. Used as a source address when a device does not yet have an assigned address (e.g., during DAD or DHCP). Never used as a destination.',
+        example: '::'
+      },
+      {
+        type: 'solicited', name: 'Solicited-Node Multicast',
+        prefix: 'FF02::1:FF00:0/104', range: 'FF02::1:FF00:0000 - FF02::1:FFFF:FFFF',
+        scope: 'Neighbor Discovery',
+        useCase: 'Automatically created for every unicast and anycast address on an interface. Used by NDP for address resolution (replaces ARP) and DAD. Built from last 24 bits of the IPv6 address.',
+        example: 'FF02::1:FF3C:4D5E (for ...::3C:4D5E)'
+      }
+    ];
+
+    var cardsContainer = document.getElementById('addr-cards');
+
+    addressTypes.forEach(function(addr) {
+      var card = document.createElement('div');
+      card.className = 'addr-card';
+      card.setAttribute('data-type', addr.type);
+
+      card.innerHTML =
+        '<div class="addr-card-header">' +
+          '<div style="display:flex; align-items:center; gap:12px;">' +
+            '<span class="type-name">' + addr.name + '</span>' +
+            '<span class="prefix-badge">' + addr.prefix + '</span>' +
+          '</div>' +
+          '<span class="expand-icon">&#9660;</span>' +
+        '</div>' +
+        '<div class="addr-card-body">' +
+          '<div class="addr-detail-row">' +
+            '<span class="detail-label">Prefix</span>' +
+            '<span class="detail-value">' + addr.prefix + '</span>' +
+          '</div>' +
+          '<div class="addr-detail-row">' +
+            '<span class="detail-label">Range</span>' +
+            '<span class="detail-value">' + addr.range + '</span>' +
+          '</div>' +
+          '<div class="addr-detail-row">' +
+            '<span class="detail-label">Scope</span>' +
+            '<span class="detail-value" style="font-family:var(--font-sans);">' + addr.scope + '</span>' +
+          '</div>' +
+          '<div class="addr-detail-row">' +
+            '<span class="detail-label">Example</span>' +
+            '<span class="detail-value">' + addr.example + '</span>' +
+          '</div>' +
+          '<div class="addr-use-case">' + addr.useCase + '</div>' +
+        '</div>';
+
+      card.querySelector('.addr-card-header').addEventListener('click', function() {
+        card.classList.toggle('expanded');
+      });
+
+      cardsContainer.appendChild(card);
+    });
+
+    // ══════════════════════════════════════════════
+    // TAB 2: EUI-64 Calculator
+    // ══════════════════════════════════════════════
+    function parseMac(mac) {
+      // Accept formats: AA:BB:CC:DD:EE:FF, AA-BB-CC-DD-EE-FF, AABB.CCDD.EEFF, AABBCCDDEEFF
+      var cleaned = mac.replace(/[:\-\.]/g, '').toUpperCase();
+      if (!/^[0-9A-F]{12}$/.test(cleaned)) return null;
+      var bytes = [];
+      for (var i = 0; i < 12; i += 2) {
+        bytes.push(cleaned.substring(i, i + 2));
+      }
+      return bytes; // Array of 6 hex strings
+    }
+
+    function hexToBin(hex) {
+      return parseInt(hex, 16).toString(2).padStart(8, '0');
+    }
+
+    function binToHex(bin) {
+      return parseInt(bin, 2).toString(16).toUpperCase().padStart(2, '0');
+    }
+
+    function computeEUI64(macBytes) {
+      // Step 1: Split in half
+      var firstHalf = macBytes.slice(0, 3);
+      var secondHalf = macBytes.slice(3, 6);
+
+      // Step 2: Insert FFFE
+      var inserted = [firstHalf[0], firstHalf[1], firstHalf[2], 'FF', 'FE', secondHalf[0], secondHalf[1], secondHalf[2]];
+
+      // Step 3: Flip 7th bit of first byte
+      var firstByte = hexToBin(inserted[0]);
+      var bit7 = firstByte[6]; // 7th bit (index 6, 0-based)
+      var flippedBit = bit7 === '0' ? '1' : '0';
+      var flippedBinary = firstByte.substring(0, 6) + flippedBit + firstByte[7];
+      var flippedByte = binToHex(flippedBinary);
+
+      var result = [flippedByte, inserted[1], inserted[2], inserted[3], inserted[4], inserted[5], inserted[6], inserted[7]];
+
+      // Format as IPv6 interface ID (4 groups of 4 hex)
+      var interfaceId = result[0] + result[1] + ':' + result[2] + result[3] + ':' + result[4] + result[5] + ':' + result[6] + result[7];
+
+      return {
+        firstHalf: firstHalf,
+        secondHalf: secondHalf,
+        inserted: inserted,
+        firstByteBinary: firstByte,
+        bit7Original: bit7,
+        flippedBinary: flippedBinary,
+        flippedByte: flippedByte,
+        result: result,
+        interfaceId: interfaceId.toLowerCase()
+      };
+    }
+
+    function renderEUI64Steps(macBytes, prefix) {
+      var stepsContainer = document.getElementById('eui-steps');
+      stepsContainer.innerHTML = '';
+
+      var eui = computeEUI64(macBytes);
+      var macStr = macBytes.join(':');
+
+      // Step 1: Split
+      var step1 = makeStep(1, 'Split MAC address in half',
+        '<span class="highlight-char">' + eui.firstHalf.join(':') + '</span>' +
+        ' <span style="color:var(--text-muted);">|</span> ' +
+        '<span class="highlight-char">' + eui.secondHalf.join(':') + '</span>',
+        'OUI (Organizationally Unique Identifier) | Device Identifier'
+      );
+      stepsContainer.appendChild(step1);
+
+      // Step 2: Insert FFFE
+      var step2 = makeStep(2, 'Insert FFFE in the middle',
+        '<span class="highlight-char">' + eui.firstHalf.join(':') + '</span>' +
+        ':<span class="highlight-insert">FF:FE</span>:' +
+        '<span class="highlight-char">' + eui.secondHalf.join(':') + '</span>',
+        'FFFE is inserted between the OUI and device ID to expand from 48-bit MAC to 64-bit EUI-64'
+      );
+      stepsContainer.appendChild(step2);
+
+      // Step 3: Flip 7th bit
+      var binaryDisplay = eui.firstByteBinary.substring(0, 6) +
+        '<span class="highlight-flip">' + eui.bit7Original + '</span>' +
+        eui.firstByteBinary[7] +
+        '  &rarr;  ' +
+        eui.flippedBinary.substring(0, 6) +
+        '<span class="highlight-flip">' + (eui.bit7Original === '0' ? '1' : '0') + '</span>' +
+        eui.flippedBinary[7];
+
+      var step3 = makeStep(3, 'Flip the 7th bit (Universal/Local bit)',
+        'First byte: <span style="color:var(--text-secondary);">' + eui.inserted[0] + '</span> = ' +
+        binaryDisplay +
+        ' = <span class="highlight-flip">' + eui.flippedByte + '</span>',
+        'Bit 7 (U/L): 0 = universally administered (OUI from IEEE) &rarr; flipped to 1. ' +
+        '1 = locally administered &rarr; flipped to 0.'
+      );
+      stepsContainer.appendChild(step3);
+
+      // Step 4: Result Interface ID
+      var step4 = makeStep(4, 'Resulting Interface ID (64 bits)',
+        '<span class="highlight-result">' + eui.interfaceId + '</span>',
+        '8 bytes formatted as 4 groups of 4 hex digits'
+      );
+      stepsContainer.appendChild(step4);
+
+      // Step 5: Full address
+      if (prefix && prefix.trim()) {
+        var cleanPrefix = prefix.trim().replace(/:{0,2}$/, '');
+        var fullAddr = cleanPrefix + ':' + eui.interfaceId;
+        var step5 = makeStep(5, 'Full IPv6 Address (Prefix + Interface ID)',
+          '<span style="color:var(--green);">' + cleanPrefix + '</span>:<span class="highlight-result">' + eui.interfaceId + '</span>',
+          'This is the complete GUA or link-local address using EUI-64'
+        );
+        stepsContainer.appendChild(step5);
+      }
+    }
+
+    function makeStep(num, title, valueHtml, note) {
+      var step = document.createElement('div');
+      step.className = 'eui-step';
+      step.style.animationDelay = ((num - 1) * 0.08) + 's';
+      step.innerHTML =
+        '<div class="eui-step-num">' + num + '</div>' +
+        '<div class="eui-step-content">' +
+          '<div class="step-title">' + title + '</div>' +
+          '<div class="step-value">' + valueHtml + '</div>' +
+          (note ? '<div class="step-note">' + note + '</div>' : '') +
+        '</div>';
+      return step;
+    }
+
+    document.getElementById('eui-calc-btn').addEventListener('click', function() {
+      var macStr = document.getElementById('eui-mac').value.trim();
+      var prefix = document.getElementById('eui-prefix').value.trim();
+      var macBytes = parseMac(macStr);
+      if (!macBytes) {
+        alert('Enter a valid MAC address (e.g., AA:BB:CC:DD:EE:FF)');
+        return;
+      }
+      renderEUI64Steps(macBytes, prefix);
+    });
+
+    document.getElementById('eui-mac').addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') document.getElementById('eui-calc-btn').click();
+    });
+
+    // ══════════════════════════════════════════════
+    // TAB 3: IPv6 Shortening / Expanding
+    // ══════════════════════════════════════════════
+    function shortenIPv6(addr) {
+      // Normalize: expand first, then shorten
+      var expanded = expandIPv6(addr);
+      if (!expanded) return null;
+
+      var groups = expanded.split(':');
+
+      // Rule 1: Remove leading zeros
+      var stripped = groups.map(function(g) {
+        return g.replace(/^0+/, '') || '0';
+      });
+
+      // Rule 2: Find longest consecutive run of '0' groups
+      var bestStart = -1, bestLen = 0;
+      var curStart = -1, curLen = 0;
+
+      for (var i = 0; i < 8; i++) {
+        if (stripped[i] === '0') {
+          if (curStart === -1) curStart = i;
+          curLen++;
+          if (curLen > bestLen) {
+            bestStart = curStart;
+            bestLen = curLen;
+          }
+        } else {
+          curStart = -1;
+          curLen = 0;
+        }
+      }
+
+      if (bestLen >= 2) {
+        var before = stripped.slice(0, bestStart);
+        var after = stripped.slice(bestStart + bestLen);
+        var result = '';
+        if (before.length === 0 && after.length === 0) {
+          result = '::';
+        } else if (before.length === 0) {
+          result = '::' + after.join(':');
+        } else if (after.length === 0) {
+          result = before.join(':') + '::';
+        } else {
+          result = before.join(':') + '::' + after.join(':');
+        }
+        return result;
+      }
+
+      return stripped.join(':');
+    }
+
+    function expandIPv6(addr) {
+      if (!addr || typeof addr !== 'string') return null;
+      addr = addr.trim().toLowerCase();
+
+      // Remove /prefix if present
+      addr = addr.replace(/\/\d+$/, '');
+
+      // Handle :: expansion
+      var halves, groups;
+      if (addr.indexOf('::') !== -1) {
+        var parts = addr.split('::');
+        if (parts.length > 2) return null; // Invalid: multiple ::
+        var left = parts[0] ? parts[0].split(':') : [];
+        var right = parts[1] ? parts[1].split(':') : [];
+        var missing = 8 - left.length - right.length;
+        if (missing < 0) return null;
+        var middle = [];
+        for (var m = 0; m < missing; m++) middle.push('0000');
+        groups = left.concat(middle).concat(right);
+      } else {
+        groups = addr.split(':');
+      }
+
+      if (groups.length !== 8) return null;
+
+      // Pad each group to 4 hex digits
+      var expanded = groups.map(function(g) {
+        if (!/^[0-9a-f]{1,4}$/.test(g)) return null;
+        return ('0000' + g).slice(-4);
+      });
+
+      if (expanded.indexOf(null) !== -1) return null;
+      return expanded.join(':');
+    }
+
+    // Shorten button
+    document.getElementById('shorten-btn').addEventListener('click', function() {
+      var input = document.getElementById('shorten-input').value.trim();
+      if (!input) return;
+      var shortened = shortenIPv6(input);
+      var resultDiv = document.getElementById('shorten-result');
+      var outputDiv = document.getElementById('shorten-output');
+      if (shortened) {
+        outputDiv.textContent = shortened;
+        resultDiv.classList.remove('hidden');
+      } else {
+        outputDiv.textContent = 'Invalid IPv6 address';
+        outputDiv.style.color = 'var(--red)';
+        resultDiv.classList.remove('hidden');
+        setTimeout(function() { outputDiv.style.color = 'var(--green)'; }, 2000);
+      }
+    });
+
+    document.getElementById('shorten-input').addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') document.getElementById('shorten-btn').click();
+    });
+
+    // Expand button
+    document.getElementById('expand-btn').addEventListener('click', function() {
+      var input = document.getElementById('expand-input').value.trim();
+      if (!input) return;
+      var expanded = expandIPv6(input);
+      var resultDiv = document.getElementById('expand-result');
+      var outputDiv = document.getElementById('expand-output');
+      if (expanded) {
+        outputDiv.textContent = expanded;
+        resultDiv.classList.remove('hidden');
+      } else {
+        outputDiv.textContent = 'Invalid IPv6 address';
+        outputDiv.style.color = 'var(--red)';
+        resultDiv.classList.remove('hidden');
+        setTimeout(function() { outputDiv.style.color = 'var(--cyan)'; }, 2000);
+      }
+    });
+
+    document.getElementById('expand-input').addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') document.getElementById('expand-btn').click();
+    });
+
+    // ══════════════════════════════════════════════
+    // Copy command block
+    // ══════════════════════════════════════════════
+    function copyCmd(blockId) {
+      var block = document.getElementById(blockId);
+      var lines = block.querySelectorAll('.cmd-line');
+      var text = '';
+      lines.forEach(function(line) {
+        var lineText = line.textContent.replace(/\s*!.*$/, '').trim();
+        if (lineText) text += lineText + '\n';
+      });
+      navigator.clipboard.writeText(text.trim()).then(function() {
+        var btn = block.querySelector('.cmd-copy-btn');
+        btn.textContent = 'Copied!';
+        setTimeout(function() { btn.textContent = 'Copy'; }, 1500);
+      });
+    }
+
+    // Expose to inline onclick
+    window.copyCmd = copyCmd;
+
+    // Auto-run EUI-64 calculation on load
+    (function() {
+      var macBytes = parseMac(document.getElementById('eui-mac').value);
+      if (macBytes) {
+        renderEUI64Steps(macBytes, document.getElementById('eui-prefix').value);
+      }
+    })();
+  </script>
+</body>
+</html>

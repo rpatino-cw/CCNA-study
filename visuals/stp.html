@@ -1,0 +1,1217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>STP / RSTP Visualizer — CCNA Study</title>
+  <link rel="stylesheet" href="../css/shared.css">
+  <style>
+    /* Tabs */
+    .tab-row {
+      display: flex; gap: 4px; margin-bottom: 24px;
+      border-bottom: 1px solid var(--border); padding-bottom: 0;
+    }
+    .tab-btn {
+      padding: 10px 20px; background: none; border: none;
+      color: var(--text-secondary); cursor: pointer;
+      font-size: 0.9rem; font-family: inherit;
+      border-bottom: 2px solid transparent; transition: all var(--transition);
+    }
+    .tab-btn:hover { color: var(--text-primary); }
+    .tab-btn.active { color: var(--red); border-bottom-color: var(--red); }
+
+    .tool-section { margin-bottom: 32px; }
+
+    /* ── State Machine Diagram ── */
+    .state-machine-canvas {
+      position: relative;
+      width: 100%; height: 380px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      margin-bottom: 24px;
+    }
+    .state-box {
+      position: absolute;
+      padding: 14px 22px;
+      border-radius: var(--radius-md);
+      border: 2px solid;
+      font-weight: 600; font-size: 0.95rem;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-align: center;
+      z-index: 2;
+      user-select: none;
+    }
+    .state-box:hover {
+      transform: scale(1.08);
+      box-shadow: 0 0 24px rgba(255,255,255,0.08);
+    }
+    .state-box.selected {
+      transform: scale(1.1);
+      box-shadow: 0 0 30px rgba(91,141,239,0.35);
+    }
+    .state-box .state-label { font-size: 0.72rem; color: inherit; opacity: 0.75; margin-top: 2px; }
+
+    .state-blocking { background: var(--red-dim); border-color: var(--red); color: var(--red); left: 4%; top: 42%; }
+    .state-listening { background: var(--yellow-dim); border-color: var(--yellow); color: var(--yellow); left: 24%; top: 42%; }
+    .state-learning { background: var(--blue-dim); border-color: var(--blue); color: var(--blue); left: 48%; top: 42%; }
+    .state-forwarding { background: var(--green-dim); border-color: var(--green); color: var(--green); left: 72%; top: 42%; }
+    .state-disabled { background: var(--bg-card); border-color: var(--text-muted); color: var(--text-muted); left: 4%; top: 4%; }
+
+    .state-arrow {
+      position: absolute;
+      z-index: 1;
+    }
+
+    .state-detail-panel {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 20px 24px;
+      min-height: 150px;
+      transition: all 0.3s ease;
+    }
+    .state-detail-panel h3 { margin-bottom: 12px; }
+    .state-detail-panel .detail-row {
+      display: flex; gap: 8px; margin-bottom: 8px; font-size: 0.9rem;
+    }
+    .state-detail-panel .detail-label {
+      font-weight: 600; color: var(--text-secondary); min-width: 120px;
+    }
+    .state-detail-panel .detail-value { color: var(--text-primary); }
+
+    /* Timer reference */
+    .timer-cards {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 12px; margin-top: 16px;
+    }
+    .timer-card {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); padding: 16px; text-align: center;
+    }
+    .timer-card .timer-name {
+      font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.04em;
+      color: var(--text-muted); margin-bottom: 4px;
+    }
+    .timer-card .timer-value {
+      font-family: var(--font-mono); font-size: 1.4rem; font-weight: 700;
+    }
+    .timer-card .timer-desc {
+      font-size: 0.78rem; color: var(--text-secondary); margin-top: 4px;
+    }
+
+    /* Toggle */
+    .toggle-row {
+      display: flex; align-items: center; gap: 12px; margin-bottom: 20px;
+    }
+    .toggle-switch {
+      position: relative; width: 48px; height: 26px;
+      background: var(--bg-input); border: 1px solid var(--border);
+      border-radius: 13px; cursor: pointer; transition: all 0.3s ease;
+    }
+    .toggle-switch.active { background: var(--blue-dim); border-color: var(--blue); }
+    .toggle-switch::after {
+      content: ''; position: absolute; top: 3px; left: 3px;
+      width: 18px; height: 18px; border-radius: 50%;
+      background: var(--text-muted); transition: all 0.3s ease;
+    }
+    .toggle-switch.active::after { left: 25px; background: var(--blue); }
+
+    /* Comparison table */
+    .comparison-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 16px;
+    }
+    .comparison-col { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 20px; }
+    .comparison-col h3 { margin-bottom: 12px; font-size: 1rem; }
+
+    .rstp-section { margin-top: 20px; }
+
+    /* ── Election Simulator ── */
+    .topo-canvas {
+      position: relative;
+      width: 100%; height: 480px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      overflow: hidden; margin-bottom: 20px;
+    }
+    .switch-node {
+      position: absolute; z-index: 3;
+      width: 170px;
+      background: var(--bg-card); border: 2px solid var(--border);
+      border-radius: var(--radius-md); padding: 12px;
+      cursor: pointer; transition: all 0.3s ease;
+    }
+    .switch-node:hover { border-color: var(--blue); }
+    .switch-node.root-bridge {
+      border-color: var(--green);
+      box-shadow: 0 0 24px rgba(52,211,153,0.25);
+    }
+    .switch-node .sw-name {
+      font-weight: 700; font-size: 0.95rem; text-align: center;
+      margin-bottom: 8px;
+    }
+    .switch-node .sw-field {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 4px; font-size: 0.78rem;
+    }
+    .switch-node .sw-field label { color: var(--text-muted); }
+    .switch-node .sw-field input, .switch-node .sw-field select {
+      background: var(--bg-input); border: 1px solid var(--border);
+      border-radius: 4px; padding: 3px 6px; color: var(--text-primary);
+      font-family: var(--font-mono); font-size: 0.75rem; width: 95px;
+      outline: none; text-align: right;
+    }
+    .switch-node .sw-field input:focus, .switch-node .sw-field select:focus {
+      border-color: var(--blue);
+    }
+    .switch-node .sw-bid {
+      font-family: var(--font-mono); font-size: 0.7rem;
+      color: var(--text-muted); text-align: center;
+      margin-top: 6px; padding-top: 6px;
+      border-top: 1px solid var(--border);
+      word-break: break-all;
+    }
+    .switch-node .sw-role {
+      text-align: center; font-weight: 700; font-size: 0.82rem;
+      margin-top: 4px; padding: 3px 8px; border-radius: 4px;
+    }
+
+    .port-label {
+      position: absolute; z-index: 4;
+      font-size: 0.68rem; font-weight: 700;
+      padding: 2px 6px; border-radius: 3px;
+      font-family: var(--font-mono);
+      pointer-events: none;
+    }
+    .port-label.root-port { background: var(--blue-dim); color: var(--blue); }
+    .port-label.designated-port { background: var(--green-dim); color: var(--green); }
+    .port-label.blocked-port { background: var(--red-dim); color: var(--red); }
+
+    .link-line {
+      position: absolute; z-index: 1;
+      pointer-events: none;
+    }
+
+    .election-controls {
+      display: flex; gap: 12px; align-items: center; flex-wrap: wrap;
+      margin-bottom: 16px;
+    }
+
+    .rules-panel {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--radius-md); padding: 20px;
+    }
+    .rules-panel h3 { margin-bottom: 12px; }
+    .rules-panel ol { padding-left: 20px; }
+    .rules-panel li { margin-bottom: 8px; font-size: 0.9rem; color: var(--text-secondary); }
+    .rules-panel li strong { color: var(--text-primary); }
+
+    .cost-table { margin-top: 12px; }
+    .cost-table td { font-family: var(--font-mono); font-size: 0.85rem; padding: 4px 14px; }
+
+    /* ── PortFast & Security ── */
+    .feature-card {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--radius-md); padding: 20px; margin-bottom: 16px;
+      transition: border-color var(--transition);
+    }
+    .feature-card:hover { border-color: rgba(91,141,239,0.3); }
+    .feature-header {
+      display: flex; align-items: center; gap: 12px; margin-bottom: 12px;
+    }
+    .feature-indicator {
+      width: 32px; height: 32px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1rem; font-weight: 700; flex-shrink: 0;
+    }
+    .indicator-green { background: var(--green-dim); color: var(--green); }
+    .indicator-yellow { background: var(--yellow-dim); color: var(--yellow); }
+    .indicator-red { background: var(--red-dim); color: var(--red); }
+
+    .feature-header h3 { font-size: 1.05rem; }
+    .feature-body p { font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 8px; line-height: 1.6; }
+    .feature-body .feature-label {
+      font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.04em;
+      color: var(--text-muted); margin-top: 12px; margin-bottom: 4px; font-weight: 600;
+    }
+
+    .cmd-block {
+      background: var(--bg-input); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); padding: 10px 14px;
+      font-family: var(--font-mono); font-size: 0.82rem;
+      color: var(--cyan); line-height: 1.8;
+      overflow-x: auto; white-space: pre;
+    }
+
+    .commands-reference {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--radius-md); padding: 20px; margin-top: 24px;
+    }
+    .commands-reference h3 { margin-bottom: 12px; }
+
+    /* SVG inside topo canvas */
+    .topo-svg {
+      position: absolute; top: 0; left: 0;
+      width: 100%; height: 100%;
+      pointer-events: none; z-index: 1;
+    }
+    .topo-svg line {
+      stroke: var(--border); stroke-width: 2;
+      transition: all 0.5s ease;
+    }
+    .topo-svg line.active-link {
+      stroke: var(--green); stroke-width: 3;
+    }
+    .topo-svg line.blocked-link {
+      stroke: var(--red); stroke-width: 2;
+      stroke-dasharray: 8 4;
+    }
+
+    /* RSTP state boxes */
+    .rstp-canvas .state-discarding { background: var(--red-dim); border-color: var(--red); color: var(--red); left: 10%; top: 42%; }
+    .rstp-canvas .state-learning-rstp { background: var(--blue-dim); border-color: var(--blue); color: var(--blue); left: 42%; top: 42%; }
+    .rstp-canvas .state-forwarding-rstp { background: var(--green-dim); border-color: var(--green); color: var(--green); left: 72%; top: 42%; }
+
+    /* Convergence animation bar */
+    .convergence-bar {
+      width: 100%; height: 32px; background: var(--bg-input);
+      border-radius: var(--radius-sm); overflow: hidden; position: relative;
+      margin-top: 12px;
+    }
+    .convergence-fill {
+      height: 100%; border-radius: var(--radius-sm);
+      transition: width 0.5s ease;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.78rem; font-weight: 600; color: #fff;
+    }
+    .convergence-segments {
+      display: flex; height: 100%;
+    }
+    .conv-segment {
+      height: 100%; display: flex; align-items: center; justify-content: center;
+      font-size: 0.72rem; font-weight: 600; transition: width 1s ease;
+      overflow: hidden; white-space: nowrap;
+    }
+
+    /* Animate state machine */
+    @keyframes flowPulse {
+      0% { opacity: 0.4; }
+      50% { opacity: 1; }
+      100% { opacity: 0.4; }
+    }
+    .flow-dot {
+      position: absolute; width: 8px; height: 8px;
+      border-radius: 50%; z-index: 3;
+      animation: flowPulse 1.5s ease-in-out infinite;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .comparison-grid { grid-template-columns: 1fr; }
+      .state-machine-canvas { height: 340px; }
+      .state-box { padding: 10px 14px; font-size: 0.82rem; }
+      .topo-canvas { height: 600px; }
+      .switch-node { width: 150px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Nav -->
+    <nav class="top-nav" style="margin-bottom: 16px;">
+      <a href="../index.html">Dashboard</a>
+      <a href="../knowledge-map.html">Knowledge Map</a>
+      <a href="../diagnostic.html">Diagnostic</a>
+      <a href="../quiz.html">Quiz</a>
+    </nav>
+
+    <div class="page-header">
+      <div>
+        <h1>STP / RSTP Visualizer <span class="badge badge-red" style="margin-left:10px; vertical-align:middle;">RED TOPIC</span></h1>
+        <div class="subtitle">Spanning Tree Protocol -- Port States, Root Election, PortFast & Security</div>
+      </div>
+      <a href="../index.html" class="back-link">&larr; Back to Dashboard</a>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tab-row">
+      <button class="tab-btn active" data-tab="states">Port States & Timers</button>
+      <button class="tab-btn" data-tab="election">Root Bridge Election</button>
+      <button class="tab-btn" data-tab="security">PortFast & Security</button>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════ -->
+    <!-- TAB 1: STP Port States & Timers                     -->
+    <!-- ═══════════════════════════════════════════════════ -->
+    <div id="tab-states" class="tool-section">
+
+      <h2 style="margin-bottom:16px;">STP Port State Machine</h2>
+      <p class="text-secondary" style="margin-bottom:16px; font-size:0.9rem;">Click any state to see details. Watch the flow animation showing the transition path.</p>
+
+      <div class="state-machine-canvas" id="stp-canvas">
+        <svg class="topo-svg" id="stp-arrows"></svg>
+        <!-- State boxes are rendered by JS -->
+      </div>
+
+      <div class="state-detail-panel" id="state-detail">
+        <h3 id="detail-title" style="color:var(--text-muted);">Select a state above</h3>
+        <p id="detail-hint" class="text-secondary" style="font-size:0.9rem;">Click on any of the port state boxes to view detailed information about what happens during that state.</p>
+        <div id="detail-content"></div>
+      </div>
+
+      <!-- Timers -->
+      <h2 style="margin-top:28px; margin-bottom:4px;">STP Timers</h2>
+      <p class="text-secondary" style="font-size:0.85rem; margin-bottom:8px;">These timers are set by the Root Bridge and propagated via BPDUs.</p>
+      <div class="timer-cards">
+        <div class="timer-card">
+          <div class="timer-name">Hello Timer</div>
+          <div class="timer-value text-blue">2s</div>
+          <div class="timer-desc">Interval between BPDU transmissions</div>
+        </div>
+        <div class="timer-card">
+          <div class="timer-name">Forward Delay</div>
+          <div class="timer-value text-yellow">15s</div>
+          <div class="timer-desc">Time in Listening + Learning each</div>
+        </div>
+        <div class="timer-card">
+          <div class="timer-name">Max Age</div>
+          <div class="timer-value text-red">20s</div>
+          <div class="timer-desc">Max time a BPDU is stored before discard</div>
+        </div>
+        <div class="timer-card">
+          <div class="timer-name">Total Convergence</div>
+          <div class="timer-value text-purple">30-50s</div>
+          <div class="timer-desc">Max Age (20s) + 2 x Forward Delay (30s)</div>
+        </div>
+      </div>
+
+      <!-- Convergence Timeline -->
+      <h3 style="margin-top:24px; margin-bottom:8px;">Convergence Timeline</h3>
+      <div class="convergence-bar">
+        <div class="convergence-segments">
+          <div class="conv-segment" style="width:40%; background:var(--red-dim); color:var(--red);">Blocking / Max Age (20s)</div>
+          <div class="conv-segment" style="width:30%; background:var(--yellow-dim); color:var(--yellow);">Listening (15s)</div>
+          <div class="conv-segment" style="width:30%; background:var(--blue-dim); color:var(--blue);">Learning (15s)</div>
+        </div>
+      </div>
+      <p class="text-muted" style="font-size:0.78rem; margin-top:4px; text-align:right;">Total worst case: up to 50 seconds before forwarding data</p>
+
+      <!-- RSTP Comparison Toggle -->
+      <div style="margin-top:32px;">
+        <div class="toggle-row">
+          <div class="toggle-switch" id="rstp-toggle"></div>
+          <span style="font-weight:600;">Show RSTP (802.1w) Comparison</span>
+        </div>
+
+        <div id="rstp-comparison" class="rstp-section hidden">
+          <div class="comparison-grid">
+            <div class="comparison-col">
+              <h3 style="color:var(--yellow);">STP (802.1D)</h3>
+              <table>
+                <thead><tr><th>State</th><th>Action</th></tr></thead>
+                <tbody>
+                  <tr><td><span class="text-muted">Disabled</span></td><td class="text-secondary">Administratively down</td></tr>
+                  <tr><td><span class="text-red">Blocking</span></td><td class="text-secondary">Receives BPDUs only</td></tr>
+                  <tr><td><span class="text-yellow">Listening</span></td><td class="text-secondary">Sends/receives BPDUs</td></tr>
+                  <tr><td><span class="text-blue">Learning</span></td><td class="text-secondary">Learns MAC addresses</td></tr>
+                  <tr><td><span class="text-green">Forwarding</span></td><td class="text-secondary">Full operation</td></tr>
+                </tbody>
+              </table>
+              <div style="margin-top:12px; font-size:0.85rem;">
+                <span class="text-muted">Convergence:</span> <span class="text-red" style="font-weight:600;">30-50 seconds</span>
+              </div>
+              <div style="font-size:0.85rem;">
+                <span class="text-muted">Port Roles:</span> Root, Designated, Blocked
+              </div>
+            </div>
+            <div class="comparison-col">
+              <h3 style="color:var(--green);">RSTP (802.1w)</h3>
+              <table>
+                <thead><tr><th>State</th><th>Replaces</th></tr></thead>
+                <tbody>
+                  <tr><td><span class="text-red">Discarding</span></td><td class="text-secondary">Disabled + Blocking + Listening</td></tr>
+                  <tr><td><span class="text-blue">Learning</span></td><td class="text-secondary">Same as STP Learning</td></tr>
+                  <tr><td><span class="text-green">Forwarding</span></td><td class="text-secondary">Same as STP Forwarding</td></tr>
+                </tbody>
+              </table>
+              <div style="margin-top:12px; font-size:0.85rem;">
+                <span class="text-muted">Convergence:</span> <span class="text-green" style="font-weight:600;">~1-2 seconds</span>
+              </div>
+              <div style="font-size:0.85rem;">
+                <span class="text-muted">Port Roles:</span> Root, Designated, Alternate, Backup
+              </div>
+              <div style="margin-top:12px; padding:10px; background:var(--bg-secondary); border-radius:var(--radius-sm); font-size:0.85rem;">
+                <strong style="color:var(--green);">Key Advantages:</strong>
+                <ul style="padding-left:16px; margin-top:4px; color:var(--text-secondary);">
+                  <li>Proposal/Agreement mechanism for rapid transitions</li>
+                  <li>Alternate port = instant failover (pre-computed backup)</li>
+                  <li>Edge ports (PortFast equivalent) built into protocol</li>
+                  <li>No need to wait for timer expiry</li>
+                  <li>All bridges generate BPDUs (not just root)</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════ -->
+    <!-- TAB 2: Root Bridge Election Simulator               -->
+    <!-- ═══════════════════════════════════════════════════ -->
+    <div id="tab-election" class="tool-section hidden">
+      <h2 style="margin-bottom:8px;">Root Bridge Election Simulator</h2>
+      <p class="text-secondary" style="margin-bottom:16px; font-size:0.9rem;">Edit switch priorities and MAC addresses, then run the election to see which switch becomes Root Bridge.</p>
+
+      <div class="election-controls">
+        <button class="btn btn-primary" id="run-election">Run Election</button>
+        <button class="btn btn-secondary" id="reset-election">Reset</button>
+        <select id="preset-select" style="background:var(--bg-input);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 12px;color:var(--text-primary);font-family:inherit;font-size:0.85rem;">
+          <option value="">Load Preset...</option>
+          <option value="default">All Default (MAC decides)</option>
+          <option value="lowpri">One Low Priority</option>
+          <option value="multivlan">Multiple VLANs</option>
+        </select>
+        <span id="election-status" style="font-size:0.85rem; color:var(--text-muted);"></span>
+      </div>
+
+      <div class="topo-canvas" id="topo-canvas">
+        <svg class="topo-svg" id="topo-svg"></svg>
+        <!-- Switch nodes rendered by JS -->
+      </div>
+
+      <!-- Rules Panel -->
+      <div class="grid-2" style="gap:20px;">
+        <div class="rules-panel">
+          <h3>STP Election Rules</h3>
+          <ol>
+            <li><strong>Lowest Bridge ID wins Root Bridge</strong> -- Bridge ID = Priority (16 bits) + MAC Address (48 bits). Priority compared first; if tied, lowest MAC wins.</li>
+            <li><strong>Root Ports</strong> -- On each non-root switch, the port with the best (lowest cost) path to root.</li>
+            <li><strong>Designated Ports</strong> -- On each network segment, the port that provides the best path toward the root bridge.</li>
+            <li><strong>Blocked / Non-Designated Ports</strong> -- All other ports are blocked to prevent loops. In RSTP these become Alternate or Backup ports.</li>
+          </ol>
+        </div>
+        <div class="rules-panel">
+          <h3>Path Cost Values (IEEE)</h3>
+          <table class="cost-table">
+            <thead><tr><th>Speed</th><th>Cost</th></tr></thead>
+            <tbody>
+              <tr><td>10 Gbps</td><td>2</td></tr>
+              <tr><td>1 Gbps</td><td>4</td></tr>
+              <tr><td>100 Mbps</td><td>19</td></tr>
+              <tr><td>10 Mbps</td><td>100</td></tr>
+            </tbody>
+          </table>
+          <div style="margin-top:16px;">
+            <h3>Bridge ID Format</h3>
+            <div style="font-family:var(--font-mono); font-size:0.85rem; margin-top:8px; padding:10px; background:var(--bg-secondary); border-radius:var(--radius-sm); color:var(--text-secondary);">
+              <div><span class="text-yellow">Priority (4 bits)</span> + <span class="text-blue">VLAN (12 bits)</span> + <span class="text-muted">MAC (48 bits)</span></div>
+              <div style="margin-top:4px;">Default: 32768 + VLAN ID</div>
+              <div style="margin-top:2px;">Must be multiple of 4096</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════ -->
+    <!-- TAB 3: PortFast & Security Features                 -->
+    <!-- ═══════════════════════════════════════════════════ -->
+    <div id="tab-security" class="tool-section hidden">
+      <h2 style="margin-bottom:16px;">STP Security Features</h2>
+
+      <!-- PortFast -->
+      <div class="feature-card">
+        <div class="feature-header">
+          <div class="feature-indicator indicator-green">&#10003;</div>
+          <h3>PortFast</h3>
+          <span class="badge badge-green">Recommended</span>
+        </div>
+        <div class="feature-body">
+          <p><strong>What it does:</strong> Skips the Listening and Learning states, transitioning directly from Blocking to Forwarding. Eliminates the 30-second delay for end devices.</p>
+          <p><strong>When to use:</strong> On access ports connected to end devices (PCs, printers, servers). <span class="text-red">Never</span> use on ports connected to other switches -- it can cause temporary loops.</p>
+          <div class="feature-label">Configuration</div>
+          <div class="cmd-block">! Per-interface
+interface GigabitEthernet0/1
+ spanning-tree portfast
+
+! Global (all access ports)
+spanning-tree portfast default</div>
+        </div>
+      </div>
+
+      <!-- BPDU Guard -->
+      <div class="feature-card">
+        <div class="feature-header">
+          <div class="feature-indicator indicator-green">&#10003;</div>
+          <h3>BPDU Guard</h3>
+          <span class="badge badge-green">Recommended</span>
+        </div>
+        <div class="feature-body">
+          <p><strong>What it does:</strong> If a BPDU is received on a PortFast-enabled port, the port is immediately placed into err-disabled state. Prevents rogue switches from disrupting the STP topology.</p>
+          <p><strong>When to use:</strong> Always pair with PortFast on access ports. Essential for protecting against accidental or malicious switch connections.</p>
+          <div class="feature-label">Configuration</div>
+          <div class="cmd-block">! Per-interface
+interface GigabitEthernet0/1
+ spanning-tree bpduguard enable
+
+! Global (all PortFast ports)
+spanning-tree portfast bpduguard default
+
+! Auto-recovery
+errdisable recovery cause bpduguard
+errdisable recovery interval 300</div>
+        </div>
+      </div>
+
+      <!-- BPDU Filter -->
+      <div class="feature-card">
+        <div class="feature-header">
+          <div class="feature-indicator indicator-yellow">!</div>
+          <h3>BPDU Filter</h3>
+          <span class="badge badge-yellow">Use with Caution</span>
+        </div>
+        <div class="feature-body">
+          <p><strong>What it does:</strong> Stops sending and receiving BPDUs on a port. Effectively disables STP on that port. Per-interface mode is different from global mode.</p>
+          <p><strong>When to use:</strong> Rare scenarios where you need to completely disable STP on a port. <span class="text-yellow">Warning:</span> Can cause loops if misconfigured since the port will have no STP protection.</p>
+          <div class="feature-label">Configuration</div>
+          <div class="cmd-block">! Per-interface (dangerous -- completely disables STP)
+interface GigabitEthernet0/1
+ spanning-tree bpdufilter enable
+
+! Global (only on PortFast ports, reverts if BPDU received)
+spanning-tree portfast bpdufilter default</div>
+        </div>
+      </div>
+
+      <!-- Root Guard -->
+      <div class="feature-card">
+        <div class="feature-header">
+          <div class="feature-indicator indicator-green">&#10003;</div>
+          <h3>Root Guard</h3>
+          <span class="badge badge-green">Recommended</span>
+        </div>
+        <div class="feature-body">
+          <p><strong>What it does:</strong> Prevents a port from becoming a Root Port. If a superior BPDU is received, the port is placed into root-inconsistent (blocking) state. Protects the root bridge placement.</p>
+          <p><strong>When to use:</strong> On designated ports facing toward the network edge, where no switch should be able to become root bridge. Protects your intended STP topology.</p>
+          <div class="feature-label">Configuration</div>
+          <div class="cmd-block">interface GigabitEthernet0/1
+ spanning-tree guard root</div>
+        </div>
+      </div>
+
+      <!-- Loop Guard -->
+      <div class="feature-card">
+        <div class="feature-header">
+          <div class="feature-indicator indicator-yellow">!</div>
+          <h3>Loop Guard</h3>
+          <span class="badge badge-yellow">Use with Caution</span>
+        </div>
+        <div class="feature-body">
+          <p><strong>What it does:</strong> Prevents alternate/backup ports from transitioning to designated/forwarding if BPDUs stop being received (e.g., due to a unidirectional link failure). The port enters loop-inconsistent state instead.</p>
+          <p><strong>When to use:</strong> On non-designated (blocking) ports, particularly on redundant links. Complements UDLD (Unidirectional Link Detection). <span class="text-yellow">Cannot be used on the same port as Root Guard.</span></p>
+          <div class="feature-label">Configuration</div>
+          <div class="cmd-block">! Per-interface
+interface GigabitEthernet0/1
+ spanning-tree guard loop
+
+! Global
+spanning-tree loopguard default</div>
+        </div>
+      </div>
+
+      <!-- Key STP Commands Reference -->
+      <div class="commands-reference">
+        <h3>Key STP Commands</h3>
+        <div class="cmd-block" style="margin-top:12px;">show spanning-tree
+show spanning-tree vlan &lt;id&gt;
+show spanning-tree summary
+show spanning-tree interface &lt;int&gt;
+spanning-tree vlan &lt;id&gt; root primary
+spanning-tree vlan &lt;id&gt; root secondary
+spanning-tree vlan &lt;id&gt; priority &lt;value&gt;
+spanning-tree mode rapid-pvst
+spanning-tree portfast
+spanning-tree bpduguard enable
+debug spanning-tree events</div>
+      </div>
+    </div>
+
+  </div><!-- /container -->
+
+  <script>
+    // ════════════════════════════════════════
+    //  Tab switching
+    // ════════════════════════════════════════
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        document.querySelectorAll('.tool-section').forEach(s => s.classList.add('hidden'));
+        document.getElementById('tab-' + btn.dataset.tab).classList.remove('hidden');
+      });
+    });
+
+    // ════════════════════════════════════════
+    //  TAB 1: STP State Machine
+    // ════════════════════════════════════════
+    const stpStates = {
+      disabled: {
+        name: 'Disabled',
+        color: 'var(--text-muted)',
+        bgColor: 'var(--bg-card)',
+        borderColor: 'var(--text-muted)',
+        x: 4, y: 4,
+        duration: 'Indefinite (admin shutdown)',
+        bpdus: 'No -- port is administratively shut down',
+        learnsMacs: 'No',
+        forwardsData: 'No',
+        trigger: 'Port is administratively disabled (shutdown command). Re-enabled with "no shutdown".',
+        notes: 'Not part of the normal STP state machine flow. A disabled port takes no part in STP.'
+      },
+      blocking: {
+        name: 'Blocking',
+        color: 'var(--red)',
+        bgColor: 'var(--red-dim)',
+        borderColor: 'var(--red)',
+        x: 4, y: 42,
+        duration: 'Until topology converges (up to Max Age: 20s)',
+        bpdus: 'Receives BPDUs only (does NOT send)',
+        learnsMacs: 'No',
+        forwardsData: 'No',
+        trigger: 'Initial state when a port comes up. Also the state for non-designated / non-root ports to prevent loops.',
+        notes: 'The port listens for BPDUs to determine network topology. This is the loss-prevention state.'
+      },
+      listening: {
+        name: 'Listening',
+        color: 'var(--yellow)',
+        bgColor: 'var(--yellow-dim)',
+        borderColor: 'var(--yellow)',
+        x: 27, y: 42,
+        duration: 'Forward Delay timer: 15 seconds',
+        bpdus: 'Sends AND receives BPDUs',
+        learnsMacs: 'No',
+        forwardsData: 'No',
+        trigger: 'Transitions from Blocking when the port is selected as Root Port or Designated Port.',
+        notes: 'The port participates in STP topology determination. It processes BPDUs but does not populate the MAC table.'
+      },
+      learning: {
+        name: 'Learning',
+        color: 'var(--blue)',
+        bgColor: 'var(--blue-dim)',
+        borderColor: 'var(--blue)',
+        x: 50, y: 42,
+        duration: 'Forward Delay timer: 15 seconds',
+        bpdus: 'Sends AND receives BPDUs',
+        learnsMacs: 'Yes -- populates MAC address table',
+        forwardsData: 'No',
+        trigger: 'Transitions from Listening after Forward Delay (15s) expires.',
+        notes: 'The port begins learning source MAC addresses from incoming frames to prepare the MAC table before forwarding begins.'
+      },
+      forwarding: {
+        name: 'Forwarding',
+        color: 'var(--green)',
+        bgColor: 'var(--green-dim)',
+        borderColor: 'var(--green)',
+        x: 73, y: 42,
+        duration: 'Stable -- remains until topology change',
+        bpdus: 'Sends AND receives BPDUs',
+        learnsMacs: 'Yes',
+        forwardsData: 'Yes -- full operation',
+        trigger: 'Transitions from Learning after Forward Delay (15s) expires.',
+        notes: 'The port is fully operational. It sends and receives data frames, learns MACs, and participates in STP.'
+      }
+    };
+
+    const stpCanvas = document.getElementById('stp-canvas');
+    const stpSvg = document.getElementById('stp-arrows');
+
+    // Render state boxes
+    Object.keys(stpStates).forEach(key => {
+      const st = stpStates[key];
+      const box = document.createElement('div');
+      box.className = 'state-box';
+      box.id = 'state-' + key;
+      box.style.left = st.x + '%';
+      box.style.top = st.y + '%';
+      box.style.background = st.bgColor;
+      box.style.borderColor = st.borderColor;
+      box.style.color = st.color;
+      box.innerHTML = '<div>' + st.name + '</div><div class="state-label">' +
+        (key === 'forwarding' ? 'Data flows' :
+         key === 'learning' ? 'Learns MACs' :
+         key === 'listening' ? 'Elects roles' :
+         key === 'blocking' ? 'Receives BPDUs' :
+         'Admin down') + '</div>';
+      box.addEventListener('click', () => selectState(key));
+      stpCanvas.appendChild(box);
+    });
+
+    // Draw arrows between states using SVG
+    function drawStateMachineArrows() {
+      const canvas = stpCanvas;
+      const cw = canvas.offsetWidth;
+      const ch = canvas.offsetHeight;
+
+      // Get box centers
+      function getBoxCenter(key) {
+        const el = document.getElementById('state-' + key);
+        return {
+          x: el.offsetLeft + el.offsetWidth / 2,
+          y: el.offsetTop + el.offsetHeight / 2,
+          right: el.offsetLeft + el.offsetWidth,
+          left: el.offsetLeft,
+          top: el.offsetTop,
+          bottom: el.offsetTop + el.offsetHeight
+        };
+      }
+
+      const b = getBoxCenter('blocking');
+      const l = getBoxCenter('listening');
+      const lr = getBoxCenter('learning');
+      const f = getBoxCenter('forwarding');
+      const d = getBoxCenter('disabled');
+
+      let svg = '';
+
+      // Arrow: Blocking -> Listening
+      svg += arrowLine(b.right, b.y, l.left, l.y, 'var(--yellow)');
+      // Arrow: Listening -> Learning
+      svg += arrowLine(l.right, l.y, lr.left, lr.y, 'var(--blue)');
+      // Arrow: Learning -> Forwarding
+      svg += arrowLine(lr.right, lr.y, f.left, f.y, 'var(--green)');
+      // Arrow: Disabled -> Blocking (dashed)
+      svg += arrowLine(d.x, d.bottom, b.x, b.top, 'var(--text-muted)', true);
+
+      // Flow animation dots
+      stpSvg.innerHTML = svg;
+      renderFlowDots();
+    }
+
+    function arrowLine(x1, y1, x2, y2, color, dashed) {
+      const id = 'arrow-' + Math.random().toString(36).substr(2, 5);
+      const dashAttr = dashed ? ' stroke-dasharray="6 4"' : '';
+      return '<defs><marker id="' + id + '" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="' + color + '" /></marker></defs>' +
+        '<line x1="' + x1 + '" y1="' + y1 + '" x2="' + x2 + '" y2="' + y2 + '" stroke="' + color + '" stroke-width="2" marker-end="url(#' + id + ')"' + dashAttr + ' />';
+    }
+
+    function renderFlowDots() {
+      // Remove old dots
+      stpCanvas.querySelectorAll('.flow-dot').forEach(d => d.remove());
+
+      const pairs = [
+        { from: 'blocking', to: 'listening', color: 'var(--yellow)' },
+        { from: 'listening', to: 'learning', color: 'var(--blue)' },
+        { from: 'learning', to: 'forwarding', color: 'var(--green)' }
+      ];
+
+      pairs.forEach((p, i) => {
+        const fromEl = document.getElementById('state-' + p.from);
+        const toEl = document.getElementById('state-' + p.to);
+        const mx = (fromEl.offsetLeft + fromEl.offsetWidth + toEl.offsetLeft) / 2;
+        const my = fromEl.offsetTop + fromEl.offsetHeight / 2;
+        const dot = document.createElement('div');
+        dot.className = 'flow-dot';
+        dot.style.left = mx + 'px';
+        dot.style.top = (my - 4) + 'px';
+        dot.style.background = p.color;
+        dot.style.animationDelay = (i * 0.5) + 's';
+        stpCanvas.appendChild(dot);
+      });
+    }
+
+    // Select state detail
+    function selectState(key) {
+      const st = stpStates[key];
+      document.querySelectorAll('.state-box').forEach(b => b.classList.remove('selected'));
+      document.getElementById('state-' + key).classList.add('selected');
+
+      document.getElementById('detail-title').textContent = st.name + ' State';
+      document.getElementById('detail-title').style.color = st.color;
+      document.getElementById('detail-hint').style.display = 'none';
+
+      document.getElementById('detail-content').innerHTML =
+        '<div class="detail-row"><span class="detail-label">Duration:</span><span class="detail-value">' + st.duration + '</span></div>' +
+        '<div class="detail-row"><span class="detail-label">BPDUs:</span><span class="detail-value">' + st.bpdus + '</span></div>' +
+        '<div class="detail-row"><span class="detail-label">Learns MACs:</span><span class="detail-value">' + st.learnsMacs + '</span></div>' +
+        '<div class="detail-row"><span class="detail-label">Forwards Data:</span><span class="detail-value">' + st.forwardsData + '</span></div>' +
+        '<div class="detail-row"><span class="detail-label">Trigger:</span><span class="detail-value">' + st.trigger + '</span></div>' +
+        '<div class="detail-row" style="margin-top:8px;"><span class="detail-label">Notes:</span><span class="detail-value" style="color:var(--text-muted);">' + st.notes + '</span></div>';
+    }
+
+    // RSTP toggle
+    document.getElementById('rstp-toggle').addEventListener('click', function() {
+      this.classList.toggle('active');
+      document.getElementById('rstp-comparison').classList.toggle('hidden');
+    });
+
+    // Draw arrows on load and resize
+    setTimeout(drawStateMachineArrows, 100);
+    window.addEventListener('resize', () => {
+      drawStateMachineArrows();
+    });
+
+    // ════════════════════════════════════════
+    //  TAB 2: Root Bridge Election Simulator
+    // ════════════════════════════════════════
+    const defaultSwitches = [
+      { name: 'SW1', priority: 32768, mac: 'AA:AA:AA:00:00:01', x: 30, y: 5, cost: 4 },
+      { name: 'SW2', priority: 32768, mac: 'BB:BB:BB:00:00:02', x: 63, y: 5, cost: 4 },
+      { name: 'SW3', priority: 32768, mac: 'CC:CC:CC:00:00:03', x: 15, y: 55, cost: 4 },
+      { name: 'SW4', priority: 32768, mac: 'DD:DD:DD:00:00:04', x: 63, y: 55, cost: 4 }
+    ];
+
+    // Links between switches: [sw_index_a, sw_index_b, cost]
+    const links = [
+      [0, 1, 4],  // SW1 - SW2
+      [0, 2, 4],  // SW1 - SW3
+      [1, 3, 4],  // SW2 - SW4
+      [2, 3, 4],  // SW3 - SW4
+      [0, 3, 19], // SW1 - SW4 (diagonal, 100M)
+    ];
+
+    let switches = JSON.parse(JSON.stringify(defaultSwitches));
+    let electionResult = null;
+
+    const topoCanvas = document.getElementById('topo-canvas');
+    const topoSvg = document.getElementById('topo-svg');
+
+    function renderTopology() {
+      // Clear old nodes and labels
+      topoCanvas.querySelectorAll('.switch-node, .port-label').forEach(n => n.remove());
+
+      switches.forEach((sw, i) => {
+        const node = document.createElement('div');
+        node.className = 'switch-node';
+        if (electionResult && electionResult.rootIndex === i) node.classList.add('root-bridge');
+        node.style.left = sw.x + '%';
+        node.style.top = sw.y + '%';
+
+        let roleHtml = '';
+        if (electionResult) {
+          if (electionResult.rootIndex === i) {
+            roleHtml = '<div class="sw-role" style="background:var(--green-dim);color:var(--green);">ROOT BRIDGE</div>';
+          } else {
+            roleHtml = '<div class="sw-role" style="background:var(--blue-dim);color:var(--blue);">Non-Root</div>';
+          }
+        }
+
+        const priorityOptions = [];
+        for (let p = 0; p <= 61440; p += 4096) {
+          priorityOptions.push('<option value="' + p + '"' + (p === sw.priority ? ' selected' : '') + '>' + p + '</option>');
+        }
+
+        node.innerHTML =
+          '<div class="sw-name">' + sw.name + '</div>' +
+          '<div class="sw-field"><label>Priority</label><select data-sw="' + i + '" data-field="priority">' + priorityOptions.join('') + '</select></div>' +
+          '<div class="sw-field"><label>MAC</label><input data-sw="' + i + '" data-field="mac" value="' + sw.mac + '" maxlength="17"></div>' +
+          '<div class="sw-bid">BID: ' + sw.priority + ' + ' + sw.mac + '</div>' +
+          roleHtml;
+
+        topoCanvas.appendChild(node);
+      });
+
+      // Bind input events
+      topoCanvas.querySelectorAll('select[data-field="priority"]').forEach(sel => {
+        sel.addEventListener('change', function() {
+          const idx = parseInt(this.dataset.sw);
+          switches[idx].priority = parseInt(this.value);
+          electionResult = null;
+          renderTopology();
+        });
+      });
+      topoCanvas.querySelectorAll('input[data-field="mac"]').forEach(inp => {
+        inp.addEventListener('change', function() {
+          const idx = parseInt(this.dataset.sw);
+          switches[idx].mac = this.value.toUpperCase();
+          electionResult = null;
+          renderTopology();
+        });
+      });
+
+      drawLinks();
+    }
+
+    function drawLinks() {
+      const cw = topoCanvas.offsetWidth;
+      const ch = topoCanvas.offsetHeight;
+
+      function getNodeCenter(i) {
+        const nodes = topoCanvas.querySelectorAll('.switch-node');
+        const el = nodes[i];
+        if (!el) return { x: 0, y: 0 };
+        return {
+          x: el.offsetLeft + el.offsetWidth / 2,
+          y: el.offsetTop + el.offsetHeight / 2
+        };
+      }
+
+      // Wait for layout
+      setTimeout(() => {
+        let svgContent = '';
+        // Remove old port labels
+        topoCanvas.querySelectorAll('.port-label').forEach(l => l.remove());
+
+        links.forEach((link, li) => {
+          const a = getNodeCenter(link[0]);
+          const b = getNodeCenter(link[1]);
+
+          let lineClass = '';
+          let portRoleA = '';
+          let portRoleB = '';
+
+          if (electionResult) {
+            const linkInfo = electionResult.links[li];
+            if (linkInfo) {
+              lineClass = linkInfo.blocked ? 'blocked-link' : 'active-link';
+              portRoleA = linkInfo.roleA || '';
+              portRoleB = linkInfo.roleB || '';
+            }
+          }
+
+          svgContent += '<line x1="' + a.x + '" y1="' + a.y + '" x2="' + b.x + '" y2="' + b.y + '" class="' + lineClass + '" />';
+
+          // Cost label at midpoint
+          const mx = (a.x + b.x) / 2;
+          const my = (a.y + b.y) / 2;
+
+          // Port role labels
+          if (portRoleA) {
+            const lbl = document.createElement('div');
+            lbl.className = 'port-label ' + portRoleA.toLowerCase().replace(' ', '-') + '-port';
+            lbl.textContent = portRoleA;
+            lbl.style.left = (a.x + (b.x - a.x) * 0.25 - 20) + 'px';
+            lbl.style.top = (a.y + (b.y - a.y) * 0.25 - 10) + 'px';
+            topoCanvas.appendChild(lbl);
+          }
+          if (portRoleB) {
+            const lbl = document.createElement('div');
+            lbl.className = 'port-label ' + portRoleB.toLowerCase().replace(' ', '-') + '-port';
+            lbl.textContent = portRoleB;
+            lbl.style.left = (a.x + (b.x - a.x) * 0.75 - 20) + 'px';
+            lbl.style.top = (a.y + (b.y - a.y) * 0.75 - 10) + 'px';
+            topoCanvas.appendChild(lbl);
+          }
+        });
+
+        topoSvg.innerHTML = svgContent;
+      }, 50);
+    }
+
+    function macToNum(mac) {
+      return parseInt(mac.replace(/[:\-]/g, ''), 16);
+    }
+
+    function getBridgeId(sw) {
+      return { priority: sw.priority, macNum: macToNum(sw.mac), mac: sw.mac };
+    }
+
+    function compareBridgeId(a, b) {
+      if (a.priority !== b.priority) return a.priority - b.priority;
+      return a.macNum - b.macNum;
+    }
+
+    function runElection() {
+      // Find root bridge (lowest BID)
+      let rootIdx = 0;
+      let rootBid = getBridgeId(switches[0]);
+
+      for (let i = 1; i < switches.length; i++) {
+        const bid = getBridgeId(switches[i]);
+        if (compareBridgeId(bid, rootBid) < 0) {
+          rootIdx = i;
+          rootBid = bid;
+        }
+      }
+
+      // Determine port roles for each link using Dijkstra-like approach
+      // Build adjacency: for each non-root switch, find the best path to root
+      // Simple approach for our 4-switch topology:
+
+      // For each non-root switch, find the direct link(s) to root and pick best
+      const switchRootPort = {}; // switchIndex -> linkIndex (the link that is the root port)
+      const switchRootCost = {};
+
+      // Calculate cost to root for each switch via each direct link
+      for (let si = 0; si < switches.length; si++) {
+        if (si === rootIdx) continue;
+        let bestCost = Infinity;
+        let bestLink = -1;
+
+        // Check all links this switch is part of
+        links.forEach((link, li) => {
+          if (link[0] !== si && link[1] !== si) return;
+          const otherSw = link[0] === si ? link[1] : link[0];
+          const linkCost = link[2];
+
+          // Direct connection to root
+          if (otherSw === rootIdx) {
+            if (linkCost < bestCost) {
+              bestCost = linkCost;
+              bestLink = li;
+            }
+          }
+        });
+
+        // If not directly connected (shouldn't happen in our topology) or check indirect paths
+        if (bestLink === -1) {
+          // Try 2-hop paths
+          links.forEach((link, li) => {
+            if (link[0] !== si && link[1] !== si) return;
+            const midSw = link[0] === si ? link[1] : link[0];
+            const cost1 = link[2];
+
+            links.forEach((link2, li2) => {
+              if (link2[0] !== midSw && link2[1] !== midSw) return;
+              const farSw = link2[0] === midSw ? link2[1] : link2[0];
+              if (farSw !== rootIdx) return;
+              const totalCost = cost1 + link2[2];
+              if (totalCost < bestCost) {
+                bestCost = totalCost;
+                bestLink = li;
+              }
+            });
+          });
+        }
+
+        // Also check indirect paths even if we have a direct one
+        links.forEach((link, li) => {
+          if (link[0] !== si && link[1] !== si) return;
+          const midSw = link[0] === si ? link[1] : link[0];
+          if (midSw === rootIdx) return; // Already checked direct
+          const cost1 = link[2];
+
+          links.forEach((link2, li2) => {
+            if (link2[0] !== midSw && link2[1] !== midSw) return;
+            const farSw = link2[0] === midSw ? link2[1] : link2[0];
+            if (farSw !== rootIdx) return;
+            const totalCost = cost1 + link2[2];
+            if (totalCost < bestCost) {
+              bestCost = totalCost;
+              bestLink = li;
+            }
+          });
+        });
+
+        switchRootPort[si] = bestLink;
+        switchRootCost[si] = bestCost;
+      }
+
+      // Assign link roles
+      const linkInfo = links.map((link, li) => {
+        const a = link[0];
+        const b = link[1];
+        let roleA = '';
+        let roleB = '';
+        let blocked = false;
+
+        if (a === rootIdx) {
+          roleA = 'Designated';
+          if (switchRootPort[b] === li) {
+            roleB = 'Root';
+          } else {
+            roleB = 'Blocked';
+            blocked = true;
+          }
+        } else if (b === rootIdx) {
+          roleB = 'Designated';
+          if (switchRootPort[a] === li) {
+            roleA = 'Root';
+          } else {
+            roleA = 'Blocked';
+            blocked = true;
+          }
+        } else {
+          // Neither end is root
+          const isRootPortA = switchRootPort[a] === li;
+          const isRootPortB = switchRootPort[b] === li;
+
+          if (isRootPortA) {
+            roleA = 'Root';
+            // B side: designated if B has better path to root, else blocked
+            roleB = 'Designated';
+          } else if (isRootPortB) {
+            roleB = 'Root';
+            roleA = 'Designated';
+          } else {
+            // Neither side uses this as root port -- one is designated, one blocked
+            // The switch with better cost to root gets designated, other gets blocked
+            const costA = switchRootCost[a] || Infinity;
+            const costB = switchRootCost[b] || Infinity;
+            if (costA < costB || (costA === costB && compareBridgeId(getBridgeId(switches[a]), getBridgeId(switches[b])) < 0)) {
+              roleA = 'Designated';
+              roleB = 'Blocked';
+              blocked = true;
+            } else {
+              roleB = 'Designated';
+              roleA = 'Blocked';
+              blocked = true;
+            }
+          }
+        }
+
+        return { roleA, roleB, blocked };
+      });
+
+      electionResult = { rootIndex: rootIdx, links: linkInfo };
+      renderTopology();
+
+      document.getElementById('election-status').innerHTML =
+        '<span class="text-green" style="font-weight:600;">Root Bridge: ' + switches[rootIdx].name + '</span>' +
+        ' (BID: ' + switches[rootIdx].priority + ' + ' + switches[rootIdx].mac + ')';
+    }
+
+    // Presets
+    document.getElementById('preset-select').addEventListener('change', function() {
+      const val = this.value;
+      if (!val) return;
+
+      electionResult = null;
+
+      if (val === 'default') {
+        switches = [
+          { name: 'SW1', priority: 32768, mac: 'AA:AA:AA:00:00:01', x: 30, y: 5, cost: 4 },
+          { name: 'SW2', priority: 32768, mac: 'BB:BB:BB:00:00:02', x: 63, y: 5, cost: 4 },
+          { name: 'SW3', priority: 32768, mac: 'CC:CC:CC:00:00:03', x: 15, y: 55, cost: 4 },
+          { name: 'SW4', priority: 32768, mac: 'DD:DD:DD:00:00:04', x: 63, y: 55, cost: 4 }
+        ];
+      } else if (val === 'lowpri') {
+        switches = [
+          { name: 'SW1', priority: 32768, mac: 'AA:AA:AA:00:00:01', x: 30, y: 5, cost: 4 },
+          { name: 'SW2', priority: 32768, mac: 'BB:BB:BB:00:00:02', x: 63, y: 5, cost: 4 },
+          { name: 'SW3', priority: 4096, mac: 'CC:CC:CC:00:00:03', x: 15, y: 55, cost: 4 },
+          { name: 'SW4', priority: 32768, mac: 'DD:DD:DD:00:00:04', x: 63, y: 55, cost: 4 }
+        ];
+      } else if (val === 'multivlan') {
+        switches = [
+          { name: 'SW1 (VLAN 10)', priority: 24576, mac: 'AA:AA:AA:00:00:01', x: 30, y: 5, cost: 4 },
+          { name: 'SW2 (VLAN 20)', priority: 24576, mac: 'BB:BB:BB:00:00:02', x: 63, y: 5, cost: 4 },
+          { name: 'SW3', priority: 32768, mac: 'CC:CC:CC:00:00:03', x: 15, y: 55, cost: 4 },
+          { name: 'SW4', priority: 32768, mac: 'DD:DD:DD:00:00:04', x: 63, y: 55, cost: 4 }
+        ];
+      }
+
+      renderTopology();
+      this.value = '';
+    });
+
+    document.getElementById('run-election').addEventListener('click', runElection);
+    document.getElementById('reset-election').addEventListener('click', () => {
+      switches = JSON.parse(JSON.stringify(defaultSwitches));
+      electionResult = null;
+      document.getElementById('election-status').innerHTML = '';
+      renderTopology();
+    });
+
+    // Initial render
+    renderTopology();
+    window.addEventListener('resize', () => {
+      drawLinks();
+      drawStateMachineArrows();
+    });
+  </script>
+</body>
+</html>

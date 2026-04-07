@@ -1,0 +1,1284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ACL Visualizer — CCNA Study</title>
+  <link rel="stylesheet" href="../css/shared.css">
+  <style>
+    .tool-section { margin-bottom: 32px; }
+    .tool-section h2 { margin-bottom: 16px; font-size: 1.2rem; }
+
+    /* Tabs */
+    .tab-row {
+      display: flex; gap: 4px; margin-bottom: 24px;
+      border-bottom: 1px solid var(--border); padding-bottom: 0;
+    }
+    .tab-btn {
+      padding: 10px 20px; background: none; border: none;
+      color: var(--text-secondary); cursor: pointer;
+      font-size: 0.9rem; font-family: inherit;
+      border-bottom: 2px solid transparent; transition: all var(--transition);
+    }
+    .tab-btn:hover { color: var(--text-primary); }
+    .tab-btn.active {
+      color: var(--blue); border-bottom-color: var(--blue);
+    }
+
+    /* ── Flowchart ── */
+    .flowchart-container {
+      display: flex; gap: 32px; flex-wrap: wrap;
+    }
+    .flowchart-panel {
+      flex: 1; min-width: 380px;
+    }
+    .concepts-panel {
+      flex: 1; min-width: 320px;
+    }
+
+    .flow-svg-wrap {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 24px;
+      overflow-x: auto;
+    }
+
+    .flow-svg-wrap svg text {
+      font-family: var(--font-sans);
+    }
+
+    .concept-card {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 16px 20px;
+      margin-bottom: 12px;
+    }
+    .concept-card h4 {
+      font-size: 0.9rem; font-weight: 600; margin-bottom: 6px;
+      color: var(--text-primary);
+    }
+    .concept-card p, .concept-card li {
+      font-size: 0.85rem; color: var(--text-secondary); line-height: 1.6;
+    }
+    .concept-card ul {
+      list-style: none; padding: 0;
+    }
+    .concept-card ul li::before {
+      content: "\25B8"; margin-right: 8px; color: var(--blue);
+    }
+
+    .direction-diagram {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 24px;
+      margin-top: 16px;
+      overflow-x: auto;
+    }
+
+    .direction-diagram svg text {
+      font-family: var(--font-mono);
+    }
+
+    .animate-btn-row {
+      display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap;
+    }
+
+    /* Packet dot animation */
+    @keyframes packetPulse {
+      0%, 100% { r: 7; opacity: 1; }
+      50% { r: 9; opacity: 0.8; }
+    }
+    .packet-dot {
+      animation: packetPulse 0.6s ease-in-out infinite;
+    }
+
+    /* ── Wildcard Calculator ── */
+    .calc-section {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 24px;
+      margin-bottom: 20px;
+    }
+    .calc-section h3 {
+      font-size: 1rem; font-weight: 600; margin-bottom: 14px;
+    }
+    .calc-row {
+      display: flex; gap: 12px; align-items: end; flex-wrap: wrap;
+      margin-bottom: 16px;
+    }
+    .calc-row label {
+      display: flex; flex-direction: column; gap: 4px;
+      font-size: 0.82rem; color: var(--text-secondary);
+    }
+    .calc-row input, .calc-row select {
+      background: var(--bg-input); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); padding: 10px 14px;
+      color: var(--text-primary); font-family: var(--font-mono);
+      font-size: 0.95rem; outline: none; transition: border-color var(--transition);
+    }
+    .calc-row input:focus, .calc-row select:focus {
+      border-color: var(--blue);
+    }
+    .calc-row input { width: 240px; }
+
+    .conversion-result {
+      display: flex; gap: 12px; align-items: center; flex-wrap: wrap;
+      margin-top: 12px;
+    }
+    .conversion-arrow {
+      font-size: 1.2rem; color: var(--text-muted);
+    }
+    .conversion-box {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); padding: 10px 18px;
+      font-family: var(--font-mono); font-size: 1rem;
+    }
+    .formula-note {
+      font-size: 0.8rem; color: var(--text-muted); margin-top: 8px;
+      font-style: italic;
+    }
+
+    .match-result {
+      margin-top: 16px; padding: 16px 20px;
+      border-radius: var(--radius-sm);
+      font-family: var(--font-mono); font-size: 0.95rem;
+      border: 2px solid transparent;
+    }
+    .match-result.match {
+      background: var(--correct-bg); color: var(--green);
+      border-color: var(--green);
+    }
+    .match-result.no-match {
+      background: var(--wrong-bg); color: var(--red);
+      border-color: var(--red);
+    }
+
+    .binary-breakdown {
+      margin-top: 14px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 16px;
+      font-family: var(--font-mono);
+      font-size: 0.82rem;
+      line-height: 2;
+      overflow-x: auto;
+      white-space: nowrap;
+    }
+    .binary-breakdown .label-col {
+      display: inline-block; width: 160px; color: var(--text-muted);
+      text-align: right; margin-right: 12px;
+    }
+    .bit-match { color: var(--green); font-weight: 700; }
+    .bit-no-match { color: var(--red); font-weight: 700; }
+    .bit-ignored { color: var(--text-muted); }
+
+    .ref-table {
+      margin-top: 12px;
+    }
+    .ref-table td {
+      font-family: var(--font-mono); font-size: 0.85rem; padding: 8px 16px;
+    }
+    .ref-table tr:hover { background: var(--bg-hover); }
+
+    /* ── Commands Reference ── */
+    .cmd-section {
+      margin-bottom: 24px;
+    }
+    .cmd-section h3 {
+      font-size: 1rem; font-weight: 600; margin-bottom: 10px;
+      color: var(--text-primary);
+    }
+    .cmd-block {
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 16px 20px;
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+      line-height: 1.8;
+      color: var(--cyan);
+      overflow-x: auto;
+      white-space: pre;
+      margin-bottom: 12px;
+    }
+    .cmd-block .comment {
+      color: var(--text-muted);
+    }
+    .cmd-block .keyword {
+      color: var(--yellow);
+    }
+
+    .best-practice-card {
+      background: var(--bg-secondary);
+      border-left: 3px solid var(--yellow);
+      border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+      padding: 14px 20px;
+      margin-bottom: 10px;
+      font-size: 0.88rem;
+      color: var(--text-secondary);
+      line-height: 1.5;
+    }
+    .best-practice-card strong {
+      color: var(--text-primary);
+    }
+
+    /* ── ACL Builder ── */
+    .builder-container {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 24px;
+      margin-top: 20px;
+    }
+    .builder-container h3 {
+      font-size: 1.05rem; font-weight: 600; margin-bottom: 16px;
+    }
+    .builder-row {
+      display: flex; gap: 12px; align-items: end; flex-wrap: wrap;
+      margin-bottom: 14px;
+    }
+    .builder-row label {
+      display: flex; flex-direction: column; gap: 4px;
+      font-size: 0.82rem; color: var(--text-secondary);
+    }
+    .builder-row input, .builder-row select {
+      background: var(--bg-input); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); padding: 10px 14px;
+      color: var(--text-primary); font-family: var(--font-mono);
+      font-size: 0.9rem; outline: none; transition: border-color var(--transition);
+    }
+    .builder-row input:focus, .builder-row select:focus {
+      border-color: var(--blue);
+    }
+    .builder-row input { width: 200px; }
+    .builder-row select { min-width: 130px; }
+
+    .builder-output {
+      background: var(--bg-input);
+      border: 2px solid var(--blue);
+      border-radius: var(--radius-sm);
+      padding: 16px 20px;
+      font-family: var(--font-mono);
+      font-size: 0.95rem;
+      color: var(--cyan);
+      margin-top: 16px;
+      min-height: 48px;
+      line-height: 1.8;
+      white-space: pre-wrap;
+    }
+
+    .helper-hint {
+      font-size: 0.78rem; color: var(--text-muted); margin-top: 2px;
+    }
+
+    /* Responsive */
+    @media (max-width: 800px) {
+      .flowchart-container { flex-direction: column; }
+      .flowchart-panel, .concepts-panel { min-width: 100%; }
+      .calc-row input { width: 100%; }
+      .builder-row input { width: 100%; }
+      .builder-row { flex-direction: column; align-items: stretch; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Nav -->
+    <nav class="top-nav" style="margin-bottom: 16px;">
+      <a href="../index.html">Dashboard</a>
+      <a href="../knowledge-map.html">Knowledge Map</a>
+      <a href="../diagnostic.html">Diagnostic</a>
+      <a href="../quiz.html">Quiz</a>
+    </nav>
+
+    <div class="page-header">
+      <div>
+        <h1>ACL Visualizer</h1>
+        <div class="subtitle">Access Control Lists — Logic, Wildcards, and Cisco Commands</div>
+      </div>
+      <span class="badge badge-yellow">YELLOW TOPIC</span>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tab-row">
+      <button class="tab-btn active" data-tab="flow">ACL Logic Flow</button>
+      <button class="tab-btn" data-tab="wildcard">Wildcard Calculator</button>
+      <button class="tab-btn" data-tab="commands">Commands Reference</button>
+    </div>
+
+    <!-- ============================================================ -->
+    <!--  TAB 1: ACL Logic Flow                                       -->
+    <!-- ============================================================ -->
+    <div id="tab-flow" class="tool-section">
+      <div class="animate-btn-row">
+        <button class="btn btn-primary" id="btn-animate-permit">Animate: Packet Permitted</button>
+        <button class="btn btn-secondary" id="btn-animate-deny">Animate: Packet Denied (ACE 2)</button>
+        <button class="btn btn-secondary" id="btn-animate-implicit">Animate: Implicit Deny</button>
+        <button class="btn btn-ghost btn-sm" id="btn-reset-anim">Reset</button>
+      </div>
+
+      <div class="flowchart-container">
+        <!-- Flowchart SVG -->
+        <div class="flowchart-panel">
+          <div class="flow-svg-wrap">
+            <svg id="flowchart-svg" width="400" height="620" viewBox="0 0 400 620">
+              <!-- Packet enters -->
+              <rect id="fc-packet" x="130" y="10" width="140" height="40" rx="20" fill="#1e3a5f" stroke="#5b8def" stroke-width="2"/>
+              <text x="200" y="35" text-anchor="middle" fill="#5b8def" font-size="13" font-weight="600">Packet Arrives</text>
+
+              <!-- Arrow down -->
+              <line x1="200" y1="50" x2="200" y2="80" stroke="#636a80" stroke-width="2" marker-end="url(#arrow)"/>
+
+              <!-- ACE 1 -->
+              <rect id="fc-ace1" x="110" y="80" width="180" height="44" rx="6" fill="#222632" stroke="#2e3347" stroke-width="2"/>
+              <text x="200" y="100" text-anchor="middle" fill="#e8eaf0" font-size="12" font-weight="600">Check ACE 1</text>
+              <text x="200" y="116" text-anchor="middle" fill="#9ba1b5" font-size="10">permit 192.168.1.0 0.0.0.255</text>
+
+              <!-- ACE 1 Match? diamond -->
+              <polygon id="fc-match1" points="200,140 260,170 200,200 140,170" fill="#222632" stroke="#2e3347" stroke-width="2"/>
+              <text x="200" y="174" text-anchor="middle" fill="#9ba1b5" font-size="11">Match?</text>
+
+              <!-- ACE 1 YES -> Permit -->
+              <line x1="260" y1="170" x2="340" y2="170" stroke="#636a80" stroke-width="1.5" stroke-dasharray="4,3"/>
+              <text x="290" y="163" fill="#34d399" font-size="10" font-weight="600">YES</text>
+              <rect id="fc-permit1" x="310" y="152" width="80" height="36" rx="6" fill="#064e3b" stroke="#34d399" stroke-width="2"/>
+              <text x="350" y="175" text-anchor="middle" fill="#34d399" font-size="12" font-weight="700">PERMIT</text>
+
+              <!-- ACE 1 NO -> down -->
+              <line x1="200" y1="200" x2="200" y2="240" stroke="#636a80" stroke-width="1.5" marker-end="url(#arrow)"/>
+              <text x="212" y="220" fill="#f87171" font-size="10" font-weight="600">NO</text>
+
+              <!-- ACE 2 -->
+              <rect id="fc-ace2" x="110" y="240" width="180" height="44" rx="6" fill="#222632" stroke="#2e3347" stroke-width="2"/>
+              <text x="200" y="260" text-anchor="middle" fill="#e8eaf0" font-size="12" font-weight="600">Check ACE 2</text>
+              <text x="200" y="276" text-anchor="middle" fill="#9ba1b5" font-size="10">deny 10.0.0.0 0.255.255.255</text>
+
+              <!-- ACE 2 Match? diamond -->
+              <polygon id="fc-match2" points="200,300 260,330 200,360 140,330" fill="#222632" stroke="#2e3347" stroke-width="2"/>
+              <text x="200" y="334" text-anchor="middle" fill="#9ba1b5" font-size="11">Match?</text>
+
+              <!-- ACE 2 YES -> Deny -->
+              <line x1="260" y1="330" x2="340" y2="330" stroke="#636a80" stroke-width="1.5" stroke-dasharray="4,3"/>
+              <text x="290" y="323" fill="#34d399" font-size="10" font-weight="600">YES</text>
+              <rect id="fc-deny2" x="310" y="312" width="80" height="36" rx="6" fill="#7f1d1d" stroke="#f87171" stroke-width="2"/>
+              <text x="350" y="335" text-anchor="middle" fill="#f87171" font-size="12" font-weight="700">DENY</text>
+
+              <!-- ACE 2 NO -> down -->
+              <line x1="200" y1="360" x2="200" y2="400" stroke="#636a80" stroke-width="1.5" marker-end="url(#arrow)"/>
+              <text x="212" y="380" fill="#f87171" font-size="10" font-weight="600">NO</text>
+
+              <!-- ACE 3 -->
+              <rect id="fc-ace3" x="110" y="400" width="180" height="44" rx="6" fill="#222632" stroke="#2e3347" stroke-width="2"/>
+              <text x="200" y="420" text-anchor="middle" fill="#e8eaf0" font-size="12" font-weight="600">Check ACE 3</text>
+              <text x="200" y="436" text-anchor="middle" fill="#9ba1b5" font-size="10">permit tcp any any eq 80</text>
+
+              <!-- ACE 3 Match? diamond -->
+              <polygon id="fc-match3" points="200,460 260,490 200,520 140,490" fill="#222632" stroke="#2e3347" stroke-width="2"/>
+              <text x="200" y="494" text-anchor="middle" fill="#9ba1b5" font-size="11">Match?</text>
+
+              <!-- ACE 3 YES -> Permit -->
+              <line x1="260" y1="490" x2="340" y2="490" stroke="#636a80" stroke-width="1.5" stroke-dasharray="4,3"/>
+              <text x="290" y="483" fill="#34d399" font-size="10" font-weight="600">YES</text>
+              <rect id="fc-permit3" x="310" y="472" width="80" height="36" rx="6" fill="#064e3b" stroke="#34d399" stroke-width="2"/>
+              <text x="350" y="495" text-anchor="middle" fill="#34d399" font-size="12" font-weight="700">PERMIT</text>
+
+              <!-- ACE 3 NO -> down -->
+              <line x1="200" y1="520" x2="200" y2="558" stroke="#636a80" stroke-width="1.5" marker-end="url(#arrow)"/>
+              <text x="212" y="540" fill="#f87171" font-size="10" font-weight="600">NO</text>
+
+              <!-- Implicit Deny -->
+              <rect id="fc-implicit" x="100" y="558" width="200" height="48" rx="8" fill="#7f1d1d" stroke="#f87171" stroke-width="3"/>
+              <text x="200" y="580" text-anchor="middle" fill="#f87171" font-size="13" font-weight="700">IMPLICIT DENY ALL</text>
+              <text x="200" y="596" text-anchor="middle" fill="#f87171" font-size="9" opacity="0.7">(hidden at end of every ACL)</text>
+
+              <!-- Arrow marker -->
+              <defs>
+                <marker id="arrow" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-auto">
+                  <path d="M 0 0 L 10 5 L 0 10 z" fill="#636a80"/>
+                </marker>
+              </defs>
+
+              <!-- Animated packet dot (hidden by default) -->
+              <circle id="packet-dot" cx="200" cy="10" r="7" fill="#5b8def" class="packet-dot" style="display:none;"/>
+            </svg>
+          </div>
+        </div>
+
+        <!-- Key Concepts -->
+        <div class="concepts-panel">
+          <div class="concept-card">
+            <h4>Top-Down Processing</h4>
+            <ul>
+              <li>ACLs are evaluated top to bottom, one ACE at a time</li>
+              <li><strong>First match wins</strong> - once matched, no further ACEs are checked</li>
+              <li>Order of entries matters enormously</li>
+            </ul>
+          </div>
+          <div class="concept-card">
+            <h4>Implicit Deny</h4>
+            <p>Every ACL has an invisible <code style="color:var(--red);font-family:var(--font-mono);">deny ip any any</code> at the end. If no ACE matches, the packet is <strong style="color:var(--red);">dropped</strong>.</p>
+          </div>
+          <div class="concept-card">
+            <h4>Standard ACLs (1-99, 1300-1999)</h4>
+            <ul>
+              <li>Match <strong>source IP only</strong></li>
+              <li>Place <strong>close to destination</strong></li>
+              <li>Less specific = keep away from source to avoid blocking valid traffic</li>
+            </ul>
+          </div>
+          <div class="concept-card">
+            <h4>Extended ACLs (100-199, 2000-2699)</h4>
+            <ul>
+              <li>Match source IP, destination IP, protocol, and port</li>
+              <li>Place <strong>close to source</strong></li>
+              <li>More specific = safe to filter early</li>
+            </ul>
+          </div>
+          <div class="concept-card">
+            <h4>Inbound vs Outbound</h4>
+            <p><strong>Inbound:</strong> ACL checked <em>before</em> routing decision.<br>
+            <strong>Outbound:</strong> ACL checked <em>after</em> routing decision, before packet exits.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Inbound/Outbound Diagram -->
+      <div class="direction-diagram">
+        <h3 style="font-size:0.95rem;margin-bottom:12px;font-family:var(--font-sans);">Inbound vs Outbound ACL Processing</h3>
+        <svg id="direction-svg" width="100%" height="100" viewBox="0 0 760 100" style="max-width:760px;">
+          <!-- Packet in -->
+          <text x="10" y="55" fill="#5b8def" font-size="12" font-weight="600">Packet In</text>
+          <!-- Arrow -->
+          <line x1="78" y1="50" x2="118" y2="50" stroke="#5b8def" stroke-width="2" marker-end="url(#arrow2)"/>
+
+          <!-- Inbound ACL box -->
+          <rect x="120" y="28" width="130" height="44" rx="6" fill="#1e3a5f" stroke="#5b8def" stroke-width="2"/>
+          <text x="185" y="47" text-anchor="middle" fill="#5b8def" font-size="11" font-weight="600">Inbound ACL</text>
+          <text x="185" y="63" text-anchor="middle" fill="#9ba1b5" font-size="9">(before routing)</text>
+
+          <!-- Arrow -->
+          <line x1="250" y1="50" x2="298" y2="50" stroke="#636a80" stroke-width="2" marker-end="url(#arrow2)"/>
+
+          <!-- Routing Table -->
+          <rect x="300" y="28" width="140" height="44" rx="6" fill="#222632" stroke="#fbbf24" stroke-width="2"/>
+          <text x="370" y="47" text-anchor="middle" fill="#fbbf24" font-size="11" font-weight="600">Routing Table</text>
+          <text x="370" y="63" text-anchor="middle" fill="#9ba1b5" font-size="9">(lookup next-hop)</text>
+
+          <!-- Arrow -->
+          <line x1="440" y1="50" x2="488" y2="50" stroke="#636a80" stroke-width="2" marker-end="url(#arrow2)"/>
+
+          <!-- Outbound ACL box -->
+          <rect x="490" y="28" width="130" height="44" rx="6" fill="#3b1f7a" stroke="#a78bfa" stroke-width="2"/>
+          <text x="555" y="47" text-anchor="middle" fill="#a78bfa" font-size="11" font-weight="600">Outbound ACL</text>
+          <text x="555" y="63" text-anchor="middle" fill="#9ba1b5" font-size="9">(after routing)</text>
+
+          <!-- Arrow -->
+          <line x1="620" y1="50" x2="668" y2="50" stroke="#636a80" stroke-width="2" marker-end="url(#arrow2)"/>
+
+          <!-- Packet out -->
+          <text x="672" y="55" fill="#34d399" font-size="12" font-weight="600">Packet Out</text>
+
+          <defs>
+            <marker id="arrow2" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-auto">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="#636a80"/>
+            </marker>
+          </defs>
+        </svg>
+      </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!--  TAB 2: Wildcard Mask Calculator                             -->
+    <!-- ============================================================ -->
+    <div id="tab-wildcard" class="tool-section hidden">
+
+      <!-- Subnet to Wildcard Converter -->
+      <div class="calc-section">
+        <h3>Subnet Mask to Wildcard Converter</h3>
+        <div class="calc-row">
+          <label>
+            Subnet Mask
+            <input type="text" id="wc-subnet-input" placeholder="255.255.255.0" value="255.255.255.0">
+          </label>
+          <button class="btn btn-primary" id="wc-convert-btn">Convert</button>
+        </div>
+        <div id="wc-convert-result" class="hidden">
+          <div class="conversion-result">
+            <div class="conversion-box" id="wc-subnet-display">255.255.255.0</div>
+            <div class="conversion-arrow">&rarr;</div>
+            <div class="conversion-box" style="color:var(--green);" id="wc-wildcard-display">0.0.0.255</div>
+          </div>
+          <div class="formula-note">Formula: 255.255.255.255 - <span id="wc-formula-mask">255.255.255.0</span> = <span id="wc-formula-result" style="color:var(--green);">0.0.0.255</span></div>
+          <div id="wc-cidr-note" class="formula-note" style="margin-top:4px;"></div>
+        </div>
+      </div>
+
+      <!-- Match Simulator -->
+      <div class="calc-section">
+        <h3>"Will This Match?" Simulator</h3>
+        <div class="calc-row">
+          <label>
+            ACL Network
+            <input type="text" id="match-network" placeholder="192.168.1.0" value="192.168.1.0">
+          </label>
+          <label>
+            Wildcard Mask
+            <input type="text" id="match-wildcard" placeholder="0.0.0.255" value="0.0.0.255">
+          </label>
+        </div>
+        <div class="calc-row">
+          <label>
+            Test IP Address
+            <input type="text" id="match-test-ip" placeholder="192.168.1.50" value="192.168.1.50">
+          </label>
+          <label>
+            Action
+            <select id="match-action">
+              <option value="permit">permit</option>
+              <option value="deny">deny</option>
+            </select>
+          </label>
+          <button class="btn btn-primary" id="match-check-btn">Check Match</button>
+        </div>
+        <div id="match-result" class="match-result hidden"></div>
+        <div id="match-binary" class="binary-breakdown hidden"></div>
+      </div>
+
+      <!-- Quick Reference Table -->
+      <div class="calc-section">
+        <h3>Common Wildcard Masks — Quick Reference</h3>
+        <div class="card" style="padding:0;overflow-x:auto;">
+          <table class="ref-table">
+            <thead>
+              <tr>
+                <th>Wildcard Mask</th>
+                <th>Meaning</th>
+                <th>CIDR</th>
+                <th>Matches</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td style="color:var(--cyan);">0.0.0.0</td>
+                <td>Match exact host</td>
+                <td>/32</td>
+                <td>1 address (use <code style="color:var(--yellow);">host</code> keyword)</td>
+              </tr>
+              <tr>
+                <td style="color:var(--cyan);">0.0.0.255</td>
+                <td>Match /24 subnet</td>
+                <td>/24</td>
+                <td>256 addresses</td>
+              </tr>
+              <tr>
+                <td style="color:var(--cyan);">0.0.0.15</td>
+                <td>Match /28 subnet</td>
+                <td>/28</td>
+                <td>16 addresses</td>
+              </tr>
+              <tr>
+                <td style="color:var(--cyan);">0.0.0.63</td>
+                <td>Match /26 subnet</td>
+                <td>/26</td>
+                <td>64 addresses</td>
+              </tr>
+              <tr>
+                <td style="color:var(--cyan);">0.0.255.255</td>
+                <td>Match /16 subnet</td>
+                <td>/16</td>
+                <td>65,536 addresses</td>
+              </tr>
+              <tr>
+                <td style="color:var(--cyan);">0.255.255.255</td>
+                <td>Match /8 subnet</td>
+                <td>/8</td>
+                <td>16,777,216 addresses</td>
+              </tr>
+              <tr style="background:var(--bg-hover);">
+                <td style="color:var(--cyan);">255.255.255.255</td>
+                <td>Match any address</td>
+                <td>/0</td>
+                <td>All addresses (use <code style="color:var(--yellow);">any</code> keyword)</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!--  TAB 3: ACL Commands Reference                               -->
+    <!-- ============================================================ -->
+    <div id="tab-commands" class="tool-section hidden">
+
+      <!-- Standard ACL -->
+      <div class="cmd-section">
+        <h3>Standard ACL <span class="badge badge-blue" style="margin-left:8px;">Numbered: 1-99, 1300-1999</span></h3>
+        <div class="cmd-block"><span class="comment">! Standard ACL — matches source IP only</span>
+<span class="keyword">access-list</span> 10 <span class="keyword">permit</span> 192.168.1.0 0.0.0.255
+<span class="keyword">access-list</span> 10 <span class="keyword">deny</span> 10.0.0.0 0.255.255.255
+<span class="comment">! Apply to interface (close to DESTINATION)</span>
+<span class="keyword">interface</span> Gi0/0
+ <span class="keyword">ip access-group</span> 10 out</div>
+      </div>
+
+      <!-- Extended ACL -->
+      <div class="cmd-section">
+        <h3>Extended ACL <span class="badge badge-purple" style="margin-left:8px;">Numbered: 100-199, 2000-2699</span></h3>
+        <div class="cmd-block"><span class="comment">! Extended ACL — matches src IP, dst IP, protocol, port</span>
+<span class="keyword">access-list</span> 100 <span class="keyword">permit</span> tcp 192.168.1.0 0.0.0.255 host 10.1.1.1 eq 80
+<span class="keyword">access-list</span> 100 <span class="keyword">permit</span> icmp any any
+<span class="keyword">access-list</span> 100 <span class="keyword">deny</span> ip any any log
+<span class="comment">! Apply to interface (close to SOURCE)</span>
+<span class="keyword">interface</span> Gi0/0
+ <span class="keyword">ip access-group</span> 100 in</div>
+      </div>
+
+      <!-- Named ACL -->
+      <div class="cmd-section">
+        <h3>Named ACL <span class="badge badge-green" style="margin-left:8px;">Preferred Method</span></h3>
+        <div class="cmd-block"><span class="comment">! Named Standard ACL</span>
+<span class="keyword">ip access-list standard</span> BLOCK_SALES
+ <span class="keyword">permit</span> 192.168.1.0 0.0.0.255
+ <span class="keyword">deny</span> any
+!
+<span class="comment">! Named Extended ACL</span>
+<span class="keyword">ip access-list extended</span> WEB_ACCESS
+ <span class="keyword">permit</span> tcp 192.168.1.0 0.0.0.255 any eq 80
+ <span class="keyword">permit</span> tcp 192.168.1.0 0.0.0.255 any eq 443
+ <span class="keyword">deny</span> ip any any</div>
+      </div>
+
+      <!-- Verification -->
+      <div class="cmd-section">
+        <h3>Verification Commands</h3>
+        <div class="cmd-block"><span class="keyword">show access-lists</span>                   <span class="comment">! Show all ACLs and hit counts</span>
+<span class="keyword">show ip access-lists</span>                <span class="comment">! Show IPv4 ACLs only</span>
+<span class="keyword">show ip interface</span> Gi0/0              <span class="comment">! Shows ACLs applied to interface</span>
+<span class="keyword">show running-config</span> | section access  <span class="comment">! Filter running config for ACLs</span></div>
+      </div>
+
+      <!-- Best Practices -->
+      <div class="cmd-section">
+        <h3>Best Practices</h3>
+        <div class="best-practice-card">
+          <strong>Standard ACLs:</strong> Place close to the <strong style="color:var(--green);">DESTINATION</strong> — they only match source IP, so placing them near the source would block traffic to all destinations.
+        </div>
+        <div class="best-practice-card">
+          <strong>Extended ACLs:</strong> Place close to the <strong style="color:var(--green);">SOURCE</strong> — they are specific enough (protocol, port, destination) to filter accurately without collateral damage.
+        </div>
+        <div class="best-practice-card">
+          <strong>Order matters:</strong> Put the most specific entries <strong>first</strong>. A broad <code style="font-family:var(--font-mono);color:var(--cyan);">deny any</code> before specific permits will block everything.
+        </div>
+        <div class="best-practice-card">
+          <strong>Implicit deny:</strong> Always remember there is a hidden <code style="font-family:var(--font-mono);color:var(--red);">deny ip any any</code> at the end. If you only have deny statements, nothing gets through.
+        </div>
+        <div class="best-practice-card">
+          <strong>Use <code style="font-family:var(--font-mono);color:var(--cyan);">remark</code>:</strong> Document your ACLs with remarks — future-you will thank present-you.
+        </div>
+        <div class="best-practice-card">
+          <strong>Use named ACLs:</strong> They are easier to edit (you can delete individual entries) and far more readable than numbered ACLs.
+        </div>
+      </div>
+
+      <!-- Interactive ACL Builder -->
+      <div class="builder-container">
+        <h3>Interactive ACL Builder</h3>
+        <p class="text-secondary" style="font-size:0.85rem;margin-bottom:16px;">Build a Cisco ACL command step-by-step. The command updates in real time below.</p>
+
+        <div class="builder-row">
+          <label>
+            ACL Type
+            <select id="build-type">
+              <option value="standard">Standard (numbered)</option>
+              <option value="extended">Extended (numbered)</option>
+              <option value="named-standard">Named Standard</option>
+              <option value="named-extended">Named Extended</option>
+            </select>
+          </label>
+          <label id="build-number-label">
+            ACL Number
+            <input type="text" id="build-number" placeholder="10" value="10" style="width:80px;">
+          </label>
+          <label id="build-name-label" class="hidden">
+            ACL Name
+            <input type="text" id="build-name" placeholder="MY_ACL" value="MY_ACL" style="width:160px;">
+          </label>
+        </div>
+
+        <div class="builder-row">
+          <label>
+            Action
+            <select id="build-action">
+              <option value="permit">permit</option>
+              <option value="deny">deny</option>
+            </select>
+          </label>
+          <label>
+            Source
+            <select id="build-src-type">
+              <option value="network">Network + Wildcard</option>
+              <option value="host">Host (single IP)</option>
+              <option value="any">Any</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="builder-row" id="build-src-row">
+          <label id="build-src-ip-label">
+            Source IP
+            <input type="text" id="build-src-ip" placeholder="192.168.1.0" value="192.168.1.0">
+          </label>
+          <label id="build-src-wc-label">
+            Source Wildcard
+            <input type="text" id="build-src-wc" placeholder="0.0.0.255" value="0.0.0.255">
+          </label>
+        </div>
+
+        <!-- Extended-only fields -->
+        <div id="build-ext-fields">
+          <div class="builder-row">
+            <label>
+              Destination
+              <select id="build-dst-type">
+                <option value="network">Network + Wildcard</option>
+                <option value="host">Host (single IP)</option>
+                <option value="any">Any</option>
+              </select>
+            </label>
+          </div>
+          <div class="builder-row" id="build-dst-row">
+            <label id="build-dst-ip-label">
+              Destination IP
+              <input type="text" id="build-dst-ip" placeholder="10.1.1.1" value="10.1.1.1">
+            </label>
+            <label id="build-dst-wc-label">
+              Destination Wildcard
+              <input type="text" id="build-dst-wc" placeholder="0.0.0.0" value="0.0.0.0">
+            </label>
+          </div>
+          <div class="builder-row">
+            <label>
+              Protocol
+              <select id="build-protocol">
+                <option value="ip">ip (all traffic)</option>
+                <option value="tcp">tcp</option>
+                <option value="udp">udp</option>
+                <option value="icmp">icmp</option>
+              </select>
+            </label>
+            <label id="build-port-label">
+              Destination Port
+              <select id="build-port">
+                <option value="">(none)</option>
+                <option value="eq 20">eq 20 (FTP data)</option>
+                <option value="eq 21">eq 21 (FTP control)</option>
+                <option value="eq 22">eq 22 (SSH)</option>
+                <option value="eq 23">eq 23 (Telnet)</option>
+                <option value="eq 25">eq 25 (SMTP)</option>
+                <option value="eq 53">eq 53 (DNS)</option>
+                <option value="eq 67">eq 67 (DHCP Server)</option>
+                <option value="eq 68">eq 68 (DHCP Client)</option>
+                <option value="eq 80">eq 80 (HTTP)</option>
+                <option value="eq 110">eq 110 (POP3)</option>
+                <option value="eq 143">eq 143 (IMAP)</option>
+                <option value="eq 443">eq 443 (HTTPS)</option>
+                <option value="eq 3389">eq 3389 (RDP)</option>
+                <option value="range 1024 65535">range 1024 65535 (high ports)</option>
+                <option value="custom">Custom...</option>
+              </select>
+            </label>
+            <label id="build-custom-port-label" class="hidden">
+              Custom Port Expression
+              <input type="text" id="build-custom-port" placeholder="eq 8080" style="width:140px;">
+            </label>
+          </div>
+        </div>
+
+        <div class="builder-output" id="build-output">access-list 10 permit 192.168.1.0 0.0.0.255</div>
+        <div style="margin-top:8px;display:flex;gap:10px;">
+          <button class="btn btn-sm btn-secondary" id="build-copy">Copy Command</button>
+          <span id="build-copied" class="text-green" style="font-size:0.82rem;display:none;">Copied!</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    // ================================================================
+    //  TAB SWITCHING
+    // ================================================================
+    document.querySelectorAll('.tab-btn').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        document.querySelectorAll('.tab-btn').forEach(function(b) { b.classList.remove('active'); });
+        btn.classList.add('active');
+        document.querySelectorAll('.tool-section').forEach(function(s) { s.classList.add('hidden'); });
+        document.getElementById('tab-' + btn.dataset.tab).classList.remove('hidden');
+      });
+    });
+
+    // ================================================================
+    //  HELPER: IP PARSING
+    // ================================================================
+    function parseIp(str) {
+      var parts = str.trim().split('.');
+      if (parts.length !== 4) return null;
+      var nums = [];
+      for (var i = 0; i < 4; i++) {
+        var n = parseInt(parts[i], 10);
+        if (isNaN(n) || n < 0 || n > 255) return null;
+        nums.push(n);
+      }
+      return nums;
+    }
+
+    function ipToNum(octets) {
+      return ((octets[0] << 24) | (octets[1] << 16) | (octets[2] << 8) | octets[3]) >>> 0;
+    }
+
+    function numToOctets(num) {
+      return [(num >>> 24) & 255, (num >>> 16) & 255, (num >>> 8) & 255, num & 255];
+    }
+
+    function octetsToStr(octets) {
+      return octets.join('.');
+    }
+
+    function octetsToBinary(octets) {
+      return octets.map(function(o) {
+        return o.toString(2).padStart(8, '0');
+      }).join('');
+    }
+
+    // ================================================================
+    //  TAB 1: FLOWCHART ANIMATION
+    // ================================================================
+    var animTimer = null;
+
+    function resetFlowchart() {
+      if (animTimer) { clearTimeout(animTimer); animTimer = null; }
+      var dot = document.getElementById('packet-dot');
+      dot.style.display = 'none';
+      // Reset all highlights
+      var ids = ['fc-ace1','fc-match1','fc-permit1','fc-ace2','fc-match2','fc-deny2','fc-ace3','fc-match3','fc-permit3','fc-implicit'];
+      ids.forEach(function(id) {
+        var el = document.getElementById(id);
+        if (el) {
+          el.style.transition = 'all 0.3s ease';
+          el.style.filter = '';
+          el.style.opacity = '';
+        }
+      });
+    }
+
+    function animatePacket(steps) {
+      resetFlowchart();
+      var dot = document.getElementById('packet-dot');
+      dot.style.display = 'block';
+      var idx = 0;
+      function runStep() {
+        if (idx >= steps.length) return;
+        var step = steps[idx];
+        idx++;
+        // Move dot
+        if (step.x !== undefined && step.y !== undefined) {
+          dot.setAttribute('cx', step.x);
+          dot.setAttribute('cy', step.y);
+        }
+        // Change dot color
+        if (step.color) {
+          dot.setAttribute('fill', step.color);
+        }
+        // Highlight element
+        if (step.highlight) {
+          var el = document.getElementById(step.highlight);
+          if (el) {
+            el.style.filter = 'brightness(1.5) drop-shadow(0 0 8px ' + (step.glowColor || '#5b8def') + ')';
+          }
+        }
+        // Hide dot at end
+        if (step.hideDot) {
+          dot.style.display = 'none';
+        }
+        animTimer = setTimeout(runStep, step.delay || 500);
+      }
+      runStep();
+    }
+
+    // Scenario 1: Packet permitted at ACE 1
+    document.getElementById('btn-animate-permit').addEventListener('click', function() {
+      animatePacket([
+        { x: 200, y: 30, color: '#5b8def', delay: 400 },
+        { x: 200, y: 60, delay: 300 },
+        { x: 200, y: 100, highlight: 'fc-ace1', glowColor: '#5b8def', delay: 600 },
+        { x: 200, y: 170, highlight: 'fc-match1', glowColor: '#fbbf24', delay: 600 },
+        { x: 300, y: 170, delay: 300 },
+        { x: 350, y: 170, color: '#34d399', highlight: 'fc-permit1', glowColor: '#34d399', delay: 800 },
+        { hideDot: true, delay: 0 }
+      ]);
+    });
+
+    // Scenario 2: Packet denied at ACE 2
+    document.getElementById('btn-animate-deny').addEventListener('click', function() {
+      animatePacket([
+        { x: 200, y: 30, color: '#5b8def', delay: 400 },
+        { x: 200, y: 60, delay: 300 },
+        { x: 200, y: 100, highlight: 'fc-ace1', glowColor: '#5b8def', delay: 600 },
+        { x: 200, y: 170, highlight: 'fc-match1', glowColor: '#fbbf24', delay: 500 },
+        { x: 200, y: 220, delay: 300 },
+        { x: 200, y: 260, highlight: 'fc-ace2', glowColor: '#5b8def', delay: 600 },
+        { x: 200, y: 330, highlight: 'fc-match2', glowColor: '#fbbf24', delay: 600 },
+        { x: 300, y: 330, delay: 300 },
+        { x: 350, y: 330, color: '#f87171', highlight: 'fc-deny2', glowColor: '#f87171', delay: 800 },
+        { hideDot: true, delay: 0 }
+      ]);
+    });
+
+    // Scenario 3: No match -> implicit deny
+    document.getElementById('btn-animate-implicit').addEventListener('click', function() {
+      animatePacket([
+        { x: 200, y: 30, color: '#5b8def', delay: 400 },
+        { x: 200, y: 60, delay: 250 },
+        { x: 200, y: 100, highlight: 'fc-ace1', glowColor: '#5b8def', delay: 500 },
+        { x: 200, y: 170, highlight: 'fc-match1', glowColor: '#fbbf24', delay: 400 },
+        { x: 200, y: 220, delay: 250 },
+        { x: 200, y: 260, highlight: 'fc-ace2', glowColor: '#5b8def', delay: 500 },
+        { x: 200, y: 330, highlight: 'fc-match2', glowColor: '#fbbf24', delay: 400 },
+        { x: 200, y: 380, delay: 250 },
+        { x: 200, y: 420, highlight: 'fc-ace3', glowColor: '#5b8def', delay: 500 },
+        { x: 200, y: 490, highlight: 'fc-match3', glowColor: '#fbbf24', delay: 400 },
+        { x: 200, y: 540, delay: 300 },
+        { x: 200, y: 582, color: '#f87171', highlight: 'fc-implicit', glowColor: '#f87171', delay: 1000 },
+        { hideDot: true, delay: 0 }
+      ]);
+    });
+
+    document.getElementById('btn-reset-anim').addEventListener('click', resetFlowchart);
+
+    // ================================================================
+    //  TAB 2: WILDCARD MASK CALCULATOR
+    // ================================================================
+
+    // -- Subnet to Wildcard Converter --
+    function convertSubnetToWildcard() {
+      var input = document.getElementById('wc-subnet-input').value.trim();
+      var octets = parseIp(input);
+      if (!octets) { alert('Enter a valid subnet mask (e.g. 255.255.255.0)'); return; }
+
+      var wildcard = octets.map(function(o) { return 255 - o; });
+      var wildcardStr = octetsToStr(wildcard);
+
+      document.getElementById('wc-subnet-display').textContent = input;
+      document.getElementById('wc-wildcard-display').textContent = wildcardStr;
+      document.getElementById('wc-formula-mask').textContent = input;
+      document.getElementById('wc-formula-result').textContent = wildcardStr;
+
+      // Calculate CIDR
+      var maskNum = ipToNum(octets);
+      var cidr = 0;
+      var m = maskNum;
+      while (m & 0x80000000) { cidr++; m = (m << 1) >>> 0; }
+      document.getElementById('wc-cidr-note').textContent = 'This is a /' + cidr + ' subnet (' + Math.pow(2, 32 - cidr).toLocaleString() + ' addresses)';
+
+      document.getElementById('wc-convert-result').classList.remove('hidden');
+    }
+
+    document.getElementById('wc-convert-btn').addEventListener('click', convertSubnetToWildcard);
+    document.getElementById('wc-subnet-input').addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') convertSubnetToWildcard();
+    });
+
+    // Auto-run on load
+    convertSubnetToWildcard();
+
+    // -- Match Simulator --
+    function checkMatch() {
+      var networkStr = document.getElementById('match-network').value.trim();
+      var wildcardStr = document.getElementById('match-wildcard').value.trim();
+      var testIpStr = document.getElementById('match-test-ip').value.trim();
+      var action = document.getElementById('match-action').value;
+
+      var network = parseIp(networkStr);
+      var wildcard = parseIp(wildcardStr);
+      var testIp = parseIp(testIpStr);
+
+      if (!network || !wildcard || !testIp) {
+        alert('Please enter valid IP addresses in all fields.');
+        return;
+      }
+
+      // ACL match logic:
+      // For each bit position, if wildcard bit is 0, the network bit and test IP bit must match.
+      // If wildcard bit is 1, that bit is ignored (don't care).
+      var networkNum = ipToNum(network);
+      var wildcardNum = ipToNum(wildcard);
+      var testIpNum = ipToNum(testIp);
+
+      // Check: (network XOR testIp) AND (NOT wildcard) should be 0 for a match
+      // Equivalently: (network AND NOT wildcard) === (testIp AND NOT wildcard)
+      var inverseMask = (~wildcardNum) >>> 0;
+      var isMatch = ((networkNum & inverseMask) >>> 0) === ((testIpNum & inverseMask) >>> 0);
+
+      var resultDiv = document.getElementById('match-result');
+      resultDiv.classList.remove('hidden', 'match', 'no-match');
+
+      if (isMatch) {
+        resultDiv.classList.add('match');
+        resultDiv.innerHTML = 'MATCH &mdash; ' + action.toUpperCase() + 'TED' +
+          '<div style="font-size:0.82rem;margin-top:4px;color:var(--text-secondary);">The test IP ' + testIpStr +
+          ' matches the ACL entry: ' + action + ' ' + networkStr + ' ' + wildcardStr + '</div>';
+      } else {
+        resultDiv.classList.add('no-match');
+        resultDiv.innerHTML = 'NO MATCH' +
+          '<div style="font-size:0.82rem;margin-top:4px;color:var(--text-secondary);">The test IP ' + testIpStr +
+          ' does not match ' + networkStr + ' ' + wildcardStr + '. This ACE is skipped; router checks the next entry.</div>';
+      }
+
+      // Binary breakdown
+      var networkBin = octetsToBinary(network);
+      var wildcardBin = octetsToBinary(wildcard);
+      var testIpBin = octetsToBinary(testIp);
+
+      var comparisonHtml = '';
+      for (var i = 0; i < 32; i++) {
+        var wcBit = wildcardBin[i];
+        var netBit = networkBin[i];
+        var testBit = testIpBin[i];
+        if (wcBit === '1') {
+          // Don't care
+          comparisonHtml += '<span class="bit-ignored">' + testBit + '</span>';
+        } else {
+          // Must match
+          if (netBit === testBit) {
+            comparisonHtml += '<span class="bit-match">' + testBit + '</span>';
+          } else {
+            comparisonHtml += '<span class="bit-no-match">' + testBit + '</span>';
+          }
+        }
+        if ((i + 1) % 8 === 0 && i < 31) comparisonHtml += ' ';
+      }
+
+      var wildcardHtml = '';
+      for (var j = 0; j < 32; j++) {
+        if (wildcardBin[j] === '0') {
+          wildcardHtml += '<span style="color:var(--blue);">0</span>';
+        } else {
+          wildcardHtml += '<span style="color:var(--text-muted);">1</span>';
+        }
+        if ((j + 1) % 8 === 0 && j < 31) wildcardHtml += ' ';
+      }
+
+      var binaryDiv = document.getElementById('match-binary');
+      binaryDiv.classList.remove('hidden');
+      binaryDiv.innerHTML =
+        '<div><span class="label-col">ACL Network:</span>' + formatBinaryStr(networkBin) + '  (' + networkStr + ')</div>' +
+        '<div><span class="label-col">Wildcard Mask:</span>' + wildcardHtml + '  (' + wildcardStr + ')</div>' +
+        '<div><span class="label-col">Test IP:</span>' + comparisonHtml + '  (' + testIpStr + ')</div>' +
+        '<div style="margin-top:8px;font-size:0.78rem;color:var(--text-muted);">' +
+        '<span class="bit-match">Green</span> = must match (wildcard 0) and does match &nbsp; ' +
+        '<span class="bit-no-match">Red</span> = must match but differs &nbsp; ' +
+        '<span class="bit-ignored">Gray</span> = don\'t care (wildcard 1)' +
+        '</div>';
+    }
+
+    function formatBinaryStr(bin) {
+      var result = '';
+      for (var i = 0; i < 32; i++) {
+        result += bin[i];
+        if ((i + 1) % 8 === 0 && i < 31) result += ' ';
+      }
+      return result;
+    }
+
+    document.getElementById('match-check-btn').addEventListener('click', checkMatch);
+    document.getElementById('match-test-ip').addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') checkMatch();
+    });
+
+    // ================================================================
+    //  TAB 3: ACL BUILDER
+    // ================================================================
+    var buildElements = {
+      type: document.getElementById('build-type'),
+      number: document.getElementById('build-number'),
+      numberLabel: document.getElementById('build-number-label'),
+      name: document.getElementById('build-name'),
+      nameLabel: document.getElementById('build-name-label'),
+      action: document.getElementById('build-action'),
+      srcType: document.getElementById('build-src-type'),
+      srcIp: document.getElementById('build-src-ip'),
+      srcIpLabel: document.getElementById('build-src-ip-label'),
+      srcWc: document.getElementById('build-src-wc'),
+      srcWcLabel: document.getElementById('build-src-wc-label'),
+      srcRow: document.getElementById('build-src-row'),
+      dstType: document.getElementById('build-dst-type'),
+      dstIp: document.getElementById('build-dst-ip'),
+      dstIpLabel: document.getElementById('build-dst-ip-label'),
+      dstWc: document.getElementById('build-dst-wc'),
+      dstWcLabel: document.getElementById('build-dst-wc-label'),
+      dstRow: document.getElementById('build-dst-row'),
+      extFields: document.getElementById('build-ext-fields'),
+      protocol: document.getElementById('build-protocol'),
+      port: document.getElementById('build-port'),
+      portLabel: document.getElementById('build-port-label'),
+      customPort: document.getElementById('build-custom-port'),
+      customPortLabel: document.getElementById('build-custom-port-label'),
+      output: document.getElementById('build-output')
+    };
+
+    function isExtendedType(type) {
+      return type === 'extended' || type === 'named-extended';
+    }
+
+    function isNamedType(type) {
+      return type === 'named-standard' || type === 'named-extended';
+    }
+
+    function updateBuilderVisibility() {
+      var type = buildElements.type.value;
+      var extended = isExtendedType(type);
+      var named = isNamedType(type);
+
+      // Number vs Name
+      buildElements.numberLabel.classList.toggle('hidden', named);
+      buildElements.nameLabel.classList.toggle('hidden', !named);
+
+      // Set appropriate default numbers
+      if (!named) {
+        var currentNum = parseInt(buildElements.number.value, 10);
+        if (extended && (currentNum < 100 || (currentNum > 199 && currentNum < 2000) || currentNum > 2699)) {
+          buildElements.number.value = '100';
+        } else if (!extended && ((currentNum >= 100 && currentNum <= 199) || (currentNum >= 2000 && currentNum <= 2699))) {
+          buildElements.number.value = '10';
+        }
+      }
+
+      // Extended-only fields
+      buildElements.extFields.classList.toggle('hidden', !extended);
+
+      // Source row visibility
+      var srcType = buildElements.srcType.value;
+      buildElements.srcRow.classList.toggle('hidden', srcType === 'any');
+      buildElements.srcWcLabel.classList.toggle('hidden', srcType !== 'network');
+
+      if (extended) {
+        // Destination row visibility
+        var dstType = buildElements.dstType.value;
+        buildElements.dstRow.classList.toggle('hidden', dstType === 'any');
+        buildElements.dstWcLabel.classList.toggle('hidden', dstType !== 'network');
+
+        // Port visibility based on protocol
+        var proto = buildElements.protocol.value;
+        var showPort = (proto === 'tcp' || proto === 'udp');
+        buildElements.portLabel.classList.toggle('hidden', !showPort);
+
+        // Custom port
+        buildElements.customPortLabel.classList.toggle('hidden', buildElements.port.value !== 'custom' || !showPort);
+      }
+
+      updateBuilderOutput();
+    }
+
+    function updateBuilderOutput() {
+      var type = buildElements.type.value;
+      var extended = isExtendedType(type);
+      var named = isNamedType(type);
+      var action = buildElements.action.value;
+
+      // Source
+      var srcType = buildElements.srcType.value;
+      var srcStr = '';
+      if (srcType === 'any') {
+        srcStr = 'any';
+      } else if (srcType === 'host') {
+        srcStr = 'host ' + (buildElements.srcIp.value.trim() || '?.?.?.?');
+      } else {
+        srcStr = (buildElements.srcIp.value.trim() || '?.?.?.?') + ' ' + (buildElements.srcWc.value.trim() || '?.?.?.?');
+      }
+
+      if (!extended) {
+        // Standard ACL
+        if (named) {
+          var nameVal = buildElements.name.value.trim() || 'MY_ACL';
+          buildElements.output.textContent =
+            'ip access-list standard ' + nameVal + '\n' +
+            ' ' + action + ' ' + srcStr;
+        } else {
+          var num = buildElements.number.value.trim() || '10';
+          buildElements.output.textContent = 'access-list ' + num + ' ' + action + ' ' + srcStr;
+        }
+      } else {
+        // Extended ACL
+        var proto = buildElements.protocol.value;
+
+        // Destination
+        var dstType = buildElements.dstType.value;
+        var dstStr = '';
+        if (dstType === 'any') {
+          dstStr = 'any';
+        } else if (dstType === 'host') {
+          dstStr = 'host ' + (buildElements.dstIp.value.trim() || '?.?.?.?');
+        } else {
+          dstStr = (buildElements.dstIp.value.trim() || '?.?.?.?') + ' ' + (buildElements.dstWc.value.trim() || '?.?.?.?');
+        }
+
+        // Port
+        var portStr = '';
+        if (proto === 'tcp' || proto === 'udp') {
+          var portVal = buildElements.port.value;
+          if (portVal === 'custom') {
+            portStr = buildElements.customPort.value.trim();
+          } else if (portVal) {
+            portStr = portVal;
+          }
+        }
+
+        var cmd = action + ' ' + proto + ' ' + srcStr + ' ' + dstStr;
+        if (portStr) cmd += ' ' + portStr;
+
+        if (named) {
+          var nameVal2 = buildElements.name.value.trim() || 'MY_ACL';
+          buildElements.output.textContent =
+            'ip access-list extended ' + nameVal2 + '\n' +
+            ' ' + cmd;
+        } else {
+          var num2 = buildElements.number.value.trim() || '100';
+          buildElements.output.textContent = 'access-list ' + num2 + ' ' + cmd;
+        }
+      }
+    }
+
+    // Attach change/input listeners to all builder controls
+    var builderInputs = [
+      'build-type', 'build-number', 'build-name', 'build-action',
+      'build-src-type', 'build-src-ip', 'build-src-wc',
+      'build-dst-type', 'build-dst-ip', 'build-dst-wc',
+      'build-protocol', 'build-port', 'build-custom-port'
+    ];
+    builderInputs.forEach(function(id) {
+      var el = document.getElementById(id);
+      el.addEventListener('input', updateBuilderVisibility);
+      el.addEventListener('change', updateBuilderVisibility);
+    });
+
+    // Initialize builder state
+    updateBuilderVisibility();
+
+    // Copy button
+    document.getElementById('build-copy').addEventListener('click', function() {
+      var text = document.getElementById('build-output').textContent;
+      navigator.clipboard.writeText(text).then(function() {
+        var copiedEl = document.getElementById('build-copied');
+        copiedEl.style.display = 'inline';
+        setTimeout(function() { copiedEl.style.display = 'none'; }, 1500);
+      });
+    });
+  </script>
+</body>
+</html>

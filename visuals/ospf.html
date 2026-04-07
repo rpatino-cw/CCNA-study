@@ -1,0 +1,1224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OSPF Visualizer — CCNA Study</title>
+  <link rel="stylesheet" href="../css/shared.css">
+  <style>
+    /* ── Tabs ── */
+    .tab-row {
+      display: flex; gap: 4px; margin-bottom: 24px;
+      border-bottom: 1px solid var(--border); padding-bottom: 0;
+    }
+    .tab-btn {
+      padding: 10px 20px; background: none; border: none;
+      color: var(--text-secondary); cursor: pointer;
+      font-size: 0.9rem; font-family: inherit;
+      border-bottom: 2px solid transparent; transition: all var(--transition);
+    }
+    .tab-btn:hover { color: var(--text-primary); }
+    .tab-btn.active { color: var(--blue); border-bottom-color: var(--blue); }
+
+    .tool-section { margin-bottom: 32px; }
+
+    /* ── RED topic banner ── */
+    .red-banner {
+      background: var(--red-dim);
+      border: 1px solid var(--red);
+      border-radius: var(--radius-md);
+      padding: 12px 20px;
+      margin-bottom: 24px;
+      display: flex; align-items: center; gap: 12px;
+      font-size: 0.88rem;
+    }
+    .red-banner .dot {
+      width: 10px; height: 10px; border-radius: 50%;
+      background: var(--red); flex-shrink: 0;
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    /* ══════════════════════════════════════
+       TAB 1: Neighbor States
+       ══════════════════════════════════════ */
+    .state-flow {
+      display: flex; align-items: flex-start; gap: 0;
+      overflow-x: auto; padding: 16px 0 24px;
+    }
+    .state-card {
+      flex-shrink: 0;
+      width: 140px;
+      background: var(--bg-card);
+      border: 2px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 14px 12px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      position: relative;
+    }
+    .state-card:hover {
+      border-color: var(--blue);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 20px rgba(91, 141, 239, 0.15);
+    }
+    .state-card.active {
+      border-color: var(--blue);
+      background: var(--blue-dim);
+      box-shadow: 0 0 24px rgba(91, 141, 239, 0.2);
+    }
+    .state-card.completed {
+      border-color: var(--green);
+      background: rgba(52, 211, 153, 0.06);
+    }
+    .state-card.completed .state-name { color: var(--green); }
+    .state-card.muted {
+      opacity: 0.45;
+    }
+    .state-card .state-number {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 4px;
+    }
+    .state-card .state-name {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+    .state-card .state-packet {
+      margin-top: 6px;
+      font-size: 0.72rem;
+      font-family: var(--font-mono);
+      color: var(--cyan);
+      background: rgba(34, 211, 238, 0.08);
+      border-radius: var(--radius-sm);
+      padding: 2px 8px;
+      display: inline-block;
+    }
+
+    /* Arrow between states */
+    .state-arrow {
+      flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      width: 40px; height: 80px;
+      color: var(--text-muted);
+      font-size: 1.4rem;
+      position: relative;
+    }
+    .state-arrow svg {
+      width: 32px; height: 16px;
+    }
+
+    /* Branch indicator at 2-Way */
+    .branch-indicator {
+      margin-top: 12px;
+      padding: 10px 14px;
+      background: var(--yellow-dim);
+      border: 1px solid rgba(251, 191, 36, 0.3);
+      border-radius: var(--radius-sm);
+      font-size: 0.78rem;
+      color: var(--yellow);
+      text-align: center;
+      line-height: 1.5;
+    }
+    .branch-indicator strong { color: var(--yellow); }
+
+    /* State detail panel */
+    .state-detail-panel {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 24px;
+      margin-top: 16px;
+      animation: fadeIn 0.3s ease;
+    }
+    .state-detail-panel h3 {
+      font-size: 1.1rem; font-weight: 700; margin-bottom: 16px;
+      display: flex; align-items: center; gap: 10px;
+    }
+    .state-detail-panel h3 .badge {
+      font-size: 0.72rem;
+    }
+    .detail-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 16px;
+    }
+    .detail-item {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 14px 18px;
+    }
+    .detail-item .label {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+      font-weight: 600;
+    }
+    .detail-item .value {
+      font-size: 0.9rem;
+      color: var(--text-primary);
+      line-height: 1.6;
+    }
+    .detail-item .value code {
+      font-family: var(--font-mono);
+      background: var(--bg-input);
+      padding: 1px 6px;
+      border-radius: 3px;
+      font-size: 0.82rem;
+      color: var(--cyan);
+    }
+
+    /* Key facts panel */
+    .key-facts {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 12px;
+      margin-top: 24px;
+    }
+    .fact-card {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--blue);
+      border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+      padding: 14px 18px;
+      font-size: 0.88rem;
+      line-height: 1.6;
+    }
+    .fact-card .fact-label {
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--blue);
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    /* ══════════════════════════════════════
+       TAB 2: DR/BDR Election
+       ══════════════════════════════════════ */
+    .election-layout {
+      display: grid;
+      grid-template-columns: 1fr 300px;
+      gap: 24px;
+    }
+    @media (max-width: 900px) {
+      .election-layout { grid-template-columns: 1fr; }
+    }
+
+    .router-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+    }
+    .router-box {
+      background: var(--bg-card);
+      border: 2px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 20px;
+      text-align: center;
+      transition: all 0.4s ease;
+      position: relative;
+    }
+    .router-box.dr {
+      border-color: var(--green);
+      background: rgba(52, 211, 153, 0.06);
+      box-shadow: 0 0 24px rgba(52, 211, 153, 0.15);
+    }
+    .router-box.bdr {
+      border-color: var(--yellow);
+      background: rgba(251, 191, 36, 0.06);
+      box-shadow: 0 0 24px rgba(251, 191, 36, 0.12);
+    }
+    .router-box.drother {
+      border-color: var(--text-muted);
+      opacity: 0.7;
+    }
+
+    .router-icon {
+      width: 56px; height: 56px;
+      border-radius: 50%;
+      background: var(--bg-secondary);
+      border: 2px solid var(--border);
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 12px;
+      font-size: 1.2rem; font-weight: 700;
+      font-family: var(--font-mono);
+      transition: all 0.4s ease;
+    }
+    .router-box.dr .router-icon {
+      background: var(--green-dim);
+      border-color: var(--green);
+      color: var(--green);
+    }
+    .router-box.bdr .router-icon {
+      background: var(--yellow-dim);
+      border-color: var(--yellow);
+      color: var(--yellow);
+    }
+
+    .router-role {
+      font-size: 0.78rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-top: 10px;
+      min-height: 20px;
+      transition: color 0.3s ease;
+    }
+    .router-role.dr { color: var(--green); }
+    .router-role.bdr { color: var(--yellow); }
+    .router-role.drother { color: var(--text-muted); }
+
+    .router-field {
+      display: flex; flex-direction: column; gap: 3px;
+      text-align: left; margin-top: 10px;
+    }
+    .router-field label {
+      font-size: 0.72rem; color: var(--text-muted);
+      text-transform: uppercase; letter-spacing: 0.04em;
+    }
+    .router-field input {
+      background: var(--bg-input); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); padding: 8px 12px;
+      color: var(--text-primary); font-family: var(--font-mono);
+      font-size: 0.88rem; outline: none;
+      transition: border-color var(--transition); width: 100%;
+    }
+    .router-field input:focus { border-color: var(--blue); }
+
+    .election-controls {
+      display: flex; gap: 12px; margin-top: 20px;
+      flex-wrap: wrap; align-items: center;
+    }
+
+    .election-sidebar {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 20px;
+    }
+    .election-sidebar h3 {
+      font-size: 0.95rem; font-weight: 700;
+      margin-bottom: 14px;
+    }
+    .rule-item {
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.85rem;
+      line-height: 1.6;
+      color: var(--text-secondary);
+    }
+    .rule-item:last-child { border-bottom: none; }
+    .rule-item .rule-num {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 22px; height: 22px; border-radius: 50%;
+      background: var(--blue-dim); color: var(--blue);
+      font-size: 0.72rem; font-weight: 700;
+      margin-right: 8px; flex-shrink: 0;
+    }
+    .rule-item strong { color: var(--text-primary); }
+
+    .presets-row {
+      display: flex; gap: 8px; margin-top: 16px; flex-wrap: wrap;
+    }
+
+    /* Election result log */
+    .election-log {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 14px 18px;
+      margin-top: 16px;
+      font-family: var(--font-mono);
+      font-size: 0.82rem;
+      line-height: 1.8;
+      color: var(--text-secondary);
+      max-height: 200px;
+      overflow-y: auto;
+    }
+    .election-log .step { color: var(--text-muted); }
+    .election-log .result-dr { color: var(--green); font-weight: 600; }
+    .election-log .result-bdr { color: var(--yellow); font-weight: 600; }
+    .election-log .result-drother { color: var(--text-muted); }
+
+    /* ══════════════════════════════════════
+       TAB 3: Cost Calculator
+       ══════════════════════════════════════ */
+    .cost-calc-layout {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+    }
+    @media (max-width: 800px) {
+      .cost-calc-layout { grid-template-columns: 1fr; }
+    }
+
+    .calc-panel {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 24px;
+    }
+    .calc-panel h3 {
+      font-size: 1rem; font-weight: 700; margin-bottom: 16px;
+    }
+
+    .calc-field {
+      display: flex; flex-direction: column; gap: 4px;
+      margin-bottom: 16px;
+    }
+    .calc-field label {
+      font-size: 0.78rem; color: var(--text-muted);
+      text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600;
+    }
+    .calc-field select,
+    .calc-field input {
+      background: var(--bg-input); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); padding: 10px 14px;
+      color: var(--text-primary); font-family: var(--font-mono);
+      font-size: 0.92rem; outline: none; width: 100%;
+      transition: border-color var(--transition);
+    }
+    .calc-field select:focus,
+    .calc-field input:focus { border-color: var(--blue); }
+
+    .formula-display {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 20px 24px;
+      text-align: center;
+      margin: 20px 0;
+    }
+    .formula-display .formula {
+      font-family: var(--font-mono);
+      font-size: 1.1rem;
+      color: var(--text-primary);
+      margin-bottom: 8px;
+    }
+    .formula-display .formula .op {
+      color: var(--text-muted);
+    }
+    .formula-display .formula .val {
+      color: var(--blue);
+      font-weight: 700;
+    }
+    .cost-result {
+      font-size: 2.4rem;
+      font-weight: 800;
+      font-family: var(--font-mono);
+      color: var(--green);
+      text-align: center;
+      padding: 16px 0;
+    }
+    .cost-result .cost-label {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      font-weight: 600;
+    }
+
+    .cost-table-wrapper {
+      margin-top: 24px;
+    }
+    .cost-table-wrapper h3 {
+      font-size: 1rem; font-weight: 700; margin-bottom: 12px;
+    }
+    .cost-table td {
+      font-family: var(--font-mono); font-size: 0.85rem; padding: 8px 14px;
+    }
+    .cost-table tr:hover { background: var(--bg-hover); }
+    .cost-table .highlight { color: var(--yellow); font-weight: 600; }
+
+    .warning-box {
+      background: var(--yellow-dim);
+      border: 1px solid rgba(251, 191, 36, 0.3);
+      border-left: 3px solid var(--yellow);
+      border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+      padding: 14px 18px;
+      margin-top: 20px;
+      font-size: 0.85rem;
+      line-height: 1.6;
+      color: var(--yellow);
+    }
+    .warning-box strong { color: var(--yellow); }
+
+    /* ── Commands reference ── */
+    .commands-section {
+      margin-top: 32px;
+    }
+    .commands-section h2 {
+      font-size: 1.15rem; font-weight: 700; margin-bottom: 16px;
+      display: flex; align-items: center; gap: 10px;
+    }
+    .cmd-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+      gap: 10px;
+    }
+    .cmd-item {
+      display: flex; align-items: center; gap: 12px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 10px 16px;
+      transition: border-color var(--transition);
+    }
+    .cmd-item:hover { border-color: var(--blue); }
+    .cmd-item code {
+      font-family: var(--font-mono);
+      font-size: 0.84rem;
+      color: var(--cyan);
+      flex: 1;
+    }
+    .cmd-item .cmd-desc {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      white-space: nowrap;
+    }
+
+    /* ── Cisco cmd inline ── */
+    .cisco-cmd {
+      display: inline-block;
+      padding: 2px 8px;
+      background: var(--bg-input);
+      border-radius: var(--radius-sm);
+      font-family: var(--font-mono);
+      font-size: 0.82rem;
+      color: var(--cyan);
+    }
+
+    /* ── Responsive ── */
+    @media (max-width: 768px) {
+      .state-flow { flex-wrap: nowrap; }
+      .state-card { width: 110px; padding: 10px 8px; }
+      .state-card .state-name { font-size: 0.82rem; }
+      .router-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container-wide">
+    <!-- Nav -->
+    <nav class="top-nav" style="margin-bottom: 16px;">
+      <a href="../index.html">Dashboard</a>
+      <a href="../knowledge-map.html">Knowledge Map</a>
+      <a href="../diagnostic.html">Diagnostic</a>
+      <a href="../quiz.html">Quiz</a>
+    </nav>
+
+    <div class="page-header">
+      <div>
+        <h1>OSPF Visualizer</h1>
+        <div class="subtitle">Neighbor States, DR/BDR Election, Cost Calculator</div>
+      </div>
+      <span class="badge badge-red">RED TOPIC</span>
+    </div>
+
+    <div class="red-banner">
+      <span class="dot"></span>
+      <span>This is a <strong style="color:var(--red);">RED</strong> priority topic. Master the neighbor adjacency process, DR/BDR election, and cost calculation for the exam.</span>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tab-row">
+      <button class="tab-btn active" data-tab="states">Neighbor States</button>
+      <button class="tab-btn" data-tab="election">DR/BDR Election</button>
+      <button class="tab-btn" data-tab="cost">Cost Calculator</button>
+    </div>
+
+    <!-- ═══════════════════════════════════════════
+         TAB 1: OSPF Neighbor States
+         ═══════════════════════════════════════════ -->
+    <div id="tab-states" class="tool-section">
+      <p class="text-secondary mb-2" style="font-size:0.9rem;">Click any state to see details. States progress left-to-right during neighbor adjacency formation.</p>
+
+      <!-- State flow diagram -->
+      <div class="state-flow" id="state-flow">
+        <!-- Rendered by JS -->
+      </div>
+
+      <!-- Branch note under the flow -->
+      <div class="branch-indicator">
+        <strong>Decision Point at 2-Way:</strong> On broadcast/NBMA networks, only DR and BDR proceed to ExStart.
+        DROther routers remain at <strong>2-Way</strong> with each other (no full adjacency needed).
+      </div>
+
+      <!-- Detail panel (shown on click) -->
+      <div id="state-detail" class="state-detail-panel" style="display:none;"></div>
+
+      <!-- Key Facts -->
+      <h3 style="margin-top:28px; margin-bottom:14px; font-size:1rem; font-weight:700;">Key OSPF Facts</h3>
+      <div class="key-facts">
+        <div class="fact-card">
+          <div class="fact-label">Hello Interval</div>
+          <strong>10 seconds</strong> on broadcast and point-to-point networks<br>
+          <strong>30 seconds</strong> on NBMA networks
+        </div>
+        <div class="fact-card">
+          <div class="fact-label">Dead Interval</div>
+          <strong>4x the Hello interval</strong><br>
+          40 seconds (broadcast/P2P) or 120 seconds (NBMA)
+        </div>
+        <div class="fact-card">
+          <div class="fact-label">DR/BDR Election</div>
+          Happens at the <strong>2-Way</strong> state<br>
+          Only on broadcast and NBMA networks
+        </div>
+        <div class="fact-card">
+          <div class="fact-label">Full Adjacency</div>
+          Means <strong>complete LSDB synchronization</strong><br>
+          Routers have identical link-state databases
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════
+         TAB 2: DR/BDR Election Simulator
+         ═══════════════════════════════════════════ -->
+    <div id="tab-election" class="tool-section hidden">
+      <div class="election-layout">
+        <div>
+          <h3 style="font-size:1rem; font-weight:700; margin-bottom:16px;">Broadcast Segment — 4 Routers</h3>
+          <div class="router-grid" id="router-grid">
+            <!-- Rendered by JS -->
+          </div>
+
+          <div class="election-controls">
+            <button class="btn btn-primary" id="run-election">Run Election</button>
+            <button class="btn btn-secondary" id="reset-election">Reset</button>
+            <span class="text-muted" style="font-size:0.82rem;">Presets:</span>
+            <div class="presets-row">
+              <button class="btn btn-sm btn-ghost" data-preset="default">All Default</button>
+              <button class="btn btn-sm btn-ghost" data-preset="tie">Priority Tie</button>
+              <button class="btn btn-sm btn-ghost" data-preset="zero">One Priority 0</button>
+            </div>
+          </div>
+
+          <!-- Election log -->
+          <div class="election-log hidden" id="election-log"></div>
+        </div>
+
+        <!-- Sidebar: Rules -->
+        <div class="election-sidebar">
+          <h3>Election Rules</h3>
+          <div class="rule-item">
+            <span class="rule-num">1</span>
+            <strong>Highest priority wins.</strong> Default priority is <code class="cisco-cmd">1</code>. Range 0-255.
+          </div>
+          <div class="rule-item">
+            <span class="rule-num">2</span>
+            <strong>Priority 0</strong> means the router <em>cannot</em> become DR or BDR.
+          </div>
+          <div class="rule-item">
+            <span class="rule-num">3</span>
+            <strong>Highest Router ID</strong> breaks ties when priorities are equal.
+          </div>
+          <div class="rule-item">
+            <span class="rule-num">4</span>
+            <strong>Non-preemptive:</strong> once elected, a DR stays DR even if a higher-priority router joins.
+          </div>
+          <div class="rule-item">
+            <span class="rule-num">5</span>
+            If DR fails, <strong>BDR is promoted</strong> to DR, and a new BDR election is held.
+          </div>
+
+          <div style="margin-top:18px; padding-top:14px; border-top: 1px solid var(--border);">
+            <div style="font-size:0.78rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:8px; font-weight:600;">Related Commands</div>
+            <div style="font-family:var(--font-mono); font-size:0.82rem; color:var(--cyan); line-height:2;">
+              ip ospf priority &lt;0-255&gt;<br>
+              show ip ospf neighbor<br>
+              show ip ospf interface
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════
+         TAB 3: OSPF Cost Calculator
+         ═══════════════════════════════════════════ -->
+    <div id="tab-cost" class="tool-section hidden">
+      <div class="cost-calc-layout">
+        <!-- Calculator -->
+        <div class="calc-panel">
+          <h3>Calculate OSPF Cost</h3>
+
+          <div class="calc-field">
+            <label>Interface Bandwidth</label>
+            <select id="cost-bw-select">
+              <option value="1.544">Serial (1.544 Mbps)</option>
+              <option value="10">Ethernet (10 Mbps)</option>
+              <option value="100" selected>FastEthernet (100 Mbps)</option>
+              <option value="1000">GigabitEthernet (1 Gbps)</option>
+              <option value="10000">10GigE (10 Gbps)</option>
+              <option value="custom">Custom...</option>
+            </select>
+          </div>
+
+          <div class="calc-field hidden" id="custom-bw-field">
+            <label>Custom Bandwidth (Mbps)</label>
+            <input type="number" id="cost-bw-custom" value="100" min="0.001" step="any">
+          </div>
+
+          <div class="calc-field">
+            <label>Reference Bandwidth (Mbps)</label>
+            <select id="cost-ref-select">
+              <option value="100" selected>100 Mbps (Cisco default)</option>
+              <option value="1000">1000 Mbps (recommended)</option>
+              <option value="10000">10000 Mbps</option>
+              <option value="custom">Custom...</option>
+            </select>
+          </div>
+
+          <div class="calc-field hidden" id="custom-ref-field">
+            <label>Custom Reference Bandwidth (Mbps)</label>
+            <input type="number" id="cost-ref-custom" value="100" min="1" step="any">
+          </div>
+
+          <!-- Formula display -->
+          <div class="formula-display">
+            <div class="formula">
+              Cost <span class="op">=</span> <span class="val" id="formula-ref">100</span> <span class="op">/</span> <span class="val" id="formula-bw">100</span>
+            </div>
+            <div style="font-size:0.78rem; color:var(--text-muted);">Reference BW / Interface BW (rounded down, minimum 1)</div>
+          </div>
+
+          <div class="cost-result">
+            <div class="cost-label">OSPF Cost</div>
+            <div id="cost-value">1</div>
+          </div>
+
+          <div style="text-align:center; margin-top:8px;">
+            <span class="text-muted" style="font-size:0.82rem;">Cisco command: </span>
+            <code class="cisco-cmd" id="cost-command">auto-cost reference-bandwidth 100</code>
+          </div>
+        </div>
+
+        <!-- Reference Table -->
+        <div>
+          <div class="calc-panel">
+            <h3>Common Interface Costs</h3>
+            <table class="cost-table">
+              <thead>
+                <tr>
+                  <th>Interface</th>
+                  <th>Bandwidth</th>
+                  <th>Cost (ref 100M)</th>
+                  <th>Cost (ref 1G)</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Serial</td>
+                  <td>1.544 Mbps</td>
+                  <td>64</td>
+                  <td>647</td>
+                </tr>
+                <tr>
+                  <td>Ethernet</td>
+                  <td>10 Mbps</td>
+                  <td>10</td>
+                  <td>100</td>
+                </tr>
+                <tr>
+                  <td>FastEthernet</td>
+                  <td>100 Mbps</td>
+                  <td><span class="highlight">1</span></td>
+                  <td>10</td>
+                </tr>
+                <tr>
+                  <td>GigabitEthernet</td>
+                  <td>1 Gbps</td>
+                  <td><span class="highlight">1</span></td>
+                  <td>1</td>
+                </tr>
+                <tr>
+                  <td>10GigE</td>
+                  <td>10 Gbps</td>
+                  <td><span class="highlight">1</span></td>
+                  <td>1</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="warning-box" style="margin-top:16px;">
+            <strong>Problem:</strong> With the default reference bandwidth of 100 Mbps, FastEthernet, GigabitEthernet, and 10GigE all have a cost of <strong>1</strong>.
+            OSPF cannot distinguish between these link speeds for path selection.<br><br>
+            <strong>Recommendation:</strong> Change the reference bandwidth to <strong>1000 Mbps or higher</strong> on all routers in the OSPF domain.<br>
+            <code class="cisco-cmd" style="margin-top:6px;">auto-cost reference-bandwidth 1000</code>
+          </div>
+        </div>
+      </div>
+
+      <!-- Key OSPF Commands -->
+      <div class="commands-section">
+        <h2>Key OSPF Commands</h2>
+        <div class="cmd-grid">
+          <div class="cmd-item">
+            <code>router ospf &lt;process-id&gt;</code>
+            <span class="cmd-desc">Enter OSPF config</span>
+          </div>
+          <div class="cmd-item">
+            <code>network &lt;ip&gt; &lt;wildcard&gt; area &lt;id&gt;</code>
+            <span class="cmd-desc">Advertise network</span>
+          </div>
+          <div class="cmd-item">
+            <code>show ip ospf neighbor</code>
+            <span class="cmd-desc">View adjacencies</span>
+          </div>
+          <div class="cmd-item">
+            <code>show ip ospf interface</code>
+            <span class="cmd-desc">Interface OSPF info</span>
+          </div>
+          <div class="cmd-item">
+            <code>show ip route ospf</code>
+            <span class="cmd-desc">OSPF routes in RIB</span>
+          </div>
+          <div class="cmd-item">
+            <code>ip ospf cost &lt;value&gt;</code>
+            <span class="cmd-desc">Manual cost override</span>
+          </div>
+          <div class="cmd-item">
+            <code>ip ospf priority &lt;value&gt;</code>
+            <span class="cmd-desc">Set DR/BDR priority</span>
+          </div>
+          <div class="cmd-item">
+            <code>ip ospf hello-interval &lt;sec&gt;</code>
+            <span class="cmd-desc">Adjust hello timer</span>
+          </div>
+          <div class="cmd-item">
+            <code>ip ospf dead-interval &lt;sec&gt;</code>
+            <span class="cmd-desc">Adjust dead timer</span>
+          </div>
+          <div class="cmd-item">
+            <code>auto-cost reference-bandwidth &lt;mbps&gt;</code>
+            <span class="cmd-desc">Change ref BW</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ══════════════════════════════════════════
+    //  Tab switching
+    // ══════════════════════════════════════════
+    document.querySelectorAll('.tab-btn').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        document.querySelectorAll('.tab-btn').forEach(function(b) { b.classList.remove('active'); });
+        btn.classList.add('active');
+        document.querySelectorAll('.tool-section').forEach(function(s) { s.classList.add('hidden'); });
+        document.getElementById('tab-' + btn.dataset.tab).classList.remove('hidden');
+      });
+    });
+
+    // ══════════════════════════════════════════
+    //  TAB 1: OSPF Neighbor States
+    // ══════════════════════════════════════════
+    var ospfStates = [
+      {
+        name: 'Down',
+        number: 1,
+        packet: 'None',
+        description: 'No Hello packets have been received from the neighbor. This is the initial state. The router has no information about any OSPF neighbor on this interface.',
+        whatHappens: 'The router begins sending Hello packets out OSPF-enabled interfaces at the Hello interval. No neighbor information exists yet.',
+        packetDetail: 'Outgoing Hello packets are sent to multicast 224.0.0.5 (AllSPFRouters). No packets received yet from the neighbor.',
+        trigger: 'A Hello packet is received from a neighbor, moving to Init state.'
+      },
+      {
+        name: 'Init',
+        number: 2,
+        packet: 'Hello (rx)',
+        description: 'A Hello packet has been received from the neighbor, but the local router\'s Router ID is NOT listed in the neighbor\'s Hello packet.',
+        whatHappens: 'The router sees a Hello from a neighbor but hasn\'t been acknowledged yet. The neighbor knows about us, but we haven\'t confirmed bidirectional communication.',
+        packetDetail: 'The received Hello packet contains the neighbor\'s Router ID, area ID, authentication data, and neighbor list -- but our Router ID is not in that list yet.',
+        trigger: 'When the local router sees its own Router ID in the neighbor\'s Hello packet, bidirectional communication is confirmed -- move to 2-Way.'
+      },
+      {
+        name: '2-Way',
+        number: 3,
+        packet: 'Hello (bidirectional)',
+        description: 'Bidirectional communication is established. Both routers see each other\'s Router ID in Hello packets. DR/BDR election occurs here.',
+        whatHappens: 'Both routers have exchanged Hellos and confirmed they can see each other. On broadcast/NBMA networks, DR and BDR are elected at this point. DROther routers stop here with other DROthers.',
+        packetDetail: 'Hello packets now include each other\'s Router ID in the neighbor list, confirming two-way communication.',
+        trigger: 'On point-to-point links: always proceed to ExStart. On broadcast/NBMA: only DR/BDR pairs proceed to ExStart. DROther-to-DROther stays at 2-Way.'
+      },
+      {
+        name: 'ExStart',
+        number: 4,
+        packet: 'DBD (empty)',
+        description: 'Master/Slave relationship is negotiated between neighbors. The router with the higher Router ID becomes the Master.',
+        whatHappens: 'Routers exchange empty DBD (Database Description) packets to establish who is Master and who is Slave. The Master controls the sequence numbering for the exchange.',
+        packetDetail: 'Empty DBD packets with Initial (I), More (M), and Master (MS) bits set. The router with the higher Router ID becomes Master and sets the starting sequence number.',
+        trigger: 'Once Master/Slave is agreed upon, routers move to Exchange to share their LSDB summaries.'
+      },
+      {
+        name: 'Exchange',
+        number: 5,
+        packet: 'DBD (LSA headers)',
+        description: 'Routers exchange DBD packets containing LSA headers (summaries of their link-state databases). Each router learns what LSAs the neighbor has.',
+        whatHappens: 'The Master sends DBD packets and the Slave acknowledges. DBD packets contain LSA headers describing every LSA in the sender\'s LSDB. Each router builds a request list of LSAs it needs.',
+        packetDetail: 'DBD packets contain LSA headers (type, link-state ID, advertising router, sequence number, age). Not full LSAs -- just enough to compare databases.',
+        trigger: 'When all DBD packets are exchanged and the router has a list of needed LSAs, it moves to Loading.'
+      },
+      {
+        name: 'Loading',
+        number: 6,
+        packet: 'LSR / LSU / LSAck',
+        description: 'Routers request and receive the actual full LSAs they are missing. Link-State Requests, Updates, and Acknowledgments are exchanged.',
+        whatHappens: 'Based on the DBD exchange, each router sends LSR (Link-State Request) packets for LSAs it is missing or has older versions of. The neighbor responds with LSU (Link-State Update) containing the full LSAs. LSAck confirms receipt.',
+        packetDetail: 'LSR: requests specific LSAs by type, ID, and router. LSU: contains complete LSA data. LSAck: acknowledges received LSAs. This is the actual database synchronization.',
+        trigger: 'When all requested LSAs have been received and acknowledged, the LSDB is fully synchronized -- move to Full.'
+      },
+      {
+        name: 'Full',
+        number: 7,
+        packet: 'Hello (maintenance)',
+        description: 'Full adjacency is established. Both routers have identical LSDBs. This is the normal operating state for adjacent neighbors.',
+        whatHappens: 'The link-state databases are fully synchronized. Routers continue to exchange Hello packets to maintain the adjacency. SPF algorithm runs to calculate the routing table.',
+        packetDetail: 'Hello packets continue at the Hello interval for keepalive. Any new LSAs trigger incremental updates (LSU/LSAck). The dead interval timer resets with each Hello received.',
+        trigger: 'The adjacency remains Full as long as Hello packets are received within the Dead interval. If the Dead timer expires, the neighbor drops back to Down.'
+      }
+    ];
+
+    var activeStateIndex = null;
+
+    function renderStateFlow() {
+      var container = document.getElementById('state-flow');
+      container.innerHTML = '';
+
+      ospfStates.forEach(function(state, idx) {
+        // State card
+        var card = document.createElement('div');
+        card.className = 'state-card';
+        if (activeStateIndex !== null) {
+          if (idx < activeStateIndex) card.classList.add('completed');
+          else if (idx === activeStateIndex) card.classList.add('active');
+          else card.classList.add('muted');
+        }
+        card.setAttribute('data-index', idx);
+
+        card.innerHTML =
+          '<div class="state-number">State ' + state.number + '</div>' +
+          '<div class="state-name">' + state.name + '</div>' +
+          '<div class="state-packet">' + state.packet + '</div>';
+
+        card.addEventListener('click', function() {
+          selectState(idx);
+        });
+
+        container.appendChild(card);
+
+        // Arrow (except after last)
+        if (idx < ospfStates.length - 1) {
+          var arrow = document.createElement('div');
+          arrow.className = 'state-arrow';
+          arrow.innerHTML = '<svg viewBox="0 0 32 16" fill="none"><path d="M0 8h28m0 0l-6-5m6 5l-6 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+          container.appendChild(arrow);
+        }
+      });
+    }
+
+    function selectState(idx) {
+      activeStateIndex = idx;
+      renderStateFlow();
+      renderStateDetail(idx);
+    }
+
+    function renderStateDetail(idx) {
+      var state = ospfStates[idx];
+      var panel = document.getElementById('state-detail');
+      panel.style.display = 'block';
+
+      var badgeClass = 'badge-blue';
+      if (idx === 2) badgeClass = 'badge-yellow'; // 2-Way decision point
+      if (idx === ospfStates.length - 1) badgeClass = 'badge-green'; // Full
+
+      var html =
+        '<h3>' +
+          '<span style="color:var(--blue);">State ' + state.number + ':</span> ' + state.name +
+          ' <span class="badge ' + badgeClass + '">' + (idx === 2 ? 'DECISION POINT' : idx === ospfStates.length - 1 ? 'GOAL STATE' : 'STATE ' + state.number + ' OF 7') + '</span>' +
+        '</h3>' +
+        '<p style="color:var(--text-secondary); margin-bottom:16px; font-size:0.92rem;">' + state.description + '</p>' +
+        '<div class="detail-grid">' +
+          '<div class="detail-item">' +
+            '<div class="label">What Happens</div>' +
+            '<div class="value">' + state.whatHappens + '</div>' +
+          '</div>' +
+          '<div class="detail-item">' +
+            '<div class="label">Packets Involved</div>' +
+            '<div class="value">' + state.packetDetail + '</div>' +
+          '</div>' +
+          '<div class="detail-item" style="grid-column: 1 / -1;">' +
+            '<div class="label">Transition Trigger</div>' +
+            '<div class="value">' + state.trigger + '</div>' +
+          '</div>' +
+        '</div>';
+
+      panel.innerHTML = html;
+      panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    renderStateFlow();
+    // Auto-select Down state to show detail immediately
+    selectState(0);
+
+
+    // ══════════════════════════════════════════
+    //  TAB 2: DR/BDR Election Simulator
+    // ══════════════════════════════════════════
+    var routers = [
+      { id: '1.1.1.1', priority: 1, label: 'R1' },
+      { id: '2.2.2.2', priority: 1, label: 'R2' },
+      { id: '3.3.3.3', priority: 1, label: 'R3' },
+      { id: '4.4.4.4', priority: 1, label: 'R4' }
+    ];
+
+    function renderRouterGrid() {
+      var grid = document.getElementById('router-grid');
+      grid.innerHTML = '';
+
+      routers.forEach(function(r, idx) {
+        var box = document.createElement('div');
+        box.className = 'router-box';
+        box.id = 'router-box-' + idx;
+
+        box.innerHTML =
+          '<div class="router-icon">' + r.label + '</div>' +
+          '<div class="router-field">' +
+            '<label>Router ID</label>' +
+            '<input type="text" id="rid-' + idx + '" value="' + r.id + '" placeholder="x.x.x.x">' +
+          '</div>' +
+          '<div class="router-field">' +
+            '<label>Priority (0-255)</label>' +
+            '<input type="number" id="rpri-' + idx + '" value="' + r.priority + '" min="0" max="255">' +
+          '</div>' +
+          '<div class="router-role" id="role-' + idx + '"></div>';
+
+        grid.appendChild(box);
+      });
+    }
+
+    function readRouterInputs() {
+      for (var i = 0; i < routers.length; i++) {
+        routers[i].id = document.getElementById('rid-' + i).value.trim() || '0.0.0.0';
+        routers[i].priority = Math.max(0, Math.min(255, parseInt(document.getElementById('rpri-' + i).value) || 0));
+      }
+    }
+
+    function routerIdToNum(rid) {
+      var parts = rid.split('.').map(Number);
+      return ((parts[0] || 0) * 16777216) + ((parts[1] || 0) * 65536) + ((parts[2] || 0) * 256) + (parts[3] || 0);
+    }
+
+    function runElection() {
+      readRouterInputs();
+
+      var log = [];
+      log.push('<span class="step">--- DR/BDR Election Process ---</span>');
+
+      // Filter out priority 0
+      var eligible = [];
+      var ineligible = [];
+      routers.forEach(function(r, idx) {
+        if (r.priority === 0) {
+          ineligible.push({ router: r, idx: idx });
+          log.push('<span class="step">' + r.label + ' (' + r.id + '): Priority 0 -- cannot be DR/BDR</span>');
+        } else {
+          eligible.push({ router: r, idx: idx });
+          log.push('<span class="step">' + r.label + ' (' + r.id + '): Priority ' + r.priority + ' -- eligible</span>');
+        }
+      });
+
+      log.push('');
+
+      // Sort eligible: highest priority first, then highest RID
+      eligible.sort(function(a, b) {
+        if (b.router.priority !== a.router.priority) return b.router.priority - a.router.priority;
+        return routerIdToNum(b.router.id) - routerIdToNum(a.router.id);
+      });
+
+      if (eligible.length > 0) {
+        log.push('<span class="step">Sorted by priority then Router ID:</span>');
+        eligible.forEach(function(e, i) {
+          log.push('<span class="step">  ' + (i + 1) + '. ' + e.router.label + ' (Priority: ' + e.router.priority + ', RID: ' + e.router.id + ')</span>');
+        });
+        log.push('');
+      }
+
+      // Assign roles
+      var dr = eligible.length >= 1 ? eligible[0] : null;
+      var bdr = eligible.length >= 2 ? eligible[1] : null;
+
+      // Clear all roles
+      routers.forEach(function(r, idx) {
+        var box = document.getElementById('router-box-' + idx);
+        var role = document.getElementById('role-' + idx);
+        box.className = 'router-box';
+        role.textContent = '';
+        role.className = 'router-role';
+      });
+
+      // Set DR
+      if (dr) {
+        var drBox = document.getElementById('router-box-' + dr.idx);
+        var drRole = document.getElementById('role-' + dr.idx);
+        drBox.classList.add('dr');
+        drRole.textContent = 'DR';
+        drRole.classList.add('dr');
+        log.push('<span class="result-dr">>>> ' + dr.router.label + ' (' + dr.router.id + ') elected as DR</span>');
+      }
+
+      // Set BDR
+      if (bdr) {
+        var bdrBox = document.getElementById('router-box-' + bdr.idx);
+        var bdrRole = document.getElementById('role-' + bdr.idx);
+        bdrBox.classList.add('bdr');
+        bdrRole.textContent = 'BDR';
+        bdrRole.classList.add('bdr');
+        log.push('<span class="result-bdr">>>> ' + bdr.router.label + ' (' + bdr.router.id + ') elected as BDR</span>');
+      }
+
+      // Set DROther for rest
+      routers.forEach(function(r, idx) {
+        if ((dr && dr.idx === idx) || (bdr && bdr.idx === idx)) return;
+        var box = document.getElementById('router-box-' + idx);
+        var role = document.getElementById('role-' + idx);
+        box.classList.add('drother');
+        role.textContent = 'DROther';
+        role.classList.add('drother');
+        log.push('<span class="result-drother">' + r.label + ' (' + r.id + ') is DROther</span>');
+      });
+
+      if (eligible.length === 0) {
+        log.push('<span class="result-drother">No routers eligible! All have priority 0.</span>');
+      }
+
+      // Show log
+      var logEl = document.getElementById('election-log');
+      logEl.classList.remove('hidden');
+      logEl.innerHTML = log.join('<br>');
+    }
+
+    function resetElection() {
+      routers = [
+        { id: '1.1.1.1', priority: 1, label: 'R1' },
+        { id: '2.2.2.2', priority: 1, label: 'R2' },
+        { id: '3.3.3.3', priority: 1, label: 'R3' },
+        { id: '4.4.4.4', priority: 1, label: 'R4' }
+      ];
+      renderRouterGrid();
+      document.getElementById('election-log').classList.add('hidden');
+    }
+
+    function applyPreset(preset) {
+      if (preset === 'default') {
+        routers = [
+          { id: '1.1.1.1', priority: 1, label: 'R1' },
+          { id: '2.2.2.2', priority: 1, label: 'R2' },
+          { id: '3.3.3.3', priority: 1, label: 'R3' },
+          { id: '4.4.4.4', priority: 1, label: 'R4' }
+        ];
+      } else if (preset === 'tie') {
+        routers = [
+          { id: '10.0.0.1', priority: 100, label: 'R1' },
+          { id: '10.0.0.5', priority: 100, label: 'R2' },
+          { id: '10.0.0.3', priority: 100, label: 'R3' },
+          { id: '10.0.0.9', priority: 100, label: 'R4' }
+        ];
+      } else if (preset === 'zero') {
+        routers = [
+          { id: '1.1.1.1', priority: 1, label: 'R1' },
+          { id: '2.2.2.2', priority: 0, label: 'R2' },
+          { id: '3.3.3.3', priority: 1, label: 'R3' },
+          { id: '4.4.4.4', priority: 255, label: 'R4' }
+        ];
+      }
+      renderRouterGrid();
+      document.getElementById('election-log').classList.add('hidden');
+      // Clear roles
+      routers.forEach(function(r, idx) {
+        var role = document.getElementById('role-' + idx);
+        if (role) { role.textContent = ''; role.className = 'router-role'; }
+        var box = document.getElementById('router-box-' + idx);
+        if (box) box.className = 'router-box';
+      });
+    }
+
+    // Event listeners
+    document.getElementById('run-election').addEventListener('click', runElection);
+    document.getElementById('reset-election').addEventListener('click', resetElection);
+    document.querySelectorAll('[data-preset]').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        applyPreset(btn.dataset.preset);
+      });
+    });
+
+    renderRouterGrid();
+
+
+    // ══════════════════════════════════════════
+    //  TAB 3: OSPF Cost Calculator
+    // ══════════════════════════════════════════
+    function getSelectedBW() {
+      var sel = document.getElementById('cost-bw-select');
+      if (sel.value === 'custom') {
+        return parseFloat(document.getElementById('cost-bw-custom').value) || 1;
+      }
+      return parseFloat(sel.value);
+    }
+
+    function getSelectedRef() {
+      var sel = document.getElementById('cost-ref-select');
+      if (sel.value === 'custom') {
+        return parseFloat(document.getElementById('cost-ref-custom').value) || 100;
+      }
+      return parseFloat(sel.value);
+    }
+
+    function calculateCost() {
+      var bw = getSelectedBW();
+      var ref = getSelectedRef();
+      var cost = Math.max(1, Math.floor(ref / bw));
+
+      document.getElementById('formula-ref').textContent = ref;
+      document.getElementById('formula-bw').textContent = bw;
+      document.getElementById('cost-value').textContent = cost;
+      document.getElementById('cost-command').textContent = 'auto-cost reference-bandwidth ' + Math.round(ref);
+
+      // Toggle custom fields
+      var bwSelect = document.getElementById('cost-bw-select');
+      var customBwField = document.getElementById('custom-bw-field');
+      if (bwSelect.value === 'custom') {
+        customBwField.classList.remove('hidden');
+      } else {
+        customBwField.classList.add('hidden');
+      }
+
+      var refSelect = document.getElementById('cost-ref-select');
+      var customRefField = document.getElementById('custom-ref-field');
+      if (refSelect.value === 'custom') {
+        customRefField.classList.remove('hidden');
+      } else {
+        customRefField.classList.add('hidden');
+      }
+    }
+
+    document.getElementById('cost-bw-select').addEventListener('change', calculateCost);
+    document.getElementById('cost-ref-select').addEventListener('change', calculateCost);
+    document.getElementById('cost-bw-custom').addEventListener('input', calculateCost);
+    document.getElementById('cost-ref-custom').addEventListener('input', calculateCost);
+
+    calculateCost();
+  </script>
+</body>
+</html>

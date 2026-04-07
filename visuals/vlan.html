@@ -1,0 +1,1422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VLAN &amp; Trunking Study Visualizer</title>
+<link rel="stylesheet" href="../css/shared.css">
+<style>
+  :root {
+    --bg-primary: #0f1117;
+    --bg-secondary: #1a1d27;
+    --bg-tertiary: #242836;
+    --bg-card: #1e2233;
+    --text-primary: #e8eaf0;
+    --text-secondary: #9ca3b8;
+    --text-muted: #6b7394;
+    --accent-blue: #4a9eff;
+    --accent-green: #34d399;
+    --accent-orange: #fb923c;
+    --accent-red: #f87171;
+    --accent-purple: #a78bfa;
+    --accent-yellow: #fbbf24;
+    --vlan10-color: #3b82f6;
+    --vlan20-color: #10b981;
+    --trunk-color: #f59e0b;
+    --border-color: #2d3348;
+    --border-hover: #404866;
+    --nav-height: 56px;
+    --radius: 8px;
+    --radius-lg: 12px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    min-height: 100vh;
+    line-height: 1.6;
+  }
+
+  /* ---- NAV BAR ---- */
+  .navbar {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    height: var(--nav-height);
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    padding: 0 24px;
+    z-index: 1000;
+    gap: 8px;
+  }
+  .navbar .brand {
+    font-weight: 700;
+    font-size: 1.05rem;
+    color: var(--accent-blue);
+    margin-right: 32px;
+    white-space: nowrap;
+  }
+  .navbar a {
+    color: var(--text-secondary);
+    text-decoration: none;
+    padding: 8px 16px;
+    border-radius: var(--radius);
+    font-size: 0.9rem;
+    transition: background 0.2s, color 0.2s;
+  }
+  .navbar a:hover, .navbar a.active {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+  }
+
+  /* ---- MAIN CONTENT ---- */
+  .main-content {
+    padding-top: calc(var(--nav-height) + 24px);
+    max-width: 1400px;
+    margin: 0 auto;
+    padding-left: 24px;
+    padding-right: 24px;
+    padding-bottom: 48px;
+  }
+
+  .page-header {
+    margin-bottom: 24px;
+  }
+  .page-header h1 {
+    font-size: 1.8rem;
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+  .page-header p {
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+  }
+
+  /* ---- TABS ---- */
+  .tab-bar {
+    display: flex;
+    gap: 4px;
+    background: var(--bg-secondary);
+    padding: 4px;
+    border-radius: var(--radius-lg);
+    margin-bottom: 24px;
+    border: 1px solid var(--border-color);
+  }
+  .tab-btn {
+    flex: 1;
+    padding: 10px 16px;
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    border-radius: var(--radius);
+    transition: all 0.25s;
+  }
+  .tab-btn:hover {
+    color: var(--text-primary);
+    background: var(--bg-tertiary);
+  }
+  .tab-btn.active {
+    background: var(--accent-blue);
+    color: #fff;
+  }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  /* ---- CARDS ---- */
+  .card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: 24px;
+    margin-bottom: 20px;
+  }
+  .card h3 {
+    font-size: 1.1rem;
+    margin-bottom: 16px;
+    color: var(--text-primary);
+  }
+  .card h4 {
+    font-size: 0.95rem;
+    margin-bottom: 10px;
+    color: var(--accent-blue);
+  }
+
+  /* ---- SVG TOPOLOGY ---- */
+  .topology-container {
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius);
+    overflow: hidden;
+    margin-bottom: 16px;
+  }
+  .topology-container svg {
+    width: 100%;
+    display: block;
+  }
+
+  /* ---- INFO PANEL ---- */
+  .info-panel {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius);
+    padding: 16px 20px;
+    margin-top: 12px;
+    min-height: 60px;
+    font-size: 0.92rem;
+    line-height: 1.7;
+    color: var(--text-secondary);
+  }
+  .info-panel strong {
+    color: var(--text-primary);
+  }
+  .info-panel .frame-format {
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius);
+    display: flex;
+    margin-top: 10px;
+    overflow: hidden;
+    font-size: 0.8rem;
+    font-family: 'Courier New', monospace;
+  }
+  .info-panel .frame-format span {
+    padding: 8px 10px;
+    border-right: 1px solid var(--border-color);
+    text-align: center;
+    white-space: nowrap;
+  }
+  .info-panel .frame-format span:last-child { border-right: none; }
+  .info-panel .frame-format .tag-field {
+    background: rgba(245, 158, 11, 0.15);
+    color: var(--accent-orange);
+    font-weight: 600;
+  }
+
+  /* ---- CONTROLS ---- */
+  .controls-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+  .ctrl-btn {
+    padding: 8px 18px;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    border-radius: var(--radius);
+    cursor: pointer;
+    font-size: 0.85rem;
+    transition: all 0.2s;
+  }
+  .ctrl-btn:hover {
+    border-color: var(--accent-blue);
+    color: var(--text-primary);
+  }
+  .ctrl-btn.active {
+    background: var(--accent-blue);
+    border-color: var(--accent-blue);
+    color: #fff;
+  }
+  .ctrl-btn.green.active {
+    background: var(--accent-green);
+    border-color: var(--accent-green);
+  }
+  .ctrl-btn.orange.active {
+    background: var(--accent-orange);
+    border-color: var(--accent-orange);
+    color: #000;
+  }
+
+  select.ctrl-select {
+    padding: 8px 14px;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    border-radius: var(--radius);
+    font-size: 0.85rem;
+    cursor: pointer;
+  }
+  select.ctrl-select:focus {
+    outline: none;
+    border-color: var(--accent-blue);
+  }
+
+  .legend {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 14px;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .legend-swatch {
+    width: 14px; height: 14px;
+    border-radius: 3px;
+  }
+
+  /* ---- DTP TABLE ---- */
+  .dtp-table-wrapper {
+    overflow-x: auto;
+    margin-top: 12px;
+  }
+  .dtp-result-display {
+    margin-top: 12px;
+    padding: 12px 16px;
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius);
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+  }
+  .dtp-result-display strong { color: var(--accent-orange); }
+
+  /* ---- INTER-VLAN TAB ---- */
+  .method-toggle {
+    display: flex;
+    gap: 4px;
+    background: var(--bg-secondary);
+    padding: 4px;
+    border-radius: var(--radius);
+    margin-bottom: 20px;
+    border: 1px solid var(--border-color);
+    width: fit-content;
+  }
+  .method-btn {
+    padding: 8px 20px;
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 0.88rem;
+    cursor: pointer;
+    border-radius: 6px;
+    transition: all 0.2s;
+    font-weight: 500;
+  }
+  .method-btn:hover { color: var(--text-primary); }
+  .method-btn.active {
+    background: var(--accent-green);
+    color: #fff;
+  }
+  .method-panel { display: none; }
+  .method-panel.active { display: block; }
+
+  .config-side-by-side {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-top: 16px;
+  }
+  @media (max-width: 800px) {
+    .config-side-by-side {
+      grid-template-columns: 1fr;
+    }
+  }
+  .config-block {
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+  .config-block-header {
+    background: var(--bg-tertiary);
+    padding: 8px 14px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    border-bottom: 1px solid var(--border-color);
+  }
+  .config-block pre {
+    padding: 14px;
+    font-family: 'Courier New', Consolas, monospace;
+    font-size: 0.82rem;
+    line-height: 1.7;
+    color: var(--accent-green);
+    overflow-x: auto;
+    margin: 0;
+  }
+  .config-block pre .comment {
+    color: var(--text-muted);
+  }
+  .config-block pre .keyword {
+    color: var(--accent-blue);
+  }
+  .config-block pre .value {
+    color: var(--accent-orange);
+  }
+  .note-box {
+    background: rgba(74, 158, 255, 0.08);
+    border: 1px solid rgba(74, 158, 255, 0.25);
+    border-radius: var(--radius);
+    padding: 12px 16px;
+    margin-top: 16px;
+    font-size: 0.88rem;
+    color: var(--text-secondary);
+  }
+  .note-box strong { color: var(--accent-blue); }
+
+  /* ---- COMMANDS REF TAB ---- */
+  .ref-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+  }
+  @media (max-width: 900px) {
+    .ref-grid { grid-template-columns: 1fr; }
+  }
+  .ref-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+  }
+  .ref-card-header {
+    padding: 14px 18px;
+    font-weight: 600;
+    font-size: 0.95rem;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .ref-card-header .dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    display: inline-block;
+  }
+  .ref-card-body {
+    padding: 16px 18px;
+  }
+  .ref-card-body pre {
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius);
+    padding: 14px;
+    font-family: 'Courier New', Consolas, monospace;
+    font-size: 0.82rem;
+    line-height: 1.7;
+    color: var(--accent-green);
+    overflow-x: auto;
+    margin-bottom: 10px;
+  }
+  .ref-card-body pre:last-child { margin-bottom: 0; }
+  .ref-card-body pre .comment { color: var(--text-muted); }
+
+  .dtp-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.82rem;
+    margin-top: 10px;
+  }
+  .dtp-table th, .dtp-table td {
+    border: 1px solid var(--border-color);
+    padding: 8px 12px;
+    text-align: center;
+  }
+  .dtp-table th {
+    background: var(--bg-tertiary);
+    color: var(--text-secondary);
+    font-weight: 600;
+  }
+  .dtp-table td { color: var(--text-secondary); }
+  .dtp-table .trunk { color: var(--accent-green); font-weight: 600; }
+  .dtp-table .access { color: var(--text-muted); }
+  .dtp-table .limited { color: var(--accent-red); font-weight: 600; }
+  .dtp-table td:first-child {
+    text-align: left;
+    font-weight: 600;
+    background: var(--bg-tertiary);
+    color: var(--text-secondary);
+  }
+
+  .best-practice {
+    margin-top: 14px;
+    padding: 10px 16px;
+    background: rgba(52, 211, 153, 0.08);
+    border: 1px solid rgba(52, 211, 153, 0.25);
+    border-radius: var(--radius);
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+  }
+  .best-practice code {
+    background: var(--bg-primary);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: 'Courier New', monospace;
+    color: var(--accent-green);
+    font-size: 0.82rem;
+  }
+
+  /* ---- ANIMATIONS ---- */
+  @keyframes frameMove {
+    0% { offset-distance: 0%; opacity: 1; }
+    100% { offset-distance: 100%; opacity: 1; }
+  }
+  .animated-frame {
+    transition: opacity 0.3s;
+  }
+
+  /* ---- LINK HIGHLIGHT ---- */
+  .clickable-link {
+    cursor: pointer;
+    transition: filter 0.2s;
+  }
+  .clickable-link:hover {
+    filter: brightness(1.4);
+  }
+
+  .vlan10-label { fill: var(--vlan10-color); }
+  .vlan20-label { fill: var(--vlan20-color); }
+
+  /* Pulse animation for active element */
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+  .pulse { animation: pulse 1.5s ease-in-out infinite; }
+</style>
+</head>
+<body>
+
+<!-- NAV BAR -->
+<nav class="navbar">
+  <span class="brand">CCNA Study</span>
+  <a href="../index.html">Dashboard</a>
+  <a href="#">Knowledge Map</a>
+  <a href="#">Diagnostic</a>
+  <a href="#">Quiz</a>
+</nav>
+
+<!-- MAIN CONTENT -->
+<div class="main-content">
+  <div class="page-header">
+    <h1>VLAN &amp; Trunking Visualizer</h1>
+    <p>Interactive study tool for VLANs, 802.1Q trunking, inter-VLAN routing, and commands reference</p>
+  </div>
+
+  <!-- TAB BAR -->
+  <div class="tab-bar">
+    <button class="tab-btn active" data-tab="topology">VLAN Topology Diagram</button>
+    <button class="tab-btn" data-tab="intervlan">Inter-VLAN Routing</button>
+    <button class="tab-btn" data-tab="commands">VLAN Commands Reference</button>
+  </div>
+
+  <!-- ==================== TAB 1: TOPOLOGY ==================== -->
+  <div id="tab-topology" class="tab-panel active">
+
+    <div class="legend">
+      <div class="legend-item"><div class="legend-swatch" style="background:var(--vlan10-color)"></div> VLAN 10 - Sales</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:var(--vlan20-color)"></div> VLAN 20 - Engineering</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:var(--trunk-color)"></div> Trunk Link (802.1Q)</div>
+    </div>
+
+    <div class="controls-row">
+      <button class="ctrl-btn" id="btnSendV10" onclick="animateFrame(10)">Send Frame from PC1 (VLAN 10)</button>
+      <button class="ctrl-btn" id="btnSendV20" onclick="animateFrame(20)">Send Frame from PC5 (VLAN 20)</button>
+      <button class="ctrl-btn orange" id="btnNativeVlan" onclick="toggleNativeVlan()">Toggle Native VLAN Demo</button>
+      <label style="display:flex;align-items:center;gap:8px;font-size:0.85rem;color:var(--text-secondary);">
+        DTP Modes:
+        <select class="ctrl-select" id="dtpLeft" onchange="updateDtp()">
+          <option value="trunk">SW1: Trunk</option>
+          <option value="desirable">SW1: Desirable</option>
+          <option value="auto">SW1: Auto</option>
+          <option value="access">SW1: Access</option>
+        </select>
+        <select class="ctrl-select" id="dtpRight" onchange="updateDtp()">
+          <option value="trunk">SW2: Trunk</option>
+          <option value="desirable">SW2: Desirable</option>
+          <option value="auto">SW2: Auto</option>
+          <option value="access">SW2: Access</option>
+        </select>
+      </label>
+    </div>
+
+    <div class="topology-container">
+      <svg id="topoSvg" viewBox="0 0 1000 520" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <filter id="glow-blue">
+            <feGaussianBlur stdDeviation="3" result="blur"/>
+            <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+          <filter id="glow-green">
+            <feGaussianBlur stdDeviation="3" result="blur"/>
+            <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+          <linearGradient id="trunkGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" style="stop-color:#f59e0b;stop-opacity:0.6"/>
+            <stop offset="50%" style="stop-color:#f59e0b;stop-opacity:1"/>
+            <stop offset="100%" style="stop-color:#f59e0b;stop-opacity:0.6"/>
+          </linearGradient>
+          <!-- Frame marker shapes -->
+          <marker id="arrowBlue" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="4" markerHeight="4" orient="auto-start-auto">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#3b82f6"/>
+          </marker>
+          <marker id="arrowGreen" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="4" markerHeight="4" orient="auto-start-auto">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#10b981"/>
+          </marker>
+        </defs>
+
+        <!-- Background grid for visual depth -->
+        <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+          <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#1a1d27" stroke-width="0.5"/>
+        </pattern>
+        <rect width="1000" height="520" fill="#0d0f15"/>
+        <rect width="1000" height="520" fill="url(#grid)"/>
+
+        <!-- ---- TRUNK LINK ---- -->
+        <line id="trunkLink" class="clickable-link" x1="350" y1="260" x2="650" y2="260" stroke="url(#trunkGrad)" stroke-width="5" stroke-dasharray="12,6" onclick="showLinkInfo('trunk')"/>
+        <text x="500" y="245" text-anchor="middle" fill="#f59e0b" font-size="12" font-weight="600">Trunk (802.1Q)</text>
+        <text x="500" y="282" text-anchor="middle" fill="#6b7394" font-size="10">Gi0/24 ---- Gi0/24</text>
+
+        <!-- ---- SWITCH 1 ---- -->
+        <rect x="250" y="235" width="100" height="50" rx="8" fill="#1e2233" stroke="#404866" stroke-width="2"/>
+        <text x="300" y="265" text-anchor="middle" fill="#e8eaf0" font-size="14" font-weight="700">SW1</text>
+
+        <!-- ---- SWITCH 2 ---- -->
+        <rect x="650" y="235" width="100" height="50" rx="8" fill="#1e2233" stroke="#404866" stroke-width="2"/>
+        <text x="700" y="265" text-anchor="middle" fill="#e8eaf0" font-size="14" font-weight="700">SW2</text>
+
+        <!-- ---- LEFT SIDE PCs ---- -->
+        <!-- PC1 - VLAN 10 -->
+        <line id="linkPC1" class="clickable-link" x1="120" y1="120" x2="270" y2="240" stroke="#3b82f6" stroke-width="2" onclick="showLinkInfo('access-v10')"/>
+        <rect x="60" y="90" width="120" height="55" rx="6" fill="#0f1729" stroke="#3b82f6" stroke-width="1.5"/>
+        <text x="120" y="113" text-anchor="middle" fill="#3b82f6" font-size="12" font-weight="600">PC1 (VLAN 10)</text>
+        <text x="120" y="131" text-anchor="middle" fill="#6b7394" font-size="10">192.168.10.10</text>
+        <text x="195" y="168" text-anchor="middle" fill="#6b7394" font-size="9">Gi0/1 Access</text>
+
+        <!-- PC2 - VLAN 10 -->
+        <line id="linkPC2" class="clickable-link" x1="120" y1="220" x2="260" y2="255" stroke="#3b82f6" stroke-width="2" onclick="showLinkInfo('access-v10')"/>
+        <rect x="60" y="195" width="120" height="55" rx="6" fill="#0f1729" stroke="#3b82f6" stroke-width="1.5"/>
+        <text x="120" y="218" text-anchor="middle" fill="#3b82f6" font-size="12" font-weight="600">PC2 (VLAN 10)</text>
+        <text x="120" y="236" text-anchor="middle" fill="#6b7394" font-size="10">192.168.10.11</text>
+        <text x="175" y="248" text-anchor="middle" fill="#6b7394" font-size="9">Gi0/2</text>
+
+        <!-- PC3 - VLAN 20 -->
+        <line id="linkPC3" class="clickable-link" x1="120" y1="330" x2="260" y2="275" stroke="#10b981" stroke-width="2" onclick="showLinkInfo('access-v20')"/>
+        <rect x="60" y="305" width="120" height="55" rx="6" fill="#0b1a14" stroke="#10b981" stroke-width="1.5"/>
+        <text x="120" y="328" text-anchor="middle" fill="#10b981" font-size="12" font-weight="600">PC3 (VLAN 20)</text>
+        <text x="120" y="346" text-anchor="middle" fill="#6b7394" font-size="10">192.168.20.10</text>
+        <text x="175" y="299" text-anchor="middle" fill="#6b7394" font-size="9">Gi0/3</text>
+
+        <!-- PC4 - VLAN 20 -->
+        <line id="linkPC4" class="clickable-link" x1="120" y1="430" x2="270" y2="285" stroke="#10b981" stroke-width="2" onclick="showLinkInfo('access-v20')"/>
+        <rect x="60" y="405" width="120" height="55" rx="6" fill="#0b1a14" stroke="#10b981" stroke-width="1.5"/>
+        <text x="120" y="428" text-anchor="middle" fill="#10b981" font-size="12" font-weight="600">PC4 (VLAN 20)</text>
+        <text x="120" y="446" text-anchor="middle" fill="#6b7394" font-size="10">192.168.20.11</text>
+        <text x="195" y="370" text-anchor="middle" fill="#6b7394" font-size="9">Gi0/4</text>
+
+        <!-- ---- RIGHT SIDE PCs ---- -->
+        <!-- PC5 - VLAN 10 -->
+        <line id="linkPC5" class="clickable-link" x1="880" y1="120" x2="730" y2="240" stroke="#3b82f6" stroke-width="2" onclick="showLinkInfo('access-v10')"/>
+        <rect x="820" y="90" width="120" height="55" rx="6" fill="#0f1729" stroke="#3b82f6" stroke-width="1.5"/>
+        <text x="880" y="113" text-anchor="middle" fill="#3b82f6" font-size="12" font-weight="600">PC5 (VLAN 10)</text>
+        <text x="880" y="131" text-anchor="middle" fill="#6b7394" font-size="10">192.168.10.20</text>
+        <text x="805" y="168" text-anchor="middle" fill="#6b7394" font-size="9">Gi0/1 Access</text>
+
+        <!-- PC6 - VLAN 10 -->
+        <line id="linkPC6" class="clickable-link" x1="880" y1="220" x2="740" y2="255" stroke="#3b82f6" stroke-width="2" onclick="showLinkInfo('access-v10')"/>
+        <rect x="820" y="195" width="120" height="55" rx="6" fill="#0f1729" stroke="#3b82f6" stroke-width="1.5"/>
+        <text x="880" y="218" text-anchor="middle" fill="#3b82f6" font-size="12" font-weight="600">PC6 (VLAN 10)</text>
+        <text x="880" y="236" text-anchor="middle" fill="#6b7394" font-size="10">192.168.10.21</text>
+        <text x="825" y="248" text-anchor="middle" fill="#6b7394" font-size="9">Gi0/2</text>
+
+        <!-- PC7 - VLAN 20 -->
+        <line id="linkPC7" class="clickable-link" x1="880" y1="330" x2="740" y2="275" stroke="#10b981" stroke-width="2" onclick="showLinkInfo('access-v20')"/>
+        <rect x="820" y="305" width="120" height="55" rx="6" fill="#0b1a14" stroke="#10b981" stroke-width="1.5"/>
+        <text x="880" y="328" text-anchor="middle" fill="#10b981" font-size="12" font-weight="600">PC7 (VLAN 20)</text>
+        <text x="880" y="346" text-anchor="middle" fill="#6b7394" font-size="10">192.168.20.20</text>
+        <text x="825" y="299" text-anchor="middle" fill="#6b7394" font-size="9">Gi0/3</text>
+
+        <!-- PC8 - VLAN 20 -->
+        <line id="linkPC8" class="clickable-link" x1="880" y1="430" x2="730" y2="285" stroke="#10b981" stroke-width="2" onclick="showLinkInfo('access-v20')"/>
+        <rect x="820" y="405" width="120" height="55" rx="6" fill="#0b1a14" stroke="#10b981" stroke-width="1.5"/>
+        <text x="880" y="428" text-anchor="middle" fill="#10b981" font-size="12" font-weight="600">PC8 (VLAN 20)</text>
+        <text x="880" y="446" text-anchor="middle" fill="#6b7394" font-size="10">192.168.20.21</text>
+        <text x="805" y="370" text-anchor="middle" fill="#6b7394" font-size="9">Gi0/4</text>
+
+        <!-- Animated frame will be appended here -->
+        <g id="animLayer"></g>
+      </svg>
+    </div>
+
+    <div id="topoInfo" class="info-panel">
+      Click on any link in the topology to see how frames are handled. Use the controls above to animate frame flow and explore DTP negotiation.
+    </div>
+
+    <!-- DTP Result -->
+    <div id="dtpResult" class="dtp-result-display" style="display:none;"></div>
+  </div>
+
+  <!-- ==================== TAB 2: INTER-VLAN ROUTING ==================== -->
+  <div id="tab-intervlan" class="tab-panel">
+
+    <div class="method-toggle">
+      <button class="method-btn active" data-method="roas" onclick="switchMethod('roas')">Router-on-a-Stick</button>
+      <button class="method-btn" data-method="svi" onclick="switchMethod('svi')">Layer 3 Switch (SVI)</button>
+    </div>
+
+    <!-- Method 1: Router-on-a-Stick -->
+    <div id="method-roas" class="method-panel active">
+      <div class="card">
+        <h3>Router-on-a-Stick Topology</h3>
+        <div class="topology-container">
+          <svg id="roasSvg" viewBox="0 0 900 400" xmlns="http://www.w3.org/2000/svg">
+            <rect width="900" height="400" fill="#0d0f15"/>
+            <pattern id="grid2" width="40" height="40" patternUnits="userSpaceOnUse">
+              <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#1a1d27" stroke-width="0.5"/>
+            </pattern>
+            <rect width="900" height="400" fill="url(#grid2)"/>
+
+            <!-- Router -->
+            <rect x="370" y="30" width="160" height="60" rx="10" fill="#1e2233" stroke="#a78bfa" stroke-width="2"/>
+            <text x="450" y="58" text-anchor="middle" fill="#a78bfa" font-size="13" font-weight="700">Router (R1)</text>
+            <text x="450" y="75" text-anchor="middle" fill="#6b7394" font-size="10">Gi0/0</text>
+
+            <!-- Subinterface labels -->
+            <text x="395" y="115" text-anchor="middle" fill="#3b82f6" font-size="10" font-weight="600">Gi0/0.10</text>
+            <text x="395" y="128" text-anchor="middle" fill="#6b7394" font-size="9">192.168.10.1</text>
+            <text x="510" y="115" text-anchor="middle" fill="#10b981" font-size="10" font-weight="600">Gi0/0.20</text>
+            <text x="510" y="128" text-anchor="middle" fill="#6b7394" font-size="9">192.168.20.1</text>
+
+            <!-- Trunk link Router-Switch -->
+            <line x1="450" y1="90" x2="450" y2="180" stroke="#f59e0b" stroke-width="4" stroke-dasharray="10,5"/>
+            <text x="465" y="145" fill="#f59e0b" font-size="10" font-weight="600">Trunk</text>
+
+            <!-- Switch -->
+            <rect x="370" y="180" width="160" height="55" rx="8" fill="#1e2233" stroke="#404866" stroke-width="2"/>
+            <text x="450" y="208" text-anchor="middle" fill="#e8eaf0" font-size="14" font-weight="700">SW1</text>
+            <text x="450" y="225" text-anchor="middle" fill="#6b7394" font-size="10">Gi0/1 (trunk)</text>
+
+            <!-- PCs -->
+            <!-- PC-A VLAN 10 -->
+            <line x1="200" y1="320" x2="390" y2="235" stroke="#3b82f6" stroke-width="2"/>
+            <rect x="120" y="295" width="160" height="55" rx="6" fill="#0f1729" stroke="#3b82f6" stroke-width="1.5"/>
+            <text x="200" y="318" text-anchor="middle" fill="#3b82f6" font-size="12" font-weight="600">PC-A (VLAN 10)</text>
+            <text x="200" y="336" text-anchor="middle" fill="#6b7394" font-size="10">192.168.10.10</text>
+
+            <!-- PC-B VLAN 20 -->
+            <line x1="700" y1="320" x2="510" y2="235" stroke="#10b981" stroke-width="2"/>
+            <rect x="620" y="295" width="160" height="55" rx="6" fill="#0b1a14" stroke="#10b981" stroke-width="1.5"/>
+            <text x="700" y="318" text-anchor="middle" fill="#10b981" font-size="12" font-weight="600">PC-B (VLAN 20)</text>
+            <text x="700" y="336" text-anchor="middle" fill="#6b7394" font-size="10">192.168.20.10</text>
+
+            <!-- Flow arrows -->
+            <g id="roasAnimLayer"></g>
+          </svg>
+        </div>
+
+        <div class="controls-row">
+          <button class="ctrl-btn" onclick="animateRoas()">Animate: PC-A to PC-B (inter-VLAN)</button>
+        </div>
+
+        <div id="roasInfo" class="info-panel">
+          Click "Animate" to see how a frame from VLAN 10 reaches VLAN 20 through the router. The frame travels up the trunk to the router, gets routed between subinterfaces, then returns down the same trunk to the destination VLAN.
+        </div>
+
+        <div class="config-side-by-side">
+          <div class="config-block">
+            <div class="config-block-header">Router Configuration</div>
+            <pre><span class="comment">! Router subinterfaces</span>
+<span class="keyword">interface</span> Gi0/0.10
+  <span class="keyword">encapsulation</span> <span class="value">dot1Q 10</span>
+  <span class="keyword">ip address</span> <span class="value">192.168.10.1 255.255.255.0</span>
+<span class="keyword">interface</span> Gi0/0.20
+  <span class="keyword">encapsulation</span> <span class="value">dot1Q 20</span>
+  <span class="keyword">ip address</span> <span class="value">192.168.20.1 255.255.255.0</span></pre>
+          </div>
+          <div class="config-block">
+            <div class="config-block-header">Switch Configuration</div>
+            <pre><span class="comment">! Trunk to router</span>
+<span class="keyword">interface</span> Gi0/1
+  <span class="keyword">switchport trunk encapsulation</span> <span class="value">dot1q</span>
+  <span class="keyword">switchport mode</span> <span class="value">trunk</span>
+  <span class="keyword">switchport trunk allowed vlan</span> <span class="value">10,20</span>
+
+<span class="comment">! Access ports</span>
+<span class="keyword">interface</span> Gi0/2
+  <span class="keyword">switchport mode</span> <span class="value">access</span>
+  <span class="keyword">switchport access vlan</span> <span class="value">10</span>
+<span class="keyword">interface</span> Gi0/3
+  <span class="keyword">switchport mode</span> <span class="value">access</span>
+  <span class="keyword">switchport access vlan</span> <span class="value">20</span></pre>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Method 2: Layer 3 Switch (SVI) -->
+    <div id="method-svi" class="method-panel">
+      <div class="card">
+        <h3>Layer 3 Switch with SVIs</h3>
+        <div class="topology-container">
+          <svg id="sviSvg" viewBox="0 0 900 360" xmlns="http://www.w3.org/2000/svg">
+            <rect width="900" height="360" fill="#0d0f15"/>
+            <pattern id="grid3" width="40" height="40" patternUnits="userSpaceOnUse">
+              <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#1a1d27" stroke-width="0.5"/>
+            </pattern>
+            <rect width="900" height="360" fill="url(#grid3)"/>
+
+            <!-- L3 Switch -->
+            <rect x="320" y="70" width="260" height="100" rx="10" fill="#1e2233" stroke="#a78bfa" stroke-width="2"/>
+            <text x="450" y="100" text-anchor="middle" fill="#a78bfa" font-size="14" font-weight="700">L3 Switch (ip routing)</text>
+
+            <!-- SVIs inside switch -->
+            <rect x="340" y="110" width="110" height="44" rx="5" fill="rgba(59,130,246,0.12)" stroke="#3b82f6" stroke-width="1"/>
+            <text x="395" y="128" text-anchor="middle" fill="#3b82f6" font-size="10" font-weight="600">SVI VLAN 10</text>
+            <text x="395" y="143" text-anchor="middle" fill="#6b7394" font-size="9">192.168.10.1/24</text>
+
+            <rect x="462" y="110" width="110" height="44" rx="5" fill="rgba(16,185,129,0.12)" stroke="#10b981" stroke-width="1"/>
+            <text x="517" y="128" text-anchor="middle" fill="#10b981" font-size="10" font-weight="600">SVI VLAN 20</text>
+            <text x="517" y="143" text-anchor="middle" fill="#6b7394" font-size="9">192.168.20.1/24</text>
+
+            <!-- Internal routing arrow -->
+            <line x1="432" y1="132" x2="462" y2="132" stroke="#a78bfa" stroke-width="2" stroke-dasharray="4,3" marker-end="url(#arrowPurple)"/>
+            <defs>
+              <marker id="arrowPurple" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+                <path d="M 0 0 L 10 5 L 0 10 z" fill="#a78bfa"/>
+              </marker>
+            </defs>
+            <text x="450" y="102" text-anchor="middle" fill="#6b7394" font-size="9">ASIC routing</text>
+
+            <!-- Links down to PCs -->
+            <line x1="300" y1="280" x2="395" y2="170" stroke="#3b82f6" stroke-width="2"/>
+            <line x1="600" y1="280" x2="517" y2="170" stroke="#10b981" stroke-width="2"/>
+
+            <!-- PCs -->
+            <rect x="210" y="260" width="180" height="55" rx="6" fill="#0f1729" stroke="#3b82f6" stroke-width="1.5"/>
+            <text x="300" y="283" text-anchor="middle" fill="#3b82f6" font-size="12" font-weight="600">PC-A (VLAN 10)</text>
+            <text x="300" y="301" text-anchor="middle" fill="#6b7394" font-size="10">192.168.10.10 / GW: .1</text>
+
+            <rect x="510" y="260" width="180" height="55" rx="6" fill="#0b1a14" stroke="#10b981" stroke-width="1.5"/>
+            <text x="600" y="283" text-anchor="middle" fill="#10b981" font-size="12" font-weight="600">PC-B (VLAN 20)</text>
+            <text x="600" y="301" text-anchor="middle" fill="#6b7394" font-size="10">192.168.20.10 / GW: .1</text>
+
+            <g id="sviAnimLayer"></g>
+          </svg>
+        </div>
+
+        <div class="controls-row">
+          <button class="ctrl-btn" onclick="animateSvi()">Animate: PC-A to PC-B (L3 Switch)</button>
+        </div>
+
+        <div id="sviInfo" class="info-panel">
+          Click "Animate" to see how inter-VLAN routing works internally on a Layer 3 switch. The frame enters the switch, is routed by the ASIC between SVIs, and exits on the destination VLAN -- all within the same switch.
+        </div>
+
+        <div class="config-side-by-side">
+          <div class="config-block">
+            <div class="config-block-header">Layer 3 Switch Configuration</div>
+            <pre><span class="comment">! Enable routing</span>
+<span class="keyword">ip routing</span>
+
+<span class="comment">! SVI for VLAN 10</span>
+<span class="keyword">interface</span> vlan 10
+  <span class="keyword">ip address</span> <span class="value">192.168.10.1 255.255.255.0</span>
+  <span class="keyword">no shutdown</span>
+
+<span class="comment">! SVI for VLAN 20</span>
+<span class="keyword">interface</span> vlan 20
+  <span class="keyword">ip address</span> <span class="value">192.168.20.1 255.255.255.0</span>
+  <span class="keyword">no shutdown</span>
+
+<span class="comment">! Access ports</span>
+<span class="keyword">interface</span> Gi0/1
+  <span class="keyword">switchport mode</span> <span class="value">access</span>
+  <span class="keyword">switchport access vlan</span> <span class="value">10</span>
+<span class="keyword">interface</span> Gi0/2
+  <span class="keyword">switchport mode</span> <span class="value">access</span>
+  <span class="keyword">switchport access vlan</span> <span class="value">20</span></pre>
+          </div>
+          <div class="config-block">
+            <div class="config-block-header">Comparison</div>
+            <pre><span class="comment">! Router-on-a-Stick</span>
+  - Requires external router
+  - Single trunk link (bottleneck)
+  - "Hairpin" traffic pattern
+  - Cheaper equipment
+
+<span class="comment">! Layer 3 Switch (SVI)</span>
+  - All-in-one device
+  - Wire-speed routing via ASIC
+  - No trunk bottleneck
+  - More expensive but scalable
+  - Preferred for enterprise</pre>
+          </div>
+        </div>
+
+        <div class="note-box">
+          <strong>Key advantage:</strong> With an L3 switch, inter-VLAN traffic is routed internally by the switch ASIC at wire speed. There is no need for traffic to exit the switch and hairpin back through a router, eliminating the trunk link bottleneck inherent in Router-on-a-Stick designs.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== TAB 3: COMMANDS REFERENCE ==================== -->
+  <div id="tab-commands" class="tab-panel">
+    <div class="ref-grid">
+
+      <!-- Creating VLANs -->
+      <div class="ref-card">
+        <div class="ref-card-header">
+          <span class="dot" style="background:var(--accent-blue)"></span>
+          Creating VLANs
+        </div>
+        <div class="ref-card-body">
+          <pre><span class="comment">! Create a VLAN and name it</span>
+Switch(config)# <span class="keyword">vlan</span> <span class="value">10</span>
+Switch(config-vlan)# <span class="keyword">name</span> <span class="value">Sales</span>
+
+Switch(config)# <span class="keyword">vlan</span> <span class="value">20</span>
+Switch(config-vlan)# <span class="keyword">name</span> <span class="value">Engineering</span></pre>
+          <pre><span class="comment">! Verify VLANs</span>
+Switch# <span class="keyword">show vlan brief</span></pre>
+        </div>
+      </div>
+
+      <!-- Access Ports -->
+      <div class="ref-card">
+        <div class="ref-card-header">
+          <span class="dot" style="background:var(--accent-green)"></span>
+          Access Ports
+        </div>
+        <div class="ref-card-body">
+          <pre><span class="comment">! Assign port to VLAN as access</span>
+Switch(config)# <span class="keyword">interface</span> <span class="value">Gi0/1</span>
+Switch(config-if)# <span class="keyword">switchport mode</span> <span class="value">access</span>
+Switch(config-if)# <span class="keyword">switchport access vlan</span> <span class="value">10</span></pre>
+          <pre><span class="comment">! Verify</span>
+Switch# <span class="keyword">show interfaces</span> <span class="value">Gi0/1</span> <span class="keyword">switchport</span></pre>
+        </div>
+      </div>
+
+      <!-- Trunk Ports -->
+      <div class="ref-card">
+        <div class="ref-card-header">
+          <span class="dot" style="background:var(--accent-orange)"></span>
+          Trunk Ports
+        </div>
+        <div class="ref-card-body">
+          <pre><span class="comment">! Configure trunk port</span>
+Switch(config)# <span class="keyword">interface</span> <span class="value">Gi0/24</span>
+Switch(config-if)# <span class="keyword">switchport trunk encapsulation</span> <span class="value">dot1q</span>
+Switch(config-if)# <span class="keyword">switchport mode</span> <span class="value">trunk</span>
+Switch(config-if)# <span class="keyword">switchport trunk native vlan</span> <span class="value">99</span>
+Switch(config-if)# <span class="keyword">switchport trunk allowed vlan</span> <span class="value">10,20,30</span></pre>
+          <pre><span class="comment">! Verify trunk</span>
+Switch# <span class="keyword">show interfaces trunk</span></pre>
+        </div>
+      </div>
+
+      <!-- Voice VLAN -->
+      <div class="ref-card">
+        <div class="ref-card-header">
+          <span class="dot" style="background:var(--accent-purple)"></span>
+          Voice VLAN
+        </div>
+        <div class="ref-card-body">
+          <pre><span class="comment">! Access port with voice VLAN</span>
+Switch(config)# <span class="keyword">interface</span> <span class="value">Gi0/1</span>
+Switch(config-if)# <span class="keyword">switchport mode</span> <span class="value">access</span>
+Switch(config-if)# <span class="keyword">switchport access vlan</span> <span class="value">10</span>
+Switch(config-if)# <span class="keyword">switchport voice vlan</span> <span class="value">150</span></pre>
+          <pre><span class="comment">! The port becomes a multi-VLAN
+! access port. Data on VLAN 10
+! (untagged), voice on VLAN 150
+! (tagged with 802.1Q).</span></pre>
+        </div>
+      </div>
+
+      <!-- DTP Reference (full width) -->
+      <div class="ref-card" style="grid-column: 1 / -1;">
+        <div class="ref-card-header">
+          <span class="dot" style="background:var(--accent-yellow)"></span>
+          DTP (Dynamic Trunking Protocol) Negotiation Matrix
+        </div>
+        <div class="ref-card-body">
+          <div class="dtp-table-wrapper">
+            <table class="dtp-table">
+              <thead>
+                <tr>
+                  <th></th>
+                  <th>Dynamic Auto</th>
+                  <th>Dynamic Desirable</th>
+                  <th>Trunk</th>
+                  <th>Access</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Dynamic Auto</td>
+                  <td class="access">Access</td>
+                  <td class="trunk">Trunk</td>
+                  <td class="trunk">Trunk</td>
+                  <td class="access">Access</td>
+                </tr>
+                <tr>
+                  <td>Dynamic Desirable</td>
+                  <td class="trunk">Trunk</td>
+                  <td class="trunk">Trunk</td>
+                  <td class="trunk">Trunk</td>
+                  <td class="access">Access</td>
+                </tr>
+                <tr>
+                  <td>Trunk</td>
+                  <td class="trunk">Trunk</td>
+                  <td class="trunk">Trunk</td>
+                  <td class="trunk">Trunk</td>
+                  <td class="limited">Limited</td>
+                </tr>
+                <tr>
+                  <td>Access</td>
+                  <td class="access">Access</td>
+                  <td class="access">Access</td>
+                  <td class="limited">Limited</td>
+                  <td class="access">Access</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="best-practice">
+            <strong>Best Practice:</strong> Always explicitly set port mode and use <code>switchport nonegotiate</code> to disable DTP. This prevents unintended trunk formation and improves security.
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</div><!-- /main-content -->
+
+<script>
+// =============================================
+// TAB SWITCHING
+// =============================================
+document.querySelectorAll('.tab-btn').forEach(function(btn) {
+  btn.addEventListener('click', function() {
+    document.querySelectorAll('.tab-btn').forEach(function(b) { b.classList.remove('active'); });
+    document.querySelectorAll('.tab-panel').forEach(function(p) { p.classList.remove('active'); });
+    btn.classList.add('active');
+    document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+  });
+});
+
+// =============================================
+// METHOD SWITCHING (Inter-VLAN)
+// =============================================
+function switchMethod(method) {
+  document.querySelectorAll('.method-btn').forEach(function(b) { b.classList.remove('active'); });
+  document.querySelectorAll('.method-panel').forEach(function(p) { p.classList.remove('active'); });
+  document.querySelector('.method-btn[data-method="' + method + '"]').classList.add('active');
+  document.getElementById('method-' + method).classList.add('active');
+}
+
+// =============================================
+// LINK INFO DISPLAY
+// =============================================
+function showLinkInfo(type) {
+  var panel = document.getElementById('topoInfo');
+  if (type === 'trunk') {
+    panel.innerHTML = '<strong>Trunk Port (802.1Q):</strong> Tagged frame. A 4-byte 802.1Q tag is inserted between the Source MAC and EtherType fields, carrying the VLAN ID.<br><br>' +
+      '<strong>802.1Q Frame Format:</strong>' +
+      '<div class="frame-format">' +
+        '<span>Dest MAC</span>' +
+        '<span>Src MAC</span>' +
+        '<span class="tag-field">802.1Q Tag<br><small>TPID (0x8100) + TCI (PCP, DEI, VID)</small></span>' +
+        '<span>EtherType</span>' +
+        '<span>Data / Payload</span>' +
+        '<span>FCS</span>' +
+      '</div>' +
+      '<br><small>The 802.1Q tag contains: <strong>TPID</strong> (Tag Protocol Identifier, 0x8100) + <strong>TCI</strong> (Tag Control Info: 3-bit PCP priority, 1-bit DEI, 12-bit VLAN ID).</small>';
+  } else if (type === 'access-v10') {
+    panel.innerHTML = '<strong>Access Port (VLAN 10 - Sales):</strong> Untagged frame. The switch adds the VLAN tag internally when the frame enters, and strips it when the frame exits to the end device.<br><br>' +
+      'The end device (PC) is completely unaware of VLANs. It sends and receives normal Ethernet frames.' +
+      '<div class="frame-format">' +
+        '<span>Dest MAC</span>' +
+        '<span>Src MAC</span>' +
+        '<span>EtherType</span>' +
+        '<span>Data / Payload</span>' +
+        '<span>FCS</span>' +
+      '</div>' +
+      '<br><small>No 802.1Q tag present on the wire at the access port. The switch associates this port with VLAN 10 internally.</small>';
+  } else if (type === 'access-v20') {
+    panel.innerHTML = '<strong>Access Port (VLAN 20 - Engineering):</strong> Untagged frame. The switch adds the VLAN tag internally when the frame enters, and strips it when the frame exits to the end device.<br><br>' +
+      'The end device (PC) is completely unaware of VLANs. It sends and receives normal Ethernet frames.' +
+      '<div class="frame-format">' +
+        '<span>Dest MAC</span>' +
+        '<span>Src MAC</span>' +
+        '<span>EtherType</span>' +
+        '<span>Data / Payload</span>' +
+        '<span>FCS</span>' +
+      '</div>' +
+      '<br><small>No 802.1Q tag present on the wire at the access port. The switch associates this port with VLAN 20 internally.</small>';
+  }
+}
+
+// =============================================
+// FRAME ANIMATION (Tab 1)
+// =============================================
+var animRunning = false;
+
+function animateFrame(vlan) {
+  if (animRunning) return;
+  animRunning = true;
+
+  var svg = document.getElementById('topoSvg');
+  var layer = document.getElementById('animLayer');
+  layer.innerHTML = '';
+
+  var color = vlan === 10 ? '#3b82f6' : '#10b981';
+  var vlanLabel = 'VLAN ' + vlan;
+
+  // Define path segments depending on VLAN
+  // VLAN 10: PC1 -> SW1 (access, untagged) -> trunk (tagged) -> SW2 -> PC5
+  // VLAN 20: PC5 -> ... we do PC3 -> SW1 -> trunk -> SW2 -> PC7
+  var segments;
+  if (vlan === 10) {
+    segments = [
+      { x1: 120, y1: 117, x2: 270, y2: 250, label: 'Untagged', tagged: false },
+      { x1: 300, y1: 260, x2: 300, y2: 260, label: 'SW1 adds tag', tagged: false, pause: true },
+      { x1: 350, y1: 260, x2: 650, y2: 260, label: '802.1Q Tagged (VID=' + vlan + ')', tagged: true },
+      { x1: 700, y1: 260, x2: 700, y2: 260, label: 'SW2 strips tag', tagged: true, pause: true },
+      { x1: 730, y1: 250, x2: 880, y2: 117, label: 'Untagged', tagged: false }
+    ];
+  } else {
+    segments = [
+      { x1: 120, y1: 332, x2: 270, y2: 270, label: 'Untagged', tagged: false },
+      { x1: 300, y1: 260, x2: 300, y2: 260, label: 'SW1 adds tag', tagged: false, pause: true },
+      { x1: 350, y1: 260, x2: 650, y2: 260, label: '802.1Q Tagged (VID=' + vlan + ')', tagged: true },
+      { x1: 700, y1: 260, x2: 700, y2: 260, label: 'SW2 strips tag', tagged: true, pause: true },
+      { x1: 730, y1: 270, x2: 880, y2: 332, label: 'Untagged', tagged: false }
+    ];
+  }
+
+  var panel = document.getElementById('topoInfo');
+  var segIdx = 0;
+
+  function runSegment() {
+    if (segIdx >= segments.length) {
+      animRunning = false;
+      panel.innerHTML = '<strong>Frame delivered!</strong> The frame from ' + vlanLabel + ' was successfully forwarded across the trunk to the destination PC in the same VLAN on the other switch.';
+      return;
+    }
+    var seg = segments[segIdx];
+
+    if (seg.pause) {
+      // Show a "processing" pulse at the switch
+      panel.innerHTML = '<strong>' + seg.label + ':</strong> The switch ' + (seg.tagged ? 'removes the 802.1Q tag before forwarding to the access port.' : 'internally associates the frame with ' + vlanLabel + ' and adds the 802.1Q tag for trunk transmission.');
+
+      // Create pulse circle
+      var pulse = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      pulse.setAttribute('cx', seg.x1);
+      pulse.setAttribute('cy', seg.y1);
+      pulse.setAttribute('r', '15');
+      pulse.setAttribute('fill', 'none');
+      pulse.setAttribute('stroke', color);
+      pulse.setAttribute('stroke-width', '3');
+      pulse.classList.add('pulse');
+      layer.appendChild(pulse);
+
+      setTimeout(function() {
+        if (pulse.parentNode) pulse.parentNode.removeChild(pulse);
+        segIdx++;
+        runSegment();
+      }, 1200);
+      return;
+    }
+
+    // Animate a dot along this segment
+    var tagStr = seg.tagged ? ' [Tagged]' : ' [Untagged]';
+    panel.innerHTML = '<strong>' + seg.label + tagStr + ':</strong> ' +
+      (seg.tagged
+        ? 'Frame carries 802.1Q header with VLAN ID ' + vlan + ' across the trunk link.'
+        : 'Frame on the access port has no 802.1Q tag. Normal Ethernet frame.');
+
+    var dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    dot.setAttribute('cx', seg.x1);
+    dot.setAttribute('cy', seg.y1);
+    dot.setAttribute('r', seg.tagged ? '8' : '6');
+    dot.setAttribute('fill', color);
+    dot.setAttribute('opacity', '0.95');
+    layer.appendChild(dot);
+
+    // Tag label that follows the dot
+    var tagLabel = null;
+    if (seg.tagged) {
+      tagLabel = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      tagLabel.setAttribute('x', seg.x1);
+      tagLabel.setAttribute('y', seg.y1 - 16);
+      tagLabel.setAttribute('text-anchor', 'middle');
+      tagLabel.setAttribute('fill', '#f59e0b');
+      tagLabel.setAttribute('font-size', '10');
+      tagLabel.setAttribute('font-weight', '600');
+      tagLabel.textContent = '802.1Q VID=' + vlan;
+      layer.appendChild(tagLabel);
+    }
+
+    var duration = seg.tagged ? 1400 : 800;
+    var startTime = null;
+
+    function step(ts) {
+      if (!startTime) startTime = ts;
+      var progress = Math.min((ts - startTime) / duration, 1);
+      // Ease in-out
+      var ease = progress < 0.5 ? 2 * progress * progress : -1 + (4 - 2 * progress) * progress;
+      var cx = seg.x1 + (seg.x2 - seg.x1) * ease;
+      var cy = seg.y1 + (seg.y2 - seg.y1) * ease;
+      dot.setAttribute('cx', cx);
+      dot.setAttribute('cy', cy);
+      if (tagLabel) {
+        tagLabel.setAttribute('x', cx);
+        tagLabel.setAttribute('y', cy - 16);
+      }
+      if (progress < 1) {
+        requestAnimationFrame(step);
+      } else {
+        if (dot.parentNode) dot.parentNode.removeChild(dot);
+        if (tagLabel && tagLabel.parentNode) tagLabel.parentNode.removeChild(tagLabel);
+        segIdx++;
+        runSegment();
+      }
+    }
+    requestAnimationFrame(step);
+  }
+
+  runSegment();
+}
+
+// =============================================
+// NATIVE VLAN DEMO
+// =============================================
+var nativeVlanActive = false;
+function toggleNativeVlan() {
+  nativeVlanActive = !nativeVlanActive;
+  var btn = document.getElementById('btnNativeVlan');
+  btn.classList.toggle('active', nativeVlanActive);
+  var panel = document.getElementById('topoInfo');
+
+  if (nativeVlanActive) {
+    panel.innerHTML = '<strong>Native VLAN Behavior:</strong> Frames belonging to the <em>native VLAN</em> are sent <strong>untagged</strong> across the trunk link. By default, the native VLAN is VLAN 1.<br><br>' +
+      '<strong>How it works:</strong><br>' +
+      '1. When a switch sends a frame for the native VLAN on a trunk, it does NOT add the 802.1Q tag.<br>' +
+      '2. When a switch receives an untagged frame on a trunk, it assumes the frame belongs to the native VLAN.<br><br>' +
+      '<strong>Security risk:</strong> If native VLANs are mismatched between switches, frames can "leak" between VLANs (VLAN hopping). <strong>Best practice:</strong> Set native VLAN to an unused VLAN (e.g., VLAN 999) and ensure both sides match.<br><br>' +
+      '<div class="frame-format">' +
+        '<span>Dest MAC</span>' +
+        '<span>Src MAC</span>' +
+        '<span style="background:rgba(239,68,68,0.15);color:#f87171;font-weight:600;">NO 802.1Q Tag<br><small>(Native VLAN = untagged)</small></span>' +
+        '<span>EtherType</span>' +
+        '<span>Data / Payload</span>' +
+        '<span>FCS</span>' +
+      '</div>';
+  } else {
+    panel.innerHTML = 'Click on any link in the topology to see how frames are handled. Use the controls above to animate frame flow and explore DTP negotiation.';
+  }
+}
+
+// =============================================
+// DTP MODE SELECTOR
+// =============================================
+function updateDtp() {
+  var left = document.getElementById('dtpLeft').value;
+  var right = document.getElementById('dtpRight').value;
+
+  var matrix = {
+    'auto':      { 'auto': 'Access',  'desirable': 'Trunk',  'trunk': 'Trunk',   'access': 'Access' },
+    'desirable': { 'auto': 'Trunk',   'desirable': 'Trunk',  'trunk': 'Trunk',   'access': 'Access' },
+    'trunk':     { 'auto': 'Trunk',   'desirable': 'Trunk',  'trunk': 'Trunk',   'access': 'Limited Connectivity' },
+    'access':    { 'auto': 'Access',  'desirable': 'Access', 'trunk': 'Limited Connectivity', 'access': 'Access' }
+  };
+
+  var result = matrix[left][right];
+  var resultDiv = document.getElementById('dtpResult');
+  resultDiv.style.display = 'block';
+
+  var isTrunk = result === 'Trunk';
+  var isLimited = result.indexOf('Limited') !== -1;
+
+  var colorStyle = isTrunk ? 'color:var(--accent-green)' : (isLimited ? 'color:var(--accent-red)' : 'color:var(--text-muted)');
+
+  resultDiv.innerHTML = '<strong>DTP Negotiation Result:</strong> SW1 (<em>' + left + '</em>) + SW2 (<em>' + right + '</em>) = <span style="' + colorStyle + ';font-weight:700;">' + result + '</span><br>' +
+    (isTrunk ? 'The link forms a trunk. Tagged frames (802.1Q) will be sent across this link.' :
+     isLimited ? '<span style="color:var(--accent-red);">One side is set to trunk and the other to access. This is a misconfiguration causing limited or no connectivity!</span>' :
+     'The link operates as an access port. Only a single VLAN\'s traffic will traverse this link (untagged).');
+
+  // Update trunk link visual
+  var trunkLine = document.getElementById('trunkLink');
+  if (isTrunk) {
+    trunkLine.setAttribute('stroke', 'url(#trunkGrad)');
+    trunkLine.setAttribute('stroke-dasharray', '12,6');
+  } else if (isLimited) {
+    trunkLine.setAttribute('stroke', '#f87171');
+    trunkLine.setAttribute('stroke-dasharray', '4,8');
+  } else {
+    trunkLine.setAttribute('stroke', '#404866');
+    trunkLine.setAttribute('stroke-dasharray', 'none');
+  }
+}
+
+// =============================================
+// ROAS ANIMATION
+// =============================================
+var roasRunning = false;
+function animateRoas() {
+  if (roasRunning) return;
+  roasRunning = true;
+  var layer = document.getElementById('roasAnimLayer');
+  layer.innerHTML = '';
+  var panel = document.getElementById('roasInfo');
+
+  var segments = [
+    { x1: 200, y1: 322, x2: 390, y2: 230, label: 'PC-A sends untagged frame to SW1', color: '#3b82f6' },
+    { x1: 420, y1: 210, x2: 420, y2: 210, label: 'SW1 tags frame with VLAN 10, forwards up trunk', color: '#3b82f6', pause: true },
+    { x1: 430, y1: 180, x2: 430, y2: 90, label: 'Frame tagged VLAN 10 sent to Router via trunk', color: '#f59e0b' },
+    { x1: 450, y1: 60, x2: 450, y2: 60, label: 'Router receives on Gi0/0.10, routes to Gi0/0.20', color: '#a78bfa', pause: true },
+    { x1: 470, y1: 90, x2: 470, y2: 180, label: 'Frame now tagged VLAN 20, sent back down trunk', color: '#f59e0b' },
+    { x1: 480, y1: 210, x2: 480, y2: 210, label: 'SW1 strips tag, forwards to PC-B access port', color: '#10b981', pause: true },
+    { x1: 510, y1: 230, x2: 700, y2: 322, label: 'Untagged frame delivered to PC-B on VLAN 20', color: '#10b981' }
+  ];
+
+  var segIdx = 0;
+  function runSeg() {
+    if (segIdx >= segments.length) {
+      roasRunning = false;
+      panel.innerHTML = '<strong>Frame delivered!</strong> The frame from VLAN 10 was routed to VLAN 20 via the router. Notice the "hairpin" path: the frame goes up the trunk to the router, gets routed between subinterfaces, then returns down the same trunk link.';
+      return;
+    }
+    var seg = segments[segIdx];
+    panel.innerHTML = '<strong>Step ' + (segIdx + 1) + ':</strong> ' + seg.label;
+
+    if (seg.pause) {
+      var pulse = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      pulse.setAttribute('cx', seg.x1);
+      pulse.setAttribute('cy', seg.y1);
+      pulse.setAttribute('r', '14');
+      pulse.setAttribute('fill', 'none');
+      pulse.setAttribute('stroke', seg.color);
+      pulse.setAttribute('stroke-width', '3');
+      pulse.classList.add('pulse');
+      layer.appendChild(pulse);
+      setTimeout(function() {
+        if (pulse.parentNode) pulse.parentNode.removeChild(pulse);
+        segIdx++;
+        runSeg();
+      }, 1200);
+      return;
+    }
+
+    var dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    dot.setAttribute('cx', seg.x1);
+    dot.setAttribute('cy', seg.y1);
+    dot.setAttribute('r', '7');
+    dot.setAttribute('fill', seg.color);
+    dot.setAttribute('opacity', '0.95');
+    layer.appendChild(dot);
+
+    var duration = 900;
+    var startTime = null;
+    function step(ts) {
+      if (!startTime) startTime = ts;
+      var p = Math.min((ts - startTime) / duration, 1);
+      var ease = p < 0.5 ? 2 * p * p : -1 + (4 - 2 * p) * p;
+      dot.setAttribute('cx', seg.x1 + (seg.x2 - seg.x1) * ease);
+      dot.setAttribute('cy', seg.y1 + (seg.y2 - seg.y1) * ease);
+      if (p < 1) requestAnimationFrame(step);
+      else {
+        if (dot.parentNode) dot.parentNode.removeChild(dot);
+        segIdx++;
+        runSeg();
+      }
+    }
+    requestAnimationFrame(step);
+  }
+  runSeg();
+}
+
+// =============================================
+// SVI ANIMATION
+// =============================================
+var sviRunning = false;
+function animateSvi() {
+  if (sviRunning) return;
+  sviRunning = true;
+  var layer = document.getElementById('sviAnimLayer');
+  layer.innerHTML = '';
+  var panel = document.getElementById('sviInfo');
+
+  var segments = [
+    { x1: 300, y1: 295, x2: 395, y2: 170, label: 'PC-A sends frame to L3 switch access port (VLAN 10)', color: '#3b82f6' },
+    { x1: 395, y1: 132, x2: 395, y2: 132, label: 'Frame arrives at SVI VLAN 10 (192.168.10.1) for routing', color: '#3b82f6', pause: true },
+    { x1: 395, y1: 132, x2: 517, y2: 132, label: 'ASIC routes internally from SVI 10 to SVI 20 at wire speed', color: '#a78bfa' },
+    { x1: 517, y1: 132, x2: 517, y2: 132, label: 'Frame re-written for VLAN 20 (new src MAC = SVI 20 MAC)', color: '#10b981', pause: true },
+    { x1: 517, y1: 170, x2: 600, y2: 275, label: 'Frame delivered to PC-B on VLAN 20 access port', color: '#10b981' }
+  ];
+
+  var segIdx = 0;
+  function runSeg() {
+    if (segIdx >= segments.length) {
+      sviRunning = false;
+      panel.innerHTML = '<strong>Frame delivered!</strong> The frame was routed internally by the L3 switch ASIC between SVI VLAN 10 and SVI VLAN 20. No external router needed, no trunk bottleneck -- all at wire speed within the switch.';
+      return;
+    }
+    var seg = segments[segIdx];
+    panel.innerHTML = '<strong>Step ' + (segIdx + 1) + ':</strong> ' + seg.label;
+
+    if (seg.pause) {
+      var pulse = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      pulse.setAttribute('cx', seg.x1);
+      pulse.setAttribute('cy', seg.y1);
+      pulse.setAttribute('r', '14');
+      pulse.setAttribute('fill', 'none');
+      pulse.setAttribute('stroke', seg.color);
+      pulse.setAttribute('stroke-width', '3');
+      pulse.classList.add('pulse');
+      layer.appendChild(pulse);
+      setTimeout(function() {
+        if (pulse.parentNode) pulse.parentNode.removeChild(pulse);
+        segIdx++;
+        runSeg();
+      }, 1200);
+      return;
+    }
+
+    var dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    dot.setAttribute('cx', seg.x1);
+    dot.setAttribute('cy', seg.y1);
+    dot.setAttribute('r', '7');
+    dot.setAttribute('fill', seg.color);
+    dot.setAttribute('opacity', '0.95');
+    layer.appendChild(dot);
+
+    var duration = 900;
+    var startTime = null;
+    function step(ts) {
+      if (!startTime) startTime = ts;
+      var p = Math.min((ts - startTime) / duration, 1);
+      var ease = p < 0.5 ? 2 * p * p : -1 + (4 - 2 * p) * p;
+      dot.setAttribute('cx', seg.x1 + (seg.x2 - seg.x1) * ease);
+      dot.setAttribute('cy', seg.y1 + (seg.y2 - seg.y1) * ease);
+      if (p < 1) requestAnimationFrame(step);
+      else {
+        if (dot.parentNode) dot.parentNode.removeChild(dot);
+        segIdx++;
+        runSeg();
+      }
+    }
+    requestAnimationFrame(step);
+  }
+  runSeg();
+}
+</script>
+</body>
+</html>

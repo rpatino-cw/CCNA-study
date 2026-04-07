@@ -1,0 +1,1023 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lab PT-6: NAT/PAT &amp; DHCP — CCNA 200-301</title>
+  <link rel="stylesheet" href="../css/shared.css">
+  <style>
+    .lab-header {
+      padding: var(--s-xl) 0 var(--s-lg);
+      border-bottom: 2px solid var(--ink);
+      margin-bottom: var(--s-2xl);
+    }
+
+    .lab-header-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: var(--s-md);
+      flex-wrap: wrap;
+    }
+
+    .lab-week-badge {
+      font-family: var(--font-display);
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--ink-muted);
+      background: var(--bg-recessed);
+      padding: 4px 10px;
+      border-radius: 100px;
+    }
+
+    .lab-header h1 {
+      font-size: 2.2rem;
+      font-weight: 700;
+      letter-spacing: -0.04em;
+      line-height: 1.1;
+      margin: var(--s-sm) 0 6px;
+    }
+
+    .lab-header-meta {
+      font-family: var(--font-display);
+      font-size: 0.82rem;
+      color: var(--ink-muted);
+      display: flex;
+      gap: var(--s-md);
+      flex-wrap: wrap;
+    }
+
+    /* Section blocks */
+    .lab-section {
+      margin-bottom: var(--s-3xl);
+    }
+
+    .lab-section-title {
+      font-family: var(--font-display);
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--ink-muted);
+      margin-bottom: var(--s-lg);
+      padding-bottom: var(--s-sm);
+      border-bottom: 1px solid var(--border);
+    }
+
+    /* Objectives */
+    .objectives-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      gap: var(--s-sm);
+    }
+
+    .objectives-list li {
+      display: flex;
+      align-items: flex-start;
+      gap: var(--s-sm);
+      font-family: var(--font-display);
+      font-size: 0.92rem;
+      line-height: 1.5;
+      color: var(--ink-secondary);
+    }
+
+    .obj-num {
+      font-family: var(--font-mono);
+      font-size: 0.68rem;
+      font-weight: 700;
+      color: var(--accent);
+      background: var(--accent-light);
+      border-radius: 100px;
+      padding: 2px 7px;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    /* Topology */
+    .topology-ascii {
+      font-family: var(--font-mono);
+      font-size: 0.82rem;
+      line-height: 1.6;
+      background: var(--bg-recessed);
+      border-radius: var(--radius-lg);
+      padding: var(--s-xl);
+      overflow-x: auto;
+      color: var(--ink-secondary);
+      margin-bottom: var(--s-lg);
+    }
+
+    .device-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-family: var(--font-display);
+      font-size: 0.85rem;
+    }
+
+    .device-table th {
+      text-align: left;
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--ink-muted);
+      padding: var(--s-sm) var(--s-md);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .device-table td {
+      padding: var(--s-sm) var(--s-md);
+      border-bottom: 1px solid var(--border);
+      color: var(--ink-secondary);
+    }
+
+    .device-table tr:last-child td { border-bottom: none; }
+    .device-table code { font-family: var(--font-mono); font-size: 0.8rem; color: var(--ink); }
+
+    /* Steps */
+    .lab-steps {
+      display: flex;
+      flex-direction: column;
+      gap: var(--s-lg);
+    }
+
+    .lab-step {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+    }
+
+    .step-header {
+      display: flex;
+      align-items: center;
+      gap: var(--s-md);
+      padding: var(--s-md) var(--s-lg);
+      background: var(--bg-recessed);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .step-num {
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: var(--accent);
+      background: var(--accent-light);
+      border-radius: 100px;
+      padding: 2px 8px;
+      flex-shrink: 0;
+    }
+
+    .step-title {
+      font-family: var(--font-display);
+      font-size: 0.92rem;
+      font-weight: 700;
+      color: var(--ink);
+    }
+
+    .step-body {
+      padding: var(--s-lg);
+    }
+
+    .step-desc {
+      font-family: var(--font-display);
+      font-size: 0.88rem;
+      line-height: 1.65;
+      color: var(--ink-secondary);
+      margin-bottom: var(--s-md);
+    }
+
+    .cmd-block {
+      background: #1c1917;
+      border-radius: var(--radius);
+      padding: var(--s-md) var(--s-lg);
+      margin-bottom: var(--s-sm);
+      overflow-x: auto;
+    }
+
+    .cmd-device {
+      font-family: var(--font-mono);
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #78716c;
+      margin-bottom: 6px;
+    }
+
+    .cmd-block pre {
+      font-family: var(--font-mono);
+      font-size: 0.82rem;
+      line-height: 1.7;
+      color: #e7e5e4;
+      margin: 0;
+      white-space: pre;
+    }
+
+    .cmd-block .prompt { color: #a8a29e; }
+    .cmd-block .cmd    { color: #fde68a; }
+    .cmd-block .comment{ color: #57534e; }
+
+    /* Verification */
+    .verify-pair {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      margin-bottom: var(--s-md);
+    }
+
+    .verify-cmd {
+      background: #1c1917;
+      padding: var(--s-sm) var(--s-lg);
+    }
+
+    .verify-cmd code {
+      font-family: var(--font-mono);
+      font-size: 0.82rem;
+      color: #fde68a;
+    }
+
+    .verify-expected {
+      padding: var(--s-md) var(--s-lg);
+    }
+
+    .verify-label {
+      font-family: var(--font-display);
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--ink-muted);
+      margin-bottom: 4px;
+    }
+
+    .verify-expected pre {
+      font-family: var(--font-mono);
+      font-size: 0.78rem;
+      line-height: 1.6;
+      color: var(--ink-secondary);
+      margin: 0;
+      white-space: pre-wrap;
+    }
+
+    /* Quiz section */
+    .quiz-wrap {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+    }
+
+    .quiz-start-panel {
+      padding: var(--s-2xl);
+      text-align: center;
+    }
+
+    .quiz-start-panel h3 {
+      font-size: 1.1rem;
+      font-weight: 700;
+      margin-bottom: var(--s-sm);
+    }
+
+    .quiz-start-panel p {
+      font-family: var(--font-display);
+      font-size: 0.88rem;
+      color: var(--ink-muted);
+      margin-bottom: var(--s-xl);
+    }
+
+    .quiz-active { padding: var(--s-xl); }
+
+    .q-progress-bar {
+      height: 3px;
+      background: var(--border);
+      border-radius: 100px;
+      overflow: hidden;
+      margin-bottom: var(--s-sm);
+    }
+
+    .q-progress-fill {
+      height: 100%;
+      background: var(--accent);
+      transition: width 0.3s ease;
+    }
+
+    .q-progress-text {
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      color: var(--ink-muted);
+      margin-bottom: var(--s-lg);
+    }
+
+    .quiz-question-num {
+      font-family: var(--font-display);
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--ink-muted);
+      margin-bottom: var(--s-sm);
+    }
+
+    .quiz-question-text {
+      font-size: 1rem;
+      font-weight: 600;
+      line-height: 1.5;
+      margin-bottom: var(--s-lg);
+    }
+
+    .quiz-options {
+      display: flex;
+      flex-direction: column;
+      gap: var(--s-sm);
+      margin-bottom: var(--s-lg);
+    }
+
+    .quiz-option {
+      display: flex;
+      align-items: flex-start;
+      gap: var(--s-md);
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: var(--s-md) var(--s-lg);
+      cursor: pointer;
+      text-align: left;
+      transition: border-color var(--transition), background var(--transition);
+      font-size: 0.88rem;
+      line-height: 1.5;
+      width: 100%;
+    }
+
+    .quiz-option:hover:not(.answered) {
+      border-color: var(--border-strong);
+      background: var(--bg-recessed);
+    }
+
+    .option-letter {
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: var(--ink-muted);
+      background: var(--bg-recessed);
+      border-radius: 3px;
+      padding: 1px 6px;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    .quiz-option.correct  { border-color: var(--prof-strong); background: var(--prof-strong-bg); }
+    .quiz-option.wrong    { border-color: var(--wrong, #ef4444); background: var(--wrong-bg, #fef2f2); }
+    .quiz-option.correct .option-letter { color: var(--prof-strong); background: var(--prof-strong-bg); }
+
+    @keyframes flash-correct { 0%,100%{transform:scale(1)} 50%{transform:scale(1.01)} }
+    @keyframes shake-wrong   { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-4px)} 75%{transform:translateX(4px)} }
+    .quiz-option.flash-correct { animation: flash-correct 0.25s ease; }
+    .quiz-option.shake-wrong   { animation: shake-wrong 0.25s ease; }
+
+    .quiz-explanation {
+      font-family: var(--font-display);
+      font-size: 0.85rem;
+      line-height: 1.6;
+      color: var(--ink-secondary);
+      background: var(--bg-recessed);
+      border-radius: var(--radius);
+      padding: var(--s-md) var(--s-lg);
+      display: none;
+      margin-bottom: var(--s-md);
+    }
+
+    .quiz-explanation.show { display: block; }
+
+    .btn-next-q {
+      font-family: var(--font-display);
+      font-size: 0.85rem;
+      font-weight: 600;
+      background: var(--ink);
+      color: var(--bg);
+      border: none;
+      border-radius: var(--radius);
+      padding: var(--s-sm) var(--s-lg);
+      cursor: pointer;
+      display: none;
+      transition: opacity var(--transition);
+    }
+
+    .btn-next-q.show { display: inline-flex; }
+    .btn-next-q:hover { opacity: 0.85; }
+
+    /* Result panel */
+    .result-panel {
+      padding: var(--s-2xl);
+      display: none;
+    }
+
+    .result-panel.show { display: block; }
+
+    .result-score-block {
+      display: flex;
+      align-items: center;
+      gap: var(--s-xl);
+      margin-bottom: var(--s-2xl);
+      padding-bottom: var(--s-xl);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .result-score-num {
+      font-size: 3rem;
+      font-weight: 700;
+      letter-spacing: -0.04em;
+      line-height: 1;
+    }
+
+    .result-topic-line {
+      font-family: var(--font-display);
+      font-size: 0.82rem;
+      color: var(--ink-muted);
+      margin-bottom: 4px;
+    }
+
+    .result-score-label {
+      font-family: var(--font-display);
+      font-size: 0.92rem;
+      font-weight: 600;
+      margin-bottom: var(--s-sm);
+    }
+
+    .result-verdict {
+      font-family: var(--font-display);
+      font-size: 0.82rem;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 100px;
+      display: inline-block;
+    }
+
+    .result-verdict.pass { color: var(--prof-strong); background: var(--prof-strong-bg); }
+    .result-verdict.fail { color: var(--ink-muted); background: var(--bg-recessed); }
+
+    .result-actions {
+      display: flex;
+      gap: var(--s-sm);
+      flex-wrap: wrap;
+      margin-top: var(--s-xl);
+    }
+
+    .result-wrong-item {
+      background: var(--bg-recessed);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: var(--s-md) var(--s-lg);
+      margin-bottom: var(--s-sm);
+    }
+
+    .result-wrong-item .q-text {
+      font-size: 0.88rem;
+      font-weight: 600;
+      margin-bottom: var(--s-sm);
+    }
+
+    .result-wrong-item .a-detail {
+      font-family: var(--font-display);
+      font-size: 0.82rem;
+      color: var(--ink-secondary);
+      line-height: 1.6;
+    }
+
+    /* Footer */
+    .footer {
+      margin-top: var(--s-3xl);
+      padding: var(--s-lg) 0;
+      border-top: 1px solid var(--rule);
+      font-family: var(--font-display);
+      font-size: 0.75rem;
+      color: var(--ink-muted);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+
+    <nav class="top-nav">
+      <a href="../index.html">Dashboard</a>
+      <a href="../knowledge-map.html">Knowledge Map</a>
+      <a href="../diagnostic.html">Diagnostic</a>
+      <a href="../quiz.html">Quiz</a>
+      <a href="../study.html">Daily Study</a>
+      <a href="../quests.html">Quests</a>
+      <a href="../strategy.html">Strategy</a>
+      <a class="active" href="index.html">Labs</a>
+    </nav>
+
+    <!-- Header -->
+    <header class="lab-header">
+      <div class="lab-header-top">
+        <span class="lab-week-badge">Week 6 · May 10, 2026</span>
+      </div>
+      <h1>NAT/PAT &amp; DHCP</h1>
+      <div class="lab-header-meta">
+        <span>~45 min</span>
+        <span>Topics 4.1 · 4.3</span>
+        <span>Packet Tracer</span>
+      </div>
+    </header>
+
+    <!-- Objectives -->
+    <section class="lab-section">
+      <div class="lab-section-title">Objectives</div>
+      <ul class="objectives-list">
+        <li><span class="obj-num">01</span><span>Configure a DHCP pool on R1 to assign addresses in the 10.0.1.0/24 range to inside PCs</span></li>
+        <li><span class="obj-num">02</span><span>Exclude 10.0.1.1–10.0.1.10 from DHCP (reserved for router and static devices)</span></li>
+        <li><span class="obj-num">03</span><span>Configure PAT (overload) to translate all inside 10.0.1.x addresses to R1's outside IP 203.0.113.1</span></li>
+        <li><span class="obj-num">04</span><span>Verify DHCP bindings with <code>show ip dhcp binding</code></span></li>
+        <li><span class="obj-num">05</span><span>Verify NAT translations with <code>show ip nat translations</code> after a ping</span></li>
+      </ul>
+    </section>
+
+    <!-- Topology -->
+    <section class="lab-section">
+      <div class="lab-section-title">Topology</div>
+      <pre class="topology-ascii">
+  PC1 ┐                                           203.0.113.100
+  PC2 ┤                                           Web Server
+  PC3 ┤── SW1 ── R1 Fa0/0 (inside)   Fa0/1 (outside) ──────────┘
+  PC4 ┘        10.0.1.1/24       203.0.113.1/24
+
+  Inside: 10.0.1.0/24  |  Outside: 203.0.113.0/24 (simulated ISP)
+      </pre>
+
+      <table class="device-table">
+        <thead>
+          <tr>
+            <th>Device</th>
+            <th>Interface</th>
+            <th>IP Address</th>
+            <th>Subnet Mask</th>
+            <th>Note</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>R1</td><td>Fa0/0</td><td><code>10.0.1.1</code></td><td>255.255.255.0</td><td>NAT inside</td></tr>
+          <tr><td>R1</td><td>Fa0/1</td><td><code>203.0.113.1</code></td><td>255.255.255.0</td><td>NAT outside</td></tr>
+          <tr><td>SW1</td><td>—</td><td>— (L2 only)</td><td>—</td><td>—</td></tr>
+          <tr><td>PC1–PC4</td><td>NIC</td><td>DHCP (10.0.1.11+)</td><td>255.255.255.0</td><td>Auto via DHCP</td></tr>
+          <tr><td>Web Server</td><td>NIC</td><td><code>203.0.113.100</code></td><td>255.255.255.0</td><td>Static, outside</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- Steps -->
+    <section class="lab-section">
+      <div class="lab-section-title">Step-by-Step Build</div>
+      <div class="lab-steps">
+
+        <!-- Step 1 -->
+        <div class="lab-step">
+          <div class="step-header">
+            <span class="step-num">01</span>
+            <span class="step-title">Build the topology in Packet Tracer</span>
+          </div>
+          <div class="step-body">
+            <p class="step-desc">
+              Add one <strong>Cisco 2901 router (R1)</strong>, one <strong>Cisco 2960 switch (SW1)</strong>, four <strong>PCs</strong>, and one <strong>Server</strong>. Connect PC1–PC4 to SW1 with copper straight-through cables. Connect SW1 to R1 Fa0/0. Connect R1 Fa0/1 directly to the Web Server with a copper cross-over cable (or use auto-detect).
+            </p>
+            <p class="step-desc" style="margin-bottom:0">
+              Set the Web Server IP to <strong>203.0.113.100 / 255.255.255.0</strong> manually via Desktop → IP Configuration. Leave PCs set to DHCP for now — they will get addresses after Step 3.
+            </p>
+          </div>
+        </div>
+
+        <!-- Step 2 -->
+        <div class="lab-step">
+          <div class="step-header">
+            <span class="step-num">02</span>
+            <span class="step-title">Configure R1 interfaces</span>
+          </div>
+          <div class="step-body">
+            <p class="step-desc">
+              Assign IP addresses to both router interfaces and mark each with its NAT role. The <code>ip nat inside</code> and <code>ip nat outside</code> commands are required — NAT only processes traffic crossing that boundary.
+            </p>
+            <div class="cmd-block">
+              <div class="cmd-device">R1</div>
+              <pre><span class="prompt">Router></span> <span class="cmd">enable</span>
+<span class="prompt">Router#</span> <span class="cmd">configure terminal</span>
+<span class="prompt">R1(config)#</span> <span class="cmd">hostname R1</span>
+<span class="comment">! --- Inside interface (LAN) ---</span>
+<span class="prompt">R1(config)#</span> <span class="cmd">interface fastethernet 0/0</span>
+<span class="prompt">R1(config-if)#</span> <span class="cmd">ip address 10.0.1.1 255.255.255.0</span>
+<span class="prompt">R1(config-if)#</span> <span class="cmd">ip nat inside</span>
+<span class="prompt">R1(config-if)#</span> <span class="cmd">no shutdown</span>
+<span class="prompt">R1(config-if)#</span> <span class="cmd">exit</span>
+<span class="comment">! --- Outside interface (ISP link) ---</span>
+<span class="prompt">R1(config)#</span> <span class="cmd">interface fastethernet 0/1</span>
+<span class="prompt">R1(config-if)#</span> <span class="cmd">ip address 203.0.113.1 255.255.255.0</span>
+<span class="prompt">R1(config-if)#</span> <span class="cmd">ip nat outside</span>
+<span class="prompt">R1(config-if)#</span> <span class="cmd">no shutdown</span>
+<span class="prompt">R1(config-if)#</span> <span class="cmd">exit</span></pre>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 3 -->
+        <div class="lab-step">
+          <div class="step-header">
+            <span class="step-num">03</span>
+            <span class="step-title">Configure DHCP pool on R1</span>
+          </div>
+          <div class="step-body">
+            <p class="step-desc">
+              Exclude the first 10 addresses (reserved for the router and any static devices), then create the DHCP pool. The <code>default-router</code> command sets the gateway PCs will receive — they need this to reach the outside network.
+            </p>
+            <div class="cmd-block">
+              <div class="cmd-device">R1</div>
+              <pre><span class="prompt">R1(config)#</span> <span class="cmd">ip dhcp excluded-address 10.0.1.1 10.0.1.10</span>
+<span class="prompt">R1(config)#</span> <span class="cmd">ip dhcp pool LAN</span>
+<span class="prompt">R1(dhcp-config)#</span> <span class="cmd">network 10.0.1.0 255.255.255.0</span>
+<span class="prompt">R1(dhcp-config)#</span> <span class="cmd">default-router 10.0.1.1</span>
+<span class="prompt">R1(dhcp-config)#</span> <span class="cmd">dns-server 8.8.8.8</span>
+<span class="prompt">R1(dhcp-config)#</span> <span class="cmd">lease 7</span>
+<span class="prompt">R1(dhcp-config)#</span> <span class="cmd">exit</span></pre>
+            </div>
+            <p class="step-desc" style="margin-top:var(--s-md);margin-bottom:0">
+              Now click each PC → Desktop → IP Configuration → select <strong>DHCP</strong>. PCs should receive addresses starting at 10.0.1.11.
+            </p>
+          </div>
+        </div>
+
+        <!-- Step 4 -->
+        <div class="lab-step">
+          <div class="step-header">
+            <span class="step-num">04</span>
+            <span class="step-title">Create an ACL to match inside traffic</span>
+          </div>
+          <div class="step-body">
+            <p class="step-desc">
+              NAT overload requires an access list that identifies which source addresses should be translated. Standard ACL 1 matches any source in the 10.0.1.0/24 range. The wildcard mask <code>0.0.0.255</code> is the inverse of the subnet mask.
+            </p>
+            <div class="cmd-block">
+              <div class="cmd-device">R1</div>
+              <pre><span class="prompt">R1(config)#</span> <span class="cmd">access-list 1 permit 10.0.1.0 0.0.0.255</span></pre>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 5 -->
+        <div class="lab-step">
+          <div class="step-header">
+            <span class="step-num">05</span>
+            <span class="step-title">Configure PAT overload</span>
+          </div>
+          <div class="step-body">
+            <p class="step-desc">
+              Bind ACL 1 to the outside interface with the <code>overload</code> keyword. This enables PAT — traffic matching the ACL will be translated to R1's Fa0/1 IP, differentiated by unique source port numbers. No separate NAT pool is needed.
+            </p>
+            <div class="cmd-block">
+              <div class="cmd-device">R1</div>
+              <pre><span class="prompt">R1(config)#</span> <span class="cmd">ip nat inside source list 1 interface fastethernet 0/1 overload</span></pre>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 6 -->
+        <div class="lab-step">
+          <div class="step-header">
+            <span class="step-num">06</span>
+            <span class="step-title">Add a default route toward the outside</span>
+          </div>
+          <div class="step-body">
+            <p class="step-desc">
+              Translated packets need a path to the outside. In this simulated topology, point the default route at the Web Server's IP as the next-hop. In a real network this would be the ISP gateway.
+            </p>
+            <div class="cmd-block">
+              <div class="cmd-device">R1</div>
+              <pre><span class="prompt">R1(config)#</span> <span class="cmd">ip route 0.0.0.0 0.0.0.0 203.0.113.100</span>
+<span class="prompt">R1(config)#</span> <span class="cmd">end</span>
+<span class="prompt">R1#</span> <span class="cmd">write memory</span></pre>
+            </div>
+            <p class="step-desc" style="margin-top:var(--s-md);margin-bottom:0">
+              <strong>Note:</strong> In a production environment the next-hop would be the ISP router's IP, not the destination server. Packet Tracer's simplified routing model accepts the server IP here.
+            </p>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- Verification -->
+    <section class="lab-section">
+      <div class="lab-section-title">Verification</div>
+
+      <div class="verify-pair">
+        <div class="verify-cmd"><code>R1# show ip dhcp binding</code></div>
+        <div class="verify-expected">
+          <div class="verify-label">Expected output — 4 bindings for PCs</div>
+          <pre>IP address       Client-ID/ Hardware address   Lease expiration        Type
+10.0.1.11        0060.2F4A.1234                 --                      Automatic
+10.0.1.12        0060.3B2C.5678                 --                      Automatic
+10.0.1.13        0001.C7DE.9012                 --                      Automatic
+10.0.1.14        00D0.58AB.3456                 --                      Automatic</pre>
+        </div>
+      </div>
+
+      <div class="verify-pair">
+        <div class="verify-cmd"><code>R1# show ip nat translations</code> (after PC1 pings the web server)</div>
+        <div class="verify-expected">
+          <div class="verify-label">Expected output — inside local → inside global mappings</div>
+          <pre>Pro  Inside global      Inside local       Outside local      Outside global
+icmp 203.0.113.1:1024  10.0.1.11:1024     203.0.113.100:1024 203.0.113.100:1024
+icmp 203.0.113.1:1025  10.0.1.11:1025     203.0.113.100:1025 203.0.113.100:1025</pre>
+        </div>
+      </div>
+
+      <div class="verify-pair">
+        <div class="verify-cmd"><code>R1# show ip nat statistics</code></div>
+        <div class="verify-expected">
+          <div class="verify-label">Confirm active translation count and interface assignments</div>
+          <pre>Total active translations: 2 (0 static, 2 dynamic; 2 extended)
+Outside interfaces:
+  FastEthernet0/1
+Inside interfaces:
+  FastEthernet0/0
+Hits: 8  Misses: 0</pre>
+        </div>
+      </div>
+
+      <div class="verify-pair">
+        <div class="verify-cmd"><code>PC1&gt; ping 203.0.113.100</code> (Desktop → Command Prompt)</div>
+        <div class="verify-expected">
+          <div class="verify-label">Expected — ping succeeds through PAT</div>
+          <pre>Pinging 203.0.113.100 with 32 bytes of data:
+Reply from 203.0.113.100: bytes=32 time&lt;1ms TTL=127
+Reply from 203.0.113.100: bytes=32 time&lt;1ms TTL=127
+Reply from 203.0.113.100: bytes=32 time&lt;1ms TTL=127
+Reply from 203.0.113.100: bytes=32 time&lt;1ms TTL=127
+Ping statistics: Packets: Sent = 4, Received = 4, Lost = 0 (0% loss)</pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- Post-lab Quiz -->
+    <section class="lab-section">
+      <div class="lab-section-title">Post-Lab Quiz</div>
+      <div class="quiz-wrap" id="quiz-wrap">
+        <div class="quiz-start-panel" id="quiz-start">
+          <h3>Knowledge Check</h3>
+          <p>5 questions covering NAT, PAT, and DHCP. Pass = 80%.</p>
+          <button class="btn btn-primary" onclick="startLabQuiz()">Start quiz</button>
+        </div>
+        <div class="quiz-active" id="quiz-active" style="display:none">
+          <div class="q-progress-bar"><div class="q-progress-fill" id="q-progress-fill"></div></div>
+          <div class="q-progress-text" id="q-progress-text"></div>
+          <div id="quiz-content"></div>
+        </div>
+        <div class="result-panel" id="result-panel">
+          <div class="result-score-block">
+            <div class="result-score-num" id="score-num">0%</div>
+            <div>
+              <div class="result-topic-line">Lab PT-6 · Topics 4.1, 4.3</div>
+              <div class="result-score-label" id="score-label"></div>
+              <div class="result-verdict" id="result-verdict"></div>
+            </div>
+          </div>
+          <div id="wrong-review"></div>
+          <div class="result-actions">
+            <button class="btn btn-primary" onclick="resetQuiz()">Retry quiz</button>
+            <a class="btn btn-secondary" href="index.html">Back to labs</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <footer class="footer">CCNA 200-301 Study System — Lab PT-6</footer>
+  </div>
+
+  <script src="../js/store.js"></script>
+  <script>
+    const PASS_THRESHOLD = 0.80;
+    const LETTERS = ['A', 'B', 'C', 'D'];
+
+    const LAB_QUESTIONS = [
+      {
+        question: "What is the difference between NAT and PAT?",
+        options: [
+          "NAT translates one private IP to one public IP (1:1)",
+          "PAT maps multiple private IPs to one public IP using port numbers (many:1)",
+          "NAT uses TCP ports while PAT uses UDP ports",
+          "PAT requires a pool of public IPs while NAT uses only one"
+        ],
+        correct: 1,
+        explanation: "NAT = 1:1 address mapping. PAT (Port Address Translation, also called NAT overload) uses port numbers to track multiple simultaneous translations to a single public IP. Most home routers use PAT."
+      },
+      {
+        question: "Which command applies PAT using the router's outside interface IP instead of a NAT pool?",
+        options: [
+          "ip nat inside source static 10.0.1.0 0.0.0.255",
+          "ip nat inside source list 1 interface fa0/1 overload",
+          "ip nat outside source list 1 interface fa0/0",
+          "ip nat pool MYPOOL 203.0.113.1 203.0.113.1 netmask 255.255.255.0"
+        ],
+        correct: 1,
+        explanation: "The 'interface fa0/1 overload' keyword uses the interface's IP dynamically and enables port-based multiplexing (overload = PAT). Using 'interface' instead of 'pool' means you don't need a dedicated public pool — the router's own outside IP is reused."
+      },
+      {
+        question: "A router shows 'show ip dhcp binding' with 4 entries, all using 10.0.1.11–14. You add a 5th PC and it can't get an IP. What is the most likely cause?",
+        options: [
+          "The DHCP pool is exhausted (no available addresses)",
+          "The PC's NIC is misconfigured",
+          "The default-router command is missing",
+          "The router needs to be rebooted"
+        ],
+        correct: 0,
+        explanation: "The pool is 10.0.1.0/24 but the 'excluded-address' command removes 10.0.1.1–10.0.1.10 (first 10). Only 244 addresses remain (10.0.1.11–254). With only 4 PCs that's fine — but check 'show ip dhcp pool' for addresses in use vs. available. Also check if the excluded range accidentally covers all addresses."
+      },
+      {
+        question: "What does 'ip nat inside' on an interface tell the router?",
+        options: [
+          "This interface uses a private IP address",
+          "Traffic arriving on this interface is from the inside (private) network and may need NAT translation",
+          "This interface will be the source of translated packets",
+          "Traffic leaving this interface goes to the internet"
+        ],
+        correct: 1,
+        explanation: "'ip nat inside' marks an interface as the inside (private) boundary. 'ip nat outside' marks the outside (public) boundary. NAT only processes traffic crossing this boundary — inside to outside triggers translation, outside to inside reverses it."
+      },
+      {
+        question: "After configuring PAT, a PC can ping the outside server but the server cannot initiate a connection to the PC. Why?",
+        options: [
+          "PAT broke the default route",
+          "PAT is stateful — it only allows inbound traffic that corresponds to an outbound session initiated from inside",
+          "The ACL is blocking inbound traffic",
+          "The DNS server is unreachable"
+        ],
+        correct: 1,
+        explanation: "PAT (and NAT in general) is stateful. The translation table entry is created when an inside host initiates a connection. Inbound-only traffic has no matching entry and is dropped. To allow unsolicited inbound connections, you need static NAT entries."
+      }
+    ];
+
+    let currentQ = 0;
+    let answers = [];
+    let quizQuestions = [];
+
+    function startLabQuiz() {
+      quizQuestions = shuffle([...LAB_QUESTIONS]).slice(0, 5);
+      currentQ = 0;
+      answers = [];
+      document.getElementById('quiz-start').style.display = 'none';
+      document.getElementById('quiz-active').style.display = 'block';
+      document.getElementById('result-panel').classList.remove('show');
+      renderQuestion();
+    }
+
+    function renderQuestion() {
+      const q = quizQuestions[currentQ];
+      const total = quizQuestions.length;
+      const pct = Math.round((currentQ / total) * 100);
+
+      document.getElementById('q-progress-fill').style.width = pct + '%';
+      document.getElementById('q-progress-text').textContent = `${currentQ + 1} / ${total}`;
+
+      const qContent = document.getElementById('quiz-content');
+      qContent.innerHTML = `
+        <div class="quiz-question-num">Question ${currentQ + 1} of ${total}</div>
+        <div class="quiz-question-text">${escHtml(q.question)}</div>
+        <div class="quiz-options" id="options-wrap">
+          ${q.options.map((opt, i) => `
+            <button class="quiz-option" data-idx="${i}" onclick="selectAnswer(${i})">
+              <span class="option-letter">${LETTERS[i]}</span>
+              <span>${escHtml(opt)}</span>
+            </button>`).join('')}
+        </div>
+        <div class="quiz-explanation" id="explanation"></div>
+        <button class="btn-next-q" id="btn-next" onclick="nextQuestion()">
+          ${currentQ < total - 1 ? 'Next question &rarr;' : 'See results &rarr;'}
+        </button>`;
+    }
+
+    function selectAnswer(idx) {
+      const q = quizQuestions[currentQ];
+      const isCorrect = idx === q.correct;
+      answers.push({ q, chosen: idx, correct: isCorrect });
+
+      document.querySelectorAll('.quiz-option').forEach((el, i) => {
+        el.classList.add('answered');
+        el.style.cursor = 'default';
+        el.onclick = null;
+        if (i === q.correct) {
+          el.classList.add('correct');
+          setTimeout(() => el.classList.add('flash-correct'), 30);
+        } else if (i === idx && !isCorrect) {
+          el.classList.add('wrong');
+          setTimeout(() => el.classList.add('shake-wrong'), 30);
+        }
+      });
+
+      const explEl = document.getElementById('explanation');
+      explEl.classList.add('show');
+      explEl.innerHTML = `<strong>${isCorrect ? 'Correct.' : 'Incorrect.'}</strong> ${escHtml(q.explanation)}`;
+      document.getElementById('btn-next').classList.add('show');
+    }
+
+    function nextQuestion() {
+      currentQ++;
+      if (currentQ >= quizQuestions.length) {
+        showResult();
+      } else {
+        renderQuestion();
+      }
+    }
+
+    function showResult() {
+      const total = answers.length;
+      const correct = answers.filter(a => a.correct).length;
+      const pct = Math.round((correct / total) * 100);
+      const passed = pct >= PASS_THRESHOLD * 100;
+
+      store.recordTopicStudy('4.1', passed, pct);
+      store.updateStreak();
+      store.logStudyTime(45);
+      store.addQuizSession({
+        date: new Date().toISOString(),
+        topic: '4.1',
+        score: pct,
+        passed,
+        total,
+        correct,
+      });
+      store.updateProficiency('4.1', passed);
+      store.updateProficiency('4.3', passed);
+
+      document.getElementById('quiz-active').style.display = 'none';
+      document.getElementById('result-panel').classList.add('show');
+
+      const scoreColor = passed ? 'var(--prof-strong)' : pct >= 40 ? 'var(--prof-mid)' : 'var(--prof-weak)';
+      const scoreEl = document.getElementById('score-num');
+      scoreEl.style.color = scoreColor;
+
+      document.getElementById('score-label').textContent = `${correct} / ${total} correct`;
+      const verdictEl = document.getElementById('result-verdict');
+      verdictEl.textContent = passed ? '✓ Passed — lab logged' : '✗ Not yet — review and retry';
+      verdictEl.className = 'result-verdict ' + (passed ? 'pass' : 'fail');
+
+      const wrongAnswers = answers.filter(a => !a.correct);
+      let reviewHtml = '';
+      if (wrongAnswers.length > 0) {
+        reviewHtml = '<div style="margin-bottom:var(--s-xl)">' +
+          '<div style="font-family:var(--font-display);font-size:0.78rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--ink-muted);margin-bottom:var(--s-md)">Review incorrect answers</div>' +
+          wrongAnswers.map(a => `
+            <div class="result-wrong-item">
+              <div class="q-text">${escHtml(a.q.question)}</div>
+              <div class="a-detail">
+                Your answer: <span style="color:var(--wrong,#ef4444)">${escHtml(a.q.options[a.chosen])}</span><br>
+                Correct: <span style="color:var(--prof-strong)">${escHtml(a.q.options[a.q.correct])}</span><br>
+                <span style="color:var(--ink-muted)">${escHtml(a.q.explanation)}</span>
+              </div>
+            </div>`).join('') +
+          '</div>';
+      } else {
+        reviewHtml = '<div style="text-align:center;padding:var(--s-lg);font-family:var(--font-display);font-size:0.9rem;color:var(--prof-strong);margin-bottom:var(--s-xl)">Perfect score — NAT/PAT and DHCP are solid.</div>';
+      }
+      document.getElementById('wrong-review').innerHTML = reviewHtml;
+
+      requestAnimationFrame(() => {
+        const target = pct;
+        const duration = 650;
+        const start = performance.now();
+        function tick(now) {
+          const elapsed = now - start;
+          const progress = Math.min(elapsed / duration, 1);
+          const eased = 1 - Math.pow(1 - progress, 3);
+          scoreEl.textContent = Math.round(eased * target) + '%';
+          if (progress < 1) requestAnimationFrame(tick);
+        }
+        scoreEl.textContent = '0%';
+        requestAnimationFrame(tick);
+      });
+    }
+
+    function resetQuiz() {
+      document.getElementById('quiz-start').style.display = 'block';
+      document.getElementById('quiz-active').style.display = 'none';
+      document.getElementById('result-panel').classList.remove('show');
+    }
+
+    function shuffle(arr) {
+      const a = [...arr];
+      for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [a[i], a[j]] = [a[j], a[i]];
+      }
+      return a;
+    }
+
+    function escHtml(str) {
+      if (!str) return '';
+      return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+  </script>
+</body>
+</html>

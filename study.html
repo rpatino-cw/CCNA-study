@@ -1,0 +1,1703 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Daily Study — CCNA 200-301</title>
+  <!-- Preconnect before CSS so font TCP handshake happens in parallel -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="css/shared.css">
+  <style>
+    /* ── Layout ──────────────────────────────────────────────── */
+
+    .study-shell {
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      gap: var(--s-xl);
+      align-items: start;
+    }
+
+    @media (max-width: 860px) {
+      .study-shell { grid-template-columns: 1fr; }
+    }
+
+    /* ── Header bar ──────────────────────────────────────────── */
+
+    .study-header {
+      border-bottom: 2px solid var(--ink);
+      padding-bottom: var(--s-md);
+      margin-bottom: var(--s-xl);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: var(--s-sm);
+    }
+
+    .study-header h1 {
+      font-size: 2rem;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+    }
+
+    /* Groups the topics button + meta on the right side */
+    .study-header-right {
+      display: flex;
+      align-items: center;
+      gap: var(--s-md);
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    /* Mobile-only Topics toggle button */
+    #btn-topics {
+      display: none;
+      align-items: center;
+      gap: 5px;
+      font-family: var(--font-display);
+      font-size: 0.73rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      background: none;
+      border: 1px solid var(--border-strong);
+      border-radius: var(--radius);
+      color: var(--ink-secondary);
+      padding: 7px 12px;
+      min-height: 36px;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background var(--transition), color var(--transition), border-color var(--transition);
+    }
+
+    #btn-topics:hover { background: var(--bg-recessed); color: var(--ink); border-color: var(--ink-muted); }
+
+    @media (max-width: 860px) {
+      #btn-topics { display: inline-flex; }
+    }
+
+    .study-header-meta {
+      font-family: var(--font-display);
+      font-size: 0.8rem;
+      color: var(--ink-muted);
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      display: flex;
+      gap: var(--s-lg);
+    }
+
+    .study-header-meta .streak-val {
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    /* Sidebar header — mobile-only close row */
+    .sidebar-header {
+      display: none;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: var(--s-md);
+      padding-bottom: var(--s-md);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .sidebar-header-title {
+      font-family: var(--font-display);
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--ink-muted);
+    }
+
+    .sidebar-close-btn {
+      background: none;
+      border: none;
+      color: var(--ink-muted);
+      cursor: pointer;
+      padding: 4px 8px;
+      min-width: 32px;
+      min-height: 32px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: var(--radius);
+      font-size: 1rem;
+      line-height: 1;
+      transition: background var(--transition), color var(--transition);
+    }
+
+    .sidebar-close-btn:hover { background: var(--bg-recessed); color: var(--ink); }
+
+    /* Sidebar overlay — fullscreen dim behind sidebar */
+    #sidebar-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(28, 25, 23, 0.45);
+      z-index: 99;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s ease;
+    }
+
+    #sidebar-overlay.open {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    @media (max-width: 860px) {
+      .sidebar-header { display: flex; }
+    }
+
+    /* ── Sidebar — topic list ────────────────────────────────── */
+
+    .sidebar {
+      position: sticky;
+      top: var(--s-xl);
+      max-height: calc(100vh - var(--s-xl) * 2);
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      scrollbar-width: thin;
+      scrollbar-color: var(--border-strong) transparent;
+    }
+
+    .sidebar::-webkit-scrollbar {
+      width: 4px;
+    }
+
+    .sidebar::-webkit-scrollbar-thumb {
+      background: var(--border-strong);
+      border-radius: 2px;
+    }
+
+    /* Mobile: sidebar slides in from left as a fixed overlay panel.
+       Placed AFTER the base .sidebar rule to ensure cascade order wins. */
+    @media (max-width: 860px) {
+      .sidebar {
+        position: fixed;
+        left: 0;
+        top: 0;
+        height: 100%;
+        width: min(300px, 88vw);
+        z-index: 100;
+        background: var(--bg);
+        max-height: none;
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        -webkit-overflow-scrolling: touch;
+        /* Top padding tighter since we have the sidebar-header row */
+        padding: var(--s-md) var(--s-lg) var(--s-2xl);
+        box-shadow: 6px 0 32px rgba(28, 25, 23, 0.14);
+        transform: translateX(-100%);
+        transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+        scrollbar-width: none;
+      }
+
+      .sidebar::-webkit-scrollbar { display: none; }
+
+      .sidebar.open {
+        transform: translateX(0);
+      }
+    }
+
+    .sidebar-section {
+      margin-bottom: var(--s-xl);
+    }
+
+    .sidebar-label {
+      font-family: var(--font-display);
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--ink-muted);
+      margin-bottom: var(--s-sm);
+      padding-bottom: 6px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .domain-group {
+      margin-bottom: var(--s-md);
+    }
+
+    .domain-group-name {
+      font-family: var(--font-display);
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: var(--ink-secondary);
+      letter-spacing: 0.02em;
+      padding: 4px 0;
+    }
+
+    .topic-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 5px 6px;
+      border-radius: var(--radius);
+      cursor: pointer;
+      transition: background var(--transition);
+      font-family: var(--font-display);
+      font-size: 0.78rem;
+      color: var(--ink-secondary);
+      margin: 1px 0;
+    }
+
+    .topic-item:hover { background: var(--bg-recessed); color: var(--ink); }
+
+    .topic-item.active {
+      background: var(--ink);
+      color: #fff;
+    }
+
+    .topic-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .topic-dot.unseen { background: var(--ink-faint); border: 1px solid var(--border-strong); }
+    .topic-dot.weak   { background: var(--prof-weak); }
+    .topic-dot.mid    { background: var(--prof-mid); }
+    .topic-dot.strong { background: var(--prof-strong); }
+
+    .topic-item .topic-id {
+      font-family: var(--font-mono);
+      font-size: 0.68rem;
+      color: var(--ink-muted);
+      flex-shrink: 0;
+    }
+
+    .topic-item.active .topic-id { color: rgba(255,255,255,0.6); }
+
+    .topic-item .topic-name {
+      flex: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    /* ── Main pane — states ──────────────────────────────────── */
+
+    .main-pane {
+      min-width: 0;
+    }
+
+    /* ── Pick state: today's focus card + stats ──────────────── */
+
+    .focus-card {
+      background: var(--bg-surface);
+      border-top: 3px solid var(--accent);
+      border-bottom: 1px solid var(--border);
+      padding: var(--s-xl) 0;
+      margin-bottom: var(--s-xl);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .focus-card-backdrop {
+      position: absolute;
+      top: 50%;
+      right: -8px;
+      transform: translateY(-50%);
+      font-family: var(--font-mono);
+      font-size: clamp(72px, 14vw, 108px);
+      font-weight: 700;
+      color: var(--border);
+      line-height: 1;
+      pointer-events: none;
+      user-select: none;
+      letter-spacing: -0.05em;
+    }
+
+    .focus-kicker {
+      font-family: var(--font-display);
+      font-size: 0.65rem;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: var(--s-sm);
+    }
+
+    .focus-card h2 {
+      font-size: clamp(1.5rem, 3.5vw, 2.1rem);
+      font-weight: 700;
+      letter-spacing: -0.025em;
+      line-height: 1.15;
+      margin-bottom: var(--s-sm);
+      border: none;
+      padding: 0;
+      color: var(--ink);
+      max-width: 75%;
+    }
+
+    .focus-card .focus-domain {
+      font-family: var(--font-display);
+      font-size: 0.78rem;
+      color: var(--ink-muted);
+      margin-bottom: var(--s-lg);
+    }
+
+    .focus-card .btn-start {
+      background: var(--ink);
+      color: #fff;
+      border: none;
+      padding: 10px 22px;
+      border-radius: var(--radius);
+      font-family: var(--font-display);
+      font-size: 0.88rem;
+      font-weight: 600;
+      cursor: pointer;
+      min-height: 44px;
+      transition: opacity var(--transition);
+    }
+
+    .focus-card .btn-start:hover { opacity: 0.8; }
+
+    /* Session stats strip — editorial inline format */
+    .session-stats {
+      display: flex;
+      align-items: baseline;
+      gap: 0;
+      padding: var(--s-sm) 0;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: var(--s-xl);
+      flex-wrap: wrap;
+      font-family: var(--font-display);
+      font-size: 0.8rem;
+      color: var(--ink-muted);
+      letter-spacing: 0.01em;
+      row-gap: 4px;
+    }
+
+    .s-stat { display: flex; align-items: baseline; gap: 3px; }
+
+    .s-stat-val {
+      font-weight: 700;
+      color: var(--ink);
+      font-size: 0.88rem;
+      line-height: 1;
+      letter-spacing: -0.01em;
+    }
+
+    .s-stat-label {
+      color: var(--ink-muted);
+      font-size: 0.8rem;
+      margin-top: 0;
+    }
+
+    .stat-sep {
+      padding: 0 var(--s-sm);
+      color: var(--border-strong);
+      flex-shrink: 0;
+    }
+
+    /* ── Lesson state ────────────────────────────────────────── */
+
+    .lesson-pane { display: none; }
+    .lesson-pane.active { display: block; }
+
+    .lesson-back {
+      font-family: var(--font-display);
+      font-size: 0.8rem;
+      color: var(--ink-muted);
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 8px 0;
+      min-height: 44px;
+      margin-bottom: var(--s-md);
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .lesson-back:hover { color: var(--ink); }
+
+    .lesson-header {
+      margin-bottom: var(--s-xl);
+    }
+
+    .lesson-id-badge {
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      background: var(--bg-recessed);
+      padding: 3px 8px;
+      border-radius: 100px;
+      color: var(--ink-muted);
+      display: inline-block;
+      margin-bottom: var(--s-sm);
+    }
+
+    .lesson-header h2 {
+      font-size: 1.7rem;
+      font-weight: 700;
+      letter-spacing: -0.025em;
+      line-height: 1.2;
+      border: none;
+      padding: 0;
+      margin-bottom: var(--s-xs);
+    }
+
+    .lesson-domain-tag {
+      font-family: var(--font-display);
+      font-size: 0.78rem;
+      color: var(--ink-muted);
+    }
+
+    /* Study session card — section style, not card */
+    .lesson-card {
+      padding: 0 0 0 var(--s-lg);
+      border-left: 2px solid var(--border);
+      margin-bottom: var(--s-xl);
+    }
+
+    .lesson-card.commands-card {
+      background: var(--ink);
+      border: none;
+      border-radius: var(--radius-lg);
+      padding: var(--s-lg) var(--s-xl);
+    }
+
+    .lesson-card-label {
+      font-family: var(--font-display);
+      font-size: 0.63rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: var(--s-sm);
+    }
+
+    .lesson-card.commands-card .lesson-card-label {
+      color: rgba(255,255,255,0.4);
+    }
+
+    .lesson-summary {
+      font-family: var(--font-body);
+      font-size: 1.02rem;
+      line-height: 1.8;
+      color: var(--ink-secondary);
+    }
+
+    .key-points {
+      list-style: none;
+      padding: 0;
+    }
+
+    .key-points li {
+      display: flex;
+      gap: var(--s-sm);
+      padding: 8px 0;
+      border-bottom: 1px solid var(--bg-recessed);
+      font-family: var(--font-display);
+      font-size: 0.88rem;
+      line-height: 1.5;
+      color: var(--ink-secondary);
+    }
+
+    .key-points li:last-child { border-bottom: none; }
+
+    .key-points li::before {
+      content: '→';
+      color: var(--accent);
+      font-weight: 600;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    /* Commands */
+    .commands-list { display: flex; flex-direction: column; gap: 2px; }
+
+    .cmd-row {
+      background: rgba(255,255,255,0.05);
+      border-radius: var(--radius);
+      padding: var(--s-sm) var(--s-md);
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .cmd-text {
+      font-family: var(--font-mono);
+      font-size: 0.82rem;
+      color: #a5f3fc;
+      white-space: pre;
+    }
+
+    .cmd-desc {
+      font-family: var(--font-display);
+      font-size: 0.75rem;
+      color: rgba(255,255,255,0.5);
+    }
+
+    /* Tips */
+    .tip-box {
+      border-radius: var(--radius);
+      padding: var(--s-md);
+      font-family: var(--font-display);
+      font-size: 0.88rem;
+      line-height: 1.55;
+    }
+
+    .tip-box.memory {
+      background: var(--accent-dim);
+      border-left: 3px solid var(--accent);
+    }
+
+    .tip-box.exam {
+      background: var(--prof-strong-bg);
+      border-left: 3px solid var(--prof-strong);
+    }
+
+    .tip-label {
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      opacity: 0.6;
+      margin-bottom: 4px;
+    }
+
+    /* Quiz button */
+    .quiz-cta {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--bg-surface);
+      border: 2px solid var(--ink);
+      border-radius: var(--radius-lg);
+      padding: var(--s-lg) var(--s-xl);
+      min-height: 64px;
+      cursor: pointer;
+      transition: background var(--transition);
+      margin-bottom: var(--s-xl);
+      width: 100%;
+      text-align: left;
+    }
+
+    .quiz-cta:hover { background: var(--bg-recessed); }
+
+    .quiz-cta-text {
+      font-family: var(--font-display);
+      font-weight: 600;
+      font-size: 1rem;
+    }
+
+    .quiz-cta-sub {
+      font-family: var(--font-display);
+      font-size: 0.8rem;
+      color: var(--ink-muted);
+      margin-top: 2px;
+    }
+
+    .quiz-cta-arrow {
+      font-size: 1.4rem;
+      color: var(--ink-muted);
+    }
+
+    /* Already studied badge */
+    .studied-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-family: var(--font-display);
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--prof-strong);
+      background: var(--prof-strong-bg);
+      padding: 4px 10px;
+      border-radius: 100px;
+      margin-bottom: var(--s-md);
+    }
+
+    /* ── Quiz state ──────────────────────────────────────────── */
+
+    .quiz-pane { display: none; }
+    .quiz-pane.active { display: block; }
+
+    .quiz-progress {
+      display: flex;
+      align-items: center;
+      gap: var(--s-md);
+      margin-bottom: var(--s-xl);
+    }
+
+    .quiz-progress-bar {
+      flex: 1;
+      height: 4px;
+      background: var(--bg-recessed);
+      border-radius: 99px;
+      overflow: hidden;
+    }
+
+    .quiz-progress-fill {
+      height: 100%;
+      background: var(--ink);
+      border-radius: 99px;
+      transition: width 0.3s var(--ease-out);
+    }
+
+    .quiz-progress-text {
+      font-family: var(--font-mono);
+      font-size: 0.78rem;
+      color: var(--ink-muted);
+      white-space: nowrap;
+    }
+
+    .quiz-question-num {
+      font-family: var(--font-display);
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--ink-muted);
+      margin-bottom: var(--s-sm);
+    }
+
+    .quiz-question-text {
+      font-family: var(--font-body);
+      font-size: 1.1rem;
+      line-height: 1.65;
+      font-weight: 400;
+      margin-bottom: var(--s-lg);
+      letter-spacing: -0.005em;
+      color: var(--ink);
+    }
+
+    .quiz-options {
+      display: flex;
+      flex-direction: column;
+      gap: var(--s-sm);
+      margin-bottom: var(--s-lg);
+    }
+
+    .quiz-option {
+      background: var(--bg-surface);
+      border: 2px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 14px var(--s-lg);
+      min-height: 52px;
+      cursor: pointer;
+      /* transition is defined in the animations section below */
+      font-family: var(--font-display);
+      font-size: 0.92rem;
+      line-height: 1.4;
+      display: flex;
+      align-items: flex-start;
+      gap: var(--s-sm);
+      text-align: left;
+      width: 100%;
+    }
+
+    .quiz-option:hover:not(.answered) {
+      border-color: var(--ink);
+      background: var(--bg-recessed);
+    }
+
+    .quiz-option.selected { border-color: var(--ink); background: var(--bg-recessed); }
+
+    .quiz-option.correct {
+      border-color: var(--correct);
+      background: var(--correct-bg);
+      color: var(--correct);
+    }
+
+    .quiz-option.wrong {
+      border-color: var(--wrong);
+      background: var(--wrong-bg);
+      color: var(--wrong);
+    }
+
+    /* Higher specificity to win over shared.css .quiz-option .option-letter */
+    .quiz-option .option-letter {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 22px;
+      height: 22px;
+      min-width: 22px;
+      background: var(--bg-recessed);
+      border-radius: 3px;
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      font-weight: 700;
+      color: var(--ink-muted);
+      flex-shrink: 0;
+      margin-top: 1px;
+      margin-right: 0;
+      transition: background 0.15s ease, color 0.15s ease;
+    }
+
+    .quiz-option:hover:not(.answered) .option-letter {
+      background: var(--ink);
+      color: #fff;
+    }
+
+    .quiz-option.correct .option-letter { background: var(--correct); color: #fff; }
+    .quiz-option.wrong .option-letter { background: var(--wrong); color: #fff; }
+
+    .quiz-explanation {
+      background: var(--bg-recessed);
+      border-left: 2px solid var(--accent);
+      border-radius: 0 var(--radius) var(--radius) 0;
+      padding: var(--s-md) var(--s-lg);
+      font-family: var(--font-body);
+      font-size: 0.92rem;
+      line-height: 1.65;
+      color: var(--ink-secondary);
+      margin-bottom: var(--s-lg);
+      display: none;
+    }
+
+    .quiz-explanation.show { display: block; }
+
+    .quiz-explanation strong {
+      font-weight: 700;
+      color: var(--ink);
+    }
+
+    .btn-next-q {
+      font-family: var(--font-display);
+      font-weight: 600;
+      font-size: 0.88rem;
+      background: var(--ink);
+      color: #fff;
+      border: none;
+      border-radius: var(--radius);
+      padding: 10px 24px;
+      min-height: 44px;
+      cursor: pointer;
+      transition: opacity var(--transition);
+      display: none;
+    }
+
+    .btn-next-q.show { display: inline-flex; align-items: center; }
+    .btn-next-q:hover { opacity: 0.85; }
+
+    /* ── Result state ────────────────────────────────────────── */
+
+    .result-pane { display: none; }
+    .result-pane.active { display: block; }
+
+    .result-score-block {
+      display: flex;
+      align-items: flex-start;
+      gap: var(--s-xl);
+      padding: var(--s-xl) 0;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: var(--s-xl);
+      text-align: left;
+    }
+
+    .result-score-num {
+      font-family: var(--font-display);
+      font-size: clamp(3.5rem, 9vw, 5.5rem);
+      font-weight: 700;
+      letter-spacing: -0.05em;
+      line-height: 1;
+      flex-shrink: 0;
+    }
+
+    .result-score-right {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      padding-top: 6px;
+    }
+
+    .result-topic-line {
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      color: var(--ink-muted);
+      letter-spacing: 0.03em;
+    }
+
+    .result-score-label {
+      font-family: var(--font-display);
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--ink-muted);
+    }
+
+    .result-verdict {
+      font-family: var(--font-display);
+      font-size: 0.95rem;
+      font-weight: 600;
+      margin-top: 4px;
+    }
+
+    .result-verdict.pass { color: var(--prof-strong); }
+    .result-verdict.fail { color: var(--prof-weak); }
+
+    .result-actions {
+      display: flex;
+      gap: var(--s-md);
+      flex-wrap: wrap;
+    }
+
+    /* ── Misc ────────────────────────────────────────────────── */
+
+    .empty-state {
+      text-align: center;
+      padding: var(--s-3xl) 0;
+      color: var(--ink-muted);
+      font-family: var(--font-display);
+      font-size: 0.9rem;
+    }
+
+    .all-done-banner {
+      background: var(--prof-strong-bg);
+      border: 1px solid var(--prof-strong);
+      border-radius: var(--radius-lg);
+      padding: var(--s-lg) var(--s-xl);
+      font-family: var(--font-display);
+      font-size: 0.9rem;
+      color: var(--prof-strong);
+      margin-bottom: var(--s-xl);
+      display: none;
+    }
+
+    /* ── Tips grid — collapses to single column on mobile ───── */
+
+    .tips-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: var(--s-lg);
+    }
+
+    @media (max-width: 560px) {
+      .tips-grid { grid-template-columns: 1fr; }
+    }
+
+    /* ── Topic items — touch targets ─────────────────────────── */
+
+    .topic-item {
+      min-height: 36px;
+    }
+
+    /* ── Quiz CTA — responsive padding ──────────────────────── */
+
+    @media (max-width: 560px) {
+      .quiz-cta { padding: var(--s-md) var(--s-lg); }
+      .lesson-card.commands-card { padding: var(--s-md) var(--s-lg); }
+      .quiz-options { gap: 6px; }
+    }
+
+    /* ── Mobile stat strip — tighter on small screens ────────── */
+
+    @media (max-width: 480px) {
+      /* Hide header meta — session-stats strip shows the same info */
+      .study-header-meta { display: none; }
+      .session-stats { row-gap: 6px; }
+      .study-header h1 { font-size: 1.5rem; }
+      .focus-card h2 { max-width: 100%; font-size: 1.3rem; }
+      .focus-card-backdrop { font-size: 52px; }
+      .lesson-header h2 { font-size: 1.4rem; }
+      .quiz-question-text { font-size: 1rem; }
+      .result-score-block { flex-direction: column; gap: var(--s-md); }
+      .result-score-num { font-size: 3rem; }
+      .result-actions { flex-direction: column; }
+      .result-actions .btn { width: 100%; justify-content: center; }
+    }
+
+    /* ── Animations ──────────────────────────────────────────── */
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(10px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to   { opacity: 1; }
+    }
+
+    @keyframes shakeX {
+      0%, 100% { transform: translateX(0); }
+      20%       { transform: translateX(-5px); }
+      40%       { transform: translateX(4px); }
+      65%       { transform: translateX(-3px); }
+      85%       { transform: translateX(2px); }
+    }
+
+    @keyframes pulseDot {
+      0%   { transform: scale(1); }
+      45%  { transform: scale(1.8); }
+      100% { transform: scale(1); }
+    }
+
+    /* Entrance — pane-level */
+    .pane-enter {
+      animation: fadeUp 0.22s cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+
+    /* Staggered lesson cards */
+    .stagger-item {
+      opacity: 0;
+      animation: fadeUp 0.26s cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+
+    /* Quiz question transition */
+    .q-enter {
+      animation: fadeUp 0.18s cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+
+    /* Answer feedback — GPU-only: opacity + transform on ::after overlay */
+    .quiz-option {
+      position: relative;
+      overflow: hidden;
+    }
+
+    .quiz-option::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      background: rgba(22, 163, 74, 0.18);
+      opacity: 0;
+      transform: scale(0.94);
+      pointer-events: none;
+    }
+
+    @keyframes flashCorrect {
+      0%   { opacity: 1; transform: scale(0.94); }
+      50%  { opacity: 0.6; transform: scale(1); }
+      100% { opacity: 0; transform: scale(1.02); }
+    }
+
+    .quiz-option.flash-correct::after {
+      animation: flashCorrect 0.42s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .quiz-option.shake-wrong {
+      animation: shakeX 0.38s ease;
+    }
+
+    /* Topic dot state change pulse */
+    .topic-dot.dot-pulse {
+      animation: pulseDot 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    /* Quiz option hover nudge — only transition what we actually change */
+    .quiz-option {
+      transition:
+        transform 0.12s ease,
+        border-color 0.15s ease,
+        background 0.15s ease,
+        color 0.15s ease;
+    }
+
+    .quiz-option:hover:not(.answered) {
+      transform: translateX(3px);
+    }
+
+    /* Back button hover */
+    .lesson-back {
+      transition: color 0.15s ease, transform 0.12s ease;
+    }
+
+    .lesson-back:hover {
+      transform: translateX(-3px);
+    }
+
+    /* Quiz CTA arrow nudge on hover */
+    .quiz-cta-arrow {
+      transition: transform 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .quiz-cta:hover .quiz-cta-arrow {
+      transform: translateX(5px);
+    }
+
+    /* Result score block entrance */
+    .result-score-block {
+      animation: fadeUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) 0.05s both;
+    }
+
+    /* Result verdict delayed entrance */
+    .result-verdict {
+      animation: fadeIn 0.25s ease 0.55s both;
+    }
+
+    /* Explanation slide in */
+    .quiz-explanation.show {
+      animation: fadeUp 0.2s cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+
+    /* Next button appearance */
+    .btn-next-q.show {
+      animation: fadeIn 0.18s ease both;
+    }
+
+    /* Reduced motion — respect user preference */
+    @media (prefers-reduced-motion: reduce) {
+      .pane-enter,
+      .stagger-item,
+      .q-enter,
+      .result-score-block,
+      .result-verdict,
+      .quiz-explanation.show,
+      .btn-next-q.show {
+        animation: none !important;
+        opacity: 1 !important;
+        transform: none !important;
+      }
+      .quiz-option,
+      .quiz-option:hover:not(.answered),
+      .lesson-back:hover,
+      .quiz-cta-arrow {
+        transform: none !important;
+        transition: none !important;
+      }
+      .sidebar { transition: none !important; }
+      #sidebar-overlay { transition: none !important; }
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <!-- Nav -->
+  <nav class="top-nav">
+    <a href="index.html">Dashboard</a>
+    <a href="knowledge-map.html">Knowledge Map</a>
+    <a href="diagnostic.html">Diagnostic</a>
+    <a href="quiz.html">Quiz</a>
+    <a class="active" href="study.html">Daily Study</a>
+    <a href="quests.html">Quests</a>
+    <a href="strategy.html">Strategy</a>
+      <a href="sprint.html">Sprint</a>
+      <a href="labs/index.html">Labs</a>
+  </nav>
+
+  <!-- Page header -->
+  <div class="study-header">
+    <h1>Daily Study</h1>
+    <div class="study-header-right">
+      <button id="btn-topics" aria-expanded="false" aria-controls="sidebar" aria-label="Open topics list">
+        ≡ Topics
+      </button>
+      <div class="study-header-meta">
+        <span id="hdr-today-count">0 studied today</span>
+        <span>Streak: <span class="streak-val" id="hdr-streak">0</span></span>
+        <span id="hdr-exam-days"></span>
+      </div>
+    </div>
+  </div>
+
+  <div class="study-shell">
+
+    <!-- Sidebar overlay — appears behind sidebar on mobile, click to close -->
+    <div id="sidebar-overlay" role="presentation" aria-hidden="true"></div>
+
+    <!-- ── Sidebar ─────────────────────────────────────────── -->
+    <aside class="sidebar" id="sidebar" aria-label="Topic list">
+      <!-- Mobile-only close row -->
+      <div class="sidebar-header">
+        <span class="sidebar-header-title">All Topics</span>
+        <button class="sidebar-close-btn" id="btn-close-sidebar" aria-label="Close sidebar">✕</button>
+      </div>
+      <div id="sidebar-content"></div>
+    </aside>
+
+    <!-- ── Main pane ──────────────────────────────────────── -->
+    <main class="main-pane">
+
+      <!-- Pick state (default) -->
+      <div id="pane-pick">
+        <div id="focus-card-wrap"></div>
+        <div id="all-done-banner" class="all-done-banner">
+          All topics studied today. Come back tomorrow to keep your streak going.
+        </div>
+        <div class="session-stats" id="session-stats"></div>
+      </div>
+
+      <!-- Lesson state -->
+      <div class="lesson-pane" id="pane-lesson">
+        <button class="lesson-back" id="btn-back-lesson">← back to overview</button>
+        <div id="lesson-content"></div>
+      </div>
+
+      <!-- Quiz state -->
+      <div class="quiz-pane" id="pane-quiz">
+        <button class="lesson-back" id="btn-back-quiz">← back to lesson</button>
+        <div class="quiz-progress">
+          <div class="quiz-progress-bar"><div class="quiz-progress-fill" id="q-progress-fill"></div></div>
+          <div class="quiz-progress-text" id="q-progress-text">1 / 5</div>
+        </div>
+        <div id="quiz-content"></div>
+      </div>
+
+      <!-- Result state -->
+      <div class="result-pane" id="pane-result">
+        <div id="result-content"></div>
+      </div>
+
+    </main>
+  </div>
+
+</div>
+
+<script src="./data/topics-data.js"></script>
+<script src="./data/questions-data.js"></script>
+<script src="./data/study-content.js"></script>
+<script src="./js/store.js"></script>
+<script>
+// ════════════════════════════════════════════════════════════════
+// CCNA Daily Study Engine
+// ════════════════════════════════════════════════════════════════
+
+const PASS_THRESHOLD = 0.6; // 60% to pass
+const EXAM_DATE = new Date(2026, 3, 14);
+const LETTERS = ['A','B','C','D','E'];
+
+// ── State ────────────────────────────────────────────────────
+let allTopics = [];   // flat array of { id, name, domainId, domainName }
+let activeTopic = null;
+let quizQuestions = [];
+let currentQ = 0;
+let answers = [];
+
+// ── Mobile sidebar toggle ─────────────────────────────────────
+function openSidebar() {
+  const sidebar = document.getElementById('sidebar');
+  const overlay = document.getElementById('sidebar-overlay');
+  const btn = document.getElementById('btn-topics');
+  sidebar.classList.add('open');
+  overlay.classList.add('open');
+  document.body.style.overflow = 'hidden';
+  if (btn) btn.setAttribute('aria-expanded', 'true');
+}
+
+function closeSidebar() {
+  const sidebar = document.getElementById('sidebar');
+  const overlay = document.getElementById('sidebar-overlay');
+  const btn = document.getElementById('btn-topics');
+  sidebar.classList.remove('open');
+  overlay.classList.remove('open');
+  document.body.style.overflow = '';
+  if (btn) btn.setAttribute('aria-expanded', 'false');
+}
+
+// ── Boot ─────────────────────────────────────────────────────
+function init() {
+  buildTopicIndex();
+  renderHeader();
+  renderSidebar();
+  renderPickPane();
+  document.getElementById('btn-back-lesson').addEventListener('click', () => showPane('pick'));
+  document.getElementById('btn-back-quiz').addEventListener('click', () => showPane('lesson'));
+
+  // Sidebar toggle (mobile)
+  document.getElementById('btn-topics').addEventListener('click', openSidebar);
+  document.getElementById('btn-close-sidebar').addEventListener('click', closeSidebar);
+  document.getElementById('sidebar-overlay').addEventListener('click', closeSidebar);
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && document.getElementById('sidebar').classList.contains('open')) {
+      closeSidebar();
+    }
+  });
+}
+
+function buildTopicIndex() {
+  for (const domain of window.topicsData.domains) {
+    for (const topic of domain.topics) {
+      allTopics.push({ id: topic.id, name: topic.name, domainId: domain.id, domainName: domain.name, weight: domain.weight });
+    }
+  }
+}
+
+// ── Header ───────────────────────────────────────────────────
+function renderHeader() {
+  const todayList = store.getTopicsStudiedToday();
+  const streak = store.getStreak();
+  document.getElementById('hdr-today-count').textContent = `${todayList.length} studied today`;
+  document.getElementById('hdr-streak').textContent = streak.current;
+  const now = new Date();
+  const daysLeft = Math.ceil((EXAM_DATE - now) / 86400000);
+  document.getElementById('hdr-exam-days').textContent = daysLeft > 0 ? `${daysLeft}d to exam` : 'Exam day';
+}
+
+// ── Sidebar ───────────────────────────────────────────────────
+// Track previous dot classes to detect state changes for pulse animation
+const _prevDotClass = {};
+
+function renderSidebar() {
+  const proficiency = store.getAllProficiency();
+  const studied = store.getTopicStudy();
+  const domains = window.topicsData.domains;
+
+  let html = '';
+  // Legend
+  html += `<div class="sidebar-section">
+    <div class="sidebar-label">Topics</div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px">
+      <span style="display:flex;align-items:center;gap:4px;font-family:var(--font-display);font-size:0.7rem;color:var(--ink-muted)"><span class="topic-dot unseen"></span>unseen</span>
+      <span style="display:flex;align-items:center;gap:4px;font-family:var(--font-display);font-size:0.7rem;color:var(--ink-muted)"><span class="topic-dot weak"></span>weak</span>
+      <span style="display:flex;align-items:center;gap:4px;font-family:var(--font-display);font-size:0.7rem;color:var(--ink-muted)"><span class="topic-dot mid"></span>mid</span>
+      <span style="display:flex;align-items:center;gap:4px;font-family:var(--font-display);font-size:0.7rem;color:var(--ink-muted)"><span class="topic-dot strong"></span>strong</span>
+    </div>`;
+
+  for (const domain of domains) {
+    html += `<div class="domain-group">
+      <div class="domain-group-name">D${domain.id} · ${domain.name}</div>`;
+    for (const topic of domain.topics) {
+      const prof = proficiency[topic.id] ?? 0;
+      const entry = studied[topic.id];
+      let dotClass = 'unseen';
+      if (entry && entry.studyCount > 0) {
+        dotClass = prof >= 0.7 ? 'strong' : prof >= 0.4 ? 'mid' : 'weak';
+      }
+      const changed = _prevDotClass[topic.id] !== undefined && _prevDotClass[topic.id] !== dotClass;
+      _prevDotClass[topic.id] = dotClass;
+      const isActive = activeTopic && activeTopic.id === topic.id;
+      html += `<div class="topic-item${isActive ? ' active' : ''}" data-topic="${topic.id}">
+        <span class="topic-dot ${dotClass}${changed ? ' dot-pulse' : ''}"></span>
+        <span class="topic-id">${topic.id}</span>
+        <span class="topic-name">${topic.name}</span>
+      </div>`;
+    }
+    html += `</div>`;
+  }
+  html += `</div>`;
+
+  document.getElementById('sidebar-content').innerHTML = html;
+
+  document.querySelectorAll('.topic-item').forEach(el => {
+    el.addEventListener('click', () => {
+      const id = el.getAttribute('data-topic');
+      const found = allTopics.find(t => t.id === id);
+      if (found) {
+        openTopic(found);
+        // On mobile, close the sidebar after selecting so content is visible
+        if (window.innerWidth <= 860) closeSidebar();
+      }
+    });
+  });
+}
+
+// ── Pick pane ─────────────────────────────────────────────────
+function renderPickPane() {
+  const topicStudy = store.getTopicStudy();
+  const proficiency = store.getAllProficiency();
+  const todayStudied = store.getTopicsStudiedToday();
+
+  // Recommend a topic
+  const recommended = recommendTopic(topicStudy, proficiency, todayStudied);
+  renderFocusCard(recommended, todayStudied.length >= allTopics.length);
+  renderSessionStats(topicStudy, proficiency);
+}
+
+function recommendTopic(studied, proficiency, todayStudied) {
+  // Priority: 1) unseen, 2) weakest not studied today, 3) any not studied today
+  const unstudied = allTopics.filter(t => !studied[t.id] || studied[t.id].studyCount === 0);
+  if (unstudied.length > 0) return unstudied[0];
+
+  const notToday = allTopics.filter(t => !todayStudied.includes(t.id));
+  if (notToday.length > 0) {
+    // Sort by proficiency ascending (weakest first)
+    return [...notToday].sort((a, b) => (proficiency[a.id] ?? 0) - (proficiency[b.id] ?? 0))[0];
+  }
+
+  // All studied today — return weakest overall
+  return [...allTopics].sort((a, b) => (proficiency[a.id] ?? 0) - (proficiency[b.id] ?? 0))[0];
+}
+
+function renderFocusCard(topic, allDone) {
+  if (!topic) {
+    document.getElementById('focus-card-wrap').innerHTML = '';
+    return;
+  }
+
+  if (allDone) {
+    document.getElementById('all-done-banner').style.display = 'block';
+  }
+
+  const content = window.studyContent[topic.id];
+  const title = content ? content.title : topic.name;
+  const entry = store.getTopicStudyEntry(topic.id);
+  const studyCount = entry ? entry.studyCount : 0;
+
+  document.getElementById('focus-card-wrap').innerHTML = `
+    <div class="focus-card">
+      <div class="focus-card-backdrop">${topic.id}</div>
+      <div class="focus-kicker">${studyCount === 0 ? 'New topic — start here' : 'Recommended — pick up where you left off'}</div>
+      <h2>${title}</h2>
+      <div class="focus-domain">Domain ${topic.domainId} · ${topic.domainName}</div>
+      <button class="btn-start" onclick="openTopic(allTopics.find(t=>t.id==='${topic.id}'))">
+        ${studyCount === 0 ? 'Start lesson →' : 'Review + quiz →'}
+      </button>
+    </div>`;
+}
+
+function renderSessionStats(topicStudy, proficiency) {
+  const entries = Object.values(topicStudy);
+  const totalStudied = Object.keys(topicStudy).filter(id => topicStudy[id].studyCount > 0).length;
+  const totalTopics = allTopics.length;
+  const passedTopics = entries.filter(e => e.passCount > 0).length;
+  const todayList = store.getTopicsStudiedToday();
+
+  const streakNow = store.getStreak().current;
+  const coveragePct = Math.round((totalStudied / totalTopics) * 100);
+  document.getElementById('session-stats').innerHTML = `
+    <div class="s-stat"><span class="s-stat-val">${todayList.length}</span><span class="s-stat-label"> studied today</span></div>
+    <span class="stat-sep">·</span>
+    <div class="s-stat"><span class="s-stat-val">${streakNow}</span><span class="s-stat-label">-day streak</span></div>
+    <span class="stat-sep">·</span>
+    <div class="s-stat"><span class="s-stat-val">${totalStudied}</span><span class="s-stat-label">/${totalTopics} topics seen</span></div>
+    <span class="stat-sep">·</span>
+    <div class="s-stat"><span class="s-stat-val" style="color:${totalStudied===totalTopics?'var(--prof-strong)':'var(--ink)'}">${coveragePct}%</span><span class="s-stat-label"> coverage</span></div>
+    <span class="stat-sep">·</span>
+    <div class="s-stat"><span class="s-stat-val">${passedTopics}</span><span class="s-stat-label"> passed</span></div>`;
+}
+
+// ── Open topic → Lesson ───────────────────────────────────────
+function openTopic(topic) {
+  activeTopic = topic;
+  renderSidebar(); // update active highlight
+  renderLesson(topic);
+  showPane('lesson');
+}
+
+function renderLesson(topic) {
+  const content = window.studyContent[topic.id];
+  const entry = store.getTopicStudyEntry(topic.id);
+  const studiedToday = store.getTopicsStudiedToday().includes(topic.id);
+
+  let studiedBadge = '';
+  if (studiedToday) {
+    studiedBadge = `<div class="studied-badge">✓ Studied today${entry && entry.lastScore !== undefined ? ` · Last score: ${entry.lastScore}%` : ''}</div>`;
+  } else if (entry && entry.studyCount > 0) {
+    studiedBadge = `<div style="font-family:var(--font-display);font-size:0.78rem;color:var(--ink-muted);margin-bottom:12px">
+      Studied ${entry.studyCount}× · Last: ${entry.lastStudied}${entry.lastScore !== undefined ? ` · Score: ${entry.lastScore}%` : ''}
+    </div>`;
+  }
+
+  if (!content) {
+    document.getElementById('lesson-content').innerHTML = `
+      <div class="lesson-header">
+        <span class="lesson-id-badge">${topic.id}</span>
+        <h2>${topic.name}</h2>
+        <div class="lesson-domain-tag">Domain ${topic.domainId} · ${topic.domainName}</div>
+      </div>
+      ${studiedBadge}
+      <div class="lesson-card">
+        <div class="lesson-card-label">Overview</div>
+        <div class="lesson-summary">This topic covers: ${topic.name}. Review your notes and study materials, then take the quiz.</div>
+      </div>
+      <button class="quiz-cta" onclick="startQuiz('${topic.id}')">
+        <div><div class="quiz-cta-text">Quiz me on ${topic.id}</div><div class="quiz-cta-sub">3–5 questions to verify your knowledge</div></div>
+        <span class="quiz-cta-arrow">→</span>
+      </button>`;
+    return;
+  }
+
+  const keyPointsHtml = content.keyPoints.map(p => `<li>${p}</li>`).join('');
+
+  const commandsHtml = content.commands && content.commands.length > 0 ? `
+    <div class="lesson-card commands-card">
+      <div class="lesson-card-label">Key Commands</div>
+      <div class="commands-list">
+        ${content.commands.map(c => `
+          <div class="cmd-row">
+            <div class="cmd-text">${escHtml(c.cmd)}</div>
+            <div class="cmd-desc">${escHtml(c.desc)}</div>
+          </div>`).join('')}
+      </div>
+    </div>` : '';
+
+  document.getElementById('lesson-content').innerHTML = `
+    <div class="lesson-header">
+      <span class="lesson-id-badge">${topic.id}</span>
+      <h2>${content.title}</h2>
+      <div class="lesson-domain-tag">Domain ${topic.domainId} · ${topic.domainName}</div>
+    </div>
+
+    ${studiedBadge}
+
+    <div class="lesson-card">
+      <div class="lesson-card-label">What to know</div>
+      <div class="lesson-summary">${content.summary}</div>
+    </div>
+
+    <div class="lesson-card">
+      <div class="lesson-card-label">Key Points</div>
+      <ul class="key-points">${keyPointsHtml}</ul>
+    </div>
+
+    ${commandsHtml}
+
+    <div class="tips-grid">
+      <div class="tip-box memory">
+        <div class="tip-label">Memory tip</div>
+        ${content.memoryTip}
+      </div>
+      <div class="tip-box exam">
+        <div class="tip-label">Exam tip</div>
+        ${content.examTip}
+      </div>
+    </div>
+
+    <button class="quiz-cta" onclick="startQuiz('${topic.id}')">
+      <div><div class="quiz-cta-text">I'm ready — quiz me</div><div class="quiz-cta-sub">3–5 questions · Need 60% to pass</div></div>
+      <span class="quiz-cta-arrow">→</span>
+    </button>`;
+
+  // Stagger entrance for lesson cards
+  const staggerEls = document.querySelectorAll(
+    '#lesson-content .lesson-card, #lesson-content .quiz-cta, #lesson-content .tip-box'
+  );
+  staggerEls.forEach((el, i) => {
+    el.classList.add('stagger-item');
+    el.style.animationDelay = `${i * 65}ms`;
+  });
+}
+
+// ── Quiz ──────────────────────────────────────────────────────
+function startQuiz(topicId) {
+  const questions = buildQuizQuestions(topicId);
+  if (questions.length === 0) {
+    alert('No questions available for this topic yet.');
+    return;
+  }
+  quizQuestions = shuffle(questions).slice(0, Math.min(5, questions.length));
+  currentQ = 0;
+  answers = [];
+  renderQuestion();
+  showPane('quiz');
+}
+
+function buildQuizQuestions(topicId) {
+  const bankQs = (window.questionsData.questions || []).filter(q => q.topic === topicId);
+  const content = window.studyContent[topicId];
+  const extraQs = content && content.extraQuestions ? content.extraQuestions.map((q, i) => ({
+    id: `extra_${topicId}_${i}`,
+    domain: topicId.split('.')[0],
+    topic: topicId,
+    question: q.question,
+    options: q.options,
+    correct: q.correct,
+    explanation: q.explanation
+  })) : [];
+
+  // Combine, deduplicate by ID
+  const all = [...bankQs, ...extraQs];
+  const seen = new Set();
+  return all.filter(q => { if (seen.has(q.id)) return false; seen.add(q.id); return true; });
+}
+
+function renderQuestion() {
+  const q = quizQuestions[currentQ];
+  const total = quizQuestions.length;
+  const pct = Math.round((currentQ / total) * 100);
+
+  document.getElementById('q-progress-fill').style.width = pct + '%';
+  document.getElementById('q-progress-text').textContent = `${currentQ + 1} / ${total}`;
+
+  const qContent = document.getElementById('quiz-content');
+  qContent.innerHTML = `
+    <div class="quiz-question-num">Question ${currentQ + 1} of ${total}</div>
+    <div class="quiz-question-text">${escHtml(q.question)}</div>
+    <div class="quiz-options" id="options-wrap">
+      ${q.options.map((opt, i) => `
+        <button class="quiz-option" data-idx="${i}" onclick="selectAnswer(${i})">
+          <span class="option-letter">${LETTERS[i]}</span>
+          <span>${escHtml(opt)}</span>
+        </button>`).join('')}
+    </div>
+    <div class="quiz-explanation" id="explanation"></div>
+    <button class="btn-next-q" id="btn-next" onclick="nextQuestion()">
+      ${currentQ < total - 1 ? 'Next question →' : 'See results →'}
+    </button>`;
+
+  // Fade-in new question — double-rAF avoids forced synchronous layout
+  qContent.classList.remove('q-enter');
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => qContent.classList.add('q-enter'));
+  });
+}
+
+function selectAnswer(idx) {
+  const q = quizQuestions[currentQ];
+  const isCorrect = idx === q.correct;
+  answers.push({ q, chosen: idx, correct: isCorrect });
+
+  // Update proficiency
+  store.updateProficiency(q.topic, isCorrect);
+
+  // Style options + animate feedback
+  document.querySelectorAll('.quiz-option').forEach((el, i) => {
+    el.classList.add('answered');
+    el.style.cursor = 'default';
+    el.onclick = null;
+    if (i === q.correct) {
+      el.classList.add('correct');
+      // Small delay so color lands first, then pulse
+      setTimeout(() => el.classList.add('flash-correct'), 30);
+    } else if (i === idx && !isCorrect) {
+      el.classList.add('wrong');
+      setTimeout(() => el.classList.add('shake-wrong'), 30);
+    }
+  });
+
+  // Show explanation
+  const explEl = document.getElementById('explanation');
+  explEl.classList.add('show');
+  explEl.innerHTML = `<strong>${isCorrect ? 'Correct.' : 'Incorrect.'}</strong> ${escHtml(q.explanation || '')}`;
+
+  document.getElementById('btn-next').classList.add('show');
+}
+
+function nextQuestion() {
+  currentQ++;
+  if (currentQ >= quizQuestions.length) {
+    showResult();
+  } else {
+    renderQuestion();
+  }
+}
+
+// ── Result ────────────────────────────────────────────────────
+function showResult() {
+  const total = answers.length;
+  const correct = answers.filter(a => a.correct).length;
+  const pct = Math.round((correct / total) * 100);
+  const passed = pct >= PASS_THRESHOLD * 100;
+
+  // Record in store
+  const entry = store.recordTopicStudy(activeTopic.id, passed, pct);
+  store.updateStreak();
+  store.logStudyTime(5); // ~5 min per session
+  store.addQuizSession({
+    date: new Date().toISOString(),
+    topic: activeTopic.id,
+    score: pct,
+    passed,
+    total,
+    correct,
+  });
+
+  // Update proficiency strongly based on pass/fail
+  allTopics
+    .filter(t => t.id === activeTopic.id)
+    .forEach(t => {
+      store.updateProficiency(t.id, passed);
+      store.updateProficiency(t.id, passed);
+    });
+
+  renderHeader();
+  renderSidebar();
+
+  const scoreColor = passed ? 'var(--prof-strong)' : pct >= 40 ? 'var(--prof-mid)' : 'var(--prof-weak)';
+
+  const wrongAnswers = answers.filter(a => !a.correct);
+  const reviewHtml = wrongAnswers.length > 0 ? `
+    <div style="margin-bottom:var(--s-xl)">
+      <div style="font-family:var(--font-display);font-size:0.78rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--ink-muted);margin-bottom:var(--s-md)">Review incorrect answers</div>
+      ${wrongAnswers.map(a => `
+        <div style="background:var(--wrong-bg);border:1px solid var(--wrong);border-radius:var(--radius);padding:var(--s-md);margin-bottom:var(--s-sm)">
+          <div style="font-family:var(--font-display);font-size:0.88rem;font-weight:600;margin-bottom:6px;">${escHtml(a.q.question)}</div>
+          <div style="font-family:var(--font-display);font-size:0.82rem;color:var(--ink-secondary)">
+            Your answer: <span style="color:var(--wrong)">${a.q.options[a.chosen]}</span><br>
+            Correct: <span style="color:var(--prof-strong)">${a.q.options[a.q.correct]}</span><br>
+            ${a.q.explanation ? `<span style="color:var(--ink-muted)">${escHtml(a.q.explanation)}</span>` : ''}
+          </div>
+        </div>`).join('')}
+    </div>` : `
+    <div style="text-align:center;padding:var(--s-lg);font-family:var(--font-display);font-size:0.9rem;color:var(--prof-strong);margin-bottom:var(--s-xl)">
+      Perfect score — ${activeTopic.id} is solid.
+    </div>`;
+
+  document.getElementById('result-content').innerHTML = `
+    <button class="lesson-back" onclick="showPane('pick');renderPickPane()">← back to overview</button>
+
+    <div class="result-score-block">
+      <div class="result-score-num" style="color:${scoreColor}">0%</div>
+      <div class="result-score-right">
+        <div class="result-topic-line">${activeTopic.id} · ${window.studyContent[activeTopic.id]?.title || activeTopic.name}</div>
+        <div class="result-score-label">${correct} / ${total} correct</div>
+        <div class="result-verdict ${passed ? 'pass' : 'fail'}">
+          ${passed ? '✓ Passed — topic logged' : '✗ Not yet — review and retry'}
+        </div>
+      </div>
+    </div>
+
+    ${reviewHtml}
+
+    <div class="result-actions">
+      <button class="btn btn-primary" onclick="showPane('pick');renderPickPane()">Next topic →</button>
+      <button class="btn btn-secondary" onclick="openTopic(activeTopic)">Review lesson again</button>
+      <button class="btn btn-secondary" onclick="startQuiz('${activeTopic.id}')">Retry quiz</button>
+    </div>`;
+
+  showPane('result');
+
+  // Count-up the score number after DOM is painted
+  requestAnimationFrame(() => {
+    const scoreEl = document.querySelector('.result-score-num');
+    if (!scoreEl) return;
+    const target = pct;
+    const duration = 650;
+    const start = performance.now();
+    function tick(now) {
+      const elapsed = now - start;
+      const progress = Math.min(elapsed / duration, 1);
+      // Ease out cubic
+      const eased = 1 - Math.pow(1 - progress, 3);
+      scoreEl.textContent = Math.round(eased * target) + '%';
+      if (progress < 1) requestAnimationFrame(tick);
+    }
+    // Start from 0
+    scoreEl.textContent = '0%';
+    requestAnimationFrame(tick);
+  });
+}
+
+// ── Utilities ─────────────────────────────────────────────────
+function showPane(name) {
+  const pickEl   = document.getElementById('pane-pick');
+  const lessonEl = document.getElementById('pane-lesson');
+  const quizEl   = document.getElementById('pane-quiz');
+  const resultEl = document.getElementById('pane-result');
+
+  pickEl.style.display = name === 'pick' ? 'block' : 'none';
+  lessonEl.classList.toggle('active', name === 'lesson');
+  quizEl.classList.toggle('active',   name === 'quiz');
+  resultEl.classList.toggle('active', name === 'result');
+
+  // Entrance animation — double-rAF avoids forced synchronous layout
+  const entering = { pick: pickEl, lesson: lessonEl, quiz: quizEl, result: resultEl }[name];
+  if (entering) {
+    entering.classList.remove('pane-enter');
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => entering.classList.add('pane-enter'));
+    });
+  }
+}
+
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function escHtml(str) {
+  if (!str) return '';
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── Start ─────────────────────────────────────────────────────
+init();
+showPane('pick');
+</script>
+</body>
+</html>

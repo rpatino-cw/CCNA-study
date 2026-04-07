@@ -1,0 +1,2381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lab 2 — Network Troubleshooting | CCNA Study</title>
+<link rel="stylesheet" href="../css/shared.css">
+<style>
+/* ── Lab Layout ─────────────────────────────────────────────── */
+.lab-container {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  grid-template-rows: auto 1fr;
+  gap: 0;
+  height: calc(100vh - 60px);
+  max-height: calc(100vh - 60px);
+  overflow: hidden;
+}
+
+.lab-sidebar {
+  grid-row: 1 / 3;
+  background: var(--bg-surface);
+  border-right: 1px solid var(--border);
+  overflow-y: auto;
+  padding: var(--s-lg);
+}
+
+.lab-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--s-sm) var(--s-lg);
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-surface);
+  min-height: 48px;
+}
+
+.lab-main {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.topology-panel {
+  flex: 0 0 auto;
+  padding: var(--s-md) var(--s-lg);
+  overflow: hidden;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg);
+}
+
+.terminal-panel {
+  flex: 1 1 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* ── Sidebar Objectives ─────────────────────────────────────── */
+.sidebar-title {
+  font-family: var(--font-display);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ink-muted);
+  margin-bottom: var(--s-md);
+  font-weight: 600;
+}
+
+.scenario-brief {
+  font-size: 0.88rem;
+  line-height: 1.6;
+  color: var(--ink-secondary);
+  margin-bottom: var(--s-lg);
+  padding-bottom: var(--s-lg);
+  border-bottom: 1px solid var(--border);
+  max-width: none;
+}
+
+.objective-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-sm);
+}
+
+.objective-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: var(--radius);
+  background: var(--bg-recessed);
+  font-family: var(--font-display);
+  font-size: 0.82rem;
+  line-height: 1.4;
+  color: var(--ink-secondary);
+  transition: all var(--transition);
+}
+
+.objective-item.completed {
+  background: var(--prof-strong-bg);
+  color: var(--prof-strong);
+}
+
+.objective-item.completed .obj-icon {
+  color: var(--prof-strong);
+}
+
+.obj-icon {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.9rem;
+  color: var(--ink-muted);
+  margin-top: 1px;
+}
+
+.obj-text {
+  flex: 1;
+}
+
+.progress-section {
+  margin-top: var(--s-lg);
+  padding-top: var(--s-lg);
+  border-top: 1px solid var(--border);
+}
+
+.progress-label {
+  font-family: var(--font-display);
+  font-size: 0.78rem;
+  color: var(--ink-muted);
+  margin-bottom: var(--s-sm);
+  display: flex;
+  justify-content: space-between;
+}
+
+.hint-section {
+  margin-top: var(--s-lg);
+  padding-top: var(--s-lg);
+  border-top: 1px solid var(--border);
+}
+
+.hint-btn {
+  width: 100%;
+  font-family: var(--font-display);
+  font-size: 0.82rem;
+  font-weight: 600;
+  padding: 10px 16px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  border: 1px solid var(--border-strong);
+  background: var(--bg-surface);
+  color: var(--ink);
+  transition: all var(--transition);
+}
+
+.hint-btn:hover:not(:disabled) {
+  background: var(--bg-hover);
+  border-color: var(--ink-muted);
+}
+
+.hint-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.hint-remaining {
+  font-family: var(--font-display);
+  font-size: 0.72rem;
+  color: var(--ink-muted);
+  text-align: center;
+  margin-top: var(--s-xs);
+}
+
+.hint-display {
+  margin-top: var(--s-sm);
+  padding: 10px 14px;
+  background: var(--accent-dim);
+  border-left: 3px solid var(--accent);
+  border-radius: 0 var(--radius) var(--radius) 0;
+  font-size: 0.82rem;
+  line-height: 1.5;
+  color: var(--ink-secondary);
+}
+
+/* ── Timer ──────────────────────────────────────────────────── */
+.lab-timer {
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--ink-secondary);
+}
+
+/* ── Device Selector ────────────────────────────────────────── */
+.device-selector {
+  display: flex;
+  gap: 4px;
+}
+
+.device-btn {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 6px 14px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  border: 1px solid var(--border);
+  background: var(--bg-surface);
+  color: var(--ink-secondary);
+  transition: all var(--transition);
+}
+
+.device-btn:hover {
+  border-color: var(--border-strong);
+  background: var(--bg-hover);
+}
+
+.device-btn.active {
+  background: var(--ink);
+  color: var(--bg);
+  border-color: var(--ink);
+}
+
+/* ── Topology SVG ───────────────────────────────────────────── */
+.topology-svg {
+  width: 100%;
+  max-width: 760px;
+  margin: 0 auto;
+  display: block;
+}
+
+.topo-device-label {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  fill: var(--ink);
+}
+
+.topo-port-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  fill: var(--ink-muted);
+}
+
+.topo-ip-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 8.5px;
+  fill: var(--ink-secondary);
+}
+
+.topo-vlan-label {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 9px;
+  fill: var(--ink-muted);
+}
+
+.topo-link {
+  stroke-width: 2.5;
+  fill: none;
+  transition: stroke 0.4s ease;
+}
+
+.topo-link-ok { stroke: var(--prof-strong); }
+.topo-link-err { stroke: var(--prof-weak); }
+.topo-link-warn { stroke: var(--prof-mid); }
+
+.topo-device-box {
+  stroke: var(--border-strong);
+  stroke-width: 1.5;
+  rx: 6;
+  ry: 6;
+  transition: fill 0.3s ease, stroke 0.3s ease;
+}
+
+.topo-router { fill: #EEF2FF; }
+.topo-switch { fill: #FFF7ED; }
+.topo-pc { fill: var(--bg-recessed); }
+
+.topo-device-box.has-issue {
+  stroke: var(--prof-weak);
+  stroke-width: 2;
+  stroke-dasharray: 4 2;
+}
+
+.topo-device-box.all-clear {
+  stroke: var(--prof-strong);
+  stroke-width: 2;
+}
+
+.topo-issue-dot {
+  r: 5;
+  fill: var(--prof-weak);
+  transition: opacity 0.3s ease;
+}
+
+.topo-issue-dot.resolved {
+  fill: var(--prof-strong);
+  opacity: 0.6;
+}
+
+/* ── Terminal ───────────────────────────────────────────────── */
+.terminal-wrapper {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: #1C1917;
+  color: #E7E5E4;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.55;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.terminal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 16px;
+  background: #292524;
+  border-bottom: 1px solid #3F3B37;
+  flex-shrink: 0;
+}
+
+.terminal-header-title {
+  font-family: var(--font-display);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #A8A29E;
+  font-weight: 600;
+}
+
+.terminal-header-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.term-action-btn {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  padding: 3px 10px;
+  border-radius: 3px;
+  border: 1px solid #57534E;
+  background: transparent;
+  color: #A8A29E;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.term-action-btn:hover {
+  background: #3F3B37;
+  color: #E7E5E4;
+}
+
+.term-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px 16px;
+  min-height: 0;
+}
+
+.term-line {
+  white-space: pre-wrap;
+  word-break: break-all;
+  min-height: 1.55em;
+}
+
+.term-line.cmd {
+  color: #FCD34D;
+}
+
+.term-line.system {
+  color: #60A5FA;
+}
+
+.term-line.error {
+  color: #F87171;
+}
+
+.term-line.success {
+  color: #4ADE80;
+}
+
+.term-input-line {
+  display: flex;
+  align-items: center;
+  padding: 4px 16px 12px;
+  flex-shrink: 0;
+  background: #1C1917;
+}
+
+.term-prompt {
+  color: #60A5FA;
+  margin-right: 0;
+  white-space: pre;
+  flex-shrink: 0;
+}
+
+.term-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: #E7E5E4;
+  font-family: inherit;
+  font-size: inherit;
+  outline: none;
+  caret-color: #FCD34D;
+  min-width: 0;
+}
+
+.term-cursor {
+  display: none;
+}
+
+/* ── Completion Banner ──────────────────────────────────────── */
+.completion-banner {
+  display: none;
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(28, 25, 23, 0.7);
+  z-index: 1000;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(4px);
+}
+
+.completion-banner.visible {
+  display: flex;
+}
+
+.completion-card {
+  background: var(--bg-surface);
+  border: 2px solid var(--prof-strong);
+  border-radius: var(--radius-lg);
+  padding: var(--s-xl) var(--s-2xl);
+  text-align: center;
+  max-width: 500px;
+  animation: fadeIn 0.4s var(--ease-out) forwards;
+}
+
+.completion-card h2 {
+  font-size: 1.5rem;
+  margin: 0 0 var(--s-sm);
+  padding: 0;
+  border: 0;
+  color: var(--prof-strong);
+}
+
+.completion-card p {
+  color: var(--ink-secondary);
+  font-size: 0.95rem;
+  margin: 0 auto;
+}
+
+.completion-time {
+  font-family: var(--font-mono);
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--ink);
+  margin-top: var(--s-md);
+}
+
+.completion-card .btn {
+  margin-top: var(--s-lg);
+}
+
+/* ── Scrollbar ──────────────────────────────────────────────── */
+.term-body::-webkit-scrollbar { width: 6px; }
+.term-body::-webkit-scrollbar-track { background: transparent; }
+.term-body::-webkit-scrollbar-thumb { background: #57534E; border-radius: 3px; }
+.term-body::-webkit-scrollbar-thumb:hover { background: #78716C; }
+
+.lab-sidebar::-webkit-scrollbar { width: 4px; }
+.lab-sidebar::-webkit-scrollbar-track { background: transparent; }
+.lab-sidebar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+/* ── Responsive ─────────────────────────────────────────────── */
+@media (max-width: 900px) {
+  .lab-container {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto 1fr;
+    height: auto;
+    max-height: none;
+  }
+  .lab-sidebar {
+    grid-row: auto;
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+    max-height: 300px;
+  }
+  .topology-panel { max-height: 280px; }
+}
+</style>
+</head>
+<body>
+
+<!-- Top Bar -->
+<div class="lab-topbar" style="border-bottom:2px solid var(--ink); padding: var(--s-sm) var(--s-lg);">
+  <div style="display:flex; align-items:center; gap:var(--s-md);">
+    <a href="../index.html" class="back-link" style="margin:0;">&larr; Home</a>
+    <span style="font-family:var(--font-display); font-weight:700; font-size:1.05rem;">Lab 2 &mdash; Network Troubleshooting</span>
+    <span class="badge badge-red">Hard</span>
+  </div>
+  <div style="display:flex; align-items:center; gap:var(--s-lg);">
+    <div class="lab-timer" id="lab-timer">00:00</div>
+  </div>
+</div>
+
+<div class="lab-container">
+
+  <!-- Sidebar -->
+  <aside class="lab-sidebar">
+    <div class="sidebar-title">Scenario Briefing</div>
+    <p class="scenario-brief">
+      You've been called in to troubleshoot a campus network that was configured by a junior admin. Users are reporting intermittent connectivity issues. The network has two routers, two switches, and four VLANs. Your job is to find and fix all 8 issues. Use <code style="font-family:var(--font-mono); font-size:0.8rem; background:var(--bg-recessed); padding:1px 5px; border-radius:2px;">show</code> commands to diagnose, then apply fixes.
+    </p>
+
+    <div class="sidebar-title">Issues Found</div>
+    <ul class="objective-list" id="objective-list">
+      <li class="objective-item" data-obj="0">
+        <span class="obj-icon">&#9675;</span>
+        <span class="obj-text">Issue 1: OSPF adjacency problem</span>
+      </li>
+      <li class="objective-item" data-obj="1">
+        <span class="obj-icon">&#9675;</span>
+        <span class="obj-text">Issue 2: Trunk misconfiguration</span>
+      </li>
+      <li class="objective-item" data-obj="2">
+        <span class="obj-icon">&#9675;</span>
+        <span class="obj-text">Issue 3: Missing VLAN</span>
+      </li>
+      <li class="objective-item" data-obj="3">
+        <span class="obj-icon">&#9675;</span>
+        <span class="obj-text">Issue 4: Port in err-disabled</span>
+      </li>
+      <li class="objective-item" data-obj="4">
+        <span class="obj-icon">&#9675;</span>
+        <span class="obj-text">Issue 5: ACL blocking traffic</span>
+      </li>
+      <li class="objective-item" data-obj="5">
+        <span class="obj-icon">&#9675;</span>
+        <span class="obj-text">Issue 6: Incorrect subnet mask</span>
+      </li>
+      <li class="objective-item" data-obj="6">
+        <span class="obj-icon">&#9675;</span>
+        <span class="obj-text">Issue 7: Missing OSPF network</span>
+      </li>
+      <li class="objective-item" data-obj="7">
+        <span class="obj-icon">&#9675;</span>
+        <span class="obj-text">Issue 8: Port in wrong VLAN</span>
+      </li>
+    </ul>
+
+    <div class="progress-section">
+      <div class="progress-label">
+        <span>Progress</span>
+        <span id="progress-text">0 / 8</span>
+      </div>
+      <div class="progress-bar">
+        <div class="fill green" id="progress-fill" style="width:0%"></div>
+      </div>
+    </div>
+
+    <div class="hint-section">
+      <button class="hint-btn" id="hint-btn" onclick="useHint()">Request Hint</button>
+      <div class="hint-remaining" id="hint-remaining">2 hints remaining</div>
+      <div class="hint-display hidden" id="hint-display"></div>
+    </div>
+  </aside>
+
+  <!-- Main Area -->
+  <div class="lab-main">
+
+    <!-- Topology -->
+    <div class="topology-panel">
+      <svg class="topology-svg" viewBox="0 0 760 310" xmlns="http://www.w3.org/2000/svg">
+        <!-- Links -->
+        <!-- R1 <-> R2 -->
+        <line id="link-r1-r2" class="topo-link topo-link-err" x1="220" y1="60" x2="540" y2="60"/>
+        <!-- R1 <-> SW1 -->
+        <line id="link-r1-sw1" class="topo-link topo-link-warn" x1="190" y1="80" x2="190" y2="150"/>
+        <!-- R2 <-> SW2 -->
+        <line id="link-r2-sw2" class="topo-link topo-link-err" x1="570" y1="80" x2="570" y2="150"/>
+        <!-- SW1 <-> PC1 -->
+        <line id="link-sw1-pc1" class="topo-link topo-link-warn" x1="145" y1="195" x2="90" y2="250"/>
+        <!-- SW1 <-> PC2 -->
+        <line id="link-sw1-pc2" class="topo-link topo-link-err" x1="230" y1="195" x2="280" y2="250"/>
+        <!-- SW2 <-> PC3 -->
+        <line id="link-sw2-pc3" class="topo-link topo-link-err" x1="525" y1="195" x2="470" y2="250"/>
+        <!-- SW2 <-> PC4 -->
+        <line id="link-sw2-pc4" class="topo-link topo-link-err" x1="610" y1="195" x2="665" y2="250"/>
+
+        <!-- R1 -->
+        <rect id="box-R1" class="topo-device-box topo-router has-issue" x="140" y="30" width="100" height="50"/>
+        <text class="topo-device-label" x="190" y="58" text-anchor="middle">R1</text>
+
+        <!-- R2 -->
+        <rect id="box-R2" class="topo-device-box topo-router has-issue" x="520" y="30" width="100" height="50"/>
+        <text class="topo-device-label" x="570" y="58" text-anchor="middle">R2</text>
+
+        <!-- SW1 -->
+        <rect id="box-SW1" class="topo-device-box topo-switch has-issue" x="130" y="150" width="120" height="45"/>
+        <text class="topo-device-label" x="190" y="177" text-anchor="middle">SW1</text>
+
+        <!-- SW2 -->
+        <rect id="box-SW2" class="topo-device-box topo-switch has-issue" x="510" y="150" width="120" height="45"/>
+        <text class="topo-device-label" x="570" y="177" text-anchor="middle">SW2</text>
+
+        <!-- PCs -->
+        <rect class="topo-device-box topo-pc" x="50" y="250" width="80" height="35"/>
+        <text class="topo-device-label" x="90" y="271" text-anchor="middle">PC1</text>
+
+        <rect class="topo-device-box topo-pc" x="240" y="250" width="80" height="35"/>
+        <text class="topo-device-label" x="280" y="271" text-anchor="middle">PC2</text>
+
+        <rect class="topo-device-box topo-pc" x="430" y="250" width="80" height="35"/>
+        <text class="topo-device-label" x="470" y="271" text-anchor="middle">PC3</text>
+
+        <rect class="topo-device-box topo-pc" x="625" y="250" width="80" height="35"/>
+        <text class="topo-device-label" x="665" y="271" text-anchor="middle">PC4</text>
+
+        <!-- Port labels -->
+        <text class="topo-port-label" x="230" y="48" text-anchor="start">Gi0/0</text>
+        <text class="topo-port-label" x="510" y="48" text-anchor="end">Gi0/0</text>
+        <text class="topo-port-label" x="177" y="95" text-anchor="end">Gi0/1</text>
+        <text class="topo-port-label" x="583" y="95" text-anchor="start">Gi0/1</text>
+
+        <text class="topo-port-label" x="165" y="147" text-anchor="end">Gi0/1 trunk</text>
+        <text class="topo-port-label" x="595" y="147" text-anchor="start">Gi0/1 trunk</text>
+
+        <text class="topo-port-label" x="115" y="215" text-anchor="end">Fa0/1</text>
+        <text class="topo-port-label" x="258" y="215" text-anchor="start">Fa0/2</text>
+        <text class="topo-port-label" x="495" y="215" text-anchor="end">Fa0/1</text>
+        <text class="topo-port-label" x="638" y="215" text-anchor="start">Fa0/2</text>
+
+        <!-- IP / OSPF label -->
+        <text class="topo-ip-label" x="380" y="45" text-anchor="middle">203.0.113.0/30 &mdash; OSPF Area 0</text>
+
+        <!-- VLAN labels -->
+        <text class="topo-vlan-label" x="90" y="296" text-anchor="middle">VLAN 10</text>
+        <text class="topo-vlan-label" x="280" y="296" text-anchor="middle">VLAN 20</text>
+        <text class="topo-vlan-label" x="470" y="296" text-anchor="middle">VLAN 10</text>
+        <text class="topo-vlan-label" x="665" y="296" text-anchor="middle">VLAN 20</text>
+
+        <!-- Issue dots -->
+        <circle id="issue-dot-0" class="topo-issue-dot" cx="260" cy="60" r="5"/>
+        <circle id="issue-dot-1" class="topo-issue-dot" cx="173" cy="130" r="5"/>
+        <circle id="issue-dot-2" class="topo-issue-dot" cx="630" cy="170" r="5"/>
+        <circle id="issue-dot-3" class="topo-issue-dot" cx="510" cy="185" r="5"/>
+        <circle id="issue-dot-4" class="topo-issue-dot" cx="595" cy="105" r="5"/>
+        <circle id="issue-dot-5" class="topo-issue-dot" cx="545" cy="40" r="5"/>
+        <circle id="issue-dot-6" class="topo-issue-dot" cx="550" cy="75" r="5"/>
+        <circle id="issue-dot-7" class="topo-issue-dot" cx="245" cy="185" r="5"/>
+      </svg>
+    </div>
+
+    <!-- Terminal -->
+    <div class="terminal-panel">
+      <div class="terminal-wrapper">
+        <div class="terminal-header">
+          <span class="terminal-header-title">Cisco IOS CLI</span>
+          <div class="terminal-header-actions">
+            <div class="device-selector" id="device-selector">
+              <button class="device-btn active" data-device="R1" onclick="selectDevice('R1')">R1</button>
+              <button class="device-btn" data-device="R2" onclick="selectDevice('R2')">R2</button>
+              <button class="device-btn" data-device="SW1" onclick="selectDevice('SW1')">SW1</button>
+              <button class="device-btn" data-device="SW2" onclick="selectDevice('SW2')">SW2</button>
+            </div>
+            <button class="term-action-btn" onclick="clearTerminal()">Clear</button>
+          </div>
+        </div>
+        <div class="term-body" id="term-output">
+          <div class="term-line system">--- Connected to R1 ---</div>
+          <div class="term-line">Welcome to the Troubleshooting Lab. 4 devices available: R1, R2, SW1, SW2.</div>
+          <div class="term-line">Type commands to diagnose and fix network issues.</div>
+          <div class="term-line">&nbsp;</div>
+        </div>
+        <div class="term-input-line">
+          <span class="term-prompt" id="term-prompt">R1> </span>
+          <input type="text" class="term-input" id="term-input" spellcheck="false" autocomplete="off" autofocus>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Completion Banner -->
+<div class="completion-banner" id="completion-banner">
+  <div class="completion-card">
+    <h2>All Issues Resolved</h2>
+    <p>Network is fully operational. All 8 misconfigurations have been identified and corrected.</p>
+    <div class="completion-time" id="completion-time">Time: 00:00</div>
+    <a href="../index.html" class="btn btn-primary" style="margin-top:var(--s-lg);">Return Home</a>
+  </div>
+</div>
+
+<script src="../js/lab-engine.js"></script>
+<script>
+(function() {
+'use strict';
+
+// ════════════════════════════════════════════════════════════════
+//  DEVICE STATE
+// ════════════════════════════════════════════════════════════════
+
+const deviceState = {
+  R1: {
+    hostname: 'R1',
+    type: 'router',
+    mode: 'user',          // user | priv | config | config-if | config-router | config-line
+    currentIf: null,
+    interfaces: {
+      'GigabitEthernet0/0': {
+        ip: '203.0.113.1', mask: '255.255.255.252', up: true,
+        ipMtu: 1400,        // BUG #1 — should be 1500
+        description: 'Link to R2',
+        ospfArea: 0, ospfCost: 1, ospfNetworkType: 'broadcast'
+      },
+      'GigabitEthernet0/1': {
+        ip: null, mask: null, up: true,
+        description: 'Trunk to SW1',
+        trunk: true
+      },
+      'Vlan10': {
+        ip: '10.0.10.1', mask: '255.255.255.0', up: true,
+        description: 'SVI VLAN 10 - Sales'
+      },
+      'Vlan20': {
+        ip: '10.0.20.1', mask: '255.255.255.0', up: true,
+        description: 'SVI VLAN 20 - Engineering'
+      }
+    },
+    ospf: {
+      processId: 1,
+      routerId: '203.0.113.1',
+      networks: [
+        { network: '10.0.10.0', wildcard: '0.0.0.255', area: 0 },
+        { network: '10.0.20.0', wildcard: '0.0.0.255', area: 0 },
+        { network: '203.0.113.0', wildcard: '0.0.0.3', area: 0 }
+      ]
+    },
+    acls: {},
+    ipRouting: true,
+    vlans: {
+      1: { name: 'default' },
+      10: { name: 'Sales' },
+      20: { name: 'Engineering' }
+    }
+  },
+
+  R2: {
+    hostname: 'R2',
+    type: 'router',
+    mode: 'user',
+    currentIf: null,
+    interfaces: {
+      'GigabitEthernet0/0': {
+        ip: '203.0.113.2', mask: '255.255.255.252', up: true,
+        ipMtu: 1500,
+        description: 'Link to R1',
+        ospfArea: 0, ospfCost: 1, ospfNetworkType: 'broadcast'
+      },
+      'GigabitEthernet0/1': {
+        ip: null, mask: null, up: true,
+        description: 'Trunk to SW2',
+        trunk: true,
+        aclIn: 'FILTER'     // BUG #5
+      },
+      'Vlan10': {
+        ip: '10.0.10.2', mask: '255.255.0.0', up: true,   // BUG #6 — /16 instead of /24
+        description: 'SVI VLAN 10 - Sales'
+      },
+      'Vlan20': {
+        ip: '10.0.20.2', mask: '255.255.255.0', up: true,
+        description: 'SVI VLAN 20 - Engineering'
+      }
+    },
+    ospf: {
+      processId: 1,
+      routerId: '203.0.113.2',
+      networks: [
+        { network: '10.0.10.0', wildcard: '0.0.0.255', area: 0 },
+        { network: '203.0.113.0', wildcard: '0.0.0.3', area: 0 }
+        // BUG #7 — missing network 10.0.20.0 0.0.0.255 area 0
+      ]
+    },
+    acls: {
+      'FILTER': [                                          // BUG #5
+        { action: 'deny', protocol: 'icmp', src: 'any', dst: 'any', matches: 0 },
+        { action: 'permit', protocol: 'ip', src: 'any', dst: 'any', matches: 0 }
+      ]
+    },
+    ipRouting: true,
+    vlans: {
+      1: { name: 'default' },
+      10: { name: 'Sales' },
+      20: { name: 'Engineering' }
+    }
+  },
+
+  SW1: {
+    hostname: 'SW1',
+    type: 'switch',
+    mode: 'user',
+    currentIf: null,
+    interfaces: {
+      'FastEthernet0/1': {
+        up: true, mode: 'access', accessVlan: 10,
+        description: 'To PC1'
+      },
+      'FastEthernet0/2': {
+        up: true, mode: 'access', accessVlan: 1,          // BUG #8 — should be VLAN 20
+        description: 'To PC2'
+      },
+      'FastEthernet0/3':  { up: true, mode: 'access', accessVlan: 1 },
+      'FastEthernet0/4':  { up: true, mode: 'access', accessVlan: 1 },
+      'FastEthernet0/5':  { up: true, mode: 'access', accessVlan: 1 },
+      'GigabitEthernet0/1': {
+        up: true, mode: 'trunk',
+        trunkNativeVlan: 99,                               // BUG #2 — should be 1
+        trunkAllowedVlans: 'all',
+        description: 'Trunk to R1'
+      }
+    },
+    vlans: {
+      1: { name: 'default' },
+      10: { name: 'Sales' },
+      20: { name: 'Engineering' }
+    },
+    ospf: null, acls: {}, ipRouting: false
+  },
+
+  SW2: {
+    hostname: 'SW2',
+    type: 'switch',
+    mode: 'user',
+    currentIf: null,
+    interfaces: {
+      'FastEthernet0/1': {
+        up: false, mode: 'access', accessVlan: 10,
+        errDisabled: true,                                 // BUG #4
+        description: 'To PC3',
+        portSecurity: { enabled: true, maxMac: 1, violation: 'shutdown', status: 'secure-shutdown', stickyMac: '0050.7966.6800' }
+      },
+      'FastEthernet0/2': {
+        up: true, mode: 'access', accessVlan: 20,
+        description: 'To PC4'
+      },
+      'FastEthernet0/3':  { up: true, mode: 'access', accessVlan: 1 },
+      'FastEthernet0/4':  { up: true, mode: 'access', accessVlan: 1 },
+      'FastEthernet0/5':  { up: true, mode: 'access', accessVlan: 1 },
+      'GigabitEthernet0/1': {
+        up: true, mode: 'trunk',
+        trunkNativeVlan: 1,
+        trunkAllowedVlans: 'all',
+        description: 'Trunk to R2'
+      }
+    },
+    vlans: {
+      1: { name: 'default' },
+      10: { name: 'Sales' }
+      // BUG #3 — VLAN 20 missing
+    },
+    ospf: null, acls: {}, ipRouting: false
+  }
+};
+
+// Track which bugs are fixed
+const bugFixed = [false, false, false, false, false, false, false, false];
+let completedCount = 0;
+let labStartTime = Date.now();
+let timerInterval = null;
+
+// Active device
+let activeDeviceName = 'R1';
+function dev() { return deviceState[activeDeviceName]; }
+
+// ════════════════════════════════════════════════════════════════
+//  TIMER
+// ════════════════════════════════════════════════════════════════
+function startTimer() {
+  timerInterval = setInterval(() => {
+    const elapsed = Math.floor((Date.now() - labStartTime) / 1000);
+    const m = String(Math.floor(elapsed / 60)).padStart(2, '0');
+    const s = String(elapsed % 60).padStart(2, '0');
+    document.getElementById('lab-timer').textContent = m + ':' + s;
+  }, 1000);
+}
+startTimer();
+
+// ════════════════════════════════════════════════════════════════
+//  TERMINAL I/O
+// ════════════════════════════════════════════════════════════════
+const outputEl = document.getElementById('term-output');
+const inputEl  = document.getElementById('term-input');
+const promptEl = document.getElementById('term-prompt');
+let cmdHistory = [];
+let histIdx = -1;
+
+function writeLine(text, cls) {
+  const div = document.createElement('div');
+  div.className = 'term-line' + (cls ? ' ' + cls : '');
+  div.textContent = text;
+  outputEl.appendChild(div);
+}
+
+function writeLines(text, cls) {
+  if (!text) return;
+  const lines = text.split('\n');
+  for (const line of lines) {
+    writeLine(line, cls);
+  }
+}
+
+function updatePrompt() {
+  const d = dev();
+  const h = d.hostname;
+  let p;
+  switch (d.mode) {
+    case 'user':          p = h + '> '; break;
+    case 'priv':          p = h + '# '; break;
+    case 'config':        p = h + '(config)# '; break;
+    case 'config-if':     p = h + '(config-if)# '; break;
+    case 'config-router': p = h + '(config-router)# '; break;
+    case 'config-line':   p = h + '(config-line)# '; break;
+    case 'config-vlan':   p = h + '(config-vlan)# '; break;
+    default:              p = h + '# '; break;
+  }
+  promptEl.textContent = p;
+}
+
+function scrollToBottom() {
+  outputEl.scrollTop = outputEl.scrollHeight;
+  const wrapper = outputEl.parentElement;
+  if (wrapper) wrapper.scrollTop = wrapper.scrollHeight;
+}
+
+inputEl.addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    const cmd = inputEl.value;
+    inputEl.value = '';
+    processInput(cmd);
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    if (cmdHistory.length > 0 && histIdx < cmdHistory.length - 1) {
+      histIdx++;
+      inputEl.value = cmdHistory[cmdHistory.length - 1 - histIdx];
+    }
+  } else if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    if (histIdx > 0) {
+      histIdx--;
+      inputEl.value = cmdHistory[cmdHistory.length - 1 - histIdx];
+    } else {
+      histIdx = -1;
+      inputEl.value = '';
+    }
+  } else if (e.key === 'Tab') {
+    e.preventDefault();
+    // Minimal tab completion
+    const partial = inputEl.value.trim().toLowerCase();
+    const completions = {
+      'sh': 'show ',
+      'sho': 'show ',
+      'show': 'show ',
+      'show ip os': 'show ip ospf ',
+      'show ip ospf n': 'show ip ospf neighbor',
+      'show ip ospf i': 'show ip ospf interface',
+      'show ip int': 'show ip interface brief',
+      'show ip ro': 'show ip route',
+      'show ip ac': 'show ip access-lists',
+      'show vl': 'show vlan brief',
+      'show int': 'show interfaces ',
+      'show inter': 'show interfaces ',
+      'show interfaces t': 'show interfaces trunk',
+      'show run': 'show running-config',
+      'show port': 'show port-security ',
+      'show cd': 'show cdp neighbors',
+      'en': 'enable',
+      'conf': 'configure terminal',
+      'conf t': 'configure terminal',
+      'int': 'interface ',
+      'no': 'no ',
+      'ro': 'router ospf ',
+      'net': 'network ',
+      'sw': 'switchport ',
+      'switchport a': 'switchport access ',
+      'switchport t': 'switchport trunk ',
+      'shut': 'shutdown',
+      'no shut': 'no shutdown',
+      'ip ad': 'ip address ',
+      'ip mt': 'ip mtu '
+    };
+    if (completions[partial]) {
+      inputEl.value = completions[partial];
+    }
+  }
+});
+
+document.querySelector('.terminal-wrapper').addEventListener('click', () => inputEl.focus());
+
+function processInput(raw) {
+  const cmd = raw.trim();
+  // Echo
+  writeLine(promptEl.textContent + cmd, 'cmd');
+
+  if (cmd) {
+    cmdHistory.push(cmd);
+    histIdx = -1;
+  }
+
+  const output = handleCommand(cmd);
+  if (output) writeLines(output);
+
+  updatePrompt();
+  scrollToBottom();
+  checkAllBugs();
+}
+
+// ════════════════════════════════════════════════════════════════
+//  COMMAND HANDLER
+// ════════════════════════════════════════════════════════════════
+function handleCommand(raw) {
+  if (!raw) return '';
+  const lower = raw.trim().toLowerCase();
+  const d = dev();
+
+  // ── Device switch ──
+  if (lower.startsWith('connect ') || lower.startsWith('switch ')) {
+    const target = raw.trim().split(/\s+/)[1];
+    return switchToDevice(target);
+  }
+
+  // ── Mode navigation ──
+  if (lower === 'enable' || lower === 'en') {
+    if (d.mode === 'user') d.mode = 'priv';
+    return '';
+  }
+  if (lower === 'configure terminal' || lower === 'conf t') {
+    if (d.mode === 'priv') {
+      d.mode = 'config';
+      return 'Enter configuration commands, one per line.  End with CNTL/Z.';
+    }
+    return "% Invalid input detected at '^' marker.";
+  }
+  if (lower === 'end') {
+    d.mode = 'priv'; d.currentIf = null;
+    return '';
+  }
+  if (lower === 'exit') {
+    if (d.mode === 'config-if' || d.mode === 'config-router' || d.mode === 'config-line' || d.mode === 'config-vlan') {
+      d.mode = 'config'; d.currentIf = null; return '';
+    }
+    if (d.mode === 'config') { d.mode = 'priv'; return ''; }
+    if (d.mode === 'priv')   { d.mode = 'user'; return ''; }
+    return '';
+  }
+  if (lower === 'disable') { d.mode = 'user'; return ''; }
+
+  // ── Show commands (allowed from priv or higher, plus user for some) ──
+  if (lower.startsWith('show ') || lower.startsWith('sh ') || lower === 'show') {
+    if (d.mode === 'user') {
+      // Some show commands work in user mode
+    }
+    return handleShow(d, raw);
+  }
+
+  // ── Ping ──
+  if (lower.startsWith('ping ')) {
+    return handlePing(d, raw);
+  }
+
+  // ── Config commands ──
+  if (d.mode === 'config' || d.mode === 'config-if' || d.mode === 'config-router' || d.mode === 'config-line' || d.mode === 'config-vlan') {
+    return handleConfig(d, raw, lower);
+  }
+
+  if (lower === '?' || lower === 'help') {
+    return showHelp(d);
+  }
+
+  return "% Invalid input detected at '^' marker.";
+}
+
+// ════════════════════════════════════════════════════════════════
+//  SHOW COMMANDS
+// ════════════════════════════════════════════════════════════════
+function handleShow(d, raw) {
+  const lower = raw.trim().toLowerCase();
+
+  // show ip ospf neighbor
+  if (lower.match(/^sh(ow)?\s+ip\s+ospf\s+neigh/)) {
+    return showIpOspfNeighbor(d);
+  }
+  // show ip ospf interface
+  if (lower.match(/^sh(ow)?\s+ip\s+ospf\s+int/)) {
+    return showIpOspfInterface(d, raw);
+  }
+  // show ip ospf
+  if (lower.match(/^sh(ow)?\s+ip\s+ospf\s*$/)) {
+    return showIpOspf(d);
+  }
+  // show ip interface brief
+  if (lower.match(/^sh(ow)?\s+ip\s+int(erface)?\s+br/)) {
+    return showIpIntBrief(d);
+  }
+  // show ip interface <name>
+  if (lower.match(/^sh(ow)?\s+ip\s+int(erface)?\s+\S/)) {
+    return showIpInterface(d, raw);
+  }
+  // show ip route
+  if (lower.match(/^sh(ow)?\s+ip\s+ro/)) {
+    return showIpRoute(d);
+  }
+  // show ip access-lists
+  if (lower.match(/^sh(ow)?\s+ip\s+acc/)) {
+    return showIpAccessLists(d);
+  }
+  // show access-lists
+  if (lower.match(/^sh(ow)?\s+acc/)) {
+    return showIpAccessLists(d);
+  }
+  // show vlan brief
+  if (lower.match(/^sh(ow)?\s+vlan\s*(br|$)/)) {
+    return showVlanBrief(d);
+  }
+  // show interfaces trunk
+  if (lower.match(/^sh(ow)?\s+int(erfaces?)?\s+trunk/)) {
+    return showInterfacesTrunk(d);
+  }
+  // show interfaces <name>
+  if (lower.match(/^sh(ow)?\s+int(erfaces?)?\s+\S/)) {
+    return showInterface(d, raw);
+  }
+  // show interfaces
+  if (lower.match(/^sh(ow)?\s+int(erfaces?)?\s*$/)) {
+    return showInterfaceAll(d);
+  }
+  // show running-config interface <name>
+  if (lower.match(/^sh(ow)?\s+run(ning-config)?\s+int/)) {
+    return showRunInterface(d, raw);
+  }
+  // show running-config
+  if (lower.match(/^sh(ow)?\s+run/)) {
+    return showRunningConfig(d);
+  }
+  // show port-security
+  if (lower.match(/^sh(ow)?\s+port-sec/)) {
+    return showPortSecurity(d, raw);
+  }
+  // show cdp neighbors
+  if (lower.match(/^sh(ow)?\s+cdp\s+neigh/)) {
+    return showCdpNeighbors(d);
+  }
+  // show version (minimal)
+  if (lower.match(/^sh(ow)?\s+ver/)) {
+    return showVersion(d);
+  }
+
+  return "% Invalid input detected at '^' marker.";
+}
+
+// ── show ip ospf neighbor ──
+function showIpOspfNeighbor(d) {
+  if (d.type !== 'router') return '% OSPF is not configured on this device';
+
+  const dn = activeDeviceName;
+  const r1State = deviceState.R1;
+  const r2State = deviceState.R2;
+
+  // Determine if OSPF adjacency is working (Bug #1: MTU mismatch)
+  const r1Mtu = r1State.interfaces['GigabitEthernet0/0'].ipMtu || 1500;
+  const r2Mtu = r2State.interfaces['GigabitEthernet0/0'].ipMtu || 1500;
+  const mtuMatch = (r1Mtu === r2Mtu);
+
+  let header = '';
+  header += '\n';
+  header += 'Neighbor ID     Pri   State           Dead Time   Address         Interface\n';
+
+  if (dn === 'R1') {
+    const nbrId = r2State.ospf.routerId;
+    const state = mtuMatch ? 'FULL/DR' : 'EXSTART/DR';
+    const dead  = mtuMatch ? '00:00:38' : '00:00:32';
+    header += nbrId.padEnd(16) + '1     ' + state.padEnd(16) + dead + '    203.0.113.2     GigabitEthernet0/0\n';
+  } else if (dn === 'R2') {
+    const nbrId = r1State.ospf.routerId;
+    const state = mtuMatch ? 'FULL/BDR' : 'EXSTART/BDR';
+    const dead  = mtuMatch ? '00:00:35' : '00:00:29';
+    header += nbrId.padEnd(16) + '1     ' + state.padEnd(16) + dead + '    203.0.113.1     GigabitEthernet0/0\n';
+  }
+
+  return header;
+}
+
+// ── show ip ospf interface ──
+function showIpOspfInterface(d, raw) {
+  if (d.type !== 'router') return '% OSPF is not configured on this device';
+
+  const lower = raw.trim().toLowerCase();
+  // Check if specific interface requested
+  const ifMatch = lower.match(/interface\s+(.+)$/);
+  let specificIf = null;
+  if (ifMatch) {
+    specificIf = normalizeIfName(ifMatch[1].trim());
+  }
+
+  let out = '';
+  const dn = activeDeviceName;
+  const ospf = d.ospf;
+  if (!ospf) return '% OSPF is not configured';
+
+  for (const [ifName, iface] of Object.entries(d.interfaces)) {
+    if (specificIf && ifName !== specificIf) continue;
+
+    // Is this interface in OSPF?
+    const ip = iface.ip;
+    if (!ip) continue;
+
+    const inOspf = ospf.networks.some(n => ipInNetwork(ip, n.network, n.wildcard));
+    if (!inOspf) continue;
+
+    const mtu = iface.ipMtu || 1500;
+    const cost = iface.ospfCost || 1;
+
+    out += ifName + ' is up, line protocol is up\n';
+    out += '  Internet Address ' + ip + '/' + maskToCidr(iface.mask) + ', Area 0\n';
+    out += '  Process ID ' + ospf.processId + ', Router ID ' + ospf.routerId + ', Network Type BROADCAST, Cost: ' + cost + '\n';
+    out += '  Transmit Delay is 1 sec, State ' + (ifName.startsWith('Gi') ? (dn === 'R1' ? 'BDR' : 'DR') : 'DR') + ', Priority 1\n';
+    out += '  Timer intervals configured, Hello 10, Dead 40, Wait 40, Retransmit 5\n';
+    out += '    oob-resync timeout 40\n';
+    out += '  Supports Link-local Signaling (LLS)\n';
+    out += '  Cisco NSF helper support enabled\n';
+    out += '  IETF NSF helper support enabled\n';
+    out += '  Index 1/1, flood queue length 0\n';
+    out += '  Next 0x0(0)/0x0(0)\n';
+    out += '  Last flood scan length is 1, maximum is 1\n';
+    out += '  Last flood scan time is 0 msec, maximum is 0 msec\n';
+    out += '  Neighbor Count is 1, Adjacent neighbor count is 1\n';
+    out += '  MTU ' + mtu + ' bytes\n';
+    out += '\n';
+  }
+
+  if (!out) return '% OSPF: No interfaces match';
+  return '\n' + out;
+}
+
+// ── show ip ospf ──
+function showIpOspf(d) {
+  if (!d.ospf) return '% OSPF is not configured';
+  let out = '\n';
+  out += ' Routing Process "ospf ' + d.ospf.processId + '" with ID ' + d.ospf.routerId + '\n';
+  out += ' Start time: 00:00:01.123, Time elapsed: 01:23:45.678\n';
+  out += ' Supports only single TOS(TOS0) routes\n';
+  out += ' Supports opaque LSA\n';
+  out += ' Supports Link-local Signaling (LLS)\n';
+  out += ' Supports area transit capability\n';
+  out += ' Router is not originating router-LSAs with maximum metric\n';
+  out += ' Initial SPF schedule delay 5000 msecs\n';
+  out += ' Minimum hold time between two consecutive SPFs 10000 msecs\n';
+  out += ' Maximum wait time between two consecutive SPFs 10000 msecs\n';
+  out += ' Incremental-SPF disabled\n';
+  out += ' Number of external LSA 0. Checksum Sum 0x000000\n';
+  out += ' Number of opaque AS LSA 0. Checksum Sum 0x000000\n';
+  out += ' Number of DCbitless external and opaque AS LSA 0\n';
+  out += ' Number of DoNotAge external and opaque AS LSA 0\n';
+  out += ' Number of areas in this router is 1. 1 normal 0 stub 0 nssa\n';
+  out += ' Number of areas transit capable is 0\n';
+  out += '    Area BACKBONE(0)\n';
+  out += '        Number of interfaces in this area is ' + d.ospf.networks.length + '\n';
+  out += '        Area has no authentication\n';
+  out += '        SPF algorithm last executed 00:02:15.432 ago\n';
+  out += '        SPF algorithm executed 5 times\n';
+  out += '        Area ranges are\n';
+  out += '        Number of LSA 3. Checksum Sum 0x01A2B4\n';
+  out += '        Number of opaque link LSA 0. Checksum Sum 0x000000\n';
+  out += '        Number of DCbitless LSA 0\n';
+  out += '        Number of indication LSA 0\n';
+  out += '        Number of DoNotAge LSA 0\n';
+  out += '        Flood list length 0\n';
+  return out;
+}
+
+// ── show ip interface brief ──
+function showIpIntBrief(d) {
+  let out = '\nInterface                  IP-Address      OK? Method Status                Protocol\n';
+  for (const [ifName, iface] of Object.entries(d.interfaces)) {
+    const ip = iface.ip || 'unassigned';
+    const status = iface.errDisabled ? 'err-disabled' : (iface.up ? 'up' : 'administratively down');
+    const proto = iface.errDisabled ? 'down' : (iface.up ? 'up' : 'down');
+    out += ifName.padEnd(27) + ip.padEnd(16) + 'YES ' + 'manual '.padEnd(7) + status.padEnd(22) + proto + '\n';
+  }
+  return out;
+}
+
+// ── show ip interface <name> ──
+function showIpInterface(d, raw) {
+  const lower = raw.trim().toLowerCase();
+  const parts = lower.replace(/^sh(ow)?\s+ip\s+int(erface)?\s+/, '').trim();
+  if (parts === 'brief' || parts === 'br') return showIpIntBrief(d);
+
+  const ifName = normalizeIfName(parts);
+  const iface = d.interfaces[ifName];
+  if (!iface) return '% Invalid interface type and target';
+
+  let out = '\n' + ifName + ' is ' + (iface.up ? 'up' : 'down') + ', line protocol is ' + (iface.up ? 'up' : 'down') + '\n';
+  out += '  Internet address is ' + (iface.ip ? iface.ip + '/' + maskToCidr(iface.mask) : 'not set') + '\n';
+  out += '  Broadcast address is 255.255.255.255\n';
+  out += '  MTU ' + (iface.ipMtu || 1500) + ' bytes\n';
+  out += '  Directed broadcast forwarding is disabled\n';
+
+  if (iface.aclIn) {
+    out += '  Inbound  access list is ' + iface.aclIn + '\n';
+  } else {
+    out += '  Inbound  access list is not set\n';
+  }
+  if (iface.aclOut) {
+    out += '  Outgoing access list is ' + iface.aclOut + '\n';
+  } else {
+    out += '  Outgoing access list is not set\n';
+  }
+
+  out += '  Proxy ARP is enabled\n';
+  out += '  ICMP redirects are always sent\n';
+  out += '  ICMP unreachables are always sent\n';
+  out += '  ICMP mask replies are never sent\n';
+  out += '  IP fast switching is enabled\n';
+  out += '  IP CEF switching is enabled\n';
+  return out;
+}
+
+// ── show ip route ──
+function showIpRoute(d) {
+  if (d.type !== 'router') return '% IP routing not enabled on this device';
+
+  const dn = activeDeviceName;
+  const r1 = deviceState.R1;
+  const r2 = deviceState.R2;
+  const r1Mtu = r1.interfaces['GigabitEthernet0/0'].ipMtu || 1500;
+  const r2Mtu = r2.interfaces['GigabitEthernet0/0'].ipMtu || 1500;
+  const ospfUp = (r1Mtu === r2Mtu);
+
+  let out = '\nCodes: L - local, C - connected, S - static, R - RIP, M - mobile, B - BGP\n';
+  out += '       D - EIGRP, EX - EIGRP external, O - OSPF, IA - OSPF inter area\n';
+  out += '       N1 - OSPF NSSA external type 1, N2 - OSPF NSSA external type 2\n';
+  out += '       E1 - OSPF external type 1, E2 - OSPF external type 2\n';
+  out += '       i - IS-IS, su - IS-IS summary, L1 - IS-IS level-1, L2 - IS-IS level-2\n';
+  out += '       ia - IS-IS inter area, * - candidate default, U - per-user static route\n';
+  out += '       o - ODR, P - periodic downloaded static route, H - NHRP, l - LISP\n';
+  out += '       + - replicated route, % - next hop override\n\n';
+  out += 'Gateway of last resort is not set\n\n';
+
+  if (dn === 'R1') {
+    // Connected routes for R1
+    out += '      10.0.0.0/8 is variably subnetted\n';
+    out += 'C        10.0.10.0/24 is directly connected, Vlan10\n';
+    out += 'L        10.0.10.1/32 is directly connected, Vlan10\n';
+    out += 'C        10.0.20.0/24 is directly connected, Vlan20\n';
+    out += 'L        10.0.20.1/32 is directly connected, Vlan20\n';
+
+    // OSPF routes from R2 (only if adjacency is up)
+    if (ospfUp) {
+      // R2 has 10.0.10.0 in OSPF (always), check mask
+      const r2v10mask = r2.interfaces['Vlan10'].mask;
+      const r2v10cidr = maskToCidr(r2v10mask);
+      // If R2's mask is /16, OSPF would advertise 10.0.0.0/16 — that is a different network
+      if (r2v10cidr === 16) {
+        out += 'O        10.0.0.0/16 [110/2] via 203.0.113.2, 00:05:12, GigabitEthernet0/0\n';
+      }
+      // else /24 is same as connected, so nothing extra
+
+      // R2's VLAN 20: only if R2 has network 10.0.20.0 in OSPF (Bug #7)
+      const r2Has2020 = r2.ospf.networks.some(n => n.network === '10.0.20.0');
+      if (r2Has2020) {
+        out += 'O        10.0.20.0/24 [110/2] via 203.0.113.2, 00:05:12, GigabitEthernet0/0\n';
+      }
+    }
+
+    out += '      203.0.113.0/24 is variably subnetted, 2 subnets, 2 masks\n';
+    out += 'C        203.0.113.0/30 is directly connected, GigabitEthernet0/0\n';
+    out += 'L        203.0.113.1/32 is directly connected, GigabitEthernet0/0\n';
+  } else {
+    // R2 routes
+    const r2v10mask = d.interfaces['Vlan10'].mask;
+    const r2v10cidr = maskToCidr(r2v10mask);
+
+    out += '      10.0.0.0/8 is variably subnetted\n';
+    if (r2v10cidr === 16) {
+      out += 'C        10.0.0.0/16 is directly connected, Vlan10\n';
+      out += 'L        10.0.10.2/32 is directly connected, Vlan10\n';
+    } else {
+      out += 'C        10.0.10.0/24 is directly connected, Vlan10\n';
+      out += 'L        10.0.10.2/32 is directly connected, Vlan10\n';
+    }
+    out += 'C        10.0.20.0/24 is directly connected, Vlan20\n';
+    out += 'L        10.0.20.2/32 is directly connected, Vlan20\n';
+
+    if (ospfUp) {
+      // OSPF routes from R1
+      out += 'O        10.0.10.0/24 [110/2] via 203.0.113.1, 00:05:12, GigabitEthernet0/0\n';
+      out += 'O        10.0.20.0/24 [110/2] via 203.0.113.1, 00:05:12, GigabitEthernet0/0\n';
+    }
+
+    out += '      203.0.113.0/24 is variably subnetted, 2 subnets, 2 masks\n';
+    out += 'C        203.0.113.0/30 is directly connected, GigabitEthernet0/0\n';
+    out += 'L        203.0.113.2/32 is directly connected, GigabitEthernet0/0\n';
+  }
+
+  return out;
+}
+
+// ── show ip access-lists ──
+function showIpAccessLists(d) {
+  if (Object.keys(d.acls).length === 0) return '';
+
+  let out = '';
+  for (const [name, entries] of Object.entries(d.acls)) {
+    out += 'Extended IP access list ' + name + '\n';
+    let seq = 10;
+    for (const e of entries) {
+      out += '    ' + seq + ' ' + e.action + ' ' + e.protocol + ' ' + e.src + ' ' + e.dst;
+      if (e.matches !== undefined) out += ' (' + e.matches + ' matches)';
+      out += '\n';
+      seq += 10;
+    }
+  }
+  return out || '% No access lists configured';
+}
+
+// ── show vlan brief ──
+function showVlanBrief(d) {
+  let out = '\nVLAN Name                             Status    Ports\n';
+  out += '---- -------------------------------- --------- -------------------------------\n';
+
+  const vlanPorts = {};
+  for (const [vid] of Object.entries(d.vlans)) {
+    vlanPorts[vid] = [];
+  }
+  // Gather ports
+  for (const [ifName, iface] of Object.entries(d.interfaces)) {
+    if (iface.mode === 'access') {
+      const v = iface.accessVlan || 1;
+      if (!vlanPorts[v]) vlanPorts[v] = [];
+      vlanPorts[v].push(shortIfName(ifName));
+    }
+  }
+
+  for (const [vid, vlan] of Object.entries(d.vlans)) {
+    const ports = vlanPorts[vid] || [];
+    const name = vlan.name || ('VLAN' + vid);
+    out += String(vid).padEnd(5) + name.padEnd(33) + 'active    ' + ports.join(', ') + '\n';
+  }
+
+  out += '1002 fddi-default                    act/unsup\n';
+  out += '1003 token-ring-default              act/unsup\n';
+  out += '1004 fddinet-default                 act/unsup\n';
+  out += '1005 trnet-default                   act/unsup\n';
+  return out;
+}
+
+// ── show interfaces trunk ──
+function showInterfacesTrunk(d) {
+  if (d.type !== 'switch') return '% Invalid input';
+
+  let hasTrunk = false;
+  let portLine = '';
+  let nativeLine = '';
+  let vlansLine = '';
+  let activeVlansLine = '';
+
+  for (const [ifName, iface] of Object.entries(d.interfaces)) {
+    if (iface.mode !== 'trunk') continue;
+    hasTrunk = true;
+    const sn = shortIfName(ifName);
+    const nativeV = iface.trunkNativeVlan || 1;
+    const allowedV = iface.trunkAllowedVlans || 'all';
+
+    portLine += sn.padEnd(18) + 'on               802.1q      trunking\n';
+    nativeLine += sn.padEnd(18) + String(nativeV) + '\n';
+    vlansLine += sn.padEnd(18) + (allowedV === 'all' ? '1-4094' : allowedV) + '\n';
+
+    // Active VLANs
+    const activeVids = Object.keys(d.vlans).sort((a, b) => Number(a) - Number(b));
+    activeVlansLine += sn.padEnd(18) + activeVids.join(',') + '\n';
+  }
+
+  if (!hasTrunk) return '% No trunk interfaces';
+
+  let out = '\nPort        Mode         Encapsulation  Status        Native vlan\n';
+  out += portLine;
+  out += '\nPort        Vlans allowed on trunk\n';
+  out += vlansLine;
+  out += '\nPort        Vlans allowed and active in management domain\n';
+  out += activeVlansLine;
+  out += '\nPort        Vlans in spanning tree forwarding state and not pruned\n';
+  out += activeVlansLine;
+  return out;
+}
+
+// ── show interfaces <name> ──
+function showInterface(d, raw) {
+  const lower = raw.trim().toLowerCase();
+  const parts = lower.replace(/^sh(ow)?\s+int(erfaces?)?\s+/, '').trim();
+  if (parts === 'trunk' || parts === 'tru') return showInterfacesTrunk(d);
+
+  const ifName = normalizeIfName(parts);
+  const iface = d.interfaces[ifName];
+  if (!iface) return '% Invalid interface type and target';
+
+  let stateStr;
+  if (iface.errDisabled) {
+    stateStr = 'err-disabled';
+  } else if (iface.up) {
+    stateStr = 'up';
+  } else {
+    stateStr = 'administratively down';
+  }
+
+  const protoStr = (iface.errDisabled || !iface.up) ? 'down' : 'up';
+
+  let out = ifName + ' is ' + stateStr + ', line protocol is ' + protoStr + '\n';
+  if (iface.description) out += '  Description: ' + iface.description + '\n';
+  out += '  Hardware is ' + (ifName.startsWith('Gi') ? 'iGbE' : (ifName.startsWith('Fa') ? 'FastEthernet' : 'EtherSVI')) + ', address is ' + fakeMac(ifName) + '\n';
+  if (iface.ip) {
+    out += '  Internet address is ' + iface.ip + '/' + maskToCidr(iface.mask) + '\n';
+  }
+  out += '  MTU ' + (iface.ipMtu || 1500) + ' bytes, BW ' + (ifName.startsWith('Gi') ? '1000000' : (ifName.startsWith('Fa') ? '100000' : '1000000')) + ' Kbit/sec, DLY ' + (ifName.startsWith('Gi') ? '10' : '100') + ' usec,\n';
+  out += '     reliability 255/255, txload 1/255, rxload 1/255\n';
+  out += '  Encapsulation ARPA, loopback not set\n';
+  out += '  Keepalive set (10 sec)\n';
+
+  if (iface.mode === 'trunk') {
+    out += '  Trunking: on, Encapsulation: 802.1Q, Native VLAN: ' + (iface.trunkNativeVlan || 1) + '\n';
+  } else if (iface.mode === 'access') {
+    out += '  Switchport mode: access, VLAN: ' + (iface.accessVlan || 1) + '\n';
+  }
+
+  if (iface.errDisabled) {
+    out += '  Input/output data rate is disabled\n';
+    out += '  *** err-disabled: port-security violation ***\n';
+  }
+
+  out += '  Full-duplex, ' + (ifName.startsWith('Gi') ? '1000Mb/s' : '100Mb/s') + ', link type is auto, media type is ' + (ifName.startsWith('Gi') ? 'RJ45' : '10/100BaseTX') + '\n';
+  out += '  output flow-control is unsupported, input flow-control is unsupported\n';
+  out += '  ARP type: ARPA, ARP Timeout 04:00:00\n';
+  out += '  Last input 00:00:01, output 00:00:02, output hang never\n';
+  out += '  Last clearing of "show interface" counters never\n';
+  out += '  Input queue: 0/75/0/0 (size/max/drops/flushes); Total output drops: 0\n';
+  out += '  5 minute input rate 1000 bits/sec, 1 packets/sec\n';
+  out += '  5 minute output rate 1000 bits/sec, 1 packets/sec\n';
+  out += '     1234 packets input, 98765 bytes, 0 no buffer\n';
+  out += '     Received 456 broadcasts (0 multicasts)\n';
+  out += '     0 runts, 0 giants, 0 throttles\n';
+  out += '     0 input errors, 0 CRC, 0 frame, 0 overrun, 0 ignored\n';
+  out += '     0 watchdog, 0 multicast, 0 pause input\n';
+  out += '     5678 packets output, 456789 bytes, 0 underruns\n';
+  out += '     0 output errors, 0 collisions, 1 interface resets\n';
+  return out;
+}
+
+// ── show interfaces (all) ──
+function showInterfaceAll(d) {
+  let out = '';
+  for (const ifName of Object.keys(d.interfaces)) {
+    out += showInterface(d, 'show interfaces ' + ifName) + '\n';
+  }
+  return out;
+}
+
+// ── show running-config interface ──
+function showRunInterface(d, raw) {
+  const lower = raw.trim().toLowerCase();
+  const parts = lower.replace(/^sh(ow)?\s+run(ning-config)?\s+int(erface)?\s*/, '').trim();
+  if (!parts) return showRunningConfig(d);
+
+  const ifName = normalizeIfName(parts);
+  const iface = d.interfaces[ifName];
+  if (!iface) return '% Invalid interface type and target';
+
+  let out = 'Building configuration...\n\nCurrent configuration : 123 bytes\n!\n';
+  out += 'interface ' + ifName + '\n';
+  if (iface.description) out += ' description ' + iface.description + '\n';
+  if (iface.ip) {
+    out += ' ip address ' + iface.ip + ' ' + iface.mask + '\n';
+  }
+  if (iface.ipMtu && iface.ipMtu !== 1500) {
+    out += ' ip mtu ' + iface.ipMtu + '\n';
+  }
+  if (iface.aclIn) {
+    out += ' ip access-group ' + iface.aclIn + ' in\n';
+  }
+  if (iface.mode === 'trunk') {
+    out += ' switchport trunk encapsulation dot1q\n';
+    if (iface.trunkNativeVlan && iface.trunkNativeVlan !== 1) {
+      out += ' switchport trunk native vlan ' + iface.trunkNativeVlan + '\n';
+    }
+    out += ' switchport mode trunk\n';
+  } else if (iface.mode === 'access') {
+    out += ' switchport mode access\n';
+    out += ' switchport access vlan ' + (iface.accessVlan || 1) + '\n';
+  }
+  if (iface.portSecurity && iface.portSecurity.enabled) {
+    out += ' switchport port-security\n';
+    out += ' switchport port-security maximum ' + iface.portSecurity.maxMac + '\n';
+    out += ' switchport port-security violation ' + iface.portSecurity.violation + '\n';
+  }
+  if (!iface.up && !iface.errDisabled) {
+    out += ' shutdown\n';
+  }
+  out += '!\n';
+  out += 'end\n';
+  return out;
+}
+
+// ── show running-config ──
+function showRunningConfig(d) {
+  let out = 'Building configuration...\n\nCurrent configuration : 1234 bytes\n!\nversion 15.4\nservice timestamps debug datetime msec\nservice timestamps log datetime msec\n!\nhostname ' + d.hostname + '\n!\n';
+
+  if (d.ipRouting) {
+    out += 'ip routing\n';
+  }
+  out += 'ip cef\n!\n';
+
+  // VLANs
+  for (const [vid, vlan] of Object.entries(d.vlans)) {
+    if (vid === '1') continue;
+    out += 'vlan ' + vid + '\n name ' + vlan.name + '\n!\n';
+  }
+
+  // ACLs
+  for (const [name, entries] of Object.entries(d.acls)) {
+    out += 'ip access-list extended ' + name + '\n';
+    for (const e of entries) {
+      out += ' ' + e.action + ' ' + e.protocol + ' ' + e.src + ' ' + e.dst + '\n';
+    }
+    out += '!\n';
+  }
+
+  // Interfaces
+  for (const [ifName, iface] of Object.entries(d.interfaces)) {
+    out += 'interface ' + ifName + '\n';
+    if (iface.description) out += ' description ' + iface.description + '\n';
+    if (iface.ip) out += ' ip address ' + iface.ip + ' ' + iface.mask + '\n';
+    if (iface.ipMtu && iface.ipMtu !== 1500) out += ' ip mtu ' + iface.ipMtu + '\n';
+    if (iface.aclIn) out += ' ip access-group ' + iface.aclIn + ' in\n';
+    if (iface.mode === 'trunk') {
+      out += ' switchport trunk encapsulation dot1q\n';
+      if (iface.trunkNativeVlan && iface.trunkNativeVlan !== 1) {
+        out += ' switchport trunk native vlan ' + iface.trunkNativeVlan + '\n';
+      }
+      out += ' switchport mode trunk\n';
+    } else if (iface.mode === 'access') {
+      out += ' switchport mode access\n';
+      out += ' switchport access vlan ' + (iface.accessVlan || 1) + '\n';
+    }
+    if (iface.portSecurity && iface.portSecurity.enabled) {
+      out += ' switchport port-security\n';
+      out += ' switchport port-security maximum ' + iface.portSecurity.maxMac + '\n';
+      out += ' switchport port-security violation ' + iface.portSecurity.violation + '\n';
+    }
+    if (!iface.up && !iface.errDisabled) out += ' shutdown\n';
+    out += '!\n';
+  }
+
+  // OSPF
+  if (d.ospf) {
+    out += 'router ospf ' + d.ospf.processId + '\n';
+    out += ' router-id ' + d.ospf.routerId + '\n';
+    for (const n of d.ospf.networks) {
+      out += ' network ' + n.network + ' ' + n.wildcard + ' area ' + n.area + '\n';
+    }
+    out += '!\n';
+  }
+
+  out += '!\nline con 0\nline aux 0\nline vty 0 4\n login\n transport input ssh\n!\nend';
+  return out;
+}
+
+// ── show port-security ──
+function showPortSecurity(d, raw) {
+  const lower = raw.trim().toLowerCase();
+
+  // show port-security interface <name>
+  const ifMatch = lower.match(/port-security\s+int(erface)?\s+(.+)$/);
+  if (ifMatch) {
+    const ifName = normalizeIfName(ifMatch[2].trim());
+    const iface = d.interfaces[ifName];
+    if (!iface) return '% Invalid interface type and target';
+    if (!iface.portSecurity || !iface.portSecurity.enabled) {
+      return '% Port security is not enabled on interface ' + ifName;
+    }
+
+    const ps = iface.portSecurity;
+    let out = 'Port Security              : Enabled\n';
+    out += 'Port Status                : ' + (ps.status || 'Secure-Up') + '\n';
+    out += 'Violation Mode             : ' + (ps.violation || 'Shutdown') + '\n';
+    out += 'Aging Time                 : 0 mins\n';
+    out += 'Aging Type                 : Absolute\n';
+    out += 'SecureStatic Address Aging : Disabled\n';
+    out += 'Maximum MAC Addresses      : ' + ps.maxMac + '\n';
+    out += 'Total MAC Addresses        : 1\n';
+    out += 'Configured MAC Addresses   : 0\n';
+    out += 'Sticky MAC Addresses       : 0\n';
+    out += 'Last Source Address:Vlan   : ' + (ps.stickyMac || '0000.0000.0000') + ':' + (iface.accessVlan || 1) + '\n';
+    out += 'Security Violation Count   : ' + (ps.status === 'secure-shutdown' ? '1' : '0') + '\n';
+    return out;
+  }
+
+  // show port-security (summary)
+  let out = '\nSecure Port  MaxSecureAddr  CurrentAddr  SecurityViolation  Security Action\n';
+  out += '                (Count)       (Count)          (Count)\n';
+  out += '---------------------------------------------------------------------------\n';
+  for (const [ifName, iface] of Object.entries(d.interfaces)) {
+    if (!iface.portSecurity || !iface.portSecurity.enabled) continue;
+    const ps = iface.portSecurity;
+    const sn = shortIfName(ifName);
+    const violations = ps.status === 'secure-shutdown' ? 1 : 0;
+    out += '  ' + sn.padEnd(14) + String(ps.maxMac).padEnd(15) + '1'.padEnd(13) + String(violations).padEnd(19) + ps.violation + '\n';
+  }
+  out += '---------------------------------------------------------------------------\n';
+  return out;
+}
+
+// ── show cdp neighbors ──
+function showCdpNeighbors(d) {
+  let out = 'Capability Codes: R - Router, T - Trans Bridge, B - Source Route Bridge\n';
+  out += '                  S - Switch, H - Host, I - IGMP, r - Repeater, P - Phone\n\n';
+  out += 'Device ID        Local Intrfce     Holdtme    Capability  Platform  Port ID\n';
+
+  const dn = activeDeviceName;
+  if (dn === 'R1') {
+    out += 'R2               Gig 0/0           172         R S       C2900     Gig 0/0\n';
+    out += 'SW1              Gig 0/1           145         S         C2960     Gig 0/1\n';
+  } else if (dn === 'R2') {
+    out += 'R1               Gig 0/0           172         R S       C2900     Gig 0/0\n';
+    out += 'SW2              Gig 0/1           145         S         C2960     Gig 0/1\n';
+  } else if (dn === 'SW1') {
+    out += 'R1               Gig 0/1           172         R S       C2900     Gig 0/1\n';
+    // Native VLAN mismatch log
+    const nativeV = d.interfaces['GigabitEthernet0/1'].trunkNativeVlan || 1;
+    if (nativeV !== 1) {
+      out += '\n*Mar  4 12:34:56.789: %CDP-4-NATIVE_VLAN_MISMATCH: Native VLAN mismatch discovered on GigabitEthernet0/1 (99), with R1 GigabitEthernet0/1 (1).\n';
+    }
+  } else if (dn === 'SW2') {
+    out += 'R2               Gig 0/1           172         R S       C2900     Gig 0/1\n';
+  }
+
+  return out;
+}
+
+// ── show version ──
+function showVersion(d) {
+  const platform = d.type === 'router' ? 'Cisco 2901' : 'Cisco WS-C2960-24TT-L';
+  const ios = d.type === 'router' ? '15.4(3)M4' : '15.2(2)E8';
+  let out = 'Cisco IOS Software, ' + (d.type === 'router' ? 'C2900' : 'C2960') + ' Software (' + (d.type === 'router' ? 'C2900-UNIVERSALK9-M' : 'C2960-LANBASEK9-M') + '), Version ' + ios + '\n';
+  out += 'Technical Support: http://www.cisco.com/techsupport\n';
+  out += 'Copyright (c) 1986-2016 by Cisco Systems, Inc.\n';
+  out += 'ROM: System Bootstrap, Version 15.0(1r)M15\n\n';
+  out += d.hostname + ' uptime is 2 hours, 15 minutes\n';
+  out += 'System returned to ROM by reload at 10:30:00 UTC Mon Mar 4 2026\n\n';
+  out += 'System image file is "flash:/' + (d.type === 'router' ? 'c2900-universalk9-mz.SPA.154-3.M4.bin' : 'c2960-lanbasek9-mz.152-2.E8.bin') + '"\n\n';
+  out += 'Cisco ' + platform + ' (' + (d.type === 'router' ? 'revision 1.0' : 'PowerPC405') + ') processor with ' + (d.type === 'router' ? '524288K/262144K' : '131072K') + ' bytes of memory.\n';
+  out += 'Processor board ID FCZ1234567\n';
+  return out;
+}
+
+// ── ping ──
+function handlePing(d, raw) {
+  const parts = raw.trim().split(/\s+/);
+  const target = parts[1];
+  if (!target) return '% Incomplete command.';
+
+  // Simple simulation
+  return '\nType escape sequence to abort.\nSending 5, 100-byte ICMP Echos to ' + target + ', timeout is 2 seconds:\n.....\nSuccess rate is 0 percent (0/5)\n';
+}
+
+// ════════════════════════════════════════════════════════════════
+//  CONFIG COMMANDS
+// ════════════════════════════════════════════════════════════════
+function handleConfig(d, raw, lower) {
+
+  // ── Interface selection ──
+  const ifMatch = raw.match(/^interface\s+(.+)/i);
+  if (ifMatch && (d.mode === 'config' || d.mode === 'config-if')) {
+    const ifName = normalizeIfName(ifMatch[1].trim());
+    d.currentIf = ifName;
+    d.mode = 'config-if';
+    if (!d.interfaces[ifName]) {
+      if (ifName.startsWith('Vlan')) {
+        d.interfaces[ifName] = { ip: null, mask: null, up: true };
+      } else {
+        d.interfaces[ifName] = { up: true, mode: 'access', accessVlan: 1 };
+      }
+    }
+    return '';
+  }
+
+  // ── VLAN creation ──
+  const vlanMatch = raw.match(/^vlan\s+(\d+)/i);
+  if (vlanMatch && d.mode === 'config') {
+    const vid = parseInt(vlanMatch[1]);
+    if (!d.vlans[vid]) d.vlans[vid] = { name: 'VLAN' + vid };
+    d._currentVlan = vid;
+    d.mode = 'config-vlan';
+    return '';
+  }
+
+  // ── VLAN name ──
+  if (lower.startsWith('name ') && d.mode === 'config-vlan') {
+    const name = raw.substring(5).trim();
+    if (d._currentVlan && d.vlans[d._currentVlan]) {
+      d.vlans[d._currentVlan].name = name;
+    }
+    return '';
+  }
+
+  // ── router ospf ──
+  const ospfMatch = raw.match(/^router\s+ospf\s+(\d+)/i);
+  if (ospfMatch && d.mode === 'config') {
+    const pid = parseInt(ospfMatch[1]);
+    if (!d.ospf) {
+      d.ospf = { processId: pid, routerId: null, networks: [] };
+    }
+    d.mode = 'config-router';
+    return '';
+  }
+
+  // ── Config-router commands ──
+  if (d.mode === 'config-router') {
+    // network X.X.X.X W.W.W.W area N
+    const netMatch = raw.match(/^network\s+([\d.]+)\s+([\d.]+)\s+area\s+(\d+)/i);
+    if (netMatch) {
+      const net = netMatch[1], wc = netMatch[2], area = parseInt(netMatch[3]);
+      // Check if already exists
+      const exists = d.ospf.networks.some(n => n.network === net && n.wildcard === wc && n.area === area);
+      if (!exists) {
+        d.ospf.networks.push({ network: net, wildcard: wc, area: area });
+      }
+      return '';
+    }
+
+    // no network
+    const noNetMatch = raw.match(/^no\s+network\s+([\d.]+)\s+([\d.]+)\s+area\s+(\d+)/i);
+    if (noNetMatch) {
+      const net = noNetMatch[1], wc = noNetMatch[2], area = parseInt(noNetMatch[3]);
+      d.ospf.networks = d.ospf.networks.filter(n => !(n.network === net && n.wildcard === wc && n.area === area));
+      return '';
+    }
+
+    // router-id
+    const ridMatch = raw.match(/^router-id\s+([\d.]+)/i);
+    if (ridMatch) {
+      d.ospf.routerId = ridMatch[1];
+      return '';
+    }
+
+    return "% Invalid input detected at '^' marker.";
+  }
+
+  // ── Config-if commands ──
+  if (d.mode === 'config-if') {
+    const iface = d.interfaces[d.currentIf];
+    if (!iface) return "% Interface not found";
+
+    // ip address X.X.X.X M.M.M.M
+    const ipMatch = raw.match(/^ip\s+address\s+([\d.]+)\s+([\d.]+)/i);
+    if (ipMatch) {
+      iface.ip = ipMatch[1];
+      iface.mask = ipMatch[2];
+      return '';
+    }
+
+    // ip mtu <value>
+    const mtuMatch = raw.match(/^ip\s+mtu\s+(\d+)/i);
+    if (mtuMatch) {
+      iface.ipMtu = parseInt(mtuMatch[1]);
+      return '';
+    }
+
+    // no ip mtu
+    if (lower.match(/^no\s+ip\s+mtu/)) {
+      iface.ipMtu = 1500;
+      return '';
+    }
+
+    // ip access-group <name> in/out
+    const aclMatch = raw.match(/^ip\s+access-group\s+(\S+)\s+(in|out)/i);
+    if (aclMatch) {
+      if (aclMatch[2].toLowerCase() === 'in') iface.aclIn = aclMatch[1];
+      else iface.aclOut = aclMatch[1];
+      return '';
+    }
+
+    // no ip access-group <name> in/out
+    const noAclMatch = raw.match(/^no\s+ip\s+access-group\s+(\S+)\s+(in|out)/i);
+    if (noAclMatch) {
+      if (noAclMatch[2].toLowerCase() === 'in') delete iface.aclIn;
+      else delete iface.aclOut;
+      return '';
+    }
+
+    // switchport access vlan <N>
+    const accVlanMatch = raw.match(/^switchport\s+access\s+vlan\s+(\d+)/i);
+    if (accVlanMatch) {
+      iface.accessVlan = parseInt(accVlanMatch[1]);
+      iface.mode = 'access';
+      return '';
+    }
+
+    // switchport mode access
+    if (lower.match(/^switchport\s+mode\s+access/)) {
+      iface.mode = 'access';
+      return '';
+    }
+
+    // switchport mode trunk
+    if (lower.match(/^switchport\s+mode\s+trunk/)) {
+      iface.mode = 'trunk';
+      return '';
+    }
+
+    // switchport trunk native vlan <N>
+    const nativeMatch = raw.match(/^switchport\s+trunk\s+native\s+vlan\s+(\d+)/i);
+    if (nativeMatch) {
+      iface.trunkNativeVlan = parseInt(nativeMatch[1]);
+      return '';
+    }
+
+    // switchport trunk allowed vlan <list>
+    const allowedMatch = raw.match(/^switchport\s+trunk\s+allowed\s+vlan\s+(.+)/i);
+    if (allowedMatch) {
+      iface.trunkAllowedVlans = allowedMatch[1].trim();
+      return '';
+    }
+
+    // shutdown
+    if (lower === 'shutdown' || lower === 'shut') {
+      iface.up = false;
+      if (iface.errDisabled) {
+        // Shutting down an err-disabled port is step 1 of recovery
+        iface._shutForRecovery = true;
+      }
+      return '';
+    }
+
+    // no shutdown
+    if (lower === 'no shutdown' || lower === 'no shut') {
+      if (iface.errDisabled && iface._shutForRecovery) {
+        // Recovery: clear err-disabled
+        iface.errDisabled = false;
+        iface.up = true;
+        delete iface._shutForRecovery;
+        if (iface.portSecurity) {
+          iface.portSecurity.status = 'secure-up';
+        }
+        return '%LINK-3-UPDOWN: Interface ' + d.currentIf + ', changed state to up\n%LINEPROTO-5-UPDOWN: Line protocol on Interface ' + d.currentIf + ', changed state to up';
+      } else if (iface.errDisabled) {
+        // Need to shut first
+        return "% " + d.currentIf + " is in err-disabled state. Use 'shutdown' first, then 'no shutdown'.";
+      }
+      iface.up = true;
+      return '%LINK-3-UPDOWN: Interface ' + d.currentIf + ', changed state to up\n%LINEPROTO-5-UPDOWN: Line protocol on Interface ' + d.currentIf + ', changed state to up';
+    }
+
+    // description
+    if (lower.startsWith('description ')) {
+      iface.description = raw.substring(12).trim();
+      return '';
+    }
+
+    // no description
+    if (lower === 'no description') {
+      delete iface.description;
+      return '';
+    }
+
+    // switchport port-security
+    if (lower === 'switchport port-security') {
+      if (!iface.portSecurity) iface.portSecurity = { enabled: true, maxMac: 1, violation: 'shutdown', status: 'secure-up' };
+      else iface.portSecurity.enabled = true;
+      return '';
+    }
+
+    // switchport port-security maximum N
+    const psMaxMatch = raw.match(/switchport\s+port-security\s+maximum\s+(\d+)/i);
+    if (psMaxMatch) {
+      if (iface.portSecurity) iface.portSecurity.maxMac = parseInt(psMaxMatch[1]);
+      return '';
+    }
+
+    // switchport port-security violation <mode>
+    const psViolMatch = raw.match(/switchport\s+port-security\s+violation\s+(\S+)/i);
+    if (psViolMatch) {
+      if (iface.portSecurity) iface.portSecurity.violation = psViolMatch[1].toLowerCase();
+      return '';
+    }
+
+    return "% Invalid input detected at '^' marker.";
+  }
+
+  // ── Config mode commands ──
+  if (d.mode === 'config') {
+    // ip access-list extended <name>
+    const aclExtMatch = raw.match(/^ip\s+access-list\s+extended\s+(\S+)/i);
+    if (aclExtMatch) {
+      const name = aclExtMatch[1];
+      if (!d.acls[name]) d.acls[name] = [];
+      d._currentAcl = name;
+      d.mode = 'config'; // stays in config for simplicity, ACL entries follow
+      return '';
+    }
+
+    // no ip access-list extended <name>
+    const noAclExtMatch = raw.match(/^no\s+ip\s+access-list\s+extended\s+(\S+)/i);
+    if (noAclExtMatch) {
+      delete d.acls[noAclExtMatch[1]];
+      // Also remove references from interfaces
+      for (const iface of Object.values(d.interfaces)) {
+        if (iface.aclIn === noAclExtMatch[1]) delete iface.aclIn;
+        if (iface.aclOut === noAclExtMatch[1]) delete iface.aclOut;
+      }
+      return '';
+    }
+
+    // hostname
+    const hostMatch = raw.match(/^hostname\s+(\S+)/i);
+    if (hostMatch) {
+      d.hostname = hostMatch[1];
+      return '';
+    }
+
+    // ip routing
+    if (lower === 'ip routing') {
+      d.ipRouting = true;
+      return '';
+    }
+
+    return "% Invalid input detected at '^' marker.";
+  }
+
+  return "% Invalid input detected at '^' marker.";
+}
+
+// ════════════════════════════════════════════════════════════════
+//  HELP
+// ════════════════════════════════════════════════════════════════
+function showHelp(d) {
+  if (d.mode === 'user') {
+    return 'Available commands:\n  enable          Enter privileged EXEC mode\n  show            Show running system information\n  connect <dev>   Connect to another device (R1, R2, SW1, SW2)\n  exit            Exit current mode\n  ?               Display this help';
+  }
+  if (d.mode === 'priv') {
+    return 'Available commands:\n  configure terminal   Enter configuration mode\n  show                 Show running system information\n  ping <ip>            Send ICMP echo\n  connect <dev>        Connect to another device\n  disable              Return to user mode\n  exit                 Exit current mode\n  ?                    Display this help';
+  }
+  if (d.mode === 'config') {
+    return 'Available commands:\n  interface <name>     Enter interface configuration\n  router ospf <id>     Enter OSPF router configuration\n  vlan <id>            Create/configure VLAN\n  ip access-list ...   Configure access list\n  hostname <name>      Set hostname\n  exit                 Return to privileged mode\n  end                  Return to privileged mode\n  ?                    Display this help';
+  }
+  if (d.mode === 'config-if') {
+    return 'Available commands:\n  ip address <ip> <mask>          Set IP address\n  ip mtu <bytes>                  Set IP MTU\n  no ip mtu                       Reset IP MTU to default\n  ip access-group <name> in|out   Apply access list\n  no ip access-group <name> in    Remove access list\n  switchport access vlan <id>     Set access VLAN\n  switchport trunk native vlan <id>   Set native VLAN\n  switchport mode access|trunk    Set switchport mode\n  shutdown / no shutdown          Admin up/down\n  description <text>              Set description\n  exit                            Return to config mode\n  end                             Return to privileged mode\n  ?                               Display this help';
+  }
+  if (d.mode === 'config-router') {
+    return 'Available commands:\n  network <ip> <wildcard> area <id>   Add OSPF network\n  no network <ip> <wildcard> area <id>  Remove OSPF network\n  router-id <ip>                  Set router ID\n  exit                            Return to config mode\n  end                             Return to privileged mode\n  ?                               Display this help';
+  }
+  if (d.mode === 'config-vlan') {
+    return 'Available commands:\n  name <text>     Set VLAN name\n  exit            Return to config mode\n  end             Return to privileged mode\n  ?               Display this help';
+  }
+  return '';
+}
+
+// ════════════════════════════════════════════════════════════════
+//  DEVICE SWITCHING
+// ════════════════════════════════════════════════════════════════
+function switchToDevice(name) {
+  const upper = name.toUpperCase();
+  if (!deviceState[upper]) return '% Unknown device: ' + name + '. Available: R1, R2, SW1, SW2';
+  activeDeviceName = upper;
+  deviceState[upper].mode = 'user';
+  deviceState[upper].currentIf = null;
+
+  // Update device selector buttons
+  document.querySelectorAll('.device-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.device === upper);
+  });
+
+  return '\n--- Connected to ' + deviceState[upper].hostname + ' ---\n';
+}
+
+window.selectDevice = function(name) {
+  const output = switchToDevice(name);
+  writeLines(output, 'system');
+  updatePrompt();
+  scrollToBottom();
+  inputEl.focus();
+};
+
+window.clearTerminal = function() {
+  outputEl.innerHTML = '';
+  inputEl.focus();
+};
+
+// ════════════════════════════════════════════════════════════════
+//  BUG CHECKING
+// ════════════════════════════════════════════════════════════════
+function checkAllBugs() {
+  const r1 = deviceState.R1;
+  const r2 = deviceState.R2;
+  const sw1 = deviceState.SW1;
+  const sw2 = deviceState.SW2;
+
+  // Bug 0: OSPF MTU mismatch — R1 Gi0/0 MTU should be 1500 (or match R2)
+  const r1Mtu = r1.interfaces['GigabitEthernet0/0'].ipMtu || 1500;
+  const r2Mtu = r2.interfaces['GigabitEthernet0/0'].ipMtu || 1500;
+  checkBug(0, r1Mtu === r2Mtu);
+
+  // Bug 1: Native VLAN mismatch — SW1 Gi0/1 native should be 1
+  const sw1Native = sw1.interfaces['GigabitEthernet0/1'].trunkNativeVlan;
+  // Accept either: SW1 native matches 1 (default/R1 expects), or both sides match
+  // For simplicity: SW1 native should be 1
+  checkBug(1, sw1Native === 1);
+
+  // Bug 2: VLAN 20 missing on SW2
+  checkBug(2, sw2.vlans[20] !== undefined);
+
+  // Bug 3: SW2 Fa0/1 err-disabled
+  checkBug(3, !sw2.interfaces['FastEthernet0/1'].errDisabled && sw2.interfaces['FastEthernet0/1'].up);
+
+  // Bug 4: ACL on R2 blocking ICMP — R2 Gi0/1 should not have FILTER ACL applied
+  const r2Gi01AclIn = r2.interfaces['GigabitEthernet0/1'].aclIn;
+  // Check if ACL is removed OR if the FILTER ACL no longer has deny icmp
+  let aclFixed = false;
+  if (!r2Gi01AclIn) {
+    aclFixed = true;
+  } else if (r2.acls[r2Gi01AclIn]) {
+    // Check that no deny icmp any any exists
+    aclFixed = !r2.acls[r2Gi01AclIn].some(e => e.action === 'deny' && e.protocol === 'icmp');
+  } else {
+    // ACL name set but ACL doesn't exist (deleted)
+    aclFixed = true;
+  }
+  checkBug(4, aclFixed);
+
+  // Bug 5: Wrong subnet mask on R2 VLAN 10 SVI — should be /24
+  checkBug(5, r2.interfaces['Vlan10'].mask === '255.255.255.0');
+
+  // Bug 6: Missing OSPF network on R2 — need 10.0.20.0 0.0.0.255 area 0
+  const r2HasNet20 = r2.ospf && r2.ospf.networks.some(n => n.network === '10.0.20.0' && n.wildcard === '0.0.0.255' && n.area === 0);
+  checkBug(6, r2HasNet20);
+
+  // Bug 7: SW1 Fa0/2 in wrong VLAN — should be VLAN 20
+  checkBug(7, sw1.interfaces['FastEthernet0/2'].accessVlan === 20);
+
+  updateTopology();
+}
+
+function checkBug(idx, fixed) {
+  if (fixed && !bugFixed[idx]) {
+    bugFixed[idx] = true;
+    completedCount++;
+    markObjectiveComplete(idx);
+
+    if (completedCount === 8) {
+      labComplete();
+    }
+  }
+  // Don't un-fix bugs — once done, done
+}
+
+function markObjectiveComplete(idx) {
+  const item = document.querySelector('.objective-item[data-obj="' + idx + '"]');
+  if (item) {
+    item.classList.add('completed');
+    item.querySelector('.obj-icon').innerHTML = '&#10003;';
+  }
+
+  document.getElementById('progress-text').textContent = completedCount + ' / 8';
+  document.getElementById('progress-fill').style.width = (completedCount / 8 * 100) + '%';
+
+  // Flash the issue dot
+  const dot = document.getElementById('issue-dot-' + idx);
+  if (dot) dot.classList.add('resolved');
+
+  // Terminal feedback
+  writeLine('');
+  writeLine('*** Issue ' + (idx + 1) + ' resolved! (' + completedCount + '/8) ***', 'success');
+  writeLine('');
+  scrollToBottom();
+}
+
+function labComplete() {
+  clearInterval(timerInterval);
+  const elapsed = Math.floor((Date.now() - labStartTime) / 1000);
+  const m = String(Math.floor(elapsed / 60)).padStart(2, '0');
+  const s = String(elapsed % 60).padStart(2, '0');
+  document.getElementById('completion-time').textContent = 'Completed in ' + m + ':' + s;
+
+  setTimeout(() => {
+    document.getElementById('completion-banner').classList.add('visible');
+  }, 800);
+}
+
+// ════════════════════════════════════════════════════════════════
+//  TOPOLOGY SVG UPDATE
+// ════════════════════════════════════════════════════════════════
+function updateTopology() {
+  const r1 = deviceState.R1;
+  const r2 = deviceState.R2;
+  const sw1 = deviceState.SW1;
+  const sw2 = deviceState.SW2;
+
+  // R1-R2 link: green if OSPF MTU matches
+  const r1Mtu = r1.interfaces['GigabitEthernet0/0'].ipMtu || 1500;
+  const r2Mtu = r2.interfaces['GigabitEthernet0/0'].ipMtu || 1500;
+  setLinkColor('link-r1-r2', r1Mtu === r2Mtu);
+
+  // R1-SW1 link: green if native VLAN ok
+  setLinkColor('link-r1-sw1', sw1.interfaces['GigabitEthernet0/1'].trunkNativeVlan === 1);
+
+  // R2-SW2 link: green if no ACL issue and SW2 has VLAN 20
+  const r2AclOk = !r2.interfaces['GigabitEthernet0/1'].aclIn || !r2.acls['FILTER'] || !r2.acls['FILTER'].some(e => e.action === 'deny' && e.protocol === 'icmp');
+  setLinkColor('link-r2-sw2', r2AclOk);
+
+  // SW1-PC1: ok (no bug on this link directly)
+  setLinkColor('link-sw1-pc1', true);
+
+  // SW1-PC2: green if Fa0/2 is in VLAN 20
+  setLinkColor('link-sw1-pc2', sw1.interfaces['FastEthernet0/2'].accessVlan === 20);
+
+  // SW2-PC3: green if Fa0/1 not err-disabled
+  setLinkColor('link-sw2-pc3', !sw2.interfaces['FastEthernet0/1'].errDisabled && sw2.interfaces['FastEthernet0/1'].up);
+
+  // SW2-PC4: green if VLAN 20 exists on SW2
+  setLinkColor('link-sw2-pc4', sw2.vlans[20] !== undefined);
+
+  // Device boxes
+  const r1Issues = [0].filter(i => !bugFixed[i]).length;
+  const r2Issues = [4, 5, 6].filter(i => !bugFixed[i]).length;
+  const sw1Issues = [1, 7].filter(i => !bugFixed[i]).length;
+  const sw2Issues = [2, 3].filter(i => !bugFixed[i]).length;
+
+  setBoxState('box-R1', r1Issues === 0);
+  setBoxState('box-R2', r2Issues === 0);
+  setBoxState('box-SW1', sw1Issues === 0);
+  setBoxState('box-SW2', sw2Issues === 0);
+}
+
+function setLinkColor(id, ok) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.classList.remove('topo-link-ok', 'topo-link-err', 'topo-link-warn');
+  el.classList.add(ok ? 'topo-link-ok' : 'topo-link-err');
+}
+
+function setBoxState(id, allClear) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.classList.remove('has-issue', 'all-clear');
+  el.classList.add(allClear ? 'all-clear' : 'has-issue');
+}
+
+// ════════════════════════════════════════════════════════════════
+//  HINTS
+// ════════════════════════════════════════════════════════════════
+const hints = [
+  "OSPF neighbors stuck in ExStart usually means an MTU mismatch. Check 'show ip ospf interface' on both routers and compare the MTU values.",
+  "Check 'show interfaces trunk' on SW1 and compare native VLAN settings with R1. CDP may also report native VLAN mismatches."
+];
+let hintsUsed = 0;
+const maxHints = 2;
+
+// Find next unfixed hint index
+function nextHintIndex() {
+  if (hintsUsed >= maxHints) return -1;
+  // Return the hint for the next unfixed bug that has a hint
+  for (let i = 0; i < hints.length; i++) {
+    if (!bugFixed[i]) return i;
+  }
+  return -1;
+}
+
+window.useHint = function() {
+  if (hintsUsed >= maxHints) return;
+
+  const idx = nextHintIndex();
+  if (idx === -1) {
+    document.getElementById('hint-display').textContent = 'No more hints available for remaining issues.';
+    document.getElementById('hint-display').classList.remove('hidden');
+    return;
+  }
+
+  hintsUsed++;
+  const remaining = maxHints - hintsUsed;
+  document.getElementById('hint-remaining').textContent = remaining + ' hint' + (remaining !== 1 ? 's' : '') + ' remaining';
+  document.getElementById('hint-display').textContent = hints[idx];
+  document.getElementById('hint-display').classList.remove('hidden');
+
+  if (hintsUsed >= maxHints) {
+    document.getElementById('hint-btn').disabled = true;
+  }
+};
+
+// ════════════════════════════════════════════════════════════════
+//  UTILITY FUNCTIONS
+// ════════════════════════════════════════════════════════════════
+function normalizeIfName(name) {
+  let n = name.trim();
+  // Handle abbreviated forms
+  n = n.replace(/^gi(?:gabitethernet)?[\s]*/i, 'GigabitEthernet');
+  n = n.replace(/^fa(?:stethernet)?[\s]*/i, 'FastEthernet');
+  n = n.replace(/^lo(?:opback)?[\s]*/i, 'Loopback');
+  n = n.replace(/^vlan[\s]*/i, 'Vlan');
+  n = n.replace(/^gig[\s]*/i, 'GigabitEthernet');
+  n = n.replace(/^g[\s]*(?=\d)/i, 'GigabitEthernet');
+  n = n.replace(/^f[\s]*(?=\d)/i, 'FastEthernet');
+  return n;
+}
+
+function shortIfName(name) {
+  return name
+    .replace('GigabitEthernet', 'Gi')
+    .replace('FastEthernet', 'Fa')
+    .replace('Loopback', 'Lo');
+}
+
+function maskToCidr(mask) {
+  if (!mask) return 0;
+  const parts = mask.split('.').map(Number);
+  let bits = 0;
+  for (const p of parts) {
+    bits += (p >>> 0).toString(2).split('1').length - 1;
+  }
+  return bits;
+}
+
+function cidrToMask(cidr) {
+  const mask = [];
+  for (let i = 0; i < 4; i++) {
+    const bits = Math.min(8, Math.max(0, cidr - i * 8));
+    mask.push(256 - Math.pow(2, 8 - bits));
+  }
+  return mask.join('.');
+}
+
+function ipInNetwork(ip, network, wildcard) {
+  const ipParts = ip.split('.').map(Number);
+  const netParts = network.split('.').map(Number);
+  const wcParts = wildcard.split('.').map(Number);
+  for (let i = 0; i < 4; i++) {
+    if ((ipParts[i] & ~wcParts[i]) !== (netParts[i] & ~wcParts[i])) return false;
+  }
+  return true;
+}
+
+function fakeMac(ifName) {
+  // Generate a consistent fake MAC based on interface name
+  let hash = 0;
+  for (let i = 0; i < ifName.length; i++) {
+    hash = ((hash << 5) - hash) + ifName.charCodeAt(i);
+    hash = hash & 0xFFFFFF;
+  }
+  const hex = Math.abs(hash).toString(16).padStart(6, '0');
+  return 'aabb.cc' + hex.substring(0, 2) + '.' + hex.substring(2, 6);
+}
+
+// ════════════════════════════════════════════════════════════════
+//  INITIAL TOPOLOGY RENDER
+// ════════════════════════════════════════════════════════════════
+updateTopology();
+
+// Focus terminal input on load
+inputEl.focus();
+
+})();
+</script>
+</body>
+</html>
