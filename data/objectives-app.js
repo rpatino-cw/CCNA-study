@@ -297,6 +297,12 @@ function saveState(s) { localStorage.setItem(STORAGE_KEY, JSON.stringify(s)); }
 function getObjState(id) { const s = loadState(); return s[id] || { proficiency: null, quizScores: {} }; }
 function setObjState(id, data) { const s = loadState(); s[id] = { ...(s[id] || {}), ...data }; saveState(s); }
 
+window.resetAllStats = function() {
+  if (!confirm('Reset all quiz scores and proficiency ratings to zero? This cannot be undone.')) return;
+  localStorage.removeItem(STORAGE_KEY);
+  location.reload();
+};
+
 /* ═══════════════════════════════════════════════════════════════════
    Flatten topics into renderable rows
    - Parent with subs → parent header + each sub as expandable row
