@@ -12,7 +12,7 @@
     DIAGNOSTIC: 'diagnostic',
     TOPIC_STUDY: 'topic_study',
   };
-  const RATING_MAP = { green: 0.75, yellow: 0.5, red: 0.2 };
+  const RATING_MAP = { green: 0.75, yellow: 0.5, red: 0.2, none: 0 };
   const EMA_ALPHA = 0.3;
 
   function todayStr() {

@@ -419,7 +419,7 @@ function showQuestion(el, idx) {
     return;
   }
   const v = vocab[idx];
-  el.querySelector('.vocab-quiz-body').innerHTML = `<div class="vocab-term">${v.term}<span class="context">${v.q}</span></div><div class="vocab-options">${v.options.map((o,i) => `<button class="vocab-option" data-idx="${i}" onclick="answerQuestion(this)">${o}</button>`).join('')}</div><div class="vocab-feedback-slot"></div><div class="vocab-nav"><span class="vocab-progress">${idx+1} / ${vocab.length}</span><button class="btn btn-sm btn-secondary vocab-next hidden" onclick="nextQuestion(this)">Next</button></div>`;
+  el.querySelector('.vocab-quiz-body').innerHTML = `<div class="vocab-term">${v.term}<span class="context">${v.q}</span></div><div class="vocab-options">${v.options.map((o,i) => `<button class="vocab-option" data-idx="${i}" onclick="answerQuestion(this)">${o}</button>`).join('')}</div><div class="vocab-feedback-slot"></div><div class="vocab-nav"><span class="vocab-progress">${idx+1} / ${vocab.length}</span><button class="btn btn-sm btn-ghost vocab-skip" onclick="skipQuestion(this)" style="color:var(--ink-muted)">Skip</button><button class="btn btn-sm btn-secondary vocab-next hidden" onclick="nextQuestion(this)">Next</button></div>`;
   el.dataset.idx = idx;
 }
 
@@ -434,6 +434,7 @@ window.answerQuestion = function(btn) {
   quiz.querySelector('.vocab-next').classList.remove('hidden');
 };
 window.nextQuestion = function(btn) { const q = btn.closest('.vocab-quiz'); showQuestion(q, parseInt(q.dataset.idx)+1); };
+window.skipQuestion = function(btn) { const q = btn.closest('.vocab-quiz'); const id = q.dataset.topic; const idx = parseInt(q.dataset.idx); const state = getObjState(id); const scores = state.quizScores || {}; scores[idx] = 0; setObjState(id, { quizScores: scores }); showQuestion(q, idx + 1); };
 window.resetQuiz = function(btn) { const q = btn.closest('.vocab-quiz'); setObjState(q.dataset.topic, { quizScores: {} }); showQuestion(q, 0); };
 
 function renderPanel(id) {
