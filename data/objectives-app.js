@@ -298,8 +298,16 @@ function getObjState(id) { const s = loadState(); return s[id] || { proficiency:
 function setObjState(id, data) { const s = loadState(); s[id] = { ...(s[id] || {}), ...data }; saveState(s); }
 
 window.resetAllStats = function() {
-  if (!confirm('Reset all quiz scores and proficiency ratings to zero? This cannot be undone.')) return;
+  if (!confirm('Reset ALL progress across the entire site? Quiz scores, proficiency ratings, study logs — everything goes to zero. This cannot be undone.')) return;
+  // Clear objectives data
   localStorage.removeItem(STORAGE_KEY);
+  // Clear store.js data (ccna_ prefix)
+  const toRemove = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const k = localStorage.key(i);
+    if (k && k.startsWith('ccna_')) toRemove.push(k);
+  }
+  toRemove.forEach(k => localStorage.removeItem(k));
   location.reload();
 };
 
