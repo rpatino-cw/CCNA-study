@@ -185,6 +185,8 @@
       if (k && k.startsWith(PREFIX)) keys.push(k);
     }
     keys.forEach(k => localStorage.removeItem(k));
+    // Set proficiency to empty object so initProficiency won't reseed defaults
+    set(KEYS.PROFICIENCY, {});
   }
 
   window.store = {
