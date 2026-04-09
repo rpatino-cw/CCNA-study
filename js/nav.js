@@ -12,7 +12,8 @@
     { text: 'Learn Visually', href: 'learn-visually.html' },
     { text: 'Subnetting',    href: 'subnetting-visual.html' },
     { text: 'Labs',          href: 'labs/index.html' },
-    { text: 'Objectives',    href: 'objectives.html' }
+    { text: 'Objectives',    href: 'objectives.html' },
+    { text: 'Resources',     href: 'resources.html' }
   ];
 
   var nav = document.querySelector('nav.top-nav');
