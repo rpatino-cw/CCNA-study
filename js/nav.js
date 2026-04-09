@@ -16,6 +16,7 @@
     { text: 'Console Labs',  href: 'console-labs.html' },
     { text: 'Labs',          href: 'labs/index.html' },
     { text: 'Objectives',    href: 'objectives.html' },
+    { text: 'Glossary',      href: 'glossary.html' },
     { text: 'Resources',     href: 'resources.html' }
   ];
 
