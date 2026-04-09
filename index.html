@@ -907,6 +907,109 @@
       document.getElementById('app').innerHTML = `<p style="color:var(--prof-weak)">Error: ${err.message}</p>`;
     }
     showWelcomeModal();
+
+    // ── Guided Tour ───────────────────────────────────────────
+    (function guidedTour() {
+      if (localStorage.getItem('ccna_tour_done')) return;
+      // Wait a beat for DOM to settle
+      setTimeout(startTour, 800);
+
+      const STEPS = [
+        { el: '#examTarget',   text: 'Set your exam date here — you\'ll get a live countdown.', pos: 'below' },
+        { el: 'nav.top-nav',   text: 'Navigate between tools: quizzes, labs, visuals, strategy.', pos: 'below' },
+        { el: 'nav.top-nav a[href="diagnostic.html"]', text: 'Start with the Diagnostic to find your weak spots.', pos: 'below' },
+        { el: 'nav.top-nav a[href="learn-visually.html"]', text: 'Learn Visually — every concept drawn as a diagram.', pos: 'below' },
+      ];
+
+      let current = 0;
+      let backdrop, tooltip, skipBtn;
+
+      function startTour() {
+        // Inject styles once
+        const style = document.createElement('style');
+        style.textContent = `
+          .tour-backdrop { position:fixed; inset:0; background:rgba(0,0,0,0.25); z-index:9998; transition:opacity 0.3s; }
+          .tour-tooltip {
+            position:absolute; z-index:9999; max-width:280px; padding:12px 16px;
+            background:var(--bg-surface,#fff); border:1px solid var(--border,#E2DFD9);
+            border-radius:8px; box-shadow:0 8px 24px rgba(0,0,0,0.12);
+            font-family:var(--font-display,'Space Grotesk',sans-serif); font-size:0.85rem;
+            color:var(--ink,#1C1917); line-height:1.5; opacity:0; transition:opacity 0.35s, transform 0.35s;
+            transform:translateY(8px); pointer-events:auto;
+          }
+          .tour-tooltip.visible { opacity:1; transform:translateY(0); }
+          .tour-tooltip::before {
+            content:''; position:absolute; top:-6px; left:24px;
+            width:12px; height:12px; background:var(--bg-surface,#fff);
+            border-left:1px solid var(--border,#E2DFD9); border-top:1px solid var(--border,#E2DFD9);
+            transform:rotate(45deg);
+          }
+          .tour-actions { display:flex; justify-content:space-between; align-items:center; margin-top:10px; gap:8px; }
+          .tour-next { font-family:var(--font-display); font-size:0.78rem; font-weight:600; padding:5px 14px;
+            background:var(--ink,#1C1917); color:var(--bg,#FAF7F2); border:none; border-radius:4px; cursor:pointer; }
+          .tour-skip { font-family:var(--font-display); font-size:0.72rem; color:var(--ink-muted,#A8A29E);
+            background:none; border:none; cursor:pointer; text-decoration:underline; text-underline-offset:2px; }
+          .tour-step { font-family:var(--font-mono); font-size:0.68rem; color:var(--ink-muted,#A8A29E); }
+          .tour-highlight { position:relative; z-index:9999; }
+        `;
+        document.head.appendChild(style);
+
+        backdrop = document.createElement('div');
+        backdrop.className = 'tour-backdrop';
+        backdrop.addEventListener('click', endTour);
+        document.body.appendChild(backdrop);
+
+        tooltip = document.createElement('div');
+        tooltip.className = 'tour-tooltip';
+        document.body.appendChild(tooltip);
+
+        showStep(0);
+      }
+
+      function showStep(i) {
+        current = i;
+        if (i >= STEPS.length) { endTour(); return; }
+
+        const step = STEPS[i];
+        const target = document.querySelector(step.el);
+        if (!target) { showStep(i + 1); return; } // skip if element missing
+
+        // Remove previous highlight
+        document.querySelectorAll('.tour-highlight').forEach(el => el.classList.remove('tour-highlight'));
+        target.classList.add('tour-highlight');
+
+        // Scroll into view
+        target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+        // Position tooltip
+        tooltip.classList.remove('visible');
+        tooltip.innerHTML = `
+          <div>${step.text}</div>
+          <div class="tour-actions">
+            <button class="tour-skip" onclick="this.closest('.tour-tooltip').__endTour()">Skip tour</button>
+            <span class="tour-step">${i + 1}/${STEPS.length}</span>
+            <button class="tour-next" onclick="this.closest('.tour-tooltip').__nextStep()">${i === STEPS.length - 1 ? 'Done' : 'Next'}</button>
+          </div>
+        `;
+        tooltip.__endTour = endTour;
+        tooltip.__nextStep = () => showStep(i + 1);
+
+        // Position below target
+        requestAnimationFrame(() => {
+          const rect = target.getBoundingClientRect();
+          tooltip.style.top = (window.scrollY + rect.bottom + 10) + 'px';
+          tooltip.style.left = Math.max(12, Math.min(rect.left, window.innerWidth - 300)) + 'px';
+          requestAnimationFrame(() => tooltip.classList.add('visible'));
+        });
+      }
+
+      function endTour() {
+        localStorage.setItem('ccna_tour_done', '1');
+        document.querySelectorAll('.tour-highlight').forEach(el => el.classList.remove('tour-highlight'));
+        if (tooltip) { tooltip.classList.remove('visible'); setTimeout(() => tooltip.remove(), 350); }
+        if (backdrop) { backdrop.style.opacity = '0'; setTimeout(() => backdrop.remove(), 300); }
+      }
+    })();
   </script>
 </body>
 </html>
