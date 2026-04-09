@@ -797,6 +797,21 @@
       <ol class="study-order-list" id="study-order-list"></ol>
     </div>
 
+    <!-- Go Deeper card — only shows when strong topics exist -->
+    <div class="card mb-3" id="go-deeper-card" style="display:none; border-color: var(--accent);">
+      <div class="card-header">
+        <h2 style="margin:0;padding:0;border:0">Go Deeper</h2>
+        <span class="badge badge-blue" id="deeper-count-badge">0 topics</span>
+      </div>
+      <p style="font-size:0.9rem; color:var(--ink-secondary); margin-bottom:12px; max-width:60ch;">
+        You scored well on some topics — but the diagnostic only tested surface-level recall.
+        This follow-up pulls harder questions from those same topics to verify real depth.
+        Passing level 1 doesn't mean mastery.
+      </p>
+      <div id="deeper-topics-preview" style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:16px;"></div>
+      <button class="btn btn-primary" id="btn-go-deeper">Test What You Think You Know</button>
+    </div>
+
     <div class="results-actions">
       <a href="knowledge-map.html" class="btn btn-secondary">View Knowledge Map</a>
       <a href="quiz.html?mode=weak" class="btn btn-primary">Start Studying Weak Areas</a>
@@ -935,6 +950,7 @@
 
     // ── Start Quiz ─────────────────────────────────────────────────
     function startQuiz() {
+      deeperMode = false;
       // Reset state
       quizQuestions = selectDiagnosticQuestions();
       currentIndex = 0;
@@ -1274,6 +1290,17 @@
 
     // ── Render Results ─────────────────────────────────────────────
     function renderResults(pctScore, domainAccuracy, topicAccuracy, topicScores) {
+      // Update title for deeper mode
+      const resultsTitle = document.querySelector('#state-results .results-header h1');
+      const resultsSubtitle = document.querySelector('#state-results .results-subtitle');
+      if (deeperMode) {
+        resultsTitle.textContent = 'Depth Check Complete';
+        resultsSubtitle.textContent = 'These are your strong topics tested at a harder level. Drops here reveal surface-level knowledge.';
+      } else {
+        resultsTitle.textContent = 'Diagnostic Complete';
+        resultsSubtitle.textContent = 'Here is your performance breakdown across all CCNA domains.';
+      }
+
       // Color
       const color = pctScore >= 70 ? 'var(--green)' : pctScore >= 50 ? 'var(--yellow)' : 'var(--red)';
 
@@ -1387,6 +1414,9 @@
         `;
         orderList.appendChild(li);
       });
+
+      // Populate Go Deeper card for strong topics
+      populateGoDeeperCard(topicScores);
     }
 
     // ── Show Previous Results (without retaking) ───────────────────
@@ -1432,10 +1462,89 @@
       showState('results');
     }
 
+    // ── Go Deeper — harder quiz on strong topics ────────────────────
+    let deeperMode = false;
+    let strongTopicIds = [];
+
+    function populateGoDeeperCard(topicScores) {
+      // Find topics where user scored >= 70%
+      strongTopicIds = [];
+      for (const d of domains) {
+        for (const t of d.topics) {
+          const tScore = topicScores[t.id];
+          if (tScore !== undefined && tScore >= 0.7) {
+            strongTopicIds.push({ id: t.id, name: t.name, pct: Math.round(tScore * 100) });
+          }
+        }
+      }
+
+      const card = document.getElementById('go-deeper-card');
+      if (strongTopicIds.length === 0) { card.style.display = 'none'; return; }
+
+      card.style.display = '';
+      document.getElementById('deeper-count-badge').textContent = `${strongTopicIds.length} topic${strongTopicIds.length > 1 ? 's' : ''}`;
+
+      // Show topic pills
+      const preview = document.getElementById('deeper-topics-preview');
+      preview.innerHTML = strongTopicIds.map(t =>
+        `<span class="badge badge-green" style="font-size:0.68rem">${escapeHtml(t.id)} — ${t.pct}%</span>`
+      ).join('');
+
+      // Check if harder questions exist for these topics
+      const deeperPool = selectDeeperQuestions();
+      if (deeperPool.length === 0) {
+        document.getElementById('btn-go-deeper').textContent = 'No harder questions available yet';
+        document.getElementById('btn-go-deeper').disabled = true;
+      } else {
+        document.getElementById('btn-go-deeper').textContent = `Test What You Think You Know (${deeperPool.length} questions)`;
+        document.getElementById('btn-go-deeper').disabled = false;
+      }
+    }
+
+    function selectDeeperQuestions() {
+      const strongIds = new Set(strongTopicIds.map(t => t.id));
+      // Pull difficulty >= 2 from strong topics only
+      const pool = allQuestions.filter(q =>
+        strongIds.has(q.topic) && q.difficulty >= 2
+      );
+      // If not enough hard questions, also include difficulty 1 that weren't in the diagnostic
+      if (pool.length < 5) {
+        const diagIds = new Set(quizQuestions.map(q => q.id));
+        const extras = allQuestions.filter(q =>
+          strongIds.has(q.topic) && !diagIds.has(q.id) && !pool.some(p => p.id === q.id)
+        );
+        pool.push(...extras);
+      }
+      return shuffle(pool).slice(0, Math.min(40, pool.length));
+    }
+
+    function startDeeperQuiz() {
+      deeperMode = true;
+      quizQuestions = selectDeeperQuestions();
+      if (quizQuestions.length === 0) return;
+
+      currentIndex = 0;
+      score = 0;
+      answered = 0;
+      confirmed = false;
+      selectedOption = null;
+      sessionResults = [];
+      elapsedMs = 0;
+
+      // Update header to indicate deeper mode
+      const qHeader = document.querySelector('#state-quiz .question-counter');
+      if (qHeader) qHeader.dataset.mode = 'deeper';
+
+      startTimer();
+      showQuestion();
+      showState('quiz');
+    }
+
     // ── Event Listeners ────────────────────────────────────────────
     document.getElementById('btn-start').addEventListener('click', startQuiz);
     document.getElementById('btn-retake').addEventListener('click', startQuiz);
     document.getElementById('btn-view-results').addEventListener('click', showPreviousResults);
+    document.getElementById('btn-go-deeper').addEventListener('click', startDeeperQuiz);
     document.getElementById('btn-confirm').addEventListener('click', confirmAnswer);
     document.getElementById('btn-idk').addEventListener('click', idkAnswer);
     document.getElementById('btn-next').addEventListener('click', nextQuestion);
