@@ -103,6 +103,28 @@
   .teach-exam { background: rgba(251,191,36,0.1); border: 1px solid rgba(251,191,36,0.2); border-radius: 6px; padding: 10px 14px; }
   .teach-exam p { color: #fbbf24; font-size: 0.75rem; }
   @media (max-width: 500px) { .teach-panel { width: 100vw; right: -100vw; } }
+
+  /* Tour narration bar */
+  .tour-bar {
+    position: fixed; bottom: 60px; left: 50%; transform: translateX(-50%); z-index: 30;
+    background: rgba(10,10,15,0.92); border: 1px solid rgba(251,191,36,0.3);
+    border-radius: 12px; padding: 16px 24px; max-width: 560px; width: 90%;
+    backdrop-filter: blur(10px); opacity: 0; transition: opacity 0.4s, transform 0.4s;
+    pointer-events: none;
+  }
+  .tour-bar.visible { opacity: 1; pointer-events: auto; }
+  .tour-bar .tb-step { font-family: 'JetBrains Mono', monospace; font-size: 0.65rem; color: #fbbf24; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 4px; }
+  .tour-bar .tb-title { font-size: 0.95rem; font-weight: 700; color: #fff; margin-bottom: 6px; }
+  .tour-bar .tb-text { font-size: 0.78rem; color: #9ca3b8; line-height: 1.55; }
+  .tour-bar .tb-text .key { color: #4ade80; font-family: 'JetBrains Mono', monospace; font-weight: 600; }
+  .tour-bar .tb-actions { display: flex; justify-content: space-between; align-items: center; margin-top: 12px; }
+  .tour-bar .tb-skip { background: none; border: none; color: #6b7394; font-size: 0.72rem; cursor: pointer; text-decoration: underline; text-underline-offset: 2px; font-family: inherit; }
+  .tour-bar .tb-skip:hover { color: #9ca3b8; }
+  .tour-bar .tb-next { background: #fbbf24; color: #0a0a0f; border: none; padding: 6px 18px; border-radius: 6px; font-size: 0.78rem; font-weight: 700; cursor: pointer; font-family: inherit; }
+  .tour-bar .tb-next:hover { background: #f59e0b; }
+  .tour-bar .tb-dots { display: flex; gap: 5px; }
+  .tour-bar .tb-dot { width: 6px; height: 6px; border-radius: 50%; background: #3a3d52; }
+  .tour-bar .tb-dot.active { background: #fbbf24; }
 </style>
 </head>
 <body>
@@ -115,6 +137,7 @@
 </div>
 
 <div class="hud hud-controls">
+  <button class="hud-btn" id="btn-tour" style="background:rgba(251,191,36,0.2);border-color:#fbbf24;color:#fbbf24">Guided Tour</button>
   <button class="hud-btn" id="btn-learn" style="background:rgba(74,158,255,0.2);border-color:#4a9eff;color:#4a9eff">Learn</button>
   <button class="hud-btn" id="btn-reset">Reset View</button>
   <button class="hud-btn" id="btn-labels" data-on="true">Labels</button>
@@ -165,6 +188,18 @@
       <span><span class="key">Right-drag</span> to pan</span>
     </div>
     <button class="intro-go" id="introGo">Explore</button>
+  </div>
+</div>
+
+<!-- Tour Narration Bar -->
+<div class="tour-bar" id="tourBar">
+  <div class="tb-step" id="tbStep">Step 1 of 7</div>
+  <div class="tb-title" id="tbTitle"></div>
+  <div class="tb-text" id="tbText"></div>
+  <div class="tb-actions">
+    <button class="tb-skip" id="tbSkip">End tour</button>
+    <div class="tb-dots" id="tbDots"></div>
+    <button class="tb-next" id="tbNext">Next</button>
   </div>
 </div>
 
@@ -868,6 +903,103 @@ document.getElementById('introGo').addEventListener('click', () => {
   document.getElementById('introOverlay').classList.add('hidden');
   setTimeout(() => { updateTeachContent(); teachPanel.classList.add('open'); }, 400);
 });
+
+// ── Guided Tour ──────────────────────────────────────────────
+const TOUR_STEPS = [
+  {
+    title: 'The Overview — All of IPv4',
+    text: 'You\'re looking at the entire IPv4 address space. <span class="key">256 cubes</span>, each a /8 block containing 16.7 million addresses. Colors show which regional registry manages each block.',
+    action: () => renderRoot(),
+    camera: { pos: [45, 35, 45], target: [0, 0, 0] },
+  },
+  {
+    title: 'Private Networks — RFC 1918',
+    text: 'The <span class="key">gold blocks</span> are private ranges. <span class="key">10.0.0.0/8</span> is the big one — used in almost every enterprise network. These IPs never appear on the public internet.',
+    action: () => renderRoot(),
+    camera: { pos: [8, 12, -18], target: [-5, 0, -18] }, // zoom near block 10
+  },
+  {
+    title: 'Loopback — 127.0.0.0/8',
+    text: '<span class="key">127.0.0.1</span> is "localhost" — traffic to this address never leaves your machine. Used for testing. Every device has it. The entire /8 is reserved for this, though only .0.0.1 is commonly used.',
+    action: () => renderRoot(),
+    camera: { pos: [-8, 10, 2], target: [-5, 0, -2] }, // near block 127
+  },
+  {
+    title: 'Multicast — 224.0.0.0/4',
+    text: 'The <span class="key">purple blocks</span> (224–239) are multicast. One sender, many receivers. OSPF uses <span class="key">224.0.0.5</span> (all OSPF routers) and <span class="key">224.0.0.6</span> (DR/BDR). Know these for the exam.',
+    action: () => renderRoot(),
+    camera: { pos: [-10, 14, 20], target: [0, 0, 18] },
+  },
+  {
+    title: 'Zooming In — Inside a /8',
+    text: 'Let\'s go inside <span class="key">192.0.0.0/8</span> (home of 192.168.x.x). Each cube here is a /16 — that\'s 256 subnets of 65,534 hosts each. This is the second level of the hierarchy.',
+    action: () => renderSlash16(192),
+  },
+  {
+    title: 'The /24 Level — Where Networks Live',
+    text: 'Inside <span class="key">192.168.0.0/16</span>. Each cube is a /24 — <span class="key">254 usable hosts</span>. This is what your home Wi-Fi uses. It\'s also the most common subnet size in enterprise VLANs. Most CCNA subnetting questions happen at this level.',
+    action: () => renderSlash24(192, 168),
+  },
+  {
+    title: 'You\'re Ready to Explore',
+    text: 'You\'ve seen the hierarchy: <span class="key">/8 → /16 → /24</span>. Click any block to zoom in. At the /24 level, click a block to ask the <span class="key">AI Tutor</span> about that specific subnet. Use the <span class="key">Learn</span> button for explanations at any level.',
+    action: () => renderRoot(),
+  },
+];
+
+let tourStep = 0;
+let tourActive = false;
+const tourBar = document.getElementById('tourBar');
+
+function startTour() {
+  tourActive = true;
+  tourStep = 0;
+  teachPanel.classList.remove('open');
+  showTourStep();
+}
+
+function showTourStep() {
+  if (tourStep >= TOUR_STEPS.length) { endTour(); return; }
+  const step = TOUR_STEPS[tourStep];
+
+  document.getElementById('tbStep').textContent = `Step ${tourStep + 1} of ${TOUR_STEPS.length}`;
+  document.getElementById('tbTitle').textContent = step.title;
+  document.getElementById('tbText').innerHTML = step.text;
+  document.getElementById('tbNext').textContent = tourStep === TOUR_STEPS.length - 1 ? 'Finish' : 'Next';
+
+  // Dots
+  document.getElementById('tbDots').innerHTML = TOUR_STEPS.map((_, i) =>
+    `<div class="tb-dot ${i === tourStep ? 'active' : ''}"></div>`
+  ).join('');
+
+  tourBar.classList.add('visible');
+
+  // Execute the action (render + camera move)
+  if (step.action) step.action();
+  if (step.camera) {
+    const [px, py, pz] = step.camera.pos;
+    const [tx, ty, tz] = step.camera.target;
+    setTimeout(() => animateCamera(
+      new THREE.Vector3(px, py, pz),
+      new THREE.Vector3(tx, ty, tz)
+    ), 100);
+  }
+}
+
+function nextTourStep() {
+  tourStep++;
+  showTourStep();
+}
+
+function endTour() {
+  tourActive = false;
+  tourBar.classList.remove('visible');
+  renderRoot();
+}
+
+document.getElementById('btn-tour').addEventListener('click', startTour);
+document.getElementById('tbNext').addEventListener('click', nextTourStep);
+document.getElementById('tbSkip').addEventListener('click', endTour);
 </script>
 <script src="js/tutor.js"></script>
 </body>
