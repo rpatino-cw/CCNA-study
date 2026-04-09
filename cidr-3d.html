@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>3D CIDR Block Explorer — CCNA 200-301</title>
+<link rel="icon" type="image/svg+xml" href="/CCNA-study/favicon.svg">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #0a0a0f; color: #e8eaf0; font-family: 'Segoe UI', -apple-system, sans-serif; overflow: hidden; }
+  #canvas { display: block; width: 100vw; height: 100vh; }
+
+  /* HUD overlay */
+  .hud { position: fixed; z-index: 10; pointer-events: none; }
+  .hud-top { top: 16px; left: 16px; }
+  .hud-top h1 { font-size: 1.1rem; font-weight: 700; color: #fff; margin-bottom: 2px; }
+  .hud-top .sub { font-size: 0.75rem; color: #6b7394; }
+
+  .hud-controls { top: 16px; right: 16px; pointer-events: auto; display: flex; gap: 8px; }
+  .hud-btn { background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.12); color: #9ca3b8; padding: 6px 14px; border-radius: 6px; font-size: 0.75rem; cursor: pointer; font-family: inherit; transition: all 0.15s; }
+  .hud-btn:hover { background: rgba(255,255,255,0.15); color: #fff; }
+  .hud-btn.active { background: rgba(74,158,255,0.2); border-color: #4a9eff; color: #4a9eff; }
+
+  .hud-breadcrumb { bottom: 16px; left: 16px; display: flex; gap: 6px; align-items: center; pointer-events: auto; }
+  .crumb { background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.1); padding: 4px 12px; border-radius: 4px; font-size: 0.72rem; color: #9ca3b8; cursor: pointer; transition: all 0.15s; font-family: 'JetBrains Mono', monospace; }
+  .crumb:hover { background: rgba(255,255,255,0.15); color: #fff; }
+  .crumb.current { color: #4a9eff; border-color: #4a9eff; }
+  .crumb-sep { color: #3a3d52; font-size: 0.7rem; }
+
+  .hud-info { bottom: 16px; right: 16px; text-align: right; }
+  .hud-info .label { font-size: 0.65rem; color: #6b7394; text-transform: uppercase; letter-spacing: 0.06em; }
+  .hud-info .value { font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; color: #e8eaf0; }
+
+  /* Tooltip */
+  #tooltip { position: fixed; z-index: 20; background: rgba(10,10,15,0.95); border: 1px solid rgba(255,255,255,0.15); border-radius: 8px; padding: 10px 14px; pointer-events: none; opacity: 0; transition: opacity 0.15s; max-width: 260px; backdrop-filter: blur(8px); }
+  #tooltip.visible { opacity: 1; }
+  #tooltip .tt-title { font-family: 'JetBrains Mono', monospace; font-size: 0.82rem; color: #4a9eff; font-weight: 600; margin-bottom: 4px; }
+  #tooltip .tt-body { font-size: 0.72rem; color: #9ca3b8; line-height: 1.4; }
+
+  /* Legend */
+  .legend { position: fixed; top: 60px; left: 16px; z-index: 10; }
+  .legend-item { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
+  .legend-dot { width: 10px; height: 10px; border-radius: 2px; }
+  .legend-label { font-size: 0.65rem; color: #6b7394; }
+
+  /* Back to site link */
+  .back-link { position: fixed; top: 16px; left: 16px; z-index: 15; pointer-events: auto; }
+  .back-link a { color: #6b7394; text-decoration: none; font-size: 0.72rem; letter-spacing: 0.03em; text-transform: uppercase; transition: color 0.15s; }
+  .back-link a:hover { color: #fff; }
+  .hud-top { top: 36px; }
+  .legend { top: 80px; }
+</style>
+</head>
+<body>
+
+<div class="back-link hud"><a href="subnetting-visual.html">&larr; Back to Subnetting</a></div>
+
+<div class="hud hud-top">
+  <h1>3D CIDR Block Explorer</h1>
+  <div class="sub">Click a block to zoom in. Scroll to orbit. Right-click to pan.</div>
+</div>
+
+<div class="hud hud-controls">
+  <button class="hud-btn" id="btn-reset">Reset View</button>
+  <button class="hud-btn" id="btn-labels" data-on="true">Labels</button>
+  <button class="hud-btn" id="btn-wireframe">Wireframe</button>
+</div>
+
+<div class="hud hud-breadcrumb" id="breadcrumb">
+  <span class="crumb current" data-level="root">Internet</span>
+</div>
+
+<div class="hud hud-info" id="hud-info">
+  <div class="label">Viewing</div>
+  <div class="value" id="viewing-label">IPv4 /8 Blocks</div>
+</div>
+
+<div class="legend hud" id="legend"></div>
+
+<div id="tooltip">
+  <div class="tt-title" id="tt-title"></div>
+  <div class="tt-body" id="tt-body"></div>
+</div>
+
+<canvas id="canvas"></canvas>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+// ── Registry Allocation Data ──────────────────────────────────
+const REGISTRIES = {
+  ARIN:    { color: 0x4a9eff, label: 'ARIN (North America)' },
+  RIPE:    { color: 0x34d399, label: 'RIPE (Europe/Middle East)' },
+  APNIC:   { color: 0xfb923c, label: 'APNIC (Asia-Pacific)' },
+  LACNIC:  { color: 0xa78bfa, label: 'LACNIC (Latin America)' },
+  AFRINIC: { color: 0xf87171, label: 'AFRINIC (Africa)' },
+  IANA:    { color: 0x94a3b8, label: 'IANA Reserved' },
+  RFC1918: { color: 0xfbbf24, label: 'Private (RFC 1918)' },
+  MULTI:   { color: 0xe879f9, label: 'Multicast' },
+  LOOP:    { color: 0x64748b, label: 'Loopback / Special' },
+};
+
+// Simplified /8 allocation map
+const SLASH8_MAP = [
+  // [first octet, registry key, description]
+  [0,   'IANA',    '0.0.0.0/8 — "This" network'],
+  [1,   'APNIC',   '1.0.0.0/8'],  [2, 'RIPE', '2.0.0.0/8'],
+  [3,   'ARIN',    '3.0.0.0/8 — GE'],  [4, 'ARIN', '4.0.0.0/8 — Level3'],
+  [5,   'RIPE',    '5.0.0.0/8'],  [6, 'ARIN', '6.0.0.0/8 — DoD'],
+  [7,   'ARIN',    '7.0.0.0/8 — DoD'],  [8, 'ARIN', '8.0.0.0/8 — Level3'],
+  [9,   'ARIN',    '9.0.0.0/8 — IBM'],
+  [10,  'RFC1918', '10.0.0.0/8 — Private Class A'],
+  [11,  'ARIN',    '11.0.0.0/8 — DoD'], [12, 'ARIN', '12.0.0.0/8 — AT&T'],
+  [13,  'ARIN',    '13.0.0.0/8'], [14, 'APNIC', '14.0.0.0/8'],
+  [15,  'ARIN',    '15.0.0.0/8 — HP'], [16, 'ARIN', '16.0.0.0/8'],
+  [17,  'ARIN',    '17.0.0.0/8 — Apple'], [18, 'ARIN', '18.0.0.0/8 — MIT'],
+  [19,  'ARIN',    '19.0.0.0/8'], [20, 'ARIN', '20.0.0.0/8'],
+  [23,  'ARIN',    '23.0.0.0/8'], [24, 'ARIN', '24.0.0.0/8'],
+  [27,  'APNIC',   '27.0.0.0/8'], [31, 'RIPE', '31.0.0.0/8'],
+  [32,  'ARIN',    '32.0.0.0/8'], [33, 'ARIN', '33.0.0.0/8 — DoD'],
+  [34,  'RIPE',    '34.0.0.0/8'], [35, 'ARIN', '35.0.0.0/8'],
+  [36,  'APNIC',   '36.0.0.0/8'], [37, 'AFRINIC', '37.0.0.0/8'],
+  [38,  'APNIC',   '38.0.0.0/8'], [39, 'APNIC', '39.0.0.0/8'],
+  [40,  'ARIN',    '40.0.0.0/8'], [41, 'AFRINIC', '41.0.0.0/8'],
+  [42,  'APNIC',   '42.0.0.0/8'], [43, 'APNIC', '43.0.0.0/8'],
+  [44,  'ARIN',    '44.0.0.0/8 — AMPRNet'], [45, 'APNIC', '45.0.0.0/8'],
+  [46,  'RIPE',    '46.0.0.0/8'], [47, 'ARIN', '47.0.0.0/8'],
+  [49,  'APNIC',   '49.0.0.0/8'], [50, 'ARIN', '50.0.0.0/8'],
+  [51,  'RIPE',    '51.0.0.0/8'], [52, 'ARIN', '52.0.0.0/8 — Amazon'],
+  [54,  'ARIN',    '54.0.0.0/8 — Amazon'], [55, 'ARIN', '55.0.0.0/8 — DoD'],
+  [56,  'ARIN',    '56.0.0.0/8'], [57, 'RIPE', '57.0.0.0/8'],
+  [58,  'APNIC',   '58.0.0.0/8'], [59, 'APNIC', '59.0.0.0/8'],
+  [60,  'APNIC',   '60.0.0.0/8'], [61, 'APNIC', '61.0.0.0/8'],
+  [62,  'RIPE',    '62.0.0.0/8'], [63, 'ARIN', '63.0.0.0/8'],
+  [64,  'ARIN',    '64.0.0.0/8'], [65, 'ARIN', '65.0.0.0/8'],
+  [66,  'ARIN',    '66.0.0.0/8'], [67, 'ARIN', '67.0.0.0/8'],
+  [68,  'ARIN',    '68.0.0.0/8'], [69, 'ARIN', '69.0.0.0/8'],
+  [70,  'ARIN',    '70.0.0.0/8'], [71, 'ARIN', '71.0.0.0/8'],
+  [72,  'ARIN',    '72.0.0.0/8'], [74, 'ARIN', '74.0.0.0/8'],
+  [75,  'ARIN',    '75.0.0.0/8'], [76, 'ARIN', '76.0.0.0/8'],
+  [77,  'RIPE',    '77.0.0.0/8'], [78, 'RIPE', '78.0.0.0/8'],
+  [79,  'RIPE',    '79.0.0.0/8'], [80, 'RIPE', '80.0.0.0/8'],
+  [81,  'RIPE',    '81.0.0.0/8'], [82, 'RIPE', '82.0.0.0/8'],
+  [83,  'RIPE',    '83.0.0.0/8'], [84, 'RIPE', '84.0.0.0/8'],
+  [85,  'RIPE',    '85.0.0.0/8'], [86, 'RIPE', '86.0.0.0/8'],
+  [87,  'RIPE',    '87.0.0.0/8'], [88, 'RIPE', '88.0.0.0/8'],
+  [89,  'RIPE',    '89.0.0.0/8'], [90, 'RIPE', '90.0.0.0/8'],
+  [91,  'RIPE',    '91.0.0.0/8'], [92, 'RIPE', '92.0.0.0/8'],
+  [93,  'RIPE',    '93.0.0.0/8'], [94, 'RIPE', '94.0.0.0/8'],
+  [95,  'RIPE',    '95.0.0.0/8'],
+  [100, 'IANA',    '100.64.0.0/10 — CGN (RFC 6598)'],
+  [104, 'ARIN',    '104.0.0.0/8 — Cloudflare etc'],
+  [108, 'ARIN',    '108.0.0.0/8'],
+  [110, 'APNIC',   '110.0.0.0/8'], [111, 'APNIC', '111.0.0.0/8'],
+  [112, 'APNIC',   '112.0.0.0/8'], [113, 'APNIC', '113.0.0.0/8'],
+  [114, 'APNIC',   '114.0.0.0/8'], [115, 'APNIC', '115.0.0.0/8'],
+  [116, 'APNIC',   '116.0.0.0/8'], [117, 'APNIC', '117.0.0.0/8'],
+  [118, 'APNIC',   '118.0.0.0/8'], [119, 'APNIC', '119.0.0.0/8'],
+  [120, 'APNIC',   '120.0.0.0/8'], [121, 'APNIC', '121.0.0.0/8'],
+  [122, 'APNIC',   '122.0.0.0/8'], [123, 'APNIC', '123.0.0.0/8'],
+  [124, 'APNIC',   '124.0.0.0/8'], [125, 'APNIC', '125.0.0.0/8'],
+  [126, 'APNIC',   '126.0.0.0/8'],
+  [127, 'LOOP',    '127.0.0.0/8 — Loopback'],
+  [128, 'RIPE',    '128.0.0.0/8'], [129, 'RIPE', '129.0.0.0/8'],
+  [130, 'RIPE',    '130.0.0.0/8'], [131, 'RIPE', '131.0.0.0/8'],
+  [132, 'ARIN',    '132.0.0.0/8'], [133, 'APNIC', '133.0.0.0/8'],
+  [134, 'ARIN',    '134.0.0.0/8'], [135, 'ARIN', '135.0.0.0/8'],
+  [136, 'ARIN',    '136.0.0.0/8'], [137, 'ARIN', '137.0.0.0/8'],
+  [138, 'ARIN',    '138.0.0.0/8'], [139, 'APNIC', '139.0.0.0/8'],
+  [140, 'ARIN',    '140.0.0.0/8'],
+  [141, 'RIPE',    '141.0.0.0/8'], [142, 'ARIN', '142.0.0.0/8'],
+  [143, 'ARIN',    '143.0.0.0/8'], [144, 'ARIN', '144.0.0.0/8'],
+  [145, 'RIPE',    '145.0.0.0/8'], [146, 'ARIN', '146.0.0.0/8'],
+  [147, 'ARIN',    '147.0.0.0/8'], [148, 'LACNIC', '148.0.0.0/8'],
+  [149, 'ARIN',    '149.0.0.0/8'], [150, 'APNIC', '150.0.0.0/8'],
+  [151, 'RIPE',    '151.0.0.0/8'], [152, 'ARIN', '152.0.0.0/8'],
+  [153, 'APNIC',   '153.0.0.0/8'], [154, 'AFRINIC', '154.0.0.0/8'],
+  [155, 'ARIN',    '155.0.0.0/8'], [156, 'ARIN', '156.0.0.0/8'],
+  [157, 'ARIN',    '157.0.0.0/8'], [158, 'ARIN', '158.0.0.0/8'],
+  [159, 'ARIN',    '159.0.0.0/8'], [160, 'ARIN', '160.0.0.0/8'],
+  [161, 'ARIN',    '161.0.0.0/8'], [162, 'ARIN', '162.0.0.0/8'],
+  [163, 'APNIC',   '163.0.0.0/8'], [164, 'ARIN', '164.0.0.0/8'],
+  [165, 'ARIN',    '165.0.0.0/8'], [166, 'ARIN', '166.0.0.0/8'],
+  [167, 'ARIN',    '167.0.0.0/8'], [168, 'LACNIC', '168.0.0.0/8'],
+  [169, 'IANA',    '169.254.0.0/16 — Link-local'],
+  [170, 'LACNIC',  '170.0.0.0/8'],
+  [172, 'RFC1918', '172.16.0.0/12 — Private Class B'],
+  [173, 'ARIN',    '173.0.0.0/8'], [174, 'ARIN', '174.0.0.0/8'],
+  [175, 'APNIC',   '175.0.0.0/8'], [176, 'RIPE', '176.0.0.0/8'],
+  [177, 'LACNIC',  '177.0.0.0/8'], [178, 'RIPE', '178.0.0.0/8'],
+  [179, 'LACNIC',  '179.0.0.0/8'], [180, 'APNIC', '180.0.0.0/8'],
+  [181, 'LACNIC',  '181.0.0.0/8'], [182, 'APNIC', '182.0.0.0/8'],
+  [183, 'APNIC',   '183.0.0.0/8'], [184, 'ARIN', '184.0.0.0/8'],
+  [185, 'RIPE',    '185.0.0.0/8'], [186, 'LACNIC', '186.0.0.0/8'],
+  [187, 'LACNIC',  '187.0.0.0/8'], [188, 'RIPE', '188.0.0.0/8'],
+  [189, 'LACNIC',  '189.0.0.0/8'], [190, 'LACNIC', '190.0.0.0/8'],
+  [191, 'LACNIC',  '191.0.0.0/8'],
+  [192, 'RFC1918', '192.168.0.0/16 — Private Class C'],
+  [193, 'RIPE',    '193.0.0.0/8'], [194, 'RIPE', '194.0.0.0/8'],
+  [195, 'RIPE',    '195.0.0.0/8'], [196, 'AFRINIC', '196.0.0.0/8'],
+  [197, 'AFRINIC', '197.0.0.0/8'], [198, 'ARIN', '198.0.0.0/8'],
+  [199, 'ARIN',    '199.0.0.0/8'], [200, 'LACNIC', '200.0.0.0/8'],
+  [201, 'LACNIC',  '201.0.0.0/8'], [202, 'APNIC', '202.0.0.0/8'],
+  [203, 'APNIC',   '203.0.0.0/8'], [204, 'ARIN', '204.0.0.0/8'],
+  [205, 'ARIN',    '205.0.0.0/8'], [206, 'ARIN', '206.0.0.0/8'],
+  [207, 'ARIN',    '207.0.0.0/8'], [208, 'ARIN', '208.0.0.0/8'],
+  [209, 'ARIN',    '209.0.0.0/8'], [210, 'APNIC', '210.0.0.0/8'],
+  [211, 'APNIC',   '211.0.0.0/8'], [212, 'RIPE', '212.0.0.0/8'],
+  [213, 'RIPE',    '213.0.0.0/8'], [214, 'ARIN', '214.0.0.0/8 — DoD'],
+  [215, 'ARIN',    '215.0.0.0/8 — DoD'], [216, 'ARIN', '216.0.0.0/8'],
+  [217, 'RIPE',    '217.0.0.0/8'], [218, 'APNIC', '218.0.0.0/8'],
+  [219, 'APNIC',   '219.0.0.0/8'], [220, 'APNIC', '220.0.0.0/8'],
+  [221, 'APNIC',   '221.0.0.0/8'], [222, 'APNIC', '222.0.0.0/8'],
+  [223, 'APNIC',   '223.0.0.0/8'],
+  [224, 'MULTI',   '224.0.0.0/4 — Multicast (Class D)'],
+  [240, 'IANA',    '240.0.0.0/4 — Reserved (Class E)'],
+];
+
+// Fill gaps with IANA
+const slash8Lookup = {};
+SLASH8_MAP.forEach(([oct, reg, desc]) => { slash8Lookup[oct] = { reg, desc }; });
+function getSlash8(oct) { return slash8Lookup[oct] || { reg: 'IANA', desc: `${oct}.0.0.0/8` }; }
+
+// ── Scene Setup ───────────────────────────────────────────────
+const canvas = document.getElementById('canvas');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setClearColor(0x0a0a0f);
+
+const scene = new THREE.Scene();
+scene.fog = new THREE.FogExp2(0x0a0a0f, 0.008);
+
+const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 500);
+camera.position.set(40, 30, 40);
+
+const controls = new OrbitControls(camera, canvas);
+controls.enableDamping = true;
+controls.dampingFactor = 0.08;
+controls.minDistance = 5;
+controls.maxDistance = 120;
+controls.target.set(0, 0, 0);
+
+// Lights
+scene.add(new THREE.AmbientLight(0x404060, 0.6));
+const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+dirLight.position.set(30, 40, 20);
+scene.add(dirLight);
+const fillLight = new THREE.DirectionalLight(0x4a9eff, 0.2);
+fillLight.position.set(-20, 10, -20);
+scene.add(fillLight);
+
+// Ground grid
+const gridHelper = new THREE.GridHelper(50, 50, 0x1a1d27, 0x14161f);
+scene.add(gridHelper);
+
+// ── State ─────────────────────────────────────────────────────
+let currentLevel = 'root'; // root, /8, /16
+let currentOctet = 0;
+let currentSecond = 0;
+let blockMeshes = [];
+let labelSprites = [];
+let showLabels = true;
+let wireframeMode = false;
+
+const raycaster = new THREE.Raycaster();
+const mouse = new THREE.Vector2();
+let hoveredMesh = null;
+const tooltip = document.getElementById('tooltip');
+
+// ── Block Generation ──────────────────────────────────────────
+function clearBlocks() {
+  blockMeshes.forEach(m => { scene.remove(m); m.geometry.dispose(); m.material.dispose(); });
+  labelSprites.forEach(s => { scene.remove(s); s.material.map?.dispose(); s.material.dispose(); });
+  blockMeshes = [];
+  labelSprites = [];
+}
+
+function createBlock(x, z, size, height, color, userData) {
+  const geo = new THREE.BoxGeometry(size * 0.9, height, size * 0.9);
+  const mat = new THREE.MeshPhysicalMaterial({
+    color,
+    roughness: 0.4,
+    metalness: 0.1,
+    transparent: true,
+    opacity: 0.85,
+    wireframe: wireframeMode,
+  });
+  const mesh = new THREE.Mesh(geo, mat);
+  mesh.position.set(x, height / 2, z);
+  mesh.userData = userData;
+  scene.add(mesh);
+  blockMeshes.push(mesh);
+
+  // Label
+  if (showLabels && userData.label) {
+    const sprite = makeTextSprite(userData.label, { color: '#ffffff', size: Math.max(0.4, size * 0.35) });
+    sprite.position.set(x, height + 0.3, z);
+    scene.add(sprite);
+    labelSprites.push(sprite);
+  }
+
+  return mesh;
+}
+
+function makeTextSprite(text, { color = '#fff', size = 0.5 } = {}) {
+  const canvas2 = document.createElement('canvas');
+  const ctx = canvas2.getContext('2d');
+  canvas2.width = 256; canvas2.height = 64;
+  ctx.font = 'bold 28px monospace';
+  ctx.fillStyle = color;
+  ctx.textAlign = 'center';
+  ctx.fillText(text, 128, 38);
+  const tex = new THREE.CanvasTexture(canvas2);
+  tex.minFilter = THREE.LinearFilter;
+  const mat = new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false });
+  const sprite = new THREE.Sprite(mat);
+  sprite.scale.set(size * 4, size, 1);
+  return sprite;
+}
+
+// ── Level Renderers ───────────────────────────────────────────
+function renderRoot() {
+  clearBlocks();
+  currentLevel = 'root';
+  updateBreadcrumb();
+  document.getElementById('viewing-label').textContent = 'IPv4 /8 Blocks';
+
+  // 16x16 grid of /8 blocks (0-255)
+  const gridSize = 16;
+  const blockSize = 2.5;
+  const offset = (gridSize * blockSize) / 2 - blockSize / 2;
+
+  for (let i = 0; i < 256; i++) {
+    const row = Math.floor(i / gridSize);
+    const col = i % gridSize;
+    const x = col * blockSize - offset;
+    const z = row * blockSize - offset;
+
+    const info = getSlash8(i);
+    const reg = REGISTRIES[info.reg] || REGISTRIES.IANA;
+
+    // Height based on registry (visual interest)
+    const heights = { ARIN: 3, RIPE: 2.8, APNIC: 2.5, LACNIC: 2, AFRINIC: 1.8, RFC1918: 4, MULTI: 1.5, LOOP: 1, IANA: 0.8 };
+    const h = heights[info.reg] || 1;
+
+    // Special blocks get emphasis
+    const isSpecial = ['RFC1918', 'LOOP', 'MULTI'].includes(info.reg);
+
+    createBlock(x, z, blockSize, h, reg.color, {
+      type: '/8',
+      octet: i,
+      cidr: `${i}.0.0.0/8`,
+      registry: info.reg,
+      desc: info.desc,
+      label: isSpecial ? `${i}` : (i % 4 === 0 ? `${i}` : ''),
+    });
+  }
+
+  // Animate camera to overview
+  animateCamera(new THREE.Vector3(40, 30, 40), new THREE.Vector3(0, 0, 0));
+}
+
+function renderSlash16(octet) {
+  clearBlocks();
+  currentLevel = '/8';
+  currentOctet = octet;
+  updateBreadcrumb();
+  document.getElementById('viewing-label').textContent = `${octet}.0.0.0/8 — /16 Subnets`;
+
+  const info = getSlash8(octet);
+  const reg = REGISTRIES[info.reg] || REGISTRIES.IANA;
+
+  // 16x16 grid of /16 blocks within this /8
+  const gridSize = 16;
+  const blockSize = 2;
+  const offset = (gridSize * blockSize) / 2 - blockSize / 2;
+
+  for (let i = 0; i < 256; i++) {
+    const row = Math.floor(i / gridSize);
+    const col = i % gridSize;
+    const x = col * blockSize - offset;
+    const z = row * blockSize - offset;
+
+    // Slight color variation per /16
+    const hsl = {};
+    new THREE.Color(reg.color).getHSL(hsl);
+    const variation = (i / 256) * 0.15 - 0.075;
+    const color = new THREE.Color().setHSL(hsl.h + variation, hsl.s * 0.9, hsl.l * (0.7 + (i % 16) / 40));
+
+    const h = 1.5 + Math.sin(i * 0.1) * 0.5;
+
+    createBlock(x, z, blockSize, h, color, {
+      type: '/16',
+      octet,
+      second: i,
+      cidr: `${octet}.${i}.0.0/16`,
+      registry: info.reg,
+      desc: `${octet}.${i}.0.0/16 — 65,534 hosts`,
+      label: i % 8 === 0 ? `.${i}` : '',
+    });
+  }
+
+  animateCamera(new THREE.Vector3(30, 25, 30), new THREE.Vector3(0, 0, 0));
+}
+
+function renderSlash24(octet, second) {
+  clearBlocks();
+  currentLevel = '/16';
+  currentOctet = octet;
+  currentSecond = second;
+  updateBreadcrumb();
+  document.getElementById('viewing-label').textContent = `${octet}.${second}.0.0/16 — /24 Subnets`;
+
+  const info = getSlash8(octet);
+  const reg = REGISTRIES[info.reg] || REGISTRIES.IANA;
+
+  const gridSize = 16;
+  const blockSize = 1.8;
+  const offset = (gridSize * blockSize) / 2 - blockSize / 2;
+
+  for (let i = 0; i < 256; i++) {
+    const row = Math.floor(i / gridSize);
+    const col = i % gridSize;
+    const x = col * blockSize - offset;
+    const z = row * blockSize - offset;
+
+    const hsl = {};
+    new THREE.Color(reg.color).getHSL(hsl);
+    const color = new THREE.Color().setHSL(hsl.h, hsl.s * 0.8, hsl.l * (0.6 + (i % 32) / 64));
+
+    const h = 1 + Math.random() * 0.5;
+
+    createBlock(x, z, blockSize, h, color, {
+      type: '/24',
+      octet,
+      second,
+      third: i,
+      cidr: `${octet}.${second}.${i}.0/24`,
+      registry: info.reg,
+      desc: `${octet}.${second}.${i}.0/24 — 254 hosts`,
+      label: i % 16 === 0 ? `.${i}` : '',
+    });
+  }
+
+  animateCamera(new THREE.Vector3(25, 20, 25), new THREE.Vector3(0, 0, 0));
+}
+
+// ── Camera Animation ──────────────────────────────────────────
+function animateCamera(targetPos, targetLookAt) {
+  const startPos = camera.position.clone();
+  const startTarget = controls.target.clone();
+  const duration = 800;
+  const start = performance.now();
+
+  function step(now) {
+    const t = Math.min((now - start) / duration, 1);
+    const ease = 1 - Math.pow(1 - t, 3); // ease-out cubic
+    camera.position.lerpVectors(startPos, targetPos, ease);
+    controls.target.lerpVectors(startTarget, targetLookAt, ease);
+    controls.update();
+    if (t < 1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+
+// ── Breadcrumb ────────────────────────────────────────────────
+function updateBreadcrumb() {
+  const el = document.getElementById('breadcrumb');
+  let html = `<span class="crumb ${currentLevel === 'root' ? 'current' : ''}" data-level="root">Internet</span>`;
+
+  if (currentLevel === '/8' || currentLevel === '/16') {
+    html += `<span class="crumb-sep">></span>`;
+    html += `<span class="crumb ${currentLevel === '/8' ? 'current' : ''}" data-level="/8" data-oct="${currentOctet}">${currentOctet}.0.0.0/8</span>`;
+  }
+  if (currentLevel === '/16') {
+    html += `<span class="crumb-sep">></span>`;
+    html += `<span class="crumb current" data-level="/16" data-oct="${currentOctet}" data-sec="${currentSecond}">${currentOctet}.${currentSecond}.0.0/16</span>`;
+  }
+
+  el.innerHTML = html;
+
+  el.querySelectorAll('.crumb').forEach(c => {
+    c.addEventListener('click', () => {
+      const level = c.dataset.level;
+      if (level === 'root') renderRoot();
+      else if (level === '/8') renderSlash16(parseInt(c.dataset.oct));
+    });
+  });
+}
+
+// ── Legend ─────────────────────────────────────────────────────
+function renderLegend() {
+  const el = document.getElementById('legend');
+  el.innerHTML = Object.entries(REGISTRIES).map(([key, val]) =>
+    `<div class="legend-item"><div class="legend-dot" style="background:#${val.color.toString(16).padStart(6,'0')}"></div><span class="legend-label">${val.label}</span></div>`
+  ).join('');
+}
+
+// ── Interaction ───────────────────────────────────────────────
+canvas.addEventListener('mousemove', (e) => {
+  mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+  mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+
+  raycaster.setFromCamera(mouse, camera);
+  const hits = raycaster.intersectObjects(blockMeshes);
+
+  if (hits.length > 0) {
+    const mesh = hits[0].object;
+    if (hoveredMesh !== mesh) {
+      if (hoveredMesh) hoveredMesh.material.emissive.setHex(0x000000);
+      hoveredMesh = mesh;
+      mesh.material.emissive.setHex(0x222244);
+    }
+    const ud = mesh.userData;
+    document.getElementById('tt-title').textContent = ud.cidr;
+    document.getElementById('tt-body').textContent = ud.desc + (ud.registry ? `\nRegistry: ${REGISTRIES[ud.registry]?.label || ud.registry}` : '');
+    tooltip.style.left = (e.clientX + 16) + 'px';
+    tooltip.style.top = (e.clientY - 10) + 'px';
+    tooltip.classList.add('visible');
+    canvas.style.cursor = 'pointer';
+  } else {
+    if (hoveredMesh) { hoveredMesh.material.emissive.setHex(0x000000); hoveredMesh = null; }
+    tooltip.classList.remove('visible');
+    canvas.style.cursor = 'grab';
+  }
+});
+
+canvas.addEventListener('click', () => {
+  if (!hoveredMesh) return;
+  const ud = hoveredMesh.userData;
+  if (ud.type === '/8') renderSlash16(ud.octet);
+  else if (ud.type === '/16') renderSlash24(ud.octet, ud.second);
+  // /24 is the deepest level — no further zoom
+});
+
+// ── Controls ──────────────────────────────────────────────────
+document.getElementById('btn-reset').addEventListener('click', renderRoot);
+
+document.getElementById('btn-labels').addEventListener('click', function() {
+  showLabels = !showLabels;
+  this.classList.toggle('active', showLabels);
+  this.dataset.on = showLabels;
+  // Re-render current level
+  if (currentLevel === 'root') renderRoot();
+  else if (currentLevel === '/8') renderSlash16(currentOctet);
+  else if (currentLevel === '/16') renderSlash24(currentOctet, currentSecond);
+});
+
+document.getElementById('btn-wireframe').addEventListener('click', function() {
+  wireframeMode = !wireframeMode;
+  this.classList.toggle('active', wireframeMode);
+  blockMeshes.forEach(m => { m.material.wireframe = wireframeMode; });
+});
+
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+// ── Animation Loop ────────────────────────────────────────────
+function animate() {
+  requestAnimationFrame(animate);
+  controls.update();
+  renderer.render(scene, camera);
+}
+
+// ── Init ──────────────────────────────────────────────────────
+renderLegend();
+renderRoot();
+animate();
+</script>
+</body>
+</html>
