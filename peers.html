@@ -238,13 +238,6 @@
         <div id="domainBars"></div>
       </div>
 
-      <!-- Diagnostic Comparison -->
-      <div id="diagComparison">
-        <h2 class="section-head">Diagnostic History</h2>
-        <p class="section-sub">Overlay members' diagnostic scores over time.</p>
-        <div id="diagChart"></div>
-        <div id="diagDomains"></div>
-      </div>
 
       <div class="rec-section" id="recSection">
         <h2 class="section-head">Recommendations</h2>
@@ -501,7 +494,6 @@ function renderOverview(group) {
 
   renderScoreTools(group);
   renderWeeklyDigest(group);
-  renderDiagComparison(group);
   renderRecommendations(group);
   renderTeachingPairs(group);
   renderGroupStats(group);
@@ -783,63 +775,6 @@ function startChatPoll() {
   }, 8000);
 }
 function stopChatPoll() { if (chatPollTimer) { clearInterval(chatPollTimer); chatPollTimer = null; } }
-
-// ══════════════════════════════════════════════════════════════
-// FEATURE 7: DIAGNOSTIC COMPARISON
-// ══════════════════════════════════════════════════════════════
-function renderDiagComparison(group) {
-  const entries = Object.entries(group.members);
-  const chartEl = document.getElementById('diagChart');
-  const domainsEl = document.getElementById('diagDomains');
-
-  // Gather diagnostic histories
-  const memberData = entries.map(([id, m], i) => ({
-    name: m.name, color: COLORS[i % COLORS.length],
-    diags: (m.progress?.diagnosticHistory || []).map(d => ({ date: d.date, score: d.totalScore, domains: d.domainScores || {} }))
-  })).filter(m => m.diags.length > 0);
-
-  if (memberData.length === 0) {
-    chartEl.innerHTML = '<div class="diag-chart"><p style="color:var(--ink-muted);font-size:.85rem;padding:20px;text-align:center">No diagnostic data yet. Take the diagnostic quiz!</p></div>';
-    domainsEl.innerHTML = '';
-    return;
-  }
-
-  // SVG line chart
-  const W = 600, H = 180, PAD = 30;
-  const maxPoints = Math.max(...memberData.map(m => m.diags.length));
-  let svg = '<div class="diag-chart"><svg viewBox="0 0 ' + W + ' ' + H + '">';
-  // Grid
-  for (let pct = 0; pct <= 100; pct += 25) {
-    const y = PAD + (H - 2*PAD) * (1 - pct/100);
-    svg += '<line x1="' + PAD + '" y1="' + y + '" x2="' + (W-PAD) + '" y2="' + y + '" stroke="var(--border)" stroke-width="0.5"/>';
-    svg += '<text x="' + (PAD-4) + '" y="' + (y+3) + '" text-anchor="end" font-size="8" fill="var(--ink-muted)">' + pct + '%</text>';
-  }
-  // Lines per member
-  for (const m of memberData) {
-    const pts = m.diags.map((d, j) => {
-      const x = PAD + (maxPoints > 1 ? j / (maxPoints - 1) : 0.5) * (W - 2*PAD);
-      const y = PAD + (H - 2*PAD) * (1 - (d.score || 0)/100);
-      return x + ',' + y;
-    });
-    svg += '<polyline fill="none" stroke="' + m.color + '" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" points="' + pts.join(' ') + '"/>';
-    // Dots
-    for (const p of pts) { const [cx,cy] = p.split(','); svg += '<circle cx="' + cx + '" cy="' + cy + '" r="3.5" fill="' + m.color + '"/>'; }
-  }
-  svg += '</svg>';
-  // Legend
-  svg += '<div class="diag-legend">' + memberData.map(m => '<div class="diag-legend-item"><div class="diag-legend-dot" style="background:' + m.color + '"></div>' + esc(m.name) + '</div>').join('') + '</div></div>';
-  chartEl.innerHTML = svg;
-
-  // Domain breakdown side-by-side (latest diagnostic)
-  domainsEl.innerHTML = '<div class="diag-domain-grid">' + Object.entries(DOMAIN_NAMES).map(([dId, dName]) => {
-    const bars = entries.map(([id, m], i) => {
-      const lastDiag = (m.progress?.diagnosticHistory || []).slice(-1)[0];
-      const score = lastDiag?.domains?.[dId] || lastDiag?.domainScores?.[dId] || 0;
-      return '<div class="dc-bar"><span class="dc-bar-name">' + esc(m.name) + '</span><div style="flex:1;background:var(--bg-recessed);border-radius:3px;overflow:hidden"><div class="dc-bar-fill" style="width:' + Math.round(score) + '%;background:' + COLORS[i%COLORS.length] + '"></div></div><span class="dc-bar-pct">' + Math.round(score) + '%</span></div>';
-    }).join('');
-    return '<div class="diag-domain-card"><div class="diag-domain-title">D' + dId + ' — ' + dName + '</div>' + bars + '</div>';
-  }).join('') + '</div>';
-}
 
 // ══════════════════════════════════════════════════════════════
 // FEATURE 8: WEEKLY DIGEST
