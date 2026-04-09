@@ -9,6 +9,7 @@
     { text: 'Quests',        href: 'quests.html' },
     { text: 'Strategy',      href: 'strategy.html' },
     { text: 'Sprint',        href: 'sprint.html' },
+    { text: 'Learn Visually', href: 'learn-visually.html' },
     { text: 'Labs',          href: 'labs/index.html' },
     { text: 'Objectives',    href: 'objectives.html' }
   ];
