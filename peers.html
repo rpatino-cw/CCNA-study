@@ -468,8 +468,9 @@ function renderOverview(group) {
     const stale = staleMs > 3 * 86400000;
     const veryStale = staleMs > 7 * 86400000;
     const nudgeHtml = !isYou && stale ? '<span class="nudge-badge">' + (veryStale ? 'INACTIVE' : 'STALE') + '</span>' + '<button class="nudge-btn" onclick="sendNudge(\'' + esc(m.name) + '\')">Send Nudge</button>' : '';
+    const kickHtml = !isYou ? '<button class="nudge-btn" style="margin-left:4px;color:var(--ink-muted);border-color:var(--border)" onclick="removeMember(\'' + id + '\',\'' + esc(m.name) + '\')">Remove</button>' : '';
     return '<div class="member-card ' + (isYou ? 'you' : '') + '" style="border-top:3px solid ' + color + '">' +
-      '<div class="mc-name" style="color:' + color + '">' + esc(m.name) + (isYou ? ' <span class="mc-you">(you)</span>' : '') + nudgeHtml + '</div>' +
+      '<div class="mc-name" style="color:' + color + '">' + esc(m.name) + (isYou ? ' <span class="mc-you">(you)</span>' : '') + nudgeHtml + kickHtml + '</div>' +
       '<div class="mc-stats">' +
         '<div class="mc-stat"><div class="val">' + readiness + '%</div><div class="lbl">Readiness</div></div>' +
         '<div class="mc-stat"><div class="val">' + streak + 'd</div><div class="lbl">Streak</div></div>' +
@@ -828,6 +829,14 @@ function renderWeeklyDigest(group) {
 // ══════════════════════════════════════════════════════════════
 // FEATURE 9: ACCOUNTABILITY NUDGE
 // ══════════════════════════════════════════════════════════════
+async function removeMember(memberId, memberName) {
+  if (!confirm('Remove ' + memberName + ' from the group?')) return;
+  const code = getGroupCode();
+  await apiDelete('/api/group/' + code + '/member/' + memberId);
+  const group = await apiGet('/api/group/' + code);
+  if (!group.error) { cachedGroup = group; renderOverview(group); }
+}
+
 async function sendNudge(memberName) {
   await apiAction('chat', { memberId: 'system', name: 'System', text: getName() + ' nudged ' + memberName + ' — get back to studying!' });
   await postEvent('nudge', 'nudged ' + memberName);
