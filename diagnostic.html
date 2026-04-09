@@ -1113,6 +1113,9 @@
         correct: isCorrect
       });
 
+      // Update proficiency in localStorage (reflects on knowledge map)
+      store.updateProficiency(q.topic, isCorrect);
+
       // Update domain progress
       if (domainQuestionCounts[q.domain]) {
         domainQuestionCounts[q.domain].answered++;
@@ -1267,16 +1270,18 @@
         }
       }
 
-      // Save diagnostic
-      store.saveDiagnostic({
-        date: new Date().toISOString(),
-        domainScores,
-        topicScores,
-        totalScore,
-        elapsedMs,
-        questionsAnswered: totalQuestions,
-        correctAnswers: score
-      });
+      // Save diagnostic (only for the main diagnostic, not deeper mode)
+      if (!deeperMode) {
+        store.saveDiagnostic({
+          date: new Date().toISOString(),
+          domainScores,
+          topicScores,
+          totalScore,
+          elapsedMs,
+          questionsAnswered: totalQuestions,
+          correctAnswers: score
+        });
+      }
 
       // Update streak and log study time
       store.updateStreak();
@@ -1497,26 +1502,35 @@
         document.getElementById('btn-go-deeper').textContent = 'No harder questions available yet';
         document.getElementById('btn-go-deeper').disabled = true;
       } else {
-        document.getElementById('btn-go-deeper').textContent = `Test What You Think You Know (${deeperQuestions.length} questions)`;
+        const perTopic = Math.min(3, Math.ceil(deeperQuestions.length / strongTopicIds.length));
+        document.getElementById('btn-go-deeper').textContent = `Go Deeper (${deeperQuestions.length} new questions, ~${perTopic}/topic)`;
         document.getElementById('btn-go-deeper').disabled = false;
       }
     }
 
     function selectDeeperQuestions() {
       const strongIds = new Set(strongTopicIds.map(t => t.id));
-      // Pull difficulty >= 2 from strong topics only
-      const pool = allQuestions.filter(q =>
-        strongIds.has(q.topic) && q.difficulty >= 2
+      // ALWAYS exclude questions from the diagnostic they just took
+      const seenIds = new Set(quizQuestions.map(q => q.id));
+
+      // Pull unseen questions, prefer difficulty >= 2
+      const hard = allQuestions.filter(q =>
+        strongIds.has(q.topic) && !seenIds.has(q.id) && q.difficulty >= 2
       );
-      // If not enough hard questions, also include difficulty 1 that weren't in the diagnostic
-      if (pool.length < 5) {
-        const diagIds = new Set(quizQuestions.map(q => q.id));
-        const extras = allQuestions.filter(q =>
-          strongIds.has(q.topic) && !diagIds.has(q.id) && !pool.some(p => p.id === q.id)
-        );
-        pool.push(...extras);
+      const medium = allQuestions.filter(q =>
+        strongIds.has(q.topic) && !seenIds.has(q.id) && q.difficulty === 1 && !hard.some(h => h.id === q.id)
+      );
+
+      // Target: up to 3 questions per strong topic
+      const selected = [];
+      for (const t of strongTopicIds) {
+        const topicHard = hard.filter(q => q.topic === t.id);
+        const topicMed = medium.filter(q => q.topic === t.id);
+        const topicPool = [...shuffle(topicHard), ...shuffle(topicMed)];
+        selected.push(...topicPool.slice(0, 3));
       }
-      return shuffle(pool).slice(0, Math.min(40, pool.length));
+
+      return shuffle(selected);
     }
 
     function startDeeperQuiz() {
