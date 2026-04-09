@@ -50,6 +50,34 @@
   .hud-top { top: 36px; }
   .legend { top: 80px; }
 
+  /* Intro overlay */
+  .intro-overlay {
+    position: fixed; inset: 0; z-index: 50; background: rgba(10,10,15,0.92);
+    display: flex; align-items: center; justify-content: center;
+    backdrop-filter: blur(6px); transition: opacity 0.4s;
+  }
+  .intro-overlay.hidden { opacity: 0; pointer-events: none; }
+  .intro-card {
+    background: rgba(26,29,39,0.98); border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 14px; padding: 32px 36px; max-width: 520px; width: 90%;
+    text-align: center;
+  }
+  .intro-card h2 { font-size: 1.3rem; font-weight: 700; color: #fff; margin-bottom: 8px; }
+  .intro-card .intro-sub { font-size: 0.85rem; color: #9ca3b8; line-height: 1.6; margin-bottom: 20px; }
+  .intro-card .intro-diagram {
+    display: grid; grid-template-columns: repeat(3,1fr); gap: 12px;
+    margin-bottom: 20px; text-align: left;
+  }
+  .intro-level { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; padding: 12px; }
+  .intro-level .il-prefix { font-family: 'JetBrains Mono', monospace; font-size: 1rem; font-weight: 700; margin-bottom: 4px; }
+  .intro-level .il-label { font-size: 0.7rem; color: #9ca3b8; line-height: 1.4; }
+  .intro-level .il-size { font-family: 'JetBrains Mono', monospace; font-size: 0.68rem; color: #4a9eff; margin-top: 4px; }
+  .intro-steps { display: flex; gap: 16px; justify-content: center; margin-bottom: 20px; font-size: 0.72rem; color: #6b7394; }
+  .intro-steps span { display: flex; align-items: center; gap: 4px; }
+  .intro-steps .key { background: rgba(255,255,255,0.1); padding: 2px 8px; border-radius: 4px; color: #e8eaf0; font-family: 'JetBrains Mono', monospace; }
+  .intro-go { background: #4a9eff; color: #fff; border: none; padding: 10px 28px; border-radius: 8px; font-size: 0.85rem; font-weight: 600; cursor: pointer; font-family: inherit; transition: background 0.15s; }
+  .intro-go:hover { background: #3b8de8; }
+
   /* Teaching panel */
   .teach-panel {
     position: fixed; top: 0; right: -380px; width: 370px; height: 100vh; z-index: 25;
@@ -83,7 +111,7 @@
 
 <div class="hud hud-top">
   <h1>3D CIDR Block Explorer</h1>
-  <div class="sub">Click a block to zoom in. Scroll to orbit. Right-click to pan.</div>
+  <div class="sub">Each cube = one /8 network. 256 cubes = the entire IPv4 internet. Click to zoom in.</div>
 </div>
 
 <div class="hud hud-controls">
@@ -107,6 +135,37 @@
 <div id="tooltip">
   <div class="tt-title" id="tt-title"></div>
   <div class="tt-body" id="tt-body"></div>
+</div>
+
+<!-- Intro Overlay -->
+<div class="intro-overlay" id="introOverlay">
+  <div class="intro-card">
+    <h2>The Entire Internet in 3D</h2>
+    <p class="intro-sub">Every IPv4 address lives inside one of 256 top-level blocks called <strong>/8 networks</strong>. Each block is a cube. Click one to zoom in and see how it subdivides — all the way down to the /24 subnets where real devices live.</p>
+    <div class="intro-diagram">
+      <div class="intro-level">
+        <div class="il-prefix" style="color:#4a9eff">/8</div>
+        <div class="il-label">Top-level block<br>256 total</div>
+        <div class="il-size">16.7M addresses each</div>
+      </div>
+      <div class="intro-level">
+        <div class="il-prefix" style="color:#34d399">/16</div>
+        <div class="il-label">Click a /8 to see<br>256 subnets inside</div>
+        <div class="il-size">65,534 hosts each</div>
+      </div>
+      <div class="intro-level">
+        <div class="il-prefix" style="color:#fb923c">/24</div>
+        <div class="il-label">Click a /16 to see<br>256 subnets inside</div>
+        <div class="il-size">254 hosts each</div>
+      </div>
+    </div>
+    <div class="intro-steps">
+      <span><span class="key">Click</span> block to zoom in</span>
+      <span><span class="key">Scroll</span> to orbit</span>
+      <span><span class="key">Right-drag</span> to pan</span>
+    </div>
+    <button class="intro-go" id="introGo">Explore</button>
+  </div>
 </div>
 
 <!-- Teaching Panel -->
@@ -352,16 +411,16 @@ function createBlock(x, z, size, height, color, userData) {
 function makeTextSprite(text, { color = '#fff', size = 0.5 } = {}) {
   const canvas2 = document.createElement('canvas');
   const ctx = canvas2.getContext('2d');
-  canvas2.width = 256; canvas2.height = 64;
-  ctx.font = 'bold 28px monospace';
+  canvas2.width = 512; canvas2.height = 64;
+  ctx.font = 'bold 24px monospace';
   ctx.fillStyle = color;
   ctx.textAlign = 'center';
-  ctx.fillText(text, 128, 38);
+  ctx.fillText(text, 256, 40);
   const tex = new THREE.CanvasTexture(canvas2);
   tex.minFilter = THREE.LinearFilter;
   const mat = new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false });
   const sprite = new THREE.Sprite(mat);
-  sprite.scale.set(size * 4, size, 1);
+  sprite.scale.set(size * 6, size * 0.8, 1);
   return sprite;
 }
 
@@ -402,6 +461,27 @@ function renderRoot() {
       label: isSpecial ? `${i}` : (i % 4 === 0 ? `${i}` : ''),
     });
   }
+
+  // Floating annotations for key blocks
+  const annotations = [
+    { oct: 10,  text: '10.x — Private (Class A)', color: '#fbbf24' },
+    { oct: 127, text: '127.x — Loopback', color: '#94a3b8' },
+    { oct: 172, text: '172.16.x — Private (Class B)', color: '#fbbf24' },
+    { oct: 192, text: '192.168.x — Private (Class C)', color: '#fbbf24' },
+    { oct: 224, text: '224.x — Multicast', color: '#e879f9' },
+    { oct: 8,   text: '8.8.8.8 — Google DNS', color: '#4a9eff' },
+    { oct: 1,   text: '1.1.1.1 — Cloudflare DNS', color: '#4a9eff' },
+  ];
+  annotations.forEach(a => {
+    const row = Math.floor(a.oct / gridSize);
+    const col = a.oct % gridSize;
+    const x = col * blockSize - offset;
+    const z = row * blockSize - offset;
+    const sprite = makeTextSprite(a.text, { color: a.color, size: 0.7 });
+    sprite.position.set(x, 5.5, z);
+    scene.add(sprite);
+    labelSprites.push(sprite);
+  });
 
   // Animate camera to overview
   animateCamera(new THREE.Vector3(40, 30, 40), new THREE.Vector3(0, 0, 0));
@@ -783,8 +863,11 @@ renderLegend();
 renderRoot();
 animate();
 
-// Auto-open learn panel on load
-setTimeout(() => { updateTeachContent(); teachPanel.classList.add('open'); }, 600);
+// Intro overlay dismiss
+document.getElementById('introGo').addEventListener('click', () => {
+  document.getElementById('introOverlay').classList.add('hidden');
+  setTimeout(() => { updateTeachContent(); teachPanel.classList.add('open'); }, 400);
+});
 </script>
 <script src="js/tutor.js"></script>
 </body>
