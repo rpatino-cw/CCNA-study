@@ -62,6 +62,33 @@
   .leave-btn{font-family:var(--font-display);font-size:.75rem;color:var(--prof-weak);background:none;border:1px solid var(--prof-weak);border-radius:var(--radius);padding:6px 14px;cursor:pointer;margin-top:var(--s-md)}
   .leave-btn:hover{background:var(--prof-weak-bg)}
 
+  /* Recommendations */
+  .rec-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:var(--s-md);margin-bottom:var(--s-lg)}
+  .rec-card{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px 16px;border-left:3px solid var(--accent)}
+  .rec-card.urgent{border-left-color:var(--prof-weak)}
+  .rec-card.positive{border-left-color:var(--prof-strong)}
+  .rec-icon{font-size:1.1rem;margin-bottom:4px}
+  .rec-title{font-family:var(--font-display);font-size:.85rem;font-weight:700;margin-bottom:4px}
+  .rec-desc{font-family:var(--font-body);font-size:.78rem;color:var(--ink-secondary);line-height:1.5}
+  .rec-action{font-family:var(--font-display);font-size:.72rem;color:var(--accent);margin-top:6px;font-weight:600}
+
+  /* Teaching pairs */
+  .teach-pair{display:flex;align-items:center;gap:12px;padding:10px 14px;background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:6px}
+  .tp-from{font-family:var(--font-display);font-size:.82rem;font-weight:700;min-width:70px}
+  .tp-arrow{color:var(--ink-muted);font-size:.8rem}
+  .tp-to{font-family:var(--font-display);font-size:.82rem;font-weight:700;min-width:70px}
+  .tp-topic{font-family:var(--font-body);font-size:.78rem;color:var(--ink-secondary);flex:1}
+  .tp-gap{font-family:var(--font-mono);font-size:.72rem;font-weight:600}
+
+  /* Weak topics */
+  .weak-row{display:flex;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid var(--border)}
+  .weak-row:last-child{border-bottom:none}
+  .wr-id{font-family:var(--font-mono);font-size:.72rem;color:var(--ink-muted);min-width:30px}
+  .wr-name{font-family:var(--font-display);font-size:.8rem;flex:1}
+  .wr-avg{font-family:var(--font-mono);font-size:.78rem;font-weight:700}
+  .wr-bar{width:80px;height:6px;background:var(--bg-recessed);border-radius:3px;overflow:hidden}
+  .wr-fill{height:100%;border-radius:3px}
+
   .member-colors{--c0:#B45309;--c1:#0369A1;--c2:#7C3AED;--c3:#059669;--c4:#DB2777;--c5:#D97706;--c6:#4338CA;--c7:#DC2626;--c8:#0D9488;--c9:#9333EA}
 </style>
 </head>
@@ -111,6 +138,32 @@
     <div class="domain-compare" id="domainCompare">
       <h2 style="font-size:1.1rem;margin-bottom:var(--s-md)">Domain Comparison</h2>
       <div id="domainBars"></div>
+    </div>
+
+    <!-- Recommendations -->
+    <div class="rec-section" id="recSection">
+      <h2 style="font-size:1.1rem;margin-bottom:var(--s-md)">Recommendations</h2>
+      <div class="rec-grid" id="recGrid"></div>
+    </div>
+
+    <!-- Teaching Pairs -->
+    <div class="teach-section" id="teachSection" style="margin-bottom:var(--s-lg)">
+      <h2 style="font-size:1.1rem;margin-bottom:var(--s-md)">Teaching Opportunities</h2>
+      <p style="font-size:.82rem;color:var(--ink-secondary);margin-bottom:var(--s-md)">Where one member is strong and another is weak — the strong one teaches.</p>
+      <div id="teachPairs"></div>
+    </div>
+
+    <!-- Group Activity -->
+    <div style="margin-bottom:var(--s-lg)">
+      <h2 style="font-size:1.1rem;margin-bottom:var(--s-md)">Group Stats</h2>
+      <div class="members-grid" id="groupStats"></div>
+    </div>
+
+    <!-- Weakest Topics (group-wide) -->
+    <div style="margin-bottom:var(--s-lg)">
+      <h2 style="font-size:1.1rem;margin-bottom:var(--s-md)">Group Weak Spots</h2>
+      <p style="font-size:.82rem;color:var(--ink-secondary);margin-bottom:var(--s-md)">Topics where the group average is below 40%. Study these together.</p>
+      <div id="weakTopics"></div>
     </div>
 
     <div class="ai-card">
@@ -271,6 +324,139 @@ function renderGroup(group) {
     }).join('');
     return `<div class="dc-row"><div class="dc-label">D${dId} — ${dName}</div><div class="dc-bars">${bars}</div></div>`;
   }).join('');
+
+  // New sections
+  renderRecommendations(group);
+  renderTeachingPairs(group);
+  renderGroupStats(group);
+  renderWeakTopics(group);
+}
+
+// ── Recommendations ───────────────────────────────────────────
+function renderRecommendations(group) {
+  const entries = Object.entries(group.members);
+  const myId = getMemberId();
+  const me = group.members[myId];
+  const recs = [];
+
+  if (!me) { document.getElementById('recGrid').innerHTML = ''; return; }
+  const myProf = me.progress?.proficiency || {};
+  const myReadiness = me.progress?.readiness || 0;
+
+  // Rec 1: Weakest domain
+  const domainAvgs = {};
+  for (const dId of ['1','2','3','4','5','6']) {
+    const topics = Object.keys(myProf).filter(k => k.startsWith(dId + '.'));
+    domainAvgs[dId] = topics.length > 0 ? topics.reduce((s, k) => s + myProf[k], 0) / topics.length : 0;
+  }
+  const weakestDomain = Object.entries(domainAvgs).sort((a, b) => a[1] - b[1])[0];
+  if (weakestDomain[1] < 0.5) {
+    recs.push({ icon: '!', cls: 'urgent', title: `Focus on D${weakestDomain[0]} — ${DOMAIN_NAMES[weakestDomain[0]]}`, desc: `Your weakest domain at ${Math.round(weakestDomain[1] * 100)}%. Prioritize this in your next study session.`, action: 'Start with the Learn Visually page for this domain' });
+  }
+
+  // Rec 2: Someone ahead of you
+  const others = entries.filter(([id]) => id !== myId);
+  const ahead = others.filter(([, m]) => (m.progress?.readiness || 0) > myReadiness + 10);
+  if (ahead.length > 0) {
+    const best = ahead.sort((a, b) => (b[1].progress?.readiness || 0) - (a[1].progress?.readiness || 0))[0];
+    recs.push({ icon: '>', cls: '', title: `${best[1].name} is at ${best[1].progress?.readiness || 0}% readiness`, desc: `They're ${(best[1].progress?.readiness || 0) - myReadiness}% ahead of you. Check what domains they've been studying.`, action: 'Compare domain bars above' });
+  }
+
+  // Rec 3: Streak check
+  const myStreak = me.progress?.streak?.current || 0;
+  const maxStreak = Math.max(...entries.map(([, m]) => m.progress?.streak?.current || 0));
+  if (myStreak < maxStreak) {
+    const streaker = entries.find(([, m]) => (m.progress?.streak?.current || 0) === maxStreak);
+    recs.push({ icon: '+', cls: '', title: `Study streak: ${myStreak}d (group leader: ${maxStreak}d)`, desc: `${streaker[1].name} has the longest streak. Consistency beats intensity.`, action: 'Study daily, even 15 minutes counts' });
+  }
+
+  // Rec 4: Topics you can teach
+  const canTeach = [];
+  for (const [id, m] of others) {
+    const theirProf = m.progress?.proficiency || {};
+    for (const [topic, score] of Object.entries(myProf)) {
+      if (score >= 0.7 && (theirProf[topic] || 0) < 0.4) {
+        canTeach.push({ to: m.name, topic });
+        break;
+      }
+    }
+  }
+  if (canTeach.length > 0) {
+    recs.push({ icon: '=', cls: 'positive', title: `You can help ${canTeach.map(c => c.to).join(', ')}`, desc: `You're strong in topics they're weak in. Teaching is the fastest way to lock in your own knowledge.`, action: 'See Teaching Opportunities below' });
+  }
+
+  // Rec 5: Group should do a quiz together
+  const allReadiness = entries.map(([, m]) => m.progress?.readiness || 0);
+  const avgReadiness = Math.round(allReadiness.reduce((s, v) => s + v, 0) / allReadiness.length);
+  recs.push({ icon: '?', cls: '', title: `Group average readiness: ${avgReadiness}%`, desc: avgReadiness < 50 ? 'The group is still building fundamentals. Focus on Domains 1-2 before moving to routing.' : avgReadiness < 75 ? 'Good progress. Time to drill weak spots and take practice exams together.' : 'Strong group. Start doing timed practice exams and teaching each other edge cases.', action: avgReadiness < 50 ? 'Start with Console Labs together' : 'Take the diagnostic quiz as a group race' });
+
+  document.getElementById('recGrid').innerHTML = recs.map(r =>
+    `<div class="rec-card ${r.cls}"><div class="rec-title">${esc(r.title)}</div><div class="rec-desc">${esc(r.desc)}</div><div class="rec-action">${esc(r.action)}</div></div>`
+  ).join('');
+}
+
+// ── Teaching Pairs ────────────────────────────────────────────
+function renderTeachingPairs(group) {
+  const entries = Object.entries(group.members);
+  const pairs = [];
+  const topics = window.topicsData?.domains?.flatMap(d => d.topics.map(t => ({ id: t.id, name: t.name }))) || [];
+
+  for (let i = 0; i < entries.length; i++) {
+    for (let j = i + 1; j < entries.length; j++) {
+      const [idA, mA] = entries[i], [idB, mB] = entries[j];
+      const profA = mA.progress?.proficiency || {}, profB = mB.progress?.proficiency || {};
+      for (const t of topics) {
+        const sA = profA[t.id] || 0, sB = profB[t.id] || 0;
+        if (sA >= 0.7 && sB < 0.4) pairs.push({ from: mA.name, to: mB.name, topic: t.id + ' ' + t.name, gap: Math.round((sA - sB) * 100), fromColor: COLORS[i % COLORS.length], toColor: COLORS[j % COLORS.length] });
+        else if (sB >= 0.7 && sA < 0.4) pairs.push({ from: mB.name, to: mA.name, topic: t.id + ' ' + t.name, gap: Math.round((sB - sA) * 100), fromColor: COLORS[j % COLORS.length], toColor: COLORS[i % COLORS.length] });
+      }
+    }
+  }
+
+  pairs.sort((a, b) => b.gap - a.gap);
+  const top = pairs.slice(0, 10);
+
+  document.getElementById('teachPairs').innerHTML = top.length > 0 ? top.map(p =>
+    `<div class="teach-pair"><span class="tp-from" style="color:${p.fromColor}">${esc(p.from)}</span><span class="tp-arrow">can teach</span><span class="tp-to" style="color:${p.toColor}">${esc(p.to)}</span><span class="tp-topic">${esc(p.topic)}</span><span class="tp-gap" style="color:var(--prof-weak)">${p.gap}% gap</span></div>`
+  ).join('') : '<p style="font-size:.82rem;color:var(--ink-muted)">No strong teaching opportunities yet — keep studying and check back.</p>';
+}
+
+// ── Group Stats ───────────────────────────────────────────────
+function renderGroupStats(group) {
+  const entries = Object.entries(group.members);
+  const totalTime = entries.reduce((s, [, m]) => s + (m.progress?.studyTime?.total || 0), 0);
+  const totalQuizzes = entries.reduce((s, [, m]) => s + (m.progress?.quizStats?.taken || 0), 0);
+  const avgReadiness = Math.round(entries.reduce((s, [, m]) => s + (m.progress?.readiness || 0), 0) / entries.length);
+  const bestStreak = Math.max(...entries.map(([, m]) => m.progress?.streak?.current || 0));
+
+  document.getElementById('groupStats').innerHTML = `
+    <div class="member-card"><div class="mc-stats"><div class="mc-stat"><div class="val">${Math.round(totalTime / 60)}h</div><div class="lbl">Total Study Time</div></div><div class="mc-stat"><div class="val">${totalQuizzes}</div><div class="lbl">Quizzes Taken</div></div><div class="mc-stat"><div class="val">${avgReadiness}%</div><div class="lbl">Avg Readiness</div></div><div class="mc-stat"><div class="val">${bestStreak}d</div><div class="lbl">Best Streak</div></div></div></div>
+  `;
+}
+
+// ── Weak Topics (group-wide) ──────────────────────────────────
+function renderWeakTopics(group) {
+  const entries = Object.entries(group.members);
+  const topics = window.topicsData?.domains?.flatMap(d => d.topics.map(t => ({ id: t.id, name: t.name }))) || [];
+  const weakList = [];
+
+  for (const t of topics) {
+    const scores = entries.map(([, m]) => (m.progress?.proficiency || {})[t.id] || 0);
+    const avg = scores.reduce((s, v) => s + v, 0) / scores.length;
+    if (avg < 0.4) weakList.push({ ...t, avg, scores });
+  }
+
+  weakList.sort((a, b) => a.avg - b.avg);
+  const top = weakList.slice(0, 15);
+
+  document.getElementById('weakTopics').innerHTML = top.length > 0 ?
+    '<div style="background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden">' +
+    top.map(t => {
+      const pct = Math.round(t.avg * 100);
+      const color = pct < 20 ? 'var(--prof-weak)' : 'var(--prof-mid)';
+      return `<div class="weak-row"><span class="wr-id">${t.id}</span><span class="wr-name">${esc(t.name)}</span><div class="wr-bar"><div class="wr-fill" style="width:${pct}%;background:${color}"></div></div><span class="wr-avg" style="color:${color}">${pct}%</span></div>`;
+    }).join('') + '</div>'
+    : '<p style="font-size:.82rem;color:var(--ink-muted)">No group-wide weak spots below 40% — nice work.</p>';
 }
 
 // ── AI Analysis ───────────────────────────────────────────────
