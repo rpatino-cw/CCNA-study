@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Learning Path — CCNA 200-301</title>
+<meta name="color-scheme" content="light">
+<link rel="icon" type="image/svg+xml" href="/CCNA-study/favicon.svg">
+<link rel="stylesheet" href="css/shared.css">
+<style>
+  .page-header { padding: var(--s-xl) 0 var(--s-lg); margin-bottom: var(--s-lg); border-bottom: 2px solid var(--ink); }
+  .page-header h1 { font-size: 2.4rem; margin-bottom: 4px; }
+  .page-header .subtitle { font-family: var(--font-body); color: var(--ink-secondary); font-size: 0.95rem; font-style: italic; max-width: 60ch; }
+
+  /* Starting point card */
+  .start-card { background: var(--accent-dim); border-left: 4px solid var(--accent); border-radius: 0 var(--radius-lg) var(--radius-lg) 0; padding: var(--s-lg); margin-bottom: var(--s-xl); }
+  .start-card h3 { font-family: var(--font-display); font-size: 1rem; margin-bottom: 4px; }
+  .start-card p { font-size: 0.88rem; color: var(--ink-secondary); margin-bottom: 8px; }
+  .start-card .tier-badge { display: inline-block; font-family: var(--font-display); font-size: 0.75rem; font-weight: 700; padding: 3px 10px; border-radius: 12px; color: #fff; }
+
+  /* Legend */
+  .graph-legend { display: flex; flex-wrap: wrap; gap: 16px; margin-bottom: var(--s-lg); padding: 12px 16px; background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius-lg); }
+  .legend-item { display: flex; align-items: center; gap: 6px; font-family: var(--font-display); font-size: 0.72rem; color: var(--ink-secondary); }
+  .legend-dot { width: 12px; height: 12px; border-radius: 3px; }
+  .legend-line { width: 20px; height: 3px; border-radius: 2px; }
+
+  /* Graph container */
+  .graph-wrap { background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow-x: auto; margin-bottom: var(--s-2xl); }
+  .graph-wrap svg { display: block; width: 100%; min-width: 900px; height: auto; }
+
+  /* SVG styles */
+  .tier-bg { opacity: 0.4; }
+  .tier-label { font-family: 'Space Grotesk', sans-serif; font-size: 11px; font-weight: 700; fill: #A8A29E; letter-spacing: 0.5px; text-transform: uppercase; }
+  .node-group { cursor: pointer; }
+  .node-group:hover .node-rect { filter: brightness(1.12); }
+  .node-group:hover .node-text { fill: #fff; }
+  .node-rect { transition: filter 0.15s; }
+  .node-text { font-family: 'Space Grotesk', sans-serif; font-size: 8.5px; fill: #fff; font-weight: 600; pointer-events: none; }
+  .node-id { font-family: 'JetBrains Mono', monospace; font-size: 7px; fill: rgba(255,255,255,0.7); pointer-events: none; }
+  .node-mastered .node-rect { fill: #16A34A !important; }
+  .node-weak { opacity: 0.45; }
+  .edge-line { fill: none; stroke: #D4D0C8; stroke-width: 1.2; }
+  .edge-line:hover { stroke-width: 2.5; stroke: #94A3B8; }
+  .critical-edge { stroke: #B45309; stroke-width: 2.5; stroke-dasharray: 8,4; animation: critFlow 1.5s linear infinite; filter: drop-shadow(0 0 3px rgba(180,83,9,0.3)); }
+  @keyframes critFlow { to { stroke-dashoffset: -24; } }
+  @keyframes recPulse { 0%,100% { stroke-opacity: 0.3; stroke-width: 2; } 50% { stroke-opacity: 1; stroke-width: 4; } }
+  .node-recommended .node-rect { stroke: #B45309; stroke-width: 2; animation: recPulse 2s ease-in-out infinite; }
+
+  /* Tooltip */
+  .graph-tooltip { pointer-events: none; opacity: 0; transition: opacity 0.15s; }
+  .graph-tooltip.visible { opacity: 1; }
+  .tt-bg { fill: #1C1917; rx: 6; }
+  .tt-text { font-family: 'Space Grotesk', sans-serif; font-size: 10px; fill: #FAF7F2; font-weight: 500; }
+  .tt-sub { font-family: 'Space Grotesk', sans-serif; font-size: 8px; fill: #A8A29E; }
+
+  /* Tier detail sections */
+  .tier-detail { margin-bottom: var(--s-2xl); }
+  .tier-detail h2 { font-size: 1.15rem; margin-bottom: var(--s-sm); padding-bottom: var(--s-sm); border-bottom: 1px solid var(--rule); }
+  .tier-detail p { font-size: 0.88rem; color: var(--ink-secondary); margin-bottom: var(--s-md); max-width: 60ch; }
+  .tier-topics { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 8px; }
+  .tier-topic { display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: var(--bg-recessed); border-radius: var(--radius); font-family: var(--font-display); font-size: 0.8rem; }
+  .tier-topic .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .tier-topic .tid { font-family: var(--font-mono); font-size: 0.72rem; color: var(--ink-muted); min-width: 28px; }
+  .tier-topic .tname { color: var(--ink); }
+  .tier-topic .tpct { margin-left: auto; font-family: var(--font-mono); font-size: 0.72rem; font-weight: 600; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .critical-edge, .node-recommended .node-rect { animation: none; }
+  }
+</style>
+</head>
+<body>
+<div class="container-wide">
+  <nav class="top-nav" id="main-nav"></nav>
+
+  <header class="page-header">
+    <h1>Learning Path</h1>
+    <p class="subtitle">The dependency map. What you must know before you can learn what's next. Follow the arrows — don't skip ahead.</p>
+  </header>
+
+  <div id="startCard" class="start-card" style="display:none"></div>
+
+  <div class="graph-legend">
+    <div class="legend-item"><div class="legend-dot" style="background:#2563EB"></div>Foundation</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#16A34A"></div>Layer 2</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#D97706"></div>Layer 3</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#7C3AED"></div>Services</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#DC2626"></div>Security</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#0891B2"></div>Automation</div>
+    <div class="legend-item" style="margin-left:12px"><div class="legend-dot" style="background:#16A34A;border:2px solid #16A34A"></div>Mastered</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#D4D0C8"></div>Not started</div>
+    <div class="legend-item"><div class="legend-line" style="background:#B45309"></div>Critical path</div>
+  </div>
+
+  <div class="graph-wrap">
+    <svg id="mainGraph" xmlns="http://www.w3.org/2000/svg"></svg>
+  </div>
+
+  <div id="tierDetails"></div>
+</div>
+
+<script src="data/topics-data.js"></script>
+<script src="js/store.js"></script>
+<script src="js/nav.js"></script>
+<script>
+// ── Data ──────────────────────────────────────────────────────
+const TIERS = [
+  { id: 'foundation', name: 'Foundation', color: '#2563EB', bg: '#EFF6FF', desc: 'The bedrock. IP addressing, binary, TCP/UDP, switching basics, cabling. Everything else builds on this.' },
+  { id: 'layer2',     name: 'Layer 2',    color: '#16A34A', bg: '#F0FDF4', desc: 'VLANs, trunking, STP, EtherChannel, wireless architecture. The switching layer.' },
+  { id: 'layer3',     name: 'Layer 3',    color: '#D97706', bg: '#FFFBEB', desc: 'Routing tables, static routes, OSPF, FHRP. How packets find their way across networks.' },
+  { id: 'services',   name: 'Services',   color: '#7C3AED', bg: '#F5F3FF', desc: 'NAT, DHCP, DNS, NTP, SNMP, Syslog, QoS, SSH. The services that make networks usable.' },
+  { id: 'security',   name: 'Security',   color: '#DC2626', bg: '#FEF2F2', desc: 'ACLs, port security, DHCP snooping, DAI, AAA, VPNs, wireless security.' },
+  { id: 'automation', name: 'Automation',  color: '#0891B2', bg: '#ECFEFF', desc: 'SDN, REST APIs, JSON, Ansible, Terraform. The future of network management.' },
+];
+
+const NODES = [
+  // Foundation
+  { id:'1.1',  tier:'foundation', name:'Network Components' },
+  { id:'1.3',  tier:'foundation', name:'Cabling & Physical' },
+  { id:'1.4',  tier:'foundation', name:'Interface Issues' },
+  { id:'1.5',  tier:'foundation', name:'TCP vs UDP' },
+  { id:'1.6',  tier:'foundation', name:'IPv4 Subnetting' },
+  { id:'1.7',  tier:'foundation', name:'Private IPv4' },
+  { id:'1.8',  tier:'foundation', name:'IPv6 Addressing' },
+  { id:'1.9',  tier:'foundation', name:'IPv6 Types' },
+  { id:'1.11', tier:'foundation', name:'Wireless Basics' },
+  { id:'1.12', tier:'foundation', name:'Virtualization' },
+  { id:'1.13', tier:'foundation', name:'Switching Concepts' },
+  // Layer 2
+  { id:'2.1',  tier:'layer2', name:'VLANs' },
+  { id:'2.2',  tier:'layer2', name:'Trunking / 802.1Q' },
+  { id:'2.3',  tier:'layer2', name:'CDP / LLDP' },
+  { id:'2.4',  tier:'layer2', name:'EtherChannel' },
+  { id:'2.5',  tier:'layer2', name:'STP / RSTP' },
+  { id:'2.6',  tier:'layer2', name:'Wireless Arch' },
+  { id:'2.7',  tier:'layer2', name:'WLAN Infra' },
+  { id:'2.8',  tier:'layer2', name:'Device Mgmt' },
+  { id:'2.9',  tier:'layer2', name:'WLAN GUI' },
+  // Layer 3
+  { id:'3.1',  tier:'layer3', name:'Routing Table' },
+  { id:'3.2',  tier:'layer3', name:'Forwarding' },
+  { id:'3.3',  tier:'layer3', name:'Static Routing' },
+  { id:'3.4',  tier:'layer3', name:'OSPF' },
+  { id:'3.5',  tier:'layer3', name:'FHRP / HSRP' },
+  // Services
+  { id:'4.1',  tier:'services', name:'NAT / PAT' },
+  { id:'4.2',  tier:'services', name:'NTP' },
+  { id:'4.3',  tier:'services', name:'DHCP / DNS' },
+  { id:'4.5',  tier:'services', name:'Syslog' },
+  { id:'4.6',  tier:'services', name:'DHCP Relay' },
+  { id:'4.7',  tier:'services', name:'QoS' },
+  { id:'4.8',  tier:'services', name:'SSH' },
+  // Security
+  { id:'5.1',  tier:'security', name:'Security Concepts' },
+  { id:'5.3',  tier:'security', name:'Passwords' },
+  { id:'5.5',  tier:'security', name:'VPNs / IPsec' },
+  { id:'5.6',  tier:'security', name:'ACLs' },
+  { id:'5.7',  tier:'security', name:'L2 Security' },
+  { id:'5.8',  tier:'security', name:'AAA' },
+  { id:'5.9',  tier:'security', name:'Wireless Sec' },
+  { id:'5.10', tier:'security', name:'WPA2 Config' },
+  // Automation
+  { id:'6.1',  tier:'automation', name:'Automation Impact' },
+  { id:'6.2',  tier:'automation', name:'Trad vs SDN' },
+  { id:'6.3',  tier:'automation', name:'SDN Architecture' },
+  { id:'6.5',  tier:'automation', name:'REST APIs' },
+  { id:'6.6',  tier:'automation', name:'Ansible' },
+  { id:'6.7',  tier:'automation', name:'JSON' },
+];
+
+// [from, to] = "must know FROM before TO"
+const EDGES = [
+  // Foundation internal
+  ['1.3','1.4'], ['1.6','1.7'], ['1.8','1.9'],
+  // Foundation → Layer 2
+  ['1.6','2.1'], ['1.13','2.1'], ['1.13','2.5'], ['1.13','2.3'], ['1.11','2.6'],
+  // Layer 2 internal
+  ['2.1','2.2'], ['2.2','2.4'], ['2.1','2.5'], ['2.6','2.7'], ['2.7','2.9'],
+  // → Layer 3
+  ['1.6','3.1'], ['1.8','3.1'], ['3.1','3.2'], ['3.1','3.3'], ['3.3','3.4'], ['3.4','3.5'],
+  // → Services
+  ['3.3','4.1'], ['3.3','4.3'], ['3.3','4.6'], ['1.5','4.7'],
+  // → Security
+  ['2.8','5.3'], ['5.3','4.8'], ['5.1','5.5'], ['5.1','5.8'],
+  ['2.6','5.9'], ['5.9','5.10'], ['3.3','5.6'], ['2.5','5.7'],
+  // → Automation
+  ['6.1','6.2'], ['6.2','6.3'], ['6.5','6.7'],
+];
+
+// ── Layout Engine ─────────────────────────────────────────────
+const TIER_H = 110;
+const TIER_PAD = 14;
+const NODE_W = 88;
+const NODE_H = 36;
+const LEFT_LABEL = 90;
+
+function layoutGraph() {
+  const positions = {};
+  TIERS.forEach((tier, ti) => {
+    const tierNodes = NODES.filter(n => n.tier === tier.id);
+    const y = TIER_PAD + ti * TIER_H + TIER_H / 2;
+    const availW = 1100 - LEFT_LABEL;
+    const gap = availW / (tierNodes.length + 1);
+    tierNodes.forEach((node, ni) => {
+      positions[node.id] = { x: LEFT_LABEL + gap * (ni + 1), y };
+    });
+  });
+  return positions;
+}
+
+function bezierPath(x1, y1, x2, y2) {
+  const dy = y2 - y1;
+  if (Math.abs(dy) < TIER_H) {
+    // Same tier — slight arc
+    const mx = (x1 + x2) / 2;
+    const my = Math.min(y1, y2) - 20;
+    return `M${x1},${y1} Q${mx},${my} ${x2},${y2}`;
+  }
+  // Cross-tier — S-curve
+  const cp = Math.min(Math.abs(dy) * 0.4, 50);
+  return `M${x1},${y1 + NODE_H/2} C${x1},${y1 + NODE_H/2 + cp} ${x2},${y2 - NODE_H/2 - cp} ${x2},${y2 - NODE_H/2}`;
+}
+
+// ── Critical Path ─────────────────────────────────────────────
+function findCriticalPath() {
+  const adj = {}; const dist = {}; const prev = {};
+  NODES.forEach(n => { adj[n.id] = []; dist[n.id] = 0; prev[n.id] = null; });
+  const inDeg = {}; NODES.forEach(n => inDeg[n.id] = 0);
+  EDGES.forEach(([f,t]) => { adj[f].push(t); inDeg[t]++; });
+  const q = Object.keys(inDeg).filter(k => inDeg[k] === 0);
+  while (q.length) {
+    const u = q.shift();
+    for (const v of adj[u]) {
+      if (dist[u] + 1 > dist[v]) { dist[v] = dist[u] + 1; prev[v] = u; }
+      if (--inDeg[v] === 0) q.push(v);
+    }
+  }
+  let end = Object.keys(dist).reduce((a,b) => dist[a] > dist[b] ? a : b);
+  const path = []; while (end) { path.unshift(end); end = prev[end]; }
+  const edgeSet = new Set();
+  for (let i = 0; i < path.length - 1; i++) edgeSet.add(path[i] + '→' + path[i+1]);
+  return edgeSet;
+}
+
+// ── Recommended Next ──────────────────────────────────────────
+function findRecommended(prof) {
+  const adj = {}; NODES.forEach(n => adj[n.id] = []);
+  EDGES.forEach(([f,t]) => { if (!adj[t]) adj[t] = []; adj[t].push(f); }); // reverse: prereqs of t
+  // reverse adj: for each node, what are its prerequisites
+  const prereqs = {};
+  NODES.forEach(n => prereqs[n.id] = []);
+  EDGES.forEach(([f,t]) => prereqs[t].push(f));
+
+  // Candidates: proficiency < 0.7, all prereqs >= 0.7 (or no prereqs)
+  const candidates = NODES.filter(n => {
+    const score = prof[n.id] ?? 0;
+    if (score >= 0.7) return false;
+    return prereqs[n.id].every(p => (prof[p] ?? 0) >= 0.7);
+  });
+  if (candidates.length === 0) return null;
+  candidates.sort((a,b) => (prof[a.id] ?? 0) - (prof[b.id] ?? 0));
+  return candidates[0].id;
+}
+
+// ── Render ────────────────────────────────────────────────────
+function render() {
+  store.initProficiency(window.topicsData);
+  const prof = store.getAllProficiency();
+  const pos = layoutGraph();
+  const critEdges = findCriticalPath();
+  const recId = findRecommended(prof);
+
+  const svgW = 1200;
+  const svgH = TIERS.length * TIER_H + TIER_PAD * 2;
+  const svg = document.getElementById('mainGraph');
+  svg.setAttribute('viewBox', `0 0 ${svgW} ${svgH}`);
+
+  let html = '';
+
+  // Defs
+  html += `<defs>
+    <marker id="arrow" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0,0 8,3 0,6" fill="#D4D0C8"/></marker>
+    <marker id="arrowCrit" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0,0 8,3 0,6" fill="#B45309"/></marker>
+  </defs>`;
+
+  // Tier backgrounds
+  TIERS.forEach((tier, i) => {
+    const y = TIER_PAD + i * TIER_H;
+    html += `<rect x="0" y="${y}" width="${svgW}" height="${TIER_H}" fill="${tier.bg}" class="tier-bg"/>`;
+    html += `<text x="12" y="${y + TIER_H/2 + 4}" class="tier-label">${tier.name}</text>`;
+  });
+
+  // Edges
+  EDGES.forEach(([from, to]) => {
+    const p1 = pos[from], p2 = pos[to];
+    if (!p1 || !p2) return;
+    const isCrit = critEdges.has(from + '→' + to);
+    const cls = isCrit ? 'edge-line critical-edge' : 'edge-line';
+    const marker = isCrit ? 'url(#arrowCrit)' : 'url(#arrow)';
+    html += `<path d="${bezierPath(p1.x, p1.y, p2.x, p2.y)}" class="${cls}" marker-end="${marker}"/>`;
+  });
+
+  // Nodes
+  NODES.forEach(n => {
+    const p = pos[n.id];
+    if (!p) return;
+    const tier = TIERS.find(t => t.id === n.tier);
+    const score = prof[n.id] ?? 0;
+    const mastered = score >= 0.7;
+    const weak = score < 0.1;
+    const fill = mastered ? '#16A34A' : tier.color;
+    const cls = ['node-group', mastered ? 'node-mastered' : '', weak ? 'node-weak' : '', n.id === recId ? 'node-recommended' : ''].join(' ');
+
+    html += `<g class="${cls}" data-id="${n.id}" data-name="${n.name}" data-score="${Math.round(score*100)}" data-tier="${n.tier}">`;
+    html += `<rect class="node-rect" x="${p.x - NODE_W/2}" y="${p.y - NODE_H/2}" width="${NODE_W}" height="${NODE_H}" rx="6" fill="${fill}"/>`;
+    html += `<text class="node-id" x="${p.x}" y="${p.y - 4}" text-anchor="middle">${n.id}</text>`;
+    html += `<text class="node-text" x="${p.x}" y="${p.y + 8}" text-anchor="middle">${n.name}</text>`;
+    if (mastered) html += `<text x="${p.x + NODE_W/2 - 10}" y="${p.y - NODE_H/2 + 11}" style="font-size:10px;fill:#fff">✓</text>`;
+    html += `</g>`;
+  });
+
+  // Tooltip group
+  html += `<g class="graph-tooltip" id="graphTooltip">
+    <rect class="tt-bg" width="180" height="44" x="0" y="0"/>
+    <text class="tt-text" x="10" y="18" id="ttName"></text>
+    <text class="tt-sub" x="10" y="34" id="ttScore"></text>
+  </g>`;
+
+  svg.innerHTML = html;
+
+  // Events
+  svg.querySelectorAll('.node-group').forEach(g => {
+    g.addEventListener('mouseenter', e => {
+      const tt = document.getElementById('graphTooltip');
+      const name = g.dataset.name;
+      const score = g.dataset.score;
+      const id = g.dataset.id;
+      document.getElementById('ttName').textContent = `${id} — ${name}`;
+      document.getElementById('ttScore').textContent = `Proficiency: ${score}%`;
+      const rect = g.querySelector('.node-rect');
+      const x = parseFloat(rect.getAttribute('x'));
+      const y = parseFloat(rect.getAttribute('y')) - 50;
+      tt.setAttribute('transform', `translate(${x},${y})`);
+      tt.classList.add('visible');
+    });
+    g.addEventListener('mouseleave', () => {
+      document.getElementById('graphTooltip').classList.remove('visible');
+    });
+    g.addEventListener('click', () => {
+      const tierId = g.dataset.tier;
+      const el = document.getElementById('tier-' + tierId);
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  });
+
+  // Starting point card
+  renderStartCard(prof, recId);
+
+  // Tier details
+  renderTierDetails(prof);
+}
+
+function renderStartCard(prof, recId) {
+  const card = document.getElementById('startCard');
+  if (!recId) {
+    card.style.display = 'none';
+    return;
+  }
+  const node = NODES.find(n => n.id === recId);
+  const tier = TIERS.find(t => t.id === node.tier);
+  const score = Math.round((prof[recId] ?? 0) * 100);
+  card.style.display = '';
+  card.innerHTML = `
+    <h3>Your next focus: <strong>${node.id} — ${node.name}</strong></h3>
+    <p>You're at ${score}% on this topic. Its prerequisites are met — this is the highest-impact thing to study right now.</p>
+    <span class="tier-badge" style="background:${tier.color}">${tier.name} tier</span>
+  `;
+}
+
+function renderTierDetails(prof) {
+  const container = document.getElementById('tierDetails');
+  let html = '';
+  TIERS.forEach(tier => {
+    const tierNodes = NODES.filter(n => n.tier === tier.id);
+    html += `<div class="tier-detail" id="tier-${tier.id}">`;
+    html += `<h2 style="color:${tier.color}">${tier.name}</h2>`;
+    html += `<p>${tier.desc}</p>`;
+    html += `<div class="tier-topics">`;
+    tierNodes.forEach(n => {
+      const score = prof[n.id] ?? 0;
+      const pct = Math.round(score * 100);
+      const dotColor = score >= 0.7 ? '#16A34A' : score >= 0.4 ? '#CA8A04' : '#DC2626';
+      const pctColor = score >= 0.7 ? 'var(--prof-strong)' : score >= 0.4 ? 'var(--prof-mid)' : 'var(--prof-weak)';
+      html += `<div class="tier-topic">
+        <div class="dot" style="background:${dotColor}"></div>
+        <span class="tid">${n.id}</span>
+        <span class="tname">${n.name}</span>
+        <span class="tpct" style="color:${pctColor}">${pct}%</span>
+      </div>`;
+    });
+    html += `</div></div>`;
+  });
+  container.innerHTML = html;
+}
+
+render();
+</script>
+<script src="js/tutor.js"></script>
+</body>
+</html>

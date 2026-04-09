@@ -3,6 +3,7 @@
   var NAV_LINKS = [
     { text: 'Dashboard',     href: 'index.html' },
     { text: 'Knowledge Map', href: 'knowledge-map.html' },
+    { text: 'Learning Path', href: 'learning-path.html' },
     { text: 'Diagnostic',    href: 'diagnostic.html' },
     { text: 'Quiz',          href: 'quiz.html' },
     { text: 'Daily Study',   href: 'study.html' },
