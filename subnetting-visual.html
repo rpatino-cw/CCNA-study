@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Subnetting — Visual Cheat Sheet</title>
+<meta name="color-scheme" content="light">
+<link rel="icon" type="image/svg+xml" href="/CCNA-study/favicon.svg">
+<link rel="stylesheet" href="css/shared.css">
+<style>
+  /* ── Layout ────────────────────────────────────────────────── */
+  .page-header { padding: var(--s-xl) 0 var(--s-lg); margin-bottom: var(--s-lg); border-bottom: 2px solid var(--ink); }
+  .page-header h1 { font-size: 2.4rem; margin-bottom: 4px; }
+  .page-header .subtitle { font-family: var(--font-body); color: var(--ink-secondary); font-size: 0.95rem; font-style: italic; max-width: 60ch; }
+
+  .section { margin-bottom: var(--s-2xl); }
+  .section-title { font-family: var(--font-display); font-size: 1.3rem; font-weight: 700; letter-spacing: -0.02em; margin-bottom: var(--s-sm); padding-bottom: var(--s-sm); border-bottom: 1px solid var(--rule); color: var(--ink); }
+  .section-sub { font-family: var(--font-body); font-size: 0.88rem; color: var(--ink-secondary); margin-bottom: var(--s-md); max-width: 60ch; line-height: 1.6; }
+
+  .visual-block { background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 20px; margin-bottom: var(--s-md); overflow-x: auto; }
+  .visual-block:hover { border-color: var(--border-strong); }
+  .block-label { font-family: var(--font-display); font-size: 0.78rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--accent); margin-bottom: 12px; }
+  .hack-label { font-family: var(--font-display); font-size: 0.78rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #16A34A; margin-bottom: 12px; }
+  .warn-label { font-family: var(--font-display); font-size: 0.78rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #DC2626; margin-bottom: 12px; }
+
+  svg text { font-family: 'Space Grotesk', system-ui, sans-serif; }
+  .sv-label { font-size: 11px; font-weight: 700; fill: #fff; }
+  .sv-sub { font-size: 9px; fill: rgba(255,255,255,0.85); }
+  .sv-anno { font-size: 9px; fill: #57534E; font-weight: 500; }
+  .sv-bold { font-size: 9px; fill: #1C1917; font-weight: 700; }
+  .sv-cmd { font-size: 9px; fill: #B45309; font-family: 'JetBrains Mono', monospace; font-weight: 500; }
+  .sv-dim { font-size: 8px; fill: #A8A29E; }
+  .sv-big { font-size: 14px; fill: #1C1917; font-weight: 700; font-family: 'JetBrains Mono', monospace; }
+  .sv-green { font-size: 10px; fill: #16A34A; font-weight: 700; }
+  .sv-red { font-size: 10px; fill: #DC2626; font-weight: 700; }
+  .sv-blue { font-size: 10px; fill: #2563EB; font-weight: 700; }
+
+  /* Bit animations */
+  @keyframes bitFlip { 0%,40% { fill: #2563EB; } 50%,90% { fill: #DC2626; } 100% { fill: #2563EB; } }
+  @keyframes slideRight { 0% { transform: translateX(-20px); opacity: 0; } 100% { transform: translateX(0); opacity: 1; } }
+  @keyframes pulse { 0%,100% { opacity: 0.4; } 50% { opacity: 1; } }
+  @keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+  .anim-flip { animation: bitFlip 3s ease-in-out infinite; }
+  .anim-slide { animation: slideRight 0.5s ease forwards; }
+  .anim-pulse { animation: pulse 2s ease-in-out infinite; }
+  .anim-blink { animation: blink 1.5s ease-in-out infinite; }
+
+  /* Interactive bits */
+  .bit-cell { cursor: pointer; transition: transform 0.15s; }
+  .bit-cell:hover { transform: scale(1.1); }
+
+  /* Cheat table */
+  .cheat-table { width: 100%; border-collapse: collapse; font-family: var(--font-mono); font-size: 0.82rem; }
+  .cheat-table th { font-family: var(--font-display); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-muted); font-weight: 600; padding: 8px 10px; text-align: left; border-bottom: 2px solid var(--rule); }
+  .cheat-table td { padding: 7px 10px; border-bottom: 1px solid var(--border); }
+  .cheat-table tr:hover td { background: var(--bg-recessed); }
+  .cheat-table .highlight { background: var(--accent-dim); font-weight: 700; }
+  .cheat-table .net-bits { color: #2563EB; font-weight: 700; }
+  .cheat-table .host-bits { color: #16A34A; font-weight: 700; }
+
+  /* Grid layouts */
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s-md); }
+  @media (max-width: 700px) { .two-col { grid-template-columns: 1fr; } }
+
+  /* Hack box */
+  .hack-box { background: #F0FDF4; border: 1px solid #BBF7D0; border-radius: var(--radius-lg); padding: 16px 20px; margin-bottom: var(--s-md); }
+  .trap-box { background: #FEF2F2; border: 1px solid #FECACA; border-radius: var(--radius-lg); padding: 16px 20px; margin-bottom: var(--s-md); }
+
+  /* Speed comparison */
+  .speed-bar { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+  .speed-bar .bar { height: 24px; border-radius: 4px; display: flex; align-items: center; padding: 0 10px; }
+  .speed-bar .bar-label { font-family: var(--font-display); font-size: 0.75rem; font-weight: 600; min-width: 120px; }
+  .speed-bar .bar-time { font-family: var(--font-mono); font-size: 0.72rem; color: #fff; font-weight: 600; white-space: nowrap; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .anim-flip, .anim-slide, .anim-pulse, .anim-blink { animation: none; }
+  }
+</style>
+</head>
+<body>
+<div class="container-wide">
+  <nav class="top-nav" id="main-nav"></nav>
+
+  <header class="page-header">
+    <h1>Subnetting</h1>
+    <p class="subtitle">The complete visual cheat sheet. Every method, every shortcut, every trap. The long way first, then the hacks that make it instant.</p>
+  </header>
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       1. BINARY FUNDAMENTALS — The Foundation
+       ═══════════════════════════════════════════════════════════════ -->
+  <div class="section">
+    <h2 class="section-title">1. Binary — See It, Don't Memorize It</h2>
+    <p class="section-sub">Every IP address is 32 bits. Each octet is 8 bits. This is the one thing you need to internalize.</p>
+
+    <div class="visual-block">
+      <div class="block-label">Powers of 2 — The Only Table You Need</div>
+      <svg viewBox="0 0 700 100" xmlns="http://www.w3.org/2000/svg">
+        <!-- Bit positions -->
+        <g transform="translate(20,10)">
+          <text x="0" y="14" class="sv-dim">Bit position:</text>
+          <text x="120" y="14" class="sv-dim">7</text><text x="200" y="14" class="sv-dim">6</text>
+          <text x="280" y="14" class="sv-dim">5</text><text x="360" y="14" class="sv-dim">4</text>
+          <text x="440" y="14" class="sv-dim">3</text><text x="520" y="14" class="sv-dim">2</text>
+          <text x="600" y="14" class="sv-dim">1</text><text x="660" y="14" class="sv-dim">0</text>
+        </g>
+        <!-- Values -->
+        <g transform="translate(20,30)">
+          <text x="0" y="20" class="sv-bold">Value:</text>
+          <rect x="100" y="0" width="60" height="32" rx="4" fill="#2563EB"/><text x="130" y="21" class="sv-label" text-anchor="middle">128</text>
+          <rect x="180" y="0" width="60" height="32" rx="4" fill="#3B82F6"/><text x="210" y="21" class="sv-label" text-anchor="middle">64</text>
+          <rect x="260" y="0" width="60" height="32" rx="4" fill="#0EA5E9"/><text x="290" y="21" class="sv-label" text-anchor="middle">32</text>
+          <rect x="340" y="0" width="60" height="32" rx="4" fill="#06B6D4"/><text x="370" y="21" class="sv-label" text-anchor="middle">16</text>
+          <rect x="420" y="0" width="60" height="32" rx="4" fill="#14B8A6"/><text x="450" y="21" class="sv-label" text-anchor="middle">8</text>
+          <rect x="500" y="0" width="60" height="32" rx="4" fill="#16A34A"/><text x="530" y="21" class="sv-label" text-anchor="middle">4</text>
+          <rect x="580" y="0" width="40" height="32" rx="4" fill="#65A30D"/><text x="600" y="21" class="sv-label" text-anchor="middle">2</text>
+          <rect x="640" y="0" width="40" height="32" rx="4" fill="#CA8A04"/><text x="660" y="21" class="sv-label" text-anchor="middle">1</text>
+        </g>
+        <!-- Sum example -->
+        <g transform="translate(20,72)">
+          <text x="0" y="14" class="sv-bold">Example:</text>
+          <text x="130" y="14" class="sv-big" text-anchor="middle">1</text>
+          <text x="210" y="14" class="sv-big" text-anchor="middle">1</text>
+          <text x="290" y="14" class="sv-big" text-anchor="middle">0</text>
+          <text x="370" y="14" class="sv-big" text-anchor="middle">0</text>
+          <text x="450" y="14" class="sv-big" text-anchor="middle">0</text>
+          <text x="530" y="14" class="sv-big" text-anchor="middle">0</text>
+          <text x="600" y="14" class="sv-big" text-anchor="middle">0</text>
+          <text x="660" y="14" class="sv-big" text-anchor="middle">0</text>
+          <text x="690" y="14" class="sv-bold" style="font-size:11px">= 128 + 64 = 192</text>
+        </g>
+      </svg>
+    </div>
+
+    <div class="visual-block">
+      <div class="block-label">Subnet Mask in Binary — Where Network Ends, Host Begins</div>
+      <svg viewBox="0 0 700 110" xmlns="http://www.w3.org/2000/svg">
+        <!-- /24 mask -->
+        <text x="10" y="18" class="sv-bold" style="font-size:11px">/24 = 255.255.255.0</text>
+        <g transform="translate(10,28)">
+          <!-- Octet 1: all 1s -->
+          <rect x="0" y="0" width="22" height="22" rx="2" fill="#2563EB"/><text x="11" y="15" class="sv-label" text-anchor="middle" style="font-size:10px">1</text>
+          <rect x="24" y="0" width="22" height="22" rx="2" fill="#2563EB"/><text x="35" y="15" class="sv-label" text-anchor="middle" style="font-size:10px">1</text>
+          <rect x="48" y="0" width="22" height="22" rx="2" fill="#2563EB"/><text x="59" y="15" class="sv-label" text-anchor="middle" style="font-size:10px">1</text>
+          <rect x="72" y="0" width="22" height="22" rx="2" fill="#2563EB"/><text x="83" y="15" class="sv-label" text-anchor="middle" style="font-size:10px">1</text>
+          <rect x="96" y="0" width="22" height="22" rx="2" fill="#2563EB"/><text x="107" y="15" class="sv-label" text-anchor="middle" style="font-size:10px">1</text>
+          <rect x="120" y="0" width="22" height="22" rx="2" fill="#2563EB"/><text x="131" y="15" class="sv-label" text-anchor="middle" style="font-size:10px">1</text>
+          <rect x="144" y="0" width="22" height="22" rx="2" fill="#2563EB"/><text x="155" y="15" class="sv-label" text-anchor="middle" style="font-size:10px">1</text>
+          <rect x="168" y="0" width="22" height="22" rx="2" fill="#2563EB"/><text x="179" y="15" class="sv-label" text-anchor="middle" style="font-size:10px">1</text>
+          <text x="198" y="16" class="sv-dim">.</text>
+          <!-- Octet 2: all 1s -->
+          <rect x="206" y="0" width="22" height="22" rx="2" fill="#2563EB"/><text x="217" y="15" class="sv-label" text-anchor="middle" style="font-size:10px">1</text>
+          <rect x="230" y="0" width="22" height="22" rx="2" fill="#2563EB"/><text x="241" y="15" class="sv-label" text-anchor="middle" style="font-size:10px">1</text>
+          <rect x="254" y="0" width="22" height="22" rx="2" fill="#2563EB"/><text x="265" y="15" class="sv-label" text-anchor="middle" style="font-size:10px">1</text>
+          <rect x="278" y="0" width="22" height="22" rx="2" fill="#2563EB"/><text x="289" y="15" class="sv-label" text-anchor="middle" style="font-size:10px">1</text>
+          <rect x="302" y="0" width="22" height="22" rx="2" fill="#2563EB"/><text x="313" y="15" class="sv-label" text-anchor="middle" style="font-size:10px">1</text>
+          <rect x="326" y="0" width="22" height="22" rx="2" fill="#2563EB"/><text x="337" y="15" class="sv-label" text-anchor="middle" style="font-size:10px">1</text>
+          <rect x="350" y="0" width="22" height="22" rx="2" fill="#2563EB"/><text x="361" y="15" class="sv-label" text-anchor="middle" style="font-size:10px">1</text>
+          <rect x="374" y="0" width="22" height="22" rx="2" fill="#2563EB"/><text x="385" y="15" class="sv-label" text-anchor="middle" style="font-size:10px">1</text>
+          <text x="404" y="16" class="sv-dim">.</text>
+          <!-- Octet 3: all 1s -->
+          <rect x="412" y="0" width="22" height="22" rx="2" fill="#2563EB"/><text x="423" y="15" class="sv-label" text-anchor="middle" style="font-size:10px">1</text>
+          <rect x="436" y="0" width="22" height="22" rx="2" fill="#2563EB"/><text x="447" y="15" class="sv-label" text-anchor="middle" style="font-size:10px">1</text>
+          <rect x="460" y="0" width="22" height="22" rx="2" fill="#2563EB"/><text x="471" y="15" class="sv-label" text-anchor="middle" style="font-size:10px">1</text>
+          <rect x="484" y="0" width="22" height="22" rx="2" fill="#2563EB"/><text x="495" y="15" class="sv-label" text-anchor="middle" style="font-size:10px">1</text>
+          <rect x="508" y="0" width="22" height="22" rx="2" fill="#2563EB"/><text x="519" y="15" class="sv-label" text-anchor="middle" style="font-size:10px">1</text>
+          <rect x="532" y="0" width="22" height="22" rx="2" fill="#2563EB"/><text x="543" y="15" class="sv-label" text-anchor="middle" style="font-size:10px">1</text>
+          <rect x="556" y="0" width="22" height="22" rx="2" fill="#2563EB"/><text x="567" y="15" class="sv-label" text-anchor="middle" style="font-size:10px">1</text>
+          <rect x="580" y="0" width="22" height="22" rx="2" fill="#2563EB"/><text x="591" y="15" class="sv-label" text-anchor="middle" style="font-size:10px">1</text>
+          <text x="610" y="16" class="sv-dim">.</text>
+          <!-- Octet 4: all 0s (HOST) -->
+          <rect x="618" y="0" width="22" height="22" rx="2" fill="#16A34A"/><text x="629" y="15" class="sv-label" text-anchor="middle" style="font-size:10px">0</text>
+          <rect x="642" y="0" width="22" height="22" rx="2" fill="#16A34A"/><text x="653" y="15" class="sv-label" text-anchor="middle" style="font-size:10px">0</text>
+          <rect x="666" y="0" width="22" height="22" rx="2" fill="#16A34A" class="anim-pulse"/><text x="677" y="15" class="sv-label" text-anchor="middle" style="font-size:10px">0</text>
+        </g>
+        <!-- Labels -->
+        <rect x="10" y="60" width="598" height="14" rx="2" fill="#2563EB" opacity="0.15"/>
+        <text x="300" y="72" class="sv-blue" text-anchor="middle">Network bits (24 bits = fixed)</text>
+        <rect x="618" y="60" width="70" height="14" rx="2" fill="#16A34A" opacity="0.15"/>
+        <text x="653" y="72" class="sv-green" text-anchor="middle">Host (8)</text>
+        <!-- The rule -->
+        <text x="10" y="100" class="sv-bold" style="font-size:11px">Rule: 1s = network (locked) | 0s = hosts (yours to assign) | 1s are always contiguous from the left</text>
+      </svg>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       2. THE CHEAT TABLE — Memorize This One Page
+       ═══════════════════════════════════════════════════════════════ -->
+  <div class="section">
+    <h2 class="section-title">2. The Cheat Table — Print This, Tape It to Your Monitor</h2>
+    <p class="section-sub">Every possible subnet in one table. The bolded rows are the ones that show up on the exam 90% of the time.</p>
+
+    <div class="visual-block" style="padding:12px">
+      <table class="cheat-table">
+        <thead>
+          <tr><th>CIDR</th><th>Mask</th><th>Wildcard</th><th>Addresses</th><th>Usable Hosts</th><th>Net Bits</th><th>Host Bits</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>/32</td><td>255.255.255.255</td><td>0.0.0.0</td><td>1</td><td>1</td><td class="net-bits">32</td><td class="host-bits">0</td></tr>
+          <tr><td>/31</td><td>255.255.255.254</td><td>0.0.0.1</td><td>2</td><td>2</td><td class="net-bits">31</td><td class="host-bits">1</td></tr>
+          <tr class="highlight"><td><strong>/30</strong></td><td><strong>255.255.255.252</strong></td><td>0.0.0.3</td><td>4</td><td><strong>2</strong></td><td class="net-bits">30</td><td class="host-bits">2</td></tr>
+          <tr><td>/29</td><td>255.255.255.248</td><td>0.0.0.7</td><td>8</td><td>6</td><td class="net-bits">29</td><td class="host-bits">3</td></tr>
+          <tr><td>/28</td><td>255.255.255.240</td><td>0.0.0.15</td><td>16</td><td>14</td><td class="net-bits">28</td><td class="host-bits">4</td></tr>
+          <tr><td>/27</td><td>255.255.255.224</td><td>0.0.0.31</td><td>32</td><td>30</td><td class="net-bits">27</td><td class="host-bits">5</td></tr>
+          <tr class="highlight"><td><strong>/26</strong></td><td><strong>255.255.255.192</strong></td><td>0.0.0.63</td><td>64</td><td><strong>62</strong></td><td class="net-bits">26</td><td class="host-bits">6</td></tr>
+          <tr class="highlight"><td><strong>/25</strong></td><td><strong>255.255.255.128</strong></td><td>0.0.0.127</td><td>128</td><td><strong>126</strong></td><td class="net-bits">25</td><td class="host-bits">7</td></tr>
+          <tr class="highlight"><td><strong>/24</strong></td><td><strong>255.255.255.0</strong></td><td>0.0.0.255</td><td>256</td><td><strong>254</strong></td><td class="net-bits">24</td><td class="host-bits">8</td></tr>
+          <tr><td>/23</td><td>255.255.254.0</td><td>0.0.1.255</td><td>512</td><td>510</td><td class="net-bits">23</td><td class="host-bits">9</td></tr>
+          <tr><td>/22</td><td>255.255.252.0</td><td>0.0.3.255</td><td>1,024</td><td>1,022</td><td class="net-bits">22</td><td class="host-bits">10</td></tr>
+          <tr class="highlight"><td><strong>/16</strong></td><td><strong>255.255.0.0</strong></td><td>0.0.255.255</td><td>65,536</td><td><strong>65,534</strong></td><td class="net-bits">16</td><td class="host-bits">16</td></tr>
+          <tr><td>/8</td><td>255.0.0.0</td><td>0.255.255.255</td><td>16,777,216</td><td>16,777,214</td><td class="net-bits">8</td><td class="host-bits">24</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="hack-box">
+      <div class="hack-label">Hack #1 — The Only Formula You Need</div>
+      <svg viewBox="0 0 600 60" xmlns="http://www.w3.org/2000/svg">
+        <text x="10" y="25" class="sv-big">Usable Hosts = 2</text>
+        <text x="218" y="15" style="font-size:11px;fill:#1C1917;font-weight:700;font-family:'JetBrains Mono',monospace">(32 - prefix)</text>
+        <text x="330" y="25" class="sv-big">- 2</text>
+        <text x="10" y="50" class="sv-anno">Subtract 2 for: network address (all 0s in host) + broadcast (all 1s in host)</text>
+        <text x="400" y="50" class="sv-cmd">/26 → 2^6 - 2 = 62 hosts</text>
+      </svg>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       3. THE LONG WAY — Binary Method (Know It, Then Forget It)
+       ═══════════════════════════════════════════════════════════════ -->
+  <div class="section">
+    <h2 class="section-title">3. The Long Way — Binary Method</h2>
+    <p class="section-sub">This is what textbooks teach. You need to understand it, but you'll never use it on the exam. Learn it once to understand why the shortcuts work.</p>
+
+    <div class="visual-block">
+      <div class="block-label">Example: Find the subnet for 192.168.10.75/26</div>
+      <svg viewBox="0 0 700 280" xmlns="http://www.w3.org/2000/svg">
+        <!-- Step 1: Convert IP to binary -->
+        <text x="10" y="18" class="sv-bold" style="font-size:11px">Step 1: Convert IP to binary</text>
+        <text x="10" y="38" class="sv-cmd">192 = 11000000</text>
+        <text x="160" y="38" class="sv-cmd">168 = 10101000</text>
+        <text x="310" y="38" class="sv-cmd">10 = 00001010</text>
+        <text x="460" y="38" class="sv-cmd">75 = 01001011</text>
+
+        <!-- Step 2: Write the mask -->
+        <text x="10" y="68" class="sv-bold" style="font-size:11px">Step 2: Write /26 mask in binary</text>
+        <!-- Network bits (26) in blue -->
+        <g transform="translate(10,78)">
+          <rect x="0" y="0" width="390" height="20" rx="2" fill="#2563EB" opacity="0.15"/>
+          <rect x="390" y="0" width="90" height="20" rx="2" fill="#16A34A" opacity="0.15"/>
+          <text x="10" y="14" class="sv-cmd" style="fill:#2563EB">11111111.11111111.11111111.11</text>
+          <text x="362" y="14" class="sv-cmd" style="fill:#16A34A">000000</text>
+          <text x="500" y="14" class="sv-anno">← 26 ones, then 6 zeros</text>
+        </g>
+
+        <!-- Step 3: AND operation -->
+        <text x="10" y="120" class="sv-bold" style="font-size:11px">Step 3: AND the IP with the mask (only the interesting octet matters)</text>
+        <g transform="translate(10,132)">
+          <text x="0" y="14" class="sv-cmd">IP last octet:   01001011 (75)</text>
+          <text x="0" y="30" class="sv-cmd">Mask last octet:  11000000 (192)</text>
+          <line x1="0" y1="36" x2="280" y2="36" stroke="#1C1917" stroke-width="1"/>
+          <text x="0" y="52" class="sv-cmd" style="fill:#2563EB;font-weight:700">AND result:       01000000 (64)</text>
+          <text x="320" y="52" class="sv-bold" style="font-size:11px;fill:#16A34A">→ Network: 192.168.10.64</text>
+        </g>
+
+        <!-- Step 4: Find broadcast & range -->
+        <text x="10" y="208" class="sv-bold" style="font-size:11px">Step 4: Results</text>
+        <g transform="translate(10,218)">
+          <rect x="0" y="0" width="160" height="22" rx="3" fill="#2563EB"/><text x="80" y="15" class="sv-label" text-anchor="middle">Network: .64</text>
+          <rect x="170" y="0" width="160" height="22" rx="3" fill="#16A34A"/><text x="250" y="15" class="sv-label" text-anchor="middle">First host: .65</text>
+          <rect x="340" y="0" width="160" height="22" rx="3" fill="#D97706"/><text x="420" y="15" class="sv-label" text-anchor="middle">Last host: .126</text>
+          <rect x="510" y="0" width="170" height="22" rx="3" fill="#DC2626"/><text x="595" y="15" class="sv-label" text-anchor="middle">Broadcast: .127</text>
+        </g>
+        <text x="10" y="262" class="sv-dim">That's 64 addresses (.64 to .127), 62 usable hosts (.65 to .126)</text>
+        <text x="10" y="276" class="sv-red">This takes 2-3 minutes on the exam. The next methods take 10 seconds.</text>
+      </svg>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       4. HACK #1 — THE MAGIC NUMBER METHOD (10 seconds)
+       ═══════════════════════════════════════════════════════════════ -->
+  <div class="section">
+    <h2 class="section-title">4. The Magic Number — The Fastest Method</h2>
+    <p class="section-sub">This is the method that experienced engineers use. No binary, no conversion. Pure arithmetic.</p>
+
+    <div class="hack-box">
+      <div class="hack-label">The Rule</div>
+      <svg viewBox="0 0 700 50" xmlns="http://www.w3.org/2000/svg">
+        <text x="10" y="25" class="sv-big">Magic Number = 256 - interesting mask octet</text>
+        <text x="10" y="45" class="sv-anno">The "interesting octet" is the one that isn't 255 or 0 in the mask</text>
+      </svg>
+    </div>
+
+    <div class="visual-block">
+      <div class="block-label">Example: 192.168.10.75/26 (same problem, 10x faster)</div>
+      <svg viewBox="0 0 700 200" xmlns="http://www.w3.org/2000/svg">
+        <!-- Step 1 -->
+        <text x="10" y="20" class="sv-bold" style="font-size:11px">Step 1: Identify the interesting octet</text>
+        <text x="10" y="40" class="sv-cmd">/26 mask = 255.255.255.192</text>
+        <text x="280" y="40" class="sv-anno">← The 192 is the interesting octet (4th octet)</text>
+
+        <!-- Step 2 -->
+        <text x="10" y="70" class="sv-bold" style="font-size:11px">Step 2: Calculate magic number</text>
+        <rect x="10" y="78" width="200" height="30" rx="4" fill="#16A34A"/>
+        <text x="110" y="98" class="sv-label" text-anchor="middle" style="font-size:13px">256 - 192 = 64</text>
+        <text x="230" y="98" class="sv-bold" style="font-size:12px;fill:#16A34A">Magic number = 64</text>
+
+        <!-- Step 3 -->
+        <text x="10" y="130" class="sv-bold" style="font-size:11px">Step 3: Count by 64s to find which subnet 75 falls in</text>
+        <g transform="translate(10,140)">
+          <rect x="0" y="0" width="80" height="24" rx="3" fill="var(--bg-recessed)" stroke="#D4D0C8"/><text x="40" y="16" class="sv-cmd" text-anchor="middle">0</text>
+          <rect x="90" y="0" width="80" height="24" rx="3" fill="#2563EB"/><text x="130" y="16" class="sv-label" text-anchor="middle">64</text>
+          <rect x="180" y="0" width="80" height="24" rx="3" fill="var(--bg-recessed)" stroke="#D4D0C8"/><text x="220" y="16" class="sv-cmd" text-anchor="middle">128</text>
+          <rect x="270" y="0" width="80" height="24" rx="3" fill="var(--bg-recessed)" stroke="#D4D0C8"/><text x="310" y="16" class="sv-cmd" text-anchor="middle">192</text>
+          <!-- Arrow pointing to 64 -->
+          <text x="130" y="44" class="sv-green" text-anchor="middle">75 lands here (64-127)</text>
+          <polygon points="126,28 134,28 130,34" fill="#16A34A"/>
+        </g>
+
+        <!-- Result -->
+        <text x="10" y="200" class="sv-bold" style="font-size:11px;fill:#16A34A">Network: 192.168.10.64 | Broadcast: .127 | Range: .65 to .126 | Done.</text>
+      </svg>
+    </div>
+
+    <div class="hack-box">
+      <div class="hack-label">Hack #2 — Instant Broadcast Address</div>
+      <svg viewBox="0 0 700 30" xmlns="http://www.w3.org/2000/svg">
+        <text x="10" y="20" class="sv-big">Broadcast = next network - 1</text>
+        <text x="400" y="20" class="sv-cmd">64 + 64 = 128, so 128 - 1 = 127 → broadcast = .127</text>
+      </svg>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       5. HACK #2 — THE CIDR SHORTCUT TABLE
+       ═══════════════════════════════════════════════════════════════ -->
+  <div class="section">
+    <h2 class="section-title">5. The 7 Masks That Actually Appear on the Exam</h2>
+    <p class="section-sub">Cisco loves the 4th octet. Memorize these 7 and you can answer 90% of subnetting questions without any math.</p>
+
+    <div class="visual-block">
+      <svg viewBox="0 0 700 240" xmlns="http://www.w3.org/2000/svg">
+        <!-- Column headers -->
+        <text x="10" y="18" class="sv-bold" style="font-size:10px">CIDR</text>
+        <text x="60" y="18" class="sv-bold" style="font-size:10px">Mask Octet</text>
+        <text x="160" y="18" class="sv-bold" style="font-size:10px">Magic #</text>
+        <text x="240" y="18" class="sv-bold" style="font-size:10px">Block Size</text>
+        <text x="340" y="18" class="sv-bold" style="font-size:10px">Hosts</text>
+        <text x="420" y="18" class="sv-bold" style="font-size:10px">Subnets (of /24)</text>
+        <text x="570" y="18" class="sv-bold" style="font-size:10px">Trick</text>
+        <line x1="10" y1="24" x2="690" y2="24" stroke="#D4D0C8" stroke-width="1"/>
+
+        <!-- /25 -->
+        <text x="10" y="44" class="sv-cmd">/25</text><text x="60" y="44" class="sv-cmd">128</text>
+        <rect x="150" y="30" width="60" height="22" rx="3" fill="#16A34A"/><text x="180" y="45" class="sv-label" text-anchor="middle">128</text>
+        <text x="240" y="44" class="sv-anno">128 addresses</text><text x="340" y="44" class="sv-anno">126</text><text x="420" y="44" class="sv-anno">2 subnets</text><text x="570" y="44" class="sv-cmd">Half a /24</text>
+
+        <!-- /26 -->
+        <text x="10" y="72" class="sv-cmd">/26</text><text x="60" y="72" class="sv-cmd">192</text>
+        <rect x="150" y="58" width="60" height="22" rx="3" fill="#16A34A"/><text x="180" y="73" class="sv-label" text-anchor="middle">64</text>
+        <text x="240" y="72" class="sv-anno">64 addresses</text><text x="340" y="72" class="sv-anno">62</text><text x="420" y="72" class="sv-anno">4 subnets</text><text x="570" y="72" class="sv-cmd">Quarter</text>
+
+        <!-- /27 -->
+        <text x="10" y="100" class="sv-cmd">/27</text><text x="60" y="100" class="sv-cmd">224</text>
+        <rect x="150" y="86" width="60" height="22" rx="3" fill="#16A34A"/><text x="180" y="101" class="sv-label" text-anchor="middle">32</text>
+        <text x="240" y="100" class="sv-anno">32 addresses</text><text x="340" y="100" class="sv-anno">30</text><text x="420" y="100" class="sv-anno">8 subnets</text><text x="570" y="100" class="sv-cmd">Eighth</text>
+
+        <!-- /28 -->
+        <text x="10" y="128" class="sv-cmd">/28</text><text x="60" y="128" class="sv-cmd">240</text>
+        <rect x="150" y="114" width="60" height="22" rx="3" fill="#D97706"/><text x="180" y="129" class="sv-label" text-anchor="middle">16</text>
+        <text x="240" y="128" class="sv-anno">16 addresses</text><text x="340" y="128" class="sv-anno">14</text><text x="420" y="128" class="sv-anno">16 subnets</text><text x="570" y="128" class="sv-cmd">Sweet spot for small LANs</text>
+
+        <!-- /29 -->
+        <text x="10" y="156" class="sv-cmd">/29</text><text x="60" y="156" class="sv-cmd">248</text>
+        <rect x="150" y="142" width="60" height="22" rx="3" fill="#D97706"/><text x="180" y="157" class="sv-label" text-anchor="middle">8</text>
+        <text x="240" y="156" class="sv-anno">8 addresses</text><text x="340" y="156" class="sv-anno">6</text><text x="420" y="156" class="sv-anno">32 subnets</text><text x="570" y="156" class="sv-cmd">Server VLANs</text>
+
+        <!-- /30 -->
+        <text x="10" y="184" class="sv-cmd">/30</text><text x="60" y="184" class="sv-cmd">252</text>
+        <rect x="150" y="170" width="60" height="22" rx="3" fill="#DC2626"/><text x="180" y="185" class="sv-label" text-anchor="middle">4</text>
+        <text x="240" y="184" class="sv-anno">4 addresses</text><text x="340" y="184" class="sv-anno">2</text><text x="420" y="184" class="sv-anno">64 subnets</text><text x="570" y="184" class="sv-cmd">Point-to-point links</text>
+
+        <!-- /31 -->
+        <text x="10" y="212" class="sv-cmd">/31</text><text x="60" y="212" class="sv-cmd">254</text>
+        <rect x="150" y="198" width="60" height="22" rx="3" fill="#DC2626"/><text x="180" y="213" class="sv-label" text-anchor="middle">2</text>
+        <text x="240" y="212" class="sv-anno">2 addresses</text><text x="340" y="212" class="sv-anno">2*</text><text x="420" y="212" class="sv-anno">128 subnets</text><text x="570" y="212" class="sv-cmd">RFC 3021 — no broadcast</text>
+
+        <text x="10" y="236" class="sv-dim">* /31 is special: both addresses are usable (RFC 3021). Used for router-to-router links to save IPs.</text>
+      </svg>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       6. VLSM — Variable Length Subnet Masking
+       ═══════════════════════════════════════════════════════════════ -->
+  <div class="section">
+    <h2 class="section-title">6. VLSM — Carve Different-Sized Subnets From One Block</h2>
+    <p class="section-sub">Real networks need different subnet sizes. VLSM lets you split a /24 into chunks. Always allocate largest-first.</p>
+
+    <div class="visual-block">
+      <div class="block-label">Example: Split 192.168.1.0/24 for 4 departments</div>
+      <svg viewBox="0 0 700 260" xmlns="http://www.w3.org/2000/svg">
+        <!-- Original /24 -->
+        <rect x="10" y="10" width="680" height="30" rx="4" fill="#2563EB"/>
+        <text x="350" y="29" class="sv-label" text-anchor="middle">192.168.1.0/24 — 254 usable hosts (full block)</text>
+
+        <!-- Requirements sorted largest first -->
+        <text x="10" y="60" class="sv-bold" style="font-size:10px">Requirements (sorted largest first):</text>
+        <text x="10" y="78" class="sv-anno">Sales: 100 hosts → need /25 (126 usable) | Engineering: 50 → /26 (62) | Management: 25 → /27 (30) | P2P link: 2 → /30 (2)</text>
+
+        <!-- VLSM allocation visual -->
+        <text x="10" y="106" class="sv-bold" style="font-size:10px">Allocation (left to right, no overlap):</text>
+
+        <!-- Sales /25 -->
+        <rect x="10" y="115" width="340" height="35" rx="4" fill="#2563EB"/>
+        <text x="180" y="132" class="sv-label" text-anchor="middle">Sales /25</text>
+        <text x="180" y="144" class="sv-sub" text-anchor="middle">.0 — .127 (126 hosts)</text>
+
+        <!-- Engineering /26 -->
+        <rect x="352" y="115" width="170" height="35" rx="4" fill="#16A34A"/>
+        <text x="437" y="132" class="sv-label" text-anchor="middle">Engineering /26</text>
+        <text x="437" y="144" class="sv-sub" text-anchor="middle">.128 — .191 (62 hosts)</text>
+
+        <!-- Management /27 -->
+        <rect x="524" y="115" width="85" height="35" rx="4" fill="#D97706"/>
+        <text x="566" y="132" class="sv-label" text-anchor="middle">Mgmt /27</text>
+        <text x="566" y="144" class="sv-sub" text-anchor="middle">.192 — .223</text>
+
+        <!-- P2P /30 -->
+        <rect x="611" y="115" width="22" height="35" rx="4" fill="#DC2626"/>
+        <text x="622" y="136" class="sv-label" text-anchor="middle" style="font-size:8px">P2P</text>
+
+        <!-- Free space -->
+        <rect x="635" y="115" width="55" height="35" rx="4" fill="#E2DFD9" stroke="#C7C3BC"/>
+        <text x="662" y="136" class="sv-anno" text-anchor="middle">Free</text>
+
+        <!-- Address table -->
+        <g transform="translate(10,170)">
+          <text x="0" y="14" class="sv-bold" style="font-size:10px">Subnet</text>
+          <text x="140" y="14" class="sv-bold" style="font-size:10px">Network</text>
+          <text x="280" y="14" class="sv-bold" style="font-size:10px">Usable Range</text>
+          <text x="480" y="14" class="sv-bold" style="font-size:10px">Broadcast</text>
+          <text x="580" y="14" class="sv-bold" style="font-size:10px">Mask</text>
+          <line x1="0" y1="20" x2="690" y2="20" stroke="#D4D0C8"/>
+
+          <text x="0" y="38" class="sv-cmd" style="fill:#2563EB">Sales /25</text>
+          <text x="140" y="38" class="sv-cmd">.0</text>
+          <text x="280" y="38" class="sv-cmd">.1 — .126</text>
+          <text x="480" y="38" class="sv-cmd">.127</text>
+          <text x="580" y="38" class="sv-cmd">255.255.255.128</text>
+
+          <text x="0" y="56" class="sv-cmd" style="fill:#16A34A">Engineering /26</text>
+          <text x="140" y="56" class="sv-cmd">.128</text>
+          <text x="280" y="56" class="sv-cmd">.129 — .190</text>
+          <text x="480" y="56" class="sv-cmd">.191</text>
+          <text x="580" y="56" class="sv-cmd">255.255.255.192</text>
+
+          <text x="0" y="74" class="sv-cmd" style="fill:#D97706">Management /27</text>
+          <text x="140" y="74" class="sv-cmd">.192</text>
+          <text x="280" y="74" class="sv-cmd">.193 — .222</text>
+          <text x="480" y="74" class="sv-cmd">.223</text>
+          <text x="580" y="74" class="sv-cmd">255.255.255.224</text>
+
+          <text x="0" y="92" class="sv-cmd" style="fill:#DC2626">P2P Link /30</text>
+          <text x="140" y="92" class="sv-cmd">.224</text>
+          <text x="280" y="92" class="sv-cmd">.225 — .226</text>
+          <text x="480" y="92" class="sv-cmd">.227</text>
+          <text x="580" y="92" class="sv-cmd">255.255.255.252</text>
+        </g>
+      </svg>
+    </div>
+
+    <div class="hack-box">
+      <div class="hack-label">VLSM Rule: Always allocate largest subnet first, then next largest, and so on. This prevents gaps and overlap.</div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       7. WILDCARD MASKS — The ACL Companion
+       ═══════════════════════════════════════════════════════════════ -->
+  <div class="section">
+    <h2 class="section-title">7. Wildcard Masks — The Inverse Hack</h2>
+    <p class="section-sub">ACLs and OSPF use wildcard masks. They're just the inverse of the subnet mask.</p>
+
+    <div class="hack-box">
+      <div class="hack-label">The Hack — subtract each octet from 255</div>
+      <svg viewBox="0 0 700 80" xmlns="http://www.w3.org/2000/svg">
+        <text x="10" y="20" class="sv-cmd" style="font-size:12px">Subnet mask:   255 . 255 . 255 . 192</text>
+        <text x="10" y="42" class="sv-anno" style="font-size:11px">Subtract from: 255 . 255 . 255 . 255</text>
+        <line x1="10" y1="48" x2="360" y2="48" stroke="#1C1917" stroke-width="1"/>
+        <text x="10" y="68" class="sv-big" style="fill:#16A34A">Wildcard:        0  .   0  .   0  .  63</text>
+        <text x="420" y="68" class="sv-anno">0 = must match exactly | 255 = don't care</text>
+      </svg>
+    </div>
+
+    <div class="visual-block">
+      <div class="block-label">Common Pairs — Memorize, Don't Calculate</div>
+      <svg viewBox="0 0 700 120" xmlns="http://www.w3.org/2000/svg">
+        <text x="10" y="18" class="sv-bold" style="font-size:10px">Mask Octet</text>
+        <text x="120" y="18" class="sv-bold" style="font-size:10px">Wildcard Octet</text>
+        <text x="260" y="18" class="sv-bold" style="font-size:10px">Use Case</text>
+        <line x1="10" y1="24" x2="600" y2="24" stroke="#D4D0C8"/>
+        <text x="10" y="42" class="sv-cmd">0</text><text x="120" y="42" class="sv-cmd">255</text><text x="260" y="42" class="sv-anno">Match any value in this octet</text>
+        <text x="10" y="60" class="sv-cmd">128</text><text x="120" y="60" class="sv-cmd">127</text><text x="260" y="60" class="sv-anno">/25 wildcard</text>
+        <text x="10" y="78" class="sv-cmd">192</text><text x="120" y="78" class="sv-cmd">63</text><text x="260" y="78" class="sv-anno">/26 wildcard</text>
+        <text x="10" y="96" class="sv-cmd">224</text><text x="120" y="96" class="sv-cmd">31</text><text x="260" y="96" class="sv-anno">/27 wildcard</text>
+        <text x="10" y="114" class="sv-cmd">255</text><text x="120" y="114" class="sv-cmd">0</text><text x="260" y="114" class="sv-anno">Exact match (host route in ACL)</text>
+      </svg>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       8. SPEED METHODS — For the Exam
+       ═══════════════════════════════════════════════════════════════ -->
+  <div class="section">
+    <h2 class="section-title">8. Speed Methods — What to Actually Do on the Exam</h2>
+    <p class="section-sub">You get ~75 seconds per question. Here's how fast each method is.</p>
+
+    <div class="visual-block">
+      <div class="block-label">Method Speed Comparison</div>
+      <div class="speed-bar"><span class="bar-label">Binary AND</span><div class="bar" style="width:340px;background:#DC2626"><span class="bar-time">~3 min (error-prone)</span></div></div>
+      <div class="speed-bar"><span class="bar-label">Calculator/formula</span><div class="bar" style="width:200px;background:#D97706"><span class="bar-time">~1 min</span></div></div>
+      <div class="speed-bar"><span class="bar-label">Magic Number</span><div class="bar" style="width:80px;background:#16A34A"><span class="bar-time">~15 sec</span></div></div>
+      <div class="speed-bar"><span class="bar-label">Memorized table</span><div class="bar" style="width:40px;background:#2563EB"><span class="bar-time">~5 sec</span></div></div>
+    </div>
+
+    <div class="hack-box">
+      <div class="hack-label">The Exam Strategy</div>
+      <svg viewBox="0 0 700 100" xmlns="http://www.w3.org/2000/svg">
+        <text x="10" y="20" class="sv-bold" style="font-size:11px">1.</text><text x="30" y="20" class="sv-anno" style="font-size:11px">Memorize the 7-row table (section 5). This handles most questions instantly.</text>
+        <text x="10" y="42" class="sv-bold" style="font-size:11px">2.</text><text x="30" y="42" class="sv-anno" style="font-size:11px">For "which subnet does X.X.X.Y belong to?" — use the Magic Number method (section 4).</text>
+        <text x="10" y="64" class="sv-bold" style="font-size:11px">3.</text><text x="30" y="64" class="sv-anno" style="font-size:11px">For VLSM questions — sort by size, allocate largest first, count by block size.</text>
+        <text x="10" y="86" class="sv-bold" style="font-size:11px">4.</text><text x="30" y="86" class="sv-anno" style="font-size:11px">Never convert to binary on the exam. If you need binary, you're doing it the slow way.</text>
+      </svg>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       9. EXAM TRAPS — What Cisco Tries to Trip You On
+       ═══════════════════════════════════════════════════════════════ -->
+  <div class="section">
+    <h2 class="section-title">9. Exam Traps — Common Mistakes Cisco Exploits</h2>
+
+    <div class="trap-box">
+      <div class="warn-label">Trap #1 — Forgetting to subtract 2</div>
+      <svg viewBox="0 0 700 50" xmlns="http://www.w3.org/2000/svg">
+        <text x="10" y="18" class="sv-red">WRONG:</text><text x="80" y="18" class="sv-cmd">/26 = 64 hosts</text>
+        <text x="10" y="38" class="sv-green">RIGHT:</text><text x="80" y="38" class="sv-cmd">/26 = 64 - 2 = 62 usable hosts</text>
+        <text x="350" y="38" class="sv-anno">Network address and broadcast are NOT assignable to hosts</text>
+      </svg>
+    </div>
+
+    <div class="trap-box">
+      <div class="warn-label">Trap #2 — IP is the network or broadcast address</div>
+      <svg viewBox="0 0 700 50" xmlns="http://www.w3.org/2000/svg">
+        <text x="10" y="18" class="sv-anno">"Can 192.168.1.64 be assigned to a host on the 192.168.1.64/26 network?"</text>
+        <text x="10" y="40" class="sv-red">NO — .64 IS the network address. First usable = .65</text>
+        <text x="450" y="40" class="sv-anno">Same trap with broadcast: .127 is NOT usable</text>
+      </svg>
+    </div>
+
+    <div class="trap-box">
+      <div class="warn-label">Trap #3 — Two hosts on different subnets</div>
+      <svg viewBox="0 0 700 60" xmlns="http://www.w3.org/2000/svg">
+        <text x="10" y="18" class="sv-anno">"Can 10.0.0.62 and 10.0.0.65 communicate on a /26?"</text>
+        <text x="10" y="38" class="sv-cmd">10.0.0.62 is in subnet .0-.63 | 10.0.0.65 is in subnet .64-.127</text>
+        <text x="10" y="56" class="sv-red">Different subnets — need a router to communicate</text>
+      </svg>
+    </div>
+
+    <div class="trap-box">
+      <div class="warn-label">Trap #4 — /31 and /32 edge cases</div>
+      <svg viewBox="0 0 700 40" xmlns="http://www.w3.org/2000/svg">
+        <text x="10" y="18" class="sv-cmd">/31 = 2 hosts, both usable (RFC 3021, point-to-point only)</text>
+        <text x="10" y="36" class="sv-cmd">/32 = single host route (used in routing tables and loopbacks, NOT subnetting)</text>
+      </svg>
+    </div>
+
+    <div class="trap-box">
+      <div class="warn-label">Trap #5 — Mask doesn't match what you expect</div>
+      <svg viewBox="0 0 700 40" xmlns="http://www.w3.org/2000/svg">
+        <text x="10" y="18" class="sv-anno">"What is the subnet mask for a network that needs 200 hosts?"</text>
+        <text x="10" y="36" class="sv-cmd">/24 = 254 hosts (enough!) | /25 = only 126 (not enough!) → Answer: 255.255.255.0</text>
+      </svg>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       10. QUICK-SOLVE FLOWCHART
+       ═══════════════════════════════════════════════════════════════ -->
+  <div class="section">
+    <h2 class="section-title">10. Quick-Solve Flowchart — Decision Tree for Any Question</h2>
+
+    <div class="visual-block">
+      <svg viewBox="0 0 700 300" xmlns="http://www.w3.org/2000/svg">
+        <!-- Start -->
+        <rect x="250" y="5" width="200" height="30" rx="6" fill="#2563EB"/><text x="350" y="24" class="sv-label" text-anchor="middle">Subnetting Question</text>
+
+        <!-- Branch 1: "How many hosts?" -->
+        <line x1="290" y1="35" x2="150" y2="65" stroke="#94A3B8" stroke-width="1.5"/>
+        <polygon points="150,55 158,65 142,65" fill="#2563EB" transform="rotate(30,150,65)"/>
+        <rect x="40" y="65" width="220" height="26" rx="4" fill="var(--bg-surface)" stroke="#2563EB" stroke-width="1.5"/>
+        <text x="150" y="82" class="sv-blue" text-anchor="middle">"How many hosts/subnets?"</text>
+        <line x1="150" y1="91" x2="150" y2="110" stroke="#16A34A" stroke-width="1.5"/>
+        <rect x="50" y="110" width="200" height="22" rx="3" fill="#16A34A"/><text x="150" y="125" class="sv-label" text-anchor="middle">Use the cheat table (sec 5)</text>
+
+        <!-- Branch 2: "Which subnet?" -->
+        <line x1="350" y1="35" x2="350" y2="65" stroke="#94A3B8" stroke-width="1.5"/>
+        <rect x="250" y="65" width="200" height="26" rx="4" fill="var(--bg-surface)" stroke="#D97706" stroke-width="1.5"/>
+        <text x="350" y="82" style="font-size:10px;fill:#D97706;font-weight:700" text-anchor="middle">"Which subnet is IP X in?"</text>
+        <line x1="350" y1="91" x2="350" y2="110" stroke="#16A34A" stroke-width="1.5"/>
+        <rect x="240" y="110" width="220" height="22" rx="3" fill="#16A34A"/><text x="350" y="125" class="sv-label" text-anchor="middle">Magic Number method (sec 4)</text>
+
+        <!-- Branch 3: "Design subnets" -->
+        <line x1="410" y1="35" x2="560" y2="65" stroke="#94A3B8" stroke-width="1.5"/>
+        <rect x="460" y="65" width="200" height="26" rx="4" fill="var(--bg-surface)" stroke="#7C3AED" stroke-width="1.5"/>
+        <text x="560" y="82" style="font-size:10px;fill:#7C3AED;font-weight:700" text-anchor="middle">"Design a VLSM scheme"</text>
+        <line x1="560" y1="91" x2="560" y2="110" stroke="#16A34A" stroke-width="1.5"/>
+        <rect x="440" y="110" width="240" height="22" rx="3" fill="#16A34A"/><text x="560" y="125" class="sv-label" text-anchor="middle">Sort largest-first, allocate (sec 6)</text>
+
+        <!-- Bottom: wildcard -->
+        <line x1="350" y1="145" x2="350" y2="165" stroke="#94A3B8" stroke-width="1" stroke-dasharray="4,2"/>
+        <rect x="200" y="165" width="300" height="26" rx="4" fill="var(--bg-surface)" stroke="#DC2626" stroke-width="1.5"/>
+        <text x="350" y="182" class="sv-red" text-anchor="middle">"What's the wildcard mask?"</text>
+        <line x1="350" y1="191" x2="350" y2="210" stroke="#16A34A" stroke-width="1.5"/>
+        <rect x="220" y="210" width="260" height="22" rx="3" fill="#16A34A"/><text x="350" y="225" class="sv-label" text-anchor="middle">255.255.255.255 - mask (sec 7)</text>
+
+        <!-- Final tip -->
+        <rect x="100" y="255" width="500" height="30" rx="6" fill="#1C1917"/>
+        <text x="350" y="274" class="sv-label" text-anchor="middle" style="font-size:11px">If you're converting to binary on the exam, you're doing it wrong.</text>
+      </svg>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       11. PRACTICE PATTERNS — The Drills
+       ═══════════════════════════════════════════════════════════════ -->
+  <div class="section">
+    <h2 class="section-title">11. Practice Drills — Test Yourself</h2>
+    <p class="section-sub">Try these without looking at the cheat table. Time yourself. Target: under 15 seconds each.</p>
+
+    <div class="visual-block" id="drill-area">
+      <div class="block-label">Random Drill (click for answer)</div>
+      <div id="drill-question" style="font-family:var(--font-mono);font-size:1.1rem;color:var(--ink);margin-bottom:12px;cursor:pointer" onclick="showAnswer()"></div>
+      <div id="drill-answer" style="display:none;font-family:var(--font-mono);font-size:0.9rem;color:var(--ink-secondary);padding:12px;background:var(--bg-recessed);border-radius:var(--radius);margin-bottom:12px"></div>
+      <button onclick="newDrill()" class="btn btn-secondary btn-sm" style="margin-right:8px">Next Drill</button>
+      <button onclick="showAnswer()" class="btn btn-ghost btn-sm">Show Answer</button>
+    </div>
+  </div>
+
+</div>
+
+<script src="js/nav.js"></script>
+<script>
+  // Practice drill generator
+  const DRILLS = [
+    { q: 'How many usable hosts in a /27?', a: '2^5 - 2 = 30 usable hosts. Block size = 32.' },
+    { q: 'What is the subnet mask for /26?', a: '255.255.255.192 (Magic number: 256-192 = 64)' },
+    { q: 'What subnet does 172.16.45.200/28 belong to?', a: 'Magic: 256-240 = 16. Count: 0, 16, 32, 48, 64...192, 208. 200 is in .192-.207. Network: 172.16.45.192' },
+    { q: 'What is the broadcast of 10.0.0.0/25?', a: 'Block = 128. Next subnet = .128. Broadcast = 128-1 = 10.0.0.127' },
+    { q: 'Wildcard mask for /22?', a: 'Mask = 255.255.252.0. Wildcard = 0.0.3.255' },
+    { q: 'Can 192.168.1.130 and 192.168.1.190 talk on /26?', a: '/26 block = 64. .130 is in .128-.191, .190 is in .128-.191. YES — same subnet.' },
+    { q: 'You need 500 hosts. Smallest prefix?', a: '/23 = 510 usable hosts. /24 only gives 254, not enough.' },
+    { q: 'First usable IP in 10.10.10.64/26?', a: '10.10.10.65 (network address +1)' },
+    { q: 'How many /28 subnets fit in a /24?', a: '2^(28-24) = 2^4 = 16 subnets' },
+    { q: 'Subnet mask for a network needing 14 hosts?', a: '/28 = 14 usable hosts. Mask: 255.255.255.240' },
+    { q: 'What subnet does 10.1.1.99/27 belong to?', a: 'Block = 32. Count: 0, 32, 64, 96. 99 is in .96-.127. Network: 10.1.1.96' },
+    { q: 'Last usable host in 172.16.0.0/22?', a: 'Block = 4 (in 3rd octet). Broadcast = 172.16.3.255. Last host = 172.16.3.254' },
+    { q: 'Is 192.168.5.128 usable on a /25?', a: 'No — .128 is the network address of the second /25 subnet. First usable = .129' },
+    { q: 'Wildcard for matching 10.0.0.0 to 10.0.0.63?', a: '0.0.0.63 — matches any host in a /26 block starting at .0' },
+    { q: 'What prefix gives exactly 2 usable hosts?', a: '/30 (4 addresses - 2 = 2 usable). Used for point-to-point links.' },
+  ];
+
+  let currentDrill = 0;
+
+  function newDrill() {
+    currentDrill = Math.floor(Math.random() * DRILLS.length);
+    document.getElementById('drill-question').textContent = DRILLS[currentDrill].q;
+    document.getElementById('drill-answer').style.display = 'none';
+  }
+
+  function showAnswer() {
+    const el = document.getElementById('drill-answer');
+    el.textContent = DRILLS[currentDrill].a;
+    el.style.display = 'block';
+  }
+
+  newDrill();
+</script>
+<script src="js/tutor.js"></script>
+</body>
+</html>
