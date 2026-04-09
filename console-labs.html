@@ -423,6 +423,12 @@ function initLab(lab, idx) {
         const result = lab.extraCmds(dev, raw, lower);
         if (result !== undefined) { this.checkObjectives(); return result; }
       }
+
+      // Unknown command — trigger tutor with context
+      if (raw && raw.length > 1) {
+        const nextObj = lab.objectives.find((o, i) => !this.completedObjectives.has(i));
+        offerTutor(lab.id, raw, dev.mode, nextObj ? nextObj.text : lab.title);
+      }
       return undefined;
     }
 
@@ -524,7 +530,6 @@ function showHint(id) {
   if (!hintIdx[id]) hintIdx[id] = 0;
   const inst = labInstances[id];
   const lab = LABS.find(l => l.id === id);
-  // Find first incomplete objective
   const nextObj = lab.objectives.findIndex((o, i) => !inst.completedObjectives.has(i));
   if (nextObj === -1) return;
   const hint = lab.objectives[nextObj].hint;
@@ -532,6 +537,38 @@ function showHint(id) {
   el.textContent = hint;
   el.style.display = 'block';
   setTimeout(() => { el.style.display = 'none'; }, 5000);
+}
+
+// ── Tutor integration on wrong commands ───────────────────────
+let tutorCooldown = {};
+function offerTutor(labId, failedCmd, mode, currentTask) {
+  // Rate limit: don't spam tutor on every typo, once per 8 seconds per lab
+  const now = Date.now();
+  if (tutorCooldown[labId] && now - tutorCooldown[labId] < 8000) return;
+  tutorCooldown[labId] = now;
+
+  const inst = labInstances[labId];
+  if (!inst || !inst.terminal) return;
+
+  // Write a subtle prompt in the terminal
+  inst.terminal.writeHTML(
+    '<span style="color:#fbbf24;font-size:0.78em">Stuck? '
+    + '<a href="#" style="color:#4a9eff;text-decoration:underline" onclick="askTutorAbout(\''
+    + labId + '\',\'' + failedCmd.replace(/'/g, "\\'") + '\',\'' + mode + '\',\'' + currentTask.replace(/'/g, "\\'")
+    + '\');return false;">Ask the AI Tutor</a></span>'
+  );
+  inst.terminal.scrollToBottom();
+}
+
+function askTutorAbout(labId, failedCmd, mode, task) {
+  const fab = document.querySelector('.tutor-fab');
+  const input = document.getElementById('tutor-input');
+  if (!fab || !input) return;
+  fab.click();
+  setTimeout(() => {
+    input.value = `I'm in ${mode} mode on a Cisco IOS device. I tried "${failedCmd}" but it didn't work. My current task is: "${task}". What's the correct command?`;
+    input.focus();
+  }, 200);
 }
 </script>
 <script src="js/tutor.js"></script>
