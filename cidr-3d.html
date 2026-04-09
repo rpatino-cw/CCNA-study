@@ -49,6 +49,32 @@
   .back-link a:hover { color: #fff; }
   .hud-top { top: 36px; }
   .legend { top: 80px; }
+
+  /* Teaching panel */
+  .teach-panel {
+    position: fixed; top: 0; right: -380px; width: 370px; height: 100vh; z-index: 25;
+    background: rgba(10,10,15,0.96); border-left: 1px solid rgba(255,255,255,0.1);
+    backdrop-filter: blur(12px); transition: right 0.35s cubic-bezier(0.16,1,0.3,1);
+    display: flex; flex-direction: column; overflow: hidden;
+  }
+  .teach-panel.open { right: 0; }
+  .teach-head { padding: 16px 20px; border-bottom: 1px solid rgba(255,255,255,0.08); display: flex; align-items: center; justify-content: space-between; }
+  .teach-head h2 { font-size: 0.9rem; font-weight: 700; color: #fff; }
+  .teach-close { background: none; border: none; color: #6b7394; font-size: 1.2rem; cursor: pointer; padding: 4px 8px; }
+  .teach-close:hover { color: #fff; }
+  .teach-body { flex: 1; overflow-y: auto; padding: 16px 20px; }
+  .teach-section { margin-bottom: 20px; }
+  .teach-section h3 { font-size: 0.78rem; font-weight: 700; color: #4a9eff; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px; }
+  .teach-section p { font-size: 0.78rem; color: #9ca3b8; line-height: 1.6; margin-bottom: 8px; }
+  .teach-section .highlight { color: #fbbf24; font-weight: 600; }
+  .teach-section .cmd { font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; color: #4ade80; background: rgba(255,255,255,0.05); padding: 2px 6px; border-radius: 3px; }
+  .teach-section ul { padding-left: 16px; margin-bottom: 8px; }
+  .teach-section li { font-size: 0.75rem; color: #9ca3b8; line-height: 1.5; margin-bottom: 4px; }
+  .teach-callout { background: rgba(74,158,255,0.1); border: 1px solid rgba(74,158,255,0.2); border-radius: 6px; padding: 10px 14px; margin-bottom: 12px; }
+  .teach-callout p { color: #e8eaf0; font-size: 0.75rem; }
+  .teach-exam { background: rgba(251,191,36,0.1); border: 1px solid rgba(251,191,36,0.2); border-radius: 6px; padding: 10px 14px; }
+  .teach-exam p { color: #fbbf24; font-size: 0.75rem; }
+  @media (max-width: 500px) { .teach-panel { width: 100vw; right: -100vw; } }
 </style>
 </head>
 <body>
@@ -61,6 +87,7 @@
 </div>
 
 <div class="hud hud-controls">
+  <button class="hud-btn" id="btn-learn" style="background:rgba(74,158,255,0.2);border-color:#4a9eff;color:#4a9eff">Learn</button>
   <button class="hud-btn" id="btn-reset">Reset View</button>
   <button class="hud-btn" id="btn-labels" data-on="true">Labels</button>
   <button class="hud-btn" id="btn-wireframe">Wireframe</button>
@@ -80,6 +107,15 @@
 <div id="tooltip">
   <div class="tt-title" id="tt-title"></div>
   <div class="tt-body" id="tt-body"></div>
+</div>
+
+<!-- Teaching Panel -->
+<div class="teach-panel" id="teachPanel">
+  <div class="teach-head">
+    <h2 id="teach-title">Understanding /8 Blocks</h2>
+    <button class="teach-close" id="teach-close">&times;</button>
+  </div>
+  <div class="teach-body" id="teach-body"></div>
 </div>
 
 <canvas id="canvas"></canvas>
@@ -497,6 +533,9 @@ function updateBreadcrumb() {
       else if (level === '/8') renderSlash16(parseInt(c.dataset.oct));
     });
   });
+
+  // Auto-update teaching panel if open
+  if (typeof updateTeachContent === 'function') updateTeachContent();
 }
 
 // ── Legend ─────────────────────────────────────────────────────
@@ -545,6 +584,158 @@ canvas.addEventListener('click', () => {
 });
 
 // ── Controls ──────────────────────────────────────────────────
+// ── Teaching Panel ────────────────────────────────────────────
+const TEACH_CONTENT = {
+  root: {
+    title: 'Understanding /8 Blocks',
+    html: `
+      <div class="teach-section">
+        <h3>What You're Looking At</h3>
+        <p>Each cube is a <span class="highlight">/8 network</span> — one of 256 top-level blocks that make up the entire IPv4 internet. Together they cover every IP from 0.0.0.0 to 255.255.255.255.</p>
+        <p>Each /8 contains <span class="highlight">16.7 million addresses</span> (2<sup>24</sup>). That's the entire address space of a Class A network.</p>
+      </div>
+      <div class="teach-section">
+        <h3>Color = Who Owns It</h3>
+        <ul>
+          <li><span style="color:#4a9eff">Blue</span> — ARIN (North America)</li>
+          <li><span style="color:#34d399">Green</span> — RIPE (Europe, Middle East)</li>
+          <li><span style="color:#fb923c">Orange</span> — APNIC (Asia-Pacific)</li>
+          <li><span style="color:#a78bfa">Purple</span> — LACNIC (Latin America)</li>
+          <li><span style="color:#f87171">Red</span> — AFRINIC (Africa)</li>
+          <li><span style="color:#fbbf24">Gold</span> — Private (RFC 1918) — your home network</li>
+          <li><span style="color:#94a3b8">Gray</span> — IANA Reserved / Special</li>
+        </ul>
+      </div>
+      <div class="teach-callout">
+        <p>The tall gold blocks are the <span class="cmd">10.0.0.0/8</span>, <span class="cmd">172.16.0.0/12</span>, and <span class="cmd">192.168.0.0/16</span> private ranges. These are NOT routed on the internet — they're for internal use only. You'll use these in every lab.</p>
+      </div>
+      <div class="teach-section">
+        <h3>Key Blocks to Know</h3>
+        <ul>
+          <li><span class="cmd">10.x.x.x</span> — Private Class A (most enterprise networks)</li>
+          <li><span class="cmd">127.x.x.x</span> — Loopback (localhost, never leaves the machine)</li>
+          <li><span class="cmd">169.254.x.x</span> — Link-local (DHCP failure fallback)</li>
+          <li><span class="cmd">224.x.x.x</span> — Multicast (Class D, OSPF hello = 224.0.0.5)</li>
+          <li><span class="cmd">240.x.x.x</span> — Reserved (Class E, experimental)</li>
+        </ul>
+      </div>
+      <div class="teach-exam">
+        <p><strong>Exam tip:</strong> You WILL be asked to identify private vs public IPs, and which class a given IP belongs to. Memorize the three RFC 1918 ranges — they appear in nearly every subnetting question.</p>
+      </div>
+      <div class="teach-section">
+        <h3>Try This</h3>
+        <p>Click on block <span class="highlight">10</span> (gold, tall) to zoom into its 256 /16 subnets and see how one /8 subdivides.</p>
+      </div>
+    `
+  },
+  '/8': {
+    title: 'Inside a /8 — The /16 Subnets',
+    html: `
+      <div class="teach-section">
+        <h3>What You're Looking At</h3>
+        <p>You've zoomed into a single /8 block. Each cube here is a <span class="highlight">/16 subnet</span> — there are 256 of them, each containing <span class="highlight">65,534 usable hosts</span>.</p>
+        <p>This is the second octet being subdivided. If you're inside 10.0.0.0/8, these cubes represent 10.0.0.0/16, 10.1.0.0/16, 10.2.0.0/16 ... up to 10.255.0.0/16.</p>
+      </div>
+      <div class="teach-section">
+        <h3>How Subnetting Works Here</h3>
+        <p>A /8 has 8 network bits. A /16 has 16 network bits. The difference (8 bits) gives us 2<sup>8</sup> = 256 subnets.</p>
+        <p>Each /16 still has 16 host bits = 65,536 addresses (65,534 usable after subtracting network + broadcast).</p>
+      </div>
+      <div class="teach-callout">
+        <p><strong>Real-world example:</strong> A large corporation might get a /16 from their ISP. That gives them 65K addresses — enough for hundreds of VLANs, each with their own /24 subnet carved out of this /16.</p>
+      </div>
+      <div class="teach-section">
+        <h3>The Math</h3>
+        <ul>
+          <li><span class="cmd">/8</span> → 256 /16 subnets → 65,536 /24 subnets → 16.7M addresses</li>
+          <li><span class="cmd">/16</span> → 256 /24 subnets → 65,536 addresses</li>
+          <li>Each step down borrows 8 more bits from hosts for network</li>
+        </ul>
+      </div>
+      <div class="teach-section">
+        <h3>Cisco Commands</h3>
+        <p>To see what subnets your router knows about:</p>
+        <p><span class="cmd">show ip route</span></p>
+        <p>Routes appear as: <span class="cmd">S 10.1.0.0/16 [1/0] via 192.168.1.1</span></p>
+      </div>
+      <div class="teach-exam">
+        <p><strong>Exam tip:</strong> "How many /24 subnets fit inside a /16?" → 2<sup>(24-16)</sup> = 256. This formula works for any prefix pair: 2<sup>(larger - smaller)</sup>.</p>
+      </div>
+      <div class="teach-section">
+        <h3>Try This</h3>
+        <p>Click any cube to zoom into its 256 /24 subnets — the level where most real networks operate.</p>
+      </div>
+    `
+  },
+  '/16': {
+    title: 'Inside a /16 — The /24 Subnets',
+    html: `
+      <div class="teach-section">
+        <h3>What You're Looking At</h3>
+        <p>Each cube is a <span class="highlight">/24 subnet</span> — the most common subnet size in real networks. Each one holds <span class="highlight">254 usable hosts</span>.</p>
+        <p>This is the level where VLANs live. A typical office floor, server room, or department gets its own /24.</p>
+      </div>
+      <div class="teach-section">
+        <h3>Why /24 Is King</h3>
+        <ul>
+          <li>254 hosts is enough for most departments/floors</li>
+          <li>Subnet mask is easy: <span class="cmd">255.255.255.0</span></li>
+          <li>The third octet changes, fourth octet is hosts: <span class="cmd">10.1.X.0/24</span></li>
+          <li>Simple to manage, easy to summarize, perfect for VLANs</li>
+        </ul>
+      </div>
+      <div class="teach-callout">
+        <p><strong>Real-world:</strong> Your home router uses a single /24. Your workplace likely has dozens. A data center might have thousands — one per rack, per service, per VLAN.</p>
+      </div>
+      <div class="teach-section">
+        <h3>Splitting Further (CCNA Exam Focus)</h3>
+        <p>On the exam, you'll mostly subnet WITHIN a /24. That means breaking this cube into smaller pieces:</p>
+        <ul>
+          <li><span class="cmd">/25</span> → 2 subnets of 126 hosts</li>
+          <li><span class="cmd">/26</span> → 4 subnets of 62 hosts</li>
+          <li><span class="cmd">/27</span> → 8 subnets of 30 hosts</li>
+          <li><span class="cmd">/28</span> → 16 subnets of 14 hosts</li>
+          <li><span class="cmd">/30</span> → 64 subnets of 2 hosts (point-to-point links)</li>
+        </ul>
+      </div>
+      <div class="teach-section">
+        <h3>Cisco Commands</h3>
+        <p><span class="cmd">show ip interface brief</span> — see all interfaces and their /24 addresses</p>
+        <p><span class="cmd">ip address 10.1.5.1 255.255.255.0</span> — assign a /24 address to an interface</p>
+        <p><span class="cmd">show vlan brief</span> — see which VLANs map to which /24 subnets</p>
+      </div>
+      <div class="teach-section">
+        <h3>Network vs Broadcast vs Usable</h3>
+        <p>In each /24:</p>
+        <ul>
+          <li><span class="cmd">.0</span> = network address (identifies the subnet, NOT assignable)</li>
+          <li><span class="cmd">.1 — .254</span> = usable host addresses</li>
+          <li><span class="cmd">.255</span> = broadcast address (reaches all hosts, NOT assignable)</li>
+        </ul>
+      </div>
+      <div class="teach-exam">
+        <p><strong>Exam trap:</strong> "Can 192.168.1.0 be assigned to a host on /24?" → NO. It's the network address. "Can 192.168.1.255?" → NO. It's the broadcast. These questions appear constantly.</p>
+      </div>
+    `
+  },
+};
+
+const teachPanel = document.getElementById('teachPanel');
+const teachTitle = document.getElementById('teach-title');
+const teachBody = document.getElementById('teach-body');
+
+function updateTeachContent() {
+  const content = TEACH_CONTENT[currentLevel] || TEACH_CONTENT.root;
+  teachTitle.textContent = content.title;
+  teachBody.innerHTML = content.html;
+}
+
+document.getElementById('btn-learn').addEventListener('click', () => {
+  updateTeachContent();
+  teachPanel.classList.toggle('open');
+});
+document.getElementById('teach-close').addEventListener('click', () => { teachPanel.classList.remove('open'); });
+
 document.getElementById('btn-reset').addEventListener('click', renderRoot);
 
 document.getElementById('btn-labels').addEventListener('click', function() {
