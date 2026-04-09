@@ -12,6 +12,7 @@
     { text: 'Sprint',        href: 'sprint.html' },
     { text: 'Learn Visually', href: 'learn-visually.html' },
     { text: 'Subnetting',    href: 'subnetting-visual.html' },
+    { text: '3D Explorer',  href: 'cidr-3d.html' },
     { text: 'Labs',          href: 'labs/index.html' },
     { text: 'Objectives',    href: 'objectives.html' },
     { text: 'Resources',     href: 'resources.html' }
