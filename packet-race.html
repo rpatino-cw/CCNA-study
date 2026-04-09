@@ -116,6 +116,7 @@ canvas{display:block;width:100%;height:100%}
 </head>
 <body>
 <div class="back"><a href="index.html">&larr; Dashboard</a></div>
+<button class="btn btn-secondary" id="btnCancelLive" style="display:none;position:fixed;top:16px;right:120px;z-index:50;font-size:.7rem;padding:6px 14px;background:rgba(248,113,113,.15);color:#f87171;border:1px solid rgba(248,113,113,.3)">Cancel Race</button>
 <div class="title-hud glass">Packet Race</div>
 <div class="timer-hud glass" id="timerHud" style="display:none">00:00</div>
 
@@ -537,7 +538,7 @@ function renderLobby(raceData){
     (hasRace?'<div class="lobby-sub">Race: <strong>'+scenarioName+'</strong> | '+raceData.state+'</div>'+playersHtml+
       '<div class="lobby-actions">'+(inRace?'':' <button class="btn btn-primary" id="btnJoinRace">Join Race</button>')+
       (isCreator&&raceData.state==='lobby'?'<button class="btn btn-primary" id="btnStartRace"'+(playerCount<1?' disabled':'')+'>Start Race</button>':'')+
-      (isCreator?'<button class="btn btn-secondary" id="btnCancelRace">Cancel</button>':'')+
+      '<button class="btn btn-secondary" id="btnCancelRace">Cancel Race</button>'+
       '</div>'
     :
       '<div class="scenario-grid">'+SCENARIOS.map((s,i)=>'<div class="scenario-card'+(i===selectedScenario?' selected':'')+'" data-idx="'+i+'"><div class="sc-title">'+s.title+'</div><div class="sc-desc">'+s.desc+'</div><div class="sc-meta sc-'+s.diff.toLowerCase()+'">'+s.diff+' | '+(s.route.length-1)+' hops <span class="sc-mode '+(s.mode||'config')+'">'+(s.mode==='trivia'?'TRIVIA':'CONFIG')+'</span></div></div>').join('')+'</div>'+
@@ -571,9 +572,19 @@ async function startRace(){
     beginCountdown(res.group.race);
   }
 }
+document.getElementById('btnCancelLive').addEventListener('click', cancelRace);
+
 async function cancelRace(){
-  await apiAction('race_cancel',{});
+  if(!soloMode) await apiAction('race_cancel',{});
+  cleanup();
+  gameState='lobby';
+  document.getElementById('btnCancelLive').style.display='none';
+  document.getElementById('race-hud').classList.remove('active');
+  document.getElementById('timerHud').style.display='none';
+  resetHighlight();
+  showPanel('lobby');
   renderLobby(null);
+  loadLobby();
 }
 
 function startSolo(){
@@ -622,6 +633,7 @@ function beginRacing(){
   showPanel('question');
   document.getElementById('race-hud').classList.add('active');
   document.getElementById('timerHud').style.display='';
+  document.getElementById('btnCancelLive').style.display='';
 
   myHop=0;myQuestionsAnswered=0;myQuestionsCorrect=0;
   usedQuestionIdx.clear();
