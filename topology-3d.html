@@ -294,14 +294,14 @@ function animCam(tp,tt){
 
 // ── Guided Tour ───────────────────────────────────────────────
 const TOUR=[
-  {title:'Internet Edge',text:'Traffic enters through the <span class="k">ISP cloud</span> and hits a pair of <span class="k">NGFW firewalls</span> (FW-EDGE-01/02) in active/standby. Stateful inspection, IPS, and URL filtering happen here.',cam:[2,10,-18],look:[0,6,-14]},
-  {title:'Core Layer',text:'Two <span class="k">core routers</span> run <span class="k">OSPF Area 0</span> (the backbone). They connect to each other (10G link) and down to the core L3 switch. Redundancy — if one router fails, OSPF reroutes.',cam:[0,8,-6],look:[0,4,-8]},
-  {title:'Distribution Layer',text:'<span class="k">DSW-BLDG-A</span> and <span class="k">DSW-BLDG-B</span> are Layer 3 distribution switches with SVIs for inter-VLAN routing. HSRP provides gateway redundancy. EtherChannel uplinks to core.',cam:[-2,6,2],look:[0,2,0]},
-  {title:'Access Layer — Building A',text:'Three <span class="k">access switches</span> (Floor 1-3) with PoE+ for phones and APs. Trunk links to distribution. <span class="k">PortFast</span> on access ports, <span class="k">port security</span> (max 2 MACs, violation restrict).',cam:[-10,5,6],look:[-8,1,4]},
-  {title:'Wireless Infrastructure',text:'<span class="k">WLC-01</span> manages all lightweight APs via <span class="k">CAPWAP tunnels</span>. Two SSIDs: Corp-WiFi (WPA2-Enterprise/802.1X) and Guest-WiFi (WPA2-PSK on isolated VLAN 40).',cam:[0,5,6],look:[0,1,7]},
-  {title:'Server Farm',text:'<span class="k">DNS, DHCP, NTP/Syslog/SNMP, and AAA (RADIUS/TACACS+)</span> servers on a dedicated VLAN. DHCP relay (ip helper-address) configured on every SVI. NTP stratum 2.',cam:[-1,6,-14],look:[1,3,-12]},
-  {title:'Security Throughout',text:'Security at every layer: <span class="k">ACLs</span> on router interfaces, <span class="k">DHCP snooping + DAI</span> on access switches, <span class="k">802.1X</span> for wired auth, <span class="k">WPA2-Enterprise</span> for wireless. Guest VLAN completely isolated.',cam:[8,5,6],look:[8,1,4]},
-  {title:'Full Picture',text:'This is a <span class="k">three-tier campus network</span>: access → distribution → core. Every CCNA concept lives somewhere in this topology: VLANs, trunking, STP, OSPF, NAT, DHCP, ACLs, PoE, wireless, QoS, and automation.',cam:[20,18,22],look:[0,2,0]},
+  {title:'Internet Edge',text:'Traffic enters through the <span class="k">ISP cloud</span> and hits a pair of <span class="k">NGFW firewalls</span> (FW-EDGE-01/02) in active/standby. Stateful inspection, IPS, and URL filtering happen here.',cam:[5,14,-22],look:[0,6,-14],highlight:['ISP','FW1','FW2']},
+  {title:'Core Layer',text:'Two <span class="k">core routers</span> run <span class="k">OSPF Area 0</span> (the backbone). They connect to each other (10G link) and down to the core L3 switch. Redundancy — if one router fails, OSPF reroutes.',cam:[2,12,-8],look:[0,4,-6],highlight:['CR1','CR2','CSW1']},
+  {title:'Distribution Layer',text:'<span class="k">DSW-BLDG-A</span> and <span class="k">DSW-BLDG-B</span> are Layer 3 distribution switches with SVIs for inter-VLAN routing. HSRP provides gateway redundancy. EtherChannel uplinks to core.',cam:[-4,10,4],look:[0,2,0],highlight:['DSW1','DSW2']},
+  {title:'Access Layer — Building A',text:'Three <span class="k">access switches</span> (Floor 1-3) with PoE+ for phones and APs. Trunk links to distribution. <span class="k">PortFast</span> on access ports, <span class="k">port security</span> (max 2 MACs, violation restrict).',cam:[-14,8,8],look:[-8,1,4],highlight:['ASW1','ASW2','ASW3','PC1','PC2','PH1']},
+  {title:'Wireless Infrastructure',text:'<span class="k">WLC-01</span> manages all lightweight APs via <span class="k">CAPWAP tunnels</span>. Two SSIDs: Corp-WiFi (WPA2-Enterprise/802.1X) and Guest-WiFi (WPA2-PSK on isolated VLAN 40).',cam:[2,8,10],look:[0,1,7],highlight:['WLC1','AP1','AP2','AP3','AP4']},
+  {title:'Server Farm',text:'<span class="k">DNS, DHCP, NTP/Syslog/SNMP, and AAA (RADIUS/TACACS+)</span> servers on a dedicated VLAN. DHCP relay (ip helper-address) configured on every SVI. NTP stratum 2.',cam:[-3,10,-16],look:[1,3,-12],highlight:['SRV1','SRV2','SRV3','SRV4']},
+  {title:'Security Throughout',text:'Security at every layer: <span class="k">ACLs</span> on router interfaces, <span class="k">DHCP snooping + DAI</span> on access switches, <span class="k">802.1X</span> for wired auth, <span class="k">WPA2-Enterprise</span> for wireless. Guest VLAN completely isolated.',cam:[12,8,8],look:[8,1,4],highlight:['ASW4','ASW5','ASW6','FW1','FW2']},
+  {title:'Full Picture',text:'This is a <span class="k">three-tier campus network</span>: access → distribution → core. Every CCNA concept lives somewhere in this topology: VLANs, trunking, STP, OSPF, NAT, DHCP, ACLs, PoE, wireless, QoS, and automation.',cam:[25,22,28],look:[0,2,0],highlight:[]},
 ];
 let tourIdx=0,tourOn=false;const tourBar=document.getElementById('tourBar');
 
@@ -316,8 +316,25 @@ function showTourStep(){
   document.getElementById('tbDots').innerHTML=TOUR.map((_,i)=>`<div class="tb-dot ${i===tourIdx?'on':''}"></div>`).join('');
   tourBar.classList.add('vis');
   animCam(new THREE.Vector3(...s.cam),new THREE.Vector3(...s.look));
+
+  // Highlight relevant devices, dim the rest
+  const hlSet=new Set(s.highlight||[]);
+  meshes.forEach(m=>{
+    const isHL=hlSet.size===0||hlSet.has(m.userData.id);
+    m.material.opacity=isHL?.95:.15;
+    m.material.emissive.setHex(isHL&&hlSet.size>0?0x333355:0x000000);
+  });
+  lineMeshes.forEach(l=>{
+    const both=hlSet.size===0||(hlSet.has(l.userData.fromId)&&hlSet.has(l.userData.toId));
+    l.material.opacity=both?.7:.06;
+  });
 }
-function endTour(){tourOn=false;tourBar.classList.remove('vis');}
+function endTour(){
+  tourOn=false;tourBar.classList.remove('vis');
+  // Restore all devices
+  meshes.forEach(m=>{m.material.opacity=.88;m.material.emissive.setHex(0);});
+  lineMeshes.forEach(l=>{l.material.opacity=.7;});
+}
 document.getElementById('btnTour').addEventListener('click',startTour);
 document.getElementById('tbNext').addEventListener('click',()=>{tourIdx++;showTourStep();});
 document.getElementById('tbSkip').addEventListener('click',endTour);
