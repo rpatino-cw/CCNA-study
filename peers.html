@@ -268,6 +268,21 @@
         <div id="weakTopics"></div>
       </div>
 
+      <!-- What Counts Toward Your Score -->
+      <div style="margin-bottom:var(--s-lg)">
+        <h2 class="section-head">How to Grow Your Score</h2>
+        <p class="section-sub">These tools update your knowledge map. Everything else is reading — only these move the needle.</p>
+        <div id="scoreTools"></div>
+      </div>
+
+      <!-- AI Focus Advisor -->
+      <div class="ai-card">
+        <h3>AI Study Advisor</h3>
+        <p class="section-sub" style="margin-bottom:8px">Personalized advice on exactly where to focus next based on your proficiency data.</p>
+        <button class="btn btn-primary btn-sm" id="btnFocus" style="margin-bottom:12px">Where Should I Focus?</button>
+        <div class="ai-body" id="aiFocus"></div>
+      </div>
+
       <div class="ai-card">
         <h3>AI Group Analysis</h3>
         <button class="btn btn-primary btn-sm" id="btnAnalyze" style="margin-bottom:12px">Analyze Our Group</button>
@@ -484,6 +499,7 @@ function renderOverview(group) {
     return '<div class="dc-row"><div class="dc-label">D' + dId + ' — ' + dName + '</div><div class="dc-bars">' + bars + '</div></div>';
   }).join('');
 
+  renderScoreTools(group);
   renderWeeklyDigest(group);
   renderDiagComparison(group);
   renderRecommendations(group);
@@ -497,6 +513,102 @@ function renderTabData(tab, group) {
   else if (tab === 'chat') renderChat(group);
   else if (tab === 'leaderboard') renderLeaderboard(group, 'readiness');
 }
+
+// ══════════════════════════════════════════════════════════════
+// SCORE TOOLS — what counts toward your readiness
+// ══════════════════════════════════════════════════════════════
+function renderScoreTools(group) {
+  const me = group.members[getMemberId()];
+  if (!me) return;
+  const p = me.progress || {};
+  const readiness = p.readiness || 0;
+  const quizzes = p.quizStats?.taken || 0;
+  const streak = p.streak?.current || 0;
+  const time = Math.round((p.studyTime?.total || 0) / 60);
+  const diags = p.diagnosticHistory?.length || 0;
+
+  const tools = [
+    {name:'Diagnostic Quiz',page:'diagnostic.html',icon:'!',impact:'HIGH',desc:'Full 6-domain assessment. Updates all topic scores at once. Take every 7 days.',done:diags > 0,stat:diags + ' taken'},
+    {name:'Topic Quizzes',page:'quiz.html',icon:'?',impact:'HIGH',desc:'Per-topic questions. Every answer updates that topic\'s proficiency via EMA.',done:quizzes > 0,stat:quizzes + ' taken'},
+    {name:'Daily Study',page:'study.html',icon:'+',impact:'HIGH',desc:'Focused sessions on specific topics. Pass/fail updates proficiency + study time.',done:time > 0,stat:time + ' min studied'},
+    {name:'Console Labs',page:'console-labs.html',icon:'>',impact:'MEDIUM',desc:'Hands-on IOS commands. Completing a lab updates related topic scores.',done:false,stat:'12 labs available'},
+    {name:'Glossary Quiz',page:'glossary.html',icon:'A',impact:'MEDIUM',desc:'Terms quiz mode. Each answer updates proficiency for that term\'s domain.',done:false,stat:'260 terms'},
+    {name:'Packet Race',page:'packet-race.html',icon:'R',impact:'MEDIUM',desc:'Race game. Every question answered (right or wrong) updates topic proficiency.',done:false,stat:'6 scenarios'},
+  ];
+
+  const noImpact = [
+    {name:'Learn Visually',why:'Reading only — no answerable questions'},
+    {name:'Knowledge Map',why:'Display only — shows your scores, doesn\'t change them'},
+    {name:'Subnetting Cheat Sheet',why:'Reference material — practice with quizzes to get credit'},
+    {name:'3D Explorer / Topology',why:'Exploration — play Packet Race for score credit'},
+    {name:'Resources / Objectives',why:'Reference pages — study from them, quiz to prove it'},
+  ];
+
+  const el = document.getElementById('scoreTools');
+  el.innerHTML =
+    '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px;margin-bottom:var(--s-md)">' +
+    tools.map(t => {
+      const impactColor = t.impact === 'HIGH' ? 'var(--prof-strong)' : 'var(--accent)';
+      return '<a href="' + t.page + '" style="text-decoration:none"><div class="rec-card" style="border-left-color:' + impactColor + ';cursor:pointer">' +
+        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px"><div class="rec-title">' + esc(t.name) + '</div><span style="font-family:var(--font-mono);font-size:.6rem;color:' + impactColor + ';font-weight:700">' + t.impact + '</span></div>' +
+        '<div class="rec-desc">' + esc(t.desc) + '</div>' +
+        '<div style="font-family:var(--font-mono);font-size:.68rem;color:var(--ink-muted);margin-top:6px">' + esc(t.stat) + '</div>' +
+      '</div></a>';
+    }).join('') + '</div>' +
+    '<details style="margin-bottom:var(--s-md)"><summary style="font-family:var(--font-display);font-size:.78rem;color:var(--ink-muted);cursor:pointer">What does NOT count?</summary>' +
+    '<div style="padding:8px 0">' + noImpact.map(n =>
+      '<div style="font-size:.78rem;color:var(--ink-muted);padding:3px 0"><strong>' + esc(n.name) + '</strong> — ' + esc(n.why) + '</div>'
+    ).join('') + '</div></details>' +
+    '<div style="background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px;font-size:.82rem;color:var(--ink-secondary);line-height:1.5">' +
+    '<strong style="color:var(--ink)">How scoring works:</strong> Every answer you give (right or wrong) adjusts your topic proficiency using an exponential moving average (alpha=0.3). Correct answers raise the score, wrong answers lower it. Your readiness percentage is the weighted average across all 6 CCNA domains. The diagnostic quiz has the biggest single impact because it tests all domains at once.' +
+    '</div>';
+}
+
+// ══════════════════════════════════════════════════════════════
+// AI FOCUS ADVISOR
+// ══════════════════════════════════════════════════════════════
+document.getElementById('btnFocus').addEventListener('click', async () => {
+  const el = document.getElementById('aiFocus');
+  el.innerHTML = '<span class="ai-loading">Analyzing your proficiency data...</span>';
+
+  const me = cachedGroup?.members?.[getMemberId()];
+  if (!me) { el.textContent = 'Join a group and sync first.'; return; }
+  const prof = me.progress?.proficiency || {};
+  const readiness = me.progress?.readiness || 0;
+  const streak = me.progress?.streak?.current || 0;
+  const quizzes = me.progress?.quizStats?.taken || 0;
+  const time = me.progress?.studyTime?.total || 0;
+
+  // Build proficiency summary
+  let profText = '';
+  for (const dId of ['1','2','3','4','5','6']) {
+    const topics = Object.keys(prof).filter(k => k.startsWith(dId + '.'));
+    const avg = topics.length > 0 ? Math.round(topics.reduce((s,k) => s + prof[k], 0) / topics.length * 100) : 0;
+    profText += '\nDomain ' + dId + ' (' + DOMAIN_NAMES[dId] + '): ' + avg + '%';
+    const weak = topics.filter(k => prof[k] < 0.4).map(k => k + ' (' + Math.round(prof[k]*100) + '%)');
+    if (weak.length > 0) profText += ' — weak topics: ' + weak.join(', ');
+  }
+
+  const prompt = 'You are a CCNA 200-301 study coach. Here is a student\'s current state:\n' +
+    '- Overall readiness: ' + readiness + '%\n' +
+    '- Study streak: ' + streak + ' days\n' +
+    '- Quizzes taken: ' + quizzes + '\n' +
+    '- Study time: ' + Math.round(time/60) + ' hours\n' +
+    '- Domain breakdown:' + profText + '\n\n' +
+    'Give specific, actionable advice in under 200 words:\n' +
+    '1. **Priority Domain** — which domain to focus on first and why\n' +
+    '2. **Kill List** — the 3-5 specific weak topics to study this week (use topic IDs)\n' +
+    '3. **Study Method** — what tool on the site to use (Quiz, Diagnostic, Console Labs, Daily Study, Glossary Quiz, Packet Race) and in what order\n' +
+    '4. **Time Allocation** — how to split study hours across domains\n' +
+    '5. **One Thing to Stop** — what they might be doing wrong based on the data';
+
+  const res = await apiPost('/', { message: prompt, history: [] });
+  if (res.reply) {
+    el.innerHTML = res.reply.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br>');
+  } else {
+    el.textContent = res.error || 'Could not generate advice.';
+  }
+});
 
 // ══════════════════════════════════════════════════════════════
 // FEATURE 1: LIVE ACTIVITY FEED
