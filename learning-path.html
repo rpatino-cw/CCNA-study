@@ -39,8 +39,11 @@
   .node-id { font-family: 'JetBrains Mono', monospace; font-size: 7px; fill: rgba(255,255,255,0.7); pointer-events: none; }
   .node-mastered .node-rect { fill: #16A34A !important; }
   .node-weak { opacity: 0.45; }
-  .edge-line { fill: none; stroke: #D4D0C8; stroke-width: 1.2; }
-  .edge-line:hover { stroke-width: 2.5; stroke: #94A3B8; }
+  .edge-line { fill: none; stroke: #D4D0C8; stroke-width: 1.2; transition: stroke 0.2s, stroke-width 0.2s, opacity 0.2s; }
+  .edge-line.path-highlight { stroke: #B45309; stroke-width: 3; opacity: 1 !important; filter: drop-shadow(0 0 3px rgba(180,83,9,0.4)); }
+  .graph-dimmed .edge-line:not(.path-highlight) { opacity: 0.12; }
+  .graph-dimmed .node-group:not(.path-node) { opacity: 0.15; }
+  .graph-dimmed .node-group.path-node .node-rect { filter: brightness(1.15); }
   .critical-edge { stroke: #B45309; stroke-width: 2.5; stroke-dasharray: 8,4; animation: critFlow 1.5s linear infinite; filter: drop-shadow(0 0 3px rgba(180,83,9,0.3)); }
   @keyframes critFlow { to { stroke-dashoffset: -24; } }
   @keyframes recPulse { 0%,100% { stroke-opacity: 0.3; stroke-width: 2; } 50% { stroke-opacity: 1; stroke-width: 4; } }
@@ -297,7 +300,7 @@ function render() {
     const isCrit = critEdges.has(from + '→' + to);
     const cls = isCrit ? 'edge-line critical-edge' : 'edge-line';
     const marker = isCrit ? 'url(#arrowCrit)' : 'url(#arrow)';
-    html += `<path d="${bezierPath(p1.x, p1.y, p2.x, p2.y)}" class="${cls}" marker-end="${marker}"/>`;
+    html += `<path d="${bezierPath(p1.x, p1.y, p2.x, p2.y)}" class="${cls}" data-from="${from}" data-to="${to}" marker-end="${marker}"/>`;
   });
 
   // Nodes
@@ -328,24 +331,58 @@ function render() {
 
   svg.innerHTML = html;
 
+  // Build adjacency for path tracing
+  const fwdAdj = {}, revAdj = {};
+  NODES.forEach(n => { fwdAdj[n.id] = []; revAdj[n.id] = []; });
+  EDGES.forEach(([f, t]) => { fwdAdj[f].push(t); revAdj[t].push(f); });
+
+  function getFullChain(nodeId) {
+    // Walk ancestors (prerequisites) and descendants (dependents)
+    const visited = new Set();
+    const edgesInChain = new Set();
+    function walkUp(id) { if (visited.has(id)) return; visited.add(id); for (const p of revAdj[id] || []) { edgesInChain.add(p + '|' + id); walkUp(p); } }
+    function walkDown(id) { if (visited.has(id)) return; visited.add(id); for (const c of fwdAdj[id] || []) { edgesInChain.add(id + '|' + c); walkDown(c); } }
+    walkUp(nodeId);
+    visited.clear();
+    visited.add(nodeId);
+    walkDown(nodeId);
+    // Re-add ancestors to visited
+    walkUp(nodeId);
+    return { nodes: visited, edges: edgesInChain };
+  }
+
   // Events
   svg.querySelectorAll('.node-group').forEach(g => {
     g.addEventListener('mouseenter', e => {
-      const tt = document.getElementById('graphTooltip');
-      const name = g.dataset.name;
-      const score = g.dataset.score;
       const id = g.dataset.id;
-      document.getElementById('ttName').textContent = `${id} — ${name}`;
-      document.getElementById('ttScore').textContent = `Proficiency: ${score}%`;
+
+      // Tooltip
+      const tt = document.getElementById('graphTooltip');
+      document.getElementById('ttName').textContent = `${id} — ${g.dataset.name}`;
+      document.getElementById('ttScore').textContent = `Proficiency: ${g.dataset.score}%`;
       const rect = g.querySelector('.node-rect');
       const x = parseFloat(rect.getAttribute('x'));
       const y = parseFloat(rect.getAttribute('y')) - 50;
       tt.setAttribute('transform', `translate(${x},${y})`);
       tt.classList.add('visible');
+
+      // Highlight full chain
+      const chain = getFullChain(id);
+      svg.classList.add('graph-dimmed');
+      svg.querySelectorAll('.node-group').forEach(ng => { ng.classList.toggle('path-node', chain.nodes.has(ng.dataset.id)); });
+      svg.querySelectorAll('.edge-line').forEach(edge => {
+        const key = edge.dataset.from + '|' + edge.dataset.to;
+        edge.classList.toggle('path-highlight', chain.edges.has(key));
+      });
     });
+
     g.addEventListener('mouseleave', () => {
       document.getElementById('graphTooltip').classList.remove('visible');
+      svg.classList.remove('graph-dimmed');
+      svg.querySelectorAll('.path-node').forEach(n => n.classList.remove('path-node'));
+      svg.querySelectorAll('.path-highlight').forEach(e => e.classList.remove('path-highlight'));
     });
+
     g.addEventListener('click', () => {
       const tierId = g.dataset.tier;
       const el = document.getElementById('tier-' + tierId);
