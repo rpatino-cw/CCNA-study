@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>3D Network Topology — CCNA 200-301</title>
+<link rel="icon" type="image/svg+xml" href="/CCNA-study/favicon.svg">
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:#0a0a0f;color:#e8eaf0;font-family:'Segoe UI',-apple-system,sans-serif;overflow:hidden}
+  #canvas{display:block;width:100vw;height:100vh}
+
+  .hud{position:fixed;z-index:10;pointer-events:none}
+  .back{position:fixed;top:16px;left:16px;z-index:15;pointer-events:auto}
+  .back a{color:#6b7394;text-decoration:none;font-size:.72rem;letter-spacing:.03em;text-transform:uppercase;transition:color .15s}
+  .back a:hover{color:#fff}
+  .title-hud{top:36px;left:16px}
+  .title-hud h1{font-size:1.1rem;font-weight:700;color:#fff;margin-bottom:2px}
+  .title-hud .sub{font-size:.72rem;color:#6b7394}
+  .ctrl{position:fixed;top:16px;right:16px;z-index:30;display:flex;gap:8px;pointer-events:auto}
+  .btn-h{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);color:#9ca3b8;padding:6px 14px;border-radius:6px;font-size:.75rem;cursor:pointer;font-family:inherit;transition:all .15s}
+  .btn-h:hover{background:rgba(255,255,255,.15);color:#fff}
+  .btn-h.active{background:rgba(74,158,255,.2);border-color:#4a9eff;color:#4a9eff}
+  .btn-h.tour-btn{background:rgba(251,191,36,.2);border-color:#fbbf24;color:#fbbf24}
+
+  #tooltip{position:fixed;z-index:20;background:rgba(10,10,15,.95);border:1px solid rgba(255,255,255,.15);border-radius:8px;padding:12px 16px;pointer-events:none;opacity:0;transition:opacity .15s;max-width:300px;backdrop-filter:blur(8px)}
+  #tooltip.visible{opacity:1}
+  .tt-name{font-family:'JetBrains Mono',monospace;font-size:.85rem;color:#4a9eff;font-weight:700;margin-bottom:4px}
+  .tt-type{font-size:.68rem;color:#fbbf24;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px}
+  .tt-row{font-size:.72rem;color:#9ca3b8;line-height:1.5}
+  .tt-row b{color:#e8eaf0}
+
+  .legend{position:fixed;bottom:16px;left:16px;z-index:10;display:flex;gap:14px;flex-wrap:wrap}
+  .leg-item{display:flex;align-items:center;gap:5px;font-size:.65rem;color:#6b7394}
+  .leg-dot{width:10px;height:10px;border-radius:2px}
+
+  /* Tour narration */
+  .tour-bar{position:fixed;bottom:60px;left:50%;transform:translateX(-50%);z-index:30;background:rgba(10,10,15,.92);border:1px solid rgba(251,191,36,.3);border-radius:12px;padding:14px 22px;max-width:540px;width:90%;backdrop-filter:blur(10px);opacity:0;transition:opacity .4s;pointer-events:none}
+  .tour-bar.vis{opacity:1;pointer-events:auto}
+  .tb-step{font-family:'JetBrains Mono',monospace;font-size:.62rem;color:#fbbf24;text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px}
+  .tb-title{font-size:.92rem;font-weight:700;color:#fff;margin-bottom:5px}
+  .tb-text{font-size:.76rem;color:#9ca3b8;line-height:1.5}
+  .tb-text .k{color:#4ade80;font-family:'JetBrains Mono',monospace;font-weight:600}
+  .tb-acts{display:flex;justify-content:space-between;align-items:center;margin-top:10px}
+  .tb-skip{background:none;border:none;color:#6b7394;font-size:.7rem;cursor:pointer;text-decoration:underline;font-family:inherit}
+  .tb-next{background:#fbbf24;color:#0a0a0f;border:none;padding:5px 16px;border-radius:6px;font-size:.76rem;font-weight:700;cursor:pointer;font-family:inherit}
+  .tb-dots{display:flex;gap:4px}
+  .tb-dot{width:6px;height:6px;border-radius:50%;background:#3a3d52}
+  .tb-dot.on{background:#fbbf24}
+</style>
+</head>
+<body>
+<div class="back"><a href="index.html">&larr; Back to Dashboard</a></div>
+<div class="hud title-hud"><h1>Enterprise Network Topology</h1><div class="sub">A complete campus network. Click any device for details. Hover to inspect.</div></div>
+<div class="ctrl">
+  <button class="btn-h tour-btn" id="btnTour">Guided Tour</button>
+  <button class="btn-h" id="btnLabels">Labels</button>
+  <button class="btn-h" id="btnWire">Wireframe</button>
+  <button class="btn-h" id="btnReset">Reset</button>
+</div>
+<div id="tooltip"><div class="tt-name" id="ttN"></div><div class="tt-type" id="ttT"></div><div class="tt-row" id="ttB"></div></div>
+<div class="legend" id="legend"></div>
+<div class="tour-bar" id="tourBar"><div class="tb-step" id="tbs"></div><div class="tb-title" id="tbt"></div><div class="tb-text" id="tbx"></div><div class="tb-acts"><button class="tb-skip" id="tbSkip">End</button><div class="tb-dots" id="tbDots"></div><button class="tb-next" id="tbNext">Next</button></div></div>
+<canvas id="canvas"></canvas>
+
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"}}</script>
+<script type="module">
+import*as THREE from'three';
+import{OrbitControls}from'three/addons/controls/OrbitControls.js';
+
+// ── Device Types & Colors ─────────────────────────────────────
+const TYPES={
+  core_router:{color:0x2563EB,shape:'cylinder',h:1.8,r:1.2,label:'Core Router'},
+  dist_router:{color:0x3B82F6,shape:'cylinder',h:1.4,r:1,label:'Distribution Router'},
+  core_switch:{color:0x16A34A,shape:'box',w:2,h:.8,d:1.2,label:'Core Switch'},
+  dist_switch:{color:0x22C55E,shape:'box',w:1.6,h:.6,d:1,label:'Distribution Switch'},
+  access_switch:{color:0x4ADE80,shape:'box',w:1.2,h:.5,d:.8,label:'Access Switch'},
+  firewall:{color:0xDC2626,shape:'box',w:1.8,h:1,d:.6,label:'Firewall'},
+  server:{color:0x7C3AED,shape:'box',w:.8,h:1.4,d:.8,label:'Server'},
+  ap:{color:0x0EA5E9,shape:'sphere',r:.5,label:'Wireless AP'},
+  wlc:{color:0x0891B2,shape:'box',w:1.2,h:.8,d:.8,label:'WLC'},
+  host:{color:0x94A3B8,shape:'box',w:.6,h:.4,d:.6,label:'Host/PC'},
+  phone:{color:0xD97706,shape:'box',w:.4,h:.6,d:.4,label:'IP Phone'},
+  internet:{color:0xF87171,shape:'sphere',r:1.4,label:'Internet Cloud'},
+};
+
+// ── Network Devices ───────────────────────────────────────────
+const DEVICES=[
+  // Internet edge
+  {id:'ISP',type:'internet',x:0,y:8,z:-20,info:{hostname:'ISP-CLOUD',desc:'Internet uplink',ip:'203.0.113.1/30'}},
+
+  // Firewalls
+  {id:'FW1',type:'firewall',x:-3,y:6,z:-14,info:{hostname:'FW-EDGE-01',desc:'Perimeter firewall (NGFW)',ip:'203.0.113.2/30 (outside)\n10.0.0.1/24 (inside)',vlan:'—',notes:'Stateful inspection, IPS, URL filtering'}},
+  {id:'FW2',type:'firewall',x:3,y:6,z:-14,info:{hostname:'FW-EDGE-02',desc:'Perimeter firewall (standby)',ip:'203.0.113.6/30 (outside)\n10.0.0.2/24 (inside)',vlan:'—',notes:'Active/standby pair with FW1'}},
+
+  // Core routers
+  {id:'CR1',type:'core_router',x:-4,y:4,z:-8,info:{hostname:'CORE-RTR-01',desc:'Core router — OSPF Area 0 backbone',ip:'10.0.0.3/24 (to FW)\n10.1.0.1/30 (to CR2)\n10.10.0.1/24 (to DSW1)',ospf:'Process 1, Area 0, Router-ID 1.1.1.1'}},
+  {id:'CR2',type:'core_router',x:4,y:4,z:-8,info:{hostname:'CORE-RTR-02',desc:'Core router — OSPF Area 0 backbone',ip:'10.0.0.4/24 (to FW)\n10.1.0.2/30 (to CR1)\n10.20.0.1/24 (to DSW2)',ospf:'Process 1, Area 0, Router-ID 2.2.2.2'}},
+
+  // Core switches (L3)
+  {id:'CSW1',type:'core_switch',x:0,y:3,z:-4,info:{hostname:'CORE-SW-01',desc:'Layer 3 core switch — inter-VLAN routing via SVIs',ip:'10.10.0.2/24\n10.20.0.2/24',notes:'EtherChannel to distribution switches'}},
+
+  // Distribution switches
+  {id:'DSW1',type:'dist_switch',x:-8,y:2,z:0,info:{hostname:'DSW-BLDG-A',desc:'Distribution switch — Building A',ip:'10.10.1.1/24 (VLAN 10 SVI)\n10.10.2.1/24 (VLAN 20 SVI)',vlan:'10 (Sales), 20 (Engineering)',notes:'STP root for VLANs 10-20, HSRP active'}},
+  {id:'DSW2',type:'dist_switch',x:8,y:2,z:0,info:{hostname:'DSW-BLDG-B',desc:'Distribution switch — Building B',ip:'10.20.1.1/24 (VLAN 30 SVI)\n10.20.2.1/24 (VLAN 40 SVI)',vlan:'30 (Management), 40 (Guest)',notes:'STP root for VLANs 30-40, HSRP active'}},
+
+  // Access switches — Building A
+  {id:'ASW1',type:'access_switch',x:-12,y:1,z:4,info:{hostname:'ASW-A-FLR1',desc:'Access switch — Building A Floor 1',ip:'10.10.1.2/24 (Mgmt VLAN)',vlan:'10 (Sales)',notes:'24 ports, PoE+ (740W budget), PortFast enabled'}},
+  {id:'ASW2',type:'access_switch',x:-8,y:1,z:4,info:{hostname:'ASW-A-FLR2',desc:'Access switch — Building A Floor 2',ip:'10.10.1.3/24 (Mgmt VLAN)',vlan:'20 (Engineering)',notes:'48 ports, PoE+ (1440W budget)'}},
+  {id:'ASW3',type:'access_switch',x:-4,y:1,z:4,info:{hostname:'ASW-A-FLR3',desc:'Access switch — Building A Floor 3',ip:'10.10.1.4/24 (Mgmt VLAN)',vlan:'10, 20',notes:'Port security: max 2 MACs, violation restrict'}},
+
+  // Access switches — Building B
+  {id:'ASW4',type:'access_switch',x:4,y:1,z:4,info:{hostname:'ASW-B-FLR1',desc:'Access switch — Building B Floor 1',ip:'10.20.1.2/24 (Mgmt VLAN)',vlan:'30 (Management)',notes:'DHCP snooping enabled, DAI on VLAN 30'}},
+  {id:'ASW5',type:'access_switch',x:8,y:1,z:4,info:{hostname:'ASW-B-FLR2',desc:'Access switch — Building B Floor 2',ip:'10.20.1.3/24 (Mgmt VLAN)',vlan:'40 (Guest)',notes:'Guest VLAN isolated, ACL applied inbound'}},
+  {id:'ASW6',type:'access_switch',x:12,y:1,z:4,info:{hostname:'ASW-B-FLR3',desc:'Access switch — Building B Floor 3',ip:'10.20.1.4/24 (Mgmt VLAN)',vlan:'30, 40',notes:'EtherChannel (LACP) uplink to DSW2'}},
+
+  // WLC
+  {id:'WLC1',type:'wlc',x:0,y:2,z:2,info:{hostname:'WLC-01',desc:'Wireless LAN Controller — manages all APs via CAPWAP',ip:'10.10.3.1/24',notes:'SSIDs: Corp-WiFi (WPA2-Enterprise), Guest-WiFi (WPA2-PSK)'}},
+
+  // Wireless APs
+  {id:'AP1',type:'ap',x:-10,y:1,z:7,info:{hostname:'AP-A-FLR1',desc:'Lightweight AP — Building A Floor 1',ip:'10.10.3.10/24 (DHCP)',notes:'802.11ax (Wi-Fi 6), PoE powered, CAPWAP to WLC'}},
+  {id:'AP2',type:'ap',x:-6,y:1,z:7,info:{hostname:'AP-A-FLR2',desc:'Lightweight AP — Building A Floor 2',ip:'10.10.3.11/24 (DHCP)',notes:'Dual-radio 2.4/5 GHz'}},
+  {id:'AP3',type:'ap',x:6,y:1,z:7,info:{hostname:'AP-B-FLR1',desc:'Lightweight AP — Building B Floor 1',ip:'10.20.3.10/24 (DHCP)',notes:'802.11ax, channel 36 (5GHz)'}},
+  {id:'AP4',type:'ap',x:10,y:1,z:7,info:{hostname:'AP-B-FLR2',desc:'Lightweight AP — Building B Floor 2',ip:'10.20.3.11/24 (DHCP)',notes:'Guest SSID on VLAN 40'}},
+
+  // Servers
+  {id:'SRV1',type:'server',x:-2,y:3,z:-12,info:{hostname:'SRV-DNS-01',desc:'DNS Server',ip:'10.0.10.10/24',notes:'Primary DNS for all VLANs'}},
+  {id:'SRV2',type:'server',x:0,y:3,z:-12,info:{hostname:'SRV-DHCP-01',desc:'DHCP Server',ip:'10.0.10.20/24',notes:'DHCP pools: VLAN10 (10.10.1.0/24), VLAN20 (10.10.2.0/24), etc.\nip helper-address on all SVIs'}},
+  {id:'SRV3',type:'server',x:2,y:3,z:-12,info:{hostname:'SRV-NTP-01',desc:'NTP + Syslog + SNMP Server',ip:'10.0.10.30/24',notes:'NTP stratum 2, Syslog collector, SNMP v3 manager'}},
+  {id:'SRV4',type:'server',x:4,y:3,z:-12,info:{hostname:'SRV-AAA-01',desc:'RADIUS / TACACS+ Server',ip:'10.0.10.40/24',notes:'802.1X authenticator, TACACS+ for device admin'}},
+
+  // End hosts
+  {id:'PC1',type:'host',x:-13,y:.2,z:7,info:{hostname:'PC-SALES-01',desc:'Sales department workstation',ip:'10.10.1.100/24 (DHCP)',vlan:'10',notes:'Default gateway: 10.10.1.1'}},
+  {id:'PC2',type:'host',x:-9,y:.2,z:7,info:{hostname:'PC-ENG-01',desc:'Engineering workstation',ip:'10.10.2.100/24 (DHCP)',vlan:'20',notes:'Default gateway: 10.10.2.1'}},
+  {id:'PH1',type:'phone',x:-11,y:.2,z:7,info:{hostname:'PHONE-SALES-01',desc:'IP Phone (PoE powered)',ip:'10.10.5.100/24 (DHCP)',vlan:'50 (Voice)',notes:'Powered by PoE from ASW1, QoS DSCP EF'}},
+  {id:'PC3',type:'host',x:5,y:.2,z:7,info:{hostname:'PC-MGMT-01',desc:'Management workstation',ip:'10.20.1.100/24 (DHCP)',vlan:'30',notes:'ACL restricts access to server VLAN'}},
+  {id:'PC4',type:'host',x:11,y:.2,z:7,info:{hostname:'LAPTOP-GUEST',desc:'Guest laptop (wireless)',ip:'10.20.4.50/24 (DHCP)',vlan:'40',notes:'Connected via Guest-WiFi SSID, isolated VLAN'}},
+];
+
+// ── Links ─────────────────────────────────────────────────────
+const LINKS=[
+  // Internet to firewalls
+  ['ISP','FW1',{color:0xF87171,label:'WAN',speed:'1G'}],
+  ['ISP','FW2',{color:0xF87171,label:'WAN backup',speed:'1G'}],
+  // Firewalls to core routers
+  ['FW1','CR1',{color:0xDC2626,label:'Inside',speed:'10G'}],
+  ['FW2','CR2',{color:0xDC2626,label:'Inside',speed:'10G'}],
+  // Core routers interconnect
+  ['CR1','CR2',{color:0x2563EB,label:'OSPF backbone',speed:'10G'}],
+  // Core routers to core switch
+  ['CR1','CSW1',{color:0x2563EB,label:'L3 trunk',speed:'10G'}],
+  ['CR2','CSW1',{color:0x2563EB,label:'L3 trunk',speed:'10G'}],
+  // Core switch to distribution
+  ['CSW1','DSW1',{color:0x16A34A,label:'EtherChannel',speed:'2x10G'}],
+  ['CSW1','DSW2',{color:0x16A34A,label:'EtherChannel',speed:'2x10G'}],
+  // Distribution to access — Building A
+  ['DSW1','ASW1',{color:0x22C55E,label:'Trunk',speed:'1G'}],
+  ['DSW1','ASW2',{color:0x22C55E,label:'Trunk',speed:'1G'}],
+  ['DSW1','ASW3',{color:0x22C55E,label:'Trunk',speed:'1G'}],
+  // Distribution to access — Building B
+  ['DSW2','ASW4',{color:0x22C55E,label:'Trunk',speed:'1G'}],
+  ['DSW2','ASW5',{color:0x22C55E,label:'Trunk',speed:'1G'}],
+  ['DSW2','ASW6',{color:0x22C55E,label:'Trunk',speed:'1G'}],
+  // WLC connections
+  ['CSW1','WLC1',{color:0x0891B2,label:'Management',speed:'1G'}],
+  // APs to access switches (data) + CAPWAP to WLC (logical)
+  ['ASW1','AP1',{color:0x0EA5E9,label:'PoE + data',speed:'1G'}],
+  ['ASW2','AP2',{color:0x0EA5E9,label:'PoE + data',speed:'1G'}],
+  ['ASW4','AP3',{color:0x0EA5E9,label:'PoE + data',speed:'1G'}],
+  ['ASW5','AP4',{color:0x0EA5E9,label:'PoE + data',speed:'1G'}],
+  // Servers to core (via server VLAN)
+  ['CR1','SRV1',{color:0x7C3AED,label:'Server VLAN',speed:'1G'}],
+  ['CR1','SRV2',{color:0x7C3AED,label:'Server VLAN',speed:'1G'}],
+  ['CR1','SRV3',{color:0x7C3AED,label:'Server VLAN',speed:'1G'}],
+  ['CR1','SRV4',{color:0x7C3AED,label:'Server VLAN',speed:'1G'}],
+  // End hosts to access switches
+  ['ASW1','PC1',{color:0x94A3B8,label:'Access',speed:'1G'}],
+  ['ASW1','PH1',{color:0xD97706,label:'PoE Voice',speed:'100M'}],
+  ['ASW2','PC2',{color:0x94A3B8,label:'Access',speed:'1G'}],
+  ['ASW4','PC3',{color:0x94A3B8,label:'Access',speed:'1G'}],
+  ['AP4','PC4',{color:0x94A3B8,label:'Wi-Fi',speed:'Wi-Fi 6',dashed:true}],
+];
+
+// ── Three.js Setup ────────────────────────────────────────────
+const canvas=document.getElementById('canvas');
+const renderer=new THREE.WebGLRenderer({canvas,antialias:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.setSize(innerWidth,innerHeight);
+renderer.setClearColor(0x0a0a0f);
+const scene=new THREE.Scene();
+scene.fog=new THREE.FogExp2(0x0a0a0f,0.012);
+const camera=new THREE.PerspectiveCamera(50,innerWidth/innerHeight,.1,500);
+camera.position.set(20,18,22);
+const controls=new OrbitControls(camera,canvas);
+controls.enableDamping=true;controls.dampingFactor=.08;controls.target.set(0,2,0);
+
+scene.add(new THREE.AmbientLight(0x404060,.6));
+const dl=new THREE.DirectionalLight(0xffffff,.8);dl.position.set(20,30,15);scene.add(dl);
+scene.add(new THREE.DirectionalLight(0x4a9eff,.15).position.set(-15,10,-20)||scene.children[scene.children.length-1]);
+scene.add(new THREE.GridHelper(40,40,0x1a1d27,0x14161f));
+
+// ── Build Scene ───────────────────────────────────────────────
+const meshes=[];const labelSprites=[];const lineMeshes=[];
+const posMap={};let showLabels=true,wireMode=false;
+
+function makeSpr(text,color='#fff',size=.4){
+  const c=document.createElement('canvas');const ctx=c.getContext('2d');
+  c.width=512;c.height=64;ctx.font='bold 22px monospace';ctx.fillStyle=color;ctx.textAlign='center';ctx.fillText(text,256,40);
+  const t=new THREE.CanvasTexture(c);t.minFilter=THREE.LinearFilter;
+  const m=new THREE.SpriteMaterial({map:t,transparent:true,depthTest:false});
+  const s=new THREE.Sprite(m);s.scale.set(size*5,size*.8,1);return s;
+}
+
+DEVICES.forEach(d=>{
+  const t=TYPES[d.type];let geo,mat;
+  mat=new THREE.MeshPhysicalMaterial({color:t.color,roughness:.4,metalness:.1,transparent:true,opacity:.88,wireframe:wireMode});
+  if(t.shape==='cylinder')geo=new THREE.CylinderGeometry(t.r,t.r,t.h,16);
+  else if(t.shape==='sphere')geo=new THREE.SphereGeometry(t.r,16,16);
+  else geo=new THREE.BoxGeometry(t.w||1,t.h||1,t.d||1);
+  const mesh=new THREE.Mesh(geo,mat);
+  mesh.position.set(d.x,d.y,d.z);
+  mesh.userData={...d.info,id:d.id,deviceType:t.label};
+  scene.add(mesh);meshes.push(mesh);
+  posMap[d.id]={x:d.x,y:d.y,z:d.z};
+  // Label
+  const spr=makeSpr(d.info.hostname,'#ffffff',.32);
+  spr.position.set(d.x,d.y+(t.h||t.r||1)*.5+.5,d.z);
+  scene.add(spr);labelSprites.push(spr);
+});
+
+LINKS.forEach(([fromId,toId,meta])=>{
+  const a=posMap[fromId],b=posMap[toId];if(!a||!b)return;
+  const pts=[new THREE.Vector3(a.x,a.y,a.z),new THREE.Vector3(b.x,b.y,b.z)];
+  const geo=new THREE.BufferGeometry().setFromPoints(pts);
+  const mat=new THREE.LineBasicMaterial({color:meta.color||0x4a5568,linewidth:1,transparent:true,opacity:meta.dashed?.5:.7});
+  if(meta.dashed){mat.dashSize=.3;mat.gapSize=.15;const l=new THREE.LineDashedMaterial({color:meta.color,dashSize:.3,gapSize:.15,transparent:true,opacity:.5});
+    const line=new THREE.Line(geo,l);line.computeLineDistances();line.userData={...meta,fromId,toId};scene.add(line);lineMeshes.push(line);
+  }else{const line=new THREE.Line(geo,mat);line.userData={...meta,fromId,toId};scene.add(line);lineMeshes.push(line);}
+});
+
+// Legend
+document.getElementById('legend').innerHTML=Object.entries(TYPES).map(([k,v])=>
+  `<div class="leg-item"><div class="leg-dot" style="background:#${v.color.toString(16).padStart(6,'0')}"></div>${v.label}</div>`
+).join('');
+
+// ── Interaction ───────────────────────────────────────────────
+const raycaster=new THREE.Raycaster();const mouse=new THREE.Vector2();
+let hovered=null;const tooltip=document.getElementById('tooltip');
+
+canvas.addEventListener('mousemove',e=>{
+  mouse.x=(e.clientX/innerWidth)*2-1;mouse.y=-(e.clientY/innerHeight)*2+1;
+  raycaster.setFromCamera(mouse,camera);
+  const hits=raycaster.intersectObjects(meshes);
+  if(hits.length>0){
+    const m=hits[0].object;
+    if(hovered!==m){if(hovered)hovered.material.emissive.setHex(0);hovered=m;m.material.emissive.setHex(0x222244);}
+    const u=m.userData;
+    document.getElementById('ttN').textContent=u.hostname;
+    document.getElementById('ttT').textContent=u.deviceType;
+    let body=`<b>IP:</b> ${(u.ip||'—').replace(/\n/g,'<br>')}<br>`;
+    if(u.vlan)body+=`<b>VLAN:</b> ${u.vlan}<br>`;
+    if(u.ospf)body+=`<b>OSPF:</b> ${u.ospf}<br>`;
+    if(u.notes)body+=`<b>Notes:</b> ${u.notes}`;
+    document.getElementById('ttB').innerHTML=body;
+    tooltip.style.left=(e.clientX+16)+'px';tooltip.style.top=(e.clientY-10)+'px';
+    tooltip.classList.add('visible');canvas.style.cursor='pointer';
+  }else{
+    if(hovered){hovered.material.emissive.setHex(0);hovered=null;}
+    tooltip.classList.remove('visible');canvas.style.cursor='grab';
+  }
+});
+
+// ── Controls ──────────────────────────────────────────────────
+document.getElementById('btnLabels').addEventListener('click',function(){
+  showLabels=!showLabels;this.classList.toggle('active',showLabels);
+  labelSprites.forEach(s=>s.visible=showLabels);
+});
+document.getElementById('btnWire').addEventListener('click',function(){
+  wireMode=!wireMode;this.classList.toggle('active',wireMode);
+  meshes.forEach(m=>m.material.wireframe=wireMode);
+});
+document.getElementById('btnReset').addEventListener('click',()=>{
+  animCam(new THREE.Vector3(20,18,22),new THREE.Vector3(0,2,0));
+});
+addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);});
+
+function animCam(tp,tt){
+  const sp=camera.position.clone(),st=controls.target.clone();const dur=900,s=performance.now();
+  (function f(now){const t=Math.min((now-s)/dur,1),e=1-Math.pow(1-t,3);
+    camera.position.lerpVectors(sp,tp,e);controls.target.lerpVectors(st,tt,e);controls.update();
+    if(t<1)requestAnimationFrame(f);
+  })(s);
+}
+
+// ── Guided Tour ───────────────────────────────────────────────
+const TOUR=[
+  {title:'Internet Edge',text:'Traffic enters through the <span class="k">ISP cloud</span> and hits a pair of <span class="k">NGFW firewalls</span> (FW-EDGE-01/02) in active/standby. Stateful inspection, IPS, and URL filtering happen here.',cam:[2,10,-18],look:[0,6,-14]},
+  {title:'Core Layer',text:'Two <span class="k">core routers</span> run <span class="k">OSPF Area 0</span> (the backbone). They connect to each other (10G link) and down to the core L3 switch. Redundancy — if one router fails, OSPF reroutes.',cam:[0,8,-6],look:[0,4,-8]},
+  {title:'Distribution Layer',text:'<span class="k">DSW-BLDG-A</span> and <span class="k">DSW-BLDG-B</span> are Layer 3 distribution switches with SVIs for inter-VLAN routing. HSRP provides gateway redundancy. EtherChannel uplinks to core.',cam:[-2,6,2],look:[0,2,0]},
+  {title:'Access Layer — Building A',text:'Three <span class="k">access switches</span> (Floor 1-3) with PoE+ for phones and APs. Trunk links to distribution. <span class="k">PortFast</span> on access ports, <span class="k">port security</span> (max 2 MACs, violation restrict).',cam:[-10,5,6],look:[-8,1,4]},
+  {title:'Wireless Infrastructure',text:'<span class="k">WLC-01</span> manages all lightweight APs via <span class="k">CAPWAP tunnels</span>. Two SSIDs: Corp-WiFi (WPA2-Enterprise/802.1X) and Guest-WiFi (WPA2-PSK on isolated VLAN 40).',cam:[0,5,6],look:[0,1,7]},
+  {title:'Server Farm',text:'<span class="k">DNS, DHCP, NTP/Syslog/SNMP, and AAA (RADIUS/TACACS+)</span> servers on a dedicated VLAN. DHCP relay (ip helper-address) configured on every SVI. NTP stratum 2.',cam:[-1,6,-14],look:[1,3,-12]},
+  {title:'Security Throughout',text:'Security at every layer: <span class="k">ACLs</span> on router interfaces, <span class="k">DHCP snooping + DAI</span> on access switches, <span class="k">802.1X</span> for wired auth, <span class="k">WPA2-Enterprise</span> for wireless. Guest VLAN completely isolated.',cam:[8,5,6],look:[8,1,4]},
+  {title:'Full Picture',text:'This is a <span class="k">three-tier campus network</span>: access → distribution → core. Every CCNA concept lives somewhere in this topology: VLANs, trunking, STP, OSPF, NAT, DHCP, ACLs, PoE, wireless, QoS, and automation.',cam:[20,18,22],look:[0,2,0]},
+];
+let tourIdx=0,tourOn=false;const tourBar=document.getElementById('tourBar');
+
+function startTour(){tourOn=true;tourIdx=0;showTourStep();}
+function showTourStep(){
+  if(tourIdx>=TOUR.length){endTour();return;}
+  const s=TOUR[tourIdx];
+  document.getElementById('tbs').textContent=`Step ${tourIdx+1} of ${TOUR.length}`;
+  document.getElementById('tbt').textContent=s.title;
+  document.getElementById('tbx').innerHTML=s.text;
+  document.getElementById('tbNext').textContent=tourIdx===TOUR.length-1?'Finish':'Next';
+  document.getElementById('tbDots').innerHTML=TOUR.map((_,i)=>`<div class="tb-dot ${i===tourIdx?'on':''}"></div>`).join('');
+  tourBar.classList.add('vis');
+  animCam(new THREE.Vector3(...s.cam),new THREE.Vector3(...s.look));
+}
+function endTour(){tourOn=false;tourBar.classList.remove('vis');}
+document.getElementById('btnTour').addEventListener('click',startTour);
+document.getElementById('tbNext').addEventListener('click',()=>{tourIdx++;showTourStep();});
+document.getElementById('tbSkip').addEventListener('click',endTour);
+
+// ── Animate ───────────────────────────────────────────────────
+(function anim(){requestAnimationFrame(anim);controls.update();renderer.render(scene,camera);})();
+</script>
+<script src="js/tutor.js"></script>
+</body>
+</html>
