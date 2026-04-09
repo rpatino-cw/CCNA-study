@@ -17,6 +17,7 @@
     { text: 'Console Labs',  href: 'console-labs.html' },
     { text: 'Labs',          href: 'labs/index.html' },
     { text: 'Objectives',    href: 'objectives.html' },
+    { text: 'Study Group',   href: 'peers.html' },
     { text: 'Glossary',      href: 'glossary.html' },
     { text: 'Resources',     href: 'resources.html' }
   ];

@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Study Group — CCNA 200-301</title>
+<meta name="color-scheme" content="light">
+<link rel="icon" type="image/svg+xml" href="/CCNA-study/favicon.svg">
+<link rel="stylesheet" href="css/shared.css">
+<style>
+  .page-header{padding:var(--s-xl) 0 var(--s-lg);margin-bottom:var(--s-lg);border-bottom:2px solid var(--ink)}
+  .page-header h1{font-size:2.4rem;margin-bottom:4px}
+  .page-header .subtitle{font-family:var(--font-body);color:var(--ink-secondary);font-size:.95rem;font-style:italic}
+
+  .state{display:none}.state.active{display:block}
+
+  /* Lobby */
+  .lobby-card{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:24px;margin-bottom:var(--s-md);max-width:480px}
+  .lobby-card h3{font-family:var(--font-display);font-size:1rem;margin-bottom:12px}
+  .lobby-row{display:flex;gap:8px;margin-bottom:12px;align-items:center}
+  .lobby-input{flex:1;padding:10px 14px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--font-mono);font-size:.9rem;background:var(--bg-surface);color:var(--ink);outline:none;text-transform:uppercase;letter-spacing:.1em}
+  .lobby-input:focus{border-color:var(--accent)}
+  .name-input{text-transform:none;letter-spacing:normal;font-family:var(--font-body)}
+  .lobby-err{font-size:.8rem;color:var(--prof-weak);margin-top:4px;display:none}
+
+  /* Group dashboard */
+  .group-header{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:var(--s-lg)}
+  .group-code{font-family:var(--font-mono);font-size:2rem;font-weight:700;letter-spacing:.15em;color:var(--ink)}
+  .copy-btn{font-family:var(--font-display);font-size:.72rem;padding:4px 12px;border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-surface);color:var(--ink-muted);cursor:pointer;transition:all var(--transition)}
+  .copy-btn:hover{border-color:var(--accent);color:var(--accent)}
+  .group-meta{font-family:var(--font-display);font-size:.78rem;color:var(--ink-muted)}
+
+  /* Members */
+  .members-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:var(--s-md);margin-bottom:var(--s-lg)}
+  .member-card{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px}
+  .member-card.you{border-color:var(--accent);border-width:2px}
+  .mc-name{font-family:var(--font-display);font-size:.92rem;font-weight:700;margin-bottom:4px}
+  .mc-you{font-size:.65rem;color:var(--accent);font-weight:600}
+  .mc-stats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+  .mc-stat .val{font-family:var(--font-mono);font-size:1.1rem;font-weight:700;color:var(--ink)}
+  .mc-stat .lbl{font-family:var(--font-display);font-size:.65rem;color:var(--ink-muted);text-transform:uppercase;letter-spacing:.05em}
+  .mc-sync{font-family:var(--font-display);font-size:.65rem;color:var(--ink-muted);margin-top:8px}
+  .mc-stale{color:var(--prof-weak)}
+
+  /* Domain comparison */
+  .domain-compare{margin-bottom:var(--s-lg)}
+  .dc-row{margin-bottom:12px}
+  .dc-label{font-family:var(--font-display);font-size:.78rem;font-weight:600;margin-bottom:4px}
+  .dc-bars{display:flex;flex-direction:column;gap:3px}
+  .dc-bar{display:flex;align-items:center;gap:8px}
+  .dc-bar-name{font-family:var(--font-display);font-size:.68rem;color:var(--ink-muted);min-width:60px}
+  .dc-bar-fill{height:16px;border-radius:3px;transition:width .5s ease}
+  .dc-bar-pct{font-family:var(--font-mono);font-size:.68rem;color:var(--ink-secondary);min-width:32px}
+
+  /* AI analysis */
+  .ai-card{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;margin-bottom:var(--s-lg)}
+  .ai-card h3{font-family:var(--font-display);font-size:1rem;margin-bottom:12px}
+  .ai-body{font-family:var(--font-body);font-size:.88rem;line-height:1.6;color:var(--ink-secondary);white-space:pre-wrap}
+  .ai-body strong{color:var(--ink)}
+  .ai-loading{color:var(--ink-muted);font-style:italic}
+
+  .leave-btn{font-family:var(--font-display);font-size:.75rem;color:var(--prof-weak);background:none;border:1px solid var(--prof-weak);border-radius:var(--radius);padding:6px 14px;cursor:pointer;margin-top:var(--s-md)}
+  .leave-btn:hover{background:var(--prof-weak-bg)}
+
+  .member-colors{--c0:#B45309;--c1:#0369A1;--c2:#7C3AED;--c3:#059669;--c4:#DB2777;--c5:#D97706;--c6:#4338CA;--c7:#DC2626;--c8:#0D9488;--c9:#9333EA}
+</style>
+</head>
+<body>
+<div class="container-wide">
+  <nav class="top-nav" id="main-nav"></nav>
+
+  <header class="page-header">
+    <h1>Study Group</h1>
+    <p class="subtitle">Connect with friends. Compare progress. Study smarter together.</p>
+  </header>
+
+  <!-- Lobby -->
+  <div class="state active" id="state-lobby">
+    <div class="lobby-card">
+      <h3>Your Display Name</h3>
+      <div class="lobby-row">
+        <input type="text" class="lobby-input name-input" id="nameInput" placeholder="Enter your name" maxlength="20">
+      </div>
+    </div>
+    <div class="lobby-card">
+      <h3>Create a Study Group</h3>
+      <p style="font-size:.82rem;color:var(--ink-secondary);margin-bottom:12px">Start a new group and share the code with friends.</p>
+      <button class="btn btn-primary" id="btnCreate">Create Group</button>
+      <div class="lobby-err" id="createErr"></div>
+    </div>
+    <div class="lobby-card">
+      <h3>Join a Group</h3>
+      <div class="lobby-row">
+        <input type="text" class="lobby-input" id="codeInput" placeholder="XXXXXX" maxlength="6">
+        <button class="btn btn-secondary" id="btnJoin">Join</button>
+      </div>
+      <div class="lobby-err" id="joinErr"></div>
+    </div>
+  </div>
+
+  <!-- Group Dashboard -->
+  <div class="state" id="state-group">
+    <div class="group-header">
+      <span class="group-code" id="groupCode"></span>
+      <button class="copy-btn" id="btnCopy">Copy Link</button>
+      <span class="group-meta" id="groupMeta"></span>
+    </div>
+
+    <div class="members-grid" id="membersGrid"></div>
+
+    <div class="domain-compare" id="domainCompare">
+      <h2 style="font-size:1.1rem;margin-bottom:var(--s-md)">Domain Comparison</h2>
+      <div id="domainBars"></div>
+    </div>
+
+    <div class="ai-card">
+      <h3>AI Group Analysis</h3>
+      <button class="btn btn-primary btn-sm" id="btnAnalyze" style="margin-bottom:12px">Analyze Our Group</button>
+      <div class="ai-body" id="aiBody"></div>
+    </div>
+
+    <button class="leave-btn" id="btnLeave">Leave Group</button>
+  </div>
+</div>
+
+<script src="data/topics-data.js"></script>
+<script src="js/store.js"></script>
+<script src="js/nav.js"></script>
+<script>
+const API = 'https://ccna-tutor.rpatino-cw.workers.dev';
+const DOMAIN_NAMES = { '1': 'Net Fundamentals', '2': 'Net Access', '3': 'IP Connectivity', '4': 'IP Services', '5': 'Security', '6': 'Automation' };
+const COLORS = ['#B45309','#0369A1','#7C3AED','#059669','#DB2777','#D97706','#4338CA','#DC2626','#0D9488','#9333EA'];
+
+// ── Identity ──────────────────────────────────────────────────
+function getMemberId() {
+  let id = localStorage.getItem('ccna_peer_id');
+  if (!id) { id = Array.from(crypto.getRandomValues(new Uint8Array(4))).map(b => b.toString(16).padStart(2, '0')).join(''); localStorage.setItem('ccna_peer_id', id); }
+  return id;
+}
+function getName() { return localStorage.getItem('ccna_peer_name') || ''; }
+function getGroupCode() { return localStorage.getItem('ccna_peer_group') || ''; }
+
+// ── Progress Snapshot ─────────────────────────────────────────
+function getSnapshot() {
+  store.initProficiency(window.topicsData);
+  const prof = store.getAllProficiency();
+  const streak = store.getStreak();
+  const time = store.getStudyTime();
+  const diag = store.getDiagnosticHistory().slice(-3).map(d => ({ date: d.date, totalScore: d.totalScore, domainScores: d.domainScores }));
+  const history = store.getQuizHistory();
+  const avgScore = history.length > 0 ? Math.round(history.reduce((s, h) => s + (h.score / h.total) * 100, 0) / history.length) : 0;
+  const readiness = store.getReadinessScore(window.topicsData.domains);
+  return { proficiency: prof, streak: { current: streak.current, best: streak.best }, studyTime: { total: time.total }, diagnosticHistory: diag, quizStats: { taken: history.length, avgScore }, readiness: Math.round(readiness) };
+}
+
+// ── API Calls ─────────────────────────────────────────────────
+async function apiPost(path, body) {
+  const res = await fetch(API + path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  return res.json();
+}
+async function apiGet(path) {
+  const res = await fetch(API + path);
+  return res.json();
+}
+async function apiDelete(path) {
+  const res = await fetch(API + path, { method: 'DELETE' });
+  return res.json();
+}
+
+// ── State ─────────────────────────────────────────────────────
+function showState(name) {
+  document.querySelectorAll('.state').forEach(s => s.classList.remove('active'));
+  document.getElementById('state-' + name).classList.add('active');
+}
+
+// ── Create Group ──────────────────────────────────────────────
+document.getElementById('btnCreate').addEventListener('click', async () => {
+  const name = document.getElementById('nameInput').value.trim();
+  if (!name) { showErr('createErr', 'Enter your name first'); return; }
+  localStorage.setItem('ccna_peer_name', name);
+
+  const res = await apiPost('/api/group/create', { name, memberId: getMemberId(), progress: getSnapshot() });
+  if (res.error) { showErr('createErr', res.error); return; }
+
+  localStorage.setItem('ccna_peer_group', res.code);
+  renderGroup(res.group);
+  showState('group');
+});
+
+// ── Join Group ────────────────────────────────────────────────
+document.getElementById('btnJoin').addEventListener('click', async () => {
+  const name = document.getElementById('nameInput').value.trim();
+  if (!name) { showErr('joinErr', 'Enter your name first'); return; }
+  const code = document.getElementById('codeInput').value.trim().toUpperCase();
+  if (code.length !== 6) { showErr('joinErr', 'Code must be 6 characters'); return; }
+  localStorage.setItem('ccna_peer_name', name);
+
+  const res = await apiPost('/api/group/join', { code, name, memberId: getMemberId(), progress: getSnapshot() });
+  if (res.error) { showErr('joinErr', res.error); return; }
+
+  localStorage.setItem('ccna_peer_group', code);
+  renderGroup(res.group);
+  showState('group');
+});
+
+// ── Leave Group ───────────────────────────────────────────────
+document.getElementById('btnLeave').addEventListener('click', async () => {
+  const code = getGroupCode();
+  if (code) await apiDelete(`/api/group/${code}/member/${getMemberId()}`);
+  localStorage.removeItem('ccna_peer_group');
+  showState('lobby');
+});
+
+// ── Copy Link ─────────────────────────────────────────────────
+document.getElementById('btnCopy').addEventListener('click', () => {
+  const code = getGroupCode();
+  const url = `${location.origin}${location.pathname}?group=${code}`;
+  navigator.clipboard.writeText(url).then(() => {
+    document.getElementById('btnCopy').textContent = 'Copied!';
+    setTimeout(() => document.getElementById('btnCopy').textContent = 'Copy Link', 2000);
+  });
+});
+
+// ── Render Group ──────────────────────────────────────────────
+function renderGroup(group) {
+  const myId = getMemberId();
+  document.getElementById('groupCode').textContent = group.code;
+  const memberCount = Object.keys(group.members).length;
+  document.getElementById('groupMeta').textContent = `${memberCount} member${memberCount > 1 ? 's' : ''}`;
+
+  // Members
+  const grid = document.getElementById('membersGrid');
+  const entries = Object.entries(group.members);
+  grid.innerHTML = entries.map(([id, m], i) => {
+    const isYou = id === myId;
+    const color = COLORS[i % COLORS.length];
+    const p = m.progress || {};
+    const readiness = p.readiness || 0;
+    const streak = p.streak?.current || 0;
+    const time = p.studyTime?.total || 0;
+    const quizzes = p.quizStats?.taken || 0;
+    const ago = m.lastSync ? timeAgo(m.lastSync) : 'never';
+    const stale = m.lastSync && (Date.now() - new Date(m.lastSync).getTime()) > 7 * 86400000;
+
+    return `<div class="member-card ${isYou ? 'you' : ''}" style="border-top:3px solid ${color}">
+      <div class="mc-name" style="color:${color}">${esc(m.name)} ${isYou ? '<span class="mc-you">(you)</span>' : ''}</div>
+      <div class="mc-stats">
+        <div class="mc-stat"><div class="val">${readiness}%</div><div class="lbl">Readiness</div></div>
+        <div class="mc-stat"><div class="val">${streak}d</div><div class="lbl">Streak</div></div>
+        <div class="mc-stat"><div class="val">${Math.round(time / 60)}h</div><div class="lbl">Study Time</div></div>
+        <div class="mc-stat"><div class="val">${quizzes}</div><div class="lbl">Quizzes</div></div>
+      </div>
+      <div class="mc-sync ${stale ? 'mc-stale' : ''}">Synced ${ago}</div>
+    </div>`;
+  }).join('');
+
+  // Domain comparison bars
+  const domainBars = document.getElementById('domainBars');
+  domainBars.innerHTML = Object.entries(DOMAIN_NAMES).map(([dId, dName]) => {
+    const bars = entries.map(([id, m], i) => {
+      const prof = m.progress?.proficiency || {};
+      // Average proficiency for this domain's topics
+      const domainTopics = Object.keys(prof).filter(k => k.startsWith(dId + '.'));
+      const avg = domainTopics.length > 0 ? Math.round(domainTopics.reduce((s, k) => s + prof[k], 0) / domainTopics.length * 100) : 0;
+      const color = COLORS[i % COLORS.length];
+      return `<div class="dc-bar">
+        <span class="dc-bar-name">${esc(m.name)}</span>
+        <div style="flex:1;background:var(--bg-recessed);border-radius:3px;overflow:hidden"><div class="dc-bar-fill" style="width:${avg}%;background:${color}"></div></div>
+        <span class="dc-bar-pct">${avg}%</span>
+      </div>`;
+    }).join('');
+    return `<div class="dc-row"><div class="dc-label">D${dId} — ${dName}</div><div class="dc-bars">${bars}</div></div>`;
+  }).join('');
+}
+
+// ── AI Analysis ───────────────────────────────────────────────
+document.getElementById('btnAnalyze').addEventListener('click', async () => {
+  const code = getGroupCode();
+  if (!code) return;
+  const body = document.getElementById('aiBody');
+  body.innerHTML = '<span class="ai-loading">Analyzing your group...</span>';
+
+  const group = await apiGet(`/api/group/${code}`);
+  if (group.error) { body.textContent = 'Error: ' + group.error; return; }
+
+  const members = Object.entries(group.members).map(([id, m]) => ({ name: m.name, progress: m.progress }));
+  const res = await apiPost('/', { compareMembers: members });
+
+  if (res.analysis) {
+    body.innerHTML = res.analysis.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br>');
+  } else {
+    body.textContent = res.error || 'Could not generate analysis.';
+  }
+});
+
+// ── Helpers ───────────────────────────────────────────────────
+function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+function showErr(id, msg) { const el = document.getElementById(id); el.textContent = msg; el.style.display = 'block'; setTimeout(() => el.style.display = 'none', 4000); }
+function timeAgo(iso) {
+  const ms = Date.now() - new Date(iso).getTime();
+  if (ms < 60000) return 'just now';
+  if (ms < 3600000) return Math.floor(ms / 60000) + 'm ago';
+  if (ms < 86400000) return Math.floor(ms / 3600000) + 'h ago';
+  return Math.floor(ms / 86400000) + 'd ago';
+}
+
+// ── Init ──────────────────────────────────────────────────────
+(async function init() {
+  store.initProficiency(window.topicsData);
+  const savedName = getName();
+  if (savedName) document.getElementById('nameInput').value = savedName;
+
+  // Check URL for group code
+  const params = new URLSearchParams(location.search);
+  const urlCode = params.get('group');
+  const savedCode = getGroupCode();
+  const code = urlCode || savedCode;
+
+  if (code) {
+    try {
+      // If joining via URL, auto-join
+      if (urlCode && savedName) {
+        await apiPost('/api/group/join', { code: urlCode, name: savedName, memberId: getMemberId(), progress: getSnapshot() });
+        localStorage.setItem('ccna_peer_group', urlCode);
+      } else if (urlCode) {
+        // Need name first — pre-fill code and stay in lobby
+        document.getElementById('codeInput').value = urlCode;
+        return;
+      }
+
+      const group = await apiGet(`/api/group/${code}`);
+      if (!group.error) {
+        renderGroup(group);
+        showState('group');
+        return;
+      }
+    } catch (e) {}
+    localStorage.removeItem('ccna_peer_group');
+  }
+  showState('lobby');
+})();
+</script>
+<script src="js/tutor.js"></script>
+</body>
+</html>
