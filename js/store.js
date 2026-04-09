@@ -104,7 +104,17 @@
   function getStudyTime() { return get(KEYS.STUDY_TIME) || { total: 0, sessions: [] }; }
 
   function saveDiagnostic(results) {
+    // Keep history as an array (migrate from old single-object format)
+    let history = get('diagnostic_history') || [];
+    if (!Array.isArray(history)) history = [];
+
+    // Also save as latest for backwards compat
     set(KEYS.DIAGNOSTIC, results);
+    history.push(results);
+    // Keep last 20 diagnostics max
+    if (history.length > 20) history = history.slice(-20);
+    set('diagnostic_history', history);
+
     if (results && results.topicScores) {
       const proficiency = get(KEYS.PROFICIENCY) || {};
       for (const [topicId, score] of Object.entries(results.topicScores)) {
@@ -115,6 +125,17 @@
   }
 
   function getDiagnostic() { return get(KEYS.DIAGNOSTIC); }
+
+  function getDiagnosticHistory() {
+    let history = get('diagnostic_history') || [];
+    if (!Array.isArray(history)) {
+      // Migrate: old format was a single object
+      const old = get(KEYS.DIAGNOSTIC);
+      history = old ? [old] : [];
+      set('diagnostic_history', history);
+    }
+    return history;
+  }
 
   function getReadinessScore(domains) {
     if (!Array.isArray(domains) || domains.length === 0) return 0;
@@ -196,7 +217,7 @@
   window.store = {
     get, set, getProficiency, updateProficiency, getAllProficiency, initProficiency,
     addQuizSession, getQuizHistory, updateStreak, getStreak,
-    logStudyTime, getStudyTime, saveDiagnostic, getDiagnostic,
+    logStudyTime, getStudyTime, saveDiagnostic, getDiagnostic, getDiagnosticHistory,
     getReadinessScore, exportAll, importAll, clearAll,
     getTopicStudy, getTopicStudyEntry, recordTopicStudy,
     getUnstudiedTopics, getTopicsStudiedToday,
