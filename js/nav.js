@@ -14,6 +14,7 @@
     { text: 'Subnetting',    href: 'subnetting-visual.html' },
     { text: '3D Explorer',  href: 'cidr-3d.html' },
     { text: '3D Topology',  href: 'topology-3d.html' },
+    { text: 'Packet Race',  href: 'packet-race.html' },
     { text: 'Console Labs',  href: 'console-labs.html' },
     { text: 'Labs',          href: 'labs/index.html' },
     { text: 'Objectives',    href: 'objectives.html' },

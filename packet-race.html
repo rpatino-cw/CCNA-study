@@ -1,0 +1,915 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Packet Race — CCNA 200-301</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0a0f;color:#e2e8f0;font-family:'Segoe UI',system-ui,sans-serif;overflow:hidden;height:100vh}
+canvas{display:block;width:100%;height:100%}
+.back{position:fixed;top:16px;left:16px;z-index:50}
+.back a{color:#94a3b8;text-decoration:none;font-size:.82rem;opacity:.7;transition:opacity .2s}
+.back a:hover{opacity:1;color:#e2e8f0}
+
+/* Glass panel base */
+.glass{background:rgba(15,17,25,.88);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.08);border-radius:12px;color:#e2e8f0}
+
+/* Title HUD */
+.title-hud{position:fixed;top:16px;left:50%;transform:translateX(-50%);z-index:40;padding:8px 24px;font-size:.85rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;pointer-events:none}
+
+/* Timer */
+.timer-hud{position:fixed;top:16px;right:16px;z-index:40;padding:8px 16px;font-family:monospace;font-size:1.1rem;font-weight:700}
+
+/* Panels */
+.panel{position:fixed;z-index:100;display:none}
+.panel.active{display:flex}
+
+/* Lobby */
+#panel-lobby{top:50%;left:50%;transform:translate(-50%,-50%);flex-direction:column;align-items:center;padding:32px 40px;min-width:520px;max-width:90vw;max-height:85vh;overflow-y:auto;gap:20px}
+.lobby-title{font-size:1.8rem;font-weight:800;letter-spacing:.05em;background:linear-gradient(135deg,#f59e0b,#ef4444);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.lobby-sub{font-size:.82rem;color:#94a3b8;text-align:center}
+.scenario-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;width:100%}
+.scenario-card{padding:14px;border:1px solid rgba(255,255,255,.08);border-radius:8px;cursor:pointer;transition:all .2s;text-align:left}
+.scenario-card:hover{border-color:#f59e0b;background:rgba(245,158,11,.05)}
+.scenario-card.selected{border-color:#f59e0b;background:rgba(245,158,11,.1)}
+.sc-title{font-size:.88rem;font-weight:700;margin-bottom:2px}
+.sc-desc{font-size:.72rem;color:#94a3b8;margin-bottom:4px}
+.sc-meta{font-size:.65rem;font-family:monospace}
+.sc-easy{color:#4ade80}.sc-medium{color:#facc15}.sc-hard{color:#f87171}
+.player-list{width:100%;padding:10px 14px;border:1px solid rgba(255,255,255,.06);border-radius:8px}
+.player-list h4{font-size:.75rem;color:#94a3b8;text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px}
+.pl-item{display:flex;align-items:center;gap:8px;padding:4px 0;font-size:.85rem}
+.pl-dot{width:10px;height:10px;border-radius:50%}
+.lobby-actions{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+.btn{padding:10px 24px;border:none;border-radius:8px;font-size:.85rem;font-weight:700;cursor:pointer;transition:all .2s;text-transform:uppercase;letter-spacing:.05em}
+.btn-primary{background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff}
+.btn-primary:hover{transform:translateY(-1px);box-shadow:0 4px 20px rgba(245,158,11,.3)}
+.btn-primary:disabled{opacity:.4;cursor:default;transform:none;box-shadow:none}
+.btn-secondary{background:rgba(255,255,255,.06);color:#94a3b8;border:1px solid rgba(255,255,255,.1)}
+.btn-secondary:hover{border-color:#94a3b8;color:#e2e8f0}
+.btn-solo{background:rgba(74,222,128,.15);color:#4ade80;border:1px solid rgba(74,222,128,.2)}
+.lobby-err{color:#f87171;font-size:.78rem;text-align:center}
+.lobby-nogroup{text-align:center;padding:20px}
+.lobby-nogroup a{color:#f59e0b;text-decoration:underline}
+
+/* Countdown */
+#panel-countdown{top:0;left:0;width:100%;height:100%;align-items:center;justify-content:center;background:rgba(0,0,0,.7);flex-direction:column}
+.cd-number{font-size:12rem;font-weight:900;opacity:0;animation:cdPop .8s ease-out forwards;line-height:1}
+.cd-go{color:#4ade80;font-size:8rem}
+@keyframes cdPop{0%{transform:scale(2);opacity:0}50%{opacity:1}100%{transform:scale(.9);opacity:0}}
+@keyframes cdGo{0%{transform:scale(2);opacity:0}40%{opacity:1;transform:scale(1)}100%{transform:scale(1);opacity:0}}
+.cd-route{font-size:1rem;color:#94a3b8;margin-top:16px}
+
+/* Question panel */
+#panel-question{top:50%;right:20px;transform:translateY(-50%);width:360px;padding:20px;flex-direction:column;gap:12px}
+.q-device{display:flex;justify-content:space-between;align-items:center}
+.q-hostname{font-family:monospace;font-size:.88rem;font-weight:700;color:#f59e0b}
+.q-type{font-size:.68rem;color:#94a3b8;text-transform:uppercase}
+.q-timer{height:4px;background:rgba(255,255,255,.1);border-radius:2px;overflow:hidden}
+.q-timer-bar{height:100%;background:#f59e0b;border-radius:2px;transition:width .1s linear;width:100%}
+.q-timer-bar.danger{background:#f87171}
+.q-context{font-size:.72rem;color:#64748b;font-style:italic}
+.q-text{font-size:.92rem;line-height:1.5;font-weight:500}
+.q-opts{display:flex;flex-direction:column;gap:6px}
+.q-opt{display:flex;align-items:center;gap:10px;padding:10px 14px;border:1px solid rgba(255,255,255,.1);border-radius:8px;background:rgba(255,255,255,.03);cursor:pointer;transition:all .15s;font-size:.85rem;text-align:left;color:#e2e8f0}
+.q-opt:hover{border-color:rgba(255,255,255,.25);background:rgba(255,255,255,.06)}
+.q-opt.correct{border-color:#4ade80;background:rgba(74,222,128,.15);color:#4ade80}
+.q-opt.wrong{border-color:#f87171;background:rgba(248,113,113,.15);color:#f87171}
+.q-opt .letter{font-family:monospace;font-weight:700;font-size:.75rem;width:22px;height:22px;display:flex;align-items:center;justify-content:center;border-radius:4px;background:rgba(255,255,255,.08);flex-shrink:0}
+.q-feedback{font-size:.82rem;font-weight:600;text-align:center;min-height:20px}
+.q-cooldown{color:#f87171;font-size:1.1rem;font-weight:700;text-align:center;padding:8px}
+
+/* Results */
+#panel-results{top:50%;left:50%;transform:translate(-50%,-50%);flex-direction:column;align-items:center;padding:32px 40px;min-width:400px;gap:16px}
+.results-title{font-size:1.6rem;font-weight:800}
+.results-winner{font-size:1.1rem;color:#f59e0b;font-weight:700}
+.results-list{width:100%}
+.result-row{display:flex;align-items:center;gap:12px;padding:10px 14px;border-bottom:1px solid rgba(255,255,255,.06)}
+.result-rank{font-family:monospace;font-size:1.2rem;font-weight:800;min-width:28px;text-align:center}
+.result-rank.gold{color:#f59e0b}.result-rank.silver{color:#94a3b8}.result-rank.bronze{color:#92400e}
+.result-name{font-weight:600;flex:1}
+.result-stats{font-size:.72rem;color:#94a3b8;font-family:monospace}
+
+/* Progress HUD */
+#race-hud{position:fixed;bottom:0;left:0;right:0;z-index:40;padding:12px 20px;display:none;background:rgba(15,17,25,.85);backdrop-filter:blur(8px);border-top:1px solid rgba(255,255,255,.06)}
+#race-hud.active{display:block}
+.hud-route{display:flex;align-items:center;justify-content:center;gap:0;margin-bottom:6px;position:relative}
+.hud-hop{width:14px;height:14px;border-radius:50%;background:rgba(255,255,255,.12);border:2px solid rgba(255,255,255,.15);position:relative;z-index:2;transition:all .3s}
+.hud-hop.reached{background:#f59e0b;border-color:#f59e0b}
+.hud-hop.current{background:#f59e0b;border-color:#fff;box-shadow:0 0 10px rgba(245,158,11,.5)}
+.hud-link{width:40px;height:2px;background:rgba(255,255,255,.1);z-index:1}
+.hud-link.reached{background:#f59e0b}
+.hud-labels{display:flex;justify-content:center;gap:4px;font-size:.55rem;font-family:monospace;color:#64748b}
+.hud-players{display:flex;justify-content:center;gap:16px;margin-top:6px}
+.hud-player{display:flex;align-items:center;gap:4px;font-size:.72rem}
+.hud-player-dot{width:8px;height:8px;border-radius:50%}
+.hud-player-hop{font-family:monospace;color:#94a3b8}
+
+/* Dropped overlay */
+.dropped-overlay{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:90;font-size:2.5rem;font-weight:900;color:#f87171;text-transform:uppercase;letter-spacing:.1em;pointer-events:none;opacity:0;animation:dropAnim 1.5s ease-out forwards}
+@keyframes dropAnim{0%{opacity:0;transform:translate(-50%,-50%) scale(1.5)}15%{opacity:1;transform:translate(-50%,-50%) scale(1)}70%{opacity:1}100%{opacity:0;transform:translate(-50%,-60%)}}
+</style>
+</head>
+<body>
+<div class="back"><a href="index.html">&larr; Dashboard</a></div>
+<div class="title-hud glass">Packet Race</div>
+<div class="timer-hud glass" id="timerHud" style="display:none">00:00</div>
+
+<div class="panel glass active" id="panel-lobby"></div>
+<div class="panel" id="panel-countdown"></div>
+<div class="panel glass" id="panel-question"></div>
+<div class="panel glass" id="panel-results"></div>
+<div id="race-hud"></div>
+
+<canvas id="canvas"></canvas>
+
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"}}</script>
+<script type="module">
+import*as THREE from'three';
+import{OrbitControls}from'three/addons/controls/OrbitControls.js';
+
+// ═══════════════════════════════════════════════════════════════
+// CONFIG
+// ═══════════════════════════════════════════════════════════════
+const API='https://ccna-tutor.rpatino-cw.workers.dev';
+const COLORS=['#B45309','#0369A1','#7C3AED','#059669','#DB2777','#D97706','#4338CA','#DC2626','#0D9488','#9333EA'];
+
+// ═══════════════════════════════════════════════════════════════
+// TOPOLOGY DATA (from topology-3d.html)
+// ═══════════════════════════════════════════════════════════════
+const DEVICES=[
+{id:'ISP',type:'internet',x:0,y:8,z:-20,info:{hostname:'ISP-CLOUD',desc:'Internet uplink',ip:'203.0.113.1/30'}},
+{id:'FW1',type:'firewall',x:-3,y:6,z:-14,info:{hostname:'FW-EDGE-01',desc:'Perimeter firewall (NGFW)',ip:'203.0.113.2/30'}},
+{id:'FW2',type:'firewall',x:3,y:6,z:-14,info:{hostname:'FW-EDGE-02',desc:'Perimeter firewall (standby)',ip:'203.0.113.6/30'}},
+{id:'CR1',type:'core_router',x:-4,y:4,z:-8,info:{hostname:'CORE-RTR-01',desc:'Core router — OSPF Area 0',ip:'10.0.0.3/24'}},
+{id:'CR2',type:'core_router',x:4,y:4,z:-8,info:{hostname:'CORE-RTR-02',desc:'Core router — OSPF Area 0',ip:'10.0.0.4/24'}},
+{id:'CSW1',type:'core_switch',x:0,y:3,z:-4,info:{hostname:'CORE-SW-01',desc:'Layer 3 core switch',ip:'10.10.0.2/24'}},
+{id:'DSW1',type:'dist_switch',x:-8,y:2,z:0,info:{hostname:'DSW-BLDG-A',desc:'Distribution — Building A',ip:'10.10.1.1/24'}},
+{id:'DSW2',type:'dist_switch',x:8,y:2,z:0,info:{hostname:'DSW-BLDG-B',desc:'Distribution — Building B',ip:'10.20.1.1/24'}},
+{id:'ASW1',type:'access_switch',x:-12,y:1,z:4,info:{hostname:'ASW-A-FLR1',desc:'Access — Bldg A Floor 1',ip:'10.10.1.2/24'}},
+{id:'ASW2',type:'access_switch',x:-8,y:1,z:4,info:{hostname:'ASW-A-FLR2',desc:'Access — Bldg A Floor 2',ip:'10.10.1.3/24'}},
+{id:'ASW3',type:'access_switch',x:-4,y:1,z:4,info:{hostname:'ASW-A-FLR3',desc:'Access — Bldg A Floor 3',ip:'10.10.1.4/24'}},
+{id:'ASW4',type:'access_switch',x:4,y:1,z:4,info:{hostname:'ASW-B-FLR1',desc:'Access — Bldg B Floor 1',ip:'10.20.1.2/24'}},
+{id:'ASW5',type:'access_switch',x:8,y:1,z:4,info:{hostname:'ASW-B-FLR2',desc:'Access — Bldg B Floor 2',ip:'10.20.1.3/24'}},
+{id:'ASW6',type:'access_switch',x:12,y:1,z:4,info:{hostname:'ASW-B-FLR3',desc:'Access — Bldg B Floor 3',ip:'10.20.1.4/24'}},
+{id:'WLC1',type:'wlc',x:0,y:2,z:2,info:{hostname:'WLC-01',desc:'Wireless LAN Controller',ip:'10.10.3.1/24'}},
+{id:'AP1',type:'ap',x:-10,y:1,z:7,info:{hostname:'AP-A-FLR1',desc:'Lightweight AP',ip:'10.10.3.10/24'}},
+{id:'AP2',type:'ap',x:-6,y:1,z:7,info:{hostname:'AP-A-FLR2',desc:'Lightweight AP',ip:'10.10.3.11/24'}},
+{id:'AP3',type:'ap',x:6,y:1,z:7,info:{hostname:'AP-B-FLR1',desc:'Lightweight AP',ip:'10.20.3.10/24'}},
+{id:'AP4',type:'ap',x:10,y:1,z:7,info:{hostname:'AP-B-FLR2',desc:'Lightweight AP',ip:'10.20.3.11/24'}},
+{id:'SRV1',type:'server',x:-2,y:3,z:-12,info:{hostname:'SRV-DNS-01',desc:'DNS Server',ip:'10.0.10.10/24'}},
+{id:'SRV2',type:'server',x:0,y:3,z:-12,info:{hostname:'SRV-DHCP-01',desc:'DHCP Server',ip:'10.0.10.20/24'}},
+{id:'SRV3',type:'server',x:2,y:3,z:-12,info:{hostname:'SRV-NTP-01',desc:'NTP/Syslog Server',ip:'10.0.10.30/24'}},
+{id:'SRV4',type:'server',x:4,y:3,z:-12,info:{hostname:'SRV-AAA-01',desc:'RADIUS/TACACS+ Server',ip:'10.0.10.40/24'}},
+{id:'PC1',type:'host',x:-13,y:.2,z:7,info:{hostname:'PC-SALES-01',desc:'Sales workstation',ip:'10.10.1.100/24'}},
+{id:'PC2',type:'host',x:-9,y:.2,z:7,info:{hostname:'PC-ENG-01',desc:'Engineering workstation',ip:'10.10.2.100/24'}},
+{id:'PH1',type:'phone',x:-11,y:.2,z:7,info:{hostname:'PHONE-SALES-01',desc:'IP Phone (PoE)',ip:'10.10.5.100/24'}},
+{id:'PC3',type:'host',x:5,y:.2,z:7,info:{hostname:'PC-MGMT-01',desc:'Management workstation',ip:'10.20.1.100/24'}},
+{id:'PC4',type:'host',x:11,y:.2,z:7,info:{hostname:'LAPTOP-GUEST',desc:'Guest laptop (wireless)',ip:'10.20.4.50/24'}},
+];
+
+const LINKS=[
+['ISP','FW1',{color:0xF87171}],['ISP','FW2',{color:0xF87171}],
+['FW1','CR1',{color:0xDC2626}],['FW2','CR2',{color:0xDC2626}],
+['CR1','CR2',{color:0x2563EB}],['CR1','CSW1',{color:0x2563EB}],['CR2','CSW1',{color:0x2563EB}],
+['CSW1','DSW1',{color:0x16A34A}],['CSW1','DSW2',{color:0x16A34A}],
+['DSW1','ASW1',{color:0x22C55E}],['DSW1','ASW2',{color:0x22C55E}],['DSW1','ASW3',{color:0x22C55E}],
+['DSW2','ASW4',{color:0x22C55E}],['DSW2','ASW5',{color:0x22C55E}],['DSW2','ASW6',{color:0x22C55E}],
+['CSW1','WLC1',{color:0x0891B2}],
+['ASW1','AP1',{color:0x0EA5E9}],['ASW2','AP2',{color:0x0EA5E9}],['ASW4','AP3',{color:0x0EA5E9}],['ASW5','AP4',{color:0x0EA5E9}],
+['CR1','SRV1',{color:0x7C3AED}],['CR1','SRV2',{color:0x7C3AED}],['CR1','SRV3',{color:0x7C3AED}],['CR1','SRV4',{color:0x7C3AED}],
+['ASW1','PC1',{color:0x94A3B8}],['ASW1','PH1',{color:0xD97706}],['ASW2','PC2',{color:0x94A3B8}],
+['ASW4','PC3',{color:0x94A3B8}],['AP4','PC4',{color:0x94A3B8,dashed:true}],
+];
+
+const TYPES={
+core_router:{color:0x2563EB,shape:'cylinder',h:1.8,r:1.2},dist_router:{color:0x3B82F6,shape:'cylinder',h:1.4,r:1},
+core_switch:{color:0x16A34A,shape:'box',w:2,h:.8,d:1.2},dist_switch:{color:0x22C55E,shape:'box',w:1.6,h:.6,d:1},
+access_switch:{color:0x4ADE80,shape:'box',w:1.2,h:.5,d:.8},firewall:{color:0xDC2626,shape:'box',w:1.8,h:1,d:.6},
+server:{color:0x7C3AED,shape:'box',w:.8,h:1.4,d:.8},ap:{color:0x0EA5E9,shape:'sphere',r:.5},
+wlc:{color:0x0891B2,shape:'box',w:1.2,h:.8,d:.8},host:{color:0x94A3B8,shape:'box',w:.6,h:.4,d:.6},
+phone:{color:0xD97706,shape:'box',w:.4,h:.6,d:.4},internet:{color:0xF87171,shape:'sphere',r:1.4},
+};
+
+const SCENARIOS=[
+{id:'dns',title:'DNS Lookup',desc:'Sales PC resolves a hostname',diff:'Easy',route:['PC1','ASW1','DSW1','CSW1','CR1','SRV1']},
+{id:'cross',title:'Cross-Building',desc:'Engineer emails Management',diff:'Medium',route:['PC2','ASW2','DSW1','CSW1','DSW2','ASW4','PC3']},
+{id:'guest',title:'Guest to Internet',desc:'Guest laptop browses the web',diff:'Medium',route:['PC4','AP4','ASW5','DSW2','CSW1','CR2','FW2','ISP']},
+{id:'dhcp',title:'DHCP Request',desc:'Management PC needs an IP',diff:'Easy',route:['PC3','ASW4','DSW2','CSW1','CR1','SRV2']},
+{id:'auth',title:'Phone Auth',desc:'IP Phone authenticates via RADIUS',diff:'Hard',route:['PH1','ASW1','DSW1','CSW1','CR1','SRV4']},
+{id:'full',title:'Full Traverse',desc:'Sales to Internet — every layer',diff:'Hard',route:['PC1','ASW1','DSW1','CSW1','CR1','FW1','ISP']},
+];
+
+// ═══════════════════════════════════════════════════════════════
+// QUESTION BANK (60 questions, mapped by device type)
+// ═══════════════════════════════════════════════════════════════
+const QUESTIONS=[
+// Router
+{q:'What routing protocol uses link-state advertisements?',opts:['RIP','EIGRP','OSPF','BGP'],ans:2,types:['core_router','dist_router']},
+{q:'Default OSPF hello interval on a broadcast network?',opts:['5 seconds','10 seconds','30 seconds','40 seconds'],ans:1,types:['core_router','dist_router']},
+{q:'OSPF administrative distance?',opts:['90','100','110','120'],ans:2,types:['core_router','dist_router']},
+{q:'What is OSPF Area 0?',opts:['Stub area','Backbone area','NSSA','Transit area'],ans:1,types:['core_router','dist_router']},
+{q:'What metric does OSPF use?',opts:['Hop count','Bandwidth (cost)','Delay','Load'],ans:1,types:['core_router','dist_router']},
+{q:'What does the DR do in OSPF?',opts:['Forwards all packets','Reduces adjacencies','Elects the BDR','Assigns IPs'],ans:1,types:['core_router','dist_router']},
+{q:'Command to view the routing table?',opts:['show ip route','show routes','show ip table','show routing'],ans:0,types:['core_router','dist_router']},
+{q:'What layer does a router operate at?',opts:['Layer 1','Layer 2','Layer 3','Layer 4'],ans:2,types:['core_router','dist_router']},
+{q:'A floating static route has a higher ___?',opts:['Metric','Administrative distance','Hop count','Bandwidth'],ans:1,types:['core_router','dist_router']},
+{q:'What does the "ip route 0.0.0.0 0.0.0.0" command create?',opts:['Loopback route','Default route','Host route','Summary route'],ans:1,types:['core_router','dist_router']},
+// Switch
+{q:'What does STP prevent?',opts:['IP conflicts','Layer 2 loops','Routing loops','ARP storms'],ans:1,types:['core_switch','dist_switch','access_switch']},
+{q:'Default VLAN on Cisco switches?',opts:['VLAN 0','VLAN 1','VLAN 10','VLAN 100'],ans:1,types:['core_switch','dist_switch','access_switch']},
+{q:'What is a trunk port?',opts:['Carries one VLAN','Carries multiple VLANs','Blocks all traffic','Only for management'],ans:1,types:['core_switch','dist_switch','access_switch']},
+{q:'PortFast should be enabled on which ports?',opts:['Trunk ports','Access ports only','All ports','Router ports'],ans:1,types:['access_switch']},
+{q:'What protocol does LACP use for EtherChannel?',opts:['STP','PAgP','LACP','CDP'],ans:2,types:['core_switch','dist_switch']},
+{q:'DHCP snooping protects against?',opts:['MAC flooding','Rogue DHCP servers','ARP spoofing','STP attacks'],ans:1,types:['access_switch']},
+{q:'What is DAI?',opts:['Dynamic Access Inspection','Dynamic ARP Inspection','Direct Address Interface','Dual Auth Integration'],ans:1,types:['access_switch']},
+{q:'Port security violation "restrict" does what?',opts:['Shuts down port','Drops + logs, port stays up','Allows traffic','Sends SNMP trap only'],ans:1,types:['access_switch']},
+{q:'Native VLAN is used for?',opts:['Voice traffic','Untagged traffic on trunks','Management only','Spanning tree'],ans:1,types:['core_switch','dist_switch','access_switch']},
+{q:'Which STP mode does Cisco use by default?',opts:['RSTP','MST','PVST+','CST'],ans:2,types:['core_switch','dist_switch','access_switch']},
+{q:'What does HSRP provide?',opts:['Load balancing','Gateway redundancy','VLAN tagging','Routing'],ans:1,types:['dist_switch']},
+{q:'What is an SVI?',opts:['Switch Virtual Interface','Static VLAN ID','Secure VLAN Interface','Switch Verification Index'],ans:0,types:['core_switch','dist_switch']},
+// Firewall
+{q:'What does stateful inspection track?',opts:['MAC addresses','Connection state','VLAN tags','Routing tables'],ans:1,types:['firewall']},
+{q:'Standard ACL number range?',opts:['1-99','100-199','200-299','1-199'],ans:0,types:['firewall']},
+{q:'Extended ACLs can filter by?',opts:['Source IP only','Source + dest + protocol + port','MAC address','VLAN'],ans:1,types:['firewall']},
+{q:'Where should standard ACLs be placed?',opts:['Close to source','Close to destination','On the firewall only','On all devices'],ans:1,types:['firewall']},
+{q:'What does NAT translate?',opts:['MAC to IP','Private to public IP','Port to VLAN','Protocol numbers'],ans:1,types:['firewall']},
+{q:'What is PAT (Port Address Translation)?',opts:['One-to-one NAT','Many-to-one NAT using ports','Static NAT','Proxy ARP'],ans:1,types:['firewall']},
+{q:'IPS vs IDS — what does IPS do differently?',opts:['Only monitors','Actively blocks threats','Sends emails','Logs only'],ans:1,types:['firewall']},
+{q:'Implicit deny means?',opts:['All traffic is allowed by default','Unmatched traffic is dropped','ACLs are optional','Deny must be explicit'],ans:1,types:['firewall']},
+// AP / WLC
+{q:'What protocol do lightweight APs use?',opts:['SNMP','CAPWAP','HTTPS','SSH'],ans:1,types:['ap','wlc']},
+{q:'WPA2-Enterprise uses what for authentication?',opts:['PSK','802.1X / RADIUS','WEP','MAC filtering'],ans:1,types:['ap','wlc']},
+{q:'802.11ax is also called?',opts:['Wi-Fi 4','Wi-Fi 5','Wi-Fi 6','Wi-Fi 7'],ans:2,types:['ap','wlc']},
+{q:'How many non-overlapping channels in 2.4 GHz?',opts:['1','3','6','11'],ans:1,types:['ap','wlc']},
+{q:'CAPWAP uses which transport?',opts:['TCP 80','UDP 5246/5247','TCP 443','UDP 161'],ans:1,types:['ap','wlc']},
+{q:'What does WLC stand for?',opts:['Wide LAN Connection','Wireless LAN Controller','WAN Link Control','Wireless Local Channel'],ans:1,types:['ap','wlc']},
+{q:'A rogue AP is?',opts:['Backup AP','Unauthorized access point','AP in monitor mode','Disabled AP'],ans:1,types:['ap','wlc']},
+// Server
+{q:'What port does DNS use?',opts:['22','53','80','443'],ans:1,types:['server']},
+{q:'DHCP DORA stands for?',opts:['Detect Offer Request Ack','Discover Offer Request Ack','Discover Open Relay Ack','Direct Offer Receive Ack'],ans:1,types:['server']},
+{q:'What does NTP synchronize?',opts:['Routes','Time','VLANs','Bandwidth'],ans:1,types:['server']},
+{q:'What port does RADIUS use?',opts:['49','161','1812/1813','3389'],ans:2,types:['server']},
+{q:'TACACS+ encrypts what?',opts:['Only password','Entire packet body','Nothing','Header only'],ans:1,types:['server']},
+{q:'What port does DHCP server listen on?',opts:['53','67','68','80'],ans:1,types:['server']},
+{q:'Syslog is used for?',opts:['Time sync','Centralized logging','VLAN management','Authentication'],ans:1,types:['server']},
+{q:'SNMP trap is?',opts:['Manager polling agent','Agent-initiated alert to manager','A security feature','A routing protocol'],ans:1,types:['server']},
+// Host / General
+{q:'TCP operates at which layer?',opts:['Layer 2','Layer 3','Layer 4','Layer 7'],ans:2,types:['host','phone']},
+{q:'TCP three-way handshake sequence?',opts:['ACK SYN FIN','SYN SYN-ACK ACK','SYN ACK FIN','RST SYN ACK'],ans:1,types:['host','phone']},
+{q:'What does ARP resolve?',opts:['IP to MAC','MAC to IP','Hostname to IP','Port to service'],ans:0,types:['host','phone']},
+{q:'What is the default gateway used for?',opts:['DNS resolution','Route traffic to other networks','VLAN assignment','PoE negotiation'],ans:1,types:['host','phone']},
+{q:'IPv4 address size?',opts:['16 bits','32 bits','64 bits','128 bits'],ans:1,types:['host','phone']},
+{q:'UDP vs TCP — UDP is?',opts:['Connection-oriented','Connectionless','Encrypted','Slower'],ans:1,types:['host','phone']},
+{q:'What does ICMP provide?',opts:['Routing','Error messages and ping','VLAN tagging','Encryption'],ans:1,types:['host','phone']},
+{q:'PoE (802.3af) max power?',opts:['7W','15.4W','30W','60W'],ans:1,types:['phone']},
+{q:'Voice VLAN is used for?',opts:['Management access','Separating voice traffic','Guest isolation','STP'],ans:1,types:['phone']},
+// Internet
+{q:'What does the firewall translate with NAT before sending to ISP?',opts:['MAC address','Private IP to public IP','VLAN tag','Protocol type'],ans:1,types:['internet']},
+{q:'What is the purpose of a default route?',opts:['Block all traffic','Forward unknown destinations to ISP','Assign IPs','Enable STP'],ans:1,types:['internet']},
+];
+
+// ═══════════════════════════════════════════════════════════════
+// THREE.JS SCENE
+// ═══════════════════════════════════════════════════════════════
+const canvas=document.getElementById('canvas');
+const renderer=new THREE.WebGLRenderer({canvas,antialias:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.setSize(innerWidth,innerHeight);
+renderer.setClearColor(0x0a0a0f);
+const scene=new THREE.Scene();
+scene.fog=new THREE.FogExp2(0x0a0a0f,0.012);
+const camera=new THREE.PerspectiveCamera(50,innerWidth/innerHeight,.1,500);
+camera.position.set(20,18,22);
+const controls=new OrbitControls(camera,canvas);
+controls.enableDamping=true;controls.dampingFactor=.08;controls.target.set(0,2,0);
+
+scene.add(new THREE.AmbientLight(0x404060,.6));
+const dl=new THREE.DirectionalLight(0xffffff,.8);dl.position.set(20,30,15);scene.add(dl);
+scene.add(new THREE.GridHelper(40,40,0x1a1d27,0x14161f));
+
+// Build topology meshes
+const meshes=[],posMap={},lineMeshes=[],deviceMap={};
+DEVICES.forEach(d=>{
+  const t=TYPES[d.type];if(!t)return;
+  const mat=new THREE.MeshPhysicalMaterial({color:t.color,roughness:.4,metalness:.1,transparent:true,opacity:.88});
+  let geo;
+  if(t.shape==='cylinder')geo=new THREE.CylinderGeometry(t.r,t.r,t.h,16);
+  else if(t.shape==='sphere')geo=new THREE.SphereGeometry(t.r,16,16);
+  else geo=new THREE.BoxGeometry(t.w||1,t.h||1,t.d||1);
+  const mesh=new THREE.Mesh(geo,mat);
+  mesh.position.set(d.x,d.y,d.z);
+  mesh.userData={id:d.id,type:d.type,...d.info};
+  scene.add(mesh);meshes.push(mesh);
+  posMap[d.id]={x:d.x,y:d.y,z:d.z};
+  deviceMap[d.id]=d;
+  // Label
+  const c2=document.createElement('canvas');c2.width=256;c2.height=64;
+  const ctx=c2.getContext('2d');ctx.fillStyle='#ffffff';ctx.font='bold 20px monospace';ctx.textAlign='center';ctx.fillText(d.info.hostname,128,36);
+  const tex=new THREE.CanvasTexture(c2);
+  const smat=new THREE.SpriteMaterial({map:tex,transparent:true,opacity:.7});
+  const spr=new THREE.Sprite(smat);spr.scale.set(3,.75,1);
+  spr.position.set(d.x,d.y+(t.h||t.r||1)*.5+.6,d.z);
+  scene.add(spr);
+});
+
+LINKS.forEach(([a,b,meta])=>{
+  const pa=posMap[a],pb=posMap[b];if(!pa||!pb)return;
+  const geo=new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(pa.x,pa.y,pa.z),new THREE.Vector3(pb.x,pb.y,pb.z)]);
+  const mat=meta.dashed?new THREE.LineDashedMaterial({color:meta.color||0x4a5568,dashSize:.3,gapSize:.15,transparent:true,opacity:.5}):new THREE.LineBasicMaterial({color:meta.color||0x4a5568,transparent:true,opacity:.6});
+  const line=new THREE.Line(geo,mat);if(meta.dashed)line.computeLineDistances();
+  line.userData={fromId:a,toId:b};scene.add(line);lineMeshes.push(line);
+});
+
+window.addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);});
+
+// ═══════════════════════════════════════════════════════════════
+// IDENTITY
+// ═══════════════════════════════════════════════════════════════
+function getMemberId(){let id=localStorage.getItem('ccna_peer_id');if(!id){id=Array.from(crypto.getRandomValues(new Uint8Array(4))).map(b=>b.toString(16).padStart(2,'0')).join('');localStorage.setItem('ccna_peer_id',id);}return id;}
+function getName(){return localStorage.getItem('ccna_peer_name')||'Player';}
+function getGroupCode(){return localStorage.getItem('ccna_peer_group')||'';}
+
+async function apiPost(path,body){return(await fetch(API+path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})).json();}
+async function apiGet(path){return(await fetch(API+path)).json();}
+async function apiAction(action,data){return apiPost('/api/group/action',{code:getGroupCode(),action,...data});}
+
+// ═══════════════════════════════════════════════════════════════
+// GAME STATE
+// ═══════════════════════════════════════════════════════════════
+let gameState='lobby'; // lobby|countdown|racing|finished
+let selectedScenario=0;
+let currentRoute=[];
+let myHop=0;
+let myQuestionsAnswered=0;
+let myQuestionsCorrect=0;
+let raceStartTime=0;
+let usedQuestionIdx=new Set();
+let currentQuestion=null;
+let questionLocked=false;
+let cooldownTimer=null;
+let timerInterval=null;
+let questionTimerInterval=null;
+let questionTimeLeft=15;
+let pollTimer=null;
+let soloMode=false;
+let remoteRace=null;
+let packets={};// memberId -> {group,trail}
+
+// ═══════════════════════════════════════════════════════════════
+// PACKET CREATION
+// ═══════════════════════════════════════════════════════════════
+function createPacket(colorHex){
+  const color=new THREE.Color(colorHex);
+  const group=new THREE.Group();
+  const sphere=new THREE.Mesh(new THREE.SphereGeometry(.35,16,16),new THREE.MeshPhysicalMaterial({color,emissive:color,emissiveIntensity:.6,roughness:.2,metalness:.3,transparent:true,opacity:.9}));
+  group.add(sphere);
+  const glow=new THREE.Mesh(new THREE.SphereGeometry(.6,16,16),new THREE.MeshBasicMaterial({color,transparent:true,opacity:.15,side:THREE.BackSide}));
+  group.add(glow);
+  const light=new THREE.PointLight(color,.8,4);group.add(light);
+  scene.add(group);
+  // Trail
+  const TRAIL=30;
+  const tGeo=new THREE.BufferGeometry();
+  const tPos=new Float32Array(TRAIL*3);
+  const tAlpha=new Float32Array(TRAIL);
+  tGeo.setAttribute('position',new THREE.BufferAttribute(tPos,3));
+  const tMat=new THREE.PointsMaterial({color,size:.12,transparent:true,opacity:.6,sizeAttenuation:true});
+  const trail=new THREE.Points(tGeo,tMat);
+  scene.add(trail);
+  return{group,trail,trailPositions:tPos,trailLength:TRAIL,sphere};
+}
+
+function updateTrail(pkt){
+  const pos=pkt.group.position;
+  for(let i=pkt.trailLength-1;i>0;i--){
+    pkt.trailPositions[i*3]=pkt.trailPositions[(i-1)*3];
+    pkt.trailPositions[i*3+1]=pkt.trailPositions[(i-1)*3+1];
+    pkt.trailPositions[i*3+2]=pkt.trailPositions[(i-1)*3+2];
+  }
+  pkt.trailPositions[0]=pos.x;pkt.trailPositions[1]=pos.y;pkt.trailPositions[2]=pos.z;
+  pkt.trail.geometry.attributes.position.needsUpdate=true;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// ARC MOVEMENT
+// ═══════════════════════════════════════════════════════════════
+let arcAnim=null;
+function arcMove(pkt,fromId,toId,dur=800){
+  return new Promise(resolve=>{
+    const a=posMap[fromId],b=posMap[toId];
+    const start=new THREE.Vector3(a.x,a.y,a.z);
+    const end=new THREE.Vector3(b.x,b.y,b.z);
+    const mid=new THREE.Vector3().lerpVectors(start,end,.5);
+    mid.y+=start.distanceTo(end)*.35;
+    const t0=performance.now();
+    arcAnim={pkt,start,mid,end,t0,dur,resolve};
+  });
+}
+
+function tickArc(now){
+  if(!arcAnim)return;
+  const{pkt,start,mid,end,t0,dur,resolve}=arcAnim;
+  let t=Math.min((now-t0)/dur,1);
+  const e=1-Math.pow(1-t,3);
+  const a=new THREE.Vector3().lerpVectors(start,mid,e);
+  const b=new THREE.Vector3().lerpVectors(mid,end,e);
+  const p=new THREE.Vector3().lerpVectors(a,b,e);
+  pkt.group.position.copy(p);
+  if(t>=1){arcAnim=null;resolve();}
+}
+
+// ═══════════════════════════════════════════════════════════════
+// CAMERA
+// ═══════════════════════════════════════════════════════════════
+const CAM_OFFSET=new THREE.Vector3(4,5,8);
+let followCam=false;
+
+function animCam(tp,tt,dur=900){
+  const sp=camera.position.clone(),st=controls.target.clone();
+  const s=performance.now();
+  return new Promise(resolve=>{
+    (function f(now){
+      const t=Math.min((now-s)/dur,1),e=1-Math.pow(1-t,3);
+      camera.position.lerpVectors(sp,new THREE.Vector3(...tp),e);
+      controls.target.lerpVectors(st,new THREE.Vector3(...tt),e);
+      controls.update();
+      if(t<1)requestAnimationFrame(f);else resolve();
+    })(s);
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════
+// HIGHLIGHT ROUTE
+// ═══════════════════════════════════════════════════════════════
+function highlightRoute(route){
+  const rSet=new Set(route);
+  meshes.forEach(m=>{
+    const on=rSet.has(m.userData.id);
+    m.material.opacity=on?.95:.15;
+    m.material.emissive=new THREE.Color(on?0x222244:0x000000);
+  });
+  lineMeshes.forEach(l=>{
+    const both=rSet.has(l.userData.fromId)&&rSet.has(l.userData.toId);
+    l.material.opacity=both?.7:.04;
+  });
+}
+
+function resetHighlight(){
+  meshes.forEach(m=>{m.material.opacity=.88;m.material.emissive=new THREE.Color(0);});
+  lineMeshes.forEach(l=>{l.material.opacity=.6;});
+}
+
+// ═══════════════════════════════════════════════════════════════
+// QUESTION SELECTION
+// ═══════════════════════════════════════════════════════════════
+function getQuestion(deviceId){
+  const dev=deviceMap[deviceId];if(!dev)return null;
+  const pool=QUESTIONS.map((q,i)=>({...q,idx:i})).filter(q=>q.types.includes(dev.type)&&!usedQuestionIdx.has(q.idx));
+  if(pool.length===0){usedQuestionIdx.clear();return getQuestion(deviceId);}
+  const pick=pool[Math.floor(Math.random()*pool.length)];
+  usedQuestionIdx.add(pick.idx);
+  return pick;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// LOBBY UI
+// ═══════════════════════════════════════════════════════════════
+function renderLobby(raceData){
+  const code=getGroupCode();
+  const el=document.getElementById('panel-lobby');
+
+  if(!code){
+    el.innerHTML='<div class="lobby-title">Packet Race</div><div class="lobby-nogroup"><p>This is a multiplayer game. Join a study group first.</p><p><a href="peers.html">Go to Study Group</a></p><br><div class="lobby-sub">Or play solo:</div><br><div class="scenario-grid">'+SCENARIOS.map((s,i)=>'<div class="scenario-card'+(i===selectedScenario?' selected':'')+'" data-idx="'+i+'"><div class="sc-title">'+s.title+'</div><div class="sc-desc">'+s.desc+'</div><div class="sc-meta sc-'+s.diff.toLowerCase()+'">'+s.diff+' | '+s.route.length+' hops</div></div>').join('')+'</div><br><button class="btn btn-solo" id="btnSolo">Solo Practice</button></div>';
+    el.querySelectorAll('.scenario-card').forEach(c=>c.onclick=()=>{selectedScenario=+c.dataset.idx;renderLobby(null);});
+    document.getElementById('btnSolo')?.addEventListener('click',startSolo);
+    return;
+  }
+
+  // Has group — check for active race
+  const hasRace=raceData&&raceData.state!=='finished';
+  const isCreator=raceData?.createdBy===getMemberId();
+  const inRace=raceData?.players?.[getMemberId()];
+  const playerCount=raceData?Object.keys(raceData.players).length:0;
+
+  let playersHtml='';
+  if(hasRace){
+    const entries=Object.entries(raceData.players);
+    playersHtml='<div class="player-list"><h4>Players ('+entries.length+')</h4>'+entries.map(([id,p],i)=>'<div class="pl-item"><div class="pl-dot" style="background:'+p.color+'"></div>'+esc(p.name)+(id===getMemberId()?' (you)':'')+'</div>').join('')+'</div>';
+  }
+
+  const scenarioName=hasRace?SCENARIOS[raceData.scenario]?.title||'Custom':'';
+
+  el.innerHTML='<div class="lobby-title">Packet Race</div><div class="lobby-sub">Group: <strong>'+code+'</strong></div>'+
+    (hasRace?'<div class="lobby-sub">Race: <strong>'+scenarioName+'</strong> | '+raceData.state+'</div>'+playersHtml+
+      '<div class="lobby-actions">'+(inRace?'':' <button class="btn btn-primary" id="btnJoinRace">Join Race</button>')+
+      (isCreator&&raceData.state==='lobby'?'<button class="btn btn-primary" id="btnStartRace"'+(playerCount<1?' disabled':'')+'>Start Race</button>':'')+
+      (isCreator?'<button class="btn btn-secondary" id="btnCancelRace">Cancel</button>':'')+
+      '</div>'
+    :
+      '<div class="scenario-grid">'+SCENARIOS.map((s,i)=>'<div class="scenario-card'+(i===selectedScenario?' selected':'')+'" data-idx="'+i+'"><div class="sc-title">'+s.title+'</div><div class="sc-desc">'+s.desc+'</div><div class="sc-meta sc-'+s.diff.toLowerCase()+'">'+s.diff+' | '+s.route.length+' hops</div></div>').join('')+'</div>'+
+      '<div class="lobby-actions"><button class="btn btn-primary" id="btnCreateRace">Create Race</button><button class="btn btn-solo" id="btnSolo">Solo Practice</button></div>'
+    );
+
+  el.querySelectorAll('.scenario-card').forEach(c=>c.onclick=()=>{selectedScenario=+c.dataset.idx;renderLobby(raceData);});
+  document.getElementById('btnCreateRace')?.addEventListener('click',createRace);
+  document.getElementById('btnJoinRace')?.addEventListener('click',joinRace);
+  document.getElementById('btnStartRace')?.addEventListener('click',startRace);
+  document.getElementById('btnCancelRace')?.addEventListener('click',cancelRace);
+  document.getElementById('btnSolo')?.addEventListener('click',startSolo);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// MULTIPLAYER ACTIONS
+// ═══════════════════════════════════════════════════════════════
+async function createRace(){
+  const s=SCENARIOS[selectedScenario];
+  const res=await apiAction('race_create',{scenario:selectedScenario,route:s.route,memberId:getMemberId(),name:getName()});
+  if(res.group?.race)renderLobby(res.group.race);
+}
+async function joinRace(){
+  const res=await apiAction('race_join',{memberId:getMemberId(),name:getName()});
+  if(res.group?.race)renderLobby(res.group.race);
+}
+async function startRace(){
+  const res=await apiAction('race_start',{memberId:getMemberId()});
+  if(res.group?.race){
+    remoteRace=res.group.race;
+    beginCountdown(res.group.race);
+  }
+}
+async function cancelRace(){
+  await apiAction('race_cancel',{});
+  renderLobby(null);
+}
+
+function startSolo(){
+  soloMode=true;
+  const s=SCENARIOS[selectedScenario];
+  currentRoute=s.route;
+  beginCountdown(null);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// COUNTDOWN
+// ═══════════════════════════════════════════════════════════════
+function beginCountdown(raceData){
+  gameState='countdown';
+  showPanel('countdown');
+  const route=raceData?raceData.route:currentRoute;
+  if(!soloMode)currentRoute=route;
+  highlightRoute(route);
+
+  // Camera to start device
+  const startDev=posMap[route[0]];
+  if(startDev)animCam([startDev.x+5,startDev.y+4,startDev.z+8],[startDev.x,startDev.y,startDev.z]);
+
+  const cdEl=document.getElementById('panel-countdown');
+  let count=3;
+  cdEl.innerHTML='<div class="cd-number" style="color:#60a5fa">3</div><div class="cd-route">'+route.map(id=>{const d=deviceMap[id];return d?d.info.hostname:id;}).join(' → ')+'</div>';
+
+  const cdInterval=setInterval(()=>{
+    count--;
+    if(count>0){
+      cdEl.innerHTML='<div class="cd-number" style="color:'+(count===2?'#facc15':'#f97316')+'">'+count+'</div><div class="cd-route">'+route.map(id=>{const d=deviceMap[id];return d?d.info.hostname:id;}).join(' → ')+'</div>';
+    }else if(count===0){
+      cdEl.innerHTML='<div class="cd-number cd-go" style="animation:cdGo .8s ease-out forwards">GO!</div>';
+    }else{
+      clearInterval(cdInterval);
+      beginRacing();
+    }
+  },1000);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// RACING
+// ═══════════════════════════════════════════════════════════════
+function beginRacing(){
+  gameState='racing';
+  showPanel('question');
+  document.getElementById('race-hud').classList.add('active');
+  document.getElementById('timerHud').style.display='';
+
+  myHop=0;myQuestionsAnswered=0;myQuestionsCorrect=0;
+  usedQuestionIdx.clear();
+  raceStartTime=Date.now();
+  followCam=true;
+
+  // Create my packet
+  const myColor=soloMode?'#f59e0b':(remoteRace?.players?.[getMemberId()]?.color||'#f59e0b');
+  packets[getMemberId()]=createPacket(myColor);
+  const startPos=posMap[currentRoute[0]];
+  packets[getMemberId()].group.position.set(startPos.x,startPos.y,startPos.z);
+  // Init trail
+  for(let i=0;i<packets[getMemberId()].trailLength;i++){
+    packets[getMemberId()].trailPositions[i*3]=startPos.x;
+    packets[getMemberId()].trailPositions[i*3+1]=startPos.y;
+    packets[getMemberId()].trailPositions[i*3+2]=startPos.z;
+  }
+
+  // Create remote packets
+  if(!soloMode&&remoteRace){
+    for(const[id,p]of Object.entries(remoteRace.players)){
+      if(id===getMemberId())continue;
+      packets[id]=createPacket(p.color);
+      packets[id].group.position.set(startPos.x,startPos.y,startPos.z);
+      for(let i=0;i<packets[id].trailLength;i++){
+        packets[id].trailPositions[i*3]=startPos.x;
+        packets[id].trailPositions[i*3+1]=startPos.y;
+        packets[id].trailPositions[i*3+2]=startPos.z;
+      }
+    }
+  }
+
+  // Start timer
+  timerInterval=setInterval(()=>{
+    const elapsed=Math.floor((Date.now()-raceStartTime)/1000);
+    const m=String(Math.floor(elapsed/60)).padStart(2,'0');
+    const s=String(elapsed%60).padStart(2,'0');
+    document.getElementById('timerHud').textContent=m+':'+s;
+  },200);
+
+  // Start polling
+  if(!soloMode){
+    pollTimer=setInterval(async()=>{
+      const group=await apiGet('/api/group/'+getGroupCode());
+      if(group?.race){
+        remoteRace=group.race;
+        syncRemotePackets(group.race);
+        if(group.race.state==='finished'&&gameState==='racing')finishRace();
+      }
+    },2000);
+  }
+
+  renderHud();
+  showQuestion();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// QUESTION UI
+// ═══════════════════════════════════════════════════════════════
+function showQuestion(){
+  if(myHop>=currentRoute.length-1){finishRace();return;}
+  const nextDevId=currentRoute[myHop+1];
+  const dev=deviceMap[nextDevId];
+  currentQuestion=getQuestion(nextDevId);
+  if(!currentQuestion)return;
+  questionLocked=false;
+  questionTimeLeft=15;
+
+  const el=document.getElementById('panel-question');
+  el.innerHTML='<div class="q-device"><span class="q-hostname">'+(dev?.info?.hostname||nextDevId)+'</span><span class="q-type">'+(dev?.type?.replace(/_/g,' ')||'')+'</span></div>'+
+    '<div class="q-timer"><div class="q-timer-bar" id="qTimerBar"></div></div>'+
+    '<div class="q-context">You are at '+(dev?.info?.hostname||nextDevId)+' ('+(dev?.info?.desc||'')+')</div>'+
+    '<div class="q-text">'+esc(currentQuestion.q)+'</div>'+
+    '<div class="q-opts">'+currentQuestion.opts.map((o,i)=>'<button class="q-opt" data-idx="'+i+'"><span class="letter">'+['A','B','C','D'][i]+'</span>'+esc(o)+'</button>').join('')+'</div>'+
+    '<div class="q-feedback" id="qFeedback"></div>';
+
+  el.querySelectorAll('.q-opt').forEach(btn=>btn.onclick=()=>answerQuestion(+btn.dataset.idx));
+
+  // Timer
+  clearInterval(questionTimerInterval);
+  questionTimerInterval=setInterval(()=>{
+    questionTimeLeft-=.1;
+    const bar=document.getElementById('qTimerBar');
+    if(bar){
+      bar.style.width=(questionTimeLeft/15*100)+'%';
+      if(questionTimeLeft<5)bar.classList.add('danger');else bar.classList.remove('danger');
+    }
+    if(questionTimeLeft<=0){clearInterval(questionTimerInterval);if(!questionLocked)answerQuestion(-1);}
+  },100);
+}
+
+async function answerQuestion(idx){
+  if(questionLocked)return;
+  questionLocked=true;
+  clearInterval(questionTimerInterval);
+  myQuestionsAnswered++;
+
+  const correct=idx===currentQuestion.ans;
+  const opts=document.querySelectorAll('#panel-question .q-opt');
+  opts.forEach((o,i)=>{
+    if(i===currentQuestion.ans)o.classList.add('correct');
+    if(i===idx&&!correct)o.classList.add('wrong');
+  });
+
+  if(correct){
+    myQuestionsCorrect++;
+    document.getElementById('qFeedback').innerHTML='<span style="color:#4ade80">Correct! Advancing...</span>';
+    // Flash device green
+    const devMesh=meshes.find(m=>m.userData.id===currentRoute[myHop+1]);
+    if(devMesh){const origE=devMesh.material.emissive.clone();devMesh.material.emissive.set(0x00ff00);setTimeout(()=>devMesh.material.emissive.copy(origE),400);}
+    // Scale packet
+    const myPkt=packets[getMemberId()];
+    if(myPkt){myPkt.group.scale.set(1.3,1.3,1.3);setTimeout(()=>myPkt.group.scale.set(1,1,1),200);}
+
+    await new Promise(r=>setTimeout(r,500));
+    // Arc move
+    await arcMove(packets[getMemberId()],currentRoute[myHop],currentRoute[myHop+1]);
+    myHop++;
+    renderHud();
+
+    // Report to server
+    if(!soloMode){
+      apiAction('race_move',{memberId:getMemberId(),hop:myHop,questionsAnswered:myQuestionsAnswered,questionsCorrect:myQuestionsCorrect});
+    }
+
+    showQuestion();
+  }else{
+    document.getElementById('qFeedback').innerHTML='<span style="color:#f87171">Packet Dropped! Retry in 3s...</span>';
+    // Shake packet
+    const myPkt=packets[getMemberId()];
+    if(myPkt){
+      const orig=myPkt.group.position.clone();
+      let shakes=0;
+      const shakeI=setInterval(()=>{myPkt.group.position.x=orig.x+(Math.random()-.5)*.3;shakes++;if(shakes>6){clearInterval(shakeI);myPkt.group.position.copy(orig);}},50);
+      myPkt.sphere.material.emissive.set(0xff0000);setTimeout(()=>myPkt.sphere.material.emissive.set(new THREE.Color(myPkt.sphere.material.color)),400);
+    }
+    // Show dropped overlay
+    const dropEl=document.createElement('div');dropEl.className='dropped-overlay';dropEl.textContent='DROPPED';document.body.appendChild(dropEl);
+    setTimeout(()=>dropEl.remove(),1500);
+    // Cooldown
+    let cd=3;
+    const cdEl=document.getElementById('qFeedback');
+    cooldownTimer=setInterval(()=>{cd--;if(cd<=0){clearInterval(cooldownTimer);showQuestion();}else{cdEl.innerHTML='<span style="color:#f87171">Retry in '+cd+'s...</span>';}},1000);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SYNC REMOTE PACKETS
+// ═══════════════════════════════════════════════════════════════
+function syncRemotePackets(race){
+  for(const[id,p]of Object.entries(race.players)){
+    if(id===getMemberId())continue;
+    if(!packets[id])continue;
+    const targetHop=Math.min(p.hop,currentRoute.length-1);
+    const targetPos=posMap[currentRoute[targetHop]];
+    if(targetPos){
+      packets[id].group.position.lerp(new THREE.Vector3(targetPos.x,targetPos.y,targetPos.z),.15);
+    }
+    // Gray out dropped
+    if(p.status==='dropped'){packets[id].group.visible=false;}
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// HUD
+// ═══════════════════════════════════════════════════════════════
+function renderHud(){
+  const el=document.getElementById('race-hud');
+  const hops=currentRoute.map((id,i)=>{
+    const reached=i<=myHop;const isCurrent=i===myHop;
+    return'<div class="hud-hop'+(reached?' reached':'')+(isCurrent?' current':'')+'"></div>'+(i<currentRoute.length-1?'<div class="hud-link'+(i<myHop?' reached':'')+'"></div>':'');
+  }).join('');
+  const labels=currentRoute.map(id=>{const d=deviceMap[id];return d?d.info.hostname.split('-').pop():id;}).join(' ');
+
+  let playersHtml='';
+  if(!soloMode&&remoteRace){
+    playersHtml=Object.entries(remoteRace.players).map(([id,p])=>{
+      const isMe=id===getMemberId();
+      const hop=isMe?myHop:p.hop;
+      return'<div class="hud-player"><div class="hud-player-dot" style="background:'+p.color+'"></div>'+esc(p.name)+' <span class="hud-player-hop">hop '+hop+'/'+(currentRoute.length-1)+'</span></div>';
+    }).join('');
+  }else{
+    playersHtml='<div class="hud-player"><div class="hud-player-dot" style="background:#f59e0b"></div>You <span class="hud-player-hop">hop '+myHop+'/'+(currentRoute.length-1)+'</span></div>';
+  }
+
+  el.innerHTML='<div class="hud-route">'+hops+'</div><div class="hud-players">'+playersHtml+'</div>';
+}
+
+// ═══════════════════════════════════════════════════════════════
+// FINISH
+// ═══════════════════════════════════════════════════════════════
+function finishRace(){
+  if(gameState==='finished')return;
+  gameState='finished';
+  followCam=false;
+  clearInterval(timerInterval);
+  clearInterval(pollTimer);
+  clearInterval(questionTimerInterval);
+  clearInterval(cooldownTimer);
+  document.getElementById('race-hud').classList.remove('active');
+  document.getElementById('timerHud').style.display='none';
+  showPanel('results');
+
+  const elapsed=Math.floor((Date.now()-raceStartTime)/1000);
+  const m=String(Math.floor(elapsed/60)).padStart(2,'0');
+  const s=String(elapsed%60).padStart(2,'0');
+
+  const el=document.getElementById('panel-results');
+  if(soloMode){
+    el.innerHTML='<div class="results-title">Race Complete!</div>'+
+      '<div class="results-winner">Time: '+m+':'+s+'</div>'+
+      '<div class="results-list"><div class="result-row"><span class="result-name">'+esc(getName())+'</span><span class="result-stats">'+myQuestionsCorrect+'/'+myQuestionsAnswered+' correct ('+Math.round(myQuestionsCorrect/Math.max(myQuestionsAnswered,1)*100)+'%)</span></div></div>'+
+      '<br><div class="lobby-actions"><button class="btn btn-primary" id="btnPlayAgain">Play Again</button><button class="btn btn-secondary" id="btnBackLobby">Back to Lobby</button></div>';
+  }else{
+    const race=remoteRace;
+    const sorted=race?race.finishOrder.map((id,i)=>{const p=race.players[id];return{id,name:p?.name||'?',rank:i+1,correct:p?.questionsCorrect||0,answered:p?.questionsAnswered||0,time:p?.finishTime};}):[{id:getMemberId(),name:getName(),rank:1,correct:myQuestionsCorrect,answered:myQuestionsAnswered}];
+    // Add unfinished
+    if(race){
+      for(const[id,p]of Object.entries(race.players)){
+        if(!race.finishOrder.includes(id))sorted.push({id,name:p.name,rank:sorted.length+1,correct:p.questionsCorrect,answered:p.questionsAnswered,dnf:true});
+      }
+    }
+
+    el.innerHTML='<div class="results-title">Race Complete!</div>'+
+      (sorted.length>0?'<div class="results-winner">Winner: '+esc(sorted[0].name)+'</div>':'')+
+      '<div class="results-list">'+sorted.map((r,i)=>{
+        const rankCls=i===0?'gold':i===1?'silver':i===2?'bronze':'';
+        return'<div class="result-row"><span class="result-rank '+rankCls+'">#'+(i+1)+'</span><span class="result-name">'+esc(r.name)+(r.id===getMemberId()?' (you)':'')+(r.dnf?' [DNF]':'')+'</span><span class="result-stats">'+r.correct+'/'+r.answered+' correct</span></div>';
+      }).join('')+'</div>'+
+      '<br><div class="lobby-actions"><button class="btn btn-primary" id="btnPlayAgain">Play Again</button><button class="btn btn-secondary" id="btnBackLobby">Back to Lobby</button></div>';
+  }
+
+  document.getElementById('btnPlayAgain')?.addEventListener('click',()=>{cleanup();startSolo();});
+  document.getElementById('btnBackLobby')?.addEventListener('click',()=>{cleanup();gameState='lobby';showPanel('lobby');resetHighlight();renderLobby(null);loadLobby();});
+
+  // Win effect — animate camera up
+  animCam([0,25,25],[0,2,0],1200);
+}
+
+function cleanup(){
+  for(const[id,pkt]of Object.entries(packets)){scene.remove(pkt.group);scene.remove(pkt.trail);}
+  packets={};remoteRace=null;
+  clearInterval(timerInterval);clearInterval(pollTimer);clearInterval(questionTimerInterval);clearInterval(cooldownTimer);
+  arcAnim=null;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// PANEL MANAGEMENT
+// ═══════════════════════════════════════════════════════════════
+function showPanel(name){
+  ['lobby','countdown','question','results'].forEach(n=>{
+    document.getElementById('panel-'+n).classList.toggle('active',n===name);
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════
+// ANIMATION LOOP
+// ═══════════════════════════════════════════════════════════════
+(function anim(now){
+  requestAnimationFrame(anim);
+  tickArc(now);
+  // Update trails
+  for(const pkt of Object.values(packets))updateTrail(pkt);
+  // Follow camera
+  if(followCam&&packets[getMemberId()]){
+    const p=packets[getMemberId()].group.position;
+    const target=p.clone().add(CAM_OFFSET);
+    camera.position.lerp(target,.04);
+    controls.target.lerp(p,.06);
+  }
+  controls.update();
+  renderer.render(scene,camera);
+})(0);
+
+// ═══════════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════════
+function esc(s){const d=document.createElement('div');d.textContent=s;return d.innerHTML;}
+
+async function loadLobby(){
+  const code=getGroupCode();
+  if(!code){renderLobby(null);return;}
+  try{
+    const group=await apiGet('/api/group/'+code);
+    if(group?.race&&group.race.state!=='finished'){
+      remoteRace=group.race;
+      // Auto-join if in the race and it's already started
+      if(group.race.players[getMemberId()]&&(group.race.state==='countdown'||group.race.state==='racing')){
+        currentRoute=group.race.route;
+        myHop=group.race.players[getMemberId()].hop||0;
+        beginCountdown(group.race);
+        return;
+      }
+      renderLobby(group.race);
+    }else{
+      renderLobby(null);
+    }
+    // Poll lobby
+    if(gameState==='lobby'){
+      pollTimer=setInterval(async()=>{
+        if(gameState!=='lobby')return clearInterval(pollTimer);
+        const g=await apiGet('/api/group/'+code);
+        if(g?.race){
+          remoteRace=g.race;
+          if(g.race.state==='countdown'||g.race.state==='racing'){
+            if(g.race.players[getMemberId()]){
+              clearInterval(pollTimer);
+              currentRoute=g.race.route;
+              beginCountdown(g.race);
+              return;
+            }
+          }
+          renderLobby(g.race);
+        }
+      },3000);
+    }
+  }catch(e){renderLobby(null);}
+}
+
+loadLobby();
+</script>
+</body>
+</html>
