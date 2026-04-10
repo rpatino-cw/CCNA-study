@@ -244,6 +244,8 @@
     }else{
       msgs=cachedGroup?(cachedGroup.messages||[]):[];
     }
+    // Filter out broken messages (sent before format fix — no name or text)
+    msgs=msgs.filter(function(m){return m.name&&m.text;});
 
     var html='';
     msgs.forEach(function(m){
