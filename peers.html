@@ -446,7 +446,13 @@ document.getElementById('btnLeave').addEventListener('click', async () => {
 
 // ── Link Device ───────────────────────────────────────────────
 document.getElementById('btnLinkCreate').addEventListener('click', async () => {
-  const res = await apiPost('/api/link/create', { memberId: getMemberId(), name: getName(), groupCode: getGroupCode() });
+  // Gather all study data from localStorage to transfer
+  const studyData = {};
+  ['ccna_proficiency','ccna_quiz_history','ccna_streak','ccna_study_time','ccna_diagnostic','ccna_diagnostic_history','ccna_topic_study','ccna_peer_schedule'].forEach(k => {
+    const v = localStorage.getItem(k);
+    if (v) studyData[k] = v;
+  });
+  const res = await apiPost('/api/link/create', { memberId: getMemberId(), name: getName(), groupCode: getGroupCode(), studyData });
   if (res.code) {
     document.getElementById('linkCodeDisplay').textContent = res.code;
     document.getElementById('linkCodeDisplay').style.display = '';
@@ -464,9 +470,15 @@ document.getElementById('btnLinkClaim').addEventListener('click', async () => {
   localStorage.setItem('ccna_peer_id', res.memberId);
   localStorage.setItem('ccna_peer_name', res.name);
   if (res.groupCode) localStorage.setItem('ccna_peer_group', res.groupCode);
+  // Restore all study data
+  if (res.studyData) {
+    for (const [k, v] of Object.entries(res.studyData)) {
+      localStorage.setItem(k, v);
+    }
+  }
   document.getElementById('nameInput').value = res.name;
-  showErr('linkErr', ''); // clear
-  alert('Device linked! You are now ' + res.name);
+  showErr('linkErr', '');
+  alert('Device linked! You are now ' + res.name + (res.studyData ? ' — all study progress synced.' : ''));
   location.reload();
 });
 
