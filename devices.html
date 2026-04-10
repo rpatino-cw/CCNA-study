@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Network Devices — CCNA 200-301</title>
+<meta name="color-scheme" content="light">
+<link rel="icon" type="image/svg+xml" href="/CCNA-study/favicon.svg">
+<link rel="stylesheet" href="css/shared.css">
+<style>
+  .page-header{padding:var(--s-xl) 0 var(--s-lg);margin-bottom:0;border-bottom:2px solid var(--ink)}
+  .page-header h1{font-size:2.4rem;margin-bottom:4px}
+  .page-header .subtitle{font-family:var(--font-body);color:var(--ink-secondary);font-size:.95rem;font-style:italic}
+
+  /* Topology canvas */
+  .topo-wrap{position:relative;overflow-x:auto;padding:var(--s-lg) 0}
+  .topo-svg{display:block;margin:0 auto;max-width:100%}
+  .topo-svg text{font-family:'JetBrains Mono',var(--font-mono);pointer-events:none}
+
+  /* Device groups — clickable */
+  .dev-group{cursor:pointer;transition:opacity .15s}
+  .dev-group:hover .dev-body{opacity:1}
+  .dev-group .dev-body{opacity:.85;transition:opacity .15s}
+  .dev-group.active .dev-body{opacity:1}
+  .dev-group.active .dev-ring{stroke:var(--accent);stroke-width:2.5}
+  .dev-group.dimmed{opacity:.15;pointer-events:none}
+
+  /* Zone labels */
+  .zone-label{font-family:var(--font-display);font-size:11px;letter-spacing:.15em;text-transform:uppercase;fill:var(--ink-muted);opacity:.4}
+
+  /* Detail panel */
+  .detail-panel{position:fixed;top:0;right:-420px;width:400px;height:100vh;background:var(--bg-surface);border-left:2px solid var(--ink);z-index:200;transition:right .3s ease;overflow-y:auto;padding:28px 24px}
+  .detail-panel.open{right:0}
+  .detail-close{position:absolute;top:16px;right:16px;font-size:1.2rem;background:none;border:none;cursor:pointer;color:var(--ink-muted);font-family:var(--font-mono)}
+  .detail-close:hover{color:var(--ink)}
+  .dp-type{font-family:var(--font-display);font-size:.68rem;text-transform:uppercase;letter-spacing:.1em;color:var(--ink-muted);margin-bottom:4px}
+  .dp-name{font-family:var(--font-display);font-size:1.5rem;font-weight:800;margin-bottom:4px;line-height:1.2}
+  .dp-tier{font-family:var(--font-mono);font-size:.72rem;color:var(--accent);margin-bottom:var(--s-md)}
+  .dp-desc{font-family:var(--font-body);font-size:.88rem;color:var(--ink-secondary);line-height:1.65;margin-bottom:var(--s-md)}
+  .dp-section{margin-bottom:var(--s-md)}
+  .dp-section-title{font-family:var(--font-display);font-size:.75rem;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-muted);margin-bottom:6px;padding-bottom:4px;border-bottom:1px solid var(--border)}
+  .dp-cmd{font-family:var(--font-mono);font-size:.78rem;background:var(--bg-recessed);padding:8px 12px;border-radius:var(--radius);margin-bottom:4px;color:var(--ink);line-height:1.5}
+  .dp-tip{font-family:var(--font-body);font-size:.82rem;color:var(--ink-secondary);line-height:1.5;padding:10px 14px;background:rgba(180,83,9,.06);border-left:3px solid var(--accent);border-radius:0 var(--radius) var(--radius) 0}
+  .dp-topics{display:flex;flex-wrap:wrap;gap:4px}
+  .dp-topic{font-family:var(--font-mono);font-size:.65rem;padding:3px 8px;background:var(--bg-recessed);border-radius:var(--radius);color:var(--ink-secondary)}
+  .dp-osi{font-family:var(--font-mono);font-size:.78rem;color:var(--ink-secondary)}
+  .dp-specs{font-family:var(--font-body);font-size:.82rem;color:var(--ink-secondary);line-height:1.6}
+  .dp-specs strong{color:var(--ink)}
+
+  /* Overlay backdrop */
+  .detail-backdrop{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.15);z-index:199;display:none}
+  .detail-backdrop.open{display:block}
+
+  /* Tour */
+  .tour-bar{position:fixed;bottom:0;left:0;right:0;z-index:100;background:var(--bg-surface);border-top:2px solid var(--ink);padding:16px 24px;transform:translateY(100%);transition:transform .3s ease;display:flex;align-items:center;gap:16px}
+  .tour-bar.open{transform:translateY(0)}
+  .tour-step{font-family:var(--font-mono);font-size:.65rem;color:var(--ink-muted)}
+  .tour-title{font-family:var(--font-display);font-size:1rem;font-weight:700}
+  .tour-text{font-family:var(--font-body);font-size:.82rem;color:var(--ink-secondary);flex:1;line-height:1.5;max-width:600px}
+  .tour-nav{display:flex;gap:8px;margin-left:auto}
+  .tour-dots{display:flex;gap:4px;margin-left:12px}
+  .tour-dot{width:6px;height:6px;border-radius:50%;background:var(--border)}
+  .tour-dot.on{background:var(--accent)}
+  .tour-btn-start{position:fixed;bottom:20px;right:20px;z-index:99;font-family:var(--font-display);font-size:.78rem;padding:10px 20px;background:var(--ink);color:var(--bg);border:none;border-radius:var(--radius);cursor:pointer}
+  .tour-btn-start.hidden{display:none}
+
+  /* Legend */
+  .legend{display:flex;flex-wrap:wrap;gap:16px;padding:var(--s-md) 0;margin-bottom:var(--s-md);font-family:var(--font-display);font-size:.72rem;color:var(--ink-muted)}
+  .legend-item{display:flex;align-items:center;gap:5px}
+  .legend-dot{width:10px;height:10px;border-radius:2px}
+</style>
+</head>
+<body>
+<div class="container-wide">
+  <nav class="top-nav" id="main-nav"></nav>
+
+  <header class="page-header">
+    <h1>Network Devices</h1>
+    <p class="subtitle">Every device in the CCNA 200-301 — where it lives, what it does, and the commands you need.</p>
+  </header>
+
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot" style="background:#DC2626"></div>Internet / WAN Edge</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#2563EB"></div>Core Layer</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#7C3AED"></div>Servers / Data Center</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#16A34A"></div>Distribution Layer</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#0891B2"></div>Access / Wireless</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#94A3B8"></div>End Devices</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#D97706"></div>Infrastructure</div>
+  </div>
+
+  <p style="font-family:var(--font-body);font-size:.85rem;color:var(--ink-secondary);margin-bottom:var(--s-sm)">Click any device to learn about it. <span style="color:var(--accent);cursor:pointer" onclick="startTour()">Take the guided tour.</span></p>
+
+  <div class="topo-wrap">
+    <svg class="topo-svg" viewBox="0 0 900 820" xmlns="http://www.w3.org/2000/svg">
+      <!-- Connections (drawn first, behind devices) -->
+      <g class="connections" stroke-width="1.2" fill="none" opacity=".35">
+        <!-- Internet to Edge -->
+        <line x1="450" y1="52" x2="350" y2="130" stroke="#DC2626"/>
+        <line x1="450" y1="52" x2="550" y2="130" stroke="#DC2626"/>
+        <!-- Edge to Core -->
+        <line x1="350" y1="160" x2="350" y2="230" stroke="#DC2626"/>
+        <line x1="550" y1="160" x2="550" y2="230" stroke="#DC2626"/>
+        <line x1="350" y1="260" x2="400" y2="310" stroke="#2563EB"/>
+        <line x1="550" y1="260" x2="500" y2="310" stroke="#2563EB"/>
+        <line x1="350" y1="245" x2="550" y2="245" stroke="#2563EB" stroke-dasharray="4,3"/>
+        <!-- Core to Core Switch -->
+        <line x1="400" y1="340" x2="450" y2="390" stroke="#2563EB"/>
+        <line x1="500" y1="340" x2="450" y2="390" stroke="#2563EB"/>
+        <!-- Core to Servers -->
+        <line x1="400" y1="330" x2="120" y2="380" stroke="#7C3AED" opacity=".5"/>
+        <line x1="400" y1="330" x2="200" y2="380" stroke="#7C3AED" opacity=".5"/>
+        <line x1="400" y1="330" x2="280" y2="380" stroke="#7C3AED" opacity=".5"/>
+        <line x1="500" y1="330" x2="620" y2="380" stroke="#7C3AED" opacity=".5"/>
+        <line x1="500" y1="330" x2="700" y2="380" stroke="#7C3AED" opacity=".5"/>
+        <line x1="500" y1="330" x2="780" y2="380" stroke="#7C3AED" opacity=".5"/>
+        <!-- Core Switch to Distribution -->
+        <line x1="450" y1="420" x2="280" y2="490" stroke="#16A34A"/>
+        <line x1="450" y1="420" x2="620" y2="490" stroke="#16A34A"/>
+        <!-- Distribution to Access -->
+        <line x1="280" y1="520" x2="150" y2="590" stroke="#0891B2"/>
+        <line x1="280" y1="520" x2="280" y2="590" stroke="#0891B2"/>
+        <line x1="620" y1="520" x2="620" y2="590" stroke="#0891B2"/>
+        <line x1="620" y1="520" x2="750" y2="590" stroke="#0891B2"/>
+        <!-- WLC -->
+        <line x1="450" y1="420" x2="450" y2="590" stroke="#0891B2" stroke-dasharray="3,3"/>
+        <!-- Access to APs -->
+        <line x1="150" y1="620" x2="90" y2="660" stroke="#0EA5E9" stroke-dasharray="3,2"/>
+        <line x1="750" y1="620" x2="810" y2="660" stroke="#0EA5E9" stroke-dasharray="3,2"/>
+        <!-- Access to End Devices -->
+        <line x1="150" y1="625" x2="100" y2="740" stroke="#94A3B8" opacity=".4"/>
+        <line x1="150" y1="625" x2="190" y2="740" stroke="#94A3B8" opacity=".4"/>
+        <line x1="280" y1="625" x2="280" y2="740" stroke="#94A3B8" opacity=".4"/>
+        <line x1="620" y1="625" x2="580" y2="740" stroke="#94A3B8" opacity=".4"/>
+        <line x1="620" y1="625" x2="660" y2="740" stroke="#94A3B8" opacity=".4"/>
+        <line x1="750" y1="625" x2="750" y2="740" stroke="#94A3B8" opacity=".4"/>
+        <!-- Wireless to clients -->
+        <line x1="90" y1="690" x2="40" y2="740" stroke="#94A3B8" stroke-dasharray="3,2" opacity=".4"/>
+        <line x1="810" y1="690" x2="850" y2="740" stroke="#94A3B8" stroke-dasharray="3,2" opacity=".4"/>
+      </g>
+
+      <!-- Zone labels -->
+      <text class="zone-label" x="820" y="50">INTERNET</text>
+      <text class="zone-label" x="820" y="150">WAN EDGE</text>
+      <text class="zone-label" x="820" y="250">CORE</text>
+      <text class="zone-label" x="20" y="395">SERVERS</text>
+      <text class="zone-label" x="820" y="405">CORE L3</text>
+      <text class="zone-label" x="820" y="510">DISTRIBUTION</text>
+      <text class="zone-label" x="820" y="610">ACCESS</text>
+      <text class="zone-label" x="820" y="750">ENDPOINTS</text>
+
+      <!-- ═══ DEVICES ═══ -->
+
+      <!-- Internet Cloud -->
+      <g class="dev-group" data-id="internet" transform="translate(450,40)">
+        <circle class="dev-ring" cx="0" cy="0" r="22" fill="none" stroke="#DC2626" stroke-width="1" opacity=".3"/>
+        <circle class="dev-body" cx="0" cy="0" r="18" fill="#DC2626" opacity=".12"/>
+        <text x="0" y="3" text-anchor="middle" font-size="9" fill="#DC2626" font-weight="700">ISP</text>
+        <text x="0" y="38" text-anchor="middle" font-size="7.5" fill="var(--ink-muted)">Internet</text>
+      </g>
+
+      <!-- Firewall 1 -->
+      <g class="dev-group" data-id="firewall" transform="translate(350,145)">
+        <rect class="dev-ring" x="-28" y="-16" width="56" height="32" rx="4" fill="none" stroke="#DC2626" stroke-width="1" opacity=".3"/>
+        <rect class="dev-body" x="-24" y="-12" width="48" height="24" rx="3" fill="#DC2626" opacity=".12"/>
+        <text x="0" y="4" text-anchor="middle" font-size="8" fill="#DC2626" font-weight="700">NGFW</text>
+        <text x="0" y="30" text-anchor="middle" font-size="7" fill="var(--ink-muted)">Firewall-01</text>
+      </g>
+
+      <!-- Firewall 2 -->
+      <g class="dev-group" data-id="firewall" transform="translate(550,145)">
+        <rect class="dev-ring" x="-28" y="-16" width="56" height="32" rx="4" fill="none" stroke="#DC2626" stroke-width="1" opacity=".3"/>
+        <rect class="dev-body" x="-24" y="-12" width="48" height="24" rx="3" fill="#DC2626" opacity=".12"/>
+        <text x="0" y="4" text-anchor="middle" font-size="8" fill="#DC2626" font-weight="700">NGFW</text>
+        <text x="0" y="30" text-anchor="middle" font-size="7" fill="var(--ink-muted)">Firewall-02</text>
+      </g>
+
+      <!-- Core Router 1 -->
+      <g class="dev-group" data-id="core_router" transform="translate(350,245)">
+        <circle class="dev-ring" cx="0" cy="0" r="22" fill="none" stroke="#2563EB" stroke-width="1" opacity=".3"/>
+        <circle class="dev-body" cx="0" cy="0" r="18" fill="#2563EB" opacity=".12"/>
+        <text x="0" y="-2" text-anchor="middle" font-size="7" fill="#2563EB" font-weight="700">OSPF</text>
+        <text x="0" y="7" text-anchor="middle" font-size="6.5" fill="#2563EB">Area 0</text>
+        <text x="0" y="35" text-anchor="middle" font-size="7" fill="var(--ink-muted)">Core-RTR-01</text>
+      </g>
+
+      <!-- Core Router 2 -->
+      <g class="dev-group" data-id="core_router" transform="translate(550,245)">
+        <circle class="dev-ring" cx="0" cy="0" r="22" fill="none" stroke="#2563EB" stroke-width="1" opacity=".3"/>
+        <circle class="dev-body" cx="0" cy="0" r="18" fill="#2563EB" opacity=".12"/>
+        <text x="0" y="-2" text-anchor="middle" font-size="7" fill="#2563EB" font-weight="700">OSPF</text>
+        <text x="0" y="7" text-anchor="middle" font-size="6.5" fill="#2563EB">Area 0</text>
+        <text x="0" y="35" text-anchor="middle" font-size="7" fill="var(--ink-muted)">Core-RTR-02</text>
+      </g>
+
+      <!-- Core L3 Switch -->
+      <g class="dev-group" data-id="l3_switch" transform="translate(450,405)">
+        <rect class="dev-ring" x="-30" y="-16" width="60" height="32" rx="4" fill="none" stroke="#2563EB" stroke-width="1" opacity=".3"/>
+        <rect class="dev-body" x="-26" y="-12" width="52" height="24" rx="3" fill="#2563EB" opacity=".12"/>
+        <text x="0" y="4" text-anchor="middle" font-size="8" fill="#2563EB" font-weight="700">L3 SW</text>
+        <text x="0" y="30" text-anchor="middle" font-size="7" fill="var(--ink-muted)">Core-SW-01</text>
+      </g>
+
+      <!-- Servers -->
+      <g class="dev-group" data-id="dns_server" transform="translate(120,395)">
+        <rect class="dev-ring" x="-20" y="-18" width="40" height="36" rx="3" fill="none" stroke="#7C3AED" stroke-width="1" opacity=".3"/>
+        <rect class="dev-body" x="-16" y="-14" width="32" height="28" rx="2" fill="#7C3AED" opacity=".12"/>
+        <text x="0" y="2" text-anchor="middle" font-size="7.5" fill="#7C3AED" font-weight="700">DNS</text>
+        <text x="0" y="32" text-anchor="middle" font-size="6.5" fill="var(--ink-muted)">:53</text>
+      </g>
+      <g class="dev-group" data-id="dhcp_server" transform="translate(200,395)">
+        <rect class="dev-ring" x="-20" y="-18" width="40" height="36" rx="3" fill="none" stroke="#7C3AED" stroke-width="1" opacity=".3"/>
+        <rect class="dev-body" x="-16" y="-14" width="32" height="28" rx="2" fill="#7C3AED" opacity=".12"/>
+        <text x="0" y="2" text-anchor="middle" font-size="7" fill="#7C3AED" font-weight="700">DHCP</text>
+        <text x="0" y="32" text-anchor="middle" font-size="6.5" fill="var(--ink-muted)">:67</text>
+      </g>
+      <g class="dev-group" data-id="ntp_server" transform="translate(280,395)">
+        <rect class="dev-ring" x="-20" y="-18" width="40" height="36" rx="3" fill="none" stroke="#7C3AED" stroke-width="1" opacity=".3"/>
+        <rect class="dev-body" x="-16" y="-14" width="32" height="28" rx="2" fill="#7C3AED" opacity=".12"/>
+        <text x="0" y="2" text-anchor="middle" font-size="7.5" fill="#7C3AED" font-weight="700">NTP</text>
+        <text x="0" y="32" text-anchor="middle" font-size="6.5" fill="var(--ink-muted)">:123</text>
+      </g>
+      <g class="dev-group" data-id="syslog_server" transform="translate(620,395)">
+        <rect class="dev-ring" x="-22" y="-18" width="44" height="36" rx="3" fill="none" stroke="#7C3AED" stroke-width="1" opacity=".3"/>
+        <rect class="dev-body" x="-18" y="-14" width="36" height="28" rx="2" fill="#7C3AED" opacity=".12"/>
+        <text x="0" y="2" text-anchor="middle" font-size="6.5" fill="#7C3AED" font-weight="700">Syslog</text>
+        <text x="0" y="32" text-anchor="middle" font-size="6.5" fill="var(--ink-muted)">:514</text>
+      </g>
+      <g class="dev-group" data-id="aaa_server" transform="translate(700,395)">
+        <rect class="dev-ring" x="-20" y="-18" width="40" height="36" rx="3" fill="none" stroke="#7C3AED" stroke-width="1" opacity=".3"/>
+        <rect class="dev-body" x="-16" y="-14" width="32" height="28" rx="2" fill="#7C3AED" opacity=".12"/>
+        <text x="0" y="2" text-anchor="middle" font-size="7" fill="#7C3AED" font-weight="700">AAA</text>
+        <text x="0" y="32" text-anchor="middle" font-size="6" fill="var(--ink-muted)">RADIUS</text>
+      </g>
+      <g class="dev-group" data-id="tftp_server" transform="translate(780,395)">
+        <rect class="dev-ring" x="-20" y="-18" width="40" height="36" rx="3" fill="none" stroke="#7C3AED" stroke-width="1" opacity=".3"/>
+        <rect class="dev-body" x="-16" y="-14" width="32" height="28" rx="2" fill="#7C3AED" opacity=".12"/>
+        <text x="0" y="2" text-anchor="middle" font-size="7" fill="#7C3AED" font-weight="700">TFTP</text>
+        <text x="0" y="32" text-anchor="middle" font-size="6.5" fill="var(--ink-muted)">:69</text>
+      </g>
+
+      <!-- Distribution Switches -->
+      <g class="dev-group" data-id="dist_switch" transform="translate(280,505)">
+        <rect class="dev-ring" x="-30" y="-14" width="60" height="28" rx="4" fill="none" stroke="#16A34A" stroke-width="1" opacity=".3"/>
+        <rect class="dev-body" x="-26" y="-10" width="52" height="20" rx="3" fill="#16A34A" opacity=".12"/>
+        <text x="0" y="3" text-anchor="middle" font-size="7.5" fill="#16A34A" font-weight="700">DSW-A</text>
+        <text x="0" y="28" text-anchor="middle" font-size="6.5" fill="var(--ink-muted)">HSRP Active</text>
+      </g>
+      <g class="dev-group" data-id="dist_switch" transform="translate(620,505)">
+        <rect class="dev-ring" x="-30" y="-14" width="60" height="28" rx="4" fill="none" stroke="#16A34A" stroke-width="1" opacity=".3"/>
+        <rect class="dev-body" x="-26" y="-10" width="52" height="20" rx="3" fill="#16A34A" opacity=".12"/>
+        <text x="0" y="3" text-anchor="middle" font-size="7.5" fill="#16A34A" font-weight="700">DSW-B</text>
+        <text x="0" y="28" text-anchor="middle" font-size="6.5" fill="var(--ink-muted)">HSRP Standby</text>
+      </g>
+
+      <!-- Access Switches -->
+      <g class="dev-group" data-id="access_switch" transform="translate(150,605)">
+        <rect class="dev-ring" x="-26" y="-12" width="52" height="24" rx="3" fill="none" stroke="#0891B2" stroke-width="1" opacity=".3"/>
+        <rect class="dev-body" x="-22" y="-8" width="44" height="16" rx="2" fill="#0891B2" opacity=".12"/>
+        <text x="0" y="3" text-anchor="middle" font-size="7" fill="#0891B2" font-weight="700">ASW-1</text>
+        <text x="0" y="26" text-anchor="middle" font-size="6" fill="var(--ink-muted)">PoE+ 24pt</text>
+      </g>
+      <g class="dev-group" data-id="access_switch" transform="translate(280,605)">
+        <rect class="dev-ring" x="-26" y="-12" width="52" height="24" rx="3" fill="none" stroke="#0891B2" stroke-width="1" opacity=".3"/>
+        <rect class="dev-body" x="-22" y="-8" width="44" height="16" rx="2" fill="#0891B2" opacity=".12"/>
+        <text x="0" y="3" text-anchor="middle" font-size="7" fill="#0891B2" font-weight="700">ASW-2</text>
+        <text x="0" y="26" text-anchor="middle" font-size="6" fill="var(--ink-muted)">PoE+ 48pt</text>
+      </g>
+      <g class="dev-group" data-id="access_switch" transform="translate(620,605)">
+        <rect class="dev-ring" x="-26" y="-12" width="52" height="24" rx="3" fill="none" stroke="#0891B2" stroke-width="1" opacity=".3"/>
+        <rect class="dev-body" x="-22" y="-8" width="44" height="16" rx="2" fill="#0891B2" opacity=".12"/>
+        <text x="0" y="3" text-anchor="middle" font-size="7" fill="#0891B2" font-weight="700">ASW-3</text>
+        <text x="0" y="26" text-anchor="middle" font-size="6" fill="var(--ink-muted)">DHCP Snoop</text>
+      </g>
+      <g class="dev-group" data-id="access_switch" transform="translate(750,605)">
+        <rect class="dev-ring" x="-26" y="-12" width="52" height="24" rx="3" fill="none" stroke="#0891B2" stroke-width="1" opacity=".3"/>
+        <rect class="dev-body" x="-22" y="-8" width="44" height="16" rx="2" fill="#0891B2" opacity=".12"/>
+        <text x="0" y="3" text-anchor="middle" font-size="7" fill="#0891B2" font-weight="700">ASW-4</text>
+        <text x="0" y="26" text-anchor="middle" font-size="6" fill="var(--ink-muted)">DAI enabled</text>
+      </g>
+
+      <!-- WLC -->
+      <g class="dev-group" data-id="wlc" transform="translate(450,605)">
+        <rect class="dev-ring" x="-26" y="-14" width="52" height="28" rx="4" fill="none" stroke="#0891B2" stroke-width="1" opacity=".3"/>
+        <rect class="dev-body" x="-22" y="-10" width="44" height="20" rx="3" fill="#0891B2" opacity=".12"/>
+        <text x="0" y="4" text-anchor="middle" font-size="7.5" fill="#0891B2" font-weight="700">WLC</text>
+        <text x="0" y="28" text-anchor="middle" font-size="6" fill="var(--ink-muted)">CAPWAP Mgr</text>
+      </g>
+
+      <!-- Access Points -->
+      <g class="dev-group" data-id="access_point" transform="translate(90,675)">
+        <circle class="dev-ring" cx="0" cy="0" r="14" fill="none" stroke="#0EA5E9" stroke-width="1" opacity=".3"/>
+        <circle class="dev-body" cx="0" cy="0" r="10" fill="#0EA5E9" opacity=".12"/>
+        <text x="0" y="3" text-anchor="middle" font-size="6.5" fill="#0EA5E9" font-weight="700">AP</text>
+        <text x="0" y="24" text-anchor="middle" font-size="6" fill="var(--ink-muted)">Wi-Fi 6</text>
+      </g>
+      <g class="dev-group" data-id="access_point" transform="translate(810,675)">
+        <circle class="dev-ring" cx="0" cy="0" r="14" fill="none" stroke="#0EA5E9" stroke-width="1" opacity=".3"/>
+        <circle class="dev-body" cx="0" cy="0" r="10" fill="#0EA5E9" opacity=".12"/>
+        <text x="0" y="3" text-anchor="middle" font-size="6.5" fill="#0EA5E9" font-weight="700">AP</text>
+        <text x="0" y="24" text-anchor="middle" font-size="6" fill="var(--ink-muted)">Wi-Fi 6</text>
+      </g>
+
+      <!-- End Devices -->
+      <g class="dev-group" data-id="desktop" transform="translate(100,755)">
+        <rect class="dev-ring" x="-16" y="-10" width="32" height="20" rx="2" fill="none" stroke="#94A3B8" stroke-width="1" opacity=".3"/>
+        <rect class="dev-body" x="-12" y="-6" width="24" height="12" rx="1" fill="#94A3B8" opacity=".12"/>
+        <text x="0" y="2" text-anchor="middle" font-size="6" fill="#94A3B8" font-weight="600">PC</text>
+        <text x="0" y="22" text-anchor="middle" font-size="6" fill="var(--ink-muted)">VLAN 10</text>
+      </g>
+      <g class="dev-group" data-id="ip_phone" transform="translate(190,755)">
+        <rect class="dev-ring" x="-16" y="-10" width="32" height="20" rx="2" fill="none" stroke="#D97706" stroke-width="1" opacity=".3"/>
+        <rect class="dev-body" x="-12" y="-6" width="24" height="12" rx="1" fill="#D97706" opacity=".12"/>
+        <text x="0" y="2" text-anchor="middle" font-size="5.5" fill="#D97706" font-weight="600">Phone</text>
+        <text x="0" y="22" text-anchor="middle" font-size="5.5" fill="var(--ink-muted)">Voice VLAN</text>
+      </g>
+      <g class="dev-group" data-id="desktop" transform="translate(280,755)">
+        <rect class="dev-ring" x="-16" y="-10" width="32" height="20" rx="2" fill="none" stroke="#94A3B8" stroke-width="1" opacity=".3"/>
+        <rect class="dev-body" x="-12" y="-6" width="24" height="12" rx="1" fill="#94A3B8" opacity=".12"/>
+        <text x="0" y="2" text-anchor="middle" font-size="6" fill="#94A3B8" font-weight="600">PC</text>
+        <text x="0" y="22" text-anchor="middle" font-size="6" fill="var(--ink-muted)">VLAN 20</text>
+      </g>
+      <g class="dev-group" data-id="server_web" transform="translate(580,755)">
+        <rect class="dev-ring" x="-18" y="-12" width="36" height="24" rx="2" fill="none" stroke="#94A3B8" stroke-width="1" opacity=".3"/>
+        <rect class="dev-body" x="-14" y="-8" width="28" height="16" rx="1" fill="#94A3B8" opacity=".12"/>
+        <text x="0" y="2" text-anchor="middle" font-size="5.5" fill="#94A3B8" font-weight="600">Server</text>
+        <text x="0" y="24" text-anchor="middle" font-size="5.5" fill="var(--ink-muted)">HTTP :80</text>
+      </g>
+      <g class="dev-group" data-id="printer" transform="translate(660,755)">
+        <rect class="dev-ring" x="-16" y="-10" width="32" height="20" rx="2" fill="none" stroke="#94A3B8" stroke-width="1" opacity=".3"/>
+        <rect class="dev-body" x="-12" y="-6" width="24" height="12" rx="1" fill="#94A3B8" opacity=".12"/>
+        <text x="0" y="2" text-anchor="middle" font-size="5.5" fill="#94A3B8" font-weight="600">Printer</text>
+        <text x="0" y="22" text-anchor="middle" font-size="5.5" fill="var(--ink-muted)">Network</text>
+      </g>
+      <g class="dev-group" data-id="laptop" transform="translate(750,755)">
+        <rect class="dev-ring" x="-16" y="-10" width="32" height="20" rx="2" fill="none" stroke="#94A3B8" stroke-width="1" opacity=".3"/>
+        <rect class="dev-body" x="-12" y="-6" width="24" height="12" rx="1" fill="#94A3B8" opacity=".12"/>
+        <text x="0" y="2" text-anchor="middle" font-size="5.5" fill="#94A3B8" font-weight="600">Laptop</text>
+        <text x="0" y="22" text-anchor="middle" font-size="6" fill="var(--ink-muted)">VLAN 30</text>
+      </g>
+      <g class="dev-group" data-id="wireless_client" transform="translate(40,755)">
+        <rect class="dev-ring" x="-16" y="-10" width="32" height="20" rx="2" fill="none" stroke="#94A3B8" stroke-width="1" opacity=".3"/>
+        <rect class="dev-body" x="-12" y="-6" width="24" height="12" rx="1" fill="#94A3B8" opacity=".12"/>
+        <text x="0" y="2" text-anchor="middle" font-size="5" fill="#94A3B8" font-weight="600">Wi-Fi</text>
+        <text x="0" y="22" text-anchor="middle" font-size="5.5" fill="var(--ink-muted)">Guest</text>
+      </g>
+      <g class="dev-group" data-id="wireless_client" transform="translate(850,755)">
+        <rect class="dev-ring" x="-16" y="-10" width="32" height="20" rx="2" fill="none" stroke="#94A3B8" stroke-width="1" opacity=".3"/>
+        <rect class="dev-body" x="-12" y="-6" width="24" height="12" rx="1" fill="#94A3B8" opacity=".12"/>
+        <text x="0" y="2" text-anchor="middle" font-size="5" fill="#94A3B8" font-weight="600">Wi-Fi</text>
+        <text x="0" y="22" text-anchor="middle" font-size="5.5" fill="var(--ink-muted)">Corp</text>
+      </g>
+
+      <!-- UPS (infrastructure) -->
+      <g class="dev-group" data-id="ups" transform="translate(450,505)">
+        <rect class="dev-ring" x="-18" y="-12" width="36" height="24" rx="3" fill="none" stroke="#D97706" stroke-width="1" opacity=".3"/>
+        <rect class="dev-body" x="-14" y="-8" width="28" height="16" rx="2" fill="#D97706" opacity=".12"/>
+        <text x="0" y="3" text-anchor="middle" font-size="7" fill="#D97706" font-weight="700">UPS</text>
+        <text x="0" y="26" text-anchor="middle" font-size="6" fill="var(--ink-muted)">Power Backup</text>
+      </g>
+
+      <!-- IPS -->
+      <g class="dev-group" data-id="ips" transform="translate(450,145)">
+        <rect class="dev-ring" x="-22" y="-12" width="44" height="24" rx="3" fill="none" stroke="#DC2626" stroke-width="1" opacity=".3"/>
+        <rect class="dev-body" x="-18" y="-8" width="36" height="16" rx="2" fill="#DC2626" opacity=".08"/>
+        <text x="0" y="3" text-anchor="middle" font-size="7" fill="#DC2626" font-weight="700">IPS</text>
+        <text x="0" y="26" text-anchor="middle" font-size="6" fill="var(--ink-muted)">Inline</text>
+      </g>
+    </svg>
+  </div>
+</div>
+
+<!-- Detail Panel -->
+<div class="detail-backdrop" id="detailBackdrop"></div>
+<div class="detail-panel" id="detailPanel">
+  <button class="detail-close" id="detailClose">[x]</button>
+  <div id="detailContent"></div>
+</div>
+
+<!-- Tour Bar -->
+<button class="tour-btn-start" id="tourStart" onclick="startTour()">Guided Tour</button>
+<div class="tour-bar" id="tourBar">
+  <div>
+    <div class="tour-step" id="tourStep">Step 1 of 9</div>
+    <div class="tour-title" id="tourTitle"></div>
+  </div>
+  <div class="tour-text" id="tourText"></div>
+  <div class="tour-nav">
+    <button class="btn btn-secondary btn-sm" id="tourPrev" onclick="prevTour()">Prev</button>
+    <button class="btn btn-primary btn-sm" id="tourNext" onclick="nextTour()">Next</button>
+    <button class="btn btn-secondary btn-sm" onclick="endTour()">Close</button>
+  </div>
+  <div class="tour-dots" id="tourDots"></div>
+</div>
+
+<script src="js/nav.js"></script>
+<script>
+// ═══════════════════════════════════════════════════════════════
+// DEVICE DATA
+// ═══════════════════════════════════════════════════════════════
+const DEVICE_INFO = {
+internet: {type:'Internet / ISP Cloud',name:'Internet Service Provider',tier:'WAN Edge — connects your network to the outside world',osi:'Layer 3 (Network)',desc:'The ISP provides your public IP address space and upstream connectivity. Your edge router has a default route (0.0.0.0/0) pointing to the ISP. All traffic leaving your private network passes through NAT at the firewall before reaching the ISP.',cmds:['ip route 0.0.0.0 0.0.0.0 <ISP-next-hop>','show ip route | include Gateway of last resort'],tip:'On the CCNA, the ISP is usually shown as a cloud. The key concept is the default route — if the router doesn\'t know where to send traffic, it goes to the ISP. Know that 203.0.113.0/24 and 198.51.100.0/24 are documentation ranges used in exam questions.',topics:['3.3','4.1'],specs:'WAN link types: Ethernet, MPLS, Metro Ethernet. Typical speeds: 100M-10G. Redundancy via dual ISP or dual edge routers.'},
+
+firewall: {type:'Next-Generation Firewall (NGFW)',name:'Perimeter Firewall',tier:'WAN Edge — first line of defense',osi:'Layer 3-7 (Network through Application)',desc:'The NGFW performs stateful packet inspection, intrusion prevention (IPS), URL filtering, and application-level inspection. Deployed in pairs (active/standby) for redundancy. It separates the trusted inside network from the untrusted outside. NAT translation happens here — private IPs become public IPs before leaving.',cmds:['access-list 101 permit tcp 10.0.0.0 0.255.255.255 any eq 443','ip nat inside source list 1 interface g0/1 overload','show ip nat translations','show access-lists'],tip:'CCNA covers ACLs, NAT/PAT, and basic firewall concepts. Know the difference between standard ACLs (source only, place near destination) and extended ACLs (source + dest + port, place near source). Know inside local, inside global, outside local, outside global for NAT.',topics:['4.1','5.3','5.6'],specs:'Active/standby failover. Interfaces: inside, outside, DMZ. Supports VPN (site-to-site IPsec, remote access SSL). IPS signatures updated automatically.'},
+
+ips: {type:'Intrusion Prevention System',name:'IPS / IDS',tier:'WAN Edge — threat detection',osi:'Layer 3-7',desc:'IPS sits inline in the traffic path and can actively block malicious traffic. IDS sits out-of-band (passive) and only alerts. NGFW firewalls now include IPS functionality built-in. Cisco Firepower is the modern NGFW+IPS platform.',cmds:['# IPS is typically managed via Firepower Management Center','show ip ips signatures'],tip:'Know the difference: IPS = inline, can drop packets. IDS = passive, can only alert. The exam loves asking this. Also know that false positives (blocking legitimate traffic) are a risk with IPS.',topics:['5.3'],specs:'Signature-based detection + anomaly-based. Inline deployment for IPS, SPAN port for IDS.'},
+
+core_router: {type:'Core Router',name:'Core Router (ISR/ASR)',tier:'Core Layer — backbone of the network',osi:'Layer 3 (Network)',desc:'Core routers form the OSPF Area 0 backbone. They connect to the firewall above and the core L3 switch below. Deployed in pairs for redundancy. They make forwarding decisions based on the routing table, which is populated by OSPF. The core should be fast and simple — no ACLs or policy here, just pure routing.',cmds:['router ospf 1','  network 10.0.0.0 0.255.255.255 area 0','  router-id 1.1.1.1','show ip ospf neighbor','show ip route ospf','show ip protocols'],tip:'OSPF is heavily tested. Know: hello/dead timers (10/40 on broadcast), DR/BDR election, area 0 requirement, cost = reference bandwidth / interface bandwidth. Know the neighbor states: Down → Init → 2-Way → ExStart → Exchange → Loading → Full.',topics:['3.1','3.2','3.4'],specs:'Cisco ISR 1941/4321. Dual power supply. GigabitEthernet + serial interfaces. Supports OSPF, EIGRP, BGP, static routes.'},
+
+l3_switch: {type:'Layer 3 Core Switch',name:'Core L3 Switch',tier:'Core Layer — high-speed inter-VLAN routing',osi:'Layer 2-3 (Data Link + Network)',desc:'The core L3 switch combines switching speed with routing capability. It has Switch Virtual Interfaces (SVIs) — one per VLAN — that act as the default gateway for each VLAN. EtherChannel (LACP) uplinks to distribution switches provide bandwidth and redundancy. This is where inter-VLAN routing actually happens in most campus networks.',cmds:['interface vlan 10','  ip address 10.10.1.1 255.255.255.0','  no shutdown','ip routing','show ip route','show interfaces vlan 10'],tip:'Know SVIs vs routed ports. An SVI is a virtual interface for a VLAN — it\'s the default gateway. A routed port (no switchport) turns a switch port into a router port. The "ip routing" command enables L3 forwarding on the switch.',topics:['2.1','3.1'],specs:'Cisco 3650/3850/9300. Wire-speed routing. Supports OSPF, EIGRP, SVIs, routed ports, EtherChannel.'},
+
+dist_switch: {type:'Distribution Switch',name:'Distribution Layer Switch',tier:'Distribution Layer — policy and aggregation',osi:'Layer 2-3',desc:'Distribution switches aggregate access layer switches and apply policy (ACLs, QoS). They run HSRP/VRRP for gateway redundancy — if the active switch fails, the standby takes over seamlessly. They connect to access switches via trunk links carrying multiple VLANs. STP root bridge is typically set here.',cmds:['standby 1 ip 10.10.1.1','standby 1 priority 110','standby 1 preempt','spanning-tree vlan 10 root primary','show standby brief','show spanning-tree'],tip:'HSRP is key for the CCNA. Know: virtual IP (shared gateway), priority (higher wins), preempt (take back active role). Default priority is 100. Also know STP root bridge election — lowest bridge ID (priority + MAC) wins.',topics:['2.5','3.5'],specs:'Cisco 3560/3650. Trunk uplinks to core, trunk downlinks to access. HSRP/VRRP for gateway redundancy. QoS marking.'},
+
+access_switch: {type:'Access Layer Switch',name:'Access Switch (2960)',tier:'Access Layer — where endpoints connect',osi:'Layer 2 (Data Link)',desc:'Access switches are the most numerous devices. Every PC, phone, printer, and AP plugs in here. Key security features: port security (limit MACs), DHCP snooping (block rogue DHCP servers), Dynamic ARP Inspection (prevent ARP spoofing), 802.1X (authenticate before granting access). PoE (802.3af/at/bt) powers IP phones and APs through the Ethernet cable.',cmds:['interface fa0/1','  switchport mode access','  switchport access vlan 10','  switchport port-security','  switchport port-security maximum 2','  switchport port-security violation restrict','  spanning-tree portfast','show port-security interface fa0/1','show mac address-table'],tip:'This is the most command-heavy device on the CCNA. Know: access vs trunk ports, PortFast (skip STP on access ports), BPDU Guard (shut down if BPDU received on access port), port security violation modes (protect/restrict/shutdown). Know PoE standards: 802.3af=15.4W, 802.3at=30W, 802.3bt=60/90W.',topics:['2.1','2.2','2.5','5.7'],specs:'Cisco 2960. 24 or 48 ports. PoE+ (740W or 1440W budget). FastEthernet/GigabitEthernet access. GigabitEthernet uplinks.'},
+
+wlc: {type:'Wireless LAN Controller',name:'WLC',tier:'Access Layer — wireless management',osi:'Layer 2-3',desc:'The WLC centrally manages all lightweight APs via CAPWAP tunnels (UDP 5246/5247). It handles SSID creation, RF management, roaming, security policies (WPA2/WPA3), and QoS. Lightweight APs cannot function without the WLC — they are "dumb" radios that tunnel all management and sometimes data traffic back to the controller.',cmds:['# WLC is managed via GUI or CLI','show ap summary','show wlan summary','show client summary'],tip:'Know CAPWAP (Control And Provisioning of Wireless Access Points). Know the difference between autonomous AP (standalone) and lightweight AP (needs WLC). Know WPA2-Personal (PSK) vs WPA2-Enterprise (802.1X/RADIUS). Know that the WLC handles roaming between APs.',topics:['2.6','2.7'],specs:'Manages 50-6000+ APs depending on model. FlexConnect mode for remote sites. Supports 802.11ax (Wi-Fi 6).'},
+
+access_point: {type:'Lightweight Access Point',name:'Wireless AP (802.11ax)',tier:'Access Layer — wireless connectivity',osi:'Layer 1-2 (Physical + Data Link)',desc:'Lightweight APs provide Wi-Fi connectivity. They don\'t make forwarding decisions — they tunnel everything to the WLC via CAPWAP. Powered by PoE from the access switch (no separate power cable needed). Dual-radio: 2.4 GHz (channels 1, 6, 11) and 5 GHz. 802.11ax (Wi-Fi 6) supports OFDMA and MU-MIMO for better performance in dense environments.',cmds:['# APs are managed from the WLC, not directly','# On WLC: show ap config general <ap-name>'],tip:'Know the 802.11 standards: a (5GHz, 54Mbps), g (2.4GHz, 54Mbps), n (both, 600Mbps), ac (5GHz, 6.9Gbps), ax (both, 9.6Gbps). Know 2.4 GHz non-overlapping channels: 1, 6, 11. Know that APs connect to access switches on trunk ports (data VLAN + management VLAN).',topics:['1.11','2.6','2.7'],specs:'PoE powered (802.3at). CAPWAP tunnel to WLC. Dual-radio 2.4/5 GHz. 802.11ax (Wi-Fi 6).'},
+
+dns_server: {type:'DNS Server',name:'DNS Server',tier:'Server Farm — name resolution',osi:'Layer 7 (Application)',desc:'Translates hostnames to IP addresses (forward lookup) and IP addresses to hostnames (reverse lookup). Uses UDP port 53 for queries, TCP port 53 for zone transfers. Record types: A (IPv4), AAAA (IPv6), CNAME (alias), MX (mail), PTR (reverse). Every device on the network needs DNS to function normally.',cmds:['ip name-server 10.0.10.10','ip domain-lookup','nslookup example.com','show hosts'],tip:'Know the record types (A, AAAA, CNAME, MX, PTR). Know that DNS uses UDP 53 for lookups and TCP 53 for zone transfers. Know iterative vs recursive queries. The client asks its configured DNS server (recursive), which then queries root → TLD → authoritative servers (iterative).',topics:['4.6','1.5'],specs:'UDP/TCP port 53. Typical deployment: primary + secondary for redundancy. Caching reduces external lookups.'},
+
+dhcp_server: {type:'DHCP Server',name:'DHCP Server',tier:'Server Farm — IP address assignment',osi:'Layer 7 (Application)',desc:'Assigns IP addresses dynamically using the DORA process: Discover (broadcast), Offer, Request, Acknowledge. The server maintains pools of addresses per subnet. Since DHCP Discover is a broadcast and routers don\'t forward broadcasts, you need "ip helper-address" on each SVI to relay DHCP to the server.',cmds:['ip dhcp pool VLAN10','  network 10.10.1.0 255.255.255.0','  default-router 10.10.1.1','  dns-server 10.0.10.10','ip dhcp excluded-address 10.10.1.1 10.10.1.10','interface vlan 10','  ip helper-address 10.0.10.20','show ip dhcp binding','show ip dhcp pool'],tip:'The DORA process is exam gold. Know that Discover and Request are broadcasts from the client, Offer and Ack are from the server. Know ip helper-address — it converts the broadcast Discover into a unicast to the DHCP server. Know lease times and DHCP options.',topics:['4.3','4.5'],specs:'UDP port 67 (server), 68 (client). Pools per VLAN. Excluded addresses for static devices (routers, servers). DHCP snooping on switches validates server responses.'},
+
+ntp_server: {type:'NTP Server',name:'NTP Server',tier:'Server Farm — time synchronization',osi:'Layer 7 (Application)',desc:'Synchronizes clocks across all network devices. Critical for log correlation, certificate validation, and troubleshooting (timestamps must match). NTP uses a stratum hierarchy: stratum 0 = atomic clock, stratum 1 = directly connected to stratum 0, etc. Each hop adds 1 stratum. Lower stratum = more accurate.',cmds:['ntp server 10.0.10.30','ntp source loopback0','show ntp status','show ntp associations','show clock'],tip:'Know stratum levels (0-15, 16 = unsynchronized). Know that lower stratum = more accurate. NTP uses UDP port 123. On the exam, they may ask you to identify which NTP server a device should prefer (lowest stratum wins).',topics:['4.8'],specs:'UDP port 123. Stratum hierarchy. Accuracy: milliseconds over LAN. Authentication supported via MD5 keys.'},
+
+syslog_server: {type:'Syslog Server',name:'Syslog / SNMP Server',tier:'Server Farm — monitoring and logging',osi:'Layer 7 (Application)',desc:'Collects log messages from all network devices. Syslog severity levels: 0=Emergency, 1=Alert, 2=Critical, 3=Error, 4=Warning, 5=Notification, 6=Informational, 7=Debugging. SNMP (Simple Network Management Protocol) enables monitoring — the manager polls agents, agents send traps for critical events.',cmds:['logging host 10.0.10.30','logging trap informational','logging source-interface loopback0','snmp-server community public RO','snmp-server host 10.0.10.30 traps','show logging'],tip:'Memorize the severity levels: "Every Awesome Cisco Engineer Will Need Ice-cream Daily" (0-7). Know that lower number = more severe. Know SNMPv3 provides encryption and authentication (SNMPv1/v2c use community strings — insecure). Know the difference between trap (agent-initiated) and poll (manager-initiated).',topics:['4.7','4.8'],specs:'Syslog: UDP port 514. SNMP: UDP 161 (queries), 162 (traps). SNMPv3 recommended for security.'},
+
+aaa_server: {type:'AAA Server (RADIUS/TACACS+)',name:'AAA Server',tier:'Server Farm — authentication & authorization',osi:'Layer 7 (Application)',desc:'AAA = Authentication (who are you?), Authorization (what can you do?), Accounting (what did you do?). RADIUS is used for network access (802.1X, VPN). TACACS+ is used for device administration (SSH/console access to routers and switches). The key difference: RADIUS encrypts only the password, TACACS+ encrypts the entire packet body.',cmds:['aaa new-model','radius server ISE','  address ipv4 10.0.10.40 auth-port 1812 acct-port 1813','  key MySecret','aaa authentication login default group radius local','show aaa servers'],tip:'This is a high-value CCNA topic. RADIUS: UDP 1812/1813, encrypts password only, combines auth+authz. TACACS+: TCP 49, encrypts entire body, separates auth/authz/acct. 802.1X has 3 roles: supplicant (client), authenticator (switch), authentication server (RADIUS).',topics:['5.4','5.9','2.8'],specs:'RADIUS: UDP 1812 (auth), 1813 (acct). TACACS+: TCP 49. Cisco ISE is the modern AAA platform.'},
+
+tftp_server: {type:'TFTP Server',name:'TFTP / FTP Server',tier:'Server Farm — file transfer',osi:'Layer 7 (Application)',desc:'Used to backup and restore IOS images and configuration files. TFTP (Trivial File Transfer Protocol) is simple, no authentication, UDP-based. FTP is more robust with authentication and TCP. SCP (Secure Copy) adds SSH encryption. On the CCNA, you\'ll use TFTP to copy running-config and IOS images.',cmds:['copy running-config tftp:','copy tftp: flash:','copy startup-config tftp:','show flash:','dir flash:'],tip:'Know the copy command syntax: copy <source> <destination>. Common combos: copy run start (save config), copy run tftp (backup to server), copy tftp flash (restore IOS image). Know that TFTP uses UDP 69 and has no authentication.',topics:['2.8'],specs:'TFTP: UDP 69, no auth. FTP: TCP 20/21, username/password. SCP: TCP 22, SSH-encrypted. Used for IOS upgrades and config backups.'},
+
+desktop: {type:'Desktop PC',name:'End Host (PC)',tier:'Endpoints — user devices',osi:'Layer 1-7 (all layers)',desc:'PCs connect to access switch ports on access VLANs. They get their IP address via DHCP, use the SVI as their default gateway, and rely on DNS for name resolution. The PC\'s NIC operates at Layer 2 (MAC address) and Layer 3 (IP address). On Windows: ipconfig, ping, tracert, nslookup, arp -a.',cmds:['ipconfig /all','ping 10.10.1.1','tracert 8.8.8.8','nslookup example.com','arp -a','netstat -an'],tip:'Know the client-side verification commands for Windows, Mac, and Linux. Know that the default gateway must be in the same subnet as the PC. Know ARP — the PC uses ARP to resolve the gateway\'s MAC address before sending any traffic off-subnet.',topics:['1.5','1.6','1.10'],specs:'Connects via Ethernet (RJ45) or Wi-Fi. Gets IP/mask/gateway/DNS via DHCP. Uses ARP for L2 resolution.'},
+
+ip_phone: {type:'IP Phone',name:'IP Phone (VoIP)',tier:'Endpoints — voice',osi:'Layer 1-7',desc:'IP phones are powered by PoE from the access switch — no separate power cable. They use a dedicated voice VLAN (separate from the data VLAN) for QoS prioritization. The phone has a built-in 3-port switch: uplink to wall jack, internal phone, and a PC port (daisy-chain). Traffic is tagged with DSCP EF (Expedited Forwarding) for priority.',cmds:['interface fa0/1','  switchport mode access','  switchport access vlan 10','  switchport voice vlan 50','  mls qos trust cos','show interfaces fa0/1 switchport'],tip:'Know that the voice VLAN is configured with "switchport voice vlan X" — this is separate from the access VLAN. Know PoE standards: 802.3af (15.4W) is enough for phones. Know DSCP EF = priority voice traffic. The phone sends 802.1Q tagged frames on the voice VLAN.',topics:['1.3','2.1','4.4'],specs:'PoE powered (802.3af, ~7W). Voice VLAN + data VLAN. DSCP EF marking. Built-in 3-port switch.'},
+
+laptop: {type:'Laptop',name:'Laptop / Mobile Device',tier:'Endpoints — wired or wireless',osi:'Layer 1-7',desc:'Laptops can connect wired (Ethernet) or wireless (Wi-Fi). Wireless clients authenticate via WPA2-Personal (PSK) or WPA2-Enterprise (802.1X with RADIUS). The laptop\'s wireless NIC associates with an SSID, gets an IP from DHCP, and uses the network normally. Roaming between APs is handled by the WLC.',cmds:['# Windows: ipconfig /all, netsh wlan show interfaces','# Mac: ifconfig, airport -I','# Linux: ip addr, iwconfig, nmcli'],tip:'Know the wireless authentication methods: WPA2-Personal (pre-shared key, suitable for home), WPA2-Enterprise (802.1X + RADIUS, suitable for business). Know that a wireless client is called a supplicant in 802.1X.',topics:['1.10','1.11','2.6'],specs:'Wired: RJ45 GigabitEthernet. Wireless: 802.11ax (Wi-Fi 6). Dual-band 2.4/5 GHz.'},
+
+printer: {type:'Network Printer',name:'Network Printer',tier:'Endpoints — shared resource',osi:'Layer 1-3',desc:'Network printers connect to access ports just like PCs. They often have static IP addresses (excluded from DHCP pools) so print queues don\'t break when the IP changes. Printers should be on the same VLAN as the users who print to them, or routed via inter-VLAN routing if on a separate VLAN.',cmds:['ip dhcp excluded-address 10.10.1.200 10.10.1.210','# Assign printer a static IP in the excluded range'],tip:'Not a heavy CCNA topic, but know that static devices (printers, servers) use excluded DHCP addresses. This prevents the DHCP server from assigning that IP to someone else.',topics:['4.3'],specs:'Ethernet or Wi-Fi. Static IP recommended. Common ports: 9100 (raw), 631 (IPP).'},
+
+wireless_client: {type:'Wireless Client',name:'Wireless Client',tier:'Endpoints — Wi-Fi connected',osi:'Layer 1-7',desc:'Wireless clients connect through APs to the network. Guest clients typically land on an isolated VLAN with internet-only access (no access to internal servers). Corporate clients authenticate via 802.1X and get full network access. The guest VLAN ACL blocks inter-VLAN traffic to protect the internal network.',cmds:['# Client-side: connect to SSID, verify IP','ipconfig /all','ping <gateway>'],tip:'Know that guest traffic should be isolated. The exam tests this with ACL questions — "which ACL permits guest internet access but denies access to 10.0.0.0/8?" Know that wireless clients get their VLAN assignment from the WLC based on which SSID they connect to.',topics:['2.6','5.6'],specs:'802.11ax capable. WPA2-PSK (guest) or WPA2-Enterprise (corporate). VLAN assigned by SSID.'},
+
+server_web: {type:'Web / Application Server',name:'Web Server',tier:'Endpoints — hosted services',osi:'Layer 1-7',desc:'Web servers host HTTP (port 80) and HTTPS (port 443) services. They sit on server VLANs with restricted access via ACLs. HTTPS uses TLS encryption — the server presents a certificate to prove identity. On the CCNA, you need to know common ports and the difference between HTTP and HTTPS.',cmds:['access-list 101 permit tcp any host 10.0.10.50 eq 443','access-list 101 permit tcp any host 10.0.10.50 eq 80'],tip:'Know your ports: HTTP=80, HTTPS=443, FTP=20/21, SSH=22, Telnet=23, SMTP=25, DNS=53, DHCP=67/68, TFTP=69, SNMP=161/162, Syslog=514, RDP=3389. This is a guaranteed exam topic.',topics:['1.5','5.6'],specs:'HTTP: TCP 80. HTTPS: TCP 443 (TLS encrypted). Typically on dedicated server VLAN.'},
+
+ups: {type:'Uninterruptible Power Supply',name:'UPS',tier:'Infrastructure — power protection',osi:'Physical infrastructure (not OSI)',desc:'A UPS provides battery backup power when the main power fails. Network devices (switches, routers, firewalls) plug into the UPS so they stay online during brief outages. The UPS also conditions power (filters surges and sags). Data centers use large rack-mounted UPS units with hours of runtime. PoE switches especially need UPS — if the switch loses power, every PoE device (phones, APs) goes down too.',cmds:['# UPS is physical infrastructure, no IOS commands','# Monitor via SNMP traps to syslog server'],tip:'The CCNA briefly covers physical infrastructure. Know that losing power to a PoE switch takes down all connected phones and APs. UPS + generator is the standard redundancy pattern. Know that PoE budget matters — a switch with 740W PoE budget can power about 48 phones but only about 24 APs.',topics:['1.3'],specs:'Runtime: 15-60 minutes typical. Rack-mounted in data centers. SNMP monitoring. Auto-shutdown signaling to servers.'},
+};
+
+// ═══════════════════════════════════════════════════════════════
+// DETAIL PANEL
+// ═══════════════════════════════════════════════════════════════
+const panel = document.getElementById('detailPanel');
+const backdrop = document.getElementById('detailBackdrop');
+const content = document.getElementById('detailContent');
+
+document.querySelectorAll('.dev-group').forEach(g => {
+  g.addEventListener('click', () => {
+    const id = g.dataset.id;
+    const d = DEVICE_INFO[id];
+    if (!d) return;
+    content.innerHTML =
+      '<div class="dp-type">' + d.type + '</div>' +
+      '<div class="dp-name">' + d.name + '</div>' +
+      '<div class="dp-tier">' + d.tier + '</div>' +
+      '<div class="dp-desc">' + d.desc + '</div>' +
+      '<div class="dp-section"><div class="dp-section-title">OSI Layer</div><div class="dp-osi">' + d.osi + '</div></div>' +
+      '<div class="dp-section"><div class="dp-section-title">Key Commands</div>' + d.cmds.map(c => '<div class="dp-cmd">' + c + '</div>').join('') + '</div>' +
+      '<div class="dp-section"><div class="dp-section-title">CCNA Exam Tip</div><div class="dp-tip">' + d.tip + '</div></div>' +
+      (d.specs ? '<div class="dp-section"><div class="dp-section-title">Specs</div><div class="dp-specs">' + d.specs + '</div></div>' : '') +
+      '<div class="dp-section"><div class="dp-section-title">Related Topics</div><div class="dp-topics">' + d.topics.map(t => '<span class="dp-topic">' + t + '</span>').join('') + '</div></div>';
+    panel.classList.add('open');
+    backdrop.classList.add('open');
+    // Highlight this device
+    document.querySelectorAll('.dev-group').forEach(gg => gg.classList.remove('active'));
+    g.classList.add('active');
+  });
+});
+
+document.getElementById('detailClose').addEventListener('click', closePanel);
+backdrop.addEventListener('click', closePanel);
+function closePanel() {
+  panel.classList.remove('open');
+  backdrop.classList.remove('open');
+  document.querySelectorAll('.dev-group').forEach(g => g.classList.remove('active'));
+}
+
+// ═══════════════════════════════════════════════════════════════
+// GUIDED TOUR
+// ═══════════════════════════════════════════════════════════════
+const TOUR = [
+  {title:'Internet Edge',text:'Traffic enters from the ISP cloud and hits a pair of Next-Generation Firewalls in active/standby. The IPS sits inline, inspecting all traffic for threats. NAT translates private IPs to public before packets leave.',ids:['internet','firewall','ips']},
+  {title:'Core Layer',text:'Two core routers run OSPF Area 0 — the backbone. They connect to each other for redundancy and down to the core L3 switch. The rule: core should be fast and simple. No ACLs, no policy — just route.',ids:['core_router','l3_switch']},
+  {title:'Server Farm',text:'Six critical servers: DNS (name resolution), DHCP (IP assignment), NTP (time sync), Syslog (logging), AAA/RADIUS (authentication), and TFTP (file transfer). Every one of these is a CCNA exam topic.',ids:['dns_server','dhcp_server','ntp_server','syslog_server','aaa_server','tftp_server']},
+  {title:'Distribution Layer',text:'Distribution switches aggregate access switches and apply policy. HSRP provides gateway redundancy — if DSW-A fails, DSW-B takes over the virtual IP seamlessly. This is where STP root bridge is set.',ids:['dist_switch']},
+  {title:'Access Layer',text:'Access switches are where everything plugs in. PoE powers phones and APs. Port security limits MAC addresses. DHCP snooping blocks rogue servers. PortFast skips STP on end-host ports. This layer has the most commands to memorize.',ids:['access_switch']},
+  {title:'Wireless',text:'The WLC manages all lightweight APs via CAPWAP tunnels. APs are "dumb" radios — the WLC handles SSIDs, security, roaming, and RF management. Two SSIDs: Corp-WiFi (WPA2-Enterprise/802.1X) and Guest-WiFi (WPA2-PSK, isolated VLAN).',ids:['wlc','access_point']},
+  {title:'End Devices',text:'PCs, phones, laptops, printers, servers, and wireless clients. Each gets an IP via DHCP, uses the SVI as default gateway, and relies on DNS. IP phones use a separate voice VLAN with QoS marking (DSCP EF) for priority.',ids:['desktop','ip_phone','laptop','printer','wireless_client','server_web']},
+  {title:'Infrastructure',text:'UPS provides battery backup — if a PoE switch loses power, every phone and AP connected to it goes dark. Physical infrastructure is easy to overlook but critical. The CCNA touches on PoE budgets and power redundancy.',ids:['ups']},
+  {title:'Full Picture',text:'This is a three-tier campus network: Access → Distribution → Core, with WAN edge and a server farm. Every CCNA concept lives somewhere in this topology: VLANs, trunking, STP, OSPF, NAT, DHCP, ACLs, PoE, wireless, QoS, AAA, and automation. Click any device to dive deeper.',ids:[]},
+];
+
+let tourIdx = 0, tourOn = false;
+function startTour() { tourOn = true; tourIdx = 0; showTourStep(); document.getElementById('tourStart').classList.add('hidden'); }
+function endTour() { tourOn = false; document.getElementById('tourBar').classList.remove('open'); document.getElementById('tourStart').classList.remove('hidden'); document.querySelectorAll('.dev-group').forEach(g => g.classList.remove('dimmed')); }
+function nextTour() { tourIdx++; if (tourIdx >= TOUR.length) { endTour(); return; } showTourStep(); }
+function prevTour() { if (tourIdx > 0) { tourIdx--; showTourStep(); } }
+
+function showTourStep() {
+  const s = TOUR[tourIdx];
+  document.getElementById('tourStep').textContent = 'Step ' + (tourIdx+1) + ' of ' + TOUR.length;
+  document.getElementById('tourTitle').textContent = s.title;
+  document.getElementById('tourText').textContent = s.text;
+  document.getElementById('tourBar').classList.add('open');
+  document.getElementById('tourDots').innerHTML = TOUR.map((_,i) => '<div class="tour-dot' + (i===tourIdx?' on':'') + '"></div>').join('');
+  // Highlight devices
+  const idSet = new Set(s.ids);
+  document.querySelectorAll('.dev-group').forEach(g => {
+    g.classList.toggle('dimmed', idSet.size > 0 && !idSet.has(g.dataset.id));
+  });
+}
+</script>
+<script src="js/tutor.js"></script>
+</body>
+</html>
