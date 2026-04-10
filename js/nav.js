@@ -1,5 +1,14 @@
 /* Shared navigation — grouped dropdowns to keep it clean */
 (function () {
+  var TIPS = {
+    'CORE': 'Your main study hub — all 53 objectives with videos, articles, and quizzes',
+    'Guide': 'How to use this website — every page explained',
+    'Learn': 'Reference material — visuals, glossary, devices, subnetting',
+    'Practice': 'Active testing — quizzes, labs, exams, games',
+    'Plan': 'Study scheduling — sprint plans and strategy',
+    'Study Group': 'Study with friends — compare progress, chat, compete',
+  };
+
   var NAV = [
     { text: 'CORE', href: 'core.html' },
     { text: 'Guide', href: 'guide.html' },
@@ -54,10 +63,10 @@
         return '<a class="nav-drop-item' + (isActive(c.href) ? ' active' : '') + '" href="' + fixHref(c.href) + '">' + c.text + '</a>';
       }).join('');
       return '<div class="nav-group' + (hasActive ? ' active' : '') + '">' +
-        '<button class="nav-group-btn">' + item.text + ' <span class="nav-caret">&#9662;</span></button>' +
+        '<button class="nav-group-btn" title="' + (TIPS[item.text]||'') + '">' + item.text + ' <span class="nav-caret">&#9662;</span></button>' +
         '<div class="nav-dropdown">' + dropdown + '</div></div>';
     }
-    return '<a' + (isActive(item.href) ? ' class="active"' : '') + ' href="' + fixHref(item.href) + '">' + item.text + '</a>';
+    return '<a' + (isActive(item.href) ? ' class="active"' : '') + ' href="' + fixHref(item.href) + '" title="' + (TIPS[item.text]||'') + '">' + item.text + '</a>';
   }).join('\n    ');
 
   // Toggle dropdowns on click (mobile + desktop)
