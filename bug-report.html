@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bug Report — CCNA 200-301</title>
+<meta name="color-scheme" content="light">
+<link rel="icon" type="image/svg+xml" href="/CCNA-study/favicon.svg">
+<link rel="stylesheet" href="css/shared.css">
+<style>
+  .page-header{padding:var(--s-xl) 0 var(--s-lg);margin-bottom:var(--s-lg);border-bottom:2px solid var(--ink)}
+  .page-header h1{font-size:2.4rem;margin-bottom:4px}
+  .page-header .subtitle{font-family:var(--font-body);color:var(--ink-secondary);font-size:.95rem;font-style:italic}
+  .bug-form{max-width:600px}
+  .form-group{margin-bottom:var(--s-md)}
+  .form-label{font-family:var(--font-display);font-size:.78rem;font-weight:600;display:block;margin-bottom:4px}
+  .form-input,.form-textarea,.form-select{width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--font-body);font-size:.88rem;background:var(--bg-surface);color:var(--ink);outline:none}
+  .form-input:focus,.form-textarea:focus,.form-select:focus{border-color:var(--accent)}
+  .form-textarea{min-height:120px;resize:vertical;line-height:1.5}
+  .form-hint{font-family:var(--font-body);font-size:.72rem;color:var(--ink-muted);margin-top:4px}
+  .bug-success{display:none;padding:20px;background:rgba(22,163,74,.08);border:1px solid rgba(22,163,74,.2);border-radius:var(--radius-lg);font-family:var(--font-body);font-size:.9rem;color:#16A34A;line-height:1.5}
+  .bug-list{margin-top:var(--s-xl)}
+  .bug-item{padding:12px 16px;border-bottom:1px solid var(--border)}
+  .bug-item:last-child{border-bottom:none}
+  .bug-item-head{display:flex;justify-content:space-between;margin-bottom:4px}
+  .bug-item-page{font-family:var(--font-mono);font-size:.72rem;color:var(--accent)}
+  .bug-item-time{font-family:var(--font-mono);font-size:.65rem;color:var(--ink-muted)}
+  .bug-item-type{font-family:var(--font-display);font-size:.65rem;padding:2px 6px;border-radius:3px;background:var(--bg-recessed);color:var(--ink-muted)}
+  .bug-item-desc{font-family:var(--font-body);font-size:.82rem;color:var(--ink-secondary);line-height:1.5}
+</style>
+</head>
+<body>
+<div class="container-wide">
+  <nav class="top-nav" id="main-nav"></nav>
+
+  <header class="page-header">
+    <h1>Bug Report</h1>
+    <p class="subtitle">Found something broken? Let us know. All reports are saved and reviewed.</p>
+  </header>
+
+  <div class="bug-form" id="bugForm">
+    <div class="form-group">
+      <label class="form-label">Which page?</label>
+      <select class="form-select" id="bugPage">
+        <option value="">Select a page...</option>
+        <option value="Dashboard">Dashboard</option>
+        <option value="Knowledge Map">Knowledge Map</option>
+        <option value="Diagnostic">Diagnostic</option>
+        <option value="Quiz">Quiz</option>
+        <option value="Daily Study">Daily Study</option>
+        <option value="Learn Visually">Learn Visually</option>
+        <option value="Console Labs">Console Labs</option>
+        <option value="PT Labs">PT Labs</option>
+        <option value="Packet Race">Packet Race</option>
+        <option value="Study Group">Study Group</option>
+        <option value="Glossary">Glossary</option>
+        <option value="3D Explorer">3D Explorer</option>
+        <option value="3D Topology">3D Topology</option>
+        <option value="Devices">Devices</option>
+        <option value="Other">Other</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Type of issue</label>
+      <select class="form-select" id="bugType">
+        <option value="bug">Bug / Something broken</option>
+        <option value="ui">UI / Display issue</option>
+        <option value="content">Wrong content / Typo</option>
+        <option value="feature">Feature request</option>
+        <option value="other">Other</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Describe the issue</label>
+      <textarea class="form-textarea" id="bugDesc" placeholder="What happened? What did you expect to happen?"></textarea>
+      <div class="form-hint">Be specific — include what you clicked, what browser you're using, and any error messages you saw.</div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Your name (optional)</label>
+      <input type="text" class="form-input" id="bugName" placeholder="So we can follow up">
+    </div>
+    <button class="btn btn-primary" id="btnSubmitBug">Submit Report</button>
+  </div>
+
+  <div class="bug-success" id="bugSuccess">
+    Bug report submitted. Thank you — this helps make the site better for everyone.
+  </div>
+
+  <div class="bug-list" id="bugList">
+    <h2 style="font-size:1.1rem;margin-bottom:var(--s-md)">Recent Reports</h2>
+    <div id="bugItems" style="background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden"></div>
+  </div>
+</div>
+
+<script src="js/nav.js"></script>
+<script>
+const API = 'https://ccna-tutor.rpatino-cw.workers.dev';
+const code = localStorage.getItem('ccna_peer_group') || '';
+
+// Pre-fill name
+const savedName = localStorage.getItem('ccna_peer_name');
+if (savedName) document.getElementById('bugName').value = savedName;
+
+document.getElementById('btnSubmitBug').addEventListener('click', async () => {
+  const page = document.getElementById('bugPage').value;
+  const type = document.getElementById('bugType').value;
+  const desc = document.getElementById('bugDesc').value.trim();
+  if (!desc) { alert('Please describe the issue.'); return; }
+  const name = document.getElementById('bugName').value.trim() || 'Anonymous';
+
+  // Store bug as a chat message in group (if in a group) + localStorage
+  const bug = { page, type, desc, name, ts: new Date().toISOString(), ua: navigator.userAgent.substring(0, 100) };
+
+  // Save to localStorage
+  const bugs = JSON.parse(localStorage.getItem('ccna_bug_reports') || '[]');
+  bugs.push(bug);
+  localStorage.setItem('ccna_bug_reports', JSON.stringify(bugs));
+
+  // Also post to group chat if in a group
+  if (code) {
+    try {
+      await fetch(API + '/api/group/action', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code, action: 'event', eventType: 'bug', memberId: localStorage.getItem('ccna_peer_id') || 'anon', name, text: '[BUG] ' + page + ' — ' + type + ': ' + desc.substring(0, 200) })
+      });
+    } catch(e) {}
+  }
+
+  document.getElementById('bugForm').style.display = 'none';
+  document.getElementById('bugSuccess').style.display = 'block';
+  renderBugs();
+});
+
+function renderBugs() {
+  const bugs = JSON.parse(localStorage.getItem('ccna_bug_reports') || '[]').reverse();
+  const el = document.getElementById('bugItems');
+  if (bugs.length === 0) { el.innerHTML = '<div style="padding:20px;text-align:center;color:var(--ink-muted);font-size:.85rem">No reports yet.</div>'; return; }
+  el.innerHTML = bugs.map(b => {
+    const ago = timeAgo(b.ts);
+    return '<div class="bug-item"><div class="bug-item-head"><span class="bug-item-page">' + (b.page || 'Unknown') + '</span><span class="bug-item-type">' + (b.type || 'bug') + '</span><span class="bug-item-time">' + ago + '</span></div><div class="bug-item-desc">' + esc(b.desc) + '</div></div>';
+  }).join('');
+}
+
+function esc(s) { var d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+function timeAgo(iso) {
+  var ms = Date.now() - new Date(iso).getTime();
+  if (ms < 60000) return 'just now';
+  if (ms < 3600000) return Math.floor(ms / 60000) + 'm ago';
+  if (ms < 86400000) return Math.floor(ms / 3600000) + 'h ago';
+  return Math.floor(ms / 86400000) + 'd ago';
+}
+
+renderBugs();
+</script>
+</body>
+</html>
