@@ -201,6 +201,14 @@
   <!-- Lobby -->
   <div class="state active" id="state-lobby">
     <div class="lobby-card">
+      <h3>Certification Track</h3>
+      <p style="font-size:.82rem;color:var(--ink-secondary);margin-bottom:8px">Which exam are you studying for?</p>
+      <div class="lobby-row" style="gap:12px">
+        <label style="font-family:var(--font-display);font-size:.85rem;display:flex;align-items:center;gap:6px;cursor:pointer"><input type="radio" name="certTrack" value="ccna" style="accent-color:var(--accent)"> CCNA 200-301</label>
+        <label style="font-family:var(--font-display);font-size:.85rem;display:flex;align-items:center;gap:6px;cursor:pointer"><input type="radio" name="certTrack" value="net+" style="accent-color:#7C3AED"> CompTIA Network+</label>
+      </div>
+    </div>
+    <div class="lobby-card">
       <h3>Your Display Name</h3>
       <div class="lobby-row">
         <input type="text" class="lobby-input name-input" id="nameInput" placeholder="Enter your name" maxlength="20">
@@ -400,6 +408,10 @@ function getMemberId() {
 }
 function getName() { return localStorage.getItem('ccna_peer_name') || ''; }
 function getGroupCode() { return localStorage.getItem('ccna_peer_group') || ''; }
+function getCertTrack() { return localStorage.getItem('ccna_cert_track') || 'ccna'; }
+
+// Network+ topic filter — only these CCNA topics count for N+ readiness
+const NET_PLUS_TOPICS = ['1.1','1.2','1.3','1.4','1.5','1.6','1.7','1.8','1.9','1.10','1.11','1.12','1.13','2.1','2.2','2.5','2.6','2.7','2.8','3.1','3.2','3.3','3.5','4.2','4.3','4.4','4.5','4.6','4.7','4.8','4.9','5.1','5.2','5.3','5.4','5.5','5.6','5.7','5.8','5.9'];
 
 // ── Progress Snapshot ─────────────────────────────────────────
 function getSnapshot() {
@@ -411,7 +423,7 @@ function getSnapshot() {
   const history = store.getQuizHistory();
   const avgScore = history.length > 0 ? Math.round(history.reduce((s, h) => s + (h.score / h.total) * 100, 0) / history.length) : 0;
   const readiness = store.getReadinessScore(window.topicsData.domains);
-  return { proficiency: prof, streak: { current: streak.current, best: streak.best }, studyTime: { total: time.total }, diagnosticHistory: diag, quizStats: { taken: history.length, avgScore }, readiness: Math.round(readiness) };
+  return { proficiency: prof, streak: { current: streak.current, best: streak.best }, studyTime: { total: time.total }, diagnosticHistory: diag, quizStats: { taken: history.length, avgScore }, readiness: Math.round(readiness), certTrack: getCertTrack() };
 }
 
 // ── API ───────────────────────────────────────────────────────
@@ -556,7 +568,7 @@ function renderOverview(group) {
     const nudgeHtml = !isYou && stale ? '<span class="nudge-badge">' + (veryStale ? 'INACTIVE' : 'STALE') + '</span>' + '<button class="nudge-btn" onclick="sendNudge(\'' + esc(m.name) + '\')">Send Nudge</button>' : '';
     const kickHtml = !isYou && isAdmin ? '<button class="nudge-btn" style="margin-left:4px;color:var(--ink-muted);border-color:var(--border)" onclick="removeMember(\'' + id + '\',\'' + esc(m.name) + '\')">Remove</button>' : '';
     return '<div class="member-card ' + (isYou ? 'you' : '') + '" style="border-top:3px solid ' + color + '">' +
-      '<div class="mc-name" style="color:' + color + '">' + esc(m.name) + (isYou ? ' <span class="mc-you">(you)</span>' : '') + (id === group.createdBy ? ' <span style="font-size:.58rem;background:var(--accent);color:#fff;padding:1px 5px;border-radius:4px;vertical-align:middle">ADMIN</span>' : '') + nudgeHtml + kickHtml + '</div>' +
+      '<div class="mc-name" style="color:' + color + '">' + esc(m.name) + (isYou ? ' <span class="mc-you">(you)</span>' : '') + (id === group.createdBy ? ' <span style="font-size:.58rem;background:var(--accent);color:#fff;padding:1px 5px;border-radius:4px;vertical-align:middle">ADMIN</span>' : '') + ' <span style="font-size:.55rem;background:' + (p.certTrack === 'net+' ? '#7C3AED' : '#2563EB') + ';color:#fff;padding:1px 5px;border-radius:4px;vertical-align:middle">' + (p.certTrack === 'net+' ? 'N+' : 'CCNA') + '</span>' + nudgeHtml + kickHtml + '</div>' +
       '<div class="mc-stats">' +
         '<div class="mc-stat"><div class="val">' + readiness + '%</div><div class="lbl">Readiness</div></div>' +
         '<div class="mc-stat"><div class="val">' + streak + 'd</div><div class="lbl">Streak</div></div>' +
@@ -1172,6 +1184,11 @@ function renderResources(group) {
   store.initProficiency(window.topicsData);
   const savedName = getName();
   if (savedName) document.getElementById('nameInput').value = savedName;
+
+  // Cert track radio
+  const savedTrack = getCertTrack();
+  const radios = document.querySelectorAll('input[name="certTrack"]');
+  radios.forEach(r => { r.checked = r.value === savedTrack; r.addEventListener('change', () => localStorage.setItem('ccna_cert_track', r.value)); });
 
   const params = new URLSearchParams(location.search);
   const urlCode = params.get('group');
