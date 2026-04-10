@@ -203,6 +203,26 @@
       .map(([id]) => id);
   }
 
+  function getDueForReview(daysThreshold) {
+    daysThreshold = daysThreshold || 7;
+    const prof = get(KEYS.PROFICIENCY) || {};
+    const studied = get(KEYS.TOPIC_STUDY) || {};
+    const now = Date.now();
+    const msThreshold = daysThreshold * 86400000;
+    const due = [];
+    for (const [id, score] of Object.entries(prof)) {
+      if (score >= 0.7) continue; // already mastered
+      const entry = studied[id];
+      if (!entry || !entry.lastStudied) continue; // never studied
+      const lastDate = new Date(entry.lastStudied).getTime();
+      if (now - lastDate >= msThreshold) {
+        due.push({ id, score, daysSince: Math.floor((now - lastDate) / 86400000) });
+      }
+    }
+    due.sort(function(a, b) { return a.score - b.score; }); // weakest first
+    return due;
+  }
+
   function clearAll() {
     const keys = [];
     for (let i = 0; i < localStorage.length; i++) {
@@ -220,6 +240,6 @@
     logStudyTime, getStudyTime, saveDiagnostic, getDiagnostic, getDiagnosticHistory,
     getReadinessScore, exportAll, importAll, clearAll,
     getTopicStudy, getTopicStudyEntry, recordTopicStudy,
-    getUnstudiedTopics, getTopicsStudiedToday,
+    getUnstudiedTopics, getTopicsStudiedToday, getDueForReview,
   };
 })();

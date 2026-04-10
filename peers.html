@@ -175,6 +175,18 @@
 
   .section-head{font-size:1.1rem;margin-bottom:var(--s-md)}
   .section-sub{font-size:.82rem;color:var(--ink-secondary);margin-bottom:var(--s-md)}
+
+  .res-shared-card{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:10px}
+  .res-shared-type{font-family:var(--font-mono);font-size:.58rem;padding:3px 7px;border-radius:3px;font-weight:600;flex-shrink:0}
+  .res-shared-type.book{background:rgba(180,83,9,.1);color:#B45309}
+  .res-shared-type.software{background:rgba(37,99,235,.1);color:#2563EB}
+  .res-shared-type.video{background:rgba(220,38,38,.1);color:#DC2626}
+  .res-shared-type.article{background:rgba(22,163,74,.1);color:#16A34A}
+  .res-shared-type.other{background:rgba(148,163,184,.1);color:#64748b}
+  .res-shared-title{font-family:var(--font-display);font-size:.85rem;font-weight:600;flex:1}
+  .res-shared-title a{color:var(--ink);text-decoration:none}
+  .res-shared-title a:hover{color:var(--accent)}
+  .res-shared-by{font-family:var(--font-display);font-size:.65rem;color:var(--ink-muted)}
 </style>
 </head>
 <body>
@@ -233,6 +245,7 @@
       <button class="tab-btn" data-tab="activity">Activity</button>
       <button class="tab-btn" data-tab="chat">Chat</button>
       <button class="tab-btn" data-tab="grow">How to Grow</button>
+      <button class="tab-btn" data-tab="resources">Resources</button>
       <button class="tab-btn" data-tab="leaderboard">Leaderboard</button>
     </div>
 
@@ -307,6 +320,25 @@
           <button class="chat-send" id="btnChatSend">Send</button>
         </div>
       </div>
+    </div>
+
+    <!-- Tab: Resources -->
+    <div class="tab-content" id="tab-resources">
+      <h2 class="section-head">Shared Resources</h2>
+      <p class="section-sub">Books, tools, and links your group recommends. Share what's helped you.</p>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:var(--s-md);align-items:end">
+        <select id="resType" style="padding:8px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--font-body);font-size:.85rem;background:var(--bg-surface);color:var(--ink)">
+          <option value="book">Book</option>
+          <option value="software">Software/Tool</option>
+          <option value="video">Video/Course</option>
+          <option value="article">Article/Link</option>
+          <option value="other">Other</option>
+        </select>
+        <input type="text" id="resTitle" placeholder="Title or name" style="flex:1;min-width:150px;padding:8px 12px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--font-body);font-size:.85rem;background:var(--bg-surface);color:var(--ink)">
+        <input type="text" id="resUrl" placeholder="URL (optional)" style="flex:1;min-width:150px;padding:8px 12px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--font-body);font-size:.85rem;background:var(--bg-surface);color:var(--ink)">
+        <button class="btn btn-primary btn-sm" id="btnResAdd">Share</button>
+      </div>
+      <div id="resList"></div>
     </div>
 
     <!-- Tab: Leaderboard -->
@@ -557,6 +589,7 @@ function renderOverview(group) {
 function renderTabData(tab, group) {
   if (tab === 'activity') { renderActivityFeed(group); renderSchedule(group); }
   else if (tab === 'chat') renderChat(group);
+  else if (tab === 'resources') renderResources(group);
   else if (tab === 'leaderboard') renderLeaderboard(group, 'readiness');
   else if (tab === 'grow') renderScoreTools(group);
 }
@@ -1105,6 +1138,33 @@ function timeAgo(iso) {
   if (ms < 3600000) return Math.floor(ms / 60000) + 'm ago';
   if (ms < 86400000) return Math.floor(ms / 3600000) + 'h ago';
   return Math.floor(ms / 86400000) + 'd ago';
+}
+
+// ══════════════════════════════════════════════════════════════
+// SHARED RESOURCES
+// ══════════════════════════════════════════════════════════════
+document.getElementById('btnResAdd').addEventListener('click', async () => {
+  const type = document.getElementById('resType').value;
+  const title = document.getElementById('resTitle').value.trim();
+  const url = document.getElementById('resUrl').value.trim();
+  if (!title) return;
+  const res = await apiAction('resource', { add: true, type, title, url, memberId: getMemberId(), name: getName() });
+  if (res.group) { cachedGroup = res.group; renderResources(res.group); }
+  document.getElementById('resTitle').value = '';
+  document.getElementById('resUrl').value = '';
+});
+
+function renderResources(group) {
+  const resources = group.resources || [];
+  const el = document.getElementById('resList');
+  if (resources.length === 0) {
+    el.innerHTML = '<p style="color:var(--ink-muted);font-size:.85rem">No shared resources yet. Be the first to share a book, tool, or link.</p>';
+    return;
+  }
+  el.innerHTML = resources.slice().reverse().map(r => {
+    const linkHtml = r.url ? '<a href="' + esc(r.url) + '" target="_blank">' + esc(r.title) + '</a>' : esc(r.title);
+    return '<div class="res-shared-card"><span class="res-shared-type ' + r.type + '">' + r.type.toUpperCase() + '</span><div class="res-shared-title">' + linkHtml + '</div><span class="res-shared-by">Shared by ' + esc(r.name || 'someone') + '</span></div>';
+  }).join('');
 }
 
 // ── Init ──────────────────────────────────────────────────────

@@ -92,6 +92,13 @@
     .domain-heat{grid-template-columns:repeat(3,1fr)}
     .obj-prof{width:60px}
   }
+
+  @media print{
+    .progress-strip,.daily-goals,.beta-badge,nav.top-nav,.ds-toggle{display:none!important}
+    .ds-body,.obj-body{display:block!important}
+    .obj-card{break-inside:avoid;border:1px solid #ccc}
+    body{font-size:10pt}
+  }
 </style>
 </head>
 <body>
@@ -104,10 +111,13 @@
   </header>
 
   <div class="progress-strip" id="progressStrip"></div>
+  <div id="continueBar"></div>
 
   <div class="daily-goals" id="dailyGoals"></div>
 
   <div class="domain-heat" id="domainHeat"></div>
+  <div id="filterBar" style="margin-bottom:var(--s-md)"></div>
+  <div id="reviewDue" style="margin-bottom:var(--s-md)"></div>
 
   <div id="domainSections"></div>
 </div>
@@ -218,6 +228,33 @@ function render(){
       '<div class="dh-bar"><div class="dh-fill" style="width:'+avg+'%;background:'+color+'"></div></div></div>';
   }).join('');
 
+  // Continue banner
+  let continueObj=null;
+  domains.forEach(d=>d.topics.forEach(t=>{if(!continueObj && !mastered[t.id] && (prof[t.id]||0)>0 && (prof[t.id]||0)<0.7) continueObj=t;}));
+  document.getElementById('continueBar').innerHTML=continueObj?
+    '<div style="padding:10px 16px;background:rgba(180,83,9,.06);border-left:3px solid var(--accent);border-radius:0 var(--radius) var(--radius) 0;margin-bottom:var(--s-md);font-family:var(--font-display);font-size:.82rem;cursor:pointer" onclick="document.getElementById(\'obj-'+continueObj.id+'\').scrollIntoView({behavior:\'smooth\'});toggleObj(\''+continueObj.id+'\')">Continue: <strong>'+continueObj.id+' '+continueObj.name+'</strong> — '+Math.round((prof[continueObj.id]||0)*100)+'% proficiency</div>':'';
+
+  // Filter weak only
+  const showWeak=localStorage.getItem('ccna_core_filter')==='weak';
+  document.getElementById('filterBar').innerHTML=
+    '<button style="font-family:var(--font-display);font-size:.72rem;padding:6px 14px;background:'+(showWeak?'var(--accent)':'var(--bg-surface)')+';color:'+(showWeak?'#fff':'var(--ink-muted)')+';border:1px solid '+(showWeak?'var(--accent)':'var(--border)')+';border-radius:var(--radius);cursor:pointer" onclick="localStorage.setItem(\'ccna_core_filter\',localStorage.getItem(\'ccna_core_filter\')===\'weak\'?\'\':\'weak\');render()">'+
+    (showWeak?'Show All':'Show Weak Only')+'</button>';
+
+  // Spaced repetition — topics due for review
+  const dueTopics=store.getDueForReview(7);
+  const allTopics=domains.flatMap(d=>d.topics);
+  document.getElementById('reviewDue').innerHTML=dueTopics.length>0?
+    '<div style="background:rgba(220,38,38,.04);border:1px solid rgba(220,38,38,.15);border-radius:var(--radius-lg);padding:14px 18px;margin-bottom:4px">'+
+    '<div style="font-family:var(--font-display);font-size:.82rem;font-weight:700;color:#DC2626;margin-bottom:6px">Due for Review ('+dueTopics.length+' topics)</div>'+
+    '<div style="font-family:var(--font-body);font-size:.78rem;color:var(--ink-secondary);margin-bottom:8px">These topics were studied 7+ days ago and aren\'t mastered yet. Review them to prevent forgetting.</div>'+
+    '<div style="display:flex;flex-wrap:wrap;gap:4px">'+dueTopics.slice(0,10).map(d=>{
+      const t=allTopics.find(t=>t.id===d.id);
+      return'<span style="font-family:var(--font-mono);font-size:.65rem;padding:3px 8px;background:rgba(220,38,38,.08);border-radius:3px;color:#DC2626;cursor:pointer" onclick="document.getElementById(\'obj-'+d.id+'\').scrollIntoView({behavior:\'smooth\'});toggleObj(\''+d.id+'\')">'+ d.id+' ('+Math.round(d.score*100)+'%, '+d.daysSince+'d ago)</span>';
+    }).join('')+'</div></div>':'';
+
+  // Book progress
+  const bookProgress=JSON.parse(localStorage.getItem('ccna_book_progress')||'{}');
+
   // Domain sections
   document.getElementById('domainSections').innerHTML=domains.map(d=>{
     let sum=0;d.topics.forEach(t=>sum+=(prof[t.id]||0));
@@ -228,10 +265,14 @@ function render(){
       const p=Math.round((prof[t.id]||0)*100);
       const r=RES[t.id]||{};
       const isMastered=!!mastered[t.id];
+      const hideCard=showWeak&&(isMastered||(prof[t.id]||0)>=0.7);
       const subs=t.subtopics?'<ul class="obj-subs">'+t.subtopics.map(s=>'<li>'+esc(typeof s==='object'?s.name:s)+'</li>').join('')+'</ul>':'';
 
       let resHtml='';
-      if(r.book)resHtml+='<div class="res-row"><span class="res-tag book">BOOK</span><a href="https://www.amazon.com/dp/1633437671" target="_blank">'+esc(r.book)+'</a></div>';
+      if(r.book){
+        resHtml+='<div class="res-row"><span class="res-tag book">BOOK</span><a href="https://www.amazon.com/dp/1633437671" target="_blank">'+esc(r.book)+'</a></div>';
+        resHtml+='<div class="res-row" style="padding-left:52px"><label style="font-family:var(--font-display);font-size:.72rem;display:flex;align-items:center;gap:5px;cursor:pointer;color:var(--ink-secondary)"><input type="checkbox" '+(bookProgress[t.id]?'checked':'')+' onchange="toggleBookProgress(\''+t.id+'\',this.checked)" style="accent-color:var(--accent)"> Chapter read</label></div>';
+      }
       if(r.video)resHtml+='<div class="res-row"><span class="res-tag video">VIDEO</span><a href="https://www.youtube.com/results?search_query='+r.yt+'" target="_blank">Jeremy\'s IT Lab — '+esc(r.video)+'</a></div>';
       if(r.articles)r.articles.forEach(a=>{resHtml+='<div class="res-row"><span class="res-tag article">READ</span><a href="'+a.u+'" target="_blank">'+esc(a.t)+'</a></div>';});
 
@@ -239,7 +280,7 @@ function render(){
       if(r.site&&r.site.length>0)siteHtml='<div class="obj-shortcuts">'+r.site.map(s=>'<a class="obj-sc" href="'+s.h+'">'+esc(s.t)+'</a>').join('')+'<a class="obj-sc" href="quiz.html">Quiz '+t.id+'</a></div>';
       else siteHtml='<div class="obj-shortcuts"><a class="obj-sc" href="quiz.html">Quiz '+t.id+'</a><a class="obj-sc" href="glossary.html">Glossary</a></div>';
 
-      return'<div class="obj-card'+(isMastered?' mastered':'')+'" id="obj-'+t.id+'">'+
+      return'<div class="obj-card'+(isMastered?' mastered':'')+'" id="obj-'+t.id+'"'+(hideCard?' style="display:none"':'')+'>';
         '<div class="obj-head" onclick="toggleObj(\''+t.id+'\')">'+
           '<span class="obj-id" style="color:'+color+'">'+t.id+'</span>'+
           '<span class="obj-name">'+esc(t.name)+'</span>'+
@@ -260,6 +301,14 @@ function render(){
       '</div>'+
       '<div class="ds-body" id="dbody-'+d.id+'">'+topicsHtml+'</div></div>';
   }).join('');
+
+  // Auto-expand weakest domain
+  let weakestId='1', weakestAvg=Infinity;
+  domains.forEach(d=>{let s=0;d.topics.forEach(t=>s+=(prof[t.id]||0));const a=s/d.topics.length;if(a<weakestAvg){weakestAvg=a;weakestId=d.id;}});
+  const wb=document.getElementById('dbody-'+weakestId);
+  const wt=document.getElementById('dtoggle-'+weakestId);
+  if(wb)wb.classList.add('open');
+  if(wt)wt.classList.add('open');
 }
 
 function toggleDomain(id){
@@ -278,6 +327,12 @@ function toggleMastered(id){
   if(m[id])delete m[id];else{m[id]=true;store.updateProficiency(id,true);}
   localStorage.setItem('ccna_core_mastered',JSON.stringify(m));
   render();
+}
+
+function toggleBookProgress(id,val){
+  const bp=JSON.parse(localStorage.getItem('ccna_book_progress')||'{}');
+  if(val)bp[id]=true;else delete bp[id];
+  localStorage.setItem('ccna_book_progress',JSON.stringify(bp));
 }
 
 function toggleGoal(key,val){
