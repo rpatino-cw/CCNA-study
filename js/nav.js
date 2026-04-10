@@ -10,6 +10,7 @@
       { text: 'Devices', href: 'devices.html' },
       { text: 'Glossary', href: 'glossary.html' },
       { text: 'Objectives', href: 'objectives.html' },
+      { text: 'Resources', href: 'resources.html' },
     ]},
     { text: 'Practice', children: [
       { text: 'Diagnostic', href: 'diagnostic.html' },
@@ -18,16 +19,15 @@
       { text: 'Console Labs', href: 'console-labs.html' },
       { text: 'PT Labs', href: 'labs/index.html' },
       { text: 'Packet Race', href: 'packet-race.html' },
+      { text: '3D Explorer', href: 'cidr-3d.html' },
+      { text: '3D Topology', href: 'topology-3d.html' },
+    ]},
+    { text: 'Plan', children: [
       { text: 'Sprint', href: 'sprint.html' },
       { text: 'Strategy', href: 'strategy.html' },
       { text: 'Quests', href: 'quests.html' },
     ]},
-    { text: 'Explore', children: [
-      { text: '3D Explorer', href: 'cidr-3d.html' },
-      { text: '3D Topology', href: 'topology-3d.html' },
-    ]},
     { text: 'Study Group', href: 'peers.html' },
-    { text: 'Resources', href: 'resources.html' },
   ];
 
   var nav = document.querySelector('nav.top-nav');
