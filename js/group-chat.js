@@ -89,7 +89,8 @@
       headers:{'Content-Type':'application/json'},
       body:JSON.stringify({code:code,action:'chat',data:{memberId:memberId,name:myName,text:text}})
     }).then(function(r){return r.json();}).then(function(d){
-      if(d.group)renderGroup(d.group);
+      var g=d.group||d;
+      if(g.members)renderGroup(g);
     }).catch(function(){});
   }
   document.getElementById('gcSend').addEventListener('click',sendMsg);
@@ -100,7 +101,9 @@
   // ── Fetch + render ──────────────────────────────────────────
   function fetchGroup(){
     fetch(API+'/api/group/'+code).then(function(r){return r.json();}).then(function(d){
-      if(d.group)renderGroup(d.group);
+      if(d.error)return;
+      var g=d.group||d; // API returns group directly, not wrapped
+      if(g.members)renderGroup(g);
     }).catch(function(){});
   }
 
