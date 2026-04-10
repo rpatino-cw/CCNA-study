@@ -1,16 +1,14 @@
 /* Shared navigation — grouped dropdowns to keep it clean */
 (function () {
   var NAV = [
-    { text: 'Dashboard', href: 'index.html' },
+    { text: 'CORE', href: 'core.html' },
     { text: 'Guide', href: 'guide.html' },
     { text: 'Learn', children: [
-      { text: 'Knowledge Map', href: 'knowledge-map.html' },
       { text: 'Learning Path', href: 'learning-path.html' },
       { text: 'Learn Visually', href: 'learn-visually.html' },
       { text: 'Subnetting', href: 'subnetting-visual.html' },
       { text: 'Devices', href: 'devices.html' },
       { text: 'Glossary', href: 'glossary.html' },
-      { text: 'Objectives', href: 'objectives.html' },
       { text: 'Resources', href: 'resources.html' },
     ]},
     { text: 'Practice', children: [
@@ -80,7 +78,7 @@
   // Beta badge + bug report
   var beta = document.createElement('div');
   beta.className = 'beta-badge';
-  beta.innerHTML = '<span class="beta-tag">BETA v0.9</span><a href="' + fixHref('bug-report.html') + '" class="beta-bug">Report Bug</a>';
+  beta.innerHTML = '<span class="beta-tag">ALPHA v0.1</span><a href="' + fixHref('bug-report.html') + '" class="beta-bug">Report Bug</a>';
   document.body.appendChild(beta);
 })();
 
