@@ -2,6 +2,7 @@
 (function () {
   var NAV = [
     { text: 'Dashboard', href: 'index.html' },
+    { text: 'Guide', href: 'guide.html' },
     { text: 'Learn', children: [
       { text: 'Knowledge Map', href: 'knowledge-map.html' },
       { text: 'Learning Path', href: 'learning-path.html' },
