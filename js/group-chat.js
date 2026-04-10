@@ -11,6 +11,8 @@
   var prefix=location.pathname.indexOf('/labs/')>=0?'../':'';
   var prevOnlineState={};       // {memberId: bool} — tracks who was online last render
   var notifyCooldowns={};       // {memberId: timestamp} — 30s grace period per user
+  var dmTarget=null;            // null = group chat, {id,name,color} = DM mode
+  var cachedGroup=null;
 
   // ── Inject CSS ──────────────────────────────────────────────
   var css=document.createElement('style');
@@ -45,6 +47,10 @@
     .gc-input:focus{border-color:#B45309}
     .gc-send{font-family:'Space Grotesk',system-ui,sans-serif;font-size:.65rem;padding:6px 12px;background:#1C1917;color:#FAF7F2;border:none;border-radius:6px;cursor:pointer}
     .gc-unread{position:absolute;top:-4px;right:-4px;width:16px;height:16px;border-radius:50%;background:#DC2626;color:#fff;font-family:'JetBrains Mono',monospace;font-size:.5rem;display:flex;align-items:center;justify-content:center;border:2px solid #FAF7F2}
+    .gc-back{background:none;border:none;cursor:pointer;font-size:13px;color:#A8A29E;padding:0 6px 0 0}
+    .gc-back:hover{color:#1C1917}
+    .gc-dm-label{font-size:.65rem;font-weight:400;color:#57534E;margin-left:4px}
+    .gc-dot.ring{box-shadow:0 0 0 2px #FAF7F2,0 0 0 4px #B45309}
     @media(max-width:600px){.gc-panel{right:8px;width:calc(100vw - 64px);max-height:50vh}.gc-bar{padding:6px 4px}.gc-dot{width:26px;height:26px;font-size:.55rem}}
   `;
   document.head.appendChild(css);
@@ -60,7 +66,7 @@
   panel.className='gc-panel';
   panel.id='gcPanel';
   panel.innerHTML=
-    '<div class="gc-panel-head"><span>Group Chat</span><button class="gc-close" id="gcClose">&times;</button></div>'+
+    '<div class="gc-panel-head"><span id="gcPanelTitle">Group Chat</span><button class="gc-close" id="gcClose">&times;</button></div>'+
     '<div class="gc-msgs" id="gcMsgs"></div>'+
     '<div class="gc-input-row">'+
       '<input class="gc-input" id="gcInput" placeholder="Type a message..." maxlength="500">'+
@@ -78,19 +84,73 @@
     isOpen=false;panel.classList.remove('open');stopPoll();
   });
 
+  // ── DM helpers ───────────────────────────────────────────────
+  function dmKey(otherId){
+    var ids=[memberId,otherId].sort();
+    return 'ccna_dm_'+ids[0]+'_'+ids[1];
+  }
+  function getDMs(otherId){
+    try{return JSON.parse(localStorage.getItem(dmKey(otherId)))||[];}catch(e){return[];}
+  }
+  function saveDM(otherId,msg){
+    var msgs=getDMs(otherId);
+    msgs.push(msg);
+    if(msgs.length>50)msgs=msgs.slice(-50);
+    localStorage.setItem(dmKey(otherId),JSON.stringify(msgs));
+  }
+  function openDM(id,name,color){
+    dmTarget={id:id,name:name,color:color};
+    isOpen=true;
+    panel.classList.add('open');
+    updatePanelHeader();
+    renderMessages();
+    startPoll();
+  }
+  function backToGroup(){
+    dmTarget=null;
+    updatePanelHeader();
+    if(cachedGroup)renderMessages();
+  }
+  function updatePanelHeader(){
+    var head=document.getElementById('gcPanelTitle');
+    if(dmTarget){
+      head.innerHTML='<button class="gc-back" id="gcBack" title="Back to group">&larr;</button>'+
+        '<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:'+dmTarget.color+';margin-right:4px"></span>'+
+        escHtml(dmTarget.name)+'<span class="gc-dm-label">DM</span>';
+      document.getElementById('gcBack').addEventListener('click',backToGroup);
+    }else{
+      head.innerHTML='Group Chat';
+    }
+  }
+
   // ── Send ────────────────────────────────────────────────────
   function sendMsg(){
     var input=document.getElementById('gcInput');
     var text=input.value.trim();
     if(!text)return;
     input.value='';
+    if(dmTarget){
+      // DM — store locally (both sides poll group to see each other's DMs)
+      var msg={memberId:memberId,name:myName,text:text,ts:new Date().toISOString()};
+      saveDM(dmTarget.id,msg);
+      // Also push to KV so the other person can see it
+      fetch(API+'/api/group/action',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({code:code,action:'dm',memberId:memberId,name:myName,text:text,to:dmTarget.id})
+      }).then(function(r){return r.json();}).then(function(d){
+        var g=d.group||d;
+        if(g.members){cachedGroup=g;renderMessages();}
+      }).catch(function(){renderMessages();});
+      return;
+    }
     fetch(API+'/api/group/action',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body:JSON.stringify({code:code,action:'chat',memberId:memberId,name:myName,text:text})
     }).then(function(r){return r.json();}).then(function(d){
       var g=d.group||d;
-      if(g.members)renderGroup(g);
+      if(g.members){cachedGroup=g;renderMessages();}
     }).catch(function(){});
   }
   document.getElementById('gcSend').addEventListener('click',sendMsg);
@@ -142,8 +202,9 @@
       }
       prevOnlineState[id]=isOnline;
 
+      var isDmActive=dmTarget&&dmTarget.id===id;
       dotsHtml+='<div class="gc-member">'+
-        '<div class="gc-dot" style="background:'+(isOnline?color:'#78716C')+';opacity:'+(isOnline?'1':'.5')+'" title="'+displayName+(isOnline?' — online':' — offline')+'">'+
+        '<div class="gc-dot'+(isDmActive?' ring':'')+'" data-dm-id="'+id+'" data-dm-name="'+escHtml(m.name||'?')+'" data-dm-color="'+color+'" style="background:'+(isOnline?color:'#78716C')+';opacity:'+(isOnline?'1':'.5')+'" title="'+(isYou?'You':('Click to DM '+displayName))+'">'+
         initial+'<span class="gc-status '+(isOnline?'online':'offline')+'"></span></div>'+
         '<div class="gc-name" style="color:'+(isOnline?'#1C1917':'#A8A29E')+'">'+escHtml(m.name||'?')+'</div></div>';
     });
@@ -151,13 +212,39 @@
     bar.innerHTML=dotsHtml+toggle;
     // Re-attach toggle listener
     document.getElementById('gcToggle').addEventListener('click',function(){
-      isOpen=!isOpen;panel.classList.toggle('open',isOpen);
+      isOpen=!isOpen;dmTarget=null;updatePanelHeader();
+      panel.classList.toggle('open',isOpen);
       if(isOpen){fetchGroup();startPoll();}else{stopPoll();}
     });
+    // Attach DM click handlers to member dots
+    bar.querySelectorAll('.gc-dot[data-dm-id]').forEach(function(dot){
+      dot.addEventListener('click',function(){
+        var id=dot.dataset.dmId;
+        if(id===memberId)return; // can't DM yourself
+        openDM(id,dot.dataset.dmName,dot.dataset.dmColor);
+      });
+    });
 
-    // Chat messages
-    var msgs=g.messages||[];
+    cachedGroup=g;
+    renderMessages();
+  }
+
+  function renderMessages(){
     var msgsEl=document.getElementById('gcMsgs');
+    var msgs;
+    if(dmTarget){
+      // DM mode — show DMs from KV + local
+      var kvDms=(cachedGroup&&cachedGroup.dms)?cachedGroup.dms[dmKey(dmTarget.id).replace('ccna_dm_','')]||[]:[];
+      var localDms=getDMs(dmTarget.id);
+      // Merge: use KV as source of truth, add local-only msgs
+      var kvIds=new Set(kvDms.map(function(m){return m.ts;}));
+      msgs=kvDms.slice();
+      localDms.forEach(function(m){if(!kvIds.has(m.ts))msgs.push(m);});
+      msgs.sort(function(a,b){return(a.ts||'').localeCompare(b.ts||'');});
+    }else{
+      msgs=cachedGroup?(cachedGroup.messages||[]):[];
+    }
+
     var html='';
     msgs.forEach(function(m){
       var isYou=m.memberId===memberId;
@@ -166,25 +253,27 @@
         '<div class="gc-msg-head"><span class="gc-msg-name">'+(m.name||'?')+'</span><span class="gc-msg-time">'+time+'</span></div>'+
         '<div class="gc-msg-text">'+escHtml(m.text||'')+'</div></div>';
     });
-    if(msgs.length===0)html='<div style="text-align:center;color:#A8A29E;font-family:monospace;font-size:.7rem;padding:40px 0">No messages yet</div>';
+    if(msgs.length===0)html='<div style="text-align:center;color:#A8A29E;font-family:monospace;font-size:.7rem;padding:40px 0">'+(dmTarget?'No messages with '+escHtml(dmTarget.name)+' yet':'No messages yet')+'</div>';
     msgsEl.innerHTML=html;
     msgsEl.scrollTop=msgsEl.scrollHeight;
 
-    // Unread indicator
-    if(!isOpen&&msgs.length>lastMessages){
-      var badge=document.querySelector('.gc-unread');
-      if(!badge){
-        badge=document.createElement('span');
-        badge.className='gc-unread';
-        document.getElementById('gcToggle').style.position='relative';
-        document.getElementById('gcToggle').appendChild(badge);
+    // Unread indicator (group chat only)
+    if(!dmTarget){
+      if(!isOpen&&msgs.length>lastMessages){
+        var badge=document.querySelector('.gc-unread');
+        if(!badge){
+          badge=document.createElement('span');
+          badge.className='gc-unread';
+          document.getElementById('gcToggle').style.position='relative';
+          document.getElementById('gcToggle').appendChild(badge);
+        }
+        badge.textContent=msgs.length-lastMessages;
       }
-      badge.textContent=msgs.length-lastMessages;
-    }
-    if(isOpen){
-      lastMessages=msgs.length;
-      var badge=document.querySelector('.gc-unread');
-      if(badge)badge.remove();
+      if(isOpen){
+        lastMessages=msgs.length;
+        var badge=document.querySelector('.gc-unread');
+        if(badge)badge.remove();
+      }
     }
   }
 

@@ -245,6 +245,18 @@
       </div>
       <div class="lobby-err" id="linkErr"></div>
     </div>
+    <div class="lobby-card">
+      <h3>Recover Your Account</h3>
+      <p style="font-size:.82rem;color:var(--ink-secondary);margin-bottom:12px">Reset your computer? Enter your group code and display name to recover your identity.</p>
+      <div class="lobby-row">
+        <input type="text" class="lobby-input" id="recoverCodeInput" placeholder="GROUP CODE" maxlength="6">
+      </div>
+      <div class="lobby-row">
+        <input type="text" class="lobby-input name-input" id="recoverNameInput" placeholder="Your display name" maxlength="20">
+      </div>
+      <button class="btn btn-secondary" id="btnRecover">Recover</button>
+      <div class="lobby-err" id="recoverErr"></div>
+    </div>
   </div>
 
   <!-- Group Dashboard -->
@@ -383,6 +395,19 @@
       <span id="linkCodeDisplay" style="font-family:var(--font-mono);font-size:1rem;font-weight:700;letter-spacing:.15em;color:var(--accent);display:none"></span>
       <span id="linkCodeHint" style="font-size:.72rem;color:var(--ink-muted);display:none">Enter this code on your other device (expires in 5 min)</span>
     </div>
+
+    <!-- Progress Backup / Restore -->
+    <div style="margin-top:var(--s-lg);padding:16px;background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg)">
+      <div style="font-family:var(--font-display);font-size:.78rem;font-weight:600;color:var(--ink-muted);margin-bottom:10px;text-transform:uppercase;letter-spacing:.05em">Progress Protection</div>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <button class="btn btn-secondary btn-sm" id="btnBackup" style="font-size:.72rem">Backup Progress</button>
+        <label class="btn btn-secondary btn-sm" style="font-size:.72rem;cursor:pointer;margin:0">Restore
+          <input type="file" id="fileRestore" accept=".json" style="display:none">
+        </label>
+        <span style="font-family:var(--font-body);font-size:.72rem;color:var(--ink-muted)">Download a backup file or restore from one if you reset your computer.</span>
+      </div>
+    </div>
+
     <button class="leave-btn" id="btnLeave">Leave Group</button>
   </div>
 </div>
@@ -1283,6 +1308,76 @@ function renderResources(group) {
     return '<div class="res-shared-card"><span class="res-shared-type ' + r.type + '">' + r.type.toUpperCase() + '</span><div class="res-shared-title">' + linkHtml + '</div><span class="res-shared-by">Shared by ' + esc(r.name || 'someone') + '</span></div>';
   }).join('');
 }
+
+// ══════════════════════════════════════════════════════════════
+// PROGRESS PROTECTION — Export / Import / Recover
+// ══════════════════════════════════════════════════════════════
+
+// Backup: download all ccna_ keys as JSON
+document.getElementById('btnBackup').addEventListener('click', () => {
+  const data = {};
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key.startsWith('ccna_')) data[key] = localStorage.getItem(key);
+  }
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const date = new Date().toISOString().slice(0, 10);
+  a.href = url;
+  a.download = 'ccna-backup-' + date + '.json';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  const btn = document.getElementById('btnBackup');
+  btn.textContent = 'Downloaded!';
+  setTimeout(() => btn.textContent = 'Backup Progress', 2000);
+});
+
+// Restore: read JSON file and write all keys back
+document.getElementById('fileRestore').addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    try {
+      const data = JSON.parse(ev.target.result);
+      let count = 0;
+      for (const [key, value] of Object.entries(data)) {
+        if (key.startsWith('ccna_')) {
+          localStorage.setItem(key, value);
+          count++;
+        }
+      }
+      alert('Restored ' + count + ' keys. Reloading page...');
+      location.reload();
+    } catch (err) {
+      alert('Invalid backup file: ' + err.message);
+    }
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+});
+
+// Recover: look up account by group code + name
+document.getElementById('btnRecover').addEventListener('click', async () => {
+  const code = document.getElementById('recoverCodeInput').value.trim().toUpperCase();
+  const name = document.getElementById('recoverNameInput').value.trim();
+  if (code.length !== 6) { showErr('recoverErr', 'Group code must be 6 characters'); return; }
+  if (!name) { showErr('recoverErr', 'Enter your display name'); return; }
+  try {
+    const res = await apiPost('/api/group/recover', { code, name });
+    if (res.error) { showErr('recoverErr', res.error); return; }
+    localStorage.setItem('ccna_peer_id', res.memberId);
+    localStorage.setItem('ccna_peer_name', res.name);
+    localStorage.setItem('ccna_peer_group', res.groupCode);
+    alert('Account recovered! Welcome back, ' + res.name + '. Reloading...');
+    location.reload();
+  } catch (err) {
+    showErr('recoverErr', 'Network error. Try again.');
+  }
+});
 
 // ── Init ──────────────────────────────────────────────────────
 (async function init() {
