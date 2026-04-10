@@ -193,15 +193,21 @@ const DOMAIN_NAMES=['','Network Fundamentals','Network Access','IP Connectivity'
 // ═══════════════════════════════════════════════════════════════
 function profColor(v){return v>=.7?'var(--prof-strong)':v>=.4?'var(--prof-mid)':'var(--prof-weak)';}
 
+const NP_SET=new Set(['1.1','1.2','1.3','1.4','1.5','1.6','1.7','1.8','1.9','1.10','1.11','1.12','1.13','2.1','2.2','2.5','2.6','2.7','2.8','3.1','3.2','3.3','3.5','4.2','4.3','4.4','4.5','4.6','4.7','4.8','4.9','5.1','5.2','5.3','5.4','5.5','5.6','5.7','5.8','5.9']);
+
 function render(){
   store.initProficiency(window.topicsData);
   const prof=store.getAllProficiency();
   const mastered=JSON.parse(localStorage.getItem('ccna_core_mastered')||'{}');
   const domains=window.topicsData.domains;
+  const isNetPlus=localStorage.getItem('ccna_cert_track')==='net+';
 
   // Progress strip
   let totalMastered=0,totalTopics=0;
-  domains.forEach(d=>d.topics.forEach(t=>{totalTopics++;if(mastered[t.id])totalMastered++;}));
+  domains.forEach(d=>d.topics.forEach(t=>{
+    if(isNetPlus&&!NP_SET.has(t.id))return;
+    totalTopics++;if(mastered[t.id])totalMastered++;
+  }));
   const readiness=store.getReadinessScore?store.getReadinessScore(domains):0;
   document.getElementById('progressStrip').innerHTML=
     '<div class="ps-bar"><div class="ps-fill" style="width:'+Math.round(totalMastered/totalTopics*100)+'%"></div></div>'+
@@ -257,6 +263,7 @@ function render(){
       const p=Math.round((prof[t.id]||0)*100);
       const r=RES[t.id]||{};
       const isMastered=!!mastered[t.id];
+      const isCCNAOnly=isNetPlus&&!NP_SET.has(t.id);
       const hideCard=showWeak&&(isMastered||(prof[t.id]||0)>=0.7);
       const subs=t.subtopics?'<ul class="obj-subs">'+t.subtopics.map(s=>'<li>'+esc(typeof s==='object'?s.name:s)+'</li>').join('')+'</ul>':'';
 
@@ -275,7 +282,8 @@ function render(){
       if(r.site&&r.site.length>0)siteHtml='<div class="obj-shortcuts">'+r.site.map(s=>'<a class="obj-sc" href="'+s.h+'">'+esc(s.t)+'</a>').join('')+'<a class="obj-sc" href="quiz.html">Quiz '+t.id+'</a></div>';
       else siteHtml='<div class="obj-shortcuts"><a class="obj-sc" href="quiz.html">Quiz '+t.id+'</a><a class="obj-sc" href="glossary.html">Glossary</a></div>';
 
-      return'<div class="obj-card'+(isMastered?' mastered':'')+'" id="obj-'+t.id+'"'+(hideCard?' style="display:none"':'')+'>'+
+      if(isCCNAOnly)return'<div class="obj-card" id="obj-'+t.id+'" style="opacity:.3;pointer-events:none"><div class="obj-head"><span class="obj-id" style="color:var(--ink-muted)">'+t.id+'</span><span class="obj-name" style="color:var(--ink-muted)">'+esc(t.name)+'</span><span style="font-family:var(--font-mono);font-size:.6rem;color:var(--ink-muted);margin-left:auto">CCNA ONLY</span></div></div>';
+      return'<div class="obj-card'+(isMastered?' mastered':'')+'" id="obj-'+t.id+'"'+(hideCard?' style="display:none"':'')+(isNetPlus?' style="border-left:3px solid #7C3AED"':'')+'>'+
         '<div class="obj-head" onclick="toggleObj(\''+t.id+'\')">'+
           '<span class="obj-id" style="color:'+color+'">'+t.id+'</span>'+
           '<span class="obj-name">'+esc(t.name)+'</span>'+
