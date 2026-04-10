@@ -99,7 +99,7 @@
 
   // ── Fetch + render ──────────────────────────────────────────
   function fetchGroup(){
-    fetch(API+'/api/group?code='+code).then(function(r){return r.json();}).then(function(d){
+    fetch(API+'/api/group/'+code).then(function(r){return r.json();}).then(function(d){
       if(d.group)renderGroup(d.group);
     }).catch(function(){});
   }
