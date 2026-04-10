@@ -1,0 +1,1044 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Exam Simulator — CCNA Study System</title>
+  <link rel="icon" type="image/svg+xml" href="/CCNA-study/favicon.svg">
+  <link rel="stylesheet" href="css/shared.css">
+  <style>
+    /* ── Start Screen ──────────────────────────────────────────── */
+    .exam-start {
+      text-align: center;
+      padding: var(--s-3xl) var(--s-lg);
+      max-width: 560px;
+      margin: 0 auto;
+    }
+    .exam-start h1 {
+      font-size: 2rem;
+      margin-bottom: var(--s-sm);
+    }
+    .exam-start .subtitle {
+      color: var(--ink-secondary);
+      font-style: italic;
+      margin-bottom: var(--s-xl);
+    }
+    .exam-meta {
+      display: flex;
+      justify-content: center;
+      gap: var(--s-xl);
+      margin-bottom: var(--s-xl);
+    }
+    .exam-meta .meta-item {
+      text-align: center;
+    }
+    .exam-meta .meta-value {
+      font-family: var(--font-display);
+      font-size: 1.8rem;
+      font-weight: 700;
+      color: var(--ink);
+      line-height: 1;
+    }
+    .exam-meta .meta-label {
+      font-family: var(--font-display);
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--ink-muted);
+      margin-top: 4px;
+    }
+    .domain-weights {
+      text-align: left;
+      margin: var(--s-lg) 0 var(--s-xl);
+      padding: var(--s-md) var(--s-lg);
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+    }
+    .domain-weights h3 {
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--ink-muted);
+      margin-bottom: var(--s-sm);
+    }
+    .domain-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 5px 0;
+      font-size: 0.88rem;
+      border-bottom: 1px solid var(--bg-recessed);
+    }
+    .domain-row:last-child { border-bottom: none; }
+    .domain-row .dname { color: var(--ink-secondary); }
+    .domain-row .dcount {
+      font-family: var(--font-mono);
+      font-weight: 600;
+      font-size: 0.82rem;
+      color: var(--ink);
+    }
+    .exam-rules {
+      text-align: left;
+      font-size: 0.85rem;
+      color: var(--ink-secondary);
+      line-height: 1.8;
+      margin-bottom: var(--s-xl);
+      padding-left: var(--s-md);
+    }
+    .exam-rules li { margin-bottom: 4px; }
+
+    /* ── Exam Screen ───────────────────────────────────────────── */
+    .exam-layout {
+      display: grid;
+      grid-template-columns: 1fr 260px;
+      gap: var(--s-lg);
+      align-items: start;
+    }
+    @media (max-width: 900px) {
+      .exam-layout { grid-template-columns: 1fr; }
+    }
+
+    /* Top bar */
+    .exam-topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: var(--s-sm) var(--s-md);
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      margin-bottom: var(--s-lg);
+    }
+    .exam-topbar .q-counter {
+      font-family: var(--font-display);
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
+    .exam-topbar .timer {
+      font-family: var(--font-mono);
+      font-size: 1.05rem;
+      font-weight: 600;
+    }
+    .exam-topbar .timer.warning { color: var(--prof-mid); }
+    .exam-topbar .timer.danger { color: var(--prof-weak); }
+
+    /* Question area */
+    .question-area {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: var(--s-lg);
+    }
+    .question-domain {
+      font-family: var(--font-display);
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--ink-muted);
+      margin-bottom: var(--s-sm);
+    }
+    .question-text {
+      font-size: 1.05rem;
+      line-height: 1.6;
+      margin-bottom: var(--s-lg);
+      max-width: none;
+    }
+    .options-list {
+      display: flex;
+      flex-direction: column;
+      gap: var(--s-sm);
+      margin-bottom: var(--s-lg);
+    }
+    .exam-option {
+      display: flex;
+      align-items: flex-start;
+      width: 100%;
+      text-align: left;
+      padding: 14px 18px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      color: var(--ink);
+      font-family: var(--font-body);
+      font-size: 0.93rem;
+      cursor: pointer;
+      transition: background var(--transition), border-color var(--transition);
+      line-height: 1.5;
+    }
+    .exam-option:hover:not(.locked):not(.selected) {
+      border-color: var(--ink-muted);
+      background: var(--bg-recessed);
+    }
+    .exam-option.selected {
+      border-color: var(--accent);
+      background: var(--accent-dim);
+    }
+    .exam-option.locked {
+      cursor: default;
+      opacity: 0.7;
+    }
+    .exam-option.locked.selected {
+      opacity: 1;
+    }
+    .exam-option .opt-letter {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: var(--bg-recessed);
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 0.75rem;
+      margin-right: 12px;
+      flex-shrink: 0;
+      color: var(--ink-secondary);
+    }
+    .exam-option.selected .opt-letter {
+      background: var(--accent);
+      color: #fff;
+    }
+
+    /* Nav buttons */
+    .question-nav-btns {
+      display: flex;
+      gap: var(--s-sm);
+      justify-content: flex-end;
+    }
+
+    /* Sidebar navigator */
+    .q-navigator {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: var(--s-md);
+      position: sticky;
+      top: var(--s-md);
+    }
+    .q-navigator h3 {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--ink-muted);
+      margin-bottom: var(--s-sm);
+    }
+    .q-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 6px;
+    }
+    .q-box {
+      width: 100%;
+      aspect-ratio: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      font-weight: 600;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--bg);
+      color: var(--ink-muted);
+      cursor: pointer;
+      transition: all var(--transition);
+    }
+    .q-box:hover { border-color: var(--ink-muted); }
+    .q-box.answered {
+      background: var(--ink);
+      color: var(--bg);
+      border-color: var(--ink);
+    }
+    .q-box.current {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px var(--accent-light);
+    }
+    .q-box.locked {
+      cursor: default;
+    }
+    .nav-legend {
+      display: flex;
+      gap: var(--s-md);
+      margin-top: var(--s-sm);
+      font-size: 0.7rem;
+      color: var(--ink-muted);
+      font-family: var(--font-display);
+    }
+    .nav-legend span { display: flex; align-items: center; gap: 4px; }
+    .legend-dot {
+      width: 10px; height: 10px;
+      border-radius: 2px;
+      border: 1px solid var(--border);
+    }
+    .legend-dot.filled { background: var(--ink); border-color: var(--ink); }
+    .nav-progress-text {
+      margin-top: var(--s-sm);
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      color: var(--ink-secondary);
+    }
+    .submit-section {
+      margin-top: var(--s-md);
+      padding-top: var(--s-md);
+      border-top: 1px solid var(--border);
+    }
+
+    /* ── Results Screen ────────────────────────────────────────── */
+    .results-screen { max-width: 720px; margin: 0 auto; }
+    .result-banner {
+      text-align: center;
+      padding: var(--s-xl) var(--s-lg);
+      border-radius: var(--radius-lg);
+      margin-bottom: var(--s-xl);
+    }
+    .result-banner.pass {
+      background: var(--prof-strong-bg);
+      border: 2px solid var(--prof-strong);
+    }
+    .result-banner.fail {
+      background: var(--prof-weak-bg);
+      border: 2px solid var(--prof-weak);
+    }
+    .result-banner .result-label {
+      font-family: var(--font-display);
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-bottom: var(--s-sm);
+    }
+    .result-banner.pass .result-label { color: var(--prof-strong); }
+    .result-banner.fail .result-label { color: var(--prof-weak); }
+    .result-banner .result-score {
+      font-family: var(--font-display);
+      font-size: 3.2rem;
+      font-weight: 700;
+      line-height: 1;
+      margin-bottom: var(--s-xs);
+    }
+    .result-banner.pass .result-score { color: var(--prof-strong); }
+    .result-banner.fail .result-score { color: var(--prof-weak); }
+    .result-banner .result-detail {
+      font-size: 0.9rem;
+      color: var(--ink-secondary);
+    }
+
+    .result-stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: var(--s-md);
+      margin-bottom: var(--s-xl);
+    }
+    .result-stat {
+      text-align: center;
+      padding: var(--s-md);
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+    }
+    .result-stat .rs-value {
+      font-family: var(--font-display);
+      font-size: 1.6rem;
+      font-weight: 700;
+    }
+    .result-stat .rs-label {
+      font-family: var(--font-display);
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--ink-muted);
+      margin-top: 2px;
+    }
+
+    /* Domain breakdown */
+    .domain-breakdown {
+      margin-bottom: var(--s-xl);
+    }
+    .domain-breakdown h2 {
+      font-size: 1.1rem;
+      margin-top: 0;
+    }
+    .db-row {
+      display: grid;
+      grid-template-columns: 200px 1fr 60px;
+      gap: var(--s-md);
+      align-items: center;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--bg-recessed);
+    }
+    @media (max-width: 600px) {
+      .db-row { grid-template-columns: 1fr; gap: 4px; }
+    }
+    .db-row .db-name {
+      font-family: var(--font-display);
+      font-size: 0.82rem;
+      font-weight: 500;
+      color: var(--ink-secondary);
+    }
+    .db-row .db-bar {
+      height: 8px;
+      background: var(--bg-recessed);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .db-row .db-fill {
+      height: 100%;
+      border-radius: 4px;
+      transition: width 0.6s var(--ease-out);
+    }
+    .db-row .db-pct {
+      font-family: var(--font-mono);
+      font-size: 0.82rem;
+      font-weight: 600;
+      text-align: right;
+    }
+
+    .result-actions {
+      display: flex;
+      gap: var(--s-sm);
+      justify-content: center;
+      margin-bottom: var(--s-xl);
+    }
+
+    /* ── Review Mode ───────────────────────────────────────────── */
+    .review-section { margin-bottom: var(--s-xl); }
+    .review-item {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: var(--s-md) var(--s-lg);
+      margin-bottom: var(--s-md);
+    }
+    .review-item .ri-header {
+      display: flex;
+      align-items: center;
+      gap: var(--s-sm);
+      margin-bottom: var(--s-sm);
+    }
+    .review-item .ri-num {
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--ink-muted);
+    }
+    .ri-badge {
+      font-family: var(--font-display);
+      font-size: 0.65rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding: 2px 8px;
+      border-radius: var(--radius);
+    }
+    .ri-badge.correct { background: var(--correct-bg); color: var(--correct); }
+    .ri-badge.wrong { background: var(--wrong-bg); color: var(--wrong); }
+    .review-item .ri-question {
+      font-size: 0.95rem;
+      line-height: 1.6;
+      margin-bottom: var(--s-sm);
+      max-width: none;
+    }
+    .review-opt {
+      padding: 8px 14px;
+      border-radius: var(--radius);
+      font-size: 0.88rem;
+      margin-bottom: 4px;
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+    }
+    .review-opt .ro-letter {
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 0.75rem;
+      flex-shrink: 0;
+      width: 20px;
+    }
+    .review-opt.is-correct {
+      background: var(--correct-bg);
+      border-left: 3px solid var(--correct);
+    }
+    .review-opt.is-wrong {
+      background: var(--wrong-bg);
+      border-left: 3px solid var(--wrong);
+    }
+    .review-opt.neutral { color: var(--ink-secondary); }
+
+    /* ── Utilities ─────────────────────────────────────────────── */
+    .screen { display: none; }
+    .screen.active { display: block; }
+  </style>
+</head>
+<body>
+  <div class="container-wide">
+    <nav class="top-nav"></nav>
+
+    <!-- ═══ START SCREEN ═══ -->
+    <div id="startScreen" class="screen active">
+      <div class="exam-start fade-in">
+        <h1>CCNA 200-301</h1>
+        <p class="subtitle">Mock Exam Simulator</p>
+
+        <div class="exam-meta">
+          <div class="meta-item">
+            <div class="meta-value">50</div>
+            <div class="meta-label">Questions</div>
+          </div>
+          <div class="meta-item">
+            <div class="meta-value">60</div>
+            <div class="meta-label">Minutes</div>
+          </div>
+          <div class="meta-item">
+            <div class="meta-value">80%</div>
+            <div class="meta-label">To Pass</div>
+          </div>
+        </div>
+
+        <div class="domain-weights">
+          <h3>Domain Distribution</h3>
+          <div class="domain-row"><span class="dname">1. Network Fundamentals</span><span class="dcount">10 Qs (20%)</span></div>
+          <div class="domain-row"><span class="dname">2. Network Access</span><span class="dcount">10 Qs (20%)</span></div>
+          <div class="domain-row"><span class="dname">3. IP Connectivity</span><span class="dcount">13 Qs (25%)</span></div>
+          <div class="domain-row"><span class="dname">4. IP Services</span><span class="dcount">5 Qs (10%)</span></div>
+          <div class="domain-row"><span class="dname">5. Security Fundamentals</span><span class="dcount">7 Qs (15%)</span></div>
+          <div class="domain-row"><span class="dname">6. Automation & Programmability</span><span class="dcount">5 Qs (10%)</span></div>
+        </div>
+
+        <ul class="exam-rules">
+          <li>Once you click <strong>Next</strong>, your answer is locked.</li>
+          <li>You cannot go back to previous questions.</li>
+          <li>The timer auto-submits when it reaches 00:00.</li>
+          <li>Results update your proficiency scores per topic.</li>
+        </ul>
+
+        <button class="btn btn-primary btn-lg" onclick="startExam()">Begin Exam</button>
+      </div>
+    </div>
+
+    <!-- ═══ EXAM SCREEN ═══ -->
+    <div id="examScreen" class="screen">
+      <div class="exam-topbar">
+        <span class="q-counter" id="qCounter">Question 1 / 50</span>
+        <span class="timer" id="timer">60:00</span>
+      </div>
+
+      <div class="exam-layout">
+        <div class="question-area" id="questionArea">
+          <div class="question-domain" id="qDomain"></div>
+          <p class="question-text" id="qText"></p>
+          <div class="options-list" id="optionsList"></div>
+          <div class="question-nav-btns">
+            <button class="btn btn-primary" id="nextBtn" onclick="nextQuestion()" disabled>Next</button>
+          </div>
+        </div>
+
+        <div class="q-navigator">
+          <h3>Questions</h3>
+          <div class="q-grid" id="qGrid"></div>
+          <div class="nav-legend">
+            <span><div class="legend-dot filled"></div> Answered</span>
+            <span><div class="legend-dot"></div> Unanswered</span>
+          </div>
+          <div class="nav-progress-text" id="navProgress">0 / 50 answered</div>
+          <div class="submit-section">
+            <button class="btn btn-secondary btn-sm" style="width:100%" onclick="confirmSubmit()">Submit Exam</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ RESULTS SCREEN ═══ -->
+    <div id="resultsScreen" class="screen">
+      <div class="results-screen fade-in">
+        <div class="result-banner" id="resultBanner">
+          <div class="result-label" id="resultLabel"></div>
+          <div class="result-score" id="resultScore"></div>
+          <div class="result-detail" id="resultDetail"></div>
+        </div>
+
+        <div class="result-stats" id="resultStats"></div>
+
+        <div class="domain-breakdown" id="domainBreakdown">
+          <h2>Domain Breakdown</h2>
+        </div>
+
+        <div class="result-actions">
+          <button class="btn btn-secondary" onclick="showReview()">Review Answers</button>
+          <button class="btn btn-primary" onclick="restartExam()">Retake Exam</button>
+        </div>
+
+        <div class="review-section hidden" id="reviewSection"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/store.js"></script>
+  <script src="js/nav.js"></script>
+  <script src="js/sync.js"></script>
+  <script>
+  /* ═══════════════════════════════════════════════════════════════
+     CCNA 200-301 Mock Exam — Question Bank
+     ═══════════════════════════════════════════════════════════════ */
+
+  var QUESTIONS = [
+    // ── Domain 1: Network Fundamentals (20%) ─────────────────────
+    {q:'Which layer of the OSI model is responsible for logical addressing and routing?',opts:['Data Link','Network','Transport','Session'],ans:1,domain:'1',topic:'1.6'},
+    {q:'What is the primary function of a Layer 2 switch?',opts:['Route packets between subnets','Forward frames based on MAC addresses','Encrypt traffic between hosts','Assign IP addresses via DHCP'],ans:1,domain:'1',topic:'1.1'},
+    {q:'Which protocol operates at the Transport layer and provides reliable, connection-oriented delivery?',opts:['UDP','ICMP','TCP','ARP'],ans:2,domain:'1',topic:'1.5'},
+    {q:'What is the default subnet mask for a Class B IP address?',opts:['255.0.0.0','255.255.0.0','255.255.255.0','255.255.255.128'],ans:1,domain:'1',topic:'1.6'},
+    {q:'Which cable type supports the longest transmission distance?',opts:['Cat5e UTP','Cat6a UTP','Multimode fiber','Single-mode fiber'],ans:3,domain:'1',topic:'1.3'},
+    {q:'What is the purpose of ARP?',opts:['Resolve hostnames to IP addresses','Resolve IP addresses to MAC addresses','Assign IP addresses dynamically','Encrypt Layer 2 frames'],ans:1,domain:'1',topic:'1.5'},
+    {q:'A host has the IP 192.168.10.45/28. What is the broadcast address of this subnet?',opts:['192.168.10.47','192.168.10.63','192.168.10.31','192.168.10.55'],ans:0,domain:'1',topic:'1.6'},
+    {q:'Which device operates at Layer 3 to forward packets between different networks?',opts:['Hub','Switch','Router','Access point'],ans:2,domain:'1',topic:'1.1'},
+    {q:'What is the maximum number of usable hosts on a /26 subnet?',opts:['30','62','64','126'],ans:1,domain:'1',topic:'1.6'},
+    {q:'Which protocol sends "Destination Unreachable" messages?',opts:['TCP','UDP','ICMP','ARP'],ans:2,domain:'1',topic:'1.5'},
+    {q:'What is the IPv6 loopback address?',opts:['::1','::0','FF02::1','FE80::1'],ans:0,domain:'1',topic:'1.8'},
+    {q:'How many bits are in an IPv6 address?',opts:['32','64','96','128'],ans:3,domain:'1',topic:'1.8'},
+    {q:'Which topology connects every device to a central device?',opts:['Mesh','Bus','Ring','Star'],ans:3,domain:'1',topic:'1.2'},
+
+    // ── Domain 2: Network Access (20%) ───────────────────────────
+    {q:'What does a VLAN do?',opts:['Encrypts all broadcast traffic','Creates separate broadcast domains on a single switch','Routes traffic between subnets','Provides wireless access to the network'],ans:1,domain:'2',topic:'2.1'},
+    {q:'Which trunking protocol is an IEEE standard?',opts:['ISL','VTP','802.1Q','DTP'],ans:2,domain:'2',topic:'2.2'},
+    {q:'What is the default VLAN on a Cisco switch?',opts:['VLAN 0','VLAN 1','VLAN 100','VLAN 1002'],ans:1,domain:'2',topic:'2.1'},
+    {q:'Which Spanning Tree Protocol state allows a port to forward traffic and learn MAC addresses?',opts:['Blocking','Listening','Learning','Forwarding'],ans:3,domain:'2',topic:'2.4'},
+    {q:'What is the primary purpose of STP (Spanning Tree Protocol)?',opts:['Encrypt VLAN traffic','Prevent Layer 2 loops','Load balance across trunk links','Assign IP addresses to VLANs'],ans:1,domain:'2',topic:'2.4'},
+    {q:'An EtherChannel bundles multiple physical links into one logical link. Which protocol is Cisco proprietary?',opts:['LACP','PAgP','STP','VTP'],ans:1,domain:'2',topic:'2.5'},
+    {q:'Which wireless standard operates exclusively on the 5 GHz band and supports up to 1.3 Gbps?',opts:['802.11n','802.11g','802.11ac','802.11a'],ans:2,domain:'2',topic:'2.6'},
+    {q:'What command puts a switch port into access mode on a Cisco switch?',opts:['switchport mode trunk','switchport access vlan 10','switchport mode access','switchport nonegotiate'],ans:2,domain:'2',topic:'2.2'},
+    {q:'In RSTP, which port role replaces the non-designated port from classic STP?',opts:['Root port','Designated port','Alternate port','Backup port'],ans:2,domain:'2',topic:'2.4'},
+    {q:'Which EtherChannel negotiation protocol is defined by IEEE 802.3ad?',opts:['PAgP','LACP','DTP','VTP'],ans:1,domain:'2',topic:'2.5'},
+    {q:'What is the native VLAN used for on a trunk link?',opts:['Carrying management traffic only','Tagging all frames with VLAN 1','Carrying untagged frames','Encrypting trunk traffic'],ans:2,domain:'2',topic:'2.2'},
+    {q:'Which wireless security protocol uses AES encryption and is considered the most secure?',opts:['WEP','WPA','WPA2','WPA with TKIP'],ans:2,domain:'2',topic:'2.8'},
+
+    // ── Domain 3: IP Connectivity (25%) ──────────────────────────
+    {q:'What is the administrative distance of OSPF?',opts:['90','100','110','120'],ans:2,domain:'3',topic:'3.4'},
+    {q:'Which routing protocol uses the Dijkstra algorithm to calculate the shortest path?',opts:['RIP','EIGRP','OSPF','BGP'],ans:2,domain:'3',topic:'3.4'},
+    {q:'What is a floating static route?',opts:['A route that is always preferred','A backup static route with a higher AD than the primary route','A route that uses multicast','A default route to the internet'],ans:1,domain:'3',topic:'3.3'},
+    {q:'In OSPF, what is the default hello interval on a broadcast network?',opts:['5 seconds','10 seconds','30 seconds','40 seconds'],ans:1,domain:'3',topic:'3.4'},
+    {q:'Which command creates a static route to the 10.0.0.0/8 network via next hop 192.168.1.1?',opts:['ip route 10.0.0.0 255.0.0.0 192.168.1.1','ip route 10.0.0.0 0.255.255.255 192.168.1.1','ip route 10.0.0.0/8 192.168.1.1','route add 10.0.0.0 mask 255.0.0.0 192.168.1.1'],ans:0,domain:'3',topic:'3.3'},
+    {q:'What OSPF packet type is used to discover neighbors?',opts:['LSU','LSR','DBD','Hello'],ans:3,domain:'3',topic:'3.4'},
+    {q:'The router with the highest OSPF router ID in a broadcast segment becomes the:',opts:['ABR','ASBR','DR','Stub router'],ans:2,domain:'3',topic:'3.4'},
+    {q:'What is the purpose of the default route (0.0.0.0/0)?',opts:['Block all traffic','Match any destination not in the routing table','Only match traffic to the 0.0.0.0 network','Send traffic to the loopback interface'],ans:1,domain:'3',topic:'3.3'},
+    {q:'Which field in an IP packet is decremented at each router hop?',opts:['Source IP','Destination IP','TTL','Protocol'],ans:2,domain:'3',topic:'3.1'},
+    {q:'First Hop Redundancy Protocols (HSRP, VRRP) provide:',opts:['Load balancing across WAN links','Redundant default gateways for hosts','Encrypted tunnels between routers','Dynamic VLAN assignment'],ans:1,domain:'3',topic:'3.5'},
+    {q:'OSPF area 0 is known as the:',opts:['Stub area','Transit area','Backbone area','NSSA'],ans:2,domain:'3',topic:'3.4'},
+    {q:'Which metric does OSPF use to determine the best path?',opts:['Hop count','Bandwidth (cost)','Delay','Reliability'],ans:1,domain:'3',topic:'3.4'},
+    {q:'What happens when a router receives a packet with a TTL of 1?',opts:['Forwards the packet normally','Drops the packet and sends an ICMP Time Exceeded message','Resets the TTL to 255','Floods the packet to all interfaces'],ans:1,domain:'3',topic:'3.1'},
+    {q:'Which type of OSPF LSA is generated by an ABR to describe inter-area routes?',opts:['Type 1 (Router LSA)','Type 2 (Network LSA)','Type 3 (Summary LSA)','Type 5 (External LSA)'],ans:2,domain:'3',topic:'3.4'},
+    {q:'What is the AD (administrative distance) of a directly connected route?',opts:['0','1','5','20'],ans:0,domain:'3',topic:'3.2'},
+
+    // ── Domain 4: IP Services (10%) ──────────────────────────────
+    {q:'Which NAT type maps a single private IP to a single public IP permanently?',opts:['Dynamic NAT','PAT','Static NAT','NAT64'],ans:2,domain:'4',topic:'4.1'},
+    {q:'DHCP operates on which two UDP ports?',opts:['20 and 21','53 and 54','67 and 68','80 and 443'],ans:2,domain:'4',topic:'4.3'},
+    {q:'What NTP stratum value indicates a reference clock (atomic clock, GPS)?',opts:['0','1','2','16'],ans:0,domain:'4',topic:'4.4'},
+    {q:'Which Syslog severity level represents an emergency (system unusable)?',opts:['0','1','4','7'],ans:0,domain:'4',topic:'4.5'},
+    {q:'PAT (Port Address Translation) is also known as:',opts:['Static NAT','Dynamic NAT','NAT overload','NAT64'],ans:2,domain:'4',topic:'4.1'},
+    {q:'Which protocol does DNS use for standard name queries?',opts:['TCP port 53','UDP port 53','TCP port 80','UDP port 161'],ans:1,domain:'4',topic:'4.2'},
+    {q:'What is the function of a DHCP relay agent?',opts:['Assigns IP addresses to clients','Forwards DHCP broadcasts to a server on a different subnet','Encrypts DHCP traffic','Caches DNS records locally'],ans:1,domain:'4',topic:'4.3'},
+    {q:'SNMP uses which port for agent communication?',opts:['TCP 25','UDP 69','UDP 161','TCP 514'],ans:2,domain:'4',topic:'4.6'},
+
+    // ── Domain 5: Security Fundamentals (15%) ────────────────────
+    {q:'Which type of ACL filters traffic based only on source IP address?',opts:['Extended ACL','Named ACL','Standard ACL','Reflexive ACL'],ans:2,domain:'5',topic:'5.4'},
+    {q:'What does AAA stand for in network security?',opts:['Authentication, Authorization, Accounting','Access, Admission, Auditing','Authentication, Access, Accounting','Authorization, Access, Auditing'],ans:0,domain:'5',topic:'5.9'},
+    {q:'Port security on a Cisco switch can limit the number of:',opts:['VLANs per port','IP addresses per port','MAC addresses per port','Routes per port'],ans:2,domain:'5',topic:'5.7'},
+    {q:'DHCP snooping protects against:',opts:['ARP spoofing attacks','Rogue DHCP servers','DNS poisoning','STP manipulation'],ans:1,domain:'5',topic:'5.7'},
+    {q:'Which protocol provides secure remote CLI access to network devices?',opts:['Telnet','HTTP','SSH','SNMP'],ans:2,domain:'5',topic:'5.3'},
+    {q:'What is the purpose of Dynamic ARP Inspection (DAI)?',opts:['Prevent VLAN hopping','Validate ARP packets against the DHCP snooping binding table','Encrypt ARP traffic','Rate-limit ARP requests'],ans:1,domain:'5',topic:'5.7'},
+    {q:'An ACL with the statement "deny ip any any" at the end is demonstrating:',opts:['Implicit allow','Explicit permit','Implicit deny','The default Cisco ACL behavior (implicit deny already exists)'],ans:3,domain:'5',topic:'5.4'},
+    {q:'Which VPN type creates a secure tunnel between two sites over the internet?',opts:['Remote access VPN','Site-to-site VPN','SSL VPN','Client VPN'],ans:1,domain:'5',topic:'5.6'},
+    {q:'What threat involves an attacker flooding a switch MAC address table?',opts:['VLAN hopping','MAC flooding','ARP poisoning','DNS spoofing'],ans:1,domain:'5',topic:'5.7'},
+
+    // ── Domain 6: Automation & Programmability (10%) ──────────────
+    {q:'Which data format uses key-value pairs with curly braces and is commonly used in REST APIs?',opts:['XML','YAML','JSON','CSV'],ans:2,domain:'6',topic:'6.1'},
+    {q:'In the context of SDN, what does the controller manage?',opts:['The data plane only','The management plane only','The control plane, making forwarding decisions for network devices','Physical cabling'],ans:2,domain:'6',topic:'6.2'},
+    {q:'Ansible uses which file format for its playbooks?',opts:['JSON','XML','YAML','INI'],ans:2,domain:'6',topic:'6.4'},
+    {q:'Which HTTP method is used to create a new resource in a REST API?',opts:['GET','POST','PUT','DELETE'],ans:1,domain:'6',topic:'6.7'},
+    {q:'What is Cisco DNA Center an example of?',opts:['A Layer 2 switch','An SDN controller','A wireless access point','A firewall appliance'],ans:1,domain:'6',topic:'6.2'},
+    {q:'In a REST API response, the HTTP status code 200 means:',opts:['Created','No Content','OK (Success)','Not Found'],ans:2,domain:'6',topic:'6.7'},
+    {q:'Which configuration management tool is agentless and uses SSH to push configurations?',opts:['Puppet','Chef','Ansible','SaltStack'],ans:2,domain:'6',topic:'6.4'},
+    {q:'What is the southbound interface in an SDN architecture?',opts:['The API between the controller and applications','The API between the controller and network devices','The management console','The physical uplink to the WAN'],ans:1,domain:'6',topic:'6.2'},
+  ];
+
+  /* ═══════════════════════════════════════════════════════════════
+     DOMAIN NAMES
+     ═══════════════════════════════════════════════════════════════ */
+  var DOMAIN_NAMES = {
+    '1':'Network Fundamentals',
+    '2':'Network Access',
+    '3':'IP Connectivity',
+    '4':'IP Services',
+    '5':'Security Fundamentals',
+    '6':'Automation & Programmability'
+  };
+
+  /* ═══════════════════════════════════════════════════════════════
+     EXAM STATE
+     ═══════════════════════════════════════════════════════════════ */
+  var TOTAL = 50;
+  var TIME_LIMIT = 60 * 60; // 60 min in seconds
+  var PASS_THRESHOLD = 0.8;
+  var DOMAIN_COUNTS = {'1':10,'2':10,'3':13,'4':5,'5':7,'6':5};
+
+  var examQuestions = [];  // selected subset
+  var currentIdx = 0;
+  var answers = [];        // user answers: index or -1
+  var locked = [];         // which questions are locked
+  var timerInterval = null;
+  var timeRemaining = TIME_LIMIT;
+  var startTime = null;
+
+  /* ═══════════════════════════════════════════════════════════════
+     QUESTION SELECTION — weighted by domain
+     ═══════════════════════════════════════════════════════════════ */
+  function shuffle(arr) {
+    for (var i = arr.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var t = arr[i]; arr[i] = arr[j]; arr[j] = t;
+    }
+    return arr;
+  }
+
+  function selectQuestions() {
+    var selected = [];
+    for (var d in DOMAIN_COUNTS) {
+      var pool = QUESTIONS.filter(function(q){ return q.domain === d; });
+      shuffle(pool);
+      var need = DOMAIN_COUNTS[d];
+      // Take up to need; if pool is smaller, take all
+      selected = selected.concat(pool.slice(0, need));
+    }
+    // Final shuffle so domains aren't grouped
+    return shuffle(selected);
+  }
+
+  /* ═══════════════════════════════════════════════════════════════
+     START EXAM
+     ═══════════════════════════════════════════════════════════════ */
+  function startExam() {
+    examQuestions = selectQuestions();
+    TOTAL = examQuestions.length; // in case pool was short
+    answers = new Array(TOTAL).fill(-1);
+    locked = new Array(TOTAL).fill(false);
+    currentIdx = 0;
+    timeRemaining = TIME_LIMIT;
+    startTime = Date.now();
+
+    show('examScreen');
+    buildGrid();
+    renderQuestion();
+    startTimer();
+  }
+
+  /* ═══════════════════════════════════════════════════════════════
+     TIMER
+     ═══════════════════════════════════════════════════════════════ */
+  function startTimer() {
+    updateTimerDisplay();
+    timerInterval = setInterval(function() {
+      timeRemaining--;
+      if (timeRemaining <= 0) {
+        timeRemaining = 0;
+        clearInterval(timerInterval);
+        submitExam();
+      }
+      updateTimerDisplay();
+    }, 1000);
+  }
+
+  function updateTimerDisplay() {
+    var m = Math.floor(timeRemaining / 60);
+    var s = timeRemaining % 60;
+    var el = document.getElementById('timer');
+    el.textContent = String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0');
+    el.className = 'timer';
+    if (timeRemaining <= 300) el.classList.add('danger');
+    else if (timeRemaining <= 600) el.classList.add('warning');
+  }
+
+  /* ═══════════════════════════════════════════════════════════════
+     QUESTION RENDERING
+     ═══════════════════════════════════════════════════════════════ */
+  function renderQuestion() {
+    var q = examQuestions[currentIdx];
+    var letters = ['A','B','C','D'];
+
+    document.getElementById('qCounter').textContent = 'Question ' + (currentIdx+1) + ' / ' + TOTAL;
+    document.getElementById('qDomain').textContent = 'Domain ' + q.domain + ': ' + DOMAIN_NAMES[q.domain] + '  |  Topic ' + q.topic;
+    document.getElementById('qText').textContent = q.q;
+
+    var ol = document.getElementById('optionsList');
+    ol.innerHTML = '';
+
+    var isLocked = locked[currentIdx];
+
+    q.opts.forEach(function(opt, i) {
+      var btn = document.createElement('button');
+      btn.className = 'exam-option';
+      if (isLocked) btn.classList.add('locked');
+      if (answers[currentIdx] === i) btn.classList.add('selected');
+
+      btn.innerHTML = '<span class="opt-letter">' + letters[i] + '</span><span>' + opt + '</span>';
+
+      if (!isLocked) {
+        btn.onclick = function() { selectOption(i); };
+      }
+      ol.appendChild(btn);
+    });
+
+    // Next button
+    var nextBtn = document.getElementById('nextBtn');
+    if (currentIdx === TOTAL - 1) {
+      nextBtn.textContent = 'Submit Exam';
+      nextBtn.onclick = function() { confirmSubmit(); };
+    } else {
+      nextBtn.textContent = 'Next';
+      nextBtn.onclick = function() { nextQuestion(); };
+    }
+    nextBtn.disabled = (answers[currentIdx] === -1) && !isLocked;
+
+    updateGrid();
+  }
+
+  function selectOption(idx) {
+    if (locked[currentIdx]) return;
+    answers[currentIdx] = idx;
+    renderQuestion();
+  }
+
+  /* ═══════════════════════════════════════════════════════════════
+     NAVIGATION
+     ═══════════════════════════════════════════════════════════════ */
+  function nextQuestion() {
+    // Lock current question
+    if (answers[currentIdx] !== -1) {
+      locked[currentIdx] = true;
+    }
+
+    if (currentIdx < TOTAL - 1) {
+      currentIdx++;
+      renderQuestion();
+    }
+  }
+
+  function jumpTo(idx) {
+    // Can only jump to current or unlocked future questions
+    if (locked[idx] && idx !== currentIdx) return;
+    // Lock current if answered before jumping
+    if (answers[currentIdx] !== -1 && currentIdx !== idx) {
+      locked[currentIdx] = true;
+    }
+    currentIdx = idx;
+    renderQuestion();
+  }
+
+  /* ═══════════════════════════════════════════════════════════════
+     QUESTION GRID
+     ═══════════════════════════════════════════════════════════════ */
+  function buildGrid() {
+    var grid = document.getElementById('qGrid');
+    grid.innerHTML = '';
+    for (var i = 0; i < TOTAL; i++) {
+      var box = document.createElement('div');
+      box.className = 'q-box';
+      box.textContent = i + 1;
+      box.setAttribute('data-idx', i);
+      (function(idx) {
+        box.onclick = function() { jumpTo(idx); };
+      })(i);
+      grid.appendChild(box);
+    }
+  }
+
+  function updateGrid() {
+    var boxes = document.querySelectorAll('.q-box');
+    var answeredCount = 0;
+    boxes.forEach(function(box) {
+      var idx = parseInt(box.getAttribute('data-idx'));
+      box.className = 'q-box';
+      if (answers[idx] !== -1) {
+        box.classList.add('answered');
+        answeredCount++;
+      }
+      if (locked[idx]) box.classList.add('locked');
+      if (idx === currentIdx) box.classList.add('current');
+    });
+    document.getElementById('navProgress').textContent = answeredCount + ' / ' + TOTAL + ' answered';
+  }
+
+  /* ═══════════════════════════════════════════════════════════════
+     SUBMIT
+     ═══════════════════════════════════════════════════════════════ */
+  function confirmSubmit() {
+    var unanswered = answers.filter(function(a){ return a === -1; }).length;
+    var msg = unanswered > 0
+      ? 'You have ' + unanswered + ' unanswered question(s). Submit anyway?'
+      : 'Submit your exam?';
+    if (confirm(msg)) submitExam();
+  }
+
+  function submitExam() {
+    clearInterval(timerInterval);
+    var elapsed = Math.floor((Date.now() - startTime) / 1000);
+
+    // Score
+    var correct = 0;
+    var domainCorrect = {};
+    var domainTotal = {};
+
+    for (var d in DOMAIN_NAMES) { domainCorrect[d] = 0; domainTotal[d] = 0; }
+
+    examQuestions.forEach(function(q, i) {
+      domainTotal[q.domain]++;
+      var isCorrect = answers[i] === q.ans;
+      if (isCorrect) {
+        correct++;
+        domainCorrect[q.domain]++;
+      }
+      // Update store proficiency
+      if (typeof store !== 'undefined' && store.updateProficiency) {
+        store.updateProficiency(q.topic, isCorrect);
+      }
+    });
+
+    var pct = Math.round((correct / TOTAL) * 100);
+    var passed = pct >= (PASS_THRESHOLD * 100);
+
+    // Log quiz session
+    if (typeof store !== 'undefined' && store.addQuizSession) {
+      store.addQuizSession({
+        date: new Date().toISOString(),
+        type: 'exam-sim',
+        total: TOTAL,
+        correct: correct,
+        score: pct,
+        passed: passed,
+        elapsed: elapsed
+      });
+    }
+
+    // Update streak
+    if (typeof store !== 'undefined' && store.updateStreak) {
+      store.updateStreak();
+    }
+
+    // Log study time
+    if (typeof store !== 'undefined' && store.logStudyTime) {
+      store.logStudyTime(Math.ceil(elapsed / 60));
+    }
+
+    renderResults(correct, pct, passed, elapsed, domainCorrect, domainTotal);
+  }
+
+  /* ═══════════════════════════════════════════════════════════════
+     RESULTS RENDERING
+     ═══════════════════════════════════════════════════════════════ */
+  function renderResults(correct, pct, passed, elapsed, domainCorrect, domainTotal) {
+    show('resultsScreen');
+
+    // Banner
+    var banner = document.getElementById('resultBanner');
+    banner.className = 'result-banner ' + (passed ? 'pass' : 'fail');
+    document.getElementById('resultLabel').textContent = passed ? 'PASSED' : 'NOT YET PASSING';
+    document.getElementById('resultScore').textContent = pct + '%';
+    document.getElementById('resultDetail').textContent = correct + ' / ' + TOTAL + ' correct';
+
+    // Stats
+    var em = Math.floor(elapsed / 60);
+    var es = elapsed % 60;
+    var timeStr = em + 'm ' + String(es).padStart(2,'0') + 's';
+    var unused = TIME_LIMIT - elapsed;
+    var um = Math.floor(unused / 60);
+    var timeLeft = unused > 0 ? um + 'm remaining' : 'Time expired';
+
+    document.getElementById('resultStats').innerHTML =
+      '<div class="result-stat"><div class="rs-value">' + pct + '%</div><div class="rs-label">Score</div></div>' +
+      '<div class="result-stat"><div class="rs-value">' + timeStr + '</div><div class="rs-label">Time Used</div></div>' +
+      '<div class="result-stat"><div class="rs-value">' + timeLeft + '</div><div class="rs-label">Time Remaining</div></div>';
+
+    // Domain breakdown
+    var dbContainer = document.getElementById('domainBreakdown');
+    dbContainer.innerHTML = '<h2>Domain Breakdown</h2>';
+
+    for (var d = 1; d <= 6; d++) {
+      var ds = String(d);
+      var dc = domainCorrect[ds] || 0;
+      var dt = domainTotal[ds] || 0;
+      var dpct = dt > 0 ? Math.round((dc / dt) * 100) : 0;
+      var barColor = dpct >= 80 ? 'var(--prof-strong)' : dpct >= 60 ? 'var(--prof-mid)' : 'var(--prof-weak)';
+
+      var row = document.createElement('div');
+      row.className = 'db-row';
+      row.innerHTML =
+        '<div class="db-name">' + DOMAIN_NAMES[ds] + '</div>' +
+        '<div class="db-bar"><div class="db-fill" style="width:' + dpct + '%;background:' + barColor + '"></div></div>' +
+        '<div class="db-pct" style="color:' + barColor + '">' + dpct + '%</div>';
+      dbContainer.appendChild(row);
+    }
+
+    // Hide review section by default
+    document.getElementById('reviewSection').classList.add('hidden');
+  }
+
+  /* ═══════════════════════════════════════════════════════════════
+     REVIEW MODE
+     ═══════════════════════════════════════════════════════════════ */
+  function showReview() {
+    var section = document.getElementById('reviewSection');
+    section.classList.toggle('hidden');
+    if (section.innerHTML !== '') return; // already built
+
+    var letters = ['A','B','C','D'];
+    var html = '';
+
+    examQuestions.forEach(function(q, i) {
+      var userAns = answers[i];
+      var isCorrect = userAns === q.ans;
+      var badgeClass = isCorrect ? 'correct' : 'wrong';
+      var badgeText = isCorrect ? 'Correct' : 'Incorrect';
+
+      html += '<div class="review-item">';
+      html += '<div class="ri-header">';
+      html += '<span class="ri-num">Q' + (i+1) + '</span>';
+      html += '<span class="ri-badge ' + badgeClass + '">' + badgeText + '</span>';
+      html += '<span style="font-size:0.7rem;color:var(--ink-muted);margin-left:auto;">Domain ' + q.domain + ' | Topic ' + q.topic + '</span>';
+      html += '</div>';
+      html += '<p class="ri-question">' + q.q + '</p>';
+
+      q.opts.forEach(function(opt, oi) {
+        var cls = 'review-opt neutral';
+        if (oi === q.ans) cls = 'review-opt is-correct';
+        else if (oi === userAns && !isCorrect) cls = 'review-opt is-wrong';
+
+        var indicator = '';
+        if (oi === q.ans && oi === userAns) indicator = ' (Your answer - Correct)';
+        else if (oi === q.ans) indicator = ' (Correct answer)';
+        else if (oi === userAns) indicator = ' (Your answer)';
+
+        html += '<div class="' + cls + '"><span class="ro-letter">' + letters[oi] + '.</span><span>' + opt + indicator + '</span></div>';
+      });
+
+      html += '</div>';
+    });
+
+    section.innerHTML = html;
+  }
+
+  /* ═══════════════════════════════════════════════════════════════
+     RESTART
+     ═══════════════════════════════════════════════════════════════ */
+  function restartExam() {
+    document.getElementById('reviewSection').innerHTML = '';
+    show('startScreen');
+  }
+
+  /* ═══════════════════════════════════════════════════════════════
+     SCREEN TOGGLE
+     ═══════════════════════════════════════════════════════════════ */
+  function show(id) {
+    document.querySelectorAll('.screen').forEach(function(s) { s.classList.remove('active'); });
+    document.getElementById(id).classList.add('active');
+    window.scrollTo(0, 0);
+  }
+  </script>
+</body>
+</html>
