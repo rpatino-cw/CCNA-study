@@ -29,7 +29,7 @@
     .gc-toast.show{opacity:1;transform:translateY(0)}
     .gc-toggle{width:32px;height:32px;border-radius:50%;border:1px solid #E2DFD9;background:#1C1917;color:#FAF7F2;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:14px;margin-top:4px;transition:transform .15s}
     .gc-toggle:hover{transform:scale(1.1)}
-    .gc-panel{position:fixed;right:48px;top:50%;transform:translateY(-50%);z-index:8999;width:300px;max-height:420px;border-radius:12px;background:rgba(250,247,242,.95);border:1px solid #E2DFD9;box-shadow:-4px 4px 24px rgba(0,0,0,.12);backdrop-filter:blur(12px);display:flex;flex-direction:column;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s}
+    .gc-panel{position:fixed;right:80px;top:50%;transform:translateY(-50%);z-index:8999;width:300px;max-height:420px;border-radius:12px;background:rgba(250,247,242,.95);border:1px solid #E2DFD9;box-shadow:-4px 4px 24px rgba(0,0,0,.12);backdrop-filter:blur(12px);display:flex;flex-direction:column;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s}
     .gc-panel.open{opacity:1;pointer-events:auto}
     .gc-panel-head{padding:10px 14px;border-bottom:1px solid #E2DFD9;font-family:'Space Grotesk',system-ui,sans-serif;font-size:.78rem;font-weight:700;color:#1C1917;display:flex;justify-content:space-between;align-items:center}
     .gc-panel-head .gc-close{background:none;border:none;cursor:pointer;font-size:16px;color:#A8A29E;padding:0}
