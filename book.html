@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Book Reader — CCNA 200-301</title>
+<meta name="color-scheme" content="light">
+<link rel="icon" type="image/svg+xml" href="/CCNA-study/favicon.svg">
+<link rel="stylesheet" href="css/shared.css">
+<style>
+  .page-header{padding:var(--s-xl) 0 var(--s-lg);margin-bottom:var(--s-lg);border-bottom:2px solid var(--ink)}
+  .page-header h1{font-size:2.4rem;margin-bottom:4px}
+  .page-header .subtitle{font-family:var(--font-body);color:var(--ink-secondary);font-size:.95rem;font-style:italic}
+  .book-nav{display:flex;gap:8px;margin-bottom:var(--s-md);flex-wrap:wrap;align-items:center}
+  .book-select{padding:8px 12px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--font-body);font-size:.85rem;background:var(--bg-surface);color:var(--ink)}
+  .book-page{font-family:var(--font-mono);font-size:.82rem;color:var(--ink-muted)}
+  .pdf-frame{width:100%;height:80vh;border:1px solid var(--border);border-radius:var(--radius-lg)}
+  .no-book{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:40px;text-align:center}
+  .no-book h2{font-size:1.2rem;margin-bottom:8px}
+  .no-book p{font-family:var(--font-body);font-size:.88rem;color:var(--ink-secondary);line-height:1.6;max-width:50ch;margin:0 auto}
+  .toc-list{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;margin-bottom:var(--s-lg)}
+  .toc-part{font-family:var(--font-display);font-size:.82rem;font-weight:700;padding:10px 16px;background:var(--bg-recessed);color:var(--ink)}
+  .toc-ch{display:flex;justify-content:space-between;padding:8px 16px;border-bottom:1px solid var(--border);cursor:pointer;font-size:.82rem;transition:background .1s}
+  .toc-ch:hover{background:var(--bg-recessed)}
+  .toc-ch:last-child{border-bottom:none}
+  .toc-ch-name{font-family:var(--font-body);color:var(--ink-secondary)}
+  .toc-ch-page{font-family:var(--font-mono);color:var(--ink-muted);font-size:.72rem}
+</style>
+</head>
+<body>
+<div class="container-wide">
+  <nav class="top-nav" id="main-nav"></nav>
+
+  <header class="page-header">
+    <h1>Book Reader</h1>
+    <p class="subtitle">CCNA 200-301 Official Cert Guide — Wendell Odom. Jump to any chapter directly from CORE.</p>
+  </header>
+
+  <div class="book-nav">
+    <select class="book-select" id="bookSelect">
+      <option value="odom-vol2">Odom Vol 2 — ACLs, Security, Services, Automation</option>
+    </select>
+    <span class="book-page" id="pageInfo"></span>
+    <button class="btn btn-secondary btn-sm" onclick="document.getElementById('tocSection').style.display=document.getElementById('tocSection').style.display==='none'?'block':'none'">Table of Contents</button>
+  </div>
+
+  <!-- TOC -->
+  <div id="tocSection" style="display:none">
+    <div class="toc-list" id="tocList"></div>
+  </div>
+
+  <!-- PDF viewer or setup instructions -->
+  <div id="viewer"></div>
+</div>
+
+<script src="js/nav.js"></script>
+<script>
+const BOOKS = {
+  'odom-vol2': {
+    file: 'books/odom-vol2.pdf',
+    title: 'CCNA 200-301 Official Cert Guide, Volume 2',
+    pageOffset: 30, // PDF page offset (front matter pages before Ch 1 starts at printed page 3)
+    toc: [
+      {part:'Part I — IP Access Control Lists'},
+      {ch:1,title:'Introduction to TCP/IP Transport and Applications',page:4},
+      {ch:2,title:'Basic IPv4 Access Control Lists',page:24},
+      {ch:3,title:'Advanced IPv4 Access Control Lists',page:44},
+      {part:'Part II — Security Services'},
+      {ch:4,title:'Security Architectures',page:68},
+      {ch:5,title:'Securing Network Devices',page:86},
+      {ch:6,title:'Implementing Switch Port Security',page:106},
+      {ch:7,title:'Implementing DHCP',page:122},
+      {ch:8,title:'DHCP Snooping and ARP Inspection',page:144},
+      {part:'Part III — IP Services'},
+      {ch:9,title:'Device Management Protocols',page:172},
+      {ch:10,title:'Network Address Translation',page:202},
+      {ch:11,title:'Quality of Service (QoS)',page:226},
+      {ch:12,title:'Miscellaneous IP Services',page:254},
+      {part:'Part IV — Network Architecture'},
+      {ch:13,title:'LAN Architecture',page:288},
+      {ch:14,title:'WAN Architecture',page:302},
+      {ch:15,title:'Cloud Architecture',page:328},
+      {part:'Part V — Network Automation'},
+      {ch:16,title:'Introduction to Controller-Based Networking',page:356},
+      {ch:17,title:'Cisco Software-Defined Access (SDA)',page:382},
+      {ch:18,title:'Understanding REST and JSON',page:406},
+      {ch:19,title:'Understanding Ansible, Puppet, and Chef',page:428},
+      {part:'Part VI — Final Review'},
+      {ch:20,title:'Final Review',page:448},
+    ]
+  }
+};
+
+// Chapter-to-CCNA-objective mapping (Vol 2)
+const CH_MAP = {
+  1:'1.5', 2:'5.6', 3:'5.6',
+  4:'5.1', 5:'5.3', 6:'5.7', 7:'4.3', 8:'5.7',
+  9:'4.5', 10:'4.1', 11:'4.7', 12:'4.9',
+  13:'1.2', 14:'5.5', 15:'1.12',
+  16:'6.2', 17:'6.3', 18:'6.5', 19:'6.6',
+};
+
+function init() {
+  const params = new URLSearchParams(location.search);
+  const bookId = params.get('book') || 'odom-vol2';
+  const page = parseInt(params.get('page')) || 0;
+  const book = BOOKS[bookId];
+  if (!book) return;
+
+  // Render TOC
+  document.getElementById('tocList').innerHTML = book.toc.map(item => {
+    if (item.part) return '<div class="toc-part">' + item.part + '</div>';
+    return '<div class="toc-ch" onclick="goToPage(' + item.page + ')"><span class="toc-ch-name">Ch ' + item.ch + ' — ' + item.title + '</span><span class="toc-ch-page">p.' + item.page + '</span></div>';
+  }).join('');
+
+  // Check if PDF exists by trying to load it
+  const pdfPage = page > 0 ? page + book.pageOffset : 1;
+  document.getElementById('pageInfo').textContent = page > 0 ? 'Page ' + page : '';
+
+  // Try to embed PDF
+  const pdfUrl = book.file + '#page=' + pdfPage;
+  document.getElementById('viewer').innerHTML =
+    '<iframe class="pdf-frame" src="' + pdfUrl + '" id="pdfFrame"></iframe>' +
+    '<div class="no-book" id="fallback" style="display:none">' +
+    '<h2>PDF not found</h2>' +
+    '<p>Place your PDF at: <code>' + book.file + '</code></p>' +
+    '<p style="margin-top:12px">This file is gitignored and stays on your local machine only. It is never uploaded to GitHub.</p>' +
+    '</div>';
+
+  // If iframe fails to load, show fallback
+  document.getElementById('pdfFrame').onerror = function() {
+    document.getElementById('pdfFrame').style.display = 'none';
+    document.getElementById('fallback').style.display = 'block';
+  };
+}
+
+function goToPage(page) {
+  const params = new URLSearchParams(location.search);
+  params.set('page', page);
+  location.search = params.toString();
+}
+
+init();
+</script>
+</body>
+</html>
