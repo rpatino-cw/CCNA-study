@@ -208,6 +208,15 @@
       </div>
       <div class="lobby-err" id="joinErr"></div>
     </div>
+    <div class="lobby-card">
+      <h3>Link Another Device</h3>
+      <p style="font-size:.82rem;color:var(--ink-secondary);margin-bottom:12px">Already in a group on another device? Link this device to your existing identity.</p>
+      <div class="lobby-row">
+        <input type="text" class="lobby-input" id="linkClaimInput" placeholder="LINK CODE" maxlength="6">
+        <button class="btn btn-secondary" id="btnLinkClaim">Link</button>
+      </div>
+      <div class="lobby-err" id="linkErr"></div>
+    </div>
   </div>
 
   <!-- Group Dashboard -->
@@ -326,6 +335,11 @@
       </div>
     </div>
 
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:var(--s-md)">
+      <button class="btn btn-secondary btn-sm" id="btnLinkCreate">Link Another Device</button>
+      <span id="linkCodeDisplay" style="font-family:var(--font-mono);font-size:1rem;font-weight:700;letter-spacing:.15em;color:var(--accent);display:none"></span>
+      <span id="linkCodeHint" style="font-size:.72rem;color:var(--ink-muted);display:none">Enter this code on your other device (expires in 5 min)</span>
+    </div>
     <button class="leave-btn" id="btnLeave">Leave Group</button>
   </div>
 </div>
@@ -428,6 +442,32 @@ document.getElementById('btnLeave').addEventListener('click', async () => {
   localStorage.removeItem('ccna_peer_group');
   stopChatPoll();
   showState('lobby');
+});
+
+// ── Link Device ───────────────────────────────────────────────
+document.getElementById('btnLinkCreate').addEventListener('click', async () => {
+  const res = await apiPost('/api/link/create', { memberId: getMemberId(), name: getName(), groupCode: getGroupCode() });
+  if (res.code) {
+    document.getElementById('linkCodeDisplay').textContent = res.code;
+    document.getElementById('linkCodeDisplay').style.display = '';
+    document.getElementById('linkCodeHint').style.display = '';
+    document.getElementById('btnLinkCreate').textContent = 'Code Generated';
+    setTimeout(() => { document.getElementById('btnLinkCreate').textContent = 'Link Another Device'; document.getElementById('linkCodeDisplay').style.display = 'none'; document.getElementById('linkCodeHint').style.display = 'none'; }, 300000);
+  }
+});
+
+document.getElementById('btnLinkClaim').addEventListener('click', async () => {
+  const code = document.getElementById('linkClaimInput').value.trim().toUpperCase();
+  if (code.length !== 6) { showErr('linkErr', 'Enter 6-character link code'); return; }
+  const res = await apiPost('/api/link/claim', { code });
+  if (res.error) { showErr('linkErr', res.error); return; }
+  localStorage.setItem('ccna_peer_id', res.memberId);
+  localStorage.setItem('ccna_peer_name', res.name);
+  if (res.groupCode) localStorage.setItem('ccna_peer_group', res.groupCode);
+  document.getElementById('nameInput').value = res.name;
+  showErr('linkErr', ''); // clear
+  alert('Device linked! You are now ' + res.name);
+  location.reload();
 });
 
 // ── Copy Link ─────────────────────────────────────────────────
