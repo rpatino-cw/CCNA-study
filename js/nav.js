@@ -19,6 +19,8 @@
       { text: 'Console Labs', href: 'console-labs.html' },
       { text: 'PT Labs', href: 'labs/index.html' },
       { text: 'Packet Race', href: 'packet-race.html' },
+      { text: 'OSPF Mastery', href: 'ospf-mastery.html' },
+      { text: 'Subnet Mastery', href: 'subnetting-mastery.html' },
       { text: '3D Explorer', href: 'cidr-3d.html' },
       { text: '3D Topology', href: 'topology-3d.html' },
     ]},
