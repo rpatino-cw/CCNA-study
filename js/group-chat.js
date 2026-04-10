@@ -122,7 +122,7 @@
     entries.forEach(function(entry,i){
       var id=entry[0],m=entry[1];
       var lastSync=m.lastSync?new Date(m.lastSync).getTime():0;
-      var isOnline=now-lastSync<300000; // 5 min
+      var isOnline=now-lastSync<600000; // 10 min
       var color=COLORS[i%COLORS.length];
       var initial=(m.name||'?')[0].toUpperCase();
       var isYou=id===memberId;
