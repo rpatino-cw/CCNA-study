@@ -19,6 +19,7 @@
       { text: 'Devices', href: 'devices.html' },
       { text: 'Glossary', href: 'glossary.html' },
       { text: 'Resources', href: 'resources.html' },
+      { text: 'Books', href: 'book.html' },
     ]},
     { text: 'Practice', children: [
       { text: 'Diagnostic', href: 'diagnostic.html' },
