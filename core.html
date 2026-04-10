@@ -1297,11 +1297,18 @@ function render(){
   document.getElementById('continueBar').innerHTML=continueObj?
     '<div style="padding:10px 16px;background:rgba(180,83,9,.06);border-left:3px solid var(--accent);border-radius:0 var(--radius) var(--radius) 0;margin-bottom:var(--s-md);font-family:var(--font-display);font-size:.82rem;cursor:pointer" onclick="document.getElementById(\'obj-'+continueObj.id+'\').scrollIntoView({behavior:\'smooth\'});toggleObj(\''+continueObj.id+'\')">Continue: <strong>'+continueObj.id+' '+continueObj.name+'</strong> — '+Math.round((prof[continueObj.id]||0)*100)+'% proficiency</div>':'';
 
-  // Filter weak only
-  const showWeak=localStorage.getItem('ccna_core_filter')==='weak';
-  document.getElementById('filterBar').innerHTML=
-    '<button style="font-family:var(--font-display);font-size:.72rem;padding:6px 14px;background:'+(showWeak?'var(--accent)':'var(--bg-surface)')+';color:'+(showWeak?'#fff':'var(--ink-muted)')+';border:1px solid '+(showWeak?'var(--accent)':'var(--border)')+';border-radius:var(--radius);cursor:pointer" onclick="localStorage.setItem(\'ccna_core_filter\',localStorage.getItem(\'ccna_core_filter\')===\'weak\'?\'\':\'weak\');render()">'+
-    (showWeak?'Show All':'Show Weak Only')+'</button>';
+  // Filter modes: '' = all, 'weak' = below 70%, 'speed' = speed run (below 70% + auto-expand + quick path only)
+  const filterMode=localStorage.getItem('ccna_core_filter')||'';
+  const showWeak=filterMode==='weak'||filterMode==='speed';
+  function fbtn(mode,label){
+    var active=filterMode===mode;
+    return'<button style="font-family:var(--font-display);font-size:.72rem;padding:6px 14px;background:'+(active?'var(--accent)':'var(--bg-surface)')+';color:'+(active?'#fff':'var(--ink-muted)')+';border:1px solid '+(active?'var(--accent)':'var(--border)')+';border-radius:var(--radius);cursor:pointer" onclick="localStorage.setItem(\'ccna_core_filter\',\''+mode+'\');render()">'+label+'</button>';
+  }
+  var weakCount=0;domains.forEach(d=>d.topics.forEach(t=>{if(isNetPlus&&!NP_SET.has(t.id))return;if((prof[t.id]||0)<0.7)weakCount++;}));
+  document.getElementById('filterBar').innerHTML='<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">'+
+    fbtn('','Show All')+fbtn('weak','Weak Only ('+weakCount+')')+fbtn('speed','Speed Run ('+weakCount+')')+
+    (filterMode==='speed'?'<span style="font-family:var(--font-body);font-size:.75rem;color:var(--ink-muted);margin-left:8px">Only objectives below 70%. Watch, quiz, pass, next.</span>':'')+
+    '</div>';
 
   // Spaced repetition — topics due for review
   const dueTopics=store.getDueForReview(7);
@@ -1330,6 +1337,7 @@ function render(){
       const isMastered=!!mastered[t.id];
       const isCCNAOnly=isNetPlus&&!NP_SET.has(t.id);
       const hideCard=showWeak&&(isMastered||(prof[t.id]||0)>=0.7);
+      const isSpeedRun=filterMode==='speed';
       const subs=t.subtopics?'<ul class="obj-subs">'+t.subtopics.map(s=>'<li>'+esc(typeof s==='object'?s.name:s)+'</li>').join('')+'</ul>':'';
 
       let resHtml='';
@@ -1403,12 +1411,12 @@ function render(){
           '<span class="obj-name">'+esc(t.name)+'</span>'+
           '<div class="obj-prof"><div class="obj-bar"><div class="obj-fill" style="width:'+p+'%;background:'+profColor(p/100)+'"></div></div><span class="obj-pct" style="color:'+profColor(p/100)+'">'+p+'%</span></div>'+
         '</div>'+
-        '<div class="obj-body" id="objbody-'+t.id+'">'+
-          subs+
+        '<div class="obj-body'+(isSpeedRun?' open':'')+'" id="objbody-'+t.id+'">'+
+          (isSpeedRun?'':subs)+
           buildQuickPath(t,r,domainNum)+
-          '<div class="res-section"><div class="res-title">Practice on This Site</div>'+siteHtml+'</div>'+
+          (isSpeedRun?'':'<div class="res-section"><div class="res-title">Practice on This Site</div>'+siteHtml+'</div>'+
           '<div class="res-toggle" onclick="var el=this.nextElementSibling;el.classList.toggle(\'open\');this.querySelector(\'.caret\').classList.toggle(\'open\')"><span class="caret">&#9656;</span> All Resources ('+countResources(r)+')</div>'+
-          '<div class="res-all"><div class="res-section">'+resHtml+'</div></div>'+
+          '<div class="res-all"><div class="res-section">'+resHtml+'</div></div>')+
         '</div></div>';
     }catch(e){return'<div class="obj-card" style="padding:10px;color:var(--prof-weak);font-size:.78rem">Error rendering '+t.id+': '+e.message+'</div>';}
     }).join('');
@@ -1427,13 +1435,24 @@ function render(){
       '<div class="ds-body" id="dbody-'+d.id+'">'+quizBadge+topicsHtml+'</div></div>';
   }).join('');
 
-  // Auto-expand weakest domain
-  let weakestId='1', weakestAvg=Infinity;
-  domains.forEach(d=>{let s=0;d.topics.forEach(t=>s+=(prof[t.id]||0));const a=s/d.topics.length;if(a<weakestAvg){weakestAvg=a;weakestId=d.id;}});
-  const wb=document.getElementById('dbody-'+weakestId);
-  const wt=document.getElementById('dtoggle-'+weakestId);
-  if(wb)wb.classList.add('open');
-  if(wt)wt.classList.add('open');
+  // Auto-expand domains
+  if(filterMode==='speed'){
+    // Speed run: expand ALL domains
+    domains.forEach(d=>{
+      var b=document.getElementById('dbody-'+d.id);
+      var t=document.getElementById('dtoggle-'+d.id);
+      if(b)b.classList.add('open');
+      if(t)t.classList.add('open');
+    });
+  }else{
+    // Normal: expand weakest domain only
+    let weakestId='1', weakestAvg=Infinity;
+    domains.forEach(d=>{let s=0;d.topics.forEach(t=>s+=(prof[t.id]||0));const a=s/d.topics.length;if(a<weakestAvg){weakestAvg=a;weakestId=d.id;}});
+    const wb=document.getElementById('dbody-'+weakestId);
+    const wt=document.getElementById('dtoggle-'+weakestId);
+    if(wb)wb.classList.add('open');
+    if(wt)wt.classList.add('open');
+  }
 }
 
 function toggleDomain(id){
