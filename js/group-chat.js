@@ -9,6 +9,8 @@
   var COLORS=['#B45309','#0369A1','#7C3AED','#059669','#DB2777','#D97706','#4338CA','#DC2626','#0D9488','#9333EA'];
   var isOpen=false, pollTimer=null, lastMessages=0;
   var prefix=location.pathname.indexOf('/labs/')>=0?'../':'';
+  var prevOnlineState={};       // {memberId: bool} — tracks who was online last render
+  var notifyCooldowns={};       // {memberId: timestamp} — 30s grace period per user
 
   // ── Inject CSS ──────────────────────────────────────────────
   var css=document.createElement('style');
@@ -18,8 +20,13 @@
     .gc-dot{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Space Grotesk',system-ui,sans-serif;font-size:.65rem;font-weight:700;color:#fff;cursor:pointer;position:relative;transition:transform .15s}
     .gc-dot:hover{transform:scale(1.15)}
     .gc-dot .gc-status{position:absolute;bottom:-1px;right:-1px;width:10px;height:10px;border-radius:50%;border:2px solid #FAF7F2}
-    .gc-dot .gc-status.online{background:#16A34A}
-    .gc-dot .gc-status.offline{background:#A8A29E}
+    .gc-dot .gc-status.online{background:#16A34A;animation:gc-breathe 2s ease-in-out infinite}
+    .gc-dot .gc-status.offline{background:#DC2626}
+    @keyframes gc-breathe{0%,100%{box-shadow:0 0 0 0 rgba(22,163,74,.4);transform:scale(1)}50%{box-shadow:0 0 0 4px rgba(22,163,74,0);transform:scale(1.15)}}
+    .gc-name{font-family:'Space Grotesk',system-ui,sans-serif;font-size:.55rem;color:#57534E;max-width:60px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center;line-height:1.2;margin-top:1px}
+    .gc-member{display:flex;flex-direction:column;align-items:center;gap:1px}
+    .gc-toast{position:fixed;top:16px;right:16px;z-index:9999;padding:10px 16px;background:rgba(22,163,74,.12);border:1px solid rgba(22,163,74,.3);border-radius:8px;font-family:'Space Grotesk',system-ui,sans-serif;font-size:.78rem;font-weight:600;color:#15803D;pointer-events:none;opacity:0;transform:translateY(-8px);transition:opacity .3s,transform .3s}
+    .gc-toast.show{opacity:1;transform:translateY(0)}
     .gc-toggle{width:32px;height:32px;border-radius:50%;border:1px solid #E2DFD9;background:#1C1917;color:#FAF7F2;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:14px;margin-top:4px;transition:transform .15s}
     .gc-toggle:hover{transform:scale(1.1)}
     .gc-panel{position:fixed;right:48px;top:50%;transform:translateY(-50%);z-index:8999;width:300px;max-height:420px;border-radius:12px;background:rgba(250,247,242,.95);border:1px solid #E2DFD9;box-shadow:-4px 4px 24px rgba(0,0,0,.12);backdrop-filter:blur(12px);display:flex;flex-direction:column;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s}
@@ -97,20 +104,45 @@
     }).catch(function(){});
   }
 
+  function showOnlineToast(name){
+    var t=document.createElement('div');
+    t.className='gc-toast';
+    t.textContent=name+' is online';
+    document.body.appendChild(t);
+    requestAnimationFrame(function(){requestAnimationFrame(function(){t.classList.add('show');});});
+    setTimeout(function(){t.classList.remove('show');setTimeout(function(){t.remove();},400);},3000);
+  }
+
   function renderGroup(g){
-    // Online presence dots
+    // Online presence dots + names
     var entries=Object.entries(g.members);
     entries.sort(function(a,b){return(a[1].joinedAt||'').localeCompare(b[1].joinedAt||'');});
     var dotsHtml='';
+    var now=Date.now();
     entries.forEach(function(entry,i){
       var id=entry[0],m=entry[1];
       var lastSync=m.lastSync?new Date(m.lastSync).getTime():0;
-      var isOnline=Date.now()-lastSync<300000; // 5 min
+      var isOnline=now-lastSync<300000; // 5 min
       var color=COLORS[i%COLORS.length];
       var initial=(m.name||'?')[0].toUpperCase();
       var isYou=id===memberId;
-      dotsHtml+='<div class="gc-dot" style="background:'+color+'" title="'+(m.name||'?')+(isYou?' (you)':'')+(isOnline?' — online':' — offline')+'">'+
-        initial+'<span class="gc-status '+(isOnline?'online':'offline')+'"></span></div>';
+      var displayName=(m.name||'?')+(isYou?' (you)':'');
+
+      // Detect online transition — notify with 30s grace period
+      var wasOnline=prevOnlineState[id];
+      if(isOnline&&wasOnline===false&&id!==memberId){
+        var lastNotify=notifyCooldowns[id]||0;
+        if(now-lastNotify>30000){
+          showOnlineToast(m.name||'Someone');
+          notifyCooldowns[id]=now;
+        }
+      }
+      prevOnlineState[id]=isOnline;
+
+      dotsHtml+='<div class="gc-member">'+
+        '<div class="gc-dot" style="background:'+(isOnline?color:'#78716C')+';opacity:'+(isOnline?'1':'.5')+'" title="'+displayName+(isOnline?' — online':' — offline')+'">'+
+        initial+'<span class="gc-status '+(isOnline?'online':'offline')+'"></span></div>'+
+        '<div class="gc-name" style="color:'+(isOnline?'#1C1917':'#A8A29E')+'">'+escHtml(m.name||'?')+'</div></div>';
     });
     var toggle=document.getElementById('gcToggle').outerHTML;
     bar.innerHTML=dotsHtml+toggle;
