@@ -89,7 +89,7 @@
 
   <header class="page-header">
     <h1>Glossary</h1>
-    <p class="subtitle">Every CCNA term. Click to expand. Quiz yourself on definitions.</p>
+    <p class="subtitle" id="glossarySub">Every CCNA term. Click to expand. Quiz yourself on definitions.</p>
   </header>
 
   <div class="mode-tabs">
@@ -430,6 +430,30 @@ const TERMS = [
   {t:"Autonomous AP",d:"An access point that operates independently with its own configuration. No WLC required. Suitable for small deployments.",domains:["2"],related:["Lightweight AP","WLC"]},
 ];
 
+// ── CERT TRACK AWARENESS ──────────────────────────────────────
+const isNetPlus = localStorage.getItem('ccna_cert_track') === 'net+';
+const CCNA_ONLY = new Set([
+  'CDP','DTP','VTP','VTP Pruning','PAgP','EIGRP','CEF',
+  'HSRP','GLBP','HSRP Preemption',
+  'ABR','ASBR','DR','BDR','LSA','LSDB','OSPF LSA Types','OSPF Cost',
+  'Router ID','SPF Algorithm','OSPF Neighbor States','Area',
+  'Stub Area','NSSA','Totally Stubby Area','Adjacency','Summarization',
+  'Router-on-a-Stick','Subinterface','SVI','Routed Port','Voice VLAN','Port Channel',
+  'Root Guard','Loop Guard','UDLD','Storm Control','Err-Disabled',
+  'DAI','DHCP Snooping','IPSG','MAB',
+  'ACE','Named ACL','Standard ACL','Extended ACL',
+  'Static NAT','Dynamic NAT','NAT Pool','NAT Address Types','IP Helper-Address',
+  'CoS','Marking','Queuing','Policing','Shaping','NTP Stratum',
+  'Syslog Severity Levels','SNMPv3','DHCP Lease Time','DHCP Options',
+  'DNA Center','Catalyst Center','SD-Access','SD-WAN','Intent-Based Networking',
+  'NETCONF','RESTCONF','YANG','Ansible','Puppet','Terraform',
+  'Python for Network Automation','Underlay','Overlay','Fabric','Spine-Leaf',
+  'VXLAN','XML','Classful','Classless','Distance Vector','Link State',
+  'Floating Static Route','GRE Tunnel','Proxy ARP','Gratuitous ARP'
+]);
+
+if (isNetPlus) document.getElementById('glossarySub').textContent = 'Network+ relevant terms highlighted. CCNA-only terms dimmed.';
+
 // ── RENDER BROWSE MODE ────────────────────────────────────────
 let activeDomain = 'all';
 let searchQuery = '';
@@ -442,7 +466,8 @@ function renderTerms() {
     return true;
   });
   filtered.sort((a, b) => a.t.localeCompare(b.t));
-  document.getElementById('searchCount').textContent = `${filtered.length} terms`;
+  const activeCount = isNetPlus ? filtered.filter(t => !CCNA_ONLY.has(t.t)).length : filtered.length;
+  document.getElementById('searchCount').textContent = isNetPlus ? `${activeCount} active / ${filtered.length} total` : `${filtered.length} terms`;
 
   // Group by letter
   const groups = {};
@@ -456,19 +481,28 @@ function renderTerms() {
   Object.keys(groups).sort().forEach(letter => {
     html += `<div class="letter-group" id="letter-${letter}"><div class="letter-header">${letter}</div>`;
     groups[letter].forEach(t => {
+      const isCO = isNetPlus && CCNA_ONLY.has(t.t);
       const dtags = t.domains.map(d => `<span class="term-dtag" data-d="${d}">D${d}</span>`).join('');
       const cmdHtml = t.cmd ? `<div class="term-cmd">${esc(t.cmd)}</div>` : '';
       const relHtml = t.related ? `<div class="term-related">Related: ${t.related.map(r => `<a onclick="searchFor('${esc(r)}')">${esc(r)}</a>`).join(', ')}</div>` : '';
-      html += `<div class="term-row" onclick="this.classList.toggle('open')" id="term-${esc(t.t)}">
-        <span class="term-name">${esc(t.t)}</span>
-        <span class="term-brief">${esc(t.d)}</span>
-        <span class="term-domains">${dtags}</span>
-      </div>
-      <div class="term-expand">
-        <div class="term-def">${esc(t.d)}</div>
-        ${cmdHtml}
-        ${relHtml}
-      </div>`;
+      if (isCO) {
+        html += `<div class="term-row" style="opacity:.25;pointer-events:none" id="term-${esc(t.t)}">
+          <span class="term-name" style="color:var(--ink-muted)">${esc(t.t)}</span>
+          <span class="term-brief" style="color:var(--ink-muted)">${esc(t.d)}</span>
+          <span style="font-family:var(--font-mono);font-size:.55rem;color:var(--ink-muted)">CCNA</span>
+        </div>`;
+      } else {
+        html += `<div class="term-row"${isNetPlus ? ' style="border-left:3px solid #7C3AED;padding-left:11px"' : ''} onclick="this.classList.toggle('open')" id="term-${esc(t.t)}">
+          <span class="term-name">${esc(t.t)}</span>
+          <span class="term-brief">${esc(t.d)}</span>
+          <span class="term-domains">${dtags}</span>
+        </div>
+        <div class="term-expand">
+          <div class="term-def">${esc(t.d)}</div>
+          ${cmdHtml}
+          ${relHtml}
+        </div>`;
+      }
     });
     html += '</div>';
   });
@@ -530,12 +564,13 @@ function nextQuizQ() {
   document.getElementById('quizNext').classList.remove('show');
   document.getElementById('quizScore').textContent = `${qCorrect} / ${qTotal}`;
 
-  // Pick a random term
-  const correct = TERMS[Math.floor(Math.random() * TERMS.length)];
+  // Pick a random term (filter for Net+ if applicable)
+  const pool = isNetPlus ? TERMS.filter(t => !CCNA_ONLY.has(t.t)) : TERMS;
+  const correct = pool[Math.floor(Math.random() * pool.length)];
   // Pick 3 wrong options
   const wrongs = [];
   while (wrongs.length < 3) {
-    const r = TERMS[Math.floor(Math.random() * TERMS.length)];
+    const r = pool[Math.floor(Math.random() * pool.length)];
     if (r.t !== correct.t && !wrongs.some(w => w.t === r.t)) wrongs.push(r);
   }
 
