@@ -156,6 +156,8 @@
   .sched-overlap-item .pair-suggest{font-family:var(--font-display);font-size:.72rem;color:#059669;font-weight:600;margin-top:2px}
 
 
+  @keyframes mc-breathe{0%,100%{box-shadow:0 0 0 0 rgba(22,163,74,.4)}50%{box-shadow:0 0 0 4px rgba(22,163,74,0)}}
+
   /* Digest */
   .digest-card{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;margin-bottom:var(--s-lg);border-left:3px solid var(--accent)}
   .digest-title{font-family:var(--font-display);font-size:1rem;font-weight:700;margin-bottom:10px}
@@ -389,6 +391,7 @@
 <script src="js/store.js"></script>
 <script src="js/sync.js"></script>
 <script src="js/nav.js"></script>
+<script src="js/group-chat.js"></script>
 <script>
 const API = 'https://ccna-tutor.rpatino-cw.workers.dev';
 const DOMAIN_NAMES = { '1': 'Net Fundamentals', '2': 'Net Access', '3': 'IP Connectivity', '4': 'IP Services', '5': 'Security', '6': 'Automation' };
@@ -563,13 +566,15 @@ function renderOverview(group) {
     const quizzes = p.quizStats?.taken || 0;
     const ago = m.lastSync ? timeAgo(m.lastSync) : 'never';
     const staleMs = m.lastSync ? Date.now() - new Date(m.lastSync).getTime() : Infinity;
+    const isOnline = staleMs < 300000; // 5 min = online
     const stale = staleMs > 3 * 86400000;
     const veryStale = staleMs > 7 * 86400000;
     const isAdmin = myId === group.createdBy;
     const nudgeHtml = !isYou && stale ? '<span class="nudge-badge">' + (veryStale ? 'INACTIVE' : 'STALE') + '</span>' + '<button class="nudge-btn" onclick="sendNudge(\'' + esc(m.name) + '\')">Send Nudge</button>' : '';
     const kickHtml = !isYou && isAdmin ? '<button class="nudge-btn" style="margin-left:4px;color:var(--ink-muted);border-color:var(--border)" onclick="removeMember(\'' + id + '\',\'' + esc(m.name) + '\')">Remove</button>' : '';
+    const statusDot = '<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:' + (isOnline ? '#16A34A' : '#DC2626') + ';margin-right:5px;vertical-align:middle' + (isOnline ? ';animation:mc-breathe 2s ease-in-out infinite' : '') + '" title="' + (isOnline ? 'Online' : 'Offline') + '"></span>';
     return '<div class="member-card ' + (isYou ? 'you' : '') + '" style="border-top:3px solid ' + color + '">' +
-      '<div class="mc-name" style="color:' + color + '">' + esc(m.name) + (isYou ? ' <span class="mc-you">(you)</span>' : '') + (id === group.createdBy ? ' <span style="font-size:.58rem;background:var(--accent);color:#fff;padding:1px 5px;border-radius:4px;vertical-align:middle">ADMIN</span>' : '') + ' <span style="font-size:.55rem;background:' + (p.certTrack === 'net+' ? '#7C3AED' : '#2563EB') + ';color:#fff;padding:1px 5px;border-radius:4px;vertical-align:middle">' + (p.certTrack === 'net+' ? 'N+' : 'CCNA') + '</span>' + nudgeHtml + kickHtml + '</div>' +
+      '<div class="mc-name" style="color:' + color + '">' + statusDot + esc(m.name) + (isYou ? ' <span class="mc-you">(you)</span>' : '') + (id === group.createdBy ? ' <span style="font-size:.58rem;background:var(--accent);color:#fff;padding:1px 5px;border-radius:4px;vertical-align:middle">ADMIN</span>' : '') + ' <span style="font-size:.55rem;background:' + (p.certTrack === 'net+' ? '#7C3AED' : '#2563EB') + ';color:#fff;padding:1px 5px;border-radius:4px;vertical-align:middle">' + (p.certTrack === 'net+' ? 'N+' : 'CCNA') + '</span>' + nudgeHtml + kickHtml + '</div>' +
       '<div class="mc-stats">' +
         '<div class="mc-stat"><div class="val">' + readiness + '%</div><div class="lbl">Readiness</div></div>' +
         '<div class="mc-stat"><div class="val">' + streak + 'd</div><div class="lbl">Streak</div></div>' +
