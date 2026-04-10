@@ -864,18 +864,7 @@ function renderSchedule(group) {
   html += '</div>';
   document.getElementById('schedGrid').innerHTML = html;
 
-  // Click to toggle
-  document.getElementById('schedGrid').addEventListener('click', e => {
-    const cell = e.target.closest('.sched-cell');
-    if (!cell || cell.classList.contains('header') || cell.classList.contains('day-label')) return;
-    const day = cell.dataset.day, hour = parseInt(cell.dataset.hour);
-    if (!mySchedule[day]) mySchedule[day] = [];
-    const idx = mySchedule[day].indexOf(hour);
-    if (idx >= 0) mySchedule[day].splice(idx, 1); else mySchedule[day].push(hour);
-    mySchedule[day].sort((a,b) => a - b);
-    localStorage.setItem('ccna_peer_schedule', JSON.stringify(mySchedule));
-    if (cachedGroup) renderSchedule(cachedGroup);
-  });
+  // Click handler is attached once below (schedClickAttached flag)
 
   // Overlap suggestions — group consecutive hours per member combo
   const suggestions = [];
@@ -916,6 +905,29 @@ function renderSchedule(group) {
   }
   document.getElementById('schedOverlaps').innerHTML = ovlHtml;
 }
+
+// One-time click handler for schedule grid (event delegation — survives re-renders)
+var schedClickAttached = false;
+function attachScheduleClick() {
+  if (schedClickAttached) return;
+  var grid = document.getElementById('schedGrid');
+  if (!grid) return;
+  schedClickAttached = true;
+  grid.addEventListener('click', function(e) {
+    var cell = e.target.closest('.sched-cell');
+    if (!cell || cell.classList.contains('header') || cell.classList.contains('day-label')) return;
+    var day = cell.dataset.day, hour = parseInt(cell.dataset.hour);
+    if (!mySchedule[day]) mySchedule[day] = [];
+    var idx = mySchedule[day].indexOf(hour);
+    if (idx >= 0) mySchedule[day].splice(idx, 1); else mySchedule[day].push(hour);
+    mySchedule[day].sort(function(a,b){return a - b;});
+    localStorage.setItem('ccna_peer_schedule', JSON.stringify(mySchedule));
+    if (cachedGroup) renderSchedule(cachedGroup);
+  });
+}
+// Attach on first tab switch to schedule, or when grid first renders
+var schedObserver = new MutationObserver(function() { attachScheduleClick(); });
+schedObserver.observe(document.getElementById('schedGrid') || document.body, { childList: true, subtree: true });
 
 document.getElementById('btnSaveSched').addEventListener('click', async () => {
   const res = await apiAction('schedule', { memberId: getMemberId(), schedule: mySchedule });
