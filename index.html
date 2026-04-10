@@ -578,6 +578,7 @@
       let html = '';
       html += isFirstVisit() ? renderWelcome() : renderBrief(pos);
       html += renderMetrics(stats);
+      html += renderDailyGoals(stats);
       html += renderIntro();
       html += renderDomains(domains);
       html += renderLinks();
@@ -702,6 +703,38 @@
           </div>
           <div class="metric" style="display:flex;align-items:flex-end">
             <button class="btn btn-ghost btn-sm" onclick="resetEntireSite()" style="color:var(--prof-weak);font-size:0.72rem">Reset All Stats</button>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderDailyGoals(stats) {
+      // Check daily goals from localStorage (reset daily)
+      const today = new Date().toISOString().split('T')[0];
+      const saved = JSON.parse(localStorage.getItem('ccna_daily_goals') || '{}');
+      const goals = saved.date === today ? saved : { date: today, quiz: false, study: false, questions: 0 };
+
+      // Auto-detect from stats
+      const todayQuizzes = stats.quizzesTaken > 0;
+      const todayStudy = stats.totalMinutes > 0;
+      const todayQuestions = goals.questions || 0;
+
+      return `
+        <div style="background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px 20px;margin-bottom:var(--s-lg)">
+          <div style="font-family:var(--font-display);font-size:.82rem;font-weight:700;margin-bottom:10px">Daily Goals</div>
+          <div style="display:flex;gap:20px;flex-wrap:wrap;font-family:var(--font-body);font-size:.82rem;color:var(--ink-secondary)">
+            <label style="display:flex;align-items:center;gap:6px;cursor:pointer">
+              <input type="checkbox" ${goals.quiz ? 'checked' : ''} onchange="toggleGoal('quiz',this.checked)" style="accent-color:var(--accent)">
+              Take 1 quiz
+            </label>
+            <label style="display:flex;align-items:center;gap:6px;cursor:pointer">
+              <input type="checkbox" ${goals.study ? 'checked' : ''} onchange="toggleGoal('study',this.checked)" style="accent-color:var(--accent)">
+              Study 15 minutes
+            </label>
+            <label style="display:flex;align-items:center;gap:6px;cursor:pointer">
+              <input type="checkbox" ${goals.questions ? 'checked' : ''} onchange="toggleGoal('questions',this.checked)" style="accent-color:var(--accent)">
+              Answer 10 questions
+            </label>
           </div>
         </div>
       `;
@@ -860,6 +893,14 @@
         reader.readAsText(file);
       });
       input.click();
+    }
+
+    function toggleGoal(key, val) {
+      const today = new Date().toISOString().split('T')[0];
+      const saved = JSON.parse(localStorage.getItem('ccna_daily_goals') || '{}');
+      const goals = saved.date === today ? saved : { date: today, quiz: false, study: false, questions: false };
+      goals[key] = val;
+      localStorage.setItem('ccna_daily_goals', JSON.stringify(goals));
     }
 
     function resetEntireSite() {

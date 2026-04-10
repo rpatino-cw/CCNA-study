@@ -28,7 +28,6 @@
     { text: 'Plan', children: [
       { text: 'Sprint', href: 'sprint.html' },
       { text: 'Strategy', href: 'strategy.html' },
-      { text: 'Quests', href: 'quests.html' },
     ]},
     { text: 'Study Group', href: 'peers.html' },
   ];
