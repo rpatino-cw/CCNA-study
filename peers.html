@@ -136,18 +136,24 @@
 
   /* Schedule */
   .sched-grid{display:grid;grid-template-columns:50px repeat(18,1fr);gap:1px;background:var(--border);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:var(--s-md);font-size:.6rem}
-  .sched-cell{background:var(--bg-surface);padding:3px 1px;text-align:center;cursor:pointer;font-family:var(--font-mono);min-height:24px;display:flex;align-items:center;justify-content:center;user-select:none}
+  .sched-cell{background:var(--bg-surface);padding:3px 1px;text-align:center;cursor:pointer;font-family:var(--font-mono);min-height:24px;display:flex;align-items:center;justify-content:center;user-select:none;position:relative;transition:background .15s ease}
   .sched-cell.header{font-family:var(--font-display);font-weight:600;color:var(--ink-muted);cursor:default;font-size:.58rem}
   .sched-cell.day-label{cursor:default;font-family:var(--font-display);font-weight:600;font-size:.65rem}
-  .sched-cell.mine{background:var(--accent);color:#fff}
-  .sched-cell.overlap{background:#059669;color:#fff}
-  .sched-cell.other{background:rgba(180,83,9,.15)}
-  .sched-legend{display:flex;gap:16px;margin-bottom:var(--s-md);font-family:var(--font-display);font-size:.72rem;color:var(--ink-muted)}
-  .sched-legend span{display:flex;align-items:center;gap:4px}
-  .sched-legend-dot{width:12px;height:12px;border-radius:2px;display:inline-block}
+  .sched-cell.mine{color:#fff}
+  .sched-cell.overlap{color:#fff}
+  .sched-cell .cell-label{font-size:.5rem;font-weight:700;line-height:1;pointer-events:none;letter-spacing:-.02em}
+  .sched-cell.overlap .cell-label{font-size:.55rem}
+  .sched-tooltip{position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);background:var(--ink);color:var(--bg);font-family:var(--font-display);font-size:.62rem;padding:4px 8px;border-radius:4px;white-space:nowrap;pointer-events:none;z-index:10;opacity:0;transition:opacity .15s}
+  .sched-tooltip::after{content:'';position:absolute;top:100%;left:50%;transform:translateX(-50%);border:4px solid transparent;border-top-color:var(--ink)}
+  .sched-cell:hover .sched-tooltip{opacity:1}
+  .sched-legend{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:var(--s-md);font-family:var(--font-display);font-size:.72rem;color:var(--ink-muted);padding:8px 12px;background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius)}
+  .sched-legend-item{display:flex;align-items:center;gap:5px}
+  .sched-legend-item.you-item{font-weight:700;color:var(--ink)}
+  .sched-legend-dot{width:10px;height:10px;border-radius:2px;display:inline-block;flex-shrink:0}
   .sched-overlaps{margin-bottom:var(--s-md)}
-  .sched-overlap-item{font-family:var(--font-body);font-size:.82rem;color:var(--ink-secondary);padding:4px 0}
+  .sched-overlap-item{font-family:var(--font-body);font-size:.82rem;color:var(--ink-secondary);padding:6px 10px;background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:4px;border-left:3px solid #059669}
   .sched-overlap-item strong{color:var(--ink)}
+  .sched-overlap-item .pair-suggest{font-family:var(--font-display);font-size:.72rem;color:#059669;font-weight:600;margin-top:2px}
 
 
   /* Digest */
@@ -305,12 +311,8 @@
       <div class="feed-wrap" id="activityFeed"></div>
 
       <h2 class="section-head">Study Schedule</h2>
-      <p class="section-sub">Click hour blocks to set your availability. Green = overlap with another member.</p>
-      <div class="sched-legend">
-        <span><span class="sched-legend-dot" style="background:var(--accent)"></span> You</span>
-        <span><span class="sched-legend-dot" style="background:#059669"></span> Overlap</span>
-        <span><span class="sched-legend-dot" style="background:rgba(180,83,9,.15)"></span> Others</span>
-      </div>
+      <p class="section-sub">Click hour blocks to set your availability. Hover cells to see who's studying.</p>
+      <div class="sched-legend" id="schedLegend"></div>
       <div id="schedGrid"></div>
       <button class="btn btn-primary btn-sm" id="btnSaveSched" style="margin-bottom:var(--s-md)">Save Schedule</button>
       <div id="schedOverlaps"></div>
@@ -764,39 +766,99 @@ function renderLeaderboard(group, metric) {
 function renderSchedule(group) {
   const entries = Object.entries(group.members);
   const myId = getMemberId();
-  const others = entries.filter(([id]) => id !== myId);
 
-  // Build other schedules
-  const otherCells = {};
-  const overlapNames = {};
-  for (const [id, m] of others) {
-    const sched = m.schedule || {};
+  // Build member index with stable color assignments
+  const memberIndex = entries.map(([id, m], i) => ({
+    id, name: m.name, color: COLORS[i % COLORS.length],
+    schedule: m.schedule || {}, isYou: id === myId,
+    initial: (m.name || '?')[0].toUpperCase()
+  }));
+  const myEntry = memberIndex.find(m => m.isYou);
+  const otherMembers = memberIndex.filter(m => !m.isYou);
+
+  // Build per-cell member lists
+  const cellMembers = {}; // key -> [{name, color, initial, isYou}]
+  for (const m of memberIndex) {
     for (const day of DAYS) {
-      for (const h of (sched[day] || [])) {
+      for (const h of (m.schedule[day] || [])) {
         const key = day + '-' + h;
-        if (!otherCells[key]) otherCells[key] = [];
-        otherCells[key].push(m.name);
+        if (!cellMembers[key]) cellMembers[key] = [];
+        cellMembers[key].push(m);
+      }
+    }
+  }
+  // Add current user's local schedule (may not be synced yet)
+  for (const day of DAYS) {
+    for (const h of (mySchedule[day] || [])) {
+      const key = day + '-' + h;
+      if (!cellMembers[key]) cellMembers[key] = [];
+      if (!cellMembers[key].some(m => m.isYou)) {
+        cellMembers[key].push(myEntry || { id: myId, name: getName(), color: COLORS[0], isYou: true, initial: (getName() || 'Y')[0].toUpperCase() });
       }
     }
   }
 
+  // Render legend with member names and colors
+  let legendHtml = '';
+  if (myEntry) {
+    legendHtml += '<span class="sched-legend-item you-item"><span class="sched-legend-dot" style="background:' + myEntry.color + '"></span>' + esc(myEntry.name) + ' (you)</span>';
+  }
+  for (const m of otherMembers) {
+    legendHtml += '<span class="sched-legend-item"><span class="sched-legend-dot" style="background:' + m.color + '"></span>' + esc(m.name) + '</span>';
+  }
+  legendHtml += '<span class="sched-legend-item"><span class="sched-legend-dot" style="background:#059669"></span>Overlap</span>';
+  document.getElementById('schedLegend').innerHTML = legendHtml;
+
+  // Format time helper
+  const fmtTime = h => (h % 12 || 12) + (h < 12 ? 'am' : 'pm');
+
+  // Build grid
   let html = '<div class="sched-grid"><div class="sched-cell header"></div>';
-  for (const h of HOURS) html += '<div class="sched-cell header">' + (h % 12 || 12) + (h < 12 ? 'a' : 'p') + '</div>';
+  for (const h of HOURS) html += '<div class="sched-cell header">' + fmtTime(h) + '</div>';
+
+  const overlapData = {}; // day -> [{hour, names}]
 
   for (let di = 0; di < DAYS.length; di++) {
     const day = DAYS[di];
     html += '<div class="sched-cell day-label">' + DAY_LABELS[di] + '</div>';
     const myHours = mySchedule[day] || [];
+
     for (const h of HOURS) {
       const isMine = myHours.includes(h);
       const key = day + '-' + h;
-      const othersHere = otherCells[key] || [];
+      const people = cellMembers[key] || [];
+      const othersHere = people.filter(m => !m.isYou);
       const isOverlap = isMine && othersHere.length > 0;
-      let cls = '';
-      if (isOverlap) { cls = 'overlap'; if (!overlapNames[key]) overlapNames[key] = othersHere; }
-      else if (isMine) cls = 'mine';
-      else if (othersHere.length > 0) cls = 'other';
-      html += '<div class="sched-cell ' + cls + '" data-day="' + day + '" data-hour="' + h + '"></div>';
+      const onlyOthers = !isMine && othersHere.length > 0;
+
+      let cls = '', bgStyle = '', label = '', tooltip = '';
+
+      if (isOverlap) {
+        cls = 'overlap';
+        bgStyle = 'background:#059669';
+        label = '<span class="cell-label">+' + othersHere.length + '</span>';
+        const allNames = [myEntry ? myEntry.name : 'You', ...othersHere.map(m => m.name)];
+        tooltip = '<span class="sched-tooltip">' + allNames.join(', ') + ' — ' + fmtTime(h) + '</span>';
+        // Track overlap for suggestions
+        if (!overlapData[day]) overlapData[day] = [];
+        overlapData[day].push({ hour: h, names: othersHere.map(m => m.name) });
+      } else if (isMine) {
+        cls = 'mine';
+        bgStyle = 'background:' + (myEntry ? myEntry.color : 'var(--accent)');
+      } else if (onlyOthers) {
+        if (othersHere.length === 1) {
+          bgStyle = 'background:' + othersHere[0].color + '22';
+          label = '<span class="cell-label" style="color:' + othersHere[0].color + '">' + othersHere[0].initial + '</span>';
+          tooltip = '<span class="sched-tooltip">' + othersHere[0].name + ' — ' + fmtTime(h) + '</span>';
+        } else {
+          // Multiple others: blend with first member's color + count
+          bgStyle = 'background:' + othersHere[0].color + '18';
+          label = '<span class="cell-label" style="color:' + othersHere[0].color + '">' + othersHere.length + '</span>';
+          tooltip = '<span class="sched-tooltip">' + othersHere.map(m => m.name).join(', ') + ' — ' + fmtTime(h) + '</span>';
+        }
+      }
+
+      html += '<div class="sched-cell ' + cls + '" style="' + bgStyle + '" data-day="' + day + '" data-hour="' + h + '">' + label + tooltip + '</div>';
     }
   }
   html += '</div>';
@@ -815,16 +877,44 @@ function renderSchedule(group) {
     if (cachedGroup) renderSchedule(cachedGroup);
   });
 
-  // Overlap summary
-  const overlaps = [];
-  for (const [key, names] of Object.entries(overlapNames)) {
-    const [day, h] = key.split('-');
-    const hour = parseInt(h);
-    const dayLabel = DAY_LABELS[DAYS.indexOf(day)];
-    const timeStr = (hour % 12 || 12) + (hour < 12 ? 'am' : 'pm');
-    overlaps.push('<div class="sched-overlap-item"><strong>' + dayLabel + ' ' + timeStr + '</strong> — you + ' + names.join(', ') + '</div>');
+  // Overlap suggestions — group consecutive hours per member combo
+  const suggestions = [];
+  for (const day of DAYS) {
+    const dayOvl = overlapData[day] || [];
+    if (dayOvl.length === 0) continue;
+    dayOvl.sort((a, b) => a.hour - b.hour);
+    // Group consecutive hours with same members
+    let run = [dayOvl[0]];
+    for (let i = 1; i < dayOvl.length; i++) {
+      const prev = run[run.length - 1];
+      const curr = dayOvl[i];
+      if (curr.hour === prev.hour + 1 && curr.names.join(',') === prev.names.join(',')) {
+        run.push(curr);
+      } else {
+        suggestions.push({ day, run: [...run] });
+        run = [curr];
+      }
+    }
+    suggestions.push({ day, run });
   }
-  document.getElementById('schedOverlaps').innerHTML = overlaps.length > 0 ? '<h3 style="font-size:.88rem;margin-bottom:8px">Overlapping Times</h3>' + overlaps.join('') : '';
+
+  let ovlHtml = '';
+  if (suggestions.length > 0) {
+    ovlHtml = '<h3 style="font-size:.88rem;margin-bottom:8px">Study Session Suggestions</h3>';
+    for (const s of suggestions) {
+      const dayLabel = DAY_LABELS[DAYS.indexOf(s.day)];
+      const startH = s.run[0].hour;
+      const endH = s.run[s.run.length - 1].hour + 1;
+      const names = s.run[0].names;
+      const timeRange = fmtTime(startH) + '–' + fmtTime(endH);
+      ovlHtml += '<div class="sched-overlap-item"><strong>' + dayLabel + ' ' + timeRange + '</strong> — you + ' + names.join(', ');
+      if (s.run.length >= 2) {
+        ovlHtml += '<div class="pair-suggest">You and ' + names.join(' & ') + ' both study ' + dayLabel + ' ' + timeRange + ' — pair up?</div>';
+      }
+      ovlHtml += '</div>';
+    }
+  }
+  document.getElementById('schedOverlaps').innerHTML = ovlHtml;
 }
 
 document.getElementById('btnSaveSched').addEventListener('click', async () => {
