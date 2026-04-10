@@ -87,7 +87,7 @@
     fetch(API+'/api/group/action',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({code:code,action:'chat',data:{memberId:memberId,name:myName,text:text}})
+      body:JSON.stringify({code:code,action:'chat',memberId:memberId,name:myName,text:text})
     }).then(function(r){return r.json();}).then(function(d){
       var g=d.group||d;
       if(g.members)renderGroup(g);
@@ -161,7 +161,7 @@
     var html='';
     msgs.forEach(function(m){
       var isYou=m.memberId===memberId;
-      var time=m.timestamp?new Date(m.timestamp).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}):'';
+      var time=(m.ts||m.timestamp)?new Date(m.ts||m.timestamp).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}):'';
       html+='<div class="gc-msg'+(isYou?' you':'')+'">'+
         '<div class="gc-msg-head"><span class="gc-msg-name">'+(m.name||'?')+'</span><span class="gc-msg-time">'+time+'</span></div>'+
         '<div class="gc-msg-text">'+escHtml(m.text||'')+'</div></div>';

@@ -21,26 +21,30 @@
   sessionStorage.setItem('_lastSync',Date.now().toString());
 
   // Build progress snapshot (same as peers.html getSnapshot)
+  var progress=null;
   try{
-    if(!window.store||!window.topicsData)return;
-    store.initProficiency(window.topicsData);
-    var prof=store.getAllProficiency();
-    var streak=store.getStreak();
-    var time=store.getStudyTime();
-    var diag=store.getDiagnosticHistory().slice(-3).map(function(d){return{date:d.date,totalScore:d.totalScore,domainScores:d.domainScores};});
-    var history=store.getQuizHistory();
-    var avgScore=history.length>0?Math.round(history.reduce(function(s,h){return s+(h.score/h.total)*100;},0)/history.length):0;
-    var readiness=store.getReadinessScore(window.topicsData.domains);
+    if(window.store&&window.topicsData){
+      store.initProficiency(window.topicsData);
+      var prof=store.getAllProficiency();
+      var streak=store.getStreak();
+      var time=store.getStudyTime();
+      var diag=store.getDiagnosticHistory().slice(-3).map(function(d){return{date:d.date,totalScore:d.totalScore,domainScores:d.domainScores};});
+      var history=store.getQuizHistory();
+      var avgScore=history.length>0?Math.round(history.reduce(function(s,h){return s+(h.score/h.total)*100;},0)/history.length):0;
+      var readiness=store.getReadinessScore(window.topicsData.domains);
+      progress={
+        proficiency:prof,
+        streak:{current:streak.current,best:streak.best},
+        studyTime:{total:time.total},
+        diagnosticHistory:diag,
+        quizStats:{taken:history.length,avgScore:avgScore},
+        readiness:Math.round(readiness)
+      };
+    }
+  }catch(e){}
 
-    var progress={
-      proficiency:prof,
-      streak:{current:streak.current,best:streak.best},
-      studyTime:{total:time.total},
-      diagnosticHistory:diag,
-      quizStats:{taken:history.length,avgScore:avgScore},
-      readiness:Math.round(readiness)
-    };
-
+  // Always sync (heartbeat) — even without progress data, this updates lastSync
+  try{
     fetch(API+'/api/group/sync',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
