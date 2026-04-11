@@ -192,7 +192,7 @@
     'TCP vs UDP',
     'How does STP work?',
     'What is NAT/PAT?',
-    'Explain VLANs',
+    'Build me a VLAN topology in PT',
   ];
 
   // ── Render ─────────────────────────────────────────────────
@@ -248,6 +248,8 @@
 
   // ── Markdown-light ─────────────────────────────────────────
   function renderMarkdown(text) {
+    // Strip pt-topology JSON blocks (rendered as buttons instead)
+    text = text.replace(/```pt-topology[\s\S]*?```/g, '');
     return escapeHtml(text)
       .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
       .replace(/`([^`]+)`/g, '<code>$1</code>')
@@ -300,6 +302,9 @@
       history.push({ role: 'model', text: reply });
       appendMessage('bot', reply);
 
+      // Check for PT topology blocks and auto-build
+      tryBuildPTTopology(reply);
+
     } catch (err) {
       hideTyping();
       const errMsg = 'Connection error — the tutor is unavailable right now. Try again in a moment.';
@@ -314,6 +319,44 @@
     sendBtn.disabled = false;
     scrollToBottom();
     inputEl.focus();
+  }
+
+  // ── PT Topology Auto-Build ──────────────────────────────────
+  function tryBuildPTTopology(text) {
+    if (!window.ptBridge) return;
+    const match = text.match(/```pt-topology\s*\n?([\s\S]*?)```/);
+    if (!match) return;
+    try {
+      const topo = JSON.parse(match[1].trim());
+      if (!topo.devices) return;
+      // Insert a "Build in PT" button into the last bot message
+      const msgs = messagesEl.querySelectorAll('.tutor-msg.bot');
+      const lastMsg = msgs[msgs.length - 1];
+      if (!lastMsg) return;
+      const btn = document.createElement('button');
+      btn.style.cssText = 'display:block;margin-top:8px;padding:6px 14px;background:#0891B2;color:#fff;border:none;border-radius:6px;font-family:"Space Grotesk",sans-serif;font-size:.75rem;font-weight:600;cursor:pointer';
+      btn.textContent = 'Build in Packet Tracer';
+      btn.addEventListener('click', function() {
+        btn.textContent = 'Building...';
+        btn.style.opacity = '.6';
+        window.ptBridge.check(function(ok) {
+          if (!ok) {
+            btn.textContent = 'PT not running — open Packet Tracer first';
+            btn.style.background = '#DC2626';
+            setTimeout(function(){ btn.textContent = 'Build in Packet Tracer'; btn.style.background = '#0891B2'; btn.style.opacity = '1'; }, 3000);
+            return;
+          }
+          window.ptBridge.build(topo).then(function() {
+            btn.textContent = 'Built! Check Packet Tracer';
+            btn.style.background = '#16A34A';
+          }).catch(function() {
+            btn.textContent = 'Error — check PT console';
+            btn.style.background = '#DC2626';
+          });
+        });
+      });
+      lastMsg.appendChild(btn);
+    } catch (e) { /* invalid JSON — ignore */ }
   }
 
   // ── Events ─────────────────────────────────────────────────
