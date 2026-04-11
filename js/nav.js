@@ -27,8 +27,7 @@
     ]},
     { text: 'Practice', children: [
       { text: 'Diagnostic', href: 'diagnostic.html' },
-      { text: 'Quiz', href: 'quiz.html' },
-      { text: 'Daily Study', href: 'study.html' },
+      { text: 'Study & Quiz', href: 'quiz.html' },
       { text: 'Console Labs', href: 'console-labs.html' },
       { text: 'PT Labs', href: 'labs/index.html' },
       { text: 'Packet Race', href: 'packet-race.html' },
