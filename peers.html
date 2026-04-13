@@ -38,15 +38,23 @@
 
   /* Members */
   .members-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:var(--s-md);margin-bottom:var(--s-lg)}
-  .member-card{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px}
+  .member-card{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px;cursor:pointer;transition:all .15s}
+  .member-card:hover{border-color:var(--border-strong);box-shadow:0 2px 12px rgba(28,25,23,0.06)}
   .member-card.you{border-color:var(--accent);border-width:2px}
   .mc-name{font-family:var(--font-display);font-size:.92rem;font-weight:700;margin-bottom:4px}
   .mc-you{font-size:.65rem;color:var(--accent);font-weight:600}
+  .mc-summary{display:flex;align-items:center;gap:12px;margin:8px 0}
+  .mc-readiness{font-family:var(--font-mono);font-size:1.5rem;font-weight:700;line-height:1}
+  .mc-quick-stats{font-family:var(--font-display);font-size:.72rem;color:var(--ink-secondary);line-height:1.5}
+  .mc-details{display:none;margin-top:12px;padding-top:12px;border-top:1px solid var(--border)}
+  .mc-details.open{display:block}
   .mc-stats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
   .mc-stat .val{font-family:var(--font-mono);font-size:1.1rem;font-weight:700;color:var(--ink)}
   .mc-stat .lbl{font-family:var(--font-display);font-size:.65rem;color:var(--ink-muted);text-transform:uppercase;letter-spacing:.05em}
   .mc-sync{font-family:var(--font-display);font-size:.65rem;color:var(--ink-muted);margin-top:8px}
   .mc-stale{color:var(--prof-weak)}
+  .mc-expand-hint{font-family:var(--font-display);font-size:.6rem;color:var(--ink-faint);text-align:right;margin-top:6px;transition:color .15s}
+  .member-card:hover .mc-expand-hint{color:var(--ink-muted)}
 
   /* Domain comparison */
   .domain-compare{margin-bottom:var(--s-lg)}
@@ -737,30 +745,49 @@ function renderOverview(group) {
     else { levelName = 'Newbie'; levelClass = 'level-newbie'; }
     const levelHtml = '<span class="level-badge ' + levelClass + '">' + levelName + '</span>';
 
-    return '<div class="member-card ' + (isYou ? 'you' : '') + '" style="border-top:3px solid ' + color + '">' +
-      '<div class="mc-name" style="color:' + color + '">' + statusDot + esc(m.name) + (isYou ? ' <span class="mc-you">(you)</span>' : '') + (id === group.createdBy ? ' <span style="font-size:.58rem;background:var(--accent);color:#fff;padding:1px 5px;border-radius:4px;vertical-align:middle">ADMIN</span>' : '') + ' <span style="font-size:.55rem;background:' + (p.certTrack === 'net+' ? '#7C3AED' : '#2563EB') + ';color:#fff;padding:1px 5px;border-radius:4px;vertical-align:middle">' + (p.certTrack === 'net+' ? 'N+' : 'CCNA') + '</span>' + levelHtml + nudgeHtml + kickHtml + '</div>' +
-      '<div class="mc-xp">' + xp.toLocaleString() + ' XP</div>' +
-      '<div class="mc-ring-row">' + ringHtml +
-        '<div>' + streakHtml +
-          '<div class="mc-stats" style="grid-template-columns:1fr 1fr;margin-top:4px">' +
-            '<div class="mc-stat"><div class="val">' + Math.round(time/60) + 'h</div><div class="lbl">Study Time</div></div>' +
-            '<div class="mc-stat"><div class="val">' + quizzes + '</div><div class="lbl">Quizzes</div></div>' +
-          '</div>' +
+    // Exam date line (compact)
+    var examLine = '';
+    var ed = p.examDate;
+    if (ed) {
+      var dl = Math.ceil((new Date(ed) - Date.now()) / 86400000);
+      var past = dl < 0;
+      var edColor = past ? 'var(--ink-muted)' : dl <= 14 ? '#DC2626' : dl <= 30 ? '#D97706' : '#16A34A';
+      examLine = dl === 0 ? '<span style="color:' + edColor + '">EXAM TODAY</span>' : past ? '' : '<span style="color:' + edColor + '">' + dl + 'd to exam</span>';
+    }
+
+    var readColor = readiness >= 70 ? '#16A34A' : readiness >= 40 ? '#D97706' : '#DC2626';
+    var cardId = 'mc-' + id;
+
+    return '<div class="member-card ' + (isYou ? 'you' : '') + '" style="border-top:3px solid ' + color + '" onclick="document.getElementById(\'' + cardId + '-detail\').classList.toggle(\'open\')">' +
+      // ── Clean summary (always visible) ──
+      '<div class="mc-name">' + statusDot + '<span style="color:' + color + '">' + esc(m.name) + '</span>' + (isYou ? ' <span class="mc-you">(you)</span>' : '') + (id === group.createdBy ? ' <span style="font-size:.55rem;background:var(--accent);color:#fff;padding:1px 4px;border-radius:3px;vertical-align:middle">ADMIN</span>' : '') + '</div>' +
+      '<div class="mc-summary">' +
+        '<div class="mc-readiness" style="color:' + readColor + '">' + readiness + '%</div>' +
+        '<div class="mc-quick-stats">' +
+          streakHtml +
+          (examLine ? '<br>' + examLine : '') +
         '</div>' +
       '</div>' +
-      sparklineHtml +
-      (function(){
-        var ed = p.examDate;
-        if (ed) {
-          var dl = Math.ceil((new Date(ed) - Date.now()) / 86400000);
-          var past = dl < 0;
-          var edColor = past ? 'var(--ink-muted)' : dl <= 14 ? '#DC2626' : dl <= 30 ? '#D97706' : '#16A34A';
-          var edText = past ? 'Exam was ' + new Date(ed).toLocaleDateString('en-US',{month:'short',day:'numeric'}) : dl === 0 ? 'EXAM TODAY' : dl + 'd to exam (' + new Date(ed).toLocaleDateString('en-US',{month:'short',day:'numeric'}) + ')';
-          return '<div style="font-family:var(--font-mono);font-size:.65rem;font-weight:700;color:' + edColor + ';margin-top:4px;letter-spacing:.03em">' + edText + '</div>';
-        }
-        return isYou ? '<div style="margin-top:4px"><a href="#" onclick="event.preventDefault();promptExamDate()" style="font-family:var(--font-display);font-size:.65rem;color:var(--ink-muted);text-decoration:underline">Set your exam date</a></div>' : '<div style="font-family:var(--font-display);font-size:.65rem;color:var(--ink-faint);margin-top:4px">No exam date set</div>';
-      })() +
       '<div class="mc-sync ' + (veryStale ? 'mc-stale' : '') + '" title="' + (m.lastSync ? new Date(m.lastSync).toLocaleString() : 'Never') + '">Last active ' + ago + '</div>' +
+      '<div class="mc-expand-hint">click for details</div>' +
+
+      // ── Expanded details (hidden by default) ──
+      '<div class="mc-details" id="' + cardId + '-detail">' +
+        '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">' +
+          levelHtml +
+          ' <span style="font-family:var(--font-mono);font-size:.72rem;color:var(--ink-secondary)">' + xp.toLocaleString() + ' XP</span>' +
+          ' <span style="font-size:.55rem;background:' + (p.certTrack === 'net+' ? '#7C3AED' : '#2563EB') + ';color:#fff;padding:1px 5px;border-radius:4px">' + (p.certTrack === 'net+' ? 'N+' : 'CCNA') + '</span>' +
+        '</div>' +
+        ringHtml +
+        '<div class="mc-stats">' +
+          '<div class="mc-stat"><div class="val">' + Math.round(time/60) + 'h</div><div class="lbl">Study Time</div></div>' +
+          '<div class="mc-stat"><div class="val">' + quizzes + '</div><div class="lbl">Quizzes</div></div>' +
+        '</div>' +
+        sparklineHtml +
+        (ed ? '<div style="font-family:var(--font-mono);font-size:.72rem;color:' + (past ? 'var(--ink-muted)' : edColor) + ';margin-top:8px">Exam: ' + new Date(ed).toLocaleDateString('en-US',{weekday:'short',month:'long',day:'numeric',year:'numeric'}) + '</div>' :
+          (isYou ? '<div style="margin-top:8px"><a href="#" onclick="event.preventDefault();event.stopPropagation();promptExamDate()" style="font-family:var(--font-display);font-size:.72rem;color:var(--accent);text-decoration:underline">Set your exam date</a></div>' : '')) +
+        nudgeHtml + kickHtml +
+      '</div>' +
     '</div>';
   }).join('');
 
