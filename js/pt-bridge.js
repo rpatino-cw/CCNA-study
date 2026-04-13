@@ -128,21 +128,7 @@
               btn.innerHTML='<span style="font-size:.85em">&#10003;</span> Built! Check Packet Tracer';
               btn.style.background='#16A34A';
               btn.style.opacity='1';
-              // Swap button to persistent "Skip to configuration" link
-              var configSection=document.getElementById('config');
-              if(configSection){
-                setTimeout(function(){
-                  btn.innerHTML='&#8595; Skip to configuration — topology is ready';
-                  btn.style.background='#16A34A';
-                  btn.style.cursor='pointer';
-                  btn.onclick=function(e){
-                    e.preventDefault();
-                    configSection.scrollIntoView({behavior:'smooth',block:'start'});
-                  };
-                },2500);
-              }else{
-                setTimeout(function(){btn.innerHTML='<span style="font-size:.85em">&#9889;</span> Build in Packet Tracer';btn.style.background='#0891B2';},4000);
-              }
+              setTimeout(function(){btn.innerHTML='<span style="font-size:.85em">&#9889;</span> Build in Packet Tracer';btn.style.background='#0891B2';},4000);
             }).catch(function(){
               btn.textContent='Error — check PT';
               btn.style.background='#DC2626';
