@@ -347,6 +347,346 @@ const LABS = [
       }
     }
   },
+  // ─── Lab 13: Configure a DHCP Pool ─────────────────────
+  {
+    id: 'cl13', title: 'Configure a DHCP Pool', diff: 'beginner', topics: ['4.3'],
+    desc: 'Create a DHCP pool called LAN on R1. Set the network to 192.168.1.0/24, default gateway 192.168.1.1, DNS server 8.8.8.8, and exclude 192.168.1.1-192.168.1.10.',
+    device: { name: 'R1', type: 'router', hostname: 'R1' },
+    objectives: [
+      { text: 'Exclude addresses 192.168.1.1 through 192.168.1.10', hint: 'ip dhcp excluded-address 192.168.1.1 192.168.1.10', check: d => d.custom.dhcpExcluded === true },
+      { text: 'Create DHCP pool named LAN', hint: 'ip dhcp pool LAN', check: d => d.custom.dhcpPool === 'LAN' },
+      { text: 'Set pool network to 192.168.1.0/24', hint: 'network 192.168.1.0 255.255.255.0', check: d => d.custom.dhcpNetwork === '192.168.1.0' },
+      { text: 'Set default-router to 192.168.1.1', hint: 'default-router 192.168.1.1', check: d => d.custom.dhcpRouter === '192.168.1.1' },
+      { text: 'Set dns-server to 8.8.8.8', hint: 'dns-server 8.8.8.8', check: d => d.custom.dhcpDns === '8.8.8.8' },
+    ],
+    extraCmds: (dev, raw, lower) => {
+      const exclMatch = raw.match(/^ip dhcp excluded-address\s+(\d+\.\d+\.\d+\.\d+)\s+(\d+\.\d+\.\d+\.\d+)/i);
+      if (exclMatch && dev.mode === 'config') { dev.custom.dhcpExcluded = true; return ''; }
+      const poolMatch = raw.match(/^ip dhcp pool\s+(\S+)/i);
+      if (poolMatch && dev.mode === 'config') { dev.custom.dhcpPool = poolMatch[1]; dev.mode = 'config-dhcp'; return ''; }
+      const netMatch = raw.match(/^network\s+(\d+\.\d+\.\d+\.\d+)\s+(\d+\.\d+\.\d+\.\d+)/i);
+      if (netMatch && dev.mode === 'config-dhcp') { dev.custom.dhcpNetwork = netMatch[1]; return ''; }
+      const drMatch = raw.match(/^default-router\s+(\d+\.\d+\.\d+\.\d+)/i);
+      if (drMatch && dev.mode === 'config-dhcp') { dev.custom.dhcpRouter = drMatch[1]; return ''; }
+      const dnsMatch = raw.match(/^dns-server\s+(\d+\.\d+\.\d+\.\d+)/i);
+      if (dnsMatch && dev.mode === 'config-dhcp') { dev.custom.dhcpDns = dnsMatch[1]; return ''; }
+      if (lower === 'exit' && dev.mode === 'config-dhcp') { dev.mode = 'config'; return ''; }
+      if (lower === 'show ip dhcp pool' && (dev.mode === 'priv' || dev.mode === 'user')) {
+        if (!dev.custom.dhcpPool) return 'No DHCP pools configured.';
+        return 'Pool ' + dev.custom.dhcpPool + ' :\n Utilization mark (high/low)    : 100 / 0\n Subnet size (first/next)       : 0 / 0\n Total addresses                : 254\n Leased addresses               : 0\n Pending event                  : none';
+      }
+    }
+  },
+  // ─── Lab 14: Configure HSRP ────────────────────────────
+  {
+    id: 'cl14', title: 'Configure HSRP', diff: 'intermediate', topics: ['3.5'],
+    desc: 'Set up HSRP group 1 on R1\'s Gi0/0 with virtual IP 192.168.1.254, priority 110, and preempt enabled.',
+    device: { name: 'R1', type: 'router', hostname: 'R1', interfaces: { 'GigabitEthernet0/0': { up: true, ip: '192.168.1.1' } } },
+    ptTopo: {devices:[{name:'R1',type:'4321',x:200,y:150},{name:'R2',type:'4321',x:500,y:150},{name:'SW1',type:'2960',x:350,y:300},{name:'PC1',type:'pc',x:200,y:420},{name:'PC2',type:'pc',x:500,y:420}],links:[{d1:'R1',p1:'Gi0/0',d2:'SW1',p2:'Gi0/1'},{d1:'R2',p1:'Gi0/0',d2:'SW1',p2:'Gi0/2'},{d1:'SW1',p1:'Fa0/1',d2:'PC1',p2:'Fa0'},{d1:'SW1',p1:'Fa0/2',d2:'PC2',p2:'Fa0'}]},
+    objectives: [
+      { text: 'Select interface Gi0/0', hint: 'interface GigabitEthernet0/0', check: d => d.currentInterface && d.currentInterface.includes('0/0') },
+      { text: 'Set HSRP group 1 virtual IP to 192.168.1.254', hint: 'standby 1 ip 192.168.1.254', check: d => d.custom.hsrpVip === '192.168.1.254' },
+      { text: 'Set HSRP group 1 priority to 110', hint: 'standby 1 priority 110', check: d => d.custom.hsrpPriority === 110 },
+      { text: 'Enable HSRP preempt', hint: 'standby 1 preempt', check: d => d.custom.hsrpPreempt === true },
+    ],
+    extraCmds: (dev, raw, lower) => {
+      const vipMatch = raw.match(/^standby\s+(\d+)\s+ip\s+(\d+\.\d+\.\d+\.\d+)/i);
+      if (vipMatch && dev.mode === 'config-if') { dev.custom.hsrpGroup = parseInt(vipMatch[1]); dev.custom.hsrpVip = vipMatch[2]; return ''; }
+      const priMatch = raw.match(/^standby\s+(\d+)\s+priority\s+(\d+)/i);
+      if (priMatch && dev.mode === 'config-if') { dev.custom.hsrpPriority = parseInt(priMatch[2]); return ''; }
+      const preMatch = raw.match(/^standby\s+(\d+)\s+preempt/i);
+      if (preMatch && dev.mode === 'config-if') { dev.custom.hsrpPreempt = true; return ''; }
+    }
+  },
+  // ─── Lab 15: Configure NAT Pool ────────────────────────
+  {
+    id: 'cl15', title: 'Configure NAT Pool', diff: 'intermediate', topics: ['4.1','4.3'],
+    desc: 'Define a NAT pool called INTERNET (203.0.113.10 - 203.0.113.20, /24). Create ACL 1 for 10.0.0.0/8 and apply NAT overload using the pool.',
+    device: { name: 'R1', type: 'router', hostname: 'R1', interfaces: { 'GigabitEthernet0/0': { up: true, ip: '10.0.0.1' }, 'GigabitEthernet0/1': { up: true, ip: '203.0.113.1' } } },
+    objectives: [
+      { text: 'Create ACL 1: permit 10.0.0.0/8', hint: 'access-list 1 permit 10.0.0.0 0.255.255.255', check: d => d.acls['1'] && d.acls['1'].some(a => a.action === 'permit' && a.src === '10.0.0.0') },
+      { text: 'Define NAT pool INTERNET', hint: 'ip nat pool INTERNET 203.0.113.10 203.0.113.20 netmask 255.255.255.0', check: d => d.custom.natPool === 'INTERNET' },
+      { text: 'Apply NAT overload with the pool', hint: 'ip nat inside source list 1 pool INTERNET overload', check: d => d.custom.natPoolOverload === true },
+    ],
+    extraCmds: (dev, raw, lower) => {
+      const aclMatch = raw.match(/^access-list\s+(\d+)\s+(permit|deny)\s+(\d+\.\d+\.\d+\.\d+)\s+(\d+\.\d+\.\d+\.\d+)/i);
+      if (aclMatch && dev.mode === 'config') {
+        const id = aclMatch[1]; if (!dev.acls[id]) dev.acls[id] = [];
+        dev.acls[id].push({ action: aclMatch[2].toLowerCase(), src: aclMatch[3], wildcard: aclMatch[4] });
+        return '';
+      }
+      const poolMatch = raw.match(/^ip nat pool\s+(\S+)\s+(\d+\.\d+\.\d+\.\d+)\s+(\d+\.\d+\.\d+\.\d+)\s+netmask\s+(\d+\.\d+\.\d+\.\d+)/i);
+      if (poolMatch && dev.mode === 'config') { dev.custom.natPool = poolMatch[1]; return ''; }
+      if (lower.startsWith('ip nat inside source list') && lower.includes('pool') && lower.includes('overload') && dev.mode === 'config') {
+        dev.custom.natPoolOverload = true; return '';
+      }
+    }
+  },
+  // ─── Lab 16: IPv6 Addressing ───────────────────────────
+  {
+    id: 'cl16', title: 'IPv6 Addressing', diff: 'beginner', topics: ['1.8','3.1'],
+    desc: 'Enable IPv6 routing on R1, then configure Gi0/0 with the address 2001:db8:1::1/64 and bring it up.',
+    device: { name: 'R1', type: 'router', hostname: 'R1' },
+    objectives: [
+      { text: 'Enable IPv6 unicast routing', hint: 'ipv6 unicast-routing', check: d => d.custom.ipv6Routing === true },
+      { text: 'Select interface Gi0/0', hint: 'interface GigabitEthernet0/0', check: d => d.currentInterface && d.currentInterface.includes('0/0') },
+      { text: 'Assign IPv6 address 2001:db8:1::1/64', hint: 'ipv6 address 2001:db8:1::1/64', check: d => d.custom.ipv6Addr === '2001:db8:1::1/64' },
+      { text: 'Bring the interface up', hint: 'no shutdown', check: d => { const i = d.interfaces['GigabitEthernet0/0']; return i && i.up === true; } },
+    ],
+    extraCmds: (dev, raw, lower) => {
+      if (lower === 'ipv6 unicast-routing' && dev.mode === 'config') { dev.custom.ipv6Routing = true; return ''; }
+      const v6Match = raw.match(/^ipv6 address\s+(\S+)/i);
+      if (v6Match && dev.mode === 'config-if') { dev.custom.ipv6Addr = v6Match[1]; return ''; }
+      const ipMatch = raw.match(/^ip address (\d+\.\d+\.\d+\.\d+)\s+(\d+\.\d+\.\d+\.\d+)/i);
+      if (ipMatch && (dev.mode === 'config-if' || dev.mode === 'config-subif')) {
+        if (!dev.interfaces[dev.currentInterface]) dev.interfaces[dev.currentInterface] = {};
+        dev.interfaces[dev.currentInterface].ip = ipMatch[1]; dev.interfaces[dev.currentInterface].mask = ipMatch[2]; return '';
+      }
+      if (lower === 'no shutdown' && (dev.mode === 'config-if' || dev.mode === 'config-subif')) {
+        if (!dev.interfaces[dev.currentInterface]) dev.interfaces[dev.currentInterface] = {};
+        dev.interfaces[dev.currentInterface].up = true;
+        return '%LINK-5-CHANGED: Interface ' + dev.currentInterface + ', changed state to up';
+      }
+      if (lower === 'show ipv6 interface brief' && (dev.mode === 'priv' || dev.mode === 'user')) {
+        let out = '';
+        for (const [name, iface] of Object.entries(dev.interfaces)) {
+          out += name + '     [' + (iface.up ? 'up' : 'down') + '/' + (iface.up ? 'up' : 'down') + ']\n';
+        }
+        if (dev.custom.ipv6Addr) out += '    ' + dev.custom.ipv6Addr + '\n';
+        return out || 'No IPv6 interfaces configured.';
+      }
+    }
+  },
+  // ─── Lab 17: Configure NTP ─────────────────────────────
+  {
+    id: 'cl17', title: 'Configure NTP', diff: 'beginner', topics: ['4.5'],
+    desc: 'Configure R1 to synchronize time with NTP server 209.165.200.225. Verify with show ntp status.',
+    device: { name: 'R1', type: 'router', hostname: 'R1' },
+    objectives: [
+      { text: 'Set NTP server to 209.165.200.225', hint: 'ntp server 209.165.200.225', check: d => d.custom.ntpServer === '209.165.200.225' },
+      { text: 'Verify NTP status', hint: 'show ntp status', check: d => d.custom.ntpVerified === true },
+    ],
+    extraCmds: (dev, raw, lower) => {
+      const ntpMatch = raw.match(/^ntp server\s+(\d+\.\d+\.\d+\.\d+)/i);
+      if (ntpMatch && dev.mode === 'config') { dev.custom.ntpServer = ntpMatch[1]; return ''; }
+      if (lower === 'show ntp status' && (dev.mode === 'priv' || dev.mode === 'user')) {
+        dev.custom.ntpVerified = true;
+        if (dev.custom.ntpServer) return 'Clock is synchronized, stratum 3, reference is ' + dev.custom.ntpServer + '\nnominal freq is 250.0000 Hz, actual freq is 250.0000 Hz, precision is 2**10\nreference time is DE12A3B4.12345678 (14:32:10.123 UTC Mon Apr 14 2026)';
+        return 'Clock is unsynchronized, stratum 16, no reference clock';
+      }
+    }
+  },
+  // ─── Lab 18: Configure SNMP ────────────────────────────
+  {
+    id: 'cl18', title: 'Configure SNMP', diff: 'beginner', topics: ['4.5'],
+    desc: 'Configure a read-only SNMP community string "public" and a read-write community string "private" on R1.',
+    device: { name: 'R1', type: 'router', hostname: 'R1' },
+    objectives: [
+      { text: 'Set read-only community string "public"', hint: 'snmp-server community public ro', check: d => d.custom.snmpRo === 'public' },
+      { text: 'Set read-write community string "private"', hint: 'snmp-server community private rw', check: d => d.custom.snmpRw === 'private' },
+    ],
+    extraCmds: (dev, raw, lower) => {
+      const snmpMatch = raw.match(/^snmp-server community\s+(\S+)\s+(ro|rw)/i);
+      if (snmpMatch && dev.mode === 'config') {
+        if (snmpMatch[2].toLowerCase() === 'ro') dev.custom.snmpRo = snmpMatch[1];
+        else dev.custom.snmpRw = snmpMatch[1];
+        return '';
+      }
+    }
+  },
+  // ─── Lab 19: DHCP Snooping ─────────────────────────────
+  {
+    id: 'cl19', title: 'DHCP Snooping', diff: 'intermediate', topics: ['5.7'],
+    desc: 'Enable DHCP snooping on SW1 for VLAN 10. Set Gi0/1 (uplink to router) as a trusted port.',
+    device: { name: 'SW1', type: 'switch', hostname: 'SW1', vlans: { 1: { name: 'default', ports: [] }, 10: { name: 'SALES', ports: [] } }, interfaces: { 'GigabitEthernet0/1': { up: true } } },
+    objectives: [
+      { text: 'Enable DHCP snooping globally', hint: 'ip dhcp snooping', check: d => d.custom.dhcpSnooping === true },
+      { text: 'Enable DHCP snooping on VLAN 10', hint: 'ip dhcp snooping vlan 10', check: d => d.custom.dhcpSnoopingVlan === 10 },
+      { text: 'Set Gi0/1 as trusted', hint: 'interface Gi0/1 → ip dhcp snooping trust', check: d => d.custom.dhcpTrusted === true },
+    ],
+    extraCmds: (dev, raw, lower) => {
+      if (lower === 'ip dhcp snooping' && dev.mode === 'config') { dev.custom.dhcpSnooping = true; return ''; }
+      const vlanMatch = raw.match(/^ip dhcp snooping vlan\s+(\d+)/i);
+      if (vlanMatch && dev.mode === 'config') { dev.custom.dhcpSnoopingVlan = parseInt(vlanMatch[1]); return ''; }
+      if (lower === 'ip dhcp snooping trust' && dev.mode === 'config-if') { dev.custom.dhcpTrusted = true; return ''; }
+    }
+  },
+  // ─── Lab 20: Configure STP Priority ────────────────────
+  {
+    id: 'cl20', title: 'Configure STP Priority', diff: 'intermediate', topics: ['2.5'],
+    desc: 'Make SW1 the root bridge for VLAN 10 by setting its STP priority to 4096. Verify with show spanning-tree.',
+    device: { name: 'SW1', type: 'switch', hostname: 'SW1', vlans: { 1: { name: 'default', ports: [] }, 10: { name: 'SALES', ports: [] } } },
+    objectives: [
+      { text: 'Set STP priority for VLAN 10 to 4096', hint: 'spanning-tree vlan 10 priority 4096', check: d => d.custom.stpPriority === 4096 },
+      { text: 'Verify with show spanning-tree', hint: 'show spanning-tree', check: d => d.custom.stpVerified === true },
+    ],
+    extraCmds: (dev, raw, lower) => {
+      const priMatch = raw.match(/^spanning-tree vlan\s+(\d+)\s+priority\s+(\d+)/i);
+      if (priMatch && dev.mode === 'config') { dev.custom.stpVlan = parseInt(priMatch[1]); dev.custom.stpPriority = parseInt(priMatch[2]); return ''; }
+      if (lower === 'show spanning-tree' && (dev.mode === 'priv' || dev.mode === 'user')) {
+        dev.custom.stpVerified = true;
+        const pri = dev.custom.stpPriority || 32768;
+        return 'VLAN0010\n  Spanning tree enabled protocol ieee\n  Root ID    Priority    ' + pri + '\n             Address     aabb.cc00.0100\n             This bridge is the root\n             Hello Time   2 sec  Max Age 20 sec  Forward Delay 15 sec\n\n  Bridge ID  Priority    ' + pri + '  (priority ' + pri + ' sys-id-ext 10)\n             Address     aabb.cc00.0100';
+      }
+    }
+  },
+  // ─── Lab 21: Configure PortFast + BPDU Guard ───────────
+  {
+    id: 'cl21', title: 'Configure PortFast + BPDU Guard', diff: 'beginner', topics: ['2.5'],
+    desc: 'Enable PortFast and BPDU Guard on access port Fa0/1. This is an end-host port connected to a PC.',
+    device: { name: 'SW1', type: 'switch', hostname: 'SW1', interfaces: { 'FastEthernet0/1': { up: true, mode: 'access' } } },
+    objectives: [
+      { text: 'Select interface Fa0/1', hint: 'interface FastEthernet0/1', check: d => d.currentInterface && d.currentInterface.includes('0/1') },
+      { text: 'Enable PortFast', hint: 'spanning-tree portfast', check: d => d.custom.portfast === true },
+      { text: 'Enable BPDU Guard', hint: 'spanning-tree bpduguard enable', check: d => d.custom.bpduguard === true },
+    ],
+    extraCmds: (dev, raw, lower) => {
+      if (lower === 'spanning-tree portfast' && dev.mode === 'config-if') {
+        dev.custom.portfast = true;
+        return '%Warning: portfast should only be enabled on ports connected to a single\n host. Connecting hubs, concentrators, switches, bridges, etc... to this\n interface when portfast is enabled, can cause temporary bridging loops.\n Use with CAUTION\n\n%Portfast has been configured on FastEthernet0/1 but will only\n have effect when the interface is in a non-trunking mode.';
+      }
+      if (lower === 'spanning-tree bpduguard enable' && dev.mode === 'config-if') { dev.custom.bpduguard = true; return ''; }
+    }
+  },
+  // ─── Lab 22: Configure Extended ACL ────────────────────
+  {
+    id: 'cl22', title: 'Configure Extended ACL', diff: 'intermediate', topics: ['5.6'],
+    desc: 'Create a named extended ACL called BLOCK_HTTP. Deny TCP traffic from 10.0.0.0/8 to any host on port 80, then permit all other IP traffic. Apply it inbound on Gi0/0.',
+    device: { name: 'R1', type: 'router', hostname: 'R1', interfaces: { 'GigabitEthernet0/0': { up: true, ip: '10.0.0.1' } } },
+    objectives: [
+      { text: 'Create named extended ACL "BLOCK_HTTP"', hint: 'ip access-list extended BLOCK_HTTP', check: d => d.custom.namedAcl === 'BLOCK_HTTP' },
+      { text: 'Deny TCP from 10.0.0.0/8 to any eq 80', hint: 'deny tcp 10.0.0.0 0.255.255.255 any eq 80', check: d => d.custom.aclDeny80 === true },
+      { text: 'Permit all other IP traffic', hint: 'permit ip any any', check: d => d.custom.aclPermitAny === true },
+      { text: 'Apply BLOCK_HTTP inbound on Gi0/0', hint: 'interface Gi0/0 → ip access-group BLOCK_HTTP in', check: d => { const i = d.interfaces['GigabitEthernet0/0']; return i && i.aclIn === 'BLOCK_HTTP'; } },
+    ],
+    extraCmds: (dev, raw, lower) => {
+      const naclMatch = raw.match(/^ip access-list extended\s+(\S+)/i);
+      if (naclMatch && dev.mode === 'config') { dev.custom.namedAcl = naclMatch[1]; dev.mode = 'config-ext-nacl'; return ''; }
+      if (dev.mode === 'config-ext-nacl') {
+        if (lower.startsWith('deny tcp') && lower.includes('eq 80')) { dev.custom.aclDeny80 = true; return ''; }
+        if (lower === 'permit ip any any') { dev.custom.aclPermitAny = true; return ''; }
+        if (lower === 'exit') { dev.mode = 'config'; return ''; }
+      }
+      const agMatch = raw.match(/^ip access-group\s+(\S+)\s+(in|out)/i);
+      if (agMatch && dev.mode === 'config-if' && dev.currentInterface) {
+        if (!dev.interfaces[dev.currentInterface]) dev.interfaces[dev.currentInterface] = {};
+        if (agMatch[2].toLowerCase() === 'in') dev.interfaces[dev.currentInterface].aclIn = agMatch[1];
+        else dev.interfaces[dev.currentInterface].aclOut = agMatch[1];
+        return '';
+      }
+    }
+  },
+  // ─── Lab 23: Configure Logging ─────────────────────────
+  {
+    id: 'cl23', title: 'Configure Logging', diff: 'beginner', topics: ['4.6'],
+    desc: 'Configure R1 to send syslog messages to server 10.0.0.50 at the informational level. Verify with show logging.',
+    device: { name: 'R1', type: 'router', hostname: 'R1' },
+    objectives: [
+      { text: 'Set logging host to 10.0.0.50', hint: 'logging host 10.0.0.50', check: d => d.custom.logHost === '10.0.0.50' },
+      { text: 'Set logging trap to informational', hint: 'logging trap informational', check: d => d.custom.logTrap === 'informational' },
+      { text: 'Verify with show logging', hint: 'show logging', check: d => d.custom.logVerified === true },
+    ],
+    extraCmds: (dev, raw, lower) => {
+      const hostMatch = raw.match(/^logging host\s+(\d+\.\d+\.\d+\.\d+)/i);
+      if (hostMatch && dev.mode === 'config') { dev.custom.logHost = hostMatch[1]; return ''; }
+      const trapMatch = raw.match(/^logging trap\s+(\S+)/i);
+      if (trapMatch && dev.mode === 'config') { dev.custom.logTrap = trapMatch[1].toLowerCase(); return ''; }
+      if (lower === 'show logging' && (dev.mode === 'priv' || dev.mode === 'user')) {
+        dev.custom.logVerified = true;
+        let out = 'Syslog logging: enabled (0 messages dropped, 0 messages rate-limited)\n';
+        if (dev.custom.logHost) out += '    Logging to ' + dev.custom.logHost + '\n';
+        if (dev.custom.logTrap) out += '    Trap logging: level ' + dev.custom.logTrap + '\n';
+        out += '    Console logging: level debugging, 42 messages logged\n    Buffer logging: level debugging, 42 messages logged';
+        return out;
+      }
+    }
+  },
+  // ─── Lab 24: Configure Banner MOTD ─────────────────────
+  {
+    id: 'cl24', title: 'Configure Banner MOTD', diff: 'beginner', topics: ['5.3'],
+    desc: 'Set a message-of-the-day banner on R1: "Authorized access only! Disconnect immediately if not authorized."',
+    device: { name: 'R1', type: 'router', hostname: 'R1' },
+    objectives: [
+      { text: 'Enter global configuration mode', hint: 'enable → configure terminal', check: d => d.mode === 'config' || d.mode.startsWith('config-') },
+      { text: 'Set the MOTD banner', hint: 'banner motd # Authorized access only! Disconnect immediately if not authorized. #', check: d => d.custom.bannerSet === true },
+    ],
+    extraCmds: (dev, raw, lower) => {
+      if (lower.startsWith('banner motd') && dev.mode === 'config') { dev.custom.bannerSet = true; dev.custom.bannerText = raw.substring(11).trim(); return ''; }
+    }
+  },
+  // ─── Lab 25: Configure Line VTY ────────────────────────
+  {
+    id: 'cl25', title: 'Configure Line VTY', diff: 'beginner', topics: ['5.3'],
+    desc: 'Configure VTY lines 0-4 on R1: set exec-timeout to 5 minutes 30 seconds, restrict to SSH only, and use local authentication.',
+    device: { name: 'R1', type: 'router', hostname: 'R1' },
+    objectives: [
+      { text: 'Enter line vty 0 4 config', hint: 'line vty 0 4', check: d => d.custom.vtyEntered === true },
+      { text: 'Set exec-timeout 5 30', hint: 'exec-timeout 5 30', check: d => d.custom.execTimeout === '5 30' },
+      { text: 'Set transport input ssh', hint: 'transport input ssh', check: d => d.custom.vtyTransport === 'ssh' },
+      { text: 'Set login local', hint: 'login local', check: d => d.custom.loginLocal === true },
+    ],
+    extraCmds: (dev, raw, lower) => {
+      if (lower.startsWith('line vty') && dev.mode === 'config') { dev.mode = 'config-line'; dev.custom.vtyEntered = true; return ''; }
+      const timeoutMatch = raw.match(/^exec-timeout\s+(\d+)\s+(\d+)/i);
+      if (timeoutMatch && dev.mode === 'config-line') { dev.custom.execTimeout = timeoutMatch[1] + ' ' + timeoutMatch[2]; return ''; }
+      if (lower === 'transport input ssh' && dev.mode === 'config-line') { dev.custom.vtyTransport = 'ssh'; return ''; }
+      if (lower === 'login local' && dev.mode === 'config-line') { dev.custom.loginLocal = true; return ''; }
+    }
+  },
+  // ─── Lab 26: Configure Default Route ───────────────────
+  {
+    id: 'cl26', title: 'Configure Default Route', diff: 'beginner', topics: ['3.1','3.3'],
+    desc: 'Add a default route on R1 pointing to ISP next-hop 203.0.113.1. Verify the routing table shows the gateway of last resort.',
+    device: { name: 'R1', type: 'router', hostname: 'R1', interfaces: { 'GigabitEthernet0/1': { up: true, ip: '203.0.113.2' } } },
+    ptTopo: {devices:[{name:'R1',type:'4321',x:250,y:200},{name:'ISP',type:'4321',x:550,y:200}],links:[{d1:'R1',p1:'Gi0/1',d2:'ISP',p2:'Gi0/0'}]},
+    objectives: [
+      { text: 'Add default route via 203.0.113.1', hint: 'ip route 0.0.0.0 0.0.0.0 203.0.113.1', check: d => d.routes.some(r => r.net === '0.0.0.0' && r.nh === '203.0.113.1') },
+      { text: 'Verify with show ip route', hint: 'show ip route', check: d => d.custom.routeVerified === true },
+    ],
+    extraCmds: (dev, raw, lower) => {
+      const rtMatch = raw.match(/^ip route (\d+\.\d+\.\d+\.\d+)\s+(\d+\.\d+\.\d+\.\d+)\s+(\d+\.\d+\.\d+\.\d+)/i);
+      if (rtMatch && dev.mode === 'config') { dev.routes.push({ net: rtMatch[1], mask: rtMatch[2], nh: rtMatch[3] }); return ''; }
+      if (lower === 'show ip route' && (dev.mode === 'priv' || dev.mode === 'user')) {
+        dev.custom.routeVerified = true;
+        if (dev.routes.length === 0) return 'Gateway of last resort is not set.\n\n(No routes configured)';
+        const hasDefault = dev.routes.some(r => r.net === '0.0.0.0');
+        let out = hasDefault ? 'Gateway of last resort is ' + dev.routes.find(r => r.net === '0.0.0.0').nh + ' to network 0.0.0.0\n\n' : 'Gateway of last resort is not set.\n\n';
+        for (const r of dev.routes) {
+          if (r.net === '0.0.0.0') out += 'S*    0.0.0.0/0 [1/0] via ' + r.nh + '\n';
+          else out += 'S     ' + r.net + ' [1/0] via ' + r.nh + '\n';
+        }
+        return out;
+      }
+    }
+  },
+  // ─── Lab 27: Configure EtherChannel (LACP) ─────────────
+  {
+    id: 'cl27', title: 'Configure EtherChannel (LACP)', diff: 'intermediate', topics: ['2.6'],
+    desc: 'Bundle GigabitEthernet0/1 and GigabitEthernet0/2 into Port-channel 1 using LACP active mode. Verify with show etherchannel summary.',
+    device: { name: 'SW1', type: 'switch', hostname: 'SW1' },
+    ptTopo: {devices:[{name:'SW1',type:'2960',x:200,y:200},{name:'SW2',type:'2960',x:500,y:200}],links:[{d1:'SW1',p1:'Gi0/1',d2:'SW2',p2:'Gi0/1'},{d1:'SW1',p1:'Gi0/2',d2:'SW2',p2:'Gi0/2'}]},
+    objectives: [
+      { text: 'Add Gi0/1 to channel-group 1 mode active', hint: 'interface Gi0/1 → channel-group 1 mode active', check: d => d.custom.ecPorts && d.custom.ecPorts.includes('GigabitEthernet0/1') },
+      { text: 'Add Gi0/2 to channel-group 1 mode active', hint: 'interface Gi0/2 → channel-group 1 mode active', check: d => d.custom.ecPorts && d.custom.ecPorts.includes('GigabitEthernet0/2') },
+      { text: 'Verify with show etherchannel summary', hint: 'show etherchannel summary', check: d => d.custom.ecVerified === true },
+    ],
+    extraCmds: (dev, raw, lower) => {
+      const ecMatch = raw.match(/^channel-group\s+(\d+)\s+mode\s+(active|passive|on)/i);
+      if (ecMatch && dev.mode === 'config-if' && dev.currentInterface) {
+        if (!dev.custom.ecPorts) dev.custom.ecPorts = [];
+        if (!dev.custom.ecPorts.includes(dev.currentInterface)) dev.custom.ecPorts.push(dev.currentInterface);
+        dev.custom.ecGroup = parseInt(ecMatch[1]);
+        dev.custom.ecMode = ecMatch[2].toLowerCase();
+        return 'Creating a port-channel interface Port-channel ' + ecMatch[1];
+      }
+      if (lower === 'show etherchannel summary' && (dev.mode === 'priv' || dev.mode === 'user')) {
+        dev.custom.ecVerified = true;
+        if (!dev.custom.ecPorts || dev.custom.ecPorts.length === 0) return 'Number of channel-groups in use: 0';
+        const ports = dev.custom.ecPorts.map(p => p.replace('GigabitEthernet','Gi') + '(P)').join(' ');
+        return 'Flags:  D - down        P - bundled in port-channel\n        U - in use\n\nGroup  Port-channel  Protocol    Ports\n------+-------------+-----------+-------\n' + dev.custom.ecGroup + '      Po' + dev.custom.ecGroup + '(SU)        LACP        ' + ports;
+      }
+    }
+  },
 ];
 
 // ── Cert Track ───────────────────────────────────────────────

@@ -41,6 +41,8 @@
         case 'config-router': return `${h}(config-router)#`;
         case 'config-line': return `${h}(config-line)#`;
         case 'config-vlan': return `${h}(config-vlan)#`;
+        case 'config-dhcp': return `${h}(dhcp-config)#`;
+        case 'config-ext-nacl': return `${h}(config-ext-nacl)#`;
         default: return `${h}#`;
       }
     }
@@ -235,6 +237,8 @@
         if (dev.mode === 'config-router') { dev.mode = 'config'; return ''; }
         if (dev.mode === 'config-line') { dev.mode = 'config'; return ''; }
         if (dev.mode === 'config-vlan') { dev.mode = 'config'; return ''; }
+        if (dev.mode === 'config-dhcp') { dev.mode = 'config'; return ''; }
+        if (dev.mode === 'config-ext-nacl') { dev.mode = 'config'; return ''; }
         if (dev.mode === 'config') { dev.mode = 'priv'; return ''; }
         if (dev.mode === 'priv') { dev.mode = 'user'; return ''; }
         return '';
