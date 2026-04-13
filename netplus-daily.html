@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Net+ Daily Challenge — CompTIA N10-009</title>
+<meta name="color-scheme" content="light">
+<link rel="icon" type="image/svg+xml" href="/CCNA-study/favicon.svg">
+<link rel="stylesheet" href="css/shared.css">
+<style>
+/* ═══════════════════════════════════════════════════════════════
+   Net+ Daily Challenge — One question per day, streak tracking
+   Purple accent #7C3AED for Net+ branding
+   ═══════════════════════════════════════════════════════════════ */
+
+:root { --np: #7C3AED; --np-dim: #F5F3FF; --np-mid: #EDE9FE; }
+
+.page-header{padding:var(--s-xl) 0 var(--s-lg);margin-bottom:var(--s-lg);border-bottom:3px solid var(--np)}
+.page-header h1{font-size:2.4rem;margin-bottom:4px;color:var(--np)}
+.page-header .subtitle{font-family:var(--font-body);color:var(--ink-secondary);font-size:.95rem;font-style:italic}
+
+/* ── Date Display ──────────────────────────────────────────── */
+.dc-date{text-align:center;margin-bottom:var(--s-lg)}
+.dc-date-day{font-family:var(--font-display);font-size:2.2rem;font-weight:800;color:var(--ink);letter-spacing:-.02em}
+.dc-date-full{font-family:var(--font-body);font-size:.9rem;color:var(--ink-muted);font-style:italic;margin-top:2px}
+
+/* ── Streak ────────────────────────────────────────────────── */
+.dc-streak{display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:var(--s-lg);padding:12px 20px;background:var(--np-dim);border:1px solid var(--np-mid);border-radius:var(--radius-lg)}
+.dc-fire{font-family:var(--font-display);font-size:1.1rem;color:var(--np);font-weight:800}
+.dc-streak-num{font-family:var(--font-mono);font-size:1.8rem;font-weight:800;color:var(--np)}
+.dc-streak-label{font-family:var(--font-display);font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-muted)}
+.dc-streak-best{font-family:var(--font-mono);font-size:.72rem;color:var(--ink-muted);margin-left:8px}
+
+/* ── Calendar Heatmap ──────────────────────────────────────── */
+.dc-cal{margin-bottom:var(--s-xl)}
+.dc-cal-label{font-family:var(--font-display);font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--ink-muted);margin-bottom:var(--s-sm)}
+.dc-cal-grid{display:flex;gap:4px;flex-wrap:wrap}
+.dc-cal-day{width:28px;height:28px;border-radius:var(--radius);display:flex;align-items:center;justify-content:center;font-family:var(--font-mono);font-size:.55rem;color:var(--ink-muted);border:1px solid var(--border);background:var(--bg-surface);position:relative;cursor:default}
+.dc-cal-day.correct{background:#DCFCE7;border-color:#16A34A;color:#16A34A;font-weight:700}
+.dc-cal-day.wrong{background:#FEE2E2;border-color:#DC2626;color:#DC2626;font-weight:700}
+.dc-cal-day.missed{background:var(--bg-recessed);border-color:var(--border);color:var(--ink-faint)}
+.dc-cal-day.today{border-color:var(--np);border-width:2px;font-weight:800}
+.dc-cal-day.future{opacity:.3;border-style:dashed}
+.dc-cal-legend{display:flex;gap:14px;margin-top:8px;font-family:var(--font-display);font-size:.65rem;color:var(--ink-muted)}
+.dc-cal-legend span{display:inline-flex;align-items:center;gap:4px}
+.dc-cal-legend .dot{width:10px;height:10px;border-radius:3px;flex-shrink:0}
+
+/* ── Question Card ─────────────────────────────────────────── */
+.dc-question{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:var(--s-lg);margin-bottom:var(--s-lg);max-width:600px;margin-left:auto;margin-right:auto}
+.dc-domain-badge{font-family:var(--font-display);font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;padding:3px 10px;border-radius:10px;background:var(--np-mid);color:var(--np);display:inline-block;margin-bottom:var(--s-md)}
+.dc-q-text{font-family:var(--font-body);font-size:1.05rem;color:var(--ink);line-height:1.65;margin-bottom:var(--s-lg)}
+.dc-scenario{background:#1C1917;color:#A7F3D0;font-family:var(--font-mono);font-size:.75rem;padding:14px 18px;border-radius:var(--radius-lg);overflow-x:auto;margin-bottom:var(--s-md);line-height:1.6;white-space:pre}
+
+/* ── Options ───────────────────────────────────────────────── */
+.dc-opts{display:flex;flex-direction:column;gap:8px}
+.dc-opt{display:flex;align-items:flex-start;width:100%;text-align:left;padding:12px 16px;background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius);color:var(--ink);font-family:var(--font-body);font-size:.92rem;cursor:pointer;transition:all var(--transition);line-height:1.5}
+.dc-opt:hover:not(.locked){border-color:var(--np);background:rgba(124,58,237,.03)}
+.dc-opt .opt-letter{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;background:var(--bg-recessed);font-family:var(--font-display);font-weight:700;font-size:.75rem;margin-right:12px;flex-shrink:0;color:var(--ink-secondary)}
+.dc-opt.correct{border-color:#16A34A;background:rgba(22,163,74,.08)}
+.dc-opt.correct .opt-letter{background:#16A34A;color:#fff}
+.dc-opt.wrong{border-color:#DC2626;background:rgba(220,38,38,.08)}
+.dc-opt.wrong .opt-letter{background:#DC2626;color:#fff}
+.dc-opt.locked{cursor:default;opacity:.6}
+.dc-opt.locked.correct{opacity:1}
+.dc-opt.locked.wrong{opacity:1}
+
+/* ── Explanation ───────────────────────────────────────────── */
+.dc-explanation{margin-top:var(--s-md);padding:var(--s-md) var(--s-lg);background:var(--bg-recessed);border-left:3px solid var(--np);border-radius:0 var(--radius) var(--radius) 0;font-family:var(--font-body);font-size:.9rem;line-height:1.7;color:var(--ink-secondary);display:none}
+.dc-explanation.show{display:block;animation:fadeIn .3s ease}
+.dc-explanation strong{color:var(--ink)}
+
+/* ── Already Answered Banner ───────────────────────────────── */
+.dc-answered{text-align:center;padding:var(--s-lg);background:var(--np-dim);border:1px solid var(--np-mid);border-radius:var(--radius-lg);margin-bottom:var(--s-lg);max-width:600px;margin-left:auto;margin-right:auto;display:none}
+.dc-answered.show{display:block}
+.dc-answered-icon{font-family:var(--font-display);font-size:2rem;margin-bottom:var(--s-sm)}
+.dc-answered h3{font-family:var(--font-display);color:var(--np);margin-bottom:4px}
+.dc-answered p{font-family:var(--font-body);color:var(--ink-secondary);font-size:.9rem}
+
+/* ── Stats Row ─────────────────────────────────────────────── */
+.dc-stats{display:flex;gap:24px;justify-content:center;flex-wrap:wrap;margin-bottom:var(--s-lg)}
+.dc-stat{text-align:center}
+.dc-stat-val{font-family:var(--font-mono);font-size:1.4rem;font-weight:800;color:var(--ink)}
+.dc-stat-label{font-family:var(--font-display);font-size:.62rem;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-muted);margin-top:2px}
+.dc-stat-val.green{color:var(--prof-strong)}
+.dc-stat-val.purple{color:var(--np)}
+
+/* ── Responsive ────────────────────────────────────────────── */
+@media(max-width:600px){
+  .dc-date-day{font-size:1.6rem}
+  .dc-streak-num{font-size:1.4rem}
+  .dc-cal-day{width:22px;height:22px;font-size:.5rem}
+}
+</style>
+</head>
+<body>
+<div class="container">
+  <nav class="top-nav"></nav>
+
+  <header class="page-header">
+    <a href="netplus.html" class="back-link">Net+ Hub</a>
+    <h1>Daily Challenge</h1>
+    <p class="subtitle">One N10-009 question per day -- build your streak</p>
+  </header>
+
+  <!-- Date -->
+  <div class="dc-date">
+    <div class="dc-date-day" id="dateDay"></div>
+    <div class="dc-date-full" id="dateFull"></div>
+  </div>
+
+  <!-- Streak -->
+  <div class="dc-streak">
+    <span class="dc-fire">/\\</span>
+    <span class="dc-streak-num" id="streakNum">0</span>
+    <span class="dc-streak-label">day streak</span>
+    <span class="dc-streak-best" id="streakBest"></span>
+  </div>
+
+  <!-- Stats -->
+  <div class="dc-stats">
+    <div class="dc-stat"><div class="dc-stat-val green" id="statCorrect">0</div><div class="dc-stat-label">Correct</div></div>
+    <div class="dc-stat"><div class="dc-stat-val" id="statTotal">0</div><div class="dc-stat-label">Answered</div></div>
+    <div class="dc-stat"><div class="dc-stat-val purple" id="statAccuracy">--</div><div class="dc-stat-label">Accuracy</div></div>
+  </div>
+
+  <!-- Calendar Heatmap -->
+  <div class="dc-cal">
+    <div class="dc-cal-label">Last 30 Days</div>
+    <div class="dc-cal-grid" id="calGrid"></div>
+    <div class="dc-cal-legend">
+      <span><div class="dot" style="background:#DCFCE7;border:1px solid #16A34A"></div> Correct</span>
+      <span><div class="dot" style="background:#FEE2E2;border:1px solid #DC2626"></div> Wrong</span>
+      <span><div class="dot" style="background:var(--bg-recessed);border:1px solid var(--border)"></div> Missed</span>
+    </div>
+  </div>
+
+  <!-- Already Answered Banner -->
+  <div class="dc-answered" id="answeredBanner">
+    <div class="dc-answered-icon">[/]</div>
+    <h3>Already answered today</h3>
+    <p id="answeredMsg">Your answer and explanation are shown below.</p>
+  </div>
+
+  <!-- Question -->
+  <div class="dc-question" id="questionCard">
+    <div class="dc-domain-badge" id="domainBadge"></div>
+    <div class="dc-q-text" id="qText"></div>
+    <div class="dc-opts" id="qOpts"></div>
+    <div class="dc-explanation" id="qExplain"></div>
+  </div>
+</div>
+
+<script src="js/nav.js"></script>
+<script src="js/tutor.js"></script>
+<script src="js/group-chat.js"></script>
+<script>
+(function(){
+  'use strict';
+
+  /* ═══════════════════════════════════════════════════════════════
+     QUESTION BANK — 60 questions across all 5 N10-009 domains
+     ═══════════════════════════════════════════════════════════════ */
+
+  var DOMAIN_NAMES = [
+    '',
+    'Domain 1: Networking Concepts',
+    'Domain 2: Network Implementation',
+    'Domain 3: Network Operations',
+    'Domain 4: Network Security',
+    'Domain 5: Network Troubleshooting'
+  ];
+
+  var QUESTIONS = [
+    // ── Domain 1: Networking Concepts (12) ─────────────────────
+    {q:'Which cloud service model provides the MOST control over the underlying infrastructure while still leveraging cloud resources?',opts:['SaaS','PaaS','IaaS','DaaS'],ans:2,exp:'IaaS (Infrastructure as a Service) gives customers control over virtual machines, storage, and networking while the provider manages the physical hardware. SaaS provides the least control, PaaS manages the platform, and DaaS delivers virtual desktops.',domain:1},
+    {q:'At which layer of the OSI model does a switch primarily operate?',opts:['Layer 1 — Physical','Layer 2 — Data Link','Layer 3 — Network','Layer 4 — Transport'],ans:1,exp:'Switches operate at Layer 2 (Data Link) using MAC addresses to forward frames. Layer 3 switches can also route, but a standard switch is a Layer 2 device.',domain:1},
+    {q:'Which port number is used by HTTPS?',opts:['TCP 80','TCP 443','UDP 443','TCP 8080'],ans:1,exp:'HTTPS uses TCP port 443. HTTP uses TCP port 80. While QUIC (HTTP/3) uses UDP 443, standard HTTPS is TCP 443.',domain:1},
+    {q:'What is the primary purpose of ARP?',opts:['Resolve domain names to IP addresses','Resolve IP addresses to MAC addresses','Assign IP addresses dynamically','Encrypt Layer 2 traffic'],ans:1,exp:'ARP (Address Resolution Protocol) maps an IPv4 address to a MAC address. DNS resolves names to IPs, DHCP assigns IPs dynamically.',domain:1},
+    {q:'Which IPv6 address type is equivalent to a private IPv4 address?',opts:['Link-local (fe80::)','Unique local (fc00::/7)','Global unicast (2000::/3)','Multicast (ff00::)'],ans:1,exp:'Unique local addresses (fc00::/7, typically fd00::/8) are the IPv6 equivalent of RFC 1918 private addresses. Link-local is auto-configured for the local segment only.',domain:1},
+    {q:'Which wireless standard operates ONLY on the 5 GHz frequency band?',opts:['802.11n (Wi-Fi 4)','802.11ac (Wi-Fi 5)','802.11ax (Wi-Fi 6)','802.11g'],ans:1,exp:'802.11ac (Wi-Fi 5) operates exclusively on the 5 GHz band. 802.11n and 802.11ax are dual-band (2.4 and 5 GHz). 802.11g is 2.4 GHz only.',domain:1},
+    {q:'A network technician needs to segment traffic between the marketing and finance departments on the same switch. Which technology should be used?',opts:['NAT','VLANs','DHCP relay','Port mirroring'],ans:1,exp:'VLANs logically segment a switch into separate broadcast domains, isolating departmental traffic without requiring separate physical switches.',domain:1},
+    {q:'What is the maximum theoretical throughput of a Cat 6a cable?',opts:['1 Gbps at 100m','10 Gbps at 55m','10 Gbps at 100m','40 Gbps at 100m'],ans:2,exp:'Cat 6a supports 10 Gbps up to 100 meters. Cat 6 (not 6a) supports 10 Gbps only up to 55 meters. Cat 5e supports 1 Gbps at 100m.',domain:1},
+    {q:'Which protocol uses TCP port 22?',opts:['Telnet','SSH','SNMP','SFTP'],ans:1,exp:'SSH (Secure Shell) uses TCP port 22. Telnet uses TCP 23. SNMP uses UDP 161/162. SFTP also uses TCP 22 since it tunnels through SSH.',domain:1},
+    {q:'Which of the following BEST describes the function of a default gateway?',opts:['Assigns IP addresses to local hosts','Resolves domain names for the network','Routes traffic destined for networks outside the local subnet','Filters incoming traffic based on ACLs'],ans:2,exp:'The default gateway is the router interface that forwards traffic from local hosts to remote networks. Without it, hosts can only communicate within their subnet.',domain:1},
+    {q:'What type of address is ff02::1 in IPv6?',opts:['Anycast','Unicast','Multicast','Broadcast'],ans:2,exp:'ff02::1 is a multicast address (all-nodes multicast). IPv6 does not use broadcast — multicast replaces that function. Addresses starting with ff are always multicast.',domain:1},
+    {q:'How many usable host addresses are in a /28 subnet?',opts:['14','16','30','32'],ans:0,exp:'A /28 has 4 host bits: 2^4 = 16 total addresses, minus 2 (network and broadcast) = 14 usable hosts.',domain:1},
+
+    // ── Domain 2: Network Implementation (12) ─────────────────
+    {q:'Which routing protocol uses the Dijkstra algorithm to calculate the shortest path?',opts:['RIP','EIGRP','OSPF','BGP'],ans:2,exp:'OSPF uses the Dijkstra (SPF) algorithm to calculate the shortest path tree. RIP uses Bellman-Ford (hop count). EIGRP uses DUAL. BGP uses path vector.',domain:2},
+    {q:'What is the purpose of a trunk port on a switch?',opts:['Connect end-user devices','Carry traffic for multiple VLANs between switches','Provide PoE to access points','Mirror traffic for monitoring'],ans:1,exp:'Trunk ports use 802.1Q tagging to carry traffic from multiple VLANs across a single link between switches. Access ports carry traffic for one VLAN.',domain:2},
+    {q:'Which technology allows a single physical router interface to route between multiple VLANs?',opts:['EtherChannel','Router on a stick','Port channeling','STP'],ans:1,exp:'Router on a stick uses subinterfaces on a single physical router interface, each tagged with a different VLAN, to perform inter-VLAN routing.',domain:2},
+    {q:'An administrator wants to combine four physical switch links into one logical link for increased bandwidth and redundancy. Which technology should be used?',opts:['STP','VLAN trunking','LACP (Link Aggregation)','Port mirroring'],ans:2,exp:'LACP (Link Aggregation Control Protocol) or EtherChannel bundles multiple physical links into one logical link, increasing bandwidth and providing failover.',domain:2},
+    {q:'Which wireless configuration technique directs dual-band clients to connect to the 5 GHz band instead of 2.4 GHz?',opts:['Channel bonding','Band steering','OFDMA','Spatial multiplexing'],ans:1,exp:'Band steering is an AP feature that encourages capable clients to use the less congested 5 GHz band for better performance.',domain:2},
+    {q:'What is the administrative distance of OSPF?',opts:['90','100','110','120'],ans:2,exp:'OSPF has an AD of 110. EIGRP = 90, RIP = 120, Static = 1, Connected = 0. Lower AD is preferred when multiple routing protocols know the same route.',domain:2},
+    {q:'Which WAN technology uses labels to forward packets and is sometimes called "Layer 2.5"?',opts:['SD-WAN','MPLS','Metro Ethernet','DSL'],ans:1,exp:'MPLS inserts labels between the Layer 2 and Layer 3 headers (hence "Layer 2.5"), enabling fast, reliable WAN forwarding with QoS support.',domain:2},
+    {q:'A wireless AP is configured with WPA2-Enterprise. Which authentication server does it rely on?',opts:['TACACS+','LDAP','RADIUS','Kerberos'],ans:2,exp:'WPA2-Enterprise uses 802.1X with a RADIUS server to authenticate each user individually. TACACS+ is used for device administration, not wireless auth.',domain:2},
+    {q:'Which type of DNS record maps a domain name to an IPv6 address?',opts:['A','AAAA','CNAME','MX'],ans:1,exp:'AAAA records map hostnames to IPv6 addresses. A records map to IPv4. CNAME creates aliases. MX identifies mail servers.',domain:2},
+    {q:'Which VLAN is used to carry untagged traffic across a trunk link?',opts:['Management VLAN','Voice VLAN','Native VLAN','Default VLAN'],ans:2,exp:'The native VLAN carries untagged traffic on a trunk. By default it is VLAN 1, but best practice is to change it to an unused VLAN for security.',domain:2},
+    {q:'What does the DHCP DORA process stand for?',opts:['Detect, Obtain, Request, Authenticate','Discover, Offer, Request, Acknowledge','Discover, Open, Relay, Assign','Detect, Offer, Respond, Accept'],ans:1,exp:'DORA: Discover (client broadcasts), Offer (server responds), Request (client accepts), Acknowledge (server confirms). This is the four-step DHCP process.',domain:2},
+    {q:'Which 802.11 feature introduced in Wi-Fi 6 divides channels into smaller sub-channels for simultaneous multi-user transmissions?',opts:['MU-MIMO','Beamforming','OFDMA','DFS'],ans:2,exp:'OFDMA (Orthogonal Frequency Division Multiple Access) splits channels into Resource Units so multiple clients can transmit at once, improving efficiency in dense environments.',domain:2},
+
+    // ── Domain 3: Network Operations (10) ─────────────────────
+    {q:'A company requires that systems must be restored within 4 hours after a disaster. Which metric defines this requirement?',opts:['RPO','MTTR','MTBF','RTO'],ans:3,exp:'RTO (Recovery Time Objective) defines the maximum acceptable downtime. RPO defines maximum acceptable data loss. MTTR is actual average repair time.',domain:3},
+    {q:'Which document would a network administrator reference to understand the expected performance of a network under normal conditions?',opts:['Change management log','Network baseline','Incident response plan','SLA'],ans:1,exp:'A network baseline documents normal performance metrics (bandwidth, latency, utilization) as a reference point for identifying abnormal behavior.',domain:3},
+    {q:'What is the FIRST step in the CompTIA troubleshooting methodology?',opts:['Establish a theory of probable cause','Test the theory','Identify the problem','Establish a plan of action'],ans:2,exp:'The 7-step methodology starts with: 1) Identify the problem (gather information, question users, verify symptoms). Theory comes second.',domain:3},
+    {q:'An administrator wants to send all switch log messages to a centralized server. Which protocol should be configured?',opts:['SNMP','NTP','Syslog','NetFlow'],ans:2,exp:'Syslog (UDP 514) sends log messages to a centralized logging server. SNMP monitors/manages devices. NTP syncs time. NetFlow tracks traffic flows.',domain:3},
+    {q:'Which SNMP version should be used in a security-conscious environment?',opts:['SNMPv1','SNMPv2c','SNMPv3','All versions are equally secure'],ans:2,exp:'SNMPv3 adds authentication (username/password) and encryption. SNMPv1 and v2c use plaintext community strings, which are insecure.',domain:3},
+    {q:'A company needs to ensure data is not lost during a disaster and can afford to lose at most 1 hour of data. Which metric describes this?',opts:['RTO','RPO','MTBF','SLA'],ans:1,exp:'RPO (Recovery Point Objective) defines the maximum acceptable data loss measured in time. RPO of 1 hour means backups must run at least hourly.',domain:3},
+    {q:'Which type of diagram shows the physical locations of network equipment, cable paths, and rack positions?',opts:['Logical network diagram','Physical network diagram','Wiring schematic','Rack elevation diagram'],ans:1,exp:'Physical network diagrams show the actual physical layout including device locations, cable runs, and port connections. Logical diagrams show IP addressing and protocols.',domain:3},
+    {q:'What is the purpose of a change management process?',opts:['Track user login attempts','Document and approve changes before implementation','Monitor bandwidth utilization','Backup configuration files'],ans:1,exp:'Change management ensures all network changes are documented, reviewed, approved, and tested before implementation to minimize unplanned outages.',domain:3},
+    {q:'Which protocol synchronizes clocks across network devices?',opts:['SNMP','Syslog','NTP','DHCP'],ans:2,exp:'NTP (Network Time Protocol, UDP 123) synchronizes device clocks. Accurate time is critical for log correlation, certificate validation, and authentication protocols.',domain:3},
+    {q:'A new switch is being deployed. According to best practices, which action should be taken FIRST?',opts:['Configure VLANs','Update the firmware','Connect it to the production network','Enable all ports'],ans:1,exp:'Updating firmware first ensures the device has the latest security patches and bug fixes before connecting it to the production network.',domain:3},
+
+    // ── Domain 4: Network Security (12) ───────────────────────
+    {q:'Which attack involves an attacker setting up a rogue wireless access point that mimics a legitimate network?',opts:['Deauthentication attack','Evil twin','VLAN hopping','ARP spoofing'],ans:1,exp:'An evil twin attack creates a fake AP with the same SSID as a legitimate network, tricking users into connecting so the attacker can intercept traffic.',domain:4},
+    {q:'Which security feature prevents unauthorized DHCP servers from assigning IP addresses?',opts:['Port security','DHCP snooping','DAI','ACLs'],ans:1,exp:'DHCP snooping filters DHCP messages on untrusted ports, blocking rogue DHCP server responses. It also builds a binding table used by DAI.',domain:4},
+    {q:'A network administrator wants to require users to authenticate before accessing the wired network. Which protocol provides port-based access control?',opts:['RADIUS','802.1X','LDAP','TACACS+'],ans:1,exp:'802.1X provides port-based NAC (Network Access Control). It uses RADIUS on the backend, but 802.1X is the protocol that controls port access.',domain:4},
+    {q:'Which type of firewall inspects traffic up to Layer 7 and can make decisions based on application behavior?',opts:['Stateless firewall','Stateful firewall','Proxy firewall','Next-generation firewall (NGFW)'],ans:3,exp:'NGFWs combine traditional firewall capabilities with application awareness, IPS, deep packet inspection, and threat intelligence at Layer 7.',domain:4},
+    {q:'An attacker floods a switch with thousands of fake MAC addresses to overflow the CAM table. What type of attack is this?',opts:['ARP spoofing','VLAN hopping','MAC flooding','Deauthentication'],ans:2,exp:'MAC flooding overwhelms the switch CAM table, causing it to flood all frames out every port like a hub, allowing the attacker to sniff traffic. Port security mitigates this.',domain:4},
+    {q:'Which VPN protocol operates at Layer 3 and uses ESP for encryption?',opts:['SSL VPN','IPsec','PPTP','L2TP'],ans:1,exp:'IPsec operates at Layer 3 and uses ESP (Encapsulating Security Payload, protocol 50) for encryption and authentication. SSL VPN operates at Layer 4-7.',domain:4},
+    {q:'What type of security control is a surveillance camera?',opts:['Preventive','Detective','Corrective','Deterrent'],ans:1,exp:'Surveillance cameras are detective controls — they detect and record incidents. They can also act as deterrent controls (preventing crime by their presence).',domain:4},
+    {q:'Which security concept ensures that users have only the minimum permissions necessary to perform their job functions?',opts:['Zero trust','Defense in depth','Least privilege','Role-based access control'],ans:2,exp:'The principle of least privilege restricts users to the minimum access needed for their role, limiting the blast radius of compromised accounts.',domain:4},
+    {q:'Which attack intercepts communication between two parties without their knowledge?',opts:['Phishing','Man-in-the-middle','Brute force','Social engineering'],ans:1,exp:'A man-in-the-middle (MITM) attack secretly intercepts and potentially alters communication between two parties who believe they are communicating directly.',domain:4},
+    {q:'What is the purpose of a honeypot?',opts:['Filter malicious traffic at the perimeter','Encrypt sensitive data in transit','Attract and detect attackers by simulating vulnerable systems','Authenticate users with multi-factor methods'],ans:2,exp:'A honeypot is a decoy system designed to look like a real target. It attracts attackers and collects intelligence on their methods without risking production systems.',domain:4},
+    {q:'Which authentication protocol is BEST suited for controlling administrative access to network devices?',opts:['RADIUS','TACACS+','Kerberos','LDAP'],ans:1,exp:'TACACS+ is preferred for device administration (CLI access) because it separates AAA functions and encrypts the entire payload. RADIUS is preferred for network access (Wi-Fi, VPN).',domain:4},
+    {q:'A security administrator implements a network policy that assumes every device and user is untrusted until verified, even inside the corporate network. Which security model is this?',opts:['Defense in depth','Perimeter security','Zero trust','Layered security'],ans:2,exp:'Zero trust assumes no implicit trust — every user and device must be continuously verified regardless of location. It replaces the traditional "trusted inside, untrusted outside" model.',domain:4},
+
+    // ── Domain 5: Network Troubleshooting (14) ────────────────
+    {q:'A user reports they can access local resources but cannot reach any websites. Pinging 8.8.8.8 succeeds, but pinging google.com fails. What is the MOST likely issue?',opts:['Default gateway misconfigured','DNS server issue','Firewall blocking all traffic','NIC failure'],ans:1,exp:'If IP connectivity works (ping by IP succeeds) but name resolution fails (ping by name fails), DNS is the issue. The default gateway is fine since remote IPs are reachable.',domain:5},
+    {q:'Which command displays the path packets take to reach a destination, showing each hop along the way?',opts:['ping','netstat','traceroute / tracert','nslookup'],ans:2,exp:'traceroute (Linux/Mac) or tracert (Windows) shows each router hop between source and destination, with latency at each hop. Useful for identifying where delays or failures occur.',domain:5},
+    {q:'A network technician suspects a duplex mismatch on a switch port. Which symptom would MOST likely be observed?',opts:['CRC errors and late collisions','DNS resolution failures','DHCP timeouts','STP topology changes'],ans:0,exp:'Duplex mismatch causes late collisions, FCS errors, and CRC errors. The full-duplex side sends while the half-duplex side is receiving, causing frame corruption.',domain:5},
+    {q:'Which tool sends ICMP Echo Request packets to test connectivity to a remote host?',opts:['nslookup','traceroute','arp','ping'],ans:3,exp:'ping sends ICMP Echo Requests and waits for Echo Replies, testing basic IP connectivity and measuring round-trip time.',domain:5},
+    {q:'A user gets a 169.254.x.x IP address. What does this indicate?',opts:['The DNS server is unreachable','The DHCP server is unavailable','The default gateway is down','A duplicate IP exists on the network'],ans:1,exp:'169.254.x.x is an APIPA (Automatic Private IP Addressing) address assigned when a device cannot reach a DHCP server. Check DHCP server status and network connectivity to it.',domain:5},
+    {q:'Which tool would a technician use to identify a specific cable in a bundle running through a ceiling?',opts:['Cable tester','OTDR','Tone generator and probe','Multimeter'],ans:2,exp:'A tone generator and probe (fox and hound) injects a signal on one end and traces it with a probe to identify which cable is which in a bundle.',domain:5},
+    {q:'A fiber optic link is experiencing intermittent connectivity. Which tool should be used to locate the exact point of failure in the fiber run?',opts:['Cable tester','Tone generator','OTDR','Visual fault locator'],ans:2,exp:'An OTDR (Optical Time-Domain Reflectometer) sends light pulses through fiber and measures reflections to pinpoint breaks, splices, and connectors with distance measurements.',domain:5},
+    {q:'After making changes to resolve a network issue, which step in the troubleshooting methodology comes NEXT?',opts:['Document findings','Establish a plan of action','Verify full system functionality','Identify the problem'],ans:2,exp:'After implementing the solution (step 5), you must verify full system functionality (step 6) to confirm the fix worked and caused no new problems. Documentation is step 7 (last).',domain:5},
+    {q:'A switch port is showing as "err-disabled." What is the MOST likely cause?',opts:['Cable unplugged','VLAN mismatch','Port security violation','STP loop detected'],ans:2,exp:'err-disabled typically results from a port security violation (too many MAC addresses). Other causes include BPDU guard triggers or DHCP snooping violations. The port must be manually re-enabled.',domain:5},
+    {q:'Which command shows the ARP cache on a Windows machine?',opts:['ipconfig /all','arp -a','netstat -r','nslookup'],ans:1,exp:'arp -a displays the ARP cache (IP-to-MAC mappings). ipconfig /all shows interface configuration. netstat -r shows the routing table.',domain:5},
+    {q:'A user cannot connect to a wireless network but other users can. The user previously connected without issues. What should the technician check FIRST?',opts:['AP firmware version','Wireless NIC driver on the user device','RADIUS server logs','Channel interference'],ans:1,exp:'Since only one user is affected and they previously connected, the issue is likely client-side. Check the wireless NIC, saved profile, and driver. AP and RADIUS issues would affect all users.',domain:5},
+    {q:'Which command on a Windows machine releases and renews a DHCP lease?',opts:['ipconfig /flushdns','ipconfig /release then ipconfig /renew','netsh reset','arp -d *'],ans:1,exp:'ipconfig /release releases the current DHCP lease, and ipconfig /renew requests a new one. This is a common first step when troubleshooting IP addressing issues.',domain:5},
+    {q:'A network experiences slow performance during business hours but runs fine at night. Which should the technician examine FIRST?',opts:['Firmware versions on all switches','Bandwidth utilization reports','Physical cable connections','DNS server response times'],ans:1,exp:'Slow performance during peak hours suggests bandwidth saturation. Comparing utilization reports against the network baseline reveals if traffic exceeds capacity.',domain:5},
+    {q:'A technician needs to test if a switch port NIC is functioning correctly without connecting to the network. Which tool should be used?',opts:['Cable certifier','Tone generator','Loopback plug','Protocol analyzer'],ans:2,exp:'A loopback plug connects transmit pins to receive pins, allowing the NIC to test its own send/receive capability without needing a remote device or network connection.',domain:5}
+  ];
+
+  var STORAGE_KEY = 'np_daily_v1';
+
+  /* ── Date Helpers ─────────────────────────────────────────── */
+  function dateKey(d){
+    return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  }
+  function todayKey(){ return dateKey(new Date()); }
+
+  // Seed a deterministic question index from a date string
+  function seedFromDate(dk){
+    var h = 0;
+    for(var i=0;i<dk.length;i++){ h = ((h << 5) - h) + dk.charCodeAt(i); h |= 0; }
+    return Math.abs(h) % QUESTIONS.length;
+  }
+
+  /* ── State ────────────────────────────────────────────────── */
+  function loadState(){
+    try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}; } catch(e){ return {}; }
+  }
+  function saveState(s){ localStorage.setItem(STORAGE_KEY, JSON.stringify(s)); }
+
+  function getHistory(){
+    var s = loadState();
+    return s.history || {}; // {dateKey: {answered:true, correct:bool, chosen:int}}
+  }
+  function saveAnswer(dk, correct, chosen){
+    var s = loadState();
+    if(!s.history) s.history = {};
+    s.history[dk] = {answered:true, correct:correct, chosen:chosen};
+    // Update streak
+    s.streak = calcStreak(s.history);
+    s.bestStreak = Math.max(s.bestStreak||0, s.streak);
+    saveState(s);
+  }
+
+  function calcStreak(history){
+    var streak = 0;
+    var d = new Date();
+    // If today is answered correctly, start counting from today
+    // If today is not answered yet, start counting from yesterday
+    var tk = todayKey();
+    if(!history[tk] || !history[tk].answered){
+      d.setDate(d.getDate()-1);
+    }
+    while(true){
+      var dk = dateKey(d);
+      if(history[dk] && history[dk].correct){
+        streak++;
+        d.setDate(d.getDate()-1);
+      } else {
+        break;
+      }
+    }
+    return streak;
+  }
+
+  /* ── Render ───────────────────────────────────────────────── */
+  function init(){
+    var now = new Date();
+    var tk = todayKey();
+    var qIdx = seedFromDate(tk);
+    var question = QUESTIONS[qIdx];
+    var state = loadState();
+    var history = state.history || {};
+    var alreadyAnswered = history[tk] && history[tk].answered;
+
+    // Date display
+    var days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+    var months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    document.getElementById('dateDay').textContent = days[now.getDay()];
+    document.getElementById('dateFull').textContent = months[now.getMonth()] + ' ' + now.getDate() + ', ' + now.getFullYear();
+
+    // Streak
+    var streak = state.streak || calcStreak(history);
+    var bestStreak = state.bestStreak || streak;
+    document.getElementById('streakNum').textContent = streak;
+    document.getElementById('streakBest').textContent = 'Best: ' + bestStreak;
+
+    // Stats
+    var totalAnswered = 0, totalCorrect = 0;
+    for(var dk in history){
+      if(history[dk].answered){ totalAnswered++; if(history[dk].correct) totalCorrect++; }
+    }
+    document.getElementById('statCorrect').textContent = totalCorrect;
+    document.getElementById('statTotal').textContent = totalAnswered;
+    document.getElementById('statAccuracy').textContent = totalAnswered ? Math.round(totalCorrect/totalAnswered*100)+'%' : '--';
+
+    // Calendar heatmap (last 30 days)
+    renderCalendar(history, now);
+
+    // Domain badge
+    document.getElementById('domainBadge').textContent = DOMAIN_NAMES[question.domain] || '';
+
+    // Question text
+    document.getElementById('qText').textContent = question.q;
+
+    // Options
+    var letters = ['A','B','C','D'];
+    var optsHtml = '';
+    question.opts.forEach(function(opt, i){
+      var cls = 'dc-opt';
+      if(alreadyAnswered) cls += ' locked';
+      if(alreadyAnswered && i === question.ans) cls += ' correct';
+      if(alreadyAnswered && i === history[tk].chosen && i !== question.ans) cls += ' wrong';
+      optsHtml += '<button class="'+cls+'" data-idx="'+i+'"><span class="opt-letter">'+letters[i]+'</span><span>'+opt+'</span></button>';
+    });
+    document.getElementById('qOpts').innerHTML = optsHtml;
+
+    // Explanation
+    var expEl = document.getElementById('qExplain');
+    expEl.innerHTML = '<strong>Explanation:</strong> ' + question.exp;
+
+    if(alreadyAnswered){
+      document.getElementById('answeredBanner').classList.add('show');
+      var wasCorrect = history[tk].correct;
+      document.getElementById('answeredMsg').textContent = wasCorrect ? 'You got it right! Explanation shown below.' : 'You missed this one. Review the explanation below.';
+      document.getElementById('answeredBanner').querySelector('.dc-answered-icon').textContent = wasCorrect ? '[+]' : '[x]';
+      expEl.classList.add('show');
+    } else {
+      // Attach click handlers
+      document.querySelectorAll('.dc-opt').forEach(function(btn){
+        btn.addEventListener('click', function(){
+          if(btn.classList.contains('locked')) return;
+          var chosen = parseInt(btn.dataset.idx);
+          var correct = chosen === question.ans;
+
+          // Lock all options
+          document.querySelectorAll('.dc-opt').forEach(function(o){
+            o.classList.add('locked');
+          });
+
+          // Mark correct/wrong
+          document.querySelectorAll('.dc-opt')[question.ans].classList.add('correct');
+          if(!correct){
+            btn.classList.add('wrong');
+          }
+
+          // Show explanation
+          expEl.classList.add('show');
+
+          // Save
+          saveAnswer(tk, correct, chosen);
+
+          // Update streak and stats display
+          var s2 = loadState();
+          var h2 = s2.history || {};
+          document.getElementById('streakNum').textContent = s2.streak || 0;
+          document.getElementById('streakBest').textContent = 'Best: ' + (s2.bestStreak || 0);
+
+          var tot2 = 0, cor2 = 0;
+          for(var k in h2){ if(h2[k].answered){tot2++;if(h2[k].correct)cor2++;} }
+          document.getElementById('statCorrect').textContent = cor2;
+          document.getElementById('statTotal').textContent = tot2;
+          document.getElementById('statAccuracy').textContent = tot2 ? Math.round(cor2/tot2*100)+'%' : '--';
+
+          // Refresh calendar
+          renderCalendar(h2, new Date());
+        });
+      });
+    }
+  }
+
+  function renderCalendar(history, now){
+    var grid = document.getElementById('calGrid');
+    var html = '';
+    var today = dateKey(now);
+
+    for(var i=29;i>=0;i--){
+      var d = new Date(now);
+      d.setDate(d.getDate()-i);
+      var dk = dateKey(d);
+      var dayNum = d.getDate();
+      var cls = 'dc-cal-day';
+
+      if(dk === today) cls += ' today';
+
+      if(history[dk] && history[dk].answered){
+        cls += history[dk].correct ? ' correct' : ' wrong';
+      } else if(dk < today) {
+        cls += ' missed';
+      } else if(dk > today){
+        cls += ' future';
+      }
+
+      html += '<div class="'+cls+'" title="'+dk+'">'+dayNum+'</div>';
+    }
+    grid.innerHTML = html;
+  }
+
+  /* ── Keyboard shortcuts ───────────────────────────────────── */
+  document.addEventListener('keydown', function(e){
+    if(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA') return;
+    var map = {'1':0,'2':1,'3':2,'4':3,'a':0,'b':1,'c':2,'d':3};
+    if(e.key.toLowerCase() in map){
+      var btns = document.querySelectorAll('.dc-opt:not(.locked)');
+      if(btns.length){
+        var idx = map[e.key.toLowerCase()];
+        if(btns[idx]) btns[idx].click();
+      }
+    }
+  });
+
+  /* ── Init ─────────────────────────────────────────────────── */
+  init();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IP Address Training Game — CompTIA N10-009</title>
+<meta name="color-scheme" content="light">
+<link rel="icon" type="image/svg+xml" href="/CCNA-study/favicon.svg">
+<link rel="stylesheet" href="css/shared.css">
+<style>
+  :root { --np: #7C3AED; --np-dim: #F5F3FF; --np-mid: #EDE9FE; }
+
+  .page-header { padding: var(--s-xl) 0 var(--s-lg); margin-bottom: var(--s-lg); border-bottom: 3px solid var(--np); }
+  .page-header h1 { font-size: 2.4rem; margin-bottom: 4px; color: var(--np); }
+  .page-header .subtitle { font-family: var(--font-body); color: var(--ink-secondary); font-size: .95rem; font-style: italic; }
+
+  /* Mode tabs */
+  .mode-tabs { display: flex; gap: 0; margin-bottom: var(--s-lg); border-bottom: 2px solid var(--rule); overflow-x: auto; }
+  .mode-tab { font-family: var(--font-display); font-size: .78rem; font-weight: 600; padding: 10px 16px; cursor: pointer; border: none; background: none; color: var(--ink-muted); border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all var(--transition); white-space: nowrap; }
+  .mode-tab:hover { color: var(--ink); }
+  .mode-tab.active { color: var(--np); border-bottom-color: var(--np); }
+
+  /* Shared game card */
+  .game-panel { display: none; }
+  .game-panel.active { display: block; }
+  .game-card { background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 28px; max-width: 640px; margin: 0 auto; }
+  .game-title { font-family: var(--font-display); font-size: 1rem; font-weight: 700; margin-bottom: var(--s-md); text-align: center; color: var(--ink); }
+
+  /* Score bar */
+  .score-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--s-lg); padding: 10px 16px; background: var(--bg-recessed); border-radius: var(--radius); }
+  .score-item { font-family: var(--font-mono); font-size: .78rem; color: var(--ink-secondary); }
+  .score-item strong { color: var(--np); font-weight: 700; }
+
+  /* IP display */
+  .ip-display { text-align: center; margin-bottom: var(--s-lg); }
+  .ip-addr { font-family: var(--font-mono); font-size: 2.2rem; font-weight: 800; color: var(--ink); letter-spacing: -.02em; }
+  .ip-label { font-family: var(--font-display); font-size: .72rem; color: var(--ink-muted); text-transform: uppercase; letter-spacing: .05em; margin-bottom: var(--s-xs); }
+
+  /* Answer buttons */
+  .answer-row { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-bottom: var(--s-md); }
+  .ans-btn { font-family: var(--font-display); font-size: .88rem; font-weight: 600; padding: 12px 28px; border: 2px solid var(--border); border-radius: var(--radius-lg); background: var(--bg-surface); color: var(--ink); cursor: pointer; transition: all var(--transition); min-width: 120px; }
+  .ans-btn:hover:not(.locked) { border-color: var(--np); background: var(--np-dim); }
+  .ans-btn.correct { border-color: var(--correct); background: var(--correct-bg); color: var(--correct); }
+  .ans-btn.wrong { border-color: var(--wrong); background: var(--wrong-bg); color: var(--wrong); }
+  .ans-btn.locked { cursor: default; opacity: .5; }
+  .ans-btn.highlight { border-color: var(--correct); }
+
+  /* Feedback */
+  .feedback { text-align: center; min-height: 60px; margin-bottom: var(--s-md); }
+  .fb-text { font-family: var(--font-body); font-size: .88rem; color: var(--ink-secondary); line-height: 1.5; }
+  .fb-text.correct-fb { color: var(--correct); }
+  .fb-text.wrong-fb { color: var(--wrong); }
+  .fb-explain { font-family: var(--font-body); font-size: .82rem; color: var(--ink-secondary); margin-top: 6px; }
+
+  .next-btn { display: none; margin: 0 auto; }
+  .next-btn.show { display: block; }
+
+  /* ── Mode 2: Binary Converter ── */
+  .bit-grid { display: flex; justify-content: center; gap: 4px; margin-bottom: var(--s-md); }
+  .bit-col { text-align: center; }
+  .bit-place { font-family: var(--font-mono); font-size: .65rem; color: var(--ink-muted); margin-bottom: 4px; }
+  .bit-box { width: 40px; height: 44px; display: flex; align-items: center; justify-content: center; font-family: var(--font-mono); font-size: 1.1rem; font-weight: 800; border: 2px solid var(--border); border-radius: var(--radius); cursor: pointer; transition: all .2s; user-select: none; }
+  .bit-box:hover { border-color: var(--np); }
+  .bit-box.on { background: var(--np); color: #fff; border-color: var(--np); }
+  .bit-box.locked { cursor: default; }
+  .bit-box.correct-bit { background: var(--correct); color: #fff; border-color: var(--correct); }
+  .bit-box.wrong-bit { background: var(--wrong); color: #fff; border-color: var(--wrong); }
+  .bit-decimal { font-family: var(--font-mono); font-size: 1.4rem; font-weight: 800; color: var(--np); text-align: center; margin-bottom: var(--s-sm); }
+
+  /* ── Mode 3: Subnet Challenge ── */
+  .subnet-question { font-family: var(--font-body); font-size: .9rem; color: var(--ink); margin-bottom: var(--s-md); text-align: center; }
+  .subnet-field { font-family: var(--font-display); font-size: .72rem; color: var(--ink-muted); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 6px; text-align: center; }
+  .mc-opts { display: flex; flex-direction: column; gap: 8px; margin-bottom: var(--s-md); }
+  .mc-opt { padding: 12px 16px; border: 1px solid var(--border); border-radius: var(--radius-lg); font-family: var(--font-mono); font-size: .88rem; cursor: pointer; transition: all var(--transition); background: var(--bg-surface); color: var(--ink); text-align: left; }
+  .mc-opt:hover:not(.locked) { border-color: var(--np); background: var(--np-dim); }
+  .mc-opt.correct { border-color: var(--correct); background: var(--correct-bg); }
+  .mc-opt.wrong { border-color: var(--wrong); background: var(--wrong-bg); }
+  .mc-opt.locked { cursor: default; opacity: .5; }
+  .mc-opt.highlight { border-color: var(--correct); opacity: 1; }
+
+  .solution-box { display: none; padding: var(--s-md); background: var(--bg-recessed); border-radius: var(--radius); margin-bottom: var(--s-md); border-left: 3px solid var(--np); }
+  .solution-box.show { display: block; }
+  .solution-box h4 { font-family: var(--font-display); font-size: .82rem; margin-bottom: 8px; }
+  .solution-row { font-family: var(--font-mono); font-size: .78rem; color: var(--ink-secondary); line-height: 1.8; }
+  .solution-row strong { color: var(--ink); }
+
+  /* ── Mode 4: Quick-fire timer ── */
+  .timer-bar { height: 6px; background: var(--bg-recessed); border-radius: 3px; overflow: hidden; margin-bottom: var(--s-md); }
+  .timer-fill { height: 100%; background: var(--np); border-radius: 3px; transition: width .1s linear; }
+  .timer-fill.warn { background: var(--prof-mid); }
+  .timer-fill.danger { background: var(--prof-weak); }
+  .big-score { font-family: var(--font-mono); font-size: 2.5rem; font-weight: 800; color: var(--np); text-align: center; margin-bottom: var(--s-sm); }
+  .start-screen { text-align: center; padding: var(--s-xl) 0; }
+  .start-screen p { font-family: var(--font-body); font-size: .9rem; color: var(--ink-secondary); margin: 0 auto var(--s-md); }
+
+  /* Best streak */
+  .best-streak { font-family: var(--font-mono); font-size: .72rem; color: var(--ink-muted); text-align: center; margin-top: var(--s-sm); }
+
+  @media (max-width: 600px) {
+    .ip-addr { font-size: 1.6rem; }
+    .bit-box { width: 34px; height: 38px; font-size: .95rem; }
+    .ans-btn { min-width: 100px; padding: 10px 16px; font-size: .82rem; }
+    .game-card { padding: 18px; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <nav class="top-nav"></nav>
+
+  <header class="page-header">
+    <a href="netplus.html" class="back-link">Back to Network+ Hub</a>
+    <h1>IP Address Training Game</h1>
+    <p class="subtitle">Master IP addressing &mdash; classify, convert, subnet, and identify</p>
+  </header>
+
+  <!-- Mode tabs -->
+  <div class="mode-tabs">
+    <button class="mode-tab active" data-mode="classify">Public vs Private</button>
+    <button class="mode-tab" data-mode="binary">Binary Converter</button>
+    <button class="mode-tab" data-mode="subnet">Subnet Challenge</button>
+    <button class="mode-tab" data-mode="class">IP Class (60s)</button>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       MODE 1: Public vs Private Classifier
+       ═══════════════════════════════════════════════════════════════ -->
+  <div class="game-panel active" id="panelClassify">
+    <div class="game-card">
+      <div class="score-bar">
+        <span class="score-item">Score: <strong id="c1Score">0</strong> / <span id="c1Total">0</span></span>
+        <span class="score-item">Streak: <strong id="c1Streak">0</strong></span>
+        <span class="score-item">Best: <strong id="c1Best">0</strong></span>
+      </div>
+      <div class="ip-display">
+        <div class="ip-label">Classify this address</div>
+        <div class="ip-addr" id="c1Ip"></div>
+      </div>
+      <div class="answer-row" id="c1Btns">
+        <button class="ans-btn" data-ans="private">Private</button>
+        <button class="ans-btn" data-ans="public">Public</button>
+        <button class="ans-btn" data-ans="special">Special</button>
+      </div>
+      <div class="feedback" id="c1Fb"></div>
+      <button class="btn btn-primary btn-sm next-btn" id="c1Next" onclick="c1NewQ()">Next</button>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       MODE 2: Binary Converter
+       ═══════════════════════════════════════════════════════════════ -->
+  <div class="game-panel" id="panelBinary">
+    <div class="game-card">
+      <div class="score-bar">
+        <span class="score-item">Score: <strong id="c2Score">0</strong> / <span id="c2Total">0</span></span>
+        <span class="score-item">Streak: <strong id="c2Streak">0</strong></span>
+      </div>
+      <div class="ip-display">
+        <div class="ip-label" id="c2Label">Convert this octet to binary</div>
+        <div class="ip-addr" id="c2Ip"></div>
+      </div>
+      <div id="c2Area"></div>
+      <div class="feedback" id="c2Fb"></div>
+      <button class="btn btn-primary btn-sm next-btn" id="c2Next" onclick="c2NewQ()">Next</button>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       MODE 3: Subnet Challenge
+       ═══════════════════════════════════════════════════════════════ -->
+  <div class="game-panel" id="panelSubnet">
+    <div class="game-card">
+      <div class="score-bar">
+        <span class="score-item">Score: <strong id="c3Score">0</strong> / <span id="c3Total">0</span></span>
+        <span class="score-item">Streak: <strong id="c3Streak">0</strong></span>
+      </div>
+      <div class="ip-display">
+        <div class="ip-label">Given this IP and CIDR</div>
+        <div class="ip-addr" id="c3Ip"></div>
+      </div>
+      <div class="subnet-field" id="c3Field"></div>
+      <div class="mc-opts" id="c3Opts"></div>
+      <div class="solution-box" id="c3Solution"></div>
+      <div class="feedback" id="c3Fb"></div>
+      <button class="btn btn-primary btn-sm next-btn" id="c3Next" onclick="c3NewQ()">Next</button>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       MODE 4: IP Class Identifier (60s quick-fire)
+       ═══════════════════════════════════════════════════════════════ -->
+  <div class="game-panel" id="panelClass">
+    <div class="game-card">
+      <div id="c4Start" class="start-screen">
+        <div class="game-title">IP Class Quick-Fire</div>
+        <p>Classify as many IPs as you can in 60 seconds.<br>Class A, B, C, D (multicast), or E (experimental).</p>
+        <button class="btn btn-primary" onclick="c4Begin()">Start</button>
+        <div class="best-streak" id="c4BestDisplay"></div>
+      </div>
+      <div id="c4Game" style="display:none">
+        <div class="timer-bar"><div class="timer-fill" id="c4Timer"></div></div>
+        <div class="score-bar">
+          <span class="score-item">Correct: <strong id="c4Score">0</strong></span>
+          <span class="score-item">Time: <strong id="c4Time">60</strong>s</span>
+        </div>
+        <div class="ip-display">
+          <div class="ip-label">What class?</div>
+          <div class="ip-addr" id="c4Ip"></div>
+        </div>
+        <div class="answer-row" id="c4Btns">
+          <button class="ans-btn" data-cls="A">A</button>
+          <button class="ans-btn" data-cls="B">B</button>
+          <button class="ans-btn" data-cls="C">C</button>
+          <button class="ans-btn" data-cls="D">D</button>
+          <button class="ans-btn" data-cls="E">E</button>
+        </div>
+        <div class="feedback" id="c4Fb"></div>
+      </div>
+      <div id="c4End" style="display:none" class="start-screen">
+        <div class="game-title">Time's Up!</div>
+        <div class="big-score" id="c4Final">0</div>
+        <p>correct answers in 60 seconds</p>
+        <div class="best-streak" id="c4BestEnd"></div>
+        <button class="btn btn-primary" onclick="c4Begin()" style="margin-top:var(--s-md)">Play Again</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="js/nav.js"></script>
+<script src="js/tutor.js"></script>
+<script src="js/group-chat.js"></script>
+<script>
+(function(){
+
+  /* ── Utilities ──────────────────────────────────────────────── */
+  function randInt(min,max){ return Math.floor(Math.random()*(max-min+1))+min; }
+  function ip2num(a,b,c,d){ return ((a<<24)|(b<<16)|(c<<8)|d)>>>0; }
+  function num2ip(n){ return [(n>>>24)&0xFF,(n>>>16)&0xFF,(n>>>8)&0xFF,n&0xFF].join('.'); }
+  function dec2bin(n){ var s=n.toString(2); while(s.length<8) s='0'+s; return s; }
+  function bin2dec(b){ return parseInt(b,2); }
+
+  function loadBest(key){ return parseInt(localStorage.getItem(key)||'0',10); }
+  function saveBest(key,v){ var cur=loadBest(key); if(v>cur) localStorage.setItem(key,v); return Math.max(cur,v); }
+
+  /* ── Tab switching ──────────────────────────────────────────── */
+  var panels = {
+    classify: document.getElementById('panelClassify'),
+    binary: document.getElementById('panelBinary'),
+    subnet: document.getElementById('panelSubnet'),
+    'class': document.getElementById('panelClass')
+  };
+  document.querySelector('.mode-tabs').addEventListener('click',function(e){
+    var tab = e.target.closest('.mode-tab');
+    if(!tab) return;
+    document.querySelectorAll('.mode-tab').forEach(function(t){t.classList.remove('active')});
+    tab.classList.add('active');
+    var mode = tab.dataset.mode;
+    Object.keys(panels).forEach(function(k){
+      panels[k].classList.toggle('active',k===mode);
+    });
+    // Initialize the mode
+    if(mode==='classify') c1NewQ();
+    if(mode==='binary') c2NewQ();
+    if(mode==='subnet') c3NewQ();
+    if(mode==='class') c4ShowStart();
+  });
+
+  /* ═══════════════════════════════════════════════════════════════
+     MODE 1: Public vs Private Classifier
+     ═══════════════════════════════════════════════════════════════ */
+  var c1 = {score:0, total:0, streak:0};
+  var c1BestKey = 'ipgame_classify_best';
+  document.getElementById('c1Best').textContent = loadBest(c1BestKey);
+
+  function classifyIP(a,b,c,d){
+    // Private RFC 1918
+    if(a===10) return {type:'private',range:'10.0.0.0/8 (RFC 1918 Class A private)'};
+    if(a===172 && b>=16 && b<=31) return {type:'private',range:'172.16.0.0/12 (RFC 1918 Class B private)'};
+    if(a===192 && b===168) return {type:'private',range:'192.168.0.0/16 (RFC 1918 Class C private)'};
+    // Loopback
+    if(a===127) return {type:'special',range:'127.0.0.0/8 (Loopback)'};
+    // APIPA
+    if(a===169 && b===254) return {type:'special',range:'169.254.0.0/16 (APIPA / Link-Local)'};
+    // Multicast
+    if(a>=224 && a<=239) return {type:'special',range:'224.0.0.0 - 239.255.255.255 (Multicast, Class D)'};
+    // Experimental
+    if(a>=240) return {type:'special',range:'240.0.0.0 - 255.255.255.255 (Experimental, Class E)'};
+    return {type:'public',range:'Public routable address'};
+  }
+
+  function genClassifyIP(){
+    // Mix of private, public, and special addresses
+    var pools = [
+      function(){ return [10,randInt(0,255),randInt(0,255),randInt(1,254)]; },
+      function(){ return [172,randInt(16,31),randInt(0,255),randInt(1,254)]; },
+      function(){ return [192,168,randInt(0,255),randInt(1,254)]; },
+      function(){ return [127,randInt(0,255),randInt(0,255),randInt(1,254)]; },
+      function(){ return [169,254,randInt(0,255),randInt(1,254)]; },
+      function(){ return [randInt(224,239),randInt(0,255),randInt(0,255),randInt(0,255)]; },
+      function(){ return [randInt(240,254),randInt(0,255),randInt(0,255),randInt(0,255)]; },
+      function(){ return [randInt(1,9),randInt(0,255),randInt(0,255),randInt(1,254)]; },
+      function(){ return [randInt(11,126),randInt(0,255),randInt(0,255),randInt(1,254)]; },
+      function(){ return [randInt(128,171),randInt(0,255),randInt(0,255),randInt(1,254)]; },
+      function(){ return [172,randInt(32,255),randInt(0,255),randInt(1,254)]; },
+      function(){ return [randInt(173,191),randInt(0,255),randInt(0,255),randInt(1,254)]; },
+      function(){ return [192,randInt(0,167),randInt(0,255),randInt(1,254)]; },
+      function(){ return [randInt(193,223),randInt(0,255),randInt(0,255),randInt(1,254)]; },
+    ];
+    var fn = pools[Math.floor(Math.random()*pools.length)];
+    return fn();
+  }
+
+  window.c1NewQ = function(){
+    var octets = genClassifyIP();
+    var info = classifyIP(octets[0],octets[1],octets[2],octets[3]);
+    document.getElementById('c1Ip').textContent = octets.join('.');
+    document.getElementById('c1Fb').innerHTML = '';
+    document.getElementById('c1Next').classList.remove('show');
+
+    var btns = document.getElementById('c1Btns');
+    btns.querySelectorAll('.ans-btn').forEach(function(b){
+      b.classList.remove('correct','wrong','locked','highlight');
+      b.onclick = function(){
+        c1.total++;
+        var correct = b.dataset.ans === info.type;
+        if(correct){ c1.score++; c1.streak++; }
+        else { c1.streak = 0; }
+        b.classList.add(correct?'correct':'wrong');
+        btns.querySelectorAll('.ans-btn').forEach(function(bb){
+          bb.classList.add('locked');
+          if(bb.dataset.ans===info.type) bb.classList.add('highlight');
+        });
+        var best = saveBest(c1BestKey, c1.streak);
+        document.getElementById('c1Score').textContent = c1.score;
+        document.getElementById('c1Total').textContent = c1.total;
+        document.getElementById('c1Streak').textContent = c1.streak;
+        document.getElementById('c1Best').textContent = best;
+        document.getElementById('c1Fb').innerHTML = '<div class="fb-text '+(correct?'correct-fb':'wrong-fb')+'">'+(correct?'Correct!':'Wrong!')+'</div><div class="fb-explain">'+info.range+'</div>';
+        document.getElementById('c1Next').classList.add('show');
+      };
+    });
+  };
+  c1NewQ();
+
+  /* ═══════════════════════════════════════════════════════════════
+     MODE 2: Binary Converter
+     ═══════════════════════════════════════════════════════════════ */
+  var c2 = {score:0, total:0, streak:0};
+  var c2Mode; // 'dec2bin' or 'bin2dec'
+  var c2Answer;
+  var c2Bits;
+
+  window.c2NewQ = function(){
+    c2Mode = Math.random() < 0.5 ? 'dec2bin' : 'bin2dec';
+    var decimal = randInt(0,255);
+    var binary = dec2bin(decimal);
+    document.getElementById('c2Fb').innerHTML = '';
+    document.getElementById('c2Next').classList.remove('show');
+    var area = document.getElementById('c2Area');
+
+    if(c2Mode === 'dec2bin'){
+      // Show decimal, user toggles bits
+      c2Answer = binary;
+      document.getElementById('c2Label').textContent = 'Convert this octet to binary';
+      document.getElementById('c2Ip').textContent = decimal.toString();
+      c2Bits = [0,0,0,0,0,0,0,0];
+      var places = [128,64,32,16,8,4,2,1];
+      area.innerHTML = '<div class="bit-grid" id="bitGrid">' + places.map(function(p,i){
+        return '<div class="bit-col"><div class="bit-place">'+p+'</div><div class="bit-box" data-i="'+i+'">0</div></div>';
+      }).join('') + '</div><div class="bit-decimal" id="bitDecimal">= 0</div><button class="btn btn-primary btn-sm" style="display:block;margin:0 auto" id="c2Check">Check</button>';
+
+      area.querySelectorAll('.bit-box').forEach(function(box){
+        box.addEventListener('click',function(){
+          if(box.classList.contains('locked')) return;
+          var idx = parseInt(box.dataset.i);
+          c2Bits[idx] = c2Bits[idx] ? 0 : 1;
+          box.textContent = c2Bits[idx];
+          box.classList.toggle('on', c2Bits[idx]===1);
+          var dec = 0;
+          c2Bits.forEach(function(b,j){ dec += b * places[j]; });
+          document.getElementById('bitDecimal').textContent = '= ' + dec;
+        });
+      });
+
+      document.getElementById('c2Check').addEventListener('click',function(){
+        c2.total++;
+        var userBin = c2Bits.join('');
+        var correct = userBin === c2Answer;
+        if(correct){ c2.score++; c2.streak++; } else { c2.streak = 0; }
+        area.querySelectorAll('.bit-box').forEach(function(box,i){
+          box.classList.add('locked');
+          var shouldBe = parseInt(c2Answer.charAt(i));
+          if(c2Bits[i] === shouldBe) box.classList.add('correct-bit');
+          else box.classList.add('wrong-bit');
+        });
+        document.getElementById('c2Check').style.display = 'none';
+        document.getElementById('c2Score').textContent = c2.score;
+        document.getElementById('c2Total').textContent = c2.total;
+        document.getElementById('c2Streak').textContent = c2.streak;
+        document.getElementById('c2Fb').innerHTML = '<div class="fb-text '+(correct?'correct-fb':'wrong-fb')+'">'+(correct?'Correct!':'Wrong!')+'</div><div class="fb-explain">'+decimal+' = '+c2Answer+'</div>';
+        document.getElementById('c2Next').classList.add('show');
+      });
+    } else {
+      // Show binary, user picks decimal from 4 options
+      c2Answer = decimal;
+      document.getElementById('c2Label').textContent = 'What decimal value is this binary octet?';
+      var places = [128,64,32,16,8,4,2,1];
+      document.getElementById('c2Ip').innerHTML = binary.split('').map(function(b,i){
+        return '<span style="display:inline-block;width:32px;text-align:center;'+(b==='1'?'color:var(--np);font-weight:900':'color:var(--ink-muted)')+'">'+b+'</span>';
+      }).join('');
+
+      // Show place values
+      var placeHTML = '<div style="text-align:center;margin-bottom:var(--s-md)"><span style="font-family:var(--font-mono);font-size:.6rem;color:var(--ink-muted)">' +
+        places.map(function(p){ return '<span style="display:inline-block;width:32px;text-align:center">'+p+'</span>'; }).join('') + '</span></div>';
+
+      // Generate 4 options
+      var opts = [decimal];
+      while(opts.length < 4){
+        var fake = randInt(Math.max(0,decimal-50),Math.min(255,decimal+50));
+        if(opts.indexOf(fake)===-1 && fake >= 0 && fake <= 255) opts.push(fake);
+      }
+      opts.sort(function(){ return Math.random()-.5; });
+
+      area.innerHTML = placeHTML + '<div class="mc-opts">' + opts.map(function(o){
+        return '<button class="mc-opt" data-val="'+o+'">'+o+'</button>';
+      }).join('') + '</div>';
+
+      area.querySelectorAll('.mc-opt').forEach(function(btn){
+        btn.addEventListener('click',function(){
+          if(btn.classList.contains('locked')) return;
+          c2.total++;
+          var val = parseInt(btn.dataset.val);
+          var correct = val === c2Answer;
+          if(correct){ c2.score++; c2.streak++; } else { c2.streak = 0; }
+          btn.classList.add(correct?'correct':'wrong');
+          area.querySelectorAll('.mc-opt').forEach(function(b){
+            b.classList.add('locked');
+            if(parseInt(b.dataset.val)===c2Answer) b.classList.add('highlight');
+          });
+          document.getElementById('c2Score').textContent = c2.score;
+          document.getElementById('c2Total').textContent = c2.total;
+          document.getElementById('c2Streak').textContent = c2.streak;
+          document.getElementById('c2Fb').innerHTML = '<div class="fb-text '+(correct?'correct-fb':'wrong-fb')+'">'+(correct?'Correct!':'Wrong!')+'</div><div class="fb-explain">'+binary+' = '+c2Answer+'</div>';
+          document.getElementById('c2Next').classList.add('show');
+        });
+      });
+    }
+  };
+  c2NewQ();
+
+  /* ═══════════════════════════════════════════════════════════════
+     MODE 3: Subnet Challenge
+     ═══════════════════════════════════════════════════════════════ */
+  var c3 = {score:0, total:0, streak:0};
+  var c3Fields = ['Network Address','Broadcast Address','First Usable Host','Last Usable Host','Number of Usable Hosts'];
+
+  function subnetCalc(a,b,c,d,cidr){
+    var ip = ip2num(a,b,c,d);
+    var mask = cidr===0 ? 0 : (0xFFFFFFFF << (32-cidr))>>>0;
+    var network = (ip & mask)>>>0;
+    var broadcast = (network | (~mask>>>0))>>>0;
+    var first = (network+1)>>>0;
+    var last = (broadcast-1)>>>0;
+    var hosts = Math.pow(2,32-cidr)-2;
+    if(hosts<0) hosts=0;
+    return {
+      network: num2ip(network),
+      broadcast: num2ip(broadcast),
+      first: num2ip(first),
+      last: num2ip(last),
+      hosts: hosts,
+      mask: num2ip(mask)
+    };
+  }
+
+  function genSubnetQ(){
+    var cidr = randInt(24,30);
+    var blockSize = Math.pow(2, 32-cidr);
+    // Generate an IP that's NOT on the network or broadcast boundary (more interesting)
+    var a = randInt(1,223);
+    var b = randInt(0,255);
+    var c = randInt(0,255);
+    var d = randInt(1,254);
+    return {octets:[a,b,c,d], cidr:cidr};
+  }
+
+  window.c3NewQ = function(){
+    var q = genSubnetQ();
+    var info = subnetCalc(q.octets[0],q.octets[1],q.octets[2],q.octets[3],q.cidr);
+    var fieldIdx = Math.floor(Math.random()*c3Fields.length);
+    var field = c3Fields[fieldIdx];
+
+    var correctAnswer;
+    if(field==='Network Address') correctAnswer = info.network;
+    else if(field==='Broadcast Address') correctAnswer = info.broadcast;
+    else if(field==='First Usable Host') correctAnswer = info.first;
+    else if(field==='Last Usable Host') correctAnswer = info.last;
+    else correctAnswer = info.hosts.toString();
+
+    document.getElementById('c3Ip').textContent = q.octets.join('.') + ' /' + q.cidr;
+    document.getElementById('c3Field').textContent = 'What is the ' + field + '?';
+    document.getElementById('c3Fb').innerHTML = '';
+    document.getElementById('c3Next').classList.remove('show');
+    document.getElementById('c3Solution').classList.remove('show');
+
+    // Generate options
+    var opts = [correctAnswer];
+    if(field === 'Number of Usable Hosts'){
+      var real = info.hosts;
+      while(opts.length < 4){
+        var fakes = [real+2, real-2, real*2, Math.floor(real/2), real+blockSize, real-1, real+1, Math.pow(2,32-q.cidr)];
+        var f = fakes[Math.floor(Math.random()*fakes.length)];
+        if(f>0 && opts.indexOf(f.toString())===-1) opts.push(f.toString());
+      }
+    } else {
+      // Generate plausible wrong IPs
+      var parts = correctAnswer.split('.').map(Number);
+      var blockSize = Math.pow(2, 32-q.cidr);
+      while(opts.length < 4){
+        var fake = parts.slice();
+        var adj = [blockSize, -blockSize, 1, -1, 2, -2, blockSize-1, blockSize+1];
+        var offset = adj[Math.floor(Math.random()*adj.length)];
+        var num = ip2num(fake[0],fake[1],fake[2],fake[3]) + offset;
+        if(num > 0 && num < 0xFFFFFFFF){
+          var fakeStr = num2ip(num>>>0);
+          if(opts.indexOf(fakeStr)===-1) opts.push(fakeStr);
+        }
+      }
+    }
+    opts = opts.slice(0,4).sort(function(){ return Math.random()-.5; });
+
+    var optsEl = document.getElementById('c3Opts');
+    optsEl.innerHTML = opts.map(function(o){
+      return '<button class="mc-opt" data-val="'+o+'">'+o+'</button>';
+    }).join('');
+
+    optsEl.querySelectorAll('.mc-opt').forEach(function(btn){
+      btn.addEventListener('click',function(){
+        if(btn.classList.contains('locked')) return;
+        c3.total++;
+        var correct = btn.dataset.val === correctAnswer;
+        if(correct){ c3.score++; c3.streak++; } else { c3.streak = 0; }
+        btn.classList.add(correct?'correct':'wrong');
+        optsEl.querySelectorAll('.mc-opt').forEach(function(b){
+          b.classList.add('locked');
+          if(b.dataset.val===correctAnswer) b.classList.add('highlight');
+        });
+        document.getElementById('c3Score').textContent = c3.score;
+        document.getElementById('c3Total').textContent = c3.total;
+        document.getElementById('c3Streak').textContent = c3.streak;
+        document.getElementById('c3Fb').innerHTML = '<div class="fb-text '+(correct?'correct-fb':'wrong-fb')+'">'+(correct?'Correct!':'Wrong!')+'</div>';
+
+        // Show full solution
+        var sol = document.getElementById('c3Solution');
+        sol.innerHTML = '<h4>Full Breakdown</h4>' +
+          '<div class="solution-row"><strong>Subnet Mask:</strong> ' + info.mask + ' (/' + q.cidr + ')</div>' +
+          '<div class="solution-row"><strong>Network Address:</strong> ' + info.network + '</div>' +
+          '<div class="solution-row"><strong>First Usable Host:</strong> ' + info.first + '</div>' +
+          '<div class="solution-row"><strong>Last Usable Host:</strong> ' + info.last + '</div>' +
+          '<div class="solution-row"><strong>Broadcast Address:</strong> ' + info.broadcast + '</div>' +
+          '<div class="solution-row"><strong>Usable Hosts:</strong> ' + info.hosts + '</div>';
+        sol.classList.add('show');
+        document.getElementById('c3Next').classList.add('show');
+      });
+    });
+  };
+  c3NewQ();
+
+  /* ═══════════════════════════════════════════════════════════════
+     MODE 4: IP Class Quick-Fire (60 seconds)
+     ═══════════════════════════════════════════════════════════════ */
+  var c4Timer = null;
+  var c4Score = 0;
+  var c4Remaining = 60;
+  var c4BestKey = 'ipgame_class_best';
+
+  function getClass(first){
+    if(first >= 1 && first <= 126) return 'A';
+    if(first >= 128 && first <= 191) return 'B';
+    if(first >= 192 && first <= 223) return 'C';
+    if(first >= 224 && first <= 239) return 'D';
+    return 'E';
+  }
+
+  function genClassIP(){
+    // Weighted to include all classes
+    var cls = ['A','B','C','D','E'][Math.floor(Math.random()*5)];
+    var first;
+    if(cls==='A') first = randInt(1,126);
+    else if(cls==='B') first = randInt(128,191);
+    else if(cls==='C') first = randInt(192,223);
+    else if(cls==='D') first = randInt(224,239);
+    else first = randInt(240,255);
+    return [first, randInt(0,255), randInt(0,255), randInt(0,255)];
+  }
+
+  function c4ShowStart(){
+    document.getElementById('c4Start').style.display = '';
+    document.getElementById('c4Game').style.display = 'none';
+    document.getElementById('c4End').style.display = 'none';
+    document.getElementById('c4BestDisplay').textContent = 'Best: ' + loadBest(c4BestKey);
+  }
+
+  function c4ShowIP(){
+    var octets = genClassIP();
+    var answer = getClass(octets[0]);
+    document.getElementById('c4Ip').textContent = octets.join('.');
+    document.getElementById('c4Fb').innerHTML = '';
+
+    var btns = document.getElementById('c4Btns');
+    btns.querySelectorAll('.ans-btn').forEach(function(b){
+      b.classList.remove('correct','wrong','locked','highlight');
+      b.onclick = function(){
+        if(c4Remaining<=0) return;
+        var correct = b.dataset.cls === answer;
+        if(correct){
+          c4Score++;
+          document.getElementById('c4Score').textContent = c4Score;
+          b.classList.add('correct');
+          setTimeout(c4ShowIP, 200);
+        } else {
+          b.classList.add('wrong');
+          btns.querySelectorAll('.ans-btn').forEach(function(bb){
+            if(bb.dataset.cls===answer) bb.classList.add('highlight');
+          });
+          setTimeout(function(){
+            btns.querySelectorAll('.ans-btn').forEach(function(bb){ bb.classList.remove('wrong','highlight'); });
+            c4ShowIP();
+          }, 600);
+        }
+      };
+    });
+  }
+
+  window.c4Begin = function(){
+    c4Score = 0;
+    c4Remaining = 60;
+    document.getElementById('c4Start').style.display = 'none';
+    document.getElementById('c4Game').style.display = '';
+    document.getElementById('c4End').style.display = 'none';
+    document.getElementById('c4Score').textContent = '0';
+    document.getElementById('c4Time').textContent = '60';
+    document.getElementById('c4Timer').style.width = '100%';
+    document.getElementById('c4Timer').className = 'timer-fill';
+
+    c4ShowIP();
+
+    if(c4Timer) clearInterval(c4Timer);
+    c4Timer = setInterval(function(){
+      c4Remaining--;
+      if(c4Remaining < 0) c4Remaining = 0;
+      document.getElementById('c4Time').textContent = c4Remaining;
+      var pct = (c4Remaining/60)*100;
+      var bar = document.getElementById('c4Timer');
+      bar.style.width = pct + '%';
+      bar.className = 'timer-fill' + (pct<20?' danger':pct<40?' warn':'');
+
+      if(c4Remaining <= 0){
+        clearInterval(c4Timer);
+        c4Timer = null;
+        // End
+        var best = saveBest(c4BestKey, c4Score);
+        document.getElementById('c4Game').style.display = 'none';
+        document.getElementById('c4End').style.display = '';
+        document.getElementById('c4Final').textContent = c4Score;
+        document.getElementById('c4BestEnd').textContent = 'Best: ' + best;
+      }
+    }, 1000);
+  };
+
+  c4ShowStart();
+
+})();
+</script>
+</body>
+</html>

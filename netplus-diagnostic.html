@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Net+ Knowledge Diagnostic — Network+ Study</title>
+<meta name="color-scheme" content="light">
+<link rel="icon" type="image/svg+xml" href="/CCNA-study/favicon.svg">
+<link rel="stylesheet" href="css/shared.css">
+<style>
+/* ═══════════════════════════════════════════════════════════════
+   Net+ Diagnostic — 25 questions, 5 per domain
+   Purple #7C3AED accent
+   ═══════════════════════════════════════════════════════════════ */
+
+.page-header{padding:var(--s-xl) 0 var(--s-lg);margin-bottom:var(--s-lg);border-bottom:3px solid #7C3AED}
+.page-header h1{font-size:2.4rem;margin-bottom:4px;color:#7C3AED}
+.page-header .subtitle{font-family:var(--font-body);color:var(--ink-secondary);font-size:.95rem;font-style:italic}
+
+/* ── Progress bar ────────────────────────────────────────── */
+.diag-progress{margin-bottom:var(--s-lg)}
+.diag-prog-row{display:flex;align-items:center;gap:12px}
+.diag-prog-label{font-family:var(--font-mono);font-size:.75rem;color:var(--ink-muted);min-width:60px}
+.diag-prog-bar{flex:1;height:6px;background:var(--bg-recessed);border-radius:3px;overflow:hidden}
+.diag-prog-fill{height:100%;background:linear-gradient(90deg,#7C3AED,#A78BFA);border-radius:3px;transition:width .4s var(--ease-out)}
+
+/* ── Question card ───────────────────────────────────────── */
+.q-card{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:28px 32px;margin-bottom:var(--s-lg);max-width:680px}
+.q-domain-tag{font-family:var(--font-display);font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#7C3AED;margin-bottom:8px}
+.q-number{font-family:var(--font-mono);font-size:.78rem;color:var(--ink-muted);margin-bottom:12px}
+.q-text{font-family:var(--font-body);font-size:1.05rem;color:var(--ink);line-height:1.55;margin-bottom:20px;max-width:none}
+.q-options{display:flex;flex-direction:column;gap:8px;margin-bottom:16px}
+.q-opt{display:flex;align-items:flex-start;gap:12px;padding:12px 16px;border:1px solid var(--border);border-radius:var(--radius-lg);cursor:pointer;font-family:var(--font-body);font-size:.92rem;color:var(--ink);line-height:1.45;transition:border-color .15s,background .15s}
+.q-opt:hover:not(.locked){border-color:#7C3AED;background:rgba(124,58,237,.03)}
+.q-opt.selected{border-color:#7C3AED;background:rgba(124,58,237,.06)}
+.q-opt.correct{border-color:#16A34A;background:rgba(22,163,74,.06)}
+.q-opt.wrong{border-color:#DC2626;background:rgba(220,38,38,.06)}
+.q-opt.locked{cursor:default}
+.q-opt-letter{width:24px;height:24px;border-radius:50%;background:var(--bg-recessed);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:700;font-size:.72rem;color:var(--ink-secondary);flex-shrink:0}
+.q-opt.correct .q-opt-letter{background:rgba(22,163,74,.15);color:#16A34A}
+.q-opt.wrong .q-opt-letter{background:rgba(220,38,38,.15);color:#DC2626}
+.q-explanation{margin-top:16px;padding:14px 18px;background:var(--bg-recessed);border-left:3px solid #7C3AED;border-radius:0 var(--radius) var(--radius) 0;font-family:var(--font-body);font-size:.88rem;color:var(--ink-secondary);line-height:1.6;display:none}
+.q-explanation.show{display:block}
+.q-nav{display:flex;gap:10px;margin-top:16px}
+
+/* ── Results ─────────────────────────────────────────────── */
+.results{display:none}
+.results.show{display:block}
+.results-header{text-align:center;margin-bottom:var(--s-xl)}
+.results-score{font-family:var(--font-display);font-size:3rem;font-weight:800;color:#7C3AED;line-height:1}
+.results-label{font-family:var(--font-display);font-size:.85rem;color:var(--ink-secondary);margin-top:4px}
+.results-verdict{font-family:var(--font-body);font-size:1rem;color:var(--ink);margin-top:12px;font-style:italic;max-width:none}
+
+/* Domain bars */
+.domain-results{margin-bottom:var(--s-xl)}
+.dr-item{display:flex;align-items:center;gap:14px;padding:10px 0;border-bottom:1px solid var(--border)}
+.dr-item:last-child{border-bottom:none}
+.dr-name{font-family:var(--font-display);font-size:.82rem;font-weight:700;color:var(--ink);min-width:180px}
+.dr-bar{flex:1;height:8px;background:var(--bg-recessed);border-radius:4px;overflow:hidden}
+.dr-fill{height:100%;border-radius:4px;transition:width .6s var(--ease-out)}
+.dr-fill.green{background:#16A34A}
+.dr-fill.yellow{background:#F59E0B}
+.dr-fill.red{background:#DC2626}
+.dr-pct{font-family:var(--font-mono);font-size:.78rem;font-weight:700;min-width:36px;text-align:right}
+.dr-pct.green{color:#16A34A}
+.dr-pct.yellow{color:#B45309}
+.dr-pct.red{color:#DC2626}
+
+/* Recommendation */
+.rec-box{background:rgba(124,58,237,.05);border:1px solid rgba(124,58,237,.15);border-radius:var(--radius-lg);padding:20px 24px;margin-bottom:var(--s-lg)}
+.rec-title{font-family:var(--font-display);font-size:.82rem;font-weight:700;color:#7C3AED;margin-bottom:6px}
+.rec-text{font-family:var(--font-body);font-size:.9rem;color:var(--ink);line-height:1.55;max-width:none}
+.rec-links{margin-top:10px;display:flex;gap:8px;flex-wrap:wrap}
+.rec-link{font-family:var(--font-display);font-size:.72rem;font-weight:600;color:#7C3AED;text-decoration:none;padding:5px 12px;border:1px solid rgba(124,58,237,.25);border-radius:4px;transition:all .15s}
+.rec-link:hover{background:rgba(124,58,237,.08);border-color:#7C3AED}
+
+/* History */
+.history{margin-top:var(--s-xl);padding-top:var(--s-lg);border-top:1px solid var(--rule)}
+.history-title{font-family:var(--font-display);font-size:.82rem;font-weight:700;color:var(--ink-secondary);margin-bottom:12px}
+.history-row{display:flex;align-items:center;gap:14px;padding:8px 0;border-bottom:1px solid var(--border);font-family:var(--font-mono);font-size:.75rem;color:var(--ink-secondary)}
+.history-row:last-child{border-bottom:none}
+.history-row strong{color:var(--ink)}
+
+.start-screen{text-align:center;padding:var(--s-2xl) 0}
+.start-screen p{margin:0 auto var(--s-lg);max-width:48ch}
+
+@media(max-width:600px){
+  .q-card{padding:20px 18px}
+  .dr-name{min-width:120px;font-size:.75rem}
+  .results-score{font-size:2.2rem}
+}
+</style>
+</head>
+<body>
+<div class="container">
+  <nav class="top-nav"></nav>
+
+  <header class="page-header">
+    <h1>Net+ Knowledge Diagnostic</h1>
+    <p class="subtitle">25 questions across all 5 domains — find your weak spots</p>
+  </header>
+
+  <!-- Start screen -->
+  <div class="start-screen" id="startScreen">
+    <p>This diagnostic tests breadth across all N10-009 domains with 5 questions each. It identifies where to focus your study time.</p>
+    <button class="btn btn-primary btn-lg" id="startBtn">Begin Diagnostic</button>
+  </div>
+
+  <!-- Progress -->
+  <div class="diag-progress" id="diagProgress" style="display:none">
+    <div class="diag-prog-row">
+      <span class="diag-prog-label" id="progLabel">1 / 25</span>
+      <div class="diag-prog-bar"><div class="diag-prog-fill" id="progFill" style="width:4%"></div></div>
+    </div>
+  </div>
+
+  <!-- Question -->
+  <div id="questionArea" style="display:none"></div>
+
+  <!-- Results -->
+  <div class="results" id="resultsArea"></div>
+</div>
+
+<script src="js/nav.js"></script>
+<script src="js/tutor.js"></script>
+<script src="js/group-chat.js"></script>
+<script>
+(function(){
+  var QUESTIONS = [
+    // Domain 1 — Networking Concepts (5)
+    {domain:1,domainName:'Networking Concepts',q:'Which OSI layer is responsible for logical addressing and routing?',opts:['Data Link (Layer 2)','Network (Layer 3)','Transport (Layer 4)','Session (Layer 5)'],answer:1,explain:'The Network layer (Layer 3) handles logical addressing (IP addresses) and routing decisions. The Data Link layer handles MAC addresses, and Transport handles port-based communication.'},
+    {domain:1,domainName:'Networking Concepts',q:'Which well-known port is used by HTTPS?',opts:['Port 80','Port 443','Port 8080','Port 22'],answer:1,explain:'HTTPS uses port 443. Port 80 is HTTP (unencrypted), port 8080 is an alternate HTTP port, and port 22 is SSH.'},
+    {domain:1,domainName:'Networking Concepts',q:'What is the default subnet mask for a Class B network?',opts:['255.0.0.0','255.255.0.0','255.255.255.0','255.255.255.128'],answer:1,explain:'Class B networks (128.0.0.0 - 191.255.255.255) use a default /16 subnet mask: 255.255.0.0. Class A uses 255.0.0.0 and Class C uses 255.255.255.0.'},
+    {domain:1,domainName:'Networking Concepts',q:'Which cable type supports the longest maximum distance for a single run without repeaters?',opts:['Cat6a UTP','Cat5e UTP','Single-mode fiber','Multimode fiber'],answer:2,explain:'Single-mode fiber can transmit over distances of 40km or more. Multimode fiber reaches up to 2km depending on speed, while Cat6a and Cat5e copper cables are limited to 100 meters.'},
+    {domain:1,domainName:'Networking Concepts',q:'In cloud computing, which service model provides virtual machines and storage that the customer manages?',opts:['SaaS','PaaS','IaaS','DaaS'],answer:2,explain:'IaaS (Infrastructure as a Service) provides compute, storage, and networking. The customer manages the OS, applications, and data. PaaS adds managed runtimes, and SaaS is fully managed applications.'},
+
+    // Domain 2 — Network Implementation (5)
+    {domain:2,domainName:'Network Implementation',q:'OSPF is classified as which type of routing protocol?',opts:['Distance-vector','Link-state','Path-vector','Hybrid'],answer:1,explain:'OSPF (Open Shortest Path First) is a link-state protocol. Each router builds a complete map of the network topology. RIP is distance-vector, BGP is path-vector, and EIGRP is sometimes called hybrid.'},
+    {domain:2,domainName:'Network Implementation',q:'What is the primary purpose of VLANs?',opts:['Encrypt traffic between switches','Segment broadcast domains','Increase cable bandwidth','Provide wireless access'],answer:1,explain:'VLANs (Virtual LANs) segment a physical switch into multiple logical broadcast domains. This reduces broadcast traffic, improves security, and simplifies network management without needing separate physical switches.'},
+    {domain:2,domainName:'Network Implementation',q:'Which wireless standard operates exclusively on the 5 GHz band and supports up to 1.3 Gbps?',opts:['802.11n (Wi-Fi 4)','802.11ac (Wi-Fi 5)','802.11g','802.11ax (Wi-Fi 6)'],answer:1,explain:'802.11ac (Wi-Fi 5) operates only on 5 GHz and supports up to 1.3 Gbps (Wave 1) or 6.9 Gbps (Wave 2). 802.11n and 802.11ax support both 2.4 and 5 GHz. 802.11g is 2.4 GHz only.'},
+    {domain:2,domainName:'Network Implementation',q:'What does STP (Spanning Tree Protocol) prevent?',opts:['IP address conflicts','Broadcast storms and switching loops','Unauthorized wireless access','DNS poisoning'],answer:1,explain:'STP prevents Layer 2 switching loops by blocking redundant paths. Without STP, frames could loop infinitely between switches, causing broadcast storms and MAC table instability.'},
+    {domain:2,domainName:'Network Implementation',q:'Which WAN technology uses label-switching for efficient packet forwarding across a service provider network?',opts:['DSL','MPLS','PPPoE','Frame Relay'],answer:1,explain:'MPLS (Multiprotocol Label Switching) uses short path labels instead of long network addresses for forwarding decisions. It is widely used by service providers for efficient, flexible WAN connectivity.'},
+
+    // Domain 3 — Network Operations (5)
+    {domain:3,domainName:'Network Operations',q:'What is the correct first step in the CompTIA troubleshooting methodology?',opts:['Establish a theory of probable cause','Identify the problem','Test the theory','Implement the solution'],answer:1,explain:'The CompTIA 7-step model starts with: 1) Identify the problem, 2) Establish a theory, 3) Test the theory, 4) Establish a plan, 5) Implement, 6) Verify, 7) Document. Always identify first.'},
+    {domain:3,domainName:'Network Operations',q:'RTO (Recovery Time Objective) defines what in disaster recovery?',opts:['How much data can be lost','Maximum acceptable downtime','Backup frequency','Restore priority order'],answer:1,explain:'RTO is the maximum time a system can be down after a failure before business impact becomes unacceptable. RPO (Recovery Point Objective) defines acceptable data loss measured in time.'},
+    {domain:3,domainName:'Network Operations',q:'Which process ensures that modifications to the network are reviewed, approved, and documented before implementation?',opts:['Incident management','Change management','Baseline configuration','Capacity planning'],answer:1,explain:'Change management provides a formal process for proposing, reviewing, approving, implementing, and documenting changes. This prevents unauthorized modifications and helps track issues.'},
+    {domain:3,domainName:'Network Operations',q:'What is the purpose of establishing a network baseline?',opts:['To block unauthorized traffic','To define normal performance for comparison','To encrypt sensitive data','To assign IP addresses automatically'],answer:1,explain:'A baseline captures normal network performance metrics (bandwidth utilization, latency, error rates) so you can detect deviations. Anomalies compared to baseline help identify problems early.'},
+    {domain:3,domainName:'Network Operations',q:'Which type of network documentation shows the physical or logical layout of devices and connections?',opts:['Acceptable use policy','Network diagram/topology map','Service level agreement','Audit log'],answer:1,explain:'Network diagrams (topology maps) visually represent how devices connect, either physically (cabling) or logically (subnets, VLANs). They are essential for troubleshooting and planning.'},
+
+    // Domain 4 — Network Security (5)
+    {domain:4,domainName:'Network Security',q:'An attacker floods a server with SYN packets without completing the TCP handshake. What type of attack is this?',opts:['Man-in-the-middle','SYN flood (DoS)','ARP spoofing','Brute force'],answer:1,explain:'A SYN flood is a denial-of-service attack where the attacker sends many SYN packets but never completes the three-way handshake, exhausting the server\'s connection table.'},
+    {domain:4,domainName:'Network Security',q:'Which security control type does a firewall represent?',opts:['Physical','Administrative','Technical (logical)','Operational'],answer:2,explain:'Firewalls are technical (logical) controls — they use technology to filter traffic based on rules. Physical controls include locks and fences. Administrative controls include policies and training.'},
+    {domain:4,domainName:'Network Security',q:'Multi-factor authentication (MFA) requires credentials from at least two of which categories?',opts:['Username and password','Something you know, have, or are','Two different passwords','IP address and MAC address'],answer:1,explain:'MFA requires two or more factors from different categories: something you know (password), something you have (token/phone), or something you are (biometric). Two passwords is still single-factor.'},
+    {domain:4,domainName:'Network Security',q:'Which physical security measure prevents unauthorized individuals from following an authorized person through a door?',opts:['Security camera','Access control vestibule (mantrap)','Motion sensor','Cable lock'],answer:1,explain:'An access control vestibule (formerly called mantrap) has two interlocking doors — only one can open at a time, preventing tailgating. Cameras detect but don\'t prevent unauthorized access.'},
+    {domain:4,domainName:'Network Security',q:'Which hardening practice involves shutting down services and ports that are not needed?',opts:['Penetration testing','Attack surface reduction','Social engineering awareness','Data loss prevention'],answer:1,explain:'Reducing the attack surface by disabling unused services, closing unneeded ports, and removing unnecessary software limits the vectors an attacker can exploit. This is a fundamental hardening step.'},
+
+    // Domain 5 — Network Troubleshooting (5)
+    {domain:5,domainName:'Network Troubleshooting',q:'Which command-line tool shows the path packets take to reach a destination, displaying each hop?',opts:['ping','nslookup','traceroute / tracert','netstat'],answer:2,explain:'traceroute (Linux/Mac) and tracert (Windows) display each router hop between source and destination with round-trip times. ping tests reachability, nslookup queries DNS, and netstat shows connections.'},
+    {domain:5,domainName:'Network Troubleshooting',q:'A user can ping a server by IP address but not by hostname. What is the most likely issue?',opts:['Firewall blocking ICMP','DNS resolution failure','Duplicate IP address','Incorrect subnet mask'],answer:1,explain:'If IP connectivity works but name resolution fails, DNS is the problem. The client cannot resolve the hostname to an IP address. Check DNS server configuration, DNS service status, or the hosts file.'},
+    {domain:5,domainName:'Network Troubleshooting',q:'The "ipconfig /all" command on Windows displays what information?',opts:['Routing table entries','IP configuration including DNS, DHCP, and MAC address','Open network connections','Wireless signal strength'],answer:1,explain:'ipconfig /all shows complete IP configuration: IP address, subnet mask, default gateway, DNS servers, DHCP server, MAC address, and lease information. "route print" shows the routing table.'},
+    {domain:5,domainName:'Network Troubleshooting',q:'A newly installed cable fails connectivity testing. A cable tester shows pairs 1-2 and 3-6 are crossed. What is the issue?',opts:['The cable is too long','The cable is a crossover when a straight-through is needed','The cable has a short','The cable has split pairs'],answer:1,explain:'Pairs 1-2 and 3-6 being crossed indicates a crossover cable (T568A on one end, T568B on the other). Most modern devices support Auto-MDIX, but older equipment may require a straight-through cable.'},
+    {domain:5,domainName:'Network Troubleshooting',q:'Users on a wireless network experience intermittent connectivity and slow speeds. A Wi-Fi analyzer shows a neighboring network on the same channel. What should you do?',opts:['Increase transmit power','Change to a non-overlapping channel','Replace the access point','Disable SSID broadcast'],answer:1,explain:'Co-channel interference from overlapping networks degrades performance. Change to a non-overlapping channel (1, 6, or 11 for 2.4 GHz). Increasing power would worsen interference. Disabling SSID broadcast does not help.'}
+  ];
+
+  var DOMAIN_NAMES = ['','Networking Concepts','Network Implementation','Network Operations','Network Security','Network Troubleshooting'];
+  var DOMAIN_LINKS = {
+    1:[{text:'OSI Interactive',href:'netplus-osi.html'},{text:'IP Game',href:'netplus-ip-game.html'}],
+    2:[{text:'Routing',href:'netplus-routing.html'},{text:'Wireless',href:'netplus-wireless.html'}],
+    3:[{text:'Study Plan',href:'netplus-sprint.html'}],
+    4:[{text:'Glossary',href:'netplus-glossary.html'}],
+    5:[{text:'Topology Explorer',href:'netplus-topology.html'}]
+  };
+
+  var HISTORY_KEY = 'np_diag_history';
+  var currentQ = 0;
+  var answers = [];
+  var answered = false;
+
+  function shuffle(arr){
+    // Fisher-Yates but we keep track of original answer
+    // For this diagnostic, we present in order for consistency
+    return arr;
+  }
+
+  // Start
+  document.getElementById('startBtn').addEventListener('click', function(){
+    document.getElementById('startScreen').style.display='none';
+    document.getElementById('diagProgress').style.display='block';
+    document.getElementById('questionArea').style.display='block';
+    currentQ=0;
+    answers=[];
+    renderQuestion();
+  });
+
+  function renderQuestion(){
+    var q = QUESTIONS[currentQ];
+    var letters = ['A','B','C','D'];
+    answered = false;
+
+    document.getElementById('progLabel').textContent = (currentQ+1)+' / 25';
+    document.getElementById('progFill').style.width = ((currentQ+1)/25*100)+'%';
+
+    var html =
+      '<div class="q-card fade-in">'+
+        '<div class="q-domain-tag">Domain '+q.domain+'.0 — '+q.domainName+'</div>'+
+        '<div class="q-number">Question '+(currentQ+1)+' of 25</div>'+
+        '<div class="q-text">'+q.q+'</div>'+
+        '<div class="q-options">'+
+          q.opts.map(function(o,i){
+            return '<div class="q-opt" data-idx="'+i+'">'+
+              '<span class="q-opt-letter">'+letters[i]+'</span>'+
+              '<span>'+o+'</span>'+
+            '</div>';
+          }).join('')+
+        '</div>'+
+        '<div class="q-explanation" id="qExplain">'+q.explain+'</div>'+
+        '<div class="q-nav">'+
+          '<button class="btn btn-primary" id="nextBtn" style="display:none">'+(currentQ<24?'Next Question':'See Results')+'</button>'+
+        '</div>'+
+      '</div>';
+
+    document.getElementById('questionArea').innerHTML = html;
+
+    // Option click handlers
+    var opts = document.querySelectorAll('.q-opt');
+    opts.forEach(function(opt){
+      opt.addEventListener('click', function(){
+        if(answered) return;
+        answered = true;
+        var idx = parseInt(opt.getAttribute('data-idx'));
+        var correct = q.answer;
+
+        answers.push({domain:q.domain, correct: idx===correct});
+
+        // Mark all locked
+        opts.forEach(function(o){ o.classList.add('locked'); });
+
+        // Highlight
+        if(idx===correct){
+          opt.classList.add('correct');
+        } else {
+          opt.classList.add('wrong');
+          opts[correct].classList.add('correct');
+        }
+
+        document.getElementById('qExplain').classList.add('show');
+        document.getElementById('nextBtn').style.display='inline-flex';
+      });
+    });
+
+    document.getElementById('questionArea').addEventListener('click', function handler(e){
+      if(e.target.id==='nextBtn'){
+        e.currentTarget.removeEventListener('click', handler);
+        currentQ++;
+        if(currentQ<25){
+          renderQuestion();
+        } else {
+          showResults();
+        }
+      }
+    });
+  }
+
+  function showResults(){
+    document.getElementById('questionArea').style.display='none';
+    document.getElementById('diagProgress').style.display='none';
+
+    // Calculate per-domain
+    var domainScores = {};
+    for(var d=1;d<=5;d++) domainScores[d]={correct:0,total:0};
+    answers.forEach(function(a){
+      domainScores[a.domain].total++;
+      if(a.correct) domainScores[a.domain].correct++;
+    });
+
+    var totalCorrect = answers.filter(function(a){return a.correct}).length;
+    var totalPct = Math.round(totalCorrect/25*100);
+
+    // Find weakest
+    var weakest = 1, weakestPct = 100;
+    for(var d=1;d<=5;d++){
+      var p = Math.round(domainScores[d].correct/domainScores[d].total*100);
+      if(p<weakestPct){weakestPct=p;weakest=d;}
+    }
+
+    var verdict = totalPct>=80 ? 'Strong foundation — you are close to exam-ready. Polish your weak spots.' :
+                  totalPct>=60 ? 'Solid start — several domains need more work before the exam.' :
+                  'Early stage — focus on one domain at a time and build up systematically.';
+
+    var html =
+      '<div class="results-header">'+
+        '<div class="results-score">'+totalPct+'%</div>'+
+        '<div class="results-label">'+totalCorrect+' of 25 correct</div>'+
+        '<div class="results-verdict">'+verdict+'</div>'+
+      '</div>'+
+      '<div class="domain-results">';
+
+    for(var d=1;d<=5;d++){
+      var pct = Math.round(domainScores[d].correct/domainScores[d].total*100);
+      var color = pct>=80?'green':pct>=50?'yellow':'red';
+      html += '<div class="dr-item">'+
+        '<span class="dr-name">'+d+'.0 '+DOMAIN_NAMES[d]+'</span>'+
+        '<div class="dr-bar"><div class="dr-fill '+color+'" style="width:'+pct+'%"></div></div>'+
+        '<span class="dr-pct '+color+'">'+pct+'%</span>'+
+      '</div>';
+    }
+    html += '</div>';
+
+    // Recommendation
+    var links = (DOMAIN_LINKS[weakest]||[]).map(function(l){
+      return '<a class="rec-link" href="'+l.href+'">'+l.text+'</a>';
+    }).join('');
+    html += '<div class="rec-box">'+
+      '<div class="rec-title">Focus Recommendation</div>'+
+      '<div class="rec-text">Your weakest domain is <strong>'+weakest+'.0 '+DOMAIN_NAMES[weakest]+'</strong> at '+weakestPct+'%. Prioritize this domain in your study plan.</div>'+
+      (links?'<div class="rec-links">'+links+'</div>':'')+
+    '</div>';
+
+    // Actions
+    html += '<div style="display:flex;gap:10px;flex-wrap:wrap">'+
+      '<button class="btn btn-primary" id="retakeBtn">Retake Diagnostic</button>'+
+      '<a class="btn btn-secondary" href="netplus-objectives.html">View Objectives</a>'+
+      '<a class="btn btn-secondary" href="netplus-sprint.html">Study Plan</a>'+
+    '</div>';
+
+    // Save to history
+    var history = JSON.parse(localStorage.getItem(HISTORY_KEY)||'[]');
+    var entry = {date:new Date().toISOString().split('T')[0],score:totalPct,domains:{}};
+    for(var d=1;d<=5;d++) entry.domains[d]=Math.round(domainScores[d].correct/domainScores[d].total*100);
+    history.push(entry);
+    if(history.length>10) history = history.slice(-10);
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+
+    // Show history
+    if(history.length>1){
+      html += '<div class="history">'+
+        '<div class="history-title">Previous Attempts</div>';
+      for(var i=history.length-1;i>=0;i--){
+        var h=history[i];
+        html += '<div class="history-row">'+
+          '<span>'+h.date+'</span>'+
+          '<strong>'+h.score+'%</strong>'+
+          '<span>D1:'+h.domains[1]+'%</span>'+
+          '<span>D2:'+h.domains[2]+'%</span>'+
+          '<span>D3:'+h.domains[3]+'%</span>'+
+          '<span>D4:'+h.domains[4]+'%</span>'+
+          '<span>D5:'+h.domains[5]+'%</span>'+
+        '</div>';
+      }
+      html += '</div>';
+    }
+
+    var results = document.getElementById('resultsArea');
+    results.innerHTML = html;
+    results.classList.add('show');
+
+    // Retake
+    document.getElementById('retakeBtn').addEventListener('click', function(){
+      results.classList.remove('show');
+      results.innerHTML='';
+      document.getElementById('diagProgress').style.display='block';
+      document.getElementById('questionArea').style.display='block';
+      currentQ=0;
+      answers=[];
+      renderQuestion();
+    });
+  }
+})();
+</script>
+</body>
+</html>

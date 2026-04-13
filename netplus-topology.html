@@ -1,0 +1,910 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Network Topology Explorer — Network+ N10-009</title>
+<meta name="color-scheme" content="light">
+<link rel="icon" type="image/svg+xml" href="/CCNA-study/favicon.svg">
+<link rel="stylesheet" href="css/shared.css">
+<style>
+/* ═══════════════════════════════════════════════════════════════
+   Net+ Topology Explorer — Interactive builder + animations
+   Purple accent #7C3AED for Net+ branding
+   ═══════════════════════════════════════════════════════════════ */
+
+.page-header{padding:var(--s-xl) 0 var(--s-lg);margin-bottom:var(--s-lg);border-bottom:3px solid #7C3AED}
+.page-header .kicker{font-family:var(--font-display);font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:#7C3AED;margin-bottom:var(--s-xs)}
+.page-header h1{font-size:2.4rem;font-weight:700;letter-spacing:-.03em;margin-bottom:4px}
+.page-header .subtitle{font-family:var(--font-body);color:var(--ink-secondary);font-size:.95rem;font-style:italic}
+
+.section-label{font-family:var(--font-display);font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#7C3AED;margin-bottom:var(--s-sm)}
+.section-title{font-size:1.35rem;margin-top:0;margin-bottom:var(--s-md);padding-bottom:var(--s-sm);border-bottom:1px solid var(--rule)}
+.section-desc{font-family:var(--font-body);font-size:.88rem;color:var(--ink-secondary);line-height:1.6;margin-bottom:var(--s-lg);max-width:55ch}
+
+/* ── Topology Type Selector ─────────────────────────── */
+.topo-selector{display:flex;gap:8px;margin-bottom:var(--s-md);flex-wrap:wrap}
+.topo-btn{font-family:var(--font-display);font-size:.75rem;font-weight:600;padding:8px 18px;border:2px solid var(--border);border-radius:var(--radius);cursor:pointer;background:none;transition:all .15s;color:var(--ink-secondary)}
+.topo-btn:hover{border-color:#7C3AED;color:#7C3AED}
+.topo-btn.active{background:#7C3AED;color:#fff;border-color:#7C3AED}
+
+.topo-viewer{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:0;margin-bottom:var(--s-md);overflow:hidden}
+.topo-canvas{width:100%;height:380px;display:block}
+.topo-info{padding:18px 22px;border-top:1px solid var(--border)}
+.topo-info-name{font-family:var(--font-display);font-size:1rem;font-weight:700;margin-bottom:6px}
+.topo-info-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px}
+@media(max-width:500px){.topo-info-grid{grid-template-columns:1fr}}
+.topo-info-item{font-family:var(--font-body);font-size:.78rem;color:var(--ink-secondary);line-height:1.5}
+.topo-info-item strong{display:block;font-family:var(--font-display);font-size:.65rem;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-muted);font-weight:600;margin-bottom:2px}
+.topo-spof{font-family:var(--font-mono);font-size:.72rem;padding:6px 10px;border-radius:var(--radius);margin-top:4px}
+.topo-spof.yes{background:#FEF2F2;color:#DC2626}
+.topo-spof.no{background:#F0FDF4;color:#16A34A}
+
+/* ── Build Your Own ─────────────────────────────────── */
+.builder-wrap{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);margin-bottom:var(--s-2xl);overflow:hidden}
+.builder-toolbar{display:flex;gap:6px;padding:12px 16px;border-bottom:1px solid var(--border);flex-wrap:wrap;align-items:center}
+.builder-tool{font-family:var(--font-display);font-size:.7rem;font-weight:600;padding:6px 12px;border:1px solid var(--border);border-radius:var(--radius);cursor:pointer;background:none;transition:all .15s;color:var(--ink-secondary);display:flex;align-items:center;gap:5px}
+.builder-tool:hover{border-color:#7C3AED;color:#7C3AED}
+.builder-tool.active{background:#7C3AED;color:#fff;border-color:#7C3AED}
+.builder-tool .tool-icon{width:14px;height:14px;display:inline-block}
+.builder-sep{width:1px;height:20px;background:var(--border);margin:0 4px}
+.builder-action{font-family:var(--font-display);font-size:.68rem;font-weight:600;padding:5px 10px;border:1px solid var(--border);border-radius:var(--radius);cursor:pointer;background:none;transition:all .15s;color:var(--ink-muted)}
+.builder-action:hover{border-color:#DC2626;color:#DC2626}
+.builder-action.send{color:#7C3AED;border-color:#7C3AED}
+.builder-action.send:hover{background:#7C3AED;color:#fff}
+.builder-canvas{width:100%;height:420px;display:block;cursor:crosshair}
+.builder-status{padding:10px 16px;border-top:1px solid var(--border);font-family:var(--font-mono);font-size:.72rem;color:var(--ink-muted);min-height:38px;display:flex;align-items:center;gap:12px}
+.builder-status .hop-count{color:#7C3AED;font-weight:600}
+
+/* ── Packet Journey ─────────────────────────────────── */
+.journey-wrap{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);margin-bottom:var(--s-md);overflow:hidden}
+.journey-canvas{width:100%;height:340px;display:block}
+.journey-controls{display:flex;gap:8px;padding:12px 16px;border-top:1px solid var(--border);align-items:center;flex-wrap:wrap}
+.journey-btn{font-family:var(--font-display);font-size:.72rem;font-weight:600;padding:6px 14px;border:1px solid var(--border);border-radius:var(--radius);cursor:pointer;background:none;transition:all .15s;color:var(--ink-secondary)}
+.journey-btn:hover{border-color:#7C3AED;color:#7C3AED}
+.journey-btn.active{background:#7C3AED;color:#fff;border-color:#7C3AED}
+.journey-speed{display:flex;align-items:center;gap:6px;margin-left:auto}
+.journey-speed label{font-family:var(--font-display);font-size:.65rem;color:var(--ink-muted);text-transform:uppercase;letter-spacing:.04em}
+.journey-speed input[type=range]{width:80px;accent-color:#7C3AED}
+.journey-narration{padding:14px 18px;border-top:1px solid var(--border);font-family:var(--font-body);font-size:.85rem;color:var(--ink-secondary);line-height:1.6;min-height:56px}
+.journey-narration .device-name{color:#7C3AED;font-family:var(--font-mono);font-weight:600}
+.journey-narration .action{color:var(--ink);font-weight:600}
+
+/* ── Quiz ───────────────────────────────────────────── */
+.quiz-section{margin-bottom:var(--s-2xl)}
+.quiz-progress{font-family:var(--font-mono);font-size:.78rem;color:var(--ink-muted);margin-bottom:var(--s-md)}
+.quiz-progress strong{color:#7C3AED}
+.quiz-card{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:24px;margin-bottom:12px}
+.quiz-q{font-family:var(--font-body);font-size:.95rem;line-height:1.55;margin-bottom:14px}
+.quiz-q-num{font-family:var(--font-mono);font-size:.72rem;color:#7C3AED;font-weight:700;margin-right:6px}
+.quiz-opts{display:flex;flex-direction:column;gap:6px}
+.quiz-opt{padding:10px 14px;border:1px solid var(--border);border-radius:var(--radius);cursor:pointer;font-family:var(--font-body);font-size:.85rem;transition:all .15s}
+.quiz-opt:hover{border-color:#7C3AED;background:rgba(124,58,237,.03)}
+.quiz-opt.correct{border-color:#16A34A;background:rgba(22,163,74,.06);color:#16A34A;font-weight:600}
+.quiz-opt.wrong{border-color:#DC2626;background:rgba(220,38,38,.06);color:#DC2626}
+.quiz-opt.locked{pointer-events:none}
+.quiz-explain{font-family:var(--font-body);font-size:.8rem;color:var(--ink-secondary);line-height:1.6;padding:10px 14px;background:var(--bg-recessed);border-radius:var(--radius);margin-top:10px;display:none}
+.quiz-explain.show{display:block}
+.quiz-score-bar{display:flex;align-items:center;gap:var(--s-md);padding:14px 18px;background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);margin-top:var(--s-md)}
+.quiz-score-num{font-family:var(--font-mono);font-size:1.3rem;font-weight:800;color:#7C3AED}
+.quiz-score-label{font-family:var(--font-display);font-size:.78rem;color:var(--ink-muted)}
+.quiz-reset{font-family:var(--font-display);font-size:.72rem;font-weight:600;padding:6px 14px;border:1px solid var(--border);border-radius:var(--radius);cursor:pointer;background:none;margin-left:auto;transition:all .15s}
+.quiz-reset:hover{border-color:#7C3AED;color:#7C3AED}
+
+@media(max-width:600px){
+  .topo-canvas{height:300px}
+  .builder-canvas{height:340px}
+  .journey-canvas{height:280px}
+  .topo-info-grid{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+<nav class="top-nav"></nav>
+<div class="container-wide">
+
+<header class="page-header">
+  <div class="kicker">Network+ Objective 1.2</div>
+  <h1>Network Topology Explorer</h1>
+  <p class="subtitle">Visualize how devices connect, how packets travel, and build your own topologies</p>
+</header>
+
+<!-- ════════════════════════════════════════════════════════════
+     SECTION 1 — Topology Type Selector
+     ════════════════════════════════════════════════════════════ -->
+<div class="section-label">Topologies</div>
+<h2 class="section-title">Topology Types</h2>
+<p class="section-desc">Switch between physical topologies. Watch animated packets flow through each design. Note the single points of failure.</p>
+
+<div class="topo-selector" id="topoSelector"></div>
+<div class="topo-viewer">
+  <canvas class="topo-canvas" id="topoCanvas"></canvas>
+  <div class="topo-info" id="topoInfo"></div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════
+     SECTION 2 — Build Your Own
+     ════════════════════════════════════════════════════════════ -->
+<div class="section-label" style="margin-top:var(--s-2xl)">Build</div>
+<h2 class="section-title">Build Your Own Topology</h2>
+<p class="section-desc">Click a device type, then click the canvas to place it. Click two devices to connect them. Use Send Packet to trace a path.</p>
+
+<div class="builder-wrap">
+  <div class="builder-toolbar" id="builderToolbar">
+    <button class="builder-tool active" data-type="router"><svg class="tool-icon" viewBox="0 0 14 14"><circle cx="7" cy="7" r="6" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>Router</button>
+    <button class="builder-tool" data-type="switch"><svg class="tool-icon" viewBox="0 0 14 14"><rect x="1" y="3" width="12" height="8" rx="1" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>Switch</button>
+    <button class="builder-tool" data-type="pc"><svg class="tool-icon" viewBox="0 0 14 14"><rect x="1" y="2" width="12" height="8" rx="1" fill="none" stroke="currentColor" stroke-width="1.5"/><line x1="5" y1="12" x2="9" y2="12" stroke="currentColor" stroke-width="1.5"/></svg>PC</button>
+    <button class="builder-tool" data-type="server"><svg class="tool-icon" viewBox="0 0 14 14"><rect x="2" y="1" width="10" height="12" rx="1" fill="none" stroke="currentColor" stroke-width="1.5"/><line x1="4" y1="5" x2="10" y2="5" stroke="currentColor" stroke-width="1"/><line x1="4" y1="9" x2="10" y2="9" stroke="currentColor" stroke-width="1"/></svg>Server</button>
+    <button class="builder-tool" data-type="firewall"><svg class="tool-icon" viewBox="0 0 14 14"><rect x="1" y="1" width="12" height="12" rx="1" fill="none" stroke="currentColor" stroke-width="1.5"/><line x1="1" y1="7" x2="13" y2="7" stroke="currentColor" stroke-width="1"/><line x1="7" y1="1" x2="7" y2="13" stroke="currentColor" stroke-width="1"/></svg>Firewall</button>
+    <button class="builder-tool" data-type="ap"><svg class="tool-icon" viewBox="0 0 14 14"><circle cx="7" cy="9" r="2" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M3 5a6 6 0 0 1 8 0" fill="none" stroke="currentColor" stroke-width="1.2"/><path d="M5 7a3 3 0 0 1 4 0" fill="none" stroke="currentColor" stroke-width="1.2"/></svg>AP</button>
+    <div class="builder-sep"></div>
+    <button class="builder-action send" id="sendPacketBtn">Send Packet</button>
+    <button class="builder-action" id="clearCanvasBtn">Clear All</button>
+  </div>
+  <canvas class="builder-canvas" id="builderCanvas"></canvas>
+  <div class="builder-status" id="builderStatus">Click a device type above, then click the canvas to place it.</div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════
+     SECTION 3 — Packet Journey Animation
+     ════════════════════════════════════════════════════════════ -->
+<div class="section-label">Animation</div>
+<h2 class="section-title">Packet Journey: HTTP Request</h2>
+<p class="section-desc">Watch a packet travel from a PC to a web server through a realistic enterprise network. Step through each hop to see what happens at every device.</p>
+
+<div class="journey-wrap">
+  <canvas class="journey-canvas" id="journeyCanvas"></canvas>
+  <div class="journey-controls">
+    <button class="journey-btn" id="journeyPlay">Play</button>
+    <button class="journey-btn" id="journeyPause">Pause</button>
+    <button class="journey-btn" id="journeyStep">Step</button>
+    <button class="journey-btn" id="journeyReset">Reset</button>
+    <div class="journey-speed">
+      <label>Speed</label>
+      <input type="range" id="journeySpeedSlider" min="1" max="5" value="3" step="1">
+    </div>
+  </div>
+  <div class="journey-narration" id="journeyNarration">Press <strong>Play</strong> to watch an HTTP packet travel from PC to Web Server, or <strong>Step</strong> to advance one hop at a time.</div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════
+     SECTION 4 — Topology Quiz
+     ════════════════════════════════════════════════════════════ -->
+<div class="section-label" style="margin-top:var(--s-2xl)">Test Yourself</div>
+<h2 class="section-title">Topology Quiz</h2>
+
+<div class="quiz-progress" id="quizProgress"></div>
+<div class="quiz-section" id="quizSection"></div>
+<div class="quiz-score-bar" id="quizScore" style="display:none">
+  <div>
+    <div class="quiz-score-num" id="quizScoreNum">0/6</div>
+    <div class="quiz-score-label">Questions Correct</div>
+  </div>
+  <button class="quiz-reset" id="quizReset">Reset Quiz</button>
+</div>
+
+</div><!-- .container-wide -->
+
+<script src="js/nav.js"></script>
+<script src="js/tutor.js"></script>
+<script src="js/group-chat.js"></script>
+<script>
+(function(){
+  var dpr = window.devicePixelRatio || 1;
+  var PURPLE = '#7C3AED';
+
+  /* ══════════════════════════════════════════════════════════
+     CANVAS HELPERS
+     ══════════════════════════════════════════════════════════ */
+  function sizeCanvas(canvas, h){
+    var rect = canvas.parentElement.getBoundingClientRect();
+    canvas.width = rect.width * dpr;
+    canvas.height = h * dpr;
+    canvas.style.height = h + 'px';
+    var ctx = canvas.getContext('2d');
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+    return ctx;
+  }
+
+  function drawDeviceShape(ctx, type, x, y, r, fill, stroke){
+    ctx.save();
+    ctx.strokeStyle = stroke;
+    ctx.fillStyle = fill;
+    ctx.lineWidth = 1.8;
+    if(type==='router'){
+      ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fill(); ctx.stroke();
+    } else if(type==='switch'){
+      var s=r*1.5;
+      ctx.beginPath(); ctx.roundRect(x-s/2,y-r*.7,s,r*1.4,3); ctx.fill(); ctx.stroke();
+    } else if(type==='pc'){
+      ctx.beginPath(); ctx.roundRect(x-r,y-r*.9,r*2,r*1.5,3); ctx.fill(); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(x-r*.4,y+r*.6); ctx.lineTo(x-r*.6,y+r); ctx.moveTo(x+r*.4,y+r*.6); ctx.lineTo(x+r*.6,y+r); ctx.stroke();
+    } else if(type==='server'){
+      ctx.beginPath(); ctx.roundRect(x-r*.7,y-r,r*1.4,r*2,3); ctx.fill(); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(x-r*.4,y-r*.3); ctx.lineTo(x+r*.4,y-r*.3); ctx.moveTo(x-r*.4,y+r*.3); ctx.lineTo(x+r*.4,y+r*.3); ctx.lineWidth=1; ctx.stroke();
+    } else if(type==='firewall'){
+      var s=r*1.6;
+      ctx.beginPath(); ctx.roundRect(x-s/2,y-s/2,s,s,3); ctx.fill(); ctx.stroke();
+      ctx.beginPath(); ctx.lineWidth=1; ctx.moveTo(x-s/2,y); ctx.lineTo(x+s/2,y); ctx.moveTo(x,y-s/2); ctx.lineTo(x,y+s/2); ctx.stroke();
+    } else if(type==='ap'){
+      ctx.beginPath(); ctx.arc(x,y+4,r*.6,0,Math.PI*2); ctx.fill(); ctx.stroke();
+      ctx.beginPath(); ctx.lineWidth=1.2; ctx.arc(x,y-2,r*.8,Math.PI*1.2,Math.PI*1.8); ctx.stroke();
+      ctx.beginPath(); ctx.arc(x,y-2,r*1.2,Math.PI*1.25,Math.PI*1.75); ctx.stroke();
+    } else if(type==='cloud'){
+      ctx.beginPath();
+      ctx.moveTo(x-r*1.2,y+r*.3);
+      ctx.quadraticCurveTo(x-r*1.4,y-r*.8,x-r*.3,y-r*.7);
+      ctx.quadraticCurveTo(x,y-r*1.2,x+r*.5,y-r*.6);
+      ctx.quadraticCurveTo(x+r*1.4,y-r*.5,x+r*1.2,y+r*.3);
+      ctx.closePath();
+      ctx.fill(); ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  function drawLabel(ctx, text, x, y, color){
+    ctx.font = '600 10px "Space Grotesk", sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    ctx.fillStyle = color || '#57534E';
+    ctx.fillText(text, x, y);
+  }
+
+  /* ══════════════════════════════════════════════════════════
+     SECTION 1: TOPOLOGY TYPES
+     ══════════════════════════════════════════════════════════ */
+  var TOPOS = {
+    star: {
+      name: 'Star Topology',
+      desc: 'All devices connect to a single central device (switch or hub). Easy to install and manage.',
+      pros: 'Easy to add devices, one failure does not affect others, simple cabling',
+      cons: 'Central device is a single point of failure, requires more cable than bus',
+      useCase: 'Modern LANs, office networks, home networks',
+      spof: true, spofText: 'Central switch/hub',
+      devices: [
+        {type:'switch',x:.5,y:.5,label:'Switch'},
+        {type:'pc',x:.5,y:.12,label:'PC1'},
+        {type:'pc',x:.85,y:.3,label:'PC2'},
+        {type:'server',x:.85,y:.7,label:'Server'},
+        {type:'pc',x:.5,y:.88,label:'PC3'},
+        {type:'pc',x:.15,y:.7,label:'PC4'},
+        {type:'pc',x:.15,y:.3,label:'PC5'}
+      ],
+      links: [[0,1],[0,2],[0,3],[0,4],[0,5],[0,6]]
+    },
+    mesh: {
+      name: 'Full Mesh Topology',
+      desc: 'Every device connects to every other device. Maximum redundancy at the cost of complexity.',
+      pros: 'Maximum redundancy, no single point of failure, fast data transfer',
+      cons: 'Expensive, complex cabling, difficult to scale (n(n-1)/2 connections)',
+      useCase: 'WAN backbones, core network infrastructure, critical systems',
+      spof: false, spofText: 'None',
+      devices: [
+        {type:'router',x:.5,y:.12,label:'R1'},
+        {type:'router',x:.85,y:.38,label:'R2'},
+        {type:'router',x:.73,y:.82,label:'R3'},
+        {type:'router',x:.27,y:.82,label:'R4'},
+        {type:'router',x:.15,y:.38,label:'R5'}
+      ],
+      links: [[0,1],[0,2],[0,3],[0,4],[1,2],[1,3],[1,4],[2,3],[2,4],[3,4]]
+    },
+    ring: {
+      name: 'Ring Topology',
+      desc: 'Each device connects to exactly two others, forming a loop. Data travels in one direction (or both in dual-ring).',
+      pros: 'Predictable performance, no collisions, orderly data flow',
+      cons: 'One link failure breaks entire ring (unless dual-ring), difficult to troubleshoot',
+      useCase: 'Token Ring (legacy), FDDI, SONET/SDH rings',
+      spof: true, spofText: 'Any single link (unless dual-ring)',
+      devices: [
+        {type:'pc',x:.5,y:.1,label:'PC1'},
+        {type:'pc',x:.88,y:.35,label:'PC2'},
+        {type:'pc',x:.76,y:.82,label:'PC3'},
+        {type:'pc',x:.24,y:.82,label:'PC4'},
+        {type:'pc',x:.12,y:.35,label:'PC5'}
+      ],
+      links: [[0,1],[1,2],[2,3],[3,4],[4,0]]
+    },
+    bus: {
+      name: 'Bus Topology',
+      desc: 'All devices connect to a single backbone cable. Terminators at both ends prevent signal bounce.',
+      pros: 'Simple to install, low cost, uses least cable',
+      cons: 'Single backbone is a point of failure, limited cable length, collisions, difficult to troubleshoot',
+      useCase: 'Legacy 10BASE2/10BASE5 Ethernet, small temporary networks',
+      spof: true, spofText: 'Backbone cable',
+      devices: [
+        {type:'pc',x:.15,y:.3,label:'PC1'},
+        {type:'pc',x:.35,y:.3,label:'PC2'},
+        {type:'server',x:.55,y:.3,label:'Server'},
+        {type:'pc',x:.75,y:.3,label:'PC3'},
+        {type:'pc',x:.92,y:.3,label:'PC4'}
+      ],
+      links: 'bus'
+    },
+    hybrid: {
+      name: 'Hybrid Topology',
+      desc: 'Combines two or more topologies. Typically star-bus or star-mesh. Most real-world networks are hybrid.',
+      pros: 'Flexible, scalable, combines strengths of multiple topologies',
+      cons: 'Complex design, higher cost, harder to manage',
+      useCase: 'Enterprise networks, campus LANs, data centers',
+      spof: false, spofText: 'Depends on design',
+      devices: [
+        {type:'router',x:.5,y:.14,label:'Core Router'},
+        {type:'switch',x:.22,y:.45,label:'SW1'},
+        {type:'switch',x:.78,y:.45,label:'SW2'},
+        {type:'pc',x:.08,y:.78,label:'PC1'},
+        {type:'pc',x:.22,y:.78,label:'PC2'},
+        {type:'pc',x:.36,y:.78,label:'PC3'},
+        {type:'server',x:.64,y:.78,label:'Srv1'},
+        {type:'pc',x:.78,y:.78,label:'PC4'},
+        {type:'pc',x:.92,y:.78,label:'PC5'}
+      ],
+      links: [[0,1],[0,2],[1,3],[1,4],[1,5],[2,6],[2,7],[2,8]]
+    }
+  };
+
+  var topoCanvas = document.getElementById('topoCanvas');
+  var topoCtx;
+  var topoInfoEl = document.getElementById('topoInfo');
+  var topoSelectorEl = document.getElementById('topoSelector');
+  var currentTopo = 'star';
+  var topoPackets = [];
+  var topoAnimFrame = null;
+
+  /* Build selector buttons */
+  Object.keys(TOPOS).forEach(function(key){
+    var btn = document.createElement('button');
+    btn.className = 'topo-btn' + (key===currentTopo?' active':'');
+    btn.setAttribute('data-topo', key);
+    btn.textContent = key.charAt(0).toUpperCase()+key.slice(1);
+    btn.addEventListener('click', function(){ setTopo(key); });
+    topoSelectorEl.appendChild(btn);
+  });
+
+  function setTopo(key){
+    currentTopo = key;
+    topoPackets = [];
+    document.querySelectorAll('.topo-btn').forEach(function(b){
+      b.classList.toggle('active', b.getAttribute('data-topo')===key);
+    });
+    renderTopoInfo();
+    /* Spawn initial packets */
+    spawnTopoPackets();
+  }
+
+  function renderTopoInfo(){
+    var t = TOPOS[currentTopo];
+    topoInfoEl.innerHTML =
+      '<div class="topo-info-name">'+t.name+'</div>'+
+      '<div style="font-family:var(--font-body);font-size:.82rem;color:var(--ink-secondary);margin-bottom:10px;line-height:1.5">'+t.desc+'</div>'+
+      '<div class="topo-info-grid">'+
+        '<div class="topo-info-item"><strong>Pros</strong>'+t.pros+'</div>'+
+        '<div class="topo-info-item"><strong>Cons</strong>'+t.cons+'</div>'+
+        '<div class="topo-info-item"><strong>Use Case</strong>'+t.useCase+'</div>'+
+      '</div>'+
+      '<div class="topo-spof '+(t.spof?'yes':'no')+'">Single point of failure: '+t.spofText+'</div>';
+  }
+
+  function topoDevPos(d){
+    var w = topoCanvas.width/dpr, h = topoCanvas.height/dpr;
+    return {x:d.x*w, y:d.y*h};
+  }
+
+  function spawnTopoPackets(){
+    var t=TOPOS[currentTopo];
+    topoPackets=[];
+    if(t.links==='bus'){
+      topoPackets.push({fromIdx:0, toIdx:4, t:0, speed:0.006, color:'#7C3AED'});
+      topoPackets.push({fromIdx:3, toIdx:1, t:0, speed:0.005, color:'#B45309'});
+    } else {
+      /* Pick 2-3 random links to animate */
+      var lks = t.links.slice();
+      for(var i=0;i<Math.min(3,lks.length);i++){
+        var lk = lks[i%lks.length];
+        topoPackets.push({fromIdx:lk[0], toIdx:lk[1], t:0, speed:0.005+Math.random()*0.004, color:i===0?'#7C3AED':(i===1?'#B45309':'#059669')});
+      }
+    }
+  }
+
+  function drawTopo(){
+    var w=topoCanvas.width/dpr, h=topoCanvas.height/dpr;
+    topoCtx.clearRect(0,0,w,h);
+    var t=TOPOS[currentTopo];
+
+    /* Draw links */
+    topoCtx.strokeStyle='#D6D3D1';
+    topoCtx.lineWidth=1.5;
+    if(t.links==='bus'){
+      /* Bus backbone */
+      var y = t.devices[0].y * h + 40;
+      topoCtx.beginPath();
+      topoCtx.moveTo(w*0.06, y);
+      topoCtx.lineTo(w*0.94, y);
+      topoCtx.strokeStyle='#1C1917';
+      topoCtx.lineWidth=3;
+      topoCtx.stroke();
+      /* Terminators */
+      [w*0.06, w*0.94].forEach(function(tx){
+        topoCtx.beginPath();
+        topoCtx.moveTo(tx, y-8); topoCtx.lineTo(tx, y+8);
+        topoCtx.strokeStyle='#DC2626'; topoCtx.lineWidth=2.5; topoCtx.stroke();
+      });
+      /* Drop cables */
+      topoCtx.strokeStyle='#C7C3BC'; topoCtx.lineWidth=1.2;
+      t.devices.forEach(function(d){
+        var p=topoDevPos(d);
+        topoCtx.beginPath(); topoCtx.moveTo(p.x, p.y+16); topoCtx.lineTo(p.x, y); topoCtx.stroke();
+      });
+    } else {
+      topoCtx.strokeStyle='#D6D3D1'; topoCtx.lineWidth=1.5;
+      t.links.forEach(function(lk){
+        var a=topoDevPos(t.devices[lk[0]]), b=topoDevPos(t.devices[lk[1]]);
+        topoCtx.beginPath(); topoCtx.moveTo(a.x,a.y); topoCtx.lineTo(b.x,b.y); topoCtx.stroke();
+      });
+    }
+
+    /* Draw devices */
+    t.devices.forEach(function(d){
+      var p=topoDevPos(d);
+      drawDeviceShape(topoCtx, d.type, p.x, p.y, 18, '#FFFFFF', '#1C1917');
+      drawLabel(topoCtx, d.label, p.x, p.y+22, '#57534E');
+    });
+
+    /* Animate packets */
+    topoPackets.forEach(function(pk){
+      var fromD=t.devices[pk.fromIdx], toD=t.devices[pk.toIdx];
+      var a,b;
+      if(t.links==='bus'){
+        var y = t.devices[0].y * h + 40;
+        a={x:topoDevPos(fromD).x, y:y};
+        b={x:topoDevPos(toD).x, y:y};
+      } else {
+        a=topoDevPos(fromD); b=topoDevPos(toD);
+      }
+      var px=a.x+(b.x-a.x)*pk.t;
+      var py=a.y+(b.y-a.y)*pk.t;
+      topoCtx.beginPath();
+      var grd=topoCtx.createRadialGradient(px,py,2,px,py,8);
+      grd.addColorStop(0, pk.color+'AA');
+      grd.addColorStop(1, pk.color+'00');
+      topoCtx.arc(px,py,8,0,Math.PI*2);
+      topoCtx.fillStyle=grd;
+      topoCtx.fill();
+      topoCtx.beginPath();
+      topoCtx.arc(px,py,4,0,Math.PI*2);
+      topoCtx.fillStyle=pk.color;
+      topoCtx.fill();
+
+      pk.t += pk.speed;
+      if(pk.t>1){
+        /* Reverse direction */
+        var tmp=pk.fromIdx; pk.fromIdx=pk.toIdx; pk.toIdx=tmp;
+        pk.t=0;
+      }
+    });
+
+    topoAnimFrame = requestAnimationFrame(drawTopo);
+  }
+
+  function initTopoCanvas(){
+    topoCtx = sizeCanvas(topoCanvas, 380);
+    setTopo('star');
+    drawTopo();
+  }
+
+  initTopoCanvas();
+  var topoResizeTimer;
+  window.addEventListener('resize', function(){
+    clearTimeout(topoResizeTimer);
+    topoResizeTimer = setTimeout(function(){
+      topoCtx = sizeCanvas(topoCanvas, 380);
+    },150);
+  });
+
+  /* ══════════════════════════════════════════════════════════
+     SECTION 2: BUILD YOUR OWN
+     ══════════════════════════════════════════════════════════ */
+  var bCanvas = document.getElementById('builderCanvas');
+  var bCtx;
+  var bStatus = document.getElementById('builderStatus');
+  var bDevices = []; /* {type, x, y, label} */
+  var bLinks = []; /* [idx1, idx2] */
+  var bSelectedTool = 'router';
+  var bConnectSource = null;
+  var bSendMode = false;
+  var bSendSource = null;
+  var bPacketPath = null;
+  var bPacketT = 0;
+  var bDeviceCount = {router:0,switch:0,pc:0,server:0,firewall:0,ap:0};
+  var bAnimFrame = null;
+
+  function initBuilderCanvas(){
+    bCtx = sizeCanvas(bCanvas, 420);
+    drawBuilder();
+  }
+
+  /* Toolbar selection */
+  document.querySelectorAll('.builder-tool').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      bSendMode = false;
+      bConnectSource = null;
+      bSendSource = null;
+      document.querySelectorAll('.builder-tool').forEach(function(b){b.classList.remove('active');});
+      this.classList.add('active');
+      bSelectedTool = this.getAttribute('data-type');
+      bStatus.textContent = 'Click the canvas to place a '+bSelectedTool+'.';
+    });
+  });
+
+  document.getElementById('sendPacketBtn').addEventListener('click', function(){
+    if(bDevices.length < 2){ bStatus.textContent='Place at least 2 devices first.'; return; }
+    bSendMode = true;
+    bSendSource = null;
+    bPacketPath = null;
+    document.querySelectorAll('.builder-tool').forEach(function(b){b.classList.remove('active');});
+    bStatus.textContent = 'Click the SOURCE device to send from.';
+  });
+
+  document.getElementById('clearCanvasBtn').addEventListener('click', function(){
+    bDevices=[]; bLinks=[]; bPacketPath=null; bConnectSource=null; bSendSource=null; bSendMode=false;
+    bDeviceCount={router:0,switch:0,pc:0,server:0,firewall:0,ap:0};
+    bStatus.textContent='Canvas cleared. Click a device type, then click to place.';
+  });
+
+  function findDeviceAt(mx,my){
+    for(var i=bDevices.length-1;i>=0;i--){
+      var d=bDevices[i];
+      var dx=d.x-mx, dy=d.y-my;
+      if(Math.sqrt(dx*dx+dy*dy)<22) return i;
+    }
+    return -1;
+  }
+
+  /* BFS shortest path */
+  function bfs(from,to){
+    if(from===to) return [from];
+    var adj={}; bDevices.forEach(function(_,i){adj[i]=[];});
+    bLinks.forEach(function(lk){adj[lk[0]].push(lk[1]); adj[lk[1]].push(lk[0]);});
+    var visited={}; visited[from]=true;
+    var queue=[[from]];
+    while(queue.length){
+      var path=queue.shift();
+      var node=path[path.length-1];
+      var neighbors=adj[node]||[];
+      for(var i=0;i<neighbors.length;i++){
+        var n=neighbors[i];
+        if(visited[n]) continue;
+        var newPath=path.concat(n);
+        if(n===to) return newPath;
+        visited[n]=true;
+        queue.push(newPath);
+      }
+    }
+    return null;
+  }
+
+  bCanvas.addEventListener('click', function(e){
+    var rect=bCanvas.getBoundingClientRect();
+    var mx=(e.clientX-rect.left);
+    var my=(e.clientY-rect.top);
+
+    var hitIdx = findDeviceAt(mx,my);
+
+    if(bSendMode){
+      if(hitIdx<0) return;
+      if(!bSendSource && bSendSource!==0){
+        bSendSource=hitIdx;
+        bStatus.textContent='Source: '+bDevices[hitIdx].label+'. Now click the DESTINATION device.';
+      } else {
+        var path=bfs(bSendSource, hitIdx);
+        if(!path){
+          bStatus.textContent='No path between '+bDevices[bSendSource].label+' and '+bDevices[hitIdx].label+'. Connect them first.';
+        } else {
+          bPacketPath=path;
+          bPacketT=0;
+          var latency = (path.length-1)*3;
+          bStatus.innerHTML='Sending: '+path.map(function(i){return bDevices[i].label;}).join(' \u2192 ')+' &mdash; <span class="hop-count">'+( path.length-1)+' hops, ~'+latency+'ms est. latency</span>';
+        }
+        bSendMode=false;
+        bSendSource=null;
+      }
+      return;
+    }
+
+    if(hitIdx >= 0){
+      /* Clicked an existing device — start/complete connection */
+      if(bConnectSource===null){
+        bConnectSource=hitIdx;
+        bStatus.textContent='Connecting from '+bDevices[hitIdx].label+'. Click another device to complete the link.';
+      } else if(bConnectSource!==hitIdx){
+        /* Check if link already exists */
+        var exists=bLinks.some(function(lk){return (lk[0]===bConnectSource&&lk[1]===hitIdx)||(lk[0]===hitIdx&&lk[1]===bConnectSource);});
+        if(!exists){
+          bLinks.push([bConnectSource, hitIdx]);
+          bStatus.textContent='Connected '+bDevices[bConnectSource].label+' \u2194 '+bDevices[hitIdx].label+'.';
+        } else {
+          bStatus.textContent='Link already exists.';
+        }
+        bConnectSource=null;
+      } else {
+        bConnectSource=null;
+        bStatus.textContent='Click cancelled. Click a device type to place, or click two devices to connect.';
+      }
+    } else {
+      /* Place new device */
+      bConnectSource=null;
+      bDeviceCount[bSelectedTool]++;
+      var labels={router:'R',switch:'SW',pc:'PC',server:'Srv',firewall:'FW',ap:'AP'};
+      var label=labels[bSelectedTool]+bDeviceCount[bSelectedTool];
+      bDevices.push({type:bSelectedTool, x:mx, y:my, label:label});
+      bStatus.textContent='Placed '+label+'. Click another spot to place more, or click two devices to connect them.';
+    }
+  });
+
+  function drawBuilder(){
+    var w=bCanvas.width/dpr, h=bCanvas.height/dpr;
+    bCtx.clearRect(0,0,w,h);
+
+    /* Grid dots */
+    bCtx.fillStyle='#E2DFD9';
+    for(var gx=20;gx<w;gx+=40) for(var gy=20;gy<h;gy+=40){
+      bCtx.beginPath(); bCtx.arc(gx,gy,1,0,Math.PI*2); bCtx.fill();
+    }
+
+    /* Links */
+    bCtx.strokeStyle='#C7C3BC'; bCtx.lineWidth=1.5;
+    bLinks.forEach(function(lk){
+      var a=bDevices[lk[0]], b=bDevices[lk[1]];
+      var inPath=false;
+      if(bPacketPath){
+        for(var i=0;i<bPacketPath.length-1;i++){
+          if((bPacketPath[i]===lk[0]&&bPacketPath[i+1]===lk[1])||(bPacketPath[i]===lk[1]&&bPacketPath[i+1]===lk[0])){inPath=true;break;}
+        }
+      }
+      bCtx.strokeStyle=inPath?'#7C3AED':'#C7C3BC';
+      bCtx.lineWidth=inPath?2.5:1.5;
+      bCtx.beginPath(); bCtx.moveTo(a.x,a.y); bCtx.lineTo(b.x,b.y); bCtx.stroke();
+    });
+
+    /* Devices */
+    bDevices.forEach(function(d,i){
+      var isHighlighted = (bConnectSource===i) || (bSendSource===i);
+      drawDeviceShape(bCtx, d.type, d.x, d.y, 18, isHighlighted?'#EDE9FE':'#FFFFFF', isHighlighted?'#7C3AED':'#1C1917');
+      drawLabel(bCtx, d.label, d.x, d.y+22, isHighlighted?'#7C3AED':'#57534E');
+    });
+
+    /* Packet animation */
+    if(bPacketPath && bPacketPath.length>1){
+      var totalSegs=bPacketPath.length-1;
+      var segFloat=bPacketT*totalSegs;
+      var seg=Math.min(Math.floor(segFloat),totalSegs-1);
+      var segT=segFloat-seg;
+      var a=bDevices[bPacketPath[seg]], b=bDevices[bPacketPath[seg+1]];
+      var px=a.x+(b.x-a.x)*segT;
+      var py=a.y+(b.y-a.y)*segT;
+      bCtx.beginPath();
+      var grd=bCtx.createRadialGradient(px,py,2,px,py,10);
+      grd.addColorStop(0,'#7C3AED88');
+      grd.addColorStop(1,'#7C3AED00');
+      bCtx.arc(px,py,10,0,Math.PI*2);
+      bCtx.fillStyle=grd;
+      bCtx.fill();
+      bCtx.beginPath();
+      bCtx.arc(px,py,5,0,Math.PI*2);
+      bCtx.fillStyle='#7C3AED';
+      bCtx.fill();
+      bPacketT+=0.008;
+      if(bPacketT>1) bPacketT=0;
+    }
+
+    requestAnimationFrame(drawBuilder);
+  }
+
+  initBuilderCanvas();
+  var bResizeTimer;
+  window.addEventListener('resize', function(){
+    clearTimeout(bResizeTimer);
+    bResizeTimer=setTimeout(function(){bCtx=sizeCanvas(bCanvas,420);},150);
+  });
+
+  /* ══════════════════════════════════════════════════════════
+     SECTION 3: PACKET JOURNEY
+     ══════════════════════════════════════════════════════════ */
+  var jCanvas = document.getElementById('journeyCanvas');
+  var jCtx;
+  var jNarration = document.getElementById('journeyNarration');
+  var jSpeedSlider = document.getElementById('journeySpeedSlider');
+
+  var JOURNEY_DEVICES = [
+    {type:'pc',     x:.06, y:.5, label:'PC'},
+    {type:'switch', x:.2,  y:.5, label:'Switch'},
+    {type:'router', x:.34, y:.5, label:'Router'},
+    {type:'firewall',x:.48,y:.5, label:'Firewall'},
+    {type:'cloud',  x:.62, y:.5, label:'Internet'},
+    {type:'router', x:.76, y:.5, label:'Router'},
+    {type:'switch', x:.88, y:.5, label:'Switch'},
+    {type:'server', x:.96, y:.5, label:'Web Server'}
+  ];
+
+  var JOURNEY_NARRATIONS = [
+    {device:'PC', text:'The <span class="device-name">PC</span> generates an HTTP request. The application layer creates the HTTP message, TCP adds a header with port 80 as destination, IP adds source and destination addresses, and Ethernet frames the packet with MAC addresses.'},
+    {device:'Switch', text:'The <span class="device-name">Switch</span> receives the frame. It <span class="action">checks its MAC address table</span> to find the port associated with the next-hop MAC address, then forwards the frame out that port. It operates at Layer 2 only.'},
+    {device:'Router', text:'The <span class="device-name">Router</span> strips the Layer 2 header, examines the <span class="action">destination IP address</span>, looks up its routing table for the best path, decrements TTL, recalculates the checksum, and re-encapsulates with new Layer 2 headers for the next hop.'},
+    {device:'Firewall', text:'The <span class="device-name">Firewall</span> <span class="action">inspects the packet against its ACL rules</span>. It checks source/destination IP, port numbers, and protocol. If the packet matches a permit rule, it passes through. Stateful firewalls also track the connection state.'},
+    {device:'Internet', text:'The packet enters the <span class="device-name">Internet</span> and is routed through multiple autonomous systems using <span class="action">BGP</span>. Each ISP router forwards based on AS-path attributes. The packet may traverse 10-20 hops before reaching the destination network.'},
+    {device:'Router', text:'The destination <span class="device-name">Router</span> receives the packet, checks the destination IP against its routing table, finds a <span class="action">directly connected network match</span>, and forwards to the local switch.'},
+    {device:'Switch', text:'The destination <span class="device-name">Switch</span> receives the frame, looks up the <span class="action">server\'s MAC address</span> in its CAM table, and forwards the frame to the correct port where the web server is connected.'},
+    {device:'Web Server', text:'The <span class="device-name">Web Server</span> receives the packet. The NIC passes it up the stack: Ethernet header stripped, IP header checked, TCP segment reassembled, and the <span class="action">HTTP request delivered to the web application</span> on port 80.'}
+  ];
+
+  var jState = 'stopped'; /* stopped, playing, paused */
+  var jCurrentHop = -1; /* -1 = not started, 0-6 = traveling between hops, 7 = arrived */
+  var jPacketT = 0;
+  var jSpeed = 0.006;
+
+  function jDevPos(d){
+    var w=jCanvas.width/dpr, h=jCanvas.height/dpr;
+    return {x:d.x*w, y:d.y*h};
+  }
+
+  function drawJourney(){
+    var w=jCanvas.width/dpr, h=jCanvas.height/dpr;
+    jCtx.clearRect(0,0,w,h);
+
+    /* Links */
+    jCtx.strokeStyle='#D6D3D1'; jCtx.lineWidth=1.5;
+    for(var i=0;i<JOURNEY_DEVICES.length-1;i++){
+      var a=jDevPos(JOURNEY_DEVICES[i]), b=jDevPos(JOURNEY_DEVICES[i+1]);
+      var isActive = (jCurrentHop===i);
+      jCtx.strokeStyle=isActive?'#7C3AED':'#D6D3D1';
+      jCtx.lineWidth=isActive?2.5:1.5;
+      jCtx.beginPath(); jCtx.moveTo(a.x,a.y); jCtx.lineTo(b.x,b.y); jCtx.stroke();
+    }
+
+    /* Devices */
+    JOURNEY_DEVICES.forEach(function(d,idx){
+      var p=jDevPos(d);
+      var visited = idx <= jCurrentHop+1 && jCurrentHop >= 0;
+      var isCurrent = (jCurrentHop>=0 && idx===jCurrentHop+1) || (jCurrentHop===-1 && idx===0 && jState!=='stopped');
+      drawDeviceShape(jCtx, d.type, p.x, p.y, 20, isCurrent?'#EDE9FE':(visited?'#F5F3FF':'#FFFFFF'), isCurrent?'#7C3AED':(visited?'#A78BFA':'#C7C3BC'));
+      drawLabel(jCtx, d.label, p.x, p.y+26, isCurrent?'#7C3AED':'#57534E');
+    });
+
+    /* Packet */
+    if(jCurrentHop >= 0 && jCurrentHop < JOURNEY_DEVICES.length-1){
+      var a=jDevPos(JOURNEY_DEVICES[jCurrentHop]);
+      var b=jDevPos(JOURNEY_DEVICES[jCurrentHop+1]);
+      var px=a.x+(b.x-a.x)*jPacketT;
+      var py=a.y+(b.y-a.y)*jPacketT;
+      jCtx.beginPath();
+      var grd=jCtx.createRadialGradient(px,py,2,px,py,10);
+      grd.addColorStop(0,'#7C3AED88');
+      grd.addColorStop(1,'#7C3AED00');
+      jCtx.arc(px,py,10,0,Math.PI*2);
+      jCtx.fillStyle=grd;
+      jCtx.fill();
+      jCtx.beginPath();
+      jCtx.arc(px,py,5,0,Math.PI*2);
+      jCtx.fillStyle='#7C3AED';
+      jCtx.fill();
+    }
+
+    /* Advance packet if playing */
+    if(jState==='playing' && jCurrentHop>=0 && jCurrentHop<JOURNEY_DEVICES.length-1){
+      jPacketT += jSpeed * (parseInt(jSpeedSlider.value));
+      if(jPacketT >= 1){
+        jPacketT=0;
+        jCurrentHop++;
+        if(jCurrentHop >= JOURNEY_DEVICES.length-1){
+          /* Arrived */
+          jState='stopped';
+          jNarration.innerHTML=JOURNEY_NARRATIONS[JOURNEY_DEVICES.length-1].text;
+        } else {
+          jNarration.innerHTML=JOURNEY_NARRATIONS[jCurrentHop+1].text;
+        }
+      }
+    }
+
+    requestAnimationFrame(drawJourney);
+  }
+
+  document.getElementById('journeyPlay').addEventListener('click', function(){
+    if(jCurrentHop<0){ jCurrentHop=0; jPacketT=0; jNarration.innerHTML=JOURNEY_NARRATIONS[0].text; }
+    if(jCurrentHop >= JOURNEY_DEVICES.length-1){ jCurrentHop=0; jPacketT=0; jNarration.innerHTML=JOURNEY_NARRATIONS[0].text; }
+    jState='playing';
+  });
+  document.getElementById('journeyPause').addEventListener('click', function(){
+    jState='paused';
+  });
+  document.getElementById('journeyStep').addEventListener('click', function(){
+    jState='paused';
+    if(jCurrentHop<0){
+      jCurrentHop=0; jPacketT=0;
+      jNarration.innerHTML=JOURNEY_NARRATIONS[0].text;
+    } else if(jCurrentHop < JOURNEY_DEVICES.length-1){
+      jPacketT=0;
+      jCurrentHop++;
+      if(jCurrentHop < JOURNEY_DEVICES.length){
+        jNarration.innerHTML=JOURNEY_NARRATIONS[jCurrentHop].text;
+      }
+    }
+  });
+  document.getElementById('journeyReset').addEventListener('click', function(){
+    jState='stopped'; jCurrentHop=-1; jPacketT=0;
+    jNarration.innerHTML='Press <strong>Play</strong> to watch an HTTP packet travel from PC to Web Server, or <strong>Step</strong> to advance one hop at a time.';
+  });
+
+  function initJourneyCanvas(){
+    jCtx=sizeCanvas(jCanvas,340);
+    drawJourney();
+  }
+  initJourneyCanvas();
+  window.addEventListener('resize', function(){
+    setTimeout(function(){jCtx=sizeCanvas(jCanvas,340);},160);
+  });
+
+  /* ══════════════════════════════════════════════════════════
+     SECTION 4: QUIZ
+     ══════════════════════════════════════════════════════════ */
+  var QUIZ = [
+    {q:'Which topology has a single point of failure at the central device?', opts:['Mesh','Bus','Star','Ring'], ans:2, explain:'In a star topology, all devices connect to a central switch or hub. If it fails, the entire network goes down.'},
+    {q:'Which topology provides the most redundancy?', opts:['Star','Ring','Bus','Full mesh'], ans:3, explain:'Full mesh connects every device to every other device. If any link fails, data can take an alternate path. For N devices, you need N(N-1)/2 connections.'},
+    {q:'Which legacy topology used coaxial cable as a shared backbone?', opts:['Star','Ring','Mesh','Bus'], ans:3, explain:'Bus topology used a single coaxial cable (10BASE2 or 10BASE5) with terminators at each end. All devices shared the same collision domain.'},
+    {q:'In a ring topology, what happens if one link fails?', opts:['Traffic reroutes automatically','Only one device is affected','The entire network goes down (unless dual-ring)','The hub takes over'], ans:2, explain:'In a single ring, data must pass through every link. One break stops all communication. Dual-ring (FDDI) provides a backup path by wrapping traffic onto the second ring.'},
+    {q:'How many connections are needed for a full mesh of 5 devices?', opts:['5','8','10','20'], ans:2, explain:'Full mesh formula: N(N-1)/2. For 5 devices: 5(4)/2 = 10 connections. This grows quickly, making full mesh impractical for large networks.'},
+    {q:'Which topology do modern enterprise networks typically use?', opts:['Bus','Ring','Star or hybrid','Full mesh'], ans:2, explain:'Modern enterprises use star topology (devices to switches) combined into hybrid designs with mesh interconnects between core switches. Pure bus and ring are legacy.'}
+  ];
+
+  var quizScore=0, quizAnswered=0;
+  var quizEl=document.getElementById('quizSection');
+  var quizProgressEl=document.getElementById('quizProgress');
+  var quizScoreEl=document.getElementById('quizScore');
+  var quizScoreNum=document.getElementById('quizScoreNum');
+
+  function updateQuizProgress(){
+    quizProgressEl.innerHTML='<strong>'+quizAnswered+'</strong> / '+QUIZ.length+' answered';
+    if(quizAnswered===QUIZ.length){
+      quizScoreEl.style.display='flex';
+      quizScoreNum.textContent=quizScore+'/'+QUIZ.length;
+    }
+  }
+
+  function renderQuiz(){
+    quizScore=0; quizAnswered=0;
+    quizScoreEl.style.display='none';
+    quizEl.innerHTML='';
+    QUIZ.forEach(function(q,qi){
+      var card=document.createElement('div');
+      card.className='quiz-card';
+      card.innerHTML='<div class="quiz-q"><span class="quiz-q-num">'+(qi+1)+'.</span>'+q.q+'</div>'+
+        '<div class="quiz-opts">'+q.opts.map(function(o,oi){
+          return '<div class="quiz-opt" data-qi="'+qi+'" data-oi="'+oi+'">'+o+'</div>';
+        }).join('')+'</div>'+
+        '<div class="quiz-explain" id="tqexp'+qi+'">'+q.explain+'</div>';
+      quizEl.appendChild(card);
+    });
+    document.querySelectorAll('#quizSection .quiz-opt').forEach(function(opt){
+      opt.addEventListener('click',function(){
+        var qi=parseInt(this.getAttribute('data-qi'));
+        var oi=parseInt(this.getAttribute('data-oi'));
+        var card=this.closest('.quiz-card');
+        if(card.classList.contains('answered'))return;
+        card.classList.add('answered');
+        quizAnswered++;
+        var allOpts=card.querySelectorAll('.quiz-opt');
+        allOpts.forEach(function(o){o.classList.add('locked');});
+        allOpts[QUIZ[qi].ans].classList.add('correct');
+        if(oi===QUIZ[qi].ans){quizScore++;}else{this.classList.add('wrong');}
+        document.getElementById('tqexp'+qi).classList.add('show');
+        updateQuizProgress();
+      });
+    });
+    updateQuizProgress();
+  }
+
+  renderQuiz();
+  document.getElementById('quizReset').addEventListener('click',renderQuiz);
+
+})();
+</script>
+</body>
+</html>

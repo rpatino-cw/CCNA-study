@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Net+ Flashcard Deck — CompTIA N10-009</title>
+<meta name="color-scheme" content="light">
+<link rel="icon" type="image/svg+xml" href="/CCNA-study/favicon.svg">
+<link rel="stylesheet" href="css/shared.css">
+<style>
+/* ═══════════════════════════════════════════════════════════════
+   Net+ Flashcard Deck — Spaced-Repetition Study Tool
+   Purple accent #7C3AED for Net+ branding
+   ═══════════════════════════════════════════════════════════════ */
+
+:root { --np: #7C3AED; --np-dim: #F5F3FF; --np-mid: #EDE9FE; }
+
+.page-header{padding:var(--s-xl) 0 var(--s-lg);margin-bottom:var(--s-lg);border-bottom:3px solid var(--np)}
+.page-header h1{font-size:2.4rem;margin-bottom:4px;color:var(--np)}
+.page-header .subtitle{font-family:var(--font-body);color:var(--ink-secondary);font-size:.95rem;font-style:italic}
+
+/* ── Category Pills ────────────────────────────────────────── */
+.cat-pills{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:var(--s-lg)}
+.cpill{font-family:var(--font-display);font-size:.72rem;font-weight:600;padding:5px 14px;border-radius:14px;border:1px solid var(--border);background:var(--bg-surface);color:var(--ink-secondary);cursor:pointer;transition:all var(--transition)}
+.cpill:hover{border-color:var(--np);color:var(--np)}
+.cpill.active{background:var(--np);color:#fff;border-color:var(--np)}
+.cpill .cpill-count{font-family:var(--font-mono);font-size:.62rem;opacity:.7;margin-left:4px}
+
+/* ── Progress Bar ──────────────────────────────────────────── */
+.fc-progress-wrap{margin-bottom:var(--s-lg)}
+.fc-progress-label{display:flex;justify-content:space-between;font-family:var(--font-display);font-size:.72rem;color:var(--ink-muted);margin-bottom:4px}
+.fc-progress{height:8px;background:var(--bg-recessed);border-radius:4px;overflow:hidden}
+.fc-progress-fill{height:100%;background:linear-gradient(90deg,var(--np),#A78BFA);border-radius:4px;transition:width .4s cubic-bezier(.16,1,.3,1)}
+
+/* ── Stats Row ─────────────────────────────────────────────── */
+.fc-stats{display:flex;gap:24px;margin-bottom:var(--s-lg);flex-wrap:wrap}
+.fc-stat{text-align:center}
+.fc-stat-val{font-family:var(--font-mono);font-size:1.4rem;font-weight:800;color:var(--ink)}
+.fc-stat-label{font-family:var(--font-display);font-size:.62rem;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-muted);margin-top:2px}
+.fc-stat-val.green{color:var(--prof-strong)}
+.fc-stat-val.red{color:var(--prof-weak)}
+.fc-stat-val.purple{color:var(--np)}
+
+/* ── Card ──────────────────────────────────────────────────── */
+.fc-card-area{display:flex;justify-content:center;margin-bottom:var(--s-lg);perspective:1200px}
+.fc-card{width:100%;max-width:500px;min-height:300px;position:relative;cursor:pointer;transform-style:preserve-3d;transition:transform .5s cubic-bezier(.16,1,.3,1)}
+.fc-card.flipped{transform:rotateY(180deg)}
+.fc-face{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;border-radius:var(--radius-lg);border:2px solid var(--border);padding:var(--s-xl) var(--s-lg);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
+.fc-front{background:var(--bg-surface)}
+.fc-back{background:var(--np-dim);border-color:var(--np);transform:rotateY(180deg)}
+.fc-cat-badge{font-family:var(--font-display);font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;padding:3px 10px;border-radius:10px;background:var(--np-mid);color:var(--np);position:absolute;top:16px;left:16px}
+.fc-term{font-family:var(--font-display);font-size:1.6rem;font-weight:700;color:var(--ink);line-height:1.3}
+.fc-hint{font-family:var(--font-body);font-size:.82rem;color:var(--ink-muted);margin-top:8px;font-style:italic}
+.fc-def{font-family:var(--font-body);font-size:1rem;color:var(--ink);line-height:1.65;max-width:420px;margin-bottom:12px}
+.fc-tip{font-family:var(--font-mono);font-size:.75rem;color:var(--np);background:var(--np-mid);padding:8px 14px;border-radius:var(--radius);line-height:1.5;max-width:420px}
+.fc-tip-label{font-family:var(--font-display);font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--np);margin-bottom:4px;display:block}
+.fc-flip-hint{font-family:var(--font-display);font-size:.62rem;color:var(--ink-muted);position:absolute;bottom:16px;letter-spacing:.04em}
+
+/* ── Rating Buttons ────────────────────────────────────────── */
+.fc-ratings{display:flex;gap:8px;justify-content:center;margin-bottom:var(--s-lg);opacity:0;pointer-events:none;transition:opacity .2s}
+.fc-ratings.visible{opacity:1;pointer-events:auto}
+.fc-rate{font-family:var(--font-display);font-size:.78rem;font-weight:700;padding:10px 20px;border-radius:var(--radius);border:1px solid var(--border);background:var(--bg-surface);cursor:pointer;transition:all var(--transition);min-width:80px}
+.fc-rate:hover{transform:translateY(-1px)}
+.fc-rate.again{color:var(--prof-weak);border-color:var(--prof-weak)}
+.fc-rate.again:hover{background:var(--prof-weak-bg)}
+.fc-rate.hard{color:#D97706;border-color:#D97706}
+.fc-rate.hard:hover{background:#FFFBEB}
+.fc-rate.good{color:var(--prof-strong);border-color:var(--prof-strong)}
+.fc-rate.good:hover{background:var(--prof-strong-bg)}
+.fc-rate.easy{color:var(--np);border-color:var(--np)}
+.fc-rate.easy:hover{background:var(--np-dim)}
+
+/* ── Controls ──────────────────────────────────────────────── */
+.fc-controls{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+
+/* ── Empty state ───────────────────────────────────────────── */
+.fc-empty{text-align:center;padding:var(--s-2xl) var(--s-lg)}
+.fc-empty-icon{font-family:var(--font-display);font-size:2.5rem;color:var(--ink-faint);margin-bottom:var(--s-md)}
+.fc-empty h3{font-family:var(--font-display);color:var(--ink);margin-bottom:var(--s-sm)}
+.fc-empty p{font-family:var(--font-body);color:var(--ink-muted);font-size:.9rem}
+
+/* ── Responsive ────────────────────────────────────────────── */
+@media(max-width:600px){
+  .fc-card{min-height:260px}
+  .fc-term{font-size:1.3rem}
+  .fc-ratings{flex-wrap:wrap}
+  .fc-rate{flex:1;min-width:70px;padding:8px 12px;font-size:.72rem}
+}
+</style>
+</head>
+<body>
+<div class="container">
+  <nav class="top-nav"></nav>
+
+  <header class="page-header">
+    <a href="netplus.html" class="back-link">Net+ Hub</a>
+    <h1>Flashcard Deck</h1>
+    <p class="subtitle">Spaced-repetition study for N10-009 terms — rate each card to control when it reappears</p>
+  </header>
+
+  <!-- Category Filters -->
+  <div class="cat-pills" id="catPills"></div>
+
+  <!-- Progress -->
+  <div class="fc-progress-wrap">
+    <div class="fc-progress-label">
+      <span id="progressText">0 / 0 cards this session</span>
+      <span id="progressPct">0%</span>
+    </div>
+    <div class="fc-progress">
+      <div class="fc-progress-fill" id="progressFill" style="width:0%"></div>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="fc-stats">
+    <div class="fc-stat"><div class="fc-stat-val" id="statReviewed">0</div><div class="fc-stat-label">Reviewed</div></div>
+    <div class="fc-stat"><div class="fc-stat-val green" id="statCorrect">0</div><div class="fc-stat-label">Good+</div></div>
+    <div class="fc-stat"><div class="fc-stat-val red" id="statWrong">0</div><div class="fc-stat-label">Again</div></div>
+    <div class="fc-stat"><div class="fc-stat-val purple" id="statStreak">0</div><div class="fc-stat-label">Streak</div></div>
+    <div class="fc-stat"><div class="fc-stat-val" id="statMastered">0</div><div class="fc-stat-label">Mastered</div></div>
+  </div>
+
+  <!-- Card -->
+  <div class="fc-card-area" id="cardArea">
+    <div class="fc-card" id="card">
+      <div class="fc-face fc-front" id="cardFront">
+        <div class="fc-cat-badge" id="cardCat"></div>
+        <div class="fc-term" id="cardTerm"></div>
+        <div class="fc-hint">Click or press Space to flip</div>
+      </div>
+      <div class="fc-face fc-back" id="cardBack">
+        <div class="fc-cat-badge" id="cardCatBack"></div>
+        <div class="fc-def" id="cardDef"></div>
+        <div class="fc-tip">
+          <span class="fc-tip-label">Exam Tip</span>
+          <span id="cardTip"></span>
+        </div>
+        <div class="fc-flip-hint">Rate your recall below</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Rating Buttons -->
+  <div class="fc-ratings" id="ratings">
+    <button class="fc-rate again" onclick="rateCard(0)">Again</button>
+    <button class="fc-rate hard" onclick="rateCard(1)">Hard</button>
+    <button class="fc-rate good" onclick="rateCard(2)">Good</button>
+    <button class="fc-rate easy" onclick="rateCard(3)">Easy</button>
+  </div>
+
+  <!-- Controls -->
+  <div class="fc-controls">
+    <button class="btn btn-secondary btn-sm" onclick="shuffleDeck()">Shuffle Deck</button>
+    <button class="btn btn-secondary btn-sm" onclick="resetProgress()">Reset Progress</button>
+    <button class="btn btn-secondary btn-sm" onclick="showDueOnly()">Due Cards Only</button>
+  </div>
+
+  <!-- Empty State -->
+  <div class="fc-empty hidden" id="emptyState">
+    <div class="fc-empty-icon">/</div>
+    <h3>Session complete</h3>
+    <p>All cards reviewed. Come back later for spaced review, or reset progress to start fresh.</p>
+    <button class="btn btn-primary mt-3" onclick="resetSession()">New Session</button>
+  </div>
+</div>
+
+<script src="js/nav.js"></script>
+<script src="js/tutor.js"></script>
+<script src="js/group-chat.js"></script>
+<script>
+(function(){
+  'use strict';
+
+  /* ═══════════════════════════════════════════════════════════════
+     FLASHCARD DATA — 60 cards across 6 categories
+     ═══════════════════════════════════════════════════════════════ */
+  var CARDS = [
+    // ── Networking (15) ──────────────────────────────────────────
+    {front:'VLAN',back:'A Virtual LAN segments a physical switch into multiple isolated broadcast domains. Configured per port; traffic between VLANs requires a Layer 3 device.',tip:'VLANs reduce broadcast traffic and improve security. Default VLAN is 1 — never use it for user traffic on the exam.',category:'networking'},
+    {front:'Trunk (802.1Q)',back:'A trunk link carries traffic for multiple VLANs between switches by inserting a 4-byte tag into the Ethernet frame identifying the VLAN ID.',tip:'802.1Q is the standard trunking protocol. ISL is Cisco-proprietary and deprecated. Native VLAN traffic is untagged.',category:'networking'},
+    {front:'STP (Spanning Tree Protocol)',back:'STP (802.1D) prevents Layer 2 loops by electing a root bridge and placing redundant ports in blocking state. Convergence takes 30-50 seconds.',tip:'Know the port states: Blocking, Listening, Learning, Forwarding, Disabled. Root bridge has the lowest Bridge ID.',category:'networking'},
+    {front:'RSTP (Rapid STP)',back:'802.1w improves STP convergence to 1-2 seconds by introducing new port roles (Alternate, Backup) and eliminating the Listening state.',tip:'RSTP is backward-compatible with STP. Port states: Discarding, Learning, Forwarding. Preferred over original STP.',category:'networking'},
+    {front:'Broadcast Domain',back:'The set of all devices that receive a broadcast frame sent by any one of them. Each VLAN or routed interface defines a separate broadcast domain.',tip:'Routers and Layer 3 switches break up broadcast domains. Switches do NOT — they forward broadcasts to all ports in the same VLAN.',category:'networking'},
+    {front:'Collision Domain',back:'A network segment where simultaneous transmissions can collide. Each switch port creates its own collision domain; hubs share one.',tip:'In full-duplex mode, collisions are eliminated entirely. Each port on a switch = 1 collision domain.',category:'networking'},
+    {front:'MAC Address',back:'A 48-bit (6-byte) hardware address burned into a NIC, written as hex (e.g., AA:BB:CC:DD:EE:FF). First 3 bytes = OUI (manufacturer), last 3 = device unique.',tip:'MAC operates at Layer 2. ARP resolves IP to MAC. The command "arp -a" shows the local ARP table.',category:'networking'},
+    {front:'ARP (Address Resolution Protocol)',back:'Resolves an IPv4 address to a MAC address. A device broadcasts an ARP Request; the target responds with a unicast ARP Reply containing its MAC.',tip:'ARP is broadcast-based — it does NOT cross router boundaries. Gratuitous ARP updates caches proactively.',category:'networking'},
+    {front:'MTU (Maximum Transmission Unit)',back:'The largest frame size (in bytes) a network interface can transmit. Standard Ethernet MTU is 1500 bytes. Jumbo frames support up to 9000 bytes.',tip:'Path MTU Discovery prevents fragmentation. If MTU mismatch exists, packets get dropped or fragmented — common troubleshooting scenario.',category:'networking'},
+    {front:'QoS (Quality of Service)',back:'Mechanisms that prioritize certain traffic types (voice, video) over others to ensure performance. Includes classification, marking, queuing, and policing.',tip:'VoIP typically gets highest priority. QoS does NOT add bandwidth — it manages existing bandwidth more effectively.',category:'networking'},
+    {front:'DSCP (Differentiated Services Code Point)',back:'A 6-bit field in the IP header ToS byte used to classify and mark packets for QoS. Allows 64 priority levels. EF (Expedited Forwarding) = voice.',tip:'DSCP replaced the older IP Precedence field. EF = 46, AF classes = assured forwarding. Know DSCP for voice traffic prioritization.',category:'networking'},
+    {front:'Full Duplex',back:'Simultaneous send and receive on a link. Eliminates collisions entirely. Requires a switched environment (point-to-point link).',tip:'Full duplex effectively doubles throughput. A duplex mismatch causes late collisions and poor performance — a classic exam scenario.',category:'networking'},
+    {front:'Half Duplex',back:'Only one device can transmit at a time on the link. Uses CSMA/CD to detect and handle collisions. Common in legacy hub environments.',tip:'Half duplex is associated with hubs and older Wi-Fi. If you see "late collisions" in output, suspect a duplex mismatch.',category:'networking'},
+    {front:'Default Gateway',back:'The IP address of the router interface that a host sends traffic to when the destination is not on the local subnet. Configured on every end device.',tip:'If a device cannot reach remote networks but CAN ping local hosts, check the default gateway first.',category:'networking'},
+    {front:'NAT / PAT',back:'NAT translates private IPs to public IPs for internet access. PAT (Port Address Translation) maps multiple private IPs to one public IP using unique port numbers.',tip:'PAT is also called "NAT overload." Most home routers use PAT. Static NAT = 1:1 mapping for servers needing inbound access.',category:'networking'},
+
+    // ── Security (12) ────────────────────────────────────────────
+    {front:'Firewall',back:'A network security device (hardware or software) that monitors and filters traffic based on predefined rules. Can operate at Layers 3-7. Types: stateless (ACL), stateful, NGFW.',tip:'Stateful firewalls track connection state. NGFW adds application awareness, IPS, and deep packet inspection. Placed at network perimeter.',category:'security'},
+    {front:'IDS vs IPS',back:'IDS (Intrusion Detection System) monitors and alerts on suspicious traffic. IPS (Intrusion Prevention System) actively blocks threats inline. IDS = passive, IPS = active.',tip:'IDS is out-of-band (TAP/SPAN); IPS is inline. If the exam says "detect only," it is IDS. If "block," it is IPS.',category:'security'},
+    {front:'ACL (Access Control List)',back:'A set of rules on a router or firewall that permit or deny traffic based on source/destination IP, port, or protocol. Processed top-down; implicit deny at end.',tip:'Standard ACLs filter by source IP only (placed near destination). Extended ACLs filter source, destination, port, protocol (placed near source).',category:'security'},
+    {front:'802.1X',back:'A port-based network access control protocol. Uses EAP between supplicant (client), authenticator (switch), and authentication server (RADIUS) to grant or deny access.',tip:'802.1X keeps a port in "unauthorized" state until credentials are verified. Common in enterprise wired and wireless networks.',category:'security'},
+    {front:'RADIUS',back:'Remote Authentication Dial-In User Service. Centralized AAA (Authentication, Authorization, Accounting) protocol. Uses UDP 1812/1813. Encrypts only the password.',tip:'RADIUS is the standard for wireless authentication (WPA2/3-Enterprise). It combines authentication and authorization in one step.',category:'security'},
+    {front:'TACACS+',back:'Cisco-developed AAA protocol using TCP 49. Encrypts the entire packet body. Separates authentication, authorization, and accounting into distinct processes.',tip:'TACACS+ is preferred for device administration (CLI access to routers/switches). RADIUS is preferred for network access (Wi-Fi, VPN).',category:'security'},
+    {front:'VPN (IPsec vs SSL)',back:'IPsec VPN operates at Layer 3, encrypts all traffic, requires a client. SSL/TLS VPN operates at Layer 4-7, works through a browser, and is more flexible for remote access.',tip:'Site-to-site VPN = IPsec. Remote access = SSL/TLS VPN (or IPsec with client). IPsec uses ESP (protocol 50) and AH (protocol 51).',category:'security'},
+    {front:'DHCP Snooping',back:'A Layer 2 security feature that filters untrusted DHCP messages. Trusted ports connect to legitimate DHCP servers; untrusted ports (user-facing) are monitored.',tip:'DHCP snooping builds a binding table (MAC-to-IP) used by DAI and IP Source Guard. It prevents rogue DHCP server attacks.',category:'security'},
+    {front:'DAI (Dynamic ARP Inspection)',back:'Validates ARP packets on untrusted ports using the DHCP snooping binding table. Drops ARP replies with mismatched IP-to-MAC bindings.',tip:'DAI prevents ARP spoofing/poisoning attacks. It depends on DHCP snooping being enabled first to build the binding table.',category:'security'},
+    {front:'Port Security',back:'Limits the number of MAC addresses allowed on a switch port. If violated, the port can shutdown, restrict, or protect. Prevents MAC flooding attacks.',tip:'Violation modes: Shutdown (default, disables port), Restrict (drops + logs), Protect (drops silently). Use "sticky" to auto-learn MACs.',category:'security'},
+    {front:'MFA (Multi-Factor Authentication)',back:'Requires two or more verification factors: something you know (password), something you have (token/phone), something you are (biometric).',tip:'The exam tests the three factor categories. A password + PIN is NOT MFA (both are "something you know"). Password + fingerprint IS MFA.',category:'security'},
+    {front:'Zero Trust',back:'A security model that assumes no user or device is trusted by default, even inside the network perimeter. Requires continuous verification and least-privilege access.',tip:'Zero Trust replaces the "castle and moat" model. Key principles: verify explicitly, least-privilege access, assume breach.',category:'security'},
+
+    // ── Wireless (10) ────────────────────────────────────────────
+    {front:'802.11ac (Wi-Fi 5)',back:'5 GHz only. Up to 6.93 Gbps theoretical (MU-MIMO, 160 MHz channels, 256-QAM). Uses beamforming. Released 2013.',tip:'802.11ac is 5 GHz ONLY — this is a common exam trap. If you see 2.4 GHz with "ac," it is wrong.',category:'wireless'},
+    {front:'802.11ax (Wi-Fi 6)',back:'Dual-band 2.4/5 GHz (Wi-Fi 6E adds 6 GHz). Up to 9.6 Gbps. Introduces OFDMA, BSS Coloring, Target Wake Time. Designed for high-density environments.',tip:'Wi-Fi 6 = 802.11ax. Wi-Fi 6E extends into 6 GHz band. Key improvement: efficiency in crowded areas, not just raw speed.',category:'wireless'},
+    {front:'SSID (Service Set Identifier)',back:'The human-readable name of a wireless network (up to 32 characters). BSSID is the MAC of the AP radio. ESSID spans multiple APs in the same network.',tip:'Hiding the SSID does NOT provide real security — SSIDs are still visible in probe requests. The exam considers SSID hiding a weak control.',category:'wireless'},
+    {front:'MU-MIMO',back:'Multi-User, Multiple-Input, Multiple-Output. Allows an AP to communicate with multiple clients simultaneously using multiple spatial streams.',tip:'802.11ac Wave 2 introduced MU-MIMO for downlink. 802.11ax added uplink MU-MIMO. More antennas = more simultaneous streams.',category:'wireless'},
+    {front:'OFDMA',back:'Orthogonal Frequency Division Multiple Access. Divides a channel into smaller sub-channels (Resource Units) so multiple clients can transmit simultaneously.',tip:'OFDMA is the Wi-Fi 6 feature that improves efficiency in dense environments. Think of it as the wireless equivalent of time-sharing a highway lane.',category:'wireless'},
+    {front:'Channel Bonding',back:'Combining adjacent channels to increase bandwidth. 802.11n bonds 2x20 MHz = 40 MHz. 802.11ac supports 80 and 160 MHz. More bandwidth = higher throughput.',tip:'Wider channels = faster speed but more interference risk. In 2.4 GHz, bonding is discouraged (only 3 non-overlapping channels: 1, 6, 11).',category:'wireless'},
+    {front:'Band Steering',back:'An AP feature that guides dual-band clients to prefer the 5 GHz band over 2.4 GHz for better performance and reduced congestion on the crowded 2.4 GHz band.',tip:'Band steering is a best practice in enterprise Wi-Fi. It reduces 2.4 GHz congestion. Not all clients support it — legacy devices stay on 2.4.',category:'wireless'},
+    {front:'WPA2 vs WPA3',back:'WPA2 uses AES-CCMP encryption with a pre-shared key or 802.1X. WPA3 adds SAE (Simultaneous Authentication of Equals) replacing the 4-way handshake vulnerability.',tip:'WPA3 prevents offline dictionary attacks thanks to SAE. WPA3-Enterprise adds 192-bit encryption. WPA2 is still widely deployed.',category:'wireless'},
+    {front:'Captive Portal',back:'A web page displayed to newly connected wireless users before granting full network access. Used in hotels, airports, and guest networks for authentication or terms acceptance.',tip:'Captive portals are a Layer 7 access control method. They work via HTTP redirect. Common in guest Wi-Fi — the exam treats them as a NAC method.',category:'wireless'},
+    {front:'Evil Twin',back:'A rogue AP that mimics a legitimate SSID to trick users into connecting. The attacker can then intercept traffic (man-in-the-middle). Also called a "wireless honeypot."',tip:'Defense: 802.1X authentication, WIDS/WIPS, and client certificate validation. Users should verify network authenticity before connecting.',category:'wireless'},
+
+    // ── Troubleshooting (10) ─────────────────────────────────────
+    {front:'MTBF (Mean Time Between Failures)',back:'The average time a system operates before a failure occurs. Higher MTBF = more reliable. Calculated as total operational time divided by number of failures.',tip:'MTBF applies to repairable systems. MTTF (Mean Time To Failure) applies to non-repairable components. Higher = better for both.',category:'troubleshooting'},
+    {front:'MTTR (Mean Time To Repair)',back:'The average time required to diagnose and fix a failed system. Lower MTTR = faster recovery. Critical for SLA compliance.',tip:'Availability = MTBF / (MTBF + MTTR). To improve availability, either increase MTBF (more reliable) or decrease MTTR (faster repair).',category:'troubleshooting'},
+    {front:'RTO (Recovery Time Objective)',back:'The maximum acceptable downtime after a disaster before operations must resume. Defines how quickly you need to recover.',tip:'RTO answers: "How long can we be down?" A 4-hour RTO means systems must be back within 4 hours. Shorter RTO = more expensive DR solution.',category:'troubleshooting'},
+    {front:'RPO (Recovery Point Objective)',back:'The maximum acceptable data loss measured in time. Defines how much data you can afford to lose. RPO of 1 hour means backups must run at least hourly.',tip:'RPO answers: "How much data can we lose?" RPO of 0 = real-time replication. Shorter RPO = more frequent backups = higher cost.',category:'troubleshooting'},
+    {front:'Cable Tester',back:'Tests copper cables for continuity, wiring faults (opens, shorts, crossed pairs), and cable length. Basic cable testers verify pin-to-pin connectivity.',tip:'A cable tester checks physical layer issues. For certifying cable performance (Cat5e/6 standards), you need a cable certifier — different tool.',category:'troubleshooting'},
+    {front:'OTDR (Optical Time-Domain Reflectometer)',back:'Tests fiber optic cables by sending light pulses and measuring reflections. Identifies breaks, splices, connectors, and their exact distance along the fiber.',tip:'OTDR is for fiber ONLY. It shows a trace graph with distance vs signal loss. Essential for finding the exact location of fiber faults.',category:'troubleshooting'},
+    {front:'Tone Generator and Probe',back:'A tone generator sends an audible signal on a cable. The probe (wand) traces the cable through walls/ceilings to identify which cable is which. Also called a "fox and hound."',tip:'Use tone generator to identify a specific cable run in a bundle. It does NOT test cable quality — only identifies which cable goes where.',category:'troubleshooting'},
+    {front:'Loopback Plug',back:'A connector that loops transmit pins back to receive pins, allowing a NIC or port to test itself. Verifies the interface hardware is functioning.',tip:'If a loopback test passes but the link is still down, the problem is in the cable or the remote end — not the local interface.',category:'troubleshooting'},
+    {front:'Baseline',back:'A documented snapshot of normal network performance metrics (bandwidth, latency, CPU, error rates) taken when the network is healthy. Used as a reference for troubleshooting.',tip:'Without a baseline, you cannot determine if current performance is abnormal. The exam emphasizes establishing baselines BEFORE problems occur.',category:'troubleshooting'},
+    {front:'Troubleshooting Methodology (7 Steps)',back:'1. Identify the problem, 2. Establish a theory of probable cause, 3. Test the theory, 4. Establish a plan of action, 5. Implement the solution, 6. Verify full functionality, 7. Document findings.',tip:'CompTIA loves testing the ORDER of these steps. Step 2 includes "question the obvious." Step 7 (documentation) is always LAST.',category:'troubleshooting'},
+
+    // ── Cloud / WAN (8) ──────────────────────────────────────────
+    {front:'IaaS (Infrastructure as a Service)',back:'Cloud provider supplies virtualized compute, storage, and networking. Customer manages OS, middleware, and applications. Examples: AWS EC2, Azure VMs, CoreWeave GPU cloud.',tip:'IaaS = you manage the most. Think "virtual data center." Customer handles everything from the OS up; provider handles physical infrastructure.',category:'cloud'},
+    {front:'PaaS (Platform as a Service)',back:'Provider manages infrastructure and runtime platform. Customer only manages applications and data. Examples: Heroku, Google App Engine, Azure App Service.',tip:'PaaS = middle ground. Developer deploys code without managing servers. Good for: "Which model lets devs focus only on code?"',category:'cloud'},
+    {front:'SaaS (Software as a Service)',back:'Provider manages everything — infrastructure, platform, and application. Customer just uses the software. Examples: Microsoft 365, Salesforce, Gmail.',tip:'SaaS = customer manages the least. If the exam asks "user only needs a browser," the answer is SaaS.',category:'cloud'},
+    {front:'Hybrid Cloud',back:'Combination of public cloud and private cloud (or on-premises infrastructure) with orchestration between them. Data and applications can move between environments.',tip:'Hybrid cloud is NOT just "using two public clouds" (that is multi-cloud). Hybrid specifically includes private/on-prem + public cloud.',category:'cloud'},
+    {front:'Elasticity',back:'The ability to automatically scale resources up or down based on demand in real time. A defining characteristic of cloud computing.',tip:'Elasticity = automatic, on-demand scaling. Scalability = ability to grow. The exam distinguishes between these — elasticity implies automation.',category:'cloud'},
+    {front:'SD-WAN',back:'Software-Defined Wide Area Network. Uses software to manage WAN connections, dynamically routing traffic across MPLS, broadband, or LTE based on application needs and link quality.',tip:'SD-WAN reduces cost by supplementing expensive MPLS with cheaper internet links. Centralizes management. Hot topic on the exam.',category:'cloud'},
+    {front:'MPLS (Multiprotocol Label Switching)',back:'A WAN technology that routes traffic using short labels instead of long IP addresses. Operates between Layer 2 and 3 ("Layer 2.5"). Supports QoS and traffic engineering.',tip:'MPLS is expensive but reliable and supports SLAs. Being replaced by SD-WAN in many deployments. Labels are inserted between L2 and L3 headers.',category:'cloud'},
+    {front:'DMVPN (Dynamic Multipoint VPN)',back:'A Cisco technology that allows dynamic, direct VPN tunnels between branch sites without routing all traffic through a central hub. Uses mGRE and NHRP.',tip:'DMVPN = spoke-to-spoke tunnels on demand. Reduces latency vs hub-and-spoke. Often paired with IPsec for encryption.',category:'cloud'},
+
+    // ── Protocols (5) ────────────────────────────────────────────
+    {front:'DNS (UDP 53)',back:'Domain Name System translates human-readable domain names (e.g., google.com) to IP addresses. Uses UDP 53 for queries; TCP 53 for zone transfers and large responses.',tip:'Know both ports: UDP 53 (queries) and TCP 53 (zone transfers). DNS is often the first thing to check when "internet is down but IP works."',category:'protocols'},
+    {front:'DHCP (UDP 67/68)',back:'Dynamic Host Configuration Protocol automatically assigns IP addresses, subnet masks, gateways, and DNS servers. Server listens on UDP 67; client uses UDP 68. DORA process.',tip:'DORA = Discover, Offer, Request, Acknowledge. If a client gets a 169.254.x.x address (APIPA), DHCP is not working. Server = 67, Client = 68.',category:'protocols'},
+    {front:'SNMP (UDP 161/162)',back:'Simple Network Management Protocol monitors and manages network devices. Manager polls agents (UDP 161). Agents send traps to manager (UDP 162). v3 adds encryption and authentication.',tip:'SNMPv1/v2c use community strings (plaintext). SNMPv3 is secure (encryption + auth). The exam always prefers v3. Trap = unsolicited alert from agent.',category:'protocols'},
+    {front:'Syslog (UDP 514)',back:'A standard protocol for sending log messages to a centralized server. Severity levels 0-7 (0 = Emergency, 7 = Debug). Essential for centralized monitoring and compliance.',tip:'Know severity levels: 0-Emergency, 1-Alert, 2-Critical, 3-Error, 4-Warning, 5-Notice, 6-Informational, 7-Debug. Lower number = more severe.',category:'protocols'},
+    {front:'NTP (UDP 123)',back:'Network Time Protocol synchronizes clocks across network devices. Stratum 0 = atomic clock source, Stratum 1 = directly connected server, and so on up to Stratum 15.',tip:'Accurate time is critical for logs, certificates, and authentication. Stratum 16 = unsynchronized. NTP uses UDP 123.',category:'protocols'}
+  ];
+
+  var CATEGORIES = [
+    {id:'all',label:'All'},
+    {id:'networking',label:'Networking'},
+    {id:'security',label:'Security'},
+    {id:'wireless',label:'Wireless'},
+    {id:'troubleshooting',label:'Troubleshooting'},
+    {id:'cloud',label:'Cloud / WAN'},
+    {id:'protocols',label:'Protocols'}
+  ];
+
+  var STORAGE_KEY = 'np_flashcards_v1';
+  var activeCat = 'all';
+  var deck = [];       // current session queue
+  var deckIdx = 0;
+  var stats = {reviewed:0, correct:0, wrong:0, streak:0, bestStreak:0};
+  var isFlipped = false;
+  var dueOnly = false;
+
+  /* ── Persistence ──────────────────────────────────────────── */
+  function loadState(){
+    try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}; } catch(e){ return {}; }
+  }
+  function saveState(state){
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  }
+  function getCardState(idx){
+    var s = loadState();
+    return s[idx] || {interval:0, ease:2.5, due:0, reviews:0};
+  }
+  function setCardState(idx, cs){
+    var s = loadState();
+    s[idx] = cs;
+    saveState(s);
+  }
+
+  /* ── Spaced Repetition (simplified SM-2) ──────────────────── */
+  function nextInterval(cs, rating){
+    // rating: 0=Again, 1=Hard, 2=Good, 3=Easy
+    var now = Date.now();
+    var newCs = Object.assign({}, cs);
+    newCs.reviews = (cs.reviews||0) + 1;
+
+    if(rating === 0){
+      newCs.interval = 60*1000;       // 1 minute
+      newCs.ease = Math.max(1.3, cs.ease - 0.2);
+    } else if(rating === 1){
+      newCs.interval = Math.max(cs.interval * 1.2, 5*60*1000);
+      newCs.ease = Math.max(1.3, cs.ease - 0.15);
+    } else if(rating === 2){
+      newCs.interval = cs.interval === 0 ? 10*60*1000 : cs.interval * cs.ease;
+      // ease unchanged
+    } else {
+      newCs.interval = cs.interval === 0 ? 4*24*60*60*1000 : cs.interval * cs.ease * 1.3;
+      newCs.ease = cs.ease + 0.15;
+    }
+    newCs.due = now + newCs.interval;
+    return newCs;
+  }
+
+  function isMastered(cs){
+    return cs.interval > 7*24*60*60*1000; // >7 days interval
+  }
+
+  /* ── Build Deck ───────────────────────────────────────────── */
+  function buildDeck(){
+    var now = Date.now();
+    var filtered = CARDS.map(function(c,i){ return {card:c, idx:i}; });
+    if(activeCat !== 'all'){
+      filtered = filtered.filter(function(o){ return o.card.category === activeCat; });
+    }
+    if(dueOnly){
+      filtered = filtered.filter(function(o){
+        var cs = getCardState(o.idx);
+        return cs.due === 0 || cs.due <= now;
+      });
+    }
+    // Sort: due/new first, then by due time
+    filtered.sort(function(a,b){
+      var sa = getCardState(a.idx), sb = getCardState(b.idx);
+      var aDue = sa.due === 0 || sa.due <= now;
+      var bDue = sb.due === 0 || sb.due <= now;
+      if(aDue && !bDue) return -1;
+      if(!aDue && bDue) return 1;
+      return (sa.due||0) - (sb.due||0);
+    });
+    return filtered;
+  }
+
+  function shuffle(arr){
+    for(var i=arr.length-1;i>0;i--){
+      var j=Math.floor(Math.random()*(i+1));
+      var tmp=arr[i]; arr[i]=arr[j]; arr[j]=tmp;
+    }
+    return arr;
+  }
+
+  /* ── Render ───────────────────────────────────────────────── */
+  function renderPills(){
+    var html = '';
+    CATEGORIES.forEach(function(cat){
+      var count = cat.id === 'all' ? CARDS.length : CARDS.filter(function(c){ return c.category === cat.id; }).length;
+      html += '<button class="cpill' + (activeCat===cat.id?' active':'') + '" data-cat="' + cat.id + '">' + cat.label + '<span class="cpill-count">' + count + '</span></button>';
+    });
+    document.getElementById('catPills').innerHTML = html;
+    document.querySelectorAll('.cpill').forEach(function(btn){
+      btn.addEventListener('click',function(){
+        activeCat = btn.dataset.cat;
+        startSession();
+      });
+    });
+  }
+
+  function renderCard(){
+    var el = document.getElementById('card');
+    var empty = document.getElementById('emptyState');
+    var area = document.getElementById('cardArea');
+    var ratings = document.getElementById('ratings');
+
+    if(deckIdx >= deck.length){
+      area.classList.add('hidden');
+      ratings.classList.remove('visible');
+      empty.classList.remove('hidden');
+      return;
+    }
+    area.classList.remove('hidden');
+    empty.classList.add('hidden');
+
+    var item = deck[deckIdx];
+    var c = item.card;
+    document.getElementById('cardCat').textContent = c.category;
+    document.getElementById('cardCatBack').textContent = c.category;
+    document.getElementById('cardTerm').textContent = c.front;
+    document.getElementById('cardDef').textContent = c.back;
+    document.getElementById('cardTip').textContent = c.tip;
+
+    isFlipped = false;
+    el.classList.remove('flipped');
+    ratings.classList.remove('visible');
+    updateProgress();
+    updateStats();
+  }
+
+  function updateProgress(){
+    var total = deck.length;
+    var done = deckIdx;
+    var pct = total ? Math.round(done/total*100) : 0;
+    document.getElementById('progressText').textContent = done + ' / ' + total + ' cards this session';
+    document.getElementById('progressPct').textContent = pct + '%';
+    document.getElementById('progressFill').style.width = pct + '%';
+  }
+
+  function updateStats(){
+    document.getElementById('statReviewed').textContent = stats.reviewed;
+    document.getElementById('statCorrect').textContent = stats.correct;
+    document.getElementById('statWrong').textContent = stats.wrong;
+    document.getElementById('statStreak').textContent = stats.streak;
+    // Count mastered
+    var mastered = 0;
+    var state = loadState();
+    for(var k in state){ if(isMastered(state[k])) mastered++; }
+    document.getElementById('statMastered').textContent = mastered;
+  }
+
+  /* ── Actions ──────────────────────────────────────────────── */
+  function flipCard(){
+    if(deckIdx >= deck.length) return;
+    var el = document.getElementById('card');
+    isFlipped = !isFlipped;
+    el.classList.toggle('flipped', isFlipped);
+    document.getElementById('ratings').classList.toggle('visible', isFlipped);
+  }
+
+  window.rateCard = function(rating){
+    if(deckIdx >= deck.length) return;
+    var item = deck[deckIdx];
+    var cs = getCardState(item.idx);
+    var newCs = nextInterval(cs, rating);
+    setCardState(item.idx, newCs);
+
+    stats.reviewed++;
+    if(rating >= 2){
+      stats.correct++;
+      stats.streak++;
+      if(stats.streak > stats.bestStreak) stats.bestStreak = stats.streak;
+    } else {
+      stats.wrong++;
+      stats.streak = 0;
+      // Re-insert card later in deck if Again
+      if(rating === 0){
+        var reinsertPos = Math.min(deckIdx + 3 + Math.floor(Math.random()*4), deck.length);
+        deck.splice(reinsertPos, 0, item);
+      }
+    }
+    deckIdx++;
+    renderCard();
+  };
+
+  window.shuffleDeck = function(){
+    deck = shuffle(buildDeck());
+    deckIdx = 0;
+    stats = {reviewed:0,correct:0,wrong:0,streak:0,bestStreak:0};
+    renderCard();
+    renderPills();
+  };
+
+  window.resetProgress = function(){
+    if(!confirm('Reset all flashcard progress? This clears mastery data.')) return;
+    localStorage.removeItem(STORAGE_KEY);
+    startSession();
+  };
+
+  window.showDueOnly = function(){
+    dueOnly = !dueOnly;
+    startSession();
+  };
+
+  window.resetSession = function(){
+    deckIdx = 0;
+    stats = {reviewed:0,correct:0,wrong:0,streak:0,bestStreak:0};
+    deck = buildDeck();
+    renderCard();
+  };
+
+  function startSession(){
+    deck = buildDeck();
+    deckIdx = 0;
+    stats = {reviewed:0,correct:0,wrong:0,streak:0,bestStreak:0};
+    renderPills();
+    renderCard();
+  }
+
+  /* ── Keyboard shortcuts ───────────────────────────────────── */
+  document.addEventListener('keydown', function(e){
+    if(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA') return;
+    if(e.key===' '||e.key==='Enter'){e.preventDefault(); flipCard();}
+    if(isFlipped){
+      if(e.key==='1') window.rateCard(0);
+      if(e.key==='2') window.rateCard(1);
+      if(e.key==='3') window.rateCard(2);
+      if(e.key==='4') window.rateCard(3);
+    }
+  });
+
+  /* ── Card click to flip ───────────────────────────────────── */
+  document.getElementById('card').addEventListener('click', flipCard);
+
+  /* ── Init ─────────────────────────────────────────────────── */
+  startSession();
+})();
+</script>
+</body>
+</html>

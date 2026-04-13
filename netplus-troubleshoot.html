@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>What's Wrong? — Network+ Troubleshooting Game</title>
+<meta name="color-scheme" content="light">
+<link rel="icon" type="image/svg+xml" href="/CCNA-study/favicon.svg">
+<link rel="stylesheet" href="css/shared.css">
+<style>
+/* ═══════════════════════════════════════════════════════════════
+   Net+ Troubleshooting Game — Domain 5 (22% of exam)
+   Purple accent #7C3AED for Net+ branding
+   ═══════════════════════════════════════════════════════════════ */
+
+:root { --np: #7C3AED; --np-dim: #F5F3FF; --np-mid: #EDE9FE; --np-dark: #5B21B6; --term-bg: #1C1917; --term-green: #A7F3D0; }
+
+.page-header { padding: var(--s-xl) 0 var(--s-lg); margin-bottom: var(--s-lg); border-bottom: 3px solid var(--np); }
+.page-header h1 { font-size: 2.4rem; margin-bottom: 4px; color: var(--np); }
+.page-header .subtitle { font-family: var(--font-body); color: var(--ink-secondary); font-size: .95rem; font-style: italic; }
+
+/* ── Progress pips ──────────────────────────────────────────── */
+.progress-pips { display: flex; gap: 4px; margin-bottom: var(--s-lg); flex-wrap: wrap; }
+.pip { width: 28px; height: 6px; border-radius: 3px; background: var(--bg-recessed); transition: background .3s, transform .2s; }
+.pip.current { background: var(--np); transform: scaleY(1.4); }
+.pip.correct-pip { background: var(--prof-strong); }
+.pip.wrong-pip { background: var(--prof-weak); }
+
+/* ── Score bar ──────────────────────────────────────────────── */
+.score-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--s-lg); padding: 10px 16px; background: var(--bg-recessed); border-radius: var(--radius); }
+.score-item { font-family: var(--font-mono); font-size: .78rem; color: var(--ink-secondary); }
+.score-item strong { color: var(--np); font-weight: 700; }
+
+/* ── Scenario card ──────────────────────────────────────────── */
+.scenario-card { background: var(--bg-surface); border: 1px solid var(--border); border-left: 4px solid var(--np); border-radius: var(--radius-lg); padding: var(--s-lg) var(--s-lg) var(--s-md); margin-bottom: var(--s-lg); animation: fadeIn .35s var(--ease-out) forwards; }
+.scenario-title { font-family: var(--font-display); font-size: 1.15rem; font-weight: 700; color: var(--ink); margin-bottom: 6px; }
+.scenario-desc { font-family: var(--font-body); font-size: .92rem; color: var(--ink-secondary); line-height: 1.65; margin-bottom: var(--s-md); max-width: 70ch; }
+.scenario-domain { font-family: var(--font-display); font-size: .65rem; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--np); margin-bottom: var(--s-sm); }
+
+/* ── Terminal output ────────────────────────────────────────── */
+.terminal-box { background: var(--term-bg); color: var(--term-green); font-family: var(--font-mono); font-size: .76rem; padding: var(--s-md) var(--s-lg); border-radius: var(--radius-lg); overflow-x: auto; margin-bottom: var(--s-lg); line-height: 1.7; white-space: pre; }
+.terminal-box .prompt { color: #60A5FA; }
+.terminal-box .error-line { color: #FCA5A5; font-weight: 700; }
+.terminal-box .highlight-line { color: #FDE68A; }
+.terminal-box .dim { color: #78716C; }
+
+/* ── Answer options ─────────────────────────────────────────── */
+.options-list { display: flex; flex-direction: column; gap: var(--s-sm); margin-bottom: var(--s-md); }
+
+.option-btn { display: flex; align-items: flex-start; width: 100%; text-align: left; padding: 14px 18px; background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius-lg); color: var(--ink); font-family: var(--font-body); font-size: .92rem; cursor: pointer; transition: background .15s, border-color .15s, opacity .15s; line-height: 1.5; }
+.option-btn:hover:not(.locked) { border-color: var(--np); background: var(--np-dim); }
+.option-btn .option-letter { display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: 50%; background: var(--bg-recessed); font-family: var(--font-display); font-weight: 700; font-size: .75rem; margin-right: 12px; flex-shrink: 0; color: var(--ink-secondary); }
+.option-btn.correct { border-color: var(--correct); background: var(--correct-bg); }
+.option-btn.correct .option-letter { background: var(--correct); color: #fff; }
+.option-btn.wrong { border-color: var(--wrong); background: var(--wrong-bg); }
+.option-btn.wrong .option-letter { background: var(--wrong); color: #fff; }
+.option-btn.locked { cursor: default; }
+.option-btn.dimmed { opacity: .35; pointer-events: none; }
+.option-btn.hint-out { opacity: .3; text-decoration: line-through; pointer-events: none; }
+
+/* ── Hint button ────────────────────────────────────────────── */
+.hint-btn { font-family: var(--font-display); font-size: .72rem; font-weight: 600; color: var(--ink-muted); background: none; border: 1px dashed var(--border); border-radius: var(--radius); padding: 5px 12px; cursor: pointer; transition: all .15s; }
+.hint-btn:hover { border-color: var(--np); color: var(--np); }
+.hint-btn:disabled { opacity: .3; cursor: default; }
+
+/* ── Explanation ─────────────────────────────────────────────── */
+.explanation { margin-top: var(--s-md); padding: var(--s-md) var(--s-lg); background: var(--bg-recessed); border-left: 3px solid var(--np); border-radius: 0 var(--radius) var(--radius) 0; font-size: .88rem; line-height: 1.7; animation: fadeIn .3s var(--ease-out) forwards; }
+.explanation strong { font-family: var(--font-display); }
+.method-tag { display: inline-block; margin-top: 8px; padding: 3px 10px; background: var(--np-dim); border: 1px solid var(--np-mid); border-radius: var(--radius); font-family: var(--font-display); font-size: .72rem; font-weight: 700; color: var(--np); }
+
+/* ── Footer row ─────────────────────────────────────────────── */
+.round-footer { display: flex; align-items: center; justify-content: space-between; margin-top: var(--s-md); flex-wrap: wrap; gap: var(--s-sm); }
+
+/* ── Results screen ─────────────────────────────────────────── */
+.results-screen { animation: fadeIn .4s var(--ease-out) forwards; }
+.results-header { text-align: center; padding: var(--s-xl) 0 var(--s-lg); }
+.results-header h2 { font-size: 1.8rem; color: var(--ink); margin-bottom: 6px; }
+.results-header .final-score { font-family: var(--font-mono); font-size: 2.8rem; font-weight: 800; color: var(--np); }
+.results-header .final-sub { font-family: var(--font-body); font-size: .9rem; color: var(--ink-secondary); }
+
+.results-group { margin-bottom: var(--s-xl); }
+.results-group-title { font-family: var(--font-display); font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; margin-bottom: var(--s-sm); padding-bottom: var(--s-xs); border-bottom: 1px solid var(--rule); }
+.results-group-title.got-right { color: var(--prof-strong); }
+.results-group-title.got-wrong { color: var(--prof-weak); }
+
+.result-item { padding: 10px 14px; border-bottom: 1px solid var(--border); display: flex; align-items: baseline; gap: 10px; }
+.result-num { font-family: var(--font-mono); font-size: .72rem; color: var(--ink-muted); flex-shrink: 0; width: 24px; }
+.result-name { font-family: var(--font-display); font-size: .88rem; font-weight: 600; color: var(--ink); }
+.result-answer { font-family: var(--font-body); font-size: .8rem; color: var(--ink-secondary); margin-left: auto; flex-shrink: 0; }
+
+/* ── Landing ────────────────────────────────────────────────── */
+.landing { text-align: center; padding: var(--s-2xl) 0; }
+.landing h2 { font-size: 1.6rem; margin-bottom: var(--s-sm); color: var(--ink); border: none; padding: 0; }
+.landing p { color: var(--ink-secondary); margin: 0 auto var(--s-lg); max-width: 50ch; }
+.landing-stats { display: flex; justify-content: center; gap: var(--s-xl); margin-bottom: var(--s-xl); }
+.landing-stat .val { font-family: var(--font-mono); font-size: 2rem; font-weight: 800; color: var(--np); }
+.landing-stat .lbl { font-family: var(--font-display); font-size: .68rem; color: var(--ink-muted); text-transform: uppercase; letter-spacing: .06em; }
+
+@media (max-width: 600px) {
+  .page-header h1 { font-size: 1.6rem; }
+  .scenario-card { padding: var(--s-md); }
+  .terminal-box { font-size: .68rem; padding: var(--s-sm) var(--s-md); }
+  .landing-stats { gap: var(--s-lg); }
+  .landing-stat .val { font-size: 1.5rem; }
+  .score-bar { flex-wrap: wrap; gap: 6px; }
+}
+</style>
+</head>
+<body>
+<div class="container">
+  <nav class="top-nav"></nav>
+
+  <header class="page-header">
+    <h1>What's Wrong?</h1>
+    <p class="subtitle">Network+ Domain 5 — Network Troubleshooting (22% of exam)</p>
+  </header>
+
+  <div id="app"></div>
+</div>
+
+<script src="js/nav.js"></script>
+<script src="js/tutor.js"></script>
+<script src="js/group-chat.js"></script>
+<script>
+(function() {
+  const SCENARIOS = [
+    {
+      title: "APIPA Address",
+      domain: "5.3 — Given a scenario, troubleshoot common network service issues",
+      desc: "A user reports they cannot access any network resources. You check their workstation's IP configuration.",
+      terminal: '<span class="prompt">C:\\> ipconfig</span>\n\nEthernet adapter Local Area Connection:\n   Connection-specific DNS Suffix  . :\n   <span class="error-line">IPv4 Address. . . . . . . . . . : 169.254.47.113</span>\n   <span class="error-line">Subnet Mask . . . . . . . . . . : 255.255.0.0</span>\n   Default Gateway . . . . . . . . :\n\n<span class="dim">No DHCP server responded within timeout period.</span>',
+      options: [
+        "The NIC driver needs to be reinstalled",
+        "The DHCP server is unreachable",
+        "The DNS server is down",
+        "The switch port is administratively disabled"
+      ],
+      correct: 1,
+      explanation: "A 169.254.x.x address is an APIPA (Automatic Private IP Addressing) address. Windows assigns this when it cannot reach a DHCP server to obtain a valid IP. The fix is to verify the DHCP server is running and reachable — check physical connectivity, verify the DHCP service, and ensure relay agents are configured if the server is on a different subnet.",
+      method: "Bottom-up: Start at Layer 1 (cable/port), then verify Layer 3 (DHCP service)"
+    },
+    {
+      title: "Duplex Mismatch",
+      domain: "5.2 — Given a scenario, troubleshoot common cable connectivity issues",
+      desc: "Users on a specific switch port complain of extremely slow transfers and frequent disconnections. You check the interface statistics.",
+      terminal: '<span class="prompt">Switch# show interface GigabitEthernet0/1</span>\n\nGigabitEthernet0/1 is up, line protocol is up\n  Hardware is Gigabit Ethernet, address is aabb.cc00.0100\n  <span class="highlight-line">Half-duplex, 100Mb/s</span>\n  Input queue: 0/75/0/0 (size/max/drops/flushes)\n  <span class="error-line">     5287 input errors, 3841 CRC, 0 frame</span>\n  <span class="error-line">     1446 collisions, 892 late collisions</span>\n  Output queue: 0/40 (size/max)',
+      options: [
+        "Replace the switch — hardware failure",
+        "Set both ends to auto-negotiate",
+        "The cable is too long (exceeds 100m)",
+        "Upgrade the switch firmware"
+      ],
+      correct: 1,
+      explanation: "High CRC errors combined with late collisions and half-duplex mode are the classic signature of a duplex mismatch. One side is set to half-duplex while the other expects full-duplex. The fix is to set both the switch port and the endpoint NIC to auto-negotiate, or manually configure both to the same duplex and speed settings.",
+      method: "Divide and conquer: Interface stats isolate the problem to the link between two devices"
+    },
+    {
+      title: "DNS Failure",
+      domain: "5.3 — Given a scenario, troubleshoot common network service issues",
+      desc: "A user can't browse any websites. They say 'the internet is down.' You begin troubleshooting from their workstation.",
+      terminal: '<span class="prompt">C:\\> ping 8.8.8.8</span>\n\nPinging 8.8.8.8 with 32 bytes of data:\nReply from 8.8.8.8: bytes=32 time=14ms TTL=118\nReply from 8.8.8.8: bytes=32 time=12ms TTL=118\n\n<span class="prompt">C:\\> ping google.com</span>\n\n<span class="error-line">Ping request could not find host google.com.</span>\n<span class="error-line">Please check the name and try again.</span>\n\n<span class="prompt">C:\\> nslookup google.com</span>\n<span class="error-line">DNS request timed out. timeout was 2 seconds.</span>\n<span class="dim">Server:  UnKnown\nAddress:  10.0.1.53</span>',
+      options: [
+        "The default gateway is misconfigured",
+        "The user's NIC is failing",
+        "The DNS server is down or misconfigured",
+        "An ACL is blocking all outbound traffic"
+      ],
+      correct: 2,
+      explanation: "The user can ping external IPs successfully (8.8.8.8 responds), which means Layer 1-3 connectivity is working and the default gateway is fine. However, hostname resolution fails completely. The DNS server at 10.0.1.53 is either down, misconfigured, or unreachable. Fix: verify DNS service status, or temporarily set the client DNS to 8.8.8.8 to confirm.",
+      method: "Top-down: Application layer (DNS) is failing while network layer (IP) works fine"
+    },
+    {
+      title: "DHCP Scope Exhaustion",
+      domain: "5.3 — Given a scenario, troubleshoot common network service issues",
+      desc: "New employees can't get on the network, but everyone who was already connected is working fine. The help desk has received 6 identical complaints this morning.",
+      terminal: '<span class="prompt">Server> show dhcp pool OFFICE</span>\n\nPool: OFFICE\n  Network: 10.10.5.0/24\n  Range: 10.10.5.100 - 10.10.5.150\n  <span class="error-line">Active leases: 51/51 (100% utilized)</span>\n  Lease duration: 8 days\n  DNS: 10.10.1.53\n  Gateway: 10.10.5.1\n\n<span class="dim">DHCPDISCOVER from aa:bb:cc:dd:ee:01 — no free addresses</span>\n<span class="dim">DHCPDISCOVER from aa:bb:cc:dd:ee:02 — no free addresses</span>',
+      options: [
+        "The switch is blocking DHCP packets",
+        "Expand the DHCP pool or reduce lease time",
+        "The network cable to the server is bad",
+        "The clients need static IP addresses"
+      ],
+      correct: 1,
+      explanation: "The DHCP pool is 100% utilized — all 51 addresses (10.10.5.100 through .150) are leased. New devices send DHCPDISCOVER but get no offer. Two fixes: expand the address range (e.g., .100 to .200), or reduce the lease time from 8 days to something shorter so stale leases are reclaimed faster. Long-term, consider whether the subnet size is adequate.",
+      method: "Bottom-up: Verify service capacity before investigating connectivity"
+    },
+    {
+      title: "Wrong Subnet Mask",
+      domain: "5.3 — Given a scenario, troubleshoot common network service issues",
+      desc: "A PC can communicate with some hosts on the local network but cannot reach any servers on other subnets. Other PCs on the same switch work fine.",
+      terminal: '<span class="prompt">C:\\> ipconfig</span>\n\nEthernet adapter Ethernet0:\n   IPv4 Address. . . . . . . . . . : 10.10.5.25\n   <span class="error-line">Subnet Mask . . . . . . . . . . : 255.255.255.252</span>\n   Default Gateway . . . . . . . . : 10.10.5.1\n\n<span class="prompt">C:\\> ping 10.10.5.26</span>\nReply from 10.10.5.26: bytes=32 time<1ms TTL=128\n\n<span class="prompt">C:\\> ping 10.10.5.50</span>\n<span class="error-line">Request timed out.</span>\n\n<span class="prompt">C:\\> ping 10.20.1.10</span>\n<span class="error-line">Request timed out.</span>',
+      options: [
+        "The default gateway is wrong",
+        "The subnet mask is incorrect — should be /24",
+        "A firewall is blocking inter-VLAN traffic",
+        "The NIC speed is set too low"
+      ],
+      correct: 1,
+      explanation: "The subnet mask 255.255.255.252 (/30) only allows 2 usable host addresses (10.10.5.24 and 10.10.5.25). The PC thinks only .24-.27 is local. Everything else — including the gateway at .1 — appears to be on a different subnet, so the PC won't ARP for it. The correct mask should be 255.255.255.0 (/24) to match the rest of the network.",
+      method: "Compare and swap: Compare this PC's config against a working PC on the same subnet"
+    },
+    {
+      title: "Default Gateway Missing",
+      domain: "5.3 — Given a scenario, troubleshoot common network service issues",
+      desc: "A workstation can ping the printer across the hall and the local file server, but cannot reach anything on the internet or other office subnets.",
+      terminal: '<span class="prompt">C:\\> ipconfig</span>\n\nEthernet adapter Ethernet0:\n   IPv4 Address. . . . . . . . . . : 192.168.1.45\n   Subnet Mask . . . . . . . . . . : 255.255.255.0\n   <span class="error-line">Default Gateway . . . . . . . . :</span>\n\n<span class="prompt">C:\\> ping 192.168.1.1</span>\nReply from 192.168.1.1: bytes=32 time<1ms TTL=255\n\n<span class="prompt">C:\\> ping 10.0.0.1</span>\n<span class="error-line">PING: transmit failed. General failure.</span>\n\n<span class="prompt">C:\\> route print</span>\n<span class="dim">No default route (0.0.0.0) found in routing table.</span>',
+      options: [
+        "The DNS server is unreachable",
+        "The switch port is in the wrong VLAN",
+        "No default gateway is configured",
+        "The ISP connection is down"
+      ],
+      correct: 2,
+      explanation: "The default gateway field is blank. Without a default gateway, the PC has no route for traffic destined outside its local subnet (192.168.1.0/24). Local pings work because they stay on the same broadcast domain. The fix: configure the default gateway (192.168.1.1, which is reachable) either manually or via DHCP.",
+      method: "Bottom-up: Layer 3 config check — IP, mask, and gateway are the first three things to verify"
+    },
+    {
+      title: "Bad Cable",
+      domain: "5.2 — Given a scenario, troubleshoot common cable connectivity issues",
+      desc: "A user's connection keeps dropping every few minutes. The link light on the switch port blinks erratically. You check the interface.",
+      terminal: '<span class="prompt">Switch# show interface GigabitEthernet0/5</span>\n\nGigabitEthernet0/5 is <span class="highlight-line">up</span>, line protocol is <span class="error-line">down</span>\n  Hardware is Gigabit Ethernet\n  <span class="error-line">     12847 input errors, 9213 CRC, 1087 runts</span>\n  <span class="error-line">     3634 giants, 0 throttles</span>\n  Last clearing of counters: 2 hours ago\n  <span class="dim">5 minute input rate: 0 bits/sec, 0 packets/sec</span>\n\n<span class="prompt">Switch# show cable-diagnostics tdr GigabitEthernet0/5</span>\n<span class="error-line">Pair A: Open at 12 meters</span>\n<span class="error-line">Pair B: Short at 12 meters</span>\nPair C: OK\nPair D: OK',
+      options: [
+        "The switch port is failing — replace the switch",
+        "Speed mismatch between switch and PC",
+        "Bad cable — replace the patch cable",
+        "The PC's NIC driver is corrupted"
+      ],
+      correct: 2,
+      explanation: "The interface shows up/down with massive CRC errors, runts, and giants — classic physical layer symptoms. The TDR (Time Domain Reflectometer) test confirms it: Pair A is open and Pair B is shorted at 12 meters, indicating cable damage at that point. Replace the cable. If the problem persists, test the patch panel connection.",
+      method: "Bottom-up: Always start at Layer 1 — verify physical connectivity before moving up"
+    },
+    {
+      title: "Wireless Channel Overlap",
+      domain: "5.4 — Given a scenario, troubleshoot common wireless connectivity issues",
+      desc: "Users in the conference room report very slow Wi-Fi despite showing full signal strength. A wireless survey reveals nearby APs.",
+      terminal: '<span class="prompt">$ sudo iwlist wlan0 scan | grep -E "ESSID|Channel|Signal"</span>\n\n<span class="highlight-line">Cell 01 - ESSID:"CorpWiFi-CR"     Channel: 6   Signal: -35 dBm</span>\n<span class="error-line">Cell 02 - ESSID:"CorpWiFi-HR"     Channel: 7   Signal: -42 dBm</span>\n<span class="error-line">Cell 03 - ESSID:"CorpWiFi-Lobby"  Channel: 5   Signal: -48 dBm</span>\nCell 04 - ESSID:"CorpWiFi-Exec"   Channel: 11  Signal: -67 dBm\n\n<span class="prompt">$ iwconfig wlan0</span>\n<span class="dim">Bit Rate=24 Mb/s   (expected: 300 Mb/s)</span>\n<span class="error-line">Tx excessive retries: 847   Invalid misc: 312</span>',
+      options: [
+        "The AP firmware needs updating",
+        "Too many users on the same AP",
+        "Adjacent APs are on overlapping channels (not 1/6/11)",
+        "WPA3 encryption is causing slowdowns"
+      ],
+      correct: 2,
+      explanation: "In the 2.4 GHz band, only channels 1, 6, and 11 are non-overlapping. Here, three APs are on channels 5, 6, and 7 — all overlapping each other, causing co-channel interference. The excessive retries (847) confirm constant collisions. Fix: reassign APs to channels 1, 6, and 11 only, following a proper channel plan to minimize overlap.",
+      method: "Top-down: Application performance issues traced to RF interference at the physical layer"
+    },
+    {
+      title: "Rogue DHCP Server",
+      domain: "5.3 — Given a scenario, troubleshoot common network service issues",
+      desc: "Several users in the sales department suddenly lost internet access. They have IP addresses, but the gateway and DNS look wrong.",
+      terminal: '<span class="prompt">C:\\> ipconfig /all</span>\n\n   IPv4 Address. . . . . . . . . . : 192.168.1.105\n   Subnet Mask . . . . . . . . . . : 255.255.255.0\n   <span class="error-line">Default Gateway . . . . . . . . : 192.168.1.50</span>\n   <span class="error-line">DHCP Server . . . . . . . . . . : 192.168.1.50</span>\n   DNS Servers . . . . . . . . . . : 8.8.8.8\n\n<span class="dim">Expected gateway: 192.168.1.1</span>\n<span class="dim">Expected DHCP server: 10.0.0.5</span>\n\n<span class="prompt">C:\\> arp -a | findstr 192.168.1.50</span>\n<span class="error-line">192.168.1.50    00-1a-2b-3c-4d-5e   dynamic</span>\n<span class="dim">(MAC OUI: TP-Link — not a company-owned device)</span>',
+      options: [
+        "The legitimate DHCP server has a configuration error",
+        "A rogue DHCP server is on the network",
+        "The switch is in the wrong VLAN",
+        "ARP poisoning attack from an external source"
+      ],
+      correct: 1,
+      explanation: "The DHCP server and gateway are both 192.168.1.50 — a TP-Link device that is not company-owned. This is a rogue DHCP server: someone (intentionally or not) plugged in a consumer router that is handing out incorrect leases. Fix: locate and disconnect the device, enable DHCP snooping on the switch to prevent rogue DHCP servers, and have affected clients run 'ipconfig /release' then 'ipconfig /renew'.",
+      method: "Divide and conquer: Compare DHCP lease info against known-good configuration"
+    },
+    {
+      title: "STP Broadcast Storm",
+      domain: "5.2 — Given a scenario, troubleshoot common cable connectivity issues",
+      desc: "The entire floor suddenly slows to a crawl. The switch LEDs are blinking rapidly and CPU utilization is spiking on all switches.",
+      terminal: '<span class="prompt">Switch# show processes cpu sorted</span>\n<span class="error-line">CPU utilization: 98% (5 sec), 95% (1 min), 87% (5 min)</span>\n\n<span class="prompt">Switch# show spanning-tree summary</span>\nSwitch is in <span class="error-line">pvst mode (incomplete convergence)</span>\nRoot bridge for VLAN 1: <span class="error-line">UNKNOWN</span>\n\n<span class="prompt">Switch# show interface GigabitEthernet0/24 counters</span>\n<span class="error-line">InBroadcast:  4,847,291  (last 5 min)</span>\n<span class="error-line">OutBroadcast: 4,847,103  (last 5 min)</span>\n\n<span class="prompt">Switch# show log | include LOOP</span>\n<span class="error-line">%ETHCNL-5-LOOP: Loop detected on GigabitEthernet0/24</span>',
+      options: [
+        "A virus is flooding the network",
+        "The uplink to the core switch is failing",
+        "STP loop — a bridging loop is causing a broadcast storm",
+        "The switch needs more memory"
+      ],
+      correct: 2,
+      explanation: "The switch is at 98% CPU with nearly 5 million broadcasts in 5 minutes — a textbook broadcast storm. STP shows incomplete convergence with no known root bridge, and the log explicitly reports a loop on Gi0/24. A physical loop (often a cable plugged into two ports on the same switch) is bypassing STP. Fix: shut down the offending port immediately, trace and remove the loop, then verify STP is configured correctly.",
+      method: "Bottom-up: Physical loop at Layer 1/2 causes Layer 2 broadcast storm"
+    },
+    {
+      title: "MTU Mismatch",
+      domain: "5.3 — Given a scenario, troubleshoot common network service issues",
+      desc: "Users report that small emails send fine, but large file attachments and VPN connections keep failing. Web pages partially load.",
+      terminal: '<span class="prompt">C:\\> ping 10.20.1.5 -l 1472 -f</span>\n<span class="error-line">Packet needs to be fragmented but DF set.</span>\n\n<span class="prompt">C:\\> ping 10.20.1.5 -l 1400 -f</span>\nReply from 10.20.1.5: bytes=1400 time=8ms TTL=62\n\n<span class="prompt">C:\\> ping 10.20.1.5 -l 1450 -f</span>\n<span class="error-line">Packet needs to be fragmented but DF set.</span>\n\n<span class="prompt">C:\\> tracert 10.20.1.5</span>\n  1   <1ms   192.168.1.1\n  2   <span class="highlight-line">2ms    10.0.0.1  <--- VPN tunnel endpoint</span>\n  3   5ms    10.20.1.5',
+      options: [
+        "The firewall is blocking ICMP",
+        "MTU is too large for the path — fragmentation issue",
+        "The VPN encryption is corrupting packets",
+        "QoS is deprioritizing large packets"
+      ],
+      correct: 1,
+      explanation: "Pings succeed at 1400 bytes but fail at 1450 with the Don't Fragment (DF) flag set. The path MTU is between 1400 and 1450 — lower than the standard 1500 bytes. The VPN tunnel adds overhead (headers), reducing the effective MTU. Large packets that can't be fragmented are silently dropped. Fix: lower the interface MTU to 1400 on the VPN tunnel endpoint, or enable Path MTU Discovery (PMTUD).",
+      method: "Divide and conquer: Binary search with ping -f to find the exact MTU breakpoint"
+    },
+    {
+      title: "Expired DHCP Lease",
+      domain: "5.3 — Given a scenario, troubleshoot common network service issues",
+      desc: "A remote office user reports losing connectivity every day around the same time, then it comes back after a few minutes. The pattern has repeated for a week.",
+      terminal: '<span class="prompt">C:\\> ipconfig /all</span>\n\n   DHCP Enabled. . . . . . . . . . : Yes\n   IPv4 Address. . . . . . . . . . : 10.50.1.87\n   Lease Obtained. . . . . . . . . : Monday, April 6, 8:02:14 AM\n   <span class="error-line">Lease Expires . . . . . . . . . : Tuesday, April 7, 8:02:14 AM</span>\n\n<span class="prompt">C:\\> ping 10.50.1.1</span>\n<span class="error-line">General failure. (during outage window)</span>\n\n<span class="prompt">[After reconnection]</span>\n<span class="prompt">C:\\> ipconfig /all</span>\n   <span class="highlight-line">Lease Obtained. . . . . . . . . : Tuesday, April 7, 8:09:31 AM</span>\n   <span class="dim">New IP: 10.50.1.112 (different from before)</span>',
+      options: [
+        "The switch port is flapping",
+        "DHCP lease expiring — server unreachable for renewal",
+        "A scheduled task is restarting the network adapter",
+        "The ISP is performing daily maintenance"
+      ],
+      correct: 1,
+      explanation: "The lease is exactly 24 hours, and the outage happens at the same time daily — right when the lease expires. Normally, a DHCP client renews at 50% (T1) and 87.5% (T2) of the lease time. If the DHCP server is unreachable during both renewal attempts, the lease expires and the client loses its IP. The different IP after reconnecting confirms a full lease cycle. Fix: verify the DHCP server is reachable from the remote office, check for firewall rules blocking UDP 67/68, and consider increasing lease time.",
+      method: "Information gathering: Correlate the timing pattern with DHCP lease cycle"
+    },
+    {
+      title: "Firewall Blocking Service Port",
+      domain: "5.3 — Given a scenario, troubleshoot common network service issues",
+      desc: "IT just deployed a new internal web application on port 8443. The server is running and IT can access it locally, but no one else can reach it.",
+      terminal: '<span class="prompt">admin@webserver:~$ curl -k https://localhost:8443</span>\n<span class="highlight-line">HTTP/1.1 200 OK — Application running</span>\n\n<span class="prompt">C:\\> telnet 10.10.2.50 8443</span>\n<span class="error-line">Connecting To 10.10.2.50...Could not open connection</span>\n<span class="error-line">Connection failed.</span>\n\n<span class="prompt">C:\\> telnet 10.10.2.50 443</span>\nConnected to 10.10.2.50. <span class="dim">(port 443 is open)</span>\n\n<span class="prompt">C:\\> ping 10.10.2.50</span>\nReply from 10.10.2.50: bytes=32 time=2ms TTL=63',
+      options: [
+        "The web server's SSL certificate is invalid",
+        "The server is only listening on localhost",
+        "The firewall ACL needs a rule allowing port 8443",
+        "DNS is not resolving the server hostname"
+      ],
+      correct: 2,
+      explanation: "The server responds locally on 8443 and is reachable on standard port 443 from the network, so the server is up and network connectivity is fine. But port 8443 is blocked — telnet to it fails while 443 succeeds. A firewall (either host-based or network) does not have a rule permitting TCP 8443. Fix: add an ACL rule or firewall exception for TCP port 8443 to/from the server's IP.",
+      method: "Divide and conquer: Test known-good port (443) vs. new port (8443) to isolate the firewall"
+    },
+    {
+      title: "Inter-VLAN Routing Missing",
+      domain: "5.3 — Given a scenario, troubleshoot common network service issues",
+      desc: "A PC in VLAN 10 (Engineering) can reach everything in its own VLAN, but cannot communicate with the file server in VLAN 20 (Servers).",
+      terminal: '<span class="prompt">C:\\> ipconfig</span>\n   IPv4 Address: 10.10.10.25  Mask: 255.255.255.0  GW: 10.10.10.1\n\n<span class="prompt">C:\\> ping 10.10.10.1</span>\nReply from 10.10.10.1: time<1ms <span class="dim">(gateway reachable)</span>\n\n<span class="prompt">C:\\> ping 10.10.20.50</span>\n<span class="error-line">Request timed out.</span>\n\n<span class="prompt">Switch# show vlan brief</span>\nVLAN  Name         Status    Ports\n----  -----------  ------    ---------------------\n10    Engineering  active    Fa0/1-12\n20    Servers      active    Fa0/13-24\n<span class="error-line">No Layer 3 interfaces configured for inter-VLAN routing.</span>\n\n<span class="prompt">Switch# show ip route</span>\n<span class="dim">No routing table entries found.</span>',
+      options: [
+        "The file server's firewall is blocking VLAN 10",
+        "The trunk link between switches is misconfigured",
+        "Inter-VLAN routing is needed — L3 switch or router-on-a-stick",
+        "The PC needs a static route to VLAN 20"
+      ],
+      correct: 2,
+      explanation: "VLANs are Layer 2 broadcast domains — by design, traffic does not cross between them without a Layer 3 device performing routing. The switch shows no L3 interfaces or routing table. Fix: configure SVIs (Switch Virtual Interfaces) on a Layer 3 switch for each VLAN, or use a router with sub-interfaces (router-on-a-stick). Enable IP routing on the switch.",
+      method: "Top-down: User can't reach a resource → trace the path → discover no L3 boundary crossing"
+    },
+    {
+      title: "Incorrect Static Route",
+      domain: "5.3 — Given a scenario, troubleshoot common network service issues",
+      desc: "Traffic to the 172.16.50.0/24 subnet is being blackholed. Users in the main office cannot reach the branch office servers on that subnet.",
+      terminal: '<span class="prompt">Router# show ip route 172.16.50.0</span>\nRouting entry for 172.16.50.0/24\n  Known via "static", distance 1, metric 0\n  <span class="error-line">Routing Descriptor: next-hop 10.0.0.99</span>\n\n<span class="prompt">Router# ping 10.0.0.99</span>\n<span class="error-line">UUUUU  (100% loss — destination unreachable)</span>\n\n<span class="prompt">Router# show ip route 10.0.0.99</span>\n<span class="error-line">% Subnet not in table</span>\n\n<span class="prompt">Router# show running-config | include ip route</span>\n<span class="error-line">ip route 172.16.50.0 255.255.255.0 10.0.0.99</span>\n<span class="dim">! Correct next-hop should be 10.0.0.2 (branch WAN link)</span>',
+      options: [
+        "The branch office router is powered off",
+        "The static route points to the wrong next-hop address",
+        "An ACL is blocking traffic to 172.16.50.0/24",
+        "OSPF is overriding the static route"
+      ],
+      correct: 1,
+      explanation: "The static route for 172.16.50.0/24 points to next-hop 10.0.0.99, but that address is unreachable — it's not even in the routing table. The correct next-hop should be 10.0.0.2 (the branch office WAN link). All traffic to that subnet is being blackholed because the router can't forward it. Fix: remove the incorrect route and add the correct one: 'ip route 172.16.50.0 255.255.255.0 10.0.0.2'.",
+      method: "Divide and conquer: Trace the routing path hop by hop to find where traffic stops"
+    }
+  ];
+
+  const STORAGE_KEY = 'netplus_troubleshoot';
+  const app = document.getElementById('app');
+
+  // ── State ──────────────────────────────────────────────────
+  let state = loadState();
+
+  function loadState() {
+    try {
+      const s = JSON.parse(localStorage.getItem(STORAGE_KEY));
+      if (s && s.scenarios) return s;
+    } catch(e) {}
+    return { current: -1, score: 0, answers: [], hintsUsed: 0, scenarios: shuffle([...Array(SCENARIOS.length).keys()]) };
+  }
+
+  function saveState() { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+
+  function shuffle(arr) {
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+  }
+
+  // ── Render: Landing ────────────────────────────────────────
+  function renderLanding() {
+    const prev = JSON.parse(localStorage.getItem(STORAGE_KEY + '_history') || '[]');
+    const bestScore = prev.length ? Math.max(...prev.map(p => p.score)) : 0;
+    const attempts = prev.length;
+
+    app.innerHTML = `
+      <div class="landing">
+        <h2>Network Troubleshooting Scenarios</h2>
+        <p>Read the scenario, examine the terminal output, and diagnose the problem. 15 real-world scenarios covering Domain 5 of CompTIA Network+ N10-009.</p>
+        <div class="landing-stats">
+          <div class="landing-stat"><div class="val">15</div><div class="lbl">Scenarios</div></div>
+          <div class="landing-stat"><div class="val">${attempts}</div><div class="lbl">Attempts</div></div>
+          <div class="landing-stat"><div class="val">${bestScore ? bestScore + '/15' : '--'}</div><div class="lbl">Best Score</div></div>
+        </div>
+        <button class="btn btn-primary btn-lg" id="startBtn">${state.current >= 0 ? 'Resume Game' : 'Start Game'}</button>
+        ${state.current >= 0 ? '<button class="btn btn-ghost" id="resetBtn" style="margin-left:12px">Start Over</button>' : ''}
+      </div>
+    `;
+
+    document.getElementById('startBtn').addEventListener('click', () => {
+      if (state.current < 0) state.current = 0;
+      saveState();
+      renderScenario();
+    });
+
+    const resetBtn = document.getElementById('resetBtn');
+    if (resetBtn) resetBtn.addEventListener('click', resetGame);
+  }
+
+  function resetGame() {
+    state = { current: -1, score: 0, answers: [], hintsUsed: 0, scenarios: shuffle([...Array(SCENARIOS.length).keys()]) };
+    saveState();
+    renderLanding();
+  }
+
+  // ── Render: Scenario ───────────────────────────────────────
+  function renderScenario() {
+    if (state.current >= SCENARIOS.length) { renderResults(); return; }
+
+    const idx = state.scenarios[state.current];
+    const sc = SCENARIOS[idx];
+    const answered = state.answers[state.current];
+    const hinted = answered && answered.hintUsed;
+    const letters = ['A', 'B', 'C', 'D'];
+
+    app.innerHTML = `
+      <div class="score-bar">
+        <span class="score-item">Score: <strong>${state.score}/${state.current}</strong></span>
+        <span class="score-item">Question <strong>${state.current + 1}</strong> of <strong>${SCENARIOS.length}</strong></span>
+        <span class="score-item">Hints: <strong>${state.hintsUsed}</strong></span>
+      </div>
+
+      <div class="progress-pips" id="pips">
+        ${state.scenarios.map((_, i) => {
+          let cls = 'pip';
+          if (i === state.current) cls += ' current';
+          else if (state.answers[i]) cls += state.answers[i].correct ? ' correct-pip' : ' wrong-pip';
+          return `<div class="${cls}"></div>`;
+        }).join('')}
+      </div>
+
+      <div class="scenario-card">
+        <div class="scenario-domain">${sc.domain}</div>
+        <div class="scenario-title">${sc.title}</div>
+        <div class="scenario-desc">${sc.desc}</div>
+
+        <div class="terminal-box">${sc.terminal}</div>
+
+        <div class="options-list" id="optionsList">
+          ${sc.options.map((opt, i) => {
+            let cls = 'option-btn';
+            if (answered) {
+              cls += ' locked';
+              if (i === sc.correct) cls += ' correct';
+              else if (i === answered.choice) cls += ' wrong';
+              else cls += ' dimmed';
+              if (hinted && answered.hintedOut === i && i !== answered.choice) cls += ' hint-out';
+            }
+            return `<button class="${cls}" data-idx="${i}"><span class="option-letter">${letters[i]}</span><span>${opt}</span></button>`;
+          }).join('')}
+        </div>
+
+        <div id="feedback"></div>
+
+        <div class="round-footer">
+          ${!answered ? `<button class="hint-btn" id="hintBtn">Reveal a wrong answer</button>` : '<span></span>'}
+          ${answered ? `<button class="btn btn-primary btn-sm" id="nextBtn">${state.current + 1 >= SCENARIOS.length ? 'See Results' : 'Next Scenario'}</button>` : '<span></span>'}
+        </div>
+      </div>
+    `;
+
+    if (answered) renderExplanation(sc, answered);
+
+    // Option clicks
+    if (!answered) {
+      document.querySelectorAll('.option-btn').forEach(btn => {
+        btn.addEventListener('click', () => handleAnswer(parseInt(btn.dataset.idx)));
+      });
+    }
+
+    // Hint
+    const hintBtn = document.getElementById('hintBtn');
+    if (hintBtn) {
+      hintBtn.addEventListener('click', () => {
+        // Find a wrong answer that isn't the correct one
+        const wrongs = sc.options.map((_, i) => i).filter(i => i !== sc.correct);
+        const pick = wrongs[Math.floor(Math.random() * wrongs.length)];
+        const optBtn = document.querySelector(`.option-btn[data-idx="${pick}"]`);
+        if (optBtn) {
+          optBtn.classList.add('hint-out');
+          optBtn.style.pointerEvents = 'none';
+        }
+        hintBtn.disabled = true;
+        hintBtn.textContent = 'Hint used';
+        state._currentHint = pick;
+        state.hintsUsed++;
+        saveState();
+      });
+    }
+
+    // Next
+    const nextBtn = document.getElementById('nextBtn');
+    if (nextBtn) nextBtn.addEventListener('click', () => { state.current++; saveState(); renderScenario(); });
+  }
+
+  function handleAnswer(choice) {
+    const idx = state.scenarios[state.current];
+    const sc = SCENARIOS[idx];
+    const isCorrect = choice === sc.correct;
+
+    if (isCorrect) state.score++;
+    state.answers[state.current] = {
+      choice,
+      correct: isCorrect,
+      hintUsed: state._currentHint !== undefined,
+      hintedOut: state._currentHint
+    };
+    delete state._currentHint;
+    saveState();
+
+    renderScenario();
+  }
+
+  function renderExplanation(sc, answered) {
+    const fb = document.getElementById('feedback');
+    if (!fb) return;
+    fb.innerHTML = `
+      <div class="explanation">
+        <strong>${answered.correct ? 'Correct!' : 'Not quite.'}</strong>
+        <p style="margin-top:6px">${sc.explanation}</p>
+        <div class="method-tag">Methodology: ${sc.method}</div>
+      </div>
+    `;
+  }
+
+  // ── Render: Results ────────────────────────────────────────
+  function renderResults() {
+    // Save to history
+    const history = JSON.parse(localStorage.getItem(STORAGE_KEY + '_history') || '[]');
+    history.push({ score: state.score, total: SCENARIOS.length, date: new Date().toISOString(), hintsUsed: state.hintsUsed });
+    localStorage.setItem(STORAGE_KEY + '_history', JSON.stringify(history));
+
+    const pct = Math.round((state.score / SCENARIOS.length) * 100);
+    let grade = 'Keep studying';
+    if (pct >= 90) grade = 'Excellent — exam ready';
+    else if (pct >= 75) grade = 'Strong — almost there';
+    else if (pct >= 60) grade = 'Getting close — review weak areas';
+
+    const rightItems = [];
+    const wrongItems = [];
+
+    state.answers.forEach((ans, i) => {
+      const sc = SCENARIOS[state.scenarios[i]];
+      const item = { num: i + 1, title: sc.title, correct: ans.correct, answer: sc.options[sc.correct] };
+      if (ans.correct) rightItems.push(item);
+      else wrongItems.push(item);
+    });
+
+    app.innerHTML = `
+      <div class="results-screen">
+        <div class="results-header">
+          <div class="final-score">${state.score}/${SCENARIOS.length}</div>
+          <h2>${grade}</h2>
+          <div class="final-sub">${pct}% correct${state.hintsUsed > 0 ? ' &middot; ' + state.hintsUsed + ' hint' + (state.hintsUsed > 1 ? 's' : '') + ' used' : ''}</div>
+        </div>
+
+        ${rightItems.length > 0 ? `
+        <div class="results-group">
+          <div class="results-group-title got-right">Got Right (${rightItems.length})</div>
+          ${rightItems.map(r => `
+            <div class="result-item">
+              <span class="result-num">${r.num}.</span>
+              <span class="result-name">${r.title}</span>
+              <span class="result-answer">${r.answer}</span>
+            </div>
+          `).join('')}
+        </div>` : ''}
+
+        ${wrongItems.length > 0 ? `
+        <div class="results-group">
+          <div class="results-group-title got-wrong">Got Wrong (${wrongItems.length})</div>
+          ${wrongItems.map(r => `
+            <div class="result-item">
+              <span class="result-num">${r.num}.</span>
+              <span class="result-name">${r.title}</span>
+              <span class="result-answer">${r.answer}</span>
+            </div>
+          `).join('')}
+        </div>` : ''}
+
+        <div style="text-align:center;margin-top:var(--s-xl)">
+          <button class="btn btn-primary btn-lg" id="retryBtn">Play Again</button>
+        </div>
+      </div>
+    `;
+
+    document.getElementById('retryBtn').addEventListener('click', resetGame);
+  }
+
+  // ── Init ───────────────────────────────────────────────────
+  if (state.current >= 0 && state.current < SCENARIOS.length) renderScenario();
+  else if (state.current >= SCENARIOS.length) renderResults();
+  else renderLanding();
+
+})();
+</script>
+</body>
+</html>
