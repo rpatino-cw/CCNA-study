@@ -44,6 +44,7 @@
   }catch(e){}
 
   // Build full localStorage backup for cross-device recovery
+  // Cap quiz_history and diagnostic_history to prevent KV bloat
   var fullBackup=null;
   try{
     var fb={};
@@ -51,6 +52,14 @@
       var k=localStorage.key(i);
       if(k&&k.startsWith('ccna_'))fb[k]=localStorage.getItem(k);
     }
+    // Trim large arrays to last 50 entries
+    ['ccna_quiz_history','ccna_diagnostic_history'].forEach(function(key){
+      if(!fb[key])return;
+      try{
+        var arr=JSON.parse(fb[key]);
+        if(Array.isArray(arr)&&arr.length>50)fb[key]=JSON.stringify(arr.slice(-50));
+      }catch(e){}
+    });
     if(Object.keys(fb).length>0)fullBackup=JSON.stringify(fb);
   }catch(e){}
 
