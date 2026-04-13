@@ -554,12 +554,12 @@
       </div>
       <h1>REST APIs &amp; JSON Data Formats</h1>
       <div class="lab-header-meta">
-        <span>~30 min</span>
+        <span>~40 min</span>
         <span>Topics 6.5 · 6.6</span>
-        <span>Conceptual Lab</span>
+        <span>Packet Tracer + Conceptual</span>
       </div>
       <div id="labCompleteBox" style="margin-top:12px"></div>
-      <div data-pt-topology='{"devices":[{"name":"R1","type":"4321","x":400,"y":200}],"links":[]}' style="margin-top:12px"></div>
+      <div data-pt-topology='{"devices":[{"name":"R1","type":"4321","x":350,"y":120},{"name":"Server1","type":"server","x":350,"y":300}],"links":[{"d1":"R1","p1":"Gi0/0","d2":"Server1","p2":"Fa0"}]}' style="margin-top:12px"></div>
       <a href="#config" onclick="event.preventDefault();document.getElementById('config').scrollIntoView({behavior:'smooth',block:'start'})" style="display:inline-flex;align-items:center;gap:4px;font-family:'Space Grotesk',system-ui,sans-serif;font-size:.72rem;padding:5px 12px;color:var(--ink-muted,#A8A29E);text-decoration:none;border:1px solid var(--border,#E2DFD9);border-radius:4px;margin-top:8px;transition:all .2s" onmouseenter="this.style.borderColor='var(--accent,#B45309)';this.style.color='var(--accent,#B45309)'" onmouseleave="this.style.borderColor='var(--border,#E2DFD9)';this.style.color='var(--ink-muted,#A8A29E)'">&#8595; Skip to configuration</a>
     </header>
 
@@ -579,20 +579,103 @@
     <section class="lab-section">
       <div class="lab-section-title">Topology</div>
       <pre class="topology-ascii">
-  [REST Client]  ──── HTTP/HTTPS ────  [RESTCONF API on Router]
-  (curl / Postman)                     (IOS-XE port 443)
-
-  Note: Packet Tracer has limited RESTCONF support via the router's
-  web management interface. This lab focuses on understanding the
-  data formats and API concepts that appear on the CCNA exam.
+  [Server1]  ──── Fa0 ──── Gi0/0/0 ────  [R1 — ISR4321]
+  10.0.0.10/24            10.0.0.1/24
+  (represents REST client)
       </pre>
-      <div class="pt-note">
-        <strong>Packet Tracer note:</strong> Full RESTCONF simulation requires IOS-XE 16.6+ on real hardware or a virtual router (CSR1000v / CML). PT supports basic HTTP management but not the full RESTCONF datastore. Use this lab to build the conceptual foundation — the exam tests understanding, not live PT config.
+      <p style="font-family:var(--font-body);font-size:.85rem;color:var(--ink-secondary);line-height:1.6">
+        You'll configure this router via CLI first, then study how the same configuration looks as RESTCONF JSON. This bridges the gap between CLI commands you already know and the API format the exam tests.
+      </p>
+    </section>
+
+    <!-- PT Configuration -->
+    <section class="lab-section" id="config">
+      <div class="lab-section-title">Step-by-Step Build</div>
+      <div class="lab-steps">
+
+        <div class="lab-step">
+          <div class="step-header">
+            <span class="step-num">01</span>
+            <span class="step-title">Build the topology in Packet Tracer</span>
+          </div>
+          <div class="step-body">
+            <p class="step-desc">Place an <strong>ISR4321 router</strong> and a <strong>Server</strong>. Connect Server1 Fa0 to R1 GigabitEthernet0/0/0 with a Copper Cross-Over cable. The server represents a REST API client (like curl or Postman).</p>
+          </div>
+        </div>
+
+        <div class="lab-step">
+          <div class="step-header">
+            <span class="step-num">02</span>
+            <span class="step-title">Configure the router</span>
+          </div>
+          <div class="step-body">
+            <p class="step-desc">Configure R1 with a hostname, interface IP, description, and enable the interface. <strong>Pay close attention to every command</strong> — in the next section you'll see this exact config as a JSON payload.</p>
+            <div class="cmd-block">
+              <div class="cmd-device">R1</div>
+              <pre><span class="prompt">Router></span> <span class="cmd">enable</span>
+<span class="prompt">Router#</span> <span class="cmd">configure terminal</span>
+<span class="prompt">Router(config)#</span> <span class="cmd">hostname R1</span>
+<span class="prompt">R1(config)#</span> <span class="cmd">interface GigabitEthernet0/0/0</span>
+<span class="prompt">R1(config-if)#</span> <span class="cmd">description WAN Link</span>
+<span class="prompt">R1(config-if)#</span> <span class="cmd">ip address 10.0.0.1 255.255.255.0</span>
+<span class="prompt">R1(config-if)#</span> <span class="cmd">no shutdown</span>
+<span class="prompt">R1(config-if)#</span> <span class="cmd">end</span></pre>
+            </div>
+          </div>
+        </div>
+
+        <div class="lab-step">
+          <div class="step-header">
+            <span class="step-num">03</span>
+            <span class="step-title">Configure the server</span>
+          </div>
+          <div class="step-body">
+            <p class="step-desc">Click Server1 &rarr; Desktop &rarr; IP Configuration. Set IP <code>10.0.0.10</code>, subnet <code>255.255.255.0</code>, gateway <code>10.0.0.1</code>.</p>
+          </div>
+        </div>
+
+        <div class="lab-step">
+          <div class="step-header">
+            <span class="step-num">04</span>
+            <span class="step-title">Verify connectivity</span>
+          </div>
+          <div class="step-body">
+            <p class="step-desc">Ping from Server1 to R1 to confirm the link is up.</p>
+            <div class="cmd-block">
+              <div class="cmd-device">R1</div>
+              <pre><span class="prompt">R1#</span> <span class="cmd">show ip interface brief</span>
+<span class="comment">! GigabitEthernet0/0/0 should show up/up with 10.0.0.1</span>
+<span class="prompt">R1#</span> <span class="cmd">show running-config interface GigabitEthernet0/0/0</span>
+<span class="comment">! Review every line — you'll see these as JSON fields next</span></pre>
+            </div>
+            <div class="callout">
+              <div class="callout-title">Bridge to APIs</div>
+              <p>The <code>show running-config</code> output you just saw is what a RESTCONF GET request returns — but as structured JSON instead of CLI text. Every line maps to a JSON field. The rest of this lab teaches you that mapping.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="lab-step">
+          <div class="step-header">
+            <span class="step-num">05</span>
+            <span class="step-title">Save your configuration</span>
+          </div>
+          <div class="step-body">
+            <div class="cmd-block">
+              <div class="cmd-device">R1</div>
+              <pre><span class="prompt">R1#</span> <span class="cmd">copy running-config startup-config</span></pre>
+            </div>
+          </div>
+        </div>
+
+      </div>
+      <div class="pt-note" style="margin-top:var(--s-lg)">
+        <strong>Packet Tracer note:</strong> PT does not support live RESTCONF. The exam tests your ability to <em>read and interpret</em> JSON payloads and API URLs — not run them. The config you just built is the reference for the analysis exercises below.
       </div>
     </section>
 
     <!-- Analysis Exercises -->
-    <section class="lab-section" id="config">
+    <section class="lab-section">
       <div class="lab-section-title">Analysis Exercises</div>
       <div class="lab-steps">
 
