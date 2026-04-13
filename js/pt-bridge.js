@@ -56,7 +56,7 @@
           hint.href=inLabs?'pt-setup.html':'labs/pt-setup.html';
           hint.className='pt-setup-hint';
           hint.style.cssText='display:inline-flex;align-items:center;gap:6px;font-family:"Space Grotesk",system-ui,sans-serif;font-size:.72rem;padding:5px 12px;color:var(--ink-muted,#A8A29E);text-decoration:none;border:1px solid var(--border,#E2DFD9);border-radius:4px;margin:6px 0;transition:all .2s';
-          hint.innerHTML='<span style="font-size:.85em">&#9889;</span> Enable one-click topology building';
+          hint.innerHTML='<span style="font-size:.85em">&#9889;</span> Optional: enable one-click topology building';
           hint.addEventListener('mouseenter',function(){hint.style.borderColor='var(--accent,#B45309)';hint.style.color='var(--accent,#B45309)';});
           hint.addEventListener('mouseleave',function(){hint.style.borderColor='var(--border,#E2DFD9)';hint.style.color='var(--ink-muted,#A8A29E)';});
           el.appendChild(hint);
