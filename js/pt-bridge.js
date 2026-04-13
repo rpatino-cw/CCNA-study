@@ -1,14 +1,22 @@
-/* Packet Tracer Bridge — polls for bridge server, swaps hint for build button when detected */
+/* Packet Tracer Bridge — shows build button when bridge server is reachable */
 (function(){
   var BRIDGE='http://127.0.0.1:54321';
   var connected=false;
-  var detected=false; // once true, stop polling
+  var bridgeFound=false;
 
   function checkPT(cb){
     fetch(BRIDGE+'/status',{method:'GET'}).then(function(r){return r.json();}).then(function(d){
       connected=d.connected;
       if(cb)cb(connected);
     }).catch(function(){connected=false;if(cb)cb(false);});
+  }
+
+  // Returns true if the bridge server responds at all (even if PT isn't polling)
+  function checkBridge(cb){
+    fetch(BRIDGE+'/status',{method:'GET'}).then(function(r){return r.json();}).then(function(d){
+      connected=d.connected;
+      cb(true,d.connected);
+    }).catch(function(){connected=false;cb(false,false);});
   }
 
   function send(js){
@@ -43,9 +51,8 @@
   }
 
   function showBuildButtons(els){
-    detected=true;
+    bridgeFound=true;
     els.forEach(function(el){
-      // Remove hint if present
       var oldHint=el.querySelector('.pt-setup-hint');
       if(oldHint)oldHint.remove();
       if(el.querySelector('.pt-build-btn'))return;
@@ -55,26 +62,36 @@
       btn.style.cssText='display:inline-flex;align-items:center;gap:6px;font-family:"Space Grotesk",system-ui,sans-serif;font-size:.72rem;padding:6px 14px;background:#0891B2;color:#fff;border:none;border-radius:4px;cursor:pointer;margin:6px 0;transition:all .2s';
       btn.innerHTML='<span style="font-size:.85em">&#9889;</span> Build in Packet Tracer';
       btn.addEventListener('click',function(){
-        btn.textContent='Building...';
+        btn.textContent='Checking PT...';
         btn.style.opacity='.6';
-        try{
-          var topo=JSON.parse(el.dataset.ptTopology);
-          buildTopology(topo).then(function(){
-            btn.innerHTML='<span style="font-size:.85em">&#10003;</span> Built! Check Packet Tracer';
-            btn.style.background='#16A34A';
+        checkPT(function(ptOk){
+          if(!ptOk){
+            btn.textContent='Packet Tracer not responding — open PT with Builder-MCP.pts';
+            btn.style.background='#D97706';
             btn.style.opacity='1';
             setTimeout(function(){btn.innerHTML='<span style="font-size:.85em">&#9889;</span> Build in Packet Tracer';btn.style.background='#0891B2';},4000);
-          }).catch(function(){
-            btn.textContent='Error — check PT';
-            btn.style.background='#DC2626';
+            return;
+          }
+          btn.textContent='Building...';
+          try{
+            var topo=JSON.parse(el.dataset.ptTopology);
+            buildTopology(topo).then(function(){
+              btn.innerHTML='<span style="font-size:.85em">&#10003;</span> Built! Check Packet Tracer';
+              btn.style.background='#16A34A';
+              btn.style.opacity='1';
+              setTimeout(function(){btn.innerHTML='<span style="font-size:.85em">&#9889;</span> Build in Packet Tracer';btn.style.background='#0891B2';},4000);
+            }).catch(function(){
+              btn.textContent='Error — check PT';
+              btn.style.background='#DC2626';
+              btn.style.opacity='1';
+              setTimeout(function(){btn.innerHTML='<span style="font-size:.85em">&#9889;</span> Build in Packet Tracer';btn.style.background='#0891B2';},3000);
+            });
+          }catch(e){
+            btn.textContent='Invalid topology data';
             btn.style.opacity='1';
             setTimeout(function(){btn.innerHTML='<span style="font-size:.85em">&#9889;</span> Build in Packet Tracer';btn.style.background='#0891B2';},3000);
-          });
-        }catch(e){
-          btn.textContent='Invalid topology data';
-          btn.style.opacity='1';
-          setTimeout(function(){btn.innerHTML='<span style="font-size:.85em">&#9889;</span> Build in Packet Tracer';btn.style.background='#0891B2';},3000);
-        }
+          }
+        });
       });
       el.appendChild(btn);
     });
@@ -99,23 +116,23 @@
     var els=document.querySelectorAll('[data-pt-topology]');
     if(!els.length)return;
 
-    // Check immediately
-    checkPT(function(ok){
-      if(ok){
+    // Check if bridge server is reachable at all
+    checkBridge(function(serverUp,ptConnected){
+      if(serverUp){
+        // Bridge is running — show build button regardless of PT status
+        // The button handles PT-not-connected on click
         showBuildButtons(els);
         return;
       }
-      // Not connected yet — show hints and start polling
-      showHints(els);
 
-      // Poll every 3s for 60s — catches bridge starting after page load
+      // Bridge not reachable — show hint, poll for it
+      showHints(els);
       var attempts=0;
-      var maxAttempts=20;
       var poll=setInterval(function(){
-        if(detected||attempts>=maxAttempts){clearInterval(poll);return;}
+        if(bridgeFound||attempts>=20){clearInterval(poll);return;}
         attempts++;
-        checkPT(function(ok){
-          if(ok)showBuildButtons(els);
+        checkBridge(function(up){
+          if(up)showBuildButtons(els);
         });
       },3000);
     });
