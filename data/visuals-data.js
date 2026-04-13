@@ -2,7 +2,7 @@ window.visualsData = [
   {
     id: "osi-model-7-layers",
     title: "OSI Model — 7 Layers",
-    desc: "The reference model. Data encapsulated top-down, de-encapsulated bottom-up.",
+    desc: "The exam asks which layer a protocol operates at and what PDU name to use at each layer. This diagram maps every protocol to its layer and encapsulation unit.",
     domain: "1",
     topic: "1.1",
     group: "network-models",
@@ -25,7 +25,7 @@ window.visualsData = [
   {
     id: "tcp-ip-vs-osi-comparison",
     title: "TCP/IP vs OSI Comparison",
-    desc: "The practical 4-layer model mapped against the 7-layer reference.",
+    desc: "Expect questions mapping OSI layers to TCP/IP layers. Know that TCP/IP merges L5-7 into Application and L1-2 into Network Access.",
     domain: "1",
     topic: "1.1",
     group: "network-models",
@@ -58,7 +58,7 @@ window.visualsData = [
   {
     id: "network-topologies",
     title: "Network Topologies",
-    desc: "Physical and logical shapes of a network. Star dominates modern LANs.",
+    desc: "The exam tests star, mesh, and hybrid topologies. Know that star uses a central switch, full mesh needs n(n-1)/2 links, and modern campuses use hybrid star-of-stars.",
     domain: "1",
     topic: "1.2",
     group: null,
@@ -137,7 +137,7 @@ window.visualsData = [
   {
     id: "ethernet-ii-frame-structure",
     title: "Ethernet II Frame Structure",
-    desc: "The Layer 2 PDU. 64–1518 bytes. The workhorse of every LAN.",
+    desc: "Know the minimum (64B) and maximum (1518B) frame sizes, the Type field values (0x0800=IPv4, 0x86DD=IPv6), and that FCS uses CRC for error detection — not correction.",
     domain: "1",
     topic: "1.13",
     group: null,
@@ -186,7 +186,7 @@ window.visualsData = [
   {
     id: "ipv4-packet-header",
     title: "IPv4 Packet Header",
-    desc: "The Layer 3 PDU header. 20 bytes minimum. Carries source and destination IP.",
+    desc: "Exam tests TTL (decremented each hop), Protocol field (6=TCP, 17=UDP, 1=ICMP, 89=OSPF), and the DSCP field for QoS marking. Know the 20-byte minimum header size.",
     domain: "1",
     topic: "1.6",
     group: "ip-addressing",
@@ -229,7 +229,7 @@ window.visualsData = [
   {
     id: "tcp-3-way-handshake",
     title: "TCP 3-Way Handshake",
-    desc: "Connection establishment. SYN, SYN-ACK, ACK. Reliable delivery starts here.",
+    desc: "Expect questions on which flags are set at each step. SYN, SYN-ACK, ACK — know the sequence/ack numbers and that failure at any step means no connection is established.",
     domain: "1",
     topic: "1.5",
     group: "transport",
@@ -270,7 +270,7 @@ window.visualsData = [
   {
     id: "subnetting-cidr-at-a-glance",
     title: "Subnetting — CIDR at a Glance",
-    desc: "Slash notation determines network vs host bits. Smaller prefix = more hosts.",
+    desc: "Subnetting is heavily tested. Know the formula: usable hosts = 2^(32-prefix) - 2. Be fast at splitting /24 into /25, /26, etc. and calculating network, broadcast, and usable range.",
     domain: "1",
     topic: "1.6",
     group: "ip-addressing",
@@ -307,7 +307,7 @@ window.visualsData = [
   {
     id: "cable-types-standards",
     title: "Cable Types & Standards",
-    desc: "Copper, fiber, and their speed/distance limits. Know which cable for which link.",
+    desc: "The exam tests cable types and distance limits. Cat5e=1G/100m, Cat6a=10G/100m. Know straight-through vs crossover vs rollover, and that Auto-MDIX makes cable type automatic on modern gear.",
     domain: "1",
     topic: "1.3",
     group: null,
@@ -336,7 +336,7 @@ window.visualsData = [
   {
     id: "vlans-trunk-links",
     title: "VLANs & Trunk Links",
-    desc: "Logical segmentation at Layer 2. Trunk ports carry multiple VLANs with 802.1Q tags.",
+    desc: "VLAN questions test trunking (802.1Q tag insertion), native VLAN mismatches, and access vs trunk port behavior. Know that native VLAN traffic crosses the trunk untagged.",
     domain: "2",
     topic: "2.1",
     group: null,
@@ -382,7 +382,7 @@ window.visualsData = [
   {
     id: "spanning-tree-protocol-stp",
     title: "Spanning Tree Protocol (STP)",
-    desc: "Prevents Layer 2 loops by blocking redundant paths. One root bridge rules them all.",
+    desc: "STP questions test root bridge election (lowest BID wins), port roles (Root, Designated, Blocked), and convergence. Know that BID = priority + MAC, default priority is 32768.",
     domain: "2",
     topic: "2.5",
     group: null,
@@ -427,7 +427,7 @@ window.visualsData = [
   {
     id: "etherchannel-port-aggregation",
     title: "EtherChannel (Port Aggregation)",
-    desc: "Bundle multiple physical links into one logical interface for bandwidth + redundancy.",
+    desc: "Know LACP (open standard, preferred) vs PAgP (Cisco proprietary). The exam tests which modes negotiate: LACP active/passive, PAgP desirable/auto. Both sides must match speed, duplex, and VLAN config.",
     domain: "2",
     topic: "2.4",
     group: null,
@@ -458,7 +458,7 @@ window.visualsData = [
   {
     id: "router-forwarding-decision",
     title: "Router Forwarding Decision",
-    desc: "How a router decides where to send a packet. Longest prefix match wins.",
+    desc: "The exam tests the forwarding decision: longest prefix match first, then lowest AD breaks ties. If no match and no default route, the packet is dropped and ICMP unreachable is sent.",
     domain: "3",
     topic: "3.2",
     group: null,
@@ -507,7 +507,7 @@ window.visualsData = [
   {
     id: "ospf-areas-router-roles",
     title: "OSPF Areas & Router Roles",
-    desc: "OSPF splits the network into areas for scalability. Area 0 is the backbone.",
+    desc: "OSPF is the most tested routing protocol. Know areas (all non-backbone must connect to Area 0), DR/BDR election on broadcast segments, cost = reference BW / interface BW, and ABR vs ASBR roles.",
     domain: "3",
     topic: "3.4",
     group: null,
@@ -546,7 +546,7 @@ window.visualsData = [
   {
     id: "administrative-distance-ad",
     title: "Administrative Distance (AD)",
-    desc: "Trust ranking for routing protocols. Lower AD = more trusted. Used to break ties.",
+    desc: "AD values are heavily tested. Memorize: Connected=0, Static=1, eBGP=20, EIGRP=90, OSPF=110, IS-IS=115, RIP=120, iBGP=200. When two protocols know the same route, lowest AD wins.",
     domain: "3",
     topic: "3.1",
     group: null,
@@ -572,7 +572,7 @@ window.visualsData = [
   {
     id: "dhcp-dora-process",
     title: "DHCP DORA Process",
-    desc: "How a client gets an IP address. Four-step broadcast handshake.",
+    desc: "Know the DORA sequence: Discover (broadcast), Offer (unicast), Request (broadcast), Acknowledge (unicast). The exam tests which steps are broadcast vs unicast and what info the client receives (IP, mask, gateway, DNS, lease).",
     domain: "4",
     topic: "4.3",
     group: "dhcp-dns",
@@ -612,7 +612,7 @@ window.visualsData = [
   {
     id: "nat-pat-translation",
     title: "NAT / PAT Translation",
-    desc: "Private IPs translated to public. PAT uses port numbers to multiplex many-to-one.",
+    desc: "The exam tests NAT types: Static (1:1), Dynamic (pool), and PAT/NAT overload (many:1 using port numbers). Know inside local/global vs outside local/global terminology and the show ip nat translations command.",
     domain: "4",
     topic: "4.1",
     group: null,
@@ -651,7 +651,7 @@ window.visualsData = [
   {
     id: "dns-resolution-flow",
     title: "DNS Resolution Flow",
-    desc: "Recursive lookup: local cache, resolver, root, TLD, authoritative.",
+    desc: "Know the DNS resolution hierarchy: client cache, recursive resolver, root server, TLD server, authoritative NS. The exam tests A records (IPv4), AAAA (IPv6), CNAME (alias), MX (mail), and the role of caching.",
     domain: "4",
     topic: "4.3",
     group: "dhcp-dns",
@@ -701,7 +701,7 @@ window.visualsData = [
   {
     id: "acl-processing-flow",
     title: "ACL Processing Flow",
-    desc: "Top-down, first match wins. Implicit deny all at the bottom of every ACL.",
+    desc: "ACL processing is top-down, first-match. The implicit deny at the end catches everything. Know where to place standard ACLs (close to destination) vs extended ACLs (close to source).",
     domain: "5",
     topic: "5.6",
     group: null,
@@ -748,7 +748,7 @@ window.visualsData = [
   {
     id: "aaa-framework",
     title: "AAA Framework",
-    desc: "Authentication, Authorization, Accounting. Who are you? What can you do? What did you do?",
+    desc: "Know the three A's and the difference between RADIUS (UDP 1812/1813, encrypts password only) and TACACS+ (TCP 49, encrypts full payload). The exam tests when to use each.",
     domain: "5",
     topic: "5.8",
     group: null,
@@ -787,7 +787,7 @@ window.visualsData = [
   {
     id: "switch-port-security",
     title: "Switch Port Security",
-    desc: "Limits which MAC addresses can use a port. Violation actions: protect, restrict, shutdown.",
+    desc: "Know all three violation modes: Protect (silent drop), Restrict (drop + log + counter), Shutdown (err-disable, default). The exam tests sticky MAC learning and the recovery command: errdisable recovery cause psecure-violation.",
     domain: "5",
     topic: "5.7",
     group: "l2-security",
@@ -817,7 +817,7 @@ window.visualsData = [
   {
     id: "sdn-architecture",
     title: "SDN Architecture",
-    desc: "Separates control plane from data plane. Central controller manages all devices via APIs.",
+    desc: "Know the three SDN layers: Application (top), Control (SDN controller), Infrastructure (data plane). The exam tests northbound APIs (REST, to apps) vs southbound APIs (NETCONF/OpenFlow, to devices).",
     domain: "6",
     topic: "6.3",
     group: null,
@@ -856,7 +856,7 @@ window.visualsData = [
   {
     id: "rest-api-basics",
     title: "REST API Basics",
-    desc: "HTTP methods, status codes, and JSON. The interface between automation and network devices.",
+    desc: "The exam tests CRUD-to-HTTP mapping: GET=Read, POST=Create, PUT=Update, DELETE=Remove. Know status codes: 200 OK, 201 Created, 401 Unauthorized, 403 Forbidden, 404 Not Found. Data format is JSON.",
     domain: "6",
     topic: "6.5",
     group: null,
@@ -887,7 +887,7 @@ window.visualsData = [
   {
     id: "config-management-tools",
     title: "Config Management Tools",
-    desc: "Ansible, Puppet, Chef. Automate config deployment across hundreds of devices.",
+    desc: "For CCNA, Ansible is most relevant — agentless (SSH-based), uses YAML playbooks, push model. Know the difference vs Puppet/Chef (agent-based, pull model). The exam focuses on Ansible for network automation.",
     domain: "6",
     topic: "6.6",
     group: null,
@@ -924,7 +924,7 @@ window.visualsData = [
   {
     id: "wireless-standards-80211",
     title: "Wireless Standards (802.11)",
-    desc: "Know the Wi-Fi generations, frequencies, and max throughput for the exam.",
+    desc: "Memorize the Wi-Fi generation names: 802.11n=Wi-Fi 4, 802.11ac=Wi-Fi 5, 802.11ax=Wi-Fi 6. Know frequency bands (2.4 GHz vs 5 GHz vs both) and key features: MIMO, MU-MIMO, OFDMA.",
     domain: "2",
     topic: "1.11",
     group: "wireless",
@@ -957,7 +957,7 @@ window.visualsData = [
   {
     id: "ipv6-address-structure",
     title: "IPv6 Address Structure",
-    desc: "128-bit addresses. 8 groups of 4 hex digits. Know how to compress and expand.",
+    desc: "The exam tests IPv6 compression rules: drop leading zeros, use :: once for consecutive all-zero groups. Know the /64 split (prefix + interface ID) and common addresses: ::1 (loopback), FE80::/10 (link-local), FF02::1 (all nodes).",
     domain: "1",
     topic: "1.8",
     group: "ipv6",
@@ -982,7 +982,7 @@ window.visualsData = [
   {
     id: "poe-standards-power-over-ethernet",
     title: "PoE Standards — Power Over Ethernet",
-    desc: "Deliver power + data over the same Ethernet cable. No separate power supply for APs, IP phones, cameras.",
+    desc: "Know the IEEE standards: 802.3af (15.4W), 802.3at PoE+ (30W), 802.3bt PoE++ (60W/90W). The exam tests PSE vs PD terminology and which standard powers which device type (phone, AP, camera).",
     domain: "1",
     topic: "1.1",
     group: "poe",
@@ -1033,7 +1033,7 @@ window.visualsData = [
   {
     id: "poe-power-budget",
     title: "PoE Power Budget",
-    desc: "A switch has a total PoE watt budget. Plan how many devices each port can power before you run out.",
+    desc: "Exam scenario: given a switch PoE budget and device wattages, calculate if the budget supports all devices. Know that exceeding the budget causes lower-priority ports to lose power. Verify with show power inline.",
     domain: "1",
     topic: "1.1",
     group: "poe",
@@ -1062,7 +1062,7 @@ window.visualsData = [
   {
     id: "arp-address-resolution-protocol",
     title: "ARP — Address Resolution Protocol",
-    desc: "Maps IP addresses to MAC addresses. Broadcast request, unicast reply.",
+    desc: "ARP is tested in the context of L2/L3 interaction. Know that ARP Request is broadcast (FF:FF:FF:FF:FF:FF) and ARP Reply is unicast. The ARP table entry times out (~300s). Gratuitous ARP announces IP changes.",
     domain: "1",
     topic: "1.13",
     group: null,
@@ -1101,7 +1101,7 @@ window.visualsData = [
   {
     id: "ntp-network-time-protocol",
     title: "NTP — Network Time Protocol",
-    desc: "Synchronizes clocks across devices. Stratum hierarchy. Critical for logging & certs.",
+    desc: "Know the stratum hierarchy: 0=atomic clock, 1=directly attached server, max usable=15, 16=unsynchronized. NTP uses UDP 123. Consistent timestamps are critical for syslog correlation and certificate validation.",
     domain: "4",
     topic: "4.2",
     group: null,
@@ -1142,7 +1142,7 @@ window.visualsData = [
   {
     id: "fhrp-hsrp-vrrp-glbp",
     title: "FHRP — HSRP / VRRP / GLBP",
-    desc: "Virtual gateway redundancy. If the active router fails, standby takes over seamlessly.",
+    desc: "The exam tests HSRP (Cisco, active/standby), VRRP (open standard, master/backup), and GLBP (Cisco, load balancing). Know that hosts point to the virtual IP and that higher priority wins active/master role.",
     domain: "3",
     topic: "3.5",
     group: null,
@@ -1193,7 +1193,7 @@ window.visualsData = [
   {
     id: "tcp-vs-udp",
     title: "TCP vs UDP",
-    desc: "Connection-oriented reliability vs connectionless speed. Know which protocols use which.",
+    desc: "The exam gives protocol names and asks TCP or UDP. Memorize: TCP — HTTP(80), HTTPS(443), SSH(22), FTP(21), Telnet(23). UDP — DNS(53), DHCP(67/68), TFTP(69), SNMP(161), NTP(123). DNS uses both.",
     domain: "1",
     topic: "1.5",
     group: "transport",
@@ -1229,7 +1229,7 @@ window.visualsData = [
   {
     id: "inter-vlan-routing-router-on-a-stick",
     title: "Inter-VLAN Routing (Router-on-a-Stick)",
-    desc: "A single router interface with subinterfaces routes traffic between VLANs via a trunk link.",
+    desc: "The exam tests router-on-a-stick config: one physical link, trunk to switch, subinterfaces with encapsulation dot1Q per VLAN. Know when to use this vs a Layer 3 switch (SVI) for inter-VLAN routing.",
     domain: "3",
     topic: "2.1",
     group: null,
@@ -1273,7 +1273,7 @@ window.visualsData = [
   {
     id: "syslog-severity-levels",
     title: "Syslog Severity Levels",
-    desc: "8 severity levels (0–7). Lower number = more critical. Know them for the exam.",
+    desc: "Memorize all 8 levels: Emergency(0), Alert(1), Critical(2), Error(3), Warning(4), Notification(5), Informational(6), Debugging(7). Mnemonic: Every Awesome Cisco Engineer Will Need Ice-cream Daily. Uses UDP 514.",
     domain: "4",
     topic: "4.5",
     group: null,
@@ -1304,7 +1304,7 @@ window.visualsData = [
   {
     id: "snmp-architecture",
     title: "SNMP Architecture",
-    desc: "Simple Network Management Protocol. Manager polls agents. Agents send traps on events.",
+    desc: "Know SNMPv2c (community strings, plaintext, insecure) vs SNMPv3 (auth + encryption). The exam tests GET/SET (manager polls agent, UDP 161) vs TRAP/INFORM (agent notifies manager, UDP 162).",
     domain: "4",
     topic: "4.4",
     group: null,
@@ -1344,7 +1344,7 @@ window.visualsData = [
   {
     id: "ssh-vs-telnet",
     title: "SSH vs Telnet",
-    desc: "Always use SSH. Telnet sends everything in plaintext — including passwords.",
+    desc: "The exam expects you to choose SSH over Telnet in every scenario. Know the SSH setup: hostname, domain name, RSA key generation, line vty transport input ssh. Telnet (port 23) is plaintext — never acceptable in production.",
     domain: "5",
     topic: "4.8",
     group: null,
@@ -1377,7 +1377,7 @@ window.visualsData = [
   {
     id: "cdp-lldp-discovery-protocols",
     title: "CDP & LLDP — Discovery Protocols",
-    desc: "Layer 2 neighbor discovery. Devices advertise hostname, IP, platform, port ID to directly connected neighbors.",
+    desc: "Know CDP (Cisco proprietary) vs LLDP (IEEE 802.1AB, open standard). Both are Layer 2 only — not routed. The exam tests show cdp neighbors and show lldp neighbors output fields: device ID, local/remote port, platform.",
     domain: "1",
     topic: "2.3",
     group: null,
@@ -1413,7 +1413,7 @@ window.visualsData = [
   {
     id: "ipv4-address-classes-private-ranges",
     title: "IPv4 Address Classes & Private Ranges",
-    desc: "Classful addressing is legacy but tested. Know the ranges and private blocks.",
+    desc: "Memorize RFC 1918 private ranges: 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16. Know class boundaries (A=1-126, B=128-191, C=192-223) and that 127.x.x.x is reserved for loopback.",
     domain: "1",
     topic: "1.7",
     group: "ip-addressing",
@@ -1445,7 +1445,7 @@ window.visualsData = [
   {
     id: "qos-quality-of-service",
     title: "QoS — Quality of Service",
-    desc: "Classify, mark, queue, and schedule traffic. Ensures voice/video gets priority over bulk data.",
+    desc: "Know the QoS pipeline: Classify, Mark, Queue, Schedule. The exam tests DSCP markings: EF(46)=voice, AF41(34)=video, DF(0)=best effort. Trust boundary is where markings are accepted — typically the access layer switch.",
     domain: "4",
     topic: "4.7",
     group: null,
@@ -1478,7 +1478,7 @@ window.visualsData = [
   {
     id: "wlc-wireless-lan-controller",
     title: "WLC — Wireless LAN Controller",
-    desc: "Centralized AP management. Lightweight APs (CAPWAP) forward control to the WLC.",
+    desc: "The exam tests WLC vs autonomous AP architecture. Know CAPWAP (control + data tunnels), that WLC handles SSID/security/roaming/RF, and that lightweight APs cannot function without a WLC.",
     domain: "2",
     topic: "2.6",
     group: "wireless",
@@ -1512,6 +1512,568 @@ window.visualsData = [
             <rect x="15" y="160" width="330" height="26" rx="4" fill="var(--bg-recessed, #F3F0EB)"/>
             <text x="180" y="173" class="anno" text-anchor="middle">WLC handles: SSID config, security policies, roaming, RF management</text>
             <text x="180" y="183" class="dim-text" text-anchor="middle">AP handles: data forwarding, beacons, probe responses</text>
+          </svg>`
+  },
+  {
+    id: "vlsm",
+    title: "VLSM — Variable Length Subnet Masking",
+    desc: "The exam tests VLSM problems — carving one network into unequal subnets. Know how to allocate largest subnet first, then fill remaining space with smaller ones.",
+    domain: "1",
+    topic: "1.6",
+    group: "ip-addressing",
+    deepDive: null,
+    svg: `<svg viewBox="0 0 360 310" xmlns="http://www.w3.org/2000/svg">
+            <!-- Parent network -->
+            <rect x="60" y="8" width="240" height="28" rx="4" fill="#2563EB"/>
+            <text x="180" y="26" class="layer-label" text-anchor="middle">192.168.1.0 /24 (256 addresses)</text>
+
+            <!-- Branch lines -->
+            <line x1="120" y1="36" x2="55" y2="65" stroke="#2563EB" stroke-width="1.5"/>
+            <line x1="160" y1="36" x2="140" y2="65" stroke="#0EA5E9" stroke-width="1.5"/>
+            <line x1="220" y1="36" x2="235" y2="65" stroke="#7C3AED" stroke-width="1.5"/>
+            <line x1="270" y1="36" x2="320" y2="65" stroke="#16A34A" stroke-width="1.5"/>
+
+            <!-- /26 subnet (largest first) -->
+            <rect x="10" y="65" width="90" height="50" rx="4" fill="#2563EB"/>
+            <text x="55" y="80" class="layer-label" text-anchor="middle">/26</text>
+            <text x="55" y="92" class="layer-sub" text-anchor="middle">62 usable hosts</text>
+            <text x="55" y="104" class="layer-sub" text-anchor="middle">60 needed</text>
+
+            <!-- /27 subnet -->
+            <rect x="108" y="65" width="72" height="50" rx="4" fill="#0EA5E9"/>
+            <text x="144" y="80" class="layer-label" text-anchor="middle">/27</text>
+            <text x="144" y="92" class="layer-sub" text-anchor="middle">30 usable</text>
+            <text x="144" y="104" class="layer-sub" text-anchor="middle">30 needed</text>
+
+            <!-- /28 subnet -->
+            <rect x="200" y="65" width="72" height="50" rx="4" fill="#7C3AED"/>
+            <text x="236" y="80" class="layer-label" text-anchor="middle">/28</text>
+            <text x="236" y="92" class="layer-sub" text-anchor="middle">14 usable</text>
+            <text x="236" y="104" class="layer-sub" text-anchor="middle">14 needed</text>
+
+            <!-- /30 subnet -->
+            <rect x="290" y="65" width="60" height="50" rx="4" fill="#16A34A"/>
+            <text x="320" y="80" class="layer-label" text-anchor="middle">/30</text>
+            <text x="320" y="92" class="layer-sub" text-anchor="middle">2 usable</text>
+            <text x="320" y="104" class="layer-sub" text-anchor="middle">P2P link</text>
+
+            <!-- Detail table -->
+            <rect x="10" y="130" width="340" height="110" rx="4" fill="var(--bg-recessed, #F3F0EB)"/>
+            <text x="25" y="148" class="anno-bold" style="font-size:8px">Subnet</text>
+            <text x="100" y="148" class="anno-bold" style="font-size:8px">Network</text>
+            <text x="190" y="148" class="anno-bold" style="font-size:8px">Usable Range</text>
+            <text x="310" y="148" class="anno-bold" style="font-size:8px">Broadcast</text>
+            <line x1="20" y1="153" x2="340" y2="153" stroke="#D4D0C8" stroke-width="0.5"/>
+
+            <text x="25" y="168" class="cmd-text" style="fill:#2563EB">/26</text>
+            <text x="100" y="168" class="cmd-text">192.168.1.0</text>
+            <text x="190" y="168" class="cmd-text">.1 – .62</text>
+            <text x="310" y="168" class="cmd-text">.63</text>
+
+            <text x="25" y="186" class="cmd-text" style="fill:#0EA5E9">/27</text>
+            <text x="100" y="186" class="cmd-text">192.168.1.64</text>
+            <text x="190" y="186" class="cmd-text">.65 – .94</text>
+            <text x="310" y="186" class="cmd-text">.95</text>
+
+            <text x="25" y="204" class="cmd-text" style="fill:#7C3AED">/28</text>
+            <text x="100" y="204" class="cmd-text">192.168.1.96</text>
+            <text x="190" y="204" class="cmd-text">.97 – .110</text>
+            <text x="310" y="204" class="cmd-text">.111</text>
+
+            <text x="25" y="222" class="cmd-text" style="fill:#16A34A">/30</text>
+            <text x="100" y="222" class="cmd-text">192.168.1.112</text>
+            <text x="190" y="222" class="cmd-text">.113 – .114</text>
+            <text x="310" y="222" class="cmd-text">.115</text>
+
+            <!-- Rule -->
+            <rect x="10" y="255" width="340" height="44" rx="4" fill="#1C1917"/>
+            <text x="25" y="273" style="font-size:9px;fill:#4ADE80;font-family:'JetBrains Mono',monospace">Rule: Allocate largest subnet first,</text>
+            <text x="25" y="289" style="font-size:9px;fill:#4ADE80;font-family:'JetBrains Mono',monospace">then next largest in remaining space.</text>
+          </svg>`
+  },
+  {
+    id: "wildcard-masks",
+    title: "Wildcard Masks",
+    desc: "ACLs and OSPF use wildcard masks — the inverse of subnet masks. 0 means must match, 255 means don't care. Know the formula: 255.255.255.255 minus subnet mask.",
+    domain: "5",
+    topic: "5.6",
+    group: null,
+    deepDive: null,
+    svg: `<svg viewBox="0 0 360 270" xmlns="http://www.w3.org/2000/svg">
+            <!-- Title / Formula -->
+            <text x="180" y="18" class="anno-bold" text-anchor="middle">Wildcard = 255.255.255.255 - Subnet Mask</text>
+
+            <!-- Visual formula -->
+            <rect x="30" y="30" width="300" height="50" rx="4" fill="#1C1917"/>
+            <text x="180" y="50" style="font-size:10px;fill:#94A3B8;font-family:'JetBrains Mono',monospace" text-anchor="middle">  255.255.255.255</text>
+            <text x="180" y="65" style="font-size:10px;fill:#DC2626;font-family:'JetBrains Mono',monospace" text-anchor="middle">- 255.255.255.  0   (subnet mask /24)</text>
+            <line x1="70" y1="70" x2="290" y2="70" stroke="#94A3B8" stroke-width="0.5"/>
+            <text x="180" y="78" style="font-size:10px;fill:#4ADE80;font-family:'JetBrains Mono',monospace" text-anchor="middle">=   0.  0.  0.255   (wildcard)</text>
+
+            <!-- Meaning -->
+            <rect x="30" y="95" width="140" height="30" rx="4" fill="#2563EB"/>
+            <text x="100" y="112" class="layer-label" text-anchor="middle">0 = Must Match</text>
+            <rect x="190" y="95" width="140" height="30" rx="4" fill="#DC2626"/>
+            <text x="260" y="112" class="layer-label" text-anchor="middle">255 = Don't Care</text>
+
+            <!-- Examples table -->
+            <rect x="20" y="140" width="320" height="100" rx="4" fill="var(--bg-recessed, #F3F0EB)"/>
+            <text x="40" y="158" class="anno-bold" style="font-size:8px">CIDR</text>
+            <text x="90" y="158" class="anno-bold" style="font-size:8px">Subnet Mask</text>
+            <text x="210" y="158" class="anno-bold" style="font-size:8px">Wildcard Mask</text>
+            <line x1="30" y1="163" x2="330" y2="163" stroke="#D4D0C8" stroke-width="0.5"/>
+
+            <text x="40" y="178" class="cmd-text">/24</text>
+            <text x="90" y="178" class="cmd-text">255.255.255.0</text>
+            <text x="210" y="178" class="cmd-text" style="fill:#16A34A">0.0.0.255</text>
+
+            <text x="40" y="196" class="cmd-text">/26</text>
+            <text x="90" y="196" class="cmd-text">255.255.255.192</text>
+            <text x="210" y="196" class="cmd-text" style="fill:#16A34A">0.0.0.63</text>
+
+            <text x="40" y="214" class="cmd-text">/30</text>
+            <text x="90" y="214" class="cmd-text">255.255.255.252</text>
+            <text x="210" y="214" class="cmd-text" style="fill:#16A34A">0.0.0.3</text>
+
+            <text x="40" y="232" class="cmd-text">/32</text>
+            <text x="90" y="232" class="cmd-text">255.255.255.255</text>
+            <text x="210" y="232" class="cmd-text" style="fill:#16A34A">0.0.0.0</text>
+            <text x="300" y="232" class="dim-text">(exact host)</text>
+
+            <!-- Usage note -->
+            <text x="180" y="258" class="anno" text-anchor="middle">Used in: ACL permit/deny statements, OSPF network commands</text>
+          </svg>`
+  },
+  {
+    id: "dhcp-snooping-dai",
+    title: "DHCP Snooping & DAI",
+    desc: "DHCP snooping builds a binding table. DAI uses it to validate ARP. Together they stop rogue DHCP servers and ARP poisoning attacks.",
+    domain: "5",
+    topic: "5.7",
+    group: "l2-security",
+    deepDive: null,
+    svg: `<svg viewBox="0 0 360 310" xmlns="http://www.w3.org/2000/svg">
+            <!-- DHCP Server (trusted) -->
+            <rect x="140" y="5" width="80" height="28" rx="4" fill="#16A34A"/>
+            <text x="180" y="23" class="layer-label" text-anchor="middle">DHCP Server</text>
+            <text x="180" y="40" class="dim-text" text-anchor="middle">Trusted</text>
+
+            <!-- Switch -->
+            <rect x="110" y="75" width="140" height="32" rx="4" fill="#2563EB"/>
+            <text x="180" y="95" class="layer-label" text-anchor="middle">Switch (Snooping ON)</text>
+
+            <!-- Trusted port (up) -->
+            <line x1="180" y1="33" x2="180" y2="75" stroke="#16A34A" stroke-width="2"/>
+            <circle cx="180" cy="70" r="6" fill="#16A34A"/><text x="180" y="73" style="font-size:5px;fill:#fff;font-weight:700" text-anchor="middle">T</text>
+
+            <!-- Untrusted ports (down) -->
+            <line x1="130" y1="107" x2="80" y2="140" stroke="#DC2626" stroke-width="1.5"/>
+            <line x1="180" y1="107" x2="180" y2="140" stroke="#DC2626" stroke-width="1.5"/>
+            <line x1="230" y1="107" x2="280" y2="140" stroke="#DC2626" stroke-width="1.5"/>
+
+            <!-- PCs (untrusted) -->
+            <rect x="55" y="140" width="50" height="22" rx="3" fill="#64748B"/><text x="80" y="155" class="pkt-label" text-anchor="middle">PC-A</text>
+            <rect x="155" y="140" width="50" height="22" rx="3" fill="#64748B"/><text x="180" y="155" class="pkt-label" text-anchor="middle">PC-B</text>
+            <rect x="255" y="140" width="50" height="22" rx="3" fill="#DC2626"/><text x="280" y="155" class="pkt-label" text-anchor="middle">Rogue</text>
+
+            <!-- Untrusted labels -->
+            <text x="80" y="175" class="dim-text" text-anchor="middle">Untrusted</text>
+            <text x="180" y="175" class="dim-text" text-anchor="middle">Untrusted</text>
+            <text x="280" y="175" class="dim-text" text-anchor="middle">Untrusted</text>
+
+            <!-- Block indicator on rogue -->
+            <text x="315" y="150" class="anno-bold" style="fill:#DC2626;font-size:14px">X</text>
+            <text x="280" y="190" class="anno" text-anchor="middle" style="fill:#DC2626;font-size:7px">DHCP Offer blocked</text>
+
+            <!-- Binding table -->
+            <rect x="20" y="205" width="320" height="55" rx="4" fill="var(--bg-recessed, #F3F0EB)"/>
+            <text x="180" y="220" class="anno-bold" text-anchor="middle">DHCP Snooping Binding Table</text>
+            <text x="35" y="237" class="anno-bold" style="font-size:7px">MAC</text>
+            <text x="110" y="237" class="anno-bold" style="font-size:7px">IP</text>
+            <text x="195" y="237" class="anno-bold" style="font-size:7px">VLAN</text>
+            <text x="240" y="237" class="anno-bold" style="font-size:7px">Port</text>
+            <text x="290" y="237" class="anno-bold" style="font-size:7px">Lease</text>
+            <text x="35" y="252" class="cmd-text" style="font-size:7px">AA:BB:CC:11</text>
+            <text x="110" y="252" class="cmd-text" style="font-size:7px">10.0.0.10</text>
+            <text x="195" y="252" class="cmd-text" style="font-size:7px">10</text>
+            <text x="240" y="252" class="cmd-text" style="font-size:7px">Gi0/1</text>
+            <text x="290" y="252" class="cmd-text" style="font-size:7px">86400</text>
+
+            <!-- DAI note -->
+            <rect x="20" y="270" width="320" height="32" rx="4" fill="#1C1917"/>
+            <text x="30" y="285" style="font-size:8px;fill:#4ADE80;font-family:'JetBrains Mono',monospace">DAI: Validates ARP against binding table</text>
+            <text x="30" y="297" style="font-size:8px;fill:#94A3B8;font-family:'JetBrains Mono',monospace">ARP with wrong MAC-IP mapping → dropped</text>
+          </svg>`
+  },
+  {
+    id: "dot1x-radius",
+    title: "802.1X / RADIUS Authentication",
+    desc: "Port-based access control. The switch blocks traffic until the RADIUS server authenticates the user. Know the three roles: supplicant, authenticator, authentication server.",
+    domain: "5",
+    topic: "5.8",
+    group: null,
+    deepDive: null,
+    svg: `<svg viewBox="0 0 360 290" xmlns="http://www.w3.org/2000/svg">
+            <!-- Three roles -->
+            <rect x="10" y="20" width="80" height="40" rx="4" fill="#2563EB"/>
+            <text x="50" y="38" class="layer-label" text-anchor="middle">Supplicant</text>
+            <text x="50" y="50" class="layer-sub" text-anchor="middle">(PC/User)</text>
+
+            <rect x="140" y="20" width="80" height="40" rx="4" fill="#D97706"/>
+            <text x="180" y="38" class="layer-label" text-anchor="middle">Authenticator</text>
+            <text x="180" y="50" class="layer-sub" text-anchor="middle">(Switch)</text>
+
+            <rect x="270" y="20" width="80" height="40" rx="4" fill="#7C3AED"/>
+            <text x="310" y="38" class="layer-label" text-anchor="middle">Auth Server</text>
+            <text x="310" y="50" class="layer-sub" text-anchor="middle">(RADIUS)</text>
+
+            <!-- Timelines -->
+            <line x1="50" y1="60" x2="50" y2="240" stroke="#2563EB" stroke-width="2"/>
+            <line x1="180" y1="60" x2="180" y2="240" stroke="#D97706" stroke-width="2"/>
+            <line x1="310" y1="60" x2="310" y2="240" stroke="#7C3AED" stroke-width="2"/>
+
+            <!-- Port blocked -->
+            <rect x="125" y="68" width="110" height="14" rx="2" fill="#DC2626"/>
+            <text x="180" y="79" style="font-size:6px;fill:#fff;font-weight:700" text-anchor="middle">Port BLOCKED (no traffic)</text>
+
+            <!-- Step 1: EAPOL-Start -->
+            <line x1="53" y1="95" x2="177" y2="105" stroke="#2563EB" stroke-width="1.5" marker-end="url(#arr1x)"/>
+            <text x="115" y="93" class="dim-text" text-anchor="middle">1. EAPOL-Start</text>
+
+            <!-- Step 2: EAP-Request Identity -->
+            <line x1="177" y1="120" x2="53" y2="130" stroke="#D97706" stroke-width="1.5" marker-end="url(#arr1xO)"/>
+            <text x="115" y="118" class="dim-text" text-anchor="middle">2. EAP-Request ID</text>
+
+            <!-- Step 3: EAP-Response Identity -->
+            <line x1="53" y1="145" x2="177" y2="155" stroke="#2563EB" stroke-width="1.5" marker-end="url(#arr1x)"/>
+            <text x="115" y="143" class="dim-text" text-anchor="middle">3. EAP-Response ID</text>
+
+            <!-- Step 4: RADIUS Access-Request -->
+            <line x1="183" y1="160" x2="307" y2="170" stroke="#D97706" stroke-width="1.5" marker-end="url(#arr1xO)"/>
+            <text x="245" y="158" class="dim-text" text-anchor="middle">4. RADIUS Access-Req</text>
+
+            <!-- Step 5: RADIUS Access-Accept -->
+            <line x1="307" y1="185" x2="183" y2="195" stroke="#16A34A" stroke-width="1.5" marker-end="url(#arr1xG)"/>
+            <text x="245" y="183" class="dim-text" text-anchor="middle">5. RADIUS Accept</text>
+
+            <!-- Step 6: EAP-Success -->
+            <line x1="177" y1="210" x2="53" y2="220" stroke="#16A34A" stroke-width="1.5" marker-end="url(#arr1xG)"/>
+            <text x="115" y="208" class="dim-text" text-anchor="middle">6. EAP-Success</text>
+
+            <!-- Port opened -->
+            <rect x="125" y="228" width="110" height="14" rx="2" fill="#16A34A"/>
+            <text x="180" y="239" style="font-size:6px;fill:#fff;font-weight:700" text-anchor="middle">Port OPEN (traffic flows)</text>
+
+            <!-- Note -->
+            <rect x="20" y="255" width="320" height="28" rx="4" fill="var(--bg-recessed, #F3F0EB)"/>
+            <text x="180" y="268" class="anno" text-anchor="middle">EAP over LAN (EAPOL) between supplicant and switch</text>
+            <text x="180" y="279" class="anno" text-anchor="middle">RADIUS (UDP 1812) between switch and auth server</text>
+
+            <defs>
+              <marker id="arr1x" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto"><polygon points="0,0 7,2.5 0,5" fill="#2563EB"/></marker>
+              <marker id="arr1xO" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto"><polygon points="0,0 7,2.5 0,5" fill="#D97706"/></marker>
+              <marker id="arr1xG" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto"><polygon points="0,0 7,2.5 0,5" fill="#16A34A"/></marker>
+            </defs>
+          </svg>`
+  },
+  {
+    id: "ipsec-vpn",
+    title: "IPsec VPN Tunnel",
+    desc: "Site-to-site VPN encrypts traffic between two locations over the internet. Know IKE Phase 1 (SA negotiation) and Phase 2 (IPsec SA for actual data encryption).",
+    domain: "5",
+    topic: "5.5",
+    group: null,
+    deepDive: null,
+    svg: `<svg viewBox="0 0 360 280" xmlns="http://www.w3.org/2000/svg">
+            <!-- R1 -->
+            <rect x="20" y="40" width="70" height="32" rx="4" fill="#2563EB"/>
+            <text x="55" y="56" class="layer-label" text-anchor="middle">R1</text>
+            <text x="55" y="66" class="layer-sub" text-anchor="middle">Site A</text>
+
+            <!-- R2 -->
+            <rect x="270" y="40" width="70" height="32" rx="4" fill="#16A34A"/>
+            <text x="305" y="56" class="layer-label" text-anchor="middle">R2</text>
+            <text x="305" y="66" class="layer-sub" text-anchor="middle">Site B</text>
+
+            <!-- Internet cloud -->
+            <ellipse cx="180" cy="56" rx="70" ry="24" fill="none" stroke="#94A3B8" stroke-width="1.5"/>
+            <text x="180" y="52" class="anno" text-anchor="middle">Internet</text>
+            <text x="180" y="63" class="dim-text" text-anchor="middle">(untrusted)</text>
+
+            <!-- Encrypted tunnel -->
+            <line x1="90" y1="56" x2="270" y2="56" stroke="#D97706" stroke-width="2.5" stroke-dasharray="8,4"/>
+            <text x="180" y="20" class="anno-bold" text-anchor="middle" style="fill:#D97706">Encrypted IPsec Tunnel</text>
+
+            <!-- Lock icon (simple) -->
+            <rect x="172" y="28" width="16" height="10" rx="2" fill="#D97706"/>
+            <rect x="175" y="23" width="10" height="8" rx="5" fill="none" stroke="#D97706" stroke-width="1.5"/>
+
+            <!-- LAN A -->
+            <circle cx="25" cy="105" r="7" fill="#64748B"/><circle cx="50" cy="105" r="7" fill="#64748B"/><circle cx="75" cy="105" r="7" fill="#64748B"/>
+            <text x="50" y="123" class="cmd-text" text-anchor="middle">10.1.0.0/24</text>
+            <line x1="50" y1="72" x2="50" y2="98" stroke="#94A3B8" stroke-width="1"/>
+
+            <!-- LAN B -->
+            <circle cx="285" cy="105" r="7" fill="#64748B"/><circle cx="310" cy="105" r="7" fill="#64748B"/><circle cx="335" cy="105" r="7" fill="#64748B"/>
+            <text x="310" y="123" class="cmd-text" text-anchor="middle">10.2.0.0/24</text>
+            <line x1="310" y1="72" x2="310" y2="98" stroke="#94A3B8" stroke-width="1"/>
+
+            <!-- IKE Phase 1 -->
+            <rect x="15" y="145" width="155" height="65" rx="4" fill="var(--bg-recessed, #F3F0EB)" stroke="#D97706" stroke-width="1"/>
+            <text x="92" y="162" class="anno-bold" text-anchor="middle" style="fill:#D97706">IKE Phase 1</text>
+            <text x="92" y="176" class="anno" text-anchor="middle">ISAKMP SA negotiation</text>
+            <text x="30" y="190" class="dim-text">Auth, Encryption, Hash</text>
+            <text x="30" y="202" class="dim-text">DH Group, Lifetime</text>
+
+            <!-- IKE Phase 2 -->
+            <rect x="190" y="145" width="155" height="65" rx="4" fill="var(--bg-recessed, #F3F0EB)" stroke="#16A34A" stroke-width="1"/>
+            <text x="267" y="162" class="anno-bold" text-anchor="middle" style="fill:#16A34A">IKE Phase 2</text>
+            <text x="267" y="176" class="anno" text-anchor="middle">IPsec SA (data tunnel)</text>
+            <text x="205" y="190" class="dim-text">ESP (encrypt+auth) or</text>
+            <text x="205" y="202" class="dim-text">AH (auth only), Transform set</text>
+
+            <!-- Key protocols -->
+            <rect x="15" y="225" width="330" height="44" rx="4" fill="#1C1917"/>
+            <text x="25" y="241" style="font-size:8px;fill:#4ADE80;font-family:'JetBrains Mono',monospace">ESP (Protocol 50): Encrypts + authenticates</text>
+            <text x="25" y="256" style="font-size:8px;fill:#94A3B8;font-family:'JetBrains Mono',monospace">AH  (Protocol 51): Authenticates only (no encryption)</text>
+          </svg>`
+  },
+  {
+    id: "static-floating-routes",
+    title: "Static & Floating Static Routes",
+    desc: "Static routes are manually configured (AD=1). Floating statics use a higher AD as backup — they only activate when the primary route fails.",
+    domain: "3",
+    topic: "3.3",
+    group: null,
+    deepDive: null,
+    svg: `<svg viewBox="0 0 360 280" xmlns="http://www.w3.org/2000/svg">
+            <!-- Router -->
+            <rect x="140" y="10" width="80" height="32" rx="4" fill="#2563EB"/>
+            <text x="180" y="30" class="layer-label" text-anchor="middle">Router R1</text>
+
+            <!-- Destination -->
+            <rect x="140" y="200" width="80" height="32" rx="4" fill="#7C3AED"/>
+            <text x="180" y="216" class="layer-label" text-anchor="middle">10.0.0.0/24</text>
+            <text x="180" y="226" class="layer-sub" text-anchor="middle">Destination</text>
+
+            <!-- Primary path (green, solid) -->
+            <line x1="155" y1="42" x2="80" y2="110" stroke="#16A34A" stroke-width="2.5"/>
+            <line x1="80" y1="110" x2="80" y2="160" stroke="#16A34A" stroke-width="2.5"/>
+            <line x1="80" y1="160" x2="155" y2="200" stroke="#16A34A" stroke-width="2.5"/>
+            <rect x="30" y="105" width="90" height="22" rx="3" fill="#16A34A"/>
+            <text x="75" y="120" class="pkt-label" text-anchor="middle">Primary (AD=1)</text>
+            <text x="75" y="140" class="dim-text" text-anchor="middle">via 192.168.1.2</text>
+
+            <!-- Backup path (amber, dashed) -->
+            <line x1="205" y1="42" x2="280" y2="110" stroke="#D97706" stroke-width="2" stroke-dasharray="6,3"/>
+            <line x1="280" y1="110" x2="280" y2="160" stroke="#D97706" stroke-width="2" stroke-dasharray="6,3"/>
+            <line x1="280" y1="160" x2="205" y2="200" stroke="#D97706" stroke-width="2" stroke-dasharray="6,3"/>
+            <rect x="240" y="105" width="90" height="22" rx="3" fill="#D97706"/>
+            <text x="285" y="120" class="pkt-label" text-anchor="middle">Floating (AD=5)</text>
+            <text x="285" y="140" class="dim-text" text-anchor="middle">via 192.168.2.2</text>
+
+            <!-- Config commands -->
+            <rect x="15" y="245" width="330" height="28" rx="4" fill="#1C1917"/>
+            <text x="25" y="259" style="font-size:8px;fill:#4ADE80;font-family:'JetBrains Mono',monospace">ip route 10.0.0.0 255.255.255.0 192.168.1.2</text>
+            <text x="25" y="270" style="font-size:8px;fill:#D97706;font-family:'JetBrains Mono',monospace">ip route 10.0.0.0 255.255.255.0 192.168.2.2 5</text>
+
+            <!-- Explanation -->
+            <text x="180" y="244" class="dim-text" text-anchor="middle">AD=5 floating static stays hidden until primary fails</text>
+          </svg>`
+  },
+  {
+    id: "ipv6-slaac-ndp",
+    title: "IPv6 SLAAC & NDP",
+    desc: "IPv6 hosts auto-configure addresses using SLAAC — no DHCP needed. NDP replaces ARP with Neighbor Solicitation/Advertisement multicast messages.",
+    domain: "1",
+    topic: "1.8",
+    group: "ipv6",
+    deepDive: null,
+    svg: `<svg viewBox="0 0 360 310" xmlns="http://www.w3.org/2000/svg">
+            <!-- Router -->
+            <rect x="140" y="5" width="80" height="28" rx="4" fill="#2563EB"/>
+            <text x="180" y="23" class="layer-label" text-anchor="middle">Router</text>
+            <text x="180" y="40" class="dim-text" text-anchor="middle">fe80::1 (link-local)</text>
+
+            <!-- Host -->
+            <rect x="140" y="235" width="80" height="28" rx="4" fill="#16A34A"/>
+            <text x="180" y="253" class="layer-label" text-anchor="middle">Host</text>
+
+            <!-- Timelines -->
+            <line x1="180" y1="33" x2="180" y2="50" stroke="#2563EB" stroke-width="2"/>
+            <line x1="80" y1="55" x2="80" y2="230" stroke="#16A34A" stroke-width="2"/>
+            <line x1="280" y1="55" x2="280" y2="230" stroke="#2563EB" stroke-width="2"/>
+
+            <!-- Step 1: RS -->
+            <line x1="83" y1="70" x2="277" y2="82" stroke="#16A34A" stroke-width="1.5" marker-end="url(#arrSlaac)"/>
+            <rect x="120" y="60" width="120" height="16" rx="3" fill="#16A34A"/>
+            <text x="180" y="72" class="pkt-label" text-anchor="middle">1. RS (Router Solicitation)</text>
+            <text x="50" y="72" class="dim-text" text-anchor="end">FF02::2</text>
+
+            <!-- Step 2: RA -->
+            <line x1="277" y1="100" x2="83" y2="112" stroke="#2563EB" stroke-width="1.5" marker-end="url(#arrSlaacB)"/>
+            <rect x="110" y="92" width="140" height="16" rx="3" fill="#2563EB"/>
+            <text x="180" y="104" class="pkt-label" text-anchor="middle">2. RA (prefix: 2001:DB8::/64)</text>
+            <text x="310" y="104" class="dim-text">FF02::1</text>
+
+            <!-- Step 3: Generate address -->
+            <rect x="40" y="128" width="200" height="28" rx="4" fill="var(--bg-recessed, #F3F0EB)" stroke="#D97706" stroke-width="1"/>
+            <text x="140" y="140" class="anno-bold" text-anchor="middle" style="fill:#D97706">3. Host generates address:</text>
+            <text x="140" y="152" class="cmd-text" text-anchor="middle">2001:DB8::EUI-64 or ::random</text>
+
+            <!-- Step 4: DAD -->
+            <line x1="83" y1="172" x2="277" y2="184" stroke="#7C3AED" stroke-width="1.5" marker-end="url(#arrSlaacP)"/>
+            <rect x="100" y="164" width="160" height="16" rx="3" fill="#7C3AED"/>
+            <text x="180" y="176" class="pkt-label" text-anchor="middle">4. DAD — NS for own address</text>
+            <text x="50" y="178" class="dim-text" text-anchor="end">Multicast</text>
+
+            <!-- Step 5: No reply = unique -->
+            <rect x="60" y="200" width="200" height="18" rx="3" fill="#16A34A"/>
+            <text x="160" y="213" class="pkt-label" text-anchor="middle">5. No reply = address is unique, use it</text>
+
+            <!-- NDP vs ARP comparison -->
+            <rect x="15" y="272" width="330" height="32" rx="4" fill="var(--bg-recessed, #F3F0EB)"/>
+            <text x="30" y="286" class="anno-bold">NDP replaces ARP:</text>
+            <text x="140" y="286" class="anno">NS = ARP Request (multicast, not broadcast)</text>
+            <text x="140" y="298" class="anno">NA = ARP Reply (unicast)</text>
+
+            <defs>
+              <marker id="arrSlaac" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto"><polygon points="0,0 7,2.5 0,5" fill="#16A34A"/></marker>
+              <marker id="arrSlaacB" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto"><polygon points="0,0 7,2.5 0,5" fill="#2563EB"/></marker>
+              <marker id="arrSlaacP" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto"><polygon points="0,0 7,2.5 0,5" fill="#7C3AED"/></marker>
+            </defs>
+          </svg>`
+  },
+  {
+    id: "rstp-states",
+    title: "RSTP Port States & Roles",
+    desc: "RSTP (802.1w) replaced STP's 5 states with 3 and converges in seconds instead of 30-50 seconds. Know the state mapping and the Alternate/Backup port roles.",
+    domain: "2",
+    topic: "2.5",
+    group: null,
+    deepDive: null,
+    svg: `<svg viewBox="0 0 360 300" xmlns="http://www.w3.org/2000/svg">
+            <!-- STP column -->
+            <text x="85" y="18" class="anno-bold" text-anchor="middle">STP (802.1D)</text>
+            <text x="85" y="30" class="dim-text" text-anchor="middle">5 states, 30-50s convergence</text>
+
+            <rect x="30" y="40" width="110" height="22" rx="3" fill="#94A3B8"/>
+            <text x="85" y="55" class="pkt-label" text-anchor="middle">Disabled</text>
+
+            <rect x="30" y="66" width="110" height="22" rx="3" fill="#DC2626"/>
+            <text x="85" y="81" class="pkt-label" text-anchor="middle">Blocking</text>
+
+            <rect x="30" y="92" width="110" height="22" rx="3" fill="#D97706"/>
+            <text x="85" y="107" class="pkt-label" text-anchor="middle">Listening (15s)</text>
+
+            <rect x="30" y="118" width="110" height="22" rx="3" fill="#CA8A04"/>
+            <text x="85" y="133" class="pkt-label" text-anchor="middle">Learning (15s)</text>
+
+            <rect x="30" y="144" width="110" height="22" rx="3" fill="#16A34A"/>
+            <text x="85" y="159" class="pkt-label" text-anchor="middle">Forwarding</text>
+
+            <!-- RSTP column -->
+            <text x="275" y="18" class="anno-bold" text-anchor="middle">RSTP (802.1w)</text>
+            <text x="275" y="30" class="dim-text" text-anchor="middle">3 states, ~1-2s convergence</text>
+
+            <rect x="220" y="56" width="110" height="36" rx="3" fill="#DC2626"/>
+            <text x="275" y="72" class="layer-label" text-anchor="middle">Discarding</text>
+            <text x="275" y="84" class="layer-sub" text-anchor="middle">No learn, no fwd</text>
+
+            <rect x="220" y="108" width="110" height="36" rx="3" fill="#CA8A04"/>
+            <text x="275" y="124" class="layer-label" text-anchor="middle">Learning</text>
+            <text x="275" y="136" class="layer-sub" text-anchor="middle">Learns MAC, no fwd</text>
+
+            <rect x="220" y="152" width="110" height="22" rx="3" fill="#16A34A"/>
+            <text x="275" y="167" class="pkt-label" text-anchor="middle">Forwarding</text>
+
+            <!-- Mapping arrows -->
+            <line x1="140" y1="51" x2="220" y2="65" stroke="#94A3B8" stroke-width="1" stroke-dasharray="3,3"/>
+            <line x1="140" y1="77" x2="220" y2="72" stroke="#94A3B8" stroke-width="1" stroke-dasharray="3,3"/>
+            <line x1="140" y1="103" x2="220" y2="78" stroke="#94A3B8" stroke-width="1" stroke-dasharray="3,3"/>
+            <line x1="140" y1="129" x2="220" y2="126" stroke="#94A3B8" stroke-width="1"/>
+            <line x1="140" y1="155" x2="220" y2="163" stroke="#16A34A" stroke-width="1.5"/>
+
+            <!-- Role comparison -->
+            <rect x="15" y="190" width="330" height="100" rx="4" fill="var(--bg-recessed, #F3F0EB)"/>
+            <text x="30" y="208" class="anno-bold">Port Roles:</text>
+            <text x="85" y="208" class="anno-bold">STP</text>
+            <text x="230" y="208" class="anno-bold">RSTP</text>
+            <line x1="25" y1="213" x2="335" y2="213" stroke="#D4D0C8" stroke-width="0.5"/>
+
+            <text x="30" y="228" class="anno" style="fill:#16A34A">Root Port</text>
+            <text x="230" y="228" class="anno" style="fill:#16A34A">Root Port (same)</text>
+
+            <text x="30" y="245" class="anno" style="fill:#D97706">Designated Port</text>
+            <text x="230" y="245" class="anno" style="fill:#D97706">Designated Port (same)</text>
+
+            <text x="30" y="262" class="anno" style="fill:#DC2626">Blocked Port</text>
+            <text x="230" y="262" class="anno" style="fill:#DC2626">Alternate Port</text>
+            <text x="320" y="262" class="dim-text">(backup to root)</text>
+
+            <text x="230" y="279" class="anno" style="fill:#7C3AED">Backup Port</text>
+            <text x="320" y="279" class="dim-text">(backup to designated)</text>
+          </svg>`
+  },
+  {
+    id: "wpa2-wpa3",
+    title: "WPA2 / WPA3 Wireless Security",
+    desc: "WPA2 uses AES-CCMP. WPA3 adds SAE (Simultaneous Authentication of Equals) for forward secrecy. Enterprise mode uses 802.1X/RADIUS instead of a shared password.",
+    domain: "5",
+    topic: "5.9",
+    group: "wireless",
+    deepDive: null,
+    svg: `<svg viewBox="0 0 360 270" xmlns="http://www.w3.org/2000/svg">
+            <!-- Header row -->
+            <rect x="15" y="10" width="100" height="28" rx="4" fill="#64748B"/>
+            <text x="65" y="28" class="layer-label" text-anchor="middle"></text>
+            <rect x="125" y="10" width="105" height="28" rx="4" fill="#2563EB"/>
+            <text x="177" y="28" class="layer-label" text-anchor="middle">Personal</text>
+            <rect x="240" y="10" width="105" height="28" rx="4" fill="#7C3AED"/>
+            <text x="292" y="28" class="layer-label" text-anchor="middle">Enterprise</text>
+
+            <!-- WPA2 row -->
+            <rect x="15" y="46" width="100" height="70" rx="4" fill="#D97706"/>
+            <text x="65" y="68" class="layer-label" text-anchor="middle">WPA2</text>
+            <text x="65" y="82" class="layer-sub" text-anchor="middle">802.11i</text>
+            <text x="65" y="96" class="layer-sub" text-anchor="middle">(current standard)</text>
+
+            <rect x="125" y="46" width="105" height="70" rx="4" fill="var(--bg-recessed, #F3F0EB)" stroke="#D4D0C8" stroke-width="1"/>
+            <text x="177" y="64" class="anno-bold" text-anchor="middle">PSK</text>
+            <text x="177" y="78" class="anno" text-anchor="middle">Pre-Shared Key</text>
+            <text x="177" y="92" class="anno" text-anchor="middle">AES-CCMP</text>
+            <text x="177" y="106" class="dim-text" text-anchor="middle">Home / small office</text>
+
+            <rect x="240" y="46" width="105" height="70" rx="4" fill="var(--bg-recessed, #F3F0EB)" stroke="#D4D0C8" stroke-width="1"/>
+            <text x="292" y="64" class="anno-bold" text-anchor="middle">802.1X</text>
+            <text x="292" y="78" class="anno" text-anchor="middle">RADIUS server</text>
+            <text x="292" y="92" class="anno" text-anchor="middle">AES-CCMP</text>
+            <text x="292" y="106" class="dim-text" text-anchor="middle">Corporate</text>
+
+            <!-- WPA3 row -->
+            <rect x="15" y="124" width="100" height="70" rx="4" fill="#16A34A"/>
+            <text x="65" y="146" class="layer-label" text-anchor="middle">WPA3</text>
+            <text x="65" y="160" class="layer-sub" text-anchor="middle">Latest</text>
+            <text x="65" y="174" class="layer-sub" text-anchor="middle">(recommended)</text>
+
+            <rect x="125" y="124" width="105" height="70" rx="4" fill="var(--bg-recessed, #F3F0EB)" stroke="#16A34A" stroke-width="1.5"/>
+            <text x="177" y="142" class="anno-bold" text-anchor="middle" style="fill:#16A34A">SAE</text>
+            <text x="177" y="156" class="anno" text-anchor="middle">Replaces PSK</text>
+            <text x="177" y="170" class="anno" text-anchor="middle">AES-CCMP</text>
+            <text x="177" y="184" class="dim-text" text-anchor="middle">Forward secrecy</text>
+
+            <rect x="240" y="124" width="105" height="70" rx="4" fill="var(--bg-recessed, #F3F0EB)" stroke="#7C3AED" stroke-width="1.5"/>
+            <text x="292" y="142" class="anno-bold" text-anchor="middle" style="fill:#7C3AED">802.1X</text>
+            <text x="292" y="156" class="anno" text-anchor="middle">RADIUS server</text>
+            <text x="292" y="170" class="anno" text-anchor="middle">192-bit suite</text>
+            <text x="292" y="184" class="dim-text" text-anchor="middle">CNSA / gov-grade</text>
+
+            <!-- Key difference callout -->
+            <rect x="15" y="208" width="330" height="52" rx="4" fill="#1C1917"/>
+            <text x="25" y="224" style="font-size:9px;fill:#4ADE80;font-family:'JetBrains Mono',monospace">Key difference:</text>
+            <text x="25" y="240" style="font-size:8px;fill:#94A3B8;font-family:'JetBrains Mono',monospace">WPA2-PSK: Shared password, vulnerable to offline attacks</text>
+            <text x="25" y="254" style="font-size:8px;fill:#4ADE80;font-family:'JetBrains Mono',monospace">WPA3-SAE: Per-session keys, forward secrecy (can't decrypt</text>
+            <text x="25" y="265" style="font-size:8px;fill:#4ADE80;font-family:'JetBrains Mono',monospace">past traffic even if password is later compromised)</text>
           </svg>`
   }
 ];
