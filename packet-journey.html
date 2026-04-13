@@ -139,7 +139,7 @@ canvas{display:block}
 
 <div class="start-screen" id="startScreen">
   <div class="start-title">The Journey of a Packet</div>
-  <div class="start-sub">Watch a single packet travel from PC to server — through switches, a router, ARP resolution, MAC lookups, and Layer 3 decisions. Every hop explained.</div>
+  <div class="start-sub">PC1 (10.0.1.10) sends a packet to Server1 (10.0.2.100) across two switches and a router. ARP, MAC tables, routing table lookups, TTL, frame re-encapsulation — every hop visualized.</div>
   <button class="start-btn" id="startBtn">Start Journey</button>
   <div class="start-topo">PC1 --- SW1 --- R1 --- SW2 --- Server1</div>
 </div>
@@ -802,21 +802,22 @@ let currentStep = 0;
 let tourActive  = false;
 
 const STEPS = [
-  // Step 1: Start at PC1 — where the journey begins
+  // Step 1: PC1 encapsulates — show what happens before the frame hits the wire
   {
     camera: { pos: new THREE.Vector3(-8, 3, 5), look: DEVICE_POSITIONS.PC1 },
-    title: 'The Journey Begins',
-    text: 'A user on <span class="hl">PC1</span> wants to reach <span class="hl-green">Server1</span>. The application creates data and hands it to the transport layer. Let\'s follow this packet through every hop.',
+    title: 'PC1 Encapsulates the Packet',
+    text: '<span class="hl">PC1 (10.0.1.10)</span> needs to reach <span class="hl-green">Server1 (10.0.2.100)</span> — different subnet. PC1 checks its routing table: destination isn\'t local, so it forwards to the <span class="hl-amber">default gateway 10.0.1.1 (R1)</span>. But first it needs R1\'s MAC address.',
     run: async () => {
       highlightDevice('PC1', CYAN, 2);
-      await wait(500);
+      highlightDevice('Server1', GREEN, 0.5);
+      await wait(800);
     }
   },
   // Step 2: ARP Resolution
   {
     camera: { pos: new THREE.Vector3(-7.5, 2.5, 3.5), look: DEVICE_POSITIONS.PC1.clone().add(new THREE.Vector3(1, 0, 0)) },
-    title: 'Layer 2 — ARP Resolution',
-    text: 'PC1 needs the MAC address of its default gateway (<span class="hl-amber">R1</span>). It sends an ARP broadcast: <span class="hl">"Who has 10.0.1.1?"</span> The switch floods it to all ports. R1 responds with a unicast ARP reply.',
+    title: 'ARP Broadcast — Resolving the Gateway MAC',
+    text: 'PC1 sends an ARP request: <span class="hl">"Who has 10.0.1.1? Tell 10.0.1.10"</span>. This is a <span class="hl-amber">broadcast</span> — SW1 floods it out all ports. R1 recognizes its own IP and replies unicast with its MAC. PC1 caches it.',
     run: async () => {
       highlightDevice('PC1', CYAN);
       // Broadcast animation: packets from PC1 to SW1
@@ -1023,8 +1024,8 @@ const STEPS = [
   // Step 7: Complete picture
   {
     camera: { pos: new THREE.Vector3(0, 10, 20), look: new THREE.Vector3(0, 0, 0) },
-    title: 'The Complete Picture',
-    text: 'Every packet makes this journey. <span class="hl">ARP</span> to resolve MACs, switches forwarding by <span class="hl-amber">MAC table</span>, routers making <span class="hl-amber">Layer 3 decisions</span> with new frames at every hop. This is the foundation of everything on the CCNA.',
+    title: 'Full Path — End to End',
+    text: 'L2 forwarding at each switch, L3 routing decision at R1, new source MAC at every hop, TTL decremented once. The return path is identical in reverse — Server1 already has PC1\'s info cached from the original ARP exchange.',
     run: async () => {
       // Light up full path simultaneously
       Object.keys(cableMeshes).forEach(k => glowCable(k, CYAN));
