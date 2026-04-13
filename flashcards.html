@@ -1,0 +1,1116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Flashcards — CCNA 200-301</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="stylesheet" href="css/shared.css">
+  <style>
+    /* ── Layout ─────────────────────────────────────────────────── */
+    .fc-layout {
+      display: grid;
+      grid-template-columns: 260px 1fr;
+      gap: var(--s-lg);
+      align-items: start;
+      min-height: 70vh;
+    }
+
+    @media (max-width: 900px) {
+      .fc-layout { grid-template-columns: 1fr; }
+      .fc-sidebar { max-height: 240px; overflow-y: auto; }
+    }
+
+    /* ── Stats Row ─────────────────────────────────────────────── */
+    .fc-stats {
+      display: flex;
+      gap: var(--s-xl);
+      padding: var(--s-md) 0;
+      border-bottom: 1px solid var(--rule);
+      margin-bottom: var(--s-lg);
+      flex-wrap: wrap;
+    }
+
+    .fc-stat { text-align: left; }
+
+    .fc-stat .val {
+      font-family: var(--font-mono);
+      font-size: 1.5rem;
+      font-weight: 700;
+      line-height: 1;
+      color: var(--ink);
+    }
+
+    .fc-stat .lbl {
+      font-family: var(--font-display);
+      font-size: 0.68rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--ink-muted);
+      margin-top: 2px;
+    }
+
+    .fc-stat .val.green { color: var(--prof-strong); }
+    .fc-stat .val.amber { color: var(--accent); }
+    .fc-stat .val.red { color: var(--prof-weak); }
+
+    /* ── Session bar ───────────────────────────────────────────── */
+    .fc-session-bar {
+      display: flex;
+      align-items: center;
+      gap: var(--s-sm);
+      margin-bottom: var(--s-md);
+      font-family: var(--font-display);
+      font-size: 0.78rem;
+      color: var(--ink-secondary);
+    }
+
+    .fc-session-bar .sep { color: var(--ink-faint); }
+
+    .fc-progress-mini {
+      flex: 1;
+      max-width: 200px;
+      height: 4px;
+      background: var(--bg-recessed);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    .fc-progress-mini .fill {
+      height: 100%;
+      background: var(--prof-strong);
+      border-radius: 2px;
+      transition: width 0.4s var(--ease-out);
+    }
+
+    /* ── Mode selector ─────────────────────────────────────────── */
+    .fc-modes {
+      display: flex;
+      gap: var(--s-xs);
+      margin-bottom: var(--s-lg);
+      flex-wrap: wrap;
+    }
+
+    .fc-mode-btn {
+      font-family: var(--font-display);
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      padding: 7px 16px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--bg-surface);
+      color: var(--ink-secondary);
+      cursor: pointer;
+      transition: all var(--transition);
+    }
+
+    .fc-mode-btn:hover { border-color: var(--border-strong); color: var(--ink); }
+
+    .fc-mode-btn.active {
+      background: var(--ink);
+      color: var(--bg);
+      border-color: var(--ink);
+    }
+
+    .fc-mode-btn .count {
+      font-family: var(--font-mono);
+      font-size: 0.68rem;
+      opacity: 0.7;
+      margin-left: 4px;
+    }
+
+    /* ── Sidebar ───────────────────────────────────────────────── */
+    .fc-sidebar {
+      position: sticky;
+      top: var(--s-md);
+    }
+
+    .fc-sidebar h3 {
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--ink-muted);
+      margin-bottom: var(--s-sm);
+    }
+
+    .fc-section-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      max-height: calc(100vh - 200px);
+      overflow-y: auto;
+    }
+
+    .fc-section-item {
+      padding: 8px 10px;
+      border-radius: var(--radius);
+      cursor: pointer;
+      transition: background var(--transition);
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .fc-section-item:hover { background: var(--bg-hover); }
+
+    .fc-section-item.active {
+      background: var(--accent-dim);
+      border-left: 3px solid var(--accent);
+      padding-left: 7px;
+    }
+
+    .fc-section-name {
+      font-family: var(--font-display);
+      font-size: 0.78rem;
+      font-weight: 500;
+      color: var(--ink);
+      line-height: 1.3;
+    }
+
+    .fc-section-meta {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      color: var(--ink-muted);
+    }
+
+    .fc-section-due {
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    .fc-section-progress {
+      flex: 1;
+      height: 3px;
+      background: var(--bg-recessed);
+      border-radius: 2px;
+      overflow: hidden;
+      display: flex;
+    }
+
+    .fc-section-progress .seg-mastered { background: var(--prof-strong); }
+    .fc-section-progress .seg-learning { background: var(--prof-mid); }
+    .fc-section-progress .seg-new { background: var(--bg-recessed); }
+
+    /* ── Card area ─────────────────────────────────────────────── */
+    .fc-card-area {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 400px;
+    }
+
+    /* ── Card flip ─────────────────────────────────────────────── */
+    .fc-card-container {
+      perspective: 1200px;
+      width: 100%;
+      max-width: 560px;
+      min-height: 300px;
+      margin: 0 auto var(--s-lg);
+      cursor: pointer;
+    }
+
+    .fc-card-flip {
+      position: relative;
+      width: 100%;
+      min-height: 300px;
+      transition: transform 0.5s var(--ease-out);
+      transform-style: preserve-3d;
+    }
+
+    .fc-card-flip.flipped { transform: rotateY(180deg); }
+
+    .fc-card-front, .fc-card-back {
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      min-height: 300px;
+      backface-visibility: hidden;
+      -webkit-backface-visibility: hidden;
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: var(--s-xl) var(--s-lg);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+    }
+
+    .fc-card-back { transform: rotateY(180deg); }
+
+    .fc-card-type {
+      position: absolute;
+      top: 12px;
+      left: 14px;
+      font-family: var(--font-display);
+      font-size: 0.6rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--ink-muted);
+      background: var(--bg-recessed);
+      padding: 2px 8px;
+      border-radius: var(--radius);
+    }
+
+    .fc-card-section-label {
+      position: absolute;
+      top: 12px;
+      right: 14px;
+      font-family: var(--font-display);
+      font-size: 0.6rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--ink-muted);
+    }
+
+    .fc-card-question {
+      font-family: var(--font-body);
+      font-size: 1.15rem;
+      line-height: 1.6;
+      color: var(--ink);
+      max-width: 440px;
+    }
+
+    .fc-card-question .cloze-blank {
+      display: inline-block;
+      min-width: 80px;
+      border-bottom: 2px dashed var(--accent);
+      color: var(--accent);
+      font-weight: 600;
+      padding: 0 4px;
+      margin: 0 2px;
+    }
+
+    .fc-card-answer {
+      font-family: var(--font-display);
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: var(--ink);
+      margin-bottom: var(--s-md);
+      max-width: 440px;
+    }
+
+    .fc-card-answer .cloze-answer {
+      color: var(--accent);
+      background: var(--accent-light);
+      padding: 2px 8px;
+      border-radius: var(--radius);
+    }
+
+    .fc-card-explanation {
+      font-size: 0.88rem;
+      color: var(--ink-secondary);
+      line-height: 1.6;
+      max-width: 440px;
+    }
+
+    .fc-flip-hint {
+      font-family: var(--font-display);
+      font-size: 0.72rem;
+      color: var(--ink-muted);
+      margin-top: var(--s-md);
+      letter-spacing: 0.02em;
+    }
+
+    .fc-flip-hint kbd {
+      font-family: var(--font-mono);
+      font-size: 0.68rem;
+      background: var(--bg-recessed);
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      padding: 1px 6px;
+      margin: 0 2px;
+    }
+
+    /* ── Rating buttons ────────────────────────────────────────── */
+    .fc-ratings {
+      display: flex;
+      gap: var(--s-sm);
+      justify-content: center;
+      opacity: 0;
+      transform: translateY(8px);
+      transition: opacity 0.3s var(--ease-out), transform 0.3s var(--ease-out);
+      pointer-events: none;
+    }
+
+    .fc-ratings.visible {
+      opacity: 1;
+      transform: translateY(0);
+      pointer-events: auto;
+    }
+
+    .fc-rate-btn {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      padding: 10px 20px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      background: var(--bg-surface);
+      cursor: pointer;
+      transition: all var(--transition);
+      min-width: 72px;
+    }
+
+    .fc-rate-btn:hover { transform: translateY(-2px); }
+
+    .fc-rate-btn .rate-label {
+      font-family: var(--font-display);
+      font-size: 0.78rem;
+      font-weight: 600;
+    }
+
+    .fc-rate-btn .rate-interval {
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      color: var(--ink-muted);
+    }
+
+    .fc-rate-btn.again { border-color: var(--prof-weak); }
+    .fc-rate-btn.again:hover { background: var(--prof-weak-bg); }
+    .fc-rate-btn.again .rate-label { color: var(--prof-weak); }
+
+    .fc-rate-btn.hard { border-color: var(--prof-mid); }
+    .fc-rate-btn.hard:hover { background: var(--prof-mid-bg); }
+    .fc-rate-btn.hard .rate-label { color: var(--prof-mid); }
+
+    .fc-rate-btn.good { border-color: var(--prof-strong); }
+    .fc-rate-btn.good:hover { background: var(--prof-strong-bg); }
+    .fc-rate-btn.good .rate-label { color: var(--prof-strong); }
+
+    .fc-rate-btn.easy { border-color: #3B82F6; }
+    .fc-rate-btn.easy:hover { background: #EFF6FF; }
+    .fc-rate-btn.easy .rate-label { color: #3B82F6; }
+
+    /* ── Keyboard hints under ratings ──────────────────────────── */
+    .fc-kb-hints {
+      display: flex;
+      gap: var(--s-sm);
+      justify-content: center;
+      margin-top: var(--s-sm);
+      opacity: 0;
+      transition: opacity 0.3s var(--ease-out);
+    }
+
+    .fc-kb-hints.visible { opacity: 1; }
+
+    .fc-kb-hints kbd {
+      font-family: var(--font-mono);
+      font-size: 0.6rem;
+      background: var(--bg-recessed);
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      padding: 1px 6px;
+      color: var(--ink-muted);
+      min-width: 72px;
+      text-align: center;
+    }
+
+    /* ── Empty state ───────────────────────────────────────────── */
+    .fc-empty {
+      text-align: center;
+      padding: var(--s-3xl) var(--s-lg);
+    }
+
+    .fc-empty h2 {
+      font-size: 1.1rem;
+      border: none;
+      margin: 0 0 var(--s-sm);
+      padding: 0;
+    }
+
+    .fc-empty p {
+      color: var(--ink-secondary);
+      font-size: 0.9rem;
+      max-width: 40ch;
+      margin: 0 auto;
+    }
+
+    /* ── Hint button ───────────────────────────────────────────── */
+    .fc-hint-btn {
+      font-family: var(--font-display);
+      font-size: 0.72rem;
+      color: var(--ink-muted);
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 4px 12px;
+      cursor: pointer;
+      margin-top: var(--s-sm);
+      transition: all var(--transition);
+    }
+
+    .fc-hint-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    .fc-hint-text {
+      font-family: var(--font-mono);
+      font-size: 0.78rem;
+      color: var(--accent);
+      margin-top: var(--s-sm);
+    }
+
+    /* ── Footer ────────────────────────────────────────────────── */
+    .fc-footer {
+      text-align: center;
+      font-family: var(--font-display);
+      font-size: 0.68rem;
+      color: var(--ink-muted);
+      padding: var(--s-xl) 0 var(--s-lg);
+      border-top: 1px solid var(--rule);
+      margin-top: var(--s-2xl);
+    }
+
+    /* ── Reduced motion ────────────────────────────────────────── */
+    @media (prefers-reduced-motion: reduce) {
+      .fc-card-flip { transition: none; }
+      .fc-ratings, .fc-kb-hints { transition: none; }
+    }
+
+    /* ── Mobile tweaks ─────────────────────────────────────────── */
+    @media (max-width: 600px) {
+      .fc-stats { gap: var(--s-md); }
+      .fc-stat .val { font-size: 1.2rem; }
+      .fc-card-container { min-height: 260px; }
+      .fc-card-front, .fc-card-back {
+        min-height: 260px;
+        padding: var(--s-lg) var(--s-md);
+      }
+      .fc-card-question { font-size: 1rem; }
+      .fc-card-answer { font-size: 1.15rem; }
+      .fc-rate-btn { padding: 8px 14px; min-width: 60px; }
+      .fc-rate-btn .rate-label { font-size: 0.7rem; }
+      .fc-modes { gap: 2px; }
+      .fc-mode-btn { padding: 6px 10px; font-size: 0.68rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container-wide">
+    <nav class="top-nav"></nav>
+
+    <header class="page-header">
+      <h1>Flashcards</h1>
+      <p class="subtitle">668 cards across 36 topics — spaced repetition powered by SM-2</p>
+    </header>
+
+    <!-- Stats dashboard -->
+    <div class="fc-stats" id="fc-stats"></div>
+
+    <!-- Mode selector -->
+    <div class="fc-modes" id="fc-modes"></div>
+
+    <!-- Session progress bar -->
+    <div class="fc-session-bar" id="fc-session-bar" style="display:none">
+      <span id="fc-session-count"></span>
+      <span class="sep">/</span>
+      <span id="fc-session-total"></span>
+      <div class="fc-progress-mini"><div class="fill" id="fc-session-fill"></div></div>
+      <span id="fc-session-accuracy"></span>
+    </div>
+
+    <!-- Main layout: sidebar + card -->
+    <div class="fc-layout">
+      <aside class="fc-sidebar">
+        <h3>Sections</h3>
+        <ul class="fc-section-list" id="fc-section-list"></ul>
+      </aside>
+
+      <main class="fc-card-area" id="fc-card-area">
+        <div class="fc-empty" id="fc-empty">
+          <h2>Choose a study mode to begin</h2>
+          <p>Select a mode above or click a section to drill specific topics.</p>
+        </div>
+      </main>
+    </div>
+
+    <footer class="fc-footer">
+      Flashcard data from Flackbox CCNA 200-301 (MIT License) via Packt Publishing. 668 cards across 36 networking topics.
+    </footer>
+  </div>
+
+  <script src="data/anki-data.js"></script>
+  <script src="js/store.js"></script>
+  <script src="js/nav.js"></script>
+  <script src="js/tutor.js"></script>
+  <script>
+  (function () {
+    'use strict';
+
+    // ── Constants ──────────────────────────────────────────────
+    var STORAGE_KEY = 'ccna_flashcard_state';
+    var STREAK_KEY = 'ccna_fc_streak';
+    var SESSION_KEY = 'ccna_fc_session';
+
+    // ── Helpers ───────────────────────────────────────────────
+    function todayStr() {
+      var d = new Date();
+      return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+    }
+
+    function daysBetween(a, b) {
+      return Math.round((new Date(b) - new Date(a)) / 86400000);
+    }
+
+    function formatInterval(days) {
+      if (days < 1) return '<1d';
+      if (days < 30) return Math.round(days) + 'd';
+      if (days < 365) return Math.round(days / 30) + 'mo';
+      return Math.round(days / 365) + 'y';
+    }
+
+    function shuffle(arr) {
+      var a = arr.slice();
+      for (var i = a.length - 1; i > 0; i--) {
+        var j = Math.floor(Math.random() * (i + 1));
+        var t = a[i]; a[i] = a[j]; a[j] = t;
+      }
+      return a;
+    }
+
+    // ── State persistence ─────────────────────────────────────
+    function loadCardStates() {
+      try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}; }
+      catch(e) { return {}; }
+    }
+
+    function saveCardStates(states) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(states));
+    }
+
+    function getCardState(cardId) {
+      var states = loadCardStates();
+      return states[cardId] || null;
+    }
+
+    function setCardState(cardId, state) {
+      var states = loadCardStates();
+      states[cardId] = state;
+      saveCardStates(states);
+    }
+
+    // ── Streak ────────────────────────────────────────────────
+    function loadStreak() {
+      try { return JSON.parse(localStorage.getItem(STREAK_KEY)) || { current: 0, lastDate: null }; }
+      catch(e) { return { current: 0, lastDate: null }; }
+    }
+
+    function updateStreak() {
+      var streak = loadStreak();
+      var today = todayStr();
+      if (streak.lastDate === today) return streak;
+      var yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 1);
+      var yStr = yesterday.getFullYear() + '-' + String(yesterday.getMonth()+1).padStart(2,'0') + '-' + String(yesterday.getDate()).padStart(2,'0');
+      streak.current = (streak.lastDate === yStr) ? streak.current + 1 : 1;
+      streak.lastDate = today;
+      localStorage.setItem(STREAK_KEY, JSON.stringify(streak));
+      return streak;
+    }
+
+    // ── Session stats ─────────────────────────────────────────
+    var session = { reviewed: 0, correct: 0 };
+
+    // ── SM-2 Algorithm ────────────────────────────────────────
+    function computeNextState(current, rating) {
+      // rating: 'again' | 'hard' | 'good' | 'easy'
+      var today = todayStr();
+      var s = current ? Object.assign({}, current) : {
+        interval: 0,
+        ease: 2.5,
+        repetitions: 0,
+        dueDate: today,
+        lastReview: today
+      };
+
+      s.lastReview = today;
+
+      switch (rating) {
+        case 'again':
+          s.interval = 1;
+          s.ease = Math.max(1.3, s.ease - 0.2);
+          s.repetitions = 0;
+          break;
+        case 'hard':
+          s.interval = Math.max(1, Math.round((s.interval || 1) * 1.2));
+          s.ease = Math.max(1.3, s.ease - 0.15);
+          s.repetitions = s.repetitions + 1;
+          break;
+        case 'good':
+          if (s.repetitions === 0) s.interval = 1;
+          else if (s.repetitions === 1) s.interval = 6;
+          else s.interval = Math.round((s.interval || 1) * s.ease);
+          s.repetitions = s.repetitions + 1;
+          break;
+        case 'easy':
+          if (s.repetitions === 0) s.interval = 4;
+          else s.interval = Math.round((s.interval || 1) * s.ease * 1.3);
+          s.ease = s.ease + 0.15;
+          s.repetitions = s.repetitions + 1;
+          break;
+      }
+
+      // Compute due date
+      var due = new Date();
+      due.setDate(due.getDate() + s.interval);
+      s.dueDate = due.getFullYear() + '-' + String(due.getMonth()+1).padStart(2,'0') + '-' + String(due.getDate()).padStart(2,'0');
+
+      return s;
+    }
+
+    function previewInterval(cardId, rating) {
+      var current = getCardState(cardId);
+      var next = computeNextState(current, rating);
+      return formatInterval(next.interval);
+    }
+
+    // ── Data indexing ─────────────────────────────────────────
+    var sections = typeof ANKI_SECTIONS !== 'undefined' ? ANKI_SECTIONS : [];
+    var allCards = typeof ANKI_CARDS !== 'undefined' ? ANKI_CARDS : [];
+
+    // Build section lookup
+    var sectionMap = {};
+    sections.forEach(function(s) { sectionMap[s.id] = s; });
+
+    // Index cards by section
+    var cardsBySection = {};
+    allCards.forEach(function(c) {
+      if (!cardsBySection[c.section]) cardsBySection[c.section] = [];
+      cardsBySection[c.section].push(c);
+    });
+
+    // ── Compute stats ─────────────────────────────────────────
+    function computeStats() {
+      var states = loadCardStates();
+      var today = todayStr();
+      var total = allCards.length;
+      var newCount = 0, learning = 0, mastered = 0, due = 0;
+
+      allCards.forEach(function(c) {
+        var s = states[c.id];
+        if (!s) { newCount++; return; }
+        if (s.interval > 21) mastered++;
+        else learning++;
+        if (s.dueDate <= today) due++;
+      });
+
+      var streak = loadStreak();
+
+      return {
+        total: total,
+        due: due,
+        new: newCount,
+        learning: learning,
+        mastered: mastered,
+        streak: streak.current
+      };
+    }
+
+    function sectionStats(sectionId) {
+      var cards = cardsBySection[sectionId] || [];
+      var states = loadCardStates();
+      var today = todayStr();
+      var newC = 0, learning = 0, mastered = 0, due = 0;
+
+      cards.forEach(function(c) {
+        var s = states[c.id];
+        if (!s) { newC++; return; }
+        if (s.interval > 21) mastered++;
+        else learning++;
+        if (s.dueDate <= today) due++;
+      });
+
+      return { total: cards.length, new: newC, learning: learning, mastered: mastered, due: due };
+    }
+
+    // ── Card queues ───────────────────────────────────────────
+    function getDueCards() {
+      var states = loadCardStates();
+      var today = todayStr();
+      return allCards.filter(function(c) {
+        var s = states[c.id];
+        return s && s.dueDate <= today;
+      });
+    }
+
+    function getNewCards(limit) {
+      var states = loadCardStates();
+      var cards = allCards.filter(function(c) { return !states[c.id]; });
+      return shuffle(cards).slice(0, limit || 20);
+    }
+
+    function getSectionCards(sectionId) {
+      return shuffle(cardsBySection[sectionId] || []);
+    }
+
+    function getAllCardsShuffle() {
+      return shuffle(allCards);
+    }
+
+    // ── Cloze parsing ─────────────────────────────────────────
+    function parseCloze(text, showAnswer) {
+      return text.replace(/\{\{c\d+::(.*?)\}\}/g, function(match, answer) {
+        if (showAnswer) {
+          return '<span class="cloze-answer">' + escHtml(answer) + '</span>';
+        }
+        return '<span class="cloze-blank">[...]</span>';
+      });
+    }
+
+    function escHtml(str) {
+      var d = document.createElement('div');
+      d.textContent = str;
+      return d.innerHTML;
+    }
+
+    // ── Render stats ──────────────────────────────────────────
+    function renderStats() {
+      var stats = computeStats();
+      var el = document.getElementById('fc-stats');
+      el.innerHTML =
+        '<div class="fc-stat"><div class="val">' + stats.total + '</div><div class="lbl">Total</div></div>' +
+        '<div class="fc-stat"><div class="val amber">' + stats.due + '</div><div class="lbl">Due Today</div></div>' +
+        '<div class="fc-stat"><div class="val">' + stats.new + '</div><div class="lbl">New</div></div>' +
+        '<div class="fc-stat"><div class="val">' + stats.learning + '</div><div class="lbl">Learning</div></div>' +
+        '<div class="fc-stat"><div class="val green">' + stats.mastered + '</div><div class="lbl">Mastered</div></div>' +
+        '<div class="fc-stat"><div class="val">' + stats.streak + '</div><div class="lbl">Day Streak</div></div>' +
+        '<div class="fc-stat"><div class="val">' + session.reviewed + '</div><div class="lbl">This Session</div></div>' +
+        '<div class="fc-stat"><div class="val">' + (session.reviewed > 0 ? Math.round(session.correct / session.reviewed * 100) + '%' : '--') + '</div><div class="lbl">Accuracy</div></div>';
+    }
+
+    // ── Render mode buttons ───────────────────────────────────
+    function renderModes() {
+      var stats = computeStats();
+      var el = document.getElementById('fc-modes');
+      var modes = [
+        { id: 'due', label: 'Review Due', count: stats.due },
+        { id: 'new', label: 'New Cards', count: stats.new > 20 ? 20 : stats.new },
+        { id: 'section', label: 'Section Drill', count: '' },
+        { id: 'all', label: 'All Cards', count: stats.total }
+      ];
+
+      el.innerHTML = modes.map(function(m) {
+        return '<button class="fc-mode-btn' + (currentMode === m.id ? ' active' : '') + '" data-mode="' + m.id + '">' +
+          m.label + (m.count !== '' ? '<span class="count">' + m.count + '</span>' : '') +
+          '</button>';
+      }).join('');
+
+      el.querySelectorAll('.fc-mode-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+          var mode = btn.getAttribute('data-mode');
+          if (mode === 'section') {
+            // Just set mode, user picks from sidebar
+            currentMode = 'section';
+            currentQueue = [];
+            currentIndex = -1;
+            renderModes();
+            renderCardArea();
+            return;
+          }
+          startMode(mode);
+        });
+      });
+    }
+
+    // ── Render sidebar ────────────────────────────────────────
+    function renderSidebar() {
+      var el = document.getElementById('fc-section-list');
+      el.innerHTML = sections.map(function(sec) {
+        var ss = sectionStats(sec.id);
+        var total = ss.total || 1;
+        var mPct = (ss.mastered / total * 100).toFixed(0);
+        var lPct = (ss.learning / total * 100).toFixed(0);
+        var isActive = currentMode === 'section' && currentSectionId === sec.id;
+
+        return '<li class="fc-section-item' + (isActive ? ' active' : '') + '" data-section="' + sec.id + '">' +
+          '<span class="fc-section-name">' + escHtml(sec.name) + '</span>' +
+          '<div class="fc-section-meta">' +
+            '<span>' + ss.total + '</span>' +
+            (ss.due > 0 ? '<span class="fc-section-due">' + ss.due + ' due</span>' : '') +
+            '<div class="fc-section-progress">' +
+              '<div class="seg-mastered" style="width:' + mPct + '%"></div>' +
+              '<div class="seg-learning" style="width:' + lPct + '%"></div>' +
+            '</div>' +
+          '</div>' +
+        '</li>';
+      }).join('');
+
+      el.querySelectorAll('.fc-section-item').forEach(function(item) {
+        item.addEventListener('click', function() {
+          var sid = item.getAttribute('data-section');
+          currentSectionId = sid;
+          startMode('section', sid);
+        });
+      });
+    }
+
+    // ── Start a study mode ────────────────────────────────────
+    var currentMode = null;
+    var currentQueue = [];
+    var currentIndex = -1;
+    var currentSectionId = null;
+    var isFlipped = false;
+
+    function startMode(mode, sectionId) {
+      currentMode = mode;
+      session = { reviewed: 0, correct: 0 };
+
+      switch (mode) {
+        case 'due':
+          currentQueue = shuffle(getDueCards());
+          break;
+        case 'new':
+          currentQueue = getNewCards(20);
+          break;
+        case 'section':
+          currentSectionId = sectionId;
+          currentQueue = getSectionCards(sectionId);
+          break;
+        case 'all':
+          currentQueue = getAllCardsShuffle();
+          break;
+      }
+
+      currentIndex = currentQueue.length > 0 ? 0 : -1;
+      isFlipped = false;
+
+      renderModes();
+      renderSidebar();
+      renderStats();
+      renderCardArea();
+      updateSessionBar();
+    }
+
+    // ── Session bar ───────────────────────────────────────────
+    function updateSessionBar() {
+      var bar = document.getElementById('fc-session-bar');
+      if (!currentQueue.length || currentIndex < 0) {
+        bar.style.display = 'none';
+        return;
+      }
+      bar.style.display = 'flex';
+      document.getElementById('fc-session-count').textContent = Math.min(session.reviewed + 1, currentQueue.length);
+      document.getElementById('fc-session-total').textContent = currentQueue.length;
+      var pct = currentQueue.length > 0 ? (session.reviewed / currentQueue.length * 100) : 0;
+      document.getElementById('fc-session-fill').style.width = pct + '%';
+      document.getElementById('fc-session-accuracy').textContent = session.reviewed > 0 ? Math.round(session.correct / session.reviewed * 100) + '% accuracy' : '';
+    }
+
+    // ── Render card area ──────────────────────────────────────
+    function renderCardArea() {
+      var area = document.getElementById('fc-card-area');
+
+      if (currentIndex < 0 || !currentQueue.length) {
+        var emptyMsg = '';
+        if (currentMode === 'section' && !currentSectionId) {
+          emptyMsg = '<h2>Pick a section from the sidebar</h2><p>Click any section to drill those cards.</p>';
+        } else if (currentMode === 'due') {
+          emptyMsg = '<h2>No cards due today</h2><p>Great work! Come back tomorrow for your next review, or study new cards.</p>';
+        } else if (currentMode === 'new') {
+          emptyMsg = '<h2>No new cards left</h2><p>You have seen every card at least once. Keep reviewing to strengthen your memory.</p>';
+        } else if (currentMode) {
+          emptyMsg = '<h2>Session complete</h2><p>You reviewed ' + session.reviewed + ' cards with ' + (session.reviewed > 0 ? Math.round(session.correct / session.reviewed * 100) : 0) + '% accuracy.</p>';
+        } else {
+          emptyMsg = '<h2>Choose a study mode to begin</h2><p>Select a mode above or click a section to drill specific topics.</p>';
+        }
+        area.innerHTML = '<div class="fc-empty">' + emptyMsg + '</div>';
+        return;
+      }
+
+      var card = currentQueue[currentIndex];
+      var sec = sectionMap[card.section];
+      var secName = sec ? sec.name : '';
+      var typeLabel = card.type === 'cloze' ? 'Fill in the blank' : 'Recall';
+
+      // Build front content
+      var frontContent = '';
+      if (card.type === 'cloze') {
+        frontContent = parseCloze(card.front, false);
+      } else {
+        frontContent = escHtml(card.front);
+      }
+
+      // Build back content
+      var backContent = '';
+      if (card.type === 'cloze') {
+        backContent = '<div class="fc-card-answer">' + parseCloze(card.front, true) + '</div>';
+      } else {
+        backContent = '<div class="fc-card-answer">' + escHtml(card.back) + '</div>';
+      }
+      if (card.explanation) {
+        backContent += '<div class="fc-card-explanation">' + escHtml(card.explanation) + '</div>';
+      }
+
+      // Preview intervals
+      var iAgain = previewInterval(card.id, 'again');
+      var iHard = previewInterval(card.id, 'hard');
+      var iGood = previewInterval(card.id, 'good');
+      var iEasy = previewInterval(card.id, 'easy');
+
+      area.innerHTML =
+        '<div class="fc-card-container" id="fc-card-container">' +
+          '<div class="fc-card-flip" id="fc-card-flip">' +
+            '<div class="fc-card-front">' +
+              '<span class="fc-card-type">' + typeLabel + '</span>' +
+              '<span class="fc-card-section-label">' + escHtml(secName) + '</span>' +
+              '<div class="fc-card-question">' + frontContent + '</div>' +
+              '<div class="fc-flip-hint">Click or press <kbd>Space</kbd> to reveal</div>' +
+              (card.hint ? '<button class="fc-hint-btn" id="fc-hint-btn">Show hint</button><div class="fc-hint-text" id="fc-hint-text" style="display:none"></div>' : '') +
+            '</div>' +
+            '<div class="fc-card-back">' +
+              '<span class="fc-card-type">Answer</span>' +
+              '<span class="fc-card-section-label">' + escHtml(secName) + '</span>' +
+              backContent +
+            '</div>' +
+          '</div>' +
+        '</div>' +
+        '<div class="fc-ratings" id="fc-ratings">' +
+          '<button class="fc-rate-btn again" data-rating="again"><span class="rate-label">Again</span><span class="rate-interval">' + iAgain + '</span></button>' +
+          '<button class="fc-rate-btn hard" data-rating="hard"><span class="rate-label">Hard</span><span class="rate-interval">' + iHard + '</span></button>' +
+          '<button class="fc-rate-btn good" data-rating="good"><span class="rate-label">Good</span><span class="rate-interval">' + iGood + '</span></button>' +
+          '<button class="fc-rate-btn easy" data-rating="easy"><span class="rate-label">Easy</span><span class="rate-interval">' + iEasy + '</span></button>' +
+        '</div>' +
+        '<div class="fc-kb-hints" id="fc-kb-hints">' +
+          '<kbd>1 / A</kbd><kbd>2 / H</kbd><kbd>3 / G</kbd><kbd>4 / E</kbd>' +
+        '</div>';
+
+      // Wire card flip
+      document.getElementById('fc-card-container').addEventListener('click', flipCard);
+
+      // Wire hint
+      var hintBtn = document.getElementById('fc-hint-btn');
+      if (hintBtn && card.hint) {
+        hintBtn.addEventListener('click', function(e) {
+          e.stopPropagation();
+          var ht = document.getElementById('fc-hint-text');
+          ht.textContent = card.hint;
+          ht.style.display = 'block';
+          hintBtn.style.display = 'none';
+        });
+      }
+
+      // Wire rating buttons
+      document.querySelectorAll('.fc-rate-btn').forEach(function(btn) {
+        btn.addEventListener('click', function(e) {
+          e.stopPropagation();
+          rateCard(btn.getAttribute('data-rating'));
+        });
+      });
+
+      isFlipped = false;
+    }
+
+    // ── Flip card ─────────────────────────────────────────────
+    function flipCard() {
+      var flip = document.getElementById('fc-card-flip');
+      if (!flip) return;
+
+      isFlipped = !isFlipped;
+      if (isFlipped) {
+        flip.classList.add('flipped');
+        // Show rating buttons
+        var r = document.getElementById('fc-ratings');
+        var k = document.getElementById('fc-kb-hints');
+        if (r) r.classList.add('visible');
+        if (k) k.classList.add('visible');
+      } else {
+        flip.classList.remove('flipped');
+        var r2 = document.getElementById('fc-ratings');
+        var k2 = document.getElementById('fc-kb-hints');
+        if (r2) r2.classList.remove('visible');
+        if (k2) k2.classList.remove('visible');
+      }
+    }
+
+    // ── Rate card ─────────────────────────────────────────────
+    function rateCard(rating) {
+      if (currentIndex < 0 || !currentQueue.length) return;
+      var card = currentQueue[currentIndex];
+      var currentState = getCardState(card.id);
+      var newState = computeNextState(currentState, rating);
+      setCardState(card.id, newState);
+
+      // Session tracking
+      session.reviewed++;
+      if (rating === 'good' || rating === 'easy') session.correct++;
+
+      // Update streak
+      updateStreak();
+
+      // Update proficiency in store.js if available
+      if (window.store && window.store.updateProficiency) {
+        // Map section to a topic — use section name as id
+        var sec = sectionMap[card.section];
+        if (sec) {
+          var wasCorrect = rating === 'good' || rating === 'easy';
+          window.store.updateProficiency(sec.id, wasCorrect);
+        }
+      }
+
+      // If "again", put the card back near the end of the queue
+      if (rating === 'again' && currentIndex < currentQueue.length - 1) {
+        var reinsertPos = Math.min(currentIndex + 5 + Math.floor(Math.random() * 5), currentQueue.length);
+        currentQueue.splice(reinsertPos, 0, card);
+      }
+
+      // Advance
+      currentIndex++;
+      if (currentIndex >= currentQueue.length) {
+        currentIndex = -1; // session done
+      }
+
+      isFlipped = false;
+      renderStats();
+      renderSidebar();
+      renderCardArea();
+      updateSessionBar();
+    }
+
+    // ── Keyboard shortcuts ────────────────────────────────────
+    document.addEventListener('keydown', function(e) {
+      // Don't capture if typing in an input
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+      if (e.code === 'Space' || e.key === ' ') {
+        e.preventDefault();
+        if (!isFlipped) flipCard();
+        return;
+      }
+
+      if (isFlipped) {
+        switch (e.key) {
+          case '1': case 'a': case 'A': rateCard('again'); break;
+          case '2': case 'h': case 'H': rateCard('hard'); break;
+          case '3': case 'g': case 'G': rateCard('good'); break;
+          case '4': case 'e': case 'E': rateCard('easy'); break;
+        }
+      }
+
+      // Arrow navigation in browse/section mode
+      if (e.key === 'ArrowRight' && currentQueue.length && currentIndex < currentQueue.length - 1) {
+        currentIndex++;
+        isFlipped = false;
+        renderCardArea();
+        updateSessionBar();
+      }
+      if (e.key === 'ArrowLeft' && currentQueue.length && currentIndex > 0) {
+        currentIndex--;
+        isFlipped = false;
+        renderCardArea();
+        updateSessionBar();
+      }
+    });
+
+    // ── Initialize ────────────────────────────────────────────
+    renderStats();
+    renderModes();
+    renderSidebar();
+
+  })();
+  </script>
+</body>
+</html>

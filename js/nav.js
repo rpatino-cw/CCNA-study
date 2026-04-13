@@ -27,6 +27,7 @@
       { text: "Jeremy's IT Lab", href: 'jeremy-labs.html' },
     ]},
     { text: 'Practice', children: [
+      { text: 'Flashcards', href: 'flashcards.html' },
       { text: 'Diagnostic', href: 'diagnostic.html' },
       { text: 'Study & Quiz', href: 'quiz.html' },
       { text: 'Console Labs', href: 'console-labs.html' },
