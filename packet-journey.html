@@ -1,0 +1,1203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Journey of a Packet — CCNA 200-301</title>
+<link rel="icon" type="image/svg+xml" href="/CCNA-study/favicon.svg">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0a0f;color:#e8eaf0;font-family:'Space Grotesk',system-ui,sans-serif;overflow:hidden}
+canvas{display:block}
+
+/* ── Back Link ────────────────────────────────────── */
+.back{position:fixed;top:16px;left:16px;z-index:30}
+.back a{color:#6b7394;text-decoration:none;font-size:.72rem;letter-spacing:.03em;text-transform:uppercase;transition:color .2s}
+.back a:hover{color:#fff}
+
+/* ── Step Indicator (top-left) ────────────────────── */
+.step-indicator{position:fixed;top:44px;left:16px;z-index:20;display:flex;align-items:center;gap:10px;opacity:0;transition:opacity .5s}
+.step-indicator.visible{opacity:1}
+.step-label{font-family:'JetBrains Mono',monospace;font-size:.7rem;color:#6b7394;letter-spacing:.04em}
+.step-dots{display:flex;gap:5px}
+.step-dot{width:8px;height:8px;border-radius:50%;background:#1e1f2e;border:1px solid #2a2d42;transition:all .4s}
+.step-dot.active{background:#00d4ff;border-color:#00d4ff;box-shadow:0 0 8px rgba(0,212,255,.5)}
+.step-dot.done{background:#00ff88;border-color:#00ff88;box-shadow:0 0 6px rgba(0,255,136,.3)}
+
+/* ── Speed Control (bottom-left) ──────────────────── */
+.speed-ctrl{position:fixed;bottom:20px;left:16px;z-index:20;display:flex;gap:4px;opacity:0;transition:opacity .5s}
+.speed-ctrl.visible{opacity:1}
+.speed-btn{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);color:#6b7394;padding:4px 10px;border-radius:6px;font-size:.68rem;font-family:'JetBrains Mono',monospace;cursor:pointer;transition:all .2s}
+.speed-btn:hover{color:#fff;background:rgba(255,255,255,.12)}
+.speed-btn.active{background:rgba(0,212,255,.15);border-color:#00d4ff;color:#00d4ff}
+
+/* ── Free Look Toggle (top-right) ─────────────────── */
+.controls-panel{position:fixed;top:16px;right:16px;z-index:20;display:flex;gap:8px;opacity:0;transition:opacity .5s}
+.controls-panel.visible{opacity:1}
+.ctrl-btn{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);color:#6b7394;padding:6px 14px;border-radius:6px;font-size:.72rem;font-family:inherit;cursor:pointer;transition:all .2s;letter-spacing:.02em}
+.ctrl-btn:hover{color:#fff;background:rgba(255,255,255,.12)}
+.ctrl-btn.active{background:rgba(0,212,255,.15);border-color:#00d4ff;color:#00d4ff}
+
+/* ── Narration Box (bottom center) ────────────────── */
+.narration{position:fixed;bottom:28px;left:50%;transform:translateX(-50%);z-index:20;width:92%;max-width:620px;backdrop-filter:blur(12px);background:rgba(10,10,15,.88);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:18px 24px;opacity:0;transition:opacity .5s,transform .5s;pointer-events:none}
+.narration.visible{opacity:1;pointer-events:auto}
+.narration-step{font-family:'JetBrains Mono',monospace;font-size:.62rem;color:#00d4ff;text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px}
+.narration-title{font-size:1rem;font-weight:700;color:#fff;margin-bottom:6px}
+.narration-text{font-size:.82rem;color:#9ca3b8;line-height:1.65}
+.narration-text .hl{color:#00d4ff;font-family:'JetBrains Mono',monospace;font-weight:600}
+.narration-text .hl-amber{color:#ff9500;font-family:'JetBrains Mono',monospace;font-weight:600}
+.narration-text .hl-green{color:#00ff88;font-family:'JetBrains Mono',monospace;font-weight:600}
+.narration-actions{display:flex;justify-content:space-between;align-items:center;margin-top:14px}
+.narr-skip{background:none;border:none;color:#6b7394;font-size:.7rem;cursor:pointer;text-decoration:underline;font-family:inherit;padding:4px 0}
+.narr-skip:hover{color:#9ca3b8}
+.narr-next{background:#00d4ff;color:#0a0a0f;border:none;padding:7px 22px;border-radius:8px;font-size:.78rem;font-weight:700;cursor:pointer;font-family:inherit;transition:all .2s;letter-spacing:.02em}
+.narr-next:hover{background:#33dfff;box-shadow:0 0 16px rgba(0,212,255,.4)}
+
+/* ── Overlay Table (MAC / Routing) ────────────────── */
+.overlay-table{position:fixed;top:50%;right:24px;transform:translateY(-50%);z-index:20;backdrop-filter:blur(12px);background:rgba(10,10,15,.92);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:14px 18px;opacity:0;transition:opacity .5s;pointer-events:none;min-width:240px}
+.overlay-table.visible{opacity:1}
+.overlay-table h3{font-family:'JetBrains Mono',monospace;font-size:.7rem;color:#ff9500;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px}
+.overlay-table table{width:100%;border-collapse:collapse}
+.overlay-table th{font-family:'JetBrains Mono',monospace;font-size:.6rem;color:#6b7394;text-align:left;padding:3px 8px 3px 0;border-bottom:1px solid rgba(255,255,255,.06);text-transform:uppercase;letter-spacing:.05em}
+.overlay-table td{font-family:'JetBrains Mono',monospace;font-size:.68rem;color:#e8eaf0;padding:4px 8px 4px 0}
+.overlay-table tr.highlight td{color:#00d4ff}
+
+/* ── Start Screen ─────────────────────────────────── */
+.start-screen{position:fixed;inset:0;z-index:50;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(10,10,15,.92);transition:opacity .8s}
+.start-screen.hidden{opacity:0;pointer-events:none}
+.start-title{font-size:2.2rem;font-weight:700;color:#fff;letter-spacing:-.03em;margin-bottom:6px;text-align:center}
+.start-sub{font-size:.88rem;color:#6b7394;margin-bottom:32px;text-align:center;max-width:440px;line-height:1.6}
+.start-btn{background:linear-gradient(135deg,#00d4ff,#0090ff);color:#fff;border:none;padding:14px 40px;border-radius:10px;font-size:1rem;font-weight:700;cursor:pointer;font-family:inherit;letter-spacing:.02em;transition:all .3s;box-shadow:0 4px 24px rgba(0,212,255,.3)}
+.start-btn:hover{transform:translateY(-2px);box-shadow:0 8px 32px rgba(0,212,255,.5)}
+.start-topo{font-family:'JetBrains Mono',monospace;font-size:.72rem;color:#3a3d52;margin-top:24px;letter-spacing:.06em}
+
+/* ── End Buttons ──────────────────────────────────── */
+.end-btns{display:flex;gap:10px}
+.end-btn{padding:7px 22px;border-radius:8px;font-size:.78rem;font-weight:700;cursor:pointer;font-family:inherit;transition:all .2s;border:none;letter-spacing:.02em}
+.end-btn.replay{background:#00d4ff;color:#0a0a0f}
+.end-btn.replay:hover{background:#33dfff;box-shadow:0 0 16px rgba(0,212,255,.4)}
+.end-btn.explore{background:rgba(255,255,255,.08);color:#e8eaf0;border:1px solid rgba(255,255,255,.12)}
+.end-btn.explore:hover{background:rgba(255,255,255,.15)}
+
+/* ── CSS2D Label Styles ───────────────────────────── */
+.device-label{font-family:'JetBrains Mono',monospace;font-size:10px;color:#6b7394;text-transform:uppercase;letter-spacing:.06em;pointer-events:none;text-align:center;white-space:nowrap}
+
+@media(max-width:600px){
+  .narration{bottom:0;width:100%;max-width:100%;border-radius:12px 12px 0 0}
+  .start-title{font-size:1.6rem}
+  .overlay-table{right:8px;left:8px;transform:translateY(-50%);min-width:auto}
+}
+</style>
+</head>
+<body>
+
+<div class="back"><a href="index.html">&larr; Back to Dashboard</a></div>
+
+<div class="step-indicator" id="stepIndicator">
+  <span class="step-label" id="stepLabel">Step 1 of 7</span>
+  <div class="step-dots" id="stepDots"></div>
+</div>
+
+<div class="controls-panel" id="controlsPanel">
+  <button class="ctrl-btn" id="btnFreeLook">Free Look</button>
+</div>
+
+<div class="speed-ctrl" id="speedCtrl">
+  <button class="speed-btn" data-speed="0.5">0.5x</button>
+  <button class="speed-btn active" data-speed="1">1x</button>
+  <button class="speed-btn" data-speed="2">2x</button>
+</div>
+
+<div class="narration" id="narration">
+  <div class="narration-step" id="narrStep"></div>
+  <div class="narration-title" id="narrTitle"></div>
+  <div class="narration-text" id="narrText"></div>
+  <div class="narration-actions" id="narrActions">
+    <button class="narr-skip" id="narrSkip">End Tour</button>
+    <button class="narr-next" id="narrNext">Next &rarr;</button>
+  </div>
+</div>
+
+<div class="overlay-table" id="overlayTable">
+  <h3 id="overlayTitle"></h3>
+  <table id="overlayTableBody"></table>
+</div>
+
+<div class="start-screen" id="startScreen">
+  <div class="start-title">The Journey of a Packet</div>
+  <div class="start-sub">Watch a single packet travel from PC to server — through switches, a router, ARP resolution, MAC lookups, and Layer 3 decisions. Every hop explained.</div>
+  <button class="start-btn" id="startBtn">Start Journey</button>
+  <div class="start-topo">PC1 --- SW1 --- R1 --- SW2 --- Server1</div>
+</div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
+
+// ══════════════════════════════════════════════════════════════
+// CONSTANTS
+// ══════════════════════════════════════════════════════════════
+const CYAN    = 0x00d4ff;
+const AMBER   = 0xff9500;
+const GREEN   = 0x00ff88;
+const DARK_BG = 0x0a0a0f;
+
+const DEVICE_POSITIONS = {
+  PC1:     new THREE.Vector3(-8, 0.15, 0),
+  SW1:     new THREE.Vector3(-4, 0.075, 0),
+  R1:      new THREE.Vector3( 0, 0.2,  0),
+  SW2:     new THREE.Vector3( 4, 0.075, 0),
+  SERVER1: new THREE.Vector3( 8, 0.4,  0),
+};
+
+// ══════════════════════════════════════════════════════════════
+// SCENE SETUP
+// ══════════════════════════════════════════════════════════════
+const scene    = new THREE.Scene();
+scene.background = new THREE.Color(DARK_BG);
+scene.fog = new THREE.FogExp2(DARK_BG, 0.025);
+
+const camera   = new THREE.PerspectiveCamera(45, innerWidth / innerHeight, 0.1, 200);
+camera.position.set(0, 8, 18);
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(innerWidth, innerHeight);
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.2;
+document.body.appendChild(renderer.domElement);
+
+// CSS2D for labels
+const labelRenderer = new CSS2DRenderer();
+labelRenderer.setSize(innerWidth, innerHeight);
+labelRenderer.domElement.style.position = 'absolute';
+labelRenderer.domElement.style.top = '0';
+labelRenderer.domElement.style.pointerEvents = 'none';
+document.body.appendChild(labelRenderer.domElement);
+
+// Controls
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.05;
+controls.enabled = false;
+
+// Post-processing
+const composer  = new EffectComposer(renderer);
+const renderPass = new RenderPass(scene, camera);
+composer.addPass(renderPass);
+const bloomPass = new UnrealBloomPass(
+  new THREE.Vector2(innerWidth, innerHeight), 0.8, 0.4, 0.2
+);
+composer.addPass(bloomPass);
+
+// Resize
+window.addEventListener('resize', () => {
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+  labelRenderer.setSize(innerWidth, innerHeight);
+  composer.setSize(innerWidth, innerHeight);
+});
+
+// ══════════════════════════════════════════════════════════════
+// LIGHTING
+// ══════════════════════════════════════════════════════════════
+scene.add(new THREE.AmbientLight(0x334466, 0.6));
+const keyLight = new THREE.DirectionalLight(0xffffff, 0.7);
+keyLight.position.set(5, 12, 8);
+scene.add(keyLight);
+const fillLight = new THREE.DirectionalLight(0x4488cc, 0.3);
+fillLight.position.set(-5, 6, -4);
+scene.add(fillLight);
+
+// ══════════════════════════════════════════════════════════════
+// FLOOR GRID
+// ══════════════════════════════════════════════════════════════
+const floorGeo = new THREE.PlaneGeometry(60, 30);
+const floorMat = new THREE.MeshStandardMaterial({
+  color: 0x0c0c14, roughness: 0.95, metalness: 0
+});
+const floor = new THREE.Mesh(floorGeo, floorMat);
+floor.rotation.x = -Math.PI / 2;
+floor.position.y = -0.01;
+scene.add(floor);
+
+// Grid lines
+const gridHelper = new THREE.GridHelper(60, 60, 0x15162a, 0x15162a);
+gridHelper.position.y = 0.0;
+scene.add(gridHelper);
+
+// ══════════════════════════════════════════════════════════════
+// DEVICE BUILDERS
+// ══════════════════════════════════════════════════════════════
+const devices = {};
+const deviceGlows = {};
+
+function makeEdgeGlow(geometry, color, parent) {
+  const edges = new THREE.EdgesGeometry(geometry);
+  const line = new THREE.LineSegments(
+    edges,
+    new THREE.LineBasicMaterial({ color, transparent: true, opacity: 0.6 })
+  );
+  parent.add(line);
+  return line;
+}
+
+function addLabel(text, parent, yOffset) {
+  const div = document.createElement('div');
+  div.className = 'device-label';
+  div.textContent = text;
+  const label = new CSS2DObject(div);
+  label.position.set(0, yOffset, 0);
+  parent.add(label);
+}
+
+function createPC(name, pos) {
+  const group = new THREE.Group();
+  const geo = new THREE.BoxGeometry(0.5, 0.3, 0.5);
+  const mat = new THREE.MeshStandardMaterial({
+    color: 0x2a2d3e, roughness: 0.6, metalness: 0.3
+  });
+  const mesh = new THREE.Mesh(geo, mat);
+  group.add(mesh);
+  const glow = makeEdgeGlow(geo, CYAN, group);
+  group.position.copy(pos);
+  addLabel(name, group, 0.35);
+  scene.add(group);
+  devices[name] = group;
+  deviceGlows[name] = { edges: glow, mesh, originalColor: 0x2a2d3e };
+  return group;
+}
+
+function createSwitch(name, pos) {
+  const group = new THREE.Group();
+  const geo = new THREE.BoxGeometry(1.0, 0.15, 0.6);
+  const mat = new THREE.MeshStandardMaterial({
+    color: 0x1a2744, roughness: 0.5, metalness: 0.4
+  });
+  const mesh = new THREE.Mesh(geo, mat);
+  group.add(mesh);
+  const glow = makeEdgeGlow(geo, 0x2563EB, group);
+  // Port indicators
+  const portGeo = new THREE.SphereGeometry(0.02, 8, 8);
+  for (let i = 0; i < 6; i++) {
+    const portMat = new THREE.MeshStandardMaterial({
+      color: 0x22C55E, emissive: 0x22C55E, emissiveIntensity: 0.8
+    });
+    const port = new THREE.Mesh(portGeo, portMat);
+    port.position.set(-0.35 + i * 0.14, 0, 0.31);
+    group.add(port);
+  }
+  group.position.copy(pos);
+  addLabel(name, group, 0.25);
+  scene.add(group);
+  devices[name] = group;
+  deviceGlows[name] = { edges: glow, mesh, originalColor: 0x1a2744 };
+  return group;
+}
+
+function createRouter(name, pos) {
+  const group = new THREE.Group();
+  const geo = new THREE.CylinderGeometry(0.3, 0.3, 0.4, 24);
+  const mat = new THREE.MeshStandardMaterial({
+    color: 0x2a2020, roughness: 0.5, metalness: 0.4
+  });
+  const mesh = new THREE.Mesh(geo, mat);
+  group.add(mesh);
+  // Amber ring glow
+  const ringGeo = new THREE.TorusGeometry(0.32, 0.015, 8, 32);
+  const ringMat = new THREE.MeshStandardMaterial({
+    color: AMBER, emissive: AMBER, emissiveIntensity: 1.0
+  });
+  const ring = new THREE.Mesh(ringGeo, ringMat);
+  ring.rotation.x = Math.PI / 2;
+  ring.position.y = 0.0;
+  group.add(ring);
+  group.position.copy(pos);
+  addLabel(name, group, 0.45);
+  scene.add(group);
+  devices[name] = group;
+  deviceGlows[name] = { ring, mesh, originalColor: 0x2a2020 };
+  return group;
+}
+
+function createServer(name, pos) {
+  const group = new THREE.Group();
+  const geo = new THREE.BoxGeometry(0.5, 0.8, 0.5);
+  const mat = new THREE.MeshStandardMaterial({
+    color: 0x2a2d3e, roughness: 0.6, metalness: 0.3
+  });
+  const mesh = new THREE.Mesh(geo, mat);
+  group.add(mesh);
+  const glow = makeEdgeGlow(geo, GREEN, group);
+  // Status LED
+  const ledGeo = new THREE.SphereGeometry(0.03, 8, 8);
+  const ledMat = new THREE.MeshStandardMaterial({
+    color: GREEN, emissive: GREEN, emissiveIntensity: 1.0
+  });
+  const led = new THREE.Mesh(ledGeo, ledMat);
+  led.position.set(0, 0.3, 0.26);
+  group.add(led);
+  group.position.copy(pos);
+  addLabel(name, group, 0.65);
+  scene.add(group);
+  devices[name] = group;
+  deviceGlows[name] = { edges: glow, mesh, led, originalColor: 0x2a2d3e };
+  return group;
+}
+
+// Build all devices
+createPC('PC1', DEVICE_POSITIONS.PC1);
+createSwitch('SW1', DEVICE_POSITIONS.SW1);
+createRouter('R1', DEVICE_POSITIONS.R1);
+createSwitch('SW2', DEVICE_POSITIONS.SW2);
+createServer('Server1', DEVICE_POSITIONS.SERVER1);
+
+// ══════════════════════════════════════════════════════════════
+// CABLES (CatmullRomCurve3 tubes)
+// ══════════════════════════════════════════════════════════════
+const cables = {};
+const cableMeshes = {};
+
+function createCable(nameA, nameB) {
+  const a = DEVICE_POSITIONS[nameA] || devices[nameA]?.position;
+  const b = DEVICE_POSITIONS[nameB] || devices[nameB]?.position;
+  if (!a || !b) return;
+  const mid = new THREE.Vector3().lerpVectors(a, b, 0.5);
+  mid.y += 0.15;
+  const curve = new THREE.CatmullRomCurve3([
+    a.clone(), mid, b.clone()
+  ]);
+  const tubeGeo = new THREE.TubeGeometry(curve, 32, 0.015, 8, false);
+  const tubeMat = new THREE.MeshStandardMaterial({
+    color: 0x2a2d42, roughness: 0.7, metalness: 0.2,
+    emissive: 0x000000, emissiveIntensity: 0
+  });
+  const mesh = new THREE.Mesh(tubeGeo, tubeMat);
+  scene.add(mesh);
+  const key = nameA + '-' + nameB;
+  cables[key] = curve;
+  cableMeshes[key] = mesh;
+  return { curve, mesh };
+}
+
+createCable('PC1', 'SW1');
+createCable('SW1', 'R1');
+createCable('R1', 'SW2');
+createCable('SW2', 'Server1');
+
+// ══════════════════════════════════════════════════════════════
+// PACKET (glowing sphere + point light + trail)
+// ══════════════════════════════════════════════════════════════
+const packetGroup = new THREE.Group();
+const packetGeo = new THREE.SphereGeometry(0.08, 16, 16);
+const packetMat = new THREE.MeshStandardMaterial({
+  color: CYAN, emissive: CYAN, emissiveIntensity: 2.0
+});
+const packetMesh = new THREE.Mesh(packetGeo, packetMat);
+packetGroup.add(packetMesh);
+
+const packetLight = new THREE.PointLight(CYAN, 2, 3);
+packetGroup.add(packetLight);
+
+packetGroup.visible = false;
+scene.add(packetGroup);
+
+// Trail particles
+const TRAIL_COUNT = 20;
+const trailPositions = [];
+const trailMeshes = [];
+for (let i = 0; i < TRAIL_COUNT; i++) {
+  const s = 0.04 * (1 - i / TRAIL_COUNT);
+  const geo = new THREE.SphereGeometry(s, 6, 6);
+  const mat = new THREE.MeshStandardMaterial({
+    color: CYAN, emissive: CYAN, emissiveIntensity: 1.5,
+    transparent: true, opacity: 1 - i / TRAIL_COUNT
+  });
+  const m = new THREE.Mesh(geo, mat);
+  m.visible = false;
+  scene.add(m);
+  trailMeshes.push(m);
+  trailPositions.push(new THREE.Vector3(0, -10, 0));
+}
+
+function setPacketColor(color) {
+  packetMat.color.setHex(color);
+  packetMat.emissive.setHex(color);
+  packetLight.color.setHex(color);
+  trailMeshes.forEach(m => {
+    m.material.color.setHex(color);
+    m.material.emissive.setHex(color);
+  });
+}
+
+function updateTrail(pos) {
+  for (let i = TRAIL_COUNT - 1; i > 0; i--) {
+    trailPositions[i].copy(trailPositions[i - 1]);
+  }
+  trailPositions[0].copy(pos);
+  trailMeshes.forEach((m, i) => {
+    m.position.copy(trailPositions[i]);
+    m.visible = packetGroup.visible;
+  });
+}
+
+function showPacket(show) {
+  packetGroup.visible = show;
+  trailMeshes.forEach(m => m.visible = show);
+  if (!show) trailPositions.forEach(p => p.set(0, -10, 0));
+}
+
+// ══════════════════════════════════════════════════════════════
+// BROADCAST PACKETS (for ARP step)
+// ══════════════════════════════════════════════════════════════
+const broadcastPackets = [];
+const MAX_BROADCAST = 8;
+for (let i = 0; i < MAX_BROADCAST; i++) {
+  const geo = new THREE.SphereGeometry(0.05, 8, 8);
+  const mat = new THREE.MeshStandardMaterial({
+    color: 0xffd700, emissive: 0xffd700, emissiveIntensity: 1.5,
+    transparent: true, opacity: 0.9
+  });
+  const m = new THREE.Mesh(geo, mat);
+  m.visible = false;
+  scene.add(m);
+  broadcastPackets.push({ mesh: m, active: false, t: 0, from: null, to: null });
+}
+
+// ══════════════════════════════════════════════════════════════
+// DEVICE HIGHLIGHT EFFECTS
+// ══════════════════════════════════════════════════════════════
+function highlightDevice(name, color, intensity = 1.5) {
+  const info = deviceGlows[name];
+  if (!info) return;
+  if (info.edges) {
+    info.edges.material.color.setHex(color);
+    info.edges.material.opacity = 1.0;
+  }
+  if (info.ring) {
+    info.ring.material.emissive.setHex(color);
+    info.ring.material.emissiveIntensity = intensity;
+  }
+  info.mesh.material.emissive = new THREE.Color(color);
+  info.mesh.material.emissiveIntensity = 0.3;
+}
+
+function resetDevice(name) {
+  const info = deviceGlows[name];
+  if (!info) return;
+  if (info.edges) {
+    info.edges.material.opacity = 0.6;
+    if (name === 'PC1') info.edges.material.color.setHex(CYAN);
+    else if (name === 'Server1') info.edges.material.color.setHex(GREEN);
+    else info.edges.material.color.setHex(0x2563EB);
+  }
+  if (info.ring) {
+    info.ring.material.emissive.setHex(AMBER);
+    info.ring.material.emissiveIntensity = 1.0;
+  }
+  info.mesh.material.emissive = new THREE.Color(0x000000);
+  info.mesh.material.emissiveIntensity = 0;
+}
+
+function resetAllDevices() {
+  Object.keys(devices).forEach(resetDevice);
+}
+
+function glowCable(key, color) {
+  const m = cableMeshes[key];
+  if (!m) return;
+  m.material.emissive.setHex(color);
+  m.material.emissiveIntensity = 0.8;
+}
+
+function resetCable(key) {
+  const m = cableMeshes[key];
+  if (!m) return;
+  m.material.emissive.setHex(0x000000);
+  m.material.emissiveIntensity = 0;
+}
+
+function resetAllCables() {
+  Object.keys(cableMeshes).forEach(resetCable);
+}
+
+// ══════════════════════════════════════════════════════════════
+// PARTICLE BURST (for delivery)
+// ══════════════════════════════════════════════════════════════
+const burstParticles = [];
+const BURST_COUNT = 30;
+for (let i = 0; i < BURST_COUNT; i++) {
+  const geo = new THREE.SphereGeometry(0.03, 6, 6);
+  const mat = new THREE.MeshStandardMaterial({
+    color: GREEN, emissive: GREEN, emissiveIntensity: 2,
+    transparent: true, opacity: 1
+  });
+  const m = new THREE.Mesh(geo, mat);
+  m.visible = false;
+  scene.add(m);
+  burstParticles.push({
+    mesh: m, vel: new THREE.Vector3(), life: 0, active: false
+  });
+}
+
+function triggerBurst(pos, color = GREEN) {
+  burstParticles.forEach(p => {
+    p.mesh.position.copy(pos);
+    p.vel.set(
+      (Math.random() - 0.5) * 4,
+      Math.random() * 3 + 1,
+      (Math.random() - 0.5) * 4
+    );
+    p.life = 1.0;
+    p.active = true;
+    p.mesh.visible = true;
+    p.mesh.material.color.setHex(color);
+    p.mesh.material.emissive.setHex(color);
+  });
+}
+
+function updateBurst(dt) {
+  burstParticles.forEach(p => {
+    if (!p.active) return;
+    p.life -= dt * 1.2;
+    if (p.life <= 0) { p.active = false; p.mesh.visible = false; return; }
+    p.vel.y -= 5 * dt;
+    p.mesh.position.addScaledVector(p.vel, dt);
+    p.mesh.material.opacity = p.life;
+    const s = p.life * 0.8;
+    p.mesh.scale.setScalar(s);
+  });
+}
+
+// ══════════════════════════════════════════════════════════════
+// FRAME SHELL VISUAL (for Layer 2/3 strip effect)
+// ══════════════════════════════════════════════════════════════
+const frameShellGeo = new THREE.BoxGeometry(0.22, 0.22, 0.22);
+const frameShellMat = new THREE.MeshStandardMaterial({
+  color: 0x2563EB, emissive: 0x2563EB, emissiveIntensity: 0.5,
+  transparent: true, opacity: 0.6, wireframe: true
+});
+const frameShell = new THREE.Mesh(frameShellGeo, frameShellMat);
+frameShell.visible = false;
+scene.add(frameShell);
+
+const newFrameShellMat = new THREE.MeshStandardMaterial({
+  color: AMBER, emissive: AMBER, emissiveIntensity: 0.5,
+  transparent: true, opacity: 0.6, wireframe: true
+});
+const newFrameShell = new THREE.Mesh(frameShellGeo.clone(), newFrameShellMat);
+newFrameShell.visible = false;
+scene.add(newFrameShell);
+
+// ══════════════════════════════════════════════════════════════
+// CAMERA CONTROL
+// ══════════════════════════════════════════════════════════════
+let camTarget     = new THREE.Vector3(0, 3, 18);
+let camLookAt     = new THREE.Vector3(0, 0, 0);
+let camLookAtCur  = new THREE.Vector3(0, 0, 0);
+let camLerp       = 0.03;
+let freeLookOn    = false;
+
+function setCameraTarget(pos, look, lerp = 0.03) {
+  camTarget.copy(pos);
+  camLookAt.copy(look);
+  camLerp = lerp;
+}
+
+// ══════════════════════════════════════════════════════════════
+// UI LOGIC
+// ══════════════════════════════════════════════════════════════
+const stepIndicator = document.getElementById('stepIndicator');
+const stepLabel     = document.getElementById('stepLabel');
+const stepDots      = document.getElementById('stepDots');
+const narrationEl   = document.getElementById('narration');
+const narrStep      = document.getElementById('narrStep');
+const narrTitle     = document.getElementById('narrTitle');
+const narrText      = document.getElementById('narrText');
+const narrNext      = document.getElementById('narrNext');
+const narrSkip      = document.getElementById('narrSkip');
+const narrActions   = document.getElementById('narrActions');
+const overlayEl     = document.getElementById('overlayTable');
+const overlayTitle  = document.getElementById('overlayTitle');
+const overlayBody   = document.getElementById('overlayTableBody');
+const startScreen   = document.getElementById('startScreen');
+const startBtn      = document.getElementById('startBtn');
+const speedCtrl     = document.getElementById('speedCtrl');
+const controlsPanel = document.getElementById('controlsPanel');
+const btnFreeLook   = document.getElementById('btnFreeLook');
+
+// Build 7 dots
+for (let i = 0; i < 7; i++) {
+  const d = document.createElement('div');
+  d.className = 'step-dot';
+  stepDots.appendChild(d);
+}
+
+let speedMultiplier = 1;
+speedCtrl.querySelectorAll('.speed-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    speedCtrl.querySelectorAll('.speed-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    speedMultiplier = parseFloat(btn.dataset.speed);
+  });
+});
+
+btnFreeLook.addEventListener('click', () => {
+  freeLookOn = !freeLookOn;
+  controls.enabled = freeLookOn;
+  btnFreeLook.classList.toggle('active', freeLookOn);
+});
+
+function showNarration(step, title, text, showNext = true, endBtns = false) {
+  narrStep.textContent = 'Step ' + step + ' of 7';
+  narrTitle.textContent = title;
+  narrText.innerHTML = text;
+  narrationEl.classList.add('visible');
+  stepLabel.textContent = 'Step ' + step + ' of 7';
+  const dots = stepDots.querySelectorAll('.step-dot');
+  dots.forEach((d, i) => {
+    d.classList.remove('active', 'done');
+    if (i < step - 1) d.classList.add('done');
+    if (i === step - 1) d.classList.add('active');
+  });
+
+  if (endBtns) {
+    narrActions.innerHTML = `
+      <button class="narr-skip" id="narrSkip">Back to Dashboard</button>
+      <div class="end-btns">
+        <button class="end-btn explore" id="endExplore">Explore</button>
+        <button class="end-btn replay" id="endReplay">Replay</button>
+      </div>`;
+    document.getElementById('endReplay').addEventListener('click', () => { startTour(); });
+    document.getElementById('endExplore').addEventListener('click', () => {
+      hideNarration();
+      freeLookOn = true;
+      controls.enabled = true;
+      btnFreeLook.classList.add('active');
+      setCameraTarget(new THREE.Vector3(0, 8, 18), new THREE.Vector3(0, 0, 0));
+    });
+    document.getElementById('narrSkip').addEventListener('click', () => {
+      window.location.href = 'index.html';
+    });
+  } else {
+    narrActions.innerHTML = `
+      <button class="narr-skip" id="narrSkip">End Tour</button>
+      <button class="narr-next" id="narrNext">${showNext ? 'Next &rarr;' : 'Please wait...'}</button>`;
+    const nextBtn = document.getElementById('narrNext');
+    nextBtn.style.opacity = showNext ? '1' : '0.4';
+    nextBtn.style.pointerEvents = showNext ? 'auto' : 'none';
+    if (showNext) {
+      nextBtn.addEventListener('click', advanceStep, { once: true });
+    }
+    document.getElementById('narrSkip').addEventListener('click', endTour);
+  }
+}
+
+function enableNextButton() {
+  const nextBtn = document.getElementById('narrNext');
+  if (nextBtn) {
+    nextBtn.textContent = 'Next \u2192';
+    nextBtn.style.opacity = '1';
+    nextBtn.style.pointerEvents = 'auto';
+    nextBtn.addEventListener('click', advanceStep, { once: true });
+  }
+}
+
+function hideNarration() {
+  narrationEl.classList.remove('visible');
+}
+
+function showOverlay(title, headers, rows, highlightIdx = -1) {
+  overlayTitle.textContent = title;
+  let html = '<tr>' + headers.map(h => '<th>' + h + '</th>').join('') + '</tr>';
+  rows.forEach((r, i) => {
+    const cls = i === highlightIdx ? ' class="highlight"' : '';
+    html += '<tr' + cls + '>' + r.map(c => '<td>' + c + '</td>').join('') + '</tr>';
+  });
+  overlayBody.innerHTML = html;
+  overlayEl.classList.add('visible');
+}
+
+function hideOverlay() {
+  overlayEl.classList.remove('visible');
+}
+
+// ══════════════════════════════════════════════════════════════
+// ANIMATION HELPERS
+// ══════════════════════════════════════════════════════════════
+let activeAnimations = [];
+
+function animatePacketAlongCable(cableKey, duration, color = CYAN) {
+  return new Promise(resolve => {
+    const curve = cables[cableKey];
+    if (!curve) { resolve(); return; }
+    setPacketColor(color);
+    showPacket(true);
+    glowCable(cableKey, color);
+    const anim = {
+      type: 'cable', curve, t: 0,
+      duration, cableKey, resolve, done: false
+    };
+    activeAnimations.push(anim);
+  });
+}
+
+function animatePacketToPoint(from, to, duration, color = CYAN) {
+  return new Promise(resolve => {
+    const curve = new THREE.CatmullRomCurve3([
+      from.clone(),
+      new THREE.Vector3().lerpVectors(from, to, 0.5).add(new THREE.Vector3(0, 0.1, 0)),
+      to.clone()
+    ]);
+    setPacketColor(color);
+    showPacket(true);
+    const anim = {
+      type: 'cable', curve, t: 0,
+      duration, cableKey: null, resolve, done: false
+    };
+    activeAnimations.push(anim);
+  });
+}
+
+function wait(ms) {
+  return new Promise(r => setTimeout(r, ms / speedMultiplier));
+}
+
+function easeInOutCubic(t) {
+  return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+}
+
+// ══════════════════════════════════════════════════════════════
+// TOUR STATE MACHINE
+// ══════════════════════════════════════════════════════════════
+let currentStep = 0;
+let tourActive  = false;
+
+const STEPS = [
+  // Step 1: Establishing shot
+  {
+    camera: { pos: new THREE.Vector3(0, 10, 20), look: new THREE.Vector3(0, 0, 0) },
+    title: 'The Journey Begins',
+    text: 'A user on <span class="hl">PC1</span> wants to reach <span class="hl-green">Server1</span>. The application creates data and hands it to the transport layer. Let\'s follow this packet through every hop.',
+    run: async () => {
+      highlightDevice('PC1', CYAN, 2);
+      await wait(500);
+    }
+  },
+  // Step 2: ARP Resolution
+  {
+    camera: { pos: new THREE.Vector3(-7.5, 2.5, 3.5), look: DEVICE_POSITIONS.PC1.clone().add(new THREE.Vector3(1, 0, 0)) },
+    title: 'Layer 2 — ARP Resolution',
+    text: 'PC1 needs the MAC address of its default gateway (<span class="hl-amber">R1</span>). It sends an ARP broadcast: <span class="hl">"Who has 10.0.1.1?"</span> The switch floods it to all ports. R1 responds with a unicast ARP reply.',
+    run: async () => {
+      highlightDevice('PC1', CYAN);
+      // Broadcast animation: packets from PC1 to SW1
+      const pc1Pos = DEVICE_POSITIONS.PC1;
+      const sw1Pos = DEVICE_POSITIONS.SW1;
+      const r1Pos  = DEVICE_POSITIONS.R1;
+
+      // Send broadcast from PC1 to SW1
+      await animatePacketAlongCable('PC1-SW1', 1200, 0xffd700);
+      showPacket(false);
+      highlightDevice('SW1', 0xffd700);
+      await wait(400);
+
+      // SW1 floods: fan out broadcast packets
+      const fanTargets = [
+        r1Pos.clone().add(new THREE.Vector3(0, 0.2, 0)),
+        sw1Pos.clone().add(new THREE.Vector3(0, 0, 1.5)),
+        sw1Pos.clone().add(new THREE.Vector3(0, 0, -1.5)),
+        sw1Pos.clone().add(new THREE.Vector3(-1, 0.5, 1)),
+      ];
+      // Animate fan-out
+      broadcastPackets.forEach((bp, i) => {
+        if (i >= fanTargets.length) return;
+        bp.from = sw1Pos.clone().add(new THREE.Vector3(0, 0.1, 0));
+        bp.to = fanTargets[i];
+        bp.t = 0;
+        bp.active = true;
+        bp.mesh.visible = true;
+      });
+      await wait(1000);
+      broadcastPackets.forEach(bp => { bp.active = false; bp.mesh.visible = false; });
+
+      // R1 responds — unicast reply
+      highlightDevice('R1', AMBER);
+      await wait(300);
+      await animatePacketAlongCable('SW1-R1', 800, AMBER);
+      showPacket(false);
+      // Send reply back
+      const replyCurve = cables['SW1-R1'];
+      if (replyCurve) {
+        setPacketColor(AMBER);
+        showPacket(true);
+        const replyAnim = {
+          type: 'cable', curve: replyCurve, t: 1,
+          duration: 800, cableKey: 'SW1-R1', reverse: true,
+          resolve: null, done: false
+        };
+        await new Promise(resolve => {
+          replyAnim.resolve = resolve;
+          activeAnimations.push(replyAnim);
+        });
+      }
+      showPacket(false);
+      await animatePacketAlongCable('PC1-SW1', 600, AMBER);
+      showPacket(false);
+      resetDevice('R1');
+      resetDevice('SW1');
+      await wait(200);
+    }
+  },
+  // Step 3: SW1 MAC table lookup
+  {
+    camera: { pos: new THREE.Vector3(-3.5, 2.5, 3), look: DEVICE_POSITIONS.SW1 },
+    title: 'Through the Switch — MAC Table Lookup',
+    text: 'SW1 receives the frame. It checks the destination MAC against its <span class="hl-amber">MAC address table</span>. Port Fa0/24 leads to R1. The frame is <span class="hl">forwarded</span> — not flooded.',
+    run: async () => {
+      showOverlay('SW1 — MAC Address Table',
+        ['MAC Address', 'Port', 'VLAN'],
+        [
+          ['aa:bb:cc:00:01:01', 'Fa0/1', '10'],
+          ['aa:bb:cc:00:01:99', 'Fa0/24', '10'],
+          ['aa:bb:cc:00:02:01', 'Fa0/12', '20'],
+        ], 1);
+      highlightDevice('SW1', CYAN);
+      // Packet enters SW1 from left
+      await animatePacketAlongCable('PC1-SW1', 1200, CYAN);
+      showPacket(false);
+      // Lookup effect — flash
+      highlightDevice('SW1', AMBER);
+      await wait(600);
+      highlightDevice('SW1', CYAN);
+      await wait(400);
+      // Exits toward R1
+      await animatePacketAlongCable('SW1-R1', 1200, CYAN);
+      showPacket(false);
+      resetDevice('SW1');
+      hideOverlay();
+    }
+  },
+  // Step 4: Router — Layer 3 Decision
+  {
+    camera: { pos: new THREE.Vector3(0, 4.5, 3.5), look: DEVICE_POSITIONS.R1 },
+    title: 'The Router — Layer 3 Decision',
+    text: 'R1 strips the Layer 2 frame, examines the Layer 3 packet. Destination: <span class="hl">10.0.2.100</span>. Routing table match: <span class="hl-amber">10.0.2.0/24 via Gi0/1</span>. TTL decremented 64 &rarr; 63. A <span class="hl-green">new frame</span> is built with R1\'s MAC as source.',
+    run: async () => {
+      showOverlay('R1 — Routing Table',
+        ['Network', 'Next Hop', 'Interface', 'AD'],
+        [
+          ['10.0.1.0/24', 'Connected', 'Gi0/0', '0'],
+          ['10.0.2.0/24', 'Connected', 'Gi0/1', '0'],
+          ['0.0.0.0/0', '10.0.1.254', 'Gi0/0', '1'],
+        ], 1);
+      highlightDevice('R1', AMBER, 2);
+
+      // Packet enters R1
+      const r1Pos = DEVICE_POSITIONS.R1;
+      setPacketColor(CYAN);
+      showPacket(true);
+      packetGroup.position.copy(r1Pos.clone().add(new THREE.Vector3(-0.5, 0.2, 0)));
+      await wait(300);
+
+      // Frame shell peels away (L2 strip)
+      frameShell.position.copy(r1Pos.clone().add(new THREE.Vector3(0, 0.3, 0)));
+      frameShell.visible = true;
+      frameShell.scale.setScalar(1);
+
+      // Animate frame shell expanding and fading
+      const stripAnim = { type: 'frameStrip', t: 0, duration: 1200, done: false, resolve: null };
+      await new Promise(resolve => {
+        stripAnim.resolve = resolve;
+        activeAnimations.push(stripAnim);
+      });
+      frameShell.visible = false;
+
+      // Packet glows amber (L3 processing)
+      setPacketColor(AMBER);
+      packetGroup.position.copy(r1Pos.clone().add(new THREE.Vector3(0, 0.3, 0)));
+      await wait(800);
+
+      // New frame wraps
+      newFrameShell.position.copy(r1Pos.clone().add(new THREE.Vector3(0, 0.3, 0)));
+      newFrameShell.visible = true;
+      newFrameShell.scale.setScalar(2);
+      const wrapAnim = { type: 'frameWrap', t: 0, duration: 800, done: false, resolve: null };
+      await new Promise(resolve => {
+        wrapAnim.resolve = resolve;
+        activeAnimations.push(wrapAnim);
+      });
+      newFrameShell.visible = false;
+
+      // Exit other side
+      setPacketColor(CYAN);
+      showPacket(false);
+      await wait(200);
+      await animatePacketAlongCable('R1-SW2', 1200, CYAN);
+      showPacket(false);
+      resetDevice('R1');
+      hideOverlay();
+    }
+  },
+  // Step 5: SW2
+  {
+    camera: { pos: new THREE.Vector3(4, 2.5, 4), look: DEVICE_POSITIONS.SW2 },
+    title: 'Second Switch — Same Process',
+    text: 'SW2 receives the new frame. <span class="hl-amber">MAC table lookup</span> — destination MAC matches port <span class="hl">Fa0/1</span> where Server1 is connected. Frame forwarded.',
+    run: async () => {
+      showOverlay('SW2 — MAC Address Table',
+        ['MAC Address', 'Port', 'VLAN'],
+        [
+          ['aa:bb:cc:00:02:01', 'Fa0/1', '20'],
+          ['aa:bb:cc:00:01:99', 'Fa0/24', '20'],
+        ], 0);
+      highlightDevice('SW2', CYAN);
+      // Quick pass — already arrived at SW2 from step 4
+      highlightDevice('SW2', AMBER);
+      await wait(500);
+      highlightDevice('SW2', CYAN);
+      await wait(300);
+      await animatePacketAlongCable('SW2-Server1', 1000, CYAN);
+      showPacket(false);
+      resetDevice('SW2');
+      hideOverlay();
+    }
+  },
+  // Step 6: Server receives
+  {
+    camera: { pos: new THREE.Vector3(8.5, 3, 4), look: DEVICE_POSITIONS.SERVER1 },
+    title: 'Arrival — Server Processes the Packet',
+    text: 'Server1 receives the frame, strips Layer 2, processes the Layer 3 packet. The data reaches the application. The server prepares a response — and the <span class="hl-green">journey reverses</span>.',
+    run: async () => {
+      highlightDevice('Server1', GREEN, 2);
+      setPacketColor(GREEN);
+      showPacket(true);
+      packetGroup.position.copy(DEVICE_POSITIONS.SERVER1);
+      await wait(500);
+      showPacket(false);
+      // Burst
+      triggerBurst(DEVICE_POSITIONS.SERVER1.clone().add(new THREE.Vector3(0, 0.4, 0)), GREEN);
+      await wait(1500);
+    }
+  },
+  // Step 7: Complete picture
+  {
+    camera: { pos: new THREE.Vector3(0, 10, 20), look: new THREE.Vector3(0, 0, 0) },
+    title: 'The Complete Picture',
+    text: 'Every packet makes this journey. <span class="hl">ARP</span> to resolve MACs, switches forwarding by <span class="hl-amber">MAC table</span>, routers making <span class="hl-amber">Layer 3 decisions</span> with new frames at every hop. This is the foundation of everything on the CCNA.',
+    run: async () => {
+      // Light up full path simultaneously
+      Object.keys(cableMeshes).forEach(k => glowCable(k, CYAN));
+      highlightDevice('PC1', CYAN);
+      highlightDevice('SW1', CYAN);
+      highlightDevice('R1', AMBER, 2);
+      highlightDevice('SW2', CYAN);
+      highlightDevice('Server1', GREEN, 2);
+
+      // Trail animation across entire path
+      setPacketColor(CYAN);
+      showPacket(true);
+      const segments = ['PC1-SW1', 'SW1-R1', 'R1-SW2', 'SW2-Server1'];
+      for (const seg of segments) {
+        await animatePacketAlongCable(seg, 800, CYAN);
+      }
+      setPacketColor(GREEN);
+      triggerBurst(DEVICE_POSITIONS.SERVER1.clone().add(new THREE.Vector3(0, 0.4, 0)), GREEN);
+      showPacket(false);
+      await wait(800);
+    }
+  },
+];
+
+async function runStep(idx) {
+  const step = STEPS[idx];
+  if (!step) return;
+  currentStep = idx;
+
+  // Reset state
+  resetAllDevices();
+  resetAllCables();
+  hideOverlay();
+  showPacket(false);
+  frameShell.visible = false;
+  newFrameShell.visible = false;
+
+  // Camera
+  if (!freeLookOn) {
+    setCameraTarget(step.camera.pos, step.camera.look);
+  }
+
+  // Show narration (Next disabled during animation)
+  const isLast = idx === STEPS.length - 1;
+  showNarration(idx + 1, step.title, step.text, false, false);
+
+  // Wait for camera to settle
+  await wait(800);
+
+  // Run animation
+  await step.run();
+
+  // Enable Next or show end buttons
+  if (isLast) {
+    showNarration(idx + 1, step.title, step.text, false, true);
+  } else {
+    enableNextButton();
+  }
+}
+
+function advanceStep() {
+  if (currentStep < STEPS.length - 1) {
+    runStep(currentStep + 1);
+  }
+}
+
+function startTour() {
+  tourActive = true;
+  currentStep = 0;
+  freeLookOn = false;
+  controls.enabled = false;
+  btnFreeLook.classList.remove('active');
+  camLookAtCur.set(0, 0, 0);
+  startScreen.classList.add('hidden');
+  stepIndicator.classList.add('visible');
+  speedCtrl.classList.add('visible');
+  controlsPanel.classList.add('visible');
+  resetAllDevices();
+  resetAllCables();
+  showPacket(false);
+  hideOverlay();
+  runStep(0);
+}
+
+function endTour() {
+  tourActive = false;
+  hideNarration();
+  hideOverlay();
+  showPacket(false);
+  resetAllDevices();
+  resetAllCables();
+  freeLookOn = true;
+  controls.enabled = true;
+  btnFreeLook.classList.add('active');
+  setCameraTarget(new THREE.Vector3(0, 8, 18), new THREE.Vector3(0, 0, 0));
+}
+
+startBtn.addEventListener('click', startTour);
+
+// ══════════════════════════════════════════════════════════════
+// ANIMATION LOOP
+// ══════════════════════════════════════════════════════════════
+const clock = new THREE.Clock();
+
+function animate() {
+  requestAnimationFrame(animate);
+  const rawDt = clock.getDelta();
+  const dt = rawDt * speedMultiplier;
+
+  // Process active animations
+  activeAnimations = activeAnimations.filter(a => {
+    if (a.done) return false;
+
+    if (a.type === 'cable') {
+      const speed = 1 / (a.duration / 1000);
+      if (a.reverse) {
+        a.t -= speed * dt;
+        if (a.t <= 0) {
+          a.t = 0; a.done = true;
+          if (a.cableKey) resetCable(a.cableKey);
+          if (a.resolve) a.resolve();
+          return false;
+        }
+      } else {
+        a.t += speed * dt;
+        if (a.t >= 1) {
+          a.t = 1; a.done = true;
+          if (a.cableKey) resetCable(a.cableKey);
+          if (a.resolve) a.resolve();
+          return false;
+        }
+      }
+      const eased = easeInOutCubic(a.reverse ? a.t : a.t);
+      const pos = a.curve.getPointAt(Math.max(0, Math.min(1, eased)));
+      packetGroup.position.copy(pos);
+      updateTrail(pos);
+      return true;
+    }
+
+    if (a.type === 'frameStrip') {
+      const speed = 1 / (a.duration / 1000);
+      a.t += speed * dt;
+      if (a.t >= 1) {
+        a.done = true;
+        if (a.resolve) a.resolve();
+        return false;
+      }
+      frameShell.scale.setScalar(1 + a.t * 1.5);
+      frameShellMat.opacity = 0.6 * (1 - a.t);
+      return true;
+    }
+
+    if (a.type === 'frameWrap') {
+      const speed = 1 / (a.duration / 1000);
+      a.t += speed * dt;
+      if (a.t >= 1) {
+        a.done = true;
+        if (a.resolve) a.resolve();
+        return false;
+      }
+      newFrameShell.scale.setScalar(2 - a.t * 1.2);
+      newFrameShellMat.opacity = a.t * 0.6;
+      return true;
+    }
+
+    return true;
+  });
+
+  // Broadcast packets
+  broadcastPackets.forEach(bp => {
+    if (!bp.active) return;
+    bp.t += dt * 2;
+    if (bp.t >= 1) {
+      bp.active = false;
+      bp.mesh.visible = false;
+      return;
+    }
+    const pos = new THREE.Vector3().lerpVectors(bp.from, bp.to, easeInOutCubic(bp.t));
+    bp.mesh.position.copy(pos);
+    bp.mesh.material.opacity = 1 - bp.t * 0.5;
+  });
+
+  // Burst particles
+  updateBurst(dt);
+
+  // Camera — smooth position + smooth lookAt target
+  if (!freeLookOn) {
+    camera.position.lerp(camTarget, camLerp);
+    camLookAtCur.lerp(camLookAt, camLerp * 1.5);
+    camera.lookAt(camLookAtCur);
+  }
+
+  controls.update();
+  composer.render();
+  labelRenderer.render(scene, camera);
+}
+
+animate();
+</script>
+</body>
+</html>

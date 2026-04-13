@@ -508,6 +508,129 @@
     }
     .stdext-note strong { color: var(--text-primary); }
 
+    /* ── RAF Packet Trail ── */
+    .raf-trail-dot {
+      pointer-events: none;
+    }
+
+    /* ── RAF Particle Burst ── */
+    .raf-particle {
+      pointer-events: none;
+    }
+
+    /* ── Implicit Deny Pulse ── */
+    @keyframes implicitPulseGlow {
+      0%, 100% { filter: drop-shadow(0 0 4px rgba(248, 113, 113, 0.3)); }
+      50% { filter: drop-shadow(0 0 16px rgba(248, 113, 113, 0.7)); }
+    }
+    .implicit-pulse-active {
+      animation: implicitPulseGlow 1.5s ease-in-out infinite;
+    }
+
+    /* ── Live Traffic Tab ── */
+    .live-traffic-container {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 24px;
+    }
+    .lt-controls {
+      display: flex; gap: 16px; align-items: center; flex-wrap: wrap;
+      margin-bottom: 20px;
+    }
+    .lt-controls label {
+      font-size: 0.82rem; color: var(--text-secondary);
+      display: flex; align-items: center; gap: 8px;
+    }
+    .lt-controls input[type="range"] {
+      width: 160px; accent-color: var(--blue);
+    }
+    .lt-svg-wrap {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      overflow: hidden;
+      margin-bottom: 16px;
+    }
+    .lt-counters {
+      display: flex; gap: 24px; font-family: var(--font-mono);
+      font-size: 0.9rem; padding: 12px 16px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+    }
+    .lt-counter-permitted { color: var(--green); }
+    .lt-counter-denied { color: var(--red); }
+    .lt-counter-total { color: var(--text-primary); }
+    .lt-acl-rules-list {
+      margin-top: 16px;
+      font-family: var(--font-mono);
+      font-size: 0.82rem;
+    }
+    .lt-acl-rules-list .lt-rule-item {
+      display: flex; gap: 12px; align-items: center;
+      padding: 6px 12px; margin-bottom: 2px;
+      border-radius: var(--radius-sm);
+      border: 1px solid transparent;
+      transition: background 0.15s ease, border-color 0.15s ease;
+    }
+    .lt-rule-flash-permit {
+      background: rgba(52, 211, 153, 0.15) !important;
+      border-color: rgba(52, 211, 153, 0.4) !important;
+    }
+    .lt-rule-flash-deny {
+      background: rgba(248, 113, 113, 0.15) !important;
+      border-color: rgba(248, 113, 113, 0.4) !important;
+    }
+
+    /* ── Wildcard Bit Flip Animation ── */
+    .wc-bit-flip-cell {
+      display: inline-block;
+      width: 22px; height: 26px;
+      text-align: center; line-height: 26px;
+      border-radius: 3px;
+      font-size: 0.8rem; font-weight: 600;
+      font-family: var(--font-mono);
+      perspective: 200px;
+      position: relative;
+      overflow: hidden;
+      cursor: default;
+    }
+    .wc-bit-flip-inner {
+      display: block;
+      width: 100%; height: 100%;
+      line-height: 26px;
+      transition: none;
+    }
+    .wc-bit-flip-cell.must-match {
+      background: rgba(22, 163, 74, 0.12);
+      color: var(--green);
+    }
+    .wc-bit-flip-cell.dont-care {
+      background: rgba(168, 162, 158, 0.12);
+      color: var(--text-muted);
+    }
+    .wc-bit-flip-cell.must-match .wc-bit-flip-inner {
+      box-shadow: inset 0 0 6px rgba(91, 141, 239, 0.3);
+    }
+    .wc-octet-sep {
+      display: inline-block; width: 8px;
+    }
+    .wc-animated-range-bar {
+      height: 8px;
+      background: var(--blue);
+      border-radius: 4px;
+      transition: none;
+      margin-top: 8px;
+    }
+    .wc-decimal-fade {
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+    .wc-decimal-fade.visible {
+      opacity: 1;
+    }
+
     /* Responsive */
     @media (max-width: 800px) {
       .flowchart-container { flex-direction: column; }
@@ -540,6 +663,7 @@
       <button class="tab-btn" data-tab="trace">Packet Trace</button>
       <button class="tab-btn" data-tab="wildcard">Wildcard Calculator</button>
       <button class="tab-btn" data-tab="stdext">Standard vs Extended</button>
+      <button class="tab-btn" data-tab="livetraffic">Live Traffic</button>
       <button class="tab-btn" data-tab="commands">Commands Reference</button>
     </div>
 
@@ -1039,6 +1163,95 @@
 
       <div class="stdext-note" style="margin-top:10px;">
         <strong>Exam tip:</strong> If the question says "block Host A from reaching the web server on port 80 but allow everything else" — that requires an <strong>Extended ACL</strong>. A Standard ACL would block Host A from reaching <em>everything</em>, not just port 80.
+      </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!--  TAB: Live Traffic Flow                                      -->
+    <!-- ============================================================ -->
+    <div id="tab-livetraffic" class="tool-section hidden">
+      <p class="text-secondary" style="font-size:0.85rem;margin-bottom:16px;">Watch a continuous stream of randomized packets hit an ACL filter wall. Permitted packets pass through green; denied packets bounce back red. Matching ACL rules flash on hit.</p>
+
+      <div class="lt-controls">
+        <button class="btn btn-primary" id="lt-start-btn">Start Traffic</button>
+        <button class="btn btn-ghost btn-sm" id="lt-stop-btn">Stop</button>
+        <label>
+          Speed
+          <input type="range" id="lt-speed" min="1" max="10" value="5">
+        </label>
+        <span id="lt-speed-label" style="font-size:0.78rem;color:var(--text-muted);">5 pkt/s</span>
+      </div>
+
+      <div class="lt-svg-wrap">
+        <svg id="lt-svg" width="100%" height="340" viewBox="0 0 900 340" style="display:block;">
+          <!-- Background zones -->
+          <rect x="0" y="0" width="300" height="340" fill="rgba(30,58,95,0.08)"/>
+          <rect x="380" y="0" width="140" height="340" fill="rgba(91,141,239,0.06)"/>
+          <rect x="600" y="0" width="300" height="340" fill="rgba(6,78,59,0.06)"/>
+
+          <!-- Labels -->
+          <text x="150" y="28" text-anchor="middle" fill="#5b8def" font-size="13" font-weight="600" font-family="inherit">Incoming Packets</text>
+          <text x="450" y="28" text-anchor="middle" fill="#9ba1b5" font-size="13" font-weight="600" font-family="inherit">ACL Filter</text>
+          <text x="750" y="28" text-anchor="middle" fill="#34d399" font-size="13" font-weight="600" font-family="inherit">Network</text>
+
+          <!-- ACL Wall lines -->
+          <line x1="380" y1="40" x2="380" y2="330" stroke="#5b8def" stroke-width="2" opacity="0.3"/>
+          <line x1="520" y1="40" x2="520" y2="330" stroke="#5b8def" stroke-width="2" opacity="0.3"/>
+
+          <!-- ACL Rule bars (inside wall) -->
+          <g id="lt-acl-bars">
+            <rect id="lt-rule-0" x="385" y="50" width="130" height="30" rx="4" fill="#222632" stroke="#2e3347" stroke-width="1.5"/>
+            <text x="450" y="68" text-anchor="middle" fill="#34d399" font-size="9" font-weight="600">10 permit tcp :80</text>
+
+            <rect id="lt-rule-1" x="385" y="90" width="130" height="30" rx="4" fill="#222632" stroke="#2e3347" stroke-width="1.5"/>
+            <text x="450" y="108" text-anchor="middle" fill="#34d399" font-size="9" font-weight="600">20 permit tcp :443</text>
+
+            <rect id="lt-rule-2" x="385" y="130" width="130" height="30" rx="4" fill="#222632" stroke="#2e3347" stroke-width="1.5"/>
+            <text x="450" y="148" text-anchor="middle" fill="#f87171" font-size="9" font-weight="600">30 deny tcp :23</text>
+
+            <rect id="lt-rule-3" x="385" y="170" width="130" height="30" rx="4" fill="#222632" stroke="#2e3347" stroke-width="1.5"/>
+            <text x="450" y="188" text-anchor="middle" fill="#34d399" font-size="9" font-weight="600">40 permit icmp any</text>
+
+            <rect id="lt-rule-4" x="385" y="210" width="130" height="30" rx="4" fill="#222632" stroke="#2e3347" stroke-width="1.5"/>
+            <text x="450" y="228" text-anchor="middle" fill="#34d399" font-size="9" font-weight="600">50 permit udp :53</text>
+
+            <rect id="lt-rule-5" x="385" y="260" width="130" height="30" rx="4" fill="#7f1d1d" stroke="#f87171" stroke-width="1.5"/>
+            <text x="450" y="278" text-anchor="middle" fill="#f87171" font-size="9" font-weight="600">IMPLICIT DENY</text>
+          </g>
+
+          <!-- Interface icon left -->
+          <rect x="30" y="155" width="60" height="30" rx="6" fill="#1e3a5f" stroke="#5b8def" stroke-width="1.5"/>
+          <text x="60" y="174" text-anchor="middle" fill="#5b8def" font-size="9" font-weight="600">Gi0/0</text>
+
+          <!-- Packets will be added dynamically here -->
+          <g id="lt-packets-group"></g>
+
+          <!-- Tooltip (hidden by default) -->
+          <g id="lt-tooltip" style="display:none;" pointer-events="none">
+            <rect x="0" y="0" width="200" height="52" rx="4" fill="#1a1e2e" stroke="#5b8def" stroke-width="1" opacity="0.95"/>
+            <text id="lt-tooltip-line1" x="10" y="18" fill="#e8eaf0" font-size="10" font-family="monospace"></text>
+            <text id="lt-tooltip-line2" x="10" y="34" fill="#9ba1b5" font-size="10" font-family="monospace"></text>
+            <text id="lt-tooltip-line3" x="10" y="48" fill="#9ba1b5" font-size="9" font-family="monospace"></text>
+          </g>
+        </svg>
+      </div>
+
+      <div class="lt-counters">
+        <span class="lt-counter-permitted">Permitted: <strong id="lt-count-permit">0</strong></span>
+        <span class="lt-counter-denied">Denied: <strong id="lt-count-deny">0</strong></span>
+        <span class="lt-counter-total">Total: <strong id="lt-count-total">0</strong></span>
+      </div>
+
+      <div class="concept-card" style="margin-top:20px;">
+        <h4>What You Are Seeing</h4>
+        <ul>
+          <li>Each dot is a randomized packet with a source IP, destination IP, protocol, and port</li>
+          <li>Packets flow left-to-right toward the ACL filter wall</li>
+          <li><strong style="color:var(--green);">Green packets</strong> matched a permit rule and pass through to the network</li>
+          <li><strong style="color:var(--red);">Red packets</strong> were denied (or hit implicit deny) and bounce back with an X</li>
+          <li>The matching ACL rule bar flashes when a packet hits it</li>
+          <li>Hover over any packet to see its details</li>
+        </ul>
       </div>
     </div>
 
