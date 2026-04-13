@@ -46,7 +46,7 @@
       margin-top: 4px; color: var(--text-primary);
     }
 
-    /* Binary visualization */
+    /* Binary visualization (calculator tab) */
     .binary-row {
       display: flex; gap: 2px; margin-top: 12px; flex-wrap: wrap;
     }
@@ -69,6 +69,7 @@
     .drill-area {
       background: var(--bg-card); border: 1px solid var(--border);
       border-radius: var(--radius-md); padding: 32px; text-align: center;
+      position: relative; overflow: hidden;
     }
     .drill-question {
       font-size: 1.3rem; font-weight: 600; margin-bottom: 8px;
@@ -109,16 +110,18 @@
       color: var(--text-secondary); margin-bottom: 8px;
     }
 
-    /* Tabs */
+    /* Tabs — allow wrapping for more tabs */
     .tab-row {
       display: flex; gap: 4px; margin-bottom: 24px;
       border-bottom: 1px solid var(--border); padding-bottom: 0;
+      flex-wrap: wrap;
     }
     .tab-btn {
-      padding: 10px 20px; background: none; border: none;
+      padding: 10px 16px; background: none; border: none;
       color: var(--text-secondary); cursor: pointer;
-      font-size: 0.9rem; font-family: inherit;
+      font-size: 0.85rem; font-family: inherit;
       border-bottom: 2px solid transparent; transition: all var(--transition);
+      white-space: nowrap;
     }
     .tab-btn:hover { color: var(--text-primary); }
     .tab-btn.active {
@@ -131,16 +134,485 @@
     .cheat-table tr:hover { background: var(--bg-hover); }
     .highlight-row { background: var(--blue-dim) !important; }
 
+    /* ═══════════════════════════════════════════════════════════════
+       BINARY VIEW TAB
+       ═══════════════════════════════════════════════════════════════ */
+    .bv-controls {
+      display: flex; gap: 16px; align-items: end; flex-wrap: wrap;
+      margin-bottom: 32px;
+    }
+    .bv-controls label {
+      display: flex; flex-direction: column; gap: 4px;
+      font-size: 0.82rem; color: var(--text-secondary);
+      font-family: var(--font-display);
+    }
+    .bv-controls input, .bv-controls select {
+      background: var(--bg-input); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); padding: 10px 14px;
+      color: var(--text-primary); font-family: var(--font-mono);
+      font-size: 0.95rem; outline: none;
+    }
+    .bv-controls input:focus { border-color: var(--accent); }
+
+    .bv-bit-grid {
+      display: flex; flex-direction: column; gap: 20px;
+      padding: 24px;
+      background: var(--bg-surface); border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+    }
+    .bv-row-label {
+      font-family: var(--font-display); font-size: 0.72rem;
+      text-transform: uppercase; letter-spacing: 0.06em;
+      color: var(--ink-muted); margin-bottom: 6px;
+    }
+    .bv-bits {
+      display: flex; gap: 0; align-items: center; flex-wrap: wrap;
+    }
+    .bv-octet-group {
+      display: flex; gap: 2px;
+    }
+    .bv-dot {
+      width: 16px; display: flex; align-items: center; justify-content: center;
+      font-family: var(--font-mono); font-size: 1.1rem; color: var(--ink-muted);
+      font-weight: 700;
+    }
+    .bv-cell {
+      width: 32px; height: 38px;
+      display: flex; align-items: center; justify-content: center;
+      font-family: var(--font-mono); font-size: 0.85rem; font-weight: 600;
+      border-radius: 4px; position: relative;
+      transition: background 0.35s var(--ease-out), color 0.35s var(--ease-out),
+                  transform 0.4s var(--ease-out);
+    }
+    .bv-cell.network-bit {
+      background: var(--accent-light); color: var(--accent);
+    }
+    .bv-cell.host-bit {
+      background: var(--prof-strong-bg); color: var(--prof-strong);
+    }
+    .bv-cell.flipping {
+      transform: rotateX(90deg);
+    }
+    .bv-split-line {
+      width: 3px; height: 38px; border-radius: 2px;
+      background: var(--accent);
+      margin: 0 1px;
+      animation: splitPulse 2s ease-in-out infinite;
+      flex-shrink: 0;
+    }
+    @keyframes splitPulse {
+      0%, 100% { opacity: 0.5; box-shadow: 0 0 4px var(--accent); }
+      50% { opacity: 1; box-shadow: 0 0 12px var(--accent), 0 0 24px rgba(180,83,9,0.3); }
+    }
+    .bv-octet-labels {
+      display: flex; gap: 0; align-items: center; flex-wrap: wrap;
+      margin-top: 6px;
+    }
+    .bv-octet-val {
+      width: calc(32px * 8 + 2px * 7);
+      text-align: center; font-family: var(--font-mono);
+      font-size: 0.8rem; color: var(--ink-secondary);
+    }
+    .bv-octet-spacer { width: 16px; }
+    .bv-octet-spacer-split { width: 5px; }
+
+    .bv-legend {
+      display: flex; gap: 24px; margin-top: 16px;
+      font-size: 0.82rem; color: var(--ink-secondary);
+      font-family: var(--font-display);
+    }
+    .bv-legend-item {
+      display: flex; align-items: center; gap: 6px;
+    }
+    .bv-legend-swatch {
+      width: 14px; height: 14px; border-radius: 3px;
+    }
+
+    .bv-prefix-slider {
+      margin-top: 20px; display: flex; align-items: center; gap: 16px;
+    }
+    .bv-prefix-slider input[type="range"] {
+      flex: 1; accent-color: var(--accent);
+      height: 6px; cursor: pointer;
+    }
+    .bv-prefix-val {
+      font-family: var(--font-mono); font-size: 1.1rem;
+      font-weight: 700; color: var(--accent);
+      min-width: 40px; text-align: center;
+    }
+    .bv-info-row {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(180px,1fr));
+      gap: 12px; margin-top: 20px;
+    }
+
+    /* ═══════════════════════════════════════════════════════════════
+       SUBNET SLICER TAB
+       ═══════════════════════════════════════════════════════════════ */
+    .slicer-controls {
+      display: flex; gap: 16px; align-items: end; flex-wrap: wrap;
+      margin-bottom: 24px;
+    }
+    .slicer-controls label {
+      display: flex; flex-direction: column; gap: 4px;
+      font-size: 0.82rem; color: var(--text-secondary);
+      font-family: var(--font-display);
+    }
+    .slicer-controls input {
+      background: var(--bg-input); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); padding: 10px 14px;
+      color: var(--text-primary); font-family: var(--font-mono);
+      font-size: 0.95rem; outline: none; width: 180px;
+    }
+    .slicer-slider-row {
+      display: flex; align-items: center; gap: 16px; margin-bottom: 8px;
+    }
+    .slicer-slider-row input[type="range"] {
+      flex: 1; accent-color: var(--accent); cursor: pointer;
+    }
+    .slicer-prefix-label {
+      font-family: var(--font-mono); font-size: 1.2rem;
+      font-weight: 700; color: var(--accent); min-width: 50px; text-align: center;
+    }
+    .slicer-info {
+      font-size: 0.85rem; color: var(--ink-secondary); margin-bottom: 20px;
+      font-family: var(--font-display);
+    }
+    .slicer-canvas-wrap {
+      background: var(--bg-surface); border: 1px solid var(--border);
+      border-radius: var(--radius-lg); padding: 24px; overflow: hidden;
+    }
+    .slicer-bar-container {
+      display: flex; flex-direction: column; gap: 6px;
+    }
+    .slicer-bar-row {
+      display: flex; gap: 4px; width: 100%;
+      transition: all 0.5s var(--ease-out);
+    }
+    .slicer-block {
+      height: 64px; border-radius: 6px; display: flex;
+      flex-direction: column; align-items: center; justify-content: center;
+      font-family: var(--font-mono); font-size: 0.7rem;
+      cursor: pointer; position: relative; overflow: hidden;
+      transition: flex-basis 0.6s var(--ease-out), opacity 0.3s ease;
+      border: 1px solid rgba(0,0,0,0.08);
+    }
+    .slicer-block:hover {
+      filter: brightness(0.95);
+      z-index: 2;
+    }
+    .slicer-block .sb-net {
+      font-weight: 700; font-size: 0.72rem;
+    }
+    .slicer-block .sb-range {
+      font-size: 0.6rem; opacity: 0.7;
+    }
+    .slicer-block .sb-hosts {
+      font-size: 0.6rem; opacity: 0.8; margin-top: 2px;
+    }
+    .slicer-detail-panel {
+      margin-top: 20px; padding: 20px;
+      background: var(--bg-recessed); border-radius: var(--radius-lg);
+      display: none;
+    }
+    .slicer-detail-panel.open { display: block; }
+    .slicer-detail-panel h3 {
+      font-size: 1rem; margin-bottom: 12px;
+    }
+    .slicer-addr-list {
+      font-family: var(--font-mono); font-size: 0.82rem;
+      line-height: 1.8; max-height: 300px; overflow-y: auto;
+      columns: 2; column-gap: 32px;
+    }
+    .slicer-addr-list .addr-net { color: var(--accent); font-weight: 700; }
+    .slicer-addr-list .addr-bcast { color: var(--prof-weak); font-weight: 700; }
+    .slicer-addr-list .addr-usable { color: var(--ink-secondary); }
+
+    /* Slicer color palette */
+    .slicer-c0 { background: #FEF3C7; color: #92400E; }
+    .slicer-c1 { background: #DBEAFE; color: #1E40AF; }
+    .slicer-c2 { background: #D1FAE5; color: #065F46; }
+    .slicer-c3 { background: #FEE2E2; color: #991B1B; }
+    .slicer-c4 { background: #EDE9FE; color: #5B21B6; }
+    .slicer-c5 { background: #FCE7F3; color: #9D174D; }
+    .slicer-c6 { background: #E0E7FF; color: #3730A3; }
+    .slicer-c7 { background: #CCFBF1; color: #115E59; }
+
+    /* ═══════════════════════════════════════════════════════════════
+       ADDRESS CLASSIFIER TAB
+       ═══════════════════════════════════════════════════════════════ */
+    .classify-input-wrap {
+      display: flex; gap: 12px; align-items: end; flex-wrap: wrap;
+      margin-bottom: 32px;
+    }
+    .classify-input-wrap label {
+      display: flex; flex-direction: column; gap: 4px;
+      font-size: 0.82rem; color: var(--text-secondary);
+      font-family: var(--font-display);
+    }
+    .classify-input-wrap input {
+      background: var(--bg-input); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); padding: 12px 18px;
+      color: var(--text-primary); font-family: var(--font-mono);
+      font-size: 1.1rem; outline: none; width: 260px;
+    }
+    .classify-input-wrap input:focus { border-color: var(--accent); }
+    .classify-input-wrap select {
+      background: var(--bg-input); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); padding: 10px 14px;
+      color: var(--text-primary); font-family: var(--font-mono);
+      font-size: 0.95rem; outline: none;
+    }
+
+    /* SVG Flowchart */
+    .classify-svg-wrap {
+      background: var(--bg-surface); border: 1px solid var(--border);
+      border-radius: var(--radius-lg); padding: 16px; overflow-x: auto;
+    }
+    .classify-svg-wrap svg {
+      display: block; margin: 0 auto;
+    }
+    .fc-node {
+      rx: 8; ry: 8;
+      fill: var(--bg-recessed); stroke: var(--border); stroke-width: 1.5;
+      transition: fill 0.4s ease, stroke 0.4s ease;
+    }
+    .fc-node.active {
+      fill: var(--accent-light); stroke: var(--accent); stroke-width: 2.5;
+    }
+    .fc-node.result {
+      fill: var(--prof-strong-bg); stroke: var(--prof-strong); stroke-width: 2.5;
+    }
+    .fc-text {
+      font-family: var(--font-display); font-size: 11px;
+      fill: var(--ink-secondary); text-anchor: middle;
+      dominant-baseline: central; pointer-events: none;
+    }
+    .fc-text.active { fill: var(--accent); font-weight: 600; }
+    .fc-text.result { fill: var(--prof-strong); font-weight: 600; }
+    .fc-arrow {
+      stroke: var(--border); stroke-width: 1.5; fill: none;
+      marker-end: url(#fc-arrowhead);
+      transition: stroke 0.4s ease, stroke-width 0.4s ease;
+    }
+    .fc-arrow.active {
+      stroke: var(--accent); stroke-width: 2.5;
+      marker-end: url(#fc-arrowhead-active);
+    }
+    .fc-arrow-label {
+      font-family: var(--font-mono); font-size: 9px;
+      fill: var(--ink-muted); text-anchor: middle;
+    }
+    .fc-arrow-label.active { fill: var(--accent); font-weight: 600; }
+
+    .classify-result-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(200px,1fr));
+      gap: 12px; margin-top: 24px;
+    }
+
+    /* ═══════════════════════════════════════════════════════════════
+       VLSM VISUALIZER TAB
+       ═══════════════════════════════════════════════════════════════ */
+    .vlsm-controls {
+      margin-bottom: 24px;
+    }
+    .vlsm-reqs {
+      display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px;
+    }
+    .vlsm-req-row {
+      display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
+    }
+    .vlsm-req-row input {
+      background: var(--bg-input); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); padding: 8px 12px;
+      color: var(--text-primary); font-family: var(--font-mono);
+      font-size: 0.9rem; outline: none;
+    }
+    .vlsm-req-row input:first-child { width: 160px; font-family: var(--font-display); }
+    .vlsm-req-row input:nth-child(2) { width: 100px; }
+    .vlsm-req-row .vlsm-remove-btn {
+      background: none; border: 1px solid var(--border); border-radius: var(--radius-sm);
+      color: var(--ink-muted); cursor: pointer; width: 32px; height: 32px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.1rem; transition: all var(--transition);
+    }
+    .vlsm-req-row .vlsm-remove-btn:hover {
+      border-color: var(--prof-weak); color: var(--prof-weak);
+    }
+    .vlsm-btn-row {
+      display: flex; gap: 8px; flex-wrap: wrap;
+    }
+    .vlsm-network-input {
+      display: flex; gap: 12px; align-items: end; flex-wrap: wrap;
+      margin-bottom: 16px;
+    }
+    .vlsm-network-input label {
+      display: flex; flex-direction: column; gap: 4px;
+      font-size: 0.82rem; color: var(--text-secondary);
+      font-family: var(--font-display);
+    }
+    .vlsm-network-input input {
+      background: var(--bg-input); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); padding: 10px 14px;
+      color: var(--text-primary); font-family: var(--font-mono);
+      font-size: 0.95rem; outline: none; width: 180px;
+    }
+
+    .vlsm-canvas-wrap {
+      background: var(--bg-surface); border: 1px solid var(--border);
+      border-radius: var(--radius-lg); padding: 24px;
+    }
+    .vlsm-bar-container {
+      display: flex; width: 100%; gap: 2px; margin-bottom: 16px;
+      min-height: 80px;
+    }
+    .vlsm-block {
+      height: 80px; border-radius: 6px; display: flex;
+      flex-direction: column; align-items: center; justify-content: center;
+      font-family: var(--font-mono); font-size: 0.7rem;
+      position: relative; overflow: hidden;
+      border: 1px solid rgba(0,0,0,0.08);
+      transition: flex-basis 0.8s var(--ease-out), opacity 0.5s ease;
+      opacity: 0;
+    }
+    .vlsm-block.visible { opacity: 1; }
+    .vlsm-block .vb-name {
+      font-family: var(--font-display); font-weight: 600;
+      font-size: 0.72rem;
+    }
+    .vlsm-block .vb-cidr {
+      font-weight: 700; font-size: 0.8rem; margin-top: 2px;
+    }
+    .vlsm-block .vb-net {
+      font-size: 0.65rem; opacity: 0.7; margin-top: 2px;
+    }
+    .vlsm-block.unused {
+      background: var(--bg-recessed); color: var(--ink-muted);
+      border: 1px dashed var(--border);
+    }
+    .vlsm-block.waste {
+      background: #FFFBEB; color: #92400E;
+      border-color: #F59E0B;
+    }
+
+    .vlsm-table {
+      width: 100%; margin-top: 16px;
+    }
+    .vlsm-table th {
+      font-family: var(--font-display); font-size: 0.72rem;
+      text-transform: uppercase; letter-spacing: 0.06em;
+      color: var(--ink-muted); font-weight: 600;
+      padding: 8px 12px; text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+    .vlsm-table td {
+      font-family: var(--font-mono); font-size: 0.82rem;
+      padding: 8px 12px; border-bottom: 1px solid var(--border);
+    }
+    .vlsm-efficiency {
+      margin-top: 16px; display: flex; align-items: center; gap: 12px;
+    }
+    .vlsm-eff-bar {
+      flex: 1; height: 8px; background: var(--bg-recessed);
+      border-radius: 4px; overflow: hidden;
+    }
+    .vlsm-eff-fill {
+      height: 100%; border-radius: 4px;
+      transition: width 0.8s var(--ease-out);
+    }
+    .vlsm-eff-label {
+      font-family: var(--font-mono); font-size: 0.95rem;
+      font-weight: 700; min-width: 50px;
+    }
+
+    /* ═══════════════════════════════════════════════════════════════
+       DRILL ENHANCEMENTS
+       ═══════════════════════════════════════════════════════════════ */
+    /* Timer bar */
+    .drill-timer-bar {
+      width: 100%; height: 6px; background: var(--bg-recessed);
+      border-radius: 3px; overflow: hidden; margin-bottom: 16px;
+    }
+    .drill-timer-fill {
+      height: 100%; border-radius: 3px;
+      background: var(--accent);
+      transition: width 0.2s linear, background 0.5s ease;
+    }
+    .drill-timer-fill.warning { background: var(--prof-mid); }
+    .drill-timer-fill.danger { background: var(--prof-weak); }
+
+    /* Streak counter */
+    .drill-streak {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-family: var(--font-display); font-size: 0.85rem;
+      font-weight: 700; color: var(--ink-muted);
+      margin-bottom: 12px;
+      transition: transform 0.3s var(--ease-out), color 0.3s ease;
+    }
+    .drill-streak.on-fire {
+      color: #EA580C;
+      transform: scale(1.15);
+    }
+    .drill-streak .streak-flame {
+      font-size: 1.2rem; display: inline-block;
+      transition: transform 0.3s var(--ease-out);
+    }
+    .drill-streak.on-fire .streak-flame {
+      animation: flameDance 0.4s ease-in-out;
+    }
+    @keyframes flameDance {
+      0% { transform: scale(1) rotate(0); }
+      25% { transform: scale(1.4) rotate(-8deg); }
+      50% { transform: scale(1.2) rotate(6deg); }
+      75% { transform: scale(1.3) rotate(-4deg); }
+      100% { transform: scale(1) rotate(0); }
+    }
+
+    /* Confetti canvas */
+    .confetti-canvas {
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+      pointer-events: none; z-index: 10;
+    }
+
+    /* Drill binary work */
+    .drill-binary-work {
+      margin-top: 16px; padding: 16px;
+      background: var(--bg-recessed); border-radius: var(--radius-lg);
+      display: none;
+    }
+    .drill-binary-work.show { display: block; }
+    .drill-binary-work .bv-row-label { margin-bottom: 4px; }
+
+    /* Correct answer pulse */
+    @keyframes correctPulse {
+      0% { box-shadow: 0 0 0 0 rgba(22,163,74,0.4); }
+      70% { box-shadow: 0 0 0 12px rgba(22,163,74,0); }
+      100% { box-shadow: 0 0 0 0 rgba(22,163,74,0); }
+    }
+    .answer-pulse {
+      animation: correctPulse 0.6s ease-out;
+    }
+
     /* Responsive */
     @media (max-width: 600px) {
       .calc-input-row { flex-direction: column; }
       .calc-input-row input { width: 100%; }
       .bit { width: 18px; height: 22px; font-size: 0.65rem; }
+      .bv-cell { width: 24px; height: 30px; font-size: 0.72rem; }
+      .bv-dot { width: 10px; }
+      .slicer-addr-list { columns: 1; }
+      .tab-btn { padding: 8px 10px; font-size: 0.78rem; }
+    }
+
+    /* Container override for wider layout on visual tabs */
+    .container-viz {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: var(--s-lg);
     }
   </style>
 </head>
 <body>
-  <div class="container">
+  <div class="container-viz">
     <!-- Nav -->
     <nav class="top-nav" style="margin-bottom: 16px;"></nav>
     <script src="../js/nav.js?v=3"></script>
@@ -148,14 +620,18 @@
     <div class="page-header">
       <div>
         <h1>Subnetting Tool</h1>
-        <div class="subtitle">Calculator + Speed Drills — CIDR, VLSM, wildcard masks</div>
+        <div class="subtitle">Calculator, Speed Drills, Binary View, Subnet Slicer, VLSM — animated and interactive</div>
       </div>
-      <a href="../index.html" class="back-link">← Back to Dashboard</a>
+      <a href="../index.html" class="back-link">-- Back to Dashboard</a>
     </div>
 
     <!-- Tabs -->
     <div class="tab-row">
       <button class="tab-btn active" data-tab="calculator">Calculator</button>
+      <button class="tab-btn" data-tab="binary">Binary View</button>
+      <button class="tab-btn" data-tab="slicer">Subnet Slicer</button>
+      <button class="tab-btn" data-tab="classify">Classify</button>
+      <button class="tab-btn" data-tab="vlsm">VLSM</button>
       <button class="tab-btn" data-tab="drill">Speed Drill</button>
       <button class="tab-btn" data-tab="cheatsheet">Cheat Sheet</button>
     </div>
@@ -176,18 +652,18 @@
 
       <div id="calc-results" class="hidden">
         <div class="result-grid">
-          <div class="result-item"><div class="label">Network Address</div><div class="value" id="r-network">—</div></div>
-          <div class="result-item"><div class="label">Broadcast Address</div><div class="value" id="r-broadcast">—</div></div>
-          <div class="result-item"><div class="label">First Usable Host</div><div class="value" id="r-first">—</div></div>
-          <div class="result-item"><div class="label">Last Usable Host</div><div class="value" id="r-last">—</div></div>
-          <div class="result-item"><div class="label">Subnet Mask</div><div class="value" id="r-mask">—</div></div>
-          <div class="result-item"><div class="label">Wildcard Mask</div><div class="value" id="r-wildcard">—</div></div>
-          <div class="result-item"><div class="label">Total Hosts</div><div class="value" id="r-total">—</div></div>
-          <div class="result-item"><div class="label">Usable Hosts</div><div class="value" id="r-usable">—</div></div>
-          <div class="result-item"><div class="label">CIDR Notation</div><div class="value" id="r-cidr">—</div></div>
-          <div class="result-item"><div class="label">IP Class</div><div class="value" id="r-class">—</div></div>
-          <div class="result-item"><div class="label">IP Type</div><div class="value" id="r-type">—</div></div>
-          <div class="result-item"><div class="label">Binary Subnet Mask</div><div class="value" id="r-binmask" style="font-size:0.8rem;">—</div></div>
+          <div class="result-item"><div class="label">Network Address</div><div class="value" id="r-network">--</div></div>
+          <div class="result-item"><div class="label">Broadcast Address</div><div class="value" id="r-broadcast">--</div></div>
+          <div class="result-item"><div class="label">First Usable Host</div><div class="value" id="r-first">--</div></div>
+          <div class="result-item"><div class="label">Last Usable Host</div><div class="value" id="r-last">--</div></div>
+          <div class="result-item"><div class="label">Subnet Mask</div><div class="value" id="r-mask">--</div></div>
+          <div class="result-item"><div class="label">Wildcard Mask</div><div class="value" id="r-wildcard">--</div></div>
+          <div class="result-item"><div class="label">Total Hosts</div><div class="value" id="r-total">--</div></div>
+          <div class="result-item"><div class="label">Usable Hosts</div><div class="value" id="r-usable">--</div></div>
+          <div class="result-item"><div class="label">CIDR Notation</div><div class="value" id="r-cidr">--</div></div>
+          <div class="result-item"><div class="label">IP Class</div><div class="value" id="r-class">--</div></div>
+          <div class="result-item"><div class="label">IP Type</div><div class="value" id="r-type">--</div></div>
+          <div class="result-item"><div class="label">Binary Subnet Mask</div><div class="value" id="r-binmask" style="font-size:0.8rem;">--</div></div>
         </div>
 
         <!-- Binary visualization -->
@@ -198,9 +674,198 @@
       </div>
     </div>
 
-    <!-- ═══ TAB 2: Speed Drill ═══ -->
+    <!-- ═══ TAB 2: Binary View ═══ -->
+    <div id="tab-binary" class="tool-section hidden">
+      <div class="bv-controls">
+        <label>
+          IP Address
+          <input type="text" id="bv-ip" placeholder="192.168.10.50" value="192.168.10.50">
+        </label>
+        <label>
+          Prefix Length
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span class="bv-prefix-val" id="bv-prefix-val">/24</span>
+          </div>
+        </label>
+      </div>
+
+      <div class="bv-prefix-slider">
+        <span style="font-family:var(--font-mono);font-size:0.8rem;color:var(--ink-muted);">/0</span>
+        <input type="range" id="bv-prefix-slider" min="0" max="32" value="24">
+        <span style="font-family:var(--font-mono);font-size:0.8rem;color:var(--ink-muted);">/32</span>
+      </div>
+
+      <div style="margin-top:24px;">
+        <div class="bv-bit-grid">
+          <!-- IP Address row -->
+          <div>
+            <div class="bv-row-label">IP Address</div>
+            <div class="bv-bits" id="bv-ip-bits"></div>
+            <div class="bv-octet-labels" id="bv-ip-octets"></div>
+          </div>
+          <!-- Subnet Mask row -->
+          <div>
+            <div class="bv-row-label">Subnet Mask</div>
+            <div class="bv-bits" id="bv-mask-bits"></div>
+            <div class="bv-octet-labels" id="bv-mask-octets"></div>
+          </div>
+        </div>
+
+        <div class="bv-legend">
+          <div class="bv-legend-item">
+            <div class="bv-legend-swatch" style="background:var(--accent-light);border:1px solid var(--accent);"></div>
+            Network bits
+          </div>
+          <div class="bv-legend-item">
+            <div class="bv-legend-swatch" style="background:var(--prof-strong-bg);border:1px solid var(--prof-strong);"></div>
+            Host bits
+          </div>
+          <div class="bv-legend-item">
+            <div class="bv-legend-swatch" style="background:var(--accent);width:4px;border-radius:2px;"></div>
+            Split point
+          </div>
+        </div>
+      </div>
+
+      <div class="bv-info-row" id="bv-info-row"></div>
+    </div>
+
+    <!-- ═══ TAB 3: Subnet Slicer ═══ -->
+    <div id="tab-slicer" class="tool-section hidden">
+      <div class="slicer-controls">
+        <label>
+          Network Address
+          <input type="text" id="slicer-network" value="192.168.1.0" placeholder="192.168.1.0">
+        </label>
+      </div>
+
+      <div class="slicer-slider-row">
+        <span style="font-family:var(--font-mono);font-size:0.8rem;color:var(--ink-muted);">/24</span>
+        <input type="range" id="slicer-prefix" min="24" max="30" value="24" step="1">
+        <span style="font-family:var(--font-mono);font-size:0.8rem;color:var(--ink-muted);">/30</span>
+        <span class="slicer-prefix-label" id="slicer-prefix-label">/24</span>
+      </div>
+
+      <div class="slicer-info" id="slicer-info">1 subnet -- 256 total addresses -- 254 usable hosts each</div>
+
+      <div class="slicer-canvas-wrap">
+        <div class="slicer-bar-container" id="slicer-bars"></div>
+      </div>
+
+      <div class="slicer-detail-panel" id="slicer-detail">
+        <h3 id="slicer-detail-title">Subnet Details</h3>
+        <div class="slicer-addr-list" id="slicer-addr-list"></div>
+      </div>
+    </div>
+
+    <!-- ═══ TAB 4: Address Classifier ═══ -->
+    <div id="tab-classify" class="tool-section hidden">
+      <div class="classify-input-wrap">
+        <label>
+          IP Address
+          <input type="text" id="classify-ip" placeholder="172.16.254.1" value="172.16.254.1">
+        </label>
+        <label>
+          Prefix
+          <select id="classify-cidr"></select>
+        </label>
+        <button class="btn btn-primary" id="classify-btn">Classify</button>
+      </div>
+
+      <div class="classify-svg-wrap">
+        <svg id="classify-svg" width="780" height="520" viewBox="0 0 780 520">
+          <defs>
+            <marker id="fc-arrowhead" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+              <path d="M0,0 L8,3 L0,6" fill="none" stroke="#C7C3BC" stroke-width="1"/>
+            </marker>
+            <marker id="fc-arrowhead-active" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+              <path d="M0,0 L8,3 L0,6" fill="none" stroke="#B45309" stroke-width="1.5"/>
+            </marker>
+          </defs>
+          <!-- Nodes and arrows built by JS -->
+        </svg>
+      </div>
+
+      <div class="classify-result-grid" id="classify-results"></div>
+    </div>
+
+    <!-- ═══ TAB 5: VLSM Visualizer ═══ -->
+    <div id="tab-vlsm" class="tool-section hidden">
+      <div class="vlsm-controls">
+        <div class="vlsm-network-input">
+          <label>
+            Starting Network
+            <input type="text" id="vlsm-network" value="192.168.1.0" placeholder="192.168.1.0">
+          </label>
+          <label>
+            Prefix
+            <select id="vlsm-start-cidr">
+              <option value="22">/22 (1024)</option>
+              <option value="23">/23 (512)</option>
+              <option value="24" selected>/24 (256)</option>
+              <option value="25">/25 (128)</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="vlsm-reqs" id="vlsm-reqs">
+          <div class="vlsm-req-row">
+            <input type="text" placeholder="Subnet name" value="Sales">
+            <input type="number" placeholder="Hosts" value="100" min="1">
+            <button class="vlsm-remove-btn" title="Remove">&times;</button>
+          </div>
+          <div class="vlsm-req-row">
+            <input type="text" placeholder="Subnet name" value="Engineering">
+            <input type="number" placeholder="Hosts" value="50" min="1">
+            <button class="vlsm-remove-btn" title="Remove">&times;</button>
+          </div>
+          <div class="vlsm-req-row">
+            <input type="text" placeholder="Subnet name" value="Management">
+            <input type="number" placeholder="Hosts" value="10" min="1">
+            <button class="vlsm-remove-btn" title="Remove">&times;</button>
+          </div>
+          <div class="vlsm-req-row">
+            <input type="text" placeholder="Subnet name" value="P2P Link">
+            <input type="number" placeholder="Hosts" value="2" min="1">
+            <button class="vlsm-remove-btn" title="Remove">&times;</button>
+          </div>
+        </div>
+
+        <div class="vlsm-btn-row">
+          <button class="btn btn-secondary btn-sm" id="vlsm-add-req">+ Add Subnet</button>
+          <button class="btn btn-primary" id="vlsm-calculate">Calculate VLSM</button>
+        </div>
+      </div>
+
+      <div class="vlsm-canvas-wrap" id="vlsm-output" style="display:none;">
+        <div class="vlsm-bar-container" id="vlsm-bars"></div>
+
+        <table class="vlsm-table" id="vlsm-table">
+          <thead>
+            <tr>
+              <th>Name</th><th>Needed</th><th>Allocated</th>
+              <th>Network</th><th>Range</th><th>Broadcast</th>
+              <th>CIDR</th><th>Wasted</th>
+            </tr>
+          </thead>
+          <tbody id="vlsm-table-body"></tbody>
+        </table>
+
+        <div class="vlsm-efficiency" id="vlsm-efficiency">
+          <span style="font-family:var(--font-display);font-size:0.82rem;color:var(--ink-secondary);">Efficiency</span>
+          <div class="vlsm-eff-bar">
+            <div class="vlsm-eff-fill" id="vlsm-eff-fill" style="width:0%;background:var(--prof-strong);"></div>
+          </div>
+          <span class="vlsm-eff-label" id="vlsm-eff-label">0%</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ TAB 6: Speed Drill ═══ -->
     <div id="tab-drill" class="tool-section hidden">
       <div class="drill-area" id="drill-area">
+        <canvas class="confetti-canvas" id="confetti-canvas"></canvas>
+
         <div id="drill-setup">
           <h2>Subnetting Speed Drill</h2>
           <p class="text-secondary mb-2">Answer as fast as you can. Goal: under 30 seconds per question.</p>
@@ -226,6 +891,13 @@
         </div>
 
         <div id="drill-active" class="hidden">
+          <div class="drill-timer-bar">
+            <div class="drill-timer-fill" id="drill-timer-fill" style="width:100%;"></div>
+          </div>
+          <div class="drill-streak" id="drill-streak">
+            <span class="streak-flame">&#x1F525;</span>
+            <span id="drill-streak-count">0</span> streak
+          </div>
           <div class="timer-display" id="drill-timer">0:00</div>
           <div class="text-muted mb-1" id="drill-counter">Question 1 / 10</div>
           <div class="drill-question" id="drill-q"></div>
@@ -236,6 +908,10 @@
             <button class="btn btn-secondary hidden" id="drill-next">Next</button>
           </div>
           <div id="drill-feedback" class="drill-feedback hidden"></div>
+          <div class="drill-binary-work" id="drill-binary-work">
+            <div class="bv-row-label">Binary Work</div>
+            <div id="drill-binary-bits"></div>
+          </div>
         </div>
 
         <div id="drill-results" class="hidden">
@@ -266,7 +942,7 @@
       </div>
     </div>
 
-    <!-- ═══ TAB 3: Cheat Sheet ═══ -->
+    <!-- ═══ TAB 7: Cheat Sheet ═══ -->
     <div id="tab-cheatsheet" class="tool-section hidden">
       <h2>CIDR Quick Reference</h2>
       <div class="card">
@@ -308,15 +984,17 @@
 
       <h2 class="mt-3">Private IP Ranges (RFC 1918)</h2>
       <div class="card" style="font-family:var(--font-mono);font-size:0.9rem;line-height:2;">
-        <div><span class="text-blue">10.0.0.0/8</span> — 10.0.0.0 to 10.255.255.255 (Class A)</div>
-        <div><span class="text-blue">172.16.0.0/12</span> — 172.16.0.0 to 172.31.255.255 (Class B)</div>
-        <div><span class="text-blue">192.168.0.0/16</span> — 192.168.0.0 to 192.168.255.255 (Class C)</div>
+        <div><span class="text-blue">10.0.0.0/8</span> -- 10.0.0.0 to 10.255.255.255 (Class A)</div>
+        <div><span class="text-blue">172.16.0.0/12</span> -- 172.16.0.0 to 172.31.255.255 (Class B)</div>
+        <div><span class="text-blue">192.168.0.0/16</span> -- 192.168.0.0 to 192.168.255.255 (Class C)</div>
       </div>
     </div>
   </div>
 
   <script>
-    // ── Subnet math helpers ──
+    // ══════════════════════════════════════════════════════════════════
+    //  CORE SUBNET MATH
+    // ══════════════════════════════════════════════════════════════════
     function ipToNum(ip) {
       const parts = ip.split('.').map(Number);
       return ((parts[0] << 24) | (parts[1] << 16) | (parts[2] << 8) | parts[3]) >>> 0;
@@ -341,6 +1019,10 @@
       return ip.split('.').map(o => parseInt(o).toString(2).padStart(8, '0')).join('');
     }
 
+    function numToBinary32(num) {
+      return num.toString(2).padStart(32, '0');
+    }
+
     function getIpClass(firstOctet) {
       if (firstOctet < 128) return 'A';
       if (firstOctet < 192) return 'B';
@@ -350,7 +1032,6 @@
     }
 
     function getIpType(num) {
-      const ip = numToIp(num);
       const o = (num >>> 24) & 255;
       const o2 = (num >>> 16) & 255;
       if (o === 10) return 'Private (RFC 1918)';
@@ -385,27 +1066,60 @@
         cidr,
         ipClass: getIpClass((ip >>> 24) & 255),
         ipType: getIpType(ip),
-        binaryMask: numToIp(mask).split('.').map(o => parseInt(o).toString(2).padStart(8, '0')).join('.')
+        binaryMask: numToIp(mask).split('.').map(o => parseInt(o).toString(2).padStart(8, '0')).join('.'),
+        networkNum: network,
+        broadcastNum: broadcast
       };
     }
 
-    // ── CIDR Select ──
-    const cidrSelect = document.getElementById('calc-cidr');
-    for (let i = 0; i <= 32; i++) {
-      const mask = numToIp(cidrToMask(i));
-      const opt = document.createElement('option');
-      opt.value = i;
-      opt.textContent = `/${i}  (${mask})`;
-      if (i === 24) opt.selected = true;
-      cidrSelect.appendChild(opt);
+    function isValidIp(str) {
+      return /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(str) &&
+        str.split('.').every(o => { const n = parseInt(o); return n >= 0 && n <= 255; });
     }
 
-    // ── Calculator ──
+    // Smallest power of 2 >= n
+    function nextPow2(n) {
+      let p = 1;
+      while (p < n) p <<= 1;
+      return p;
+    }
+
+    // CIDR needed for a given number of hosts
+    function cidrForHosts(hosts) {
+      // Need hosts + 2 (network + broadcast)
+      const needed = hosts + 2;
+      const blockSize = nextPow2(needed);
+      return 32 - Math.log2(blockSize);
+    }
+
+    // ══════════════════════════════════════════════════════════════════
+    //  CIDR SELECT (shared)
+    // ══════════════════════════════════════════════════════════════════
+    function populateCidrSelect(selectEl, defaultVal) {
+      for (let i = 0; i <= 32; i++) {
+        const mask = numToIp(cidrToMask(i));
+        const opt = document.createElement('option');
+        opt.value = i;
+        opt.textContent = `/${i}  (${mask})`;
+        if (i === defaultVal) opt.selected = true;
+        selectEl.appendChild(opt);
+      }
+    }
+
+    const cidrSelect = document.getElementById('calc-cidr');
+    populateCidrSelect(cidrSelect, 24);
+
+    const classifyCidr = document.getElementById('classify-cidr');
+    populateCidrSelect(classifyCidr, 24);
+
+    // ══════════════════════════════════════════════════════════════════
+    //  TAB 1: CALCULATOR (original, preserved)
+    // ══════════════════════════════════════════════════════════════════
     function runCalculator() {
       const ipStr = document.getElementById('calc-ip').value.trim();
       const cidr = parseInt(cidrSelect.value);
 
-      if (!/^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(ipStr)) {
+      if (!isValidIp(ipStr)) {
         alert('Enter a valid IPv4 address'); return;
       }
 
@@ -424,7 +1138,6 @@
       document.getElementById('r-binmask').textContent = r.binaryMask;
       document.getElementById('calc-results').classList.remove('hidden');
 
-      // Binary visualization
       renderBinary(ipStr, cidr);
     }
 
@@ -466,7 +1179,7 @@
 
       const legend = document.createElement('div');
       legend.style.cssText = 'margin-top:8px;font-size:0.78rem;color:var(--text-muted);';
-      legend.innerHTML = `<span style="color:var(--blue);">■</span> Network bits (${cidr}) &nbsp;&nbsp; <span style="color:var(--text-muted);">■</span> Host bits (${32 - cidr})`;
+      legend.innerHTML = `<span style="color:var(--blue);">&#9632;</span> Network bits (${cidr}) &nbsp;&nbsp; <span style="color:var(--text-muted);">&#9632;</span> Host bits (${32 - cidr})`;
       viz.appendChild(legend);
     }
 
@@ -476,7 +1189,9 @@
     // Auto-calculate on load
     runCalculator();
 
-    // ── Tab switching ──
+    // ══════════════════════════════════════════════════════════════════
+    //  TAB SWITCHING
+    // ══════════════════════════════════════════════════════════════════
     document.querySelectorAll('.tab-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -486,7 +1201,9 @@
       });
     });
 
-    // ── Cheat Sheet ──
+    // ══════════════════════════════════════════════════════════════════
+    //  TAB 7: CHEAT SHEET (original, preserved)
+    // ══════════════════════════════════════════════════════════════════
     const cheatBody = document.getElementById('cheat-body');
     const commonCidrs = [8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32];
     const notes = {
@@ -504,8 +1221,805 @@
       cheatBody.appendChild(tr);
     }
 
-    // ── Speed Drill ──
+    // ══════════════════════════════════════════════════════════════════
+    //  TAB 2: BINARY VIEW — Animated bit display
+    // ══════════════════════════════════════════════════════════════════
+    const bvState = { ip: '192.168.10.50', prefix: 24, prevPrefix: 24, cells: [], maskCells: [] };
+
+    function bvBuild() {
+      const ipBits = document.getElementById('bv-ip-bits');
+      const maskBits = document.getElementById('bv-mask-bits');
+      ipBits.innerHTML = '';
+      maskBits.innerHTML = '';
+      bvState.cells = [];
+      bvState.maskCells = [];
+
+      const ipBin = ipToBinary(bvState.ip);
+      const maskNum = cidrToMask(bvState.prefix);
+      const maskBin = numToBinary32(maskNum);
+
+      for (let oct = 0; oct < 4; oct++) {
+        if (oct > 0) {
+          ipBits.appendChild(createBvDot());
+          maskBits.appendChild(createBvDot());
+        }
+
+        const ipGroup = document.createElement('div');
+        ipGroup.className = 'bv-octet-group';
+        const maskGroup = document.createElement('div');
+        maskGroup.className = 'bv-octet-group';
+
+        for (let bit = 0; bit < 8; bit++) {
+          const idx = oct * 8 + bit;
+
+          // IP cell
+          const ipCell = document.createElement('div');
+          ipCell.className = 'bv-cell';
+          ipCell.textContent = ipBin[idx];
+          ipCell.dataset.idx = idx;
+          bvState.cells.push(ipCell);
+          ipGroup.appendChild(ipCell);
+
+          // Mask cell
+          const maskCell = document.createElement('div');
+          maskCell.className = 'bv-cell';
+          maskCell.textContent = maskBin[idx];
+          maskCell.dataset.idx = idx;
+          bvState.maskCells.push(maskCell);
+          maskGroup.appendChild(maskCell);
+        }
+
+        // Insert split line at the right position
+        ipBits.appendChild(ipGroup);
+        maskBits.appendChild(maskGroup);
+      }
+
+      bvColorize(false);
+      bvUpdateOctetLabels();
+      bvUpdateInfo();
+    }
+
+    function createBvDot() {
+      const dot = document.createElement('div');
+      dot.className = 'bv-dot';
+      dot.textContent = '.';
+      return dot;
+    }
+
+    function bvColorize(animate) {
+      const prefix = bvState.prefix;
+      const maskBin = numToBinary32(cidrToMask(prefix));
+      const ipBin = ipToBinary(bvState.ip);
+
+      bvState.cells.forEach((cell, idx) => {
+        const isNetwork = idx < prefix;
+        const newClass = isNetwork ? 'bv-cell network-bit' : 'bv-cell host-bit';
+
+        if (animate && cell.className !== newClass) {
+          cell.classList.add('flipping');
+          setTimeout(() => {
+            cell.className = newClass;
+            cell.textContent = ipBin[idx];
+          }, 150);
+          setTimeout(() => {
+            cell.classList.remove('flipping');
+          }, 300);
+        } else {
+          cell.className = newClass;
+          cell.textContent = ipBin[idx];
+        }
+      });
+
+      bvState.maskCells.forEach((cell, idx) => {
+        const isNetwork = idx < prefix;
+        const newClass = isNetwork ? 'bv-cell network-bit' : 'bv-cell host-bit';
+        const newVal = maskBin[idx];
+
+        if (animate && (cell.textContent !== newVal || cell.className !== newClass)) {
+          cell.classList.add('flipping');
+          setTimeout(() => {
+            cell.className = newClass;
+            cell.textContent = newVal;
+          }, 150);
+          setTimeout(() => {
+            cell.classList.remove('flipping');
+          }, 300);
+        } else {
+          cell.className = newClass;
+          cell.textContent = newVal;
+        }
+      });
+
+      // Rebuild with split line
+      bvInsertSplitLines();
+    }
+
+    function bvInsertSplitLines() {
+      const prefix = bvState.prefix;
+
+      // Remove existing split lines
+      document.querySelectorAll('.bv-split-line').forEach(el => el.remove());
+
+      // Insert split line after the prefix-th bit in each row
+      if (prefix > 0 && prefix < 32) {
+        [bvState.cells, bvState.maskCells].forEach(cells => {
+          const targetCell = cells[prefix - 1];
+          if (targetCell && targetCell.parentElement) {
+            const splitLine = document.createElement('div');
+            splitLine.className = 'bv-split-line';
+            // Insert after the target cell
+            const parent = targetCell.parentElement; // the octet-group
+            const bitIdxInGroup = prefix - 1 - Math.floor((prefix - 1) / 8) * 8;
+            if (bitIdxInGroup === 7) {
+              // Split is at octet boundary — insert after the group
+              parent.parentElement.insertBefore(splitLine, parent.nextSibling);
+            } else {
+              // Split is within an octet group
+              targetCell.after(splitLine);
+            }
+          }
+        });
+      }
+    }
+
+    function bvUpdateOctetLabels() {
+      const ipOctets = document.getElementById('bv-ip-octets');
+      const maskOctets = document.getElementById('bv-mask-octets');
+      const octVals = bvState.ip.split('.').map(Number);
+      const maskNum = cidrToMask(bvState.prefix);
+      const maskVals = [
+        (maskNum >>> 24) & 255, (maskNum >>> 16) & 255,
+        (maskNum >>> 8) & 255, maskNum & 255
+      ];
+
+      ipOctets.innerHTML = '';
+      maskOctets.innerHTML = '';
+
+      for (let i = 0; i < 4; i++) {
+        if (i > 0) {
+          ipOctets.appendChild(Object.assign(document.createElement('div'), { className: 'bv-octet-spacer' }));
+          maskOctets.appendChild(Object.assign(document.createElement('div'), { className: 'bv-octet-spacer' }));
+        }
+        const ipLabel = document.createElement('div');
+        ipLabel.className = 'bv-octet-val';
+        ipLabel.textContent = octVals[i];
+        ipOctets.appendChild(ipLabel);
+
+        const maskLabel = document.createElement('div');
+        maskLabel.className = 'bv-octet-val';
+        maskLabel.textContent = maskVals[i];
+        maskOctets.appendChild(maskLabel);
+      }
+    }
+
+    function bvUpdateInfo() {
+      const r = calculate(bvState.ip, bvState.prefix);
+      const infoRow = document.getElementById('bv-info-row');
+      infoRow.innerHTML = `
+        <div class="result-item"><div class="label">Network</div><div class="value">${r.network}</div></div>
+        <div class="result-item"><div class="label">Broadcast</div><div class="value">${r.broadcast}</div></div>
+        <div class="result-item"><div class="label">Usable Range</div><div class="value" style="font-size:0.9rem;">${r.first} - ${r.last}</div></div>
+        <div class="result-item"><div class="label">Usable Hosts</div><div class="value">${r.usableHosts.toLocaleString()}</div></div>
+      `;
+    }
+
+    // Binary View event listeners
+    document.getElementById('bv-ip').addEventListener('input', function() {
+      const val = this.value.trim();
+      if (isValidIp(val)) {
+        bvState.ip = val;
+        bvBuild();
+      }
+    });
+
+    document.getElementById('bv-prefix-slider').addEventListener('input', function() {
+      const newPrefix = parseInt(this.value);
+      bvState.prevPrefix = bvState.prefix;
+      bvState.prefix = newPrefix;
+      document.getElementById('bv-prefix-val').textContent = `/${newPrefix}`;
+      bvColorize(true);
+      bvUpdateOctetLabels();
+      bvUpdateInfo();
+    });
+
+    // Init binary view
+    bvBuild();
+
+    // ══════════════════════════════════════════════════════════════════
+    //  TAB 3: SUBNET SLICER — Animated splitting visualization
+    // ══════════════════════════════════════════════════════════════════
+    const slicerColors = ['slicer-c0','slicer-c1','slicer-c2','slicer-c3','slicer-c4','slicer-c5','slicer-c6','slicer-c7'];
+
+    function slicerRender() {
+      const networkStr = document.getElementById('slicer-network').value.trim();
+      if (!isValidIp(networkStr)) return;
+
+      const basePrefix = 24; // always start from /24
+      const currentPrefix = parseInt(document.getElementById('slicer-prefix').value);
+      const numSubnets = Math.pow(2, currentPrefix - basePrefix);
+      const blockSize = Math.pow(2, 32 - currentPrefix);
+      const usablePerBlock = currentPrefix >= 31 ? (currentPrefix === 32 ? 1 : 2) : blockSize - 2;
+      const baseNetwork = ipToNum(networkStr) & cidrToMask(basePrefix) >>> 0;
+
+      document.getElementById('slicer-prefix-label').textContent = `/${currentPrefix}`;
+      document.getElementById('slicer-info').textContent =
+        `${numSubnets} subnet${numSubnets > 1 ? 's' : ''} -- ${blockSize} total addresses each -- ${usablePerBlock} usable hosts each`;
+
+      const container = document.getElementById('slicer-bars');
+      container.innerHTML = '';
+
+      // Create blocks in rows (max 8 per row for readability)
+      const maxPerRow = 8;
+      let idx = 0;
+
+      while (idx < numSubnets) {
+        const row = document.createElement('div');
+        row.className = 'slicer-bar-row';
+        const rowCount = Math.min(maxPerRow, numSubnets - idx);
+
+        for (let j = 0; j < rowCount; j++) {
+          const subIdx = idx + j;
+          const subNetNum = (baseNetwork + subIdx * blockSize) >>> 0;
+          const subBcastNum = (subNetNum + blockSize - 1) >>> 0;
+          const netIp = numToIp(subNetNum);
+          const bcastIp = numToIp(subBcastNum);
+
+          const block = document.createElement('div');
+          block.className = `slicer-block ${slicerColors[subIdx % slicerColors.length]}`;
+          block.style.flex = '1';
+          block.innerHTML = `
+            <span class="sb-net">${netIp}/${currentPrefix}</span>
+            <span class="sb-range">${numToIp((subNetNum + 1) >>> 0)} - ${numToIp((subBcastNum - 1) >>> 0)}</span>
+            <span class="sb-hosts">${usablePerBlock} hosts</span>
+          `;
+
+          // Click to zoom in
+          block.addEventListener('click', () => slicerZoom(subNetNum, subBcastNum, currentPrefix, subIdx));
+
+          // Staggered entrance animation
+          block.style.opacity = '0';
+          block.style.transform = 'scaleX(0)';
+          block.style.transformOrigin = 'left center';
+          setTimeout(() => {
+            block.style.transition = `opacity 0.4s ${subIdx * 0.05}s var(--ease-out), transform 0.5s ${subIdx * 0.05}s var(--ease-out)`;
+            block.style.opacity = '1';
+            block.style.transform = 'scaleX(1)';
+          }, 10);
+
+          row.appendChild(block);
+        }
+
+        container.appendChild(row);
+        idx += rowCount;
+      }
+    }
+
+    function slicerZoom(netNum, bcastNum, prefix, colorIdx) {
+      const panel = document.getElementById('slicer-detail');
+      const title = document.getElementById('slicer-detail-title');
+      const list = document.getElementById('slicer-addr-list');
+      const blockSize = bcastNum - netNum + 1;
+
+      title.textContent = `${numToIp(netNum)}/${prefix} -- ${blockSize} addresses`;
+      list.innerHTML = '';
+
+      // Cap display at 256 to avoid performance issues
+      const displayCount = Math.min(blockSize, 256);
+      for (let i = 0; i < displayCount; i++) {
+        const addr = (netNum + i) >>> 0;
+        const addrStr = numToIp(addr);
+        const span = document.createElement('div');
+
+        if (i === 0) {
+          span.className = 'addr-net';
+          span.textContent = `${addrStr}  (Network)`;
+        } else if (addr === bcastNum) {
+          span.className = 'addr-bcast';
+          span.textContent = `${addrStr}  (Broadcast)`;
+        } else {
+          span.className = 'addr-usable';
+          span.textContent = addrStr;
+        }
+        list.appendChild(span);
+      }
+
+      if (blockSize > 256) {
+        const more = document.createElement('div');
+        more.style.cssText = 'color:var(--ink-muted);font-style:italic;margin-top:8px;';
+        more.textContent = `... and ${blockSize - 256} more addresses`;
+        list.appendChild(more);
+      }
+
+      panel.classList.add('open');
+      panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    document.getElementById('slicer-prefix').addEventListener('input', slicerRender);
+    document.getElementById('slicer-network').addEventListener('change', slicerRender);
+    slicerRender();
+
+    // ══════════════════════════════════════════════════════════════════
+    //  TAB 4: ADDRESS CLASSIFIER — Animated flowchart
+    // ══════════════════════════════════════════════════════════════════
+    const fcNodes = [
+      { id: 'input',   x: 370, y: 30,  w: 160, h: 36, text: 'IP Address' },
+      { id: 'oct1',    x: 370, y: 100, w: 160, h: 36, text: 'Check 1st Octet' },
+      { id: 'classA',  x: 80,  y: 180, w: 100, h: 32, text: 'Class A' },
+      { id: 'classB',  x: 230, y: 180, w: 100, h: 32, text: 'Class B' },
+      { id: 'classC',  x: 380, y: 180, w: 100, h: 32, text: 'Class C' },
+      { id: 'classD',  x: 530, y: 180, w: 100, h: 32, text: 'Class D' },
+      { id: 'classE',  x: 680, y: 180, w: 100, h: 32, text: 'Class E' },
+      { id: 'privchk', x: 370, y: 260, w: 180, h: 36, text: 'Private Range Check' },
+      { id: 'private', x: 200, y: 340, w: 120, h: 32, text: 'Private' },
+      { id: 'public',  x: 540, y: 340, w: 120, h: 32, text: 'Public' },
+      { id: 'apply',   x: 370, y: 410, w: 180, h: 36, text: 'Apply Subnet Mask' },
+      { id: 'result',  x: 370, y: 480, w: 180, h: 36, text: 'Classification' },
+    ];
+
+    const fcArrows = [
+      { from: 'input', to: 'oct1', label: '' },
+      { from: 'oct1', to: 'classA', label: '0-127' },
+      { from: 'oct1', to: 'classB', label: '128-191' },
+      { from: 'oct1', to: 'classC', label: '192-223' },
+      { from: 'oct1', to: 'classD', label: '224-239' },
+      { from: 'oct1', to: 'classE', label: '240-255' },
+      { from: 'classA', to: 'privchk', label: '' },
+      { from: 'classB', to: 'privchk', label: '' },
+      { from: 'classC', to: 'privchk', label: '' },
+      { from: 'privchk', to: 'private', label: 'Yes' },
+      { from: 'privchk', to: 'public', label: 'No' },
+      { from: 'private', to: 'apply', label: '' },
+      { from: 'public', to: 'apply', label: '' },
+      { from: 'apply', to: 'result', label: '' },
+    ];
+
+    function fcBuildSvg() {
+      const svg = document.getElementById('classify-svg');
+      // Clear previous dynamic elements
+      svg.querySelectorAll('.fc-node, .fc-text, .fc-arrow, .fc-arrow-label').forEach(el => el.remove());
+
+      // Draw arrows first (behind nodes)
+      fcArrows.forEach((arrow, i) => {
+        const from = fcNodes.find(n => n.id === arrow.from);
+        const to = fcNodes.find(n => n.id === arrow.to);
+        if (!from || !to) return;
+
+        const x1 = from.x;
+        const y1 = from.y + from.h / 2;
+        const x2 = to.x;
+        const y2 = to.y - to.h / 2;
+
+        const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        line.setAttribute('x1', x1);
+        line.setAttribute('y1', y1);
+        line.setAttribute('x2', x2);
+        line.setAttribute('y2', y2);
+        line.setAttribute('class', 'fc-arrow');
+        line.dataset.arrowId = `${arrow.from}-${arrow.to}`;
+        svg.appendChild(line);
+
+        if (arrow.label) {
+          const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+          label.setAttribute('x', (x1 + x2) / 2);
+          label.setAttribute('y', (y1 + y2) / 2 - 4);
+          label.setAttribute('class', 'fc-arrow-label');
+          label.dataset.arrowId = `${arrow.from}-${arrow.to}`;
+          label.textContent = arrow.label;
+          svg.appendChild(label);
+        }
+      });
+
+      // Draw nodes
+      fcNodes.forEach(node => {
+        const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        rect.setAttribute('x', node.x - node.w / 2);
+        rect.setAttribute('y', node.y - node.h / 2);
+        rect.setAttribute('width', node.w);
+        rect.setAttribute('height', node.h);
+        rect.setAttribute('class', 'fc-node');
+        rect.dataset.nodeId = node.id;
+        svg.appendChild(rect);
+
+        const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        text.setAttribute('x', node.x);
+        text.setAttribute('y', node.y);
+        text.setAttribute('class', 'fc-text');
+        text.dataset.nodeId = node.id;
+        text.textContent = node.text;
+        svg.appendChild(text);
+      });
+    }
+
+    function fcReset() {
+      document.querySelectorAll('.fc-node').forEach(el => {
+        el.classList.remove('active', 'result');
+      });
+      document.querySelectorAll('.fc-text').forEach(el => {
+        el.classList.remove('active', 'result');
+      });
+      document.querySelectorAll('.fc-arrow').forEach(el => {
+        el.classList.remove('active');
+      });
+      document.querySelectorAll('.fc-arrow-label').forEach(el => {
+        el.classList.remove('active');
+      });
+    }
+
+    function fcActivate(nodeId, isResult) {
+      const cls = isResult ? 'result' : 'active';
+      document.querySelectorAll(`.fc-node[data-node-id="${nodeId}"]`).forEach(el => el.classList.add(cls));
+      document.querySelectorAll(`.fc-text[data-node-id="${nodeId}"]`).forEach(el => el.classList.add(cls));
+    }
+
+    function fcActivateArrow(fromId, toId) {
+      const arrowId = `${fromId}-${toId}`;
+      document.querySelectorAll(`.fc-arrow[data-arrow-id="${arrowId}"]`).forEach(el => el.classList.add('active'));
+      document.querySelectorAll(`.fc-arrow-label[data-arrow-id="${arrowId}"]`).forEach(el => el.classList.add('active'));
+    }
+
+    function classifyRun() {
+      const ipStr = document.getElementById('classify-ip').value.trim();
+      const cidr = parseInt(document.getElementById('classify-cidr').value);
+
+      if (!isValidIp(ipStr)) { alert('Enter a valid IPv4 address'); return; }
+
+      fcReset();
+
+      const ipNum = ipToNum(ipStr);
+      const firstOctet = (ipNum >>> 24) & 255;
+      const r = calculate(ipStr, cidr);
+
+      // Determine class
+      let classId, classLetter;
+      if (firstOctet < 128)      { classId = 'classA'; classLetter = 'A'; }
+      else if (firstOctet < 192) { classId = 'classB'; classLetter = 'B'; }
+      else if (firstOctet < 224) { classId = 'classC'; classLetter = 'C'; }
+      else if (firstOctet < 240) { classId = 'classD'; classLetter = 'D'; }
+      else                       { classId = 'classE'; classLetter = 'E'; }
+
+      // Determine if private
+      const isPrivate = r.ipType.includes('Private');
+      const isMulticast = classLetter === 'D';
+      const isReserved = classLetter === 'E';
+
+      // Determine address role
+      let addrRole;
+      if (ipStr === r.network) addrRole = 'Network Address';
+      else if (ipStr === r.broadcast) addrRole = 'Broadcast Address';
+      else addrRole = 'Host Address';
+
+      // Animated sequence
+      const steps = [];
+      steps.push({ delay: 0,    fn: () => fcActivate('input', false) });
+      steps.push({ delay: 300,  fn: () => { fcActivateArrow('input', 'oct1'); fcActivate('oct1', false); } });
+      steps.push({ delay: 700,  fn: () => { fcActivateArrow('oct1', classId); fcActivate(classId, false); } });
+
+      if (!isMulticast && !isReserved) {
+        steps.push({ delay: 1100, fn: () => { fcActivateArrow(classId, 'privchk'); fcActivate('privchk', false); } });
+        const privTarget = isPrivate ? 'private' : 'public';
+        steps.push({ delay: 1500, fn: () => { fcActivateArrow('privchk', privTarget); fcActivate(privTarget, false); } });
+        steps.push({ delay: 1900, fn: () => { fcActivateArrow(privTarget, 'apply'); fcActivate('apply', false); } });
+        steps.push({ delay: 2300, fn: () => { fcActivateArrow('apply', 'result'); fcActivate('result', true); } });
+      } else {
+        steps.push({ delay: 1100, fn: () => fcActivate('result', true) });
+      }
+
+      steps.forEach(step => setTimeout(step.fn, step.delay));
+
+      // Update result text on the node
+      const lastDelay = steps[steps.length - 1].delay;
+      setTimeout(() => {
+        document.querySelectorAll('.fc-text[data-node-id="result"]').forEach(el => {
+          el.textContent = addrRole;
+        });
+      }, lastDelay);
+
+      // Build result grid
+      const resultsEl = document.getElementById('classify-results');
+      setTimeout(() => {
+        resultsEl.innerHTML = `
+          <div class="result-item"><div class="label">IP Class</div><div class="value">Class ${classLetter}</div></div>
+          <div class="result-item"><div class="label">Type</div><div class="value">${r.ipType}</div></div>
+          <div class="result-item"><div class="label">Address Role</div><div class="value">${addrRole}</div></div>
+          <div class="result-item"><div class="label">Network Address</div><div class="value">${r.network}/${cidr}</div></div>
+          <div class="result-item"><div class="label">Broadcast</div><div class="value">${r.broadcast}</div></div>
+          <div class="result-item"><div class="label">Usable Range</div><div class="value" style="font-size:0.85rem;">${r.first} - ${r.last}</div></div>
+          <div class="result-item"><div class="label">Subnet Mask</div><div class="value">${r.mask}</div></div>
+          <div class="result-item"><div class="label">Wildcard Mask</div><div class="value">${r.wildcard}</div></div>
+          <div class="result-item"><div class="label">Usable Hosts</div><div class="value">${r.usableHosts.toLocaleString()}</div></div>
+        `;
+      }, lastDelay);
+    }
+
+    fcBuildSvg();
+
+    document.getElementById('classify-btn').addEventListener('click', classifyRun);
+    document.getElementById('classify-ip').addEventListener('keydown', e => { if (e.key === 'Enter') classifyRun(); });
+
+    // ══════════════════════════════════════════════════════════════════
+    //  TAB 5: VLSM VISUALIZER
+    // ══════════════════════════════════════════════════════════════════
+    const vlsmColors = ['slicer-c0','slicer-c1','slicer-c2','slicer-c3','slicer-c4','slicer-c5','slicer-c6','slicer-c7'];
+
+    // Add requirement row
+    document.getElementById('vlsm-add-req').addEventListener('click', () => {
+      const reqs = document.getElementById('vlsm-reqs');
+      const row = document.createElement('div');
+      row.className = 'vlsm-req-row';
+      row.innerHTML = `
+        <input type="text" placeholder="Subnet name" value="">
+        <input type="number" placeholder="Hosts" value="" min="1">
+        <button class="vlsm-remove-btn" title="Remove">&times;</button>
+      `;
+      reqs.appendChild(row);
+      bindVlsmRemove(row);
+    });
+
+    function bindVlsmRemove(row) {
+      row.querySelector('.vlsm-remove-btn').addEventListener('click', () => {
+        row.remove();
+      });
+    }
+
+    // Bind existing remove buttons
+    document.querySelectorAll('.vlsm-req-row').forEach(bindVlsmRemove);
+
+    document.getElementById('vlsm-calculate').addEventListener('click', vlsmCalculate);
+
+    function vlsmCalculate() {
+      const networkStr = document.getElementById('vlsm-network').value.trim();
+      const startCidr = parseInt(document.getElementById('vlsm-start-cidr').value);
+
+      if (!isValidIp(networkStr)) { alert('Enter a valid network address'); return; }
+
+      // Gather requirements
+      const reqRows = document.querySelectorAll('.vlsm-req-row');
+      const reqs = [];
+      reqRows.forEach(row => {
+        const inputs = row.querySelectorAll('input');
+        const name = inputs[0].value.trim() || 'Unnamed';
+        const hosts = parseInt(inputs[1].value) || 0;
+        if (hosts > 0) reqs.push({ name, hosts });
+      });
+
+      if (reqs.length === 0) { alert('Add at least one subnet requirement'); return; }
+
+      // Sort by hosts descending (VLSM: largest first)
+      reqs.sort((a, b) => b.hosts - a.hosts);
+
+      // Calculate allocations
+      const baseNetwork = (ipToNum(networkStr) & cidrToMask(startCidr)) >>> 0;
+      const totalSpace = Math.pow(2, 32 - startCidr);
+      let currentOffset = 0;
+      const allocations = [];
+      let totalUsed = 0;
+      let totalWasted = 0;
+
+      for (const req of reqs) {
+        const needed = req.hosts + 2; // network + broadcast
+        const blockSize = nextPow2(needed);
+        const prefix = 32 - Math.log2(blockSize);
+
+        if (currentOffset + blockSize > totalSpace) {
+          // Won't fit
+          allocations.push({
+            name: req.name,
+            needed: req.hosts,
+            error: true,
+            blockSize: 0,
+            prefix: 0,
+            offset: 0
+          });
+          continue;
+        }
+
+        const netNum = (baseNetwork + currentOffset) >>> 0;
+        const bcastNum = (netNum + blockSize - 1) >>> 0;
+        const usable = blockSize - 2;
+        const wasted = usable - req.hosts;
+
+        allocations.push({
+          name: req.name,
+          needed: req.hosts,
+          allocated: usable,
+          blockSize,
+          prefix,
+          offset: currentOffset,
+          network: numToIp(netNum),
+          first: numToIp((netNum + 1) >>> 0),
+          last: numToIp((bcastNum - 1) >>> 0),
+          broadcast: numToIp(bcastNum),
+          wasted,
+          error: false
+        });
+
+        totalUsed += blockSize;
+        totalWasted += wasted;
+        currentOffset += blockSize;
+      }
+
+      const unusedSpace = totalSpace - totalUsed;
+      const efficiency = totalSpace > 0 ? ((reqs.reduce((s, r) => s + r.hosts, 0)) / totalSpace * 100) : 0;
+
+      // Render the visual bars with animation
+      const output = document.getElementById('vlsm-output');
+      output.style.display = 'block';
+
+      const barsEl = document.getElementById('vlsm-bars');
+      barsEl.innerHTML = '';
+
+      allocations.forEach((alloc, i) => {
+        if (alloc.error) return;
+
+        const block = document.createElement('div');
+        block.className = `vlsm-block ${vlsmColors[i % vlsmColors.length]}`;
+        const pct = (alloc.blockSize / totalSpace * 100).toFixed(2);
+        block.style.flex = `0 0 ${pct}%`;
+        block.innerHTML = `
+          <span class="vb-name">${alloc.name}</span>
+          <span class="vb-cidr">/${alloc.prefix}</span>
+          <span class="vb-net">${alloc.network}</span>
+        `;
+
+        // Staggered animation
+        setTimeout(() => {
+          barsEl.appendChild(block);
+          requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+              block.classList.add('visible');
+            });
+          });
+        }, i * 300);
+      });
+
+      // Unused block
+      if (unusedSpace > 0) {
+        const unusedPct = (unusedSpace / totalSpace * 100).toFixed(2);
+        setTimeout(() => {
+          const uBlock = document.createElement('div');
+          uBlock.className = 'vlsm-block unused';
+          uBlock.style.flex = `0 0 ${unusedPct}%`;
+          uBlock.innerHTML = `
+            <span class="vb-name">Unused</span>
+            <span class="vb-cidr">${unusedSpace} addr</span>
+          `;
+          barsEl.appendChild(uBlock);
+          requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+              uBlock.classList.add('visible');
+            });
+          });
+        }, allocations.filter(a => !a.error).length * 300);
+      }
+
+      // Table
+      const tbody = document.getElementById('vlsm-table-body');
+      tbody.innerHTML = '';
+      allocations.forEach(alloc => {
+        const tr = document.createElement('tr');
+        if (alloc.error) {
+          tr.innerHTML = `<td>${alloc.name}</td><td>${alloc.needed}</td><td colspan="6" style="color:var(--prof-weak);">Does not fit</td>`;
+        } else {
+          const wastedStyle = alloc.wasted > alloc.needed * 0.5 ? 'color:var(--prof-mid);font-weight:600;' : '';
+          tr.innerHTML = `
+            <td style="font-family:var(--font-display);">${alloc.name}</td>
+            <td>${alloc.needed}</td>
+            <td>${alloc.allocated}</td>
+            <td>${alloc.network}</td>
+            <td style="font-size:0.75rem;">${alloc.first} - ${alloc.last}</td>
+            <td>${alloc.broadcast}</td>
+            <td>/${alloc.prefix}</td>
+            <td style="${wastedStyle}">${alloc.wasted}</td>
+          `;
+        }
+        tbody.appendChild(tr);
+      });
+
+      // Efficiency bar
+      const effFill = document.getElementById('vlsm-eff-fill');
+      const effLabel = document.getElementById('vlsm-eff-label');
+      const effPct = efficiency.toFixed(1);
+      effLabel.textContent = `${effPct}%`;
+
+      if (efficiency > 70) {
+        effFill.style.background = 'var(--prof-strong)';
+      } else if (efficiency > 40) {
+        effFill.style.background = 'var(--prof-mid)';
+      } else {
+        effFill.style.background = 'var(--prof-weak)';
+      }
+
+      // Animate efficiency bar
+      effFill.style.width = '0%';
+      setTimeout(() => {
+        effFill.style.width = `${effPct}%`;
+      }, 100);
+    }
+
+    // ══════════════════════════════════════════════════════════════════
+    //  TAB 6: SPEED DRILL — Enhanced with animations
+    // ══════════════════════════════════════════════════════════════════
     let drillState = null;
+    const DRILL_TIME_LIMIT = 60; // seconds per question
+
+    // Confetti system
+    class ConfettiSystem {
+      constructor(canvas) {
+        this.canvas = canvas;
+        this.ctx = canvas.getContext('2d');
+        this.particles = [];
+        this.running = false;
+      }
+
+      resize() {
+        this.canvas.width = this.canvas.offsetWidth;
+        this.canvas.height = this.canvas.offsetHeight;
+      }
+
+      burst(x, y, count) {
+        this.resize();
+        const colors = ['#16A34A', '#B45309', '#2563EB', '#7C3AED', '#EA580C', '#059669'];
+        for (let i = 0; i < count; i++) {
+          const angle = (Math.PI * 2 * i) / count + (Math.random() - 0.5) * 0.5;
+          const speed = 3 + Math.random() * 5;
+          this.particles.push({
+            x, y,
+            vx: Math.cos(angle) * speed,
+            vy: Math.sin(angle) * speed - 3,
+            size: 3 + Math.random() * 4,
+            color: colors[Math.floor(Math.random() * colors.length)],
+            rotation: Math.random() * Math.PI * 2,
+            rotSpeed: (Math.random() - 0.5) * 0.3,
+            life: 1,
+            decay: 0.015 + Math.random() * 0.01,
+            shape: Math.random() > 0.5 ? 'rect' : 'circle'
+          });
+        }
+        if (!this.running) this.animate();
+      }
+
+      animate() {
+        this.running = true;
+        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+
+        this.particles = this.particles.filter(p => {
+          p.x += p.vx;
+          p.y += p.vy;
+          p.vy += 0.15; // gravity
+          p.vx *= 0.99;
+          p.rotation += p.rotSpeed;
+          p.life -= p.decay;
+
+          if (p.life <= 0) return false;
+
+          this.ctx.save();
+          this.ctx.translate(p.x, p.y);
+          this.ctx.rotate(p.rotation);
+          this.ctx.globalAlpha = p.life;
+          this.ctx.fillStyle = p.color;
+
+          if (p.shape === 'rect') {
+            this.ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size * 0.6);
+          } else {
+            this.ctx.beginPath();
+            this.ctx.arc(0, 0, p.size / 2, 0, Math.PI * 2);
+            this.ctx.fill();
+          }
+
+          this.ctx.restore();
+          return true;
+        });
+
+        if (this.particles.length > 0) {
+          requestAnimationFrame(() => this.animate());
+        } else {
+          this.running = false;
+          this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        }
+      }
+    }
+
+    const confetti = new ConfettiSystem(document.getElementById('confetti-canvas'));
 
     function generateDrillQuestion(difficulty) {
       const randomOctet = () => Math.floor(Math.random() * 254) + 1;
@@ -516,27 +2030,27 @@
         cidr = [8, 16, 24][Math.floor(Math.random() * 3)];
         ip = randomIp();
       } else if (difficulty === 'medium') {
-        cidr = Math.floor(Math.random() * 25) + 8; // /8 to /32
+        cidr = Math.floor(Math.random() * 25) + 8;
         ip = randomIp();
       } else {
-        cidr = Math.floor(Math.random() * 17) + 16; // /16 to /32 for VLSM
+        cidr = Math.floor(Math.random() * 17) + 16;
         ip = randomIp();
       }
 
       const result = calculate(ip, cidr);
       const questionTypes = [
-        { q: 'What is the network address?', detail: `${ip} /${cidr}`, answer: result.network },
-        { q: 'What is the broadcast address?', detail: `${ip} /${cidr}`, answer: result.broadcast },
-        { q: 'How many usable hosts?', detail: `${ip} /${cidr}`, answer: String(result.usableHosts) },
-        { q: 'What is the subnet mask?', detail: `CIDR: /${cidr}`, answer: result.mask },
-        { q: 'What is the wildcard mask?', detail: `Subnet mask: ${result.mask}`, answer: result.wildcard },
+        { q: 'What is the network address?', detail: `${ip} /${cidr}`, answer: result.network, ip, cidr },
+        { q: 'What is the broadcast address?', detail: `${ip} /${cidr}`, answer: result.broadcast, ip, cidr },
+        { q: 'How many usable hosts?', detail: `${ip} /${cidr}`, answer: String(result.usableHosts), ip, cidr },
+        { q: 'What is the subnet mask?', detail: `CIDR: /${cidr}`, answer: result.mask, ip: ip, cidr },
+        { q: 'What is the wildcard mask?', detail: `Subnet mask: ${result.mask}`, answer: result.wildcard, ip, cidr },
       ];
 
       if (difficulty === 'hard') {
         questionTypes.push(
-          { q: 'What is the first usable host?', detail: `${ip} /${cidr}`, answer: result.first },
-          { q: 'What is the last usable host?', detail: `${ip} /${cidr}`, answer: result.last },
-          { q: 'What CIDR gives this mask?', detail: `Mask: ${result.mask}`, answer: `/${cidr}` }
+          { q: 'What is the first usable host?', detail: `${ip} /${cidr}`, answer: result.first, ip, cidr },
+          { q: 'What is the last usable host?', detail: `${ip} /${cidr}`, answer: result.last, ip, cidr },
+          { q: 'What CIDR gives this mask?', detail: `Mask: ${result.mask}`, answer: `/${cidr}`, ip, cidr }
         );
       }
 
@@ -553,13 +2067,14 @@
         current: 0,
         correct: 0,
         wrong: 0,
+        streak: 0,
+        maxStreak: 0,
         times: [],
         questions: [],
         startTime: Date.now(),
         qStartTime: null
       };
 
-      // Pre-generate all questions
       for (let i = 0; i < count; i++) {
         drillState.questions.push(generateDrillQuestion(difficulty));
       }
@@ -567,11 +2082,14 @@
       document.getElementById('drill-setup').classList.add('hidden');
       document.getElementById('drill-active').classList.remove('hidden');
       document.getElementById('drill-results').classList.add('hidden');
+      updateStreakDisplay();
       showDrillQuestion();
       startDrillTimer();
     }
 
     let drillTimerInterval = null;
+    let drillTimerRAF = null;
+
     function startDrillTimer() {
       drillTimerInterval = setInterval(() => {
         const elapsed = Date.now() - drillState.startTime;
@@ -580,6 +2098,29 @@
         const s = sec % 60;
         document.getElementById('drill-timer').textContent = `${m}:${s.toString().padStart(2, '0')}`;
       }, 200);
+
+      // Timer bar animation
+      updateTimerBar();
+    }
+
+    function updateTimerBar() {
+      if (!drillState || !drillState.qStartTime) return;
+
+      const elapsed = (Date.now() - drillState.qStartTime) / 1000;
+      const pct = Math.max(0, 1 - elapsed / DRILL_TIME_LIMIT) * 100;
+
+      const fill = document.getElementById('drill-timer-fill');
+      fill.style.width = `${pct}%`;
+
+      if (pct < 20) {
+        fill.className = 'drill-timer-fill danger';
+      } else if (pct < 50) {
+        fill.className = 'drill-timer-fill warning';
+      } else {
+        fill.className = 'drill-timer-fill';
+      }
+
+      drillTimerRAF = requestAnimationFrame(updateTimerBar);
     }
 
     function showDrillQuestion() {
@@ -596,8 +2137,93 @@
       document.getElementById('drill-feedback').classList.add('hidden');
       document.getElementById('drill-submit').classList.remove('hidden');
       document.getElementById('drill-next').classList.add('hidden');
+      document.getElementById('drill-binary-work').classList.remove('show');
+
+      // Reset timer bar
+      document.getElementById('drill-timer-fill').style.width = '100%';
+      document.getElementById('drill-timer-fill').className = 'drill-timer-fill';
 
       drillState.qStartTime = Date.now();
+      if (drillTimerRAF) cancelAnimationFrame(drillTimerRAF);
+      updateTimerBar();
+    }
+
+    function updateStreakDisplay() {
+      const streakEl = document.getElementById('drill-streak');
+      const countEl = document.getElementById('drill-streak-count');
+      countEl.textContent = drillState.streak;
+
+      if (drillState.streak >= 3) {
+        streakEl.classList.add('on-fire');
+      } else {
+        streakEl.classList.remove('on-fire');
+      }
+    }
+
+    function showDrillBinaryWork(ip, cidr) {
+      const bitsEl = document.getElementById('drill-binary-bits');
+      const workEl = document.getElementById('drill-binary-work');
+      bitsEl.innerHTML = '';
+
+      const binary = ipToBinary(ip);
+      const row = document.createElement('div');
+      row.style.cssText = 'display:flex;gap:0;align-items:center;flex-wrap:wrap;';
+
+      for (let oct = 0; oct < 4; oct++) {
+        if (oct > 0) {
+          const dot = document.createElement('span');
+          dot.textContent = '.';
+          dot.style.cssText = 'font-family:var(--font-mono);color:var(--ink-muted);margin:0 4px;';
+          row.appendChild(dot);
+        }
+        const group = document.createElement('span');
+        group.style.cssText = 'display:inline-flex;gap:2px;';
+        for (let bit = 0; bit < 8; bit++) {
+          const idx = oct * 8 + bit;
+          const cell = document.createElement('span');
+          cell.style.cssText = `
+            width:22px;height:24px;display:inline-flex;align-items:center;justify-content:center;
+            font-family:var(--font-mono);font-size:0.72rem;font-weight:600;border-radius:3px;
+            ${idx < cidr ? 'background:var(--accent-light);color:var(--accent);' : 'background:var(--prof-strong-bg);color:var(--prof-strong);'}
+          `;
+          cell.textContent = binary[idx];
+          group.appendChild(cell);
+        }
+        row.appendChild(group);
+      }
+      bitsEl.appendChild(row);
+
+      // Also show mask
+      const maskBin = numToBinary32(cidrToMask(cidr));
+      const maskRow = document.createElement('div');
+      maskRow.style.cssText = 'display:flex;gap:0;align-items:center;flex-wrap:wrap;margin-top:6px;';
+      const maskLabel = document.createElement('span');
+      maskLabel.style.cssText = 'font-family:var(--font-display);font-size:0.7rem;color:var(--ink-muted);text-transform:uppercase;letter-spacing:0.06em;margin-right:8px;min-width:44px;';
+      maskLabel.textContent = 'Mask:';
+      maskRow.appendChild(maskLabel);
+
+      for (let oct = 0; oct < 4; oct++) {
+        if (oct > 0) {
+          const dot = document.createElement('span');
+          dot.textContent = '.';
+          dot.style.cssText = 'font-family:var(--font-mono);color:var(--ink-muted);margin:0 4px;';
+          maskRow.appendChild(dot);
+        }
+        for (let bit = 0; bit < 8; bit++) {
+          const idx = oct * 8 + bit;
+          const cell = document.createElement('span');
+          cell.style.cssText = `
+            width:22px;height:24px;display:inline-flex;align-items:center;justify-content:center;
+            font-family:var(--font-mono);font-size:0.72rem;font-weight:600;border-radius:3px;
+            ${idx < cidr ? 'background:var(--accent-light);color:var(--accent);' : 'background:var(--bg-recessed);color:var(--ink-muted);'}
+          `;
+          cell.textContent = maskBin[idx];
+          maskRow.appendChild(cell);
+        }
+      }
+      bitsEl.appendChild(maskRow);
+
+      workEl.classList.add('show');
     }
 
     function checkDrillAnswer() {
@@ -606,29 +2232,50 @@
       const timeTaken = Date.now() - drillState.qStartTime;
       drillState.times.push(timeTaken);
 
+      if (drillTimerRAF) cancelAnimationFrame(drillTimerRAF);
+
       const input = document.getElementById('drill-answer');
       const feedback = document.getElementById('drill-feedback');
 
-      // Normalize answers for comparison
       const normalize = s => s.replace(/^\//, '').replace(/,/g, '').trim().toLowerCase();
       const isCorrect = normalize(userAnswer) === normalize(q.answer);
 
       if (isCorrect) {
         drillState.correct++;
+        drillState.streak++;
+        if (drillState.streak > drillState.maxStreak) drillState.maxStreak = drillState.streak;
+
         input.className = 'correct';
+        input.classList.add('answer-pulse');
         feedback.className = 'drill-feedback correct';
         feedback.textContent = `Correct! (${(timeTaken / 1000).toFixed(1)}s)`;
+
+        // Confetti burst
+        const rect = input.getBoundingClientRect();
+        const drillRect = document.getElementById('drill-area').getBoundingClientRect();
+        confetti.burst(
+          rect.left - drillRect.left + rect.width / 2,
+          rect.top - drillRect.top,
+          25 + drillState.streak * 5
+        );
       } else {
         drillState.wrong++;
+        drillState.streak = 0;
         input.className = 'wrong';
         feedback.className = 'drill-feedback wrong';
-        feedback.textContent = `Wrong — answer was ${q.answer} (${(timeTaken / 1000).toFixed(1)}s)`;
+        feedback.textContent = `Wrong -- answer was ${q.answer} (${(timeTaken / 1000).toFixed(1)}s)`;
       }
 
+      updateStreakDisplay();
       feedback.classList.remove('hidden');
       document.getElementById('drill-submit').classList.add('hidden');
       document.getElementById('drill-next').classList.remove('hidden');
       document.getElementById('drill-next').focus();
+
+      // Show binary work
+      if (q.ip && q.cidr !== undefined) {
+        showDrillBinaryWork(q.ip, q.cidr);
+      }
     }
 
     function nextDrillQuestion() {
@@ -642,6 +2289,8 @@
 
     function finishDrill() {
       clearInterval(drillTimerInterval);
+      if (drillTimerRAF) cancelAnimationFrame(drillTimerRAF);
+
       const totalTime = Date.now() - drillState.startTime;
       const avgTime = drillState.times.reduce((a, b) => a + b, 0) / drillState.times.length;
 

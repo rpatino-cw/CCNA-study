@@ -115,5 +115,24 @@
   var xpScript = document.createElement('script');
   xpScript.src = fixHref('js/xp-toast.js');
   document.body.appendChild(xpScript);
+
+  // Guide pill — floating "Lost? Read the Guide" for confused users
+  // Skips guide.html (you're already there) and core.html (has its own version)
+  var pn = location.pathname;
+  if (!/guide\.html/.test(pn) && !/core\.html/.test(pn)) {
+    var pill = document.createElement('a');
+    pill.href = fixHref('guide.html');
+    pill.id = 'guidePill';
+    pill.textContent = 'Lost? Read the Guide';
+    pill.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:900;font-family:var(--font-display,system-ui);font-size:.78rem;font-weight:700;color:#fff;background:#B45309;padding:10px 22px;border-radius:100px;text-decoration:none;box-shadow:0 4px 16px rgba(180,83,9,.3);opacity:0;pointer-events:none;transition:opacity .3s,transform .2s';
+    pill.onmouseover = function(){pill.style.transform='translateX(-50%) translateY(-2px)'};
+    pill.onmouseout = function(){pill.style.transform='translateX(-50%)'};
+    document.body.appendChild(pill);
+    window.addEventListener('scroll', function(){
+      var s = window.scrollY > 300;
+      pill.style.opacity = s ? '1' : '0';
+      pill.style.pointerEvents = s ? 'auto' : 'none';
+    }, {passive:true});
+  }
 })();
 
