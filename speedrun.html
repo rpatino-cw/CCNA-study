@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Config Speedrun — CCNA 200-301</title>
+  <link rel="icon" type="image/svg+xml" href="/CCNA-study/favicon.svg">
+  <link rel="stylesheet" href="css/shared.css">
+  <style>
+    /* ── Terminal aesthetic ─────────────────────────────────────── */
+    .speedrun-area {
+      max-width: 700px;
+      margin: 0 auto;
+    }
+
+    /* ── Stats row ─────────────────────────────────────────────── */
+    .sr-stats {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: var(--s-lg);
+      flex-wrap: wrap;
+      gap: var(--s-sm);
+    }
+    .sr-stats .stat-group {
+      display: flex;
+      align-items: center;
+      gap: var(--s-lg);
+    }
+    .sr-stat-val {
+      font-family: var(--font-mono);
+      font-weight: 700;
+      font-size: 1rem;
+      color: var(--ink);
+    }
+    .sr-stat-label {
+      font-family: var(--font-display);
+      font-size: 0.72rem;
+      color: var(--ink-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    /* ── Progress dots ─────────────────────────────────────────── */
+    .progress-dots {
+      display: flex;
+      gap: 4px;
+      flex-wrap: wrap;
+      margin-bottom: var(--s-lg);
+    }
+    .progress-dot {
+      width: 24px;
+      height: 6px;
+      border-radius: 3px;
+      background: var(--bg-recessed);
+      transition: background 0.3s;
+    }
+    .progress-dot.correct { background: var(--prof-strong); }
+    .progress-dot.wrong { background: var(--prof-weak); }
+    .progress-dot.current { background: var(--accent); }
+
+    /* ── Task card ─────────────────────────────────────────────── */
+    .task-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: var(--s-lg) var(--s-xl);
+      margin-bottom: var(--s-lg);
+      text-align: center;
+    }
+    .task-mode {
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: var(--s-sm);
+    }
+    .task-text {
+      font-family: var(--font-display);
+      font-size: 1.15rem;
+      font-weight: 600;
+      line-height: 1.4;
+    }
+    .task-hint {
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      color: var(--ink-muted);
+      margin-top: var(--s-sm);
+      cursor: pointer;
+      user-select: none;
+    }
+    .task-hint:hover { color: var(--ink-secondary); }
+    .task-hint .hint-text { display: none; }
+    .task-hint.revealed .hint-text { display: inline; }
+
+    /* ── Terminal input ─────────────────────────────────────────── */
+    .terminal-input-wrap {
+      background: #1C1917;
+      border-radius: var(--radius-lg);
+      padding: var(--s-md) var(--s-lg);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: var(--s-md);
+    }
+    .terminal-prompt {
+      font-family: var(--font-mono);
+      font-size: 0.82rem;
+      color: #A7F3D0;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .terminal-input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      outline: none;
+      font-family: var(--font-mono);
+      font-size: 0.82rem;
+      color: #FAF7F2;
+      caret-color: #FDE68A;
+    }
+    .terminal-input::placeholder {
+      color: #57534E;
+    }
+
+    /* ── Feedback flash ────────────────────────────────────────── */
+    .feedback-bar {
+      text-align: center;
+      font-family: var(--font-display);
+      font-size: 0.85rem;
+      font-weight: 600;
+      padding: 8px;
+      border-radius: var(--radius);
+      opacity: 0;
+      transition: opacity 0.2s;
+      min-height: 38px;
+    }
+    .feedback-bar.show { opacity: 1; }
+    .feedback-bar.correct-fb { background: var(--correct-bg); color: var(--correct); }
+    .feedback-bar.wrong-fb { background: var(--wrong-bg); color: var(--wrong); }
+    .feedback-correct-cmd {
+      font-family: var(--font-mono);
+      font-size: 0.78rem;
+      margin-top: 4px;
+    }
+
+    /* ── Per-command timer ──────────────────────────────────────── */
+    .cmd-timer {
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      color: var(--ink-muted);
+      text-align: right;
+    }
+
+    /* ── Landing ───────────────────────────────────────────────── */
+    .landing {
+      text-align: center;
+      padding: var(--s-2xl) 0;
+    }
+    .landing h2 {
+      border: none;
+      margin-top: 0;
+      font-size: 1.3rem;
+    }
+    .landing p {
+      color: var(--ink-secondary);
+      font-size: 0.92rem;
+      max-width: 50ch;
+      margin: 0 auto var(--s-lg);
+    }
+    .difficulty-toggle {
+      display: flex;
+      justify-content: center;
+      gap: var(--s-sm);
+      margin-bottom: var(--s-lg);
+    }
+    .diff-btn {
+      font-family: var(--font-display);
+      font-size: 0.78rem;
+      font-weight: 600;
+      padding: 8px 20px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--bg-surface);
+      color: var(--ink-secondary);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .diff-btn:hover { border-color: var(--ink-muted); }
+    .diff-btn.active {
+      background: var(--ink);
+      color: var(--bg);
+      border-color: var(--ink);
+    }
+
+    /* ── End screen ────────────────────────────────────────────── */
+    .end-screen {
+      text-align: center;
+      padding: var(--s-2xl) 0;
+    }
+    .end-screen h2 {
+      border: none;
+      margin-top: 0;
+    }
+    .end-stats {
+      display: flex;
+      justify-content: center;
+      gap: var(--s-xl);
+      margin: var(--s-lg) 0;
+      flex-wrap: wrap;
+    }
+    .end-stat .value {
+      font-family: var(--font-mono);
+      font-size: 2rem;
+      font-weight: 800;
+    }
+    .end-stat .label {
+      font-family: var(--font-display);
+      font-size: 0.72rem;
+      color: var(--ink-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    .leaderboard {
+      max-width: 400px;
+      margin: var(--s-lg) auto 0;
+      text-align: left;
+    }
+    .leaderboard h3 {
+      font-size: 0.85rem;
+      margin-bottom: var(--s-sm);
+    }
+    .lb-entry {
+      display: flex;
+      justify-content: space-between;
+      padding: 6px 0;
+      border-bottom: 1px solid var(--border);
+      font-family: var(--font-mono);
+      font-size: 0.78rem;
+    }
+    .lb-entry .lb-rank { color: var(--ink-muted); width: 24px; }
+    .lb-entry .lb-score { flex: 1; }
+    .lb-entry .lb-time { color: var(--accent); }
+    .lb-entry.current { font-weight: 700; color: var(--accent); }
+
+    /* ── Command breakdown table ───────────────────────────────── */
+    .cmd-breakdown {
+      max-width: 500px;
+      margin: var(--s-lg) auto;
+      text-align: left;
+    }
+    .cmd-breakdown h3 { font-size: 0.85rem; margin-bottom: var(--s-sm); }
+    .cmd-row {
+      display: flex;
+      align-items: center;
+      gap: var(--s-sm);
+      padding: 5px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.78rem;
+    }
+    .cmd-row .cmd-status {
+      width: 18px;
+      text-align: center;
+      font-weight: 700;
+    }
+    .cmd-row .cmd-status.ok { color: var(--prof-strong); }
+    .cmd-row .cmd-status.fail { color: var(--prof-weak); }
+    .cmd-row .cmd-task { flex: 1; font-family: var(--font-body); }
+    .cmd-row .cmd-time {
+      font-family: var(--font-mono);
+      color: var(--ink-muted);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <nav class="top-nav"></nav>
+
+    <div class="page-header">
+      <h1>Config Speedrun</h1>
+      <p class="subtitle">Type IOS commands as fast as you can. 20 commands per run.</p>
+    </div>
+
+    <!-- Landing -->
+    <div id="landing" class="landing">
+      <h2>IOS Command Drill</h2>
+      <p>See the task, type the command. Abbreviations accepted. Speed + accuracy = your score.</p>
+      <div class="difficulty-toggle">
+        <button class="diff-btn active" data-diff="all" onclick="setDifficulty(this)">All</button>
+        <button class="diff-btn" data-diff="easy" onclick="setDifficulty(this)">Easy</button>
+        <button class="diff-btn" data-diff="medium" onclick="setDifficulty(this)">Medium</button>
+        <button class="diff-btn" data-diff="hard" onclick="setDifficulty(this)">Hard</button>
+      </div>
+      <button class="btn btn-primary btn-lg" onclick="startGame()">Start Speedrun</button>
+    </div>
+
+    <!-- Game area -->
+    <div id="game-area" class="speedrun-area hidden">
+      <div class="sr-stats">
+        <div class="stat-group">
+          <div>
+            <div class="sr-stat-val" id="sr-time">00:00</div>
+            <div class="sr-stat-label">Time</div>
+          </div>
+          <div>
+            <div class="sr-stat-val" id="sr-score">0/20</div>
+            <div class="sr-stat-label">Correct</div>
+          </div>
+        </div>
+        <div class="cmd-timer" id="cmd-timer"></div>
+      </div>
+
+      <div class="progress-dots" id="progress-dots"></div>
+
+      <div class="task-card">
+        <div class="task-mode" id="task-mode">Router(config)#</div>
+        <div class="task-text" id="task-text">Loading...</div>
+        <div class="task-hint" id="task-hint" onclick="revealHint()">
+          Show hint: <span class="hint-text" id="hint-text"></span>
+        </div>
+      </div>
+
+      <div class="terminal-input-wrap">
+        <span class="terminal-prompt" id="terminal-prompt">Router(config)#</span>
+        <input type="text" class="terminal-input" id="terminal-input" placeholder="Type command..." autocomplete="off" autocapitalize="off" spellcheck="false">
+      </div>
+
+      <div class="feedback-bar" id="feedback-bar"></div>
+    </div>
+
+    <!-- End screen -->
+    <div id="end-screen" class="end-screen hidden">
+      <h2>Speedrun Complete</h2>
+      <div class="end-stats">
+        <div class="end-stat">
+          <div class="value" id="end-time">00:00</div>
+          <div class="label">Total Time</div>
+        </div>
+        <div class="end-stat">
+          <div class="value" id="end-correct">0</div>
+          <div class="label">Correct</div>
+        </div>
+        <div class="end-stat">
+          <div class="value" id="end-total">0</div>
+          <div class="label">Total</div>
+        </div>
+      </div>
+      <div class="cmd-breakdown" id="cmd-breakdown"></div>
+      <div class="leaderboard" id="leaderboard"></div>
+      <div style="margin-top:var(--s-lg)">
+        <button class="btn btn-primary" onclick="startGame()">Run Again</button>
+        <button class="btn btn-secondary" onclick="goLanding()" style="margin-left:8px">Change Difficulty</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="data/topics-data.js"></script>
+  <script src="js/store.js"></script>
+  <script src="js/nav.js"></script>
+  <script src="js/tutor.js"></script>
+  <script>
+/* ═══════════════════════════════════════════════════════════════════
+   CONFIG SPEEDRUN — IOS Command Drill
+   ═══════════════════════════════════════════════════════════════════ */
+
+var COMMANDS = [
+  // ── Basic ──────────────────────────────────────────────────────
+  { id:'sr01', task:'Set the hostname to CORE-SW-01', acceptedAnswers:['hostname CORE-SW-01','hostname core-sw-01'], hint:'hostname <name>', mode:'config', topic:'1.1', difficulty:'easy' },
+  { id:'sr02', task:'Set the enable secret to Cisco123', acceptedAnswers:['enable secret Cisco123','enable secret cisco123'], hint:'enable secret <password>', mode:'config', topic:'5.3', difficulty:'easy' },
+  { id:'sr03', task:'Set the message of the day banner to "Authorized Access Only"', acceptedAnswers:['banner motd #Authorized Access Only#','banner motd # Authorized Access Only #','banner motd "Authorized Access Only"','banner motd $Authorized Access Only$'], hint:'banner motd <delimiter>text<delimiter>', mode:'config', topic:'5.3', difficulty:'easy' },
+  { id:'sr04', task:'Enable password encryption for all plaintext passwords', acceptedAnswers:['service password-encryption'], hint:'service password-encryption', mode:'config', topic:'5.3', difficulty:'easy' },
+  { id:'sr05', task:'Save the running configuration to startup', acceptedAnswers:['copy running-config startup-config','copy run start','write memory','wr','wr mem'], hint:'copy running-config startup-config', mode:'privileged', topic:'1.1', difficulty:'easy' },
+
+  // ── Interface ──────────────────────────────────────────────────
+  { id:'sr06', task:'Assign IP address 10.0.1.1/24 to this interface', acceptedAnswers:['ip address 10.0.1.1 255.255.255.0','ip addr 10.0.1.1 255.255.255.0'], hint:'ip address <ip> <mask>', mode:'config-if', topic:'1.6', difficulty:'easy' },
+  { id:'sr07', task:'Bring this interface up (enable it)', acceptedAnswers:['no shutdown','no shut'], hint:'no shutdown', mode:'config-if', topic:'1.1', difficulty:'easy' },
+  { id:'sr08', task:'Set the interface speed to 100 Mbps', acceptedAnswers:['speed 100'], hint:'speed <10|100|1000>', mode:'config-if', topic:'1.4', difficulty:'easy' },
+  { id:'sr09', task:'Set this interface to full duplex', acceptedAnswers:['duplex full'], hint:'duplex <auto|full|half>', mode:'config-if', topic:'1.4', difficulty:'easy' },
+  { id:'sr10', task:'Add description "Uplink to Core" to this interface', acceptedAnswers:['description Uplink to Core','description uplink to core'], hint:'description <text>', mode:'config-if', topic:'1.1', difficulty:'easy' },
+  { id:'sr11', task:'Enter interface configuration for GigabitEthernet0/1', acceptedAnswers:['interface GigabitEthernet0/1','interface gigabitethernet0/1','interface gi0/1','int gi0/1','int GigabitEthernet0/1','interface Gi0/1'], hint:'interface <type><number>', mode:'config', topic:'1.1', difficulty:'easy' },
+
+  // ── VLAN ───────────────────────────────────────────────────────
+  { id:'sr12', task:'Create VLAN 10', acceptedAnswers:['vlan 10'], hint:'vlan <id>', mode:'config', topic:'2.2', difficulty:'easy' },
+  { id:'sr13', task:'Name this VLAN "SALES"', acceptedAnswers:['name SALES','name sales'], hint:'name <vlan-name>', mode:'config-vlan', topic:'2.2', difficulty:'easy' },
+  { id:'sr14', task:'Set this port as an access port', acceptedAnswers:['switchport mode access'], hint:'switchport mode access', mode:'config-if', topic:'2.2', difficulty:'easy' },
+  { id:'sr15', task:'Assign this access port to VLAN 10', acceptedAnswers:['switchport access vlan 10'], hint:'switchport access vlan <id>', mode:'config-if', topic:'2.2', difficulty:'easy' },
+
+  // ── Trunk ──────────────────────────────────────────────────────
+  { id:'sr16', task:'Configure this port as a trunk', acceptedAnswers:['switchport mode trunk'], hint:'switchport mode trunk', mode:'config-if', topic:'2.2', difficulty:'easy' },
+  { id:'sr17', task:'Set the native VLAN on this trunk to 99', acceptedAnswers:['switchport trunk native vlan 99'], hint:'switchport trunk native vlan <id>', mode:'config-if', topic:'2.2', difficulty:'medium' },
+  { id:'sr18', task:'Allow only VLANs 10, 20, and 30 on this trunk', acceptedAnswers:['switchport trunk allowed vlan 10,20,30'], hint:'switchport trunk allowed vlan <list>', mode:'config-if', topic:'2.2', difficulty:'medium' },
+  { id:'sr19', task:'Add VLAN 40 to the allowed VLANs on this trunk', acceptedAnswers:['switchport trunk allowed vlan add 40'], hint:'switchport trunk allowed vlan add <id>', mode:'config-if', topic:'2.2', difficulty:'medium' },
+
+  // ── Routing ────────────────────────────────────────────────────
+  { id:'sr20', task:'Add a default static route via 10.0.1.1', acceptedAnswers:['ip route 0.0.0.0 0.0.0.0 10.0.1.1'], hint:'ip route 0.0.0.0 0.0.0.0 <next-hop>', mode:'config', topic:'3.3', difficulty:'medium' },
+  { id:'sr21', task:'Add a static route to 192.168.10.0/24 via 10.0.2.2', acceptedAnswers:['ip route 192.168.10.0 255.255.255.0 10.0.2.2'], hint:'ip route <network> <mask> <next-hop>', mode:'config', topic:'3.3', difficulty:'medium' },
+  { id:'sr22', task:'Enter OSPF process 1 configuration', acceptedAnswers:['router ospf 1'], hint:'router ospf <process-id>', mode:'config', topic:'3.4', difficulty:'easy' },
+  { id:'sr23', task:'Advertise 10.0.1.0/24 in OSPF area 0', acceptedAnswers:['network 10.0.1.0 0.0.0.255 area 0'], hint:'network <ip> <wildcard> area <id>', mode:'config-router', topic:'3.4', difficulty:'medium' },
+  { id:'sr24', task:'Set the OSPF router ID to 1.1.1.1', acceptedAnswers:['router-id 1.1.1.1'], hint:'router-id <id>', mode:'config-router', topic:'3.4', difficulty:'medium' },
+  { id:'sr25', task:'Configure inter-VLAN routing: create subinterface Gi0/0.10', acceptedAnswers:['interface GigabitEthernet0/0.10','interface gi0/0.10','int gi0/0.10','interface Gi0/0.10'], hint:'interface <type><number>.<subif>', mode:'config', topic:'2.7', difficulty:'medium' },
+  { id:'sr26', task:'Set 802.1Q encapsulation for VLAN 10 on this subinterface', acceptedAnswers:['encapsulation dot1q 10','encapsulation dot1Q 10'], hint:'encapsulation dot1q <vlan-id>', mode:'config-subif', topic:'2.7', difficulty:'medium' },
+
+  // ── ACL ────────────────────────────────────────────────────────
+  { id:'sr27', task:'Create standard ACL 10 permitting 10.0.1.0/24', acceptedAnswers:['access-list 10 permit 10.0.1.0 0.0.0.255'], hint:'access-list <num> permit <net> <wildcard>', mode:'config', topic:'5.5', difficulty:'medium' },
+  { id:'sr28', task:'Create extended ACL 100 denying HTTP from 10.0.1.0/24 to any', acceptedAnswers:['access-list 100 deny tcp 10.0.1.0 0.0.0.255 any eq 80','access-list 100 deny tcp 10.0.1.0 0.0.0.255 any eq www'], hint:'access-list 100 deny tcp <src> <wc> any eq 80', mode:'config', topic:'5.5', difficulty:'hard' },
+  { id:'sr29', task:'Apply ACL 100 inbound on this interface', acceptedAnswers:['ip access-group 100 in'], hint:'ip access-group <acl> <in|out>', mode:'config-if', topic:'5.5', difficulty:'medium' },
+
+  // ── NAT ────────────────────────────────────────────────────────
+  { id:'sr30', task:'Mark this interface as NAT inside', acceptedAnswers:['ip nat inside'], hint:'ip nat inside', mode:'config-if', topic:'4.1', difficulty:'easy' },
+  { id:'sr31', task:'Mark this interface as NAT outside', acceptedAnswers:['ip nat outside'], hint:'ip nat outside', mode:'config-if', topic:'4.1', difficulty:'easy' },
+  { id:'sr32', task:'Configure PAT using ACL 1 on interface Gi0/1', acceptedAnswers:['ip nat inside source list 1 interface GigabitEthernet0/1 overload','ip nat inside source list 1 interface gi0/1 overload','ip nat inside source list 1 interface Gi0/1 overload','ip nat inside source list 1 int gi0/1 overload'], hint:'ip nat inside source list <acl> interface <if> overload', mode:'config', topic:'4.1', difficulty:'hard' },
+
+  // ── Security ───────────────────────────────────────────────────
+  { id:'sr33', task:'Enable port security on this interface', acceptedAnswers:['switchport port-security'], hint:'switchport port-security', mode:'config-if', topic:'5.7', difficulty:'easy' },
+  { id:'sr34', task:'Set maximum MAC addresses to 2 for port security', acceptedAnswers:['switchport port-security maximum 2'], hint:'switchport port-security maximum <num>', mode:'config-if', topic:'5.7', difficulty:'medium' },
+  { id:'sr35', task:'Set port security violation mode to restrict', acceptedAnswers:['switchport port-security violation restrict'], hint:'switchport port-security violation <mode>', mode:'config-if', topic:'5.7', difficulty:'medium' },
+  { id:'sr36', task:'Enter line vty 0 4 configuration', acceptedAnswers:['line vty 0 4'], hint:'line vty <start> <end>', mode:'config', topic:'5.3', difficulty:'easy' },
+  { id:'sr37', task:'Set SSH as the only allowed transport input', acceptedAnswers:['transport input ssh'], hint:'transport input ssh', mode:'config-line', topic:'6.4', difficulty:'easy' },
+  { id:'sr38', task:'Generate a 2048-bit RSA key pair', acceptedAnswers:['crypto key generate rsa modulus 2048','crypto key generate rsa general-keys modulus 2048'], hint:'crypto key generate rsa modulus <bits>', mode:'config', topic:'6.4', difficulty:'medium' },
+
+  // ── Services ───────────────────────────────────────────────────
+  { id:'sr39', task:'Set the NTP server to 10.0.1.100', acceptedAnswers:['ntp server 10.0.1.100'], hint:'ntp server <ip>', mode:'config', topic:'4.9', difficulty:'easy' },
+  { id:'sr40', task:'Set the logging host to 10.0.1.50', acceptedAnswers:['logging host 10.0.1.50','logging 10.0.1.50'], hint:'logging host <ip>', mode:'config', topic:'4.6', difficulty:'easy' },
+  { id:'sr41', task:'Create DHCP pool named OFFICE', acceptedAnswers:['ip dhcp pool OFFICE','ip dhcp pool office'], hint:'ip dhcp pool <name>', mode:'config', topic:'4.3', difficulty:'easy' },
+  { id:'sr42', task:'Set the DHCP default router to 10.0.1.1', acceptedAnswers:['default-router 10.0.1.1'], hint:'default-router <ip>', mode:'dhcp-config', topic:'4.3', difficulty:'easy' },
+  { id:'sr43', task:'Set the DHCP DNS server to 8.8.8.8', acceptedAnswers:['dns-server 8.8.8.8'], hint:'dns-server <ip>', mode:'dhcp-config', topic:'4.3', difficulty:'easy' },
+  { id:'sr44', task:'Configure the DHCP relay (helper address) to 10.0.1.100', acceptedAnswers:['ip helper-address 10.0.1.100'], hint:'ip helper-address <server-ip>', mode:'config-if', topic:'4.3', difficulty:'medium' },
+  { id:'sr45', task:'Set the domain name to ccna.lab', acceptedAnswers:['ip domain-name ccna.lab','ip domain name ccna.lab'], hint:'ip domain-name <name>', mode:'config', topic:'6.4', difficulty:'easy' },
+
+  // ── STP ────────────────────────────────────────────────────────
+  { id:'sr46', task:'Make this switch root bridge for VLAN 10', acceptedAnswers:['spanning-tree vlan 10 root primary'], hint:'spanning-tree vlan <id> root primary', mode:'config', topic:'2.4', difficulty:'medium' },
+  { id:'sr47', task:'Enable PortFast on this access port', acceptedAnswers:['spanning-tree portfast'], hint:'spanning-tree portfast', mode:'config-if', topic:'2.4', difficulty:'easy' },
+  { id:'sr48', task:'Enable BPDU Guard on this interface', acceptedAnswers:['spanning-tree bpduguard enable'], hint:'spanning-tree bpduguard enable', mode:'config-if', topic:'2.4', difficulty:'medium' },
+
+  // ── EtherChannel ───────────────────────────────────────────────
+  { id:'sr49', task:'Assign this interface to EtherChannel group 1 using LACP', acceptedAnswers:['channel-group 1 mode active'], hint:'channel-group <num> mode active', mode:'config-if', topic:'2.5', difficulty:'hard' },
+
+  // ── HSRP ───────────────────────────────────────────────────────
+  { id:'sr50', task:'Set the HSRP virtual IP to 10.0.1.254 for group 1', acceptedAnswers:['standby 1 ip 10.0.1.254'], hint:'standby <group> ip <virtual-ip>', mode:'config-if', topic:'4.4', difficulty:'hard' },
+];
+
+var MODE_PROMPTS = {
+  'config': 'Router(config)#',
+  'config-if': 'Router(config-if)#',
+  'config-subif': 'Router(config-subif)#',
+  'config-vlan': 'Switch(config-vlan)#',
+  'config-router': 'Router(config-router)#',
+  'config-line': 'Router(config-line)#',
+  'dhcp-config': 'Router(dhcp-config)#',
+  'privileged': 'Router#'
+};
+
+// ═══════════════════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════════════════
+var CMDS_PER_RUN = 20;
+var selectedDifficulty = 'all';
+var state = {
+  commands: [],
+  currentIdx: 0,
+  correct: 0,
+  total: 0,
+  startTime: 0,
+  cmdStartTime: 0,
+  timerInterval: null,
+  results: [], // { task, correct, time, yourAnswer, correctAnswer }
+  hintUsed: false
+};
+
+// ═══════════════════════════════════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════════════════════════════════
+function shuffle(arr) {
+  var a = arr.slice();
+  for (var i = a.length - 1; i > 0; i--) {
+    var j = Math.floor(Math.random() * (i + 1));
+    var t = a[i]; a[i] = a[j]; a[j] = t;
+  }
+  return a;
+}
+
+function normalizeCmd(s) {
+  return s.trim().replace(/\s+/g, ' ').toLowerCase();
+}
+
+function checkAnswer(input, cmd) {
+  var norm = normalizeCmd(input);
+  for (var i = 0; i < cmd.acceptedAnswers.length; i++) {
+    if (normalizeCmd(cmd.acceptedAnswers[i]) === norm) return true;
+  }
+  return false;
+}
+
+function formatTime(seconds) {
+  var m = Math.floor(seconds / 60);
+  var s = Math.floor(seconds % 60);
+  return (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// LEADERBOARD
+// ═══════════════════════════════════════════════════════════════════
+var LB_KEY = 'ccna_speedrun_leaderboard';
+
+function getLeaderboard() {
+  try {
+    return JSON.parse(localStorage.getItem(LB_KEY) || '[]');
+  } catch(e) { return []; }
+}
+
+function saveToLeaderboard(score, total, time) {
+  var lb = getLeaderboard();
+  lb.push({ score: score, total: total, time: time, date: new Date().toISOString() });
+  lb.sort(function(a, b) {
+    if (b.score !== a.score) return b.score - a.score;
+    return a.time - b.time;
+  });
+  lb = lb.slice(0, 10);
+  localStorage.setItem(LB_KEY, JSON.stringify(lb));
+  return lb;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// GAME FLOW
+// ═══════════════════════════════════════════════════════════════════
+function setDifficulty(btn) {
+  document.querySelectorAll('.diff-btn').forEach(function(b) { b.classList.remove('active'); });
+  btn.classList.add('active');
+  selectedDifficulty = btn.getAttribute('data-diff');
+}
+
+function goLanding() {
+  document.getElementById('landing').classList.remove('hidden');
+  document.getElementById('game-area').classList.add('hidden');
+  document.getElementById('end-screen').classList.add('hidden');
+  clearInterval(state.timerInterval);
+}
+
+function startGame() {
+  var pool = COMMANDS.filter(function(c) {
+    if (selectedDifficulty === 'all') return true;
+    return c.difficulty === selectedDifficulty;
+  });
+  if (pool.length === 0) {
+    alert('No commands match your difficulty filter.');
+    return;
+  }
+  var count = Math.min(CMDS_PER_RUN, pool.length);
+  state.commands = shuffle(pool).slice(0, count);
+  state.currentIdx = 0;
+  state.correct = 0;
+  state.total = count;
+  state.startTime = Date.now();
+  state.results = [];
+
+  document.getElementById('landing').classList.add('hidden');
+  document.getElementById('end-screen').classList.add('hidden');
+  document.getElementById('game-area').classList.remove('hidden');
+
+  // Build progress dots
+  var dotsHtml = '';
+  for (var i = 0; i < count; i++) {
+    dotsHtml += '<div class="progress-dot' + (i === 0 ? ' current' : '') + '" id="dot-' + i + '"></div>';
+  }
+  document.getElementById('progress-dots').innerHTML = dotsHtml;
+
+  // Start global timer
+  clearInterval(state.timerInterval);
+  state.timerInterval = setInterval(function() {
+    var elapsed = (Date.now() - state.startTime) / 1000;
+    document.getElementById('sr-time').textContent = formatTime(elapsed);
+  }, 100);
+
+  showCommand();
+}
+
+function showCommand() {
+  var cmd = state.commands[state.currentIdx];
+  state.cmdStartTime = Date.now();
+  state.hintUsed = false;
+
+  var prompt = MODE_PROMPTS[cmd.mode] || 'Router#';
+  document.getElementById('task-mode').textContent = prompt;
+  document.getElementById('task-text').textContent = cmd.task;
+  document.getElementById('hint-text').textContent = cmd.hint;
+  document.getElementById('task-hint').classList.remove('revealed');
+  document.getElementById('terminal-prompt').textContent = prompt + ' ';
+  document.getElementById('sr-score').textContent = state.correct + '/' + state.total;
+  document.getElementById('cmd-timer').textContent = '';
+
+  var input = document.getElementById('terminal-input');
+  input.value = '';
+  input.disabled = false;
+  input.focus();
+
+  var fb = document.getElementById('feedback-bar');
+  fb.className = 'feedback-bar';
+  fb.innerHTML = '';
+
+  // Update progress dots
+  for (var i = 0; i < state.commands.length; i++) {
+    var dot = document.getElementById('dot-' + i);
+    if (dot) {
+      dot.classList.remove('current');
+      if (i === state.currentIdx) dot.classList.add('current');
+    }
+  }
+}
+
+function revealHint() {
+  document.getElementById('task-hint').classList.add('revealed');
+  state.hintUsed = true;
+}
+
+function submitAnswer() {
+  var input = document.getElementById('terminal-input');
+  var value = input.value.trim();
+  if (!value) return;
+
+  input.disabled = true;
+  var cmd = state.commands[state.currentIdx];
+  var cmdTime = ((Date.now() - state.cmdStartTime) / 1000).toFixed(1);
+  var isCorrect = checkAnswer(value, cmd);
+
+  if (isCorrect) {
+    state.correct++;
+  }
+
+  state.results.push({
+    task: cmd.task,
+    correct: isCorrect,
+    time: parseFloat(cmdTime),
+    yourAnswer: value,
+    correctAnswer: cmd.acceptedAnswers[0]
+  });
+
+  // Update dot
+  var dot = document.getElementById('dot-' + state.currentIdx);
+  if (dot) {
+    dot.classList.remove('current');
+    dot.classList.add(isCorrect ? 'correct' : 'wrong');
+  }
+
+  // Show feedback
+  var fb = document.getElementById('feedback-bar');
+  if (isCorrect) {
+    fb.className = 'feedback-bar correct-fb show';
+    fb.innerHTML = 'Correct! <span style="font-family:var(--font-mono);font-size:.78rem">' + cmdTime + 's</span>';
+  } else {
+    fb.className = 'feedback-bar wrong-fb show';
+    fb.innerHTML = 'Incorrect<div class="feedback-correct-cmd">' + escapeHtml(cmd.acceptedAnswers[0]) + '</div>';
+  }
+
+  // Update proficiency
+  if (window.store && cmd.topic) {
+    store.updateProficiency(cmd.topic, isCorrect);
+  }
+
+  document.getElementById('sr-score').textContent = state.correct + '/' + state.total;
+  document.getElementById('cmd-timer').textContent = cmdTime + 's';
+
+  // Advance
+  var delay = isCorrect ? 800 : 2000;
+  setTimeout(function() {
+    state.currentIdx++;
+    if (state.currentIdx >= state.commands.length) {
+      endGame();
+    } else {
+      showCommand();
+    }
+  }, delay);
+}
+
+function endGame() {
+  clearInterval(state.timerInterval);
+  var elapsed = (Date.now() - state.startTime) / 1000;
+  var elapsedInt = Math.round(elapsed);
+
+  document.getElementById('game-area').classList.add('hidden');
+  document.getElementById('end-screen').classList.remove('hidden');
+
+  document.getElementById('end-time').textContent = formatTime(elapsed);
+  document.getElementById('end-correct').textContent = state.correct;
+  document.getElementById('end-total').textContent = state.total;
+
+  // Command breakdown
+  var bk = document.getElementById('cmd-breakdown');
+  var html = '<h3>Command Breakdown</h3>';
+  var fastest = null, slowest = null;
+  state.results.forEach(function(r, i) {
+    if (r.correct) {
+      if (!fastest || r.time < fastest.time) fastest = r;
+      if (!slowest || r.time > slowest.time) slowest = r;
+    }
+    html += '<div class="cmd-row">';
+    html += '<span class="cmd-status ' + (r.correct ? 'ok' : 'fail') + '">' + (r.correct ? 'O' : 'X') + '</span>';
+    html += '<span class="cmd-task">' + escapeHtml(r.task) + '</span>';
+    html += '<span class="cmd-time">' + r.time.toFixed(1) + 's</span>';
+    html += '</div>';
+  });
+  if (fastest) html += '<div style="margin-top:8px;font-size:.78rem;color:var(--prof-strong)">Fastest: ' + fastest.time.toFixed(1) + 's — ' + escapeHtml(fastest.task) + '</div>';
+  if (slowest) html += '<div style="font-size:.78rem;color:var(--prof-weak)">Slowest: ' + slowest.time.toFixed(1) + 's — ' + escapeHtml(slowest.task) + '</div>';
+  bk.innerHTML = html;
+
+  // Leaderboard
+  var lb = saveToLeaderboard(state.correct, state.total, elapsedInt);
+  var lbHtml = '<h3>Leaderboard (Best Runs)</h3>';
+  lb.forEach(function(entry, i) {
+    var isCurrent = (entry.score === state.correct && entry.time === elapsedInt && entry.date === lb[i].date);
+    lbHtml += '<div class="lb-entry' + (i === lb.length - 1 && isCurrent ? ' current' : '') + '">';
+    lbHtml += '<span class="lb-rank">#' + (i + 1) + '</span>';
+    lbHtml += '<span class="lb-score">' + entry.score + '/' + entry.total + '</span>';
+    lbHtml += '<span class="lb-time">' + formatTime(entry.time) + '</span>';
+    lbHtml += '</div>';
+  });
+  document.getElementById('leaderboard').innerHTML = lbHtml;
+
+  // Update streak + log time
+  if (window.store) {
+    store.updateStreak();
+    store.logStudyTime(Math.max(1, Math.round(elapsed / 60)));
+    store.addQuizSession({
+      date: new Date().toISOString(),
+      type: 'speedrun',
+      score: state.correct,
+      total: state.total,
+      time: elapsedInt
+    });
+  }
+}
+
+function escapeHtml(s) {
+  var d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// EVENT LISTENERS
+// ═══════════════════════════════════════════════════════════════════
+document.getElementById('terminal-input').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    submitAnswer();
+  }
+});
+  </script>
+</body>
+</html>
