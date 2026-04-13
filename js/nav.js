@@ -54,6 +54,7 @@
     ]},
     { text: 'Net+', children: [
       { text: 'Net+ Hub', href: 'netplus.html' },
+      { text: 'Exam Details', href: 'netplus-details.html' },
       { text: 'Exam Objectives', href: 'netplus-objectives.html' },
       { text: '4-Week Sprint', href: 'netplus-sprint.html' },
       { text: 'Diagnostic', href: 'netplus-diagnostic.html' },
