@@ -18,6 +18,7 @@
     { text: 'Learn', children: [
       { text: 'Learning Path', href: 'learning-path.html' },
       { text: 'Learn Visually', href: 'learn-visually.html' },
+      { text: 'Packet Journey 3D', href: 'packet-journey.html' },
       { text: 'Subnetting', href: 'subnetting-visual.html' },
       { text: 'Devices', href: 'devices.html' },
       { text: 'Glossary', href: 'glossary.html' },
