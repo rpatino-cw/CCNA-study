@@ -4,6 +4,41 @@
   var connected=false;
   var bridgeFound=false;
 
+  // Map short type names used in lab data to PTBuilder's pt_type strings
+  var DEVICE_MAP={
+    // Routers
+    '4321':'ISR4321','4331':'ISR4331','1941':'1941','2911':'2911',
+    '2901':'2901','2811':'2811','1841':'1841',
+    'router':'2911',
+    // Switches
+    '2960':'2960-24TT','3560':'3560-24PS','3650':'3650-24PS',
+    'switch':'2960-24TT',
+    // End devices
+    'pc':'PC-PT','PC':'PC-PT','computer':'PC-PT',
+    'server':'Server-PT','Server':'Server-PT',
+    'laptop':'Laptop-PT','Laptop':'Laptop-PT',
+  };
+
+  // Expand abbreviated port names to full IOS names
+  function expandPort(p){
+    if(!p)return p;
+    return p.replace(/^Gi(?=\d)/,'GigabitEthernet')
+            .replace(/^Fa(?=\d)/,'FastEthernet')
+            .replace(/^Se(?=\d)/,'Serial');
+  }
+
+  // Guess cable type from device types
+  function guessCable(t1,t2){
+    var isSwitch=function(t){return/2960|3560|3650|switch/i.test(t);};
+    var isRouter=function(t){return/4321|4331|1941|2911|2901|2811|1841|router/i.test(t);};
+    var isEndDevice=function(t){return/pc|server|laptop|computer/i.test(t);};
+    if(isSwitch(t1)&&isRouter(t2)||isRouter(t1)&&isSwitch(t2))return'straight';
+    if(isSwitch(t1)&&isEndDevice(t2)||isEndDevice(t1)&&isSwitch(t2))return'straight';
+    if(isSwitch(t1)&&isSwitch(t2))return'cross';
+    if(isRouter(t1)&&isRouter(t2))return'cross';
+    return'straight';
+  }
+
   function checkPT(cb){
     fetch(BRIDGE+'/status',{method:'GET'}).then(function(r){return r.json();}).then(function(d){
       connected=d.connected;
@@ -11,7 +46,6 @@
     }).catch(function(){connected=false;if(cb)cb(false);});
   }
 
-  // Returns true if the bridge server responds at all (even if PT isn't polling)
   function checkBridge(cb){
     fetch(BRIDGE+'/status',{method:'GET'}).then(function(r){return r.json();}).then(function(d){
       connected=d.connected;
@@ -26,18 +60,33 @@
 
   function buildTopology(topo){
     var cmds=[];
-    cmds.push('clearTopology();');
+    var deviceTypes={};
+
+    // Add devices with mapped types
     if(topo.devices){
       topo.devices.forEach(function(d){
-        cmds.push('addDevice('+JSON.stringify(d.name)+','+JSON.stringify(d.type)+','+d.x+','+d.y+');');
+        var ptType=DEVICE_MAP[d.type]||d.type;
+        deviceTypes[d.name]=d.type; // keep original for cable guessing
+        cmds.push('addDevice('+JSON.stringify(d.name)+','+JSON.stringify(ptType)+','+d.x+','+d.y+');');
       });
     }
+
+    // Pause to let PT create devices before linking
     cmds.push('// pause 2000');
+
+    // Add links with cable type and expanded port names
     if(topo.links){
       topo.links.forEach(function(l){
-        cmds.push('addLink('+JSON.stringify(l.d1)+','+JSON.stringify(l.p1)+','+JSON.stringify(l.d2)+','+JSON.stringify(l.p2)+');');
+        var t1=deviceTypes[l.d1]||'';
+        var t2=deviceTypes[l.d2]||'';
+        var cable=l.cable||guessCable(t1,t2);
+        var p1=expandPort(l.p1);
+        var p2=expandPort(l.p2);
+        cmds.push('addLink('+JSON.stringify(l.d1)+','+JSON.stringify(p1)+','+JSON.stringify(l.d2)+','+JSON.stringify(p2)+','+JSON.stringify(cable)+');');
       });
     }
+
+    // Send commands sequentially with delays
     var chain=Promise.resolve();
     cmds.forEach(function(cmd){
       if(cmd.indexOf('// pause')===0){
@@ -116,16 +165,11 @@
     var els=document.querySelectorAll('[data-pt-topology]');
     if(!els.length)return;
 
-    // Check if bridge server is reachable at all
-    checkBridge(function(serverUp,ptConnected){
+    checkBridge(function(serverUp){
       if(serverUp){
-        // Bridge is running — show build button regardless of PT status
-        // The button handles PT-not-connected on click
         showBuildButtons(els);
         return;
       }
-
-      // Bridge not reachable — show hint, poll for it
       showHints(els);
       var attempts=0;
       var poll=setInterval(function(){
