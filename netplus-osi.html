@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OSI Model Interactive — Network+ Study Tool</title>
+<meta name="color-scheme" content="light">
+<link rel="icon" type="image/svg+xml" href="/CCNA-study/favicon.svg">
+<link rel="stylesheet" href="css/shared.css">
+<style>
+/* ═══════════════════════════════════════════════════════════════
+   Net+ OSI Model — Interactive Game & Study Tool
+   Purple accent #7C3AED for Net+ branding
+   ═══════════════════════════════════════════════════════════════ */
+
+.page-header{padding:var(--s-xl) 0 var(--s-lg);margin-bottom:var(--s-lg);border-bottom:3px solid #7C3AED}
+.page-header h1{font-size:2.4rem;margin-bottom:4px;color:#7C3AED}
+.page-header .subtitle{font-family:var(--font-body);color:var(--ink-secondary);font-size:.95rem;font-style:italic}
+.section-label{font-family:var(--font-display);font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#7C3AED;margin-bottom:var(--s-xs)}
+
+/* ── Layer Stack ──────────────────────────────────────────── */
+.layer-stack{display:flex;flex-direction:column;gap:0;margin-bottom:var(--s-2xl)}
+.layer-item{border:1px solid var(--border);border-bottom:none;background:var(--bg-surface);cursor:pointer;transition:all .15s;overflow:hidden}
+.layer-item:last-child{border-bottom:1px solid var(--border);border-radius:0 0 var(--radius-lg) var(--radius-lg)}
+.layer-item:first-child{border-radius:var(--radius-lg) var(--radius-lg) 0 0}
+.layer-head{display:flex;align-items:center;gap:12px;padding:14px 18px;transition:background .15s}
+.layer-head:hover{background:rgba(124,58,237,.03)}
+.layer-item.open .layer-head{background:rgba(124,58,237,.06)}
+.layer-num{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:800;font-size:.9rem;color:#fff;flex-shrink:0;transition:transform .2s}
+.layer-item.open .layer-num{transform:scale(1.1)}
+.layer-name{font-family:var(--font-display);font-weight:700;font-size:.95rem;color:var(--ink);flex:1}
+.layer-pdu-tag{font-family:var(--font-mono);font-size:.68rem;padding:2px 8px;border-radius:3px;background:var(--bg-recessed);color:var(--ink-muted);font-weight:600}
+.layer-arrow{font-size:.7rem;color:var(--ink-muted);transition:transform .2s}
+.layer-item.open .layer-arrow{transform:rotate(180deg)}
+.layer-body{display:grid;grid-template-rows:0fr;transition:grid-template-rows .3s cubic-bezier(.16,1,.3,1)}
+.layer-item.open .layer-body{grid-template-rows:1fr}
+.layer-body-inner{overflow:hidden}
+.layer-detail{padding:0 18px 18px;display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.layer-detail-item{padding:10px 12px;background:var(--bg-recessed);border-radius:var(--radius)}
+.layer-detail-item .ld-key{font-family:var(--font-display);font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-muted);margin-bottom:4px}
+.layer-detail-item .ld-val{font-family:var(--font-body);font-size:.85rem;color:var(--ink);line-height:1.5}
+.layer-detail-item .ld-val code{font-family:var(--font-mono);font-size:.78rem;background:var(--bg-surface);padding:1px 6px;border-radius:3px;border:1px solid var(--border)}
+
+/* ── Encapsulation Animation ──────────────────────────────── */
+.encap-section{margin-bottom:var(--s-2xl)}
+.encap-vis{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:24px;overflow:hidden}
+.encap-canvas{position:relative;height:380px;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:0}
+.encap-step{display:flex;align-items:center;justify-content:center;gap:0;opacity:0;transform:translateY(12px);transition:opacity .4s,transform .4s cubic-bezier(.16,1,.3,1)}
+.encap-step.visible{opacity:1;transform:translateY(0)}
+.encap-wrapper{padding:6px 10px;border:2px solid;border-radius:4px;font-family:var(--font-mono);font-size:.72rem;font-weight:700;white-space:nowrap;position:relative;display:flex;align-items:center;gap:0}
+.encap-wrapper .encap-label{padding:0 6px}
+.encap-data-core{padding:8px 16px;background:#7C3AED;color:#fff;border-radius:4px;font-family:var(--font-display);font-weight:700;font-size:.82rem;white-space:nowrap}
+.encap-controls{display:flex;gap:8px;margin-top:var(--s-md);justify-content:center;align-items:center}
+.encap-step-label{font-family:var(--font-display);font-size:.82rem;font-weight:600;color:var(--ink);min-width:180px;text-align:center}
+.encap-arrow{margin:4px 0;color:var(--ink-muted);font-size:1.2rem;opacity:0;transition:opacity .3s}
+.encap-arrow.visible{opacity:1}
+
+/* ── Protocol Sorting Game ────────────────────────────────── */
+.sort-section{margin-bottom:var(--s-2xl)}
+.sort-game{display:grid;grid-template-columns:1fr 200px;gap:20px}
+.sort-protocols{display:flex;flex-wrap:wrap;gap:6px;align-content:flex-start}
+.sort-proto{display:inline-flex;align-items:center;padding:6px 12px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--font-mono);font-size:.78rem;font-weight:600;cursor:pointer;transition:all .15s;background:var(--bg-surface);user-select:none}
+.sort-proto:hover{border-color:#7C3AED;background:rgba(124,58,237,.04)}
+.sort-proto.selected{border-color:#7C3AED;background:#7C3AED;color:#fff}
+.sort-proto.placed{opacity:.35;pointer-events:none;text-decoration:line-through}
+.sort-proto.correct-flash{animation:correctFlash .5s ease}
+.sort-proto.wrong-flash{animation:wrongFlash .5s ease}
+@keyframes correctFlash{0%{background:#16A34A;color:#fff;border-color:#16A34A}100%{}}
+@keyframes wrongFlash{0%,30%{transform:translateX(-4px)}10%,50%{transform:translateX(4px)}20%,40%{transform:translateX(-4px)}60%{transform:translateX(0)}}
+.sort-bins{display:flex;flex-direction:column;gap:4px}
+.sort-bin{padding:8px 10px;border:1px solid var(--border);border-radius:var(--radius);cursor:pointer;transition:all .15s;text-align:center;font-family:var(--font-display);font-size:.72rem;font-weight:600;color:var(--ink-muted);min-height:36px;display:flex;align-items:center;justify-content:center;gap:6px}
+.sort-bin:hover{border-color:#7C3AED;background:rgba(124,58,237,.04)}
+.sort-bin .bin-count{font-family:var(--font-mono);font-size:.65rem;background:var(--bg-recessed);padding:1px 6px;border-radius:10px;color:var(--ink-muted)}
+.sort-bin.correct-drop{animation:correctFlash .4s ease}
+.sort-bin.wrong-drop{border-color:#DC2626;background:rgba(220,38,38,.04);animation:wrongFlash .4s ease}
+.sort-score-bar{display:flex;align-items:center;gap:12px;margin-bottom:var(--s-md)}
+.sort-score-bar .score-text{font-family:var(--font-mono);font-size:.82rem;color:#7C3AED;font-weight:700}
+.sort-feedback{font-family:var(--font-body);font-size:.85rem;color:var(--ink-secondary);min-height:24px;margin-top:8px;line-height:1.5}
+.sort-feedback .fb-correct{color:#16A34A;font-weight:600}
+.sort-feedback .fb-wrong{color:#DC2626;font-weight:600}
+
+/* ── Troubleshooting Game ─────────────────────────────────── */
+.tshoot-section{margin-bottom:var(--s-2xl)}
+.tshoot-card{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;margin-bottom:12px}
+.tshoot-scenario{font-family:var(--font-body);font-size:.92rem;line-height:1.6;margin-bottom:14px;max-width:none}
+.tshoot-scenario .scenario-icon{display:inline-block;width:20px;text-align:center;margin-right:4px}
+.tshoot-layers{display:flex;flex-wrap:wrap;gap:6px}
+.tshoot-layer-btn{padding:8px 14px;border:1px solid var(--border);border-radius:var(--radius);cursor:pointer;font-family:var(--font-display);font-size:.78rem;font-weight:600;transition:all .15s;background:var(--bg-surface)}
+.tshoot-layer-btn:hover:not(.locked){border-color:#7C3AED;background:rgba(124,58,237,.04)}
+.tshoot-layer-btn.correct{border-color:#16A34A;background:rgba(22,163,74,.08);color:#16A34A}
+.tshoot-layer-btn.wrong{border-color:#DC2626;background:rgba(220,38,38,.08);color:#DC2626}
+.tshoot-layer-btn.locked{pointer-events:none;opacity:.6}
+.tshoot-layer-btn.locked.correct{opacity:1}
+.tshoot-explain{margin-top:10px;padding:10px 14px;background:var(--bg-recessed);border-left:3px solid #7C3AED;border-radius:0 var(--radius) var(--radius) 0;font-size:.84rem;line-height:1.6;color:var(--ink-secondary);display:none}
+.tshoot-explain.show{display:block;animation:fadeIn .2s ease}
+.tshoot-progress{display:flex;align-items:center;gap:12px;margin-bottom:var(--s-md)}
+.tshoot-progress-bar{flex:1;height:6px;background:var(--bg-recessed);border-radius:3px;overflow:hidden}
+.tshoot-progress-fill{height:100%;background:#7C3AED;border-radius:3px;transition:width .4s}
+.tshoot-score{font-family:var(--font-mono);font-size:.82rem;color:#7C3AED;font-weight:700}
+.tshoot-results{text-align:center;padding:var(--s-xl) var(--s-lg);background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg)}
+.tshoot-results .big-score{font-family:var(--font-display);font-size:3rem;font-weight:800;color:#7C3AED;line-height:1}
+.tshoot-results .big-label{font-family:var(--font-display);font-size:.82rem;color:var(--ink-muted);margin-top:4px;text-transform:uppercase;letter-spacing:.08em}
+
+/* Responsive */
+@media(max-width:700px){
+  .sort-game{grid-template-columns:1fr}
+  .layer-detail{grid-template-columns:1fr}
+  .encap-wrapper{font-size:.6rem}
+  .encap-wrapper .encap-label{padding:0 3px}
+  .encap-data-core{font-size:.7rem;padding:6px 10px}
+}
+</style>
+</head>
+<body>
+<div class="container-wide">
+  <nav class="top-nav"></nav>
+
+  <header class="page-header">
+    <a href="netplus.html" class="back-link">Back to Network+ Hub</a>
+    <h1>OSI Model Interactive</h1>
+    <p class="subtitle">Layer stack, encapsulation animation, protocol sorting, and troubleshooting games</p>
+  </header>
+
+  <!-- ════════════════════════════════════════════════════════════
+       SECTION 1: Interactive Layer Stack
+       ════════════════════════════════════════════════════════════ -->
+  <section>
+    <p class="section-label">Reference</p>
+    <h2 style="margin-top:0;border:none;padding:0;margin-bottom:var(--s-md)">The 7-Layer Stack</h2>
+    <p class="text-secondary mb-3" style="max-width:60ch">Click any layer to expand. Memorize PDU names, protocols, and devices at each layer.</p>
+    <div class="layer-stack" id="layerStack"></div>
+  </section>
+
+  <hr>
+
+  <!-- ════════════════════════════════════════════════════════════
+       SECTION 2: Encapsulation Animation
+       ════════════════════════════════════════════════════════════ -->
+  <section class="encap-section">
+    <p class="section-label">Encapsulation</p>
+    <h2 style="margin-top:0;border:none;padding:0;margin-bottom:var(--s-md)">Data Encapsulation Walkthrough</h2>
+    <p class="text-secondary mb-3" style="max-width:60ch">Watch data travel down the stack, gaining headers at each layer. Step through manually or auto-play.</p>
+
+    <div class="encap-vis">
+      <div class="encap-canvas" id="encapCanvas"></div>
+      <div class="encap-controls">
+        <button class="btn btn-sm btn-secondary" id="encapReset">Reset</button>
+        <button class="btn btn-sm" id="encapStep" style="background:#7C3AED;color:#fff;border-color:#7C3AED">Step</button>
+        <button class="btn btn-sm btn-secondary" id="encapAuto">Auto-Play</button>
+        <span class="encap-step-label" id="encapLabel">Click Step to begin</span>
+      </div>
+    </div>
+  </section>
+
+  <hr>
+
+  <!-- ════════════════════════════════════════════════════════════
+       SECTION 3: Protocol Sorting Game
+       ════════════════════════════════════════════════════════════ -->
+  <section class="sort-section">
+    <p class="section-label">Game</p>
+    <h2 style="margin-top:0;border:none;padding:0;margin-bottom:var(--s-md)">Protocol Sorting Challenge</h2>
+    <p class="text-secondary mb-3" style="max-width:60ch">Click a protocol, then click the correct OSI layer. Green flash = correct, red shake = wrong.</p>
+
+    <div class="sort-score-bar">
+      <div style="flex:1;height:6px;background:var(--bg-recessed);border-radius:3px;overflow:hidden"><div id="sortProgressFill" style="height:100%;background:#7C3AED;border-radius:3px;transition:width .4s;width:0"></div></div>
+      <span class="score-text" id="sortScore">0 / 20</span>
+    </div>
+    <div class="sort-game">
+      <div class="sort-protocols" id="sortProtocols"></div>
+      <div class="sort-bins" id="sortBins"></div>
+    </div>
+    <div class="sort-feedback" id="sortFeedback"></div>
+  </section>
+
+  <hr>
+
+  <!-- ════════════════════════════════════════════════════════════
+       SECTION 4: Troubleshooting Layer Game
+       ════════════════════════════════════════════════════════════ -->
+  <section class="tshoot-section">
+    <p class="section-label">Troubleshooting</p>
+    <h2 style="margin-top:0;border:none;padding:0;margin-bottom:var(--s-md)">Which Layer Is the Problem?</h2>
+    <p class="text-secondary mb-3" style="max-width:60ch">Read each network problem and pick the OSI layer where troubleshooting should start.</p>
+
+    <div class="tshoot-progress">
+      <div class="tshoot-progress-bar"><div class="tshoot-progress-fill" id="tshootProgress"></div></div>
+      <span class="tshoot-score" id="tshootScore">0 / 10</span>
+    </div>
+    <div id="tshootArea"></div>
+  </section>
+
+</div>
+
+<script src="js/nav.js"></script>
+<script src="js/tutor.js"></script>
+<script src="js/group-chat.js"></script>
+<script>
+/* ═══════════════════════════════════════════════════════════════
+   OSI Model Interactive — All Logic
+   ═══════════════════════════════════════════════════════════════ */
+(function(){
+'use strict';
+
+/* ── Layer Colors ─────────────────────────────────────────── */
+var COLORS = ['#7C3AED','#6D28D9','#4F46E5','#2563EB','#0891B2','#059669','#16A34A'];
+
+/* ── Layer Data ───────────────────────────────────────────── */
+var LAYERS = [
+  {num:7, name:'Application', pdu:'Data', color:COLORS[0],
+    protocols:'HTTP, HTTPS, FTP, SMTP, DNS, SSH, DHCP, Telnet, SNMP, POP3, IMAP, NTP, TFTP',
+    devices:'Firewall (L7), Load Balancer, Proxy Server',
+    analogy:'The post office counter — where you hand over your letter and say where it should go. This is the layer your apps (browser, email client) interact with directly.',
+    detail:'The Application layer is the interface between the network and the software the user interacts with. It does NOT refer to the application itself — it refers to the protocols that applications use to communicate over the network.'},
+  {num:6, name:'Presentation', pdu:'Data', color:COLORS[1],
+    protocols:'SSL/TLS, JPEG, GIF, PNG, MPEG, ASCII, EBCDIC, compression formats',
+    devices:'(No dedicated devices — handled in software)',
+    analogy:'A translator who converts your English letter into a language the recipient understands, and seals it in a secure envelope (encryption).',
+    detail:'Handles data formatting, encryption/decryption, and compression. Ensures that data from the Application layer of one system can be read by the Application layer of another. TLS handshakes start here.'},
+  {num:5, name:'Session', pdu:'Data', color:COLORS[2],
+    protocols:'NetBIOS, PPTP, RPC, SIP, SMB, SOCKS',
+    devices:'(No dedicated devices — handled in software)',
+    analogy:'The phone operator who establishes, maintains, and tears down calls. Keeps your conversation going even if there are brief pauses.',
+    detail:'Establishes, manages, and terminates sessions between applications. Controls dialog (simplex, half-duplex, full-duplex). Handles checkpointing and recovery — if a large file transfer fails, the session layer knows where to resume.'},
+  {num:4, name:'Transport', pdu:'Segment', color:COLORS[3],
+    protocols:'TCP, UDP, SCTP',
+    devices:'Firewall (L4), Load Balancer (L4)',
+    analogy:'The delivery guarantee service — TCP is like certified mail (guaranteed delivery, in order), UDP is like dropping postcards in a mailbox (fast, no confirmation).',
+    detail:'Provides end-to-end communication. TCP: connection-oriented, reliable, flow control, windowing, 3-way handshake. UDP: connectionless, fast, no overhead. Port numbers identify specific applications (HTTP=80, HTTPS=443, DNS=53).'},
+  {num:3, name:'Network', pdu:'Packet', color:COLORS[4],
+    protocols:'IP (IPv4/IPv6), ICMP, OSPF, EIGRP, BGP, RIP, ARP',
+    devices:'Router, Layer 3 Switch',
+    analogy:'The postal routing system — reads the zip code (IP address) and decides which truck (route) to send the letter on. Doesn\'t care about the street address (MAC) yet.',
+    detail:'Logical addressing (IP addresses) and routing. Routers operate here — they read destination IP, consult the routing table, and forward the packet. Subnetting, CIDR, and all routing protocols live at this layer.'},
+  {num:2, name:'Data Link', pdu:'Frame', color:COLORS[5],
+    protocols:'Ethernet (802.3), Wi-Fi (802.11), STP, LLDP, PPP, HDLC, ARP (also L3)',
+    devices:'Switch (L2), Bridge, NIC, WAP',
+    analogy:'The local mail carrier who reads the street address (MAC address) and delivers to the correct house on the block. Only handles local delivery.',
+    detail:'Physical addressing (MAC addresses) and local network delivery. Divided into LLC (Logical Link Control) and MAC sublayers. Switches operate here — they read destination MAC, consult the MAC address table, and forward the frame. Error detection via FCS/CRC.'},
+  {num:1, name:'Physical', pdu:'Bits', color:COLORS[6],
+    protocols:'Ethernet (physical specs), USB, DSL, ISDN, T1/T3, SONET, 802.11 (radio)',
+    devices:'Hub, Repeater, Modem, Media Converter, Cables (UTP, Fiber, Coax), Patch Panel',
+    analogy:'The road itself — copper wire, fiber optic cable, or radio waves. Just raw transportation of 1s and 0s. No intelligence, just delivery of electrical/optical/radio signals.',
+    detail:'Deals with the physical connection — cables, connectors, voltages, frequencies, bit timing. Defines pin layouts (T-568A/B), cable types, signal encoding, and transmission modes (simplex, half-duplex, full-duplex). If you can touch it, it\'s Layer 1.'},
+];
+
+/* ── Section 1: Interactive Layer Stack ───────────────────── */
+var stackEl = document.getElementById('layerStack');
+
+LAYERS.forEach(function(layer, i){
+  var item = document.createElement('div');
+  item.className = 'layer-item';
+  item.innerHTML =
+    '<div class="layer-head">' +
+      '<div class="layer-num" style="background:' + layer.color + '">' + layer.num + '</div>' +
+      '<span class="layer-name">Layer ' + layer.num + ' — ' + layer.name + '</span>' +
+      '<span class="layer-pdu-tag">' + layer.pdu + '</span>' +
+      '<span class="layer-arrow">&#9662;</span>' +
+    '</div>' +
+    '<div class="layer-body"><div class="layer-body-inner">' +
+      '<div class="layer-detail">' +
+        '<div class="layer-detail-item"><div class="ld-key">Protocols</div><div class="ld-val">' + layer.protocols.split(', ').map(function(p){ return '<code>' + p + '</code>'; }).join(' ') + '</div></div>' +
+        '<div class="layer-detail-item"><div class="ld-key">Devices</div><div class="ld-val">' + layer.devices + '</div></div>' +
+        '<div class="layer-detail-item" style="grid-column:1/-1"><div class="ld-key">Real-World Analogy</div><div class="ld-val">' + layer.analogy + '</div></div>' +
+        '<div class="layer-detail-item" style="grid-column:1/-1"><div class="ld-key">Exam Detail</div><div class="ld-val">' + layer.detail + '</div></div>' +
+      '</div>' +
+    '</div></div>';
+  stackEl.appendChild(item);
+
+  item.querySelector('.layer-head').addEventListener('click', function(){
+    var wasOpen = item.classList.contains('open');
+    // Close all first
+    stackEl.querySelectorAll('.layer-item.open').forEach(function(el){ el.classList.remove('open'); });
+    if(!wasOpen) item.classList.add('open');
+  });
+});
+
+
+/* ── Section 2: Encapsulation Animation ───────────────────── */
+var encapCanvas = document.getElementById('encapCanvas');
+var encapLabel = document.getElementById('encapLabel');
+var encapStepBtn = document.getElementById('encapStep');
+var encapResetBtn = document.getElementById('encapReset');
+var encapAutoBtn = document.getElementById('encapAuto');
+
+var ENCAP_STEPS = [
+  {label:'Layer 7-5: Application Data', layers:'Application / Presentation / Session', wrappers:[], pdu:'Data'},
+  {label:'Layer 4: Add TCP/UDP Header (Port)', layers:'Transport', wrappers:[{text:'TCP Hdr', color:'#2563EB'}], pdu:'Segment'},
+  {label:'Layer 3: Add IP Header (IP Address)', layers:'Network', wrappers:[{text:'IP Hdr', color:'#0891B2'},{text:'TCP Hdr', color:'#2563EB'}], pdu:'Packet'},
+  {label:'Layer 2: Add Frame Header + Trailer (MAC)', layers:'Data Link', wrappers:[{text:'Frame Hdr', color:'#059669'},{text:'IP Hdr', color:'#0891B2'},{text:'TCP Hdr', color:'#2563EB'}], pdu:'Frame', trailer:{text:'FCS', color:'#059669'}},
+  {label:'Layer 1: Convert to Bits', layers:'Physical', wrappers:[], pdu:'Bits', isBits:true},
+];
+
+var currentEncapStep = -1;
+var autoTimer = null;
+
+function renderEncap(){
+  encapCanvas.innerHTML = '';
+  for(var s = 0; s <= currentEncapStep && s < ENCAP_STEPS.length; s++){
+    if(s > 0){
+      var arrow = document.createElement('div');
+      arrow.className = 'encap-arrow visible';
+      arrow.textContent = '\u2193';
+      encapCanvas.appendChild(arrow);
+    }
+
+    var step = ENCAP_STEPS[s];
+    var row = document.createElement('div');
+    row.className = 'encap-step visible';
+    row.style.transitionDelay = (s * 0.08) + 's';
+
+    if(step.isBits){
+      row.innerHTML = '<div style="font-family:var(--font-mono);font-size:.82rem;color:var(--ink);letter-spacing:2px;padding:8px 16px;border:2px dashed ' + COLORS[6] + ';border-radius:4px">01001000 01100101 01101100 01101100 01101111 ...</div>';
+    } else {
+      var html = '';
+      // Opening wrappers (headers)
+      step.wrappers.forEach(function(w){
+        html += '<div class="encap-wrapper" style="border-color:' + w.color + ';color:' + w.color + '"><span class="encap-label">' + w.text + '</span>';
+      });
+      // Data core
+      html += '<div class="encap-data-core">DATA</div>';
+      // Close wrappers
+      step.wrappers.forEach(function(){ html += '</div>'; });
+      // Trailer if present
+      if(step.trailer){
+        // We need to wrap the entire thing. Restructure:
+        var fullHtml = '<div class="encap-wrapper" style="border-color:' + step.trailer.color + ';color:' + step.trailer.color + '"><span class="encap-label">' + step.wrappers[0].text + '</span>';
+        for(var wi = 1; wi < step.wrappers.length; wi++){
+          fullHtml += '<div class="encap-wrapper" style="border-color:' + step.wrappers[wi].color + ';color:' + step.wrappers[wi].color + '"><span class="encap-label">' + step.wrappers[wi].text + '</span>';
+        }
+        fullHtml += '<div class="encap-data-core">DATA</div>';
+        for(var wj = 1; wj < step.wrappers.length; wj++) fullHtml += '</div>';
+        fullHtml += '<span class="encap-label">' + step.trailer.text + '</span></div>';
+        html = fullHtml;
+      }
+      row.innerHTML = html;
+    }
+
+    encapCanvas.appendChild(row);
+  }
+
+  if(currentEncapStep >= 0 && currentEncapStep < ENCAP_STEPS.length){
+    var cs = ENCAP_STEPS[currentEncapStep];
+    encapLabel.textContent = cs.label + '  (' + cs.pdu + ')';
+  } else if(currentEncapStep < 0){
+    encapLabel.textContent = 'Click Step to begin';
+  }
+}
+
+encapStepBtn.addEventListener('click', function(){
+  if(currentEncapStep < ENCAP_STEPS.length - 1){
+    currentEncapStep++;
+    renderEncap();
+  }
+  if(currentEncapStep >= ENCAP_STEPS.length - 1){
+    encapStepBtn.disabled = true;
+    encapStepBtn.textContent = 'Done';
+  }
+});
+
+encapResetBtn.addEventListener('click', function(){
+  if(autoTimer){ clearInterval(autoTimer); autoTimer = null; encapAutoBtn.textContent = 'Auto-Play'; }
+  currentEncapStep = -1;
+  encapStepBtn.disabled = false;
+  encapStepBtn.textContent = 'Step';
+  renderEncap();
+});
+
+encapAutoBtn.addEventListener('click', function(){
+  if(autoTimer){ clearInterval(autoTimer); autoTimer = null; encapAutoBtn.textContent = 'Auto-Play'; return; }
+  encapAutoBtn.textContent = 'Pause';
+  currentEncapStep = -1;
+  renderEncap();
+  autoTimer = setInterval(function(){
+    if(currentEncapStep < ENCAP_STEPS.length - 1){
+      currentEncapStep++;
+      renderEncap();
+    } else {
+      clearInterval(autoTimer); autoTimer = null;
+      encapAutoBtn.textContent = 'Auto-Play';
+      encapStepBtn.disabled = true;
+      encapStepBtn.textContent = 'Done';
+    }
+  }, 1200);
+});
+
+renderEncap();
+
+
+/* ── Section 3: Protocol Sorting Game ─────────────────────── */
+var PROTOCOLS = [
+  {name:'HTTP', layer:7}, {name:'FTP', layer:7}, {name:'SMTP', layer:7},
+  {name:'DNS', layer:7}, {name:'SSH', layer:7}, {name:'NTP', layer:7},
+  {name:'SSL/TLS', layer:6},
+  {name:'TCP', layer:4}, {name:'UDP', layer:4},
+  {name:'IP', layer:3}, {name:'ICMP', layer:3}, {name:'ARP', layer:3}, {name:'OSPF', layer:3},
+  {name:'Ethernet', layer:2}, {name:'Wi-Fi', layer:2}, {name:'STP', layer:2}, {name:'HDLC', layer:2},
+  {name:'RJ-45', layer:1}, {name:'Fiber', layer:1}, {name:'Hub', layer:1},
+];
+
+// Shuffle
+var shuffled = PROTOCOLS.slice();
+for(var si = shuffled.length - 1; si > 0; si--){
+  var sj = Math.floor(Math.random() * (si + 1));
+  var tmp = shuffled[si]; shuffled[si] = shuffled[sj]; shuffled[sj] = tmp;
+}
+
+var sortProtos = document.getElementById('sortProtocols');
+var sortBinsEl = document.getElementById('sortBins');
+var sortScore = document.getElementById('sortScore');
+var sortProgressFill = document.getElementById('sortProgressFill');
+var sortFeedback = document.getElementById('sortFeedback');
+var selectedProto = null;
+var sortCorrect = 0, sortAttempted = 0;
+var binCounts = {};
+
+// Render protocol chips
+shuffled.forEach(function(p, idx){
+  var chip = document.createElement('div');
+  chip.className = 'sort-proto';
+  chip.textContent = p.name;
+  chip.setAttribute('data-idx', idx);
+  sortProtos.appendChild(chip);
+
+  chip.addEventListener('click', function(){
+    if(chip.classList.contains('placed')) return;
+    sortProtos.querySelectorAll('.sort-proto.selected').forEach(function(el){ el.classList.remove('selected'); });
+    chip.classList.add('selected');
+    selectedProto = {idx: idx, proto: p, chip: chip};
+  });
+});
+
+// Render bins
+var LAYER_NAMES = {7:'Application',6:'Presentation',5:'Session',4:'Transport',3:'Network',2:'Data Link',1:'Physical'};
+[7,6,5,4,3,2,1].forEach(function(n){
+  binCounts[n] = 0;
+  var bin = document.createElement('div');
+  bin.className = 'sort-bin';
+  bin.setAttribute('data-layer', n);
+  bin.innerHTML = 'L' + n + ' ' + LAYER_NAMES[n] + ' <span class="bin-count" id="binCount' + n + '">0</span>';
+  sortBinsEl.appendChild(bin);
+
+  bin.addEventListener('click', function(){
+    if(!selectedProto) return;
+    var p = selectedProto.proto;
+    var chip = selectedProto.chip;
+    sortAttempted++;
+
+    if(p.layer === n){
+      sortCorrect++;
+      chip.classList.add('placed');
+      chip.classList.remove('selected');
+      chip.classList.add('correct-flash');
+      bin.classList.add('correct-drop');
+      setTimeout(function(){ bin.classList.remove('correct-drop'); }, 500);
+      binCounts[n]++;
+      document.getElementById('binCount' + n).textContent = binCounts[n];
+      sortFeedback.innerHTML = '<span class="fb-correct">' + p.name + ' -> Layer ' + n + ' (' + LAYER_NAMES[n] + ') — Correct!</span>';
+    } else {
+      chip.classList.remove('selected');
+      chip.classList.add('wrong-flash');
+      bin.classList.add('wrong-drop');
+      setTimeout(function(){ chip.classList.remove('wrong-flash'); bin.classList.remove('wrong-drop'); }, 500);
+      sortFeedback.innerHTML = '<span class="fb-wrong">' + p.name + ' is Layer ' + p.layer + ' (' + LAYER_NAMES[p.layer] + '), not Layer ' + n + '.</span>';
+    }
+
+    selectedProto = null;
+    sortScore.textContent = sortCorrect + ' / ' + shuffled.length;
+    sortProgressFill.style.width = (sortCorrect / shuffled.length * 100) + '%';
+
+    if(sortCorrect === shuffled.length){
+      sortFeedback.innerHTML = '<span class="fb-correct" style="font-size:1rem">All ' + shuffled.length + ' protocols sorted correctly! Accuracy: ' + Math.round(sortCorrect / sortAttempted * 100) + '% (' + sortAttempted + ' attempts)</span>';
+    }
+  });
+});
+
+
+/* ── Section 4: Troubleshooting Layer Game ────────────────── */
+var SCENARIOS = [
+  {problem:'A user reports they cannot access the company intranet. You check and the Ethernet cable is unplugged from their workstation.', answer:1, explain:'Unplugged cable = Physical layer (Layer 1). No physical connection means no communication at any higher layer. Always check Layer 1 first — cables, connectors, link lights, power.'},
+  {problem:'Two switches connected via a trunk link are experiencing a duplex mismatch. One side is set to full-duplex, the other to half-duplex. Users see slow speeds and late collisions.', answer:2, explain:'Duplex mismatch = Data Link layer (Layer 2). Duplex is a Layer 2 setting configured on switch ports. Late collisions are a classic symptom of duplex mismatch between connected interfaces.'},
+  {problem:'A PC has IP address 10.1.1.50/24 and is trying to reach a server at 10.2.1.100/24. There is no default gateway configured on the PC.', answer:3, explain:'No default gateway = Network layer (Layer 3). The PC can reach hosts on its own 10.1.1.0/24 subnet, but without a gateway it cannot route packets to the 10.2.1.0/24 network. Routing and IP addressing are Layer 3.'},
+  {problem:'A web application loads the HTML page, but all HTTPS API calls fail with "SSL certificate expired" errors in the browser console.', answer:6, explain:'SSL/TLS certificate issues = Presentation layer (Layer 6). The Presentation layer handles encryption, decryption, and certificate validation. An expired certificate prevents the TLS handshake from completing.'},
+  {problem:'A user can ping the web server by IP address (10.1.1.5) but cannot reach it by typing "intranet.company.com" in the browser.', answer:7, explain:'DNS resolution failure = Application layer (Layer 7). DNS is an Application layer protocol. The underlying network works (ping succeeds), but the DNS service that translates names to IPs is not functioning correctly for this client.'},
+  {problem:'A VoIP call connects but the audio is choppy and cutting out. The network shows no packet loss but there is 300ms of jitter on the WAN link.', answer:4, explain:'Jitter and QoS issues = Transport layer (Layer 4). While jitter affects the physical transport, the Transport layer is responsible for flow control and handling real-time traffic. QoS classification and traffic shaping are applied at Layer 4 using port numbers and protocol identification.'},
+  {problem:'A user connects to the office Wi-Fi but gets an IP address of 169.254.x.x instead of the expected 10.0.1.x range.', answer:7, explain:'APIPA address (169.254.x.x) means the DHCP request failed. DHCP is an Application layer (Layer 7) protocol. The device connected at Layer 1/2 (Wi-Fi associated) but the DHCP service did not respond, so it fell back to an automatic private address.'},
+  {problem:'A managed switch shows a port in "err-disabled" state after a device was connected. The port security log shows a MAC address violation.', answer:2, explain:'Port security / MAC address violations = Data Link layer (Layer 2). Switches use MAC addresses at Layer 2 to make forwarding decisions. Port security is a Layer 2 feature that limits which MAC addresses can use a port.'},
+  {problem:'A fiber optic link between two buildings shows a "link down" status. The technician finds that the SFP module is showing low receive power on the optical power meter.', answer:1, explain:'Optical power / SFP issues = Physical layer (Layer 1). SFP modules, fiber cables, and optical power levels are all Layer 1 concerns. Low Rx power could indicate a dirty connector, bad splice, or cable break.'},
+  {problem:'A file transfer between two offices starts successfully but always disconnects after exactly 30 minutes. The firewall shows session timeout entries in the log at that time.', answer:5, explain:'Session timeout = Session layer (Layer 5). The Session layer manages the establishment, maintenance, and teardown of communication sessions. A firewall enforcing session timeouts is operating at Layer 5, forcibly closing idle or long-running sessions.'},
+];
+
+var tshootArea = document.getElementById('tshootArea');
+var tshootProgress = document.getElementById('tshootProgress');
+var tshootScoreEl = document.getElementById('tshootScore');
+var tshootCorrect = 0, tshootAnswered = 0;
+
+SCENARIOS.forEach(function(sc, idx){
+  var card = document.createElement('div');
+  card.className = 'tshoot-card';
+  card.id = 'tshoot-' + idx;
+
+  var html = '<div class="tshoot-scenario"><span class="scenario-icon">' + (idx + 1) + '.</span> ' + sc.problem + '</div>';
+  html += '<div class="tshoot-layers">';
+  [1,2,3,4,5,6,7].forEach(function(n){
+    html += '<button class="tshoot-layer-btn" data-layer="' + n + '" data-sc="' + idx + '">L' + n + ' ' + LAYER_NAMES[n] + '</button>';
+  });
+  html += '</div>';
+  html += '<div class="tshoot-explain" id="tshoot-explain-' + idx + '"></div>';
+
+  card.innerHTML = html;
+  tshootArea.appendChild(card);
+
+  card.querySelectorAll('.tshoot-layer-btn').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      if(btn.classList.contains('locked')) return;
+      var pick = parseInt(btn.getAttribute('data-layer'));
+      var scIdx = parseInt(btn.getAttribute('data-sc'));
+      var scenario = SCENARIOS[scIdx];
+
+      // Lock all buttons in this card
+      card.querySelectorAll('.tshoot-layer-btn').forEach(function(b){
+        b.classList.add('locked');
+        if(parseInt(b.getAttribute('data-layer')) === scenario.answer) b.classList.add('correct');
+      });
+
+      tshootAnswered++;
+      if(pick === scenario.answer){
+        btn.classList.add('correct');
+        tshootCorrect++;
+      } else {
+        btn.classList.add('wrong');
+      }
+
+      var explainEl = document.getElementById('tshoot-explain-' + scIdx);
+      explainEl.textContent = scenario.explain;
+      explainEl.classList.add('show');
+
+      tshootScoreEl.textContent = tshootCorrect + ' / ' + SCENARIOS.length;
+      tshootProgress.style.width = (tshootAnswered / SCENARIOS.length * 100) + '%';
+
+      if(tshootAnswered === SCENARIOS.length){
+        var pct = Math.round(tshootCorrect / SCENARIOS.length * 100);
+        var results = document.createElement('div');
+        results.className = 'tshoot-results mt-3';
+        results.innerHTML = '<div class="big-score">' + pct + '%</div><div class="big-label">' + tshootCorrect + ' of ' + SCENARIOS.length + ' correct</div>' +
+          '<p style="margin-top:16px;color:var(--ink-secondary);max-width:none">' +
+          (pct >= 80 ? 'Solid troubleshooting instincts. You know your layers.' : pct >= 60 ? 'Getting there. Review the explanations above — layer identification is a common exam topic.' : 'Keep studying. Re-read the layer stack section above and pay attention to which protocols and problems belong where.') +
+          '</p><button class="btn btn-sm mt-3" onclick="location.reload()" style="background:#7C3AED;color:#fff;border-color:#7C3AED">Try Again</button>';
+        tshootArea.appendChild(results);
+      }
+    });
+  });
+});
+
+})();
+</script>
+</body>
+</html>
