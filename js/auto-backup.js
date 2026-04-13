@@ -2,14 +2,17 @@
  * auto-backup.js — Silent cloud backup + auto-restore for all users
  * No group required. Works for solo users too.
  *
- * On every store change: debounced push to CF Worker KV (90-day TTL)
- * On page load with empty localStorage: check server, restore if found
+ * Strategy: localStorage event listener catches ALL writes (not just hooked methods).
+ * Debounced push to CF Worker KV with 365-day TTL.
+ * On page load with empty localStorage: offer restore from cloud or study group.
  */
 (function() {
   var API = 'https://ccna-tutor.rpatino-cw.workers.dev';
-  var BACKUP_DEBOUNCE = 10000; // 10 seconds after last change
+  var BACKUP_DEBOUNCE = 10000;
   var BACKUP_KEY = 'ccna_last_backup';
+  var BACKUP_HASH_KEY = 'ccna_backup_hash';
   var debounceTimer = null;
+  var lastHash = localStorage.getItem(BACKUP_HASH_KEY) || '';
 
   // ── Get or create peer ID ──────────────────────────────────
   function getPeerId() {
@@ -26,29 +29,55 @@
   function hasLocalData() {
     var prof = localStorage.getItem('ccna_proficiency');
     if (!prof) return false;
-    try {
-      var obj = JSON.parse(prof);
-      return Object.keys(obj).length > 0;
-    } catch(e) { return false; }
+    try { return Object.keys(JSON.parse(prof)).length > 0; }
+    catch(e) { return false; }
+  }
+
+  // ── Simple hash to detect if data actually changed ─────────
+  function hashData(str) {
+    var h = 0;
+    for (var i = 0; i < str.length; i++) {
+      h = ((h << 5) - h) + str.charCodeAt(i);
+      h = h & h; // Convert to 32-bit int
+    }
+    return h.toString(36);
+  }
+
+  // ── Collect all ccna_ data as a plain object ───────────────
+  function collectData() {
+    var data = {};
+    for (var i = 0; i < localStorage.length; i++) {
+      var key = localStorage.key(i);
+      if (key && key.startsWith('ccna_')) {
+        data[key] = localStorage.getItem(key);
+      }
+    }
+    return data;
   }
 
   // ── Push backup to server ──────────────────────────────────
   function pushBackup() {
-    if (!window.store) return;
     try {
-      var data = store.exportAll();
-      if (!data || data === '{}') return;
+      var data = collectData();
+      var dataStr = JSON.stringify(data);
+      if (!dataStr || dataStr === '{}') return;
+
+      // Skip if nothing changed since last backup
+      var newHash = hashData(dataStr);
+      if (newHash === lastHash) return;
 
       fetch(API + '/api/backup/save', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ peerId: getPeerId(), data: data })
+        body: JSON.stringify({ peerId: getPeerId(), data: dataStr })
       }).then(function(res) {
         if (res.ok) {
+          lastHash = newHash;
+          localStorage.setItem(BACKUP_HASH_KEY, newHash);
           localStorage.setItem(BACKUP_KEY, new Date().toISOString());
         }
-      }).catch(function() { /* silent fail */ });
-    } catch(e) { /* silent fail */ }
+      }).catch(function() {});
+    } catch(e) {}
   }
 
   // ── Pull backup from server ────────────────────────────────
@@ -62,7 +91,12 @@
       .then(function(result) {
         if (!result || !result.data) return false;
         try {
-          store.importAll(result.data);
+          // data is a JSON string of {ccna_key: value, ...}
+          var parsed = typeof result.data === 'string' ? JSON.parse(result.data) : result.data;
+          // Restore each key directly to localStorage
+          Object.keys(parsed).forEach(function(key) {
+            localStorage.setItem(key, parsed[key]);
+          });
           localStorage.setItem(BACKUP_KEY, result.ts || new Date().toISOString());
           return true;
         } catch(e) { return false; }
@@ -80,13 +114,15 @@
     .then(function(res) { return res.json(); })
     .then(function(result) {
       if (!result.ok || !result.progress) return false;
-      // Restore proficiency from group snapshot
-      if (result.progress.proficiency && window.store) {
-        var prof = result.progress.proficiency;
-        Object.keys(prof).forEach(function(k) {
-          store.set('proficiency', prof);
-        });
-        localStorage.setItem('ccna_proficiency', JSON.stringify(prof));
+      // Restore proficiency from group snapshot via localStorage directly
+      if (result.progress.proficiency) {
+        localStorage.setItem('ccna_proficiency', JSON.stringify(result.progress.proficiency));
+      }
+      if (result.progress.streak) {
+        localStorage.setItem('ccna_streak', JSON.stringify(result.progress.streak));
+      }
+      if (result.progress.studyTime) {
+        localStorage.setItem('ccna_study_time', JSON.stringify(result.progress.studyTime));
       }
       // Restore peer identity
       if (result.memberId) localStorage.setItem('ccna_peer_id', result.memberId);
@@ -97,76 +133,86 @@
     .catch(function() { return false; });
   }
 
-  // ── Schedule backup on store changes ───────────────────────
+  // ── Schedule backup ────────────────────────────────────────
   function scheduleBackup() {
     if (debounceTimer) clearTimeout(debounceTimer);
     debounceTimer = setTimeout(pushBackup, BACKUP_DEBOUNCE);
   }
 
-  // ── Hook into store writes ─────────────────────────────────
-  // Monkey-patch store methods to trigger backup
-  function hookStore() {
-    if (!window.store) return;
-    var methods = ['updateProficiency', 'saveDiagnostic', 'addQuizSession', 'updateStreak', 'logStudyTime', 'recordTopicStudy'];
-    methods.forEach(function(name) {
-      var original = store[name];
-      if (!original) return;
-      store[name] = function() {
-        var result = original.apply(store, arguments);
-        scheduleBackup();
-        return result;
-      };
-    });
-  }
+  // ── FIX #1/#5: localStorage event listener catches ALL writes ──
+  // This fires on ANY localStorage change from ANY code path —
+  // no monkey-patching needed, no methods to miss.
+  // Note: 'storage' event only fires from OTHER tabs. For same-tab
+  // detection, we also patch localStorage.setItem directly.
+  var _origSetItem = localStorage.setItem.bind(localStorage);
+  localStorage.setItem = function(key, value) {
+    _origSetItem(key, value);
+    if (key && key.startsWith('ccna_') && key !== BACKUP_KEY && key !== BACKUP_HASH_KEY) {
+      scheduleBackup();
+    }
+  };
 
-  // ── Render recovery UI ─────────────────────────────────────
+  // Cross-tab sync: if another tab writes, schedule backup here too
+  window.addEventListener('storage', function(e) {
+    if (e.key && e.key.startsWith('ccna_') && e.key !== BACKUP_KEY && e.key !== BACKUP_HASH_KEY) {
+      scheduleBackup();
+    }
+  });
+
+  // ── Recovery Banner ────────────────────────────────────────
   function showRecoveryBanner() {
-    // Don't show if user already has data
     if (hasLocalData()) return;
+    if (localStorage.getItem('ccna_recovery_dismissed')) return;
 
     var banner = document.createElement('div');
     banner.id = 'recoveryBanner';
-    banner.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);z-index:9000;background:#FAF7F2;border:1px solid #E2DFD9;border-radius:12px;padding:16px 20px;max-width:420px;width:90%;box-shadow:0 8px 24px rgba(0,0,0,0.12);font-family:"Space Grotesk",system-ui,sans-serif';
+    // FIX #4: Center as overlay instead of fixed bottom (avoids tutor conflict)
+    banner.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:9500;background:#FAF7F2;border:1px solid #E2DFD9;border-radius:14px;padding:24px;max-width:440px;width:92%;box-shadow:0 16px 48px rgba(0,0,0,0.18);font-family:"Space Grotesk",system-ui,sans-serif';
     banner.innerHTML =
-      '<div style="font-size:.9rem;font-weight:700;color:#1C1917;margin-bottom:6px">Welcome back — or starting fresh?</div>' +
-      '<div style="font-size:.78rem;color:#57534E;line-height:1.5;margin-bottom:12px">If you\'ve used this site before, we can restore your progress. Your data is auto-backed up to the cloud.</div>' +
-      '<div style="display:flex;flex-direction:column;gap:6px">' +
-        '<button id="recoverAutoBtn" style="padding:8px 14px;background:#1C1917;color:#FAF7F2;border:none;border-radius:6px;font-family:inherit;font-size:.78rem;font-weight:600;cursor:pointer">Restore My Progress</button>' +
-        '<button id="recoverGroupBtn" style="padding:8px 14px;background:none;border:1px solid #E2DFD9;color:#57534E;border-radius:6px;font-family:inherit;font-size:.78rem;cursor:pointer">Recover from Study Group</button>' +
-        '<button id="recoverDismiss" style="padding:4px;background:none;border:none;color:#A8A29E;font-family:inherit;font-size:.72rem;cursor:pointer;text-decoration:underline">Start fresh — I\'m new here</button>' +
+      '<div style="font-size:1rem;font-weight:700;color:#1C1917;margin-bottom:8px">Welcome back?</div>' +
+      '<div style="font-size:.82rem;color:#57534E;line-height:1.55;margin-bottom:16px">If you\'ve studied here before, your progress is safely backed up. Restore it with one click, or start fresh.</div>' +
+      '<div style="display:flex;flex-direction:column;gap:8px">' +
+        '<button id="recoverAutoBtn" style="padding:10px 16px;background:#1C1917;color:#FAF7F2;border:none;border-radius:8px;font-family:inherit;font-size:.85rem;font-weight:600;cursor:pointer">Restore My Progress</button>' +
+        '<button id="recoverGroupBtn" style="padding:10px 16px;background:none;border:1px solid #E2DFD9;color:#57534E;border-radius:8px;font-family:inherit;font-size:.82rem;cursor:pointer">Recover from Study Group</button>' +
+        '<button id="recoverDismiss" style="padding:6px;background:none;border:none;color:#A8A29E;font-family:inherit;font-size:.75rem;cursor:pointer;text-decoration:underline;text-underline-offset:2px">I\'m new — start fresh</button>' +
       '</div>' +
-      '<div id="recoverStatus" style="display:none;margin-top:8px;font-size:.75rem;padding:8px;border-radius:4px"></div>' +
-      '<div id="recoverGroupForm" style="display:none;margin-top:8px">' +
-        '<input id="recoverCode" placeholder="Group code (6 chars)" style="width:100%;padding:6px 10px;border:1px solid #E2DFD9;border-radius:4px;font-family:monospace;font-size:.82rem;margin-bottom:4px;text-transform:uppercase" maxlength="6">' +
-        '<input id="recoverName" placeholder="Your display name" style="width:100%;padding:6px 10px;border:1px solid #E2DFD9;border-radius:4px;font-size:.82rem;margin-bottom:6px">' +
-        '<button id="recoverGroupGo" style="padding:6px 14px;background:#B45309;color:#fff;border:none;border-radius:4px;font-family:inherit;font-size:.75rem;font-weight:600;cursor:pointer">Recover</button>' +
+      '<div id="recoverStatus" style="display:none;margin-top:10px;font-size:.78rem;padding:10px;border-radius:6px"></div>' +
+      '<div id="recoverGroupForm" style="display:none;margin-top:10px">' +
+        '<input id="recoverCode" placeholder="Group code (6 chars)" style="width:100%;padding:8px 12px;border:1px solid #E2DFD9;border-radius:6px;font-family:monospace;font-size:.85rem;margin-bottom:6px;text-transform:uppercase" maxlength="6">' +
+        '<input id="recoverName" placeholder="Your display name" style="width:100%;padding:8px 12px;border:1px solid #E2DFD9;border-radius:6px;font-size:.85rem;margin-bottom:8px">' +
+        '<button id="recoverGroupGo" style="padding:8px 16px;background:#B45309;color:#fff;border:none;border-radius:6px;font-family:inherit;font-size:.78rem;font-weight:600;cursor:pointer;width:100%">Recover from Group</button>' +
       '</div>';
 
+    // Backdrop
+    var backdrop = document.createElement('div');
+    backdrop.id = 'recoveryBackdrop';
+    backdrop.style.cssText = 'position:fixed;inset:0;z-index:9499;background:rgba(28,25,23,0.3);backdrop-filter:blur(2px)';
+
+    document.body.appendChild(backdrop);
     document.body.appendChild(banner);
 
-    // Auto-restore button
+    function dismiss() { banner.remove(); backdrop.remove(); localStorage.setItem('ccna_recovery_dismissed', '1'); }
+
     document.getElementById('recoverAutoBtn').addEventListener('click', function() {
       var status = document.getElementById('recoverStatus');
       status.style.display = 'block';
       status.style.background = 'rgba(180,83,9,.08)';
       status.style.color = '#B45309';
       status.textContent = 'Checking for backup...';
-
       pullBackup().then(function(restored) {
         if (restored) {
           status.style.background = 'rgba(22,163,74,.08)';
           status.style.color = '#16A34A';
           status.textContent = 'Progress restored! Reloading...';
-          setTimeout(function() { location.reload(); }, 1500);
+          setTimeout(function() { location.reload(); }, 1200);
         } else {
           status.style.background = 'rgba(220,38,38,.08)';
           status.style.color = '#DC2626';
-          status.textContent = 'No backup found for this browser. Try recovering from your Study Group below.';
+          status.textContent = 'No backup found for this browser. Try recovering from your Study Group instead.';
         }
       });
     });
 
-    // Group recovery
     document.getElementById('recoverGroupBtn').addEventListener('click', function() {
       document.getElementById('recoverGroupForm').style.display = 'block';
     });
@@ -175,83 +221,62 @@
       var code = document.getElementById('recoverCode').value.trim().toUpperCase();
       var name = document.getElementById('recoverName').value.trim();
       if (!code || !name) return;
-
       var status = document.getElementById('recoverStatus');
       status.style.display = 'block';
       status.style.background = 'rgba(180,83,9,.08)';
       status.style.color = '#B45309';
-      status.textContent = 'Searching group for ' + name + '...';
-
+      status.textContent = 'Searching for ' + name + ' in group ' + code + '...';
       tryGroupRecovery(code, name).then(function(restored) {
         if (restored) {
           status.style.background = 'rgba(22,163,74,.08)';
           status.style.color = '#16A34A';
-          status.textContent = 'Found you! Progress restored. Reloading...';
-          setTimeout(function() { location.reload(); }, 1500);
+          status.textContent = 'Found you! Restoring progress...';
+          setTimeout(function() { location.reload(); }, 1200);
         } else {
           status.style.background = 'rgba(220,38,38,.08)';
           status.style.color = '#DC2626';
-          status.textContent = 'Name not found in that group. Check your group code and name spelling.';
+          status.textContent = 'Name not found in that group. Check spelling and group code.';
         }
       });
     });
 
-    // Dismiss
-    document.getElementById('recoverDismiss').addEventListener('click', function() {
-      banner.remove();
-      localStorage.setItem('ccna_recovery_dismissed', '1');
-    });
+    document.getElementById('recoverDismiss').addEventListener('click', dismiss);
+    backdrop.addEventListener('click', dismiss);
   }
 
-  // ── Backup status indicator (subtle) ───────────────────────
+  // ── Backup status indicator ────────────────────────────────
   function showBackupStatus() {
     if (!hasLocalData()) return;
     var lastBackup = localStorage.getItem(BACKUP_KEY);
     if (!lastBackup) return;
-
     var ms = Date.now() - new Date(lastBackup).getTime();
     var ago = ms < 60000 ? 'just now' : ms < 3600000 ? Math.floor(ms/60000) + 'm ago' : ms < 86400000 ? Math.floor(ms/3600000) + 'h ago' : Math.floor(ms/86400000) + 'd ago';
-
-    // Add to progress strip if it exists
     var strip = document.querySelector('.ps-stats');
     if (strip && !strip.querySelector('.backup-status')) {
       var span = document.createElement('span');
       span.className = 'backup-status';
-      span.style.cssText = 'color:var(--prof-strong);font-size:.68rem';
+      span.style.cssText = 'color:var(--prof-strong,#16A34A);font-size:.65rem';
       span.innerHTML = '&#9679; Backed up ' + ago;
       strip.appendChild(span);
     }
   }
 
   // ── Init ───────────────────────────────────────────────────
-  function init() {
-    hookStore();
-
-    if (!hasLocalData() && !localStorage.getItem('ccna_recovery_dismissed')) {
-      // No data — show recovery options
-      showRecoveryBanner();
-    } else if (hasLocalData()) {
-      // Has data — ensure backup is running
-      showBackupStatus();
-      // If no backup in last 24 hours, push one now
-      var lastBackup = localStorage.getItem(BACKUP_KEY);
-      if (!lastBackup || (Date.now() - new Date(lastBackup).getTime()) > 86400000) {
-        setTimeout(pushBackup, 3000); // slight delay to not block page load
-      }
+  // Run immediately — no setTimeout needed since we patched localStorage.setItem
+  // which catches all writes regardless of timing.
+  if (!hasLocalData() && !localStorage.getItem('ccna_recovery_dismissed')) {
+    // Small delay to let DOM settle for the banner
+    setTimeout(showRecoveryBanner, 300);
+  } else if (hasLocalData()) {
+    // Show backup status on CORE page
+    setTimeout(showBackupStatus, 500);
+    // Push backup if none in last 24 hours
+    var lastBackup = localStorage.getItem(BACKUP_KEY);
+    if (!lastBackup || (Date.now() - new Date(lastBackup).getTime()) > 86400000) {
+      setTimeout(pushBackup, 3000);
     }
   }
 
-  // Wait for store to be available
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', function() { setTimeout(init, 500); });
-  } else {
-    setTimeout(init, 500);
-  }
-
   // Expose for manual use
-  window.autoBackup = {
-    push: pushBackup,
-    pull: pullBackup,
-    recoverFromGroup: tryGroupRecovery
-  };
+  window.autoBackup = { push: pushBackup, pull: pullBackup, recoverFromGroup: tryGroupRecovery };
 })();
