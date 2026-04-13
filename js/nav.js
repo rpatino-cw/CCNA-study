@@ -165,6 +165,19 @@
     {id:'ups',name:'UPS',keys:'ups power battery backup poe budget'},
   ];
 
+  // ── Cert label — click to switch ────────────────────────────────
+  var certLabel = document.createElement('a');
+  certLabel.className = 'cert-label' + (isNetPlus ? ' netplus' : '');
+  certLabel.textContent = isNetPlus ? 'NET+' : 'CCNA';
+  certLabel.title = 'Switch to ' + (isNetPlus ? 'CCNA' : 'Net+');
+  certLabel.href = '#';
+  certLabel.addEventListener('click', function(e) {
+    e.preventDefault();
+    localStorage.setItem('ccna_cert_track', isNetPlus ? 'ccna' : 'net+');
+    location.reload();
+  });
+  nav.appendChild(certLabel);
+
   var searchWrap = document.createElement('div');
   searchWrap.className = 'nav-search-wrap';
   searchWrap.innerHTML = '<input type="text" class="nav-dev-search" id="navDevSearch" placeholder="Search devices..." autocomplete="off"><div class="nav-dev-results" id="navDevResults"></div>';
