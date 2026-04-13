@@ -334,6 +334,9 @@
     <div class="tab-content active" id="tab-overview">
       <div class="members-grid" id="membersGrid"></div>
 
+      <!-- Exam Countdown -->
+      <div id="examCountdown"></div>
+
       <!-- Weekly Digest -->
       <div id="weeklyDigest"></div>
 
@@ -538,7 +541,7 @@ function getSnapshot() {
   const history = store.getQuizHistory();
   const avgScore = history.length > 0 ? Math.round(history.reduce((s, h) => s + (h.score / h.total) * 100, 0) / history.length) : 0;
   const readiness = store.getReadinessScore(window.topicsData.domains);
-  return { proficiency: prof, streak: { current: streak.current, best: streak.best }, studyTime: { total: time.total }, diagnosticHistory: diag, quizStats: { taken: history.length, avgScore }, readiness: Math.round(readiness), certTrack: getCertTrack() };
+  return { proficiency: prof, streak: { current: streak.current, best: streak.best }, studyTime: { total: time.total }, diagnosticHistory: diag, quizStats: { taken: history.length, avgScore }, readiness: Math.round(readiness), certTrack: getCertTrack(), examDate: localStorage.getItem('ccna_exam_date') || null };
 }
 
 // ── API ───────────────────────────────────────────────────────
@@ -746,6 +749,17 @@ function renderOverview(group) {
         '</div>' +
       '</div>' +
       sparklineHtml +
+      (function(){
+        var ed = p.examDate;
+        if (ed) {
+          var dl = Math.ceil((new Date(ed) - Date.now()) / 86400000);
+          var past = dl < 0;
+          var edColor = past ? 'var(--ink-muted)' : dl <= 14 ? '#DC2626' : dl <= 30 ? '#D97706' : '#16A34A';
+          var edText = past ? 'Exam was ' + new Date(ed).toLocaleDateString('en-US',{month:'short',day:'numeric'}) : dl === 0 ? 'EXAM TODAY' : dl + 'd to exam (' + new Date(ed).toLocaleDateString('en-US',{month:'short',day:'numeric'}) + ')';
+          return '<div style="font-family:var(--font-mono);font-size:.65rem;font-weight:700;color:' + edColor + ';margin-top:4px;letter-spacing:.03em">' + edText + '</div>';
+        }
+        return isYou ? '<div style="margin-top:4px"><a href="#" onclick="event.preventDefault();promptExamDate()" style="font-family:var(--font-display);font-size:.65rem;color:var(--ink-muted);text-decoration:underline">Set your exam date</a></div>' : '<div style="font-family:var(--font-display);font-size:.65rem;color:var(--ink-faint);margin-top:4px">No exam date set</div>';
+      })() +
       '<div class="mc-sync ' + (veryStale ? 'mc-stale' : '') + '" title="' + (m.lastSync ? new Date(m.lastSync).toLocaleString() : 'Never') + '">Last active ' + ago + '</div>' +
     '</div>';
   }).join('');
@@ -760,11 +774,93 @@ function renderOverview(group) {
   // Feature 5: Domain Radar Charts
   renderRadarCharts(entries);
 
+  renderExamCountdown(group);
   renderScoreTools(group);
   renderWeeklyDigest(group);
   renderRecommendations(group);
   renderGroupStats(group);
   renderWeakTopics(group);
+}
+
+// ── Exam Countdown ───────────────────────────────────────────
+function renderExamCountdown(group) {
+  var el = document.getElementById('examCountdown');
+  if (!el) return;
+  var myId = getMemberId();
+  var entries = Object.entries(group.members);
+  var withDates = entries.filter(function(e) { return e[1].progress && e[1].progress.examDate; })
+    .map(function(e) {
+      var m = e[1], d = new Date(m.progress.examDate);
+      var days = Math.ceil((d - Date.now()) / 86400000);
+      return { name: m.name, date: d, days: days, isYou: e[0] === myId, readiness: (m.progress || {}).readiness || 0 };
+    })
+    .filter(function(x) { return x.days >= 0; })
+    .sort(function(a, b) { return a.days - b.days; });
+
+  var noDate = entries.filter(function(e) { return !e[1].progress || !e[1].progress.examDate; });
+
+  if (withDates.length === 0 && noDate.length === entries.length) {
+    el.innerHTML = '<div style="background:var(--bg-recessed);border-radius:var(--radius-lg);padding:var(--s-lg);margin-bottom:var(--s-lg);text-align:center">' +
+      '<div style="font-family:var(--font-display);font-size:.85rem;font-weight:600;margin-bottom:4px">No exam dates set yet</div>' +
+      '<p style="font-family:var(--font-body);font-size:.82rem;color:var(--ink-muted);margin:0 0 8px">When you schedule your CCNA, set the date here so your group can track the countdown together.</p>' +
+      '<button class="btn btn-primary btn-sm" onclick="promptExamDate()">Set My Exam Date</button>' +
+    '</div>';
+    return;
+  }
+
+  var html = '<div style="margin-bottom:var(--s-lg)">' +
+    '<h2 class="section-head">Exam Countdown</h2>';
+
+  withDates.forEach(function(m) {
+    var color = m.days <= 14 ? '#DC2626' : m.days <= 30 ? '#D97706' : '#16A34A';
+    var barPct = Math.min(100, m.readiness);
+    var msg = '';
+    if (m.days === 0) msg = 'EXAM DAY — you got this.';
+    else if (m.days <= 7) msg = 'Final stretch. Focus on weak spots and review.';
+    else if (m.days <= 14) msg = 'Two weeks out. Time for full practice exams.';
+    else if (m.days <= 30) msg = 'On the clock. Stay consistent.';
+    else msg = 'Solid runway. Build momentum now.';
+
+    html += '<div style="display:flex;align-items:center;gap:var(--s-md);padding:12px 16px;background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);margin-bottom:var(--s-sm)">' +
+      '<div style="font-family:var(--font-mono);font-size:1.4rem;font-weight:700;color:' + color + ';min-width:50px;text-align:center">' + m.days + '<span style="font-size:.55rem;display:block;font-weight:600;letter-spacing:.05em">DAYS</span></div>' +
+      '<div style="flex:1">' +
+        '<div style="font-family:var(--font-display);font-size:.85rem;font-weight:600">' + esc(m.name) + (m.isYou ? ' <span style="font-size:.65rem;color:var(--ink-muted)">(you)</span>' : '') + ' — ' + new Date(m.date).toLocaleDateString('en-US', {month:'long',day:'numeric',year:'numeric'}) + '</div>' +
+        '<div style="font-family:var(--font-body);font-size:.78rem;color:var(--ink-secondary);margin-top:2px">' + msg + '</div>' +
+        '<div style="display:flex;align-items:center;gap:8px;margin-top:6px"><div style="flex:1;height:4px;background:var(--bg-recessed);border-radius:100px;overflow:hidden"><div style="height:100%;width:' + barPct + '%;background:' + color + ';border-radius:100px"></div></div><span style="font-family:var(--font-mono);font-size:.65rem;color:' + color + '">' + m.readiness + '% ready</span></div>' +
+      '</div>' +
+    '</div>';
+  });
+
+  if (noDate.length > 0) {
+    var names = noDate.map(function(e) { return esc(e[1].name); }).join(', ');
+    html += '<div style="font-family:var(--font-display);font-size:.72rem;color:var(--ink-muted);margin-top:4px">' + names + ' — no exam date set yet</div>';
+  }
+
+  var myHasDate = withDates.some(function(m) { return m.isYou; });
+  if (!myHasDate) {
+    html += '<div style="margin-top:8px"><button class="btn btn-primary btn-sm" onclick="promptExamDate()">Set My Exam Date</button></div>';
+  }
+
+  html += '</div>';
+  el.innerHTML = html;
+}
+
+// ── Exam Date Prompt ─────────────────────────────────────────
+function promptExamDate() {
+  var current = localStorage.getItem('ccna_exam_date') || '';
+  var input = prompt('Set your CCNA exam date (YYYY-MM-DD):', current);
+  if (!input) return;
+  var d = new Date(input);
+  if (isNaN(d.getTime())) { alert('Invalid date. Use YYYY-MM-DD format.'); return; }
+  localStorage.setItem('ccna_exam_date', input);
+  // Re-sync immediately so peers see it
+  var code = getGroupCode();
+  if (code) {
+    apiPost('/api/group/sync', { code: code, memberId: getMemberId(), progress: getSnapshot() }).then(function(res) {
+      var group = res.group;
+      if (group) loadGroup(group);
+    });
+  }
 }
 
 // ── Feature 5: Radar Charts ──────────────────────────────────
