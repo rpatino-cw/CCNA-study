@@ -2229,6 +2229,831 @@
 
     document.getElementById('stdext-run-btn').addEventListener('click', runStdExtComparison);
     document.getElementById('stdext-reset-btn').addEventListener('click', resetStdExt);
+
+    // ================================================================
+    //  RAF UTILITIES — shared easing and animation helpers
+    // ================================================================
+    function easeOutCubic(t) { return 1 - Math.pow(1 - t, 3); }
+    function smoothstep(t) { return t * t * (3 - 2 * t); }
+
+    var SVG_NS = 'http://www.w3.org/2000/svg';
+
+    function createSvgElement(tag, attrs, parent) {
+      var el = document.createElementNS(SVG_NS, tag);
+      for (var k in attrs) {
+        if (attrs.hasOwnProperty(k)) el.setAttribute(k, attrs[k]);
+      }
+      if (parent) parent.appendChild(el);
+      return el;
+    }
+
+    // ================================================================
+    //  RAF ANIMATION 1: PACKET MOTION WITH TRAIL + BURST (Packet Trace tab)
+    // ================================================================
+    (function() {
+      var rafId = null;
+      var traceAnim = null;
+
+      // Create an SVG overlay for trail and burst effects inside the trace ACL list
+      var traceList = document.getElementById('trace-acl-list');
+
+      function getAceRowCenter(aceEl) {
+        var rect = aceEl.getBoundingClientRect();
+        var listRect = traceList.getBoundingClientRect();
+        return {
+          x: rect.left - listRect.left + rect.width * 0.5,
+          y: rect.top - listRect.top + rect.height * 0.5
+        };
+      }
+
+      // Particle burst effect
+      function createParticleBurst(container, cx, cy, color, count) {
+        count = count || 10;
+        var particles = [];
+        for (var i = 0; i < count; i++) {
+          var angle = (Math.PI * 2 * i) / count + (Math.random() - 0.5) * 0.3;
+          var speed = 60 + Math.random() * 40;
+          var el = document.createElement('div');
+          el.className = 'raf-particle';
+          el.style.cssText = 'position:absolute;width:6px;height:6px;border-radius:50%;pointer-events:none;' +
+            'background:' + color + ';left:' + cx + 'px;top:' + cy + 'px;opacity:1;z-index:10;';
+          container.appendChild(el);
+          particles.push({
+            el: el, angle: angle, speed: speed, life: 0,
+            startX: cx, startY: cy
+          });
+        }
+        var startTime = null;
+        var duration = 600;
+        function animBurst(ts) {
+          if (!startTime) startTime = ts;
+          var elapsed = ts - startTime;
+          var t = Math.min(elapsed / duration, 1);
+          var done = t >= 1;
+          for (var j = 0; j < particles.length; j++) {
+            var p = particles[j];
+            var dist = easeOutCubic(t) * p.speed;
+            var px = p.startX + Math.cos(p.angle) * dist;
+            var py = p.startY + Math.sin(p.angle) * dist;
+            var scale = 1 - easeOutCubic(t) * 0.8;
+            var opacity = 1 - easeOutCubic(t);
+            p.el.style.left = px + 'px';
+            p.el.style.top = py + 'px';
+            p.el.style.transform = 'scale(' + scale + ') translate(-50%, -50%)';
+            p.el.style.opacity = opacity;
+          }
+          if (!done) {
+            requestAnimationFrame(animBurst);
+          } else {
+            for (var k = 0; k < particles.length; k++) {
+              if (particles[k].el.parentNode) particles[k].el.parentNode.removeChild(particles[k].el);
+            }
+          }
+        }
+        requestAnimationFrame(animBurst);
+      }
+
+      // Trail dot creator
+      function createTrailDot(container, x, y, color) {
+        var el = document.createElement('div');
+        el.className = 'raf-trail-dot';
+        el.style.cssText = 'position:absolute;width:10px;height:10px;border-radius:50%;pointer-events:none;' +
+          'background:' + color + ';left:' + x + 'px;top:' + y + 'px;opacity:0.5;z-index:5;' +
+          'transform:translate(-50%,-50%);';
+        container.appendChild(el);
+        var startTime = null;
+        var fadeDuration = 400;
+        function fadeTrail(ts) {
+          if (!startTime) startTime = ts;
+          var t = Math.min((ts - startTime) / fadeDuration, 1);
+          el.style.opacity = 0.5 * (1 - t);
+          el.style.transform = 'translate(-50%,-50%) scale(' + (1 - t * 0.5) + ')';
+          if (t < 1) {
+            requestAnimationFrame(fadeTrail);
+          } else {
+            if (el.parentNode) el.parentNode.removeChild(el);
+          }
+        }
+        requestAnimationFrame(fadeTrail);
+      }
+
+      // RAF-based smooth packet motion through ACE rows
+      function rafTracePacket() {
+        // Stop any existing RAF trace
+        if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+
+        // Read input values
+        var srcIp = document.getElementById('trace-src-ip').value.trim();
+        var dstIp = document.getElementById('trace-dst-ip').value.trim();
+        var proto = document.getElementById('trace-protocol').value;
+        var dstPort = document.getElementById('trace-dst-port').value.trim();
+
+        if (!parseIp(srcIp) || !parseIp(dstIp)) {
+          alert('Enter valid source and destination IPs.');
+          return;
+        }
+
+        resetTrace();
+
+        // Remove any leftover raf elements
+        var oldEls = traceList.querySelectorAll('.raf-trace-packet, .raf-trail-dot, .raf-particle');
+        oldEls.forEach(function(e) { e.remove(); });
+
+        // Create packet circle element
+        var packetEl = document.createElement('div');
+        packetEl.className = 'raf-trace-packet';
+        packetEl.style.cssText = 'position:absolute;width:14px;height:14px;border-radius:50%;' +
+          'background:#5b8def;z-index:8;pointer-events:none;box-shadow:0 0 10px rgba(91,141,239,0.6);' +
+          'transform:translate(-50%,-50%);left:30px;top:-20px;';
+        traceList.style.position = 'relative';
+        traceList.appendChild(packetEl);
+
+        var aceIds = ['trace-ace-0','trace-ace-1','trace-ace-2','trace-ace-3','trace-ace-4','trace-ace-implicit'];
+        var aceElements = aceIds.map(function(id) { return document.getElementById(id); });
+
+        // Build target positions
+        var targets = aceElements.map(function(el) { return getAceRowCenter(el); });
+
+        // Start position (above first row)
+        var startPos = { x: 30, y: targets[0] ? targets[0].y - 40 : -20 };
+
+        var currentStep = -1; // -1 = moving to first row
+        var moveStart = null;
+        var moveDuration = 400; // ms per row transition
+        var fromPos = startPos;
+        var toPos = targets[0] || startPos;
+        var trailInterval = 0;
+        var lastTrailTime = 0;
+        var checking = false;
+        var checkStart = null;
+        var checkDuration = 500;
+        var done = false;
+
+        function advanceToNextRow() {
+          currentStep++;
+          if (currentStep >= aceIds.length) { done = true; return; }
+          fromPos = currentStep === 0 ? startPos : targets[currentStep - 1];
+          toPos = targets[currentStep];
+          moveStart = null;
+          checking = false;
+          checkStart = null;
+        }
+
+        advanceToNextRow();
+
+        function tick(ts) {
+          if (done) {
+            // Clean up packet element
+            if (packetEl.parentNode) packetEl.parentNode.removeChild(packetEl);
+            return;
+          }
+
+          if (!checking) {
+            // Moving phase
+            if (!moveStart) moveStart = ts;
+            var elapsed = ts - moveStart;
+            var t = Math.min(elapsed / moveDuration, 1);
+            var et = easeOutCubic(t);
+
+            var cx = fromPos.x + (toPos.x - fromPos.x) * et;
+            var cy = fromPos.y + (toPos.y - fromPos.y) * et;
+            packetEl.style.left = cx + 'px';
+            packetEl.style.top = cy + 'px';
+
+            // Trail dots every 50ms
+            if (ts - lastTrailTime > 50) {
+              createTrailDot(traceList, cx, cy, '#5b8def');
+              lastTrailTime = ts;
+            }
+
+            if (t >= 1) {
+              // Arrived at this ACE row — start checking
+              checking = true;
+              checkStart = null;
+              var aceEl = aceElements[currentStep];
+              aceEl.classList.add('checking');
+              if (aceEl.style.opacity === '0.6') aceEl.style.opacity = '1';
+              var pktIcon = aceEl.querySelector('.trace-packet-icon');
+              if (pktIcon) pktIcon.classList.add('visible');
+            }
+          } else {
+            // Checking phase
+            if (!checkStart) checkStart = ts;
+            var checkElapsed = ts - checkStart;
+
+            if (checkElapsed >= checkDuration) {
+              var aceEl2 = aceElements[currentStep];
+              var isImplicit = (aceIds[currentStep] === 'trace-ace-implicit');
+              var matches = isImplicit || traceMatchesAce(aceEl2, srcIp, dstIp, proto, dstPort);
+
+              aceEl2.classList.remove('checking');
+              var pktIcon2 = aceEl2.querySelector('.trace-packet-icon');
+              if (pktIcon2) pktIcon2.classList.remove('visible');
+
+              if (matches) {
+                var action = aceEl2.dataset.action;
+                var burstColor = action === 'permit' ? '#34d399' : '#f87171';
+
+                // Burst effect
+                var center = getAceRowCenter(aceEl2);
+                createParticleBurst(traceList, center.x, center.y, burstColor, 10);
+
+                // Highlight matched row
+                if (action === 'permit') {
+                  aceEl2.classList.add('matched-permit');
+                  packetEl.style.background = '#34d399';
+                  packetEl.style.boxShadow = '0 0 14px rgba(52,211,153,0.7)';
+                  var verdict = aceEl2.querySelector('.ace-verdict');
+                  if (verdict) { verdict.textContent = 'MATCH \u2014 PERMIT'; verdict.style.display = 'inline'; }
+                } else {
+                  aceEl2.classList.add('matched-deny');
+                  packetEl.style.background = '#f87171';
+                  packetEl.style.boxShadow = '0 0 14px rgba(248,113,113,0.7)';
+                  var verdict2 = aceEl2.querySelector('.ace-verdict');
+                  if (verdict2) { verdict2.textContent = isImplicit ? 'NO MATCH \u2014 IMPLICIT DENY' : 'MATCH \u2014 DENY'; verdict2.style.display = 'inline'; }
+                }
+
+                // Implicit deny pulsing glow
+                if (isImplicit) {
+                  aceEl2.classList.add('implicit-pulse-active');
+                }
+
+                // Dim remaining rows
+                for (var i = currentStep + 1; i < aceIds.length; i++) {
+                  aceElements[i].classList.add('skipped');
+                }
+
+                // Show result box
+                var resultBox = document.getElementById('trace-result');
+                if (action === 'permit') {
+                  resultBox.className = 'trace-result-box permit';
+                  resultBox.textContent = 'PERMITTED \u2014 Packet matched ACE ' + aceEl2.dataset.seq + ': ' + action + ' (seq ' + aceEl2.dataset.seq + ')';
+                } else {
+                  resultBox.className = 'trace-result-box deny';
+                  resultBox.textContent = isImplicit
+                    ? 'DENIED \u2014 No ACE matched. Packet hit the implicit deny at the end of the ACL.'
+                    : 'DENIED \u2014 Packet matched ACE ' + aceEl2.dataset.seq + ': ' + action + ' (seq ' + aceEl2.dataset.seq + ')';
+                }
+                resultBox.style.display = 'block';
+
+                // Fade out packet
+                done = true;
+                var fadeStart = null;
+                function fadeOut(fts) {
+                  if (!fadeStart) fadeStart = fts;
+                  var ft = Math.min((fts - fadeStart) / 500, 1);
+                  packetEl.style.opacity = 1 - ft;
+                  packetEl.style.transform = 'translate(-50%,-50%) scale(' + (1 + ft * 0.5) + ')';
+                  if (ft < 1) {
+                    requestAnimationFrame(fadeOut);
+                  } else {
+                    if (packetEl.parentNode) packetEl.parentNode.removeChild(packetEl);
+                  }
+                }
+                requestAnimationFrame(fadeOut);
+                return;
+              } else {
+                // No match — dim this row and advance
+                aceEl2.classList.add('skipped');
+                advanceToNextRow();
+              }
+            }
+          }
+
+          rafId = requestAnimationFrame(tick);
+        }
+
+        rafId = requestAnimationFrame(tick);
+      }
+
+      // Override the trace button to use RAF animation
+      var origTraceBtn = document.getElementById('trace-run-btn');
+      origTraceBtn.removeEventListener('click', runTrace);
+      origTraceBtn.addEventListener('click', rafTracePacket);
+
+      // Clean up on reset
+      var origResetBtn = document.getElementById('trace-reset-btn');
+      var origResetTrace = resetTrace;
+      origResetBtn.addEventListener('click', function() {
+        if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+        var oldEls = traceList.querySelectorAll('.raf-trace-packet, .raf-trail-dot, .raf-particle');
+        oldEls.forEach(function(e) { e.remove(); });
+        // Remove implicit pulse
+        var implicitRow = document.getElementById('trace-ace-implicit');
+        if (implicitRow) implicitRow.classList.remove('implicit-pulse-active');
+      });
+    })();
+
+    // ================================================================
+    //  RAF ANIMATION 2: LIVE TRAFFIC FLOW (new tab)
+    // ================================================================
+    (function() {
+      var svg = document.getElementById('lt-svg');
+      var packetsGroup = document.getElementById('lt-packets-group');
+      var tooltip = document.getElementById('lt-tooltip');
+      var tooltipLine1 = document.getElementById('lt-tooltip-line1');
+      var tooltipLine2 = document.getElementById('lt-tooltip-line2');
+      var tooltipLine3 = document.getElementById('lt-tooltip-line3');
+      var countPermit = document.getElementById('lt-count-permit');
+      var countDeny = document.getElementById('lt-count-deny');
+      var countTotal = document.getElementById('lt-count-total');
+      var speedSlider = document.getElementById('lt-speed');
+      var speedLabel = document.getElementById('lt-speed-label');
+      var startBtn = document.getElementById('lt-start-btn');
+      var stopBtn = document.getElementById('lt-stop-btn');
+
+      var running = false;
+      var rafId = null;
+      var packets = [];
+      var permitCount = 0;
+      var denyCount = 0;
+      var lastSpawnTime = 0;
+      var lastTimestamp = 0;
+
+      // ACL rules for simulation
+      var aclRules = [
+        { id: 'lt-rule-0', action: 'permit', proto: 'tcp', port: 80, label: 'permit tcp :80' },
+        { id: 'lt-rule-1', action: 'permit', proto: 'tcp', port: 443, label: 'permit tcp :443' },
+        { id: 'lt-rule-2', action: 'deny',   proto: 'tcp', port: 23,  label: 'deny tcp :23' },
+        { id: 'lt-rule-3', action: 'permit', proto: 'icmp', port: 0,  label: 'permit icmp any' },
+        { id: 'lt-rule-4', action: 'permit', proto: 'udp', port: 53,  label: 'permit udp :53' },
+        { id: 'lt-rule-5', action: 'deny',   proto: 'ip',  port: 0,   label: 'deny ip any (implicit)' }
+      ];
+
+      // Packet templates — weighted toward common traffic
+      var packetTemplates = [
+        { proto: 'tcp', port: 80,  weight: 25 },
+        { proto: 'tcp', port: 443, weight: 30 },
+        { proto: 'tcp', port: 23,  weight: 8  },
+        { proto: 'icmp', port: 0,  weight: 10 },
+        { proto: 'udp', port: 53,  weight: 12 },
+        { proto: 'tcp', port: 22,  weight: 5  },
+        { proto: 'tcp', port: 3389, weight: 5 },
+        { proto: 'udp', port: 161, weight: 5  }
+      ];
+
+      var totalWeight = packetTemplates.reduce(function(s, t) { return s + t.weight; }, 0);
+
+      function randomIp() {
+        return (Math.floor(Math.random() * 223) + 1) + '.' +
+               Math.floor(Math.random() * 256) + '.' +
+               Math.floor(Math.random() * 256) + '.' +
+               (Math.floor(Math.random() * 254) + 1);
+      }
+
+      function pickTemplate() {
+        var r = Math.random() * totalWeight;
+        var cumul = 0;
+        for (var i = 0; i < packetTemplates.length; i++) {
+          cumul += packetTemplates[i].weight;
+          if (r <= cumul) return packetTemplates[i];
+        }
+        return packetTemplates[0];
+      }
+
+      function matchAcl(proto, port) {
+        for (var i = 0; i < aclRules.length; i++) {
+          var rule = aclRules[i];
+          if (rule.proto === 'ip' || rule.proto === proto) {
+            if (rule.proto === 'icmp' || rule.proto === 'ip' || rule.port === port) {
+              return { ruleIdx: i, action: rule.action };
+            }
+          }
+        }
+        return { ruleIdx: aclRules.length - 1, action: 'deny' };
+      }
+
+      function spawnPacket(ts) {
+        var tmpl = pickTemplate();
+        var result = matchAcl(tmpl.proto, tmpl.port);
+        var yLane = 50 + Math.random() * 260;
+
+        var pkt = {
+          x: 100,
+          y: yLane,
+          phase: 'approach', // approach | wall | pass | bounce | dead
+          startTime: ts,
+          proto: tmpl.proto,
+          port: tmpl.port,
+          srcIp: randomIp(),
+          dstIp: randomIp(),
+          action: result.action,
+          ruleIdx: result.ruleIdx,
+          approachDuration: 800 + Math.random() * 400,
+          wallX: 370,
+          exitX: 850,
+          bounceX: -30,
+          wallArrived: false,
+          svgCircle: null,
+          svgX: null,
+          dead: false,
+          hovered: false
+        };
+
+        // Create SVG circle
+        pkt.svgCircle = createSvgElement('circle', {
+          cx: pkt.x, cy: pkt.y, r: 5,
+          fill: '#5b8def', opacity: '0.9',
+          style: 'cursor:pointer;'
+        }, packetsGroup);
+
+        // Create tiny X marker (hidden until denied)
+        pkt.svgX = createSvgElement('text', {
+          x: pkt.x, y: pkt.y + 3,
+          'text-anchor': 'middle',
+          fill: '#f87171', 'font-size': '10', 'font-weight': '700',
+          opacity: '0', 'pointer-events': 'none'
+        }, packetsGroup);
+        pkt.svgX.textContent = 'X';
+
+        // Hover events
+        pkt.svgCircle.addEventListener('mouseenter', function() {
+          pkt.hovered = true;
+          tooltip.style.display = 'block';
+          tooltipLine1.textContent = 'Src: ' + pkt.srcIp + ' -> Dst: ' + pkt.dstIp;
+          tooltipLine2.textContent = 'Proto: ' + pkt.proto.toUpperCase() + '  Port: ' + (pkt.port || 'N/A');
+          tooltipLine3.textContent = 'Result: ' + pkt.action.toUpperCase() + ' (Rule ' + (pkt.ruleIdx + 1) + ')';
+          var tx = Math.min(pkt.x + 12, 690);
+          var ty = Math.max(pkt.y - 30, 10);
+          tooltip.setAttribute('transform', 'translate(' + tx + ',' + ty + ')');
+        });
+        pkt.svgCircle.addEventListener('mouseleave', function() {
+          pkt.hovered = false;
+          tooltip.style.display = 'none';
+        });
+
+        packets.push(pkt);
+      }
+
+      function flashRule(idx, action) {
+        var ruleRect = document.getElementById(aclRules[idx].id);
+        if (!ruleRect) return;
+        var cls = action === 'permit' ? 'lt-rule-flash-permit' : 'lt-rule-flash-deny';
+        // Use fill change directly on SVG rect
+        var origFill = ruleRect.getAttribute('fill');
+        var origStroke = ruleRect.getAttribute('stroke');
+        if (action === 'permit') {
+          ruleRect.setAttribute('fill', 'rgba(52,211,153,0.2)');
+          ruleRect.setAttribute('stroke', '#34d399');
+        } else {
+          ruleRect.setAttribute('fill', 'rgba(248,113,113,0.2)');
+          ruleRect.setAttribute('stroke', '#f87171');
+        }
+        setTimeout(function() {
+          ruleRect.setAttribute('fill', origFill);
+          ruleRect.setAttribute('stroke', origStroke);
+        }, 200);
+      }
+
+      function tick(ts) {
+        if (!running) return;
+
+        var dt = lastTimestamp ? (ts - lastTimestamp) / 1000 : 0.016;
+        lastTimestamp = ts;
+
+        // Spawn packets based on speed
+        var speed = parseInt(speedSlider.value, 10);
+        var spawnInterval = 1000 / speed;
+        if (ts - lastSpawnTime > spawnInterval) {
+          spawnPacket(ts);
+          lastSpawnTime = ts;
+        }
+
+        // Update all packets
+        for (var i = packets.length - 1; i >= 0; i--) {
+          var p = packets[i];
+          if (p.dead) continue;
+
+          var elapsed = ts - p.startTime;
+
+          if (p.phase === 'approach') {
+            var t = Math.min(elapsed / p.approachDuration, 1);
+            var et = smoothstep(t);
+            p.x = 100 + (p.wallX - 100) * et;
+            p.svgCircle.setAttribute('cx', p.x);
+            p.svgX.setAttribute('x', p.x);
+
+            if (t >= 1) {
+              p.phase = 'wall';
+              p.startTime = ts;
+              p.wallArrived = true;
+              flashRule(p.ruleIdx, p.action);
+
+              if (p.action === 'permit') {
+                p.svgCircle.setAttribute('fill', '#34d399');
+                p.phase = 'pass';
+                p.startTime = ts;
+                permitCount++;
+              } else {
+                p.svgCircle.setAttribute('fill', '#f87171');
+                p.svgX.setAttribute('opacity', '1');
+                p.phase = 'bounce';
+                p.startTime = ts;
+                denyCount++;
+              }
+
+              countPermit.textContent = permitCount;
+              countDeny.textContent = denyCount;
+              countTotal.textContent = permitCount + denyCount;
+            }
+          } else if (p.phase === 'pass') {
+            var passT = Math.min((ts - p.startTime) / 800, 1);
+            var passEt = easeOutCubic(passT);
+            p.x = p.wallX + (p.exitX - p.wallX) * passEt;
+            var opacity = passT > 0.7 ? 1 - ((passT - 0.7) / 0.3) : 1;
+            p.svgCircle.setAttribute('cx', p.x);
+            p.svgX.setAttribute('x', p.x);
+            p.svgCircle.setAttribute('opacity', opacity);
+
+            if (passT >= 1) {
+              p.dead = true;
+              if (p.svgCircle.parentNode) p.svgCircle.parentNode.removeChild(p.svgCircle);
+              if (p.svgX.parentNode) p.svgX.parentNode.removeChild(p.svgX);
+            }
+          } else if (p.phase === 'bounce') {
+            var bounceT = Math.min((ts - p.startTime) / 1000, 1);
+            var bounceEt = easeOutCubic(bounceT);
+            p.x = p.wallX + (p.bounceX - p.wallX) * bounceEt;
+            var bOpacity = bounceT > 0.5 ? 1 - ((bounceT - 0.5) / 0.5) : 1;
+            p.svgCircle.setAttribute('cx', p.x);
+            p.svgX.setAttribute('x', p.x);
+            p.svgCircle.setAttribute('opacity', bOpacity);
+            p.svgX.setAttribute('opacity', bOpacity);
+
+            if (bounceT >= 1) {
+              p.dead = true;
+              if (p.svgCircle.parentNode) p.svgCircle.parentNode.removeChild(p.svgCircle);
+              if (p.svgX.parentNode) p.svgX.parentNode.removeChild(p.svgX);
+            }
+          }
+
+          // Update tooltip position if hovered
+          if (p.hovered && !p.dead) {
+            var tx = Math.min(p.x + 12, 690);
+            var ty = Math.max(p.y - 30, 10);
+            tooltip.setAttribute('transform', 'translate(' + tx + ',' + ty + ')');
+          }
+        }
+
+        // Clean dead packets from array periodically
+        if (packets.length > 100) {
+          packets = packets.filter(function(pk) { return !pk.dead; });
+        }
+
+        rafId = requestAnimationFrame(tick);
+      }
+
+      function startTraffic() {
+        if (running) return;
+        running = true;
+        lastTimestamp = 0;
+        lastSpawnTime = 0;
+        startBtn.textContent = 'Running...';
+        startBtn.disabled = true;
+        rafId = requestAnimationFrame(tick);
+      }
+
+      function stopTraffic() {
+        running = false;
+        if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+        startBtn.textContent = 'Start Traffic';
+        startBtn.disabled = false;
+      }
+
+      startBtn.addEventListener('click', startTraffic);
+      stopBtn.addEventListener('click', function() {
+        stopTraffic();
+        // Clear all packets
+        while (packetsGroup.firstChild) {
+          packetsGroup.removeChild(packetsGroup.firstChild);
+        }
+        packets = [];
+        permitCount = 0; denyCount = 0;
+        countPermit.textContent = '0';
+        countDeny.textContent = '0';
+        countTotal.textContent = '0';
+        tooltip.style.display = 'none';
+      });
+
+      speedSlider.addEventListener('input', function() {
+        speedLabel.textContent = speedSlider.value + ' pkt/s';
+      });
+
+      // Stop when switching tabs
+      document.querySelectorAll('.tab-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+          if (btn.dataset.tab !== 'livetraffic' && running) {
+            stopTraffic();
+          }
+        });
+      });
+    })();
+
+    // ================================================================
+    //  RAF ANIMATION 3: WILDCARD MASK BIT FLIP ANIMATION
+    // ================================================================
+    (function() {
+      var vizBitGrid = document.getElementById('viz-bit-grid');
+      var vizRange = document.getElementById('viz-range');
+      var vizOutput = document.getElementById('viz-output');
+      var prevWildcardBin = null;
+      var flipRafId = null;
+
+      function runAnimatedWildcardViz() {
+        var networkStr = document.getElementById('viz-network').value.trim();
+        var wildcardStr = document.getElementById('viz-wildcard').value.trim();
+        var network = parseIp(networkStr);
+        var wildcard = parseIp(wildcardStr);
+
+        if (!network || !wildcard) {
+          alert('Enter valid IP and wildcard mask.');
+          return;
+        }
+
+        var networkBin = octetsToBinary(network);
+        var wildcardBin = octetsToBinary(wildcard);
+
+        // Calculate which bits changed from previous
+        var changedBits = [];
+        if (prevWildcardBin) {
+          for (var c = 0; c < 32; c++) {
+            if (prevWildcardBin[c] !== wildcardBin[c]) changedBits.push(c);
+          }
+        } else {
+          // First run: animate all bits sequentially
+          for (var c2 = 0; c2 < 32; c2++) changedBits.push(c2);
+        }
+
+        prevWildcardBin = wildcardBin;
+
+        // Build bit grid HTML with flip cells
+        var gridHtml = '';
+
+        // Network row
+        gridHtml += '<div class="wc-viz-label">Network IP:</div><div class="wc-viz-bits">';
+        for (var i = 0; i < 32; i++) {
+          if (i > 0 && i % 8 === 0) gridHtml += '<span class="wc-octet-sep"></span>';
+          gridHtml += '<span class="bit-must-match">' + networkBin[i] + '</span>';
+        }
+        gridHtml += ' <span style="color:var(--text-muted);font-size:0.78rem;margin-left:8px;">(' + networkStr + ')</span></div>';
+
+        // Wildcard row — with flip cells
+        gridHtml += '<div class="wc-viz-label">Wildcard Mask:</div><div class="wc-viz-bits" id="wc-flip-row">';
+        for (var j = 0; j < 32; j++) {
+          if (j > 0 && j % 8 === 0) gridHtml += '<span class="wc-octet-sep"></span>';
+          var cls = wildcardBin[j] === '0' ? 'must-match' : 'dont-care';
+          gridHtml += '<span class="wc-bit-flip-cell ' + cls + '" data-bit-idx="' + j + '">' +
+            '<span class="wc-bit-flip-inner">' + wildcardBin[j] + '</span></span>';
+        }
+        gridHtml += ' <span style="color:var(--text-muted);font-size:0.78rem;margin-left:8px;">(' + wildcardStr + ')</span></div>';
+
+        // Meaning row
+        gridHtml += '<div class="wc-viz-label">Bit Meaning:</div><div class="wc-viz-bits">';
+        for (var k = 0; k < 32; k++) {
+          if (k > 0 && k % 8 === 0) gridHtml += '<span class="wc-octet-sep"></span>';
+          if (wildcardBin[k] === '0') {
+            gridHtml += '<span class="bit-must-match" title="Must match">M</span>';
+          } else {
+            gridHtml += '<span class="bit-dont-care" title="Don\'t care">*</span>';
+          }
+        }
+        gridHtml += ' <span style="font-size:0.72rem;color:var(--text-muted);margin-left:8px;">M = must match &nbsp; * = don\'t care</span></div>';
+
+        // Decimal conversion row
+        gridHtml += '<div class="wc-viz-label">Decimal:</div><div class="wc-viz-bits" id="wc-decimal-row" style="gap:0;">';
+        for (var d = 0; d < 4; d++) {
+          var octetVal = wildcard[d];
+          gridHtml += '<span class="wc-decimal-fade" data-octet-idx="' + d + '" style="display:inline-block;min-width:56px;text-align:center;font-family:var(--font-mono);font-size:0.85rem;font-weight:600;color:var(--blue);">' + octetVal + '</span>';
+          if (d < 3) gridHtml += '<span style="color:var(--text-muted);margin:0 2px;">.</span>';
+        }
+        gridHtml += '</div>';
+
+        vizBitGrid.innerHTML = gridHtml;
+
+        // Calculate range
+        var networkNum = ipToNum(network);
+        var wildcardNum = ipToNum(wildcard);
+        var firstNum = (networkNum & (~wildcardNum >>> 0)) >>> 0;
+        var lastNum = (firstNum | wildcardNum) >>> 0;
+        var count = (lastNum - firstNum + 1);
+        var firstStr = octetsToStr(numToOctets(firstNum));
+        var lastStr = octetsToStr(numToOctets(lastNum));
+
+        // Range with animated width bar
+        var maxBarWidth = 300;
+        var barPercent = Math.min(count / 16777216, 1); // normalized to /8
+        var barWidth = Math.max(barPercent * maxBarWidth, 4);
+
+        vizRange.innerHTML =
+          '<div class="range-label">Matching IP Range:</div>' +
+          '<div class="range-value">' + firstStr + ' \u2014 ' + lastStr + '</div>' +
+          '<div id="wc-range-bar" class="wc-animated-range-bar" style="width:0px;"></div>' +
+          '<div class="range-count">' + count.toLocaleString() + ' address' + (count !== 1 ? 'es' : '') + ' match this wildcard entry</div>';
+
+        vizOutput.classList.remove('hidden');
+
+        // Animate bit flips sequentially
+        if (changedBits.length > 0 && flipRafId) {
+          cancelAnimationFrame(flipRafId);
+          flipRafId = null;
+        }
+
+        var flipCells = document.querySelectorAll('#wc-flip-row .wc-bit-flip-cell');
+        var animStartTime = null;
+        var bitDelay = 30; // ms delay per bit for sequential lighting
+        var flipDuration = 200; // ms per flip
+
+        function animateFlips(ts) {
+          if (!animStartTime) animStartTime = ts;
+          var elapsed = ts - animStartTime;
+          var allDone = true;
+
+          for (var fi = 0; fi < changedBits.length; fi++) {
+            var bitIdx = changedBits[fi];
+            var cell = flipCells[bitIdx];
+            if (!cell) continue;
+
+            var bitStart = fi * bitDelay;
+            var bitElapsed = elapsed - bitStart;
+
+            if (bitElapsed < 0) {
+              allDone = false;
+              continue;
+            }
+
+            var ft = Math.min(bitElapsed / flipDuration, 1);
+            var inner = cell.querySelector('.wc-bit-flip-inner');
+
+            if (ft < 0.5) {
+              // First half — shrink horizontally (scale X)
+              var scaleX = 1 - (ft / 0.5);
+              inner.style.transform = 'scaleX(' + Math.max(scaleX, 0.01) + ')';
+              allDone = false;
+            } else {
+              // Second half — expand back
+              var scaleX2 = (ft - 0.5) / 0.5;
+              inner.style.transform = 'scaleX(' + scaleX2 + ')';
+              if (ft < 1) allDone = false;
+            }
+          }
+
+          if (!allDone) {
+            flipRafId = requestAnimationFrame(animateFlips);
+          } else {
+            // Reset transforms
+            flipCells.forEach(function(fc) {
+              var inn = fc.querySelector('.wc-bit-flip-inner');
+              if (inn) inn.style.transform = '';
+            });
+            flipRafId = null;
+          }
+        }
+
+        if (changedBits.length > 0) {
+          flipRafId = requestAnimationFrame(animateFlips);
+        }
+
+        // Animate decimal values fading in sequentially
+        var decimalCells = document.querySelectorAll('#wc-decimal-row .wc-decimal-fade');
+        var octetDelay = 200;
+        decimalCells.forEach(function(dc, idx) {
+          setTimeout(function() {
+            dc.classList.add('visible');
+          }, 300 + idx * octetDelay);
+        });
+
+        // Animate range bar width
+        var rangeBar = document.getElementById('wc-range-bar');
+        if (rangeBar) {
+          var barStart = null;
+          var barDuration = 600;
+          function animBar(bts) {
+            if (!barStart) barStart = bts;
+            var bt = Math.min((bts - barStart) / barDuration, 1);
+            var ew = easeOutCubic(bt) * barWidth;
+            rangeBar.style.width = ew + 'px';
+            if (bt < 1) requestAnimationFrame(animBar);
+          }
+          requestAnimationFrame(animBar);
+        }
+      }
+
+      // Override the visualize button
+      var vizRunBtn = document.getElementById('viz-run-btn');
+      vizRunBtn.removeEventListener('click', runWildcardViz);
+      vizRunBtn.addEventListener('click', runAnimatedWildcardViz);
+
+      // Override Enter key handlers
+      document.getElementById('viz-network').addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') { e.stopImmediatePropagation(); runAnimatedWildcardViz(); }
+      });
+      document.getElementById('viz-wildcard').addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') { e.stopImmediatePropagation(); runAnimatedWildcardViz(); }
+      });
+
+      // Run initial animated version
+      setTimeout(runAnimatedWildcardViz, 100);
+    })();
   </script>
 <script src="../js/tutor.js"></script>
 </body>
