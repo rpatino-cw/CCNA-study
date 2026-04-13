@@ -8,88 +8,141 @@
 <link rel="icon" type="image/svg+xml" href="/CCNA-study/favicon.svg">
 <link rel="stylesheet" href="css/shared.css">
 <style>
-  .page-header{padding:var(--s-xl) 0 var(--s-lg);margin-bottom:0;border-bottom:2px solid var(--ink)}
-  .page-header h1{font-size:2.4rem;margin-bottom:4px}
-  .page-header .subtitle{font-family:var(--font-body);color:var(--ink-secondary);font-size:.95rem;font-style:italic}
+/* ── Page header ───────────────────────────────────────────── */
+.page-header{padding:var(--s-xl) 0 var(--s-lg);margin-bottom:0;border-bottom:2px solid var(--ink)}
+.page-header h1{font-size:2.4rem;margin-bottom:4px}
+.page-header .subtitle{font-family:var(--font-body);color:var(--ink-secondary);font-size:.95rem;font-style:italic}
+.device-count{font-family:var(--font-mono);font-size:.78rem;color:var(--ink-muted);margin-top:6px}
 
-  /* Topology canvas */
-  .topo-wrap{position:relative;overflow-x:auto;padding:var(--s-lg) 0}
-  .topo-svg{display:block;margin:0 auto;max-width:100%}
-  .topo-svg text{font-family:'JetBrains Mono',var(--font-mono);pointer-events:none}
+/* ── Topology tabs ─────────────────────────────────────────── */
+.topo-tabs{display:flex;flex-wrap:wrap;gap:0;border-bottom:1px solid var(--border);margin:var(--s-lg) 0 0}
+.topo-tab{font-family:var(--font-display);font-size:.75rem;font-weight:500;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-muted);background:none;border:none;border-bottom:2px solid transparent;padding:10px 16px;cursor:pointer;transition:color .15s,border-color .15s;white-space:nowrap}
+.topo-tab:hover{color:var(--ink)}
+.topo-tab.active{color:var(--ink);border-bottom-color:var(--accent);font-weight:700}
+.topo-tab .tab-count{font-family:var(--font-mono);font-size:.6rem;color:var(--ink-muted);margin-left:4px;opacity:.6}
 
-  /* Device groups — clickable */
-  .dev-group{cursor:pointer;transition:opacity .15s}
-  .dev-group:hover .dev-body{opacity:1}
-  .dev-group .dev-body{opacity:.85;transition:opacity .15s}
-  .dev-group.active .dev-body{opacity:1}
-  .dev-group.active .dev-ring{stroke:var(--accent);stroke-width:2.5}
-  .dev-group.dimmed{opacity:.15;pointer-events:none}
+/* ── Search bar ────────────────────────────────────────────── */
+.controls-bar{display:flex;align-items:center;gap:var(--s-md);padding:var(--s-md) 0;flex-wrap:wrap}
+.search-wrap{position:relative;flex:1;max-width:360px}
+.dev-search{width:100%;font-family:var(--font-mono);font-size:.82rem;padding:10px 14px 10px 36px;border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-surface);color:var(--ink);transition:border-color .15s}
+.dev-search:focus{outline:none;border-color:var(--accent)}
+.search-icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--ink-muted);font-size:.82rem;pointer-events:none}
+.search-clear{position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--ink-muted);cursor:pointer;font-size:.85rem;padding:4px;display:none}
+.search-clear.visible{display:block}
+.result-count{font-family:var(--font-mono);font-size:.72rem;color:var(--ink-muted)}
 
-  /* Zone labels */
-  .zone-label{font-family:var(--font-display);font-size:11px;letter-spacing:.15em;text-transform:uppercase;fill:var(--ink-muted);opacity:.4}
+/* ── Legend ─────────────────────────────────────────────────── */
+.legend{display:flex;flex-wrap:wrap;gap:14px;padding:0 0 var(--s-sm);font-family:var(--font-display);font-size:.68rem;color:var(--ink-muted);letter-spacing:.02em}
+.legend-item{display:flex;align-items:center;gap:5px}
+.legend-dot{width:10px;height:10px;border-radius:2px;flex-shrink:0}
+.legend-line{width:24px;height:0;border-top:2px solid;flex-shrink:0}
+.legend-line.dashed{border-top-style:dashed}
 
-  /* Detail panel */
-  .detail-panel{position:fixed;top:0;right:-420px;width:400px;height:100vh;background:var(--bg-surface);border-left:2px solid var(--ink);z-index:200;transition:right .3s ease;overflow-y:auto;padding:28px 24px}
-  .detail-panel.open{right:0}
-  .detail-close{position:absolute;top:16px;right:16px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:.82rem;background:var(--bg-recessed);border:1px solid var(--border);border-radius:var(--radius);cursor:pointer;color:var(--ink-muted);font-family:var(--font-mono);transition:all .15s}
-  .detail-close:hover{color:var(--ink);border-color:var(--border-strong);background:var(--bg-hover)}
-  .dp-type{font-family:var(--font-display);font-size:.68rem;text-transform:uppercase;letter-spacing:.1em;color:var(--ink-muted);margin-bottom:4px}
-  .dp-name{font-family:var(--font-display);font-size:1.5rem;font-weight:800;margin-bottom:4px;line-height:1.2}
-  .dp-tier{font-family:var(--font-mono);font-size:.72rem;color:var(--accent);margin-bottom:var(--s-md)}
-  .dp-desc{font-family:var(--font-body);font-size:.88rem;color:var(--ink-secondary);line-height:1.65;margin-bottom:var(--s-md)}
-  .dp-section{margin-bottom:var(--s-md)}
-  .dp-section-title{font-family:var(--font-display);font-size:.75rem;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-muted);margin-bottom:6px;padding-bottom:4px;border-bottom:1px solid var(--border)}
-  .dp-cmd{font-family:var(--font-mono);font-size:.78rem;background:var(--bg-recessed);padding:8px 12px;border-radius:var(--radius);margin-bottom:4px;color:var(--ink);line-height:1.5}
-  .dp-tip{font-family:var(--font-body);font-size:.82rem;color:var(--ink-secondary);line-height:1.5;padding:10px 14px;background:rgba(180,83,9,.06);border-left:3px solid var(--accent);border-radius:0 var(--radius) var(--radius) 0}
-  .dp-topics{display:flex;flex-wrap:wrap;gap:4px}
-  .dp-topic{font-family:var(--font-mono);font-size:.65rem;padding:3px 8px;background:var(--bg-recessed);border-radius:var(--radius);color:var(--ink-secondary)}
-  .dp-osi{font-family:var(--font-mono);font-size:.78rem;color:var(--ink-secondary)}
-  .dp-specs{font-family:var(--font-body);font-size:.82rem;color:var(--ink-secondary);line-height:1.6}
-  .dp-specs strong{color:var(--ink)}
+/* ── SVG topology viewport ─────────────────────────────────── */
+.topo-viewport{position:relative;background:var(--bg-recessed);border:1px solid var(--border);border-radius:var(--radius-lg);overflow-x:auto;overflow-y:hidden;margin-bottom:var(--s-xl);min-height:420px}
+.topo-svg{display:block;margin:0 auto}
+.topo-svg text{font-family:'JetBrains Mono',var(--font-mono);pointer-events:none}
 
-  /* Overlay backdrop */
-  .detail-backdrop{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.15);z-index:199;display:none}
-  .detail-backdrop.open{display:block}
+/* ── SVG device groups ─────────────────────────────────────── */
+.dev-group{cursor:pointer;transition:opacity .2s,transform .2s}
+.dev-group:hover{transform:scale(1.04)}
+.dev-group .dev-shape{transition:filter .15s}
+.dev-group:hover .dev-shape{filter:brightness(1.08)}
+.dev-group.active .dev-ring{stroke:var(--accent);stroke-width:3}
+.dev-group.dimmed{opacity:.12;pointer-events:none;transform:none}
+.dev-group.search-match .dev-ring{stroke:#D97706;stroke-width:3;stroke-dasharray:4 2}
 
-  /* Tour */
-  .tour-bar{position:fixed;bottom:0;left:0;right:0;z-index:100;background:var(--bg-surface);border-top:2px solid var(--ink);padding:16px 24px;transform:translateY(100%);transition:transform .3s ease;display:flex;align-items:center;gap:16px}
-  .tour-bar.open{transform:translateY(0)}
-  .tour-step{font-family:var(--font-mono);font-size:.65rem;color:var(--ink-muted)}
-  .tour-title{font-family:var(--font-display);font-size:1rem;font-weight:700}
-  .tour-text{font-family:var(--font-body);font-size:.82rem;color:var(--ink-secondary);flex:1;line-height:1.5;max-width:600px}
-  .tour-nav{display:flex;gap:8px;margin-left:auto}
-  .tour-dots{display:flex;gap:4px;margin-left:12px}
-  .tour-dot{width:6px;height:6px;border-radius:50%;background:var(--border)}
-  .tour-dot.on{background:var(--accent)}
-  .tour-btn-start{position:fixed;bottom:20px;left:20px;z-index:99;font-family:var(--font-display);font-size:.78rem;padding:10px 20px;background:var(--ink);color:var(--bg);border:none;border-radius:var(--radius);cursor:pointer}
-  .tour-btn-start.hidden{display:none}
+/* Stagger entrance animation */
+@keyframes deviceEnter{
+  from{opacity:0;transform:translateY(12px) scale(.92)}
+  to{opacity:1;transform:translateY(0) scale(1)}
+}
+.dev-group.entering{animation:deviceEnter .4s var(--ease-out) forwards;opacity:0}
 
-  /* Legend */
-  .legend{display:flex;flex-wrap:wrap;gap:16px;padding:var(--s-md) 0;margin-bottom:var(--s-md);font-family:var(--font-display);font-size:.72rem;color:var(--ink-muted)}
-  .legend-item{display:flex;align-items:center;gap:5px}
-  .legend-dot{width:10px;height:10px;border-radius:2px}
+/* Animated connections */
+@keyframes flowDash{to{stroke-dashoffset:-24}}
+.conn-line{transition:opacity .3s}
+.conn-line.dimmed{opacity:.06}
+.conn-line.active{stroke-width:2.5}
 
-  /* Copy button on command blocks */
-  .dp-cmd{position:relative}
-  .dp-copy{position:absolute;top:4px;right:4px;font-family:var(--font-mono);font-size:.6rem;color:var(--ink-muted);background:none;border:1px solid var(--border);border-radius:3px;padding:2px 6px;cursor:pointer;opacity:0;transition:opacity .15s}
-  .dp-cmd:hover .dp-copy{opacity:1}
-  .dp-copy:active{color:var(--accent)}
+/* Zone labels */
+.zone-label{font-family:var(--font-display);font-size:11px;letter-spacing:.15em;text-transform:uppercase;fill:var(--ink-muted);opacity:.35}
+.zone-rect{rx:6;ry:6}
 
-  /* Search input */
-  .search-wrap{margin-bottom:var(--s-md)}
-  .dev-search{width:100%;max-width:360px;font-family:var(--font-mono);font-size:.82rem;padding:10px 14px;border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-surface);color:var(--ink);transition:border-color .15s}
-  .dev-search:focus{outline:none;border-color:var(--accent)}
+/* ── Detail panel ──────────────────────────────────────────── */
+.detail-backdrop{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.2);z-index:299;opacity:0;pointer-events:none;transition:opacity .25s}
+.detail-backdrop.open{opacity:1;pointer-events:auto}
 
-  /* Mobile responsive */
-  @media(max-width:600px){
-    .detail-panel{right:auto;left:0;top:auto;bottom:-100%;width:100%;height:70vh;border-left:none;border-top:2px solid var(--ink);transition:bottom .3s ease}
-    .detail-panel.open{bottom:0;right:auto}
-    .tour-bar{flex-direction:column;align-items:flex-start;gap:8px;padding:12px 16px}
-    .tour-text{max-width:none}
-    .tour-nav{margin-left:0;width:100%;justify-content:space-between}
-    .legend{font-size:.65rem;gap:10px}
-    .page-header h1{font-size:1.8rem}
-  }
+.detail-panel{position:fixed;top:0;right:0;width:440px;height:100vh;background:var(--bg-surface);border-left:2px solid var(--ink);z-index:300;transform:translateX(100%);transition:transform .3s var(--ease-out);overflow-y:auto;overflow-x:hidden}
+.detail-panel.open{transform:translateX(0)}
+.dp-inner{padding:28px 24px 40px}
+
+.detail-close{position:sticky;top:0;right:0;z-index:10;float:right;margin:16px 16px 0 0;width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-size:.82rem;background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius);cursor:pointer;color:var(--ink-muted);font-family:var(--font-mono);transition:all .15s}
+.detail-close:hover{color:var(--ink);border-color:var(--border-strong);background:var(--bg-hover)}
+
+/* Detail panel sections */
+.dp-header{display:flex;align-items:flex-start;gap:16px;margin-bottom:var(--s-lg)}
+.dp-icon-wrap{width:64px;height:64px;border-radius:var(--radius-lg);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.dp-icon-wrap svg{width:40px;height:40px}
+.dp-meta{flex:1}
+.dp-category{font-family:var(--font-display);font-size:.65rem;text-transform:uppercase;letter-spacing:.1em;padding:2px 8px;border-radius:var(--radius);display:inline-block;margin-bottom:6px;font-weight:600}
+.dp-name{font-family:var(--font-display);font-size:1.4rem;font-weight:800;margin-bottom:2px;line-height:1.2;letter-spacing:-.01em}
+.dp-osi{font-family:var(--font-mono);font-size:.72rem;color:var(--ink-muted)}
+
+.dp-desc{font-family:var(--font-body);font-size:.88rem;color:var(--ink-secondary);line-height:1.65;margin-bottom:var(--s-lg);max-width:none}
+
+.dp-section{margin-bottom:var(--s-lg)}
+.dp-section-title{font-family:var(--font-display);font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-muted);margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid var(--border);font-weight:600}
+
+/* Models table */
+.dp-models{width:100%;border-collapse:collapse}
+.dp-models th{font-family:var(--font-display);font-size:.65rem;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-muted);font-weight:600;padding:6px 8px;text-align:left;border-bottom:1px solid var(--border)}
+.dp-models td{font-size:.8rem;padding:8px;border-bottom:1px solid var(--border);vertical-align:top}
+.dp-models td:first-child{font-family:var(--font-mono);font-weight:600;font-size:.75rem;white-space:nowrap}
+.dp-models td:last-child{color:var(--ink-secondary);font-size:.78rem}
+
+/* Specs grid */
+.dp-specs-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.dp-spec{background:var(--bg-recessed);padding:8px 10px;border-radius:var(--radius)}
+.dp-spec-label{font-family:var(--font-display);font-size:.62rem;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-muted);margin-bottom:2px}
+.dp-spec-value{font-family:var(--font-mono);font-size:.78rem;font-weight:600;color:var(--ink)}
+
+/* History timeline */
+.dp-timeline{position:relative;padding-left:16px;border-left:2px solid var(--border)}
+.dp-timeline-item{position:relative;margin-bottom:10px;padding-left:12px}
+.dp-timeline-item::before{content:'';position:absolute;left:-21px;top:6px;width:10px;height:10px;border-radius:50%;background:var(--bg-surface);border:2px solid var(--accent)}
+.dp-timeline-year{font-family:var(--font-mono);font-size:.7rem;color:var(--accent);font-weight:700}
+.dp-timeline-text{font-family:var(--font-body);font-size:.8rem;color:var(--ink-secondary);line-height:1.5}
+
+/* Commands */
+.dp-cmd{position:relative;font-family:var(--font-mono);font-size:.76rem;background:var(--bg-recessed);padding:8px 40px 8px 12px;border-radius:var(--radius);margin-bottom:4px;color:var(--ink);line-height:1.5;overflow-x:auto}
+.dp-cmd-desc{font-family:var(--font-body);font-size:.72rem;color:var(--ink-muted);font-style:italic;margin-left:8px}
+.dp-copy{position:absolute;top:50%;right:6px;transform:translateY(-50%);font-family:var(--font-mono);font-size:.6rem;color:var(--ink-muted);background:none;border:1px solid var(--border);border-radius:3px;padding:2px 6px;cursor:pointer;opacity:0;transition:opacity .15s}
+.dp-cmd:hover .dp-copy{opacity:1}
+.dp-copy.copied{color:var(--accent);border-color:var(--accent)}
+
+/* Exam tip */
+.dp-tip{font-family:var(--font-body);font-size:.85rem;color:var(--ink-secondary);line-height:1.6;padding:12px 16px;background:rgba(180,83,9,.06);border-left:3px solid var(--accent);border-radius:0 var(--radius) var(--radius) 0}
+.dp-tip strong{color:var(--ink)}
+
+/* ── Mobile bottom sheet ───────────────────────────────────── */
+@media(max-width:768px){
+  .detail-panel{top:auto;bottom:0;right:0;left:0;width:100%;height:75vh;border-left:none;border-top:2px solid var(--ink);border-radius:var(--radius-lg) var(--radius-lg) 0 0;transform:translateY(100%)}
+  .detail-panel.open{transform:translateY(0)}
+  .dp-inner{padding:20px 16px 60px}
+  .dp-header{flex-direction:column;gap:10px}
+  .dp-name{font-size:1.2rem}
+  .dp-specs-grid{grid-template-columns:1fr}
+  .topo-tab{font-size:.68rem;padding:8px 10px}
+  .controls-bar{flex-direction:column;align-items:stretch}
+  .search-wrap{max-width:100%}
+  .topo-viewport{min-height:320px}
+}
+
+@media(max-width:480px){
+  .topo-tab .tab-count{display:none}
+  .legend{gap:8px;font-size:.62rem}
+}
 </style>
 </head>
 <body>
@@ -97,493 +150,1513 @@
   <nav class="top-nav" id="main-nav"></nav>
 
   <header class="page-header">
-    <h1>Network Devices</h1>
-    <p class="subtitle">Every device in the CCNA 200-301 — where it lives, what it does, and the commands you need.</p>
+    <h1>Network Device Encyclopedia</h1>
+    <p class="subtitle">Interactive topology explorer — 6 environments, 30+ device types, real-world models and CCNA commands</p>
+    <p class="device-count" id="deviceCount"></p>
   </header>
 
-  <div class="legend">
-    <div class="legend-item"><div class="legend-dot" style="background:#DC2626"></div>Internet / WAN Edge</div>
-    <div class="legend-item"><div class="legend-dot" style="background:#2563EB"></div>Core Layer</div>
-    <div class="legend-item"><div class="legend-dot" style="background:#7C3AED"></div>Servers / Data Center</div>
-    <div class="legend-item"><div class="legend-dot" style="background:#16A34A"></div>Distribution Layer</div>
-    <div class="legend-item"><div class="legend-dot" style="background:#0891B2"></div>Access / Wireless</div>
-    <div class="legend-item"><div class="legend-dot" style="background:#94A3B8"></div>End Devices</div>
-    <div class="legend-item"><div class="legend-dot" style="background:#D97706"></div>Infrastructure</div>
+  <!-- Topology tabs -->
+  <div class="topo-tabs" id="topoTabs"></div>
+
+  <!-- Controls -->
+  <div class="controls-bar">
+    <div class="search-wrap">
+      <span class="search-icon">&#9906;</span>
+      <input type="text" class="dev-search" id="devSearch" placeholder="Search devices..." autocomplete="off">
+      <button class="search-clear" id="searchClear" title="Clear">&times;</button>
+    </div>
+    <span class="result-count" id="resultCount"></span>
   </div>
 
-  <div class="search-wrap">
-    <input type="text" class="dev-search" id="devSearch" placeholder="Search devices... (e.g. DHCP, firewall, OSPF)">
+  <!-- Legend -->
+  <div class="legend" id="legend"></div>
+
+  <!-- SVG viewport -->
+  <div class="topo-viewport" id="topoViewport">
+    <svg class="topo-svg" id="topoSvg"></svg>
   </div>
 
-  <p style="font-family:var(--font-body);font-size:.85rem;color:var(--ink-secondary);margin-bottom:var(--s-sm)">Click any device to learn about it. <span style="color:var(--accent);cursor:pointer" onclick="startTour()">Take the guided tour.</span></p>
-
-  <div class="topo-wrap">
-    <svg class="topo-svg" viewBox="0 0 900 820" xmlns="http://www.w3.org/2000/svg">
-      <!-- Connections (drawn first, behind devices) -->
-      <g class="connections" stroke-width="1.2" fill="none" opacity=".35">
-        <!-- Internet to Edge -->
-        <line x1="450" y1="52" x2="350" y2="130" stroke="#DC2626"/>
-        <line x1="450" y1="52" x2="550" y2="130" stroke="#DC2626"/>
-        <!-- Edge to Core -->
-        <line x1="350" y1="160" x2="350" y2="230" stroke="#DC2626"/>
-        <line x1="550" y1="160" x2="550" y2="230" stroke="#DC2626"/>
-        <line x1="350" y1="260" x2="400" y2="310" stroke="#2563EB"/>
-        <line x1="550" y1="260" x2="500" y2="310" stroke="#2563EB"/>
-        <line x1="350" y1="245" x2="550" y2="245" stroke="#2563EB" stroke-dasharray="4,3"/>
-        <!-- Core to Core Switch -->
-        <line x1="400" y1="340" x2="450" y2="390" stroke="#2563EB"/>
-        <line x1="500" y1="340" x2="450" y2="390" stroke="#2563EB"/>
-        <!-- Core to Servers -->
-        <line x1="400" y1="330" x2="120" y2="380" stroke="#7C3AED" opacity=".5"/>
-        <line x1="400" y1="330" x2="200" y2="380" stroke="#7C3AED" opacity=".5"/>
-        <line x1="400" y1="330" x2="280" y2="380" stroke="#7C3AED" opacity=".5"/>
-        <line x1="500" y1="330" x2="620" y2="380" stroke="#7C3AED" opacity=".5"/>
-        <line x1="500" y1="330" x2="700" y2="380" stroke="#7C3AED" opacity=".5"/>
-        <line x1="500" y1="330" x2="780" y2="380" stroke="#7C3AED" opacity=".5"/>
-        <!-- Core Switch to Distribution -->
-        <line x1="450" y1="420" x2="280" y2="490" stroke="#16A34A"/>
-        <line x1="450" y1="420" x2="620" y2="490" stroke="#16A34A"/>
-        <!-- Distribution to Access -->
-        <line x1="280" y1="520" x2="150" y2="590" stroke="#0891B2"/>
-        <line x1="280" y1="520" x2="280" y2="590" stroke="#0891B2"/>
-        <line x1="620" y1="520" x2="620" y2="590" stroke="#0891B2"/>
-        <line x1="620" y1="520" x2="750" y2="590" stroke="#0891B2"/>
-        <!-- WLC -->
-        <line x1="450" y1="420" x2="450" y2="590" stroke="#0891B2" stroke-dasharray="3,3"/>
-        <!-- Access to APs -->
-        <line x1="150" y1="620" x2="90" y2="660" stroke="#0EA5E9" stroke-dasharray="3,2"/>
-        <line x1="750" y1="620" x2="810" y2="660" stroke="#0EA5E9" stroke-dasharray="3,2"/>
-        <!-- Access to End Devices -->
-        <line x1="150" y1="625" x2="100" y2="740" stroke="#94A3B8" opacity=".4"/>
-        <line x1="150" y1="625" x2="190" y2="740" stroke="#94A3B8" opacity=".4"/>
-        <line x1="280" y1="625" x2="280" y2="740" stroke="#94A3B8" opacity=".4"/>
-        <line x1="620" y1="625" x2="580" y2="740" stroke="#94A3B8" opacity=".4"/>
-        <line x1="620" y1="625" x2="660" y2="740" stroke="#94A3B8" opacity=".4"/>
-        <line x1="750" y1="625" x2="750" y2="740" stroke="#94A3B8" opacity=".4"/>
-        <!-- Wireless to clients -->
-        <line x1="90" y1="690" x2="40" y2="740" stroke="#94A3B8" stroke-dasharray="3,2" opacity=".4"/>
-        <line x1="810" y1="690" x2="850" y2="740" stroke="#94A3B8" stroke-dasharray="3,2" opacity=".4"/>
-      </g>
-
-      <!-- Zone labels -->
-      <text class="zone-label" x="820" y="50">INTERNET</text>
-      <text class="zone-label" x="820" y="150">WAN EDGE</text>
-      <text class="zone-label" x="820" y="250">CORE</text>
-      <text class="zone-label" x="20" y="395">SERVERS</text>
-      <text class="zone-label" x="820" y="405">CORE L3</text>
-      <text class="zone-label" x="820" y="510">DISTRIBUTION</text>
-      <text class="zone-label" x="820" y="610">ACCESS</text>
-      <text class="zone-label" x="820" y="750">ENDPOINTS</text>
-
-      <!-- ═══ DEVICES ═══ -->
-
-      <!-- Internet Cloud -->
-      <g class="dev-group" data-id="internet" transform="translate(450,40)">
-        <circle class="dev-ring" cx="0" cy="0" r="22" fill="none" stroke="#DC2626" stroke-width="1" opacity=".3"/>
-        <circle class="dev-body" cx="0" cy="0" r="18" fill="#DC2626" opacity=".12"/>
-        <text x="0" y="3" text-anchor="middle" font-size="9" fill="#DC2626" font-weight="700">ISP</text>
-        <text x="0" y="38" text-anchor="middle" font-size="7.5" fill="var(--ink-muted)">Internet</text>
-      </g>
-
-      <!-- Firewall 1 -->
-      <g class="dev-group" data-id="firewall" transform="translate(350,145)">
-        <rect class="dev-ring" x="-28" y="-16" width="56" height="32" rx="4" fill="none" stroke="#DC2626" stroke-width="1" opacity=".3"/>
-        <rect class="dev-body" x="-24" y="-12" width="48" height="24" rx="3" fill="#DC2626" opacity=".12"/>
-        <text x="0" y="4" text-anchor="middle" font-size="8" fill="#DC2626" font-weight="700">NGFW</text>
-        <text x="0" y="30" text-anchor="middle" font-size="7" fill="var(--ink-muted)">Firewall-01</text>
-      </g>
-
-      <!-- Firewall 2 -->
-      <g class="dev-group" data-id="firewall" transform="translate(550,145)">
-        <rect class="dev-ring" x="-28" y="-16" width="56" height="32" rx="4" fill="none" stroke="#DC2626" stroke-width="1" opacity=".3"/>
-        <rect class="dev-body" x="-24" y="-12" width="48" height="24" rx="3" fill="#DC2626" opacity=".12"/>
-        <text x="0" y="4" text-anchor="middle" font-size="8" fill="#DC2626" font-weight="700">NGFW</text>
-        <text x="0" y="30" text-anchor="middle" font-size="7" fill="var(--ink-muted)">Firewall-02</text>
-      </g>
-
-      <!-- Core Router 1 -->
-      <g class="dev-group" data-id="core_router" transform="translate(350,245)">
-        <circle class="dev-ring" cx="0" cy="0" r="22" fill="none" stroke="#2563EB" stroke-width="1" opacity=".3"/>
-        <circle class="dev-body" cx="0" cy="0" r="18" fill="#2563EB" opacity=".12"/>
-        <text x="0" y="-2" text-anchor="middle" font-size="7" fill="#2563EB" font-weight="700">OSPF</text>
-        <text x="0" y="7" text-anchor="middle" font-size="6.5" fill="#2563EB">Area 0</text>
-        <text x="0" y="35" text-anchor="middle" font-size="7" fill="var(--ink-muted)">Core-RTR-01</text>
-      </g>
-
-      <!-- Core Router 2 -->
-      <g class="dev-group" data-id="core_router" transform="translate(550,245)">
-        <circle class="dev-ring" cx="0" cy="0" r="22" fill="none" stroke="#2563EB" stroke-width="1" opacity=".3"/>
-        <circle class="dev-body" cx="0" cy="0" r="18" fill="#2563EB" opacity=".12"/>
-        <text x="0" y="-2" text-anchor="middle" font-size="7" fill="#2563EB" font-weight="700">OSPF</text>
-        <text x="0" y="7" text-anchor="middle" font-size="6.5" fill="#2563EB">Area 0</text>
-        <text x="0" y="35" text-anchor="middle" font-size="7" fill="var(--ink-muted)">Core-RTR-02</text>
-      </g>
-
-      <!-- Core L3 Switch -->
-      <g class="dev-group" data-id="l3_switch" transform="translate(450,405)">
-        <rect class="dev-ring" x="-30" y="-16" width="60" height="32" rx="4" fill="none" stroke="#2563EB" stroke-width="1" opacity=".3"/>
-        <rect class="dev-body" x="-26" y="-12" width="52" height="24" rx="3" fill="#2563EB" opacity=".12"/>
-        <text x="0" y="4" text-anchor="middle" font-size="8" fill="#2563EB" font-weight="700">L3 SW</text>
-        <text x="0" y="30" text-anchor="middle" font-size="7" fill="var(--ink-muted)">Core-SW-01</text>
-      </g>
-
-      <!-- Servers -->
-      <g class="dev-group" data-id="dns_server" transform="translate(120,395)">
-        <rect class="dev-ring" x="-20" y="-18" width="40" height="36" rx="3" fill="none" stroke="#7C3AED" stroke-width="1" opacity=".3"/>
-        <rect class="dev-body" x="-16" y="-14" width="32" height="28" rx="2" fill="#7C3AED" opacity=".12"/>
-        <text x="0" y="2" text-anchor="middle" font-size="7.5" fill="#7C3AED" font-weight="700">DNS</text>
-        <text x="0" y="32" text-anchor="middle" font-size="6.5" fill="var(--ink-muted)">:53</text>
-      </g>
-      <g class="dev-group" data-id="dhcp_server" transform="translate(200,395)">
-        <rect class="dev-ring" x="-20" y="-18" width="40" height="36" rx="3" fill="none" stroke="#7C3AED" stroke-width="1" opacity=".3"/>
-        <rect class="dev-body" x="-16" y="-14" width="32" height="28" rx="2" fill="#7C3AED" opacity=".12"/>
-        <text x="0" y="2" text-anchor="middle" font-size="7" fill="#7C3AED" font-weight="700">DHCP</text>
-        <text x="0" y="32" text-anchor="middle" font-size="6.5" fill="var(--ink-muted)">:67</text>
-      </g>
-      <g class="dev-group" data-id="ntp_server" transform="translate(280,395)">
-        <rect class="dev-ring" x="-20" y="-18" width="40" height="36" rx="3" fill="none" stroke="#7C3AED" stroke-width="1" opacity=".3"/>
-        <rect class="dev-body" x="-16" y="-14" width="32" height="28" rx="2" fill="#7C3AED" opacity=".12"/>
-        <text x="0" y="2" text-anchor="middle" font-size="7.5" fill="#7C3AED" font-weight="700">NTP</text>
-        <text x="0" y="32" text-anchor="middle" font-size="6.5" fill="var(--ink-muted)">:123</text>
-      </g>
-      <g class="dev-group" data-id="syslog_server" transform="translate(620,395)">
-        <rect class="dev-ring" x="-22" y="-18" width="44" height="36" rx="3" fill="none" stroke="#7C3AED" stroke-width="1" opacity=".3"/>
-        <rect class="dev-body" x="-18" y="-14" width="36" height="28" rx="2" fill="#7C3AED" opacity=".12"/>
-        <text x="0" y="2" text-anchor="middle" font-size="6.5" fill="#7C3AED" font-weight="700">Syslog</text>
-        <text x="0" y="32" text-anchor="middle" font-size="6.5" fill="var(--ink-muted)">:514</text>
-      </g>
-      <g class="dev-group" data-id="aaa_server" transform="translate(700,395)">
-        <rect class="dev-ring" x="-20" y="-18" width="40" height="36" rx="3" fill="none" stroke="#7C3AED" stroke-width="1" opacity=".3"/>
-        <rect class="dev-body" x="-16" y="-14" width="32" height="28" rx="2" fill="#7C3AED" opacity=".12"/>
-        <text x="0" y="2" text-anchor="middle" font-size="7" fill="#7C3AED" font-weight="700">AAA</text>
-        <text x="0" y="32" text-anchor="middle" font-size="6" fill="var(--ink-muted)">RADIUS</text>
-      </g>
-      <g class="dev-group" data-id="tftp_server" transform="translate(780,395)">
-        <rect class="dev-ring" x="-20" y="-18" width="40" height="36" rx="3" fill="none" stroke="#7C3AED" stroke-width="1" opacity=".3"/>
-        <rect class="dev-body" x="-16" y="-14" width="32" height="28" rx="2" fill="#7C3AED" opacity=".12"/>
-        <text x="0" y="2" text-anchor="middle" font-size="7" fill="#7C3AED" font-weight="700">TFTP</text>
-        <text x="0" y="32" text-anchor="middle" font-size="6.5" fill="var(--ink-muted)">:69</text>
-      </g>
-
-      <!-- Distribution Switches -->
-      <g class="dev-group" data-id="dist_switch" transform="translate(280,505)">
-        <rect class="dev-ring" x="-30" y="-14" width="60" height="28" rx="4" fill="none" stroke="#16A34A" stroke-width="1" opacity=".3"/>
-        <rect class="dev-body" x="-26" y="-10" width="52" height="20" rx="3" fill="#16A34A" opacity=".12"/>
-        <text x="0" y="3" text-anchor="middle" font-size="7.5" fill="#16A34A" font-weight="700">DSW-A</text>
-        <text x="0" y="28" text-anchor="middle" font-size="6.5" fill="var(--ink-muted)">HSRP Active</text>
-      </g>
-      <g class="dev-group" data-id="dist_switch" transform="translate(620,505)">
-        <rect class="dev-ring" x="-30" y="-14" width="60" height="28" rx="4" fill="none" stroke="#16A34A" stroke-width="1" opacity=".3"/>
-        <rect class="dev-body" x="-26" y="-10" width="52" height="20" rx="3" fill="#16A34A" opacity=".12"/>
-        <text x="0" y="3" text-anchor="middle" font-size="7.5" fill="#16A34A" font-weight="700">DSW-B</text>
-        <text x="0" y="28" text-anchor="middle" font-size="6.5" fill="var(--ink-muted)">HSRP Standby</text>
-      </g>
-
-      <!-- Access Switches -->
-      <g class="dev-group" data-id="access_switch" transform="translate(150,605)">
-        <rect class="dev-ring" x="-26" y="-12" width="52" height="24" rx="3" fill="none" stroke="#0891B2" stroke-width="1" opacity=".3"/>
-        <rect class="dev-body" x="-22" y="-8" width="44" height="16" rx="2" fill="#0891B2" opacity=".12"/>
-        <text x="0" y="3" text-anchor="middle" font-size="7" fill="#0891B2" font-weight="700">ASW-1</text>
-        <text x="0" y="26" text-anchor="middle" font-size="6" fill="var(--ink-muted)">PoE+ 24pt</text>
-      </g>
-      <g class="dev-group" data-id="access_switch" transform="translate(280,605)">
-        <rect class="dev-ring" x="-26" y="-12" width="52" height="24" rx="3" fill="none" stroke="#0891B2" stroke-width="1" opacity=".3"/>
-        <rect class="dev-body" x="-22" y="-8" width="44" height="16" rx="2" fill="#0891B2" opacity=".12"/>
-        <text x="0" y="3" text-anchor="middle" font-size="7" fill="#0891B2" font-weight="700">ASW-2</text>
-        <text x="0" y="26" text-anchor="middle" font-size="6" fill="var(--ink-muted)">PoE+ 48pt</text>
-      </g>
-      <g class="dev-group" data-id="access_switch" transform="translate(620,605)">
-        <rect class="dev-ring" x="-26" y="-12" width="52" height="24" rx="3" fill="none" stroke="#0891B2" stroke-width="1" opacity=".3"/>
-        <rect class="dev-body" x="-22" y="-8" width="44" height="16" rx="2" fill="#0891B2" opacity=".12"/>
-        <text x="0" y="3" text-anchor="middle" font-size="7" fill="#0891B2" font-weight="700">ASW-3</text>
-        <text x="0" y="26" text-anchor="middle" font-size="6" fill="var(--ink-muted)">DHCP Snoop</text>
-      </g>
-      <g class="dev-group" data-id="access_switch" transform="translate(750,605)">
-        <rect class="dev-ring" x="-26" y="-12" width="52" height="24" rx="3" fill="none" stroke="#0891B2" stroke-width="1" opacity=".3"/>
-        <rect class="dev-body" x="-22" y="-8" width="44" height="16" rx="2" fill="#0891B2" opacity=".12"/>
-        <text x="0" y="3" text-anchor="middle" font-size="7" fill="#0891B2" font-weight="700">ASW-4</text>
-        <text x="0" y="26" text-anchor="middle" font-size="6" fill="var(--ink-muted)">DAI enabled</text>
-      </g>
-
-      <!-- WLC -->
-      <g class="dev-group" data-id="wlc" transform="translate(450,605)">
-        <rect class="dev-ring" x="-26" y="-14" width="52" height="28" rx="4" fill="none" stroke="#0891B2" stroke-width="1" opacity=".3"/>
-        <rect class="dev-body" x="-22" y="-10" width="44" height="20" rx="3" fill="#0891B2" opacity=".12"/>
-        <text x="0" y="4" text-anchor="middle" font-size="7.5" fill="#0891B2" font-weight="700">WLC</text>
-        <text x="0" y="28" text-anchor="middle" font-size="6" fill="var(--ink-muted)">CAPWAP Mgr</text>
-      </g>
-
-      <!-- Access Points -->
-      <g class="dev-group" data-id="access_point" transform="translate(90,675)">
-        <circle class="dev-ring" cx="0" cy="0" r="14" fill="none" stroke="#0EA5E9" stroke-width="1" opacity=".3"/>
-        <circle class="dev-body" cx="0" cy="0" r="10" fill="#0EA5E9" opacity=".12"/>
-        <text x="0" y="3" text-anchor="middle" font-size="6.5" fill="#0EA5E9" font-weight="700">AP</text>
-        <text x="0" y="24" text-anchor="middle" font-size="6" fill="var(--ink-muted)">Wi-Fi 6</text>
-      </g>
-      <g class="dev-group" data-id="access_point" transform="translate(810,675)">
-        <circle class="dev-ring" cx="0" cy="0" r="14" fill="none" stroke="#0EA5E9" stroke-width="1" opacity=".3"/>
-        <circle class="dev-body" cx="0" cy="0" r="10" fill="#0EA5E9" opacity=".12"/>
-        <text x="0" y="3" text-anchor="middle" font-size="6.5" fill="#0EA5E9" font-weight="700">AP</text>
-        <text x="0" y="24" text-anchor="middle" font-size="6" fill="var(--ink-muted)">Wi-Fi 6</text>
-      </g>
-
-      <!-- End Devices -->
-      <g class="dev-group" data-id="desktop" transform="translate(100,755)">
-        <rect class="dev-ring" x="-16" y="-10" width="32" height="20" rx="2" fill="none" stroke="#94A3B8" stroke-width="1" opacity=".3"/>
-        <rect class="dev-body" x="-12" y="-6" width="24" height="12" rx="1" fill="#94A3B8" opacity=".12"/>
-        <text x="0" y="2" text-anchor="middle" font-size="6" fill="#94A3B8" font-weight="600">PC</text>
-        <text x="0" y="22" text-anchor="middle" font-size="6" fill="var(--ink-muted)">VLAN 10</text>
-      </g>
-      <g class="dev-group" data-id="ip_phone" transform="translate(190,755)">
-        <rect class="dev-ring" x="-16" y="-10" width="32" height="20" rx="2" fill="none" stroke="#D97706" stroke-width="1" opacity=".3"/>
-        <rect class="dev-body" x="-12" y="-6" width="24" height="12" rx="1" fill="#D97706" opacity=".12"/>
-        <text x="0" y="2" text-anchor="middle" font-size="5.5" fill="#D97706" font-weight="600">Phone</text>
-        <text x="0" y="22" text-anchor="middle" font-size="5.5" fill="var(--ink-muted)">Voice VLAN</text>
-      </g>
-      <g class="dev-group" data-id="desktop" transform="translate(280,755)">
-        <rect class="dev-ring" x="-16" y="-10" width="32" height="20" rx="2" fill="none" stroke="#94A3B8" stroke-width="1" opacity=".3"/>
-        <rect class="dev-body" x="-12" y="-6" width="24" height="12" rx="1" fill="#94A3B8" opacity=".12"/>
-        <text x="0" y="2" text-anchor="middle" font-size="6" fill="#94A3B8" font-weight="600">PC</text>
-        <text x="0" y="22" text-anchor="middle" font-size="6" fill="var(--ink-muted)">VLAN 20</text>
-      </g>
-      <g class="dev-group" data-id="server_web" transform="translate(580,755)">
-        <rect class="dev-ring" x="-18" y="-12" width="36" height="24" rx="2" fill="none" stroke="#94A3B8" stroke-width="1" opacity=".3"/>
-        <rect class="dev-body" x="-14" y="-8" width="28" height="16" rx="1" fill="#94A3B8" opacity=".12"/>
-        <text x="0" y="2" text-anchor="middle" font-size="5.5" fill="#94A3B8" font-weight="600">Server</text>
-        <text x="0" y="24" text-anchor="middle" font-size="5.5" fill="var(--ink-muted)">HTTP :80</text>
-      </g>
-      <g class="dev-group" data-id="printer" transform="translate(660,755)">
-        <rect class="dev-ring" x="-16" y="-10" width="32" height="20" rx="2" fill="none" stroke="#94A3B8" stroke-width="1" opacity=".3"/>
-        <rect class="dev-body" x="-12" y="-6" width="24" height="12" rx="1" fill="#94A3B8" opacity=".12"/>
-        <text x="0" y="2" text-anchor="middle" font-size="5.5" fill="#94A3B8" font-weight="600">Printer</text>
-        <text x="0" y="22" text-anchor="middle" font-size="5.5" fill="var(--ink-muted)">Network</text>
-      </g>
-      <g class="dev-group" data-id="laptop" transform="translate(750,755)">
-        <rect class="dev-ring" x="-16" y="-10" width="32" height="20" rx="2" fill="none" stroke="#94A3B8" stroke-width="1" opacity=".3"/>
-        <rect class="dev-body" x="-12" y="-6" width="24" height="12" rx="1" fill="#94A3B8" opacity=".12"/>
-        <text x="0" y="2" text-anchor="middle" font-size="5.5" fill="#94A3B8" font-weight="600">Laptop</text>
-        <text x="0" y="22" text-anchor="middle" font-size="6" fill="var(--ink-muted)">VLAN 30</text>
-      </g>
-      <g class="dev-group" data-id="wireless_client" transform="translate(40,755)">
-        <rect class="dev-ring" x="-16" y="-10" width="32" height="20" rx="2" fill="none" stroke="#94A3B8" stroke-width="1" opacity=".3"/>
-        <rect class="dev-body" x="-12" y="-6" width="24" height="12" rx="1" fill="#94A3B8" opacity=".12"/>
-        <text x="0" y="2" text-anchor="middle" font-size="5" fill="#94A3B8" font-weight="600">Wi-Fi</text>
-        <text x="0" y="22" text-anchor="middle" font-size="5.5" fill="var(--ink-muted)">Guest</text>
-      </g>
-      <g class="dev-group" data-id="wireless_client" transform="translate(850,755)">
-        <rect class="dev-ring" x="-16" y="-10" width="32" height="20" rx="2" fill="none" stroke="#94A3B8" stroke-width="1" opacity=".3"/>
-        <rect class="dev-body" x="-12" y="-6" width="24" height="12" rx="1" fill="#94A3B8" opacity=".12"/>
-        <text x="0" y="2" text-anchor="middle" font-size="5" fill="#94A3B8" font-weight="600">Wi-Fi</text>
-        <text x="0" y="22" text-anchor="middle" font-size="5.5" fill="var(--ink-muted)">Corp</text>
-      </g>
-
-      <!-- UPS (infrastructure) -->
-      <g class="dev-group" data-id="ups" transform="translate(450,505)">
-        <rect class="dev-ring" x="-18" y="-12" width="36" height="24" rx="3" fill="none" stroke="#D97706" stroke-width="1" opacity=".3"/>
-        <rect class="dev-body" x="-14" y="-8" width="28" height="16" rx="2" fill="#D97706" opacity=".12"/>
-        <text x="0" y="3" text-anchor="middle" font-size="7" fill="#D97706" font-weight="700">UPS</text>
-        <text x="0" y="26" text-anchor="middle" font-size="6" fill="var(--ink-muted)">Power Backup</text>
-      </g>
-
-      <!-- IPS -->
-      <g class="dev-group" data-id="ips" transform="translate(450,145)">
-        <rect class="dev-ring" x="-22" y="-12" width="44" height="24" rx="3" fill="none" stroke="#DC2626" stroke-width="1" opacity=".3"/>
-        <rect class="dev-body" x="-18" y="-8" width="36" height="16" rx="2" fill="#DC2626" opacity=".08"/>
-        <text x="0" y="3" text-anchor="middle" font-size="7" fill="#DC2626" font-weight="700">IPS</text>
-        <text x="0" y="26" text-anchor="middle" font-size="6" fill="var(--ink-muted)">Inline</text>
-      </g>
-    </svg>
+  <!-- Detail panel + backdrop -->
+  <div class="detail-backdrop" id="detailBackdrop"></div>
+  <div class="detail-panel" id="detailPanel">
+    <button class="detail-close" id="detailClose" title="Close">&times;</button>
+    <div class="dp-inner" id="dpContent"></div>
   </div>
-</div>
-
-<!-- Detail Panel -->
-<div class="detail-backdrop" id="detailBackdrop"></div>
-<div class="detail-panel" id="detailPanel">
-  <button class="detail-close" id="detailClose">&times;</button>
-  <div id="detailContent"></div>
-</div>
-
-<!-- Tour Bar -->
-<button class="tour-btn-start" id="tourStart" onclick="startTour()">Guided Tour</button>
-<div class="tour-bar" id="tourBar">
-  <div>
-    <div class="tour-step" id="tourStep">Step 1 of 9</div>
-    <div class="tour-title" id="tourTitle"></div>
-  </div>
-  <div class="tour-text" id="tourText"></div>
-  <div class="tour-nav">
-    <button class="btn btn-secondary btn-sm" id="tourPrev" onclick="prevTour()">Prev</button>
-    <button class="btn btn-primary btn-sm" id="tourNext" onclick="nextTour()">Next</button>
-    <button class="btn btn-secondary btn-sm" onclick="endTour()">Close</button>
-  </div>
-  <div class="tour-dots" id="tourDots"></div>
 </div>
 
 <script src="js/nav.js"></script>
-<script src="js/group-chat.js"></script>
 <script>
-// ═══════════════════════════════════════════════════════════════
-// DEVICE DATA
-// ═══════════════════════════════════════════════════════════════
-const DEVICE_INFO = {
-internet: {type:'Internet / ISP Cloud',name:'Internet Service Provider',tier:'WAN Edge — connects your network to the outside world',osi:'Layer 3 (Network)',desc:'The ISP provides your public IP address space and upstream connectivity. Your edge router has a default route (0.0.0.0/0) pointing to the ISP. All traffic leaving your private network passes through NAT at the firewall before reaching the ISP.',cmds:['ip route 0.0.0.0 0.0.0.0 <ISP-next-hop>','show ip route | include Gateway of last resort'],tip:'On the CCNA, the ISP is usually shown as a cloud. The key concept is the default route — if the router doesn\'t know where to send traffic, it goes to the ISP. Know that 203.0.113.0/24 and 198.51.100.0/24 are documentation ranges used in exam questions.',topics:['3.3','4.1'],specs:'WAN link types: Ethernet, MPLS, Metro Ethernet. Typical speeds: 100M-10G. Redundancy via dual ISP or dual edge routers.'},
+/* ═══════════════════════════════════════════════════════════════════
+   Network Device Encyclopedia — Complete JS
+   ═══════════════════════════════════════════════════════════════════ */
+(function(){
+'use strict';
 
-firewall: {type:'Next-Generation Firewall (NGFW)',name:'Perimeter Firewall',tier:'WAN Edge — first line of defense',osi:'Layer 3-7 (Network through Application)',desc:'The NGFW performs stateful packet inspection, intrusion prevention (IPS), URL filtering, and application-level inspection. Deployed in pairs (active/standby) for redundancy. It separates the trusted inside network from the untrusted outside. NAT translation happens here — private IPs become public IPs before leaving.',cmds:['access-list 101 permit tcp 10.0.0.0 0.255.255.255 any eq 443','ip nat inside source list 1 interface g0/1 overload','show ip nat translations','show access-lists'],tip:'CCNA covers ACLs, NAT/PAT, and basic firewall concepts. Know the difference between standard ACLs (source only, place near destination) and extended ACLs (source + dest + port, place near source). Know inside local, inside global, outside local, outside global for NAT.',topics:['4.1','5.3','5.6'],specs:'Active/standby failover. Interfaces: inside, outside, DMZ. Supports VPN (site-to-site IPsec, remote access SSL). IPS signatures updated automatically.'},
-
-ips: {type:'Intrusion Prevention System',name:'IPS / IDS',tier:'WAN Edge — threat detection',osi:'Layer 3-7',desc:'IPS sits inline in the traffic path and can actively block malicious traffic. IDS sits out-of-band (passive) and only alerts. NGFW firewalls now include IPS functionality built-in. Cisco Firepower is the modern NGFW+IPS platform.',cmds:['# IPS is typically managed via Firepower Management Center','show ip ips signatures'],tip:'Know the difference: IPS = inline, can drop packets. IDS = passive, can only alert. The exam loves asking this. Also know that false positives (blocking legitimate traffic) are a risk with IPS.',topics:['5.3'],specs:'Signature-based detection + anomaly-based. Inline deployment for IPS, SPAN port for IDS.'},
-
-core_router: {type:'Core Router',name:'Core Router (ISR/ASR)',tier:'Core Layer — backbone of the network',osi:'Layer 3 (Network)',desc:'Core routers form the OSPF Area 0 backbone. They connect to the firewall above and the core L3 switch below. Deployed in pairs for redundancy. They make forwarding decisions based on the routing table, which is populated by OSPF. The core should be fast and simple — no ACLs or policy here, just pure routing.',cmds:['router ospf 1','  network 10.0.0.0 0.255.255.255 area 0','  router-id 1.1.1.1','show ip ospf neighbor','show ip route ospf','show ip protocols'],tip:'OSPF is heavily tested. Know: hello/dead timers (10/40 on broadcast), DR/BDR election, area 0 requirement, cost = reference bandwidth / interface bandwidth. Know the neighbor states: Down → Init → 2-Way → ExStart → Exchange → Loading → Full.',topics:['3.1','3.2','3.4'],specs:'Cisco ISR 1941/4321. Dual power supply. GigabitEthernet + serial interfaces. Supports OSPF, EIGRP, BGP, static routes.'},
-
-l3_switch: {type:'Layer 3 Core Switch',name:'Core L3 Switch',tier:'Core Layer — high-speed inter-VLAN routing',osi:'Layer 2-3 (Data Link + Network)',desc:'The core L3 switch combines switching speed with routing capability. It has Switch Virtual Interfaces (SVIs) — one per VLAN — that act as the default gateway for each VLAN. EtherChannel (LACP) uplinks to distribution switches provide bandwidth and redundancy. This is where inter-VLAN routing actually happens in most campus networks.',cmds:['interface vlan 10','  ip address 10.10.1.1 255.255.255.0','  no shutdown','ip routing','show ip route','show interfaces vlan 10'],tip:'Know SVIs vs routed ports. An SVI is a virtual interface for a VLAN — it\'s the default gateway. A routed port (no switchport) turns a switch port into a router port. The "ip routing" command enables L3 forwarding on the switch.',topics:['2.1','3.1'],specs:'Cisco 3650/3850/9300. Wire-speed routing. Supports OSPF, EIGRP, SVIs, routed ports, EtherChannel.'},
-
-dist_switch: {type:'Distribution Switch',name:'Distribution Layer Switch',tier:'Distribution Layer — policy and aggregation',osi:'Layer 2-3',desc:'Distribution switches aggregate access layer switches and apply policy (ACLs, QoS). They run HSRP/VRRP for gateway redundancy — if the active switch fails, the standby takes over seamlessly. They connect to access switches via trunk links carrying multiple VLANs. STP root bridge is typically set here.',cmds:['standby 1 ip 10.10.1.1','standby 1 priority 110','standby 1 preempt','spanning-tree vlan 10 root primary','show standby brief','show spanning-tree'],tip:'HSRP is key for the CCNA. Know: virtual IP (shared gateway), priority (higher wins), preempt (take back active role). Default priority is 100. Also know STP root bridge election — lowest bridge ID (priority + MAC) wins.',topics:['2.5','3.5'],specs:'Cisco 3560/3650. Trunk uplinks to core, trunk downlinks to access. HSRP/VRRP for gateway redundancy. QoS marking.'},
-
-access_switch: {type:'Access Layer Switch',name:'Access Switch (2960)',tier:'Access Layer — where endpoints connect',osi:'Layer 2 (Data Link)',desc:'Access switches are the most numerous devices. Every PC, phone, printer, and AP plugs in here. Key security features: port security (limit MACs), DHCP snooping (block rogue DHCP servers), Dynamic ARP Inspection (prevent ARP spoofing), 802.1X (authenticate before granting access). PoE (802.3af/at/bt) powers IP phones and APs through the Ethernet cable.',cmds:['interface fa0/1','  switchport mode access','  switchport access vlan 10','  switchport port-security','  switchport port-security maximum 2','  switchport port-security violation restrict','  spanning-tree portfast','show port-security interface fa0/1','show mac address-table'],tip:'This is the most command-heavy device on the CCNA. Know: access vs trunk ports, PortFast (skip STP on access ports), BPDU Guard (shut down if BPDU received on access port), port security violation modes (protect/restrict/shutdown). Know PoE standards: 802.3af=15.4W, 802.3at=30W, 802.3bt=60/90W.',topics:['2.1','2.2','2.5','5.7'],specs:'Cisco 2960. 24 or 48 ports. PoE+ (740W or 1440W budget). FastEthernet/GigabitEthernet access. GigabitEthernet uplinks.'},
-
-wlc: {type:'Wireless LAN Controller',name:'WLC',tier:'Access Layer — wireless management',osi:'Layer 2-3',desc:'The WLC centrally manages all lightweight APs via CAPWAP tunnels (UDP 5246/5247). It handles SSID creation, RF management, roaming, security policies (WPA2/WPA3), and QoS. Lightweight APs cannot function without the WLC — they are "dumb" radios that tunnel all management and sometimes data traffic back to the controller.',cmds:['# WLC is managed via GUI or CLI','show ap summary','show wlan summary','show client summary'],tip:'Know CAPWAP (Control And Provisioning of Wireless Access Points). Know the difference between autonomous AP (standalone) and lightweight AP (needs WLC). Know WPA2-Personal (PSK) vs WPA2-Enterprise (802.1X/RADIUS). Know that the WLC handles roaming between APs.',topics:['2.6','2.7'],specs:'Manages 50-6000+ APs depending on model. FlexConnect mode for remote sites. Supports 802.11ax (Wi-Fi 6).'},
-
-access_point: {type:'Lightweight Access Point',name:'Wireless AP (802.11ax)',tier:'Access Layer — wireless connectivity',osi:'Layer 1-2 (Physical + Data Link)',desc:'Lightweight APs provide Wi-Fi connectivity. They don\'t make forwarding decisions — they tunnel everything to the WLC via CAPWAP. Powered by PoE from the access switch (no separate power cable needed). Dual-radio: 2.4 GHz (channels 1, 6, 11) and 5 GHz. 802.11ax (Wi-Fi 6) supports OFDMA and MU-MIMO for better performance in dense environments.',cmds:['# APs are managed from the WLC, not directly','# On WLC: show ap config general <ap-name>'],tip:'Know the 802.11 standards: a (5GHz, 54Mbps), g (2.4GHz, 54Mbps), n (both, 600Mbps), ac (5GHz, 6.9Gbps), ax (both, 9.6Gbps). Know 2.4 GHz non-overlapping channels: 1, 6, 11. Know that APs connect to access switches on trunk ports (data VLAN + management VLAN).',topics:['1.11','2.6','2.7'],specs:'PoE powered (802.3at). CAPWAP tunnel to WLC. Dual-radio 2.4/5 GHz. 802.11ax (Wi-Fi 6).'},
-
-dns_server: {type:'DNS Server',name:'DNS Server',tier:'Server Farm — name resolution',osi:'Layer 7 (Application)',desc:'Translates hostnames to IP addresses (forward lookup) and IP addresses to hostnames (reverse lookup). Uses UDP port 53 for queries, TCP port 53 for zone transfers. Record types: A (IPv4), AAAA (IPv6), CNAME (alias), MX (mail), PTR (reverse). Every device on the network needs DNS to function normally.',cmds:['ip name-server 10.0.10.10','ip domain-lookup','nslookup example.com','show hosts'],tip:'Know the record types (A, AAAA, CNAME, MX, PTR). Know that DNS uses UDP 53 for lookups and TCP 53 for zone transfers. Know iterative vs recursive queries. The client asks its configured DNS server (recursive), which then queries root → TLD → authoritative servers (iterative).',topics:['4.6','1.5'],specs:'UDP/TCP port 53. Typical deployment: primary + secondary for redundancy. Caching reduces external lookups.'},
-
-dhcp_server: {type:'DHCP Server',name:'DHCP Server',tier:'Server Farm — IP address assignment',osi:'Layer 7 (Application)',desc:'Assigns IP addresses dynamically using the DORA process: Discover (broadcast), Offer, Request, Acknowledge. The server maintains pools of addresses per subnet. Since DHCP Discover is a broadcast and routers don\'t forward broadcasts, you need "ip helper-address" on each SVI to relay DHCP to the server.',cmds:['ip dhcp pool VLAN10','  network 10.10.1.0 255.255.255.0','  default-router 10.10.1.1','  dns-server 10.0.10.10','ip dhcp excluded-address 10.10.1.1 10.10.1.10','interface vlan 10','  ip helper-address 10.0.10.20','show ip dhcp binding','show ip dhcp pool'],tip:'The DORA process is exam gold. Know that Discover and Request are broadcasts from the client, Offer and Ack are from the server. Know ip helper-address — it converts the broadcast Discover into a unicast to the DHCP server. Know lease times and DHCP options.',topics:['4.3','4.5'],specs:'UDP port 67 (server), 68 (client). Pools per VLAN. Excluded addresses for static devices (routers, servers). DHCP snooping on switches validates server responses.'},
-
-ntp_server: {type:'NTP Server',name:'NTP Server',tier:'Server Farm — time synchronization',osi:'Layer 7 (Application)',desc:'Synchronizes clocks across all network devices. Critical for log correlation, certificate validation, and troubleshooting (timestamps must match). NTP uses a stratum hierarchy: stratum 0 = atomic clock, stratum 1 = directly connected to stratum 0, etc. Each hop adds 1 stratum. Lower stratum = more accurate.',cmds:['ntp server 10.0.10.30','ntp source loopback0','show ntp status','show ntp associations','show clock'],tip:'Know stratum levels (0-15, 16 = unsynchronized). Know that lower stratum = more accurate. NTP uses UDP port 123. On the exam, they may ask you to identify which NTP server a device should prefer (lowest stratum wins).',topics:['4.8'],specs:'UDP port 123. Stratum hierarchy. Accuracy: milliseconds over LAN. Authentication supported via MD5 keys.'},
-
-syslog_server: {type:'Syslog Server',name:'Syslog / SNMP Server',tier:'Server Farm — monitoring and logging',osi:'Layer 7 (Application)',desc:'Collects log messages from all network devices. Syslog severity levels: 0=Emergency, 1=Alert, 2=Critical, 3=Error, 4=Warning, 5=Notification, 6=Informational, 7=Debugging. SNMP (Simple Network Management Protocol) enables monitoring — the manager polls agents, agents send traps for critical events.',cmds:['logging host 10.0.10.30','logging trap informational','logging source-interface loopback0','snmp-server community public RO','snmp-server host 10.0.10.30 traps','show logging'],tip:'Memorize the severity levels: "Every Awesome Cisco Engineer Will Need Ice-cream Daily" (0-7). Know that lower number = more severe. Know SNMPv3 provides encryption and authentication (SNMPv1/v2c use community strings — insecure). Know the difference between trap (agent-initiated) and poll (manager-initiated).',topics:['4.7','4.8'],specs:'Syslog: UDP port 514. SNMP: UDP 161 (queries), 162 (traps). SNMPv3 recommended for security.'},
-
-aaa_server: {type:'AAA Server (RADIUS/TACACS+)',name:'AAA Server',tier:'Server Farm — authentication & authorization',osi:'Layer 7 (Application)',desc:'AAA = Authentication (who are you?), Authorization (what can you do?), Accounting (what did you do?). RADIUS is used for network access (802.1X, VPN). TACACS+ is used for device administration (SSH/console access to routers and switches). The key difference: RADIUS encrypts only the password, TACACS+ encrypts the entire packet body.',cmds:['aaa new-model','radius server ISE','  address ipv4 10.0.10.40 auth-port 1812 acct-port 1813','  key MySecret','aaa authentication login default group radius local','show aaa servers'],tip:'This is a high-value CCNA topic. RADIUS: UDP 1812/1813, encrypts password only, combines auth+authz. TACACS+: TCP 49, encrypts entire body, separates auth/authz/acct. 802.1X has 3 roles: supplicant (client), authenticator (switch), authentication server (RADIUS).',topics:['5.4','5.9','2.8'],specs:'RADIUS: UDP 1812 (auth), 1813 (acct). TACACS+: TCP 49. Cisco ISE is the modern AAA platform.'},
-
-tftp_server: {type:'TFTP Server',name:'TFTP / FTP Server',tier:'Server Farm — file transfer',osi:'Layer 7 (Application)',desc:'Used to backup and restore IOS images and configuration files. TFTP (Trivial File Transfer Protocol) is simple, no authentication, UDP-based. FTP is more robust with authentication and TCP. SCP (Secure Copy) adds SSH encryption. On the CCNA, you\'ll use TFTP to copy running-config and IOS images.',cmds:['copy running-config tftp:','copy tftp: flash:','copy startup-config tftp:','show flash:','dir flash:'],tip:'Know the copy command syntax: copy <source> <destination>. Common combos: copy run start (save config), copy run tftp (backup to server), copy tftp flash (restore IOS image). Know that TFTP uses UDP 69 and has no authentication.',topics:['2.8'],specs:'TFTP: UDP 69, no auth. FTP: TCP 20/21, username/password. SCP: TCP 22, SSH-encrypted. Used for IOS upgrades and config backups.'},
-
-desktop: {type:'Desktop PC',name:'End Host (PC)',tier:'Endpoints — user devices',osi:'Layer 1-7 (all layers)',desc:'PCs connect to access switch ports on access VLANs. They get their IP address via DHCP, use the SVI as their default gateway, and rely on DNS for name resolution. The PC\'s NIC operates at Layer 2 (MAC address) and Layer 3 (IP address). On Windows: ipconfig, ping, tracert, nslookup, arp -a.',cmds:['ipconfig /all','ping 10.10.1.1','tracert 8.8.8.8','nslookup example.com','arp -a','netstat -an'],tip:'Know the client-side verification commands for Windows, Mac, and Linux. Know that the default gateway must be in the same subnet as the PC. Know ARP — the PC uses ARP to resolve the gateway\'s MAC address before sending any traffic off-subnet.',topics:['1.5','1.6','1.10'],specs:'Connects via Ethernet (RJ45) or Wi-Fi. Gets IP/mask/gateway/DNS via DHCP. Uses ARP for L2 resolution.'},
-
-ip_phone: {type:'IP Phone',name:'IP Phone (VoIP)',tier:'Endpoints — voice',osi:'Layer 1-7',desc:'IP phones are powered by PoE from the access switch — no separate power cable. They use a dedicated voice VLAN (separate from the data VLAN) for QoS prioritization. The phone has a built-in 3-port switch: uplink to wall jack, internal phone, and a PC port (daisy-chain). Traffic is tagged with DSCP EF (Expedited Forwarding) for priority.',cmds:['interface fa0/1','  switchport mode access','  switchport access vlan 10','  switchport voice vlan 50','  mls qos trust cos','show interfaces fa0/1 switchport'],tip:'Know that the voice VLAN is configured with "switchport voice vlan X" — this is separate from the access VLAN. Know PoE standards: 802.3af (15.4W) is enough for phones. Know DSCP EF = priority voice traffic. The phone sends 802.1Q tagged frames on the voice VLAN.',topics:['1.3','2.1','4.4'],specs:'PoE powered (802.3af, ~7W). Voice VLAN + data VLAN. DSCP EF marking. Built-in 3-port switch.'},
-
-laptop: {type:'Laptop',name:'Laptop / Mobile Device',tier:'Endpoints — wired or wireless',osi:'Layer 1-7',desc:'Laptops can connect wired (Ethernet) or wireless (Wi-Fi). Wireless clients authenticate via WPA2-Personal (PSK) or WPA2-Enterprise (802.1X with RADIUS). The laptop\'s wireless NIC associates with an SSID, gets an IP from DHCP, and uses the network normally. Roaming between APs is handled by the WLC.',cmds:['# Windows: ipconfig /all, netsh wlan show interfaces','# Mac: ifconfig, airport -I','# Linux: ip addr, iwconfig, nmcli'],tip:'Know the wireless authentication methods: WPA2-Personal (pre-shared key, suitable for home), WPA2-Enterprise (802.1X + RADIUS, suitable for business). Know that a wireless client is called a supplicant in 802.1X.',topics:['1.10','1.11','2.6'],specs:'Wired: RJ45 GigabitEthernet. Wireless: 802.11ax (Wi-Fi 6). Dual-band 2.4/5 GHz.'},
-
-printer: {type:'Network Printer',name:'Network Printer',tier:'Endpoints — shared resource',osi:'Layer 1-3',desc:'Network printers connect to access ports just like PCs. They often have static IP addresses (excluded from DHCP pools) so print queues don\'t break when the IP changes. Printers should be on the same VLAN as the users who print to them, or routed via inter-VLAN routing if on a separate VLAN.',cmds:['ip dhcp excluded-address 10.10.1.200 10.10.1.210','# Assign printer a static IP in the excluded range'],tip:'Not a heavy CCNA topic, but know that static devices (printers, servers) use excluded DHCP addresses. This prevents the DHCP server from assigning that IP to someone else.',topics:['4.3'],specs:'Ethernet or Wi-Fi. Static IP recommended. Common ports: 9100 (raw), 631 (IPP).'},
-
-wireless_client: {type:'Wireless Client',name:'Wireless Client',tier:'Endpoints — Wi-Fi connected',osi:'Layer 1-7',desc:'Wireless clients connect through APs to the network. Guest clients typically land on an isolated VLAN with internet-only access (no access to internal servers). Corporate clients authenticate via 802.1X and get full network access. The guest VLAN ACL blocks inter-VLAN traffic to protect the internal network.',cmds:['# Client-side: connect to SSID, verify IP','ipconfig /all','ping <gateway>'],tip:'Know that guest traffic should be isolated. The exam tests this with ACL questions — "which ACL permits guest internet access but denies access to 10.0.0.0/8?" Know that wireless clients get their VLAN assignment from the WLC based on which SSID they connect to.',topics:['2.6','5.6'],specs:'802.11ax capable. WPA2-PSK (guest) or WPA2-Enterprise (corporate). VLAN assigned by SSID.'},
-
-server_web: {type:'Web / Application Server',name:'Web Server',tier:'Endpoints — hosted services',osi:'Layer 1-7',desc:'Web servers host HTTP (port 80) and HTTPS (port 443) services. They sit on server VLANs with restricted access via ACLs. HTTPS uses TLS encryption — the server presents a certificate to prove identity. On the CCNA, you need to know common ports and the difference between HTTP and HTTPS.',cmds:['access-list 101 permit tcp any host 10.0.10.50 eq 443','access-list 101 permit tcp any host 10.0.10.50 eq 80'],tip:'Know your ports: HTTP=80, HTTPS=443, FTP=20/21, SSH=22, Telnet=23, SMTP=25, DNS=53, DHCP=67/68, TFTP=69, SNMP=161/162, Syslog=514, RDP=3389. This is a guaranteed exam topic.',topics:['1.5','5.6'],specs:'HTTP: TCP 80. HTTPS: TCP 443 (TLS encrypted). Typically on dedicated server VLAN.'},
-
-ups: {type:'Uninterruptible Power Supply',name:'UPS',tier:'Infrastructure — power protection',osi:'Physical infrastructure (not OSI)',desc:'A UPS provides battery backup power when the main power fails. Network devices (switches, routers, firewalls) plug into the UPS so they stay online during brief outages. The UPS also conditions power (filters surges and sags). Data centers use large rack-mounted UPS units with hours of runtime. PoE switches especially need UPS — if the switch loses power, every PoE device (phones, APs) goes down too.',cmds:['# UPS is physical infrastructure, no IOS commands','# Monitor via SNMP traps to syslog server'],tip:'The CCNA briefly covers physical infrastructure. Know that losing power to a PoE switch takes down all connected phones and APs. UPS + generator is the standard redundancy pattern. Know that PoE budget matters — a switch with 740W PoE budget can power about 48 phones but only about 24 APs.',topics:['1.3'],specs:'Runtime: 15-60 minutes typical. Rack-mounted in data centers. SNMP monitoring. Auto-shutdown signaling to servers.'},
+/* ── Category colors ───────────────────────────────────────── */
+const CAT_COLORS = {
+  wan:      {bg:'#FEF2F2',fg:'#DC2626',fill:'#DC2626'},
+  core:     {bg:'#EFF6FF',fg:'#2563EB',fill:'#2563EB'},
+  server:   {bg:'#F5F3FF',fg:'#7C3AED',fill:'#7C3AED'},
+  dist:     {bg:'#F0FDF4',fg:'#16A34A',fill:'#16A34A'},
+  access:   {bg:'#ECFEFF',fg:'#0891B2',fill:'#0891B2'},
+  endpoint: {bg:'#F8FAFC',fg:'#64748B',fill:'#94A3B8'},
+  infra:    {bg:'#FFFBEB',fg:'#D97706',fill:'#D97706'}
 };
 
-// ═══════════════════════════════════════════════════════════════
-// DETAIL PANEL
-// ═══════════════════════════════════════════════════════════════
-const panel = document.getElementById('detailPanel');
-const backdrop = document.getElementById('detailBackdrop');
-const content = document.getElementById('detailContent');
+/* ── Device Database (30 device types) ─────────────────────── */
+const DEVICES = {
+  // ────── WAN / Edge ──────
+  internet: {
+    name:'Internet / ISP',category:'wan',osi:'Layer 1-3',
+    desc:'The external WAN connection provided by an Internet Service Provider. Represents the demarcation point where your network meets the provider. In CCNA topology diagrams, shown as a cloud to indicate a network you do not control.',
+    models:[
+      {name:'Cisco ISR 1100',use:'Branch WAN edge with SD-WAN capability'},
+      {name:'Cisco ASR 1001-X',use:'Enterprise WAN aggregation, 20 Gbps'},
+    ],
+    specs:{Throughput:'Varies by plan',Interface:'Ethernet handoff or fiber',Protocol:'BGP / static default route',SLA:'99.9% typical business'},
+    history:[
+      {year:'1969',text:'ARPANET — 4 nodes, first packet switching'},
+      {year:'1983',text:'TCP/IP adopted, modern internet born'},
+      {year:'1995',text:'Commercial ISPs emerge, T1/T3 era begins'},
+    ],
+    commands:[
+      {cmd:'show ip interface brief',desc:'Verify WAN interface status'},
+      {cmd:'show ip route',desc:'Check default route to ISP'},
+      {cmd:'ping 8.8.8.8',desc:'Test internet reachability'},
+    ],
+    tip:'On the CCNA exam, the ISP cloud means you don\'t manage that network. Focus on the customer edge (CE) router configuration — default routes, NAT, and access lists facing the ISP.'
+  },
+  modem: {
+    name:'Cable/DSL Modem',category:'wan',osi:'Layer 1-2',
+    desc:'Converts the ISP signal (coax, DSL, fiber) into Ethernet for your LAN. In home networks, often integrated with a Wi-Fi router. The modem handles the physical and data-link layer modulation between media types.',
+    models:[
+      {name:'ARRIS SURFboard SB8200',use:'DOCSIS 3.1, up to 6 Gbps'},
+      {name:'Motorola MB8611',use:'DOCSIS 3.1, 2.5G Ethernet port'},
+    ],
+    specs:{Standard:'DOCSIS 3.1 / VDSL2',Ports:'1x Ethernet (GbE or 2.5G)',Throughput:'Up to 6 Gbps downstream','Bridge Mode':'Pass-through to router'},
+    history:[
+      {year:'1997',text:'DOCSIS 1.0 — cable internet standardized'},
+      {year:'2013',text:'DOCSIS 3.1 — multi-gigabit cable speeds'},
+      {year:'2020',text:'DOCSIS 4.0 draft — 10 Gbps goal'},
+    ],
+    commands:[
+      {cmd:'show interfaces GigabitEthernet0/0',desc:'Check handoff interface'},
+      {cmd:'show ip dhcp binding',desc:'See DHCP lease from modem'},
+    ],
+    tip:'The CCNA rarely tests modems directly. Know that modems bridge Layer 1 media types and that bridge mode disables NAT/routing, letting your router handle everything.'
+  },
+  firewall: {
+    name:'Firewall',category:'wan',osi:'Layer 3-7',
+    desc:'Inspects traffic between network zones using ACLs, stateful inspection, and deep packet inspection. Next-generation firewalls (NGFW) add application awareness, IPS, URL filtering, and malware inspection in a single appliance.',
+    models:[
+      {name:'Cisco Firepower 1140',use:'SMB/Branch, 2.2 Gbps FW throughput'},
+      {name:'Palo Alto PA-460',use:'Branch NGFW, App-ID, 5.2 Gbps'},
+      {name:'Fortinet FortiGate 60F',use:'SOHO/SMB, 10 Gbps FW, best value'},
+    ],
+    specs:{Throughput:'1-100+ Gbps',Inspection:'Stateful + DPI + IPS','HA Mode':'Active/Standby or Active/Active',Management:'CLI, GUI, cloud'},
+    history:[
+      {year:'1993',text:'Cisco PIX — first commercial hardware firewall'},
+      {year:'2007',text:'Palo Alto PA-4000 — App-ID redefines NGFW'},
+      {year:'2014',text:'Cisco ASA with FirePOWER services'},
+    ],
+    commands:[
+      {cmd:'show access-lists',desc:'View ACL hit counts'},
+      {cmd:'show conn count',desc:'Active connection count (ASA)'},
+      {cmd:'show running-config access-list',desc:'View configured ACLs'},
+      {cmd:'show security-zone',desc:'Check zone membership'},
+    ],
+    tip:'CCNA covers basic ACLs (standard and extended), not full NGFW features. Know the difference between stateless ACLs and stateful firewalls. Remember: ACLs are processed top-down, implicit deny at end.'
+  },
+  ips: {
+    name:'IPS / IDS',category:'wan',osi:'Layer 3-7',
+    desc:'Intrusion Prevention Systems sit inline and block malicious traffic in real-time. Intrusion Detection Systems monitor passively via SPAN/mirror ports. Modern firewalls often integrate IPS functionality, but dedicated IPS appliances offer higher throughput.',
+    models:[
+      {name:'Cisco Firepower 4115',use:'Dedicated IPS, 15 Gbps inspection'},
+      {name:'Cisco Snort 3.0',use:'Open-source IPS engine in Firepower'},
+    ],
+    specs:{Mode:'Inline (IPS) or passive (IDS)',Detection:'Signature + anomaly-based',Throughput:'5-40+ Gbps','False Positives':'Tunable via policy'},
+    history:[
+      {year:'1998',text:'Snort released — open-source IDS standard'},
+      {year:'2003',text:'Cisco acquires Okena (inline IPS)'},
+      {year:'2013',text:'Sourcefire (Snort) acquired by Cisco'},
+    ],
+    commands:[
+      {cmd:'show ip ips statistics',desc:'View IPS signature hits'},
+      {cmd:'show ip ips configuration',desc:'Check IPS policy'},
+    ],
+    tip:'Know the difference: IDS monitors and alerts (passive, SPAN port), IPS blocks in real-time (inline). The CCNA tests this distinction directly. IPS = prevention, IDS = detection only.'
+  },
 
-document.querySelectorAll('.dev-group').forEach(g => {
-  g.addEventListener('click', () => {
-    const id = g.dataset.id;
-    const d = DEVICE_INFO[id];
-    if (!d) return;
-    content.innerHTML =
-      '<div class="dp-type">' + d.type + '</div>' +
-      '<div class="dp-name">' + d.name + '</div>' +
-      '<div class="dp-tier">' + d.tier + '</div>' +
-      '<div class="dp-section"><div class="dp-section-title">Key Commands</div>' + d.cmds.map(function(c){ return '<div class="dp-cmd"><span>' + c + '</span><button class="dp-copy" onclick="navigator.clipboard.writeText(this.previousElementSibling.textContent);this.textContent=\'Copied\';setTimeout(()=>this.textContent=\'Copy\',1000)">Copy</button></div>'; }).join('') + '</div>' +
-      '<div class="dp-section"><div class="dp-section-title">CCNA Exam Tip</div><div class="dp-tip">' + d.tip + '</div></div>' +
-      '<div class="dp-desc">' + d.desc + '</div>' +
-      '<div class="dp-section"><div class="dp-section-title">OSI Layer</div><div class="dp-osi">' + d.osi + '</div></div>' +
-      (d.specs ? '<div class="dp-section"><div class="dp-section-title">Specs</div><div class="dp-specs">' + d.specs + '</div></div>' : '') +
-      '<div class="dp-section"><div class="dp-section-title">Related Topics</div><div class="dp-topics">' + d.topics.map(function(t){ return '<span class="dp-topic">' + t + '</span>'; }).join('') + '</div></div>';
-    panel.classList.add('open');
-    backdrop.classList.add('open');
-    // Highlight this device
-    document.querySelectorAll('.dev-group').forEach(gg => gg.classList.remove('active'));
-    g.classList.add('active');
-  });
-});
+  // ────── Core ──────
+  core_router: {
+    name:'Core Router',category:'core',osi:'Layer 3',
+    desc:'Backbone router that makes forwarding decisions at wire speed using routing protocols like OSPF, EIGRP, or BGP. Core routers handle inter-VLAN routing, WAN connectivity, and route redistribution. They form the spine of the enterprise routing domain.',
+    models:[
+      {name:'Cisco ISR 4431',use:'Enterprise branch, 500 Mbps-1 Gbps aggregate'},
+      {name:'Cisco Catalyst 8300',use:'SD-WAN edge router, up to 5 Gbps'},
+      {name:'Cisco ASR 1002-HX',use:'WAN aggregation, 100 Gbps'},
+    ],
+    specs:{Throughput:'1-100+ Gbps',Protocols:'OSPF, EIGRP, BGP, static',Interfaces:'GbE, 10GbE, serial','Route Table':'500K+ routes'},
+    history:[
+      {year:'1986',text:'Cisco ships first multi-protocol router'},
+      {year:'1998',text:'Cisco 7200 — ISP backbone workhorse'},
+      {year:'2020',text:'Catalyst 8000 — SD-WAN integrated'},
+    ],
+    commands:[
+      {cmd:'show ip route',desc:'Full routing table'},
+      {cmd:'show ip ospf neighbor',desc:'OSPF adjacency states'},
+      {cmd:'show ip protocols',desc:'Active routing protocols'},
+      {cmd:'show ip interface brief',desc:'Interface status summary'},
+      {cmd:'show running-config | section router',desc:'Routing config'},
+    ],
+    tip:'The CCNA heavily tests OSPF and static routes. Know the routing table codes: C=connected, S=static, O=OSPF, D=EIGRP. Longest prefix match determines the forwarding decision.'
+  },
+  l3_switch: {
+    name:'L3 Core Switch',category:'core',osi:'Layer 2-3',
+    desc:'A multilayer switch that performs both switching and routing at hardware speed using ASICs. Typically the core of a campus LAN, handling inter-VLAN routing via SVIs (Switch Virtual Interfaces). Replaces the need for a separate router for internal traffic.',
+    models:[
+      {name:'Cisco Catalyst 9500-48Y4C',use:'Campus core, 48x 25G + 4x 100G'},
+      {name:'Cisco Catalyst 9600',use:'Modular core/aggregation chassis'},
+      {name:'Arista 7050X3',use:'Data center leaf/spine, 100GbE'},
+    ],
+    specs:{Throughput:'480 Gbps - 6.4 Tbps',Ports:'24-48 SFP+ / QSFP28','Stacking':'StackWise Virtual',Routing:'OSPF, EIGRP, BGP, PBR'},
+    history:[
+      {year:'1998',text:'Cisco Catalyst 6500 — first campus L3 switch'},
+      {year:'2007',text:'Cisco Nexus 7000 — data center L3 switching'},
+      {year:'2018',text:'Catalyst 9000 replaces classic Catalyst lines'},
+    ],
+    commands:[
+      {cmd:'show ip route',desc:'Routing table (same as router)'},
+      {cmd:'show vlan brief',desc:'VLAN assignments'},
+      {cmd:'interface vlan 10',desc:'Create SVI for inter-VLAN routing'},
+      {cmd:'ip routing',desc:'Enable L3 routing on a switch'},
+      {cmd:'show etherchannel summary',desc:'Port-channel status'},
+    ],
+    tip:'SVIs are the key concept. To route between VLANs on a L3 switch: create SVIs, assign IPs, enable "ip routing". This replaces router-on-a-stick for high-performance inter-VLAN routing.'
+  },
 
-document.getElementById('detailClose').addEventListener('click', closePanel);
-backdrop.addEventListener('click', closePanel);
-function closePanel() {
-  panel.classList.remove('open');
-  backdrop.classList.remove('open');
-  document.querySelectorAll('.dev-group').forEach(g => g.classList.remove('active'));
-}
+  // ────── Distribution ──────
+  dist_switch: {
+    name:'Distribution Switch',category:'dist',osi:'Layer 2-3',
+    desc:'Aggregates access layer switches and enforces policy (ACLs, QoS, route filtering). In the three-tier model, distribution switches connect access to core. Often run HSRP/VRRP for gateway redundancy and STP root bridge duty.',
+    models:[
+      {name:'Cisco Catalyst 9300-48T',use:'48x GbE, campus distribution workhorse'},
+      {name:'Cisco Catalyst 9400',use:'Modular chassis, PoE++, redundant supervisors'},
+    ],
+    specs:{Ports:'24-48 GbE + uplinks','PoE Budget':'Up to 1440W',Redundancy:'HSRP / VRRP / GLBP','STP Role':'Root bridge (primary/secondary)'},
+    history:[
+      {year:'1999',text:'Cisco Catalyst 3550 — first distribution-class L3 switch'},
+      {year:'2005',text:'Catalyst 3750 — StackWise introduced'},
+      {year:'2018',text:'Catalyst 9300/9400 — UADP 2.0 ASIC'},
+    ],
+    commands:[
+      {cmd:'show standby brief',desc:'HSRP state and virtual IP'},
+      {cmd:'show spanning-tree root',desc:'STP root bridge per VLAN'},
+      {cmd:'show etherchannel summary',desc:'EtherChannel to access switches'},
+      {cmd:'show access-lists',desc:'Policy ACLs applied'},
+    ],
+    tip:'Distribution switches are HSRP territory on the CCNA. Know active/standby roles, virtual IP, preemption, and priority. The default HSRP priority is 100 — higher wins.'
+  },
 
-// ═══════════════════════════════════════════════════════════════
-// GUIDED TOUR
-// ═══════════════════════════════════════════════════════════════
-const TOUR = [
-  {title:'Internet Edge',text:'Traffic enters from the ISP cloud and hits a pair of Next-Generation Firewalls in active/standby. The IPS sits inline, inspecting all traffic for threats. NAT translates private IPs to public before packets leave.',ids:['internet','firewall','ips']},
-  {title:'Core Layer',text:'Two core routers run OSPF Area 0 — the backbone. They connect to each other for redundancy and down to the core L3 switch. The rule: core should be fast and simple. No ACLs, no policy — just route.',ids:['core_router','l3_switch']},
-  {title:'Server Farm',text:'Six critical servers: DNS (name resolution), DHCP (IP assignment), NTP (time sync), Syslog (logging), AAA/RADIUS (authentication), and TFTP (file transfer). Every one of these is a CCNA exam topic.',ids:['dns_server','dhcp_server','ntp_server','syslog_server','aaa_server','tftp_server']},
-  {title:'Distribution Layer',text:'Distribution switches aggregate access switches and apply policy. HSRP provides gateway redundancy — if DSW-A fails, DSW-B takes over the virtual IP seamlessly. This is where STP root bridge is set.',ids:['dist_switch']},
-  {title:'Access Layer',text:'Access switches are where everything plugs in. PoE powers phones and APs. Port security limits MAC addresses. DHCP snooping blocks rogue servers. PortFast skips STP on end-host ports. This layer has the most commands to memorize.',ids:['access_switch']},
-  {title:'Wireless',text:'The WLC manages all lightweight APs via CAPWAP tunnels. APs are "dumb" radios — the WLC handles SSIDs, security, roaming, and RF management. Two SSIDs: Corp-WiFi (WPA2-Enterprise/802.1X) and Guest-WiFi (WPA2-PSK, isolated VLAN).',ids:['wlc','access_point']},
-  {title:'End Devices',text:'PCs, phones, laptops, printers, servers, and wireless clients. Each gets an IP via DHCP, uses the SVI as default gateway, and relies on DNS. IP phones use a separate voice VLAN with QoS marking (DSCP EF) for priority.',ids:['desktop','ip_phone','laptop','printer','wireless_client','server_web']},
-  {title:'Infrastructure',text:'UPS provides battery backup — if a PoE switch loses power, every phone and AP connected to it goes dark. Physical infrastructure is easy to overlook but critical. The CCNA touches on PoE budgets and power redundancy.',ids:['ups']},
-  {title:'Full Picture',text:'This is a three-tier campus network: Access → Distribution → Core, with WAN edge and a server farm. Every CCNA concept lives somewhere in this topology: VLANs, trunking, STP, OSPF, NAT, DHCP, ACLs, PoE, wireless, QoS, AAA, and automation. Click any device to dive deeper.',ids:[]},
-];
+  // ────── Access ──────
+  access_switch: {
+    name:'Access Switch',category:'access',osi:'Layer 2',
+    desc:'Edge switch where endpoints plug in. Provides PoE for phones and APs, 802.1X port security, VLAN assignment, and STP edge port configuration. Access switches connect users and devices to the network at the first point of entry.',
+    models:[
+      {name:'Cisco Catalyst 9200-48P',use:'48-port PoE+, campus access'},
+      {name:'Cisco Catalyst 1000-24P',use:'24-port PoE, SMB/branch'},
+      {name:'Cisco Meraki MS130-48',use:'Cloud-managed, 48-port PoE'},
+    ],
+    specs:{Ports:'24-48 GbE','PoE Per Port':'Up to 30W (PoE+)',Security:'802.1X, DHCP snooping, DAI',Uplinks:'2-4 SFP+ (10G)'},
+    history:[
+      {year:'2000',text:'Catalyst 2950 — ubiquitous campus access switch'},
+      {year:'2006',text:'Catalyst 2960 — added PoE, still in production sites'},
+      {year:'2019',text:'Catalyst 9200 — cloud monitoring, UADP ASIC'},
+    ],
+    commands:[
+      {cmd:'show mac address-table',desc:'MAC to port mappings'},
+      {cmd:'show interfaces status',desc:'Port speed/duplex/VLAN'},
+      {cmd:'switchport mode access',desc:'Set port to access mode'},
+      {cmd:'switchport access vlan 10',desc:'Assign port to VLAN'},
+      {cmd:'switchport port-security',desc:'Enable port security'},
+    ],
+    tip:'Access switch config is heavily tested: switchport modes (access vs trunk), VLANs, port security (sticky MAC, max addresses, violation modes), and STP portfast/bpduguard on edge ports.'
+  },
+  wlc: {
+    name:'Wireless LAN Controller',category:'access',osi:'Layer 2-3',
+    desc:'Centrally manages lightweight access points using CAPWAP tunnels. Handles AP provisioning, firmware updates, RF management, roaming, and security policies. Moves intelligence from individual APs to a single management plane.',
+    models:[
+      {name:'Cisco 9800-40',use:'Enterprise WLC, up to 2000 APs'},
+      {name:'Cisco 9800-CL',use:'Virtual WLC on ESXi/KVM'},
+      {name:'Cisco Catalyst 9800-L',use:'Branch WLC, up to 150 APs'},
+    ],
+    specs:{'Max APs':'150-6000 depending on model',Protocol:'CAPWAP (UDP 5246/5247)',Roaming:'Fast Transition (802.11r)',Management:'GUI, CLI, Cisco DNA Center'},
+    history:[
+      {year:'2005',text:'Cisco acquires Airespace — WLC architecture born'},
+      {year:'2012',text:'Cisco 5508 WLC — most deployed enterprise WLC'},
+      {year:'2019',text:'Catalyst 9800 — IOS-XE based, replaces AireOS'},
+    ],
+    commands:[
+      {cmd:'show ap summary',desc:'Connected APs and status'},
+      {cmd:'show wlan summary',desc:'SSIDs and security policies'},
+      {cmd:'show client summary',desc:'Associated wireless clients'},
+      {cmd:'show ap cdp neighbors',desc:'AP switch connections'},
+    ],
+    tip:'WLC uses CAPWAP (replaces LWAPP). Know the split-MAC architecture: AP handles real-time (802.11 frames), WLC handles management (auth, roaming, QoS). CAPWAP uses UDP 5246 (control) and 5247 (data).'
+  },
+  access_point: {
+    name:'Access Point',category:'access',osi:'Layer 1-2',
+    desc:'Provides 802.11 wireless connectivity. In enterprise networks, lightweight APs rely on a WLC for configuration; in autonomous mode, each AP is configured independently. Supports multiple SSIDs, WPA3, and client steering.',
+    models:[
+      {name:'Cisco Catalyst 9166',use:'Wi-Fi 6E, tri-band, enterprise ceiling-mount'},
+      {name:'Cisco Aironet 2802i',use:'Wave 2, 802.11ac, still widely deployed'},
+      {name:'Cisco Meraki MR56',use:'Cloud-managed Wi-Fi 6'},
+    ],
+    specs:{Standard:'Wi-Fi 6 / 6E (802.11ax)',Bands:'2.4 GHz + 5 GHz + 6 GHz',Throughput:'Up to 5.4 Gbps aggregate',PoE:'802.3at (PoE+) required'},
+    history:[
+      {year:'1999',text:'802.11b — 11 Mbps, Wi-Fi goes mainstream'},
+      {year:'2013',text:'802.11ac (Wave 1) — GbE-class wireless'},
+      {year:'2020',text:'Wi-Fi 6E — 6 GHz band added, massive capacity'},
+    ],
+    commands:[
+      {cmd:'show ap summary',desc:'AP status list (from WLC)'},
+      {cmd:'show interfaces dot11radio 0',desc:'Radio 0 (2.4 GHz) status'},
+      {cmd:'show wlan id 1',desc:'WLAN profile details'},
+    ],
+    tip:'Know the Wi-Fi standards: 802.11b (2.4G, 11M), 802.11g (2.4G, 54M), 802.11n/Wi-Fi 4 (both, 600M), 802.11ac/Wi-Fi 5 (5G, 6.9G), 802.11ax/Wi-Fi 6 (both, 9.6G). Frequency assignments are heavily tested.'
+  },
 
-let tourIdx = 0, tourOn = false;
-function startTour() { tourOn = true; tourIdx = 0; showTourStep(); document.getElementById('tourStart').classList.add('hidden'); }
-function endTour() { tourOn = false; document.getElementById('tourBar').classList.remove('open'); document.getElementById('tourStart').classList.remove('hidden'); document.querySelectorAll('.dev-group').forEach(g => g.classList.remove('dimmed')); }
-function nextTour() { tourIdx++; if (tourIdx >= TOUR.length) { endTour(); return; } showTourStep(); }
-function prevTour() { if (tourIdx > 0) { tourIdx--; showTourStep(); } }
+  // ────── Servers ──────
+  dns_server: {
+    name:'DNS Server',category:'server',osi:'Layer 7',
+    desc:'Resolves hostnames to IP addresses using the hierarchical DNS system. Enterprise DNS servers handle internal zone resolution and forward external queries. Critical infrastructure — if DNS is down, nothing works by name.',
+    models:[
+      {name:'Microsoft DNS (AD-integrated)',use:'Windows domain environments'},
+      {name:'BIND 9',use:'Open-source, most deployed DNS globally'},
+      {name:'Infoblox NIOS',use:'Enterprise DDI (DNS/DHCP/IPAM)'},
+    ],
+    specs:{Port:'UDP/TCP 53',Records:'A, AAAA, CNAME, MX, PTR, SOA, NS',TTL:'300-86400s typical',Zones:'Forward and reverse lookups'},
+    history:[
+      {year:'1983',text:'DNS invented by Paul Mockapetris (RFC 882)'},
+      {year:'1987',text:'RFC 1034/1035 — DNS specification finalized'},
+      {year:'2018',text:'DNS over HTTPS (DoH) — encrypted DNS'},
+    ],
+    commands:[
+      {cmd:'ip name-server 8.8.8.8',desc:'Set DNS server on Cisco device'},
+      {cmd:'ip domain-lookup',desc:'Enable DNS resolution'},
+      {cmd:'nslookup server1.corp.com',desc:'Manual DNS lookup'},
+      {cmd:'show hosts',desc:'DNS cache on Cisco device'},
+    ],
+    tip:'DNS uses UDP 53 for queries and TCP 53 for zone transfers. Know the lookup order: local cache, hosts file, DNS server. Common records: A (IPv4), AAAA (IPv6), CNAME (alias), MX (mail), PTR (reverse).'
+  },
+  dhcp_server: {
+    name:'DHCP Server',category:'server',osi:'Layer 7',
+    desc:'Dynamically assigns IP addresses, subnet masks, default gateways, and DNS servers to clients using the DORA process (Discover, Offer, Request, Acknowledge). Eliminates manual IP configuration and prevents address conflicts.',
+    models:[
+      {name:'Cisco IOS DHCP Server',use:'Built into routers/L3 switches'},
+      {name:'Windows DHCP Server',use:'AD-integrated, scope management'},
+      {name:'ISC DHCP / Kea',use:'Open-source, Linux-based'},
+    ],
+    specs:{Port:'UDP 67 (server) / 68 (client)',Process:'DORA — Discover, Offer, Request, Ack','Lease Time':'8 hours default (Cisco)',Relay:'ip helper-address for cross-subnet'},
+    history:[
+      {year:'1985',text:'BOOTP — predecessor to DHCP (RFC 951)'},
+      {year:'1993',text:'DHCP defined in RFC 1531'},
+      {year:'1997',text:'RFC 2131 — current DHCP standard'},
+    ],
+    commands:[
+      {cmd:'show ip dhcp binding',desc:'Active DHCP leases'},
+      {cmd:'show ip dhcp pool',desc:'Pool configuration and usage'},
+      {cmd:'ip helper-address 10.1.1.100',desc:'DHCP relay to server'},
+      {cmd:'ip dhcp excluded-address 10.1.1.1 10.1.1.10',desc:'Reserve addresses'},
+      {cmd:'ip dhcp pool VLAN10',desc:'Create DHCP pool'},
+    ],
+    tip:'DORA is broadcast-based — DHCP Discover and Request are broadcasts. If the server is on a different subnet, you MUST configure ip helper-address on the gateway interface. This is one of the most-tested CCNA topics.'
+  },
+  ntp_server: {
+    name:'NTP Server',category:'server',osi:'Layer 7',
+    desc:'Synchronizes clocks across all network devices using the Network Time Protocol. Accurate time is critical for log correlation, certificate validation, OSPF timers, and troubleshooting. NTP uses a stratum hierarchy from atomic clocks (stratum 0) down.',
+    models:[
+      {name:'Cisco IOS NTP',use:'Built-in, can be server or client'},
+      {name:'Meinberg LANTIME',use:'Dedicated NTP appliance with GPS'},
+      {name:'pool.ntp.org',use:'Public NTP pool, free'},
+    ],
+    specs:{Port:'UDP 123',Accuracy:'1-10ms over LAN',Stratum:'0 (atomic) to 15 (max)',Auth:'MD5 or SHA-1 key'},
+    history:[
+      {year:'1985',text:'NTP v1 by David Mills (RFC 958)'},
+      {year:'2010',text:'NTPv4 — improved security and accuracy'},
+    ],
+    commands:[
+      {cmd:'ntp server 10.1.1.1',desc:'Point to NTP server'},
+      {cmd:'show ntp status',desc:'Sync status and stratum'},
+      {cmd:'show ntp associations',desc:'NTP peer list'},
+      {cmd:'show clock',desc:'Current device time'},
+    ],
+    tip:'NTP uses UDP 123. Know stratum levels: 0=atomic clock, 1=directly connected to stratum 0, each hop adds 1. Max is 15 — stratum 16 means unsynchronized. Configure NTP before checking logs.'
+  },
+  syslog_server: {
+    name:'Syslog Server',category:'server',osi:'Layer 7',
+    desc:'Collects log messages from all network devices for centralized monitoring and troubleshooting. Cisco devices generate syslog messages at 8 severity levels (0-7). A syslog server aggregates, stores, and enables searching across all device logs.',
+    models:[
+      {name:'Cisco DNA Center',use:'Network analytics + syslog collector'},
+      {name:'SolarWinds Kiwi Syslog',use:'Windows-based, lightweight'},
+      {name:'Splunk Enterprise',use:'Full SIEM with syslog ingestion'},
+    ],
+    specs:{Port:'UDP 514 (default)',Severity:'0 (emergency) to 7 (debugging)',Format:'RFC 5424 or Cisco format',Transport:'UDP, TCP, or TLS'},
+    history:[
+      {year:'2001',text:'RFC 3164 — BSD syslog formalized'},
+      {year:'2009',text:'RFC 5424 — structured syslog standard'},
+    ],
+    commands:[
+      {cmd:'logging host 10.1.1.200',desc:'Send logs to syslog server'},
+      {cmd:'logging trap informational',desc:'Set severity level (0-6)'},
+      {cmd:'show logging',desc:'View local log buffer'},
+      {cmd:'logging buffered 16384',desc:'Set local buffer size'},
+    ],
+    tip:'Memorize the 8 syslog levels: 0=Emergency, 1=Alert, 2=Critical, 3=Error, 4=Warning, 5=Notification, 6=Informational, 7=Debugging. Mnemonic: "Every Awesome Cisco Engineer Will Need Ice cream Daily."'
+  },
+  aaa_server: {
+    name:'AAA / RADIUS Server',category:'server',osi:'Layer 7',
+    desc:'Provides centralized Authentication (who are you?), Authorization (what can you do?), and Accounting (what did you do?) for network device access and user authentication. Uses RADIUS or TACACS+ protocols.',
+    models:[
+      {name:'Cisco ISE 3.x',use:'Enterprise NAC + AAA, 802.1X'},
+      {name:'FreeRADIUS',use:'Open-source RADIUS server'},
+      {name:'Microsoft NPS',use:'Windows RADIUS for 802.1X'},
+    ],
+    specs:{'RADIUS Port':'UDP 1812 (auth) / 1813 (acct)','TACACS+ Port':'TCP 49',Auth:'Local, RADIUS, TACACS+',Features:'802.1X, MAB, profiling'},
+    history:[
+      {year:'1997',text:'RADIUS standardized (RFC 2058)'},
+      {year:'2000',text:'TACACS+ — Cisco proprietary, encrypts full payload'},
+      {year:'2008',text:'Cisco ISE replaces ACS as AAA platform'},
+    ],
+    commands:[
+      {cmd:'aaa new-model',desc:'Enable AAA framework'},
+      {cmd:'radius server ISE01',desc:'Define RADIUS server'},
+      {cmd:'aaa authentication login default group radius local',desc:'Auth method list'},
+      {cmd:'show aaa servers',desc:'AAA server status'},
+    ],
+    tip:'RADIUS encrypts only the password; TACACS+ encrypts the entire payload. RADIUS = UDP (1812/1813), TACACS+ = TCP 49. TACACS+ separates authentication, authorization, and accounting — RADIUS combines auth and authz.'
+  },
+  tftp_server: {
+    name:'TFTP Server',category:'server',osi:'Layer 7',
+    desc:'Simple file transfer protocol used for firmware upgrades, config backups, and IOS image distribution across the network. No authentication — relies on network security. Used heavily in network device management workflows.',
+    models:[
+      {name:'SolarWinds TFTP Server',use:'Free Windows TFTP, widely used'},
+      {name:'tftpd-hpa',use:'Linux TFTP daemon'},
+      {name:'Cisco Prime Infrastructure',use:'Includes TFTP for image management'},
+    ],
+    specs:{Port:'UDP 69',Auth:'None (no username/password)',Transfer:'Binary or ASCII','Max File':'No formal limit, but UDP-based'},
+    history:[
+      {year:'1981',text:'TFTP defined in RFC 783'},
+      {year:'1992',text:'RFC 1350 — current TFTP revision'},
+    ],
+    commands:[
+      {cmd:'copy running-config tftp:',desc:'Backup config to TFTP'},
+      {cmd:'copy tftp: flash:',desc:'Download IOS image from TFTP'},
+      {cmd:'copy startup-config tftp:',desc:'Backup startup config'},
+    ],
+    tip:'TFTP = UDP 69, no authentication, no directory listing. FTP = TCP 20/21, has auth. SCP/SFTP = TCP 22, encrypted. The CCNA tests which protocol to use for secure file transfers — SCP is the answer.'
+  },
+  web_server: {
+    name:'Web / Application Server',category:'server',osi:'Layer 5-7',
+    desc:'Hosts internal web applications, monitoring dashboards, portals, and APIs. In CCNA contexts, represents any HTTP/HTTPS service running on the network — could be a management interface, captive portal, or production web app.',
+    models:[
+      {name:'Apache HTTP Server',use:'Open-source, most deployed web server'},
+      {name:'Nginx',use:'Reverse proxy / web server, high performance'},
+      {name:'Cisco DNA Center',use:'Network management web UI'},
+    ],
+    specs:{Ports:'TCP 80 (HTTP) / TCP 443 (HTTPS)',Protocol:'HTTP/1.1, HTTP/2, HTTP/3',TLS:'TLS 1.2 / 1.3',Load:'Reverse proxy / load balancer'},
+    history:[
+      {year:'1991',text:'First web server by Tim Berners-Lee at CERN'},
+      {year:'1995',text:'Apache HTTP Server — open-source dominance'},
+      {year:'2018',text:'HTTP/3 (QUIC) — UDP-based, faster connections'},
+    ],
+    commands:[
+      {cmd:'show ip http server status',desc:'Check embedded HTTP server'},
+      {cmd:'ip http secure-server',desc:'Enable HTTPS on device'},
+      {cmd:'ip http authentication local',desc:'Use local auth for web GUI'},
+    ],
+    tip:'HTTP = TCP 80, HTTPS = TCP 443. Know that HTTPS uses TLS (not SSL — SSL is deprecated). The CCNA tests port numbers and the difference between HTTP and HTTPS more than web server configuration.'
+  },
 
-function showTourStep() {
-  const s = TOUR[tourIdx];
-  document.getElementById('tourStep').textContent = 'Step ' + (tourIdx+1) + ' of ' + TOUR.length;
-  document.getElementById('tourTitle').textContent = s.title;
-  document.getElementById('tourText').textContent = s.text;
-  document.getElementById('tourBar').classList.add('open');
-  document.getElementById('tourDots').innerHTML = TOUR.map((_,i) => '<div class="tour-dot' + (i===tourIdx?' on':'') + '"></div>').join('');
-  // Highlight devices
-  const idSet = new Set(s.ids);
-  document.querySelectorAll('.dev-group').forEach(g => {
-    g.classList.toggle('dimmed', idSet.size > 0 && !idSet.has(g.dataset.id));
-  });
-  // Scroll first highlighted device into view
-  if(s.ids.length > 0) {
-    var firstDev = document.querySelector('.dev-group[data-id="' + s.ids[0] + '"]');
-    if(firstDev) firstDev.scrollIntoView({behavior:'smooth', block:'center'});
+  // ────── Endpoints ──────
+  desktop: {
+    name:'Desktop / Workstation',category:'endpoint',osi:'Layer 1-7',
+    desc:'End-user computer connected via Ethernet to an access switch. Receives IP configuration via DHCP, authenticates through 802.1X, and generates the majority of enterprise network traffic. The most common endpoint in campus networks.',
+    models:[
+      {name:'Dell OptiPlex 7000',use:'Corporate desktop standard'},
+      {name:'HP EliteDesk 800 G9',use:'Enterprise workstation'},
+    ],
+    specs:{Interface:'GbE Ethernet (RJ-45)',IP:'DHCP or static',Auth:'802.1X supplicant',OS:'Windows, macOS, Linux'},
+    history:[
+      {year:'1983',text:'IBM PC XT with Ethernet — first networked desktop'},
+      {year:'1999',text:'Gigabit Ethernet NICs become standard'},
+    ],
+    commands:[
+      {cmd:'ipconfig /all',desc:'Windows — full IP config'},
+      {cmd:'ipconfig /release & ipconfig /renew',desc:'Force DHCP renewal'},
+      {cmd:'arp -a',desc:'View ARP cache'},
+    ],
+    tip:'Know the endpoint troubleshooting flow: check cable (Layer 1), check NIC speed/duplex (Layer 2), check IP/mask/gateway (Layer 3), then DNS and application layers. ipconfig and arp are essential exam tools.'
+  },
+  laptop: {
+    name:'Laptop / Wireless Client',category:'endpoint',osi:'Layer 1-7',
+    desc:'Mobile endpoint connecting via Wi-Fi (802.11) or Ethernet. Laptops are the primary wireless clients in enterprise environments. They associate with APs, authenticate via WPA2/WPA3 Enterprise, and may roam between APs while maintaining connections.',
+    models:[
+      {name:'Lenovo ThinkPad T14s',use:'Corporate standard with Intel Wi-Fi 6E'},
+      {name:'Apple MacBook Pro',use:'Wi-Fi 6E, enterprise deployment'},
+    ],
+    specs:{Wireless:'Wi-Fi 6 / 6E (802.11ax)',Band:'2.4 GHz, 5 GHz, 6 GHz',Security:'WPA3 Enterprise',Roaming:'802.11r Fast Transition'},
+    history:[
+      {year:'1999',text:'802.11b laptops — wireless goes mainstream'},
+      {year:'2013',text:'802.11ac laptops — gigabit Wi-Fi standard'},
+    ],
+    commands:[
+      {cmd:'netsh wlan show interfaces',desc:'Windows — wireless connection info'},
+      {cmd:'netsh wlan show profiles',desc:'Saved Wi-Fi networks'},
+    ],
+    tip:'Wireless clients use CSMA/CA (not CSMA/CD like Ethernet). Know the association process: probe request/response, authentication, association. WPA2 uses AES-CCMP, WPA3 uses SAE for key exchange.'
+  },
+  wireless_client: {
+    name:'Smartphone / Mobile Device',category:'endpoint',osi:'Layer 1-7',
+    desc:'Mobile wireless client connecting via 802.11 Wi-Fi. Smartphones, tablets, and IoT devices make up the majority of wireless clients on modern networks. They associate with APs, authenticate via WPA2/WPA3 Personal or Enterprise, and roam between APs seamlessly.',
+    models:[
+      {name:'Apple iPhone 16',use:'Wi-Fi 6E, 802.11ax'},
+      {name:'Samsung Galaxy S25',use:'Wi-Fi 7, 802.11be'},
+    ],
+    specs:{Wireless:'Wi-Fi 6/6E/7',Bands:'2.4 GHz + 5 GHz + 6 GHz',Security:'WPA3 Personal/Enterprise',Roaming:'802.11k/v/r'},
+    history:[
+      {year:'2007',text:'iPhone launches — mobile Wi-Fi usage explodes'},
+      {year:'2019',text:'Wi-Fi 6 smartphones — OFDMA, BSS coloring'},
+    ],
+    commands:[],
+    tip:'Mobile devices are the primary reason for 802.11r (fast BSS transition) and 802.11k (neighbor reports). Without these, roaming between APs causes noticeable delays — critical for voice and video calls over Wi-Fi.'
+  },
+  ip_phone: {
+    name:'IP Phone',category:'endpoint',osi:'Layer 2-7',
+    desc:'VoIP endpoint that sends voice as RTP packets over the network. Enterprise IP phones use a voice VLAN (VVLAN) separate from the data VLAN. They draw power via PoE and often have an integrated switch port for the desktop PC behind them.',
+    models:[
+      {name:'Cisco IP Phone 8845',use:'Video-capable, 5 lines, GbE'},
+      {name:'Cisco Webex Desk Phone',use:'Cloud-registered, Wi-Fi + BT'},
+    ],
+    specs:{Protocol:'SIP or SCCP (Skinny)',Codec:'G.711 (64 Kbps), G.729 (8 Kbps)',PoE:'802.3af (12.95W)',VLAN:'Voice VLAN (VVLAN)'},
+    history:[
+      {year:'2000',text:'Cisco IP Phone 7960 — enterprise VoIP mainstream'},
+      {year:'2007',text:'Cisco 7900 series — dominant VoIP phone line'},
+      {year:'2020',text:'Webex Desk series — cloud-native phones'},
+    ],
+    commands:[
+      {cmd:'switchport voice vlan 50',desc:'Assign voice VLAN on switch port'},
+      {cmd:'mls qos trust cos',desc:'Trust phone CoS markings'},
+      {cmd:'show interfaces fa0/1 switchport',desc:'Verify voice VLAN assignment'},
+    ],
+    tip:'IP phones send 802.1Q-tagged traffic on the voice VLAN. The switch port config uses "switchport voice vlan" — this is different from "switchport access vlan". PoE classification and QoS trust are key exam topics.'
+  },
+  printer: {
+    name:'Network Printer',category:'endpoint',osi:'Layer 1-7',
+    desc:'Shared printing device connected via Ethernet or Wi-Fi. Uses DHCP or static IP for network access. Printers are often overlooked in security audits despite having full network stacks, management web interfaces, and sometimes wireless radios.',
+    models:[
+      {name:'HP LaserJet Enterprise M612',use:'High-volume network printer'},
+      {name:'Xerox VersaLink C405',use:'Multifunction, Ethernet + Wi-Fi'},
+    ],
+    specs:{Interface:'GbE Ethernet or Wi-Fi',Protocol:'IPP (TCP 631), LPD (TCP 515)',Management:'HTTP/HTTPS web UI',Security:'802.1X capable'},
+    history:[
+      {year:'1995',text:'HP JetDirect — first widely adopted print server NIC'},
+      {year:'2000',text:'IPP (Internet Printing Protocol) standardized'},
+    ],
+    commands:[
+      {cmd:'show mac address-table | include printer',desc:'Find printer port on switch'},
+      {cmd:'show ip dhcp binding',desc:'Find printer\'s IP lease'},
+    ],
+    tip:'Printers are common in CCNA scenarios as troubleshooting targets — "the printer can\'t be reached." Check: correct VLAN, PoE if needed, DHCP lease, and that the port is in the right access VLAN.'
+  },
+
+  // ────── Infrastructure ──────
+  ups: {
+    name:'UPS (Uninterruptible Power Supply)',category:'infra',osi:'Layer 1',
+    desc:'Provides battery backup power to network equipment during outages. Critical for switches, routers, and servers. Enterprise UPS units include network management cards (NMC) for remote monitoring via SNMP.',
+    models:[
+      {name:'APC Smart-UPS 3000VA',use:'Rack-mount, network closet standard'},
+      {name:'Eaton 5PX3000RT2U',use:'Rack-mount, 2U, 2700W'},
+      {name:'CyberPower PR3000RTXL2U',use:'SMB rack UPS, LCD panel'},
+    ],
+    specs:{Capacity:'1000-10000VA',Runtime:'5-30 min at half load',Interface:'SNMP network card',Transfer:'<4ms to battery'},
+    history:[
+      {year:'1981',text:'APC founded — UPS for personal computers'},
+      {year:'1995',text:'Network management cards — SNMP monitoring'},
+    ],
+    commands:[
+      {cmd:'snmpwalk -v2c -c public 10.1.1.50',desc:'Query UPS via SNMP'},
+    ],
+    tip:'UPS rarely appears directly on the CCNA, but SNMP monitoring does. Know SNMP community strings, trap destinations, and that SNMP uses UDP 161 (queries) / 162 (traps).'
+  },
+
+  // ────── Home-specific ──────
+  home_router: {
+    name:'Home Wi-Fi Router',category:'wan',osi:'Layer 1-7',
+    desc:'Consumer all-in-one device combining router, switch, wireless AP, DHCP server, and basic firewall (NAT). The single device most people call "the router" actually performs 5+ distinct network functions in one box.',
+    models:[
+      {name:'TP-Link Archer AX73',use:'Wi-Fi 6, 5.4 Gbps, budget pick'},
+      {name:'ASUS RT-AX86U',use:'Wi-Fi 6, AiMesh, gaming-optimized'},
+      {name:'Ubiquiti Dream Router',use:'UniFi ecosystem, prosumer'},
+    ],
+    specs:{WiFi:'802.11ax (Wi-Fi 6)',Ports:'4x GbE LAN + 1x WAN',DHCP:'192.168.1.0/24 default',NAT:'PAT (overload) built-in'},
+    history:[
+      {year:'1999',text:'Linksys WRT54G — iconic consumer router'},
+      {year:'2015',text:'802.11ac Wave 2 routers go mainstream'},
+      {year:'2021',text:'Wi-Fi 6E consumer routers arrive'},
+    ],
+    commands:[
+      {cmd:'show ip nat translations',desc:'NAT table (if Cisco lab router)'},
+      {cmd:'show ip dhcp binding',desc:'DHCP leases served'},
+    ],
+    tip:'Home routers use PAT (Port Address Translation) — many private IPs share one public IP. The CCNA tests NAT types: static NAT (1:1), dynamic NAT (pool), and PAT/overload (many:1). PAT is the most common.'
+  },
+  smart_tv: {
+    name:'Smart TV / Streaming Device',category:'endpoint',osi:'Layer 1-7',
+    desc:'Network-connected television or streaming appliance. Uses Wi-Fi to access streaming services, typically using DHCP for IP assignment. Generates significant bandwidth — 4K streaming uses 15-25 Mbps per stream.',
+    models:[
+      {name:'Apple TV 4K',use:'Wi-Fi 6, Thread smart home hub'},
+      {name:'Roku Ultra',use:'Wi-Fi 6, Ethernet port'},
+    ],
+    specs:{Connection:'Wi-Fi (2.4/5 GHz)',Bandwidth:'15-25 Mbps per 4K stream',Protocol:'HTTPS, QUIC','Smart Home':'Chromecast, AirPlay, Thread'},
+    history:[
+      {year:'2007',text:'Apple TV 1st gen — streaming box category born'},
+      {year:'2014',text:'4K streaming becomes mainstream'},
+    ],
+    commands:[],
+    tip:'Not directly tested on CCNA. Relevant for understanding bandwidth planning and Wi-Fi capacity — how many 4K streams can your network handle simultaneously?'
+  },
+  gaming_console: {
+    name:'Gaming Console',category:'endpoint',osi:'Layer 1-7',
+    desc:'Network-connected entertainment system. Sensitive to latency and jitter — gaming traffic benefits from QoS prioritization. Uses both wired (preferred for competitive gaming) and wireless connections.',
+    models:[
+      {name:'PlayStation 5',use:'Wi-Fi 6, GbE Ethernet'},
+      {name:'Xbox Series X',use:'Wi-Fi 5, GbE Ethernet'},
+      {name:'Nintendo Switch',use:'Wi-Fi 5, USB Ethernet adapter'},
+    ],
+    specs:{Preferred:'Wired Ethernet for lowest latency',Latency:'<20ms ideal for online gaming',Ports:'Various game-specific + voice chat',NAT:'Type 1 (open) preferred'},
+    history:[
+      {year:'2002',text:'Xbox Live — console online gaming mainstream'},
+      {year:'2013',text:'PS4/Xbox One — online-first gaming era'},
+    ],
+    commands:[],
+    tip:'Gaming consoles are great for understanding NAT types in real life. "NAT Type" on a console maps to: Type 1 = no NAT, Type 2 = NAT with UPnP/port forwarding, Type 3 = strict NAT (problems).'
+  },
+
+  // ────── Homelab-specific ──────
+  nas: {
+    name:'NAS (Network Attached Storage)',category:'infra',osi:'Layer 5-7',
+    desc:'File server providing shared storage over SMB/NFS/iSCSI. Popular in homelabs and SMBs for centralized file storage, backup targets, media servers, and Docker host duties. RAID protects against drive failures.',
+    models:[
+      {name:'Synology DS923+',use:'4-bay, AMD Ryzen, Docker capable'},
+      {name:'QNAP TS-464',use:'4-bay, Intel N5105, 2x 2.5GbE'},
+      {name:'TrueNAS CORE (DIY)',use:'FreeBSD-based, ZFS, enterprise features'},
+    ],
+    specs:{Protocol:'SMB, NFS, iSCSI, AFP',RAID:'RAID 1/5/6/10, SHR',Interface:'1GbE to 10GbE',Capacity:'4-80+ TB raw'},
+    history:[
+      {year:'2000',text:'Synology founded — consumer NAS category'},
+      {year:'2005',text:'FreeNAS (now TrueNAS) — ZFS for everyone'},
+    ],
+    commands:[
+      {cmd:'show ip route 10.1.1.50',desc:'Verify NAS reachable via routing'},
+      {cmd:'net use Z: \\\\nas\\share',desc:'Windows SMB mount'},
+    ],
+    tip:'NAS uses SMB (TCP 445) for Windows shares and NFS (TCP 2049) for Linux/Mac. iSCSI (TCP 3260) presents block storage over the network. Know these port numbers for the exam.'
+  },
+  hypervisor: {
+    name:'Hypervisor / Virtualization Host',category:'server',osi:'Layer 1-7',
+    desc:'Runs multiple virtual machines on a single physical server. Type 1 hypervisors (ESXi, Proxmox) run on bare metal. Virtual switches inside the hypervisor connect VMs to physical network uplinks via trunk ports.',
+    models:[
+      {name:'Proxmox VE',use:'Open-source, KVM+LXC, homelab favorite'},
+      {name:'VMware ESXi',use:'Enterprise standard, vSphere management'},
+      {name:'Microsoft Hyper-V',use:'Windows Server integrated'},
+    ],
+    specs:{Type:'Type 1 (bare metal) hypervisor','Virtual Switch':'vSwitch / OVS',Uplinks:'GbE-10GbE trunk ports',VMs:'10-100+ per host'},
+    history:[
+      {year:'2001',text:'VMware ESX 1.0 — server virtualization begins'},
+      {year:'2007',text:'KVM merged into Linux kernel'},
+      {year:'2008',text:'Proxmox VE 1.0 — open-source alternative'},
+    ],
+    commands:[
+      {cmd:'show interfaces trunk',desc:'Verify trunk to hypervisor'},
+      {cmd:'show mac address-table dynamic',desc:'VM MACs learned on switch'},
+    ],
+    tip:'Hypervisor uplinks connect as trunks to carry multiple VLANs for different VMs. The virtual switch inside assigns VMs to VLAN tags. From the physical switch perspective, each VM is just another MAC address on the trunk.'
+  },
+  rpi: {
+    name:'Raspberry Pi / SBC',category:'infra',osi:'Layer 1-7',
+    desc:'Single-board computer used in homelabs for Pi-hole (DNS sinkhole), monitoring agents, IoT gateways, and lightweight services. Low power consumption (5-15W) makes it ideal for always-on network services.',
+    models:[
+      {name:'Raspberry Pi 5',use:'Quad-core, 8GB, GbE + PCIe, $80'},
+      {name:'Raspberry Pi 4B',use:'4GB, GbE, still widely deployed'},
+    ],
+    specs:{CPU:'ARM Cortex-A76 (Pi 5)',Network:'GbE Ethernet + Wi-Fi 5',Power:'5V/5A USB-C (15-27W)',Storage:'microSD or NVMe (Pi 5)'},
+    history:[
+      {year:'2012',text:'Raspberry Pi 1 — $35 computer for education'},
+      {year:'2023',text:'Raspberry Pi 5 — desktop-class ARM SBC'},
+    ],
+    commands:[
+      {cmd:'ping 10.1.1.60',desc:'Verify Pi reachability'},
+    ],
+    tip:'Raspberry Pis running Pi-hole demonstrate DNS concepts perfectly — they intercept DNS queries and block ad domains. Great lab tool for understanding DNS resolution, forwarding, and sinkholing.'
+  },
+
+  // ────── Data Center ──────
+  spine_switch: {
+    name:'Spine Switch',category:'core',osi:'Layer 3',
+    desc:'Top-tier switch in a spine-leaf data center fabric. Every leaf connects to every spine, providing any-to-any connectivity with consistent latency. Spines do not connect to each other. Runs BGP or IS-IS for underlay routing with VXLAN overlay.',
+    models:[
+      {name:'Cisco Nexus 9364C',use:'64x 100G QSFP28, spine-tier'},
+      {name:'Arista 7060X4',use:'64x 400G, high-radix spine'},
+    ],
+    specs:{Ports:'32-64x 100/400GbE',Throughput:'12.8-25.6 Tbps',Fabric:'VXLAN/EVPN overlay',Routing:'BGP, IS-IS (underlay)'},
+    history:[
+      {year:'2008',text:'Spine-leaf replaces traditional 3-tier in DC'},
+      {year:'2014',text:'VXLAN (RFC 7348) standardized'},
+      {year:'2020',text:'400GbE spine switches shipping'},
+    ],
+    commands:[
+      {cmd:'show bgp l2vpn evpn summary',desc:'EVPN peering status'},
+      {cmd:'show nve peers',desc:'VXLAN tunnel endpoints'},
+      {cmd:'show interface status',desc:'All port states'},
+    ],
+    tip:'Spine-leaf is not heavily tested on CCNA but is fair game as a concept. Know: every leaf connects to every spine, spines never connect to each other, and the design ensures equal hop count to any destination.'
+  },
+  leaf_switch: {
+    name:'Leaf Switch',category:'dist',osi:'Layer 2-3',
+    desc:'Access-tier switch in a spine-leaf fabric. Servers and storage connect to leaf switches. Each leaf uplinks to every spine switch. VXLAN encapsulation extends Layer 2 domains across the fabric. VTEPs (VXLAN Tunnel Endpoints) reside on leaf switches.',
+    models:[
+      {name:'Cisco Nexus 93180YC-FX',use:'48x 25G + 6x 100G, TOR leaf'},
+      {name:'Arista 7050X3-48YC8',use:'48x 25G + 8x 100G, leaf'},
+    ],
+    specs:{Ports:'48x 25G SFP28 + 6-8x 100G uplinks','Server Connect':'25GbE or 100GbE',VTEP:'VXLAN Tunnel Endpoint',Routing:'BGP to spine'},
+    history:[
+      {year:'2010',text:'Top-of-rack (TOR) deployment model standardized'},
+      {year:'2016',text:'25GbE server-facing ports replace 10GbE'},
+    ],
+    commands:[
+      {cmd:'show vxlan interface',desc:'VTEP interface info'},
+      {cmd:'show bgp l2vpn evpn',desc:'EVPN routes'},
+      {cmd:'show mac address-table',desc:'Learned MACs from servers'},
+    ],
+    tip:'Leaf switches are where servers plug in. Think of them as the "access layer" of the data center. Each leaf connects to ALL spines — if you have 4 spines and 20 leafs, that\'s 80 uplink cables.'
+  },
+  storage: {
+    name:'Storage Array / SAN',category:'infra',osi:'Layer 1-7',
+    desc:'Dedicated storage system providing block or file storage to servers over the network. SANs use Fibre Channel (dedicated fabric) or iSCSI (over Ethernet). In data centers, storage connects to leaf switches via high-speed Ethernet or FC.',
+    models:[
+      {name:'NetApp AFF A400',use:'All-flash NVMe, NFS/iSCSI/FC'},
+      {name:'Pure Storage FlashArray//X',use:'All-flash, enterprise SAN'},
+      {name:'Dell PowerStore',use:'Block + file, NVMe-oF'},
+    ],
+    specs:{Protocol:'FC, iSCSI, NFS, NVMe-oF',Interface:'16/32G FC or 25/100GbE',IOPS:'500K-2M+',Capacity:'10-500+ TB'},
+    history:[
+      {year:'1994',text:'Fibre Channel standard published'},
+      {year:'2003',text:'iSCSI standardized — SAN over Ethernet'},
+      {year:'2018',text:'NVMe-oF — fabric-attached NVMe storage'},
+    ],
+    commands:[
+      {cmd:'show interface fc1/1',desc:'Fibre Channel port status'},
+      {cmd:'show flogi database',desc:'FC fabric logins (MDS switch)'},
+    ],
+    tip:'FC uses its own port numbering: FC = Fibre Channel, FCoE = FC over Ethernet. iSCSI uses TCP 3260. The CCNA briefly covers SAN concepts — know that FC is a dedicated fabric, iSCSI runs over standard Ethernet.'
+  },
+
+  // ────── IoT / Mesh ──────
+  mesh_node: {
+    name:'Mesh Wi-Fi Node',category:'access',osi:'Layer 1-3',
+    desc:'Wireless repeater/extender in a mesh network. Nodes communicate wirelessly with each other to create a seamless Wi-Fi blanket. A dedicated backhaul radio connects nodes to reduce performance loss. From the client perspective, the entire mesh is one SSID.',
+    models:[
+      {name:'Eero Pro 6E',use:'Tri-band, Wi-Fi 6E, 2.5G Ethernet'},
+      {name:'Google Nest WiFi Pro',use:'Wi-Fi 6E, Thread border router'},
+      {name:'Ubiquiti UniFi U7 Pro',use:'Wi-Fi 7, enterprise mesh'},
+    ],
+    specs:{Mesh:'802.11s or proprietary',Backhaul:'Dedicated 5/6 GHz radio',Roaming:'802.11k/v/r seamless',Coverage:'1500-2500 sq ft per node'},
+    history:[
+      {year:'2016',text:'Eero and Google WiFi launch — consumer mesh era'},
+      {year:'2022',text:'Wi-Fi 6E mesh — 6 GHz backhaul for full speed'},
+    ],
+    commands:[],
+    tip:'Mesh networks use 802.11k (neighbor reports), 802.11v (BSS transition), and 802.11r (fast roaming) to make handoffs seamless. The CCNA may reference these amendments when discussing wireless roaming.'
+  },
+  iot_hub: {
+    name:'IoT Hub / Smart Home Hub',category:'infra',osi:'Layer 1-7',
+    desc:'Central controller for IoT devices. Bridges different wireless protocols (Zigbee, Z-Wave, Thread, Matter, Bluetooth) to Wi-Fi/Ethernet for cloud and local control. Acts as a protocol translator between IoT devices and the IP network.',
+    models:[
+      {name:'Samsung SmartThings Hub',use:'Zigbee, Z-Wave, Thread, Matter'},
+      {name:'Home Assistant (Yellow/Green)',use:'Open-source, local-first'},
+      {name:'Apple HomePod Mini',use:'Thread border router, HomeKit hub'},
+    ],
+    specs:{Protocols:'Zigbee, Z-Wave, Thread, BLE, Wi-Fi',Standard:'Matter (2022+)',Radio:'802.15.4 + BLE',Devices:'100-200+ per hub'},
+    history:[
+      {year:'2012',text:'SmartThings Kickstarter — smart home hubs emerge'},
+      {year:'2022',text:'Matter protocol — universal IoT standard'},
+    ],
+    commands:[],
+    tip:'IoT devices rarely speak IP directly — they use low-power protocols like Zigbee (802.15.4) or Thread. The hub translates these to Wi-Fi/Ethernet. Know that IoT devices are major security risks — default passwords, unpatched firmware.'
+  },
+  smart_sensor: {
+    name:'Smart Sensor',category:'endpoint',osi:'Layer 1-7',
+    desc:'Low-power IoT device that reports environmental data (temperature, humidity, motion, light) wirelessly. Uses Zigbee, Z-Wave, or Thread with minimal bandwidth requirements. Battery-powered devices may sleep for seconds or minutes between transmissions.',
+    models:[
+      {name:'Aqara Temperature Sensor',use:'Zigbee, 2-year battery'},
+      {name:'Eve Motion',use:'Thread/Matter, motion detection'},
+    ],
+    specs:{Protocol:'Zigbee / Thread / BLE',Battery:'1-3 years typical',Data:'Bytes per transmission',Range:'10-30m indoor'},
+    history:[
+      {year:'2003',text:'Zigbee standard published (IEEE 802.15.4)'},
+      {year:'2020',text:'Thread 1.2 — IPv6 mesh for IoT'},
+    ],
+    commands:[],
+    tip:'Zigbee and Thread use IEEE 802.15.4 at the physical layer (2.4 GHz, 250 Kbps). Thread is IPv6-native while Zigbee uses its own addressing. Both are mesh — devices relay for each other.'
+  },
+  camera: {
+    name:'IP Camera',category:'endpoint',osi:'Layer 1-7',
+    desc:'Network-connected surveillance camera streaming video over RTSP or ONVIF. PoE-powered cameras simplify installation — one Ethernet cable for both data and power. Generates significant sustained bandwidth (2-8 Mbps per camera at 1080p).',
+    models:[
+      {name:'Cisco Meraki MV12',use:'Cloud-managed, on-camera AI analytics'},
+      {name:'Axis P3265-LVE',use:'2MP, outdoor, ONVIF, PoE'},
+      {name:'UniFi G4 Pro',use:'4K, PoE+, UniFi Protect ecosystem'},
+    ],
+    specs:{Resolution:'1080p-4K',Bandwidth:'2-15 Mbps per camera',Protocol:'RTSP, ONVIF, HTTPS',Power:'PoE (802.3af) or PoE+ (802.3at)'},
+    history:[
+      {year:'1996',text:'Axis Nettcam — first commercial IP camera'},
+      {year:'2008',text:'ONVIF standard — interoperability for IP cameras'},
+    ],
+    commands:[
+      {cmd:'show power inline',desc:'PoE status on switch ports'},
+      {cmd:'show mac address-table interface Gi0/15',desc:'Camera MAC on switch'},
+    ],
+    tip:'IP cameras are great PoE use cases. Each PoE camera uses 12-25W. Know the PoE standards: 802.3af (15.4W, Type 1), 802.3at (30W, Type 2, PoE+), 802.3bt (60-90W, Type 3/4, PoE++). Calculate total PoE budget for the switch.'
   }
+};
+
+/* ── SVG Icon Generators ───────────────────────────────────── */
+/* Each returns SVG markup to draw inside a <g> centered at (0,0) */
+const ICONS = {
+  cloud(c){ return `<ellipse rx="28" ry="16" fill="${c}" opacity=".15" class="dev-shape"/>
+    <ellipse rx="28" ry="16" fill="none" stroke="${c}" stroke-width="1.5" class="dev-ring"/>
+    <ellipse cx="-10" cy="-2" rx="10" ry="7" fill="${c}" opacity=".3"/>
+    <ellipse cx="8" cy="-4" rx="12" ry="8" fill="${c}" opacity=".25"/>
+    <ellipse cx="0" cy="3" rx="16" ry="6" fill="${c}" opacity=".2"/>`;
+  },
+  router(c){ return `<rect x="-22" y="-14" width="44" height="28" rx="4" fill="${c}" opacity=".12" class="dev-shape"/>
+    <rect x="-22" y="-14" width="44" height="28" rx="4" fill="none" stroke="${c}" stroke-width="1.5" class="dev-ring"/>
+    <circle cx="0" cy="0" r="7" fill="none" stroke="${c}" stroke-width="1.5"/>
+    <line x1="-7" y1="0" x2="-16" y2="0" stroke="${c}" stroke-width="1.5"/>
+    <line x1="7" y1="0" x2="16" y2="0" stroke="${c}" stroke-width="1.5"/>
+    <line x1="0" y1="-7" x2="0" y2="-11" stroke="${c}" stroke-width="1.5"/>
+    <line x1="0" y1="7" x2="0" y2="11" stroke="${c}" stroke-width="1.5"/>
+    <polygon points="16,0 12,-3 12,3" fill="${c}"/>
+    <polygon points="0,-11 -3,-7 3,-7" fill="${c}"/>`;
+  },
+  switch(c){ return `<rect x="-26" y="-10" width="52" height="20" rx="3" fill="${c}" opacity=".12" class="dev-shape"/>
+    <rect x="-26" y="-10" width="52" height="20" rx="3" fill="none" stroke="${c}" stroke-width="1.5" class="dev-ring"/>
+    ${[-18,-12,-6,0,6,12,18].map(x=>`<rect x="${x-2}" y="-4" width="4" height="8" rx="1" fill="${c}" opacity=".5"/>`).join('')}`;
+  },
+  firewall(c){ return `<path d="M0,-18 L16,0 L10,18 L-10,18 L-16,0 Z" fill="${c}" opacity=".12" class="dev-shape"/>
+    <path d="M0,-18 L16,0 L10,18 L-10,18 L-16,0 Z" fill="none" stroke="${c}" stroke-width="1.5" class="dev-ring"/>
+    <line x1="-6" y1="-2" x2="6" y2="-2" stroke="${c}" stroke-width="1.5"/>
+    <line x1="-4" y1="4" x2="4" y2="4" stroke="${c}" stroke-width="1.5"/>
+    <line x1="-8" y1="-8" x2="8" y2="-8" stroke="${c}" stroke-width="1.5"/>`;
+  },
+  server(c){ return `<rect x="-14" y="-18" width="28" height="36" rx="3" fill="${c}" opacity=".12" class="dev-shape"/>
+    <rect x="-14" y="-18" width="28" height="36" rx="3" fill="none" stroke="${c}" stroke-width="1.5" class="dev-ring"/>
+    <line x1="-10" y1="-8" x2="10" y2="-8" stroke="${c}" stroke-width="1" opacity=".4"/>
+    <line x1="-10" y1="0" x2="10" y2="0" stroke="${c}" stroke-width="1" opacity=".4"/>
+    <line x1="-10" y1="8" x2="10" y2="8" stroke="${c}" stroke-width="1" opacity=".4"/>
+    <circle cx="7" cy="-13" r="2" fill="${c}" opacity=".6"/>
+    <circle cx="7" cy="-5" r="2" fill="${c}" opacity=".6"/>
+    <circle cx="7" cy="3" r="2" fill="${c}" opacity=".6"/>`;
+  },
+  ap(c){ return `<rect x="-10" y="2" width="20" height="6" rx="3" fill="${c}" opacity=".3" class="dev-shape"/>
+    <path d="M-14,-6 A18,18 0 0,1 14,-6" fill="none" stroke="${c}" stroke-width="1.5" opacity=".4"/>
+    <path d="M-10,-2 A12,12 0 0,1 10,-2" fill="none" stroke="${c}" stroke-width="1.5" opacity=".6"/>
+    <path d="M-6,2 A6,6 0 0,1 6,2" fill="none" stroke="${c}" stroke-width="1.5" opacity=".9"/>
+    <circle cx="0" cy="5" r="10" fill="none" stroke="${c}" stroke-width="1.5" opacity="0" class="dev-ring"/>`;
+  },
+  desktop(c){ return `<rect x="-14" y="-14" width="28" height="20" rx="2" fill="${c}" opacity=".12" class="dev-shape"/>
+    <rect x="-14" y="-14" width="28" height="20" rx="2" fill="none" stroke="${c}" stroke-width="1.5" class="dev-ring"/>
+    <rect x="-10" y="-10" width="20" height="12" rx="1" fill="${c}" opacity=".15"/>
+    <rect x="-4" y="6" width="8" height="3" fill="${c}" opacity=".3"/>
+    <rect x="-8" y="9" width="16" height="2" rx="1" fill="${c}" opacity=".3"/>`;
+  },
+  laptop(c){ return `<rect x="-16" y="-10" width="32" height="18" rx="2" fill="${c}" opacity=".12" class="dev-shape"/>
+    <rect x="-16" y="-10" width="32" height="18" rx="2" fill="none" stroke="${c}" stroke-width="1.5" class="dev-ring"/>
+    <rect x="-12" y="-7" width="24" height="11" rx="1" fill="${c}" opacity=".15"/>
+    <rect x="-18" y="8" width="36" height="3" rx="1.5" fill="${c}" opacity=".3"/>`;
+  },
+  phone(c){ return `<rect x="-8" y="-14" width="16" height="28" rx="3" fill="${c}" opacity=".12" class="dev-shape"/>
+    <rect x="-8" y="-14" width="16" height="28" rx="3" fill="none" stroke="${c}" stroke-width="1.5" class="dev-ring"/>
+    <rect x="-6" y="-10" width="12" height="16" fill="${c}" opacity=".15"/>
+    <circle cx="0" cy="10" r="2" fill="${c}" opacity=".3"/>`;
+  },
+  ipphone(c){ return `<rect x="-14" y="-12" width="28" height="24" rx="3" fill="${c}" opacity=".12" class="dev-shape"/>
+    <rect x="-14" y="-12" width="28" height="24" rx="3" fill="none" stroke="${c}" stroke-width="1.5" class="dev-ring"/>
+    <rect x="-10" y="-8" width="12" height="8" rx="1" fill="${c}" opacity=".2"/>
+    <circle cx="6" cy="-4" r="4" fill="${c}" opacity=".15"/>
+    <rect x="-4" y="4" width="4" height="3" rx="1" fill="${c}" opacity=".3"/>
+    <rect x="2" y="4" width="4" height="3" rx="1" fill="${c}" opacity=".3"/>`;
+  },
+  printer(c){ return `<rect x="-16" y="-8" width="32" height="18" rx="3" fill="${c}" opacity=".12" class="dev-shape"/>
+    <rect x="-16" y="-8" width="32" height="18" rx="3" fill="none" stroke="${c}" stroke-width="1.5" class="dev-ring"/>
+    <rect x="-10" y="-14" width="20" height="8" rx="1" fill="${c}" opacity=".15"/>
+    <rect x="-8" y="6" width="16" height="6" fill="${c}" opacity=".1"/>
+    <line x1="-6" y1="8" x2="6" y2="8" stroke="${c}" stroke-width=".8" opacity=".4"/>`;
+  },
+  wlc(c){ return `<rect x="-20" y="-12" width="40" height="24" rx="4" fill="${c}" opacity=".12" class="dev-shape"/>
+    <rect x="-20" y="-12" width="40" height="24" rx="4" fill="none" stroke="${c}" stroke-width="1.5" class="dev-ring"/>
+    <path d="M-8,-4 A10,10 0 0,1 8,-4" fill="none" stroke="${c}" stroke-width="1.2" opacity=".5"/>
+    <path d="M-12,0 A14,14 0 0,1 12,0" fill="none" stroke="${c}" stroke-width="1.2" opacity=".3"/>
+    <rect x="-12" y="2" width="24" height="6" rx="2" fill="${c}" opacity=".2"/>
+    ${[-6,0,6].map(x=>`<circle cx="${x}" cy="5" r="1.5" fill="${c}" opacity=".5"/>`).join('')}`;
+  },
+  shield(c){ return `<path d="M0,-16 C12,-14 16,-8 16,0 C16,10 6,16 0,20 C-6,16 -16,10 -16,0 C-16,-8 -12,-14 0,-16Z" fill="${c}" opacity=".12" class="dev-shape"/>
+    <path d="M0,-16 C12,-14 16,-8 16,0 C16,10 6,16 0,20 C-6,16 -16,10 -16,0 C-16,-8 -12,-14 0,-16Z" fill="none" stroke="${c}" stroke-width="1.5" class="dev-ring"/>
+    <text x="0" y="4" text-anchor="middle" fill="${c}" font-size="14" font-weight="bold">!</text>`;
+  },
+  ups(c){ return `<rect x="-14" y="-16" width="28" height="32" rx="3" fill="${c}" opacity=".12" class="dev-shape"/>
+    <rect x="-14" y="-16" width="28" height="32" rx="3" fill="none" stroke="${c}" stroke-width="1.5" class="dev-ring"/>
+    <path d="M2,-8 L-4,1 L1,1 L-2,8 L4,-1 L-1,-1 Z" fill="${c}" opacity=".6"/>`;
+  },
+  tv(c){ return `<rect x="-18" y="-12" width="36" height="22" rx="2" fill="${c}" opacity=".12" class="dev-shape"/>
+    <rect x="-18" y="-12" width="36" height="22" rx="2" fill="none" stroke="${c}" stroke-width="1.5" class="dev-ring"/>
+    <rect x="-14" y="-8" width="28" height="14" rx="1" fill="${c}" opacity=".12"/>
+    <rect x="-6" y="10" width="12" height="3" rx="1" fill="${c}" opacity=".3"/>`;
+  },
+  gamepad(c){ return `<ellipse rx="18" ry="12" fill="${c}" opacity=".12" class="dev-shape"/>
+    <ellipse rx="18" ry="12" fill="none" stroke="${c}" stroke-width="1.5" class="dev-ring"/>
+    <rect x="-8" y="-3" width="4" height="6" rx="1" fill="${c}" opacity=".4"/>
+    <rect x="-10" y="-1" width="8" height="2" rx="1" fill="${c}" opacity=".4"/>
+    <circle cx="7" cy="-2" r="1.5" fill="${c}" opacity=".5"/>
+    <circle cx="10" cy="1" r="1.5" fill="${c}" opacity=".5"/>`;
+  },
+  nas(c){ return `<rect x="-14" y="-16" width="28" height="32" rx="3" fill="${c}" opacity=".12" class="dev-shape"/>
+    <rect x="-14" y="-16" width="28" height="32" rx="3" fill="none" stroke="${c}" stroke-width="1.5" class="dev-ring"/>
+    ${[-9,-3,3,9].map(y=>`<rect x="-9" y="${y}" width="18" height="4" rx="1" fill="${c}" opacity=".2"/>
+    <circle cx="6" cy="${y+2}" r="1.2" fill="${c}" opacity=".5"/>`).join('')}`;
+  },
+  sensor(c){ return `<circle r="10" fill="${c}" opacity=".12" class="dev-shape"/>
+    <circle r="10" fill="none" stroke="${c}" stroke-width="1.5" class="dev-ring"/>
+    <circle r="3" fill="${c}" opacity=".4"/>
+    <circle r="6" fill="none" stroke="${c}" stroke-width=".8" opacity=".3"/>`;
+  },
+  cam(c){ return `<rect x="-12" y="-10" width="24" height="16" rx="3" fill="${c}" opacity=".12" class="dev-shape"/>
+    <rect x="-12" y="-10" width="24" height="16" rx="3" fill="none" stroke="${c}" stroke-width="1.5" class="dev-ring"/>
+    <circle cx="0" cy="-2" r="5" fill="none" stroke="${c}" stroke-width="1.2" opacity=".5"/>
+    <circle cx="0" cy="-2" r="2" fill="${c}" opacity=".4"/>
+    <rect x="10" y="-6" width="6" height="4" rx="1" fill="${c}" opacity=".3"/>`;
+  },
+  hub(c){ return `<rect x="-16" y="-14" width="32" height="28" rx="6" fill="${c}" opacity=".12" class="dev-shape"/>
+    <rect x="-16" y="-14" width="32" height="28" rx="6" fill="none" stroke="${c}" stroke-width="1.5" class="dev-ring"/>
+    <circle cx="0" cy="0" r="5" fill="${c}" opacity=".2"/>
+    ${[0,60,120,180,240,300].map(a=>{const r=10,x=Math.cos(a*Math.PI/180)*r,y=Math.sin(a*Math.PI/180)*r;return`<line x1="0" y1="0" x2="${x.toFixed(1)}" y2="${y.toFixed(1)}" stroke="${c}" stroke-width="1" opacity=".3"/><circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="2" fill="${c}" opacity=".4"/>`;}).join('')}`;
+  },
+  mesh(c){ return `<circle r="14" fill="${c}" opacity=".1" class="dev-shape"/>
+    <circle r="14" fill="none" stroke="${c}" stroke-width="1.5" class="dev-ring"/>
+    <path d="M-6,-4 A8,8 0 0,1 6,-4" fill="none" stroke="${c}" stroke-width="1.2" opacity=".5"/>
+    <path d="M-4,0 A5,5 0 0,1 4,0" fill="none" stroke="${c}" stroke-width="1.2" opacity=".7"/>
+    <circle cx="0" cy="4" r="3" fill="${c}" opacity=".25"/>
+    <rect x="-4" y="4" width="8" height="4" rx="2" fill="${c}" opacity=".3"/>`;
+  },
+  modem(c){ return `<rect x="-10" y="-16" width="20" height="32" rx="3" fill="${c}" opacity=".12" class="dev-shape"/>
+    <rect x="-10" y="-16" width="20" height="32" rx="3" fill="none" stroke="${c}" stroke-width="1.5" class="dev-ring"/>
+    <circle cx="0" cy="-9" r="2" fill="${c}" opacity=".5"/>
+    <circle cx="0" cy="-3" r="2" fill="${c}" opacity=".4"/>
+    <circle cx="0" cy="3" r="2" fill="${c}" opacity=".3"/>
+    <rect x="-6" y="8" width="12" height="5" rx="1" fill="${c}" opacity=".2"/>`;
+  },
+  storage(c){ return `<rect x="-18" y="-12" width="36" height="24" rx="3" fill="${c}" opacity=".12" class="dev-shape"/>
+    <rect x="-18" y="-12" width="36" height="24" rx="3" fill="none" stroke="${c}" stroke-width="1.5" class="dev-ring"/>
+    ${[-12,-4,4,12].map(x=>`<rect x="${x-3}" y="-8" width="6" height="16" rx="1" fill="${c}" opacity=".15"/>
+    <circle cx="${x}" cy="4" r="1" fill="${c}" opacity=".5"/>`).join('')}`;
+  }
+};
+
+/* ── Map device type → icon function ───────────────────────── */
+function getIcon(type){
+  const map = {
+    internet:'cloud', modem:'modem', firewall:'firewall', ips:'shield',
+    core_router:'router', l3_switch:'switch', dist_switch:'switch',
+    access_switch:'switch', wlc:'wlc', access_point:'ap',
+    dns_server:'server', dhcp_server:'server', ntp_server:'server',
+    syslog_server:'server', aaa_server:'server', tftp_server:'server',
+    web_server:'server', desktop:'desktop', laptop:'laptop',
+    ip_phone:'ipphone', printer:'printer', ups:'ups',
+    home_router:'router', smart_tv:'tv', gaming_console:'gamepad',
+    nas:'nas', hypervisor:'server', rpi:'sensor',
+    spine_switch:'switch', leaf_switch:'switch', storage:'storage',
+    mesh_node:'mesh', iot_hub:'hub', smart_sensor:'sensor', camera:'cam',
+    wireless_client:'phone'
+  };
+  return ICONS[map[type]||'server'];
 }
 
-// ═══════════════════════════════════════════════════════════════
-// SEARCH / FILTER
-// ═══════════════════════════════════════════════════════════════
-document.getElementById('devSearch').addEventListener('input', function(){
-  var q = this.value.toLowerCase().trim();
-  if(!q){
-    document.querySelectorAll('.dev-group').forEach(g => g.classList.remove('dimmed'));
+/* ── Topology Definitions ──────────────────────────────────── */
+const TOPOS = {
+  home:{
+    name:'Home',
+    w:700, h:420,
+    zones:[
+      {label:'ISP',x:290,y:20,w:120,h:50},
+      {label:'Home Network',x:140,y:100,w:420,h:300}
+    ],
+    devices:[
+      {id:'internet',type:'internet',x:350,y:40,label:'ISP'},
+      {id:'modem',type:'modem',x:350,y:120,label:'Modem'},
+      {id:'hr',type:'home_router',x:350,y:210,label:'Wi-Fi Router'},
+      {id:'laptop',type:'laptop',x:180,y:320,label:'Laptop'},
+      {id:'phone',type:'wireless_client',x:280,y:350,label:'Phone'},
+      {id:'tv',type:'smart_tv',x:420,y:350,label:'Smart TV'},
+      {id:'console',type:'gaming_console',x:520,y:320,label:'Console'},
+    ],
+    links:[
+      {from:'internet',to:'modem',type:'wired',color:'#DC2626'},
+      {from:'modem',to:'hr',type:'wired',color:'#DC2626'},
+      {from:'hr',to:'laptop',type:'wireless',color:'#0891B2'},
+      {from:'hr',to:'phone',type:'wireless',color:'#0891B2'},
+      {from:'hr',to:'tv',type:'wireless',color:'#0891B2'},
+      {from:'hr',to:'console',type:'wired',color:'#16A34A'},
+    ]
+  },
+  smb:{
+    name:'Small Business',
+    w:800, h:520,
+    zones:[
+      {label:'WAN Edge',x:310,y:12,w:180,h:120},
+      {label:'Server',x:580,y:180,w:150,h:120},
+      {label:'LAN',x:80,y:300,w:640,h:200}
+    ],
+    devices:[
+      {id:'isp',type:'internet',x:400,y:36,label:'ISP'},
+      {id:'fw',type:'firewall',x:400,y:116,label:'Firewall'},
+      {id:'sw1',type:'access_switch',x:400,y:220,label:'SW1 (24-port)'},
+      {id:'srv',type:'web_server',x:640,y:220,label:'File Server'},
+      {id:'ap',type:'access_point',x:200,y:220,label:'AP'},
+      {id:'d1',type:'desktop',x:160,y:350,label:'PC 1'},
+      {id:'d2',type:'desktop',x:280,y:350,label:'PC 2'},
+      {id:'d3',type:'desktop',x:400,y:350,label:'PC 3'},
+      {id:'d4',type:'desktop',x:520,y:350,label:'PC 4'},
+      {id:'pr',type:'printer',x:640,y:350,label:'Printer'},
+      {id:'ph',type:'ip_phone',x:160,y:440,label:'IP Phone'},
+      {id:'lap',type:'laptop',x:100,y:300,label:'Laptop'},
+    ],
+    links:[
+      {from:'isp',to:'fw',type:'wired',color:'#DC2626'},
+      {from:'fw',to:'sw1',type:'wired',color:'#DC2626'},
+      {from:'sw1',to:'srv',type:'wired',color:'#7C3AED'},
+      {from:'sw1',to:'ap',type:'wired',color:'#0891B2'},
+      {from:'sw1',to:'d1',type:'wired',color:'#16A34A'},
+      {from:'sw1',to:'d2',type:'wired',color:'#16A34A'},
+      {from:'sw1',to:'d3',type:'wired',color:'#16A34A'},
+      {from:'sw1',to:'d4',type:'wired',color:'#16A34A'},
+      {from:'sw1',to:'pr',type:'wired',color:'#94A3B8'},
+      {from:'sw1',to:'ph',type:'wired',color:'#94A3B8'},
+      {from:'ap',to:'lap',type:'wireless',color:'#0891B2'},
+    ]
+  },
+  enterprise:{
+    name:'Enterprise',
+    w:1060, h:780,
+    zones:[
+      {label:'WAN Edge',x:380,y:8,w:300,h:80},
+      {label:'Core',x:280,y:100,w:500,h:110},
+      {label:'Distribution',x:200,y:222,w:660,h:100},
+      {label:'Access',x:60,y:340,w:940,h:100},
+      {label:'Wireless',x:740,y:450,w:260,h:100},
+      {label:'Server Farm',x:60,y:550,w:660,h:195}
+    ],
+    devices:[
+      {id:'isp',type:'internet',x:530,y:36,label:'ISP'},
+      {id:'fw1',type:'firewall',x:440,y:36,label:'FW1'},
+      {id:'fw2',type:'firewall',x:620,y:36,label:'FW2'},
+      {id:'cr1',type:'core_router',x:400,y:130,label:'Core-R1'},
+      {id:'cr2',type:'core_router',x:660,y:130,label:'Core-R2'},
+      {id:'l3c',type:'l3_switch',x:530,y:180,label:'L3 Core SW'},
+      {id:'ds1',type:'dist_switch',x:340,y:260,label:'Dist-SW1'},
+      {id:'ds2',type:'dist_switch',x:720,y:260,label:'Dist-SW2'},
+      {id:'as1',type:'access_switch',x:140,y:380,label:'Access-1'},
+      {id:'as2',type:'access_switch',x:340,y:380,label:'Access-2'},
+      {id:'as3',type:'access_switch',x:540,y:380,label:'Access-3'},
+      {id:'as4',type:'access_switch',x:740,y:380,label:'Access-4'},
+      {id:'wlc',type:'wlc',x:870,y:480,label:'WLC'},
+      {id:'ap1',type:'access_point',x:790,y:480,label:'AP1'},
+      {id:'ap2',type:'access_point',x:950,y:480,label:'AP2'},
+      {id:'dns',type:'dns_server',x:120,y:600,label:'DNS'},
+      {id:'dhcp',type:'dhcp_server',x:220,y:600,label:'DHCP'},
+      {id:'ntp',type:'ntp_server',x:320,y:600,label:'NTP'},
+      {id:'syslog',type:'syslog_server',x:420,y:600,label:'Syslog'},
+      {id:'aaa',type:'aaa_server',x:520,y:600,label:'AAA/RADIUS'},
+      {id:'tftp',type:'tftp_server',x:620,y:600,label:'TFTP'},
+      {id:'web',type:'web_server',x:370,y:700,label:'Web Server'},
+      {id:'pc1',type:'desktop',x:100,y:460,label:'PC'},
+      {id:'ph1',type:'ip_phone',x:200,y:460,label:'Phone'},
+      {id:'pr1',type:'printer',x:500,y:460,label:'Printer'},
+    ],
+    links:[
+      {from:'isp',to:'fw1',type:'wired',color:'#DC2626'},
+      {from:'isp',to:'fw2',type:'wired',color:'#DC2626'},
+      {from:'fw1',to:'cr1',type:'wired',color:'#DC2626'},
+      {from:'fw2',to:'cr2',type:'wired',color:'#DC2626'},
+      {from:'cr1',to:'l3c',type:'wired',color:'#2563EB'},
+      {from:'cr2',to:'l3c',type:'wired',color:'#2563EB'},
+      {from:'l3c',to:'ds1',type:'wired',color:'#2563EB'},
+      {from:'l3c',to:'ds2',type:'wired',color:'#2563EB'},
+      {from:'ds1',to:'as1',type:'wired',color:'#16A34A'},
+      {from:'ds1',to:'as2',type:'wired',color:'#16A34A'},
+      {from:'ds2',to:'as3',type:'wired',color:'#16A34A'},
+      {from:'ds2',to:'as4',type:'wired',color:'#16A34A'},
+      {from:'as4',to:'wlc',type:'wired',color:'#0891B2'},
+      {from:'wlc',to:'ap1',type:'wired',color:'#0891B2'},
+      {from:'wlc',to:'ap2',type:'wired',color:'#0891B2'},
+      {from:'as1',to:'pc1',type:'wired',color:'#94A3B8'},
+      {from:'as1',to:'ph1',type:'wired',color:'#94A3B8'},
+      {from:'as3',to:'pr1',type:'wired',color:'#94A3B8'},
+      {from:'ds1',to:'dns',type:'wired',color:'#7C3AED'},
+      {from:'ds1',to:'dhcp',type:'wired',color:'#7C3AED'},
+      {from:'ds1',to:'ntp',type:'wired',color:'#7C3AED'},
+      {from:'ds1',to:'syslog',type:'wired',color:'#7C3AED'},
+      {from:'ds2',to:'aaa',type:'wired',color:'#7C3AED'},
+      {from:'ds2',to:'tftp',type:'wired',color:'#7C3AED'},
+      {from:'ds1',to:'web',type:'wired',color:'#7C3AED'},
+      // Redundant paths
+      {from:'cr1',to:'cr2',type:'wired',color:'#2563EB'},
+      {from:'ds1',to:'ds2',type:'wired',color:'#16A34A'},
+    ]
+  },
+  datacenter:{
+    name:'Data Center',
+    w:900, h:560,
+    zones:[
+      {label:'Spine Tier',x:200,y:15,w:500,h:80},
+      {label:'Leaf Tier',x:80,y:120,w:740,h:80},
+      {label:'Compute + Storage',x:80,y:230,w:740,h:310}
+    ],
+    devices:[
+      {id:'sp1',type:'spine_switch',x:330,y:50,label:'Spine-1'},
+      {id:'sp2',type:'spine_switch',x:570,y:50,label:'Spine-2'},
+      {id:'lf1',type:'leaf_switch',x:140,y:155,label:'Leaf-1'},
+      {id:'lf2',type:'leaf_switch',x:340,y:155,label:'Leaf-2'},
+      {id:'lf3',type:'leaf_switch',x:540,y:155,label:'Leaf-3'},
+      {id:'lf4',type:'leaf_switch',x:740,y:155,label:'Leaf-4'},
+      {id:'s1',type:'web_server',x:100,y:280,label:'Srv-1'},
+      {id:'s2',type:'web_server',x:180,y:280,label:'Srv-2'},
+      {id:'s3',type:'web_server',x:290,y:280,label:'Srv-3'},
+      {id:'s4',type:'web_server',x:370,y:280,label:'Srv-4'},
+      {id:'s5',type:'web_server',x:490,y:280,label:'Srv-5'},
+      {id:'s6',type:'web_server',x:570,y:280,label:'Srv-6'},
+      {id:'s7',type:'web_server',x:690,y:280,label:'Srv-7'},
+      {id:'s8',type:'web_server',x:770,y:280,label:'Srv-8'},
+      {id:'st1',type:'storage',x:300,y:420,label:'SAN Array 1'},
+      {id:'st2',type:'storage',x:580,y:420,label:'SAN Array 2'},
+    ],
+    links:[
+      // Full mesh spine-leaf
+      {from:'sp1',to:'lf1',type:'wired',color:'#2563EB'},
+      {from:'sp1',to:'lf2',type:'wired',color:'#2563EB'},
+      {from:'sp1',to:'lf3',type:'wired',color:'#2563EB'},
+      {from:'sp1',to:'lf4',type:'wired',color:'#2563EB'},
+      {from:'sp2',to:'lf1',type:'wired',color:'#2563EB'},
+      {from:'sp2',to:'lf2',type:'wired',color:'#2563EB'},
+      {from:'sp2',to:'lf3',type:'wired',color:'#2563EB'},
+      {from:'sp2',to:'lf4',type:'wired',color:'#2563EB'},
+      // Servers to leafs
+      {from:'lf1',to:'s1',type:'wired',color:'#7C3AED'},
+      {from:'lf1',to:'s2',type:'wired',color:'#7C3AED'},
+      {from:'lf2',to:'s3',type:'wired',color:'#7C3AED'},
+      {from:'lf2',to:'s4',type:'wired',color:'#7C3AED'},
+      {from:'lf3',to:'s5',type:'wired',color:'#7C3AED'},
+      {from:'lf3',to:'s6',type:'wired',color:'#7C3AED'},
+      {from:'lf4',to:'s7',type:'wired',color:'#7C3AED'},
+      {from:'lf4',to:'s8',type:'wired',color:'#7C3AED'},
+      // Storage
+      {from:'lf2',to:'st1',type:'wired',color:'#D97706'},
+      {from:'lf3',to:'st2',type:'wired',color:'#D97706'},
+    ]
+  },
+  homelab:{
+    name:'Homelab',
+    w:700, h:440,
+    zones:[
+      {label:'WAN',x:250,y:10,w:200,h:60},
+      {label:'Home Lab',x:100,y:90,w:500,h:330}
+    ],
+    devices:[
+      {id:'isp',type:'internet',x:350,y:36,label:'ISP'},
+      {id:'rtr',type:'core_router',x:350,y:120,label:'Router'},
+      {id:'sw',type:'access_switch',x:350,y:210,label:'Managed Switch'},
+      {id:'nas',type:'nas',x:180,y:320,label:'NAS'},
+      {id:'hyp',type:'hypervisor',x:350,y:320,label:'Proxmox'},
+      {id:'pi',type:'rpi',x:520,y:320,label:'Pi-hole (Pi)'},
+      {id:'ups',type:'ups',x:520,y:210,label:'UPS'},
+    ],
+    links:[
+      {from:'isp',to:'rtr',type:'wired',color:'#DC2626'},
+      {from:'rtr',to:'sw',type:'wired',color:'#2563EB'},
+      {from:'sw',to:'nas',type:'wired',color:'#D97706'},
+      {from:'sw',to:'hyp',type:'wired',color:'#7C3AED'},
+      {from:'sw',to:'pi',type:'wired',color:'#16A34A'},
+      {from:'ups',to:'sw',type:'wired',color:'#94A3B8'},
+    ]
+  },
+  mesh:{
+    name:'Mesh / IoT',
+    w:800, h:500,
+    zones:[
+      {label:'Mesh Wi-Fi',x:180,y:10,w:440,h:190},
+      {label:'IoT Network',x:120,y:220,w:560,h:260}
+    ],
+    devices:[
+      {id:'m1',type:'mesh_node',x:260,y:60,label:'Mesh Node 1'},
+      {id:'m2',type:'mesh_node',x:540,y:60,label:'Mesh Node 2'},
+      {id:'m3',type:'mesh_node',x:400,y:150,label:'Mesh Node 3'},
+      {id:'hub',type:'iot_hub',x:400,y:280,label:'IoT Hub'},
+      {id:'sen1',type:'smart_sensor',x:200,y:350,label:'Temp Sensor'},
+      {id:'sen2',type:'smart_sensor',x:320,y:400,label:'Motion'},
+      {id:'cam1',type:'camera',x:480,y:400,label:'Camera'},
+      {id:'cam2',type:'camera',x:600,y:350,label:'Doorbell'},
+      {id:'lap',type:'laptop',x:160,y:140,label:'Laptop'},
+      {id:'phn',type:'wireless_client',x:640,y:140,label:'Phone'},
+    ],
+    links:[
+      // Mesh interconnects
+      {from:'m1',to:'m2',type:'wireless',color:'#0891B2'},
+      {from:'m1',to:'m3',type:'wireless',color:'#0891B2'},
+      {from:'m2',to:'m3',type:'wireless',color:'#0891B2'},
+      // IoT hub
+      {from:'m3',to:'hub',type:'wired',color:'#D97706'},
+      {from:'hub',to:'sen1',type:'wireless',color:'#D97706'},
+      {from:'hub',to:'sen2',type:'wireless',color:'#D97706'},
+      {from:'hub',to:'cam1',type:'wired',color:'#D97706'},
+      {from:'hub',to:'cam2',type:'wired',color:'#D97706'},
+      // Clients
+      {from:'m1',to:'lap',type:'wireless',color:'#0891B2'},
+      {from:'m2',to:'phn',type:'wireless',color:'#0891B2'},
+    ]
+  }
+};
+
+/* ── State ─────────────────────────────────────────────────── */
+let currentTopo = 'home';
+let activeDevice = null;
+let searchTerm = '';
+let animFrame = null;
+
+/* ── DOM refs ──────────────────────────────────────────────── */
+const $tabs = document.getElementById('topoTabs');
+const $svg = document.getElementById('topoSvg');
+const $viewport = document.getElementById('topoViewport');
+const $panel = document.getElementById('detailPanel');
+const $backdrop = document.getElementById('detailBackdrop');
+const $dpContent = document.getElementById('dpContent');
+const $search = document.getElementById('devSearch');
+const $searchClear = document.getElementById('searchClear');
+const $resultCount = document.getElementById('resultCount');
+const $legend = document.getElementById('legend');
+const $count = document.getElementById('deviceCount');
+
+/* ── Build topology tabs ───────────────────────────────────── */
+function buildTabs(){
+  $tabs.innerHTML = Object.entries(TOPOS).map(([k,t])=>{
+    const n = t.devices.length;
+    return `<button class="topo-tab${k===currentTopo?' active':''}" data-topo="${k}">${t.name}<span class="tab-count">(${n})</span></button>`;
+  }).join('');
+  $tabs.querySelectorAll('.topo-tab').forEach(b=>{
+    b.addEventListener('click',()=>{
+      if(b.dataset.topo===currentTopo) return;
+      currentTopo = b.dataset.topo;
+      $tabs.querySelectorAll('.topo-tab').forEach(t=>t.classList.toggle('active',t.dataset.topo===currentTopo));
+      closePanel();
+      renderTopology();
+    });
+  });
+}
+
+/* ── Build legend ──────────────────────────────────────────── */
+function buildLegend(){
+  const cats = [
+    {label:'WAN/Edge',color:'#DC2626'},
+    {label:'Core',color:'#2563EB'},
+    {label:'Distribution',color:'#16A34A'},
+    {label:'Access/Wireless',color:'#0891B2'},
+    {label:'Servers',color:'#7C3AED'},
+    {label:'Endpoints',color:'#94A3B8'},
+    {label:'Infrastructure',color:'#D97706'},
+  ];
+  $legend.innerHTML = cats.map(c=>`<span class="legend-item"><span class="legend-dot" style="background:${c.color}"></span>${c.label}</span>`).join('') +
+    '<span class="legend-item"><span class="legend-line" style="border-color:#64748B"></span>Wired</span>' +
+    '<span class="legend-item"><span class="legend-line dashed" style="border-color:#64748B"></span>Wireless</span>';
+}
+
+/* ── Render topology SVG ───────────────────────────────────── */
+function renderTopology(){
+  const topo = TOPOS[currentTopo];
+  if(!topo) return;
+  const w = topo.w, h = topo.h;
+  $svg.setAttribute('viewBox',`0 0 ${w} ${h}`);
+  $svg.setAttribute('width', w);
+  $svg.setAttribute('height', h);
+  $svg.style.maxWidth = w+'px';
+
+  // Animated dash offset
+  const dashAnim = 'animation:flowDash 1.2s linear infinite';
+
+  // Build positions map
+  const posMap = {};
+  topo.devices.forEach(d=>{ posMap[d.id] = {x:d.x,y:d.y}; });
+
+  let html = '';
+
+  // Zones
+  if(topo.zones){
+    topo.zones.forEach(z=>{
+      html += `<rect class="zone-rect" x="${z.x}" y="${z.y}" width="${z.w}" height="${z.h}" fill="var(--bg-hover)" stroke="var(--border)" stroke-width="1" opacity=".5"/>`;
+      html += `<text class="zone-label" x="${z.x+8}" y="${z.y+14}">${z.label}</text>`;
+    });
+  }
+
+  // Links
+  if(topo.links){
+    topo.links.forEach((ln,i)=>{
+      const a = posMap[ln.from], b = posMap[ln.to];
+      if(!a||!b) return;
+      const isWireless = ln.type === 'wireless';
+      const dashAttr = isWireless ? 'stroke-dasharray="6 4"' : `stroke-dasharray="12 12" style="${dashAnim}"`;
+      html += `<line class="conn-line" data-from="${ln.from}" data-to="${ln.to}" x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}" stroke="${ln.color}" stroke-width="1.5" opacity=".35" ${dashAttr}/>`;
+    });
+  }
+
+  // Devices
+  topo.devices.forEach((d,i)=>{
+    const devData = DEVICES[d.type];
+    const cat = devData ? devData.category : 'endpoint';
+    const catColor = CAT_COLORS[cat] || CAT_COLORS.endpoint;
+    const iconFn = getIcon(d.type);
+    const iconSvg = iconFn ? iconFn(catColor.fill) : '';
+
+    html += `<g class="dev-group entering" data-id="${d.id}" data-type="${d.type}" transform="translate(${d.x},${d.y})" style="animation-delay:${i*60}ms">`;
+    html += iconSvg;
+    html += `<text x="0" y="28" text-anchor="middle" fill="var(--ink-secondary)" font-size="10" font-weight="500">${d.label}</text>`;
+    html += '</g>';
+  });
+
+  $svg.innerHTML = html;
+
+  // Update device count
+  const totalUnique = new Set(topo.devices.map(d=>d.type)).size;
+  $count.textContent = `${topo.devices.length} devices in this topology · ${totalUnique} unique types · ${topo.links?topo.links.length:0} connections`;
+
+  // Attach click handlers
+  $svg.querySelectorAll('.dev-group').forEach(g=>{
+    g.addEventListener('click',(e)=>{
+      e.stopPropagation();
+      const type = g.dataset.type;
+      const id = g.dataset.id;
+      if(activeDevice===id){ closePanel(); return; }
+      openPanel(type, id);
+    });
+  });
+
+  // Remove entering class after animation
+  setTimeout(()=>{
+    $svg.querySelectorAll('.dev-group.entering').forEach(g=>g.classList.remove('entering'));
+  }, topo.devices.length*60+500);
+
+  // Apply search filter if active
+  if(searchTerm) applySearch();
+}
+
+/* ── Open device detail panel ──────────────────────────────── */
+function openPanel(type, id){
+  const dev = DEVICES[type];
+  if(!dev) return;
+
+  activeDevice = id;
+  const cat = CAT_COLORS[dev.category] || CAT_COLORS.endpoint;
+
+  // Highlight active device, dim others
+  $svg.querySelectorAll('.dev-group').forEach(g=>{
+    g.classList.toggle('active', g.dataset.id===id);
+    g.classList.toggle('dimmed', g.dataset.id!==id && !isConnected(id, g.dataset.id));
+  });
+  // Highlight connected links
+  $svg.querySelectorAll('.conn-line').forEach(l=>{
+    const connected = l.dataset.from===id || l.dataset.to===id;
+    l.classList.toggle('dimmed', !connected);
+    l.classList.toggle('active', connected);
+  });
+
+  // Build panel content
+  let html = '';
+
+  // Header
+  html += '<div class="dp-header">';
+  html += `<div class="dp-icon-wrap" style="background:${cat.bg}">`;
+  const iconFn = getIcon(type);
+  html += `<svg viewBox="-30 -24 60 48">${iconFn?iconFn(cat.fill):''}</svg>`;
+  html += '</div>';
+  html += '<div class="dp-meta">';
+  html += `<span class="dp-category" style="background:${cat.bg};color:${cat.fg}">${dev.category.toUpperCase()}</span>`;
+  html += `<div class="dp-name">${dev.name}</div>`;
+  html += `<div class="dp-osi">${dev.osi}</div>`;
+  html += '</div></div>';
+
+  // Description
+  html += `<p class="dp-desc">${dev.desc}</p>`;
+
+  // Models
+  if(dev.models && dev.models.length){
+    html += '<div class="dp-section">';
+    html += '<div class="dp-section-title">Recommended Models</div>';
+    html += '<table class="dp-models"><thead><tr><th>Model</th><th>Use Case</th></tr></thead><tbody>';
+    dev.models.forEach(m=>{
+      html += `<tr><td>${m.name}</td><td>${m.use}</td></tr>`;
+    });
+    html += '</tbody></table></div>';
+  }
+
+  // Specs
+  if(dev.specs){
+    html += '<div class="dp-section">';
+    html += '<div class="dp-section-title">Key Specifications</div>';
+    html += '<div class="dp-specs-grid">';
+    Object.entries(dev.specs).forEach(([k,v])=>{
+      html += `<div class="dp-spec"><div class="dp-spec-label">${k}</div><div class="dp-spec-value">${v}</div></div>`;
+    });
+    html += '</div></div>';
+  }
+
+  // History
+  if(dev.history && dev.history.length){
+    html += '<div class="dp-section">';
+    html += '<div class="dp-section-title">Brief History</div>';
+    html += '<div class="dp-timeline">';
+    dev.history.forEach(h=>{
+      html += `<div class="dp-timeline-item"><div class="dp-timeline-year">${h.year}</div><div class="dp-timeline-text">${h.text}</div></div>`;
+    });
+    html += '</div></div>';
+  }
+
+  // Commands
+  if(dev.commands && dev.commands.length){
+    html += '<div class="dp-section">';
+    html += '<div class="dp-section-title">CCNA Commands</div>';
+    dev.commands.forEach(c=>{
+      html += `<div class="dp-cmd"><code>${c.cmd}</code><span class="dp-cmd-desc">${c.desc}</span><button class="dp-copy" onclick="copyCmd(this,'${c.cmd.replace(/'/g,"\\'")}')">copy</button></div>`;
+    });
+    html += '</div>';
+  }
+
+  // Exam tip
+  if(dev.tip){
+    html += '<div class="dp-section">';
+    html += '<div class="dp-section-title">Exam Tip</div>';
+    html += `<div class="dp-tip">${dev.tip}</div>`;
+    html += '</div>';
+  }
+
+  $dpContent.innerHTML = html;
+  $panel.classList.add('open');
+  $backdrop.classList.add('open');
+  $panel.scrollTop = 0;
+}
+
+/* ── Check if two devices are connected ────────────────────── */
+function isConnected(id1, id2){
+  const topo = TOPOS[currentTopo];
+  if(!topo || !topo.links) return false;
+  return topo.links.some(l=>(l.from===id1&&l.to===id2)||(l.from===id2&&l.to===id1));
+}
+
+/* ── Close panel ───────────────────────────────────────────── */
+function closePanel(){
+  activeDevice = null;
+  $panel.classList.remove('open');
+  $backdrop.classList.remove('open');
+  $svg.querySelectorAll('.dev-group').forEach(g=>{
+    g.classList.remove('active','dimmed');
+  });
+  $svg.querySelectorAll('.conn-line').forEach(l=>{
+    l.classList.remove('dimmed','active');
+  });
+}
+
+/* ── Copy command ──────────────────────────────────────────── */
+window.copyCmd = function(btn, cmd){
+  navigator.clipboard.writeText(cmd).then(()=>{
+    btn.textContent = 'copied';
+    btn.classList.add('copied');
+    setTimeout(()=>{ btn.textContent='copy'; btn.classList.remove('copied'); },1200);
+  });
+};
+
+/* ── Search ────────────────────────────────────────────────── */
+function applySearch(){
+  const topo = TOPOS[currentTopo];
+  if(!topo) return;
+  const term = searchTerm.toLowerCase().trim();
+
+  if(!term){
+    $svg.querySelectorAll('.dev-group').forEach(g=>{ g.classList.remove('dimmed','search-match'); });
+    $svg.querySelectorAll('.conn-line').forEach(l=>{ l.classList.remove('dimmed'); });
+    $resultCount.textContent = '';
     return;
   }
-  document.querySelectorAll('.dev-group').forEach(g => {
-    var id = g.dataset.id;
-    var d = DEVICE_INFO[id];
-    if(!d){ g.classList.add('dimmed'); return; }
-    var haystack = (d.name + ' ' + d.type + ' ' + d.desc + ' ' + d.tip + ' ' + d.cmds.join(' ')).toLowerCase();
-    g.classList.toggle('dimmed', !haystack.includes(q));
+
+  let matchCount = 0;
+  const matchedIds = new Set();
+
+  topo.devices.forEach(d=>{
+    const dev = DEVICES[d.type];
+    const haystack = [d.label, d.type, dev?dev.name:'', dev?dev.category:'', dev?dev.desc:''].join(' ').toLowerCase();
+    if(haystack.includes(term)){
+      matchedIds.add(d.id);
+      matchCount++;
+    }
   });
+
+  $svg.querySelectorAll('.dev-group').forEach(g=>{
+    const matched = matchedIds.has(g.dataset.id);
+    g.classList.toggle('search-match', matched);
+    g.classList.toggle('dimmed', !matched);
+  });
+
+  $svg.querySelectorAll('.conn-line').forEach(l=>{
+    const vis = matchedIds.has(l.dataset.from) || matchedIds.has(l.dataset.to);
+    l.classList.toggle('dimmed', !vis);
+  });
+
+  $resultCount.textContent = matchCount > 0 ? `${matchCount} match${matchCount>1?'es':''}` : 'No matches';
+}
+
+$search.addEventListener('input',()=>{
+  searchTerm = $search.value;
+  $searchClear.classList.toggle('visible', searchTerm.length>0);
+  if(activeDevice) closePanel();
+  applySearch();
 });
 
-// ═══════════════════════════════════════════════════════════════
-// DEEP LINK — open device from URL hash (e.g. devices.html#firewall)
-// ═══════════════════════════════════════════════════════════════
-function openFromHash(){
-  var h = location.hash.replace('#','');
-  if(!h || !DEVICE_INFO[h]) return;
-  var g = document.querySelector('.dev-group[data-id="'+h+'"]');
-  if(g){
-    setTimeout(function(){
-      g.click();
-      g.scrollIntoView({behavior:'smooth',block:'center'});
-    }, 300);
-  }
-}
-openFromHash();
-window.addEventListener('hashchange', openFromHash);
+$searchClear.addEventListener('click',()=>{
+  $search.value = '';
+  searchTerm = '';
+  $searchClear.classList.remove('visible');
+  applySearch();
+  $search.focus();
+});
+
+/* ── Close handlers ────────────────────────────────────────── */
+document.getElementById('detailClose').addEventListener('click', closePanel);
+$backdrop.addEventListener('click', closePanel);
+document.addEventListener('keydown',(e)=>{
+  if(e.key==='Escape') closePanel();
+});
+
+/* ── Init ──────────────────────────────────────────────────── */
+buildTabs();
+buildLegend();
+renderTopology();
+
+})();
 </script>
-<script src="js/tutor.js"></script>
 </body>
 </html>
