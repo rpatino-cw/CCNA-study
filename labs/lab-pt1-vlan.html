@@ -613,6 +613,10 @@
 <span class="prompt">SW1(config-vlan)#</span> <span class="cmd">name NATIVE</span>
 <span class="prompt">SW1(config-vlan)#</span> <span class="cmd">exit</span></pre>
             </div>
+            <div class="callout">
+              <div class="callout-title">Why not VLAN 1?</div>
+              <p>Every switch port starts in <strong>VLAN 1</strong> — the default VLAN. VLAN 1 <strong>cannot be deleted or renamed</strong>. Control protocols (CDP, VTP, STP BPDUs) use VLAN 1 by default. Leaving user traffic on VLAN 1 is a <strong>security risk</strong> because an attacker on any default port is already in the same broadcast domain as management traffic. That's why we create separate VLANs (10, 20, 30) and move native to 99.</p>
+            </div>
           </div>
         </div>
 
@@ -644,6 +648,19 @@
           </div>
         </div>
 
+        <!-- Voice VLAN callout -->
+        <div class="callout" style="margin:var(--s-md) 0">
+          <div class="callout-title">Exam topic: Voice VLAN (2.1.a)</div>
+          <p>In a real campus, IP phones connect between the switch and the PC. The switch port carries <strong>two VLANs</strong>: a data VLAN (untagged, for the PC) and a voice VLAN (tagged with 802.1Q, for the phone). The commands:</p>
+          <div class="cmd-block" style="margin:var(--s-sm) 0">
+            <div class="cmd-device">Example</div>
+            <pre><span class="prompt">SW1(config-if)#</span> <span class="cmd">switchport mode access</span>
+<span class="prompt">SW1(config-if)#</span> <span class="cmd">switchport access vlan 10</span>
+<span class="prompt">SW1(config-if)#</span> <span class="cmd">switchport voice vlan 20</span></pre>
+          </div>
+          <p style="margin-top:var(--s-sm)">The phone learns its VLAN via CDP or LLDP. Packet Tracer has a <strong>7960 IP Phone</strong> model — try replacing one PC with a phone and configuring the voice VLAN. This is a common exam question: <em>"An access port can carry both a data VLAN and a voice VLAN."</em></p>
+        </div>
+
         <!-- Step 4 -->
         <div class="lab-step">
           <div class="step-header">
@@ -667,6 +684,19 @@
             <p class="step-desc" style="margin-top:var(--s-md);margin-bottom:0">
               <strong>Note:</strong> Packet Tracer 2960 switches may not require <code>trunk encapsulation dot1q</code> (it's the only option). If the command errors, skip it — the switch will use dot1Q automatically.
             </p>
+            <div class="callout" style="margin-top:var(--s-md)">
+              <div class="callout-title">Exam topic: 802.1Q frame tagging (2.2.b)</div>
+              <p>When a frame crosses a trunk, the switch inserts a <strong>4-byte 802.1Q tag</strong> between the source MAC address and the EtherType field:</p>
+              <pre style="font-family:var(--font-mono);font-size:.75rem;line-height:1.6;margin:var(--s-sm) 0;color:var(--ink-secondary)">┌──────────┬──────────┬──────────────────────┬──────────┬─────────┐
+│ Dest MAC │ Src MAC  │ <strong>802.1Q Tag (4 bytes)</strong> │ EtherType│ Payload │
+└──────────┴──────────┴──────────────────────┴──────────┴─────────┘
+                       │
+                       ├─ TPID: 0x8100 (identifies tagged frame)
+                       ├─ Priority: 3 bits (CoS / QoS)
+                       ├─ DEI: 1 bit (drop eligible)
+                       └─ VLAN ID: 12 bits (VLANs 1–4094)</pre>
+              <p style="margin-top:var(--s-sm)">The <strong>12-bit VLAN ID</strong> supports VLANs 1–4094. The native VLAN's frames are sent <strong>without</strong> this tag. ISL (Cisco proprietary) is deprecated and not on the exam.</p>
+            </div>
           </div>
         </div>
 
@@ -767,6 +797,25 @@ PC6: IP 192.168.30.2 / 255.255.255.0</pre>
           </div>
         </div>
 
+        <!-- Step 8: Save -->
+        <div class="lab-step">
+          <div class="step-header">
+            <span class="step-num">08</span>
+            <span class="step-title">Save your configuration</span>
+          </div>
+          <div class="step-body">
+            <p class="step-desc">
+              Save the running config on <strong>both switches</strong> so it survives a reboot. Then save the Packet Tracer file (Ctrl+S).
+            </p>
+            <div class="cmd-block">
+              <div class="cmd-device">SW1 &amp; SW2</div>
+              <pre><span class="prompt">SW1#</span> <span class="cmd">copy running-config startup-config</span>
+<span class="comment">! Or the shorthand:</span>
+<span class="prompt">SW1#</span> <span class="cmd">wr</span></pre>
+            </div>
+          </div>
+        </div>
+
       </div>
     </section>
 
@@ -841,7 +890,7 @@ Trunking Native Mode VLAN: 1 (default)</pre>
       <div class="quiz-wrap" id="quiz-wrap">
         <div class="quiz-start-panel" id="quiz-start">
           <h3>Knowledge Check</h3>
-          <p>5 questions covering VLANs, trunking, and DTP. Pass = 80%.</p>
+          <p>8 questions covering VLANs, trunking, voice VLAN, 802.1Q, and DTP. Pass = 80%.</p>
           <button class="btn btn-primary" onclick="startLabQuiz()">Start quiz</button>
         </div>
         <div class="quiz-active" id="quiz-active" style="display:none">
@@ -954,6 +1003,39 @@ Trunking Native Mode VLAN: 1 (default)</pre>
         ],
         correct: 0,
         explanation: "When one side is 'trunk' (static), it actively sends DTP frames. 'Dynamic auto' listens and will form a trunk if the other side initiates. So SW1 trunk + SW2 dynamic auto = trunk. Note: 'dynamic auto' + 'dynamic auto' = access (neither initiates)."
+      },
+      {
+        question: "A switch port connects to an IP phone with a PC behind it. Which commands configure data VLAN 10 and voice VLAN 20 on the port?",
+        options: [
+          "switchport mode trunk / switchport trunk allowed vlan 10,20",
+          "switchport mode access / switchport access vlan 10 / switchport voice vlan 20",
+          "switchport mode access / switchport access vlan 10,20",
+          "switchport voice vlan 10 / switchport voice vlan 20"
+        ],
+        correct: 1,
+        explanation: "An access port carries one data VLAN (untagged) and can also carry one voice VLAN (tagged with 802.1Q). Use 'switchport access vlan' for data and 'switchport voice vlan' for voice. This is NOT a trunk — it's still an access port with a special voice extension."
+      },
+      {
+        question: "Where is the 802.1Q tag inserted in an Ethernet frame?",
+        options: [
+          "Before the preamble",
+          "After the source MAC address, before the EtherType",
+          "After the IP header",
+          "At the end of the frame before the FCS"
+        ],
+        correct: 1,
+        explanation: "The 4-byte 802.1Q tag is inserted between the source MAC address and the EtherType field. It contains the TPID (0x8100), 3-bit priority, 1-bit DEI, and 12-bit VLAN ID. The 12-bit VLAN ID supports VLANs 1-4094."
+      },
+      {
+        question: "Which statement about VLAN 1 on a Cisco switch is TRUE?",
+        options: [
+          "VLAN 1 can be deleted to improve security",
+          "VLAN 1 can be renamed but not deleted",
+          "VLAN 1 cannot be deleted or renamed, and control protocols (CDP, STP) use it by default",
+          "VLAN 1 is only used for management traffic and cannot carry user data"
+        ],
+        correct: 2,
+        explanation: "VLAN 1 is the default VLAN — it cannot be deleted or renamed. CDP, VTP, and STP BPDUs use VLAN 1 by default. All switch ports start in VLAN 1. Best practice: move user traffic and the native VLAN away from VLAN 1."
       }
     ];
 
