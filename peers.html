@@ -195,6 +195,54 @@
   .res-shared-title a{color:var(--ink);text-decoration:none}
   .res-shared-title a:hover{color:var(--accent)}
   .res-shared-by{font-family:var(--font-display);font-size:.65rem;color:var(--ink-muted)}
+
+  /* ── Feature 1: Readiness Rings ── */
+  .readiness-ring { width: 60px; height: 60px; }
+  .readiness-ring circle { fill: none; stroke-width: 5; stroke-linecap: round; }
+  .readiness-ring .ring-bg { stroke: var(--bg-recessed); }
+  .readiness-ring .ring-fill { transition: stroke-dashoffset 1.2s ease; }
+  .readiness-ring .ring-pct { font-family: var(--font-mono); font-size: 1rem; font-weight: 800; }
+  .mc-ring-row { display: flex; align-items: center; gap: 12px; margin-bottom: 4px; }
+  .mc-ring-label { font-family: var(--font-display); font-size: .65rem; color: var(--ink-muted); text-transform: uppercase; letter-spacing: .05em; }
+
+  /* ── Feature 2: Streak Flames ── */
+  .streak-flame { display: inline-flex; align-items: center; gap: 4px; }
+  .streak-flame .flame { font-size: 1rem; line-height: 1; }
+  .streak-flame .flame.med { font-size: 1.2rem; }
+  .streak-flame .flame.big { font-size: 1.4rem; animation: flicker 0.5s ease-in-out infinite alternate; }
+  .streak-flame .flame.dead { filter: grayscale(1); opacity: 0.4; }
+  .streak-flame .streak-val { font-family: var(--font-mono); font-size: 1.1rem; font-weight: 700; }
+  @keyframes flicker { 0% { transform: scale(1) rotate(-2deg); } 100% { transform: scale(1.1) rotate(2deg); } }
+
+  /* ── Feature 3: Activity Sparkline ── */
+  .sparkline { display: flex; gap: 1px; margin-top: 6px; }
+  .sparkline .day { width: 7px; height: 7px; border-radius: 1px; background: var(--bg-recessed); }
+  .sparkline .day.active { background: #16A34A; }
+  .sparkline .day.today { background: #16A34A; box-shadow: 0 0 3px rgba(22,163,74,0.5); }
+
+  /* ── Feature 4: XP + Level System ── */
+  .level-badge { font-family: var(--font-display); font-size: .6rem; font-weight: 700; padding: 2px 8px; border-radius: 10px; text-transform: uppercase; letter-spacing: .04em; vertical-align: middle; margin-left: 4px; }
+  .level-newbie { background: rgba(148,163,184,.15); color: #64748B; }
+  .level-student { background: rgba(37,99,235,.1); color: #2563EB; }
+  .level-practitioner { background: rgba(124,58,237,.1); color: #7C3AED; }
+  .level-associate { background: rgba(180,83,9,.1); color: #B45309; }
+  .level-engineer { background: rgba(22,163,74,.1); color: #16A34A; }
+  .mc-xp { font-family: var(--font-mono); font-size: .6rem; color: var(--ink-muted); margin-top: 2px; }
+
+  /* ── Feature 5: Domain Radar Charts ── */
+  .radar-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: var(--s-md); margin-bottom: var(--s-md); }
+  .radar-card { background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 12px; text-align: center; }
+  .radar-card .radar-name { font-family: var(--font-display); font-size: .82rem; font-weight: 700; margin-bottom: 4px; }
+  .radar-card svg { display: block; margin: 0 auto; }
+  .radar-axis-label { font-family: var(--font-display); font-size: 7px; fill: var(--ink-muted); }
+  .radar-axis-line { stroke: var(--border); stroke-width: 0.5; }
+  .radar-ring { fill: none; stroke: var(--bg-recessed); stroke-width: 0.5; }
+  .radar-polygon { fill-opacity: 0.2; stroke-width: 1.5; }
+  .radar-overlay-wrap { background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 16px; margin-bottom: var(--s-md); }
+  .radar-overlay-wrap h3 { font-family: var(--font-display); font-size: .92rem; margin-bottom: 8px; }
+  .radar-overlay-legend { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 8px; }
+  .radar-overlay-legend-item { display: flex; align-items: center; gap: 4px; font-family: var(--font-display); font-size: .72rem; }
+  .radar-overlay-legend-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
 </style>
 </head>
 <body>
@@ -647,34 +695,155 @@ function renderOverview(group) {
     const nudgeHtml = !isYou && stale ? '<span class="nudge-badge">' + (veryStale ? 'INACTIVE' : 'STALE') + '</span>' + '<button class="nudge-btn" onclick="sendNudge(\'' + esc(m.name) + '\')">Send Nudge</button>' : '';
     const kickHtml = !isYou && isAdmin ? '<button class="nudge-btn" style="margin-left:4px;color:var(--ink-muted);border-color:var(--border)" onclick="removeMember(\'' + id + '\',\'' + esc(m.name) + '\')">Remove</button>' : '';
     const statusDot = '<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:' + (isOnline ? '#16A34A' : '#DC2626') + ';margin-right:5px;vertical-align:middle' + (isOnline ? ';animation:mc-breathe 2s ease-in-out infinite' : '') + '" title="' + (isOnline ? 'Online' : 'Offline') + '"></span>';
+
+    // Feature 1: Readiness Ring
+    const ringColor = readiness >= 70 ? '#16A34A' : readiness >= 40 ? '#D97706' : '#DC2626';
+    const circumference = 163.4;
+    const ringOffset = circumference * (1 - readiness / 100);
+    const ringHtml = '<svg class="readiness-ring" viewBox="0 0 64 64">' +
+      '<circle class="ring-bg" cx="32" cy="32" r="26"/>' +
+      '<circle class="ring-fill" cx="32" cy="32" r="26" stroke="' + ringColor + '" stroke-dasharray="' + circumference + '" stroke-dashoffset="' + circumference + '" data-target="' + ringOffset + '" transform="rotate(-90 32 32)"/>' +
+      '<text class="ring-pct" x="32" y="36" text-anchor="middle" fill="' + ringColor + '">' + readiness + '%</text>' +
+    '</svg>';
+
+    // Feature 2: Streak Flame
+    let flameEmoji, flameClass;
+    if (streak === 0) { flameEmoji = '\u25CB'; flameClass = 'flame dead'; }
+    else if (streak <= 3) { flameEmoji = '\uD83D\uDD25'; flameClass = 'flame'; }
+    else if (streak <= 7) { flameEmoji = '\uD83D\uDD25'; flameClass = 'flame med'; }
+    else { flameEmoji = '\uD83D\uDD25'; flameClass = 'flame big'; }
+    const streakHtml = '<span class="streak-flame"><span class="' + flameClass + '">' + flameEmoji + '</span> <span class="streak-val">' + streak + 'd</span></span>';
+
+    // Feature 3: Sparkline (14-day activity)
+    const syncedToday = m.lastSync && (Date.now() - new Date(m.lastSync).getTime()) < 86400000;
+    let sparkDays = [];
+    for (let d = 13; d >= 0; d--) {
+      const isToday = d === 0;
+      const isActive = (isToday && syncedToday) || (d < streak);
+      sparkDays.push('<span class="day' + (isToday && isActive ? ' today' : isActive ? ' active' : '') + '"></span>');
+    }
+    const sparklineHtml = '<div class="sparkline">' + sparkDays.join('') + '</div>';
+
+    // Feature 4: XP + Level
+    const xp = (quizzes * 50) + (readiness * 10) + (streak * 20) + Math.floor(time / 120);
+    let levelName, levelClass;
+    if (xp >= 2500) { levelName = 'Engineer'; levelClass = 'level-engineer'; }
+    else if (xp >= 1000) { levelName = 'Associate'; levelClass = 'level-associate'; }
+    else if (xp >= 500) { levelName = 'Practitioner'; levelClass = 'level-practitioner'; }
+    else if (xp >= 100) { levelName = 'Student'; levelClass = 'level-student'; }
+    else { levelName = 'Newbie'; levelClass = 'level-newbie'; }
+    const levelHtml = '<span class="level-badge ' + levelClass + '">' + levelName + '</span>';
+
     return '<div class="member-card ' + (isYou ? 'you' : '') + '" style="border-top:3px solid ' + color + '">' +
-      '<div class="mc-name" style="color:' + color + '">' + statusDot + esc(m.name) + (isYou ? ' <span class="mc-you">(you)</span>' : '') + (id === group.createdBy ? ' <span style="font-size:.58rem;background:var(--accent);color:#fff;padding:1px 5px;border-radius:4px;vertical-align:middle">ADMIN</span>' : '') + ' <span style="font-size:.55rem;background:' + (p.certTrack === 'net+' ? '#7C3AED' : '#2563EB') + ';color:#fff;padding:1px 5px;border-radius:4px;vertical-align:middle">' + (p.certTrack === 'net+' ? 'N+' : 'CCNA') + '</span>' + nudgeHtml + kickHtml + '</div>' +
-      '<div class="mc-stats">' +
-        '<div class="mc-stat"><div class="val">' + readiness + '%</div><div class="lbl">Readiness</div></div>' +
-        '<div class="mc-stat"><div class="val">' + streak + 'd</div><div class="lbl">Streak</div></div>' +
-        '<div class="mc-stat"><div class="val">' + Math.round(time/60) + 'h</div><div class="lbl">Study Time</div></div>' +
-        '<div class="mc-stat"><div class="val">' + quizzes + '</div><div class="lbl">Quizzes</div></div>' +
+      '<div class="mc-name" style="color:' + color + '">' + statusDot + esc(m.name) + (isYou ? ' <span class="mc-you">(you)</span>' : '') + (id === group.createdBy ? ' <span style="font-size:.58rem;background:var(--accent);color:#fff;padding:1px 5px;border-radius:4px;vertical-align:middle">ADMIN</span>' : '') + ' <span style="font-size:.55rem;background:' + (p.certTrack === 'net+' ? '#7C3AED' : '#2563EB') + ';color:#fff;padding:1px 5px;border-radius:4px;vertical-align:middle">' + (p.certTrack === 'net+' ? 'N+' : 'CCNA') + '</span>' + levelHtml + nudgeHtml + kickHtml + '</div>' +
+      '<div class="mc-xp">' + xp.toLocaleString() + ' XP</div>' +
+      '<div class="mc-ring-row">' + ringHtml +
+        '<div>' + streakHtml +
+          '<div class="mc-stats" style="grid-template-columns:1fr 1fr;margin-top:4px">' +
+            '<div class="mc-stat"><div class="val">' + Math.round(time/60) + 'h</div><div class="lbl">Study Time</div></div>' +
+            '<div class="mc-stat"><div class="val">' + quizzes + '</div><div class="lbl">Quizzes</div></div>' +
+          '</div>' +
+        '</div>' +
       '</div>' +
+      sparklineHtml +
       '<div class="mc-sync ' + (veryStale ? 'mc-stale' : '') + '">Synced ' + ago + '</div>' +
     '</div>';
   }).join('');
 
-  // Domain bars
-  document.getElementById('domainBars').innerHTML = Object.entries(DOMAIN_NAMES).map(([dId, dName]) => {
-    const bars = entries.map(([id, m], i) => {
-      const prof = m.progress?.proficiency || {};
-      const dt = Object.keys(prof).filter(k => k.startsWith(dId + '.'));
-      const avg = dt.length > 0 ? Math.round(dt.reduce((s,k) => s + prof[k], 0) / dt.length * 100) : 0;
-      return '<div class="dc-bar"><span class="dc-bar-name">' + esc(m.name) + '</span><div style="flex:1;background:var(--bg-recessed);border-radius:3px;overflow:hidden"><div class="dc-bar-fill" style="width:' + avg + '%;background:' + COLORS[i%COLORS.length] + '"></div></div><span class="dc-bar-pct">' + avg + '%</span></div>';
-    }).join('');
-    return '<div class="dc-row"><div class="dc-label">D' + dId + ' — ' + dName + '</div><div class="dc-bars">' + bars + '</div></div>';
-  }).join('');
+  // Animate readiness rings on load
+  requestAnimationFrame(() => {
+    document.querySelectorAll('.ring-fill[data-target]').forEach(el => {
+      el.style.strokeDashoffset = el.dataset.target;
+    });
+  });
+
+  // Feature 5: Domain Radar Charts
+  renderRadarCharts(entries);
 
   renderScoreTools(group);
   renderWeeklyDigest(group);
   renderRecommendations(group);
   renderGroupStats(group);
   renderWeakTopics(group);
+}
+
+// ── Feature 5: Radar Charts ──────────────────────────────────
+function renderRadarCharts(entries) {
+  const domainIds = ['1','2','3','4','5','6'];
+  const domainLabels = domainIds.map(d => 'D' + d);
+  const cx = 100, cy = 100, radius = 70;
+  const angleStep = (2 * Math.PI) / domainIds.length;
+  const startAngle = -Math.PI / 2; // 12 o'clock
+
+  function polarToXY(angle, r) {
+    return { x: cx + r * Math.cos(angle), y: cy + r * Math.sin(angle) };
+  }
+
+  // Shared axis/ring background
+  function radarBg() {
+    let svg = '';
+    // Concentric rings at 25%, 50%, 75%, 100%
+    [0.25, 0.5, 0.75, 1].forEach(pct => {
+      const r = radius * pct;
+      const pts = domainIds.map((_, i) => {
+        const a = startAngle + i * angleStep;
+        return polarToXY(a, r).x + ',' + polarToXY(a, r).y;
+      }).join(' ');
+      svg += '<polygon points="' + pts + '" class="radar-ring"/>';
+    });
+    // Axis lines
+    domainIds.forEach((_, i) => {
+      const a = startAngle + i * angleStep;
+      const p = polarToXY(a, radius);
+      svg += '<line x1="' + cx + '" y1="' + cy + '" x2="' + p.x + '" y2="' + p.y + '" class="radar-axis-line"/>';
+    });
+    // Axis labels
+    domainIds.forEach((_, i) => {
+      const a = startAngle + i * angleStep;
+      const p = polarToXY(a, radius + 12);
+      svg += '<text x="' + p.x + '" y="' + (p.y + 3) + '" text-anchor="middle" class="radar-axis-label">' + domainLabels[i] + '</text>';
+    });
+    return svg;
+  }
+
+  function memberPolygon(m, color, opacity) {
+    const prof = m.progress?.proficiency || {};
+    const scores = domainIds.map(dId => {
+      const dt = Object.keys(prof).filter(k => k.startsWith(dId + '.'));
+      return dt.length > 0 ? dt.reduce((s, k) => s + prof[k], 0) / dt.length : 0;
+    });
+    const pts = scores.map((s, i) => {
+      const a = startAngle + i * angleStep;
+      const p = polarToXY(a, radius * s);
+      return p.x + ',' + p.y;
+    }).join(' ');
+    return '<polygon points="' + pts + '" class="radar-polygon" fill="' + color + '" stroke="' + color + '" style="fill-opacity:' + (opacity || 0.2) + '"/>';
+  }
+
+  // Individual radar cards
+  let html = '<div class="radar-grid">';
+  entries.forEach(([id, m], i) => {
+    const color = COLORS[i % COLORS.length];
+    html += '<div class="radar-card">' +
+      '<div class="radar-name" style="color:' + color + '">' + esc(m.name) + '</div>' +
+      '<svg viewBox="0 0 200 200" width="200" height="200">' + radarBg() + memberPolygon(m, color) + '</svg>' +
+    '</div>';
+  });
+  html += '</div>';
+
+  // Overlay radar chart with all members
+  html += '<div class="radar-overlay-wrap"><h3>Overlay Comparison</h3>' +
+    '<svg viewBox="0 0 200 200" width="100%" style="max-width:360px;height:auto;display:block;margin:0 auto">' + radarBg();
+  entries.forEach(([id, m], i) => {
+    html += memberPolygon(m, COLORS[i % COLORS.length], 0.15);
+  });
+  html += '</svg><div class="radar-overlay-legend">';
+  entries.forEach(([id, m], i) => {
+    html += '<span class="radar-overlay-legend-item"><span class="radar-overlay-legend-dot" style="background:' + COLORS[i % COLORS.length] + '"></span>' + esc(m.name) + '</span>';
+  });
+  html += '</div></div>';
+
+  document.getElementById('domainBars').innerHTML = html;
 }
 
 function renderTabData(tab, group) {
