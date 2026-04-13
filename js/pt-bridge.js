@@ -1,7 +1,8 @@
-/* Packet Tracer Bridge — hidden by default, revealed only when bridge is detected */
+/* Packet Tracer Bridge — polls for bridge server, swaps hint for build button when detected */
 (function(){
   var BRIDGE='http://127.0.0.1:54321';
   var connected=false;
+  var detected=false; // once true, stop polling
 
   function checkPT(cb){
     fetch(BRIDGE+'/status',{method:'GET'}).then(function(r){return r.json();}).then(function(d){
@@ -41,64 +42,82 @@
     return chain;
   }
 
+  function showBuildButtons(els){
+    detected=true;
+    els.forEach(function(el){
+      // Remove hint if present
+      var oldHint=el.querySelector('.pt-setup-hint');
+      if(oldHint)oldHint.remove();
+      if(el.querySelector('.pt-build-btn'))return;
+
+      var btn=document.createElement('button');
+      btn.className='pt-build-btn';
+      btn.style.cssText='display:inline-flex;align-items:center;gap:6px;font-family:"Space Grotesk",system-ui,sans-serif;font-size:.72rem;padding:6px 14px;background:#0891B2;color:#fff;border:none;border-radius:4px;cursor:pointer;margin:6px 0;transition:all .2s';
+      btn.innerHTML='<span style="font-size:.85em">&#9889;</span> Build in Packet Tracer';
+      btn.addEventListener('click',function(){
+        btn.textContent='Building...';
+        btn.style.opacity='.6';
+        try{
+          var topo=JSON.parse(el.dataset.ptTopology);
+          buildTopology(topo).then(function(){
+            btn.innerHTML='<span style="font-size:.85em">&#10003;</span> Built! Check Packet Tracer';
+            btn.style.background='#16A34A';
+            btn.style.opacity='1';
+            setTimeout(function(){btn.innerHTML='<span style="font-size:.85em">&#9889;</span> Build in Packet Tracer';btn.style.background='#0891B2';},4000);
+          }).catch(function(){
+            btn.textContent='Error — check PT';
+            btn.style.background='#DC2626';
+            btn.style.opacity='1';
+            setTimeout(function(){btn.innerHTML='<span style="font-size:.85em">&#9889;</span> Build in Packet Tracer';btn.style.background='#0891B2';},3000);
+          });
+        }catch(e){
+          btn.textContent='Invalid topology data';
+          btn.style.opacity='1';
+          setTimeout(function(){btn.innerHTML='<span style="font-size:.85em">&#9889;</span> Build in Packet Tracer';btn.style.background='#0891B2';},3000);
+        }
+      });
+      el.appendChild(btn);
+    });
+  }
+
+  function showHints(els){
+    els.forEach(function(el){
+      if(el.querySelector('.pt-setup-hint'))return;
+      var hint=document.createElement('a');
+      var inLabs=/\/labs\//.test(location.pathname);
+      hint.href=inLabs?'pt-setup.html':'labs/pt-setup.html';
+      hint.className='pt-setup-hint';
+      hint.style.cssText='display:inline-flex;align-items:center;gap:6px;font-family:"Space Grotesk",system-ui,sans-serif;font-size:.72rem;padding:5px 12px;color:var(--ink-muted,#A8A29E);text-decoration:none;border:1px solid var(--border,#E2DFD9);border-radius:4px;margin:6px 0;transition:all .2s';
+      hint.innerHTML='<span style="font-size:.85em">&#9889;</span> Optional: enable one-click topology building';
+      hint.addEventListener('mouseenter',function(){hint.style.borderColor='var(--accent,#B45309)';hint.style.color='var(--accent,#B45309)';});
+      hint.addEventListener('mouseleave',function(){hint.style.borderColor='var(--border,#E2DFD9)';hint.style.color='var(--ink-muted,#A8A29E)';});
+      el.appendChild(hint);
+    });
+  }
+
   function injectButtons(){
     var els=document.querySelectorAll('[data-pt-topology]');
     if(!els.length)return;
 
-    // Check bridge first — only inject buttons if connected
+    // Check immediately
     checkPT(function(ok){
-      if(!ok){
-        // Not connected: show a subtle setup link instead
-        els.forEach(function(el){
-          if(el.querySelector('.pt-setup-hint'))return;
-          var hint=document.createElement('a');
-          var inLabs=/\/labs\//.test(location.pathname);
-          hint.href=inLabs?'pt-setup.html':'labs/pt-setup.html';
-          hint.className='pt-setup-hint';
-          hint.style.cssText='display:inline-flex;align-items:center;gap:6px;font-family:"Space Grotesk",system-ui,sans-serif;font-size:.72rem;padding:5px 12px;color:var(--ink-muted,#A8A29E);text-decoration:none;border:1px solid var(--border,#E2DFD9);border-radius:4px;margin:6px 0;transition:all .2s';
-          hint.innerHTML='<span style="font-size:.85em">&#9889;</span> Optional: enable one-click topology building';
-          hint.addEventListener('mouseenter',function(){hint.style.borderColor='var(--accent,#B45309)';hint.style.color='var(--accent,#B45309)';});
-          hint.addEventListener('mouseleave',function(){hint.style.borderColor='var(--border,#E2DFD9)';hint.style.color='var(--ink-muted,#A8A29E)';});
-          el.appendChild(hint);
-        });
+      if(ok){
+        showBuildButtons(els);
         return;
       }
+      // Not connected yet — show hints and start polling
+      showHints(els);
 
-      // Connected: inject build buttons
-      els.forEach(function(el){
-        if(el.querySelector('.pt-build-btn'))return;
-        // Remove setup hint if it was there
-        var oldHint=el.querySelector('.pt-setup-hint');
-        if(oldHint)oldHint.remove();
-
-        var btn=document.createElement('button');
-        btn.className='pt-build-btn';
-        btn.style.cssText='display:inline-flex;align-items:center;gap:6px;font-family:"Space Grotesk",system-ui,sans-serif;font-size:.72rem;padding:6px 14px;background:#0891B2;color:#fff;border:none;border-radius:4px;cursor:pointer;margin:6px 0;transition:all .2s';
-        btn.innerHTML='<span style="font-size:.85em">&#9889;</span> Build in Packet Tracer';
-        btn.addEventListener('click',function(){
-          btn.textContent='Building...';
-          btn.style.opacity='.6';
-          try{
-            var topo=JSON.parse(el.dataset.ptTopology);
-            buildTopology(topo).then(function(){
-              btn.innerHTML='<span style="font-size:.85em">&#10003;</span> Built! Check Packet Tracer';
-              btn.style.background='#16A34A';
-              btn.style.opacity='1';
-              setTimeout(function(){btn.innerHTML='<span style="font-size:.85em">&#9889;</span> Build in Packet Tracer';btn.style.background='#0891B2';},4000);
-            }).catch(function(){
-              btn.textContent='Error — check PT';
-              btn.style.background='#DC2626';
-              btn.style.opacity='1';
-              setTimeout(function(){btn.innerHTML='<span style="font-size:.85em">&#9889;</span> Build in Packet Tracer';btn.style.background='#0891B2';},3000);
-            });
-          }catch(e){
-            btn.textContent='Invalid topology data';
-            btn.style.opacity='1';
-            setTimeout(function(){btn.innerHTML='<span style="font-size:.85em">&#9889;</span> Build in Packet Tracer';btn.style.background='#0891B2';},3000);
-          }
+      // Poll every 3s for 60s — catches bridge starting after page load
+      var attempts=0;
+      var maxAttempts=20;
+      var poll=setInterval(function(){
+        if(detected||attempts>=maxAttempts){clearInterval(poll);return;}
+        attempts++;
+        checkPT(function(ok){
+          if(ok)showBuildButtons(els);
         });
-        el.appendChild(btn);
-      });
+      },3000);
     });
   }
 
