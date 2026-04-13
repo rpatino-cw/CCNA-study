@@ -1,0 +1,1446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Network Lab — CCNA 200-301</title>
+<meta name="color-scheme" content="light">
+<link rel="icon" type="image/svg+xml" href="/CCNA-study/favicon.svg">
+<link rel="stylesheet" href="css/shared.css">
+<style>
+/* ── Layout ─────────────────────────────────────────── */
+.lab-page { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+.lab-page nav.top-nav { flex-shrink: 0; margin-bottom: 0; }
+
+.lab-selector {
+  flex-shrink: 0;
+  padding: 16px var(--s-lg);
+  border-bottom: 1px solid var(--rule);
+  background: var(--bg);
+}
+.lab-selector h1 { font-size: 1.6rem; margin-bottom: 8px; }
+.lab-cards { display: flex; gap: 10px; flex-wrap: wrap; }
+.lab-card-sel {
+  font-family: var(--font-display);
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 8px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg-surface);
+  cursor: pointer;
+  transition: all var(--transition);
+  display: flex; align-items: center; gap: 8px;
+}
+.lab-card-sel:hover { border-color: var(--border-strong); background: var(--bg-hover); }
+.lab-card-sel.active { border-color: var(--ink); background: var(--ink); color: var(--bg); }
+.lab-card-sel .lab-diff-dot {
+  width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+}
+.lab-card-sel .lab-diff-dot.beginner { background: var(--prof-strong); }
+.lab-card-sel .lab-diff-dot.medium { background: var(--prof-mid); }
+.lab-card-sel .lab-diff-dot.hard { background: var(--prof-weak); }
+.lab-card-sel .lab-complete-mark { color: var(--prof-strong); font-weight: 700; display: none; }
+.lab-card-sel.completed .lab-complete-mark { display: inline; }
+
+/* ── Main split ────────────────────────────────────── */
+.lab-workspace { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-height: 0; }
+.top-pane { display: flex; flex: 0 0 auto; min-height: 200px; max-height: 50vh; overflow: hidden; border-bottom: 2px solid var(--ink); }
+.bottom-pane { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+
+/* ── Topology ──────────────────────────────────────── */
+.topology-panel { flex: 1; min-width: 0; padding: var(--s-md); display: flex; align-items: center; justify-content: center; background: var(--bg); }
+.topology-panel svg { width: 100%; height: 100%; max-height: 340px; }
+.topo-device { cursor: pointer; }
+.topo-device:hover rect, .topo-device:hover circle { filter: brightness(1.1); }
+.topo-device.selected rect, .topo-device.selected circle {
+  stroke: #F59E0B; stroke-width: 3; filter: drop-shadow(0 0 6px rgba(245,158,11,0.5));
+}
+.topo-link { stroke: var(--ink-muted); stroke-width: 2; }
+.topo-port-label { font-family: var(--font-mono); font-size: 9px; fill: var(--ink-muted); }
+.topo-device-label { font-family: var(--font-display); font-size: 13px; font-weight: 700; fill: #fff; text-anchor: middle; dominant-baseline: central; pointer-events: none; }
+.topo-device-sublabel { font-family: var(--font-mono); font-size: 9px; fill: var(--ink-muted); text-anchor: middle; }
+
+/* ── Objectives ────────────────────────────────────── */
+.objectives-panel {
+  width: 280px; flex-shrink: 0;
+  border-left: 1px solid var(--rule);
+  padding: var(--s-md);
+  overflow-y: auto;
+  background: var(--bg-surface);
+}
+.objectives-panel h3 {
+  font-size: 0.82rem; margin-bottom: var(--s-md);
+  text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-muted);
+}
+.obj-item {
+  display: flex; align-items: flex-start; gap: 8px;
+  padding: 6px 0; font-family: var(--font-display); font-size: 0.78rem;
+  color: var(--ink-secondary); line-height: 1.4;
+}
+.obj-check {
+  width: 16px; height: 16px; border: 2px solid var(--border-strong);
+  border-radius: 3px; flex-shrink: 0; margin-top: 1px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; color: transparent; transition: all 0.2s;
+}
+.obj-item.done .obj-check { border-color: var(--prof-strong); background: var(--prof-strong); color: #fff; }
+.obj-item.done .obj-text { color: var(--ink-muted); text-decoration: line-through; }
+.obj-hint-btn {
+  font-family: var(--font-mono); font-size: 0.65rem;
+  color: var(--ink-muted); background: none; border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 2px 6px; cursor: pointer;
+  margin-left: auto; flex-shrink: 0; transition: all var(--transition);
+}
+.obj-hint-btn:hover { border-color: var(--accent); color: var(--accent); }
+.hint-toast {
+  margin-top: var(--s-sm); padding: 8px 10px;
+  background: var(--accent-dim); border-left: 3px solid var(--accent);
+  border-radius: 0 var(--radius) var(--radius) 0;
+  font-family: var(--font-mono); font-size: 0.75rem; color: var(--accent);
+}
+.obj-progress {
+  margin-top: var(--s-md); padding-top: var(--s-md);
+  border-top: 1px solid var(--border);
+}
+.obj-progress .progress-text {
+  font-family: var(--font-display); font-size: 0.72rem;
+  color: var(--ink-muted); margin-bottom: 6px;
+  text-transform: uppercase; letter-spacing: 0.04em;
+}
+.hints-remaining {
+  font-family: var(--font-display); font-size: 0.72rem;
+  color: var(--ink-muted); margin-top: var(--s-sm);
+}
+.lab-complete-banner {
+  margin-top: var(--s-md); padding: 12px;
+  background: var(--prof-strong-bg); border: 1px solid var(--prof-strong);
+  border-radius: var(--radius-lg); text-align: center;
+  font-family: var(--font-display); font-size: 0.82rem;
+  font-weight: 600; color: var(--prof-strong); display: none;
+}
+
+/* ── Device tabs ───────────────────────────────────── */
+.device-tabs {
+  flex-shrink: 0; display: flex; gap: 0;
+  border-bottom: 1px solid #292524;
+  background: #292524;
+}
+.device-tab {
+  font-family: var(--font-mono); font-size: 0.75rem; font-weight: 600;
+  padding: 8px 16px; cursor: pointer;
+  color: #a8a29e; background: #292524;
+  border: none; border-right: 1px solid #1c1917;
+  transition: all 0.1s;
+}
+.device-tab:hover { color: #fde68a; background: #3a3633; }
+.device-tab.active { color: #fde68a; background: #1c1917; }
+
+/* ── Terminal ──────────────────────────────────────── */
+.term-container {
+  flex: 1; overflow: hidden; display: flex; flex-direction: column;
+}
+.term-wrap {
+  flex: 1; background: #1c1917; overflow-y: auto;
+  padding: 12px 16px;
+  font-family: 'JetBrains Mono', monospace; font-size: 0.82rem; line-height: 1.5;
+  cursor: text;
+}
+.term-line { color: #d6d3d1; white-space: pre-wrap; word-break: break-all; }
+.term-line.cmd { color: #fde68a; }
+.term-line.success { color: #4ade80; }
+.term-line.error { color: #f87171; }
+.term-line.info { color: #60a5fa; }
+.term-line.system { color: #a78bfa; font-style: italic; }
+.term-input-row {
+  display: flex; align-items: center;
+  padding: 0 16px 12px; background: #1c1917;
+  flex-shrink: 0;
+}
+.term-prompt {
+  color: #a8a29e; font-family: 'JetBrains Mono', monospace;
+  font-size: 0.82rem; white-space: pre; flex-shrink: 0;
+}
+.term-input {
+  flex: 1; background: transparent; border: none; outline: none;
+  color: #fde68a; font-family: 'JetBrains Mono', monospace;
+  font-size: 0.82rem; caret-color: #fde68a;
+}
+
+/* ── Welcome screen ────────────────────────────────── */
+.welcome-screen {
+  flex: 1; display: flex; align-items: center; justify-content: center;
+  background: var(--bg-recessed);
+}
+.welcome-inner {
+  text-align: center; max-width: 400px; padding: var(--s-xl);
+}
+.welcome-inner h2 { font-size: 1.4rem; margin-bottom: var(--s-sm); border: none; padding: 0; }
+.welcome-inner p { color: var(--ink-secondary); font-size: 0.9rem; margin: 0 auto; }
+
+/* ── Responsive ────────────────────────────────────── */
+@media (max-width: 768px) {
+  .top-pane { flex-direction: column; max-height: 60vh; }
+  .objectives-panel { width: 100%; max-height: 150px; border-left: none; border-top: 1px solid var(--rule); }
+  .lab-cards { gap: 6px; }
+  .lab-card-sel { font-size: 0.7rem; padding: 6px 10px; }
+}
+</style>
+</head>
+<body>
+
+<div class="lab-page">
+  <nav class="top-nav"></nav>
+
+  <!-- Lab selector bar -->
+  <div class="lab-selector">
+    <div style="display:flex;align-items:baseline;gap:12px;margin-bottom:8px">
+      <h1>Network Lab</h1>
+      <span style="font-family:var(--font-body);color:var(--ink-secondary);font-size:0.85rem;font-style:italic">Browser-based Packet Tracer</span>
+    </div>
+    <div class="lab-cards" id="labCards"></div>
+  </div>
+
+  <!-- Workspace: topology + objectives above, terminal below -->
+  <div class="lab-workspace" id="labWorkspace">
+    <!-- Welcome state -->
+    <div class="welcome-screen" id="welcomeScreen">
+      <div class="welcome-inner">
+        <h2>Select a Lab</h2>
+        <p>Choose a lab above to load the topology and start configuring devices.</p>
+      </div>
+    </div>
+
+    <!-- Active lab state (hidden initially) -->
+    <div class="top-pane" id="topPane" style="display:none">
+      <div class="topology-panel" id="topologyPanel"></div>
+      <div class="objectives-panel" id="objectivesPanel"></div>
+    </div>
+    <div class="bottom-pane" id="bottomPane" style="display:none">
+      <div class="device-tabs" id="deviceTabs"></div>
+      <div class="term-container" id="termContainer">
+        <div class="term-wrap" id="termOutput"></div>
+        <div class="term-input-row">
+          <span class="term-prompt" id="termPrompt"></span>
+          <input type="text" class="term-input" id="termInput" spellcheck="false" autocomplete="off" autocapitalize="off">
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="js/store.js"></script>
+<script src="js/lab-engine.js"></script>
+<script src="js/nav.js"></script>
+<script>
+(function() {
+  'use strict';
+
+  // ═══════════════════════════════════════════════════════════════
+  //  LAB DEFINITIONS
+  // ═══════════════════════════════════════════════════════════════
+
+  var LABS = [
+    {
+      id: 'basic-switch',
+      name: 'Lab 1: Basic Switch Config',
+      difficulty: 'beginner',
+      devices: [
+        { name: 'SW1', type: 'switch' }
+      ],
+      objectives: [
+        { text: 'Set hostname to "SW-CORE"', hint: 'In config mode: hostname SW-CORE' },
+        { text: 'Create VLAN 10', hint: 'In config mode: vlan 10' },
+        { text: 'Name VLAN 10 "Sales"', hint: 'In vlan config mode: name Sales' },
+        { text: 'Create VLAN 20', hint: 'In config mode: vlan 20' },
+        { text: 'Name VLAN 20 "Engineering"', hint: 'In vlan config mode: name Engineering' },
+        { text: 'Assign Fa0/1 to VLAN 10', hint: 'interface Fa0/1 → switchport mode access → switchport access vlan 10' },
+        { text: 'Assign Fa0/2 to VLAN 20', hint: 'interface Fa0/2 → switchport mode access → switchport access vlan 20' }
+      ]
+    },
+    {
+      id: 'trunk-intervlan',
+      name: 'Lab 2: Trunk + Inter-VLAN Routing',
+      difficulty: 'medium',
+      devices: [
+        { name: 'R1', type: 'router' },
+        { name: 'SW1', type: 'switch' }
+      ],
+      objectives: [
+        { text: 'Create VLAN 10 on SW1', hint: 'On SW1: vlan 10' },
+        { text: 'Create VLAN 20 on SW1', hint: 'On SW1: vlan 20' },
+        { text: 'Configure trunk on SW1 Gi0/24', hint: 'interface Gi0/24 → switchport mode trunk' },
+        { text: 'Configure R1 G0/0.10 with encapsulation dot1Q 10', hint: 'interface G0/0.10 → encapsulation dot1Q 10' },
+        { text: 'Set R1 G0/0.10 IP to 10.0.10.1/24', hint: 'ip address 10.0.10.1 255.255.255.0' },
+        { text: 'Configure R1 G0/0.20 with encapsulation dot1Q 20', hint: 'interface G0/0.20 → encapsulation dot1Q 20' },
+        { text: 'Set R1 G0/0.20 IP to 10.0.20.1/24', hint: 'ip address 10.0.20.1 255.255.255.0' },
+        { text: 'Bring up R1 G0/0 (no shutdown)', hint: 'interface G0/0 → no shutdown' }
+      ]
+    },
+    {
+      id: 'ospf-multi',
+      name: 'Lab 3: OSPF Multi-Router',
+      difficulty: 'medium',
+      devices: [
+        { name: 'R1', type: 'router' },
+        { name: 'R2', type: 'router' },
+        { name: 'R3', type: 'router' }
+      ],
+      objectives: [
+        { text: 'Enable OSPF process 1 on R1', hint: 'router ospf 1' },
+        { text: 'Set R1 router-id 1.1.1.1', hint: 'In router config: router-id 1.1.1.1' },
+        { text: 'Advertise 10.0.12.0/24 on R1 in Area 0', hint: 'network 10.0.12.0 0.0.0.255 area 0' },
+        { text: 'Advertise 10.0.13.0/24 on R1 in Area 0', hint: 'network 10.0.13.0 0.0.0.255 area 0' },
+        { text: 'Enable OSPF process 1 on R2', hint: 'router ospf 1' },
+        { text: 'Set R2 router-id 2.2.2.2', hint: 'In router config: router-id 2.2.2.2' },
+        { text: 'Advertise 10.0.12.0/24 on R2 in Area 0', hint: 'network 10.0.12.0 0.0.0.255 area 0' },
+        { text: 'Advertise 10.0.23.0/24 on R2 in Area 0', hint: 'network 10.0.23.0 0.0.0.255 area 0' },
+        { text: 'Enable OSPF process 1 on R3', hint: 'router ospf 1' },
+        { text: 'Set R3 router-id 3.3.3.3', hint: 'In router config: router-id 3.3.3.3' },
+        { text: 'Advertise 10.0.13.0/24 on R3 in Area 0', hint: 'network 10.0.13.0 0.0.0.255 area 0' },
+        { text: 'Advertise 10.0.23.0/24 on R3 in Area 0', hint: 'network 10.0.23.0 0.0.0.255 area 0' }
+      ]
+    },
+    {
+      id: 'acl-nat',
+      name: 'Lab 4: ACL + NAT',
+      difficulty: 'medium',
+      devices: [
+        { name: 'R1', type: 'router' },
+        { name: 'SW1', type: 'switch' }
+      ],
+      objectives: [
+        { text: 'Create standard ACL 1 permitting 10.0.0.0/24', hint: 'access-list 1 permit 10.0.0.0 0.0.0.255' },
+        { text: 'Apply ACL 1 inbound on R1 Gi0/1', hint: 'interface Gi0/1 → ip access-group 1 in' },
+        { text: 'Mark R1 Gi0/1 as NAT inside', hint: 'interface Gi0/1 → ip nat inside' },
+        { text: 'Mark R1 Gi0/0 as NAT outside', hint: 'interface Gi0/0 → ip nat outside' },
+        { text: 'Configure NAT overload using ACL 1 on Gi0/0', hint: 'ip nat inside source list 1 interface GigabitEthernet0/0 overload' }
+      ]
+    },
+    {
+      id: 'full-enterprise',
+      name: 'Lab 5: Full Enterprise',
+      difficulty: 'hard',
+      devices: [
+        { name: 'R1', type: 'router' },
+        { name: 'R2', type: 'router' },
+        { name: 'SW1', type: 'switch' },
+        { name: 'SW2', type: 'switch' }
+      ],
+      objectives: [
+        { text: 'Create VLAN 10 on SW1', hint: 'On SW1: vlan 10' },
+        { text: 'Create VLAN 20 on SW1', hint: 'On SW1: vlan 20' },
+        { text: 'Configure trunk on SW1 Gi0/24', hint: 'interface Gi0/24 → switchport mode trunk' },
+        { text: 'Enable OSPF process 1 on R1', hint: 'On R1: router ospf 1' },
+        { text: 'Advertise 10.0.0.0/24 on R1 in Area 0', hint: 'network 10.0.0.0 0.0.0.255 area 0' },
+        { text: 'Enable OSPF process 1 on R2', hint: 'On R2: router ospf 1' },
+        { text: 'Advertise 10.0.0.0/24 on R2 in Area 0', hint: 'network 10.0.0.0 0.0.0.255 area 0' },
+        { text: 'Configure default route on R1 via 203.0.113.1', hint: 'ip route 0.0.0.0 0.0.0.0 203.0.113.1' },
+        { text: 'Set R1 hostname to "R1-GW"', hint: 'hostname R1-GW' },
+        { text: 'Set domain name on R1 to "corp.local"', hint: 'ip domain-name corp.local' },
+        { text: 'Generate RSA keys on R1 (modulus 2048)', hint: 'crypto key generate rsa modulus 2048' },
+        { text: 'Create user "admin" with secret "cisco123" on R1', hint: 'username admin secret cisco123' },
+        { text: 'Configure VTY lines 0-4 for SSH + local auth on R1', hint: 'line vty 0 4 → transport input ssh → login local' },
+        { text: 'Enable port security on SW2 Fa0/1', hint: 'interface Fa0/1 → switchport port-security' },
+        { text: 'Set port-security max to 2 on SW2 Fa0/1', hint: 'switchport port-security maximum 2' },
+        { text: 'Set port-security violation to shutdown on SW2 Fa0/1', hint: 'switchport port-security violation shutdown' }
+      ]
+    }
+  ];
+
+  // ═══════════════════════════════════════════════════════════════
+  //  SVG TOPOLOGIES
+  // ═══════════════════════════════════════════════════════════════
+
+  function svgTopology(labId) {
+    switch (labId) {
+      case 'basic-switch': return [
+        '<svg viewBox="0 0 600 300">',
+        '  <line class="topo-link" x1="120" y1="150" x2="300" y2="150"/>',
+        '  <line class="topo-link" x1="480" y1="150" x2="300" y2="150"/>',
+        '  <text class="topo-port-label" x="195" y="140">Fa0/1</text>',
+        '  <text class="topo-port-label" x="375" y="140">Fa0/2</text>',
+        '  <g class="topo-device" data-device="SW1">',
+        '    <rect x="250" y="120" width="100" height="60" rx="6" fill="#16A34A" stroke="#16A34A" stroke-width="2"/>',
+        '    <text class="topo-device-label" x="300" y="150">SW1</text>',
+        '  </g>',
+        '  <g>',
+        '    <rect x="60" y="130" width="60" height="40" rx="4" fill="#94A3B8"/>',
+        '    <text class="topo-device-label" x="90" y="150" style="font-size:11px;fill:#1e293b">PC1</text>',
+        '  </g>',
+        '  <g>',
+        '    <rect x="480" y="130" width="60" height="40" rx="4" fill="#94A3B8"/>',
+        '    <text class="topo-device-label" x="510" y="150" style="font-size:11px;fill:#1e293b">PC2</text>',
+        '  </g>',
+        '  <text class="topo-device-sublabel" x="300" y="195">Switch</text>',
+        '</svg>'
+      ].join('\n');
+
+      case 'trunk-intervlan': return [
+        '<svg viewBox="0 0 700 350">',
+        '  <line class="topo-link" x1="350" y1="100" x2="350" y2="200" stroke-dasharray="6,3"/>',
+        '  <text class="topo-port-label" x="358" y="145">G0/0 &#8596; Gi0/24</text>',
+        '  <text class="topo-port-label" x="358" y="160" style="font-size:8px;fill:#CA8A04">trunk</text>',
+        '  <line class="topo-link" x1="200" y1="260" x2="300" y2="260"/>',
+        '  <line class="topo-link" x1="400" y1="260" x2="500" y2="260"/>',
+        '  <line class="topo-link" x1="350" y1="280" x2="350" y2="330"/>',
+        '  <text class="topo-port-label" x="170" y="250">Fa0/1</text>',
+        '  <text class="topo-port-label" x="430" y="250">Fa0/2</text>',
+        '  <g class="topo-device" data-device="R1">',
+        '    <circle cx="350" cy="80" r="40" fill="#2563EB" stroke="#2563EB" stroke-width="2"/>',
+        '    <text class="topo-device-label" x="350" y="80">R1</text>',
+        '  </g>',
+        '  <text class="topo-device-sublabel" x="350" y="32">Router</text>',
+        '  <g class="topo-device" data-device="SW1">',
+        '    <rect x="300" y="220" width="100" height="60" rx="6" fill="#16A34A" stroke="#16A34A" stroke-width="2"/>',
+        '    <text class="topo-device-label" x="350" y="250">SW1</text>',
+        '  </g>',
+        '  <g>',
+        '    <rect x="140" y="240" width="60" height="40" rx="4" fill="#94A3B8"/>',
+        '    <text class="topo-device-label" x="170" y="260" style="font-size:10px;fill:#1e293b">PC1</text>',
+        '    <text class="topo-device-sublabel" x="170" y="292">VLAN 10</text>',
+        '  </g>',
+        '  <g>',
+        '    <rect x="500" y="240" width="60" height="40" rx="4" fill="#94A3B8"/>',
+        '    <text class="topo-device-label" x="530" y="260" style="font-size:10px;fill:#1e293b">PC2</text>',
+        '    <text class="topo-device-sublabel" x="530" y="292">VLAN 20</text>',
+        '  </g>',
+        '  <g>',
+        '    <rect x="320" y="330" width="60" height="40" rx="4" fill="#94A3B8"/>',
+        '    <text class="topo-device-label" x="350" y="350" style="font-size:10px;fill:#1e293b">PC3</text>',
+        '  </g>',
+        '</svg>'
+      ].join('\n');
+
+      case 'ospf-multi': return [
+        '<svg viewBox="0 0 700 380">',
+        '  <line class="topo-link" x1="200" y1="140" x2="500" y2="140"/>',
+        '  <line class="topo-link" x1="200" y1="160" x2="350" y2="300"/>',
+        '  <line class="topo-link" x1="500" y1="160" x2="350" y2="300"/>',
+        '  <text class="topo-port-label" x="330" y="128">10.0.12.0/24</text>',
+        '  <text class="topo-port-label" x="230" y="235">10.0.13.0/24</text>',
+        '  <text class="topo-port-label" x="430" y="235">10.0.23.0/24</text>',
+        '  <text class="topo-port-label" x="340" y="370" style="font-size:11px;fill:#2563EB">OSPF Area 0</text>',
+        '  <g class="topo-device" data-device="R1">',
+        '    <circle cx="200" cy="140" r="40" fill="#2563EB" stroke="#2563EB" stroke-width="2"/>',
+        '    <text class="topo-device-label" x="200" y="140">R1</text>',
+        '  </g>',
+        '  <text class="topo-device-sublabel" x="200" y="92">1.1.1.1</text>',
+        '  <g class="topo-device" data-device="R2">',
+        '    <circle cx="500" cy="140" r="40" fill="#2563EB" stroke="#2563EB" stroke-width="2"/>',
+        '    <text class="topo-device-label" x="500" y="140">R2</text>',
+        '  </g>',
+        '  <text class="topo-device-sublabel" x="500" y="92">2.2.2.2</text>',
+        '  <g class="topo-device" data-device="R3">',
+        '    <circle cx="350" cy="310" r="40" fill="#2563EB" stroke="#2563EB" stroke-width="2"/>',
+        '    <text class="topo-device-label" x="350" y="310">R3</text>',
+        '  </g>',
+        '  <text class="topo-device-sublabel" x="350" y="360">3.3.3.3</text>',
+        '</svg>'
+      ].join('\n');
+
+      case 'acl-nat': return [
+        '<svg viewBox="0 0 700 320">',
+        '  <line class="topo-link" x1="180" y1="160" x2="320" y2="160"/>',
+        '  <line class="topo-link" x1="470" y1="160" x2="600" y2="160"/>',
+        '  <line class="topo-link" x1="320" y1="200" x2="250" y2="270"/>',
+        '  <line class="topo-link" x1="320" y1="200" x2="400" y2="270"/>',
+        '  <text class="topo-port-label" x="210" y="148">Gi0/0</text>',
+        '  <text class="topo-port-label" x="490" y="148">Gi0/1</text>',
+        '  <text class="topo-port-label" x="200" y="174" style="fill:#DC2626;font-size:8px">NAT outside</text>',
+        '  <text class="topo-port-label" x="480" y="174" style="fill:#16A34A;font-size:8px">NAT inside</text>',
+        '  <g>',
+        '    <ellipse cx="130" cy="160" rx="50" ry="35" fill="none" stroke="#94A3B8" stroke-width="2" stroke-dasharray="4,3"/>',
+        '    <text class="topo-device-label" x="130" y="160" style="font-size:11px;fill:#94A3B8">Internet</text>',
+        '  </g>',
+        '  <g class="topo-device" data-device="R1">',
+        '    <circle cx="320" cy="160" r="40" fill="#2563EB" stroke="#2563EB" stroke-width="2"/>',
+        '    <text class="topo-device-label" x="320" y="160">R1</text>',
+        '  </g>',
+        '  <g class="topo-device" data-device="SW1">',
+        '    <rect x="570" y="130" width="80" height="60" rx="6" fill="#16A34A" stroke="#16A34A" stroke-width="2"/>',
+        '    <text class="topo-device-label" x="610" y="160">SW1</text>',
+        '  </g>',
+        '  <g>',
+        '    <rect x="220" y="270" width="60" height="40" rx="4" fill="#94A3B8"/>',
+        '    <text class="topo-device-label" x="250" y="290" style="font-size:10px;fill:#1e293b">PC1</text>',
+        '  </g>',
+        '  <g>',
+        '    <rect x="370" y="270" width="60" height="40" rx="4" fill="#94A3B8"/>',
+        '    <text class="topo-device-label" x="400" y="290" style="font-size:10px;fill:#1e293b">PC2</text>',
+        '  </g>',
+        '  <text class="topo-device-sublabel" x="320" y="210">10.0.0.0/24</text>',
+        '</svg>'
+      ].join('\n');
+
+      case 'full-enterprise': return [
+        '<svg viewBox="0 0 800 420">',
+        '  <line class="topo-link" x1="300" y1="80" x2="500" y2="80"/>',
+        '  <line class="topo-link" x1="300" y1="100" x2="300" y2="200"/>',
+        '  <line class="topo-link" x1="500" y1="100" x2="500" y2="200"/>',
+        '  <line class="topo-link" x1="200" y1="240" x2="250" y2="240"/>',
+        '  <line class="topo-link" x1="350" y1="240" x2="420" y2="310"/>',
+        '  <line class="topo-link" x1="550" y1="240" x2="620" y2="310"/>',
+        '  <line class="topo-link" x1="550" y1="240" x2="700" y2="310"/>',
+        '  <text class="topo-port-label" x="380" y="70">OSPF Area 0</text>',
+        '  <text class="topo-port-label" x="245" y="165">G0/1</text>',
+        '  <text class="topo-port-label" x="510" y="165">G0/1</text>',
+        '  <text class="topo-port-label" x="160" y="228">Gi0/24</text>',
+        '  <text class="topo-port-label" x="162" y="243" style="font-size:8px;fill:#CA8A04">trunk</text>',
+        '  <g class="topo-device" data-device="R1">',
+        '    <circle cx="300" cy="80" r="36" fill="#2563EB" stroke="#2563EB" stroke-width="2"/>',
+        '    <text class="topo-device-label" x="300" y="80">R1</text>',
+        '  </g>',
+        '  <text class="topo-device-sublabel" x="300" y="36">Gateway</text>',
+        '  <g class="topo-device" data-device="R2">',
+        '    <circle cx="500" cy="80" r="36" fill="#2563EB" stroke="#2563EB" stroke-width="2"/>',
+        '    <text class="topo-device-label" x="500" y="80">R2</text>',
+        '  </g>',
+        '  <g class="topo-device" data-device="SW1">',
+        '    <rect x="250" y="210" width="100" height="56" rx="6" fill="#16A34A" stroke="#16A34A" stroke-width="2"/>',
+        '    <text class="topo-device-label" x="300" y="238">SW1</text>',
+        '  </g>',
+        '  <g class="topo-device" data-device="SW2">',
+        '    <rect x="500" y="210" width="100" height="56" rx="6" fill="#16A34A" stroke="#16A34A" stroke-width="2"/>',
+        '    <text class="topo-device-label" x="550" y="238">SW2</text>',
+        '  </g>',
+        '  <g>',
+        '    <rect x="130" y="220" width="50" height="36" rx="4" fill="#94A3B8"/>',
+        '    <text class="topo-device-label" x="155" y="238" style="font-size:9px;fill:#1e293b">PC1</text>',
+        '  </g>',
+        '  <g>',
+        '    <rect x="395" y="305" width="50" height="36" rx="4" fill="#94A3B8"/>',
+        '    <text class="topo-device-label" x="420" y="323" style="font-size:9px;fill:#1e293b">PC2</text>',
+        '  </g>',
+        '  <g>',
+        '    <rect x="595" y="305" width="50" height="36" rx="4" fill="#94A3B8"/>',
+        '    <text class="topo-device-label" x="620" y="323" style="font-size:9px;fill:#1e293b">PC3</text>',
+        '  </g>',
+        '  <g>',
+        '    <rect x="675" y="305" width="50" height="36" rx="4" fill="#94A3B8"/>',
+        '    <text class="topo-device-label" x="700" y="323" style="font-size:9px;fill:#1e293b">PC4</text>',
+        '  </g>',
+        '</svg>'
+      ].join('\n');
+
+      default: return '<svg viewBox="0 0 100 100"></svg>';
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  //  LAB CLASSES — extend LabBase
+  // ═══════════════════════════════════════════════════════════════
+
+  // ── Shared show command output generators ───────────────────
+  function showVlanBrief(dev) {
+    var lines = ['VLAN Name                             Status    Ports', '---- -------------------------------- --------- ------'];
+    var ids = Object.keys(dev.vlans).map(Number).sort(function(a,b){return a-b;});
+    ids.forEach(function(vid) {
+      var v = dev.vlans[vid];
+      var name = (v.name || 'VLAN' + vid).substring(0, 32);
+      var ports = (v.ports || []).join(', ');
+      lines.push(String(vid).padEnd(5) + name.padEnd(33) + 'active    ' + ports);
+    });
+    return lines.join('\n');
+  }
+
+  function showIpIntBrief(dev) {
+    var lines = ['Interface                  IP-Address      OK? Method Status                Protocol', ''];
+    Object.keys(dev.interfaces).forEach(function(ifName) {
+      var iface = dev.interfaces[ifName];
+      var ip = iface.ip || 'unassigned';
+      var mask = iface.mask || '';
+      var status = iface.up ? 'up' : 'administratively down';
+      var proto = iface.up ? 'up' : 'down';
+      lines.push(ifName.padEnd(27) + ip.padEnd(16) + 'YES manual  '.padEnd(12) + status.padEnd(22) + proto);
+    });
+    return lines.join('\n');
+  }
+
+  function showIpRoute(dev) {
+    var lines = ['Codes: C - connected, S - static, O - OSPF', ''];
+    dev.routes.forEach(function(r) {
+      lines.push(r.code + '    ' + r.network + '/' + r.prefix + ' [' + r.ad + '/' + r.metric + '] via ' + r.nextHop);
+    });
+    if (dev.ospf && dev.ospf.networks) {
+      dev.ospf.networks.forEach(function(n) {
+        lines.push('C    ' + n.network + ' is directly connected');
+      });
+    }
+    return lines.join('\n');
+  }
+
+  function showOspfNeighbor(dev) {
+    if (!dev.ospf) return '% OSPF not configured';
+    return 'Neighbor ID     Pri   State           Dead Time   Address         Interface\n(Simulated — configure OSPF on all routers to see neighbors)';
+  }
+
+  function showAccessLists(dev) {
+    if (Object.keys(dev.acls).length === 0) return '% No access lists configured';
+    var lines = [];
+    Object.keys(dev.acls).forEach(function(num) {
+      lines.push('Standard IP access list ' + num);
+      dev.acls[num].forEach(function(entry) {
+        lines.push('    ' + entry.action + ' ' + entry.source + ' ' + (entry.wildcard || ''));
+      });
+    });
+    return lines.join('\n');
+  }
+
+  // ── Shared handleCommand for common IOS commands ───────────
+  function sharedHandleCommand(lab, dev, raw, lower) {
+    // hostname
+    var hostMatch = raw.match(/^hostname\s+(\S+)/i);
+    if (hostMatch && (dev.mode === 'config')) {
+      dev.hostname = hostMatch[1];
+      lab.checkObjectives();
+      return '';
+    }
+
+    // switchport mode access / trunk
+    if (lower === 'switchport mode access' && (dev.mode === 'config-if')) {
+      if (dev.currentInterface && dev.interfaces[dev.currentInterface]) {
+        dev.interfaces[dev.currentInterface].switchportMode = 'access';
+      }
+      lab.checkObjectives();
+      return '';
+    }
+    if (lower === 'switchport mode trunk' && (dev.mode === 'config-if')) {
+      if (dev.currentInterface && dev.interfaces[dev.currentInterface]) {
+        dev.interfaces[dev.currentInterface].switchportMode = 'trunk';
+        dev.trunks[dev.currentInterface] = true;
+      }
+      lab.checkObjectives();
+      return '';
+    }
+
+    // switchport trunk encapsulation dot1q
+    if (lower === 'switchport trunk encapsulation dot1q' && dev.mode === 'config-if') {
+      if (dev.currentInterface && dev.interfaces[dev.currentInterface]) {
+        dev.interfaces[dev.currentInterface].trunkEncap = 'dot1q';
+      }
+      return '';
+    }
+
+    // switchport access vlan X
+    var svMatch = raw.match(/^switchport\s+access\s+vlan\s+(\d+)/i);
+    if (svMatch && dev.mode === 'config-if') {
+      var vid = parseInt(svMatch[1]);
+      if (dev.currentInterface && dev.interfaces[dev.currentInterface]) {
+        dev.interfaces[dev.currentInterface].accessVlan = vid;
+        // add port to vlan
+        if (dev.vlans[vid]) {
+          if (dev.vlans[vid].ports.indexOf(dev.currentInterface) === -1) {
+            dev.vlans[vid].ports.push(dev.currentInterface);
+          }
+        }
+      }
+      lab.checkObjectives();
+      return '';
+    }
+
+    // encapsulation dot1Q X (subinterface)
+    var encapMatch = raw.match(/^encapsulation\s+dot1[Qq]\s+(\d+)/i);
+    if (encapMatch && (dev.mode === 'config-subif')) {
+      var vlanId = parseInt(encapMatch[1]);
+      if (dev.currentInterface && dev.interfaces[dev.currentInterface]) {
+        dev.interfaces[dev.currentInterface].dot1q = vlanId;
+      }
+      lab.checkObjectives();
+      return '';
+    }
+
+    // ip address
+    var ipMatch = raw.match(/^ip\s+address\s+(\d+\.\d+\.\d+\.\d+)\s+(\d+\.\d+\.\d+\.\d+)/i);
+    if (ipMatch && (dev.mode === 'config-if' || dev.mode === 'config-subif')) {
+      if (dev.currentInterface && dev.interfaces[dev.currentInterface]) {
+        dev.interfaces[dev.currentInterface].ip = ipMatch[1];
+        dev.interfaces[dev.currentInterface].mask = ipMatch[2];
+      }
+      lab.checkObjectives();
+      return '';
+    }
+
+    // no shutdown
+    if (lower === 'no shutdown' && (dev.mode === 'config-if' || dev.mode === 'config-subif')) {
+      if (dev.currentInterface && dev.interfaces[dev.currentInterface]) {
+        dev.interfaces[dev.currentInterface].up = true;
+      }
+      lab.checkObjectives();
+      return '%LINK-3-UPDOWN: Interface ' + dev.currentInterface + ', changed state to up';
+    }
+
+    // shutdown
+    if (lower === 'shutdown' && (dev.mode === 'config-if' || dev.mode === 'config-subif')) {
+      if (dev.currentInterface && dev.interfaces[dev.currentInterface]) {
+        dev.interfaces[dev.currentInterface].up = false;
+      }
+      return '';
+    }
+
+    // OSPF network statement
+    var netMatch = raw.match(/^network\s+(\d+\.\d+\.\d+\.\d+)\s+(\d+\.\d+\.\d+\.\d+)\s+area\s+(\d+)/i);
+    if (netMatch && dev.mode === 'config-router') {
+      if (dev.ospf) {
+        dev.ospf.networks.push({ network: netMatch[1], wildcard: netMatch[2], area: parseInt(netMatch[3]) });
+      }
+      lab.checkObjectives();
+      return '';
+    }
+
+    // OSPF router-id
+    var ridMatch = raw.match(/^router-id\s+(\d+\.\d+\.\d+\.\d+)/i);
+    if (ridMatch && dev.mode === 'config-router') {
+      if (dev.ospf) dev.ospf.routerId = ridMatch[1];
+      lab.checkObjectives();
+      return '';
+    }
+
+    // ip route (static)
+    var routeMatch = raw.match(/^ip\s+route\s+(\d+\.\d+\.\d+\.\d+)\s+(\d+\.\d+\.\d+\.\d+)\s+(\d+\.\d+\.\d+\.\d+)/i);
+    if (routeMatch && dev.mode === 'config') {
+      dev.routes.push({
+        code: 'S', network: routeMatch[1], mask: routeMatch[2],
+        prefix: maskToPrefix(routeMatch[2]),
+        nextHop: routeMatch[3], ad: 1, metric: 0
+      });
+      lab.checkObjectives();
+      return '';
+    }
+
+    // access-list
+    var aclMatch = raw.match(/^access-list\s+(\d+)\s+(permit|deny)\s+(\d+\.\d+\.\d+\.\d+)\s+(\d+\.\d+\.\d+\.\d+)/i);
+    if (aclMatch && dev.mode === 'config') {
+      var aclNum = aclMatch[1];
+      if (!dev.acls[aclNum]) dev.acls[aclNum] = [];
+      dev.acls[aclNum].push({ action: aclMatch[2].toLowerCase(), source: aclMatch[3], wildcard: aclMatch[4] });
+      lab.checkObjectives();
+      return '';
+    }
+
+    // ip access-group
+    var agMatch = raw.match(/^ip\s+access-group\s+(\d+)\s+(in|out)/i);
+    if (agMatch && (dev.mode === 'config-if')) {
+      if (dev.currentInterface && dev.interfaces[dev.currentInterface]) {
+        dev.interfaces[dev.currentInterface].accessGroup = { num: agMatch[1], direction: agMatch[2].toLowerCase() };
+      }
+      lab.checkObjectives();
+      return '';
+    }
+
+    // ip nat inside / outside
+    if (lower === 'ip nat inside' && dev.mode === 'config-if') {
+      if (dev.currentInterface) {
+        if (dev.nat.inside.indexOf(dev.currentInterface) === -1) dev.nat.inside.push(dev.currentInterface);
+      }
+      lab.checkObjectives();
+      return '';
+    }
+    if (lower === 'ip nat outside' && dev.mode === 'config-if') {
+      if (dev.currentInterface) {
+        if (dev.nat.outside.indexOf(dev.currentInterface) === -1) dev.nat.outside.push(dev.currentInterface);
+      }
+      lab.checkObjectives();
+      return '';
+    }
+
+    // ip nat inside source list X interface Y overload
+    var natMatch = raw.match(/^ip\s+nat\s+inside\s+source\s+list\s+(\d+)\s+interface\s+(\S+)\s+overload/i);
+    if (natMatch && dev.mode === 'config') {
+      dev.nat.overload = true;
+      dev.nat.acl = natMatch[1];
+      dev.nat.overloadInterface = lab.normalizeInterface(natMatch[2]);
+      lab.checkObjectives();
+      return '';
+    }
+
+    // ip domain-name
+    var domainMatch = raw.match(/^ip\s+domain[- ]name\s+(\S+)/i);
+    if (domainMatch && dev.mode === 'config') {
+      dev.custom.domainName = domainMatch[1];
+      lab.checkObjectives();
+      return '';
+    }
+
+    // crypto key generate rsa
+    var cryptoMatch = raw.match(/^crypto\s+key\s+generate\s+rsa/i);
+    if (cryptoMatch && dev.mode === 'config') {
+      var modMatch = raw.match(/modulus\s+(\d+)/i);
+      dev.custom.rsaModulus = modMatch ? parseInt(modMatch[1]) : 1024;
+      lab.checkObjectives();
+      return 'The name for the keys will be: ' + dev.hostname + '.' + (dev.custom.domainName || 'local') + '\n% Generating 2048 bit RSA keys ... [OK]';
+    }
+
+    // username X secret Y
+    var userMatch = raw.match(/^username\s+(\S+)\s+secret\s+(\S+)/i);
+    if (userMatch && dev.mode === 'config') {
+      if (!dev.custom.users) dev.custom.users = {};
+      dev.custom.users[userMatch[1]] = userMatch[2];
+      lab.checkObjectives();
+      return '';
+    }
+
+    // line vty 0 4
+    var lineMatch = raw.match(/^line\s+vty\s+(\d+)\s+(\d+)/i);
+    if (lineMatch && dev.mode === 'config') {
+      dev.mode = 'config-line';
+      dev.custom._currentLine = 'vty ' + lineMatch[1] + ' ' + lineMatch[2];
+      return '';
+    }
+
+    // transport input ssh
+    if (lower === 'transport input ssh' && dev.mode === 'config-line') {
+      dev.custom.transportSSH = true;
+      lab.checkObjectives();
+      return '';
+    }
+
+    // login local
+    if (lower === 'login local' && dev.mode === 'config-line') {
+      dev.custom.loginLocal = true;
+      lab.checkObjectives();
+      return '';
+    }
+
+    // switchport port-security
+    if (lower === 'switchport port-security' && dev.mode === 'config-if') {
+      if (dev.currentInterface) {
+        if (!dev.portSecurity[dev.currentInterface]) dev.portSecurity[dev.currentInterface] = {};
+        dev.portSecurity[dev.currentInterface].enabled = true;
+      }
+      lab.checkObjectives();
+      return '';
+    }
+
+    // switchport port-security maximum X
+    var psMaxMatch = raw.match(/^switchport\s+port-security\s+maximum\s+(\d+)/i);
+    if (psMaxMatch && dev.mode === 'config-if') {
+      if (dev.currentInterface && dev.portSecurity[dev.currentInterface]) {
+        dev.portSecurity[dev.currentInterface].maximum = parseInt(psMaxMatch[1]);
+      }
+      lab.checkObjectives();
+      return '';
+    }
+
+    // switchport port-security violation X
+    var psVioMatch = raw.match(/^switchport\s+port-security\s+violation\s+(\S+)/i);
+    if (psVioMatch && dev.mode === 'config-if') {
+      if (dev.currentInterface && dev.portSecurity[dev.currentInterface]) {
+        dev.portSecurity[dev.currentInterface].violation = psVioMatch[1].toLowerCase();
+      }
+      lab.checkObjectives();
+      return '';
+    }
+
+    // show commands (work from priv mode)
+    if (dev.mode === 'priv' || dev.mode === 'user') {
+      if (lower === 'show vlan brief' || lower === 'sh vlan br') return showVlanBrief(dev);
+      if (lower === 'show ip interface brief' || lower === 'sh ip int br') return showIpIntBrief(dev);
+      if (lower === 'show ip route' || lower === 'sh ip ro') return showIpRoute(dev);
+      if (lower === 'show ip ospf neighbor' || lower === 'sh ip ospf nei') return showOspfNeighbor(dev);
+      if (lower === 'show access-lists' || lower === 'sh access-lists' || lower === 'show access-list') return showAccessLists(dev);
+      if (lower === 'show ip nat translations') return 'Pro Inside global      Inside local       Outside local      Outside global\n(No active translations)';
+      if (lower === 'show running-config' || lower === 'sh run') return '! Simulated running-config for ' + dev.hostname;
+      if (lower.startsWith('show') || lower.startsWith('sh ')) return '(Simulated output for: ' + raw + ')';
+    }
+
+    // do show ... from config modes
+    if (lower.startsWith('do ') && dev.mode.startsWith('config')) {
+      var savedMode = dev.mode;
+      dev.mode = 'priv';
+      var result = lab.processCommand(raw.substring(3));
+      dev.mode = savedMode;
+      return result;
+    }
+
+    return undefined; // not handled
+  }
+
+  function maskToPrefix(mask) {
+    return mask.split('.').reduce(function(sum, octet) {
+      return sum + (octet >>> 0).toString(2).split('1').length - 1;
+    }, 0);
+  }
+
+  // ── Lab 1: Basic Switch Config ─────────────────────────────
+
+  function Lab1(callbacks) {
+    Lab.LabBase.call(this, {
+      objectives: LABS[0].objectives,
+      hintsAvailable: 5,
+      onObjectiveComplete: callbacks.onObjectiveComplete,
+      onTopologyUpdate: callbacks.onTopologyUpdate
+    });
+    this.addDevice('SW1', 'switch');
+    // pre-create common interfaces
+    this.devices.SW1.interfaces['FastEthernet0/1'] = { up: true };
+    this.devices.SW1.interfaces['FastEthernet0/2'] = { up: true };
+  }
+  Lab1.prototype = Object.create(Lab.LabBase.prototype);
+  Lab1.prototype.constructor = Lab1;
+
+  Lab1.prototype.handleCommand = function(dev, raw, lower) {
+    return sharedHandleCommand(this, dev, raw, lower);
+  };
+
+  Lab1.prototype.checkObjectives = function() {
+    var dev = this.devices.SW1;
+    // 0: hostname SW-CORE
+    if (dev.hostname === 'SW-CORE') this.completeObjective(0);
+    // 1: VLAN 10 exists
+    if (dev.vlans[10]) this.completeObjective(1);
+    // 2: VLAN 10 named Sales
+    if (dev.vlans[10] && dev.vlans[10].name === 'Sales') this.completeObjective(2);
+    // 3: VLAN 20 exists
+    if (dev.vlans[20]) this.completeObjective(3);
+    // 4: VLAN 20 named Engineering
+    if (dev.vlans[20] && dev.vlans[20].name === 'Engineering') this.completeObjective(4);
+    // 5: Fa0/1 in VLAN 10
+    var fa1 = dev.interfaces['FastEthernet0/1'];
+    if (fa1 && fa1.accessVlan === 10) this.completeObjective(5);
+    // 6: Fa0/2 in VLAN 20
+    var fa2 = dev.interfaces['FastEthernet0/2'];
+    if (fa2 && fa2.accessVlan === 20) this.completeObjective(6);
+  };
+
+  // ── Lab 2: Trunk + Inter-VLAN Routing ──────────────────────
+
+  function Lab2(callbacks) {
+    Lab.LabBase.call(this, {
+      objectives: LABS[1].objectives,
+      hintsAvailable: 5,
+      onObjectiveComplete: callbacks.onObjectiveComplete,
+      onTopologyUpdate: callbacks.onTopologyUpdate
+    });
+    this.addDevice('R1', 'router');
+    this.addDevice('SW1', 'switch');
+    this.devices.R1.interfaces['GigabitEthernet0/0'] = { up: false };
+    this.devices.SW1.interfaces['GigabitEthernet0/24'] = { up: true };
+  }
+  Lab2.prototype = Object.create(Lab.LabBase.prototype);
+  Lab2.prototype.constructor = Lab2;
+
+  Lab2.prototype.handleCommand = function(dev, raw, lower) {
+    return sharedHandleCommand(this, dev, raw, lower);
+  };
+
+  Lab2.prototype.checkObjectives = function() {
+    var sw = this.devices.SW1;
+    var r = this.devices.R1;
+    // 0: VLAN 10 on SW1
+    if (sw.vlans[10]) this.completeObjective(0);
+    // 1: VLAN 20 on SW1
+    if (sw.vlans[20]) this.completeObjective(1);
+    // 2: trunk on Gi0/24
+    var gi24 = sw.interfaces['GigabitEthernet0/24'];
+    if (gi24 && gi24.switchportMode === 'trunk') this.completeObjective(2);
+    // 3: R1 G0/0.10 encap dot1q 10
+    var sub10 = r.interfaces['GigabitEthernet0/0.10'];
+    if (sub10 && sub10.dot1q === 10) this.completeObjective(3);
+    // 4: R1 G0/0.10 IP
+    if (sub10 && sub10.ip === '10.0.10.1' && sub10.mask === '255.255.255.0') this.completeObjective(4);
+    // 5: R1 G0/0.20 encap dot1q 20
+    var sub20 = r.interfaces['GigabitEthernet0/0.20'];
+    if (sub20 && sub20.dot1q === 20) this.completeObjective(5);
+    // 6: R1 G0/0.20 IP
+    if (sub20 && sub20.ip === '10.0.20.1' && sub20.mask === '255.255.255.0') this.completeObjective(6);
+    // 7: R1 G0/0 no shut
+    var g0 = r.interfaces['GigabitEthernet0/0'];
+    if (g0 && g0.up) this.completeObjective(7);
+  };
+
+  // ── Lab 3: OSPF Multi-Router ───────────────────────────────
+
+  function Lab3(callbacks) {
+    Lab.LabBase.call(this, {
+      objectives: LABS[2].objectives,
+      hintsAvailable: 5,
+      onObjectiveComplete: callbacks.onObjectiveComplete,
+      onTopologyUpdate: callbacks.onTopologyUpdate
+    });
+    this.addDevice('R1', 'router');
+    this.addDevice('R2', 'router');
+    this.addDevice('R3', 'router');
+  }
+  Lab3.prototype = Object.create(Lab.LabBase.prototype);
+  Lab3.prototype.constructor = Lab3;
+
+  Lab3.prototype.handleCommand = function(dev, raw, lower) {
+    return sharedHandleCommand(this, dev, raw, lower);
+  };
+
+  Lab3.prototype.checkObjectives = function() {
+    var r1 = this.devices.R1, r2 = this.devices.R2, r3 = this.devices.R3;
+    // R1
+    if (r1.ospf && r1.ospf.processId === 1) this.completeObjective(0);
+    if (r1.ospf && r1.ospf.routerId === '1.1.1.1') this.completeObjective(1);
+    if (r1.ospf && hasNetwork(r1.ospf.networks, '10.0.12.0', '0.0.0.255', 0)) this.completeObjective(2);
+    if (r1.ospf && hasNetwork(r1.ospf.networks, '10.0.13.0', '0.0.0.255', 0)) this.completeObjective(3);
+    // R2
+    if (r2.ospf && r2.ospf.processId === 1) this.completeObjective(4);
+    if (r2.ospf && r2.ospf.routerId === '2.2.2.2') this.completeObjective(5);
+    if (r2.ospf && hasNetwork(r2.ospf.networks, '10.0.12.0', '0.0.0.255', 0)) this.completeObjective(6);
+    if (r2.ospf && hasNetwork(r2.ospf.networks, '10.0.23.0', '0.0.0.255', 0)) this.completeObjective(7);
+    // R3
+    if (r3.ospf && r3.ospf.processId === 1) this.completeObjective(8);
+    if (r3.ospf && r3.ospf.routerId === '3.3.3.3') this.completeObjective(9);
+    if (r3.ospf && hasNetwork(r3.ospf.networks, '10.0.13.0', '0.0.0.255', 0)) this.completeObjective(10);
+    if (r3.ospf && hasNetwork(r3.ospf.networks, '10.0.23.0', '0.0.0.255', 0)) this.completeObjective(11);
+  };
+
+  function hasNetwork(nets, network, wildcard, area) {
+    return nets.some(function(n) { return n.network === network && n.wildcard === wildcard && n.area === area; });
+  }
+
+  // ── Lab 4: ACL + NAT ──────────────────────────────────────
+
+  function Lab4(callbacks) {
+    Lab.LabBase.call(this, {
+      objectives: LABS[3].objectives,
+      hintsAvailable: 5,
+      onObjectiveComplete: callbacks.onObjectiveComplete,
+      onTopologyUpdate: callbacks.onTopologyUpdate
+    });
+    this.addDevice('R1', 'router');
+    this.addDevice('SW1', 'switch');
+    this.devices.R1.interfaces['GigabitEthernet0/0'] = { up: true };
+    this.devices.R1.interfaces['GigabitEthernet0/1'] = { up: true };
+  }
+  Lab4.prototype = Object.create(Lab.LabBase.prototype);
+  Lab4.prototype.constructor = Lab4;
+
+  Lab4.prototype.handleCommand = function(dev, raw, lower) {
+    return sharedHandleCommand(this, dev, raw, lower);
+  };
+
+  Lab4.prototype.checkObjectives = function() {
+    var r = this.devices.R1;
+    // 0: ACL 1 permit 10.0.0.0 0.0.0.255
+    if (r.acls['1'] && r.acls['1'].some(function(e) { return e.action === 'permit' && e.source === '10.0.0.0' && e.wildcard === '0.0.0.255'; })) this.completeObjective(0);
+    // 1: ACL 1 applied inbound on Gi0/1
+    var gi1 = r.interfaces['GigabitEthernet0/1'];
+    if (gi1 && gi1.accessGroup && gi1.accessGroup.num === '1' && gi1.accessGroup.direction === 'in') this.completeObjective(1);
+    // 2: Gi0/1 NAT inside
+    if (r.nat.inside.indexOf('GigabitEthernet0/1') !== -1) this.completeObjective(2);
+    // 3: Gi0/0 NAT outside
+    if (r.nat.outside.indexOf('GigabitEthernet0/0') !== -1) this.completeObjective(3);
+    // 4: NAT overload
+    if (r.nat.overload && r.nat.acl === '1') this.completeObjective(4);
+  };
+
+  // ── Lab 5: Full Enterprise ─────────────────────────────────
+
+  function Lab5(callbacks) {
+    Lab.LabBase.call(this, {
+      objectives: LABS[4].objectives,
+      hintsAvailable: 5,
+      onObjectiveComplete: callbacks.onObjectiveComplete,
+      onTopologyUpdate: callbacks.onTopologyUpdate
+    });
+    this.addDevice('R1', 'router');
+    this.addDevice('R2', 'router');
+    this.addDevice('SW1', 'switch');
+    this.addDevice('SW2', 'switch');
+    this.devices.SW1.interfaces['GigabitEthernet0/24'] = { up: true };
+    this.devices.SW2.interfaces['FastEthernet0/1'] = { up: true };
+  }
+  Lab5.prototype = Object.create(Lab.LabBase.prototype);
+  Lab5.prototype.constructor = Lab5;
+
+  Lab5.prototype.handleCommand = function(dev, raw, lower) {
+    return sharedHandleCommand(this, dev, raw, lower);
+  };
+
+  Lab5.prototype.checkObjectives = function() {
+    var sw1 = this.devices.SW1, sw2 = this.devices.SW2;
+    var r1 = this.devices.R1, r2 = this.devices.R2;
+    // 0: VLAN 10 on SW1
+    if (sw1.vlans[10]) this.completeObjective(0);
+    // 1: VLAN 20 on SW1
+    if (sw1.vlans[20]) this.completeObjective(1);
+    // 2: trunk on SW1 Gi0/24
+    var gi24 = sw1.interfaces['GigabitEthernet0/24'];
+    if (gi24 && gi24.switchportMode === 'trunk') this.completeObjective(2);
+    // 3: OSPF on R1
+    if (r1.ospf && r1.ospf.processId === 1) this.completeObjective(3);
+    // 4: Advertise on R1
+    if (r1.ospf && hasNetwork(r1.ospf.networks, '10.0.0.0', '0.0.0.255', 0)) this.completeObjective(4);
+    // 5: OSPF on R2
+    if (r2.ospf && r2.ospf.processId === 1) this.completeObjective(5);
+    // 6: Advertise on R2
+    if (r2.ospf && hasNetwork(r2.ospf.networks, '10.0.0.0', '0.0.0.255', 0)) this.completeObjective(6);
+    // 7: Default route on R1
+    if (r1.routes.some(function(r) { return r.network === '0.0.0.0' && r.mask === '0.0.0.0' && r.nextHop === '203.0.113.1'; })) this.completeObjective(7);
+    // 8: R1 hostname R1-GW
+    if (r1.hostname === 'R1-GW') this.completeObjective(8);
+    // 9: domain name
+    if (r1.custom.domainName === 'corp.local') this.completeObjective(9);
+    // 10: RSA keys
+    if (r1.custom.rsaModulus >= 2048) this.completeObjective(10);
+    // 11: username admin
+    if (r1.custom.users && r1.custom.users['admin'] === 'cisco123') this.completeObjective(11);
+    // 12: VTY SSH + local
+    if (r1.custom.transportSSH && r1.custom.loginLocal) this.completeObjective(12);
+    // 13: port-security on SW2 Fa0/1
+    var ps = sw2.portSecurity['FastEthernet0/1'];
+    if (ps && ps.enabled) this.completeObjective(13);
+    // 14: port-security max 2
+    if (ps && ps.maximum === 2) this.completeObjective(14);
+    // 15: port-security violation shutdown
+    if (ps && ps.violation === 'shutdown') this.completeObjective(15);
+  };
+
+  // ═══════════════════════════════════════════════════════════════
+  //  PAGE CONTROLLER
+  // ═══════════════════════════════════════════════════════════════
+
+  var labConstructors = [Lab1, Lab2, Lab3, Lab4, Lab5];
+  var currentLab = null;
+  var currentLabIdx = -1;
+  var terminalHistories = {}; // per-device terminal output history
+  var inputHistories = {};    // per-device command history
+  var historyIdxMap = {};     // per-device history index
+
+  var $labCards = document.getElementById('labCards');
+  var $welcome = document.getElementById('welcomeScreen');
+  var $topPane = document.getElementById('topPane');
+  var $bottomPane = document.getElementById('bottomPane');
+  var $topoPanel = document.getElementById('topologyPanel');
+  var $objPanel = document.getElementById('objectivesPanel');
+  var $deviceTabs = document.getElementById('deviceTabs');
+  var $termOutput = document.getElementById('termOutput');
+  var $termPrompt = document.getElementById('termPrompt');
+  var $termInput = document.getElementById('termInput');
+
+  // Build lab selector cards
+  LABS.forEach(function(lab, idx) {
+    var btn = document.createElement('button');
+    btn.className = 'lab-card-sel';
+    btn.dataset.idx = idx;
+    var diffClass = lab.difficulty === 'beginner' ? 'beginner' : lab.difficulty === 'hard' ? 'hard' : 'medium';
+    btn.innerHTML = '<span class="lab-diff-dot ' + diffClass + '"></span>' + lab.name + '<span class="lab-complete-mark">&#10003;</span>';
+    btn.addEventListener('click', function() { loadLab(idx); });
+    $labCards.appendChild(btn);
+  });
+
+  function loadLab(idx) {
+    if (idx === currentLabIdx) return;
+    currentLabIdx = idx;
+    terminalHistories = {};
+    inputHistories = {};
+    historyIdxMap = {};
+
+    // Update selector
+    $labCards.querySelectorAll('.lab-card-sel').forEach(function(btn, i) {
+      btn.classList.toggle('active', i === idx);
+    });
+
+    $welcome.style.display = 'none';
+    $topPane.style.display = '';
+    $bottomPane.style.display = '';
+
+    // Create lab instance
+    currentLab = new labConstructors[idx]({
+      onObjectiveComplete: function(objIdx, obj) {
+        renderObjectives();
+        writeLine('  *** Objective complete: ' + obj.text + ' ***', 'success');
+        if (currentLab.isComplete()) {
+          showLabComplete();
+        }
+      },
+      onTopologyUpdate: function() {}
+    });
+
+    // Render topology
+    $topoPanel.innerHTML = svgTopology(LABS[idx].id);
+    bindTopoClicks();
+
+    // Render objectives
+    renderObjectives();
+
+    // Build device tabs and select first device
+    renderDeviceTabs();
+    selectDevice(Object.keys(currentLab.devices)[0]);
+  }
+
+  function renderDeviceTabs() {
+    $deviceTabs.innerHTML = '';
+    Object.keys(currentLab.devices).forEach(function(name) {
+      var tab = document.createElement('button');
+      tab.className = 'device-tab';
+      tab.textContent = name;
+      tab.dataset.device = name;
+      tab.addEventListener('click', function() { selectDevice(name); });
+      $deviceTabs.appendChild(tab);
+    });
+  }
+
+  function selectDevice(name) {
+    if (!currentLab.devices[name]) return;
+
+    // Save current terminal state
+    if (currentLab.activeDeviceName) {
+      terminalHistories[currentLab.activeDeviceName] = $termOutput.innerHTML;
+      inputHistories[currentLab.activeDeviceName] = inputHistories[currentLab.activeDeviceName] || [];
+      historyIdxMap[currentLab.activeDeviceName] = historyIdxMap[currentLab.activeDeviceName] || -1;
+    }
+
+    currentLab.activeDeviceName = name;
+
+    // Update tab highlight
+    $deviceTabs.querySelectorAll('.device-tab').forEach(function(tab) {
+      tab.classList.toggle('active', tab.dataset.device === name);
+    });
+
+    // Update topology highlight
+    $topoPanel.querySelectorAll('.topo-device').forEach(function(g) {
+      g.classList.toggle('selected', g.dataset.device === name);
+    });
+
+    // Restore terminal state
+    if (terminalHistories[name]) {
+      $termOutput.innerHTML = terminalHistories[name];
+    } else {
+      $termOutput.innerHTML = '';
+      writeLine('--- Connected to ' + currentLab.devices[name].hostname + ' ---', 'system');
+      writeLine('Type "enable" to enter privileged mode.', 'info');
+      writeLine('', '');
+    }
+
+    updatePrompt();
+    $termInput.value = '';
+    $termInput.focus();
+    scrollTerminal();
+  }
+
+  function bindTopoClicks() {
+    $topoPanel.querySelectorAll('.topo-device').forEach(function(g) {
+      g.addEventListener('click', function() {
+        var devName = g.dataset.device;
+        if (devName && currentLab.devices[devName]) {
+          selectDevice(devName);
+        }
+      });
+    });
+  }
+
+  // ── Objectives panel ───────────────────────────────────────
+  function renderObjectives() {
+    if (!currentLab) return;
+    var lab = LABS[currentLabIdx];
+    var progress = currentLab.getProgress();
+
+    var html = '<h3>Objectives</h3>';
+    currentLab.objectives.forEach(function(obj, i) {
+      var done = currentLab.completedObjectives.has(i);
+      html += '<div class="obj-item' + (done ? ' done' : '') + '">';
+      html += '<span class="obj-check">' + (done ? '&#10003;' : '') + '</span>';
+      html += '<span class="obj-text">' + obj.text + '</span>';
+      if (!done) {
+        html += '<button class="obj-hint-btn" data-idx="' + i + '">hint</button>';
+      }
+      html += '</div>';
+    });
+
+    // Hint toast placeholder
+    html += '<div id="hintToast"></div>';
+
+    // Progress
+    html += '<div class="obj-progress">';
+    html += '<div class="progress-text">' + progress.completed + ' / ' + progress.total + ' complete</div>';
+    html += '<div class="progress-bar"><div class="fill green" style="width:' + progress.pct + '%"></div></div>';
+    html += '<div class="hints-remaining">Hints remaining: ' + currentLab.hintsRemaining + ' / ' + currentLab.totalHints + '</div>';
+    html += '</div>';
+
+    // Complete banner
+    html += '<div class="lab-complete-banner" id="completeBanner">Lab Complete!</div>';
+
+    $objPanel.innerHTML = html;
+
+    // Bind hint buttons
+    $objPanel.querySelectorAll('.obj-hint-btn').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var idx = parseInt(btn.dataset.idx);
+        var hint = currentLab.getHint(idx);
+        var toast = document.getElementById('hintToast');
+        if (hint) {
+          toast.innerHTML = '<div class="hint-toast">' + hint + '</div>';
+          renderObjectives(); // refresh hint count
+        } else {
+          toast.innerHTML = '<div class="hint-toast" style="border-color:var(--prof-weak);color:var(--prof-weak)">No hints remaining.</div>';
+        }
+      });
+    });
+
+    if (currentLab.isComplete()) {
+      var banner = document.getElementById('completeBanner');
+      if (banner) banner.style.display = 'block';
+    }
+  }
+
+  function showLabComplete() {
+    var banner = document.getElementById('completeBanner');
+    if (banner) banner.style.display = 'block';
+
+    // Mark lab card as completed
+    var btn = $labCards.querySelector('[data-idx="' + currentLabIdx + '"]');
+    if (btn) btn.classList.add('completed');
+
+    // Update proficiency store for related topics
+    var topicMap = {
+      0: ['2.2', '2.3'],       // VLANs, switching
+      1: ['2.3', '1.3'],       // Trunking, inter-VLAN
+      2: ['3.4'],              // OSPF
+      3: ['5.6', '1.4'],       // ACL, NAT
+      4: ['2.2', '2.3', '3.4', '5.6', '5.3'] // Enterprise combo
+    };
+    var topics = topicMap[currentLabIdx] || [];
+    topics.forEach(function(t) {
+      if (window.store) store.updateProficiency(t, true);
+    });
+    if (window.store) store.updateStreak();
+  }
+
+  // ── Terminal I/O ───────────────────────────────────────────
+
+  function writeLine(text, cls) {
+    var div = document.createElement('div');
+    div.className = 'term-line' + (cls ? ' ' + cls : '');
+    div.textContent = text;
+    $termOutput.appendChild(div);
+  }
+
+  function updatePrompt() {
+    if (!currentLab || !currentLab.activeDevice) return;
+    $termPrompt.textContent = currentLab.activeDevice.prompt() + ' ';
+  }
+
+  function scrollTerminal() {
+    var container = $termOutput.parentElement;
+    container.scrollTop = container.scrollHeight;
+  }
+
+  // Command input handling
+  $termInput.addEventListener('keydown', function(e) {
+    if (!currentLab) return;
+    var devName = currentLab.activeDeviceName;
+
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      var cmd = $termInput.value.trim();
+      $termInput.value = '';
+
+      // Echo
+      writeLine(currentLab.activeDevice.prompt() + ' ' + cmd, 'cmd');
+
+      // Save to history
+      if (cmd) {
+        if (!inputHistories[devName]) inputHistories[devName] = [];
+        inputHistories[devName].push(cmd);
+        historyIdxMap[devName] = -1;
+      }
+
+      // Handle clear
+      if (cmd.toLowerCase() === 'clear' || cmd.toLowerCase() === 'cls') {
+        $termOutput.innerHTML = '';
+        updatePrompt();
+        return;
+      }
+
+      // Process
+      var output = currentLab.processCommand(cmd);
+      if (output) {
+        output.split('\n').forEach(function(line) {
+          var cls = '';
+          if (line.indexOf('***') !== -1) cls = 'success';
+          else if (line.indexOf('%') === 0 && line.indexOf('UPDOWN') === -1) cls = 'error';
+          else if (line.indexOf('%LINK') !== -1) cls = 'info';
+          writeLine(line, cls);
+        });
+      }
+
+      updatePrompt();
+      scrollTerminal();
+
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      var hist = inputHistories[devName] || [];
+      if (hist.length > 0) {
+        var idx = historyIdxMap[devName] || -1;
+        if (idx < hist.length - 1) idx++;
+        historyIdxMap[devName] = idx;
+        $termInput.value = hist[hist.length - 1 - idx];
+      }
+
+    } else if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      var hist2 = inputHistories[devName] || [];
+      var idx2 = historyIdxMap[devName] || -1;
+      if (idx2 > 0) {
+        idx2--;
+        historyIdxMap[devName] = idx2;
+        $termInput.value = hist2[hist2.length - 1 - idx2];
+      } else {
+        historyIdxMap[devName] = -1;
+        $termInput.value = '';
+      }
+
+    } else if (e.key === 'Tab') {
+      e.preventDefault();
+      // Basic tab completion
+      var partial = $termInput.value.trim().toLowerCase();
+      var completions = {
+        'en': 'enable',
+        'conf': 'configure terminal',
+        'conf t': 'configure terminal',
+        'sh': 'show ',
+        'sh vl': 'show vlan brief',
+        'sh ip int': 'show ip interface brief',
+        'sh ip ro': 'show ip route',
+        'sh ip ospf': 'show ip ospf neighbor',
+        'sh run': 'show running-config',
+        'sh access': 'show access-lists',
+        'int': 'interface ',
+        'sw m': 'switchport mode ',
+        'sw a': 'switchport access vlan ',
+        'no sh': 'no shutdown',
+        'ro o': 'router ospf ',
+        'ip add': 'ip address ',
+        'ip ro': 'ip route ',
+        'acc': 'access-list ',
+        'ip acc': 'ip access-group ',
+        'ip nat i': 'ip nat inside',
+        'ip nat o': 'ip nat outside',
+        'enc': 'encapsulation dot1Q ',
+        'host': 'hostname ',
+        'ip dom': 'ip domain-name ',
+        'cry': 'crypto key generate rsa modulus ',
+        'user': 'username ',
+        'line': 'line vty ',
+        'tra': 'transport input ssh',
+        'log': 'login local',
+        'sw p': 'switchport port-security',
+      };
+      var match = null;
+      // Find longest matching prefix
+      var keys = Object.keys(completions).sort(function(a,b) { return b.length - a.length; });
+      for (var i = 0; i < keys.length; i++) {
+        if (partial === keys[i] || (partial.length > 0 && keys[i].indexOf(partial) === 0)) {
+          match = completions[keys[i]];
+          break;
+        }
+      }
+      if (match) $termInput.value = match;
+    }
+  });
+
+  // Click terminal area to focus input
+  document.getElementById('termContainer').addEventListener('click', function() {
+    $termInput.focus();
+  });
+
+})();
+</script>
+<script src="js/tutor.js"></script>
+</body>
+</html>

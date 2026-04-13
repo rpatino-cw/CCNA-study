@@ -32,7 +32,7 @@
       { text: 'Console Labs', href: 'console-labs.html' },
       { text: 'Reading Practice', href: 'reading-practice.html' },
       { text: 'PT Labs', href: 'labs/index.html' },
-      { text: 'Packet Race', href: 'packet-race.html' },
+      { text: 'Network Lab', href: 'network-lab.html' },
       { text: 'Exam Sim', href: 'exam-sim.html' },
       { text: 'OSPF Mastery', href: 'ospf-mastery.html' },
       { text: 'Subnet Mastery', href: 'subnetting-mastery.html' },
