@@ -40,6 +40,36 @@
   .toc-ch:last-child{border-bottom:none}
   .toc-ch-name{font-family:var(--font-body);color:var(--ink-secondary)}
   .toc-ch-page{font-family:var(--font-mono);color:var(--ink-muted);font-size:.72rem}
+
+  /* Reading progress bar */
+  .read-progress{display:flex;align-items:center;gap:var(--s-md);margin-bottom:var(--s-lg);font-family:var(--font-display)}
+  .read-progress-text{font-size:.82rem;font-weight:600;color:var(--ink);white-space:nowrap}
+  .read-progress-bar{flex:1;height:6px;background:var(--bg-recessed);border-radius:100px;overflow:hidden}
+  .read-progress-fill{height:100%;background:var(--prof-strong);border-radius:100px;transition:width .4s ease}
+
+  /* Chapter checkbox */
+  .ch-check{width:14px;height:14px;accent-color:var(--prof-strong);cursor:pointer;flex-shrink:0;margin-right:6px}
+  .toc-ch-row{display:flex;align-items:flex-start;padding:0;border-bottom:1px solid var(--border);font-size:.82rem;transition:background .1s}
+  .toc-ch-row:hover{background:var(--bg-recessed)}
+  .toc-ch-row:last-child{border-bottom:none}
+  .toc-ch-row.ch-read{background:var(--prof-strong-bg)}
+  .toc-ch-main{display:flex;align-items:center;justify-content:space-between;flex:1;padding:8px 16px;cursor:pointer}
+  .toc-ch-check-wrap{display:flex;align-items:center;padding:8px 0 8px 12px}
+
+  /* Chapter summary */
+  .ch-summary{font-family:var(--font-body);font-size:.78rem;color:var(--ink-secondary);line-height:1.5;padding:0 16px 4px 38px}
+
+  /* Key exam points details */
+  .ch-details{margin:0 16px 8px 38px}
+  .ch-details summary{font-family:var(--font-display);font-size:.72rem;font-weight:600;color:var(--accent);cursor:pointer;padding:4px 0;letter-spacing:.02em;text-transform:uppercase}
+  .ch-details summary:hover{color:var(--ink)}
+  .ch-details ul{font-family:var(--font-body);font-size:.78rem;color:var(--ink-secondary);line-height:1.7;padding-left:16px;margin:4px 0 0}
+  .ch-details ul li{margin-bottom:2px}
+
+  /* Cross-link pills */
+  .ch-links{display:flex;gap:4px;flex-wrap:wrap;padding:0 16px 10px 38px}
+  .ch-links a{font-family:var(--font-mono);font-size:.68rem;background:var(--bg-recessed);color:var(--ink-muted);padding:2px 6px;border-radius:3px;text-decoration:none;transition:all .15s}
+  .ch-links a:hover{background:var(--accent-light);color:var(--accent)}
 </style>
 </head>
 <body>
@@ -50,6 +80,14 @@
     <h1>Book Reader</h1>
     <p class="subtitle">CCNA 200-301 Official Cert Guide — Wendell Odom. Jump to any chapter directly from CORE.</p>
   </header>
+
+  <!-- Reading progress (Vol 2 only) -->
+  <div class="read-progress" id="readProgress" style="display:none">
+    <span class="read-progress-text" id="readProgressText">0/20 chapters read</span>
+    <div class="read-progress-bar">
+      <div class="read-progress-fill" id="readProgressFill" style="width:0%"></div>
+    </div>
+  </div>
 
   <div class="book-nav">
     <select class="book-select" id="bookSelect" onchange="location.search='?book='+this.value">
@@ -204,6 +242,372 @@ const CH_MAP = {
   16:'6.2', 17:'6.3', 18:'6.5', 19:'6.6',
 };
 
+// Vol 2 chapter summaries and key exam points
+const V2_META = {
+  1: {
+    summary: 'TCP vs UDP, port numbers, connection establishment, windowing, and common application protocols.',
+    points: [
+      'TCP = reliable (3-way handshake, seq/ack, windowing); UDP = best-effort (no handshake)',
+      'Well-known ports: HTTP 80, HTTPS 443, FTP 20/21, SSH 22, Telnet 23, DNS 53, DHCP 67/68, SNMP 161, SMTP 25',
+      'Socket = IP address + port number',
+      'TCP uses flow control (windowing) and error recovery (retransmission)',
+      'Connection establishment: SYN, SYN-ACK, ACK; termination: FIN, ACK, FIN, ACK'
+    ],
+    core: ['1.5'],
+    labs: [],
+    visuals: []
+  },
+  2: {
+    summary: 'Standard ACLs (source-only filtering), numbered and named, wildcard masks, implicit deny.',
+    points: [
+      'Standard ACL = filters by source IP only',
+      'Numbered ranges: 1-99 or 1300-1999',
+      'Place standard ACLs near the destination',
+      'Wildcard mask = inverse of subnet mask (e.g., 0.0.0.255)',
+      'Implicit deny any at the end of every ACL',
+      'Syntax: access-list 10 permit/deny [source] [wildcard]'
+    ],
+    core: ['5.6'],
+    labs: [{id:'pt7', label:'PT-7', href:'labs/lab-pt7-acl-portsec.html'}],
+    visuals: [{label:'ACL Visual', href:'visuals/acl.html'}]
+  },
+  3: {
+    summary: 'Extended ACLs with source, destination, protocol, and port filtering. Named ACLs and editing with sequence numbers.',
+    points: [
+      'Extended ACL = source + destination + protocol + port',
+      'Numbered ranges: 100-199 or 2000-2699',
+      'Place extended ACLs near the source',
+      'Named ACLs are editable with sequence numbers',
+      'Applied to interface with: ip access-group [name] in/out',
+      'Can match TCP/UDP, ICMP, or IP protocol numbers'
+    ],
+    core: ['5.6'],
+    labs: [{id:'pt7', label:'PT-7', href:'labs/lab-pt7-acl-portsec.html'}],
+    visuals: [{label:'ACL Visual', href:'visuals/acl.html'}]
+  },
+  4: {
+    summary: 'Defense-in-depth, network security design, VPN types, firewalls, IPS/IDS.',
+    points: [
+      'Defense-in-depth = multiple overlapping security layers',
+      'Firewall = stateful packet filtering (tracks connections)',
+      'IPS = inline, blocks malicious traffic; IDS = passive, alerts only',
+      'Site-to-site VPN connects networks; remote-access VPN connects individual users',
+      'Next-gen firewalls add application awareness and user identity'
+    ],
+    core: ['5.1', '5.2', '5.3'],
+    labs: [],
+    visuals: []
+  },
+  5: {
+    summary: 'Console/VTY/SSH configuration, password encryption, AAA with TACACS+ and RADIUS.',
+    points: [
+      'service password-encryption = type 7 (weak, reversible)',
+      'enable secret = type 5/9 (strong, hashed)',
+      'SSH requires: hostname + domain name + RSA key pair',
+      'TACACS+ = TCP 49, encrypts full packet, separates AAA functions',
+      'RADIUS = UDP 1812/1813, encrypts password only, combines auth + authz',
+      'AAA = Authentication, Authorization, Accounting'
+    ],
+    core: ['2.8', '5.3'],
+    labs: [{id:'pt9', label:'PT-9', href:'labs/lab-pt9-capstone.html'}],
+    visuals: []
+  },
+  6: {
+    summary: 'Port security modes, sticky MAC learning, violation actions, err-disabled recovery.',
+    points: [
+      'Enable with: switchport port-security (interface must be access mode)',
+      'Sticky = dynamically learns MACs and saves to running-config',
+      'Violation modes: protect (silent drop), restrict (drop + log + counter), shutdown (err-disabled)',
+      'Default violation mode is shutdown',
+      'Recovery: shutdown then no shutdown on the interface',
+      'Maximum MAC addresses configurable per port'
+    ],
+    core: ['5.7'],
+    labs: [{id:'pt7', label:'PT-7', href:'labs/lab-pt7-acl-portsec.html'}],
+    visuals: []
+  },
+  7: {
+    summary: 'DHCP server config, pools, excluded addresses, DHCP relay with ip helper-address, DORA process.',
+    points: [
+      'DORA = Discover (broadcast) > Offer > Request (broadcast) > Acknowledge',
+      'ip dhcp pool [name], network, default-router, dns-server',
+      'ip dhcp excluded-address keeps IPs out of the pool',
+      'ip helper-address on router interface for cross-subnet relay',
+      'DHCP lease time is configurable; default varies by platform',
+      'Client uses broadcasts (255.255.255.255) for Discover and Request'
+    ],
+    core: ['4.3'],
+    labs: [{id:'pt6', label:'PT-6', href:'labs/lab-pt6-nat-dhcp.html'}],
+    visuals: []
+  },
+  8: {
+    summary: 'L2 security features that prevent rogue DHCP servers and ARP spoofing attacks.',
+    points: [
+      'DHCP snooping: trusted ports (uplinks) vs untrusted ports (access)',
+      'Only trusted ports can send DHCP server messages (Offer, ACK)',
+      'Enable with: ip dhcp snooping + ip dhcp snooping vlan [id]',
+      'DAI (Dynamic ARP Inspection) validates ARP against DHCP snooping binding table',
+      'DAI requires DHCP snooping to be enabled first',
+      'Rate limiting on untrusted ports prevents DoS'
+    ],
+    core: ['5.7'],
+    labs: [{id:'pt7', label:'PT-7', href:'labs/lab-pt7-acl-portsec.html'}],
+    visuals: []
+  },
+  9: {
+    summary: 'Syslog, SNMP, NTP -- monitoring, logging, and time synchronization.',
+    points: [
+      'Syslog levels 0-7: Emergency, Alert, Critical, Error, Warning, Notice, Informational, Debug (lower = more severe)',
+      'SNMP v2c = community strings, no encryption; v3 = authentication + encryption',
+      'NTP synchronizes clocks using stratum hierarchy (stratum 0 = atomic/GPS, stratum 1 = directly connected)',
+      'Configure with: ntp server [ip-address]',
+      'Syslog can log to console, buffer, or external server'
+    ],
+    core: ['4.4', '4.5', '4.7'],
+    labs: [],
+    visuals: []
+  },
+  10: {
+    summary: 'Static NAT, dynamic NAT pools, PAT/overload, inside local/global terminology.',
+    points: [
+      'Static NAT = 1:1 permanent mapping',
+      'Dynamic NAT = pool-based 1:1 (temporary)',
+      'PAT (overload) = many-to-one using port numbers',
+      'Inside local = private IP on inside; inside global = public IP seen outside',
+      'ip nat inside source static [local] [global]',
+      'PAT config: ip nat inside source list [acl] interface [int] overload'
+    ],
+    core: ['4.1'],
+    labs: [{id:'pt6', label:'PT-6', href:'labs/lab-pt6-nat-dhcp.html'}],
+    visuals: []
+  },
+  11: {
+    summary: 'Classification, marking, queuing, policing, shaping -- managing bandwidth and prioritization.',
+    points: [
+      'Classification = identifying traffic type; Marking = setting DSCP/CoS values',
+      'DSCP EF (46) = voice; AF classes for data tiers',
+      'LLQ (Low Latency Queuing) prioritizes voice traffic',
+      'Policing = drops excess traffic; Shaping = buffers excess traffic',
+      'Trust boundary should be at the access layer switch',
+      'QoS models: best-effort, IntServ (RSVP), DiffServ (DSCP)'
+    ],
+    core: ['4.8'],
+    labs: [],
+    visuals: []
+  },
+  12: {
+    summary: 'FTP/TFTP, CDP/LLDP, NTP details, and other utility protocols.',
+    points: [
+      'FTP = TCP 20 (data) + 21 (control); TFTP = UDP 69 (no auth, no directory listing)',
+      'CDP = Cisco proprietary, Layer 2, enabled by default',
+      'LLDP = IEEE 802.1AB, must be manually enabled',
+      'Both CDP and LLDP reveal device info, port, IP -- security consideration',
+      'NTP stratum: lower = more accurate (stratum 1 = reference clock)'
+    ],
+    core: ['2.3', '4.2'],
+    labs: [],
+    visuals: []
+  },
+  13: {
+    summary: 'Campus LAN design -- access/distribution/core layers, collapsed core, spine-leaf in data centers.',
+    points: [
+      'Access layer = end devices connect here (switches)',
+      'Distribution layer = routing, filtering, redundancy (L3 switches)',
+      'Core layer = high-speed backbone, minimal processing',
+      'Collapsed core = distribution + core merged (for small/medium sites)',
+      'Spine-leaf = data center topology (every leaf connects to every spine)'
+    ],
+    core: ['1.1'],
+    labs: [],
+    visuals: []
+  },
+  14: {
+    summary: 'WAN connection types -- leased lines, MPLS, Metro Ethernet, broadband, VPN overlays.',
+    points: [
+      'Leased line = dedicated point-to-point (expensive, reliable)',
+      'MPLS = provider label-switched network (any-to-any)',
+      'Metro Ethernet = Ethernet-based MAN service',
+      'DMVPN/IPsec = VPN overlay on public internet',
+      'SD-WAN = software-defined WAN with centralized controller and policy-based routing'
+    ],
+    core: ['1.2'],
+    labs: [],
+    visuals: []
+  },
+  15: {
+    summary: 'Cloud service models, deployment models, and virtualization concepts.',
+    points: [
+      'IaaS = you manage OS and up; PaaS = you manage app only; SaaS = provider manages everything',
+      'Deployment: Public, Private, Hybrid, Community cloud',
+      'Type 1 hypervisor = bare-metal (ESXi); Type 2 = hosted (VirtualBox)',
+      'Containers share host OS kernel -- lighter and faster than VMs',
+      'Cloud benefits: elasticity, scalability, pay-as-you-go'
+    ],
+    core: ['1.12'],
+    labs: [],
+    visuals: []
+  },
+  16: {
+    summary: 'SDN concepts -- data/control/management planes, Cisco DNA Center, southbound/northbound APIs.',
+    points: [
+      'Data plane = packet forwarding; Control plane = routing decisions; Management plane = SSH/SNMP/etc.',
+      'SDN centralizes the control plane in a controller',
+      'Southbound APIs (OpenFlow, NETCONF, RESTCONF) = controller to device',
+      'Northbound APIs (REST) = application to controller',
+      'Cisco DNA Center = SDN controller for enterprise networks'
+    ],
+    core: ['6.1', '6.2', '6.3'],
+    labs: [],
+    visuals: []
+  },
+  17: {
+    summary: 'Software-Defined Access -- underlay/overlay, VXLAN, Cisco DNA Center, fabric concepts.',
+    points: [
+      'Underlay = physical routed network; Overlay = VXLAN tunnels',
+      'Fabric = underlay + overlay combined',
+      'DNA Center = controller; ISE = policy engine',
+      'Endpoint groups (scalable groups) replace VLANs for segmentation',
+      'Fabric border nodes connect to external networks'
+    ],
+    core: ['6.4'],
+    labs: [],
+    visuals: []
+  },
+  18: {
+    summary: 'RESTful API concepts, HTTP verbs, JSON syntax, RESTCONF, YANG models.',
+    points: [
+      'REST = stateless client-server communication over HTTP',
+      'CRUD: Create (POST), Read (GET), Update (PUT/PATCH), Delete (DELETE)',
+      'JSON = key:value pairs, arrays with brackets, objects with braces',
+      'YANG = data modeling language (defines structure, not transport)',
+      'RESTCONF = YANG data over HTTPS; NETCONF = YANG data over SSH (XML)',
+      'API responses include HTTP status codes (200 OK, 401 Unauthorized, 404 Not Found)'
+    ],
+    core: ['6.5'],
+    labs: [{id:'pt8', label:'PT-8', href:'labs/lab-pt8-json-api.html'}],
+    visuals: []
+  },
+  19: {
+    summary: 'Configuration management tools -- agentless vs agent-based, push vs pull models.',
+    points: [
+      'Ansible = agentless, SSH, YAML playbooks, push model',
+      'Puppet = agent-based, Ruby, pull model (agent polls master)',
+      'Chef = agent-based, Ruby, pull model',
+      'Terraform = IaC provisioning tool (not config management)',
+      'Idempotent = running the same task multiple times produces the same result'
+    ],
+    core: ['6.6'],
+    labs: [{id:'pt8', label:'PT-8', href:'labs/lab-pt8-json-api.html'}],
+    visuals: []
+  },
+  20: {
+    summary: 'Exam preparation strategies, study plan creation, practice exam recommendations.',
+    points: [
+      'Use the official exam blueprint to weight your study time',
+      'Take practice exams under timed conditions',
+      'Review every wrong answer in depth -- understand why the right answer is right',
+      'Focus extra time on your weakest domains',
+      'Hands-on labs are essential -- reading alone is not enough'
+    ],
+    core: [],
+    labs: [],
+    visuals: []
+  }
+};
+
+// --- Reading progress (localStorage) ---
+function getReadChapters() {
+  try { return JSON.parse(localStorage.getItem('ccna_book_read')) || []; }
+  catch(e) { return []; }
+}
+function setReadChapters(arr) {
+  localStorage.setItem('ccna_book_read', JSON.stringify(arr));
+}
+function updateProgressBar() {
+  var read = getReadChapters();
+  var total = 20;
+  var count = read.length;
+  var pct = Math.round((count / total) * 100);
+  var el = document.getElementById('readProgress');
+  if (el) {
+    el.style.display = 'flex';
+    document.getElementById('readProgressText').textContent = count + '/' + total + ' chapters read';
+    document.getElementById('readProgressFill').style.width = pct + '%';
+  }
+}
+function toggleChapterRead(chNum) {
+  var read = getReadChapters();
+  var id = 'v2-ch' + chNum;
+  var idx = read.indexOf(id);
+  if (idx === -1) { read.push(id); } else { read.splice(idx, 1); }
+  setReadChapters(read);
+  updateProgressBar();
+  // Update row styling
+  var row = document.querySelector('.toc-ch-row[data-ch="' + chNum + '"]');
+  if (row) { row.classList.toggle('ch-read', idx === -1); }
+}
+
+// --- Build enhanced TOC for Vol 2 ---
+function buildVol2Toc(toc) {
+  var read = getReadChapters();
+  var html = '';
+  toc.forEach(function(item) {
+    if (item.part) {
+      html += '<div class="toc-part">' + item.part + '</div>';
+      return;
+    }
+    var chNum = item.ch;
+    var chId = 'v2-ch' + chNum;
+    var isRead = read.indexOf(chId) !== -1;
+    var meta = V2_META[chNum];
+
+    html += '<div class="toc-ch-row' + (isRead ? ' ch-read' : '') + '" data-ch="' + chNum + '">';
+    // Checkbox
+    html += '<div class="toc-ch-check-wrap"><input type="checkbox" class="ch-check" data-ch="' + chId + '"' + (isRead ? ' checked' : '') + ' onclick="toggleChapterRead(' + chNum + ')"></div>';
+    // Main clickable row
+    html += '<div class="toc-ch-main" onclick="goToPage(' + item.page + ')">';
+    html += '<span class="toc-ch-name">Ch ' + chNum + ' — ' + item.title + '</span>';
+    html += '<span class="toc-ch-page">p.' + item.page + '</span>';
+    html += '</div>';
+    html += '</div>'; // close toc-ch-row
+
+    if (meta) {
+      // Summary
+      html += '<div class="ch-summary">' + meta.summary + '</div>';
+      // Key exam points
+      if (meta.points && meta.points.length) {
+        html += '<details class="ch-details"><summary>Key Exam Points</summary><ul>';
+        meta.points.forEach(function(pt) { html += '<li>' + pt + '</li>'; });
+        html += '</ul></details>';
+      }
+      // Cross-links
+      var hasLinks = (meta.core && meta.core.length) || (meta.labs && meta.labs.length) || (meta.visuals && meta.visuals.length);
+      if (hasLinks) {
+        html += '<div class="ch-links">';
+        if (meta.core) meta.core.forEach(function(c) {
+          html += '<a href="core.html#' + c + '">CORE ' + c + '</a>';
+        });
+        if (meta.labs) meta.labs.forEach(function(l) {
+          html += '<a href="' + l.href + '">' + l.label + '</a>';
+        });
+        if (meta.visuals) meta.visuals.forEach(function(v) {
+          html += '<a href="' + v.href + '">' + v.label + '</a>';
+        });
+        html += '</div>';
+      }
+    }
+  });
+  return html;
+}
+
+// --- Build simple TOC for non-Vol2 books ---
+function buildSimpleToc(toc) {
+  return toc.map(function(item) {
+    if (item.part) return '<div class="toc-part">' + item.part + '</div>';
+    return '<div class="toc-ch" onclick="goToPage(' + item.page + ')"><span class="toc-ch-name">Ch ' + item.ch + ' — ' + item.title + '</span><span class="toc-ch-page">p.' + item.page + '</span></div>';
+  }).join('');
+}
+
 function init() {
   const params = new URLSearchParams(location.search);
   const bookId = params.get('book') || 'odom-vol2';
@@ -211,11 +615,16 @@ function init() {
   const book = BOOKS[bookId];
   if (!book) return;
 
+  var isVol2 = (bookId === 'odom-vol2');
+
   // Render TOC
-  document.getElementById('tocList').innerHTML = book.toc.map(item => {
-    if (item.part) return '<div class="toc-part">' + item.part + '</div>';
-    return '<div class="toc-ch" onclick="goToPage(' + item.page + ')"><span class="toc-ch-name">Ch ' + item.ch + ' — ' + item.title + '</span><span class="toc-ch-page">p.' + item.page + '</span></div>';
-  }).join('');
+  if (isVol2) {
+    document.getElementById('tocList').innerHTML = buildVol2Toc(book.toc);
+    updateProgressBar();
+  } else {
+    document.getElementById('tocList').innerHTML = buildSimpleToc(book.toc);
+    document.getElementById('readProgress').style.display = 'none';
+  }
 
   document.getElementById('bookSelect').value = bookId;
 
@@ -290,9 +699,9 @@ function goToPage(page) {
   const isGitHubPages = location.hostname.includes('github.io');
   if (isGitHubPages) {
     // On GitHub Pages, highlight the selected chapter instead of reloading
-    document.querySelectorAll('.toc-ch').forEach(function(el) { el.style.background = ''; el.style.fontWeight = ''; });
-    var allChs = document.querySelectorAll('.toc-ch');
-    allChs.forEach(function(el) {
+    document.querySelectorAll('.toc-ch-row .toc-ch-main, .toc-ch').forEach(function(el) { el.style.background = ''; el.style.fontWeight = ''; });
+    var allRows = document.querySelectorAll('.toc-ch-row .toc-ch-main, .toc-ch');
+    allRows.forEach(function(el) {
       if (el.textContent.includes('p.' + page)) {
         el.style.background = 'rgba(180,83,9,.1)';
         el.style.fontWeight = '700';
