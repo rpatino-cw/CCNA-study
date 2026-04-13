@@ -677,6 +677,92 @@
           </div>
         </div>
 
+        <!-- Concept: OSPF Cost (Metric) -->
+        <div class="concept-callout" style="margin-top:var(--s-lg)">
+          <div class="concept-callout-title">OSPF Cost — the metric that picks the best path</div>
+          <p>OSPF cost = <strong>reference bandwidth / interface bandwidth</strong>. The default reference is <strong>100 Mbps</strong>. So FastEthernet (100 Mbps) = cost 1, but GigabitEthernet (1 Gbps) also = cost 1 — they look identical to OSPF. Fix this with <code>auto-cost reference-bandwidth 10000</code> (in Mbps) under <code>router ospf 1</code> on <strong>every router</strong>. With 10000, GigE = cost 10, FastEthernet = cost 100. The <code>[110/2]</code> you see in the routing table means AD 110 (OSPF's administrative distance) and total path cost of 2.</p>
+        </div>
+
+        <!-- Concept: Interface-level OSPF command -->
+        <div class="concept-callout">
+          <div class="concept-callout-title">Alternative — interface-level OSPF command</div>
+          <p>Instead of the <code>network</code> command under <code>router ospf</code>, you can enable OSPF directly on an interface: <code>ip ospf 1 area 0</code> (where 1 is the process ID). This is more explicit — no wildcard mask needed, no risk of accidentally matching the wrong interface. Many production networks prefer this method. Both approaches are valid for the CCNA exam.</p>
+        </div>
+
+        <!-- Concept: DR/BDR Election (3.4.c — high exam frequency) -->
+        <div class="lab-step">
+          <div class="step-header">
+            <span class="step-num">07</span>
+            <span class="step-title">Understand DR/BDR election on multi-access segments</span>
+          </div>
+          <div class="step-body">
+            <div class="concept-callout">
+              <div class="concept-callout-title">Exam topic 3.4.c — DR/BDR election (high frequency)</div>
+              <p>On <strong>multi-access networks</strong> (Ethernet), OSPF elects a <strong>Designated Router (DR)</strong> and <strong>Backup Designated Router (BDR)</strong> to reduce flooding. All other routers (DROTHERs) exchange LSAs only with the DR/BDR instead of forming full adjacencies with every neighbor.</p>
+            </div>
+            <p class="step-desc"><strong>Election criteria:</strong></p>
+            <ul class="objectives-list" style="margin-bottom:var(--s-md)">
+              <li><span class="obj-num">1</span><span><strong>Highest OSPF priority wins.</strong> Default priority = 1. Range: 0–255. Set with <code>ip ospf priority [0-255]</code> on the interface.</span></li>
+              <li><span class="obj-num">2</span><span><strong>Tiebreaker: highest Router ID.</strong> If priorities are equal, the router with the highest RID becomes DR.</span></li>
+              <li><span class="obj-num">3</span><span><strong>Priority 0 = never DR.</strong> A router with priority 0 will never be elected DR or BDR.</span></li>
+            </ul>
+            <p class="step-desc"><strong>Non-preemptive:</strong> If a new router joins with a higher priority, it does NOT take over as DR. The current DR stays until it goes down. When the DR fails, the BDR is promoted to DR, and a new BDR election occurs among the remaining routers.</p>
+            <div class="cmd-block">
+              <div class="cmd-device">Set R1 as preferred DR on Fa0/0</div>
+              <pre><span class="prompt">R1(config)#</span> <span class="cmd">interface fastethernet 0/0</span>
+<span class="prompt">R1(config-if)#</span> <span class="cmd">ip ospf priority 100</span>
+<span class="prompt">R1(config-if)#</span> <span class="cmd">exit</span>
+<span class="comment">! Must clear OSPF process for new election</span>
+<span class="prompt">R1#</span> <span class="cmd">clear ip ospf process</span></pre>
+            </div>
+            <div class="verify-pair" style="margin-top:var(--s-md)">
+              <div class="verify-cmd"><code>R1# show ip ospf interface fastethernet 0/0</code></div>
+              <div class="verify-expected">
+                <div class="verify-label">Look for DR/BDR status and priority</div>
+                <pre>FastEthernet0/0 is up, line protocol is up
+  Internet Address 10.12.0.1/30, Area 0
+  Process ID 1, Router ID 1.1.1.1, Network Type BROADCAST, Cost: 1
+  Transmit Delay is 1 sec, State DR, Priority 100
+  Designated Router (ID) 1.1.1.1, Interface address 10.12.0.1
+  Backup Designated Router (ID) 2.2.2.2, Interface address 10.12.0.2
+  Timer intervals configured, Hello 10, Dead 40, Wait 40, Retransmit 5</pre>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Concept: Point-to-Point Network Type (3.4.b) -->
+        <div class="lab-step">
+          <div class="step-header">
+            <span class="step-num">08</span>
+            <span class="step-title">Point-to-Point network type — skip the DR/BDR election</span>
+          </div>
+          <div class="step-body">
+            <div class="concept-callout">
+              <div class="concept-callout-title">Exam topic 3.4.b — OSPF network types</div>
+              <p>When only <strong>two routers</strong> share an Ethernet link, there's no need for a DR/BDR election — it's wasted overhead. Use <code>ip ospf network point-to-point</code> on both ends to skip the election entirely. The adjacency goes straight to FULL without the DR/BDR roles. Hello/Dead timers are <strong>10/40 seconds</strong> on both broadcast and point-to-point Ethernet — same defaults, but P2P is simpler and faster to converge. This is commonly used on Ethernet links between just two routers, and on links to stub networks.</p>
+            </div>
+            <div class="cmd-block">
+              <div class="cmd-device">Example: make R1-R2 link point-to-point (both ends)</div>
+              <pre><span class="comment">! On R1</span>
+<span class="prompt">R1(config)#</span> <span class="cmd">interface fastethernet 0/0</span>
+<span class="prompt">R1(config-if)#</span> <span class="cmd">ip ospf network point-to-point</span>
+<span class="prompt">R1(config-if)#</span> <span class="cmd">exit</span>
+<span class="comment">! On R2 (must match on both ends)</span>
+<span class="prompt">R2(config)#</span> <span class="cmd">interface fastethernet 0/0</span>
+<span class="prompt">R2(config-if)#</span> <span class="cmd">ip ospf network point-to-point</span>
+<span class="prompt">R2(config-if)#</span> <span class="cmd">exit</span></pre>
+            </div>
+            <div class="verify-pair" style="margin-top:var(--s-md)">
+              <div class="verify-cmd"><code>R1# show ip ospf interface fastethernet 0/0 | include Network Type</code></div>
+              <div class="verify-expected">
+                <div class="verify-label">Confirms point-to-point — no DR/BDR shown</div>
+                <pre>  Process ID 1, Router ID 1.1.1.1, Network Type POINT_TO_POINT, Cost: 1</pre>
+              </div>
+            </div>
+          </div>
+        </div>
+
       </div>
     </section>
 
@@ -735,7 +821,7 @@ Success rate is 100 percent (5/5), round-trip min/avg/max = 1/2/4 ms</pre>
       <div class="quiz-wrap" id="quiz-wrap">
         <div class="quiz-start-panel" id="quiz-start">
           <h3>Knowledge Check</h3>
-          <p>5 questions on OSPF fundamentals. Pass = 80%.</p>
+          <p>7 questions on OSPF fundamentals. Pass = 80%.</p>
           <button class="btn btn-primary" onclick="startLabQuiz()">Start quiz</button>
         </div>
         <div class="quiz-active" id="quiz-active" style="display:none">
@@ -856,6 +942,28 @@ Success rate is 100 percent (5/5), round-trip min/avg/max = 1/2/4 ms</pre>
         ],
         correct: 2,
         explanation: "OSPF area numbers must match on both ends of a link to form an adjacency. Area 0 ≠ Area 1, so the routers will remain stuck at Init or 2-Way and never reach FULL. This is one of the 5 faults you'll diagnose in Lab PT-5."
+      },
+      {
+        question: "On a multi-access Ethernet segment with three OSPF routers (all default priority), how is the DR elected?",
+        options: [
+          "The router with the lowest IP address on the segment",
+          "The first router to boot wins and keeps DR permanently",
+          "Highest OSPF priority wins; if tied, highest Router ID is the tiebreaker",
+          "Round-robin — each router takes turns being DR"
+        ],
+        correct: 2,
+        explanation: "DR election uses highest OSPF priority (default 1, range 0–255). When priorities tie, the highest Router ID wins. The election is non-preemptive — once elected, the DR stays until it goes down, even if a higher-priority router joins later. Priority 0 means that router can never become DR or BDR."
+      },
+      {
+        question: "What does the command 'ip ospf network point-to-point' do when applied to an Ethernet interface?",
+        options: [
+          "Changes the interface speed to match serial link speeds",
+          "Disables DR/BDR election on that interface — adjacency goes straight to FULL",
+          "Prevents the interface from sending OSPF Hello packets",
+          "Forces the OSPF cost to 1 regardless of bandwidth"
+        ],
+        correct: 1,
+        explanation: "Setting the network type to point-to-point tells OSPF there are only two routers on the link, so no DR/BDR election is needed. The adjacency forms directly to FULL state. This is commonly used on Ethernet links connecting just two routers — it reduces overhead and speeds up convergence. Both ends must be configured the same way."
       }
     ];
 
@@ -864,7 +972,7 @@ Success rate is 100 percent (5/5), round-trip min/avg/max = 1/2/4 ms</pre>
     let quizQuestions = [];
 
     function startLabQuiz() {
-      quizQuestions = shuffle([...LAB_QUESTIONS]).slice(0, 5);
+      quizQuestions = shuffle([...LAB_QUESTIONS]).slice(0, 7);
       currentQ = 0;
       answers = [];
       document.getElementById('quiz-start').style.display = 'none';
