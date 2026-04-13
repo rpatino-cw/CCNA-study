@@ -397,15 +397,52 @@
       <span id="linkCodeHint" style="font-size:.72rem;color:var(--ink-muted);display:none">Enter this code on your other device (expires in 5 min)</span>
     </div>
 
+    <!-- How Your Data Works -->
+    <div style="margin-top:var(--s-lg);padding:20px;background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg)">
+      <div style="font-family:var(--font-display);font-size:.92rem;font-weight:700;color:var(--ink);margin-bottom:12px">How Your Data Works</div>
+      <div style="font-family:var(--font-body);font-size:.82rem;color:var(--ink-secondary);line-height:1.65;margin-bottom:16px">
+        This site runs <strong>entirely on GitHub Pages</strong> — no traditional server, no database, no account system, and no monthly hosting bill. Your study progress lives in two places:
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+        <div style="padding:12px;background:var(--bg-recessed);border-radius:var(--radius);border-left:3px solid #2563EB">
+          <div style="font-family:var(--font-display);font-size:.75rem;font-weight:700;color:#2563EB;margin-bottom:4px">Your Browser</div>
+          <div style="font-family:var(--font-body);font-size:.75rem;color:var(--ink-secondary);line-height:1.5">Quiz scores, diagnostic history, streaks, study time — all saved in your browser's localStorage. Instant, private, works offline.</div>
+        </div>
+        <div style="padding:12px;background:var(--bg-recessed);border-radius:var(--radius);border-left:3px solid var(--accent)">
+          <div style="font-family:var(--font-display);font-size:.75rem;font-weight:700;color:var(--accent);margin-bottom:4px">Your Study Group</div>
+          <div style="font-family:var(--font-body);font-size:.75rem;color:var(--ink-secondary);line-height:1.5">Every time you study, a full copy of your progress syncs to the group's cloud storage (Cloudflare KV). This is your safety net.</div>
+        </div>
+      </div>
+
+      <div style="font-family:var(--font-display);font-size:.78rem;font-weight:700;color:var(--ink);margin-bottom:8px">Switch Devices / Recover Your Data</div>
+      <div style="font-family:var(--font-body);font-size:.78rem;color:var(--ink-secondary);line-height:1.6;margin-bottom:12px">
+        New phone? Reset your computer? No problem.<br>
+        <strong>1.</strong> Open this site on any device<br>
+        <strong>2.</strong> Go to Study Group → "Recover Your Account"<br>
+        <strong>3.</strong> Enter your group code (<strong style="font-family:var(--font-mono);color:var(--accent)" id="myGroupCodeDisplay"></strong>) and your display name<br>
+        <strong>4.</strong> Everything restores — quiz history, proficiency scores, streaks, all of it
+      </div>
+
+      <div style="padding:12px;background:rgba(22,163,74,.06);border:1px solid rgba(22,163,74,.15);border-radius:var(--radius);margin-bottom:12px">
+        <div style="font-family:var(--font-display);font-size:.75rem;font-weight:700;color:#16A34A;margin-bottom:4px">Your recovery info — save this somewhere</div>
+        <div style="font-family:var(--font-mono);font-size:.85rem;color:var(--ink)">Group: <strong id="recoveryCode"></strong> · Name: <strong id="recoveryName"></strong></div>
+        <div style="font-family:var(--font-body);font-size:.7rem;color:var(--ink-muted);margin-top:4px">Write this down, screenshot it, or text it to yourself. This is all you need to recover on any device.</div>
+      </div>
+
+      <div style="font-family:var(--font-body);font-size:.75rem;color:var(--ink-muted);line-height:1.5;padding:10px;background:var(--bg-recessed);border-radius:var(--radius)">
+        <strong style="color:var(--ink-secondary)">Why no server?</strong> We're experimenting with a peer-to-peer approach where your study group IS your data store. No accounts to create, no passwords to forget, no subscription fees. The whole site costs $0 to run — GitHub Pages for hosting, Cloudflare Workers (free tier) for sync. If you think a traditional server would be better, we'd genuinely love to hear — we're learning as we build. Drop feedback in the group chat.
+      </div>
+    </div>
+
     <!-- Progress Backup / Restore -->
-    <div style="margin-top:var(--s-lg);padding:16px;background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg)">
-      <div style="font-family:var(--font-display);font-size:.78rem;font-weight:600;color:var(--ink-muted);margin-bottom:10px;text-transform:uppercase;letter-spacing:.05em">Progress Protection</div>
+    <div style="margin-top:var(--s-md);padding:16px;background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg)">
+      <div style="font-family:var(--font-display);font-size:.78rem;font-weight:600;color:var(--ink-muted);margin-bottom:10px;text-transform:uppercase;letter-spacing:.05em">Manual Backup (Extra Safety)</div>
       <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
-        <button class="btn btn-secondary btn-sm" id="btnBackup" style="font-size:.72rem">Backup Progress</button>
-        <label class="btn btn-secondary btn-sm" style="font-size:.72rem;cursor:pointer;margin:0">Restore
+        <button class="btn btn-secondary btn-sm" id="btnBackup" style="font-size:.72rem">Download Backup</button>
+        <label class="btn btn-secondary btn-sm" style="font-size:.72rem;cursor:pointer;margin:0">Upload Restore
           <input type="file" id="fileRestore" accept=".json" style="display:none">
         </label>
-        <span style="font-family:var(--font-body);font-size:.72rem;color:var(--ink-muted)">Download a backup file or restore from one if you reset your computer.</span>
+        <span style="font-family:var(--font-body);font-size:.72rem;color:var(--ink-muted)">Belt and suspenders. Your group already backs you up automatically.</span>
       </div>
     </div>
 
@@ -573,6 +610,17 @@ function loadGroup(group) {
   document.getElementById('groupCode').textContent = group.code;
   const mc = Object.keys(group.members).length;
   document.getElementById('groupMeta').textContent = mc + ' member' + (mc > 1 ? 's' : '');
+
+  // Populate recovery info display
+  try {
+    var rcEl = document.getElementById('recoveryCode');
+    var rnEl = document.getElementById('recoveryName');
+    var gcEl = document.getElementById('myGroupCodeDisplay');
+    if (rcEl) rcEl.textContent = group.code;
+    if (rnEl) rnEl.textContent = getName();
+    if (gcEl) gcEl.textContent = group.code;
+  } catch(e) {}
+
   renderOverview(group);
 }
 

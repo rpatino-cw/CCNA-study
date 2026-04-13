@@ -43,12 +43,23 @@
     }
   }catch(e){}
 
+  // Build full localStorage backup for cross-device recovery
+  var fullBackup=null;
+  try{
+    var fb={};
+    for(var i=0;i<localStorage.length;i++){
+      var k=localStorage.key(i);
+      if(k&&k.startsWith('ccna_'))fb[k]=localStorage.getItem(k);
+    }
+    if(Object.keys(fb).length>0)fullBackup=JSON.stringify(fb);
+  }catch(e){}
+
   // Always sync (heartbeat) — even without progress data, this updates lastSync
   try{
     fetch(API+'/api/group/sync',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({code:code,memberId:memberId,progress:progress})
+      body:JSON.stringify({code:code,memberId:memberId,progress:progress,fullBackup:fullBackup})
     }).then(function(r){return r.json();}).then(function(data){
       if(!data.group)return;
       // Render study group mini badge on every page

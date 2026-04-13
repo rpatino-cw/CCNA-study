@@ -113,21 +113,27 @@
     })
     .then(function(res) { return res.json(); })
     .then(function(result) {
-      if (!result.ok || !result.progress) return false;
-      // Restore proficiency from group snapshot via localStorage directly
-      if (result.progress.proficiency) {
-        localStorage.setItem('ccna_proficiency', JSON.stringify(result.progress.proficiency));
+      if (!result.ok) return false;
+
+      // Prefer fullBackup (complete localStorage dump) over partial progress
+      if (result.fullBackup) {
+        try {
+          var full = typeof result.fullBackup === 'string' ? JSON.parse(result.fullBackup) : result.fullBackup;
+          Object.keys(full).forEach(function(key) {
+            _origSetItem(key, full[key]); // Use original setItem to avoid triggering backup loop
+          });
+        } catch(e) {}
+      } else if (result.progress) {
+        // Fallback: partial restore from progress summary
+        if (result.progress.proficiency) _origSetItem('ccna_proficiency', JSON.stringify(result.progress.proficiency));
+        if (result.progress.streak) _origSetItem('ccna_streak', JSON.stringify(result.progress.streak));
+        if (result.progress.studyTime) _origSetItem('ccna_study_time', JSON.stringify(result.progress.studyTime));
       }
-      if (result.progress.streak) {
-        localStorage.setItem('ccna_streak', JSON.stringify(result.progress.streak));
-      }
-      if (result.progress.studyTime) {
-        localStorage.setItem('ccna_study_time', JSON.stringify(result.progress.studyTime));
-      }
+
       // Restore peer identity
-      if (result.memberId) localStorage.setItem('ccna_peer_id', result.memberId);
-      if (result.groupCode) localStorage.setItem('ccna_peer_group', result.groupCode);
-      if (result.name) localStorage.setItem('ccna_peer_name', result.name);
+      if (result.memberId) _origSetItem('ccna_peer_id', result.memberId);
+      if (result.groupCode) _origSetItem('ccna_peer_group', result.groupCode);
+      if (result.name) _origSetItem('ccna_peer_name', result.name);
       return true;
     })
     .catch(function() { return false; });
