@@ -168,187 +168,185 @@
     }
   }
 
-  // ── Lab Base Class ──────────────────────────────────────
-  class LabBase {
-    constructor(config) {
-      this.devices = {};
-      this.activeDeviceName = null;
-      this.objectives = config.objectives || [];
-      this.completedObjectives = new Set();
-      this.commandLog = [];
-      this.hintsRemaining = config.hintsAvailable || 3;
-      this.totalHints = config.hintsAvailable || 3;
-      this.terminal = null;
-      this.onObjectiveComplete = config.onObjectiveComplete || (() => {});
-      this.onTopologyUpdate = config.onTopologyUpdate || (() => {});
-      this.commandHandlers = {};
-      this.tabCompletions = {};
-    }
-
-    get activeDevice() {
-      return this.devices[this.activeDeviceName];
-    }
-
-    addDevice(name, type, config) {
-      this.devices[name] = new Device(name, type, config);
-      if (!this.activeDeviceName) this.activeDeviceName = name;
-    }
-
-    switchDevice(name) {
-      if (this.devices[name]) {
-        this.activeDeviceName = name;
-        this.devices[name].mode = 'user';
-        return `\n--- Connected to ${this.devices[name].hostname} ---\n`;
-      }
-      return `% Unknown device: ${name}`;
-    }
-
-    initTerminal(el) {
-      this.terminal = new Terminal(el, this);
-      return this.terminal;
-    }
-
-    processCommand(cmd) {
-      if (!cmd || !cmd.trim()) return '';
-
-      const raw = cmd.trim();
-      const lower = raw.toLowerCase();
-      this.commandLog.push({ device: this.activeDeviceName, cmd: raw, time: Date.now() });
-
-      const dev = this.activeDevice;
-
-      // Global commands
-      if (lower.startsWith('connect ') || lower.startsWith('switch ')) {
-        const target = raw.split(/\s+/)[1];
-        return this.switchDevice(target);
-      }
-
-      // Mode navigation
-      if (lower === 'enable' || lower === 'en') {
-        if (dev.mode === 'user') { dev.mode = 'priv'; return ''; }
-        return '';
-      }
-      if (lower === 'configure terminal' || lower === 'conf t') {
-        if (dev.mode === 'priv') { dev.mode = 'config'; return 'Enter configuration commands, one per line. End with CNTL/Z.'; }
-        return '% Invalid input detected';
-      }
-      if (lower === 'exit') {
-        if (dev.mode === 'config-if' || dev.mode === 'config-subif') { dev.mode = 'config'; dev.currentInterface = null; return ''; }
-        if (dev.mode === 'config-router') { dev.mode = 'config'; return ''; }
-        if (dev.mode === 'config-line') { dev.mode = 'config'; return ''; }
-        if (dev.mode === 'config-vlan') { dev.mode = 'config'; return ''; }
-        if (dev.mode === 'config-dhcp') { dev.mode = 'config'; return ''; }
-        if (dev.mode === 'config-ext-nacl') { dev.mode = 'config'; return ''; }
-        if (dev.mode === 'config') { dev.mode = 'priv'; return ''; }
-        if (dev.mode === 'priv') { dev.mode = 'user'; return ''; }
-        return '';
-      }
-      if (lower === 'end') {
-        dev.mode = 'priv';
-        dev.currentInterface = null;
-        return '';
-      }
-      if (lower === 'disable') {
-        dev.mode = 'user';
-        return '';
-      }
-
-      // Interface selection
-      const ifMatch = raw.match(/^interface\s+(.+)/i);
-      if (ifMatch && (dev.mode === 'config' || dev.mode === 'config-if' || dev.mode === 'config-subif')) {
-        const ifName = this.normalizeInterface(ifMatch[1].trim());
-        dev.currentInterface = ifName;
-        if (ifName.includes('.')) {
-          dev.mode = 'config-subif';
-          if (!dev.interfaces[ifName]) dev.interfaces[ifName] = { subinterface: true, up: false };
-        } else {
-          dev.mode = 'config-if';
-          if (!dev.interfaces[ifName]) dev.interfaces[ifName] = { up: true };
-        }
-        return '';
-      }
-
-      // VLAN creation
-      const vlanMatch = raw.match(/^vlan\s+(\d+)/i);
-      if (vlanMatch && dev.mode === 'config') {
-        const vid = parseInt(vlanMatch[1]);
-        if (!dev.vlans[vid]) dev.vlans[vid] = { name: `VLAN${vid}`, ports: [] };
-        dev.mode = 'config-vlan';
-        dev.custom._currentVlan = vid;
-        this.checkObjectives();
-        this.onTopologyUpdate();
-        return '';
-      }
-
-      // VLAN name
-      if (lower.startsWith('name ') && dev.mode === 'config-vlan') {
-        const name = raw.substring(5).trim();
-        const vid = dev.custom._currentVlan;
-        if (vid && dev.vlans[vid]) dev.vlans[vid].name = name;
-        this.checkObjectives();
-        return '';
-      }
-
-      // Router OSPF
-      const ospfMatch = raw.match(/^router\s+ospf\s+(\d+)/i);
-      if (ospfMatch && dev.mode === 'config') {
-        const pid = parseInt(ospfMatch[1]);
-        if (!dev.ospf) dev.ospf = { processId: pid, networks: [], routerId: null };
-        dev.ospf.processId = pid;
-        dev.mode = 'config-router';
-        this.checkObjectives();
-        return '';
-      }
-
-      // Delegate to lab-specific handler
-      const result = this.handleCommand(dev, raw, lower);
-      if (result !== undefined) return result;
-
-      // Unknown command
-      if (dev.mode === 'user') {
-        return `% Unrecognized command "${raw.split(' ')[0]}"`;
-      }
-      return `% Invalid input detected at '^' marker.\n% Unrecognized command: ${raw.split(' ')[0]}`;
-    }
-
-    // Override in subclass
-    handleCommand(dev, raw, lower) { return undefined; }
-    checkObjectives() {}
-    tabComplete(partial) { return null; }
-
-    normalizeInterface(name) {
-      return name
-        .replace(/^gi(?:gabitethernet)?/i, 'GigabitEthernet')
-        .replace(/^fa(?:stethernet)?/i, 'FastEthernet')
-        .replace(/^lo(?:opback)?/i, 'Loopback')
-        .replace(/^vlan\s*/i, 'Vlan');
-    }
-
-    completeObjective(idx) {
-      if (this.completedObjectives.has(idx)) return;
-      this.completedObjectives.add(idx);
-      this.onObjectiveComplete(idx, this.objectives[idx]);
-    }
-
-    getHint(objIdx) {
-      if (this.hintsRemaining <= 0) return null;
-      if (objIdx >= this.objectives.length) return null;
-      this.hintsRemaining--;
-      return this.objectives[objIdx].hint || 'No hint available.';
-    }
-
-    isComplete() {
-      return this.completedObjectives.size >= this.objectives.length;
-    }
-
-    getProgress() {
-      return {
-        completed: this.completedObjectives.size,
-        total: this.objectives.length,
-        pct: Math.round((this.completedObjectives.size / this.objectives.length) * 100)
-      };
-    }
+  // ── Lab Base Class (ES5 — labs inherit via .call() + Object.create) ──
+  function LabBase(config) {
+    this.devices = {};
+    this.activeDeviceName = null;
+    this.objectives = config.objectives || [];
+    this.completedObjectives = new Set();
+    this.commandLog = [];
+    this.hintsRemaining = config.hintsAvailable || 3;
+    this.totalHints = config.hintsAvailable || 3;
+    this.terminal = null;
+    this.onObjectiveComplete = config.onObjectiveComplete || function(){};
+    this.onTopologyUpdate = config.onTopologyUpdate || function(){};
+    this.commandHandlers = {};
+    this.tabCompletions = {};
   }
+
+  Object.defineProperty(LabBase.prototype, 'activeDevice', {
+    get: function() { return this.devices[this.activeDeviceName]; }
+  });
+
+  LabBase.prototype.addDevice = function(name, type, config) {
+    this.devices[name] = new Device(name, type, config);
+    if (!this.activeDeviceName) this.activeDeviceName = name;
+  };
+
+  LabBase.prototype.switchDevice = function(name) {
+    if (this.devices[name]) {
+      this.activeDeviceName = name;
+      this.devices[name].mode = 'user';
+      return '\n--- Connected to ' + this.devices[name].hostname + ' ---\n';
+    }
+    return '% Unknown device: ' + name;
+  };
+
+  LabBase.prototype.initTerminal = function(el) {
+    this.terminal = new Terminal(el, this);
+    return this.terminal;
+  };
+
+  LabBase.prototype.processCommand = function(cmd) {
+    if (!cmd || !cmd.trim()) return '';
+
+    var raw = cmd.trim();
+    var lower = raw.toLowerCase();
+    this.commandLog.push({ device: this.activeDeviceName, cmd: raw, time: Date.now() });
+
+    var dev = this.activeDevice;
+
+    // Global commands
+    if (lower.startsWith('connect ') || lower.startsWith('switch ')) {
+      var target = raw.split(/\s+/)[1];
+      return this.switchDevice(target);
+    }
+
+    // Mode navigation
+    if (lower === 'enable' || lower === 'en') {
+      if (dev.mode === 'user') { dev.mode = 'priv'; return ''; }
+      return '';
+    }
+    if (lower === 'configure terminal' || lower === 'conf t') {
+      if (dev.mode === 'priv') { dev.mode = 'config'; return 'Enter configuration commands, one per line. End with CNTL/Z.'; }
+      return '% Invalid input detected';
+    }
+    if (lower === 'exit') {
+      if (dev.mode === 'config-if' || dev.mode === 'config-subif') { dev.mode = 'config'; dev.currentInterface = null; return ''; }
+      if (dev.mode === 'config-router') { dev.mode = 'config'; return ''; }
+      if (dev.mode === 'config-line') { dev.mode = 'config'; return ''; }
+      if (dev.mode === 'config-vlan') { dev.mode = 'config'; return ''; }
+      if (dev.mode === 'config-dhcp') { dev.mode = 'config'; return ''; }
+      if (dev.mode === 'config-ext-nacl') { dev.mode = 'config'; return ''; }
+      if (dev.mode === 'config') { dev.mode = 'priv'; return ''; }
+      if (dev.mode === 'priv') { dev.mode = 'user'; return ''; }
+      return '';
+    }
+    if (lower === 'end') {
+      dev.mode = 'priv';
+      dev.currentInterface = null;
+      return '';
+    }
+    if (lower === 'disable') {
+      dev.mode = 'user';
+      return '';
+    }
+
+    // Interface selection
+    var ifMatch = raw.match(/^interface\s+(.+)/i);
+    if (ifMatch && (dev.mode === 'config' || dev.mode === 'config-if' || dev.mode === 'config-subif')) {
+      var ifName = this.normalizeInterface(ifMatch[1].trim());
+      dev.currentInterface = ifName;
+      if (ifName.includes('.')) {
+        dev.mode = 'config-subif';
+        if (!dev.interfaces[ifName]) dev.interfaces[ifName] = { subinterface: true, up: false };
+      } else {
+        dev.mode = 'config-if';
+        if (!dev.interfaces[ifName]) dev.interfaces[ifName] = { up: true };
+      }
+      return '';
+    }
+
+    // VLAN creation
+    var vlanMatch = raw.match(/^vlan\s+(\d+)/i);
+    if (vlanMatch && dev.mode === 'config') {
+      var vid = parseInt(vlanMatch[1]);
+      if (!dev.vlans[vid]) dev.vlans[vid] = { name: 'VLAN' + vid, ports: [] };
+      dev.mode = 'config-vlan';
+      dev.custom._currentVlan = vid;
+      this.checkObjectives();
+      this.onTopologyUpdate();
+      return '';
+    }
+
+    // VLAN name
+    if (lower.startsWith('name ') && dev.mode === 'config-vlan') {
+      var name = raw.substring(5).trim();
+      var cvid = dev.custom._currentVlan;
+      if (cvid && dev.vlans[cvid]) dev.vlans[cvid].name = name;
+      this.checkObjectives();
+      return '';
+    }
+
+    // Router OSPF
+    var ospfMatch = raw.match(/^router\s+ospf\s+(\d+)/i);
+    if (ospfMatch && dev.mode === 'config') {
+      var pid = parseInt(ospfMatch[1]);
+      if (!dev.ospf) dev.ospf = { processId: pid, networks: [], routerId: null };
+      dev.ospf.processId = pid;
+      dev.mode = 'config-router';
+      this.checkObjectives();
+      return '';
+    }
+
+    // Delegate to lab-specific handler
+    var result = this.handleCommand(dev, raw, lower);
+    if (result !== undefined) return result;
+
+    // Unknown command
+    if (dev.mode === 'user') {
+      return '% Unrecognized command "' + raw.split(' ')[0] + '"';
+    }
+    return '% Invalid input detected at \'^\' marker.\n% Unrecognized command: ' + raw.split(' ')[0];
+  };
+
+  // Override in subclass
+  LabBase.prototype.handleCommand = function() { return undefined; };
+  LabBase.prototype.checkObjectives = function() {};
+  LabBase.prototype.tabComplete = function() { return null; };
+
+  LabBase.prototype.normalizeInterface = function(name) {
+    return name
+      .replace(/^gi(?:gabitethernet)?/i, 'GigabitEthernet')
+      .replace(/^fa(?:stethernet)?/i, 'FastEthernet')
+      .replace(/^lo(?:opback)?/i, 'Loopback')
+      .replace(/^vlan\s*/i, 'Vlan');
+  };
+
+  LabBase.prototype.completeObjective = function(idx) {
+    if (this.completedObjectives.has(idx)) return;
+    this.completedObjectives.add(idx);
+    this.onObjectiveComplete(idx, this.objectives[idx]);
+  };
+
+  LabBase.prototype.getHint = function(objIdx) {
+    if (this.hintsRemaining <= 0) return null;
+    if (objIdx >= this.objectives.length) return null;
+    this.hintsRemaining--;
+    return this.objectives[objIdx].hint || 'No hint available.';
+  };
+
+  LabBase.prototype.isComplete = function() {
+    return this.completedObjectives.size >= this.objectives.length;
+  };
+
+  LabBase.prototype.getProgress = function() {
+    return {
+      completed: this.completedObjectives.size,
+      total: this.objectives.length,
+      pct: Math.round((this.completedObjectives.size / this.objectives.length) * 100)
+    };
+  };
 
   // ── Expose ──────────────────────────────────────────────
   window.Lab = {
