@@ -49,6 +49,7 @@
       { text: 'Sprint', href: 'sprint.html' },
       { text: 'Strategy', href: 'strategy.html' },
       { text: 'Exam Details', href: 'exam-details.html' },
+      { text: 'Exam Tricks', href: 'exam-tricks.html' },
     ]},
     { text: 'Net+', href: 'netplus.html' },
     { text: 'Study Group', href: 'peers.html' },
