@@ -24,6 +24,7 @@
       { text: 'Resources', href: 'resources.html' },
       { text: 'Exam Objectives', href: 'exam-objectives.html' },
       { text: 'Books', href: 'book.html' },
+      { text: "Jeremy's IT Lab", href: 'jeremy-labs.html' },
     ]},
     { text: 'Practice', children: [
       { text: 'Diagnostic', href: 'diagnostic.html' },
