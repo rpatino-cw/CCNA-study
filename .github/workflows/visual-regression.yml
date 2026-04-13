@@ -1,0 +1,47 @@
+name: Visual Regression
+
+on:
+  push:
+    branches: [main]
+    paths: ['**.html', '**.css', '**.js', '!scripts/**']
+  pull_request:
+    branches: [main]
+    paths: ['**.html', '**.css', '**.js', '!scripts/**']
+
+jobs:
+  visual-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install chromium --with-deps
+
+      - name: Validate quiz answers
+        run: npm run test:answers
+
+      - name: Run visual regression
+        run: npm run test:visual
+
+      - name: Upload diff artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: visual-diffs
+          path: regression/diff/
+          retention-days: 7
+
+      - name: Upload current screenshots
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: visual-current
+          path: regression/current/
+          retention-days: 7
