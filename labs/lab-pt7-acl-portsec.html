@@ -515,7 +515,7 @@
       <h1>ACLs &amp; Port Security</h1>
       <div class="lab-header-meta">
         <span>~50 min</span>
-        <span>Topics 5.6 · 5.7</span>
+        <span>Topics 5.6 · 5.7 · 5.9</span>
         <span>Packet Tracer</span>
       </div>
       <div id="labCompleteBox" style="margin-top:12px"></div>
@@ -721,10 +721,10 @@ URL: http://192.168.10.1      (can still reach other hosts — permit any any)</
           </div>
         </div>
 
-        <!-- Step 7 -->
+        <!-- Step 8 -->
         <div class="lab-step">
           <div class="step-header">
-            <span class="step-num">07</span>
+            <span class="step-num">08</span>
             <span class="step-title">Verify port security and trigger a violation</span>
           </div>
           <div class="step-body">
@@ -747,6 +747,85 @@ URL: http://192.168.10.1      (can still reach other hosts — permit any any)</
 <span class="prompt">SW1(config-if)#</span> <span class="cmd">shutdown</span>
 <span class="prompt">SW1(config-if)#</span> <span class="cmd">no shutdown</span></pre>
             </div>
+            <div style="background:var(--accent-light);border-left:3px solid var(--accent);border-radius:var(--radius);padding:var(--s-md) var(--s-lg);margin-top:var(--s-md)">
+              <p class="step-desc" style="margin-bottom:var(--s-sm)">
+                <strong>Port Security Violation Modes (exam topic):</strong>
+              </p>
+              <table class="device-table" style="margin-bottom:0">
+                <thead>
+                  <tr>
+                    <th>Mode</th>
+                    <th>Drops frames?</th>
+                    <th>Syslog / SNMP?</th>
+                    <th>Shuts port?</th>
+                    <th>Notes</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr><td><code>protect</code></td><td>Yes</td><td>No</td><td>No</td><td>Silent drop — no log, no alert. Violation counter does NOT increment.</td></tr>
+                  <tr><td><code>restrict</code></td><td>Yes</td><td>Yes</td><td>No</td><td>Drops + sends syslog/SNMP trap. Violation counter increments.</td></tr>
+                  <tr><td><code>shutdown</code></td><td>Yes</td><td>Yes</td><td>Yes (err-disabled)</td><td>Default mode. Most secure. Requires manual <code>shut</code>/<code>no shut</code> to recover.</td></tr>
+                </tbody>
+              </table>
+              <p class="step-desc" style="margin-top:var(--s-sm);margin-bottom:0">
+                This lab used <code>shutdown</code> (default and most secure). The CCNA exam tests all three modes — know the differences.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 9 — DHCP Snooping -->
+        <div class="lab-step">
+          <div class="step-header">
+            <span class="step-num">09</span>
+            <span class="step-title">Enable DHCP Snooping</span>
+          </div>
+          <div class="step-body">
+            <p class="step-desc">
+              DHCP snooping is a Layer 2 security feature that filters DHCP messages on untrusted ports. By default, all ports are <strong>untrusted</strong> — they can only send DHCP requests (Discover/Request), not DHCP offers (Offer/Ack). This prevents a rogue DHCP server from handing out bad gateway/DNS addresses. The uplink to the router (Fa0/24) must be marked as <strong>trusted</strong> since it connects to the legitimate DHCP server or relay.
+            </p>
+            <div class="cmd-block">
+              <div class="cmd-device">SW1</div>
+              <pre><span class="prompt">SW1(config)#</span> <span class="cmd">ip dhcp snooping</span>
+<span class="prompt">SW1(config)#</span> <span class="cmd">ip dhcp snooping vlan 10,20,30</span>
+<span class="prompt">SW1(config)#</span> <span class="cmd">interface fastethernet 0/24</span>
+<span class="prompt">SW1(config-if)#</span> <span class="cmd">ip dhcp snooping trust</span>
+<span class="prompt">SW1(config-if)#</span> <span class="cmd">exit</span></pre>
+            </div>
+            <div class="cmd-block" style="margin-top:var(--s-sm)">
+              <div class="cmd-device">SW1 — Verification</div>
+              <pre><span class="prompt">SW1#</span> <span class="cmd">show ip dhcp snooping</span>
+<span class="comment">! Confirms snooping is enabled, which VLANs, and trusted/untrusted ports</span>
+
+<span class="prompt">SW1#</span> <span class="cmd">show ip dhcp snooping binding</span>
+<span class="comment">! Shows the binding table: MAC ↔ IP ↔ VLAN ↔ port learned from DHCP</span></pre>
+            </div>
+            <p class="step-desc" style="margin-top:var(--s-md);margin-bottom:0">
+              <strong>Why it matters:</strong> Without DHCP snooping, any device plugged into an access port could run a DHCP server and redirect traffic through itself (man-in-the-middle). DHCP snooping also builds a <strong>binding table</strong> that is used by Dynamic ARP Inspection (next step).
+            </p>
+          </div>
+        </div>
+
+        <!-- Step 10 — Dynamic ARP Inspection -->
+        <div class="lab-step">
+          <div class="step-header">
+            <span class="step-num">10</span>
+            <span class="step-title">Enable Dynamic ARP Inspection (DAI)</span>
+          </div>
+          <div class="step-body">
+            <p class="step-desc">
+              DAI validates ARP packets against the DHCP snooping binding table. On untrusted ports, if a host sends an ARP reply claiming an IP that doesn't match the binding table, the packet is dropped. This prevents <strong>ARP spoofing</strong> attacks where an attacker poisons the ARP cache to intercept traffic. DAI <strong>depends on DHCP snooping</strong> being enabled first — it uses the binding table as its source of truth.
+            </p>
+            <div class="cmd-block">
+              <div class="cmd-device">SW1</div>
+              <pre><span class="prompt">SW1(config)#</span> <span class="cmd">ip arp inspection vlan 10,20,30</span>
+<span class="prompt">SW1(config)#</span> <span class="cmd">interface fastethernet 0/24</span>
+<span class="prompt">SW1(config-if)#</span> <span class="cmd">ip arp inspection trust</span>
+<span class="prompt">SW1(config-if)#</span> <span class="cmd">exit</span></pre>
+            </div>
+            <p class="step-desc" style="margin-top:var(--s-md);margin-bottom:0">
+              <strong>Key dependency:</strong> DAI checks ARP against the DHCP snooping binding table. If DHCP snooping is not enabled, there is no binding table, and DAI will drop all ARP on untrusted ports. Always enable DHCP snooping first.
+            </p>
           </div>
         </div>
 
@@ -808,7 +887,7 @@ Fa0/1                        err-disabled 10         auto    auto  10/100BaseTX<
       <div class="quiz-wrap" id="quiz-wrap">
         <div class="quiz-start-panel" id="quiz-start">
           <h3>Knowledge Check</h3>
-          <p>5 questions covering ACLs and port security. Pass = 80%.</p>
+          <p>8 questions covering ACLs, port security, DHCP snooping, and DAI. Pass = 80%.</p>
           <button class="btn btn-primary" onclick="startLabQuiz()">Start quiz</button>
         </div>
         <div class="quiz-active" id="quiz-active" style="display:none">
@@ -921,6 +1000,39 @@ Fa0/1                        err-disabled 10         auto    auto  10/100BaseTX<
         ],
         correct: 2,
         explanation: "Inbound ACLs filter traffic as it enters the interface, before routing. If the ACL permits the packet (any permit rule matches), the router processes it normally — including traffic destined for the router itself (Telnet, SSH, OSPF hellos, etc.). The permit ip any any catches everything the earlier specific rules didn't match."
+      },
+      {
+        question: "Where should a standard ACL be placed?",
+        options: [
+          "As close to the source as possible",
+          "As close to the destination as possible",
+          "On the trunk link",
+          "On the management VLAN"
+        ],
+        correct: 1,
+        explanation: "Standard ACLs only match source IP — they cannot distinguish destination or port. Placing a standard ACL near the source would block ALL traffic from that source to ANY destination. By placing it near the destination, you only block the specific traffic flow you intended."
+      },
+      {
+        question: "What does DHCP snooping prevent?",
+        options: [
+          "ARP spoofing",
+          "Rogue DHCP servers on untrusted ports",
+          "MAC flooding",
+          "VLAN hopping"
+        ],
+        correct: 1,
+        explanation: "DHCP snooping filters DHCP messages on untrusted ports — only DHCP requests (Discover/Request) are allowed, not DHCP offers (Offer/Ack). This prevents a rogue device from acting as a DHCP server and handing out malicious gateway/DNS addresses. ARP spoofing is handled by DAI (which depends on DHCP snooping)."
+      },
+      {
+        question: "Which port security violation mode drops frames AND sends a syslog message but does NOT shut down the port?",
+        options: [
+          "protect",
+          "restrict",
+          "shutdown",
+          "err-disable"
+        ],
+        correct: 1,
+        explanation: "Restrict mode drops violating frames and sends a syslog/SNMP notification, but keeps the port up. Protect mode drops silently (no log). Shutdown (default) drops, logs, AND puts the port in err-disabled state. err-disable is not a violation mode — it is the state that results from the shutdown violation mode."
       }
     ];
 
@@ -929,7 +1041,7 @@ Fa0/1                        err-disabled 10         auto    auto  10/100BaseTX<
     let quizQuestions = [];
 
     function startLabQuiz() {
-      quizQuestions = shuffle([...LAB_QUESTIONS]).slice(0, 5);
+      quizQuestions = shuffle([...LAB_QUESTIONS]).slice(0, 8);
       currentQ = 0;
       answers = [];
       document.getElementById('quiz-start').style.display = 'none';

@@ -721,10 +721,59 @@
           </div>
         </div>
 
-        <!-- Step 6 -->
+        <!-- Step 6: Static NAT -->
         <div class="lab-step">
           <div class="step-header">
             <span class="step-num">06</span>
+            <span class="step-title">Configure Static NAT for a server</span>
+          </div>
+          <div class="step-body">
+            <p class="step-desc">
+              Suppose you have a web server at <code>10.0.1.100</code> on the inside network that outside hosts need to reach. Static NAT creates a permanent 1:1 mapping between an inside local address and an inside global (public) address.
+            </p>
+            <div class="cmd-block">
+              <div class="cmd-device">R1</div>
+              <pre><span class="prompt">R1(config)#</span> <span class="cmd">ip nat inside source static 10.0.1.100 203.0.113.50</span></pre>
+            </div>
+            <p class="step-desc" style="margin-top:var(--s-md)">
+              <strong>Verify:</strong> Run <code>show ip nat translations</code> &mdash; you should see a <strong>static</strong> entry with no port numbers. Unlike PAT entries that expire, static entries are permanent and appear immediately.
+            </p>
+            <div class="callout" style="margin-top:var(--s-md)">
+              <div class="callout-title">Exam topic: Static NAT vs PAT</div>
+              <p><strong>Static NAT</strong> = permanent 1:1 mapping. Required when outside hosts need to <em>initiate</em> connections to an inside server (web server, mail server, etc.).</p>
+              <p><strong>PAT (overload)</strong> = many-to-one with port translation. Scales well but only works for outbound-initiated sessions &mdash; the translation entry is created when inside traffic goes out.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 7: Dynamic NAT Pool callout -->
+        <div class="lab-step">
+          <div class="step-header">
+            <span class="step-num">07</span>
+            <span class="step-title">Understand Dynamic NAT pools (concept)</span>
+          </div>
+          <div class="step-body">
+            <p class="step-desc">
+              Between static NAT (1:1 permanent) and PAT overload (many:1 with ports), there is a middle option: <strong>Dynamic NAT with a pool</strong>. You define a range of public IPs and inside hosts are mapped one-to-one from that pool &mdash; no port reuse.
+            </p>
+            <div class="cmd-block">
+              <div class="cmd-device">Example (not configured in this lab)</div>
+              <pre><span class="prompt">R1(config)#</span> <span class="cmd">ip nat pool PUBLIC 203.0.113.10 203.0.113.20 netmask 255.255.255.0</span>
+<span class="prompt">R1(config)#</span> <span class="cmd">ip nat inside source list 1 pool PUBLIC</span></pre>
+            </div>
+            <div class="callout" style="margin-top:var(--s-md)">
+              <div class="callout-title">Exam topic: NAT Type Comparison</div>
+              <p><strong>Pool NAT</strong> = many-to-many (one inside host per public IP, limited by pool size). If all pool IPs are in use, new connections fail.</p>
+              <p><strong>PAT overload</strong> = many-to-one (uses port numbers, scales to ~65,000 sessions per public IP).</p>
+              <p>Most real networks use PAT. Pool NAT is uncommon but tested on the exam.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 8 -->
+        <div class="lab-step">
+          <div class="step-header">
+            <span class="step-num">08</span>
             <span class="step-title">Add a default route toward the outside</span>
           </div>
           <div class="step-body">
@@ -805,7 +854,7 @@ Ping statistics: Packets: Sent = 4, Received = 4, Lost = 0 (0% loss)</pre>
       <div class="quiz-wrap" id="quiz-wrap">
         <div class="quiz-start-panel" id="quiz-start">
           <h3>Knowledge Check</h3>
-          <p>5 questions covering NAT, PAT, and DHCP. Pass = 80%.</p>
+          <p>7 questions covering NAT, PAT, DHCP, DNS, and relay. Pass = 80%.</p>
           <button class="btn btn-primary" onclick="startLabQuiz()">Start quiz</button>
         </div>
         <div class="quiz-active" id="quiz-active" style="display:none">
@@ -918,6 +967,28 @@ Ping statistics: Packets: Sent = 4, Received = 4, Lost = 0 (0% loss)</pre>
         ],
         correct: 1,
         explanation: "PAT (and NAT in general) is stateful. The translation table entry is created when an inside host initiates a connection. Inbound-only traffic has no matching entry and is dropped. To allow unsolicited inbound connections, you need static NAT entries."
+      },
+      {
+        question: "In the DHCP DORA process, which two messages are sent as broadcasts?",
+        options: [
+          "Offer and Acknowledge",
+          "Discover and Request",
+          "Discover and Offer",
+          "Request and Acknowledge"
+        ],
+        correct: 1,
+        explanation: "Discover and Request are broadcasts because the client has no IP address yet. The server responds with Offer and Acknowledge as unicasts directed to the client's MAC address (or broadcast if the broadcast flag is set)."
+      },
+      {
+        question: "Clients on VLAN 10 need DHCP, but the server is on VLAN 20. What command on the router's VLAN 10 interface forwards DHCP requests?",
+        options: [
+          "ip dhcp relay",
+          "ip helper-address [server-ip]",
+          "ip dhcp snooping trust",
+          "ip forward-protocol udp"
+        ],
+        correct: 1,
+        explanation: "The 'ip helper-address' command on the client-facing interface converts DHCP broadcast messages into unicast packets aimed at the DHCP server on another subnet. Without it, the router drops the broadcast at the VLAN boundary."
       }
     ];
 
@@ -926,7 +997,7 @@ Ping statistics: Packets: Sent = 4, Received = 4, Lost = 0 (0% loss)</pre>
     let quizQuestions = [];
 
     function startLabQuiz() {
-      quizQuestions = shuffle([...LAB_QUESTIONS]).slice(0, 5);
+      quizQuestions = shuffle([...LAB_QUESTIONS]).slice(0, 7);
       currentQ = 0;
       answers = [];
       document.getElementById('quiz-start').style.display = 'none';
