@@ -117,6 +117,11 @@
   xpScript.src = fixHref('js/xp-toast.js');
   document.body.appendChild(xpScript);
 
+  // Mobile onboarding prompt (first visit, no group)
+  var mobScript = document.createElement('script');
+  mobScript.src = fixHref('js/mobile-onboard.js');
+  document.body.appendChild(mobScript);
+
   // Guide pill — floating "Lost? Read the Guide" for confused users
   // Skips guide.html (you're already there) and core.html (has its own version)
   var pn = location.pathname;
