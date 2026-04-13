@@ -1,18 +1,20 @@
-/* Shared navigation — grouped dropdowns to keep it clean */
+/* Shared navigation — cert-aware, single nav, two content modes */
 (function () {
+  var certTrack = localStorage.getItem('ccna_cert_track') || 'ccna';
+  var isNetPlus = certTrack === 'net+';
+
   var TIPS = {
-    'CORE': 'Your main study hub — all 53 objectives with videos, articles, and quizzes',
+    'CORE': isNetPlus ? 'Net+ hub — your Network+ command center' : 'Your main study hub — all 53 objectives with videos, articles, and quizzes',
     'Guide': 'How to use this website — every page explained',
     'Learn': 'Reference material — visuals, glossary, devices, subnetting',
     'Practice': 'Active testing — quizzes, labs, exams, games',
     'Plan': 'Study scheduling — sprint plans and strategy',
     'Study Group': 'Study with friends — compare progress, chat, compete',
-    'Net+': 'CompTIA Network+ hub — select Net+ as your cert track to unlock',
   };
 
-  var certTrack = localStorage.getItem('ccna_cert_track') || 'ccna';
+  /* ── Two complete NAV configs — pick one based on cert track ─── */
 
-  var NAV = [
+  var CCNA_NAV = [
     { text: 'CORE', href: 'core.html' },
     { text: 'Guide', href: 'guide.html' },
     { text: 'Learn', children: [
@@ -53,26 +55,41 @@
       { text: 'Exam Details', href: 'exam-details.html' },
       { text: 'Exam Tricks', href: 'exam-tricks.html' },
     ]},
-    { text: 'Net+', children: [
-      { text: 'Net+ Hub', href: 'netplus.html' },
-      { text: 'Exam Details', href: 'netplus-details.html' },
+    { text: 'Study Group', href: 'peers.html' },
+  ];
+
+  var NETPLUS_NAV = [
+    { text: 'CORE', href: 'netplus.html' },
+    { text: 'Guide', href: 'guide.html' },
+    { text: 'Learn', children: [
       { text: 'Exam Objectives', href: 'netplus-objectives.html' },
-      { text: '4-Week Sprint', href: 'netplus-sprint.html' },
-      { text: 'Diagnostic', href: 'netplus-diagnostic.html' },
+      { text: 'OSI Interactive', href: 'netplus-osi.html' },
       { text: 'Routing Protocols', href: 'netplus-routing.html' },
-      { text: 'Topology Explorer', href: 'netplus-topology.html' },
       { text: 'Wireless Standards', href: 'netplus-wireless.html' },
-      { text: 'OSI Model Interactive', href: 'netplus-osi.html' },
-      { text: 'Exam Simulation', href: 'netplus-exam.html' },
+      { text: 'Topology Explorer', href: 'netplus-topology.html' },
+      { text: 'Subnetting', href: 'subnetting-visual.html' },
+      { text: 'Devices', href: 'devices.html' },
       { text: 'Glossary', href: 'netplus-glossary.html' },
+      { text: 'Resources', href: 'netplus-resources.html' },
+    ]},
+    { text: 'Practice', children: [
+      { text: 'Flashcards', href: 'netplus-flashcards.html' },
+      { text: 'Diagnostic', href: 'netplus-diagnostic.html' },
+      { text: 'Console Labs', href: 'console-labs.html' },
+      { text: 'Network Lab', href: 'network-lab.html' },
       { text: 'IP Address Game', href: 'netplus-ip-game.html' },
       { text: 'Troubleshooting', href: 'netplus-troubleshoot.html' },
-      { text: 'Resources', href: 'netplus-resources.html' },
-      { text: 'Flashcard Deck', href: 'netplus-flashcards.html' },
+      { text: 'Exam Sim', href: 'netplus-exam.html' },
       { text: 'Daily Challenge', href: 'netplus-daily.html' },
+    ]},
+    { text: 'Plan', children: [
+      { text: '4-Week Sprint', href: 'netplus-sprint.html' },
+      { text: 'Exam Details', href: 'netplus-details.html' },
     ]},
     { text: 'Study Group', href: 'peers.html' },
   ];
+
+  var NAV = isNetPlus ? NETPLUS_NAV : CCNA_NAV;
 
   var nav = document.querySelector('nav.top-nav');
   if (!nav) return;
@@ -90,19 +107,17 @@
 
   function fixHref(href) { return inSubdir ? '../' + href : href; }
 
+  // Apply Net+ mode class to nav for red border indicator
+  if (isNetPlus) nav.classList.add('netplus-mode');
+
   nav.innerHTML = NAV.map(function (item) {
     if (item.children) {
-      // Net+ group lock — hide dropdown if cert track not set to net+
-      var isNetPlus = item.text === 'Net+';
-      var locked = isNetPlus && certTrack !== 'net+';
-      if (locked) return '<span style="padding:8px 10px;font-family:var(--font-display);font-size:.72rem;color:var(--ink-muted);opacity:.35;cursor:default" title="Select Network+ as your cert track in Study Group to unlock">' + item.text + '</span>';
       var hasActive = item.children.some(function(c) { return isActive(c.href); });
       var dropdown = item.children.map(function(c) {
         return '<a class="nav-drop-item' + (isActive(c.href) ? ' active' : '') + '" href="' + fixHref(c.href) + '">' + c.text + '</a>';
       }).join('');
-      var btnStyle = isNetPlus ? ' style="color:#7C3AED;font-weight:700"' : '';
       return '<div class="nav-group' + (hasActive ? ' active' : '') + '">' +
-        '<button class="nav-group-btn"' + btnStyle + ' title="' + (TIPS[item.text]||'') + '">' + item.text + ' <span class="nav-caret">&#9662;</span></button>' +
+        '<button class="nav-group-btn" title="' + (TIPS[item.text]||'') + '">' + item.text + ' <span class="nav-caret">&#9662;</span></button>' +
         '<div class="nav-dropdown">' + dropdown + '</div></div>';
     }
     return '<a' + (isActive(item.href) ? ' class="active"' : '') + ' href="' + fixHref(item.href) + '" title="' + (TIPS[item.text]||'') + '">' + item.text + '</a>';
