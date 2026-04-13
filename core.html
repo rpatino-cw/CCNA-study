@@ -1364,6 +1364,47 @@ function render(){
     '<div class="ps-bar"><div class="ps-fill" style="width:'+Math.round(totalMastered/totalTopics*100)+'%"></div></div>'+
     '<div class="ps-stats"><span><strong>'+totalMastered+'/'+totalTopics+'</strong> mastered</span><span>Readiness: <strong>'+Math.round(readiness)+'%</strong></span><span>'+domains.length+' domains</span></div>';
 
+  // Pass Prediction
+  try {
+    var history = store.getQuizHistory();
+    var quizAvg = history.length > 0 ? history.reduce(function(s,h){return s+(h.score/h.total);},0)/history.length : 0;
+    var topicsAt70 = 0; domains.forEach(function(d){d.topics.forEach(function(t){if((prof[t.id]||0)>=0.7)topicsAt70++;});});
+    var topicRatio = totalTopics > 0 ? topicsAt70 / totalTopics : 0;
+    var streak = store.getStreak ? store.getStreak().current : 0;
+    var examResults = JSON.parse(localStorage.getItem('ccna_exam_results')||'[]');
+    var examAvg = examResults.length > 0 ? examResults.reduce(function(s,e){return s+(e.scaledScore||0);},0)/examResults.length/1000 : 0;
+    var flashState = JSON.parse(localStorage.getItem('ccna_flashcard_state')||'{}');
+    var flashTotal = Object.keys(flashState).length;
+    var flashMastered = Object.values(flashState).filter(function(c){return c.interval>21;}).length;
+    var flashRetention = flashTotal > 0 ? flashMastered / flashTotal : 0;
+    var studyDays = Math.min(streak, 30) / 30;
+
+    var passChance = Math.round(
+      (quizAvg * 0.30 +
+       flashRetention * 0.15 +
+       examAvg * 0.25 +
+       topicRatio * 0.20 +
+       studyDays * 0.10) * 100
+    );
+    passChance = Math.min(99, Math.max(0, passChance));
+
+    if (history.length >= 3 || topicsAt70 > 0) {
+      var ppEl = document.getElementById('passPredictor');
+      var ppColor = passChance >= 85 ? '#16A34A' : passChance >= 70 ? '#2563EB' : passChance >= 50 ? '#D97706' : '#DC2626';
+      var ppAdvice = passChance >= 85 ? 'You\'re ready. <a href="exam-details.html" style="color:#16A34A;font-weight:700">Book the exam.</a>' :
+        passChance >= 70 ? 'Almost there. Focus on weak spots, then book.' :
+        passChance >= 50 ? 'Getting there. Keep studying — don\'t book yet.' :
+        'More work needed. <a href="pass-program.html" style="color:#DC2626;font-weight:700">Follow the 30-Day Program.</a>';
+      ppEl.style.display = '';
+      ppEl.innerHTML =
+        '<div style="display:flex;align-items:center;gap:16px">' +
+          '<div style="font-family:var(--font-mono);font-size:2rem;font-weight:900;color:'+ppColor+'">'+passChance+'%</div>' +
+          '<div><div style="font-family:var(--font-display);font-size:.82rem;font-weight:700;color:var(--ink)">Pass Prediction</div>' +
+          '<div style="font-family:var(--font-body);font-size:.78rem;color:var(--ink-secondary)">'+ppAdvice+'</div></div>' +
+        '</div>';
+    }
+  } catch(e) {}
+
   // Daily goals
   const today=new Date().toISOString().split('T')[0];
   // Domain heatmap (collapsible)
