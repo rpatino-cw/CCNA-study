@@ -33,6 +33,7 @@
       { text: 'Reading Practice', href: 'reading-practice.html' },
       { text: 'PT Labs', href: 'labs/index.html' },
       { text: 'Network Lab', href: 'network-lab.html' },
+      { text: 'Explain It', href: 'explain.html' },
       { text: 'Exam Sim', href: 'exam-sim.html' },
       { text: 'OSPF Mastery', href: 'ospf-mastery.html' },
       { text: 'Subnet Mastery', href: 'subnetting-mastery.html' },
