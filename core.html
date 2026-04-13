@@ -188,6 +188,7 @@
 </div>
 
 <script src="data/topics-data.js"></script>
+<script src="data/study-content.js"></script>
 <script src="js/store.js"></script>
 <script src="js/sync.js"></script>
 <script src="js/group-chat.js"></script>
@@ -1273,29 +1274,63 @@ function countResources(r){
 }
 
 function buildQuickPath(t,r,domainNum){
-  // Step 1: Primary video (Jeremy's IT Lab or first video)
+  // Primary video (Jeremy's IT Lab or first video)
   var vidTitle='',vidUrl='';
   if(r.video&&r.vurl){vidTitle="Jeremy's IT Lab — "+r.video;vidUrl=r.vurl;}
   else if(r.videos&&r.videos.length){vidTitle=r.videos[0].t;vidUrl=r.videos[0].u;}
 
-  // Step 2: Quiz link
-  var quizUrl='quiz.html?topic='+t.id;
+  // Study content cheat sheet
+  var content=window.studyContent?window.studyContent[t.id]:null;
 
-  // Step 3: Threshold message
+  // Proficiency check
   var prof=store.getAllProficiency();
   var p=Math.round((prof[t.id]||0)*100);
   var passed=p>=70;
 
-  var html='<div class="quick-path"><div class="qp-label">Quick Path to Pass</div><div class="qp-steps">';
-  if(vidUrl){
-    html+='<div class="qp-step"><span class="qp-num">1</span>Watch <a href="'+vidUrl+'" target="_blank">'+esc(vidTitle)+'</a></div>';
+  // Build inline cheat sheet (collapsed by default)
+  var learnStep='';
+  if(content){
+    var kpHtml=content.keyPoints?content.keyPoints.slice(0,5).map(function(pt){return'<li>'+esc(pt)+'</li>';}).join(''):'';
+    var cmdHtml=content.commands?content.commands.slice(0,3).map(function(c){return'<div style="margin-bottom:4px"><code style="font-family:var(--font-mono);font-size:.75rem;color:var(--accent);background:var(--bg-recessed);padding:1px 6px;border-radius:3px">'+esc(c.cmd)+'</code> <span style="font-size:.75rem;color:var(--ink-muted)">'+esc(c.desc)+'</span></div>';}).join(''):'';
+    var tipHtml=content.examTip?'<div style="font-size:.75rem;color:#DC2626;font-weight:600;margin-top:6px">Exam tip: '+esc(content.examTip)+'</div>':'';
+    learnStep='<details class="qp-learn" style="margin:8px 0 8px 26px;background:var(--bg-recessed);border-radius:var(--radius);overflow:hidden">'+
+      '<summary style="font-family:var(--font-display);font-size:.78rem;font-weight:600;padding:8px 12px;cursor:pointer;color:var(--ink)">Quick Study — '+esc(content.title||t.name)+'</summary>'+
+      '<div style="padding:0 12px 12px">'+
+        (content.summary?'<p style="font-family:var(--font-body);font-size:.78rem;color:var(--ink-secondary);line-height:1.55;margin-bottom:8px">'+esc(content.summary)+'</p>':'')+
+        (kpHtml?'<ul style="font-family:var(--font-body);font-size:.75rem;color:var(--ink-secondary);line-height:1.6;padding-left:16px;margin-bottom:8px">'+kpHtml+'</ul>':'')+
+        (cmdHtml?'<div style="margin-bottom:6px"><div style="font-family:var(--font-display);font-size:.65rem;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-muted);margin-bottom:4px">Key Commands</div>'+cmdHtml+'</div>':'')+
+        (content.memoryTip?'<div style="font-size:.75rem;color:var(--accent);margin-bottom:4px">Memory tip: '+esc(content.memoryTip)+'</div>':'')+
+        tipHtml+
+      '</div></details>';
   }
-  html+='<div class="qp-step"><span class="qp-num">'+(vidUrl?'2':'1')+'</span>Take <a href="'+quizUrl+'">Quiz '+t.id+'</a> — score 70%+ to pass</div>';
+
+  // Build steps with dynamic numbering
+  var stepNum=1;
+  var html='<div class="quick-path"><div class="qp-label">Quick Path to Pass</div><div class="qp-steps">';
+
+  if(vidUrl){
+    html+='<div class="qp-step"><span class="qp-num">'+stepNum+'</span>Watch <a href="'+vidUrl+'" target="_blank">'+esc(vidTitle)+'</a></div>';
+    stepNum++;
+  }
+
+  if(content){
+    html+='<div class="qp-step"><span class="qp-num">'+stepNum+'</span>Learn it — read the cheat sheet below</div>';
+    html+=learnStep;
+    stepNum++;
+  }
+
+  html+='<div class="qp-step"><span class="qp-num">'+stepNum+'</span><a href="quiz.html?learn='+t.id+'">Daily Study — '+t.id+'</a> (full lesson + quiz)</div>';
+  stepNum++;
+
+  html+='<div class="qp-step"><span class="qp-num">'+stepNum+'</span>Take <a href="quiz.html?topic='+t.id+'">Quiz '+t.id+'</a> — score 70%+ to pass</div>';
+
   if(passed){
     html+='<div class="qp-step"><span class="qp-num" style="background:rgba(22,163,74,.15);color:#16A34A">&#10003;</span><span style="color:#16A34A;font-weight:600">You\'re at '+p+'% — move to the next objective</span></div>';
   }else{
-    html+='<div class="qp-step"><span class="qp-num">'+(vidUrl?'3':'2')+'</span>Below 70%? Review weak areas, retake quiz</div>';
+    stepNum++;
+    html+='<div class="qp-step"><span class="qp-num">'+stepNum+'</span>Below 70%? Review weak areas, retake quiz</div>';
   }
+
   html+='</div>';
   if(passed)html+='<div class="qp-pass">You can move on. Come back for review before the exam.</div>';
   html+='</div>';
@@ -1456,7 +1491,6 @@ function render(){
       var domainNum=t.id.split('.')[0];
       let siteHtml='<div class="obj-shortcuts">';
       siteHtml+='<a class="obj-sc" href="quiz.html?topic='+t.id+'">Quiz '+t.id+'</a>';
-      siteHtml+='<a class="obj-sc" href="quiz.html?mode=domain&domain='+domainNum+'">Domain '+domainNum+' Quiz</a>';
       siteHtml+='<a class="obj-sc" href="quiz.html?learn='+t.id+'">Daily Study</a>';
       if(r.site&&r.site.length>0)r.site.forEach(function(s){siteHtml+='<a class="obj-sc" href="'+s.h+'">'+esc(s.t)+'</a>';});
       siteHtml+='</div>';
