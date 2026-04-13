@@ -1810,6 +1810,565 @@ function animateSvi() {
   }
   runSeg();
 }
+
+// =============================================
+// 802.1Q TAG INSERTION ANIMATION
+// =============================================
+var tagAnimRunning = false;
+function resetTagAnimation() {
+  var layer = document.getElementById('tagFrameLayer');
+  layer.innerHTML = '';
+  var anatomy = document.getElementById('tagFrameAnatomy');
+  anatomy.innerHTML = '';
+  document.getElementById('tagStepLabel').textContent = '';
+  document.getElementById('tagInsertInfo').innerHTML = 'Click "Play Tag Insertion" to watch the 802.1Q tag get inserted into an Ethernet frame as it enters the trunk link, then stripped on the other end.';
+  tagAnimRunning = false;
+}
+
+function animateTagInsertion() {
+  if (tagAnimRunning) return;
+  tagAnimRunning = true;
+  resetTagAnimation();
+  tagAnimRunning = true;
+
+  var layer = document.getElementById('tagFrameLayer');
+  var anatomy = document.getElementById('tagFrameAnatomy');
+  var stepLabel = document.getElementById('tagStepLabel');
+  var infoPanel = document.getElementById('tagInsertInfo');
+
+  // Frame sections: Dst MAC, Src MAC, EtherType, Data, FCS
+  var frameFields = [
+    { label: 'Dst MAC', w: 70, color: '#3b82f6' },
+    { label: 'Src MAC', w: 70, color: '#3b82f6' },
+    { label: 'EtherType', w: 60, color: '#3b82f6' },
+    { label: 'Data', w: 90, color: '#3b82f6' },
+    { label: 'FCS', w: 40, color: '#3b82f6' }
+  ];
+
+  var tagField = { label: '802.1Q', w: 0, targetW: 70, color: '#f59e0b' };
+  var frameY = 0;
+  var frameH = 28;
+  var totalW = frameFields.reduce(function(s, f) { return s + f.w; }, 0);
+  var frameX = 0;
+
+  function drawFrame(x, y, fields, tagW, showLabels) {
+    anatomy.innerHTML = '';
+    var cx = x;
+    for (var i = 0; i < fields.length; i++) {
+      if (i === 2 && tagW > 0) {
+        // Insert tag before EtherType
+        var tagRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        tagRect.setAttribute('x', cx);
+        tagRect.setAttribute('y', y);
+        tagRect.setAttribute('width', tagW);
+        tagRect.setAttribute('height', frameH);
+        tagRect.setAttribute('rx', '3');
+        tagRect.setAttribute('fill', 'rgba(245,158,11,0.25)');
+        tagRect.setAttribute('stroke', '#f59e0b');
+        tagRect.setAttribute('stroke-width', '1.5');
+        anatomy.appendChild(tagRect);
+        if (tagW > 30 && showLabels) {
+          var tagText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+          tagText.setAttribute('x', cx + tagW / 2);
+          tagText.setAttribute('y', y + frameH / 2 + 4);
+          tagText.setAttribute('text-anchor', 'middle');
+          tagText.setAttribute('fill', '#f59e0b');
+          tagText.setAttribute('font-size', '9');
+          tagText.setAttribute('font-weight', '700');
+          tagText.textContent = '802.1Q';
+          anatomy.appendChild(tagText);
+        }
+        cx += tagW;
+      }
+      var rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+      rect.setAttribute('x', cx);
+      rect.setAttribute('y', y);
+      rect.setAttribute('width', fields[i].w);
+      rect.setAttribute('height', frameH);
+      rect.setAttribute('rx', '3');
+      rect.setAttribute('fill', 'rgba(59,130,246,0.15)');
+      rect.setAttribute('stroke', fields[i].color);
+      rect.setAttribute('stroke-width', '1');
+      anatomy.appendChild(rect);
+      if (showLabels) {
+        var text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        text.setAttribute('x', cx + fields[i].w / 2);
+        text.setAttribute('y', y + frameH / 2 + 4);
+        text.setAttribute('text-anchor', 'middle');
+        text.setAttribute('fill', fields[i].color);
+        text.setAttribute('font-size', '8');
+        text.setAttribute('font-weight', '500');
+        text.textContent = fields[i].label;
+        anatomy.appendChild(text);
+      }
+      cx += fields[i].w;
+    }
+  }
+
+  // Phase 1: Frame approaches from left (untagged)
+  var dot = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+  dot.setAttribute('x', '70');
+  dot.setAttribute('y', '137');
+  dot.setAttribute('width', '50');
+  dot.setAttribute('height', '16');
+  dot.setAttribute('rx', '4');
+  dot.setAttribute('fill', '#3b82f6');
+  dot.setAttribute('opacity', '0.9');
+  layer.appendChild(dot);
+
+  var dotLabel = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+  dotLabel.setAttribute('x', '95');
+  dotLabel.setAttribute('y', '132');
+  dotLabel.setAttribute('text-anchor', 'middle');
+  dotLabel.setAttribute('fill', '#3b82f6');
+  dotLabel.setAttribute('font-size', '9');
+  dotLabel.setAttribute('font-weight', '600');
+  dotLabel.textContent = 'Untagged Frame';
+  layer.appendChild(dotLabel);
+
+  stepLabel.textContent = 'Step 1: Frame leaves PC (untagged) toward access port';
+  infoPanel.innerHTML = '<strong>Step 1:</strong> The PC sends a normal Ethernet frame with no VLAN tag. It has no idea VLANs exist.';
+  drawFrame(0, 0, frameFields, 0, true);
+
+  // Animate dot to SW1
+  var startTime = null;
+  function moveToSW1(ts) {
+    if (!startTime) startTime = ts;
+    var p = Math.min((ts - startTime) / 800, 1);
+    var ease = p < 0.5 ? 2 * p * p : -1 + (4 - 2 * p) * p;
+    var cx = 70 + (220 - 70) * ease;
+    dot.setAttribute('x', cx);
+    dotLabel.setAttribute('x', cx + 25);
+    if (p < 1) {
+      requestAnimationFrame(moveToSW1);
+    } else {
+      // Phase 2: Tag insertion at SW1
+      stepLabel.textContent = 'Step 2: SW1 inserts 802.1Q tag (VLAN 10) into the frame';
+      infoPanel.innerHTML = '<strong>Step 2:</strong> SW1 receives the frame on an access port (VLAN 10). Before sending it out the trunk port, it inserts a 4-byte 802.1Q tag between the Src MAC and EtherType fields.';
+
+      // Pulse at SW1
+      var pulse = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      pulse.setAttribute('cx', '255');
+      pulse.setAttribute('cy', '145');
+      pulse.setAttribute('r', '18');
+      pulse.setAttribute('fill', 'none');
+      pulse.setAttribute('stroke', '#f59e0b');
+      pulse.setAttribute('stroke-width', '3');
+      pulse.classList.add('pulse');
+      layer.appendChild(pulse);
+
+      // Animate tag expanding
+      var tagGrowStart = null;
+      function growTag(ts2) {
+        if (!tagGrowStart) tagGrowStart = ts2;
+        var p2 = Math.min((ts2 - tagGrowStart) / 1000, 1);
+        var easeP = p2 < 0.5 ? 2 * p2 * p2 : -1 + (4 - 2 * p2) * p2;
+        var currentTagW = tagField.targetW * easeP;
+        drawFrame(0, 0, frameFields, currentTagW, true);
+        if (p2 < 1) {
+          requestAnimationFrame(growTag);
+        } else {
+          if (pulse.parentNode) pulse.parentNode.removeChild(pulse);
+
+          // Phase 3: Frame moves across trunk (tagged)
+          dot.setAttribute('fill', '#f59e0b');
+          dot.setAttribute('width', '60');
+          dotLabel.textContent = 'Tagged (VID=10)';
+          dotLabel.setAttribute('fill', '#f59e0b');
+          stepLabel.textContent = 'Step 3: Tagged frame crosses the 802.1Q trunk link';
+          infoPanel.innerHTML = '<strong>Step 3:</strong> The frame now carries the 802.1Q tag with VLAN ID 10 as it crosses the trunk link to SW2.';
+
+          var trunkStart = null;
+          function moveAcrossTrunk(ts3) {
+            if (!trunkStart) trunkStart = ts3;
+            var p3 = Math.min((ts3 - trunkStart) / 1200, 1);
+            var ease3 = p3 < 0.5 ? 2 * p3 * p3 : -1 + (4 - 2 * p3) * p3;
+            var cx3 = 280 + (610 - 280) * ease3;
+            dot.setAttribute('x', cx3);
+            dotLabel.setAttribute('x', cx3 + 30);
+            if (p3 < 1) {
+              requestAnimationFrame(moveAcrossTrunk);
+            } else {
+              // Phase 4: Tag stripped at SW2
+              stepLabel.textContent = 'Step 4: SW2 strips the 802.1Q tag before delivering to access port';
+              infoPanel.innerHTML = '<strong>Step 4:</strong> SW2 receives the tagged frame on its trunk port, reads VLAN ID 10, strips the 802.1Q tag, and forwards the original untagged frame to the destination PC on an access port in VLAN 10.';
+
+              var pulse2 = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+              pulse2.setAttribute('cx', '645');
+              pulse2.setAttribute('cy', '145');
+              pulse2.setAttribute('r', '18');
+              pulse2.setAttribute('fill', 'none');
+              pulse2.setAttribute('stroke', '#f59e0b');
+              pulse2.setAttribute('stroke-width', '3');
+              pulse2.classList.add('pulse');
+              layer.appendChild(pulse2);
+
+              // Shrink tag
+              var shrinkStart = null;
+              function shrinkTag(ts4) {
+                if (!shrinkStart) shrinkStart = ts4;
+                var p4 = Math.min((ts4 - shrinkStart) / 1000, 1);
+                var easeP4 = p4 < 0.5 ? 2 * p4 * p4 : -1 + (4 - 2 * p4) * p4;
+                var currentTagW4 = tagField.targetW * (1 - easeP4);
+                drawFrame(0, 0, frameFields, currentTagW4, true);
+                if (p4 < 1) {
+                  requestAnimationFrame(shrinkTag);
+                } else {
+                  if (pulse2.parentNode) pulse2.parentNode.removeChild(pulse2);
+
+                  // Phase 5: Deliver to destination
+                  dot.setAttribute('fill', '#3b82f6');
+                  dot.setAttribute('width', '50');
+                  dotLabel.textContent = 'Untagged Frame';
+                  dotLabel.setAttribute('fill', '#3b82f6');
+                  stepLabel.textContent = 'Step 5: Untagged frame delivered to destination PC';
+                  infoPanel.innerHTML = '<strong>Frame delivered!</strong> The frame arrived at the destination PC on VLAN 10 as a normal untagged Ethernet frame. The PC has no idea the frame was ever tagged.';
+
+                  var deliverStart = null;
+                  function deliverFrame(ts5) {
+                    if (!deliverStart) deliverStart = ts5;
+                    var p5 = Math.min((ts5 - deliverStart) / 800, 1);
+                    var ease5 = p5 < 0.5 ? 2 * p5 * p5 : -1 + (4 - 2 * p5) * p5;
+                    var cx5 = 670 + (780 - 670) * ease5;
+                    dot.setAttribute('x', cx5);
+                    dotLabel.setAttribute('x', cx5 + 25);
+                    if (p5 < 1) {
+                      requestAnimationFrame(deliverFrame);
+                    } else {
+                      tagAnimRunning = false;
+                    }
+                  }
+                  requestAnimationFrame(deliverFrame);
+                }
+              }
+              setTimeout(function() { requestAnimationFrame(shrinkTag); }, 800);
+            }
+          }
+          requestAnimationFrame(moveAcrossTrunk);
+        }
+      }
+      setTimeout(function() { requestAnimationFrame(growTag); }, 800);
+    }
+  }
+  requestAnimationFrame(moveToSW1);
+}
+
+// =============================================
+// NATIVE VLAN COMPARISON ANIMATION
+// =============================================
+var nativeCompRunning = false;
+function resetNativeComparison() {
+  var layer = document.getElementById('nativeAnimLayer');
+  layer.innerHTML = '';
+  document.getElementById('nativeStepLabel').textContent = '';
+  document.getElementById('taggedFrameDisplay').setAttribute('opacity', '0');
+  document.getElementById('untaggedFrameDisplay').setAttribute('opacity', '0');
+  document.getElementById('mismatchDemo').setAttribute('opacity', '0');
+  document.getElementById('nativeCompInfo').innerHTML = 'Click "Play Comparison" to see both a tagged and an untagged (native VLAN) frame cross the trunk simultaneously.';
+  nativeCompRunning = false;
+}
+
+function animateNativeComparison() {
+  if (nativeCompRunning) return;
+  nativeCompRunning = true;
+  resetNativeComparison();
+  nativeCompRunning = true;
+
+  var layer = document.getElementById('nativeAnimLayer');
+  var stepLabel = document.getElementById('nativeStepLabel');
+  var infoPanel = document.getElementById('nativeCompInfo');
+
+  // Create two dots
+  var taggedDot = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+  taggedDot.setAttribute('x', '170');
+  taggedDot.setAttribute('y', '82');
+  taggedDot.setAttribute('width', '55');
+  taggedDot.setAttribute('height', '16');
+  taggedDot.setAttribute('rx', '4');
+  taggedDot.setAttribute('fill', '#3b82f6');
+  taggedDot.setAttribute('opacity', '0.9');
+  layer.appendChild(taggedDot);
+
+  var taggedLabel = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+  taggedLabel.setAttribute('x', '197');
+  taggedLabel.setAttribute('y', '77');
+  taggedLabel.setAttribute('text-anchor', 'middle');
+  taggedLabel.setAttribute('fill', '#f59e0b');
+  taggedLabel.setAttribute('font-size', '9');
+  taggedLabel.setAttribute('font-weight', '600');
+  taggedLabel.textContent = 'Tagged VID=10';
+  layer.appendChild(taggedLabel);
+
+  var untaggedDot = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+  untaggedDot.setAttribute('x', '170');
+  untaggedDot.setAttribute('y', '172');
+  untaggedDot.setAttribute('width', '55');
+  untaggedDot.setAttribute('height', '16');
+  untaggedDot.setAttribute('rx', '4');
+  untaggedDot.setAttribute('fill', '#f87171');
+  untaggedDot.setAttribute('opacity', '0.9');
+  layer.appendChild(untaggedDot);
+
+  var untaggedLabel = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+  untaggedLabel.setAttribute('x', '197');
+  untaggedLabel.setAttribute('y', '167');
+  untaggedLabel.setAttribute('text-anchor', 'middle');
+  untaggedLabel.setAttribute('fill', '#f87171');
+  untaggedLabel.setAttribute('font-size', '9');
+  untaggedLabel.setAttribute('font-weight', '600');
+  untaggedLabel.textContent = 'No Tag (Native)';
+  layer.appendChild(untaggedLabel);
+
+  stepLabel.textContent = 'Both frames enter the trunk link simultaneously from SW1...';
+  infoPanel.innerHTML = '<strong>Comparison:</strong> Two frames leave SW1 at the same time. The VLAN 10 frame has an 802.1Q tag. The native VLAN frame has NO tag.';
+
+  // Animate both across
+  var startTime = null;
+  function moveBoth(ts) {
+    if (!startTime) startTime = ts;
+    var p = Math.min((ts - startTime) / 1800, 1);
+    var ease = p < 0.5 ? 2 * p * p : -1 + (4 - 2 * p) * p;
+    var x = 230 + (580 - 230) * ease;
+    taggedDot.setAttribute('x', x);
+    taggedLabel.setAttribute('x', x + 27);
+    untaggedDot.setAttribute('x', x);
+    untaggedLabel.setAttribute('x', x + 27);
+
+    if (p > 0.3) {
+      document.getElementById('taggedFrameDisplay').setAttribute('opacity', String(Math.min((p - 0.3) / 0.2, 1)));
+      document.getElementById('untaggedFrameDisplay').setAttribute('opacity', String(Math.min((p - 0.3) / 0.2, 1)));
+    }
+
+    if (p < 1) {
+      requestAnimationFrame(moveBoth);
+    } else {
+      stepLabel.textContent = 'SW2 reads the tagged frame (VLAN 10) and the untagged frame (native VLAN 1)';
+      infoPanel.innerHTML = '<strong>At SW2:</strong> The tagged frame is identified as VLAN 10 by its 802.1Q header. The untagged frame has no tag, so SW2 places it into whatever its native VLAN is configured as. If native VLANs match, everything works. If they DON\'T match...';
+
+      // Show mismatch warning after a pause
+      setTimeout(function() {
+        var mismatch = document.getElementById('mismatchDemo');
+        var fadeStart = null;
+        function fadeInMismatch(ts2) {
+          if (!fadeStart) fadeStart = ts2;
+          var p2 = Math.min((ts2 - fadeStart) / 600, 1);
+          mismatch.setAttribute('opacity', String(p2));
+          if (p2 < 1) {
+            requestAnimationFrame(fadeInMismatch);
+          } else {
+            stepLabel.textContent = 'This is why native VLAN mismatch is dangerous!';
+            infoPanel.innerHTML = '<strong>Native VLAN mismatch = VLAN hopping!</strong> If SW1 native VLAN is 1 and SW2 native VLAN is 99, the untagged frame from VLAN 1 ends up in VLAN 99 on SW2. Traffic leaks between VLANs. Always verify both ends match.';
+            nativeCompRunning = false;
+          }
+        }
+        requestAnimationFrame(fadeInMismatch);
+      }, 1200);
+    }
+  }
+  requestAnimationFrame(moveBoth);
+}
+
+// =============================================
+// VOICE VLAN ANIMATION
+// =============================================
+var voiceAnimRunning = false;
+function resetVoiceVlan() {
+  var layer = document.getElementById('voiceAnimLayer');
+  layer.innerHTML = '';
+  document.getElementById('voiceStepLabel').textContent = '';
+  document.getElementById('cdpMessageArea').setAttribute('opacity', '0');
+  document.getElementById('voiceVlanInfo').innerHTML = 'Click "Play Voice VLAN Flow" to see how the switch uses CDP/LLDP to tell the IP phone which VLAN to tag voice traffic on, while data from the PC passes through untagged.';
+  voiceAnimRunning = false;
+}
+
+function animateVoiceVlan() {
+  if (voiceAnimRunning) return;
+  voiceAnimRunning = true;
+  resetVoiceVlan();
+  voiceAnimRunning = true;
+
+  var layer = document.getElementById('voiceAnimLayer');
+  var stepLabel = document.getElementById('voiceStepLabel');
+  var infoPanel = document.getElementById('voiceVlanInfo');
+  var cdpArea = document.getElementById('cdpMessageArea');
+
+  // Step 1: CDP/LLDP from switch to phone
+  stepLabel.textContent = 'Step 1: Switch sends CDP/LLDP to IP Phone with voice VLAN info';
+  infoPanel.innerHTML = '<strong>Step 1:</strong> When the IP phone connects, the switch sends CDP (Cisco) or LLDP-MED messages telling the phone to use VLAN 150 for voice traffic.';
+
+  var cdpDot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+  cdpDot.setAttribute('cx', '680');
+  cdpDot.setAttribute('cy', '170');
+  cdpDot.setAttribute('r', '6');
+  cdpDot.setAttribute('fill', '#a78bfa');
+  cdpDot.setAttribute('opacity', '0.9');
+  layer.appendChild(cdpDot);
+
+  var cdpLabel = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+  cdpLabel.setAttribute('x', '680');
+  cdpLabel.setAttribute('y', '155');
+  cdpLabel.setAttribute('text-anchor', 'middle');
+  cdpLabel.setAttribute('fill', '#a78bfa');
+  cdpLabel.setAttribute('font-size', '9');
+  cdpLabel.setAttribute('font-weight', '600');
+  cdpLabel.textContent = 'CDP: Voice VLAN 150';
+  layer.appendChild(cdpLabel);
+
+  var cdpStart = null;
+  function moveCdp(ts) {
+    if (!cdpStart) cdpStart = ts;
+    var p = Math.min((ts - cdpStart) / 1000, 1);
+    var ease = p < 0.5 ? 2 * p * p : -1 + (4 - 2 * p) * p;
+    var cx = 680 + (530 - 680) * ease;
+    cdpDot.setAttribute('cx', cx);
+    cdpLabel.setAttribute('x', cx);
+    if (p < 1) {
+      requestAnimationFrame(moveCdp);
+    } else {
+      // Show CDP message box
+      var cdpFadeStart = null;
+      function fadeCdp(ts2) {
+        if (!cdpFadeStart) cdpFadeStart = ts2;
+        var p2 = Math.min((ts2 - cdpFadeStart) / 400, 1);
+        cdpArea.setAttribute('opacity', String(p2));
+        if (p2 < 1) {
+          requestAnimationFrame(fadeCdp);
+        } else {
+          if (cdpDot.parentNode) cdpDot.parentNode.removeChild(cdpDot);
+          if (cdpLabel.parentNode) cdpLabel.parentNode.removeChild(cdpLabel);
+
+          // Step 2: Data traffic from PC (untagged, blue)
+          setTimeout(function() { animateVoiceStep2(layer, stepLabel, infoPanel); }, 800);
+        }
+      }
+      requestAnimationFrame(fadeCdp);
+    }
+  }
+  requestAnimationFrame(moveCdp);
+}
+
+function animateVoiceStep2(layer, stepLabel, infoPanel) {
+  stepLabel.textContent = 'Step 2: PC sends data traffic (untagged) through the phone to the switch';
+  infoPanel.innerHTML = '<strong>Step 2:</strong> The PC sends regular untagged Ethernet frames. The IP phone passes them through to the switch untouched. The switch associates them with the data VLAN (VLAN 10).';
+
+  var dataDot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+  dataDot.setAttribute('cx', '150');
+  dataDot.setAttribute('cy', '170');
+  dataDot.setAttribute('r', '7');
+  dataDot.setAttribute('fill', '#3b82f6');
+  dataDot.setAttribute('opacity', '0.9');
+  layer.appendChild(dataDot);
+
+  var dataLabel = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+  dataLabel.setAttribute('x', '150');
+  dataLabel.setAttribute('y', '155');
+  dataLabel.setAttribute('text-anchor', 'middle');
+  dataLabel.setAttribute('fill', '#3b82f6');
+  dataLabel.setAttribute('font-size', '9');
+  dataLabel.setAttribute('font-weight', '600');
+  dataLabel.textContent = 'Data (untagged)';
+  layer.appendChild(dataLabel);
+
+  var dataStart = null;
+  function moveData(ts) {
+    if (!dataStart) dataStart = ts;
+    var p = Math.min((ts - dataStart) / 1500, 1);
+    var ease = p < 0.5 ? 2 * p * p : -1 + (4 - 2 * p) * p;
+    var cx = 150 + (700 - 150) * ease;
+    dataDot.setAttribute('cx', cx);
+    dataLabel.setAttribute('x', cx);
+    if (p < 1) {
+      requestAnimationFrame(moveData);
+    } else {
+      if (dataDot.parentNode) dataDot.parentNode.removeChild(dataDot);
+      if (dataLabel.parentNode) dataLabel.parentNode.removeChild(dataLabel);
+
+      // Step 3: Voice traffic from phone (tagged, green)
+      setTimeout(function() { animateVoiceStep3(layer, stepLabel, infoPanel); }, 400);
+    }
+  }
+  requestAnimationFrame(moveData);
+}
+
+function animateVoiceStep3(layer, stepLabel, infoPanel) {
+  stepLabel.textContent = 'Step 3: IP Phone sends voice traffic tagged with VLAN 150';
+  infoPanel.innerHTML = '<strong>Step 3:</strong> The IP phone sends voice packets tagged with 802.1Q VLAN 150 (as instructed by CDP). It uses CoS 5 (priority) so voice gets QoS treatment. Both data and voice travel on the same physical cable.';
+
+  var voiceDot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+  voiceDot.setAttribute('cx', '450');
+  voiceDot.setAttribute('cy', '170');
+  voiceDot.setAttribute('r', '7');
+  voiceDot.setAttribute('fill', '#34d399');
+  voiceDot.setAttribute('opacity', '0.9');
+  layer.appendChild(voiceDot);
+
+  var voiceLabel = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+  voiceLabel.setAttribute('x', '450');
+  voiceLabel.setAttribute('y', '155');
+  voiceLabel.setAttribute('text-anchor', 'middle');
+  voiceLabel.setAttribute('fill', '#34d399');
+  voiceLabel.setAttribute('font-size', '9');
+  voiceLabel.setAttribute('font-weight', '600');
+  voiceLabel.textContent = 'Voice (802.1Q VID=150)';
+  layer.appendChild(voiceLabel);
+
+  var voiceStart = null;
+  function moveVoice(ts) {
+    if (!voiceStart) voiceStart = ts;
+    var p = Math.min((ts - voiceStart) / 1000, 1);
+    var ease = p < 0.5 ? 2 * p * p : -1 + (4 - 2 * p) * p;
+    var cx = 450 + (700 - 450) * ease;
+    voiceDot.setAttribute('cx', cx);
+    voiceLabel.setAttribute('x', cx);
+    if (p < 1) {
+      requestAnimationFrame(moveVoice);
+    } else {
+      if (voiceDot.parentNode) voiceDot.parentNode.removeChild(voiceDot);
+      if (voiceLabel.parentNode) voiceLabel.parentNode.removeChild(voiceLabel);
+
+      // Step 4: Switch separates
+      setTimeout(function() { animateVoiceStep4(layer, stepLabel, infoPanel); }, 400);
+    }
+  }
+  requestAnimationFrame(moveVoice);
+}
+
+function animateVoiceStep4(layer, stepLabel, infoPanel) {
+  stepLabel.textContent = 'Step 4: Switch separates data into VLAN 10 and voice into VLAN 150';
+  infoPanel.innerHTML = '<strong>Step 4:</strong> The switch reads incoming frames on this port. Untagged frames go to VLAN 10 (data). Frames tagged with VLAN 150 go to the voice VLAN. Traffic is now fully separated with different QoS treatment.';
+
+  // Animate two dots splitting from the switch port downward
+  var dataSplitDot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+  dataSplitDot.setAttribute('cx', '750');
+  dataSplitDot.setAttribute('cy', '210');
+  dataSplitDot.setAttribute('r', '5');
+  dataSplitDot.setAttribute('fill', '#3b82f6');
+  layer.appendChild(dataSplitDot);
+
+  var voiceSplitDot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+  voiceSplitDot.setAttribute('cx', '750');
+  voiceSplitDot.setAttribute('cy', '210');
+  voiceSplitDot.setAttribute('r', '5');
+  voiceSplitDot.setAttribute('fill', '#34d399');
+  layer.appendChild(voiceSplitDot);
+
+  var splitStart = null;
+  function splitAnim(ts) {
+    if (!splitStart) splitStart = ts;
+    var p = Math.min((ts - splitStart) / 800, 1);
+    var ease = p < 0.5 ? 2 * p * p : -1 + (4 - 2 * p) * p;
+    dataSplitDot.setAttribute('cy', 210 + (270 - 210) * ease);
+    voiceSplitDot.setAttribute('cy', 210 + (320 - 210) * ease);
+    if (p < 1) {
+      requestAnimationFrame(splitAnim);
+    } else {
+      stepLabel.textContent = 'Done! Data on VLAN 10, Voice on VLAN 150 -- separated by the switch.';
+      infoPanel.innerHTML = '<strong>Complete!</strong> The switch port acts as a multi-VLAN access port: data from the PC is untagged (VLAN 10), voice from the IP phone is 802.1Q tagged (VLAN 150). CDP/LLDP told the phone which VLAN to use. The PC never knows VLANs exist.';
+      voiceAnimRunning = false;
+    }
+  }
+  requestAnimationFrame(splitAnim);
+}
 </script>
 <script src="../js/tutor.js"></script>
 </body>

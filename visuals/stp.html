@@ -1652,6 +1652,1085 @@ debug spanning-tree events</div>
       drawLinks();
       drawStateMachineArrows();
     });
+
+    // ════════════════════════════════════════
+    //  TAB 4: BPDU Flooding & Root Election
+    // ════════════════════════════════════════
+    (function() {
+      const bpduTopo = document.getElementById('bpdu-topo');
+      const bpduSvg = document.getElementById('bpdu-svg');
+      const bpduLog = document.getElementById('bpdu-log');
+      const bpduTooltip = document.getElementById('bpdu-tooltip');
+      let bpduAnimId = null;
+      let bpduPackets = [];
+
+      const bSwitches = [
+        { name: 'SW-A', priority: 32768, mac: 'AA:BB:CC:00:00:01', x: 42, y: 3 },
+        { name: 'SW-B', priority: 32768, mac: 'AA:BB:CC:00:00:05', x: 72, y: 35 },
+        { name: 'SW-C', priority: 32768, mac: 'AA:BB:CC:00:00:09', x: 42, y: 68 },
+        { name: 'SW-D', priority: 32768, mac: 'AA:BB:CC:00:00:03', x: 10, y: 35 }
+      ];
+
+      const bLinks = [
+        [0, 1], [1, 2], [2, 3], [3, 0], [0, 2]
+      ];
+
+      let bPortRoles = {}; // { linkIdx: { a: 'Root'|'Designated'|'Blocked', b: ... } }
+      let bRootIdx = -1;
+      let electionPhase = 0; // 0=idle, 1=flooding, 2=electing, 3=done
+
+      function bidStr(sw) { return sw.priority + '.' + sw.mac; }
+      function bidNum(sw) { return sw.priority * (2**48) + parseInt(sw.mac.replace(/:/g,''), 16); }
+
+      function renderBpduTopo() {
+        bpduTopo.querySelectorAll('.bpdu-switch, .bpdu-packet').forEach(n => n.remove());
+
+        bSwitches.forEach((sw, i) => {
+          const node = document.createElement('div');
+          node.className = 'bpdu-switch';
+          if (bRootIdx === i) node.classList.add('bpdu-root');
+          node.style.left = sw.x + '%';
+          node.style.top = sw.y + '%';
+
+          let portsHtml = '';
+          if (electionPhase === 3) {
+            // Show port indicators for each link this switch is on
+            bLinks.forEach((lk, li) => {
+              if (lk[0] !== i && lk[1] !== i) return;
+              const role = lk[0] === i ? (bPortRoles[li]||{}).a : (bPortRoles[li]||{}).b;
+              const color = role === 'Root' ? 'var(--green)' : role === 'Designated' ? 'var(--blue)' : role === 'Blocked' ? 'var(--red)' : 'var(--text-muted)';
+              portsHtml += '<div class="bpdu-port-indicator" style="background:' + color + ';" title="' + (role||'') + '"></div>';
+            });
+          }
+
+          node.innerHTML =
+            '<div class="bpdu-sw-name">' + sw.name + (bRootIdx === i ? ' [ROOT]' : '') + '</div>' +
+            '<div class="bpdu-sw-bid">BID: ' + bidStr(sw) + '</div>' +
+            (portsHtml ? '<div class="bpdu-ports-row">' + portsHtml + '</div>' : '');
+
+          // Hover tooltip for BPDU info
+          node.addEventListener('mouseenter', (e) => {
+            bpduTooltip.innerHTML = '<strong>' + sw.name + '</strong><br>Priority: ' + sw.priority +
+              '<br>MAC: ' + sw.mac + '<br>Bridge ID: ' + bidStr(sw) +
+              (bRootIdx === i ? '<br><span style="color:#D4A017;font-weight:700;">ROOT BRIDGE</span>' : '');
+            bpduTooltip.classList.add('visible');
+            const rect = node.getBoundingClientRect();
+            const parentRect = bpduTopo.getBoundingClientRect();
+            bpduTooltip.style.left = (rect.left - parentRect.left + rect.width + 8) + 'px';
+            bpduTooltip.style.top = (rect.top - parentRect.top) + 'px';
+          });
+          node.addEventListener('mouseleave', () => bpduTooltip.classList.remove('visible'));
+
+          bpduTopo.appendChild(node);
+        });
+
+        drawBpduLinks();
+      }
+
+      function drawBpduLinks() {
+        setTimeout(() => {
+          const nodes = bpduTopo.querySelectorAll('.bpdu-switch');
+          let svg = '';
+          bLinks.forEach((lk, li) => {
+            const aEl = nodes[lk[0]];
+            const bEl = nodes[lk[1]];
+            if (!aEl || !bEl) return;
+            const ax = aEl.offsetLeft + aEl.offsetWidth/2;
+            const ay = aEl.offsetTop + aEl.offsetHeight/2;
+            const bx = bEl.offsetLeft + bEl.offsetWidth/2;
+            const by = bEl.offsetTop + bEl.offsetHeight/2;
+
+            let color = 'var(--border)';
+            let dash = '';
+            let width = 2;
+            if (electionPhase === 3) {
+              const pr = bPortRoles[li] || {};
+              if (pr.a === 'Blocked' || pr.b === 'Blocked') {
+                color = 'var(--red)'; dash = ' stroke-dasharray="8 4"'; width = 2;
+              } else {
+                color = 'var(--green)'; width = 3;
+              }
+            }
+            svg += '<line x1="' + ax + '" y1="' + ay + '" x2="' + bx + '" y2="' + by + '" stroke="' + color + '" stroke-width="' + width + '"' + dash + ' />';
+          });
+          bpduSvg.innerHTML = svg;
+        }, 50);
+      }
+
+      function getNodeCenter(idx) {
+        const nodes = bpduTopo.querySelectorAll('.bpdu-switch');
+        const el = nodes[idx];
+        if (!el) return { x: 0, y: 0 };
+        return { x: el.offsetLeft + el.offsetWidth/2, y: el.offsetTop + el.offsetHeight/2 };
+      }
+
+      function spawnBpduPacket(fromIdx, toIdx, color) {
+        const from = getNodeCenter(fromIdx);
+        const to = getNodeCenter(toIdx);
+        bpduPackets.push({
+          x: from.x, y: from.y,
+          tx: to.x, ty: to.y,
+          progress: 0, color: color || 'var(--yellow)',
+          fromIdx: fromIdx, toIdx: toIdx
+        });
+      }
+
+      function animateBpduPackets() {
+        // Remove old packet elements
+        bpduTopo.querySelectorAll('.bpdu-packet').forEach(p => p.remove());
+
+        let alive = [];
+        bpduPackets.forEach(pkt => {
+          pkt.progress += 0.018;
+          if (pkt.progress >= 1) return; // done
+          alive.push(pkt);
+
+          const cx = pkt.x + (pkt.tx - pkt.x) * pkt.progress;
+          const cy = pkt.y + (pkt.ty - pkt.y) * pkt.progress;
+          const el = document.createElement('div');
+          el.className = 'bpdu-packet';
+          el.style.left = (cx - 4) + 'px';
+          el.style.top = (cy - 4) + 'px';
+          el.style.background = pkt.color;
+          el.style.boxShadow = '0 0 8px ' + pkt.color;
+          bpduTopo.appendChild(el);
+        });
+        bpduPackets = alive;
+
+        if (bpduPackets.length > 0 || electionPhase === 1) {
+          bpduAnimId = requestAnimationFrame(animateBpduPackets);
+        }
+      }
+
+      function runBpduElection() {
+        if (bpduAnimId) cancelAnimationFrame(bpduAnimId);
+        bpduPackets = [];
+        bPortRoles = {};
+        bRootIdx = -1;
+        electionPhase = 1;
+        bpduLog.innerHTML = '';
+
+        const phaseLabel = document.getElementById('bpdu-phase');
+        phaseLabel.textContent = 'Phase 1: BPDU Flooding';
+        phaseLabel.style.background = 'var(--yellow-dim)';
+        phaseLabel.style.color = 'var(--yellow)';
+        phaseLabel.style.borderColor = 'var(--yellow)';
+
+        renderBpduTopo();
+
+        logStep('All switches assume they are root and flood BPDUs on all ports...');
+
+        // Phase 1: Flood BPDUs from all switches (staggered)
+        let floodRound = 0;
+        const floodInterval = setInterval(() => {
+          bSwitches.forEach((sw, i) => {
+            bLinks.forEach(lk => {
+              if (lk[0] === i) spawnBpduPacket(i, lk[1], 'var(--yellow)');
+              if (lk[1] === i) spawnBpduPacket(i, lk[0], 'var(--yellow)');
+            });
+          });
+          floodRound++;
+          if (floodRound >= 3) {
+            clearInterval(floodInterval);
+            setTimeout(electRoot, 1200);
+          }
+        }, 800);
+
+        bpduAnimId = requestAnimationFrame(animateBpduPackets);
+      }
+
+      function electRoot() {
+        electionPhase = 2;
+        const phaseLabel = document.getElementById('bpdu-phase');
+        phaseLabel.textContent = 'Phase 2: Electing Root Bridge';
+        phaseLabel.style.background = '#FEF3C7';
+        phaseLabel.style.color = '#D4A017';
+
+        // Find root = lowest BID
+        let rootIdx = 0;
+        for (let i = 1; i < bSwitches.length; i++) {
+          if (bidNum(bSwitches[i]) < bidNum(bSwitches[rootIdx])) rootIdx = i;
+        }
+        bRootIdx = rootIdx;
+
+        logStep('<span class="log-root">Root Bridge elected: ' + bSwitches[rootIdx].name + ' (BID: ' + bidStr(bSwitches[rootIdx]) + ')</span>');
+
+        // Send BPDUs from root outward
+        bLinks.forEach(lk => {
+          if (lk[0] === rootIdx) spawnBpduPacket(rootIdx, lk[1], '#D4A017');
+          if (lk[1] === rootIdx) spawnBpduPacket(rootIdx, lk[0], '#D4A017');
+        });
+
+        setTimeout(assignPorts, 1800);
+      }
+
+      function assignPorts() {
+        electionPhase = 3;
+        const phaseLabel = document.getElementById('bpdu-phase');
+        phaseLabel.textContent = 'Phase 3: Port Roles Assigned';
+        phaseLabel.style.background = 'var(--green-dim)';
+        phaseLabel.style.color = 'var(--green)';
+        phaseLabel.style.borderColor = 'var(--green)';
+
+        // Calculate root cost per switch
+        const rootCost = {};
+        rootCost[bRootIdx] = 0;
+        const visited = new Set([bRootIdx]);
+        const queue = [bRootIdx];
+        const rootPortLink = {}; // switchIdx -> linkIdx
+
+        // BFS from root
+        while (queue.length > 0) {
+          const curr = queue.shift();
+          bLinks.forEach((lk, li) => {
+            let neighbor = -1;
+            if (lk[0] === curr && !visited.has(lk[1])) neighbor = lk[1];
+            if (lk[1] === curr && !visited.has(lk[0])) neighbor = lk[0];
+            if (neighbor === -1) return;
+            const cost = (rootCost[curr] || 0) + 4;
+            if (rootCost[neighbor] === undefined || cost < rootCost[neighbor]) {
+              rootCost[neighbor] = cost;
+              rootPortLink[neighbor] = li;
+            }
+            if (!visited.has(neighbor)) {
+              visited.add(neighbor);
+              queue.push(neighbor);
+            }
+          });
+        }
+
+        // Assign port roles per link
+        bLinks.forEach((lk, li) => {
+          const a = lk[0], b = lk[1];
+          let roleA = '', roleB = '';
+
+          if (a === bRootIdx) {
+            roleA = 'Designated';
+            roleB = rootPortLink[b] === li ? 'Root' : 'Blocked';
+          } else if (b === bRootIdx) {
+            roleB = 'Designated';
+            roleA = rootPortLink[a] === li ? 'Root' : 'Blocked';
+          } else {
+            const isRpA = rootPortLink[a] === li;
+            const isRpB = rootPortLink[b] === li;
+            if (isRpA) { roleA = 'Root'; roleB = 'Designated'; }
+            else if (isRpB) { roleB = 'Root'; roleA = 'Designated'; }
+            else {
+              // Neither is root port -- lower cost side is designated
+              if ((rootCost[a]||99) <= (rootCost[b]||99)) {
+                roleA = 'Designated'; roleB = 'Blocked';
+              } else {
+                roleB = 'Designated'; roleA = 'Blocked';
+              }
+            }
+          }
+
+          bPortRoles[li] = { a: roleA, b: roleB };
+
+          const swA = bSwitches[a].name, swB = bSwitches[b].name;
+          if (roleA === 'Root') logStep('<span class="log-port-root">' + swA + ' port toward ' + swB + ': ROOT PORT</span>');
+          if (roleB === 'Root') logStep('<span class="log-port-root">' + swB + ' port toward ' + swA + ': ROOT PORT</span>');
+          if (roleA === 'Blocked') logStep('<span class="log-port-blocked">' + swA + ' port toward ' + swB + ': BLOCKED</span>');
+          if (roleB === 'Blocked') logStep('<span class="log-port-blocked">' + swB + ' port toward ' + swA + ': BLOCKED</span>');
+        });
+
+        logStep('Topology converged. Loop-free tree established.');
+        renderBpduTopo();
+      }
+
+      function logStep(html) {
+        const div = document.createElement('div');
+        div.className = 'log-step';
+        div.innerHTML = html;
+        bpduLog.appendChild(div);
+        bpduLog.scrollTop = bpduLog.scrollHeight;
+      }
+
+      function resetBpdu() {
+        if (bpduAnimId) cancelAnimationFrame(bpduAnimId);
+        bpduPackets = [];
+        bPortRoles = {};
+        bRootIdx = -1;
+        electionPhase = 0;
+        bpduLog.innerHTML = '<div class="log-step" style="color:var(--text-muted);">Click "Start Election" to begin the BPDU flooding animation...</div>';
+        const phaseLabel = document.getElementById('bpdu-phase');
+        phaseLabel.textContent = 'Ready';
+        phaseLabel.style.background = 'var(--bg-card)';
+        phaseLabel.style.color = 'var(--text-muted)';
+        phaseLabel.style.borderColor = 'var(--border)';
+        renderBpduTopo();
+      }
+
+      document.getElementById('bpdu-start').addEventListener('click', runBpduElection);
+      document.getElementById('bpdu-reset').addEventListener('click', resetBpdu);
+
+      // Render on first view
+      setTimeout(renderBpduTopo, 200);
+      window.addEventListener('resize', () => { if (bpduTopo.offsetParent) renderBpduTopo(); });
+    })();
+
+
+    // ════════════════════════════════════════
+    //  TAB 5: Port State Transitions
+    // ════════════════════════════════════════
+    (function() {
+      const canvas = document.getElementById('trans-canvas');
+      const arrowsSvg = document.getElementById('trans-arrows-svg');
+      const progressFill = document.getElementById('trans-progress-fill');
+      const progressLabel = document.getElementById('trans-progress-label');
+      const timerDisplay = document.getElementById('trans-timer-display');
+      const infoPanel = document.getElementById('trans-info');
+
+      let mode = 'stp'; // 'stp' or 'rstp'
+      let animId = null;
+      let animStart = 0;
+      let currentStateIdx = 0;
+
+      const stpSteps = [
+        { name: 'Blocking', color: 'var(--red)', bg: 'var(--red-dim)', duration: 20, desc: 'Receiving BPDUs only. Waiting for Max Age timer (20s).' },
+        { name: 'Listening', color: 'var(--yellow)', bg: 'var(--yellow-dim)', duration: 15, desc: 'Sending & receiving BPDUs. Electing port roles. Forward Delay timer (15s).' },
+        { name: 'Learning', color: 'var(--blue)', bg: 'var(--blue-dim)', duration: 15, desc: 'Building MAC address table. Still no data forwarding. Forward Delay timer (15s).' },
+        { name: 'Forwarding', color: 'var(--green)', bg: 'var(--green-dim)', duration: 0, desc: 'Fully operational. Sending and receiving data frames.' }
+      ];
+
+      const rstpSteps = [
+        { name: 'Discarding', color: 'var(--red)', bg: 'var(--red-dim)', duration: 0.3, desc: 'Replaces Disabled+Blocking+Listening. Proposal sent.' },
+        { name: 'Learning', color: 'var(--yellow)', bg: 'var(--yellow-dim)', duration: 0.5, desc: 'Agreement received. Learning MACs. Near-instant.' },
+        { name: 'Forwarding', color: 'var(--green)', bg: 'var(--green-dim)', duration: 0, desc: 'Fully operational. Proposal/Agreement complete.' }
+      ];
+
+      function getSteps() { return mode === 'rstp' ? rstpSteps : stpSteps; }
+      function getTotalDuration() { return getSteps().reduce((s, st) => s + st.duration, 0); }
+      // Time scale: STP runs at 10x speed, RSTP at 2x
+      function getTimeScale() { return mode === 'rstp' ? 2 : 10; }
+
+      function renderTransStates() {
+        canvas.querySelectorAll('.trans-state-box').forEach(n => n.remove());
+        const steps = getSteps();
+        const spacing = 100 / (steps.length + 1);
+
+        steps.forEach((st, i) => {
+          const box = document.createElement('div');
+          box.className = 'trans-state-box';
+          if (i === currentStateIdx) box.classList.add('trans-active');
+          box.style.left = (spacing * (i + 1)) + '%';
+          box.style.transform = 'translate(-50%, -50%)' + (i === currentStateIdx ? ' scale(1.15)' : '');
+          box.style.background = st.bg;
+          box.style.borderColor = st.color;
+          box.style.color = st.color;
+          box.textContent = st.name;
+          if (i === currentStateIdx) {
+            box.style.boxShadow = '0 0 20px ' + st.color.replace('var(', '').replace(')', '');
+          }
+          canvas.appendChild(box);
+        });
+
+        // Draw arrows
+        setTimeout(() => {
+          const boxes = canvas.querySelectorAll('.trans-state-box');
+          let svg = '';
+          for (let i = 0; i < boxes.length - 1; i++) {
+            const a = boxes[i];
+            const b = boxes[i + 1];
+            const ax = a.offsetLeft + a.offsetWidth;
+            const ay = a.offsetTop + a.offsetHeight / 2;
+            const bx = b.offsetLeft;
+            const by = b.offsetTop + b.offsetHeight / 2;
+            const steps2 = getSteps();
+            const col = steps2[i + 1].color;
+            const mid = 'arrow-trans-' + i;
+            svg += '<defs><marker id="' + mid + '" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="' + col + '" /></marker></defs>';
+            svg += '<line x1="' + (ax + 4) + '" y1="' + ay + '" x2="' + (bx - 4) + '" y2="' + by + '" stroke="' + col + '" stroke-width="2" marker-end="url(#' + mid + ')" />';
+          }
+          arrowsSvg.innerHTML = svg;
+        }, 30);
+      }
+
+      function playTransition() {
+        if (animId) cancelAnimationFrame(animId);
+        currentStateIdx = 0;
+        animStart = performance.now();
+        renderTransStates();
+
+        const steps = getSteps();
+        const totalDur = getTotalDuration();
+        const timeScale = getTimeScale();
+
+        function tick(now) {
+          const elapsed = (now - animStart) / 1000 * timeScale; // simulated seconds
+          let cumulative = 0;
+          let stateIdx = 0;
+          let stateProgress = 0;
+
+          for (let i = 0; i < steps.length; i++) {
+            if (elapsed < cumulative + steps[i].duration || i === steps.length - 1) {
+              stateIdx = i;
+              stateProgress = steps[i].duration > 0 ? Math.min(1, (elapsed - cumulative) / steps[i].duration) : 1;
+              break;
+            }
+            cumulative += steps[i].duration;
+          }
+
+          if (stateIdx !== currentStateIdx) {
+            currentStateIdx = stateIdx;
+            renderTransStates();
+          }
+
+          // Update progress bar
+          const overallProgress = totalDur > 0 ? Math.min(1, elapsed / totalDur) : 1;
+          const st = steps[stateIdx];
+          progressFill.style.width = (overallProgress * 100) + '%';
+          progressFill.style.background = st.color === 'var(--green)' ? '#16A34A' :
+            st.color === 'var(--blue)' ? '#B45309' :
+            st.color === 'var(--yellow)' ? '#CA8A04' : '#DC2626';
+          progressLabel.textContent = st.name + (st.duration > 0 ? ' (' + Math.ceil(st.duration - stateProgress * st.duration) + 's remaining)' : ' -- Operational');
+
+          timerDisplay.textContent = Math.min(elapsed, totalDur).toFixed(1) + 's';
+          timerDisplay.style.color = st.color;
+
+          // Update info panel
+          infoPanel.innerHTML = '<p><strong>Current State: </strong>' +
+            '<span class="trans-state-indicator" style="background:' + st.bg + ';color:' + st.color + ';">' + st.name + '</span></p>' +
+            '<p style="margin-top:8px;">' + st.desc + '</p>' +
+            '<p style="margin-top:8px;color:var(--text-muted);">Elapsed: ' + elapsed.toFixed(1) + 's / ' + totalDur + 's total convergence (' + (mode === 'rstp' ? 'Rapid PVST+' : 'STP 802.1D') + ')</p>';
+
+          if (elapsed < totalDur) {
+            animId = requestAnimationFrame(tick);
+          }
+        }
+
+        animId = requestAnimationFrame(tick);
+      }
+
+      function resetTransition() {
+        if (animId) cancelAnimationFrame(animId);
+        animId = null;
+        currentStateIdx = 0;
+        progressFill.style.width = '0%';
+        progressLabel.textContent = 'Waiting...';
+        timerDisplay.textContent = '0.0s';
+        timerDisplay.style.color = 'var(--text-muted)';
+        renderTransStates();
+        infoPanel.innerHTML =
+          '<p><strong>STP (802.1D) Convergence:</strong> Blocking (20s max age) -> Listening (15s) -> Learning (15s) -> Forwarding = up to 50 seconds total.</p>' +
+          '<p style="margin-top:8px;"><strong>Rapid PVST+ (802.1w):</strong> Discarding -> Learning -> Forwarding in ~1-2 seconds using Proposal/Agreement mechanism.</p>' +
+          '<p style="margin-top:8px;">Click <strong>Play Transition</strong> to see the convergence timer in real-time (' + (mode === 'rstp' ? '2x' : '10x') + ' speed for ' + (mode === 'rstp' ? 'RSTP' : 'STP') + ').</p>';
+      }
+
+      document.getElementById('trans-play').addEventListener('click', playTransition);
+      document.getElementById('trans-reset').addEventListener('click', resetTransition);
+
+      document.querySelectorAll('.trans-mode-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+          document.querySelectorAll('.trans-mode-btn').forEach(b => b.classList.remove('active'));
+          this.classList.add('active');
+          mode = this.dataset.mode;
+          resetTransition();
+        });
+      });
+
+      setTimeout(renderTransStates, 200);
+      window.addEventListener('resize', () => { if (canvas.offsetParent) renderTransStates(); });
+    })();
+
+
+    // ════════════════════════════════════════
+    //  TAB 6: Loop Demonstration
+    // ════════════════════════════════════════
+    (function() {
+      const loopCanvas = document.getElementById('loop-canvas');
+      const loopSvg = document.getElementById('loop-svg');
+      const frameCountEl = document.getElementById('loop-frame-count');
+      const copyCountEl = document.getElementById('loop-copy-count');
+      const bandwidthEl = document.getElementById('loop-bandwidth');
+      const phaseLabel = document.getElementById('loop-phase-label');
+
+      let loopAnimId = null;
+      let frames = [];
+      let frameCount = 0;
+      let copyCount = 0;
+      let stpEnabled = false;
+      let loopRunning = false;
+      let blockedLink = -1; // index of blocked link when STP kicks in
+
+      const lSwitches = [
+        { name: 'SW1', x: 38, y: 5 },
+        { name: 'SW2', x: 68, y: 45 },
+        { name: 'SW3', x: 10, y: 45 }
+      ];
+
+      // Triangle topology -- guaranteed loop
+      const lLinks = [ [0, 1], [1, 2], [2, 0] ];
+
+      function renderLoopTopo() {
+        loopCanvas.querySelectorAll('.loop-switch, .loop-frame').forEach(n => n.remove());
+
+        lSwitches.forEach((sw, i) => {
+          const node = document.createElement('div');
+          node.className = 'loop-switch';
+          node.style.left = sw.x + '%';
+          node.style.top = sw.y + '%';
+          node.textContent = sw.name;
+          loopCanvas.appendChild(node);
+        });
+
+        drawLoopLinks();
+      }
+
+      function drawLoopLinks() {
+        setTimeout(() => {
+          const nodes = loopCanvas.querySelectorAll('.loop-switch');
+          let svg = '';
+          lLinks.forEach((lk, li) => {
+            const aEl = nodes[lk[0]];
+            const bEl = nodes[lk[1]];
+            if (!aEl || !bEl) return;
+            const ax = aEl.offsetLeft + aEl.offsetWidth/2;
+            const ay = aEl.offsetTop + aEl.offsetHeight/2;
+            const bx = bEl.offsetLeft + bEl.offsetWidth/2;
+            const by = bEl.offsetTop + bEl.offsetHeight/2;
+
+            let color = 'var(--border)';
+            let dash = '';
+            let width = 2;
+            if (stpEnabled && li === blockedLink) {
+              color = 'var(--red)'; dash = ' stroke-dasharray="8 4"'; width = 2;
+            } else if (stpEnabled) {
+              color = 'var(--green)'; width = 3;
+            } else if (loopRunning) {
+              color = 'var(--red)'; width = 2;
+            }
+            svg += '<line x1="' + ax + '" y1="' + ay + '" x2="' + bx + '" y2="' + by + '" stroke="' + color + '" stroke-width="' + width + '"' + dash + ' />';
+
+            // Show X on blocked link
+            if (stpEnabled && li === blockedLink) {
+              const mx = (ax + bx) / 2;
+              const my = (ay + by) / 2;
+              svg += '<text x="' + mx + '" y="' + (my + 5) + '" fill="var(--red)" font-size="18" font-weight="bold" text-anchor="middle">X</text>';
+            }
+          });
+          loopSvg.innerHTML = svg;
+        }, 30);
+      }
+
+      function getLoopNodeCenter(idx) {
+        const nodes = loopCanvas.querySelectorAll('.loop-switch');
+        const el = nodes[idx];
+        if (!el) return { x: 0, y: 0 };
+        return { x: el.offsetLeft + el.offsetWidth/2, y: el.offsetTop + el.offsetHeight/2 };
+      }
+
+      function startLoop() {
+        if (loopRunning) return;
+        loopRunning = true;
+        stpEnabled = false;
+        blockedLink = -1;
+        frameCount = 1;
+        copyCount = 0;
+        frames = [];
+
+        phaseLabel.textContent = 'BROADCAST STORM';
+        phaseLabel.style.background = 'var(--red-dim)';
+        phaseLabel.style.color = 'var(--red)';
+
+        renderLoopTopo();
+
+        // Inject initial broadcast from "host" into SW1 -> travels both directions
+        // Frame goes SW1->SW2 and SW1->SW3 (flooded out all ports)
+        frames.push({ from: 0, to: 1, progress: 0 });
+        frames.push({ from: 0, to: 2, progress: 0 });
+
+        loopAnimId = requestAnimationFrame(animateLoop);
+      }
+
+      function animateLoop() {
+        // Remove old frame elements
+        loopCanvas.querySelectorAll('.loop-frame').forEach(f => f.remove());
+
+        if (stpEnabled) {
+          // Storm is over
+          frames = [];
+          frameCountEl.textContent = '0';
+          frameCountEl.className = 'counter-value storm-stopped';
+          bandwidthEl.textContent = '0%';
+          bandwidthEl.className = 'counter-value storm-stopped';
+          return;
+        }
+
+        let newFrames = [];
+        let arrivedAtSwitch = []; // { switchIdx, fromLinkDirection }
+
+        frames.forEach(f => {
+          // Skip frames on blocked link
+          if (stpEnabled && isBlockedLink(f.from, f.to)) return;
+
+          f.progress += 0.025;
+
+          if (f.progress >= 1) {
+            // Frame arrived at destination switch -- flood out other ports (loop!)
+            arrivedAtSwitch.push({ sw: f.to, from: f.from });
+          } else {
+            newFrames.push(f);
+            // Render the frame
+            const fromPos = getLoopNodeCenter(f.from);
+            const toPos = getLoopNodeCenter(f.to);
+            const cx = fromPos.x + (toPos.x - fromPos.x) * f.progress;
+            const cy = fromPos.y + (toPos.y - fromPos.y) * f.progress;
+            const el = document.createElement('div');
+            el.className = 'loop-frame';
+            el.style.left = (cx - 5) + 'px';
+            el.style.top = (cy - 5) + 'px';
+            el.style.background = stpEnabled ? 'var(--green)' : 'var(--red)';
+            el.style.boxShadow = '0 0 6px ' + (stpEnabled ? 'var(--green)' : 'var(--red)');
+            loopCanvas.appendChild(el);
+          }
+        });
+
+        // Flood arrived frames out other ports (creating copies -- the storm)
+        arrivedAtSwitch.forEach(arrival => {
+          lLinks.forEach((lk, li) => {
+            if (stpEnabled && li === blockedLink) return;
+            let nextSw = -1;
+            if (lk[0] === arrival.sw && lk[1] !== arrival.from) nextSw = lk[1];
+            if (lk[1] === arrival.sw && lk[0] !== arrival.from) nextSw = lk[0];
+            if (nextSw === -1) return;
+
+            // Cap total frames to prevent browser death
+            if (newFrames.length < 200) {
+              newFrames.push({ from: arrival.sw, to: nextSw, progress: 0 });
+              copyCount++;
+            }
+          });
+        });
+
+        frames = newFrames;
+        frameCount = frames.length;
+
+        frameCountEl.textContent = frameCount;
+        frameCountEl.className = 'counter-value' + (frameCount > 20 ? ' storm-active' : '');
+        copyCountEl.textContent = copyCount;
+        const bw = Math.min(100, Math.round(frameCount / 200 * 100));
+        bandwidthEl.textContent = bw + '%';
+        bandwidthEl.className = 'counter-value' + (bw > 50 ? ' storm-active' : '');
+
+        if (loopRunning) {
+          loopAnimId = requestAnimationFrame(animateLoop);
+        }
+      }
+
+      function isBlockedLink(from, to) {
+        return lLinks.some((lk, li) => li === blockedLink &&
+          ((lk[0] === from && lk[1] === to) || (lk[1] === from && lk[0] === to)));
+      }
+
+      function enableStp() {
+        if (!loopRunning) return;
+        stpEnabled = true;
+        blockedLink = 1; // Block the SW2-SW3 link
+
+        phaseLabel.textContent = 'STP ENABLED -- Storm Stopped';
+        phaseLabel.style.background = 'var(--green-dim)';
+        phaseLabel.style.color = 'var(--green)';
+
+        renderLoopTopo();
+      }
+
+      function resetLoop() {
+        if (loopAnimId) cancelAnimationFrame(loopAnimId);
+        loopRunning = false;
+        stpEnabled = false;
+        blockedLink = -1;
+        frames = [];
+        frameCount = 0;
+        copyCount = 0;
+
+        frameCountEl.textContent = '0';
+        frameCountEl.className = 'counter-value';
+        copyCountEl.textContent = '0';
+        bandwidthEl.textContent = '0%';
+        bandwidthEl.className = 'counter-value';
+
+        phaseLabel.textContent = 'No STP - Ready';
+        phaseLabel.style.background = 'var(--bg-card)';
+        phaseLabel.style.color = 'var(--text-muted)';
+
+        renderLoopTopo();
+      }
+
+      document.getElementById('loop-start').addEventListener('click', startLoop);
+      document.getElementById('loop-stp-save').addEventListener('click', enableStp);
+      document.getElementById('loop-reset').addEventListener('click', resetLoop);
+
+      setTimeout(renderLoopTopo, 200);
+      window.addEventListener('resize', () => { if (loopCanvas.offsetParent) renderLoopTopo(); });
+    })();
+
+
+    // ════════════════════════════════════════
+    //  TAB 7: Interactive Topology Builder
+    // ════════════════════════════════════════
+    (function() {
+      const bldCanvas = document.getElementById('bld-canvas');
+      const bldSvg = document.getElementById('bld-svg');
+      const editPanel = document.getElementById('bld-edit-panel');
+      const statusEl = document.getElementById('bld-status');
+
+      let bldMode = 'add'; // 'add', 'link', 'select', 'delete'
+      let bldSwitches = [];
+      let bldLinks = [];
+      let bldRootIdx = -1;
+      let bldPortRoles = {};
+      let selectedSwIdx = -1;
+      let linkFirstSw = -1;
+      let nextSwId = 1;
+      let dragging = null; // { swIdx, offsetX, offsetY }
+
+      // Populate priority dropdown
+      const priSelect = document.getElementById('bld-edit-priority');
+      for (let p = 0; p <= 61440; p += 4096) {
+        const opt = document.createElement('option');
+        opt.value = p; opt.textContent = p;
+        priSelect.appendChild(opt);
+      }
+
+      function randomMac() {
+        const hex = () => Math.floor(Math.random()*256).toString(16).padStart(2,'0').toUpperCase();
+        return hex()+':'+hex()+':'+hex()+':'+hex()+':'+hex()+':'+hex();
+      }
+
+      function addSwitch(x, y) {
+        bldSwitches.push({
+          name: 'SW' + nextSwId,
+          priority: 32768,
+          mac: randomMac(),
+          x: x, y: y
+        });
+        nextSwId++;
+        recalcStp();
+        renderBuilder();
+      }
+
+      function addLink(a, b) {
+        // Check if link already exists
+        const exists = bldLinks.some(lk => (lk[0]===a && lk[1]===b) || (lk[0]===b && lk[1]===a));
+        if (exists || a === b) return;
+        bldLinks.push([a, b, 4]);
+        recalcStp();
+        renderBuilder();
+      }
+
+      function deleteSwitch(idx) {
+        // Remove all links to this switch
+        bldLinks = bldLinks.filter(lk => lk[0] !== idx && lk[1] !== idx);
+        bldSwitches.splice(idx, 1);
+        // Reindex links
+        bldLinks = bldLinks.map(lk => [
+          lk[0] > idx ? lk[0]-1 : lk[0],
+          lk[1] > idx ? lk[1]-1 : lk[1],
+          lk[2]
+        ]);
+        selectedSwIdx = -1;
+        editPanel.classList.remove('visible');
+        recalcStp();
+        renderBuilder();
+      }
+
+      function recalcStp() {
+        bldRootIdx = -1;
+        bldPortRoles = {};
+        if (bldSwitches.length === 0) return;
+
+        // Find root
+        let rootIdx = 0;
+        for (let i = 1; i < bldSwitches.length; i++) {
+          const a = bldSwitches[rootIdx], b = bldSwitches[i];
+          const bidA = a.priority * (2**48) + parseInt(a.mac.replace(/:/g,''), 16);
+          const bidB = b.priority * (2**48) + parseInt(b.mac.replace(/:/g,''), 16);
+          if (bidB < bidA) rootIdx = i;
+        }
+        bldRootIdx = rootIdx;
+
+        if (bldLinks.length === 0) return;
+
+        // BFS from root for cost
+        const rootCost = {};
+        rootCost[rootIdx] = 0;
+        const rootPortLink = {};
+        const visited = new Set([rootIdx]);
+        const queue = [rootIdx];
+
+        while (queue.length > 0) {
+          const curr = queue.shift();
+          bldLinks.forEach((lk, li) => {
+            let neighbor = -1;
+            if (lk[0] === curr && !visited.has(lk[1])) neighbor = lk[1];
+            if (lk[1] === curr && !visited.has(lk[0])) neighbor = lk[0];
+            if (neighbor === -1) return;
+            const cost = (rootCost[curr] || 0) + (lk[2] || 4);
+            if (rootCost[neighbor] === undefined || cost < rootCost[neighbor]) {
+              rootCost[neighbor] = cost;
+              rootPortLink[neighbor] = li;
+            }
+            if (!visited.has(neighbor)) {
+              visited.add(neighbor);
+              queue.push(neighbor);
+            }
+          });
+        }
+
+        // Assign port roles
+        bldLinks.forEach((lk, li) => {
+          const a = lk[0], b = lk[1];
+          let roleA = '', roleB = '';
+
+          if (a === rootIdx) {
+            roleA = 'Designated';
+            roleB = rootPortLink[b] === li ? 'Root' : 'Blocked';
+          } else if (b === rootIdx) {
+            roleB = 'Designated';
+            roleA = rootPortLink[a] === li ? 'Root' : 'Blocked';
+          } else {
+            const isRpA = rootPortLink[a] === li;
+            const isRpB = rootPortLink[b] === li;
+            if (isRpA) { roleA = 'Root'; roleB = 'Designated'; }
+            else if (isRpB) { roleB = 'Root'; roleA = 'Designated'; }
+            else {
+              if ((rootCost[a]||99) <= (rootCost[b]||99)) {
+                roleA = 'Designated'; roleB = 'Blocked';
+              } else {
+                roleB = 'Designated'; roleA = 'Blocked';
+              }
+            }
+          }
+
+          bldPortRoles[li] = { a: roleA, b: roleB };
+        });
+
+        // Update status
+        if (bldSwitches.length > 0) {
+          const root = bldSwitches[bldRootIdx];
+          const blocked = Object.values(bldPortRoles).filter(r => r.a === 'Blocked' || r.b === 'Blocked').length;
+          statusEl.innerHTML = '<strong>Root Bridge:</strong> ' + root.name +
+            ' (Priority ' + root.priority + ', MAC ' + root.mac + ')' +
+            ' | <strong>Switches:</strong> ' + bldSwitches.length +
+            ' | <strong>Links:</strong> ' + bldLinks.length +
+            ' | <strong>Blocked Ports:</strong> ' + blocked;
+        }
+      }
+
+      function renderBuilder() {
+        bldCanvas.querySelectorAll('.builder-switch').forEach(n => n.remove());
+
+        bldSwitches.forEach((sw, i) => {
+          const node = document.createElement('div');
+          node.className = 'builder-switch';
+          if (bldRootIdx === i) node.classList.add('builder-root');
+          if (selectedSwIdx === i) node.classList.add('builder-selected');
+          node.style.left = sw.x + '%';
+          node.style.top = sw.y + '%';
+
+          // Port dots
+          let portDots = '';
+          bldLinks.forEach((lk, li) => {
+            if (lk[0] !== i && lk[1] !== i) return;
+            const role = lk[0] === i ? (bldPortRoles[li]||{}).a : (bldPortRoles[li]||{}).b;
+            const c = role === 'Root' ? 'var(--green)' : role === 'Designated' ? 'var(--blue)' : role === 'Blocked' ? 'var(--red)' : '#999';
+            portDots += '<div class="bld-port-dot" style="background:' + c + ';" title="' + (role||'Unknown') + '"></div>';
+          });
+
+          let roleHtml = '';
+          if (bldRootIdx === i) {
+            roleHtml = '<div class="bld-role" style="background:#FEF3C7;color:#D4A017;">ROOT</div>';
+          }
+
+          node.innerHTML =
+            '<div class="bld-name">' + sw.name + '</div>' +
+            '<div class="bld-pri">Pri: ' + sw.priority + '</div>' +
+            roleHtml +
+            (portDots ? '<div class="bld-ports">' + portDots + '</div>' : '');
+
+          // Event handling based on mode
+          node.addEventListener('mousedown', (e) => {
+            e.stopPropagation();
+            if (bldMode === 'select' || bldMode === 'add') {
+              // Start drag
+              const rect = bldCanvas.getBoundingClientRect();
+              dragging = {
+                swIdx: i,
+                offsetX: e.clientX - (sw.x / 100 * rect.width),
+                offsetY: e.clientY - (sw.y / 100 * rect.height)
+              };
+              selectedSwIdx = i;
+              showEditPanel(i);
+              renderBuilder();
+            }
+          });
+
+          node.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (bldMode === 'link') {
+              if (linkFirstSw === -1) {
+                linkFirstSw = i;
+                node.classList.add('builder-selected');
+              } else {
+                addLink(linkFirstSw, i);
+                linkFirstSw = -1;
+              }
+            } else if (bldMode === 'delete') {
+              deleteSwitch(i);
+            } else if (bldMode === 'select') {
+              selectedSwIdx = i;
+              showEditPanel(i);
+              renderBuilder();
+            }
+          });
+
+          bldCanvas.appendChild(node);
+        });
+
+        drawBuilderLinks();
+      }
+
+      function drawBuilderLinks() {
+        setTimeout(() => {
+          const nodes = bldCanvas.querySelectorAll('.builder-switch');
+          let svg = '';
+          bldLinks.forEach((lk, li) => {
+            const aEl = nodes[lk[0]];
+            const bEl = nodes[lk[1]];
+            if (!aEl || !bEl) return;
+            const ax = aEl.offsetLeft + aEl.offsetWidth/2;
+            const ay = aEl.offsetTop + aEl.offsetHeight/2;
+            const bx = bEl.offsetLeft + bEl.offsetWidth/2;
+            const by = bEl.offsetTop + bEl.offsetHeight/2;
+
+            const pr = bldPortRoles[li] || {};
+            let color = 'var(--border)', dash = '', width = 2;
+            if (pr.a === 'Blocked' || pr.b === 'Blocked') {
+              color = 'var(--red)'; dash = ' stroke-dasharray="8 4"';
+            } else if (pr.a || pr.b) {
+              color = 'var(--green)'; width = 3;
+            }
+
+            svg += '<line x1="' + ax + '" y1="' + ay + '" x2="' + bx + '" y2="' + by + '" stroke="' + color + '" stroke-width="' + width + '"' + dash + ' />';
+
+            // Port role labels
+            if (pr.a) {
+              const lx = ax + (bx - ax) * 0.2;
+              const ly = ay + (by - ay) * 0.2;
+              const fc = pr.a === 'Root' ? 'var(--green)' : pr.a === 'Blocked' ? 'var(--red)' : 'var(--blue)';
+              svg += '<text x="' + lx + '" y="' + (ly - 6) + '" fill="' + fc + '" font-size="10" font-weight="bold" font-family="var(--font-mono)" text-anchor="middle">' + pr.a.charAt(0) + '</text>';
+            }
+            if (pr.b) {
+              const lx = ax + (bx - ax) * 0.8;
+              const ly = ay + (by - ay) * 0.8;
+              const fc = pr.b === 'Root' ? 'var(--green)' : pr.b === 'Blocked' ? 'var(--red)' : 'var(--blue)';
+              svg += '<text x="' + lx + '" y="' + (ly - 6) + '" fill="' + fc + '" font-size="10" font-weight="bold" font-family="var(--font-mono)" text-anchor="middle">' + pr.b.charAt(0) + '</text>';
+            }
+          });
+          bldSvg.innerHTML = svg;
+        }, 30);
+      }
+
+      function showEditPanel(idx) {
+        const sw = bldSwitches[idx];
+        if (!sw) return;
+        document.getElementById('bld-edit-title').textContent = 'Edit ' + sw.name;
+        document.getElementById('bld-edit-name').value = sw.name;
+        document.getElementById('bld-edit-priority').value = sw.priority;
+        document.getElementById('bld-edit-mac').value = sw.mac;
+        editPanel.classList.add('visible');
+      }
+
+      document.getElementById('bld-edit-apply').addEventListener('click', () => {
+        if (selectedSwIdx < 0) return;
+        bldSwitches[selectedSwIdx].name = document.getElementById('bld-edit-name').value || bldSwitches[selectedSwIdx].name;
+        bldSwitches[selectedSwIdx].priority = parseInt(document.getElementById('bld-edit-priority').value);
+        bldSwitches[selectedSwIdx].mac = document.getElementById('bld-edit-mac').value.toUpperCase();
+        recalcStp();
+        renderBuilder();
+      });
+
+      document.getElementById('bld-edit-cancel').addEventListener('click', () => {
+        selectedSwIdx = -1;
+        editPanel.classList.remove('visible');
+        renderBuilder();
+      });
+
+      // Canvas click: add switch
+      bldCanvas.addEventListener('click', (e) => {
+        if (bldMode !== 'add') return;
+        if (e.target !== bldCanvas && !e.target.matches('svg')) return;
+        const rect = bldCanvas.getBoundingClientRect();
+        const xPct = ((e.clientX - rect.left) / rect.width * 100) - 5; // offset for switch width
+        const yPct = ((e.clientY - rect.top) / rect.height * 100) - 4;
+        addSwitch(Math.max(1, Math.min(85, xPct)), Math.max(1, Math.min(85, yPct)));
+      });
+
+      // Drag handling
+      document.addEventListener('mousemove', (e) => {
+        if (!dragging) return;
+        const rect = bldCanvas.getBoundingClientRect();
+        const xPct = ((e.clientX - dragging.offsetX) / rect.width) * 100;
+        const yPct = ((e.clientY - dragging.offsetY) / rect.height) * 100;
+        bldSwitches[dragging.swIdx].x = Math.max(0, Math.min(85, xPct));
+        bldSwitches[dragging.swIdx].y = Math.max(0, Math.min(85, yPct));
+        renderBuilder();
+      });
+
+      document.addEventListener('mouseup', () => {
+        dragging = null;
+      });
+
+      // Mode buttons
+      const modeButtons = {
+        'bld-mode-add': 'add',
+        'bld-mode-link': 'link',
+        'bld-mode-select': 'select',
+        'bld-mode-delete': 'delete'
+      };
+
+      Object.keys(modeButtons).forEach(id => {
+        document.getElementById(id).addEventListener('click', function() {
+          document.querySelectorAll('.builder-toolbar .btn-icon').forEach(b => b.classList.remove('active'));
+          this.classList.add('active');
+          bldMode = modeButtons[id];
+          linkFirstSw = -1;
+          bldCanvas.className = 'builder-canvas' + (bldMode === 'select' || bldMode === 'delete' ? ' mode-select' : '');
+        });
+      });
+
+      document.getElementById('bld-recalc').addEventListener('click', () => {
+        recalcStp();
+        renderBuilder();
+      });
+
+      document.getElementById('bld-clear').addEventListener('click', () => {
+        bldSwitches = [];
+        bldLinks = [];
+        bldRootIdx = -1;
+        bldPortRoles = {};
+        selectedSwIdx = -1;
+        linkFirstSw = -1;
+        nextSwId = 1;
+        editPanel.classList.remove('visible');
+        statusEl.innerHTML = '<strong>Tip:</strong> Select "Add Switch" mode and click on the canvas to place switches. Then use "Link Switches" mode to click two switches to connect them. STP recalculates automatically when you add links or change priorities.';
+        renderBuilder();
+      });
+
+      // Seed with 3 switches for a quick start
+      bldSwitches = [
+        { name: 'SW1', priority: 32768, mac: 'AA:00:00:00:00:01', x: 40, y: 5 },
+        { name: 'SW2', priority: 32768, mac: 'BB:00:00:00:00:02', x: 65, y: 55 },
+        { name: 'SW3', priority: 32768, mac: 'CC:00:00:00:00:03', x: 15, y: 55 }
+      ];
+      bldLinks = [ [0,1,4], [1,2,4], [2,0,4] ];
+      nextSwId = 4;
+      recalcStp();
+
+      setTimeout(renderBuilder, 200);
+      window.addEventListener('resize', () => { if (bldCanvas.offsetParent) renderBuilder(); });
+    })();
   </script>
 <script src="../js/tutor.js"></script>
 </body>
