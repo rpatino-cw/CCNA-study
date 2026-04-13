@@ -771,6 +771,10 @@
 <span class="prompt">R1(config-if)#</span> <span class="cmd">no shutdown</span>
 <span class="prompt">R1(config-if)#</span> <span class="cmd">exit</span></pre>
             </div>
+            <div class="callout">
+              <div class="callout-title">Exam topic: IPv6 in depth (1.8)</div>
+              <p>This lab configures a single IPv6 address on a loopback. In production, you would assign IPv6 GUAs to each subinterface (e.g., <code>ipv6 address 2001:db8:10::1/64</code> on Gi0/0.10). Hosts can auto-configure addresses via <strong>SLAAC</strong> (Stateless Address Autoconfiguration) — the router advertises the prefix and hosts generate their own interface ID. Every IPv6-enabled interface also gets an automatic <strong>link-local address</strong> (fe80::) used for neighbor discovery and routing protocol communication. Verify with <code>show ipv6 interface brief</code> and <code>show ipv6 route</code>.</p>
+            </div>
           </div>
         </div>
 
@@ -812,6 +816,26 @@ PC1> ping 192.168.10.254   (R1 gateway — should reply quickly)</pre>
           </div>
         </div>
 
+        <!-- Step 8 -->
+        <div class="lab-step">
+          <div class="step-header">
+            <span class="step-num">08</span>
+            <span class="step-title">Configure a default route</span>
+          </div>
+          <div class="step-body">
+            <p class="step-desc">
+              A default route catches all traffic that doesn't match a more specific route. This is the "gateway of last resort."
+            </p>
+            <div class="cmd-block">
+              <div class="cmd-device">R1</div>
+              <pre><span class="prompt">R1(config)#</span> <span class="cmd">ip route 0.0.0.0 0.0.0.0 192.168.10.1</span></pre>
+            </div>
+            <p class="step-desc">
+              Run <code>show ip route</code> — the first line should now say "Gateway of last resort is 192.168.10.1 to network 0.0.0.0". The route appears as <code>S* 0.0.0.0/0</code> where S = static and * = candidate default.
+            </p>
+          </div>
+        </div>
+
       </div>
     </section>
 
@@ -827,6 +851,29 @@ PC1> ping 192.168.10.254   (R1 gateway — should reply quickly)</pre>
 C    192.168.20.0/24 is directly connected, FastEthernet0/0.20
 C    192.168.30.0/24 is directly connected, FastEthernet0/0.30</pre>
         </div>
+      </div>
+
+      <div class="callout">
+        <div class="callout-title">Exam topic: Administrative Distance (3.1.e)</div>
+        <p>When multiple routing sources know a route to the same destination, the router picks the one with the <strong>lowest Administrative Distance (AD)</strong>. AD measures trustworthiness — lower = more trusted.</p>
+        <table style="width:100%;font-family:var(--font-mono);font-size:.78rem;margin:var(--s-sm) 0">
+          <tr><th style="text-align:left;padding:4px 8px">Source</th><th style="text-align:left;padding:4px 8px">AD</th></tr>
+          <tr><td style="padding:4px 8px">Connected</td><td style="padding:4px 8px">0</td></tr>
+          <tr><td style="padding:4px 8px">Static</td><td style="padding:4px 8px">1</td></tr>
+          <tr><td style="padding:4px 8px">eBGP</td><td style="padding:4px 8px">20</td></tr>
+          <tr><td style="padding:4px 8px">EIGRP</td><td style="padding:4px 8px">90</td></tr>
+          <tr><td style="padding:4px 8px">OSPF</td><td style="padding:4px 8px">110</td></tr>
+          <tr><td style="padding:4px 8px">RIP</td><td style="padding:4px 8px">120</td></tr>
+        </table>
+        <p>In <code>show ip route</code>, the notation <code>[110/2]</code> means AD 110 (OSPF) with metric 2. The router compares AD first — only if AD is equal does it compare metrics.</p>
+      </div>
+
+      <div class="callout">
+        <div class="callout-title">Routing table protocol codes (3.1.a)</div>
+        <p>Each route in <code>show ip route</code> starts with a letter indicating its source:</p>
+        <p style="font-family:var(--font-mono);font-size:.78rem;line-height:1.8">
+          <strong>C</strong> = Connected &nbsp; <strong>L</strong> = Local &nbsp; <strong>S</strong> = Static &nbsp; <strong>O</strong> = OSPF &nbsp; <strong>D</strong> = EIGRP &nbsp; <strong>R</strong> = RIP &nbsp; <strong>B</strong> = BGP &nbsp; <strong>*</strong> = candidate default
+        </p>
       </div>
 
       <div class="verify-pair">
@@ -868,7 +915,7 @@ Ping statistics: Packets: Sent = 4, Received = 4, Lost = 0 (0% loss)</pre>
       <div class="quiz-wrap" id="quiz-wrap">
         <div class="quiz-start-panel" id="quiz-start">
           <h3>Knowledge Check</h3>
-          <p>5 questions covering inter-VLAN routing and IPv6. Pass = 80%.</p>
+          <p>8 questions covering inter-VLAN routing, IPv6, routing table interpretation, and AD. Pass = 80%.</p>
           <button class="btn btn-primary" onclick="startLabQuiz()">Start quiz</button>
         </div>
         <div class="quiz-active" id="quiz-active" style="display:none">
@@ -981,6 +1028,39 @@ Ping statistics: Packets: Sent = 4, Received = 4, Lost = 0 (0% loss)</pre>
         ],
         correct: 1,
         explanation: "Link-Local Addresses (FE80::/10) are auto-configured using EUI-64 or random. They're used for neighbor discovery, routing protocol hellos (OSPF, EIGRP use LLAs as source), and default gateway communication. They're never forwarded by routers — each link has its own LLA space."
+      },
+      {
+        question: "What is the Administrative Distance (AD) of a directly connected route?",
+        options: [
+          "1",
+          "0",
+          "110",
+          "20"
+        ],
+        correct: 1,
+        explanation: "Connected routes have AD 0 — the most trusted source. The router trusts what it can directly see on its own interfaces above all other sources."
+      },
+      {
+        question: "In 'show ip route', a route shows [110/2]. What does this mean?",
+        options: [
+          "VLAN 110, port 2",
+          "Metric 110, hop count 2",
+          "Administrative Distance 110, metric 2",
+          "Priority 110, cost 2"
+        ],
+        correct: 2,
+        explanation: "The [AD/metric] notation shows Administrative Distance first (110 = OSPF), then the metric (2 = total OSPF cost to reach that network)."
+      },
+      {
+        question: "Which command configures a default route (gateway of last resort) on a Cisco router?",
+        options: [
+          "ip default-gateway 10.0.0.1",
+          "ip route 0.0.0.0 0.0.0.0 10.0.0.1",
+          "default-route 10.0.0.1",
+          "ip route default 10.0.0.1"
+        ],
+        correct: 1,
+        explanation: "The static default route 'ip route 0.0.0.0 0.0.0.0 [next-hop]' catches all traffic without a more specific match. It appears as 'Gateway of last resort' in show ip route. Note: 'ip default-gateway' is for switches without ip routing enabled."
       }
     ];
 
@@ -989,7 +1069,7 @@ Ping statistics: Packets: Sent = 4, Received = 4, Lost = 0 (0% loss)</pre>
     let quizQuestions = [];
 
     function startLabQuiz() {
-      quizQuestions = shuffle([...LAB_QUESTIONS]).slice(0, 5);
+      quizQuestions = shuffle([...LAB_QUESTIONS]).slice(0, 8);
       currentQ = 0;
       answers = [];
       document.getElementById('quiz-start').style.display = 'none';
