@@ -133,15 +133,16 @@
   </header>
 
   <div id="guideTip" style="font-family:var(--font-body);font-size:.82rem;color:var(--ink-muted);margin-bottom:var(--s-sm)">New here? Read the <a href="guide.html" style="color:var(--accent);font-weight:600;text-decoration:none;border-bottom:1px solid rgba(180,83,9,.3)">Guide</a> first — it explains how this site works and where to start.</div>
-  <script>try{var ts=JSON.parse(localStorage.getItem('ccna_topic_study')||'{}');if(Object.keys(ts).filter(function(k){return ts[k].studyCount>0;}).length>=5)document.getElementById('guideTip').style.display='none';}catch(e){}</script>
+  <script>try{var ts=JSON.parse(localStorage.getItem('ccna_topic_study')||'{}');var hasStudy=Object.keys(ts).filter(function(k){return ts[k].studyCount>0;}).length>=5;var hasProf=Object.keys(JSON.parse(localStorage.getItem('ccna_proficiency')||'{}')).length>0;if(hasStudy||hasProf)document.getElementById('guideTip').style.display='none';}catch(e){}</script>
 
   <div class="progress-strip" id="progressStrip"></div>
-  <div id="continueBar"></div>
+  <div id="actionCard"></div>
 
-
-  <div class="domain-heat" id="domainHeat"></div>
+  <details id="domainHeatWrap">
+    <summary id="domainHeatSummary" style="font-family:var(--font-display);font-size:.82rem;font-weight:700;cursor:pointer;padding:8px 0;color:var(--ink);list-style:none;display:flex;align-items:center;gap:8px;margin-bottom:6px"><span style="font-size:.7rem;color:var(--ink-muted)">&#9662;</span> Domain Overview <span id="domainHeatMeta" style="font-family:var(--font-mono);font-size:.68rem;font-weight:500;color:var(--ink-muted)"></span></summary>
+    <div class="domain-heat" id="domainHeat"></div>
+  </details>
   <div id="filterBar" style="margin-bottom:var(--s-md)"></div>
-  <div id="reviewDue" style="margin-bottom:var(--s-md)"></div>
 
   <div id="domainSections"></div>
 </div>
@@ -1270,6 +1271,11 @@ function render(){
   const domains=window.topicsData.domains;
   const isNetPlus=localStorage.getItem('ccna_cert_track')==='net+';
 
+  // Auto-master objectives at 70%+ proficiency
+  let masteredChanged=false;
+  domains.forEach(d=>d.topics.forEach(t=>{if(prof[t.id]>=0.7&&!mastered[t.id]){mastered[t.id]=true;masteredChanged=true;}}));
+  if(masteredChanged)localStorage.setItem('ccna_core_mastered',JSON.stringify(mastered));
+
   // Progress strip
   let totalMastered=0,totalTopics=0;
   domains.forEach(d=>d.topics.forEach(t=>{
@@ -1283,22 +1289,40 @@ function render(){
 
   // Daily goals
   const today=new Date().toISOString().split('T')[0];
-  // Domain heatmap
+  // Domain heatmap (collapsible)
+  let heatWeakestId='1',heatWeakestAvg=Infinity;
   document.getElementById('domainHeat').innerHTML=domains.map(d=>{
     let sum=0;d.topics.forEach(t=>sum+=(prof[t.id]||0));
     const avg=Math.round(sum/d.topics.length*100);
+    if(avg<heatWeakestAvg){heatWeakestAvg=avg;heatWeakestId=d.id;}
     const color=DOMAIN_COLORS[d.id]||'var(--ink-muted)';
     return'<div class="dh-card" onclick="document.getElementById(\'domain-'+d.id+'\').scrollIntoView({behavior:\'smooth\'})">'+
       '<div class="dh-pct" style="color:'+color+'">'+avg+'%</div>'+
       '<div class="dh-name">D'+d.id+' '+d.name+'</div>'+
       '<div class="dh-bar"><div class="dh-fill" style="width:'+avg+'%;background:'+color+'"></div></div></div>';
   }).join('');
+  document.getElementById('domainHeatMeta').textContent='Weakest: D'+heatWeakestId+' ('+heatWeakestAvg+'%)';
+  const hasAnyProf=Object.keys(prof).some(k=>prof[k]>0);
+  const heatWrap=document.getElementById('domainHeatWrap');
+  if(!hasAnyProf)heatWrap.setAttribute('open','');
+  else heatWrap.removeAttribute('open');
 
-  // Continue banner
+  // Unified action card — continue + review due
   let continueObj=null;
   domains.forEach(d=>d.topics.forEach(t=>{if(!continueObj && !mastered[t.id] && (prof[t.id]||0)>0 && (prof[t.id]||0)<0.7) continueObj=t;}));
-  document.getElementById('continueBar').innerHTML=continueObj?
-    '<div style="padding:10px 16px;background:rgba(180,83,9,.06);border-left:3px solid var(--accent);border-radius:0 var(--radius) var(--radius) 0;margin-bottom:var(--s-md);font-family:var(--font-display);font-size:.82rem;cursor:pointer" onclick="document.getElementById(\'obj-'+continueObj.id+'\').scrollIntoView({behavior:\'smooth\'});toggleObj(\''+continueObj.id+'\')">Continue: <strong>'+continueObj.id+' '+continueObj.name+'</strong> — '+Math.round((prof[continueObj.id]||0)*100)+'% proficiency</div>':'';
+  const dueTopics=store.getDueForReview(7);
+  let actionHtml='';
+  if(continueObj||dueTopics.length>0){
+    actionHtml='<div style="border-left:3px solid var(--accent);border-radius:0 var(--radius) var(--radius) 0;padding:10px 16px;background:rgba(180,83,9,.04);margin-bottom:var(--s-md);font-family:var(--font-display);font-size:.82rem">';
+    if(continueObj){
+      actionHtml+='<div style="cursor:pointer" onclick="document.getElementById(\'obj-'+continueObj.id+'\').scrollIntoView({behavior:\'smooth\'});toggleObj(\''+continueObj.id+'\')">Continue: <strong>'+continueObj.id+' '+esc(continueObj.name)+'</strong> — '+Math.round((prof[continueObj.id]||0)*100)+'% proficiency</div>';
+    }
+    if(dueTopics.length>0){
+      actionHtml+='<div style="font-size:.75rem;color:var(--ink-muted);margin-top:'+(continueObj?'6':'0')+'px">Review: <strong>'+dueTopics.length+'</strong> topic'+(dueTopics.length===1?'':'s')+' studied 7+ days ago need'+(dueTopics.length===1?'s':'')+' refreshing</div>';
+    }
+    actionHtml+='</div>';
+  }
+  document.getElementById('actionCard').innerHTML=actionHtml;
 
   // Filter modes: '' = all, 'weak' = below 70%, 'speed' = speed run (below 70% + auto-expand + quick path only)
   const filterMode=localStorage.getItem('ccna_core_filter')||'';
@@ -1312,18 +1336,6 @@ function render(){
     fbtn('','Show All')+fbtn('weak','Weak Only ('+weakCount+')')+fbtn('speed','Speed Run ('+weakCount+')')+
     (filterMode==='speed'?'<span style="font-family:var(--font-body);font-size:.75rem;color:var(--ink-muted);margin-left:8px">Only objectives below 70%. Watch, quiz, pass, next.</span>':'')+
     '</div>';
-
-  // Spaced repetition — topics due for review
-  const dueTopics=store.getDueForReview(7);
-  const allTopics=domains.flatMap(d=>d.topics);
-  document.getElementById('reviewDue').innerHTML=dueTopics.length>0?
-    '<div style="background:rgba(220,38,38,.04);border:1px solid rgba(220,38,38,.15);border-radius:var(--radius-lg);padding:14px 18px;margin-bottom:4px">'+
-    '<div style="font-family:var(--font-display);font-size:.82rem;font-weight:700;color:#DC2626;margin-bottom:6px">Due for Review ('+dueTopics.length+' topics)</div>'+
-    '<div style="font-family:var(--font-body);font-size:.78rem;color:var(--ink-secondary);margin-bottom:8px">These topics were studied 7+ days ago and aren\'t mastered yet. Review them to prevent forgetting.</div>'+
-    '<div style="display:flex;flex-wrap:wrap;gap:4px">'+dueTopics.slice(0,10).map(d=>{
-      const t=allTopics.find(t=>t.id===d.id);
-      return'<span style="font-family:var(--font-mono);font-size:.65rem;padding:3px 8px;background:rgba(220,38,38,.08);border-radius:3px;color:#DC2626;cursor:pointer" onclick="document.getElementById(\'obj-'+d.id+'\').scrollIntoView({behavior:\'smooth\'});toggleObj(\''+d.id+'\')">'+ d.id+' ('+Math.round(d.score*100)+'%, '+d.daysSince+'d ago)</span>';
-    }).join('')+'</div></div>':'';
 
   // Book progress
   const bookProgress=JSON.parse(localStorage.getItem('ccna_book_progress')||'{}');
@@ -1402,7 +1414,7 @@ function render(){
       let siteHtml='<div class="obj-shortcuts">';
       siteHtml+='<a class="obj-sc" href="quiz.html?topic='+t.id+'">Quiz '+t.id+'</a>';
       siteHtml+='<a class="obj-sc" href="quiz.html?mode=domain&domain='+domainNum+'">Domain '+domainNum+' Quiz</a>';
-      siteHtml+='<a class="obj-sc" href="study.html">Daily Study</a>';
+      siteHtml+='<a class="obj-sc" href="quiz.html?learn='+t.id+'">Daily Study</a>';
       if(r.site&&r.site.length>0)r.site.forEach(function(s){siteHtml+='<a class="obj-sc" href="'+s.h+'">'+esc(s.t)+'</a>';});
       siteHtml+='<a class="obj-sc" href="glossary.html">Glossary</a>';
       siteHtml+='</div>';
@@ -1424,11 +1436,12 @@ function render(){
     }catch(e){return'<div class="obj-card" style="padding:10px;color:var(--prof-weak);font-size:.78rem">Error rendering '+t.id+': '+e.message+'</div>';}
     }).join('');
 
+    const at70=d.topics.filter(t=>(prof[t.id]||0)>=0.7).length;
     const allMastered=d.topics.every(t=>mastered[t.id]);
     const quizUnlocked=allMastered||avg>=70;
     const quizBadge=quizUnlocked?
       '<a href="exam-sim.html" style="display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:'+color+';color:#fff;border-radius:var(--radius);font-family:var(--font-display);font-size:.75rem;font-weight:700;text-decoration:none;margin-bottom:var(--s-sm)">Domain '+d.id+' Final Quiz — UNLOCKED</a>':
-      '<div style="display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:var(--bg-recessed);color:var(--ink-muted);border-radius:var(--radius);font-family:var(--font-display);font-size:.75rem;font-weight:600;margin-bottom:var(--s-sm);opacity:.5">Domain '+d.id+' Final Quiz — Master all objectives to unlock ('+avg+'%/70%)</div>';
+      '<div style="display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:var(--bg-recessed);color:var(--ink-muted);border-radius:var(--radius);font-family:var(--font-display);font-size:.75rem;font-weight:600;margin-bottom:var(--s-sm);opacity:.5">Domain '+d.id+' Final Quiz — '+at70+'/'+d.topics.length+' objectives at 70%+ — keep going</div>';
 
     return'<div class="domain-section" id="domain-'+d.id+'">'+
       '<div class="ds-head" onclick="toggleDomain(\''+d.id+'\')">'+
