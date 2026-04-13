@@ -100,10 +100,49 @@
 
     .lab-card.complete {
       border-left: 3px solid var(--prof-strong);
+      opacity: 0.7;
     }
+    .lab-card.complete:hover { opacity: 1; }
 
     .lab-card.attempted {
       border-left: 3px solid var(--prof-mid);
+    }
+
+    .lab-card.next-up {
+      border: 2px solid var(--accent);
+      box-shadow: 0 2px 16px rgba(180,83,9,0.08);
+    }
+    .lab-card.next-up .lab-week-badge {
+      background: var(--accent-light);
+      color: var(--accent);
+    }
+
+    /* Progress bar */
+    .labs-progress {
+      display: flex;
+      align-items: center;
+      gap: var(--s-md);
+      margin-bottom: var(--s-lg);
+      font-family: var(--font-display);
+    }
+    .labs-progress-text {
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--ink);
+      white-space: nowrap;
+    }
+    .labs-progress-bar {
+      flex: 1;
+      height: 6px;
+      background: var(--bg-recessed);
+      border-radius: 100px;
+      overflow: hidden;
+    }
+    .labs-progress-fill {
+      height: 100%;
+      background: var(--prof-strong);
+      border-radius: 100px;
+      transition: width 0.4s ease;
     }
 
     .lab-card-top {
@@ -193,32 +232,35 @@
 
     .btn-complete-lab {
       font-family: var(--font-display);
-      font-size: 0.72rem;
+      font-size: 0.68rem;
       font-weight: 600;
-      padding: 5px 12px;
-      background: var(--prof-strong);
-      color: #fff;
-      border: none;
+      padding: 4px 10px;
+      background: transparent;
+      color: var(--ink-muted);
+      border: 1px solid var(--border);
       border-radius: var(--radius);
       cursor: pointer;
       transition: all var(--transition);
     }
-    .btn-complete-lab:hover { opacity: 0.85; }
+    .btn-complete-lab:hover { border-color: var(--prof-strong); color: var(--prof-strong); }
     .btn-complete-lab:disabled { opacity: 0.5; cursor: default; }
 
     .btn-open-lab {
       font-family: var(--font-display);
       font-size: 0.78rem;
       font-weight: 600;
-      color: var(--ink);
+      color: #fff;
+      background: var(--ink);
+      padding: 5px 14px;
+      border-radius: var(--radius);
       text-decoration: none;
       display: inline-flex;
       align-items: center;
       gap: 4px;
-      transition: gap var(--transition);
+      transition: all var(--transition);
     }
 
-    .btn-open-lab:hover { gap: 8px; }
+    .btn-open-lab:hover { gap: 8px; background: var(--ink-secondary); }
 
     /* Footer */
     .footer {
@@ -241,6 +283,11 @@
       <h1>Packet Tracer Labs</h1>
       <div class="labs-header-meta">10 guided labs · tied to the 11-week schedule</div>
     </header>
+
+    <div class="labs-progress">
+      <span class="labs-progress-text" id="progressText">0/10 complete</span>
+      <div class="labs-progress-bar"><div class="labs-progress-fill" id="progressFill" style="width:0%"></div></div>
+    </div>
 
     <div id="ptStatus" style="display:flex;align-items:center;gap:10px;padding:12px 18px;border-radius:var(--radius-lg);margin-bottom:var(--s-lg);font-family:var(--font-display);font-size:.82rem;background:var(--bg-recessed);border:1px solid var(--border)">
       <span id="ptDot" style="width:10px;height:10px;border-radius:50%;background:#A8A29E;flex-shrink:0"></span>
@@ -357,37 +404,48 @@
 
     function renderLabs() {
       const grid = document.getElementById('labs-grid');
+      const done = JSON.parse(localStorage.getItem('ccna_ptlabs_done')||'[]');
+      let completedCount = 0;
+      let nextFound = false;
+
       grid.innerHTML = LAB_REGISTRY.map(lab => {
         const entry = store.getTopicStudyEntry(lab.topics[0]);
+        const labDone = done.includes('ccna_ptlab_' + lab.id);
         let statusClass = 'not-started';
         let statusText = 'Not started';
         let cardClass = '';
         let scoreHtml = '';
 
-        if (entry && entry.studyCount > 0) {
-          if (entry.passCount > 0) {
-            statusClass = 'complete';
-            statusText = 'Complete ✓';
-            cardClass = 'complete';
-            scoreHtml = `<span class="lab-score">Last score: <span class="score-val">${entry.lastScore}%</span></span>`;
-          } else {
-            statusClass = 'attempted';
-            statusText = 'Attempted';
-            cardClass = 'attempted';
-            scoreHtml = `<span class="lab-score">Best: <span class="score-val">${entry.lastScore}%</span></span>`;
-          }
+        if (labDone || (entry && entry.passCount > 0)) {
+          statusClass = 'complete';
+          statusText = 'Complete';
+          cardClass = 'complete';
+          completedCount++;
+          if (entry) scoreHtml = `<span class="lab-score">Score: <span class="score-val">${entry.lastScore}%</span></span>`;
+        } else if (entry && entry.studyCount > 0) {
+          statusClass = 'attempted';
+          statusText = 'In progress';
+          cardClass = 'attempted';
+        }
+
+        // First incomplete lab gets the "next-up" highlight
+        if (!nextFound && cardClass !== 'complete') {
+          cardClass += ' next-up';
+          statusText = 'Up next';
+          nextFound = true;
         }
 
         const topicPills = lab.topics.map(t => `<span class="topic-pill">${t}</span>`).join('');
-
-        const isComplete = cardClass === 'complete';
+        const isComplete = cardClass.includes('complete');
         const completeBtn = !isComplete ?
           `<button class="btn-complete-lab" onclick="event.preventDefault();event.stopPropagation();markLabDone('${lab.id}','${lab.topics.join(',')}');this.textContent='Done!';this.disabled=true;">Mark Complete</button>` : '';
+
+        const weekLabel = lab.week === 0 ? 'Pre-req' : 'Week ' + lab.week;
 
         return `
           <a class="lab-card ${cardClass}" href="${lab.file}">
             <div class="lab-card-top">
-              <span class="lab-week-badge">Week ${lab.week} · ${lab.date}</span>
+              <span class="lab-week-badge">${weekLabel}</span>
               <span class="lab-status ${statusClass}">${statusText}</span>
             </div>
             <h3>${lab.title}</h3>
@@ -403,6 +461,12 @@
             </div>
           </a>`;
       }).join('');
+
+      // Update progress bar
+      const total = LAB_REGISTRY.length;
+      const pct = Math.round((completedCount / total) * 100);
+      document.getElementById('progressText').textContent = completedCount + '/' + total + ' complete';
+      document.getElementById('progressFill').style.width = pct + '%';
     }
 
     function markLabDone(labId, topicStr) {
