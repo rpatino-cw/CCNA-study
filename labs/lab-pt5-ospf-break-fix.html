@@ -451,10 +451,10 @@
       <div class="lab-section-title">Objectives</div>
       <ul class="objectives-list">
         <li><span class="obj-num">01</span><span>Start from a working 3-router OSPF topology (same as Lab PT-4)</span></li>
-        <li><span class="obj-num">02</span><span>Inject each of the 5 faults listed below, one at a time, using the "break" commands</span></li>
+        <li><span class="obj-num">02</span><span>Inject each of the 7 faults listed below, one at a time, using the "break" commands</span></li>
         <li><span class="obj-num">03</span><span>Use only <code>show</code> commands to diagnose the symptom before looking at the fix</span></li>
         <li><span class="obj-num">04</span><span>Apply the fix command and confirm the adjacency returns to FULL state</span></li>
-        <li><span class="obj-num">05</span><span>After all 5 faults, restore a clean working config and verify all routes are present</span></li>
+        <li><span class="obj-num">05</span><span>After all 7 faults, restore a clean working config and verify all routes are present</span></li>
       </ul>
     </section>
 
@@ -479,7 +479,7 @@
 
     <!-- Faults -->
     <section class="lab-section" id="config">
-      <div class="lab-section-title">The 5 Faults</div>
+      <div class="lab-section-title">The 7 Faults</div>
       <div class="fault-grid">
 
         <!-- Fault 1: Area Mismatch -->
@@ -679,6 +679,84 @@
           </div>
         </div>
 
+        <!-- Fault 6: Network Type Mismatch -->
+        <div class="fault-card">
+          <div class="fault-header">
+            <span class="fault-num">FAULT 6</span>
+            <span class="fault-title">Network Type Mismatch</span>
+          </div>
+          <div class="fault-body">
+            <div>
+              <div class="fault-col-title">Break command</div>
+              <div class="cmd-block">
+                <div class="cmd-device">R2 — Fa0/0 (R1 link)</div>
+                <pre><span class="prompt">R2(config)#</span> <span class="cmd">interface fastethernet 0/0</span>
+<span class="prompt">R2(config-if)#</span> <span class="broken">ip ospf network point-to-point</span></pre>
+              </div>
+              <div class="fault-col-title" style="margin-top:var(--s-md)">Symptom</div>
+              <div class="fault-symptom">
+                R1–R2 adjacency issues — R1 expects DR/BDR election (broadcast) but R2 skips it (point-to-point). <code>show ip ospf neighbor</code> may show <code>INIT</code> or <code>2WAY</code>.
+              </div>
+            </div>
+            <div>
+              <div class="fault-col-title">Diagnose with</div>
+              <div class="fault-symptom">
+                <code>show ip ospf interface fa0/0</code> — compare the "Network Type" line on both sides<br><br>
+                One shows BROADCAST, the other shows POINT_TO_POINT. They must match.
+              </div>
+              <button class="reveal-toggle" onclick="toggleFix(this)">Show fix</button>
+              <div class="fix-reveal">
+                <div class="cmd-block">
+                  <div class="cmd-device">R2 — Fix</div>
+                  <pre><span class="prompt">R2(config)#</span> <span class="cmd">interface fastethernet 0/0</span>
+<span class="prompt">R2(config-if)#</span> <span class="fixed">no ip ospf network point-to-point</span></pre>
+                </div>
+                <div class="fault-symptom" style="margin-top:var(--s-sm)">Both sides of an OSPF link must agree on network type. Broadcast expects DR/BDR election; point-to-point does not. The mismatch prevents full adjacency.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Fault 7: Duplicate Router ID -->
+        <div class="fault-card">
+          <div class="fault-header">
+            <span class="fault-num">FAULT 7</span>
+            <span class="fault-title">Duplicate Router ID</span>
+          </div>
+          <div class="fault-body">
+            <div>
+              <div class="fault-col-title">Break command</div>
+              <div class="cmd-block">
+                <div class="cmd-device">R3</div>
+                <pre><span class="prompt">R3(config)#</span> <span class="cmd">router ospf 1</span>
+<span class="prompt">R3(config-router)#</span> <span class="broken">router-id 1.1.1.1</span></pre>
+              </div>
+              <div class="fault-col-title" style="margin-top:var(--s-md)">Symptom</div>
+              <div class="fault-symptom">
+                Syslog message <code>%OSPF-4-DUP_RTRID</code> or "Duplicate Router ID detected." Routes may flap, LSA database conflicts occur.
+              </div>
+            </div>
+            <div>
+              <div class="fault-col-title">Diagnose with</div>
+              <div class="fault-symptom">
+                <code>show ip ospf</code> on both R1 and R3 — compare the "Router ID" line<br><br>
+                Both show 1.1.1.1. Every OSPF router in an area must have a unique Router ID.
+              </div>
+              <button class="reveal-toggle" onclick="toggleFix(this)">Show fix</button>
+              <div class="fix-reveal">
+                <div class="cmd-block">
+                  <div class="cmd-device">R3 — Fix</div>
+                  <pre><span class="prompt">R3(config)#</span> <span class="cmd">router ospf 1</span>
+<span class="prompt">R3(config-router)#</span> <span class="fixed">router-id 3.3.3.3</span>
+<span class="prompt">R3#</span> <span class="fixed">clear ip ospf process</span>
+<span class="comment">! Confirm with "yes"</span></pre>
+                </div>
+                <div class="fault-symptom" style="margin-top:var(--s-sm)">Every OSPF router in an area must have a unique Router ID. Duplicates cause LSA conflicts — the LSDB becomes inconsistent and routes flap unpredictably. After changing the RID, you must clear the OSPF process to apply the new ID.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
       </div>
     </section>
 
@@ -713,7 +791,7 @@ O    10.23.0.0/30 [110/2] via 10.12.0.2, FastEthernet0/0</pre>
       <div class="quiz-wrap" id="quiz-wrap">
         <div class="quiz-start-panel" id="quiz-start">
           <h3>Troubleshooting Check</h3>
-          <p>5 scenario-based questions on OSPF fault diagnosis. Pass = 80%.</p>
+          <p>7 scenario-based questions on OSPF fault diagnosis. Pass = 80%.</p>
           <button class="btn btn-primary" onclick="startLabQuiz()">Start quiz</button>
         </div>
         <div class="quiz-active" id="quiz-active" style="display:none">
@@ -833,6 +911,28 @@ O    10.23.0.0/30 [110/2] via 10.12.0.2, FastEthernet0/0</pre>
         ],
         correct: 0,
         explanation: "If a network is missing from the routing table but adjacencies are FULL, the issue is that the network isn't being advertised — meaning the 'network' statement for 10.23.0.0/30 is missing on R2 or R3. Use 'show ip ospf database' or 'show running-config | section ospf' on R2 and R3 to verify. Dead timers and DR election don't prevent specific routes from appearing."
+      },
+      {
+        question: "R1 uses broadcast network type. R2 is configured with 'ip ospf network point-to-point' on the same link. What is the most likely result?",
+        options: [
+          "Adjacency forms normally",
+          "Adjacency fails due to network type mismatch",
+          "R2 becomes DR automatically",
+          "Both routers use point-to-point"
+        ],
+        correct: 1,
+        explanation: "Both sides of an OSPF link must agree on network type. Broadcast expects a DR/BDR election while point-to-point skips it entirely. When one side runs broadcast and the other runs point-to-point, they cannot complete the adjacency process — the neighbor stays in INIT or 2WAY."
+      },
+      {
+        question: "Two routers in Area 0 both have Router ID 1.1.1.1. What happens?",
+        options: [
+          "The router with higher MAC wins",
+          "Both routers function normally",
+          "OSPF detects duplicate RID — routing instability and LSA conflicts",
+          "One router automatically changes its RID"
+        ],
+        correct: 2,
+        explanation: "Every OSPF router in an area must have a unique Router ID. When two routers share the same RID, the LSDB becomes inconsistent — both routers originate LSAs with the same Router ID, causing conflicts, route flapping, and the '%OSPF-4-DUP_RTRID' syslog message. OSPF does not auto-resolve this; the administrator must manually fix one RID."
       }
     ];
 
@@ -841,7 +941,7 @@ O    10.23.0.0/30 [110/2] via 10.12.0.2, FastEthernet0/0</pre>
     let quizQuestions = [];
 
     function startLabQuiz() {
-      quizQuestions = shuffle([...LAB_QUESTIONS]).slice(0, 5);
+      quizQuestions = shuffle([...LAB_QUESTIONS]).slice(0, 7);
       currentQ = 0;
       answers = [];
       document.getElementById('quiz-start').style.display = 'none';

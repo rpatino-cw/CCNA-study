@@ -97,5 +97,10 @@
   beta.className = 'beta-badge';
   beta.innerHTML = '<span class="beta-tag">ALPHA v2.0.0</span><a href="' + fixHref('bug-report.html') + '" class="beta-bug">Report Bug</a>';
   document.body.appendChild(beta);
+
+  // Auto-load backup script on every page
+  var backupScript = document.createElement('script');
+  backupScript.src = fixHref('js/auto-backup.js');
+  document.body.appendChild(backupScript);
 })();
 
