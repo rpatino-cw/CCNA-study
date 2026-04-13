@@ -30,6 +30,7 @@
       { text: 'Diagnostic', href: 'diagnostic.html' },
       { text: 'Study & Quiz', href: 'quiz.html' },
       { text: 'Console Labs', href: 'console-labs.html' },
+      { text: 'Reading Practice', href: 'reading-practice.html' },
       { text: 'PT Labs', href: 'labs/index.html' },
       { text: 'Packet Race', href: 'packet-race.html' },
       { text: 'Exam Sim', href: 'exam-sim.html' },
