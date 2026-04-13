@@ -1684,6 +1684,508 @@
     $termInput.focus();
   });
 
+  // ═══════════════════════════════════════════════════════════════
+  //  DUEL SYSTEM
+  // ═══════════════════════════════════════════════════════════════
+
+  var DUEL_API = 'https://ccna-tutor.rpatino-cw.workers.dev';
+  var duelState = null;    // current duel session { code, labId, myId }
+  var duelPollTimer = null;
+  var duelTimerStart = null;
+  var duelTimerInterval = null;
+  var duelLobbyPollTimer = null;
+
+  // Get or create a persistent member ID
+  function getDuelMemberId() {
+    var id = localStorage.getItem('ccna_duel_memberId');
+    if (!id) {
+      id = 'dm_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+      localStorage.setItem('ccna_duel_memberId', id);
+    }
+    return id;
+  }
+
+  function getDuelName() {
+    // Try to reuse group name if set, else prompt
+    var name = localStorage.getItem('ccna_memberName');
+    if (!name) {
+      name = prompt('Enter your display name for the duel:');
+      if (!name) name = 'Player';
+      localStorage.setItem('ccna_memberName', name);
+    }
+    return name;
+  }
+
+  // Expose joinDuelFromInput to global scope for onclick
+  window.joinDuelFromInput = function() {
+    var input = document.getElementById('joinDuelCode');
+    var code = (input.value || '').toUpperCase().trim();
+    if (code.length === 6) {
+      joinDuel(code);
+    }
+  };
+
+  function createDuel(labId, mode) {
+    var memberId = getDuelMemberId();
+    var name = getDuelName();
+    if (!name) return;
+
+    fetch(DUEL_API + '/api/duel/create', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ labId: labId, mode: mode, memberId: memberId, name: name })
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (data.ok) {
+        duelState = { code: data.code, labId: labId, myId: memberId, isCreator: true };
+        showDuelLobby(data.duel);
+      } else {
+        alert('Error: ' + (data.error || 'Unknown'));
+      }
+    })
+    .catch(function(e) { alert('Network error: ' + e.message); });
+  }
+
+  function joinDuel(code) {
+    var memberId = getDuelMemberId();
+    var name = getDuelName();
+    if (!name) return;
+
+    fetch(DUEL_API + '/api/duel/join', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code: code, memberId: memberId, name: name })
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (data.ok) {
+        var duel = data.duel;
+        duelState = { code: duel.code, labId: duel.labId, myId: memberId, isCreator: duel.createdBy === memberId };
+        showDuelLobby(duel);
+      } else {
+        alert('Error: ' + (data.error || 'Unknown'));
+      }
+    })
+    .catch(function(e) { alert('Network error: ' + e.message); });
+  }
+
+  function showDuelLobby(duel) {
+    // Remove existing overlay
+    var existing = document.querySelector('.duel-overlay');
+    if (existing) existing.remove();
+
+    var labName = '';
+    LABS.forEach(function(l) { if (l.id === duel.labId) labName = l.name; });
+    var maxPlayers = duel.mode === '2v2' ? 4 : 2;
+    var players = Object.entries(duel.players);
+    var myId = duelState.myId;
+    var isCreator = duelState.isCreator;
+    var myStatus = duel.players[myId] ? duel.players[myId].status : 'waiting';
+    var allReady = players.length >= 2 && players.every(function(e) { return e[1].status === 'ready'; });
+    var colors = ['#2563EB', '#DC2626', '#7C3AED', '#059669'];
+
+    var html = '<div class="duel-overlay" id="duelOverlay">';
+    html += '<div class="duel-modal">';
+    html += '<h2>Lab Duel</h2>';
+    html += '<div class="duel-lab-name">' + labName + '</div>';
+
+    // Code row
+    html += '<div class="duel-code-row">';
+    html += '<span class="code">' + duel.code + '</span>';
+    html += '<button class="copy-btn" onclick="navigator.clipboard.writeText(\'' + duel.code + '\');this.textContent=\'Copied!\'">Copy</button>';
+    html += '<span class="mode-badge">' + duel.mode.toUpperCase() + '</span>';
+    html += '</div>';
+
+    // Players
+    html += '<div class="duel-players">';
+    players.forEach(function(entry, i) {
+      var pid = entry[0];
+      var p = entry[1];
+      var isMe = pid === myId;
+      var statusCls = p.status === 'ready' ? 'ready' : 'waiting';
+      var statusText = p.status === 'ready' ? 'READY' : 'WAITING';
+      if (isMe) { statusCls = p.status === 'ready' ? 'ready' : 'you'; statusText = p.status === 'ready' ? 'READY' : 'YOU'; }
+      html += '<div class="duel-player-card">';
+      html += '<div class="duel-avatar" style="background:' + colors[i % 4] + '">' + p.name.charAt(0).toUpperCase() + '</div>';
+      html += '<span class="name">' + p.name + (isMe ? ' (you)' : '') + '</span>';
+      html += '<span class="status ' + statusCls + '">' + statusText + '</span>';
+      html += '</div>';
+    });
+    // Empty slots
+    for (var s = players.length; s < maxPlayers; s++) {
+      html += '<div class="duel-waiting-slot">Waiting for player...</div>';
+    }
+    html += '</div>';
+
+    // Actions
+    html += '<div class="duel-actions">';
+    html += '<button class="duel-cancel-btn" onclick="closeDuelLobby()">Cancel</button>';
+    if (myStatus !== 'ready') {
+      html += '<button class="duel-ready-btn" onclick="readyUp()">Ready Up</button>';
+    } else {
+      html += '<button class="duel-ready-btn" disabled>Ready</button>';
+    }
+    if (isCreator) {
+      html += '<button class="duel-start-btn" onclick="startDuel()"' + (allReady ? '' : ' disabled') + '>Start</button>';
+    }
+    html += '</div>';
+
+    html += '</div></div>';
+
+    document.body.insertAdjacentHTML('beforeend', html);
+
+    // Start lobby polling
+    clearInterval(duelLobbyPollTimer);
+    duelLobbyPollTimer = setInterval(function() { pollDuelLobby(); }, 2000);
+  }
+
+  function pollDuelLobby() {
+    if (!duelState) { clearInterval(duelLobbyPollTimer); return; }
+    fetch(DUEL_API + '/api/duel/' + duelState.code + '?memberId=' + duelState.myId)
+    .then(function(r) { return r.json(); })
+    .then(function(duel) {
+      if (duel.error) return;
+      if (duel.state === 'countdown' || duel.state === 'racing') {
+        clearInterval(duelLobbyPollTimer);
+        var overlay = document.getElementById('duelOverlay');
+        if (overlay) overlay.remove();
+        startDuelCountdown(duel);
+      } else if (duel.state === 'lobby') {
+        // Re-render lobby with updated players
+        showDuelLobby(duel);
+      }
+    })
+    .catch(function() {});
+  }
+
+  window.closeDuelLobby = function() {
+    clearInterval(duelLobbyPollTimer);
+    duelState = null;
+    var overlay = document.getElementById('duelOverlay');
+    if (overlay) overlay.remove();
+  };
+
+  window.readyUp = function() {
+    if (!duelState) return;
+    fetch(DUEL_API + '/api/duel/ready', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code: duelState.code, memberId: duelState.myId })
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (data.ok) showDuelLobby(data.duel);
+    });
+  };
+
+  window.startDuel = function() {
+    if (!duelState) return;
+    fetch(DUEL_API + '/api/duel/start', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code: duelState.code, memberId: duelState.myId })
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (data.ok) {
+        clearInterval(duelLobbyPollTimer);
+        var overlay = document.getElementById('duelOverlay');
+        if (overlay) overlay.remove();
+        startDuelCountdown(data.duel);
+      } else {
+        alert(data.error || 'Cannot start');
+      }
+    });
+  };
+
+  function startDuelCountdown(duel) {
+    var countdownEl = document.createElement('div');
+    countdownEl.className = 'countdown-overlay';
+    countdownEl.id = 'countdownOverlay';
+    document.body.appendChild(countdownEl);
+
+    var count = 3;
+    countdownEl.innerHTML = '<div class="countdown-num">' + count + '</div>';
+
+    var tick = setInterval(function() {
+      count--;
+      if (count > 0) {
+        countdownEl.innerHTML = '<div class="countdown-num">' + count + '</div>';
+      } else if (count === 0) {
+        countdownEl.innerHTML = '<div class="countdown-go">GO!</div>';
+      } else {
+        clearInterval(tick);
+        countdownEl.remove();
+        beginDuelRace(duel);
+      }
+    }, 800);
+  }
+
+  function beginDuelRace(duel) {
+    // Load the lab
+    var labIdx = -1;
+    LABS.forEach(function(l, i) { if (l.id === duel.labId) labIdx = i; });
+    if (labIdx === -1) return;
+
+    loadLab(labIdx);
+
+    // Show opponent panel
+    var workspace = document.getElementById('labWorkspace');
+    workspace.classList.add('duel-active');
+    var oppPanel = document.getElementById('opponentPanel');
+    oppPanel.classList.remove('hidden');
+
+    // Start timer
+    duelTimerStart = Date.now();
+    clearInterval(duelTimerInterval);
+    duelTimerInterval = setInterval(function() {
+      updateDuelTimer();
+    }, 500);
+
+    // Initial render
+    renderOpponentPanel(duel);
+
+    // Start polling
+    clearInterval(duelPollTimer);
+    duelPollTimer = setInterval(function() { pollDuel(); }, 2000);
+  }
+
+  function updateDuelTimer() {
+    var el = document.getElementById('oppTimer');
+    if (el && duelTimerStart) {
+      el.textContent = formatDuelTime(Date.now() - duelTimerStart);
+    }
+  }
+
+  function pollDuel() {
+    if (!duelState) { clearInterval(duelPollTimer); return; }
+    fetch(DUEL_API + '/api/duel/' + duelState.code + '?memberId=' + duelState.myId)
+    .then(function(r) { return r.json(); })
+    .then(function(duel) {
+      if (duel.error) return;
+      renderOpponentPanel(duel);
+      if (duel.state === 'finished') {
+        clearInterval(duelPollTimer);
+        clearInterval(duelTimerInterval);
+        renderFinishScreen(duel);
+      }
+    })
+    .catch(function() {});
+  }
+
+  function pushProgress() {
+    if (!duelState || !currentLab) return;
+    var progress = currentLab.getProgress();
+    var objectives = [];
+    for (var i = 0; i < currentLab.objectives.length; i++) {
+      objectives.push(currentLab.completedObjectives.has(i));
+    }
+
+    fetch(DUEL_API + '/api/duel/progress', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        code: duelState.code,
+        memberId: duelState.myId,
+        objectives: objectives,
+        completedCount: progress.completed
+      })
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (data.ok && data.duel.state === 'finished') {
+        clearInterval(duelPollTimer);
+        clearInterval(duelTimerInterval);
+        renderFinishScreen(data.duel);
+      }
+    })
+    .catch(function() {});
+  }
+
+  function renderOpponentPanel(duel) {
+    var panel = document.getElementById('opponentPanel');
+    if (!panel || !duelState) return;
+
+    var myId = duelState.myId;
+    var opponents = [];
+    Object.entries(duel.players).forEach(function(entry) {
+      if (entry[0] !== myId) opponents.push({ id: entry[0], data: entry[1] });
+    });
+    if (opponents.length === 0) { panel.innerHTML = '<h3>Opponent</h3><p style="color:#78716c;font-size:0.8rem">No opponent yet</p>'; return; }
+
+    var html = '<h3>Opponent' + (opponents.length > 1 ? 's' : '') + '</h3>';
+
+    // Timer (my time)
+    html += '<div class="opp-timer" id="oppTimer">' + formatDuelTime(duelTimerStart ? Date.now() - duelTimerStart : 0) + '</div>';
+
+    opponents.forEach(function(opp) {
+      var p = opp.data;
+      html += '<div class="opp-header">';
+      html += '<div class="opp-avatar">' + p.name.charAt(0).toUpperCase() + '</div>';
+      html += '<span class="opp-name">' + p.name + '</span>';
+      html += '</div>';
+
+      // Progress bar
+      var pct = duel.totalObjectives > 0 ? Math.round((p.completedCount / duel.totalObjectives) * 100) : 0;
+      html += '<div class="opp-progress-bar"><div class="opp-progress-fill" style="width:' + pct + '%"></div></div>';
+      html += '<div class="opp-progress-text">' + p.completedCount + ' / ' + duel.totalObjectives + '</div>';
+
+      // Objectives checklist
+      html += '<div class="opp-objectives">';
+      if (currentLab) {
+        currentLab.objectives.forEach(function(obj, i) {
+          var done = p.objectives && p.objectives[i] === true;
+          html += '<div class="opp-obj' + (done ? ' done' : '') + '">';
+          html += '<span class="check">' + (done ? '&#10003;' : '&#9675;') + '</span>';
+          html += '<span>' + (i + 1) + '. ' + truncate(obj.text, 22) + '</span>';
+          html += '</div>';
+        });
+      }
+      html += '</div>';
+
+      if (p.status === 'forfeit') {
+        html += '<div class="opp-forfeit">Forfeited</div>';
+      }
+    });
+
+    panel.innerHTML = html;
+  }
+
+  function renderFinishScreen(duel) {
+    var existing = document.querySelector('.finish-overlay');
+    if (existing) existing.remove();
+
+    var myId = duelState.myId;
+    var me = duel.players[myId];
+    var iWon = duel.winner === myId;
+    var iForfeited = me && me.status === 'forfeit';
+
+    // Find opponent
+    var oppId = null, opp = null;
+    Object.entries(duel.players).forEach(function(e) {
+      if (e[0] !== myId) { oppId = e[0]; opp = e[1]; }
+    });
+
+    // Calculate times
+    var myTime = me && me.startTime && me.finishTime ? new Date(me.finishTime) - new Date(me.startTime) : 0;
+    var oppTime = opp && opp.startTime && opp.finishTime ? new Date(opp.finishTime) - new Date(opp.startTime) : 0;
+
+    var html = '<div class="finish-overlay" id="finishOverlay">';
+    html += '<div class="finish-card">';
+
+    // Result
+    if (iForfeited) {
+      html += '<div class="finish-result lose">FORFEITED</div>';
+    } else if (iWon) {
+      html += '<div class="finish-result win">YOU WIN!</div>';
+    } else {
+      html += '<div class="finish-result lose">OPPONENT WINS</div>';
+    }
+
+    // Times
+    html += '<div class="finish-times">';
+    html += '<div class="finish-time-col"><div class="label">You</div><div class="time">' + formatDuelTime(myTime) + '</div></div>';
+    if (opp) {
+      html += '<div class="finish-time-col"><div class="label">' + opp.name + '</div><div class="time">' + (oppTime > 0 ? formatDuelTime(oppTime) : '--:--') + '</div></div>';
+    }
+    html += '</div>';
+
+    // Objectives
+    html += '<div class="finish-objectives">';
+    html += '<span>You: ' + (me ? me.completedCount : 0) + '/' + duel.totalObjectives + '</span>';
+    if (opp) html += '<span>' + opp.name + ': ' + opp.completedCount + '/' + duel.totalObjectives + '</span>';
+    html += '</div>';
+
+    // XP
+    var xpAmount = iWon ? 100 : 50;
+    var xpLabel = iWon ? '+100 XP (Winner)' : '+50 XP (Participation)';
+    html += '<div class="finish-xp ' + (iWon ? 'win' : 'lose') + '">' + xpLabel + '</div>';
+
+    // Actions
+    html += '<div class="finish-actions">';
+    html += '<button class="finish-back-btn" onclick="closeDuelFinish()">Back to Labs</button>';
+    html += '<button class="finish-rematch-btn" onclick="duelRematch()">Rematch</button>';
+    html += '</div>';
+
+    html += '</div></div>';
+    document.body.insertAdjacentHTML('beforeend', html);
+
+    // Update proficiency for completed objectives
+    if (currentLab && me && me.completedCount > 0 && window.store) {
+      var topicMap = {
+        0: ['2.2', '2.3'],
+        1: ['2.3', '1.3'],
+        2: ['3.4'],
+        3: ['5.6', '1.4'],
+        4: ['2.2', '2.3', '3.4', '5.6', '5.3']
+      };
+      var topics = topicMap[currentLabIdx] || [];
+      topics.forEach(function(t) { store.updateProficiency(t, iWon); });
+    }
+  }
+
+  window.closeDuelFinish = function() {
+    var overlay = document.getElementById('finishOverlay');
+    if (overlay) overlay.remove();
+    cleanupDuel();
+  };
+
+  window.duelRematch = function() {
+    if (!duelState) return;
+    var labId = duelState.labId;
+    var overlay = document.getElementById('finishOverlay');
+    if (overlay) overlay.remove();
+    cleanupDuel();
+    createDuel(labId, '1v1');
+  };
+
+  function cleanupDuel() {
+    clearInterval(duelPollTimer);
+    clearInterval(duelTimerInterval);
+    clearInterval(duelLobbyPollTimer);
+    duelPollTimer = null;
+    duelTimerInterval = null;
+    duelTimerStart = null;
+    duelState = null;
+
+    var workspace = document.getElementById('labWorkspace');
+    workspace.classList.remove('duel-active');
+    var oppPanel = document.getElementById('opponentPanel');
+    oppPanel.classList.add('hidden');
+    oppPanel.innerHTML = '';
+  }
+
+  function formatDuelTime(ms) {
+    if (ms <= 0) return '0:00';
+    var totalSec = Math.floor(ms / 1000);
+    var min = Math.floor(totalSec / 60);
+    var sec = totalSec % 60;
+    return min + ':' + (sec < 10 ? '0' : '') + sec;
+  }
+
+  function truncate(str, max) {
+    return str.length > max ? str.substring(0, max - 1) + '...' : str;
+  }
+
+  // ── Hook into objective completion for duel progress push ──
+  var _originalLoadLab = loadLab;
+  loadLab = function(idx) {
+    // Save previous duel state (it gets cleared during loadLab)
+    var savedDuel = duelState;
+    _originalLoadLab(idx);
+    // If in a duel, re-override the onObjectiveComplete callback
+    if (savedDuel) {
+      duelState = savedDuel;
+      var origComplete = currentLab.onObjectiveComplete;
+      currentLab.onObjectiveComplete = function(objIdx, obj) {
+        origComplete(objIdx, obj);
+        // Push progress to duel server
+        if (duelState) pushProgress();
+      };
+    }
+  };
+
 })();
 </script>
 <script src="js/tutor.js"></script>
