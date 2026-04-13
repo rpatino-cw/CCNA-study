@@ -486,6 +486,100 @@
     50% { opacity: 0.5; }
   }
   .pulse { animation: pulse 1.5s ease-in-out infinite; }
+
+  /* ---- 802.1Q TAG INSERTION ---- */
+  .tag-anim-container {
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius);
+    overflow: hidden;
+    margin-bottom: 16px;
+  }
+  .tag-anim-container svg { width: 100%; display: block; }
+
+  .frame-section {
+    transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .tag-explanation {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-top: 16px;
+  }
+  @media (max-width: 800px) {
+    .tag-explanation { grid-template-columns: 1fr; }
+  }
+  .tag-detail-card {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius);
+    padding: 16px;
+  }
+  .tag-detail-card h4 {
+    font-size: 0.9rem;
+    margin-bottom: 10px;
+    color: var(--accent-orange);
+  }
+  .tag-detail-card .bit-layout {
+    display: flex;
+    font-family: 'Courier New', monospace;
+    font-size: 0.78rem;
+    margin-top: 8px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .tag-detail-card .bit-layout span {
+    padding: 6px 8px;
+    text-align: center;
+    border-right: 1px solid var(--border-color);
+    flex: 1;
+    white-space: nowrap;
+  }
+  .tag-detail-card .bit-layout span:last-child { border-right: none; }
+  .tag-detail-card .bit-layout .tpid-field { background: rgba(245,158,11,0.15); color: var(--accent-orange); }
+  .tag-detail-card .bit-layout .pcp-field { background: rgba(167,139,250,0.15); color: var(--accent-purple); }
+  .tag-detail-card .bit-layout .dei-field { background: rgba(248,113,113,0.15); color: var(--accent-red); }
+  .tag-detail-card .bit-layout .vid-field { background: rgba(59,130,246,0.15); color: var(--accent-blue); }
+
+  /* ---- NATIVE VLAN COMPARISON ---- */
+  .native-vlan-section {
+    margin-top: 24px;
+  }
+  .native-vlan-section h3 {
+    font-size: 1.1rem;
+    margin-bottom: 16px;
+    color: var(--text-primary);
+  }
+  .danger-callout {
+    background: rgba(248,113,113,0.08);
+    border: 1px solid rgba(248,113,113,0.25);
+    border-radius: var(--radius);
+    padding: 12px 16px;
+    margin-top: 16px;
+    font-size: 0.88rem;
+    color: var(--text-secondary);
+  }
+  .danger-callout strong { color: var(--accent-red); }
+
+  /* ---- VOICE VLAN ---- */
+  .voice-vlan-section {
+    margin-top: 24px;
+  }
+  .voice-vlan-section h3 {
+    font-size: 1.1rem;
+    margin-bottom: 16px;
+    color: var(--text-primary);
+  }
+  .voice-flow-legend {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 14px;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+  }
+  .voice-flow-legend .legend-item { display: flex; align-items: center; gap: 6px; }
 </style>
 </head>
 <body>
@@ -515,6 +609,7 @@
   <!-- TAB BAR -->
   <div class="tab-bar">
     <button class="tab-btn active" data-tab="topology">VLAN Topology Diagram</button>
+    <button class="tab-btn" data-tab="tagging">802.1Q Tagging</button>
     <button class="tab-btn" data-tab="intervlan">Inter-VLAN Routing</button>
     <button class="tab-btn" data-tab="commands">VLAN Commands Reference</button>
   </div>
@@ -665,7 +760,298 @@
     <div id="dtpResult" class="dtp-result-display" style="display:none;"></div>
   </div>
 
-  <!-- ==================== TAB 2: INTER-VLAN ROUTING ==================== -->
+  <!-- ==================== TAB 2: 802.1Q TAGGING ==================== -->
+  <div id="tab-tagging" class="tab-panel">
+
+    <!-- ---- 802.1Q Tag Insertion Animation ---- -->
+    <div class="card">
+      <h3>802.1Q Tag Insertion Animation</h3>
+      <p style="color:var(--text-secondary);font-size:0.88rem;margin-bottom:16px;">Watch how an Ethernet frame gets a 4-byte 802.1Q tag inserted as it enters a trunk port, and stripped on the receiving end.</p>
+
+      <div class="controls-row">
+        <button class="ctrl-btn" id="btnTagInsert" onclick="animateTagInsertion()">Play Tag Insertion</button>
+        <button class="ctrl-btn" id="btnTagReset" onclick="resetTagAnimation()">Reset</button>
+      </div>
+
+      <div class="tag-anim-container">
+        <svg id="tagInsertSvg" viewBox="0 0 1000 340" xmlns="http://www.w3.org/2000/svg">
+          <rect width="1000" height="340" fill="#0d0f15"/>
+          <pattern id="gridTag" width="40" height="40" patternUnits="userSpaceOnUse">
+            <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#1a1d27" stroke-width="0.5"/>
+          </pattern>
+          <rect width="1000" height="340" fill="url(#gridTag)"/>
+
+          <!-- Access Port (left) -->
+          <rect x="20" y="120" width="100" height="50" rx="6" fill="#0f1729" stroke="#3b82f6" stroke-width="1.5"/>
+          <text x="70" y="140" text-anchor="middle" fill="#3b82f6" font-size="11" font-weight="600">PC (VLAN 10)</text>
+          <text x="70" y="156" text-anchor="middle" fill="#6b7394" font-size="9">Access Port</text>
+
+          <!-- Switch 1 -->
+          <rect x="200" y="115" width="110" height="60" rx="8" fill="#1e2233" stroke="#404866" stroke-width="2"/>
+          <text x="255" y="143" text-anchor="middle" fill="#e8eaf0" font-size="13" font-weight="700">SW1</text>
+          <text x="255" y="161" text-anchor="middle" fill="#6b7394" font-size="9">Trunk Gi0/24</text>
+
+          <!-- Trunk link -->
+          <line x1="310" y1="145" x2="590" y2="145" stroke="#f59e0b" stroke-width="4" stroke-dasharray="10,5"/>
+          <text x="450" y="133" text-anchor="middle" fill="#f59e0b" font-size="11" font-weight="600">802.1Q Trunk</text>
+
+          <!-- Switch 2 -->
+          <rect x="590" y="115" width="110" height="60" rx="8" fill="#1e2233" stroke="#404866" stroke-width="2"/>
+          <text x="645" y="143" text-anchor="middle" fill="#e8eaf0" font-size="13" font-weight="700">SW2</text>
+          <text x="645" y="161" text-anchor="middle" fill="#6b7394" font-size="9">Trunk Gi0/24</text>
+
+          <!-- Access Port (right) -->
+          <rect x="780" y="120" width="100" height="50" rx="6" fill="#0f1729" stroke="#3b82f6" stroke-width="1.5"/>
+          <text x="830" y="140" text-anchor="middle" fill="#3b82f6" font-size="11" font-weight="600">PC (VLAN 10)</text>
+          <text x="830" y="156" text-anchor="middle" fill="#6b7394" font-size="9">Access Port</text>
+
+          <!-- Connection lines -->
+          <line x1="120" y1="145" x2="200" y2="145" stroke="#3b82f6" stroke-width="2"/>
+          <line x1="700" y1="145" x2="780" y2="145" stroke="#3b82f6" stroke-width="2"/>
+
+          <!-- Animated frame group -->
+          <g id="tagFrameLayer"></g>
+
+          <!-- Info text area at bottom -->
+          <text id="tagStepLabel" x="500" y="220" text-anchor="middle" fill="#9ca3b8" font-size="12" font-weight="500"></text>
+
+          <!-- Frame anatomy display at bottom -->
+          <g id="tagFrameAnatomy" transform="translate(100, 250)">
+            <!-- Will be populated by JS -->
+          </g>
+        </svg>
+      </div>
+
+      <div id="tagInsertInfo" class="info-panel">
+        Click "Play Tag Insertion" to watch the 802.1Q tag get inserted into an Ethernet frame as it enters the trunk link, then stripped on the other end.
+      </div>
+
+      <div class="tag-explanation">
+        <div class="tag-detail-card">
+          <h4>802.1Q Tag Structure (4 bytes)</h4>
+          <div class="bit-layout">
+            <span class="tpid-field">TPID<br><small>0x8100</small><br><small>16 bits</small></span>
+            <span class="pcp-field">PCP<br><small>Priority</small><br><small>3 bits</small></span>
+            <span class="dei-field">DEI<br><small>Drop</small><br><small>1 bit</small></span>
+            <span class="vid-field">VID<br><small>VLAN ID</small><br><small>12 bits</small></span>
+          </div>
+          <p style="font-size:0.82rem;color:var(--text-secondary);margin-top:10px;">
+            <strong style="color:var(--accent-orange)">TPID</strong> = Tag Protocol Identifier (always 0x8100 for 802.1Q).<br>
+            <strong style="color:var(--accent-purple)">PCP</strong> = Priority Code Point (QoS, 0-7).<br>
+            <strong style="color:var(--accent-red)">DEI</strong> = Drop Eligible Indicator.<br>
+            <strong style="color:var(--accent-blue)">VID</strong> = VLAN Identifier (0-4095, usable 1-4094).
+          </p>
+        </div>
+        <div class="tag-detail-card">
+          <h4>Key Points</h4>
+          <ul style="list-style:none;font-size:0.85rem;color:var(--text-secondary);">
+            <li style="padding:4px 0;border-bottom:1px solid var(--border-color);">The tag is inserted BETWEEN Src MAC and EtherType -- the frame gets 4 bytes larger.</li>
+            <li style="padding:4px 0;border-bottom:1px solid var(--border-color);">FCS is recalculated after tag insertion (and after removal).</li>
+            <li style="padding:4px 0;border-bottom:1px solid var(--border-color);">Only trunk ports add/remove 802.1Q tags.</li>
+            <li style="padding:4px 0;border-bottom:1px solid var(--border-color);">Access ports deliver frames with NO tag to end devices.</li>
+            <li style="padding:4px 0;">Maximum frame size increases from 1518 to 1522 bytes.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- ---- Native VLAN Comparison ---- -->
+    <div class="native-vlan-section">
+      <div class="card">
+        <h3>Native VLAN Comparison: Tagged vs Untagged on Trunk</h3>
+        <p style="color:var(--text-secondary);font-size:0.88rem;margin-bottom:16px;">See the difference between a tagged frame (VLAN 10) and an untagged frame (native VLAN) crossing the same trunk link simultaneously.</p>
+
+        <div class="controls-row">
+          <button class="ctrl-btn" id="btnNativeCompare" onclick="animateNativeComparison()">Play Comparison</button>
+          <button class="ctrl-btn" id="btnNativeReset" onclick="resetNativeComparison()">Reset</button>
+        </div>
+
+        <div class="tag-anim-container">
+          <svg id="nativeCompSvg" viewBox="0 0 1000 380" xmlns="http://www.w3.org/2000/svg">
+            <rect width="1000" height="380" fill="#0d0f15"/>
+            <pattern id="gridNative" width="40" height="40" patternUnits="userSpaceOnUse">
+              <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#1a1d27" stroke-width="0.5"/>
+            </pattern>
+            <rect width="1000" height="380" fill="url(#gridNative)"/>
+
+            <!-- Title labels for lanes -->
+            <text x="500" y="40" text-anchor="middle" fill="#e8eaf0" font-size="13" font-weight="700">Side-by-Side: Tagged (VLAN 10) vs Untagged (Native VLAN 1)</text>
+
+            <!-- TOP LANE: Tagged VLAN 10 -->
+            <text x="50" y="85" fill="#3b82f6" font-size="11" font-weight="600">VLAN 10 (Tagged)</text>
+            <rect x="150" y="70" width="80" height="40" rx="6" fill="#1e2233" stroke="#404866" stroke-width="1.5"/>
+            <text x="190" y="94" text-anchor="middle" fill="#e8eaf0" font-size="11" font-weight="600">SW1</text>
+            <!-- Trunk -->
+            <line x1="230" y1="90" x2="620" y2="90" stroke="#f59e0b" stroke-width="3" stroke-dasharray="8,4"/>
+            <rect x="620" y="70" width="80" height="40" rx="6" fill="#1e2233" stroke="#404866" stroke-width="1.5"/>
+            <text x="660" y="94" text-anchor="middle" fill="#e8eaf0" font-size="11" font-weight="600">SW2</text>
+
+            <!-- BOTTOM LANE: Untagged Native VLAN -->
+            <text x="50" y="175" fill="#f87171" font-size="11" font-weight="600">Native VLAN 1 (Untagged)</text>
+            <rect x="150" y="160" width="80" height="40" rx="6" fill="#1e2233" stroke="#404866" stroke-width="1.5"/>
+            <text x="190" y="184" text-anchor="middle" fill="#e8eaf0" font-size="11" font-weight="600">SW1</text>
+            <line x1="230" y1="180" x2="620" y2="180" stroke="#f59e0b" stroke-width="3" stroke-dasharray="8,4"/>
+            <rect x="620" y="160" width="80" height="40" rx="6" fill="#1e2233" stroke="#404866" stroke-width="1.5"/>
+            <text x="660" y="184" text-anchor="middle" fill="#e8eaf0" font-size="11" font-weight="600">SW2</text>
+
+            <!-- Frame anatomy labels -->
+            <!-- Tagged frame anatomy -->
+            <g id="taggedFrameDisplay" transform="translate(250, 115)" opacity="0">
+              <rect x="0" y="0" width="60" height="22" rx="3" fill="rgba(59,130,246,0.2)" stroke="#3b82f6" stroke-width="1"/>
+              <text x="30" y="15" text-anchor="middle" fill="#3b82f6" font-size="8" font-weight="500">Dst MAC</text>
+              <rect x="62" y="0" width="60" height="22" rx="3" fill="rgba(59,130,246,0.2)" stroke="#3b82f6" stroke-width="1"/>
+              <text x="92" y="15" text-anchor="middle" fill="#3b82f6" font-size="8" font-weight="500">Src MAC</text>
+              <rect x="124" y="0" width="70" height="22" rx="3" fill="rgba(245,158,11,0.3)" stroke="#f59e0b" stroke-width="1.5"/>
+              <text x="159" y="15" text-anchor="middle" fill="#f59e0b" font-size="8" font-weight="700">802.1Q Tag</text>
+              <rect x="196" y="0" width="50" height="22" rx="3" fill="rgba(59,130,246,0.2)" stroke="#3b82f6" stroke-width="1"/>
+              <text x="221" y="15" text-anchor="middle" fill="#3b82f6" font-size="8" font-weight="500">EtherType</text>
+              <rect x="248" y="0" width="50" height="22" rx="3" fill="rgba(59,130,246,0.2)" stroke="#3b82f6" stroke-width="1"/>
+              <text x="273" y="15" text-anchor="middle" fill="#3b82f6" font-size="8" font-weight="500">Data</text>
+              <rect x="300" y="0" width="40" height="22" rx="3" fill="rgba(59,130,246,0.2)" stroke="#3b82f6" stroke-width="1"/>
+              <text x="320" y="15" text-anchor="middle" fill="#3b82f6" font-size="8" font-weight="500">FCS</text>
+            </g>
+
+            <!-- Untagged frame anatomy -->
+            <g id="untaggedFrameDisplay" transform="translate(270, 205)" opacity="0">
+              <rect x="0" y="0" width="60" height="22" rx="3" fill="rgba(248,113,113,0.2)" stroke="#f87171" stroke-width="1"/>
+              <text x="30" y="15" text-anchor="middle" fill="#f87171" font-size="8" font-weight="500">Dst MAC</text>
+              <rect x="62" y="0" width="60" height="22" rx="3" fill="rgba(248,113,113,0.2)" stroke="#f87171" stroke-width="1"/>
+              <text x="92" y="15" text-anchor="middle" fill="#f87171" font-size="8" font-weight="500">Src MAC</text>
+              <rect x="124" y="0" width="50" height="22" rx="3" fill="rgba(248,113,113,0.2)" stroke="#f87171" stroke-width="1"/>
+              <text x="149" y="15" text-anchor="middle" fill="#f87171" font-size="8" font-weight="500">EtherType</text>
+              <rect x="176" y="0" width="50" height="22" rx="3" fill="rgba(248,113,113,0.2)" stroke="#f87171" stroke-width="1"/>
+              <text x="201" y="15" text-anchor="middle" fill="#f87171" font-size="8" font-weight="500">Data</text>
+              <rect x="228" y="0" width="40" height="22" rx="3" fill="rgba(248,113,113,0.2)" stroke="#f87171" stroke-width="1"/>
+              <text x="248" y="15" text-anchor="middle" fill="#f87171" font-size="8" font-weight="500">FCS</text>
+              <text x="135" y="40" text-anchor="middle" fill="#f87171" font-size="9" font-weight="600">NO TAG -- sent untagged on trunk</text>
+            </g>
+
+            <!-- Animation layer -->
+            <g id="nativeAnimLayer"></g>
+
+            <!-- Danger zone label area -->
+            <text id="nativeStepLabel" x="500" y="270" text-anchor="middle" fill="#9ca3b8" font-size="12" font-weight="500"></text>
+
+            <!-- Mismatch demo area -->
+            <g id="mismatchDemo" transform="translate(100, 290)" opacity="0">
+              <rect x="0" y="0" width="800" height="70" rx="8" fill="rgba(248,113,113,0.06)" stroke="rgba(248,113,113,0.3)" stroke-width="1"/>
+              <text x="400" y="22" text-anchor="middle" fill="#f87171" font-size="12" font-weight="700">DANGER: Native VLAN Mismatch</text>
+              <text x="400" y="40" text-anchor="middle" fill="#9ca3b8" font-size="10">SW1 native VLAN = 1, SW2 native VLAN = 99. Untagged frame from SW1 arrives at SW2...</text>
+              <text x="400" y="56" text-anchor="middle" fill="#f87171" font-size="10" font-weight="600">SW2 puts it in VLAN 99 instead of VLAN 1! Frame ends up in the WRONG VLAN.</text>
+            </g>
+          </svg>
+        </div>
+
+        <div id="nativeCompInfo" class="info-panel">
+          Click "Play Comparison" to see both a tagged and an untagged (native VLAN) frame cross the trunk simultaneously.
+        </div>
+
+        <div class="danger-callout">
+          <strong>Why native VLAN mismatch is dangerous:</strong> If SW1 has native VLAN 1 and SW2 has native VLAN 99, an untagged frame from VLAN 1 on SW1 will be placed into VLAN 99 on SW2. This causes traffic to leak between VLANs -- a classic VLAN hopping attack vector. <strong>Best practice:</strong> Always match native VLANs on both ends, use an unused VLAN (e.g., 999), and consider <code style="background:var(--bg-primary);padding:2px 6px;border-radius:4px;color:var(--accent-green);">vlan dot1q tag native</code> to tag even native VLAN traffic.
+        </div>
+      </div>
+    </div>
+
+    <!-- ---- Voice VLAN Visualization ---- -->
+    <div class="voice-vlan-section">
+      <div class="card">
+        <h3>Voice VLAN Visualization</h3>
+        <p style="color:var(--text-secondary);font-size:0.88rem;margin-bottom:16px;">See how an IP phone connected between a switch and PC separates data and voice traffic into different VLANs over a single cable.</p>
+
+        <div class="voice-flow-legend">
+          <div class="legend-item"><div class="legend-swatch" style="background:#3b82f6"></div> Data Traffic (Untagged, VLAN 10)</div>
+          <div class="legend-item"><div class="legend-swatch" style="background:#34d399"></div> Voice Traffic (Tagged, VLAN 150)</div>
+          <div class="legend-item"><div class="legend-swatch" style="background:#a78bfa"></div> CDP/LLDP Discovery</div>
+        </div>
+
+        <div class="controls-row">
+          <button class="ctrl-btn" id="btnVoiceAnim" onclick="animateVoiceVlan()">Play Voice VLAN Flow</button>
+          <button class="ctrl-btn" id="btnVoiceReset" onclick="resetVoiceVlan()">Reset</button>
+        </div>
+
+        <div class="tag-anim-container">
+          <svg id="voiceVlanSvg" viewBox="0 0 1000 420" xmlns="http://www.w3.org/2000/svg">
+            <rect width="1000" height="420" fill="#0d0f15"/>
+            <pattern id="gridVoice" width="40" height="40" patternUnits="userSpaceOnUse">
+              <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#1a1d27" stroke-width="0.5"/>
+            </pattern>
+            <rect width="1000" height="420" fill="url(#gridVoice)"/>
+
+            <!-- Switch -->
+            <rect x="680" y="130" width="140" height="80" rx="10" fill="#1e2233" stroke="#404866" stroke-width="2"/>
+            <text x="750" y="163" text-anchor="middle" fill="#e8eaf0" font-size="14" font-weight="700">Switch</text>
+            <text x="750" y="182" text-anchor="middle" fill="#6b7394" font-size="10">Gi0/1 (access+voice)</text>
+            <text x="750" y="196" text-anchor="middle" fill="#6b7394" font-size="9">VLAN 10 + Voice 150</text>
+
+            <!-- Cable from switch to phone -->
+            <line x1="680" y1="170" x2="530" y2="170" stroke="#6b7394" stroke-width="3"/>
+            <text x="605" y="160" text-anchor="middle" fill="#6b7394" font-size="9">Single cable</text>
+
+            <!-- IP Phone -->
+            <rect x="370" y="130" width="160" height="80" rx="10" fill="#1e2233" stroke="#34d399" stroke-width="2"/>
+            <text x="450" y="158" text-anchor="middle" fill="#34d399" font-size="13" font-weight="700">IP Phone</text>
+            <text x="450" y="175" text-anchor="middle" fill="#6b7394" font-size="10">802.1Q capable</text>
+            <text x="450" y="192" text-anchor="middle" fill="#6b7394" font-size="9">Tags voice on VLAN 150</text>
+
+            <!-- Cable from phone to PC -->
+            <line x1="370" y1="170" x2="230" y2="170" stroke="#6b7394" stroke-width="3"/>
+            <text x="300" y="160" text-anchor="middle" fill="#6b7394" font-size="9">Pass-through</text>
+
+            <!-- PC -->
+            <rect x="70" y="140" width="160" height="60" rx="8" fill="#0f1729" stroke="#3b82f6" stroke-width="1.5"/>
+            <text x="150" y="167" text-anchor="middle" fill="#3b82f6" font-size="13" font-weight="600">PC (Data)</text>
+            <text x="150" y="184" text-anchor="middle" fill="#6b7394" font-size="10">Untagged traffic</text>
+
+            <!-- Switch internal separation diagram -->
+            <rect x="690" y="250" width="120" height="40" rx="5" fill="rgba(59,130,246,0.12)" stroke="#3b82f6" stroke-width="1"/>
+            <text x="750" y="274" text-anchor="middle" fill="#3b82f6" font-size="10" font-weight="600">VLAN 10 (Data)</text>
+            <rect x="690" y="300" width="120" height="40" rx="5" fill="rgba(52,211,153,0.12)" stroke="#34d399" stroke-width="1"/>
+            <text x="750" y="324" text-anchor="middle" fill="#34d399" font-size="10" font-weight="600">VLAN 150 (Voice)</text>
+
+            <text x="750" y="245" text-anchor="middle" fill="#e8eaf0" font-size="11" font-weight="600">Switch Separates:</text>
+
+            <!-- Arrow from switch down to VLANs -->
+            <line x1="750" y1="210" x2="750" y2="248" stroke="#404866" stroke-width="1.5" stroke-dasharray="4,3"/>
+
+            <!-- CDP/LLDP message area -->
+            <g id="cdpMessageArea" transform="translate(370, 240)" opacity="0">
+              <rect x="0" y="0" width="260" height="55" rx="6" fill="rgba(167,139,250,0.08)" stroke="rgba(167,139,250,0.4)" stroke-width="1"/>
+              <text x="130" y="18" text-anchor="middle" fill="#a78bfa" font-size="10" font-weight="700">CDP/LLDP from Switch to Phone:</text>
+              <text x="130" y="34" text-anchor="middle" fill="#a78bfa" font-size="9">"Use VLAN 150 for voice traffic"</text>
+              <text x="130" y="48" text-anchor="middle" fill="#6b7394" font-size="8">Phone learns which VLAN to tag voice with</text>
+            </g>
+
+            <!-- Animation layer -->
+            <g id="voiceAnimLayer"></g>
+
+            <!-- Step label -->
+            <text id="voiceStepLabel" x="500" y="370" text-anchor="middle" fill="#9ca3b8" font-size="12" font-weight="500"></text>
+
+            <!-- Config reference -->
+            <g transform="translate(70, 310)">
+              <rect x="0" y="0" width="250" height="95" rx="6" fill="#1e2233" stroke="#404866" stroke-width="1"/>
+              <text x="10" y="20" fill="#6b7394" font-size="9" font-weight="600">Switch Port Configuration:</text>
+              <text x="10" y="38" fill="#3b82f6" font-size="9" font-family="Courier New">switchport mode access</text>
+              <text x="10" y="53" fill="#3b82f6" font-size="9" font-family="Courier New">switchport access vlan 10</text>
+              <text x="10" y="68" fill="#34d399" font-size="9" font-family="Courier New">switchport voice vlan 150</text>
+              <text x="10" y="86" fill="#6b7394" font-size="8">Port becomes multi-VLAN access port</text>
+            </g>
+          </svg>
+        </div>
+
+        <div id="voiceVlanInfo" class="info-panel">
+          Click "Play Voice VLAN Flow" to see how the switch uses CDP/LLDP to tell the IP phone which VLAN to tag voice traffic on, while data from the PC passes through untagged.
+        </div>
+
+        <div class="note-box">
+          <strong>Voice VLAN key concept:</strong> The switch port is configured as an access port with an additional voice VLAN. Data from the PC arrives untagged (VLAN 10). Voice from the IP phone arrives 802.1Q-tagged with VLAN 150. The switch uses CDP or LLDP to inform the phone which VLAN to use for voice. This gives voice traffic QoS priority (CoS 5 by default) without requiring the PC to understand VLANs.
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ==================== TAB 3: INTER-VLAN ROUTING (was TAB 2) ==================== -->
   <div id="tab-intervlan" class="tab-panel">
 
     <div class="method-toggle">

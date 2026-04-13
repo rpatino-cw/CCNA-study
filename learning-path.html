@@ -73,8 +73,29 @@
   .tier-topic .tname { color: var(--ink); flex: 1; }
   .tier-topic .tpct { margin-left: auto; font-family: var(--font-mono); font-size: 0.72rem; font-weight: 600; font-variant-numeric: tabular-nums; }
 
+  /* ── Entrance animation ────────────────────────────────────────── */
+  @keyframes nodeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes edgeIn { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes labelIn { from { opacity: 0; } to { opacity: 1; } }
+  .node-group { opacity: 0; }
+  .node-group.entered { animation: nodeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+  .edge-line { opacity: 0; }
+  .edge-line.entered { animation: edgeIn 0.35s ease forwards; }
+  .tier-label { opacity: 0; }
+  .tier-label.entered { animation: labelIn 0.3s ease forwards; }
+  /* After entrance completes (or on hover), switch to static opacity */
+  .entrance-done .node-group,
+  .graph-dimmed .node-group { animation: none; opacity: 1; }
+  .entrance-done .node-weak,
+  .graph-dimmed .node-weak { opacity: 0.45; }
+  .entrance-done .edge-line,
+  .graph-dimmed .edge-line { animation: none; opacity: 1; }
+  .entrance-done .tier-label { animation: none; opacity: 1; }
+
   @media (prefers-reduced-motion: reduce) {
     .critical-edge, .node-recommended .node-rect { animation: none; }
+    .node-group, .edge-line, .tier-label { opacity: 1; animation: none; }
+    .node-group.entered, .edge-line.entered, .tier-label.entered { animation: none; opacity: 1; }
   }
   @media (max-width: 600px) {
     .graph-legend { gap: 8px 12px; padding: 10px 14px; }
@@ -310,14 +331,17 @@ function render() {
     html += `<text x="14" y="${y + TIER_H/2 + 4}" class="tier-label">${tier.name}</text>`;
   });
 
-  // Edges
+  // Edges — assign tier index of the target node for stagger timing
+  const nodeTierIdx = {};
+  NODES.forEach(n => { nodeTierIdx[n.id] = TIERS.findIndex(t => t.id === n.tier); });
   EDGES.forEach(([from, to]) => {
     const p1 = pos[from], p2 = pos[to];
     if (!p1 || !p2) return;
     const isCrit = critEdges.has(from + '→' + to);
     const cls = isCrit ? 'edge-line critical-edge' : 'edge-line';
     const marker = isCrit ? 'url(#arrowCrit)' : 'url(#arrow)';
-    html += `<path d="${bezierPath(p1.x, p1.y, p2.x, p2.y)}" class="${cls}" data-from="${from}" data-to="${to}" marker-end="${marker}"/>`;
+    const eTier = Math.max(nodeTierIdx[from] ?? 0, nodeTierIdx[to] ?? 0);
+    html += `<path d="${bezierPath(p1.x, p1.y, p2.x, p2.y)}" class="${cls}" data-from="${from}" data-to="${to}" data-tier-idx="${eTier}" marker-end="${marker}"/>`;
   });
 
   // Nodes
@@ -331,7 +355,8 @@ function render() {
     const fill = mastered ? '#16A34A' : tier.color;
     const cls = ['node-group', mastered ? 'node-mastered' : '', weak ? 'node-weak' : '', n.id === recId ? 'node-recommended' : ''].join(' ');
 
-    html += `<g class="${cls}" data-id="${n.id}" data-name="${n.name}" data-score="${Math.round(score*100)}" data-tier="${n.tier}">`;
+    const tierIdx = TIERS.findIndex(t => t.id === n.tier);
+    html += `<g class="${cls}" data-id="${n.id}" data-name="${n.name}" data-score="${Math.round(score*100)}" data-tier="${n.tier}" data-tier-idx="${tierIdx}">`;
     html += `<rect class="node-rect" x="${p.x - NODE_W/2}" y="${p.y - NODE_H/2}" width="${NODE_W}" height="${NODE_H}" rx="7" fill="${fill}"/>`;
     html += `<text class="node-id" x="${p.x}" y="${p.y - 5}" text-anchor="middle">${n.id}</text>`;
     html += `<text class="node-text" x="${p.x}" y="${p.y + 9}" text-anchor="middle">${n.name}</text>`;
@@ -347,6 +372,42 @@ function render() {
   </g>`;
 
   svg.innerHTML = html;
+
+  // ── Staggered entrance animation ─────────────────────────────
+  // Tier labels → nodes by tier → edges by tier, each tier delayed
+  requestAnimationFrame(() => {
+    const BASE = 80;   // ms between tiers
+    const NODE_STAGGER = 30; // ms between nodes within a tier
+    let maxDelay = 0;
+
+    // Tier labels first
+    svg.querySelectorAll('.tier-label').forEach((el, i) => {
+      const d = i * BASE;
+      setTimeout(() => el.classList.add('entered'), d);
+      maxDelay = Math.max(maxDelay, d);
+    });
+
+    // Nodes staggered by tier, then left-to-right within tier
+    svg.querySelectorAll('.node-group').forEach(g => {
+      const ti = parseInt(g.dataset.tierIdx);
+      const siblings = [...svg.querySelectorAll(`.node-group[data-tier-idx="${ti}"]`)];
+      const ni = siblings.indexOf(g);
+      const d = (ti * BASE) + 60 + (ni * NODE_STAGGER);
+      setTimeout(() => g.classList.add('entered'), d);
+      maxDelay = Math.max(maxDelay, d);
+    });
+
+    // Edges fade in after their tier's nodes
+    svg.querySelectorAll('.edge-line').forEach(edge => {
+      const ti = parseInt(edge.dataset.tierIdx);
+      const d = (ti * BASE) + 250;
+      setTimeout(() => edge.classList.add('entered'), d);
+      maxDelay = Math.max(maxDelay, d);
+    });
+
+    // After all animations finish, switch to static state
+    setTimeout(() => svg.classList.add('entrance-done'), maxDelay + 450);
+  });
 
   // Build adjacency for path tracing
   const fwdAdj = {}, revAdj = {};
