@@ -239,6 +239,7 @@
       justify-content: center;
       align-items: center;
       text-align: center;
+      overflow-y: auto;
     }
 
     .fc-card-back { transform: rotateY(180deg); }
@@ -677,6 +678,7 @@
     var STORAGE_KEY = 'ccna_flashcard_state';
     var STREAK_KEY = 'ccna_fc_streak';
     var SESSION_KEY = 'ccna_fc_session';
+    var LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 
     // ── Helpers ───────────────────────────────────────────────
     function todayStr() {
@@ -748,7 +750,6 @@
 
     // ── SM-2 Algorithm ────────────────────────────────────────
     function computeNextState(current, rating) {
-      // rating: 'again' | 'hard' | 'good' | 'easy'
       var today = todayStr();
       var s = current ? Object.assign({}, current) : {
         interval: 0,
@@ -785,7 +786,6 @@
           break;
       }
 
-      // Compute due date
       var due = new Date();
       due.setDate(due.getDate() + s.interval);
       s.dueDate = due.getFullYear() + '-' + String(due.getMonth()+1).padStart(2,'0') + '-' + String(due.getDate()).padStart(2,'0');
@@ -799,29 +799,165 @@
       return formatInterval(next.interval);
     }
 
+    // ── ExamTopics explanation cleaner ─────────────────────────
+    function cleanExplanation(raw) {
+      if (!raw) return '';
+      // Remove community vote percentages at the start like "B (100%)\n\n" or "B (95%)\n\n5%\n\n"
+      var cleaned = raw.replace(/^[A-E]\s*\(\d+%\)\s*/g, '').replace(/^\d+%\s*/gm, '');
+      // Remove unicode markers and user attribution lines
+      cleaned = cleaned.replace(/[\uf147\uf007\uf164]/g, '');
+      // Remove "Highly Voted" markers
+      cleaned = cleaned.replace(/Highly Voted\s*/g, '');
+      // Remove lines that are just usernames with timestamps like "papibarbu 8 months, 2 weeks ago"
+      cleaned = cleaned.replace(/^\s*\[?Removed\]?\s*\d+\s+months?.*$/gm, '');
+      cleaned = cleaned.replace(/^\s*\w+\s+\d+\s+months?,?\s*\d*\s*weeks?\s+ago\s*$/gm, '');
+      // Remove "Selected Answer: X" lines
+      cleaned = cleaned.replace(/Selected Answer:\s*[A-E]\s*/g, '');
+      // Remove "Given answer is correct" type lines
+      cleaned = cleaned.replace(/Given answer is correct\.?\s*/g, '');
+      // Clean up excessive newlines
+      cleaned = cleaned.replace(/\n{3,}/g, '\n\n').trim();
+      // If after cleaning it's just whitespace or "yes my man" type noise, return empty
+      if (cleaned.length < 10 || /^(yes|correct|right|answer)\b/i.test(cleaned)) return '';
+      return cleaned;
+    }
+
+    // ── Convert ExamTopics cards to flashcard format ───────────
+    var DECK_LABELS = {
+      'examtopics-1': 'ExamTopics Set 1',
+      'examtopics-2': 'ExamTopics Set 2',
+      'examtopics-3': 'ExamTopics Set 3'
+    };
+
+    function convertExamTopicsCards(rawCards) {
+      return rawCards.map(function(et) {
+        var correctLetters = et.correct.split('');
+        var chooseCount = correctLetters.length;
+
+        // Build front: question + lettered options
+        var frontLines = [et.question];
+        if (chooseCount > 1 && et.question.indexOf('Choose') === -1) {
+          frontLines[0] += ' (Choose ' + chooseCount + ')';
+        }
+        frontLines.push('');
+        et.options.forEach(function(opt, i) {
+          frontLines.push(LETTERS[i] + '. ' + opt);
+        });
+
+        // Build back: correct answer label + correct option texts + explanation
+        var correctLabels = correctLetters.join(', ');
+        var backLines = ['Correct: ' + correctLabels, ''];
+        correctLetters.forEach(function(letter) {
+          var idx = LETTERS.indexOf(letter);
+          if (idx >= 0 && idx < et.options.length) {
+            backLines.push(letter + '. ' + et.options[idx]);
+          }
+        });
+
+        var explanation = cleanExplanation(et.explanation);
+
+        return {
+          id: et.id,
+          type: 'examtopics',
+          front: frontLines.join('\n'),
+          back: backLines.join('\n'),
+          section: 'et_' + et.deck,
+          deck: et.deck,
+          deckLabel: DECK_LABELS[et.deck] || et.deck,
+          // Keep original data for rich rendering
+          _question: et.question,
+          _options: et.options,
+          _correct: et.correct,
+          _explanation: explanation,
+          _chooseCount: chooseCount
+        };
+      });
+    }
+
     // ── Data indexing ─────────────────────────────────────────
-    var sections = typeof ANKI_SECTIONS !== 'undefined' ? ANKI_SECTIONS : [];
-    var allCards = typeof ANKI_CARDS !== 'undefined' ? ANKI_CARDS : [];
+    var ankiSections = typeof ANKI_SECTIONS !== 'undefined' ? ANKI_SECTIONS : [];
+    var ankiCards = typeof ANKI_CARDS !== 'undefined' ? ANKI_CARDS : [];
+    var rawExamTopics = typeof EXAMTOPICS_CARDS !== 'undefined' ? EXAMTOPICS_CARDS : [];
 
-    // Build section lookup
+    // Tag Flackbox cards with deck info
+    ankiCards.forEach(function(c) {
+      c.deck = 'flackbox';
+      c.deckLabel = 'Flackbox';
+    });
+
+    // Convert ExamTopics
+    var etCards = convertExamTopicsCards(rawExamTopics);
+
+    // Combined card pool
+    var masterCards = ankiCards.concat(etCards);
+
+    // ── Deck definitions ──────────────────────────────────────
+    var DECKS = [
+      { id: 'all', label: 'All Decks', count: masterCards.length },
+      { id: 'flackbox', label: 'Flackbox', count: ankiCards.length },
+      { id: 'examtopics-1', label: 'ExamTopics Set 1', count: etCards.filter(function(c) { return c.deck === 'examtopics-1'; }).length },
+      { id: 'examtopics-2', label: 'ExamTopics Set 2', count: etCards.filter(function(c) { return c.deck === 'examtopics-2'; }).length },
+      { id: 'examtopics-3', label: 'ExamTopics Set 3', count: etCards.filter(function(c) { return c.deck === 'examtopics-3'; }).length }
+    ];
+
+    var currentDeck = 'all'; // session-only, resets on reload
+
+    // ── Filtered card pool (respects current deck) ────────────
+    function getFilteredCards() {
+      if (currentDeck === 'all') return masterCards;
+      return masterCards.filter(function(c) { return c.deck === currentDeck; });
+    }
+
+    // ── Build section data for current deck ───────────────────
+    // Flackbox sections come from ANKI_SECTIONS
+    // ExamTopics sections are generated per-deck
+    var etSectionsByDeck = {};
+    ['examtopics-1', 'examtopics-2', 'examtopics-3'].forEach(function(deckId) {
+      var deckCards = etCards.filter(function(c) { return c.deck === deckId; });
+      etSectionsByDeck[deckId] = [{
+        id: 'et_' + deckId,
+        name: DECK_LABELS[deckId],
+        count: deckCards.length
+      }];
+    });
+
+    function getActiveSections() {
+      if (currentDeck === 'flackbox') return ankiSections;
+      if (currentDeck === 'all') {
+        // Flackbox sections + one section per ET deck
+        return ankiSections.concat(
+          etSectionsByDeck['examtopics-1'],
+          etSectionsByDeck['examtopics-2'],
+          etSectionsByDeck['examtopics-3']
+        );
+      }
+      // Specific ET deck
+      return etSectionsByDeck[currentDeck] || [];
+    }
+
+    // Build section lookup (all sections, always available)
     var sectionMap = {};
-    sections.forEach(function(s) { sectionMap[s.id] = s; });
+    ankiSections.forEach(function(s) { sectionMap[s.id] = s; });
+    ['examtopics-1', 'examtopics-2', 'examtopics-3'].forEach(function(deckId) {
+      etSectionsByDeck[deckId].forEach(function(s) { sectionMap[s.id] = s; });
+    });
 
-    // Index cards by section
+    // Index cards by section (all cards)
     var cardsBySection = {};
-    allCards.forEach(function(c) {
+    masterCards.forEach(function(c) {
       if (!cardsBySection[c.section]) cardsBySection[c.section] = [];
       cardsBySection[c.section].push(c);
     });
 
-    // ── Compute stats ─────────────────────────────────────────
+    // ── Compute stats (filtered by deck) ──────────────────────
     function computeStats() {
+      var cards = getFilteredCards();
       var states = loadCardStates();
       var today = todayStr();
-      var total = allCards.length;
+      var total = cards.length;
       var newCount = 0, learning = 0, mastered = 0, due = 0;
 
-      allCards.forEach(function(c) {
+      cards.forEach(function(c) {
         var s = states[c.id];
         if (!s) { newCount++; return; }
         if (s.interval > 21) mastered++;
@@ -843,6 +979,10 @@
 
     function sectionStats(sectionId) {
       var cards = cardsBySection[sectionId] || [];
+      // If deck filter active, only count cards in that deck
+      if (currentDeck !== 'all') {
+        cards = cards.filter(function(c) { return c.deck === currentDeck; });
+      }
       var states = loadCardStates();
       var today = todayStr();
       var newC = 0, learning = 0, mastered = 0, due = 0;
@@ -858,28 +998,34 @@
       return { total: cards.length, new: newC, learning: learning, mastered: mastered, due: due };
     }
 
-    // ── Card queues ───────────────────────────────────────────
+    // ── Card queues (filtered by deck) ────────────────────────
     function getDueCards() {
+      var cards = getFilteredCards();
       var states = loadCardStates();
       var today = todayStr();
-      return allCards.filter(function(c) {
+      return cards.filter(function(c) {
         var s = states[c.id];
         return s && s.dueDate <= today;
       });
     }
 
     function getNewCards(limit) {
+      var cards = getFilteredCards();
       var states = loadCardStates();
-      var cards = allCards.filter(function(c) { return !states[c.id]; });
-      return shuffle(cards).slice(0, limit || 20);
+      var newCards = cards.filter(function(c) { return !states[c.id]; });
+      return shuffle(newCards).slice(0, limit || 20);
     }
 
     function getSectionCards(sectionId) {
-      return shuffle(cardsBySection[sectionId] || []);
+      var cards = cardsBySection[sectionId] || [];
+      if (currentDeck !== 'all') {
+        cards = cards.filter(function(c) { return c.deck === currentDeck; });
+      }
+      return shuffle(cards);
     }
 
     function getAllCardsShuffle() {
-      return shuffle(allCards);
+      return shuffle(getFilteredCards());
     }
 
     // ── Cloze parsing ─────────────────────────────────────────
@@ -896,6 +1042,53 @@
       var d = document.createElement('div');
       d.textContent = str;
       return d.innerHTML;
+    }
+
+    // ── Render deck filter pills ──────────────────────────────
+    function renderDecks() {
+      var el = document.getElementById('fc-decks');
+      el.innerHTML = DECKS.map(function(dk) {
+        return '<button class="fc-deck-pill' + (currentDeck === dk.id ? ' active' : '') + '" data-deck="' + dk.id + '">' +
+          dk.label + '<span class="pill-count">(' + dk.count + ')</span>' +
+          '</button>';
+      }).join('');
+
+      el.querySelectorAll('.fc-deck-pill').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+          var deckId = btn.getAttribute('data-deck');
+          if (deckId === currentDeck) return;
+          currentDeck = deckId;
+          // Reset session state
+          currentMode = null;
+          currentQueue = [];
+          currentIndex = -1;
+          currentSectionId = null;
+          session = { reviewed: 0, correct: 0 };
+          // Update subtitle
+          updateSubtitle();
+          // Re-render everything
+          renderDecks();
+          renderStats();
+          renderModes();
+          renderSidebar();
+          renderCardArea();
+        });
+      });
+    }
+
+    function updateSubtitle() {
+      var el = document.getElementById('fc-subtitle');
+      if (!el) return;
+      var cards = getFilteredCards();
+      var sections = getActiveSections();
+      if (currentDeck === 'all') {
+        el.textContent = cards.length + ' cards across ' + sections.length + ' topics — spaced repetition powered by SM-2';
+      } else if (currentDeck === 'flackbox') {
+        el.textContent = cards.length + ' Flackbox cards across ' + sections.length + ' topics — spaced repetition powered by SM-2';
+      } else {
+        var label = DECK_LABELS[currentDeck] || currentDeck;
+        el.textContent = cards.length + ' ' + label + ' questions — spaced repetition powered by SM-2';
+      }
     }
 
     // ── Render stats ──────────────────────────────────────────
@@ -934,7 +1127,6 @@
         btn.addEventListener('click', function() {
           var mode = btn.getAttribute('data-mode');
           if (mode === 'section') {
-            // Just set mode, user picks from sidebar
             currentMode = 'section';
             currentQueue = [];
             currentIndex = -1;
@@ -950,14 +1142,34 @@
     // ── Render sidebar ────────────────────────────────────────
     function renderSidebar() {
       var el = document.getElementById('fc-section-list');
-      el.innerHTML = sections.map(function(sec) {
+      var activeSections = getActiveSections();
+
+      // Determine if we need group headers
+      var showFlackbox = currentDeck === 'all' || currentDeck === 'flackbox';
+      var showET = currentDeck === 'all' || currentDeck.indexOf('examtopics') === 0;
+      var needHeaders = currentDeck === 'all';
+
+      var html = '';
+
+      if (needHeaders && showFlackbox) {
+        html += '<li class="fc-section-group-header">Flackbox</li>';
+      }
+
+      activeSections.forEach(function(sec) {
+        var isETSection = sec.id.indexOf('et_') === 0;
+
+        // Insert ET group header at boundary
+        if (needHeaders && isETSection && html.indexOf('ExamTopics') === -1) {
+          html += '<li class="fc-section-group-header">ExamTopics</li>';
+        }
+
         var ss = sectionStats(sec.id);
         var total = ss.total || 1;
         var mPct = (ss.mastered / total * 100).toFixed(0);
         var lPct = (ss.learning / total * 100).toFixed(0);
         var isActive = currentMode === 'section' && currentSectionId === sec.id;
 
-        return '<li class="fc-section-item' + (isActive ? ' active' : '') + '" data-section="' + sec.id + '">' +
+        html += '<li class="fc-section-item' + (isActive ? ' active' : '') + '" data-section="' + sec.id + '">' +
           '<span class="fc-section-name">' + escHtml(sec.name) + '</span>' +
           '<div class="fc-section-meta">' +
             '<span>' + ss.total + '</span>' +
@@ -968,7 +1180,9 @@
             '</div>' +
           '</div>' +
         '</li>';
-      }).join('');
+      });
+
+      el.innerHTML = html;
 
       el.querySelectorAll('.fc-section-item').forEach(function(item) {
         item.addEventListener('click', function() {
@@ -1031,6 +1245,38 @@
       document.getElementById('fc-session-accuracy').textContent = session.reviewed > 0 ? Math.round(session.correct / session.reviewed * 100) + '% accuracy' : '';
     }
 
+    // ── Build ExamTopics card HTML ────────────────────────────
+    function buildETFront(card) {
+      var q = escHtml(card._question);
+      if (card._chooseCount > 1 && card._question.indexOf('Choose') === -1) {
+        q += ' <em>(Choose ' + card._chooseCount + ')</em>';
+      }
+      var html = '<div class="fc-card-question" style="text-align:left">' + q + '</div>';
+      html += '<ul class="et-options-list">';
+      card._options.forEach(function(opt, i) {
+        html += '<li><span class="et-option-letter">' + LETTERS[i] + '.</span>' + escHtml(opt) + '</li>';
+      });
+      html += '</ul>';
+      return html;
+    }
+
+    function buildETBack(card) {
+      var correctLetters = card._correct.split('');
+      var html = '<div class="et-correct-label">Correct: ' + correctLetters.join(', ') + '</div>';
+      html += '<ul class="et-options-list">';
+      card._options.forEach(function(opt, i) {
+        var letter = LETTERS[i];
+        var isCorrect = correctLetters.indexOf(letter) >= 0;
+        html += '<li class="' + (isCorrect ? 'et-correct' : 'et-wrong') + '">' +
+          '<span class="et-option-letter">' + letter + '.</span>' + escHtml(opt) + '</li>';
+      });
+      html += '</ul>';
+      if (card._explanation) {
+        html += '<div class="et-explanation">' + escHtml(card._explanation) + '</div>';
+      }
+      return html;
+    }
+
     // ── Render card area ──────────────────────────────────────
     function renderCardArea() {
       var area = document.getElementById('fc-card-area');
@@ -1053,27 +1299,30 @@
       }
 
       var card = currentQueue[currentIndex];
+      var isET = card.type === 'examtopics';
       var sec = sectionMap[card.section];
-      var secName = sec ? sec.name : '';
-      var typeLabel = card.type === 'cloze' ? 'Fill in the blank' : 'Recall';
+      var secName = sec ? sec.name : (card.deckLabel || '');
+      var typeLabel = isET ? 'Exam Question' : (card.type === 'cloze' ? 'Fill in the blank' : 'Recall');
 
       // Build front content
       var frontContent = '';
-      if (card.type === 'cloze') {
-        frontContent = parseCloze(card.front, false);
-      } else {
-        frontContent = escHtml(card.front);
-      }
-
-      // Build back content
       var backContent = '';
-      if (card.type === 'cloze') {
+
+      if (isET) {
+        frontContent = buildETFront(card);
+        backContent = buildETBack(card);
+      } else if (card.type === 'cloze') {
+        frontContent = '<div class="fc-card-question">' + parseCloze(card.front, false) + '</div>';
         backContent = '<div class="fc-card-answer">' + parseCloze(card.front, true) + '</div>';
+        if (card.explanation) {
+          backContent += '<div class="fc-card-explanation">' + escHtml(card.explanation) + '</div>';
+        }
       } else {
+        frontContent = '<div class="fc-card-question">' + escHtml(card.front) + '</div>';
         backContent = '<div class="fc-card-answer">' + escHtml(card.back) + '</div>';
-      }
-      if (card.explanation) {
-        backContent += '<div class="fc-card-explanation">' + escHtml(card.explanation) + '</div>';
+        if (card.explanation) {
+          backContent += '<div class="fc-card-explanation">' + escHtml(card.explanation) + '</div>';
+        }
       }
 
       // Preview intervals
@@ -1088,7 +1337,7 @@
             '<div class="fc-card-front">' +
               '<span class="fc-card-type">' + typeLabel + '</span>' +
               '<span class="fc-card-section-label">' + escHtml(secName) + '</span>' +
-              '<div class="fc-card-question">' + frontContent + '</div>' +
+              frontContent +
               '<div class="fc-flip-hint">Click or press <kbd>Space</kbd> to reveal</div>' +
               (card.hint ? '<button class="fc-hint-btn" id="fc-hint-btn">Show hint</button><div class="fc-hint-text" id="fc-hint-text" style="display:none"></div>' : '') +
             '</div>' +
@@ -1143,7 +1392,6 @@
       isFlipped = !isFlipped;
       if (isFlipped) {
         flip.classList.add('flipped');
-        // Show rating buttons
         var r = document.getElementById('fc-ratings');
         var k = document.getElementById('fc-kb-hints');
         if (r) r.classList.add('visible');
@@ -1174,7 +1422,6 @@
 
       // Update proficiency in store.js if available
       if (window.store && window.store.updateProficiency) {
-        // Map section to a topic — use section name as id
         var sec = sectionMap[card.section];
         if (sec) {
           var wasCorrect = rating === 'good' || rating === 'easy';
@@ -1203,7 +1450,6 @@
 
     // ── Keyboard shortcuts ────────────────────────────────────
     document.addEventListener('keydown', function(e) {
-      // Don't capture if typing in an input
       if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
 
       if (e.code === 'Space' || e.key === ' ') {
@@ -1221,7 +1467,7 @@
         }
       }
 
-      // Arrow navigation in browse/section mode
+      // Arrow navigation
       if (e.key === 'ArrowRight' && currentQueue.length && currentIndex < currentQueue.length - 1) {
         currentIndex++;
         isFlipped = false;
@@ -1237,6 +1483,7 @@
     });
 
     // ── Initialize ────────────────────────────────────────────
+    renderDecks();
     renderStats();
     renderModes();
     renderSidebar();
