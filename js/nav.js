@@ -165,12 +165,12 @@
     {id:'ups',name:'UPS',keys:'ups power battery backup poe budget'},
   ];
 
-  // ── Cert toggle — compact pill, far right ──────────────────────
+  // ── Cert toggle — pinned right corner ───────────────────────────
   var certToggle = document.createElement('div');
   certToggle.className = 'cert-toggle';
   certToggle.innerHTML =
-    '<button class="ct-opt' + (!isNetPlus ? ' on' : '') + '" data-c="ccna">CCNA</button>' +
-    '<button class="ct-opt' + (isNetPlus ? ' on' : '') + '" data-c="net+">N+</button>';
+    '<button class="ct-opt' + (!isNetPlus ? ' on' : '') + '" data-c="ccna" title="' + (!isNetPlus ? 'Currently studying CCNA 200-301' : 'Switch to CCNA 200-301') + '">CCNA</button>' +
+    '<button class="ct-opt' + (isNetPlus ? ' on' : '') + '" data-c="net+" title="' + (isNetPlus ? 'Currently studying Network+ N10-009' : 'Switch to CompTIA Network+') + '">NET+</button>';
   nav.appendChild(certToggle);
   certToggle.querySelectorAll('.ct-opt').forEach(function(b) {
     b.addEventListener('click', function() {
