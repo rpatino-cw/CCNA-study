@@ -104,5 +104,10 @@
   var backupScript = document.createElement('script');
   backupScript.src = fixHref('js/auto-backup.js');
   document.body.appendChild(backupScript);
+
+  // Auto-load XP toast notifications on every page
+  var xpScript = document.createElement('script');
+  xpScript.src = fixHref('js/xp-toast.js');
+  document.body.appendChild(xpScript);
 })();
 
