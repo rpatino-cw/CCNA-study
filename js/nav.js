@@ -20,6 +20,7 @@
       { text: 'Learn Visually', href: 'learn-visually.html' },
       { text: 'Packet Journey 3D', href: 'packet-journey.html' },
       { text: 'Subnetting', href: 'subnetting-visual.html' },
+      { text: 'Command Reference', href: 'command-ref.html' },
       { text: 'Devices', href: 'devices.html' },
       { text: 'Glossary', href: 'glossary.html' },
       { text: 'Resources', href: 'resources.html' },
