@@ -128,6 +128,19 @@
               btn.innerHTML='<span style="font-size:.85em">&#10003;</span> Built! Check Packet Tracer';
               btn.style.background='#16A34A';
               btn.style.opacity='1';
+              // Add skip-to-config link if #config section exists
+              var configSection=document.getElementById('config');
+              if(configSection&&!el.querySelector('.pt-skip-link')){
+                var skip=document.createElement('a');
+                skip.href='#config';
+                skip.className='pt-skip-link';
+                skip.style.cssText='display:inline-flex;align-items:center;gap:4px;font-family:"Space Grotesk",system-ui,sans-serif;font-size:.72rem;padding:5px 12px;color:#16A34A;text-decoration:none;border:1px solid rgba(22,163,74,.3);border-radius:4px;margin:6px 0 6px 8px;transition:all .2s';
+                skip.innerHTML='Skip to configuration &#8595;';
+                skip.addEventListener('click',function(e){e.preventDefault();configSection.scrollIntoView({behavior:'smooth',block:'start'});});
+                skip.addEventListener('mouseenter',function(){skip.style.background='rgba(22,163,74,.06)';});
+                skip.addEventListener('mouseleave',function(){skip.style.background='transparent';});
+                el.appendChild(skip);
+              }
               setTimeout(function(){btn.innerHTML='<span style="font-size:.85em">&#9889;</span> Build in Packet Tracer';btn.style.background='#0891B2';},4000);
             }).catch(function(){
               btn.textContent='Error — check PT';
