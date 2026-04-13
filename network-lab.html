@@ -43,6 +43,31 @@
 .lab-card-sel .lab-complete-mark { color: var(--prof-strong); font-weight: 700; display: none; }
 .lab-card-sel.completed .lab-complete-mark { display: inline; }
 
+/* ── Bug Hunt badge ───────────────────────────────── */
+.lab-card-sel .bughunt-badge {
+  font-size: 0.58rem; font-weight: 800; text-transform: uppercase;
+  letter-spacing: 0.08em; padding: 2px 6px; border-radius: 3px;
+  background: #DC2626; color: #fff; flex-shrink: 0;
+}
+.lab-card-sel.active .bughunt-badge { background: #fff; color: #DC2626; }
+
+/* ── Bug Hunt timer ───────────────────────────────── */
+.bughunt-timer {
+  display: none; align-items: center; gap: 8px;
+  font-family: var(--font-mono); font-size: 1.1rem; font-weight: 700;
+  color: var(--ink); padding: 6px 14px;
+  background: var(--bg-surface); border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+}
+.bughunt-timer.active { display: flex; }
+.bughunt-timer .timer-label {
+  font-family: var(--font-display); font-size: 0.68rem; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-muted);
+}
+.bughunt-timer .timer-value { min-width: 50px; text-align: center; }
+.bughunt-timer.complete { color: var(--prof-strong); border-color: var(--prof-strong); }
+.bughunt-timer.complete .timer-label { color: var(--prof-strong); }
+
 /* ── Main split ────────────────────────────────────── */
 .lab-workspace { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-height: 0; }
 .top-pane { display: flex; flex: 0 0 auto; min-height: 200px; max-height: 50vh; overflow: hidden; border-bottom: 2px solid var(--ink); }
@@ -425,6 +450,10 @@
     <div style="display:flex;align-items:baseline;gap:12px;margin-bottom:8px">
       <h1>Network Lab</h1>
       <span style="font-family:var(--font-body);color:var(--ink-secondary);font-size:0.85rem;font-style:italic">Browser-based Packet Tracer</span>
+      <div class="bughunt-timer" id="bughuntTimer">
+        <span class="timer-label">Timer</span>
+        <span class="timer-value" id="bughuntTimerValue">0:00</span>
+      </div>
       <div class="join-duel-bar">
         <input type="text" id="joinDuelCode" maxlength="6" placeholder="CODE">
         <button onclick="joinDuelFromInput()">Join Duel</button>
@@ -579,6 +608,54 @@
         { text: 'Enable port security on SW2 Fa0/1', hint: 'interface Fa0/1 → switchport port-security' },
         { text: 'Set port-security max to 2 on SW2 Fa0/1', hint: 'switchport port-security maximum 2' },
         { text: 'Set port-security violation to shutdown on SW2 Fa0/1', hint: 'switchport port-security violation shutdown' }
+      ]
+    },
+    {
+      id: 'bughunt-easy',
+      name: 'Lab 6: Bug Hunt — Easy',
+      difficulty: 'beginner',
+      type: 'bughunt',
+      devices: [
+        { name: 'R1', type: 'router' },
+        { name: 'SW1', type: 'switch' }
+      ],
+      objectives: [
+        { text: 'Fix the VLAN encapsulation mismatch on R1 G0/0.10', hint: 'PC1 on VLAN 10 can\'t ping its gateway 10.0.10.1. Check show running-config on R1 — what VLAN tag is G0/0.10 using?' }
+      ]
+    },
+    {
+      id: 'bughunt-medium',
+      name: 'Lab 7: Bug Hunt — Medium',
+      difficulty: 'medium',
+      type: 'bughunt',
+      devices: [
+        { name: 'R1', type: 'router' },
+        { name: 'R2', type: 'router' },
+        { name: 'SW1', type: 'switch' }
+      ],
+      objectives: [
+        { text: 'Fix OSPF adjacency — R2 is missing a network statement', hint: 'R1 and R2 can\'t form an OSPF adjacency. Check "show ip ospf neighbor" and compare network statements on both routers.' },
+        { text: 'Recover the err-disabled port on SW1 Fa0/1', hint: 'SW1 Fa0/1 is err-disabled from a port-security violation. Shut it down then bring it back up.' },
+        { text: 'Remove the blocking ACL on R1', hint: 'R1 has an ACL denying traffic from 10.0.2.0/24. Check "show access-lists" on R1 and remove it.' }
+      ]
+    },
+    {
+      id: 'bughunt-hard',
+      name: 'Lab 8: Bug Hunt — Hard',
+      difficulty: 'hard',
+      type: 'bughunt',
+      devices: [
+        { name: 'R1', type: 'router' },
+        { name: 'R2', type: 'router' },
+        { name: 'SW1', type: 'switch' },
+        { name: 'SW2', type: 'switch' }
+      ],
+      objectives: [
+        { text: 'Fix native VLAN mismatch between SW1 and SW2', hint: 'SW1 trunk uses native VLAN 99 but SW2 trunk uses native VLAN 1. Fix SW2 to match.' },
+        { text: 'Fix OSPF router-id conflict between R1 and R2', hint: 'Both routers have router-id 1.1.1.1. R2 should be 2.2.2.2. Change it in "router ospf 1".' },
+        { text: 'Fix wrong subnet mask on R1 G0/0', hint: 'R1 G0/0 has a /16 mask instead of /24. Re-enter the correct ip address.' },
+        { text: 'Fix NAT inside/outside on R1 (swapped)', hint: 'G0/0 should be NAT inside and G0/1 should be NAT outside — they\'re reversed. Re-apply them correctly.' },
+        { text: 'Generate RSA keys on R1 to enable SSH', hint: 'SSH won\'t work without RSA keys. Run "crypto key generate rsa modulus 2048" in config mode.' }
       ]
     }
   ];
@@ -754,6 +831,121 @@
         '  <g>',
         '    <rect x="675" y="305" width="50" height="36" rx="4" fill="#94A3B8"/>',
         '    <text class="topo-device-label" x="700" y="323" style="font-size:9px;fill:#1e293b">PC4</text>',
+        '  </g>',
+        '</svg>'
+      ].join('\n');
+
+      case 'bughunt-easy': return [
+        '<svg viewBox="0 0 700 350">',
+        '  <line class="topo-link" x1="350" y1="100" x2="350" y2="200" stroke-dasharray="6,3"/>',
+        '  <text class="topo-port-label" x="358" y="145">G0/0 &#8596; Gi0/24</text>',
+        '  <text class="topo-port-label" x="358" y="160" style="font-size:8px;fill:#CA8A04">trunk</text>',
+        '  <line class="topo-link" x1="200" y1="260" x2="300" y2="260"/>',
+        '  <line class="topo-link" x1="400" y1="260" x2="500" y2="260"/>',
+        '  <text class="topo-port-label" x="170" y="250">Fa0/1</text>',
+        '  <text class="topo-port-label" x="430" y="250">Fa0/2</text>',
+        '  <text class="topo-port-label" x="80" y="290" style="font-size:10px;fill:#DC2626">BUG HUNT</text>',
+        '  <g class="topo-device" data-device="R1">',
+        '    <circle cx="350" cy="80" r="40" fill="#2563EB" stroke="#2563EB" stroke-width="2"/>',
+        '    <text class="topo-device-label" x="350" y="80">R1</text>',
+        '  </g>',
+        '  <text class="topo-device-sublabel" x="350" y="32">Router (pre-configured)</text>',
+        '  <g class="topo-device" data-device="SW1">',
+        '    <rect x="300" y="220" width="100" height="60" rx="6" fill="#16A34A" stroke="#16A34A" stroke-width="2"/>',
+        '    <text class="topo-device-label" x="350" y="250">SW1</text>',
+        '  </g>',
+        '  <g>',
+        '    <rect x="140" y="240" width="60" height="40" rx="4" fill="#94A3B8"/>',
+        '    <text class="topo-device-label" x="170" y="260" style="font-size:10px;fill:#1e293b">PC1</text>',
+        '    <text class="topo-device-sublabel" x="170" y="292">VLAN 10</text>',
+        '  </g>',
+        '  <g>',
+        '    <rect x="500" y="240" width="60" height="40" rx="4" fill="#94A3B8"/>',
+        '    <text class="topo-device-label" x="530" y="260" style="font-size:10px;fill:#1e293b">PC2</text>',
+        '    <text class="topo-device-sublabel" x="530" y="292">VLAN 20</text>',
+        '  </g>',
+        '</svg>'
+      ].join('\n');
+
+      case 'bughunt-medium': return [
+        '<svg viewBox="0 0 700 380">',
+        '  <line class="topo-link" x1="200" y1="100" x2="500" y2="100"/>',
+        '  <line class="topo-link" x1="200" y1="130" x2="200" y2="220"/>',
+        '  <line class="topo-link" x1="100" y1="260" x2="160" y2="260"/>',
+        '  <line class="topo-link" x1="240" y1="260" x2="310" y2="330"/>',
+        '  <text class="topo-port-label" x="330" y="88">10.0.12.0/30 (OSPF)</text>',
+        '  <text class="topo-port-label" x="145" y="178">G0/0</text>',
+        '  <text class="topo-port-label" x="65" y="248">Fa0/1</text>',
+        '  <text class="topo-port-label" x="510" y="88" style="font-size:9px;fill:#DC2626">Missing network stmt</text>',
+        '  <text class="topo-port-label" x="65" y="278" style="font-size:9px;fill:#DC2626">err-disabled</text>',
+        '  <text class="topo-port-label" x="30" y="370" style="font-size:10px;fill:#DC2626">BUG HUNT (3 bugs)</text>',
+        '  <g class="topo-device" data-device="R1">',
+        '    <circle cx="200" cy="100" r="40" fill="#2563EB" stroke="#2563EB" stroke-width="2"/>',
+        '    <text class="topo-device-label" x="200" y="100">R1</text>',
+        '  </g>',
+        '  <text class="topo-device-sublabel" x="200" y="52">10.0.1.1/24</text>',
+        '  <g class="topo-device" data-device="R2">',
+        '    <circle cx="500" cy="100" r="40" fill="#2563EB" stroke="#2563EB" stroke-width="2"/>',
+        '    <text class="topo-device-label" x="500" y="100">R2</text>',
+        '  </g>',
+        '  <text class="topo-device-sublabel" x="500" y="52">10.0.2.1/24</text>',
+        '  <g class="topo-device" data-device="SW1">',
+        '    <rect x="150" y="230" width="100" height="56" rx="6" fill="#16A34A" stroke="#16A34A" stroke-width="2"/>',
+        '    <text class="topo-device-label" x="200" y="258">SW1</text>',
+        '  </g>',
+        '  <g>',
+        '    <rect x="40" y="240" width="60" height="40" rx="4" fill="#94A3B8"/>',
+        '    <text class="topo-device-label" x="70" y="260" style="font-size:10px;fill:#1e293b">PC1</text>',
+        '  </g>',
+        '  <g>',
+        '    <rect x="280" y="320" width="60" height="40" rx="4" fill="#94A3B8"/>',
+        '    <text class="topo-device-label" x="310" y="340" style="font-size:10px;fill:#1e293b">PC2</text>',
+        '  </g>',
+        '</svg>'
+      ].join('\n');
+
+      case 'bughunt-hard': return [
+        '<svg viewBox="0 0 800 420">',
+        '  <line class="topo-link" x1="300" y1="80" x2="500" y2="80"/>',
+        '  <line class="topo-link" x1="300" y1="100" x2="300" y2="200"/>',
+        '  <line class="topo-link" x1="500" y1="100" x2="500" y2="200"/>',
+        '  <line class="topo-link" x1="350" y1="240" x2="450" y2="240" stroke-dasharray="6,3"/>',
+        '  <line class="topo-link" x1="200" y1="240" x2="250" y2="240"/>',
+        '  <line class="topo-link" x1="550" y1="240" x2="620" y2="310"/>',
+        '  <line class="topo-link" x1="250" y1="280" x2="180" y2="340"/>',
+        '  <text class="topo-port-label" x="370" y="70">OSPF (router-id conflict!)</text>',
+        '  <text class="topo-port-label" x="370" y="232" style="font-size:8px;fill:#DC2626">native VLAN mismatch</text>',
+        '  <text class="topo-port-label" x="245" y="165">G0/0</text>',
+        '  <text class="topo-port-label" x="510" y="165">G0/1</text>',
+        '  <text class="topo-port-label" x="30" y="410" style="font-size:10px;fill:#DC2626">BUG HUNT (5 bugs)</text>',
+        '  <g class="topo-device" data-device="R1">',
+        '    <circle cx="300" cy="80" r="36" fill="#2563EB" stroke="#2563EB" stroke-width="2"/>',
+        '    <text class="topo-device-label" x="300" y="80">R1</text>',
+        '  </g>',
+        '  <text class="topo-device-sublabel" x="300" y="36">NAT + SSH</text>',
+        '  <g class="topo-device" data-device="R2">',
+        '    <circle cx="500" cy="80" r="36" fill="#2563EB" stroke="#2563EB" stroke-width="2"/>',
+        '    <text class="topo-device-label" x="500" y="80">R2</text>',
+        '  </g>',
+        '  <g class="topo-device" data-device="SW1">',
+        '    <rect x="250" y="210" width="100" height="56" rx="6" fill="#16A34A" stroke="#16A34A" stroke-width="2"/>',
+        '    <text class="topo-device-label" x="300" y="238">SW1</text>',
+        '  </g>',
+        '  <g class="topo-device" data-device="SW2">',
+        '    <rect x="450" y="210" width="100" height="56" rx="6" fill="#16A34A" stroke="#16A34A" stroke-width="2"/>',
+        '    <text class="topo-device-label" x="500" y="238">SW2</text>',
+        '  </g>',
+        '  <g>',
+        '    <rect x="140" y="220" width="50" height="36" rx="4" fill="#94A3B8"/>',
+        '    <text class="topo-device-label" x="165" y="238" style="font-size:9px;fill:#1e293b">PC1</text>',
+        '  </g>',
+        '  <g>',
+        '    <rect x="150" y="335" width="50" height="36" rx="4" fill="#94A3B8"/>',
+        '    <text class="topo-device-label" x="175" y="353" style="font-size:9px;fill:#1e293b">PC2</text>',
+        '  </g>',
+        '  <g>',
+        '    <rect x="595" y="305" width="50" height="36" rx="4" fill="#94A3B8"/>',
+        '    <text class="topo-device-label" x="620" y="323" style="font-size:9px;fill:#1e293b">PC3</text>',
         '  </g>',
         '</svg>'
       ].join('\n');
@@ -1002,8 +1194,9 @@
     if (cryptoMatch && dev.mode === 'config') {
       var modMatch = raw.match(/modulus\s+(\d+)/i);
       dev.custom.rsaModulus = modMatch ? parseInt(modMatch[1]) : 1024;
+      dev.custom.rsaKeys = true;
       lab.checkObjectives();
-      return 'The name for the keys will be: ' + dev.hostname + '.' + (dev.custom.domainName || 'local') + '\n% Generating 2048 bit RSA keys ... [OK]';
+      return 'The name for the keys will be: ' + dev.hostname + '.' + (dev.custom.domainName || 'local') + '\n% Generating ' + dev.custom.rsaModulus + ' bit RSA keys ... [OK]';
     }
 
     // username X secret Y
@@ -1326,10 +1519,497 @@
   };
 
   // ═══════════════════════════════════════════════════════════════
+  //  BUG HUNT LABS
+  // ═══════════════════════════════════════════════════════════════
+
+  // ── Full running-config generator for Bug Hunt ──────────────
+  function showRunningConfig(dev) {
+    var lines = ['Building configuration...', '', 'Current configuration:', '!', 'hostname ' + dev.hostname, '!'];
+
+    // Interfaces
+    var ifNames = Object.keys(dev.interfaces);
+    ifNames.forEach(function(ifName) {
+      var iface = dev.interfaces[ifName];
+      lines.push('interface ' + ifName);
+      if (iface.subinterface && iface.dot1q !== undefined) {
+        lines.push(' encapsulation dot1Q ' + iface.dot1q);
+      }
+      if (iface.switchportMode === 'trunk') {
+        lines.push(' switchport mode trunk');
+        if (iface.trunkNativeVlan !== undefined) {
+          lines.push(' switchport trunk native vlan ' + iface.trunkNativeVlan);
+        }
+      }
+      if (iface.switchportMode === 'access' && iface.accessVlan) {
+        lines.push(' switchport mode access');
+        lines.push(' switchport access vlan ' + iface.accessVlan);
+      }
+      if (iface.ip) {
+        lines.push(' ip address ' + iface.ip + ' ' + (iface.mask || '255.255.255.0'));
+      }
+      // NAT markings
+      if (dev.nat && dev.nat.inside && dev.nat.inside.indexOf(ifName) !== -1) {
+        lines.push(' ip nat inside');
+      }
+      if (dev.nat && dev.nat.outside && dev.nat.outside.indexOf(ifName) !== -1) {
+        lines.push(' ip nat outside');
+      }
+      // ACL applied
+      if (iface.accessGroup) {
+        lines.push(' ip access-group ' + iface.accessGroup.num + ' ' + iface.accessGroup.direction);
+      }
+      // err-disabled state
+      if (iface.errDisabled) {
+        lines.push(' ! PORT IS ERR-DISABLED');
+      }
+      if (iface.up === false && !iface.subinterface) {
+        lines.push(' shutdown');
+      } else if (iface.up !== false) {
+        lines.push(' no shutdown');
+      }
+      // port-security
+      var ps = dev.portSecurity && dev.portSecurity[ifName];
+      if (ps && ps.enabled) {
+        lines.push(' switchport port-security');
+        if (ps.maximum) lines.push(' switchport port-security maximum ' + ps.maximum);
+        if (ps.violation) lines.push(' switchport port-security violation ' + ps.violation);
+      }
+      lines.push('!');
+    });
+
+    // OSPF
+    if (dev.ospf) {
+      lines.push('router ospf ' + dev.ospf.processId);
+      if (dev.ospf.routerId) lines.push(' router-id ' + dev.ospf.routerId);
+      dev.ospf.networks.forEach(function(n) {
+        lines.push(' network ' + n.network + ' ' + n.wildcard + ' area ' + n.area);
+      });
+      lines.push('!');
+    }
+
+    // ACLs
+    Object.keys(dev.acls).forEach(function(num) {
+      lines.push('access-list ' + num + ':');
+      dev.acls[num].forEach(function(entry) {
+        lines.push(' ' + entry.action + ' ' + entry.source + ' ' + (entry.wildcard || ''));
+      });
+    });
+
+    // NAT overload
+    if (dev.nat && dev.nat.overload) {
+      lines.push('ip nat inside source list ' + dev.nat.acl + ' interface ' + (dev.nat.overloadInterface || 'GigabitEthernet0/0') + ' overload');
+    }
+
+    // Static routes
+    if (dev.routes && dev.routes.length > 0) {
+      dev.routes.forEach(function(r) {
+        if (r.code === 'S') lines.push('ip route ' + r.network + ' ' + r.mask + ' ' + r.nextHop);
+      });
+    }
+
+    // SSH / crypto
+    if (dev.custom.domainName) lines.push('ip domain-name ' + dev.custom.domainName);
+    if (dev.custom.rsaKeys) lines.push('crypto key rsa generated (modulus ' + (dev.custom.rsaModulus || 2048) + ')');
+    else if (dev.custom.rsaKeys === false) lines.push('! NO RSA KEYS GENERATED — SSH will not work');
+
+    // VLANs
+    var vids = Object.keys(dev.vlans).map(Number).sort(function(a,b){return a-b;});
+    if (vids.length > 1 || (vids.length === 1 && vids[0] !== 1)) {
+      lines.push('!');
+      vids.forEach(function(vid) {
+        if (vid === 1) return;
+        lines.push('vlan ' + vid);
+        if (dev.vlans[vid].name && dev.vlans[vid].name !== 'VLAN' + vid) {
+          lines.push(' name ' + dev.vlans[vid].name);
+        }
+      });
+    }
+
+    lines.push('!', 'end');
+    return lines.join('\n');
+  }
+
+  // ── Bug Hunt shared command handler (extends shared) ────────
+  function bugHuntHandleCommand(lab, dev, raw, lower) {
+    // "no access-list X" — remove an ACL entirely
+    var noAclMatch = raw.match(/^no\s+access-list\s+(\d+)/i);
+    if (noAclMatch && dev.mode === 'config') {
+      var aclNum = noAclMatch[1];
+      delete dev.acls[aclNum];
+      // Also remove access-group references on interfaces
+      Object.keys(dev.interfaces).forEach(function(ifName) {
+        if (dev.interfaces[ifName].accessGroup && dev.interfaces[ifName].accessGroup.num === aclNum) {
+          delete dev.interfaces[ifName].accessGroup;
+        }
+      });
+      lab.checkObjectives();
+      return '';
+    }
+
+    // "switchport trunk native vlan X"
+    var nativeVlanMatch = raw.match(/^switchport\s+trunk\s+native\s+vlan\s+(\d+)/i);
+    if (nativeVlanMatch && dev.mode === 'config-if') {
+      var nvid = parseInt(nativeVlanMatch[1]);
+      if (dev.currentInterface && dev.interfaces[dev.currentInterface]) {
+        dev.interfaces[dev.currentInterface].trunkNativeVlan = nvid;
+      }
+      lab.checkObjectives();
+      return '';
+    }
+
+    // "no ip nat inside" / "no ip nat outside" — remove NAT marking from current interface
+    if (lower === 'no ip nat inside' && dev.mode === 'config-if') {
+      if (dev.currentInterface) {
+        var idx = dev.nat.inside.indexOf(dev.currentInterface);
+        if (idx !== -1) dev.nat.inside.splice(idx, 1);
+      }
+      lab.checkObjectives();
+      return '';
+    }
+    if (lower === 'no ip nat outside' && dev.mode === 'config-if') {
+      if (dev.currentInterface) {
+        var idx2 = dev.nat.outside.indexOf(dev.currentInterface);
+        if (idx2 !== -1) dev.nat.outside.splice(idx2, 1);
+      }
+      lab.checkObjectives();
+      return '';
+    }
+
+    // "clear ip ospf process" — allow re-seating OSPF (just acknowledge it)
+    if (lower === 'clear ip ospf process' && (dev.mode === 'priv')) {
+      lab.checkObjectives();
+      return 'Reset ALL OSPF processes? [no]: y\n%OSPF: Process reset complete.';
+    }
+
+    // Shutdown on err-disabled port clears err-disabled
+    if (lower === 'shutdown' && (dev.mode === 'config-if' || dev.mode === 'config-subif')) {
+      if (dev.currentInterface && dev.interfaces[dev.currentInterface]) {
+        dev.interfaces[dev.currentInterface].up = false;
+        dev.interfaces[dev.currentInterface].errDisabled = false;
+      }
+      lab.checkObjectives();
+      return '';
+    }
+
+    // No shutdown after clearing err-disabled
+    if (lower === 'no shutdown' && (dev.mode === 'config-if' || dev.mode === 'config-subif')) {
+      if (dev.currentInterface && dev.interfaces[dev.currentInterface]) {
+        var nsIface = dev.interfaces[dev.currentInterface];
+        if (!nsIface.errDisabled) {
+          nsIface.up = true;
+        }
+        lab.checkObjectives();
+        return nsIface.up ? '%LINK-3-UPDOWN: Interface ' + dev.currentInterface + ', changed state to up' : '%LINK-3-UPDOWN: Interface ' + dev.currentInterface + ' is err-disabled, shutdown first';
+      }
+      lab.checkObjectives();
+      return '';
+    }
+
+    // Override show running-config to use full generator
+    if ((dev.mode === 'priv' || dev.mode === 'user') && (lower === 'show running-config' || lower === 'sh run')) {
+      return showRunningConfig(dev);
+    }
+
+    // show port-security interface X
+    var showPsMatch = lower.match(/^show\s+(?:port-security|port-sec)\s+(?:interface\s+)?(.+)/);
+    if (showPsMatch && (dev.mode === 'priv' || dev.mode === 'user')) {
+      var psIfName = lab.normalizeInterface(showPsMatch[1].trim());
+      var ifc = dev.interfaces[psIfName];
+      var ps = dev.portSecurity[psIfName];
+      if (ifc && ps) {
+        var psLines = ['Port Security              : Enabled'];
+        psLines.push('Port Status                : ' + (ifc.errDisabled ? 'Secure-shutdown (err-disabled)' : 'Secure-up'));
+        psLines.push('Violation Mode             : ' + (ps.violation || 'shutdown'));
+        psLines.push('Maximum MAC Addresses      : ' + (ps.maximum || 1));
+        return psLines.join('\n');
+      }
+    }
+
+    // show interfaces status (shows err-disabled)
+    if ((lower === 'show interfaces status' || lower === 'sh int status') && (dev.mode === 'priv' || dev.mode === 'user')) {
+      var statusLines = ['Port      Name               Status       Vlan       Duplex  Speed Type', ''];
+      Object.keys(dev.interfaces).forEach(function(ifName) {
+        var i = dev.interfaces[ifName];
+        if (i.subinterface) return;
+        var status = i.errDisabled ? 'err-disabled' : (i.up ? 'connected' : 'disabled');
+        var vlan = i.accessVlan || (i.switchportMode === 'trunk' ? 'trunk' : '1');
+        statusLines.push(ifName.substring(0, 10).padEnd(10) + ''.padEnd(19) + status.padEnd(13) + String(vlan).padEnd(11) + 'auto    auto');
+      });
+      return statusLines.join('\n');
+    }
+
+    // Delegate to standard shared handler
+    return sharedHandleCommand(lab, dev, raw, lower);
+  }
+
+  // ── Lab 6: Bug Hunt — Easy (1 bug) ────────────────────────
+  function Lab6(callbacks) {
+    Lab.LabBase.call(this, {
+      objectives: LABS[5].objectives,
+      hintsAvailable: 3,
+      onObjectiveComplete: callbacks.onObjectiveComplete,
+      onTopologyUpdate: callbacks.onTopologyUpdate
+    });
+    // Pre-configure topology — mostly correct, 1 bug
+    this.addDevice('R1', 'router', {
+      hostname: 'R1',
+      interfaces: {
+        'GigabitEthernet0/0': { up: true },
+        'GigabitEthernet0/0.10': { up: true, ip: '10.0.10.1', mask: '255.255.255.0', subinterface: true, dot1q: 20 }, // BUG: should be 10
+        'GigabitEthernet0/0.20': { up: true, ip: '10.0.20.1', mask: '255.255.255.0', subinterface: true, dot1q: 20 }
+      }
+    });
+    this.addDevice('SW1', 'switch', {
+      hostname: 'SW1',
+      vlans: {
+        1: { name: 'default', ports: [] },
+        10: { name: 'Users', ports: ['FastEthernet0/1'] },
+        20: { name: 'Servers', ports: ['FastEthernet0/2'] }
+      },
+      interfaces: {
+        'FastEthernet0/1': { up: true, switchportMode: 'access', accessVlan: 10 },
+        'FastEthernet0/2': { up: true, switchportMode: 'access', accessVlan: 20 },
+        'GigabitEthernet0/24': { up: true, switchportMode: 'trunk' }
+      }
+    });
+    this.devices.SW1.trunks['GigabitEthernet0/24'] = true;
+  }
+  Lab6.prototype = Object.create(Lab.LabBase.prototype);
+  Lab6.prototype.constructor = Lab6;
+
+  Lab6.prototype.handleCommand = function(dev, raw, lower) {
+    return bugHuntHandleCommand(this, dev, raw, lower);
+  };
+
+  Lab6.prototype.checkObjectives = function() {
+    var r1 = this.devices.R1;
+    var sub10 = r1.interfaces['GigabitEthernet0/0.10'];
+    // Objective 0: G0/0.10 encap must be dot1Q 10
+    if (sub10 && sub10.dot1q === 10) this.completeObjective(0);
+  };
+
+  // ── Lab 7: Bug Hunt — Medium (3 bugs) ─────────────────────
+  function Lab7(callbacks) {
+    Lab.LabBase.call(this, {
+      objectives: LABS[6].objectives,
+      hintsAvailable: 3,
+      onObjectiveComplete: callbacks.onObjectiveComplete,
+      onTopologyUpdate: callbacks.onTopologyUpdate
+    });
+    // R1: OSPF configured correctly, but has a blocking ACL
+    this.addDevice('R1', 'router', {
+      hostname: 'R1',
+      interfaces: {
+        'GigabitEthernet0/0': { up: true, ip: '10.0.1.1', mask: '255.255.255.0' },
+        'GigabitEthernet0/1': { up: true, ip: '10.0.12.1', mask: '255.255.255.252' }
+      },
+      ospf: {
+        processId: 1,
+        routerId: '1.1.1.1',
+        networks: [
+          { network: '10.0.1.0', wildcard: '0.0.0.255', area: 0 },
+          { network: '10.0.12.0', wildcard: '0.0.0.3', area: 0 }
+        ]
+      },
+      acls: {
+        '10': [{ action: 'deny', source: '10.0.2.0', wildcard: '0.0.0.255' }] // BUG 3
+      }
+    });
+    // Apply ACL inbound on G0/0
+    this.devices.R1.interfaces['GigabitEthernet0/0'].accessGroup = { num: '10', direction: 'in' };
+
+    // R2: OSPF missing the link network statement
+    this.addDevice('R2', 'router', {
+      hostname: 'R2',
+      interfaces: {
+        'GigabitEthernet0/0': { up: true, ip: '10.0.2.1', mask: '255.255.255.0' },
+        'GigabitEthernet0/1': { up: true, ip: '10.0.12.2', mask: '255.255.255.252' }
+      },
+      ospf: {
+        processId: 1,
+        routerId: '2.2.2.2',
+        networks: [
+          { network: '10.0.2.0', wildcard: '0.0.0.255', area: 0 }
+          // BUG 1: missing 10.0.12.0 network statement
+        ]
+      }
+    });
+
+    // SW1: Port err-disabled
+    this.addDevice('SW1', 'switch', {
+      hostname: 'SW1',
+      vlans: {
+        1: { name: 'default', ports: [] },
+        10: { name: 'Data', ports: ['FastEthernet0/1'] }
+      },
+      interfaces: {
+        'FastEthernet0/1': { up: false, errDisabled: true, switchportMode: 'access', accessVlan: 10 }, // BUG 2
+        'GigabitEthernet0/24': { up: true, switchportMode: 'trunk' }
+      }
+    });
+    this.devices.SW1.portSecurity['FastEthernet0/1'] = { enabled: true, violation: 'shutdown', maximum: 1 };
+    this.devices.SW1.trunks['GigabitEthernet0/24'] = true;
+  }
+  Lab7.prototype = Object.create(Lab.LabBase.prototype);
+  Lab7.prototype.constructor = Lab7;
+
+  Lab7.prototype.handleCommand = function(dev, raw, lower) {
+    return bugHuntHandleCommand(this, dev, raw, lower);
+  };
+
+  Lab7.prototype.checkObjectives = function() {
+    var r1 = this.devices.R1;
+    var r2 = this.devices.R2;
+    var sw1 = this.devices.SW1;
+
+    // Objective 0: R2 has network 10.0.12.0 in OSPF
+    if (r2.ospf && r2.ospf.networks.some(function(n) { return n.network === '10.0.12.0'; })) {
+      this.completeObjective(0);
+    }
+
+    // Objective 1: SW1 Fa0/1 not err-disabled and up
+    var fa1 = sw1.interfaces['FastEthernet0/1'];
+    if (fa1 && !fa1.errDisabled && fa1.up) {
+      this.completeObjective(1);
+    }
+
+    // Objective 2: R1 ACL 10 removed or no longer blocks 10.0.2.0
+    if (!r1.acls['10'] || !r1.acls['10'].some(function(a) { return a.action === 'deny' && a.source === '10.0.2.0'; })) {
+      this.completeObjective(2);
+    }
+  };
+
+  // ── Lab 8: Bug Hunt — Hard (5 bugs) ───────────────────────
+  function Lab8(callbacks) {
+    Lab.LabBase.call(this, {
+      objectives: LABS[7].objectives,
+      hintsAvailable: 3,
+      onObjectiveComplete: callbacks.onObjectiveComplete,
+      onTopologyUpdate: callbacks.onTopologyUpdate
+    });
+
+    // R1: Wrong subnet mask on G0/0, NAT inside/outside swapped, no RSA keys
+    this.addDevice('R1', 'router', {
+      hostname: 'R1',
+      interfaces: {
+        'GigabitEthernet0/0': { up: true, ip: '10.0.1.1', mask: '255.255.0.0' }, // BUG 3: should be /24
+        'GigabitEthernet0/1': { up: true, ip: '10.0.12.1', mask: '255.255.255.252' }
+      },
+      ospf: {
+        processId: 1,
+        routerId: '1.1.1.1',
+        networks: [
+          { network: '10.0.1.0', wildcard: '0.0.0.255', area: 0 },
+          { network: '10.0.12.0', wildcard: '0.0.0.3', area: 0 }
+        ]
+      },
+      custom: {
+        domainName: 'corp.local',
+        rsaKeys: false // BUG 5: no RSA keys
+      }
+    });
+    // BUG 4: NAT inside/outside swapped
+    this.devices.R1.nat = {
+      inside: ['GigabitEthernet0/1'],  // BUG: should be G0/0
+      outside: ['GigabitEthernet0/0'], // BUG: should be G0/1
+      overload: true,
+      acl: '1'
+    };
+    this.devices.R1.acls = { '1': [{ action: 'permit', source: '10.0.1.0', wildcard: '0.0.0.255' }] };
+
+    // R2: OSPF router-id conflict (same as R1)
+    this.addDevice('R2', 'router', {
+      hostname: 'R2',
+      interfaces: {
+        'GigabitEthernet0/0': { up: true, ip: '10.0.2.1', mask: '255.255.255.0' },
+        'GigabitEthernet0/1': { up: true, ip: '10.0.12.2', mask: '255.255.255.252' }
+      },
+      ospf: {
+        processId: 1,
+        routerId: '1.1.1.1', // BUG 2: should be 2.2.2.2
+        networks: [
+          { network: '10.0.2.0', wildcard: '0.0.0.255', area: 0 },
+          { network: '10.0.12.0', wildcard: '0.0.0.3', area: 0 }
+        ]
+      }
+    });
+
+    // SW1: Native VLAN 99 on trunk (correct side)
+    this.addDevice('SW1', 'switch', {
+      hostname: 'SW1',
+      vlans: {
+        1: { name: 'default', ports: [] },
+        10: { name: 'Data', ports: ['FastEthernet0/1'] },
+        20: { name: 'Voice', ports: ['FastEthernet0/2'] },
+        99: { name: 'Native', ports: [] }
+      },
+      interfaces: {
+        'FastEthernet0/1': { up: true, switchportMode: 'access', accessVlan: 10 },
+        'FastEthernet0/2': { up: true, switchportMode: 'access', accessVlan: 20 },
+        'GigabitEthernet0/24': { up: true, switchportMode: 'trunk', trunkNativeVlan: 99 }
+      }
+    });
+    this.devices.SW1.trunks['GigabitEthernet0/24'] = true;
+
+    // SW2: Native VLAN mismatch — still on default 1
+    this.addDevice('SW2', 'switch', {
+      hostname: 'SW2',
+      vlans: {
+        1: { name: 'default', ports: [] },
+        10: { name: 'Data', ports: [] },
+        20: { name: 'Voice', ports: [] },
+        99: { name: 'Native', ports: [] }
+      },
+      interfaces: {
+        'GigabitEthernet0/24': { up: true, switchportMode: 'trunk', trunkNativeVlan: 1 }, // BUG 1
+        'FastEthernet0/1': { up: true, switchportMode: 'access', accessVlan: 10 }
+      }
+    });
+    this.devices.SW2.trunks['GigabitEthernet0/24'] = true;
+  }
+  Lab8.prototype = Object.create(Lab.LabBase.prototype);
+  Lab8.prototype.constructor = Lab8;
+
+  Lab8.prototype.handleCommand = function(dev, raw, lower) {
+    return bugHuntHandleCommand(this, dev, raw, lower);
+  };
+
+  Lab8.prototype.checkObjectives = function() {
+    var r1 = this.devices.R1;
+    var r2 = this.devices.R2;
+    var sw1 = this.devices.SW1;
+    var sw2 = this.devices.SW2;
+
+    // Objective 0: SW2 trunk native VLAN = 99
+    var sw2trunk = sw2.interfaces['GigabitEthernet0/24'];
+    if (sw2trunk && sw2trunk.trunkNativeVlan === 99) this.completeObjective(0);
+
+    // Objective 1: R2 router-id is 2.2.2.2 (not matching R1)
+    if (r2.ospf && r2.ospf.routerId === '2.2.2.2') this.completeObjective(1);
+
+    // Objective 2: R1 G0/0 has correct /24 mask
+    var r1g0 = r1.interfaces['GigabitEthernet0/0'];
+    if (r1g0 && r1g0.mask === '255.255.255.0') this.completeObjective(2);
+
+    // Objective 3: NAT correctly placed — G0/0 inside, G0/1 outside
+    var natInside = r1.nat.inside;
+    var natOutside = r1.nat.outside;
+    if (natInside.indexOf('GigabitEthernet0/0') !== -1 &&
+        natOutside.indexOf('GigabitEthernet0/1') !== -1 &&
+        natInside.indexOf('GigabitEthernet0/1') === -1 &&
+        natOutside.indexOf('GigabitEthernet0/0') === -1) {
+      this.completeObjective(3);
+    }
+
+    // Objective 4: RSA keys generated
+    if (r1.custom.rsaKeys === true || r1.custom.rsaModulus >= 2048) this.completeObjective(4);
+  };
+
+  // ═══════════════════════════════════════════════════════════════
   //  PAGE CONTROLLER
   // ═══════════════════════════════════════════════════════════════
 
-  var labConstructors = [Lab1, Lab2, Lab3, Lab4, Lab5];
+  var labConstructors = [Lab1, Lab2, Lab3, Lab4, Lab5, Lab6, Lab7, Lab8];
   var currentLab = null;
   var currentLabIdx = -1;
   var terminalHistories = {}; // per-device terminal output history
@@ -1355,7 +2035,8 @@
     btn.className = 'lab-card-sel';
     btn.dataset.idx = idx;
     var diffClass = lab.difficulty === 'beginner' ? 'beginner' : lab.difficulty === 'hard' ? 'hard' : 'medium';
-    btn.innerHTML = '<span class="lab-diff-dot ' + diffClass + '"></span>' + lab.name + '<span class="lab-complete-mark">&#10003;</span>';
+    var badgeHtml = lab.type === 'bughunt' ? '<span class="bughunt-badge">Bug Hunt</span>' : '';
+    btn.innerHTML = '<span class="lab-diff-dot ' + diffClass + '"></span>' + badgeHtml + lab.name + '<span class="lab-complete-mark">&#10003;</span>';
     btn.addEventListener('click', function() { loadLab(idx); });
     wrap.appendChild(btn);
 
@@ -1367,6 +2048,40 @@
 
     $labCards.appendChild(wrap);
   });
+
+  // ── Bug Hunt timer state ────────────────────────────────────
+  var bughuntTimerStart = null;
+  var bughuntTimerInterval = null;
+  var bughuntTimerEl = document.getElementById('bughuntTimer');
+  var bughuntTimerValueEl = document.getElementById('bughuntTimerValue');
+
+  function startBughuntTimer() {
+    bughuntTimerStart = Date.now();
+    bughuntTimerEl.classList.add('active');
+    bughuntTimerEl.classList.remove('complete');
+    bughuntTimerValueEl.textContent = '0:00';
+    clearInterval(bughuntTimerInterval);
+    bughuntTimerInterval = setInterval(function() {
+      if (bughuntTimerStart) {
+        var elapsed = Date.now() - bughuntTimerStart;
+        var totalSec = Math.floor(elapsed / 1000);
+        var min = Math.floor(totalSec / 60);
+        var sec = totalSec % 60;
+        bughuntTimerValueEl.textContent = min + ':' + (sec < 10 ? '0' : '') + sec;
+      }
+    }, 500);
+  }
+
+  function stopBughuntTimer() {
+    clearInterval(bughuntTimerInterval);
+    bughuntTimerEl.classList.add('complete');
+  }
+
+  function hideBughuntTimer() {
+    clearInterval(bughuntTimerInterval);
+    bughuntTimerStart = null;
+    bughuntTimerEl.classList.remove('active', 'complete');
+  }
 
   function loadLab(idx) {
     if (idx === currentLabIdx) return;
@@ -1385,16 +2100,25 @@
     $bottomPane.style.display = '';
 
     // Create lab instance
+    var isBugHunt = LABS[idx].type === 'bughunt';
     currentLab = new labConstructors[idx]({
       onObjectiveComplete: function(objIdx, obj) {
         renderObjectives();
         writeLine('  *** Objective complete: ' + obj.text + ' ***', 'success');
         if (currentLab.isComplete()) {
+          if (isBugHunt) stopBughuntTimer();
           showLabComplete();
         }
       },
       onTopologyUpdate: function() {}
     });
+
+    // Bug Hunt timer
+    if (isBugHunt) {
+      startBughuntTimer();
+    } else {
+      hideBughuntTimer();
+    }
 
     // Render topology
     $topoPanel.innerHTML = svgTopology(LABS[idx].id);
@@ -1447,8 +2171,14 @@
       $termOutput.innerHTML = terminalHistories[name];
     } else {
       $termOutput.innerHTML = '';
+      var isBH = LABS[currentLabIdx] && LABS[currentLabIdx].type === 'bughunt';
       writeLine('--- Connected to ' + currentLab.devices[name].hostname + ' ---', 'system');
-      writeLine('Type "enable" to enter privileged mode.', 'info');
+      if (isBH) {
+        writeLine('BUG HUNT: This device is pre-configured. Find and fix the bugs!', 'error');
+        writeLine('Use "show running-config" to inspect the configuration.', 'info');
+      } else {
+        writeLine('Type "enable" to enter privileged mode.', 'info');
+      }
       writeLine('', '');
     }
 
@@ -1525,7 +2255,17 @@
 
   function showLabComplete() {
     var banner = document.getElementById('completeBanner');
-    if (banner) banner.style.display = 'block';
+    if (banner) {
+      banner.style.display = 'block';
+      // Add timer result for Bug Hunt labs
+      if (LABS[currentLabIdx].type === 'bughunt' && bughuntTimerStart) {
+        var elapsed = Date.now() - bughuntTimerStart;
+        var totalSec = Math.floor(elapsed / 1000);
+        var min = Math.floor(totalSec / 60);
+        var sec = totalSec % 60;
+        banner.textContent = 'Bug Hunt Complete! Time: ' + min + ':' + (sec < 10 ? '0' : '') + sec;
+      }
+    }
 
     // Mark lab card as completed
     var btn = $labCards.querySelector('[data-idx="' + currentLabIdx + '"]');
@@ -1537,7 +2277,10 @@
       1: ['2.3', '1.3'],       // Trunking, inter-VLAN
       2: ['3.4'],              // OSPF
       3: ['5.6', '1.4'],       // ACL, NAT
-      4: ['2.2', '2.3', '3.4', '5.6', '5.3'] // Enterprise combo
+      4: ['2.2', '2.3', '3.4', '5.6', '5.3'], // Enterprise combo
+      5: ['2.3', '1.3'],       // Bug Hunt Easy: VLAN/trunking
+      6: ['3.4', '2.2', '5.6'], // Bug Hunt Medium: OSPF, switching, ACL
+      7: ['2.2', '2.3', '3.4', '1.4', '5.3'] // Bug Hunt Hard: enterprise troubleshooting
     };
     var topics = topicMap[currentLabIdx] || [];
     topics.forEach(function(t) {
@@ -1665,6 +2408,13 @@
         'tra': 'transport input ssh',
         'log': 'login local',
         'sw p': 'switchport port-security',
+        'sw tr': 'switchport trunk native vlan ',
+        'no acc': 'no access-list ',
+        'no ip nat i': 'no ip nat inside',
+        'no ip nat o': 'no ip nat outside',
+        'cl': 'clear ip ospf process',
+        'sh int st': 'show interfaces status',
+        'sh port': 'show port-security interface ',
       };
       var match = null;
       // Find longest matching prefix
@@ -2118,7 +2868,10 @@
         1: ['2.3', '1.3'],
         2: ['3.4'],
         3: ['5.6', '1.4'],
-        4: ['2.2', '2.3', '3.4', '5.6', '5.3']
+        4: ['2.2', '2.3', '3.4', '5.6', '5.3'],
+        5: ['2.3', '1.3'],
+        6: ['3.4', '2.2', '5.6'],
+        7: ['2.2', '2.3', '3.4', '1.4', '5.3']
       };
       var topics = topicMap[currentLabIdx] || [];
       topics.forEach(function(t) { store.updateProficiency(t, iWon); });
