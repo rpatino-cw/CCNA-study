@@ -139,32 +139,6 @@
     nav.querySelectorAll('.nav-group').forEach(function(g) { g.classList.remove('open'); });
   });
 
-  // ── Device quick-search (global, works from any page) ──────────
-  var DEV_INDEX = [
-    {id:'internet',name:'Internet / ISP',keys:'isp wan cloud default route'},
-    {id:'firewall',name:'Firewall (NGFW)',keys:'ngfw acl nat pat stateful ips'},
-    {id:'ips',name:'IPS / IDS',keys:'intrusion prevention detection inline'},
-    {id:'core_router',name:'Core Router',keys:'ospf area 0 backbone routing table'},
-    {id:'l3_switch',name:'L3 Core Switch',keys:'svi inter-vlan routing ip routing'},
-    {id:'dist_switch',name:'Distribution Switch',keys:'hsrp vrrp stp root bridge aggregation'},
-    {id:'access_switch',name:'Access Switch',keys:'port security dhcp snooping dai portfast bpdu 802.1x poe'},
-    {id:'wlc',name:'WLC',keys:'wireless controller capwap ssid roaming lightweight'},
-    {id:'access_point',name:'Access Point',keys:'ap wifi 802.11 wi-fi 6 ax ac'},
-    {id:'dns_server',name:'DNS Server',keys:'dns port 53 a aaaa cname mx nslookup'},
-    {id:'dhcp_server',name:'DHCP Server',keys:'dhcp dora helper-address pool excluded ip address'},
-    {id:'ntp_server',name:'NTP Server',keys:'ntp stratum time clock 123'},
-    {id:'syslog_server',name:'Syslog / SNMP',keys:'syslog snmp trap severity logging 514 161'},
-    {id:'aaa_server',name:'AAA Server',keys:'aaa radius tacacs 802.1x authentication authorization'},
-    {id:'tftp_server',name:'TFTP / FTP',keys:'tftp ftp copy flash ios backup 69'},
-    {id:'desktop',name:'Desktop PC',keys:'pc endpoint ipconfig ping arp vlan'},
-    {id:'ip_phone',name:'IP Phone',keys:'voip voice vlan poe qos dscp ef'},
-    {id:'laptop',name:'Laptop',keys:'wireless client supplicant wpa2 wpa3'},
-    {id:'printer',name:'Printer',keys:'printer static ip excluded'},
-    {id:'wireless_client',name:'Wireless Client',keys:'wifi guest ssid'},
-    {id:'server_web',name:'Web Server',keys:'http https 80 443 tls'},
-    {id:'ups',name:'UPS',keys:'ups power battery backup poe budget'},
-  ];
-
   // ── Cert toggle — pinned right corner ───────────────────────────
   var certToggle = document.createElement('div');
   certToggle.className = 'cert-toggle';
@@ -179,39 +153,6 @@
       localStorage.setItem('ccna_cert_track', c);
       location.reload();
     });
-  });
-
-  var searchWrap = document.createElement('div');
-  searchWrap.className = 'nav-search-wrap';
-  searchWrap.innerHTML = '<input type="text" class="nav-dev-search" id="navDevSearch" placeholder="Search devices..." autocomplete="off"><div class="nav-dev-results" id="navDevResults"></div>';
-  nav.appendChild(searchWrap);
-
-  var devInput = document.getElementById('navDevSearch');
-  var devResults = document.getElementById('navDevResults');
-
-  devInput.addEventListener('input', function(){
-    var q = this.value.toLowerCase().trim();
-    if(!q){ devResults.innerHTML=''; devResults.classList.remove('open'); return; }
-    var matches = DEV_INDEX.filter(function(d){
-      return (d.name.toLowerCase()+' '+d.keys).indexOf(q) !== -1;
-    }).slice(0,6);
-    if(!matches.length){ devResults.innerHTML='<div class="nav-dev-none">No devices found</div>'; devResults.classList.add('open'); return; }
-    devResults.innerHTML = matches.map(function(d){
-      return '<a class="nav-dev-result" href="'+fixHref('devices.html')+'#'+d.id+'">'+d.name+'</a>';
-    }).join('');
-    devResults.classList.add('open');
-  });
-
-  devInput.addEventListener('keydown', function(e){
-    if(e.key==='Escape'){ devResults.classList.remove('open'); this.blur(); }
-    if(e.key==='Enter'){
-      var first = devResults.querySelector('.nav-dev-result');
-      if(first) window.location.href = first.href;
-    }
-  });
-
-  document.addEventListener('click', function(e){
-    if(!searchWrap.contains(e.target)) devResults.classList.remove('open');
   });
 
   // Beta badge + bug report
