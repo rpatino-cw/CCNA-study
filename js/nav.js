@@ -94,6 +94,12 @@
   var nav = document.querySelector('nav.top-nav');
   if (!nav) return;
 
+  // Force nav to be a direct child of <body> so it's always full-width,
+  // regardless of which container the page author placed it in.
+  if (nav.parentElement !== document.body) {
+    document.body.insertBefore(nav, document.body.firstChild);
+  }
+
   var path = location.pathname;
   var inSubdir = /\/(labs|visuals)\//.test(path);
   var currentFile = path.split('/').pop() || 'index.html';
