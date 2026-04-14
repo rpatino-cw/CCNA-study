@@ -802,36 +802,57 @@
         Every OSPF router needs a unique 32-bit Router ID (RID) — formatted like an IPv4 address. OSPF follows a strict priority order when selecting it:
       </p>
 
-      <div class="rid-container" id="rid-container">
-        <div class="rid-card" data-idx="0">
-          <div class="rid-num">1</div>
-          <div>
-            <div class="rid-title">Explicit — <code>router-id</code> command</div>
-            <div class="rid-desc">Manually configured with <code>router ospf 1 → router-id X.X.X.X</code>. This always wins. Does not need to match any interface.</div>
-            <div class="rid-priority">Highest Priority</div>
+      <!-- Animated RID Selection Visualization -->
+      <div id="rid-viz" style="position:relative;background:#1C1917;border-radius:var(--radius-lg);overflow:hidden;padding:28px 24px;margin:var(--s-lg) 0;min-height:340px">
+        <!-- Router icon center -->
+        <div style="text-align:center;margin-bottom:20px">
+          <div style="display:inline-flex;align-items:center;gap:10px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:var(--radius);padding:10px 20px">
+            <span style="font-size:1.6rem">&#128424;</span>
+            <div style="text-align:left">
+              <div style="font-family:var(--font-display);font-size:.82rem;font-weight:700;color:#F5F5F4">Router R1</div>
+              <div id="rid-result" style="font-family:var(--font-mono);font-size:.72rem;color:rgba(245,245,244,.4);transition:all .6s">RID: determining...</div>
+            </div>
           </div>
         </div>
-        <div class="rid-card" data-idx="1">
-          <div class="rid-num two">2</div>
-          <div>
-            <div class="rid-title">Loopback Interface — Highest IP</div>
-            <div class="rid-desc">If no <code>router-id</code> is configured, OSPF picks the highest IP address among all up loopback interfaces. Loopbacks are preferred because they never go down unless manually shut.</div>
-            <div class="rid-priority">Medium Priority</div>
+        <!-- Three check rows -->
+        <div style="display:flex;flex-direction:column;gap:10px;max-width:540px;margin:0 auto" id="rid-rows">
+          <div class="rid-row" data-step="0" style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-radius:var(--radius);border:1px solid rgba(255,255,255,.06);background:rgba(255,255,255,.02);transition:all .5s cubic-bezier(.16,1,.3,1)">
+            <div class="rid-icon" style="width:32px;height:32px;border-radius:50%;background:rgba(22,163,74,.15);display:flex;align-items:center;justify-content:center;font-family:var(--font-mono);font-size:.78rem;font-weight:800;color:#16A34A;flex-shrink:0;transition:all .4s">1</div>
+            <div style="flex:1;min-width:0">
+              <div style="font-family:var(--font-display);font-size:.82rem;font-weight:700;color:#F5F5F4">router-id command</div>
+              <div style="font-family:var(--font-mono);font-size:.68rem;color:rgba(245,245,244,.35)">router-id 10.255.255.1</div>
+            </div>
+            <div class="rid-status" style="font-family:var(--font-mono);font-size:.65rem;color:rgba(245,245,244,.25);min-width:70px;text-align:right;transition:all .4s">waiting</div>
+            <div class="rid-scan" style="position:absolute;left:0;height:100%;width:3px;background:#16A34A;border-radius:2px;opacity:0;transition:opacity .3s"></div>
+          </div>
+          <div class="rid-row" data-step="1" style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-radius:var(--radius);border:1px solid rgba(255,255,255,.06);background:rgba(255,255,255,.02);transition:all .5s cubic-bezier(.16,1,.3,1)">
+            <div class="rid-icon" style="width:32px;height:32px;border-radius:50%;background:rgba(202,138,4,.15);display:flex;align-items:center;justify-content:center;font-family:var(--font-mono);font-size:.78rem;font-weight:800;color:#CA8A04;flex-shrink:0;transition:all .4s">2</div>
+            <div style="flex:1;min-width:0">
+              <div style="font-family:var(--font-display);font-size:.82rem;font-weight:700;color:#F5F5F4">Loopback interfaces</div>
+              <div style="font-family:var(--font-mono);font-size:.68rem;color:rgba(245,245,244,.35)">Lo0: 10.0.0.1 &nbsp; Lo1: 10.0.0.5</div>
+            </div>
+            <div class="rid-status" style="font-family:var(--font-mono);font-size:.65rem;color:rgba(245,245,244,.25);min-width:70px;text-align:right;transition:all .4s">waiting</div>
+          </div>
+          <div class="rid-row" data-step="2" style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-radius:var(--radius);border:1px solid rgba(255,255,255,.06);background:rgba(255,255,255,.02);transition:all .5s cubic-bezier(.16,1,.3,1)">
+            <div class="rid-icon" style="width:32px;height:32px;border-radius:50%;background:rgba(120,113,108,.15);display:flex;align-items:center;justify-content:center;font-family:var(--font-mono);font-size:.78rem;font-weight:800;color:#78716C;flex-shrink:0;transition:all .4s">3</div>
+            <div style="flex:1;min-width:0">
+              <div style="font-family:var(--font-display);font-size:.82rem;font-weight:700;color:#F5F5F4">Physical interfaces</div>
+              <div style="font-family:var(--font-mono);font-size:.68rem;color:rgba(245,245,244,.35)">Gi0/0: 192.168.1.1 &nbsp; Gi0/1: 10.1.1.1</div>
+            </div>
+            <div class="rid-status" style="font-family:var(--font-mono);font-size:.65rem;color:rgba(245,245,244,.25);min-width:70px;text-align:right;transition:all .4s">waiting</div>
           </div>
         </div>
-        <div class="rid-card" data-idx="2">
-          <div class="rid-num three">3</div>
-          <div>
-            <div class="rid-title">Physical Interface — Highest Active IP</div>
-            <div class="rid-desc">If no loopbacks exist, OSPF uses the highest IP address among all active (up/up) physical interfaces. This RID can change if the interface goes down — which causes OSPF to reconverge.</div>
-            <div class="rid-priority">Lowest Priority</div>
-          </div>
+        <!-- Narration -->
+        <div id="rid-narration" style="text-align:center;margin-top:16px;font-family:var(--font-body);font-size:.78rem;color:rgba(245,245,244,.5);min-height:20px;transition:all .4s"></div>
+        <!-- Replay -->
+        <div style="text-align:center;margin-top:12px">
+          <button class="btn btn-sm" onclick="playRIDViz()" style="background:rgba(255,255,255,.08);color:#F5F5F4;border:1px solid rgba(255,255,255,.12);font-size:.72rem;padding:6px 16px">Replay</button>
+          <select id="rid-scenario" onchange="playRIDViz()" style="background:rgba(255,255,255,.08);color:#F5F5F4;border:1px solid rgba(255,255,255,.12);border-radius:var(--radius);font-family:var(--font-display);font-size:.72rem;padding:6px 12px;margin-left:6px">
+            <option value="explicit">Scenario: router-id configured</option>
+            <option value="loopback">Scenario: no router-id, has loopbacks</option>
+            <option value="physical">Scenario: no router-id, no loopbacks</option>
+          </select>
         </div>
-      </div>
-
-      <div class="btn-row">
-        <button class="btn" onclick="playRIDAnimation()">Play Animation</button>
-        <button class="btn btn-secondary" onclick="resetRIDAnimation()">Reset</button>
       </div>
 
       <div class="callout" style="margin-top: var(--s-lg);">
@@ -1415,38 +1436,92 @@ GigabitEthernet0/0 is up, line protocol is up
   // ════════════════════════════════════════════════════════════
   // SECTION 2 — ROUTER ID ANIMATION
   // ════════════════════════════════════════════════════════════
-  function playRIDAnimation() {
-    var cards = document.querySelectorAll('.rid-card');
-    // Reset first
-    cards.forEach(function(c) {
-      c.classList.remove('visible');
-      c.style.transition = 'none';
-      c.style.opacity = '0';
-      c.style.transform = 'translateY(12px)';
+  // ── RID Selection Animated Visualization ──
+  var RID_SCENARIOS = {
+    explicit: {winner:0, rid:'10.255.255.1', steps:[
+      {row:0, status:'FOUND', color:'#16A34A', narration:'router-id 10.255.255.1 is configured — this always wins.'},
+      {row:1, status:'SKIPPED', color:'#78716C', narration:'Loopbacks exist but are ignored — explicit router-id takes priority.'},
+      {row:2, status:'SKIPPED', color:'#78716C', narration:'Physical interfaces ignored. RID = 10.255.255.1'}
+    ]},
+    loopback: {winner:1, rid:'10.0.0.5', steps:[
+      {row:0, status:'NOT SET', color:'#DC2626', narration:'No router-id command found in config. Checking next...'},
+      {row:1, status:'FOUND', color:'#16A34A', narration:'Loopback interfaces found. Highest IP: 10.0.0.5 wins.'},
+      {row:2, status:'SKIPPED', color:'#78716C', narration:'Physical interfaces ignored. RID = 10.0.0.5 (highest loopback)'}
+    ]},
+    physical: {winner:2, rid:'192.168.1.1', steps:[
+      {row:0, status:'NOT SET', color:'#DC2626', narration:'No router-id command found.'},
+      {row:1, status:'NONE', color:'#DC2626', narration:'No loopback interfaces configured. Falling through...'},
+      {row:2, status:'FOUND', color:'#16A34A', narration:'Highest active physical IP: 192.168.1.1. RID = 192.168.1.1'}
+    ]}
+  };
+
+  function playRIDViz() {
+    var scenario = document.getElementById('rid-scenario').value;
+    var sc = RID_SCENARIOS[scenario];
+    var rows = document.querySelectorAll('.rid-row');
+    var result = document.getElementById('rid-result');
+    var narr = document.getElementById('rid-narration');
+
+    // Reset all rows
+    rows.forEach(function(r) {
+      r.style.borderColor = 'rgba(255,255,255,.06)';
+      r.style.background = 'rgba(255,255,255,.02)';
+      r.querySelector('.rid-status').textContent = 'waiting';
+      r.querySelector('.rid-status').style.color = 'rgba(245,245,244,.25)';
     });
-    // Force reflow
-    void document.getElementById('rid-container').offsetWidth;
-    // Animate each card
-    cards.forEach(function(c, i) {
+    result.textContent = 'RID: determining...';
+    result.style.color = 'rgba(245,245,244,.4)';
+    narr.textContent = 'OSPF process starting — scanning for Router ID...';
+    narr.style.color = 'rgba(245,245,244,.5)';
+
+    // Animate each step
+    sc.steps.forEach(function(step, i) {
       setTimeout(function() {
-        c.style.transition = 'all 0.5s cubic-bezier(0.16, 1, 0.3, 1)';
-        c.style.opacity = '1';
-        c.style.transform = 'translateY(0)';
-      }, i * 900);
+        var row = rows[step.row];
+        var statusEl = row.querySelector('.rid-status');
+
+        // Scanning effect — highlight current row
+        row.style.borderColor = step.color;
+        row.style.background = 'rgba(255,255,255,.06)';
+        statusEl.textContent = 'scanning...';
+        statusEl.style.color = '#F59E0B';
+        narr.textContent = '';
+
+        // Result after scan
+        setTimeout(function() {
+          statusEl.textContent = step.status;
+          statusEl.style.color = step.color;
+          narr.textContent = step.narration;
+
+          if (step.status === 'FOUND') {
+            row.style.background = 'rgba(22,163,74,.08)';
+            row.style.borderColor = '#16A34A';
+            row.style.boxShadow = '0 0 20px rgba(22,163,74,.15)';
+          } else if (step.status === 'SKIPPED') {
+            row.style.opacity = '.4';
+            row.style.borderColor = 'rgba(255,255,255,.04)';
+            row.style.background = 'rgba(255,255,255,.01)';
+          } else {
+            row.style.borderColor = 'rgba(220,38,38,.3)';
+            row.style.background = 'rgba(220,38,38,.04)';
+          }
+
+          // On final step, show the RID result
+          if (i === sc.steps.length - 1) {
+            setTimeout(function() {
+              result.textContent = 'RID: ' + sc.rid;
+              result.style.color = '#16A34A';
+              result.style.fontWeight = '700';
+              narr.style.color = '#16A34A';
+            }, 400);
+          }
+        }, 600);
+      }, i * 1400);
     });
   }
 
-  function resetRIDAnimation() {
-    var cards = document.querySelectorAll('.rid-card');
-    cards.forEach(function(c) {
-      c.style.transition = 'all 0.3s ease';
-      c.style.opacity = '0';
-      c.style.transform = 'translateY(12px)';
-    });
-  }
-
-  // Auto-play on load after a short delay
-  setTimeout(playRIDAnimation, 400);
+  // Auto-play on load
+  setTimeout(playRIDViz, 600);
 
   // ════════════════════════════════════════════════════════════
   // SECTION 3 — NEIGHBOR STATE MACHINE
