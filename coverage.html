@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CCNA Coverage Matrix — Topic Gap Finder</title>
+<meta name="color-scheme" content="light">
+<link rel="icon" type="image/svg+xml" href="/CCNA-study/favicon.svg">
+<link rel="stylesheet" href="css/shared.css">
+<style>
+  .page-header { padding: var(--s-xl) 0 var(--s-lg); margin-bottom: var(--s-lg); border-bottom: 2px solid var(--ink); }
+  .page-header h1 { font-size: 2.4rem; margin-bottom: 4px; }
+  .page-header .subtitle { font-family: var(--font-body); color: var(--ink-secondary); font-size: 0.95rem; font-style: italic; max-width: 60ch; }
+
+  .summary-bar { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: var(--s-xl); }
+  .summary-card { flex: 1; min-width: 140px; padding: 16px; border-radius: var(--radius-lg); border: 2px solid var(--border); background: var(--bg-surface); text-align: center; transition: all 0.2s var(--ease-out); cursor: pointer; }
+  .summary-card:hover { border-color: var(--accent); transform: translateY(-2px); }
+  .summary-card.active { border-color: var(--ink); background: var(--ink); color: var(--bg); }
+  .summary-card.active .sc-weight, .summary-card.active .sc-status { color: rgba(255,255,255,0.7); }
+  .sc-domain { font-family: var(--font-display); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink-muted); margin-bottom: 4px; }
+  .sc-pct { font-family: var(--font-mono); font-size: 1.6rem; font-weight: 700; }
+  .sc-weight { font-family: var(--font-display); font-size: 0.68rem; color: var(--ink-muted); margin-top: 2px; }
+  .sc-status { display: inline-block; font-family: var(--font-display); font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; padding: 2px 8px; border-radius: 10px; margin-top: 6px; }
+  .status-strong { background: #F0FDF4; color: #166534; }
+  .status-good { background: #FEF3C7; color: #92400E; }
+  .status-weak { background: #FEF2F2; color: #991B1B; }
+
+  .domain-section { margin-bottom: var(--s-2xl); }
+  .domain-header { display: flex; align-items: center; gap: 12px; margin-bottom: var(--s-md); padding-bottom: var(--s-sm); border-bottom: 1px solid var(--rule); }
+  .domain-num { font-family: var(--font-mono); font-size: 0.82rem; font-weight: 700; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; flex-shrink: 0; }
+  .domain-title { font-family: var(--font-display); font-size: 1.15rem; font-weight: 700; }
+  .domain-weight { font-family: var(--font-mono); font-size: 0.78rem; color: var(--ink-muted); }
+
+  .topic-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 10px; margin-bottom: var(--s-md); }
+  .topic-card { padding: 12px 14px; border-radius: var(--radius-lg); border: 1px solid var(--border); background: var(--bg-surface); transition: border-color 0.15s; }
+  .topic-card:hover { border-color: var(--border-strong); }
+  .topic-name { font-family: var(--font-display); font-size: 0.85rem; font-weight: 600; margin-bottom: 6px; display: flex; align-items: center; gap: 6px; }
+  .topic-name .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .dot-covered { background: #16A34A; }
+  .dot-partial { background: #CA8A04; }
+  .dot-missing { background: #DC2626; }
+  .topic-pages { font-family: var(--font-mono); font-size: 0.72rem; color: var(--ink-muted); line-height: 1.6; }
+  .topic-pages a { color: var(--accent); text-decoration: none; }
+  .topic-pages a:hover { text-decoration: underline; }
+  .topic-label { font-family: var(--font-display); font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700; padding: 1px 6px; border-radius: 8px; }
+  .label-covered { background: #F0FDF4; color: #166534; }
+  .label-partial { background: #FEF3C7; color: #92400E; }
+  .label-missing { background: #FEF2F2; color: #991B1B; }
+
+  .gap-box { background: #FEF2F2; border: 1px solid #FECACA; border-radius: var(--radius-lg); padding: 14px 18px; margin-bottom: var(--s-md); }
+  .gap-title { font-family: var(--font-display); font-size: 0.78rem; font-weight: 700; color: #991B1B; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px; }
+  .gap-list { font-family: var(--font-body); font-size: 0.85rem; color: var(--ink-secondary); line-height: 1.7; padding-left: 18px; }
+
+  .legend { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: var(--s-lg); font-family: var(--font-display); font-size: 0.75rem; color: var(--ink-muted); }
+  .legend-item { display: flex; align-items: center; gap: 5px; }
+
+  .filter-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: var(--s-lg); }
+  .filter-btn { font-family: var(--font-display); font-size: 0.72rem; padding: 5px 12px; border-radius: 12px; border: 1px solid var(--border); background: var(--bg-surface); cursor: pointer; transition: all 0.15s; }
+  .filter-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .filter-btn.active { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+</style>
+</head>
+<body>
+<div class="container-wide">
+  <nav class="top-nav" id="main-nav"></nav>
+
+  <header class="page-header">
+    <h1>Coverage Matrix</h1>
+    <p class="subtitle">Every CCNA 200-301 exam objective mapped to study pages. Green = covered. Yellow = partial. Red = gap.</p>
+  </header>
+
+  <div class="legend">
+    <div class="legend-item"><span class="dot dot-covered" style="width:10px;height:10px;display:inline-block;border-radius:50%"></span> Covered (dedicated page/lab)</div>
+    <div class="legend-item"><span class="dot dot-partial" style="width:10px;height:10px;display:inline-block;border-radius:50%"></span> Partial (mentioned, not deep)</div>
+    <div class="legend-item"><span class="dot dot-missing" style="width:10px;height:10px;display:inline-block;border-radius:50%"></span> Gap (not covered)</div>
+  </div>
+
+  <div class="filter-row">
+    <button class="filter-btn active" onclick="filterTopics('all',this)">All Topics</button>
+    <button class="filter-btn" onclick="filterTopics('missing',this)">Gaps Only</button>
+    <button class="filter-btn" onclick="filterTopics('partial',this)">Partial Only</button>
+    <button class="filter-btn" onclick="filterTopics('covered',this)">Covered Only</button>
+  </div>
+
+  <div class="summary-bar" id="summaryBar"></div>
+  <div id="domainSections"></div>
+</div>
+
+<script src="js/nav.js"></script>
+<script src="js/group-chat.js"></script>
+<script>
+var DOMAINS = [
+  {
+    num: 1, name: 'Network Fundamentals', weight: 20, color: '#2563EB',
+    topics: [
+      { name: 'TCP/IP & OSI Models', status: 'covered', pages: ['packet-journey.html', 'book.html', 'netplus-osi.html'] },
+      { name: 'IPv4 Addressing & Subnetting', status: 'covered', pages: ['subnetting-visual.html', 'subnetting-mastery.html', 'cidr-3d.html'] },
+      { name: 'IPv6 Addressing', status: 'covered', pages: ['exam-objectives.html', 'book.html', 'quiz.html'] },
+      { name: 'Private & Special Addresses', status: 'covered', pages: ['subnetting-visual.html', 'netplus-ip-game.html'] },
+      { name: 'Ethernet Fundamentals', status: 'covered', pages: ['book.html', 'devices.html', 'glossary.html'] },
+      { name: 'Wireless Fundamentals', status: 'covered', pages: ['netplus-wireless.html', 'book.html', 'glossary.html'] },
+      { name: 'Network Topologies', status: 'covered', pages: ['topology-3d.html', 'netplus-topology.html'] },
+      { name: 'Cabling (Fiber, Copper, Crossover)', status: 'covered', pages: ['book.html', 'glossary.html', 'devices.html'] },
+      { name: 'TCP vs UDP', status: 'covered', pages: ['packet-journey.html', 'flashcards.html', 'book.html'] },
+      { name: 'Virtualization (VMs, Containers)', status: 'partial', pages: ['exam-objectives.html'] },
+    ]
+  },
+  {
+    num: 2, name: 'Network Access', weight: 20, color: '#16A34A',
+    topics: [
+      { name: 'VLANs (Create, Assign, Verify)', status: 'covered', pages: ['labs/lab-pt1-vlan.html', 'network-lab.html'] },
+      { name: 'Trunking (802.1Q, DTP)', status: 'covered', pages: ['labs/lab-pt1-vlan.html', 'book.html'] },
+      { name: 'Inter-VLAN Routing', status: 'covered', pages: ['labs/lab-pt3-inter-vlan-routing.html'] },
+      { name: 'STP & RSTP', status: 'covered', pages: ['labs/lab-pt2-stp-etherchannel.html', 'book.html'] },
+      { name: 'EtherChannel (LACP, PAgP)', status: 'covered', pages: ['labs/lab-pt2-stp-etherchannel.html'] },
+      { name: 'Port Security', status: 'covered', pages: ['labs/lab-pt7-acl-portsec.html'] },
+      { name: 'PortFast & BPDU Guard', status: 'partial', pages: ['book.html'] },
+      { name: '802.1X Authentication', status: 'missing', pages: [] },
+      { name: 'Wireless Security (WPA2/WPA3)', status: 'partial', pages: ['netplus-wireless.html'] },
+      { name: 'Wireless Architectures (AP Modes)', status: 'partial', pages: ['netplus-wireless.html'] },
+    ]
+  },
+  {
+    num: 3, name: 'IP Connectivity', weight: 25, color: '#D97706',
+    topics: [
+      { name: 'Static Routing', status: 'covered', pages: ['labs/lab-pt3-inter-vlan-routing.html', 'book.html'] },
+      { name: 'Default Route', status: 'covered', pages: ['subnetting-visual.html', 'book.html'] },
+      { name: 'OSPFv2 (Single Area)', status: 'covered', pages: ['ospf-mastery.html', 'labs/lab-pt4-ospf.html', 'labs/lab-pt5-ospf-break-fix.html'] },
+      { name: 'OSPFv2 (Multi-Area Concepts)', status: 'partial', pages: ['ospf-mastery.html'] },
+      { name: 'FHRP (HSRP, VRRP, GLBP)', status: 'partial', pages: ['glossary.html', 'exam-objectives.html'] },
+      { name: 'Administrative Distance', status: 'covered', pages: ['ospf-mastery.html', 'book.html'] },
+      { name: 'Routing Table Interpretation', status: 'covered', pages: ['ospf-mastery.html', 'labs/lab-pt4-ospf.html'] },
+      { name: 'Route Summarization', status: 'covered', pages: ['subnetting-visual.html', 'subnetting-mastery.html'] },
+      { name: 'Packet Forwarding (CEF)', status: 'partial', pages: ['packet-journey.html'] },
+    ]
+  },
+  {
+    num: 4, name: 'IP Services', weight: 10, color: '#7C3AED',
+    topics: [
+      { name: 'DHCP (Configure & Verify)', status: 'covered', pages: ['labs/lab-pt6-nat-dhcp.html'] },
+      { name: 'NAT (Static, Dynamic, PAT)', status: 'covered', pages: ['labs/lab-pt6-nat-dhcp.html', 'glossary.html'] },
+      { name: 'DNS Fundamentals', status: 'partial', pages: ['glossary.html', 'book.html'] },
+      { name: 'NTP Configuration', status: 'missing', pages: [] },
+      { name: 'SNMP v2c/v3', status: 'missing', pages: [] },
+      { name: 'Syslog Configuration', status: 'missing', pages: [] },
+      { name: 'SSH Configuration', status: 'partial', pages: ['command-ref.html'] },
+      { name: 'TFTP/FTP Operations', status: 'missing', pages: [] },
+      { name: 'QoS Concepts (Marking, Queuing)', status: 'missing', pages: [] },
+    ]
+  },
+  {
+    num: 5, name: 'Security Fundamentals', weight: 15, color: '#DC2626',
+    topics: [
+      { name: 'ACLs (Standard & Extended)', status: 'covered', pages: ['labs/lab-pt7-acl-portsec.html'] },
+      { name: 'Wildcard Masks for ACLs', status: 'covered', pages: ['subnetting-visual.html'] },
+      { name: 'Security Concepts & Threats', status: 'partial', pages: ['exam-objectives.html', 'glossary.html'] },
+      { name: 'AAA (RADIUS, TACACS+)', status: 'missing', pages: [] },
+      { name: 'VPN Fundamentals (IPSec)', status: 'missing', pages: [] },
+      { name: 'Firewall Concepts', status: 'partial', pages: ['glossary.html'] },
+      { name: 'Password Security & Enable Secret', status: 'covered', pages: ['command-ref.html', 'labs/lab-pt0-getting-started.html'] },
+      { name: 'DHCP Snooping', status: 'missing', pages: [] },
+      { name: 'DAI (Dynamic ARP Inspection)', status: 'missing', pages: [] },
+    ]
+  },
+  {
+    num: 6, name: 'Automation & Programmability', weight: 10, color: '#0891B2',
+    topics: [
+      { name: 'REST API Concepts', status: 'covered', pages: ['labs/lab-pt8-json-api.html'] },
+      { name: 'JSON Data Format', status: 'covered', pages: ['labs/lab-pt8-json-api.html'] },
+      { name: 'Config Mgmt (Ansible, Puppet, Chef)', status: 'missing', pages: [] },
+      { name: 'SDN Concepts & Controllers', status: 'missing', pages: [] },
+      { name: 'DNA Center / Cisco SD-WAN', status: 'missing', pages: [] },
+      { name: 'NETCONF / RESTCONF', status: 'missing', pages: [] },
+      { name: 'Python for Network Automation', status: 'missing', pages: [] },
+    ]
+  }
+];
+
+function renderAll() {
+  var summaryHtml = '';
+  var sectionsHtml = '';
+
+  DOMAINS.forEach(function(d) {
+    var covered = d.topics.filter(function(t) { return t.status === 'covered'; }).length;
+    var partial = d.topics.filter(function(t) { return t.status === 'partial'; }).length;
+    var missing = d.topics.filter(function(t) { return t.status === 'missing'; }).length;
+    var total = d.topics.length;
+    var pct = Math.round((covered + partial * 0.5) / total * 100);
+    var statusClass = pct >= 80 ? 'status-strong' : pct >= 50 ? 'status-good' : 'status-weak';
+    var statusText = pct >= 80 ? 'Strong' : pct >= 50 ? 'Good' : 'Weak';
+
+    summaryHtml += '<div class="summary-card" onclick="scrollToDomain(' + d.num + ')" data-domain="' + d.num + '">' +
+      '<div class="sc-domain">Domain ' + d.num + '</div>' +
+      '<div class="sc-pct">' + pct + '%</div>' +
+      '<div class="sc-weight">' + d.weight + '% of exam</div>' +
+      '<div class="sc-status ' + statusClass + '">' + statusText + '</div>' +
+      '</div>';
+
+    sectionsHtml += '<div class="domain-section" id="domain-' + d.num + '">' +
+      '<div class="domain-header">' +
+      '<div class="domain-num" style="background:' + d.color + '">' + d.num + '</div>' +
+      '<div class="domain-title">' + d.name + '</div>' +
+      '<div class="domain-weight">' + d.weight + '% of exam &middot; ' + covered + '/' + total + ' covered</div>' +
+      '</div>';
+
+    if (missing > 0) {
+      var gapTopics = d.topics.filter(function(t) { return t.status === 'missing'; }).map(function(t) { return t.name; });
+      sectionsHtml += '<div class="gap-box"><div class="gap-title">Gaps (' + missing + ' topics)</div><ul class="gap-list">';
+      gapTopics.forEach(function(g) { sectionsHtml += '<li>' + g + '</li>'; });
+      sectionsHtml += '</ul></div>';
+    }
+
+    sectionsHtml += '<div class="topic-grid">';
+    d.topics.forEach(function(t) {
+      var dotClass = t.status === 'covered' ? 'dot-covered' : t.status === 'partial' ? 'dot-partial' : 'dot-missing';
+      var labelClass = t.status === 'covered' ? 'label-covered' : t.status === 'partial' ? 'label-partial' : 'label-missing';
+      var labelText = t.status === 'covered' ? 'Covered' : t.status === 'partial' ? 'Partial' : 'Gap';
+
+      sectionsHtml += '<div class="topic-card" data-status="' + t.status + '">' +
+        '<div class="topic-name"><span class="dot ' + dotClass + '"></span>' + t.name + ' <span class="topic-label ' + labelClass + '">' + labelText + '</span></div>';
+
+      if (t.pages.length > 0) {
+        sectionsHtml += '<div class="topic-pages">';
+        t.pages.forEach(function(p, i) {
+          if (i > 0) sectionsHtml += ', ';
+          var name = p.replace('.html', '').replace('labs/', '');
+          sectionsHtml += '<a href="' + p + '">' + name + '</a>';
+        });
+        sectionsHtml += '</div>';
+      } else {
+        sectionsHtml += '<div class="topic-pages" style="color:#DC2626">No dedicated page yet</div>';
+      }
+
+      sectionsHtml += '</div>';
+    });
+    sectionsHtml += '</div></div>';
+  });
+
+  document.getElementById('summaryBar').innerHTML = summaryHtml;
+  document.getElementById('domainSections').innerHTML = sectionsHtml;
+}
+
+function scrollToDomain(num) {
+  document.getElementById('domain-' + num).scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function filterTopics(filter, btn) {
+  document.querySelectorAll('.filter-btn').forEach(function(b) { b.classList.remove('active'); });
+  btn.classList.add('active');
+  document.querySelectorAll('.topic-card').forEach(function(card) {
+    if (filter === 'all') { card.style.display = ''; return; }
+    card.style.display = card.dataset.status === filter ? '' : 'none';
+  });
+}
+
+renderAll();
+
+// Stats
+(function() {
+  var all = [];
+  DOMAINS.forEach(function(d) { d.topics.forEach(function(t) { all.push(t); }); });
+  var c = all.filter(function(t) { return t.status === 'covered'; }).length;
+  var p = all.filter(function(t) { return t.status === 'partial'; }).length;
+  var m = all.filter(function(t) { return t.status === 'missing'; }).length;
+  console.log('Coverage: ' + c + ' covered, ' + p + ' partial, ' + m + ' missing / ' + all.length + ' total');
+})();
+</script>
+<script src="js/tutor.js"></script>
+</body>
+</html>
