@@ -68,6 +68,18 @@
   .ch-links{display:flex;gap:4px;flex-wrap:wrap;padding:0 16px 10px 38px}
   .ch-links a{font-family:var(--font-mono);font-size:.68rem;background:var(--bg-recessed);color:var(--ink-muted);padding:2px 6px;border-radius:3px;text-decoration:none;transition:all .15s}
   .ch-links a:hover{background:var(--accent-light);color:var(--accent)}
+
+  /* PDF.js viewer */
+  .pdf-toolbar{display:flex;align-items:center;gap:6px;padding:8px 12px;background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius) var(--radius) 0 0;position:sticky;top:0;z-index:10}
+  .pdf-toolbar button{padding:4px 10px;border:1px solid var(--border);border-radius:var(--radius);background:var(--bg);color:var(--ink);font-family:var(--font-display);font-size:.82rem;cursor:pointer;transition:background .15s}
+  .pdf-toolbar button:hover{background:var(--bg-recessed)}
+  .pdf-toolbar input[type="number"]{width:60px;padding:4px 6px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--font-mono);font-size:.82rem;text-align:center;background:var(--bg);color:var(--ink);-moz-appearance:textfield}
+  .pdf-toolbar input[type="number"]::-webkit-inner-spin-button{-webkit-appearance:none}
+  .pdf-toolbar .toolbar-sep{width:1px;height:20px;background:var(--border);margin:0 4px}
+  #pageTotalDisplay,#zoomDisplay{font-family:var(--font-mono);font-size:.82rem;color:var(--ink-muted);min-width:40px}
+  .pdf-canvas-wrap{width:100%;height:78vh;overflow:auto;border:1px solid var(--border);border-top:none;border-radius:0 0 var(--radius-lg) var(--radius-lg);background:var(--bg-recessed);display:flex;justify-content:center;padding:12px 0}
+  .pdf-canvas-wrap canvas{display:block;box-shadow:0 2px 12px rgba(0,0,0,.1)}
+  .pdf-loading{text-align:center;padding:40px;font-family:var(--font-body);color:var(--ink-muted);font-size:.88rem}
 </style>
 </head>
 <body>
@@ -112,6 +124,7 @@
 <script src="js/group-chat.js"></script>
 <script src="js/nav.js"></script>
 <script src="js/tutor.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
 <script>
 const BOOKS = {
   'odom-library': {
@@ -684,15 +697,36 @@ function init() {
     return;
   }
 
-  const pdfUrl = book.file + '#page=' + pdfPage;
-  document.getElementById('viewer').innerHTML =
-    '<iframe class="pdf-frame" src="' + pdfUrl + '" id="pdfFrame"></iframe>';
+  // PDF.js viewer
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
 
-  // If iframe fails to load, show fallback
-  document.getElementById('pdfFrame').onerror = function() {
-    document.getElementById('pdfFrame').style.display = 'none';
-    document.getElementById('fallback').style.display = 'block';
-  };
+  document.getElementById('viewer').innerHTML =
+    '<div class="pdf-toolbar">' +
+      '<button onclick="prevPage()" title="Previous page (Left arrow)">&#9664;</button>' +
+      '<input type="number" id="pageInput" min="1" value="' + pdfPage + '" onchange="jumpToPage(this.value)">' +
+      '<span id="pageTotalDisplay">/ ...</span>' +
+      '<button onclick="nextPage()" title="Next page (Right arrow)">&#9654;</button>' +
+      '<span class="toolbar-sep"></span>' +
+      '<button onclick="zoomOut()" title="Zoom out (-)">&#8722;</button>' +
+      '<span id="zoomDisplay">--</span>' +
+      '<button onclick="zoomIn()" title="Zoom in (+)">+</button>' +
+      '<button onclick="zoomFit()" title="Fit to width">Fit</button>' +
+    '</div>' +
+    '<div class="pdf-canvas-wrap" id="canvasWrap">' +
+      '<div class="pdf-loading">Loading PDF...</div>' +
+      '<canvas id="pdfCanvas" style="display:none"></canvas>' +
+    '</div>';
+
+  pdfjsLib.getDocument(book.file).promise.then(function(pdf) {
+    pdfDoc = pdf;
+    document.getElementById('pageTotalDisplay').textContent = '/ ' + pdf.numPages;
+    document.getElementById('pageInput').max = pdf.numPages;
+    currentPageNum = pdfPage;
+    zoomFit();
+  }).catch(function(err) {
+    document.getElementById('canvasWrap').innerHTML =
+      '<div class="pdf-loading">Could not load PDF. Make sure <code>' + book.file + '</code> exists in the project folder.</div>';
+  });
 }
 
 function goToPage(page) {
@@ -721,10 +755,66 @@ function goToPage(page) {
     setTimeout(function() { toast.style.opacity = '0'; }, 4000);
     return;
   }
+  // PDF.js: render the page without reloading
   const params = new URLSearchParams(location.search);
-  params.set('page', page);
-  location.search = params.toString();
+  const bookId = params.get('book') || 'odom-vol2';
+  const book = BOOKS[bookId];
+  if (book && pdfDoc) {
+    var pdfPage = page + book.pageOffset;
+    renderPage(pdfPage);
+  }
 }
+
+// --- PDF.js rendering ---
+var pdfDoc = null;
+var currentPageNum = 1;
+var currentScale = 1.5;
+var rendering = false;
+
+function renderPage(num) {
+  if (!pdfDoc || rendering) return;
+  rendering = true;
+  pdfDoc.getPage(num).then(function(page) {
+    var viewport = page.getViewport({ scale: currentScale });
+    var canvas = document.getElementById('pdfCanvas');
+    if (!canvas) { rendering = false; return; }
+    var ctx = canvas.getContext('2d');
+    canvas.height = viewport.height;
+    canvas.width = viewport.width;
+    canvas.style.display = 'block';
+    var loadingEl = document.querySelector('.pdf-loading');
+    if (loadingEl) loadingEl.style.display = 'none';
+    page.render({ canvasContext: ctx, viewport: viewport }).promise.then(function() {
+      currentPageNum = num;
+      document.getElementById('pageInput').value = num;
+      document.getElementById('zoomDisplay').textContent = Math.round(currentScale * 100) + '%';
+      rendering = false;
+    });
+  });
+}
+
+function prevPage() { if (currentPageNum > 1) renderPage(currentPageNum - 1); }
+function nextPage() { if (pdfDoc && currentPageNum < pdfDoc.numPages) renderPage(currentPageNum + 1); }
+function jumpToPage(val) { var n = parseInt(val); if (pdfDoc && n >= 1 && n <= pdfDoc.numPages) renderPage(n); }
+function zoomIn() { currentScale = Math.min(currentScale + 0.25, 4); renderPage(currentPageNum); }
+function zoomOut() { currentScale = Math.max(currentScale - 0.25, 0.5); renderPage(currentPageNum); }
+function zoomFit() {
+  var wrap = document.getElementById('canvasWrap');
+  if (!pdfDoc || !wrap) return;
+  pdfDoc.getPage(currentPageNum).then(function(page) {
+    var vp = page.getViewport({ scale: 1 });
+    currentScale = (wrap.clientWidth - 40) / vp.width;
+    renderPage(currentPageNum);
+  });
+}
+
+document.addEventListener('keydown', function(e) {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA') return;
+  if (e.key === 'ArrowLeft') { e.preventDefault(); prevPage(); }
+  if (e.key === 'ArrowRight') { e.preventDefault(); nextPage(); }
+  if ((e.key === '+' || e.key === '=') && !e.ctrlKey && !e.metaKey) zoomIn();
+  if (e.key === '-' && !e.ctrlKey && !e.metaKey) zoomOut();
+});
 
 init();
 </script>
