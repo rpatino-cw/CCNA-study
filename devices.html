@@ -1454,7 +1454,16 @@ function getIcon(type){
     nas:'nas', hypervisor:'server', rpi:'sensor',
     spine_switch:'switch', leaf_switch:'switch', storage:'storage',
     mesh_node:'mesh', iot_hub:'hub', smart_sensor:'sensor', camera:'cam',
-    wireless_client:'phone'
+    wireless_client:'phone',
+    // Catalog additions
+    hub:'hub', bridge:'switch', repeater:'hub', load_balancer:'server',
+    vpn_concentrator:'firewall', proxy_server:'server', media_converter:'modem',
+    console_server:'server', pdu:'ups', voice_gateway:'router',
+    wan_optimizer:'router', sdwan_appliance:'router', nac_appliance:'shield',
+    network_tap:'sensor', patch_panel:'switch', transceiver:'sensor',
+    virtual_switch:'switch', cloud_gateway:'cloud', edge_router:'router',
+    poe_switch:'switch', managed_switch:'switch', unmanaged_switch:'switch',
+    utm_appliance:'firewall', wireless_bridge:'ap', dmarc_device:'modem'
   };
   return ICONS[map[type]||'server'];
 }
@@ -1829,8 +1838,6 @@ function renderTopology(){
     $svg.querySelectorAll('.dev-group.entering').forEach(g=>g.classList.remove('entering'));
   }, topo.devices.length*60+500);
 
-  // Apply search filter if active
-  if(searchTerm) applySearch();
 }
 
 /* ── Open device detail panel ──────────────────────────────── */
@@ -1841,17 +1848,19 @@ function openPanel(type, id){
   activeDevice = id;
   const cat = CAT_COLORS[dev.category] || CAT_COLORS.endpoint;
 
-  // Highlight active device, dim others
-  $svg.querySelectorAll('.dev-group').forEach(g=>{
-    g.classList.toggle('active', g.dataset.id===id);
-    g.classList.toggle('dimmed', g.dataset.id!==id && !isConnected(id, g.dataset.id));
-  });
-  // Highlight connected links
-  $svg.querySelectorAll('.conn-line').forEach(l=>{
-    const connected = l.dataset.from===id || l.dataset.to===id;
-    l.classList.toggle('dimmed', !connected);
-    l.classList.toggle('active', connected);
-  });
+  // Only highlight in SVG if device exists in current topology
+  const inTopo = id && TOPOS[currentTopo] && TOPOS[currentTopo].devices.some(d=>d.id===id);
+  if(inTopo){
+    $svg.querySelectorAll('.dev-group').forEach(g=>{
+      g.classList.toggle('active', g.dataset.id===id);
+      g.classList.toggle('dimmed', g.dataset.id!==id && !isConnected(id, g.dataset.id));
+    });
+    $svg.querySelectorAll('.conn-line').forEach(l=>{
+      const connected = l.dataset.from===id || l.dataset.to===id;
+      l.classList.toggle('dimmed', !connected);
+      l.classList.toggle('active', connected);
+    });
+  }
 
   // Build panel content
   let html = '';
@@ -1957,57 +1966,123 @@ window.copyCmd = function(btn, cmd){
   });
 };
 
-/* ── Search ────────────────────────────────────────────────── */
-function applySearch(){
-  const topo = TOPOS[currentTopo];
-  if(!topo) return;
+/* ── Catalog ──────────────────────────────────────────────── */
+const $catalogGrid = document.getElementById('catalogGrid');
+const $catFilters = document.getElementById('catFilters');
+const $catalogCount = document.getElementById('catalogCount');
+let activeCatFilter = 'all';
+
+const CAT_LABELS = {
+  all:'All', wan:'WAN / Edge', core:'Core', dist:'Distribution',
+  access:'Access', server:'Servers', endpoint:'Endpoints', infra:'Infrastructure'
+};
+
+function buildCatalog(){
+  // Count per category
+  const counts = {all:0};
+  Object.values(DEVICES).forEach(d=>{
+    counts.all++;
+    counts[d.category] = (counts[d.category]||0) + 1;
+  });
+
+  // Filters
+  $catFilters.innerHTML = Object.entries(CAT_LABELS).map(([k,label])=>{
+    const n = counts[k]||0;
+    return `<button class="cat-filter${k===activeCatFilter?' active':''}" data-cat="${k}">${label}<span class="filter-count">(${n})</span></button>`;
+  }).join('');
+
+  $catFilters.querySelectorAll('.cat-filter').forEach(b=>{
+    b.addEventListener('click',()=>{
+      activeCatFilter = b.dataset.cat;
+      $catFilters.querySelectorAll('.cat-filter').forEach(f=>f.classList.toggle('active',f.dataset.cat===activeCatFilter));
+      filterCatalog();
+    });
+  });
+
+  // Cards — sort alphabetically within categories
+  const sorted = Object.entries(DEVICES).sort((a,b)=>{
+    if(a[1].category!==b[1].category) return a[1].category.localeCompare(b[1].category);
+    return a[1].name.localeCompare(b[1].name);
+  });
+
+  $catalogGrid.innerHTML = sorted.map(([key,dev])=>{
+    const cat = CAT_COLORS[dev.category] || CAT_COLORS.endpoint;
+    const iconFn = getIcon(key);
+    const iconSvg = iconFn ? iconFn(cat.fill) : '';
+    return `<div class="cat-card" data-type="${key}" data-cat="${dev.category}">
+      <div class="cat-card-icon" style="background:${cat.bg}">
+        <svg viewBox="-30 -24 60 48">${iconSvg}</svg>
+      </div>
+      <div class="cat-card-info">
+        <div class="cat-card-top">
+          <span class="cat-card-badge" style="background:${cat.bg};color:${cat.fg}">${dev.category.toUpperCase()}</span>
+          <span class="cat-card-osi">${dev.osi}</span>
+        </div>
+        <div class="cat-card-name">${dev.name}</div>
+        <div class="cat-card-desc">${dev.desc}</div>
+      </div>
+    </div>`;
+  }).join('');
+
+  // Click handlers
+  $catalogGrid.querySelectorAll('.cat-card').forEach(card=>{
+    card.addEventListener('click',()=>{
+      const type = card.dataset.type;
+      openPanel(type, null);
+    });
+  });
+
+  $catalogCount.textContent = `${counts.all} device types across ${Object.keys(CAT_LABELS).length - 1} categories`;
+}
+
+function filterCatalog(){
   const term = searchTerm.toLowerCase().trim();
+  let visible = 0;
 
-  if(!term){
-    $svg.querySelectorAll('.dev-group').forEach(g=>{ g.classList.remove('dimmed','search-match'); });
-    $svg.querySelectorAll('.conn-line').forEach(l=>{ l.classList.remove('dimmed'); });
-    $resultCount.textContent = '';
-    return;
-  }
+  $catalogGrid.querySelectorAll('.cat-card').forEach(card=>{
+    const type = card.dataset.type;
+    const cat = card.dataset.cat;
+    const dev = DEVICES[type];
 
-  let matchCount = 0;
-  const matchedIds = new Set();
+    // Category filter
+    const catMatch = activeCatFilter==='all' || cat===activeCatFilter;
 
-  topo.devices.forEach(d=>{
-    const dev = DEVICES[d.type];
-    const haystack = [d.label, d.type, dev?dev.name:'', dev?dev.category:'', dev?dev.desc:''].join(' ').toLowerCase();
-    if(haystack.includes(term)){
-      matchedIds.add(d.id);
-      matchCount++;
+    // Search filter
+    let searchMatch = true;
+    if(term){
+      const haystack = [dev.name, dev.category, dev.osi, dev.desc, type,
+        ...(dev.models||[]).map(m=>m.name+' '+m.use),
+        ...Object.values(dev.specs||{}),
+        ...(dev.commands||[]).map(c=>c.cmd+' '+c.desc),
+        dev.tip||''
+      ].join(' ').toLowerCase();
+      searchMatch = haystack.includes(term);
     }
+
+    const show = catMatch && searchMatch;
+    card.classList.toggle('hidden', !show);
+    if(show) visible++;
   });
 
-  $svg.querySelectorAll('.dev-group').forEach(g=>{
-    const matched = matchedIds.has(g.dataset.id);
-    g.classList.toggle('search-match', matched);
-    g.classList.toggle('dimmed', !matched);
-  });
-
-  $svg.querySelectorAll('.conn-line').forEach(l=>{
-    const vis = matchedIds.has(l.dataset.from) || matchedIds.has(l.dataset.to);
-    l.classList.toggle('dimmed', !vis);
-  });
-
-  $resultCount.textContent = matchCount > 0 ? `${matchCount} match${matchCount>1?'es':''}` : 'No matches';
+  if(term){
+    $resultCount.textContent = visible > 0 ? `${visible} match${visible>1?'es':''}` : 'No matches';
+  } else {
+    $resultCount.textContent = '';
+  }
 }
 
 $search.addEventListener('input',()=>{
   searchTerm = $search.value;
   $searchClear.classList.toggle('visible', searchTerm.length>0);
   if(activeDevice) closePanel();
-  applySearch();
+  filterCatalog();
 });
 
 $searchClear.addEventListener('click',()=>{
   $search.value = '';
   searchTerm = '';
   $searchClear.classList.remove('visible');
-  applySearch();
+  filterCatalog();
   $search.focus();
 });
 
@@ -2022,6 +2097,7 @@ document.addEventListener('keydown',(e)=>{
 buildTabs();
 buildLegend();
 renderTopology();
+buildCatalog();
 
 })();
 </script>
