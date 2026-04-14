@@ -15,6 +15,12 @@
   var memberId=localStorage.getItem('ccna_peer_id');
   if(!code||!memberId)return;
 
+  // Always show cached badge immediately (even if sync is debounced)
+  try{
+    var cached=JSON.parse(sessionStorage.getItem('_groupBadge'));
+    if(cached)renderGroupBadge(cached.code,cached.mc,cached.myR,cached.avgR);
+  }catch(e){}
+
   // Debounce — don't sync more than once per 30 seconds
   var lastSync=parseInt(sessionStorage.getItem('_lastSync')||'0');
   if(Date.now()-lastSync<30000)return;
@@ -77,16 +83,21 @@
       var me=g.members[memberId];
       var myR=me&&me.progress?me.progress.readiness||0:0;
       var avgR=Math.round(Object.values(g.members).reduce(function(s,m){return s+(m.progress&&m.progress.readiness||0);},0)/mc);
-      var badge=document.getElementById('group-mini-badge');
-      if(!badge){
-        badge=document.createElement('div');
-        badge.id='group-mini-badge';
-        badge.style.cssText='position:fixed;bottom:12px;left:12px;z-index:200;background:var(--bg-surface,#fff);border:1px solid var(--border,#e5e5e5);border-radius:8px;padding:8px 12px;font-family:monospace;font-size:0.65rem;color:var(--ink-muted,#888);box-shadow:0 2px 8px rgba(0,0,0,0.06);cursor:pointer;transition:opacity 0.2s;max-width:200px';
-        badge.onclick=function(){window.location.href=(location.pathname.indexOf('/labs/')>=0?'../':'')+'peers.html';};
-        document.body.appendChild(badge);
-      }
-      badge.innerHTML='<div style="font-weight:700;color:var(--ink,#333);font-size:0.72rem;margin-bottom:2px">Group '+g.code+'</div>'+
-        '<div>'+mc+' members | You: '+myR+'% | Avg: '+avgR+'%</div>';
+      sessionStorage.setItem('_groupBadge',JSON.stringify({code:g.code,mc:mc,myR:myR,avgR:avgR}));
+      renderGroupBadge(g.code,mc,myR,avgR);
     }).catch(function(){});
   }catch(e){}
+
+  function renderGroupBadge(code,mc,myR,avgR){
+    var badge=document.getElementById('group-mini-badge');
+    if(!badge){
+      badge=document.createElement('div');
+      badge.id='group-mini-badge';
+      badge.style.cssText='position:fixed;bottom:40px;left:12px;z-index:350;background:var(--bg-surface,#fff);border:1px solid var(--border,#e5e5e5);border-radius:8px;padding:8px 12px;font-family:monospace;font-size:0.65rem;color:var(--ink-muted,#888);box-shadow:0 2px 8px rgba(0,0,0,0.06);cursor:pointer;max-width:200px';
+      badge.onclick=function(){window.location.href=(location.pathname.indexOf('/labs/')>=0?'../':'')+'peers.html';};
+      document.body.appendChild(badge);
+    }
+    badge.innerHTML='<div style="font-weight:700;color:var(--ink,#333);font-size:0.72rem;margin-bottom:2px">Group '+code+'</div>'+
+      '<div>'+mc+' members | You: '+myR+'% | Avg: '+avgR+'%</div>';
+  }
 })();
