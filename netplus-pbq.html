@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PBQs — Network+ Practice</title>
+<meta name="color-scheme" content="light">
+<link rel="icon" type="image/svg+xml" href="/CCNA-study/favicon.svg">
+<link rel="stylesheet" href="css/shared.css">
+<link rel="stylesheet" href="css/netplus.css">
+<style>
+  /* PBQ styles */
+  .pbq-card{background:var(--bg-surface);border:2px solid var(--border);border-radius:var(--radius-lg);padding:24px;margin-bottom:var(--s-md)}
+  .pbq-card.active{border-color:var(--np)}
+  .pbq-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--s-md)}
+  .pbq-badge{font-family:var(--font-mono);font-size:.65rem;font-weight:700;padding:3px 8px;border-radius:3px;text-transform:uppercase}
+  .pbq-badge.topo{background:#EDE9FE;color:#DC2626}
+  .pbq-badge.tshoot{background:#FEF3C7;color:#B45309}
+  .pbq-badge.config{background:#DBEAFE;color:#1D4ED8}
+  .pbq-badge.cable{background:#D1FAE5;color:#047857}
+  .pbq-num{font-family:var(--font-mono);font-size:.72rem;color:var(--ink-muted)}
+  .pbq-task{font-family:var(--font-body);font-size:.95rem;line-height:1.6;margin-bottom:var(--s-md)}
+  .match-grid{display:grid;grid-template-columns:1fr 1fr;gap:var(--s-md)}
+  @media(max-width:600px){.match-grid{grid-template-columns:1fr}}
+  .match-col h4{font-family:var(--font-display);font-size:.78rem;margin-bottom:var(--s-sm);color:var(--ink-muted)}
+  .match-item{padding:10px 14px;border:1px solid var(--border);border-radius:var(--radius);margin-bottom:6px;font-family:var(--font-body);font-size:.82rem;cursor:pointer;transition:all .15s;user-select:none}
+  .match-item:hover{border-color:var(--np);background:rgba(220,38,38,.03)}
+  .match-item.selected{border-color:var(--np);background:rgba(220,38,38,.08);color:#DC2626;font-weight:600}
+  .match-item.matched{border-color:#16A34A;background:rgba(22,163,74,.06);color:#16A34A;pointer-events:none}
+  .match-item.wrong-match{border-color:#DC2626;background:rgba(220,38,38,.06);color:#DC2626}
+  .pbq-progress{display:flex;gap:3px;margin-bottom:var(--s-lg)}
+  .pbq-pip{flex:1;height:4px;border-radius:2px;background:var(--bg-recessed)}
+  .pbq-pip.done{background:#16A34A}
+  .pbq-pip.wrong-pip{background:#DC2626}
+  .pbq-pip.current{background:#DC2626}
+
+  /* Scenario terminal */
+  .scenario-box{background:#1C1917;color:#A7F3D0;font-family:var(--font-mono);font-size:.75rem;padding:14px 18px;border-radius:var(--radius-lg);overflow-x:auto;margin-bottom:var(--s-md);line-height:1.6;white-space:pre}
+  .scenario-label{font-family:var(--font-display);font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-muted);margin-bottom:var(--s-xs)}
+
+  /* Quiz option shared */
+  .np-opts{display:flex;flex-direction:column;gap:6px}
+  .np-opt{padding:10px 14px;border:1px solid var(--border);border-radius:var(--radius);cursor:pointer;font-family:var(--font-body);font-size:.85rem;transition:all .15s}
+  .np-opt:hover{border-color:var(--np);background:rgba(220,38,38,.03)}
+  .np-opt.correct{border-color:#16A34A;background:rgba(22,163,74,.08);color:#16A34A}
+  .np-opt.wrong{border-color:#DC2626;background:rgba(220,38,38,.08);color:#DC2626}
+  .np-opt.locked{pointer-events:none}
+  .np-quiz-nav{display:flex;justify-content:space-between;align-items:center;margin-top:var(--s-md)}
+  .np-score{font-family:var(--font-mono);font-size:.85rem;color:var(--np);font-weight:700}
+  .np-explain{font-family:var(--font-body);font-size:.82rem;color:var(--ink-secondary);line-height:1.6;padding:12px 14px;background:var(--bg-recessed);border-radius:var(--radius);margin-top:10px;display:none}
+  .np-explain.show{display:block}
+</style>
+</head>
+<body>
+<div class="container">
+  <nav class="top-nav"></nav>
+  <header class="page-header">
+    <h1>PBQs</h1>
+    <p class="subtitle">Simulated PBQs matching the N10-009 exam format — matching, troubleshooting, and configuration tasks.</p>
+  </header>
+
+  <div class="pbq-progress" id="pbqProgress"></div>
+  <div id="pbqArea"></div>
+  <div class="np-quiz-nav">
+    <span class="np-score" id="pbqScore">0 / 0</span>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-sm" id="pbqReset" style="border:1px solid var(--border);background:none;font-family:var(--font-display)">Reset</button>
+      <button class="btn btn-primary btn-sm" id="pbqNext" style="background:var(--np)">Next PBQ</button>
+    </div>
+  </div>
+</div>
+
+<script src="js/nav.js"></script>
+<script src="js/tutor.js"></script>
+<script src="js/group-chat.js"></script>
+<script>
+function esc(s){var d=document.createElement('div');d.textContent=s;return d.innerHTML;}
+function shuffle(a){for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=a[i];a[i]=a[j];a[j]=t;}return a;}
+
+var PBQ_DATA=[
+  {type:'cable',title:'Cable Selection',task:'Match each scenario to the correct cable type. Click a scenario on the left, then click the matching cable on the right.',left:['Switch to Switch (10m)','PC to Switch (5m)','Switch to Router console','Server room to wiring closet (200m)','Patch panel to wall jack (3m)'],right:['Crossover UTP','Straight-through UTP','Rollover (console)','Single-mode fiber','Straight-through UTP'],pairs:[[0,0],[1,1],[2,2],[3,3],[4,4]],explain:'Like-to-like = crossover (or Auto-MDIX). Unlike devices = straight-through. Console = rollover. Over 100m = fiber.'},
+  {type:'tshoot',title:'DNS Resolution Failure',scenario:'C:\\> ping 8.8.8.8\nReply from 8.8.8.8: bytes=32 time=12ms TTL=118\n\nC:\\> ping www.example.com\nPing request could not find host www.example.com.\n\nC:\\> ipconfig /all\nDNS Servers . . . . . : 192.168.1.1\n\nC:\\> nslookup\nDefault Server:  UnKnown\nAddress:  192.168.1.1\n\n> www.example.com\n*** UnKnown can\'t find www.example.com: No response',task:'Based on the output above, what is the MOST likely cause and fix?',opts:['Default gateway is misconfigured','DNS server (192.168.1.1) is not responding to queries — reconfigure DNS to 8.8.8.8','The host file is blocking example.com','ISP is blocking outbound traffic on port 80'],ans:1,explain:'Ping by IP works, but name resolution fails. nslookup confirms the DNS server is not responding. Fix: point to a working DNS.'},
+  {type:'config',title:'Firewall Rule Configuration',task:'Match each service to the correct port and protocol to write the firewall rules.',left:['Web server (HTTPS)','Email receiving (SMTP)','File transfer (SFTP)','Remote desktop (RDP)','Database (MySQL)'],right:['TCP 443','TCP 25','TCP 22','TCP 3389','TCP 3306'],pairs:[[0,0],[1,1],[2,2],[3,3],[4,4]],explain:'HTTPS=443, SMTP=25, SFTP=22 (SSH), RDP=3389, MySQL=3306. All TCP.'},
+  {type:'tshoot',title:'Slow Network Performance',scenario:'Switch# show interface fa0/1\nFastEthernet0/1 is up, line protocol is up\n  Half-duplex, 100Mb/s\n  Input errors: 0, CRC: 14523, frame: 0\n  Output errors: 0, collisions: 8291\n  Late collisions: 4102\n\nSwitch# show interface fa0/2\nFastEthernet0/2 is up, line protocol is up\n  Full-duplex, 100Mb/s\n  Input errors: 0, CRC: 0, frame: 0\n  Output errors: 0, collisions: 0',task:'A user on port Fa0/1 reports extremely slow file transfers. What is the problem?',opts:['The cable on Fa0/1 is too long','Fa0/1 has a duplex mismatch — half-duplex vs full-duplex on the other end','Fa0/2 is consuming all bandwidth','The switch needs a firmware update'],ans:1,explain:'High CRC errors + late collisions + half-duplex = classic duplex mismatch. Fix: set both sides to full-duplex.'},
+  {type:'tshoot',title:'Wireless Connectivity Issue',scenario:'Site Survey Results:\n  AP1 — Channel 1 — Signal: -45 dBm — SSID: CorpWiFi\n  AP2 — Channel 3 — Signal: -50 dBm — SSID: CorpWiFi\n  AP3 — Channel 6 — Signal: -55 dBm — SSID: CorpWiFi\n  AP4 — Channel 8 — Signal: -60 dBm — SSID: GuestNet\n\nUser reports: Frequent disconnections and slow speeds\nin the area covered by AP1 and AP2.',task:'What is causing the wireless performance issues?',opts:['AP1 signal is too strong at -45 dBm','AP2 on channel 3 overlaps with AP1 (ch1) and AP3 (ch6)','The SSID names don\'t match between APs','AP4 is interfering with AP3'],ans:1,explain:'Only channels 1, 6, and 11 are non-overlapping in 2.4 GHz. Channel 3 overlaps with both.'},
+  {type:'cable',title:'Network Topology Design',task:'Match each requirement to the correct network topology or technology.',left:['All devices share one cable segment','Central device connects all nodes','Redundant paths between switches','Wireless mesh with no central controller','Two buildings, 500m apart'],right:['Bus topology','Star topology','Full/partial mesh topology','Ad-hoc (IBSS) mode','Point-to-point fiber link'],pairs:[[0,0],[1,1],[2,2],[3,3],[4,4]],explain:'Bus=shared coax, Star=central switch, Mesh=redundant links, Ad-hoc=peer wireless, P2P fiber for long runs.'},
+  {type:'tshoot',title:'No Network Connectivity',scenario:'C:\\> ipconfig\nIPv4 Address. . . . : 169.254.45.12\nSubnet Mask . . . . : 255.255.0.0\nDefault Gateway . . :\n\nC:\\> ping 192.168.1.1\nRequest timed out.\n\nC:\\> ping 127.0.0.1\nReply from 127.0.0.1: bytes=32 time<1ms TTL=128',task:'What does the 169.254.x.x address indicate and what should you check?',opts:['Static IP conflict — change the IP manually','APIPA address — DHCP server is unreachable, check DHCP service and network cable','The DNS server is down — reconfigure DNS','The default gateway was manually removed — re-add it'],ans:1,explain:'169.254.x.x is APIPA. The PC tried DHCP but got no response. Check: cable, switch port, DHCP server status.'},
+  {type:'cable',title:'OSI Troubleshooting Layers',task:'Match each issue to the OSI layer where troubleshooting should begin.',left:['Broken cable connector','MAC address filtering','IP address misconfigured','SSL certificate expired','Application timeout error'],right:['Layer 1 — Physical','Layer 2 — Data Link','Layer 3 — Network','Layer 6 — Presentation','Layer 7 — Application'],pairs:[[0,0],[1,1],[2,2],[3,3],[4,4]],explain:'Physical=cables, Data Link=MAC/switching, Network=IP/routing, Presentation=encryption/SSL, Application=app-level.'},
+  {type:'tshoot',title:'DHCP Scope Exhaustion',scenario:'Server# show dhcp pool OFFICE\nPool: OFFICE\nNetwork: 192.168.10.0/24\nRange: 192.168.10.100 - 192.168.10.150\nLeased: 51  Available: 0  Pending: 3\nLease time: 8 days\n\nHelp desk reports: 3 new employees can\'t get IP addresses.',task:'What is the best solution to this problem?',opts:['Restart the DHCP server to clear all leases','Reduce lease time to 4 hours and expand the range to .100-.200','Change the subnet to /23 to double addresses','Assign static IPs to the 3 new employees'],ans:1,explain:'51 leases fill the 51-address pool. Reduce lease time so unused IPs recycle faster and expand range.'},
+  {type:'cable',title:'Security Controls',task:'Match each security threat to the most effective countermeasure.',left:['ARP spoofing/poisoning','Rogue DHCP server','Unauthorized switch port access','Brute-force login attempts','Man-in-the-middle attack'],right:['Dynamic ARP Inspection (DAI)','DHCP snooping','802.1X port-based authentication','Account lockout policy','Certificate-based encryption (TLS)'],pairs:[[0,0],[1,1],[2,2],[3,3],[4,4]],explain:'DAI validates ARP, DHCP snooping filters rogue servers, 802.1X authenticates devices, lockout stops brute-force, TLS prevents MITM.'},
+  {type:'cable',title:'Cloud Service Models',task:'Match each scenario to the correct cloud service model.',left:['Company uses Gmail and Google Docs','Developer deploys app to Heroku without managing servers','IT team provisions VMs on AWS EC2','Remote workers access virtual desktops','Company hosts a database on Azure SQL managed service'],right:['SaaS','PaaS','IaaS','DaaS','PaaS'],pairs:[[0,0],[1,1],[2,2],[3,3],[4,4]],explain:'SaaS=just use the app. PaaS=deploy code. IaaS=you manage VMs/OS. DaaS=virtual desktops.'},
+  {type:'tshoot',title:'Branch Office Connectivity',scenario:'HQ uses MPLS to connect 3 branch offices.\nBranch-1: UP — latency 8ms — jitter 2ms\nBranch-2: UP — latency 12ms — jitter 3ms\nBranch-3: DOWN — last seen 2 hours ago\n\nRouter# show ip route\n  10.1.0.0/24 via 172.16.0.1 [170/0] — MPLS\n  10.2.0.0/24 via 172.16.0.2 [170/0] — MPLS\n  10.3.0.0/24 — no route\n\nISP ticket: "Circuit ID 7842 — maintenance window completed 3 hours ago"',task:'Branch-3 went down during ISP maintenance and didn\'t recover. What should you do FIRST?',opts:['Replace the WAN router at Branch-3','Contact the ISP — their maintenance may not have restored the MPLS circuit','Reconfigure MPLS labels on the HQ router','Switch Branch-3 to a backup internet VPN immediately'],ans:1,explain:'The ISP completed maintenance but Branch-3 didn\'t recover — the circuit wasn\'t properly restored. Contact ISP first.'},
+  {type:'cable',title:'Troubleshooting Tool Selection',task:'Match each troubleshooting scenario to the correct physical tool.',left:['Need to find which wall jack connects to patch panel port 12','New Cat6 run needs to be certified','Fiber link between buildings is intermittent','Switch port shows no link light','Want to capture all traffic on a VLAN for analysis'],right:['Tone generator and probe','Cable certifier','OTDR','Loopback plug','Port mirror (SPAN)'],pairs:[[0,0],[1,1],[2,2],[3,3],[4,4]],explain:'Tone gen = trace cables. Certifier = verify new runs. OTDR = fiber. Loopback = test port. SPAN = copy traffic.'},
+  {type:'tshoot',title:'Backup Strategy Selection',scenario:'Company requirements:\n  - Full backup runs Sunday night\n  - Budget allows one backup strategy for Mon-Sat\n  - RTO: 4 hours\n  - RPO: 24 hours\n  - Friday afternoon the file server crashes\n\nOption A: Incremental daily (Mon-Sat)\n  Restore needs: Sunday full + Mon + Tue + Wed + Thu + Fri = 6 tapes\n  Restore time: ~5 hours\n\nOption B: Differential daily (Mon-Sat)\n  Restore needs: Sunday full + Friday differential = 2 tapes\n  Restore time: ~2.5 hours',task:'Which backup strategy meets the company\'s RTO requirement?',opts:['Option A (Incremental) — uses less storage','Option B (Differential) — restores in 2.5 hours, within the 4-hour RTO','Both options meet the RTO','Neither option meets the RTO'],ans:1,explain:'Incremental ~5 hours (exceeds 4-hour RTO). Differential ~2.5 hours (within RTO).'},
+  {type:'cable',title:'Change Management Process',task:'Put these change management steps in the correct order.',left:['Submit change request with business justification','Get approval from Change Advisory Board (CAB)','Test the change in a lab/staging environment','Implement during approved maintenance window','Document the change and update network diagrams'],right:['Step 1','Step 2','Step 3','Step 4','Step 5'],pairs:[[0,0],[1,1],[2,2],[3,3],[4,4]],explain:'Request > Approval > Test > Implement > Document. Never skip testing or documentation.'},
+];
+
+var pbqIdx=0,pbqCorrect=0,pbqTotal=0,pbqLocked=false;
+var pbqMatchState={selectedLeft:null,matched:[],attempts:0,maxPairs:0};
+
+function renderPBQProgress(){
+  var html='';
+  for(var i=0;i<PBQ_DATA.length;i++){
+    var cls='pbq-pip';
+    if(i<pbqTotal){var stored=localStorage.getItem('np_pbq_'+i);cls+=(stored==='1'?' done':' wrong-pip');}
+    else if(i===pbqTotal){cls+=' current';}
+    html+='<div class="'+cls+'"></div>';
+  }
+  document.getElementById('pbqProgress').innerHTML=html;
+}
+
+function renderPBQ(){
+  pbqLocked=false;
+  if(pbqIdx>=PBQ_DATA.length)pbqIdx=0;
+  var p=PBQ_DATA[pbqIdx];
+  var html='<div class="pbq-card active"><div class="pbq-header"><span class="pbq-badge '+p.type+'">'+({cable:'Matching',tshoot:'Troubleshoot',config:'Configuration'}[p.type])+'</span><span class="pbq-num">PBQ '+(pbqIdx+1)+' of '+PBQ_DATA.length+'</span></div>';
+  html+='<h3 style="font-family:var(--font-display);font-size:1rem;margin-bottom:var(--s-sm)">'+esc(p.title)+'</h3>';
+  if(p.scenario){html+='<div class="scenario-label">Terminal Output</div><div class="scenario-box">'+esc(p.scenario)+'</div>';}
+  html+='<div class="pbq-task">'+esc(p.task)+'</div>';
+
+  if(p.type==='tshoot'){
+    html+='<div class="np-opts" id="pbqOpts">'+p.opts.map(function(o,i){return'<div class="np-opt" data-idx="'+i+'">'+esc(o)+'</div>';}).join('')+'</div>';
+    html+='<div class="np-explain" id="pbqExplain"></div>';
+  } else {
+    pbqMatchState={selectedLeft:null,matched:[],attempts:0,maxPairs:p.pairs.length};
+    var shuffledRight=p.right.map(function(r,i){return{text:r,origIdx:i};});
+    shuffle(shuffledRight);
+    html+='<div class="match-grid"><div class="match-col"><h4>Scenarios</h4>';
+    p.left.forEach(function(l,i){html+='<div class="match-item match-left" data-idx="'+i+'">'+esc(l)+'</div>';});
+    html+='</div><div class="match-col"><h4>Answers</h4>';
+    shuffledRight.forEach(function(r){html+='<div class="match-item match-right" data-idx="'+r.origIdx+'">'+esc(r.text)+'</div>';});
+    html+='</div></div><div class="np-explain" id="pbqExplain"></div>';
+  }
+  html+='</div>';
+  document.getElementById('pbqArea').innerHTML=html;
+  document.getElementById('pbqScore').textContent=pbqCorrect+' / '+pbqTotal;
+  renderPBQProgress();
+
+  if(p.type==='tshoot'){
+    document.querySelectorAll('#pbqOpts .np-opt').forEach(function(o){o.addEventListener('click',function(){pbqAnswerMC(parseInt(o.dataset.idx));});});
+  } else {
+    document.querySelectorAll('.match-left').forEach(function(el){el.addEventListener('click',function(){pbqSelectLeft(parseInt(el.dataset.idx));});});
+    document.querySelectorAll('.match-right').forEach(function(el){el.addEventListener('click',function(){pbqSelectRight(parseInt(el.dataset.idx));});});
+  }
+}
+
+function pbqAnswerMC(idx){
+  if(pbqLocked)return;pbqLocked=true;pbqTotal++;
+  var p=PBQ_DATA[pbqIdx];var correct=idx===p.ans;if(correct)pbqCorrect++;
+  localStorage.setItem('np_pbq_'+pbqIdx,correct?'1':'0');
+  document.querySelectorAll('#pbqOpts .np-opt').forEach(function(o,i){o.classList.add('locked');if(i===p.ans)o.classList.add('correct');if(i===idx&&!correct)o.classList.add('wrong');});
+  var el=document.getElementById('pbqExplain');el.textContent=p.explain;el.classList.add('show');
+  document.getElementById('pbqScore').textContent=pbqCorrect+' / '+pbqTotal;renderPBQProgress();
+}
+
+function pbqSelectLeft(idx){
+  if(pbqLocked)return;if(pbqMatchState.matched.some(function(m){return m[0]===idx;}))return;
+  pbqMatchState.selectedLeft=idx;
+  document.querySelectorAll('.match-left').forEach(function(el){el.classList.toggle('selected',parseInt(el.dataset.idx)===idx);});
+}
+
+function pbqSelectRight(idx){
+  if(pbqLocked||pbqMatchState.selectedLeft===null)return;
+  var p=PBQ_DATA[pbqIdx];if(pbqMatchState.matched.some(function(m){return m[1]===idx;}))return;
+  var leftIdx=pbqMatchState.selectedLeft;var correctPair=p.pairs.find(function(pr){return pr[0]===leftIdx;});
+  var isCorrect=correctPair&&correctPair[1]===idx;pbqMatchState.attempts++;
+  var leftEl=document.querySelector('.match-left[data-idx="'+leftIdx+'"]');
+  var rightEl=document.querySelector('.match-right[data-idx="'+idx+'"]');
+
+  if(isCorrect){
+    leftEl.classList.remove('selected');leftEl.classList.add('matched');rightEl.classList.add('matched');
+    pbqMatchState.matched.push([leftIdx,idx]);pbqMatchState.selectedLeft=null;
+    if(pbqMatchState.matched.length===pbqMatchState.maxPairs){
+      pbqTotal++;var score=pbqMatchState.maxPairs/pbqMatchState.attempts;if(score>=0.8)pbqCorrect++;
+      localStorage.setItem('np_pbq_'+pbqIdx,score>=0.8?'1':'0');pbqLocked=true;
+      var el=document.getElementById('pbqExplain');el.textContent=(score>=0.8?'All matched correctly! ':'Completed with some wrong attempts. ')+p.explain;el.classList.add('show');
+      document.getElementById('pbqScore').textContent=pbqCorrect+' / '+pbqTotal;renderPBQProgress();
+    }
+  } else {
+    leftEl.classList.add('wrong-match');rightEl.classList.add('wrong-match');
+    setTimeout(function(){leftEl.classList.remove('selected','wrong-match');rightEl.classList.remove('wrong-match');pbqMatchState.selectedLeft=null;},600);
+  }
+}
+
+document.getElementById('pbqNext').addEventListener('click',function(){pbqIdx++;renderPBQ();});
+document.getElementById('pbqReset').addEventListener('click',function(){pbqIdx=0;pbqCorrect=0;pbqTotal=0;for(var i=0;i<PBQ_DATA.length;i++)localStorage.removeItem('np_pbq_'+i);renderPBQ();});
+
+renderPBQ();
+</script>
+</body>
+</html>

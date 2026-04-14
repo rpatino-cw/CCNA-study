@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Port Drill — Network+ Practice</title>
+<meta name="color-scheme" content="light">
+<link rel="icon" type="image/svg+xml" href="/CCNA-study/favicon.svg">
+<link rel="stylesheet" href="css/shared.css">
+<link rel="stylesheet" href="css/netplus.css">
+<style>
+  /* Port quiz */
+  .port-quiz-area{text-align:center;padding:var(--s-xl) 0}
+  .port-display{font-family:var(--font-mono);font-size:3rem;font-weight:800;color:var(--np);margin-bottom:var(--s-sm)}
+  .port-hint{font-family:var(--font-display);font-size:.82rem;color:var(--ink-muted);margin-bottom:var(--s-lg)}
+  .port-input-wrap{display:flex;gap:8px;justify-content:center;align-items:center;margin-bottom:var(--s-md)}
+  .port-input{font-family:var(--font-mono);font-size:1.1rem;padding:10px 16px;border:2px solid var(--border);border-radius:var(--radius);text-align:center;width:200px;outline:none;transition:border-color .15s}
+  .port-input:focus{border-color:var(--np)}
+  .port-input.correct-input{border-color:#16A34A;background:rgba(22,163,74,.04)}
+  .port-input.wrong-input{border-color:#DC2626;background:rgba(220,38,38,.04)}
+  .port-feedback{font-family:var(--font-display);font-size:.88rem;min-height:24px;margin-bottom:var(--s-md)}
+  .port-feedback.correct-fb{color:#16A34A;font-weight:600}
+  .port-feedback.wrong-fb{color:#DC2626}
+  .port-stats{display:flex;gap:var(--s-xl);justify-content:center;font-family:var(--font-mono);font-size:.82rem;color:var(--ink-muted);margin-bottom:var(--s-md)}
+  .port-stats strong{color:var(--ink)}
+  .port-streak{font-family:var(--font-mono);font-size:.72rem;color:var(--np);margin-bottom:var(--s-md)}
+  .port-mode-btns{display:flex;gap:8px;justify-content:center;margin-bottom:var(--s-lg);flex-wrap:wrap}
+  .port-mode-btn{font-family:var(--font-display);font-size:.75rem;font-weight:600;padding:6px 14px;border:1px solid var(--border);border-radius:var(--radius);cursor:pointer;background:none;transition:all .15s}
+  .port-mode-btn:hover{border-color:var(--np);color:var(--np)}
+  .port-mode-btn.active{background:var(--np);color:#fff;border-color:var(--np)}
+</style>
+</head>
+<body>
+<div class="container">
+  <nav class="top-nav"></nav>
+  <header class="page-header">
+    <h1>Port Drill</h1>
+    <p class="subtitle">Know your ports cold. The exam expects instant recall.</p>
+  </header>
+
+  <div class="port-mode-btns" id="portModeBtns">
+    <button class="port-mode-btn active" data-mode="service">Service &rarr; Port</button>
+    <button class="port-mode-btn" data-mode="port">Port &rarr; Service</button>
+    <button class="port-mode-btn" data-mode="mixed">Mixed</button>
+  </div>
+  <div class="port-quiz-area">
+    <div class="port-display" id="portDisplay"></div>
+    <div class="port-hint" id="portHint"></div>
+    <div class="port-input-wrap">
+      <input type="text" class="port-input" id="portInput" placeholder="Type answer..." autocomplete="off" spellcheck="false">
+      <button class="btn btn-primary btn-sm" id="portSubmit" style="background:var(--np);padding:10px 18px">Check</button>
+    </div>
+    <div class="port-feedback" id="portFeedback"></div>
+    <div class="port-streak" id="portStreak"></div>
+    <div class="port-stats" id="portStats"><span><strong>0</strong> correct</span><span><strong>0</strong> wrong</span><span><strong>0</strong> streak</span></div>
+  </div>
+</div>
+
+<script src="js/nav.js"></script>
+<script src="js/tutor.js"></script>
+<script src="js/group-chat.js"></script>
+<script>
+function shuffle(a){for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=a[i];a[i]=a[j];a[j]=t;}return a;}
+
+var PORTS=[
+  {port:'20',service:'FTP Data',proto:'TCP'},{port:'21',service:'FTP Control',proto:'TCP'},
+  {port:'22',service:'SSH / SFTP / SCP',proto:'TCP'},{port:'23',service:'Telnet',proto:'TCP'},
+  {port:'25',service:'SMTP',proto:'TCP'},{port:'53',service:'DNS',proto:'TCP/UDP'},
+  {port:'67',service:'DHCP Server',proto:'UDP'},{port:'68',service:'DHCP Client',proto:'UDP'},
+  {port:'69',service:'TFTP',proto:'UDP'},{port:'80',service:'HTTP',proto:'TCP'},
+  {port:'110',service:'POP3',proto:'TCP'},{port:'123',service:'NTP',proto:'UDP'},
+  {port:'143',service:'IMAP',proto:'TCP'},{port:'161',service:'SNMP',proto:'UDP'},
+  {port:'162',service:'SNMP Trap',proto:'UDP'},{port:'389',service:'LDAP',proto:'TCP'},
+  {port:'443',service:'HTTPS',proto:'TCP'},{port:'445',service:'SMB / CIFS',proto:'TCP'},
+  {port:'514',service:'Syslog',proto:'UDP'},{port:'587',service:'SMTP Submission',proto:'TCP'},
+  {port:'636',service:'LDAPS',proto:'TCP'},{port:'993',service:'IMAPS',proto:'TCP'},
+  {port:'995',service:'POP3S',proto:'TCP'},{port:'1433',service:'MSSQL',proto:'TCP'},
+  {port:'1521',service:'Oracle DB',proto:'TCP'},{port:'3306',service:'MySQL',proto:'TCP'},
+  {port:'3389',service:'RDP',proto:'TCP'},{port:'5060',service:'SIP',proto:'TCP/UDP'},
+  {port:'5061',service:'SIP TLS',proto:'TCP'},{port:'49',service:'TACACS+',proto:'TCP'},
+  {port:'1812',service:'RADIUS Auth',proto:'UDP'},{port:'1813',service:'RADIUS Accounting',proto:'UDP'},
+  {port:'88',service:'Kerberos',proto:'TCP/UDP'},{port:'464',service:'Kerberos Password',proto:'TCP/UDP'},
+];
+
+var portMode='service',portPool=[],portCurrent=null;
+var portCorrectCount=0,portWrongCount=0,portStreakCount=0,portBestStreak=0;
+
+function initPortQuiz(){portPool=shuffle(PORTS.slice());nextPort();}
+
+function nextPort(){
+  if(portPool.length===0)portPool=shuffle(PORTS.slice());
+  portCurrent=portPool.pop();var mode=portMode;if(mode==='mixed')mode=Math.random()>0.5?'service':'port';
+  var display,hint;
+  if(mode==='service'){display=portCurrent.service;hint='Type the port number ('+portCurrent.proto+')';portCurrent._answerType='port';}
+  else{display='Port '+portCurrent.port;hint='Type the service name ('+portCurrent.proto+')';portCurrent._answerType='service';}
+  document.getElementById('portDisplay').textContent=display;document.getElementById('portHint').textContent=hint;
+  document.getElementById('portInput').value='';document.getElementById('portInput').className='port-input';
+  document.getElementById('portFeedback').textContent='';document.getElementById('portFeedback').className='port-feedback';
+  document.getElementById('portInput').focus();
+}
+
+function checkPort(){
+  var input=document.getElementById('portInput').value.trim().toLowerCase();if(!input)return;
+  var correct=false;
+  if(portCurrent._answerType==='port'){correct=input===portCurrent.port;}
+  else{var svc=portCurrent.service.toLowerCase();var parts=svc.split(/[\s\/]+/);correct=input===svc||parts.some(function(p){return p.length>1&&input===p;})||input.replace(/\s+/g,'')==svc.replace(/[\s\/]+/g,'');}
+  var fb=document.getElementById('portFeedback'),inp=document.getElementById('portInput');
+  if(correct){portCorrectCount++;portStreakCount++;if(portStreakCount>portBestStreak)portBestStreak=portStreakCount;fb.textContent='Correct!';fb.className='port-feedback correct-fb';inp.className='port-input correct-input';setTimeout(nextPort,800);}
+  else{portWrongCount++;portStreakCount=0;var ans=portCurrent._answerType==='port'?portCurrent.port:portCurrent.service;fb.textContent='Wrong — answer: '+ans;fb.className='port-feedback wrong-fb';inp.className='port-input wrong-input';setTimeout(nextPort,1500);}
+  document.getElementById('portStats').innerHTML='<span><strong>'+portCorrectCount+'</strong> correct</span><span><strong>'+portWrongCount+'</strong> wrong</span><span><strong>'+portStreakCount+'</strong> streak</span>';
+  document.getElementById('portStreak').textContent=portBestStreak>2?'Best streak: '+portBestStreak:'';
+}
+
+document.getElementById('portSubmit').addEventListener('click',checkPort);
+document.getElementById('portInput').addEventListener('keydown',function(e){if(e.key==='Enter')checkPort();});
+document.getElementById('portModeBtns').addEventListener('click',function(e){
+  var btn=e.target.closest('.port-mode-btn');if(!btn)return;
+  document.querySelectorAll('.port-mode-btn').forEach(function(b){b.classList.remove('active');});btn.classList.add('active');
+  portMode=btn.dataset.mode;portCorrectCount=0;portWrongCount=0;portStreakCount=0;
+  document.getElementById('portStats').innerHTML='<span><strong>0</strong> correct</span><span><strong>0</strong> wrong</span><span><strong>0</strong> streak</span>';
+  document.getElementById('portStreak').textContent='';initPortQuiz();
+});
+
+initPortQuiz();
+</script>
+</body>
+</html>

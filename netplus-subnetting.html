@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Subnetting Drill — Network+ Practice</title>
+<meta name="color-scheme" content="light">
+<link rel="icon" type="image/svg+xml" href="/CCNA-study/favicon.svg">
+<link rel="stylesheet" href="css/shared.css">
+<link rel="stylesheet" href="css/netplus.css">
+<style>
+  /* Subnetting quiz */
+  .subnet-area{text-align:center;padding:var(--s-lg) 0}
+  .subnet-display{font-family:var(--font-mono);font-size:2rem;font-weight:800;color:var(--np);margin-bottom:var(--s-xs)}
+  .subnet-ask{font-family:var(--font-display);font-size:.92rem;color:var(--ink-secondary);margin-bottom:var(--s-lg)}
+
+  /* Quiz option shared */
+  .np-opts{display:flex;flex-direction:column;gap:6px}
+  .np-opt{padding:10px 14px;border:1px solid var(--border);border-radius:var(--radius);cursor:pointer;font-family:var(--font-body);font-size:.85rem;transition:all .15s}
+  .np-opt:hover{border-color:var(--np);background:rgba(220,38,38,.03)}
+  .np-opt.correct{border-color:#16A34A;background:rgba(22,163,74,.08);color:#16A34A}
+  .np-opt.wrong{border-color:#DC2626;background:rgba(220,38,38,.08);color:#DC2626}
+  .np-opt.locked{pointer-events:none}
+  .np-quiz-nav{display:flex;justify-content:space-between;align-items:center;margin-top:var(--s-md)}
+  .np-score{font-family:var(--font-mono);font-size:.85rem;color:var(--np);font-weight:700}
+  .np-explain{font-family:var(--font-body);font-size:.82rem;color:var(--ink-secondary);line-height:1.6;padding:12px 14px;background:var(--bg-recessed);border-radius:var(--radius);margin-top:10px;display:none}
+  .np-explain.show{display:block}
+</style>
+</head>
+<body>
+<div class="container">
+  <nav class="top-nav"></nav>
+  <header class="page-header">
+    <h1>Subnetting Drill</h1>
+    <p class="subtitle">Random subnetting questions. The exam expects you to subnet in your head — no calculator.</p>
+  </header>
+
+  <div class="subnet-area">
+    <div class="subnet-display" id="subnetDisplay"></div>
+    <div class="subnet-ask" id="subnetAsk"></div>
+    <div class="np-opts" id="subnetOpts" style="max-width:500px;margin:0 auto"></div>
+    <div class="np-explain" id="subnetExplain" style="max-width:500px;margin:12px auto 0;text-align:left"></div>
+  </div>
+  <div class="np-quiz-nav">
+    <span class="np-score" id="subnetScore">0 / 0</span>
+    <button class="btn btn-primary btn-sm" id="subnetNext" style="background:var(--np)">Next Question</button>
+  </div>
+</div>
+
+<script src="js/nav.js"></script>
+<script src="js/tutor.js"></script>
+<script src="js/group-chat.js"></script>
+<script>
+function esc(s){var d=document.createElement('div');d.textContent=s;return d.innerHTML;}
+function shuffle(a){for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=a[i];a[i]=a[j];a[j]=t;}return a;}
+
+var subCorrect=0,subTotal=0,subLocked=false;
+function randomIP(){return[Math.floor(Math.random()*223)+1,Math.floor(Math.random()*256),Math.floor(Math.random()*256),Math.floor(Math.random()*254)+1].join('.');}
+function ipToNum(ip){var p=ip.split('.');return((+p[0])<<24|((+p[1])<<16)|((+p[2])<<8)|(+p[3]))>>>0;}
+function numToIP(n){return[(n>>>24)&0xFF,(n>>>16)&0xFF,(n>>>8)&0xFF,n&0xFF].join('.');}
+
+function genSubnetQ(){
+  var cidr=Math.floor(Math.random()*9)+22,ip=randomIP(),ipNum=ipToNum(ip);
+  var mask=0xFFFFFFFF<<(32-cidr)>>>0,network=ipNum&mask,broadcast=network|(~mask>>>0);
+  var hosts=Math.pow(2,32-cidr)-2,first=network+1,last=broadcast-1;
+  var types=[{ask:'What is the network address?',answer:numToIP(network)},{ask:'What is the broadcast address?',answer:numToIP(broadcast)},{ask:'How many usable host addresses?',answer:''+hosts},{ask:'What is the first usable host?',answer:numToIP(first)},{ask:'What is the last usable host?',answer:numToIP(last)},{ask:'What is the subnet mask in dotted decimal?',answer:numToIP(mask)}];
+  var q=types[Math.floor(Math.random()*types.length)];var opts=[q.answer];
+  while(opts.length<4){var wrong;if(q.answer.indexOf('.')>=0){var base=ipToNum(q.answer);var offsets=[-1,1,256,-256,512,-512,Math.pow(2,32-cidr),-Math.pow(2,32-cidr)];wrong=numToIP((base+offsets[Math.floor(Math.random()*offsets.length)])>>>0);}else{var h=parseInt(q.answer);var wrongH=[h+2,h-2,h*2,Math.floor(h/2),h+1,h-1,Math.pow(2,32-cidr)];wrong=''+wrongH[Math.floor(Math.random()*wrongH.length)];}if(opts.indexOf(wrong)===-1&&wrong!==q.answer)opts.push(wrong);}
+  shuffle(opts);
+  return{ip:ip+'/'+cidr,ask:q.ask,answer:q.answer,opts:opts,explain:'For '+ip+'/'+cidr+': Network='+numToIP(network)+', Broadcast='+numToIP(broadcast)+', Usable hosts='+hosts+', Range='+numToIP(first)+' - '+numToIP(last)+', Mask='+numToIP(mask)};
+}
+
+var currentSubQ=null;
+function renderSubnetQ(){
+  subLocked=false;currentSubQ=genSubnetQ();
+  document.getElementById('subnetDisplay').textContent=currentSubQ.ip;document.getElementById('subnetAsk').textContent=currentSubQ.ask;
+  document.getElementById('subnetOpts').innerHTML=currentSubQ.opts.map(function(o,i){return'<div class="np-opt" data-idx="'+i+'">'+esc(o)+'</div>';}).join('');
+  document.getElementById('subnetExplain').textContent='';document.getElementById('subnetExplain').classList.remove('show');
+  document.getElementById('subnetScore').textContent=subCorrect+' / '+subTotal;
+  document.querySelectorAll('#subnetOpts .np-opt').forEach(function(o){o.addEventListener('click',function(){answerSubnet(parseInt(o.dataset.idx));});});
+}
+
+function answerSubnet(idx){
+  if(subLocked)return;subLocked=true;subTotal++;
+  var chosen=currentSubQ.opts[idx],correct=chosen===currentSubQ.answer;if(correct)subCorrect++;
+  document.querySelectorAll('#subnetOpts .np-opt').forEach(function(o,i){o.classList.add('locked');if(currentSubQ.opts[i]===currentSubQ.answer)o.classList.add('correct');if(i===idx&&!correct)o.classList.add('wrong');});
+  var el=document.getElementById('subnetExplain');el.textContent=currentSubQ.explain;el.classList.add('show');
+  document.getElementById('subnetScore').textContent=subCorrect+' / '+subTotal;
+}
+
+document.getElementById('subnetNext').addEventListener('click',renderSubnetQ);
+
+renderSubnetQ();
+</script>
+</body>
+</html>

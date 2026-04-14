@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quick Quiz — Network+ Practice</title>
+<meta name="color-scheme" content="light">
+<link rel="icon" type="image/svg+xml" href="/CCNA-study/favicon.svg">
+<link rel="stylesheet" href="css/shared.css">
+<link rel="stylesheet" href="css/netplus.css">
+<style>
+  /* Quiz shared */
+  .np-quiz-card{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;margin-bottom:12px}
+  .np-q{font-family:var(--font-body);font-size:.92rem;margin-bottom:12px;line-height:1.5}
+  .np-opts{display:flex;flex-direction:column;gap:6px}
+  .np-opt{padding:10px 14px;border:1px solid var(--border);border-radius:var(--radius);cursor:pointer;font-family:var(--font-body);font-size:.85rem;transition:all .15s}
+  .np-opt:hover{border-color:var(--np);background:rgba(220,38,38,.03)}
+  .np-opt.correct{border-color:#16A34A;background:rgba(22,163,74,.08);color:#16A34A}
+  .np-opt.wrong{border-color:#DC2626;background:rgba(220,38,38,.08);color:#DC2626}
+  .np-opt.locked{pointer-events:none}
+  .np-quiz-nav{display:flex;justify-content:space-between;align-items:center;margin-top:var(--s-md)}
+  .np-score{font-family:var(--font-mono);font-size:.85rem;color:var(--np);font-weight:700}
+  .np-explain{font-family:var(--font-body);font-size:.82rem;color:var(--ink-secondary);line-height:1.6;padding:12px 14px;background:var(--bg-recessed);border-radius:var(--radius);margin-top:10px;display:none}
+  .np-explain.show{display:block}
+</style>
+</head>
+<body>
+<div class="container">
+  <nav class="top-nav"></nav>
+  <header class="page-header">
+    <h1>Quick Quiz</h1>
+    <p class="subtitle">N10-009-style questions — troubleshooting, vendor-neutral, scenario-based.</p>
+  </header>
+
+  <div id="npQuiz"></div>
+  <div class="np-quiz-nav">
+    <span class="np-score" id="npScore">0 / 0</span>
+    <button class="btn btn-primary btn-sm" id="npNext" style="background:var(--np)">Next Question</button>
+  </div>
+</div>
+
+<script src="js/nav.js"></script>
+<script src="js/tutor.js"></script>
+<script src="js/group-chat.js"></script>
+<script>
+function esc(s){var d=document.createElement('div');d.textContent=s;return d.innerHTML;}
+
+var NP_QUESTIONS=[
+  {q:'A user reports they cannot access any websites but can ping IP addresses. Which service is most likely down?',opts:['DHCP','DNS','NAT','ARP'],ans:1,exp:'DNS resolves domain names to IPs. If ping by IP works but websites don\'t, DNS is the issue.'},
+  {q:'What type of cable would you use to connect two switches directly?',opts:['Straight-through','Crossover','Rollover','Coaxial'],ans:1,exp:'Like devices (switch-to-switch) traditionally require crossover cables. Modern switches with Auto-MDIX handle either.'},
+  {q:'Which protocol provides gateway redundancy?',opts:['OSPF','STP','HSRP/VRRP','LACP'],ans:2,exp:'HSRP (Cisco) and VRRP (open standard) create a virtual IP shared between routers for gateway failover.'},
+  {q:'A wireless AP is configured for WPA2-Enterprise. What additional server is required?',opts:['DNS','DHCP','RADIUS','TFTP'],ans:2,exp:'WPA2-Enterprise uses 802.1X authentication which requires a RADIUS server for credential verification.'},
+  {q:'What is the maximum cable length for Cat6 UTP?',opts:['55 meters','100 meters','150 meters','300 meters'],ans:1,exp:'All copper Ethernet standards (Cat5e/6/6a) max at 100 meters (328 feet) for a single run.'},
+  {q:'Which tool would you use to determine the path packets take to a destination?',opts:['ping','nslookup','traceroute','arp'],ans:2,exp:'traceroute (tracert on Windows) shows every hop along the path with RTT for each.'},
+  {q:'What port does HTTPS use?',opts:['80','443','8080','22'],ans:1,exp:'HTTPS uses TCP port 443. HTTP uses port 80. 8080 is an alternate HTTP port. 22 is SSH.'},
+  {q:'A switch port is flapping between up and down states. What should you check first?',opts:['VLAN configuration','Cable and connections','STP priority','DHCP lease'],ans:1,exp:'Physical layer first. Port flapping is almost always a bad cable, loose connection, or failing transceiver.'},
+  {q:'What subnet mask gives you exactly 30 usable host addresses?',opts:['/26','/27','/28','/29'],ans:1,exp:'/27 = 255.255.255.224 = 32 addresses - 2 (network + broadcast) = 30 usable hosts.'},
+  {q:'Which protocol encrypts the entire payload between two sites?',opts:['SSH','SSL/TLS','IPsec','SNMP'],ans:2,exp:'IPsec creates an encrypted tunnel between sites (site-to-site VPN), encrypting the full payload at the network layer.'},
+  {q:'A user in VLAN 10 cannot reach a server in VLAN 20. What device is needed?',opts:['Hub','Layer 2 switch','Router or L3 switch','Wireless AP'],ans:2,exp:'Inter-VLAN routing requires a Layer 3 device (router or L3 switch) to route between VLANs.'},
+  {q:'What does a high number of CRC errors on an interface indicate?',opts:['Duplex mismatch','DNS failure','IP conflict','VLAN misconfiguration'],ans:0,exp:'CRC errors indicate data corruption on the wire — usually caused by duplex mismatch, bad cables, or EMI.'},
+  {q:'Which 802.11 standard operates only on the 5 GHz band?',opts:['802.11b','802.11g','802.11ac (Wi-Fi 5)','802.11ax (Wi-Fi 6)'],ans:2,exp:'802.11ac is 5 GHz only. 802.11ax (Wi-Fi 6) operates on both 2.4 and 5 GHz. 802.11b/g are 2.4 GHz only.'},
+  {q:'What is the purpose of a DHCP relay agent?',opts:['Assigns IPs directly','Forwards DHCP broadcasts across subnets','Blocks rogue DHCP','Caches DNS records'],ans:1,exp:'DHCP relay (ip helper-address) converts DHCP broadcasts to unicast, forwarding them to a DHCP server on another subnet.'},
+  {q:'Which command shows the default gateway on a Windows PC?',opts:['netstat -r','ipconfig','nslookup','arp -a'],ans:1,exp:'ipconfig displays IP address, subnet mask, and default gateway. netstat -r shows the routing table which also contains it.'},
+  {q:'What is the purpose of an MX record in DNS?',opts:['Maps hostname to IP','Maps IP to hostname','Directs email to mail servers','Creates domain aliases'],ans:2,exp:'MX (Mail Exchange) records direct email to the correct mail servers for a domain.'},
+  {q:'A network uses 10.0.0.0/8. How many host addresses are available?',opts:['254','65,534','16,777,214','16,777,216'],ans:2,exp:'/8 = 2^24 - 2 = 16,777,214 usable hosts. Subtract 2 for network and broadcast addresses.'},
+  {q:'Which wireless encryption standard should you NEVER deploy on a new network?',opts:['WPA3-SAE','WPA2-AES','WEP','WPA2-Enterprise'],ans:2,exp:'WEP is fundamentally broken and can be cracked in minutes. Always use WPA2 or WPA3.'},
+  {q:'What Layer 4 protocol does TFTP use?',opts:['TCP','UDP','ICMP','IGMP'],ans:1,exp:'TFTP uses UDP port 69. It\'s connectionless and lightweight — no authentication, no encryption.'},
+  {q:'A technician needs to identify which switch port a specific device is connected to. What command is most useful?',opts:['show ip route','show mac address-table','show vlan brief','show running-config'],ans:1,exp:'show mac address-table maps MAC addresses to specific switch ports — find the MAC, find the port.'},
+  {q:'Which cloud service model provides virtual machines, storage, and networking that YOU manage the OS on?',opts:['SaaS','PaaS','IaaS','DaaS'],ans:2,exp:'IaaS (Infrastructure as a Service) gives you VMs and networking — you manage OS, apps, data. AWS EC2, Azure VMs are IaaS.'},
+  {q:'A company uses Office 365 for email and documents. What cloud service model is this?',opts:['IaaS','PaaS','SaaS','FaaS'],ans:2,exp:'SaaS (Software as a Service) — the provider manages everything, you just use the application.'},
+  {q:'What is the primary advantage of elasticity in cloud computing?',opts:['Data is always encrypted','Resources scale up/down automatically based on demand','Backups happen every hour','Users can access from any device'],ans:1,exp:'Elasticity = auto-scaling. Resources grow during peak demand and shrink during low usage.'},
+  {q:'What is the administrative distance of a directly connected network?',opts:['0','1','90','110'],ans:0,exp:'AD 0 = directly connected (most trusted). AD 1 = static route. AD 90 = EIGRP. AD 110 = OSPF.'},
+  {q:'Which routing protocol uses bandwidth and delay by default to calculate the best path?',opts:['RIP','OSPF','EIGRP','BGP'],ans:2,exp:'EIGRP uses a composite metric based on bandwidth + delay (by default). OSPF uses cost (bandwidth). RIP uses hop count.'},
+  {q:'What is the purpose of a default route (0.0.0.0/0)?',opts:['Blocks all traffic','Routes traffic to the closest subnet','Sends traffic to a gateway when no specific route matches','Assigns DHCP addresses'],ans:2,exp:'The default route is the "route of last resort" — if no specific route matches the destination, send it to this gateway.'},
+  {q:'Which PoE standard delivers up to 30W per port?',opts:['802.3af','802.3at','802.3bt','802.3ad'],ans:1,exp:'802.3af = 15.4W (PoE). 802.3at = 30W (PoE+). 802.3bt = 60-100W (PoE++). 802.3ad = LACP (not PoE).'},
+  {q:'What is the correct order of the CompTIA troubleshooting methodology?',opts:['Identify, Test, Establish theory, Plan, Implement, Verify, Document','Identify, Establish theory, Test theory, Plan, Implement, Verify, Document','Test, Identify, Plan, Implement, Verify, Document, Establish theory','Document, Identify, Plan, Test, Implement, Verify, Establish theory'],ans:1,exp:'CompTIA 7-step methodology: 1) Identify 2) Establish theory 3) Test theory 4) Plan 5) Implement 6) Verify 7) Document.'},
+  {q:'What metric defines the maximum acceptable time to restore a system after failure?',opts:['MTBF','MTTR','RPO','RTO'],ans:3,exp:'RTO (Recovery Time Objective) = max acceptable downtime. RPO = max acceptable data loss (time). MTBF = mean time between failures.'},
+  {q:'A company\'s RPO is 4 hours. What does this mean?',opts:['Systems must be restored within 4 hours','Data loss of more than 4 hours is unacceptable','Backups run every 4 hours','The system fails every 4 hours on average'],ans:1,exp:'RPO = Recovery Point Objective. An RPO of 4 hours means you can afford to lose at most 4 hours of data.'},
+  {q:'An attacker sets up a fake wireless access point with the same SSID as the corporate network. What is this attack called?',opts:['Deauthentication','Evil twin','VLAN hopping','ARP poisoning'],ans:1,exp:'Evil twin = rogue AP mimicking a legitimate SSID. Users connect to it unknowingly.'},
+  {q:'Which attack floods a switch\'s MAC address table to force it to behave like a hub?',opts:['ARP spoofing','DHCP starvation','MAC flooding','DNS poisoning'],ans:2,exp:'MAC flooding fills the switch\'s CAM table with fake MACs. When full, the switch floods all frames to all ports.'},
+  {q:'What is the purpose of disabling unused switch ports?',opts:['Save electricity','Prevent unauthorized devices from connecting','Increase port speed','Reduce broadcast traffic'],ans:1,exp:'Disabling unused ports prevents someone from plugging in an unauthorized device. Basic network hardening.'},
+  {q:'Which security measure requires users to present two different types of credentials?',opts:['SSO','MFA/2FA','RBAC','PKI'],ans:1,exp:'MFA requires 2+ factors: something you know (password), something you have (token), something you are (biometric).'},
+  {q:'A technician needs to verify cable continuity and check for proper pin-out. Which tool should they use?',opts:['Tone generator','Cable tester/certifier','OTDR','Loopback plug'],ans:1,exp:'Cable tester/certifier verifies continuity, pin-out, and can certify cable meets standards.'},
+  {q:'What tool measures fiber optic cable length and locates breaks or splices?',opts:['Cable tester','Tone generator','OTDR','Loopback plug'],ans:2,exp:'OTDR sends light pulses down fiber and measures reflections to find length, breaks, bends, and splice points.'},
+  {q:'What is the purpose of QoS (Quality of Service)?',opts:['Encrypts voice traffic','Prioritizes certain traffic types over others','Blocks unauthorized access','Compresses data for faster transfer'],ans:1,exp:'QoS marks and prioritizes traffic (voice, video get priority over bulk data).'},
+  {q:'Which DNS record type maps a hostname to an IPv6 address?',opts:['A','AAAA','MX','CNAME'],ans:1,exp:'A record = hostname to IPv4. AAAA record = hostname to IPv6. MX = mail server. CNAME = alias.'},
+  {q:'What is the difference between RADIUS and TACACS+?',opts:['RADIUS is TCP, TACACS+ is UDP','RADIUS encrypts entire payload, TACACS+ encrypts only password','RADIUS encrypts only password, TACACS+ encrypts entire payload','There is no difference'],ans:2,exp:'RADIUS (UDP 1812/1813) encrypts only the password. TACACS+ (TCP 49) encrypts the entire payload.'},
+  {q:'Which SNMP version adds encryption and authentication?',opts:['SNMPv1','SNMPv2c','SNMPv3','All versions support encryption'],ans:2,exp:'SNMPv1/v2c use community strings (plaintext). SNMPv3 adds authentication (SHA) and encryption (AES).'},
+  {q:'What protocol uses port 514 and is commonly used for centralized logging?',opts:['SNMP','NTP','Syslog','SMTP'],ans:2,exp:'Syslog (UDP 514) sends log messages from network devices to a central syslog server.'},
+  {q:'What does MTBF measure?',opts:['Time to fix a failed system','Average time between system failures','Maximum bandwidth before failure','Time to recover data after failure'],ans:1,exp:'MTBF (Mean Time Between Failures) = average time a system runs before failing. Higher MTBF = more reliable.'},
+  {q:'Which connector type is used with single-mode fiber and has a small form factor?',opts:['RJ-45','SC','LC','F-type'],ans:2,exp:'LC (Lucent Connector) is the small form-factor fiber connector used in most modern deployments.'},
+];
+
+var npQIdx=0,npCorrect=0,npTotal=0,npLocked=false;
+
+function showQuestion(){
+  if(npQIdx>=NP_QUESTIONS.length)npQIdx=0;
+  npLocked=false;
+  var q=NP_QUESTIONS[npQIdx];
+  document.getElementById('npQuiz').innerHTML=
+    '<div class="np-quiz-card"><div class="np-q">'+esc(q.q)+'</div><div class="np-opts">'+
+    q.opts.map(function(o,i){return'<div class="np-opt" data-idx="'+i+'">'+esc(o)+'</div>';}).join('')+
+    '</div><div class="np-explain" id="qqExplain"></div></div>';
+  document.getElementById('npScore').textContent=npCorrect+' / '+npTotal;
+  document.querySelectorAll('#npQuiz .np-opt').forEach(function(o){
+    o.addEventListener('click',function(){answerNP(parseInt(o.dataset.idx));});
+  });
+}
+
+function answerNP(idx){
+  if(npLocked)return;
+  npLocked=true;npTotal++;
+  var q=NP_QUESTIONS[npQIdx];
+  if(idx===q.ans)npCorrect++;
+  document.querySelectorAll('#npQuiz .np-opt').forEach(function(o,i){
+    o.classList.add('locked');
+    if(i===q.ans)o.classList.add('correct');
+    if(i===idx&&idx!==q.ans)o.classList.add('wrong');
+  });
+  if(q.exp){var el=document.getElementById('qqExplain');el.textContent=q.exp;el.classList.add('show');}
+  document.getElementById('npScore').textContent=npCorrect+' / '+npTotal;
+}
+
+document.getElementById('npNext').addEventListener('click',function(){npQIdx++;showQuestion();});
+
+showQuestion();
+</script>
+</body>
+</html>
