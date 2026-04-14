@@ -1,0 +1,79 @@
+#!/bin/bash
+# Pre-push hook: auto-changelog + smoke tests before deploy
+# Install: cp scripts/pre-push-hook.sh .git/hooks/pre-push && chmod +x .git/hooks/pre-push
+
+# ── Auto-changelog & version bump ────────────────────────────────────
+# Runs BEFORE validation so the new commit is included in the push
+if [ -x "scripts/auto-changelog.sh" ]; then
+  echo "Running auto-changelog..."
+  if ! bash scripts/auto-changelog.sh; then
+    echo "WARNING: auto-changelog failed (non-blocking)"
+  fi
+fi
+
+ERRORS=0
+
+# Check for [object Object] in HTML files
+MATCHES=$(grep -rn "\[object Object\]" --include="*.html" --include="*.js" . 2>/dev/null | grep -v node_modules | grep -v .git)
+if [ -n "$MATCHES" ]; then
+  echo "ERROR: [object Object] found — JS objects being rendered as strings:"
+  echo "$MATCHES"
+  ERRORS=$((ERRORS + 1))
+fi
+
+# Check for console.log left in production
+LOGS=$(grep -rn "console\.log" --include="*.html" --include="*.js" . 2>/dev/null | grep -v node_modules | grep -v .git | grep -v "// debug" | grep -v lab-engine)
+if [ -n "$LOGS" ]; then
+  echo "WARNING: console.log found (not blocking):"
+  echo "$LOGS"
+fi
+
+# Check that every lab with data-pt-topology also loads pt-bridge.js
+TOPO_FILES=$(grep -rln "data-pt-topology" --include="*.html" labs/ 2>/dev/null)
+if [ -n "$TOPO_FILES" ]; then
+  MISSING=""
+  for f in $TOPO_FILES; do
+    if ! grep -q "pt-bridge\.js" "$f"; then
+      MISSING="$MISSING\n  $f"
+    fi
+  done
+  if [ -n "$MISSING" ]; then
+    echo "ERROR: Labs with data-pt-topology but missing pt-bridge.js script:"
+    echo -e "$MISSING"
+    ERRORS=$((ERRORS + 1))
+  fi
+fi
+
+# Check the reverse — pt-bridge.js loaded but no topology data
+BRIDGE_FILES=$(grep -rln "pt-bridge\.js" --include="*.html" labs/ 2>/dev/null)
+if [ -n "$BRIDGE_FILES" ]; then
+  ORPHAN=""
+  for f in $BRIDGE_FILES; do
+    if ! grep -q "data-pt-topology" "$f"; then
+      ORPHAN="$ORPHAN\n  $f"
+    fi
+  done
+  if [ -n "$ORPHAN" ]; then
+    echo "WARNING: Labs loading pt-bridge.js but no data-pt-topology found:"
+    echo -e "$ORPHAN"
+  fi
+fi
+
+# Playwright smoke test — catches JS runtime errors in Three.js/heavy pages
+if command -v npx &>/dev/null && npx playwright --version &>/dev/null 2>&1; then
+  echo ""
+  echo "Running headless smoke test..."
+  if ! node scripts/smoke-test.js; then
+    ERRORS=$((ERRORS + 1))
+  fi
+else
+  echo "NOTE: Playwright not installed — skipping smoke test (npm i -D playwright)"
+fi
+
+if [ $ERRORS -gt 0 ]; then
+  echo ""
+  echo "Push blocked. Fix the errors above."
+  exit 1
+fi
+
+exit 0
