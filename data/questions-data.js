@@ -1,3693 +1,8113 @@
 window.questionsData = {
-  "questions": [
-    {
-      "id": "q001",
-      "domain": "3",
-      "topic": "3.4",
-      "difficulty": 1,
-      "type": "multiple-choice",
-      "question": "What is the default OSPF hello interval on a broadcast network?",
-      "options": [
-        "5 seconds",
-        "10 seconds",
-        "30 seconds",
-        "40 seconds"
-      ],
-      "correct": 1,
-      "explanation": "On broadcast and point-to-point networks, OSPF sends hello packets every 10 seconds. On NBMA networks, the default is 30 seconds.",
-      "ciscoCommand": "show ip ospf interface"
-    },
-    {
-      "id": "q002",
-      "domain": "3",
-      "topic": "3.4",
-      "difficulty": 1,
-      "type": "multiple-choice",
-      "question": "What is the default OSPF dead interval on a broadcast network?",
-      "options": [
-        "10 seconds",
-        "20 seconds",
-        "30 seconds",
-        "40 seconds"
-      ],
-      "correct": 3,
-      "explanation": "The dead interval is 4 times the hello interval. With a 10-second hello, the dead interval is 40 seconds.",
-      "ciscoCommand": "show ip ospf interface"
-    },
-    {
-      "id": "q003",
-      "domain": "3",
-      "topic": "3.4",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "Which OSPF neighbor state indicates that the router has received a hello from a neighbor but the local router ID is not in the neighbor's hello?",
-      "options": [
-        "Down",
-        "Init",
-        "2-Way",
-        "ExStart"
-      ],
-      "correct": 1,
-      "explanation": "In the Init state, a hello has been received from a neighbor, but bidirectional communication has not yet been established because the local router's RID is not listed in the neighbor's hello packet.",
-      "ciscoCommand": "show ip ospf neighbor"
-    },
-    {
-      "id": "q004",
-      "domain": "3",
-      "topic": "3.4",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "In which OSPF state does DR/BDR election occur?",
-      "options": [
-        "Init",
-        "2-Way",
-        "ExStart",
-        "Exchange"
-      ],
-      "correct": 1,
-      "explanation": "DR/BDR election happens at the 2-Way state. Once all routers on a segment reach 2-Way, the election takes place before moving to ExStart.",
-      "ciscoCommand": "show ip ospf neighbor"
-    },
-    {
-      "id": "q005",
-      "domain": "3",
-      "topic": "3.4",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "What is the default OSPF cost for a FastEthernet interface with the default reference bandwidth?",
-      "options": [
-        "1",
-        "10",
-        "19",
-        "100"
-      ],
-      "correct": 0,
-      "explanation": "OSPF cost = Reference BW / Interface BW. Default reference is 100 Mbps. 100/100 = 1. This is why Cisco recommends changing the reference bandwidth.",
-      "ciscoCommand": "show ip ospf interface"
-    },
-    {
-      "id": "q006",
-      "domain": "3",
-      "topic": "3.4",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "Which command changes the OSPF reference bandwidth to 1 Gbps?",
-      "options": [
-        "bandwidth 1000",
-        "auto-cost reference-bandwidth 1000",
-        "ip ospf cost 1000",
-        "ospf reference-bandwidth 1000"
-      ],
-      "correct": 1,
-      "explanation": "The auto-cost reference-bandwidth command is entered under the OSPF router process and sets the reference bandwidth in Mbps.",
-      "ciscoCommand": "auto-cost reference-bandwidth 1000"
-    },
-    {
-      "id": "q007",
-      "domain": "3",
-      "topic": "3.4",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "What determines the OSPF Router ID if no router-id is manually configured and no loopback interfaces exist?",
-      "options": [
-        "The lowest IP on any active interface",
-        "The highest IP on any active interface",
-        "The first IP configured",
-        "A random 32-bit number"
-      ],
-      "correct": 1,
-      "explanation": "OSPF selects the Router ID in this order: 1) manual router-id, 2) highest loopback IP, 3) highest IP on any active physical interface.",
-      "ciscoCommand": "show ip ospf"
-    },
-    {
-      "id": "q008",
-      "domain": "3",
-      "topic": "3.4",
-      "difficulty": 3,
-      "type": "multiple-choice",
-      "question": "Two OSPF routers on the same broadcast segment cannot form an adjacency. Both show Init state. What is the most likely cause?",
-      "options": [
-        "Mismatched hello timers",
-        "Mismatched areas",
-        "ACL blocking multicast 224.0.0.5",
-        "Mismatched MTU"
-      ],
-      "correct": 2,
-      "explanation": "If routers are stuck in Init, they can send but not receive each other's hellos. An ACL blocking OSPF multicast (224.0.0.5) on one side is a common cause. Mismatched timers would prevent even Init.",
-      "ciscoCommand": "show ip ospf interface"
-    },
-    {
-      "id": "q009",
-      "domain": "3",
-      "topic": "3.4",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "Which OSPF network type does NOT elect a DR/BDR?",
-      "options": [
-        "Broadcast",
-        "Non-broadcast",
-        "Point-to-point",
-        "NBMA"
-      ],
-      "correct": 2,
-      "explanation": "Point-to-point networks have only two routers, so there is no need for DR/BDR election. Broadcast and NBMA networks elect DR/BDR.",
-      "ciscoCommand": "show ip ospf interface"
-    },
-    {
-      "id": "q010",
-      "domain": "3",
-      "topic": "3.4",
-      "difficulty": 1,
-      "type": "multiple-choice",
-      "question": "What command enables OSPF process 1 on a router?",
-      "options": [
-        "ospf 1",
-        "router ospf 1",
-        "enable ospf 1",
-        "ip ospf 1"
-      ],
-      "correct": 1,
-      "explanation": "The router ospf <process-id> command enters OSPF configuration mode. The process ID is locally significant.",
-      "ciscoCommand": "router ospf 1"
-    },
-    {
-      "id": "q011",
-      "domain": "3",
-      "topic": "3.4",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "What happens when an OSPF router with priority 0 is on a broadcast segment?",
-      "options": [
-        "It becomes DR",
-        "It becomes BDR",
-        "It cannot become DR or BDR",
-        "It is excluded from OSPF"
-      ],
-      "correct": 2,
-      "explanation": "Setting OSPF priority to 0 means the router will never become DR or BDR. It will remain a DROther.",
-      "ciscoCommand": "ip ospf priority 0"
-    },
-    {
-      "id": "q012",
-      "domain": "3",
-      "topic": "3.4",
-      "difficulty": 3,
-      "type": "multiple-choice",
-      "question": "OSPF routers are stuck in ExStart/Exchange state. What is the most likely cause?",
-      "options": [
-        "Mismatched hello timers",
-        "Mismatched area IDs",
-        "Mismatched MTU values",
-        "Duplicate Router IDs"
-      ],
-      "correct": 2,
-      "explanation": "ExStart/Exchange stuck state is almost always caused by MTU mismatch. The routers cannot agree on DBD packet sizes during database synchronization.",
-      "ciscoCommand": "show ip ospf interface"
-    },
-    {
-      "id": "q013",
-      "domain": "3",
-      "topic": "3.4",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "Which command shows OSPF neighbor adjacencies and their states?",
-      "options": [
-        "show ip ospf",
-        "show ip route ospf",
-        "show ip ospf neighbor",
-        "show ip ospf database"
-      ],
-      "correct": 2,
-      "explanation": "show ip ospf neighbor displays all OSPF neighbors with their states, priorities, dead times, and interface information.",
-      "ciscoCommand": "show ip ospf neighbor"
-    },
-    {
-      "id": "q014",
-      "domain": "3",
-      "topic": "3.4",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "What is the OSPF multicast address used by all OSPF routers?",
-      "options": [
-        "224.0.0.1",
-        "224.0.0.2",
-        "224.0.0.5",
-        "224.0.0.6"
-      ],
-      "correct": 2,
-      "explanation": "224.0.0.5 is AllSPFRouters, used by all OSPF routers. 224.0.0.6 is AllDRouters, used to communicate with DR/BDR only.",
-      "ciscoCommand": "show ip ospf interface"
-    },
-    {
-      "id": "q015",
-      "domain": "3",
-      "topic": "3.4",
-      "difficulty": 3,
-      "type": "multiple-choice",
-      "question": "A network admin sees that two routers have the same OSPF Router ID. What will happen?",
-      "options": [
-        "They will form adjacency normally",
-        "The second router will auto-change its RID",
-        "Routing tables will be corrupted on both routers",
-        "Neighbor adjacency will fail or flap"
-      ],
-      "correct": 3,
-      "explanation": "Duplicate Router IDs prevent stable OSPF adjacency formation. The routers may form then drop the adjacency repeatedly, causing route flapping.",
-      "ciscoCommand": "show ip ospf"
-    },
-    {
-      "id": "q016",
-      "domain": "3",
-      "topic": "3.4",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "Which OSPF packet type is used to request specific LSAs from a neighbor?",
-      "options": [
-        "Hello",
-        "DBD",
-        "LSR",
-        "LSU"
-      ],
-      "correct": 2,
-      "explanation": "Link State Request (LSR) packets are sent to request specific LSAs that were seen in DBD packets but are newer than the local copy.",
-      "ciscoCommand": "show ip ospf neighbor"
-    },
-    {
-      "id": "q017",
-      "domain": "3",
-      "topic": "3.4",
-      "difficulty": 1,
-      "type": "multiple-choice",
-      "question": "How does OSPF determine the best path to a destination?",
-      "options": [
-        "Lowest hop count",
-        "Highest bandwidth",
-        "Lowest cumulative cost",
-        "Lowest administrative distance"
-      ],
-      "correct": 2,
-      "explanation": "OSPF uses cumulative cost (sum of all interface costs along the path) to determine the best route. Lower cost = better path.",
-      "ciscoCommand": "show ip route ospf"
-    },
-    {
-      "id": "q018",
-      "domain": "3",
-      "topic": "3.4",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "What is the OSPF administrative distance?",
-      "options": [
-        "90",
-        "100",
-        "110",
-        "120"
-      ],
-      "correct": 2,
-      "explanation": "OSPF has a default administrative distance of 110. This is higher than EIGRP (90) but lower than RIP (120) and IS-IS (115).",
-      "ciscoCommand": "show ip route"
-    },
-    {
-      "id": "q019",
-      "domain": "3",
-      "topic": "3.4",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "Which command configures OSPF on an interface using the newer method?",
-      "options": [
-        "network 10.0.0.0 0.0.0.255 area 0",
-        "ip ospf 1 area 0",
-        "ospf enable area 0",
-        "ip ospf area 0 process 1"
-      ],
-      "correct": 1,
-      "explanation": "The ip ospf <process-id> area <area-id> command is configured directly on the interface. This is the newer, preferred method over the network command.",
-      "ciscoCommand": "ip ospf 1 area 0"
-    },
-    {
-      "id": "q020",
-      "domain": "3",
-      "topic": "3.4",
-      "difficulty": 3,
-      "type": "multiple-choice",
-      "question": "What is the purpose of the OSPF network command wildcard mask?",
-      "options": [
-        "To define the subnet mask for the network",
-        "To match which interfaces will participate in OSPF",
-        "To set the OSPF cost on matching interfaces",
-        "To filter routes advertised by OSPF"
-      ],
-      "correct": 1,
-      "explanation": "The wildcard mask in the OSPF network command is used to match interface IP addresses. Interfaces with IPs matching the network/wildcard combination will be enabled for OSPF in the specified area.",
-      "ciscoCommand": "network 10.0.0.0 0.0.0.255 area 0"
-    },
-    {
-      "id": "q021",
-      "domain": "3",
-      "topic": "3.4",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "On which type of network does OSPF form full adjacencies with all neighbors (not just DR/BDR)?",
-      "options": [
-        "Broadcast",
-        "NBMA",
-        "Point-to-point",
-        "Virtual link"
-      ],
-      "correct": 2,
-      "explanation": "On point-to-point networks, all OSPF neighbors form full adjacencies since there are only two routers and no DR/BDR election.",
-      "ciscoCommand": "show ip ospf neighbor"
-    },
-    {
-      "id": "q022",
-      "domain": "3",
-      "topic": "3.4",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "What command makes OSPF advertise a default route to other OSPF routers?",
-      "options": [
-        "ip route 0.0.0.0 0.0.0.0",
-        "default-information originate",
-        "redistribute static",
-        "network 0.0.0.0 255.255.255.255 area 0"
-      ],
-      "correct": 1,
-      "explanation": "The default-information originate command under OSPF router config advertises a default route into OSPF. The router must have a default route in its table unless you add the 'always' keyword.",
-      "ciscoCommand": "default-information originate"
-    },
-    {
-      "id": "q023",
-      "domain": "3",
-      "topic": "3.4",
-      "difficulty": 1,
-      "type": "multiple-choice",
-      "question": "What does OSPF use to uniquely identify each router in the OSPF domain?",
-      "options": [
-        "IP address",
-        "MAC address",
-        "Router ID",
-        "Hostname"
-      ],
-      "correct": 2,
-      "explanation": "The Router ID is a 32-bit value that uniquely identifies each OSPF router. It looks like an IP address but is just an identifier.",
-      "ciscoCommand": "show ip ospf"
-    },
-    {
-      "id": "q024",
-      "domain": "3",
-      "topic": "3.4",
-      "difficulty": 3,
-      "type": "multiple-choice",
-      "question": "After changing the OSPF Router ID, what must you do for it to take effect?",
-      "options": [
-        "Nothing, it changes immediately",
-        "Reload the router or clear the OSPF process",
-        "Save the configuration",
-        "Reset the interface"
-      ],
-      "correct": 1,
-      "explanation": "Changing the router-id command does not take effect until the OSPF process is restarted with 'clear ip ospf process' or the router is reloaded.",
-      "ciscoCommand": "clear ip ospf process"
-    },
-    {
-      "id": "q025",
-      "domain": "3",
-      "topic": "3.4",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "What type of LSA does an ABR generate to advertise inter-area routes?",
-      "options": [
-        "Type 1 (Router LSA)",
-        "Type 2 (Network LSA)",
-        "Type 3 (Summary LSA)",
-        "Type 5 (External LSA)"
-      ],
-      "correct": 2,
-      "explanation": "ABRs generate Type 3 Summary LSAs to advertise routes between areas. Type 1 are router LSAs, Type 2 are network LSAs from DR, and Type 5 are external from ASBRs.",
-      "ciscoCommand": "show ip ospf database"
-    },
-    {
-      "id": "q026",
-      "domain": "3",
-      "topic": "3.4",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "Which OSPF router generates Type 2 (Network) LSAs?",
-      "options": [
-        "Every router on the segment",
-        "The ABR",
-        "The DR",
-        "The ASBR"
-      ],
-      "correct": 2,
-      "explanation": "Only the Designated Router (DR) generates Type 2 Network LSAs for multi-access segments. These describe all routers connected to the segment.",
-      "ciscoCommand": "show ip ospf database"
-    },
-    {
-      "id": "q027",
-      "domain": "3",
-      "topic": "3.4",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "What command sets the OSPF interface priority?",
-      "options": [
-        "ospf priority 100",
-        "ip ospf priority 100",
-        "interface priority 100",
-        "router priority 100"
-      ],
-      "correct": 1,
-      "explanation": "The ip ospf priority command is configured on the interface to influence DR/BDR election. Valid range is 0-255.",
-      "ciscoCommand": "ip ospf priority 100"
-    },
-    {
-      "id": "q028",
-      "domain": "3",
-      "topic": "3.4",
-      "difficulty": 3,
-      "type": "multiple-choice",
-      "question": "A router running OSPF has these neighbors: R1=FULL/DR, R2=2WAY/DROTHER, R3=FULL/BDR. What role does this router have?",
-      "options": [
-        "DR",
-        "BDR",
-        "DROther",
-        "Cannot determine"
-      ],
-      "correct": 2,
-      "explanation": "DROthers form FULL adjacencies only with DR and BDR, and remain in 2-WAY with other DROthers. Since this router is FULL with DR and BDR but 2-WAY with a DROTHER, it is a DROther.",
-      "ciscoCommand": "show ip ospf neighbor"
-    },
-    {
-      "id": "q029",
-      "domain": "3",
-      "topic": "3.4",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "Which OSPF state means the LSDB is fully synchronized between neighbors?",
-      "options": [
-        "Loading",
-        "Full",
-        "Exchange",
-        "2-Way"
-      ],
-      "correct": 1,
-      "explanation": "The Full state indicates complete LSDB synchronization between OSPF neighbors. This is the final state of a successful adjacency.",
-      "ciscoCommand": "show ip ospf neighbor"
-    },
-    {
-      "id": "q030",
-      "domain": "3",
-      "topic": "3.4",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "What happens if OSPF hello and dead timers don't match between neighbors?",
-      "options": [
-        "Adjacency forms but routes are not exchanged",
-        "Adjacency forms with the lower timer",
-        "Adjacency will not form",
-        "The router with higher timers becomes DR"
-      ],
-      "correct": 2,
-      "explanation": "Mismatched hello and dead timers prevent OSPF adjacency formation. Both sides must agree on these timers for the neighbor relationship to establish.",
-      "ciscoCommand": "show ip ospf interface"
-    },
-    {
-      "id": "q031",
-      "domain": "3",
-      "topic": "3.5",
-      "difficulty": 1,
-      "type": "multiple-choice",
-      "question": "What is the purpose of HSRP?",
-      "options": [
-        "Load balancing across links",
-        "Encrypting router traffic",
-        "Providing gateway redundancy",
-        "Routing between VLANs"
-      ],
-      "correct": 2,
-      "explanation": "HSRP (Hot Standby Router Protocol) provides first-hop gateway redundancy by allowing multiple routers to share a virtual IP and MAC address.",
-      "ciscoCommand": "show standby"
-    },
-    {
-      "id": "q032",
-      "domain": "3",
-      "topic": "3.5",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "What is the default HSRP priority?",
-      "options": [
-        "50",
-        "100",
-        "110",
-        "255"
-      ],
-      "correct": 1,
-      "explanation": "The default HSRP priority is 100. The router with the highest priority becomes the Active router. Ties are broken by highest IP address.",
-      "ciscoCommand": "show standby"
-    },
-    {
-      "id": "q033",
-      "domain": "3",
-      "topic": "3.5",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "In HSRP, what does the preempt command do?",
-      "options": [
-        "Forces the router to become active immediately",
-        "Allows a higher-priority router to take over as Active",
-        "Prevents the standby router from becoming active",
-        "Resets the HSRP group"
-      ],
-      "correct": 1,
-      "explanation": "Preempt allows a router with a higher priority to take over the Active role from the current Active router. Without preempt, the current Active keeps its role even if a higher-priority router joins.",
-      "ciscoCommand": "standby 1 preempt"
-    },
-    {
-      "id": "q034",
-      "domain": "3",
-      "topic": "3.5",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "What virtual MAC address does HSRP version 1 use for group 1?",
-      "options": [
-        "0000.0c07.ac01",
-        "0000.0c9f.f001",
-        "0000.5e00.0101",
-        "0005.73a0.0001"
-      ],
-      "correct": 0,
-      "explanation": "HSRP v1 uses the MAC format 0000.0c07.acXX where XX is the group number in hex. Group 1 = 0000.0c07.ac01.",
-      "ciscoCommand": "show standby"
-    },
-    {
-      "id": "q035",
-      "domain": "3",
-      "topic": "3.5",
-      "difficulty": 1,
-      "type": "multiple-choice",
-      "question": "Which protocol is Cisco proprietary for first hop redundancy?",
-      "options": [
-        "VRRP",
-        "HSRP",
-        "GLBP",
-        "STP"
-      ],
-      "correct": 1,
-      "explanation": "HSRP is Cisco proprietary. VRRP is the open standard equivalent. GLBP is also Cisco but adds load balancing.",
-      "ciscoCommand": "show standby"
-    },
-    {
-      "id": "q036",
-      "domain": "3",
-      "topic": "3.5",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "What HSRP state is the router in when it is actively forwarding traffic for the virtual IP?",
-      "options": [
-        "Listen",
-        "Standby",
-        "Active",
-        "Init"
-      ],
-      "correct": 2,
-      "explanation": "The Active router is responsible for forwarding traffic sent to the virtual IP address. The Standby router is the backup ready to take over.",
-      "ciscoCommand": "show standby"
-    },
-    {
-      "id": "q037",
-      "domain": "3",
-      "topic": "3.5",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "How do you configure HSRP on an interface?",
-      "options": [
-        "hsrp 1 ip 10.0.0.1",
-        "standby 1 ip 10.0.0.1",
-        "vrrp 1 ip 10.0.0.1",
-        "redundancy 1 ip 10.0.0.1"
-      ],
-      "correct": 1,
-      "explanation": "HSRP is configured with the 'standby' command on the interface, specifying the group number and virtual IP address.",
-      "ciscoCommand": "standby 1 ip 10.0.0.1"
-    },
-    {
-      "id": "q038",
-      "domain": "3",
-      "topic": "3.5",
-      "difficulty": 3,
-      "type": "multiple-choice",
-      "question": "A network has two HSRP routers. R1 has priority 110 with preempt. R2 has priority 100 and is currently Active. What happens when R1 comes online?",
-      "options": [
-        "R1 stays in Standby state",
-        "R2 remains Active, R1 becomes Standby",
-        "R1 becomes Active, R2 becomes Standby",
-        "Both become Active temporarily"
-      ],
-      "correct": 2,
-      "explanation": "Because R1 has a higher priority (110) AND preempt is configured, R1 will take over the Active role from R2 when it comes online.",
-      "ciscoCommand": "show standby"
-    },
-    {
-      "id": "q039",
-      "domain": "3",
-      "topic": "3.5",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "What is the default hello interval for HSRP?",
-      "options": [
-        "1 second",
-        "3 seconds",
-        "5 seconds",
-        "10 seconds"
-      ],
-      "correct": 1,
-      "explanation": "HSRP sends hello packets every 3 seconds by default. The hold timer is 10 seconds (roughly 3x the hello).",
-      "ciscoCommand": "show standby"
-    },
-    {
-      "id": "q040",
-      "domain": "3",
-      "topic": "3.5",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "What key difference does GLBP have over HSRP?",
-      "options": [
-        "GLBP supports IPv6",
-        "GLBP provides load balancing across multiple routers",
-        "GLBP is an open standard",
-        "GLBP uses lower CPU resources"
-      ],
-      "correct": 1,
-      "explanation": "GLBP (Gateway Load Balancing Protocol) distributes traffic across multiple routers using multiple virtual MAC addresses, providing both redundancy and load balancing.",
-      "ciscoCommand": "show glbp"
-    },
-    {
-      "id": "q041",
-      "domain": "3",
-      "topic": "3.3",
-      "difficulty": 1,
-      "type": "multiple-choice",
-      "question": "What is the command to configure a default static route?",
-      "options": [
-        "ip route 0.0.0.0 0.0.0.0 10.0.0.1",
-        "ip route default 10.0.0.1",
-        "ip default-route 10.0.0.1",
-        "route 0.0.0.0 0.0.0.0 10.0.0.1"
-      ],
-      "correct": 0,
-      "explanation": "A default static route uses 0.0.0.0 0.0.0.0 as the destination and mask, pointing to the next-hop IP. This matches all destinations not in the routing table.",
-      "ciscoCommand": "ip route 0.0.0.0 0.0.0.0 10.0.0.1"
-    },
-    {
-      "id": "q042",
-      "domain": "3",
-      "topic": "3.3",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "What is a floating static route?",
-      "options": [
-        "A route that uses DHCP for next-hop",
-        "A backup static route with a higher AD than the primary route",
-        "A route that automatically adjusts its metric",
-        "A route to a loopback interface"
-      ],
-      "correct": 1,
-      "explanation": "A floating static route has a manually set administrative distance higher than the primary routing protocol. It only appears in the routing table when the primary route fails.",
-      "ciscoCommand": "ip route 10.0.0.0 255.255.255.0 10.1.1.1 210"
-    },
-    {
-      "id": "q043",
-      "domain": "3",
-      "topic": "3.3",
-      "difficulty": 1,
-      "type": "multiple-choice",
-      "question": "What is the administrative distance of a static route by default?",
-      "options": [
-        "0",
-        "1",
-        "5",
-        "20"
-      ],
-      "correct": 1,
-      "explanation": "Static routes have a default AD of 1 (0 is for directly connected networks). This makes static routes preferred over any dynamic routing protocol.",
-      "ciscoCommand": "show ip route"
-    },
-    {
-      "id": "q044",
-      "domain": "3",
-      "topic": "3.3",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "Which command creates a static route to network 192.168.10.0/24 via next-hop 10.0.0.2?",
-      "options": [
-        "ip route 192.168.10.0 255.255.255.0 10.0.0.2",
-        "ip route 192.168.10.0/24 10.0.0.2",
-        "route add 192.168.10.0 mask 255.255.255.0 10.0.0.2",
-        "ip static-route 192.168.10.0 10.0.0.2"
-      ],
-      "correct": 0,
-      "explanation": "The ip route command uses the format: ip route <network> <mask> <next-hop-ip>. CIDR notation is not used in Cisco IOS static routes.",
-      "ciscoCommand": "ip route 192.168.10.0 255.255.255.0 10.0.0.2"
-    },
-    {
-      "id": "q045",
-      "domain": "3",
-      "topic": "3.3",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "What type of static route specifies the exit interface instead of a next-hop IP?",
-      "options": [
-        "Recursive static route",
-        "Directly attached static route",
-        "Floating static route",
-        "Default static route"
-      ],
-      "correct": 1,
-      "explanation": "A directly attached (or directly connected) static route specifies the exit interface. The router ARPs for the destination on that interface.",
-      "ciscoCommand": "ip route 10.0.0.0 255.0.0.0 GigabitEthernet0/0"
-    },
-    {
-      "id": "q046",
-      "domain": "3",
-      "topic": "3.3",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "What is a host route?",
-      "options": [
-        "A route to a single IP address with /32 mask",
-        "A route learned from the host",
-        "A route to the default gateway",
-        "A route to a directly connected network"
-      ],
-      "correct": 0,
-      "explanation": "A host route has a /32 subnet mask (255.255.255.255), matching exactly one IP address. It's used when you need to route traffic to a specific host.",
-      "ciscoCommand": "ip route 10.0.0.5 255.255.255.255 10.1.1.1"
-    },
-    {
-      "id": "q047",
-      "domain": "3",
-      "topic": "3.3",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "What is the IPv6 static route command for a default route via next-hop 2001:db8::1?",
-      "options": [
-        "ipv6 route 0::0/0 2001:db8::1",
-        "ipv6 route ::/0 2001:db8::1",
-        "ipv6 route default 2001:db8::1",
-        "ip route ::/0 2001:db8::1"
-      ],
-      "correct": 1,
-      "explanation": "The IPv6 default route uses ::/0 as the destination prefix. The command starts with 'ipv6 route' not 'ip route'.",
-      "ciscoCommand": "ipv6 route ::/0 2001:db8::1"
-    },
-    {
-      "id": "q048",
-      "domain": "3",
-      "topic": "3.3",
-      "difficulty": 1,
-      "type": "multiple-choice",
-      "question": "What does 'S*' mean in the routing table output?",
-      "options": [
-        "Static route to a subnet",
-        "OSPF summary route",
-        "Static default route (candidate default)",
-        "Static floating route"
-      ],
-      "correct": 2,
-      "explanation": "In show ip route, S* indicates a static candidate default route. The asterisk means it is a candidate for the gateway of last resort.",
-      "ciscoCommand": "show ip route"
-    },
-    {
-      "id": "q049",
-      "domain": "3",
-      "topic": "3.3",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "A router has both a static route (AD 1) and an OSPF route (AD 110) to the same network. Which is used?",
-      "options": [
-        "OSPF route",
-        "Static route",
-        "Both are used for load balancing",
-        "The route with the lowest metric"
-      ],
-      "correct": 1,
-      "explanation": "The route with the lowest Administrative Distance is preferred. Static (AD 1) beats OSPF (AD 110), so the static route is installed in the routing table.",
-      "ciscoCommand": "show ip route"
-    },
-    {
-      "id": "q050",
-      "domain": "3",
-      "topic": "3.3",
-      "difficulty": 3,
-      "type": "multiple-choice",
-      "question": "How do you configure a floating static route as backup to OSPF?",
-      "options": [
-        "ip route 10.0.0.0 255.0.0.0 10.1.1.1 111",
-        "ip route 10.0.0.0 255.0.0.0 10.1.1.1 floating",
-        "ip route 10.0.0.0 255.0.0.0 10.1.1.1 backup",
-        "ip route 10.0.0.0 255.0.0.0 10.1.1.1 ospf-backup"
-      ],
-      "correct": 0,
-      "explanation": "Set the AD higher than OSPF (110), like 111, at the end of the ip route command. The static route only enters the table if the OSPF route disappears.",
-      "ciscoCommand": "ip route 10.0.0.0 255.0.0.0 10.1.1.1 111"
-    },
-    {
-      "id": "q051",
-      "domain": "3",
-      "topic": "3.3",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "What command verifies that a static route is in the routing table?",
-      "options": [
-        "show ip static",
-        "show ip route static",
-        "show running-config | include ip route",
-        "Both B and C"
-      ],
-      "correct": 3,
-      "explanation": "show ip route static filters the routing table to show only static routes. show running-config | include ip route shows configured static routes. Both are useful verification methods.",
-      "ciscoCommand": "show ip route static"
-    },
-    {
-      "id": "q052",
-      "domain": "3",
-      "topic": "3.3",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "What is the next-hop type called when you specify both exit interface and next-hop IP?",
-      "options": [
-        "Recursive",
-        "Directly attached",
-        "Fully specified",
-        "Floating"
-      ],
-      "correct": 2,
-      "explanation": "A fully specified static route includes both the exit interface and the next-hop IP address, which is the most explicit and recommended form.",
-      "ciscoCommand": "ip route 10.0.0.0 255.0.0.0 Gi0/0 10.1.1.1"
-    },
-    {
-      "id": "q053",
-      "domain": "3",
-      "topic": "3.1",
-      "difficulty": 1,
-      "type": "multiple-choice",
-      "question": "What does 'O' represent in the routing table?",
-      "options": [
-        "OSPF",
-        "EIGRP",
-        "Static",
-        "Connected"
-      ],
-      "correct": 0,
-      "explanation": "In the routing table, O indicates an OSPF-learned route. C=Connected, S=Static, D=EIGRP, R=RIP, B=BGP.",
-      "ciscoCommand": "show ip route"
-    },
-    {
-      "id": "q054",
-      "domain": "3",
-      "topic": "3.1",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "What does 'via' mean in a routing table entry?",
-      "options": [
-        "The route is verified",
-        "The next-hop IP address to reach the destination",
-        "The interface VLAN ID",
-        "The route metric value"
-      ],
-      "correct": 1,
-      "explanation": "The 'via' field in a routing table entry indicates the next-hop IP address that packets should be forwarded to reach the destination network.",
-      "ciscoCommand": "show ip route"
-    },
-    {
-      "id": "q055",
-      "domain": "3",
-      "topic": "3.1",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "What is the gateway of last resort?",
-      "options": [
-        "The primary default gateway",
-        "The route used when no other route matches",
-        "The backup HSRP router",
-        "The DNS server"
-      ],
-      "correct": 1,
-      "explanation": "The gateway of last resort is the default route (0.0.0.0/0). It is used when no more specific route matches the destination IP address.",
-      "ciscoCommand": "show ip route"
-    },
-    {
-      "id": "q056",
-      "domain": "3",
-      "topic": "3.2",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "If a router has routes for 10.0.0.0/8, 10.1.0.0/16, and 10.1.1.0/24, which is used for a packet to 10.1.1.50?",
-      "options": [
-        "10.0.0.0/8",
-        "10.1.0.0/16",
-        "10.1.1.0/24",
-        "All three are used"
-      ],
-      "correct": 2,
-      "explanation": "Longest prefix match: the router selects the route with the most specific (longest) matching prefix. /24 is more specific than /16 or /8 for 10.1.1.50.",
-      "ciscoCommand": "show ip route 10.1.1.50"
-    },
-    {
-      "id": "q057",
-      "domain": "3",
-      "topic": "3.2",
-      "difficulty": 1,
-      "type": "multiple-choice",
-      "question": "What is the longest prefix match rule?",
-      "options": [
-        "The route with the longest network prefix wins",
-        "The route with the lowest metric wins",
-        "The route with the lowest AD wins",
-        "The oldest route wins"
-      ],
-      "correct": 0,
-      "explanation": "Longest prefix match is the primary rule routers use for forwarding decisions. The most specific route (longest matching prefix) is always selected first, before AD or metric.",
-      "ciscoCommand": "show ip route"
-    },
-    {
-      "id": "q058",
-      "domain": "3",
-      "topic": "3.2",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "A router has a static route (AD 1) to 10.0.0.0/8 and an OSPF route to 10.0.0.0/16. A packet arrives for 10.0.0.5. Which route is used?",
-      "options": [
-        "Static route (lower AD)",
-        "OSPF route (longer prefix)",
-        "Both equally",
-        "Neither, packet is dropped"
-      ],
-      "correct": 1,
-      "explanation": "Longest prefix match takes priority over Administrative Distance. The /16 OSPF route is more specific than the /8 static route for 10.0.0.5.",
-      "ciscoCommand": "show ip route 10.0.0.5"
-    },
-    {
-      "id": "q059",
-      "domain": "3",
-      "topic": "3.1",
-      "difficulty": 1,
-      "type": "multiple-choice",
-      "question": "What does [110/20] mean next to a route in 'show ip route'?",
-      "options": [
-        "Interface number/VLAN ID",
-        "Administrative distance/Metric",
-        "Cost/Bandwidth",
-        "Priority/Weight"
-      ],
-      "correct": 1,
-      "explanation": "The first number in brackets is the Administrative Distance and the second is the metric (cost). [110/20] means AD 110 (OSPF) with a metric of 20.",
-      "ciscoCommand": "show ip route"
-    },
-    {
-      "id": "q060",
-      "domain": "2",
-      "topic": "2.5",
-      "difficulty": 1,
-      "type": "multiple-choice",
-      "question": "What is the primary purpose of Spanning Tree Protocol?",
-      "options": [
-        "Load balancing",
-        "Loop prevention",
-        "VLAN segmentation",
-        "QoS enforcement"
-      ],
-      "correct": 0,
-      "explanation": "STP prevents Layer 2 loops in networks with redundant paths by blocking some ports while keeping others forwarding.",
-      "ciscoCommand": "show spanning-tree"
-    },
-    {
-      "id": "q061",
-      "domain": "2",
-      "topic": "2.5",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "What value determines which switch becomes the root bridge?",
-      "options": [
-        "Highest MAC address",
-        "Lowest Bridge ID",
-        "Highest priority",
-        "Most ports"
-      ],
-      "correct": 1,
-      "explanation": "The switch with the lowest Bridge ID (Priority + MAC) becomes the root bridge. Default priority is 32768.",
-      "ciscoCommand": "show spanning-tree"
-    },
-    {
-      "id": "q062",
-      "domain": "2",
-      "topic": "2.5",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "What is the default STP bridge priority?",
-      "options": [
-        "4096",
-        "8192",
-        "32768",
-        "65535"
-      ],
-      "correct": 2,
-      "explanation": "The default bridge priority is 32768. Priority must be set in increments of 4096 and ranges from 0 to 61440.",
-      "ciscoCommand": "show spanning-tree"
-    },
-    {
-      "id": "q063",
-      "domain": "2",
-      "topic": "2.5",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "How long does STP convergence take with default timers?",
-      "options": [
-        "2 seconds",
-        "15 seconds",
-        "30-50 seconds",
-        "120 seconds"
-      ],
-      "correct": 2,
-      "explanation": "STP convergence takes 30-50 seconds: Max Age (20s) + Listening (15s) + Learning (15s). This is why RSTP was developed.",
-      "ciscoCommand": "show spanning-tree"
-    },
-    {
-      "id": "q064",
-      "domain": "2",
-      "topic": "2.5",
-      "difficulty": 1,
-      "type": "multiple-choice",
-      "question": "What are the STP port states in order?",
-      "options": [
-        "Blocking, Listening, Learning, Forwarding",
-        "Disabled, Blocking, Learning, Forwarding",
-        "Blocking, Learning, Forwarding",
-        "Init, Learning, Ready, Active"
-      ],
-      "correct": 0,
-      "explanation": "STP ports transition: Blocking \u2192 Listening (15s) \u2192 Learning (15s) \u2192 Forwarding. Listening sends/receives BPDUs, Learning adds MACs.",
-      "ciscoCommand": "show spanning-tree"
-    },
-    {
-      "id": "q065",
-      "domain": "2",
-      "topic": "2.5",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "What does PortFast do?",
-      "options": [
-        "Blocks all BPDUs",
-        "Immediately transitions a port to Forwarding",
-        "Increases STP priority",
-        "Enables RSTP on a port"
-      ],
-      "correct": 1,
-      "explanation": "PortFast skips the Listening and Learning states, transitioning directly to Forwarding. Only use on access ports connected to end devices.",
-      "ciscoCommand": "spanning-tree portfast"
-    },
-    {
-      "id": "q066",
-      "domain": "2",
-      "topic": "2.5",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "What happens when a PortFast-enabled port with BPDU Guard receives a BPDU?",
-      "options": [
-        "The port ignores the BPDU",
-        "The port goes to blocking state",
-        "The port is put in err-disabled state",
-        "The switch reboots"
-      ],
-      "correct": 2,
-      "explanation": "BPDU Guard places the port in err-disabled state when a BPDU is received, preventing potential loops from unauthorized switches.",
-      "ciscoCommand": "spanning-tree bpduguard enable"
-    },
-    {
-      "id": "q067",
-      "domain": "2",
-      "topic": "2.5",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "What is a root port?",
-      "options": [
-        "The port on the root bridge that connects to other switches",
-        "The port on a non-root switch with the best path to the root bridge",
-        "The first port configured on a switch",
-        "Any port in forwarding state"
-      ],
-      "correct": 1,
-      "explanation": "Each non-root switch has exactly one root port \u2014 the port with the lowest cost path to the root bridge.",
-      "ciscoCommand": "show spanning-tree"
-    },
-    {
-      "id": "q068",
-      "domain": "2",
-      "topic": "2.5",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "What is a designated port?",
-      "options": [
-        "The port that connects to the root bridge",
-        "The port on a segment that forwards traffic toward the root",
-        "The management port",
-        "The port with the highest priority"
-      ],
-      "correct": 1,
-      "explanation": "Each segment has one designated port \u2014 the port with the best path back to root on that segment. All root bridge ports are designated.",
-      "ciscoCommand": "show spanning-tree"
-    },
-    {
-      "id": "q069",
-      "domain": "2",
-      "topic": "2.5",
-      "difficulty": 3,
-      "type": "multiple-choice",
-      "question": "Switch A (priority 32768, MAC 0000.0000.000A) and Switch B (priority 32768, MAC 0000.0000.000B) are connected. Which is root?",
-      "options": [
-        "Switch A",
-        "Switch B",
-        "Both are root",
-        "Neither is root"
-      ],
-      "correct": 0,
-      "explanation": "With equal priorities, the switch with the lowest MAC address becomes root. 000A < 000B, so Switch A wins.",
-      "ciscoCommand": "show spanning-tree"
-    },
-    {
-      "id": "q070",
-      "domain": "2",
-      "topic": "2.5",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "Which RSTP port state replaces Blocking, Listening, and Disabled?",
-      "options": [
-        "Down",
-        "Inactive",
-        "Discarding",
-        "Standby"
-      ],
-      "correct": 2,
-      "explanation": "RSTP consolidates Blocking, Listening, and Disabled into a single Discarding state. RSTP has only 3 states: Discarding, Learning, Forwarding.",
-      "ciscoCommand": "show spanning-tree"
-    },
-    {
-      "id": "q071",
-      "domain": "2",
-      "topic": "2.5",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "What is the STP path cost for a Gigabit Ethernet link?",
-      "options": [
-        "2",
-        "4",
-        "19",
-        "100"
-      ],
-      "correct": 1,
-      "explanation": "The IEEE revised STP costs: 10G=2, 1G=4, 100M=19, 10M=100. These were updated from the original short values.",
-      "ciscoCommand": "show spanning-tree"
-    },
-    {
-      "id": "q072",
-      "domain": "2",
-      "topic": "2.5",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "What command makes a switch become the root bridge?",
-      "options": [
-        "spanning-tree root primary",
-        "spanning-tree vlan 1 root primary",
-        "spanning-tree priority 0",
-        "set spanning-tree root"
-      ],
-      "correct": 1,
-      "explanation": "spanning-tree vlan <id> root primary sets the priority to a value low enough to guarantee root bridge election (usually 24576 or lower).",
-      "ciscoCommand": "spanning-tree vlan 1 root primary"
-    },
-    {
-      "id": "q073",
-      "domain": "2",
-      "topic": "2.5",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "What type of port does RSTP add that STP does not have?",
-      "options": [
-        "Root port",
-        "Alternate port",
-        "Designated port",
-        "Forwarding port"
-      ],
-      "correct": 1,
-      "explanation": "RSTP adds Alternate and Backup port roles. An Alternate port provides an alternative path to root (replaces blocking behavior) for faster failover.",
-      "ciscoCommand": "show spanning-tree"
-    },
-    {
-      "id": "q074",
-      "domain": "2",
-      "topic": "2.5",
-      "difficulty": 1,
-      "type": "multiple-choice",
-      "question": "What Cisco STP mode implements RSTP per VLAN?",
-      "options": [
-        "STP",
-        "RSTP",
-        "PVST+",
-        "Rapid PVST+"
-      ],
-      "correct": 3,
-      "explanation": "Rapid PVST+ is Cisco's per-VLAN implementation of RSTP, combining the fast convergence of RSTP with per-VLAN spanning tree instances.",
-      "ciscoCommand": "spanning-tree mode rapid-pvst"
-    },
-    {
-      "id": "q075",
-      "domain": "2",
-      "topic": "2.5",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "What is the STP hello timer interval?",
-      "options": [
-        "1 second",
-        "2 seconds",
-        "5 seconds",
-        "10 seconds"
-      ],
-      "correct": 1,
-      "explanation": "The root bridge sends BPDUs every 2 seconds (hello timer). Non-root switches relay these BPDUs.",
-      "ciscoCommand": "show spanning-tree"
-    },
-    {
-      "id": "q076",
-      "domain": "2",
-      "topic": "2.5",
-      "difficulty": 3,
-      "type": "multiple-choice",
-      "question": "A port is in err-disabled state due to BPDU Guard. How do you recover it?",
-      "options": [
-        "Reload the switch",
-        "Shut/no shut the interface",
-        "It recovers automatically after 5 minutes",
-        "Delete the spanning-tree config"
-      ],
-      "correct": 1,
-      "explanation": "To recover a BPDU Guard err-disabled port, you must manually shut and no shut the interface. You can also enable automatic recovery with errdisable recovery cause bpduguard.",
-      "ciscoCommand": "errdisable recovery cause bpduguard"
-    },
-    {
-      "id": "q077",
-      "domain": "2",
-      "topic": "2.5",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "In RSTP, what mechanism allows rapid transition to forwarding on point-to-point links?",
-      "options": [
-        "PortFast",
-        "Proposal/Agreement",
-        "BPDU Guard",
-        "UplinkFast"
-      ],
-      "correct": 1,
-      "explanation": "RSTP uses the Proposal/Agreement mechanism on point-to-point links to rapidly transition ports to forwarding without waiting for timers.",
-      "ciscoCommand": "show spanning-tree"
-    },
-    {
-      "id": "q078",
-      "domain": "2",
-      "topic": "2.4",
-      "difficulty": 1,
-      "type": "multiple-choice",
-      "question": "What is the purpose of EtherChannel?",
-      "options": [
-        "VLAN trunking",
-        "Bundling multiple physical links into one logical link",
-        "Spanning tree optimization",
-        "QoS marking"
-      ],
-      "correct": 1,
-      "explanation": "EtherChannel bundles multiple physical links into a single logical link, providing increased bandwidth and redundancy without STP blocking.",
-      "ciscoCommand": "show etherchannel summary"
-    },
-    {
-      "id": "q079",
-      "domain": "2",
-      "topic": "2.4",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "Which EtherChannel protocol is an IEEE standard?",
-      "options": [
-        "PAgP",
-        "LACP",
-        "CDP",
-        "DTP"
-      ],
-      "correct": 1,
-      "explanation": "LACP (Link Aggregation Control Protocol) is the IEEE 802.3ad standard. PAgP is Cisco proprietary.",
-      "ciscoCommand": "show etherchannel summary"
-    },
-    {
-      "id": "q080",
-      "domain": "2",
-      "topic": "2.4",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "What LACP mode actively tries to form an EtherChannel?",
-      "options": [
-        "On",
-        "Active",
-        "Passive",
-        "Desirable"
-      ],
-      "correct": 1,
-      "explanation": "LACP active mode actively sends LACP packets to negotiate an EtherChannel. Passive mode only responds. At least one side must be active.",
-      "ciscoCommand": "channel-group 1 mode active"
-    },
-    {
-      "id": "q081",
-      "domain": "2",
-      "topic": "2.4",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "Which LACP mode combinations will form an EtherChannel?",
-      "options": [
-        "Active-Active and Active-Passive",
-        "Active-Passive only",
-        "Passive-Passive and Active-Passive",
-        "Active-Active only"
-      ],
-      "correct": 0,
-      "explanation": "LACP requires at least one side to be Active. Active-Active and Active-Passive both form EtherChannels. Passive-Passive will not.",
-      "ciscoCommand": "show etherchannel summary"
-    },
-    {
-      "id": "q082",
-      "domain": "2",
-      "topic": "2.4",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "What command assigns an interface to EtherChannel group 1 using LACP active mode?",
-      "options": [
-        "etherchannel 1 lacp active",
-        "channel-group 1 mode active",
-        "lacp channel-group 1",
-        "interface port-channel 1"
-      ],
-      "correct": 1,
-      "explanation": "channel-group <number> mode active is the correct command to add an interface to an EtherChannel using LACP active negotiation.",
-      "ciscoCommand": "channel-group 1 mode active"
-    },
-    {
-      "id": "q083",
-      "domain": "2",
-      "topic": "2.4",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "What must match for EtherChannel to form?",
-      "options": [
-        "Speed, duplex, VLAN, and trunk settings",
-        "Only speed and duplex",
-        "Only VLAN configuration",
-        "Only the protocol (LACP/PAgP)"
-      ],
-      "correct": 0,
-      "explanation": "All member interfaces must have matching speed, duplex, VLAN assignments, trunking mode, and allowed VLANs for EtherChannel to form.",
-      "ciscoCommand": "show etherchannel summary"
-    },
-    {
-      "id": "q084",
-      "domain": "2",
-      "topic": "2.4",
-      "difficulty": 3,
-      "type": "multiple-choice",
-      "question": "An EtherChannel shows (SD) flags in show etherchannel summary. What does this mean?",
-      "options": [
-        "Layer 2 EtherChannel, down",
-        "Spanning-tree designated",
-        "Suspended and down",
-        "Send/receive disabled"
-      ],
-      "correct": 0,
-      "explanation": "S=Layer 2 (switched), D=Down. The EtherChannel has been created but is not functioning. Check for mismatched parameters between member interfaces.",
-      "ciscoCommand": "show etherchannel summary"
-    },
-    {
-      "id": "q085",
-      "domain": "2",
-      "topic": "2.4",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "How many physical interfaces can be bundled into a single EtherChannel?",
-      "options": [
-        "2",
-        "4",
-        "8",
-        "16"
-      ],
-      "correct": 2,
-      "explanation": "Up to 8 active interfaces can be bundled. With LACP, you can configure up to 16 (8 active + 8 standby/hot-standby).",
-      "ciscoCommand": "show etherchannel summary"
-    },
-    {
-      "id": "q086",
-      "domain": "2",
-      "topic": "2.4",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "What command shows the status of all EtherChannel bundles?",
-      "options": [
-        "show port-channel",
-        "show etherchannel summary",
-        "show channel-group",
-        "show lacp status"
-      ],
-      "correct": 1,
-      "explanation": "show etherchannel summary provides a concise overview of all EtherChannel bundles, their status, protocol, and member ports.",
-      "ciscoCommand": "show etherchannel summary"
-    },
-    {
-      "id": "q087",
-      "domain": "2",
-      "topic": "2.4",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "What is the 'on' mode for EtherChannel?",
-      "options": [
-        "Force EtherChannel without negotiation protocol",
-        "Enable LACP",
-        "Enable PAgP",
-        "Default mode"
-      ],
-      "correct": 0,
-      "explanation": "The 'on' mode forces EtherChannel without LACP or PAgP negotiation. Both sides must be set to 'on'. No protocol packets are exchanged.",
-      "ciscoCommand": "channel-group 1 mode on"
-    },
-    {
-      "id": "q088",
-      "domain": "2",
-      "topic": "2.2",
-      "difficulty": 1,
-      "type": "multiple-choice",
-      "question": "What is the default native VLAN on a Cisco trunk?",
-      "options": [
-        "VLAN 0",
-        "VLAN 1",
-        "VLAN 100",
-        "VLAN 1000"
-      ],
-      "correct": 1,
-      "explanation": "VLAN 1 is the default native VLAN. Frames from the native VLAN are sent untagged on 802.1Q trunks.",
-      "ciscoCommand": "show interfaces trunk"
-    },
-    {
-      "id": "q089",
-      "domain": "2",
-      "topic": "2.2",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "What is the purpose of a trunk port?",
-      "options": [
-        "Connect end-user devices",
-        "Carry traffic from multiple VLANs between switches",
-        "Provide PoE power",
-        "Monitor network traffic"
-      ],
-      "correct": 1,
-      "explanation": "Trunk ports carry traffic for multiple VLANs between switches using 802.1Q tagging. Each frame is tagged with its VLAN ID except native VLAN.",
-      "ciscoCommand": "show interfaces trunk"
-    },
-    {
-      "id": "q090",
-      "domain": "2",
-      "topic": "2.2",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "What command configures a port as a trunk?",
-      "options": [
-        "switchport mode trunk",
-        "switchport trunk enable",
-        "trunk mode on",
-        "interface trunk"
-      ],
-      "correct": 0,
-      "explanation": "switchport mode trunk forces the interface into trunk mode. On some switches, you may also need switchport trunk encapsulation dot1q first.",
-      "ciscoCommand": "switchport mode trunk"
-    },
-    {
-      "id": "q091",
-      "domain": "2",
-      "topic": "2.2",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "How do you change the native VLAN on a trunk to VLAN 99?",
-      "options": [
-        "native vlan 99",
-        "switchport trunk native vlan 99",
-        "vlan 99 native",
-        "switchport native 99"
-      ],
-      "correct": 1,
-      "explanation": "switchport trunk native vlan <id> changes the native VLAN on a trunk port. Best practice is to use an unused VLAN.",
-      "ciscoCommand": "switchport trunk native vlan 99"
-    },
-    {
-      "id": "q092",
-      "domain": "2",
-      "topic": "2.2",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "What command limits trunk traffic to VLANs 10, 20, and 30?",
-      "options": [
-        "switchport trunk vlan 10,20,30",
-        "switchport trunk allowed vlan 10,20,30",
-        "vlan allowed 10,20,30",
-        "switchport filter vlan 10,20,30"
-      ],
-      "correct": 1,
-      "explanation": "switchport trunk allowed vlan defines which VLANs can traverse the trunk. Only specified VLANs will have their traffic carried.",
-      "ciscoCommand": "switchport trunk allowed vlan 10,20,30"
-    },
-    {
-      "id": "q093",
-      "domain": "2",
-      "topic": "2.2",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "What is DTP?",
-      "options": [
-        "Dynamic Trunk Protocol \u2014 negotiates trunk formation",
-        "Data Transfer Protocol",
-        "Dynamic Tagging Protocol",
-        "Default Trunk Policy"
-      ],
-      "correct": 0,
-      "explanation": "DTP (Dynamic Trunking Protocol) automatically negotiates whether a link becomes a trunk. Best practice is to disable it with switchport nonegotiate.",
-      "ciscoCommand": "switchport nonegotiate"
-    },
-    {
-      "id": "q094",
-      "domain": "2",
-      "topic": "2.2",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "Which DTP mode combinations form a trunk?",
-      "options": [
-        "Desirable-Desirable and Desirable-Auto",
-        "Auto-Auto only",
-        "Trunk-Access",
-        "Desirable-Desirable only"
-      ],
-      "correct": 0,
-      "explanation": "Desirable-Desirable and Desirable-Auto both form trunks. Auto-Auto does NOT form a trunk \u2014 neither side actively negotiates.",
-      "ciscoCommand": "show dtp interface"
-    },
-    {
-      "id": "q095",
-      "domain": "2",
-      "topic": "2.2",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "What happens if the native VLAN is mismatched on a trunk?",
-      "options": [
-        "The trunk goes down",
-        "Frames may be forwarded to the wrong VLAN",
-        "Only tagged VLANs are affected",
-        "Nothing, it self-corrects"
-      ],
-      "correct": 1,
-      "explanation": "Native VLAN mismatch causes untagged frames to be placed in different VLANs on each end, creating a potential security risk (VLAN hopping).",
-      "ciscoCommand": "show interfaces trunk"
-    },
-    {
-      "id": "q096",
-      "domain": "2",
-      "topic": "2.2",
-      "difficulty": 1,
-      "type": "multiple-choice",
-      "question": "What is the 802.1Q tag size?",
-      "options": [
-        "2 bytes",
-        "4 bytes",
-        "8 bytes",
-        "12 bytes"
-      ],
-      "correct": 1,
-      "explanation": "The 802.1Q tag is 4 bytes inserted into the Ethernet frame: 2-byte TPID (0x8100) and 2-byte TCI containing priority, DEI, and 12-bit VLAN ID.",
-      "ciscoCommand": "show interfaces trunk"
-    },
-    {
-      "id": "q097",
-      "domain": "2",
-      "topic": "2.2",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "What command verifies trunk configuration and active VLANs?",
-      "options": [
-        "show vlan brief",
-        "show interfaces trunk",
-        "show switchport",
-        "show trunk status"
-      ],
-      "correct": 1,
-      "explanation": "show interfaces trunk displays trunk ports, their mode, encapsulation, native VLAN, and allowed/active VLANs.",
-      "ciscoCommand": "show interfaces trunk"
-    },
-    {
-      "id": "q098",
-      "domain": "2",
-      "topic": "2.3",
-      "difficulty": 1,
-      "type": "multiple-choice",
-      "question": "What is CDP?",
-      "options": [
-        "Cisco Discovery Protocol \u2014 discovers directly connected Cisco devices",
-        "Cisco Data Protocol",
-        "Common Discovery Platform",
-        "Central Directory Protocol"
-      ],
-      "correct": 0,
-      "explanation": "CDP is a Cisco proprietary Layer 2 protocol that discovers directly connected Cisco devices and gathers information about them.",
-      "ciscoCommand": "show cdp neighbors"
-    },
-    {
-      "id": "q099",
-      "domain": "2",
-      "topic": "2.3",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "What is LLDP and how does it differ from CDP?",
-      "options": [
-        "LLDP is a faster version of CDP",
-        "LLDP is an IEEE standard; CDP is Cisco proprietary",
-        "LLDP works at Layer 3; CDP at Layer 2",
-        "LLDP only works on wireless"
-      ],
-      "correct": 1,
-      "explanation": "LLDP (Link Layer Discovery Protocol) is the IEEE 802.1AB standard equivalent to CDP. It works with multi-vendor equipment.",
-      "ciscoCommand": "show lldp neighbors"
-    },
-    {
-      "id": "q100",
-      "domain": "2",
-      "topic": "2.3",
-      "difficulty": 1,
-      "type": "multiple-choice",
-      "question": "What command shows CDP neighbor details?",
-      "options": [
-        "show cdp",
-        "show cdp neighbors detail",
-        "show cdp interfaces",
-        "show cdp status"
-      ],
-      "correct": 1,
-      "explanation": "show cdp neighbors detail shows platform, IP address, capabilities, software version, and interface information for each CDP neighbor.",
-      "ciscoCommand": "show cdp neighbors detail"
-    },
-    {
-      "id": "q101",
-      "domain": "2",
-      "topic": "2.3",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "How do you disable CDP on a specific interface?",
-      "options": [
-        "cdp disable",
-        "no cdp enable",
-        "no cdp run",
-        "cdp off"
-      ],
-      "correct": 1,
-      "explanation": "'no cdp enable' disables CDP on a specific interface. 'no cdp run' disables CDP globally on the entire device.",
-      "ciscoCommand": "no cdp enable"
-    },
-    {
-      "id": "q102",
-      "domain": "2",
-      "topic": "2.3",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "What information can CDP provide about a neighbor?",
-      "options": [
-        "Device ID, IP address, platform, capabilities, interface",
-        "Only hostname and IP",
-        "Only MAC address",
-        "Only VLAN information"
-      ],
-      "correct": 0,
-      "explanation": "CDP provides device ID, IP addresses, platform/model, capabilities (router/switch), local and remote interface names, software version, and native VLAN.",
-      "ciscoCommand": "show cdp neighbors detail"
-    },
-    {
-      "id": "q103",
-      "domain": "2",
-      "topic": "2.6",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "What protocol does a Cisco lightweight AP use to communicate with a WLC?",
-      "options": [
-        "HTTP",
-        "SNMP",
-        "CAPWAP",
-        "CDP"
-      ],
-      "correct": 2,
-      "explanation": "CAPWAP (Control and Provisioning of Wireless Access Points) is the protocol used between lightweight APs and Wireless LAN Controllers.",
-      "ciscoCommand": "show ap summary"
-    },
-    {
-      "id": "q104",
-      "domain": "2",
-      "topic": "2.6",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "What is the difference between autonomous and lightweight APs?",
-      "options": [
-        "Autonomous APs are cheaper",
-        "Lightweight APs require a WLC; autonomous APs operate independently",
-        "Autonomous APs support more clients",
-        "Lightweight APs have stronger signals"
-      ],
-      "correct": 1,
-      "explanation": "Autonomous APs are self-contained with local configuration. Lightweight APs are managed centrally by a WLC and download their config from it.",
-      "ciscoCommand": "show ap summary"
-    },
-    {
-      "id": "q105",
-      "domain": "2",
-      "topic": "2.6",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "What AP mode handles normal client data traffic?",
-      "options": [
-        "Monitor",
-        "Local",
-        "Sniffer",
-        "FlexConnect"
-      ],
-      "correct": 1,
-      "explanation": "Local mode is the default AP mode. The AP creates CAPWAP tunnels to the WLC for both management and client data traffic.",
-      "ciscoCommand": "show ap summary"
-    },
-    {
-      "id": "q106",
-      "domain": "2",
-      "topic": "2.6",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "What AP mode allows local switching of client traffic at a branch office?",
-      "options": [
-        "Local",
-        "Monitor",
-        "FlexConnect",
-        "Bridge"
-      ],
-      "correct": 2,
-      "explanation": "FlexConnect (formerly H-REAP) allows APs at remote sites to locally switch client data traffic even if the WLC connection is lost.",
-      "ciscoCommand": "show ap summary"
-    },
-    {
-      "id": "q107",
-      "domain": "2",
-      "topic": "2.7",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "How is a WLC typically connected to the network?",
-      "options": [
-        "Via a trunk port carrying WLAN VLANs",
-        "Via an access port on VLAN 1",
-        "Via a serial connection",
-        "Via USB"
-      ],
-      "correct": 0,
-      "explanation": "A WLC connects to the network via a trunk port to carry traffic from multiple WLANs/VLANs. Often LAG is used for redundancy.",
-      "ciscoCommand": "show interfaces trunk"
-    },
-    {
-      "id": "q108",
-      "domain": "2",
-      "topic": "2.7",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "What port type connects a lightweight AP to the switch?",
-      "options": [
-        "Trunk port",
-        "Access port",
-        "Port-channel",
-        "Console port"
-      ],
-      "correct": 1,
-      "explanation": "Lightweight APs connect to switch access ports. CAPWAP encapsulates all traffic in IP/UDP tunnels to the WLC, so no trunking is needed.",
-      "ciscoCommand": "show mac address-table"
-    },
-    {
-      "id": "q109",
-      "domain": "2",
-      "topic": "2.8",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "Which management protocols can be used to access a WLC?",
-      "options": [
-        "Only SSH",
-        "HTTP, HTTPS, SSH, console, TACACS+/RADIUS",
-        "Only the console port",
-        "Only SNMP"
-      ],
-      "correct": 1,
-      "explanation": "WLCs support multiple management access methods: HTTP/HTTPS web GUI, SSH, console, and AAA via TACACS+/RADIUS.",
-      "ciscoCommand": "show management"
-    },
-    {
-      "id": "q110",
-      "domain": "2",
-      "topic": "2.9",
-      "difficulty": 1,
-      "type": "multiple-choice",
-      "question": "What is a WLAN in the context of a WLC?",
-      "options": [
-        "A physical network cable",
-        "A wireless network profile with SSID and security settings",
-        "A type of VLAN",
-        "A routing protocol"
-      ],
-      "correct": 1,
-      "explanation": "On a WLC, a WLAN is a configuration profile that defines the SSID, security method, QoS policy, and associated VLAN.",
-      "ciscoCommand": "show wlan summary"
-    },
-    {
-      "id": "q111",
-      "domain": "2",
-      "topic": "2.9",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "What is the maximum number of WLANs typically supported on a Cisco WLC?",
-      "options": [
-        "16",
-        "64",
-        "512",
-        "Unlimited"
-      ],
-      "correct": 2,
-      "explanation": "Most Cisco WLCs support up to 512 WLANs, though only 16 can be active per AP radio at any time.",
-      "ciscoCommand": "show wlan summary"
-    },
-    {
-      "id": "q112",
-      "domain": "2",
-      "topic": "2.9",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "Where do you configure WLAN security on a Cisco WLC?",
-      "options": [
-        "CLI only",
-        "The WLC GUI under WLANs section",
-        "On each individual AP",
-        "In the DHCP server"
-      ],
-      "correct": 1,
-      "explanation": "WLAN security settings (WPA2/WPA3, PSK/802.1X, etc.) are configured centrally on the WLC through the web GUI or CLI.",
-      "ciscoCommand": "show wlan summary"
-    },
-    {
-      "id": "q113",
-      "domain": "2",
-      "topic": "2.1",
-      "difficulty": 1,
-      "type": "multiple-choice",
-      "question": "What is a VLAN?",
-      "options": [
-        "A physical network segment",
-        "A logical network segment within a switch",
-        "A type of router",
-        "A wireless network"
-      ],
-      "correct": 1,
-      "explanation": "A VLAN (Virtual LAN) is a logical broadcast domain created within a switch. Devices in different VLANs cannot communicate without routing.",
-      "ciscoCommand": "show vlan brief"
-    },
-    {
-      "id": "q114",
-      "domain": "2",
-      "topic": "2.1",
-      "difficulty": 1,
-      "type": "multiple-choice",
-      "question": "What command creates VLAN 10 with the name 'Sales'?",
-      "options": [
-        "vlan 10 name Sales",
-        "vlan 10, then name Sales",
-        "create vlan 10 Sales",
-        "switchport vlan 10 name Sales"
-      ],
-      "correct": 1,
-      "explanation": "Enter VLAN configuration with 'vlan 10', then 'name Sales' on the next line. This is done from global config mode.",
-      "ciscoCommand": "vlan 10"
-    },
-    {
-      "id": "q115",
-      "domain": "2",
-      "topic": "2.1",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "What is the default VLAN on a Cisco switch?",
-      "options": [
-        "VLAN 0",
-        "VLAN 1",
-        "VLAN 10",
-        "VLAN 100"
-      ],
-      "correct": 1,
-      "explanation": "VLAN 1 is the default VLAN. All ports are in VLAN 1 by default. It cannot be deleted or renamed.",
-      "ciscoCommand": "show vlan brief"
-    },
-    {
-      "id": "q116",
-      "domain": "2",
-      "topic": "2.1",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "How do you assign an interface to VLAN 10?",
-      "options": [
-        "vlan 10 interface Gi0/1",
-        "switchport access vlan 10",
-        "interface vlan 10",
-        "ip address vlan 10"
-      ],
-      "correct": 1,
-      "explanation": "Configure the interface, set switchport mode access, then switchport access vlan 10 to assign the port to VLAN 10.",
-      "ciscoCommand": "switchport access vlan 10"
-    },
-    {
-      "id": "q117",
-      "domain": "2",
-      "topic": "2.1",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "What is inter-VLAN routing?",
-      "options": [
-        "Routing between different subnets within the same VLAN",
-        "Routing traffic between different VLANs",
-        "Load balancing between VLANs",
-        "Trunking between VLANs"
-      ],
-      "correct": 1,
-      "explanation": "Inter-VLAN routing enables communication between devices in different VLANs. It requires a Layer 3 device (router or L3 switch).",
-      "ciscoCommand": "show ip route"
-    },
-    {
-      "id": "q118",
-      "domain": "2",
-      "topic": "2.1",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "What is Router-on-a-Stick?",
-      "options": [
-        "A router with one interface",
-        "Inter-VLAN routing using a single router interface with subinterfaces",
-        "A wireless router configuration",
-        "A backup router setup"
-      ],
-      "correct": 1,
-      "explanation": "Router-on-a-Stick uses a single physical router interface with 802.1Q subinterfaces to route between VLANs via a trunk link to the switch.",
-      "ciscoCommand": "show ip interface brief"
-    },
-    {
-      "id": "q119",
-      "domain": "2",
-      "topic": "2.1",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "What command creates a subinterface for VLAN 10 on Gi0/0?",
-      "options": [
-        "interface GigabitEthernet0/0 vlan 10",
-        "interface GigabitEthernet0/0.10",
-        "subinterface Gi0/0 vlan 10",
-        "vlan 10 interface Gi0/0"
-      ],
-      "correct": 1,
-      "explanation": "interface GigabitEthernet0/0.10 creates subinterface .10. Then configure encapsulation dot1Q 10 and an IP address for VLAN 10 routing.",
-      "ciscoCommand": "interface GigabitEthernet0/0.10"
-    },
-    {
-      "id": "q120",
-      "domain": "2",
-      "topic": "2.1",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "What command is required on a router subinterface for 802.1Q trunking?",
-      "options": [
-        "trunk encapsulation dot1q",
-        "encapsulation dot1Q 10",
-        "switchport trunk encapsulation",
-        "802.1q enable"
-      ],
-      "correct": 1,
-      "explanation": "encapsulation dot1Q <vlan-id> tells the subinterface which VLAN's tagged traffic to accept and send. This is required for router-on-a-stick.",
-      "ciscoCommand": "encapsulation dot1Q 10"
-    },
-    {
-      "id": "q121",
-      "domain": "2",
-      "topic": "2.1",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "What is an SVI (Switched Virtual Interface)?",
-      "options": [
-        "A physical switch port",
-        "A virtual interface on a Layer 3 switch representing a VLAN",
-        "A VLAN trunk port",
-        "A wireless interface"
-      ],
-      "correct": 1,
-      "explanation": "An SVI is a virtual Layer 3 interface on a switch associated with a VLAN. It provides the default gateway for that VLAN's hosts.",
-      "ciscoCommand": "interface vlan 10"
-    },
-    {
-      "id": "q122",
-      "domain": "2",
-      "topic": "2.1",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "What must be enabled on a Layer 3 switch for inter-VLAN routing via SVIs?",
-      "options": [
-        "OSPF",
-        "ip routing",
-        "switchport mode trunk",
-        "spanning-tree"
-      ],
-      "correct": 1,
-      "explanation": "The 'ip routing' command must be enabled on L3 switches to enable routing between SVIs. Without it, the switch only operates at Layer 2.",
-      "ciscoCommand": "ip routing"
-    },
-    {
-      "id": "q123",
-      "domain": "1",
-      "topic": "1.8",
-      "difficulty": 1,
-      "type": "multiple-choice",
-      "question": "What is the size of an IPv6 address?",
-      "options": [
-        "32 bits",
-        "64 bits",
-        "128 bits",
-        "256 bits"
-      ],
-      "correct": 2,
-      "explanation": "IPv6 addresses are 128 bits long (compared to 32 bits for IPv4), written as 8 groups of 4 hexadecimal digits.",
-      "ciscoCommand": "show ipv6 interface brief"
-    },
-    {
-      "id": "q124",
-      "domain": "1",
-      "topic": "1.9",
-      "difficulty": 1,
-      "type": "multiple-choice",
-      "question": "Which IPv6 address type is equivalent to a public IPv4 address?",
-      "options": [
-        "Link-local",
-        "Unique local",
-        "Global unicast",
-        "Multicast"
-      ],
-      "correct": 2,
-      "explanation": "Global Unicast Addresses (GUA, 2000::/3) are routable on the internet, equivalent to public IPv4 addresses.",
-      "ciscoCommand": "show ipv6 interface brief"
-    },
-    {
-      "id": "q125",
-      "domain": "1",
-      "topic": "1.9",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "What prefix identifies an IPv6 link-local address?",
-      "options": [
-        "2000::/3",
-        "FC00::/7",
-        "FE80::/10",
-        "FF00::/8"
-      ],
-      "correct": 2,
-      "explanation": "Link-local addresses use the FE80::/10 prefix. They are automatically generated and only valid on the local link (not routable).",
-      "ciscoCommand": "show ipv6 interface brief"
-    },
-    {
-      "id": "q126",
-      "domain": "1",
-      "topic": "1.9",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "What is SLAAC?",
-      "options": [
-        "A routing protocol",
-        "A method for hosts to auto-configure IPv6 addresses using Router Advertisements",
-        "A security mechanism",
-        "A VLAN protocol"
-      ],
-      "correct": 1,
-      "explanation": "SLAAC (Stateless Address Autoconfiguration) allows hosts to generate their own IPv6 address using the prefix from Router Advertisements and an interface ID.",
-      "ciscoCommand": "show ipv6 interface"
-    },
-    {
-      "id": "q127",
-      "domain": "1",
-      "topic": "1.9",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "What does NDP replace in IPv6 that ARP provides in IPv4?",
-      "options": [
-        "DNS resolution",
-        "MAC address resolution",
-        "Routing",
-        "VLAN tagging"
-      ],
-      "correct": 1,
-      "explanation": "NDP (Neighbor Discovery Protocol) replaces ARP in IPv6. It uses ICMPv6 Neighbor Solicitation and Neighbor Advertisement messages.",
-      "ciscoCommand": "show ipv6 neighbors"
-    },
-    {
-      "id": "q128",
-      "domain": "1",
-      "topic": "1.9",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "How does EUI-64 generate an interface ID from a MAC address?",
-      "options": [
-        "Appends FF:FE to the MAC",
-        "Splits MAC in half, inserts FF:FE, flips 7th bit",
-        "Reverses the MAC address",
-        "Hashes the MAC with SHA-256"
-      ],
-      "correct": 1,
-      "explanation": "EUI-64: split MAC in half, insert FFFE in the middle, then flip the 7th bit (Universal/Local bit) of the first byte.",
-      "ciscoCommand": "show ipv6 interface"
-    },
-    {
-      "id": "q129",
-      "domain": "1",
-      "topic": "1.8",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "What command enables IPv6 routing on a Cisco router?",
-      "options": [
-        "ip routing",
-        "ipv6 enable",
-        "ipv6 unicast-routing",
-        "router ipv6"
-      ],
-      "correct": 2,
-      "explanation": "ipv6 unicast-routing enables IPv6 routing globally. Without it, the router processes IPv6 on interfaces but doesn't route between them.",
-      "ciscoCommand": "ipv6 unicast-routing"
-    },
-    {
-      "id": "q130",
-      "domain": "1",
-      "topic": "1.8",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "What command assigns an IPv6 address to an interface?",
-      "options": [
-        "ip address 2001:db8::1/64",
-        "ipv6 address 2001:db8::1/64",
-        "ipv6 2001:db8::1/64",
-        "interface ipv6 2001:db8::1/64"
-      ],
-      "correct": 1,
-      "explanation": "ipv6 address is the correct interface command. Note IPv6 uses prefix length (/64) not a separate mask.",
-      "ciscoCommand": "ipv6 address 2001:db8::1/64"
-    },
-    {
-      "id": "q131",
-      "domain": "1",
-      "topic": "1.9",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "What is the IPv6 multicast address for all nodes on the local link?",
-      "options": [
-        "FF02::1",
-        "FF02::2",
-        "FF02::5",
-        "FF02::A"
-      ],
-      "correct": 0,
-      "explanation": "FF02::1 is the all-nodes multicast address. FF02::2 is all-routers. FF02::5 is all-OSPF routers.",
-      "ciscoCommand": "show ipv6 interface"
-    },
-    {
-      "id": "q132",
-      "domain": "1",
-      "topic": "1.9",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "What type of IPv6 address is FD00::1?",
-      "options": [
-        "Global unicast",
-        "Link-local",
-        "Unique local",
-        "Multicast"
-      ],
-      "correct": 2,
-      "explanation": "FC00::/7 (practically FD00::/8) is the Unique Local Address range. These are similar to RFC 1918 private addresses in IPv4.",
-      "ciscoCommand": "show ipv6 interface"
-    },
-    {
-      "id": "q133",
-      "domain": "1",
-      "topic": "1.8",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "How many bits are in the interface ID portion of a /64 IPv6 address?",
-      "options": [
-        "32",
-        "48",
-        "64",
-        "128"
-      ],
-      "correct": 2,
-      "explanation": "A /64 prefix means 64 bits for the network and 64 bits for the interface ID (host portion).",
-      "ciscoCommand": "show ipv6 interface"
-    },
-    {
-      "id": "q134",
-      "domain": "1",
-      "topic": "1.9",
-      "difficulty": 3,
-      "type": "multiple-choice",
-      "question": "Which IPv6 address type is automatically created on every IPv6-enabled interface?",
-      "options": [
-        "Global unicast",
-        "Unique local",
-        "Link-local",
-        "Anycast"
-      ],
-      "correct": 2,
-      "explanation": "A link-local address (FE80::/10) is automatically generated whenever IPv6 is enabled on an interface. It's used for local communication and routing protocols.",
-      "ciscoCommand": "show ipv6 interface brief"
-    },
-    {
-      "id": "q135",
-      "domain": "1",
-      "topic": "1.8",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "What does the :: notation represent in IPv6?",
-      "options": [
-        "End of address",
-        "One or more groups of consecutive zeros",
-        "A wildcard",
-        "A broadcast address"
-      ],
-      "correct": 1,
-      "explanation": "The double colon :: represents one or more consecutive groups of all zeros. It can only appear once in an address to avoid ambiguity.",
-      "ciscoCommand": "show ipv6 interface"
-    },
-    {
-      "id": "q136",
-      "domain": "1",
-      "topic": "1.9",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "What is the solicited-node multicast address used for?",
-      "options": [
-        "Routing updates",
-        "Replacing ARP for address resolution",
-        "Broadcasting to all nodes",
-        "DNS queries"
-      ],
-      "correct": 1,
-      "explanation": "Solicited-node multicast (FF02::1:FFxx:xxxx) is used by NDP for efficient address resolution, targeting only the specific host instead of broadcasting.",
-      "ciscoCommand": "show ipv6 neighbors"
-    },
-    {
-      "id": "q137",
-      "domain": "1",
-      "topic": "1.5",
-      "difficulty": 1,
-      "type": "multiple-choice",
-      "question": "Which transport protocol provides reliable, ordered delivery?",
-      "options": [
-        "UDP",
-        "TCP",
-        "ICMP",
-        "IP"
-      ],
-      "correct": 1,
-      "explanation": "TCP provides reliable delivery through sequence numbers, acknowledgments, and retransmission. UDP is connectionless and unreliable.",
-      "ciscoCommand": "show ip protocols"
-    },
-    {
-      "id": "q138",
-      "domain": "1",
-      "topic": "1.5",
-      "difficulty": 1,
-      "type": "multiple-choice",
-      "question": "What is the TCP three-way handshake sequence?",
-      "options": [
-        "SYN, ACK, FIN",
-        "SYN, SYN-ACK, ACK",
-        "ACK, SYN, FIN",
-        "SYN, SYN, ACK"
-      ],
-      "correct": 1,
-      "explanation": "TCP establishes connections with SYN \u2192 SYN-ACK \u2192 ACK. This ensures both sides are ready to communicate.",
-      "ciscoCommand": null
-    },
-    {
-      "id": "q139",
-      "domain": "1",
-      "topic": "1.5",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "Which well-known port does HTTPS use?",
-      "options": [
-        "80",
-        "8080",
-        "443",
-        "8443"
-      ],
-      "correct": 2,
-      "explanation": "HTTPS uses TCP port 443. HTTP uses port 80. These are well-known ports assigned by IANA.",
-      "ciscoCommand": null
-    },
-    {
-      "id": "q140",
-      "domain": "1",
-      "topic": "1.5",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "Which protocol would you use for real-time voice/video traffic?",
-      "options": [
-        "TCP",
-        "UDP",
-        "SCTP",
-        "DCCP"
-      ],
-      "correct": 1,
-      "explanation": "UDP is preferred for real-time traffic because it has lower latency (no handshake, no retransmission). Some packet loss is acceptable for voice/video.",
-      "ciscoCommand": null
-    },
-    {
-      "id": "q141",
-      "domain": "1",
-      "topic": "1.5",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "What TCP port does SSH use?",
-      "options": [
-        "21",
-        "22",
-        "23",
-        "25"
-      ],
-      "correct": 1,
-      "explanation": "SSH uses TCP port 22. FTP uses 21, Telnet uses 23, and SMTP uses 25.",
-      "ciscoCommand": null
-    },
-    {
-      "id": "q142",
-      "domain": "1",
-      "topic": "1.6",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "How many usable host addresses are in a /26 subnet?",
-      "options": [
-        "30",
-        "62",
-        "64",
-        "126"
-      ],
-      "correct": 1,
-      "explanation": "A /26 has 6 host bits: 2^6 = 64 total addresses - 2 (network + broadcast) = 62 usable hosts.",
-      "ciscoCommand": null
-    },
-    {
-      "id": "q143",
-      "domain": "1",
-      "topic": "1.6",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "What is the subnet mask for a /20 network?",
-      "options": [
-        "255.255.240.0",
-        "255.255.248.0",
-        "255.255.252.0",
-        "255.255.224.0"
-      ],
-      "correct": 0,
-      "explanation": "A /20 means 20 network bits: 255.255.11110000.0 = 255.255.240.0",
-      "ciscoCommand": null
-    },
-    {
-      "id": "q144",
-      "domain": "1",
-      "topic": "1.6",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "What is the network address for host 172.16.45.130/22?",
-      "options": [
-        "172.16.44.0",
-        "172.16.45.0",
-        "172.16.45.128",
-        "172.16.46.0"
-      ],
-      "correct": 0,
-      "explanation": "/22 has a block size of 4 in the third octet. 45/4 = 11 remainder 1, so network starts at 44. Network: 172.16.44.0",
-      "ciscoCommand": null
-    },
-    {
-      "id": "q145",
-      "domain": "1",
-      "topic": "1.6",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "What is the broadcast address for 192.168.1.0/25?",
-      "options": [
-        "192.168.1.63",
-        "192.168.1.127",
-        "192.168.1.255",
-        "192.168.1.128"
-      ],
-      "correct": 1,
-      "explanation": "/25 splits the last octet in half. First subnet: .0-.127. Network=.0, Broadcast=.127, Usable=.1-.126",
-      "ciscoCommand": null
-    },
-    {
-      "id": "q146",
-      "domain": "1",
-      "topic": "1.6",
-      "difficulty": 1,
-      "type": "multiple-choice",
-      "question": "What is the wildcard mask for a /24 subnet?",
-      "options": [
-        "0.0.0.0",
-        "0.0.0.255",
-        "0.0.255.255",
-        "255.255.255.0"
-      ],
-      "correct": 1,
-      "explanation": "Wildcard = 255.255.255.255 - Subnet Mask. For /24 (255.255.255.0): 255.255.255.255 - 255.255.255.0 = 0.0.0.255",
-      "ciscoCommand": null
-    },
-    {
-      "id": "q147",
-      "domain": "1",
-      "topic": "1.7",
-      "difficulty": 1,
-      "type": "multiple-choice",
-      "question": "Which of these is a private IPv4 address?",
-      "options": [
-        "11.0.0.1",
-        "172.32.0.1",
-        "192.168.1.1",
-        "223.0.0.1"
-      ],
-      "correct": 2,
-      "explanation": "192.168.0.0/16 is a private range (RFC 1918). 10.0.0.0/8 and 172.16.0.0/12 are the other private ranges. 172.32.x is public.",
-      "ciscoCommand": null
-    },
-    {
-      "id": "q148",
-      "domain": "1",
-      "topic": "1.6",
-      "difficulty": 3,
-      "type": "multiple-choice",
-      "question": "You need at least 500 host addresses per subnet. What is the minimum prefix length?",
-      "options": [
-        "\\/22",
-        "/23",
-        "/24",
-        "/21"
-      ],
-      "correct": 0,
-      "explanation": "/23 gives 510 hosts (2^9-2), which is just barely enough but /22 gives 1022 hosts providing more room. Actually /23=510 which is >=500, so /23 works. But wait: 2^9=512-2=510. So /23 is minimum.",
-      "ciscoCommand": 1
-    },
-    {
-      "id": "q149",
-      "domain": "1",
-      "topic": "1.6",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "What is the purpose of a subnet mask?",
-      "options": [
-        "To identify the broadcast address",
-        "To separate the network and host portions of an IP address",
-        "To encrypt traffic",
-        "To define the default gateway"
-      ],
-      "correct": 1,
-      "explanation": "A subnet mask identifies which bits of the IP address represent the network portion and which represent the host portion.",
-      "ciscoCommand": null
-    },
-    {
-      "id": "q150",
-      "domain": "1",
-      "topic": "1.3",
-      "difficulty": 1,
-      "type": "multiple-choice",
-      "question": "What type of fiber optic cable supports longer distances?",
-      "options": [
-        "Multimode",
-        "Single-mode",
-        "Cat 5e",
-        "Coaxial"
-      ],
-      "correct": 1,
-      "explanation": "Single-mode fiber uses a smaller core (8-10 micron) with laser light, supporting distances up to 100km. Multimode uses LED and supports shorter distances.",
-      "ciscoCommand": null
-    },
-    {
-      "id": "q151",
-      "domain": "1",
-      "topic": "1.3",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "What is the maximum distance for Cat 5e/6 copper Ethernet?",
-      "options": [
-        "55 meters",
-        "100 meters",
-        "185 meters",
-        "500 meters"
-      ],
-      "correct": 1,
-      "explanation": "Cat 5e and Cat 6 UTP cables have a maximum distance of 100 meters (328 feet) for Ethernet at any speed up to 10 Gbps.",
-      "ciscoCommand": null
-    },
-    {
-      "id": "q152",
-      "domain": "1",
-      "topic": "1.4",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "A link shows CRC errors incrementing. What is the most likely cause?",
-      "options": [
-        "Duplex mismatch",
-        "Incorrect VLAN",
-        "Wrong IP address",
-        "Bad cable or connector"
-      ],
-      "correct": 3,
-      "explanation": "CRC errors typically indicate physical layer problems: damaged cable, loose connector, or electromagnetic interference.",
-      "ciscoCommand": null
-    },
-    {
-      "id": "q153",
-      "domain": "1",
-      "topic": "1.4",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "What symptom indicates a duplex mismatch?",
-      "options": [
-        "Port shows down/down",
-        "High collision count and late collisions",
-        "CRC errors only",
-        "Spanning tree blocking"
-      ],
-      "correct": 1,
-      "explanation": "Duplex mismatch causes late collisions, FCS errors, and runts on the half-duplex side, and a poor-performing but 'up' link on the full-duplex side.",
-      "ciscoCommand": null
-    },
-    {
-      "id": "q154",
-      "domain": "1",
-      "topic": "1.1",
-      "difficulty": 1,
-      "type": "multiple-choice",
-      "question": "What device operates at Layer 3 and makes forwarding decisions based on IP addresses?",
-      "options": [
-        "Hub",
-        "Switch",
-        "Router",
-        "Access point"
-      ],
-      "correct": 2,
-      "explanation": "Routers operate at Layer 3 (Network layer) and use IP addresses in their routing table to forward packets between networks.",
-      "ciscoCommand": null
-    },
-    {
-      "id": "q155",
-      "domain": "1",
-      "topic": "1.1",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "What is the primary difference between a Layer 2 and Layer 3 switch?",
-      "options": [
-        "Layer 3 switches are faster",
-        "Layer 3 switches can route between VLANs",
-        "Layer 2 switches support more ports",
-        "Layer 3 switches support wireless"
-      ],
-      "correct": 1,
-      "explanation": "Layer 3 switches can perform routing (inter-VLAN routing via SVIs) in addition to switching. Layer 2 switches only forward based on MAC addresses.",
-      "ciscoCommand": null
-    },
-    {
-      "id": "q156",
-      "domain": "1",
-      "topic": "1.2",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "What is the advantage of a spine-leaf architecture?",
-      "options": [
-        "Lower cost",
-        "Predictable low-latency with equal-cost paths",
-        "Simpler configuration",
-        "Fewer switches needed"
-      ],
-      "correct": 1,
-      "explanation": "Spine-leaf provides consistent latency because every leaf switch is exactly one hop from every spine switch, creating equal-cost paths.",
-      "ciscoCommand": null
-    },
-    {
-      "id": "q157",
-      "domain": "1",
-      "topic": "1.11",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "What are the three non-overlapping channels for 2.4 GHz Wi-Fi?",
-      "options": [
-        "1, 5, 9",
-        "1, 6, 11",
-        "1, 7, 13",
-        "2, 7, 12"
-      ],
-      "correct": 1,
-      "explanation": "Channels 1, 6, and 11 are the three non-overlapping channels in the 2.4 GHz band. Using overlapping channels causes co-channel interference.",
-      "ciscoCommand": null
-    },
-    {
-      "id": "q158",
-      "domain": "1",
-      "topic": "1.11",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "What wireless encryption standard is considered most secure?",
-      "options": [
-        "WEP",
-        "WPA",
-        "WPA2",
-        "WPA3"
-      ],
-      "correct": 3,
-      "explanation": "WPA3 is the latest and most secure wireless encryption standard, using SAE (Simultaneous Authentication of Equals) instead of the 4-way handshake.",
-      "ciscoCommand": null
-    },
-    {
-      "id": "q159",
-      "domain": "1",
-      "topic": "1.12",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "What is a hypervisor?",
-      "options": [
-        "A high-speed switch",
-        "Software that creates and manages virtual machines",
-        "A type of firewall",
-        "A network monitoring tool"
-      ],
-      "correct": 1,
-      "explanation": "A hypervisor (Type 1 or Type 2) is software that creates and manages virtual machines by abstracting hardware resources.",
-      "ciscoCommand": null
-    },
-    {
-      "id": "q160",
-      "domain": "1",
-      "topic": "1.13",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "What does a switch do when it receives a frame with an unknown destination MAC?",
-      "options": [
-        "Drops the frame",
-        "Sends it to the default gateway",
-        "Floods it out all ports except the source port",
-        "Sends an ARP request"
-      ],
-      "correct": 2,
-      "explanation": "When the destination MAC is not in the MAC address table, the switch floods the frame out all ports except the one it was received on.",
-      "ciscoCommand": null
-    },
-    {
-      "id": "q161",
-      "domain": "1",
-      "topic": "1.13",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "How does a switch learn MAC addresses?",
-      "options": [
-        "By examining the source MAC of incoming frames",
-        "By querying a DHCP server",
-        "From CDP/LLDP messages",
-        "From ARP broadcast responses"
-      ],
-      "correct": 0,
-      "explanation": "Switches learn MAC addresses by recording the source MAC address and ingress port of each received frame into the MAC address table.",
-      "ciscoCommand": "show mac address-table"
-    },
-    {
-      "id": "q162",
-      "domain": "4",
-      "topic": "4.1",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "What does NAT stand for?",
-      "options": [
-        "Network Access Translation",
-        "Network Address Translation",
-        "Node Address Transfer",
-        "Network Authentication Token"
-      ],
-      "correct": 1,
-      "explanation": "NAT (Network Address Translation) translates private IP addresses to public IP addresses for internet access.",
-      "ciscoCommand": null
-    },
-    {
-      "id": "q163",
-      "domain": "4",
-      "topic": "4.1",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "What is the difference between static NAT and dynamic NAT?",
-      "options": [
-        "Static uses pools; dynamic uses one-to-one",
-        "Static maps one private to one public permanently; dynamic uses a pool",
-        "Static is faster",
-        "Dynamic requires less configuration"
-      ],
-      "correct": 1,
-      "explanation": "Static NAT creates a permanent one-to-one mapping. Dynamic NAT uses a pool of public addresses assigned on a first-come basis.",
-      "ciscoCommand": "show ip nat translations"
-    },
-    {
-      "id": "q164",
-      "domain": "4",
-      "topic": "4.1",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "What is PAT (Port Address Translation)?",
-      "options": [
-        "A routing protocol",
-        "NAT overload \u2014 multiple private IPs share one public IP using port numbers",
-        "A port security feature",
-        "A trunking protocol"
-      ],
-      "correct": 1,
-      "explanation": "PAT (also called NAT overload) allows many internal hosts to share a single public IP by using unique source port numbers to track sessions.",
-      "ciscoCommand": "show ip nat translations"
-    },
-    {
-      "id": "q165",
-      "domain": "4",
-      "topic": "4.1",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "What command defines the inside NAT interface?",
-      "options": [
-        "ip nat inside",
-        "nat inside",
-        "interface nat inside",
-        "ip nat source inside"
-      ],
-      "correct": 0,
-      "explanation": "'ip nat inside' is configured on the interface facing the private network. 'ip nat outside' goes on the internet-facing interface.",
-      "ciscoCommand": "ip nat inside"
-    },
-    {
-      "id": "q166",
-      "domain": "4",
-      "topic": "4.1",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "What command configures PAT using the outside interface address?",
-      "options": [
-        "ip nat inside source list 1 pool PAT overload",
-        "ip nat inside source list 1 interface Gi0/0 overload",
-        "ip nat pool PAT overload",
-        "nat overload enable"
-      ],
-      "correct": 1,
-      "explanation": "'ip nat inside source list <acl> interface <outside-if> overload' configures PAT using the outside interface's IP address.",
-      "ciscoCommand": "ip nat inside source list 1 interface Gi0/0 overload"
-    },
-    {
-      "id": "q167",
-      "domain": "4",
-      "topic": "4.1",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "What command verifies active NAT translations?",
-      "options": [
-        "show ip nat statistics",
-        "show ip nat translations",
-        "show nat table",
-        "show ip nat pool"
-      ],
-      "correct": 1,
-      "explanation": "show ip nat translations displays all current NAT translation entries, showing inside local/global and outside local/global addresses.",
-      "ciscoCommand": "show ip nat translations"
-    },
-    {
-      "id": "q168",
-      "domain": "4",
-      "topic": "4.2",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "What command configures a router as an NTP client?",
-      "options": [
-        "ntp enable",
-        "ntp server 10.0.0.1",
-        "ntp client 10.0.0.1",
-        "clock set ntp 10.0.0.1"
-      ],
-      "correct": 1,
-      "explanation": "'ntp server <ip>' configures the router to synchronize its clock with the specified NTP server.",
-      "ciscoCommand": "ntp server 10.0.0.1"
-    },
-    {
-      "id": "q169",
-      "domain": "4",
-      "topic": "4.2",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "What is the NTP stratum value for the most accurate time source?",
-      "options": [
-        "0",
-        "1",
-        "10",
-        "16"
-      ],
-      "correct": 1,
-      "explanation": "Stratum 0 is the reference clock (atomic clock/GPS). Stratum 1 is directly connected to stratum 0 \u2014 these are the most accurate NTP servers.",
-      "ciscoCommand": "show ntp status"
-    },
-    {
-      "id": "q170",
-      "domain": "4",
-      "topic": "4.3",
-      "difficulty": 1,
-      "type": "multiple-choice",
-      "question": "What port does DNS use?",
-      "options": [
-        "TCP/UDP 23",
-        "TCP/UDP 53",
-        "TCP/UDP 80",
-        "TCP/UDP 443"
-      ],
-      "correct": 1,
-      "explanation": "DNS uses UDP port 53 for queries and TCP port 53 for zone transfers or responses larger than 512 bytes.",
-      "ciscoCommand": null
-    },
-    {
-      "id": "q171",
-      "domain": "4",
-      "topic": "4.3",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "What is the role of a DHCP server?",
-      "options": [
-        "Route packets between networks",
-        "Automatically assign IP configuration to clients",
-        "Resolve hostnames to IP addresses",
-        "Provide time synchronization"
-      ],
-      "correct": 1,
-      "explanation": "DHCP automatically assigns IP address, subnet mask, default gateway, DNS servers, and other parameters to clients.",
-      "ciscoCommand": null
-    },
-    {
-      "id": "q172",
-      "domain": "4",
-      "topic": "4.4",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "What does SNMP stand for and what is it used for?",
-      "options": [
-        "Simple Network Management Protocol \u2014 monitor and manage network devices",
-        "Secure Network Message Protocol",
-        "System Network Monitoring Platform",
-        "Simple Network Messaging Protocol"
-      ],
-      "correct": 0,
-      "explanation": "SNMP allows network admins to monitor device health, performance metrics, and configuration from a central management station.",
-      "ciscoCommand": "show snmp"
-    },
-    {
-      "id": "q173",
-      "domain": "4",
-      "topic": "4.4",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "What is an SNMP trap?",
-      "options": [
-        "A security mechanism",
-        "An unsolicited alert sent from an agent to the manager",
-        "A request from the manager to the agent",
-        "A firewall rule"
-      ],
-      "correct": 1,
-      "explanation": "SNMP traps are asynchronous notifications sent by SNMP agents to the NMS when a significant event occurs (link down, high CPU, etc.).",
-      "ciscoCommand": null
-    },
-    {
-      "id": "q174",
-      "domain": "4",
-      "topic": "4.5",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "What are syslog severity levels 0 and 7?",
-      "options": [
-        "0=Debug, 7=Emergency",
-        "0=Emergency, 7=Debug",
-        "0=Critical, 7=Info",
-        "0=Alert, 7=Notice"
-      ],
-      "correct": 1,
-      "explanation": "Syslog levels: 0=Emergency, 1=Alert, 2=Critical, 3=Error, 4=Warning, 5=Notice, 6=Informational, 7=Debug. Lower number = more severe.",
-      "ciscoCommand": "show logging"
-    },
-    {
-      "id": "q175",
-      "domain": "4",
-      "topic": "4.5",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "What command sends syslog messages to a server at 10.0.0.100?",
-      "options": [
-        "logging 10.0.0.100",
-        "syslog server 10.0.0.100",
-        "log destination 10.0.0.100",
-        "send-log 10.0.0.100"
-      ],
-      "correct": 0,
-      "explanation": "'logging <ip>' configures the device to send syslog messages to an external syslog server for centralized log collection.",
-      "ciscoCommand": "logging 10.0.0.100"
-    },
-    {
-      "id": "q176",
-      "domain": "4",
-      "topic": "4.6",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "What is a DHCP relay agent?",
-      "options": [
-        "A DHCP server backup",
-        "A router that forwards DHCP broadcasts to a remote DHCP server",
-        "A DHCP client",
-        "A DNS-to-DHCP translator"
-      ],
-      "correct": 1,
-      "explanation": "A DHCP relay agent forwards DHCP broadcast requests from clients to a DHCP server on a different subnet using unicast.",
-      "ciscoCommand": "ip helper-address 10.0.0.1"
-    },
-    {
-      "id": "q177",
-      "domain": "4",
-      "topic": "4.6",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "What command configures a DHCP relay on a router interface?",
-      "options": [
-        "dhcp relay 10.0.0.1",
-        "ip helper-address 10.0.0.1",
-        "dhcp-server 10.0.0.1",
-        "ip dhcp relay 10.0.0.1"
-      ],
-      "correct": 1,
-      "explanation": "ip helper-address forwards broadcast UDP traffic (including DHCP) to the specified server IP address.",
-      "ciscoCommand": "ip helper-address 10.0.0.1"
-    },
-    {
-      "id": "q178",
-      "domain": "4",
-      "topic": "4.7",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "What are the three main QoS models?",
-      "options": [
-        "Low, Medium, High",
-        "Best-effort, IntServ, DiffServ",
-        "Bronze, Silver, Gold",
-        "Priority, Standard, Economy"
-      ],
-      "correct": 1,
-      "explanation": "Best-effort (no QoS), IntServ (per-flow reservation with RSVP), and DiffServ (per-hop classification using DSCP) are the three QoS models.",
-      "ciscoCommand": null
-    },
-    {
-      "id": "q179",
-      "domain": "4",
-      "topic": "4.7",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "What is DSCP used for in QoS?",
-      "options": [
-        "Encrypting traffic",
-        "Marking packets with a priority value in the IP header",
-        "Routing decisions",
-        "VLAN tagging"
-      ],
-      "correct": 1,
-      "explanation": "DSCP (Differentiated Services Code Point) uses 6 bits in the IP header's ToS field to mark packets with QoS priority values (0-63).",
-      "ciscoCommand": null
-    },
-    {
-      "id": "q180",
-      "domain": "4",
-      "topic": "4.7",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "What DSCP value is used for Expedited Forwarding (voice traffic)?",
-      "options": [
-        "0",
-        "26",
-        "34",
-        "46"
-      ],
-      "correct": 3,
-      "explanation": "EF (Expedited Forwarding) uses DSCP 46. This is typically used for voice traffic requiring low latency, low jitter, and low loss.",
-      "ciscoCommand": null
-    },
-    {
-      "id": "q181",
-      "domain": "4",
-      "topic": "4.7",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "What is the difference between policing and shaping in QoS?",
-      "options": [
-        "Policing buffers excess traffic; shaping drops it",
-        "Policing drops excess traffic; shaping buffers and delays it",
-        "They are the same thing",
-        "Policing is for inbound; shaping is for outbound only"
-      ],
-      "correct": 1,
-      "explanation": "Policing drops or re-marks traffic exceeding the rate limit immediately. Shaping buffers excess traffic and sends it when bandwidth is available.",
-      "ciscoCommand": null
-    },
-    {
-      "id": "q182",
-      "domain": "4",
-      "topic": "4.8",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "What command configures SSH version 2 on a Cisco device?",
-      "options": [
-        "ssh version 2",
-        "ip ssh version 2",
-        "crypto ssh 2",
-        "enable ssh v2"
-      ],
-      "correct": 1,
-      "explanation": "ip ssh version 2 enables SSH version 2, which is more secure than version 1. You also need a hostname, domain name, and RSA keys.",
-      "ciscoCommand": "ip ssh version 2"
-    },
-    {
-      "id": "q183",
-      "domain": "4",
-      "topic": "4.8",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "What are the prerequisites for configuring SSH on a Cisco router?",
-      "options": [
-        "Only a password",
-        "Hostname, domain name, RSA key pair, and VTY line configuration",
-        "Only an IP address",
-        "A RADIUS server"
-      ],
-      "correct": 1,
-      "explanation": "SSH requires: 1) hostname, 2) domain name, 3) RSA key pair (crypto key generate rsa), 4) VTY lines configured for SSH.",
-      "ciscoCommand": "crypto key generate rsa"
-    },
-    {
-      "id": "q184",
-      "domain": "4",
-      "topic": "4.9",
-      "difficulty": 1,
-      "type": "multiple-choice",
-      "question": "What is the main difference between TFTP and FTP?",
-      "options": [
-        "TFTP is faster",
-        "TFTP is simpler with no authentication; FTP supports login and directory browsing",
-        "FTP uses UDP; TFTP uses TCP",
-        "FTP is older"
-      ],
-      "correct": 1,
-      "explanation": "TFTP uses UDP port 69 and provides no authentication. FTP uses TCP ports 20/21 with username/password authentication.",
-      "ciscoCommand": null
-    },
-    {
-      "id": "q185",
-      "domain": "5",
-      "topic": "5.3",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "What are the three modes of Cisco IOS CLI?",
-      "options": [
-        "User EXEC, Privileged EXEC, Global Configuration",
-        "Login, Admin, Root",
-        "Read, Write, Execute",
-        "Basic, Advanced, Expert"
-      ],
-      "correct": 0,
-      "explanation": "User EXEC (>), Privileged EXEC (#), and Global Configuration (config)# are the three primary IOS modes. You move between them with enable and configure terminal.",
-      "ciscoCommand": "show privilege"
-    },
-    {
-      "id": "q186",
-      "domain": "5",
-      "topic": "5.3",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "What command enters privileged EXEC mode?",
-      "options": [
-        "login",
-        "su",
-        "enable",
-        "privilege"
-      ],
-      "correct": 2,
-      "explanation": "The 'enable' command moves from User EXEC mode (>) to Privileged EXEC mode (#), which provides full access to show and config commands.",
-      "ciscoCommand": "enable"
-    },
-    {
-      "id": "q187",
-      "domain": "5",
-      "topic": "5.3",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "What command saves the running configuration to NVRAM?",
-      "options": [
-        "write memory",
-        "copy running-config startup-config",
-        "save config",
-        "Both A and B"
-      ],
-      "correct": 3,
-      "explanation": "Both 'write memory' (shorthand) and 'copy running-config startup-config' save the active configuration to NVRAM for persistence across reboots.",
-      "ciscoCommand": "copy running-config startup-config"
-    },
-    {
-      "id": "q188",
-      "domain": "5",
-      "topic": "5.3",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "What does the 'enable secret' command do vs 'enable password'?",
-      "options": [
-        "They are identical",
-        "enable secret encrypts the password with MD5; enable password stores it in cleartext",
-        "enable password is more secure",
-        "enable secret is for SSH only"
-      ],
-      "correct": 1,
-      "explanation": "enable secret stores the password as an MD5 hash and always takes precedence over enable password, which stores in cleartext or weak Type 7.",
-      "ciscoCommand": "enable secret <password>"
-    },
-    {
-      "id": "q189",
-      "domain": "5",
-      "topic": "5.3",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "What command encrypts all plaintext passwords in the running config?",
-      "options": [
-        "encrypt passwords",
-        "service password-encryption",
-        "password encrypt all",
-        "security passwords"
-      ],
-      "correct": 1,
-      "explanation": "service password-encryption applies weak Type 7 encryption to all plaintext passwords in the config. It's not strong but better than plaintext.",
-      "ciscoCommand": "service password-encryption"
-    },
-    {
-      "id": "q190",
-      "domain": "5",
-      "topic": "5.7",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "What is DHCP snooping?",
-      "options": [
-        "A DHCP optimization feature",
-        "A Layer 2 security feature that filters untrusted DHCP messages",
-        "A DHCP server redundancy protocol",
-        "A DHCP relay enhancement"
-      ],
-      "correct": 1,
-      "explanation": "DHCP snooping validates DHCP messages from untrusted sources, building a binding table of MAC-to-IP mappings. It prevents rogue DHCP servers.",
-      "ciscoCommand": "ip dhcp snooping"
-    },
-    {
-      "id": "q191",
-      "domain": "5",
-      "topic": "5.7",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "What is Dynamic ARP Inspection (DAI)?",
-      "options": [
-        "A routing protocol security feature",
-        "A feature that validates ARP packets against the DHCP snooping binding table",
-        "An ARP cache optimization",
-        "A firewall feature"
-      ],
-      "correct": 1,
-      "explanation": "DAI intercepts ARP packets on untrusted ports and validates them against the DHCP snooping binding table to prevent ARP spoofing attacks.",
-      "ciscoCommand": "ip arp inspection vlan 10"
-    },
-    {
-      "id": "q192",
-      "domain": "5",
-      "topic": "5.7",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "What happens when a port security violation occurs in shutdown mode?",
-      "options": [
-        "The port sends a syslog message only",
-        "The port drops the violating frame",
-        "The port goes to err-disabled state",
-        "The switch reboots"
-      ],
-      "correct": 2,
-      "explanation": "In shutdown mode (default), the port is placed in err-disabled state when a violation occurs. This is the most secure but also most disruptive mode.",
-      "ciscoCommand": "switchport port-security violation shutdown"
-    },
-    {
-      "id": "q193",
-      "domain": "5",
-      "topic": "5.7",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "What are the three port security violation modes?",
-      "options": [
-        "Block, Alert, Disable",
-        "Protect, Restrict, Shutdown",
-        "Drop, Log, Disable",
-        "Warn, Block, Shutdown"
-      ],
-      "correct": 1,
-      "explanation": "Protect silently drops violating traffic. Restrict drops and sends syslog. Shutdown puts the port in err-disabled state (default).",
-      "ciscoCommand": "switchport port-security violation restrict"
-    },
-    {
-      "id": "q194",
-      "domain": "5",
-      "topic": "5.7",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "What is sticky MAC learning in port security?",
-      "options": [
-        "MAC addresses are permanently configured",
-        "Dynamically learned MACs are added to the running config",
-        "MACs cannot be changed after learning",
-        "A type of static MAC assignment"
-      ],
-      "correct": 1,
-      "explanation": "Sticky learning dynamically learns MAC addresses and adds them to the running-config as static entries, combining dynamic learning with persistence.",
-      "ciscoCommand": "switchport port-security mac-address sticky"
-    },
-    {
-      "id": "q195",
-      "domain": "5",
-      "topic": "5.7",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "What command enables DHCP snooping globally?",
-      "options": [
-        "dhcp snooping enable",
-        "ip dhcp snooping",
-        "dhcp-guard enable",
-        "ip dhcp security"
-      ],
-      "correct": 1,
-      "explanation": "ip dhcp snooping enables DHCP snooping globally. You must also enable it per VLAN with ip dhcp snooping vlan <id>.",
-      "ciscoCommand": "ip dhcp snooping"
-    },
-    {
-      "id": "q196",
-      "domain": "5",
-      "topic": "5.6",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "What is the difference between standard and extended ACLs?",
-      "options": [
-        "Standard filters by destination; extended by source",
-        "Standard filters by source only; extended filters by source, destination, protocol, and port",
-        "Standard is numbered; extended is named",
-        "Standard is faster"
-      ],
-      "correct": 1,
-      "explanation": "Standard ACLs (1-99) match only source IP. Extended ACLs (100-199) match source IP, destination IP, protocol, and port numbers.",
-      "ciscoCommand": "show access-lists"
-    },
-    {
-      "id": "q197",
-      "domain": "5",
-      "topic": "5.6",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "Where should you place a standard ACL?",
-      "options": [
-        "Close to the source",
-        "Close to the destination",
-        "On the core router",
-        "On the firewall only"
-      ],
-      "correct": 1,
-      "explanation": "Standard ACLs should be placed close to the destination because they only filter on source IP. Placing them at the source would block all traffic from that source.",
-      "ciscoCommand": "show access-lists"
-    },
-    {
-      "id": "q198",
-      "domain": "5",
-      "topic": "5.6",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "Where should you place an extended ACL?",
-      "options": [
-        "Close to the source",
-        "Close to the destination",
-        "On the default gateway",
-        "On the DNS server"
-      ],
-      "correct": 0,
-      "explanation": "Extended ACLs should be placed close to the source because they can match specific traffic. This prevents unnecessary traffic from traversing the network.",
-      "ciscoCommand": "show access-lists"
-    },
-    {
-      "id": "q199",
-      "domain": "5",
-      "topic": "5.6",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "What does the 'host' keyword mean in an ACL?",
-      "options": [
-        "Match any host",
-        "Match a specific single IP (wildcard 0.0.0.0)",
-        "Match a subnet",
-        "Match the default gateway"
-      ],
-      "correct": 1,
-      "explanation": "'host 10.0.0.1' is shorthand for '10.0.0.1 0.0.0.0' \u2014 it matches exactly one IP address.",
-      "ciscoCommand": "show access-lists"
-    },
-    {
-      "id": "q200",
-      "domain": "5",
-      "topic": "5.6",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "What is at the end of every ACL?",
-      "options": [
-        "Implicit permit all",
-        "Implicit deny all",
-        "A log entry",
-        "Nothing"
-      ],
-      "correct": 1,
-      "explanation": "Every ACL has an invisible implicit deny all at the end. Any traffic not explicitly permitted by an ACE will be denied.",
-      "ciscoCommand": "show access-lists"
-    },
-    {
-      "id": "q201",
-      "domain": "5",
-      "topic": "5.6",
-      "difficulty": 3,
-      "type": "multiple-choice",
-      "question": "What command applies ACL 100 inbound on interface Gi0/0?",
-      "options": [
-        "access-group 100 in",
-        "ip access-group 100 in",
-        "ip access-list 100 in",
-        "apply acl 100 inbound"
-      ],
-      "correct": 1,
-      "explanation": "ip access-group <number/name> <in/out> applies an ACL to an interface in the specified direction (inbound or outbound).",
-      "ciscoCommand": "ip access-group 100 in"
-    },
-    {
-      "id": "q202",
-      "domain": "5",
-      "topic": "5.5",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "What is the difference between a site-to-site VPN and a remote access VPN?",
-      "options": [
-        "Site-to-site uses SSL; remote access uses IPsec",
-        "Site-to-site connects networks; remote access connects individual users",
-        "Site-to-site is faster",
-        "Remote access is more secure"
-      ],
-      "correct": 1,
-      "explanation": "Site-to-site VPNs create encrypted tunnels between networks (office-to-office). Remote access VPNs connect individual users to a corporate network.",
-      "ciscoCommand": null
-    },
-    {
-      "id": "q203",
-      "domain": "5",
-      "topic": "5.8",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "What do the three As in AAA stand for?",
-      "options": [
-        "Access, Audit, Authorization",
-        "Authentication, Authorization, Accounting",
-        "Authentication, Access, Auditing",
-        "Admin, Authorization, Accounting"
-      ],
-      "correct": 1,
-      "explanation": "Authentication (who are you?), Authorization (what can you do?), and Accounting (what did you do?) form the AAA security framework.",
-      "ciscoCommand": null
-    },
-    {
-      "id": "q204",
-      "domain": "5",
-      "topic": "5.8",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "What is the difference between TACACS+ and RADIUS?",
-      "options": [
-        "TACACS+ uses UDP; RADIUS uses TCP",
-        "TACACS+ encrypts the entire packet; RADIUS only encrypts the password",
-        "RADIUS is Cisco proprietary",
-        "TACACS+ is an open standard"
-      ],
-      "correct": 1,
-      "explanation": "TACACS+ (Cisco) uses TCP port 49 and encrypts the entire packet. RADIUS (open standard) uses UDP ports 1812/1813 and only encrypts the password field.",
-      "ciscoCommand": null
-    },
-    {
-      "id": "q205",
-      "domain": "5",
-      "topic": "5.9",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "What is the primary improvement of WPA3 over WPA2?",
-      "options": [
-        "Faster speeds",
-        "SAE replaces the 4-way handshake, preventing offline dictionary attacks",
-        "Longer passwords",
-        "Support for 5GHz only"
-      ],
-      "correct": 1,
-      "explanation": "WPA3 uses SAE (Simultaneous Authentication of Equals) which provides protection against offline dictionary attacks and forward secrecy.",
-      "ciscoCommand": null
-    },
-    {
-      "id": "q206",
-      "domain": "5",
-      "topic": "5.10",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "What security method is commonly configured for enterprise wireless?",
-      "options": [
-        "WPA2-PSK",
-        "WPA2-Enterprise with 802.1X",
-        "WEP",
-        "MAC filtering only"
-      ],
-      "correct": 1,
-      "explanation": "WPA2-Enterprise uses 802.1X authentication with a RADIUS server, providing individual user credentials instead of a shared pre-shared key.",
-      "ciscoCommand": null
-    },
-    {
-      "id": "q207",
-      "domain": "5",
-      "topic": "5.1",
-      "difficulty": 1,
-      "type": "multiple-choice",
-      "question": "What is the difference between a threat, vulnerability, and exploit?",
-      "options": [
-        "They are all the same",
-        "Threat=potential danger, Vulnerability=weakness, Exploit=attack leveraging a vulnerability",
-        "Threat=software, Vulnerability=hardware, Exploit=user error",
-        "None of these"
-      ],
-      "correct": 1,
-      "explanation": "A threat is a potential danger, a vulnerability is a weakness in a system, and an exploit is the method used to take advantage of a vulnerability.",
-      "ciscoCommand": null
-    },
-    {
-      "id": "q208",
-      "domain": "6",
-      "topic": "6.3",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "What is the difference between the control plane and data plane?",
-      "options": [
-        "Control plane forwards packets; data plane makes routing decisions",
-        "Control plane makes routing decisions; data plane forwards packets",
-        "They are the same",
-        "Control plane is hardware; data plane is software"
-      ],
-      "correct": 1,
-      "explanation": "The control plane runs routing protocols and builds the routing/forwarding tables. The data plane uses those tables to forward actual traffic.",
-      "ciscoCommand": null
-    },
-    {
-      "id": "q209",
-      "domain": "6",
-      "topic": "6.3",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "What are Northbound and Southbound APIs in SDN?",
-      "options": [
-        "NB connects to users; SB connects to servers",
-        "NB connects apps to the controller; SB connects the controller to network devices",
-        "NB is for monitoring; SB is for configuration",
-        "They are the same API"
-      ],
-      "correct": 1,
-      "explanation": "Northbound APIs expose controller functionality to applications. Southbound APIs (like OpenFlow, NETCONF) communicate with network devices.",
-      "ciscoCommand": null
-    },
-    {
-      "id": "q210",
-      "domain": "6",
-      "topic": "6.4",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "What is Cisco DNA Center?",
-      "options": [
-        "A DNS server",
-        "A centralized network management and automation platform",
-        "A routing protocol",
-        "A wireless access point"
-      ],
-      "correct": 1,
-      "explanation": "Cisco DNA Center is an intent-based networking controller that provides centralized management, automation, assurance, and security for campus networks.",
-      "ciscoCommand": null
-    },
-    {
-      "id": "q211",
-      "domain": "6",
-      "topic": "6.4",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "What is intent-based networking?",
-      "options": [
-        "Manually configuring each device",
-        "Expressing business intent and having the network translate it to device configurations",
-        "Using AI to replace network engineers",
-        "A wireless technology"
-      ],
-      "correct": 1,
-      "explanation": "Intent-based networking allows admins to express what they want (intent), and the controller translates that into device-level configurations and validates compliance.",
-      "ciscoCommand": null
-    },
-    {
-      "id": "q212",
-      "domain": "6",
-      "topic": "6.2",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "How does controller-based networking differ from traditional networking?",
-      "options": [
-        "It's slower",
-        "A central controller manages the control plane; traditional uses distributed control on each device",
-        "It requires more hardware",
-        "There is no difference"
-      ],
-      "correct": 1,
-      "explanation": "In controller-based networking, the control plane is centralized on a controller (like DNA Center), while traditional networking has distributed control on each device.",
-      "ciscoCommand": null
-    },
-    {
-      "id": "q213",
-      "domain": "6",
-      "topic": "6.5",
-      "difficulty": 1,
-      "type": "multiple-choice",
-      "question": "What HTTP method is used to create a new resource in a REST API?",
-      "options": [
-        "GET",
-        "POST",
-        "PUT",
-        "DELETE"
-      ],
-      "correct": 1,
-      "explanation": "POST creates a new resource. GET retrieves, PUT updates/replaces, PATCH partially updates, and DELETE removes a resource.",
-      "ciscoCommand": null
-    },
-    {
-      "id": "q214",
-      "domain": "6",
-      "topic": "6.5",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "What does CRUD stand for in REST APIs?",
-      "options": [
-        "Create, Read, Update, Delete",
-        "Copy, Retrieve, Upload, Download",
-        "Connect, Request, Utilize, Disconnect",
-        "Cache, Route, Update, Deploy"
-      ],
-      "correct": 0,
-      "explanation": "CRUD maps to HTTP methods: Create=POST, Read=GET, Update=PUT/PATCH, Delete=DELETE.",
-      "ciscoCommand": null
-    },
-    {
-      "id": "q215",
-      "domain": "6",
-      "topic": "6.6",
-      "difficulty": 1,
-      "type": "multiple-choice",
-      "question": "Which configuration management tool uses playbooks written in YAML?",
-      "options": [
-        "Puppet",
-        "Chef",
-        "Ansible",
-        "SaltStack"
-      ],
-      "correct": 2,
-      "explanation": "Ansible uses YAML playbooks for configuration management. It is agentless (uses SSH) unlike Puppet (uses agents) and Chef (uses agents).",
-      "ciscoCommand": "show running-config"
-    },
-    {
-      "id": "q216",
-      "domain": "6",
-      "topic": "6.6",
-      "difficulty": 2,
-      "type": "multiple-choice",
-      "question": "What is the key advantage of Ansible over Puppet for network devices?",
-      "options": [
-        "Ansible is faster",
-        "Ansible is agentless \u2014 uses SSH, no software needed on managed devices",
-        "Ansible supports more vendors",
-        "Ansible is open source"
-      ],
-      "correct": 1,
-      "explanation": "Ansible is agentless, connecting via SSH. This is ideal for network devices that can't run agents. Puppet and Chef require agents installed on managed nodes.",
-      "ciscoCommand": null
-    },
-    {
-      "id": "q217",
-      "domain": "6",
-      "topic": "6.7",
-      "difficulty": 1,
-      "type": "multiple-choice",
-      "question": "In JSON, what symbol encloses an object?",
-      "options": [
-        "[ ]",
-        "( )",
-        "{ }",
-        "< >"
-      ],
-      "correct": 2,
-      "explanation": "JSON objects are enclosed in curly braces {}. Arrays use square brackets []. Keys are strings in double quotes followed by colon and value.",
-      "ciscoCommand": null
-    }
-  ]
+    "questions": [
+        {
+            "id": "q001",
+            "domain": "3",
+            "topic": "3.4",
+            "difficulty": 1,
+            "type": "multiple-choice",
+            "question": "What is the default OSPF hello interval on a broadcast network?",
+            "options": [
+                "5 seconds",
+                "10 seconds",
+                "30 seconds",
+                "40 seconds"
+            ],
+            "correct": 1,
+            "explanation": "On broadcast and point-to-point networks, OSPF sends hello packets every 10 seconds. On NBMA networks, the default is 30 seconds.",
+            "ciscoCommand": "show ip ospf interface"
+        },
+        {
+            "id": "q002",
+            "domain": "3",
+            "topic": "3.4",
+            "difficulty": 1,
+            "type": "multiple-choice",
+            "question": "What is the default OSPF dead interval on a broadcast network?",
+            "options": [
+                "10 seconds",
+                "20 seconds",
+                "30 seconds",
+                "40 seconds"
+            ],
+            "correct": 3,
+            "explanation": "The dead interval is 4 times the hello interval. With a 10-second hello, the dead interval is 40 seconds.",
+            "ciscoCommand": "show ip ospf interface"
+        },
+        {
+            "id": "q003",
+            "domain": "3",
+            "topic": "3.4",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "Which OSPF neighbor state indicates that the router has received a hello from a neighbor but the local router ID is not in the neighbor's hello?",
+            "options": [
+                "Down",
+                "Init",
+                "2-Way",
+                "ExStart"
+            ],
+            "correct": 1,
+            "explanation": "In the Init state, a hello has been received from a neighbor, but bidirectional communication has not yet been established because the local router's RID is not listed in the neighbor's hello packet.",
+            "ciscoCommand": "show ip ospf neighbor"
+        },
+        {
+            "id": "q004",
+            "domain": "3",
+            "topic": "3.4",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "In which OSPF state does DR/BDR election occur?",
+            "options": [
+                "Init",
+                "2-Way",
+                "ExStart",
+                "Exchange"
+            ],
+            "correct": 1,
+            "explanation": "DR/BDR election happens at the 2-Way state. Once all routers on a segment reach 2-Way, the election takes place before moving to ExStart.",
+            "ciscoCommand": "show ip ospf neighbor"
+        },
+        {
+            "id": "q005",
+            "domain": "3",
+            "topic": "3.4",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What is the default OSPF cost for a FastEthernet interface with the default reference bandwidth?",
+            "options": [
+                "1",
+                "10",
+                "19",
+                "100"
+            ],
+            "correct": 0,
+            "explanation": "OSPF cost = Reference BW / Interface BW. Default reference is 100 Mbps. 100/100 = 1. This is why Cisco recommends changing the reference bandwidth.",
+            "ciscoCommand": "show ip ospf interface"
+        },
+        {
+            "id": "q006",
+            "domain": "3",
+            "topic": "3.4",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "Which command changes the OSPF reference bandwidth to 1 Gbps?",
+            "options": [
+                "bandwidth 1000",
+                "auto-cost reference-bandwidth 1000",
+                "ip ospf cost 1000",
+                "ospf reference-bandwidth 1000"
+            ],
+            "correct": 1,
+            "explanation": "The auto-cost reference-bandwidth command is entered under the OSPF router process and sets the reference bandwidth in Mbps.",
+            "ciscoCommand": "auto-cost reference-bandwidth 1000"
+        },
+        {
+            "id": "q007",
+            "domain": "3",
+            "topic": "3.4",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What determines the OSPF Router ID if no router-id is manually configured and no loopback interfaces exist?",
+            "options": [
+                "The lowest IP on any active interface",
+                "The highest IP on any active interface",
+                "The first IP configured",
+                "A random 32-bit number"
+            ],
+            "correct": 1,
+            "explanation": "OSPF selects the Router ID in this order: 1) manual router-id, 2) highest loopback IP, 3) highest IP on any active physical interface.",
+            "ciscoCommand": "show ip ospf"
+        },
+        {
+            "id": "q008",
+            "domain": "3",
+            "topic": "3.4",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "Two OSPF routers on the same broadcast segment cannot form an adjacency. Both show Init state. What is the most likely cause?",
+            "options": [
+                "Mismatched hello timers",
+                "Mismatched areas",
+                "ACL blocking multicast 224.0.0.5",
+                "Mismatched MTU"
+            ],
+            "correct": 2,
+            "explanation": "If routers are stuck in Init, they can send but not receive each other's hellos. An ACL blocking OSPF multicast (224.0.0.5) on one side is a common cause. Mismatched timers would prevent even Init.",
+            "ciscoCommand": "show ip ospf interface"
+        },
+        {
+            "id": "q009",
+            "domain": "3",
+            "topic": "3.4",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "Which OSPF network type does NOT elect a DR/BDR?",
+            "options": [
+                "Broadcast",
+                "Non-broadcast",
+                "Point-to-point",
+                "NBMA"
+            ],
+            "correct": 2,
+            "explanation": "Point-to-point networks have only two routers, so there is no need for DR/BDR election. Broadcast and NBMA networks elect DR/BDR.",
+            "ciscoCommand": "show ip ospf interface"
+        },
+        {
+            "id": "q010",
+            "domain": "3",
+            "topic": "3.4",
+            "difficulty": 1,
+            "type": "multiple-choice",
+            "question": "What command enables OSPF process 1 on a router?",
+            "options": [
+                "ospf 1",
+                "router ospf 1",
+                "enable ospf 1",
+                "ip ospf 1"
+            ],
+            "correct": 1,
+            "explanation": "The router ospf <process-id> command enters OSPF configuration mode. The process ID is locally significant.",
+            "ciscoCommand": "router ospf 1"
+        },
+        {
+            "id": "q011",
+            "domain": "3",
+            "topic": "3.4",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What happens when an OSPF router with priority 0 is on a broadcast segment?",
+            "options": [
+                "It becomes DR",
+                "It becomes BDR",
+                "It cannot become DR or BDR",
+                "It is excluded from OSPF"
+            ],
+            "correct": 2,
+            "explanation": "Setting OSPF priority to 0 means the router will never become DR or BDR. It will remain a DROther.",
+            "ciscoCommand": "ip ospf priority 0"
+        },
+        {
+            "id": "q012",
+            "domain": "3",
+            "topic": "3.4",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "OSPF routers are stuck in ExStart/Exchange state. What is the most likely cause?",
+            "options": [
+                "Mismatched hello timers",
+                "Mismatched area IDs",
+                "Mismatched MTU values",
+                "Duplicate Router IDs"
+            ],
+            "correct": 2,
+            "explanation": "ExStart/Exchange stuck state is almost always caused by MTU mismatch. The routers cannot agree on DBD packet sizes during database synchronization.",
+            "ciscoCommand": "show ip ospf interface"
+        },
+        {
+            "id": "q013",
+            "domain": "3",
+            "topic": "3.4",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "Which command shows OSPF neighbor adjacencies and their states?",
+            "options": [
+                "show ip ospf",
+                "show ip route ospf",
+                "show ip ospf neighbor",
+                "show ip ospf database"
+            ],
+            "correct": 2,
+            "explanation": "show ip ospf neighbor displays all OSPF neighbors with their states, priorities, dead times, and interface information.",
+            "ciscoCommand": "show ip ospf neighbor"
+        },
+        {
+            "id": "q014",
+            "domain": "3",
+            "topic": "3.4",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What is the OSPF multicast address used by all OSPF routers?",
+            "options": [
+                "224.0.0.1",
+                "224.0.0.2",
+                "224.0.0.5",
+                "224.0.0.6"
+            ],
+            "correct": 2,
+            "explanation": "224.0.0.5 is AllSPFRouters, used by all OSPF routers. 224.0.0.6 is AllDRouters, used to communicate with DR/BDR only.",
+            "ciscoCommand": "show ip ospf interface"
+        },
+        {
+            "id": "q015",
+            "domain": "3",
+            "topic": "3.4",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "A network admin sees that two routers have the same OSPF Router ID. What will happen?",
+            "options": [
+                "They will form adjacency normally",
+                "The second router will auto-change its RID",
+                "Routing tables will be corrupted on both routers",
+                "Neighbor adjacency will fail or flap"
+            ],
+            "correct": 3,
+            "explanation": "Duplicate Router IDs prevent stable OSPF adjacency formation. The routers may form then drop the adjacency repeatedly, causing route flapping.",
+            "ciscoCommand": "show ip ospf"
+        },
+        {
+            "id": "q016",
+            "domain": "3",
+            "topic": "3.4",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "Which OSPF packet type is used to request specific LSAs from a neighbor?",
+            "options": [
+                "Hello",
+                "DBD",
+                "LSR",
+                "LSU"
+            ],
+            "correct": 2,
+            "explanation": "Link State Request (LSR) packets are sent to request specific LSAs that were seen in DBD packets but are newer than the local copy.",
+            "ciscoCommand": "show ip ospf neighbor"
+        },
+        {
+            "id": "q017",
+            "domain": "3",
+            "topic": "3.4",
+            "difficulty": 1,
+            "type": "multiple-choice",
+            "question": "How does OSPF determine the best path to a destination?",
+            "options": [
+                "Lowest hop count",
+                "Highest bandwidth",
+                "Lowest cumulative cost",
+                "Lowest administrative distance"
+            ],
+            "correct": 2,
+            "explanation": "OSPF uses cumulative cost (sum of all interface costs along the path) to determine the best route. Lower cost = better path.",
+            "ciscoCommand": "show ip route ospf"
+        },
+        {
+            "id": "q018",
+            "domain": "3",
+            "topic": "3.4",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What is the OSPF administrative distance?",
+            "options": [
+                "90",
+                "100",
+                "110",
+                "120"
+            ],
+            "correct": 2,
+            "explanation": "OSPF has a default administrative distance of 110. This is higher than EIGRP (90) but lower than RIP (120) and IS-IS (115).",
+            "ciscoCommand": "show ip route"
+        },
+        {
+            "id": "q019",
+            "domain": "3",
+            "topic": "3.4",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "Which command configures OSPF on an interface using the newer method?",
+            "options": [
+                "network 10.0.0.0 0.0.0.255 area 0",
+                "ip ospf 1 area 0",
+                "ospf enable area 0",
+                "ip ospf area 0 process 1"
+            ],
+            "correct": 1,
+            "explanation": "The ip ospf <process-id> area <area-id> command is configured directly on the interface. This is the newer, preferred method over the network command.",
+            "ciscoCommand": "ip ospf 1 area 0"
+        },
+        {
+            "id": "q020",
+            "domain": "3",
+            "topic": "3.4",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "What is the purpose of the OSPF network command wildcard mask?",
+            "options": [
+                "To define the subnet mask for the network",
+                "To match which interfaces will participate in OSPF",
+                "To set the OSPF cost on matching interfaces",
+                "To filter routes advertised by OSPF"
+            ],
+            "correct": 1,
+            "explanation": "The wildcard mask in the OSPF network command is used to match interface IP addresses. Interfaces with IPs matching the network/wildcard combination will be enabled for OSPF in the specified area.",
+            "ciscoCommand": "network 10.0.0.0 0.0.0.255 area 0"
+        },
+        {
+            "id": "q021",
+            "domain": "3",
+            "topic": "3.4",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "On which type of network does OSPF form full adjacencies with all neighbors (not just DR/BDR)?",
+            "options": [
+                "Broadcast",
+                "NBMA",
+                "Point-to-point",
+                "Virtual link"
+            ],
+            "correct": 2,
+            "explanation": "On point-to-point networks, all OSPF neighbors form full adjacencies since there are only two routers and no DR/BDR election.",
+            "ciscoCommand": "show ip ospf neighbor"
+        },
+        {
+            "id": "q022",
+            "domain": "3",
+            "topic": "3.4",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What command makes OSPF advertise a default route to other OSPF routers?",
+            "options": [
+                "ip route 0.0.0.0 0.0.0.0",
+                "default-information originate",
+                "redistribute static",
+                "network 0.0.0.0 255.255.255.255 area 0"
+            ],
+            "correct": 1,
+            "explanation": "The default-information originate command under OSPF router config advertises a default route into OSPF. The router must have a default route in its table unless you add the 'always' keyword.",
+            "ciscoCommand": "default-information originate"
+        },
+        {
+            "id": "q023",
+            "domain": "3",
+            "topic": "3.4",
+            "difficulty": 1,
+            "type": "multiple-choice",
+            "question": "What does OSPF use to uniquely identify each router in the OSPF domain?",
+            "options": [
+                "IP address",
+                "MAC address",
+                "Router ID",
+                "Hostname"
+            ],
+            "correct": 2,
+            "explanation": "The Router ID is a 32-bit value that uniquely identifies each OSPF router. It looks like an IP address but is just an identifier.",
+            "ciscoCommand": "show ip ospf"
+        },
+        {
+            "id": "q024",
+            "domain": "3",
+            "topic": "3.4",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "After changing the OSPF Router ID, what must you do for it to take effect?",
+            "options": [
+                "Nothing, it changes immediately",
+                "Reload the router or clear the OSPF process",
+                "Save the configuration",
+                "Reset the interface"
+            ],
+            "correct": 1,
+            "explanation": "Changing the router-id command does not take effect until the OSPF process is restarted with 'clear ip ospf process' or the router is reloaded.",
+            "ciscoCommand": "clear ip ospf process"
+        },
+        {
+            "id": "q025",
+            "domain": "3",
+            "topic": "3.4",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What type of LSA does an ABR generate to advertise inter-area routes?",
+            "options": [
+                "Type 1 (Router LSA)",
+                "Type 2 (Network LSA)",
+                "Type 3 (Summary LSA)",
+                "Type 5 (External LSA)"
+            ],
+            "correct": 2,
+            "explanation": "ABRs generate Type 3 Summary LSAs to advertise routes between areas. Type 1 are router LSAs, Type 2 are network LSAs from DR, and Type 5 are external from ASBRs.",
+            "ciscoCommand": "show ip ospf database"
+        },
+        {
+            "id": "q026",
+            "domain": "3",
+            "topic": "3.4",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "Which OSPF router generates Type 2 (Network) LSAs?",
+            "options": [
+                "Every router on the segment",
+                "The ABR",
+                "The DR",
+                "The ASBR"
+            ],
+            "correct": 2,
+            "explanation": "Only the Designated Router (DR) generates Type 2 Network LSAs for multi-access segments. These describe all routers connected to the segment.",
+            "ciscoCommand": "show ip ospf database"
+        },
+        {
+            "id": "q027",
+            "domain": "3",
+            "topic": "3.4",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What command sets the OSPF interface priority?",
+            "options": [
+                "ospf priority 100",
+                "ip ospf priority 100",
+                "interface priority 100",
+                "router priority 100"
+            ],
+            "correct": 1,
+            "explanation": "The ip ospf priority command is configured on the interface to influence DR/BDR election. Valid range is 0-255.",
+            "ciscoCommand": "ip ospf priority 100"
+        },
+        {
+            "id": "q028",
+            "domain": "3",
+            "topic": "3.4",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "A router running OSPF has these neighbors: R1=FULL/DR, R2=2WAY/DROTHER, R3=FULL/BDR. What role does this router have?",
+            "options": [
+                "DR",
+                "BDR",
+                "DROther",
+                "Cannot determine"
+            ],
+            "correct": 2,
+            "explanation": "DROthers form FULL adjacencies only with DR and BDR, and remain in 2-WAY with other DROthers. Since this router is FULL with DR and BDR but 2-WAY with a DROTHER, it is a DROther.",
+            "ciscoCommand": "show ip ospf neighbor"
+        },
+        {
+            "id": "q029",
+            "domain": "3",
+            "topic": "3.4",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "Which OSPF state means the LSDB is fully synchronized between neighbors?",
+            "options": [
+                "Loading",
+                "Full",
+                "Exchange",
+                "2-Way"
+            ],
+            "correct": 1,
+            "explanation": "The Full state indicates complete LSDB synchronization between OSPF neighbors. This is the final state of a successful adjacency.",
+            "ciscoCommand": "show ip ospf neighbor"
+        },
+        {
+            "id": "q030",
+            "domain": "3",
+            "topic": "3.4",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What happens if OSPF hello and dead timers don't match between neighbors?",
+            "options": [
+                "Adjacency forms but routes are not exchanged",
+                "Adjacency forms with the lower timer",
+                "Adjacency will not form",
+                "The router with higher timers becomes DR"
+            ],
+            "correct": 2,
+            "explanation": "Mismatched hello and dead timers prevent OSPF adjacency formation. Both sides must agree on these timers for the neighbor relationship to establish.",
+            "ciscoCommand": "show ip ospf interface"
+        },
+        {
+            "id": "q031",
+            "domain": "3",
+            "topic": "3.5",
+            "difficulty": 1,
+            "type": "multiple-choice",
+            "question": "What is the purpose of HSRP?",
+            "options": [
+                "Load balancing across links",
+                "Encrypting router traffic",
+                "Providing gateway redundancy",
+                "Routing between VLANs"
+            ],
+            "correct": 2,
+            "explanation": "HSRP (Hot Standby Router Protocol) provides first-hop gateway redundancy by allowing multiple routers to share a virtual IP and MAC address.",
+            "ciscoCommand": "show standby"
+        },
+        {
+            "id": "q032",
+            "domain": "3",
+            "topic": "3.5",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What is the default HSRP priority?",
+            "options": [
+                "50",
+                "100",
+                "110",
+                "255"
+            ],
+            "correct": 1,
+            "explanation": "The default HSRP priority is 100. The router with the highest priority becomes the Active router. Ties are broken by highest IP address.",
+            "ciscoCommand": "show standby"
+        },
+        {
+            "id": "q033",
+            "domain": "3",
+            "topic": "3.5",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "In HSRP, what does the preempt command do?",
+            "options": [
+                "Forces the router to become active immediately",
+                "Allows a higher-priority router to take over as Active",
+                "Prevents the standby router from becoming active",
+                "Resets the HSRP group"
+            ],
+            "correct": 1,
+            "explanation": "Preempt allows a router with a higher priority to take over the Active role from the current Active router. Without preempt, the current Active keeps its role even if a higher-priority router joins.",
+            "ciscoCommand": "standby 1 preempt"
+        },
+        {
+            "id": "q034",
+            "domain": "3",
+            "topic": "3.5",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What virtual MAC address does HSRP version 1 use for group 1?",
+            "options": [
+                "0000.0c07.ac01",
+                "0000.0c9f.f001",
+                "0000.5e00.0101",
+                "0005.73a0.0001"
+            ],
+            "correct": 0,
+            "explanation": "HSRP v1 uses the MAC format 0000.0c07.acXX where XX is the group number in hex. Group 1 = 0000.0c07.ac01.",
+            "ciscoCommand": "show standby"
+        },
+        {
+            "id": "q035",
+            "domain": "3",
+            "topic": "3.5",
+            "difficulty": 1,
+            "type": "multiple-choice",
+            "question": "Which protocol is Cisco proprietary for first hop redundancy?",
+            "options": [
+                "VRRP",
+                "HSRP",
+                "GLBP",
+                "STP"
+            ],
+            "correct": 1,
+            "explanation": "HSRP is Cisco proprietary. VRRP is the open standard equivalent. GLBP is also Cisco but adds load balancing.",
+            "ciscoCommand": "show standby"
+        },
+        {
+            "id": "q036",
+            "domain": "3",
+            "topic": "3.5",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What HSRP state is the router in when it is actively forwarding traffic for the virtual IP?",
+            "options": [
+                "Listen",
+                "Standby",
+                "Active",
+                "Init"
+            ],
+            "correct": 2,
+            "explanation": "The Active router is responsible for forwarding traffic sent to the virtual IP address. The Standby router is the backup ready to take over.",
+            "ciscoCommand": "show standby"
+        },
+        {
+            "id": "q037",
+            "domain": "3",
+            "topic": "3.5",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "How do you configure HSRP on an interface?",
+            "options": [
+                "hsrp 1 ip 10.0.0.1",
+                "standby 1 ip 10.0.0.1",
+                "vrrp 1 ip 10.0.0.1",
+                "redundancy 1 ip 10.0.0.1"
+            ],
+            "correct": 1,
+            "explanation": "HSRP is configured with the 'standby' command on the interface, specifying the group number and virtual IP address.",
+            "ciscoCommand": "standby 1 ip 10.0.0.1"
+        },
+        {
+            "id": "q038",
+            "domain": "3",
+            "topic": "3.5",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "A network has two HSRP routers. R1 has priority 110 with preempt. R2 has priority 100 and is currently Active. What happens when R1 comes online?",
+            "options": [
+                "R1 stays in Standby state",
+                "R2 remains Active, R1 becomes Standby",
+                "R1 becomes Active, R2 becomes Standby",
+                "Both become Active temporarily"
+            ],
+            "correct": 2,
+            "explanation": "Because R1 has a higher priority (110) AND preempt is configured, R1 will take over the Active role from R2 when it comes online.",
+            "ciscoCommand": "show standby"
+        },
+        {
+            "id": "q039",
+            "domain": "3",
+            "topic": "3.5",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What is the default hello interval for HSRP?",
+            "options": [
+                "1 second",
+                "3 seconds",
+                "5 seconds",
+                "10 seconds"
+            ],
+            "correct": 1,
+            "explanation": "HSRP sends hello packets every 3 seconds by default. The hold timer is 10 seconds (roughly 3x the hello).",
+            "ciscoCommand": "show standby"
+        },
+        {
+            "id": "q040",
+            "domain": "3",
+            "topic": "3.5",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What key difference does GLBP have over HSRP?",
+            "options": [
+                "GLBP supports IPv6",
+                "GLBP provides load balancing across multiple routers",
+                "GLBP is an open standard",
+                "GLBP uses lower CPU resources"
+            ],
+            "correct": 1,
+            "explanation": "GLBP (Gateway Load Balancing Protocol) distributes traffic across multiple routers using multiple virtual MAC addresses, providing both redundancy and load balancing.",
+            "ciscoCommand": "show glbp"
+        },
+        {
+            "id": "q041",
+            "domain": "3",
+            "topic": "3.3",
+            "difficulty": 1,
+            "type": "multiple-choice",
+            "question": "What is the command to configure a default static route?",
+            "options": [
+                "ip route 0.0.0.0 0.0.0.0 10.0.0.1",
+                "ip route default 10.0.0.1",
+                "ip default-route 10.0.0.1",
+                "route 0.0.0.0 0.0.0.0 10.0.0.1"
+            ],
+            "correct": 0,
+            "explanation": "A default static route uses 0.0.0.0 0.0.0.0 as the destination and mask, pointing to the next-hop IP. This matches all destinations not in the routing table.",
+            "ciscoCommand": "ip route 0.0.0.0 0.0.0.0 10.0.0.1"
+        },
+        {
+            "id": "q042",
+            "domain": "3",
+            "topic": "3.3",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What is a floating static route?",
+            "options": [
+                "A route that uses DHCP for next-hop",
+                "A backup static route with a higher AD than the primary route",
+                "A route that automatically adjusts its metric",
+                "A route to a loopback interface"
+            ],
+            "correct": 1,
+            "explanation": "A floating static route has a manually set administrative distance higher than the primary routing protocol. It only appears in the routing table when the primary route fails.",
+            "ciscoCommand": "ip route 10.0.0.0 255.255.255.0 10.1.1.1 210"
+        },
+        {
+            "id": "q043",
+            "domain": "3",
+            "topic": "3.3",
+            "difficulty": 1,
+            "type": "multiple-choice",
+            "question": "What is the administrative distance of a static route by default?",
+            "options": [
+                "0",
+                "1",
+                "5",
+                "20"
+            ],
+            "correct": 1,
+            "explanation": "Static routes have a default AD of 1 (0 is for directly connected networks). This makes static routes preferred over any dynamic routing protocol.",
+            "ciscoCommand": "show ip route"
+        },
+        {
+            "id": "q044",
+            "domain": "3",
+            "topic": "3.3",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "Which command creates a static route to network 192.168.10.0/24 via next-hop 10.0.0.2?",
+            "options": [
+                "ip route 192.168.10.0 255.255.255.0 10.0.0.2",
+                "ip route 192.168.10.0/24 10.0.0.2",
+                "route add 192.168.10.0 mask 255.255.255.0 10.0.0.2",
+                "ip static-route 192.168.10.0 10.0.0.2"
+            ],
+            "correct": 0,
+            "explanation": "The ip route command uses the format: ip route <network> <mask> <next-hop-ip>. CIDR notation is not used in Cisco IOS static routes.",
+            "ciscoCommand": "ip route 192.168.10.0 255.255.255.0 10.0.0.2"
+        },
+        {
+            "id": "q045",
+            "domain": "3",
+            "topic": "3.3",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What type of static route specifies the exit interface instead of a next-hop IP?",
+            "options": [
+                "Recursive static route",
+                "Directly attached static route",
+                "Floating static route",
+                "Default static route"
+            ],
+            "correct": 1,
+            "explanation": "A directly attached (or directly connected) static route specifies the exit interface. The router ARPs for the destination on that interface.",
+            "ciscoCommand": "ip route 10.0.0.0 255.0.0.0 GigabitEthernet0/0"
+        },
+        {
+            "id": "q046",
+            "domain": "3",
+            "topic": "3.3",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What is a host route?",
+            "options": [
+                "A route to a single IP address with /32 mask",
+                "A route learned from the host",
+                "A route to the default gateway",
+                "A route to a directly connected network"
+            ],
+            "correct": 0,
+            "explanation": "A host route has a /32 subnet mask (255.255.255.255), matching exactly one IP address. It's used when you need to route traffic to a specific host.",
+            "ciscoCommand": "ip route 10.0.0.5 255.255.255.255 10.1.1.1"
+        },
+        {
+            "id": "q047",
+            "domain": "3",
+            "topic": "3.3",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What is the IPv6 static route command for a default route via next-hop 2001:db8::1?",
+            "options": [
+                "ipv6 route 0::0/0 2001:db8::1",
+                "ipv6 route ::/0 2001:db8::1",
+                "ipv6 route default 2001:db8::1",
+                "ip route ::/0 2001:db8::1"
+            ],
+            "correct": 1,
+            "explanation": "The IPv6 default route uses ::/0 as the destination prefix. The command starts with 'ipv6 route' not 'ip route'.",
+            "ciscoCommand": "ipv6 route ::/0 2001:db8::1"
+        },
+        {
+            "id": "q048",
+            "domain": "3",
+            "topic": "3.3",
+            "difficulty": 1,
+            "type": "multiple-choice",
+            "question": "What does 'S*' mean in the routing table output?",
+            "options": [
+                "Static route to a subnet",
+                "OSPF summary route",
+                "Static default route (candidate default)",
+                "Static floating route"
+            ],
+            "correct": 2,
+            "explanation": "In show ip route, S* indicates a static candidate default route. The asterisk means it is a candidate for the gateway of last resort.",
+            "ciscoCommand": "show ip route"
+        },
+        {
+            "id": "q049",
+            "domain": "3",
+            "topic": "3.3",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "A router has both a static route (AD 1) and an OSPF route (AD 110) to the same network. Which is used?",
+            "options": [
+                "OSPF route",
+                "Static route",
+                "Both are used for load balancing",
+                "The route with the lowest metric"
+            ],
+            "correct": 1,
+            "explanation": "The route with the lowest Administrative Distance is preferred. Static (AD 1) beats OSPF (AD 110), so the static route is installed in the routing table.",
+            "ciscoCommand": "show ip route"
+        },
+        {
+            "id": "q050",
+            "domain": "3",
+            "topic": "3.3",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "How do you configure a floating static route as backup to OSPF?",
+            "options": [
+                "ip route 10.0.0.0 255.0.0.0 10.1.1.1 111",
+                "ip route 10.0.0.0 255.0.0.0 10.1.1.1 floating",
+                "ip route 10.0.0.0 255.0.0.0 10.1.1.1 backup",
+                "ip route 10.0.0.0 255.0.0.0 10.1.1.1 ospf-backup"
+            ],
+            "correct": 0,
+            "explanation": "Set the AD higher than OSPF (110), like 111, at the end of the ip route command. The static route only enters the table if the OSPF route disappears.",
+            "ciscoCommand": "ip route 10.0.0.0 255.0.0.0 10.1.1.1 111"
+        },
+        {
+            "id": "q051",
+            "domain": "3",
+            "topic": "3.3",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What command verifies that a static route is in the routing table?",
+            "options": [
+                "show ip static",
+                "show ip route static",
+                "show running-config | include ip route",
+                "Both B and C"
+            ],
+            "correct": 3,
+            "explanation": "show ip route static filters the routing table to show only static routes. show running-config | include ip route shows configured static routes. Both are useful verification methods.",
+            "ciscoCommand": "show ip route static"
+        },
+        {
+            "id": "q052",
+            "domain": "3",
+            "topic": "3.3",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What is the next-hop type called when you specify both exit interface and next-hop IP?",
+            "options": [
+                "Recursive",
+                "Directly attached",
+                "Fully specified",
+                "Floating"
+            ],
+            "correct": 2,
+            "explanation": "A fully specified static route includes both the exit interface and the next-hop IP address, which is the most explicit and recommended form.",
+            "ciscoCommand": "ip route 10.0.0.0 255.0.0.0 Gi0/0 10.1.1.1"
+        },
+        {
+            "id": "q053",
+            "domain": "3",
+            "topic": "3.1",
+            "difficulty": 1,
+            "type": "multiple-choice",
+            "question": "What does 'O' represent in the routing table?",
+            "options": [
+                "OSPF",
+                "EIGRP",
+                "Static",
+                "Connected"
+            ],
+            "correct": 0,
+            "explanation": "In the routing table, O indicates an OSPF-learned route. C=Connected, S=Static, D=EIGRP, R=RIP, B=BGP.",
+            "ciscoCommand": "show ip route"
+        },
+        {
+            "id": "q054",
+            "domain": "3",
+            "topic": "3.1",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What does 'via' mean in a routing table entry?",
+            "options": [
+                "The route is verified",
+                "The next-hop IP address to reach the destination",
+                "The interface VLAN ID",
+                "The route metric value"
+            ],
+            "correct": 1,
+            "explanation": "The 'via' field in a routing table entry indicates the next-hop IP address that packets should be forwarded to reach the destination network.",
+            "ciscoCommand": "show ip route"
+        },
+        {
+            "id": "q055",
+            "domain": "3",
+            "topic": "3.1",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What is the gateway of last resort?",
+            "options": [
+                "The primary default gateway",
+                "The route used when no other route matches",
+                "The backup HSRP router",
+                "The DNS server"
+            ],
+            "correct": 1,
+            "explanation": "The gateway of last resort is the default route (0.0.0.0/0). It is used when no more specific route matches the destination IP address.",
+            "ciscoCommand": "show ip route"
+        },
+        {
+            "id": "q056",
+            "domain": "3",
+            "topic": "3.2",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "If a router has routes for 10.0.0.0/8, 10.1.0.0/16, and 10.1.1.0/24, which is used for a packet to 10.1.1.50?",
+            "options": [
+                "10.0.0.0/8",
+                "10.1.0.0/16",
+                "10.1.1.0/24",
+                "All three are used"
+            ],
+            "correct": 2,
+            "explanation": "Longest prefix match: the router selects the route with the most specific (longest) matching prefix. /24 is more specific than /16 or /8 for 10.1.1.50.",
+            "ciscoCommand": "show ip route 10.1.1.50"
+        },
+        {
+            "id": "q057",
+            "domain": "3",
+            "topic": "3.2",
+            "difficulty": 1,
+            "type": "multiple-choice",
+            "question": "What is the longest prefix match rule?",
+            "options": [
+                "The route with the longest network prefix wins",
+                "The route with the lowest metric wins",
+                "The route with the lowest AD wins",
+                "The oldest route wins"
+            ],
+            "correct": 0,
+            "explanation": "Longest prefix match is the primary rule routers use for forwarding decisions. The most specific route (longest matching prefix) is always selected first, before AD or metric.",
+            "ciscoCommand": "show ip route"
+        },
+        {
+            "id": "q058",
+            "domain": "3",
+            "topic": "3.2",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "A router has a static route (AD 1) to 10.0.0.0/8 and an OSPF route to 10.0.0.0/16. A packet arrives for 10.0.0.5. Which route is used?",
+            "options": [
+                "Static route (lower AD)",
+                "OSPF route (longer prefix)",
+                "Both equally",
+                "Neither, packet is dropped"
+            ],
+            "correct": 1,
+            "explanation": "Longest prefix match takes priority over Administrative Distance. The /16 OSPF route is more specific than the /8 static route for 10.0.0.5.",
+            "ciscoCommand": "show ip route 10.0.0.5"
+        },
+        {
+            "id": "q059",
+            "domain": "3",
+            "topic": "3.1",
+            "difficulty": 1,
+            "type": "multiple-choice",
+            "question": "What does [110/20] mean next to a route in 'show ip route'?",
+            "options": [
+                "Interface number/VLAN ID",
+                "Administrative distance/Metric",
+                "Cost/Bandwidth",
+                "Priority/Weight"
+            ],
+            "correct": 1,
+            "explanation": "The first number in brackets is the Administrative Distance and the second is the metric (cost). [110/20] means AD 110 (OSPF) with a metric of 20.",
+            "ciscoCommand": "show ip route"
+        },
+        {
+            "id": "q060",
+            "domain": "2",
+            "topic": "2.5",
+            "difficulty": 1,
+            "type": "multiple-choice",
+            "question": "What is the primary purpose of Spanning Tree Protocol?",
+            "options": [
+                "Load balancing",
+                "Loop prevention",
+                "VLAN segmentation",
+                "QoS enforcement"
+            ],
+            "correct": 0,
+            "explanation": "STP prevents Layer 2 loops in networks with redundant paths by blocking some ports while keeping others forwarding.",
+            "ciscoCommand": "show spanning-tree"
+        },
+        {
+            "id": "q061",
+            "domain": "2",
+            "topic": "2.5",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What value determines which switch becomes the root bridge?",
+            "options": [
+                "Highest MAC address",
+                "Lowest Bridge ID",
+                "Highest priority",
+                "Most ports"
+            ],
+            "correct": 1,
+            "explanation": "The switch with the lowest Bridge ID (Priority + MAC) becomes the root bridge. Default priority is 32768.",
+            "ciscoCommand": "show spanning-tree"
+        },
+        {
+            "id": "q062",
+            "domain": "2",
+            "topic": "2.5",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What is the default STP bridge priority?",
+            "options": [
+                "4096",
+                "8192",
+                "32768",
+                "65535"
+            ],
+            "correct": 2,
+            "explanation": "The default bridge priority is 32768. Priority must be set in increments of 4096 and ranges from 0 to 61440.",
+            "ciscoCommand": "show spanning-tree"
+        },
+        {
+            "id": "q063",
+            "domain": "2",
+            "topic": "2.5",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "How long does STP convergence take with default timers?",
+            "options": [
+                "2 seconds",
+                "15 seconds",
+                "30-50 seconds",
+                "120 seconds"
+            ],
+            "correct": 2,
+            "explanation": "STP convergence takes 30-50 seconds: Max Age (20s) + Listening (15s) + Learning (15s). This is why RSTP was developed.",
+            "ciscoCommand": "show spanning-tree"
+        },
+        {
+            "id": "q064",
+            "domain": "2",
+            "topic": "2.5",
+            "difficulty": 1,
+            "type": "multiple-choice",
+            "question": "What are the STP port states in order?",
+            "options": [
+                "Blocking, Listening, Learning, Forwarding",
+                "Disabled, Blocking, Learning, Forwarding",
+                "Blocking, Learning, Forwarding",
+                "Init, Learning, Ready, Active"
+            ],
+            "correct": 0,
+            "explanation": "STP ports transition: Blocking \u2192 Listening (15s) \u2192 Learning (15s) \u2192 Forwarding. Listening sends/receives BPDUs, Learning adds MACs.",
+            "ciscoCommand": "show spanning-tree"
+        },
+        {
+            "id": "q065",
+            "domain": "2",
+            "topic": "2.5",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What does PortFast do?",
+            "options": [
+                "Blocks all BPDUs",
+                "Immediately transitions a port to Forwarding",
+                "Increases STP priority",
+                "Enables RSTP on a port"
+            ],
+            "correct": 1,
+            "explanation": "PortFast skips the Listening and Learning states, transitioning directly to Forwarding. Only use on access ports connected to end devices.",
+            "ciscoCommand": "spanning-tree portfast"
+        },
+        {
+            "id": "q066",
+            "domain": "2",
+            "topic": "2.5",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What happens when a PortFast-enabled port with BPDU Guard receives a BPDU?",
+            "options": [
+                "The port ignores the BPDU",
+                "The port goes to blocking state",
+                "The port is put in err-disabled state",
+                "The switch reboots"
+            ],
+            "correct": 2,
+            "explanation": "BPDU Guard places the port in err-disabled state when a BPDU is received, preventing potential loops from unauthorized switches.",
+            "ciscoCommand": "spanning-tree bpduguard enable"
+        },
+        {
+            "id": "q067",
+            "domain": "2",
+            "topic": "2.5",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What is a root port?",
+            "options": [
+                "The port on the root bridge that connects to other switches",
+                "The port on a non-root switch with the best path to the root bridge",
+                "The first port configured on a switch",
+                "Any port in forwarding state"
+            ],
+            "correct": 1,
+            "explanation": "Each non-root switch has exactly one root port \u2014 the port with the lowest cost path to the root bridge.",
+            "ciscoCommand": "show spanning-tree"
+        },
+        {
+            "id": "q068",
+            "domain": "2",
+            "topic": "2.5",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What is a designated port?",
+            "options": [
+                "The port that connects to the root bridge",
+                "The port on a segment that forwards traffic toward the root",
+                "The management port",
+                "The port with the highest priority"
+            ],
+            "correct": 1,
+            "explanation": "Each segment has one designated port \u2014 the port with the best path back to root on that segment. All root bridge ports are designated.",
+            "ciscoCommand": "show spanning-tree"
+        },
+        {
+            "id": "q069",
+            "domain": "2",
+            "topic": "2.5",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "Switch A (priority 32768, MAC 0000.0000.000A) and Switch B (priority 32768, MAC 0000.0000.000B) are connected. Which is root?",
+            "options": [
+                "Switch A",
+                "Switch B",
+                "Both are root",
+                "Neither is root"
+            ],
+            "correct": 0,
+            "explanation": "With equal priorities, the switch with the lowest MAC address becomes root. 000A < 000B, so Switch A wins.",
+            "ciscoCommand": "show spanning-tree"
+        },
+        {
+            "id": "q070",
+            "domain": "2",
+            "topic": "2.5",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "Which RSTP port state replaces Blocking, Listening, and Disabled?",
+            "options": [
+                "Down",
+                "Inactive",
+                "Discarding",
+                "Standby"
+            ],
+            "correct": 2,
+            "explanation": "RSTP consolidates Blocking, Listening, and Disabled into a single Discarding state. RSTP has only 3 states: Discarding, Learning, Forwarding.",
+            "ciscoCommand": "show spanning-tree"
+        },
+        {
+            "id": "q071",
+            "domain": "2",
+            "topic": "2.5",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What is the STP path cost for a Gigabit Ethernet link?",
+            "options": [
+                "2",
+                "4",
+                "19",
+                "100"
+            ],
+            "correct": 1,
+            "explanation": "The IEEE revised STP costs: 10G=2, 1G=4, 100M=19, 10M=100. These were updated from the original short values.",
+            "ciscoCommand": "show spanning-tree"
+        },
+        {
+            "id": "q072",
+            "domain": "2",
+            "topic": "2.5",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What command makes a switch become the root bridge?",
+            "options": [
+                "spanning-tree root primary",
+                "spanning-tree vlan 1 root primary",
+                "spanning-tree priority 0",
+                "set spanning-tree root"
+            ],
+            "correct": 1,
+            "explanation": "spanning-tree vlan <id> root primary sets the priority to a value low enough to guarantee root bridge election (usually 24576 or lower).",
+            "ciscoCommand": "spanning-tree vlan 1 root primary"
+        },
+        {
+            "id": "q073",
+            "domain": "2",
+            "topic": "2.5",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What type of port does RSTP add that STP does not have?",
+            "options": [
+                "Root port",
+                "Alternate port",
+                "Designated port",
+                "Forwarding port"
+            ],
+            "correct": 1,
+            "explanation": "RSTP adds Alternate and Backup port roles. An Alternate port provides an alternative path to root (replaces blocking behavior) for faster failover.",
+            "ciscoCommand": "show spanning-tree"
+        },
+        {
+            "id": "q074",
+            "domain": "2",
+            "topic": "2.5",
+            "difficulty": 1,
+            "type": "multiple-choice",
+            "question": "What Cisco STP mode implements RSTP per VLAN?",
+            "options": [
+                "STP",
+                "RSTP",
+                "PVST+",
+                "Rapid PVST+"
+            ],
+            "correct": 3,
+            "explanation": "Rapid PVST+ is Cisco's per-VLAN implementation of RSTP, combining the fast convergence of RSTP with per-VLAN spanning tree instances.",
+            "ciscoCommand": "spanning-tree mode rapid-pvst"
+        },
+        {
+            "id": "q075",
+            "domain": "2",
+            "topic": "2.5",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What is the STP hello timer interval?",
+            "options": [
+                "1 second",
+                "2 seconds",
+                "5 seconds",
+                "10 seconds"
+            ],
+            "correct": 1,
+            "explanation": "The root bridge sends BPDUs every 2 seconds (hello timer). Non-root switches relay these BPDUs.",
+            "ciscoCommand": "show spanning-tree"
+        },
+        {
+            "id": "q076",
+            "domain": "2",
+            "topic": "2.5",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "A port is in err-disabled state due to BPDU Guard. How do you recover it?",
+            "options": [
+                "Reload the switch",
+                "Shut/no shut the interface",
+                "It recovers automatically after 5 minutes",
+                "Delete the spanning-tree config"
+            ],
+            "correct": 1,
+            "explanation": "To recover a BPDU Guard err-disabled port, you must manually shut and no shut the interface. You can also enable automatic recovery with errdisable recovery cause bpduguard.",
+            "ciscoCommand": "errdisable recovery cause bpduguard"
+        },
+        {
+            "id": "q077",
+            "domain": "2",
+            "topic": "2.5",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "In RSTP, what mechanism allows rapid transition to forwarding on point-to-point links?",
+            "options": [
+                "PortFast",
+                "Proposal/Agreement",
+                "BPDU Guard",
+                "UplinkFast"
+            ],
+            "correct": 1,
+            "explanation": "RSTP uses the Proposal/Agreement mechanism on point-to-point links to rapidly transition ports to forwarding without waiting for timers.",
+            "ciscoCommand": "show spanning-tree"
+        },
+        {
+            "id": "q078",
+            "domain": "2",
+            "topic": "2.4",
+            "difficulty": 1,
+            "type": "multiple-choice",
+            "question": "What is the purpose of EtherChannel?",
+            "options": [
+                "VLAN trunking",
+                "Bundling multiple physical links into one logical link",
+                "Spanning tree optimization",
+                "QoS marking"
+            ],
+            "correct": 1,
+            "explanation": "EtherChannel bundles multiple physical links into a single logical link, providing increased bandwidth and redundancy without STP blocking.",
+            "ciscoCommand": "show etherchannel summary"
+        },
+        {
+            "id": "q079",
+            "domain": "2",
+            "topic": "2.4",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "Which EtherChannel protocol is an IEEE standard?",
+            "options": [
+                "PAgP",
+                "LACP",
+                "CDP",
+                "DTP"
+            ],
+            "correct": 1,
+            "explanation": "LACP (Link Aggregation Control Protocol) is the IEEE 802.3ad standard. PAgP is Cisco proprietary.",
+            "ciscoCommand": "show etherchannel summary"
+        },
+        {
+            "id": "q080",
+            "domain": "2",
+            "topic": "2.4",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What LACP mode actively tries to form an EtherChannel?",
+            "options": [
+                "On",
+                "Active",
+                "Passive",
+                "Desirable"
+            ],
+            "correct": 1,
+            "explanation": "LACP active mode actively sends LACP packets to negotiate an EtherChannel. Passive mode only responds. At least one side must be active.",
+            "ciscoCommand": "channel-group 1 mode active"
+        },
+        {
+            "id": "q081",
+            "domain": "2",
+            "topic": "2.4",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "Which LACP mode combinations will form an EtherChannel?",
+            "options": [
+                "Active-Active and Active-Passive",
+                "Active-Passive only",
+                "Passive-Passive and Active-Passive",
+                "Active-Active only"
+            ],
+            "correct": 0,
+            "explanation": "LACP requires at least one side to be Active. Active-Active and Active-Passive both form EtherChannels. Passive-Passive will not.",
+            "ciscoCommand": "show etherchannel summary"
+        },
+        {
+            "id": "q082",
+            "domain": "2",
+            "topic": "2.4",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What command assigns an interface to EtherChannel group 1 using LACP active mode?",
+            "options": [
+                "etherchannel 1 lacp active",
+                "channel-group 1 mode active",
+                "lacp channel-group 1",
+                "interface port-channel 1"
+            ],
+            "correct": 1,
+            "explanation": "channel-group <number> mode active is the correct command to add an interface to an EtherChannel using LACP active negotiation.",
+            "ciscoCommand": "channel-group 1 mode active"
+        },
+        {
+            "id": "q083",
+            "domain": "2",
+            "topic": "2.4",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What must match for EtherChannel to form?",
+            "options": [
+                "Speed, duplex, VLAN, and trunk settings",
+                "Only speed and duplex",
+                "Only VLAN configuration",
+                "Only the protocol (LACP/PAgP)"
+            ],
+            "correct": 0,
+            "explanation": "All member interfaces must have matching speed, duplex, VLAN assignments, trunking mode, and allowed VLANs for EtherChannel to form.",
+            "ciscoCommand": "show etherchannel summary"
+        },
+        {
+            "id": "q084",
+            "domain": "2",
+            "topic": "2.4",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "An EtherChannel shows (SD) flags in show etherchannel summary. What does this mean?",
+            "options": [
+                "Layer 2 EtherChannel, down",
+                "Spanning-tree designated",
+                "Suspended and down",
+                "Send/receive disabled"
+            ],
+            "correct": 0,
+            "explanation": "S=Layer 2 (switched), D=Down. The EtherChannel has been created but is not functioning. Check for mismatched parameters between member interfaces.",
+            "ciscoCommand": "show etherchannel summary"
+        },
+        {
+            "id": "q085",
+            "domain": "2",
+            "topic": "2.4",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "How many physical interfaces can be bundled into a single EtherChannel?",
+            "options": [
+                "2",
+                "4",
+                "8",
+                "16"
+            ],
+            "correct": 2,
+            "explanation": "Up to 8 active interfaces can be bundled. With LACP, you can configure up to 16 (8 active + 8 standby/hot-standby).",
+            "ciscoCommand": "show etherchannel summary"
+        },
+        {
+            "id": "q086",
+            "domain": "2",
+            "topic": "2.4",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What command shows the status of all EtherChannel bundles?",
+            "options": [
+                "show port-channel",
+                "show etherchannel summary",
+                "show channel-group",
+                "show lacp status"
+            ],
+            "correct": 1,
+            "explanation": "show etherchannel summary provides a concise overview of all EtherChannel bundles, their status, protocol, and member ports.",
+            "ciscoCommand": "show etherchannel summary"
+        },
+        {
+            "id": "q087",
+            "domain": "2",
+            "topic": "2.4",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What is the 'on' mode for EtherChannel?",
+            "options": [
+                "Force EtherChannel without negotiation protocol",
+                "Enable LACP",
+                "Enable PAgP",
+                "Default mode"
+            ],
+            "correct": 0,
+            "explanation": "The 'on' mode forces EtherChannel without LACP or PAgP negotiation. Both sides must be set to 'on'. No protocol packets are exchanged.",
+            "ciscoCommand": "channel-group 1 mode on"
+        },
+        {
+            "id": "q088",
+            "domain": "2",
+            "topic": "2.2",
+            "difficulty": 1,
+            "type": "multiple-choice",
+            "question": "What is the default native VLAN on a Cisco trunk?",
+            "options": [
+                "VLAN 0",
+                "VLAN 1",
+                "VLAN 100",
+                "VLAN 1000"
+            ],
+            "correct": 1,
+            "explanation": "VLAN 1 is the default native VLAN. Frames from the native VLAN are sent untagged on 802.1Q trunks.",
+            "ciscoCommand": "show interfaces trunk"
+        },
+        {
+            "id": "q089",
+            "domain": "2",
+            "topic": "2.2",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What is the purpose of a trunk port?",
+            "options": [
+                "Connect end-user devices",
+                "Carry traffic from multiple VLANs between switches",
+                "Provide PoE power",
+                "Monitor network traffic"
+            ],
+            "correct": 1,
+            "explanation": "Trunk ports carry traffic for multiple VLANs between switches using 802.1Q tagging. Each frame is tagged with its VLAN ID except native VLAN.",
+            "ciscoCommand": "show interfaces trunk"
+        },
+        {
+            "id": "q090",
+            "domain": "2",
+            "topic": "2.2",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What command configures a port as a trunk?",
+            "options": [
+                "switchport mode trunk",
+                "switchport trunk enable",
+                "trunk mode on",
+                "interface trunk"
+            ],
+            "correct": 0,
+            "explanation": "switchport mode trunk forces the interface into trunk mode. On some switches, you may also need switchport trunk encapsulation dot1q first.",
+            "ciscoCommand": "switchport mode trunk"
+        },
+        {
+            "id": "q091",
+            "domain": "2",
+            "topic": "2.2",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "How do you change the native VLAN on a trunk to VLAN 99?",
+            "options": [
+                "native vlan 99",
+                "switchport trunk native vlan 99",
+                "vlan 99 native",
+                "switchport native 99"
+            ],
+            "correct": 1,
+            "explanation": "switchport trunk native vlan <id> changes the native VLAN on a trunk port. Best practice is to use an unused VLAN.",
+            "ciscoCommand": "switchport trunk native vlan 99"
+        },
+        {
+            "id": "q092",
+            "domain": "2",
+            "topic": "2.2",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What command limits trunk traffic to VLANs 10, 20, and 30?",
+            "options": [
+                "switchport trunk vlan 10,20,30",
+                "switchport trunk allowed vlan 10,20,30",
+                "vlan allowed 10,20,30",
+                "switchport filter vlan 10,20,30"
+            ],
+            "correct": 1,
+            "explanation": "switchport trunk allowed vlan defines which VLANs can traverse the trunk. Only specified VLANs will have their traffic carried.",
+            "ciscoCommand": "switchport trunk allowed vlan 10,20,30"
+        },
+        {
+            "id": "q093",
+            "domain": "2",
+            "topic": "2.2",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What is DTP?",
+            "options": [
+                "Dynamic Trunk Protocol \u2014 negotiates trunk formation",
+                "Data Transfer Protocol",
+                "Dynamic Tagging Protocol",
+                "Default Trunk Policy"
+            ],
+            "correct": 0,
+            "explanation": "DTP (Dynamic Trunking Protocol) automatically negotiates whether a link becomes a trunk. Best practice is to disable it with switchport nonegotiate.",
+            "ciscoCommand": "switchport nonegotiate"
+        },
+        {
+            "id": "q094",
+            "domain": "2",
+            "topic": "2.2",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "Which DTP mode combinations form a trunk?",
+            "options": [
+                "Desirable-Desirable and Desirable-Auto",
+                "Auto-Auto only",
+                "Trunk-Access",
+                "Desirable-Desirable only"
+            ],
+            "correct": 0,
+            "explanation": "Desirable-Desirable and Desirable-Auto both form trunks. Auto-Auto does NOT form a trunk \u2014 neither side actively negotiates.",
+            "ciscoCommand": "show dtp interface"
+        },
+        {
+            "id": "q095",
+            "domain": "2",
+            "topic": "2.2",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What happens if the native VLAN is mismatched on a trunk?",
+            "options": [
+                "The trunk goes down",
+                "Frames may be forwarded to the wrong VLAN",
+                "Only tagged VLANs are affected",
+                "Nothing, it self-corrects"
+            ],
+            "correct": 1,
+            "explanation": "Native VLAN mismatch causes untagged frames to be placed in different VLANs on each end, creating a potential security risk (VLAN hopping).",
+            "ciscoCommand": "show interfaces trunk"
+        },
+        {
+            "id": "q096",
+            "domain": "2",
+            "topic": "2.2",
+            "difficulty": 1,
+            "type": "multiple-choice",
+            "question": "What is the 802.1Q tag size?",
+            "options": [
+                "2 bytes",
+                "4 bytes",
+                "8 bytes",
+                "12 bytes"
+            ],
+            "correct": 1,
+            "explanation": "The 802.1Q tag is 4 bytes inserted into the Ethernet frame: 2-byte TPID (0x8100) and 2-byte TCI containing priority, DEI, and 12-bit VLAN ID.",
+            "ciscoCommand": "show interfaces trunk"
+        },
+        {
+            "id": "q097",
+            "domain": "2",
+            "topic": "2.2",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What command verifies trunk configuration and active VLANs?",
+            "options": [
+                "show vlan brief",
+                "show interfaces trunk",
+                "show switchport",
+                "show trunk status"
+            ],
+            "correct": 1,
+            "explanation": "show interfaces trunk displays trunk ports, their mode, encapsulation, native VLAN, and allowed/active VLANs.",
+            "ciscoCommand": "show interfaces trunk"
+        },
+        {
+            "id": "q098",
+            "domain": "2",
+            "topic": "2.3",
+            "difficulty": 1,
+            "type": "multiple-choice",
+            "question": "What is CDP?",
+            "options": [
+                "Cisco Discovery Protocol \u2014 discovers directly connected Cisco devices",
+                "Cisco Data Protocol",
+                "Common Discovery Platform",
+                "Central Directory Protocol"
+            ],
+            "correct": 0,
+            "explanation": "CDP is a Cisco proprietary Layer 2 protocol that discovers directly connected Cisco devices and gathers information about them.",
+            "ciscoCommand": "show cdp neighbors"
+        },
+        {
+            "id": "q099",
+            "domain": "2",
+            "topic": "2.3",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What is LLDP and how does it differ from CDP?",
+            "options": [
+                "LLDP is a faster version of CDP",
+                "LLDP is an IEEE standard; CDP is Cisco proprietary",
+                "LLDP works at Layer 3; CDP at Layer 2",
+                "LLDP only works on wireless"
+            ],
+            "correct": 1,
+            "explanation": "LLDP (Link Layer Discovery Protocol) is the IEEE 802.1AB standard equivalent to CDP. It works with multi-vendor equipment.",
+            "ciscoCommand": "show lldp neighbors"
+        },
+        {
+            "id": "q100",
+            "domain": "2",
+            "topic": "2.3",
+            "difficulty": 1,
+            "type": "multiple-choice",
+            "question": "What command shows CDP neighbor details?",
+            "options": [
+                "show cdp",
+                "show cdp neighbors detail",
+                "show cdp interfaces",
+                "show cdp status"
+            ],
+            "correct": 1,
+            "explanation": "show cdp neighbors detail shows platform, IP address, capabilities, software version, and interface information for each CDP neighbor.",
+            "ciscoCommand": "show cdp neighbors detail"
+        },
+        {
+            "id": "q101",
+            "domain": "2",
+            "topic": "2.3",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "How do you disable CDP on a specific interface?",
+            "options": [
+                "cdp disable",
+                "no cdp enable",
+                "no cdp run",
+                "cdp off"
+            ],
+            "correct": 1,
+            "explanation": "'no cdp enable' disables CDP on a specific interface. 'no cdp run' disables CDP globally on the entire device.",
+            "ciscoCommand": "no cdp enable"
+        },
+        {
+            "id": "q102",
+            "domain": "2",
+            "topic": "2.3",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What information can CDP provide about a neighbor?",
+            "options": [
+                "Device ID, IP address, platform, capabilities, interface",
+                "Only hostname and IP",
+                "Only MAC address",
+                "Only VLAN information"
+            ],
+            "correct": 0,
+            "explanation": "CDP provides device ID, IP addresses, platform/model, capabilities (router/switch), local and remote interface names, software version, and native VLAN.",
+            "ciscoCommand": "show cdp neighbors detail"
+        },
+        {
+            "id": "q103",
+            "domain": "2",
+            "topic": "2.6",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What protocol does a Cisco lightweight AP use to communicate with a WLC?",
+            "options": [
+                "HTTP",
+                "SNMP",
+                "CAPWAP",
+                "CDP"
+            ],
+            "correct": 2,
+            "explanation": "CAPWAP (Control and Provisioning of Wireless Access Points) is the protocol used between lightweight APs and Wireless LAN Controllers.",
+            "ciscoCommand": "show ap summary"
+        },
+        {
+            "id": "q104",
+            "domain": "2",
+            "topic": "2.6",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What is the difference between autonomous and lightweight APs?",
+            "options": [
+                "Autonomous APs are cheaper",
+                "Lightweight APs require a WLC; autonomous APs operate independently",
+                "Autonomous APs support more clients",
+                "Lightweight APs have stronger signals"
+            ],
+            "correct": 1,
+            "explanation": "Autonomous APs are self-contained with local configuration. Lightweight APs are managed centrally by a WLC and download their config from it.",
+            "ciscoCommand": "show ap summary"
+        },
+        {
+            "id": "q105",
+            "domain": "2",
+            "topic": "2.6",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What AP mode handles normal client data traffic?",
+            "options": [
+                "Monitor",
+                "Local",
+                "Sniffer",
+                "FlexConnect"
+            ],
+            "correct": 1,
+            "explanation": "Local mode is the default AP mode. The AP creates CAPWAP tunnels to the WLC for both management and client data traffic.",
+            "ciscoCommand": "show ap summary"
+        },
+        {
+            "id": "q106",
+            "domain": "2",
+            "topic": "2.6",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What AP mode allows local switching of client traffic at a branch office?",
+            "options": [
+                "Local",
+                "Monitor",
+                "FlexConnect",
+                "Bridge"
+            ],
+            "correct": 2,
+            "explanation": "FlexConnect (formerly H-REAP) allows APs at remote sites to locally switch client data traffic even if the WLC connection is lost.",
+            "ciscoCommand": "show ap summary"
+        },
+        {
+            "id": "q107",
+            "domain": "2",
+            "topic": "2.7",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "How is a WLC typically connected to the network?",
+            "options": [
+                "Via a trunk port carrying WLAN VLANs",
+                "Via an access port on VLAN 1",
+                "Via a serial connection",
+                "Via USB"
+            ],
+            "correct": 0,
+            "explanation": "A WLC connects to the network via a trunk port to carry traffic from multiple WLANs/VLANs. Often LAG is used for redundancy.",
+            "ciscoCommand": "show interfaces trunk"
+        },
+        {
+            "id": "q108",
+            "domain": "2",
+            "topic": "2.7",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What port type connects a lightweight AP to the switch?",
+            "options": [
+                "Trunk port",
+                "Access port",
+                "Port-channel",
+                "Console port"
+            ],
+            "correct": 1,
+            "explanation": "Lightweight APs connect to switch access ports. CAPWAP encapsulates all traffic in IP/UDP tunnels to the WLC, so no trunking is needed.",
+            "ciscoCommand": "show mac address-table"
+        },
+        {
+            "id": "q109",
+            "domain": "2",
+            "topic": "2.8",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "Which management protocols can be used to access a WLC?",
+            "options": [
+                "Only SSH",
+                "HTTP, HTTPS, SSH, console, TACACS+/RADIUS",
+                "Only the console port",
+                "Only SNMP"
+            ],
+            "correct": 1,
+            "explanation": "WLCs support multiple management access methods: HTTP/HTTPS web GUI, SSH, console, and AAA via TACACS+/RADIUS.",
+            "ciscoCommand": "show management"
+        },
+        {
+            "id": "q110",
+            "domain": "2",
+            "topic": "2.9",
+            "difficulty": 1,
+            "type": "multiple-choice",
+            "question": "What is a WLAN in the context of a WLC?",
+            "options": [
+                "A physical network cable",
+                "A wireless network profile with SSID and security settings",
+                "A type of VLAN",
+                "A routing protocol"
+            ],
+            "correct": 1,
+            "explanation": "On a WLC, a WLAN is a configuration profile that defines the SSID, security method, QoS policy, and associated VLAN.",
+            "ciscoCommand": "show wlan summary"
+        },
+        {
+            "id": "q111",
+            "domain": "2",
+            "topic": "2.9",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What is the maximum number of WLANs typically supported on a Cisco WLC?",
+            "options": [
+                "16",
+                "64",
+                "512",
+                "Unlimited"
+            ],
+            "correct": 2,
+            "explanation": "Most Cisco WLCs support up to 512 WLANs, though only 16 can be active per AP radio at any time.",
+            "ciscoCommand": "show wlan summary"
+        },
+        {
+            "id": "q112",
+            "domain": "2",
+            "topic": "2.9",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "Where do you configure WLAN security on a Cisco WLC?",
+            "options": [
+                "CLI only",
+                "The WLC GUI under WLANs section",
+                "On each individual AP",
+                "In the DHCP server"
+            ],
+            "correct": 1,
+            "explanation": "WLAN security settings (WPA2/WPA3, PSK/802.1X, etc.) are configured centrally on the WLC through the web GUI or CLI.",
+            "ciscoCommand": "show wlan summary"
+        },
+        {
+            "id": "q113",
+            "domain": "2",
+            "topic": "2.1",
+            "difficulty": 1,
+            "type": "multiple-choice",
+            "question": "What is a VLAN?",
+            "options": [
+                "A physical network segment",
+                "A logical network segment within a switch",
+                "A type of router",
+                "A wireless network"
+            ],
+            "correct": 1,
+            "explanation": "A VLAN (Virtual LAN) is a logical broadcast domain created within a switch. Devices in different VLANs cannot communicate without routing.",
+            "ciscoCommand": "show vlan brief"
+        },
+        {
+            "id": "q114",
+            "domain": "2",
+            "topic": "2.1",
+            "difficulty": 1,
+            "type": "multiple-choice",
+            "question": "What command creates VLAN 10 with the name 'Sales'?",
+            "options": [
+                "vlan 10 name Sales",
+                "vlan 10, then name Sales",
+                "create vlan 10 Sales",
+                "switchport vlan 10 name Sales"
+            ],
+            "correct": 1,
+            "explanation": "Enter VLAN configuration with 'vlan 10', then 'name Sales' on the next line. This is done from global config mode.",
+            "ciscoCommand": "vlan 10"
+        },
+        {
+            "id": "q115",
+            "domain": "2",
+            "topic": "2.1",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What is the default VLAN on a Cisco switch?",
+            "options": [
+                "VLAN 0",
+                "VLAN 1",
+                "VLAN 10",
+                "VLAN 100"
+            ],
+            "correct": 1,
+            "explanation": "VLAN 1 is the default VLAN. All ports are in VLAN 1 by default. It cannot be deleted or renamed.",
+            "ciscoCommand": "show vlan brief"
+        },
+        {
+            "id": "q116",
+            "domain": "2",
+            "topic": "2.1",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "How do you assign an interface to VLAN 10?",
+            "options": [
+                "vlan 10 interface Gi0/1",
+                "switchport access vlan 10",
+                "interface vlan 10",
+                "ip address vlan 10"
+            ],
+            "correct": 1,
+            "explanation": "Configure the interface, set switchport mode access, then switchport access vlan 10 to assign the port to VLAN 10.",
+            "ciscoCommand": "switchport access vlan 10"
+        },
+        {
+            "id": "q117",
+            "domain": "2",
+            "topic": "2.1",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What is inter-VLAN routing?",
+            "options": [
+                "Routing between different subnets within the same VLAN",
+                "Routing traffic between different VLANs",
+                "Load balancing between VLANs",
+                "Trunking between VLANs"
+            ],
+            "correct": 1,
+            "explanation": "Inter-VLAN routing enables communication between devices in different VLANs. It requires a Layer 3 device (router or L3 switch).",
+            "ciscoCommand": "show ip route"
+        },
+        {
+            "id": "q118",
+            "domain": "2",
+            "topic": "2.1",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What is Router-on-a-Stick?",
+            "options": [
+                "A router with one interface",
+                "Inter-VLAN routing using a single router interface with subinterfaces",
+                "A wireless router configuration",
+                "A backup router setup"
+            ],
+            "correct": 1,
+            "explanation": "Router-on-a-Stick uses a single physical router interface with 802.1Q subinterfaces to route between VLANs via a trunk link to the switch.",
+            "ciscoCommand": "show ip interface brief"
+        },
+        {
+            "id": "q119",
+            "domain": "2",
+            "topic": "2.1",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What command creates a subinterface for VLAN 10 on Gi0/0?",
+            "options": [
+                "interface GigabitEthernet0/0 vlan 10",
+                "interface GigabitEthernet0/0.10",
+                "subinterface Gi0/0 vlan 10",
+                "vlan 10 interface Gi0/0"
+            ],
+            "correct": 1,
+            "explanation": "interface GigabitEthernet0/0.10 creates subinterface .10. Then configure encapsulation dot1Q 10 and an IP address for VLAN 10 routing.",
+            "ciscoCommand": "interface GigabitEthernet0/0.10"
+        },
+        {
+            "id": "q120",
+            "domain": "2",
+            "topic": "2.1",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What command is required on a router subinterface for 802.1Q trunking?",
+            "options": [
+                "trunk encapsulation dot1q",
+                "encapsulation dot1Q 10",
+                "switchport trunk encapsulation",
+                "802.1q enable"
+            ],
+            "correct": 1,
+            "explanation": "encapsulation dot1Q <vlan-id> tells the subinterface which VLAN's tagged traffic to accept and send. This is required for router-on-a-stick.",
+            "ciscoCommand": "encapsulation dot1Q 10"
+        },
+        {
+            "id": "q121",
+            "domain": "2",
+            "topic": "2.1",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What is an SVI (Switched Virtual Interface)?",
+            "options": [
+                "A physical switch port",
+                "A virtual interface on a Layer 3 switch representing a VLAN",
+                "A VLAN trunk port",
+                "A wireless interface"
+            ],
+            "correct": 1,
+            "explanation": "An SVI is a virtual Layer 3 interface on a switch associated with a VLAN. It provides the default gateway for that VLAN's hosts.",
+            "ciscoCommand": "interface vlan 10"
+        },
+        {
+            "id": "q122",
+            "domain": "2",
+            "topic": "2.1",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What must be enabled on a Layer 3 switch for inter-VLAN routing via SVIs?",
+            "options": [
+                "OSPF",
+                "ip routing",
+                "switchport mode trunk",
+                "spanning-tree"
+            ],
+            "correct": 1,
+            "explanation": "The 'ip routing' command must be enabled on L3 switches to enable routing between SVIs. Without it, the switch only operates at Layer 2.",
+            "ciscoCommand": "ip routing"
+        },
+        {
+            "id": "q123",
+            "domain": "1",
+            "topic": "1.8",
+            "difficulty": 1,
+            "type": "multiple-choice",
+            "question": "What is the size of an IPv6 address?",
+            "options": [
+                "32 bits",
+                "64 bits",
+                "128 bits",
+                "256 bits"
+            ],
+            "correct": 2,
+            "explanation": "IPv6 addresses are 128 bits long (compared to 32 bits for IPv4), written as 8 groups of 4 hexadecimal digits.",
+            "ciscoCommand": "show ipv6 interface brief"
+        },
+        {
+            "id": "q124",
+            "domain": "1",
+            "topic": "1.9",
+            "difficulty": 1,
+            "type": "multiple-choice",
+            "question": "Which IPv6 address type is equivalent to a public IPv4 address?",
+            "options": [
+                "Link-local",
+                "Unique local",
+                "Global unicast",
+                "Multicast"
+            ],
+            "correct": 2,
+            "explanation": "Global Unicast Addresses (GUA, 2000::/3) are routable on the internet, equivalent to public IPv4 addresses.",
+            "ciscoCommand": "show ipv6 interface brief"
+        },
+        {
+            "id": "q125",
+            "domain": "1",
+            "topic": "1.9",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What prefix identifies an IPv6 link-local address?",
+            "options": [
+                "2000::/3",
+                "FC00::/7",
+                "FE80::/10",
+                "FF00::/8"
+            ],
+            "correct": 2,
+            "explanation": "Link-local addresses use the FE80::/10 prefix. They are automatically generated and only valid on the local link (not routable).",
+            "ciscoCommand": "show ipv6 interface brief"
+        },
+        {
+            "id": "q126",
+            "domain": "1",
+            "topic": "1.9",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What is SLAAC?",
+            "options": [
+                "A routing protocol",
+                "A method for hosts to auto-configure IPv6 addresses using Router Advertisements",
+                "A security mechanism",
+                "A VLAN protocol"
+            ],
+            "correct": 1,
+            "explanation": "SLAAC (Stateless Address Autoconfiguration) allows hosts to generate their own IPv6 address using the prefix from Router Advertisements and an interface ID.",
+            "ciscoCommand": "show ipv6 interface"
+        },
+        {
+            "id": "q127",
+            "domain": "1",
+            "topic": "1.9",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What does NDP replace in IPv6 that ARP provides in IPv4?",
+            "options": [
+                "DNS resolution",
+                "MAC address resolution",
+                "Routing",
+                "VLAN tagging"
+            ],
+            "correct": 1,
+            "explanation": "NDP (Neighbor Discovery Protocol) replaces ARP in IPv6. It uses ICMPv6 Neighbor Solicitation and Neighbor Advertisement messages.",
+            "ciscoCommand": "show ipv6 neighbors"
+        },
+        {
+            "id": "q128",
+            "domain": "1",
+            "topic": "1.9",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "How does EUI-64 generate an interface ID from a MAC address?",
+            "options": [
+                "Appends FF:FE to the MAC",
+                "Splits MAC in half, inserts FF:FE, flips 7th bit",
+                "Reverses the MAC address",
+                "Hashes the MAC with SHA-256"
+            ],
+            "correct": 1,
+            "explanation": "EUI-64: split MAC in half, insert FFFE in the middle, then flip the 7th bit (Universal/Local bit) of the first byte.",
+            "ciscoCommand": "show ipv6 interface"
+        },
+        {
+            "id": "q129",
+            "domain": "1",
+            "topic": "1.8",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What command enables IPv6 routing on a Cisco router?",
+            "options": [
+                "ip routing",
+                "ipv6 enable",
+                "ipv6 unicast-routing",
+                "router ipv6"
+            ],
+            "correct": 2,
+            "explanation": "ipv6 unicast-routing enables IPv6 routing globally. Without it, the router processes IPv6 on interfaces but doesn't route between them.",
+            "ciscoCommand": "ipv6 unicast-routing"
+        },
+        {
+            "id": "q130",
+            "domain": "1",
+            "topic": "1.8",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What command assigns an IPv6 address to an interface?",
+            "options": [
+                "ip address 2001:db8::1/64",
+                "ipv6 address 2001:db8::1/64",
+                "ipv6 2001:db8::1/64",
+                "interface ipv6 2001:db8::1/64"
+            ],
+            "correct": 1,
+            "explanation": "ipv6 address is the correct interface command. Note IPv6 uses prefix length (/64) not a separate mask.",
+            "ciscoCommand": "ipv6 address 2001:db8::1/64"
+        },
+        {
+            "id": "q131",
+            "domain": "1",
+            "topic": "1.9",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What is the IPv6 multicast address for all nodes on the local link?",
+            "options": [
+                "FF02::1",
+                "FF02::2",
+                "FF02::5",
+                "FF02::A"
+            ],
+            "correct": 0,
+            "explanation": "FF02::1 is the all-nodes multicast address. FF02::2 is all-routers. FF02::5 is all-OSPF routers.",
+            "ciscoCommand": "show ipv6 interface"
+        },
+        {
+            "id": "q132",
+            "domain": "1",
+            "topic": "1.9",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What type of IPv6 address is FD00::1?",
+            "options": [
+                "Global unicast",
+                "Link-local",
+                "Unique local",
+                "Multicast"
+            ],
+            "correct": 2,
+            "explanation": "FC00::/7 (practically FD00::/8) is the Unique Local Address range. These are similar to RFC 1918 private addresses in IPv4.",
+            "ciscoCommand": "show ipv6 interface"
+        },
+        {
+            "id": "q133",
+            "domain": "1",
+            "topic": "1.8",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "How many bits are in the interface ID portion of a /64 IPv6 address?",
+            "options": [
+                "32",
+                "48",
+                "64",
+                "128"
+            ],
+            "correct": 2,
+            "explanation": "A /64 prefix means 64 bits for the network and 64 bits for the interface ID (host portion).",
+            "ciscoCommand": "show ipv6 interface"
+        },
+        {
+            "id": "q134",
+            "domain": "1",
+            "topic": "1.9",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "Which IPv6 address type is automatically created on every IPv6-enabled interface?",
+            "options": [
+                "Global unicast",
+                "Unique local",
+                "Link-local",
+                "Anycast"
+            ],
+            "correct": 2,
+            "explanation": "A link-local address (FE80::/10) is automatically generated whenever IPv6 is enabled on an interface. It's used for local communication and routing protocols.",
+            "ciscoCommand": "show ipv6 interface brief"
+        },
+        {
+            "id": "q135",
+            "domain": "1",
+            "topic": "1.8",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What does the :: notation represent in IPv6?",
+            "options": [
+                "End of address",
+                "One or more groups of consecutive zeros",
+                "A wildcard",
+                "A broadcast address"
+            ],
+            "correct": 1,
+            "explanation": "The double colon :: represents one or more consecutive groups of all zeros. It can only appear once in an address to avoid ambiguity.",
+            "ciscoCommand": "show ipv6 interface"
+        },
+        {
+            "id": "q136",
+            "domain": "1",
+            "topic": "1.9",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What is the solicited-node multicast address used for?",
+            "options": [
+                "Routing updates",
+                "Replacing ARP for address resolution",
+                "Broadcasting to all nodes",
+                "DNS queries"
+            ],
+            "correct": 1,
+            "explanation": "Solicited-node multicast (FF02::1:FFxx:xxxx) is used by NDP for efficient address resolution, targeting only the specific host instead of broadcasting.",
+            "ciscoCommand": "show ipv6 neighbors"
+        },
+        {
+            "id": "q137",
+            "domain": "1",
+            "topic": "1.5",
+            "difficulty": 1,
+            "type": "multiple-choice",
+            "question": "Which transport protocol provides reliable, ordered delivery?",
+            "options": [
+                "UDP",
+                "TCP",
+                "ICMP",
+                "IP"
+            ],
+            "correct": 1,
+            "explanation": "TCP provides reliable delivery through sequence numbers, acknowledgments, and retransmission. UDP is connectionless and unreliable.",
+            "ciscoCommand": "show ip protocols"
+        },
+        {
+            "id": "q138",
+            "domain": "1",
+            "topic": "1.5",
+            "difficulty": 1,
+            "type": "multiple-choice",
+            "question": "What is the TCP three-way handshake sequence?",
+            "options": [
+                "SYN, ACK, FIN",
+                "SYN, SYN-ACK, ACK",
+                "ACK, SYN, FIN",
+                "SYN, SYN, ACK"
+            ],
+            "correct": 1,
+            "explanation": "TCP establishes connections with SYN \u2192 SYN-ACK \u2192 ACK. This ensures both sides are ready to communicate.",
+            "ciscoCommand": null
+        },
+        {
+            "id": "q139",
+            "domain": "1",
+            "topic": "1.5",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "Which well-known port does HTTPS use?",
+            "options": [
+                "80",
+                "8080",
+                "443",
+                "8443"
+            ],
+            "correct": 2,
+            "explanation": "HTTPS uses TCP port 443. HTTP uses port 80. These are well-known ports assigned by IANA.",
+            "ciscoCommand": null
+        },
+        {
+            "id": "q140",
+            "domain": "1",
+            "topic": "1.5",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "Which protocol would you use for real-time voice/video traffic?",
+            "options": [
+                "TCP",
+                "UDP",
+                "SCTP",
+                "DCCP"
+            ],
+            "correct": 1,
+            "explanation": "UDP is preferred for real-time traffic because it has lower latency (no handshake, no retransmission). Some packet loss is acceptable for voice/video.",
+            "ciscoCommand": null
+        },
+        {
+            "id": "q141",
+            "domain": "1",
+            "topic": "1.5",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What TCP port does SSH use?",
+            "options": [
+                "21",
+                "22",
+                "23",
+                "25"
+            ],
+            "correct": 1,
+            "explanation": "SSH uses TCP port 22. FTP uses 21, Telnet uses 23, and SMTP uses 25.",
+            "ciscoCommand": null
+        },
+        {
+            "id": "q142",
+            "domain": "1",
+            "topic": "1.6",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "How many usable host addresses are in a /26 subnet?",
+            "options": [
+                "30",
+                "62",
+                "64",
+                "126"
+            ],
+            "correct": 1,
+            "explanation": "A /26 has 6 host bits: 2^6 = 64 total addresses - 2 (network + broadcast) = 62 usable hosts.",
+            "ciscoCommand": null
+        },
+        {
+            "id": "q143",
+            "domain": "1",
+            "topic": "1.6",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What is the subnet mask for a /20 network?",
+            "options": [
+                "255.255.240.0",
+                "255.255.248.0",
+                "255.255.252.0",
+                "255.255.224.0"
+            ],
+            "correct": 0,
+            "explanation": "A /20 means 20 network bits: 255.255.11110000.0 = 255.255.240.0",
+            "ciscoCommand": null
+        },
+        {
+            "id": "q144",
+            "domain": "1",
+            "topic": "1.6",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What is the network address for host 172.16.45.130/22?",
+            "options": [
+                "172.16.44.0",
+                "172.16.45.0",
+                "172.16.45.128",
+                "172.16.46.0"
+            ],
+            "correct": 0,
+            "explanation": "/22 has a block size of 4 in the third octet. 45/4 = 11 remainder 1, so network starts at 44. Network: 172.16.44.0",
+            "ciscoCommand": null
+        },
+        {
+            "id": "q145",
+            "domain": "1",
+            "topic": "1.6",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What is the broadcast address for 192.168.1.0/25?",
+            "options": [
+                "192.168.1.63",
+                "192.168.1.127",
+                "192.168.1.255",
+                "192.168.1.128"
+            ],
+            "correct": 1,
+            "explanation": "/25 splits the last octet in half. First subnet: .0-.127. Network=.0, Broadcast=.127, Usable=.1-.126",
+            "ciscoCommand": null
+        },
+        {
+            "id": "q146",
+            "domain": "1",
+            "topic": "1.6",
+            "difficulty": 1,
+            "type": "multiple-choice",
+            "question": "What is the wildcard mask for a /24 subnet?",
+            "options": [
+                "0.0.0.0",
+                "0.0.0.255",
+                "0.0.255.255",
+                "255.255.255.0"
+            ],
+            "correct": 1,
+            "explanation": "Wildcard = 255.255.255.255 - Subnet Mask. For /24 (255.255.255.0): 255.255.255.255 - 255.255.255.0 = 0.0.0.255",
+            "ciscoCommand": null
+        },
+        {
+            "id": "q147",
+            "domain": "1",
+            "topic": "1.7",
+            "difficulty": 1,
+            "type": "multiple-choice",
+            "question": "Which of these is a private IPv4 address?",
+            "options": [
+                "11.0.0.1",
+                "172.32.0.1",
+                "192.168.1.1",
+                "223.0.0.1"
+            ],
+            "correct": 2,
+            "explanation": "192.168.0.0/16 is a private range (RFC 1918). 10.0.0.0/8 and 172.16.0.0/12 are the other private ranges. 172.32.x is public.",
+            "ciscoCommand": null
+        },
+        {
+            "id": "q148",
+            "domain": "1",
+            "topic": "1.6",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "You need at least 500 host addresses per subnet. What is the minimum prefix length?",
+            "options": [
+                "\\/22",
+                "/23",
+                "/24",
+                "/21"
+            ],
+            "correct": 0,
+            "explanation": "/23 gives 510 hosts (2^9-2), which is just barely enough but /22 gives 1022 hosts providing more room. Actually /23=510 which is >=500, so /23 works. But wait: 2^9=512-2=510. So /23 is minimum.",
+            "ciscoCommand": 1
+        },
+        {
+            "id": "q149",
+            "domain": "1",
+            "topic": "1.6",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What is the purpose of a subnet mask?",
+            "options": [
+                "To identify the broadcast address",
+                "To separate the network and host portions of an IP address",
+                "To encrypt traffic",
+                "To define the default gateway"
+            ],
+            "correct": 1,
+            "explanation": "A subnet mask identifies which bits of the IP address represent the network portion and which represent the host portion.",
+            "ciscoCommand": null
+        },
+        {
+            "id": "q150",
+            "domain": "1",
+            "topic": "1.3",
+            "difficulty": 1,
+            "type": "multiple-choice",
+            "question": "What type of fiber optic cable supports longer distances?",
+            "options": [
+                "Multimode",
+                "Single-mode",
+                "Cat 5e",
+                "Coaxial"
+            ],
+            "correct": 1,
+            "explanation": "Single-mode fiber uses a smaller core (8-10 micron) with laser light, supporting distances up to 100km. Multimode uses LED and supports shorter distances.",
+            "ciscoCommand": null
+        },
+        {
+            "id": "q151",
+            "domain": "1",
+            "topic": "1.3",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What is the maximum distance for Cat 5e/6 copper Ethernet?",
+            "options": [
+                "55 meters",
+                "100 meters",
+                "185 meters",
+                "500 meters"
+            ],
+            "correct": 1,
+            "explanation": "Cat 5e and Cat 6 UTP cables have a maximum distance of 100 meters (328 feet) for Ethernet at any speed up to 10 Gbps.",
+            "ciscoCommand": null
+        },
+        {
+            "id": "q152",
+            "domain": "1",
+            "topic": "1.4",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "A link shows CRC errors incrementing. What is the most likely cause?",
+            "options": [
+                "Duplex mismatch",
+                "Incorrect VLAN",
+                "Wrong IP address",
+                "Bad cable or connector"
+            ],
+            "correct": 3,
+            "explanation": "CRC errors typically indicate physical layer problems: damaged cable, loose connector, or electromagnetic interference.",
+            "ciscoCommand": null
+        },
+        {
+            "id": "q153",
+            "domain": "1",
+            "topic": "1.4",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What symptom indicates a duplex mismatch?",
+            "options": [
+                "Port shows down/down",
+                "High collision count and late collisions",
+                "CRC errors only",
+                "Spanning tree blocking"
+            ],
+            "correct": 1,
+            "explanation": "Duplex mismatch causes late collisions, FCS errors, and runts on the half-duplex side, and a poor-performing but 'up' link on the full-duplex side.",
+            "ciscoCommand": null
+        },
+        {
+            "id": "q154",
+            "domain": "1",
+            "topic": "1.1",
+            "difficulty": 1,
+            "type": "multiple-choice",
+            "question": "What device operates at Layer 3 and makes forwarding decisions based on IP addresses?",
+            "options": [
+                "Hub",
+                "Switch",
+                "Router",
+                "Access point"
+            ],
+            "correct": 2,
+            "explanation": "Routers operate at Layer 3 (Network layer) and use IP addresses in their routing table to forward packets between networks.",
+            "ciscoCommand": null
+        },
+        {
+            "id": "q155",
+            "domain": "1",
+            "topic": "1.1",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What is the primary difference between a Layer 2 and Layer 3 switch?",
+            "options": [
+                "Layer 3 switches are faster",
+                "Layer 3 switches can route between VLANs",
+                "Layer 2 switches support more ports",
+                "Layer 3 switches support wireless"
+            ],
+            "correct": 1,
+            "explanation": "Layer 3 switches can perform routing (inter-VLAN routing via SVIs) in addition to switching. Layer 2 switches only forward based on MAC addresses.",
+            "ciscoCommand": null
+        },
+        {
+            "id": "q156",
+            "domain": "1",
+            "topic": "1.2",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What is the advantage of a spine-leaf architecture?",
+            "options": [
+                "Lower cost",
+                "Predictable low-latency with equal-cost paths",
+                "Simpler configuration",
+                "Fewer switches needed"
+            ],
+            "correct": 1,
+            "explanation": "Spine-leaf provides consistent latency because every leaf switch is exactly one hop from every spine switch, creating equal-cost paths.",
+            "ciscoCommand": null
+        },
+        {
+            "id": "q157",
+            "domain": "1",
+            "topic": "1.11",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What are the three non-overlapping channels for 2.4 GHz Wi-Fi?",
+            "options": [
+                "1, 5, 9",
+                "1, 6, 11",
+                "1, 7, 13",
+                "2, 7, 12"
+            ],
+            "correct": 1,
+            "explanation": "Channels 1, 6, and 11 are the three non-overlapping channels in the 2.4 GHz band. Using overlapping channels causes co-channel interference.",
+            "ciscoCommand": null
+        },
+        {
+            "id": "q158",
+            "domain": "1",
+            "topic": "1.11",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What wireless encryption standard is considered most secure?",
+            "options": [
+                "WEP",
+                "WPA",
+                "WPA2",
+                "WPA3"
+            ],
+            "correct": 3,
+            "explanation": "WPA3 is the latest and most secure wireless encryption standard, using SAE (Simultaneous Authentication of Equals) instead of the 4-way handshake.",
+            "ciscoCommand": null
+        },
+        {
+            "id": "q159",
+            "domain": "1",
+            "topic": "1.12",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What is a hypervisor?",
+            "options": [
+                "A high-speed switch",
+                "Software that creates and manages virtual machines",
+                "A type of firewall",
+                "A network monitoring tool"
+            ],
+            "correct": 1,
+            "explanation": "A hypervisor (Type 1 or Type 2) is software that creates and manages virtual machines by abstracting hardware resources.",
+            "ciscoCommand": null
+        },
+        {
+            "id": "q160",
+            "domain": "1",
+            "topic": "1.13",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What does a switch do when it receives a frame with an unknown destination MAC?",
+            "options": [
+                "Drops the frame",
+                "Sends it to the default gateway",
+                "Floods it out all ports except the source port",
+                "Sends an ARP request"
+            ],
+            "correct": 2,
+            "explanation": "When the destination MAC is not in the MAC address table, the switch floods the frame out all ports except the one it was received on.",
+            "ciscoCommand": null
+        },
+        {
+            "id": "q161",
+            "domain": "1",
+            "topic": "1.13",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "How does a switch learn MAC addresses?",
+            "options": [
+                "By examining the source MAC of incoming frames",
+                "By querying a DHCP server",
+                "From CDP/LLDP messages",
+                "From ARP broadcast responses"
+            ],
+            "correct": 0,
+            "explanation": "Switches learn MAC addresses by recording the source MAC address and ingress port of each received frame into the MAC address table.",
+            "ciscoCommand": "show mac address-table"
+        },
+        {
+            "id": "q162",
+            "domain": "4",
+            "topic": "4.1",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What does NAT stand for?",
+            "options": [
+                "Network Access Translation",
+                "Network Address Translation",
+                "Node Address Transfer",
+                "Network Authentication Token"
+            ],
+            "correct": 1,
+            "explanation": "NAT (Network Address Translation) translates private IP addresses to public IP addresses for internet access.",
+            "ciscoCommand": null
+        },
+        {
+            "id": "q163",
+            "domain": "4",
+            "topic": "4.1",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What is the difference between static NAT and dynamic NAT?",
+            "options": [
+                "Static uses pools; dynamic uses one-to-one",
+                "Static maps one private to one public permanently; dynamic uses a pool",
+                "Static is faster",
+                "Dynamic requires less configuration"
+            ],
+            "correct": 1,
+            "explanation": "Static NAT creates a permanent one-to-one mapping. Dynamic NAT uses a pool of public addresses assigned on a first-come basis.",
+            "ciscoCommand": "show ip nat translations"
+        },
+        {
+            "id": "q164",
+            "domain": "4",
+            "topic": "4.1",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What is PAT (Port Address Translation)?",
+            "options": [
+                "A routing protocol",
+                "NAT overload \u2014 multiple private IPs share one public IP using port numbers",
+                "A port security feature",
+                "A trunking protocol"
+            ],
+            "correct": 1,
+            "explanation": "PAT (also called NAT overload) allows many internal hosts to share a single public IP by using unique source port numbers to track sessions.",
+            "ciscoCommand": "show ip nat translations"
+        },
+        {
+            "id": "q165",
+            "domain": "4",
+            "topic": "4.1",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What command defines the inside NAT interface?",
+            "options": [
+                "ip nat inside",
+                "nat inside",
+                "interface nat inside",
+                "ip nat source inside"
+            ],
+            "correct": 0,
+            "explanation": "'ip nat inside' is configured on the interface facing the private network. 'ip nat outside' goes on the internet-facing interface.",
+            "ciscoCommand": "ip nat inside"
+        },
+        {
+            "id": "q166",
+            "domain": "4",
+            "topic": "4.1",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What command configures PAT using the outside interface address?",
+            "options": [
+                "ip nat inside source list 1 pool PAT overload",
+                "ip nat inside source list 1 interface Gi0/0 overload",
+                "ip nat pool PAT overload",
+                "nat overload enable"
+            ],
+            "correct": 1,
+            "explanation": "'ip nat inside source list <acl> interface <outside-if> overload' configures PAT using the outside interface's IP address.",
+            "ciscoCommand": "ip nat inside source list 1 interface Gi0/0 overload"
+        },
+        {
+            "id": "q167",
+            "domain": "4",
+            "topic": "4.1",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What command verifies active NAT translations?",
+            "options": [
+                "show ip nat statistics",
+                "show ip nat translations",
+                "show nat table",
+                "show ip nat pool"
+            ],
+            "correct": 1,
+            "explanation": "show ip nat translations displays all current NAT translation entries, showing inside local/global and outside local/global addresses.",
+            "ciscoCommand": "show ip nat translations"
+        },
+        {
+            "id": "q168",
+            "domain": "4",
+            "topic": "4.2",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What command configures a router as an NTP client?",
+            "options": [
+                "ntp enable",
+                "ntp server 10.0.0.1",
+                "ntp client 10.0.0.1",
+                "clock set ntp 10.0.0.1"
+            ],
+            "correct": 1,
+            "explanation": "'ntp server <ip>' configures the router to synchronize its clock with the specified NTP server.",
+            "ciscoCommand": "ntp server 10.0.0.1"
+        },
+        {
+            "id": "q169",
+            "domain": "4",
+            "topic": "4.2",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What is the NTP stratum value for the most accurate time source?",
+            "options": [
+                "0",
+                "1",
+                "10",
+                "16"
+            ],
+            "correct": 1,
+            "explanation": "Stratum 0 is the reference clock (atomic clock/GPS). Stratum 1 is directly connected to stratum 0 \u2014 these are the most accurate NTP servers.",
+            "ciscoCommand": "show ntp status"
+        },
+        {
+            "id": "q170",
+            "domain": "4",
+            "topic": "4.3",
+            "difficulty": 1,
+            "type": "multiple-choice",
+            "question": "What port does DNS use?",
+            "options": [
+                "TCP/UDP 23",
+                "TCP/UDP 53",
+                "TCP/UDP 80",
+                "TCP/UDP 443"
+            ],
+            "correct": 1,
+            "explanation": "DNS uses UDP port 53 for queries and TCP port 53 for zone transfers or responses larger than 512 bytes.",
+            "ciscoCommand": null
+        },
+        {
+            "id": "q171",
+            "domain": "4",
+            "topic": "4.3",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What is the role of a DHCP server?",
+            "options": [
+                "Route packets between networks",
+                "Automatically assign IP configuration to clients",
+                "Resolve hostnames to IP addresses",
+                "Provide time synchronization"
+            ],
+            "correct": 1,
+            "explanation": "DHCP automatically assigns IP address, subnet mask, default gateway, DNS servers, and other parameters to clients.",
+            "ciscoCommand": null
+        },
+        {
+            "id": "q172",
+            "domain": "4",
+            "topic": "4.4",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What does SNMP stand for and what is it used for?",
+            "options": [
+                "Simple Network Management Protocol \u2014 monitor and manage network devices",
+                "Secure Network Message Protocol",
+                "System Network Monitoring Platform",
+                "Simple Network Messaging Protocol"
+            ],
+            "correct": 0,
+            "explanation": "SNMP allows network admins to monitor device health, performance metrics, and configuration from a central management station.",
+            "ciscoCommand": "show snmp"
+        },
+        {
+            "id": "q173",
+            "domain": "4",
+            "topic": "4.4",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What is an SNMP trap?",
+            "options": [
+                "A security mechanism",
+                "An unsolicited alert sent from an agent to the manager",
+                "A request from the manager to the agent",
+                "A firewall rule"
+            ],
+            "correct": 1,
+            "explanation": "SNMP traps are asynchronous notifications sent by SNMP agents to the NMS when a significant event occurs (link down, high CPU, etc.).",
+            "ciscoCommand": null
+        },
+        {
+            "id": "q174",
+            "domain": "4",
+            "topic": "4.5",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What are syslog severity levels 0 and 7?",
+            "options": [
+                "0=Debug, 7=Emergency",
+                "0=Emergency, 7=Debug",
+                "0=Critical, 7=Info",
+                "0=Alert, 7=Notice"
+            ],
+            "correct": 1,
+            "explanation": "Syslog levels: 0=Emergency, 1=Alert, 2=Critical, 3=Error, 4=Warning, 5=Notice, 6=Informational, 7=Debug. Lower number = more severe.",
+            "ciscoCommand": "show logging"
+        },
+        {
+            "id": "q175",
+            "domain": "4",
+            "topic": "4.5",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What command sends syslog messages to a server at 10.0.0.100?",
+            "options": [
+                "logging 10.0.0.100",
+                "syslog server 10.0.0.100",
+                "log destination 10.0.0.100",
+                "send-log 10.0.0.100"
+            ],
+            "correct": 0,
+            "explanation": "'logging <ip>' configures the device to send syslog messages to an external syslog server for centralized log collection.",
+            "ciscoCommand": "logging 10.0.0.100"
+        },
+        {
+            "id": "q176",
+            "domain": "4",
+            "topic": "4.6",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What is a DHCP relay agent?",
+            "options": [
+                "A DHCP server backup",
+                "A router that forwards DHCP broadcasts to a remote DHCP server",
+                "A DHCP client",
+                "A DNS-to-DHCP translator"
+            ],
+            "correct": 1,
+            "explanation": "A DHCP relay agent forwards DHCP broadcast requests from clients to a DHCP server on a different subnet using unicast.",
+            "ciscoCommand": "ip helper-address 10.0.0.1"
+        },
+        {
+            "id": "q177",
+            "domain": "4",
+            "topic": "4.6",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What command configures a DHCP relay on a router interface?",
+            "options": [
+                "dhcp relay 10.0.0.1",
+                "ip helper-address 10.0.0.1",
+                "dhcp-server 10.0.0.1",
+                "ip dhcp relay 10.0.0.1"
+            ],
+            "correct": 1,
+            "explanation": "ip helper-address forwards broadcast UDP traffic (including DHCP) to the specified server IP address.",
+            "ciscoCommand": "ip helper-address 10.0.0.1"
+        },
+        {
+            "id": "q178",
+            "domain": "4",
+            "topic": "4.7",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What are the three main QoS models?",
+            "options": [
+                "Low, Medium, High",
+                "Best-effort, IntServ, DiffServ",
+                "Bronze, Silver, Gold",
+                "Priority, Standard, Economy"
+            ],
+            "correct": 1,
+            "explanation": "Best-effort (no QoS), IntServ (per-flow reservation with RSVP), and DiffServ (per-hop classification using DSCP) are the three QoS models.",
+            "ciscoCommand": null
+        },
+        {
+            "id": "q179",
+            "domain": "4",
+            "topic": "4.7",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What is DSCP used for in QoS?",
+            "options": [
+                "Encrypting traffic",
+                "Marking packets with a priority value in the IP header",
+                "Routing decisions",
+                "VLAN tagging"
+            ],
+            "correct": 1,
+            "explanation": "DSCP (Differentiated Services Code Point) uses 6 bits in the IP header's ToS field to mark packets with QoS priority values (0-63).",
+            "ciscoCommand": null
+        },
+        {
+            "id": "q180",
+            "domain": "4",
+            "topic": "4.7",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What DSCP value is used for Expedited Forwarding (voice traffic)?",
+            "options": [
+                "0",
+                "26",
+                "34",
+                "46"
+            ],
+            "correct": 3,
+            "explanation": "EF (Expedited Forwarding) uses DSCP 46. This is typically used for voice traffic requiring low latency, low jitter, and low loss.",
+            "ciscoCommand": null
+        },
+        {
+            "id": "q181",
+            "domain": "4",
+            "topic": "4.7",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What is the difference between policing and shaping in QoS?",
+            "options": [
+                "Policing buffers excess traffic; shaping drops it",
+                "Policing drops excess traffic; shaping buffers and delays it",
+                "They are the same thing",
+                "Policing is for inbound; shaping is for outbound only"
+            ],
+            "correct": 1,
+            "explanation": "Policing drops or re-marks traffic exceeding the rate limit immediately. Shaping buffers excess traffic and sends it when bandwidth is available.",
+            "ciscoCommand": null
+        },
+        {
+            "id": "q182",
+            "domain": "4",
+            "topic": "4.8",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What command configures SSH version 2 on a Cisco device?",
+            "options": [
+                "ssh version 2",
+                "ip ssh version 2",
+                "crypto ssh 2",
+                "enable ssh v2"
+            ],
+            "correct": 1,
+            "explanation": "ip ssh version 2 enables SSH version 2, which is more secure than version 1. You also need a hostname, domain name, and RSA keys.",
+            "ciscoCommand": "ip ssh version 2"
+        },
+        {
+            "id": "q183",
+            "domain": "4",
+            "topic": "4.8",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What are the prerequisites for configuring SSH on a Cisco router?",
+            "options": [
+                "Only a password",
+                "Hostname, domain name, RSA key pair, and VTY line configuration",
+                "Only an IP address",
+                "A RADIUS server"
+            ],
+            "correct": 1,
+            "explanation": "SSH requires: 1) hostname, 2) domain name, 3) RSA key pair (crypto key generate rsa), 4) VTY lines configured for SSH.",
+            "ciscoCommand": "crypto key generate rsa"
+        },
+        {
+            "id": "q184",
+            "domain": "4",
+            "topic": "4.9",
+            "difficulty": 1,
+            "type": "multiple-choice",
+            "question": "What is the main difference between TFTP and FTP?",
+            "options": [
+                "TFTP is faster",
+                "TFTP is simpler with no authentication; FTP supports login and directory browsing",
+                "FTP uses UDP; TFTP uses TCP",
+                "FTP is older"
+            ],
+            "correct": 1,
+            "explanation": "TFTP uses UDP port 69 and provides no authentication. FTP uses TCP ports 20/21 with username/password authentication.",
+            "ciscoCommand": null
+        },
+        {
+            "id": "q185",
+            "domain": "5",
+            "topic": "5.3",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What are the three modes of Cisco IOS CLI?",
+            "options": [
+                "User EXEC, Privileged EXEC, Global Configuration",
+                "Login, Admin, Root",
+                "Read, Write, Execute",
+                "Basic, Advanced, Expert"
+            ],
+            "correct": 0,
+            "explanation": "User EXEC (>), Privileged EXEC (#), and Global Configuration (config)# are the three primary IOS modes. You move between them with enable and configure terminal.",
+            "ciscoCommand": "show privilege"
+        },
+        {
+            "id": "q186",
+            "domain": "5",
+            "topic": "5.3",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What command enters privileged EXEC mode?",
+            "options": [
+                "login",
+                "su",
+                "enable",
+                "privilege"
+            ],
+            "correct": 2,
+            "explanation": "The 'enable' command moves from User EXEC mode (>) to Privileged EXEC mode (#), which provides full access to show and config commands.",
+            "ciscoCommand": "enable"
+        },
+        {
+            "id": "q187",
+            "domain": "5",
+            "topic": "5.3",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What command saves the running configuration to NVRAM?",
+            "options": [
+                "write memory",
+                "copy running-config startup-config",
+                "save config",
+                "Both A and B"
+            ],
+            "correct": 3,
+            "explanation": "Both 'write memory' (shorthand) and 'copy running-config startup-config' save the active configuration to NVRAM for persistence across reboots.",
+            "ciscoCommand": "copy running-config startup-config"
+        },
+        {
+            "id": "q188",
+            "domain": "5",
+            "topic": "5.3",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What does the 'enable secret' command do vs 'enable password'?",
+            "options": [
+                "They are identical",
+                "enable secret encrypts the password with MD5; enable password stores it in cleartext",
+                "enable password is more secure",
+                "enable secret is for SSH only"
+            ],
+            "correct": 1,
+            "explanation": "enable secret stores the password as an MD5 hash and always takes precedence over enable password, which stores in cleartext or weak Type 7.",
+            "ciscoCommand": "enable secret <password>"
+        },
+        {
+            "id": "q189",
+            "domain": "5",
+            "topic": "5.3",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What command encrypts all plaintext passwords in the running config?",
+            "options": [
+                "encrypt passwords",
+                "service password-encryption",
+                "password encrypt all",
+                "security passwords"
+            ],
+            "correct": 1,
+            "explanation": "service password-encryption applies weak Type 7 encryption to all plaintext passwords in the config. It's not strong but better than plaintext.",
+            "ciscoCommand": "service password-encryption"
+        },
+        {
+            "id": "q190",
+            "domain": "5",
+            "topic": "5.7",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What is DHCP snooping?",
+            "options": [
+                "A DHCP optimization feature",
+                "A Layer 2 security feature that filters untrusted DHCP messages",
+                "A DHCP server redundancy protocol",
+                "A DHCP relay enhancement"
+            ],
+            "correct": 1,
+            "explanation": "DHCP snooping validates DHCP messages from untrusted sources, building a binding table of MAC-to-IP mappings. It prevents rogue DHCP servers.",
+            "ciscoCommand": "ip dhcp snooping"
+        },
+        {
+            "id": "q191",
+            "domain": "5",
+            "topic": "5.7",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What is Dynamic ARP Inspection (DAI)?",
+            "options": [
+                "A routing protocol security feature",
+                "A feature that validates ARP packets against the DHCP snooping binding table",
+                "An ARP cache optimization",
+                "A firewall feature"
+            ],
+            "correct": 1,
+            "explanation": "DAI intercepts ARP packets on untrusted ports and validates them against the DHCP snooping binding table to prevent ARP spoofing attacks.",
+            "ciscoCommand": "ip arp inspection vlan 10"
+        },
+        {
+            "id": "q192",
+            "domain": "5",
+            "topic": "5.7",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What happens when a port security violation occurs in shutdown mode?",
+            "options": [
+                "The port sends a syslog message only",
+                "The port drops the violating frame",
+                "The port goes to err-disabled state",
+                "The switch reboots"
+            ],
+            "correct": 2,
+            "explanation": "In shutdown mode (default), the port is placed in err-disabled state when a violation occurs. This is the most secure but also most disruptive mode.",
+            "ciscoCommand": "switchport port-security violation shutdown"
+        },
+        {
+            "id": "q193",
+            "domain": "5",
+            "topic": "5.7",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What are the three port security violation modes?",
+            "options": [
+                "Block, Alert, Disable",
+                "Protect, Restrict, Shutdown",
+                "Drop, Log, Disable",
+                "Warn, Block, Shutdown"
+            ],
+            "correct": 1,
+            "explanation": "Protect silently drops violating traffic. Restrict drops and sends syslog. Shutdown puts the port in err-disabled state (default).",
+            "ciscoCommand": "switchport port-security violation restrict"
+        },
+        {
+            "id": "q194",
+            "domain": "5",
+            "topic": "5.7",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What is sticky MAC learning in port security?",
+            "options": [
+                "MAC addresses are permanently configured",
+                "Dynamically learned MACs are added to the running config",
+                "MACs cannot be changed after learning",
+                "A type of static MAC assignment"
+            ],
+            "correct": 1,
+            "explanation": "Sticky learning dynamically learns MAC addresses and adds them to the running-config as static entries, combining dynamic learning with persistence.",
+            "ciscoCommand": "switchport port-security mac-address sticky"
+        },
+        {
+            "id": "q195",
+            "domain": "5",
+            "topic": "5.7",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What command enables DHCP snooping globally?",
+            "options": [
+                "dhcp snooping enable",
+                "ip dhcp snooping",
+                "dhcp-guard enable",
+                "ip dhcp security"
+            ],
+            "correct": 1,
+            "explanation": "ip dhcp snooping enables DHCP snooping globally. You must also enable it per VLAN with ip dhcp snooping vlan <id>.",
+            "ciscoCommand": "ip dhcp snooping"
+        },
+        {
+            "id": "q196",
+            "domain": "5",
+            "topic": "5.6",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What is the difference between standard and extended ACLs?",
+            "options": [
+                "Standard filters by destination; extended by source",
+                "Standard filters by source only; extended filters by source, destination, protocol, and port",
+                "Standard is numbered; extended is named",
+                "Standard is faster"
+            ],
+            "correct": 1,
+            "explanation": "Standard ACLs (1-99) match only source IP. Extended ACLs (100-199) match source IP, destination IP, protocol, and port numbers.",
+            "ciscoCommand": "show access-lists"
+        },
+        {
+            "id": "q197",
+            "domain": "5",
+            "topic": "5.6",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "Where should you place a standard ACL?",
+            "options": [
+                "Close to the source",
+                "Close to the destination",
+                "On the core router",
+                "On the firewall only"
+            ],
+            "correct": 1,
+            "explanation": "Standard ACLs should be placed close to the destination because they only filter on source IP. Placing them at the source would block all traffic from that source.",
+            "ciscoCommand": "show access-lists"
+        },
+        {
+            "id": "q198",
+            "domain": "5",
+            "topic": "5.6",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "Where should you place an extended ACL?",
+            "options": [
+                "Close to the source",
+                "Close to the destination",
+                "On the default gateway",
+                "On the DNS server"
+            ],
+            "correct": 0,
+            "explanation": "Extended ACLs should be placed close to the source because they can match specific traffic. This prevents unnecessary traffic from traversing the network.",
+            "ciscoCommand": "show access-lists"
+        },
+        {
+            "id": "q199",
+            "domain": "5",
+            "topic": "5.6",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What does the 'host' keyword mean in an ACL?",
+            "options": [
+                "Match any host",
+                "Match a specific single IP (wildcard 0.0.0.0)",
+                "Match a subnet",
+                "Match the default gateway"
+            ],
+            "correct": 1,
+            "explanation": "'host 10.0.0.1' is shorthand for '10.0.0.1 0.0.0.0' \u2014 it matches exactly one IP address.",
+            "ciscoCommand": "show access-lists"
+        },
+        {
+            "id": "q200",
+            "domain": "5",
+            "topic": "5.6",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What is at the end of every ACL?",
+            "options": [
+                "Implicit permit all",
+                "Implicit deny all",
+                "A log entry",
+                "Nothing"
+            ],
+            "correct": 1,
+            "explanation": "Every ACL has an invisible implicit deny all at the end. Any traffic not explicitly permitted by an ACE will be denied.",
+            "ciscoCommand": "show access-lists"
+        },
+        {
+            "id": "q201",
+            "domain": "5",
+            "topic": "5.6",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "What command applies ACL 100 inbound on interface Gi0/0?",
+            "options": [
+                "access-group 100 in",
+                "ip access-group 100 in",
+                "ip access-list 100 in",
+                "apply acl 100 inbound"
+            ],
+            "correct": 1,
+            "explanation": "ip access-group <number/name> <in/out> applies an ACL to an interface in the specified direction (inbound or outbound).",
+            "ciscoCommand": "ip access-group 100 in"
+        },
+        {
+            "id": "q202",
+            "domain": "5",
+            "topic": "5.5",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What is the difference between a site-to-site VPN and a remote access VPN?",
+            "options": [
+                "Site-to-site uses SSL; remote access uses IPsec",
+                "Site-to-site connects networks; remote access connects individual users",
+                "Site-to-site is faster",
+                "Remote access is more secure"
+            ],
+            "correct": 1,
+            "explanation": "Site-to-site VPNs create encrypted tunnels between networks (office-to-office). Remote access VPNs connect individual users to a corporate network.",
+            "ciscoCommand": null
+        },
+        {
+            "id": "q203",
+            "domain": "5",
+            "topic": "5.8",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What do the three As in AAA stand for?",
+            "options": [
+                "Access, Audit, Authorization",
+                "Authentication, Authorization, Accounting",
+                "Authentication, Access, Auditing",
+                "Admin, Authorization, Accounting"
+            ],
+            "correct": 1,
+            "explanation": "Authentication (who are you?), Authorization (what can you do?), and Accounting (what did you do?) form the AAA security framework.",
+            "ciscoCommand": null
+        },
+        {
+            "id": "q204",
+            "domain": "5",
+            "topic": "5.8",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What is the difference between TACACS+ and RADIUS?",
+            "options": [
+                "TACACS+ uses UDP; RADIUS uses TCP",
+                "TACACS+ encrypts the entire packet; RADIUS only encrypts the password",
+                "RADIUS is Cisco proprietary",
+                "TACACS+ is an open standard"
+            ],
+            "correct": 1,
+            "explanation": "TACACS+ (Cisco) uses TCP port 49 and encrypts the entire packet. RADIUS (open standard) uses UDP ports 1812/1813 and only encrypts the password field.",
+            "ciscoCommand": null
+        },
+        {
+            "id": "q205",
+            "domain": "5",
+            "topic": "5.9",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What is the primary improvement of WPA3 over WPA2?",
+            "options": [
+                "Faster speeds",
+                "SAE replaces the 4-way handshake, preventing offline dictionary attacks",
+                "Longer passwords",
+                "Support for 5GHz only"
+            ],
+            "correct": 1,
+            "explanation": "WPA3 uses SAE (Simultaneous Authentication of Equals) which provides protection against offline dictionary attacks and forward secrecy.",
+            "ciscoCommand": null
+        },
+        {
+            "id": "q206",
+            "domain": "5",
+            "topic": "5.10",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What security method is commonly configured for enterprise wireless?",
+            "options": [
+                "WPA2-PSK",
+                "WPA2-Enterprise with 802.1X",
+                "WEP",
+                "MAC filtering only"
+            ],
+            "correct": 1,
+            "explanation": "WPA2-Enterprise uses 802.1X authentication with a RADIUS server, providing individual user credentials instead of a shared pre-shared key.",
+            "ciscoCommand": null
+        },
+        {
+            "id": "q207",
+            "domain": "5",
+            "topic": "5.1",
+            "difficulty": 1,
+            "type": "multiple-choice",
+            "question": "What is the difference between a threat, vulnerability, and exploit?",
+            "options": [
+                "They are all the same",
+                "Threat=potential danger, Vulnerability=weakness, Exploit=attack leveraging a vulnerability",
+                "Threat=software, Vulnerability=hardware, Exploit=user error",
+                "None of these"
+            ],
+            "correct": 1,
+            "explanation": "A threat is a potential danger, a vulnerability is a weakness in a system, and an exploit is the method used to take advantage of a vulnerability.",
+            "ciscoCommand": null
+        },
+        {
+            "id": "q208",
+            "domain": "6",
+            "topic": "6.3",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What is the difference between the control plane and data plane?",
+            "options": [
+                "Control plane forwards packets; data plane makes routing decisions",
+                "Control plane makes routing decisions; data plane forwards packets",
+                "They are the same",
+                "Control plane is hardware; data plane is software"
+            ],
+            "correct": 1,
+            "explanation": "The control plane runs routing protocols and builds the routing/forwarding tables. The data plane uses those tables to forward actual traffic.",
+            "ciscoCommand": null
+        },
+        {
+            "id": "q209",
+            "domain": "6",
+            "topic": "6.3",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What are Northbound and Southbound APIs in SDN?",
+            "options": [
+                "NB connects to users; SB connects to servers",
+                "NB connects apps to the controller; SB connects the controller to network devices",
+                "NB is for monitoring; SB is for configuration",
+                "They are the same API"
+            ],
+            "correct": 1,
+            "explanation": "Northbound APIs expose controller functionality to applications. Southbound APIs (like OpenFlow, NETCONF) communicate with network devices.",
+            "ciscoCommand": null
+        },
+        {
+            "id": "q210",
+            "domain": "6",
+            "topic": "6.4",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What is Cisco DNA Center?",
+            "options": [
+                "A DNS server",
+                "A centralized network management and automation platform",
+                "A routing protocol",
+                "A wireless access point"
+            ],
+            "correct": 1,
+            "explanation": "Cisco DNA Center is an intent-based networking controller that provides centralized management, automation, assurance, and security for campus networks.",
+            "ciscoCommand": null
+        },
+        {
+            "id": "q211",
+            "domain": "6",
+            "topic": "6.4",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What is intent-based networking?",
+            "options": [
+                "Manually configuring each device",
+                "Expressing business intent and having the network translate it to device configurations",
+                "Using AI to replace network engineers",
+                "A wireless technology"
+            ],
+            "correct": 1,
+            "explanation": "Intent-based networking allows admins to express what they want (intent), and the controller translates that into device-level configurations and validates compliance.",
+            "ciscoCommand": null
+        },
+        {
+            "id": "q212",
+            "domain": "6",
+            "topic": "6.2",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "How does controller-based networking differ from traditional networking?",
+            "options": [
+                "It's slower",
+                "A central controller manages the control plane; traditional uses distributed control on each device",
+                "It requires more hardware",
+                "There is no difference"
+            ],
+            "correct": 1,
+            "explanation": "In controller-based networking, the control plane is centralized on a controller (like DNA Center), while traditional networking has distributed control on each device.",
+            "ciscoCommand": null
+        },
+        {
+            "id": "q213",
+            "domain": "6",
+            "topic": "6.5",
+            "difficulty": 1,
+            "type": "multiple-choice",
+            "question": "What HTTP method is used to create a new resource in a REST API?",
+            "options": [
+                "GET",
+                "POST",
+                "PUT",
+                "DELETE"
+            ],
+            "correct": 1,
+            "explanation": "POST creates a new resource. GET retrieves, PUT updates/replaces, PATCH partially updates, and DELETE removes a resource.",
+            "ciscoCommand": null
+        },
+        {
+            "id": "q214",
+            "domain": "6",
+            "topic": "6.5",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What does CRUD stand for in REST APIs?",
+            "options": [
+                "Create, Read, Update, Delete",
+                "Copy, Retrieve, Upload, Download",
+                "Connect, Request, Utilize, Disconnect",
+                "Cache, Route, Update, Deploy"
+            ],
+            "correct": 0,
+            "explanation": "CRUD maps to HTTP methods: Create=POST, Read=GET, Update=PUT/PATCH, Delete=DELETE.",
+            "ciscoCommand": null
+        },
+        {
+            "id": "q215",
+            "domain": "6",
+            "topic": "6.6",
+            "difficulty": 1,
+            "type": "multiple-choice",
+            "question": "Which configuration management tool uses playbooks written in YAML?",
+            "options": [
+                "Puppet",
+                "Chef",
+                "Ansible",
+                "SaltStack"
+            ],
+            "correct": 2,
+            "explanation": "Ansible uses YAML playbooks for configuration management. It is agentless (uses SSH) unlike Puppet (uses agents) and Chef (uses agents).",
+            "ciscoCommand": "show running-config"
+        },
+        {
+            "id": "q216",
+            "domain": "6",
+            "topic": "6.6",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What is the key advantage of Ansible over Puppet for network devices?",
+            "options": [
+                "Ansible is faster",
+                "Ansible is agentless \u2014 uses SSH, no software needed on managed devices",
+                "Ansible supports more vendors",
+                "Ansible is open source"
+            ],
+            "correct": 1,
+            "explanation": "Ansible is agentless, connecting via SSH. This is ideal for network devices that can't run agents. Puppet and Chef require agents installed on managed nodes.",
+            "ciscoCommand": null
+        },
+        {
+            "id": "q217",
+            "domain": "6",
+            "topic": "6.7",
+            "difficulty": 1,
+            "type": "multiple-choice",
+            "question": "In JSON, what symbol encloses an object?",
+            "options": [
+                "[ ]",
+                "( )",
+                "{ }",
+                "< >"
+            ],
+            "correct": 2,
+            "explanation": "JSON objects are enclosed in curly braces {}. Arrays use square brackets []. Keys are strings in double quotes followed by colon and value.",
+            "ciscoCommand": null
+        },
+        {
+            "id": "q218",
+            "domain": "1",
+            "topic": "1.1",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "A network engineer runs 'show interfaces gi0/1' and sees the following output:\n\nGigabitEthernet0/1 is up, line protocol is up\n  Hardware is Gigabit Ethernet, address is 0023.33aa.bb01\n  Full-duplex, 1000Mb/s\n  1247 CRC errors, 0 collisions, 89 giants, 0 runts\n\nWhich is the MOST LIKELY cause of the CRC errors?",
+            "options": [
+                "A duplex mismatch between this port and the connected device",
+                "A bad cable, damaged SFP, or Layer 1 physical issue",
+                "The connected device is sending frames larger than the MTU",
+                "The switch port is running at the wrong speed"
+            ],
+            "correct": 1,
+            "explanation": "CRC errors with full-duplex and 0 collisions point to a Layer 1 physical problem \u2014 bad cable, damaged connector, or faulty SFP. A) Duplex mismatch would produce late collisions on the half-duplex side, not CRC errors with 0 collisions. C) Frames larger than MTU cause giants, which are also present but giants alone don't cause CRC errors \u2014 CRC errors mean the frame check sequence failed, indicating signal corruption. D) Speed mismatch would typically cause the interface to go down or show constant errors, not just CRC errors.",
+            "ciscoCommand": "show interfaces gi0/1"
+        },
+        {
+            "id": "q219",
+            "domain": "1",
+            "topic": "1.1",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "A router's GigabitEthernet0/0 interface shows 'up/up' but the connected switch port shows 'up/down'. What is the MOST LIKELY explanation?",
+            "options": [
+                "There is a Layer 1 problem with the cable between the devices",
+                "The switch port has been administratively shut down",
+                "This scenario is impossible \u2014 if one side is up/up the other cannot be up/down",
+                "STP is blocking the switch port"
+            ],
+            "correct": 2,
+            "explanation": "This scenario is indeed impossible under normal operation. If the physical layer (line) is up on the router side, the switch must also see link on that port. B) An administratively shut port would show 'administratively down/down', not 'up/down'. C) This is the correct answer \u2014 one side cannot be up/up while the other side's line protocol is down on a direct connection. D) STP blocking does not change the interface status to up/down; a blocked port still shows up/up. The question tests whether you recognize an impossible state in show output.",
+            "ciscoCommand": "show interfaces status"
+        },
+        {
+            "id": "q220",
+            "domain": "1",
+            "topic": "1.3",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "A company has a collapsed core/distribution design using two Layer 3 switches. Each access switch has a single uplink to one of the two core switches. Inter-VLAN routing is handled by the core switches. If Core Switch A fails, what happens to hosts on access switches connected ONLY to Core Switch A?",
+            "options": [
+                "They lose inter-VLAN routing but can still communicate within their local VLAN",
+                "They lose all network connectivity since their only uplink is down",
+                "STP reconverges and traffic is rerouted through Core Switch B",
+                "HSRP or VRRP automatically redirects traffic to Core Switch B"
+            ],
+            "correct": 1,
+            "explanation": "With only a single uplink to Core Switch A, if that switch fails the physical path is broken entirely. B) This is correct \u2014 the access switch has no alternate physical path. There is no redundant link to Core Switch B. C) STP cannot reroute traffic because there is no alternate physical link \u2014 STP works with redundant links, not missing links. D) HSRP/VRRP provide gateway redundancy but require the access switch to have a path to the backup gateway, which it does not. Even local VLAN traffic on the same access switch would still work between ports on that switch, making A partially true but misleading \u2014 the question asks about hosts that need to reach the core.",
+            "ciscoCommand": "show spanning-tree"
+        },
+        {
+            "id": "q221",
+            "domain": "1",
+            "topic": "1.3",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "In a three-tier campus architecture, which layer is PRIMARILY responsible for applying network access policies and QoS marking?",
+            "options": [
+                "Core layer",
+                "Distribution layer",
+                "Access layer",
+                "Both the core and distribution layers share this responsibility"
+            ],
+            "correct": 1,
+            "explanation": "The distribution layer is the policy enforcement point in a three-tier design. It handles access control lists, QoS policy marking, route summarization, and inter-VLAN routing. A) The core layer should be kept fast and simple \u2014 no policy enforcement, no ACLs, no QoS marking. C) While QoS trust boundaries may start at the access layer, the primary policy enforcement and marking decisions are at distribution. D) The core layer should never apply policies \u2014 that adds latency to the high-speed backbone.",
+            "ciscoCommand": null
+        },
+        {
+            "id": "q222",
+            "domain": "1",
+            "topic": "1.4",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "A switch has the following interface configured:\n\ninterface GigabitEthernet0/1\n  switchport mode trunk\n  switchport trunk native vlan 99\n  switchport trunk allowed vlan 10,20,30\n\nA frame arrives tagged with VLAN 99. What does the switch do?",
+            "options": [
+                "It forwards the frame normally on VLAN 99",
+                "It drops the frame because VLAN 99 is not in the allowed VLAN list",
+                "It forwards the frame as untagged on the trunk since 99 is the native VLAN",
+                "It strips the tag and forwards on VLAN 99 after adding it to the allowed list automatically"
+            ],
+            "correct": 1,
+            "explanation": "The allowed VLAN list on the trunk is 10, 20, and 30. VLAN 99 is NOT in the allowed list. Even though VLAN 99 is configured as the native VLAN, it is still filtered by the allowed VLAN list. The frame is dropped. A) VLAN 99 would need to be in the allowed list to be forwarded. C) This would be true if VLAN 99 were in the allowed list, but it is explicitly excluded. D) Cisco switches do not auto-add VLANs to the allowed list. This is a common misconfiguration \u2014 admins set a native VLAN but forget to add it to the allowed VLAN list.",
+            "ciscoCommand": "show interfaces trunk"
+        },
+        {
+            "id": "q223",
+            "domain": "1",
+            "topic": "1.5",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "An administrator sees port 443 traffic blocked by a firewall but port 80 traffic is allowed. Users can browse http://example.com but not https://example.com. Which protocol and transport layer details explain this?",
+            "options": [
+                "HTTP uses TCP/80 and HTTPS uses UDP/443",
+                "HTTP uses TCP/80 and HTTPS uses TCP/443",
+                "HTTP uses UDP/80 and HTTPS uses TCP/443",
+                "HTTP uses TCP/80 and HTTPS uses TCP/443, but HTTPS also requires UDP/443 for the TLS handshake"
+            ],
+            "correct": 1,
+            "explanation": "HTTP uses TCP port 80 and HTTPS uses TCP port 443. Both are TCP-based. A) HTTPS does not use UDP/443 \u2014 it runs TLS over TCP. C) HTTP uses TCP, not UDP. D) The TLS handshake occurs entirely over TCP/443 \u2014 there is no UDP requirement for HTTPS. The newer QUIC/HTTP3 protocol does use UDP/443, but standard HTTPS does not, and the CCNA exam tests standard HTTPS.",
+            "ciscoCommand": null
+        },
+        {
+            "id": "q224",
+            "domain": "1",
+            "topic": "1.5",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "Which of the following protocols uses the SAME port number for BOTH TCP and UDP?",
+            "options": [
+                "TFTP (port 69) and FTP data (port 20)",
+                "DNS (port 53) and SNMP (port 161/162)",
+                "DNS (port 53) and Syslog (port 514)",
+                "DNS (port 53) and NTP (port 123)"
+            ],
+            "correct": 2,
+            "explanation": "The question asks which protocols use the SAME port for both TCP and UDP. DNS uses port 53 for both TCP (zone transfers, large responses) and UDP (standard queries). Syslog uses port 514 for both UDP (traditional) and TCP (reliable syslog per RFC 3195). A) TFTP is UDP-only (port 69), and FTP data (port 20) is TCP-only. B) DNS uses both TCP/UDP on 53, but SNMP uses only UDP on 161/162. D) DNS qualifies, but NTP uses only UDP on port 123. The correct pair where BOTH protocols individually use the same port for TCP and UDP is DNS and Syslog.",
+            "ciscoCommand": null
+        },
+        {
+            "id": "q225",
+            "domain": "1",
+            "topic": "1.5",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "A network admin configures an ACL to block Telnet but allow SSH. Which port numbers should be specified in the ACL?",
+            "options": [
+                "Block TCP 22, permit TCP 23",
+                "Block TCP 23, permit TCP 22",
+                "Block TCP 23, permit UDP 22",
+                "Block UDP 23, permit TCP 22"
+            ],
+            "correct": 1,
+            "explanation": "Telnet uses TCP port 23 and SSH uses TCP port 22. Both are TCP-based. B) This is correct. A) This reverses the port numbers \u2014 blocking 22 would block SSH and permitting 23 would permit Telnet, the opposite of what's desired. C) SSH uses TCP, not UDP. D) Telnet uses TCP, not UDP.",
+            "ciscoCommand": "show access-lists"
+        },
+        {
+            "id": "q226",
+            "domain": "1",
+            "topic": "1.5",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "A user reports that SFTP file transfers are being blocked. The firewall admin checks the rules and sees that TCP port 21 is permitted. Why are SFTP transfers still failing?",
+            "options": [
+                "SFTP requires both TCP port 21 and a range of high ports for data transfer",
+                "SFTP uses TCP port 22, not port 21 \u2014 it runs over SSH, not FTP",
+                "SFTP uses TCP port 990 for implicit TLS connections",
+                "SFTP requires UDP port 69 which is being blocked"
+            ],
+            "correct": 1,
+            "explanation": "SFTP (SSH File Transfer Protocol) runs over SSH on TCP port 22. It is NOT related to FTP despite the similar name. A) This describes FTP (active mode), not SFTP. Port 21 is FTP control. C) Port 990 is FTPS (FTP over implicit TLS), which is also different from SFTP. D) UDP port 69 is TFTP, a completely different protocol. This is one of the most common confusion points: SFTP != FTP over SSL. SFTP = file transfer over SSH (port 22). FTPS = FTP over TLS (port 990 implicit or 21 explicit).",
+            "ciscoCommand": null
+        },
+        {
+            "id": "q227",
+            "domain": "1",
+            "topic": "1.6",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "A host has the IP address 172.16.45.200/21. What is the network address and broadcast address of this subnet?",
+            "options": [
+                "Network: 172.16.40.0, Broadcast: 172.16.47.255",
+                "Network: 172.16.45.0, Broadcast: 172.16.45.255",
+                "Network: 172.16.44.0, Broadcast: 172.16.47.255",
+                "Network: 172.16.32.0, Broadcast: 172.16.63.255"
+            ],
+            "correct": 0,
+            "explanation": "/21 means 255.255.248.0. The block size in the third octet is 256-248=8. To find the network, divide 45 by 8: 45/8 = 5 remainder 5, so the network starts at 5*8=40. Network: 172.16.40.0, broadcast: 172.16.47.255. B) This assumes /24, not /21. C) 44 is not a multiple of the block size 8. D) This would be /19 (block size 32).",
+            "ciscoCommand": "show ip interface brief"
+        },
+        {
+            "id": "q228",
+            "domain": "1",
+            "topic": "1.6",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "You need to create exactly 14 subnets from the 10.0.0.0/8 network, each supporting at least 1000 hosts. Which subnet mask should you use?",
+            "options": [
+                "/18 (255.255.192.0)",
+                "/20 (255.255.240.0)",
+                "/22 (255.255.252.0)",
+                "/12 (255.240.0.0)"
+            ],
+            "correct": 2,
+            "explanation": "You need at least 14 subnets with 1000+ hosts each. /22 gives 2^14 = 16384 subnets from a /8 (borrowing 14 bits), but that's wrong \u2014 let's think from /8. From /8 to /22 borrows 14 host bits for subnets = 2^14 subnets, each with 2^10-2 = 1022 hosts. That satisfies both requirements. A) /18 from /8 borrows 10 bits = 1024 subnets, each with 2^14-2 = 16382 hosts \u2014 wastes massive address space. B) /20 from /8 borrows 12 bits = 4096 subnets, each with 2^12-2 = 4094 hosts \u2014 also works but wastes more than /22. D) /12 from /8 borrows 4 bits = 16 subnets with 2^20-2 = 1048574 hosts \u2014 enough subnets but grossly wasteful. The BEST answer is /22: it provides enough subnets (16384 > 14) and enough hosts (1022 > 1000) with the most efficient use of address space.",
+            "ciscoCommand": null
+        },
+        {
+            "id": "q229",
+            "domain": "1",
+            "topic": "1.6",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "Which of the following IP addresses is in the SAME subnet as 192.168.100.77/27?",
+            "options": [
+                "192.168.100.95",
+                "192.168.100.96",
+                "192.168.100.63",
+                "192.168.100.65"
+            ],
+            "correct": 0,
+            "explanation": "/27 has a block size of 32. 77/32 = 2 remainder 13, so the subnet starts at 64 and the broadcast is 95. The valid range is 192.168.100.64-95. A) 95 is the broadcast address of this subnet \u2014 it is IN the subnet (the question asks same subnet, not valid host). B) 96 is the first address of the NEXT subnet (96-127). C) 63 is in the previous subnet (32-63). D) 65 is in the same subnet (64-95). Both A and D are in the same subnet, but 95 is the broadcast \u2014 still part of the subnet. Since both A and D qualify, but D is a valid host address, the trap is recognizing that 95 IS in the subnet even though it's the broadcast.",
+            "ciscoCommand": null
+        },
+        {
+            "id": "q230",
+            "domain": "1",
+            "topic": "1.6",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "A network has the address 10.10.128.0/17. How many usable host addresses are available?",
+            "options": [
+                "32,766",
+                "32,768",
+                "65,534",
+                "65,536"
+            ],
+            "correct": 0,
+            "explanation": "/17 leaves 15 host bits. 2^15 = 32768 total addresses. Subtract 2 for network and broadcast = 32766 usable hosts. B) 32768 includes network and broadcast \u2014 not usable. C) 65534 would be /16, not /17. D) 65536 would be /16 without subtracting network and broadcast.",
+            "ciscoCommand": null
+        },
+        {
+            "id": "q231",
+            "domain": "1",
+            "topic": "1.6",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "An ISP assigns you 203.0.113.0/24. You need 5 subnets: one with 100 hosts, one with 50, one with 25, one with 10, and one with 2 (point-to-point link). Using VLSM, what is the subnet mask for the 100-host subnet?",
+            "options": [
+                "/25 (255.255.255.128)",
+                "/26 (255.255.255.192)",
+                "/24 (255.255.255.0)",
+                "/27 (255.255.255.224)"
+            ],
+            "correct": 0,
+            "explanation": "With VLSM, allocate the largest subnet first. 100 hosts requires at least 7 host bits (2^7-2=126 usable). That is a /25 (128 addresses). A) /25 gives 126 usable hosts \u2014 this is the smallest mask that fits 100 hosts. B) /26 gives only 62 usable hosts \u2014 not enough for 100. C) /24 gives 254 hosts \u2014 works but wastes the entire remaining address space for one subnet. D) /27 gives only 30 usable hosts \u2014 far too small.",
+            "ciscoCommand": null
+        },
+        {
+            "id": "q232",
+            "domain": "1",
+            "topic": "1.6",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What is the valid host range for the subnet 172.16.16.0/22?",
+            "options": [
+                "172.16.16.1 to 172.16.19.254",
+                "172.16.16.1 to 172.16.16.254",
+                "172.16.16.1 to 172.16.31.254",
+                "172.16.16.0 to 172.16.19.255"
+            ],
+            "correct": 0,
+            "explanation": "/22 has a block size of 4 in the third octet (255.255.252.0). Network: 172.16.16.0, broadcast: 172.16.19.255. Valid host range is 172.16.16.1 to 172.16.19.254. B) This assumes /24. C) This would be /20 (block size 16). D) This includes the network address and broadcast address, which are not valid host addresses.",
+            "ciscoCommand": null
+        },
+        {
+            "id": "q233",
+            "domain": "1",
+            "topic": "1.6",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "A router has interface Gi0/0 with IP 10.1.1.1/30 and interface Gi0/1 with IP 10.1.1.5/30. A packet destined for 10.1.1.7 arrives on Gi0/0. What does the router do?",
+            "options": [
+                "Routes the packet out Gi0/1 because 10.1.1.7 is on the 10.1.1.4/30 subnet",
+                "Drops the packet because 10.1.1.7 is a broadcast address, and routers do not forward broadcasts",
+                "Routes the packet out Gi0/0 because both addresses are in the 10.1.1.0/24 network",
+                "Sends an ICMP redirect back to the source"
+            ],
+            "correct": 1,
+            "explanation": "10.1.1.4/30 has network 10.1.1.4, valid hosts 10.1.1.5-6, and broadcast 10.1.1.7. The destination 10.1.1.7 is a directed broadcast for the 10.1.1.4/30 subnet. By default, Cisco routers do NOT forward directed broadcasts (ip directed-broadcast is disabled by default since IOS 12.0). The router drops it. A) While 10.1.1.7 is on the Gi0/1 subnet, it's the broadcast address \u2014 the router won't forward it by default. C) The router uses longest-prefix matching (/30), not /24. D) ICMP redirects are for when a better path exists on the same segment the packet arrived on.",
+            "ciscoCommand": "show ip interface gi0/1"
+        },
+        {
+            "id": "q234",
+            "domain": "1",
+            "topic": "1.7",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "Which of the following IP addresses is a private address that could appear on an internal corporate network?",
+            "options": [
+                "172.32.1.1",
+                "192.169.1.1",
+                "10.255.255.1",
+                "169.254.1.1"
+            ],
+            "correct": 2,
+            "explanation": "RFC 1918 private ranges are: 10.0.0.0/8 (10.0.0.0-10.255.255.255), 172.16.0.0/12 (172.16.0.0-172.31.255.255), 192.168.0.0/16 (192.168.0.0-192.168.255.255). C) 10.255.255.1 falls within 10.0.0.0/8 \u2014 private. A) 172.32.1.1 is outside the 172.16-31 range \u2014 it's public. B) 192.169.1.1 is outside 192.168.x.x \u2014 it's public. D) 169.254.x.x is APIPA (link-local), not RFC 1918 private. It's used for auto-configuration when DHCP fails.",
+            "ciscoCommand": null
+        },
+        {
+            "id": "q235",
+            "domain": "1",
+            "topic": "1.7",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "A router performing NAT has the following translation entry:\n\nPro  Inside global     Inside local      Outside local     Outside global\ntcp  203.0.113.5:1024  192.168.1.10:4567 93.184.216.34:80  93.184.216.34:80\n\nA packet arrives from the internet with destination 203.0.113.5:1024. Which address does the router translate the destination to?",
+            "options": [
+                "93.184.216.34:80",
+                "192.168.1.10:4567",
+                "192.168.1.10:1024",
+                "203.0.113.5:4567"
+            ],
+            "correct": 1,
+            "explanation": "For return traffic from the internet, the router translates the Inside Global address (203.0.113.5:1024) back to the Inside Local address (192.168.1.10:4567). This is PAT (Port Address Translation) in action. A) This is the outside address \u2014 the router doesn't translate the destination to the outside address for inbound traffic. C) The port is also translated \u2014 the original internal port was 4567, not 1024. D) This mixes the global IP with the local port.",
+            "ciscoCommand": "show ip nat translations"
+        },
+        {
+            "id": "q236",
+            "domain": "1",
+            "topic": "1.8",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "Which of the following is a valid shortened form of the IPv6 address 2001:0db8:0000:0000:0000:0000:0000:0001?",
+            "options": [
+                "2001:db8::1",
+                "2001:db8:0:0:0:0:0:1",
+                "2001:db8::0:0:0:0:1",
+                "All of the above are valid"
+            ],
+            "correct": 3,
+            "explanation": "All three representations are valid. A) Uses :: to replace the longest consecutive run of all-zero groups \u2014 this is the most compressed form and valid. B) Removes leading zeros from each group but does not use :: \u2014 valid. C) Uses :: to replace some zero groups but explicitly writes others \u2014 valid, though not the most efficient. IPv6 allows any valid shortening as long as :: appears at most once. All three resolve to the same address.",
+            "ciscoCommand": null
+        },
+        {
+            "id": "q237",
+            "domain": "1",
+            "topic": "1.8",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "Which of the following IPv6 addresses is INVALID?",
+            "options": [
+                "2001:db8::1::2",
+                "fe80::1%eth0",
+                "::ffff:192.168.1.1",
+                "2001:0db8:85a3::8a2e:0370:7334"
+            ],
+            "correct": 0,
+            "explanation": "A) INVALID \u2014 the :: can only appear ONCE in an IPv6 address. Using it twice creates ambiguity because the parser cannot determine how many groups each :: represents. B) Valid \u2014 this is a link-local address with a zone ID (%eth0), used to specify the interface. C) Valid \u2014 this is an IPv4-mapped IPv6 address (::ffff: prefix). D) Valid \u2014 :: replaces a single group of zeros (0000), and the total is 8 groups.",
+            "ciscoCommand": null
+        },
+        {
+            "id": "q238",
+            "domain": "1",
+            "topic": "1.8",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "An interface is configured with the IPv6 address 2001:db8:1::1/64. Which IPv6 address is automatically present on this interface WITHOUT any additional configuration?",
+            "options": [
+                "ff02::1 (all-nodes multicast)",
+                "fe80::1 (link-local address)",
+                "A link-local address derived from the interface's MAC address or randomly generated",
+                "::1 (loopback)"
+            ],
+            "correct": 2,
+            "explanation": "When any IPv6 address is configured on an interface, a link-local address (fe80::/10) is automatically generated using either EUI-64 (from the MAC address) or a random identifier, depending on the OS. The interface also joins solicited-node multicast groups. A) ff02::1 is a multicast group the interface joins (listens to), not an address assigned to the interface. B) The link-local won't be exactly fe80::1 unless manually configured \u2014 it's derived from the MAC or randomly generated. D) ::1 is only on the loopback interface, not on physical interfaces.",
+            "ciscoCommand": "show ipv6 interface gi0/0"
+        },
+        {
+            "id": "q239",
+            "domain": "1",
+            "topic": "1.8",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "A host sends a packet to ff02::1:ff00:1. What type of address is this and what is its purpose?",
+            "options": [
+                "All-nodes multicast \u2014 reaches every IPv6 node on the link",
+                "All-routers multicast \u2014 reaches every router on the link",
+                "Solicited-node multicast \u2014 used for Neighbor Discovery to find a specific host's MAC address",
+                "Anycast \u2014 reaches the nearest router advertising that prefix"
+            ],
+            "correct": 2,
+            "explanation": "ff02::1:ff00:1 is a solicited-node multicast address (ff02::1:ff + last 24 bits of the unicast address). It is used by Neighbor Discovery Protocol (NDP) instead of ARP. When a host needs to resolve an IPv6 address to a MAC, it sends a Neighbor Solicitation to the solicited-node multicast address. A) All-nodes is ff02::1, not ff02::1:ff00:1. B) All-routers is ff02::2. D) Anycast addresses are indistinguishable from unicast in format.",
+            "ciscoCommand": "show ipv6 neighbors"
+        },
+        {
+            "id": "q240",
+            "domain": "1",
+            "topic": "1.9",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "Which statement about IPv6 SLAAC (Stateless Address Autoconfiguration) is TRUE?",
+            "options": [
+                "SLAAC requires a DHCPv6 server to provide the default gateway",
+                "SLAAC uses Router Advertisement messages to provide the prefix and default gateway",
+                "SLAAC provides DNS server addresses in the Router Advertisement by default on Cisco routers",
+                "SLAAC cannot be used with DHCPv6 \u2014 they are mutually exclusive"
+            ],
+            "correct": 1,
+            "explanation": "SLAAC uses Router Advertisements (RA) from ICMPv6 to provide the network prefix, prefix length, and default gateway. The host generates its own interface ID. A) SLAAC does NOT need DHCPv6 for the gateway \u2014 the RA message includes the router's link-local address as the default gateway. C) By default, Cisco routers do not include DNS info in RAs. RDNSS (RFC 8106) can add DNS to RAs, but it's not default. Typically, DNS is provided by stateless DHCPv6. D) SLAAC can work alongside stateless DHCPv6 (for DNS, etc.) \u2014 they are complementary, not exclusive.",
+            "ciscoCommand": "show ipv6 interface"
+        },
+        {
+            "id": "q241",
+            "domain": "1",
+            "topic": "1.9",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "A router advertises a /64 prefix via SLAAC with the M flag set to 0 and the O flag set to 1. What behavior will a properly configured IPv6 host exhibit?",
+            "options": [
+                "The host ignores SLAAC and obtains its address entirely from DHCPv6",
+                "The host uses SLAAC for its address and prefix, then contacts a DHCPv6 server for other information like DNS",
+                "The host uses SLAAC for the prefix and DHCPv6 for the interface ID portion of the address",
+                "The host ignores the RA entirely because the flags conflict"
+            ],
+            "correct": 1,
+            "explanation": "M=0 means 'do not use DHCPv6 for address assignment' and O=1 means 'use DHCPv6 for other configuration' (DNS, NTP, etc.). The host builds its own address via SLAAC and contacts a stateless DHCPv6 server for additional parameters. A) M=0 means don't get address from DHCPv6. C) The interface ID is always self-generated in SLAAC (EUI-64 or random) \u2014 DHCPv6 never provides just the interface ID. D) M=0, O=1 is a valid and common combination.",
+            "ciscoCommand": "show ipv6 interface"
+        },
+        {
+            "id": "q242",
+            "domain": "1",
+            "topic": "1.10",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "Which verification step confirms that a Cisco switch has been assigned an IP address for remote management?",
+            "options": [
+                "show ip interface brief \u2014 check the VLAN interface status and IP",
+                "show interfaces \u2014 check the physical port IP assignments",
+                "show ip route \u2014 verify the management subnet is in the routing table",
+                "show running-config \u2014 look for ip address under each physical interface"
+            ],
+            "correct": 0,
+            "explanation": "On a Layer 2 switch, the management IP is assigned to a VLAN interface (SVI), typically VLAN 1 or a dedicated management VLAN. 'show ip interface brief' shows all interfaces including SVIs with their IP addresses and status. B) Physical switch ports don't have IP addresses in Layer 2 mode. C) show ip route works on Layer 3 switches but on a basic L2 switch the routing table is minimal. D) While running-config shows the configuration, it's not a verification of operational status \u2014 the SVI could be configured but down.",
+            "ciscoCommand": "show ip interface brief"
+        },
+        {
+            "id": "q243",
+            "domain": "1",
+            "topic": "1.11",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "A PC at 192.168.1.50/24 with default gateway 192.168.1.1 attempts to reach 10.1.1.100. Pinging 192.168.1.1 succeeds. Pinging 10.1.1.100 fails. The router at 192.168.1.1 has a route to 10.1.1.0/24. What should you check NEXT?",
+            "options": [
+                "Verify that the return route exists on the remote network back to 192.168.1.0/24",
+                "Check if the PC has the correct subnet mask",
+                "Verify that the PC's default gateway MAC address is in its ARP table",
+                "Check if ICMP is being blocked by a firewall on the PC"
+            ],
+            "correct": 0,
+            "explanation": "The PC can reach its gateway (ping succeeds), so the local network and gateway are fine. The router has a route to the destination. The most likely issue is asymmetric routing \u2014 the remote device at 10.1.1.100 receives the ping but has no route back to 192.168.1.0/24 (or its gateway doesn't). Always check the return path. B) The subnet mask is likely correct since local communication works. C) The gateway MAC is resolved since pings to 192.168.1.1 work. D) Possible but unlikely \u2014 firewall on the PC would typically block incoming, not outgoing ICMP.",
+            "ciscoCommand": "show ip route"
+        },
+        {
+            "id": "q244",
+            "domain": "1",
+            "topic": "1.11",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "A router shows the following output:\n\nRouter# show ip route\nS    10.0.0.0/8 [1/0] via 192.168.1.2\nC    192.168.1.0/24 is directly connected, GigabitEthernet0/0\n\nA packet arrives for destination 10.5.5.5. The router sends it to 192.168.1.2, but that next-hop router has no route for 10.5.5.5. What does the next-hop router do?",
+            "options": [
+                "Forwards the packet using its default route if one exists",
+                "Drops the packet silently",
+                "Drops the packet and sends an ICMP Destination Unreachable back to the source",
+                "Sends the packet back to the first router"
+            ],
+            "correct": 2,
+            "explanation": "When a router has no matching route in its routing table and no default route, it drops the packet and sends an ICMP Destination Unreachable (Type 3, Code 0 \u2014 Network Unreachable) back to the source. A) Only if a default route exists \u2014 the question states there is no route. B) Routers don't drop silently \u2014 they send ICMP unreachable by default (unless 'no ip unreachables' is configured). D) Sending it back would create a loop. The router doesn't know where to forward it, so it drops and notifies.",
+            "ciscoCommand": "show ip route"
+        },
+        {
+            "id": "q245",
+            "domain": "1",
+            "topic": "1.11",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "A network admin runs 'traceroute 10.1.1.1' from a router and sees:\n\n1  192.168.1.2  4ms  3ms  4ms\n2  * * *\n3  10.1.1.1  8ms  7ms  8ms\n\nWhat is the MOST LIKELY reason for the * * * at hop 2?",
+            "options": [
+                "The router at hop 2 is down or unreachable",
+                "The router at hop 2 has an ACL blocking ICMP Time Exceeded messages or is configured with 'no ip unreachables'",
+                "There is packet loss between hop 1 and hop 3",
+                "The TTL value was set too low for the traceroute"
+            ],
+            "correct": 1,
+            "explanation": "Since hop 3 responds successfully, the path is clearly working. The * * * means the router at hop 2 is not sending ICMP Time Exceeded replies. This is typically because the router has an ACL filtering ICMP, has 'no ip unreachables' configured, or rate-limits ICMP responses. A) If hop 2 were down, hop 3 would be unreachable too. C) If there were packet loss, hop 3 would also show * for some probes. D) TTL too low would cause the traceroute to stop, not show a gap.",
+            "ciscoCommand": "traceroute"
+        },
+        {
+            "id": "q246",
+            "domain": "1",
+            "topic": "1.12",
+            "difficulty": 1,
+            "type": "multiple-choice",
+            "question": "Which device operates at Layer 3 of the OSI model and makes forwarding decisions based on IP addresses?",
+            "options": [
+                "Hub",
+                "Switch",
+                "Router",
+                "Bridge"
+            ],
+            "correct": 2,
+            "explanation": "Routers operate at Layer 3 (Network) and forward packets based on destination IP addresses using routing tables. A) Hubs operate at Layer 1 \u2014 they repeat signals to all ports. B) Switches operate at Layer 2 (by default) and forward frames based on MAC addresses. D) Bridges also operate at Layer 2. Note: Layer 3 switches can route, but the generic term 'switch' implies Layer 2.",
+            "ciscoCommand": null
+        },
+        {
+            "id": "q247",
+            "domain": "1",
+            "topic": "1.12",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "A next-generation firewall (NGFW) inspects a packet and determines it contains SQL injection in the HTTP payload. At which OSI layer did the firewall make this determination?",
+            "options": [
+                "Layer 4 (Transport) \u2014 the firewall checked the TCP port number",
+                "Layer 5 (Session) \u2014 the firewall tracked the HTTP session state",
+                "Layer 7 (Application) \u2014 the firewall performed deep packet inspection on the HTTP content",
+                "Layer 3 (Network) \u2014 the firewall matched an ACL based on source/destination IP"
+            ],
+            "correct": 2,
+            "explanation": "SQL injection detection requires inspecting the actual application-layer payload (HTTP request body/parameters). This is Layer 7 (Application) deep packet inspection. A) Layer 4 only sees port numbers and TCP flags \u2014 cannot inspect payload content. B) Layer 5 manages sessions but does not inspect application content. D) Layer 3 only works with IP addresses and headers. NGFWs operate up to Layer 7, which is what differentiates them from traditional firewalls.",
+            "ciscoCommand": null
+        },
+        {
+            "id": "q248",
+            "domain": "1",
+            "topic": "1.13",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "In a Cisco SD-WAN deployment using controller-based networking, which component is responsible for centralized policy configuration and pushing it to the edge devices?",
+            "options": [
+                "vBond (Orchestrator)",
+                "vSmart (Controller)",
+                "vManage (Management)",
+                "vEdge/cEdge (Edge Router)"
+            ],
+            "correct": 2,
+            "explanation": "vManage is the centralized management plane where administrators configure policies, templates, and monitor the SD-WAN fabric. It pushes configurations to edge devices. A) vBond is the orchestrator that handles initial authentication and discovery of SD-WAN components. B) vSmart is the controller that distributes control-plane information (routes, policies) but the admin configures policies through vManage first. D) vEdge/cEdge are the data-plane devices at branch sites.",
+            "ciscoCommand": null
+        },
+        {
+            "id": "q249",
+            "domain": "1",
+            "topic": "1.13",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "In a controller-based network architecture, which plane is separated from the data plane and moved to a centralized controller?",
+            "options": [
+                "Management plane",
+                "Control plane",
+                "Data plane",
+                "Both the management and control planes"
+            ],
+            "correct": 1,
+            "explanation": "Controller-based networking (SDN) centralizes the control plane \u2014 the intelligence that makes forwarding decisions (routing protocols, path computation, policy decisions). The data plane remains on the network devices to forward traffic at line rate. A) The management plane may also be centralized (e.g., vManage), but the defining characteristic of SDN is control-plane separation. C) The data plane stays distributed on the devices. D) While management is often centralized too, the exam-correct answer for what defines controller-based networking is the control plane separation.",
+            "ciscoCommand": null
+        },
+        {
+            "id": "q250",
+            "domain": "1",
+            "topic": "1.2",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "A fiber optic cable connecting two buildings uses single-mode fiber (SMF). Which statement about this connection is TRUE?",
+            "options": [
+                "SMF uses LED light sources and supports distances up to 550 meters",
+                "SMF uses laser light sources and supports distances up to tens of kilometers",
+                "SMF has a larger core diameter than multimode fiber, allowing more light modes",
+                "SMF is preferred for short runs within a building due to lower cost"
+            ],
+            "correct": 1,
+            "explanation": "Single-mode fiber uses laser light sources, has a small core (8-10 micron), and supports distances of 10+ kilometers. A) LED sources and 550m distance describe multimode fiber. C) SMF has a SMALLER core than MMF (8-10 micron vs 50-62.5 micron) \u2014 only one mode of light propagates. D) MMF is preferred for short runs due to lower transceiver costs; SMF is used for long runs between buildings.",
+            "ciscoCommand": null
+        },
+        {
+            "id": "q251",
+            "domain": "1",
+            "topic": "1.2",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "An administrator connects a 1000BASE-LX SFP (single-mode, 1310nm) on one end of a fiber link to a 1000BASE-SX SFP (multimode, 850nm) on the other end. What happens?",
+            "options": [
+                "The link negotiates to the lowest common speed and works at reduced distance",
+                "The link comes up but experiences high error rates due to wavelength mismatch",
+                "The link does not come up \u2014 the fiber type and wavelength are incompatible",
+                "The link works because both are 1 Gbps SFPs and auto-negotiate the wavelength"
+            ],
+            "correct": 2,
+            "explanation": "LX (single-mode, 1310nm) and SX (multimode, 850nm) use different fiber types, different wavelengths, and different core sizes. The link will NOT come up. The SFP transceivers cannot communicate because the receiver on each end is designed for a specific wavelength and fiber type. A) Speed is the same (1 Gbps) but the physical layer is incompatible. B) The link won't establish at all \u2014 no error rate to measure. D) SFPs do not auto-negotiate wavelength or fiber type.",
+            "ciscoCommand": "show interfaces transceiver"
+        },
+        {
+            "id": "q252",
+            "domain": "1",
+            "topic": "1.1",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "An interface on a Cisco switch shows the following status:\n\nGi0/1  unassigned  YES unset  up  down\n\nWhich is the MOST LIKELY cause?",
+            "options": [
+                "The interface has been administratively shut down",
+                "The connected device is powered off or the cable is disconnected on the far end",
+                "There is a speed mismatch between the switch port and the connected device",
+                "The interface has no IP address assigned"
+            ],
+            "correct": 2,
+            "explanation": "Status 'up/down' means Layer 1 is up (the port detects a signal) but Layer 2 (line protocol) is down. On a switch, this commonly indicates a speed/duplex mismatch or a keepalive failure. A) Administratively shut down would show 'administratively down/down'. B) If the cable were disconnected, the status would be 'down/down' \u2014 no physical signal detected. D) Switch ports don't require an IP address to show up/up \u2014 the unassigned IP is normal for a Layer 2 port.",
+            "ciscoCommand": "show ip interface brief"
+        },
+        {
+            "id": "q253",
+            "domain": "1",
+            "topic": "1.6",
+            "difficulty": 1,
+            "type": "multiple-choice",
+            "question": "How many usable host addresses does a /30 subnet provide?",
+            "options": [
+                "1",
+                "2",
+                "4",
+                "6"
+            ],
+            "correct": 1,
+            "explanation": "/30 leaves 2 host bits. 2^2 = 4 total addresses. Subtract network and broadcast = 2 usable hosts. This is the standard subnet mask for point-to-point links between routers. A) Only 1 usable host would be /31 (special case for point-to-point links per RFC 3021). C) 4 is the total addresses including network and broadcast. D) 6 usable hosts would be a /29.",
+            "ciscoCommand": null
+        },
+        {
+            "id": "q254",
+            "domain": "1",
+            "topic": "1.4",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "A switch receives a unicast frame on port Gi0/1 destined for MAC address AA:BB:CC:DD:EE:FF. The MAC address table does not contain this address. What does the switch do?",
+            "options": [
+                "Drops the frame because the destination is unknown",
+                "Sends the frame to the default gateway",
+                "Floods the frame out all ports in the same VLAN except the port it was received on",
+                "Sends an ARP request to resolve the MAC address to an IP"
+            ],
+            "correct": 2,
+            "explanation": "When a switch receives a frame with a destination MAC not in its MAC address table, it performs unknown unicast flooding \u2014 forwarding the frame out all ports in the same VLAN except the ingress port. A) Switches do not drop unknown unicast by default. B) Switches don't use a default gateway for frame forwarding \u2014 that's a Layer 3 concept. D) Switches don't send ARP requests \u2014 they operate at Layer 2 and rely on flooding to reach unknown destinations.",
+            "ciscoCommand": "show mac address-table"
+        },
+        {
+            "id": "q255",
+            "domain": "1",
+            "topic": "1.4",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What is the maximum size of a standard Ethernet frame payload (excluding the header and FCS)?",
+            "options": [
+                "1500 bytes",
+                "1518 bytes",
+                "1522 bytes",
+                "9000 bytes"
+            ],
+            "correct": 0,
+            "explanation": "The standard Ethernet MTU (Maximum Transmission Unit) is 1500 bytes for the payload. A) Correct \u2014 1500 byte payload. B) 1518 is the total maximum frame size (14-byte header + 1500 payload + 4-byte FCS). C) 1522 includes an 802.1Q VLAN tag (4 extra bytes). D) 9000 bytes is a common jumbo frame size, which is not standard Ethernet and requires specific configuration.",
+            "ciscoCommand": "show interfaces"
+        },
+        {
+            "id": "q256",
+            "domain": "2",
+            "topic": "2.1",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "A switch has the following configuration:\n\ninterface GigabitEthernet0/1\n  switchport mode access\n  switchport access vlan 10\n  switchport voice vlan 20\n\nA VoIP phone is connected to Gi0/1 with a PC daisy-chained behind it. Which statement is TRUE about traffic flow?",
+            "options": [
+                "The phone sends tagged frames on VLAN 20 and the PC sends untagged frames that are placed in VLAN 10",
+                "Both the phone and PC traffic are placed on VLAN 10 because the port is in access mode",
+                "The port becomes a trunk port automatically to carry both VLANs",
+                "The phone uses VLAN 10 and the PC uses VLAN 20"
+            ],
+            "correct": 0,
+            "explanation": "With 'switchport voice vlan 20', the switch sends CDP/LLDP messages to the phone telling it to tag its traffic with VLAN 20. The phone tags its voice frames with 802.1Q VLAN 20 and forwards the PC's data traffic untagged. The switch places untagged traffic on VLAN 10 (the access VLAN). A) Correct. B) The voice VLAN command creates a special multi-VLAN access port \u2014 the phone does tag on VLAN 20. C) The port does not become a full trunk \u2014 it's a special access port that allows one additional tagged VLAN for voice. D) The VLANs are reversed in this option.",
+            "ciscoCommand": "show interfaces gi0/1 switchport"
+        },
+        {
+            "id": "q257",
+            "domain": "2",
+            "topic": "2.1",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "An administrator creates VLAN 100 on Switch A and assigns ports to it. Hosts on VLAN 100 on Switch A cannot communicate with hosts on VLAN 100 on Switch B, which is connected via a trunk. What is the MOST LIKELY cause?",
+            "options": [
+                "VLAN 100 has not been created on Switch B",
+                "STP is blocking the trunk link between the switches",
+                "VLAN 100 is not in the allowed VLAN list on the trunk",
+                "Both A and C are equally likely"
+            ],
+            "correct": 3,
+            "explanation": "Both scenarios are equally common causes. If VLAN 100 doesn't exist on Switch B, traffic tagged with VLAN 100 will be dropped. Similarly, if the trunk's allowed VLAN list doesn't include VLAN 100, the traffic is filtered. VTP can auto-propagate VLANs, but if VTP is in transparent mode or the VLAN was manually pruned from the trunk, either issue could occur. B) STP blocking would affect all VLANs on that link (unless per-VLAN STP blocks only VLAN 100, which is possible but less likely than A or C). D) Correct \u2014 both are common and should be checked.",
+            "ciscoCommand": "show vlan brief"
+        },
+        {
+            "id": "q258",
+            "domain": "2",
+            "topic": "2.1",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "A switch trunk is configured with:\n\nswitchport trunk allowed vlan 10,20,30\n\nThe administrator runs: switchport trunk allowed vlan 40\n\nWhat VLANs are now allowed on the trunk?",
+            "options": [
+                "10, 20, 30, and 40",
+                "Only 40",
+                "All VLANs (1-4094)",
+                "10, 20, 30 \u2014 the command fails because 'add' keyword is missing"
+            ],
+            "correct": 1,
+            "explanation": "Without the 'add' keyword, the command REPLACES the entire allowed VLAN list. Only VLAN 40 is now allowed. This is a classic and dangerous misconfiguration. A) To get this result, the command would need 'switchport trunk allowed vlan add 40'. C) 'switchport trunk allowed vlan all' would allow all VLANs. D) The command does not fail \u2014 it succeeds and replaces the list. There is no error or warning.",
+            "ciscoCommand": "show interfaces trunk"
+        },
+        {
+            "id": "q259",
+            "domain": "2",
+            "topic": "2.2",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "A router has two subinterfaces configured for inter-VLAN routing (router-on-a-stick):\n\ninterface Gi0/0.10\n  encapsulation dot1Q 10\n  ip address 192.168.10.1 255.255.255.0\n\ninterface Gi0/0.20\n  encapsulation dot1Q 20\n  ip address 192.168.20.1 255.255.255.0\n\nHosts on VLAN 10 can ping each other but cannot reach hosts on VLAN 20. The physical interface Gi0/0 is up/up. What should you check?",
+            "options": [
+                "Whether the switch port connected to the router is configured as a trunk",
+                "Whether ip routing is enabled on the router",
+                "Whether the subinterfaces have 'no shutdown' applied",
+                "All of the above"
+            ],
+            "correct": 3,
+            "explanation": "All three should be checked. A) The switch port MUST be a trunk to carry tagged VLAN traffic \u2014 if it's an access port, only one VLAN works. B) 'ip routing' must be enabled (it's on by default on routers, but could have been disabled with 'no ip routing'). C) On some platforms, subinterfaces inherit the parent's state, but it's worth verifying they're not shut down. D) Correct \u2014 all three are valid troubleshooting steps for router-on-a-stick.",
+            "ciscoCommand": "show ip interface brief"
+        },
+        {
+            "id": "q260",
+            "domain": "2",
+            "topic": "2.2",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "An administrator configures router-on-a-stick and sets the native VLAN on the router subinterface:\n\ninterface Gi0/0.99\n  encapsulation dot1Q 99 native\n  ip address 192.168.99.1 255.255.255.0\n\nThe switch trunk is configured with 'switchport trunk native vlan 99'. Hosts on VLAN 99 cannot ping the router. What is a LIKELY cause?",
+            "options": [
+                "The 'native' keyword on the subinterface causes the router to not tag frames, but the switch is still expecting tagged frames on VLAN 99",
+                "The native VLAN subinterface must match the physical interface number (Gi0/0, not Gi0/0.99)",
+                "IP routing between VLANs requires the native VLAN to be VLAN 1",
+                "The switch is sending untagged frames for VLAN 99, and the router is correctly receiving them \u2014 the problem is likely elsewhere, such as the SVI being down"
+            ],
+            "correct": 3,
+            "explanation": "When both the router subinterface (with 'native' keyword) and the switch trunk agree on native VLAN 99, frames flow untagged and should work. The configuration shown is correct. The problem must be elsewhere \u2014 perhaps the VLAN 99 SVI on the switch is down, the physical interface Gi0/0 is shut down, or there's an IP misconfiguration on the hosts. A) This would be true if there was a native VLAN mismatch, but both sides agree on VLAN 99. B) The subinterface number doesn't need to match the VLAN number (it's convention, not requirement). C) The native VLAN does not need to be VLAN 1.",
+            "ciscoCommand": "show interfaces gi0/0.99"
+        },
+        {
+            "id": "q261",
+            "domain": "2",
+            "topic": "2.3",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "An 802.1Q trunk between Switch A (Cisco) and Switch B (non-Cisco) is not passing traffic. Switch A shows the trunk as operational. Which is the MOST LIKELY cause?",
+            "options": [
+                "DTP (Dynamic Trunking Protocol) is negotiating ISL encapsulation, which the non-Cisco switch does not support",
+                "Switch A is using VTP and the non-Cisco switch cannot participate in VTP domain",
+                "The non-Cisco switch does not support native VLAN and is tagging all frames",
+                "The trunk encapsulation needs to be explicitly set to dot1Q since DTP may negotiate ISL with a Cisco switch"
+            ],
+            "correct": 3,
+            "explanation": "DTP is Cisco proprietary. When a Cisco switch negotiates with a non-Cisco switch, DTP may not work correctly, and on older Cisco switches, DTP may prefer ISL encapsulation. The fix is to explicitly set 'switchport trunk encapsulation dot1q' and 'switchport mode trunk' with 'switchport nonegotiate'. A) This describes the problem correctly \u2014 DTP negotiation issues. But D is more precisely the fix/cause. C) Non-Cisco switches do support native VLAN concepts. B) VTP is separate from trunk formation.",
+            "ciscoCommand": "show interfaces trunk"
+        },
+        {
+            "id": "q262",
+            "domain": "2",
+            "topic": "2.4",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "Two switches are connected with two links. EtherChannel is configured with the following:\n\nSwitch A:\ninterface range gi0/1-2\n  channel-group 1 mode active\n\nSwitch B:\ninterface range gi0/1-2\n  channel-group 1 mode passive\n\nThe EtherChannel does NOT form. What is the MOST LIKELY cause?",
+            "options": [
+                "Active/passive is PAgP, and only one side should be active",
+                "The port speeds or duplex settings do not match between the switches",
+                "Active/passive uses LACP, and this combination should work \u2014 the issue is likely a speed, duplex, VLAN, or STP mismatch between the member ports",
+                "LACP requires both sides to be in active mode"
+            ],
+            "correct": 2,
+            "explanation": "LACP active/passive is a valid combination that should form an EtherChannel. Active initiates LACP, passive responds. If it's not forming, the issue is outside the LACP negotiation \u2014 likely mismatched speed, duplex, VLAN assignments, trunk/access mode, or STP configuration between the member interfaces. A) Active/passive are LACP modes, not PAgP (PAgP uses desirable/auto). B and C) C is correct because it identifies that the mode combination is valid and points to the actual troubleshooting steps. D) LACP does NOT require both sides to be active \u2014 active/passive works fine.",
+            "ciscoCommand": "show etherchannel summary"
+        },
+        {
+            "id": "q263",
+            "domain": "2",
+            "topic": "2.4",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "Which EtherChannel mode combination will NOT form a channel?",
+            "options": [
+                "LACP active \u2014 LACP active",
+                "LACP active \u2014 LACP passive",
+                "PAgP desirable \u2014 LACP active",
+                "PAgP desirable \u2014 PAgP desirable"
+            ],
+            "correct": 2,
+            "explanation": "PAgP and LACP are different protocols and cannot interoperate. One side using PAgP desirable and the other using LACP active will never form an EtherChannel. A) LACP active/active works \u2014 both sides initiate negotiation. B) LACP active/passive works \u2014 active initiates, passive responds. D) PAgP desirable/desirable works \u2014 both sides initiate PAgP negotiation. C) Correct \u2014 protocol mismatch prevents channel formation.",
+            "ciscoCommand": "show etherchannel summary"
+        },
+        {
+            "id": "q264",
+            "domain": "2",
+            "topic": "2.4",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "An EtherChannel is configured using 'channel-group 1 mode on' on both switches. The channel forms but one of the member links goes down. What happens?",
+            "options": [
+                "The remaining link continues forwarding traffic at reduced bandwidth",
+                "The entire EtherChannel goes down because 'mode on' does not support graceful degradation",
+                "LACP detects the failure and removes the link from the bundle",
+                "The switch sends a PAgP message to renegotiate the channel"
+            ],
+            "correct": 0,
+            "explanation": "EtherChannel with 'mode on' is a static configuration \u2014 no protocol (LACP or PAgP) is used. If one member link fails, the remaining link continues to forward traffic at reduced aggregate bandwidth. A) Correct \u2014 the channel stays up with reduced capacity. B) Static EtherChannels do support link failure gracefully \u2014 the channel doesn't require all links to be up. C) 'Mode on' does not use LACP. D) 'Mode on' does not use PAgP.",
+            "ciscoCommand": "show etherchannel summary"
+        },
+        {
+            "id": "q265",
+            "domain": "2",
+            "topic": "2.5",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "Three switches participate in a Rapid PVST+ topology for VLAN 10:\n\n- Switch A: Priority 24586, MAC 0001.0001.0001\n- Switch B: Priority 28682, MAC 0002.0002.0002\n- Switch C: Priority 24586, MAC 0003.0003.0003\n\nWhich switch becomes the root bridge for VLAN 10?",
+            "options": [
+                "Switch A \u2014 lowest priority and lowest MAC address",
+                "Switch B \u2014 highest priority value wins the root election",
+                "Switch C \u2014 same priority as A but higher MAC, so it defers to A",
+                "Switch A \u2014 same priority as C, and the lower MAC address breaks the tie"
+            ],
+            "correct": 0,
+            "explanation": "Root bridge election uses the Bridge ID: priority + MAC address. The LOWEST Bridge ID wins. Switch A and C both have priority 24586. The tiebreaker is the MAC address \u2014 Switch A has MAC 0001.0001.0001 (lower than 0003.0003.0003). Switch A wins. B) STP uses the LOWEST priority, not highest. C) This describes the correct process but the answer text says 'defers to A', which makes A the root \u2014 the answer should point to A. D) This is the same as A and is the correct explanation. Both A and D say Switch A wins, but A provides the complete reasoning.",
+            "ciscoCommand": "show spanning-tree vlan 10"
+        },
+        {
+            "id": "q266",
+            "domain": "2",
+            "topic": "2.5",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "In a Rapid PVST+ topology, Switch B has two paths to the root bridge:\n- Path 1: via Gi0/1 \u2192 Switch A (root) \u2014 cost 4\n- Path 2: via Gi0/2 \u2192 Switch C \u2192 Switch A (root) \u2014 cost 8\n\nSwitch B selects Gi0/1 as the root port. What state will Gi0/2 be in?",
+            "options": [
+                "Designated \u2014 because Switch B has the best path to root on this segment",
+                "Alternate \u2014 it provides a backup path to the root bridge",
+                "Backup \u2014 it is a redundant port to the same segment as the root port",
+                "Discarding \u2014 it is blocked and will never forward traffic"
+            ],
+            "correct": 1,
+            "explanation": "In RSTP (Rapid PVST+), a port that provides an alternate path to the root bridge (not on the same segment as the root port) is placed in the Alternate role. If the root port fails, the alternate port can rapidly transition to forwarding. A) Designated ports are on segments where this switch has the best path to root \u2014 but Gi0/2 connects to Switch C, which has its own path. B) Correct \u2014 alternate port. C) Backup ports are for redundant connections to the same network segment (e.g., through a hub), which is rare. D) 'Discarding' is a state in RSTP, but the role is 'alternate' \u2014 the question asks about the state/role.",
+            "ciscoCommand": "show spanning-tree vlan 10"
+        },
+        {
+            "id": "q267",
+            "domain": "2",
+            "topic": "2.5",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "An administrator wants to ensure Switch X becomes the root bridge for all VLANs. Which command achieves this with the LEAST configuration effort?",
+            "options": [
+                "spanning-tree vlan 1-4094 priority 0",
+                "spanning-tree vlan 1-4094 root primary",
+                "spanning-tree priority 0",
+                "spanning-tree vlan 1-4094 priority 4096"
+            ],
+            "correct": 1,
+            "explanation": "The 'spanning-tree vlan 1-4094 root primary' macro checks the current root bridge's priority and sets this switch's priority to be lower (4096 less than the current root, or 24576 if the current root is at default). It's the most efficient approach. A) Priority 0 is the absolute lowest and would work, but 'root primary' is the recommended Cisco method. C) This command is not valid \u2014 Cisco's spanning-tree priority requires a VLAN specification in PVST+. D) Priority 4096 would work only if all other switches are at default (32768), but it's not guaranteed.",
+            "ciscoCommand": "show spanning-tree root"
+        },
+        {
+            "id": "q268",
+            "domain": "2",
+            "topic": "2.5",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "Switch A is the root bridge. Switch B connects to Switch A via two cables: Gi0/1 (cost 4) and Gi0/2 (cost 4). Both paths have the same root path cost. How does Switch B decide which port becomes the root port?",
+            "options": [
+                "The port with the lowest local port number becomes the root port",
+                "The port that received the BPDU with the lowest sender port ID becomes the root port",
+                "Switch B load-balances across both ports",
+                "The first port to come up becomes the root port"
+            ],
+            "correct": 1,
+            "explanation": "When two ports have the same root path cost, STP tiebreakers are: 1) Lowest sender Bridge ID (same \u2014 both come from Switch A), 2) Lowest sender port priority (if tied), 3) Lowest sender port number. The deciding factor is the BPDU sender's port ID (priority + port number), not the local port number. B) Correct. A) The local port number is only relevant if the remote sender port IDs are identical, which happens when connected through a hub. In modern switch-to-switch connections, the sender port ID determines the outcome. C) STP does not load-balance by default \u2014 one port is root, one is blocked. D) STP doesn't use 'first up' as a tiebreaker.",
+            "ciscoCommand": "show spanning-tree interface gi0/1 detail"
+        },
+        {
+            "id": "q269",
+            "domain": "2",
+            "topic": "2.6",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "Which Cisco switch feature should be enabled on access ports to immediately transition to forwarding state when a host connects?",
+            "options": [
+                "STP PortFast",
+                "BPDU Guard",
+                "Root Guard",
+                "UplinkFast"
+            ],
+            "correct": 0,
+            "explanation": "PortFast allows an access port to skip the STP listening and learning states and transition directly to forwarding when a device is connected. A) Correct \u2014 PortFast is designed for end-host ports. B) BPDU Guard works WITH PortFast \u2014 it disables the port if a BPDU is received (to prevent loops from rogue switches). It doesn't speed up transition. C) Root Guard prevents a port from becoming a root port \u2014 used on designated ports toward the network edge. D) UplinkFast speeds up convergence when an uplink fails, but it's for uplink ports, not access ports.",
+            "ciscoCommand": "show spanning-tree interface gi0/1 portfast"
+        },
+        {
+            "id": "q270",
+            "domain": "2",
+            "topic": "2.6",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "A switch port has both PortFast and BPDU Guard enabled. A user connects an unmanaged switch to this port. What happens?",
+            "options": [
+                "The port remains up because unmanaged switches do not send BPDUs",
+                "The port goes into err-disabled state because the unmanaged switch generates BPDUs",
+                "STP reconverges to account for the new switch, and PortFast is automatically disabled on that port",
+                "BPDU Guard is only triggered by BPDUs from managed switches running STP"
+            ],
+            "correct": 1,
+            "explanation": "Even unmanaged switches run basic STP (802.1D) and send BPDUs. When the switch port receives a BPDU while BPDU Guard is enabled, it immediately places the port into err-disabled state. A) Unmanaged switches DO send BPDUs \u2014 almost all switches have STP enabled by default. C) BPDU Guard does not allow reconvergence \u2014 it shuts the port down immediately. D) BPDU Guard responds to any BPDU regardless of the source \u2014 managed or unmanaged.",
+            "ciscoCommand": "show interfaces status err-disabled"
+        },
+        {
+            "id": "q271",
+            "domain": "2",
+            "topic": "2.7",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "Which command must be configured on a Cisco router BEFORE generating RSA keys for SSH?",
+            "options": [
+                "ip domain-name example.com",
+                "hostname Router1",
+                "Both hostname and ip domain-name must be configured",
+                "crypto key generate rsa \u2014 no prerequisites are required"
+            ],
+            "correct": 2,
+            "explanation": "Cisco IOS requires both a hostname (other than 'Router') and a domain name before generating RSA keys. The RSA key pair label is derived from hostname.domain-name (e.g., Router1.example.com). A) Domain name alone is not sufficient \u2014 the hostname must also be set. B) Hostname alone is not sufficient \u2014 the domain name must also be set. D) The command will fail if either hostname or domain name is missing.",
+            "ciscoCommand": "crypto key generate rsa"
+        },
+        {
+            "id": "q272",
+            "domain": "2",
+            "topic": "2.7",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "An administrator configures SSH on a router:\n\nhostname R1\nip domain-name lab.local\ncrypto key generate rsa modulus 1024\nip ssh version 2\nline vty 0 4\n  transport input ssh\n  login local\nusername admin secret cisco123\n\nThe admin tries to SSH from a PC and gets 'Connection refused'. What is the MOST LIKELY cause?",
+            "options": [
+                "The RSA modulus must be at least 2048 bits for SSH version 2",
+                "The 'login local' command should be 'login authentication default'",
+                "The VTY lines need an access-class applied to allow SSH connections",
+                "The interface the admin is connecting to may not have an IP address, or the SSH service has not fully initialized \u2014 verify with 'show ip ssh'"
+            ],
+            "correct": 3,
+            "explanation": "The configuration appears correct. SSH version 2 requires a minimum RSA key of 768 bits (1024 satisfies this). The issue is likely operational \u2014 the interface may lack an IP, the SSH daemon may still be initializing, or there's a Layer 3 connectivity issue. A) SSH v2 requires minimum 768-bit keys, not 2048. 1024 is sufficient. B) 'login local' is correct for local username authentication. C) Access-class is optional \u2014 it restricts which IPs can connect but doesn't cause 'Connection refused' if missing. D) The correct approach is to verify operational state with 'show ip ssh'.",
+            "ciscoCommand": "show ip ssh"
+        },
+        {
+            "id": "q273",
+            "domain": "2",
+            "topic": "2.8",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "A DHCP client sends a DHCPDISCOVER message. Which Layer 2 and Layer 3 addresses does this message use?",
+            "options": [
+                "Source MAC: client MAC, Dest MAC: FF:FF:FF:FF:FF:FF, Source IP: 0.0.0.0, Dest IP: 255.255.255.255",
+                "Source MAC: client MAC, Dest MAC: DHCP server MAC, Source IP: 0.0.0.0, Dest IP: DHCP server IP",
+                "Source MAC: client MAC, Dest MAC: FF:FF:FF:FF:FF:FF, Source IP: 169.254.x.x, Dest IP: 255.255.255.255",
+                "Source MAC: 00:00:00:00:00:00, Dest MAC: FF:FF:FF:FF:FF:FF, Source IP: 0.0.0.0, Dest IP: 255.255.255.255"
+            ],
+            "correct": 0,
+            "explanation": "DHCPDISCOVER is a broadcast at both Layer 2 (FF:FF:FF:FF:FF:FF) and Layer 3 (255.255.255.255). The source IP is 0.0.0.0 because the client has no IP yet. The source MAC is the client's real MAC address. B) The client doesn't know the DHCP server's address yet \u2014 that's why it broadcasts. C) 169.254.x.x (APIPA) is only used after DHCP fails \u2014 not during discovery. D) The source MAC is the client's real MAC, not all zeros \u2014 the server needs it to respond.",
+            "ciscoCommand": "show ip dhcp binding"
+        },
+        {
+            "id": "q274",
+            "domain": "2",
+            "topic": "2.8",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "A DHCP server offers IP 192.168.1.100/24 with a lease time of 8 hours. After 4 hours, the client sends a DHCPREQUEST to renew. The server does NOT respond. What happens?",
+            "options": [
+                "The client immediately releases the IP and sends a new DHCPDISCOVER",
+                "The client continues using the IP and tries to renew again at the 87.5% mark (7 hours) by broadcasting a DHCPREQUEST",
+                "The client's IP expires immediately when the server doesn't respond to the renewal",
+                "The client switches to an APIPA address because the server is unreachable"
+            ],
+            "correct": 1,
+            "explanation": "DHCP renewal follows a specific process: at T1 (50% of lease = 4 hours), the client unicasts a DHCPREQUEST to the server. If no response, it continues using the IP and tries again at T2 (87.5% = 7 hours), but this time it BROADCASTS. If still no response by lease expiry, it releases the IP and starts over. A) The client does not immediately release \u2014 it keeps trying. C) The IP doesn't expire until the full 8-hour lease is up. D) APIPA only kicks in after the full DORA process fails, not during a renewal failure with remaining lease time.",
+            "ciscoCommand": "show ip dhcp binding"
+        },
+        {
+            "id": "q275",
+            "domain": "2",
+            "topic": "2.9",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "Which protocol does a Cisco switch use by default to discover directly connected Cisco devices and learn their hostname, IP address, and platform?",
+            "options": [
+                "LLDP (Link Layer Discovery Protocol)",
+                "CDP (Cisco Discovery Protocol)",
+                "SNMP (Simple Network Management Protocol)",
+                "STP (Spanning Tree Protocol)"
+            ],
+            "correct": 1,
+            "explanation": "CDP (Cisco Discovery Protocol) is enabled by default on Cisco devices and provides information about directly connected Cisco neighbors including hostname, IP address, platform, IOS version, and connected interface. A) LLDP is the IEEE standard (802.1AB) \u2014 it's available on Cisco devices but NOT enabled by default. C) SNMP is for network management, not neighbor discovery. D) STP is for loop prevention, not device discovery.",
+            "ciscoCommand": "show cdp neighbors"
+        },
+        {
+            "id": "q276",
+            "domain": "2",
+            "topic": "2.9",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "An administrator runs 'show cdp neighbors detail' on Switch A and sees Switch B connected on Gi0/1 with IP 10.1.1.2 and native VLAN 99. Switch A's Gi0/1 trunk has native VLAN 1. What security concern does this reveal?",
+            "options": [
+                "No concern \u2014 native VLAN mismatches are automatically resolved by CDP",
+                "VLAN hopping attack is possible \u2014 an attacker on the native VLAN can double-tag frames to access other VLANs",
+                "CDP is exposing sensitive network information that an attacker could use for reconnaissance",
+                "Both B and C \u2014 native VLAN mismatch enables VLAN hopping, and CDP exposes network topology"
+            ],
+            "correct": 3,
+            "explanation": "This scenario has two security issues. 1) A native VLAN mismatch means untagged traffic is placed on different VLANs on each end, enabling a double-tagging VLAN hopping attack. An attacker sends a frame with two 802.1Q tags \u2014 the first (native VLAN) is stripped by the first switch, and the second tag routes the frame to the target VLAN. 2) CDP broadcasts detailed device information in cleartext, which an attacker on the network can capture for reconnaissance. A) CDP does not resolve native VLAN mismatches \u2014 it only reports them. B) Partially correct but incomplete. C) Partially correct but incomplete.",
+            "ciscoCommand": "show cdp neighbors detail"
+        },
+        {
+            "id": "q277",
+            "domain": "1",
+            "topic": "1.5",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "A PC sends a DNS query for www.example.com. The query is 60 bytes. Which transport protocol does the DNS resolver use, and why?",
+            "options": [
+                "TCP port 53 \u2014 DNS always uses TCP for reliability",
+                "UDP port 53 \u2014 standard DNS queries under 512 bytes use UDP for speed",
+                "UDP port 53 first, then automatically retries on TCP port 53 if the response is truncated",
+                "Both TCP and UDP port 53 simultaneously \u2014 the first response wins"
+            ],
+            "correct": 2,
+            "explanation": "DNS uses UDP port 53 for standard queries because it's faster (no three-way handshake). If the response exceeds 512 bytes (or the EDNS0 buffer size), the server sets the TC (truncated) flag, and the client retries using TCP port 53 to get the full response. Zone transfers always use TCP. A) DNS does not always use TCP \u2014 UDP is the default for queries. B) This is partially correct but incomplete \u2014 it doesn't describe what happens when responses are truncated. D) DNS never sends queries on both simultaneously.",
+            "ciscoCommand": null
+        },
+        {
+            "id": "q278",
+            "domain": "1",
+            "topic": "1.5",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "Which of the following correctly pairs the protocol with its transport and port number?",
+            "options": [
+                "SNMP \u2014 TCP port 161",
+                "RADIUS authentication \u2014 UDP port 1812",
+                "Syslog \u2014 TCP port 514",
+                "NTP \u2014 TCP port 123"
+            ],
+            "correct": 1,
+            "explanation": "RADIUS authentication uses UDP port 1812 (and accounting uses UDP port 1813). A) SNMP uses UDP, not TCP, on ports 161 (queries) and 162 (traps). C) Traditional Syslog uses UDP port 514 (reliable syslog uses TCP, but the standard/default is UDP). D) NTP uses UDP port 123, not TCP.",
+            "ciscoCommand": null
+        },
+        {
+            "id": "q279",
+            "domain": "1",
+            "topic": "1.6",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "A network uses 10.10.0.0/16. The admin creates a /28 subnet. An engineer claims a host at 10.10.50.144 with mask 255.255.255.240 cannot reach 10.10.50.158. Are they on the same subnet?",
+            "options": [
+                "Yes \u2014 both are in the 10.10.50.144/28 subnet (range 10.10.50.144-159)",
+                "No \u2014 10.10.50.158 is in a different /28 subnet (10.10.50.160/28)",
+                "Yes \u2014 both are in the 10.10.50.128/28 subnet",
+                "No \u2014 10.10.50.144 is the network address, so the host address is invalid"
+            ],
+            "correct": 0,
+            "explanation": "/28 has a block size of 16. 144 / 16 = 9, so the subnet starts at 144. Network: 10.10.50.144, broadcast: 10.10.50.159. The valid host range is 145-158. 10.10.50.158 is within 144-159, so it IS in the same subnet. A) Correct \u2014 though 144 itself is the network address, 158 is a valid host in this subnet. B) Wrong \u2014 160/28 would be the NEXT subnet. C) 128/28 would be 128-143, not including 144. D) 144 IS the network address of this /28 \u2014 if the host is configured with 10.10.50.144/28, it's using the network address as a host address, which is technically invalid. But the question asks whether 158 is reachable from the same subnet \u2014 and it is.",
+            "ciscoCommand": null
+        },
+        {
+            "id": "q280",
+            "domain": "1",
+            "topic": "1.8",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What is the IPv6 prefix for link-local addresses?",
+            "options": [
+                "fe80::/10",
+                "fc00::/7",
+                "ff00::/8",
+                "2000::/3"
+            ],
+            "correct": 0,
+            "explanation": "IPv6 link-local addresses use the prefix fe80::/10 (fe80:: through febf::, though in practice fe80:: is what you see). They are automatically configured on every IPv6-enabled interface and are not routable beyond the local link. B) fc00::/7 is the Unique Local Address (ULA) range \u2014 similar to RFC 1918 private addresses in IPv4. C) ff00::/8 is the multicast range. D) 2000::/3 is the Global Unicast Address range (routable on the internet).",
+            "ciscoCommand": "show ipv6 interface brief"
+        },
+        {
+            "id": "q281",
+            "domain": "2",
+            "topic": "2.1",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What is the default VLAN on a Cisco switch, and can it be deleted?",
+            "options": [
+                "VLAN 0, and it cannot be deleted",
+                "VLAN 1, and it can be deleted like any other VLAN",
+                "VLAN 1, and it cannot be deleted",
+                "VLAN 1, and it can only be deleted in VTP transparent mode"
+            ],
+            "correct": 2,
+            "explanation": "VLAN 1 is the default VLAN on Cisco switches. All ports are in VLAN 1 by default, and it cannot be deleted. This is a hard-coded limitation in Cisco IOS. Management traffic (CDP, VTP, DTP) runs on VLAN 1 by default. A) VLAN 0 does not exist in standard VLAN numbering. B) VLAN 1 cannot be deleted. D) Not even VTP transparent mode allows deletion of VLAN 1.",
+            "ciscoCommand": "show vlan brief"
+        },
+        {
+            "id": "q282",
+            "domain": "2",
+            "topic": "2.3",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "A switch port is configured as 'switchport mode dynamic desirable'. The connected device is configured as 'switchport mode dynamic auto'. What operational mode does the link use?",
+            "options": [
+                "Access mode \u2014 both dynamic modes default to access when connected together",
+                "Trunk mode \u2014 desirable actively negotiates and auto responds",
+                "The link fails to negotiate and goes into err-disabled state",
+                "The link alternates between trunk and access depending on traffic type"
+            ],
+            "correct": 1,
+            "explanation": "DTP negotiation matrix: desirable/desirable = trunk, desirable/auto = trunk, desirable/trunk = trunk, auto/auto = access, auto/trunk = trunk. When one side is 'desirable' (actively tries to trunk), it negotiates with 'auto' (willing to trunk if asked). B) Correct \u2014 the link becomes a trunk. A) auto/auto = access, but desirable/auto = trunk. C) DTP does not cause err-disabled. D) Links don't alternate modes.",
+            "ciscoCommand": "show interfaces gi0/1 switchport"
+        },
+        {
+            "id": "q283",
+            "domain": "2",
+            "topic": "2.4",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What is the maximum number of physical interfaces that can be bundled into a single EtherChannel on a Cisco Catalyst switch?",
+            "options": [
+                "4",
+                "8",
+                "16",
+                "2"
+            ],
+            "correct": 1,
+            "explanation": "Cisco supports up to 8 active physical interfaces in a single EtherChannel bundle (with LACP, up to 8 active + 8 standby = 16 total, but only 8 forward at a time). A) 4 is not the limit. C) 16 is the total for LACP (8 active + 8 standby), but only 8 are active simultaneously. D) 2 would be too restrictive.",
+            "ciscoCommand": "show etherchannel summary"
+        },
+        {
+            "id": "q284",
+            "domain": "2",
+            "topic": "2.5",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "In a network running Rapid PVST+, a non-root switch receives a superior BPDU on a port that currently has PortFast enabled. What happens?",
+            "options": [
+                "PortFast is automatically disabled on that port and the port transitions through normal STP states",
+                "The port immediately enters err-disabled state",
+                "The port ignores the BPDU because PortFast ports do not participate in STP",
+                "The port loses its PortFast status, participates in the normal STP topology change process, and the STP topology reconverges"
+            ],
+            "correct": 3,
+            "explanation": "When a PortFast-enabled port receives a BPDU, PortFast is disabled on that port and it becomes a normal STP port. It then participates in the STP topology, potentially going through discarding/learning/forwarding states. This is by design \u2014 PortFast should only be on end-host ports. A) Close but incomplete \u2014 the key is that STP reconverges. B) Err-disabled only occurs if BPDU Guard is ALSO enabled. Without BPDU Guard, the port just loses PortFast status. C) PortFast ports DO participate in STP \u2014 they just skip listening/learning during initial link-up. D) Correct \u2014 PortFast is lost and STP reconverges.",
+            "ciscoCommand": "show spanning-tree interface detail"
+        },
+        {
+            "id": "q285",
+            "domain": "1",
+            "topic": "1.11",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "A network admin pings 10.1.1.1 from a PC and gets the following results:\n\nReply from 10.1.1.1: bytes=32 time=1ms TTL=126\n\nBased on the TTL value, how many router hops is 10.1.1.1 away (assuming the destination is a Windows device)?",
+            "options": [
+                "1 hop \u2014 TTL was decremented from 127 to 126",
+                "2 hops \u2014 TTL was decremented from 128 to 126",
+                "126 hops \u2014 the TTL value is the remaining hop count",
+                "Cannot determine \u2014 the starting TTL is unknown"
+            ],
+            "correct": 1,
+            "explanation": "Windows devices start with a default TTL of 128. Each router hop decrements the TTL by 1. TTL 126 means 128 - 126 = 2 hops. A) TTL 127 would start from 127 (default for some Linux/macOS systems), but the question specifies Windows (TTL 128). C) TTL 126 is the remaining count, not the hop count. D) While theoretically the starting TTL could vary, common defaults are well-known: Windows = 128, Linux = 64, Cisco = 255.",
+            "ciscoCommand": "ping"
+        },
+        {
+            "id": "q286",
+            "domain": "1",
+            "topic": "1.3",
+            "difficulty": 1,
+            "type": "multiple-choice",
+            "question": "In a two-tier (collapsed core) campus design, which two layers are combined?",
+            "options": [
+                "Access and distribution layers",
+                "Distribution and core layers",
+                "Access and core layers",
+                "All three layers are always separate"
+            ],
+            "correct": 1,
+            "explanation": "In a two-tier (collapsed core) design, the distribution and core layers are combined into a single layer. This is appropriate for smaller campuses where a separate core isn't needed. A) Access and distribution are not collapsed together \u2014 access remains separate. C) Access and core would leave distribution alone, which doesn't match any standard design. D) Three separate tiers are the three-tier model, not collapsed core.",
+            "ciscoCommand": null
+        },
+        {
+            "id": "q287",
+            "domain": "1",
+            "topic": "1.7",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "An internal host at 192.168.1.50 sends a packet to 8.8.8.8. The router performs PAT using its public IP 203.0.113.1. The router's NAT table shows:\n\nInside local: 192.168.1.50:12345 \u2192 Inside global: 203.0.113.1:50001\n\nA second host, 192.168.1.51, also sends a packet to 8.8.8.8 from source port 12345. What happens?",
+            "options": [
+                "The NAT fails because port 12345 is already in use",
+                "The router assigns a different outside global port (e.g., 50002) to differentiate the two translations",
+                "The router drops the second packet to avoid a conflict in the NAT table",
+                "The router uses the same translation entry since the destination IP is the same"
+            ],
+            "correct": 1,
+            "explanation": "PAT (Port Address Translation) can handle multiple internal hosts using the same source port by assigning different outside port numbers. The NAT table tracks the full tuple (inside local IP:port, inside global IP:port, outside IP:port), so 192.168.1.51:12345 gets mapped to 203.0.113.1:50002. A) PAT specifically solves this problem by differentiating via translated port numbers. C) The router does not drop \u2014 PAT is designed for many-to-one translation. D) Different source IPs require different NAT entries, even with the same destination.",
+            "ciscoCommand": "show ip nat translations"
+        },
+        {
+            "id": "q288",
+            "domain": "2",
+            "topic": "2.6",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "An administrator configures the following on all access ports:\n\nspanning-tree portfast\nspanning-tree bpduguard enable\nspanning-tree guard root\n\nA user reports their port is err-disabled. The admin sees BPDUs were received. After fixing the issue, the admin wants to recover the port. Which command re-enables it?",
+            "options": [
+                "no shutdown \u2014 on the interface",
+                "shutdown followed by no shutdown \u2014 on the interface",
+                "errdisable recovery cause bpduguard \u2014 in global config, then wait for the timer",
+                "Both B and C work, but C is preferred for automatic recovery"
+            ],
+            "correct": 3,
+            "explanation": "There are two ways to recover from err-disabled: 1) Manual: 'shutdown' then 'no shutdown' on the interface. 2) Automatic: 'errdisable recovery cause bpduguard' in global config sets a timer to automatically re-enable the port (default 300 seconds). A) Just 'no shutdown' does not work on an err-disabled port \u2014 you must first 'shutdown' then 'no shutdown'. B) This works but requires manual intervention each time. C) This provides automatic recovery but you have to wait for the timer. D) Correct \u2014 both methods work, but C is preferred in production for hands-off recovery.",
+            "ciscoCommand": "show errdisable recovery"
+        },
+        {
+            "id": "q289",
+            "domain": "1",
+            "topic": "1.1",
+            "difficulty": 1,
+            "type": "multiple-choice",
+            "question": "A Cisco switch port shows 'administratively down / down' in the show interfaces output. What caused this status?",
+            "options": [
+                "The cable is disconnected",
+                "There is a speed mismatch with the connected device",
+                "The shutdown command was issued on the interface",
+                "STP has placed the port in blocking state"
+            ],
+            "correct": 2,
+            "explanation": "The keyword 'administratively' in the status indicates that the port was manually disabled with the 'shutdown' command. A) A disconnected cable would show 'down/down' (without 'administratively'). B) A speed mismatch would show 'up/down', not 'administratively down'. D) STP blocking still shows the interface as 'up/up' \u2014 the blocking is a separate logical state.",
+            "ciscoCommand": "show interfaces status"
+        },
+        {
+            "id": "q290",
+            "domain": "2",
+            "topic": "2.1",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "An administrator configures a new VLAN 200 on a VTP server. Two client switches in the same VTP domain do not receive the VLAN. Both clients show VTP version 2, same domain name 'CORP', and the server's revision number is higher. What is the MOST LIKELY cause?",
+            "options": [
+                "VTP passwords do not match between the server and clients",
+                "VTP version 2 does not support VLAN numbers above 100",
+                "The trunk links between the switches are configured with DTP disabled",
+                "The clients are running in VTP transparent mode"
+            ],
+            "correct": 0,
+            "explanation": "If the VTP domain name matches and the revision number is higher on the server, but VLANs are not propagating, a VTP password mismatch is the most likely cause. VTP requires matching domain names AND matching passwords. A) Correct \u2014 password mismatch silently prevents VLAN propagation. B) VTP supports VLANs 1-1005 in normal mode (all versions). C) Trunks must exist for VTP, but DTP being disabled doesn't prevent VTP \u2014 VTP travels over any trunk regardless of how it was formed. D) The question states they are clients, not transparent mode.",
+            "ciscoCommand": "show vtp status"
+        },
+        {
+            "id": "q291",
+            "domain": "2",
+            "topic": "2.2",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "A Layer 3 switch has the following configuration:\n\nip routing\ninterface vlan 10\n  ip address 192.168.10.1 255.255.255.0\n  no shutdown\ninterface vlan 20\n  ip address 192.168.20.1 255.255.255.0\n  no shutdown\n\nHosts on VLAN 10 can ping 192.168.10.1 but cannot ping 192.168.20.1. What should you check FIRST?",
+            "options": [
+                "Whether there are active ports assigned to VLAN 20",
+                "Whether a default route exists on the Layer 3 switch",
+                "Whether an ACL is blocking traffic between VLANs",
+                "Whether OSPF is advertising both subnets"
+            ],
+            "correct": 0,
+            "explanation": "A VLAN SVI (Switch Virtual Interface) stays in 'down/down' state unless there is at least one active (up/up) port assigned to that VLAN. If no ports are in VLAN 20, the SVI for VLAN 20 will be down and unreachable. A) Correct \u2014 this is the most common cause and should be checked first. B) A default route is not needed for directly connected SVIs. C) Possible but less likely as a first check \u2014 no ACLs are shown in the config. D) OSPF is not needed for inter-VLAN routing between directly connected SVIs on the same switch.",
+            "ciscoCommand": "show ip interface brief"
+        },
+        {
+            "id": "q292",
+            "domain": "1",
+            "topic": "1.12",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "Which PDU (Protocol Data Unit) name is associated with Layer 2 of the OSI model?",
+            "options": [
+                "Bits",
+                "Frames",
+                "Packets",
+                "Segments"
+            ],
+            "correct": 1,
+            "explanation": "The PDU names by layer: Layer 1 = Bits, Layer 2 = Frames, Layer 3 = Packets, Layer 4 = Segments (TCP) / Datagrams (UDP). B) Correct \u2014 Layer 2 data units are called frames. A) Bits are the Layer 1 PDU. C) Packets are the Layer 3 PDU. D) Segments are the Layer 4 PDU (for TCP).",
+            "ciscoCommand": null
+        },
+        {
+            "id": "q293",
+            "domain": "1",
+            "topic": "1.6",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "A company uses 172.16.0.0/16 internally. An engineer is asked: 'What is the most efficient subnet mask to allocate exactly 500 hosts per subnet?' The answer must leave the least unused addresses per subnet. What is the correct mask?",
+            "options": [
+                "/22 (255.255.252.0) \u2014 1022 usable hosts",
+                "/23 (255.255.254.0) \u2014 510 usable hosts",
+                "/24 (255.255.255.0) \u2014 254 usable hosts",
+                "/21 (255.255.248.0) \u2014 2046 usable hosts"
+            ],
+            "correct": 1,
+            "explanation": "500 hosts requires at least 9 host bits (2^9 - 2 = 510). That is a /23 mask. B) /23 gives 510 usable hosts \u2014 fits 500 with only 10 addresses wasted. A) /22 gives 1022 usable \u2014 works but wastes 522 addresses per subnet. C) /24 gives only 254 \u2014 not enough for 500 hosts. D) /21 gives 2046 \u2014 massive waste. The 'most efficient' mask is the one that wastes the fewest addresses while still fitting the requirement.",
+            "ciscoCommand": null
+        },
+        {
+            "id": "q294",
+            "domain": "2",
+            "topic": "2.5",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What is the default STP priority on a Cisco switch?",
+            "options": [
+                "4096",
+                "8192",
+                "32768",
+                "61440"
+            ],
+            "correct": 2,
+            "explanation": "The default STP bridge priority on a Cisco switch is 32768. STP priority can be set in increments of 4096 (0, 4096, 8192, ..., 61440). A) 4096 is the first non-zero priority increment. B) 8192 is a valid priority but not the default. D) 61440 is the highest configurable priority.",
+            "ciscoCommand": "show spanning-tree bridge"
+        },
+        {
+            "id": "q295",
+            "domain": "2",
+            "topic": "2.7",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "An administrator configures a switch with:\n\nline vty 0 4\n  transport input ssh telnet\n  login local\nline vty 5 15\n  transport input none\n  login local\n\nWhat is the maximum number of simultaneous SSH sessions possible to this switch?",
+            "options": [
+                "5 sessions",
+                "15 sessions",
+                "16 sessions",
+                "Unlimited sessions"
+            ],
+            "correct": 0,
+            "explanation": "VTY lines 0-4 (5 lines) allow SSH and Telnet. VTY lines 5-15 have 'transport input none', which blocks ALL remote access including SSH. So only 5 simultaneous SSH sessions are possible (one per VTY line 0-4). B) VTY 5-15 are configured with 'transport input none' \u2014 they don't accept connections. C) 16 would be all VTY lines (0-15), but lines 5-15 are blocked. D) Each VTY line handles one session \u2014 the limit is 5.",
+            "ciscoCommand": "show line"
+        },
+        {
+            "id": "q296",
+            "domain": "1",
+            "topic": "1.13",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "Which statement BEST describes the relationship between the northbound and southbound interfaces of an SDN controller?",
+            "options": [
+                "The northbound interface communicates with network devices; the southbound interface communicates with applications",
+                "The northbound interface communicates with applications; the southbound interface communicates with network devices",
+                "Both interfaces communicate with network devices using different protocols",
+                "The northbound interface uses OpenFlow; the southbound interface uses REST APIs"
+            ],
+            "correct": 1,
+            "explanation": "In SDN architecture: the northbound interface (NBI) connects the controller to applications/management tools (typically REST APIs), and the southbound interface (SBI) connects the controller to network devices (using protocols like OpenFlow, NETCONF, or SSH). A) This reverses the interfaces. C) Only the southbound interface communicates with devices. D) This reverses the protocols \u2014 REST APIs are northbound, OpenFlow is southbound.",
+            "ciscoCommand": null
+        },
+        {
+            "id": "q297",
+            "domain": "1",
+            "topic": "1.2",
+            "difficulty": 1,
+            "type": "multiple-choice",
+            "question": "What is the maximum cable length for a standard Cat 5e/6 Ethernet cable in a horizontal run?",
+            "options": [
+                "55 meters",
+                "90 meters",
+                "100 meters",
+                "150 meters"
+            ],
+            "correct": 2,
+            "explanation": "The TIA/EIA standard specifies a maximum of 100 meters (328 feet) for a copper Ethernet horizontal run, including patch cables at both ends. The permanent link is 90 meters with 10 meters for patch cables. A) 55 meters is not a standard Ethernet cable limit. B) 90 meters is the permanent link distance without patch cables. D) 150 meters exceeds the specification and would cause signal degradation.",
+            "ciscoCommand": null
+        },
+        {
+            "id": "q298",
+            "domain": "2",
+            "topic": "2.8",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "A network has a DHCP server on VLAN 10 (192.168.10.0/24). Hosts on VLAN 20 (192.168.20.0/24) need DHCP from this server. The router's VLAN 20 SVI has 'ip helper-address 192.168.10.5'. A host on VLAN 20 sends a DHCPDISCOVER. What does the router do with this broadcast?",
+            "options": [
+                "Drops it \u2014 routers do not forward broadcasts",
+                "Converts it to a unicast packet destined for 192.168.10.5 and forwards it",
+                "Floods it to all VLANs on the switch",
+                "Encapsulates it in a GRE tunnel to the DHCP server"
+            ],
+            "correct": 1,
+            "explanation": "The 'ip helper-address' command instructs the router to convert specific broadcast packets (including DHCP) into unicast packets directed to the specified server address. The router acts as a DHCP relay agent \u2014 it changes the destination IP from 255.255.255.255 to 192.168.10.5 and fills in the gateway IP (giaddr) field with the VLAN 20 SVI address so the DHCP server knows which pool to use. A) Without helper-address, routers do drop broadcasts \u2014 but the helper-address changes this behavior. C) Flooding to all VLANs would defeat the purpose of VLANs. D) GRE is not used for DHCP relay.",
+            "ciscoCommand": "show ip interface vlan 20"
+        },
+        {
+            "id": "q299",
+            "domain": "2",
+            "topic": "2.9",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "An administrator wants to disable CDP on a single interface facing an untrusted network but keep it enabled on all other interfaces. Which configuration achieves this?",
+            "options": [
+                "no cdp run \u2014 in global configuration",
+                "no cdp enable \u2014 on the specific interface",
+                "cdp disable \u2014 on the specific interface",
+                "no cdp advertise \u2014 on the specific interface"
+            ],
+            "correct": 1,
+            "explanation": "To disable CDP on a single interface, use 'no cdp enable' in interface configuration mode. A) 'no cdp run' disables CDP globally on all interfaces \u2014 too broad. B) Correct \u2014 'no cdp enable' disables CDP per interface. C) 'cdp disable' is not a valid Cisco IOS command. D) 'no cdp advertise' is not a valid command \u2014 the correct form is 'no cdp enable'.",
+            "ciscoCommand": "show cdp interface"
+        },
+        {
+            "id": "q300",
+            "domain": "1",
+            "topic": "1.4",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "Two switches are connected via a trunk. The native VLAN on Switch A is VLAN 1 and the native VLAN on Switch B is VLAN 10. A host on Switch A in VLAN 1 sends a broadcast. What happens when the frame reaches Switch B?",
+            "options": [
+                "Switch B drops the frame because of the native VLAN mismatch CDP warning",
+                "Switch B places the frame in VLAN 10 because untagged frames are assigned to the native VLAN of the receiving switch",
+                "Switch B places the frame in VLAN 1 because the frame carries an 802.1Q tag",
+                "The trunk goes down due to the native VLAN mismatch"
+            ],
+            "correct": 1,
+            "explanation": "Switch A sends VLAN 1 traffic untagged (VLAN 1 is its native VLAN). When Switch B receives the untagged frame, it assigns it to ITS native VLAN (VLAN 10). This is a native VLAN mismatch \u2014 traffic intended for VLAN 1 ends up in VLAN 10 on Switch B. This is both a connectivity issue and a security risk (VLAN hopping). A) CDP warns about the mismatch but does not drop frames. C) The frame is untagged (native VLAN), so no 802.1Q tag is present. D) The trunk does not go down \u2014 it continues operating with the mismatch, which makes it dangerous.",
+            "ciscoCommand": "show interfaces trunk"
+        },
+        {
+            "id": "q301",
+            "domain": "1",
+            "topic": "1.11",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "An administrator receives an ICMP 'Destination Host Unreachable' message after pinging 10.1.1.50. What does this specific message indicate?",
+            "options": [
+                "The destination host is powered off or does not exist on the network",
+                "A router along the path has no route to 10.1.1.0/24",
+                "A router on the same subnet as 10.1.1.50 could not deliver the packet to the host (ARP failed)",
+                "A firewall is blocking ICMP between the source and destination"
+            ],
+            "correct": 2,
+            "explanation": "ICMP 'Destination Host Unreachable' (Type 3, Code 1) means a router on the destination subnet attempted to ARP for the host but received no reply \u2014 the host is down, disconnected, or doesn't exist on that LAN. This is different from 'Network Unreachable' (Code 0), which means no route exists. A) Partially true but imprecise \u2014 the message comes from the last-hop ROUTER, not the destination. B) This would generate 'Network Unreachable', not 'Host Unreachable'. D) Firewalls typically produce no response at all (timeout), not an ICMP unreachable.",
+            "ciscoCommand": "ping"
+        },
+        {
+            "id": "q302",
+            "domain": "2",
+            "topic": "2.5",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "A network has four switches running Rapid PVST+. The root bridge for VLAN 10 has been elected. A NEW switch is added with a lower bridge ID than the current root. What happens?",
+            "options": [
+                "Nothing \u2014 the root bridge election only occurs at initial startup",
+                "The new switch becomes root immediately with no disruption because RSTP handles it seamlessly",
+                "All switches re-evaluate BPDUs, the new switch becomes root, and the topology reconverges \u2014 causing temporary traffic disruption",
+                "The existing root bridge vetoes the change and sends a superior BPDU to maintain its role"
+            ],
+            "correct": 2,
+            "explanation": "STP root election is ongoing. When a switch with a lower Bridge ID joins, it sends BPDUs with superior information. All switches detect the new superior BPDU, update their root bridge information, and reconverge. This causes temporary disruption as ports transition through states. A) Root election is continuous \u2014 not a one-time event. B) Even RSTP reconvergence is not zero-disruption when the root changes \u2014 port roles and states must be recalculated. D) There is no veto mechanism in STP \u2014 the lowest Bridge ID always wins.",
+            "ciscoCommand": "show spanning-tree vlan 10"
+        },
+        {
+            "id": "q303",
+            "domain": "1",
+            "topic": "1.8",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "An IPv6-enabled host sends a Router Solicitation (RS) message upon connecting to the network. Which destination address does the RS use?",
+            "options": [
+                "ff02::1 (all-nodes multicast)",
+                "ff02::2 (all-routers multicast)",
+                "ff02::1:ff00:1 (solicited-node multicast)",
+                "fe80::1 (link-local unicast to the default router)"
+            ],
+            "correct": 1,
+            "explanation": "Router Solicitation messages are sent to ff02::2 (all-routers multicast) because only routers need to respond with a Router Advertisement. A) ff02::1 is all-nodes multicast \u2014 RS only targets routers. C) Solicited-node multicast is used for Neighbor Solicitation (address resolution), not Router Solicitation. D) The host doesn't know the router's link-local address yet \u2014 that's why it sends an RS in the first place.",
+            "ciscoCommand": "show ipv6 interface"
+        },
+        {
+            "id": "q304",
+            "domain": "2",
+            "topic": "2.6",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What is the purpose of DHCP snooping on a Cisco switch?",
+            "options": [
+                "It encrypts DHCP traffic between the client and server",
+                "It builds a binding table of MAC-to-IP mappings and prevents rogue DHCP servers from assigning addresses",
+                "It rate-limits DHCP traffic to prevent broadcast storms",
+                "It forwards DHCP requests to multiple servers for redundancy"
+            ],
+            "correct": 1,
+            "explanation": "DHCP snooping is a security feature that validates DHCP messages and builds a trusted binding table (MAC address, IP address, VLAN, port). It classifies ports as trusted (where legitimate DHCP servers connect) and untrusted (all other ports). DHCP offers/acks from untrusted ports are dropped, preventing rogue DHCP servers. A) DHCP snooping does not encrypt anything. C) While it can rate-limit DHCP on untrusted ports, that's not its primary purpose. D) DHCP relay (ip helper-address) handles forwarding to servers, not snooping.",
+            "ciscoCommand": "show ip dhcp snooping binding"
+        },
+        {
+            "id": "q305",
+            "domain": "1",
+            "topic": "1.6",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What is the subnet mask in dotted-decimal notation for a /26 prefix?",
+            "options": [
+                "255.255.255.128",
+                "255.255.255.192",
+                "255.255.255.224",
+                "255.255.255.240"
+            ],
+            "correct": 1,
+            "explanation": "/26 means 26 network bits. The last octet has 2 network bits: 11000000 = 192. So the mask is 255.255.255.192. A) 255.255.255.128 is /25 (1 bit in the last octet). C) 255.255.255.224 is /27 (3 bits). D) 255.255.255.240 is /28 (4 bits).",
+            "ciscoCommand": null
+        },
+        {
+            "id": "q306",
+            "domain": "2",
+            "topic": "2.3",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "An administrator wants to prevent DTP negotiation on a trunk port connected to a non-Cisco switch. Which command should be added to the trunk port configuration?",
+            "options": [
+                "switchport mode trunk",
+                "switchport nonegotiate",
+                "no dtp enable",
+                "switchport mode access"
+            ],
+            "correct": 1,
+            "explanation": "'switchport nonegotiate' disables DTP frames on the interface. This should be used on trunk ports connected to non-Cisco devices that don't understand DTP. A) 'switchport mode trunk' forces trunking but still sends DTP frames. B) Correct \u2014 disables DTP while keeping the port in trunk mode. C) 'no dtp enable' is not a valid Cisco command. D) Access mode is not what we want \u2014 the requirement is a trunk without DTP.",
+            "ciscoCommand": "show interfaces gi0/1 switchport"
+        },
+        {
+            "id": "q307",
+            "domain": "1",
+            "topic": "1.7",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "In NAT terminology, what is an 'Inside Global' address?",
+            "options": [
+                "The private IP address of an internal host",
+                "The public IP address assigned to an internal host for outside communication",
+                "The public IP address of an external server",
+                "The private IP address used by the router's internal interface"
+            ],
+            "correct": 1,
+            "explanation": "NAT address types: Inside Local = private IP of internal host, Inside Global = public IP representing the internal host to the outside world, Outside Local = how an external host appears to the internal network, Outside Global = actual public IP of the external host. A) This is Inside Local. C) This is Outside Global. D) This is just the router's interface IP, not a NAT term.",
+            "ciscoCommand": "show ip nat translations"
+        },
+        {
+            "id": "q308",
+            "domain": "3",
+            "topic": "3.2",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "A router has the following routes in its routing table:\n\n- O 10.0.0.0/8 via 192.168.1.1 [110/20]\n- S 10.1.0.0/16 via 192.168.2.1 [1/0]\n- O 10.1.1.0/24 via 192.168.3.1 [110/30]\n\nA packet arrives destined for 10.1.1.50. Which next hop will the router use?",
+            "options": [
+                "A. 192.168.1.1 \u2014 the OSPF /8 route has the lowest AD",
+                "B. 192.168.2.1 \u2014 the static /16 route has the lowest AD",
+                "C. 192.168.3.1 \u2014 the OSPF /24 route is the longest prefix match",
+                "D. The router will load-balance across all three paths"
+            ],
+            "correct": 2,
+            "explanation": "The router always uses the longest prefix match FIRST, before considering administrative distance. The /24 route (10.1.1.0/24) is the most specific match for 10.1.1.50, so it wins regardless of AD. A is wrong because the /8 is the least specific match. B is wrong because AD is only compared between routes with the SAME prefix length. D is wrong because load-balancing requires equal-cost paths to the same prefix.",
+            "ciscoCommand": "show ip route 10.1.1.50"
+        },
+        {
+            "id": "q309",
+            "domain": "3",
+            "topic": "3.2",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "A router has these routes:\n\n- S 10.1.0.0/16 via 192.168.1.1 [1/0]\n- O 10.1.0.0/16 via 192.168.2.1 [110/20]\n\nA packet arrives destined for 10.1.5.10. Which next hop is used?",
+            "options": [
+                "A. 192.168.2.1 \u2014 OSPF has a lower metric",
+                "B. 192.168.1.1 \u2014 static route has lower administrative distance",
+                "C. The router load-balances between both paths",
+                "D. The packet is dropped because ambiguous routes exist"
+            ],
+            "correct": 1,
+            "explanation": "When two routes have the SAME prefix length (/16), the router compares administrative distance. Static routes have AD 1, OSPF has AD 110. The static route wins. A is wrong because metric is only compared between routes from the SAME routing protocol. C is wrong because load-balancing requires equal AD and equal metric for the same prefix. D is wrong because the router has a clear tiebreaker via AD.",
+            "ciscoCommand": "show ip route 10.1.5.10"
+        },
+        {
+            "id": "q310",
+            "domain": "3",
+            "topic": "3.3",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "Two OSPF routers are directly connected on the same /30 link. Router A shows 'EXSTART/DR' state and never forms a full adjacency. Hello timers, Dead timers, area ID, and authentication all match. What is the most likely cause?",
+            "options": [
+                "A. The OSPF process IDs do not match between routers",
+                "B. There is an MTU mismatch between the interfaces",
+                "C. One router is configured as a stub area and the other is not",
+                "D. The OSPF router IDs are identical on both routers"
+            ],
+            "correct": 1,
+            "explanation": "EXSTART state is where routers exchange Database Description (DBD) packets. If MTU values don't match, the DBD exchange fails and the adjacency stays stuck in EXSTART. B is correct. A is wrong because OSPF process IDs are locally significant and do NOT need to match. C is wrong because stub area mismatch would prevent adjacency from forming past INIT, not get stuck in EXSTART. D is wrong because duplicate router IDs would cause erratic behavior but typically show different symptoms (routes flapping, not EXSTART stuck).",
+            "ciscoCommand": "show ip ospf neighbor"
+        },
+        {
+            "id": "q311",
+            "domain": "3",
+            "topic": "3.3",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "Router A and Router B are connected via a point-to-point serial link running OSPF. Router A has Hello timer 10 and Dead timer 40. Router B has Hello timer 30 and Dead timer 120. What happens?",
+            "options": [
+                "A. They form an adjacency using the lower Hello timer value",
+                "B. They form an adjacency using the higher Hello timer value",
+                "C. They never form an adjacency because timers must match",
+                "D. They form an adjacency but with degraded convergence"
+            ],
+            "correct": 2,
+            "explanation": "OSPF requires Hello and Dead timers to match EXACTLY on both sides of a link. If they don't match, the routers will never reach FULL adjacency \u2014 they won't even get past the INIT state. A and B are wrong because OSPF does not negotiate timer values. D is wrong because no adjacency forms at all.",
+            "ciscoCommand": "show ip ospf interface"
+        },
+        {
+            "id": "q312",
+            "domain": "3",
+            "topic": "3.3",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "Examine this output:\n\nRouter# show ip ospf neighbor\nNeighbor ID  Pri  State     Dead Time  Address       Interface\n10.0.0.2     1    FULL/DR   00:00:35   10.1.1.2      GigabitEthernet0/0\n10.0.0.3     1    2WAY/DROTHER  00:00:31   10.1.1.3  GigabitEthernet0/0\n\nThis router's state with 10.0.0.3 is 2WAY. Is this a problem?",
+            "options": [
+                "A. Yes \u2014 all OSPF neighbors should reach FULL state",
+                "B. No \u2014 2WAY is the expected state between two DROTHERs on a multi-access network",
+                "C. Yes \u2014 2WAY means authentication has failed",
+                "D. No \u2014 2WAY means the adjacency is still converging and will reach FULL shortly"
+            ],
+            "correct": 1,
+            "explanation": "On multi-access networks (Ethernet), DROTHERs only form FULL adjacency with the DR and BDR. Between two DROTHERs, the stable final state is 2WAY \u2014 this is normal and expected, not a problem. A is wrong because FULL is only expected with DR/BDR neighbors. C is wrong because authentication failure would prevent reaching 2WAY. D is wrong because 2WAY between DROTHERs is the permanent stable state, not a transient one.",
+            "ciscoCommand": "show ip ospf neighbor"
+        },
+        {
+            "id": "q313",
+            "domain": "3",
+            "topic": "3.4",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "A network engineer configures the following:\n\nRouter(config)# ip route 0.0.0.0 0.0.0.0 192.168.1.1\nRouter(config)# ip route 0.0.0.0 0.0.0.0 10.0.0.1 5\n\nWhat is the purpose of the second static route?",
+            "options": [
+                "A. It creates an equal-cost default route for load balancing",
+                "B. It creates a floating static route that activates if the primary default route fails",
+                "C. It overwrites the first default route because it was configured last",
+                "D. It creates a recursive static route through 10.0.0.1"
+            ],
+            "correct": 1,
+            "explanation": "The '5' at the end of the second command sets the administrative distance to 5 (default static AD is 1). This makes it a floating static route \u2014 it stays in the routing table as a backup but only becomes active if the primary route (AD 1) disappears. A is wrong because equal-cost load balancing requires the same AD. C is wrong because IOS does not overwrite routes; both remain with different ADs. D is wrong because the '5' is an AD, not a recursion indicator.",
+            "ciscoCommand": "show ip route static"
+        },
+        {
+            "id": "q314",
+            "domain": "3",
+            "topic": "3.1",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "A router receives a packet for destination 172.16.5.100. The routing table contains:\n\nC 172.16.5.0/24 is directly connected, GigabitEthernet0/1\n\nWhat does the router do next?",
+            "options": [
+                "A. Forwards the packet out GigabitEthernet0/1 immediately using the destination IP as next hop",
+                "B. Performs an ARP lookup for 172.16.5.100 and forwards the frame out GigabitEthernet0/1",
+                "C. Sends the packet to the default gateway for final delivery",
+                "D. Drops the packet because no specific host route exists for 172.16.5.100"
+            ],
+            "correct": 1,
+            "explanation": "For directly connected networks, the router must resolve the destination IP to a MAC address via ARP before it can build the Layer 2 frame and send it out the interface. A is wrong because the router still needs ARP resolution \u2014 it doesn't just push the packet out. C is wrong because the router already has a matching route. D is wrong because the /24 route matches the destination; a host route is not required.",
+            "ciscoCommand": "show ip arp"
+        },
+        {
+            "id": "q315",
+            "domain": "3",
+            "topic": "3.2",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "A router has the following routing table entries:\n\n- D 10.10.0.0/16 [90/2170112] via 192.168.1.2\n- D 10.10.0.0/16 [90/2170112] via 192.168.2.2\n- O 10.10.10.0/24 [110/30] via 192.168.3.1\n\nA packet arrives destined for 10.10.10.5. Which path(s) does the router use?",
+            "options": [
+                "A. Load-balances across 192.168.1.2 and 192.168.2.2 because EIGRP has lower AD than OSPF",
+                "B. Forwards to 192.168.3.1 because the /24 OSPF route is the longest match",
+                "C. Forwards to 192.168.1.2 only because it appeared first in the table",
+                "D. Drops the packet due to conflicting routing protocol entries"
+            ],
+            "correct": 1,
+            "explanation": "Longest prefix match always wins. The OSPF /24 route (10.10.10.0/24) is more specific than the EIGRP /16 routes (10.10.0.0/16) for destination 10.10.10.5. AD is only compared when prefix lengths are equal. A is wrong because AD comparison only applies to routes with the same prefix length. C is wrong because routing table order doesn't determine forwarding preference. D is wrong because the router has valid routes and won't drop the packet.",
+            "ciscoCommand": "show ip route 10.10.10.5"
+        },
+        {
+            "id": "q316",
+            "domain": "3",
+            "topic": "3.5",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "An engineer runs 'show ip protocols' and sees:\n\nRouting Protocol is \"ospf 1\"\n  Routing for Networks:\n    10.0.0.0 0.0.0.255 area 0\n    172.16.0.0 0.0.255.255 area 1\n\nWhich command was used to advertise 172.16.0.0/16 into OSPF area 1?",
+            "options": [
+                "A. network 172.16.0.0 255.255.0.0 area 1",
+                "B. network 172.16.0.0 0.0.255.255 area 1",
+                "C. network 172.16.0.0/16 area 1",
+                "D. redistribute connected area 1"
+            ],
+            "correct": 1,
+            "explanation": "OSPF uses wildcard masks (not subnet masks) in the network statement. The wildcard 0.0.255.255 matches the output shown. A is wrong because 255.255.0.0 is a subnet mask, not a wildcard mask \u2014 OSPF requires wildcard masks. C is wrong because OSPF does not accept CIDR notation in the network command. D is wrong because redistribute would show differently in 'show ip protocols' output.",
+            "ciscoCommand": "show ip protocols"
+        },
+        {
+            "id": "q317",
+            "domain": "3",
+            "topic": "3.3",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "An OSPF router in Area 0 has the following configuration:\n\nrouter ospf 1\n passive-interface GigabitEthernet0/0\n network 10.0.0.0 0.0.0.255 area 0\n\nGigabitEthernet0/0 has IP 10.0.0.1/24. A neighbor router on the same segment has OSPF configured correctly. What is the result?",
+            "options": [
+                "A. The routers form an adjacency, but 10.0.0.0/24 is not advertised",
+                "B. The 10.0.0.0/24 network is advertised into OSPF, but no adjacency forms on Gi0/0",
+                "C. The passive-interface command is ignored because the network statement matches Gi0/0",
+                "D. The router does not advertise 10.0.0.0/24 and no adjacency forms on Gi0/0"
+            ],
+            "correct": 1,
+            "explanation": "The passive-interface command suppresses OSPF Hello packets on the interface, preventing adjacency formation. However, the network matching the interface still causes OSPF to advertise the subnet in its LSAs. This is commonly used for interfaces facing end-user LANs. A is wrong because passive prevents adjacency. C is wrong because passive-interface always takes effect regardless of network statements. D is wrong because the network IS advertised \u2014 only Hello packets are suppressed.",
+            "ciscoCommand": "show ip ospf interface GigabitEthernet0/0"
+        },
+        {
+            "id": "q318",
+            "domain": "3",
+            "topic": "3.4",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "An engineer configures:\n\nRouter(config)# ip route 10.10.10.0 255.255.255.0 GigabitEthernet0/1\n\nThe route appears in the routing table. When the router receives a packet for 10.10.10.5, what happens if GigabitEthernet0/1 goes down?",
+            "options": [
+                "A. The static route is removed from the routing table",
+                "B. The static route remains but packets are dropped",
+                "C. The router uses the default route instead",
+                "D. The static route remains and traffic is sent to a backup interface"
+            ],
+            "correct": 0,
+            "explanation": "When a static route points to an exit interface and that interface goes down (line protocol down), the route is automatically removed from the routing table. This is the advantage of interface-based static routes over next-hop-only routes (where the route might remain if the next-hop is reachable via another path). B is wrong because the route is removed, not kept. C might happen only if a default route exists and the static is removed. D is wrong because there is no automatic failover to another interface.",
+            "ciscoCommand": "show ip route static"
+        },
+        {
+            "id": "q319",
+            "domain": "3",
+            "topic": "3.3",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "Two routers are connected on a /30 link. Both run OSPF in Area 0. Router A has router-id 1.1.1.1 and Router B has router-id 2.2.2.2. On the Ethernet link between them, which router becomes the DR?",
+            "options": [
+                "A. Router A because lower router ID wins the DR election",
+                "B. Router B because higher router ID wins the DR election",
+                "C. No DR election occurs because only two routers exist on the segment",
+                "D. The first router to boot becomes DR regardless of router ID"
+            ],
+            "correct": 1,
+            "explanation": "On multi-access networks (including Ethernet), OSPF elects a DR and BDR. The router with the highest priority wins. If priorities are equal (default is 1), the highest router-id breaks the tie. Router B (2.2.2.2) wins. A is wrong \u2014 higher, not lower, router-id wins. C is wrong because DR election occurs on all multi-access segments regardless of the number of routers (even with two routers, one becomes DR and the other BDR). D is wrong because while the first router to boot may initially become DR, the election is based on priority and router-id, and the question states both are connected.",
+            "ciscoCommand": "show ip ospf neighbor"
+        },
+        {
+            "id": "q320",
+            "domain": "3",
+            "topic": "3.1",
+            "difficulty": 1,
+            "type": "multiple-choice",
+            "question": "Which component of the routing table indicates how a route was learned?",
+            "options": [
+                "A. The metric",
+                "B. The route source code (C, S, O, D, etc.)",
+                "C. The administrative distance",
+                "D. The next-hop address"
+            ],
+            "correct": 1,
+            "explanation": "The route source code at the beginning of each routing table entry indicates how the route was learned: C=connected, S=static, O=OSPF, D=EIGRP, R=RIP, B=BGP, etc. A is wrong because the metric indicates the cost/distance within a routing protocol. C is wrong because AD is used to select between protocols but isn't a visible code. D is wrong because the next-hop shows where to forward packets, not how the route was learned.",
+            "ciscoCommand": "show ip route"
+        },
+        {
+            "id": "q321",
+            "domain": "3",
+            "topic": "3.2",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "A router has these entries:\n\nS* 0.0.0.0/0 [1/0] via 10.0.0.1\nO  192.168.1.0/24 [110/20] via 10.0.0.2\nC  10.0.0.0/30 is directly connected, Gi0/0\n\nA packet arrives for 172.16.50.1. Which route is used?",
+            "options": [
+                "A. The OSPF route to 192.168.1.0/24",
+                "B. The connected route 10.0.0.0/30",
+                "C. The default route via 10.0.0.1",
+                "D. The packet is dropped \u2014 no matching route"
+            ],
+            "correct": 2,
+            "explanation": "172.16.50.1 does not match the OSPF route (192.168.1.0/24) or the connected route (10.0.0.0/30). The default route 0.0.0.0/0 matches ALL destinations as a last resort. C is correct. A is wrong because 172.16.50.1 is not in the 192.168.1.0/24 range. B is wrong because 172.16.50.1 is not in the 10.0.0.0/30 range. D is wrong because the default route exists and matches everything.",
+            "ciscoCommand": "show ip route 172.16.50.1"
+        },
+        {
+            "id": "q322",
+            "domain": "3",
+            "topic": "3.3",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "An OSPF router shows the following:\n\nRouter# show ip ospf interface Gi0/0\nInternet Address 10.1.1.1/24, Area 0\nProcess ID 1, Router ID 10.1.1.1, Network Type BROADCAST, Cost: 1\n\nWhat does the cost of 1 indicate about this interface?",
+            "options": [
+                "A. The interface bandwidth is 100 Mbps (reference bandwidth 100 Mbps / 100 Mbps = 1)",
+                "B. The interface has been manually configured with 'ip ospf cost 1'",
+                "C. The interface is a loopback interface",
+                "D. Either the interface is 100 Mbps or faster with default reference bandwidth, or the cost was manually set"
+            ],
+            "correct": 3,
+            "explanation": "OSPF cost = reference bandwidth / interface bandwidth. Default reference is 100 Mbps. A 100 Mbps link = cost 1, but a 1 Gbps or 10 Gbps link ALSO = cost 1 because the formula produces a fractional result that rounds to 1. Additionally, cost could be manually set. D is the most complete answer. A is partially right but incomplete. B is possible but not the only explanation. C is wrong because loopback cost is also 1 but that doesn't match the Gi0/0 interface shown.",
+            "ciscoCommand": "show ip ospf interface"
+        },
+        {
+            "id": "q323",
+            "domain": "3",
+            "topic": "3.4",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "An engineer configures:\n\nRouter(config)# ip route 10.10.0.0 255.255.0.0 192.168.1.1\nRouter(config)# ip route 10.10.0.0 255.255.0.0 192.168.2.1\n\nBoth next hops are reachable. What happens for traffic destined to 10.10.5.5?",
+            "options": [
+                "A. Only the first route is used because it was configured first",
+                "B. Only the second route is used because it overwrites the first",
+                "C. The router load-balances across both next hops",
+                "D. The router drops the packet due to ambiguous routing"
+            ],
+            "correct": 2,
+            "explanation": "When two static routes have the same prefix, same prefix length, and same administrative distance, IOS installs both in the routing table and performs equal-cost load balancing (CEF per-destination by default). A is wrong because IOS does not prefer the first-configured route. B is wrong because static routes with different next hops are not overwritten \u2014 both are installed. D is wrong because this is a valid and supported configuration.",
+            "ciscoCommand": "show ip route 10.10.0.0"
+        },
+        {
+            "id": "q324",
+            "domain": "3",
+            "topic": "3.5",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "An engineer needs to verify that OSPF is exchanging routes between Area 0 and Area 1. Which command shows inter-area routes?",
+            "options": [
+                "A. show ip ospf database \u2014 look for Type 3 LSAs",
+                "B. show ip route ospf \u2014 look for 'O IA' prefix",
+                "C. show ip ospf neighbor \u2014 look for FULL state",
+                "D. show ip protocols \u2014 look for area boundary information"
+            ],
+            "correct": 1,
+            "explanation": "In the routing table, OSPF inter-area routes appear with the prefix 'O IA'. This is the fastest way to confirm inter-area routes are being learned. A shows the LSDB which includes Type 3 Summary LSAs for inter-area routes but is more detailed than needed. C shows neighbor states but not routes. D shows protocol configuration but not specific routes learned.",
+            "ciscoCommand": "show ip route ospf"
+        },
+        {
+            "id": "q325",
+            "domain": "3",
+            "topic": "3.3",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "Router A and Router B are OSPF neighbors on an Ethernet segment. Router A has priority 100 and Router B has priority 200. Router A booted first and became DR. Router B then booted. What is the DR after both routers are up?",
+            "options": [
+                "A. Router B because it has higher priority",
+                "B. Router A because OSPF DR election is non-preemptive",
+                "C. Router B after the Dead timer expires for Router A",
+                "D. The DR alternates between them based on Hello packets"
+            ],
+            "correct": 1,
+            "explanation": "OSPF DR election is NON-PREEMPTIVE. Once a DR is elected, it remains DR even if a router with higher priority joins the network. Router A stays DR until it fails or OSPF is restarted. A is wrong because higher priority doesn't preempt an existing DR. C is wrong because the Dead timer only removes a neighbor if Hellos stop \u2014 it doesn't trigger re-election when both are healthy. D is wrong because DR doesn't alternate.",
+            "ciscoCommand": "show ip ospf neighbor"
+        },
+        {
+            "id": "q326",
+            "domain": "3",
+            "topic": "3.1",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "A Layer 3 switch has VLAN 10 (10.1.10.0/24) and VLAN 20 (10.1.20.0/24) configured with SVIs. A host in VLAN 10 (10.1.10.50) sends a packet to a host in VLAN 20 (10.1.20.75). What does the Layer 3 switch do?",
+            "options": [
+                "A. Floods the packet to all ports in both VLANs",
+                "B. Routes the packet between VLAN 10 and VLAN 20 using the SVI interfaces",
+                "C. Drops the packet because inter-VLAN routing requires a physical router",
+                "D. Sends the packet to the default gateway for inter-VLAN routing"
+            ],
+            "correct": 1,
+            "explanation": "A Layer 3 switch with SVIs configured for both VLANs performs inter-VLAN routing internally. The packet enters via the VLAN 10 SVI and is routed to the VLAN 20 SVI. A is wrong because routing, not flooding, occurs between different subnets. C is wrong because Layer 3 switches don't need external routers for inter-VLAN routing. D is wrong because the switch itself IS the default gateway for both VLANs.",
+            "ciscoCommand": "show ip route"
+        },
+        {
+            "id": "q327",
+            "domain": "3",
+            "topic": "3.2",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "A router has these routes:\n\nO  10.1.0.0/16 [110/20] via 192.168.1.1\nO  10.1.0.0/16 [110/30] via 192.168.2.1\n\nBoth are OSPF routes to the same prefix. Which path is used?",
+            "options": [
+                "A. Both \u2014 OSPF load-balances across unequal-cost paths by default",
+                "B. 192.168.1.1 only \u2014 it has the lower OSPF metric",
+                "C. 192.168.2.1 \u2014 the higher metric is preferred in OSPF",
+                "D. Neither \u2014 OSPF rejects duplicate routes with different metrics"
+            ],
+            "correct": 1,
+            "explanation": "OSPF selects the path with the lowest metric. The route via 192.168.1.1 with metric 20 wins over the route via 192.168.2.1 with metric 30. Only the lower-cost path is installed. A is wrong because OSPF only load-balances across EQUAL-cost paths by default (unlike EIGRP which supports unequal-cost with variance). C is wrong because lower metric is preferred. D is wrong because OSPF simply picks the best metric.",
+            "ciscoCommand": "show ip route ospf"
+        },
+        {
+            "id": "q328",
+            "domain": "3",
+            "topic": "3.3",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "An engineer configures OSPF on a router:\n\nrouter ospf 1\n router-id 1.1.1.1\n network 10.0.0.0 0.0.0.255 area 0\n\nThe router already has OSPF neighbors. The engineer changes the router-id:\n\nrouter ospf 1\n router-id 2.2.2.2\n\nWhat must happen for the new router-id to take effect?",
+            "options": [
+                "A. It takes effect immediately on the next Hello packet",
+                "B. The OSPF process must be restarted with 'clear ip ospf process'",
+                "C. The router must be physically rebooted",
+                "D. The router-id changes automatically after the Dead timer expires"
+            ],
+            "correct": 1,
+            "explanation": "Changing the OSPF router-id requires restarting the OSPF process (clear ip ospf process) or rebooting the router. It does NOT take effect immediately. B is the best answer. A is wrong because the router-id change is not applied dynamically. C is technically possible but unnecessary \u2014 clearing the OSPF process is sufficient. D is wrong because the Dead timer is for neighbor failure detection, not router-id changes.",
+            "ciscoCommand": "clear ip ospf process"
+        },
+        {
+            "id": "q329",
+            "domain": "3",
+            "topic": "3.4",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "An engineer configures:\n\nRouter(config)# ip route 10.10.10.0 255.255.255.0 192.168.1.1\n\nThe router has no direct connection to 192.168.1.0/24, but has an OSPF-learned route to reach 192.168.1.1. What happens if the OSPF route to 192.168.1.1 is withdrawn?",
+            "options": [
+                "A. The static route remains in the routing table and packets are black-holed",
+                "B. The static route is automatically removed because the next hop is unreachable",
+                "C. The static route remains but the router uses the default route instead",
+                "D. The static route triggers a routing loop"
+            ],
+            "correct": 1,
+            "explanation": "When a static route specifies a next-hop IP (recursive static route), the router must be able to resolve that next hop via another route. If the route to the next hop disappears, IOS removes the static route from the routing table. This is called recursive route resolution failure. A is wrong because IOS checks next-hop reachability. C is wrong because the static route is removed, not just bypassed. D is wrong because no loop forms \u2014 the route simply disappears.",
+            "ciscoCommand": "show ip route static"
+        },
+        {
+            "id": "q330",
+            "domain": "3",
+            "topic": "3.3",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "Two OSPF routers are connected on a multi-access Ethernet segment. Router A is in Area 0 and Router B is in Area 1. The interfaces on the shared segment are configured in different areas. What happens?",
+            "options": [
+                "A. They form a full adjacency and one router becomes an ABR",
+                "B. They exchange Hello packets but never form an adjacency",
+                "C. They form an adjacency in the lower-numbered area",
+                "D. OSPF automatically resolves the area mismatch"
+            ],
+            "correct": 1,
+            "explanation": "OSPF requires the area ID to match on both sides of a link. If Router A's interface is in Area 0 and Router B's interface is in Area 1, they will see each other's Hello packets (the interface is up) but the area ID mismatch prevents adjacency formation. They stay stuck in INIT or never progress. A is wrong because ABR requires a single router with interfaces in multiple areas, not a mismatch. C is wrong because OSPF doesn't pick an area. D is wrong because OSPF does not auto-resolve this.",
+            "ciscoCommand": "show ip ospf interface"
+        },
+        {
+            "id": "q331",
+            "domain": "3",
+            "topic": "3.2",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What is the administrative distance of an OSPF external (E2) route?",
+            "options": [
+                "A. 90",
+                "B. 110",
+                "C. 170",
+                "D. 200"
+            ],
+            "correct": 1,
+            "explanation": "ALL OSPF routes \u2014 whether intra-area (O), inter-area (O IA), or external (O E1/E2) \u2014 have an administrative distance of 110. OSPF uses cost/metric to differentiate between route types internally. A (90) is EIGRP internal. C (170) is EIGRP external. D (200) is iBGP. The common trap is thinking OSPF external routes have a different AD than OSPF internal routes.",
+            "ciscoCommand": "show ip route ospf"
+        },
+        {
+            "id": "q332",
+            "domain": "3",
+            "topic": "3.5",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "An engineer runs:\n\nRouter# show ip route\nGateway of last resort is 10.0.0.1 to network 0.0.0.0\n\nS*  0.0.0.0/0 [1/0] via 10.0.0.1\nC   10.0.0.0/30 is directly connected, GigabitEthernet0/0\nL   10.0.0.2/32 is directly connected, GigabitEthernet0/0\n\nWhat does the 'L' entry represent?",
+            "options": [
+                "A. A loopback interface route",
+                "B. A local host route for the router's own interface IP",
+                "C. A learned route from a neighbor",
+                "D. A link-local IPv6 route shown in the IPv4 table"
+            ],
+            "correct": 1,
+            "explanation": "The 'L' code represents a local route \u2014 a /32 host route automatically created for each interface IP address on the router itself. This allows the router to recognize packets destined for its own interfaces. A is wrong because loopback interface routes show as 'C' (connected). C is wrong because 'L' is not related to learned routes. D is wrong because link-local IPv6 doesn't appear in the IPv4 routing table.",
+            "ciscoCommand": "show ip route"
+        },
+        {
+            "id": "q333",
+            "domain": "3",
+            "topic": "3.3",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "An OSPF router has 'auto-cost reference-bandwidth 10000' configured. What is the OSPF cost of a 1 Gbps interface?",
+            "options": [
+                "A. 1",
+                "B. 10",
+                "C. 100",
+                "D. 1000"
+            ],
+            "correct": 1,
+            "explanation": "OSPF cost = reference bandwidth / interface bandwidth. Reference = 10000 Mbps, interface = 1000 Mbps. 10000/1000 = 10. A is wrong (that would be 10G interface with this reference). C is wrong (that would be 100 Mbps interface). D is wrong (that would be 10 Mbps interface). Changing the reference bandwidth is critical in modern networks to differentiate between Gigabit and 10 Gigabit links.",
+            "ciscoCommand": "show ip ospf interface"
+        },
+        {
+            "id": "q334",
+            "domain": "3",
+            "topic": "3.4",
+            "difficulty": 1,
+            "type": "multiple-choice",
+            "question": "Which of the following is the correct syntax for a default static route?",
+            "options": [
+                "A. ip route 0.0.0.0 0.0.0.0 192.168.1.1",
+                "B. ip route default 192.168.1.1",
+                "C. ip default-route 192.168.1.1",
+                "D. ip route 255.255.255.255 0.0.0.0 192.168.1.1"
+            ],
+            "correct": 0,
+            "explanation": "The default static route uses destination 0.0.0.0 with mask 0.0.0.0, meaning it matches all addresses when no more specific route exists. A is the correct IOS syntax. B is wrong because 'default' is not valid syntax. C is wrong because 'ip default-route' is not the standard command. D is wrong because 255.255.255.255 as a destination with mask 0.0.0.0 is not a default route.",
+            "ciscoCommand": "ip route 0.0.0.0 0.0.0.0"
+        },
+        {
+            "id": "q335",
+            "domain": "3",
+            "topic": "3.2",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "A router has these routes:\n\nS  10.0.0.0/8 [1/0] via 192.168.1.1\nO  10.0.0.0/8 [110/20] via 192.168.2.1\nS  10.1.1.0/24 [1/0] via 192.168.3.1\n\nThe static route to 10.0.0.0/8 is removed. A packet for 10.2.5.5 arrives. What happens?",
+            "options": [
+                "A. Uses the OSPF route via 192.168.2.1",
+                "B. Uses the static /24 route via 192.168.3.1",
+                "C. Drops the packet \u2014 no matching route",
+                "D. Load-balances between the remaining routes"
+            ],
+            "correct": 0,
+            "explanation": "After removing the static /8, the OSPF route to 10.0.0.0/8 (AD 110) becomes the best match. The static /24 to 10.1.1.0/24 does NOT match 10.2.5.5 (that's in the 10.2.x.x range, not 10.1.1.x). Previously, the OSPF /8 was hidden by the lower-AD static /8. Now it re-emerges. B is wrong because 10.2.5.5 is not in 10.1.1.0/24. C is wrong because the OSPF /8 route matches. D is wrong because only the OSPF /8 matches 10.2.5.5.",
+            "ciscoCommand": "show ip route 10.2.5.5"
+        },
+        {
+            "id": "q336",
+            "domain": "3",
+            "topic": "3.1",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "A packet enters a router on GigabitEthernet0/0. The routing table indicates the destination is reachable via GigabitEthernet0/0 (the same interface). What does the router do?",
+            "options": [
+                "A. Drops the packet to prevent a routing loop",
+                "B. Forwards the packet back out GigabitEthernet0/0 toward the next hop",
+                "C. Sends an ICMP redirect to the source and forwards the packet",
+                "D. Buffers the packet until a different route is available"
+            ],
+            "correct": 2,
+            "explanation": "When a router receives a packet on an interface and the routing table says to send it back out the SAME interface, the router forwards the packet AND sends an ICMP redirect to the source, telling it to send future packets directly to the next hop. A is wrong because this is not a loop \u2014 the source just has a suboptimal route. B is partially correct but misses the ICMP redirect. D is wrong because the router doesn't wait for alternate routes.",
+            "ciscoCommand": "show ip interface"
+        },
+        {
+            "id": "q337",
+            "domain": "4",
+            "topic": "4.1",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "A router is configured with dynamic NAT. The NAT pool has 5 public IP addresses. Currently all 5 are in use. A sixth internal host attempts to access the internet. What happens?",
+            "options": [
+                "A. The router uses PAT automatically as a fallback",
+                "B. The packet is dropped \u2014 no available NAT translations",
+                "C. The router steals the oldest translation for the new host",
+                "D. The router queues the packet until a translation becomes available"
+            ],
+            "correct": 1,
+            "explanation": "With dynamic NAT (not PAT), each internal host gets a unique public IP. When the pool is exhausted, no translation can be created and the packet is dropped. A is wrong because dynamic NAT does NOT automatically fall back to PAT unless explicitly configured with 'overload'. C is wrong because active translations are not preempted. D is wrong because the router does not queue packets waiting for translations.",
+            "ciscoCommand": "show ip nat translations"
+        },
+        {
+            "id": "q338",
+            "domain": "4",
+            "topic": "4.1",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "A router has this NAT configuration:\n\nip nat inside source static 192.168.1.10 203.0.113.10\n\nAn internet server at 8.8.8.8 sends a packet to 203.0.113.10. In NAT terminology, what is 8.8.8.8 called?",
+            "options": [
+                "A. Outside local",
+                "B. Outside global",
+                "C. Inside global",
+                "D. Inside local"
+            ],
+            "correct": 1,
+            "explanation": "NAT terminology: Inside local = private IP of the internal host (192.168.1.10). Inside global = public IP mapped to the internal host (203.0.113.10). Outside local = how the external host appears to the inside network. Outside global = the actual real IP of the external host. Since 8.8.8.8 is the real IP of the internet server, it is the outside global address. A (outside local) would be 8.8.8.8 seen from inside \u2014 which is the same as outside global when no outside NAT is configured.",
+            "ciscoCommand": "show ip nat translations"
+        },
+        {
+            "id": "q339",
+            "domain": "4",
+            "topic": "4.1",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "Which NAT type allows multiple internal hosts to share a single public IP address simultaneously?",
+            "options": [
+                "A. Static NAT",
+                "B. Dynamic NAT",
+                "C. PAT (Port Address Translation)",
+                "D. Policy NAT"
+            ],
+            "correct": 2,
+            "explanation": "PAT (also called NAT overload) uses unique source port numbers to differentiate between multiple internal hosts sharing one public IP. A is wrong because static NAT is a one-to-one mapping. B is wrong because dynamic NAT also uses one-to-one mappings from a pool. D is wrong because policy NAT refers to NAT based on access lists/route maps, not port-based sharing.",
+            "ciscoCommand": "ip nat inside source list 1 pool MYPOOL overload"
+        },
+        {
+            "id": "q340",
+            "domain": "4",
+            "topic": "4.1",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "A router has PAT configured:\n\nip nat inside source list 1 interface GigabitEthernet0/1 overload\n\nHost 192.168.1.10 sends a packet to 8.8.8.8 with source port 50000. Host 192.168.1.20 sends a packet to 8.8.8.8 also with source port 50000. How does the router handle the port conflict?",
+            "options": [
+                "A. The second translation fails and the packet is dropped",
+                "B. The router assigns a different translated source port to the second host",
+                "C. The router uses the destination port to differentiate the flows",
+                "D. The router creates two identical NAT entries and load-balances"
+            ],
+            "correct": 1,
+            "explanation": "When two internal hosts use the same source port, PAT detects the collision and assigns a different translated port number to the second host. The NAT table tracks both translations with their unique port mappings. A is wrong because PAT handles port conflicts gracefully. C is wrong because it's the translated source port, not the destination port, that differentiates flows. D is wrong because identical entries would be ambiguous \u2014 PAT ensures uniqueness.",
+            "ciscoCommand": "show ip nat translations"
+        },
+        {
+            "id": "q341",
+            "domain": "4",
+            "topic": "4.1",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "After configuring static NAT, an engineer notices external hosts cannot reach the internal server. The configuration is:\n\ninterface GigabitEthernet0/0\n ip address 192.168.1.1 255.255.255.0\ninterface GigabitEthernet0/1\n ip address 203.0.113.1 255.255.255.0\nip nat inside source static 192.168.1.10 203.0.113.10\n\nWhat is missing?",
+            "options": [
+                "A. The NAT pool definition",
+                "B. The 'ip nat inside' and 'ip nat outside' interface designations",
+                "C. An access list permitting the traffic",
+                "D. A route to 203.0.113.10 on the internal network"
+            ],
+            "correct": 1,
+            "explanation": "NAT requires interfaces to be designated as 'ip nat inside' or 'ip nat outside'. Without these designations, the router doesn't know which direction to apply NAT translations. A is wrong because static NAT doesn't use pools. C is wrong because static NAT doesn't require an access list. D is wrong because the router itself owns the 203.0.113.10 translation \u2014 no additional route is needed.",
+            "ciscoCommand": "show ip nat statistics"
+        },
+        {
+            "id": "q342",
+            "domain": "4",
+            "topic": "4.1",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "An internal host at 192.168.1.10 communicates with server 8.8.8.8 through PAT. The translated address is 203.0.113.1:45000. What does the internet server 8.8.8.8 see as the source IP and port of the incoming packet?",
+            "options": [
+                "A. 192.168.1.10:45000",
+                "B. 203.0.113.1:45000",
+                "C. 192.168.1.10 with the original source port",
+                "D. 203.0.113.1 with the original source port"
+            ],
+            "correct": 1,
+            "explanation": "PAT translates both the source IP (from private to public) and potentially the source port. The internet server sees the inside global address (203.0.113.1) and the translated port (45000). A is wrong because private IPs are never visible on the internet. C is wrong for the same reason. D is wrong because PAT may change the source port (and in this scenario, it was translated to 45000).",
+            "ciscoCommand": "show ip nat translations"
+        },
+        {
+            "id": "q343",
+            "domain": "4",
+            "topic": "4.1",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "An engineer configures NAT on a router:\n\nip nat pool MYPOOL 203.0.113.10 203.0.113.14 netmask 255.255.255.240\naccess-list 1 permit 10.0.0.0 0.0.0.255\nip nat inside source list 1 pool MYPOOL\n\nHost 10.0.1.50 tries to access the internet. What happens?",
+            "options": [
+                "A. NAT translates the address using a pool address",
+                "B. The packet passes through without NAT translation",
+                "C. The packet is dropped because ACL 1 denies 10.0.1.50",
+                "D. The packet is translated using PAT on the router's interface"
+            ],
+            "correct": 1,
+            "explanation": "ACL 1 permits only 10.0.0.0/24 (wildcard 0.0.0.255). Host 10.0.1.50 is in 10.0.1.0/24, which does NOT match the ACL. When the ACL doesn't match for NAT, the packet is NOT dropped \u2014 it simply passes through without NAT translation. This is a key concept: NAT ACLs don't block traffic; they determine WHAT gets translated. A is wrong because 10.0.1.50 doesn't match the ACL. C is wrong because NAT ACLs don't drop non-matching traffic. D is wrong because PAT was not configured.",
+            "ciscoCommand": "show ip nat translations"
+        },
+        {
+            "id": "q344",
+            "domain": "4",
+            "topic": "4.2",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "Which NTP stratum number indicates a reference clock (GPS, atomic clock)?",
+            "options": [
+                "A. Stratum 0",
+                "B. Stratum 1",
+                "C. Stratum 16",
+                "D. Stratum 255"
+            ],
+            "correct": 0,
+            "explanation": "Stratum 0 is the actual reference clock hardware (GPS receiver, cesium clock, etc.). Stratum 1 servers are directly connected to stratum 0 devices. Each hop adds 1 to the stratum. Stratum 16 means unsynchronized. B is wrong because stratum 1 is a server connected to the reference clock, not the reference clock itself. C (stratum 16) means the device is not synchronized. D is not a standard NTP stratum value.",
+            "ciscoCommand": "show ntp status"
+        },
+        {
+            "id": "q345",
+            "domain": "4",
+            "topic": "4.2",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "A router is configured as an NTP client pointing to a stratum 2 server. The router successfully synchronizes. What stratum does the router advertise to its own NTP clients?",
+            "options": [
+                "A. Stratum 2 \u2014 same as its source",
+                "B. Stratum 3 \u2014 one more than its source",
+                "C. Stratum 1 \u2014 it becomes a primary server for the local network",
+                "D. Stratum 4 \u2014 two more than its source for client-mode devices"
+            ],
+            "correct": 1,
+            "explanation": "NTP clients always advertise a stratum value one higher than their source. If synchronized to a stratum 2 server, the router operates at stratum 3. A is wrong because the client always increments. C is wrong because stratum 1 requires direct connection to a stratum 0 reference clock. D is wrong because only one stratum is added per hop.",
+            "ciscoCommand": "show ntp status"
+        },
+        {
+            "id": "q346",
+            "domain": "4",
+            "topic": "4.3",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "A network uses HSRP on two routers. Router A has priority 110 and Router B has priority 100. Both use the virtual IP 10.1.1.1. Router A fails. After Router A recovers, which router is the active HSRP router?",
+            "options": [
+                "A. Router A \u2014 it has higher priority and immediately preempts",
+                "B. Router B \u2014 HSRP is non-preemptive by default",
+                "C. They negotiate and the first to send a Hello wins",
+                "D. Router A \u2014 after the holdtime expires, it reclaims active role"
+            ],
+            "correct": 1,
+            "explanation": "HSRP is NON-PREEMPTIVE by default. Even though Router A has higher priority, Router B remains active after taking over unless 'standby preempt' is configured on Router A. A is wrong because preemption must be explicitly enabled. C is wrong because HSRP doesn't negotiate based on Hello timing. D is wrong because without preempt configured, Router A stays in standby regardless of timers.",
+            "ciscoCommand": "show standby"
+        },
+        {
+            "id": "q347",
+            "domain": "4",
+            "topic": "4.3",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "Two HSRP routers both have priority 100 (default). Router A has IP 10.1.1.2 and Router B has IP 10.1.1.3. Neither has 'standby preempt' configured. Both boot simultaneously. Which router becomes the HSRP active router?",
+            "options": [
+                "A. Router A \u2014 lower IP address wins the tiebreaker",
+                "B. Router B \u2014 higher IP address wins the tiebreaker",
+                "C. The first router to send a Hello coup message",
+                "D. Neither \u2014 they both stay in standby until preempt is configured"
+            ],
+            "correct": 1,
+            "explanation": "When HSRP priorities are equal, the router with the HIGHEST IP address becomes the active router. Router B (10.1.1.3) wins over Router A (10.1.1.2). This is different from OSPF DR election where highest router-ID wins \u2014 same logic, highest value wins. A is wrong because higher, not lower, IP wins. C is wrong because coup messages are for preemption, not initial election. D is wrong because HSRP always elects an active router \u2014 preempt is only for reclaiming the role after recovery.",
+            "ciscoCommand": "show standby brief"
+        },
+        {
+            "id": "q348",
+            "domain": "4",
+            "topic": "4.3",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What is the primary difference between HSRP and VRRP?",
+            "options": [
+                "A. HSRP is Cisco proprietary; VRRP is an open standard (RFC 5798)",
+                "B. HSRP supports IPv6; VRRP does not",
+                "C. VRRP requires three routers minimum; HSRP requires only two",
+                "D. HSRP uses UDP; VRRP uses TCP"
+            ],
+            "correct": 0,
+            "explanation": "HSRP is Cisco proprietary while VRRP is an IETF open standard (RFC 5798). Both provide first-hop redundancy. B is wrong because both support IPv6 (HSRPv2 and VRRPv3). C is wrong because both work with two or more routers. D is wrong because HSRP uses UDP port 1985 and VRRP uses IP protocol 112 (not TCP).",
+            "ciscoCommand": "show standby"
+        },
+        {
+            "id": "q349",
+            "domain": "4",
+            "topic": "4.4",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "An engineer needs to capture SNMP traps from network devices. Which SNMP component receives these traps?",
+            "options": [
+                "A. SNMP agent",
+                "B. SNMP manager (NMS)",
+                "C. MIB browser",
+                "D. SNMP proxy"
+            ],
+            "correct": 1,
+            "explanation": "SNMP traps are unsolicited notifications sent FROM agents (network devices) TO the SNMP manager (Network Management System/NMS). The manager listens on UDP port 162 for incoming traps. A is wrong because agents SEND traps, they don't receive them. C is wrong because a MIB browser is a tool for querying OIDs, not receiving traps. D is wrong because SNMP proxy is not a standard receiver of traps.",
+            "ciscoCommand": "snmp-server host 10.1.1.100 traps"
+        },
+        {
+            "id": "q350",
+            "domain": "4",
+            "topic": "4.4",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "An engineer configures SNMPv2c with community string 'public' for read-only access. A security audit flags this. Which TWO vulnerabilities exist? (Choose the BEST single answer)",
+            "options": [
+                "A. SNMPv2c sends community strings in cleartext and 'public' is a well-known default",
+                "B. SNMPv2c does not support MIB access",
+                "C. The 'public' community string enables write access by default",
+                "D. SNMPv2c cannot send traps, only informs"
+            ],
+            "correct": 0,
+            "explanation": "SNMPv2c transmits community strings in plaintext (no encryption), making them vulnerable to sniffing. Additionally, 'public' is the default community string that attackers try first. Both issues compound the security risk. B is wrong because SNMPv2c fully supports MIB access. C is wrong because 'public' is typically configured as read-only (RO), not read-write. D is wrong because SNMPv2c supports both traps and informs.",
+            "ciscoCommand": "show snmp community"
+        },
+        {
+            "id": "q351",
+            "domain": "4",
+            "topic": "4.5",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "A router is configured with:\n\nlogging trap 4\nlogging host 10.1.1.100\n\nWhich syslog severity levels are sent to the syslog server?",
+            "options": [
+                "A. Level 4 only (warnings)",
+                "B. Levels 0 through 4 (emergencies through warnings)",
+                "C. Levels 4 through 7 (warnings through debugging)",
+                "D. All levels 0 through 7"
+            ],
+            "correct": 1,
+            "explanation": "The 'logging trap' command specifies the MAXIMUM severity level to send. Syslog levels go from 0 (most severe) to 7 (least severe). Setting level 4 means all messages at level 4 AND MORE SEVERE (levels 0-4) are sent. A is wrong because syslog always includes more severe levels. C is wrong because it's reversed \u2014 higher numbers are less severe, not more. D is wrong because levels 5-7 are excluded.",
+            "ciscoCommand": "show logging"
+        },
+        {
+            "id": "q352",
+            "domain": "4",
+            "topic": "4.5",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "Match the syslog severity level to its name:\n\nLevel 0 = ?, Level 3 = ?, Level 5 = ?, Level 7 = ?",
+            "options": [
+                "A. Emergency, Error, Notice, Debug",
+                "B. Emergency, Error, Warning, Information",
+                "C. Alert, Warning, Notice, Debug",
+                "D. Emergency, Critical, Notification, Debug"
+            ],
+            "correct": 0,
+            "explanation": "The syslog levels are: 0=Emergency, 1=Alert, 2=Critical, 3=Error, 4=Warning, 5=Notification (Notice), 6=Informational, 7=Debug. The mnemonic is 'Every Awesome Cisco Engineer Will Need Ice cream Daily.' B is wrong because level 5 is Notice/Notification, not Warning (that's 4). C is wrong because level 0 is Emergency, not Alert. D is wrong because level 3 is Error, not Critical (that's 2).",
+            "ciscoCommand": "show logging"
+        },
+        {
+            "id": "q353",
+            "domain": "4",
+            "topic": "4.5",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "An engineer wants syslog messages to include timestamps. Which command achieves this?",
+            "options": [
+                "A. service timestamps log datetime msec",
+                "B. logging timestamps enable",
+                "C. clock logging enable",
+                "D. ntp logging timestamps"
+            ],
+            "correct": 0,
+            "explanation": "The 'service timestamps log datetime msec' command adds date/time stamps with millisecond precision to all log messages. This is critical for correlating events across devices. B is not a valid IOS command. C is not a valid IOS command. D is not a valid IOS command. Note: without 'msec', you lose millisecond precision which can make troubleshooting time-sensitive issues difficult.",
+            "ciscoCommand": "service timestamps log datetime msec"
+        },
+        {
+            "id": "q354",
+            "domain": "4",
+            "topic": "4.5",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "A router is configured with 'logging buffered 6'. An engineer runs 'show logging' and sees no debug messages. Why?",
+            "options": [
+                "A. Debug messages are never stored in the buffer",
+                "B. Level 6 is informational \u2014 debug is level 7 and is excluded",
+                "C. The buffer is full and debug messages were overwritten",
+                "D. Debug messages require 'logging console 7' to be buffered"
+            ],
+            "correct": 1,
+            "explanation": "The 'logging buffered 6' command stores messages at level 6 (informational) and below (0-6). Debug messages are level 7, which is higher than the configured threshold, so they are excluded from the buffer. A is wrong because debug messages CAN be buffered with 'logging buffered 7'. C is wrong because the issue is configuration, not buffer capacity. D is wrong because console and buffer logging are independent \u2014 console settings don't affect the buffer.",
+            "ciscoCommand": "show logging"
+        },
+        {
+            "id": "q355",
+            "domain": "4",
+            "topic": "4.6",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "A DHCP client sends its initial discovery message. What is the destination IP address of the DHCPDISCOVER packet?",
+            "options": [
+                "A. The DHCP server's IP address",
+                "B. 255.255.255.255 (limited broadcast)",
+                "C. 224.0.0.1 (all-hosts multicast)",
+                "D. The subnet's directed broadcast address"
+            ],
+            "correct": 1,
+            "explanation": "The DHCPDISCOVER is a broadcast because the client doesn't know any DHCP server addresses yet. It uses the limited broadcast address 255.255.255.255 as destination and 0.0.0.0 as source (since the client has no IP yet). A is wrong because the client doesn't know the server's IP. C is wrong because DHCP uses broadcast, not multicast. D is wrong because the client doesn't know its subnet yet.",
+            "ciscoCommand": "debug ip dhcp server"
+        },
+        {
+            "id": "q356",
+            "domain": "4",
+            "topic": "4.6",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "A DHCP server is on VLAN 10 (10.1.10.0/24). Clients on VLAN 20 (10.1.20.0/24) need DHCP. The Layer 3 switch has SVIs for both VLANs. Where should the 'ip helper-address' command be configured?",
+            "options": [
+                "A. On the VLAN 10 SVI (the server's VLAN)",
+                "B. On the VLAN 20 SVI (the clients' VLAN)",
+                "C. On both VLAN 10 and VLAN 20 SVIs",
+                "D. On the physical interface connecting to the DHCP server"
+            ],
+            "correct": 1,
+            "explanation": "The 'ip helper-address' command must be configured on the interface that RECEIVES the client broadcasts \u2014 which is the VLAN 20 SVI (the clients' gateway). It converts the broadcast DHCPDISCOVER into a unicast directed to the DHCP server. A is wrong because the server VLAN doesn't receive client broadcasts. C is wrong because only the client-facing interface needs it. D is wrong because the SVI is the logical interface for the VLAN, not the physical port.",
+            "ciscoCommand": "show ip interface vlan 20"
+        },
+        {
+            "id": "q357",
+            "domain": "4",
+            "topic": "4.6",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "A Cisco router is configured as a DHCP server:\n\nip dhcp pool VLAN10\n network 10.1.10.0 255.255.255.0\n default-router 10.1.10.1\n dns-server 8.8.8.8\nip dhcp excluded-address 10.1.10.1 10.1.10.10\n\nA client receives IP 10.1.10.11 via DHCP. The client can ping 10.1.10.1 but cannot resolve DNS names. What is most likely the issue?",
+            "options": [
+                "A. The DNS server address was not included in the DHCPOFFER",
+                "B. The DHCP excluded-address range includes the DNS server",
+                "C. The client received the DNS settings but there is no route from 10.1.10.0/24 to 8.8.8.8",
+                "D. The dns-server command syntax is wrong \u2014 it should be 'dns-server 8.8.8.8 8.8.8.8'"
+            ],
+            "correct": 2,
+            "explanation": "The DHCP configuration is correct \u2014 the client receives IP, gateway, and DNS settings. Since the client can ping its gateway (10.1.10.1), Layer 3 to the gateway works. The issue is likely that the router at 10.1.10.1 has no route to 8.8.8.8 (the public DNS server), or there's a firewall blocking DNS (UDP 53). A is wrong because the dns-server command is correctly configured. B is wrong because the excluded range (10.1.10.1-10) doesn't affect the DNS server at 8.8.8.8. D is wrong because the syntax is valid.",
+            "ciscoCommand": "show ip dhcp binding"
+        },
+        {
+            "id": "q358",
+            "domain": "4",
+            "topic": "4.6",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What is the correct order of DHCP messages when a client first obtains an IP address?",
+            "options": [
+                "A. Discover \u2192 Offer \u2192 Request \u2192 Acknowledge",
+                "B. Request \u2192 Offer \u2192 Discover \u2192 Acknowledge",
+                "C. Discover \u2192 Request \u2192 Offer \u2192 Acknowledge",
+                "D. Offer \u2192 Discover \u2192 Acknowledge \u2192 Request"
+            ],
+            "correct": 0,
+            "explanation": "The DHCP DORA process: Discover (client broadcasts), Offer (server responds), Request (client formally requests the offered IP), Acknowledge (server confirms). The mnemonic is DORA. B, C, and D are all in the wrong order.",
+            "ciscoCommand": "debug ip dhcp server events"
+        },
+        {
+            "id": "q359",
+            "domain": "4",
+            "topic": "4.6",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "A DHCP client has an active lease. The client reboots. What DHCP message does it send first?",
+            "options": [
+                "A. DHCPDISCOVER \u2014 to find available servers",
+                "B. DHCPREQUEST \u2014 to renew its existing lease",
+                "C. DHCPRELEASE \u2014 to release the old lease before getting a new one",
+                "D. DHCPINFORM \u2014 to get updated configuration parameters"
+            ],
+            "correct": 1,
+            "explanation": "When a DHCP client reboots with an existing lease, it sends a DHCPREQUEST (broadcast) to try to re-confirm its previous IP address. If the server ACKs, the client keeps the same address. If the server NAKs (because the address is no longer valid), the client starts over with DHCPDISCOVER. A is wrong because the client tries to reuse its address first. C is wrong because clients don't release before rebooting. D is wrong because DHCPINFORM is for clients with static IPs requesting only configuration parameters.",
+            "ciscoCommand": "debug ip dhcp server"
+        },
+        {
+            "id": "q360",
+            "domain": "4",
+            "topic": "4.6",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "A router configured as a DHCP server has the following:\n\nip dhcp pool SALES\n network 10.1.20.0 255.255.255.0\n default-router 10.1.20.1\n\nThe 'show ip dhcp binding' command shows no bindings, and clients report no IP address. The interface 10.1.20.1 is up/up. What is the most likely cause?",
+            "options": [
+                "A. The DHCP pool is missing the dns-server command",
+                "B. The 'service dhcp' command has been disabled on the router",
+                "C. The interface needs 'ip dhcp relay' enabled",
+                "D. The pool network doesn't match any connected interface subnet"
+            ],
+            "correct": 1,
+            "explanation": "If 'no service dhcp' was configured, the router's DHCP server/relay function is disabled entirely. The pool configuration can be correct, the interface can be up, but DHCP simply won't process requests. A is wrong because dns-server is optional and wouldn't prevent IP assignment. C is wrong because relay is for forwarding to external servers, not for a local DHCP server. D is less likely since the question states 10.1.20.1 is up, implying the subnet matches.",
+            "ciscoCommand": "show ip dhcp pool"
+        },
+        {
+            "id": "q361",
+            "domain": "4",
+            "topic": "4.7",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "In QoS, what is the difference between policing and shaping when traffic exceeds the configured rate?",
+            "options": [
+                "A. Policing drops excess traffic immediately; shaping buffers and delays excess traffic",
+                "B. Policing buffers traffic; shaping drops it",
+                "C. Both drop excess traffic, but shaping logs the drops",
+                "D. Policing re-marks excess traffic to a lower priority; shaping drops it"
+            ],
+            "correct": 0,
+            "explanation": "Policing drops (or re-marks) packets that exceed the rate limit \u2014 no buffering, no delay. Shaping buffers excess packets in a queue and sends them later when bandwidth is available, smoothing the traffic flow. B is reversed. C is wrong because shaping buffers, not drops. D is partially correct about policing (it CAN re-mark) but wrong about shaping \u2014 shaping buffers rather than drops.",
+            "ciscoCommand": "show policy-map interface"
+        },
+        {
+            "id": "q362",
+            "domain": "4",
+            "topic": "4.7",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "Which DSCP value is commonly used to mark voice traffic (Expedited Forwarding)?",
+            "options": [
+                "A. DSCP 0 (Best Effort)",
+                "B. DSCP 26 (AF31)",
+                "C. DSCP 46 (EF)",
+                "D. DSCP 48 (CS6)"
+            ],
+            "correct": 2,
+            "explanation": "DSCP 46 is the Expedited Forwarding (EF) per-hop behavior, designed for low-latency, low-jitter, low-loss traffic like VoIP. A (DSCP 0) is default best-effort with no priority. B (DSCP 26/AF31) is for standard data, not voice. D (DSCP 48/CS6) is used for network control traffic, not voice media.",
+            "ciscoCommand": "show policy-map"
+        },
+        {
+            "id": "q363",
+            "domain": "4",
+            "topic": "4.7",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "An engineer configures trust boundaries on a network switch. IP phones are connected to access ports and mark their voice traffic with DSCP EF (46). What happens if the switch port is configured with 'mls qos trust cos' instead of 'mls qos trust dscp'?",
+            "options": [
+                "A. The DSCP value is preserved because CoS and DSCP are independent",
+                "B. The switch ignores the DSCP marking and uses only the CoS value from the 802.1Q tag",
+                "C. The phone's DSCP marking is converted to CoS automatically",
+                "D. QoS is disabled on the port because the trust type doesn't match"
+            ],
+            "correct": 1,
+            "explanation": "When 'mls qos trust cos' is configured, the switch makes forwarding decisions based on CoS (Layer 2 802.1Q priority) and ignores the DSCP (Layer 3) marking from the phone. The DSCP value may still exist in the IP header but is not used for QoS decisions. A is wrong because the trust boundary explicitly defines which marking the switch honors. C is wrong because trusting CoS means using CoS, not converting DSCP. D is wrong because the port still applies QoS \u2014 just based on CoS.",
+            "ciscoCommand": "show mls qos interface"
+        },
+        {
+            "id": "q364",
+            "domain": "4",
+            "topic": "4.7",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "In the DiffServ QoS model, which of the following correctly describes the three main QoS actions?",
+            "options": [
+                "A. Classification, Marking, and Queuing/Scheduling",
+                "B. Policing, Shaping, and Routing",
+                "C. Encryption, Compression, and Prioritization",
+                "D. Tagging, Filtering, and Forwarding"
+            ],
+            "correct": 0,
+            "explanation": "The DiffServ model uses three core QoS mechanisms: Classification (identifying traffic types), Marking (setting DSCP/CoS values), and Queuing/Scheduling (placing traffic in queues and deciding send order). B includes routing which is not a QoS action. C includes encryption/compression which are not QoS functions. D is too generic and doesn't accurately describe QoS operations.",
+            "ciscoCommand": "show policy-map interface"
+        },
+        {
+            "id": "q365",
+            "domain": "4",
+            "topic": "4.8",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "An engineer tries to generate RSA keys for SSH:\n\nRouter(config)# crypto key generate rsa\n% Please define a hostname other than Router.\n\nWhat must be done BEFORE generating RSA keys?",
+            "options": [
+                "A. Configure 'ip ssh version 2'",
+                "B. Configure a hostname other than the default 'Router'",
+                "C. Configure a username and password for local authentication",
+                "D. Configure the VTY lines for SSH access"
+            ],
+            "correct": 1,
+            "explanation": "RSA key generation requires a hostname and domain name. The error message explicitly states the hostname cannot be the default 'Router'. The engineer must set a custom hostname (e.g., 'hostname R1') and a domain name (e.g., 'ip domain-name example.com') before RSA keys can be generated. A is wrong because SSH version is set after keys exist. C is wrong because authentication is configured after SSH is enabled. D is wrong because VTY lines are configured after SSH is available.",
+            "ciscoCommand": "hostname"
+        },
+        {
+            "id": "q366",
+            "domain": "4",
+            "topic": "4.8",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "What is the minimum RSA key size required for SSH version 2?",
+            "options": [
+                "A. 512 bits",
+                "B. 768 bits",
+                "C. 1024 bits",
+                "D. 2048 bits"
+            ],
+            "correct": 1,
+            "explanation": "SSH version 2 requires a minimum RSA key size of 768 bits. Keys smaller than 768 bits only support SSH version 1. A (512 bits) is too small for SSHv2. C (1024 bits) is a commonly recommended size but not the minimum required. D (2048 bits) is a best practice for production security but exceeds the minimum requirement.",
+            "ciscoCommand": "crypto key generate rsa modulus 1024"
+        },
+        {
+            "id": "q367",
+            "domain": "4",
+            "topic": "4.8",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "An engineer has configured SSH on a router. The VTY lines currently have 'transport input all'. What should be changed to allow only SSH access?",
+            "options": [
+                "A. transport input ssh",
+                "B. transport output ssh",
+                "C. ip ssh only",
+                "D. no transport input telnet"
+            ],
+            "correct": 0,
+            "explanation": "The 'transport input ssh' command on the VTY lines restricts remote management access to SSH only, blocking Telnet and other protocols. A is correct. B is wrong because 'transport output' controls outbound connections from the router, not inbound management access. C is not a valid IOS command. D would remove Telnet but might still allow other protocols \u2014 'transport input ssh' is the explicit, secure choice.",
+            "ciscoCommand": "line vty 0 4"
+        },
+        {
+            "id": "q368",
+            "domain": "4",
+            "topic": "4.8",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "An engineer configures SSH on a router:\n\nhostname R1\nip domain-name lab.local\ncrypto key generate rsa modulus 2048\nip ssh version 2\nline vty 0 4\n login local\n transport input ssh\n\nSSH connections fail with 'Connection refused'. What is most likely missing?",
+            "options": [
+                "A. An ACL on the VTY lines is blocking SSH",
+                "B. No local username/password has been created",
+                "C. The SSH timeout has not been configured",
+                "D. The enable secret is not set"
+            ],
+            "correct": 1,
+            "explanation": "The 'login local' command on the VTY lines requires a local username/password database entry. Without at least one username configured (e.g., 'username admin privilege 15 secret cisco'), SSH authentication will fail because there are no credentials to authenticate against. A is possible but less likely than missing credentials. C is wrong because SSH timeout is optional. D is wrong because enable secret is for privilege escalation, not SSH login.",
+            "ciscoCommand": "username admin privilege 15 secret cisco"
+        },
+        {
+            "id": "q369",
+            "domain": "4",
+            "topic": "4.8",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "Which command verifies the SSH version and active sessions on a Cisco router?",
+            "options": [
+                "A. show ssh",
+                "B. show ip ssh",
+                "C. show crypto key mypubkey rsa",
+                "D. show line vty"
+            ],
+            "correct": 1,
+            "explanation": "The 'show ip ssh' command displays the SSH version enabled, authentication timeout, and retry settings. 'show ssh' (A) shows active SSH sessions but not the version configuration. C shows the RSA public key, not SSH configuration. D shows VTY line settings, not SSH-specific information.",
+            "ciscoCommand": "show ip ssh"
+        },
+        {
+            "id": "q370",
+            "domain": "4",
+            "topic": "4.9",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "An engineer configures TFTP to backup a router's configuration:\n\nRouter# copy running-config tftp:\nAddress or name of remote host []? 10.1.1.100\n\nWhich transport protocol does TFTP use?",
+            "options": [
+                "A. TCP port 69",
+                "B. UDP port 69",
+                "C. TCP port 21",
+                "D. UDP port 21"
+            ],
+            "correct": 1,
+            "explanation": "TFTP uses UDP port 69. It's a simple protocol with no authentication and minimal overhead. A is wrong because TFTP uses UDP, not TCP. C is wrong because TCP port 21 is FTP control. D is wrong because UDP port 21 is not used by TFTP. TFTP's use of UDP means it has no built-in reliability \u2014 the protocol implements its own simple acknowledgment mechanism.",
+            "ciscoCommand": "copy running-config tftp:"
+        },
+        {
+            "id": "q371",
+            "domain": "4",
+            "topic": "4.1",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "An engineer runs 'show ip nat translations' and sees:\n\nPro  Inside global     Inside local      Outside local    Outside global\ntcp  203.0.113.1:1024  192.168.1.10:3000 8.8.8.8:80       8.8.8.8:80\ntcp  203.0.113.1:1025  192.168.1.20:3000 8.8.4.4:443      8.8.4.4:443\n\nWhat type of NAT is configured?",
+            "options": [
+                "A. Static NAT \u2014 because the inside global is the same for both",
+                "B. Dynamic NAT \u2014 because the translations are dynamically created",
+                "C. PAT \u2014 because multiple inside locals share one inside global IP with different ports",
+                "D. Static NAT with port forwarding \u2014 because specific ports are mapped"
+            ],
+            "correct": 2,
+            "explanation": "The output shows two different internal hosts (192.168.1.10 and 192.168.1.20) sharing the same inside global IP (203.0.113.1) but with different translated source ports (1024 and 1025). This is PAT (Port Address Translation / NAT overload). A is wrong because static NAT is one-to-one, not many-to-one. B is wrong because dynamic NAT assigns unique IPs from a pool, not shared IPs with port differentiation. D is wrong because port forwarding maps a specific external port to a specific internal host:port.",
+            "ciscoCommand": "show ip nat translations"
+        },
+        {
+            "id": "q372",
+            "domain": "4",
+            "topic": "4.1",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "An engineer needs to allow external users to reach an internal web server at 192.168.1.100:80 via public IP 203.0.113.50:8080. Which NAT configuration achieves this?",
+            "options": [
+                "A. ip nat inside source static 192.168.1.100 203.0.113.50",
+                "B. ip nat inside source static tcp 192.168.1.100 80 203.0.113.50 8080",
+                "C. ip nat outside source static 203.0.113.50 192.168.1.100",
+                "D. ip nat inside source static tcp 203.0.113.50 8080 192.168.1.100 80"
+            ],
+            "correct": 1,
+            "explanation": "Static NAT with port translation maps a specific protocol/port on the inside to a different port on the outside. The syntax is: ip nat inside source static [protocol] [inside-local-ip] [inside-port] [inside-global-ip] [global-port]. A is wrong because it maps the entire IP, not specific ports. C is wrong because the direction is reversed. D is wrong because the inside local and inside global positions are swapped.",
+            "ciscoCommand": "show ip nat translations"
+        },
+        {
+            "id": "q373",
+            "domain": "4",
+            "topic": "4.5",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "Which syslog severity level would a 'link up/down' interface state change typically generate?",
+            "options": [
+                "A. Level 0 \u2014 Emergency",
+                "B. Level 3 \u2014 Error",
+                "C. Level 5 \u2014 Notification",
+                "D. Level 6 \u2014 Informational"
+            ],
+            "correct": 2,
+            "explanation": "Interface up/down state changes generate syslog messages at level 5 (Notification). These are significant events that require attention but are not errors. A (Emergency) is for system-unusable conditions. B (Error) is for error conditions. D (Informational) is for normal operational messages. The '%LINEPROTO-5-UPDOWN' message format shows the '5' indicating notification level.",
+            "ciscoCommand": "show logging"
+        },
+        {
+            "id": "q374",
+            "domain": "4",
+            "topic": "4.6",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "A router has two DHCP pools configured:\n\nip dhcp pool FLOOR1\n network 10.1.10.0 255.255.255.0\n default-router 10.1.10.1\n\nip dhcp pool FLOOR2\n network 10.1.20.0 255.255.255.0\n default-router 10.1.20.1\n\nA DHCPDISCOVER arrives on interface GigabitEthernet0/1 (10.1.20.1/24). Which pool does the router use?",
+            "options": [
+                "A. FLOOR1 \u2014 it was configured first",
+                "B. FLOOR2 \u2014 the incoming interface subnet matches the pool's network",
+                "C. Both \u2014 the router offers addresses from both pools",
+                "D. Neither \u2014 the router requires an explicit pool-to-interface binding"
+            ],
+            "correct": 1,
+            "explanation": "The router determines which DHCP pool to use based on the incoming interface's subnet. Since the DHCPDISCOVER arrives on Gi0/1 (10.1.20.0/24), the router matches it to the FLOOR2 pool (network 10.1.20.0/24). A is wrong because configuration order doesn't determine pool selection. C is wrong because only one pool matches the subnet. D is wrong because the router automatically matches pools to subnets based on the receiving interface address.",
+            "ciscoCommand": "show ip dhcp pool"
+        },
+        {
+            "id": "q375",
+            "domain": "4",
+            "topic": "4.7",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "An engineer needs to ensure voice traffic gets priority during congestion but is limited to 256 Kbps. Which QoS mechanism should be applied?",
+            "options": [
+                "A. Strict priority queuing (LLQ) with a bandwidth limit of 256 Kbps",
+                "B. FIFO queuing with a 256 Kbps rate limit",
+                "C. Weighted fair queuing with DSCP 46 set to 256 Kbps",
+                "D. Traffic shaping to 256 Kbps on the voice VLAN"
+            ],
+            "correct": 0,
+            "explanation": "Low Latency Queuing (LLQ) provides strict priority for delay-sensitive traffic (like voice) while enforcing a bandwidth limit to prevent it from starving other traffic classes. B is wrong because FIFO provides no differentiation \u2014 all traffic is treated equally. C is wrong because WFQ provides fair allocation but not strict priority with a hard limit. D is wrong because shaping adds delay (buffering), which defeats the purpose for latency-sensitive voice traffic.",
+            "ciscoCommand": "show policy-map interface"
+        },
+        {
+            "id": "q376",
+            "domain": "4",
+            "topic": "4.8",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "The correct sequence to enable SSH on a Cisco IOS router is:\n\n1. Set hostname\n2. Set domain name\n3. Generate RSA keys\n4. Create local user account\n5. Configure VTY lines for SSH\n\nIf step 2 is skipped, which step will fail?",
+            "options": [
+                "A. Step 3 \u2014 RSA key generation requires a domain name",
+                "B. Step 4 \u2014 local users require a domain name for authentication",
+                "C. Step 5 \u2014 VTY lines cannot reference SSH without a domain",
+                "D. No step fails \u2014 domain name is optional for SSH"
+            ],
+            "correct": 0,
+            "explanation": "RSA key generation requires both a hostname (not default 'Router') and an ip domain-name. The key label is derived from hostname.domain-name. Without the domain name, the 'crypto key generate rsa' command will fail. B is wrong because local users don't need a domain name. C is wrong because VTY configuration is independent of domain name. D is wrong because domain name is mandatory for RSA key generation.",
+            "ciscoCommand": "ip domain-name"
+        },
+        {
+            "id": "q377",
+            "domain": "4",
+            "topic": "4.1",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "A company has 500 internal hosts that need internet access but only 1 public IP address. Which NAT solution is appropriate?",
+            "options": [
+                "A. Static NAT with 500 entries",
+                "B. Dynamic NAT with a pool of 1 address",
+                "C. PAT (NAT overload) using the single public IP",
+                "D. No NAT \u2014 use a proxy server instead"
+            ],
+            "correct": 2,
+            "explanation": "PAT (Port Address Translation) allows all 500 hosts to share a single public IP by using unique source port numbers to differentiate connections. A is wrong because static NAT requires one public IP per host. B is wrong because dynamic NAT with 1 address would only allow 1 host at a time. D doesn't solve the NAT requirement and a proxy still needs a public IP.",
+            "ciscoCommand": "ip nat inside source list 1 interface Gi0/1 overload"
+        },
+        {
+            "id": "q378",
+            "domain": "4",
+            "topic": "4.2",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "A router is configured with:\n\nntp server 10.1.1.100\nntp server 10.2.2.200\n\nThe router synchronizes with 10.1.1.100 (stratum 2). Later, 10.2.2.200 (stratum 1) becomes available. What happens?",
+            "options": [
+                "A. The router immediately switches to 10.2.2.200 because it has lower stratum",
+                "B. The router stays with 10.1.1.100 because it was configured first",
+                "C. The router evaluates both and prefers 10.2.2.200 (lower stratum = more accurate)",
+                "D. The router averages the time from both servers"
+            ],
+            "correct": 2,
+            "explanation": "NTP clients prefer the server with the lowest stratum number (closest to the reference clock). When 10.2.2.200 (stratum 1) becomes available and is deemed reachable and stable, the router will prefer it over the stratum 2 server. However, NTP doesn't switch instantly \u2014 it evaluates stability over time. A is close but 'immediately' is too strong. B is wrong because configuration order doesn't determine preference. D is wrong because NTP selects the best source, not an average.",
+            "ciscoCommand": "show ntp associations"
+        },
+        {
+            "id": "q379",
+            "domain": "4",
+            "topic": "4.3",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "An HSRP configuration has:\n\nRouter A: standby 1 priority 150, standby 1 preempt\nRouter B: standby 1 priority 100\n\nRouter A fails. Router B becomes active. Router A recovers. What happens?",
+            "options": [
+                "A. Router B remains active because HSRP is non-preemptive",
+                "B. Router A becomes active again because preempt is configured on Router A",
+                "C. Router A becomes standby and must wait for Router B to fail",
+                "D. Both routers share the active role using HSRP load balancing"
+            ],
+            "correct": 1,
+            "explanation": "Because Router A has 'standby preempt' configured AND has a higher priority (150 vs 100), it will reclaim the active role when it comes back online. B is correct. A is wrong because preempt overrides the non-preemptive default. C is wrong because preempt means Router A doesn't wait. D is wrong because HSRP (within a single group) has only one active router at a time.",
+            "ciscoCommand": "show standby"
+        },
+        {
+            "id": "q380",
+            "domain": "4",
+            "topic": "4.4",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "Which SNMP version provides authentication and encryption for securing management traffic?",
+            "options": [
+                "A. SNMPv1 with complex community strings",
+                "B. SNMPv2c with encrypted community strings",
+                "C. SNMPv3 with authPriv security level",
+                "D. SNMPv2c with ACLs restricting access"
+            ],
+            "correct": 2,
+            "explanation": "Only SNMPv3 with the authPriv security level provides both authentication (verifying user identity) AND encryption (protecting data in transit). A is wrong because SNMPv1 sends community strings in plaintext regardless of complexity. B is wrong because SNMPv2c also sends community strings in plaintext \u2014 there is no encrypted mode. D is wrong because ACLs restrict access but don't encrypt the traffic.",
+            "ciscoCommand": "show snmp user"
+        },
+        {
+            "id": "q381",
+            "domain": "4",
+            "topic": "4.5",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "An engineer configures:\n\nlogging console 3\nlogging buffered 5\nlogging trap 4\nlogging host 10.1.1.100\n\nA syslog message at level 5 (notification) is generated. Where does it appear?",
+            "options": [
+                "A. Console, buffer, and syslog server",
+                "B. Buffer only",
+                "C. Buffer and syslog server",
+                "D. Console and buffer"
+            ],
+            "correct": 1,
+            "explanation": "Each logging destination has its own severity threshold. Console is set to 3 (error) \u2014 level 5 is excluded. Buffer is set to 5 (notification) \u2014 level 5 IS included. Trap is set to 4 (warning) \u2014 level 5 is excluded. Therefore, the level 5 message only appears in the buffer. A is wrong because console (3) and trap (4) exclude level 5. C is wrong because trap (4) excludes level 5. D is wrong because console (3) excludes level 5.",
+            "ciscoCommand": "show logging"
+        },
+        {
+            "id": "q382",
+            "domain": "4",
+            "topic": "4.6",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "A Cisco router acting as a DHCP server needs to reserve IP addresses 10.1.10.1 through 10.1.10.20 for static devices. Which command achieves this?",
+            "options": [
+                "A. ip dhcp excluded-address 10.1.10.1 10.1.10.20",
+                "B. ip dhcp reserved-address 10.1.10.1 10.1.10.20",
+                "C. ip dhcp pool STATIC range 10.1.10.1 10.1.10.20",
+                "D. deny 10.1.10.1 10.1.10.20 in the DHCP pool"
+            ],
+            "correct": 0,
+            "explanation": "The 'ip dhcp excluded-address' command tells the DHCP server to skip these addresses when assigning IPs from the pool. This is the standard way to reserve addresses for static assignments (gateways, servers, printers). B, C, and D are not valid IOS commands for this purpose.",
+            "ciscoCommand": "ip dhcp excluded-address"
+        },
+        {
+            "id": "q383",
+            "domain": "4",
+            "topic": "4.7",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "A network engineer sees that voice quality degrades during peak hours. The WAN link uses FIFO queuing. Which single QoS change would most improve voice quality?",
+            "options": [
+                "A. Increase the WAN bandwidth",
+                "B. Enable LLQ and place voice traffic in the priority queue",
+                "C. Enable traffic shaping for all traffic types",
+                "D. Mark all traffic as DSCP EF to ensure priority"
+            ],
+            "correct": 1,
+            "explanation": "LLQ (Low Latency Queuing) provides a strict priority queue for delay-sensitive traffic like voice, ensuring it is dequeued before other traffic during congestion. A might help but doesn't solve the queuing problem. C adds buffering delay which is bad for voice. D is wrong because marking all traffic as EF means nothing gets priority \u2014 if everything is priority, nothing is.",
+            "ciscoCommand": "policy-map VOICE-QOS"
+        },
+        {
+            "id": "q384",
+            "domain": "4",
+            "topic": "4.9",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "An engineer needs to copy a new IOS image to a router. The router is in a remote office with no console access. The engineer has SSH access. Which file transfer protocol is the most secure option available on IOS?",
+            "options": [
+                "A. TFTP \u2014 it's the fastest",
+                "B. FTP \u2014 it supports authentication",
+                "C. SCP \u2014 it uses SSH encryption",
+                "D. HTTP \u2014 it's universally supported"
+            ],
+            "correct": 2,
+            "explanation": "SCP (Secure Copy Protocol) transfers files over an encrypted SSH connection, providing the most security. TFTP (A) uses UDP with no authentication or encryption. FTP (B) sends credentials in plaintext. HTTP (D) also lacks encryption unless HTTPS is used, but IOS SCP is the standard secure choice.",
+            "ciscoCommand": "copy scp: flash:"
+        },
+        {
+            "id": "q385",
+            "domain": "3",
+            "topic": "3.4",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "An engineer configures an IPv6 static route:\n\nRouter(config)# ipv6 route 2001:db8:2::/48 GigabitEthernet0/1 fe80::1\n\nWhy must the exit interface be specified along with the link-local next hop?",
+            "options": [
+                "A. IPv6 static routes always require an exit interface",
+                "B. Link-local addresses are not unique across interfaces \u2014 the router needs to know which interface to use",
+                "C. The exit interface prevents recursive route lookups",
+                "D. IPv6 does not support next-hop-only static routes"
+            ],
+            "correct": 1,
+            "explanation": "Link-local addresses (fe80::/10) are only significant on a specific link \u2014 the same link-local address can exist on multiple interfaces. The router must know WHICH interface to reach fe80::1 through, so specifying the exit interface is mandatory. A is wrong because IPv6 static routes with global unicast next hops don't require an exit interface. C is partially true but not the primary reason. D is wrong because IPv6 supports next-hop-only routes with global unicast addresses.",
+            "ciscoCommand": "show ipv6 route static"
+        },
+        {
+            "id": "q386",
+            "domain": "4",
+            "topic": "4.6",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "A DHCP client receives a lease of 8 hours. After what time period does the client first attempt to renew the lease?",
+            "options": [
+                "A. After 2 hours (25% of lease time)",
+                "B. After 4 hours (50% of lease time \u2014 T1 timer)",
+                "C. After 7 hours (87.5% of lease time \u2014 T2 timer)",
+                "D. Only after the full 8 hours when the lease expires"
+            ],
+            "correct": 1,
+            "explanation": "DHCP clients attempt renewal at T1 (50% of lease time) by sending a unicast DHCPREQUEST to the original server. If that fails, at T2 (87.5%) the client broadcasts a DHCPREQUEST to any available server. A (25%) is too early and not a standard timer. C is the T2 rebind timer, not the first renewal attempt. D is wrong because waiting until expiration means the client loses its IP.",
+            "ciscoCommand": "show ip dhcp binding"
+        },
+        {
+            "id": "q387",
+            "domain": "4",
+            "topic": "4.1",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "In NAT terminology, what is the 'inside local' address?",
+            "options": [
+                "A. The public IP address assigned to an internal host",
+                "B. The private IP address of the internal host as seen from inside the network",
+                "C. The IP address of the NAT router's internal interface",
+                "D. The public IP address of an external server as seen from inside"
+            ],
+            "correct": 1,
+            "explanation": "Inside local is the private (RFC 1918) IP address assigned to the internal host on the inside network. It's the address 'as seen from the inside.' A describes the inside global address. C describes the router interface, not a NAT translation address. D describes the outside local address.",
+            "ciscoCommand": "show ip nat translations"
+        },
+        {
+            "id": "q388",
+            "domain": "5",
+            "topic": "5.6",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "You need to permit only hosts in the 172.16.32.0/20 subnet using a standard ACL. Which ACL entry is correct?",
+            "options": [
+                "permit 172.16.32.0 0.0.15.255",
+                "permit 172.16.32.0 0.0.31.255",
+                "permit 172.16.32.0 255.255.240.0",
+                "permit 172.16.32.0 0.0.0.255"
+            ],
+            "correct": 0,
+            "explanation": "A /20 subnet mask is 255.255.240.0. The wildcard mask is the inverse: 0.0.15.255. Option B (0.0.31.255) would be a /19 wildcard, matching twice the address space. Option C uses a subnet mask instead of a wildcard mask -- ACLs require wildcard masks. Option D (0.0.0.255) is a /24 wildcard, which is too restrictive and would only match 172.16.32.0/24.",
+            "ciscoCommand": "show access-lists"
+        },
+        {
+            "id": "q389",
+            "domain": "5",
+            "topic": "5.6",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "A standard ACL denies traffic from 10.1.1.0/24 to server 192.168.1.100. The network has: R1 (10.1.1.0/24) -> R2 -> R3 (192.168.1.0/24). On which router and interface should the ACL be applied?",
+            "options": [
+                "R1, outbound on the interface toward R2",
+                "R3, inbound on the interface facing R2",
+                "R3, outbound on the interface facing the 192.168.1.0/24 LAN",
+                "R2, inbound on the interface facing R1"
+            ],
+            "correct": 2,
+            "explanation": "Standard ACLs should be placed as close to the destination as possible because they can only match source addresses. Placing it on R1 (option A) or R2 (option D) would block 10.1.1.0/24 from reaching ALL destinations, not just the server. On R3, applying it outbound toward the LAN (option C) is correct -- it filters traffic just before it reaches the destination network. Option B (R3 inbound from R2) would also work logically but is less precise -- outbound on the destination-facing interface is the best practice placement.",
+            "ciscoCommand": "show ip access-lists"
+        },
+        {
+            "id": "q390",
+            "domain": "5",
+            "topic": "5.6",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "An extended ACL on R1's Gi0/0 (inbound) contains:\n10 permit tcp 10.0.0.0 0.0.0.255 host 192.168.1.10 eq 80\n20 permit tcp 10.0.0.0 0.0.0.255 host 192.168.1.10 eq 443\n\nUsers in 10.0.0.0/24 report they cannot ping 192.168.1.10. What is the cause?",
+            "options": [
+                "ICMP is not TCP, and the implicit deny any at the end blocks it",
+                "The ACL needs a 'permit icmp any any' entry before the implicit deny",
+                "Ping uses UDP, not TCP, so it is blocked",
+                "The ACL is applied in the wrong direction"
+            ],
+            "correct": 0,
+            "explanation": "Every ACL ends with an implicit 'deny ip any any'. This ACL only permits TCP ports 80 and 443. Ping uses ICMP (not TCP or UDP), so it hits the implicit deny and is dropped. Option A is correct. Option B describes a valid fix but doesn't identify the cause. Option C is wrong -- ping uses ICMP, not UDP. Option D is plausible but nothing in the question indicates the wrong direction.",
+            "ciscoCommand": "show access-lists"
+        },
+        {
+            "id": "q391",
+            "domain": "5",
+            "topic": "5.6",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "Which wildcard mask matches all hosts in the 10.10.0.0/16 network?",
+            "options": [
+                "0.0.0.255",
+                "0.0.255.255",
+                "0.255.255.255",
+                "255.255.0.0"
+            ],
+            "correct": 1,
+            "explanation": "A /16 network has a subnet mask of 255.255.0.0. The wildcard mask is the inverse: 0.0.255.255. Option A (0.0.0.255) is a /24 wildcard -- too narrow. Option C (0.255.255.255) is a /8 wildcard -- too broad. Option D is the subnet mask itself, not the wildcard mask. ACLs require wildcard masks, not subnet masks.",
+            "ciscoCommand": "show access-lists"
+        },
+        {
+            "id": "q392",
+            "domain": "5",
+            "topic": "5.6",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "An ACL has the following entries:\n10 deny tcp host 10.1.1.50 any eq 22\n20 permit ip 10.1.1.0 0.0.0.255 any\n\nHost 10.1.1.50 tries to SSH to 192.168.1.1. What happens?",
+            "options": [
+                "The SSH connection is denied by line 10",
+                "The SSH connection is permitted by line 20",
+                "The SSH connection is denied by the implicit deny",
+                "The SSH connection is permitted because deny does not apply to SSH"
+            ],
+            "correct": 0,
+            "explanation": "ACLs are processed top-down and stop at the first match. Line 10 explicitly denies TCP port 22 (SSH) from host 10.1.1.50 to any destination. This matches, so the packet is dropped and line 20 is never evaluated. Option B is wrong because the packet matches line 10 first. Option C is wrong because the packet matches an explicit entry before reaching the implicit deny. Option D is nonsensical -- deny applies to all traffic types.",
+            "ciscoCommand": "show access-lists"
+        },
+        {
+            "id": "q393",
+            "domain": "5",
+            "topic": "5.6",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "You want to block only Telnet access to router R1 from network 10.0.0.0/8, but allow all other traffic. Which ACL type and placement is correct?",
+            "options": [
+                "Standard ACL on VTY lines using access-class",
+                "Extended ACL on VTY lines using access-class",
+                "Extended ACL on the inbound interface closest to the source",
+                "Standard ACL on the outbound interface closest to the destination"
+            ],
+            "correct": 2,
+            "explanation": "To block only Telnet (TCP port 23) while permitting other traffic, you need an extended ACL because standard ACLs cannot filter by port or protocol. Extended ACLs should be placed close to the source. Option A is wrong because a standard ACL on VTY lines would block ALL access from 10.0.0.0/8 (SSH, Telnet, everything), not just Telnet. Option B could work for VTY-specific filtering but access-class with extended ACLs on VTY lines is unusual and doesn't filter transit traffic. Option D uses a standard ACL which cannot match on port numbers.",
+            "ciscoCommand": "show ip access-lists"
+        },
+        {
+            "id": "q394",
+            "domain": "5",
+            "topic": "5.6",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What does the keyword 'established' do in the following ACL entry?\npermit tcp any 10.0.0.0 0.0.0.255 established",
+            "options": [
+                "Permits only TCP packets that are part of an already-established session (ACK or RST bit set)",
+                "Permits only the initial SYN packet to establish a new session",
+                "Permits all TCP traffic regardless of flags",
+                "Permits only UDP traffic on established connections"
+            ],
+            "correct": 0,
+            "explanation": "The 'established' keyword matches TCP segments that have the ACK or RST bit set, meaning they are part of a session that was already initiated from the other direction. It does NOT permit new connections (SYN-only packets). Option B describes the opposite behavior. Option C ignores the purpose of the keyword. Option D is wrong because 'established' is a TCP-only concept -- UDP is connectionless.",
+            "ciscoCommand": "show access-lists"
+        },
+        {
+            "id": "q395",
+            "domain": "5",
+            "topic": "5.6",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "You configure an extended named ACL:\nip access-list extended FILTER\n  15 deny tcp host 10.1.1.5 any eq 80\n  25 permit ip any any\n\nLater you need to insert a new rule to permit 10.1.1.5 to access web server 192.168.1.100 on port 80 ONLY. What command achieves this?",
+            "options": [
+                "5 permit tcp host 10.1.1.5 host 192.168.1.100 eq 80",
+                "16 permit tcp host 10.1.1.5 host 192.168.1.100 eq 80",
+                "15 permit tcp host 10.1.1.5 host 192.168.1.100 eq 80",
+                "permit tcp host 10.1.1.5 host 192.168.1.100 eq 80"
+            ],
+            "correct": 0,
+            "explanation": "To permit this specific traffic before the deny on line 15, you must insert a sequence number LOWER than 15. Option A inserts at sequence 5, which is evaluated before line 15. Option B (sequence 16) would be evaluated AFTER line 15's deny -- the deny matches first, so this rule never applies. Option C would fail because sequence 15 already exists. Option D (no sequence) would be appended to the end, after line 25 -- but since line 15 already denies this traffic, the new rule would never be reached.",
+            "ciscoCommand": "show ip access-lists"
+        },
+        {
+            "id": "q396",
+            "domain": "5",
+            "topic": "5.6",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What is the maximum number of ACLs that can be applied to a single router interface?",
+            "options": [
+                "One ACL per interface total",
+                "One ACL per direction (inbound and outbound) per protocol -- so up to 2 for IPv4",
+                "Unlimited ACLs per interface",
+                "Two ACLs per direction per protocol"
+            ],
+            "correct": 1,
+            "explanation": "A router interface supports one ACL per direction per protocol. For IPv4, that means one inbound and one outbound ACL -- two total. If you also run IPv6, you can add one IPv6 ACL per direction. Option A is too restrictive. Option C is wrong -- Cisco enforces the one-per-direction-per-protocol limit. Option D doubles the actual limit.",
+            "ciscoCommand": "show ip interface"
+        },
+        {
+            "id": "q397",
+            "domain": "5",
+            "topic": "5.6",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "A named ACL 'BLOCK_WEB' is applied inbound on Gi0/1. You run 'show ip access-lists' and see:\n  10 deny tcp any any eq 80 (1500 matches)\n  20 deny tcp any any eq 443 (800 matches)\n\nUsers report they cannot access ANYTHING, including SSH and DNS. What is wrong?",
+            "options": [
+                "The ACL is missing a 'permit ip any any' entry at the end",
+                "The ACL should be applied outbound instead of inbound",
+                "Port 443 is blocking DNS traffic",
+                "The ACL needs 'permit tcp any any established' before the deny entries"
+            ],
+            "correct": 0,
+            "explanation": "The ACL only has deny entries. The implicit 'deny ip any any' at the end blocks everything not explicitly permitted. Without a 'permit ip any any' (or more specific permits) after the deny lines, ALL traffic is dropped -- not just HTTP and HTTPS. Option B would not fix the issue; the direction is not the problem. Option C is wrong -- DNS uses port 53 (UDP/TCP), not 443. Option D would only help return traffic for existing TCP sessions and would not solve the fundamental lack of permits.",
+            "ciscoCommand": "show ip access-lists"
+        },
+        {
+            "id": "q398",
+            "domain": "5",
+            "topic": "5.6",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "Which command applies ACL 10 to restrict which IP addresses can SSH/Telnet to a router?",
+            "options": [
+                "ip access-group 10 in (under the interface)",
+                "access-class 10 in (under line vty 0 15)",
+                "ip access-list 10 in (under line vty 0 15)",
+                "access-group 10 in (under line vty 0 15)"
+            ],
+            "correct": 1,
+            "explanation": "The 'access-class' command is used under VTY lines to control management access. 'ip access-group' (option A) is used on interfaces for transit traffic filtering, not for VTY access. Option C uses incorrect syntax -- 'ip access-list' defines an ACL, it does not apply one. Option D uses 'access-group' which is the interface command, not the VTY command.",
+            "ciscoCommand": "show line vty"
+        },
+        {
+            "id": "q399",
+            "domain": "5",
+            "topic": "5.6",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "Consider this ACL applied inbound on Gi0/0:\naccess-list 101 permit tcp 10.0.0.0 0.0.0.255 any eq 53\naccess-list 101 permit udp 10.0.0.0 0.0.0.255 any eq 53\naccess-list 101 deny ip any any log\n\nHost 10.0.0.50 can resolve DNS names but cannot browse the web. A junior engineer adds:\naccess-list 101 permit tcp 10.0.0.0 0.0.0.255 any eq 80\n\nWill this fix web browsing?",
+            "options": [
+                "Yes, it permits HTTP traffic for the 10.0.0.0/24 network",
+                "No, the new entry is appended AFTER the explicit deny, so it is never reached",
+                "Yes, but only for HTTP -- HTTPS on port 443 is still blocked",
+                "No, the ACL must be removed and recreated with the correct sequence"
+            ],
+            "correct": 1,
+            "explanation": "With numbered ACLs, new entries are always appended to the end. The explicit 'deny ip any any log' on line 3 matches all traffic not matched by lines 1-2. The new permit for port 80 is added AFTER the deny, so it is never evaluated. Option A is wrong because the entry is unreachable. Option C would be true if the entry were in the correct position, but it's not. Option D describes one solution but is not the ONLY fix -- you could convert to a named ACL and use sequence numbers to insert it before the deny.",
+            "ciscoCommand": "show access-lists"
+        },
+        {
+            "id": "q400",
+            "domain": "5",
+            "topic": "5.6",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "Which of the following correctly matches a SINGLE host 192.168.10.1 in an ACL?",
+            "options": [
+                "permit ip host 192.168.10.1 any",
+                "permit ip 192.168.10.1 0.0.0.0 any",
+                "permit ip 192.168.10.1 255.255.255.255 any",
+                "Both A and B are correct"
+            ],
+            "correct": 3,
+            "explanation": "The 'host' keyword is shorthand for a wildcard mask of 0.0.0.0 -- both mean 'match this exact IP.' Option A uses the host keyword. Option B explicitly specifies wildcard 0.0.0.0. Both are equivalent and valid. Option C is wrong -- wildcard mask 255.255.255.255 matches ALL hosts (equivalent to 'any'), not a single host. It's the opposite of what's intended.",
+            "ciscoCommand": "show access-lists"
+        },
+        {
+            "id": "q401",
+            "domain": "5",
+            "topic": "5.7",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "DAI (Dynamic ARP Inspection) is enabled on VLAN 10, but ALL ARP requests from legitimate hosts are being dropped. DHCP snooping is NOT enabled. What is the root cause?",
+            "options": [
+                "DAI requires DHCP snooping to build its binding table -- without it, no ARP is trusted",
+                "DAI is incompatible with VLAN 10",
+                "The switch needs 'ip arp inspection trust' on all access ports",
+                "ARP inspection only works on trunk ports"
+            ],
+            "correct": 0,
+            "explanation": "DAI validates ARP packets against the DHCP snooping binding table. If DHCP snooping is not enabled, the binding table is empty, so DAI has no trusted entries -- all ARP is dropped. Option B is wrong -- DAI works on any VLAN. Option C is wrong -- setting all ports to trusted would bypass DAI entirely, defeating its purpose. Trust should only be set on uplinks. Option D is wrong -- DAI operates on access and trunk ports.",
+            "ciscoCommand": "show ip dhcp snooping binding"
+        },
+        {
+            "id": "q402",
+            "domain": "5",
+            "topic": "5.7",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "Port security is configured on Gi0/1 with 'switchport port-security violation restrict'. A fourth MAC address is learned when the maximum is 3. What happens?",
+            "options": [
+                "The port goes err-disabled and all traffic stops",
+                "The violating frame is dropped, the violation counter increments, and an SNMP/syslog message is sent, but the port stays up",
+                "The violating frame is dropped silently with no log message, and the port stays up",
+                "The port is placed in shutdown state but can recover automatically"
+            ],
+            "correct": 1,
+            "explanation": "In 'restrict' mode, the violating frame is dropped, the violation counter is incremented, AND a syslog/SNMP notification is generated -- but the port remains operational. Option A describes 'shutdown' mode (default), which err-disables the port. Option C describes 'protect' mode, which drops frames silently without logging. Option D is incorrect -- 'shutdown' mode err-disables the port and requires manual recovery or errdisable recovery configuration.",
+            "ciscoCommand": "show port-security interface gi0/1"
+        },
+        {
+            "id": "q403",
+            "domain": "5",
+            "topic": "5.7",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "A switch port was err-disabled by port security. An admin runs 'shutdown' then 'no shutdown' on the interface and it comes back up. However, 5 minutes later it goes err-disabled again. What is the MOST LIKELY cause?",
+            "options": [
+                "The admin did not clear the secure MAC address that caused the violation",
+                "The errdisable recovery timer re-disabled the port",
+                "Port security is incompatible with the connected device",
+                "The switch requires a reboot to clear port security violations"
+            ],
+            "correct": 0,
+            "explanation": "The old MAC address(es) may still be in the secure MAC table (sticky or static). When the same device reconnects plus the violating device is still connected, the maximum is exceeded again. Option A is correct -- clearing the violation without removing the offending MAC just re-triggers it. Option B is wrong -- errdisable recovery re-enables ports, it doesn't disable them. Option C is too vague and unlikely. Option D is wrong -- reboots are not required; clearing MAC entries and bouncing the port is sufficient.",
+            "ciscoCommand": "show port-security address"
+        },
+        {
+            "id": "q404",
+            "domain": "5",
+            "topic": "5.7",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "Which command enables DHCP snooping on VLAN 20?",
+            "options": [
+                "ip dhcp snooping vlan 20 (global config)",
+                "dhcp snooping vlan 20 (interface config)",
+                "ip dhcp snooping enable vlan 20",
+                "switchport dhcp snooping vlan 20"
+            ],
+            "correct": 0,
+            "explanation": "DHCP snooping requires two steps: 'ip dhcp snooping' (global enable) and 'ip dhcp snooping vlan 20' (enable on specific VLAN), both in global configuration mode. Option B places the command under the interface, which is wrong syntax. Option C has incorrect syntax ('enable' keyword doesn't exist). Option D is fabricated -- 'switchport dhcp snooping' is not a valid command.",
+            "ciscoCommand": "show ip dhcp snooping"
+        },
+        {
+            "id": "q405",
+            "domain": "5",
+            "topic": "5.7",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "DHCP snooping is enabled. A legitimate DHCP server is connected to port Gi0/24 but clients on VLAN 10 cannot obtain IP addresses. What is the MOST LIKELY issue?",
+            "options": [
+                "Gi0/24 is not configured as a trusted port with 'ip dhcp snooping trust'",
+                "DHCP snooping rate limiting is blocking DHCP offers",
+                "Option 82 insertion is corrupting DHCP packets",
+                "The DHCP server MAC is not in the port security table"
+            ],
+            "correct": 0,
+            "explanation": "By default, all ports are untrusted for DHCP snooping. DHCP server responses (OFFER, ACK) are ONLY allowed on trusted ports. If the legitimate DHCP server's port is untrusted, its responses are dropped. Option B is possible but rate limiting applies to untrusted ports and typically affects clients, not servers. Option C can happen but is uncommon. Option D is unrelated -- port security and DHCP snooping are separate features.",
+            "ciscoCommand": "show ip dhcp snooping"
+        },
+        {
+            "id": "q406",
+            "domain": "5",
+            "topic": "5.7",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What is the DEFAULT port security violation mode on a Cisco switch?",
+            "options": [
+                "Protect",
+                "Restrict",
+                "Shutdown",
+                "Err-disable"
+            ],
+            "correct": 2,
+            "explanation": "The default violation mode is 'shutdown'. When a violation occurs, the port is placed in err-disabled state and requires manual intervention ('shutdown' then 'no shutdown') or errdisable recovery to restore. Option A (protect) and Option B (restrict) must be explicitly configured. Option D (err-disable) is the resulting STATE, not the violation MODE name -- the mode is called 'shutdown'.",
+            "ciscoCommand": "show port-security interface"
+        },
+        {
+            "id": "q407",
+            "domain": "5",
+            "topic": "5.7",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "A network has DHCP snooping enabled on VLAN 10 with DAI also enabled. A server with a static IP (not DHCP-assigned) on VLAN 10 cannot communicate because DAI drops all its ARP packets. How do you fix this without disabling DAI?",
+            "options": [
+                "Configure an ARP access list (arp acl) and apply it to DAI for VLAN 10",
+                "Set the server's port as a DHCP snooping trusted port",
+                "Add the server's MAC to the port security sticky list",
+                "Disable DHCP snooping on VLAN 10"
+            ],
+            "correct": 0,
+            "explanation": "Hosts with static IPs do not appear in the DHCP snooping binding table, so DAI drops their ARP packets. The fix is to create an ARP ACL that maps the static IP to its MAC address and apply it to DAI for the VLAN. Option B would allow DHCP server messages but does NOT add the static host to the binding table. Option C is port security, which is unrelated to DAI. Option D would break DAI for the entire VLAN.",
+            "ciscoCommand": "show ip arp inspection vlan 10"
+        },
+        {
+            "id": "q408",
+            "domain": "5",
+            "topic": "5.7",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "Which port security feature automatically saves learned MAC addresses to the running configuration so they persist across reboots?",
+            "options": [
+                "Static MAC binding",
+                "Sticky MAC learning",
+                "Dynamic MAC caching",
+                "Persistent MAC table"
+            ],
+            "correct": 1,
+            "explanation": "The 'switchport port-security mac-address sticky' command dynamically learns MAC addresses and writes them into the running configuration as static entries. If you save the config ('write memory'), they persist across reboots. Option A (static) requires manual entry. Option C and D are fabricated -- there is no 'dynamic MAC caching' or 'persistent MAC table' feature in Cisco IOS.",
+            "ciscoCommand": "show port-security interface"
+        },
+        {
+            "id": "q409",
+            "domain": "5",
+            "topic": "5.8",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "Which statement about TACACS+ and RADIUS is TRUE?",
+            "options": [
+                "RADIUS encrypts the entire packet payload; TACACS+ only encrypts the password",
+                "TACACS+ uses TCP port 49; RADIUS uses UDP ports 1812/1813",
+                "RADIUS separates authentication, authorization, and accounting into individual processes; TACACS+ combines them",
+                "TACACS+ uses UDP for faster performance; RADIUS uses TCP for reliability"
+            ],
+            "correct": 1,
+            "explanation": "TACACS+ uses TCP port 49 and RADIUS uses UDP ports 1812 (authentication) and 1813 (accounting). Option A has it backwards -- TACACS+ encrypts the ENTIRE packet body, while RADIUS only encrypts the password field. Option C is reversed -- TACACS+ separates AAA into distinct processes, while RADIUS combines authentication and authorization in a single exchange. Option D is reversed -- TACACS+ uses TCP, RADIUS uses UDP.",
+            "ciscoCommand": "show aaa servers"
+        },
+        {
+            "id": "q410",
+            "domain": "5",
+            "topic": "5.8",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "An admin can SSH into a router and authenticate via TACACS+, but after entering 'enable', they get 'Authorization failed.' AAA is configured with authentication but NOT authorization. What is missing?",
+            "options": [
+                "aaa authorization exec default group tacacs+ local",
+                "aaa authentication enable default group tacacs+ enable",
+                "enable secret must be configured on the router",
+                "The user needs privilege level 15 on the TACACS+ server with authorization configured"
+            ],
+            "correct": 0,
+            "explanation": "TACACS+ separates authentication from authorization. The user authenticated successfully, but entering privileged EXEC ('enable') requires EXEC authorization. Without 'aaa authorization exec', the router cannot determine the user's privilege level from the TACACS+ server. Option B configures authentication for enable mode, not authorization. Option C would only help if falling back to local auth. Option D describes a server-side setting that only works if authorization is configured on the router first.",
+            "ciscoCommand": "show aaa method-lists"
+        },
+        {
+            "id": "q411",
+            "domain": "5",
+            "topic": "5.8",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "A network uses RADIUS for 802.1X authentication. The RADIUS server goes offline. Users already authenticated remain connected, but new users cannot authenticate. The AAA config is:\naaa authentication dot1x default group radius\n\nWhat happens to new authentications?",
+            "options": [
+                "New users are denied -- there is no fallback method configured",
+                "New users fall back to local authentication automatically",
+                "New users are granted guest access by default",
+                "The switch caches RADIUS credentials and authenticates new users locally"
+            ],
+            "correct": 0,
+            "explanation": "The AAA method list specifies only 'group radius' with no fallback. If the RADIUS server is unreachable, authentication fails because no alternative method is configured. Option B would require 'local' as a second method in the list. Option C is not automatic -- guest VLANs require explicit configuration. Option D is fabricated -- switches do not cache RADIUS credentials.",
+            "ciscoCommand": "show dot1x all"
+        },
+        {
+            "id": "q412",
+            "domain": "5",
+            "topic": "5.8",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "Which AAA feature tracks and logs user activities such as commands entered and session duration?",
+            "options": [
+                "Authentication",
+                "Authorization",
+                "Accounting",
+                "Auditing"
+            ],
+            "correct": 2,
+            "explanation": "Accounting is the 'A' in AAA that records what users do -- commands executed, session start/stop times, bytes transferred. Authentication verifies identity (who are you?). Authorization determines permissions (what can you do?). Option D ('auditing') is a general term not used in the Cisco AAA framework.",
+            "ciscoCommand": "show aaa accounting"
+        },
+        {
+            "id": "q413",
+            "domain": "5",
+            "topic": "5.8",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "Why might TACACS+ be preferred over RADIUS for device administration (managing routers and switches)?",
+            "options": [
+                "TACACS+ is faster because it uses UDP",
+                "TACACS+ encrypts the entire packet and separates authorization, allowing per-command control",
+                "RADIUS supports more vendors",
+                "TACACS+ includes built-in 802.1X support"
+            ],
+            "correct": 1,
+            "explanation": "TACACS+ encrypts the entire payload (not just the password) and separates authentication, authorization, and accounting. This separation allows granular per-command authorization -- admins can be allowed 'show' commands but denied 'configure terminal'. Option A is wrong -- TACACS+ uses TCP, not UDP. Option C -- while RADIUS is more vendor-neutral, that's not a device administration advantage. Option D is wrong -- 802.1X uses RADIUS, not TACACS+.",
+            "ciscoCommand": "show tacacs"
+        },
+        {
+            "id": "q414",
+            "domain": "5",
+            "topic": "5.3",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "A router has both 'enable password cisco' and 'enable secret class' configured. 'service password-encryption' is also enabled. When the admin types 'enable', which password is required?",
+            "options": [
+                "cisco -- enable password takes priority when service password-encryption is running",
+                "class -- enable secret always takes priority over enable password",
+                "Either password will work",
+                "Neither -- the conflicting configuration locks privileged EXEC mode"
+            ],
+            "correct": 1,
+            "explanation": "When both are configured, 'enable secret' ALWAYS takes priority over 'enable password', regardless of service password-encryption. The enable password is completely ignored. Option A is wrong -- service password-encryption only converts plaintext passwords to Type 7; it does not change precedence. Option C is wrong -- only the enable secret password works. Option D is wrong -- there is no conflict; Cisco explicitly defines that enable secret wins.",
+            "ciscoCommand": "show running-config | include enable"
+        },
+        {
+            "id": "q415",
+            "domain": "5",
+            "topic": "5.3",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What is the primary weakness of Type 7 encryption (service password-encryption)?",
+            "options": [
+                "It only encrypts enable passwords, not line passwords",
+                "It uses a reversible Vigenere cipher that can be decoded with free tools",
+                "It requires a TACACS+ server to decrypt",
+                "It changes the password every 24 hours, causing lockouts"
+            ],
+            "correct": 1,
+            "explanation": "Type 7 uses a simple, well-known Vigenere cipher. Dozens of free websites and tools can instantly decode any Type 7 password. It provides only minimal protection against casual shoulder-surfing. Option A is wrong -- it encrypts ALL plaintext passwords in the config (console, VTY, enable password). Option C is fabricated. Option D is fabricated -- Type 7 is static.",
+            "ciscoCommand": "show running-config"
+        },
+        {
+            "id": "q416",
+            "domain": "5",
+            "topic": "5.3",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "An engineer configures a VTY line with 'login local' but forgets to create any local user accounts. What happens when someone tries to SSH to the router?",
+            "options": [
+                "The connection is allowed with no password prompt",
+                "The connection is refused with a 'login invalid' or authentication failure message",
+                "The router falls back to the line password",
+                "The router prompts for a username but accepts any input"
+            ],
+            "correct": 1,
+            "explanation": "'login local' tells the router to authenticate against the local user database. If no users exist, every login attempt fails -- there are no valid credentials to match. Option A is wrong -- 'login local' enforces authentication, it doesn't skip it. Option C is wrong -- there is no automatic fallback to line passwords when 'login local' is configured. Option D is wrong -- the router validates credentials against the (empty) local database and rejects everything.",
+            "ciscoCommand": "show users"
+        },
+        {
+            "id": "q417",
+            "domain": "5",
+            "topic": "5.5",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What is the primary purpose of configuring SSH version 2 on a Cisco router instead of allowing SSH version 1?",
+            "options": [
+                "SSHv2 is faster and uses less bandwidth",
+                "SSHv2 addresses known cryptographic vulnerabilities in SSHv1",
+                "SSHv2 supports Telnet fallback; SSHv1 does not",
+                "SSHv2 does not require RSA keys"
+            ],
+            "correct": 1,
+            "explanation": "SSHv1 has known vulnerabilities including susceptibility to man-in-the-middle attacks and cryptographic weaknesses. SSHv2 is more secure with stronger integrity checking and encryption. Option A is not the primary reason. Option C is wrong -- neither SSH version includes Telnet fallback. Option D is wrong -- SSHv2 still requires RSA (or other) keys for key exchange.",
+            "ciscoCommand": "show ip ssh"
+        },
+        {
+            "id": "q418",
+            "domain": "5",
+            "topic": "5.5",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "An engineer is configuring SSH on a new router. They run 'crypto key generate rsa' and set 'ip ssh version 2'. SSH connections fail. The engineer verifies the VTY lines have 'transport input ssh' and 'login local' with a valid user. What is MOST LIKELY missing?",
+            "options": [
+                "The RSA key modulus is less than 768 bits, which SSHv2 requires as a minimum",
+                "The router's hostname is still set to 'Router' (default)",
+                "The 'ip ssh time-out' value is set too low",
+                "A domain name has not been configured with 'ip domain-name'"
+            ],
+            "correct": 3,
+            "explanation": "RSA key generation requires both a hostname AND a domain name. If 'ip domain-name' is not configured, the key generation may fail or produce keys that SSH cannot use. Option A is a valid concern (SSHv2 needs at minimum 768-bit keys), but the question says the engineer already generated keys. Option B -- while the hostname matters, modern IOS generates keys based on hostname.domain, and a default hostname still works if the domain is set. Option C is unlikely to cause complete failure. Option D is the most commonly missed prerequisite.",
+            "ciscoCommand": "show ip ssh"
+        },
+        {
+            "id": "q419",
+            "domain": "5",
+            "topic": "5.9",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "A site-to-site IPsec VPN tunnel is established between two offices. Routing works for unicast traffic, but multicast routing protocols (like PIM) do not function across the tunnel. What is needed?",
+            "options": [
+                "Enable IPsec transport mode instead of tunnel mode",
+                "Configure a GRE tunnel and run IPsec over it -- IPsec alone does not support multicast",
+                "Add a multicast permit statement in the IPsec crypto ACL",
+                "Change the IPsec encryption from AES to 3DES"
+            ],
+            "correct": 1,
+            "explanation": "Standard IPsec (ESP) does not natively support multicast or broadcast traffic. To carry multicast across a VPN, you wrap the traffic in a GRE tunnel first (GRE supports multicast), then encrypt the GRE tunnel with IPsec. Option A -- transport mode vs tunnel mode has no impact on multicast support. Option C -- the crypto ACL defines interesting traffic but does not add multicast capability to IPsec. Option D -- changing the encryption algorithm has nothing to do with multicast support.",
+            "ciscoCommand": "show crypto ipsec sa"
+        },
+        {
+            "id": "q420",
+            "domain": "5",
+            "topic": "5.9",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "In an IPsec VPN, what does IKE Phase 1 establish?",
+            "options": [
+                "The IPsec SA that encrypts user data",
+                "A secure, authenticated channel (IKE SA) between peers for negotiating Phase 2",
+                "The routing table entries for VPN traffic",
+                "The GRE tunnel parameters"
+            ],
+            "correct": 1,
+            "explanation": "IKE Phase 1 establishes the IKE Security Association -- a secure, authenticated channel between the two VPN peers. This channel is then used to safely negotiate the IPsec SAs in Phase 2. Option A describes Phase 2 (the IPsec SA). Option C -- routing is handled separately, not by IKE. Option D -- GRE is a separate encapsulation protocol, not part of IKE negotiation.",
+            "ciscoCommand": "show crypto isakmp sa"
+        },
+        {
+            "id": "q421",
+            "domain": "5",
+            "topic": "5.9",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "A remote user connects to the corporate network via SSL VPN and can access internal web applications but cannot ping internal hosts or use non-web applications. What type of SSL VPN is MOST LIKELY configured?",
+            "options": [
+                "Full-tunnel SSL VPN with split tunneling",
+                "Clientless SSL VPN (portal-based)",
+                "IPsec IKEv2 VPN with NAT-T",
+                "Full-tunnel SSL VPN without split tunneling"
+            ],
+            "correct": 1,
+            "explanation": "Clientless SSL VPN provides access only through a web browser portal. It supports web-based applications (HTTP/HTTPS) but cannot handle arbitrary protocols like ICMP (ping) or custom TCP/UDP applications. Option A (full-tunnel) would give the user full IP connectivity including ping. Option C is an IPsec VPN, not SSL. Option D (full-tunnel without split tunneling) would route ALL traffic through the VPN, giving full access.",
+            "ciscoCommand": "show vpn-sessiondb"
+        },
+        {
+            "id": "q422",
+            "domain": "5",
+            "topic": "5.10",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What specific attack does WPA3-SAE (Simultaneous Authentication of Equals) prevent that WPA2-PSK cannot?",
+            "options": [
+                "Rogue access point attacks",
+                "Offline dictionary attacks on a captured 4-way handshake",
+                "Deauthentication frame flooding",
+                "VLAN hopping through wireless"
+            ],
+            "correct": 1,
+            "explanation": "WPA2-PSK's 4-way handshake can be captured and attacked offline with dictionary/brute-force tools (like hashcat). WPA3-SAE uses a Dragonfly key exchange that provides forward secrecy and prevents offline dictionary attacks -- an attacker who captures the handshake cannot crack it offline. Option A -- rogue AP detection requires separate tools (WIDS/WIPS), not WPA3. Option C -- management frame protection (802.11w) addresses deauth attacks, and while WPA3 mandates it, SAE itself is about the key exchange. Option D is a wired network concept.",
+            "ciscoCommand": "show wlan summary"
+        },
+        {
+            "id": "q423",
+            "domain": "5",
+            "topic": "5.10",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "A company deploys WPA2-Enterprise on their corporate WLAN. Which authentication protocol is used between the wireless client and the RADIUS server?",
+            "options": [
+                "TACACS+",
+                "EAP (Extensible Authentication Protocol) -- typically EAP-TLS or PEAP",
+                "CHAP (Challenge Handshake Authentication Protocol)",
+                "Kerberos"
+            ],
+            "correct": 1,
+            "explanation": "WPA2-Enterprise uses 802.1X authentication, which relies on EAP between the supplicant (client) and the authentication server (RADIUS). Common EAP methods include EAP-TLS (certificate-based) and PEAP (password-based with TLS tunnel). Option A -- TACACS+ is used for device administration, not wireless 802.1X. Option C -- CHAP is used for PPP, not wireless. Option D -- Kerberos is used in Active Directory domains, not directly in 802.1X wireless authentication.",
+            "ciscoCommand": "show dot1x all"
+        },
+        {
+            "id": "q424",
+            "domain": "5",
+            "topic": "5.10",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "An open guest WLAN uses a captive portal for access. A security auditor finds that traffic between clients and the AP is unencrypted. The admin argues the captive portal provides security. Who is correct?",
+            "options": [
+                "The admin -- captive portals encrypt traffic after authentication",
+                "The auditor -- captive portals only control access; traffic is still unencrypted unless WPA2/3 is also configured",
+                "The admin -- the captive portal uses SSL, which encrypts all wireless frames",
+                "Neither -- open WLANs automatically use OWE for encryption"
+            ],
+            "correct": 1,
+            "explanation": "A captive portal is an access control mechanism, not an encryption mechanism. It requires users to authenticate (or accept terms) before granting network access, but the wireless frames themselves remain unencrypted on an open WLAN. Option A is wrong -- captive portals do not add wireless encryption. Option C is wrong -- SSL/TLS only encrypts HTTP traffic to the portal page, not all wireless frames. Option D -- OWE (Opportunistic Wireless Encryption) is a separate feature that must be explicitly configured; it is not automatic.",
+            "ciscoCommand": "show wlan id 1"
+        },
+        {
+            "id": "q425",
+            "domain": "5",
+            "topic": "5.1",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "An attacker sends spoofed ARP replies to a victim host, claiming the attacker's MAC address is the default gateway's MAC. What type of attack is this?",
+            "options": [
+                "DNS poisoning",
+                "ARP spoofing (a man-in-the-middle technique)",
+                "DHCP starvation",
+                "MAC flooding"
+            ],
+            "correct": 1,
+            "explanation": "ARP spoofing (or ARP poisoning) sends fake ARP replies to redirect traffic through the attacker's machine. This is a classic man-in-the-middle attack vector. Option A -- DNS poisoning redirects DNS queries, not ARP. Option C -- DHCP starvation exhausts the DHCP pool with bogus requests. Option D -- MAC flooding overwhelms the switch CAM table to force unicast flooding.",
+            "ciscoCommand": "show ip arp"
+        },
+        {
+            "id": "q426",
+            "domain": "5",
+            "topic": "5.1",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "A company discovers an employee has been using a personal laptop on the corporate network to exfiltrate data. The employee had valid credentials. Which security concept BEST describes this scenario?",
+            "options": [
+                "An external threat exploiting a vulnerability",
+                "An insider threat using authorized access maliciously",
+                "A man-in-the-middle attack",
+                "A brute-force authentication bypass"
+            ],
+            "correct": 1,
+            "explanation": "An insider threat is a security risk from someone with legitimate access (employee, contractor) who misuses that access. The employee had valid credentials and authorized network access -- the threat came from within. Option A -- this is internal, not external. Option C -- there is no interception of communication between two parties. Option D -- the employee used valid credentials, not brute-force.",
+            "ciscoCommand": null
+        },
+        {
+            "id": "q427",
+            "domain": "5",
+            "topic": "5.7",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "An attacker connects a rogue DHCP server to the network. It responds faster than the legitimate server and assigns its own IP as the default gateway. Which TWO features together prevent this attack and the subsequent ARP-based redirection?",
+            "options": [
+                "Port security and STP BPDU Guard",
+                "DHCP snooping and Dynamic ARP Inspection (DAI)",
+                "Private VLANs and MAC filtering",
+                "Storm control and DHCP relay"
+            ],
+            "correct": 1,
+            "explanation": "DHCP snooping blocks DHCP server messages (OFFER, ACK) on untrusted ports, preventing the rogue server from responding. DAI validates ARP packets against the DHCP snooping binding table, preventing ARP-based man-in-the-middle attacks. Together they stop both the rogue DHCP and ARP spoofing. Option A -- port security limits MAC addresses, and BPDU Guard protects STP; neither stops rogue DHCP. Option C -- private VLANs isolate hosts within a VLAN but don't specifically target rogue DHCP. Option D -- storm control limits broadcast/multicast rates, and DHCP relay forwards requests across subnets; neither prevents rogue DHCP.",
+            "ciscoCommand": "show ip dhcp snooping binding"
+        },
+        {
+            "id": "q428",
+            "domain": "5",
+            "topic": "5.7",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What does the 'switchport port-security mac-address sticky' command do when a new device connects?",
+            "options": [
+                "Rejects the device until its MAC is manually added to the configuration",
+                "Dynamically learns the MAC address and adds it to the running configuration as a static entry",
+                "Sends the MAC address to a RADIUS server for validation",
+                "Logs the MAC address but does not restrict access"
+            ],
+            "correct": 1,
+            "explanation": "Sticky learning dynamically learns MAC addresses from incoming frames and converts them to 'switchport port-security mac-address sticky [MAC]' entries in the running configuration. If saved ('copy run start'), they persist across reboots. Option A describes static MAC configuration without sticky. Option C describes 802.1X/MAB, not port security. Option D does not describe any port security feature.",
+            "ciscoCommand": "show port-security interface"
+        },
+        {
+            "id": "q429",
+            "domain": "5",
+            "topic": "5.6",
+            "difficulty": 1,
+            "type": "multiple-choice",
+            "question": "Standard ACLs filter traffic based on which field?",
+            "options": [
+                "Source IP address only",
+                "Source and destination IP addresses",
+                "Source IP address and port number",
+                "Destination IP address only"
+            ],
+            "correct": 0,
+            "explanation": "Standard ACLs (numbered 1-99, 1300-1999) filter traffic based on source IP address ONLY. They cannot match destination addresses, protocols, or ports. Option B describes extended ACLs. Option C describes extended ACLs. Option D is wrong -- standard ACLs match source, not destination.",
+            "ciscoCommand": "show access-lists"
+        },
+        {
+            "id": "q430",
+            "domain": "5",
+            "topic": "5.6",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "You need an ACL to match hosts 192.168.1.0, 192.168.1.2, 192.168.1.4, and 192.168.1.6 (all even addresses in the .0-.7 range). Which wildcard mask achieves this in a SINGLE ACL entry?",
+            "options": [
+                "192.168.1.0 0.0.0.6",
+                "192.168.1.0 0.0.0.7",
+                "192.168.1.0 0.0.0.3",
+                "This cannot be done in a single ACL entry"
+            ],
+            "correct": 3,
+            "explanation": "Wildcard masks work in binary and cannot selectively match only even numbers in a range. A wildcard mask of 0.0.0.6 matches .0 and .6 only (bits: 000 and 110). A mask of 0.0.0.7 matches .0 through .7 (all 8 addresses, including odd ones). A mask of 0.0.0.3 matches .0 through .3. None of these match ONLY even addresses. You would need multiple ACL entries to match specific individual hosts.",
+            "ciscoCommand": "show access-lists"
+        },
+        {
+            "id": "q431",
+            "domain": "5",
+            "topic": "5.6",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What is the valid number range for standard numbered ACLs?",
+            "options": [
+                "1-99 only",
+                "100-199 only",
+                "1-99 and 1300-1999",
+                "1-99 and 2000-2699"
+            ],
+            "correct": 2,
+            "explanation": "Standard numbered ACLs use 1-99 (original range) and 1300-1999 (expanded range). Extended numbered ACLs use 100-199 and 2000-2699. Option A only lists the original range. Option B is extended ACL range. Option D mixes standard original with extended expanded ranges.",
+            "ciscoCommand": "show access-lists"
+        },
+        {
+            "id": "q432",
+            "domain": "5",
+            "topic": "5.3",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "A router has the following configuration:\nusername admin privilege 15 secret C1sco123\nline vty 0 4\n  password V7yP@ss\n  login\n\nAn engineer SSHs to the router. Which credentials are required?",
+            "options": [
+                "Username 'admin' and password 'C1sco123'",
+                "Only the password 'V7yP@ss' (no username prompt)",
+                "Either the local username or the VTY password will work",
+                "No credentials -- 'login' without 'local' keyword uses the line password but SSH requires username-based auth"
+            ],
+            "correct": 1,
+            "explanation": "The VTY lines are configured with 'login' (not 'login local'), which means they use the line password, not the local user database. The simple 'login' command prompts for the line password only. However, this is a trap on the real exam -- SSH connections actually require username-based authentication, so in practice 'login' alone would cause SSH to fail. But the question asks what credentials are required per the config, and 'login' with a line password means only the password 'V7yP@ss' is requested. Option A would require 'login local'. Option C is wrong -- the methods are mutually exclusive based on the login keyword used. Option D raises a valid practical concern but does not match the IOS behavior for the 'login' command.",
+            "ciscoCommand": "show running-config | section line vty"
+        },
+        {
+            "id": "q433",
+            "domain": "5",
+            "topic": "5.9",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "What is the key difference between IPsec tunnel mode and transport mode?",
+            "options": [
+                "Tunnel mode encrypts only the payload; transport mode encrypts the entire original packet",
+                "Tunnel mode encapsulates the entire original IP packet with a new IP header; transport mode only encrypts the payload and keeps the original IP header",
+                "Tunnel mode requires GRE; transport mode does not",
+                "Transport mode is used for site-to-site VPNs; tunnel mode is for remote access"
+            ],
+            "correct": 1,
+            "explanation": "In tunnel mode, the entire original IP packet (header + payload) is encapsulated and encrypted inside a new IP packet with a new header. In transport mode, only the payload is encrypted while the original IP header is preserved. Option A has it backwards. Option C is wrong -- tunnel mode does not require GRE (though GRE can be used with either). Option D is reversed -- tunnel mode is the default for site-to-site, while transport mode is typically used for host-to-host or with L2TP.",
+            "ciscoCommand": "show crypto ipsec sa"
+        },
+        {
+            "id": "q434",
+            "domain": "5",
+            "topic": "5.7",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "A switch has the following port security config on Gi0/5:\nswitchport port-security maximum 2\nswitchport port-security violation shutdown\nswitchport port-security mac-address sticky\n\nTwo devices connect through a small hub. A third device is plugged into the hub. What happens?",
+            "options": [
+                "Only the third device's traffic is dropped",
+                "The port goes err-disabled, disconnecting all three devices",
+                "The switch learns all three MAC addresses since they came through a hub",
+                "The hub prevents port security from detecting the third MAC"
+            ],
+            "correct": 1,
+            "explanation": "When the third MAC address is seen on Gi0/5 and the maximum is 2, a violation occurs. In 'shutdown' mode, the ENTIRE port is err-disabled -- all devices (including the two already learned) lose connectivity. Option A describes 'protect' or 'restrict' behavior, but even those modes drop the violating frames without selectively affecting other devices. Option C is wrong -- port security counts unique MACs regardless of whether they arrive through a hub. Option D is wrong -- hubs are transparent to port security; the switch still sees individual source MAC addresses in each frame.",
+            "ciscoCommand": "show port-security interface gi0/5"
+        },
+        {
+            "id": "q435",
+            "domain": "5",
+            "topic": "5.4",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "A user logs into a system using a password and then places their finger on a fingerprint reader. Which MFA factors are being used?",
+            "options": [
+                "Something you know + something you know",
+                "Something you know + something you have",
+                "Something you know + something you are",
+                "Something you have + something you are"
+            ],
+            "correct": 2,
+            "explanation": "A password is 'something you know.' A fingerprint is 'something you are' (biometric). Together, these represent two different authentication factor categories, making it true MFA. Option A would be two passwords or a password + PIN. Option B would be a password + hardware token. Option D would be a smart card + fingerprint.",
+            "ciscoCommand": null
+        },
+        {
+            "id": "q436",
+            "domain": "5",
+            "topic": "5.6",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "An ACL contains:\n10 permit tcp any host 10.1.1.100 eq 443\n20 deny tcp any host 10.1.1.100 eq 80\n30 permit ip any any\n\nA host sends an HTTP request (TCP port 80) to 10.1.1.100. What happens, and how many ACL matches are logged against line 20?",
+            "options": [
+                "Denied by line 20; the match counter for line 20 increments by 1",
+                "Permitted by line 30 because HTTP is not HTTPS",
+                "Denied by the implicit deny at the end",
+                "Permitted by line 10 because TCP is matched"
+            ],
+            "correct": 0,
+            "explanation": "The HTTP request (TCP port 80) does not match line 10 (which requires port 443). It matches line 20 (deny TCP to 10.1.1.100 port 80). Processing stops at the first match, so line 30 is never evaluated. The match counter for line 20 increments. Option B is wrong -- the packet matches line 20 before reaching line 30. Option C is wrong -- the packet matches an explicit entry. Option D is wrong -- line 10 matches port 443, not port 80.",
+            "ciscoCommand": "show access-lists"
+        },
+        {
+            "id": "q437",
+            "domain": "5",
+            "topic": "5.7",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "Which command verifies the DHCP snooping binding table entries?",
+            "options": [
+                "show mac address-table",
+                "show ip dhcp snooping binding",
+                "show ip arp inspection",
+                "show ip dhcp pool"
+            ],
+            "correct": 1,
+            "explanation": "'show ip dhcp snooping binding' displays the binding table that maps MAC addresses to IP addresses, VLANs, and ports. Option A shows the CAM/MAC table -- unrelated to DHCP snooping. Option C shows DAI statistics, not the binding table itself. Option D shows DHCP pool configuration on a DHCP server, not snooping bindings.",
+            "ciscoCommand": "show ip dhcp snooping binding"
+        },
+        {
+            "id": "q438",
+            "domain": "5",
+            "topic": "5.8",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "In the AAA framework, what does authorization determine?",
+            "options": [
+                "Whether the user's credentials are valid",
+                "What resources and commands the authenticated user is permitted to access",
+                "How long the user's session can last",
+                "Which encryption method to use for the user's traffic"
+            ],
+            "correct": 1,
+            "explanation": "Authorization determines WHAT an authenticated user is allowed to do -- which commands they can run, which networks they can access, which privilege level they receive. Option A describes authentication (identity verification). Option C is a session parameter that could be part of authorization but is too narrow. Option D is unrelated to AAA.",
+            "ciscoCommand": "show aaa authorization"
+        },
+        {
+            "id": "q439",
+            "domain": "5",
+            "topic": "5.3",
+            "difficulty": 1,
+            "type": "multiple-choice",
+            "question": "What command restricts VTY lines to accept only SSH connections and block Telnet?",
+            "options": [
+                "transport input ssh",
+                "transport output ssh",
+                "protocol ssh only",
+                "ssh enable exclusive"
+            ],
+            "correct": 0,
+            "explanation": "'transport input ssh' under the VTY line configuration restricts inbound connections to SSH only, blocking Telnet. Option B controls outbound connections FROM the router, not inbound TO the router. Options C and D are fabricated -- these commands do not exist.",
+            "ciscoCommand": "show line vty 0 4"
+        },
+        {
+            "id": "q440",
+            "domain": "5",
+            "topic": "5.6",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "An ACL uses the wildcard mask 0.0.0.15 with the network address 10.1.1.48. Which of the following hosts is matched?",
+            "options": [
+                "10.1.1.40",
+                "10.1.1.64",
+                "10.1.1.55",
+                "10.1.1.32"
+            ],
+            "correct": 2,
+            "explanation": "Wildcard 0.0.0.15 means the last 4 bits can vary. The base address 10.1.1.48 in binary is 00110000. With the last 4 bits variable, the range is 10.1.1.48 (00110000) through 10.1.1.63 (00111111). 10.1.1.55 (00110111) falls within this range. Option A (10.1.1.40) is below the range. Option B (10.1.1.64) is above the range. Option D (10.1.1.32) is below the range.",
+            "ciscoCommand": "show access-lists"
+        },
+        {
+            "id": "q441",
+            "domain": "5",
+            "topic": "5.10",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "In WPA2-Personal (PSK), what is the shared secret called that all users configure on their devices?",
+            "options": [
+                "The PMK (Pairwise Master Key)",
+                "The Pre-Shared Key (PSK)",
+                "The GTK (Group Temporal Key)",
+                "The EAP identity"
+            ],
+            "correct": 1,
+            "explanation": "WPA2-Personal uses a Pre-Shared Key (PSK) -- a passphrase (8-63 characters) configured on the AP and all client devices. The PSK is used to derive the PMK, which then generates session keys. Option A -- the PMK is derived from the PSK; users do not directly configure it. Option C -- the GTK encrypts broadcast/multicast traffic and is generated dynamically. Option D -- EAP is used in WPA2-Enterprise, not Personal.",
+            "ciscoCommand": "show wlan summary"
+        },
+        {
+            "id": "q442",
+            "domain": "5",
+            "topic": "5.10",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "A company uses WPA2-Enterprise. An employee leaves the company. How is their wireless access revoked?",
+            "options": [
+                "Change the Pre-Shared Key on all access points",
+                "Disable their account on the RADIUS/identity server",
+                "Reboot all access points to flush cached credentials",
+                "Change the SSID to force all clients to reconnect"
+            ],
+            "correct": 1,
+            "explanation": "WPA2-Enterprise authenticates each user individually via 802.1X/RADIUS. Disabling the user's account on the RADIUS server immediately prevents them from authenticating. This is a key advantage over WPA2-Personal. Option A -- WPA2-Enterprise does not use a PSK; there is no shared key to change. Option C -- rebooting APs does not revoke individual access. Option D -- changing the SSID disrupts all users, not just the departed employee.",
+            "ciscoCommand": "show dot1x all"
+        },
+        {
+            "id": "q443",
+            "domain": "6",
+            "topic": "6.7",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "Which of the following is valid JSON?",
+            "options": [
+                "{'hostname': 'R1', 'interfaces': 3}",
+                "{\"hostname\": \"R1\", \"interfaces\": 3,}",
+                "{\"hostname\": \"R1\", \"interfaces\": 3}",
+                "{hostname: \"R1\", interfaces: 3}"
+            ],
+            "correct": 2,
+            "explanation": "Valid JSON requires: double quotes for all strings and keys, no trailing commas, and all keys must be quoted strings. Option A uses single quotes -- invalid in JSON (valid in Python, not JSON). Option B has a trailing comma after '3' -- invalid JSON. Option D has unquoted keys -- invalid JSON (valid in JavaScript objects, not JSON). Only option C follows all JSON rules.",
+            "ciscoCommand": null
+        },
+        {
+            "id": "q444",
+            "domain": "6",
+            "topic": "6.7",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "Given this JSON response from a REST API:\n{\"device\": {\"hostname\": \"SW1\", \"interfaces\": [{\"name\": \"Gi0/1\", \"status\": \"up\"}, {\"name\": \"Gi0/2\", \"status\": \"down\"}]}}\n\nIn Python, after parsing with json.loads(), how do you access the status of the second interface?",
+            "options": [
+                "data['device']['interfaces'][2]['status']",
+                "data['device']['interfaces'][1]['status']",
+                "data.device.interfaces[1].status",
+                "data['device.interfaces.1.status']"
+            ],
+            "correct": 1,
+            "explanation": "JSON arrays are zero-indexed. The second interface is at index [1]. Python accesses nested JSON using bracket notation with string keys for objects and integer indices for arrays. Option A uses index [2] which would be the THIRD element (and would throw an IndexError since there are only 2). Option C uses dot notation which is JavaScript syntax, not Python. Option D uses a flat dot-delimited string as a key, which is not how nested access works in Python.",
+            "ciscoCommand": null
+        },
+        {
+            "id": "q445",
+            "domain": "6",
+            "topic": "6.7",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "Which JSON data type does the value 'true' (lowercase) represent?",
+            "options": [
+                "String",
+                "Boolean",
+                "Integer",
+                "It is invalid -- JSON uses 'True' with a capital T"
+            ],
+            "correct": 1,
+            "explanation": "In JSON, boolean values are lowercase: 'true' and 'false'. This is different from Python where they are capitalized ('True'/'False'). Option A would require quotes around the value (\"true\" is a string, true without quotes is boolean). Option C -- integers are numbers, not true/false. Option D has it backwards -- JSON uses lowercase; uppercase 'True' is Python, not JSON.",
+            "ciscoCommand": null
+        },
+        {
+            "id": "q446",
+            "domain": "6",
+            "topic": "6.7",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "A network engineer receives this JSON payload from a Cisco DNA Center API:\n{\"response\": [{\"id\": \"abc-123\", \"hostname\": null, \"managementIpAddress\": \"10.1.1.1\"}]}\n\nWhat does the 'null' value for hostname mean?",
+            "options": [
+                "The hostname is an empty string",
+                "The hostname field does not exist",
+                "The hostname has no value assigned -- it is explicitly absent (JSON null)",
+                "The JSON is invalid because null is not a valid JSON value"
+            ],
+            "correct": 2,
+            "explanation": "In JSON, 'null' is a valid value that represents the intentional absence of a value. It is NOT the same as an empty string (\"\") or the field being missing. Option A -- an empty string would be \"hostname\": \"\". Option B -- if the field didn't exist, the key would not appear at all. Option D is wrong -- null is a valid JSON primitive alongside strings, numbers, booleans, arrays, and objects.",
+            "ciscoCommand": null
+        },
+        {
+            "id": "q447",
+            "domain": "6",
+            "topic": "6.5",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "In REST API design, which HTTP method is used to create a new resource?",
+            "options": [
+                "GET",
+                "POST",
+                "PUT",
+                "DELETE"
+            ],
+            "correct": 1,
+            "explanation": "POST is the standard HTTP method for creating new resources. It sends data to the server, which creates the resource and typically returns a 201 Created status. GET retrieves resources (read). PUT replaces/updates an entire resource. DELETE removes a resource. CRUD mapping: Create=POST, Read=GET, Update=PUT/PATCH, Delete=DELETE.",
+            "ciscoCommand": null
+        },
+        {
+            "id": "q448",
+            "domain": "6",
+            "topic": "6.5",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "You need to update ONLY the description field of an interface on a device via REST API, leaving all other fields unchanged. Which HTTP method should you use?",
+            "options": [
+                "PUT -- it updates resources",
+                "POST -- it modifies existing data",
+                "PATCH -- it performs a partial update",
+                "GET -- with the updated field in the query string"
+            ],
+            "correct": 2,
+            "explanation": "PATCH performs a partial update -- only the specified fields are modified while everything else remains unchanged. Option A -- PUT replaces the ENTIRE resource; if you only send the description field with PUT, all other fields would be reset or lost. Option B -- POST creates new resources, it does not modify existing ones. Option D -- GET is read-only and should never modify server state.",
+            "ciscoCommand": null
+        },
+        {
+            "id": "q449",
+            "domain": "6",
+            "topic": "6.5",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "A REST API returns HTTP status code 401. What does this mean?",
+            "options": [
+                "The resource was not found on the server",
+                "The request was successful but there is no content to return",
+                "Authentication is required -- the client's credentials are missing or invalid",
+                "The server encountered an internal error while processing the request"
+            ],
+            "correct": 2,
+            "explanation": "HTTP 401 Unauthorized means the request lacks valid authentication credentials. The client must authenticate (or re-authenticate) before the server will process the request. Option A describes 404 Not Found. Option B describes 204 No Content. Option D describes 500 Internal Server Error. Key status codes: 200=OK, 201=Created, 204=No Content, 400=Bad Request, 401=Unauthorized, 403=Forbidden, 404=Not Found, 500=Server Error.",
+            "ciscoCommand": null
+        },
+        {
+            "id": "q450",
+            "domain": "6",
+            "topic": "6.5",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "A REST API returns HTTP status code 403 after you authenticate successfully. What does this indicate?",
+            "options": [
+                "Your session has timed out -- re-authenticate",
+                "The resource does not exist",
+                "You are authenticated but do NOT have permission to access this resource",
+                "The server is overloaded and cannot process your request"
+            ],
+            "correct": 2,
+            "explanation": "HTTP 403 Forbidden means the server understood the request and the client's identity, but the client does NOT have permission to access the resource. This is different from 401 (not authenticated). Option A -- session timeout would typically return 401. Option B describes 404. Option D describes 503 Service Unavailable.",
+            "ciscoCommand": null
+        },
+        {
+            "id": "q451",
+            "domain": "6",
+            "topic": "6.5",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "Which HTTP method is idempotent, meaning calling it multiple times produces the same result as calling it once?",
+            "options": [
+                "POST",
+                "PUT",
+                "PATCH",
+                "None of the above"
+            ],
+            "correct": 1,
+            "explanation": "PUT is idempotent -- sending the same PUT request multiple times replaces the resource with the same data, resulting in the same state. POST is NOT idempotent -- each call may create a new resource. PATCH is generally NOT considered idempotent (though it can be implemented that way). GET and DELETE are also idempotent. Option A -- POST creates new resources each time. Option C -- PATCH can have different results depending on current state. Option D is wrong because PUT is idempotent.",
+            "ciscoCommand": null
+        },
+        {
+            "id": "q452",
+            "domain": "6",
+            "topic": "6.5",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "A REST API endpoint is: GET /api/v1/devices/SW1/interfaces?status=up\n\nWhat does 'status=up' represent?",
+            "options": [
+                "A request body parameter",
+                "A URI query parameter that filters the response",
+                "An HTTP header for authentication",
+                "A JSON key-value pair in the response"
+            ],
+            "correct": 1,
+            "explanation": "Everything after the '?' in a URL is a query string. 'status=up' is a query parameter used to filter the API response -- in this case, returning only interfaces with status 'up'. Option A -- request body parameters are sent in the body of POST/PUT requests, not in the URL. Option C -- authentication headers are sent as HTTP headers (e.g., 'Authorization: Bearer token'). Option D -- this is part of the request, not the response.",
+            "ciscoCommand": null
+        },
+        {
+            "id": "q453",
+            "domain": "6",
+            "topic": "6.6",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What is the primary difference between Ansible and Terraform?",
+            "options": [
+                "Ansible provisions infrastructure; Terraform manages configuration",
+                "Ansible is agent-based; Terraform is agentless",
+                "Ansible focuses on configuration management; Terraform focuses on infrastructure provisioning",
+                "Ansible uses HCL; Terraform uses YAML"
+            ],
+            "correct": 2,
+            "explanation": "Ansible excels at configuration management (installing packages, configuring services, pushing configs to network devices). Terraform excels at infrastructure provisioning (creating VMs, networks, cloud resources). Option A has them reversed. Option B is wrong -- BOTH are agentless (Ansible uses SSH/WinRM; Terraform uses provider APIs). Option D is reversed -- Ansible uses YAML playbooks; Terraform uses HCL (HashiCorp Configuration Language).",
+            "ciscoCommand": null
+        },
+        {
+            "id": "q454",
+            "domain": "6",
+            "topic": "6.6",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "You need to provision 50 virtual machines in AWS AND then configure OSPF routing on 20 network devices. Which approach is BEST?",
+            "options": [
+                "Use Ansible for both tasks since it supports AWS and network devices",
+                "Use Terraform for both tasks since it manages any infrastructure",
+                "Use Terraform to provision the VMs, then Ansible to configure OSPF on network devices",
+                "Use Puppet for provisioning and Chef for configuration"
+            ],
+            "correct": 2,
+            "explanation": "Terraform is ideal for provisioning infrastructure (creating VMs). Ansible is ideal for configuration management (pushing OSPF configs to network devices). Using each tool for its strength is the best practice. Option A -- while Ansible CAN provision AWS resources, it is not as robust as Terraform for infrastructure lifecycle management (state tracking, dependency graphs). Option B -- while Terraform CAN manage some configs, it is not designed for procedural configuration tasks like pushing CLI commands. Option D introduces unnecessary tools when Terraform + Ansible cover both needs.",
+            "ciscoCommand": null
+        },
+        {
+            "id": "q455",
+            "domain": "6",
+            "topic": "6.6",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "An Ansible playbook pushes a VLAN configuration to 100 switches. The playbook runs successfully on 98 switches but fails on 2. You re-run the playbook against all 100 switches. What happens to the 98 that already succeeded?",
+            "options": [
+                "They are reconfigured from scratch, causing a brief outage",
+                "Nothing changes -- Ansible is idempotent and detects the config already exists",
+                "Ansible skips them because it tracks state in a state file",
+                "The playbook fails because you cannot re-run against already-configured devices"
+            ],
+            "correct": 1,
+            "explanation": "Ansible playbooks are designed to be idempotent. When re-run, Ansible checks the current state of each device and only makes changes if the desired state differs from the actual state. The 98 already-configured switches report 'ok' (no changes). Option A is wrong -- idempotent means no unnecessary changes. Option C describes Terraform's approach (state file); Ansible does NOT use a state file -- it checks live device state each run. Option D is wrong -- re-running is expected and safe.",
+            "ciscoCommand": null
+        },
+        {
+            "id": "q456",
+            "domain": "6",
+            "topic": "6.6",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "In an Ansible inventory, what is a 'playbook'?",
+            "options": [
+                "A list of managed hosts and their connection details",
+                "A YAML file defining a set of tasks to execute on target hosts",
+                "The Ansible controller node that runs the automation",
+                "A Python library for connecting to network devices"
+            ],
+            "correct": 1,
+            "explanation": "An Ansible playbook is a YAML file that defines plays (groups of tasks) to execute on specified hosts. Each task calls a module (like ios_config) to perform an action. Option A describes the inventory file. Option C describes the control node. Option D describes a module or connection plugin, not a playbook.",
+            "ciscoCommand": null
+        },
+        {
+            "id": "q457",
+            "domain": "6",
+            "topic": "6.2",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "In an SDN architecture, an application wants to deploy a new ACL policy across 100 switches. Which API direction does the application use to communicate with the SDN controller, and which does the controller use to push changes to the switches?",
+            "options": [
+                "Southbound API from app to controller; Northbound API from controller to switches",
+                "Northbound API from app to controller; Southbound API from controller to switches",
+                "Eastbound API from app to controller; Westbound API from controller to switches",
+                "Southbound API for both communications"
+            ],
+            "correct": 1,
+            "explanation": "Applications communicate with the SDN controller via the Northbound API (REST APIs, typically). The controller then pushes configurations to network devices via the Southbound API (OpenFlow, NETCONF, etc.). Think of it as: apps sit ABOVE (north of) the controller; devices sit BELOW (south of) the controller. Option A has the directions reversed. Option C -- eastbound/westbound APIs are for controller-to-controller communication. Option D is wrong because two different interfaces are involved.",
+            "ciscoCommand": null
+        },
+        {
+            "id": "q458",
+            "domain": "6",
+            "topic": "6.2",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "In the SDN architecture, which plane is responsible for making forwarding decisions (routing protocols, MAC learning)?",
+            "options": [
+                "Data plane",
+                "Control plane",
+                "Management plane",
+                "Application plane"
+            ],
+            "correct": 1,
+            "explanation": "The control plane makes forwarding decisions -- it runs routing protocols (OSPF, BGP), builds routing tables, and determines how traffic should be forwarded. In SDN, this is centralized in the controller. The data plane (option A) forwards packets based on the control plane's decisions. The management plane (option C) handles configuration and monitoring (SSH, SNMP). Option D is not a standard network plane.",
+            "ciscoCommand": null
+        },
+        {
+            "id": "q459",
+            "domain": "6",
+            "topic": "6.3",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "What is the key architectural difference between traditional networking and controller-based (SDN) networking?",
+            "options": [
+                "Traditional networks use VLANs; SDN does not",
+                "SDN centralizes the control plane in a controller, separating it from the data plane on individual devices",
+                "Traditional networks cannot be automated; only SDN supports automation",
+                "SDN eliminates the need for physical network devices"
+            ],
+            "correct": 1,
+            "explanation": "The defining characteristic of SDN is the separation and centralization of the control plane. Instead of each switch/router making independent forwarding decisions, a central controller makes decisions and programs the data plane of all devices. Option A is wrong -- VLANs exist in both architectures. Option C is wrong -- traditional networks CAN be automated (with scripts, SNMP, etc.); SDN makes it easier. Option D is wrong -- SDN still uses physical (or virtual) devices for the data plane.",
+            "ciscoCommand": null
+        },
+        {
+            "id": "q460",
+            "domain": "6",
+            "topic": "6.4",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What is Cisco DNA Center's primary role in a network?",
+            "options": [
+                "A Layer 3 switch for routing traffic",
+                "A centralized network management and automation platform (SDN controller)",
+                "A RADIUS authentication server",
+                "A cloud-based firewall service"
+            ],
+            "correct": 1,
+            "explanation": "Cisco DNA Center is an SDN controller and management platform that provides centralized automation, assurance (monitoring/troubleshooting), and policy management for campus networks. It uses intent-based networking principles. Option A -- it does not route traffic. Option C -- while it integrates with ISE for authentication, DNA Center itself is not a RADIUS server. Option D -- it is not a firewall.",
+            "ciscoCommand": null
+        },
+        {
+            "id": "q461",
+            "domain": "6",
+            "topic": "6.4",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "In Cisco DNA Center's intent-based networking model, an admin defines 'Gold' QoS policy for voice traffic. What happens next?",
+            "options": [
+                "The admin must manually configure QoS on each switch to match the Gold policy",
+                "DNA Center translates the business intent into device-level configurations and pushes them to all applicable devices",
+                "The Gold policy only applies to new devices added to the network",
+                "DNA Center sends the policy to a RADIUS server which enforces it"
+            ],
+            "correct": 1,
+            "explanation": "Intent-based networking means the admin expresses business intent ('Gold QoS for voice'), and DNA Center automatically translates it into specific CLI configurations (DSCP markings, queuing policies) and deploys them to all relevant devices. Option A defeats the purpose of intent-based networking. Option C -- policies apply to existing and new devices. Option D -- RADIUS handles authentication, not QoS policy deployment.",
+            "ciscoCommand": null
+        },
+        {
+            "id": "q462",
+            "domain": "6",
+            "topic": "6.1",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "How does automation improve network consistency compared to manual CLI configuration?",
+            "options": [
+                "Automation is faster but less accurate than manual configuration",
+                "Automation ensures the same configuration is applied identically across all devices, eliminating human error variations",
+                "Automation only works for Layer 2 configurations",
+                "Automation requires all devices to be from the same vendor"
+            ],
+            "correct": 1,
+            "explanation": "Automation eliminates the human errors that occur when engineers manually type CLI commands on hundreds of devices -- typos, inconsistencies, missed steps. The same template produces identical output every time. Option A is wrong -- automation is BOTH faster AND more consistent. Option C is wrong -- automation works across all layers. Option D is wrong -- tools like Ansible support multi-vendor environments.",
+            "ciscoCommand": null
+        },
+        {
+            "id": "q463",
+            "domain": "6",
+            "topic": "6.5",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "A REST API call returns HTTP status code 201. What does this indicate?",
+            "options": [
+                "The request was successful and the response contains the requested data",
+                "The request was successful and a new resource was created",
+                "The request was redirected to a different URL",
+                "The request body was malformed"
+            ],
+            "correct": 1,
+            "explanation": "HTTP 201 Created means the request was successful AND a new resource was created on the server. This is the typical response to a successful POST request. Option A describes 200 OK (general success). Option C describes 301/302 redirects. Option D describes 400 Bad Request.",
+            "ciscoCommand": null
+        },
+        {
+            "id": "q464",
+            "domain": "6",
+            "topic": "6.7",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What is the fundamental structural difference between JSON and XML?",
+            "options": [
+                "JSON uses key-value pairs and arrays; XML uses a tag-based hierarchical markup",
+                "JSON supports nesting; XML does not",
+                "XML is more compact than JSON",
+                "JSON requires a schema; XML does not"
+            ],
+            "correct": 0,
+            "explanation": "JSON uses curly braces for objects, square brackets for arrays, and key-value pairs. XML uses opening/closing tags (<tag>value</tag>) in a tree structure. Option B is wrong -- both support nesting. Option C is wrong -- JSON is typically more compact than XML because XML has opening AND closing tags plus attributes. Option D is reversed in practice -- XML has formal schema standards (XSD), while JSON Schema exists but is not required.",
+            "ciscoCommand": null
+        },
+        {
+            "id": "q465",
+            "domain": "6",
+            "topic": "6.7",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "Which of the following JSON snippets contains an error?\n\nA: {\"vlans\": [10, 20, 30]}\nB: {\"enabled\": True}\nC: {\"name\": \"SW1\", \"ports\": 48}\nD: {\"nested\": {\"key\": \"value\"}}",
+            "options": [
+                "Snippet A -- arrays cannot contain numbers",
+                "Snippet B -- 'True' must be lowercase 'true' in JSON",
+                "Snippet C -- strings and numbers cannot be mixed",
+                "Snippet D -- objects cannot be nested in JSON"
+            ],
+            "correct": 1,
+            "explanation": "JSON booleans are strictly lowercase: 'true' and 'false'. Capital 'True' is Python syntax and is invalid JSON. Snippet A is valid -- arrays can contain any JSON type including numbers. Snippet C is valid -- objects can have mixed value types. Snippet D is valid -- JSON supports arbitrary nesting of objects and arrays.",
+            "ciscoCommand": null
+        },
+        {
+            "id": "q466",
+            "domain": "6",
+            "topic": "6.6",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "Terraform stores the current state of infrastructure in a state file. An engineer deletes the state file and runs 'terraform apply'. What happens?",
+            "options": [
+                "Terraform detects existing resources and rebuilds the state",
+                "Terraform treats all resources as new and attempts to create duplicates, causing errors or duplicated infrastructure",
+                "Terraform refuses to run without a state file",
+                "Nothing changes -- the state file is optional"
+            ],
+            "correct": 1,
+            "explanation": "Terraform relies on the state file to map configuration to real-world resources. Without it, Terraform has no knowledge of existing resources and treats everything in the configuration as new, attempting to create duplicate resources. This can cause errors (resource already exists) or actual duplicates. Option A -- Terraform does NOT auto-discover existing resources without explicit import. Option C -- Terraform creates a new empty state file and proceeds. Option D -- the state file is critical, not optional.",
+            "ciscoCommand": null
+        },
+        {
+            "id": "q467",
+            "domain": "6",
+            "topic": "6.5",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "What data format do most modern REST APIs use to exchange data?",
+            "options": [
+                "XML",
+                "JSON",
+                "YAML",
+                "CSV"
+            ],
+            "correct": 1,
+            "explanation": "JSON is the dominant data format for REST APIs due to its simplicity, readability, and native compatibility with JavaScript/web applications. Option A -- XML was dominant in SOAP APIs but is less common in modern REST APIs. Option C -- YAML is used in configuration files (Ansible, Kubernetes) but rarely as a REST API exchange format. Option D -- CSV is for tabular data and lacks the nested structure APIs need.",
+            "ciscoCommand": null
+        },
+        {
+            "id": "q468",
+            "domain": "6",
+            "topic": "6.3",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "In an SDN architecture using OpenFlow, what happens to a packet when the switch does not have a matching flow entry in its flow table?",
+            "options": [
+                "The packet is dropped immediately",
+                "The switch floods the packet to all ports like a traditional switch",
+                "The switch sends the packet to the SDN controller for a forwarding decision",
+                "The switch buffers the packet until the flow table is manually updated"
+            ],
+            "correct": 2,
+            "explanation": "In OpenFlow, when a switch receives a packet with no matching flow entry, it sends the packet (or a summary) to the SDN controller via the Southbound API. The controller decides what to do and installs a new flow entry in the switch's flow table for future packets. Option A -- the default behavior is to consult the controller, not drop. Option B -- OpenFlow switches do not flood by default; they defer to the controller. Option D -- updates come from the controller, not manual configuration.",
+            "ciscoCommand": null
+        },
+        {
+            "id": "q469",
+            "domain": "6",
+            "topic": "6.5",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "An API request returns the following:\nHTTP/1.1 400 Bad Request\n{\"error\": \"Invalid JSON in request body\"}\n\nWhich category of issue does this represent?",
+            "options": [
+                "Server-side error -- the API has a bug",
+                "Client-side error -- the request was malformed",
+                "Authentication error -- invalid credentials",
+                "Network error -- the request did not reach the server"
+            ],
+            "correct": 1,
+            "explanation": "HTTP 4xx status codes indicate CLIENT-side errors. 400 Bad Request specifically means the server cannot process the request due to malformed syntax -- in this case, invalid JSON. Option A -- server errors are 5xx codes (500, 502, 503). Option C -- authentication errors are 401/403, not 400. Option D -- network errors would prevent receiving any HTTP response at all.",
+            "ciscoCommand": null
+        },
+        {
+            "id": "q470",
+            "domain": "6",
+            "topic": "6.6",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "Which statement correctly describes how Ansible connects to and manages network devices?",
+            "options": [
+                "Ansible installs an agent on each network device that reports back to the controller",
+                "Ansible uses SSH to connect to devices and pushes configurations without requiring an agent",
+                "Ansible requires a dedicated management VLAN and uses SNMP to push configurations",
+                "Ansible uses NETCONF exclusively and cannot use SSH for network devices"
+            ],
+            "correct": 1,
+            "explanation": "Ansible is agentless -- it connects to network devices via SSH (or NETCONF for some modules) and pushes configurations directly. No software needs to be installed on the managed devices. Option A describes agent-based tools like Puppet/Chef (though even they don't install on network devices this way). Option C -- while a management network is best practice, SNMP is not Ansible's connection method. Option D -- Ansible CAN use NETCONF but primarily uses SSH via network-specific modules (ios_config, nxos_config, etc.).",
+            "ciscoCommand": null
+        },
+        {
+            "id": "q471",
+            "domain": "6",
+            "topic": "6.7",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "Given this YAML:\n---\nhostname: SW1\nvlans:\n  - id: 10\n    name: Sales\n  - id: 20\n    name: Engineering\n\nWhat is the equivalent JSON representation?",
+            "options": [
+                "{\"hostname\": \"SW1\", \"vlans\": {\"id\": 10, \"name\": \"Sales\", \"id\": 20, \"name\": \"Engineering\"}}",
+                "{\"hostname\": \"SW1\", \"vlans\": [{\"id\": 10, \"name\": \"Sales\"}, {\"id\": 20, \"name\": \"Engineering\"}]}",
+                "{\"hostname\": \"SW1\", \"vlans\": [[10, \"Sales\"], [20, \"Engineering\"]]}",
+                "{\"hostname\": \"SW1\", \"vlans\": \"10:Sales, 20:Engineering\"}"
+            ],
+            "correct": 1,
+            "explanation": "YAML lists (indicated by '-') convert to JSON arrays ([]). Each list item with key-value pairs converts to a JSON object ({}). So the vlans list becomes an array of objects. Option A uses a single object with duplicate keys -- invalid (keys must be unique). Option C converts to nested arrays, losing the key-value structure. Option D flattens everything into a string, losing all structure.",
+            "ciscoCommand": null
+        },
+        {
+            "id": "q472",
+            "domain": "6",
+            "topic": "6.5",
+            "difficulty": 1,
+            "type": "multiple-choice",
+            "question": "Which HTTP method retrieves data from a REST API without modifying anything on the server?",
+            "options": [
+                "POST",
+                "PUT",
+                "GET",
+                "DELETE"
+            ],
+            "correct": 2,
+            "explanation": "GET is the read-only HTTP method used to retrieve data. It should never modify server state. POST creates new resources. PUT updates existing resources. DELETE removes resources.",
+            "ciscoCommand": null
+        },
+        {
+            "id": "q473",
+            "domain": "6",
+            "topic": "6.1",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "A company has 500 switches managed manually via CLI. They want to implement automation. An engineer suggests starting with Ansible. What is the BIGGEST risk of running an untested playbook against all 500 switches simultaneously?",
+            "options": [
+                "Ansible cannot manage more than 100 devices at once",
+                "A misconfiguration in the playbook could be applied to all 500 switches instantly, causing a network-wide outage",
+                "SSH connections to 500 devices would crash the network",
+                "Ansible requires all switches to run the same IOS version"
+            ],
+            "correct": 1,
+            "explanation": "Automation's greatest strength is also its greatest risk: speed at scale. A bad configuration deployed manually affects one device; the same mistake in an Ansible playbook can hit all 500 simultaneously. Best practice: test on a small group first (canary deployment). Option A is wrong -- Ansible can manage thousands. Option C -- SSH to 500 devices uses minimal bandwidth. Option D -- Ansible modules handle version differences; same IOS version is not required.",
+            "ciscoCommand": null
+        },
+        {
+            "id": "q474",
+            "domain": "5",
+            "topic": "5.6",
+            "difficulty": 2,
+            "type": "multiple-choice",
+            "question": "Where should an extended ACL be placed in the network?",
+            "options": [
+                "As close to the destination as possible",
+                "As close to the source as possible",
+                "On the core router only",
+                "On the default gateway of the destination network"
+            ],
+            "correct": 1,
+            "explanation": "Extended ACLs should be placed as close to the SOURCE as possible to prevent unwanted traffic from traversing the network. Since extended ACLs can match on source AND destination addresses plus protocols and ports, they can be specific enough to filter precisely at the source. Option A is the rule for standard ACLs (which can only match source addresses). Options C and D are not general placement rules.",
+            "ciscoCommand": "show ip access-lists"
+        },
+        {
+            "id": "q475",
+            "domain": "5",
+            "topic": "5.9",
+            "difficulty": 1,
+            "type": "multiple-choice",
+            "question": "What does a VPN do?",
+            "options": [
+                "Creates a dedicated physical connection between two sites",
+                "Creates a secure, encrypted tunnel over an untrusted network (like the internet)",
+                "Replaces the need for firewalls on the network",
+                "Increases the bandwidth of an internet connection"
+            ],
+            "correct": 1,
+            "explanation": "A VPN (Virtual Private Network) creates a secure, encrypted tunnel over a public/untrusted network, allowing private data to traverse the internet safely. Option A describes a dedicated leased line, not a VPN. Option C is wrong -- VPNs and firewalls serve different purposes and are often used together. Option D is wrong -- VPNs actually add overhead, slightly reducing effective bandwidth.",
+            "ciscoCommand": "show crypto ipsec sa"
+        },
+        {
+            "id": "q476",
+            "domain": "5",
+            "topic": "5.8",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "A router is configured with:\naaa new-model\naaa authentication login default group radius local\n\nThe RADIUS server is reachable but rejects the user's credentials. Will the router fall back to local authentication?",
+            "options": [
+                "Yes -- if RADIUS rejects, it automatically tries local",
+                "No -- fallback to the next method only occurs if the RADIUS server is UNREACHABLE, not if it explicitly rejects credentials",
+                "Yes -- the 'local' keyword means always check local database",
+                "No -- the 'default' keyword prevents fallback"
+            ],
+            "correct": 1,
+            "explanation": "This is a critical AAA distinction. The fallback method (local) is ONLY used if the RADIUS server is unreachable (timeout, network error). If the RADIUS server is UP and explicitly REJECTS the credentials, that is a definitive 'no' -- the router does NOT try local authentication. Option A is a very common misconception. Option C misunderstands the method list logic. Option D -- 'default' simply names the method list; it does not prevent fallback.",
+            "ciscoCommand": "show aaa sessions"
+        },
+        {
+            "id": "q477",
+            "domain": "5",
+            "topic": "5.7",
+            "difficulty": 3,
+            "type": "multiple-choice",
+            "question": "A switch has port security configured with a maximum of 1 MAC address on access ports. An IP phone is connected to the port with a PC daisy-chained through the phone. The port keeps going err-disabled. What is the solution?",
+            "options": [
+                "Increase the maximum MAC addresses to 2 to allow both the phone and the PC",
+                "Disable port security on ports with IP phones",
+                "Configure the port as a trunk to carry voice and data VLANs",
+                "Enable DHCP snooping to bypass port security for phones"
+            ],
+            "correct": 0,
+            "explanation": "When an IP phone and PC are on the same port, two MAC addresses are present -- one from the phone (voice VLAN) and one from the PC (data VLAN). With max 1, the second MAC triggers a violation. Setting the maximum to 2 (or more, depending on requirements) allows both devices. Option B removes all port security, which is overkill. Option C -- while voice VLAN separation uses 802.1Q tagging, changing to a full trunk is not necessary; 'switchport voice vlan' handles this on an access port. Option D -- DHCP snooping does not interact with port security in that way.",
+            "ciscoCommand": "show port-security interface"
+        }
+    ]
 };
