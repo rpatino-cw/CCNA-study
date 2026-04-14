@@ -139,21 +139,24 @@
     nav.querySelectorAll('.nav-group').forEach(function(g) { g.classList.remove('open'); });
   });
 
-  // ── Cert toggle — pinned right corner ───────────────────────────
-  var certToggle = document.createElement('div');
-  certToggle.className = 'cert-toggle';
-  certToggle.innerHTML =
-    '<button class="ct-opt' + (!isNetPlus ? ' on' : '') + '" data-c="ccna" title="' + (!isNetPlus ? 'Currently studying CCNA 200-301' : 'Switch to CCNA 200-301') + '">CCNA</button>' +
-    '<button class="ct-opt' + (isNetPlus ? ' on' : '') + '" data-c="net+" title="' + (isNetPlus ? 'Currently studying Network+ N10-009' : 'Switch to CompTIA Network+') + '">NET+</button>';
-  nav.appendChild(certToggle);
-  certToggle.querySelectorAll('.ct-opt').forEach(function(b) {
-    b.addEventListener('click', function() {
-      var c = b.getAttribute('data-c');
-      if (c === certTrack) return;
-      localStorage.setItem('ccna_cert_track', c);
-      location.reload();
+  // ── Cert toggle — only on core + study group pages ──────────────
+  var togglePages = ['core.html','netplus.html','peers.html','index.html'];
+  if (togglePages.indexOf(currentFile) !== -1) {
+    var certToggle = document.createElement('div');
+    certToggle.className = 'cert-toggle';
+    certToggle.innerHTML =
+      '<button class="ct-opt' + (!isNetPlus ? ' on' : '') + '" data-c="ccna" title="' + (!isNetPlus ? 'Currently studying CCNA 200-301' : 'Switch to CCNA 200-301') + '">CCNA</button>' +
+      '<button class="ct-opt' + (isNetPlus ? ' on' : '') + '" data-c="net+" title="' + (isNetPlus ? 'Currently studying Network+ N10-009' : 'Switch to CompTIA Network+') + '">NET+</button>';
+    nav.appendChild(certToggle);
+    certToggle.querySelectorAll('.ct-opt').forEach(function(b) {
+      b.addEventListener('click', function() {
+        var c = b.getAttribute('data-c');
+        if (c === certTrack) return;
+        localStorage.setItem('ccna_cert_track', c);
+        location.reload();
+      });
     });
-  });
+  }
 
   // Beta badge + bug report
   var beta = document.createElement('div');
