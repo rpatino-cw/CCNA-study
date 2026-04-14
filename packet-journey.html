@@ -24,6 +24,9 @@ canvas{display:block}
 .free-look-btn{position:fixed;top:16px;right:16px;z-index:200;font-size:0.78rem;color:#a8a29e;padding:6px 14px;background:rgba(10,10,15,0.85);border:1px solid rgba(255,255,255,0.06);border-radius:6px;cursor:pointer;font-family:inherit;backdrop-filter:blur(12px);transition:all 0.2s}
 .free-look-btn:hover{color:#e8e4de;border-color:rgba(255,255,255,0.15)}
 .free-look-btn.active{color:#5eead4;border-color:rgba(94,234,212,0.3)}
+.beginner-btn{position:fixed;top:16px;right:110px;z-index:200;font-size:0.78rem;color:#a8a29e;padding:6px 14px;background:rgba(10,10,15,0.85);border:1px solid rgba(255,255,255,0.06);border-radius:6px;cursor:pointer;font-family:inherit;backdrop-filter:blur(12px);transition:all 0.2s}
+.beginner-btn:hover{color:#e8e4de;border-color:rgba(255,255,255,0.15)}
+.beginner-btn.active{color:#fbbf24;border-color:rgba(251,191,36,0.3);background:rgba(251,191,36,0.08)}
 
 .speed-ctrl{position:fixed;bottom:16px;left:16px;z-index:200;display:flex;gap:4px;padding:4px;background:rgba(10,10,15,0.85);border:1px solid rgba(255,255,255,0.06);border-radius:6px;backdrop-filter:blur(12px)}
 .speed-btn{font-size:0.72rem;color:#a8a29e;background:none;border:1px solid transparent;border-radius:4px;padding:4px 10px;cursor:pointer;font-family:inherit;transition:all 0.2s}
@@ -98,6 +101,7 @@ canvas{display:block}
 <a class="back-link" href="core.html">&larr; Core Topics</a>
 <div class="step-indicator" id="stepIndicator"></div>
 <button class="free-look-btn" id="freeLookBtn" onclick="toggleFreeLook()">Free Look</button>
+<button class="beginner-btn" id="simpleBtn" onclick="toggleSimple()">Beginner</button>
 <div class="speed-ctrl">
   <button class="speed-btn" onclick="setSpeed(0.5)">0.5x</button>
   <button class="speed-btn active" onclick="setSpeed(1)">1x</button>
@@ -339,7 +343,7 @@ let currentLook=new THREE.Vector3(0,0,0);
 function setCam(p,l,lr=0.025){camTarget.pos.set(...p);camTarget.look.set(...l);camTarget.lerp=lr}
 
 /* ════════ UI STATE ════════ */
-let speedMultiplier=1,freeLook=false,currentStep=-1;
+let speedMultiplier=1,freeLook=false,simpleMode=false,currentStep=-1;
 const totalSteps=12;
 const stepInd=document.getElementById('stepIndicator');
 for(let i=0;i<totalSteps;i++){const d=document.createElement('div');d.className='step-dot';stepInd.appendChild(d)}
@@ -347,20 +351,21 @@ function updateDots(i){[...stepInd.children].forEach((d,j)=>{d.className='step-d
 function setSpeed(s){speedMultiplier=s;document.querySelectorAll('.speed-btn').forEach(b=>b.classList.toggle('active',parseFloat(b.textContent)===s))}
 function wait(ms){return new Promise(r=>setTimeout(r,ms/speedMultiplier))}
 function toggleFreeLook(){freeLook=!freeLook;controls.enabled=freeLook;if(freeLook){controls.target.copy(currentLook)}document.getElementById('freeLookBtn').classList.toggle('active',freeLook)}
-window.toggleFreeLook=toggleFreeLook;window.setSpeed=setSpeed;
+function toggleSimple(){simpleMode=!simpleMode;document.getElementById('simpleBtn').classList.toggle('active',simpleMode);if(currentStep>=0&&currentStep<steps.length){const n=simpleMode&&simpleNarr[currentStep]?simpleNarr[currentStep]:steps[currentStep];narrTitle.textContent=n.title;narrText.textContent=n.text;narrTldr.textContent='\u{1F4A1} '+n.tldr;if(simpleMode){hideTerminal();hideOverlay();hideInspector()}}}
+window.toggleFreeLook=toggleFreeLook;window.setSpeed=setSpeed;window.toggleSimple=toggleSimple;
 
 const narrEl=document.getElementById('narration'),narrStep=document.getElementById('narrStep'),narrTitle=document.getElementById('narrTitle'),narrText=document.getElementById('narrText'),narrTldr=document.getElementById('narrTldr'),nextBtn=document.getElementById('nextBtn'),skipBtn=document.getElementById('skipBtn');
 function showNarration(i,title,text,tldr){narrStep.textContent=`Step ${i+1} of ${totalSteps}`;narrTitle.textContent=title;narrText.textContent=text;narrTldr.textContent='\u{1F4A1} '+tldr;narrEl.classList.add('visible');nextBtn.style.display='none';skipBtn.style.display='inline-block'}
 function enableNext(){nextBtn.style.display='inline-block';skipBtn.style.display='none'}
 function hideNarration(){narrEl.classList.remove('visible')}
 const overlayEl=document.getElementById('overlayTable');
-function showOverlay(h){overlayEl.innerHTML=h;overlayEl.classList.add('visible')}
+function showOverlay(h){if(simpleMode)return;overlayEl.innerHTML=h;overlayEl.classList.add('visible')}
 function hideOverlay(){overlayEl.classList.remove('visible')}
 const termEl=document.getElementById('terminal'),termBody=document.getElementById('termBody');
-function showTerminal(c){termBody.innerHTML=c;termEl.classList.add('visible')}
+function showTerminal(c){if(simpleMode)return;termBody.innerHTML=c;termEl.classList.add('visible')}
 function hideTerminal(){termEl.classList.remove('visible')}
 const pktEl=document.getElementById('pktInspector'),pktLayers=document.getElementById('pktLayers');
-function showInspector(l){pktLayers.innerHTML=l;pktEl.classList.add('visible')}
+function showInspector(l){if(simpleMode)return;pktLayers.innerHTML=l;pktEl.classList.add('visible')}
 function hideInspector(){pktEl.classList.remove('visible')}
 function hideAllPanels(){hideOverlay();hideTerminal();hideInspector();hideNarration()}
 
@@ -387,8 +392,23 @@ const steps=[
 {title:'The Complete Enterprise WAN',text:'You just watched a single packet cross an entire enterprise network \u2014 from user desktop through access switches, distribution routers, firewalls, ISP backbone, data center core, and into a server farm. Every hop made an independent forwarding decision. Every redundant path stood ready.',tldr:'Every device made its own decision. Redundancy at every layer. This is enterprise networking.',async run(){setCam([0,22,28],[0,0,0]);hideOverlay();hideTerminal();hideInspector();resetAllDevices();resetAllCables();await wait(1000);Object.keys(devices).forEach(k=>highlightDevice(k,0x5eead4,0.3));const fp=['pc1-swa1','swa1-ra','ra-fwa','fwa-isp1','isp1-fwb','fwb-rb','rb-swb1','swb1-web'];fp.forEach(k=>{glowCable(k,0x5eead4,0.8);activateFlow(k,0x5eead4,0.2)});const bp=['pc2-swa2','swa2-ra','swa1-swa2','fwa-isp2','isp2-fwb','isp1-isp2','rb-swb2','swb1-swb2','swb2-db','swb2-app','swb1-app'];bp.forEach(k=>{glowCable(k,0x22c55e,0.25);activateFlow(k,0x22c55e,0.1)});await wait(1000);for(const k of fp)await animatePacketAlongCable(k,700,0x5eead4);triggerBurst(devices['WEB'].group.position.clone().add(new THREE.Vector3(0,0.5,0)),0x5eead4);showTerminal('<span class="highlight">\u2501\u2501\u2501 Journey Summary \u2501\u2501\u2501</span>\n\n<span class="out">Hops:        8 devices\nDistance:    WAN backbone\nProtocols:   Ethernet, IP, TCP, ARP, STP, BGP\nRedundancy:  Dual ISP, Dual switches, RSTP\nSecurity:    2 stateful firewalls, NAT\nTime:        ~18ms round-trip</span>');await wait(3000)}}
 ];
 
+const simpleNarr=[
+{title:'Sending a Message',text:'You click a link on your computer. Your computer needs to send a message across the internet to a server far away \u2014 kind of like mailing a package. It knows the destination address, but first it needs to figure out who to hand the package to. Think of it like knowing you want to mail something to New York but you still need to find your local post office.',tldr:'Your computer wraps up your request like a package and needs to find the first stop.'},
+{title:'Finding the Mailman',text:'Your computer shouts to everyone nearby: "Hey! Who\'s the router? I need to hand you this package!" The switch \u2014 a box that connects all the computers on this floor \u2014 passes the shout along to everyone. The router answers: "That\'s me! Hand it here." Now the switch remembers who is plugged into which port \u2014 like writing down which room each person sits in.',tldr:'Your computer yells "who\'s the router?" and the switch helps find the answer.'},
+{title:'Blocking Extra Paths',text:'There are two paths from the switch to the router \u2014 like two hallways to the same room. If a message traveled in a loop through both paths forever, it would flood the network like an echo that never stops. So the network automatically blocks one path and keeps it as a backup. If the main path ever breaks, the backup opens instantly.',tldr:'Extra paths get blocked to stop infinite loops \u2014 but they stay ready as backups.'},
+{title:'Reading the Address',text:'The router is like a post office worker. It opens the outer envelope, reads the destination address on the letter inside, and checks a map to figure out which direction to send it. It also stamps the letter with a countdown number \u2014 if this number hits zero, the letter gets thrown away so it doesn\'t wander the network forever.',tldr:'The router reads the destination, checks its map, stamps a countdown, and sends it along.'},
+{title:'The Security Guard',text:'Before the package leaves the building, it passes a security guard \u2014 the firewall. The guard checks: "Is this type of package allowed to leave? Is the destination safe?" Since it\'s a normal web request, the guard lets it through. Then the guard writes it down: "I let this out, so when a reply comes back from that address, let it in automatically."',tldr:'The firewall checks if the message is allowed to leave, then remembers to let the reply back in.'},
+{title:'Crossing the Internet',text:'The package leaves your building and enters the internet through your ISP (Internet Service Provider) \u2014 the company that connects you to the rest of the world. It zooms through fiber optic cables, passing through multiple cities. At each stop along the way, the countdown stamp goes down by one. Think of it like a road trip where you pass through toll booths.',tldr:'Your message travels across the internet through ISP cables, like a road trip across states.'},
+{title:'Arriving at the Other Side',text:'The package arrives at the other building. Another security guard checks it. Then something clever happens \u2014 the public address on the package (like a P.O. Box number) gets swapped for the real room number inside. This is called NAT. It lets the company hide their real internal addresses from the outside world, kind of like having a public P.O. Box but a private home address.',tldr:'The firewall checks the message and swaps the public address for the real internal one.'},
+{title:'Package Delivered!',text:'The package finally reaches the web server \u2014 the computer that has the website you wanted. It traveled through switches, routers, firewalls, across the entire internet, and through more switches to get here. The server opens the package and starts preparing its reply \u2014 the web page you asked for.',tldr:'After crossing the entire network, the message arrives at the server. Now it builds a reply.'},
+{title:'The Secret Handshake',text:'Before any real data gets sent, both computers do a three-step handshake \u2014 like two kids agreeing to trade cards. "Wanna trade?" \u2192 "Yeah, let\'s trade!" \u2192 "Cool, here we go!" This handshake crosses the ENTIRE network path TWICE and no actual website data is sent yet. It\'s just both computers making sure the other one is ready and listening.',tldr:'"Hey, you there?" \u2192 "Yep!" \u2192 "Let\'s go!" Three messages cross the whole network just to say hello.'},
+{title:'The Road is Closed!',text:'Oh no \u2014 the main internet highway just went down! Maybe a cable got cut or a router crashed. But there\'s a backup highway through a second ISP! The network detects the failure in seconds and automatically reroutes everything through the backup path. You might notice a tiny pause, but the connection survives. Nobody had to flip a switch \u2014 it just happened.',tldr:'Main path breaks, backup kicks in automatically. That\'s why networks have two of everything.'},
+{title:'Backup Switch Activates',text:'Remember that blocked backup path from Step 3? The main switch link just failed, and the network instantly unblocks the backup. With modern technology, this happens in less than one second. Traffic flows through the backup switch like nothing happened. Networks build redundancy at every level \u2014 not just between buildings, but even within the same room.',tldr:'The backup path from earlier activates in under 1 second. Redundancy saves the day again.'},
+{title:'The Big Picture',text:'You just watched one click travel across an entire network. Every single device \u2014 every switch, router, and firewall \u2014 made its own independent decision about where to send the message next. And at every point, there was a backup ready. No single device controls everything. That\'s the magic of networking: lots of smart devices working together, each doing one small job really well.',tldr:'Every device decides for itself. Every path has a backup. That\'s how real networks work.'}
+];
+
 /* ════════ TOUR ENGINE ════════ */
-async function runStep(i){if(i>=steps.length){endTour();return}currentStep=i;updateDots(i);hideAllPanels();showPacket(false);showFrame(0,false);const s=steps[i];showNarration(i,s.title,s.text,s.tldr);await s.run();enableNext()}
+async function runStep(i){if(i>=steps.length){endTour();return}currentStep=i;updateDots(i);hideAllPanels();showPacket(false);showFrame(0,false);const s=steps[i];const n=simpleMode&&simpleNarr[i]?simpleNarr[i]:s;showNarration(i,n.title,n.text,n.tldr);await s.run();enableNext()}
 function advanceStep(){if(currentStep+1>=steps.length)endTour();else runStep(currentStep+1)}
 window.advanceStep=advanceStep;
 function startTour(){document.getElementById('startScreen').style.display='none';runStep(0)}

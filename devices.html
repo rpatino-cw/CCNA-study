@@ -141,6 +141,36 @@
   .topo-tab .tab-count{display:none}
   .legend{gap:8px;font-size:.62rem}
 }
+
+/* ── Device Catalog ─────────────────────────────────────────── */
+.catalog-section{margin-top:var(--s-xl);padding-top:var(--s-xl);border-top:2px solid var(--ink)}
+.catalog-header{margin-bottom:var(--s-md)}
+.catalog-header h2{font-size:1.6rem;margin-bottom:4px}
+.catalog-header .subtitle{font-family:var(--font-body);color:var(--ink-secondary);font-size:.88rem;font-style:italic}
+.catalog-count{font-family:var(--font-mono);font-size:.72rem;color:var(--ink-muted);margin-top:4px}
+.catalog-controls{display:flex;align-items:center;gap:var(--s-md);flex-wrap:wrap;margin-bottom:var(--s-sm)}
+.cat-filters{display:flex;flex-wrap:wrap;gap:6px;padding:0 0 var(--s-sm)}
+.cat-filter{font-family:var(--font-display);font-size:.68rem;font-weight:500;text-transform:uppercase;letter-spacing:.04em;color:var(--ink-muted);background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius);padding:5px 12px;cursor:pointer;transition:all .15s}
+.cat-filter:hover{color:var(--ink);border-color:var(--border-strong)}
+.cat-filter.active{color:var(--bg);background:var(--ink);border-color:var(--ink)}
+.cat-filter .filter-count{font-family:var(--font-mono);font-size:.56rem;opacity:.6;margin-left:3px}
+.catalog-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:10px;padding:var(--s-sm) 0 var(--s-xl)}
+.cat-card{display:flex;align-items:flex-start;gap:12px;padding:12px 14px;background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);cursor:pointer;transition:border-color .15s,background .15s,box-shadow .15s}
+.cat-card:hover{border-color:var(--border-strong);background:var(--bg-hover);box-shadow:0 2px 8px rgba(0,0,0,.04)}
+.cat-card.hidden{display:none}
+.cat-card-icon{width:44px;height:44px;border-radius:var(--radius);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.cat-card-icon svg{width:36px;height:36px}
+.cat-card-info{flex:1;min-width:0}
+.cat-card-top{display:flex;align-items:center;gap:6px;margin-bottom:3px}
+.cat-card-badge{font-family:var(--font-display);font-size:.56rem;text-transform:uppercase;letter-spacing:.08em;padding:1px 6px;border-radius:3px;font-weight:600}
+.cat-card-osi{font-family:var(--font-mono);font-size:.6rem;color:var(--ink-muted)}
+.cat-card-name{font-family:var(--font-display);font-size:.88rem;font-weight:700;line-height:1.2;margin-bottom:3px}
+.cat-card-desc{font-family:var(--font-body);font-size:.74rem;color:var(--ink-secondary);line-height:1.45;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.catalog-empty{text-align:center;padding:var(--s-xl) 0;color:var(--ink-muted);font-family:var(--font-body);font-size:.9rem}
+@media(max-width:768px){
+  .catalog-grid{grid-template-columns:1fr}
+  .catalog-controls{flex-direction:column;align-items:stretch}
+}
 </style>
 </head>
 <body>
@@ -156,16 +186,6 @@
   <!-- Topology tabs -->
   <div class="topo-tabs" id="topoTabs"></div>
 
-  <!-- Controls -->
-  <div class="controls-bar">
-    <div class="search-wrap">
-      <span class="search-icon">&#9906;</span>
-      <input type="text" class="dev-search" id="devSearch" placeholder="Search devices..." autocomplete="off">
-      <button class="search-clear" id="searchClear" title="Clear">&times;</button>
-    </div>
-    <span class="result-count" id="resultCount"></span>
-  </div>
-
   <!-- Legend -->
   <div class="legend" id="legend"></div>
 
@@ -173,6 +193,25 @@
   <div class="topo-viewport" id="topoViewport">
     <svg class="topo-svg" id="topoSvg"></svg>
   </div>
+
+  <!-- Device Catalog -->
+  <section class="catalog-section" id="catalogSection">
+    <header class="catalog-header">
+      <h2>Device Catalog</h2>
+      <p class="subtitle">Searchable reference — every device type a network engineer encounters</p>
+      <p class="catalog-count" id="catalogCount"></p>
+    </header>
+    <div class="catalog-controls">
+      <div class="search-wrap">
+        <span class="search-icon">&#9906;</span>
+        <input type="text" class="dev-search" id="devSearch" placeholder="Search devices, categories, OSI layers..." autocomplete="off">
+        <button class="search-clear" id="searchClear" title="Clear">&times;</button>
+      </div>
+      <span class="result-count" id="resultCount"></span>
+    </div>
+    <div class="cat-filters" id="catFilters"></div>
+    <div class="catalog-grid" id="catalogGrid"></div>
+  </section>
 
   <!-- Detail panel + backdrop -->
   <div class="detail-backdrop" id="detailBackdrop"></div>
@@ -926,6 +965,336 @@ const DEVICES = {
       {cmd:'show mac address-table interface Gi0/15',desc:'Camera MAC on switch'},
     ],
     tip:'IP cameras are great PoE use cases. Each PoE camera uses 12-25W. Know the PoE standards: 802.3af (15.4W, Type 1), 802.3at (30W, Type 2, PoE+), 802.3bt (60-90W, Type 3/4, PoE++). Calculate total PoE budget for the switch.'
+  },
+
+  // ────── Additional Catalog Devices ──────
+  hub: {
+    name:'Hub',category:'access',osi:'Layer 1',
+    desc:'Legacy multiport repeater that broadcasts all incoming frames to every port. No MAC address learning — all ports share one collision domain. Completely replaced by switches in modern networks, but a CCNA exam staple.',
+    models:[{name:'Netgear EN108',use:'8-port 10BASE-T hub (legacy)'}],
+    specs:{Speed:'10/100 Mbps','Collision Domain':'Single (shared)','Broadcast Domain':'Single',Intelligence:'None — Layer 1 only'},
+    history:[{year:'1990',text:'10BASE-T hubs dominate early Ethernet LANs'},{year:'2000',text:'Switches replace hubs in virtually all new deployments'}],
+    commands:[],
+    tip:'CCNA loves hub vs switch questions. Hub = Layer 1, all ports in ONE collision domain. Switch = Layer 2, each port is its OWN collision domain. Hubs flood; switches forward by MAC table.'
+  },
+  bridge: {
+    name:'Bridge',category:'access',osi:'Layer 2',
+    desc:'Connects two LAN segments and filters traffic by MAC address. Learns which MACs are on which port and only forwards frames that need to cross segments. Predecessor to the modern switch — a switch is essentially a multiport bridge.',
+    models:[{name:'Cisco 2500 Series Bridge',use:'Legacy LAN bridging (discontinued)'}],
+    specs:{Ports:'2 (typically)',Filtering:'MAC address table','Broadcast Domain':'Single (shared)',STP:'Yes — prevents loops'},
+    history:[{year:'1984',text:'DEC LANBridge — first commercial LAN bridge'},{year:'1990',text:'Transparent bridging standardized (IEEE 802.1D)'}],
+    commands:[{cmd:'show mac address-table',desc:'View learned MAC addresses'}],
+    tip:'A switch IS a multiport bridge. The CCNA tests this relationship. Bridges divide collision domains (like switches) but all ports remain in one broadcast domain (unless VLANs are used).'
+  },
+  repeater: {
+    name:'Repeater',category:'infra',osi:'Layer 1',
+    desc:'Regenerates and amplifies network signals to extend cable distance beyond the maximum segment length. Operates at the physical layer — no intelligence, no filtering. In Ethernet, the 5-4-3 rule limits repeater chains.',
+    models:[{name:'Generic Ethernet Repeater',use:'Extend 10BASE-T beyond 100m'}],
+    specs:{Function:'Signal regeneration',Layer:'Physical (Layer 1)',Latency:'Minimal',Intelligence:'None'},
+    history:[{year:'1980',text:'Used extensively in 10BASE5/10BASE2 Ethernet networks'},{year:'1995',text:'Largely replaced by switches and fiber runs'}],
+    commands:[],
+    tip:'5-4-3 rule: max 5 segments, 4 repeaters, 3 populated segments. Repeaters don\'t filter — they just regenerate. They extend collision domains, which is why switches (which break them) are preferred.'
+  },
+  load_balancer: {
+    name:'Load Balancer',category:'server',osi:'Layer 4-7',
+    desc:'Distributes incoming traffic across multiple servers to ensure high availability and optimal performance. Layer 4 balancers route by IP/port; Layer 7 balancers inspect HTTP headers, URLs, and cookies for smarter routing.',
+    models:[
+      {name:'F5 BIG-IP i5800',use:'Enterprise ADC, 40 Gbps throughput'},
+      {name:'Citrix NetScaler MPX',use:'Application delivery, SSL offload'},
+    ],
+    specs:{Algorithms:'Round-robin, least connections, weighted, IP hash',Health:'Active/passive health checks',SSL:'TLS offloading','Session':'Cookie/IP persistence'},
+    history:[{year:'1996',text:'F5 Networks founded — hardware load balancing'},{year:'2010',text:'Software LBs emerge (NGINX, HAProxy) challenging hardware'}],
+    commands:[],
+    tip:'Not directly on CCNA but know the concept: load balancers use a Virtual IP (VIP) — clients connect to one address, the LB distributes to multiple real servers behind it.'
+  },
+  vpn_concentrator: {
+    name:'VPN Concentrator',category:'wan',osi:'Layer 3-4',
+    desc:'Terminates hundreds or thousands of VPN tunnels from remote users and branch offices. Handles IPsec and SSL VPN encryption/decryption with hardware acceleration. In modern deployments, this function is often integrated into the firewall.',
+    models:[
+      {name:'Cisco ASA 5500-X',use:'Combined firewall + VPN concentrator'},
+      {name:'Palo Alto GlobalProtect',use:'Client VPN via NGFW'},
+    ],
+    specs:{Tunnels:'100-25,000 concurrent',Protocols:'IPsec, SSL/TLS, L2TP',Throughput:'1-20 Gbps encrypted','Auth':'RADIUS, LDAP, certificates'},
+    history:[{year:'1999',text:'Cisco VPN 3000 series — dedicated concentrators'},{year:'2010',text:'VPN functionality merges into NGFW platforms'}],
+    commands:[
+      {cmd:'show crypto isakmp sa',desc:'View IPsec Phase 1 (IKE) SAs'},
+      {cmd:'show crypto ipsec sa',desc:'View IPsec Phase 2 SAs'},
+      {cmd:'show vpn-sessiondb summary',desc:'Active VPN session count (ASA)'},
+    ],
+    tip:'CCNA covers site-to-site and remote-access VPNs. Know: IPsec uses IKE (Phase 1 = ISAKMP SA, Phase 2 = IPsec SA). SSL VPN works through browsers (no client needed). GRE wraps any protocol but adds no encryption — pair with IPsec.'
+  },
+  proxy_server: {
+    name:'Proxy Server',category:'server',osi:'Layer 7',
+    desc:'Acts as an intermediary between clients and the internet. Forward proxies serve internal users (caching, content filtering, anonymity). Reverse proxies sit in front of servers (load distribution, SSL termination, DDoS protection).',
+    models:[
+      {name:'Squid Proxy',use:'Open-source HTTP caching proxy'},
+      {name:'Blue Coat ProxySG',use:'Enterprise secure web gateway'},
+    ],
+    specs:{Type:'Forward / Reverse / Transparent',Protocols:'HTTP, HTTPS, SOCKS',Caching:'Yes — reduces bandwidth',Filtering:'URL, content category, malware'},
+    history:[{year:'1996',text:'Squid released — dominant open-source proxy'},{year:'2012',text:'Cloud proxies (Zscaler) begin replacing hardware'}],
+    commands:[],
+    tip:'Know forward vs reverse proxy. Forward = client-side, hides users from internet. Reverse = server-side, hides servers from clients. Transparent proxy intercepts without client config.'
+  },
+  media_converter: {
+    name:'Media Converter',category:'infra',osi:'Layer 1',
+    desc:'Converts signals between different physical media types — typically copper (RJ-45) to fiber (SC/LC). Extends network reach beyond copper\'s 100m limit without replacing existing infrastructure. Strictly Layer 1 — no packet inspection.',
+    models:[
+      {name:'TP-Link MC220L',use:'Gigabit copper to SFP fiber'},
+      {name:'Transition Networks',use:'Enterprise fiber media conversion'},
+    ],
+    specs:{Conversion:'Copper ↔ Fiber, Multimode ↔ Single-mode',Speed:'100M / 1G / 10G',Latency:'Near-zero (Layer 1)',Power:'External adapter or PoE'},
+    history:[{year:'1990',text:'Early converters bridge 10BASE-T to fiber backbone'}],
+    commands:[],
+    tip:'Media converters are Layer 1 — they don\'t inspect or modify frames. Know when to use: extending beyond 100m copper limit, connecting legacy copper equipment to fiber infrastructure.'
+  },
+  console_server: {
+    name:'Console Server',category:'infra',osi:'Layer 1-7',
+    desc:'Provides out-of-band (OOB) serial access to the console ports of network devices over the network. Critical for remote management when the network is down. Connects via serial (RS-232/RJ-45) to device console ports and exposes them over SSH/Telnet.',
+    models:[
+      {name:'Opengear OM2200',use:'48-port serial console, cellular OOB'},
+      {name:'Raritan Dominion SX',use:'Enterprise console management'},
+    ],
+    specs:{Ports:'8-48 serial',Access:'SSH, Telnet, web GUI',OOB:'Cellular modem failover','Logging':'Session recording, audit trail'},
+    history:[{year:'1990',text:'Terminal servers provide remote serial access'},{year:'2010',text:'Cellular OOB becomes standard for disaster recovery'}],
+    commands:[],
+    tip:'Out-of-band management means accessing devices through a path separate from the production network. Console servers + cellular = you can recover from total network failure remotely.'
+  },
+  pdu: {
+    name:'Power Distribution Unit',category:'infra',osi:'N/A (Power)',
+    desc:'Distributes electrical power to equipment in a server rack. Basic PDUs are glorified power strips. Managed/intelligent PDUs offer per-outlet metering, remote on/off, environmental sensors, and SNMP monitoring.',
+    models:[
+      {name:'APC AP8886',use:'Managed, metered, per-outlet switching'},
+      {name:'Raritan PX3',use:'Intelligent PDU with outlet-level control'},
+    ],
+    specs:{Type:'Basic / Metered / Switched / Managed',Outlets:'8-42 per unit',Monitoring:'Power (W), current (A), voltage, kWh',Remote:'SNMP, web GUI, SSH'},
+    history:[{year:'2000',text:'Intelligent PDUs emerge with SNMP capability'},{year:'2015',text:'Per-outlet power metering becomes standard in data centers'}],
+    commands:[],
+    tip:'Not on CCNA, but critical DC knowledge. Power capacity planning: add up all device watts, compare to PDU and circuit capacity. Redundancy: A+B power feeds from different PDUs/circuits.'
+  },
+  voice_gateway: {
+    name:'Voice Gateway',category:'infra',osi:'Layer 3-7',
+    desc:'Converts voice traffic between VoIP (IP network) and traditional PSTN/analog phone systems. Handles codec conversion, call signaling (SIP/H.323 to SS7/ISDN), and dial plan routing. Essential for hybrid voice environments.',
+    models:[
+      {name:'Cisco VG310',use:'48 FXS analog voice gateway'},
+      {name:'Cisco CUBE',use:'Cisco Unified Border Element — SIP trunk gateway'},
+    ],
+    specs:{Protocols:'SIP, H.323, MGCP, SCCP',Ports:'FXS (analog phones), FXO (PSTN lines), T1/E1',Codecs:'G.711, G.729',QoS:'DSCP marking, LLQ'},
+    history:[{year:'1998',text:'Cisco first voice-enabled routers'},{year:'2010',text:'SIP trunking replaces most PSTN gateways'}],
+    commands:[
+      {cmd:'show voice port summary',desc:'Voice port status'},
+      {cmd:'show dial-peer voice summary',desc:'Dial peer routing table'},
+    ],
+    tip:'Voice traffic needs QoS. Mark voice with DSCP EF (46), use Low Latency Queuing (LLQ). Voice needs <150ms one-way delay and <1% packet loss.'
+  },
+  wan_optimizer: {
+    name:'WAN Optimizer',category:'wan',osi:'Layer 4-7',
+    desc:'Reduces WAN bandwidth consumption and latency through data deduplication, compression, caching, and protocol optimization. Deployed in pairs — one at each end of the WAN link. Dramatically improves performance for CIFS, HTTP, and database protocols.',
+    models:[
+      {name:'Riverbed SteelHead',use:'Market leader, up to 10 Gbps WAN optimization'},
+      {name:'Cisco WAAS',use:'Wide Area Application Services (integrated with ISR)'},
+    ],
+    specs:{Techniques:'Dedup, compression, caching, TCP optimization',Reduction:'60-95% bandwidth savings typical',Protocols:'CIFS/SMB, HTTP, MAPI, SQL',Deployment:'Inline or WCCP redirect'},
+    history:[{year:'2002',text:'Riverbed founded — defines WAN optimization category'},{year:'2015',text:'SD-WAN begins absorbing basic WAN optimization features'}],
+    commands:[],
+    tip:'WAN optimization is being replaced by SD-WAN in many deployments. Know the techniques: dedup (byte-level), compression (LZ), caching (local copy), TCP optimization (window scaling, selective ACK).'
+  },
+  sdwan_appliance: {
+    name:'SD-WAN Appliance',category:'wan',osi:'Layer 3-7',
+    desc:'Software-Defined WAN device that intelligently routes traffic across multiple WAN links (MPLS, broadband, LTE) based on application policy and real-time link quality. Centrally managed via orchestrator. Reduces WAN costs by supplementing expensive MPLS with cheap broadband.',
+    models:[
+      {name:'Cisco Catalyst 8300',use:'Cisco SD-WAN (Viptela) edge router'},
+      {name:'Fortinet FortiGate SD-WAN',use:'Integrated NGFW + SD-WAN'},
+      {name:'VMware VeloCloud',use:'Cloud-first SD-WAN'},
+    ],
+    specs:{Transport:'MPLS, broadband, LTE/5G, satellite',Routing:'Application-aware path selection',Security:'Integrated firewall, IPS, URL filtering',Management:'Central orchestrator / controller'},
+    history:[{year:'2013',text:'Viptela founded — cloud-managed SD-WAN'},{year:'2017',text:'Cisco acquires Viptela for $610M'},{year:'2020',text:'SD-WAN becomes default WAN architecture for enterprises'}],
+    commands:[],
+    tip:'SD-WAN separates the control plane (centralized) from the data plane (distributed at each site). Know: it uses overlay tunnels over any transport, application-aware routing picks the best path per app.'
+  },
+  nac_appliance: {
+    name:'NAC Appliance',category:'access',osi:'Layer 2-3',
+    desc:'Network Access Control enforces security policy before granting network access. Checks endpoint compliance (antivirus, patches, encryption) via posture assessment. Non-compliant devices are quarantined to a remediation VLAN. Works with 802.1X for authentication.',
+    models:[
+      {name:'Cisco ISE',use:'Identity Services Engine — RADIUS, posture, profiling'},
+      {name:'Aruba ClearPass',use:'Multi-vendor NAC, guest access, BYOD'},
+    ],
+    specs:{Auth:'802.1X, MAB, web auth',Posture:'Agent or agentless compliance checks',Profiling:'Device identification by MAC/DHCP/HTTP',Action:'VLAN assignment, ACL push, CoA'},
+    history:[{year:'2004',text:'Cisco NAC Appliance (Clean Access) launched'},{year:'2012',text:'Cisco ISE becomes the unified NAC platform'}],
+    commands:[
+      {cmd:'show authentication sessions',desc:'View 802.1X sessions on switch'},
+      {cmd:'show dot1x all',desc:'802.1X status on all ports'},
+    ],
+    tip:'802.1X has three roles: supplicant (client), authenticator (switch), authentication server (RADIUS). Know the flow: EAP messages from client to switch, RADIUS from switch to server.'
+  },
+  network_tap: {
+    name:'Network TAP',category:'infra',osi:'Layer 1',
+    desc:'Test Access Point — a passive device inserted inline on a network link that copies all traffic to a monitoring port without affecting the live link. Unlike SPAN/mirror ports, TAPs see every frame including errors and never drop packets under load.',
+    models:[
+      {name:'Gigamon GigaVUE-HC1',use:'Visibility platform with inline TAP + aggregation'},
+      {name:'Ixia Vision ONE',use:'Network packet broker with integrated TAPs'},
+    ],
+    specs:{Type:'Passive (no power), Active (powered, failsafe)',Impact:'Zero latency, zero packet loss',Monitoring:'Full duplex — both directions',Failsafe:'Link stays up if TAP loses power (passive)'},
+    history:[{year:'1990',text:'Passive optical TAPs used in telco networks'},{year:'2005',text:'Copper TAPs become standard in enterprise monitoring'}],
+    commands:[
+      {cmd:'monitor session 1 source interface Gi0/1',desc:'SPAN config (switch-based alternative to TAP)'},
+      {cmd:'monitor session 1 destination interface Gi0/24',desc:'SPAN destination port'},
+    ],
+    tip:'TAP vs SPAN: TAPs are passive/dedicated (100% traffic), SPAN uses switch CPU and can drop packets. For CCNA, know SPAN config. For real life, use TAPs for critical monitoring.'
+  },
+  patch_panel: {
+    name:'Patch Panel',category:'infra',osi:'Layer 1',
+    desc:'Passive device in a wiring closet that terminates permanent cable runs from wall jacks. Short patch cables connect panel ports to switch ports. Provides clean cable management and makes moves/adds/changes easy without re-pulling cables.',
+    models:[
+      {name:'Panduit 48-port Cat6A',use:'High-density structured cabling'},
+      {name:'Leviton eXtreme 24-port',use:'Standard Cat6 patch panel'},
+    ],
+    specs:{Ports:'12, 24, 48 (standard)',Category:'Cat5e, Cat6, Cat6A',Type:'Punch-down (110/Krone) or keystone',Form:'1U or 2U rack mount'},
+    history:[{year:'1991',text:'TIA/EIA-568 standardizes structured cabling'},{year:'2009',text:'Cat6A panels support 10GBASE-T'}],
+    commands:[],
+    tip:'Structured cabling: horizontal cable from wall jack → patch panel → patch cable → switch. Maximum 100m total channel (90m permanent link + 10m patch cables). Patch panels are passive — no signal processing.'
+  },
+  transceiver: {
+    name:'Transceiver (SFP/QSFP)',category:'infra',osi:'Layer 1',
+    desc:'Pluggable optical or copper module that connects a switch/router to the cabling plant. SFP = 1G, SFP+ = 10G, SFP28 = 25G, QSFP+ = 40G, QSFP28 = 100G, QSFP-DD = 400G. Hot-swappable — install without powering down.',
+    models:[
+      {name:'Cisco GLC-LH-SMD',use:'1G SFP, single-mode, 10km'},
+      {name:'Cisco SFP-10G-SR',use:'10G SFP+, multimode, 400m'},
+      {name:'Cisco QSFP-100G-SR4-S',use:'100G QSFP28, multimode, 100m'},
+    ],
+    specs:{Form:'SFP, SFP+, SFP28, QSFP+, QSFP28, QSFP-DD',Media:'Multimode fiber, single-mode fiber, copper (DAC/RJ45)',Reach:'0.5m (DAC) to 80km (single-mode)',Standard:'MSA (Multi-Source Agreement)'},
+    history:[{year:'2000',text:'SFP replaces bulky GBIC modules'},{year:'2009',text:'SFP+ enables 10G in the same form factor'},{year:'2017',text:'QSFP28 drives 100G data center adoption'}],
+    commands:[
+      {cmd:'show interfaces transceiver',desc:'View installed optic info'},
+      {cmd:'show inventory',desc:'List all installed modules'},
+    ],
+    tip:'Multimode fiber (orange/aqua) = short range, cheaper, LED/VCSEL. Single-mode fiber (yellow) = long range, expensive, laser. Match the transceiver type to the fiber type — mismatches cause link failures.'
+  },
+  virtual_switch: {
+    name:'Virtual Switch (vSwitch)',category:'core',osi:'Layer 2-3',
+    desc:'Software-based switch running inside a hypervisor, connecting virtual machines. VMware vDS, Open vSwitch (OVS), and Hyper-V vSwitch are common implementations. Provides VLANs, port groups, traffic shaping, and security policies for VM traffic.',
+    models:[
+      {name:'VMware vDS',use:'vSphere Distributed Switch — enterprise standard'},
+      {name:'Open vSwitch (OVS)',use:'Open-source, used in OpenStack/KVM'},
+    ],
+    specs:{Forwarding:'Software (kernel or DPDK)',VLANs:'Full 802.1Q support',Features:'Port mirroring, NetFlow, LACP, traffic shaping',SDN:'OpenFlow compatible (OVS)'},
+    history:[{year:'2007',text:'VMware introduces virtual networking in ESX'},{year:'2009',text:'Open vSwitch released — becomes OpenStack default'}],
+    commands:[],
+    tip:'Virtual switches handle east-west traffic between VMs on the same host — this traffic never hits the physical network. Understanding vSwitch port groups and VLAN trunking is key for virtual networking.'
+  },
+  cloud_gateway: {
+    name:'Cloud Gateway',category:'wan',osi:'Layer 3-4',
+    desc:'Connects on-premises networks to cloud provider VPCs/VNets. Options include VPN gateway (encrypted tunnel over internet), direct connect (dedicated fiber link), and cloud interconnect. Enables hybrid cloud architecture.',
+    models:[
+      {name:'AWS Direct Connect',use:'Dedicated 1/10/100 Gbps link to AWS'},
+      {name:'Azure ExpressRoute',use:'Private connection to Microsoft Azure'},
+      {name:'Google Cloud Interconnect',use:'Dedicated or partner connection to GCP'},
+    ],
+    specs:{Types:'VPN gateway, direct connect, cloud interconnect',Speed:'50 Mbps — 100 Gbps',Redundancy:'Dual connections recommended',Routing:'BGP with cloud provider'},
+    history:[{year:'2011',text:'AWS Direct Connect launches'},{year:'2015',text:'Azure ExpressRoute general availability'},{year:'2018',text:'Multi-cloud connectivity becomes standard'}],
+    commands:[],
+    tip:'Hybrid cloud connectivity: VPN = encrypted over internet (cheaper, variable latency). Direct Connect = dedicated fiber (expensive, consistent latency). Most enterprises use both — direct connect primary, VPN backup.'
+  },
+  edge_router: {
+    name:'Edge Router',category:'wan',osi:'Layer 3',
+    desc:'Sits at the network boundary — the demarcation between your network and the ISP/WAN. Handles BGP peering, NAT, ACLs, and connects the enterprise to the outside world. Often paired with a firewall for security.',
+    models:[
+      {name:'Cisco ISR 4431',use:'Enterprise branch edge, SD-WAN capable'},
+      {name:'Cisco ASR 1001-X',use:'High-performance edge, 20 Gbps'},
+      {name:'Juniper MX204',use:'Universal edge routing, 400 Gbps'},
+    ],
+    specs:{Protocols:'BGP, OSPF, static default',NAT:'PAT/NAT overload for internet access',Security:'ACLs, uRPF, CoPP',Throughput:'1-400 Gbps'},
+    history:[{year:'1993',text:'Cisco 7000 series defines enterprise edge routing'},{year:'2017',text:'SD-WAN transforms the edge router role'}],
+    commands:[
+      {cmd:'show ip bgp summary',desc:'BGP neighbor status'},
+      {cmd:'show ip nat translations',desc:'Active NAT entries'},
+      {cmd:'show ip route 0.0.0.0',desc:'Default route to ISP'},
+    ],
+    tip:'The edge router typically has the default route (0.0.0.0/0) pointing to the ISP. Know NAT/PAT config: ip nat inside source list [ACL] interface [outside-if] overload. This is heavily tested on CCNA.'
+  },
+  poe_switch: {
+    name:'PoE Switch',category:'access',osi:'Layer 2',
+    desc:'Provides Power over Ethernet to connected devices through the same cable that carries data. Eliminates separate power cables for APs, IP phones, cameras, and IoT devices. PoE budget (total watts available) is a critical planning factor.',
+    models:[
+      {name:'Cisco C9200L-48P',use:'48-port PoE+, 740W budget'},
+      {name:'Cisco C9300-48U',use:'48-port UPOE (60W/port), 1440W budget'},
+    ],
+    specs:{Standards:'802.3af (15.4W), 802.3at (30W PoE+), 802.3bt (60/90W PoE++)',Budget:'370-1440W typical per switch',Detection:'Automatic PoE device detection',Priority:'Per-port priority for power allocation'},
+    history:[{year:'2003',text:'IEEE 802.3af — PoE standardized at 15.4W'},{year:'2009',text:'802.3at (PoE+) doubles power to 30W'},{year:'2018',text:'802.3bt enables 60-90W for high-power devices'}],
+    commands:[
+      {cmd:'show power inline',desc:'PoE status and power consumption per port'},
+      {cmd:'show power inline module',desc:'Total PoE budget remaining'},
+      {cmd:'power inline auto',desc:'Enable PoE on a port (interface config)'},
+    ],
+    tip:'PoE budget planning: add up all devices\' power needs. A 48-port PoE+ switch has ~740W, but 48 devices at 30W = 1440W — you\'ll hit the budget. Use LLDP-MED for power negotiation. The switch can prioritize critical ports.'
+  },
+  managed_switch: {
+    name:'Managed Switch',category:'access',osi:'Layer 2-3',
+    desc:'Switch with full configuration capabilities — VLANs, STP, QoS, port security, SNMP monitoring, ACLs. The workhorse of enterprise networks. Supports CLI (SSH/console), web GUI, and management protocols. Essential for any network beyond basic home use.',
+    models:[
+      {name:'Cisco Catalyst 9200',use:'Enterprise access, stackable'},
+      {name:'Cisco Catalyst 9300',use:'Enterprise core/distribution, modular'},
+      {name:'Aruba CX 6200',use:'Campus access, VSF stacking'},
+    ],
+    specs:{VLANs:'Up to 4096 (802.1Q)',STP:'RSTP, MSTP, per-VLAN',QoS:'802.1p, DSCP, queuing',Security:'Port security, 802.1X, DHCP snooping, DAI'},
+    history:[{year:'1998',text:'Cisco Catalyst 6500 — defines enterprise switching'},{year:'2018',text:'Catalyst 9000 series — intent-based networking'}],
+    commands:[
+      {cmd:'show vlan brief',desc:'View all VLANs and port assignments'},
+      {cmd:'show spanning-tree',desc:'STP status and root bridge'},
+      {cmd:'show interfaces status',desc:'Port status, speed, VLAN'},
+      {cmd:'show mac address-table',desc:'Learned MAC addresses per port'},
+    ],
+    tip:'This is THE device for CCNA. Know: VLAN config, trunking (802.1Q), STP (root bridge election, port states), port security, DHCP snooping, EtherChannel. Every CCNA sim lab involves switch configuration.'
+  },
+  unmanaged_switch: {
+    name:'Unmanaged Switch',category:'access',osi:'Layer 2',
+    desc:'Plug-and-play switch with no configuration interface. No VLANs, no STP config, no monitoring. Automatically learns MAC addresses and forwards frames. Suitable for home or very small office use where simplicity trumps control.',
+    models:[
+      {name:'Netgear GS308',use:'8-port gigabit, desktop, fanless'},
+      {name:'TP-Link TL-SG1016D',use:'16-port gigabit, rackmount'},
+    ],
+    specs:{Config:'None — zero management',VLANs:'No',STP:'Basic (uncontrollable)',Speed:'Usually gigabit or multi-gig'},
+    history:[{year:'1995',text:'Low-cost desktop switches emerge for SOHO market'}],
+    commands:[],
+    tip:'If the CCNA exam mentions a switch with no management access, it\'s either unmanaged or the management interface isn\'t configured. You cannot configure VLANs, trunks, or STP on an unmanaged switch.'
+  },
+  utm_appliance: {
+    name:'UTM Appliance',category:'wan',osi:'Layer 3-7',
+    desc:'Unified Threat Management — all-in-one security appliance combining firewall, IPS, antivirus, content filtering, anti-spam, and VPN. Popular in small/mid-size businesses that need comprehensive security without managing separate devices.',
+    models:[
+      {name:'Fortinet FortiGate 60F',use:'SOHO/SMB UTM, 10 Gbps firewall'},
+      {name:'Sophos XGS 2100',use:'Mid-market UTM with synchronized security'},
+    ],
+    specs:{Functions:'FW + IPS + AV + URL filter + Anti-spam + VPN',Throughput:'1-10 Gbps (varies by features enabled)',Management:'Single pane of glass',License:'Subscription-based threat feeds'},
+    history:[{year:'2003',text:'Fortinet pioneers the UTM category'},{year:'2010',text:'UTM vs NGFW terminology debate begins'}],
+    commands:[],
+    tip:'UTM vs NGFW: UTM = all-in-one, multiple engines (often SMB market). NGFW = application-aware firewall with integrated IPS (often enterprise). In practice, they\'ve converged — most modern firewalls are both.'
+  },
+  wireless_bridge: {
+    name:'Wireless Bridge',category:'access',osi:'Layer 2',
+    desc:'Creates a point-to-point or point-to-multipoint wireless link between two physically separated networks. Used to connect buildings across a campus without running fiber. Operates as a transparent Layer 2 bridge over radio frequency.',
+    models:[
+      {name:'Ubiquiti airFiber 60 HD',use:'60 GHz PtP, 2+ Gbps, 1.8km'},
+      {name:'Cisco Aironet 1570',use:'Outdoor PtP bridge, 802.11ac'},
+    ],
+    specs:{Range:'100m — 100+ km (directional)',Speed:'300 Mbps — 10 Gbps',Frequency:'2.4/5/60 GHz, licensed bands',Antenna:'Directional dish or panel'},
+    history:[{year:'1999',text:'802.11b enables first practical wireless bridges'},{year:'2015',text:'60 GHz radios push multi-gigabit wireless links'}],
+    commands:[],
+    tip:'Wireless bridges are Layer 2 — they forward Ethernet frames between sites. For CCNA, know the difference: bridge mode (L2, transparent) vs router mode (L3, separate subnets). Line-of-sight is critical for outdoor links.'
+  },
+  dmarc_device: {
+    name:'Demarcation Device (Demarc/CSU-DSU)',category:'wan',osi:'Layer 1-2',
+    desc:'The demarcation point where the ISP\'s network ends and yours begins. CSU/DSU (Channel Service Unit/Data Service Unit) interfaces between your router and a T1/T3 leased line. The smartjack allows the ISP to remotely test their side of the circuit.',
+    models:[
+      {name:'Adtran TSU 120',use:'T1 CSU/DSU, standalone or integrated'},
+      {name:'Integrated CSU/DSU',use:'Built into most modern ISR WIC/NIM modules'},
+    ],
+    specs:{Function:'Signal conversion + line monitoring',Clocking:'Provides DCE clock to router (DTE)',Loopback:'Local and remote loopback testing',Standards:'T1 (1.544 Mbps), T3 (44.736 Mbps)'},
+    history:[{year:'1980',text:'CSU/DSUs enable digital leased line connectivity'},{year:'2000',text:'Integrated CSU/DSU modules replace standalone boxes'}],
+    commands:[
+      {cmd:'show controllers serial 0/0/0',desc:'Check CSU/DSU status and clocking'},
+      {cmd:'show interfaces serial 0/0/0',desc:'Serial link status and errors'},
+    ],
+    tip:'The demarc is where responsibility changes hands. Everything ISP-side = their problem. Everything customer-side = yours. The smartjack lets the ISP perform remote loopback tests to verify their circuit is clean.'
   }
 };
 
