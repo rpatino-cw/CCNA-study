@@ -4,1380 +4,410 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>The Journey of a Packet — CCNA 200-301</title>
-<link rel="icon" type="image/svg+xml" href="/CCNA-study/favicon.svg">
 <link rel="stylesheet" href="css/shared.css">
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-body{background:#F0EDE7!important;color:#1C1917;font-family:'Space Grotesk',system-ui,sans-serif;overflow:hidden}
-.container,.container-wide{max-width:none;padding:0}
+html,body{width:100%;height:100%;overflow:hidden;background:#0a0a0f;font-family:'Space Grotesk',sans-serif;color:#e8e4de}
 canvas{display:block}
 
-/* ── Back Link ────────────────────────────────────── */
-.back{position:fixed;top:16px;left:16px;z-index:30}
-.back a{color:#78716C;text-decoration:none;font-size:.72rem;letter-spacing:.03em;text-transform:uppercase;transition:color .2s}
-.back a:hover{color:#1C1917}
+.top-nav{position:fixed;top:0;left:0;right:0;z-index:100;pointer-events:none}
+.back-link{position:fixed;top:16px;left:16px;z-index:200;font-size:0.82rem;color:#a8a29e;text-decoration:none;display:flex;align-items:center;gap:6px;padding:6px 14px;background:rgba(10,10,15,0.85);border:1px solid rgba(255,255,255,0.06);border-radius:6px;backdrop-filter:blur(12px);transition:color 0.2s}
+.back-link:hover{color:#e8e4de}
 
-/* ── Step Indicator (top-left) ────────────────────── */
-.step-indicator{position:fixed;top:44px;left:16px;z-index:20;display:flex;align-items:center;gap:10px;opacity:0;transition:opacity .5s}
-.step-indicator.visible{opacity:1}
-.step-label{font-family:'JetBrains Mono',monospace;font-size:.7rem;color:#78716C;letter-spacing:.04em}
-.step-dots{display:flex;gap:5px}
-.step-dot{width:8px;height:8px;border-radius:50%;background:#D6D3D1;border:1px solid #C7C3BC;transition:all .4s}
-.step-dot.active{background:#B45309;border-color:#B45309;box-shadow:0 0 8px rgba(180,83,9,.5)}
-.step-dot.done{background:#00ff88;border-color:#00ff88;box-shadow:0 0 6px rgba(0,255,136,.3)}
+.step-indicator{position:fixed;top:16px;left:50%;transform:translateX(-50%);z-index:200;display:flex;gap:8px;padding:8px 18px;background:rgba(10,10,15,0.85);border:1px solid rgba(255,255,255,0.06);border-radius:20px;backdrop-filter:blur(12px)}
+.step-dot{width:10px;height:10px;border-radius:50%;background:rgba(255,255,255,0.12);transition:all 0.4s ease}
+.step-dot.active{background:#5eead4;box-shadow:0 0 8px rgba(94,234,212,0.5)}
+.step-dot.done{background:#2dd4bf}
 
-/* ── Speed Control (bottom-left) ──────────────────── */
-.speed-ctrl{position:fixed;bottom:20px;left:16px;z-index:310;display:flex;gap:4px;opacity:0;transition:opacity .5s}
-.beta-badge,.beta-badge *,#guidePill,.gc-bar,.gc-chat-panel{display:none!important}
-.speed-ctrl.visible{opacity:1}
-.speed-btn{background:rgba(0,0,0,.04);border:1px solid rgba(0,0,0,.1);color:#78716C;padding:4px 10px;border-radius:6px;font-size:.68rem;font-family:'JetBrains Mono',monospace;cursor:pointer;transition:all .2s}
-.speed-btn:hover{color:#1C1917;background:rgba(0,0,0,.08)}
-.speed-btn.active{background:rgba(180,83,9,.12);border-color:#B45309;color:#B45309}
+.free-look-btn{position:fixed;top:16px;right:16px;z-index:200;font-size:0.78rem;color:#a8a29e;padding:6px 14px;background:rgba(10,10,15,0.85);border:1px solid rgba(255,255,255,0.06);border-radius:6px;cursor:pointer;font-family:inherit;backdrop-filter:blur(12px);transition:all 0.2s}
+.free-look-btn:hover{color:#e8e4de;border-color:rgba(255,255,255,0.15)}
+.free-look-btn.active{color:#5eead4;border-color:rgba(94,234,212,0.3)}
 
-/* ── Free Look Toggle (top-right) ─────────────────── */
-.controls-panel{position:fixed;top:16px;right:16px;z-index:20;display:flex;gap:8px;opacity:0;transition:opacity .5s}
-.controls-panel.visible{opacity:1}
-.ctrl-btn{background:rgba(0,0,0,.04);border:1px solid rgba(0,0,0,.1);color:#78716C;padding:6px 14px;border-radius:6px;font-size:.72rem;font-family:inherit;cursor:pointer;transition:all .2s;letter-spacing:.02em}
-.ctrl-btn:hover{color:#1C1917;background:rgba(0,0,0,.08)}
-.ctrl-btn.active{background:rgba(180,83,9,.12);border-color:#B45309;color:#B45309}
+.speed-ctrl{position:fixed;bottom:16px;left:16px;z-index:200;display:flex;gap:4px;padding:4px;background:rgba(10,10,15,0.85);border:1px solid rgba(255,255,255,0.06);border-radius:6px;backdrop-filter:blur(12px)}
+.speed-btn{font-size:0.72rem;color:#a8a29e;background:none;border:1px solid transparent;border-radius:4px;padding:4px 10px;cursor:pointer;font-family:inherit;transition:all 0.2s}
+.speed-btn:hover{color:#e8e4de}
+.speed-btn.active{color:#5eead4;border-color:rgba(94,234,212,0.2);background:rgba(94,234,212,0.06)}
 
-/* ── Narration Box (bottom center) ────────────────── */
-.narration{position:fixed;bottom:28px;left:50%;transform:translateX(-50%);z-index:20;width:92%;max-width:620px;backdrop-filter:blur(12px);background:rgba(255,255,255,.92);border:1px solid rgba(0,0,0,.1);border-radius:12px;padding:18px 24px;opacity:0;transition:opacity .5s,transform .5s;pointer-events:none;box-shadow:0 4px 24px rgba(0,0,0,.08)}
-.narration.visible{opacity:1;pointer-events:auto}
-.narration-step{font-family:'JetBrains Mono',monospace;font-size:.62rem;color:#B45309;text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px}
-.narration-title{font-size:1rem;font-weight:700;color:#1C1917;margin-bottom:6px}
-.narration-text{font-size:.82rem;color:#57534E;line-height:1.65}
-.narration-text .hl{color:#B45309;font-family:'JetBrains Mono',monospace;font-weight:600}
-.narration-text .hl-amber{color:#92400E;font-family:'JetBrains Mono',monospace;font-weight:600}
-.narration-text .hl-green{color:#15803D;font-family:'JetBrains Mono',monospace;font-weight:600}
-.narration-actions{display:flex;justify-content:space-between;align-items:center;margin-top:14px}
-.narr-skip{background:none;border:none;color:#78716C;font-size:.7rem;cursor:pointer;text-decoration:underline;font-family:inherit;padding:4px 0}
-.narr-skip:hover{color:#1C1917}
-.narr-next{background:#B45309;color:#fff;border:none;padding:7px 22px;border-radius:8px;font-size:.78rem;font-weight:700;cursor:pointer;font-family:inherit;transition:all .2s;letter-spacing:.02em}
-.narr-next:hover{background:#92400E;box-shadow:0 0 16px rgba(180,83,9,.4)}
+.narration{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:200;width:min(680px,calc(100% - 32px));background:rgba(10,10,15,0.92);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:20px 24px 16px;backdrop-filter:blur(16px);display:none}
+.narration.visible{display:block;animation:fadeUp 0.4s ease}
+@keyframes fadeUp{from{opacity:0;transform:translateX(-50%) translateY(12px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+.narr-step{font-size:0.68rem;color:#5eead4;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px;font-weight:600}
+.narr-title{font-size:1.15rem;font-weight:600;margin-bottom:8px;line-height:1.3}
+.narr-text{font-size:0.85rem;color:#a8a29e;line-height:1.6;margin-bottom:6px}
+.narr-tldr{font-size:0.78rem;color:#d4a017;background:rgba(212,160,23,0.06);border:1px solid rgba(212,160,23,0.12);border-radius:5px;padding:6px 10px;margin-bottom:12px}
+.narr-btns{display:flex;justify-content:flex-end;gap:8px}
+.narr-btn{font-size:0.78rem;padding:6px 16px;border-radius:5px;cursor:pointer;font-family:inherit;border:none;transition:all 0.2s}
+.narr-skip{background:none;color:#78716c;border:1px solid rgba(255,255,255,0.06)}
+.narr-skip:hover{color:#a8a29e}
+.narr-next{background:rgba(94,234,212,0.12);color:#5eead4;border:1px solid rgba(94,234,212,0.2)}
+.narr-next:hover{background:rgba(94,234,212,0.2)}
 
-/* ── Overlay Table (MAC / Routing) ────────────────── */
-.overlay-table{position:fixed;bottom:180px;right:24px;z-index:20;backdrop-filter:blur(12px);background:rgba(255,255,255,.92);border:1px solid rgba(0,0,0,.1);border-radius:10px;padding:14px 18px;opacity:0;transition:opacity .5s;pointer-events:none;min-width:240px;box-shadow:0 4px 24px rgba(0,0,0,.08)}
-.overlay-table.visible{opacity:1}
-.overlay-table h3{font-family:'JetBrains Mono',monospace;font-size:.7rem;color:#B45309;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px}
+.overlay-table{position:fixed;top:70px;right:16px;z-index:200;width:340px;background:rgba(10,10,15,0.92);border:1px solid rgba(255,255,255,0.06);border-radius:8px;padding:14px;backdrop-filter:blur(12px);display:none;font-size:0.78rem}
+.overlay-table.visible{display:block;animation:fadeUp 0.3s ease}
+.overlay-table h3{font-size:0.82rem;color:#5eead4;margin-bottom:8px;font-weight:600}
 .overlay-table table{width:100%;border-collapse:collapse}
-.overlay-table th{font-family:'JetBrains Mono',monospace;font-size:.6rem;color:#78716C;text-align:left;padding:3px 8px 3px 0;border-bottom:1px solid rgba(0,0,0,.08);text-transform:uppercase;letter-spacing:.05em}
-.overlay-table td{font-family:'JetBrains Mono',monospace;font-size:.68rem;color:#1C1917;padding:4px 8px 4px 0}
-.overlay-table tr.highlight td{color:#B45309}
+.overlay-table th{text-align:left;color:#78716c;font-weight:500;padding:4px 8px;border-bottom:1px solid rgba(255,255,255,0.06);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.06em}
+.overlay-table td{padding:4px 8px;color:#d6d3cd;font-family:'JetBrains Mono',monospace;font-size:0.72rem}
+.overlay-table tr:nth-child(even) td{background:rgba(255,255,255,0.02)}
+.overlay-table .highlight-row td{color:#5eead4;background:rgba(94,234,212,0.06)}
 
-/* ── Start Screen ─────────────────────────────────── */
-.start-screen{position:fixed;inset:0;z-index:50;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(240,237,231,.92);transition:opacity .8s}
-.start-screen.hidden{opacity:0;pointer-events:none}
-.start-title{font-size:2.2rem;font-weight:700;color:#1C1917;letter-spacing:-.03em;margin-bottom:6px;text-align:center}
-.start-sub{font-size:.88rem;color:#57534E;margin-bottom:32px;text-align:center;max-width:440px;line-height:1.6}
-.start-btn{background:#B45309;color:#fff;border:none;padding:14px 40px;border-radius:10px;font-size:1rem;font-weight:700;cursor:pointer;font-family:inherit;letter-spacing:.02em;transition:all .3s;box-shadow:0 4px 24px rgba(180,83,9,.3)}
-.start-btn:hover{transform:translateY(-2px);box-shadow:0 8px 32px rgba(180,83,9,.5)}
-.start-topo{font-family:'JetBrains Mono',monospace;font-size:.72rem;color:#6b7394;margin-top:24px;letter-spacing:.06em}
-
-/* ── End Buttons ──────────────────────────────────── */
-.end-btns{display:flex;gap:10px}
-.end-btn{padding:7px 22px;border-radius:8px;font-size:.78rem;font-weight:700;cursor:pointer;font-family:inherit;transition:all .2s;border:none;letter-spacing:.02em}
-.end-btn.replay{background:#B45309;color:#fff}
-.end-btn.replay:hover{background:#92400E;box-shadow:0 0 16px rgba(180,83,9,.4)}
-.end-btn.explore{background:rgba(0,0,0,.04);color:#57534E;border:1px solid rgba(0,0,0,.12)}
-.end-btn.explore:hover{background:rgba(0,0,0,.08)}
-
-/* ── CSS2D Label Styles ───────────────────────────── */
-.device-label{font-family:'JetBrains Mono',monospace;font-size:11px;color:#57534E;text-transform:uppercase;letter-spacing:.06em;pointer-events:none;text-align:center;white-space:nowrap;text-shadow:0 0 6px rgba(255,255,255,.8)}
-
-/* ── TLDR line ────────────────────────────────── */
-.narration-tldr{font-size:.75rem;color:#78716C;line-height:1.5;margin-top:10px;padding:8px 12px;background:rgba(180,83,9,.05);border-radius:6px;border-left:2px solid #B45309;font-style:italic}
-.narration-tldr::before{content:'TLDR: ';font-style:normal;font-weight:700;color:#B45309;font-family:'JetBrains Mono',monospace;font-size:.62rem;letter-spacing:.04em}
-
-/* ── Terminal Panel ──────────────────────────── */
-.terminal-panel{position:fixed;top:80px;left:24px;z-index:30;width:420px;backdrop-filter:blur(16px);background:rgba(20,20,30,.95);border:1px solid rgba(180,83,9,.3);border-radius:10px;opacity:0;transition:opacity .4s;pointer-events:none;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,.2)}
-.terminal-panel.visible{opacity:1;pointer-events:auto}
-.terminal-header{background:rgba(180,83,9,.1);padding:8px 14px;display:flex;align-items:center;gap:6px;border-bottom:1px solid rgba(180,83,9,.2)}
-.terminal-dots{display:flex;gap:4px}
+.terminal{position:fixed;top:70px;left:16px;z-index:200;width:380px;background:rgba(10,10,15,0.95);border:1px solid rgba(255,255,255,0.06);border-radius:8px;overflow:hidden;display:none;font-family:'JetBrains Mono',monospace;font-size:0.72rem}
+.terminal.visible{display:block;animation:fadeUp 0.3s ease}
+.terminal-bar{display:flex;align-items:center;gap:6px;padding:8px 12px;background:rgba(255,255,255,0.03);border-bottom:1px solid rgba(255,255,255,0.04)}
 .terminal-dot{width:8px;height:8px;border-radius:50%}
-.terminal-title{font-family:'JetBrains Mono',monospace;font-size:.72rem;color:#B45309;margin-left:8px;font-weight:600}
-.terminal-body{padding:16px;font-family:'JetBrains Mono',monospace;font-size:.78rem;line-height:1.7;color:#c8d0e8;white-space:pre;overflow-x:auto;max-height:400px}
-.terminal-body .prompt{color:#00ff88;font-weight:600}
-.terminal-body .highlight{color:#FDE68A;font-weight:600}
-.terminal-body .comment{color:#6b7394}
+.terminal-body{padding:10px 12px;max-height:280px;overflow-y:auto;line-height:1.7;color:#a8a29e;white-space:pre-wrap;word-break:break-all}
+.terminal-body .cmd{color:#5eead4}
+.terminal-body .out{color:#d6d3cd}
+.terminal-body .highlight{color:#fbbf24}
+.terminal-body .err{color:#f87171}
 
-/* ── Packet Inspector Panel ─────────────────── */
-.packet-inspector{position:fixed;top:80px;right:24px;z-index:30;width:360px;backdrop-filter:blur(12px);background:rgba(255,255,255,.92);border:1px solid rgba(0,0,0,.1);border-radius:10px;opacity:0;transition:opacity .4s;pointer-events:none;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,.08)}
-.packet-inspector.visible{opacity:1;pointer-events:auto}
-.pi-header{padding:10px 16px;border-bottom:1px solid rgba(0,0,0,.06);display:flex;align-items:center;justify-content:space-between}
-.pi-title{font-family:'JetBrains Mono',monospace;font-size:.72rem;font-weight:600;color:#B45309;text-transform:uppercase;letter-spacing:.04em}
-.pi-hop{font-family:'JetBrains Mono',monospace;font-size:.62rem;color:#78716C}
-.pi-body{padding:12px 16px;font-family:'JetBrains Mono',monospace;font-size:.7rem;line-height:1.7}
-.pi-layer{margin-bottom:10px;border:1px solid rgba(0,0,0,.06);border-radius:6px;overflow:hidden}
-.pi-layer:last-child{margin-bottom:0}
-.pi-layer-title{font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;padding:5px 10px;background:rgba(0,0,0,.03)}
-.pi-layer-title.l3{color:#2563EB}
-.pi-layer-title.l2{color:#16A34A}
-.pi-layer-title.arp{color:#D97706}
-.pi-fields{padding:8px 10px}
-.pi-row{display:flex;justify-content:space-between;padding:2px 0}
-.pi-label{color:#78716C;font-size:.62rem}
-.pi-value{color:#1C1917;font-weight:500}
-.pi-changed{color:#DC2626;font-weight:700}
-.pi-changed::after{content:' \2190';font-size:.55rem;color:#DC2626}
-.pi-note{font-size:.62rem;color:#57534E;padding:6px 10px;background:rgba(180,83,9,.05);border-top:1px solid rgba(0,0,0,.04);font-style:italic}
+.pkt-inspector{position:fixed;bottom:140px;right:16px;z-index:200;width:280px;background:rgba(10,10,15,0.92);border:1px solid rgba(255,255,255,0.06);border-radius:8px;padding:14px;backdrop-filter:blur(12px);display:none;font-size:0.75rem}
+.pkt-inspector.visible{display:block;animation:fadeUp 0.3s ease}
+.pkt-inspector h4{font-size:0.72rem;color:#78716c;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px}
+.pkt-layer{padding:6px 8px;border-radius:4px;margin-bottom:4px;font-family:'JetBrains Mono',monospace;font-size:0.68rem;line-height:1.5}
+.pkt-l2{background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.15);color:#93c5fd}
+.pkt-l3{background:rgba(94,234,212,0.06);border:1px solid rgba(94,234,212,0.12);color:#5eead4}
+.pkt-l4{background:rgba(251,191,36,0.06);border:1px solid rgba(251,191,36,0.12);color:#fbbf24}
 
-@media(max-width:600px){
-  .narration{bottom:0;width:100%;max-width:100%;border-radius:12px 12px 0 0}
-  .start-title{font-size:1.6rem}
-  .overlay-table{right:8px;left:8px;min-width:auto}
-  .terminal-panel{left:8px;right:8px;width:auto;top:auto;bottom:200px;transform:none}
-  .packet-inspector{right:8px;left:8px;width:auto;top:auto;bottom:200px}
+.start-screen{position:fixed;inset:0;z-index:300;background:rgba(10,10,15,0.97);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;backdrop-filter:blur(8px)}
+.start-screen h1{font-size:2rem;font-weight:700;margin-bottom:8px;letter-spacing:-0.02em}
+.start-screen h1 span{color:#5eead4}
+.start-screen p{font-size:0.92rem;color:#78716c;margin-bottom:6px;max-width:480px;line-height:1.6}
+.start-screen .topology-preview{margin:24px 0;padding:16px 24px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.04);border-radius:8px;font-family:'JetBrains Mono',monospace;font-size:0.62rem;color:#57534e;line-height:1.6;text-align:left;white-space:pre}
+.start-btn{margin-top:16px;padding:12px 36px;font-size:0.92rem;font-weight:600;color:#0a0a0f;background:#5eead4;border:none;border-radius:8px;cursor:pointer;font-family:inherit;transition:all 0.25s ease}
+.start-btn:hover{background:#2dd4bf;transform:translateY(-1px)}
+.start-stats{display:flex;gap:32px;margin-top:20px}
+.start-stat{text-align:center}
+.start-stat .val{font-size:1.4rem;font-weight:700;color:#e8e4de}
+.start-stat .label{font-size:0.68rem;color:#57534e;text-transform:uppercase;letter-spacing:0.08em}
+
+.device-label{font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(255,255,255,0.45);text-align:center;pointer-events:none;text-transform:uppercase;letter-spacing:0.06em}
+.device-label.active{color:#5eead4}
+
+@media(max-width:768px){
+  .narration{width:calc(100% - 24px);padding:14px 16px 12px}
+  .overlay-table,.terminal{width:calc(100% - 32px);left:16px;right:16px}
+  .pkt-inspector{width:calc(100% - 32px);left:16px;right:16px;bottom:auto;top:70px}
 }
 </style>
 </head>
 <body>
-<nav class="top-nav" style="position:fixed;top:0;left:0;right:0;z-index:200"></nav>
-<script src="js/nav.js"></script>
-<style>
-/* Override light nav for dark 3D page */
-.top-nav{background:rgba(240,237,231,.9)!important;backdrop-filter:blur(10px);border-bottom:1px solid rgba(0,0,0,.08)!important}
-.top-nav,.top-nav a,.top-nav button,.top-nav span,.nav-item,.nav-link{color:#9ca3b8!important}
-.top-nav a:hover,.top-nav button:hover,.nav-item:hover,.nav-link:hover{color:#1C1917!important}
-.nav-dropdown{background:rgba(255,255,255,.95)!important;border:1px solid rgba(0,0,0,.08)!important}
-.nav-dropdown a{color:#9ca3b8!important}
-.nav-dropdown a:hover{color:#1C1917!important;background:rgba(0,0,0,.04)!important}
-</style>
-
-<div class="back"><a href="core.html">&larr; Back to Dashboard</a></div>
-
-<div class="step-indicator" id="stepIndicator">
-  <span class="step-label" id="stepLabel">Step 1 of 7</span>
-  <div class="step-dots" id="stepDots"></div>
+<div class="top-nav"></div>
+<a class="back-link" href="core.html">&larr; Core Topics</a>
+<div class="step-indicator" id="stepIndicator"></div>
+<button class="free-look-btn" id="freeLookBtn" onclick="toggleFreeLook()">Free Look</button>
+<div class="speed-ctrl">
+  <button class="speed-btn" onclick="setSpeed(0.5)">0.5x</button>
+  <button class="speed-btn active" onclick="setSpeed(1)">1x</button>
+  <button class="speed-btn" onclick="setSpeed(2)">2x</button>
 </div>
-
-<div class="controls-panel" id="controlsPanel">
-  <button class="ctrl-btn" id="btnFreeLook">Free Look</button>
-</div>
-
-<div class="speed-ctrl" id="speedCtrl">
-  <button class="speed-btn" data-speed="0.5">0.5x</button>
-  <button class="speed-btn active" data-speed="1">1x</button>
-  <button class="speed-btn" data-speed="2">2x</button>
-</div>
-
 <div class="narration" id="narration">
-  <div class="narration-step" id="narrStep"></div>
-  <div class="narration-title" id="narrTitle"></div>
-  <div class="narration-text" id="narrText"></div>
-  <div class="narration-actions" id="narrActions">
-    <button class="narr-skip" id="narrSkip">End Tour</button>
-    <button class="narr-next" id="narrNext">Next &rarr;</button>
+  <div class="narr-step" id="narrStep"></div>
+  <div class="narr-title" id="narrTitle"></div>
+  <div class="narr-text" id="narrText"></div>
+  <div class="narr-tldr" id="narrTldr"></div>
+  <div class="narr-btns">
+    <button class="narr-btn narr-skip" id="skipBtn" onclick="advanceStep()">Skip</button>
+    <button class="narr-btn narr-next" id="nextBtn" onclick="advanceStep()" style="display:none">Next &rarr;</button>
   </div>
 </div>
-
-<div class="overlay-table" id="overlayTable">
-  <h3 id="overlayTitle"></h3>
-  <table id="overlayTableBody"></table>
-</div>
-
-<div class="terminal-panel" id="termPanel">
-  <div class="terminal-header">
-    <div class="terminal-dots"><div class="terminal-dot" style="background:#ff5f57"></div><div class="terminal-dot" style="background:#febc2e"></div><div class="terminal-dot" style="background:#28c840"></div></div>
-    <div class="terminal-title" id="termTitle">Terminal</div>
+<div class="overlay-table" id="overlayTable"></div>
+<div class="terminal" id="terminal">
+  <div class="terminal-bar">
+    <div class="terminal-dot" style="background:#ff5f57"></div>
+    <div class="terminal-dot" style="background:#febc2e"></div>
+    <div class="terminal-dot" style="background:#28c840"></div>
+    <span style="color:#57534e;font-size:0.68rem;margin-left:8px">Terminal</span>
   </div>
   <div class="terminal-body" id="termBody"></div>
 </div>
-
-<div class="packet-inspector" id="packetInspector">
-  <div class="pi-header">
-    <div class="pi-title">Packet Inspector</div>
-    <div class="pi-hop" id="piHop"></div>
-  </div>
-  <div class="pi-body" id="piBody"></div>
+<div class="pkt-inspector" id="pktInspector">
+  <h4>Packet Inspector</h4>
+  <div id="pktLayers"></div>
 </div>
-
 <div class="start-screen" id="startScreen">
-  <div class="start-title">The Journey of a Packet</div>
-  <div class="start-sub">PC1 (10.0.1.10) sends a packet to Server1 (10.0.2.100) across two switches and a router. ARP, MAC tables, routing table lookups, TTL, frame re-encapsulation — every hop visualized.</div>
-  <button class="start-btn" id="startBtn">Start Journey</button>
-  <div class="start-topo">PC1 --- SW1 --- R1 --- SW2 --- Server1</div>
+  <h1>The Journey of a <span>Packet</span></h1>
+  <p>Watch a packet travel across a redundant enterprise WAN — from a user's laptop through access switches, distribution routers, dual ISP links, firewalls, and into a data center server farm.</p>
+  <div class="topology-preview">
+SITE A  (Campus)                    WAN                    SITE B  (Data Center)
+━━━━━━━━━━━━━━━━━━━━    ━━━━━━━━━━━━━━━━━    ━━━━━━━━━━━━━━━━━━━━━━
+                         ┌─ ISP-1 ─┐
+PC ─ SW-A1 ─┐            │         │           ┌─ SW-B1 ─ WEB
+             ├─ R-A ── FW-A        FW-B ── R-B ─┤
+PC ─ SW-A2 ─┘            │         │           └─ SW-B2 ─ DB
+                         └─ ISP-2 ─┘
+                        (redundant)             (redundant)
+
+12 steps  ·  15 devices  ·  20 links  ·  failover demo</div>
+  <button class="start-btn" onclick="startTour()">Begin the Journey</button>
+  <div class="start-stats">
+    <div class="start-stat"><div class="val">15</div><div class="label">Devices</div></div>
+    <div class="start-stat"><div class="val">12</div><div class="label">Steps</div></div>
+    <div class="start-stat"><div class="val">6</div><div class="label">CCNA Topics</div></div>
+  </div>
 </div>
 
-<script type="importmap">
-{
-  "imports": {
-    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
-    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
-  }
-}
-</script>
-
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
 <script type="module">
 import * as THREE from 'three';
-import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
-import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
-import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
-import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
+import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
+import {EffectComposer} from 'three/addons/postprocessing/EffectComposer.js';
+import {RenderPass} from 'three/addons/postprocessing/RenderPass.js';
+import {UnrealBloomPass} from 'three/addons/postprocessing/UnrealBloomPass.js';
+import {CSS2DRenderer,CSS2DObject} from 'three/addons/renderers/CSS2DRenderer.js';
 
-// ══════════════════════════════════════════════════════════════
-// CONSTANTS
-// ══════════════════════════════════════════════════════════════
-const CYAN    = 0x00d4ff;
-const AMBER   = 0xff9500;
-const GREEN   = 0x00ff88;
-const DARK_BG = 0xe8e4de;
-
-const DEVICE_POSITIONS = {
-  PC1:     new THREE.Vector3(-8, 0.15, 0),
-  SW1:     new THREE.Vector3(-4, 0.075, 0),
-  R1:      new THREE.Vector3( 0, 0.2,  0),
-  SW2:     new THREE.Vector3( 4, 0.075, 0),
-  SERVER1: new THREE.Vector3( 8, 0.4,  0),
-};
-
-// ══════════════════════════════════════════════════════════════
-// SCENE SETUP
-// ══════════════════════════════════════════════════════════════
-const scene    = new THREE.Scene();
-scene.background = new THREE.Color(DARK_BG);
-scene.fog = new THREE.FogExp2(DARK_BG, 0.004);
-
-const camera   = new THREE.PerspectiveCamera(45, innerWidth / innerHeight, 0.1, 200);
-camera.position.set(0, 8, 18);
-
-const renderer = new THREE.WebGLRenderer({ antialias: true });
-renderer.setSize(innerWidth, innerHeight);
-renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
-renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.4;
+/* ════════ RENDERER ════════ */
+const scene = new THREE.Scene();
+scene.fog = new THREE.FogExp2(0x0a0a0f, 0.012);
+const camera = new THREE.PerspectiveCamera(50,innerWidth/innerHeight,0.1,200);
+camera.position.set(0,28,32);camera.lookAt(0,0,0);
+const renderer = new THREE.WebGLRenderer({antialias:true});
+renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.1;
 document.body.appendChild(renderer.domElement);
-
-// CSS2D for labels
-const labelRenderer = new CSS2DRenderer();
-labelRenderer.setSize(innerWidth, innerHeight);
-labelRenderer.domElement.style.position = 'absolute';
-labelRenderer.domElement.style.top = '0';
-labelRenderer.domElement.style.pointerEvents = 'none';
+const labelRenderer=new CSS2DRenderer();labelRenderer.setSize(innerWidth,innerHeight);
+labelRenderer.domElement.style.cssText='position:fixed;top:0;left:0;pointer-events:none;z-index:10';
 document.body.appendChild(labelRenderer.domElement);
+const controls=new OrbitControls(camera,renderer.domElement);
+controls.enableDamping=true;controls.dampingFactor=0.06;controls.enabled=false;controls.maxPolarAngle=Math.PI*0.48;
+const composer=new EffectComposer(renderer);
+composer.addPass(new RenderPass(scene,camera));
+composer.addPass(new UnrealBloomPass(new THREE.Vector2(innerWidth,innerHeight),0.6,0.3,0.85));
+window.addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);labelRenderer.setSize(innerWidth,innerHeight);composer.setSize(innerWidth,innerHeight)});
 
-// Controls
-const controls = new OrbitControls(camera, renderer.domElement);
-controls.enableDamping = true;
-controls.dampingFactor = 0.05;
-controls.enabled = false;
+/* ════════ LIGHTING ════════ */
+scene.add(new THREE.AmbientLight(0xccbbaa,2.0));
+const kl=new THREE.DirectionalLight(0xfff5e6,3);kl.position.set(10,20,8);scene.add(kl);
+const fl=new THREE.DirectionalLight(0xb0c4ff,1.2);fl.position.set(-8,12,-5);scene.add(fl);
 
-// Post-processing
-const composer  = new EffectComposer(renderer);
-const renderPass = new RenderPass(scene, camera);
-composer.addPass(renderPass);
-const bloomPass = new UnrealBloomPass(
-  new THREE.Vector2(innerWidth, innerHeight), 0.4, 0.4, 0.5
-);
-composer.addPass(bloomPass);
+/* ════════ FLOOR ════════ */
+const floorMesh=new THREE.Mesh(new THREE.PlaneGeometry(80,40),new THREE.MeshStandardMaterial({color:0x0d0d14,roughness:0.95,metalness:0.1}));
+floorMesh.rotation.x=-Math.PI/2;floorMesh.position.y=-0.01;scene.add(floorMesh);
+scene.add(new THREE.GridHelper(80,80,0x1a1a24,0x1a1a24));
 
-// Resize
-window.addEventListener('resize', () => {
-  camera.aspect = innerWidth / innerHeight;
-  camera.updateProjectionMatrix();
-  renderer.setSize(innerWidth, innerHeight);
-  labelRenderer.setSize(innerWidth, innerHeight);
-  composer.setSize(innerWidth, innerHeight);
-});
+// Zone markers
+function addZone(x,z,w,d,color){
+  const m=new THREE.Mesh(new THREE.PlaneGeometry(w,d),new THREE.MeshBasicMaterial({color,transparent:true,opacity:0.03,side:THREE.DoubleSide}));
+  m.rotation.x=-Math.PI/2;m.position.set(x,0.005,z);scene.add(m);
+  const pts=[[-w/2,0,-d/2],[w/2,0,-d/2],[w/2,0,d/2],[-w/2,0,d/2],[-w/2,0,-d/2]].map(p=>new THREE.Vector3(...p));
+  const l=new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts),new THREE.LineBasicMaterial({color,transparent:true,opacity:0.08}));
+  l.position.set(x,0.01,z);scene.add(l);
+}
+addZone(-15,0,18,16,0x3b82f6);addZone(0,0,10,14,0xfbbf24);addZone(15,0,18,16,0x22c55e);
 
-// ══════════════════════════════════════════════════════════════
-// LIGHTING
-// ══════════════════════════════════════════════════════════════
-scene.add(new THREE.AmbientLight(0xccbbaa, 2.5));
-const keyLight = new THREE.DirectionalLight(0xffffff, 1.8);
-keyLight.position.set(5, 12, 8);
-scene.add(keyLight);
-const fillLight = new THREE.DirectionalLight(0xddc8a0, 0.8);
-fillLight.position.set(-5, 6, -4);
-scene.add(fillLight);
+/* ════════ DEVICE REGISTRY ════════ */
+const devices={},cables={};
+function makeLabel(t){const d=document.createElement('div');d.className='device-label';d.textContent=t;const o=new CSS2DObject(d);o.position.set(0,-0.4,0);return o}
 
-// ══════════════════════════════════════════════════════════════
-// FLOOR GRID
-// ══════════════════════════════════════════════════════════════
-const floorGeo = new THREE.PlaneGeometry(60, 30);
-const floorMat = new THREE.MeshStandardMaterial({
-  color: 0xddd8d0, roughness: 0.95, metalness: 0
-});
-const floor = new THREE.Mesh(floorGeo, floorMat);
-floor.rotation.x = -Math.PI / 2;
-floor.position.y = -0.01;
-scene.add(floor);
-
-// Grid lines
-const gridHelper = new THREE.GridHelper(60, 30, 0xc7c3bc, 0xd4d0c8);
-gridHelper.position.y = 0.0;
-scene.add(gridHelper);
-
-// ══════════════════════════════════════════════════════════════
-// DEVICE BUILDERS
-// ══════════════════════════════════════════════════════════════
-const devices = {};
-const deviceGlows = {};
-
-function makeEdgeGlow(geometry, color, parent) {
-  const edges = new THREE.EdgesGeometry(geometry);
-  const line = new THREE.LineSegments(
-    edges,
-    new THREE.LineBasicMaterial({ color, transparent: true, opacity: 0.6 })
-  );
-  parent.add(line);
-  return line;
+/* ════════ BUILDERS ════════ */
+function createPC(name,pos){
+  const g=new THREE.Group();
+  g.add(Object.assign(new THREE.Mesh(new THREE.BoxGeometry(0.5,0.4,0.06),new THREE.MeshStandardMaterial({color:0x1e293b,roughness:0.4,metalness:0.6})),{position:new THREE.Vector3(0,0.5,0)}));
+  g.add(Object.assign(new THREE.Mesh(new THREE.BoxGeometry(0.44,0.32,0.01),new THREE.MeshStandardMaterial({color:0x0f172a,emissive:0x1e3a5f,emissiveIntensity:0.5,roughness:0.2})),{position:new THREE.Vector3(0,0.5,0.035)}));
+  g.add(Object.assign(new THREE.Mesh(new THREE.CylinderGeometry(0.03,0.06,0.25,8),new THREE.MeshStandardMaterial({color:0x374151})),{position:new THREE.Vector3(0,0.2,0)}));
+  const edge=new THREE.Mesh(new THREE.BoxGeometry(0.52,0.42,0.07),new THREE.MeshBasicMaterial({color:0x3b82f6,transparent:true,opacity:0,wireframe:true}));
+  edge.position.y=0.5;g.add(edge);g.position.set(...pos);g.add(makeLabel(name));scene.add(g);
+  devices[name]={group:g,type:'pc',edge,baseEmissive:0x1e3a5f};
+}
+function createSwitch(name,pos){
+  const g=new THREE.Group();
+  g.add(Object.assign(new THREE.Mesh(new THREE.BoxGeometry(0.9,0.12,0.5),new THREE.MeshStandardMaterial({color:0x1e3a5f,roughness:0.3,metalness:0.7})),{position:new THREE.Vector3(0,0.15,0)}));
+  for(let i=-3;i<=3;i++){const p=new THREE.Mesh(new THREE.BoxGeometry(0.06,0.04,0.02),new THREE.MeshStandardMaterial({color:0x22c55e,emissive:0x22c55e,emissiveIntensity:0.6}));p.position.set(i*0.11,0.15,0.26);g.add(p)}
+  const edge=new THREE.Mesh(new THREE.BoxGeometry(0.92,0.14,0.52),new THREE.MeshBasicMaterial({color:0x3b82f6,transparent:true,opacity:0,wireframe:true}));
+  edge.position.y=0.15;g.add(edge);g.position.set(...pos);g.add(makeLabel(name));scene.add(g);
+  devices[name]={group:g,type:'switch',edge,baseEmissive:0x22c55e};
+}
+function createRouter(name,pos){
+  const g=new THREE.Group();
+  g.add(Object.assign(new THREE.Mesh(new THREE.CylinderGeometry(0.35,0.35,0.18,24),new THREE.MeshStandardMaterial({color:0x44403c,roughness:0.3,metalness:0.8})),{position:new THREE.Vector3(0,0.2,0)}));
+  const ring=new THREE.Mesh(new THREE.TorusGeometry(0.38,0.015,8,32),new THREE.MeshStandardMaterial({color:0xfbbf24,emissive:0xfbbf24,emissiveIntensity:0.8}));
+  ring.rotation.x=Math.PI/2;ring.position.y=0.2;g.add(ring);
+  for(let a=0;a<4;a++){const c=new THREE.Mesh(new THREE.ConeGeometry(0.04,0.08,4),new THREE.MeshStandardMaterial({color:0xfbbf24,emissive:0xfbbf24,emissiveIntensity:0.4}));const ang=(a/4)*Math.PI*2;c.position.set(Math.cos(ang)*0.28,0.32,Math.sin(ang)*0.28);g.add(c)}
+  const edge=new THREE.Mesh(new THREE.CylinderGeometry(0.4,0.4,0.2,24),new THREE.MeshBasicMaterial({color:0xfbbf24,transparent:true,opacity:0,wireframe:true}));
+  edge.position.y=0.2;g.add(edge);g.position.set(...pos);g.add(makeLabel(name));scene.add(g);
+  devices[name]={group:g,type:'router',edge,ring,baseEmissive:0xfbbf24};
+}
+function createFirewall(name,pos){
+  const g=new THREE.Group();
+  g.add(Object.assign(new THREE.Mesh(new THREE.CylinderGeometry(0.3,0.3,0.35,8),new THREE.MeshStandardMaterial({color:0x7f1d1d,roughness:0.3,metalness:0.7})),{position:new THREE.Vector3(0,0.25,0)}));
+  const ring=new THREE.Mesh(new THREE.TorusGeometry(0.33,0.012,8,8),new THREE.MeshStandardMaterial({color:0xf87171,emissive:0xf87171,emissiveIntensity:0.6}));
+  ring.rotation.x=Math.PI/2;ring.position.y=0.25;g.add(ring);
+  const edge=new THREE.Mesh(new THREE.CylinderGeometry(0.35,0.35,0.37,8),new THREE.MeshBasicMaterial({color:0xf87171,transparent:true,opacity:0,wireframe:true}));
+  edge.position.y=0.25;g.add(edge);g.position.set(...pos);g.add(makeLabel(name));scene.add(g);
+  devices[name]={group:g,type:'firewall',edge,ring,baseEmissive:0xf87171};
+}
+function createServer(name,pos,color=0x166534){
+  const g=new THREE.Group();
+  for(let u=0;u<2;u++){g.add(Object.assign(new THREE.Mesh(new THREE.BoxGeometry(0.6,0.18,0.45),new THREE.MeshStandardMaterial({color:0x1c1917,roughness:0.3,metalness:0.7})),{position:new THREE.Vector3(0,0.2+u*0.2,0)}));
+  const led=new THREE.Mesh(new THREE.SphereGeometry(0.015,8,8),new THREE.MeshStandardMaterial({color,emissive:color,emissiveIntensity:1}));led.position.set(-0.25,0.2+u*0.2,0.23);g.add(led)}
+  const edge=new THREE.Mesh(new THREE.BoxGeometry(0.62,0.42,0.47),new THREE.MeshBasicMaterial({color,transparent:true,opacity:0,wireframe:true}));
+  edge.position.y=0.3;g.add(edge);g.position.set(...pos);g.add(makeLabel(name));scene.add(g);
+  devices[name]={group:g,type:'server',edge,baseEmissive:color};
+}
+function createISP(name,pos){
+  const g=new THREE.Group();
+  const sphere=new THREE.Mesh(new THREE.SphereGeometry(0.3,16,12),new THREE.MeshStandardMaterial({color:0x1e293b,roughness:0.4,metalness:0.5,transparent:true,opacity:0.6}));
+  sphere.position.y=0.4;g.add(sphere);
+  const wire=new THREE.Mesh(new THREE.SphereGeometry(0.32,12,8),new THREE.MeshBasicMaterial({color:0xfbbf24,wireframe:true,transparent:true,opacity:0.2}));
+  wire.position.y=0.4;g.add(wire);
+  const ring=new THREE.Mesh(new THREE.TorusGeometry(0.36,0.01,8,24),new THREE.MeshStandardMaterial({color:0xfbbf24,emissive:0xfbbf24,emissiveIntensity:0.5}));
+  ring.rotation.x=Math.PI/2;ring.position.y=0.4;g.add(ring);
+  g.position.set(...pos);g.add(makeLabel(name));scene.add(g);
+  devices[name]={group:g,type:'isp',edge:wire,ring,sphere,baseEmissive:0xfbbf24};
 }
 
-function addLabel(text, parent, yOffset) {
-  const div = document.createElement('div');
-  div.className = 'device-label';
-  div.textContent = text;
-  const label = new CSS2DObject(div);
-  label.position.set(0, yOffset, 0);
-  parent.add(label);
+/* ════════ BUILD TOPOLOGY ════════ */
+createPC('PC-1',[-22,0,-3]);createPC('PC-2',[-22,0,3]);
+createSwitch('SW-A1',[-18,0,-3]);createSwitch('SW-A2',[-18,0,3]);
+createRouter('R-A',[-13,0,0]);createFirewall('FW-A',[-9,0,0]);
+createISP('ISP-1',[0,0,-4]);createISP('ISP-2',[0,0,4]);
+createFirewall('FW-B',[9,0,0]);createRouter('R-B',[13,0,0]);
+createSwitch('SW-B1',[18,0,-3]);createSwitch('SW-B2',[18,0,3]);
+createServer('WEB',[22,0,-4],0x22c55e);createServer('APP',[22,0,0],0x3b82f6);createServer('DB',[22,0,4],0xfbbf24);
+
+/* ════════ CABLES ════════ */
+function makeCable(key,points,color=0x334155){
+  const curve=new THREE.CatmullRomCurve3(points.map(p=>new THREE.Vector3(...p)));
+  const mat=new THREE.MeshStandardMaterial({color,roughness:0.6,metalness:0.3,transparent:true,opacity:0.5});
+  const mesh=new THREE.Mesh(new THREE.TubeGeometry(curve,48,0.02,6,false),mat);
+  scene.add(mesh);cables[key]={mesh,mat,curve,color,originalColor:color,particles:[],broken:false};
 }
+// Site A
+makeCable('pc1-swa1',[[-22,0.3,-3],[-20,0.4,-3],[-18,0.3,-3]]);
+makeCable('pc2-swa2',[[-22,0.3,3],[-20,0.4,3],[-18,0.3,3]]);
+makeCable('swa1-ra',[[-18,0.15,-3],[-16,0.5,-2],[-13,0.3,0]]);
+makeCable('swa2-ra',[[-18,0.15,3],[-16,0.5,2],[-13,0.3,0]]);
+makeCable('swa1-swa2',[[-18,0.15,-3],[-18,0.6,0],[-18,0.15,3]],0x1e3a5f);
+makeCable('ra-fwa',[[-13,0.2,0],[-11,0.4,0],[-9,0.3,0]]);
+// WAN
+makeCable('fwa-isp1',[[-9,0.3,0],[-7,0.6,-1],[-4,0.8,-3],[0,0.5,-4]],0x92400e);
+makeCable('fwa-isp2',[[-9,0.3,0],[-7,0.6,1],[-4,0.8,3],[0,0.5,4]],0x92400e);
+makeCable('isp1-fwb',[[0,0.5,-4],[4,0.8,-3],[7,0.6,-1],[9,0.3,0]],0x92400e);
+makeCable('isp2-fwb',[[0,0.5,4],[4,0.8,3],[7,0.6,1],[9,0.3,0]],0x92400e);
+makeCable('isp1-isp2',[[0,0.4,-4],[0,1.0,0],[0,0.4,4]],0x78350f);
+// Site B
+makeCable('fwb-rb',[[9,0.3,0],[11,0.4,0],[13,0.3,0]]);
+makeCable('rb-swb1',[[13,0.3,0],[16,0.5,-2],[18,0.15,-3]]);
+makeCable('rb-swb2',[[13,0.3,0],[16,0.5,2],[18,0.15,3]]);
+makeCable('swb1-swb2',[[18,0.15,-3],[18,0.6,0],[18,0.15,3]],0x1e3a5f);
+makeCable('swb1-web',[[18,0.15,-3],[20,0.4,-3.5],[22,0.3,-4]]);
+makeCable('swb1-app',[[18,0.15,-3],[20,0.4,-1.5],[22,0.3,0]]);
+makeCable('swb2-app',[[18,0.15,3],[20,0.4,1.5],[22,0.3,0]]);
+makeCable('swb2-db',[[18,0.15,3],[20,0.4,3.5],[22,0.3,4]]);
 
-function createPC(name, pos) {
-  const group = new THREE.Group();
-  const geo = new THREE.BoxGeometry(1.0, 0.6, 1.0);
-  const mat = new THREE.MeshStandardMaterial({
-    color: 0x3a3d5e, roughness: 0.5, metalness: 0.3, emissive: CYAN, emissiveIntensity: 0.15
-  });
-  const mesh = new THREE.Mesh(geo, mat);
-  group.add(mesh);
-  const glow = makeEdgeGlow(geo, CYAN, group);
-  group.position.copy(pos);
-  addLabel(name, group, 0.35);
-  scene.add(group);
-  devices[name] = group;
-  deviceGlows[name] = { edges: glow, mesh, originalColor: 0x2a2d3e };
-  return group;
-}
+/* ════════ FLOW PARTICLES (transmission lines) ════════ */
+const FLOW_N=4;
+Object.values(cables).forEach(c=>{for(let i=0;i<FLOW_N;i++){const m=new THREE.Mesh(new THREE.SphereGeometry(0.015,4,4),new THREE.MeshBasicMaterial({color:0x334155,transparent:true,opacity:0}));scene.add(m);c.particles.push({mesh:m,mat:m.material,offset:i/FLOW_N,speed:0.15+Math.random()*0.05,active:false})}});
+function activateFlow(k,color=0x5eead4,spd=0.2){const c=cables[k];if(!c||c.broken)return;c.particles.forEach(p=>{p.active=true;p.speed=spd+Math.random()*0.05;p.mat.color.setHex(color);p.mat.opacity=0.6})}
+function deactivateFlow(k){const c=cables[k];if(!c)return;c.particles.forEach(p=>{p.active=false;p.mat.opacity=0})}
+function deactivateAllFlows(){Object.keys(cables).forEach(deactivateFlow)}
 
-function createSwitch(name, pos) {
-  const group = new THREE.Group();
-  const geo = new THREE.BoxGeometry(2.0, 0.3, 1.2);
-  const mat = new THREE.MeshStandardMaterial({
-    color: 0x1a2744, roughness: 0.5, metalness: 0.4, emissive: 0x2563EB, emissiveIntensity: 0.1
-  });
-  const mesh = new THREE.Mesh(geo, mat);
-  group.add(mesh);
-  const glow = makeEdgeGlow(geo, 0x2563EB, group);
-  // Port indicators
-  const portGeo = new THREE.SphereGeometry(0.04, 8, 8);
-  for (let i = 0; i < 6; i++) {
-    const portMat = new THREE.MeshStandardMaterial({
-      color: 0x22C55E, emissive: 0x22C55E, emissiveIntensity: 0.8
-    });
-    const port = new THREE.Mesh(portGeo, portMat);
-    port.position.set(-0.35 + i * 0.14, 0, 0.31);
-    group.add(port);
-  }
-  group.position.copy(pos);
-  addLabel(name, group, 0.25);
-  scene.add(group);
-  devices[name] = group;
-  deviceGlows[name] = { edges: glow, mesh, originalColor: 0x1a2744 };
-  return group;
-}
+/* ════════ PACKET ════════ */
+const packetMat=new THREE.MeshStandardMaterial({color:0x5eead4,emissive:0x5eead4,emissiveIntensity:2,transparent:true,opacity:0});
+const packet=new THREE.Mesh(new THREE.SphereGeometry(0.1,12,12),packetMat);scene.add(packet);
+const packetLight=new THREE.PointLight(0x5eead4,0,3);packet.add(packetLight);
+const trail=[];for(let i=0;i<24;i++){const m=new THREE.Mesh(new THREE.SphereGeometry(0.04,6,6),new THREE.MeshBasicMaterial({color:0x5eead4,transparent:true,opacity:0}));scene.add(m);trail.push({mesh:m,pos:new THREE.Vector3()})}
+function showPacket(s=true){packetMat.opacity=s?1:0;packetLight.intensity=s?4:0}
+function setPacketColor(h){packetMat.color.setHex(h);packetMat.emissive.setHex(h);packetLight.color.setHex(h);trail.forEach(t=>t.mesh.material.color.setHex(h))}
+function updateTrail(){for(let i=trail.length-1;i>0;i--){trail[i].pos.copy(trail[i-1].pos);trail[i].mesh.position.copy(trail[i].pos);trail[i].mesh.material.opacity=packetMat.opacity>0?(1-i/trail.length)*0.35:0}trail[0].pos.copy(packet.position);trail[0].mesh.position.copy(trail[0].pos);trail[0].mesh.material.opacity=packetMat.opacity>0?0.35:0}
 
-function createRouter(name, pos) {
-  const group = new THREE.Group();
-  const geo = new THREE.CylinderGeometry(0.6, 0.6, 0.8, 24);
-  const mat = new THREE.MeshStandardMaterial({
-    color: 0x3a2520, roughness: 0.5, metalness: 0.4, emissive: AMBER, emissiveIntensity: 0.15
-  });
-  const mesh = new THREE.Mesh(geo, mat);
-  group.add(mesh);
-  // Amber ring glow
-  const ringGeo = new THREE.TorusGeometry(0.65, 0.03, 8, 32);
-  const ringMat = new THREE.MeshStandardMaterial({
-    color: AMBER, emissive: AMBER, emissiveIntensity: 1.5
-  });
-  const ring = new THREE.Mesh(ringGeo, ringMat);
-  ring.rotation.x = Math.PI / 2;
-  ring.position.y = 0.0;
-  group.add(ring);
-  group.position.copy(pos);
-  addLabel(name, group, 0.8);
-  scene.add(group);
-  devices[name] = group;
-  deviceGlows[name] = { ring, mesh, originalColor: 0x2a2020 };
-  return group;
-}
+/* ════════ BROADCAST ════════ */
+const bcast=[];for(let i=0;i<12;i++){const m=new THREE.Mesh(new THREE.SphereGeometry(0.06,8,8),new THREE.MeshStandardMaterial({color:0xfbbf24,emissive:0xfbbf24,emissiveIntensity:1.5,transparent:true,opacity:0}));scene.add(m);bcast.push({mesh:m,s:new THREE.Vector3(),e:new THREE.Vector3(),p:0,active:false})}
 
-function createServer(name, pos) {
-  const group = new THREE.Group();
-  const geo = new THREE.BoxGeometry(1.0, 1.6, 1.0);
-  const mat = new THREE.MeshStandardMaterial({
-    color: 0x3a3d5e, roughness: 0.5, metalness: 0.3, emissive: GREEN, emissiveIntensity: 0.1
-  });
-  const mesh = new THREE.Mesh(geo, mat);
-  group.add(mesh);
-  const glow = makeEdgeGlow(geo, GREEN, group);
-  // Status LED
-  const ledGeo = new THREE.SphereGeometry(0.06, 8, 8);
-  const ledMat = new THREE.MeshStandardMaterial({
-    color: GREEN, emissive: GREEN, emissiveIntensity: 1.5
-  });
-  const led = new THREE.Mesh(ledGeo, ledMat);
-  led.position.set(0, 0.6, 0.52);
-  group.add(led);
-  group.position.copy(pos);
-  addLabel(name, group, 1.1);
-  scene.add(group);
-  devices[name] = group;
-  deviceGlows[name] = { edges: glow, mesh, led, originalColor: 0x2a2d3e };
-  return group;
-}
+/* ════════ BURST ════════ */
+const burst=[];for(let i=0;i<40;i++){const m=new THREE.Mesh(new THREE.SphereGeometry(0.03,6,6),new THREE.MeshStandardMaterial({color:0x22c55e,emissive:0x22c55e,emissiveIntensity:1,transparent:true,opacity:0}));scene.add(m);burst.push({mesh:m,vel:new THREE.Vector3(),active:false})}
+function triggerBurst(pos,color=0x22c55e){burst.forEach(p=>{p.mesh.position.copy(pos);p.mesh.material.color.setHex(color);p.mesh.material.emissive.setHex(color);p.mesh.material.opacity=1;p.vel.set((Math.random()-0.5)*0.15,Math.random()*0.12+0.05,(Math.random()-0.5)*0.15);p.active=true})}
 
-// Build all devices
-createPC('PC1', DEVICE_POSITIONS.PC1);
-createSwitch('SW1', DEVICE_POSITIONS.SW1);
-createRouter('R1', DEVICE_POSITIONS.R1);
-createSwitch('SW2', DEVICE_POSITIONS.SW2);
-createServer('Server1', DEVICE_POSITIONS.SERVER1);
+/* ════════ FRAME SHELL ════════ */
+const frameShell=new THREE.Mesh(new THREE.BoxGeometry(0.28,0.28,0.28),new THREE.MeshBasicMaterial({color:0x3b82f6,wireframe:true,transparent:true,opacity:0}));scene.add(frameShell);
+function showFrame(c=0x3b82f6,s=true){frameShell.material.color.setHex(c);frameShell.material.opacity=s?0.7:0}
 
-// ══════════════════════════════════════════════════════════════
-// CABLES (CatmullRomCurve3 tubes)
-// ══════════════════════════════════════════════════════════════
-const cables = {};
-const cableMeshes = {};
+/* ════════ HIGHLIGHT ════════ */
+function highlightDevice(n,color=0x5eead4,intensity=0.5){const d=devices[n];if(!d)return;if(d.edge){d.edge.material.color.setHex(color);d.edge.material.opacity=intensity}if(d.ring){d.ring.material.emissive.setHex(color);d.ring.material.emissiveIntensity=1.5}const l=d.group.children.find(c=>c instanceof CSS2DObject);if(l)l.element.classList.add('active')}
+function resetDevice(n){const d=devices[n];if(!d)return;if(d.edge)d.edge.material.opacity=0;if(d.ring){d.ring.material.emissive.setHex(d.baseEmissive);d.ring.material.emissiveIntensity=0.8}const l=d.group.children.find(c=>c instanceof CSS2DObject);if(l)l.element.classList.remove('active')}
+function resetAllDevices(){Object.keys(devices).forEach(resetDevice)}
+function glowCable(k,color=0x5eead4,o=0.9){const c=cables[k];if(c){c.mat.color.setHex(color);c.mat.opacity=o}}
+function resetCable(k){const c=cables[k];if(c){c.mat.color.setHex(c.originalColor);c.mat.opacity=0.5}}
+function resetAllCables(){Object.keys(cables).forEach(resetCable)}
 
-function createCable(nameA, nameB) {
-  const a = DEVICE_POSITIONS[nameA] || devices[nameA]?.position;
-  const b = DEVICE_POSITIONS[nameB] || devices[nameB]?.position;
-  if (!a || !b) return;
-  const mid = new THREE.Vector3().lerpVectors(a, b, 0.5);
-  mid.y += 0.15;
-  const curve = new THREE.CatmullRomCurve3([
-    a.clone(), mid, b.clone()
-  ]);
-  const tubeGeo = new THREE.TubeGeometry(curve, 32, 0.04, 8, false);
-  const tubeMat = new THREE.MeshStandardMaterial({
-    color: 0x78716C, roughness: 0.5, metalness: 0.2,
-    emissive: 0x57534E, emissiveIntensity: 0.1
-  });
-  const mesh = new THREE.Mesh(tubeGeo, tubeMat);
-  scene.add(mesh);
-  const key = nameA + '-' + nameB;
-  cables[key] = curve;
-  cableMeshes[key] = mesh;
-  return { curve, mesh };
-}
+/* ════════ CAMERA ════════ */
+let camTarget={pos:new THREE.Vector3(0,28,32),look:new THREE.Vector3(0,0,0),lerp:0.025};
+let currentLook=new THREE.Vector3(0,0,0);
+function setCam(p,l,lr=0.025){camTarget.pos.set(...p);camTarget.look.set(...l);camTarget.lerp=lr}
 
-createCable('PC1', 'SW1');
-createCable('SW1', 'R1');
-createCable('R1', 'SW2');
-createCable('SW2', 'Server1');
+/* ════════ UI STATE ════════ */
+let speedMultiplier=1,freeLook=false,currentStep=-1;
+const totalSteps=12;
+const stepInd=document.getElementById('stepIndicator');
+for(let i=0;i<totalSteps;i++){const d=document.createElement('div');d.className='step-dot';stepInd.appendChild(d)}
+function updateDots(i){[...stepInd.children].forEach((d,j)=>{d.className='step-dot'+(j===i?' active':j<i?' done':'')})}
+function setSpeed(s){speedMultiplier=s;document.querySelectorAll('.speed-btn').forEach(b=>b.classList.toggle('active',parseFloat(b.textContent)===s))}
+function wait(ms){return new Promise(r=>setTimeout(r,ms/speedMultiplier))}
+function toggleFreeLook(){freeLook=!freeLook;controls.enabled=freeLook;document.getElementById('freeLookBtn').classList.toggle('active',freeLook)}
+window.toggleFreeLook=toggleFreeLook;window.setSpeed=setSpeed;
 
-// ══════════════════════════════════════════════════════════════
-// PACKET (glowing sphere + point light + trail)
-// ══════════════════════════════════════════════════════════════
-const packetGroup = new THREE.Group();
-const packetGeo = new THREE.SphereGeometry(0.08, 16, 16);
-const packetMat = new THREE.MeshStandardMaterial({
-  color: CYAN, emissive: CYAN, emissiveIntensity: 2.0
-});
-const packetMesh = new THREE.Mesh(packetGeo, packetMat);
-packetGroup.add(packetMesh);
+const narrEl=document.getElementById('narration'),narrStep=document.getElementById('narrStep'),narrTitle=document.getElementById('narrTitle'),narrText=document.getElementById('narrText'),narrTldr=document.getElementById('narrTldr'),nextBtn=document.getElementById('nextBtn'),skipBtn=document.getElementById('skipBtn');
+function showNarration(i,title,text,tldr){narrStep.textContent=`Step ${i+1} of ${totalSteps}`;narrTitle.textContent=title;narrText.textContent=text;narrTldr.textContent='\u{1F4A1} '+tldr;narrEl.classList.add('visible');nextBtn.style.display='none';skipBtn.style.display='inline-block'}
+function enableNext(){nextBtn.style.display='inline-block';skipBtn.style.display='none'}
+function hideNarration(){narrEl.classList.remove('visible')}
+const overlayEl=document.getElementById('overlayTable');
+function showOverlay(h){overlayEl.innerHTML=h;overlayEl.classList.add('visible')}
+function hideOverlay(){overlayEl.classList.remove('visible')}
+const termEl=document.getElementById('terminal'),termBody=document.getElementById('termBody');
+function showTerminal(c){termBody.innerHTML=c;termEl.classList.add('visible')}
+function hideTerminal(){termEl.classList.remove('visible')}
+const pktEl=document.getElementById('pktInspector'),pktLayers=document.getElementById('pktLayers');
+function showInspector(l){pktLayers.innerHTML=l;pktEl.classList.add('visible')}
+function hideInspector(){pktEl.classList.remove('visible')}
+function hideAllPanels(){hideOverlay();hideTerminal();hideInspector();hideNarration()}
 
-const packetLight = new THREE.PointLight(CYAN, 2, 3);
-packetGroup.add(packetLight);
+/* ════════ ANIM HELPERS ════════ */
+const activeAnims=[];
+function easeInOutCubic(t){return t<0.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2}
+function animPkt(cableKey,dur,color=0x5eead4,reverse=false){return new Promise(r=>{const c=cables[cableKey];if(!c){r();return}setPacketColor(color);showPacket(true);activeAnims.push({type:reverse?'rev':'fwd',cable:c,start:performance.now(),dur:dur/speedMultiplier,resolve:r})})}
+function animatePacketAlongCable(k,d,c){return animPkt(k,d,c,false)}
+function animatePacketReverse(k,d,c){return animPkt(k,d,c,true)}
 
-packetGroup.visible = false;
-scene.add(packetGroup);
-
-// Trail particles
-const TRAIL_COUNT = 20;
-const trailPositions = [];
-const trailMeshes = [];
-for (let i = 0; i < TRAIL_COUNT; i++) {
-  const s = 0.04 * (1 - i / TRAIL_COUNT);
-  const geo = new THREE.SphereGeometry(s, 6, 6);
-  const mat = new THREE.MeshStandardMaterial({
-    color: CYAN, emissive: CYAN, emissiveIntensity: 1.5,
-    transparent: true, opacity: 1 - i / TRAIL_COUNT
-  });
-  const m = new THREE.Mesh(geo, mat);
-  m.visible = false;
-  scene.add(m);
-  trailMeshes.push(m);
-  trailPositions.push(new THREE.Vector3(0, -10, 0));
-}
-
-function setPacketColor(color) {
-  packetMat.color.setHex(color);
-  packetMat.emissive.setHex(color);
-  packetLight.color.setHex(color);
-  trailMeshes.forEach(m => {
-    m.material.color.setHex(color);
-    m.material.emissive.setHex(color);
-  });
-}
-
-function updateTrail(pos) {
-  for (let i = TRAIL_COUNT - 1; i > 0; i--) {
-    trailPositions[i].copy(trailPositions[i - 1]);
-  }
-  trailPositions[0].copy(pos);
-  trailMeshes.forEach((m, i) => {
-    m.position.copy(trailPositions[i]);
-    m.visible = packetGroup.visible;
-  });
-}
-
-function showPacket(show) {
-  packetGroup.visible = show;
-  trailMeshes.forEach(m => m.visible = show);
-  if (!show) trailPositions.forEach(p => p.set(0, -10, 0));
-}
-
-// ══════════════════════════════════════════════════════════════
-// BROADCAST PACKETS (for ARP step)
-// ══════════════════════════════════════════════════════════════
-const broadcastPackets = [];
-const MAX_BROADCAST = 8;
-for (let i = 0; i < MAX_BROADCAST; i++) {
-  const geo = new THREE.SphereGeometry(0.05, 8, 8);
-  const mat = new THREE.MeshStandardMaterial({
-    color: 0xffd700, emissive: 0xffd700, emissiveIntensity: 1.5,
-    transparent: true, opacity: 0.9
-  });
-  const m = new THREE.Mesh(geo, mat);
-  m.visible = false;
-  scene.add(m);
-  broadcastPackets.push({ mesh: m, active: false, t: 0, from: null, to: null });
-}
-
-// ══════════════════════════════════════════════════════════════
-// DEVICE HIGHLIGHT EFFECTS
-// ══════════════════════════════════════════════════════════════
-function highlightDevice(name, color, intensity = 1.5) {
-  const info = deviceGlows[name];
-  if (!info) return;
-  if (info.edges) {
-    info.edges.material.color.setHex(color);
-    info.edges.material.opacity = 1.0;
-  }
-  if (info.ring) {
-    info.ring.material.emissive.setHex(color);
-    info.ring.material.emissiveIntensity = intensity;
-  }
-  info.mesh.material.emissive = new THREE.Color(color);
-  info.mesh.material.emissiveIntensity = 0.3;
-}
-
-function resetDevice(name) {
-  const info = deviceGlows[name];
-  if (!info) return;
-  if (info.edges) {
-    info.edges.material.opacity = 0.6;
-    if (name === 'PC1') info.edges.material.color.setHex(CYAN);
-    else if (name === 'Server1') info.edges.material.color.setHex(GREEN);
-    else info.edges.material.color.setHex(0x2563EB);
-  }
-  if (info.ring) {
-    info.ring.material.emissive.setHex(AMBER);
-    info.ring.material.emissiveIntensity = 1.0;
-  }
-  info.mesh.material.emissive = new THREE.Color(0x000000);
-  info.mesh.material.emissiveIntensity = 0;
-}
-
-function resetAllDevices() {
-  Object.keys(devices).forEach(resetDevice);
-}
-
-function glowCable(key, color) {
-  const m = cableMeshes[key];
-  if (!m) return;
-  m.material.emissive.setHex(color);
-  m.material.emissiveIntensity = 0.8;
-}
-
-function resetCable(key) {
-  const m = cableMeshes[key];
-  if (!m) return;
-  m.material.emissive.setHex(0x000000);
-  m.material.emissiveIntensity = 0;
-}
-
-function resetAllCables() {
-  Object.keys(cableMeshes).forEach(resetCable);
-}
-
-// ══════════════════════════════════════════════════════════════
-// PARTICLE BURST (for delivery)
-// ══════════════════════════════════════════════════════════════
-const burstParticles = [];
-const BURST_COUNT = 30;
-for (let i = 0; i < BURST_COUNT; i++) {
-  const geo = new THREE.SphereGeometry(0.03, 6, 6);
-  const mat = new THREE.MeshStandardMaterial({
-    color: GREEN, emissive: GREEN, emissiveIntensity: 2,
-    transparent: true, opacity: 1
-  });
-  const m = new THREE.Mesh(geo, mat);
-  m.visible = false;
-  scene.add(m);
-  burstParticles.push({
-    mesh: m, vel: new THREE.Vector3(), life: 0, active: false
-  });
-}
-
-function triggerBurst(pos, color = GREEN) {
-  burstParticles.forEach(p => {
-    p.mesh.position.copy(pos);
-    p.vel.set(
-      (Math.random() - 0.5) * 4,
-      Math.random() * 3 + 1,
-      (Math.random() - 0.5) * 4
-    );
-    p.life = 1.0;
-    p.active = true;
-    p.mesh.visible = true;
-    p.mesh.material.color.setHex(color);
-    p.mesh.material.emissive.setHex(color);
-  });
-}
-
-function updateBurst(dt) {
-  burstParticles.forEach(p => {
-    if (!p.active) return;
-    p.life -= dt * 1.2;
-    if (p.life <= 0) { p.active = false; p.mesh.visible = false; return; }
-    p.vel.y -= 5 * dt;
-    p.mesh.position.addScaledVector(p.vel, dt);
-    p.mesh.material.opacity = p.life;
-    const s = p.life * 0.8;
-    p.mesh.scale.setScalar(s);
-  });
-}
-
-// ══════════════════════════════════════════════════════════════
-// FRAME SHELL VISUAL (for Layer 2/3 strip effect)
-// ══════════════════════════════════════════════════════════════
-const frameShellGeo = new THREE.BoxGeometry(0.22, 0.22, 0.22);
-const frameShellMat = new THREE.MeshStandardMaterial({
-  color: 0x2563EB, emissive: 0x2563EB, emissiveIntensity: 0.5,
-  transparent: true, opacity: 0.6, wireframe: true
-});
-const frameShell = new THREE.Mesh(frameShellGeo, frameShellMat);
-frameShell.visible = false;
-scene.add(frameShell);
-
-const newFrameShellMat = new THREE.MeshStandardMaterial({
-  color: AMBER, emissive: AMBER, emissiveIntensity: 0.5,
-  transparent: true, opacity: 0.6, wireframe: true
-});
-const newFrameShell = new THREE.Mesh(frameShellGeo.clone(), newFrameShellMat);
-newFrameShell.visible = false;
-scene.add(newFrameShell);
-
-// ══════════════════════════════════════════════════════════════
-// CAMERA CONTROL
-// ══════════════════════════════════════════════════════════════
-let camTarget     = new THREE.Vector3(0, 8, 18);
-let camLookAt     = new THREE.Vector3(0, 0, 0);
-let camLookAtCur  = new THREE.Vector3(0, 0, 0);
-let camLerp       = 0.06;
-let freeLookOn    = false;
-
-function setCameraTarget(pos, look, lerp = 0.06) {
-  camTarget.copy(pos);
-  camLookAt.copy(look);
-  camLerp = lerp;
-}
-
-// ══════════════════════════════════════════════════════════════
-// UI LOGIC
-// ══════════════════════════════════════════════════════════════
-const stepIndicator = document.getElementById('stepIndicator');
-const stepLabel     = document.getElementById('stepLabel');
-const stepDots      = document.getElementById('stepDots');
-const narrationEl   = document.getElementById('narration');
-const narrStep      = document.getElementById('narrStep');
-const narrTitle     = document.getElementById('narrTitle');
-const narrText      = document.getElementById('narrText');
-const narrNext      = document.getElementById('narrNext');
-const narrSkip      = document.getElementById('narrSkip');
-const narrActions   = document.getElementById('narrActions');
-const overlayEl     = document.getElementById('overlayTable');
-const overlayTitle  = document.getElementById('overlayTitle');
-const overlayBody   = document.getElementById('overlayTableBody');
-const startScreen   = document.getElementById('startScreen');
-const startBtn      = document.getElementById('startBtn');
-const speedCtrl     = document.getElementById('speedCtrl');
-const controlsPanel = document.getElementById('controlsPanel');
-const btnFreeLook   = document.getElementById('btnFreeLook');
-
-// Build 7 dots
-for (let i = 0; i < 7; i++) {
-  const d = document.createElement('div');
-  d.className = 'step-dot';
-  stepDots.appendChild(d);
-}
-
-let speedMultiplier = 1;
-speedCtrl.querySelectorAll('.speed-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    speedCtrl.querySelectorAll('.speed-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    speedMultiplier = parseFloat(btn.dataset.speed);
-  });
-});
-
-btnFreeLook.addEventListener('click', () => {
-  freeLookOn = !freeLookOn;
-  controls.enabled = freeLookOn;
-  btnFreeLook.classList.toggle('active', freeLookOn);
-});
-
-function showNarration(step, title, text, showNext = true, endBtns = false, tldr = '') {
-  narrStep.textContent = 'Step ' + step + ' of 7';
-  narrTitle.textContent = title;
-  narrText.innerHTML = text + (tldr ? '<div class="narration-tldr">' + tldr + '</div>' : '');
-  narrationEl.classList.add('visible');
-  stepLabel.textContent = 'Step ' + step + ' of 7';
-  const dots = stepDots.querySelectorAll('.step-dot');
-  dots.forEach((d, i) => {
-    d.classList.remove('active', 'done');
-    if (i < step - 1) d.classList.add('done');
-    if (i === step - 1) d.classList.add('active');
-  });
-
-  if (endBtns) {
-    narrActions.innerHTML = `
-      <button class="narr-skip" id="narrSkip">Back to Dashboard</button>
-      <div class="end-btns">
-        <button class="end-btn explore" id="endExplore">Explore</button>
-        <button class="end-btn replay" id="endReplay">Replay</button>
-      </div>`;
-    document.getElementById('endReplay').addEventListener('click', () => { startTour(); });
-    document.getElementById('endExplore').addEventListener('click', () => {
-      hideNarration();
-      freeLookOn = true;
-      controls.enabled = true;
-      btnFreeLook.classList.add('active');
-      setCameraTarget(new THREE.Vector3(0, 8, 18), new THREE.Vector3(0, 0, 0));
-    });
-    document.getElementById('narrSkip').addEventListener('click', () => {
-      window.location.href = 'index.html';
-    });
-  } else {
-    narrActions.innerHTML = `
-      <button class="narr-skip" id="narrSkip">End Tour</button>
-      <button class="narr-next" id="narrNext">${showNext ? 'Next &rarr;' : 'Please wait...'}</button>`;
-    const nextBtn = document.getElementById('narrNext');
-    nextBtn.style.opacity = showNext ? '1' : '0.4';
-    nextBtn.style.pointerEvents = showNext ? 'auto' : 'none';
-    if (showNext) {
-      nextBtn.addEventListener('click', advanceStep, { once: true });
-    }
-    document.getElementById('narrSkip').addEventListener('click', endTour);
-  }
-}
-
-function enableNextButton() {
-  const nextBtn = document.getElementById('narrNext');
-  if (nextBtn) {
-    nextBtn.textContent = 'Next \u2192';
-    nextBtn.style.opacity = '1';
-    nextBtn.style.pointerEvents = 'auto';
-    nextBtn.addEventListener('click', advanceStep, { once: true });
-  }
-}
-
-function hideNarration() {
-  narrationEl.classList.remove('visible');
-}
-
-function showOverlay(title, headers, rows, highlightIdx = -1) {
-  overlayTitle.textContent = title;
-  let html = '<tr>' + headers.map(h => '<th>' + h + '</th>').join('') + '</tr>';
-  rows.forEach((r, i) => {
-    const cls = i === highlightIdx ? ' class="highlight"' : '';
-    html += '<tr' + cls + '>' + r.map(c => '<td>' + c + '</td>').join('') + '</tr>';
-  });
-  overlayBody.innerHTML = html;
-  overlayEl.classList.add('visible');
-}
-
-function hideOverlay() {
-  overlayEl.classList.remove('visible');
-}
-
-function showTerminal(title, content) {
-  document.getElementById('termTitle').textContent = title;
-  document.getElementById('termBody').innerHTML = content;
-  document.getElementById('termPanel').classList.add('visible');
-}
-function hideTerminal() {
-  document.getElementById('termPanel').classList.remove('visible');
-}
-function showPacketInspector(hop, html) {
-  document.getElementById('piHop').textContent = hop;
-  document.getElementById('piBody').innerHTML = html;
-  document.getElementById('packetInspector').classList.add('visible');
-}
-function hidePacketInspector() {
-  document.getElementById('packetInspector').classList.remove('visible');
-}
-
-// ══════════════════════════════════════════════════════════════
-// ANIMATION HELPERS
-// ══════════════════════════════════════════════════════════════
-let activeAnimations = [];
-
-function animatePacketAlongCable(cableKey, duration, color = CYAN) {
-  return new Promise(resolve => {
-    const curve = cables[cableKey];
-    if (!curve) { resolve(); return; }
-    setPacketColor(color);
-    showPacket(true);
-    glowCable(cableKey, color);
-    const anim = {
-      type: 'cable', curve, t: 0,
-      duration, cableKey, resolve, done: false
-    };
-    activeAnimations.push(anim);
-  });
-}
-
-function animatePacketToPoint(from, to, duration, color = CYAN) {
-  return new Promise(resolve => {
-    const curve = new THREE.CatmullRomCurve3([
-      from.clone(),
-      new THREE.Vector3().lerpVectors(from, to, 0.5).add(new THREE.Vector3(0, 0.1, 0)),
-      to.clone()
-    ]);
-    setPacketColor(color);
-    showPacket(true);
-    const anim = {
-      type: 'cable', curve, t: 0,
-      duration, cableKey: null, resolve, done: false
-    };
-    activeAnimations.push(anim);
-  });
-}
-
-function wait(ms) {
-  return new Promise(r => setTimeout(r, ms / speedMultiplier));
-}
-
-function easeInOutCubic(t) {
-  return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
-}
-
-// ══════════════════════════════════════════════════════════════
-// TOUR STATE MACHINE
-// ══════════════════════════════════════════════════════════════
-let currentStep = 0;
-let tourActive  = false;
-
-const STEPS = [
-  // Step 1: PC1 encapsulates — show what happens before the frame hits the wire
-  {
-    camera: { pos: new THREE.Vector3(-8, 3, 5), look: DEVICE_POSITIONS.PC1 },
-    title: 'PC1 Encapsulates the Packet',
-    text: '<span class="hl">PC1 (10.0.1.10)</span> needs to reach <span class="hl-green">Server1 (10.0.2.100)</span> — different subnet. PC1 checks its routing table: destination isn\'t local, so it forwards to the <span class="hl-amber">default gateway 10.0.1.1 (R1)</span>. But first it needs R1\'s MAC address.',
-    tldr: 'PC1 wants to talk to Server1, but they\'re on different networks. So PC1 asks the router for help — like asking a mailman to deliver a letter to another neighborhood.',
-    run: async () => {
-      showPacketInspector('Hop 0 — PC1 builds frame',
-        '<div class="pi-layer"><div class="pi-layer-title l3">Layer 3 — IP Packet</div><div class="pi-fields">' +
-        '<div class="pi-row"><span class="pi-label">Src IP</span><span class="pi-value">10.0.1.10 (PC1)</span></div>' +
-        '<div class="pi-row"><span class="pi-label">Dst IP</span><span class="pi-value">10.0.2.100 (Server1)</span></div>' +
-        '<div class="pi-row"><span class="pi-label">TTL</span><span class="pi-value">64</span></div>' +
-        '<div class="pi-row"><span class="pi-label">Protocol</span><span class="pi-value">TCP</span></div>' +
-        '</div></div>' +
-        '<div class="pi-layer"><div class="pi-layer-title l2">Layer 2 — Ethernet Frame</div><div class="pi-fields">' +
-        '<div class="pi-row"><span class="pi-label">Src MAC</span><span class="pi-value">AA11.BB22.CC33 (PC1)</span></div>' +
-        '<div class="pi-row"><span class="pi-label">Dst MAC</span><span class="pi-value">DD44.EE55.FF66 (R1)</span></div>' +
-        '<div class="pi-row"><span class="pi-label">EtherType</span><span class="pi-value">0x0800 (IPv4)</span></div>' +
-        '</div><div class="pi-note">Dst MAC is the default gateway — not Server1</div></div>');
-      highlightDevice('PC1', CYAN, 2);
-      highlightDevice('Server1', GREEN, 0.5);
-      await wait(800);
-    }
-  },
-  // Step 2: ARP Resolution
-  {
-    camera: { pos: new THREE.Vector3(-7.5, 2.5, 3.5), look: DEVICE_POSITIONS.PC1.clone().add(new THREE.Vector3(1, 0, 0)) },
-    title: 'ARP Broadcast — Resolving the Gateway MAC',
-    text: 'PC1 sends an ARP request: <span class="hl">"Who has 10.0.1.1? Tell 10.0.1.10"</span>. This is a <span class="hl-amber">broadcast</span> — SW1 floods it out all ports. R1 recognizes its own IP and replies unicast with its MAC. PC1 caches it.',
-    tldr: 'PC1 shouts to everyone on the network: "Hey, what\'s the router\'s physical address?" The router answers, and now PC1 knows where to send the package.',
-    run: async () => {
-      showPacketInspector('ARP Request → Reply',
-        '<div class="pi-layer"><div class="pi-layer-title arp">ARP Request (Broadcast)</div><div class="pi-fields">' +
-        '<div class="pi-row"><span class="pi-label">Sender IP</span><span class="pi-value">10.0.1.10 (PC1)</span></div>' +
-        '<div class="pi-row"><span class="pi-label">Sender MAC</span><span class="pi-value">AA11.BB22.CC33</span></div>' +
-        '<div class="pi-row"><span class="pi-label">Target IP</span><span class="pi-value">10.0.1.1 (R1)</span></div>' +
-        '<div class="pi-row"><span class="pi-label">Target MAC</span><span class="pi-value">0000.0000.0000 (unknown)</span></div>' +
-        '</div></div>' +
-        '<div class="pi-layer"><div class="pi-layer-title arp">ARP Reply (Unicast)</div><div class="pi-fields">' +
-        '<div class="pi-row"><span class="pi-label">Sender IP</span><span class="pi-value">10.0.1.1 (R1)</span></div>' +
-        '<div class="pi-row"><span class="pi-label">Sender MAC</span><span class="pi-value">DD44.EE55.FF66</span></div>' +
-        '</div><div class="pi-note">PC1 now knows R1\'s MAC — cached in ARP table</div></div>');
-      highlightDevice('PC1', CYAN);
-      // Broadcast animation: packets from PC1 to SW1
-      const pc1Pos = DEVICE_POSITIONS.PC1;
-      const sw1Pos = DEVICE_POSITIONS.SW1;
-      const r1Pos  = DEVICE_POSITIONS.R1;
-
-      // Send broadcast from PC1 to SW1
-      await animatePacketAlongCable('PC1-SW1', 1200, 0xffd700);
-      showPacket(false);
-      highlightDevice('SW1', 0xffd700);
-      await wait(400);
-
-      // SW1 floods: fan out broadcast packets
-      const fanTargets = [
-        r1Pos.clone().add(new THREE.Vector3(0, 0.2, 0)),
-        sw1Pos.clone().add(new THREE.Vector3(0, 0, 1.5)),
-        sw1Pos.clone().add(new THREE.Vector3(0, 0, -1.5)),
-        sw1Pos.clone().add(new THREE.Vector3(-1, 0.5, 1)),
-      ];
-      // Animate fan-out
-      broadcastPackets.forEach((bp, i) => {
-        if (i >= fanTargets.length) return;
-        bp.from = sw1Pos.clone().add(new THREE.Vector3(0, 0.1, 0));
-        bp.to = fanTargets[i];
-        bp.t = 0;
-        bp.active = true;
-        bp.mesh.visible = true;
-      });
-      await wait(1000);
-      broadcastPackets.forEach(bp => { bp.active = false; bp.mesh.visible = false; });
-
-      // R1 responds — unicast reply
-      highlightDevice('R1', AMBER);
-      await wait(300);
-      await animatePacketAlongCable('SW1-R1', 800, AMBER);
-      showPacket(false);
-      // Send reply back
-      const replyCurve = cables['SW1-R1'];
-      if (replyCurve) {
-        setPacketColor(AMBER);
-        showPacket(true);
-        const replyAnim = {
-          type: 'cable', curve: replyCurve, t: 1,
-          duration: 800, cableKey: 'SW1-R1', reverse: true,
-          resolve: null, done: false
-        };
-        await new Promise(resolve => {
-          replyAnim.resolve = resolve;
-          activeAnimations.push(replyAnim);
-        });
-      }
-      showPacket(false);
-      // ARP reply: SW1 → PC1 (reverse direction on PC1-SW1 cable)
-      setPacketColor(AMBER);
-      showPacket(true);
-      const arpReplyCurve = cables['PC1-SW1'];
-      if (arpReplyCurve) {
-        await new Promise(resolve => {
-          activeAnimations.push({
-            type: 'cable', curve: arpReplyCurve, t: 1,
-            duration: 600, cableKey: 'PC1-SW1', reverse: true,
-            resolve, done: false
-          });
-        });
-      }
-      showPacket(false);
-      resetDevice('R1');
-      resetDevice('SW1');
-      await wait(200);
-    }
-  },
-  // Step 3: SW1 MAC table lookup
-  {
-    camera: { pos: new THREE.Vector3(-3.5, 2.5, 3), look: DEVICE_POSITIONS.SW1 },
-    title: 'Through the Switch — MAC Table Lookup',
-    text: 'SW1 receives the frame. It checks the destination MAC against its <span class="hl-amber">MAC address table</span>. Port Fa0/24 leads to R1. The frame is <span class="hl">forwarded</span> — not flooded.',
-    tldr: 'The switch is like a smart hallway — it reads the label on the package and sends it to the right door instead of shouting it everywhere.',
-    run: async () => {
-      showPacketInspector('Hop 1 — SW1 forwards',
-        '<div class="pi-layer"><div class="pi-layer-title l3">Layer 3 — IP Packet</div><div class="pi-fields">' +
-        '<div class="pi-row"><span class="pi-label">Src IP</span><span class="pi-value">10.0.1.10</span></div>' +
-        '<div class="pi-row"><span class="pi-label">Dst IP</span><span class="pi-value">10.0.2.100</span></div>' +
-        '<div class="pi-row"><span class="pi-label">TTL</span><span class="pi-value">64</span></div>' +
-        '</div></div>' +
-        '<div class="pi-layer"><div class="pi-layer-title l2">Layer 2 — Ethernet Frame</div><div class="pi-fields">' +
-        '<div class="pi-row"><span class="pi-label">Src MAC</span><span class="pi-value">AA11.BB22.CC33 (PC1)</span></div>' +
-        '<div class="pi-row"><span class="pi-label">Dst MAC</span><span class="pi-value">DD44.EE55.FF66 (R1)</span></div>' +
-        '</div><div class="pi-note">Frame unchanged — switches don\'t modify headers</div></div>');
-      showOverlay('SW1 — MAC Address Table',
-        ['MAC Address', 'Port', 'VLAN'],
-        [
-          ['aa:bb:cc:00:01:01', 'Fa0/1', '10'],
-          ['aa:bb:cc:00:01:99', 'Fa0/24', '10'],
-          ['aa:bb:cc:00:02:01', 'Fa0/12', '20'],
-        ], 1);
-      highlightDevice('SW1', CYAN);
-      showTerminal('SW1 — Console', '<span class="prompt">SW1#</span> show mac address-table\n          Mac Address Table\n-------------------------------------------\nVlan    Mac Address       Type        Ports\n----    -----------       --------    -----\n   1    <span class="highlight">aa11.bb22.cc33</span>    DYNAMIC     Fa0/1\n   1    <span class="highlight">dd44.ee55.ff66</span>    DYNAMIC     Fa0/24\n<span class="comment">! Destination MAC matches Fa0/24 → forward</span>');
-      // Packet enters SW1 from left
-      await animatePacketAlongCable('PC1-SW1', 1200, CYAN);
-      showPacket(false);
-      // Lookup effect — flash
-      highlightDevice('SW1', AMBER);
-      await wait(600);
-      highlightDevice('SW1', CYAN);
-      await wait(400);
-      // Exits toward R1
-      await animatePacketAlongCable('SW1-R1', 1200, CYAN);
-      showPacket(false);
-      resetDevice('SW1');
-      hideOverlay();
-    }
-  },
-  // Step 4: Router — Layer 3 Decision
-  {
-    camera: { pos: new THREE.Vector3(0, 4.5, 3.5), look: DEVICE_POSITIONS.R1 },
-    title: 'The Router — Layer 3 Decision',
-    text: 'R1 strips the Layer 2 frame, examines the Layer 3 packet. Destination: <span class="hl">10.0.2.100</span>. Routing table match: <span class="hl-amber">10.0.2.0/24 via Gi0/1</span>. TTL decremented 64 &rarr; 63. A <span class="hl-green">new frame</span> is built with R1\'s MAC as source.',
-    tldr: 'The router opens the package, reads the destination address, checks its map, picks the best road, slaps a new shipping label on it, and sends it out the other door.',
-    run: async () => {
-      showPacketInspector('Hop 2 — R1 re-encapsulates',
-        '<div class="pi-layer"><div class="pi-layer-title l3">Layer 3 — IP Packet</div><div class="pi-fields">' +
-        '<div class="pi-row"><span class="pi-label">Src IP</span><span class="pi-value">10.0.1.10</span></div>' +
-        '<div class="pi-row"><span class="pi-label">Dst IP</span><span class="pi-value">10.0.2.100</span></div>' +
-        '<div class="pi-row"><span class="pi-label">TTL</span><span class="pi-changed">64 → 63</span></div>' +
-        '</div><div class="pi-note">L3 stays the same (except TTL) — routing preserves src/dst IP</div></div>' +
-        '<div class="pi-layer"><div class="pi-layer-title l2">Layer 2 — NEW Frame</div><div class="pi-fields">' +
-        '<div class="pi-row"><span class="pi-label">Src MAC</span><span class="pi-changed">DD44.EE55.FF66 (R1 Gi0/1)</span></div>' +
-        '<div class="pi-row"><span class="pi-label">Dst MAC</span><span class="pi-changed">0050.7966.6801 (Server1)</span></div>' +
-        '</div><div class="pi-note">Old frame stripped, new frame built — this is re-encapsulation</div></div>');
-      showOverlay('R1 — Routing Table',
-        ['Network', 'Next Hop', 'Interface', 'AD'],
-        [
-          ['10.0.1.0/24', 'Connected', 'Gi0/0', '0'],
-          ['10.0.2.0/24', 'Connected', 'Gi0/1', '0'],
-          ['0.0.0.0/0', '10.0.1.254', 'Gi0/0', '1'],
-        ], 1);
-      showTerminal('R1 — Console', '<span class="prompt">R1#</span> show ip route\nCodes: C - connected, S - static, O - OSPF\n\nGateway of last resort is 10.0.1.254\n\nC    10.0.1.0/24 is directly connected, Gi0/0\nC    <span class="highlight">10.0.2.0/24</span> is directly connected, <span class="highlight">Gi0/1</span>\nS*   0.0.0.0/0 [1/0] via 10.0.1.254\n\n<span class="prompt">R1#</span> show ip arp\nProtocol  Address       Age   Hardware Addr   Type  Interface\nInternet  10.0.2.100      5   <span class="highlight">0050.7966.6801</span>  ARPA  Gi0/1\n<span class="comment">! Match: 10.0.2.0/24 → exit Gi0/1, TTL 64→63</span>');
-      highlightDevice('R1', AMBER, 2);
-
-      // Packet enters R1
-      const r1Pos = DEVICE_POSITIONS.R1;
-      setPacketColor(CYAN);
-      showPacket(true);
-      packetGroup.position.copy(r1Pos.clone().add(new THREE.Vector3(-0.5, 0.2, 0)));
-      await wait(300);
-
-      // Frame shell peels away (L2 strip)
-      frameShell.position.copy(r1Pos.clone().add(new THREE.Vector3(0, 0.3, 0)));
-      frameShell.visible = true;
-      frameShell.scale.setScalar(1);
-
-      // Animate frame shell expanding and fading
-      const stripAnim = { type: 'frameStrip', t: 0, duration: 1200, done: false, resolve: null };
-      await new Promise(resolve => {
-        stripAnim.resolve = resolve;
-        activeAnimations.push(stripAnim);
-      });
-      frameShell.visible = false;
-
-      // Packet glows amber (L3 processing)
-      setPacketColor(AMBER);
-      packetGroup.position.copy(r1Pos.clone().add(new THREE.Vector3(0, 0.3, 0)));
-      await wait(800);
-
-      // New frame wraps
-      newFrameShell.position.copy(r1Pos.clone().add(new THREE.Vector3(0, 0.3, 0)));
-      newFrameShell.visible = true;
-      newFrameShell.scale.setScalar(2);
-      const wrapAnim = { type: 'frameWrap', t: 0, duration: 800, done: false, resolve: null };
-      await new Promise(resolve => {
-        wrapAnim.resolve = resolve;
-        activeAnimations.push(wrapAnim);
-      });
-      newFrameShell.visible = false;
-
-      // Exit other side
-      setPacketColor(CYAN);
-      showPacket(false);
-      await wait(200);
-      await animatePacketAlongCable('R1-SW2', 1200, CYAN);
-      showPacket(false);
-      resetDevice('R1');
-      hideOverlay();
-    }
-  },
-  // Step 5: SW2
-  {
-    camera: { pos: new THREE.Vector3(4, 2.5, 4), look: DEVICE_POSITIONS.SW2 },
-    title: 'Second Switch — Same Process',
-    text: 'SW2 receives the new frame. <span class="hl-amber">MAC table lookup</span> — destination MAC matches port <span class="hl">Fa0/1</span> where Server1 is connected. Frame forwarded.',
-    tldr: 'Same thing as the first switch — read the label, find the right port, forward it. Switches don\'t overthink it.',
-    run: async () => {
-      showPacketInspector('Hop 3 — SW2 forwards',
-        '<div class="pi-layer"><div class="pi-layer-title l3">Layer 3 — IP Packet</div><div class="pi-fields">' +
-        '<div class="pi-row"><span class="pi-label">Src IP</span><span class="pi-value">10.0.1.10</span></div>' +
-        '<div class="pi-row"><span class="pi-label">Dst IP</span><span class="pi-value">10.0.2.100</span></div>' +
-        '<div class="pi-row"><span class="pi-label">TTL</span><span class="pi-value">63</span></div>' +
-        '</div></div>' +
-        '<div class="pi-layer"><div class="pi-layer-title l2">Layer 2 — Ethernet Frame</div><div class="pi-fields">' +
-        '<div class="pi-row"><span class="pi-label">Src MAC</span><span class="pi-value">DD44.EE55.FF66 (R1)</span></div>' +
-        '<div class="pi-row"><span class="pi-label">Dst MAC</span><span class="pi-value">0050.7966.6801 (Server1)</span></div>' +
-        '</div><div class="pi-note">Frame unchanged — same L2 from R1\'s re-encapsulation</div></div>');
-      showOverlay('SW2 — MAC Address Table',
-        ['MAC Address', 'Port', 'VLAN'],
-        [
-          ['aa:bb:cc:00:02:01', 'Fa0/1', '20'],
-          ['aa:bb:cc:00:01:99', 'Fa0/24', '20'],
-        ], 0);
-      highlightDevice('SW2', CYAN);
-      showTerminal('SW2 — Console', '<span class="prompt">SW2#</span> show mac address-table\n          Mac Address Table\n-------------------------------------------\nVlan    Mac Address       Type        Ports\n----    -----------       --------    -----\n   1    <span class="highlight">0050.7966.6801</span>    DYNAMIC     <span class="highlight">Fa0/1</span>\n   1    dd44.ee55.ff66    DYNAMIC     Fa0/24\n<span class="comment">! Destination MAC matches Fa0/1 → forward to Server1</span>');
-      // Quick pass — already arrived at SW2 from step 4
-      highlightDevice('SW2', AMBER);
-      await wait(500);
-      highlightDevice('SW2', CYAN);
-      await wait(300);
-      await animatePacketAlongCable('SW2-Server1', 1000, CYAN);
-      showPacket(false);
-      resetDevice('SW2');
-      hideOverlay();
-    }
-  },
-  // Step 6: Server receives
-  {
-    camera: { pos: new THREE.Vector3(8.5, 3, 4), look: DEVICE_POSITIONS.SERVER1 },
-    title: 'Arrival — Server Processes the Packet',
-    text: 'Server1 receives the frame, strips Layer 2, processes the Layer 3 packet. The data reaches the application. The server prepares a response — and the <span class="hl-green">journey reverses</span>.',
-    tldr: 'Package delivered! Server1 opens it up, reads the data, and starts preparing a response to send back the same way.',
-    run: async () => {
-      showPacketInspector('Delivered — Server1',
-        '<div class="pi-layer"><div class="pi-layer-title l2">Layer 2 — Frame Stripped</div><div class="pi-fields">' +
-        '<div class="pi-row"><span class="pi-label">Dst MAC</span><span class="pi-value">0050.7966.6801 \u2713 mine</span></div>' +
-        '</div><div class="pi-note">Server1 strips L2, passes L3 packet up the stack</div></div>' +
-        '<div class="pi-layer"><div class="pi-layer-title l3">Layer 3 — IP Packet Delivered</div><div class="pi-fields">' +
-        '<div class="pi-row"><span class="pi-label">Src IP</span><span class="pi-value">10.0.1.10 (PC1)</span></div>' +
-        '<div class="pi-row"><span class="pi-label">Dst IP</span><span class="pi-value">10.0.2.100 \u2713 mine</span></div>' +
-        '<div class="pi-row"><span class="pi-label">TTL</span><span class="pi-value">63 (decremented once at R1)</span></div>' +
-        '</div><div class="pi-note">Application receives data — response journey begins in reverse</div></div>');
-      highlightDevice('Server1', GREEN, 2);
-      setPacketColor(GREEN);
-      showPacket(true);
-      packetGroup.position.copy(DEVICE_POSITIONS.SERVER1);
-      await wait(500);
-      showPacket(false);
-      // Burst
-      triggerBurst(DEVICE_POSITIONS.SERVER1.clone().add(new THREE.Vector3(0, 0.4, 0)), GREEN);
-      await wait(1500);
-    }
-  },
-  // Step 7: Complete picture
-  {
-    camera: { pos: new THREE.Vector3(0, 10, 20), look: new THREE.Vector3(0, 0, 0) },
-    title: 'Full Path — End to End',
-    text: 'L2 forwarding at each switch, L3 routing decision at R1, new source MAC at every hop, TTL decremented once. The return path is identical in reverse — Server1 already has PC1\'s info cached from the original ARP exchange.',
-    tldr: 'The whole trip: two switches forwarded at Layer 2, the router made the big decision at Layer 3, and the packet arrived with one less life (TTL). The return trip works the same way, just backwards.',
-    run: async () => {
-      // Light up full path simultaneously
-      Object.keys(cableMeshes).forEach(k => glowCable(k, CYAN));
-      highlightDevice('PC1', CYAN);
-      highlightDevice('SW1', CYAN);
-      highlightDevice('R1', AMBER, 2);
-      highlightDevice('SW2', CYAN);
-      highlightDevice('Server1', GREEN, 2);
-
-      // Trail animation across entire path
-      setPacketColor(CYAN);
-      showPacket(true);
-      const segments = ['PC1-SW1', 'SW1-R1', 'R1-SW2', 'SW2-Server1'];
-      for (const seg of segments) {
-        await animatePacketAlongCable(seg, 800, CYAN);
-      }
-      setPacketColor(GREEN);
-      triggerBurst(DEVICE_POSITIONS.SERVER1.clone().add(new THREE.Vector3(0, 0.4, 0)), GREEN);
-      showPacket(false);
-      await wait(800);
-    }
-  },
+/* ════════ TOUR STEPS ════════ */
+const steps=[
+{title:'The Request Begins',text:'A user on PC-1 types a URL into their browser. The OS resolves the hostname to an IP address, then builds a TCP segment destined for the web server at Site B. The source IP is 10.1.10.5 and the destination is 203.0.113.50 \u2014 a public IP behind the data center firewall.',tldr:'App generates data \u2192 OS builds L4 segment \u2192 needs to reach a server across the WAN.',async run(){setCam([-24,8,4],[-22,0,-3]);await wait(1200);highlightDevice('PC-1',0x5eead4);showInspector('<div class="pkt-layer pkt-l4">L4 TCP: SrcPort 49152 \u2192 DstPort 443 (HTTPS)<br>Flags: SYN | Seq: 0</div><div class="pkt-layer pkt-l3">L3 IP: 10.1.10.5 \u2192 203.0.113.50<br>TTL: 128 | Proto: TCP</div><div class="pkt-layer pkt-l2">L2 Eth: PC-1 MAC \u2192 ??? (need ARP)<br>Type: 0x0800 (IPv4)</div>');await wait(2000);showTerminal('<span class="cmd">PC-1$ ping 203.0.113.50</span>\n<span class="out">Destination requires gateway \u2014 10.1.10.1</span>\n<span class="cmd">PC-1$ arp -a</span>\n<span class="out">No entry for 10.1.10.1 \u2014 ARP needed</span>');await wait(1500)}},
+{title:'ARP Resolution & Access Switch',text:'PC-1 broadcasts an ARP request to find the MAC address of its default gateway (R-A at 10.1.10.1). SW-A1 floods the broadcast out all ports. R-A responds with its MAC. SW-A1 learns both MAC addresses and builds its forwarding table.',tldr:'ARP broadcast finds the gateway MAC. The switch learns which port connects to which device.',async run(){setCam([-19,6,6],[-18,0,-1]);hideTerminal();await wait(800);highlightDevice('SW-A1',0xfbbf24);const sp=new THREE.Vector3(-18,0.3,-3);bcast.forEach(b=>{b.s.copy(sp);b.e.set(-18+(Math.random()-0.5)*4,0.3+Math.random()*0.5,-3+(Math.random()-0.5)*6);b.p=0;b.active=true;b.mesh.material.opacity=0.8});await wait(1500);bcast.forEach(b=>{b.active=false;b.mesh.material.opacity=0});highlightDevice('R-A',0xfbbf24);showTerminal('<span class="cmd">SW-A1# show mac address-table</span>\n<span class="out">Mac Address Table\n-------------------------------------------\nVlan  Mac Address     Type     Ports\n----  -----------     ------   -----\n  10  <span class="highlight">aa:bb:cc:01:00:01</span>  DYNAMIC  Gi0/1  (PC-1)\n  10  <span class="highlight">aa:bb:cc:0a:00:01</span>  DYNAMIC  Gi0/24 (R-A)\n</span>');await wait(1200);showOverlay('<h3>SW-A1 MAC Address Table</h3><table><tr><th>VLAN</th><th>MAC</th><th>Port</th><th>Device</th></tr><tr><td>10</td><td>aa:bb:..01:01</td><td>Gi0/1</td><td>PC-1</td></tr><tr class="highlight-row"><td>10</td><td>aa:bb:..0a:01</td><td>Gi0/24</td><td>R-A</td></tr></table>');activateFlow('pc1-swa1',0x5eead4);await wait(1500)}},
+{title:'Distribution Layer \u2014 STP in Action',text:'SW-A1 has two uplinks to the router \u2014 one direct and one through SW-A2 via the cross-link. Spanning Tree Protocol (802.1D) blocks the redundant path through SW-A2 to prevent loops. Traffic flows through the primary uplink on SW-A1 \u2192 R-A.',tldr:'STP blocks redundant paths to prevent broadcast storms. One active path, one backup ready.',async run(){setCam([-16,10,8],[-16,0,0]);hideOverlay();hideTerminal();await wait(800);highlightDevice('SW-A1',0x22c55e);highlightDevice('SW-A2',0x78716c);glowCable('swa1-ra',0x22c55e);glowCable('swa1-swa2',0xf87171,0.4);glowCable('swa2-ra',0x78716c,0.3);activateFlow('swa1-ra',0x5eead4);showTerminal('<span class="cmd">SW-A1# show spanning-tree vlan 10</span>\n<span class="out">VLAN0010\n  Root ID  Priority 32778\n           This bridge is the root\n\nInterface    Role Sts  Cost\n-----------  ---- ---  ----\nGi0/1        Desg FWD  4    (to PC-1)\nGi0/24       Desg FWD  4    (to R-A) \u2713\nGi0/23       Desg FWD  4    (to SW-A2)</span>\n\n<span class="cmd">SW-A2# show spanning-tree vlan 10</span>\n<span class="out">Interface    Role Sts  Cost\n-----------  ---- ---  ----\nGi0/24       Root FWD  4    (to R-A)\nGi0/23       Altn <span class="err">BLK</span>  4    (to SW-A1) \u2190 BLOCKED</span>');showOverlay('<h3>STP Port States</h3><table><tr><th>Switch</th><th>Port</th><th>Role</th><th>State</th></tr><tr><td>SW-A1</td><td>Gi0/24\u2192R-A</td><td>Designated</td><td style="color:#22c55e">Forwarding</td></tr><tr><td>SW-A2</td><td>Gi0/24\u2192R-A</td><td>Root</td><td style="color:#22c55e">Forwarding</td></tr><tr class="highlight-row"><td>SW-A2</td><td>Gi0/23\u2192SW-A1</td><td>Alternate</td><td style="color:#f87171">Blocked</td></tr></table>');await wait(2500);await animatePacketAlongCable('pc1-swa1',1200);await animatePacketAlongCable('swa1-ra',1200);await wait(500)}},
+{title:'Router R-A \u2014 Longest Prefix Match',text:'R-A receives the frame, strips the L2 header, and examines the L3 destination: 203.0.113.50. It consults its routing table and finds the best match. The next hop is the firewall at 10.1.254.2. R-A decrements the TTL from 128 to 127 and builds a new L2 frame.',tldr:'Router strips old frame, reads IP, looks up route, decrements TTL, wraps new frame to next hop.',async run(){setCam([-13,6,5],[-13,0,0]);hideOverlay();hideTerminal();deactivateAllFlows();await wait(600);highlightDevice('R-A',0xfbbf24);showFrame(0x3b82f6,true);frameShell.position.copy(devices['R-A'].group.position).add(new THREE.Vector3(0,1.2,0));await wait(800);showFrame(0x3b82f6,false);showTerminal('<span class="cmd">R-A# show ip route 203.0.113.50</span>\n<span class="out">Routing entry for 203.0.113.0/24\n  Known via "bgp 65001", distance 20\n  * <span class="highlight">10.1.254.2</span>, via GigabitEthernet0/1</span>\n\n<span class="cmd">R-A# show ip cef 203.0.113.50</span>\n<span class="out">203.0.113.0/24\n  nexthop <span class="highlight">10.1.254.2</span> GigabitEthernet0/1</span>');showOverlay('<h3>R-A Routing Table</h3><table><tr><th>Prefix</th><th>Next Hop</th><th>Interface</th><th>AD</th></tr><tr><td>10.1.10.0/24</td><td>Connected</td><td>Gi0/0</td><td>0</td></tr><tr class="highlight-row"><td>203.0.113.0/24</td><td>10.1.254.2</td><td>Gi0/1</td><td>20</td></tr><tr><td>0.0.0.0/0</td><td>10.1.254.2</td><td>Gi0/1</td><td>20</td></tr></table>');showInspector('<div class="pkt-layer pkt-l4">L4 TCP: 49152 \u2192 443 | SYN</div><div class="pkt-layer pkt-l3">L3 IP: 10.1.10.5 \u2192 203.0.113.50<br>TTL: <del>128</del> \u2192 127</div><div class="pkt-layer pkt-l2">L2 Eth: R-A MAC \u2192 FW-A MAC<br>(new frame for next hop)</div>');await wait(1500);showFrame(0xfbbf24,true);await wait(600);showFrame(0xfbbf24,false);await wait(500)}},
+{title:'Firewall FW-A \u2014 Stateful Inspection',text:'The packet reaches FW-A, which performs stateful packet inspection. It checks the connection against its security policy: outbound HTTPS from the campus VLAN is allowed. FW-A creates a state entry to track this TCP session and allow return traffic automatically.',tldr:'Firewall inspects and allows the packet. Creates a state entry so the reply can return automatically.',async run(){setCam([-9,5,5],[-9,0,0]);hideOverlay();hideTerminal();await wait(600);resetDevice('R-A');highlightDevice('FW-A',0xf87171);activateFlow('ra-fwa',0x5eead4);await animatePacketAlongCable('ra-fwa',1000);deactivateFlow('ra-fwa');highlightDevice('FW-A',0xfbbf24,0.6);await wait(400);highlightDevice('FW-A',0xf87171,0.6);await wait(400);highlightDevice('FW-A',0x22c55e,0.6);showTerminal('<span class="cmd">FW-A# show conn detail</span>\n<span class="out">TCP outside 203.0.113.50:443 inside 10.1.10.5:49152\n  <span class="highlight">State: SYN_SENT</span>\n  Flags: sAB\n\nPolicy: CAMPUS-TO-DC\n  Rule: ALLOW tcp src 10.1.10.0/24 dst 203.0.113.0/24 port 443\n  Action: <span class="highlight">PERMIT</span> \u2014 stateful entry created</span>');await wait(2000)}},
+{title:'Crossing the WAN \u2014 Primary ISP Link',text:'The packet exits Site A and enters the WAN through the primary ISP link (ISP-1). At each ISP hop, the TTL decrements. The packet traverses the provider backbone \u2014 potentially crossing multiple autonomous systems, peering points, and fiber spans.',tldr:'Packet enters the internet through ISP-1. Each router hop decrements TTL. Fiber carries it across the backbone.',async run(){setCam([0,14,14],[0,0,0]);hideOverlay();hideTerminal();await wait(800);resetAllDevices();highlightDevice('FW-A',0x5eead4);highlightDevice('ISP-1',0xfbbf24);highlightDevice('FW-B',0x5eead4);glowCable('fwa-isp1',0xfbbf24,0.9);glowCable('isp1-fwb',0xfbbf24,0.9);activateFlow('fwa-isp1',0xfbbf24,0.3);activateFlow('isp1-fwb',0xfbbf24,0.3);showInspector('<div class="pkt-layer pkt-l4">L4 TCP: 49152 \u2192 443 | SYN</div><div class="pkt-layer pkt-l3">L3 IP: 10.1.10.5 \u2192 203.0.113.50<br>TTL: 127 \u2192 126 \u2192 125 \u2192 ...</div><div class="pkt-layer pkt-l2">L2: Re-encapsulated at each hop<br>(new src/dst MAC per segment)</div>');await wait(800);await animatePacketAlongCable('fwa-isp1',1800,0xfbbf24);showTerminal('<span class="cmd">$ traceroute 203.0.113.50</span>\n<span class="out"> 1  10.1.254.2   (FW-A)     1ms\n 2  172.16.0.1   (ISP-1 PE) 4ms\n 3  172.16.0.5   (ISP-1 P)  8ms\n 4  198.51.100.1 (ISP-1 BR) 12ms\n 5  <span class="highlight">203.0.113.1  (FW-B)</span>     18ms</span>');await animatePacketAlongCable('isp1-fwb',1800,0xfbbf24);deactivateAllFlows();await wait(500)}},
+{title:'Site B Edge \u2014 Firewall & Core Router',text:'The packet arrives at Site B. FW-B performs inspection \u2014 checking inbound policy. Destination NAT translates 203.0.113.50 to the internal IP 10.2.10.10 (WEB server). R-B routes the packet to the correct server subnet.',tldr:'Site B firewall inspects inbound traffic. NAT translates public IP to private. Router forwards to server subnet.',async run(){setCam([11,6,6],[11,0,0]);hideOverlay();hideTerminal();await wait(600);resetAllDevices();resetAllCables();highlightDevice('FW-B',0xf87171);await wait(400);highlightDevice('FW-B',0x22c55e,0.6);showTerminal('<span class="cmd">FW-B# show nat translations</span>\n<span class="out">Pro  Inside local     Inside global    Outside\ntcp  <span class="highlight">10.2.10.10:443</span>   203.0.113.50:443 10.1.10.5:49152</span>\n\n<span class="cmd">R-B# show ip route 10.2.10.0</span>\n<span class="out">10.2.10.0/24 is directly connected, GigabitEthernet0/2</span>');showInspector('<div class="pkt-layer pkt-l4">L4 TCP: 49152 \u2192 443 | SYN</div><div class="pkt-layer pkt-l3">L3 IP: 10.1.10.5 \u2192 <del>203.0.113.50</del> 10.2.10.10<br>TTL: 123 | NAT translated</div><div class="pkt-layer pkt-l2">L2 Eth: R-B MAC \u2192 SW-B1 MAC</div>');await wait(1000);highlightDevice('R-B',0xfbbf24);activateFlow('fwb-rb',0x5eead4);await animatePacketAlongCable('fwb-rb',1000);deactivateFlow('fwb-rb');await wait(500)}},
+{title:'Data Center \u2014 Server Farm Delivery',text:'R-B forwards to SW-B1, which has the WEB server\'s MAC in its table. The switch forwards directly to the server port. The packet arrives after crossing 2 sites, 4+ router hops, 2 firewalls, and an ISP backbone.',tldr:'Core switch forwards to the web server. Packet has crossed the entire enterprise WAN.',async run(){setCam([20,8,6],[20,0,-1]);hideOverlay();hideTerminal();await wait(600);resetAllDevices();highlightDevice('SW-B1',0x22c55e);highlightDevice('WEB',0x22c55e);activateFlow('rb-swb1',0x5eead4);activateFlow('swb1-web',0x22c55e);await animatePacketAlongCable('rb-swb1',1000);await animatePacketAlongCable('swb1-web',1000,0x22c55e);deactivateAllFlows();triggerBurst(devices['WEB'].group.position.clone().add(new THREE.Vector3(0,0.5,0)),0x22c55e);showTerminal('<span class="cmd">WEB# netstat -an | grep 443</span>\n<span class="out">tcp  0  0  10.2.10.10:443  10.1.10.5:49152  <span class="highlight">SYN_RECV</span></span>');await wait(2000)}},
+{title:'TCP Three-Way Handshake',text:'The server responds. The SYN-ACK travels the entire path in reverse \u2014 through SW-B1, R-B, FW-B, ISP-1, FW-A, R-A, SW-A1, back to PC-1. Then PC-1 sends the final ACK. Three packets, two full WAN traversals, just to establish the connection.',tldr:'SYN \u2192 SYN-ACK \u2192 ACK. Three packets cross the entire WAN just to set up the TCP connection.',async run(){setCam([0,18,20],[0,0,0]);hideOverlay();hideTerminal();await wait(800);resetAllDevices();setPacketColor(0x22c55e);showInspector('<div class="pkt-layer pkt-l4">L4 TCP: 443 \u2192 49152 | <b>SYN-ACK</b><br>Seq: 0 | Ack: 1</div><div class="pkt-layer pkt-l3">L3 IP: 10.2.10.10 \u2192 10.1.10.5</div><div class="pkt-layer pkt-l2">L2: (re-encapsulated per hop)</div>');const ret=['swb1-web','rb-swb1','fwb-rb','isp1-fwb','fwa-isp1','ra-fwa','swa1-ra','pc1-swa1'];for(const k of ret){glowCable(k,0x22c55e,0.7);activateFlow(k,0x22c55e,0.25)}for(const k of ret)await animatePacketReverse(k,600,0x22c55e);triggerBurst(devices['PC-1'].group.position.clone().add(new THREE.Vector3(0,0.5,0)),0x22c55e);deactivateAllFlows();resetAllCables();await wait(800);showInspector('<div class="pkt-layer pkt-l4">L4 TCP: 49152 \u2192 443 | <b>ACK</b><br>Seq: 1 | Ack: 1</div><div class="pkt-layer pkt-l3">L3 IP: 10.1.10.5 \u2192 203.0.113.50</div><div class="pkt-layer pkt-l2">L2: (re-encapsulated per hop)</div>');const fwd=['pc1-swa1','swa1-ra','ra-fwa','fwa-isp1','isp1-fwb','fwb-rb','rb-swb1','swb1-web'];for(const k of fwd)glowCable(k,0x5eead4,0.5);for(const k of fwd)await animatePacketAlongCable(k,500,0x5eead4);triggerBurst(devices['WEB'].group.position.clone().add(new THREE.Vector3(0,0.5,0)),0x5eead4);showTerminal('<span class="cmd">TCP Handshake Complete</span>\n<span class="out">\u2192 SYN      PC-1 \u2192 WEB   (10.1.10.5:49152 \u2192 203.0.113.50:443)\n\u2190 SYN-ACK  WEB \u2192 PC-1   (203.0.113.50:443 \u2192 10.1.10.5:49152)\n\u2192 ACK      PC-1 \u2192 WEB   (connection <span class="highlight">ESTABLISHED</span>)</span>');resetAllCables();await wait(1500)}},
+{title:'Link Failure \u2014 Redundancy Saves the Day',text:'The primary ISP-1 link goes down! The routing protocol detects the failure and converges on the backup path through ISP-2 within seconds. Traffic automatically reroutes \u2014 the user might notice a brief pause, but the connection survives.',tldr:'Primary WAN link fails. Routing protocol converges on ISP-2 backup path. No manual intervention needed.',async run(){setCam([0,16,16],[0,0,0]);hideOverlay();hideTerminal();hideInspector();await wait(1000);resetAllDevices();resetAllCables();glowCable('fwa-isp1',0x5eead4,0.8);glowCable('isp1-fwb',0x5eead4,0.8);activateFlow('fwa-isp1',0x5eead4,0.25);activateFlow('isp1-fwb',0x5eead4,0.25);highlightDevice('ISP-1',0x5eead4);await wait(1500);deactivateFlow('fwa-isp1');deactivateFlow('isp1-fwb');cables['fwa-isp1'].broken=true;cables['isp1-fwb'].broken=true;glowCable('fwa-isp1',0xf87171,0.3);glowCable('isp1-fwb',0xf87171,0.3);highlightDevice('ISP-1',0xf87171,0.8);showTerminal('<span class="err">%LINK-3-UPDOWN: Interface Gi0/1, changed state to down</span>\n<span class="err">%BGP-5-ADJCHANGE: neighbor 172.16.0.1 Down \u2014 link failure</span>\n<span class="out">\nConverging...</span>');await wait(2000);showTerminal('<span class="err">%LINK-3-UPDOWN: Interface Gi0/1, changed state to down</span>\n<span class="err">%BGP-5-ADJCHANGE: neighbor 172.16.0.1 Down</span>\n<span class="out">\nConverging...\n\n<span class="highlight">%BGP-5-ADJCHANGE: neighbor 172.16.0.9 Up (ISP-2)</span>\n%IP-ROUTE: 203.0.113.0/24 via 10.1.254.6 (ISP-2) \u2014 <span class="highlight">ACTIVE</span></span>');glowCable('fwa-isp2',0x22c55e,0.9);glowCable('isp2-fwb',0x22c55e,0.9);highlightDevice('ISP-2',0x22c55e);activateFlow('fwa-isp2',0x22c55e,0.3);activateFlow('isp2-fwb',0x22c55e,0.3);await wait(1000);await animatePacketAlongCable('fwa-isp2',1500,0x22c55e);await animatePacketAlongCable('isp2-fwb',1500,0x22c55e);triggerBurst(devices['FW-B'].group.position.clone().add(new THREE.Vector3(0,0.5,0)),0x22c55e);await wait(1000);cables['fwa-isp1'].broken=false;cables['isp1-fwb'].broken=false}},
+{title:'STP Reconvergence \u2014 Switch Redundancy',text:'Back at Site A, the primary uplink from SW-A1 to R-A fails. STP detects the topology change and unblocks the alternate path through SW-A2. With Rapid STP, convergence happens in under 1 second. Traffic flows through the backup switch.',tldr:'When a switch link fails, STP unblocks the backup path. RSTP converges in under 1 second.',async run(){setCam([-16,10,8],[-16,0,0]);hideOverlay();hideTerminal();deactivateAllFlows();resetAllDevices();resetAllCables();await wait(800);glowCable('swa1-ra',0x22c55e,0.8);highlightDevice('SW-A1',0x22c55e);activateFlow('swa1-ra',0x5eead4);await wait(1500);deactivateFlow('swa1-ra');glowCable('swa1-ra',0xf87171,0.3);highlightDevice('SW-A1',0xf87171,0.6);showTerminal('<span class="err">%LINK-3-UPDOWN: Gi0/24 changed state to down</span>\n<span class="out">%RSTP-5-TOPO_CHANGE: Topology change detected\n%RSTP-5-ROLE_CHG: Gi0/23 Alternate \u2192 <span class="highlight">Designated FORWARDING</span></span>');await wait(1500);glowCable('swa1-swa2',0x22c55e,0.8);glowCable('swa2-ra',0x22c55e,0.8);highlightDevice('SW-A2',0x22c55e);activateFlow('swa1-swa2',0x22c55e);activateFlow('swa2-ra',0x22c55e);await animatePacketAlongCable('pc1-swa1',800,0x5eead4);await animatePacketAlongCable('swa1-swa2',800,0x5eead4);await animatePacketAlongCable('swa2-ra',800,0x5eead4);showOverlay('<h3>RSTP vs Classic STP</h3><table><tr><th>Feature</th><th>STP (802.1D)</th><th>RSTP (802.1w)</th></tr><tr><td>Convergence</td><td style="color:#f87171">30-50 sec</td><td style="color:#22c55e">&lt;1 sec</td></tr><tr><td>Backup Ports</td><td>Blocking</td><td>Alternate (pre-computed)</td></tr><tr><td>Topology Change</td><td>Notify root</td><td>Direct propagation</td></tr></table>');deactivateAllFlows();await wait(2000)}},
+{title:'The Complete Enterprise WAN',text:'You just watched a single packet cross an entire enterprise network \u2014 from user desktop through access switches, distribution routers, firewalls, ISP backbone, data center core, and into a server farm. Every hop made an independent forwarding decision. Every redundant path stood ready.',tldr:'Every device made its own decision. Redundancy at every layer. This is enterprise networking.',async run(){setCam([0,22,28],[0,0,0]);hideOverlay();hideTerminal();hideInspector();resetAllDevices();resetAllCables();await wait(1000);Object.keys(devices).forEach(k=>highlightDevice(k,0x5eead4,0.3));const fp=['pc1-swa1','swa1-ra','ra-fwa','fwa-isp1','isp1-fwb','fwb-rb','rb-swb1','swb1-web'];fp.forEach(k=>{glowCable(k,0x5eead4,0.8);activateFlow(k,0x5eead4,0.2)});const bp=['pc2-swa2','swa2-ra','swa1-swa2','fwa-isp2','isp2-fwb','isp1-isp2','rb-swb2','swb1-swb2','swb2-db','swb2-app','swb1-app'];bp.forEach(k=>{glowCable(k,0x22c55e,0.25);activateFlow(k,0x22c55e,0.1)});await wait(1000);for(const k of fp)await animatePacketAlongCable(k,700,0x5eead4);triggerBurst(devices['WEB'].group.position.clone().add(new THREE.Vector3(0,0.5,0)),0x5eead4);showTerminal('<span class="highlight">\u2501\u2501\u2501 Journey Summary \u2501\u2501\u2501</span>\n\n<span class="out">Hops:        8 devices\nDistance:    WAN backbone\nProtocols:   Ethernet, IP, TCP, ARP, STP, BGP\nRedundancy:  Dual ISP, Dual switches, RSTP\nSecurity:    2 stateful firewalls, NAT\nTime:        ~18ms round-trip</span>');await wait(3000)}}
 ];
 
-async function runStep(idx) {
-  const step = STEPS[idx];
-  if (!step) return;
-  currentStep = idx;
+/* ════════ TOUR ENGINE ════════ */
+async function runStep(i){if(i>=steps.length){endTour();return}currentStep=i;updateDots(i);hideAllPanels();showPacket(false);showFrame(0,false);const s=steps[i];showNarration(i,s.title,s.text,s.tldr);await s.run();enableNext()}
+function advanceStep(){if(currentStep+1>=steps.length)endTour();else runStep(currentStep+1)}
+window.advanceStep=advanceStep;
+function startTour(){document.getElementById('startScreen').style.display='none';runStep(0)}
+window.startTour=startTour;
+function endTour(){hideAllPanels();showPacket(false);deactivateAllFlows();resetAllDevices();resetAllCables();freeLook=true;controls.enabled=true;document.getElementById('freeLookBtn').classList.add('active');setCam([0,22,28],[0,0,0])}
 
-  // Reset state
-  resetAllDevices();
-  resetAllCables();
-  hideOverlay();
-  // Only hide terminal if this step doesn't have one (steps 3,4,5 have terminals)
-  if (![2,3,4].includes(idx)) hideTerminal();
-  if (idx === 6) hidePacketInspector();
-  showPacket(false);
-  frameShell.visible = false;
-  newFrameShell.visible = false;
-
-  // Camera — smooth glide to new position and look target
-  if (!freeLookOn) {
-    setCameraTarget(step.camera.pos, step.camera.look, idx === 0 ? 0.04 : 0.07);
-  }
-
-  // Show narration (Next disabled during animation)
-  const isLast = idx === STEPS.length - 1;
-  showNarration(idx + 1, step.title, step.text, false, false, step.tldr || '');
-
-  // Wait for camera to glide into position
-  await wait(1200);
-
-  // Run animation
-  await step.run();
-
-  // Enable Next or show end buttons
-  if (isLast) {
-    showNarration(idx + 1, step.title, step.text, false, true, step.tldr || '');
-  } else {
-    enableNextButton();
-  }
-}
-
-function advanceStep() {
-  if (currentStep < STEPS.length - 1) {
-    runStep(currentStep + 1);
-  }
-}
-
-function startTour() {
-  tourActive = true;
-  currentStep = 0;
-  freeLookOn = false;
-  controls.enabled = false;
-  btnFreeLook.classList.remove('active');
-  // Animate camera from wide establishing shot to PC1 (step 1)
-  startScreen.classList.add('hidden');
-  stepIndicator.classList.add('visible');
-  speedCtrl.classList.add('visible');
-  controlsPanel.classList.add('visible');
-  resetAllDevices();
-  resetAllCables();
-  showPacket(false);
-  hideOverlay();
-  runStep(0);
-}
-
-function endTour() {
-  tourActive = false;
-  hideNarration();
-  hideOverlay();
-  hideTerminal();
-  hidePacketInspector();
-  showPacket(false);
-  resetAllDevices();
-  resetAllCables();
-  freeLookOn = true;
-  controls.enabled = true;
-  btnFreeLook.classList.add('active');
-  setCameraTarget(new THREE.Vector3(0, 8, 18), new THREE.Vector3(0, 0, 0));
-}
-
-startBtn.addEventListener('click', startTour);
-
-// ══════════════════════════════════════════════════════════════
-// ANIMATION LOOP
-// ══════════════════════════════════════════════════════════════
-const clock = new THREE.Clock();
-
-function animate() {
-  requestAnimationFrame(animate);
-  const rawDt = clock.getDelta();
-  const dt = rawDt * speedMultiplier;
-
-  // Process active animations
-  activeAnimations = activeAnimations.filter(a => {
-    if (a.done) return false;
-
-    if (a.type === 'cable') {
-      const speed = 1 / (a.duration / 1000);
-      if (a.reverse) {
-        a.t -= speed * dt;
-        if (a.t <= 0) {
-          a.t = 0; a.done = true;
-          if (a.cableKey) resetCable(a.cableKey);
-          if (a.resolve) a.resolve();
-          return false;
-        }
-      } else {
-        a.t += speed * dt;
-        if (a.t >= 1) {
-          a.t = 1; a.done = true;
-          if (a.cableKey) resetCable(a.cableKey);
-          if (a.resolve) a.resolve();
-          return false;
-        }
-      }
-      const eased = easeInOutCubic(a.t);
-      const pos = a.curve.getPointAt(Math.max(0, Math.min(1, eased)));
-      packetGroup.position.copy(pos);
-      updateTrail(pos);
-      return true;
-    }
-
-    if (a.type === 'frameStrip') {
-      const speed = 1 / (a.duration / 1000);
-      a.t += speed * dt;
-      if (a.t >= 1) {
-        a.done = true;
-        if (a.resolve) a.resolve();
-        return false;
-      }
-      frameShell.scale.setScalar(1 + a.t * 1.5);
-      frameShellMat.opacity = 0.6 * (1 - a.t);
-      return true;
-    }
-
-    if (a.type === 'frameWrap') {
-      const speed = 1 / (a.duration / 1000);
-      a.t += speed * dt;
-      if (a.t >= 1) {
-        a.done = true;
-        if (a.resolve) a.resolve();
-        return false;
-      }
-      newFrameShell.scale.setScalar(2 - a.t * 1.2);
-      newFrameShellMat.opacity = a.t * 0.6;
-      return true;
-    }
-
-    return true;
-  });
-
-  // Broadcast packets
-  broadcastPackets.forEach(bp => {
-    if (!bp.active) return;
-    bp.t += dt * 2;
-    if (bp.t >= 1) {
-      bp.active = false;
-      bp.mesh.visible = false;
-      return;
-    }
-    const pos = new THREE.Vector3().lerpVectors(bp.from, bp.to, easeInOutCubic(bp.t));
-    bp.mesh.position.copy(pos);
-    bp.mesh.material.opacity = 1 - bp.t * 0.5;
-  });
-
-  // Burst particles
-  updateBurst(dt);
-
-  // Camera — smooth position + smooth lookAt target
-  if (!freeLookOn) {
-    camera.position.lerp(camTarget, camLerp);
-    camLookAtCur.lerp(camLookAt, camLerp * 1.5);
-    camera.lookAt(camLookAtCur);
-    // Sync OrbitControls target so it doesn't fight the lerp
-    controls.target.copy(camLookAtCur);
-  }
-
-  if (freeLookOn) controls.update();
-  composer.render();
-  labelRenderer.render(scene, camera);
-}
-
+/* ════════ ANIMATION LOOP ════════ */
+const clock=new THREE.Clock();
+function animate(){requestAnimationFrame(animate);const dt=clock.getDelta(),t=clock.getElapsedTime();
+  for(let i=activeAnims.length-1;i>=0;i--){const a=activeAnims[i];let p=Math.min((performance.now()-a.start)/a.dur,1);p=easeInOutCubic(p);const pt=a.cable.curve.getPoint(a.type==='rev'?1-p:p);packet.position.copy(pt);frameShell.position.copy(pt);if(p>=1){activeAnims.splice(i,1);a.resolve()}}
+  Object.values(cables).forEach(c=>{c.particles.forEach(p=>{if(!p.active)return;p.offset+=dt*p.speed;if(p.offset>1)p.offset-=1;p.mesh.position.copy(c.curve.getPoint(p.offset));p.mat.opacity=0.4+Math.sin(p.offset*Math.PI*2)*0.2})});
+  bcast.forEach(b=>{if(!b.active)return;b.p+=dt*1.5;if(b.p>=1){b.active=false;b.mesh.material.opacity=0;return}b.mesh.position.lerpVectors(b.s,b.e,easeInOutCubic(b.p));b.mesh.material.opacity=(1-b.p)*0.7});
+  burst.forEach(p=>{if(!p.active)return;p.mesh.position.add(p.vel);p.vel.y-=0.003;p.mesh.material.opacity-=0.015;if(p.mesh.material.opacity<=0){p.active=false;p.mesh.material.opacity=0}});
+  ['ISP-1','ISP-2'].forEach(n=>{const d=devices[n];if(d&&d.sphere)d.sphere.rotation.y=t*0.3});
+  if(!freeLook){camera.position.lerp(camTarget.pos,camTarget.lerp);currentLook.lerp(camTarget.look,camTarget.lerp);camera.lookAt(currentLook)}
+  updateTrail();controls.update();composer.render();labelRenderer.render(scene,camera)}
 animate();
 </script>
-<script src="js/tutor.js"></script>
-<script src="js/group-chat.js"></script>
+<script src="js/nav.js" defer></script>
+<script src="js/tutor.js" defer></script>
+<script src="js/group-chat.js" defer></script>
 </body>
 </html>
