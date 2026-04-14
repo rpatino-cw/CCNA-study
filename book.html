@@ -637,36 +637,19 @@ const V2_META = {
   }
 };
 
-// --- Reading progress (localStorage) ---
-function getReadChapters() {
-  try { return JSON.parse(localStorage.getItem('ccna_book_read')) || []; }
-  catch(e) { return []; }
-}
-function setReadChapters(arr) {
-  localStorage.setItem('ccna_book_read', JSON.stringify(arr));
-}
-function updateProgressBar() {
-  var read = getReadChapters();
-  var total = 20;
+// --- Reading progress (unified for all books) ---
+function updateProgressBar(bookId, toc) {
+  var key = 'ccna_book_read_' + bookId;
+  var read = JSON.parse(localStorage.getItem(key) || '[]');
+  var total = toc.filter(function(i) { return i.ch; }).length;
   var count = read.length;
-  var pct = Math.round((count / total) * 100);
+  var pct = total > 0 ? Math.round((count / total) * 100) : 0;
   var el = document.getElementById('readProgress');
   if (el) {
     el.style.display = 'flex';
     document.getElementById('readProgressText').textContent = count + '/' + total + ' chapters read';
     document.getElementById('readProgressFill').style.width = pct + '%';
   }
-}
-function toggleChapterRead(chNum) {
-  var read = getReadChapters();
-  var id = 'v2-ch' + chNum;
-  var idx = read.indexOf(id);
-  if (idx === -1) { read.push(id); } else { read.splice(idx, 1); }
-  setReadChapters(read);
-  updateProgressBar();
-  // Update row styling
-  var row = document.querySelector('.toc-ch-row[data-ch="' + chNum + '"]');
-  if (row) { row.classList.toggle('ch-read', idx === -1); }
 }
 
 // --- Get topic map for a given book ---
@@ -755,62 +738,7 @@ function closeChapterReading() {
   document.getElementById('tocSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
-// --- Build enhanced TOC for Vol 2 ---
-function buildVol2Toc(toc) {
-  var read = getReadChapters();
-  var isGH = location.hostname.includes('github.io');
-  var topicMap = getTopicMap('odom-vol2');
-  var html = '';
-  toc.forEach(function(item) {
-    if (item.part) {
-      html += '<div class="toc-part">' + item.part + '</div>';
-      return;
-    }
-    var chNum = item.ch;
-    var chId = 'v2-ch' + chNum;
-    var isRead = read.indexOf(chId) !== -1;
-    var meta = V2_META[chNum];
-    var hasMapped = isGH && topicMap[chNum] && topicMap[chNum].length > 0;
-    var clickable = hasMapped ? ' toc-ch-clickable' : '';
-
-    html += '<div class="toc-ch-row' + (isRead ? ' ch-read' : '') + clickable + '" data-ch="' + chNum + '" data-book="odom-vol2" data-title="' + item.title.replace(/"/g, '&quot;') + '" data-page="' + item.page + '" data-mapped="' + (hasMapped ? '1' : '0') + '">';
-    // Checkbox
-    html += '<div class="toc-ch-check-wrap"><input type="checkbox" class="ch-check" data-ch="' + chId + '"' + (isRead ? ' checked' : '') + ' onclick="event.stopPropagation(); toggleChapterRead(' + chNum + ')"></div>';
-    // Main clickable row
-    html += '<div class="toc-ch-main">';
-    html += '<span class="toc-ch-name">Ch ' + chNum + ' — ' + item.title + '</span>';
-    html += '<span class="toc-ch-page">p.' + item.page + '</span>';
-    html += '</div>';
-    html += '</div>'; // close toc-ch-row
-
-    if (meta) {
-      // Summary
-      html += '<div class="ch-summary">' + meta.summary + '</div>';
-      // Key exam points
-      if (meta.points && meta.points.length) {
-        html += '<details class="ch-details"><summary>Key Exam Points</summary><ul>';
-        meta.points.forEach(function(pt) { html += '<li>' + pt + '</li>'; });
-        html += '</ul></details>';
-      }
-      // Cross-links
-      var hasLinks = (meta.core && meta.core.length) || (meta.labs && meta.labs.length) || (meta.visuals && meta.visuals.length);
-      if (hasLinks) {
-        html += '<div class="ch-links">';
-        if (meta.core) meta.core.forEach(function(c) {
-          html += '<a href="core.html#' + c + '">CORE ' + c + '</a>';
-        });
-        if (meta.labs) meta.labs.forEach(function(l) {
-          html += '<a href="' + l.href + '">' + l.label + '</a>';
-        });
-        if (meta.visuals) meta.visuals.forEach(function(v) {
-          html += '<a href="' + v.href + '">' + v.label + '</a>';
-        });
-        html += '</div>';
-      }
-    }
-  });
-  return html;
-}
+// buildVol2Toc removed — all books use unified buildSimpleToc now
 
 // --- Build unified TOC for all books (same design) ---
 function buildSimpleToc(toc, bookId) {
@@ -876,16 +804,9 @@ function init() {
   const book = BOOKS[bookId];
   if (!book) return;
 
-  var isVol2 = false; // unified TOC for all books now
-
-  // Render TOC
-  if (isVol2) {
-    document.getElementById('tocList').innerHTML = buildVol2Toc(book.toc);
-    updateProgressBar();
-  } else {
-    document.getElementById('tocList').innerHTML = buildSimpleToc(book.toc, bookId);
-    document.getElementById('readProgress').style.display = 'none';
-  }
+  // Render TOC (unified for all books)
+  document.getElementById('tocList').innerHTML = buildSimpleToc(book.toc, bookId);
+  updateProgressBar(bookId, book.toc);
 
   document.getElementById('bookSelect').value = bookId;
 
