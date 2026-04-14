@@ -73,6 +73,31 @@
 .bughunt-timer.complete { color: var(--prof-strong); border-color: var(--prof-strong); }
 .bughunt-timer.complete .timer-label { color: var(--prof-strong); }
 
+/* ── Minimal active-lab bar ───────────────────────── */
+.lab-minibar {
+  display: none; align-items: center; gap: 12px;
+  padding: 10px var(--s-lg); border-bottom: 1px solid var(--rule);
+  background: var(--bg); flex-shrink: 0;
+}
+.lab-minibar.visible { display: flex; }
+.lab-minibar .lab-back {
+  font-family: var(--font-display); font-size: 0.78rem; font-weight: 600;
+  color: var(--ink-muted); background: none; border: none; cursor: pointer; padding: 0;
+}
+.lab-minibar .lab-back:hover { color: var(--ink); }
+.lab-minibar .lab-name {
+  font-family: var(--font-display); font-size: 0.92rem; font-weight: 700; color: var(--ink);
+}
+.lab-minibar .mini-timer {
+  margin-left: auto; font-family: var(--font-mono);
+  font-size: 0.92rem; font-weight: 700; color: var(--ink); display: none;
+}
+.lab-minibar .mini-timer.active { display: block; }
+.lab-minibar .mini-timer.complete { color: var(--prof-strong); }
+
+/* Hide duel UI — secondary feature */
+.duel-btn, .join-duel-bar { display: none !important; }
+
 /* ── Main split ────────────────────────────────────── */
 .lab-workspace { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-height: 0; }
 .top-pane { display: flex; flex: 0 0 auto; min-height: 200px; max-height: 50vh; overflow: hidden; border-bottom: 2px solid var(--ink); }
@@ -493,6 +518,13 @@
       </div>
     </div>
     <div class="lab-cards" id="labCards"></div>
+  </div>
+
+  <!-- Minimal active-lab bar -->
+  <div class="lab-minibar" id="labMinibar">
+    <button class="lab-back" onclick="exitLab()">&larr; Labs</button>
+    <span class="lab-name" id="miniLabName"></span>
+    <span class="mini-timer" id="miniTimer">0:00</span>
   </div>
 
   <!-- Opponent panel (shown during duels) -->
@@ -2180,6 +2212,10 @@
     bughuntTimerEl.classList.add('active');
     bughuntTimerEl.classList.remove('complete');
     bughuntTimerValueEl.textContent = '0:00';
+    var mt = document.getElementById('miniTimer');
+    mt.classList.add('active');
+    mt.classList.remove('complete');
+    mt.textContent = '0:00';
     clearInterval(bughuntTimerInterval);
     bughuntTimerInterval = setInterval(function() {
       if (bughuntTimerStart) {
@@ -2187,7 +2223,9 @@
         var totalSec = Math.floor(elapsed / 1000);
         var min = Math.floor(totalSec / 60);
         var sec = totalSec % 60;
-        bughuntTimerValueEl.textContent = min + ':' + (sec < 10 ? '0' : '') + sec;
+        var t = min + ':' + (sec < 10 ? '0' : '') + sec;
+        bughuntTimerValueEl.textContent = t;
+        mt.textContent = t;
       }
     }, 500);
   }
@@ -2195,12 +2233,15 @@
   function stopBughuntTimer() {
     clearInterval(bughuntTimerInterval);
     bughuntTimerEl.classList.add('complete');
+    document.getElementById('miniTimer').classList.add('complete');
   }
 
   function hideBughuntTimer() {
     clearInterval(bughuntTimerInterval);
     bughuntTimerStart = null;
     bughuntTimerEl.classList.remove('active', 'complete');
+    var mt = document.getElementById('miniTimer');
+    mt.classList.remove('active', 'complete');
   }
 
   function loadLab(idx) {
@@ -2220,7 +2261,10 @@
     $welcome.style.display = 'none';
     $topPane.style.display = '';
     $bottomPane.style.display = '';
-    document.querySelector('.lab-selector').classList.add('visible');
+    document.querySelector('.lab-selector').classList.remove('visible');
+    var minibar = document.getElementById('labMinibar');
+    minibar.classList.add('visible');
+    document.getElementById('miniLabName').textContent = LABS[idx].name;
 
     // Create lab instance
     var isBugHunt = LABS[idx].type === 'bughunt';
@@ -2256,6 +2300,23 @@
     } catch(e) { alert('Lab load error: ' + e.message + ' at ' + e.stack); console.error(e); }
   }
   window._loadLab = loadLab;
+
+  window.exitLab = function() {
+    currentLab = null;
+    currentLabIdx = -1;
+    hideBughuntTimer();
+    document.getElementById('labMinibar').classList.remove('visible');
+    document.querySelector('.lab-selector').classList.remove('visible');
+    $labCards.querySelectorAll('.lab-card-sel').forEach(function(btn) {
+      btn.classList.remove('active');
+    });
+    $welcome.style.display = '';
+    $topPane.style.display = 'none';
+    $bottomPane.style.display = 'none';
+    $termOutput.innerHTML = '';
+    $deviceTabs.innerHTML = '';
+    showMenuStep1();
+  };
 
   function renderDeviceTabs() {
     $deviceTabs.innerHTML = '';
