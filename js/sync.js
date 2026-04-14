@@ -1,14 +1,6 @@
 /* Background sync — pushes localStorage progress to study group KV on every page load */
 (function(){
-  // Cert track banner — show on every page
   var certTrack=localStorage.getItem('ccna_cert_track')||'ccna';
-  if(certTrack==='net+'){
-    var banner=document.createElement('div');
-    banner.style.cssText='position:fixed;top:0;left:0;right:0;z-index:400;background:#7C3AED;color:#fff;text-align:center;font-family:monospace;font-size:0.65rem;padding:3px 0;letter-spacing:0.05em';
-    banner.textContent='STUDYING FOR: CompTIA Network+ (N10-009)';
-    document.body.appendChild(banner);
-    document.body.style.paddingTop='22px';
-  }
 
   var API='https://ccna-tutor.rpatino-cw.workers.dev';
   var code=localStorage.getItem('ccna_peer_group');
