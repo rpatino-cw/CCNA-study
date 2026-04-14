@@ -646,53 +646,60 @@ function init() {
   const isGitHubPages = location.hostname.includes('github.io');
 
   if (isGitHubPages) {
-    // Show book reference guide + TOC instead of blank page
+    // Show drag-and-drop PDF loader + viewer
     document.getElementById('viewer').innerHTML =
-      '<div class="amber-banner setup-box">' +
-        '<h3>Read the actual books right here.</h3>' +
-        '<p class="setup-sub">This page becomes a full PDF reader when you run the site locally. Four steps:</p>' +
-        '<ol>' +
-          '<li>Clone: <code>git clone https://github.com/rpatino-cw/CCNA-study.git</code></li>' +
-          '<li>Get the PDFs (buy them or download legally)</li>' +
-          '<li>Drop them in the <code>books/</code> folder</li>' +
-          '<li>Open <code>book.html</code> in your browser — done</li>' +
-        '</ol>' +
-        '<div class="amber-muted">Your PDFs stay on your machine. Nothing gets uploaded.</div>' +
-      '</div>' +
-      '<div class="book-cards">' +
-        '<div class="book-ref">' +
-          '<span class="book-ref-badge primary">PRIMARY</span>' +
-          '<h3>CCNA 200-301 Official Cert Guide Library</h3>' +
-          '<div class="book-author">Wendell Odom — Cisco Press</div>' +
-          '<div class="book-desc">The gold standard. Vol 1 covers fundamentals through wireless, Vol 2 covers ACLs, security, services, and automation. Every CORE objective maps to a chapter.</div>' +
-          '<div class="book-chs">Vol 1+2 combined — 27 chapters mapped</div>' +
-        '</div>' +
-        '<div class="book-ref">' +
-          '<span class="book-ref-badge supplement">SUPPLEMENT</span>' +
-          '<h3>Acing the CCNA Exam</h3>' +
-          '<div class="book-author">Jeremy McDowell — MEAP v3</div>' +
-          '<div class="book-desc">Concise, exam-focused chapters. Great for people who find Odom too dense. Covers the same 200-301 objectives with a practical approach.</div>' +
-          '<div class="book-chs">15 chapters — one per major topic area</div>' +
-        '</div>' +
-        '<div class="book-ref">' +
-          '<span class="book-ref-badge supplement">SUPPLEMENT</span>' +
-          '<h3>Implementing and Administering Cisco Solutions</h3>' +
-          '<div class="book-author">Glen D. Singh — Packt</div>' +
-          '<div class="book-desc">Full-scope CCNA guide organized by exam domain. Strong on hands-on labs and practical scenarios.</div>' +
-          '<div class="book-chs">12 chapters across 6 sections</div>' +
-        '</div>' +
-        '<div class="book-ref">' +
-          '<span class="book-ref-badge primary">PRIMARY</span>' +
-          '<h3>Official Cert Guide, Volume 2</h3>' +
-          '<div class="book-author">Wendell Odom — Cisco Press</div>' +
-          '<div class="book-desc">ACLs, security, NAT, QoS, network architecture, SDN, and automation. The second half of the exam lives here.</div>' +
-          '<div class="book-chs">20 chapters — each mapped to CORE objectives</div>' +
-        '</div>' +
-      '</div>' +
-      '<div class="online-toc">' +
-        '<h2>Chapter Reference — ' + book.title.split('—')[0].trim() + '</h2>' +
+      '<div id="dropZone" style="border:2px dashed var(--border);border-radius:var(--radius-lg);padding:48px 24px;text-align:center;cursor:pointer;transition:all .2s;background:var(--bg-surface)">' +
+        '<div style="font-family:var(--font-display);font-size:1.3rem;font-weight:700;margin-bottom:8px">Drop your PDF here</div>' +
+        '<div style="font-family:var(--font-body);font-size:.88rem;color:var(--ink-secondary);margin-bottom:16px;max-width:50ch;margin-left:auto;margin-right:auto;line-height:1.5">Drag any CCNA book PDF onto this area, or click to browse. The file stays in your browser — nothing gets uploaded anywhere.</div>' +
+        '<label style="display:inline-block;padding:10px 24px;background:var(--ink);color:var(--bg);border-radius:var(--radius);font-family:var(--font-display);font-size:.85rem;font-weight:600;cursor:pointer;transition:opacity .15s">' +
+          'Choose PDF <input type="file" accept=".pdf" id="pdfFileInput" style="display:none">' +
+        '</label>' +
       '</div>';
-    // Show TOC on GitHub Pages too (visible by default)
+
+    var dropZone = document.getElementById('dropZone');
+    var fileInput = document.getElementById('pdfFileInput');
+
+    dropZone.addEventListener('dragover', function(e) { e.preventDefault(); dropZone.style.borderColor = 'var(--accent)'; dropZone.style.background = 'var(--accent-dim,#fffbeb)'; });
+    dropZone.addEventListener('dragleave', function() { dropZone.style.borderColor = 'var(--border)'; dropZone.style.background = 'var(--bg-surface)'; });
+    dropZone.addEventListener('drop', function(e) { e.preventDefault(); dropZone.style.borderColor = 'var(--border)'; if (e.dataTransfer.files[0]) loadDroppedPdf(e.dataTransfer.files[0]); });
+    dropZone.addEventListener('click', function() { fileInput.click(); });
+    fileInput.addEventListener('change', function() { if (fileInput.files[0]) loadDroppedPdf(fileInput.files[0]); });
+
+    window.loadDroppedPdf = function(file) {
+      if (file.type !== 'application/pdf') { alert('Please drop a PDF file.'); return; }
+      var reader = new FileReader();
+      reader.onload = function(e) {
+        var typedArray = new Uint8Array(e.target.result);
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
+        document.getElementById('viewer').innerHTML =
+          '<div class="pdf-toolbar">' +
+            '<button onclick="prevPage()">&#9664;</button>' +
+            '<input type="number" id="pageInput" min="1" value="' + (page || 1) + '" onchange="jumpToPage(this.value)">' +
+            '<span id="pageTotalDisplay">/ ...</span>' +
+            '<button onclick="nextPage()">&#9654;</button>' +
+            '<span class="toolbar-sep"></span>' +
+            '<button onclick="zoomOut()">&#8722;</button>' +
+            '<span id="zoomDisplay">--</span>' +
+            '<button onclick="zoomIn()">+</button>' +
+            '<button onclick="zoomFit()">Fit</button>' +
+            '<span class="toolbar-sep"></span>' +
+            '<span style="font-family:var(--font-mono);font-size:.72rem;color:var(--ink-muted)">' + file.name + '</span>' +
+          '</div>' +
+          '<div class="pdf-canvas-wrap" id="canvasWrap">' +
+            '<canvas id="pdfCanvas"></canvas>' +
+          '</div>';
+        pdfjsLib.getDocument(typedArray).promise.then(function(pdf) {
+          pdfDoc = pdf;
+          document.getElementById('pageTotalDisplay').textContent = '/ ' + pdf.numPages;
+          document.getElementById('pageInput').max = pdf.numPages;
+          currentPageNum = page > 0 ? page + (book.pageOffset || 0) : 1;
+          if (currentPageNum > pdf.numPages) currentPageNum = 1;
+          renderPage(currentPageNum);
+        });
+      };
+      reader.readAsArrayBuffer(file);
+    };
+
     document.getElementById('tocSection').style.display = 'block';
     return;
   }
