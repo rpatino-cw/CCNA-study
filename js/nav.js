@@ -26,7 +26,7 @@
       { text: 'Devices', href: 'devices.html' },
       { text: 'Glossary', href: 'glossary.html' },
       { text: 'Resources', href: 'resources.html' },
-      { text: 'Exam Objectives', href: 'exam-objectives.html' },
+      { text: 'Exam Objectives', href: 'objectives.html' },
       { text: 'Books', href: 'book.html' },
       { text: "Jeremy's IT Lab", href: 'jeremy-labs.html' },
     ]},
