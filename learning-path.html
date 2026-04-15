@@ -8,7 +8,7 @@
 <link rel="icon" type="image/svg+xml" href="/CCNA-study/favicon.svg">
 <link rel="stylesheet" href="css/shared.css">
 <style>
-  /* ── Page header — tighter spacing for this page ────────────── */
+  /* ── Page header ──────────────────────────────────────────────── */
   .page-header { padding: var(--s-xl) 0 var(--s-lg); margin-bottom: var(--s-lg); border-bottom: 2px solid var(--ink); }
   .page-header .subtitle { font-family: var(--font-body); color: var(--ink-secondary); font-size: 0.95rem; font-style: italic; max-width: 60ch; }
 
@@ -25,41 +25,73 @@
   .legend-line { width: 22px; height: 3px; border-radius: 2px; }
   .legend-sep { width: 1px; height: 18px; background: var(--border); flex-shrink: 0; }
 
+  /* ── Zoom controls ────────────────────────────────────────────── */
+  .graph-controls { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+  .graph-controls button {
+    font-family: var(--font-display); font-size: 0.78rem; font-weight: 600;
+    padding: 6px 14px; border: 1px solid var(--border); border-radius: var(--radius);
+    background: var(--bg-surface); color: var(--ink-secondary); cursor: pointer;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+  }
+  .graph-controls button:hover { background: var(--bg-hover); color: var(--ink); border-color: var(--border-strong); }
+  .graph-controls button.active { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+  .graph-controls .zoom-label { font-family: var(--font-mono); font-size: 0.72rem; color: var(--ink-muted); min-width: 40px; text-align: center; }
+  .graph-controls .sep { width: 1px; height: 20px; background: var(--border); }
+
   /* ── Graph container ──────────────────────────────────────────── */
-  .graph-wrap { position: relative; background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow-x: auto; margin-bottom: var(--s-2xl); -webkit-overflow-scrolling: touch; }
-  .graph-wrap::after { content: ''; position: sticky; top: 0; right: 0; float: right; width: 48px; height: 100%; margin-left: -48px; background: linear-gradient(to right, transparent, var(--bg-surface)); pointer-events: none; border-radius: 0 var(--radius-lg) var(--radius-lg) 0; opacity: 0; transition: opacity 0.3s; }
-  .graph-wrap.has-overflow::after { opacity: 1; }
-  .graph-wrap.scrolled-end::after { opacity: 0; }
-  .graph-wrap svg { display: block; width: 100%; min-width: 1000px; height: auto; }
+  .graph-wrap {
+    position: relative; background: var(--bg-surface); border: 1px solid var(--border);
+    border-radius: var(--radius-lg); overflow: auto; margin-bottom: var(--s-2xl);
+    -webkit-overflow-scrolling: touch; cursor: grab;
+  }
+  .graph-wrap.grabbing { cursor: grabbing; }
+  .graph-wrap svg { display: block; }
 
   /* ── SVG styles ───────────────────────────────────────────────── */
   .tier-bg { opacity: 0.7; }
   .tier-sep { stroke: var(--border); stroke-width: 0.5; opacity: 0.6; }
-  .tier-label { font-family: 'Space Grotesk', sans-serif; font-size: 11.5px; font-weight: 700; fill: #78716C; letter-spacing: 0.6px; text-transform: uppercase; }
+  .tier-label { font-family: 'Space Grotesk', sans-serif; font-weight: 700; fill: #78716C; letter-spacing: 0.6px; text-transform: uppercase; }
+
   .node-group { cursor: pointer; }
-  .node-group:hover .node-rect { filter: brightness(1.1); }
-  .node-group:hover .node-text { fill: #fff; }
-  .node-rect { transition: filter 0.2s var(--ease-out); }
-  .node-text { font-family: 'Space Grotesk', sans-serif; font-size: 9.5px; fill: #fff; font-weight: 600; pointer-events: none; }
-  .node-id { font-family: 'JetBrains Mono', monospace; font-size: 8px; fill: rgba(255,255,255,0.65); pointer-events: none; }
+  .node-rect { transition: filter 0.25s var(--ease-out), stroke-width 0.25s, stroke 0.25s; stroke: transparent; stroke-width: 0; }
+  .node-group:hover .node-rect { filter: brightness(1.12); }
+  .node-text { font-family: 'Space Grotesk', sans-serif; fill: #fff; font-weight: 600; pointer-events: none; }
+  .node-id { font-family: 'JetBrains Mono', monospace; fill: rgba(255,255,255,0.6); pointer-events: none; }
   .node-mastered .node-rect { fill: #16A34A !important; }
   .node-weak { opacity: 0.45; }
-  .edge-line { fill: none; stroke: #C7C3BC; stroke-width: 1.3; transition: stroke 0.2s, stroke-width 0.2s, opacity 0.2s; }
-  .edge-line.path-highlight { stroke: #B45309; stroke-width: 3; opacity: 1 !important; filter: drop-shadow(0 0 3px rgba(180,83,9,0.4)); }
-  .graph-dimmed .edge-line:not(.path-highlight) { opacity: 0.08; }
-  .graph-dimmed .node-group:not(.path-node) { opacity: 0.1; }
-  .graph-dimmed .node-group.path-node .node-rect { filter: brightness(1.12); }
-  .critical-edge { stroke: #B45309; stroke-width: 2.5; stroke-dasharray: 8,4; animation: critFlow 1.5s linear infinite; filter: drop-shadow(0 0 3px rgba(180,83,9,0.3)); }
+
+  .edge-line { fill: none; stroke: #C7C3BC; stroke-width: 1.8; transition: stroke 0.3s, stroke-width 0.3s, opacity 0.3s; }
+
+  /* ── Hover highlight system ───────────────────────────────────── */
+  /* Ancestors = everything BEFORE hovered node */
+  .edge-line.ancestor-highlight { stroke: #2563EB; stroke-width: 3.5; opacity: 1 !important; filter: drop-shadow(0 0 4px rgba(37,99,235,0.35)); }
+  /* Descendants = everything AFTER hovered node */
+  .edge-line.descendant-highlight { stroke: #B45309; stroke-width: 3; opacity: 1 !important; filter: drop-shadow(0 0 3px rgba(180,83,9,0.3)); }
+  /* The hovered node itself */
+  .node-group.hovered-node .node-rect { filter: brightness(1.15) drop-shadow(0 0 8px rgba(0,0,0,0.2)); stroke: #1C1917; stroke-width: 2.5; }
+  /* Ancestor nodes */
+  .node-group.ancestor-node .node-rect { filter: brightness(1.08); stroke: #2563EB; stroke-width: 2; }
+  /* Descendant nodes */
+  .node-group.descendant-node .node-rect { filter: brightness(1.05); stroke: #B45309; stroke-width: 2; stroke-dasharray: 4,3; }
+
+  /* Dim everything not in the chain */
+  .graph-dimmed .edge-line:not(.ancestor-highlight):not(.descendant-highlight) { opacity: 0.06; }
+  .graph-dimmed .node-group:not(.hovered-node):not(.ancestor-node):not(.descendant-node) { opacity: 0.12; }
+
+  /* Critical path */
+  .critical-edge { stroke: #B45309; stroke-width: 2.8; stroke-dasharray: 8,4; animation: critFlow 1.5s linear infinite; filter: drop-shadow(0 0 3px rgba(180,83,9,0.3)); }
   @keyframes critFlow { to { stroke-dashoffset: -24; } }
-  @keyframes recPulse { 0%,100% { stroke-opacity: 0.3; stroke-width: 2; } 50% { stroke-opacity: 1; stroke-width: 4; } }
+  @keyframes recPulse { 0%,100% { stroke-opacity: 0.3; stroke-width: 2.5; } 50% { stroke-opacity: 1; stroke-width: 4.5; } }
   .node-recommended .node-rect { stroke: #B45309; stroke-width: 2; animation: recPulse 2s ease-in-out infinite; }
 
   /* ── Tooltip ──────────────────────────────────────────────────── */
   .graph-tooltip { pointer-events: none; opacity: 0; transition: opacity 0.15s; }
   .graph-tooltip.visible { opacity: 1; }
-  .tt-bg { fill: #1C1917; rx: 7; }
-  .tt-text { font-family: 'Space Grotesk', sans-serif; font-size: 11px; fill: #FAF7F2; font-weight: 500; }
-  .tt-sub { font-family: 'JetBrains Mono', monospace; font-size: 9px; fill: #A8A29E; }
+  .tt-bg { fill: #1C1917; }
+  .tt-text { font-family: 'Space Grotesk', sans-serif; fill: #FAF7F2; font-weight: 600; }
+  .tt-sub { font-family: 'JetBrains Mono', monospace; fill: #A8A29E; }
+  .tt-prereq { font-family: 'Space Grotesk', sans-serif; fill: #93C5FD; font-weight: 500; }
+  .tt-next { font-family: 'Space Grotesk', sans-serif; fill: #FCD34D; font-weight: 500; }
 
   /* ── Tier detail sections ─────────────────────────────────────── */
   .tier-detail { margin-bottom: var(--s-2xl); }
@@ -83,7 +115,6 @@
   .edge-line.entered { animation: edgeIn 0.35s ease forwards; }
   .tier-label { opacity: 0; }
   .tier-label.entered { animation: labelIn 0.3s ease forwards; }
-  /* After entrance completes (or on hover), switch to static opacity */
   .entrance-done .node-group,
   .graph-dimmed .node-group { animation: none; opacity: 1; }
   .entrance-done .node-weak,
@@ -101,6 +132,7 @@
     .graph-legend { gap: 8px 12px; padding: 10px 14px; }
     .legend-sep { display: none; }
     .tier-topics { grid-template-columns: 1fr; }
+    .graph-controls { flex-wrap: wrap; }
   }
 </style>
 </head>
@@ -126,9 +158,21 @@
     <div class="legend-item"><div class="legend-dot" style="background:#16A34A;border:2px solid #16A34A"></div>Mastered</div>
     <div class="legend-item"><div class="legend-dot" style="background:#D4D0C8"></div>Not started</div>
     <div class="legend-item"><div class="legend-line" style="background:#B45309"></div>Critical path</div>
+    <div class="legend-sep"></div>
+    <div class="legend-item"><div class="legend-line" style="background:#2563EB"></div>Prerequisites</div>
+    <div class="legend-item"><div class="legend-line" style="background:#B45309;opacity:0.6"></div>Unlocks</div>
   </div>
 
-  <div class="graph-wrap">
+  <div class="graph-controls">
+    <button id="zoomOut" aria-label="Zoom out">−</button>
+    <span class="zoom-label" id="zoomLabel">100%</span>
+    <button id="zoomIn" aria-label="Zoom in">+</button>
+    <button id="zoomFit">Fit</button>
+    <div class="sep"></div>
+    <button id="zoomReset">Reset</button>
+  </div>
+
+  <div class="graph-wrap" id="graphWrap">
     <svg id="mainGraph" xmlns="http://www.w3.org/2000/svg"></svg>
   </div>
 
@@ -152,18 +196,21 @@ const TIERS = [
 ];
 
 const NODES = [
-  // Foundation
-  { id:'1.1',  tier:'foundation', name:'Network Components' },
-  { id:'1.3',  tier:'foundation', name:'Cabling & Physical' },
-  { id:'1.4',  tier:'foundation', name:'Interface Issues' },
-  { id:'1.5',  tier:'foundation', name:'TCP vs UDP' },
-  { id:'1.6',  tier:'foundation', name:'IPv4 Subnetting' },
-  { id:'1.7',  tier:'foundation', name:'Private IPv4' },
-  { id:'1.8',  tier:'foundation', name:'IPv6 Addressing' },
-  { id:'1.9',  tier:'foundation', name:'IPv6 Types' },
-  { id:'1.11', tier:'foundation', name:'Wireless Basics' },
-  { id:'1.12', tier:'foundation', name:'Virtualization' },
-  { id:'1.13', tier:'foundation', name:'Switching Concepts' },
+  // Foundation — row 1 (addressing & transport)
+  { id:'1.1',  tier:'foundation', row:0, name:'Network Components' },
+  { id:'1.2',  tier:'foundation', row:0, name:'Topologies' },
+  { id:'1.3',  tier:'foundation', row:0, name:'Cabling & Physical' },
+  { id:'1.4',  tier:'foundation', row:0, name:'Interface Issues' },
+  { id:'1.5',  tier:'foundation', row:0, name:'TCP vs UDP' },
+  { id:'1.6',  tier:'foundation', row:0, name:'IPv4 Subnetting' },
+  { id:'1.7',  tier:'foundation', row:0, name:'Private IPv4' },
+  // Foundation — row 2 (IPv6, wireless, virt, switching)
+  { id:'1.8',  tier:'foundation', row:1, name:'IPv6 Addressing' },
+  { id:'1.9',  tier:'foundation', row:1, name:'IPv6 Types' },
+  { id:'1.10', tier:'foundation', row:1, name:'Verify IP (OS)' },
+  { id:'1.11', tier:'foundation', row:1, name:'Wireless Basics' },
+  { id:'1.12', tier:'foundation', row:1, name:'Virtualization' },
+  { id:'1.13', tier:'foundation', row:1, name:'Switching Concepts' },
   // Layer 2
   { id:'2.1',  tier:'layer2', name:'VLANs' },
   { id:'2.2',  tier:'layer2', name:'Trunking / 802.1Q' },
@@ -184,78 +231,104 @@ const NODES = [
   { id:'4.1',  tier:'services', name:'NAT / PAT' },
   { id:'4.2',  tier:'services', name:'NTP' },
   { id:'4.3',  tier:'services', name:'DHCP / DNS' },
+  { id:'4.4',  tier:'services', name:'SNMP' },
   { id:'4.5',  tier:'services', name:'Syslog' },
   { id:'4.6',  tier:'services', name:'DHCP Relay' },
   { id:'4.7',  tier:'services', name:'QoS' },
   { id:'4.8',  tier:'services', name:'SSH' },
+  { id:'4.9',  tier:'services', name:'TFTP / FTP' },
   // Security
-  { id:'5.1',  tier:'security', name:'Security Concepts' },
-  { id:'5.3',  tier:'security', name:'Passwords' },
-  { id:'5.5',  tier:'security', name:'VPNs / IPsec' },
-  { id:'5.6',  tier:'security', name:'ACLs' },
-  { id:'5.7',  tier:'security', name:'L2 Security' },
-  { id:'5.8',  tier:'security', name:'AAA' },
-  { id:'5.9',  tier:'security', name:'Wireless Sec' },
-  { id:'5.10', tier:'security', name:'WPA2 Config' },
+  { id:'5.1',  tier:'security', row:0, name:'Security Concepts' },
+  { id:'5.2',  tier:'security', row:0, name:'Security Programs' },
+  { id:'5.3',  tier:'security', row:0, name:'Passwords' },
+  { id:'5.4',  tier:'security', row:0, name:'Password Policy' },
+  { id:'5.5',  tier:'security', row:0, name:'VPNs / IPsec' },
+  { id:'5.6',  tier:'security', row:1, name:'ACLs' },
+  { id:'5.7',  tier:'security', row:1, name:'L2 Security' },
+  { id:'5.8',  tier:'security', row:1, name:'AAA' },
+  { id:'5.9',  tier:'security', row:1, name:'Wireless Sec' },
+  { id:'5.10', tier:'security', row:1, name:'WPA2 Config' },
   // Automation
   { id:'6.1',  tier:'automation', name:'Automation Impact' },
   { id:'6.2',  tier:'automation', name:'Trad vs SDN' },
   { id:'6.3',  tier:'automation', name:'SDN Architecture' },
+  { id:'6.4',  tier:'automation', name:'AI / ML Ops' },
   { id:'6.5',  tier:'automation', name:'REST APIs' },
-  { id:'6.6',  tier:'automation', name:'Ansible' },
+  { id:'6.6',  tier:'automation', name:'Ansible / Terraform' },
   { id:'6.7',  tier:'automation', name:'JSON' },
 ];
 
 // [from, to] = "must know FROM before TO"
 const EDGES = [
   // Foundation internal
-  ['1.3','1.4'], ['1.6','1.7'], ['1.8','1.9'],
+  ['1.1','1.2'], ['1.3','1.4'], ['1.6','1.7'], ['1.8','1.9'], ['1.6','1.10'], ['1.8','1.10'],
   // Foundation → Layer 2
   ['1.6','2.1'], ['1.13','2.1'], ['1.13','2.5'], ['1.13','2.3'], ['1.11','2.6'],
   // Layer 2 internal
-  ['2.1','2.2'], ['2.2','2.4'], ['2.1','2.5'], ['2.6','2.7'], ['2.7','2.9'],
+  ['2.1','2.2'], ['2.2','2.4'], ['2.1','2.5'], ['2.6','2.7'], ['2.7','2.9'], ['2.6','2.8'],
   // → Layer 3
   ['1.6','3.1'], ['1.8','3.1'], ['3.1','3.2'], ['3.1','3.3'], ['3.3','3.4'], ['3.4','3.5'],
   // → Services
-  ['3.3','4.1'], ['3.3','4.3'], ['3.3','4.6'], ['1.5','4.7'],
+  ['3.3','4.1'], ['3.3','4.3'], ['3.3','4.6'], ['1.5','4.7'], ['4.3','4.6'],
+  ['4.5','4.4'], ['4.3','4.9'],
   // → Security
-  ['2.8','5.3'], ['5.3','4.8'], ['5.1','5.5'], ['5.1','5.8'],
+  ['5.1','5.2'], ['2.8','5.3'], ['5.3','5.4'], ['5.3','4.8'], ['5.1','5.5'], ['5.1','5.8'],
   ['2.6','5.9'], ['5.9','5.10'], ['3.3','5.6'], ['2.5','5.7'],
   // → Automation
-  ['6.1','6.2'], ['6.2','6.3'], ['6.5','6.7'],
+  ['6.1','6.2'], ['6.1','6.4'], ['6.2','6.3'], ['6.5','6.6'], ['6.5','6.7'],
 ];
 
 // ── Layout Engine ─────────────────────────────────────────────
-const TIER_H = 118;
-const TIER_PAD = 16;
-const NODE_W = 94;
-const NODE_H = 40;
-const LEFT_LABEL = 95;
+const ROW_H = 90;         // height per node row
+const TIER_GAP = 30;      // gap between tiers
+const TIER_PAD = 28;
+const NODE_W = 140;
+const NODE_H = 56;
+const LEFT_LABEL = 110;
+const SVG_CONTENT_W = 1700;
+
+// Compute how many rows a tier needs (nodes with row property, or 1 row)
+function tierRows(tierId) {
+  const nodes = NODES.filter(n => n.tier === tierId);
+  const maxRow = nodes.reduce((mx, n) => Math.max(mx, n.row || 0), 0);
+  return maxRow + 1;
+}
 
 function layoutGraph() {
   const positions = {};
-  TIERS.forEach((tier, ti) => {
-    const tierNodes = NODES.filter(n => n.tier === tier.id);
-    const y = TIER_PAD + ti * TIER_H + TIER_H / 2;
-    const availW = 1260 - LEFT_LABEL;
-    const gap = availW / (tierNodes.length + 1);
-    tierNodes.forEach((node, ni) => {
-      positions[node.id] = { x: LEFT_LABEL + gap * (ni + 1), y };
-    });
+  const tierYMap = {};   // tier.id → { y, height }
+  let y = TIER_PAD;
+
+  TIERS.forEach(tier => {
+    const rows = tierRows(tier.id);
+    const h = rows * ROW_H + TIER_GAP;
+    tierYMap[tier.id] = { y, height: h };
+
+    for (let r = 0; r < rows; r++) {
+      const rowNodes = NODES.filter(n => n.tier === tier.id && (n.row || 0) === r);
+      const rowY = y + (r + 0.5) * ROW_H + TIER_GAP / 2;
+      const availW = SVG_CONTENT_W - LEFT_LABEL;
+      const gap = availW / (rowNodes.length + 1);
+      rowNodes.forEach((node, ni) => {
+        positions[node.id] = { x: LEFT_LABEL + gap * (ni + 1), y: rowY };
+      });
+    }
+    y += h;
   });
-  return positions;
+
+  return { positions, tierYMap, totalH: y + TIER_PAD };
 }
 
 function bezierPath(x1, y1, x2, y2) {
   const dy = y2 - y1;
-  if (Math.abs(dy) < TIER_H) {
-    // Same tier — slight arc
+  if (Math.abs(dy) < ROW_H * 0.8) {
+    // Same row — arc above
     const mx = (x1 + x2) / 2;
-    const my = Math.min(y1, y2) - 20;
+    const my = Math.min(y1, y2) - 32;
     return `M${x1},${y1} Q${mx},${my} ${x2},${y2}`;
   }
-  // Cross-tier — S-curve
-  const cp = Math.min(Math.abs(dy) * 0.4, 50);
+  // Different rows — smooth S-curve
+  const cp = Math.min(Math.abs(dy) * 0.4, 70);
   return `M${x1},${y1 + NODE_H/2} C${x1},${y1 + NODE_H/2 + cp} ${x2},${y2 - NODE_H/2 - cp} ${x2},${y2 - NODE_H/2}`;
 }
 
@@ -282,14 +355,9 @@ function findCriticalPath() {
 
 // ── Recommended Next ──────────────────────────────────────────
 function findRecommended(prof) {
-  const adj = {}; NODES.forEach(n => adj[n.id] = []);
-  EDGES.forEach(([f,t]) => { if (!adj[t]) adj[t] = []; adj[t].push(f); }); // reverse: prereqs of t
-  // reverse adj: for each node, what are its prerequisites
   const prereqs = {};
   NODES.forEach(n => prereqs[n.id] = []);
   EDGES.forEach(([f,t]) => prereqs[t].push(f));
-
-  // Candidates: proficiency < 0.7, all prereqs >= 0.7 (or no prereqs)
   const candidates = NODES.filter(n => {
     const score = prof[n.id] ?? 0;
     if (score >= 0.7) return false;
@@ -304,14 +372,16 @@ function findRecommended(prof) {
 function render() {
   store.initProficiency(window.topicsData);
   const prof = store.getAllProficiency();
-  const pos = layoutGraph();
+  const { positions: pos, tierYMap, totalH } = layoutGraph();
   const critEdges = findCriticalPath();
   const recId = findRecommended(prof);
 
-  const svgW = 1360;
-  const svgH = TIERS.length * TIER_H + TIER_PAD * 2;
+  const svgW = 1800;
+  const svgH = totalH;
   const svg = document.getElementById('mainGraph');
   svg.setAttribute('viewBox', `0 0 ${svgW} ${svgH}`);
+  svg.setAttribute('width', svgW);
+  svg.setAttribute('height', svgH);
   svg.setAttribute('role', 'img');
   svg.setAttribute('aria-label', 'CCNA topic dependency graph — shows prerequisites and learning order across 6 tiers');
 
@@ -319,19 +389,24 @@ function render() {
 
   // Defs
   html += `<defs>
-    <marker id="arrow" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0,0 8,3 0,6" fill="#D4D0C8"/></marker>
-    <marker id="arrowCrit" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0,0 8,3 0,6" fill="#B45309"/></marker>
+    <marker id="arrow" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto"><polygon points="0,0 10,3.5 0,7" fill="#D4D0C8"/></marker>
+    <marker id="arrowCrit" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto"><polygon points="0,0 10,3.5 0,7" fill="#B45309"/></marker>
+    <marker id="arrowBlue" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto"><polygon points="0,0 10,3.5 0,7" fill="#2563EB"/></marker>
+    <marker id="arrowAmber" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto"><polygon points="0,0 10,3.5 0,7" fill="#B45309"/></marker>
+    <filter id="nodeShadow" x="-10%" y="-10%" width="130%" height="140%">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#000" flood-opacity="0.1"/>
+    </filter>
   </defs>`;
 
-  // Tier backgrounds
+  // Tier backgrounds — use computed heights
   TIERS.forEach((tier, i) => {
-    const y = TIER_PAD + i * TIER_H;
-    html += `<rect x="0" y="${y}" width="${svgW}" height="${TIER_H}" fill="${tier.bg}" class="tier-bg"/>`;
-    if (i > 0) html += `<line x1="0" y1="${y}" x2="${svgW}" y2="${y}" class="tier-sep"/>`;
-    html += `<text x="14" y="${y + TIER_H/2 + 4}" class="tier-label">${tier.name}</text>`;
+    const tm = tierYMap[tier.id];
+    html += `<rect x="0" y="${tm.y}" width="${svgW}" height="${tm.height}" fill="${tier.bg}" class="tier-bg"/>`;
+    if (i > 0) html += `<line x1="0" y1="${tm.y}" x2="${svgW}" y2="${tm.y}" class="tier-sep"/>`;
+    html += `<text x="18" y="${tm.y + 24}" class="tier-label" style="font-size:14px">${tier.name}</text>`;
   });
 
-  // Edges — assign tier index of the target node for stagger timing
+  // Edges
   const nodeTierIdx = {};
   NODES.forEach(n => { nodeTierIdx[n.id] = TIERS.findIndex(t => t.id === n.tier); });
   EDGES.forEach(([from, to]) => {
@@ -357,37 +432,36 @@ function render() {
 
     const tierIdx = TIERS.findIndex(t => t.id === n.tier);
     html += `<g class="${cls}" data-id="${n.id}" data-name="${n.name}" data-score="${Math.round(score*100)}" data-tier="${n.tier}" data-tier-idx="${tierIdx}">`;
-    html += `<rect class="node-rect" x="${p.x - NODE_W/2}" y="${p.y - NODE_H/2}" width="${NODE_W}" height="${NODE_H}" rx="7" fill="${fill}"/>`;
-    html += `<text class="node-id" x="${p.x}" y="${p.y - 5}" text-anchor="middle">${n.id}</text>`;
-    html += `<text class="node-text" x="${p.x}" y="${p.y + 9}" text-anchor="middle">${n.name}</text>`;
-    if (mastered) html += `<text x="${p.x + NODE_W/2 - 12}" y="${p.y - NODE_H/2 + 13}" style="font-size:11px;fill:rgba(255,255,255,0.9);font-weight:700" aria-label="mastered">✓</text>`;
+    html += `<rect class="node-rect" x="${p.x - NODE_W/2}" y="${p.y - NODE_H/2}" width="${NODE_W}" height="${NODE_H}" rx="8" fill="${fill}" filter="url(#nodeShadow)"/>`;
+    html += `<text class="node-id" x="${p.x}" y="${p.y - 7}" text-anchor="middle" style="font-size:11px">${n.id}</text>`;
+    html += `<text class="node-text" x="${p.x}" y="${p.y + 13}" text-anchor="middle" style="font-size:12.5px">${n.name}</text>`;
+    if (mastered) html += `<text x="${p.x + NODE_W/2 - 16}" y="${p.y - NODE_H/2 + 16}" style="font-size:13px;fill:rgba(255,255,255,0.9);font-weight:700" aria-label="mastered">&#10003;</text>`;
     html += `</g>`;
   });
 
-  // Tooltip group
+  // Tooltip group — richer info
   html += `<g class="graph-tooltip" id="graphTooltip">
-    <rect class="tt-bg" width="200" height="48" x="0" y="0"/>
-    <text class="tt-text" x="12" y="20" id="ttName"></text>
-    <text class="tt-sub" x="12" y="37" id="ttScore"></text>
+    <rect class="tt-bg" width="260" height="80" x="0" y="0" rx="8"/>
+    <text class="tt-text" x="14" y="22" id="ttName" style="font-size:13px"></text>
+    <text class="tt-sub" x="14" y="40" id="ttScore" style="font-size:10.5px"></text>
+    <text class="tt-prereq" x="14" y="56" id="ttPrereq" style="font-size:10px"></text>
+    <text class="tt-next" x="14" y="72" id="ttNext" style="font-size:10px"></text>
   </g>`;
 
   svg.innerHTML = html;
 
-  // ── Staggered entrance animation ─────────────────────────────
-  // Tier labels → nodes by tier → edges by tier, each tier delayed
+  // ── Staggered entrance ─────────────────────────────────────
   requestAnimationFrame(() => {
-    const BASE = 80;   // ms between tiers
-    const NODE_STAGGER = 30; // ms between nodes within a tier
+    const BASE = 80;
+    const NODE_STAGGER = 30;
     let maxDelay = 0;
 
-    // Tier labels first
     svg.querySelectorAll('.tier-label').forEach((el, i) => {
       const d = i * BASE;
       setTimeout(() => el.classList.add('entered'), d);
       maxDelay = Math.max(maxDelay, d);
     });
 
-    // Nodes staggered by tier, then left-to-right within tier
     svg.querySelectorAll('.node-group').forEach(g => {
       const ti = parseInt(g.dataset.tierIdx);
       const siblings = [...svg.querySelectorAll(`.node-group[data-tier-idx="${ti}"]`)];
@@ -397,7 +471,6 @@ function render() {
       maxDelay = Math.max(maxDelay, d);
     });
 
-    // Edges fade in after their tier's nodes
     svg.querySelectorAll('.edge-line').forEach(edge => {
       const ti = parseInt(edge.dataset.tierIdx);
       const d = (ti * BASE) + 250;
@@ -405,60 +478,99 @@ function render() {
       maxDelay = Math.max(maxDelay, d);
     });
 
-    // After all animations finish, switch to static state
     setTimeout(() => svg.classList.add('entrance-done'), maxDelay + 450);
   });
 
-  // Build adjacency for path tracing
+  // Build adjacency
   const fwdAdj = {}, revAdj = {};
   NODES.forEach(n => { fwdAdj[n.id] = []; revAdj[n.id] = []; });
   EDGES.forEach(([f, t]) => { fwdAdj[f].push(t); revAdj[t].push(f); });
 
-  function getFullChain(nodeId) {
-    // Walk ancestors (prerequisites) and descendants (dependents)
+  function getAncestors(nodeId) {
     const visited = new Set();
-    const edgesInChain = new Set();
-    function walkUp(id) { if (visited.has(id)) return; visited.add(id); for (const p of revAdj[id] || []) { edgesInChain.add(p + '|' + id); walkUp(p); } }
-    function walkDown(id) { if (visited.has(id)) return; visited.add(id); for (const c of fwdAdj[id] || []) { edgesInChain.add(id + '|' + c); walkDown(c); } }
-    walkUp(nodeId);
-    visited.clear();
-    visited.add(nodeId);
-    walkDown(nodeId);
-    // Re-add ancestors to visited
-    walkUp(nodeId);
-    return { nodes: visited, edges: edgesInChain };
+    const edges = new Set();
+    function walk(id) { if (visited.has(id)) return; visited.add(id); for (const p of revAdj[id] || []) { edges.add(p + '|' + id); walk(p); } }
+    walk(nodeId);
+    visited.delete(nodeId); // don't include self
+    return { nodes: visited, edges };
   }
 
-  // Events
+  function getDescendants(nodeId) {
+    const visited = new Set();
+    const edges = new Set();
+    function walk(id) { if (visited.has(id)) return; visited.add(id); for (const c of fwdAdj[id] || []) { edges.add(id + '|' + c); walk(c); } }
+    walk(nodeId);
+    visited.delete(nodeId);
+    return { nodes: visited, edges };
+  }
+
+  // Build prereq/next lookup for tooltip
+  const prereqOf = {}, nextOf = {};
+  NODES.forEach(n => { prereqOf[n.id] = []; nextOf[n.id] = []; });
+  EDGES.forEach(([f, t]) => { prereqOf[t].push(f); nextOf[f].push(t); });
+
+  // ── Hover Events ───────────────────────────────────────────
   svg.querySelectorAll('.node-group').forEach(g => {
-    g.addEventListener('mouseenter', e => {
+    g.addEventListener('mouseenter', () => {
       const id = g.dataset.id;
+      const ancestors = getAncestors(id);
+      const descendants = getDescendants(id);
 
       // Tooltip
       const tt = document.getElementById('graphTooltip');
       document.getElementById('ttName').textContent = `${id} — ${g.dataset.name}`;
       document.getElementById('ttScore').textContent = `Proficiency: ${g.dataset.score}%`;
+
+      const pNames = prereqOf[id].map(pid => { const n = NODES.find(x => x.id === pid); return n ? n.name : pid; });
+      const nNames = nextOf[id].map(nid => { const n = NODES.find(x => x.id === nid); return n ? n.name : nid; });
+      document.getElementById('ttPrereq').textContent = pNames.length ? `Prereqs: ${pNames.join(', ')}` : 'No prerequisites';
+      document.getElementById('ttNext').textContent = nNames.length ? `Unlocks: ${nNames.join(', ')}` : 'Terminal topic';
+
       const rect = g.querySelector('.node-rect');
       const x = parseFloat(rect.getAttribute('x'));
-      const y = parseFloat(rect.getAttribute('y')) - 54;
-      tt.setAttribute('transform', `translate(${x},${y})`);
+      const y = parseFloat(rect.getAttribute('y')) - 88;
+      tt.setAttribute('transform', `translate(${x},${Math.max(4, y)})`);
       tt.classList.add('visible');
 
-      // Highlight full chain
-      const chain = getFullChain(id);
+      // Apply classes
       svg.classList.add('graph-dimmed');
-      svg.querySelectorAll('.node-group').forEach(ng => { ng.classList.toggle('path-node', chain.nodes.has(ng.dataset.id)); });
+      g.classList.add('hovered-node');
+
+      svg.querySelectorAll('.node-group').forEach(ng => {
+        const nid = ng.dataset.id;
+        if (ancestors.nodes.has(nid)) ng.classList.add('ancestor-node');
+        if (descendants.nodes.has(nid)) ng.classList.add('descendant-node');
+      });
+
       svg.querySelectorAll('.edge-line').forEach(edge => {
         const key = edge.dataset.from + '|' + edge.dataset.to;
-        edge.classList.toggle('path-highlight', chain.edges.has(key));
+        if (ancestors.edges.has(key)) {
+          edge.classList.add('ancestor-highlight');
+          edge.setAttribute('marker-end', 'url(#arrowBlue)');
+        }
+        if (descendants.edges.has(key)) {
+          edge.classList.add('descendant-highlight');
+          edge.setAttribute('marker-end', 'url(#arrowAmber)');
+        }
       });
     });
 
     g.addEventListener('mouseleave', () => {
-      document.getElementById('graphTooltip').classList.remove('visible');
+      const tt = document.getElementById('graphTooltip');
+      tt.classList.remove('visible');
       svg.classList.remove('graph-dimmed');
-      svg.querySelectorAll('.path-node').forEach(n => n.classList.remove('path-node'));
-      svg.querySelectorAll('.path-highlight').forEach(e => e.classList.remove('path-highlight'));
+
+      svg.querySelectorAll('.hovered-node').forEach(n => n.classList.remove('hovered-node'));
+      svg.querySelectorAll('.ancestor-node').forEach(n => n.classList.remove('ancestor-node'));
+      svg.querySelectorAll('.descendant-node').forEach(n => n.classList.remove('descendant-node'));
+
+      // Restore markers
+      svg.querySelectorAll('.ancestor-highlight, .descendant-highlight').forEach(edge => {
+        edge.classList.remove('ancestor-highlight', 'descendant-highlight');
+        const from = edge.dataset.from, to = edge.dataset.to;
+        const isCrit = critEdges.has(from + '→' + to);
+        edge.setAttribute('marker-end', isCrit ? 'url(#arrowCrit)' : 'url(#arrow)');
+      });
     });
 
     g.addEventListener('click', () => {
@@ -468,21 +580,58 @@ function render() {
     });
   });
 
-  // Scroll overflow indicator
-  const wrap = document.querySelector('.graph-wrap');
-  function checkOverflow() {
-    const hasOverflow = wrap.scrollWidth > wrap.clientWidth + 2;
-    wrap.classList.toggle('has-overflow', hasOverflow && wrap.scrollLeft < wrap.scrollWidth - wrap.clientWidth - 10);
-    wrap.classList.toggle('scrolled-end', wrap.scrollLeft >= wrap.scrollWidth - wrap.clientWidth - 10);
+  // ── Zoom & Pan ─────────────────────────────────────────────
+  const wrap = document.getElementById('graphWrap');
+  let currentZoom = 100;
+  const ZOOM_STEP = 20;
+  const ZOOM_MIN = 60;
+  const ZOOM_MAX = 200;
+
+  function applyZoom(pct) {
+    currentZoom = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, pct));
+    const scale = currentZoom / 100;
+    svg.style.width = (svgW * scale) + 'px';
+    svg.style.height = (svgH * scale) + 'px';
+    document.getElementById('zoomLabel').textContent = currentZoom + '%';
+    document.querySelectorAll('.graph-controls button').forEach(b => b.classList.remove('active'));
+    if (currentZoom === 100) document.getElementById('zoomReset').classList.add('active');
   }
-  checkOverflow();
-  wrap.addEventListener('scroll', checkOverflow, { passive: true });
-  window.addEventListener('resize', checkOverflow, { passive: true });
 
-  // Starting point card
+  document.getElementById('zoomIn').addEventListener('click', () => applyZoom(currentZoom + ZOOM_STEP));
+  document.getElementById('zoomOut').addEventListener('click', () => applyZoom(currentZoom - ZOOM_STEP));
+  document.getElementById('zoomReset').addEventListener('click', () => applyZoom(100));
+  document.getElementById('zoomFit').addEventListener('click', () => {
+    const fitPct = Math.round((wrap.clientWidth / svgW) * 100);
+    applyZoom(fitPct);
+  });
+
+  // Pan with drag
+  let isPanning = false, panStart = { x: 0, y: 0 }, scrollStart = { x: 0, y: 0 };
+  wrap.addEventListener('mousedown', e => {
+    if (e.target.closest('.node-group')) return;
+    isPanning = true;
+    panStart = { x: e.clientX, y: e.clientY };
+    scrollStart = { x: wrap.scrollLeft, y: wrap.scrollTop };
+    wrap.classList.add('grabbing');
+  });
+  window.addEventListener('mousemove', e => {
+    if (!isPanning) return;
+    wrap.scrollLeft = scrollStart.x - (e.clientX - panStart.x);
+    wrap.scrollTop = scrollStart.y - (e.clientY - panStart.y);
+  });
+  window.addEventListener('mouseup', () => { isPanning = false; wrap.classList.remove('grabbing'); });
+
+  // Zoom with scroll wheel
+  wrap.addEventListener('wheel', e => {
+    if (!e.ctrlKey && !e.metaKey) return;
+    e.preventDefault();
+    applyZoom(currentZoom + (e.deltaY < 0 ? ZOOM_STEP : -ZOOM_STEP));
+  }, { passive: false });
+
+  // Initial size
+  applyZoom(100);
+
   renderStartCard(prof, recId);
-
-  // Tier details
   renderTierDetails(prof);
 }
 

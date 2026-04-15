@@ -719,7 +719,30 @@ document.getElementById('btnCopy').addEventListener('click', () => {
 });
 
 // ── Load Group ────────────────────────────────────────────────
+var _prevOnline = {}; // tracks previous online status per member id
+
 function loadGroup(group) {
+  // Detect online/offline status changes and log to activity feed
+  var now = Date.now();
+  var entries = Object.entries(group.members);
+  entries.forEach(function(pair) {
+    var id = pair[0], m = pair[1];
+    var staleMs = m.lastSync ? now - new Date(m.lastSync).getTime() : Infinity;
+    var isOnline = staleMs < 600000;
+    var prev = _prevOnline[id];
+    if (prev !== undefined && prev !== isOnline) {
+      // Status changed — inject a local event
+      if (!group.events) group.events = [];
+      group.events.push({
+        type: isOnline ? 'login' : 'offline',
+        name: m.name || 'Someone',
+        text: isOnline ? 'came online' : 'went offline',
+        ts: new Date().toISOString()
+      });
+    }
+    _prevOnline[id] = isOnline;
+  });
+
   cachedGroup = group;
   showState('group');
   document.getElementById('groupCode').textContent = group.code;
@@ -1414,7 +1437,7 @@ function renderActivityFeed(group) {
   const events = (group.events || []).slice().reverse();
   const el = document.getElementById('activityFeed');
   if (events.length === 0) { el.innerHTML = '<div style="padding:20px;text-align:center;color:var(--ink-muted);font-size:.85rem">No activity yet. Study something and sync!</div>'; return; }
-  const dotColors = { quiz: '#B45309', lab: '#0369A1', diagnostic: '#7C3AED', login: '#059669', challenge: '#DB2777', chat: '#6B7280' };
+  const dotColors = { quiz: '#B45309', lab: '#0369A1', diagnostic: '#7C3AED', login: '#059669', offline: '#DC2626', challenge: '#DB2777', chat: '#6B7280' };
   el.innerHTML = events.map(ev => {
     const c = dotColors[ev.type] || '#6B7280';
     return '<div class="feed-item"><div class="feed-dot" style="background:' + c + '"></div><div class="feed-body"><div class="feed-text"><strong>' + esc(ev.name || 'Someone') + '</strong> ' + esc(ev.text || '') + '</div><div class="feed-time">' + timeAgo(ev.ts) + '</div></div></div>';

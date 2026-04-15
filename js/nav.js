@@ -16,6 +16,7 @@
 
   var CCNA_NAV = [
     { text: 'CORE', href: 'core.html' },
+    { text: 'Roadmap', href: 'roadmap.html' },
     { text: 'Guide', href: 'guide.html' },
     { text: 'Learn', children: [
       { text: 'Learning Path', href: 'learning-path.html' },
@@ -35,6 +36,7 @@
     { text: 'Practice', children: [
       { text: 'Flashcards', href: 'flashcards.html' },
       { text: 'Diagnostic', href: 'diagnostic.html' },
+      { text: 'Domain Diagnostic', href: 'domain-diagnostic.html' },
       { text: 'Study & Quiz', href: 'quiz.html' },
       { text: 'Mini Labs', href: 'mini-lab.html' },
       { text: 'Console Labs', href: 'console-labs.html' },

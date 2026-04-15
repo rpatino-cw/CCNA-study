@@ -1,0 +1,856 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Domain Diagnostic — CCNA 200-301</title>
+<meta name="color-scheme" content="light">
+<link rel="icon" type="image/svg+xml" href="/CCNA-study/favicon.svg">
+<link rel="stylesheet" href="css/shared.css">
+<style>
+  /* ── Phase indicator ─────────────────────────────────────────── */
+  .phase-strip{display:flex;align-items:center;gap:0;margin-bottom:var(--s-xl);border-bottom:2px solid var(--border)}
+  .phase-step{flex:1;text-align:center;padding:10px 0 12px;font-family:var(--font-display);font-size:.68rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-muted);position:relative;transition:color .2s}
+  .phase-step::after{content:'';position:absolute;bottom:-2px;left:0;right:0;height:2px;background:transparent;transition:background .3s}
+  .phase-step.active{color:var(--ink)}
+  .phase-step.active::after{background:var(--ink)}
+  .phase-step.done{color:var(--prof-strong)}
+  .phase-step.done::after{background:var(--prof-strong)}
+  .phase-step .step-num{display:inline-block;width:20px;height:20px;line-height:20px;border-radius:50%;background:var(--bg-recessed);font-size:.65rem;margin-right:6px;vertical-align:middle}
+  .phase-step.active .step-num{background:var(--ink);color:var(--bg)}
+  .phase-step.done .step-num{background:var(--prof-strong);color:#fff}
+
+  /* ── Domain selection ────────────────────────────────────────── */
+  #selectView{max-width:740px;margin:0 auto}
+  .domain-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:var(--s-lg)}
+  .domain-pick{padding:20px;background:var(--bg-surface);border:2px solid var(--border);border-radius:var(--radius-lg);cursor:pointer;transition:border-color .15s,background .15s;text-align:left;position:relative}
+  .domain-pick:hover{border-color:var(--ink);background:var(--bg-hover)}
+  .domain-pick.selected{border-color:var(--ink);background:var(--bg-recessed)}
+  .domain-pick .dp-id{font-family:var(--font-mono);font-size:.68rem;color:var(--ink-muted);margin-bottom:2px}
+  .domain-pick .dp-name{font-family:var(--font-display);font-size:.88rem;font-weight:700;margin-bottom:4px}
+  .domain-pick .dp-weight{font-family:var(--font-mono);font-size:.65rem;color:var(--ink-muted)}
+  .domain-pick .dp-prof{position:absolute;top:20px;right:20px;font-family:var(--font-mono);font-size:.72rem;font-weight:700}
+  .domain-pick .dp-bar{height:4px;background:var(--bg-recessed);border-radius:2px;margin-top:8px;overflow:hidden}
+  .domain-pick .dp-bar-fill{height:100%;border-radius:2px;transition:width .4s}
+  .all-pick{grid-column:1/-1;text-align:center;padding:16px;border-style:dashed}
+  .all-pick .dp-name{font-size:.92rem}
+
+  @media(max-width:600px){.domain-grid{grid-template-columns:1fr}}
+
+  /* ── Exam area ───────────────────────────────────────────────── */
+  #examView{max-width:720px;margin:0 auto;display:none}
+  .exam-progress{display:flex;align-items:center;gap:12px;margin-bottom:var(--s-lg)}
+  .exam-progress-bar{flex:1;height:6px;background:var(--bg-recessed);border-radius:3px;overflow:hidden}
+  .exam-progress-fill{height:100%;background:var(--ink);border-radius:3px;transition:width .3s}
+  .exam-counter{font-family:var(--font-mono);font-size:.78rem;color:var(--ink-secondary);white-space:nowrap}
+  .exam-domain-label{font-family:var(--font-mono);font-size:.68rem;color:var(--accent);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
+  .exam-question{font-family:var(--font-display);font-size:1.1rem;font-weight:700;line-height:1.45;margin-bottom:var(--s-lg);max-width:none}
+  .exam-options{display:flex;flex-direction:column;gap:8px;margin-bottom:var(--s-md)}
+  .exam-timer{font-family:var(--font-mono);font-size:.82rem;color:var(--ink-muted);text-align:right;margin-bottom:var(--s-sm)}
+
+  /* ── Explain-back area ───────────────────────────────────────── */
+  #explainView{max-width:720px;margin:0 auto;display:none}
+  .explain-intro{margin-bottom:var(--s-xl);padding:20px 24px;background:var(--bg-recessed);border-left:3px solid var(--accent);border-radius:0 var(--radius-lg) var(--radius-lg) 0}
+  .explain-intro h3{font-size:1rem;margin-bottom:6px}
+  .explain-intro p{font-size:.88rem;color:var(--ink-secondary);line-height:1.6}
+  .explain-topic-card{background:#1C1917;border-radius:var(--radius-lg);padding:18px 22px;margin-bottom:var(--s-md);text-align:center}
+  .explain-topic-label{font-family:var(--font-display);font-size:.62rem;text-transform:uppercase;letter-spacing:.1em;color:#A8A29E;margin-bottom:4px}
+  .explain-topic-text{font-family:var(--font-display);font-size:1.05rem;font-weight:700;color:#FAF7F2;line-height:1.4}
+  .explain-topic-id{font-family:var(--font-mono);font-size:.65rem;color:#FDE68A;margin-top:6px}
+  .explain-area{width:100%;min-height:150px;padding:14px;border:2px solid var(--border);border-radius:var(--radius-lg);font-family:var(--font-body);font-size:.92rem;line-height:1.6;color:var(--ink);background:var(--bg-surface);resize:vertical;outline:none;transition:border-color .15s}
+  .explain-area:focus{border-color:var(--accent)}
+  .explain-area:disabled{opacity:.5;cursor:not-allowed}
+  .explain-wc{font-family:var(--font-mono);font-size:.65rem;color:var(--ink-muted);text-align:right;margin-top:4px}
+  .explain-timer-bar{height:5px;background:var(--bg-recessed);border-radius:3px;overflow:hidden;margin-bottom:var(--s-sm)}
+  .explain-timer-fill{height:100%;border-radius:3px;background:var(--accent);transition:width .5s linear}
+  .explain-timer-fill.danger{background:var(--prof-weak)}
+  .explain-submit-row{display:flex;justify-content:space-between;align-items:center;margin-top:var(--s-md)}
+
+  /* Judging state */
+  .judging-box{text-align:center;padding:40px;font-family:var(--font-display);color:var(--ink-muted)}
+  .judging-dots{display:inline-flex;gap:4px}
+  .judging-dots span{width:8px;height:8px;border-radius:50%;background:var(--accent);animation:jBounce 1s infinite}
+  .judging-dots span:nth-child(2){animation-delay:.15s}
+  .judging-dots span:nth-child(3){animation-delay:.3s}
+  @keyframes jBounce{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-8px)}}
+
+  /* Score feedback inline */
+  .explain-feedback{padding:16px;background:var(--bg-recessed);border-radius:var(--radius-lg);margin-top:var(--s-md);margin-bottom:var(--s-md)}
+  .explain-scores-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:12px}
+  .explain-score-cell{text-align:center;padding:8px 4px;border-radius:var(--radius);background:var(--bg-surface)}
+  .explain-score-cell .esc-label{font-family:var(--font-display);font-size:.58rem;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-muted);margin-bottom:2px}
+  .explain-score-cell .esc-val{font-family:var(--font-mono);font-size:1rem;font-weight:800}
+  .explain-feedback-text{font-size:.85rem;color:var(--ink-secondary);line-height:1.6;white-space:pre-wrap}
+  .explain-feedback-text strong{color:var(--ink)}
+
+  /* ── Results view ────────────────────────────────────────────── */
+  #resultsView{max-width:800px;margin:0 auto;display:none}
+  .results-header{text-align:center;margin-bottom:var(--s-xl)}
+  .results-composite{font-family:var(--font-display);font-size:3.2rem;font-weight:900;line-height:1;margin-bottom:4px}
+  .results-sub{font-family:var(--font-mono);font-size:.85rem;color:var(--ink-secondary)}
+  .results-verdict{font-family:var(--font-display);font-size:1rem;font-weight:600;margin-top:8px}
+
+  /* Dual score bars */
+  .dual-score{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:var(--s-xl)}
+  .score-block{padding:20px;background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg)}
+  .score-block-label{font-family:var(--font-display);font-size:.68rem;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-muted);margin-bottom:8px}
+  .score-block-value{font-family:var(--font-mono);font-size:1.6rem;font-weight:900;margin-bottom:4px}
+  .score-block-detail{font-family:var(--font-mono);font-size:.72rem;color:var(--ink-muted)}
+  @media(max-width:500px){.dual-score{grid-template-columns:1fr}}
+
+  /* Topic breakdown table */
+  .topic-table{width:100%;border-collapse:collapse;margin-bottom:var(--s-xl)}
+  .topic-table th{font-family:var(--font-display);font-size:.65rem;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-muted);font-weight:600;padding:8px 10px;text-align:left;border-bottom:2px solid var(--border)}
+  .topic-table td{padding:10px;border-bottom:1px solid var(--border);font-size:.85rem}
+  .topic-table .tt-id{font-family:var(--font-mono);font-size:.75rem;color:var(--ink-muted);white-space:nowrap}
+  .topic-table .tt-name{font-family:var(--font-display);font-size:.82rem}
+  .topic-table .tt-score{font-family:var(--font-mono);font-size:.82rem;font-weight:700;text-align:center}
+  .topic-table .tt-bar{width:80px}
+  .topic-table .tt-bar-outer{height:5px;background:var(--bg-recessed);border-radius:3px;overflow:hidden}
+  .topic-table .tt-bar-fill{height:100%;border-radius:3px}
+  .topic-table .tt-grade{font-family:var(--font-mono);font-size:.72rem;font-weight:700;text-align:center;width:50px}
+
+  /* Study plan */
+  .study-plan{margin-bottom:var(--s-xl)}
+  .study-plan h3{font-size:1rem;margin-bottom:var(--s-md)}
+  .sp-item{display:flex;align-items:center;gap:12px;padding:12px 14px;border-bottom:1px solid var(--border)}
+  .sp-rank{font-family:var(--font-mono);font-size:.72rem;color:var(--ink-muted);min-width:20px}
+  .sp-topic{flex:1}
+  .sp-topic-name{font-family:var(--font-display);font-size:.85rem;font-weight:600}
+  .sp-topic-reason{font-family:var(--font-body);font-size:.75rem;color:var(--ink-secondary);margin-top:2px}
+  .sp-severity{font-family:var(--font-mono);font-size:.72rem;font-weight:700;min-width:60px;text-align:right}
+</style>
+</head>
+<body>
+<div class="container-wide">
+  <nav class="top-nav" id="main-nav"></nav>
+
+  <!-- Phase indicator -->
+  <div class="phase-strip" id="phaseStrip">
+    <div class="phase-step active" data-phase="select"><span class="step-num">1</span>Select</div>
+    <div class="phase-step" data-phase="exam"><span class="step-num">2</span>Exam</div>
+    <div class="phase-step" data-phase="explain"><span class="step-num">3</span>Explain</div>
+    <div class="phase-step" data-phase="results"><span class="step-num">4</span>Results</div>
+  </div>
+
+  <!-- ── PHASE 1: Domain Selection ───────────────────────────── -->
+  <div id="selectView">
+    <header style="margin-bottom:var(--s-xl)">
+      <h1 style="font-size:2rem;margin-bottom:4px">Domain Diagnostic</h1>
+      <p class="subtitle" style="font-family:var(--font-body);color:var(--ink-secondary);font-size:.92rem;font-style:italic;max-width:60ch">Deep assessment by domain. Long exam + AI explain-back on your weakest topics. This is how you actually find out what you know.</p>
+    </header>
+
+    <div class="domain-grid" id="domainGrid"></div>
+
+    <div style="text-align:center;margin-top:var(--s-md)">
+      <button class="btn btn-primary btn-lg" id="startBtn" onclick="startExam()" disabled>Select a domain to begin</button>
+    </div>
+  </div>
+
+  <!-- ── PHASE 2: MC Exam ────────────────────────────────────── -->
+  <div id="examView">
+    <div class="exam-progress">
+      <span class="exam-counter" id="examCounter">1 / 25</span>
+      <div class="exam-progress-bar"><div class="exam-progress-fill" id="examProgressFill" style="width:0%"></div></div>
+      <span class="exam-timer" id="examTimer"></span>
+    </div>
+    <div class="exam-domain-label" id="examDomainLabel"></div>
+    <div class="exam-question" id="examQuestion"></div>
+    <div class="exam-options" id="examOptions"></div>
+    <div class="explanation-box" id="examExplanation" style="display:none"></div>
+    <div style="display:flex;justify-content:flex-end;margin-top:var(--s-md)">
+      <button class="btn btn-primary" id="examNextBtn" onclick="examNext()" style="display:none">Next Question</button>
+    </div>
+  </div>
+
+  <!-- ── PHASE 3: Explain-back ───────────────────────────────── -->
+  <div id="explainView">
+    <div class="explain-intro" id="explainIntro">
+      <h3>Phase 2: Explain It Back</h3>
+      <p>You got the multiple choice done. Now the AI picks your <strong id="explainCount">3</strong> weakest topics from the exam and asks you to explain them. No options to pick from — just you and the concept. This is where we find out if you actually know it or got lucky.</p>
+    </div>
+
+    <div class="exam-progress" id="explainProgress">
+      <span class="exam-counter" id="explainCounter">1 / 3</span>
+      <div class="exam-progress-bar"><div class="exam-progress-fill" id="explainProgressFill" style="width:0%"></div></div>
+    </div>
+
+    <div class="explain-topic-card" id="explainTopicCard">
+      <div class="explain-topic-label">Explain this concept</div>
+      <div class="explain-topic-text" id="explainTopicText"></div>
+      <div class="explain-topic-id" id="explainTopicId"></div>
+    </div>
+
+    <div id="explainInputArea">
+      <div class="explain-timer-bar"><div class="explain-timer-fill" id="explainTimerFill" style="width:100%"></div></div>
+      <textarea class="explain-area" id="explainInput" placeholder="Explain this concept in your own words. Use proper Cisco terminology. Be specific — pretend you're teaching a junior engineer." maxlength="2000"></textarea>
+      <div class="explain-wc" id="explainWc">0 words</div>
+      <div class="explain-submit-row">
+        <button class="btn btn-ghost" onclick="explainSkip()">Skip</button>
+        <button class="btn btn-primary" id="explainSubmitBtn" onclick="explainSubmit()">Submit for Grading</button>
+      </div>
+    </div>
+
+    <div class="judging-box" id="explainJudging" style="display:none">
+      <div>AI is reading your explanation</div>
+      <div class="judging-dots"><span></span><span></span><span></span></div>
+    </div>
+
+    <div class="explain-feedback" id="explainFeedback" style="display:none">
+      <div class="explain-scores-grid" id="explainScoresGrid"></div>
+      <div class="explain-feedback-text" id="explainFeedbackText"></div>
+      <div style="text-align:right;margin-top:12px">
+        <button class="btn btn-primary" id="explainNextBtn" onclick="explainNext()">Next Topic</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── PHASE 4: Results ────────────────────────────────────── -->
+  <div id="resultsView">
+    <div class="results-header">
+      <div class="results-composite" id="resultsComposite"></div>
+      <div class="results-sub" id="resultsSub"></div>
+      <div class="results-verdict" id="resultsVerdict"></div>
+    </div>
+
+    <div class="dual-score" id="dualScore"></div>
+
+    <h2 style="font-size:1.05rem;margin-top:0">Topic Breakdown</h2>
+    <table class="topic-table">
+      <thead>
+        <tr><th>Topic</th><th>Name</th><th>MC</th><th></th><th>Explain</th><th>Grade</th></tr>
+      </thead>
+      <tbody id="topicTableBody"></tbody>
+    </table>
+
+    <div class="study-plan" id="studyPlan">
+      <h2 style="font-size:1.05rem;margin-top:0">Study Plan — Work on These First</h2>
+      <div id="studyPlanItems"></div>
+    </div>
+
+    <div style="display:flex;gap:8px;justify-content:center;margin-top:var(--s-lg);margin-bottom:var(--s-2xl)">
+      <button class="btn btn-primary" onclick="location.reload()">Run Another Domain</button>
+      <a href="core.html" class="btn btn-secondary">Back to Dashboard</a>
+    </div>
+  </div>
+</div>
+
+<script src="js/nav.js"></script>
+<script src="js/store.js"></script>
+<script src="data/topics-data.js"></script>
+<script src="data/questions-data.js"></script>
+<script src="data/questions-extra.js"></script>
+<script>
+/* ═══════════════════════════════════════════════════════════════════
+   Domain Diagnostic Engine
+   MC exam per domain → AI explain-back on weakest → composite score
+   ═══════════════════════════════════════════════════════════════════ */
+
+var API = 'https://ccna-tutor.rpatino-cw.workers.dev';
+var DOMAINS = topicsData.domains;
+var ALL_QUESTIONS = (questionsData.questions || []).concat(window.questionsExtra || []);
+var DOMAIN_NAMES = {};
+DOMAINS.forEach(function(d) { DOMAIN_NAMES[d.id] = d.name; });
+
+// ── Topic name lookup ─────────────────────────────────────────────
+var TOPIC_MAP = {};
+DOMAINS.forEach(function(d) {
+  d.topics.forEach(function(t) { TOPIC_MAP[t.id] = t.name; });
+});
+
+// ── Explain-back prompts per topic ────────────────────────────────
+var EXPLAIN_PROMPTS = {
+  '1.1':'Explain the role of routers, switches, and firewalls in a network. How do they differ?',
+  '1.2':'Describe the three-tier and spine-leaf network architectures. When would you use each?',
+  '1.3':'Compare single-mode fiber, multimode fiber, and copper cabling. When do you pick each?',
+  '1.4':'How do you identify and troubleshoot interface errors like CRC, runts, and duplex mismatch?',
+  '1.5':'Explain TCP vs UDP. Walk through the TCP 3-way handshake and when you would use UDP instead.',
+  '1.6':'Explain subnetting. Given a /26, how many hosts and subnets do you get? Show your work.',
+  '1.7':'What are RFC 1918 private addresses? List the ranges and explain why NAT is needed.',
+  '1.8':'How does IPv6 addressing work? Explain SLAAC, link-local, and the difference from IPv4.',
+  '1.9':'Describe IPv6 address types: global unicast, unique local, link-local, multicast, anycast.',
+  '1.10':'How do you verify IP settings on Windows, Linux, and macOS? Name the key commands.',
+  '1.11':'Explain wireless fundamentals: channels, SSID, RF, and the difference between WPA2 and WPA3.',
+  '1.12':'Compare VMs and containers. What is a Type 1 vs Type 2 hypervisor? What is VRF?',
+  '1.13':'How does a switch learn MAC addresses and decide where to forward frames?',
+  '2.1':'What is a VLAN? How do you configure one, and how does inter-VLAN routing work?',
+  '2.2':'Explain 802.1Q trunking and native VLANs. Why must native VLANs match on both sides?',
+  '2.3':'Explain DTP and when you should disable it. What is the difference between desirable and auto?',
+  '2.4':'What is EtherChannel? Compare LACP and PAgP. How does it improve bandwidth?',
+  '2.5':'How does STP prevent loops? Explain root bridge election, port roles, and convergence.',
+  '2.6':'Compare autonomous APs and lightweight APs with a WLC. What is CAPWAP?',
+  '2.7':'Explain the physical infrastructure of a wired LAN: MDF, IDF, patch panels, cable management.',
+  '2.8':'What is CDP and LLDP? How do they help with network discovery and troubleshooting?',
+  '2.9':'Explain Rapid PVST+. How is it different from classic STP and PVST+?',
+  '3.1':'How does a router decide where to send a packet? Explain the routing table and longest prefix match.',
+  '3.2':'What is administrative distance? How does a router choose between OSPF, EIGRP, and static routes?',
+  '3.3':'Compare static routes and dynamic routing. What is a floating static route and when do you use it?',
+  '3.4':'How does OSPF work? Explain areas, DR/BDR election, LSAs, and the SPF algorithm.',
+  '3.5':'What is FHRP? Explain HSRP — active/standby, virtual IP, preemption, and failover.',
+  '4.1':'Explain NAT and PAT. How does inside local/global and outside local/global work?',
+  '4.2':'What is NTP and why is synchronized time critical for network operations?',
+  '4.3':'Walk through the DHCP DORA process. When do you need a DHCP relay agent?',
+  '4.4':'Explain SNMP. What are the versions, what is a MIB, and how do traps work?',
+  '4.5':'Describe syslog severity levels 0-7. How do you configure logging on a Cisco device?',
+  '4.6':'What are TFTP and FTP used for in networking? How do you back up a config with TFTP?',
+  '4.7':'Explain QoS: classification, marking, queuing. What is DSCP and why does it matter?',
+  '4.8':'Why use SSH over Telnet? What steps configure SSH on a Cisco router?',
+  '5.1':'Explain the CIA triad and common network threats: phishing, DDoS, man-in-the-middle.',
+  '5.2':'What is device hardening? Name key steps to secure a Cisco router or switch.',
+  '5.3':'Explain the different types of passwords on a Cisco device: enable secret, console, VTY, aux.',
+  '5.4':'What is 802.1X? Explain how it works with RADIUS for port-based authentication.',
+  '5.5':'Compare site-to-site VPN and remote-access VPN. What is IPsec?',
+  '5.6':'Explain ACLs. What is the difference between standard and extended? What is the implicit deny?',
+  '5.7':'What is port security? Explain the three violation modes: protect, restrict, shutdown.',
+  '5.8':'Explain AAA. Compare RADIUS and TACACS+. Which is better for device administration?',
+  '5.9':'What is DHCP snooping and dynamic ARP inspection? How do they prevent attacks?',
+  '5.10':'Explain wireless security: WPA2 vs WPA3, PSK vs Enterprise, and TKIP vs AES.',
+  '6.1':'What is controller-based networking? Compare traditional vs SDN architectures.',
+  '6.2':'How does DNA Center manage a network? What is intent-based networking?',
+  '6.3':'Explain SDN: control plane, data plane, management plane separation.',
+  '6.4':'Compare traditional network management with controller-based management.',
+  '6.5':'Explain REST APIs. What are GET, POST, PUT, DELETE? What is JSON?',
+  '6.6':'What is Ansible? How does it differ from Puppet and Chef? Why is it popular for networks?',
+  '6.7':'What are configuration management tools and how do they help with network automation?'
+};
+
+// ── State ─────────────────────────────────────────────────────────
+var selectedDomain = null; // null = all, or domain ID string
+var examQuestions = [];
+var examIndex = 0;
+var examAnswers = []; // {qId, topicId, correct, selectedIdx, timeMs}
+var examStartTime = 0;
+var questionStartTime = 0;
+
+var explainTopics = []; // [{topicId, prompt, topicName}]
+var explainIndex = 0;
+var explainResults = []; // [{topicId, scores, total, grade, skipped}]
+var explainTimer = null;
+var explainTimeLeft = 90;
+
+// ════════════════════════════════════════════════════════════════════
+// PHASE 1 — Domain Selection
+// ════════════════════════════════════════════════════════════════════
+
+function renderDomainGrid() {
+  var proficiency = store.getAllProficiency();
+  var grid = document.getElementById('domainGrid');
+  var html = '';
+
+  DOMAINS.forEach(function(d) {
+    var prof = 0, count = 0;
+    d.topics.forEach(function(t) { prof += (proficiency[t.id] || 0); count++; });
+    var pct = count > 0 ? Math.round((prof / count) * 100) : 0;
+    var color = pct >= 70 ? 'var(--prof-strong)' : pct >= 40 ? 'var(--prof-mid)' : 'var(--prof-weak)';
+    var qCount = ALL_QUESTIONS.filter(function(q) { return q.domain === d.id; }).length;
+
+    html += '<div class="domain-pick" data-domain="' + d.id + '" onclick="selectDomain(\'' + d.id + '\')">' +
+      '<div class="dp-id">Domain ' + d.id + '</div>' +
+      '<div class="dp-name">' + d.name + '</div>' +
+      '<div class="dp-weight">' + d.weight + '% of exam &middot; ' + qCount + ' questions available</div>' +
+      '<div class="dp-prof" style="color:' + color + '">' + pct + '%</div>' +
+      '<div class="dp-bar"><div class="dp-bar-fill" style="width:' + pct + '%;background:' + color + '"></div></div>' +
+    '</div>';
+  });
+
+  html += '<div class="domain-pick all-pick" data-domain="all" onclick="selectDomain(\'all\')">' +
+    '<div class="dp-name">Full Diagnostic — All 6 Domains</div>' +
+    '<div class="dp-weight">25 questions per domain &middot; 150 total &middot; ~90 minutes</div>' +
+  '</div>';
+
+  grid.innerHTML = html;
+}
+
+function selectDomain(id) {
+  selectedDomain = id === 'all' ? null : id;
+  document.querySelectorAll('.domain-pick').forEach(function(el) {
+    el.classList.toggle('selected', el.getAttribute('data-domain') === id);
+  });
+  var btn = document.getElementById('startBtn');
+  btn.disabled = false;
+  if (id === 'all') {
+    btn.textContent = 'Start Full Diagnostic (150 questions)';
+  } else {
+    btn.textContent = 'Start Domain ' + id + ' Diagnostic';
+  }
+}
+
+// ════════════════════════════════════════════════════════════════════
+// PHASE 2 — Multiple Choice Exam
+// ════════════════════════════════════════════════════════════════════
+
+function shuffle(arr) {
+  var a = arr.slice();
+  for (var i = a.length - 1; i > 0; i--) {
+    var j = Math.floor(Math.random() * (i + 1));
+    var t = a[i]; a[i] = a[j]; a[j] = t;
+  }
+  return a;
+}
+
+function buildExamQuestions() {
+  if (selectedDomain) {
+    // Single domain — pull 25-30 questions (or all available)
+    var pool = ALL_QUESTIONS.filter(function(q) { return q.domain === selectedDomain; });
+    var target = Math.min(30, pool.length);
+    return shuffle(pool).slice(0, target);
+  } else {
+    // All domains — 25 per domain
+    var all = [];
+    DOMAINS.forEach(function(d) {
+      var pool = ALL_QUESTIONS.filter(function(q) { return q.domain === d.id; });
+      all = all.concat(shuffle(pool).slice(0, 25));
+    });
+    return shuffle(all);
+  }
+}
+
+function startExam() {
+  examQuestions = buildExamQuestions();
+  examIndex = 0;
+  examAnswers = [];
+  examStartTime = Date.now();
+  setPhase('exam');
+  renderExamQuestion();
+}
+
+function renderExamQuestion() {
+  if (examIndex >= examQuestions.length) {
+    finishExam();
+    return;
+  }
+  var q = examQuestions[examIndex];
+  questionStartTime = Date.now();
+
+  var total = examQuestions.length;
+  var pct = Math.round((examIndex / total) * 100);
+  document.getElementById('examCounter').textContent = (examIndex + 1) + ' / ' + total;
+  document.getElementById('examProgressFill').style.width = pct + '%';
+  document.getElementById('examDomainLabel').textContent = 'Domain ' + q.domain + ' — ' + (DOMAIN_NAMES[q.domain] || '') + ' · Topic ' + q.topic;
+  document.getElementById('examQuestion').textContent = q.question;
+
+  var letters = ['A', 'B', 'C', 'D', 'E', 'F'];
+  var html = '';
+  q.options.forEach(function(opt, i) {
+    html += '<button class="quiz-option" data-idx="' + i + '" onclick="examAnswer(this,' + i + ')">' +
+      '<span class="option-letter">' + letters[i] + '</span>' +
+      '<span>' + opt + '</span></button>';
+  });
+  document.getElementById('examOptions').innerHTML = html;
+  document.getElementById('examExplanation').style.display = 'none';
+  document.getElementById('examNextBtn').style.display = 'none';
+
+  // Running stats
+  var correct = examAnswers.filter(function(a) { return a.correct; }).length;
+  var elapsed = Math.round((Date.now() - examStartTime) / 60000);
+  document.getElementById('examTimer').textContent = correct + '/' + examIndex + ' correct · ' + elapsed + 'm';
+}
+
+function examAnswer(btn, idx) {
+  var q = examQuestions[examIndex];
+  var correct = idx === q.correct;
+  var timeMs = Date.now() - questionStartTime;
+
+  examAnswers.push({
+    qId: q.id,
+    topicId: q.topic,
+    correct: correct,
+    selectedIdx: idx,
+    timeMs: timeMs
+  });
+
+  // Update proficiency
+  store.updateProficiency(q.topic, correct);
+
+  // Disable all options
+  document.querySelectorAll('#examOptions .quiz-option').forEach(function(el) {
+    el.classList.add('disabled');
+    var elIdx = parseInt(el.getAttribute('data-idx'));
+    if (elIdx === q.correct) el.classList.add('correct');
+    if (elIdx === idx && !correct) el.classList.add('wrong');
+  });
+
+  // Show explanation
+  var expBox = document.getElementById('examExplanation');
+  var expHtml = q.explanation || '';
+  if (q.ciscoCommand) expHtml += '<br><span class="cisco-cmd">' + q.ciscoCommand + '</span>';
+  expBox.innerHTML = expHtml;
+  expBox.style.display = '';
+
+  document.getElementById('examNextBtn').style.display = '';
+
+  // Update running counter
+  var correctTotal = examAnswers.filter(function(a) { return a.correct; }).length;
+  var elapsed = Math.round((Date.now() - examStartTime) / 60000);
+  document.getElementById('examTimer').textContent = correctTotal + '/' + examAnswers.length + ' correct · ' + elapsed + 'm';
+}
+
+function examNext() {
+  examIndex++;
+  renderExamQuestion();
+}
+
+// ════════════════════════════════════════════════════════════════════
+// TRANSITION — Analyze MC results, pick explain topics
+// ════════════════════════════════════════════════════════════════════
+
+function finishExam() {
+  // Aggregate per-topic accuracy
+  var topicStats = {};
+  examAnswers.forEach(function(a) {
+    if (!topicStats[a.topicId]) topicStats[a.topicId] = { correct: 0, total: 0 };
+    topicStats[a.topicId].total++;
+    if (a.correct) topicStats[a.topicId].correct++;
+  });
+
+  // Sort topics by accuracy (lowest first), pick weakest 3-5
+  var sorted = Object.keys(topicStats).map(function(tid) {
+    var s = topicStats[tid];
+    return { topicId: tid, pct: Math.round((s.correct / s.total) * 100), correct: s.correct, total: s.total };
+  });
+  sorted.sort(function(a, b) { return a.pct - b.pct; });
+
+  // Pick topics where accuracy < 70%, max 5, min 3 (even if above 70%)
+  var weak = sorted.filter(function(t) { return t.pct < 70; });
+  if (weak.length < 3) weak = sorted.slice(0, 3);
+  if (weak.length > 5) weak = weak.slice(0, 5);
+
+  explainTopics = weak.map(function(t) {
+    return {
+      topicId: t.topicId,
+      prompt: EXPLAIN_PROMPTS[t.topicId] || 'Explain topic ' + t.topicId + ': ' + (TOPIC_MAP[t.topicId] || t.topicId),
+      topicName: TOPIC_MAP[t.topicId] || t.topicId,
+      mcPct: t.pct
+    };
+  });
+
+  explainIndex = 0;
+  explainResults = [];
+  document.getElementById('explainCount').textContent = explainTopics.length;
+  setPhase('explain');
+  renderExplainTopic();
+}
+
+// ════════════════════════════════════════════════════════════════════
+// PHASE 3 — Explain-Back
+// ════════════════════════════════════════════════════════════════════
+
+function renderExplainTopic() {
+  if (explainIndex >= explainTopics.length) {
+    showResults();
+    return;
+  }
+  var t = explainTopics[explainIndex];
+  var total = explainTopics.length;
+
+  document.getElementById('explainCounter').textContent = (explainIndex + 1) + ' / ' + total;
+  document.getElementById('explainProgressFill').style.width = Math.round((explainIndex / total) * 100) + '%';
+  document.getElementById('explainTopicText').textContent = t.prompt;
+  document.getElementById('explainTopicId').textContent = 'Topic ' + t.topicId + ' · ' + t.topicName + ' · You scored ' + t.mcPct + '% on MC';
+
+  document.getElementById('explainInput').value = '';
+  document.getElementById('explainInput').disabled = false;
+  document.getElementById('explainWc').textContent = '0 words';
+  document.getElementById('explainSubmitBtn').disabled = false;
+  document.getElementById('explainInputArea').style.display = '';
+  document.getElementById('explainJudging').style.display = 'none';
+  document.getElementById('explainFeedback').style.display = 'none';
+  document.getElementById('explainTopicCard').style.display = '';
+
+  explainTimeLeft = 90;
+  startExplainTimer();
+  document.getElementById('explainInput').focus();
+}
+
+function startExplainTimer() {
+  clearInterval(explainTimer);
+  var fill = document.getElementById('explainTimerFill');
+  fill.style.width = '100%';
+  fill.classList.remove('danger');
+  explainTimer = setInterval(function() {
+    explainTimeLeft -= 0.5;
+    var pct = Math.max(0, (explainTimeLeft / 90) * 100);
+    fill.style.width = pct + '%';
+    if (explainTimeLeft <= 20) fill.classList.add('danger');
+    if (explainTimeLeft <= 0) { clearInterval(explainTimer); explainSubmit(); }
+  }, 500);
+}
+
+document.getElementById('explainInput').addEventListener('input', function() {
+  var words = this.value.trim().split(/\s+/).filter(function(w) { return w.length > 0; });
+  document.getElementById('explainWc').textContent = words.length + ' words';
+});
+
+function explainSkip() {
+  clearInterval(explainTimer);
+  explainResults.push({
+    topicId: explainTopics[explainIndex].topicId,
+    scores: { accuracy: 0, completeness: 0, clarity: 0, terminology: 0 },
+    total: 0, grade: 'F', skipped: true
+  });
+  explainIndex++;
+  renderExplainTopic();
+}
+
+async function explainSubmit() {
+  clearInterval(explainTimer);
+  var answer = document.getElementById('explainInput').value.trim();
+  if (!answer || answer.length < 10) { explainSkip(); return; }
+
+  document.getElementById('explainInput').disabled = true;
+  document.getElementById('explainSubmitBtn').disabled = true;
+  document.getElementById('explainInputArea').style.display = 'none';
+  document.getElementById('explainJudging').style.display = '';
+
+  var t = explainTopics[explainIndex];
+  var prompt = 'You are a strict Cisco CCNA instructor grading a student\'s explanation.\n\n' +
+    'TOPIC: "' + t.prompt + '"\n\n' +
+    'STUDENT\'S ANSWER:\n"' + answer + '"\n\n' +
+    'Score on exactly 4 categories (0-5 each):\n' +
+    '1. ACCURACY — Are the facts correct? Any errors?\n' +
+    '2. COMPLETENESS — Did they cover all key points?\n' +
+    '3. CLARITY — Would a beginner understand this?\n' +
+    '4. CISCO TERMINOLOGY — Did they use proper terms?\n\n' +
+    'Respond in EXACTLY this JSON format, nothing else:\n' +
+    '{"accuracy":N,"completeness":N,"clarity":N,"terminology":N,"feedback":"2-3 sentences: what they got right, what they missed, one specific thing to study."}';
+
+  try {
+    var res = await fetch(API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: prompt, history: [] })
+    });
+    var data = await res.json();
+    var reply = data.reply || '';
+    var jsonMatch = reply.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) throw new Error('No JSON');
+    var scores = JSON.parse(jsonMatch[0]);
+
+    var total = (scores.accuracy || 0) + (scores.completeness || 0) + (scores.clarity || 0) + (scores.terminology || 0);
+    var grade = total >= 18 ? 'A' : total >= 14 ? 'B' : total >= 10 ? 'C' : total >= 6 ? 'D' : 'F';
+
+    // Update proficiency
+    store.updateProficiency(t.topicId, total >= 10);
+
+    explainResults.push({ topicId: t.topicId, scores: scores, total: total, grade: grade, skipped: false });
+
+    // Show inline feedback
+    document.getElementById('explainJudging').style.display = 'none';
+    document.getElementById('explainFeedback').style.display = '';
+
+    var cats = [
+      { name: 'Accuracy', val: scores.accuracy || 0 },
+      { name: 'Complete', val: scores.completeness || 0 },
+      { name: 'Clarity', val: scores.clarity || 0 },
+      { name: 'Terms', val: scores.terminology || 0 }
+    ];
+    document.getElementById('explainScoresGrid').innerHTML = cats.map(function(c) {
+      var col = c.val >= 4 ? 'var(--prof-strong)' : c.val >= 3 ? 'var(--prof-mid)' : 'var(--prof-weak)';
+      return '<div class="explain-score-cell"><div class="esc-label">' + c.name + '</div><div class="esc-val" style="color:' + col + '">' + c.val + '/5</div></div>';
+    }).join('');
+    document.getElementById('explainFeedbackText').textContent = scores.feedback || 'No feedback.';
+
+    if (explainIndex >= explainTopics.length - 1) {
+      document.getElementById('explainNextBtn').textContent = 'See Results';
+    }
+
+  } catch (e) {
+    document.getElementById('explainJudging').style.display = 'none';
+    explainResults.push({
+      topicId: t.topicId, scores: { accuracy: 0, completeness: 0, clarity: 0, terminology: 0 },
+      total: 0, grade: '?', skipped: false, error: true
+    });
+    explainIndex++;
+    renderExplainTopic();
+  }
+}
+
+function explainNext() {
+  explainIndex++;
+  renderExplainTopic();
+}
+
+// ════════════════════════════════════════════════════════════════════
+// PHASE 4 — Results & Study Plan
+// ════════════════════════════════════════════════════════════════════
+
+function showResults() {
+  // MC stats
+  var mcCorrect = examAnswers.filter(function(a) { return a.correct; }).length;
+  var mcTotal = examAnswers.length;
+  var mcPct = Math.round((mcCorrect / mcTotal) * 100);
+
+  // Explain stats
+  var explainMax = explainResults.length * 20;
+  var explainPts = explainResults.reduce(function(s, r) { return s + r.total; }, 0);
+  var explainPct = explainMax > 0 ? Math.round((explainPts / explainMax) * 100) : 0;
+
+  // Composite: 60% MC, 40% explain (explain is harder and more revealing)
+  var composite = Math.round(mcPct * 0.6 + explainPct * 0.4);
+
+  // Verdict
+  var verdict, vColor;
+  if (composite >= 85) { verdict = 'Exam Ready'; vColor = 'var(--prof-strong)'; }
+  else if (composite >= 70) { verdict = 'Almost There — Fill the Gaps'; vColor = 'var(--prof-mid)'; }
+  else if (composite >= 50) { verdict = 'Needs Significant Work'; vColor = 'var(--prof-mid)'; }
+  else { verdict = 'Foundational Gaps — Study Required'; vColor = 'var(--prof-weak)'; }
+
+  document.getElementById('resultsComposite').textContent = composite + '%';
+  document.getElementById('resultsComposite').style.color = vColor;
+  document.getElementById('resultsSub').textContent = 'Composite Score (60% MC + 40% Explain)';
+  document.getElementById('resultsVerdict').textContent = verdict;
+  document.getElementById('resultsVerdict').style.color = vColor;
+
+  // Dual score blocks
+  var elapsed = Math.round((Date.now() - examStartTime) / 60000);
+  document.getElementById('dualScore').innerHTML =
+    '<div class="score-block">' +
+      '<div class="score-block-label">Multiple Choice</div>' +
+      '<div class="score-block-value" style="color:' + (mcPct >= 70 ? 'var(--prof-strong)' : mcPct >= 50 ? 'var(--prof-mid)' : 'var(--prof-weak)') + '">' + mcPct + '%</div>' +
+      '<div class="score-block-detail">' + mcCorrect + ' / ' + mcTotal + ' correct &middot; ' + elapsed + ' minutes</div>' +
+    '</div>' +
+    '<div class="score-block">' +
+      '<div class="score-block-label">Explain-Back</div>' +
+      '<div class="score-block-value" style="color:' + (explainPct >= 70 ? 'var(--prof-strong)' : explainPct >= 50 ? 'var(--prof-mid)' : 'var(--prof-weak)') + '">' + explainPct + '%</div>' +
+      '<div class="score-block-detail">' + explainPts + ' / ' + explainMax + ' pts &middot; ' + explainResults.length + ' topics</div>' +
+    '</div>';
+
+  // Per-topic breakdown
+  var topicStats = {};
+  examAnswers.forEach(function(a) {
+    if (!topicStats[a.topicId]) topicStats[a.topicId] = { correct: 0, total: 0, explainTotal: null, explainGrade: null };
+    topicStats[a.topicId].total++;
+    if (a.correct) topicStats[a.topicId].correct++;
+  });
+  explainResults.forEach(function(r) {
+    if (topicStats[r.topicId]) {
+      topicStats[r.topicId].explainTotal = r.total;
+      topicStats[r.topicId].explainGrade = r.grade;
+    }
+  });
+
+  var rows = Object.keys(topicStats).sort().map(function(tid) {
+    var s = topicStats[tid];
+    var mcP = Math.round((s.correct / s.total) * 100);
+    var barColor = mcP >= 70 ? 'var(--prof-strong)' : mcP >= 50 ? 'var(--prof-mid)' : 'var(--prof-weak)';
+    var explainCell = s.explainGrade !== null ?
+      '<span style="color:' + gradeColor(s.explainGrade) + '">' + s.explainGrade + ' (' + s.explainTotal + '/20)</span>' : '<span style="color:var(--ink-faint)">—</span>';
+
+    // Composite grade for this topic
+    var topicComposite;
+    if (s.explainTotal !== null) {
+      topicComposite = Math.round(mcP * 0.6 + (s.explainTotal / 20 * 100) * 0.4);
+    } else {
+      topicComposite = mcP;
+    }
+    var tGrade = topicComposite >= 85 ? 'A' : topicComposite >= 70 ? 'B' : topicComposite >= 50 ? 'C' : topicComposite >= 30 ? 'D' : 'F';
+
+    return '<tr>' +
+      '<td class="tt-id">' + tid + '</td>' +
+      '<td class="tt-name">' + (TOPIC_MAP[tid] || tid) + '</td>' +
+      '<td class="tt-score" style="color:' + barColor + '">' + mcP + '%</td>' +
+      '<td class="tt-bar"><div class="tt-bar-outer"><div class="tt-bar-fill" style="width:' + mcP + '%;background:' + barColor + '"></div></div></td>' +
+      '<td class="tt-score">' + explainCell + '</td>' +
+      '<td class="tt-grade" style="color:' + gradeColor(tGrade) + '">' + tGrade + '</td>' +
+    '</tr>';
+  });
+  document.getElementById('topicTableBody').innerHTML = rows.join('');
+
+  // Study plan — sorted by composite score ascending
+  var planItems = Object.keys(topicStats).map(function(tid) {
+    var s = topicStats[tid];
+    var mcP = Math.round((s.correct / s.total) * 100);
+    var topicComposite;
+    var reason;
+    if (s.explainTotal !== null) {
+      var explainP = Math.round((s.explainTotal / 20) * 100);
+      topicComposite = Math.round(mcP * 0.6 + explainP * 0.4);
+      if (mcP >= 70 && explainP < 50) reason = 'Can pick answers but can\'t explain it — study the concepts deeper';
+      else if (mcP < 50 && explainP >= 50) reason = 'Understands concepts but misses details in questions';
+      else if (mcP < 50 && explainP < 50) reason = 'Weak on both MC and explanation — needs full review';
+      else reason = 'Below target — keep practicing';
+    } else {
+      topicComposite = mcP;
+      reason = mcP < 50 ? 'Low MC accuracy — review this topic' : mcP < 70 ? 'Below passing threshold' : 'On track';
+    }
+    return { topicId: tid, composite: topicComposite, reason: reason };
+  });
+  planItems.sort(function(a, b) { return a.composite - b.composite; });
+
+  // Only show topics below 85%
+  var needWork = planItems.filter(function(p) { return p.composite < 85; });
+  if (needWork.length === 0) needWork = planItems.slice(0, 3); // At least show top 3
+
+  document.getElementById('studyPlanItems').innerHTML = needWork.map(function(p, i) {
+    var sColor = p.composite < 50 ? 'var(--prof-weak)' : p.composite < 70 ? 'var(--prof-mid)' : 'var(--prof-strong)';
+    return '<div class="sp-item">' +
+      '<span class="sp-rank">' + (i + 1) + '</span>' +
+      '<div class="sp-topic">' +
+        '<div class="sp-topic-name">' + p.topicId + ' — ' + (TOPIC_MAP[p.topicId] || p.topicId) + '</div>' +
+        '<div class="sp-topic-reason">' + p.reason + '</div>' +
+      '</div>' +
+      '<span class="sp-severity" style="color:' + sColor + '">' + p.composite + '%</span>' +
+    '</div>';
+  }).join('');
+
+  // Save diagnostic results
+  var diagnosticResult = {
+    date: new Date().toISOString(),
+    type: 'domain-diagnostic',
+    domain: selectedDomain || 'all',
+    mcScore: mcPct,
+    explainScore: explainPct,
+    composite: composite,
+    totalQuestions: mcTotal,
+    topicScores: {}
+  };
+  Object.keys(topicStats).forEach(function(tid) {
+    var s = topicStats[tid];
+    diagnosticResult.topicScores[tid] = Math.round((s.correct / s.total) * 100) / 100;
+  });
+  store.saveDiagnostic(diagnosticResult);
+  store.updateStreak();
+  var minutes = Math.round((Date.now() - examStartTime) / 60000);
+  if (minutes > 0) store.logStudyTime(minutes);
+
+  setPhase('results');
+}
+
+function gradeColor(g) {
+  if (g === 'A') return 'var(--prof-strong)';
+  if (g === 'B') return '#2563EB';
+  if (g === 'C') return 'var(--prof-mid)';
+  return 'var(--prof-weak)';
+}
+
+// ════════════════════════════════════════════════════════════════════
+// Phase management
+// ════════════════════════════════════════════════════════════════════
+
+function setPhase(phase) {
+  var views = { select: 'selectView', exam: 'examView', explain: 'explainView', results: 'resultsView' };
+  var order = ['select', 'exam', 'explain', 'results'];
+
+  Object.keys(views).forEach(function(k) {
+    document.getElementById(views[k]).style.display = k === phase ? 'block' : 'none';
+  });
+
+  document.querySelectorAll('.phase-step').forEach(function(el) {
+    var p = el.getAttribute('data-phase');
+    var idx = order.indexOf(p);
+    var currentIdx = order.indexOf(phase);
+    el.classList.remove('active', 'done');
+    if (idx < currentIdx) el.classList.add('done');
+    if (idx === currentIdx) el.classList.add('active');
+  });
+
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ── Init ──────────────────────────────────────────────────────────
+renderDomainGrid();
+</script>
+<script src="js/tutor.js"></script>
+<script src="js/group-chat.js"></script>
+</body>
+</html>

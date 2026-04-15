@@ -1087,9 +1087,16 @@ function render(){
   const domains=window.topicsData.domains;
   const isNetPlus=localStorage.getItem('ccna_cert_track')==='net+';
 
-  // Auto-master objectives at 70%+ proficiency
+  // Auto-master objectives at 70%+ proficiency AND mini lab passed (70%+)
+  var labScores={};
+  try{labScores=JSON.parse(localStorage.getItem('ccna_minilab_scores'))||{};}catch(e){}
   let masteredChanged=false;
-  domains.forEach(d=>d.topics.forEach(t=>{if(prof[t.id]>=0.7&&!mastered[t.id]){mastered[t.id]=true;masteredChanged=true;}}));
+  domains.forEach(d=>d.topics.forEach(t=>{
+    var quizPass=prof[t.id]>=0.7;
+    var lab=labScores[t.id];
+    var labPass=lab&&lab.pct>=70;
+    if(quizPass&&labPass&&!mastered[t.id]){mastered[t.id]=true;masteredChanged=true;}
+  }));
   if(masteredChanged)localStorage.setItem('ccna_core_mastered',JSON.stringify(mastered));
 
   // Stats
@@ -1286,8 +1293,14 @@ function render(){
 
       // Deep-linked shortcuts — quiz filters to this topic, domain quiz filters to domain
       var domainNum=t.id.split('.')[0];
+      var labData=labScores[t.id];
+      var labDone=labData&&labData.pct>=70;
       let siteHtml='<div class="obj-shortcuts">';
-      siteHtml+='<a class="obj-sc" href="mini-lab.html?topic='+t.id+'" style="background:var(--accent);color:#fff;border-color:var(--accent)">Mini Lab</a>';
+      if(labDone){
+        siteHtml+='<a class="obj-sc" href="mini-lab.html?topic='+t.id+'" style="background:var(--prof-strong);color:#fff;border-color:var(--prof-strong)">Lab '+labData.pct+'%</a>';
+      }else{
+        siteHtml+='<a class="obj-sc" href="mini-lab.html?topic='+t.id+'" style="background:var(--accent);color:#fff;border-color:var(--accent)">Mini Lab'+(labData?' '+labData.pct+'%':'')+' — required</a>';
+      }
       if(r.site&&r.site.length>0)r.site.forEach(function(s){siteHtml+='<a class="obj-sc" href="'+s.h+'">'+esc(s.t)+'</a>';});
       siteHtml+='</div>';
 
@@ -1332,24 +1345,16 @@ function render(){
       '<div class="ds-body" id="dbody-'+d.id+'">'+quizBadge+topicsHtml+'</div></div>';
   }).join('');
 
-  // Auto-expand domains
+  // Auto-expand domains — only in filtered modes, never on normal load
   if(filterMode==='speed'||filterMode==='weak'){
-    // Speed run / Weak only: expand ALL visible domains
     domains.forEach(d=>{
       var b=document.getElementById('dbody-'+d.id);
       var t=document.getElementById('dtoggle-'+d.id);
       if(b)b.classList.add('open');
       if(t)t.classList.add('open');
     });
-  }else{
-    // Normal: expand weakest domain only
-    let weakestId='1', weakestAvg=Infinity;
-    domains.forEach(d=>{let s=0;d.topics.forEach(t=>s+=(prof[t.id]||0));const a=s/d.topics.length;if(a<weakestAvg){weakestAvg=a;weakestId=d.id;}});
-    const wb=document.getElementById('dbody-'+weakestId);
-    const wt=document.getElementById('dtoggle-'+weakestId);
-    if(wb)wb.classList.add('open');
-    if(wt)wt.classList.add('open');
   }
+  // Normal mode: all domains start collapsed. User clicks to expand.
 }
 
 function toggleDomain(id){
