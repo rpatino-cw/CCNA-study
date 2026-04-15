@@ -213,6 +213,11 @@
   mobScript.src = fixHref('js/mobile-onboard.js');
   document.body.appendChild(mobScript);
 
+  // Settings panel — themes, display prefs, fun modes
+  var settingsScript = document.createElement('script');
+  settingsScript.src = fixHref('js/settings.js');
+  document.body.appendChild(settingsScript);
+
   // Help pill — shows after 2 minutes of inactivity, points to AI tutor
   var pn = location.pathname;
   if (!/guide\.html/.test(pn)) {

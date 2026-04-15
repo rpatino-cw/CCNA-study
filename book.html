@@ -762,7 +762,7 @@ function buildSimpleToc(toc, bookId) {
     var clickable = hasMapped ? ' toc-ch-clickable' : '';
     var topics = hasMapped ? topicMap[item.ch] : [];
 
-    html += '<div class="toc-ch-row' + (isRead ? ' ch-read' : '') + clickable + '" data-ch="' + item.ch + '" data-book="' + bookId + '" data-title="' + item.title.replace(/"/g, '&quot;') + '" data-page="' + item.page + '" data-mapped="' + (hasMapped ? '1' : '0') + '">';
+    html += '<div id="ch-' + item.ch + '" class="toc-ch-row' + (isRead ? ' ch-read' : '') + clickable + '" data-ch="' + item.ch + '" data-book="' + bookId + '" data-title="' + item.title.replace(/"/g, '&quot;') + '" data-page="' + item.page + '" data-mapped="' + (hasMapped ? '1' : '0') + '">';
     html += '<div class="toc-ch-check-wrap"><input type="checkbox" class="ch-check" data-chid="' + chId + '" data-book="' + bookId + '"' + (isRead ? ' checked' : '') + ' onclick="event.stopPropagation(); toggleBookChapterRead(this)"></div>';
     html += '<div class="toc-ch-main">';
     html += '<span class="toc-ch-name">Ch ' + item.ch + ' — ' + item.title + '</span>';
@@ -845,10 +845,33 @@ function init() {
   // Check if we're on GitHub Pages (no local PDFs)
   const isGitHubPages = location.hostname.includes('github.io');
 
+  // --- Hash-based chapter navigation (#ch-X) ---
+  function scrollToChapterHash() {
+    var hash = location.hash;
+    if (!hash || hash.indexOf('#ch-') !== 0) return;
+    document.getElementById('tocSection').style.display = 'block';
+    var target = document.getElementById(hash.slice(1));
+    if (!target) return;
+    setTimeout(function() {
+      target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      target.style.outline = '2px solid var(--accent)';
+      target.style.outlineOffset = '-2px';
+      target.style.borderRadius = 'var(--radius)';
+      // Auto-open reading view on GitHub Pages if chapter has mapped content
+      if (isGitHubPages && target.getAttribute('data-mapped') === '1') {
+        var ch = target.getAttribute('data-ch');
+        var title = target.getAttribute('data-title');
+        var chVal = /^\d+$/.test(ch) ? parseInt(ch) : ch;
+        openChapterReading(bookId, chVal, title);
+      }
+    }, 100);
+  }
+
   if (isGitHubPages) {
     // On GitHub Pages, skip PDF viewer — go straight to study content TOC
     document.getElementById('viewer').innerHTML = '';
     document.getElementById('tocSection').style.display = 'block';
+    scrollToChapterHash();
     return;
   }
 
@@ -882,6 +905,9 @@ function init() {
     document.getElementById('canvasWrap').innerHTML =
       '<div class="pdf-loading">Could not load PDF. Make sure <code>' + book.file + '</code> exists in the project folder.</div>';
   });
+
+  // Local mode: also handle chapter hash navigation
+  scrollToChapterHash();
 }
 
 function goToPage(page) {
