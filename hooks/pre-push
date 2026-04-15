@@ -86,6 +86,17 @@ if command -v npx &>/dev/null && npx playwright --version &>/dev/null 2>&1; then
   if ! node scripts/nav-click-test.js; then
     ERRORS=$((ERRORS + 1))
   fi
+
+  # Visual regression — warn on drift but don't block push
+  if [ -d "regression/baseline" ] && [ "$(ls regression/baseline/*.png 2>/dev/null | wc -l)" -gt 0 ]; then
+    echo ""
+    echo "Running visual regression check..."
+    if ! node scripts/visual-regression.js 2>/dev/null; then
+      echo "WARNING: Visual regression diffs detected (non-blocking)."
+      echo "  → Review: regression/diff/*.png"
+      echo "  → Update baselines: node scripts/visual-regression.js --update"
+    fi
+  fi
 else
   echo "NOTE: Playwright not installed — skipping smoke test (npm i -D playwright)"
 fi
