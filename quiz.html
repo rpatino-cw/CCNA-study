@@ -917,6 +917,29 @@
       opacity: 0.6;
       margin-bottom: 4px;
     }
+    /* ── Exam Focus Section ── */
+    .exam-focus{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:18px 20px;margin-top:16px;border-left:3px solid #B45309}
+    .exam-focus-label{font-family:var(--font-mono);font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:#B45309;margin-bottom:8px}
+    .exam-focus h4{font-size:.85rem;margin:10px 0 4px;color:var(--text-strong)}
+    .exam-focus p,.exam-focus li{font-size:.82rem;color:var(--text-muted);line-height:1.55}
+    .exam-focus ul{padding-left:16px;margin:4px 0 8px}
+    .exam-focus li{margin-bottom:3px}
+    .exam-focus .ef-trap{background:rgba(220,38,38,.06);border-radius:6px;padding:10px 14px;margin-top:8px;font-size:.8rem;color:#991B1B;line-height:1.5}
+    .exam-focus .ef-trap strong{color:#DC2626}
+    .exam-focus .ef-lab{background:rgba(37,99,235,.06);border-radius:6px;padding:10px 14px;margin-top:8px;font-size:.8rem;color:#1E40AF;line-height:1.5}
+
+    /* ── Glossary Terms Section ── */
+    .glossary-strip{margin-top:16px}
+    .glossary-strip-label{font-family:var(--font-mono);font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--text-muted);margin-bottom:8px}
+    .glossary-chips{display:flex;flex-wrap:wrap;gap:6px}
+    .g-chip{font-family:var(--font-display);font-size:.72rem;font-weight:600;padding:5px 12px;background:var(--bg-card);border:1px solid var(--border);border-radius:100px;cursor:pointer;transition:all .15s;position:relative}
+    .g-chip:hover{border-color:#B45309;color:#B45309}
+    .g-chip.open{border-color:#B45309;background:rgba(180,83,9,.06)}
+    .g-chip-def{display:none;position:absolute;left:0;top:calc(100% + 6px);z-index:50;width:280px;padding:10px 14px;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:0 8px 24px rgba(0,0,0,.1);font-family:var(--font-body);font-size:.78rem;color:var(--text-muted);line-height:1.55}
+    .g-chip.open .g-chip-def{display:block}
+    .g-chip-def strong{color:var(--text-strong)}
+    .g-chip-cmd{font-family:var(--font-mono);font-size:.7rem;background:rgba(0,0,0,.04);padding:2px 6px;border-radius:3px;margin-top:4px;display:inline-block}
+
     #state-lesson .quiz-cta {
       display: flex;
       align-items: center;
@@ -1590,6 +1613,44 @@
       });
     }
 
+    // ── Exam Focus + Glossary Helpers ─────────────────────────────
+    function buildExamFocusHtml(topicId) {
+      const ef = window.examFocus ? window.examFocus[topicId] : null;
+      if (!ef) return '';
+      let html = '<div class="exam-focus"><div class="exam-focus-label">Exam Intelligence</div>';
+      html += '<h4>What Cisco asks</h4><p>' + escHtml(ef.whatTheyAsk) + '</p>';
+      if (ef.questionTypes && ef.questionTypes.length) {
+        html += '<h4>Question types</h4><ul>' + ef.questionTypes.map(t => '<li>' + escHtml(t) + '</li>').join('') + '</ul>';
+      }
+      if (ef.drillThis && ef.drillThis.length) {
+        html += '<h4>Drill this</h4><ul>' + ef.drillThis.map(t => '<li>' + escHtml(t) + '</li>').join('') + '</ul>';
+      }
+      if (ef.labWarning) {
+        html += '<div class="ef-lab"><strong>Lab alert:</strong> ' + escHtml(ef.labWarning) + '</div>';
+      }
+      if (ef.commonTrap) {
+        html += '<div class="ef-trap"><strong>Common trap:</strong> ' + escHtml(ef.commonTrap) + '</div>';
+      }
+      html += '</div>';
+      return html;
+    }
+
+    function buildGlossaryHtml(domainId) {
+      const terms = window.glossaryTerms;
+      if (!terms || !terms.length) return '';
+      const matched = terms.filter(t => t.domains && t.domains.includes(String(domainId)));
+      if (!matched.length) return '';
+      let html = '<div class="glossary-strip"><div class="glossary-strip-label">Key terms — Domain ' + domainId + '</div><div class="glossary-chips">';
+      matched.forEach(t => {
+        html += '<span class="g-chip" data-gterm>' + escHtml(t.t);
+        html += '<span class="g-chip-def"><strong>' + escHtml(t.t) + '</strong><br>' + escHtml(t.d);
+        if (t.cmd) html += '<br><span class="g-chip-cmd">' + escHtml(t.cmd) + '</span>';
+        html += '</span></span>';
+      });
+      html += '</div></div>';
+      return html;
+    }
+
     // ── Open Lesson (Learn First mode) ───────────────────────────
     function openLesson(topic) {
       learnFirstTopic = topic;
@@ -1620,6 +1681,8 @@
             <div class="lesson-summary">This topic covers: ${topic.name}. Review your notes and study materials, then take the quiz.</div>
           </div>
           ${subtopicsHtmlFb}
+          ${buildExamFocusHtml(topic.id)}
+          ${buildGlossaryHtml(topic.domainId)}
           <button class="quiz-cta" id="lf-quiz-cta">
             <div><div class="quiz-cta-text">I'm ready &mdash; quiz me on ${topic.id}</div><div class="quiz-cta-sub">Filtered questions for this topic</div></div>
             <span class="quiz-cta-arrow">&rarr;</span>
@@ -1669,6 +1732,8 @@
             </div>
           </div>
           ${subtopicsHtml}
+          ${buildExamFocusHtml(topic.id)}
+          ${buildGlossaryHtml(topic.domainId)}
           <button class="quiz-cta" id="lf-quiz-cta">
             <div><div class="quiz-cta-text">I'm ready &mdash; quiz me</div><div class="quiz-cta-sub">Questions filtered to ${topic.id} &middot; ${escHtml(content.title)}</div></div>
             <span class="quiz-cta-arrow">&rarr;</span>
@@ -1792,6 +1857,19 @@
           card.classList.toggle('open');
           btn.setAttribute('aria-expanded', !isOpen);
         });
+      });
+      // Glossary chip toggle
+      document.querySelectorAll('#lesson-viewer-content [data-gterm]').forEach(chip => {
+        chip.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const wasOpen = chip.classList.contains('open');
+          document.querySelectorAll('[data-gterm].open').forEach(c => c.classList.remove('open'));
+          if (!wasOpen) chip.classList.add('open');
+        });
+      });
+      // Close glossary chips on outside click
+      document.addEventListener('click', () => {
+        document.querySelectorAll('[data-gterm].open').forEach(c => c.classList.remove('open'));
       });
     }
 
