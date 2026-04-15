@@ -1,0 +1,1051 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Path Selection Simulator — CCNA 200-301</title>
+<meta name="color-scheme" content="light">
+<link rel="icon" type="image/svg+xml" href="/CCNA-study/favicon.svg">
+<link rel="stylesheet" href="css/shared.css">
+<style>
+/* ═══════════════════════════════════════════════════════════════
+   CCNA Path Selection Simulator — Amber accent (shared.css)
+   ═══════════════════════════════════════════════════════════════ */
+
+.page-header .kicker{font-family:var(--font-display);font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--accent);margin-bottom:var(--s-xs)}
+.page-header h1{font-size:2.4rem;font-weight:700;letter-spacing:-.03em;margin-bottom:4px}
+
+.section-label{font-family:var(--font-display);font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--accent);margin-bottom:var(--s-sm)}
+.section-title{font-size:1.35rem;margin-top:0;margin-bottom:var(--s-md);padding-bottom:var(--s-sm);border-bottom:1px solid var(--rule)}
+.section-desc{font-family:var(--font-body);font-size:.88rem;color:var(--ink-secondary);line-height:1.6;margin-bottom:var(--s-lg);max-width:55ch}
+
+/* ── Topology Simulator ────────────────────────────── */
+.sim-panel{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:24px;margin-bottom:var(--s-2xl)}
+.sim-controls{display:flex;gap:8px;margin-bottom:var(--s-md);flex-wrap:wrap}
+.sim-btn{font-family:var(--font-display);font-size:.75rem;font-weight:600;padding:8px 16px;border:2px solid var(--border);border-radius:var(--radius);cursor:pointer;background:none;transition:all .15s;color:var(--ink-secondary)}
+.sim-btn:hover{border-color:var(--accent);color:var(--accent)}
+.sim-btn.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+.sim-canvas-wrap{position:relative;width:100%;max-width:740px;margin:0 auto}
+.sim-canvas{width:100%;height:380px;display:block}
+.sim-explain{font-family:var(--font-body);font-size:.85rem;color:var(--ink-secondary);line-height:1.65;margin-top:var(--s-md);padding:14px 18px;background:var(--bg-recessed);border-radius:var(--radius);min-height:52px}
+.sim-explain strong{color:var(--ink);font-family:var(--font-display);font-weight:600}
+.sim-explain .hl{color:var(--accent);font-family:var(--font-mono);font-weight:600}
+.sim-legend{display:flex;flex-wrap:wrap;gap:16px;margin-top:12px;padding:10px 18px;border-top:1px solid var(--border)}
+.sim-legend-item{display:flex;align-items:center;gap:6px;font-family:var(--font-display);font-size:.7rem;color:var(--ink-muted)}
+.sim-legend-swatch{width:24px;height:3px;border-radius:2px}
+
+/* ── Decision Engine ───────────────────────────────── */
+.decision-steps{display:flex;flex-direction:column;gap:0;margin-bottom:var(--s-2xl)}
+.decision-step{display:flex;align-items:stretch;gap:0;position:relative}
+.decision-num{font-family:var(--font-mono);font-size:.85rem;font-weight:800;width:40px;min-width:40px;display:flex;align-items:center;justify-content:center;color:var(--ink-muted)}
+.decision-step.active .decision-num{color:var(--accent)}
+.decision-body{flex:1;padding:16px 20px;border:1px solid var(--border);border-radius:var(--radius-lg);margin:4px 0;cursor:pointer;transition:all .15s;position:relative}
+.decision-body:hover{border-color:var(--accent);background:rgba(var(--accent-rgb),.02)}
+.decision-step.active .decision-body{border-color:var(--accent);background:rgba(var(--accent-rgb),.04);box-shadow:0 2px 12px rgba(var(--accent-rgb),.08)}
+.decision-connector{position:absolute;left:20px;top:100%;width:0;height:8px;border-left:2px dashed var(--border)}
+.decision-step:last-child .decision-connector{display:none}
+.decision-body h3{font-family:var(--font-display);font-size:.9rem;font-weight:700;margin-bottom:4px}
+.decision-body p{font-family:var(--font-body);font-size:.82rem;color:var(--ink-secondary);line-height:1.55}
+.decision-body .cisco-cmd{display:inline-block;margin-top:6px;padding:2px 8px;background:var(--bg-recessed);border:1px solid var(--border);border-radius:var(--radius);font-family:var(--font-mono);font-size:.72rem;color:var(--accent)}
+.decision-detail{display:none;margin-top:10px;padding:12px 16px;background:var(--bg-recessed);border-radius:var(--radius);font-family:var(--font-body);font-size:.82rem;line-height:1.6;color:var(--ink-secondary)}
+.decision-step.active .decision-detail{display:block}
+.decision-detail table{width:100%;margin-top:8px;font-size:.8rem}
+.decision-detail th{font-family:var(--font-display);font-size:.65rem;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-muted);font-weight:600;padding:6px 10px;border-bottom:1px solid var(--border);text-align:left}
+.decision-detail td{padding:6px 10px;border-bottom:1px solid var(--bg-recessed);font-family:var(--font-mono);font-size:.76rem}
+.decision-detail td.winner{color:var(--accent);font-weight:700}
+
+/* ── OSPF Cost Calculator ──────────────────────────── */
+.calc-panel{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:24px;margin-bottom:var(--s-2xl)}
+.calc-row{display:flex;align-items:center;gap:16px;margin-bottom:14px;flex-wrap:wrap}
+.calc-label{font-family:var(--font-display);font-size:.78rem;font-weight:600;min-width:130px;color:var(--ink-secondary)}
+.calc-slider-wrap{flex:1;min-width:200px;display:flex;align-items:center;gap:12px}
+.calc-slider{-webkit-appearance:none;width:100%;height:4px;border-radius:2px;background:var(--bg-recessed);outline:none}
+.calc-slider::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:var(--accent);cursor:pointer;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.15)}
+.calc-value{font-family:var(--font-mono);font-size:.85rem;font-weight:700;min-width:80px;text-align:right;color:var(--accent)}
+.calc-interfaces{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px;margin-top:var(--s-md)}
+.calc-iface{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border:1px solid var(--border);border-radius:var(--radius);transition:all .15s}
+.calc-iface:hover{border-color:var(--accent)}
+.calc-iface-name{font-family:var(--font-display);font-size:.78rem;font-weight:600}
+.calc-iface-bw{font-family:var(--font-mono);font-size:.68rem;color:var(--ink-muted)}
+.calc-iface-cost{font-family:var(--font-mono);font-size:1rem;font-weight:800;color:var(--accent)}
+.calc-formula{margin-top:16px;padding:14px 18px;background:var(--bg-recessed);border-radius:var(--radius);font-family:var(--font-mono);font-size:.82rem;color:var(--ink-secondary);line-height:1.8}
+.calc-formula .hl{color:var(--accent);font-weight:700}
+
+/* ── EIGRP Metric ──────────────────────────────────── */
+.eigrp-panel{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:24px;margin-bottom:var(--s-2xl)}
+.eigrp-k-row{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:var(--s-md)}
+.eigrp-k{display:flex;align-items:center;gap:6px;padding:8px 14px;border:1px solid var(--border);border-radius:var(--radius);cursor:pointer;transition:all .15s;user-select:none}
+.eigrp-k:hover{border-color:var(--accent)}
+.eigrp-k.on{background:var(--accent-light);border-color:var(--accent)}
+.eigrp-k-label{font-family:var(--font-display);font-size:.75rem;font-weight:600}
+.eigrp-k-name{font-family:var(--font-body);font-size:.72rem;color:var(--ink-muted)}
+.eigrp-inputs{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:var(--s-md)}
+.eigrp-input-group label{display:block;font-family:var(--font-display);font-size:.72rem;font-weight:600;color:var(--ink-muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px}
+.eigrp-input-group input{width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--font-mono);font-size:.85rem;background:var(--bg-input);color:var(--ink)}
+.eigrp-input-group input:focus{outline:none;border-color:var(--accent)}
+.eigrp-result{padding:16px 20px;background:var(--bg-recessed);border-radius:var(--radius);margin-top:var(--s-md)}
+.eigrp-result-val{font-family:var(--font-mono);font-size:1.6rem;font-weight:800;color:var(--accent);margin-bottom:4px}
+.eigrp-result-label{font-family:var(--font-display);font-size:.68rem;color:var(--ink-muted);text-transform:uppercase;letter-spacing:.06em}
+.eigrp-formula{font-family:var(--font-mono);font-size:.78rem;color:var(--ink-secondary);margin-top:8px;line-height:1.8}
+
+/* ── BGP Best Path ─────────────────────────────────── */
+.bgp-panel{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:24px;margin-bottom:var(--s-2xl)}
+.bgp-paths-header{display:grid;grid-template-columns:40px repeat(4,1fr);gap:2px;margin-bottom:2px}
+.bgp-paths-header span{font-family:var(--font-display);font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-muted);padding:6px 10px;text-align:center}
+.bgp-paths-header span:first-child{text-align:left}
+.bgp-step-row{display:grid;grid-template-columns:40px repeat(4,1fr);gap:2px;margin-bottom:2px;cursor:pointer;border-radius:var(--radius);transition:background .1s}
+.bgp-step-row:hover{background:var(--bg-hover)}
+.bgp-step-num{font-family:var(--font-mono);font-size:.72rem;font-weight:700;padding:10px 8px;color:var(--ink-muted);display:flex;align-items:center}
+.bgp-step-row.active .bgp-step-num{color:var(--accent)}
+.bgp-cell{padding:8px 10px;text-align:center;font-family:var(--font-mono);font-size:.76rem;border-radius:var(--radius);transition:all .2s;border:1px solid transparent}
+.bgp-cell.alive{background:var(--bg-recessed);color:var(--ink)}
+.bgp-cell.dead{background:transparent;color:var(--ink-faint);text-decoration:line-through}
+.bgp-cell.winner{background:var(--accent-light);color:var(--accent);font-weight:700;border-color:var(--accent)}
+.bgp-step-label{font-family:var(--font-display);font-size:.72rem;font-weight:600;color:var(--ink-secondary);padding:8px 0 4px 48px}
+.bgp-step-label.active{color:var(--accent)}
+.bgp-explain-box{margin-top:12px;padding:12px 16px;background:var(--bg-recessed);border-radius:var(--radius);font-family:var(--font-body);font-size:.82rem;line-height:1.6;color:var(--ink-secondary);display:none}
+.bgp-explain-box.show{display:block}
+
+/* ── Longest Prefix Match ──────────────────────────── */
+.lpm-panel{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:24px;margin-bottom:var(--s-2xl)}
+.lpm-dest{display:flex;align-items:center;gap:12px;margin-bottom:var(--s-md);flex-wrap:wrap}
+.lpm-dest label{font-family:var(--font-display);font-size:.78rem;font-weight:600;color:var(--ink-secondary)}
+.lpm-dest select{padding:8px 12px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--font-mono);font-size:.85rem;background:var(--bg-input);color:var(--ink);cursor:pointer}
+.lpm-dest select:focus{outline:none;border-color:var(--accent)}
+.lpm-table{width:100%;border-collapse:collapse}
+.lpm-table th{font-family:var(--font-display);font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-muted);padding:8px 12px;text-align:left;border-bottom:2px solid var(--border)}
+.lpm-table td{padding:10px 12px;border-bottom:1px solid var(--bg-recessed);font-family:var(--font-mono);font-size:.8rem;transition:all .2s}
+.lpm-table tr.match td{background:var(--accent-light);color:var(--accent);font-weight:600}
+.lpm-table tr.no-match td{color:var(--ink-muted)}
+.lpm-table .prefix-bits{font-size:.68rem;color:var(--ink-muted);display:block;margin-top:2px}
+.lpm-table tr.match .prefix-bits{color:var(--accent)}
+.lpm-result{margin-top:12px;padding:12px 16px;background:var(--bg-recessed);border-radius:var(--radius);font-family:var(--font-body);font-size:.85rem;color:var(--ink-secondary);line-height:1.6}
+.lpm-result strong{color:var(--ink);font-family:var(--font-display)}
+
+/* ── AD Battle ─────────────────────────────────────── */
+.ad-battle{margin-bottom:var(--s-2xl)}
+.ad-battle-card{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:24px;margin-bottom:12px}
+.ad-battle-scenario{font-family:var(--font-body);font-size:.92rem;line-height:1.55;margin-bottom:var(--s-md);color:var(--ink)}
+.ad-battle-options{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.ad-battle-opt{padding:14px 18px;border:2px solid var(--border);border-radius:var(--radius-lg);cursor:pointer;text-align:center;transition:all .15s}
+.ad-battle-opt:hover{border-color:var(--accent);background:rgba(var(--accent-rgb),.02)}
+.ad-battle-opt .route-source{font-family:var(--font-display);font-size:.85rem;font-weight:700;margin-bottom:2px}
+.ad-battle-opt .route-ad{font-family:var(--font-mono);font-size:1.2rem;font-weight:800;color:var(--accent)}
+.ad-battle-opt .route-detail{font-family:var(--font-body);font-size:.72rem;color:var(--ink-muted);margin-top:4px}
+.ad-battle-opt.correct{border-color:#16A34A;background:rgba(22,163,74,.06)}
+.ad-battle-opt.correct .route-source{color:#16A34A}
+.ad-battle-opt.wrong{border-color:var(--prof-weak);background:rgba(220,38,38,.04)}
+.ad-battle-opt.locked{pointer-events:none}
+.ad-battle-explain{display:none;margin-top:12px;padding:12px 16px;background:var(--bg-recessed);border-radius:var(--radius);font-family:var(--font-body);font-size:.82rem;line-height:1.6;color:var(--ink-secondary)}
+.ad-battle-explain.show{display:block}
+.ad-battle-score{display:flex;align-items:center;gap:var(--s-md);padding:14px 18px;background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);margin-top:var(--s-md)}
+.ad-battle-score-num{font-family:var(--font-mono);font-size:1.3rem;font-weight:800;color:var(--accent)}
+.ad-battle-score-label{font-family:var(--font-display);font-size:.78rem;color:var(--ink-muted)}
+.ad-battle-reset{font-family:var(--font-display);font-size:.72rem;font-weight:600;padding:6px 14px;border:1px solid var(--border);border-radius:var(--radius);cursor:pointer;background:none;margin-left:auto;transition:all .15s}
+.ad-battle-reset:hover{border-color:var(--accent);color:var(--accent)}
+
+/* ── Quiz ──────────────────────────────────────────── */
+.quiz-section{margin-bottom:var(--s-2xl)}
+.quiz-progress{font-family:var(--font-mono);font-size:.78rem;color:var(--ink-muted);margin-bottom:var(--s-md)}
+.quiz-progress strong{color:var(--accent)}
+.quiz-card{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:24px;margin-bottom:12px}
+.quiz-q{font-family:var(--font-body);font-size:.95rem;line-height:1.55;margin-bottom:14px}
+.quiz-q-num{font-family:var(--font-mono);font-size:.72rem;color:var(--accent);font-weight:700;margin-right:6px}
+.quiz-opts{display:flex;flex-direction:column;gap:6px}
+.quiz-opt{padding:10px 14px;border:1px solid var(--border);border-radius:var(--radius);cursor:pointer;font-family:var(--font-body);font-size:.85rem;transition:all .15s}
+.quiz-opt:hover{border-color:var(--accent);background:rgba(var(--accent-rgb),.03)}
+.quiz-opt.correct{border-color:#16A34A;background:rgba(22,163,74,.06);color:#16A34A;font-weight:600}
+.quiz-opt.wrong{border-color:var(--prof-weak);background:rgba(220,38,38,.04);color:var(--prof-weak)}
+.quiz-opt.locked{pointer-events:none}
+.quiz-explain{font-family:var(--font-body);font-size:.8rem;color:var(--ink-secondary);line-height:1.6;padding:10px 14px;background:var(--bg-recessed);border-radius:var(--radius);margin-top:10px;display:none}
+.quiz-explain.show{display:block}
+.quiz-score-bar{display:flex;align-items:center;gap:var(--s-md);padding:14px 18px;background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);margin-top:var(--s-md)}
+.quiz-score-num{font-family:var(--font-mono);font-size:1.3rem;font-weight:800;color:var(--accent)}
+.quiz-score-label{font-family:var(--font-display);font-size:.78rem;color:var(--ink-muted)}
+.quiz-reset{font-family:var(--font-display);font-size:.72rem;font-weight:600;padding:6px 14px;border:1px solid var(--border);border-radius:var(--radius);cursor:pointer;background:none;margin-left:auto;transition:all .15s}
+.quiz-reset:hover{border-color:var(--accent);color:var(--accent)}
+
+/* ── Responsive ────────────────────────────────────── */
+@media(max-width:600px){
+  .sim-canvas{height:300px}
+  .eigrp-inputs{grid-template-columns:1fr}
+  .ad-battle-options{grid-template-columns:1fr}
+  .bgp-paths-header,.bgp-step-row{grid-template-columns:32px repeat(4,1fr)}
+  .bgp-cell{font-size:.65rem;padding:6px 4px}
+  .calc-interfaces{grid-template-columns:1fr}
+  .decision-body{padding:12px 14px}
+}
+</style>
+</head>
+<body>
+<nav class="top-nav"></nav>
+<div class="container">
+
+<header class="page-header">
+  <div class="kicker">CCNA 200-301 — Routing Fundamentals</div>
+  <h1>Path Selection Simulator</h1>
+  <p class="subtitle">How routers decide where to send packets — prefix length, administrative distance, and protocol metrics</p>
+</header>
+
+<!-- ════════════════════════════════════════════════════════════
+     SECTION 1 — Topology Simulator
+     ════════════════════════════════════════════════════════════ -->
+<div class="section-label">Simulation</div>
+<h2 class="section-title">Network Topology</h2>
+<p class="section-desc">Five routers, seven links, four possible paths from R1 to R5. Each protocol picks a different "best" path based on its metric.</p>
+
+<div class="sim-panel">
+  <div class="sim-controls">
+    <button class="sim-btn active" data-proto="ospf">OSPF</button>
+    <button class="sim-btn" data-proto="eigrp">EIGRP</button>
+    <button class="sim-btn" data-proto="rip">RIP</button>
+    <button class="sim-btn" data-proto="bgp">BGP</button>
+    <button class="sim-btn" data-proto="static">Static</button>
+  </div>
+  <div class="sim-canvas-wrap">
+    <canvas class="sim-canvas" id="simCanvas"></canvas>
+  </div>
+  <div class="sim-explain" id="simExplain"></div>
+  <div class="sim-legend" id="simLegend"></div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════
+     SECTION 2 — The Decision Engine
+     ════════════════════════════════════════════════════════════ -->
+<div class="section-label">Concept</div>
+<h2 class="section-title">The 3-Step Decision</h2>
+<p class="section-desc">When a router has multiple routes to the same destination, it evaluates them in this exact order. Click each step to see a worked example.</p>
+
+<div class="decision-steps" id="decisionSteps"></div>
+
+<!-- ════════════════════════════════════════════════════════════
+     SECTION 3 — OSPF Cost Calculator
+     ════════════════════════════════════════════════════════════ -->
+<div class="section-label">Calculator</div>
+<h2 class="section-title">OSPF Cost Calculator</h2>
+<p class="section-desc">OSPF cost = reference bandwidth / interface bandwidth. Adjust the reference BW and see how costs change for each interface type.</p>
+
+<div class="calc-panel">
+  <div class="calc-row">
+    <span class="calc-label">Reference BW</span>
+    <div class="calc-slider-wrap">
+      <input type="range" class="calc-slider" id="refBwSlider" min="0" max="5" step="1" value="2">
+      <span class="calc-value" id="refBwValue">1 Gbps</span>
+    </div>
+  </div>
+  <div class="calc-row">
+    <span class="calc-label">Cisco command</span>
+    <code class="calc-value" id="refBwCmd" style="color:var(--ink-secondary);font-size:.78rem;text-align:left;min-width:auto">auto-cost reference-bandwidth 1000</code>
+  </div>
+  <div class="calc-interfaces" id="calcInterfaces"></div>
+  <div class="calc-formula" id="calcFormula"></div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════
+     SECTION 4 — EIGRP Composite Metric
+     ════════════════════════════════════════════════════════════ -->
+<div class="section-label">Calculator</div>
+<h2 class="section-title">EIGRP Composite Metric</h2>
+<p class="section-desc">EIGRP uses K-values to weight bandwidth, delay, load, and reliability. By default only K1 (bandwidth) and K3 (delay) are enabled.</p>
+
+<div class="eigrp-panel">
+  <div class="eigrp-k-row" id="eigrpKRow"></div>
+  <div class="eigrp-inputs">
+    <div class="eigrp-input-group">
+      <label>Min Bandwidth (Kbps)</label>
+      <input type="number" id="eigrpBw" value="1544" min="1">
+    </div>
+    <div class="eigrp-input-group">
+      <label>Total Delay (microseconds)</label>
+      <input type="number" id="eigrpDelay" value="20100" min="1">
+    </div>
+  </div>
+  <div class="eigrp-result">
+    <div class="eigrp-result-val" id="eigrpResultVal">0</div>
+    <div class="eigrp-result-label">Composite Metric</div>
+    <div class="eigrp-formula" id="eigrpFormula"></div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════
+     SECTION 5 — BGP Best Path Algorithm
+     ════════════════════════════════════════════════════════════ -->
+<div class="section-label">Deep Dive</div>
+<h2 class="section-title">BGP Best Path Selection</h2>
+<p class="section-desc">BGP evaluates paths in strict order. The first attribute that breaks the tie decides the winner. Click each step to walk through the elimination.</p>
+
+<div class="bgp-panel">
+  <div class="bgp-paths-header">
+    <span>Step</span>
+    <span>Path A</span>
+    <span>Path B</span>
+    <span>Path C</span>
+    <span>Path D</span>
+  </div>
+  <div id="bgpSteps"></div>
+  <div class="bgp-explain-box" id="bgpExplain"></div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════
+     SECTION 6 — Longest Prefix Match
+     ════════════════════════════════════════════════════════════ -->
+<div class="section-label">Interactive</div>
+<h2 class="section-title">Longest Prefix Match</h2>
+<p class="section-desc">The most specific route always wins, regardless of administrative distance or metric. Select a destination to see which routing table entry matches.</p>
+
+<div class="lpm-panel">
+  <div class="lpm-dest">
+    <label>Destination IP:</label>
+    <select id="lpmSelect"></select>
+  </div>
+  <table class="lpm-table">
+    <thead><tr><th>Route Entry</th><th>Prefix Length</th><th>Next Hop</th><th>Source</th><th>Match?</th></tr></thead>
+    <tbody id="lpmBody"></tbody>
+  </table>
+  <div class="lpm-result" id="lpmResult"></div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════
+     SECTION 7 — AD Battle
+     ════════════════════════════════════════════════════════════ -->
+<div class="section-label">Challenge</div>
+<h2 class="section-title">AD Battle</h2>
+<p class="section-desc">Two routes to the same destination, learned from different sources. Which one gets installed? Pick the winner.</p>
+
+<div class="ad-battle" id="adBattle"></div>
+<div class="ad-battle-score" id="adBattleScore" style="display:none">
+  <div>
+    <div class="ad-battle-score-num" id="adScoreNum">0/8</div>
+    <div class="ad-battle-score-label">Correct</div>
+  </div>
+  <button class="ad-battle-reset" id="adBattleReset">Reset</button>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════
+     SECTION 8 — CCNA Quiz
+     ════════════════════════════════════════════════════════════ -->
+<div class="section-label">Test Yourself</div>
+<h2 class="section-title">Path Selection Quiz</h2>
+
+<div class="quiz-progress" id="quizProgress"></div>
+<div class="quiz-section" id="quizSection"></div>
+<div class="quiz-score-bar" id="quizScore" style="display:none">
+  <div>
+    <div class="quiz-score-num" id="quizScoreNum">0/12</div>
+    <div class="quiz-score-label">Questions Correct</div>
+  </div>
+  <button class="quiz-reset" id="quizReset">Reset Quiz</button>
+</div>
+
+</div><!-- .container -->
+
+<script src="js/nav.js"></script>
+<script src="js/tutor.js"></script>
+<script src="js/group-chat.js"></script>
+<script>
+(function(){
+
+/* ══════════════════════════════════════════════════════════════
+   SECTION 1: TOPOLOGY SIMULATOR
+   ══════════════════════════════════════════════════════════════ */
+
+var canvas = document.getElementById('simCanvas');
+var ctx = canvas.getContext('2d');
+var explainEl = document.getElementById('simExplain');
+var legendEl = document.getElementById('simLegend');
+var currentProto = 'ospf';
+var dpr = window.devicePixelRatio || 1;
+var packetT = 0;
+var packetSpeed = 0.006;
+
+/* Router positions (normalized 0-1) */
+var ROUTERS = {
+  R1: [.08, .5],
+  R2: [.35, .15],
+  R3: [.35, .85],
+  R4: [.62, .5],
+  R5: [.92, .5]
+};
+
+/* Link definitions: [from, to, bandwidth, cost] */
+var LINKS = [
+  ['R1','R2', '100 Mbps', 10],
+  ['R1','R3', '1 Gbps',   1],
+  ['R2','R4', '10 Gbps',  1],
+  ['R2','R3', '100 Mbps', 10],
+  ['R3','R4', '1 Gbps',   1],
+  ['R4','R5', '10 Gbps',  1],
+  ['R3','R5', '10 Mbps',  100]
+];
+
+var LINK_MAP = {};
+LINKS.forEach(function(l){ LINK_MAP[l[0]+'-'+l[1]] = l; LINK_MAP[l[1]+'-'+l[0]] = l; });
+
+/* Paths from R1 to R5 */
+var PATHS = {
+  pA: {nodes:['R1','R2','R4','R5'], label:'Path A', color:'#B45309', hops:3, cost:12},
+  pB: {nodes:['R1','R3','R4','R5'], label:'Path B', color:'#0369A1', hops:3, cost:3},
+  pC: {nodes:['R1','R2','R3','R4','R5'], label:'Path C', color:'#7C3AED', hops:4, cost:22},
+  pD: {nodes:['R1','R3','R5'], label:'Path D', color:'#059669', hops:2, cost:101}
+};
+
+var PROTO_DATA = {
+  ospf: {
+    path: 'pB',
+    explain: '<strong>OSPF selects the lowest-cost path.</strong> Path B (R1 \u2192 R3 \u2192 R4 \u2192 R5) has a total cost of <span class="hl">3</span> (1 + 1 + 1), calculated as reference-bandwidth / interface-bandwidth. Despite being 3 hops, it uses only 1 Gbps and 10 Gbps links. Path A costs 12, Path D costs 101 (the 10 Mbps link to R5 is extremely expensive).',
+    paths: ['pB']
+  },
+  eigrp: {
+    path: 'pB',
+    explain: '<strong>EIGRP uses a composite metric</strong> based on minimum bandwidth and cumulative delay along the path. Path B wins with the highest minimum bandwidth (1 Gbps) and low total delay. EIGRP also identifies Path A as a <span class="hl">feasible successor</span> — a pre-computed backup path. If Path B fails, EIGRP switches to Path A instantly without recalculating (DUAL algorithm).',
+    paths: ['pB']
+  },
+  rip: {
+    path: 'pD',
+    explain: '<strong>RIP counts hops — nothing else.</strong> Path D (R1 \u2192 R3 \u2192 R5) has only <span class="hl">2 hops</span>, making it the clear winner despite the 10 Mbps bottleneck on the R3\u2192R5 link. RIP cannot see bandwidth, delay, or cost. This is why RIP is considered unsuitable for modern enterprise networks — it would route traffic through a 10 Mbps link when a 10 Gbps path exists.',
+    paths: ['pD']
+  },
+  bgp: {
+    path: 'pA',
+    explain: '<strong>BGP uses the Best Path algorithm</strong>, evaluating attributes in strict order: Weight \u2192 Local Preference \u2192 Originate \u2192 AS-Path \u2192 Origin \u2192 MED \u2192 eBGP > iBGP \u2192 IGP metric. In this scenario, Path A wins on <span class="hl">shortest AS-path</span> (fewest autonomous systems traversed). BGP is policy-driven — an administrator can override any decision using weight or local preference.',
+    paths: ['pA']
+  },
+  static: {
+    path: 'pA',
+    explain: '<strong>Static routes are manually configured by the administrator.</strong> The router installs exactly what you tell it — no protocol calculation, no metric. A static route has AD <span class="hl">1</span> (or 0 if pointing to an exit interface), making it more trusted than any dynamic protocol. Use case: default routes, stub networks, or overriding a dynamic protocol\'s decision.',
+    paths: ['pA']
+  }
+};
+
+function sizeCanvas(){
+  var rect = canvas.parentElement.getBoundingClientRect();
+  canvas.width = rect.width * dpr;
+  canvas.height = 380 * dpr;
+  canvas.style.height = '380px';
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+}
+
+function rPos(name){
+  var n = ROUTERS[name];
+  var w = canvas.width/dpr, h = canvas.height/dpr;
+  return {x: n[0]*w, y: n[1]*h};
+}
+
+function linkKey(a,b){ return a < b ? a+'-'+b : b+'-'+a; }
+
+function drawLink(from, to, isSelected, selColor){
+  var a = rPos(from), b = rPos(to);
+  var lk = LINK_MAP[from+'-'+to];
+  ctx.beginPath();
+  ctx.moveTo(a.x, a.y);
+  ctx.lineTo(b.x, b.y);
+  ctx.strokeStyle = isSelected ? selColor : '#D6D3D1';
+  ctx.lineWidth = isSelected ? 2.8 : 1.2;
+  ctx.setLineDash(isSelected ? [] : [4,4]);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  /* Labels */
+  var mx = (a.x+b.x)/2, my = (a.y+b.y)/2;
+  var dx = b.x-a.x, dy = b.y-a.y;
+  var len = Math.sqrt(dx*dx+dy*dy)||1;
+  var nx = -dy/len, ny = dx/len;
+
+  ctx.font = '600 10px "JetBrains Mono", monospace';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = isSelected ? selColor : '#A8A29E';
+  ctx.fillText(lk[2], mx + nx*16, my + ny*16);
+  ctx.font = '500 9px "JetBrains Mono", monospace';
+  ctx.fillStyle = isSelected ? selColor : '#C7C3BC';
+  ctx.fillText('cost '+lk[3], mx + nx*(-14), my + ny*(-14));
+}
+
+function drawRouter(name, pos, isEndpoint){
+  var r = 24;
+  ctx.beginPath();
+  ctx.arc(pos.x, pos.y, r, 0, Math.PI*2);
+  ctx.fillStyle = isEndpoint ? '#1C1917' : '#FFFFFF';
+  ctx.fill();
+  ctx.strokeStyle = isEndpoint ? '#1C1917' : '#C7C3BC';
+  ctx.lineWidth = isEndpoint ? 2 : 1.5;
+  ctx.stroke();
+
+  ctx.font = '700 13px "Space Grotesk", sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = isEndpoint ? '#FAF7F2' : '#1C1917';
+  ctx.fillText(name, pos.x, pos.y);
+}
+
+function drawPacket(pathKey, t){
+  var p = PATHS[pathKey];
+  var nodes = p.nodes;
+  var totalSegs = nodes.length - 1;
+  var segFloat = t * totalSegs;
+  var seg = Math.min(Math.floor(segFloat), totalSegs-1);
+  var segT = segFloat - seg;
+
+  var a = rPos(nodes[seg]), b = rPos(nodes[seg+1]);
+  var px = a.x + (b.x-a.x)*segT;
+  var py = a.y + (b.y-a.y)*segT;
+
+  ctx.beginPath();
+  ctx.arc(px, py, 10, 0, Math.PI*2);
+  var grd = ctx.createRadialGradient(px,py,2,px,py,10);
+  grd.addColorStop(0, p.color+'88');
+  grd.addColorStop(1, p.color+'00');
+  ctx.fillStyle = grd;
+  ctx.fill();
+
+  ctx.beginPath();
+  ctx.arc(px, py, 5, 0, Math.PI*2);
+  ctx.fillStyle = p.color;
+  ctx.fill();
+}
+
+function isInPath(from, to, pathNodes){
+  for(var i=0;i<pathNodes.length-1;i++){
+    if((pathNodes[i]===from && pathNodes[i+1]===to)||(pathNodes[i]===to && pathNodes[i+1]===from)) return true;
+  }
+  return false;
+}
+
+function draw(){
+  var w = canvas.width/dpr, h = canvas.height/dpr;
+  ctx.clearRect(0,0,w,h);
+
+  var sel = PROTO_DATA[currentProto];
+  var selPath = PATHS[sel.path];
+  var selNodes = selPath.nodes;
+
+  /* Draw links */
+  LINKS.forEach(function(lk){
+    var inPath = isInPath(lk[0], lk[1], selNodes);
+    drawLink(lk[0], lk[1], inPath, selPath.color);
+  });
+
+  /* Path summary at bottom */
+  var py = h - 12;
+  ctx.font = '500 10px "Space Grotesk", sans-serif';
+  var pathKeys = ['pA','pB','pC','pD'];
+  var totalW = w - 40;
+  pathKeys.forEach(function(pk, i){
+    var p = PATHS[pk];
+    var isSel = pk === sel.path;
+    var x = 20 + i*(totalW/4);
+    ctx.fillStyle = isSel ? p.color : '#A8A29E';
+    ctx.textAlign = 'left';
+    ctx.fillText(p.label+': '+p.nodes.join('\u2192')+' ('+p.hops+'h, c'+p.cost+')', x, py);
+  });
+
+  /* Routers */
+  Object.keys(ROUTERS).forEach(function(r){
+    drawRouter(r, rPos(r), r==='R1'||r==='R5');
+  });
+
+  /* Packet */
+  drawPacket(sel.path, packetT);
+  packetT += packetSpeed;
+  if(packetT > 1) packetT = 0;
+
+  requestAnimationFrame(draw);
+}
+
+function setProto(proto){
+  currentProto = proto;
+  packetT = 0;
+  var data = PROTO_DATA[proto];
+  explainEl.innerHTML = data.explain;
+  document.querySelectorAll('.sim-btn').forEach(function(b){
+    b.classList.toggle('active', b.getAttribute('data-proto')===proto);
+  });
+
+  /* Legend */
+  legendEl.innerHTML = '';
+  var pathKeys = ['pA','pB','pC','pD'];
+  pathKeys.forEach(function(pk){
+    var p = PATHS[pk];
+    var isSel = pk === data.path;
+    var item = document.createElement('div');
+    item.className = 'sim-legend-item';
+    item.innerHTML = '<span class="sim-legend-swatch" style="background:'+p.color+(isSel?'':';opacity:.3')+'"></span>'+p.label+' ('+p.hops+' hops, cost '+p.cost+')'+(isSel ? ' \u2714' : '');
+    if(isSel) item.style.color = p.color;
+    legendEl.appendChild(item);
+  });
+}
+
+document.querySelectorAll('.sim-btn').forEach(function(btn){
+  btn.addEventListener('click', function(){ setProto(this.getAttribute('data-proto')); });
+});
+
+sizeCanvas();
+setProto('ospf');
+draw();
+
+var resizeTimer;
+window.addEventListener('resize', function(){
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(sizeCanvas, 150);
+});
+
+/* ══════════════════════════════════════════════════════════════
+   SECTION 2: THE 3-STEP DECISION
+   ══════════════════════════════════════════════════════════════ */
+
+var DECISIONS = [
+  {
+    title: '1. Longest Prefix Match',
+    short: 'The most specific route wins. A /32 beats a /24, which beats a /16, which beats a /0 default route. This check happens first — before AD or metric.',
+    cmd: 'show ip route 10.1.1.5',
+    detail: '<p>Given destination <strong>10.1.1.5</strong>, the router checks all matching entries:</p><table><tr><th>Route</th><th>Prefix</th><th>Source</th><th>Installed?</th></tr><tr><td>0.0.0.0/0</td><td>/0</td><td>Static</td><td class="no">No</td></tr><tr><td>10.0.0.0/8</td><td>/8</td><td>OSPF</td><td>No</td></tr><tr><td>10.1.0.0/16</td><td>/16</td><td>EIGRP</td><td>No</td></tr><tr class="winner-row"><td class="winner">10.1.1.0/24</td><td class="winner">/24</td><td class="winner">RIP</td><td class="winner">Yes \u2714</td></tr></table><p style="margin-top:8px">Even though EIGRP (AD 90) is more trusted than RIP (AD 120), the RIP route wins because <strong>/24 is the longest match</strong>.</p>'
+  },
+  {
+    title: '2. Lowest Administrative Distance',
+    short: 'When multiple protocols know the same prefix (same length), the router trusts the source with the lowest AD. Connected (0) > Static (1) > EIGRP (90) > OSPF (110) > RIP (120).',
+    cmd: 'show ip route 10.1.1.0 255.255.255.0',
+    detail: '<p>Two protocols both advertise <strong>10.1.1.0/24</strong>:</p><table><tr><th>Source</th><th>AD</th><th>Metric</th><th>Installed?</th></tr><tr><td>EIGRP</td><td class="winner">90</td><td>2,816,000</td><td class="winner">Yes \u2714</td></tr><tr><td>OSPF</td><td>110</td><td>20</td><td>No</td></tr></table><p style="margin-top:8px">EIGRP wins because <strong>AD 90 < AD 110</strong>. The metric values are never compared — they use different scales and are meaningless across protocols.</p>'
+  },
+  {
+    title: '3. Lowest Metric',
+    short: 'When the same protocol learns multiple paths to the same prefix, it compares metrics within that protocol. OSPF compares cost, EIGRP compares composite metric, RIP compares hops.',
+    cmd: 'show ip ospf rib',
+    detail: '<p>OSPF learns two paths to <strong>10.1.1.0/24</strong>:</p><table><tr><th>Path</th><th>Cost</th><th>Next Hop</th><th>Installed?</th></tr><tr><td>via R2 \u2192 R4</td><td>12</td><td>10.0.12.2</td><td>No</td></tr><tr class="winner-row"><td class="winner">via R3 \u2192 R4</td><td class="winner">3</td><td class="winner">10.0.13.3</td><td class="winner">Yes \u2714</td></tr></table><p style="margin-top:8px">Cost 3 < Cost 12, so OSPF installs the path through R3. If costs were equal, OSPF would <strong>load-balance</strong> across both paths (ECMP).</p>'
+  }
+];
+
+var stepsEl = document.getElementById('decisionSteps');
+DECISIONS.forEach(function(d, i){
+  var step = document.createElement('div');
+  step.className = 'decision-step' + (i===0 ? ' active' : '');
+  step.innerHTML =
+    '<div class="decision-num">'+(i+1)+'</div>'+
+    '<div class="decision-body">'+
+      '<h3>'+d.title+'</h3>'+
+      '<p>'+d.short+'</p>'+
+      '<span class="cisco-cmd">'+d.cmd+'</span>'+
+      '<div class="decision-detail">'+d.detail+'</div>'+
+    '</div>'+
+    '<div class="decision-connector"></div>';
+  step.querySelector('.decision-body').addEventListener('click', function(){
+    var wasActive = step.classList.contains('active');
+    document.querySelectorAll('.decision-step').forEach(function(s){ s.classList.remove('active'); });
+    if(!wasActive) step.classList.add('active');
+  });
+  stepsEl.appendChild(step);
+});
+
+/* ══════════════════════════════════════════════════════════════
+   SECTION 3: OSPF COST CALCULATOR
+   ══════════════════════════════════════════════════════════════ */
+
+var REF_BW_OPTIONS = [
+  {label:'100 Mbps', val:100, cmd:'auto-cost reference-bandwidth 100'},
+  {label:'1 Gbps',   val:1000, cmd:'auto-cost reference-bandwidth 1000'},
+  {label:'10 Gbps',  val:10000, cmd:'auto-cost reference-bandwidth 10000'},
+  {label:'40 Gbps',  val:40000, cmd:'auto-cost reference-bandwidth 40000'},
+  {label:'100 Gbps', val:100000, cmd:'auto-cost reference-bandwidth 100000'},
+  {label:'400 Gbps', val:400000, cmd:'auto-cost reference-bandwidth 400000'}
+];
+
+var INTERFACES = [
+  {name:'Serial',           bw:1.544,   unit:'1.544 Mbps'},
+  {name:'FastEthernet',     bw:100,     unit:'100 Mbps'},
+  {name:'GigabitEthernet',  bw:1000,    unit:'1 Gbps'},
+  {name:'10-GigE',          bw:10000,   unit:'10 Gbps'},
+  {name:'25-GigE',          bw:25000,   unit:'25 Gbps'},
+  {name:'40-GigE',          bw:40000,   unit:'40 Gbps'},
+  {name:'100-GigE',         bw:100000,  unit:'100 Gbps'},
+  {name:'400-GigE',         bw:400000,  unit:'400 Gbps'}
+];
+
+var refBwSlider = document.getElementById('refBwSlider');
+var refBwValueEl = document.getElementById('refBwValue');
+var refBwCmdEl = document.getElementById('refBwCmd');
+var calcIfacesEl = document.getElementById('calcInterfaces');
+var calcFormulaEl = document.getElementById('calcFormula');
+
+function updateOspfCalc(){
+  var idx = parseInt(refBwSlider.value);
+  var opt = REF_BW_OPTIONS[idx];
+  refBwValueEl.textContent = opt.label;
+  refBwCmdEl.textContent = opt.cmd;
+
+  calcIfacesEl.innerHTML = '';
+  var problems = [];
+  INTERFACES.forEach(function(iface){
+    var cost = Math.max(1, Math.floor(opt.val / iface.bw));
+    var div = document.createElement('div');
+    div.className = 'calc-iface';
+    div.innerHTML =
+      '<div><div class="calc-iface-name">'+iface.name+'</div><div class="calc-iface-bw">'+iface.unit+'</div></div>'+
+      '<div class="calc-iface-cost">'+cost+'</div>';
+    calcIfacesEl.appendChild(div);
+    if(iface.bw >= opt.val) problems.push(iface.name);
+  });
+
+  calcFormulaEl.innerHTML = 'Formula: <span class="hl">cost = reference BW / interface BW</span> (minimum 1)<br>';
+  if(problems.length > 0){
+    calcFormulaEl.innerHTML += 'Warning: <strong>'+problems.join(', ')+'</strong> all show cost 1 — increase reference BW to differentiate these links.';
+  } else {
+    calcFormulaEl.innerHTML += 'All interfaces have distinct costs at this reference bandwidth.';
+  }
+}
+
+refBwSlider.addEventListener('input', updateOspfCalc);
+updateOspfCalc();
+
+/* ══════════════════════════════════════════════════════════════
+   SECTION 4: EIGRP COMPOSITE METRIC
+   ══════════════════════════════════════════════════════════════ */
+
+var KVALUES = [
+  {k:'K1', name:'Bandwidth', defaultOn:true},
+  {k:'K2', name:'Load', defaultOn:false},
+  {k:'K3', name:'Delay', defaultOn:true},
+  {k:'K4', name:'Reliability', defaultOn:false},
+  {k:'K5', name:'MTU', defaultOn:false}
+];
+var kStates = KVALUES.map(function(k){ return k.defaultOn; });
+
+var kRowEl = document.getElementById('eigrpKRow');
+KVALUES.forEach(function(kv, i){
+  var el = document.createElement('div');
+  el.className = 'eigrp-k' + (kv.defaultOn ? ' on' : '');
+  el.innerHTML = '<span class="eigrp-k-label">'+kv.k+'</span><span class="eigrp-k-name">'+kv.name+'</span>';
+  el.addEventListener('click', function(){
+    kStates[i] = !kStates[i];
+    el.classList.toggle('on', kStates[i]);
+    updateEigrp();
+  });
+  kRowEl.appendChild(el);
+});
+
+var eigrpBwEl = document.getElementById('eigrpBw');
+var eigrpDelayEl = document.getElementById('eigrpDelay');
+var eigrpResultEl = document.getElementById('eigrpResultVal');
+var eigrpFormulaEl = document.getElementById('eigrpFormula');
+
+function updateEigrp(){
+  var bw = parseInt(eigrpBwEl.value) || 1;
+  var delay = parseInt(eigrpDelayEl.value) || 1;
+
+  /* Classic EIGRP metric: 256 * ((10^7 / min_bw) + (sum_delay / 10)) when K1=1, K3=1, others=0 */
+  var bwComponent = Math.floor(10000000 / bw);
+  var delayComponent = Math.floor(delay / 10);
+
+  var metric = 0;
+  var formulaParts = [];
+
+  if(kStates[0]){ /* K1 - bandwidth */
+    metric += bwComponent;
+    formulaParts.push('10^7 / '+bw.toLocaleString()+' = '+bwComponent.toLocaleString());
+  }
+  if(kStates[2]){ /* K3 - delay */
+    metric += delayComponent;
+    formulaParts.push('delay / 10 = '+delayComponent.toLocaleString());
+  }
+
+  metric = metric * 256;
+
+  eigrpResultEl.textContent = metric.toLocaleString();
+  eigrpFormulaEl.innerHTML =
+    'Metric = 256 \u00d7 (' + formulaParts.join(' + ') + ')<br>' +
+    'Metric = 256 \u00d7 ' + (metric/256).toLocaleString() + ' = <span class="hl">' + metric.toLocaleString() + '</span><br>' +
+    '<span style="color:var(--ink-muted);font-size:.72rem">Default K-values: K1=1, K2=0, K3=1, K4=0, K5=0 &nbsp;|&nbsp; Cisco cmd: <code style="background:var(--bg-surface);padding:1px 6px;border-radius:3px">metric weights 0 1 0 1 0 0</code></span>';
+}
+
+eigrpBwEl.addEventListener('input', updateEigrp);
+eigrpDelayEl.addEventListener('input', updateEigrp);
+updateEigrp();
+
+/* ══════════════════════════════════════════════════════════════
+   SECTION 5: BGP BEST PATH
+   ══════════════════════════════════════════════════════════════ */
+
+var BGP_STEPS = [
+  {attr:'Weight',        vals:['0','0','100','0'],        explain:'Weight is Cisco-proprietary and local to the router. Path C has weight 100 (manually set), all others are 0. <strong>Highest weight wins.</strong> Paths A, B, D are eliminated.'},
+  {attr:'Local Pref',    vals:['200','150','\u2714','100'], explain:'Local preference is shared within the AS. Path A has LP 200 (highest). But Path C already won on weight — this step only runs if weight was tied.'},
+  {attr:'Originate',     vals:['No','No','\u2714','No'],   explain:'Prefer locally originated routes (via network statement or redistribution). None of the remaining paths are locally originated, so no elimination here.'},
+  {attr:'AS-Path Len',   vals:['2','3','\u2714','4'],      explain:'Shorter AS-path is preferred. Path A traverses 2 ASes, B traverses 3, D traverses 4. Again, Path C already won — this would eliminate B and D if still in play.'},
+  {attr:'Origin',        vals:['IGP','IGP','\u2714','EGP'], explain:'Origin code: IGP (i) > EGP (e) > Incomplete (?). Paths A and B are IGP-origin, D is EGP. Path C already selected.'},
+  {attr:'MED',           vals:['50','100','\u2714','200'],  explain:'Multi-Exit Discriminator — a suggestion from the neighbor AS. Lower MED preferred. Only compared between paths from the same AS.'},
+  {attr:'eBGP > iBGP',   vals:['eBGP','iBGP','\u2714','eBGP'], explain:'External BGP paths are preferred over internal BGP paths. Path B is iBGP, others are eBGP.'},
+  {attr:'IGP Metric',    vals:['100','200','\u2714','150'], explain:'If still tied, prefer the path with the lowest IGP metric to the BGP next-hop. This is the "nearest exit" or hot-potato routing.'}
+];
+
+var bgpStepsEl = document.getElementById('bgpSteps');
+var bgpExplainEl = document.getElementById('bgpExplain');
+var bgpActiveStep = 0;
+
+function renderBgpSteps(){
+  bgpStepsEl.innerHTML = '';
+  BGP_STEPS.forEach(function(step, i){
+    var label = document.createElement('div');
+    label.className = 'bgp-step-label' + (i === bgpActiveStep ? ' active' : '');
+    label.textContent = 'Step '+(i+1)+': '+step.attr;
+    bgpStepsEl.appendChild(label);
+
+    var row = document.createElement('div');
+    row.className = 'bgp-step-row' + (i === bgpActiveStep ? ' active' : '');
+    row.innerHTML = '<div class="bgp-step-num">'+(i+1)+'</div>';
+
+    step.vals.forEach(function(v, pi){
+      var cell = document.createElement('div');
+      cell.className = 'bgp-cell';
+      if(v === '\u2714'){
+        cell.classList.add('winner');
+        cell.textContent = '\u2714 Winner';
+      } else if(i > 0 && pi !== 2){
+        cell.classList.add('dead');
+        cell.textContent = v;
+      } else {
+        cell.classList.add('alive');
+        cell.textContent = v;
+      }
+      row.appendChild(cell);
+    });
+
+    row.addEventListener('click', function(){
+      bgpActiveStep = i;
+      renderBgpSteps();
+    });
+    bgpStepsEl.appendChild(row);
+  });
+
+  bgpExplainEl.innerHTML = BGP_STEPS[bgpActiveStep].explain;
+  bgpExplainEl.classList.add('show');
+}
+
+renderBgpSteps();
+
+/* ══════════════════════════════════════════════════════════════
+   SECTION 6: LONGEST PREFIX MATCH
+   ══════════════════════════════════════════════════════════════ */
+
+var LPM_ROUTES = [
+  {prefix:'0.0.0.0/0',       mask:0,  next:'10.0.0.1',    source:'Static (S*)', proto:'Default'},
+  {prefix:'10.0.0.0/8',      mask:8,  next:'10.0.12.2',   source:'OSPF (O)',    proto:'Classful'},
+  {prefix:'10.1.0.0/16',     mask:16, next:'10.0.13.3',   source:'EIGRP (D)',   proto:'Classful'},
+  {prefix:'10.1.1.0/24',     mask:24, next:'10.0.13.3',   source:'RIP (R)',     proto:'Subnet'},
+  {prefix:'10.1.1.128/25',   mask:25, next:'10.0.24.4',   source:'OSPF (O)',    proto:'Subnet'},
+  {prefix:'10.1.1.200/32',   mask:32, next:'10.0.35.5',   source:'Static (S)',  proto:'Host'}
+];
+
+var LPM_SCENARIOS = [
+  {ip:'10.1.1.200', label:'10.1.1.200', matchMask:32, explain:'<strong>/32 host route matches exactly.</strong> Even though five other entries also match, the /32 is the most specific. The packet goes to 10.0.35.5 via the static host route.'},
+  {ip:'10.1.1.130', label:'10.1.1.130', matchMask:25, explain:'<strong>/25 subnet matches.</strong> 10.1.1.130 falls in the 10.1.1.128/25 range (128-255). The /24, /16, /8, and /0 also match, but /25 is the longest prefix. Forwarded via OSPF to 10.0.24.4.'},
+  {ip:'10.1.1.50',  label:'10.1.1.50',  matchMask:24, explain:'<strong>/24 subnet matches.</strong> 10.1.1.50 is in 10.1.1.0/24 but NOT in 10.1.1.128/25 (which only covers .128-.255). The RIP-learned /24 route wins despite RIP having AD 120.'},
+  {ip:'10.1.50.1',  label:'10.1.50.1',  matchMask:16, explain:'<strong>/16 classful match.</strong> No /24 or /25 covers 10.1.50.x. The EIGRP-learned 10.1.0.0/16 is the longest match. Note: EIGRP (AD 90) would have beaten OSPF (AD 110) if both had this prefix.'},
+  {ip:'10.5.5.5',   label:'10.5.5.5',   matchMask:8,  explain:'<strong>/8 classful match.</strong> Only the OSPF 10.0.0.0/8 and the default route match. /8 is longer than /0, so the packet goes to 10.0.12.2.'},
+  {ip:'8.8.8.8',    label:'8.8.8.8',    matchMask:0,  explain:'<strong>Default route (/0) is the gateway of last resort.</strong> No specific prefix matches 8.8.8.8. The router uses the static default route (S*) pointing to 10.0.0.1. Without this, the packet would be dropped.'}
+];
+
+var lpmSelect = document.getElementById('lpmSelect');
+var lpmBody = document.getElementById('lpmBody');
+var lpmResult = document.getElementById('lpmResult');
+
+LPM_SCENARIOS.forEach(function(s){
+  var opt = document.createElement('option');
+  opt.value = s.ip;
+  opt.textContent = s.label;
+  lpmSelect.appendChild(opt);
+});
+
+function ipMatchesPrefix(ip, prefix, mask){
+  if(mask === 0) return true;
+  var ipParts = ip.split('.').map(Number);
+  var prefParts = prefix.split('/')[0].split('.').map(Number);
+  var ipNum = (ipParts[0]<<24)|(ipParts[1]<<16)|(ipParts[2]<<8)|ipParts[3];
+  var prefNum = (prefParts[0]<<24)|(prefParts[1]<<16)|(prefParts[2]<<8)|prefParts[3];
+  var maskNum = mask === 0 ? 0 : ((-1 << (32-mask)) >>> 0);
+  return ((ipNum & maskNum) >>> 0) === ((prefNum & maskNum) >>> 0);
+}
+
+function updateLpm(){
+  var scenario = LPM_SCENARIOS.find(function(s){ return s.ip === lpmSelect.value; });
+  lpmBody.innerHTML = '';
+  LPM_ROUTES.forEach(function(r){
+    var matches = ipMatchesPrefix(scenario.ip, r.prefix, r.mask);
+    var isWinner = matches && r.mask === scenario.matchMask;
+    var tr = document.createElement('tr');
+    tr.className = isWinner ? 'match' : (matches ? '' : 'no-match');
+    tr.innerHTML =
+      '<td>'+r.prefix+'</td>'+
+      '<td>/'+r.mask+' <span class="prefix-bits">'+r.proto+'</span></td>'+
+      '<td>'+r.next+'</td>'+
+      '<td>'+r.source+'</td>'+
+      '<td>'+(isWinner ? '\u2714 Best' : (matches ? 'Matches' : '\u2718'))+'</td>';
+    lpmBody.appendChild(tr);
+  });
+  lpmResult.innerHTML = scenario.explain;
+}
+
+lpmSelect.addEventListener('change', updateLpm);
+updateLpm();
+
+/* ══════════════════════════════════════════════════════════════
+   SECTION 7: AD BATTLE
+   ══════════════════════════════════════════════════════════════ */
+
+var AD_BATTLES = [
+  {a:{src:'EIGRP Internal', ad:90, detail:'Learned via DUAL'},          b:{src:'OSPF', ad:110, detail:'Learned via Dijkstra'},     winner:'a', explain:'EIGRP (AD 90) beats OSPF (AD 110). Both are IGPs, but Cisco routers trust EIGRP more by default.'},
+  {a:{src:'Static Route', ad:1, detail:'Manually configured'},          b:{src:'EIGRP Internal', ad:90, detail:'Learned via DUAL'}, winner:'a', explain:'Static (AD 1) beats everything except connected (AD 0). Admins can always override dynamic protocols.'},
+  {a:{src:'eBGP', ad:20, detail:'From external AS'},                    b:{src:'EIGRP Internal', ad:90, detail:'Learned via DUAL'}, winner:'a', explain:'eBGP (AD 20) beats EIGRP (AD 90). External BGP routes are highly trusted because they represent verified inter-AS paths.'},
+  {a:{src:'OSPF', ad:110, detail:'Cost-based metric'},                  b:{src:'RIP', ad:120, detail:'Hop count metric'},           winner:'a', explain:'OSPF (AD 110) beats RIP (AD 120). Both are IGPs but OSPF is more trusted by default.'},
+  {a:{src:'EIGRP External', ad:170, detail:'Redistributed into EIGRP'}, b:{src:'OSPF', ad:110, detail:'Learned via Dijkstra'},     winner:'b', explain:'OSPF (AD 110) beats EIGRP External (AD 170). External EIGRP routes are redistributed from another protocol, so they are less trusted than native EIGRP or OSPF.'},
+  {a:{src:'iBGP', ad:200, detail:'From same AS'},                       b:{src:'EIGRP External', ad:170, detail:'Redistributed'},  winner:'b', explain:'EIGRP External (AD 170) beats iBGP (AD 200). iBGP has very high AD because it runs alongside an IGP — the IGP route should always be preferred internally.'},
+  {a:{src:'Connected', ad:0, detail:'Directly attached'},                b:{src:'Static Route', ad:1, detail:'Manually configured'}, winner:'a', explain:'Connected (AD 0) always wins. The router knows about it because it owns the interface — no protocol or administrator can be more trustworthy.'},
+  {a:{src:'RIP', ad:120, detail:'15-hop maximum'},                       b:{src:'iBGP', ad:200, detail:'Internal BGP'},             winner:'a', explain:'RIP (AD 120) beats iBGP (AD 200). Even RIP is more trusted than internal BGP. iBGP\'s high AD ensures the IGP always wins for internal destinations.'}
+];
+
+var adBattleEl = document.getElementById('adBattle');
+var adScoreEl = document.getElementById('adBattleScore');
+var adScoreNumEl = document.getElementById('adScoreNum');
+var adBattleScore = 0;
+var adBattleAnswered = 0;
+
+function renderAdBattle(){
+  adBattleScore = 0;
+  adBattleAnswered = 0;
+  adScoreEl.style.display = 'none';
+  adBattleEl.innerHTML = '';
+
+  AD_BATTLES.forEach(function(battle, bi){
+    var card = document.createElement('div');
+    card.className = 'ad-battle-card';
+    card.innerHTML =
+      '<div class="ad-battle-scenario">Scenario '+(bi+1)+': Both routes point to <strong>10.1.1.0/24</strong>. Which one gets installed in the routing table?</div>'+
+      '<div class="ad-battle-options">'+
+        '<div class="ad-battle-opt" data-bi="'+bi+'" data-side="a">'+
+          '<div class="route-source">'+battle.a.src+'</div>'+
+          '<div class="route-ad">AD '+battle.a.ad+'</div>'+
+          '<div class="route-detail">'+battle.a.detail+'</div>'+
+        '</div>'+
+        '<div class="ad-battle-opt" data-bi="'+bi+'" data-side="b">'+
+          '<div class="route-source">'+battle.b.src+'</div>'+
+          '<div class="route-ad">AD '+battle.b.ad+'</div>'+
+          '<div class="route-detail">'+battle.b.detail+'</div>'+
+        '</div>'+
+      '</div>'+
+      '<div class="ad-battle-explain" id="adexp'+bi+'">'+battle.explain+'</div>';
+    adBattleEl.appendChild(card);
+  });
+
+  document.querySelectorAll('.ad-battle-opt').forEach(function(opt){
+    opt.addEventListener('click', function(){
+      var bi = parseInt(this.getAttribute('data-bi'));
+      var side = this.getAttribute('data-side');
+      var card = this.closest('.ad-battle-card');
+      if(card.classList.contains('answered')) return;
+      card.classList.add('answered');
+      adBattleAnswered++;
+
+      var allOpts = card.querySelectorAll('.ad-battle-opt');
+      allOpts.forEach(function(o){ o.classList.add('locked'); });
+
+      var winnerSide = AD_BATTLES[bi].winner;
+      allOpts.forEach(function(o){
+        if(o.getAttribute('data-side') === winnerSide) o.classList.add('correct');
+      });
+
+      if(side === winnerSide){
+        adBattleScore++;
+      } else {
+        this.classList.add('wrong');
+      }
+
+      document.getElementById('adexp'+bi).classList.add('show');
+
+      if(adBattleAnswered === AD_BATTLES.length){
+        adScoreEl.style.display = 'flex';
+        adScoreNumEl.textContent = adBattleScore+'/'+AD_BATTLES.length;
+      }
+    });
+  });
+}
+
+renderAdBattle();
+document.getElementById('adBattleReset').addEventListener('click', renderAdBattle);
+
+/* ══════════════════════════════════════════════════════════════
+   SECTION 8: CCNA QUIZ
+   ══════════════════════════════════════════════════════════════ */
+
+var QUIZ = [
+  {q:'A router has these routes to 10.1.1.0: EIGRP /24 and OSPF /28. Which is installed?', opts:['EIGRP /24 (AD 90)','OSPF /28 (AD 110)','Both (ECMP)','Neither'], ans:1, explain:'The /28 is a longer prefix match than /24. Longest prefix always wins, regardless of AD. OSPF\'s /28 route is installed.'},
+  {q:'What is the default OSPF reference bandwidth on Cisco IOS?', opts:['10 Mbps','100 Mbps','1 Gbps','10 Gbps'], ans:1, explain:'Cisco\'s default is 100 Mbps. This means FastEthernet and GigabitEthernet both show cost 1. Best practice: set reference-bandwidth to at least 10,000 (10 Gbps) or higher.'},
+  {q:'EIGRP K-values K1 and K3 are enabled by default. What do they represent?', opts:['Load and Reliability','Bandwidth and Delay','MTU and Hop Count','Cost and Distance'], ans:1, explain:'K1 = Bandwidth, K3 = Delay. These two create the default EIGRP composite metric. K2 (load) and K4/K5 (reliability) are off by default because they cause instability.'},
+  {q:'In BGP, what is the FIRST attribute checked in the best path algorithm?', opts:['AS-Path Length','Local Preference','Weight','MED'], ans:2, explain:'Weight is checked first. It\'s Cisco-proprietary and local to the router. Highest weight wins. Then local preference, then locally originated, then AS-path length.'},
+  {q:'What happens when two OSPF paths to the same prefix have equal cost?', opts:['The first one learned wins','The one via the DR wins','Both are installed (ECMP)','The router sends a LSA requesting a tiebreak'], ans:2, explain:'OSPF performs Equal-Cost Multi-Path (ECMP) load balancing by default. Up to 4 paths (configurable up to 32) can be installed simultaneously.'},
+  {q:'What is the administrative distance of an EIGRP summary route?', opts:['5','90','110','170'], ans:0, explain:'EIGRP summary routes have AD 5, lower than regular EIGRP (90). This ensures the summary is always preferred over its component routes within the EIGRP topology.'},
+  {q:'A floating static route has AD set to 95. When does it appear in the routing table?', opts:['Always — it has lower AD than OSPF','Only when the EIGRP route to the same prefix disappears','Never — AD 95 is invalid','Only when manually activated'], ans:1, explain:'A floating static route with AD 95 sits behind EIGRP (AD 90) but in front of OSPF (AD 110). It activates only when the EIGRP route is withdrawn, acting as a backup.'},
+  {q:'In the BGP best path algorithm, "eBGP > iBGP" means:', opts:['eBGP has higher AD','eBGP routes are preferred over iBGP','iBGP routes are more trusted','External ASes are always closer'], ans:1, explain:'When comparing an eBGP path (AD 20) vs an iBGP path (AD 200), eBGP is preferred. This is step 7 in the BGP best path algorithm. The rationale: eBGP paths represent a direct peering relationship.'},
+  {q:'OSPF cost of a GigabitEthernet link with reference bandwidth 100 Mbps is:', opts:['1','10','100','1000'], ans:0, explain:'Cost = 100 Mbps / 1000 Mbps = 0.1, rounded up to minimum of 1. This is why 100 Mbps reference bandwidth is problematic — FastEthernet and GigabitEthernet both show cost 1, hiding the 10x speed difference.'},
+  {q:'What does EIGRP\'s DUAL algorithm provide that OSPF doesn\'t?', opts:['Area-based hierarchy','Loop-free backup paths (feasible successors)','Link-state advertisements','DR/BDR election'], ans:1, explain:'DUAL pre-computes backup paths called feasible successors. If the primary path (successor) fails, EIGRP switches instantly without recalculating. OSPF must run Dijkstra\'s algorithm again after a topology change.'},
+  {q:'A route to 10.0.0.0/8 via EIGRP and a route to 10.0.0.0/8 via OSPF both exist. Which is installed?', opts:['OSPF (lower metric)','EIGRP (lower AD)','Both (different protocols)','Depends on the metric values'], ans:1, explain:'Same prefix length (/8), so longest prefix match is tied. Next check: AD. EIGRP (AD 90) < OSPF (AD 110), so EIGRP wins. Metrics across different protocols are never compared.'},
+  {q:'Which route source has AD 0?', opts:['Static route','Default route','Connected interface','EIGRP summary'], ans:2, explain:'Connected interfaces have AD 0 — the most trusted source. The router has direct knowledge of the link because it owns the interface. Nothing can override a connected route.'}
+];
+
+var quizScore = 0;
+var quizAnswered = 0;
+var quizEl = document.getElementById('quizSection');
+var quizProgressEl = document.getElementById('quizProgress');
+var quizScoreEl = document.getElementById('quizScore');
+var quizScoreNum = document.getElementById('quizScoreNum');
+
+function updateQuizProgress(){
+  quizProgressEl.innerHTML = '<strong>'+quizAnswered+'</strong> / '+QUIZ.length+' answered';
+  if(quizAnswered === QUIZ.length){
+    quizScoreEl.style.display = 'flex';
+    quizScoreNum.textContent = quizScore+'/'+QUIZ.length;
+  }
+}
+
+function renderQuiz(){
+  quizScore=0; quizAnswered=0;
+  quizScoreEl.style.display='none';
+  quizEl.innerHTML='';
+  QUIZ.forEach(function(q,qi){
+    var card = document.createElement('div');
+    card.className = 'quiz-card';
+    card.innerHTML =
+      '<div class="quiz-q"><span class="quiz-q-num">'+(qi+1)+'.</span>'+q.q+'</div>'+
+      '<div class="quiz-opts">'+q.opts.map(function(o,oi){
+        return '<div class="quiz-opt" data-qi="'+qi+'" data-oi="'+oi+'">'+o+'</div>';
+      }).join('')+'</div>'+
+      '<div class="quiz-explain" id="qexp'+qi+'">'+q.explain+'</div>';
+    quizEl.appendChild(card);
+  });
+
+  document.querySelectorAll('.quiz-opt').forEach(function(opt){
+    opt.addEventListener('click', function(){
+      var qi = parseInt(this.getAttribute('data-qi'));
+      var oi = parseInt(this.getAttribute('data-oi'));
+      var card = this.closest('.quiz-card');
+      if(card.classList.contains('answered')) return;
+      card.classList.add('answered');
+      quizAnswered++;
+
+      var allOpts = card.querySelectorAll('.quiz-opt');
+      allOpts.forEach(function(o){ o.classList.add('locked'); });
+      allOpts[QUIZ[qi].ans].classList.add('correct');
+      if(oi === QUIZ[qi].ans){
+        quizScore++;
+      } else {
+        this.classList.add('wrong');
+      }
+      document.getElementById('qexp'+qi).classList.add('show');
+      updateQuizProgress();
+    });
+  });
+  updateQuizProgress();
+}
+
+renderQuiz();
+document.getElementById('quizReset').addEventListener('click', renderQuiz);
+
+})();
+</script>
+</body>
+</html>

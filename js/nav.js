@@ -30,6 +30,7 @@
       { text: 'Books', href: 'book.html' },
       { text: "Jeremy's IT Lab", href: 'jeremy-labs.html' },
       { text: 'OSPF Mastery', href: 'ospf-mastery.html' },
+      { text: 'Path Selection', href: 'path-selection.html' },
       { text: 'CIDR 3D Explorer', href: 'cidr-3d.html' },
       { text: '3D Topology', href: 'devices.html#3d' },
     ]},
