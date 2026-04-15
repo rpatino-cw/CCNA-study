@@ -263,7 +263,7 @@ const NODES = [
 // [from, to] = "must know FROM before TO"
 const EDGES = [
   // Foundation internal
-  ['1.1','1.2'], ['1.3','1.4'], ['1.6','1.7'], ['1.8','1.9'], ['1.6','1.10'], ['1.8','1.10'],
+  ['1.1','1.2'], ['1.1','1.12'], ['1.3','1.4'], ['1.6','1.7'], ['1.8','1.9'], ['1.6','1.10'], ['1.8','1.10'],
   // Foundation → Layer 2
   ['1.6','2.1'], ['1.13','2.1'], ['1.13','2.5'], ['1.13','2.3'], ['1.11','2.6'],
   // Layer 2 internal
@@ -271,13 +271,13 @@ const EDGES = [
   // → Layer 3
   ['1.6','3.1'], ['1.8','3.1'], ['3.1','3.2'], ['3.1','3.3'], ['3.3','3.4'], ['3.4','3.5'],
   // → Services
-  ['3.3','4.1'], ['3.3','4.3'], ['3.3','4.6'], ['1.5','4.7'], ['4.3','4.6'],
+  ['3.3','4.1'], ['3.3','4.3'], ['3.3','4.6'], ['1.5','4.2'], ['1.5','4.7'], ['4.3','4.6'],
   ['4.5','4.4'], ['4.3','4.9'],
   // → Security
   ['5.1','5.2'], ['2.8','5.3'], ['5.3','5.4'], ['5.3','4.8'], ['5.1','5.5'], ['5.1','5.8'],
   ['2.6','5.9'], ['5.9','5.10'], ['3.3','5.6'], ['2.5','5.7'],
   // → Automation
-  ['6.1','6.2'], ['6.1','6.4'], ['6.2','6.3'], ['6.5','6.6'], ['6.5','6.7'],
+  ['6.1','6.2'], ['6.1','6.4'], ['6.2','6.3'], ['1.12','6.3'], ['6.3','6.5'], ['6.5','6.6'], ['6.5','6.7'],
 ];
 
 // ── Layout Engine ─────────────────────────────────────────────
@@ -512,8 +512,28 @@ function render() {
   EDGES.forEach(([f, t]) => { prereqOf[t].push(f); nextOf[f].push(t); });
 
   // ── Hover Events ───────────────────────────────────────────
+  // Single cleanup function — called BEFORE applying new highlights AND on leave
+  function clearHighlights() {
+    document.getElementById('graphTooltip').classList.remove('visible');
+    svg.classList.remove('graph-dimmed');
+    svg.querySelectorAll('.hovered-node').forEach(n => n.classList.remove('hovered-node'));
+    svg.querySelectorAll('.ancestor-node').forEach(n => n.classList.remove('ancestor-node'));
+    svg.querySelectorAll('.descendant-node').forEach(n => n.classList.remove('descendant-node'));
+    svg.querySelectorAll('.ancestor-highlight, .descendant-highlight').forEach(edge => {
+      edge.classList.remove('ancestor-highlight', 'descendant-highlight');
+      var from = edge.dataset.from, to = edge.dataset.to;
+      var isCrit = critEdges.has(from + '→' + to);
+      edge.setAttribute('marker-end', isCrit ? 'url(#arrowCrit)' : 'url(#arrow)');
+    });
+  }
+
   svg.querySelectorAll('.node-group').forEach(g => {
     g.addEventListener('mouseenter', () => {
+      // Force entrance-done so forwards-fill doesn't block dimming
+      svg.classList.add('entrance-done');
+      // Clean any stale highlights from rapid mouse movement
+      clearHighlights();
+
       const id = g.dataset.id;
       const ancestors = getAncestors(id);
       const descendants = getDescendants(id);
@@ -534,7 +554,7 @@ function render() {
       tt.setAttribute('transform', `translate(${x},${Math.max(4, y)})`);
       tt.classList.add('visible');
 
-      // Apply classes
+      // Apply dimming + highlights
       svg.classList.add('graph-dimmed');
       g.classList.add('hovered-node');
 
@@ -557,23 +577,7 @@ function render() {
       });
     });
 
-    g.addEventListener('mouseleave', () => {
-      const tt = document.getElementById('graphTooltip');
-      tt.classList.remove('visible');
-      svg.classList.remove('graph-dimmed');
-
-      svg.querySelectorAll('.hovered-node').forEach(n => n.classList.remove('hovered-node'));
-      svg.querySelectorAll('.ancestor-node').forEach(n => n.classList.remove('ancestor-node'));
-      svg.querySelectorAll('.descendant-node').forEach(n => n.classList.remove('descendant-node'));
-
-      // Restore markers
-      svg.querySelectorAll('.ancestor-highlight, .descendant-highlight').forEach(edge => {
-        edge.classList.remove('ancestor-highlight', 'descendant-highlight');
-        const from = edge.dataset.from, to = edge.dataset.to;
-        const isCrit = critEdges.has(from + '→' + to);
-        edge.setAttribute('marker-end', isCrit ? 'url(#arrowCrit)' : 'url(#arrow)');
-      });
-    });
+    g.addEventListener('mouseleave', () => { clearHighlights(); });
 
     g.addEventListener('click', () => {
       const tierId = g.dataset.tier;
