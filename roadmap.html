@@ -10,151 +10,134 @@
 <style>
   .gc-bar,.gc-chat-panel,#guidePill{display:none!important}
 
-  .rm-page{max-width:680px;margin:0 auto;padding:0 var(--s-lg) var(--s-3xl)}
+  .rm-page{max-width:780px;margin:0 auto;padding:0 var(--s-lg) var(--s-3xl)}
 
   /* Header */
-  .rm-head{padding:var(--s-xl) 0 var(--s-lg);border-bottom:2px solid var(--ink);margin-bottom:var(--s-xl)}
+  .rm-head{padding:var(--s-xl) 0 var(--s-lg);border-bottom:2px solid var(--ink);margin-bottom:var(--s-lg)}
   .rm-head h1{font-family:var(--font-display);font-size:2rem;font-weight:800;letter-spacing:-.04em;margin-bottom:6px}
   .rm-meta{display:flex;gap:var(--s-lg);font-family:var(--font-mono);font-size:.75rem;color:var(--ink-muted);flex-wrap:wrap}
   .rm-meta strong{color:var(--ink)}
   .rm-bar{height:4px;background:var(--bg-recessed);border-radius:2px;margin-top:12px}
   .rm-bar-fill{height:100%;border-radius:2px;background:var(--accent);transition:width .6s var(--ease-out)}
-
-  /* "You are here" label */
   .rm-here-label{font-family:var(--font-mono);font-size:.62rem;font-weight:700;color:var(--accent);letter-spacing:.08em;text-transform:uppercase;margin-top:8px}
+  .rm-date{display:flex;align-items:center;gap:6px;margin-top:8px;font-family:var(--font-mono);font-size:.7rem;color:var(--ink-muted)}
+  .rm-date input{font-family:var(--font-mono);font-size:.7rem;border:1px solid var(--border);border-radius:var(--radius);padding:3px 8px;background:var(--bg-surface);color:var(--ink)}
 
-  /* Rail */
-  .rail{position:relative;padding-left:32px;margin-top:var(--s-lg)}
-  .rail::before{content:'';position:absolute;left:7px;top:0;bottom:0;width:2px;background:var(--border)}
+  /* ── Map container ── */
+  .map{position:relative;padding:var(--s-xl) 0}
 
-  /* ── Node base ── */
-  .nd{position:relative;padding:7px 0;cursor:pointer;-webkit-user-select:none;user-select:none}
-  .nd::before{
-    content:'';position:absolute;left:-32px;top:13px;
-    width:12px;height:12px;border-radius:50%;
-    border:2px solid var(--border-strong);background:var(--bg);
-    z-index:1;transition:border-color .2s,background .2s,transform .15s;
+  /* SVG path behind everything */
+  .map-svg{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:0}
+  .map-path{fill:none;stroke:var(--border);stroke-width:3;stroke-linecap:round}
+  .map-path-walked{fill:none;stroke:var(--accent);stroke-width:3;stroke-linecap:round;opacity:.35}
+  .map-path-dashed{fill:none;stroke:var(--border);stroke-width:2;stroke-dasharray:8 6;stroke-linecap:round;opacity:.4}
+
+  /* ── Rows — zig-zag layout ── */
+  .map-row{display:flex;align-items:flex-start;gap:12px;margin-bottom:20px;position:relative;z-index:1}
+  .map-row.rtl{flex-direction:row-reverse}
+  .map-row.rtl .stop-label{text-align:right}
+  .map-row.rtl .stop-expand{align-items:flex-end}
+
+  /* Turn connector between rows */
+  .map-turn{height:28px;position:relative;z-index:0;margin-bottom:20px}
+
+  /* ── Stop (node on the path) ── */
+  .stop{flex:1;max-width:220px;cursor:pointer;-webkit-user-select:none;user-select:none;position:relative}
+  .stop-dot{
+    width:32px;height:32px;border-radius:50%;
+    border:3px solid var(--border-strong);background:var(--bg);
+    display:flex;align-items:center;justify-content:center;
+    font-family:var(--font-mono);font-size:.65rem;font-weight:800;color:var(--ink-muted);
+    transition:all .2s;flex-shrink:0;position:relative;z-index:2;
   }
-  .nd:hover::before{transform:scale(1.15)}
+  .stop:hover .stop-dot{transform:scale(1.1);border-color:var(--accent)}
 
-  /* Phase node — larger dot */
-  .nd-phase::before{width:14px;height:14px;left:-33px;top:12px}
-  .nd-phase.done::before{background:var(--prof-strong);border-color:var(--prof-strong)}
-  .nd-phase.partial::before{background:var(--prof-mid);border-color:var(--prof-mid)}
-  .nd-phase.weak::before{background:var(--prof-weak);border-color:var(--prof-weak)}
+  /* Proficiency states */
+  .stop.s-done .stop-dot{background:var(--prof-strong);border-color:var(--prof-strong);color:#fff}
+  .stop.s-mid .stop-dot{background:var(--prof-mid);border-color:var(--prof-mid);color:#fff}
+  .stop.s-weak .stop-dot{background:var(--prof-weak);border-color:var(--prof-weak);color:#fff}
 
-  /* Milestone node — diamond */
-  .nd-mile::before{
-    width:10px;height:10px;border-radius:2px;
-    border-color:var(--accent);background:var(--accent-dim);
-    transform:rotate(45deg);left:-30px;top:14px;
+  /* Milestone stops — diamond shape */
+  .stop.s-mile .stop-dot{
+    width:26px;height:26px;border-radius:4px;
+    transform:rotate(45deg);border-color:var(--accent);background:var(--accent-dim);
   }
-  .nd-mile:hover::before{transform:rotate(45deg) scale(1.15)}
-  .nd-mile.checked::before{background:var(--accent);border-color:var(--accent)}
+  .stop.s-mile .stop-dot span{transform:rotate(-45deg)}
+  .stop.s-mile:hover .stop-dot{transform:rotate(45deg) scale(1.1)}
+  .stop.s-mile.checked .stop-dot{background:var(--accent);border-color:var(--accent);color:#fff}
 
-  /* Final node — star/large */
-  .nd-final::before{
-    width:16px;height:16px;border-radius:50%;left:-34px;top:11px;
-    border:3px solid var(--accent);background:var(--accent-dim);
+  /* Final stop — treasure */
+  .stop.s-final .stop-dot{
+    width:40px;height:40px;border:3px solid var(--accent);
+    background:linear-gradient(135deg,var(--accent-dim),var(--accent-light));
+    font-size:.9rem;
   }
 
-  /* "You are here" marker */
-  .nd-here{cursor:default;padding:4px 0;margin:2px 0}
-  .nd-here::before{
-    width:8px;height:8px;left:-29px;top:10px;
-    border:none;background:var(--accent);border-radius:50%;
-    box-shadow:0 0 0 3px rgba(var(--accent-rgb),.2);
+  /* "You are here" pulse */
+  .stop.s-here .stop-dot{
+    box-shadow:0 0 0 4px rgba(var(--accent-rgb),.2);
     animation:here-pulse 2s ease-in-out infinite;
   }
-  @keyframes here-pulse{0%,100%{box-shadow:0 0 0 3px rgba(var(--accent-rgb),.2)}50%{box-shadow:0 0 0 6px rgba(var(--accent-rgb),.1)}}
-  .nd-here .nd-head{font-family:var(--font-mono);font-size:.65rem;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.06em}
+  @keyframes here-pulse{0%,100%{box-shadow:0 0 0 4px rgba(var(--accent-rgb),.2)}50%{box-shadow:0 0 0 8px rgba(var(--accent-rgb),.08)}}
 
-  /* Node header row */
-  .nd-head{display:flex;align-items:baseline;gap:8px;line-height:1.3}
-  .nd-label{font-family:var(--font-display);font-size:.88rem;font-weight:600;color:var(--ink)}
-  .nd-week{font-family:var(--font-mono);font-size:.62rem;color:var(--ink-muted)}
-  .nd-pct{font-family:var(--font-mono);font-size:.72rem;font-weight:700;margin-left:auto;white-space:nowrap}
-  .nd-desc{font-family:var(--font-body);font-size:.75rem;color:var(--ink-muted);margin-top:1px;line-height:1.4}
+  .stop-label{flex:1;min-width:0}
+  .stop-name{font-family:var(--font-display);font-size:.82rem;font-weight:700;color:var(--ink);line-height:1.3}
+  .stop-week{font-family:var(--font-mono);font-size:.58rem;color:var(--ink-muted);margin-top:1px}
+  .stop-desc{font-family:var(--font-body);font-size:.7rem;color:var(--ink-muted);line-height:1.4;margin-top:2px}
 
-  .nd-mile .nd-label{font-size:.8rem;font-weight:700;color:var(--accent)}
-  .nd-final .nd-label{font-size:1rem;color:var(--accent)}
-
-  /* Expand/collapse animation */
-  .nd-children{display:grid;grid-template-rows:0fr;transition:grid-template-rows .25s var(--ease-out)}
-  .nd.open>.nd-children{grid-template-rows:1fr}
-  .nd-inner{overflow:hidden}
+  .stop.s-mile .stop-name{color:var(--accent);font-size:.78rem}
+  .stop.s-final .stop-name{color:var(--accent);font-size:.95rem}
 
   /* Chevron */
-  .nd-chev{font-size:.55rem;color:var(--ink-faint);transition:transform .2s var(--ease-out);flex-shrink:0}
-  .nd.open>.nd-head .nd-chev{transform:rotate(90deg)}
+  .stop-chev{font-size:.5rem;color:var(--ink-faint);display:inline-block;transition:transform .2s var(--ease-out);margin-left:4px}
+  .stop.open .stop-chev{transform:rotate(90deg)}
 
-  /* ── Level 1: Topics inside expanded phase ── */
-  .sub-rail{padding-left:22px;position:relative;margin:4px 0 2px}
-  .sub-rail::before{content:'';position:absolute;left:5px;top:0;bottom:0;width:1px;background:var(--border)}
+  /* ── Expand panel ── */
+  .stop-expand{display:grid;grid-template-rows:0fr;transition:grid-template-rows .25s var(--ease-out)}
+  .stop.open>.stop-expand{grid-template-rows:1fr}
+  .stop-expand-inner{overflow:hidden}
+  .stop-expand-content{padding:8px 0 4px;border-left:2px solid var(--border);margin-left:14px;padding-left:14px;margin-top:6px}
 
-  .nd-topic{position:relative;padding:5px 0;cursor:pointer}
-  .nd-topic::before{
-    content:'';position:absolute;left:-22px;top:11px;
-    width:8px;height:8px;border-radius:50%;
-    border:2px solid var(--border);background:var(--bg);z-index:1;
-    transition:border-color .15s,background .15s;
+  /* Topic rows inside expanded phase */
+  .ex-topic{display:flex;align-items:baseline;gap:6px;padding:4px 0;cursor:pointer;position:relative}
+  .ex-topic::before{
+    content:'';position:absolute;left:-21px;top:9px;
+    width:6px;height:6px;border-radius:50%;border:2px solid var(--border);background:var(--bg);
   }
-  .nd-topic.t-done::before{background:var(--prof-strong);border-color:var(--prof-strong)}
-  .nd-topic.t-mid::before{background:var(--prof-mid);border-color:var(--prof-mid)}
-  .nd-topic.t-weak::before{background:var(--prof-weak);border-color:var(--prof-weak)}
+  .ex-topic.t-done::before{background:var(--prof-strong);border-color:var(--prof-strong)}
+  .ex-topic.t-mid::before{background:var(--prof-mid);border-color:var(--prof-mid)}
+  .ex-topic.t-weak::before{background:var(--prof-weak);border-color:var(--prof-weak)}
+  .ex-topic-id{font-family:var(--font-mono);font-size:.68rem;color:var(--ink-muted);flex-shrink:0}
+  .ex-topic-name{font-family:var(--font-display);font-size:.75rem;font-weight:500;color:var(--ink-secondary);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .ex-topic-pct{font-family:var(--font-mono);font-size:.65rem;font-weight:700;flex-shrink:0}
 
-  .nd-topic .nd-head{font-size:.82rem}
-  .nd-topic .nd-label{font-size:.82rem;font-weight:500}
-  .nd-topic .nd-pct{font-size:.68rem}
+  /* Sub-expand for subtopics */
+  .ex-subs{display:grid;grid-template-rows:0fr;transition:grid-template-rows .2s var(--ease-out)}
+  .ex-topic.open>.ex-subs{grid-template-rows:1fr}
+  .ex-subs-inner{overflow:hidden}
+  .ex-sub{padding:2px 0 2px 18px}
+  .ex-sub a{font-family:var(--font-body);font-size:.7rem;color:var(--ink-muted);text-decoration:none;transition:color .12s}
+  .ex-sub a:hover{color:var(--accent)}
+  .ex-quiz{display:inline-block;margin:4px 0 2px 18px;font-family:var(--font-display);font-size:.65rem;font-weight:700;color:var(--accent);text-decoration:none;padding:3px 8px;border:1px solid var(--accent);border-radius:3px;transition:all .12s}
+  .ex-quiz:hover{background:var(--accent);color:#fff}
 
-  /* Action links inside expanded phase */
-  .nd-action{position:relative;padding:4px 0}
-  .nd-action::before{
-    content:'';position:absolute;left:-22px;top:11px;
-    width:6px;height:6px;border-radius:50%;
-    background:var(--border);z-index:1;
-  }
-  .nd-action a{
-    font-family:var(--font-display);font-size:.75rem;color:var(--ink-muted);
-    text-decoration:none;transition:color .12s;
-  }
-  .nd-action a:hover{color:var(--accent)}
-  .nd-action a::after{content:' \2192';opacity:.4}
+  /* Action links */
+  .ex-action{padding:3px 0}
+  .ex-action a{font-family:var(--font-display);font-size:.72rem;color:var(--ink-muted);text-decoration:none;transition:color .12s}
+  .ex-action a:hover{color:var(--accent)}
+  .ex-action a::after{content:' \2192';opacity:.4}
 
-  /* ── Level 2: Subtopics inside expanded topic ── */
-  .sub-rail2{padding-left:18px;position:relative;margin:2px 0}
-  .sub-rail2::before{content:'';position:absolute;left:4px;top:0;bottom:0;width:1px;background:var(--border);opacity:.5}
-
-  .nd-sub{position:relative;padding:3px 0}
-  .nd-sub::before{
-    content:'';position:absolute;left:-18px;top:10px;
-    width:5px;height:5px;border-radius:50%;background:var(--border);z-index:1;
-  }
-  .nd-sub a{
-    font-family:var(--font-body);font-size:.75rem;color:var(--ink-secondary);
-    text-decoration:none;line-height:1.3;transition:color .12s;
-  }
-  .nd-sub a:hover{color:var(--accent)}
-
-  .nd-quiz-link{
-    display:inline-block;margin-top:4px;
-    font-family:var(--font-display);font-size:.7rem;font-weight:700;
-    color:var(--accent);text-decoration:none;padding:4px 10px;
-    border:1px solid var(--accent);border-radius:4px;transition:all .15s;
-  }
-  .nd-quiz-link:hover{background:var(--accent);color:#fff}
-
-  /* Exam date picker */
-  .rm-date{display:flex;align-items:center;gap:6px;margin-top:8px;font-family:var(--font-mono);font-size:.7rem;color:var(--ink-muted)}
-  .rm-date input{font-family:var(--font-mono);font-size:.7rem;border:1px solid var(--border);border-radius:var(--radius);padding:3px 8px;background:var(--bg-surface);color:var(--ink);cursor:pointer}
-  .rm-date input:focus{outline:2px solid var(--accent);outline-offset:1px}
+  /* Milestone checkbox */
+  .ex-check{display:flex;align-items:center;gap:6px;margin-top:4px;font-family:var(--font-mono);font-size:.62rem;color:var(--ink-muted);cursor:pointer}
 
   /* ── Responsive ── */
-  @media(max-width:540px){
-    .rm-page{padding:0 var(--s-md) var(--s-2xl)}
-    .rail{padding-left:26px}
-    .nd-phase::before{width:12px;height:12px;left:-30px}
-    .nd-label{font-size:.82rem}
+  @media(max-width:600px){
+    .map-row{flex-wrap:nowrap;gap:8px}
+    .stop{max-width:none}
+    .stop-dot{width:26px;height:26px;font-size:.55rem}
+    .stop.s-mile .stop-dot{width:22px;height:22px}
+    .stop.s-final .stop-dot{width:32px;height:32px}
+    .stop-name{font-size:.78rem}
   }
 </style>
 </head>
@@ -173,7 +156,7 @@
     </div>
   </header>
 
-  <div class="rail" id="rail"></div>
+  <div class="map" id="map"></div>
 </div>
 
 <script src="data/topics-data.js"></script>
@@ -189,7 +172,6 @@
   var currentWeek = Math.max(0, Math.round((now - startD) / 604800000));
   var daysLeft = Math.max(0, Math.ceil((examD - now) / 86400000));
 
-  /* Exam date picker */
   var datePicker = document.getElementById('examDate');
   datePicker.value = EXAM;
   datePicker.addEventListener('change', function(){
@@ -206,20 +188,15 @@
   domains.forEach(function(d){ domMap[d.id] = d; });
 
   function pColor(v){ return v >= .7 ? 'var(--prof-strong)' : v >= .4 ? 'var(--prof-mid)' : 'var(--prof-weak)' }
-  function pClass(v){ return v >= .7 ? 'done' : v >= .4 ? 'partial' : 'weak' }
+  function sClass(v){ return v >= .7 ? 's-done' : v >= .4 ? 's-mid' : 's-weak' }
   function tClass(v){ return v >= .7 ? 't-done' : v >= .4 ? 't-mid' : 't-weak' }
-  function pct(v){ return Math.round(v * 100) + '%' }
+  function pct(v){ return Math.round(v * 100) }
   function esc(s){ var d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
 
   function domainAvg(id){
     var d = domMap[id]; if(!d) return 0;
     var s = 0; d.topics.forEach(function(t){ s += (prof[t.id]||0); });
     return d.topics.length ? s / d.topics.length : 0;
-  }
-  function multiDomainAvg(ids){
-    var s = 0, c = 0;
-    ids.forEach(function(id){ var d = domMap[id]; if(d) d.topics.forEach(function(t){ s += (prof[t.id]||0); c++; }); });
-    return c ? s / c : 0;
   }
 
   /* ── Overall stats ── */
@@ -234,198 +211,243 @@
     '<span>Week <strong>' + currentWeek + '</strong> of ' + totalWeeks + '</span>' +
     '<span><strong>' + daysLeft + '</strong> days to exam</span>' +
     '<span>Mastered <strong>' + totalM + '/' + totalT + '</strong></span>' +
-    '<span>Overall <strong>' + pct(overall) + '</strong></span>';
-  document.getElementById('rmBar').style.width = pct(overall);
+    '<span>Overall <strong>' + pct(overall) + '%</strong></span>';
+  document.getElementById('rmBar').style.width = pct(overall) + '%';
   document.getElementById('rmHere').textContent = daysLeft <= 0 ? 'Exam day!' :
     'You are in week ' + currentWeek + ' — ' + (totalWeeks - currentWeek) + ' weeks remaining';
 
   /* ── Roadmap nodes ── */
   var NODES = [
-    { type:'mile', week:0, label:'Setup', desc:'Read objectives + install Packet Tracer',
+    { type:'mile', week:0, label:'Setup', desc:'Read objectives + install PT',
       links:[{t:'Exam Objectives',h:'objectives.html'},{t:'Strategy',h:'strategy.html'}] },
-    { type:'mile', week:0, label:'Baseline Diagnostic', desc:'Take before studying — maps your weak spots',
+    { type:'mile', week:0, label:'Baseline Diagnostic', desc:'Take before studying',
       links:[{t:'Take Diagnostic',h:'diagnostic.html'}] },
-
     { type:'phase', week:1, ew:2, label:'Network Fundamentals', domain:'1',
-      actions:[
-        {t:'Subnetting Cheat Sheet',h:'subnetting-visual.html'},
-        {t:'Console Labs 01-02',h:'console-labs.html'},
-        {t:'PT Lab 0 + 3',h:'labs/index.html'},
-      ]},
-
+      actions:[{t:'Subnetting Cheat Sheet',h:'subnetting-visual.html'},{t:'Console Labs 01-02',h:'console-labs.html'},{t:'PT Lab 0 + 3',h:'labs/index.html'}] },
     { type:'phase', week:3, ew:4, label:'Network Access', domain:'2',
-      actions:[
-        {t:'Console Labs 03-05',h:'console-labs.html'},
-        {t:'PT Lab 1 + 2',h:'labs/index.html'},
-        {t:'Devices Map',h:'devices.html'},
-      ]},
-
+      actions:[{t:'Console Labs 03-05',h:'console-labs.html'},{t:'PT Lab 1 + 2',h:'labs/index.html'},{t:'Devices Map',h:'devices.html'}] },
     { type:'phase', week:5, ew:6, label:'IP Connectivity', domain:'3',
-      actions:[
-        {t:'OSPF Mastery',h:'ospf-mastery.html'},
-        {t:'Console Labs 06-07 + 09',h:'console-labs.html'},
-        {t:'PT Lab 4 + 5',h:'labs/index.html'},
-      ]},
-
+      actions:[{t:'OSPF Mastery',h:'ospf-mastery.html'},{t:'Console Labs 06-07 + 09',h:'console-labs.html'},{t:'PT Lab 4 + 5',h:'labs/index.html'}] },
     { type:'mile', week:6, label:'Retake Diagnostic', desc:'Should be 50%+ by now',
       links:[{t:'Diagnostic',h:'diagnostic.html'}] },
-
     { type:'phase', week:7, ew:8, label:'IP Services', domain:'4',
-      actions:[
-        {t:'Console Labs 08 + 12',h:'console-labs.html'},
-        {t:'PT Lab 6 — NAT/DHCP',h:'labs/index.html'},
-      ]},
-
+      actions:[{t:'Console Labs 08 + 12',h:'console-labs.html'},{t:'PT Lab 6',h:'labs/index.html'}] },
     { type:'phase', week:7, ew:8, label:'Security Fundamentals', domain:'5',
-      actions:[
-        {t:'Console Labs 10-11',h:'console-labs.html'},
-        {t:'PT Lab 7 — ACLs + Port Security',h:'labs/index.html'},
-      ]},
-
-    { type:'phase', week:9, ew:9, label:'Automation & Programmability', domain:'6',
-      actions:[
-        {t:'PT Lab 8 — JSON + REST',h:'labs/index.html'},
-        {t:'Glossary Quiz — automation terms',h:'glossary.html'},
-      ]},
-
-    { type:'mile', week:9, label:'Start Boson ExSim', desc:'$99 — the closest practice to the real exam' },
-
+      actions:[{t:'Console Labs 10-11',h:'console-labs.html'},{t:'PT Lab 7',h:'labs/index.html'}] },
+    { type:'phase', week:9, ew:9, label:'Automation', domain:'6',
+      actions:[{t:'PT Lab 8 — JSON + REST',h:'labs/index.html'},{t:'Glossary Quiz',h:'glossary.html'}] },
+    { type:'mile', week:9, label:'Start Boson ExSim', desc:'$99 — closest to real exam' },
     { type:'phase', week:10, ew:11, label:'Final Review',
-      actions:[
-        {t:'Subnet Speed Drills',h:'subnetting-mastery.html'},
-        {t:'All Packet Race Scenarios',h:'packet-race.html'},
-        {t:'Glossary — full drill',h:'glossary.html'},
-        {t:'Weakest domain quiz blitz',h:'quiz.html'},
-      ]},
-
-    { type:'mile', week:10, label:'Practice Exam 1',
-      links:[{t:'Exam Simulator',h:'exam-sim.html'}] },
-    { type:'mile', week:11, label:'Practice Exam 2',
-      links:[{t:'Full Exam Replica',h:'exam-replica.html'}] },
-
+      actions:[{t:'Subnet Speed Drills',h:'subnetting-mastery.html'},{t:'Packet Race — all scenarios',h:'packet-race.html'},{t:'Weakest domain blitz',h:'quiz.html'}] },
+    { type:'mile', week:10, label:'Practice Exam 1', links:[{t:'Exam Simulator',h:'exam-sim.html'}] },
+    { type:'mile', week:11, label:'Practice Exam 2', links:[{t:'Full Exam Replica',h:'exam-replica.html'}] },
     { type:'final', week:totalWeeks, label:'Exam Day',
       desc: examD.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) },
   ];
 
-  /* ── Render ── */
-  var rail = document.getElementById('rail');
+  /* ── Zig-zag layout: 3 stops per row, alternating direction ── */
+  var COLS = 3;
+  var rows = [];
+  for(var i = 0; i < NODES.length; i += COLS){
+    rows.push(NODES.slice(i, i + COLS));
+  }
+
+  var map = document.getElementById('map');
   var html = '';
   var hereInserted = false;
 
-  NODES.forEach(function(n, i){
-    /* Insert "you are here" marker */
-    if(!hereInserted && n.week > currentWeek){
-      html += '<div class="nd nd-here"><div class="nd-head">You are here — Week ' + currentWeek + '</div></div>';
-      hereInserted = true;
-    }
+  rows.forEach(function(row, ri){
+    var isRtl = ri % 2 === 1;
+    /* Reverse items in RTL rows so the path snakes correctly */
+    var items = isRtl ? row.slice().reverse() : row;
 
-    if(n.type === 'mile'){
-      var isChecked = localStorage.getItem('rm_mile_' + i) === '1';
-      html += '<div class="nd nd-mile' + (isChecked ? ' checked' : '') + '" data-mile="' + i + '">';
-      html += '<div class="nd-head">';
-      html += '<span class="nd-label">' + esc(n.label) + '</span>';
-      html += '<span class="nd-week">Wk ' + n.week + '</span>';
-      html += '<span class="nd-chev">&#9654;</span>';
-      html += '</div>';
-      html += '<div class="nd-children"><div class="nd-inner">';
-      if(n.desc) html += '<div class="nd-desc" style="margin:4px 0">' + esc(n.desc) + '</div>';
-      if(n.links) n.links.forEach(function(l){
-        html += '<div class="nd-action"><a href="' + l.h + '">' + esc(l.t) + '</a></div>';
-      });
-      html += '<label style="display:flex;align-items:center;gap:6px;margin-top:6px;font-family:var(--font-mono);font-size:.65rem;color:var(--ink-muted);cursor:pointer">' +
-        '<input type="checkbox"' + (isChecked ? ' checked' : '') + ' data-mcheck="' + i + '"> Done</label>';
-      html += '</div></div></div>';
-    }
+    html += '<div class="map-row' + (isRtl ? ' rtl' : '') + '">';
 
-    else if(n.type === 'phase'){
-      var avg = n.domain ? domainAvg(n.domain) : 0;
-      var cls = pClass(avg);
-      var wkLabel = n.ew && n.ew !== n.week ? 'Wk ' + n.week + '-' + n.ew : 'Wk ' + n.week;
-      var domData = n.domain ? domMap[n.domain] : null;
+    items.forEach(function(n, ci){
+      var globalIdx = ri * COLS + (isRtl ? (row.length - 1 - ci) : ci);
 
-      html += '<div class="nd nd-phase ' + cls + '" data-phase>';
-      html += '<div class="nd-head">';
-      html += '<span class="nd-label">' + esc(n.label) + '</span>';
-      html += '<span class="nd-week">' + wkLabel + '</span>';
-      if(n.domain) html += '<span class="nd-pct" style="color:' + pColor(avg) + '">' + pct(avg) + '</span>';
-      html += '<span class="nd-chev">&#9654;</span>';
-      html += '</div>';
+      /* "You are here" check */
+      var isHere = false;
+      if(!hereInserted){
+        var nextNode = NODES[globalIdx + 1];
+        if(!nextNode || nextNode.week > currentWeek){
+          isHere = true;
+          hereInserted = true;
+        }
+      }
 
-      html += '<div class="nd-children"><div class="nd-inner">';
+      if(n.type === 'mile'){
+        var isChecked = localStorage.getItem('rm_mile_' + globalIdx) === '1';
+        html += '<div class="stop s-mile' + (isChecked ? ' checked' : '') + (isHere ? ' s-here' : '') + '" data-mile="' + globalIdx + '">';
+        html += '<div style="display:flex;align-items:center;gap:10px">';
+        html += '<div class="stop-dot"><span>&#9670;</span></div>';
+        html += '<div class="stop-label">';
+        html += '<div class="stop-name">' + esc(n.label) + '<span class="stop-chev">&#9654;</span></div>';
+        html += '<div class="stop-week">Wk ' + n.week + '</div>';
+        html += '</div></div>';
+        html += '<div class="stop-expand"><div class="stop-expand-inner"><div class="stop-expand-content">';
+        if(n.desc) html += '<div class="stop-desc">' + esc(n.desc) + '</div>';
+        if(n.links) n.links.forEach(function(l){
+          html += '<div class="ex-action"><a href="' + l.h + '">' + esc(l.t) + '</a></div>';
+        });
+        html += '<label class="ex-check"><input type="checkbox"' + (isChecked ? ' checked' : '') + ' data-mcheck="' + globalIdx + '"> Done</label>';
+        html += '</div></div></div></div>';
+      }
 
-      /* Topics from data */
-      if(domData){
-        html += '<div class="sub-rail">';
-        domData.topics.forEach(function(t){
-          var tp = prof[t.id] || 0;
-          var hasSubs = t.subtopics && t.subtopics.length;
-          html += '<div class="nd-topic ' + tClass(tp) + '"' + (hasSubs ? ' data-topic' : '') + '>';
-          html += '<div class="nd-head">';
-          html += '<span class="nd-label">' + esc(t.id) + ' ' + esc(t.name) + '</span>';
-          html += '<span class="nd-pct" style="color:' + pColor(tp) + '">' + pct(tp) + '</span>';
-          if(hasSubs) html += '<span class="nd-chev">&#9654;</span>';
-          html += '</div>';
+      else if(n.type === 'phase'){
+        var avg = n.domain ? domainAvg(n.domain) : 0;
+        var wk = n.ew && n.ew !== n.week ? 'Wk ' + n.week + '-' + n.ew : 'Wk ' + n.week;
+        var domData = n.domain ? domMap[n.domain] : null;
 
-          /* Level 2: subtopics */
-          if(hasSubs){
-            html += '<div class="nd-children"><div class="nd-inner">';
-            html += '<div class="sub-rail2">';
-            t.subtopics.forEach(function(st){
-              html += '<div class="nd-sub"><a href="quiz.html?learn=' + t.id + '">' + esc(st.id) + ' ' + esc(st.name) + '</a></div>';
-            });
-            html += '<div style="padding:4px 0"><a class="nd-quiz-link" href="quiz.html?learn=' + t.id + '">Quiz ' + t.id + '</a></div>';
+        html += '<div class="stop ' + sClass(avg) + (isHere ? ' s-here' : '') + '" data-phase>';
+        html += '<div style="display:flex;align-items:center;gap:10px">';
+        html += '<div class="stop-dot">' + pct(avg) + '</div>';
+        html += '<div class="stop-label">';
+        html += '<div class="stop-name">' + esc(n.label) + '<span class="stop-chev">&#9654;</span></div>';
+        html += '<div class="stop-week">' + wk + (n.domain ? ' &middot; Domain ' + n.domain : '') + '</div>';
+        html += '</div></div>';
+
+        html += '<div class="stop-expand"><div class="stop-expand-inner"><div class="stop-expand-content">';
+
+        if(domData){
+          domData.topics.forEach(function(t){
+            var tp = prof[t.id] || 0;
+            var hasSubs = t.subtopics && t.subtopics.length;
+            html += '<div class="ex-topic ' + tClass(tp) + '"' + (hasSubs ? ' data-topic' : '') + '>';
+            html += '<span class="ex-topic-id">' + esc(t.id) + '</span>';
+            html += '<span class="ex-topic-name">' + esc(t.name) + '</span>';
+            html += '<span class="ex-topic-pct" style="color:' + pColor(tp) + '">' + pct(tp) + '%</span>';
+            if(hasSubs) html += '<span class="stop-chev">&#9654;</span>';
+
+            if(hasSubs){
+              html += '<div class="ex-subs"><div class="ex-subs-inner">';
+              t.subtopics.forEach(function(st){
+                html += '<div class="ex-sub"><a href="quiz.html?learn=' + t.id + '">' + esc(st.id) + ' ' + esc(st.name) + '</a></div>';
+              });
+              html += '<a class="ex-quiz" href="quiz.html?learn=' + t.id + '">Quiz ' + esc(t.id) + '</a>';
+              html += '</div></div>';
+            }
             html += '</div>';
-            html += '</div></div>';
-          }
-          html += '</div>';
-        });
-        html += '</div>';
+          });
+        }
+
+        if(n.actions){
+          n.actions.forEach(function(a){
+            html += '<div class="ex-action"><a href="' + a.h + '">' + esc(a.t) + '</a></div>';
+          });
+        }
+
+        html += '</div></div></div></div>';
       }
 
-      /* Action items */
-      if(n.actions && n.actions.length){
-        html += '<div class="sub-rail" style="margin-top:2px">';
-        n.actions.forEach(function(a){
-          html += '<div class="nd-action"><a href="' + a.h + '">' + esc(a.t) + '</a></div>';
-        });
-        html += '</div>';
+      else if(n.type === 'final'){
+        html += '<div class="stop s-final' + (isHere ? ' s-here' : '') + '">';
+        html += '<div style="display:flex;align-items:center;gap:10px">';
+        html += '<div class="stop-dot">&#9733;</div>';
+        html += '<div class="stop-label">';
+        html += '<div class="stop-name">' + esc(n.label) + '</div>';
+        if(n.desc) html += '<div class="stop-desc">' + esc(n.desc) + '</div>';
+        html += '</div></div></div>';
       }
+    });
 
-      html += '</div></div></div>';
-    }
+    html += '</div>';
 
-    else if(n.type === 'final'){
-      html += '<div class="nd nd-final">';
-      html += '<div class="nd-head"><span class="nd-label">' + esc(n.label) + '</span></div>';
-      if(n.desc) html += '<div class="nd-desc">' + esc(n.desc) + '</div>';
-      html += '</div>';
+    /* Turn spacer between rows */
+    if(ri < rows.length - 1){
+      html += '<div class="map-turn"></div>';
     }
   });
 
-  if(!hereInserted){
-    html += '<div class="nd nd-here"><div class="nd-head">You are here — Week ' + currentWeek + '</div></div>';
-  }
+  map.innerHTML = html;
 
-  rail.innerHTML = html;
+  /* ── Draw SVG path connecting all stop dots ── */
+  requestAnimationFrame(function(){
+    var dots = map.querySelectorAll('.stop-dot');
+    if(dots.length < 2) return;
 
-  /* ── Toggle expand/collapse ── */
-  rail.addEventListener('click', function(e){
-    /* Checkbox — don't toggle node */
+    var mapRect = map.getBoundingClientRect();
+    var points = [];
+    dots.forEach(function(dot){
+      var r = dot.getBoundingClientRect();
+      points.push({
+        x: r.left + r.width/2 - mapRect.left,
+        y: r.top + r.height/2 - mapRect.top
+      });
+    });
+
+    var svg = document.createElementNS('http://www.w3.org/2000/svg','svg');
+    svg.setAttribute('class','map-svg');
+    svg.setAttribute('viewBox','0 0 ' + mapRect.width + ' ' + mapRect.height);
+    svg.style.width = mapRect.width + 'px';
+    svg.style.height = mapRect.height + 'px';
+
+    /* Build smooth path */
+    var d = 'M ' + points[0].x + ' ' + points[0].y;
+    for(var i = 1; i < points.length; i++){
+      var prev = points[i-1], curr = points[i];
+      var midY = (prev.y + curr.y) / 2;
+      d += ' C ' + prev.x + ' ' + midY + ', ' + curr.x + ' ' + midY + ', ' + curr.x + ' ' + curr.y;
+    }
+
+    /* Full path (dashed, behind) */
+    var pathBg = document.createElementNS('http://www.w3.org/2000/svg','path');
+    pathBg.setAttribute('class','map-path-dashed');
+    pathBg.setAttribute('d', d);
+    svg.appendChild(pathBg);
+
+    /* Walked path (solid, up to "here") */
+    var walkedIdx = 0;
+    var allStops = map.querySelectorAll('.stop');
+    allStops.forEach(function(s, idx){ if(s.classList.contains('s-here')) walkedIdx = idx; });
+
+    if(walkedIdx > 0 && walkedIdx < points.length){
+      var dw = 'M ' + points[0].x + ' ' + points[0].y;
+      for(var j = 1; j <= walkedIdx; j++){
+        var pv = points[j-1], cu = points[j];
+        var my = (pv.y + cu.y) / 2;
+        dw += ' C ' + pv.x + ' ' + my + ', ' + cu.x + ' ' + my + ', ' + cu.x + ' ' + cu.y;
+      }
+      var pathWalked = document.createElementNS('http://www.w3.org/2000/svg','path');
+      pathWalked.setAttribute('class','map-path-walked');
+      pathWalked.setAttribute('d', dw);
+      svg.appendChild(pathWalked);
+    }
+
+    map.insertBefore(svg, map.firstChild);
+  });
+
+  /* ── Click handling ── */
+  map.addEventListener('click', function(e){
     if(e.target.type === 'checkbox'){
       var idx = e.target.getAttribute('data-mcheck');
       if(idx !== null){
         localStorage.setItem('rm_mile_' + idx, e.target.checked ? '1' : '0');
-        e.target.closest('.nd-mile').classList.toggle('checked', e.target.checked);
+        e.target.closest('.stop').classList.toggle('checked', e.target.checked);
       }
       return;
     }
-    /* Links — navigate */
     if(e.target.tagName === 'A' || e.target.closest('a')) return;
 
-    /* Find clickable node */
-    var nd = e.target.closest('[data-phase],[data-topic],[data-mile]');
-    if(!nd) return;
-    nd.classList.toggle('open');
+    var topic = e.target.closest('[data-topic]');
+    if(topic){ topic.classList.toggle('open'); return; }
+
+    var stop = e.target.closest('[data-phase],[data-mile]');
+    if(stop) stop.classList.toggle('open');
+  });
+
+  /* Stagger entrance */
+  requestAnimationFrame(function(){
+    map.querySelectorAll('.stop').forEach(function(s, i){
+      s.style.opacity = '0';
+      s.style.transform = 'translateY(12px)';
+      s.style.transition = 'none';
+      setTimeout(function(){
+        s.style.transition = 'opacity .4s var(--ease-out), transform .4s var(--ease-out)';
+        s.style.opacity = '';
+        s.style.transform = '';
+      }, 60 + i * 50);
+    });
   });
 
 })();
