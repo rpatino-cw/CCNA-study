@@ -190,23 +190,21 @@
   mobScript.src = fixHref('js/mobile-onboard.js');
   document.body.appendChild(mobScript);
 
-  // Guide pill — floating "Lost? Read the Guide" for confused users
-  // Skips guide.html (you're already there) and core.html (has its own version)
+  // Help pill — shows after 2 minutes of inactivity, points to AI tutor
   var pn = location.pathname;
-  if (!/guide\.html/.test(pn) && !/core\.html/.test(pn)) {
-    var pill = document.createElement('a');
-    pill.href = fixHref('guide.html');
+  if (!/guide\.html/.test(pn)) {
+    var pill = document.createElement('button');
     pill.id = 'guidePill';
-    pill.textContent = 'Lost? Read the Guide';
-    pill.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:900;font-family:var(--font-display,system-ui);font-size:.78rem;font-weight:700;color:#fff;background:#B45309;padding:10px 22px;border-radius:100px;text-decoration:none;box-shadow:0 4px 16px rgba(180,83,9,.3);opacity:0;pointer-events:none;transition:opacity .3s,transform .2s';
+    pill.textContent = 'Need help? Ask the AI Tutor';
+    pill.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:900;font-family:var(--font-display,system-ui);font-size:.78rem;font-weight:700;color:#fff;background:#B45309;padding:10px 22px;border-radius:100px;border:none;cursor:pointer;box-shadow:0 4px 16px rgba(180,83,9,.3);opacity:0;pointer-events:none;transition:opacity .4s,transform .2s';
     pill.onmouseover = function(){pill.style.transform='translateX(-50%) translateY(-2px)'};
     pill.onmouseout = function(){pill.style.transform='translateX(-50%)'};
+    pill.onclick = function(){var t=document.getElementById('tutorToggle');if(t)t.click();pill.style.opacity='0';pill.style.pointerEvents='none';};
     document.body.appendChild(pill);
-    window.addEventListener('scroll', function(){
-      var s = window.scrollY > 300;
-      pill.style.opacity = s ? '1' : '0';
-      pill.style.pointerEvents = s ? 'auto' : 'none';
-    }, {passive:true});
+    var pillTimer = setTimeout(function(){pill.style.opacity='1';pill.style.pointerEvents='auto';}, 120000);
+    ['scroll','click','keydown','mousemove'].forEach(function(ev){
+      document.addEventListener(ev, function(){clearTimeout(pillTimer);pill.style.opacity='0';pill.style.pointerEvents='none';pillTimer=setTimeout(function(){pill.style.opacity='1';pill.style.pointerEvents='auto';},120000);}, {passive:true,once:false});
+    });
   }
 })();
 
