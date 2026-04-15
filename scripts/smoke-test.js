@@ -16,7 +16,7 @@ const PORT = 9847;
 const PAGES = [
   'packet-journey.html',
   'packet-race.html',
-  'topology-3d.html',
+  'devices.html',
   'cidr-3d.html',
   'core.html',
   'quiz.html',
@@ -39,7 +39,7 @@ const IGNORE = [
 // Known pre-existing issues — warn but don't block push
 // Remove entries as they get fixed
 const KNOWN_ISSUES = {
-  'topology-3d.html': ['Object3D.add: object not an instance'],
+  'devices.html': ['Object3D.add: object not an instance'],
 };
 
 function shouldIgnore(msg) {

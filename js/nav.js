@@ -31,7 +31,7 @@
       { text: "Jeremy's IT Lab", href: 'jeremy-labs.html' },
       { text: 'OSPF Mastery', href: 'ospf-mastery.html' },
       { text: 'CIDR 3D Explorer', href: 'cidr-3d.html' },
-      { text: '3D Topology', href: 'topology-3d.html' },
+      { text: '3D Topology', href: 'devices.html#3d' },
     ]},
     { text: 'Practice', children: [
       { text: 'Flashcards', href: 'flashcards.html' },
@@ -83,6 +83,7 @@
       { text: 'Diagnostic', href: 'netplus-diagnostic.html' },
       { text: 'Console Labs', href: 'console-labs.html' },
       { text: 'IP Address Game', href: 'netplus-ip-game.html' },
+      { text: 'Mini Labs', href: 'netplus-minilab.html' },
       { text: 'Troubleshooting', href: 'netplus-troubleshoot.html' },
       { text: 'Exam Sim', href: 'netplus-exam.html' },
       { text: 'Daily Challenge', href: 'netplus-daily.html' },
