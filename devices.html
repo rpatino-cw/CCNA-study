@@ -20,11 +20,17 @@
 .topo-tab:hover{color:var(--ink)}
 .topo-tab.active{color:var(--ink);border-bottom-color:var(--accent);font-weight:700}
 .topo-tab .tab-count{font-family:var(--font-mono);font-size:.6rem;color:var(--ink-muted);margin-left:4px;opacity:.6}
-.topo-tab[data-topo="enterprise3d"]{color:#4a9eff;font-weight:700;background:linear-gradient(90deg,rgba(74,158,255,.04),rgba(124,58,237,.06),rgba(74,158,255,.04));border-bottom-color:transparent}
-.topo-tab[data-topo="enterprise3d"]::before{content:'';display:inline-block;width:6px;height:6px;background:linear-gradient(135deg,#4a9eff,#7c3aed);border-radius:50%;margin-right:6px;vertical-align:middle;box-shadow:0 0 6px rgba(74,158,255,.5);animation:badge-pulse 2s ease-in-out infinite}
-.topo-tab[data-topo="enterprise3d"]:hover{color:#fff;text-shadow:0 0 8px rgba(74,158,255,.5)}
-.topo-tab[data-topo="enterprise3d"].active{color:#4a9eff;border-bottom-color:#4a9eff;background:linear-gradient(90deg,rgba(74,158,255,.08),rgba(124,58,237,.1),rgba(74,158,255,.08))}
-@keyframes badge-pulse{0%,100%{box-shadow:0 0 6px rgba(74,158,255,.4),0 0 12px rgba(124,58,237,.2)}50%{box-shadow:0 0 10px rgba(74,158,255,.7),0 0 20px rgba(124,58,237,.4)}}
+
+/* ── Tabs row layout ──────────────────────────────────────── */
+.topo-tabs-row{display:flex;align-items:flex-end;gap:0;margin:var(--s-lg) 0 0}
+.topo-tabs-row .topo-tabs{flex:1;margin:0}
+
+/* ── 3D standalone button ─────────────────────────────────── */
+.btn-3d{font-family:var(--font-display);font-size:.75rem;font-weight:700;letter-spacing:.04em;color:#fff;background:linear-gradient(135deg,#4a9eff,#6c5ce7,#7c3aed);border:none;border-radius:6px 6px 0 0;padding:9px 18px 9px 14px;cursor:pointer;position:relative;overflow:hidden;white-space:nowrap;transition:box-shadow .2s,transform .15s;box-shadow:0 0 12px rgba(74,158,255,.3),0 0 24px rgba(124,58,237,.15);flex-shrink:0}
+.btn-3d:hover{box-shadow:0 0 18px rgba(74,158,255,.5),0 0 36px rgba(124,58,237,.3);transform:translateY(-1px)}
+.btn-3d.active{box-shadow:0 0 20px rgba(74,158,255,.6),0 0 40px rgba(124,58,237,.35),inset 0 -2px 0 rgba(255,255,255,.15)}
+.btn-3d-dot{display:inline-block;width:7px;height:7px;background:#fff;border-radius:50%;margin-right:7px;vertical-align:middle;box-shadow:0 0 6px rgba(255,255,255,.6);animation:dot-pulse 2s ease-in-out infinite}
+@keyframes dot-pulse{0%,100%{box-shadow:0 0 6px rgba(255,255,255,.4),0 0 12px rgba(74,158,255,.3)}50%{box-shadow:0 0 10px rgba(255,255,255,.8),0 0 20px rgba(74,158,255,.6)}}
 
 /* ── Search bar ────────────────────────────────────────────── */
 .controls-bar{display:flex;align-items:center;gap:var(--s-md);padding:var(--s-md) 0;flex-wrap:wrap}
@@ -1775,14 +1781,6 @@ const TOPOS = {
       {from:'m1',to:'lap',type:'wireless',color:'#0891B2'},
       {from:'m2',to:'phn',type:'wireless',color:'#0891B2'},
     ]
-  },
-  enterprise3d:{
-    name:'Enterprise 3D',
-    is3d:true,
-    w:0,h:0,
-    devices:[],
-    links:[],
-    zones:[]
   }
 };
 
@@ -1813,9 +1811,11 @@ function buildTabs(){
   }).join('');
   $tabs.querySelectorAll('.topo-tab').forEach(b=>{
     b.addEventListener('click',()=>{
-      if(b.dataset.topo===currentTopo) return;
+      if(b.dataset.topo===currentTopo && !window._in3d) return;
       currentTopo = b.dataset.topo;
       $tabs.querySelectorAll('.topo-tab').forEach(t=>t.classList.toggle('active',t.dataset.topo===currentTopo));
+      // Exit 3D if active
+      if(window._in3d) window._exit3d();
       closePanel();
       renderTopology();
     });
@@ -1842,17 +1842,6 @@ function buildLegend(){
 function renderTopology(){
   const topo = TOPOS[currentTopo];
   if(!topo) return;
-
-  // Toggle 3D/2D viewports
-  const is3d = !!topo.is3d;
-  $viewport.style.display = is3d ? 'none' : '';
-  document.getElementById('topo3dViewport').classList.toggle('active', is3d);
-  if(is3d){
-    $count.textContent = '29 devices \u00b7 28 connections \u00b7 Interactive 3D \u2014 orbit, zoom, click';
-    if(window._3d) window._3d.init();
-    return;
-  }
-  if(window._3d) window._3d.hide();
 
   const w = topo.w, h = topo.h;
   $svg.setAttribute('viewBox',`0 0 ${w} ${h}`);
@@ -2185,14 +2174,46 @@ document.addEventListener('keydown',(e)=>{
 buildTabs();
 buildLegend();
 
-// Auto-select 3D tab if hash is #3d
-if(location.hash==='#3d' && TOPOS.enterprise3d){
-  currentTopo='enterprise3d';
-  $tabs.querySelectorAll('.topo-tab').forEach(t=>t.classList.toggle('active',t.dataset.topo===currentTopo));
-}
-
 renderTopology();
 buildCatalog();
+
+// ── 3D standalone button ───────────────────────────────────
+const $btn3d = document.getElementById('btn3d');
+window._in3d = false;
+
+function enter3d(){
+  window._in3d = true;
+  $btn3d.classList.add('active');
+  $tabs.querySelectorAll('.topo-tab').forEach(t=>t.classList.remove('active'));
+  $viewport.style.display = 'none';
+  document.getElementById('topo3dViewport').classList.add('active');
+  closePanel();
+  $count.textContent = '29 devices \u00b7 28 connections \u00b7 Interactive 3D \u2014 orbit, zoom, click';
+  if(window._3d) window._3d.init();
+}
+
+window._exit3d = function(){
+  if(!window._in3d) return;
+  window._in3d = false;
+  $btn3d.classList.remove('active');
+  document.getElementById('topo3dViewport').classList.remove('active');
+  $viewport.style.display = '';
+  if(window._3d) window._3d.hide();
+};
+
+$btn3d.addEventListener('click', function(){
+  if(window._in3d){
+    window._exit3d();
+    // Re-activate the current 2D tab
+    $tabs.querySelectorAll('.topo-tab').forEach(t=>t.classList.toggle('active',t.dataset.topo===currentTopo));
+    renderTopology();
+    return;
+  }
+  enter3d();
+});
+
+// Auto-enter 3D if #3d hash
+if(location.hash==='#3d') enter3d();
 
 // Expose openPanel for 3D module
 window._devicesPanel = { openPanel, closePanel };
