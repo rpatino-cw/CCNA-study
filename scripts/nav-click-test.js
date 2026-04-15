@@ -94,6 +94,16 @@ async function main() {
       }
     }
 
+    // Verify dropdown items have display:block (catches CSS specificity bugs)
+    for (const item of items) {
+      const text = (await item.textContent()).trim();
+      const display = await item.evaluate(el => window.getComputedStyle(el).display);
+      if (display !== 'block') {
+        results.push({ item: text + ' [display]', group: groupName, status: 'fail', error: `Expected display:block but got display:${display} — CSS specificity bug` });
+        failures++;
+      }
+    }
+
     // Close dropdown before next group
     await page.click('body', { position: { x: 1, y: 1 } });
     await page.waitForTimeout(100);
