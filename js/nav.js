@@ -131,9 +131,10 @@
         var inner = c.href && c.href.indexOf('#3d') !== -1 ? '<span class="nav-3d-badge">3D</span> ' + c.text : c.text;
         return '<a class="' + cls + '" href="' + fixHref(c.href) + '">' + inner + '</a>';
       }).join('');
+      var wideClass = item.children.length > 8 ? ' nav-dropdown-wide' : '';
       return '<div class="nav-group' + (hasActive ? ' active' : '') + '">' +
-        '<button class="nav-group-btn" title="' + (TIPS[item.text]||'') + '">' + item.text + ' <span class="nav-caret">&#9662;</span></button>' +
-        '<div class="nav-dropdown">' + dropdown + '</div></div>';
+        '<button class="nav-group-btn" title="' + (TIPS[item.text]||'') + '">' + item.text + ' <span class="nav-count">' + item.children.length + '</span><span class="nav-caret">&#9662;</span></button>' +
+        '<div class="nav-dropdown' + wideClass + '">' + dropdown + '</div></div>';
     }
     return '<a' + (isActive(item.href) ? ' class="active"' : '') + ' href="' + fixHref(item.href) + '" title="' + (TIPS[item.text]||'') + '">' + item.text + '</a>';
   }).join('\n    ');

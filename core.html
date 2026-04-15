@@ -112,6 +112,26 @@
   .stats-line{display:flex;justify-content:center;gap:var(--s-xl);padding:var(--s-md) 0;border-top:1px solid var(--rule);border-bottom:1px solid var(--rule);margin-bottom:var(--s-2xl);font-family:var(--font-mono);font-size:.72rem;color:var(--ink-muted);flex-wrap:wrap}
   .stats-line strong{color:var(--ink)}
 
+  /* Mastery Tracker — the "how to get 100%" checklist */
+  .mastery-tracker{margin-bottom:16px;border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden}
+  .mt-head{padding:12px 18px;background:var(--bg-recessed);display:flex;align-items:center;justify-content:space-between}
+  .mt-title{font-family:var(--font-display);font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-secondary)}
+  .mt-status{font-family:var(--font-mono);font-size:.72rem;font-weight:700}
+  .mt-body{padding:14px 18px;display:flex;flex-direction:column;gap:12px}
+  .mt-req{display:grid;grid-template-columns:24px 1fr;gap:10px;align-items:start}
+  .mt-check{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;flex-shrink:0;margin-top:1px}
+  .mt-check.done{background:var(--prof-strong);color:#fff}
+  .mt-check.pending{background:var(--bg-recessed);border:2px solid var(--border-strong);color:transparent}
+  .mt-detail{display:flex;flex-direction:column;gap:4px}
+  .mt-label{font-family:var(--font-display);font-size:.82rem;font-weight:600;color:var(--ink);display:flex;align-items:center;gap:8px}
+  .mt-label a{color:var(--accent);text-decoration:none;font-weight:700}
+  .mt-label a:hover{text-decoration:underline}
+  .mt-sub{font-family:var(--font-body);font-size:.72rem;color:var(--ink-muted);line-height:1.4}
+  .mt-bar{height:6px;background:var(--bg-recessed);border-radius:3px;overflow:hidden;max-width:220px}
+  .mt-bar-fill{height:100%;border-radius:3px;transition:width .4s var(--ease-out)}
+  .mt-hint{font-family:var(--font-body);font-size:.72rem;color:var(--ink-muted);padding:0 18px 14px;border-top:1px solid var(--border);padding-top:10px;line-height:1.5}
+  .mt-hint strong{color:var(--ink)}
+
   /* Quick Path */
   .quick-path{background:rgba(180,83,9,.04);border:1px solid rgba(180,83,9,.15);border-radius:var(--radius-lg);padding:16px 20px;margin-bottom:14px}
   .qp-label{font-family:var(--font-display);font-size:.62rem;text-transform:uppercase;letter-spacing:.1em;color:var(--accent);font-weight:700;margin-bottom:8px}
@@ -1018,20 +1038,60 @@ function countResources(r){
 }
 
 function buildQuickPath(t,r,domainNum){
-  // Primary video (Jeremy's IT Lab or first video)
+  var prof=store.getAllProficiency();
+  var p=Math.round((prof[t.id]||0)*100);
+  var quizPass=p>=70;
+  var lab=labScores[t.id];
+  var labPct=lab?lab.pct:0;
+  var labPass=lab&&lab.pct>=70;
+  var isMastered=quizPass&&labPass;
+  var doneCount=(quizPass?1:0)+(labPass?1:0);
+
+  // ── Mastery Tracker — shows what counts toward completion ──
+  var statusColor=isMastered?'var(--prof-strong)':doneCount===1?'var(--prof-mid)':'var(--prof-weak)';
+  var statusText=isMastered?'Mastered':doneCount+'/2';
+
+  var html='<div class="mastery-tracker">';
+  html+='<div class="mt-head"><span class="mt-title">What counts toward mastery</span><span class="mt-status" style="color:'+statusColor+'">'+statusText+'</span></div>';
+  html+='<div class="mt-body">';
+
+  // Requirement 1: Quiz
+  html+='<div class="mt-req">';
+  html+='<span class="mt-check '+(quizPass?'done':'pending')+'">'+(quizPass?'&#10003;':'')+'</span>';
+  html+='<div class="mt-detail">';
+  html+='<div class="mt-label"><a href="quiz.html?learn='+t.id+'">Study &amp; Quiz</a> <span style="font-family:var(--font-mono);font-size:.72rem;color:'+(quizPass?'var(--prof-strong)':'var(--prof-weak)')+'">'+p+'%</span></div>';
+  html+='<div class="mt-sub">'+(quizPass?'Passed — proficiency is above 70%':'Score 70%+ on quiz questions for this topic')+'</div>';
+  html+='<div class="mt-bar"><div class="mt-bar-fill" style="width:'+Math.min(p,100)+'%;background:'+(quizPass?'var(--prof-strong)':'var(--prof-weak)')+'"></div></div>';
+  html+='</div></div>';
+
+  // Requirement 2: Mini Lab
+  html+='<div class="mt-req">';
+  html+='<span class="mt-check '+(labPass?'done':'pending')+'">'+(labPass?'&#10003;':'')+'</span>';
+  html+='<div class="mt-detail">';
+  html+='<div class="mt-label"><a href="mini-lab.html?topic='+t.id+'">Mini Lab</a> <span style="font-family:var(--font-mono);font-size:.72rem;color:'+(labPass?'var(--prof-strong)':'var(--prof-weak)')+'">'+(lab?labPct+'%':'Not attempted')+'</span></div>';
+  html+='<div class="mt-sub">'+(labPass?'Passed — hands-on lab complete':'Complete the interactive lab with 70%+ to prove hands-on skill')+'</div>';
+  if(lab){html+='<div class="mt-bar"><div class="mt-bar-fill" style="width:'+Math.min(labPct,100)+'%;background:'+(labPass?'var(--prof-strong)':'var(--prof-weak)')+'"></div></div>';}
+  html+='</div></div>';
+
+  html+='</div>'; // end mt-body
+
+  // Hint at bottom
+  if(isMastered){
+    html+='<div class="mt-hint" style="color:var(--prof-strong)">Both requirements met. This objective is <strong>mastered</strong>.</div>';
+  }else if(doneCount===1){
+    var missing=quizPass?'Mini Lab':'Study & Quiz';
+    html+='<div class="mt-hint">Almost there — complete the <strong>'+missing+'</strong> to master this objective.</div>';
+  }else{
+    html+='<div class="mt-hint">Complete <strong>both</strong> the quiz (70%+) and the mini lab (70%+) to master this objective.</div>';
+  }
+  html+='</div>'; // end mastery-tracker
+
+  // ── Study Path Steps (below the tracker) ──
   var vidTitle='',vidUrl='';
   if(r.video&&r.vurl){vidTitle="Jeremy's IT Lab — "+r.video;vidUrl=r.vurl;}
   else if(r.videos&&r.videos.length){vidTitle=r.videos[0].t;vidUrl=r.videos[0].u;}
-
-  // Study content cheat sheet
   var content=window.studyContent?window.studyContent[t.id]:null;
 
-  // Proficiency check
-  var prof=store.getAllProficiency();
-  var p=Math.round((prof[t.id]||0)*100);
-  var passed=p>=70;
-
-  // Build inline cheat sheet (collapsed by default)
   var learnStep='';
   if(content){
     var kpHtml=content.keyPoints?content.keyPoints.slice(0,5).map(function(pt){return'<li>'+esc(pt)+'</li>';}).join(''):'';
@@ -1048,33 +1108,22 @@ function buildQuickPath(t,r,domainNum){
       '</div></details>';
   }
 
-  // Build steps with dynamic numbering
   var stepNum=1;
-  var html='<div class="quick-path"><div class="qp-label">Quick Path to Pass</div><div class="qp-steps">';
-
+  html+='<div class="quick-path"><div class="qp-label">Study Path</div><div class="qp-steps">';
   if(vidUrl){
     html+='<div class="qp-step"><span class="qp-num">'+stepNum+'</span>Watch <a href="'+vidUrl+'" target="_blank">'+esc(vidTitle)+'</a></div>';
     stepNum++;
   }
-
   if(content){
     html+='<div class="qp-step"><span class="qp-num">'+stepNum+'</span>Learn it — read the cheat sheet below</div>';
     html+=learnStep;
     stepNum++;
   }
+  html+='<div class="qp-step"><span class="qp-num">'+stepNum+'</span><a href="quiz.html?learn='+t.id+'">Take the Quiz</a> — score 70%+ to check the first box</div>';
+  stepNum++;
+  html+='<div class="qp-step"><span class="qp-num">'+stepNum+'</span><a href="mini-lab.html?topic='+t.id+'">Do the Mini Lab</a> — score 70%+ to check the second box</div>';
+  html+='</div></div>';
 
-  html+='<div class="qp-step"><span class="qp-num">'+stepNum+'</span><a href="quiz.html?learn='+t.id+'">Study &amp; Quiz — '+t.id+'</a> — learn the topic, then score 70%+ to pass</div>';
-
-  if(passed){
-    html+='<div class="qp-step"><span class="qp-num" style="background:rgba(22,163,74,.15);color:#16A34A">&#10003;</span><span style="color:#16A34A;font-weight:600">You\'re at '+p+'% — move to the next objective</span></div>';
-  }else{
-    stepNum++;
-    html+='<div class="qp-step"><span class="qp-num">'+stepNum+'</span>Below 70%? Review weak areas, retake quiz</div>';
-  }
-
-  html+='</div>';
-  if(passed)html+='<div class="qp-pass">You can move on. Come back for review before the exam.</div>';
-  html+='</div>';
   return html;
 }
 
