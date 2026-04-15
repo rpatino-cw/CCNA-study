@@ -122,7 +122,8 @@ window.topicsData = {
             { "id": "1.9.a", "name": "Unicast — global (2000::/3), unique local (FC00::/7), link-local (FE80::/10)" },
             { "id": "1.9.b", "name": "Anycast — same address on multiple devices, routed to nearest" },
             { "id": "1.9.c", "name": "Multicast — FF00::/8, replaces broadcast (FF02::1 = all nodes, FF02::2 = all routers)" },
-            { "id": "1.9.d", "name": "Modified EUI-64 — insert FFFE in MAC, flip 7th bit to form interface ID" }
+            { "id": "1.9.d", "name": "Modified EUI-64 — insert FFFE in MAC, flip 7th bit to form interface ID" },
+            { "id": "1.9.e", "name": "Solicited-node multicast — FF02::1:FFxx:xxxx, used by NDP for neighbor solicitation" }
           ],
           "resumeRating": "none"
         },
@@ -158,7 +159,8 @@ window.topicsData = {
             { "id": "1.12.c", "name": "Virtual machines — full OS per VM, hardware-level isolation, heavier" },
             { "id": "1.12.d", "name": "Containers — share host kernel, lightweight, fast startup (Docker)" },
             { "id": "1.12.e", "name": "VRF — multiple independent routing tables on one physical router" },
-            { "id": "1.12.f", "name": "VRF-Lite — VRF without MPLS, used for traffic segmentation on campus" }
+            { "id": "1.12.f", "name": "VRF-Lite — VRF without MPLS, used for traffic segmentation on campus" },
+            { "id": "1.12.g", "name": "NFV (Network Functions Virtualization) — virtual network functions replace dedicated hardware appliances" }
           ],
           "resumeRating": "none"
         },
@@ -169,7 +171,8 @@ window.topicsData = {
             { "id": "1.13.a", "name": "MAC learning — switch records source MAC + ingress port in MAC table" },
             { "id": "1.13.b", "name": "Frame switching — known unicast forwarded out the correct port only" },
             { "id": "1.13.c", "name": "Frame flooding — unknown unicast, broadcast, and multicast flooded to all ports except source" },
-            { "id": "1.13.d", "name": "MAC address table — aging timer (default 300s), show mac address-table" }
+            { "id": "1.13.d", "name": "MAC address table — aging timer (default 300s), show mac address-table" },
+            { "id": "1.13.e", "name": "Store-and-forward vs cut-through switching — full frame check vs forward after reading dest MAC" }
           ],
           "resumeRating": "none"
         }
