@@ -264,7 +264,7 @@ function buildQuickPath(objId,r){
   return html;
 }
 
-function countResources(r){var n=0;if(r.videos)n+=r.videos.length;if(r.articles)n+=r.articles.length;if(r.site)n+=r.site.length;if(r.drills)n+=r.drills.length;return n;}
+function countResources(r){var n=0;if(r.videos&&r.videos.length>1)n+=r.videos.length-1;if(r.articles)n+=r.articles.length;if(r.drills)r.drills.forEach(function(dr){if(!(dr.h&&dr.h.indexOf('learn=')!==-1))n++;});return n;}
 
 /* ── Proficiency (localStorage, same key pattern) ── */
 var npProf=JSON.parse(localStorage.getItem('np_proficiency')||'{}');
@@ -333,11 +333,13 @@ function render(){
       var obj=NP_OBJ[id]||{};
       var subs=obj.subs?'<ul class="obj-subs">'+obj.subs.map(function(s){return'<li>'+esc(s)+'</li>';}).join('')+'</ul>':'';
 
-      // Resources HTML
+      // Resources HTML — only items NOT already in Quick Path or shortcuts
       var resHtml='';
-      if(r.videos)r.videos.forEach(function(v){resHtml+='<div class="res-row"><span class="res-tag video">VIDEO</span><a href="'+v.u+'" target="_blank">'+esc(v.t)+'</a></div>';});
+      // Skip first video (already in Quick Path) — show extras only
+      if(r.videos&&r.videos.length>1)r.videos.slice(1).forEach(function(v){resHtml+='<div class="res-row"><span class="res-tag video">VIDEO</span><a href="'+v.u+'" target="_blank">'+esc(v.t)+'</a></div>';});
       if(r.articles)r.articles.forEach(function(a){resHtml+='<div class="res-row"><span class="res-tag article">READ</span><a href="'+a.u+'" target="_blank">'+esc(a.t)+'</a></div>';});
-      if(r.drills)r.drills.forEach(function(dr){var href=dr.h||dr.u||'#';resHtml+='<div class="res-row"><span class="res-tag drill">DRILL</span><a href="'+href+'"'+(dr.u?' target="_blank"':'')+'>'+esc(dr.t)+'</a></div>';});
+      // Skip "Study & Quiz" drills (already in Quick Path) — show PBQs, cheat sheets, external drills only
+      if(r.drills)r.drills.forEach(function(dr){if(dr.h&&dr.h.indexOf('learn=')!==-1)return;var href=dr.h||dr.u||'#';resHtml+='<div class="res-row"><span class="res-tag drill">DRILL</span><a href="'+href+'"'+(dr.u?' target="_blank"':'')+'>'+esc(dr.t)+'</a></div>';});
 
       // Shortcut buttons
       var siteHtml='<div class="obj-shortcuts">';
