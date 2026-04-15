@@ -48,6 +48,33 @@
     return all[topicId];
   }
 
+  // Diagnostic-only update: caps proficiency contribution at 50%.
+  // A perfect diagnostic score on a topic = 50% proficiency, not 100%.
+  // Forces users to also quiz/lab to reach mastery.
+  function updateProficiencyDiagnostic(topicId, wasCorrect) {
+    const all = get(KEYS.PROFICIENCY) || {};
+    const old = all[topicId] ?? 0;
+    const raw = (1 - EMA_ALPHA) * old + EMA_ALPHA * (wasCorrect ? 1 : 0);
+    all[topicId] = Math.round(Math.min(raw, 0.5) * 1000) / 1000;
+    set(KEYS.PROFICIENCY, all);
+    return all[topicId];
+  }
+
+  // Micro-weakness tracker: tracks per-subtopic accuracy
+  function recordMicroWeakness(topicId, subtopicHint, wasCorrect) {
+    const key = 'micro_weakness';
+    const all = get(key) || {};
+    const id = topicId + (subtopicHint ? '::' + subtopicHint : '');
+    if (!all[id]) all[id] = { correct: 0, total: 0 };
+    all[id].total++;
+    if (wasCorrect) all[id].correct++;
+    set(key, all);
+  }
+
+  function getMicroWeaknesses() {
+    return get('micro_weakness') || {};
+  }
+
   function getAllProficiency() {
     return get(KEYS.PROFICIENCY) || {};
   }
@@ -235,7 +262,8 @@
   }
 
   window.store = {
-    get, set, getProficiency, updateProficiency, getAllProficiency, initProficiency,
+    get, set, getProficiency, updateProficiency, updateProficiencyDiagnostic, getAllProficiency, initProficiency,
+    recordMicroWeakness, getMicroWeaknesses,
     addQuizSession, getQuizHistory, updateStreak, getStreak,
     logStudyTime, getStudyTime, saveDiagnostic, getDiagnostic, getDiagnosticHistory,
     getReadinessScore, exportAll, importAll, clearAll,

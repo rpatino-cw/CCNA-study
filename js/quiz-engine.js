@@ -21,16 +21,46 @@
     if (mode === 'exam') return selectExamQuestions(pool, domains, 102);
     if (mode === 'random') return shuffle(pool).slice(0, Math.min(count, pool.length));
 
+    // ── Adaptive weak-first selection ──
     const proficiency = store.getAllProficiency();
+    const micro = store.getMicroWeaknesses();
     const history = store.getQuizHistory();
     const recentTopics = getRecentTopics(history);
 
+    // Find weak topics (below 70%) — weak mode only draws from these
+    const weakTopicIds = new Set();
+    for (const domain of domains) {
+      for (const topic of domain.topics) {
+        if ((proficiency[topic.id] ?? 0) < 0.7) weakTopicIds.add(topic.id);
+      }
+    }
+
+    // Filter pool to weak topics only (unless all are mastered)
+    if (mode === 'weak' && weakTopicIds.size > 0) {
+      const weakPool = pool.filter(q => weakTopicIds.has(q.topic));
+      if (weakPool.length >= 5) pool = weakPool;
+    }
+
     const scored = pool.map(q => {
       const prof = proficiency[q.topic] ?? 0.5;
+      // Base weight: weaker topics get much higher weight
       const profWeight = Math.pow(1 - prof, 2) * 3 + 0.1;
+      // Recency: avoid repeating topics from last 2 sessions
       const recencyBoost = recentTopics.has(q.topic) ? 1 : 1.5;
+      // Micro-weakness boost: if user has gotten questions with this
+      // subtopic tag wrong, weight them higher
+      let microBoost = 1;
+      if (q.subtopic) {
+        const mKey = q.topic + '::' + q.subtopic;
+        const mData = micro[mKey];
+        if (mData && mData.total >= 2) {
+          const mPct = mData.correct / mData.total;
+          if (mPct < 0.5) microBoost = 2.0;       // very weak micro-area
+          else if (mPct < 0.7) microBoost = 1.4;   // struggling
+        }
+      }
       const jitter = 0.8 + Math.random() * 0.4;
-      return { question: q, weight: profWeight * recencyBoost * jitter };
+      return { question: q, weight: profWeight * recencyBoost * microBoost * jitter };
     });
 
     scored.sort((a, b) => b.weight - a.weight);
@@ -69,6 +99,8 @@
     session.total++;
     session.currentIndex++;
     store.updateProficiency(question.topic, correct);
+    // Track micro-weakness — uses subtopic tag if present, falls back to topic
+    store.recordMicroWeakness(question.topic, question.subtopic || null, correct);
     return correct;
   }
 
