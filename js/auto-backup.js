@@ -192,12 +192,20 @@
     // Backdrop
     var backdrop = document.createElement('div');
     backdrop.id = 'recoveryBackdrop';
-    backdrop.style.cssText = 'position:fixed;inset:0;z-index:9499;background:rgba(28,25,23,0.3);backdrop-filter:blur(2px)';
+    backdrop.style.cssText = 'position:fixed;inset:0;z-index:9499;background:rgba(28,25,23,0.3);backdrop-filter:blur(2px);pointer-events:none';
 
     document.body.appendChild(backdrop);
     document.body.appendChild(banner);
 
     function dismiss() { banner.remove(); backdrop.remove(); localStorage.setItem('ccna_recovery_dismissed', '1'); }
+
+    // Click outside banner dismisses it (backdrop is pointer-events:none so clicks reach the page)
+    document.addEventListener('click', function outsideClick(e) {
+      if (!banner.contains(e.target) && document.body.contains(banner)) {
+        dismiss();
+        document.removeEventListener('click', outsideClick);
+      }
+    });
 
     document.getElementById('recoverAutoBtn').addEventListener('click', function() {
       var status = document.getElementById('recoverStatus');

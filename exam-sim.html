@@ -464,6 +464,105 @@
     }
     .review-opt.neutral { color: var(--ink-secondary); }
 
+    /* ── Mode & Count Pickers ──────────────────────────────────── */
+    .mode-picker, .count-picker {
+      text-align: left;
+      margin: var(--s-md) 0;
+      padding: var(--s-md) var(--s-lg);
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+    }
+    .mode-options, .count-options {
+      display: flex; gap: 6px; flex-wrap: wrap;
+    }
+    .mode-btn, .count-btn {
+      font-family: var(--font-display); font-size: 0.75rem; font-weight: 500;
+      padding: 8px 14px; border-radius: var(--radius-lg);
+      border: 1px solid var(--border); background: var(--bg);
+      color: var(--ink-secondary); cursor: pointer;
+      transition: all var(--transition);
+    }
+    .mode-btn:hover, .count-btn:hover {
+      border-color: var(--ink-muted); color: var(--ink);
+    }
+    .mode-btn.selected, .count-btn.selected {
+      border-color: var(--accent); background: var(--accent-dim);
+      color: var(--accent); font-weight: 600;
+    }
+    .domain-select {
+      font-family: var(--font-display); font-size: 0.82rem;
+      padding: 8px 12px; border-radius: var(--radius);
+      border: 1px solid var(--border); background: var(--bg);
+      color: var(--ink); width: 100%;
+    }
+
+    /* ── Trend Chart ───────────────────────────────────────────── */
+    .trend-chart {
+      text-align: left;
+      margin: var(--s-md) 0;
+      padding: var(--s-md) var(--s-lg);
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+    }
+    .trend-bars {
+      display: flex; align-items: flex-end; gap: 4px; height: 60px;
+      position: relative;
+    }
+    .trend-bar {
+      flex: 1; border-radius: 3px 3px 0 0; min-width: 0;
+      position: relative; transition: height 0.4s var(--ease-out);
+    }
+    .trend-bar-label {
+      position: absolute; top: -16px; left: 50%; transform: translateX(-50%);
+      font-family: var(--font-mono); font-size: 0.6rem; font-weight: 600;
+      white-space: nowrap;
+    }
+    .trend-avg {
+      font-family: var(--font-mono); font-size: 0.7rem;
+      color: var(--ink-muted); margin-top: 4px;
+    }
+
+    /* ── Instant Feedback Toast ─────────────────────────────────── */
+    .feedback-toast {
+      position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+      padding: 14px 24px; border-radius: var(--radius-lg);
+      font-family: var(--font-display); font-size: 0.88rem; font-weight: 600;
+      z-index: 500; box-shadow: 0 8px 24px rgba(0,0,0,.12);
+      opacity: 0; transition: opacity 0.3s, transform 0.3s var(--ease-out);
+      max-width: 600px; text-align: left; line-height: 1.5;
+    }
+    .feedback-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+    .feedback-toast.correct { background: var(--correct-bg); border: 2px solid var(--correct); color: var(--correct); }
+    .feedback-toast.wrong { background: var(--wrong-bg); border: 2px solid var(--wrong); color: var(--wrong); }
+    .feedback-toast .fb-explain {
+      font-weight: 400; font-size: 0.8rem; color: var(--ink-secondary);
+      margin-top: 4px; display: block;
+    }
+
+    /* ── Weakness Report ───────────────────────────────────────── */
+    .weakness-report {
+      margin-top: var(--s-lg); padding: var(--s-lg);
+      background: var(--bg-surface); border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+    }
+    .weakness-report h2 { font-size: 1.1rem; margin-top: 0; }
+    .weak-item {
+      display: grid; grid-template-columns: 1fr 60px auto;
+      gap: var(--s-sm); align-items: center;
+      padding: 10px 0; border-bottom: 1px solid var(--bg-recessed);
+    }
+    .weak-item:last-child { border-bottom: none; }
+    .weak-name { font-family: var(--font-display); font-size: 0.82rem; color: var(--ink-secondary); }
+    .weak-pct { font-family: var(--font-mono); font-size: 0.82rem; font-weight: 600; text-align: right; }
+    .weak-link {
+      font-family: var(--font-display); font-size: 0.72rem; font-weight: 600;
+      color: var(--accent); text-decoration: none; text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+    .weak-link:hover { text-decoration: underline; }
+
     /* ── Utilities ─────────────────────────────────────────────── */
     .screen { display: none; }
     .screen.active { display: block; }
@@ -477,15 +576,53 @@
     <div id="startScreen" class="screen active">
       <div class="exam-start fade-in">
         <h1>CCNA 200-301</h1>
-        <p class="subtitle">Mock Exam Simulator</p>
+        <p class="subtitle">Daily Exam Drill</p>
 
-        <div class="exam-meta">
+        <!-- Trend chart — last 10 sessions -->
+        <div id="trendChart" class="trend-chart" style="display:none">
+          <h3 style="font-size:0.75rem;text-transform:uppercase;letter-spacing:0.05em;color:var(--ink-muted);margin-bottom:var(--s-sm)">Recent Scores</h3>
+          <div class="trend-bars" id="trendBars"></div>
+          <div class="trend-avg" id="trendAvg"></div>
+        </div>
+
+        <!-- Mode picker -->
+        <div class="mode-picker">
+          <h3 style="font-size:0.75rem;text-transform:uppercase;letter-spacing:0.05em;color:var(--ink-muted);margin-bottom:var(--s-sm)">Session Mode</h3>
+          <div class="mode-options" id="modeOptions">
+            <button class="mode-btn selected" data-mode="weak" onclick="pickMode(this)" title="Prioritizes topics below 70% proficiency">Weak Topics</button>
+            <button class="mode-btn" data-mode="exam" onclick="pickMode(this)" title="Matches real CCNA domain weights">Exam Weights</button>
+            <button class="mode-btn" data-mode="domain" onclick="pickMode(this)" title="Focus on a single domain">Domain Focus</button>
+            <button class="mode-btn" data-mode="random" onclick="pickMode(this)" title="Random mix, no weighting">Random</button>
+          </div>
+          <div id="domainPicker" style="display:none;margin-top:var(--s-sm)">
+            <select id="domainSelect" class="domain-select">
+              <option value="1">1. Network Fundamentals</option>
+              <option value="2">2. Network Access</option>
+              <option value="3">3. IP Connectivity</option>
+              <option value="4">4. IP Services</option>
+              <option value="5">5. Security Fundamentals</option>
+              <option value="6">6. Automation & Programmability</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Count picker -->
+        <div class="count-picker">
+          <h3 style="font-size:0.75rem;text-transform:uppercase;letter-spacing:0.05em;color:var(--ink-muted);margin-bottom:var(--s-sm)">Questions</h3>
+          <div class="count-options" id="countOptions">
+            <button class="count-btn" data-count="10" onclick="pickCount(this)">10</button>
+            <button class="count-btn" data-count="25" onclick="pickCount(this)">25</button>
+            <button class="count-btn selected" data-count="50" onclick="pickCount(this)">50</button>
+          </div>
+        </div>
+
+        <div class="exam-meta" id="examMeta">
           <div class="meta-item">
-            <div class="meta-value">50</div>
+            <div class="meta-value" id="metaCount">50</div>
             <div class="meta-label">Questions</div>
           </div>
           <div class="meta-item">
-            <div class="meta-value">60</div>
+            <div class="meta-value" id="metaTime">60</div>
             <div class="meta-label">Minutes</div>
           </div>
           <div class="meta-item">
@@ -494,24 +631,15 @@
           </div>
         </div>
 
-        <div class="domain-weights">
-          <h3>Domain Distribution</h3>
-          <div class="domain-row"><span class="dname">1. Network Fundamentals</span><span class="dcount">10 Qs (20%)</span></div>
-          <div class="domain-row"><span class="dname">2. Network Access</span><span class="dcount">10 Qs (20%)</span></div>
-          <div class="domain-row"><span class="dname">3. IP Connectivity</span><span class="dcount">13 Qs (25%)</span></div>
-          <div class="domain-row"><span class="dname">4. IP Services</span><span class="dcount">5 Qs (10%)</span></div>
-          <div class="domain-row"><span class="dname">5. Security Fundamentals</span><span class="dcount">7 Qs (15%)</span></div>
-          <div class="domain-row"><span class="dname">6. Automation & Programmability</span><span class="dcount">5 Qs (10%)</span></div>
-        </div>
-
         <ul class="exam-rules">
-          <li>Once you click <strong>Next</strong>, your answer is locked.</li>
+          <li>Once you click <strong>Next</strong>, your answer is locked — but you'll see instant feedback.</li>
           <li>You cannot go back to previous questions.</li>
           <li>The timer auto-submits when it reaches 00:00.</li>
           <li>Results update your proficiency scores per topic.</li>
         </ul>
 
         <button class="btn btn-primary btn-lg" onclick="startExam()">Begin Exam</button>
+        <div style="margin-top:var(--s-sm);font-size:0.75rem;color:var(--ink-muted)" id="bankSize"></div>
       </div>
     </div>
 
@@ -567,103 +695,57 @@
           <button class="btn btn-primary" onclick="restartExam()">Retake Exam</button>
         </div>
 
+        <div class="weakness-report" id="weaknessReport" style="display:none">
+          <h2>Weakness Report</h2>
+          <p style="font-size:0.82rem;color:var(--ink-muted);margin-bottom:var(--s-md)">Your weakest topics from this session — drill these next.</p>
+          <div id="weaknessList"></div>
+        </div>
+
         <div class="review-section hidden" id="reviewSection"></div>
       </div>
     </div>
   </div>
 
   <script src="js/store.js"></script>
+  <script src="js/quiz-engine.js"></script>
+  <script src="data/questions-data.js"></script>
+  <script src="data/topics-data.js"></script>
   <script src="js/nav.js"></script>
   <script src="js/sync.js"></script>
 <script src="js/group-chat.js"></script>
   <script src="js/tutor.js"></script>
   <script>
   /* ═══════════════════════════════════════════════════════════════
-     CCNA 200-301 Mock Exam — Question Bank
+     CCNA 200-301 Mock Exam — Adaptive Drill
+     Uses 477+ question bank via questions-data.js
      ═══════════════════════════════════════════════════════════════ */
 
-  var QUESTIONS = [
-    // ── Domain 1: Network Fundamentals (20%) ─────────────────────
-    // diff: 1=easy (recall), 2=medium (apply), 3=hard (analyze/calculate)
-    {q:'Which layer of the OSI model is responsible for logical addressing and routing?',opts:['Data Link','Network','Transport','Session'],ans:1,domain:'1',topic:'1.6',diff:1},
-    {q:'What is the primary function of a Layer 2 switch?',opts:['Route packets between subnets','Forward frames based on MAC addresses','Encrypt traffic between hosts','Assign IP addresses via DHCP'],ans:1,domain:'1',topic:'1.1',diff:1},
-    {q:'Which protocol operates at the Transport layer and provides reliable, connection-oriented delivery?',opts:['UDP','ICMP','TCP','ARP'],ans:2,domain:'1',topic:'1.5',diff:1},
-    {q:'What is the default subnet mask for a Class B IP address?',opts:['255.0.0.0','255.255.0.0','255.255.255.0','255.255.255.128'],ans:1,domain:'1',topic:'1.6',diff:1},
-    {q:'Which cable type supports the longest transmission distance?',opts:['Cat5e UTP','Cat6a UTP','Multimode fiber','Single-mode fiber'],ans:3,domain:'1',topic:'1.3',diff:1},
-    {q:'What is the purpose of ARP?',opts:['Resolve hostnames to IP addresses','Resolve IP addresses to MAC addresses','Assign IP addresses dynamically','Encrypt Layer 2 frames'],ans:1,domain:'1',topic:'1.5',diff:1},
-    {q:'A host has the IP 192.168.10.45/28. What is the broadcast address of this subnet?',opts:['192.168.10.47','192.168.10.63','192.168.10.31','192.168.10.55'],ans:0,domain:'1',topic:'1.6',diff:3},
-    {q:'Which device operates at Layer 3 to forward packets between different networks?',opts:['Hub','Switch','Router','Access point'],ans:2,domain:'1',topic:'1.1',diff:1},
-    {q:'What is the maximum number of usable hosts on a /26 subnet?',opts:['30','62','64','126'],ans:1,domain:'1',topic:'1.6',diff:2},
-    {q:'Which protocol sends "Destination Unreachable" messages?',opts:['TCP','UDP','ICMP','ARP'],ans:2,domain:'1',topic:'1.5',diff:1},
-    {q:'What is the IPv6 loopback address?',opts:['::1','::0','FF02::1','FE80::1'],ans:0,domain:'1',topic:'1.8',diff:2},
-    {q:'How many bits are in an IPv6 address?',opts:['32','64','96','128'],ans:3,domain:'1',topic:'1.8',diff:1},
-    {q:'Which topology connects every device to a central device?',opts:['Mesh','Bus','Ring','Star'],ans:3,domain:'1',topic:'1.2',diff:1},
+  // Adapt questions-data.js format → internal format
+  // Bank: {id,domain,topic,difficulty,type,question,options[],correct,explanation}
+  // Internal: {id,q,opts,ans,domain,topic,diff,explanation}
+  function adaptBank(bank) {
+    return bank.map(function(q) {
+      return {
+        id: q.id, q: q.question, opts: q.options, ans: q.correct,
+        domain: q.domain, topic: q.topic, diff: q.difficulty || 1,
+        explanation: q.explanation || '', subtopic: null
+      };
+    });
+  }
 
-    // ── Domain 2: Network Access (20%) ───────────────────────────
-    {q:'What does a VLAN do?',opts:['Encrypts all broadcast traffic','Creates separate broadcast domains on a single switch','Routes traffic between subnets','Provides wireless access to the network'],ans:1,domain:'2',topic:'2.1',diff:1},
-    {q:'Which trunking protocol is an IEEE standard?',opts:['ISL','VTP','802.1Q','DTP'],ans:2,domain:'2',topic:'2.2',diff:1},
-    {q:'What is the default VLAN on a Cisco switch?',opts:['VLAN 0','VLAN 1','VLAN 100','VLAN 1002'],ans:1,domain:'2',topic:'2.1',diff:1},
-    {q:'Which Spanning Tree Protocol state allows a port to forward traffic and learn MAC addresses?',opts:['Blocking','Listening','Learning','Forwarding'],ans:3,domain:'2',topic:'2.4',diff:2},
-    {q:'What is the primary purpose of STP (Spanning Tree Protocol)?',opts:['Encrypt VLAN traffic','Prevent Layer 2 loops','Load balance across trunk links','Assign IP addresses to VLANs'],ans:1,domain:'2',topic:'2.4',diff:1},
-    {q:'An EtherChannel bundles multiple physical links into one logical link. Which protocol is Cisco proprietary?',opts:['LACP','PAgP','STP','VTP'],ans:1,domain:'2',topic:'2.5',diff:2},
-    {q:'Which wireless standard operates exclusively on the 5 GHz band and supports up to 1.3 Gbps?',opts:['802.11n','802.11g','802.11ac','802.11a'],ans:2,domain:'2',topic:'2.6',diff:2},
-    {q:'What command puts a switch port into access mode on a Cisco switch?',opts:['switchport mode trunk','switchport access vlan 10','switchport mode access','switchport nonegotiate'],ans:2,domain:'2',topic:'2.2',diff:2},
-    {q:'In RSTP, which port role replaces the non-designated port from classic STP?',opts:['Root port','Designated port','Alternate port','Backup port'],ans:2,domain:'2',topic:'2.4',diff:3},
-    {q:'Which EtherChannel negotiation protocol is defined by IEEE 802.3ad?',opts:['PAgP','LACP','DTP','VTP'],ans:1,domain:'2',topic:'2.5',diff:2},
-    {q:'What is the native VLAN used for on a trunk link?',opts:['Carrying management traffic only','Tagging all frames with VLAN 1','Carrying untagged frames','Encrypting trunk traffic'],ans:2,domain:'2',topic:'2.2',diff:2},
-    {q:'Which wireless security protocol uses AES encryption and is considered the most secure?',opts:['WEP','WPA','WPA2','WPA with TKIP'],ans:2,domain:'2',topic:'2.8',diff:1},
-
-    // ── Domain 3: IP Connectivity (25%) ──────────────────────────
-    {q:'What is the administrative distance of OSPF?',opts:['90','100','110','120'],ans:2,domain:'3',topic:'3.4',diff:2},
-    {q:'Which routing protocol uses the Dijkstra algorithm to calculate the shortest path?',opts:['RIP','EIGRP','OSPF','BGP'],ans:2,domain:'3',topic:'3.4',diff:2},
-    {q:'What is a floating static route?',opts:['A route that is always preferred','A backup static route with a higher AD than the primary route','A route that uses multicast','A default route to the internet'],ans:1,domain:'3',topic:'3.3',diff:2},
-    {q:'In OSPF, what is the default hello interval on a broadcast network?',opts:['5 seconds','10 seconds','30 seconds','40 seconds'],ans:1,domain:'3',topic:'3.4',diff:2},
-    {q:'Which command creates a static route to the 10.0.0.0/8 network via next hop 192.168.1.1?',opts:['ip route 10.0.0.0 255.0.0.0 192.168.1.1','ip route 10.0.0.0 0.255.255.255 192.168.1.1','ip route 10.0.0.0/8 192.168.1.1','route add 10.0.0.0 mask 255.0.0.0 192.168.1.1'],ans:0,domain:'3',topic:'3.3',diff:2},
-    {q:'What OSPF packet type is used to discover neighbors?',opts:['LSU','LSR','DBD','Hello'],ans:3,domain:'3',topic:'3.4',diff:2},
-    {q:'The router with the highest OSPF router ID in a broadcast segment becomes the:',opts:['ABR','ASBR','DR','Stub router'],ans:2,domain:'3',topic:'3.4',diff:2},
-    {q:'What is the purpose of the default route (0.0.0.0/0)?',opts:['Block all traffic','Match any destination not in the routing table','Only match traffic to the 0.0.0.0 network','Send traffic to the loopback interface'],ans:1,domain:'3',topic:'3.3',diff:1},
-    {q:'Which field in an IP packet is decremented at each router hop?',opts:['Source IP','Destination IP','TTL','Protocol'],ans:2,domain:'3',topic:'3.1',diff:1},
-    {q:'First Hop Redundancy Protocols (HSRP, VRRP) provide:',opts:['Load balancing across WAN links','Redundant default gateways for hosts','Encrypted tunnels between routers','Dynamic VLAN assignment'],ans:1,domain:'3',topic:'3.5',diff:2},
-    {q:'OSPF area 0 is known as the:',opts:['Stub area','Transit area','Backbone area','NSSA'],ans:2,domain:'3',topic:'3.4',diff:1},
-    {q:'Which metric does OSPF use to determine the best path?',opts:['Hop count','Bandwidth (cost)','Delay','Reliability'],ans:1,domain:'3',topic:'3.4',diff:1},
-    {q:'What happens when a router receives a packet with a TTL of 1?',opts:['Forwards the packet normally','Drops the packet and sends an ICMP Time Exceeded message','Resets the TTL to 255','Floods the packet to all interfaces'],ans:1,domain:'3',topic:'3.1',diff:2},
-    {q:'Which type of OSPF LSA is generated by an ABR to describe inter-area routes?',opts:['Type 1 (Router LSA)','Type 2 (Network LSA)','Type 3 (Summary LSA)','Type 5 (External LSA)'],ans:2,domain:'3',topic:'3.4',diff:3},
-    {q:'What is the AD (administrative distance) of a directly connected route?',opts:['0','1','5','20'],ans:0,domain:'3',topic:'3.2',diff:1},
-
-    // ── Domain 4: IP Services (10%) ──────────────────────────────
-    {q:'Which NAT type maps a single private IP to a single public IP permanently?',opts:['Dynamic NAT','PAT','Static NAT','NAT64'],ans:2,domain:'4',topic:'4.1',diff:1},
-    {q:'DHCP operates on which two UDP ports?',opts:['20 and 21','53 and 54','67 and 68','80 and 443'],ans:2,domain:'4',topic:'4.3',diff:1},
-    {q:'What NTP stratum value indicates a reference clock (atomic clock, GPS)?',opts:['0','1','2','16'],ans:0,domain:'4',topic:'4.4',diff:2},
-    {q:'Which Syslog severity level represents an emergency (system unusable)?',opts:['0','1','4','7'],ans:0,domain:'4',topic:'4.5',diff:2},
-    {q:'PAT (Port Address Translation) is also known as:',opts:['Static NAT','Dynamic NAT','NAT overload','NAT64'],ans:2,domain:'4',topic:'4.1',diff:1},
-    {q:'Which protocol does DNS use for standard name queries?',opts:['TCP port 53','UDP port 53','TCP port 80','UDP port 161'],ans:1,domain:'4',topic:'4.2',diff:1},
-    {q:'What is the function of a DHCP relay agent?',opts:['Assigns IP addresses to clients','Forwards DHCP broadcasts to a server on a different subnet','Encrypts DHCP traffic','Caches DNS records locally'],ans:1,domain:'4',topic:'4.3',diff:2},
-    {q:'SNMP uses which port for agent communication?',opts:['TCP 25','UDP 69','UDP 161','TCP 514'],ans:2,domain:'4',topic:'4.6',diff:2},
-
-    // ── Domain 5: Security Fundamentals (15%) ────────────────────
-    {q:'Which type of ACL filters traffic based only on source IP address?',opts:['Extended ACL','Named ACL','Standard ACL','Reflexive ACL'],ans:2,domain:'5',topic:'5.4',diff:1},
-    {q:'What does AAA stand for in network security?',opts:['Authentication, Authorization, Accounting','Access, Admission, Auditing','Authentication, Access, Accounting','Authorization, Access, Auditing'],ans:0,domain:'5',topic:'5.9',diff:1},
-    {q:'Port security on a Cisco switch can limit the number of:',opts:['VLANs per port','IP addresses per port','MAC addresses per port','Routes per port'],ans:2,domain:'5',topic:'5.7',diff:1},
-    {q:'DHCP snooping protects against:',opts:['ARP spoofing attacks','Rogue DHCP servers','DNS poisoning','STP manipulation'],ans:1,domain:'5',topic:'5.7',diff:2},
-    {q:'Which protocol provides secure remote CLI access to network devices?',opts:['Telnet','HTTP','SSH','SNMP'],ans:2,domain:'5',topic:'5.3',diff:1},
-    {q:'What is the purpose of Dynamic ARP Inspection (DAI)?',opts:['Prevent VLAN hopping','Validate ARP packets against the DHCP snooping binding table','Encrypt ARP traffic','Rate-limit ARP requests'],ans:1,domain:'5',topic:'5.7',diff:2},
-    {q:'An ACL with the statement "deny ip any any" at the end is demonstrating:',opts:['Implicit allow','Explicit permit','Implicit deny','The default Cisco ACL behavior (implicit deny already exists)'],ans:3,domain:'5',topic:'5.4',diff:3},
-    {q:'Which VPN type creates a secure tunnel between two sites over the internet?',opts:['Remote access VPN','Site-to-site VPN','SSL VPN','Client VPN'],ans:1,domain:'5',topic:'5.6',diff:1},
-    {q:'What threat involves an attacker flooding a switch MAC address table?',opts:['VLAN hopping','MAC flooding','ARP poisoning','DNS spoofing'],ans:1,domain:'5',topic:'5.7',diff:2},
-
-    // ── Domain 6: Automation & Programmability (10%) ──────────────
-    {q:'Which data format uses key-value pairs with curly braces and is commonly used in REST APIs?',opts:['XML','YAML','JSON','CSV'],ans:2,domain:'6',topic:'6.1',diff:1},
-    {q:'In the context of SDN, what does the controller manage?',opts:['The data plane only','The management plane only','The control plane, making forwarding decisions for network devices','Physical cabling'],ans:2,domain:'6',topic:'6.2',diff:2},
-    {q:'Ansible uses which file format for its playbooks?',opts:['JSON','XML','YAML','INI'],ans:2,domain:'6',topic:'6.4',diff:1},
-    {q:'Which HTTP method is used to create a new resource in a REST API?',opts:['GET','POST','PUT','DELETE'],ans:1,domain:'6',topic:'6.7',diff:1},
-    {q:'What is Cisco DNA Center an example of?',opts:['A Layer 2 switch','An SDN controller','A wireless access point','A firewall appliance'],ans:1,domain:'6',topic:'6.2',diff:2},
-    {q:'In a REST API response, the HTTP status code 200 means:',opts:['Created','No Content','OK (Success)','Not Found'],ans:2,domain:'6',topic:'6.7',diff:1},
-    {q:'Which configuration management tool is agentless and uses SSH to push configurations?',opts:['Puppet','Chef','Ansible','SaltStack'],ans:2,domain:'6',topic:'6.4',diff:2},
-    {q:'What is the southbound interface in an SDN architecture?',opts:['The API between the controller and applications','The API between the controller and network devices','The management console','The physical uplink to the WAN'],ans:1,domain:'6',topic:'6.2',diff:3},
-  ];
+  var QUESTIONS;
+  if (window.questionsData && window.questionsData.questions && window.questionsData.questions.length > 0) {
+    QUESTIONS = adaptBank(window.questionsData.questions);
+  } else {
+    // Fallback: minimal inline set (should not happen in normal use)
+    QUESTIONS = [
+      {id:'f01',q:'Which layer of the OSI model handles logical addressing?',opts:['Data Link','Network','Transport','Session'],ans:1,domain:'1',topic:'1.6',diff:1,explanation:'The Network layer (Layer 3) handles logical addressing and routing.'},
+      {id:'f02',q:'What is the default OSPF hello interval on a broadcast network?',opts:['5 seconds','10 seconds','30 seconds','40 seconds'],ans:1,domain:'3',topic:'3.4',diff:2,explanation:'On broadcast and point-to-point networks, OSPF sends hello packets every 10 seconds.'},
+    ];
+  }
 
   /* ═══════════════════════════════════════════════════════════════
-     DOMAIN NAMES
+     DOMAIN NAMES & TOPICS REFERENCE
      ═══════════════════════════════════════════════════════════════ */
   var DOMAIN_NAMES = {
     '1':'Network Fundamentals',
@@ -674,24 +756,55 @@
     '6':'Automation & Programmability'
   };
 
+  // Build domains array from topics-data.js for quiz-engine.js
+  var DOMAINS = (window.topicsData && window.topicsData.domains) || [
+    {id:'1',name:'Network Fundamentals',weight:20,topics:[{id:'1.1',name:'Network Components'}]},
+    {id:'2',name:'Network Access',weight:20,topics:[{id:'2.1',name:'VLANs'}]},
+    {id:'3',name:'IP Connectivity',weight:25,topics:[{id:'3.1',name:'Routing'}]},
+    {id:'4',name:'IP Services',weight:10,topics:[{id:'4.1',name:'NAT'}]},
+    {id:'5',name:'Security Fundamentals',weight:15,topics:[{id:'5.1',name:'Security Concepts'}]},
+    {id:'6',name:'Automation & Programmability',weight:10,topics:[{id:'6.1',name:'SDN'}]},
+  ];
+
   /* ═══════════════════════════════════════════════════════════════
      EXAM STATE
      ═══════════════════════════════════════════════════════════════ */
   var TOTAL = 50;
-  var TIME_LIMIT = 60 * 60; // 60 min in seconds
+  var TIME_PER_Q = 72; // seconds per question
   var PASS_THRESHOLD = 0.8;
-  var DOMAIN_COUNTS = {'1':10,'2':10,'3':13,'4':5,'5':7,'6':5};
 
-  var examQuestions = [];  // selected subset
+  var selectedMode = 'weak';
+  var selectedCount = 50;
+  var selectedDomain = '1';
+
+  var examQuestions = [];
   var currentIdx = 0;
-  var answers = [];        // user answers: index or -1
-  var locked = [];         // which questions are locked
+  var answers = [];
+  var locked = [];
   var timerInterval = null;
-  var timeRemaining = TIME_LIMIT;
+  var timeRemaining = 0;
   var startTime = null;
 
   /* ═══════════════════════════════════════════════════════════════
-     QUESTION SELECTION — weighted by domain
+     MODE & COUNT PICKERS
+     ═══════════════════════════════════════════════════════════════ */
+  function pickMode(btn) {
+    document.querySelectorAll('.mode-btn').forEach(function(b) { b.classList.remove('selected'); });
+    btn.classList.add('selected');
+    selectedMode = btn.getAttribute('data-mode');
+    document.getElementById('domainPicker').style.display = selectedMode === 'domain' ? 'block' : 'none';
+  }
+
+  function pickCount(btn) {
+    document.querySelectorAll('.count-btn').forEach(function(b) { b.classList.remove('selected'); });
+    btn.classList.add('selected');
+    selectedCount = parseInt(btn.getAttribute('data-count'));
+    document.getElementById('metaCount').textContent = selectedCount;
+    document.getElementById('metaTime').textContent = Math.ceil(selectedCount * TIME_PER_Q / 60);
+  }
+
+  /* ═══════════════════════════════════════════════════════════════
+     QUESTION SELECTION — uses quiz-engine.js adaptive engine
      ═══════════════════════════════════════════════════════════════ */
   function shuffle(arr) {
     for (var i = arr.length - 1; i > 0; i--) {
@@ -702,29 +815,90 @@
   }
 
   function selectQuestions() {
-    var selected = [];
-    for (var d in DOMAIN_COUNTS) {
-      var pool = QUESTIONS.filter(function(q){ return q.domain === d; });
-      shuffle(pool);
-      var need = DOMAIN_COUNTS[d];
-      // Take up to need; if pool is smaller, take all
-      selected = selected.concat(pool.slice(0, need));
+    // Use quiz-engine.js adaptive selection if available
+    if (window.quizEngine && window.quizEngine.selectQuestions) {
+      var opts = { mode: selectedMode, count: selectedCount };
+      if (selectedMode === 'domain') opts.domainId = document.getElementById('domainSelect').value;
+      var selected = quizEngine.selectQuestions(QUESTIONS, DOMAINS, opts);
+      if (selected.length > 0) return selected;
     }
-    // Final shuffle so domains aren't grouped
-    return shuffle(selected);
+    // Fallback: simple domain-weighted selection
+    var counts = {'1':10,'2':10,'3':13,'4':5,'5':7,'6':5};
+    var ratio = selectedCount / 50;
+    var selected = [];
+    for (var d in counts) {
+      var pool = QUESTIONS.filter(function(q) { return q.domain === d; });
+      shuffle(pool);
+      selected = selected.concat(pool.slice(0, Math.round(counts[d] * ratio)));
+    }
+    return shuffle(selected).slice(0, selectedCount);
+  }
+
+  /* ═══════════════════════════════════════════════════════════════
+     SPACED REPETITION — wrong questions get priority
+     ═══════════════════════════════════════════════════════════════ */
+  var SR_KEY = 'ccna_sim_wrong_questions';
+
+  function loadSR() {
+    try { return JSON.parse(localStorage.getItem(SR_KEY)) || {}; } catch(e) { return {}; }
+  }
+
+  function saveSR(data) {
+    localStorage.setItem(SR_KEY, JSON.stringify(data));
+  }
+
+  function recordSR(questionId, wasCorrect) {
+    var sr = loadSR();
+    if (!sr[questionId]) sr[questionId] = { wrongCount: 0, lastWrong: null, correctStreak: 0 };
+    if (wasCorrect) {
+      sr[questionId].correctStreak++;
+      // Drop from SR after 2 consecutive correct across sessions
+      if (sr[questionId].correctStreak >= 2) delete sr[questionId];
+    } else {
+      sr[questionId].wrongCount++;
+      sr[questionId].correctStreak = 0;
+      sr[questionId].lastWrong = new Date().toISOString();
+    }
+    saveSR(sr);
+  }
+
+  /* ═══════════════════════════════════════════════════════════════
+     TREND CHART — last 10 scores
+     ═══════════════════════════════════════════════════════════════ */
+  function renderTrend() {
+    var history = (typeof store !== 'undefined' && store.getQuizHistory) ? store.getQuizHistory() : [];
+    var simHistory = history.filter(function(s) { return s.type === 'exam-sim'; }).slice(-10);
+    if (simHistory.length < 2) return;
+
+    var chart = document.getElementById('trendChart');
+    chart.style.display = 'block';
+    var barsEl = document.getElementById('trendBars');
+    var avg = Math.round(simHistory.reduce(function(sum, s) { return sum + s.score; }, 0) / simHistory.length);
+
+    barsEl.innerHTML = simHistory.map(function(s) {
+      var color = s.score >= 80 ? 'var(--prof-strong)' : s.score >= 60 ? 'var(--prof-mid)' : 'var(--prof-weak)';
+      return '<div class="trend-bar" style="height:' + Math.max(s.score, 5) + '%;background:' + color + '">' +
+        '<span class="trend-bar-label" style="color:' + color + '">' + s.score + '</span></div>';
+    }).join('');
+
+    document.getElementById('trendAvg').textContent = 'Avg: ' + avg + '% over ' + simHistory.length + ' sessions';
   }
 
   /* ═══════════════════════════════════════════════════════════════
      START EXAM
      ═══════════════════════════════════════════════════════════════ */
   function startExam() {
+    TOTAL = selectedCount;
     examQuestions = selectQuestions();
-    TOTAL = examQuestions.length; // in case pool was short
+    TOTAL = examQuestions.length; // adjust if pool was short
     answers = new Array(TOTAL).fill(-1);
     locked = new Array(TOTAL).fill(false);
     currentIdx = 0;
-    timeRemaining = TIME_LIMIT;
+    timeRemaining = Math.ceil(TOTAL * TIME_PER_Q);
     startTime = Date.now();
+
+    document.getElementById('qCounter').textContent = 'Question 1 / ' + TOTAL;
+    document.getElementById('navProgress').textContent = '0 / ' + TOTAL + ' answered';
 
     show('examScreen');
     buildGrid();
@@ -812,15 +986,48 @@
      NAVIGATION
      ═══════════════════════════════════════════════════════════════ */
   function nextQuestion() {
-    // Lock current question
     if (answers[currentIdx] !== -1) {
       locked[currentIdx] = true;
+      // Instant feedback — show correct/incorrect + explanation
+      showFeedback(currentIdx);
     }
 
     if (currentIdx < TOTAL - 1) {
       currentIdx++;
       renderQuestion();
     }
+  }
+
+  /* ═══════════════════════════════════════════════════════════════
+     INSTANT FEEDBACK — shows after each answer lock
+     ═══════════════════════════════════════════════════════════════ */
+  var feedbackTimeout = null;
+
+  function showFeedback(idx) {
+    var q = examQuestions[idx];
+    var wasCorrect = answers[idx] === q.ans;
+    var letters = ['A','B','C','D'];
+
+    // Remove existing toast
+    var existing = document.querySelector('.feedback-toast');
+    if (existing) existing.remove();
+    if (feedbackTimeout) clearTimeout(feedbackTimeout);
+
+    var toast = document.createElement('div');
+    toast.className = 'feedback-toast ' + (wasCorrect ? 'correct' : 'wrong');
+
+    var label = wasCorrect ? 'Correct!' : 'Incorrect — Answer: ' + letters[q.ans] + '. ' + q.opts[q.ans];
+    var html = '<span>' + label + '</span>';
+    if (q.explanation) html += '<span class="fb-explain">' + q.explanation + '</span>';
+    toast.innerHTML = html;
+
+    document.body.appendChild(toast);
+    requestAnimationFrame(function() { toast.classList.add('show'); });
+
+    feedbackTimeout = setTimeout(function() {
+      toast.classList.remove('show');
+      setTimeout(function() { toast.remove(); }, 300);
+    }, 3500);
   }
 
   function jumpTo(idx) {
@@ -892,19 +1099,21 @@
     for (var d in DOMAIN_NAMES) { domainCorrect[d] = 0; domainTotal[d] = 0; }
 
     examQuestions.forEach(function(q, i) {
-      var w = q.diff || 1; // difficulty weight: 1=easy, 2=medium, 3=hard
+      var w = q.diff || 1;
       domainTotal[q.domain]++;
       weightedTotal += w;
-      var isCorrect = answers[i] === q.ans;
-      if (isCorrect) {
+      var isRight = answers[i] === q.ans;
+      if (isRight) {
         correct++;
         weightedCorrect += w;
         domainCorrect[q.domain]++;
       }
       // Update store proficiency
       if (typeof store !== 'undefined' && store.updateProficiency) {
-        store.updateProficiency(q.topic, isCorrect);
+        store.updateProficiency(q.topic, isRight);
       }
+      // Spaced repetition tracking
+      if (q.id) recordSR(q.id, isRight);
     });
 
     var pct = Math.round((correct / TOTAL) * 100);
@@ -985,6 +1194,58 @@
 
     // Hide review section by default
     document.getElementById('reviewSection').classList.add('hidden');
+
+    // Weakness report
+    renderWeaknessReport();
+  }
+
+  /* ═══════════════════════════════════════════════════════════════
+     WEAKNESS REPORT — shows weakest topics from this session
+     ═══════════════════════════════════════════════════════════════ */
+  function renderWeaknessReport() {
+    if (typeof store === 'undefined' || !store.getAllProficiency) return;
+    var proficiency = store.getAllProficiency();
+
+    // Collect topics from this session with their results
+    var topicResults = {};
+    examQuestions.forEach(function(q, i) {
+      if (!topicResults[q.topic]) topicResults[q.topic] = { correct: 0, total: 0, domain: q.domain };
+      topicResults[q.topic].total++;
+      if (answers[i] === q.ans) topicResults[q.topic].correct++;
+    });
+
+    // Sort by session accuracy (worst first), then by proficiency
+    var sorted = Object.keys(topicResults).map(function(tid) {
+      var r = topicResults[tid];
+      var sessionPct = Math.round((r.correct / r.total) * 100);
+      return { id: tid, sessionPct: sessionPct, proficiency: Math.round((proficiency[tid] || 0) * 100), domain: r.domain };
+    }).filter(function(t) { return t.sessionPct < 80; })
+      .sort(function(a, b) { return a.sessionPct - b.sessionPct; })
+      .slice(0, 5);
+
+    if (sorted.length === 0) return;
+
+    // Resolve topic names from topicsData
+    var nameMap = {};
+    if (window.topicsData && window.topicsData.domains) {
+      window.topicsData.domains.forEach(function(d) {
+        (d.topics || []).forEach(function(t) { nameMap[t.id] = t.name; });
+      });
+    }
+
+    var report = document.getElementById('weaknessReport');
+    var list = document.getElementById('weaknessList');
+    report.style.display = 'block';
+
+    list.innerHTML = sorted.map(function(t) {
+      var name = nameMap[t.id] || ('Topic ' + t.id);
+      var color = t.proficiency >= 70 ? 'var(--prof-strong)' : t.proficiency >= 40 ? 'var(--prof-mid)' : 'var(--prof-weak)';
+      return '<div class="weak-item">' +
+        '<div class="weak-name">' + t.id + ' — ' + name + '</div>' +
+        '<div class="weak-pct" style="color:' + color + '">' + t.proficiency + '%</div>' +
+        '<a class="weak-link" href="quiz.html">Drill</a>' +
+        '</div>';
+    }).join('');
   }
 
   /* ═══════════════════════════════════════════════════════════════
@@ -1025,6 +1286,10 @@
         html += '<div class="' + cls + '"><span class="ro-letter">' + letters[oi] + '.</span><span>' + opt + indicator + '</span></div>';
       });
 
+      if (q.explanation) {
+        html += '<div style="margin-top:8px;padding:10px 14px;background:var(--bg-recessed);border-radius:var(--radius);font-size:0.82rem;color:var(--ink-secondary);line-height:1.6">' + q.explanation + '</div>';
+      }
+
       html += '</div>';
     });
 
@@ -1036,7 +1301,9 @@
      ═══════════════════════════════════════════════════════════════ */
   function restartExam() {
     document.getElementById('reviewSection').innerHTML = '';
+    document.getElementById('weaknessReport').style.display = 'none';
     show('startScreen');
+    renderTrend(); // refresh after new session
   }
 
   /* ═══════════════════════════════════════════════════════════════
@@ -1047,6 +1314,12 @@
     document.getElementById(id).classList.add('active');
     window.scrollTo(0, 0);
   }
+
+  /* ═══════════════════════════════════════════════════════════════
+     INIT — render trend chart + bank size on load
+     ═══════════════════════════════════════════════════════════════ */
+  renderTrend();
+  document.getElementById('bankSize').textContent = QUESTIONS.length + ' questions in bank';
   </script>
 </body>
 </html>

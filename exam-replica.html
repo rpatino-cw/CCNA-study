@@ -649,6 +649,13 @@
         This is a full-length simulation of the Cisco CCNA 200-301 exam. The format, timing, question types, and interface closely mirror the real Pearson VUE testing experience. All six CCNA domains are covered at exam-weight proportions. Use this to practice under realistic conditions before your actual test date.
       </div>
 
+      <!-- Attempt History -->
+      <div id="attemptHistory" style="display:none;margin-bottom:20px;border:1px solid var(--vue-border);border-radius:8px;padding:16px;background:rgba(255,255,255,.03)">
+        <div style="font-size:.78rem;font-weight:600;color:var(--vue-text-dim);text-transform:uppercase;letter-spacing:.04em;margin-bottom:12px">Previous Attempts</div>
+        <div id="attemptList"></div>
+        <div id="attemptBest" style="margin-top:8px;font-size:.78rem;color:var(--vue-text-dim)"></div>
+      </div>
+
       <div class="btn-row">
         <button class="btn-vue btn-primary" onclick="showScreen('scrNDA')">Continue</button>
       </div>
@@ -845,6 +852,7 @@ This agreement is governed by and construed in accordance with applicable intell
   </div>
 </div>
 
+<script src="js/store.js"></script>
 <script>
 /* ═══════════════════════════════════════════════════════════════════
    CCNA 200-301 EXAM REPLICA ENGINE
@@ -852,6 +860,34 @@ This agreement is governed by and construed in accordance with applicable intell
    ═══════════════════════════════════════════════════════════════════ */
 
 document.getElementById('examDate').textContent = new Date().toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+
+/* ── Attempt History Dashboard ── */
+(function() {
+  var hist = [];
+  try { hist = JSON.parse(localStorage.getItem('ccna_exam_history')) || []; } catch(e) {}
+  if (hist.length === 0) return;
+
+  document.getElementById('attemptHistory').style.display = 'block';
+  var last3 = hist.slice(-3).reverse();
+  var best = parseInt(localStorage.getItem('ccna_exam_best')) || 0;
+
+  document.getElementById('attemptList').innerHTML = last3.map(function(a, i) {
+    var d = new Date(a.date);
+    var dateStr = d.toLocaleDateString('en-US', {month:'short', day:'numeric'});
+    var passStyle = a.passed
+      ? 'color:#81C784;border:1px solid rgba(46,125,50,.3);background:rgba(46,125,50,.08)'
+      : 'color:#EF9A9A;border:1px solid rgba(198,40,40,.3);background:rgba(198,40,40,.08)';
+    return '<div style="display:flex;align-items:center;gap:12px;padding:8px 0;' + (i < last3.length - 1 ? 'border-bottom:1px solid var(--vue-border)' : '') + '">' +
+      '<span style="font-family:var(--mono);font-size:.82rem;font-weight:600;min-width:50px">' + a.score + '</span>' +
+      '<span style="font-size:.72rem;padding:2px 8px;border-radius:4px;font-weight:600;' + passStyle + '">' + (a.passed ? 'PASS' : 'FAIL') + '</span>' +
+      '<span style="font-size:.75rem;color:var(--vue-text-dim);margin-left:auto">' + dateStr + '</span>' +
+      '</div>';
+  }).join('');
+
+  document.getElementById('attemptBest').innerHTML =
+    'Best score: <strong style="color:' + (best >= 825 ? '#81C784' : 'var(--vue-text)') + '">' + best + '/1000</strong>' +
+    ' &middot; This will be attempt #' + (hist.length + 1);
+})();
 
 function showScreen(id){
   document.querySelectorAll('.screen').forEach(function(s){s.classList.remove('active');});
@@ -1619,6 +1655,22 @@ function submitExam(){
   hist.push({score:score,correct:correct,total:total,date:new Date().toISOString(),passed:passed});
   if(hist.length>20) hist=hist.slice(-20);
   localStorage.setItem('ccna_exam_history',JSON.stringify(hist));
+
+  // ── Store.js integration — feed scores back into shared proficiency system ──
+  // Maps domain numbers to first topic ID (e.g., domain 1 → "1.1")
+  if(typeof store!=='undefined'&&store.updateProficiency){
+    exam.questions.forEach(function(q,i){
+      var topicId = q.domain + '.1'; // approximate — domain-level proficiency
+      store.updateProficiency(topicId, isCorrect(i));
+    });
+    store.addQuizSession({
+      date:new Date().toISOString(), type:'exam-replica',
+      total:total, correct:correct, score:pct, passed:passed,
+      elapsed:timeUsed
+    });
+    store.updateStreak();
+    if(timeUsed>60) store.logStudyTime(Math.ceil(timeUsed/60));
+  }
 
   var timeUsed=120*60-exam.timeLeft;
   var mUsed=Math.floor(timeUsed/60);

@@ -32,7 +32,6 @@
       { text: "Jeremy's IT Lab", href: 'jeremy-labs.html' },
       { text: 'OSPF Mastery', href: 'ospf-mastery.html' },
       { text: 'Path Selection', href: 'path-selection.html' },
-      { text: 'Study Strategy', href: 'strategy.html' },
     ]},
     { text: 'Practice', children: [
       { text: 'Flashcards', href: 'flashcards.html' },
@@ -181,7 +180,14 @@
         var c = b.getAttribute('data-c');
         if (c === certTrack) return;
         localStorage.setItem('ccna_cert_track', c);
-        location.reload();
+        // Navigate to the correct landing page for the selected cert
+        var targetMap = { 'ccna': 'core.html', 'net+': 'netplus.html' };
+        var sharedPages = ['peers.html', 'index.html'];
+        if (sharedPages.indexOf(currentFile) !== -1) {
+          location.reload();
+        } else {
+          window.location.href = fixHref(targetMap[c] || 'core.html');
+        }
       });
     });
   }
