@@ -126,7 +126,9 @@
     if (item.children) {
       var hasActive = item.children.some(function(c) { return isActive(c.href); });
       var dropdown = item.children.map(function(c) {
-        return '<a class="nav-drop-item' + (isActive(c.href) ? ' active' : '') + '" href="' + fixHref(c.href) + '">' + c.text + '</a>';
+        var cls = 'nav-drop-item' + (isActive(c.href) ? ' active' : '') + (c.href && c.href.indexOf('#3d') !== -1 ? ' nav-3d-link' : '');
+        var inner = c.href && c.href.indexOf('#3d') !== -1 ? '<span class="nav-3d-badge">3D</span> ' + c.text : c.text;
+        return '<a class="' + cls + '" href="' + fixHref(c.href) + '">' + inner + '</a>';
       }).join('');
       return '<div class="nav-group' + (hasActive ? ' active' : '') + '">' +
         '<button class="nav-group-btn" title="' + (TIPS[item.text]||'') + '">' + item.text + ' <span class="nav-caret">&#9662;</span></button>' +
