@@ -151,9 +151,20 @@
     });
   });
 
-  // Close dropdowns when clicking elsewhere
-  document.addEventListener('click', function() {
-    nav.querySelectorAll('.nav-group').forEach(function(g) { g.classList.remove('open'); });
+  // Close dropdowns when clicking outside nav
+  document.addEventListener('click', function(e) {
+    if (!nav.contains(e.target)) {
+      nav.querySelectorAll('.nav-group').forEach(function(g) { g.classList.remove('open'); });
+    }
+  });
+
+  // Close dropdown after clicking a link inside it (let navigation happen first)
+  nav.querySelectorAll('.nav-drop-item').forEach(function(link) {
+    link.addEventListener('click', function() {
+      setTimeout(function() {
+        nav.querySelectorAll('.nav-group').forEach(function(g) { g.classList.remove('open'); });
+      }, 50);
+    });
   });
 
   // ── Cert toggle — only on core + study group pages ──────────────
