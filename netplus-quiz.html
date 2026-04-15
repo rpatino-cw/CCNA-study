@@ -1266,6 +1266,8 @@
   <!-- ── JavaScript ──────────────────────────────────────────── -->
   <script src="data/netplus-questions.js"></script>
   <script src="data/netplus-study-content.js"></script>
+  <script src="data/netplus-exam-focus.js"></script>
+  <script src="data/netplus-glossary-data.js"></script>
   <script src="js/store.js"></script>
   <script src="js/quiz-engine.js"></script>
   <script src="js/nav.js"></script>
@@ -1676,6 +1678,44 @@
     }
 
     // ── Open Lesson ──────────────────────────────────────────────
+    function buildExamFocusHtml(topicId) {
+      const ef = window.npExamFocus ? window.npExamFocus[topicId] : null;
+      if (!ef) return '';
+      let h = '<div style="margin-top:16px;padding:14px 18px;border-left:2px solid #B45309;background:rgba(180,83,9,.03);border-radius:0 8px 8px 0;font-size:.82rem;line-height:1.6;color:var(--text-muted)">';
+      h += '<div style="font-family:var(--font-mono);font-size:.58rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#B45309;margin-bottom:8px">Exam Focus</div>';
+      h += '<div style="margin-bottom:6px"><strong style="color:var(--text-strong)">They ask:</strong> ' + escHtml(ef.whatTheyAsk) + '</div>';
+      if (ef.drillThis && ef.drillThis.length) {
+        h += '<div style="margin-bottom:6px"><strong style="color:var(--text-strong)">Drill:</strong></div><ul style="padding-left:16px;margin:2px 0 8px">' + ef.drillThis.map(t => '<li style="margin-bottom:2px">' + escHtml(t) + '</li>').join('') + '</ul>';
+      }
+      if (ef.labWarning) h += '<div style="padding:8px 12px;background:rgba(37,99,235,.05);border-radius:6px;margin:6px 0;color:#1E40AF;font-size:.78rem"><strong>Lab:</strong> ' + escHtml(ef.labWarning) + '</div>';
+      if (ef.commonTrap) h += '<div style="padding:8px 12px;background:rgba(220,38,38,.04);border-radius:6px;margin:6px 0;color:#991B1B;font-size:.78rem"><strong>Trap:</strong> ' + escHtml(ef.commonTrap) + '</div>';
+      h += '</div>';
+      return h;
+    }
+
+    function buildGlossaryHtml(domainId) {
+      const terms = window.npGlossaryTerms;
+      if (!terms || !terms.length) return '';
+      const d = String(domainId);
+      const mapped = terms.filter(t => {
+        if (t.domains) return t.domains.includes(d);
+        const catMap = {'Networking':'1','Infrastructure':'2','Operations':'3','Security':'4','Troubleshooting':'5'};
+        return t.c && catMap[t.c] === d;
+      });
+      if (!mapped.length) return '';
+      let h = '<div style="margin-top:14px"><div style="font-family:var(--font-mono);font-size:.58rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text-muted);margin-bottom:8px">Key Terms</div>';
+      h += '<div style="display:flex;flex-wrap:wrap;gap:5px">';
+      mapped.forEach(t => {
+        const def = t.d || t.b || '';
+        h += '<span class="g-chip" data-gterm style="font-family:var(--font-display);font-size:.7rem;font-weight:600;padding:4px 10px;background:var(--bg-card);border:1px solid var(--border);border-radius:100px;cursor:pointer;position:relative;transition:border-color .15s">' + escHtml(t.t);
+        h += '<span class="g-chip-def" style="display:none;position:absolute;left:0;top:calc(100% + 4px);z-index:50;width:260px;padding:10px 12px;background:var(--bg-card);border:1px solid var(--border);border-radius:8px;box-shadow:0 6px 20px rgba(0,0,0,.1);font-family:var(--font-body);font-size:.76rem;color:var(--text-muted);line-height:1.5"><strong style="color:var(--text-strong)">' + escHtml(t.t) + '</strong><br>' + escHtml(def);
+        if (t.tip) h += '<br><em style="color:#B45309;font-size:.72rem">' + escHtml(t.tip) + '</em>';
+        h += '</span></span>';
+      });
+      h += '</div></div>';
+      return h;
+    }
+
     function openLesson(topic) {
       learnFirstTopic = topic;
       const content = window.npStudyContent ? window.npStudyContent[topic.id] : null;
@@ -1703,6 +1743,8 @@
             <div class="lesson-card-label">Overview</div>
             <div class="lesson-summary">This topic covers: ${topic.name}. Review your notes and study materials, then take the quiz.</div>
           </div>
+          ${buildExamFocusHtml(topic.id)}
+          ${buildGlossaryHtml(topic.domainId)}
           <button class="quiz-cta" id="lf-quiz-cta">
             <div><div class="quiz-cta-text">I'm ready &mdash; quiz me on ${topic.id}</div><div class="quiz-cta-sub">Filtered questions for this topic</div></div>
             <span class="quiz-cta-arrow">&rarr;</span>
@@ -1747,6 +1789,8 @@
               ${content.examTip}
             </div>
           </div>
+          ${buildExamFocusHtml(topic.id)}
+          ${buildGlossaryHtml(topic.domainId)}
           <button class="quiz-cta" id="lf-quiz-cta">
             <div><div class="quiz-cta-text">I'm ready &mdash; quiz me</div><div class="quiz-cta-sub">Questions filtered to ${topic.id} &middot; ${escHtml(content.title)}</div></div>
             <span class="quiz-cta-arrow">&rarr;</span>
@@ -1768,6 +1812,20 @@
           startQuizWithTopicFilter(topic.id);
         });
       }
+
+      // Glossary chip toggles
+      document.querySelectorAll('#lesson-viewer-content [data-gterm]').forEach(chip => {
+        chip.addEventListener('click', e => {
+          e.stopPropagation();
+          const wasOpen = chip.querySelector('.g-chip-def').style.display === 'block';
+          document.querySelectorAll('[data-gterm] .g-chip-def').forEach(d => d.style.display = 'none');
+          document.querySelectorAll('[data-gterm]').forEach(c => c.style.borderColor = '');
+          if (!wasOpen) {
+            chip.querySelector('.g-chip-def').style.display = 'block';
+            chip.style.borderColor = '#B45309';
+          }
+        });
+      });
 
       // Show lesson state
       $select.classList.add('hidden');
