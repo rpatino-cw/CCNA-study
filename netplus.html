@@ -66,15 +66,25 @@
   .obj-subs{font-family:var(--font-body);font-size:.8rem;color:var(--ink-secondary);line-height:1.6;margin-bottom:16px;padding-left:16px}
   .obj-subs li{margin-bottom:5px}
 
-  /* Quick Path — same as core.html */
-  .quick-path{background:rgba(220,38,38,.04);border:1px solid rgba(220,38,38,.15);border-radius:var(--radius-lg);padding:16px 20px;margin-bottom:14px}
-  .qp-label{font-family:var(--font-display);font-size:.62rem;text-transform:uppercase;letter-spacing:.1em;color:var(--np);font-weight:700;margin-bottom:8px}
-  .qp-steps{display:flex;flex-direction:column;gap:10px}
-  .qp-step{display:flex;align-items:center;gap:8px;font-family:var(--font-body);font-size:.82rem;color:var(--ink-secondary)}
-  .qp-num{font-family:var(--font-mono);font-size:.65rem;font-weight:700;color:var(--np);background:rgba(220,38,38,.1);width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0}
-  .qp-step a{color:var(--ink);font-weight:600;text-decoration:none;border-bottom:1px solid rgba(220,38,38,.3)}
-  .qp-step a:hover{color:var(--np)}
-  .qp-pass{font-family:var(--font-display);font-size:.72rem;color:var(--ink-muted);margin-top:6px;padding-left:26px}
+  /* Mastery Tracker */
+  .mastery-tracker{margin-bottom:16px;border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden}
+  .mt-head{padding:12px 18px;background:var(--bg-recessed);display:flex;align-items:center;justify-content:space-between}
+  .mt-title{font-family:var(--font-display);font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-secondary)}
+  .mt-status{font-family:var(--font-mono);font-size:.72rem;font-weight:700}
+  .mt-body{padding:14px 18px;display:flex;flex-direction:column;gap:12px}
+  .mt-req{display:grid;grid-template-columns:24px 1fr;gap:10px;align-items:start}
+  .mt-check{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;flex-shrink:0;margin-top:1px}
+  .mt-check.done{background:var(--prof-strong);color:#fff}
+  .mt-check.pending{background:var(--bg-recessed);border:2px solid var(--border-strong);color:transparent}
+  .mt-detail{display:flex;flex-direction:column;gap:4px}
+  .mt-label{font-family:var(--font-display);font-size:.82rem;font-weight:600;color:var(--ink);display:flex;align-items:center;gap:8px}
+  .mt-label a{color:var(--np);text-decoration:none;font-weight:700}
+  .mt-label a:hover{text-decoration:underline}
+  .mt-sub{font-family:var(--font-body);font-size:.72rem;color:var(--ink-muted);line-height:1.4}
+  .mt-bar{height:6px;background:var(--bg-recessed);border-radius:3px;overflow:hidden;max-width:220px}
+  .mt-bar-fill{height:100%;border-radius:3px;transition:width .4s var(--ease-out)}
+  .mt-hint{font-family:var(--font-body);font-size:.72rem;color:var(--ink-muted);padding:0 18px 14px;border-top:1px solid var(--border);padding-top:10px;line-height:1.5}
+  .mt-hint strong{color:var(--ink)}
 
   /* Practice shortcuts — same as core.html */
   .obj-shortcuts{display:flex;gap:6px;flex-wrap:wrap}
@@ -94,12 +104,7 @@
   .res-tag.drill{background:rgba(180,83,9,.08);color:#B45309}
   .res-tag.lab{background:rgba(8,145,178,.08);color:#0891B2}
 
-  .res-toggle{font-family:var(--font-display);font-size:.68rem;color:var(--ink-muted);cursor:pointer;padding:6px 0;margin-bottom:4px;display:flex;align-items:center;gap:4px}
-  .res-toggle:hover{color:var(--ink)}
-  .res-toggle .caret{transition:transform .2s;font-size:.6rem}
-  .res-toggle .caret.open{transform:rotate(90deg)}
-  .res-all{display:none}
-  .res-all.open{display:block}
+  /* (toggle removed — resources shown flat) */
 
   @media(max-width:640px){.domain-heat{grid-template-columns:repeat(3,1fr)}.obj-prof{width:60px}}
   @media print{.hero-action,.stats-line,.ds-toggle,nav.top-nav{display:none!important}.ds-body,.obj-body{display:block!important}.obj-card{break-inside:avoid;border:1px solid #ccc}body{font-size:10pt}}
@@ -244,23 +249,55 @@ function openAndScroll(objId,domId){
   },200);
 }
 
-/* ── Quick Path builder (same pattern as core.html) ── */
-function buildQuickPath(objId,r){
-  var prof=npProf[objId]||0;
-  var p=Math.round(prof*100);
-  var passed=p>=70;
-  var vidTitle='',vidUrl='';
-  if(r.videos&&r.videos.length){vidTitle=r.videos[0].t;vidUrl=r.videos[0].u;}
+/* ── Mastery Tracker builder ── */
+var npLabScores={};
+try{npLabScores=JSON.parse(localStorage.getItem('np_minilab_scores')||'{}');}catch(e){}
 
-  var stepNum=1;
-  var html='<div class="quick-path"><div class="qp-label">Quick Path to Pass</div><div class="qp-steps">';
-  if(vidUrl){html+='<div class="qp-step"><span class="qp-num">'+stepNum+'</span>Watch <a href="'+vidUrl+'" target="_blank">'+esc(vidTitle)+'</a></div>';stepNum++;}
-  html+='<div class="qp-step"><span class="qp-num">'+stepNum+'</span><a href="netplus-quiz.html?learn='+objId+'">Study & Quiz '+objId+'</a> — learn the topic, then score 70%+ to pass</div>';
-  if(passed){html+='<div class="qp-step"><span class="qp-num" style="background:rgba(22,163,74,.15);color:#16A34A">&#10003;</span><span style="color:#16A34A;font-weight:600">You\'re at '+p+'% — move to the next objective</span></div>';}
-  else{stepNum++;html+='<div class="qp-step"><span class="qp-num">'+stepNum+'</span>Below 70%? Review weak areas, retake quiz</div>';}
-  html+='</div>';
-  if(passed)html+='<div class="qp-pass">You can move on. Come back for review before the exam.</div>';
-  html+='</div>';
+function buildQuickPath(objId,r){
+  var p=Math.round((npProf[objId]||0)*100);
+  var quizPass=p>=70;
+  var lab=npLabScores[objId];
+  var labPct=lab?lab.pct:0;
+  var labPass=lab&&lab.pct>=70;
+  var isMastered=quizPass&&labPass;
+  var doneCount=(quizPass?1:0)+(labPass?1:0);
+
+  var statusColor=isMastered?'var(--prof-strong)':doneCount===1?'var(--prof-mid)':'var(--prof-weak)';
+  var statusText=isMastered?'Mastered':doneCount+'/2';
+
+  var html='<div class="mastery-tracker">';
+  html+='<div class="mt-head"><span class="mt-title">What counts toward mastery</span><span class="mt-status" style="color:'+statusColor+'">'+statusText+'</span></div>';
+  html+='<div class="mt-body">';
+
+  // Requirement 1: Quiz
+  html+='<div class="mt-req">';
+  html+='<span class="mt-check '+(quizPass?'done':'pending')+'">'+(quizPass?'&#10003;':'')+'</span>';
+  html+='<div class="mt-detail">';
+  html+='<div class="mt-label"><a href="netplus-quiz.html?learn='+objId+'">Study &amp; Quiz</a> <span style="font-family:var(--font-mono);font-size:.72rem;color:'+(quizPass?'var(--prof-strong)':'var(--prof-weak)')+'">'+p+'%</span></div>';
+  html+='<div class="mt-sub">'+(quizPass?'Passed — proficiency is above 70%':'Score 70%+ on quiz questions for this topic')+'</div>';
+  html+='<div class="mt-bar"><div class="mt-bar-fill" style="width:'+Math.min(p,100)+'%;background:'+(quizPass?'var(--prof-strong)':'var(--prof-weak)')+'"></div></div>';
+  html+='</div></div>';
+
+  // Requirement 2: Mini Lab
+  html+='<div class="mt-req">';
+  html+='<span class="mt-check '+(labPass?'done':'pending')+'">'+(labPass?'&#10003;':'')+'</span>';
+  html+='<div class="mt-detail">';
+  html+='<div class="mt-label"><a href="netplus-minilab.html?topic='+objId+'">Mini Lab</a> <span style="font-family:var(--font-mono);font-size:.72rem;color:'+(labPass?'var(--prof-strong)':'var(--prof-weak)')+'">'+(lab?labPct+'%':'Not attempted')+'</span></div>';
+  html+='<div class="mt-sub">'+(labPass?'Passed — hands-on lab complete':'Complete the interactive lab with 70%+ to prove hands-on skill')+'</div>';
+  if(lab){html+='<div class="mt-bar"><div class="mt-bar-fill" style="width:'+Math.min(labPct,100)+'%;background:'+(labPass?'var(--prof-strong)':'var(--prof-weak)')+'"></div></div>';}
+  html+='</div></div>';
+
+  html+='</div>'; // end mt-body
+
+  if(isMastered){
+    html+='<div class="mt-hint" style="color:var(--prof-strong)">Both requirements met. This objective is <strong>mastered</strong>.</div>';
+  }else if(doneCount===1){
+    var missing=quizPass?'Mini Lab':'Study & Quiz';
+    html+='<div class="mt-hint">Almost there — complete the <strong>'+missing+'</strong> to master this objective.</div>';
+  }else{
+    html+='<div class="mt-hint">Complete <strong>both</strong> the quiz (70%+) and the mini lab (70%+) to master this objective.</div>';
+  }
+  html+='</div>'; // end mastery-tracker
   return html;
 }
 
@@ -274,8 +311,12 @@ var npMastered=JSON.parse(localStorage.getItem('np_core_mastered')||'{}');
 function render(){
   var allObjs=[];NP_DOMAINS.forEach(function(d){d.objs.forEach(function(id){allObjs.push(id);});});
 
-  // Auto-master at 70%
-  var mc=false;allObjs.forEach(function(id){if((npProf[id]||0)>=0.7&&!npMastered[id]){npMastered[id]=true;mc=true;}});
+  // Auto-master at 70% quiz AND 70% mini lab
+  var mc=false;allObjs.forEach(function(id){
+    var quizOk=(npProf[id]||0)>=0.7;
+    var labOk=npLabScores[id]&&npLabScores[id].pct>=70;
+    if(quizOk&&labOk&&!npMastered[id]){npMastered[id]=true;mc=true;}
+  });
   if(mc)localStorage.setItem('np_core_mastered',JSON.stringify(npMastered));
 
   var totalMastered=allObjs.filter(function(id){return npMastered[id];}).length;
@@ -341,9 +382,15 @@ function render(){
       // Skip "Study & Quiz" drills (already in Quick Path) — show PBQs, cheat sheets, external drills only
       if(r.drills)r.drills.forEach(function(dr){if(dr.h&&dr.h.indexOf('learn=')!==-1)return;var href=dr.h||dr.u||'#';resHtml+='<div class="res-row"><span class="res-tag drill">DRILL</span><a href="'+href+'"'+(dr.u?' target="_blank"':'')+'>'+esc(dr.t)+'</a></div>';});
 
-      // Shortcut buttons — mini lab first, then site tools
+      // Shortcut buttons — mini lab status + site tools
+      var labData=npLabScores[id];
+      var labDone=labData&&labData.pct>=70;
       var siteHtml='<div class="obj-shortcuts">';
-      siteHtml+='<a class="obj-sc" href="netplus-minilab.html?topic='+id+'" style="background:var(--np);color:#fff;border-color:var(--np)">Mini Lab</a>';
+      if(labDone){
+        siteHtml+='<a class="obj-sc" href="netplus-minilab.html?topic='+id+'" style="background:var(--prof-strong);color:#fff;border-color:var(--prof-strong)">Lab '+labData.pct+'%</a>';
+      }else{
+        siteHtml+='<a class="obj-sc" href="netplus-minilab.html?topic='+id+'" style="background:var(--np);color:#fff;border-color:var(--np)">Mini Lab'+(labData?' '+labData.pct+'%':'')+' — required</a>';
+      }
       if(r.site)r.site.forEach(function(s){siteHtml+='<a class="obj-sc" href="'+s.h+'">'+esc(s.t)+'</a>';});
       siteHtml+='</div>';
 
@@ -356,9 +403,7 @@ function render(){
         '<div class="obj-body" id="objbody-'+id+'">'+
           subs+
           buildQuickPath(id,r)+
-          '<div class="res-section"><div class="res-title">Practice on This Site</div>'+siteHtml+'</div>'+
-          '<div class="res-toggle" onclick="var el=this.nextElementSibling;el.classList.toggle(\'open\');this.querySelector(\'.caret\').classList.toggle(\'open\')"><span class="caret">&#9656;</span> All Resources ('+countResources(r)+')</div>'+
-          '<div class="res-all"><div class="res-section">'+resHtml+'</div></div>'+
+          '<div class="res-section"><div class="res-title">Resources</div>'+siteHtml+'<div style="margin-top:10px">'+resHtml+'</div></div>'+
         '</div></div>';
     }).join('');
 
