@@ -1,0 +1,42 @@
+name: Deploy Ping
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Wait for GitHub Pages deploy
+        run: sleep 45
+
+      - name: Ping site and verify
+        run: |
+          PAGES=("core.html" "guide.html" "roadmap.html" "quiz.html" "exam-sim.html")
+          BASE="https://rpatino-cw.github.io/CCNA-study"
+          FAIL=0
+          for page in "${PAGES[@]}"; do
+            CODE=$(curl -s -o /dev/null -w "%{http_code}" "$BASE/$page")
+            if [ "$CODE" = "200" ]; then
+              echo "✓ $page — $CODE"
+            else
+              echo "✗ $page — $CODE"
+              FAIL=1
+            fi
+          done
+          if [ "$FAIL" = "1" ]; then
+            echo ""
+            echo "Some pages returned non-200. Retrying in 30s..."
+            sleep 30
+            for page in "${PAGES[@]}"; do
+              CODE=$(curl -s -o /dev/null -w "%{http_code}" "$BASE/$page")
+              if [ "$CODE" != "200" ]; then
+                echo "FAIL: $page — $CODE (after retry)"
+                exit 1
+              fi
+              echo "✓ $page — $CODE (retry)"
+            done
+          fi
+          echo ""
+          echo "All pages live."
