@@ -139,6 +139,54 @@
     return '<a' + (isActive(item.href) ? ' class="active"' : '') + ' href="' + fixHref(item.href) + '" title="' + (TIPS[item.text]||'') + '">' + item.text + '</a>';
   }).join('\n    ');
 
+  // ── Mobile hamburger + drawer ─────────────────────────────────
+  var hamburger = document.createElement('button');
+  hamburger.className = 'nav-hamburger';
+  hamburger.setAttribute('aria-label', 'Open navigation');
+  hamburger.innerHTML = '<svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><line x1="4" y1="6" x2="18" y2="6"/><line x1="4" y1="11" x2="18" y2="11"/><line x1="4" y1="16" x2="18" y2="16"/></svg>';
+  nav.insertBefore(hamburger, nav.firstChild);
+
+  var mobileLabel = document.createElement('span');
+  mobileLabel.className = 'nav-mobile-label';
+  mobileLabel.textContent = isNetPlus ? 'Network+' : 'CCNA';
+  nav.insertBefore(mobileLabel, hamburger.nextSibling);
+
+  // Build flat drawer for mobile
+  var drawer = document.createElement('div');
+  drawer.className = 'nav-drawer';
+  var dHtml = '';
+  NAV.forEach(function(item) {
+    if (item.children) {
+      dHtml += '<div class="dr-section">' + item.text + '</div>';
+      item.children.forEach(function(c) {
+        dHtml += '<a class="dr-link dr-child' + (isActive(c.href) ? ' active' : '') + '" href="' + fixHref(c.href) + '">' + c.text + '</a>';
+      });
+    } else {
+      dHtml += '<a class="dr-link' + (isActive(item.href) ? ' active' : '') + '" href="' + fixHref(item.href) + '">' + item.text + '</a>';
+    }
+  });
+  drawer.innerHTML = dHtml;
+  document.body.appendChild(drawer);
+
+  // Toggle drawer
+  var drawerOpen = false;
+  function toggleDrawer() {
+    drawerOpen = !drawerOpen;
+    drawer.classList.toggle('open', drawerOpen);
+    hamburger.setAttribute('aria-label', drawerOpen ? 'Close navigation' : 'Open navigation');
+    hamburger.innerHTML = drawerOpen
+      ? '<svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><line x1="6" y1="6" x2="16" y2="16"/><line x1="16" y1="6" x2="6" y2="16"/></svg>'
+      : '<svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><line x1="4" y1="6" x2="18" y2="6"/><line x1="4" y1="11" x2="18" y2="11"/><line x1="4" y1="16" x2="18" y2="16"/></svg>';
+    document.body.style.overflow = drawerOpen ? 'hidden' : '';
+  }
+  hamburger.addEventListener('click', function(e) { e.stopPropagation(); toggleDrawer(); });
+  // Close on link click
+  drawer.querySelectorAll('.dr-link').forEach(function(a) {
+    a.addEventListener('click', function() { if (drawerOpen) toggleDrawer(); });
+  });
+  // Close on escape
+  document.addEventListener('keydown', function(e) { if (e.key === 'Escape' && drawerOpen) toggleDrawer(); });
+
   // Toggle dropdowns on click (mobile + desktop)
   nav.querySelectorAll('.nav-group-btn').forEach(function(btn) {
     btn.addEventListener('click', function(e) {
