@@ -1447,20 +1447,42 @@
     <div class="kb-row"><span>Quit</span> <span><kbd>Esc</kbd></span></div>
   </div>
 
-  <!-- ── JavaScript ──────────────────────────────────────────── -->
+  <!-- ── JavaScript — eager (needed at init) ──────────────────── -->
   <script defer src="./data/topics-data.js"></script>
   <script defer src="./data/questions-data.js"></script>
-  <script defer src="./data/questions-extra.js"></script>
-  <script defer src="./data/study-content.js"></script>
-  <script defer src="./data/subtopic-content-d12.js"></script>
-  <script defer src="./data/subtopic-content-d34.js"></script>
-  <script defer src="./data/subtopic-content-d56.js"></script>
-  <script defer src="./data/exam-focus.js"></script>
-  <script defer src="./data/glossary-data.js"></script>
   <script defer src="./js/subtopic-visuals.js"></script>
   <script defer src="./js/store.js"></script>
   <script defer src="./js/quiz-engine.js"></script>
+  <!-- Deferred data (1.5MB) lazy-loaded after init — see lazyLoadData() -->
   <script>document.addEventListener('DOMContentLoaded',function(){
+
+// ── Lazy script loader — defers 1.5MB of data until after first paint ──
+    function loadScript(src) {
+      return new Promise(function(resolve) {
+        var s = document.createElement('script');
+        s.src = src;
+        s.onload = resolve;
+        s.onerror = resolve; // don't block on failure
+        document.body.appendChild(s);
+      });
+    }
+    function lazyLoadData() {
+      var files = [
+        './data/questions-extra.js',
+        './data/study-content.js',
+        './data/subtopic-content-d12.js',
+        './data/subtopic-content-d34.js',
+        './data/subtopic-content-d56.js',
+        './data/exam-focus.js',
+        './data/glossary-data.js'
+      ];
+      Promise.all(files.map(loadScript)).then(function() {
+        // Merge extra questions once loaded
+        if (window.questionsExtra && Array.isArray(window.questionsExtra)) {
+          allQuestions = allQuestions.concat(window.questionsExtra);
+        }
+      });
+    }
 
 // ── Data ─────────────────────────────────────────────────────
     let topicsData = null;
@@ -1498,18 +1520,16 @@
         topicsData = window.topicsData;
         const qData = window.questionsData;
         allQuestions = Array.isArray(qData) ? qData : (qData.questions || []);
-        // Merge extra questions
-        if (window.questionsExtra && Array.isArray(window.questionsExtra)) {
-          allQuestions = allQuestions.concat(window.questionsExtra);
-        }
         domains = topicsData.domains || [];
       } catch (e) {
         console.warn('Could not load data files:', e);
-        // If questions.json doesn't exist yet, use empty array
         if (topicsData && !allQuestions.length) {
           domains = topicsData.domains || [];
         }
       }
+
+      // Lazy-load remaining 1.5MB of data after first paint
+      lazyLoadData();
 
       // Initialize proficiency from topics if first visit
       store.initProficiency(topicsData);
