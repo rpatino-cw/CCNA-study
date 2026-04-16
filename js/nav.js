@@ -29,6 +29,7 @@
       { text: 'Glossary', href: 'glossary.html' },
       { text: 'Resources', href: 'resources.html' },
       { text: 'Exam Objectives', href: 'objectives.html' },
+      { text: 'Micro-Topics', href: 'micro-topics.html' },
       { text: 'Books', href: 'book.html' },
       { text: "Jeremy's IT Lab", href: 'jeremy-labs.html' },
       { text: 'OSPF Mastery', href: 'ospf-mastery.html' },
