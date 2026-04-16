@@ -244,7 +244,14 @@ window.subtopicContentD12 = {
       practice: "In Packet Tracer: build a two-tier network with 2 collapsed core/distribution L3 switches and 4 access switches. Configure SVIs on the L3 switches for inter-VLAN routing. Uplink each access switch to both L3 switches for redundancy. Assign VLANs and verify inter-VLAN routing with 'show ip route'. Then draw the same topology on paper, labeling each layer.",
       effort: "medium",
       meta: "Jeremy's IT Lab Day 24 (LAN Architecture) covers two-tier vs three-tier in detail. The exam asks scenario-based questions: 'A small office with 50 users needs a campus design -- which architecture?' Answer: two-tier. Wendell Odom OCG Chapter 11 covers campus LAN design. Draw both architectures on paper until you can reproduce them from memory."
-    }
+    },
+    micro: [
+      { id: "1.2.a.1", term: "Two-tier (collapsed core)",    def: "Access + combined core/distribution layer. Used in small/medium campuses (~<200 users, single building). Cheaper, simpler, less scalable.", weight: "high" },
+      { id: "1.2.a.2", term: "Collapsed core/distribution switch", def: "Single layer performing inter-VLAN routing, ACLs, QoS, HSRP/VRRP, and high-speed backbone forwarding. Typically L3 (Cat 9300/9500).", weight: "high" },
+      { id: "1.2.a.3", term: "Access layer (two-tier)",      def: "L2 switches connecting endpoints. Same role as in three-tier: port security, 802.1X, DHCP snooping.", weight: "med" },
+      { id: "1.2.a.4", term: "HSRP / VRRP default gateway redundancy", def: "First Hop Redundancy Protocols. Allow two switches to share a virtual IP as default gateway. Deployed at collapsed core or distribution.", weight: "high" },
+      { id: "1.2.a.5", term: "Two-tier use case",           def: "Single building or small multi-building site, <200 users, limited growth. Start here, migrate to three-tier on scale.", weight: "med" }
+    ]
   },
 
   "1.2.b": {
@@ -264,7 +271,16 @@ window.subtopicContentD12 = {
       practice: "In Packet Tracer: build a three-tier topology with 2 core switches, 2 distribution switches, and 4 access switches. Configure the distribution layer as L3 with SVIs for inter-VLAN routing. Use trunk links between access and distribution. Use routed links (L3 point-to-point) between distribution and core. Run OSPF between distribution and core. Verify with 'show ip route' that all VLANs are reachable end-to-end. Draw the topology on paper and label every layer, switch role, and link type.",
       effort: "high",
       meta: "Jeremy's IT Lab Day 24 (LAN Architecture) covers this in depth. Wendell Odom OCG Chapter 11 (LAN Architecture) is the definitive written reference. The exam tests layer functions -- expect questions like 'Which layer performs inter-VLAN routing?' (Distribution) or 'Which layer should NOT filter traffic?' (Core). Draw the three-tier model on paper every day during study. David Bombal also has excellent three-tier design labs on YouTube."
-    }
+    },
+    micro: [
+      { id: "1.2.b.1", term: "Access layer (three-tier)",    def: "L2 edge switches connecting endpoints. Port-level VLAN assignment, PoE, 802.1X, port security, DHCP snooping, DAI, QoS trust boundary.", weight: "high" },
+      { id: "1.2.b.2", term: "Distribution layer",           def: "L3 aggregation + policy enforcement. Inter-VLAN routing (SVIs), ACLs, QoS enforcement, route summarization, HSRP/VRRP, STP root.", weight: "high" },
+      { id: "1.2.b.3", term: "Core layer",                   def: "High-speed backbone. Pure fast forwarding — NEVER do ACLs, QoS remarking, or policy here. 10G/40G/100G uplinks.", weight: "high" },
+      { id: "1.2.b.4", term: "ADC mnemonic",                 def: "Access → Distribution → Core. Top-down or bottom-up, know each layer's function and what it must NOT do.", weight: "med" },
+      { id: "1.2.b.5", term: "Route summarization",          def: "Distribution advertises a single summary route to the core instead of many specific routes. Reduces core routing table size.", weight: "high" },
+      { id: "1.2.b.6", term: "Dual-homed access",            def: "Each access switch connects to BOTH distribution switches for redundancy. Standard three-tier practice.", weight: "high" },
+      { id: "1.2.b.7", term: "Three-tier scalability",       def: "Scales by adding distribution blocks without redesigning the core. Right for multi-building campuses with thousands of users.", weight: "med" }
+    ]
   },
 
   "1.2.c": {
@@ -284,7 +300,17 @@ window.subtopicContentD12 = {
       practice: "Draw a spine-leaf with 2 spines and 4 leaves on paper. Draw ALL connections (every leaf to every spine = 8 links total). Label two servers on different leaves and trace the path -- always leaf-spine-leaf (2 hops). Now draw a three-tier campus and count hops between two PCs -- it varies by position. Compare the predictability. Then research: how would you add capacity? More leaves = more ports, more spines = more bandwidth.",
       effort: "medium",
       meta: "Jeremy's IT Lab Day 24 briefly covers spine-leaf. Wendell Odom OCG Chapter 11 discusses data center architectures. The CCNA exam tests the concept, not configuration. Key phrases to know: 'east-west traffic,' 'predictable latency,' 'ECMP replaces STP,' and '2 hops between any leaf pair.' If a question describes a data center with heavy server-to-server traffic and asks for the best topology, the answer is spine-leaf."
-    }
+    },
+    micro: [
+      { id: "1.2.c.1", term: "Spine-leaf fabric",            def: "Two-tier DC design. Every leaf connects to every spine; leaves never connect to leaves, spines never to spines.", weight: "high" },
+      { id: "1.2.c.2", term: "Leaf switch (ToR)",            def: "Top of Rack. Access layer for servers and storage. Do not cross-connect to other leaves.", weight: "high" },
+      { id: "1.2.c.3", term: "Spine switch",                 def: "Backbone. Only connects to leaves — never to servers or other spines. Provides uniform forwarding capacity.", weight: "high" },
+      { id: "1.2.c.4", term: "East-west traffic",            def: "Server-to-server within the DC. Dominates virtualized and distributed workloads. Spine-leaf optimizes for this.", weight: "high" },
+      { id: "1.2.c.5", term: "North-south traffic",          def: "Client-to-server (in/out of the DC). Three-tier is built for this.", weight: "med" },
+      { id: "1.2.c.6", term: "ECMP (Equal-Cost Multi-Path)", def: "L3 routing load-balances across all leaf-spine paths simultaneously. Replaces STP's link-blocking.", weight: "high" },
+      { id: "1.2.c.7", term: "Predictable 2-hop latency",    def: "Any two servers on different leaves are always exactly 2 hops apart (leaf → spine → leaf).", weight: "high" },
+      { id: "1.2.c.8", term: "VXLAN overlay",                def: "Virtual Extensible LAN. Extends L2 segments across L3 spine-leaf fabric. Paired with EVPN (BGP-based control plane).", weight: "med" }
+    ]
   },
 
   "1.2.d": {
@@ -295,7 +321,18 @@ window.subtopicContentD12 = {
       practice: "Create a comparison table with columns for each WAN technology: MPLS, Metro Ethernet, Broadband, Leased Line, SD-WAN. Rows: cost, speed, SLA, management, use case. Know that SD-WAN can use multiple transport types simultaneously (MPLS + broadband) and chooses the best path per application. Draw a diagram showing a headquarters connected to three branch offices using different WAN links.",
       effort: "medium",
       meta: "Jeremy's IT Lab Day 53 (WAN Architectures) covers WAN technologies. Wendell Odom OCG Chapter 14 covers WAN concepts. The CCNA tests concepts, not configuration. Expect questions like 'which WAN technology provides guaranteed SLAs?' (MPLS) or 'which reduces WAN costs by using internet links?' (SD-WAN). Focus on MPLS vs SD-WAN -- this is the most important comparison for the exam. Know that SD-WAN is Cisco's strategic direction."
-    }
+    },
+    micro: [
+      { id: "1.2.d.1", term: "WAN",                          def: "Wide Area Network. Connects geographically separated sites over provider infrastructure. Slower, higher-latency, more expensive than LAN.", weight: "high" },
+      { id: "1.2.d.2", term: "MPLS",                         def: "Multiprotocol Label Switching. Provider-managed private WAN with guaranteed SLAs. L3 VPN (provider routes) or L2 VPN. Expensive, reliable.", weight: "high" },
+      { id: "1.2.d.3", term: "Metro Ethernet",               def: "Ethernet-based WAN within a metro area. Types: E-Line (P2P), E-LAN (any-to-any), E-Tree (hub-and-spoke).", weight: "med" },
+      { id: "1.2.d.4", term: "Broadband (DSL/Cable/Fiber)",  def: "Consumer/business internet access. Cheap, no SLA guarantees. Common as SD-WAN underlay or backup.", weight: "med" },
+      { id: "1.2.d.5", term: "Leased line (T1/T3, E1/E3)",   def: "Dedicated P2P circuit with guaranteed bandwidth. T1=1.544 Mbps, T3=44.736 Mbps. Legacy, being replaced by Metro Ethernet/MPLS.", weight: "med" },
+      { id: "1.2.d.6", term: "SD-WAN",                       def: "Software-Defined WAN. Encrypted overlay across multiple transports (MPLS, broadband, LTE). Central controller, app-aware path selection.", weight: "high" },
+      { id: "1.2.d.7", term: "CPE",                          def: "Customer Premises Equipment. The router at the customer site, typically the demarc boundary for managed services.", weight: "med" },
+      { id: "1.2.d.8", term: "Demarcation point (demarc)",   def: "Boundary between provider-managed and customer-managed infrastructure. Provider owns up to the demarc.", weight: "med" },
+      { id: "1.2.d.9", term: "MPLS vs SD-WAN",               def: "MPLS = guaranteed SLA, expensive, provider-routed. SD-WAN = app-aware, cheaper, uses multiple transports, centrally managed. Strategic direction: SD-WAN.", weight: "high" }
+    ]
   },
 
   "1.2.e": {
@@ -314,7 +351,15 @@ window.subtopicContentD12 = {
       practice: "Draw a SOHO network diagram: ISP cloud connects to a modem, modem connects to the SOHO router/AP, router connects to 3-5 devices (PC, phone, laptop, printer, smart TV). Label the single subnet (192.168.1.0/24), the public IP on the WAN interface, and NAT happening at the router. Compare this to a two-tier enterprise drawing. The contrast should be stark -- SOHO is one device, enterprise is a hierarchy.",
       effort: "low",
       meta: "Jeremy's IT Lab Day 24 briefly mentions SOHO in the context of network architectures. This is a free-point exam topic. If the question describes a small flat network with one device doing everything, the answer is SOHO. Know that SOHO uses NAT/PAT (one public IP shared by all devices) and has no redundancy, VLANs, or advanced features. Wendell Odom OCG Chapter 11 covers SOHO in the campus design chapter."
-    }
+    },
+    micro: [
+      { id: "1.2.e.1", term: "SOHO network",                 def: "Small Office/Home Office. 1–10 users. Simple flat topology with a single all-in-one device.", weight: "high" },
+      { id: "1.2.e.2", term: "All-in-one device",            def: "Combines router, switch (4-8 ports), AP, firewall, DHCP server, and NAT gateway in one box.", weight: "high" },
+      { id: "1.2.e.3", term: "Flat network",                 def: "Single subnet and single broadcast domain. No VLANs, no inter-VLAN routing, no core/distribution layers.", weight: "med" },
+      { id: "1.2.e.4", term: "PAT (Port Address Translation)", def: "Many private IPs → single public IP using port numbers to distinguish sessions. The common form of NAT at a SOHO.", weight: "high" },
+      { id: "1.2.e.5", term: "SOHO private ranges",          def: "Typical: 192.168.0.0/24, 192.168.1.0/24, or 10.0.0.0/24.", weight: "med" },
+      { id: "1.2.e.6", term: "SOHO vs Enterprise",           def: "SOHO: one device, no redundancy, no advanced features. Enterprise: tiered, redundant, centrally managed.", weight: "med" }
+    ]
   },
 
   "1.2.f": {
@@ -331,7 +376,18 @@ window.subtopicContentD12 = {
       practice: "Create a table with three columns: On-Prem, Cloud, Hybrid. Rows: cost model (CapEx/OpEx), scaling (fixed/elastic), control (full/shared), staff needs (high/low), examples. Then create a second table for IaaS vs PaaS vs SaaS with rows: what provider manages, what you manage, and examples. Flashcard both tables.",
       effort: "low",
       meta: "Jeremy's IT Lab Day 53 covers cloud and on-prem concepts. Wendell Odom OCG Chapter 14 discusses WAN and cloud architectures. Expect 1-2 CCNA questions testing: CapEx vs OpEx, IaaS vs PaaS vs SaaS, and the shared responsibility model. Know that 'elastic scaling' is the cloud's biggest advantage, and 'full control' is on-prem's biggest advantage. These are free points if you memorize the trade-offs."
-    }
+    },
+    micro: [
+      { id: "1.2.f.1", term: "On-premises (on-prem)",        def: "Organization owns, operates, hosts all infrastructure. Full control, full responsibility. CapEx-heavy, slow to scale.", weight: "high" },
+      { id: "1.2.f.2", term: "Cloud",                        def: "Third-party-hosted infrastructure (AWS, Azure, GCP). Rented on demand. OpEx model, elastic scaling, shared responsibility.", weight: "high" },
+      { id: "1.2.f.3", term: "CapEx vs OpEx",                def: "CapEx = Capital Expenditure (upfront hardware purchase, on-prem). OpEx = Operational Expenditure (pay-as-you-go, cloud).", weight: "high" },
+      { id: "1.2.f.4", term: "IaaS",                         def: "Infrastructure as a Service. Provider manages HW + virtualization. You manage OS, apps, data. Example: AWS EC2.", weight: "high" },
+      { id: "1.2.f.5", term: "PaaS",                         def: "Platform as a Service. Provider manages HW + OS + runtime. You manage app + data. Example: AWS Elastic Beanstalk.", weight: "high" },
+      { id: "1.2.f.6", term: "SaaS",                         def: "Software as a Service. Provider manages everything. You just use the app. Example: M365, Salesforce.", weight: "high" },
+      { id: "1.2.f.7", term: "Shared responsibility model",  def: "Provider secures infrastructure; customer secures data, access, app config. Split varies by service model.", weight: "high" },
+      { id: "1.2.f.8", term: "Hybrid cloud",                 def: "Mix of on-prem + cloud. Sensitive workloads on-prem, elastic workloads in cloud.", weight: "med" },
+      { id: "1.2.f.9", term: "Direct cloud connections",     def: "Dedicated links to cloud providers. AWS Direct Connect, Azure ExpressRoute, Google Cloud Interconnect. Bypass public internet.", weight: "med" }
+    ]
   },
 
   /* ══════════════════════════════════════════════════════════════
@@ -352,7 +408,18 @@ window.subtopicContentD12 = {
       practice: "In Packet Tracer: connect two switches with a fiber link using the correct SFP modules. Build a comparison table on paper with 5 columns: Cable Type, Core Size, Light Source, Max Distance, Jacket Color, Use Case. Fill in for SMF, MMF (OM3), Cat5e, Cat6, Cat6a. Also create an SFP reference card: SFP=1G, SFP+=10G, QSFP+=40G, QSFP28=100G. Quiz yourself until instant.",
       effort: "medium",
       meta: "Jeremy's IT Lab Day 3 (Ethernet LAN Switching) and Day 4 cover cabling types. Wendell Odom OCG Chapter 2 covers Ethernet fundamentals including cable types. This is heavily tested -- expect 2-3 questions on cable types, distances, and colors. The r/ccna community recommends making a comparison table and memorizing it. Key gotcha: Cat6 supports 10G but only at 55m -- for full 100m 10G runs, you need Cat6a."
-    }
+    },
+    micro: [
+      { id: "1.3.a.1",  term: "Single-Mode Fiber (SMF)",     def: "8-10μm core. Laser transmitters. 100+ km. Yellow jacket. Used for long-haul WAN and campus building-to-building backbone.", weight: "high" },
+      { id: "1.3.a.2",  term: "Multimode Fiber (MMF)",       def: "50 or 62.5μm core. LED/VCSEL transmitters. Up to ~550m at 10G (OM3/OM4). Orange (OM1/OM2) or aqua (OM3/OM4) jacket.", weight: "high" },
+      { id: "1.3.a.3",  term: "Modal dispersion",            def: "Multiple light modes in MMF arrive at slightly different times → distance limit. Why MMF has shorter reach than SMF.", weight: "med" },
+      { id: "1.3.a.4",  term: "Fiber connectors",            def: "LC (Lucent, small form-factor, most common) and SC (Subscriber, square push-pull). Both used on SMF and MMF.", weight: "med" },
+      { id: "1.3.a.5",  term: "Cat5e",                       def: "UTP copper. 1 Gbps at 100m max. Minimum standard for modern networks.", weight: "high" },
+      { id: "1.3.a.6",  term: "Cat6",                        def: "UTP copper. 1 Gbps at 100m OR 10 Gbps at 55m max. Better shielding than Cat5e.", weight: "high" },
+      { id: "1.3.a.7",  term: "Cat6a",                       def: "UTP copper. 10 Gbps at full 100m. Required for 10GBASE-T at max distance.", weight: "high" },
+      { id: "1.3.a.8",  term: "UTP 100m limit",              def: "Unshielded twisted pair copper tops out at 100 meters (328 ft) regardless of category.", weight: "high" },
+      { id: "1.3.a.9",  term: "SFP / SFP+ / QSFP+ / QSFP28", def: "Hot-swappable transceivers. SFP=1G, SFP+=10G, QSFP+=40G, QSFP28=100G. Determines port's cable type.", weight: "high" }
+    ]
   },
 
   "1.3.b": {
@@ -369,7 +436,16 @@ window.subtopicContentD12 = {
       practice: "In Packet Tracer: connect 4 PCs to a hub and generate traffic -- observe collisions and half-duplex behavior. Then replace the hub with a switch and generate the same traffic -- observe full-duplex, no collisions. Run 'show interfaces' on the switch to verify full-duplex status. Draw both scenarios on paper: hub = one big collision domain circle around all devices; switch = separate collision domain circles around each port.",
       effort: "low",
       meta: "Jeremy's IT Lab Day 5 (Ethernet LAN Switching) covers hubs, switches, collision domains, and broadcast domains. Wendell Odom OCG Chapter 2 covers Ethernet fundamentals. The exam tests conceptual understanding: 'How many collision domains does a 24-port switch have?' (24 -- one per port). 'How many collision domains does a hub with 12 ports have?' (1 -- all ports share one). This is straightforward if you understand the concept."
-    }
+    },
+    micro: [
+      { id: "1.3.b.1", term: "Shared media Ethernet",        def: "Legacy hub-based or coax 10BASE2/5. All devices share one collision domain. Half-duplex only.", weight: "high" },
+      { id: "1.3.b.2", term: "Hub",                          def: "L1 device that repeats signals to all ports. No MAC awareness. One collision domain total. Obsolete.", weight: "high" },
+      { id: "1.3.b.3", term: "Point-to-point Ethernet",      def: "Modern switched design. Each device has a dedicated link to its switch port. No collisions, full-duplex.", weight: "high" },
+      { id: "1.3.b.4", term: "Collision domain",             def: "Segment where simultaneous transmissions collide. Hub = 1 total. Switch = 1 PER PORT (micro-segmentation).", weight: "high" },
+      { id: "1.3.b.5", term: "CSMA/CD",                      def: "Carrier Sense Multiple Access with Collision Detection. Listen before transmit, detect collisions, random backoff. Needed only in half-duplex shared media.", weight: "high" },
+      { id: "1.3.b.6", term: "Half-duplex vs full-duplex",   def: "Half-duplex = one direction at a time (hub/shared). Full-duplex = both directions simultaneously (switched point-to-point).", weight: "high" },
+      { id: "1.3.b.7", term: "Micro-segmentation",           def: "Each switch port = its own collision domain. Key benefit of switched networks over hubs.", weight: "high" }
+    ]
   },
 
   /* ══════════════════════════════════════════════════════════════
@@ -384,7 +460,15 @@ window.subtopicContentD12 = {
       practice: "In Packet Tracer: connect two devices via a hub (half-duplex shared media) and generate traffic from both simultaneously. Check 'show interfaces' on the switch for collision counters. Then replace the hub with a switch (full-duplex point-to-point) and verify collision counters stay at zero. Next, intentionally create a duplex mismatch by setting one side to full and the other to half -- generate heavy traffic and check for late collisions on the half-duplex side and CRC errors on the full-duplex side.",
       effort: "medium",
       meta: "Jeremy's IT Lab Day 9 (Switch Interfaces) covers duplex, speed, and collision troubleshooting. Wendell Odom OCG Chapter 5 covers Ethernet LAN switching fundamentals. The exam loves showing 'show interfaces' output with incrementing late collision counters and asking 'What is the most likely cause?' The answer is almost always duplex mismatch. Remember: 64 bytes is the magic number -- collisions before 64 bytes are normal on half-duplex, after 64 bytes are always a problem."
-    }
+    },
+    micro: [
+      { id: "1.4.a.1", term: "Collision",                    def: "Two devices transmit on a shared collision domain at the same time; frames corrupt. Normal on half-duplex, never on full-duplex.", weight: "high" },
+      { id: "1.4.a.2", term: "CSMA/CD",                      def: "Carrier Sense Multiple Access with Collision Detection. Listen before transmit, detect collision, jam, random backoff, retry.", weight: "high" },
+      { id: "1.4.a.3", term: "Slot time (64 bytes)",         def: "Collision window — collisions detected within the first 64 bytes are normal on half-duplex. Anything after 64 bytes is a late collision.", weight: "high" },
+      { id: "1.4.a.4", term: "Late collision",               def: "Collision detected after 64 bytes. Always abnormal. #1 symptom of duplex mismatch.", weight: "high" },
+      { id: "1.4.a.5", term: "Late collision causes",        def: "Duplex mismatch (most common), cable > 100m, faulty NIC.", weight: "high" },
+      { id: "1.4.a.6", term: "Collisions on full-duplex",    def: "Should be zero. Nonzero = something broken (duplex mismatch or hardware).", weight: "high" }
+    ]
   },
 
   "1.4.b": {
@@ -404,7 +488,14 @@ window.subtopicContentD12 = {
       practice: "In Packet Tracer: run 'show interfaces' on various switch ports. Identify the 'input errors' line and understand the hierarchy: input errors = total, which includes CRC, runts, giants, frame, overrun, ignored. Practice reading this output and identifying which sub-counter is incrementing. Create a troubleshooting flowchart: CRC errors → replace cable → check EMI → try different port → replace NIC → check duplex settings.",
       effort: "medium",
       meta: "Jeremy's IT Lab Day 9 covers interface troubleshooting and error counters. Wendell Odom OCG Chapter 5-6 covers Ethernet frame structure and the FCS/CRC mechanism. The exam frequently shows 'show interfaces' output with CRC errors and asks for the cause. The answer is always a physical layer issue -- bad cable is the #1 cause. Remember that CRC errors sit inside the 'input errors' total, and troubleshooting always starts at Layer 1."
-    }
+    },
+    micro: [
+      { id: "1.4.b.1", term: "CRC / FCS",                    def: "Frame Check Sequence. 32-bit checksum appended to each Ethernet frame. Receiver recalculates and compares.", weight: "high" },
+      { id: "1.4.b.2", term: "CRC error",                    def: "FCS mismatch at receiver → frame discarded. Counter increments. Always a Layer 1 problem.", weight: "high" },
+      { id: "1.4.b.3", term: "CRC error causes",             def: "Bad/damaged cable (#1), EMI, faulty NIC or port, duplex mismatch, dirty fiber connectors.", weight: "high" },
+      { id: "1.4.b.4", term: "Input errors hierarchy",       def: "input errors = CRC + runts + giants + frame + overrun + ignored. Identify which sub-counter is rising.", weight: "high" },
+      { id: "1.4.b.5", term: "Troubleshooting order (L1)",   def: "Replace cable → check EMI → different port → replace NIC → check duplex. Always bottom-up.", weight: "med" }
+    ]
   },
 
   "1.4.c": {
@@ -421,7 +512,15 @@ window.subtopicContentD12 = {
       practice: "Create a flashcard with both thresholds: Runt < 64, Giant > 1518. Then create a troubleshooting card: runts on half-duplex → collisions (check if this should be full-duplex). Runts on full-duplex → duplex mismatch or bad NIC. Giants → check MTU settings on both sides, check for jumbo frame config. In Packet Tracer, run 'show interfaces' and find the runt/giant counters in the output -- practice reading the full error line.",
       effort: "low",
       meta: "Jeremy's IT Lab Day 9 covers interface errors. Wendell Odom OCG Chapter 5-6. The exam asks for exact byte thresholds -- 64 and 1518 are guaranteed to appear. A common trick question: 'A frame of 1522 bytes is received on a trunk port. Is this a giant?' Answer: No, 1522 is valid with an 802.1Q tag (4 extra bytes). Only frames exceeding 1522 on a trunk are giants."
-    }
+    },
+    micro: [
+      { id: "1.4.c.1", term: "Ethernet minimum frame size",  def: "64 bytes. Anything smaller is a runt. Includes 14-byte header + 46-byte min payload + 4-byte FCS.", weight: "high" },
+      { id: "1.4.c.2", term: "Ethernet maximum frame size",  def: "1518 bytes standard. 1522 bytes with a single 802.1Q tag. Anything larger is a giant.", weight: "high" },
+      { id: "1.4.c.3", term: "Runt",                         def: "Frame < 64 bytes. Collision fragment on half-duplex (normal). On full-duplex = duplex mismatch or bad NIC.", weight: "high" },
+      { id: "1.4.c.4", term: "Giant",                        def: "Frame > 1518 bytes (or > 1522 on trunk). Caused by MTU mismatch or faulty NIC.", weight: "high" },
+      { id: "1.4.c.5", term: "Baby giant",                   def: "Slightly over 1518 due to 802.1Q (1522), Q-in-Q (1526), or MPLS labels. Some switches accept via 'system mtu' config.", weight: "med" },
+      { id: "1.4.c.6", term: "MTU mismatch",                 def: "One side configured for jumbo (9000 bytes), other for standard 1518 → giants on the receiving side.", weight: "med" }
+    ]
   },
 
   "1.4.d": {
@@ -438,7 +537,16 @@ window.subtopicContentD12 = {
       practice: "In Packet Tracer: run 'show interfaces' on several switch ports in different states (up/up, down/down, with traffic, without traffic). Create a cheat sheet mapping each counter to its cause: input errors → Layer 1 inbound issue, output errors → congestion/queue overflow, resets → administrative or keepalive failure, carrier transitions → link flapping. Practice reading real 'show interfaces' output until you can identify the problem from the counters in under 30 seconds.",
       effort: "medium",
       meta: "Jeremy's IT Lab Day 9 covers switch interface troubleshooting. Wendell Odom OCG Chapter 5-6. The exam WILL show you 'show interfaces' output and ask you to diagnose the problem. This is one of the most common simlet scenarios. Practice reading the output until you can instantly identify: which counters are incrementing, what they mean, and what to check first. Know that 'clear counters' resets the counters so you can measure error rates over a specific time window."
-    }
+    },
+    micro: [
+      { id: "1.4.d.1", term: "Input errors",                 def: "Total count of all inbound frame problems (CRC + runts + giants + frame + overrun + ignored).", weight: "high" },
+      { id: "1.4.d.2", term: "Output errors",                def: "Couldn't transmit a frame. Usually congestion (TX queue full). Often paired with output drops.", weight: "high" },
+      { id: "1.4.d.3", term: "Output drops",                 def: "Frames discarded from the output queue because it was full. Symptom of congestion.", weight: "med" },
+      { id: "1.4.d.4", term: "Interface resets",             def: "Interface reinitialized. Causes: shut/no-shut, keepalive failure, cable unplug, link flap.", weight: "med" },
+      { id: "1.4.d.5", term: "Carrier transitions",          def: "Count of down→up transitions. High = link flapping, usually a physical-layer problem.", weight: "high" },
+      { id: "1.4.d.6", term: "Overrun / ignored",            def: "Input buffer overflowed or frames ignored because buffer was full. Switch is overwhelmed.", weight: "med" },
+      { id: "1.4.d.7", term: "clear counters",               def: "Reset interface counters to zero. Use to measure error rates within a specific window.", weight: "med" }
+    ]
   },
 
   "1.4.e": {
@@ -456,7 +564,15 @@ window.subtopicContentD12 = {
       practice: "In Packet Tracer: configure one switch port as 'duplex full' and the other as 'duplex half' (or leave it on auto to demonstrate the fallback). Generate a large file transfer between PCs and observe the slow throughput. Run 'show interfaces' on both sides and identify: late collisions on the half-duplex side, CRC errors on the full-duplex side. Then fix the mismatch (set both to auto or both to full) and observe the errors stop. Also run 'show interfaces status' to see the duplex column -- this is the fastest way to spot a mismatch across all ports.",
       effort: "medium",
       meta: "Jeremy's IT Lab Day 9 covers duplex/speed mismatch in detail. Wendell Odom OCG Chapter 5-6. This is one of the most tested troubleshooting topics on the CCNA. The classic exam question: 'A user reports slow performance. The interface shows late collisions incrementing. What is the most likely cause?' Answer: duplex mismatch. Best practice: use auto-negotiate on both sides (Cisco's recommendation). Never set only one side manually."
-    }
+    },
+    micro: [
+      { id: "1.4.e.1", term: "Duplex mismatch",              def: "One side full-duplex, the other half-duplex. Link shows up/up but performance is terrible.", weight: "high" },
+      { id: "1.4.e.2", term: "Half-duplex side symptoms",    def: "Late collisions + FCS errors. Full-duplex side transmits whenever it wants; half-duplex detects it as collisions.", weight: "high" },
+      { id: "1.4.e.3", term: "Full-duplex side symptoms",    def: "CRC/FCS errors + runts. Collision-aborted frames from half-duplex side arrive as corrupted fragments.", weight: "high" },
+      { id: "1.4.e.4", term: "Root cause (manual+auto)",     def: "One side manual, other auto. Auto can't negotiate — falls back to IEEE defaults → mismatch.", weight: "high" },
+      { id: "1.4.e.5", term: "Fix",                          def: "Both sides auto (preferred) OR both sides manually set to identical speed+duplex.", weight: "high" },
+      { id: "1.4.e.6", term: "Detection commands",           def: "show interfaces status (fast scan), show interfaces [int] (error counters), show cdp neighbors detail (remote info).", weight: "med" }
+    ]
   },
 
   "1.4.f": {
@@ -474,7 +590,14 @@ window.subtopicContentD12 = {
       practice: "In Packet Tracer: set one switch port to 'speed 100' and 'duplex full' manually. Leave the other on auto. Check 'show interfaces status' on the auto side -- it should show 100/half (speed sensed correctly, duplex defaulted to half = mismatch). Then set both sides to 'speed auto' and 'duplex auto' and verify they negotiate correctly. This lab demonstrates exactly how the fallback rules create duplex mismatch when only one side is manual.",
       effort: "medium",
       meta: "Jeremy's IT Lab Day 9 covers auto-negotiation and the fallback rules. Wendell Odom OCG Chapter 5-6 covers Ethernet autonegotiation in detail. The exam tests the fallback behavior directly: 'Interface A is set to 100/full. Interface B is set to auto. What does Interface B negotiate to?' Answer: 100/half (speed sensed, duplex defaults to half because negotiation failed). This is one of the most missed questions. Memorize the fallback rules."
-    }
+    },
+    micro: [
+      { id: "1.4.f.1", term: "Speed mismatch",               def: "Different speeds on each side. Link usually fails to come up at all (down/down). Easier to spot than duplex mismatch.", weight: "high" },
+      { id: "1.4.f.2", term: "Auto-negotiation (IEEE 802.3u)", def: "Two sides exchange capabilities and pick best common speed/duplex. Requires BOTH sides set to auto.", weight: "high" },
+      { id: "1.4.f.3", term: "Parallel detection",           def: "When negotiation fails, auto side senses speed from electrical signal (usually correct).", weight: "med" },
+      { id: "1.4.f.4", term: "IEEE fallback defaults",       def: "When negotiation fails: half-duplex for 10/100 Mbps, full-duplex for 1000 Mbps. Source of duplex mismatch.", weight: "high" },
+      { id: "1.4.f.5", term: "Cisco best practice",          def: "Both sides auto-negotiate. If manual, match both sides exactly. Never one manual + one auto.", weight: "high" }
+    ]
   },
 
   "1.4.g": {
@@ -492,7 +615,16 @@ window.subtopicContentD12 = {
       practice: "In Packet Tracer: (1) Configure a router interface with 'ip address' but forget 'no shutdown' -- observe 'administratively down/down' in 'show ip interface brief'. (2) Add 'no shutdown' -- watch it change to 'up/up' (if cable is connected) or 'down/down' (if no cable). (3) Unplug the cable from a working interface -- observe 'down/down'. (4) Plug it back in -- observe 'up/up'. Run 'show ip interface brief' after every change and note the Status and Protocol columns. Practice this until you can predict the state before checking.",
       effort: "medium",
       meta: "Jeremy's IT Lab Day 9 (Interface Configuration) covers status codes. Wendell Odom OCG Chapter 5. This is one of the most frequently tested topics on the CCNA -- expect 2-3 questions involving interface status interpretation. The exam shows you 'show ip interface brief' output and asks what the problem is. Memorize: admin down = shutdown command, down/down = Layer 1 (cable/physical), up/down = Layer 2 (protocol), up/up = working. Also remember that router interfaces default to shutdown while switch interfaces default to no shutdown."
-    }
+    },
+    micro: [
+      { id: "1.4.g.1", term: "up/up",                        def: "Both L1 and L2 operational. Interface working normally. Desired state.", weight: "high" },
+      { id: "1.4.g.2", term: "up/down",                      def: "L1 up but L2 protocol failed. Causes: encapsulation mismatch, keepalive failure, missing clock rate on DCE serial.", weight: "high" },
+      { id: "1.4.g.3", term: "down/down",                    def: "L1 failure. Check cable, connectors, remote power, remote interface, SFP/transceiver.", weight: "high" },
+      { id: "1.4.g.4", term: "administratively down/down",   def: "Interface manually disabled with 'shutdown'. Bring up with 'no shutdown'.", weight: "high" },
+      { id: "1.4.g.5", term: "Router interface default",     def: "Shutdown by default. You must 'no shutdown' after configuring.", weight: "high" },
+      { id: "1.4.g.6", term: "Switch interface default",     def: "NOT shutdown by default. Comes up automatically when a cable is connected.", weight: "high" },
+      { id: "1.4.g.7", term: "show ip interface brief",      def: "Primary command for status code check. Shows interface, IP, Status, Protocol columns.", weight: "high" }
+    ]
   },
 
   "1.4.h": {
@@ -509,7 +641,16 @@ window.subtopicContentD12 = {
       practice: "In Packet Tracer: configure a switch with 8 ports -- some in VLAN 10, some in VLAN 20, one shutdown, one as a trunk, one with a duplex mismatch. Run 'show interfaces status' and identify each port's state, VLAN, duplex, and speed at a glance. Then run 'show interfaces' on the mismatched port and identify the error counters. Practice until you can read both outputs and diagnose the problem in under 30 seconds. Also practice 'show interfaces trunk' to verify trunk port settings.",
       effort: "medium",
       meta: "Jeremy's IT Lab Day 9 covers these commands. Wendell Odom OCG Chapter 5-6. The exam WILL show you output from these commands and ask you to identify the problem -- this is one of the most common simlet formats. Practice reading real output (not just memorizing concepts). Key things to look for in 'show interfaces status': err-disabled status (security violation), wrong VLAN assignment, duplex mismatch (one side full, other half), notconnect (cable issue). In 'show interfaces': incrementing error counters (CRC, late collisions, runts) and carrier transitions (link flapping)."
-    }
+    },
+    micro: [
+      { id: "1.4.h.1", term: "show interfaces [int]",        def: "Deep per-interface view. MAC, MTU, bandwidth, duplex, speed, and all error counters.", weight: "high" },
+      { id: "1.4.h.2", term: "show interfaces status",       def: "Summary table of all ports: Port, Name, Status, Vlan, Duplex, Speed, Type. Fastest way to scan for problems.", weight: "high" },
+      { id: "1.4.h.3", term: "Status column values",         def: "connected (up/up), notconnect (down/down), disabled (shutdown), err-disabled (auto-shut).", weight: "high" },
+      { id: "1.4.h.4", term: "err-disabled",                 def: "Switch auto-shutdown due to security violation (port security), BPDU guard, or error condition. Requires shut/no-shut or errdisable recovery to restore.", weight: "high" },
+      { id: "1.4.h.5", term: "show ip interface brief",      def: "L3-focused: interface name, IP, OK?, Method, Status, Protocol. Use for IP and up/down check.", weight: "high" },
+      { id: "1.4.h.6", term: "show interfaces trunk",        def: "Trunk-specific: native VLAN, allowed VLANs, encapsulation, trunking mode.", weight: "high" },
+      { id: "1.4.h.7", term: "a- prefix on duplex",          def: "Means auto-negotiated result (e.g., a-full = auto-negotiated to full-duplex).", weight: "med" }
+    ]
   },
 
   /* ══════════════════════════════════════════════════════════════
@@ -530,7 +671,17 @@ window.subtopicContentD12 = {
       practice: "Create a detailed comparison table: TCP vs UDP. Columns: Feature, TCP, UDP. Rows: Connection type (connection-oriented vs connectionless), Reliability (ACK/retransmit vs best-effort), Ordering (sequence numbers vs none), Header size (20+ bytes vs 8 bytes), Speed (slower vs faster), Flow control (windowing vs none), Use cases (web/email/file transfer vs voice/video/DNS queries). Write this table from memory 5 times until it's automatic.",
       effort: "medium",
       meta: "Jeremy's IT Lab Day 23 (TCP and UDP) is the essential video for this topic. Wendell Odom OCG Chapter 4 (TCP/IP Transport Layer) covers TCP in depth. The exam tests TCP vs UDP characteristics heavily -- expect 3-5 questions. Know the TCP header fields (especially sequence number, ACK number, flags, window size) and the reliability mechanisms. The comparison table you memorize will answer most questions directly."
-    }
+    },
+    micro: [
+      { id: "1.5.a.1", term: "TCP",                          def: "Transmission Control Protocol. L4, connection-oriented, reliable, ordered delivery.", weight: "high" },
+      { id: "1.5.a.2", term: "TCP sequence numbers",         def: "Every byte of data has a sequence number. Enables ordered reassembly and duplicate detection.", weight: "high" },
+      { id: "1.5.a.3", term: "TCP acknowledgments (ACK)",    def: "Receiver confirms received bytes. Missing ACK triggers retransmission at sender.", weight: "high" },
+      { id: "1.5.a.4", term: "TCP retransmission",           def: "Sender resends unacknowledged data after timeout. Core reliability mechanism.", weight: "high" },
+      { id: "1.5.a.5", term: "TCP flow control (windowing)", def: "Receiver advertises window size — how much unACK'd data sender may transmit.", weight: "high" },
+      { id: "1.5.a.6", term: "TCP congestion control",       def: "Slow start, congestion avoidance, fast retransmit/recovery. Adjusts send rate to avoid loss.", weight: "med" },
+      { id: "1.5.a.7", term: "TCP header size",              def: "20 bytes minimum, 60 bytes maximum (with options). Larger than UDP.", weight: "high" },
+      { id: "1.5.a.8", term: "TCP flags",                    def: "SYN (synchronize), ACK (acknowledge), FIN (finish), RST (reset), PSH (push), URG (urgent).", weight: "high" }
+    ]
   },
 
   "1.5.b": {
@@ -548,7 +699,16 @@ window.subtopicContentD12 = {
       practice: "Draw the three-way handshake 10 times from memory with all details: flags (SYN, SYN-ACK, ACK), example sequence numbers (seq=100 → seq=300/ack=101 → ack=301), and the states on each side (SYN-SENT, SYN-RECEIVED, ESTABLISHED). If you have Wireshark, capture traffic while opening a web page and filter for 'tcp.flags.syn==1' to find the handshake packets. Examine the sequence numbers and flags in the packet detail pane.",
       effort: "medium",
       meta: "Jeremy's IT Lab Day 23 (TCP and UDP) covers the three-way handshake with clear diagrams. Wendell Odom OCG Chapter 4. This is nearly guaranteed on the exam -- it is one of the most classic networking exam questions across all certifications. Draw the handshake from memory until you can do it in under 10 seconds. Know the exact flag sequence: SYN → SYN-ACK → ACK. Know that both sides exchange initial sequence numbers during this process."
-    }
+    },
+    micro: [
+      { id: "1.5.b.1", term: "Three-way handshake sequence", def: "SYN → SYN-ACK → ACK. Establishes TCP connection and synchronizes sequence numbers.", weight: "high" },
+      { id: "1.5.b.2", term: "SYN (step 1)",                 def: "Client sends SYN flag with its Initial Sequence Number (ISN). Enters SYN-SENT state.", weight: "high" },
+      { id: "1.5.b.3", term: "SYN-ACK (step 2)",             def: "Server responds with SYN + ACK. Carries server's ISN and ACKs client's SYN (ack = client ISN + 1).", weight: "high" },
+      { id: "1.5.b.4", term: "ACK (step 3)",                 def: "Client ACKs server's SYN (ack = server ISN + 1). Both sides enter ESTABLISHED.", weight: "high" },
+      { id: "1.5.b.5", term: "Initial Sequence Number (ISN)", def: "Random 32-bit starting sequence number each side chooses. Exchanged during handshake.", weight: "med" },
+      { id: "1.5.b.6", term: "MSS (Maximum Segment Size)",   def: "Largest TCP payload each side will accept. Negotiated in the handshake options.", weight: "med" },
+      { id: "1.5.b.7", term: "ESTABLISHED state",            def: "Both sides completed handshake; ready for application data transfer.", weight: "high" }
+    ]
   },
 
   "1.5.c": {
@@ -566,7 +726,15 @@ window.subtopicContentD12 = {
       practice: "Draw both the three-way handshake (SYN → SYN-ACK → ACK) and four-way teardown (FIN → ACK → FIN → ACK) side by side. Practice drawing both from memory in under 30 seconds. In Wireshark, filter for 'tcp.flags.fin==1' after closing a web page to find the teardown packets. Also look for RST packets ('tcp.flags.reset==1') -- they're common when connections are refused or forcibly closed.",
       effort: "low",
       meta: "Jeremy's IT Lab Day 23 covers the teardown. Wendell Odom OCG Chapter 4. The teardown is less frequently tested than the handshake but still appears. The key exam question: 'What TCP flag gracefully terminates a connection?' Answer: FIN. 'What TCP flag abruptly terminates a connection?' Answer: RST. Know FIN-ACK-FIN-ACK as the graceful sequence."
-    }
+    },
+    micro: [
+      { id: "1.5.c.1", term: "Four-way teardown sequence",   def: "FIN → ACK → FIN → ACK. Each direction of the full-duplex connection closes independently.", weight: "high" },
+      { id: "1.5.c.2", term: "FIN flag",                     def: "'I have no more data to send.' Initiates graceful close of one direction.", weight: "high" },
+      { id: "1.5.c.3", term: "Half-close",                   def: "After one side FINs, it can still receive. That direction closes, other stays open until its own FIN.", weight: "med" },
+      { id: "1.5.c.4", term: "TIME-WAIT state",              def: "After final ACK, client waits 2× MSL (max segment lifetime, ~60-120s) to catch delayed segments.", weight: "med" },
+      { id: "1.5.c.5", term: "RST flag",                     def: "Abrupt connection termination. No FIN/ACK exchange. Used for refused connections, crashes, or firewall denies.", weight: "high" },
+      { id: "1.5.c.6", term: "Graceful vs abrupt close",     def: "FIN = graceful (hang-up after goodbye). RST = abrupt (slam phone down).", weight: "high" }
+    ]
   },
 
   "1.5.d": {
@@ -584,7 +752,15 @@ window.subtopicContentD12 = {
       practice: "Draw a diagram showing windowing: Sender sends segments 1, 2, 3 (window=3). Receiver ACKs with ack=4 and window=5. Sender now sends segments 4, 5, 6, 7, 8. Receiver ACKs with ack=9 and window=2 (buffer getting full). Sender can only send 2 more. This visual exercise makes the concept concrete. Also create a flashcard: 'What TCP mechanism prevents a fast sender from overwhelming a slow receiver?' Answer: windowing/flow control.",
       effort: "medium",
       meta: "Jeremy's IT Lab Day 23 covers windowing conceptually. Wendell Odom OCG Chapter 4 goes deeper into TCP flow control and congestion control. The CCNA tests conceptual understanding only -- you will NOT calculate window sizes. Key exam answers: 'Which TCP feature provides flow control?' = windowing. 'What happens when window size = 0?' = sender stops transmitting. 'How does TCP ensure ordered delivery?' = sequence numbers."
-    }
+    },
+    micro: [
+      { id: "1.5.d.1", term: "TCP window size",              def: "Bytes the sender can transmit before waiting for an ACK. Dynamically advertised by receiver.", weight: "high" },
+      { id: "1.5.d.2", term: "Window size 0",                def: "Receiver buffer full. Tells sender to stop transmitting until an update.", weight: "high" },
+      { id: "1.5.d.3", term: "Slow start",                   def: "Connection begins with small window; doubles on each RTT (exponential) until ssthresh.", weight: "med" },
+      { id: "1.5.d.4", term: "Congestion avoidance",         def: "After ssthresh, window grows linearly (additive increase) to avoid overshooting capacity.", weight: "med" },
+      { id: "1.5.d.5", term: "Fast retransmit",              def: "3 duplicate ACKs → retransmit missing segment immediately without waiting for timeout.", weight: "med" },
+      { id: "1.5.d.6", term: "Sequence number uses",         def: "Ordering (reassembly), duplicate detection, and ACK reporting ('send me byte N next').", weight: "high" }
+    ]
   },
 
   "1.5.e": {
@@ -598,7 +774,15 @@ window.subtopicContentD12 = {
       practice: "Create a side-by-side comparison card: TCP header (20 bytes, 10+ fields, connection state, reliability mechanisms) vs UDP header (8 bytes, 4 fields, no state, no reliability). List 5 TCP applications (HTTP, HTTPS, FTP, SSH, SMTP) and 5 UDP applications (DNS, DHCP, TFTP, SNMP, voice/video). For each, explain WHY it uses that protocol. This 'why' understanding helps answer scenario-based exam questions.",
       effort: "low",
       meta: "Jeremy's IT Lab Day 23 covers UDP characteristics. Wendell Odom OCG Chapter 4. If the exam asks 'which protocol has lower overhead?' = UDP. 'Which is used for real-time voice/video?' = UDP. 'Which provides no guarantees of delivery?' = UDP. 'Which protocol's header is 8 bytes?' = UDP. These are easy points if you memorize the characteristics and common applications."
-    }
+    },
+    micro: [
+      { id: "1.5.e.1", term: "UDP",                          def: "User Datagram Protocol. L4, connectionless, best-effort, no reliability, low overhead.", weight: "high" },
+      { id: "1.5.e.2", term: "UDP header size",              def: "8 bytes only. Four fields: source port, destination port, length, checksum.", weight: "high" },
+      { id: "1.5.e.3", term: "Connectionless",               def: "No handshake, no connection state. Sender just sends datagrams.", weight: "high" },
+      { id: "1.5.e.4", term: "Best-effort delivery",         def: "No ACKs, no retransmission. Lost datagrams stay lost unless app implements its own reliability.", weight: "high" },
+      { id: "1.5.e.5", term: "No ordering",                  def: "Datagrams can arrive out of order; no sequence numbers to reassemble.", weight: "high" },
+      { id: "1.5.e.6", term: "UDP use cases",                def: "VoIP, video streaming/conferencing, online gaming, DNS queries, DHCP, SNMP, Syslog, NTP, TFTP.", weight: "high" }
+    ]
   },
 
   "1.5.f": {
@@ -615,7 +799,19 @@ window.subtopicContentD12 = {
       practice: "Create Anki flashcards (or physical index cards) for every TCP port. Front: protocol name. Back: port number + TCP/UDP + one-line description. Drill daily for 2 weeks minimum. Also create reverse cards (port number → protocol). Group them by function: remote access (SSH=22, Telnet=23), web (HTTP=80, HTTPS=443), email (SMTP=25, POP3=110, IMAP=143), file transfer (FTP=20/21). Test yourself in both directions until you can answer in under 2 seconds per port.",
       effort: "high",
       meta: "Jeremy's IT Lab covers ports across multiple days (Day 23, 38-42). Wendell Odom OCG Chapter 4. Port numbers appear in 5-10 CCNA questions -- this is one of the most heavily tested topics. The r/ccna subreddit universally recommends Anki spaced repetition for port memorization. Two weeks of daily drills is the standard recommendation. Do not skip this -- it's pure memorization but worth significant exam points."
-    }
+    },
+    micro: [
+      { id: "1.5.f.1",  term: "FTP Data — TCP 20",           def: "FTP data channel (active mode). Carries the actual file bytes.", weight: "high" },
+      { id: "1.5.f.2",  term: "FTP Control — TCP 21",        def: "FTP command channel. Maintains the session (login, ls, get, put).", weight: "high" },
+      { id: "1.5.f.3",  term: "SSH — TCP 22",                def: "Secure Shell. Encrypted remote CLI access. Replaced Telnet. Always use this.", weight: "high" },
+      { id: "1.5.f.4",  term: "Telnet — TCP 23",             def: "Unencrypted remote CLI. Passwords in plaintext. Never use in production.", weight: "high" },
+      { id: "1.5.f.5",  term: "SMTP — TCP 25",               def: "Simple Mail Transfer Protocol. Server-to-server mail relay. Port 587 used for authenticated submission.", weight: "high" },
+      { id: "1.5.f.6",  term: "HTTP — TCP 80",               def: "Unencrypted web. Session cookies and credentials exposed.", weight: "high" },
+      { id: "1.5.f.7",  term: "POP3 — TCP 110",              def: "Post Office Protocol v3. Retrieves email; typically deletes from server.", weight: "high" },
+      { id: "1.5.f.8",  term: "IMAP — TCP 143",              def: "Internet Message Access Protocol. Access email kept on server. Multi-device sync.", weight: "high" },
+      { id: "1.5.f.9",  term: "HTTPS — TCP 443",             def: "HTTP over TLS. Encrypted web. Standard for all modern sites.", weight: "high" },
+      { id: "1.5.f.10", term: "Port ranges",                 def: "0-1023 well-known (servers). 1024-49151 registered. 49152-65535 ephemeral (client-side).", weight: "high" }
+    ]
   },
 
   "1.5.g": {
@@ -632,7 +828,18 @@ window.subtopicContentD12 = {
       practice: "Add all UDP ports to the same Anki deck as TCP ports. Group by function: Infrastructure services (DNS=53, DHCP=67/68, NTP=123) vs Management/Monitoring (TFTP=69, SNMP=161/162, Syslog=514). Also memorize the syslog severity levels 0-7 -- create a separate flashcard. Quiz daily alongside TCP ports. Test in both directions: port → protocol and protocol → port.",
       effort: "high",
       meta: "Jeremy's IT Lab Day 38 (DHCP), Day 39 (DNS), Day 40 (NTP/Syslog/SNMP), Day 42 (FTP/TFTP). Wendell Odom OCG Chapter 4 and Chapter 13. Same strategy as TCP ports: Anki daily for 2+ weeks. Key gotcha on the exam: DHCP uses TWO ports and the exam asks 'which port does the DHCP server listen on?' (67) vs 'which port does the DHCP client listen on?' (68). Also know that DNS uses BOTH UDP and TCP on port 53 (covered in 1.5.h)."
-    }
+    },
+    micro: [
+      { id: "1.5.g.1", term: "DNS — UDP 53",                 def: "Standard name resolution queries. Small, stateless, fast. >99% of DNS uses UDP.", weight: "high" },
+      { id: "1.5.g.2", term: "DHCP Server — UDP 67",         def: "Server listens on 67. Receives Discover/Request from clients.", weight: "high" },
+      { id: "1.5.g.3", term: "DHCP Client — UDP 68",         def: "Client listens on 68. Receives Offer/Acknowledge from server.", weight: "high" },
+      { id: "1.5.g.4", term: "TFTP — UDP 69",                def: "Trivial FTP. No authentication, no directory listing. Used for router/switch config and IOS transfer.", weight: "high" },
+      { id: "1.5.g.5", term: "NTP — UDP 123",                def: "Network Time Protocol. Clock sync across devices. Critical for log correlation and cert validation.", weight: "high" },
+      { id: "1.5.g.6", term: "SNMP query — UDP 161",         def: "Management station sends GET/SET to device on 161.", weight: "high" },
+      { id: "1.5.g.7", term: "SNMP trap — UDP 162",          def: "Device sends unsolicited alert to management station on 162.", weight: "high" },
+      { id: "1.5.g.8", term: "Syslog — UDP 514",             def: "Centralized logging destination port. Severity levels 0-7.", weight: "high" },
+      { id: "1.5.g.9", term: "Syslog severity levels",       def: "0 Emergency, 1 Alert, 2 Critical, 3 Error, 4 Warning, 5 Notification, 6 Informational, 7 Debug. Lower = more severe.", weight: "high" }
+    ]
   },
 
   "1.5.h": {
@@ -648,8 +855,16 @@ window.subtopicContentD12 = {
       memory: "DNS = bilingual -- speaks UDP and TCP, both on port 53. UDP = quick questions ('What's the IP for google.com?' -- fast, small, default). TCP = heavy lifting ('Copy me your entire zone database' = zone transfer, or 'My UDP answer was too big' = truncation fallback). When does DNS use TCP? Two triggers: (1) zone transfers (AXFR/IXFR), (2) truncated UDP response (TC flag). Everything else = UDP.",
       practice: "Create a flashcard: Front: 'When does DNS use TCP instead of UDP?' Back: '(1) Zone transfers -- AXFR/IXFR between DNS servers. (2) Truncated UDP responses -- when the response exceeds the max UDP message size, the TC flag triggers a TCP retry.' Also create: 'What port does DNS use?' Back: 'Port 53 for BOTH TCP and UDP.' In a lab, use 'nslookup' or 'dig' to make DNS queries and observe they use UDP. If you have access to a DNS server, initiate a zone transfer and observe it uses TCP.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 39 (DNS) covers this. Wendell Odom OCG Chapter 13. This is a classic tricky exam question -- many students memorize 'DNS = UDP 53' and forget that TCP is also used. The exam asks: 'Which protocol does DNS use for zone transfers?' Answer: TCP. 'Which protocol does DNS use for standard queries?' Answer: UDP. 'On what port?' Answer: 53 for both. This is one of those questions where knowing the exception (TCP) scores you the point."
-    }
+      meta: "Jeremy's IT Lab Day 39 (DNS) covers this. Wendell Odom OCG Chapter 13. This is a classic tricky exam question -- many students memorize 'DNS = UDP 53' and forget that TCP is also used. The exam asks: 'Which protocol does DNS use for zone transfers?' Answer: TCP. 'Which protocol does DNS use for standard queries?' Answer: UDP. 'On what port?' Answer: 53 for both. This is one of those questions where knowing the exception (TCP) scores you the point.",
+    },
+    micro: [
+      { id: "1.5.h.1", term: "DNS over UDP 53",              def: "Default for standard name queries. Small, fast. Used for ~99% of DNS traffic.", weight: "high" },
+      { id: "1.5.h.2", term: "DNS over TCP 53",              def: "Used for (1) zone transfers and (2) truncated UDP responses. Same port as UDP.", weight: "high" },
+      { id: "1.5.h.3", term: "TC (Truncation) flag",         def: "Set in UDP DNS response when it's too big. Tells client to retry over TCP.", weight: "high" },
+      { id: "1.5.h.4", term: "AXFR",                         def: "Full zone transfer from primary DNS server to secondary. Uses TCP 53.", weight: "med" },
+      { id: "1.5.h.5", term: "IXFR",                         def: "Incremental zone transfer — only changes since last transfer. Uses TCP 53.", weight: "med" },
+      { id: "1.5.h.6", term: "Dual-protocol port (DNS)",     def: "DNS is the canonical example — one port (53) serving both TCP and UDP with different roles.", weight: "high" }
+    ]
   },
 
   /* ══════════════════════════════════════════════════════════════
