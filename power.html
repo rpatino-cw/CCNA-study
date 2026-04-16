@@ -1,0 +1,966 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#FAF7F2">
+<title>Power & PoE — CCNA 200-301</title>
+<meta name="description" content="Everything power for the CCNA — PoE standards, classes, cable pairs, IoT devices, power budgets, and redundancy.">
+<meta name="color-scheme" content="light">
+<link rel="icon" type="image/svg+xml" href="/CCNA-study/favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;1,8..60,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="css/shared.css">
+<style>
+  #guidePill{display:none!important}
+
+  .container-wide{max-width:1080px;padding:0 var(--s-xl)}
+  .header{padding:var(--s-xl) 0 var(--s-md);text-align:center}
+  .kicker{font-family:var(--font-mono);font-size:.7rem;color:var(--accent);letter-spacing:.18em;text-transform:uppercase;margin-bottom:8px}
+  .title{font-family:var(--font-display);font-size:2rem;font-weight:700;letter-spacing:-.02em;line-height:1.05;color:var(--ink)}
+  .subtitle{font-family:var(--font-body);font-size:1.05rem;color:var(--ink-muted);margin-top:10px;max-width:640px;margin-left:auto;margin-right:auto;line-height:1.55}
+
+  /* ── Hero 3D stage ──────────────────────────────────────── */
+  .stage{position:relative;margin:var(--s-xl) 0 var(--s-2xl);border:1px solid var(--border);border-radius:var(--radius-lg);background:linear-gradient(180deg,#1a1613 0%,#0d0a08 100%);overflow:hidden;height:520px}
+  #poe-canvas{width:100%;height:100%;display:block;cursor:grab}
+  #poe-canvas:active{cursor:grabbing}
+  .stage-overlay{position:absolute;left:18px;top:18px;font-family:var(--font-mono);font-size:.66rem;color:#d4a574;letter-spacing:.1em;text-transform:uppercase;pointer-events:none;opacity:.85}
+  .stage-hint{position:absolute;right:18px;bottom:18px;font-family:var(--font-mono);font-size:.62rem;color:#a8a29e;letter-spacing:.06em;pointer-events:none}
+  .stage-legend{position:absolute;left:18px;bottom:18px;display:flex;flex-direction:column;gap:4px;font-family:var(--font-mono);font-size:.62rem;color:#d4a574;pointer-events:none}
+  .stage-legend span{display:flex;align-items:center;gap:6px}
+  .stage-legend i{width:8px;height:8px;border-radius:50%;display:inline-block}
+
+  #device-panel{position:absolute;right:18px;top:18px;width:230px;padding:14px 16px;background:rgba(26,22,19,.92);border:1px solid #3a2e24;border-radius:6px;backdrop-filter:blur(6px);color:#f5efe6;font-family:var(--font-mono);font-size:.72rem;line-height:1.55;opacity:0;transition:opacity .3s var(--ease-out);pointer-events:none}
+  #device-panel.show{opacity:1}
+  #device-panel h4{font-family:var(--font-display);font-size:.82rem;color:#e8a85a;margin-bottom:8px;letter-spacing:.02em}
+  #device-panel .row{display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px dashed #3a2e24}
+  #device-panel .row:last-child{border:none}
+  #device-panel .k{color:#a8a29e}
+  #device-panel .v{color:#f5efe6;font-weight:600}
+
+  /* ── Section ────────────────────────────────────────────── */
+  .section{padding:var(--s-2xl) 0;border-top:1px solid var(--border)}
+  .section:first-of-type{border:none;padding-top:0}
+  .section-head{margin-bottom:var(--s-xl)}
+  .section-num{font-family:var(--font-mono);font-size:.68rem;color:var(--accent);letter-spacing:.14em;text-transform:uppercase}
+  .section-title{font-family:var(--font-display);font-size:1.45rem;font-weight:600;margin-top:6px;letter-spacing:-.01em}
+  .section-lede{font-family:var(--font-body);font-size:1rem;color:var(--ink-secondary);margin-top:10px;max-width:680px;line-height:1.65}
+
+  /* ── Standards table ────────────────────────────────────── */
+  .std-wrap{border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;background:var(--bg-surface)}
+  .std-row{display:grid;grid-template-columns:1.2fr .9fr .8fr .9fr 1fr;gap:0;padding:14px 20px;border-bottom:1px solid var(--border);align-items:center;cursor:pointer;transition:background .2s}
+  .std-row:last-child{border-bottom:none}
+  .std-row:hover{background:var(--bg-hover)}
+  .std-row.active{background:var(--accent-dim)}
+  .std-row.head{background:var(--bg-recessed);font-family:var(--font-mono);font-size:.66rem;color:var(--ink-muted);text-transform:uppercase;letter-spacing:.08em;cursor:default;padding:10px 20px}
+  .std-row.head:hover{background:var(--bg-recessed)}
+  .std-label{font-family:var(--font-display);font-weight:600;font-size:.92rem}
+  .std-sub{font-family:var(--font-mono);font-size:.66rem;color:var(--ink-muted);margin-top:2px;letter-spacing:.02em}
+  .std-watts{font-family:var(--font-mono);font-size:1rem;font-weight:600;color:var(--accent)}
+  .std-wpd{font-family:var(--font-mono);font-size:.72rem;color:var(--ink-secondary)}
+  .std-mode{font-family:var(--font-mono);font-size:.72rem}
+  .std-year{font-family:var(--font-mono);font-size:.72rem;color:var(--ink-muted)}
+  .std-detail{display:none;padding:0 20px 20px 20px;background:var(--accent-dim);border-bottom:1px solid var(--border);font-family:var(--font-body);font-size:.92rem;line-height:1.7;color:var(--ink-secondary)}
+  .std-detail.show{display:block}
+  .std-detail strong{color:var(--ink)}
+
+  /* ── Class grid ─────────────────────────────────────────── */
+  .class-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px}
+  .class-card{border:1px solid var(--border);border-radius:var(--radius);padding:16px 14px;background:var(--bg-surface);text-align:center;cursor:pointer;transition:all .2s var(--ease-out)}
+  .class-card:hover{border-color:var(--accent);transform:translateY(-2px);box-shadow:0 4px 12px rgba(180,83,9,.08)}
+  .class-card .num{font-family:var(--font-mono);font-size:.66rem;color:var(--ink-muted);letter-spacing:.1em}
+  .class-card .watts{font-family:var(--font-display);font-size:1.6rem;font-weight:700;color:var(--ink);margin:6px 0}
+  .class-card .std{font-family:var(--font-mono);font-size:.6rem;color:var(--accent);letter-spacing:.06em;text-transform:uppercase}
+  .class-card .ex{font-family:var(--font-body);font-size:.78rem;color:var(--ink-muted);margin-top:8px;line-height:1.4}
+  .class-bar{height:3px;background:var(--bg-recessed);border-radius:2px;margin-top:10px;overflow:hidden}
+  .class-bar i{display:block;height:100%;background:linear-gradient(90deg,#fbbf24,#b45309);border-radius:2px;transform-origin:left;transform:scaleX(var(--w,0));transition:transform .6s var(--ease-out)}
+
+  /* ── Cable anatomy ──────────────────────────────────────── */
+  .cable-wrap{display:grid;grid-template-columns:1fr 1fr;gap:32px;align-items:start}
+  @media(max-width:780px){.cable-wrap{grid-template-columns:1fr}}
+  .cable-svg{width:100%;background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px}
+  .cable-notes{font-family:var(--font-body);font-size:.95rem;color:var(--ink-secondary);line-height:1.7}
+  .cable-notes h4{font-family:var(--font-display);font-size:1rem;margin:18px 0 8px;color:var(--ink)}
+  .cable-notes h4:first-child{margin-top:0}
+  .cable-notes ul{margin:8px 0 0 20px}
+  .cable-notes li{margin-bottom:4px}
+  .pin-toggle{display:flex;gap:8px;margin-bottom:16px}
+  .pin-btn{font-family:var(--font-mono);font-size:.7rem;padding:6px 12px;border:1px solid var(--border);background:var(--bg-surface);border-radius:var(--radius);cursor:pointer;letter-spacing:.04em;text-transform:uppercase;transition:all .15s}
+  .pin-btn.active{background:var(--accent);color:white;border-color:var(--accent)}
+  .pin-btn:hover:not(.active){border-color:var(--accent)}
+
+  /* ── Budget simulator ───────────────────────────────────── */
+  .budget-wrap{border:1px solid var(--border);border-radius:var(--radius-lg);background:var(--bg-surface);padding:24px}
+  .budget-header{display:flex;justify-content:space-between;align-items:end;margin-bottom:20px;flex-wrap:wrap;gap:16px}
+  .budget-meter{flex:1;min-width:240px}
+  .budget-label{font-family:var(--font-mono);font-size:.66rem;color:var(--ink-muted);letter-spacing:.1em;text-transform:uppercase}
+  .budget-val{font-family:var(--font-display);font-size:2rem;font-weight:700;color:var(--ink);margin-top:2px}
+  .budget-val .used{color:var(--accent)}
+  .budget-val .total{color:var(--ink-muted);font-size:1rem;font-weight:500}
+  .budget-bar{height:10px;background:var(--bg-recessed);border-radius:5px;overflow:hidden;margin-top:10px}
+  .budget-fill{height:100%;background:linear-gradient(90deg,#16A34A,#CA8A04 70%,#DC2626 95%);transition:width .4s var(--ease-out);border-radius:5px}
+  .budget-status{font-family:var(--font-mono);font-size:.78rem;margin-top:8px}
+  .budget-status.ok{color:var(--prof-strong)}
+  .budget-status.warn{color:var(--prof-mid)}
+  .budget-status.over{color:var(--prof-weak)}
+
+  .budget-switch{margin-top:16px}
+  .budget-switch label{font-family:var(--font-mono);font-size:.7rem;color:var(--ink-muted);letter-spacing:.08em;text-transform:uppercase;margin-right:10px}
+  .budget-switch select{font-family:var(--font-mono);font-size:.82rem;padding:6px 10px;border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-surface);cursor:pointer}
+
+  .budget-devices{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin-top:20px}
+  .bd-card{border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;background:var(--bg-recessed);display:flex;align-items:center;justify-content:space-between}
+  .bd-info{font-family:var(--font-display);font-size:.85rem}
+  .bd-info .w{font-family:var(--font-mono);font-size:.7rem;color:var(--ink-muted);display:block;margin-top:2px}
+  .bd-controls{display:flex;align-items:center;gap:6px}
+  .bd-btn{width:24px;height:24px;border:1px solid var(--border);background:var(--bg-surface);border-radius:3px;cursor:pointer;font-family:var(--font-mono);font-weight:600;color:var(--ink)}
+  .bd-btn:hover{border-color:var(--accent);color:var(--accent)}
+  .bd-count{font-family:var(--font-mono);font-size:.9rem;font-weight:600;min-width:20px;text-align:center}
+
+  /* ── Feature cards ──────────────────────────────────────── */
+  .feat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px}
+  .feat-card{border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;background:var(--bg-surface);transition:all .2s var(--ease-out)}
+  .feat-card:hover{border-color:var(--accent);transform:translateY(-2px);box-shadow:0 6px 16px rgba(0,0,0,.04)}
+  .feat-card h4{font-family:var(--font-display);font-size:1rem;font-weight:600;margin-bottom:6px}
+  .feat-card .tag{display:inline-block;font-family:var(--font-mono);font-size:.62rem;color:var(--accent);background:var(--accent-dim);padding:2px 8px;border-radius:10px;letter-spacing:.06em;text-transform:uppercase;margin-bottom:10px}
+  .feat-card p{font-family:var(--font-body);font-size:.9rem;color:var(--ink-secondary);line-height:1.6}
+
+  /* ── Negotiation flow ───────────────────────────────────── */
+  .flow{display:grid;grid-template-columns:1fr;gap:12px;max-width:700px;margin:0 auto}
+  .flow-step{display:grid;grid-template-columns:44px 1fr;gap:16px;align-items:start;padding:14px 18px;border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-surface);position:relative}
+  .flow-step::before{content:'';position:absolute;left:42px;top:100%;width:2px;height:12px;background:var(--accent);opacity:.3}
+  .flow-step:last-child::before{display:none}
+  .flow-num{width:28px;height:28px;background:var(--accent);color:white;border-radius:50%;font-family:var(--font-mono);font-size:.75rem;font-weight:700;display:flex;align-items:center;justify-content:center;margin-top:2px}
+  .flow-content h5{font-family:var(--font-display);font-size:.92rem;margin-bottom:4px}
+  .flow-content p{font-family:var(--font-body);font-size:.86rem;color:var(--ink-secondary);line-height:1.55}
+  .flow-content code{font-family:var(--font-mono);font-size:.78rem;color:var(--accent);background:var(--accent-dim);padding:1px 6px;border-radius:3px}
+
+  /* ── Exam tips ──────────────────────────────────────────── */
+  .tips-box{border-left:3px solid var(--accent);padding:18px 22px;background:var(--accent-dim);border-radius:0 var(--radius) var(--radius) 0}
+  .tips-box h4{font-family:var(--font-display);font-size:1rem;margin-bottom:10px;color:var(--ink)}
+  .tips-box ul{list-style:none;padding:0}
+  .tips-box li{font-family:var(--font-body);font-size:.94rem;padding:6px 0 6px 22px;position:relative;color:var(--ink-secondary);line-height:1.55}
+  .tips-box li::before{content:'→';position:absolute;left:0;color:var(--accent);font-weight:600}
+  .tips-box li strong{color:var(--ink)}
+
+  /* ── Footer nav ─────────────────────────────────────────── */
+  .page-foot{margin-top:var(--s-2xl);padding:var(--s-xl) 0;border-top:1px solid var(--border);text-align:center;font-family:var(--font-mono);font-size:.78rem;color:var(--ink-muted)}
+  .page-foot a{color:var(--accent);text-decoration:none;margin:0 10px}
+  .page-foot a:hover{text-decoration:underline}
+
+  @media(max-width:780px){
+    .container-wide{padding:0 var(--s-lg)}
+    .title{font-size:1.5rem}
+    .stage{height:400px}
+    .std-row{grid-template-columns:1fr 1fr;gap:8px;padding:12px 14px}
+    .std-row .std-mode,.std-row .std-year{display:none}
+    .std-row.head{display:none}
+    #device-panel{position:static;width:auto;margin:0 16px 16px;opacity:1}
+  }
+</style>
+</head>
+<body>
+
+<div class="container-wide">
+
+<header class="header">
+  <div class="kicker">CCNA 200-301 · Power Systems</div>
+  <h1 class="title">Power & PoE — Every Watt, Every Pair</h1>
+  <p class="subtitle">How switches feed phones, APs, cameras, and IoT devices through the same cable that carries data. Standards, classes, cable pairs, power budgets, and the Cisco-specific gear you'll see on the exam.</p>
+</header>
+
+<!-- ═══════════ 3D HERO ═══════════ -->
+<div class="stage">
+  <div class="stage-overlay">PoE Switch → Powered Devices · Click a device</div>
+  <canvas id="poe-canvas"></canvas>
+  <div class="stage-legend">
+    <span><i style="background:#fbbf24"></i>Power flow</span>
+    <span><i style="background:#60a5fa"></i>Data flow</span>
+  </div>
+  <div class="stage-hint">Drag to rotate · Scroll to zoom</div>
+  <div id="device-panel">
+    <h4 id="dp-name">IP Phone</h4>
+    <div class="row"><span class="k">Power draw</span><span class="v" id="dp-watts">6.5W</span></div>
+    <div class="row"><span class="k">PoE class</span><span class="v" id="dp-class">Class 2</span></div>
+    <div class="row"><span class="k">Standard</span><span class="v" id="dp-std">802.3af</span></div>
+    <div class="row"><span class="k">Role</span><span class="v" id="dp-role">PD</span></div>
+  </div>
+</div>
+
+<!-- ═══════════ SECTION 1 — PoE standards ═══════════ -->
+<section class="section">
+  <div class="section-head">
+    <div class="section-num">01 · Standards</div>
+    <h2 class="section-title">IEEE PoE Standards</h2>
+    <p class="section-lede">The exam expects you to recognize the three main IEEE flavors and remember the wattage at each level. Click a row to see where it's used and the important constraints.</p>
+  </div>
+
+  <div class="std-wrap" id="std-wrap">
+    <div class="std-row head">
+      <div>Standard</div><div>PSE max</div><div>At PD</div><div>Pairs</div><div>Ratified</div>
+    </div>
+
+    <div class="std-row" data-std="af">
+      <div><div class="std-label">PoE</div><div class="std-sub">IEEE 802.3af · Type 1</div></div>
+      <div class="std-watts">15.4 W</div>
+      <div class="std-wpd">12.95 W</div>
+      <div class="std-mode">2-pair</div>
+      <div class="std-year">2003</div>
+    </div>
+    <div class="std-detail" data-detail="af">
+      The original PoE spec. 44–57 V over two pairs (either data pairs 1,2 & 3,6 — <strong>Mode A</strong> — or spare pairs 4,5 & 7,8 — <strong>Mode B</strong>). Enough for IP phones, basic APs, and small IP cameras. Power lost to cable resistance drops the PD delivery to 12.95 W.
+    </div>
+
+    <div class="std-row" data-std="at">
+      <div><div class="std-label">PoE+</div><div class="std-sub">IEEE 802.3at · Type 2</div></div>
+      <div class="std-watts">30 W</div>
+      <div class="std-wpd">25.5 W</div>
+      <div class="std-mode">2-pair</div>
+      <div class="std-year">2009</div>
+    </div>
+    <div class="std-detail" data-detail="at">
+      Doubles the budget for dual-band 802.11n APs, PTZ cameras, and video phones. Still 2-pair, but tighter cable specs (<strong>Cat 5e+</strong>) to keep resistive losses in check. Introduces richer LLDP-MED negotiation.
+    </div>
+
+    <div class="std-row" data-std="bt3">
+      <div><div class="std-label">PoE++ Type 3</div><div class="std-sub">IEEE 802.3bt · 4PPoE</div></div>
+      <div class="std-watts">60 W</div>
+      <div class="std-wpd">51 W</div>
+      <div class="std-mode">4-pair</div>
+      <div class="std-year">2018</div>
+    </div>
+    <div class="std-detail" data-detail="bt3">
+      All four pairs carry power. Enables 802.11ac/ax APs with multiple radios, thin clients, and digital signage. The 4-pair delivery halves the current per conductor, which reduces heat and cable degradation.
+    </div>
+
+    <div class="std-row" data-std="bt4">
+      <div><div class="std-label">PoE++ Type 4</div><div class="std-sub">IEEE 802.3bt · Higher power</div></div>
+      <div class="std-watts">100 W</div>
+      <div class="std-wpd">71.3 W</div>
+      <div class="std-mode">4-pair</div>
+      <div class="std-year">2018</div>
+    </div>
+    <div class="std-detail" data-detail="bt4">
+      Current ceiling for standards-based PoE. Powers laptops via USB-C hubs, small LCD displays, and compact edge compute. Requires <strong>Cat 6A</strong> for full 100m reach with stable performance.
+    </div>
+
+    <div class="std-row" data-std="upoe">
+      <div><div class="std-label">Cisco UPoE</div><div class="std-sub">Pre-standard / proprietary</div></div>
+      <div class="std-watts">60 W</div>
+      <div class="std-wpd">51 W</div>
+      <div class="std-mode">4-pair</div>
+      <div class="std-year">2011</div>
+    </div>
+    <div class="std-detail" data-detail="upoe">
+      <strong>Universal PoE</strong> — Cisco's proprietary 4-pair delivery that pre-dated 802.3bt. Found on Catalyst 4500-X, 9300, and 9400 lines. <strong>UPoE+</strong> later matched 90 W. On the exam, recognize UPoE as Cisco-specific.
+    </div>
+
+    <div class="std-row" data-std="cilp">
+      <div><div class="std-label">Cisco Inline Power</div><div class="std-sub">Pre-802.3af</div></div>
+      <div class="std-watts">7 W</div>
+      <div class="std-wpd">6.3 W</div>
+      <div class="std-mode">2-pair</div>
+      <div class="std-year">~2000</div>
+    </div>
+    <div class="std-detail" data-detail="cilp">
+      Cisco's original pre-standard inline power used on early 7960 IP phones. Detected via a special FLP (Fast Link Pulse). Legacy — you may see it named in documentation but it's not deployed on new gear.
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ SECTION 2 — Classes ═══════════ -->
+<section class="section">
+  <div class="section-head">
+    <div class="section-num">02 · Classification</div>
+    <h2 class="section-title">PoE Classes 0–8</h2>
+    <p class="section-lede">The PSE (switch) and PD (device) negotiate a power class so the switch reserves exactly what's needed. Classes 0–4 cover 802.3af/at; 5–8 were added by 802.3bt.</p>
+  </div>
+
+  <div class="class-grid">
+    <div class="class-card" style="--w:0.15">
+      <div class="num">Class 0</div><div class="watts">15.4W</div><div class="std">Default</div>
+      <div class="class-bar"><i></i></div>
+      <div class="ex">Un-classified — reserve full af budget</div>
+    </div>
+    <div class="class-card" style="--w:0.04">
+      <div class="num">Class 1</div><div class="watts">4.0W</div><div class="std">802.3af</div>
+      <div class="class-bar"><i></i></div>
+      <div class="ex">Basic sensors, door readers</div>
+    </div>
+    <div class="class-card" style="--w:0.07">
+      <div class="num">Class 2</div><div class="watts">7.0W</div><div class="std">802.3af</div>
+      <div class="class-bar"><i></i></div>
+      <div class="ex">IP phones, low-end APs</div>
+    </div>
+    <div class="class-card" style="--w:0.15">
+      <div class="num">Class 3</div><div class="watts">15.4W</div><div class="std">802.3af</div>
+      <div class="class-bar"><i></i></div>
+      <div class="ex">Wi-Fi 5 APs, IP cameras</div>
+    </div>
+    <div class="class-card" style="--w:0.30">
+      <div class="num">Class 4</div><div class="watts">30W</div><div class="std">802.3at</div>
+      <div class="class-bar"><i></i></div>
+      <div class="ex">Dual-band APs, PTZ cams</div>
+    </div>
+    <div class="class-card" style="--w:0.45">
+      <div class="num">Class 5</div><div class="watts">45W</div><div class="std">802.3bt</div>
+      <div class="class-bar"><i></i></div>
+      <div class="ex">Wi-Fi 6 APs, signage</div>
+    </div>
+    <div class="class-card" style="--w:0.60">
+      <div class="num">Class 6</div><div class="watts">60W</div><div class="std">802.3bt</div>
+      <div class="class-bar"><i></i></div>
+      <div class="ex">Thin clients, larger APs</div>
+    </div>
+    <div class="class-card" style="--w:0.75">
+      <div class="num">Class 7</div><div class="watts">75W</div><div class="std">802.3bt</div>
+      <div class="class-bar"><i></i></div>
+      <div class="ex">Compact PCs, laptops</div>
+    </div>
+    <div class="class-card" style="--w:1.00">
+      <div class="num">Class 8</div><div class="watts">90W</div><div class="std">802.3bt</div>
+      <div class="class-bar"><i></i></div>
+      <div class="ex">Displays, edge compute</div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ SECTION 3 — Cable anatomy ═══════════ -->
+<section class="section">
+  <div class="section-head">
+    <div class="section-num">03 · Cable Anatomy</div>
+    <h2 class="section-title">Which Pairs Carry Power</h2>
+    <p class="section-lede">RJ-45 has four twisted pairs. Data traditionally runs on two of them; the other two used to be "spare." PoE can deliver power over the data pairs (Mode A), the spare pairs (Mode B), or all four pairs (4PPoE).</p>
+  </div>
+
+  <div class="cable-wrap">
+    <div>
+      <div class="pin-toggle">
+        <button class="pin-btn active" data-mode="a">Mode A</button>
+        <button class="pin-btn" data-mode="b">Mode B</button>
+        <button class="pin-btn" data-mode="4pp">4-Pair</button>
+      </div>
+      <svg class="cable-svg" viewBox="0 0 400 280" id="cable-svg">
+        <defs>
+          <linearGradient id="jack" x1="0" x2="1">
+            <stop offset="0" stop-color="#e8d8b8"/>
+            <stop offset="1" stop-color="#c4a876"/>
+          </linearGradient>
+        </defs>
+        <!-- RJ45 jack body -->
+        <rect x="40" y="60" width="120" height="140" rx="4" fill="url(#jack)" stroke="#8b6f3d" stroke-width="1.5"/>
+        <rect x="48" y="68" width="104" height="124" rx="2" fill="none" stroke="#8b6f3d" stroke-width=".5" opacity=".5"/>
+        <text x="100" y="40" text-anchor="middle" font-family="Space Grotesk" font-size="11" font-weight="600" fill="#1C1917">RJ-45</text>
+        <!-- 8 pins -->
+        <g id="pins">
+          <g data-pin="1"><rect x="60" y="78" width="12" height="12" fill="#d4d0c8"/><text x="80" y="88" font-family="JetBrains Mono" font-size="9" fill="#57534E">1 · WhtOr · TX+</text></g>
+          <g data-pin="2"><rect x="60" y="94" width="12" height="12" fill="#d4d0c8"/><text x="80" y="104" font-family="JetBrains Mono" font-size="9" fill="#57534E">2 · Or    · TX−</text></g>
+          <g data-pin="3"><rect x="60" y="110" width="12" height="12" fill="#d4d0c8"/><text x="80" y="120" font-family="JetBrains Mono" font-size="9" fill="#57534E">3 · WhtGr · RX+</text></g>
+          <g data-pin="4"><rect x="60" y="126" width="12" height="12" fill="#d4d0c8"/><text x="80" y="136" font-family="JetBrains Mono" font-size="9" fill="#57534E">4 · Bl    · —</text></g>
+          <g data-pin="5"><rect x="60" y="142" width="12" height="12" fill="#d4d0c8"/><text x="80" y="152" font-family="JetBrains Mono" font-size="9" fill="#57534E">5 · WhtBl · —</text></g>
+          <g data-pin="6"><rect x="60" y="158" width="12" height="12" fill="#d4d0c8"/><text x="80" y="168" font-family="JetBrains Mono" font-size="9" fill="#57534E">6 · Gr    · RX−</text></g>
+          <g data-pin="7"><rect x="60" y="174" width="12" height="12" fill="#d4d0c8"/><text x="80" y="184" font-family="JetBrains Mono" font-size="9" fill="#57534E">7 · WhtBr · —</text></g>
+          <g data-pin="8"><rect x="60" y="190" width="12" height="12" fill="#d4d0c8"/><text x="80" y="200" font-family="JetBrains Mono" font-size="9" fill="#57534E">8 · Br    · —</text></g>
+        </g>
+        <!-- Legend -->
+        <g transform="translate(250,80)">
+          <rect x="0" y="0" width="14" height="14" fill="#b45309"/><text x="20" y="11" font-family="JetBrains Mono" font-size="10" fill="#1C1917">Power (+)</text>
+          <rect x="0" y="22" width="14" height="14" fill="#78350f"/><text x="20" y="33" font-family="JetBrains Mono" font-size="10" fill="#1C1917">Power (−)</text>
+          <rect x="0" y="44" width="14" height="14" fill="#60a5fa"/><text x="20" y="55" font-family="JetBrains Mono" font-size="10" fill="#1C1917">Data pair</text>
+          <rect x="0" y="66" width="14" height="14" fill="#d4d0c8"/><text x="20" y="77" font-family="JetBrains Mono" font-size="10" fill="#1C1917">Unused</text>
+        </g>
+      </svg>
+    </div>
+
+    <div class="cable-notes">
+      <h4>Mode A — power on data pairs</h4>
+      <ul>
+        <li>Power rides on pins <strong>1,2</strong> and <strong>3,6</strong> as common-mode DC.</li>
+        <li>Used by most <strong>endspan</strong> PSEs — PoE built into the switch itself.</li>
+        <li>Data and power share the same pairs without interfering.</li>
+      </ul>
+      <h4>Mode B — power on spare pairs</h4>
+      <ul>
+        <li>Power rides on pins <strong>4,5</strong> and <strong>7,8</strong> — the "spare" pairs in 10/100 Ethernet.</li>
+        <li>Used by <strong>midspan</strong> PSEs — PoE injectors placed between a non-PoE switch and the PD.</li>
+        <li>Doesn't work in gigabit networks that use all 4 pairs for data — which is why 1 Gb networks shifted toward 4PPoE.</li>
+      </ul>
+      <h4>4-Pair PoE (802.3bt / UPoE)</h4>
+      <ul>
+        <li>All <strong>8 conductors</strong> deliver power — current halved per wire.</li>
+        <li>Lower I²R losses, less heat in the bundle, required for 60W+ deliveries.</li>
+        <li>Cat 5e minimum; Cat 6A recommended for Class 7–8 at 100 m.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ SECTION 4 — Power negotiation flow ═══════════ -->
+<section class="section">
+  <div class="section-head">
+    <div class="section-num">04 · Handshake</div>
+    <h2 class="section-title">How the Switch Decides to Send Power</h2>
+    <p class="section-lede">A PSE never sends full voltage first. It detects, classifies, then powers — protecting non-PoE devices from being fried.</p>
+  </div>
+
+  <div class="flow">
+    <div class="flow-step">
+      <div class="flow-num">1</div>
+      <div class="flow-content">
+        <h5>Detection</h5>
+        <p>PSE sends a small voltage (2.7–10 V) and measures the PD's signature resistance. Valid PDs show <code>25 kΩ ± 1%</code>. Anything outside that range and the PSE refuses to power — a regular PC stays safe.</p>
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="flow-num">2</div>
+      <div class="flow-content">
+        <h5>Classification</h5>
+        <p>PSE bumps voltage to 15.5–20.5 V. PD replies with a current signature that maps to <strong>Class 0–8</strong>. The switch now knows how much power to reserve.</p>
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="flow-num">3</div>
+      <div class="flow-content">
+        <h5>Power-up</h5>
+        <p>Full voltage (44–57 V) applied. The PD starts drawing current within a bounded inrush profile.</p>
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="flow-num">4</div>
+      <div class="flow-content">
+        <h5>Refinement via LLDP-MED / CDP</h5>
+        <p>Once the link is up, the PD can renegotiate a more precise wattage using <code>LLDP-MED</code> TLVs or <code>CDP</code> (Cisco). This is how an AP tells the switch "I need exactly 23.4 W" instead of reserving the full class.</p>
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="flow-num">5</div>
+      <div class="flow-content">
+        <h5>Monitoring</h5>
+        <p>PSE watches current continuously. If the PD stops drawing — or yanks the cable — the switch removes power within ~400 ms and reclaims that budget for another port.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ SECTION 5 — Budget simulator ═══════════ -->
+<section class="section">
+  <div class="section-head">
+    <div class="section-num">05 · Budget Simulator</div>
+    <h2 class="section-title">Will My Switch Power Everything?</h2>
+    <p class="section-lede">Each switch has a finite <strong>PoE budget</strong> — the sum of what all PSU modules can deliver. Add devices below and watch the budget fill.</p>
+  </div>
+
+  <div class="budget-wrap">
+    <div class="budget-header">
+      <div class="budget-meter">
+        <div class="budget-label">Power Budget</div>
+        <div class="budget-val"><span class="used" id="pb-used">0.0</span> / <span class="total" id="pb-total">370 W</span></div>
+        <div class="budget-bar"><div class="budget-fill" id="pb-fill" style="width:0%"></div></div>
+        <div class="budget-status ok" id="pb-status">OK · All devices powered</div>
+      </div>
+      <div class="budget-switch">
+        <label for="sw-model">Switch model</label>
+        <select id="sw-model">
+          <option value="370">C9200-24P · 370 W (PoE+)</option>
+          <option value="740">C9200-48P · 740 W (PoE+)</option>
+          <option value="1000">C9300-24UX · 1000 W (UPoE)</option>
+          <option value="100">SMB 8-port · 100 W (PoE)</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="budget-devices" id="bd-list"></div>
+  </div>
+</section>
+
+<!-- ═══════════ SECTION 6 — Devices powered over Ethernet ═══════════ -->
+<section class="section">
+  <div class="section-head">
+    <div class="section-num">06 · Powered Devices</div>
+    <h2 class="section-title">What Runs on PoE in the Real World</h2>
+    <p class="section-lede">The CCNA exam loves asking which devices are PoE-capable. These are the common ones you should recognize on sight.</p>
+  </div>
+
+  <div class="feat-grid">
+    <div class="feat-card"><span class="tag">Voice</span><h4>IP Phones</h4><p>Cisco 7800/8800 series, desk phones, conference units. Typically Class 2–3 (7–15 W). Use LLDP-MED voice VLAN TLV to auto-configure.</p></div>
+    <div class="feat-card"><span class="tag">Wireless</span><h4>Access Points</h4><p>Catalyst 9100, Aironet, Meraki APs. Wi-Fi 5 = Class 4 (30 W). Wi-Fi 6/6E = Class 5–6 (45–60 W). Wi-Fi 7 often needs 802.3bt Class 8.</p></div>
+    <div class="feat-card"><span class="tag">Security</span><h4>IP Cameras</h4><p>Fixed cameras run on Class 2–3. PTZ (pan-tilt-zoom) cameras with heaters and IR illuminators need Class 4+ (PoE+).</p></div>
+    <div class="feat-card"><span class="tag">IoT</span><h4>Door Readers & Locks</h4><p>Badge readers, electric strikes, intercoms. Low draw (Class 1–2) but critical — often paired with UPS-backed PoE switches.</p></div>
+    <div class="feat-card"><span class="tag">IoT</span><h4>Environmental Sensors</h4><p>Temp, humidity, air-quality, occupancy sensors. Sub-4 W. Exam trick: IoT devices often run PoE even when labeled "wireless."</p></div>
+    <div class="feat-card"><span class="tag">Display</span><h4>Digital Signage & Thin Clients</h4><p>Small LCDs, kiosks, zero-clients. Needs 802.3bt Type 3/4 or UPoE. Powers both the panel and the compute unit via one cable.</p></div>
+    <div class="feat-card"><span class="tag">Building</span><h4>LED Lighting & Shades</h4><p>Low-voltage LED fixtures and motorized blinds — each 10–25 W. Tracked in the PoE budget just like any other PD.</p></div>
+    <div class="feat-card"><span class="tag">Edge</span><h4>Compact Compute</h4><p>Raspberry Pi with PoE HAT, small industrial PCs, 5G femtocells. Increasingly common on factory floors and remote sites.</p></div>
+  </div>
+</section>
+
+<!-- ═══════════ SECTION 7 — Cisco power features ═══════════ -->
+<section class="section">
+  <div class="section-head">
+    <div class="section-num">07 · Cisco Power Tech</div>
+    <h2 class="section-title">Cisco-Specific Power Features</h2>
+    <p class="section-lede">These are the names Cisco uses on their switches. On the exam, recognize what each does and which switch lines support it.</p>
+  </div>
+
+  <div class="feat-grid">
+    <div class="feat-card"><span class="tag">Delivery</span><h4>UPoE / UPoE+</h4><p>Cisco's 4-pair power on Catalyst 4500/9300/9400. UPoE = 60 W; UPoE+ = 90 W. Pre-dated 802.3bt.</p></div>
+    <div class="feat-card"><span class="tag">Redundancy</span><h4>StackPower</h4><p>Catalyst 3750-X/9300 switches stack and share a combined PoE pool. One switch's spare capacity can feed another switch's PDs. Two modes: <strong>power-sharing</strong> (default) and <strong>redundant</strong> (one PSU held as backup).</p></div>
+    <div class="feat-card"><span class="tag">Redundancy</span><h4>RPS (Redundant Power System)</h4><p>External RPS-2300 unit. If the switch's internal PSU fails, the RPS takes over — including PoE delivery. Protects access-layer switches in wiring closets.</p></div>
+    <div class="feat-card"><span class="tag">Control</span><h4>Static vs Dynamic Allocation</h4><p><code>power inline static</code> reserves class-based wattage regardless of actual draw. <code>power inline auto</code> (default) lets LLDP/CDP refine the reservation. Use static when oversubscription is a risk.</p></div>
+    <div class="feat-card"><span class="tag">Policing</span><h4>power inline police</h4><p>Limits a port's draw. If a PD exceeds the cap, the switch either logs (<code>log</code>) or shuts the port (<code>errdisable</code>). Critical in budget-constrained deployments.</p></div>
+    <div class="feat-card"><span class="tag">Monitoring</span><h4>show power inline</h4><p>The command you'll run in every lab. Shows per-port class, admin state, operational state, allocated W, and the switch's total budget. Know this output cold.</p></div>
+  </div>
+</section>
+
+<!-- ═══════════ SECTION 8 — Data-center / facility power ═══════════ -->
+<section class="section">
+  <div class="section-head">
+    <div class="section-num">08 · Beyond the Switch</div>
+    <h2 class="section-title">PSUs, PDUs & UPS — Facility Power</h2>
+    <p class="section-lede">The exam brushes against facility power when it asks about resilience. Know the layers between the wall and the PD.</p>
+  </div>
+
+  <div class="feat-grid">
+    <div class="feat-card"><span class="tag">Layer 1</span><h4>Dual PSUs</h4><p>Enterprise switches ship with two hot-swap power supplies, usually fed by separate circuits. Loss of one circuit doesn't drop the switch. Both PSUs can combine to increase the PoE budget.</p></div>
+    <div class="feat-card"><span class="tag">Layer 2</span><h4>PDU (Power Distribution Unit)</h4><p>Rack-mounted strip that feeds every device in the cabinet. <strong>Basic</strong> PDUs are dumb outlets; <strong>metered</strong> PDUs report draw; <strong>switched</strong> PDUs let you reboot individual outlets remotely.</p></div>
+    <div class="feat-card"><span class="tag">Layer 3</span><h4>UPS (Uninterruptible Power Supply)</h4><p>Battery-backed unit that bridges the gap until generators start. Critical for keeping switches — and therefore IP phones, security, and access control — online during utility outages.</p></div>
+    <div class="feat-card"><span class="tag">Layer 4</span><h4>Generators & ATS</h4><p>Diesel or natural-gas generators kick in within ~10 s. An <strong>automatic transfer switch</strong> moves load from utility to generator. You'll see this in data-center questions, not access-switch questions.</p></div>
+    <div class="feat-card"><span class="tag">A+B</span><h4>Dual-Feed / A+B Power</h4><p>Critical racks get two independent power paths — A-side and B-side — from separate UPS/PDU trees. Dual-PSU devices plug one cord into each. Any single failure is invisible.</p></div>
+    <div class="feat-card"><span class="tag">Thermal</span><h4>Power → Heat</h4><p>Every watt pulled becomes heat. Dense PoE deployments can stress closet cooling — a 740 W switch with 600 W of active PoE draw puts ~2,500 BTU/hr into the room.</p></div>
+  </div>
+</section>
+
+<!-- ═══════════ SECTION 9 — Exam tips ═══════════ -->
+<section class="section">
+  <div class="section-head">
+    <div class="section-num">09 · Exam Tips</div>
+    <h2 class="section-title">What to Memorize for Test Day</h2>
+  </div>
+
+  <div class="tips-box">
+    <h4>Fast-recall power facts</h4>
+    <ul>
+      <li><strong>802.3af → 15.4 W</strong> at PSE, 12.95 W at PD. Mnemonic: "af" = "af-fordable, fifteen."</li>
+      <li><strong>802.3at → 30 W</strong> at PSE, 25.5 W at PD. "PoE+" → one plus, times two → 30.</li>
+      <li><strong>802.3bt Type 3 → 60 W</strong>, <strong>Type 4 → 100 W</strong>. 4-pair only.</li>
+      <li><strong>Mode A</strong> = power on data pairs (1,2 / 3,6). <strong>Mode B</strong> = power on spare pairs (4,5 / 7,8).</li>
+      <li><strong>Endspan</strong> = PoE built into the switch. <strong>Midspan</strong> = external injector.</li>
+      <li><strong>PSE</strong> = the switch. <strong>PD</strong> = the powered device. Never confuse them.</li>
+      <li>A PSE does <strong>detection → classification → power-up</strong>, then refines with <strong>LLDP-MED</strong> or <strong>CDP</strong>.</li>
+      <li>Cisco proprietary: <strong>UPoE (60 W)</strong>, <strong>UPoE+ (90 W)</strong>, <strong>Inline Power (7 W, legacy)</strong>.</li>
+      <li><strong>StackPower</strong> pools PoE across stacked switches. Two modes: power-sharing and redundant.</li>
+      <li>The budget is per-<em>switch</em>, not per-<em>port</em>. A 370 W switch can't light 24 ports at 30 W each.</li>
+      <li>PoE runs over <strong>copper Ethernet only</strong> — never over fiber.</li>
+    </ul>
+  </div>
+</section>
+
+<nav class="page-foot">
+  <a href="core.html">← CORE</a>
+  <a href="devices.html">Devices & Topologies</a>
+  <a href="learn-visually.html">Learn Visually</a>
+  <a href="glossary.html">Glossary</a>
+  <a href="quiz.html">Quiz</a>
+</nav>
+
+</div><!-- /.container-wide -->
+
+<!-- ═══════════ Three.js hero scene ═══════════ -->
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+  }
+}
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+const canvas = document.getElementById('poe-canvas');
+const panel  = document.getElementById('device-panel');
+const container = canvas.parentElement;
+
+const scene = new THREE.Scene();
+scene.fog = new THREE.Fog(0x0d0a08, 14, 40);
+
+const camera = new THREE.PerspectiveCamera(46, container.clientWidth/container.clientHeight, 0.1, 100);
+camera.position.set(0, 7, 12);
+
+const renderer = new THREE.WebGLRenderer({ canvas, antialias:true, alpha:false });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(container.clientWidth, container.clientHeight, false);
+renderer.setClearColor(0x0d0a08, 1);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+// Lighting
+const ambient = new THREE.AmbientLight(0xfff0d0, 0.35);
+scene.add(ambient);
+const key = new THREE.DirectionalLight(0xffd89a, 1.1);
+key.position.set(6, 12, 6);
+key.castShadow = true;
+key.shadow.mapSize.set(1024,1024);
+scene.add(key);
+const rim = new THREE.PointLight(0xffa040, 0.8, 18);
+rim.position.set(-4, 3, -4);
+scene.add(rim);
+
+// Ground
+const groundGeo = new THREE.CircleGeometry(18, 48);
+const groundMat = new THREE.MeshStandardMaterial({ color:0x1a1410, roughness:0.95, metalness:0 });
+const ground = new THREE.Mesh(groundGeo, groundMat);
+ground.rotation.x = -Math.PI/2;
+ground.position.y = -0.8;
+ground.receiveShadow = true;
+scene.add(ground);
+
+// Grid accent
+const grid = new THREE.GridHelper(30, 30, 0x3a2e20, 0x2a1f15);
+grid.position.y = -0.79;
+grid.material.opacity = 0.25;
+grid.material.transparent = true;
+scene.add(grid);
+
+// ── Switch (center) ────────────────────────────────────────────
+const switchGroup = new THREE.Group();
+const switchBody = new THREE.Mesh(
+  new THREE.BoxGeometry(3.2, 0.7, 1.4),
+  new THREE.MeshStandardMaterial({ color:0x2a241c, roughness:0.6, metalness:0.3 })
+);
+switchBody.castShadow = true;
+switchBody.receiveShadow = true;
+switchGroup.add(switchBody);
+
+// Port LEDs
+for (let i=0; i<8; i++){
+  const led = new THREE.Mesh(
+    new THREE.BoxGeometry(0.08, 0.04, 0.04),
+    new THREE.MeshBasicMaterial({ color: i<6 ? 0xfbbf24 : 0x3a2e20 })
+  );
+  led.position.set(-1.3 + i*0.35, 0.38, 0.65);
+  switchGroup.add(led);
+}
+// Cisco badge
+const badge = new THREE.Mesh(
+  new THREE.BoxGeometry(0.8, 0.2, 0.02),
+  new THREE.MeshStandardMaterial({ color:0x8b6f3d, roughness:0.4, metalness:0.6, emissive:0x3a2e20 })
+);
+badge.position.set(0, 0, 0.71);
+switchGroup.add(badge);
+
+switchGroup.position.y = 0.35;
+scene.add(switchGroup);
+
+// ── Devices ────────────────────────────────────────────────────
+const DEVICES = [
+  { name:'IP Phone',        watts:6.5,  cls:'Class 2', std:'802.3af',  role:'PD', color:0xc08040, angle:   0 },
+  { name:'Wireless AP',     watts:25.5, cls:'Class 4', std:'802.3at',  role:'PD', color:0xd89050, angle:  60 },
+  { name:'IP Camera PTZ',   watts:18.0, cls:'Class 4', std:'802.3at',  role:'PD', color:0xa07030, angle: 120 },
+  { name:'IoT Sensor',      watts:3.2,  cls:'Class 1', std:'802.3af',  role:'PD', color:0xe8a85a, angle: 180 },
+  { name:'Digital Sign',    watts:51.0, cls:'Class 6', std:'802.3bt',  role:'PD', color:0xf0b070, angle: 240 },
+  { name:'Door Reader',     watts:4.5,  cls:'Class 2', std:'802.3af',  role:'PD', color:0xb88050, angle: 300 },
+];
+
+const deviceMeshes = [];
+const cables = [];
+const radius = 5.2;
+
+DEVICES.forEach((d, i) => {
+  const rad = d.angle * Math.PI/180;
+  const x = Math.cos(rad) * radius;
+  const z = Math.sin(rad) * radius;
+
+  const g = new THREE.Group();
+
+  // Device body — shape varies by type
+  let body;
+  if (d.name === 'IP Phone'){
+    body = new THREE.Mesh(
+      new THREE.BoxGeometry(0.8, 0.25, 0.6),
+      new THREE.MeshStandardMaterial({ color:d.color, roughness:0.5, metalness:0.2 })
+    );
+  } else if (d.name === 'Wireless AP'){
+    body = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.55, 0.55, 0.15, 24),
+      new THREE.MeshStandardMaterial({ color:d.color, roughness:0.4, metalness:0.3 })
+    );
+  } else if (d.name === 'IP Camera PTZ'){
+    body = new THREE.Mesh(
+      new THREE.SphereGeometry(0.4, 20, 16),
+      new THREE.MeshStandardMaterial({ color:d.color, roughness:0.3, metalness:0.5 })
+    );
+  } else if (d.name === 'IoT Sensor'){
+    body = new THREE.Mesh(
+      new THREE.BoxGeometry(0.35, 0.35, 0.35),
+      new THREE.MeshStandardMaterial({ color:d.color, roughness:0.6, metalness:0.1 })
+    );
+  } else if (d.name === 'Digital Sign'){
+    body = new THREE.Mesh(
+      new THREE.BoxGeometry(1.0, 0.6, 0.08),
+      new THREE.MeshStandardMaterial({ color:d.color, roughness:0.3, metalness:0.4, emissive:0x301810 })
+    );
+  } else {
+    body = new THREE.Mesh(
+      new THREE.BoxGeometry(0.45, 0.55, 0.15),
+      new THREE.MeshStandardMaterial({ color:d.color, roughness:0.5, metalness:0.2 })
+    );
+  }
+  body.castShadow = true;
+  body.receiveShadow = true;
+  g.add(body);
+
+  // Glow ring at base
+  const ring = new THREE.Mesh(
+    new THREE.RingGeometry(0.5, 0.7, 24),
+    new THREE.MeshBasicMaterial({ color:0xfbbf24, transparent:true, opacity:0.35, side:THREE.DoubleSide })
+  );
+  ring.rotation.x = -Math.PI/2;
+  ring.position.y = -0.45;
+  g.add(ring);
+  g.userData.ring = ring;
+
+  g.position.set(x, 0.6, z);
+  g.userData = Object.assign(g.userData, d);
+  scene.add(g);
+  deviceMeshes.push(g);
+
+  // Cable — curved line from switch to device
+  const curve = new THREE.CubicBezierCurve3(
+    new THREE.Vector3(x*0.25, 0.45, z*0.25),
+    new THREE.Vector3(x*0.55, 1.8, z*0.55),
+    new THREE.Vector3(x*0.85, 1.4, z*0.85),
+    new THREE.Vector3(x*0.98, 0.55, z*0.98)
+  );
+  const pts = curve.getPoints(40);
+  const cableGeo = new THREE.BufferGeometry().setFromPoints(pts);
+  const cableMat = new THREE.LineBasicMaterial({ color:0x5a4a38, transparent:true, opacity:0.85 });
+  const cable = new THREE.Line(cableGeo, cableMat);
+  scene.add(cable);
+
+  // Flowing particles along cable
+  const particleCount = 6;
+  const particleGroup = new THREE.Group();
+  for (let p=0; p<particleCount; p++){
+    const particle = new THREE.Mesh(
+      new THREE.SphereGeometry(0.06, 8, 8),
+      new THREE.MeshBasicMaterial({ color:0xfbbf24 })
+    );
+    particle.userData.t = p / particleCount;
+    particleGroup.add(particle);
+  }
+  scene.add(particleGroup);
+  cables.push({ curve, particles:particleGroup, device:d });
+});
+
+// Controls
+const controls = new OrbitControls(camera, canvas);
+controls.enableDamping = true;
+controls.dampingFactor = 0.08;
+controls.minDistance = 7;
+controls.maxDistance = 18;
+controls.minPolarAngle = Math.PI * 0.15;
+controls.maxPolarAngle = Math.PI * 0.48;
+controls.autoRotate = true;
+controls.autoRotateSpeed = 0.5;
+
+// Raycast for device clicks
+const raycaster = new THREE.Raycaster();
+const pointer = new THREE.Vector2();
+
+function onClick(e){
+  const rect = canvas.getBoundingClientRect();
+  pointer.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+  pointer.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+  raycaster.setFromCamera(pointer, camera);
+  const hits = raycaster.intersectObjects(deviceMeshes, true);
+  if (hits.length){
+    let g = hits[0].object;
+    while (g.parent && !g.userData.name) g = g.parent;
+    if (g.userData.name){
+      showPanel(g.userData);
+      controls.autoRotate = false;
+    }
+  } else {
+    hidePanel();
+  }
+}
+canvas.addEventListener('click', onClick);
+
+function showPanel(d){
+  document.getElementById('dp-name').textContent = d.name;
+  document.getElementById('dp-watts').textContent = d.watts + ' W';
+  document.getElementById('dp-class').textContent = d.cls;
+  document.getElementById('dp-std').textContent = d.std;
+  document.getElementById('dp-role').textContent = d.role;
+  panel.classList.add('show');
+}
+function hidePanel(){ panel.classList.remove('show'); }
+// Show first device by default
+showPanel(DEVICES[0]);
+
+// Resize
+function resize(){
+  const w = container.clientWidth, h = container.clientHeight;
+  camera.aspect = w/h;
+  camera.updateProjectionMatrix();
+  renderer.setSize(w, h, false);
+}
+window.addEventListener('resize', resize);
+
+// Animate
+const clock = new THREE.Clock();
+function animate(){
+  const dt = clock.getDelta();
+  const t  = clock.getElapsedTime();
+
+  // Particles flow along cables
+  cables.forEach(c => {
+    c.particles.children.forEach(p => {
+      p.userData.t = (p.userData.t + dt * 0.25) % 1;
+      const pos = c.curve.getPoint(p.userData.t);
+      p.position.copy(pos);
+      p.material.opacity = Math.sin(p.userData.t * Math.PI) * 0.9 + 0.1;
+      p.material.transparent = true;
+    });
+  });
+
+  // Pulse device rings
+  deviceMeshes.forEach((d, i) => {
+    if (d.userData.ring){
+      const pulse = 0.35 + Math.sin(t*2 + i) * 0.15;
+      d.userData.ring.material.opacity = pulse;
+    }
+  });
+
+  // Switch LED scan
+  switchGroup.children.forEach((child, i) => {
+    if (i>=1 && i<=6 && child.material){
+      const on = Math.sin(t*3 + i*0.5) > 0;
+      child.material.color.setHex(on ? 0xfbbf24 : 0x402a10);
+    }
+  });
+
+  controls.update();
+  renderer.render(scene, camera);
+  requestAnimationFrame(animate);
+}
+animate();
+</script>
+
+<!-- ═══════════ Interactive UI logic ═══════════ -->
+<script defer src="js/nav.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+
+  // Standards table toggle
+  document.querySelectorAll('#std-wrap .std-row[data-std]').forEach(row => {
+    row.addEventListener('click', () => {
+      const key = row.dataset.std;
+      const detail = document.querySelector(`[data-detail="${key}"]`);
+      const wasOpen = detail.classList.contains('show');
+      document.querySelectorAll('.std-detail').forEach(d => d.classList.remove('show'));
+      document.querySelectorAll('.std-row').forEach(r => r.classList.remove('active'));
+      if (!wasOpen){
+        detail.classList.add('show');
+        row.classList.add('active');
+      }
+    });
+  });
+
+  // Cable pin-mode toggle
+  const PIN_COLORS = {
+    a:  { 1:'#b45309', 2:'#b45309', 3:'#78350f', 4:'#d4d0c8', 5:'#d4d0c8', 6:'#78350f', 7:'#d4d0c8', 8:'#d4d0c8' },
+    b:  { 1:'#60a5fa', 2:'#60a5fa', 3:'#60a5fa', 4:'#b45309', 5:'#b45309', 6:'#60a5fa', 7:'#78350f', 8:'#78350f' },
+    '4pp': { 1:'#b45309', 2:'#b45309', 3:'#78350f', 4:'#b45309', 5:'#b45309', 6:'#78350f', 7:'#78350f', 8:'#78350f' },
+  };
+  function applyMode(mode){
+    const colors = PIN_COLORS[mode];
+    Object.keys(colors).forEach(pin => {
+      const el = document.querySelector(`#pins [data-pin="${pin}"] rect`);
+      if (el) el.setAttribute('fill', colors[pin]);
+    });
+  }
+  document.querySelectorAll('.pin-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.pin-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      applyMode(btn.dataset.mode);
+    });
+  });
+  applyMode('a');
+
+  // Budget simulator
+  const DEVS = [
+    { id:'phone',  name:'IP Phone',       w:6.5 },
+    { id:'ap',     name:'Wi-Fi 6 AP',     w:30.0 },
+    { id:'cam',    name:'PTZ Camera',     w:18.0 },
+    { id:'sensor', name:'IoT Sensor',     w:3.2 },
+    { id:'sign',   name:'Digital Sign',   w:51.0 },
+    { id:'reader', name:'Door Reader',    w:4.5 },
+    { id:'ap7',    name:'Wi-Fi 7 AP',     w:60.0 },
+    { id:'thin',   name:'Thin Client',    w:45.0 },
+  ];
+  const counts = Object.fromEntries(DEVS.map(d => [d.id, 0]));
+  counts.phone = 4; counts.ap = 2; counts.cam = 2; counts.sensor = 3;
+
+  const bdList = document.getElementById('bd-list');
+  bdList.innerHTML = DEVS.map(d => `
+    <div class="bd-card">
+      <div class="bd-info">${d.name}<span class="w">${d.w.toFixed(1)} W each</span></div>
+      <div class="bd-controls">
+        <button class="bd-btn" data-id="${d.id}" data-delta="-1">−</button>
+        <span class="bd-count" id="bc-${d.id}">${counts[d.id]}</span>
+        <button class="bd-btn" data-id="${d.id}" data-delta="1">+</button>
+      </div>
+    </div>
+  `).join('');
+
+  function updateBudget(){
+    const total = parseInt(document.getElementById('sw-model').value, 10);
+    let used = 0;
+    DEVS.forEach(d => { used += counts[d.id] * d.w; });
+    const pct = Math.min(100, (used/total)*100);
+    document.getElementById('pb-used').textContent = used.toFixed(1) + 'W';
+    document.getElementById('pb-total').textContent = total + ' W';
+    document.getElementById('pb-fill').style.width = pct + '%';
+    const status = document.getElementById('pb-status');
+    if (used > total){
+      status.textContent = `OVER BUDGET by ${(used-total).toFixed(1)}W · switch will refuse the last device(s)`;
+      status.className = 'budget-status over';
+    } else if (pct > 85){
+      status.textContent = `TIGHT · ${(100-pct).toFixed(0)}% headroom — add no more Class 4+ devices`;
+      status.className = 'budget-status warn';
+    } else {
+      status.textContent = `OK · ${(100-pct).toFixed(0)}% headroom`;
+      status.className = 'budget-status ok';
+    }
+  }
+  bdList.addEventListener('click', e => {
+    const btn = e.target.closest('.bd-btn');
+    if (!btn) return;
+    const id = btn.dataset.id;
+    const delta = parseInt(btn.dataset.delta, 10);
+    counts[id] = Math.max(0, counts[id] + delta);
+    document.getElementById('bc-'+id).textContent = counts[id];
+    updateBudget();
+  });
+  document.getElementById('sw-model').addEventListener('change', updateBudget);
+  updateBudget();
+
+  // Animate class bars on scroll into view
+  const io = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      if (e.isIntersecting){
+        e.target.style.setProperty('--animate', '1');
+        io.unobserve(e.target);
+      }
+    });
+  }, { threshold:0.3 });
+  document.querySelectorAll('.class-card').forEach(c => io.observe(c));
+});
+</script>
+
+</body>
+</html>

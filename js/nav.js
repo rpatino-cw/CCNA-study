@@ -25,6 +25,7 @@
       { text: 'Subnetting', href: 'subnetting-visual.html' },
       { text: 'Command Reference', href: 'command-ref.html' },
       { text: 'Devices & Topologies', href: 'devices.html' },
+      { text: 'Power & PoE', href: 'power.html' },
       { text: 'Glossary', href: 'glossary.html' },
       { text: 'Resources', href: 'resources.html' },
       { text: 'Exam Objectives', href: 'objectives.html' },
