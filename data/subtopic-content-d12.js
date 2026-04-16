@@ -19,7 +19,18 @@ window.subtopicContentD12 = {
       practice: "In Packet Tracer: connect two PCs on different subnets (e.g., 192.168.1.0/24 and 192.168.2.0/24) via a router. Configure each router interface with 'ip address' and 'no shutdown'. Set default gateways on each PC. Ping across and verify with 'show ip route' — you should see two 'C' (connected) routes. Then add a third network with a static route.",
       effort: "medium",
       meta: "Jeremy's IT Lab Day 8 (Routing Fundamentals) and Day 11 (Static Routing) are essential. Wendell Odom's OCG Chapter 15-16 covers IP routing in depth. The exam tests routing table interpretation heavily — practice reading 'show ip route' output until you can parse it instantly."
-    }
+    },
+    micro: [
+      { id: "1.1.a.1", term: "Packet switching",           def: "Router's core L3 forwarding: strip L2 frame, read L3 dest IP, routing-table lookup, re-encapsulate in new L2 frame, forward.", weight: "high" },
+      { id: "1.1.a.2", term: "Routing table",              def: "Stores best paths with administrative distance, metric, and next-hop. View with 'show ip route'.", weight: "high" },
+      { id: "1.1.a.3", term: "Administrative distance (AD)", def: "Trustworthiness of a route's source. Connected=0, Static=1, EIGRP=90, OSPF=110, RIP=120. Lower wins.", weight: "high" },
+      { id: "1.1.a.4", term: "Longest prefix match",       def: "Router selects the most specific matching route (longest subnet mask) when multiple routes match.", weight: "high" },
+      { id: "1.1.a.5", term: "Connected route",            def: "Auto-learned route when an interface is configured and up. Marked 'C' in route table. AD 0.", weight: "high" },
+      { id: "1.1.a.6", term: "Static route",               def: "Manually configured route. AD 1. Command: 'ip route [dest] [mask] [next-hop]'.", weight: "high" },
+      { id: "1.1.a.7", term: "Dynamic route",              def: "Learned via a routing protocol — OSPF, EIGRP, BGP. Auto-updates on topology changes.", weight: "high" },
+      { id: "1.1.a.8", term: "Broadcast domain segmentation", def: "Routers do NOT forward broadcasts between interfaces. Each router interface = separate broadcast domain.", weight: "high" },
+      { id: "1.1.a.9", term: "Cisco Express Forwarding (CEF)", def: "Hardware-accelerated forwarding using FIB (from route table) and adjacency table (from ARP). Bypasses CPU.", weight: "med" }
+    ]
   },
 
   "1.1.b": {
@@ -36,7 +47,17 @@ window.subtopicContentD12 = {
       practice: "Lab this in Packet Tracer: Create VLAN 10 and VLAN 20 on a 3560 or 3650 switch. Assign ports to each VLAN. Create SVIs (interface vlan 10, ip address 10.0.10.1 255.255.255.0; interface vlan 20, ip address 10.0.20.1 255.255.255.0). Enable 'ip routing'. Set PCs' default gateways to their respective SVIs. Ping across VLANs. Then check 'show ip route' to see connected VLAN routes.",
       effort: "medium",
       meta: "Jeremy's IT Lab Day 6 (Ethernet LAN Switching) covers L2 fundamentals. Day 17 (VLANs) and Day 18 (Inter-VLAN Routing) cover the L3 switch content. The exam WILL test inter-VLAN routing — expect questions on SVI configuration and when to use router-on-a-stick vs L3 switch. Wendell Odom OCG Chapters 5-8 and 17."
-    }
+    },
+    micro: [
+      { id: "1.1.b.1", term: "MAC address table (CAM table)", def: "Switch learns source MAC → ingress port mappings. Ages out after 300s default on Cisco. View with 'show mac address-table'.", weight: "high" },
+      { id: "1.1.b.2", term: "Unknown unicast flooding", def: "If destination MAC is not in the table, switch floods the frame out all ports in the VLAN except the source.", weight: "high" },
+      { id: "1.1.b.3", term: "Collision domain vs broadcast domain", def: "Each switch port = separate collision domain. All ports in same VLAN = one broadcast domain. VLANs split broadcast domains.", weight: "high" },
+      { id: "1.1.b.4", term: "SVI (Switch Virtual Interface)", def: "Virtual L3 interface tied to a VLAN on a multilayer switch. 'interface vlan 10' + IP = default gateway for VLAN 10.", weight: "high" },
+      { id: "1.1.b.5", term: "Routed port", def: "Physical port configured with 'no switchport' — behaves like a router interface with its own IP.", weight: "high" },
+      { id: "1.1.b.6", term: "'ip routing' command", def: "Global command required to enable L3 routing on a multilayer switch. Without it, L3 switch acts only as L2.", weight: "high" },
+      { id: "1.1.b.7", term: "Hardware ASIC forwarding", def: "L3 switches route in hardware (ASICs) at wire speed, faster than CPU-based software routing on most routers.", weight: "med" },
+      { id: "1.1.b.8", term: "L2 vs L3 switch placement", def: "L2 at access layer (endpoint connection). L3 at distribution layer (inter-VLAN routing, policy).", weight: "med" }
+    ]
   },
 
   "1.1.c": {
@@ -53,7 +74,18 @@ window.subtopicContentD12 = {
       practice: "Make a comparison flashcard: Stateless (ACL) → Stateful (ASA) → NGFW (Firepower). For each, write what layers it inspects and what it can detect. Then make an IDS vs IPS card: IDS = passive/mirror/alert-only, IPS = inline/active/blocks. Draw a network diagram showing where each sits (IDS off a SPAN port, IPS inline between zones).",
       effort: "medium",
       meta: "Jeremy's IT Lab Day 54 (Security Fundamentals) covers IDS/IPS and firewall types. The CCNA exam tests concepts — you will NOT configure a firewall. Expect 2-3 questions: 'which device can identify applications on port 443?' (NGFW), 'what is the difference between IDS and IPS?' (inline vs passive), 'which detects AND prevents?' (IPS). Wendell Odom OCG Chapter 27."
-    }
+    },
+    micro: [
+      { id: "1.1.c.1", term: "Stateless firewall",         def: "Filters packets individually using ACLs — source/dest IP, ports, protocol. No connection awareness.", weight: "high" },
+      { id: "1.1.c.2", term: "Stateful firewall",          def: "Tracks active connection state (TCP handshake, UDP pseudo-sessions). Auto-allows return traffic. Classic example: Cisco ASA.", weight: "high" },
+      { id: "1.1.c.3", term: "Next-Generation Firewall (NGFW)", def: "Adds L7 inspection, application awareness, integrated IPS, URL filtering, AMP, and user identity to stateful firewall capabilities.", weight: "high" },
+      { id: "1.1.c.4", term: "Deep packet inspection (DPI)", def: "Inspects L7 payload, identifies specific applications regardless of port (e.g., distinguishes Zoom vs BitTorrent on port 443).", weight: "high" },
+      { id: "1.1.c.5", term: "IDS (Intrusion Detection System)", def: "Passive monitor on a SPAN/mirror port. Sees COPIES of traffic. Alerts on threats but CANNOT block.", weight: "high" },
+      { id: "1.1.c.6", term: "IPS (Intrusion Prevention System)", def: "Inline device in traffic path. Can DROP malicious packets in real time. Adds latency but actively protects.", weight: "high" },
+      { id: "1.1.c.7", term: "Signature-based detection", def: "Matches known attack patterns from an updated database. Reliable for known threats, misses zero-days.", weight: "med" },
+      { id: "1.1.c.8", term: "Anomaly-based detection",   def: "Flags traffic deviating from a learned baseline. Can catch novel attacks but produces more false positives.", weight: "med" },
+      { id: "1.1.c.9", term: "Cisco Secure Firewall (FTD)", def: "Current Cisco NGFW platform (formerly Firepower Threat Defense). Managed by FMC or Cisco Defense Orchestrator.", weight: "low" }
+    ]
   },
 
   "1.1.d": {
@@ -64,7 +96,19 @@ window.subtopicContentD12 = {
       practice: "In Packet Tracer: add a WLC (3504 or vWLC), connect a lightweight AP to a switch on the same VLAN as the WLC management interface. Watch the AP discover and join the WLC via CAPWAP. Create a WLAN on the WLC, assign it to a VLAN, and connect a wireless client. Verify association with the WLC dashboard. Then make a flashcard comparing: Autonomous (standalone, individual config, all functions local) vs Lightweight (WLC-managed, split-MAC, CAPWAP tunnels).",
       effort: "medium",
       meta: "Jeremy's IT Lab Day 56 (Wireless Architectures) and Day 57 (Wireless Security) cover this thoroughly. The exam expects you to know autonomous vs lightweight, what CAPWAP does and its port numbers, and the split-MAC concept. You may also see a question on FlexConnect (local switching at branch offices). Wendell Odom OCG Chapters 25-26."
-    }
+    },
+    micro: [
+      { id: "1.1.d.1", term: "Autonomous AP",              def: "Standalone AP. Configured individually via CLI/web GUI. All wireless functions local. Fine for 1-3 APs, unmanageable at scale.", weight: "high" },
+      { id: "1.1.d.2", term: "Lightweight AP",             def: "WLC-managed via CAPWAP. Split-MAC architecture. Scales to thousands of APs with central config.", weight: "high" },
+      { id: "1.1.d.3", term: "CAPWAP",                     def: "Control And Provisioning of Wireless Access Points (RFC 5415). Tunnels AP↔WLC traffic. Control = UDP 5246 (DTLS), Data = UDP 5247 (optional DTLS).", weight: "high" },
+      { id: "1.1.d.4", term: "Split-MAC architecture",     def: "Real-time RF functions (beacons, encryption, ACKs) stay on AP. Management (auth, SSID/VLAN, RF decisions, firmware) handled by WLC.", weight: "high" },
+      { id: "1.1.d.5", term: "Local mode (AP)",            def: "Default mode. Serves clients and scans for rogues between data frames. Tunnels data to WLC.", weight: "med" },
+      { id: "1.1.d.6", term: "FlexConnect mode",           def: "AP switches data LOCALLY at the branch. Survives WLC failure. Used for remote/branch offices.", weight: "high" },
+      { id: "1.1.d.7", term: "Monitor/Sniffer/SE-Connect modes", def: "Monitor = dedicated rogue/IDS sensor, no client service. Sniffer = capture frames for analysis. SE-Connect = spectrum analysis.", weight: "low" },
+      { id: "1.1.d.8", term: "BSS / BSSID",                def: "Basic Service Set = one AP + its clients. BSSID = the AP radio's MAC address.", weight: "high" },
+      { id: "1.1.d.9", term: "ESS",                        def: "Extended Service Set = multiple APs sharing the same SSID to provide seamless roaming across a larger area.", weight: "high" },
+      { id: "1.1.d.10", term: "SSID",                      def: "Service Set Identifier. Human-readable network name broadcast in beacon frames.", weight: "high" }
+    ]
   },
 
   "1.1.e": {
@@ -85,7 +129,19 @@ window.subtopicContentD12 = {
       practice: "Create a table with two columns: WLC and DNA Center. List what each manages, its scope (wireless-only vs network-wide), and its key features. Know the four DNA Center pillars: Design, Policy, Provision, Assurance. For WLC, know the interface types — management is the most important one. No lab needed — these are concept questions.",
       effort: "low",
       meta: "Jeremy's IT Lab Day 57-58 covers WLC and wireless management. DNA Center/Catalyst Center appears in Day 60-61 (Network Automation). The CCNA tests these as concept questions — you will NOT configure a WLC or DNA Center in the exam. Expect: 'what does IBN mean?', 'what is the role of DNA Center?', 'which WLC interface is used for AP management?' Wendell Odom OCG Chapters 25-26 and 29."
-    }
+    },
+    micro: [
+      { id: "1.1.e.1",  term: "WLC management interface",  def: "Primary in-band mgmt: AP association, RADIUS auth, admin access. The most critical WLC interface.", weight: "high" },
+      { id: "1.1.e.2",  term: "WLC virtual interface",     def: "Default IP 1.1.1.1. Used for DHCP relay, web auth redirect, and mobility manager.", weight: "med" },
+      { id: "1.1.e.3",  term: "WLC dynamic interface",     def: "Mapped to a VLAN, separates wireless traffic like an SVI on a switch.", weight: "med" },
+      { id: "1.1.e.4",  term: "WLC service port",          def: "Out-of-band management only. Not used for client traffic.", weight: "low" },
+      { id: "1.1.e.5",  term: "RRM (Radio Resource Management)", def: "WLC feature that auto-assigns channels and adjusts transmit power to minimize interference across APs.", weight: "med" },
+      { id: "1.1.e.6",  term: "Rogue AP detection",        def: "WLC identifies unauthorized APs on the network via AP scanning.", weight: "med" },
+      { id: "1.1.e.7",  term: "Cisco DNA Center / Catalyst Center", def: "Network-wide management platform. Centerpiece of Intent-Based Networking (IBN). Manages wired + wireless + WAN.", weight: "high" },
+      { id: "1.1.e.8",  term: "DNA Center four pillars",   def: "Design (hierarchy, IPAM), Policy (SGTs, microseg), Provision (PnP, config push), Assurance (monitoring, AI anomaly detection).", weight: "high" },
+      { id: "1.1.e.9",  term: "SD-Access (SDA)",           def: "DNA Center's network fabric. VXLAN overlay tunnels + LISP for endpoint mobility.", weight: "med" },
+      { id: "1.1.e.10", term: "WLC vs DNA Center scope",   def: "WLC = wireless-only controller (APs/WLANs). DNA Center = network-wide controller that can manage WLCs as part of a larger fabric.", weight: "high" }
+    ]
   },
 
   "1.1.f": {
@@ -96,7 +152,19 @@ window.subtopicContentD12 = {
       practice: "Make a two-column flashcard: 'Endpoint' vs 'Infrastructure'. Place these correctly: PC, laptop, IP phone, printer, IP camera, router, switch, firewall, WLC, IoT sensor, server. Also know the access layer security features that protect endpoints: port security, 802.1X, DHCP snooping, DAI.",
       effort: "low",
       meta: "This subtopic is conceptual and lightweight on the exam — typically 0-1 direct questions. But understanding what an endpoint IS matters for all security and access-layer topics. Jeremy's IT Lab Day 49 covers port security, Day 54 covers endpoint security concepts. Wendell Odom OCG Chapter 27 (Security Fundamentals)."
-    }
+    },
+    micro: [
+      { id: "1.1.f.1", term: "Endpoint",                   def: "Device at the edge of a network that generates or consumes data (PC, phone, printer, IP camera, IoT sensor).", weight: "high" },
+      { id: "1.1.f.2", term: "NIC + MAC address",          def: "Network Interface Card. MAC = 48-bit burned-in address (BIA). Unique per NIC.", weight: "high" },
+      { id: "1.1.f.3", term: "Default gateway",            def: "The router or L3 switch SVI an endpoint sends traffic to for destinations outside its local subnet.", weight: "high" },
+      { id: "1.1.f.4", term: "Access layer",               def: "Lowest campus network tier. Where endpoints connect. Enforces port-level policy.", weight: "high" },
+      { id: "1.1.f.5", term: "Port security",              def: "Access-layer feature that limits which MAC addresses can connect on a given port.", weight: "high" },
+      { id: "1.1.f.6", term: "802.1X authentication",      def: "Port-based auth that requires credentials before granting network access. Works with RADIUS/ISE.", weight: "high" },
+      { id: "1.1.f.7", term: "DHCP snooping",              def: "Blocks rogue DHCP servers by allowing DHCP offers only from trusted ports.", weight: "high" },
+      { id: "1.1.f.8", term: "Dynamic ARP Inspection (DAI)", def: "Prevents ARP spoofing by validating ARP packets against the DHCP snooping binding table.", weight: "high" },
+      { id: "1.1.f.9", term: "NAC (Network Access Control)", def: "Verify device compliance (patches, AV, cert) before allowing network access.", weight: "med" },
+      { id: "1.1.f.10", term: "Cisco ISE",                 def: "Identity Services Engine. Centralized AAA + 802.1X policy + endpoint profiling.", weight: "med" }
+    ]
   },
 
   "1.1.g": {
@@ -107,7 +175,21 @@ window.subtopicContentD12 = {
       practice: "In Packet Tracer: set up a server with DHCP and DNS services. Configure the DHCP pool (network, default-router, DNS server). Add DNS records. Connect a PC, set it to DHCP, verify it gets an IP (ipconfig), then ping a hostname to test DNS. Then set up a syslog server and configure a router with 'logging [server-ip]' — generate events and check the syslog server. This reinforces the client-server model hands-on.",
       effort: "medium",
       meta: "Port numbers are one of the most heavily tested CCNA topics — expect 5-8 questions that require knowing ports. Jeremy's IT Lab covers these across multiple days (DNS in Day 39, DHCP in Day 38, NTP/Syslog in Day 40, SSH in Day 41, FTP/TFTP in Day 42, SNMP in Day 40). Make flashcards and drill until you can recite all ports from memory. Wendell Odom OCG Chapter 4 (TCP/IP Layer 4) and Chapter 13 (DHCP/DNS)."
-    }
+    },
+    micro: [
+      { id: "1.1.g.1",  term: "Client-server model",       def: "Client initiates a request; server responds. Server listens on a well-known port for incoming connections.", weight: "high" },
+      { id: "1.1.g.2",  term: "DNS",                       def: "Resolves hostnames → IPs. UDP/TCP port 53. Record types: A (IPv4), AAAA (IPv6), CNAME, MX, PTR.", weight: "high" },
+      { id: "1.1.g.3",  term: "DHCP + DORA",               def: "Assigns IP, mask, GW, DNS. Server UDP 67 / client UDP 68. DORA = Discover, Offer, Request, Acknowledge.", weight: "high" },
+      { id: "1.1.g.4",  term: "HTTP / HTTPS",              def: "HTTP = TCP 80 (plaintext). HTTPS = TCP 443 (TLS-encrypted).", weight: "high" },
+      { id: "1.1.g.5",  term: "FTP / TFTP",                def: "FTP = TCP 21 control + TCP 20 data (active). TFTP = UDP 69, no auth — used for IOS/config transfer.", weight: "high" },
+      { id: "1.1.g.6",  term: "SSH vs Telnet",             def: "SSH = TCP 22, encrypted. Telnet = TCP 23, plaintext (passwords exposed). Always prefer SSH.", weight: "high" },
+      { id: "1.1.g.7",  term: "SMTP / POP3 / IMAP",        def: "SMTP (send) = TCP 25 (or 587). POP3 (retrieve) = TCP 110. IMAP (access) = TCP 143.", weight: "high" },
+      { id: "1.1.g.8",  term: "RADIUS",                    def: "UDP 1812 auth, UDP 1813 accounting. Open standard. Encrypts password only. Used with 802.1X.", weight: "high" },
+      { id: "1.1.g.9",  term: "TACACS+",                   def: "TCP 49. Cisco-proprietary AAA. Separates auth/author/acct. Encrypts ENTIRE packet body.", weight: "high" },
+      { id: "1.1.g.10", term: "Syslog",                    def: "UDP 514. Central logging. Severity 0 (emergency) → 7 (debug). Lower = more critical.", weight: "high" },
+      { id: "1.1.g.11", term: "NTP",                       def: "UDP 123. Time sync across devices. Essential for log correlation and cert validation.", weight: "high" },
+      { id: "1.1.g.12", term: "SNMP",                      def: "UDP 161 queries / UDP 162 traps. v1/v2c = plaintext community strings. v3 = auth + encryption (use v3).", weight: "high" }
+    ]
   },
 
   "1.1.h": {
@@ -124,7 +206,20 @@ window.subtopicContentD12 = {
       practice: "In Packet Tracer: connect an IP phone and an AP to a PoE switch. Use 'show power inline' to see which ports are providing power, the allocated vs consumed wattage, and the device class. Change a port to 'power inline never' and watch the device lose power. Make a flashcard with all three standards, wattage, and a common device that uses each. Practice a PoE budget calculation: given a 370W budget, how many PoE+ (30W) devices can you power? (12, with 10W leftover).",
       effort: "low",
       meta: "Jeremy's IT Lab Day 25 covers PoE. Expect 1-2 CCNA questions — they love testing wattage per standard and PSE/PD definitions. The 'af=fifteen, at=thirty' mnemonic is widely used across r/ccna and Boson practice exams. Wendell Odom OCG Chapter 11 covers PoE in the context of LAN design. Don't overthink this — memorize the three standards and their wattage, know PSE vs PD, and you're set."
-    }
+    },
+    micro: [
+      { id: "1.1.h.1",  term: "PSE (Power Sourcing Equipment)", def: "The device providing power — typically a PoE switch or a midspan injector.", weight: "high" },
+      { id: "1.1.h.2",  term: "PD (Powered Device)",        def: "The device drawing power — AP, IP phone, IP camera, etc.", weight: "high" },
+      { id: "1.1.h.3",  term: "802.3af (PoE)",              def: "Up to 15.4W at PSE (~12.95W at PD). Uses 2 of 4 pairs. Basic IP phones, entry APs.", weight: "high" },
+      { id: "1.1.h.4",  term: "802.3at (PoE+)",             def: "Up to 30W at PSE (~25.5W at PD). 600mA. Modern APs, pan-tilt cameras.", weight: "high" },
+      { id: "1.1.h.5",  term: "802.3bt Type 3 (PoE++)",     def: "Up to 60W using all 4 pairs. Wi-Fi 6 APs, digital signage.", weight: "high" },
+      { id: "1.1.h.6",  term: "802.3bt Type 4 (PoE++)",     def: "Up to 90W using all 4 pairs at higher current. Cat6A recommended. PTZ cams with heaters, laptops.", weight: "high" },
+      { id: "1.1.h.7",  term: "Cisco UPoE / UPoE+",         def: "Cisco-proprietary 60W / 90W. Predate and overlap 802.3bt.", weight: "low" },
+      { id: "1.1.h.8",  term: "PoE detection + classification", def: "Switch sends low-voltage probe, checks for 25kΩ signature, then classifies PD into a power class (0-8) to allocate wattage.", weight: "med" },
+      { id: "1.1.h.9",  term: "PoE power budget",           def: "Total wattage a switch can deliver across all PoE ports. Exceeding it denies power to lower-priority ports.", weight: "high" },
+      { id: "1.1.h.10", term: "Endspan vs midspan",         def: "Endspan = PoE built into the switch (common). Midspan = separate injector between non-PoE switch and PD.", weight: "med" },
+      { id: "1.1.h.11", term: "'show power inline'",        def: "View PoE status per port — allocated vs consumed watts, device class, port state.", weight: "high" }
+    ]
   },
 
   /* ══════════════════════════════════════════════════════════════
