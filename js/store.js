@@ -261,12 +261,55 @@
     set(KEYS.PROFICIENCY, {});
   }
 
+  // Preserve user identity, group membership, display settings, and backup state.
+  // Clear everything study-related (proficiency, history, streak, diagnostics, study time).
+  const RESET_PRESERVE = new Set([
+    PREFIX + 'peer_id',
+    PREFIX + 'peer_group',
+    PREFIX + 'peer_name',
+    PREFIX + 'settings',
+    PREFIX + 'last_backup',
+    PREFIX + 'backup_hash',
+    PREFIX + 'recovery_dismissed',
+  ]);
+
+  function resetAllProgress() {
+    const toDelete = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && k.startsWith(PREFIX) && !RESET_PRESERVE.has(k)) toDelete.push(k);
+    }
+    toDelete.forEach(k => localStorage.removeItem(k));
+    sessionStorage.setItem('ccna_was_reset', '1');
+    set(KEYS.PROFICIENCY, {});
+  }
+
+  function resetTopic(topicId) {
+    if (!topicId) return;
+    const prof = get(KEYS.PROFICIENCY) || {};
+    if (topicId in prof) { delete prof[topicId]; set(KEYS.PROFICIENCY, prof); }
+    const study = get(KEYS.TOPIC_STUDY) || {};
+    if (topicId in study) { delete study[topicId]; set(KEYS.TOPIC_STUDY, study); }
+    const micro = get('micro_weakness') || {};
+    let changed = false;
+    for (const k of Object.keys(micro)) {
+      if (k === topicId || k.startsWith(topicId + '::')) { delete micro[k]; changed = true; }
+    }
+    if (changed) set('micro_weakness', micro);
+  }
+
+  function resetDomain(topicIds) {
+    if (!Array.isArray(topicIds)) return;
+    topicIds.forEach(resetTopic);
+  }
+
   window.store = {
     get, set, getProficiency, updateProficiency, updateProficiencyDiagnostic, getAllProficiency, initProficiency,
     recordMicroWeakness, getMicroWeaknesses,
     addQuizSession, getQuizHistory, updateStreak, getStreak,
     logStudyTime, getStudyTime, saveDiagnostic, getDiagnostic, getDiagnosticHistory,
     getReadinessScore, exportAll, importAll, clearAll,
+    resetAllProgress, resetTopic, resetDomain,
     getTopicStudy, getTopicStudyEntry, recordTopicStudy,
     getUnstudiedTopics, getTopicsStudiedToday, getDueForReview,
   };

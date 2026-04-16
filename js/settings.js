@@ -106,6 +106,27 @@
     '.st-reset{width:100%;padding:10px;border:1px solid var(--border);border-radius:6px;background:none;cursor:pointer;font-family:var(--font-display);font-size:.8rem;font-weight:600;color:var(--ink-muted);transition:all .15s}',
     '.st-reset:hover{border-color:var(--prof-weak);color:var(--prof-weak)}',
 
+    /* ── Progress reset ────────────────────────────────────────── */
+    '.st-reset.danger{border-color:var(--prof-weak);color:var(--prof-weak)}',
+    '.st-reset.danger:hover{background:var(--prof-weak);color:#fff}',
+    '.st-hint{font-size:.68rem;color:var(--ink-muted);margin:12px 0 8px;text-transform:uppercase;letter-spacing:.08em;font-weight:600}',
+    '.st-dom{border:1px solid var(--border);border-radius:6px;margin-bottom:6px;background:var(--bg);overflow:hidden}',
+    '.st-dom-hd{display:flex;align-items:center;gap:8px;padding:9px 10px;cursor:pointer;user-select:none;font-size:.78rem;color:var(--ink);font-weight:600}',
+    '.st-dom-hd:hover{background:var(--bg-hover)}',
+    '.st-dom-hd .ch{font-size:.6rem;color:var(--ink-muted);transition:transform .2s;width:10px;flex-shrink:0}',
+    '.st-dom.open .st-dom-hd .ch{transform:rotate(90deg)}',
+    '.st-dom-hd .nm{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
+    '.st-dom-hd .wt{font-size:.66rem;color:var(--ink-muted);font-weight:500}',
+    '.st-x-btn{border:none;background:none;cursor:pointer;color:var(--ink-muted);padding:4px 8px;border-radius:4px;font-size:.7rem;font-weight:600;transition:color .15s,background .15s}',
+    '.st-x-btn:hover{color:var(--prof-weak);background:rgba(220,38,38,.08)}',
+    '.st-topics{border-top:1px solid var(--border);padding:4px 0;display:none}',
+    '.st-dom.open .st-topics{display:block}',
+    '.st-tp{display:flex;align-items:center;gap:8px;padding:6px 10px 6px 24px;font-size:.73rem;color:var(--ink-secondary)}',
+    '.st-tp:hover{background:var(--bg-hover)}',
+    '.st-tp .id{color:var(--ink-muted);font-weight:600;flex-shrink:0;font-size:.68rem;min-width:28px}',
+    '.st-tp .tn{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
+    '.st-tp.done{opacity:.45;text-decoration:line-through}',
+
     /* ── Music bar ─────────────────────────────────────────────── */
     '#stMusic{position:fixed;bottom:0;left:0;right:0;z-index:940;height:48px;display:flex;align-items:center;gap:12px;padding:0 20px;font-family:var(--font-display);font-size:.78rem;background:var(--bg-surface);border-top:1px solid var(--border);color:var(--ink);transform:translateY(100%);transition:transform .4s cubic-bezier(.16,1,.3,1)}',
     '#stMusic.on{transform:translateY(0)}',
@@ -315,8 +336,84 @@
       tog('Theme Music', 'musicOn') +
       '</div>' +
 
+      /* Progress */
+      '<div class="st-sec"><div class="st-lbl">Progress</div>' +
+      '<button class="st-reset danger" id="stResetAll">Reset all progress</button>' +
+      '<div class="st-hint">Or reset by domain / subtopic</div>' +
+      '<div id="stDomList">' + renderDomainList() + '</div>' +
+      '</div>' +
+
       /* Reset */
       '<div class="st-sec"><button class="st-reset" id="stReset">Reset to Default</button></div>';
+  }
+
+  /* ── Progress reset: topic data ─────────────────────────────── */
+  var topicsCache = null;
+  var openDomains = {};
+
+  function getTopics() {
+    if (topicsCache) return topicsCache;
+    if (window.topicsData && window.topicsData.domains) {
+      topicsCache = window.topicsData;
+      return topicsCache;
+    }
+    return null;
+  }
+
+  function loadTopicsAsync() {
+    if (topicsCache) return Promise.resolve(topicsCache);
+    if (window.topicsData && window.topicsData.domains) {
+      topicsCache = window.topicsData;
+      return Promise.resolve(topicsCache);
+    }
+    var prefix = /\/(labs|visuals)\//.test(location.pathname) ? '../' : '';
+    return fetch(prefix + 'data/topics.json', { cache: 'force-cache' })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (d) { if (d) topicsCache = d; return topicsCache; })
+      .catch(function () { return null; });
+  }
+
+  function renderDomainList() {
+    var d = getTopics();
+    if (!d || !Array.isArray(d.domains)) return '<div class="st-hint" style="margin:0;text-transform:none;letter-spacing:0;font-size:.72rem">Loading domains…</div>';
+    return d.domains.map(function (dom) {
+      var open = !!openDomains[dom.id];
+      return '<div class="st-dom' + (open ? ' open' : '') + '" data-dom="' + esc(dom.id) + '">' +
+        '<div class="st-dom-hd" data-action="toggleDom">' +
+          '<span class="ch">&#9654;</span>' +
+          '<span class="nm">' + esc(dom.name) + '</span>' +
+          '<span class="wt">' + (dom.weight || 0) + '%</span>' +
+          '<button class="st-x-btn" data-action="resetDom" data-dom="' + esc(dom.id) + '" title="Reset domain">Reset</button>' +
+        '</div>' +
+        '<div class="st-topics">' + (open ? renderTopics(dom) : '') + '</div>' +
+      '</div>';
+    }).join('');
+  }
+
+  function renderTopics(dom) {
+    if (!Array.isArray(dom.topics)) return '';
+    var prof = (window.store && window.store.getAllProficiency) ? window.store.getAllProficiency() : {};
+    return dom.topics.map(function (t) {
+      var hasProgress = (t.id in prof);
+      return '<div class="st-tp' + (hasProgress ? '' : ' done') + '">' +
+        '<span class="id">' + esc(t.id) + '</span>' +
+        '<span class="tn" title="' + esc(t.name) + '">' + esc(t.name) + '</span>' +
+        '<button class="st-x-btn" data-action="resetTopic" data-tid="' + esc(t.id) + '" ' + (hasProgress ? '' : 'disabled style="opacity:.4;cursor:default"') + '>Reset</button>' +
+      '</div>';
+    }).join('');
+  }
+
+  function refreshDomList() {
+    var host = document.getElementById('stDomList');
+    if (host) host.innerHTML = renderDomainList();
+  }
+
+  function collectTopicIds(domainId) {
+    var d = getTopics();
+    if (!d) return [];
+    var dom = d.domains.find(function (x) { return String(x.id) === String(domainId); });
+    if (!dom || !Array.isArray(dom.topics)) return [];
+    return dom.topics.map(function (t) { return t.id; });
   }
 
   function tc(id, icon, name, desc) {
@@ -335,7 +432,10 @@
   buildPanel();
 
   /* ── Open / close ───────────────────────────────────────────── */
-  function openP()  { panel.classList.add('on'); drop.classList.add('on'); }
+  function openP()  {
+    panel.classList.add('on'); drop.classList.add('on');
+    if (!topicsCache) loadTopicsAsync().then(function () { refreshDomList(); });
+  }
   function closeP() { panel.classList.remove('on'); drop.classList.remove('on'); }
 
   gear.addEventListener('click', function () { panel.classList.contains('on') ? closeP() : openP(); });
@@ -360,11 +460,57 @@
     }
     /* Close */
     if (e.target.closest('#stX')) closeP();
-    /* Reset */
+    /* Reset to default (display settings only) */
     if (e.target.closest('#stReset')) {
       S = merge(DEFAULTS, {});
       save();
       switchTheme('default');
+      return;
+    }
+    /* Reset all progress */
+    if (e.target.closest('#stResetAll')) {
+      if (!window.store || !window.store.resetAllProgress) return;
+      if (confirm('Reset ALL study progress?\n\nThis clears proficiency, quiz history, streak, study time, and diagnostics. Settings and study-group membership are kept.\n\nThis cannot be undone.')) {
+        window.store.resetAllProgress();
+        refreshDomList();
+        alert('Progress reset. Refresh any open pages to see updated stats.');
+      }
+      return;
+    }
+    /* Per-topic / per-domain reset */
+    var btn = e.target.closest('.st-x-btn');
+    if (btn) {
+      e.stopPropagation();
+      var action = btn.getAttribute('data-action');
+      if (action === 'resetTopic') {
+        var tid = btn.getAttribute('data-tid');
+        if (!tid || !window.store || !window.store.resetTopic) return;
+        if (confirm('Reset progress for subtopic ' + tid + '?')) {
+          window.store.resetTopic(tid);
+          refreshDomList();
+        }
+        return;
+      }
+      if (action === 'resetDom') {
+        var did = btn.getAttribute('data-dom');
+        var ids = collectTopicIds(did);
+        if (!ids.length || !window.store || !window.store.resetDomain) return;
+        if (confirm('Reset all ' + ids.length + ' subtopics in Domain ' + did + '?')) {
+          window.store.resetDomain(ids);
+          refreshDomList();
+        }
+        return;
+      }
+    }
+    /* Toggle domain expansion */
+    var hd = e.target.closest('.st-dom-hd');
+    if (hd && !e.target.closest('.st-x-btn')) {
+      var row = hd.parentElement;
+      var id = row && row.getAttribute('data-dom');
+      if (!id) return;
+      openDomains[id] = !openDomains[id];
+      refreshDomList();
+      return;
     }
   });
 
