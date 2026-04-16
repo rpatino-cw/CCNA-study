@@ -1,0 +1,1761 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#FAF7F2">
+  <title>Packet Theater — CCNA Study</title>
+  <link rel="icon" type="image/svg+xml" href="/CCNA-study/favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;500;600;700&display=swap">
+  <link rel="stylesheet" href="css/shared.css">
+  <style>
+    /* ── Page layout ── */
+    .page-header { margin-bottom: var(--s-lg); }
+    .page-header h1 { font-size: clamp(1.6rem, 4vw, 2.2rem); margin-bottom: 4px; }
+    .page-header .subtitle { color: var(--ink-secondary); font-size: 0.95rem; max-width: 52ch; }
+
+    /* ── Tabs ── */
+    .tab-row {
+      display: flex; gap: 2px; margin-bottom: var(--s-lg);
+      border-bottom: 1px solid var(--border); overflow-x: auto;
+      scrollbar-width: none; -ms-overflow-style: none;
+    }
+    .tab-row::-webkit-scrollbar { display: none; }
+    .tab-btn {
+      padding: 10px 18px; background: none; border: none;
+      color: var(--ink-muted); cursor: pointer; white-space: nowrap;
+      font-size: 0.88rem; font-family: var(--font-display); font-weight: 500;
+      border-bottom: 2px solid transparent; transition: all 0.15s ease;
+    }
+    .tab-btn:hover { color: var(--ink); }
+    .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    /* ── Canvas container ── */
+    .scene-wrap {
+      position: relative; width: 100%;
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      overflow: hidden; margin-bottom: var(--s-md);
+    }
+    .scene-wrap canvas {
+      display: block; width: 100%;
+      cursor: default;
+    }
+
+    /* ── Controls bar ── */
+    .controls {
+      display: flex; align-items: center; gap: 8px;
+      padding: 10px 16px;
+      background: var(--bg-recessed);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      margin-bottom: var(--s-md);
+      flex-wrap: wrap;
+    }
+    .ctrl-btn {
+      width: 36px; height: 36px; border-radius: var(--radius);
+      border: 1px solid var(--border); background: var(--bg-surface);
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      color: var(--ink); transition: all 0.15s ease;
+      font-family: var(--font-display); font-size: 0.82rem; font-weight: 600;
+    }
+    .ctrl-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .ctrl-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .ctrl-btn svg { width: 16px; height: 16px; }
+    .speed-wrap {
+      display: flex; align-items: center; gap: 6px; margin-left: auto;
+      font-family: var(--font-mono); font-size: 0.75rem; color: var(--ink-muted);
+    }
+    .speed-wrap input[type=range] {
+      width: 80px; accent-color: var(--accent); height: 4px;
+    }
+    .step-label {
+      font-family: var(--font-display); font-size: 0.82rem;
+      color: var(--ink-secondary); font-weight: 500;
+      padding: 0 8px;
+    }
+
+    /* ── Sequence diagram (TCP tab) ── */
+    .seq-diagram {
+      display: flex; flex-direction: column; gap: 0;
+      padding: 16px 0;
+    }
+    .seq-header {
+      display: grid; grid-template-columns: 1fr 2fr 1fr;
+      text-align: center; margin-bottom: 12px;
+    }
+    .seq-header span {
+      font-family: var(--font-display); font-weight: 600;
+      font-size: 0.82rem; color: var(--ink);
+    }
+    .seq-row {
+      display: grid; grid-template-columns: 1fr 2fr 1fr;
+      align-items: center; min-height: 36px;
+      opacity: 0; transform: translateY(6px);
+      transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .seq-row.visible { opacity: 1; transform: translateY(0); }
+    .seq-side {
+      font-family: var(--font-mono); font-size: 0.72rem;
+      color: var(--ink-muted); text-align: center; padding: 0 4px;
+    }
+    .seq-arrow {
+      position: relative; height: 28px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .seq-arrow .line {
+      position: absolute; top: 50%; height: 2px; width: 80%;
+      left: 10%;
+    }
+    .seq-arrow .line.right { background: linear-gradient(90deg, transparent 0%, var(--accent) 100%); }
+    .seq-arrow .line.left { background: linear-gradient(90deg, var(--accent) 0%, transparent 100%); }
+    .seq-arrow .head {
+      position: absolute; top: 50%; transform: translateY(-50%);
+      width: 0; height: 0;
+      border-top: 5px solid transparent; border-bottom: 5px solid transparent;
+    }
+    .seq-arrow .head.right { right: 10%; border-left: 8px solid var(--accent); }
+    .seq-arrow .head.left { left: 10%; border-right: 8px solid var(--accent); }
+    .seq-arrow .pkt-label {
+      position: relative; z-index: 1;
+      font-family: var(--font-mono); font-size: 0.72rem; font-weight: 600;
+      padding: 2px 8px; border-radius: 3px;
+    }
+
+    /* ── Encapsulation tab ── */
+    .encap-stage {
+      display: flex; flex-direction: column; align-items: center;
+      gap: 0; padding: 20px 0;
+    }
+    .encap-layer {
+      width: 100%; max-width: 640px;
+      border: 2px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 0; overflow: hidden;
+      opacity: 0; transform: scaleY(0.92);
+      transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+      margin-bottom: -1px;
+    }
+    .encap-layer.visible { opacity: 1; transform: scaleY(1); }
+    .encap-layer-head {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 16px; cursor: pointer;
+      font-family: var(--font-display); font-weight: 600; font-size: 0.88rem;
+      transition: background 0.15s ease;
+    }
+    .encap-layer-head:hover { filter: brightness(0.97); }
+    .encap-layer-head .layer-num {
+      width: 26px; height: 26px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.72rem; font-weight: 700; color: #fff;
+    }
+    .encap-layer-head .layer-size {
+      margin-left: auto;
+      font-family: var(--font-mono); font-size: 0.72rem; font-weight: 400;
+      opacity: 0.7;
+    }
+    .encap-layer-body {
+      display: grid; grid-template-rows: 0fr;
+      transition: grid-template-rows 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .encap-layer-body.open { grid-template-rows: 1fr; }
+    .encap-layer-body-inner {
+      overflow: hidden;
+      border-top: 1px solid var(--border);
+      padding: 0;
+    }
+    .encap-layer-body.open .encap-layer-body-inner { padding: 14px 16px; }
+    .field-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 8px;
+    }
+    .field-item {
+      background: var(--bg-recessed); border-radius: var(--radius);
+      padding: 8px 10px;
+    }
+    .field-item .fname {
+      font-family: var(--font-display); font-size: 0.72rem;
+      font-weight: 600; color: var(--ink-secondary);
+      text-transform: uppercase; letter-spacing: 0.04em;
+      margin-bottom: 2px;
+    }
+    .field-item .fval {
+      font-family: var(--font-mono); font-size: 0.78rem; color: var(--ink);
+    }
+
+    /* Layer-specific colors */
+    .layer-5 { border-color: #7C3AED; }
+    .layer-5 .encap-layer-head { background: #F5F3FF; color: #5B21B6; }
+    .layer-5 .layer-num { background: #7C3AED; }
+    .layer-4 { border-color: #2563EB; }
+    .layer-4 .encap-layer-head { background: #EFF6FF; color: #1D4ED8; }
+    .layer-4 .layer-num { background: #2563EB; }
+    .layer-3 { border-color: #059669; }
+    .layer-3 .encap-layer-head { background: #ECFDF5; color: #047857; }
+    .layer-3 .layer-num { background: #059669; }
+    .layer-2 { border-color: #D97706; }
+    .layer-2 .encap-layer-head { background: #FFFBEB; color: #92400E; }
+    .layer-2 .layer-num { background: #D97706; }
+    .layer-1 { border-color: #DC2626; }
+    .layer-1 .encap-layer-head { background: #FEF2F2; color: #991B1B; }
+    .layer-1 .layer-num { background: #DC2626; }
+
+    .encap-controls {
+      display: flex; gap: 8px; justify-content: center;
+      margin-bottom: var(--s-md);
+    }
+    .encap-btn {
+      padding: 8px 20px; border-radius: var(--radius);
+      border: 1px solid var(--border); background: var(--bg-surface);
+      font-family: var(--font-display); font-size: 0.82rem; font-weight: 600;
+      cursor: pointer; color: var(--ink); transition: all 0.15s ease;
+    }
+    .encap-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .encap-btn.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+    /* ── Topology tab ── */
+    .topo-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: var(--s-md);
+    }
+    @media (max-width: 640px) { .topo-grid { grid-template-columns: 1fr; } }
+    .topo-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      transition: border-color 0.15s ease;
+    }
+    .topo-card:hover { border-color: var(--accent); }
+    .topo-card canvas { display: block; width: 100%; background: var(--bg-surface); }
+    .topo-info {
+      padding: 12px 14px; border-top: 1px solid var(--border);
+    }
+    .topo-info h3 {
+      font-family: var(--font-display); font-size: 0.88rem;
+      font-weight: 600; margin-bottom: 2px;
+    }
+    .topo-info p {
+      font-size: 0.78rem; color: var(--ink-secondary); line-height: 1.5;
+    }
+
+    /* ── Issues tab ── */
+    .issue-picker {
+      display: flex; gap: 8px; margin-bottom: var(--s-md); flex-wrap: wrap;
+    }
+    .issue-btn {
+      padding: 8px 16px; border-radius: var(--radius);
+      border: 2px solid var(--border); background: var(--bg-surface);
+      font-family: var(--font-display); font-size: 0.82rem; font-weight: 600;
+      cursor: pointer; color: var(--ink); transition: all 0.2s ease;
+    }
+    .issue-btn:hover { border-color: var(--accent); }
+    .issue-btn.active { border-color: var(--prof-weak); background: var(--prof-weak-bg); color: var(--prof-weak); }
+    .issue-explain {
+      background: var(--bg-recessed);
+      border: 1px solid var(--border); border-radius: var(--radius-lg);
+      padding: 14px 18px; margin-top: var(--s-md);
+    }
+    .issue-explain h4 {
+      font-family: var(--font-display); font-size: 0.88rem;
+      font-weight: 600; margin-bottom: 6px;
+    }
+    .issue-explain p {
+      font-size: 0.82rem; color: var(--ink-secondary); line-height: 1.6;
+    }
+    .issue-explain code {
+      font-family: var(--font-mono); font-size: 0.78rem;
+      background: var(--bg-hover); padding: 1px 5px; border-radius: 3px;
+    }
+
+    /* ── Reduced motion ── */
+    @media (prefers-reduced-motion: reduce) {
+      .seq-row, .encap-layer { transition: none; }
+    }
+  </style>
+</head>
+<body>
+  <nav class="top-nav"></nav>
+  <div class="container-wide">
+    <header class="page-header">
+      <h1>Packet Theater</h1>
+      <p class="subtitle">Watch packets come alive — TCP handshakes, encapsulation, topologies, and what happens when things break.</p>
+    </header>
+
+    <div class="tab-row">
+      <button class="tab-btn active" data-tab="handshake">TCP Handshake</button>
+      <button class="tab-btn" data-tab="encap">Encapsulation</button>
+      <button class="tab-btn" data-tab="topology">Topologies</button>
+      <button class="tab-btn" data-tab="issues">When Things Break</button>
+    </div>
+
+    <!-- ═══════════ TAB 1: TCP 3-WAY HANDSHAKE ═══════════ -->
+    <section class="tab-content active" id="tab-handshake">
+      <div class="scene-wrap">
+        <canvas id="hsCanvas" height="360"></canvas>
+      </div>
+      <div class="controls" id="hsControls">
+        <button class="ctrl-btn" id="hsPlay" title="Play">
+          <svg viewBox="0 0 16 16" fill="currentColor"><polygon points="4,2 14,8 4,14"/></svg>
+        </button>
+        <button class="ctrl-btn" id="hsPause" title="Pause">
+          <svg viewBox="0 0 16 16" fill="currentColor"><rect x="3" y="2" width="3.5" height="12"/><rect x="9.5" y="2" width="3.5" height="12"/></svg>
+        </button>
+        <button class="ctrl-btn" id="hsStep" title="Step forward">
+          <svg viewBox="0 0 16 16" fill="currentColor"><polygon points="2,2 9,8 2,14"/><rect x="10" y="2" width="3" height="12"/></svg>
+        </button>
+        <button class="ctrl-btn" id="hsReset" title="Reset">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 8a5 5 0 0 1 9-3"/><path d="M13 8a5 5 0 0 1-9 3"/><polyline points="3,3 3,8 8,8" fill="none"/></svg>
+        </button>
+        <span class="step-label" id="hsStepLabel">Ready</span>
+        <div class="speed-wrap">
+          <span>Speed</span>
+          <input type="range" id="hsSpeed" min="0.3" max="3" step="0.1" value="1">
+          <span id="hsSpeedVal">1.0x</span>
+        </div>
+      </div>
+
+      <div class="seq-diagram" id="seqDiagram">
+        <div class="seq-header">
+          <span>Client (192.168.1.10)</span>
+          <span></span>
+          <span>Server (10.0.0.1:443)</span>
+        </div>
+        <div class="seq-row" data-step="0">
+          <span class="seq-side">SYN<br>Seq=100</span>
+          <div class="seq-arrow"><div class="line right"></div><div class="head right"></div><span class="pkt-label" style="background:#2563EB22;color:#2563EB;">SYN</span></div>
+          <span class="seq-side"></span>
+        </div>
+        <div class="seq-row" data-step="1">
+          <span class="seq-side"></span>
+          <div class="seq-arrow"><div class="line left"></div><div class="head left"></div><span class="pkt-label" style="background:#7C3AED22;color:#7C3AED;">SYN-ACK</span></div>
+          <span class="seq-side">SYN-ACK<br>Seq=300, Ack=101</span>
+        </div>
+        <div class="seq-row" data-step="2">
+          <span class="seq-side">ACK<br>Ack=301</span>
+          <div class="seq-arrow"><div class="line right"></div><div class="head right"></div><span class="pkt-label" style="background:#16A34A22;color:#16A34A;">ACK</span></div>
+          <span class="seq-side"></span>
+        </div>
+        <div class="seq-row" data-step="3">
+          <span class="seq-side" style="color:var(--accent);">ESTABLISHED</span>
+          <div class="seq-arrow"><div class="line right" style="background:linear-gradient(90deg,transparent,var(--accent));"></div><div class="head right" style="border-left-color:var(--accent);"></div><span class="pkt-label" style="background:#B4530922;color:#B45309;">DATA</span></div>
+          <span class="seq-side"></span>
+        </div>
+        <div class="seq-row" data-step="4">
+          <span class="seq-side"></span>
+          <div class="seq-arrow"><div class="line left" style="background:linear-gradient(90deg,var(--accent),transparent);"></div><div class="head left" style="border-right-color:var(--accent);"></div><span class="pkt-label" style="background:#B4530922;color:#B45309;">ACK</span></div>
+          <span class="seq-side">Ack=201</span>
+        </div>
+        <div class="seq-row" data-step="5">
+          <span class="seq-side">FIN<br>Seq=201</span>
+          <div class="seq-arrow"><div class="line right"></div><div class="head right"></div><span class="pkt-label" style="background:#EA580C22;color:#EA580C;">FIN</span></div>
+          <span class="seq-side"></span>
+        </div>
+        <div class="seq-row" data-step="6">
+          <span class="seq-side"></span>
+          <div class="seq-arrow"><div class="line left"></div><div class="head left"></div><span class="pkt-label" style="background:#EA580C22;color:#EA580C;">FIN-ACK</span></div>
+          <span class="seq-side">FIN-ACK<br>Seq=501, Ack=202</span>
+        </div>
+        <div class="seq-row" data-step="7">
+          <span class="seq-side">ACK<br>Ack=502</span>
+          <div class="seq-arrow"><div class="line right"></div><div class="head right"></div><span class="pkt-label" style="background:#16A34A22;color:#16A34A;">ACK</span></div>
+          <span class="seq-side" style="color:var(--prof-strong);">CLOSED</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════ TAB 2: ENCAPSULATION ═══════════ -->
+    <section class="tab-content" id="tab-encap">
+      <p style="font-size:0.88rem;color:var(--ink-secondary);margin-bottom:var(--s-md);max-width:56ch;">
+        Data wraps layer by layer as it descends the OSI model. Click any layer to inspect its header fields.
+      </p>
+      <div class="encap-controls">
+        <button class="encap-btn primary" id="encapPlay">Encapsulate</button>
+        <button class="encap-btn" id="encapReset">Reset</button>
+      </div>
+      <div class="encap-stage" id="encapStage">
+        <!-- Layer 5 — Application -->
+        <div class="encap-layer layer-5" data-layer="5">
+          <div class="encap-layer-head">
+            <span class="layer-num">7</span>
+            <span>Application Data</span>
+            <span class="layer-size">~1460 B payload</span>
+          </div>
+          <div class="encap-layer-body">
+            <div class="encap-layer-body-inner">
+              <div class="field-grid">
+                <div class="field-item"><div class="fname">Content</div><div class="fval">"GET /index.html HTTP/1.1"</div></div>
+                <div class="field-item"><div class="fname">Protocol</div><div class="fval">HTTPS (TLS)</div></div>
+                <div class="field-item"><div class="fname">Encoding</div><div class="fval">UTF-8</div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- Layer 4 — Transport -->
+        <div class="encap-layer layer-4" data-layer="4">
+          <div class="encap-layer-head">
+            <span class="layer-num">4</span>
+            <span>TCP Segment</span>
+            <span class="layer-size">+20 B header</span>
+          </div>
+          <div class="encap-layer-body">
+            <div class="encap-layer-body-inner">
+              <div class="field-grid">
+                <div class="field-item"><div class="fname">Src Port</div><div class="fval">49152</div></div>
+                <div class="field-item"><div class="fname">Dst Port</div><div class="fval">443</div></div>
+                <div class="field-item"><div class="fname">Seq #</div><div class="fval">100</div></div>
+                <div class="field-item"><div class="fname">Ack #</div><div class="fval">301</div></div>
+                <div class="field-item"><div class="fname">Flags</div><div class="fval">PSH, ACK</div></div>
+                <div class="field-item"><div class="fname">Window</div><div class="fval">65535</div></div>
+                <div class="field-item"><div class="fname">Checksum</div><div class="fval">0x4A2F</div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- Layer 3 — Network -->
+        <div class="encap-layer layer-3" data-layer="3">
+          <div class="encap-layer-head">
+            <span class="layer-num">3</span>
+            <span>IP Packet</span>
+            <span class="layer-size">+20 B header</span>
+          </div>
+          <div class="encap-layer-body">
+            <div class="encap-layer-body-inner">
+              <div class="field-grid">
+                <div class="field-item"><div class="fname">Version</div><div class="fval">IPv4</div></div>
+                <div class="field-item"><div class="fname">Src IP</div><div class="fval">192.168.1.10</div></div>
+                <div class="field-item"><div class="fname">Dst IP</div><div class="fval">10.0.0.1</div></div>
+                <div class="field-item"><div class="fname">TTL</div><div class="fval">64</div></div>
+                <div class="field-item"><div class="fname">Protocol</div><div class="fval">6 (TCP)</div></div>
+                <div class="field-item"><div class="fname">Total Len</div><div class="fval">1500</div></div>
+                <div class="field-item"><div class="fname">Header Chk</div><div class="fval">0xB861</div></div>
+                <div class="field-item"><div class="fname">DSCP</div><div class="fval">0 (Best Effort)</div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- Layer 2 — Data Link -->
+        <div class="encap-layer layer-2" data-layer="2">
+          <div class="encap-layer-head">
+            <span class="layer-num">2</span>
+            <span>Ethernet Frame</span>
+            <span class="layer-size">+18 B (header + FCS)</span>
+          </div>
+          <div class="encap-layer-body">
+            <div class="encap-layer-body-inner">
+              <div class="field-grid">
+                <div class="field-item"><div class="fname">Dst MAC</div><div class="fval">AA:BB:CC:11:22:33</div></div>
+                <div class="field-item"><div class="fname">Src MAC</div><div class="fval">DD:EE:FF:44:55:66</div></div>
+                <div class="field-item"><div class="fname">EtherType</div><div class="fval">0x0800 (IPv4)</div></div>
+                <div class="field-item"><div class="fname">802.1Q Tag</div><div class="fval">VLAN 10</div></div>
+                <div class="field-item"><div class="fname">FCS</div><div class="fval">0xC704DD7B</div></div>
+                <div class="field-item"><div class="fname">Frame Size</div><div class="fval">1518 bytes</div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- Layer 1 — Physical -->
+        <div class="encap-layer layer-1" data-layer="1">
+          <div class="encap-layer-head">
+            <span class="layer-num">1</span>
+            <span>Physical — Bits on Wire</span>
+            <span class="layer-size">+8 B preamble + SFD</span>
+          </div>
+          <div class="encap-layer-body">
+            <div class="encap-layer-body-inner">
+              <div class="field-grid">
+                <div class="field-item"><div class="fname">Preamble</div><div class="fval">10101010 &times; 7</div></div>
+                <div class="field-item"><div class="fname">SFD</div><div class="fval">10101011</div></div>
+                <div class="field-item"><div class="fname">Medium</div><div class="fval">Cat6a UTP</div></div>
+                <div class="field-item"><div class="fname">Encoding</div><div class="fval">PAM-16 (10GBase-T)</div></div>
+                <div class="field-item"><div class="fname">Total on Wire</div><div class="fval">1526 bytes</div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════ TAB 3: TOPOLOGIES ═══════════ -->
+    <section class="tab-content" id="tab-topology">
+      <p style="font-size:0.88rem;color:var(--ink-secondary);margin-bottom:var(--s-md);max-width:56ch;">
+        Four fundamental topologies — watch how packets route through each one.
+      </p>
+      <div class="topo-grid">
+        <div class="topo-card">
+          <canvas id="topoStar" height="220"></canvas>
+          <div class="topo-info">
+            <h3>Star</h3>
+            <p>Central switch connects all hosts. Single point of failure at center, but easy to troubleshoot. Most common LAN topology.</p>
+          </div>
+        </div>
+        <div class="topo-card">
+          <canvas id="topoBus" height="220"></canvas>
+          <div class="topo-info">
+            <h3>Bus</h3>
+            <p>Shared backbone cable. All hosts hear all traffic — collision domain. Legacy 10Base-2/5. Terminated at both ends.</p>
+          </div>
+        </div>
+        <div class="topo-card">
+          <canvas id="topoRing" height="220"></canvas>
+          <div class="topo-info">
+            <h3>Ring</h3>
+            <p>Token passes around the circle. Only the token holder transmits. Used in FDDI and Token Ring. Predictable latency.</p>
+          </div>
+        </div>
+        <div class="topo-card">
+          <canvas id="topoMesh" height="220"></canvas>
+          <div class="topo-info">
+            <h3>Full Mesh</h3>
+            <p>Every device connects to every other. Maximum redundancy, but O(n&sup2;) links. Common in WAN cores and spine-leaf fabrics.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════ TAB 4: WHEN THINGS BREAK ═══════════ -->
+    <section class="tab-content" id="tab-issues">
+      <div class="issue-picker" id="issuePicker">
+        <button class="issue-btn active" data-issue="collision">Collision</button>
+        <button class="issue-btn" data-issue="ttl">TTL Expiry</button>
+        <button class="issue-btn" data-issue="rst">Connection Refused</button>
+        <button class="issue-btn" data-issue="congestion">Congestion</button>
+      </div>
+      <div class="scene-wrap">
+        <canvas id="issueCanvas" height="320"></canvas>
+      </div>
+      <div class="controls">
+        <button class="ctrl-btn" id="issueReplay" title="Replay">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 8a5 5 0 0 1 9-3"/><path d="M13 8a5 5 0 0 1-9 3"/><polyline points="3,3 3,8 8,8" fill="none"/></svg>
+        </button>
+        <span class="step-label" id="issueLabel">Collision — two frames on one wire</span>
+      </div>
+      <div class="issue-explain" id="issueExplain">
+        <h4>Collision (CSMA/CD)</h4>
+        <p>On shared media (hubs, 10Base-5), two hosts transmit simultaneously. Signals overlap and corrupt. Both detect the collision, send a <code>jam signal</code>, then back off for a random delay (binary exponential backoff) before retrying. Modern switched networks eliminate collisions — each switch port is its own collision domain.</p>
+      </div>
+    </section>
+  </div>
+
+  <script defer src="js/nav.js"></script>
+  <script>document.addEventListener('DOMContentLoaded', function() {
+  /* ════════════════════════════════════════════════════════════════
+     PACKET THEATER — Animation Engine
+     ════════════════════════════════════════════════════════════════ */
+
+  var C = {
+    bg: '#FAF7F2', surface: '#FFFFFF', ink: '#1C1917',
+    inkSec: '#57534E', inkMuted: '#A8A29E', border: '#E2DFD9',
+    accent: '#B45309',
+    syn: '#2563EB', ack: '#16A34A', synAck: '#7C3AED',
+    rst: '#DC2626', data: '#D97706', fin: '#EA580C',
+    icmp: '#0891B2',
+    router: '#B45309', sw: '#2563EB', host: '#57534E', server: '#059669'
+  };
+
+  var DPR = window.devicePixelRatio || 1;
+  var reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  function setupCanvas(canvas) {
+    var rect = canvas.getBoundingClientRect();
+    canvas.width = rect.width * DPR;
+    canvas.height = rect.height * DPR;
+    var ctx = canvas.getContext('2d');
+    ctx.scale(DPR, DPR);
+    return { ctx: ctx, w: rect.width, h: rect.height };
+  }
+
+  function lerp(a, b, t) { return a + (b - a) * t; }
+  function easeOutCubic(t) { return 1 - Math.pow(1 - Math.min(t, 1), 3); }
+  function easeInOutCubic(t) { return t < 0.5 ? 4*t*t*t : 1 - Math.pow(-2*t+2,3)/2; }
+
+  function roundRect(ctx, x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x+r, y);
+    ctx.lineTo(x+w-r, y);
+    ctx.quadraticCurveTo(x+w, y, x+w, y+r);
+    ctx.lineTo(x+w, y+h-r);
+    ctx.quadraticCurveTo(x+w, y+h, x+w-r, y+h);
+    ctx.lineTo(x+r, y+h);
+    ctx.quadraticCurveTo(x, y+h, x, y+h-r);
+    ctx.lineTo(x, y+r);
+    ctx.quadraticCurveTo(x, y, x+r, y);
+    ctx.closePath();
+  }
+
+  /* ── Draw devices ── */
+
+  function drawMonitor(ctx, x, y, label, ip, color, glow) {
+    ctx.save();
+    var sw = 62, sh = 44;
+    // Shadow / glow
+    if (glow) {
+      ctx.shadowColor = glow;
+      ctx.shadowBlur = 18;
+    }
+    // Screen
+    ctx.fillStyle = C.surface;
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2.5;
+    roundRect(ctx, x-sw/2, y-sh/2, sw, sh, 5);
+    ctx.fill(); ctx.stroke();
+    ctx.shadowBlur = 0;
+    // Screen inner
+    ctx.fillStyle = color + '12';
+    roundRect(ctx, x-sw/2+4, y-sh/2+4, sw-8, sh-8, 3);
+    ctx.fill();
+    // Stand
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(x, y+sh/2);
+    ctx.lineTo(x, y+sh/2+8);
+    ctx.moveTo(x-12, y+sh/2+8);
+    ctx.lineTo(x+12, y+sh/2+8);
+    ctx.stroke();
+    // Label
+    ctx.fillStyle = C.ink;
+    ctx.font = '600 12px "Space Grotesk", sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    ctx.fillText(label, x, y+sh/2+14);
+    // IP
+    if (ip) {
+      ctx.fillStyle = C.inkMuted;
+      ctx.font = '10px "JetBrains Mono", monospace';
+      ctx.fillText(ip, x, y+sh/2+28);
+    }
+    ctx.restore();
+  }
+
+  function drawServer(ctx, x, y, label, ip, glow) {
+    ctx.save();
+    var sw = 52, sh = 58;
+    if (glow) { ctx.shadowColor = glow; ctx.shadowBlur = 18; }
+    ctx.fillStyle = C.surface;
+    ctx.strokeStyle = C.server;
+    ctx.lineWidth = 2.5;
+    roundRect(ctx, x-sw/2, y-sh/2, sw, sh, 5);
+    ctx.fill(); ctx.stroke();
+    ctx.shadowBlur = 0;
+    // Rack lines
+    ctx.strokeStyle = C.server + '60';
+    ctx.lineWidth = 1.5;
+    for (var i = 0; i < 3; i++) {
+      var ly = y - sh/2 + 12 + i * 14;
+      ctx.beginPath();
+      ctx.moveTo(x - sw/2 + 8, ly);
+      ctx.lineTo(x + sw/2 - 8, ly);
+      ctx.stroke();
+      // LED dot
+      ctx.fillStyle = i === 0 ? C.ack : C.inkMuted + '40';
+      ctx.beginPath();
+      ctx.arc(x + sw/2 - 14, ly, 2.5, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.fillStyle = C.ink;
+    ctx.font = '600 12px "Space Grotesk", sans-serif';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+    ctx.fillText(label, x, y+sh/2+8);
+    if (ip) {
+      ctx.fillStyle = C.inkMuted;
+      ctx.font = '10px "JetBrains Mono", monospace';
+      ctx.fillText(ip, x, y+sh/2+22);
+    }
+    ctx.restore();
+  }
+
+  function drawSwitch(ctx, x, y, label) {
+    ctx.save();
+    var sw = 56, sh = 28;
+    ctx.fillStyle = C.surface;
+    ctx.strokeStyle = C.sw;
+    ctx.lineWidth = 2;
+    roundRect(ctx, x-sw/2, y-sh/2, sw, sh, 4);
+    ctx.fill(); ctx.stroke();
+    // Port dots
+    ctx.fillStyle = C.sw;
+    for (var i = 0; i < 4; i++) {
+      ctx.beginPath();
+      ctx.arc(x - 15 + i * 10, y, 2.5, 0, Math.PI*2);
+      ctx.fill();
+    }
+    ctx.fillStyle = C.ink;
+    ctx.font = '500 10px "Space Grotesk", sans-serif';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+    ctx.fillText(label || 'SW', x, y + sh/2 + 4);
+    ctx.restore();
+  }
+
+  function drawRouter(ctx, x, y, label, glow) {
+    ctx.save();
+    var r = 22;
+    if (glow) { ctx.shadowColor = glow; ctx.shadowBlur = 14; }
+    ctx.fillStyle = C.surface;
+    ctx.strokeStyle = C.router;
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, Math.PI*2);
+    ctx.fill(); ctx.stroke();
+    ctx.shadowBlur = 0;
+    // Arrows cross
+    ctx.strokeStyle = C.router;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(x-9, y); ctx.lineTo(x+9, y);
+    ctx.moveTo(x, y-9); ctx.lineTo(x, y+9);
+    ctx.stroke();
+    // Arrowheads
+    ctx.fillStyle = C.router;
+    [[-9,0,Math.PI],[9,0,0],[0,-9,-Math.PI/2],[0,9,Math.PI/2]].forEach(function(a) {
+      ctx.save();
+      ctx.translate(x+a[0], y+a[1]);
+      ctx.rotate(a[2]);
+      ctx.beginPath();
+      ctx.moveTo(0, -3); ctx.lineTo(4, 0); ctx.lineTo(0, 3);
+      ctx.fill();
+      ctx.restore();
+    });
+    if (label) {
+      ctx.fillStyle = C.ink;
+      ctx.font = '500 10px "Space Grotesk", sans-serif';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+      ctx.fillText(label, x, y + r + 6);
+    }
+    ctx.restore();
+  }
+
+  /* ── Draw packet ── */
+
+  function drawPacket(ctx, x, y, label, color, fields, scale) {
+    ctx.save();
+    scale = scale || 1;
+    var pw = 110 * scale, ph = (fields ? 42 : 28) * scale;
+    // Body
+    ctx.fillStyle = color + '15';
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2;
+    roundRect(ctx, x-pw/2, y-ph/2, pw, ph, 5);
+    ctx.fill(); ctx.stroke();
+    // Flag badge
+    ctx.fillStyle = color;
+    var bw = label.length * 7.5 + 14;
+    roundRect(ctx, x-pw/2+3, y-ph/2+3, bw * scale, 18 * scale, 3);
+    ctx.fill();
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold ' + (10*scale) + 'px "JetBrains Mono", monospace';
+    ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+    ctx.fillText(label, x-pw/2+9*scale, y-ph/2+12*scale);
+    // Fields
+    if (fields) {
+      ctx.fillStyle = C.inkSec;
+      ctx.font = (9*scale) + 'px "JetBrains Mono", monospace';
+      ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+      var fx = x-pw/2+6*scale, fy = y-ph/2+22*scale;
+      fields.forEach(function(f) {
+        ctx.fillText(f, fx, fy);
+        fy += 12*scale;
+      });
+    }
+    ctx.restore();
+  }
+
+  /* ── Draw cable ── */
+
+  function drawCable(ctx, x1, y1, x2, y2, t, color) {
+    ctx.save();
+    ctx.strokeStyle = color || C.border;
+    ctx.lineWidth = 2;
+    ctx.setLineDash([6, 4]);
+    ctx.lineDashOffset = -(t || 0) * 20;
+    ctx.beginPath();
+    ctx.moveTo(x1, y1); ctx.lineTo(x2, y2);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.restore();
+  }
+
+  /* ══════════════════════════════════════════════════════
+     SCENE 1: TCP HANDSHAKE
+     ══════════════════════════════════════════════════════ */
+
+  var hs = {
+    canvas: document.getElementById('hsCanvas'),
+    ctx: null, w: 0, h: 0,
+    playing: false, step: -1, t: 0, speed: 1,
+    raf: null, time: 0,
+    packets: [],
+
+    steps: [
+      { dir: 'right', label: 'SYN', color: C.syn, fields: ['Seq=100','Flags: SYN'], desc: 'Client initiates connection' },
+      { dir: 'left', label: 'SYN-ACK', color: C.synAck, fields: ['Seq=300, Ack=101','Flags: SYN,ACK'], desc: 'Server acknowledges + syncs' },
+      { dir: 'right', label: 'ACK', color: C.ack, fields: ['Ack=301','Flags: ACK'], desc: 'Client confirms — connected!' },
+      { dir: 'right', label: 'DATA', color: C.data, fields: ['Seq=101, Len=100','GET /index.html'], desc: 'Application data flows' },
+      { dir: 'left', label: 'ACK', color: C.ack, fields: ['Ack=201','Window=65535'], desc: 'Server acknowledges data' },
+      { dir: 'right', label: 'FIN', color: C.fin, fields: ['Seq=201','Flags: FIN,ACK'], desc: 'Client initiates close' },
+      { dir: 'left', label: 'FIN-ACK', color: C.fin, fields: ['Seq=501, Ack=202','Flags: FIN,ACK'], desc: 'Server closes its side' },
+      { dir: 'right', label: 'ACK', color: C.ack, fields: ['Ack=502','Flags: ACK'], desc: 'Connection fully closed' }
+    ],
+
+    init: function() {
+      var s = setupCanvas(this.canvas);
+      this.ctx = s.ctx; this.w = s.w; this.h = s.h;
+      this.draw();
+    },
+
+    play: function() {
+      if (this.step >= this.steps.length - 1 && this.t >= 1) { this.reset(); }
+      this.playing = true;
+      if (this.step < 0) { this.step = 0; this.t = 0; }
+      this.loop();
+    },
+
+    pause: function() { this.playing = false; },
+
+    stepFwd: function() {
+      this.playing = false;
+      if (this.step < 0) { this.step = 0; this.t = 0; }
+      else if (this.t < 1) { this.t = 1; }
+      else if (this.step < this.steps.length - 1) { this.step++; this.t = 0; }
+      this.updateSeq();
+      this.draw();
+    },
+
+    reset: function() {
+      this.playing = false;
+      this.step = -1; this.t = 0;
+      this.packets = [];
+      document.querySelectorAll('.seq-row').forEach(function(r) { r.classList.remove('visible'); });
+      document.getElementById('hsStepLabel').textContent = 'Ready';
+      if (this.raf) cancelAnimationFrame(this.raf);
+      this.draw();
+    },
+
+    updateSeq: function() {
+      var self = this;
+      document.querySelectorAll('.seq-row').forEach(function(r) {
+        var s = parseInt(r.getAttribute('data-step'));
+        if (s < self.step || (s === self.step && self.t > 0.15)) {
+          r.classList.add('visible');
+        }
+      });
+      if (this.step >= 0 && this.step < this.steps.length) {
+        document.getElementById('hsStepLabel').textContent =
+          'Step ' + (this.step+1) + '/' + this.steps.length + ' — ' + this.steps[this.step].desc;
+      }
+    },
+
+    loop: function() {
+      if (!this.playing) return;
+      var self = this;
+      this.t += 0.012 * this.speed;
+      if (this.t >= 1) {
+        this.t = 1;
+        this.updateSeq();
+        this.draw();
+        // Auto-advance after brief pause
+        setTimeout(function() {
+          if (!self.playing) return;
+          if (self.step < self.steps.length - 1) {
+            self.step++;
+            self.t = 0;
+            self.loop();
+          } else {
+            self.playing = false;
+            document.getElementById('hsStepLabel').textContent = 'Complete — full TCP lifecycle';
+          }
+        }, 500 / this.speed);
+        return;
+      }
+      this.updateSeq();
+      this.draw();
+      this.raf = requestAnimationFrame(function() { self.loop(); });
+    },
+
+    draw: function() {
+      var ctx = this.ctx, w = this.w, h = this.h;
+      var now = Date.now() / 1000;
+      ctx.clearRect(0, 0, w, h);
+
+      // Positions
+      var cx = w * 0.15, cy = h * 0.42;
+      var sx = w * 0.85, sy = h * 0.42;
+      var cableY = cy;
+
+      // Cable
+      drawCable(ctx, cx + 40, cableY, sx - 34, cableY, now, C.border);
+
+      // Devices
+      var clientGlow = null, serverGlow = null;
+      if (this.step >= 0 && this.step < this.steps.length) {
+        var s = this.steps[this.step];
+        if (s.dir === 'right' && this.t < 0.3) clientGlow = s.color + '40';
+        if (s.dir === 'right' && this.t > 0.7) serverGlow = s.color + '40';
+        if (s.dir === 'left' && this.t < 0.3) serverGlow = s.color + '40';
+        if (s.dir === 'left' && this.t > 0.7) clientGlow = s.color + '40';
+      }
+      // Status indicators
+      if (this.step >= 3 && this.step <= 4) {
+        // Connected
+        ctx.fillStyle = C.ack + '20';
+        ctx.beginPath(); ctx.arc(cx, cy - 40, 6, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = C.ack;
+        ctx.beginPath(); ctx.arc(cx, cy - 40, 3, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(sx, sy - 46, 6, 0, Math.PI*2);
+        ctx.fillStyle = C.ack + '20'; ctx.fill();
+        ctx.fillStyle = C.ack;
+        ctx.beginPath(); ctx.arc(sx, sy - 46, 3, 0, Math.PI*2); ctx.fill();
+      }
+
+      drawMonitor(ctx, cx, cy, 'Client', '192.168.1.10', C.host, clientGlow);
+      drawServer(ctx, sx, sy, 'Server', '10.0.0.1:443', serverGlow);
+
+      // Animate current packet
+      if (this.step >= 0 && this.step < this.steps.length) {
+        var st = this.steps[this.step];
+        var progress = easeInOutCubic(Math.min(this.t, 1));
+        var startX, endX;
+        if (st.dir === 'right') { startX = cx + 44; endX = sx - 38; }
+        else { startX = sx - 38; endX = cx + 44; }
+        var px = lerp(startX, endX, progress);
+        var py = cableY - 32 + Math.sin(progress * Math.PI) * -8;
+        drawPacket(ctx, px, py, st.label, st.color, st.fields, 0.9);
+      }
+
+      // Title overlay
+      ctx.fillStyle = C.ink;
+      ctx.font = '600 13px "Space Grotesk", sans-serif';
+      ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+      ctx.fillText('TCP 3-Way Handshake + Data Transfer + Teardown', 16, 14);
+      ctx.fillStyle = C.inkMuted;
+      ctx.font = '11px "Source Serif 4", serif';
+      ctx.fillText('Watch SYN → SYN-ACK → ACK establish a reliable connection', 16, 32);
+    }
+  };
+
+  /* ══════════════════════════════════════════════════════
+     SCENE 2: ENCAPSULATION
+     ══════════════════════════════════════════════════════ */
+
+  var encap = {
+    layers: document.querySelectorAll('.encap-layer'),
+    currentLayer: -1,
+    playing: false,
+
+    init: function() {
+      var self = this;
+      this.layers.forEach(function(l) {
+        l.querySelector('.encap-layer-head').addEventListener('click', function() {
+          var body = l.querySelector('.encap-layer-body');
+          body.classList.toggle('open');
+        });
+      });
+      document.getElementById('encapPlay').addEventListener('click', function() { self.animate(); });
+      document.getElementById('encapReset').addEventListener('click', function() { self.reset(); });
+    },
+
+    animate: function() {
+      if (this.playing) return;
+      this.reset();
+      this.playing = true;
+      var self = this;
+      var layers = Array.from(this.layers);
+      // Encapsulate top to bottom
+      layers.forEach(function(l, i) {
+        setTimeout(function() {
+          l.classList.add('visible');
+          // Auto-open the body briefly
+          var body = l.querySelector('.encap-layer-body');
+          body.classList.add('open');
+          setTimeout(function() { body.classList.remove('open'); }, 1800);
+          if (i === layers.length - 1) self.playing = false;
+        }, i * 700);
+      });
+    },
+
+    reset: function() {
+      this.playing = false;
+      this.layers.forEach(function(l) {
+        l.classList.remove('visible');
+        l.querySelector('.encap-layer-body').classList.remove('open');
+      });
+    }
+  };
+
+  /* ══════════════════════════════════════════════════════
+     SCENE 3: TOPOLOGIES
+     ══════════════════════════════════════════════════════ */
+
+  var topo = {
+    canvases: {},
+    rafIds: {},
+
+    init: function() {
+      var ids = ['topoStar', 'topoBus', 'topoRing', 'topoMesh'];
+      var self = this;
+      ids.forEach(function(id) {
+        var canvas = document.getElementById(id);
+        var s = setupCanvas(canvas);
+        self.canvases[id] = { canvas: canvas, ctx: s.ctx, w: s.w, h: s.h, t: 0, pkt: null };
+      });
+    },
+
+    start: function() {
+      var self = this;
+      this.animateStar();
+      this.animateBus();
+      this.animateRing();
+      this.animateMesh();
+    },
+
+    stop: function() {
+      var self = this;
+      Object.keys(this.rafIds).forEach(function(k) { cancelAnimationFrame(self.rafIds[k]); });
+      this.rafIds = {};
+    },
+
+    animateStar: function() {
+      var c = this.canvases.topoStar;
+      if (!c) return;
+      var ctx = c.ctx, w = c.w, h = c.h;
+      var cx = w/2, cy = h/2;
+      var hosts = [];
+      for (var i = 0; i < 5; i++) {
+        var a = (i / 5) * Math.PI * 2 - Math.PI/2;
+        hosts.push({ x: cx + Math.cos(a) * (Math.min(w,h)*0.34), y: cy + Math.sin(a) * (Math.min(w,h)*0.34) });
+      }
+      var pktFrom = 0, pktTo = 3, pktT = 0;
+      var self = this;
+
+      function draw() {
+        ctx.clearRect(0, 0, w, h);
+        var now = Date.now() / 1000;
+        // Cables to center
+        hosts.forEach(function(host) {
+          drawCable(ctx, host.x, host.y, cx, cy, now, C.border);
+        });
+        // Switch at center
+        drawSwitch(ctx, cx, cy, 'SW1');
+        // Hosts
+        hosts.forEach(function(host, i) {
+          ctx.save();
+          ctx.fillStyle = C.surface;
+          ctx.strokeStyle = C.host;
+          ctx.lineWidth = 1.5;
+          roundRect(ctx, host.x-16, host.y-12, 32, 24, 3);
+          ctx.fill(); ctx.stroke();
+          ctx.fillStyle = C.ink;
+          ctx.font = '500 9px "Space Grotesk",sans-serif';
+          ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+          ctx.fillText('PC' + i, host.x, host.y);
+          ctx.restore();
+        });
+        // Packet animation: from host → switch → target host
+        pktT += 0.008;
+        if (pktT > 2) { pktT = 0; pktFrom = (pktFrom + 1) % 5; pktTo = (pktFrom + 2) % 5; }
+        var px, py;
+        if (pktT <= 1) {
+          var t = easeInOutCubic(pktT);
+          px = lerp(hosts[pktFrom].x, cx, t);
+          py = lerp(hosts[pktFrom].y, cy, t);
+        } else {
+          var t2 = easeInOutCubic(pktT - 1);
+          px = lerp(cx, hosts[pktTo].x, t2);
+          py = lerp(cy, hosts[pktTo].y, t2);
+        }
+        // Small packet dot
+        ctx.fillStyle = C.syn;
+        ctx.shadowColor = C.syn + '60'; ctx.shadowBlur = 8;
+        ctx.beginPath(); ctx.arc(px, py, 5, 0, Math.PI*2); ctx.fill();
+        ctx.shadowBlur = 0;
+
+        self.rafIds.star = requestAnimationFrame(draw);
+      }
+      draw();
+    },
+
+    animateBus: function() {
+      var c = this.canvases.topoBus;
+      if (!c) return;
+      var ctx = c.ctx, w = c.w, h = c.h;
+      var busY = h * 0.5;
+      var hosts = [];
+      for (var i = 0; i < 5; i++) {
+        hosts.push({ x: w * 0.12 + (w * 0.76) * (i / 4), y: busY });
+      }
+      var pktT = 0, pktFrom = 0;
+      var self = this;
+
+      function draw() {
+        ctx.clearRect(0, 0, w, h);
+        var now = Date.now() / 1000;
+        // Bus backbone
+        ctx.strokeStyle = C.data;
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(w*0.06, busY); ctx.lineTo(w*0.94, busY);
+        ctx.stroke();
+        // Terminators
+        ctx.fillStyle = C.data;
+        [[w*0.06, busY], [w*0.94, busY]].forEach(function(p) {
+          ctx.beginPath(); ctx.arc(p[0], p[1], 4, 0, Math.PI*2); ctx.fill();
+        });
+        // Taps + hosts
+        hosts.forEach(function(host, i) {
+          ctx.strokeStyle = C.border;
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.moveTo(host.x, busY - 14);
+          ctx.lineTo(host.x, busY - 40);
+          ctx.stroke();
+          ctx.save();
+          ctx.fillStyle = C.surface;
+          ctx.strokeStyle = C.host;
+          ctx.lineWidth = 1.5;
+          roundRect(ctx, host.x-16, busY-64, 32, 24, 3);
+          ctx.fill(); ctx.stroke();
+          ctx.fillStyle = C.ink;
+          ctx.font = '500 9px "Space Grotesk",sans-serif';
+          ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+          ctx.fillText('PC' + i, host.x, busY-52);
+          ctx.restore();
+        });
+        // Packet broadcast along bus
+        pktT += 0.006;
+        if (pktT > 1) { pktT = 0; pktFrom = (pktFrom + 1) % 5; }
+        var px = lerp(hosts[pktFrom].x, hosts[pktFrom].x + w * 0.7 * (pktFrom < 2 ? 1 : -1), easeOutCubic(pktT));
+        px = Math.max(w*0.06, Math.min(w*0.94, px));
+        // Broadcast wave
+        ctx.fillStyle = C.data;
+        ctx.shadowColor = C.data + '60'; ctx.shadowBlur = 10;
+        ctx.beginPath(); ctx.arc(px, busY, 5, 0, Math.PI*2); ctx.fill();
+        ctx.shadowBlur = 0;
+        // Broadcast label
+        if (pktT < 0.3) {
+          ctx.fillStyle = C.data + '80';
+          ctx.font = '600 8px "JetBrains Mono",monospace';
+          ctx.textAlign = 'center';
+          ctx.fillText('BROADCAST', px, busY + 18);
+        }
+
+        self.rafIds.bus = requestAnimationFrame(draw);
+      }
+      draw();
+    },
+
+    animateRing: function() {
+      var c = this.canvases.topoRing;
+      if (!c) return;
+      var ctx = c.ctx, w = c.w, h = c.h;
+      var cx = w/2, cy = h/2, r = Math.min(w,h) * 0.32;
+      var n = 5;
+      var hosts = [];
+      for (var i = 0; i < n; i++) {
+        var a = (i / n) * Math.PI * 2 - Math.PI/2;
+        hosts.push({ x: cx + Math.cos(a) * r, y: cy + Math.sin(a) * r, angle: a });
+      }
+      var tokenPos = 0; // 0 to n (fractional)
+      var self = this;
+
+      function draw() {
+        ctx.clearRect(0, 0, w, h);
+        // Ring cables
+        for (var i = 0; i < n; i++) {
+          var next = (i + 1) % n;
+          drawCable(ctx, hosts[i].x, hosts[i].y, hosts[next].x, hosts[next].y, Date.now()/1000, C.border);
+        }
+        // Hosts
+        hosts.forEach(function(host, i) {
+          ctx.save();
+          ctx.fillStyle = C.surface;
+          ctx.strokeStyle = C.host;
+          ctx.lineWidth = 1.5;
+          roundRect(ctx, host.x-16, host.y-12, 32, 24, 3);
+          ctx.fill(); ctx.stroke();
+          ctx.fillStyle = C.ink;
+          ctx.font = '500 9px "Space Grotesk",sans-serif';
+          ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+          ctx.fillText('PC' + i, host.x, host.y);
+          ctx.restore();
+        });
+        // Token animation
+        tokenPos += 0.008;
+        if (tokenPos >= n) tokenPos -= n;
+        var seg = Math.floor(tokenPos);
+        var frac = tokenPos - seg;
+        var from = hosts[seg], to = hosts[(seg + 1) % n];
+        var tx = lerp(from.x, to.x, frac);
+        var ty = lerp(from.y, to.y, frac);
+        // Token
+        ctx.fillStyle = '#7C3AED';
+        ctx.shadowColor = '#7C3AED60'; ctx.shadowBlur = 10;
+        ctx.beginPath();
+        ctx.arc(tx, ty, 6, 0, Math.PI*2);
+        ctx.fill();
+        ctx.shadowBlur = 0;
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 7px "JetBrains Mono",monospace';
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText('T', tx, ty);
+
+        self.rafIds.ring = requestAnimationFrame(draw);
+      }
+      draw();
+    },
+
+    animateMesh: function() {
+      var c = this.canvases.topoMesh;
+      if (!c) return;
+      var ctx = c.ctx, w = c.w, h = c.h;
+      var cx = w/2, cy = h/2;
+      var hosts = [
+        { x: cx - w*0.25, y: cy - h*0.25 },
+        { x: cx + w*0.25, y: cy - h*0.25 },
+        { x: cx + w*0.25, y: cy + h*0.25 },
+        { x: cx - w*0.25, y: cy + h*0.25 },
+      ];
+      var pktT = 0, pathIdx = 0;
+      var paths = [[0,2],[1,3],[0,1],[2,3],[0,3],[1,2]];
+      var self = this;
+
+      function draw() {
+        ctx.clearRect(0, 0, w, h);
+        var now = Date.now() / 1000;
+        // All mesh links
+        for (var i = 0; i < hosts.length; i++) {
+          for (var j = i + 1; j < hosts.length; j++) {
+            drawCable(ctx, hosts[i].x, hosts[i].y, hosts[j].x, hosts[j].y, now, C.border);
+          }
+        }
+        // Hosts (routers for mesh)
+        hosts.forEach(function(host, i) {
+          drawRouter(ctx, host.x, host.y, 'R' + i);
+        });
+        // Packet
+        pktT += 0.01;
+        if (pktT > 1) { pktT = 0; pathIdx = (pathIdx + 1) % paths.length; }
+        var path = paths[pathIdx];
+        var t = easeInOutCubic(pktT);
+        var px = lerp(hosts[path[0]].x, hosts[path[1]].x, t);
+        var py = lerp(hosts[path[0]].y, hosts[path[1]].y, t);
+        // Highlight active path
+        ctx.strokeStyle = C.accent + '40';
+        ctx.lineWidth = 4; ctx.setLineDash([]);
+        ctx.beginPath();
+        ctx.moveTo(hosts[path[0]].x, hosts[path[0]].y);
+        ctx.lineTo(hosts[path[1]].x, hosts[path[1]].y);
+        ctx.stroke();
+        // Packet dot
+        ctx.fillStyle = C.accent;
+        ctx.shadowColor = C.accent + '60'; ctx.shadowBlur = 10;
+        ctx.beginPath(); ctx.arc(px, py, 5, 0, Math.PI*2); ctx.fill();
+        ctx.shadowBlur = 0;
+
+        self.rafIds.mesh = requestAnimationFrame(draw);
+      }
+      draw();
+    }
+  };
+
+  /* ══════════════════════════════════════════════════════
+     SCENE 4: WHEN THINGS BREAK
+     ══════════════════════════════════════════════════════ */
+
+  var issues = {
+    canvas: document.getElementById('issueCanvas'),
+    ctx: null, w: 0, h: 0,
+    active: 'collision', raf: null, t: 0,
+
+    scenarios: {
+      collision: {
+        label: 'Collision — two frames on one wire',
+        explain: '<h4>Collision (CSMA/CD)</h4><p>On shared media (hubs, 10Base-5), two hosts transmit simultaneously. Signals overlap and corrupt. Both detect the collision, send a <code>jam signal</code>, then back off for a random delay (binary exponential backoff) before retrying. Modern switched networks eliminate collisions — each switch port is its own collision domain.</p>'
+      },
+      ttl: {
+        label: 'TTL Expiry — packet dies in transit',
+        explain: '<h4>TTL Expiry (ICMP Time Exceeded)</h4><p>Every IP packet has a <code>TTL</code> (Time To Live) field that decrements at each router hop. If TTL reaches 0, the router drops the packet and sends an <code>ICMP Type 11</code> (Time Exceeded) message back to the source. This prevents routing loops from circulating packets forever. <code>traceroute</code> exploits this behavior — it sends packets with incrementing TTLs to discover each hop.</p>'
+      },
+      rst: {
+        label: 'RST — connection refused',
+        explain: '<h4>TCP RST (Connection Refused)</h4><p>When a client sends a <code>SYN</code> to a port with no listening service, the server responds with <code>RST</code> (Reset) — "nobody is home." This is different from a timeout (no response at all, often caused by a firewall dropping packets silently). Port scanners use this difference: RST = closed port, no response = filtered port.</p>'
+      },
+      congestion: {
+        label: 'Congestion — buffer overflow',
+        explain: '<h4>Congestion (Tail Drop)</h4><p>When a router\'s output queue fills up, incoming packets are dropped — called <code>tail drop</code>. TCP detects this via missing ACKs and cuts its sending rate (congestion window) in half. Mechanisms like <code>WRED</code> (Weighted Random Early Detection) drop packets proactively before the queue is full, giving TCP an earlier signal to slow down. QoS marking (DSCP) determines which traffic gets dropped first.</p>'
+      }
+    },
+
+    init: function() {
+      var s = setupCanvas(this.canvas);
+      this.ctx = s.ctx; this.w = s.w; this.h = s.h;
+      this.drawCollision();
+    },
+
+    play: function(scenario) {
+      this.active = scenario || this.active;
+      this.t = 0;
+      if (this.raf) cancelAnimationFrame(this.raf);
+      document.getElementById('issueLabel').textContent = this.scenarios[this.active].label;
+      document.getElementById('issueExplain').innerHTML = this.scenarios[this.active].explain;
+      var self = this;
+      switch (this.active) {
+        case 'collision': this.drawCollision(); break;
+        case 'ttl': this.drawTTL(); break;
+        case 'rst': this.drawRST(); break;
+        case 'congestion': this.drawCongestion(); break;
+      }
+    },
+
+    drawCollision: function() {
+      var ctx = this.ctx, w = this.w, h = this.h;
+      var self = this;
+      var t = 0;
+      var particles = [];
+
+      function frame() {
+        ctx.clearRect(0, 0, w, h);
+        var now = Date.now() / 1000;
+        var hostAx = w * 0.12, hostBx = w * 0.88, cableY = h * 0.45;
+        // Cable (bus)
+        ctx.strokeStyle = C.data;
+        ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.moveTo(hostAx+20, cableY); ctx.lineTo(hostBx-20, cableY); ctx.stroke();
+        // Hosts
+        drawMonitor(ctx, hostAx, cableY, 'Host A', '.10', C.host, null);
+        drawMonitor(ctx, hostBx, cableY, 'Host B', '.20', C.host, null);
+        // Hub in center
+        drawSwitch(ctx, w/2, cableY, 'HUB');
+
+        t += 0.008;
+        if (t > 2.5) { t = 0; particles = []; }
+
+        // Phase 1: both packets approach center
+        if (t <= 0.8) {
+          var p = easeOutCubic(t / 0.8);
+          var ax = lerp(hostAx + 50, w/2 - 10, p);
+          var bx = lerp(hostBx - 50, w/2 + 10, p);
+          drawPacket(ctx, ax, cableY - 30, 'DATA', C.syn, null, 0.65);
+          drawPacket(ctx, bx, cableY - 30, 'DATA', C.data, null, 0.65);
+        }
+        // Phase 2: collision!
+        else if (t <= 1.3) {
+          var flash = Math.sin((t - 0.8) * 20) * 0.5 + 0.5;
+          // Collision flash
+          ctx.fillStyle = 'rgba(220,38,38,' + (flash * 0.3) + ')';
+          ctx.beginPath(); ctx.arc(w/2, cableY - 20, 30, 0, Math.PI*2); ctx.fill();
+          // X mark
+          ctx.strokeStyle = C.rst;
+          ctx.lineWidth = 3;
+          ctx.beginPath();
+          ctx.moveTo(w/2-12, cableY-32); ctx.lineTo(w/2+12, cableY-8);
+          ctx.moveTo(w/2+12, cableY-32); ctx.lineTo(w/2-12, cableY-8);
+          ctx.stroke();
+          // Collision label
+          ctx.fillStyle = C.rst;
+          ctx.font = 'bold 13px "Space Grotesk",sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillText('COLLISION!', w/2, cableY - 44);
+          // Spawn particles
+          if (particles.length === 0) {
+            for (var i = 0; i < 12; i++) {
+              var angle = (i/12) * Math.PI * 2;
+              particles.push({
+                x: w/2, y: cableY - 20,
+                vx: Math.cos(angle) * (2 + Math.random() * 3),
+                vy: Math.sin(angle) * (2 + Math.random() * 3),
+                life: 1, color: i % 2 === 0 ? C.syn : C.data
+              });
+            }
+          }
+        }
+        // Phase 3: jam + backoff
+        else if (t <= 2.5) {
+          var bt = (t - 1.3) / 1.2;
+          // Backoff arrows
+          ctx.strokeStyle = C.rst + '80';
+          ctx.lineWidth = 2;
+          // Host A backs off left
+          var arrowAx = lerp(w/2 - 30, hostAx + 50, easeOutCubic(Math.min(bt * 1.5, 1)));
+          ctx.beginPath(); ctx.moveTo(w/2 - 30, cableY - 20);
+          ctx.lineTo(arrowAx, cableY - 20); ctx.stroke();
+          // Host B backs off right
+          var arrowBx = lerp(w/2 + 30, hostBx - 50, easeOutCubic(Math.min(bt * 1.5, 1)));
+          ctx.beginPath(); ctx.moveTo(w/2 + 30, cableY - 20);
+          ctx.lineTo(arrowBx, cableY - 20); ctx.stroke();
+          // Backoff timers
+          if (bt > 0.3) {
+            ctx.fillStyle = C.inkSec;
+            ctx.font = '10px "JetBrains Mono",monospace';
+            ctx.textAlign = 'center';
+            ctx.fillText('Backoff: ' + Math.floor(Math.random()*15+1) + ' slots', hostAx, cableY + 54);
+            ctx.fillText('Backoff: ' + Math.floor(Math.random()*15+1) + ' slots', hostBx, cableY + 54);
+          }
+          // JAM signal
+          if (bt < 0.5) {
+            ctx.fillStyle = C.rst + '60';
+            ctx.font = 'bold 10px "JetBrains Mono",monospace';
+            ctx.textAlign = 'center';
+            ctx.fillText('JAM SIGNAL', w/2, cableY + 20);
+          }
+        }
+
+        // Draw particles
+        particles.forEach(function(p) {
+          p.x += p.vx; p.y += p.vy; p.life -= 0.02;
+          if (p.life > 0) {
+            ctx.globalAlpha = p.life;
+            ctx.fillStyle = p.color;
+            ctx.beginPath(); ctx.arc(p.x, p.y, 3, 0, Math.PI*2); ctx.fill();
+            ctx.globalAlpha = 1;
+          }
+        });
+
+        self.raf = requestAnimationFrame(frame);
+      }
+      frame();
+    },
+
+    drawTTL: function() {
+      var ctx = this.ctx, w = this.w, h = this.h;
+      var self = this;
+      var t = 0;
+      var routers = [
+        { x: w*0.15, y: h*0.45, label: 'R1' },
+        { x: w*0.38, y: h*0.45, label: 'R2' },
+        { x: w*0.61, y: h*0.45, label: 'R3' },
+        { x: w*0.84, y: h*0.45, label: 'R4' }
+      ];
+
+      function frame() {
+        ctx.clearRect(0, 0, w, h);
+        var now = Date.now() / 1000;
+        // Cables between routers
+        for (var i = 0; i < routers.length - 1; i++) {
+          drawCable(ctx, routers[i].x + 26, routers[i].y, routers[i+1].x - 26, routers[i+1].y, now, C.border);
+        }
+        // Routers
+        routers.forEach(function(r) { drawRouter(ctx, r.x, r.y, r.label); });
+
+        t += 0.005;
+        if (t > 3.5) t = 0;
+
+        var totalHops = routers.length - 1;
+        var startTTL = 3;
+
+        // Packet travels hop by hop
+        if (t < 2.4) {
+          var hopDuration = 0.8;
+          var currentHop = Math.min(Math.floor(t / hopDuration), totalHops - 1);
+          var hopProgress = (t - currentHop * hopDuration) / hopDuration;
+          hopProgress = Math.min(hopProgress, 1);
+
+          var from = routers[currentHop];
+          var to = routers[Math.min(currentHop + 1, totalHops)];
+          var px = lerp(from.x + 26, to.x - 26, easeInOutCubic(hopProgress));
+          var py = from.y - 30 + Math.sin(hopProgress * Math.PI) * -6;
+          var ttl = startTTL - currentHop;
+
+          // Draw TTL counter above packet
+          ctx.fillStyle = ttl <= 1 ? C.rst : C.ink;
+          ctx.font = 'bold 12px "JetBrains Mono",monospace';
+          ctx.textAlign = 'center';
+          ctx.fillText('TTL=' + Math.max(ttl - (hopProgress > 0.9 ? 1 : 0), 0), px, py - 18);
+
+          if (ttl <= 1 && hopProgress > 0.9) {
+            // TTL=0 — packet dies
+            drawPacket(ctx, px, py, 'DROP', C.rst, ['TTL=0'], 0.75);
+            // Death effect
+            ctx.strokeStyle = C.rst;
+            ctx.lineWidth = 2;
+            var s = 15 + (t - 2.2) * 30;
+            ctx.beginPath();
+            ctx.moveTo(px-s, py-s); ctx.lineTo(px+s, py+s);
+            ctx.moveTo(px+s, py-s); ctx.lineTo(px-s, py+s);
+            ctx.stroke();
+          } else {
+            drawPacket(ctx, px, py, 'DATA', C.ack, ['TTL=' + ttl], 0.75);
+          }
+
+          // Show TTL decrement at each router
+          for (var i = 0; i <= currentHop; i++) {
+            ctx.fillStyle = C.inkMuted;
+            ctx.font = '9px "JetBrains Mono",monospace';
+            ctx.textAlign = 'center';
+            ctx.fillText('TTL ' + (startTTL-i) + '→' + (startTTL-i-1), routers[i].x, routers[i].y + 38);
+          }
+        }
+        // ICMP Time Exceeded response
+        else if (t < 3.5) {
+          var rt = (t - 2.4) / 1.1;
+          var lastRouter = routers[totalHops];
+          var firstRouter = routers[0];
+          var ix = lerp(lastRouter.x, firstRouter.x, easeInOutCubic(rt));
+          var iy = h * 0.45 + 30;
+          drawPacket(ctx, ix, iy, 'ICMP', C.icmp, ['Type 11: Time Exceeded'], 0.75);
+          // Arrow back
+          ctx.fillStyle = C.icmp;
+          ctx.font = '10px "Space Grotesk",sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillText('ICMP Time Exceeded → Source', w/2, h*0.45 + 60);
+        }
+
+        self.raf = requestAnimationFrame(frame);
+      }
+      frame();
+    },
+
+    drawRST: function() {
+      var ctx = this.ctx, w = this.w, h = this.h;
+      var self = this;
+      var t = 0;
+      var cx = w*0.2, cy = h*0.45;
+      var sx = w*0.8, sy = h*0.45;
+
+      function frame() {
+        ctx.clearRect(0, 0, w, h);
+        var now = Date.now() / 1000;
+        drawCable(ctx, cx+40, cy, sx-34, sy, now, C.border);
+        drawMonitor(ctx, cx, cy, 'Client', '192.168.1.10', C.host, null);
+        drawServer(ctx, sx, sy, 'Server', '10.0.0.1', null);
+
+        t += 0.006;
+        if (t > 2.5) t = 0;
+
+        // Phase 1: SYN goes to server
+        if (t < 0.8) {
+          var p = easeInOutCubic(t / 0.8);
+          var px = lerp(cx+44, sx-38, p);
+          drawPacket(ctx, px, cy - 30, 'SYN', C.syn, ['Dst Port: 8080'], 0.8);
+        }
+        // Phase 2: RST comes back
+        else if (t < 1.6) {
+          var p2 = easeInOutCubic((t - 0.8) / 0.8);
+          var px2 = lerp(sx-38, cx+44, p2);
+          drawPacket(ctx, px2, cy - 30, 'RST', C.rst, ['Port 8080 CLOSED'], 0.8);
+          // Closed port indicator
+          ctx.fillStyle = C.rst;
+          ctx.font = 'bold 10px "Space Grotesk",sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillText('Port 8080: No listener', sx, sy + 56);
+        }
+        // Phase 3: connection refused
+        else {
+          ctx.fillStyle = C.rst;
+          ctx.font = 'bold 12px "Space Grotesk",sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillText('Connection Refused', w/2, cy - 40);
+          ctx.fillStyle = C.inkSec;
+          ctx.font = '10px "JetBrains Mono",monospace';
+          ctx.fillText('errno: ECONNREFUSED', w/2, cy - 24);
+        }
+
+        self.raf = requestAnimationFrame(frame);
+      }
+      frame();
+    },
+
+    drawCongestion: function() {
+      var ctx = this.ctx, w = this.w, h = this.h;
+      var self = this;
+      var t = 0;
+      var packets = [];
+
+      function frame() {
+        ctx.clearRect(0, 0, w, h);
+        var now = Date.now() / 1000;
+        var routerX = w * 0.55, routerY = h * 0.45;
+        var srcX = w * 0.12, srcY = h * 0.45;
+        var dstX = w * 0.88, dstY = h * 0.45;
+
+        drawCable(ctx, srcX + 40, srcY, routerX - 26, routerY, now, C.border);
+        drawCable(ctx, routerX + 26, routerY, dstX - 34, dstY, now, C.border);
+        drawMonitor(ctx, srcX, srcY, 'Sender', '', C.host, null);
+        drawRouter(ctx, routerX, routerY, 'Router');
+        drawServer(ctx, dstX, dstY, 'Receiver', '', null);
+
+        t += 0.004;
+        if (t > 3) { t = 0; packets = []; }
+
+        // Spawn packets
+        if (t < 1.5 && packets.length < 12) {
+          if (Math.random() < 0.06) {
+            packets.push({ x: srcX + 40, y: srcY - 20 - packets.length * 3, progress: 0, dropped: false, id: packets.length });
+          }
+        }
+
+        // Buffer visualization at router
+        var bufferX = routerX - 20, bufferY = routerY - 60, bufferW = 40, bufferH = 30;
+        ctx.strokeStyle = C.border;
+        ctx.lineWidth = 1.5;
+        roundRect(ctx, bufferX, bufferY, bufferW, bufferH, 3);
+        ctx.stroke();
+        var buffered = packets.filter(function(p) { return p.progress >= 0.5 && p.progress < 0.7 && !p.dropped; });
+        var fillPct = Math.min(buffered.length / 5, 1);
+        ctx.fillStyle = fillPct > 0.8 ? C.rst + '40' : C.ack + '30';
+        roundRect(ctx, bufferX+1, bufferY + bufferH * (1-fillPct), bufferW-2, bufferH * fillPct - 1, 2);
+        ctx.fill();
+        ctx.fillStyle = C.inkSec;
+        ctx.font = '9px "JetBrains Mono",monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText('Buffer', routerX, bufferY - 4);
+        ctx.fillText(Math.round(fillPct * 100) + '%', routerX, bufferY + bufferH + 12);
+
+        // Animate packets
+        var queueCount = 0;
+        packets.forEach(function(p, i) {
+          p.progress += 0.003;
+          // Drop logic: if buffer full and packet arrives
+          if (p.progress >= 0.48 && p.progress < 0.52 && !p.dropped) {
+            queueCount++;
+            if (queueCount > 5) { p.dropped = true; }
+          }
+          if (p.dropped) {
+            // Fall down and fade
+            var dropT = Math.min((p.progress - 0.5) * 10, 1);
+            ctx.globalAlpha = 1 - dropT;
+            ctx.fillStyle = C.rst;
+            ctx.beginPath();
+            ctx.arc(routerX, routerY + 40 + dropT * 30, 4, 0, Math.PI*2);
+            ctx.fill();
+            // X
+            ctx.strokeStyle = C.rst;
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.moveTo(routerX-5, routerY+35+dropT*30); ctx.lineTo(routerX+5, routerY+45+dropT*30);
+            ctx.moveTo(routerX+5, routerY+35+dropT*30); ctx.lineTo(routerX-5, routerY+45+dropT*30);
+            ctx.stroke();
+            ctx.globalAlpha = 1;
+            return;
+          }
+          // Normal travel
+          var px, py;
+          if (p.progress < 0.5) {
+            var pt = easeOutCubic(p.progress / 0.5);
+            px = lerp(srcX + 40, routerX - 26, pt);
+            py = srcY - 20 + Math.sin(pt * Math.PI) * -4;
+          } else {
+            var pt2 = easeOutCubic((p.progress - 0.5) / 0.5);
+            px = lerp(routerX + 26, dstX - 34, Math.min(pt2, 1));
+            py = srcY - 20 + Math.sin(Math.min(pt2,1) * Math.PI) * -4;
+          }
+          if (p.progress <= 1) {
+            ctx.fillStyle = C.syn;
+            ctx.shadowColor = C.syn + '40'; ctx.shadowBlur = 6;
+            ctx.beginPath(); ctx.arc(px, py, 4, 0, Math.PI*2); ctx.fill();
+            ctx.shadowBlur = 0;
+          }
+        });
+
+        // Congestion window label
+        if (t > 1.5) {
+          var cwnd = Math.max(1, 6 - Math.floor((t - 1.5) * 4));
+          ctx.fillStyle = C.inkSec;
+          ctx.font = '10px "JetBrains Mono",monospace';
+          ctx.textAlign = 'center';
+          ctx.fillText('cwnd: ' + cwnd + ' segments', w/2, h * 0.85);
+          if (cwnd <= 2) {
+            ctx.fillStyle = C.data;
+            ctx.font = 'bold 10px "Space Grotesk",sans-serif';
+            ctx.fillText('TCP Slow Start: cwnd halved', w/2, h * 0.92);
+          }
+        }
+
+        self.raf = requestAnimationFrame(frame);
+      }
+      frame();
+    }
+  };
+
+  /* ══════════════════════════════════════════════════════
+     TAB SWITCHING
+     ══════════════════════════════════════════════════════ */
+
+  var tabs = document.querySelectorAll('.tab-btn');
+  var contents = document.querySelectorAll('.tab-content');
+
+  tabs.forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var id = 'tab-' + btn.getAttribute('data-tab');
+      tabs.forEach(function(b) { b.classList.remove('active'); });
+      contents.forEach(function(c) { c.classList.remove('active'); });
+      btn.classList.add('active');
+      document.getElementById(id).classList.add('active');
+
+      // Stop all animations, start relevant one
+      hs.pause();
+      topo.stop();
+      if (issues.raf) cancelAnimationFrame(issues.raf);
+
+      if (id === 'tab-topology') {
+        // Reinit canvases in case of resize
+        topo.init();
+        topo.start();
+      }
+      if (id === 'tab-issues') {
+        var s = setupCanvas(issues.canvas);
+        issues.ctx = s.ctx; issues.w = s.w; issues.h = s.h;
+        issues.play();
+      }
+    });
+  });
+
+  /* ══════════════════════════════════════════════════════
+     WIRE UP CONTROLS
+     ══════════════════════════════════════════════════════ */
+
+  // Handshake controls
+  document.getElementById('hsPlay').addEventListener('click', function() { hs.play(); });
+  document.getElementById('hsPause').addEventListener('click', function() { hs.pause(); });
+  document.getElementById('hsStep').addEventListener('click', function() { hs.stepFwd(); });
+  document.getElementById('hsReset').addEventListener('click', function() { hs.reset(); });
+  var speedSlider = document.getElementById('hsSpeed');
+  var speedVal = document.getElementById('hsSpeedVal');
+  speedSlider.addEventListener('input', function() {
+    hs.speed = parseFloat(speedSlider.value);
+    speedVal.textContent = hs.speed.toFixed(1) + 'x';
+  });
+
+  // Issue picker
+  document.querySelectorAll('.issue-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      document.querySelectorAll('.issue-btn').forEach(function(b) { b.classList.remove('active'); });
+      btn.classList.add('active');
+      if (issues.raf) cancelAnimationFrame(issues.raf);
+      var s = setupCanvas(issues.canvas);
+      issues.ctx = s.ctx; issues.w = s.w; issues.h = s.h;
+      issues.play(btn.getAttribute('data-issue'));
+    });
+  });
+  document.getElementById('issueReplay').addEventListener('click', function() {
+    if (issues.raf) cancelAnimationFrame(issues.raf);
+    var s = setupCanvas(issues.canvas);
+    issues.ctx = s.ctx; issues.w = s.w; issues.h = s.h;
+    issues.play();
+  });
+
+  /* ══════════════════════════════════════════════════════
+     INIT
+     ══════════════════════════════════════════════════════ */
+
+  hs.init();
+  encap.init();
+  // Topology and issues init on tab switch to avoid wasted animation frames
+
+  // Handle resize
+  var resizeTimer;
+  window.addEventListener('resize', function() {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(function() {
+      var s = setupCanvas(hs.canvas);
+      hs.ctx = s.ctx; hs.w = s.w; hs.h = s.h;
+      hs.draw();
+    }, 200);
+  });
+
+});</script>
+</body>
+</html>
