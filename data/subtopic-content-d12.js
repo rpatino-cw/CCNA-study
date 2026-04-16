@@ -886,7 +886,17 @@ window.subtopicContentD12 = {
       practice: "Open Packet Tracer and build a simple topology: 1 router, 1 switch, 2 PCs. Assign 192.168.1.0/24 addressing. On each PC, run <code>ipconfig</code> to verify the IP, mask, and gateway. Then convert each IP and mask to binary by hand — write out all 32 bits. Practice converting 10 random octets (0-255) to binary and back daily until you can do any conversion in under 10 seconds. Use subnettingpractice.com for timed drills.",
       effort: "high",
       meta: "Binary conversion is THE prerequisite for all subnetting. Jeremy's IT Lab Day 12 covers IPv4 header and addressing. Wendell Odom OCG Chapter 11 (Perspectives on IPv4 Subnetting) drills the binary math. Practice every single day until the exam — if you can't convert fast, every subnetting question eats your time."
-    }
+    },
+    micro: [
+      { id: "1.6.a.1", term: "IPv4 address",                 def: "32-bit number written as 4 octets in dotted-decimal (e.g., 192.168.1.10).", weight: "high" },
+      { id: "1.6.a.2", term: "Octet",                        def: "8 bits, valid range 0-255. Four octets make an IPv4 address.", weight: "high" },
+      { id: "1.6.a.3", term: "Network vs host portion",      def: "Subnet mask defines boundary. Left bits = network, right bits = host.", weight: "high" },
+      { id: "1.6.a.4", term: "Positional values",            def: "128, 64, 32, 16, 8, 4, 2, 1. Powers of 2 from 2^7 to 2^0. Sum to 255.", weight: "high" },
+      { id: "1.6.a.5", term: "Network address",              def: "All host bits set to 0. Identifies the subnet. NOT assignable to a host.", weight: "high" },
+      { id: "1.6.a.6", term: "Broadcast address",            def: "All host bits set to 1. Reaches all hosts in the subnet. NOT assignable to a host.", weight: "high" },
+      { id: "1.6.a.7", term: "AND operation",                def: "IP AND subnet mask = network address. How a router determines which subnet an IP belongs to.", weight: "high" },
+      { id: "1.6.a.8", term: "IPv4 address space",           def: "2^32 ≈ 4.3 billion addresses total. Exhaustion drove IPv6 creation.", weight: "med" }
+    ]
   },
 
   "1.6.b": {
@@ -903,7 +913,16 @@ window.subtopicContentD12 = {
       practice: "Drill 20 random IPs and instantly identify: class, default mask, and whether it's private/public. Examples: <code>172.20.5.1</code> = Class B, /16 default, private. <code>8.8.8.8</code> = Class A, /8 default, public. Open Packet Tracer, assign IPs from each class to different interfaces on a router, and use <code>show ip interface brief</code> to see the masks applied. Time yourself — target instant recognition under 3 seconds per address.",
       effort: "medium",
       meta: "The exam tests classful addressing despite CIDR being the standard. Jeremy's IT Lab Day 12 covers classful addressing. Wendell Odom OCG Chapter 11 explains the history. The first-octet ranges must be memorized cold — 1-126 (A), 128-191 (B), 192-223 (C), 224-239 (D), 240-255 (E). The 127 gap for loopback is a common trick question."
-    }
+    },
+    micro: [
+      { id: "1.6.b.1", term: "Class A",                      def: "First octet 1-126. Default /8. Leading bit 0. ~16.7M hosts/network. Example: 10.0.0.0/8.", weight: "high" },
+      { id: "1.6.b.2", term: "Class B",                      def: "First octet 128-191. Default /16. Leading bits 10. 65,534 hosts/network. Example: 172.16.0.0/16.", weight: "high" },
+      { id: "1.6.b.3", term: "Class C",                      def: "First octet 192-223. Default /24. Leading bits 110. 254 hosts/network. Example: 192.168.1.0/24.", weight: "high" },
+      { id: "1.6.b.4", term: "Class D",                      def: "First octet 224-239. Leading bits 1110. Reserved for multicast. Not assignable to hosts.", weight: "high" },
+      { id: "1.6.b.5", term: "Class E",                      def: "First octet 240-255. Leading bits 1111. Experimental/reserved. Never publicly assigned.", weight: "med" },
+      { id: "1.6.b.6", term: "127.0.0.0/8 gap",              def: "127 is NOT Class A — it's loopback. Exam trick: first-octet ranges skip 127.", weight: "high" },
+      { id: "1.6.b.7", term: "CIDR replaced classful",       def: "1993. CIDR = Classless Inter-Domain Routing. Allows any mask length, not just class defaults.", weight: "med" }
+    ]
   },
 
   "1.6.c": {
@@ -921,7 +940,20 @@ window.subtopicContentD12 = {
       practice: "Build a full subnet reference chart on paper: /24 through /32 with dotted-decimal, binary, block size, and usable hosts. Then drill: someone says /27 and you instantly say 255.255.255.224, block size 32, 30 hosts. In Packet Tracer, configure a router interface with ip address 10.0.0.1 255.255.255.224, then verify with show ip interface brief. Practice converting between CIDR and dotted decimal until it is instant \u2014 target under 5 seconds each.",
       effort: "high",
       meta: "You MUST convert between CIDR and dotted-decimal instantly. This skill underlies every subnetting question. Jeremy IT Lab Day 13 (Subnetting Part 1) covers subnet masks. Wendell Odom OCG Chapter 12 (Analyzing Classful IPv4 Networks) drills mask conversion. Tape the mask chart to your monitor and drill daily."
-    }
+    },
+    micro: [
+      { id: "1.6.c.1",  term: "Subnet mask format",          def: "32-bit value. Contiguous 1s (network) followed by contiguous 0s (host). 0 after 1 is INVALID.", weight: "high" },
+      { id: "1.6.c.2",  term: "CIDR /n notation",            def: "Counts the 1-bits. /24 = 24 ones = 255.255.255.0. Must convert instantly both directions.", weight: "high" },
+      { id: "1.6.c.3",  term: "/24 mask",                    def: "255.255.255.0. 256 addresses, 254 usable hosts. Class C default.", weight: "high" },
+      { id: "1.6.c.4",  term: "/25 mask",                    def: "255.255.255.128. 128 addresses, 126 usable hosts. Block size 128.", weight: "high" },
+      { id: "1.6.c.5",  term: "/26 mask",                    def: "255.255.255.192. 64 addresses, 62 usable hosts. Block size 64.", weight: "high" },
+      { id: "1.6.c.6",  term: "/27 mask",                    def: "255.255.255.224. 32 addresses, 30 usable hosts. Block size 32.", weight: "high" },
+      { id: "1.6.c.7",  term: "/28 mask",                    def: "255.255.255.240. 16 addresses, 14 usable hosts. Block size 16.", weight: "high" },
+      { id: "1.6.c.8",  term: "/29 mask",                    def: "255.255.255.248. 8 addresses, 6 usable hosts. Block size 8.", weight: "high" },
+      { id: "1.6.c.9",  term: "/30 mask",                    def: "255.255.255.252. 4 addresses, 2 usable. Standard for point-to-point links.", weight: "high" },
+      { id: "1.6.c.10", term: "/31 mask",                    def: "255.255.255.254. 2 addresses, 2 usable (RFC 3021). P2P-only.", weight: "med" },
+      { id: "1.6.c.11", term: "/32 mask",                    def: "255.255.255.255. Single host route.", weight: "med" }
+    ]
   },
 
   "1.6.d": {
@@ -939,7 +971,15 @@ window.subtopicContentD12 = {
       practice: "Solve 10 subnetting problems daily using the block-size method. Use subnettingpractice.com or subnetting.org for random problems. In Packet Tracer, build a 3-router topology and assign addresses from calculated subnets \u2014 if you subnet wrong, the pings will fail. Target under 60 seconds per problem, then push for 30 seconds. The exam gives limited time and a whiteboard.",
       effort: "high",
       meta: "This is THE most tested subnetting skill on the CCNA. Jeremy IT Lab Day 13-14 covers subnetting methods extensively. Wendell Odom OCG Chapter 13 (Analyzing Subnet Masks) and Chapter 14 (Analyzing Existing Subnets) are the definitive references. subnettingpractice.com is the most recommended community resource."
-    }
+    },
+    micro: [
+      { id: "1.6.d.1", term: "Block size method",            def: "Block size = 256 − interesting-octet mask value. Subnets start at multiples of block size.", weight: "high" },
+      { id: "1.6.d.2", term: "Interesting octet",            def: "The octet where the mask transitions from 1s to 0s. Do your math here.", weight: "high" },
+      { id: "1.6.d.3", term: "Find network address",         def: "Round IP's interesting octet DOWN to the nearest multiple of the block size. All host bits = 0.", weight: "high" },
+      { id: "1.6.d.4", term: "Find broadcast address",       def: "Next network − 1. Or: all host bits = 1.", weight: "high" },
+      { id: "1.6.d.5", term: "First usable host",            def: "Network address + 1.", weight: "high" },
+      { id: "1.6.d.6", term: "Last usable host",             def: "Broadcast address − 1.", weight: "high" }
+    ]
   },
 
   "1.6.e": {
@@ -957,7 +997,14 @@ window.subtopicContentD12 = {
       practice: "Write the full /25-/30 table from memory: mask, borrowed bits, subnets, host bits, usable hosts, block size. Then work backwards \u2014 I need 25 hosts per subnet, what mask? (Answer: /27 gives 30). In Packet Tracer, subnet 192.168.1.0/24 into /26 (4 subnets), assign each to a different VLAN on a switch, and verify hosts can only ping within their own subnet. Use show ip route on the router to confirm all four connected networks appear.",
       effort: "high",
       meta: "Memorize the hosts-per-subnet column cold: 126, 62, 30, 14, 6, 2. These numbers appear constantly in exam questions. Jeremy IT Lab Day 13 covers the formulas. Wendell Odom OCG Chapter 13 provides exhaustive practice. The how-many-hosts-do-I-need reverse-lookup question is almost guaranteed."
-    }
+    },
+    micro: [
+      { id: "1.6.e.1", term: "Subnets formula",              def: "Number of subnets = 2^(borrowed bits). Each borrowed bit doubles subnets.", weight: "high" },
+      { id: "1.6.e.2", term: "Hosts formula",                def: "Hosts per subnet = 2^(host bits) − 2. Minus 2 for network and broadcast.", weight: "high" },
+      { id: "1.6.e.3", term: "Borrowed bits",                def: "Bits taken from host portion and given to network portion. Mask /26 from /24 default = 2 borrowed.", weight: "high" },
+      { id: "1.6.e.4", term: "Host-count column (Class C)",  def: "/25=126, /26=62, /27=30, /28=14, /29=6, /30=2. Memorize cold.", weight: "high" },
+      { id: "1.6.e.5", term: "Round up to power of 2",       def: "Need 50 hosts → 2^6 − 2 = 62 (fits). Always round UP to the next fitting power.", weight: "high" }
+    ]
   },
 
   "1.6.f": {
@@ -979,7 +1026,15 @@ window.subtopicContentD12 = {
       practice: "Solve this VLSM problem on paper: From 172.16.1.0/24, allocate subnets for 100 hosts, 50 hosts, 25 hosts, 10 hosts, and 2 P2P links. Show network address, broadcast, and usable range for each. Then build it in Packet Tracer: 3 routers connected via serial links (/30), each router connected to a LAN of different sizes. Configure OSPF and verify all subnets appear in show ip route. Test end-to-end pings. Use subnetting.org for additional VLSM practice problems.",
       effort: "high",
       meta: "VLSM is the hardest subnetting topic on the CCNA and frequently appears in simulation questions. Jeremy IT Lab Day 14 (Subnetting Part 2) covers VLSM extensively. Wendell Odom OCG Chapter 14 provides VLSM practice problems. David Bombal VLSM video is the most community-recommended supplemental resource. Always allocate largest first."
-    }
+    },
+    micro: [
+      { id: "1.6.f.1", term: "VLSM",                         def: "Variable Length Subnet Mask. Use different mask lengths within one major network to right-size each subnet.", weight: "high" },
+      { id: "1.6.f.2", term: "Largest-first rule",           def: "Always allocate the largest required subnet first, then next-largest, and so on.", weight: "high" },
+      { id: "1.6.f.3", term: "No overlaps / no gaps",        def: "Each new subnet starts right after the previous subnet's broadcast address.", weight: "high" },
+      { id: "1.6.f.4", term: "Classless routing required",   def: "OSPF, EIGRP, RIPv2 support VLSM. They include subnet mask in routing updates.", weight: "high" },
+      { id: "1.6.f.5", term: "RIPv1 / IGRP",                 def: "Classful protocols — CANNOT support VLSM. Assume default classful mask.", weight: "med" },
+      { id: "1.6.f.6", term: "/30 for P2P links",            def: "Exactly 2 usable hosts. Standard for router-to-router serial/point-to-point.", weight: "high" }
+    ]
   },
 
   "1.6.g": {
@@ -997,7 +1052,16 @@ window.subtopicContentD12 = {
       practice: "Convert 20 random decimals (0-255) to binary and 20 random 8-bit binaries to decimal daily. Time yourself \u2014 target under 10 seconds each. Then practice hex: convert 10 random decimals to hex and back. In Packet Tracer, look at MAC address tables (show mac address-table) and practice reading hex values. Build speed by doing 5 minutes of conversion drills at the start of every study session.",
       effort: "high",
       meta: "This is THE prerequisite skill for subnetting. If you cannot convert binary/decimal fast, every subnetting question eats your exam time. Jeremy IT Lab Day 12 covers binary and hexadecimal conversion. Wendell Odom OCG Chapter 11 drills the math. Practice every single day \u2014 this is the most common advice from CCNA passers."
-    }
+    },
+    micro: [
+      { id: "1.6.g.1", term: "Positional values (128-1)",    def: "128, 64, 32, 16, 8, 4, 2, 1. Powers of 2 from 2^7 to 2^0. Sum to 255. The 'magic 8'.", weight: "high" },
+      { id: "1.6.g.2", term: "Binary → decimal",             def: "Sum the positional values of all 1-bits. 11001010 = 128+64+8+2 = 202.", weight: "high" },
+      { id: "1.6.g.3", term: "Decimal → binary",             def: "Subtract largest fitting power of 2, mark a 1, repeat. Always write all 8 bits.", weight: "high" },
+      { id: "1.6.g.4", term: "9 valid mask octet values",    def: "0, 128, 192, 224, 240, 248, 252, 254, 255. Each adds one more 1-bit from the left.", weight: "high" },
+      { id: "1.6.g.5", term: "Hex digit = 4 bits",           def: "Each hexadecimal character represents exactly 4 bits. 0-9 = 0-9, A-F = 10-15.", weight: "high" },
+      { id: "1.6.g.6", term: "Hex A-F values",               def: "A=10, B=11, C=12, D=13, E=14, F=15.", weight: "high" },
+      { id: "1.6.g.7", term: "Hex → decimal",                def: "Multiply each digit by its positional 16-value. 0xCA = C(12)×16 + A(10)×1 = 202.", weight: "med" }
+    ]
   },
 
   "1.6.h": {
@@ -1014,7 +1078,18 @@ window.subtopicContentD12 = {
       practice: "In Packet Tracer, build a 3-router linear topology (R1--R2--R3) with different subnets on each link and LAN. Configure static routes so all networks can reach each other. On each router, run show ip interface brief (verify all interfaces up/up), show ip route (verify C, L, and S routes), and ping across the full path. Intentionally break things \u2014 shut down an interface, remove a static route, misconfigure a mask \u2014 and observe how the command output changes. Practice reading the output until you can spot issues in seconds.",
       effort: "medium",
       meta: "These three commands appear in nearly every CCNA exam scenario and lab simulation. Jeremy IT Lab Day 12-14 uses them constantly. Wendell Odom OCG Chapter 14 covers verification. The exam loves showing show ip route output and asking why can R1 not ping 10.0.3.0/24 \u2014 the answer is always a missing route, wrong mask, or interface down."
-    }
+    },
+    micro: [
+      { id: "1.6.h.1", term: "show ip interface brief",      def: "Compact table of all interfaces: IP, Status (L1), Protocol (L2). First stop for connectivity issues.", weight: "high" },
+      { id: "1.6.h.2", term: "show ip route",                def: "Full routing table. Route source code, network, AD/metric, next-hop, interface, age.", weight: "high" },
+      { id: "1.6.h.3", term: "Route code C (Connected)",     def: "Auto-added when interface comes up/up. AD 0.", weight: "high" },
+      { id: "1.6.h.4", term: "Route code L (Local)",         def: "/32 host route for the router's own interface IP.", weight: "high" },
+      { id: "1.6.h.5", term: "Route code S (Static)",        def: "Manually configured static route. AD 1.", weight: "high" },
+      { id: "1.6.h.6", term: "Route codes O / D / R",        def: "O = OSPF, D = EIGRP (Dual-algorithm), R = RIP. Dynamically learned routes.", weight: "high" },
+      { id: "1.6.h.7", term: "S* (candidate default)",       def: "Static default route (0.0.0.0/0) marked as candidate for gateway of last resort.", weight: "high" },
+      { id: "1.6.h.8", term: "ping",                         def: "ICMP Echo Request. !!!!! = success, ..... = failure, U = unreachable. L3 reachability test.", weight: "high" },
+      { id: "1.6.h.9", term: "traceroute / tracert",         def: "Shows every hop along the path to destination. Identifies where packets drop.", weight: "high" }
+    ]
   },
 
   /* ══════════════════════════════════════════════════════════════
@@ -1036,7 +1111,12 @@ window.subtopicContentD12 = {
       practice: "Memorize all three private ranges with their CIDR notations and address counts. Quick drill: Is 10.50.200.1 private? YES (10.x.x.x = always private). Is 11.0.0.1 private? NO (11 is public Class A). In Packet Tracer, build a network using 10.0.0.0/8 with three subnets: 10.0.1.0/24, 10.0.2.0/24, and a /30 link between routers at 10.0.0.0/30. Configure inter-VLAN routing and verify with pings.",
       effort: "low",
       meta: "Guaranteed exam topic. Know all three ranges instantly. Jeremy IT Lab Day 47 covers NAT and private addressing. Wendell Odom OCG Chapter 10 (Implementing IPv4) covers RFC 1918 ranges. The exam tests instant recognition \u2014 given any IP, you must know if it is private or public within seconds."
-    }
+    },
+    micro: [
+      { id: "1.7.a.1", term: "10.0.0.0/8 range",             def: "Private Class A. All 10.x.x.x addresses. 16,777,214 hosts. Largest RFC 1918 range.", weight: "high" },
+      { id: "1.7.a.2", term: "Enterprise use of 10/8",       def: "Dominant internal range for large enterprises, data centers, cloud providers. CoreWeave, AWS, Azure.", weight: "med" },
+      { id: "1.7.a.3", term: "Not internet-routable",        def: "Internet routers drop packets with 10.x.x.x source or destination. Requires NAT to reach internet.", weight: "high" }
+    ]
   },
 
   "1.7.b": {
@@ -1054,7 +1134,14 @@ window.subtopicContentD12 = {
       practice: "Drill edge cases until they are automatic: Is 172.15.0.1 private? NO. Is 172.32.0.1 private? NO. Is 172.20.5.1 private? YES. Is 172.31.255.1 private? YES. In Packet Tracer, configure two routers with 172.16.0.0/30 on their connecting link and 172.16.1.0/24 and 172.16.2.0/24 on their LANs. Verify connectivity and use show ip route to see the /12-based subnets.",
       effort: "low",
       meta: "The 172.16.0.0/12 range is the most commonly incorrect answer on the exam. Students forget the .31 boundary and select 172.32.x.x as private. Jeremy IT Lab Day 47 covers this. Wendell Odom OCG Chapter 10 emphasizes the edge cases. Drill until the 16-31 range is automatic."
-    }
+    },
+    micro: [
+      { id: "1.7.b.1", term: "172.16.0.0/12 range",          def: "Valid range is 172.16.0.0 through 172.31.255.255. NOT 172.0-172.255.", weight: "high" },
+      { id: "1.7.b.2", term: "/12 binary explanation",       def: "First 12 bits fixed. Second octet has 4 free bits = 0000(16) through 1111(31).", weight: "med" },
+      { id: "1.7.b.3", term: "Edge case: 172.15.x.x",        def: "PUBLIC. Below the 172.16 start of the private range.", weight: "high" },
+      { id: "1.7.b.4", term: "Edge case: 172.32.x.x",        def: "PUBLIC. Above the 172.31 end of the private range.", weight: "high" },
+      { id: "1.7.b.5", term: "Docker default",               def: "172.17.0.0/16 — Docker's default bridge network, within the RFC 1918 Class B block.", weight: "low" }
+    ]
   },
 
   "1.7.c": {
@@ -1072,7 +1159,12 @@ window.subtopicContentD12 = {
       practice: "Quick drill: 192.168.50.1 \u2014 private? YES. 192.169.1.1 \u2014 private? NO (169 not 168). 192.168.0.0 \u2014 private? YES (network address). 191.168.1.1 \u2014 private? NO (191 not 192). In Packet Tracer, build a classic home network: one router (gateway 192.168.1.1/24), one switch, 3 PCs (192.168.1.10-12/24). Configure DHCP on the router and verify PCs get addresses in the 192.168.1.x range with ipconfig.",
       effort: "low",
       meta: "Easiest of the three ranges to remember since you use it daily at home. Jeremy IT Lab Day 47 covers all three RFC 1918 ranges together. Wendell Odom OCG Chapter 10. Just do not confuse 192.168 (private) with 192.169 (public) \u2014 the exam tests this exact boundary."
-    }
+    },
+    micro: [
+      { id: "1.7.c.1", term: "192.168.0.0/16 range",         def: "Private Class C. All 192.168.x.x addresses. 65,534 hosts. Familiar from home networks.", weight: "high" },
+      { id: "1.7.c.2", term: "Home router default",          def: "Almost every consumer router uses 192.168.0.0/24 or 192.168.1.0/24 with gateway .1.", weight: "high" },
+      { id: "1.7.c.3", term: "192.168 vs 192.169 boundary",  def: "192.168.x.x = PRIVATE. 192.169.x.x = PUBLIC. Exact boundary on second octet.", weight: "high" }
+    ]
   },
 
   "1.7.d": {
@@ -1086,7 +1178,19 @@ window.subtopicContentD12 = {
       practice: "In Packet Tracer, configure PAT (NAT overload) on a router: (1) Create an ACL matching the inside network, (2) Configure ip nat inside source list [ACL] interface [outside-if] overload, (3) Mark interfaces with ip nat inside and ip nat outside. Send traffic from an internal PC to an external server. Verify with show ip nat translations \u2014 you should see the private IP mapped to the router outside IP with unique port numbers. Then configure static NAT for a web server and verify it gets a dedicated public mapping.",
       effort: "medium",
       meta: "The concept private = needs NAT for internet is a core exam theme. Know RFC 1918 by name. Jeremy IT Lab Day 47 covers NAT types, configuration, and verification in detail. Wendell Odom OCG Chapter 16 (NAT) is the reference. The Inside Local/Inside Global/Outside Local/Outside Global terminology is heavily tested \u2014 draw the four-quadrant diagram."
-    }
+    },
+    micro: [
+      { id: "1.7.d.1", term: "RFC 1918",                     def: "Defines the three private IPv4 ranges: 10/8, 172.16/12, 192.168/16. Not routable on public internet.", weight: "high" },
+      { id: "1.7.d.2", term: "NAT",                          def: "Network Address Translation. Rewrites IP addresses at a boundary so private addresses can reach the internet.", weight: "high" },
+      { id: "1.7.d.3", term: "Static NAT",                   def: "One-to-one permanent mapping. One private IP ↔ one public IP. Used for servers needing consistent external access.", weight: "high" },
+      { id: "1.7.d.4", term: "Dynamic NAT",                  def: "Many-to-many from a pool. First-come basis. Exhausts if pool fills.", weight: "med" },
+      { id: "1.7.d.5", term: "PAT / NAT Overload",           def: "Many-to-one using ports to differentiate. Command keyword 'overload'. What home routers do.", weight: "high" },
+      { id: "1.7.d.6", term: "Inside Local",                 def: "Private IP of internal host (e.g., 192.168.1.10). The 'real' internal address.", weight: "high" },
+      { id: "1.7.d.7", term: "Inside Global",                def: "Public IP that internal host is translated to (e.g., 203.0.113.5). What the internet sees.", weight: "high" },
+      { id: "1.7.d.8", term: "Outside Local",                def: "IP of external host as it appears from inside (usually same as Outside Global).", weight: "med" },
+      { id: "1.7.d.9", term: "Outside Global",               def: "Actual public IP of the external host (e.g., 8.8.8.8).", weight: "med" },
+      { id: "1.7.d.10", term: "show ip nat translations",    def: "View current NAT translation table. show ip nat statistics shows hit counts.", weight: "high" }
+    ]
   },
 
   "1.7.e": {
@@ -1100,7 +1204,14 @@ window.subtopicContentD12 = {
       practice: "In Packet Tracer, build a simple DHCP lab: router as DHCP server, switch, 2 PCs set to DHCP. Verify PCs get addresses. Then disable the DHCP service on the router (no service dhcp) and force the PCs to renew \u2014 watch them fall to 169.254.x.x (or 0.0.0.0 in PT). Re-enable DHCP and renew again to see recovery. Practice this cycle until the troubleshooting steps are automatic. Also test: unplug one PC from the switch and renew \u2014 same APIPA result, different root cause (physical).",
       effort: "low",
       meta: "Classic exam trap question: A PC has a 169.254.x.x address. What is the problem? Answer is always: DHCP server unreachable. Jeremy IT Lab Day 47 mentions APIPA. Wendell Odom OCG Chapter 10. Know that 169.254 is link-local only, never routed, and indicates DHCP failure \u2014 do not overthink it."
-    }
+    },
+    micro: [
+      { id: "1.7.e.1", term: "APIPA",                        def: "Automatic Private IP Addressing. 169.254.0.0/16 link-local range. IPv4 fallback when DHCP fails.", weight: "high" },
+      { id: "1.7.e.2", term: "APIPA meaning in practice",    def: "If you see 169.254.x.x on a host → DHCP server unreachable, no DHCP response received.", weight: "high" },
+      { id: "1.7.e.3", term: "APIPA not routable",           def: "169.254.x.x is link-local only. Cannot reach other subnets or the internet.", weight: "high" },
+      { id: "1.7.e.4", term: "APIPA on Windows/macOS",       def: "RFC 3927. Cisco devices do NOT use APIPA; unconfigured Cisco interfaces simply have no IP.", weight: "med" },
+      { id: "1.7.e.5", term: "Troubleshooting APIPA",        def: "Check cable, DHCP service, 'ip helper-address' on gateway, then ipconfig /release + /renew.", weight: "high" }
+    ]
   },
 
   "1.7.f": {
@@ -1111,7 +1222,14 @@ window.subtopicContentD12 = {
       practice: "Open a terminal and ping 127.0.0.1 \u2014 it should always succeed instantly. Then ping 127.5.5.5 \u2014 also succeeds (entire /8 is loopback). In Packet Tracer, create a loopback interface on a router: interface loopback 0, ip address 1.1.1.1 255.255.255.255. Notice this is a virtual interface that is always up/up and uses a routable IP \u2014 completely different from the 127.x.x.x loopback. Use show ip interface brief to see both the loopback interface and physical interfaces.",
       effort: "low",
       meta: "Straightforward concept. Know that the ENTIRE 127.x.x.x range is loopback (not just 127.0.0.1), it never generates network traffic, and it is different from a Cisco loopback interface. Jeremy IT Lab covers this in the troubleshooting context. Wendell Odom OCG Chapter 10."
-    }
+    },
+    micro: [
+      { id: "1.7.f.1", term: "127.0.0.0/8 loopback range",    def: "Entire /8 reserved for loopback. Traffic never leaves the local device.", weight: "high" },
+      { id: "1.7.f.2", term: "127.0.0.1 / localhost",         def: "Most-used loopback address. Ping tests the local TCP/IP stack.", weight: "high" },
+      { id: "1.7.f.3", term: "All 127.x.x.x is loopback",     def: "Exam trick: 127.5.5.5 is ALSO loopback. The whole /8 counts, not just .0.0.1.", weight: "high" },
+      { id: "1.7.f.4", term: "Loopback address vs interface", def: "127.0.0.1 (address) is NOT the same as a Cisco loopback interface (virtual, routable, used for router ID/BGP).", weight: "high" },
+      { id: "1.7.f.5", term: "Ping order (bottom-up)",        def: "(1) ping 127.0.0.1 (stack), (2) own IP (NIC), (3) gateway (local link), (4) remote host (full path).", weight: "med" }
+    ]
   },
 
   /* ══════════════════════════════════════════════════════════════
