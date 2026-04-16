@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#FAF7F2">
+  <title>Wireshark for CCNA — CCNA Study</title>
+  <link rel="icon" type="image/svg+xml" href="/CCNA-study/favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;500;600;700&display=swap">
+  <link rel="stylesheet" href="css/shared.css">
+  <style>
+    .page-header { margin-bottom: var(--s-lg); }
+    .page-header h1 { font-size: clamp(1.6rem, 4vw, 2.2rem); margin-bottom: 4px; }
+    .page-header .subtitle { color: var(--ink-secondary); font-size: 0.95rem; max-width: 52ch; }
+
+    /* ── Section system ── */
+    .ws-section { margin-bottom: var(--s-xl); }
+    .ws-section h2 {
+      font-family: var(--font-display); font-size: 1.15rem; font-weight: 700;
+      margin-bottom: var(--s-md); padding-bottom: 6px;
+      border-bottom: 2px solid var(--ink);
+    }
+    .ws-section h3 {
+      font-family: var(--font-display); font-size: 0.95rem; font-weight: 600;
+      margin: var(--s-md) 0 var(--s-sm);
+    }
+    .ws-section p {
+      font-size: 0.88rem; line-height: 1.65; color: var(--ink-secondary);
+      margin-bottom: var(--s-sm); max-width: 64ch;
+    }
+
+    /* ── Install steps ── */
+    .install-steps {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: var(--s-md);
+    }
+    .install-card {
+      background: var(--bg-surface); border: 1px solid var(--border);
+      border-radius: var(--radius-lg); padding: 16px;
+    }
+    .install-card .os {
+      font-family: var(--font-display); font-weight: 700; font-size: 0.88rem;
+      margin-bottom: 8px; display: flex; align-items: center; gap: 6px;
+    }
+    .install-card .os .icon { font-size: 1.1rem; }
+    .install-card ol {
+      font-size: 0.82rem; color: var(--ink-secondary); padding-left: 18px;
+      line-height: 1.7;
+    }
+    .install-card code {
+      font-family: var(--font-mono); font-size: 0.78rem;
+      background: var(--bg-recessed); padding: 1px 5px; border-radius: 3px;
+    }
+
+    /* ── Filter table ── */
+    .filter-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+    .filter-table th {
+      text-align: left; font-family: var(--font-display); font-weight: 600;
+      font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.04em;
+      color: var(--ink-muted); padding: 8px 10px;
+      border-bottom: 2px solid var(--border);
+    }
+    .filter-table td {
+      padding: 7px 10px; border-bottom: 1px solid var(--bg-recessed);
+      vertical-align: top;
+    }
+    .filter-table tr:hover { background: var(--bg-hover); }
+    .filter-table code {
+      font-family: var(--font-mono); font-size: 0.78rem; font-weight: 500;
+      color: var(--accent); background: var(--accent-dim);
+      padding: 1px 6px; border-radius: 3px; white-space: nowrap;
+    }
+    .filter-table .desc { color: var(--ink-secondary); }
+    .filter-cat {
+      font-family: var(--font-display); font-weight: 600; font-size: 0.78rem;
+      color: var(--ink); padding-top: 12px;
+    }
+
+    /* ── TCP flags grid ── */
+    .flags-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+      gap: 8px;
+    }
+    .flag-card {
+      background: var(--bg-surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 10px 12px;
+      border-left: 3px solid var(--border);
+    }
+    .flag-card .flag-name {
+      font-family: var(--font-mono); font-weight: 700; font-size: 0.82rem;
+      margin-bottom: 2px;
+    }
+    .flag-card .flag-desc {
+      font-size: 0.75rem; color: var(--ink-secondary); line-height: 1.5;
+    }
+    .flag-card.f-syn { border-left-color: #2563EB; }
+    .flag-card.f-syn .flag-name { color: #2563EB; }
+    .flag-card.f-ack { border-left-color: #16A34A; }
+    .flag-card.f-ack .flag-name { color: #16A34A; }
+    .flag-card.f-fin { border-left-color: #EA580C; }
+    .flag-card.f-fin .flag-name { color: #EA580C; }
+    .flag-card.f-rst { border-left-color: #DC2626; }
+    .flag-card.f-rst .flag-name { color: #DC2626; }
+    .flag-card.f-psh { border-left-color: #D97706; }
+    .flag-card.f-psh .flag-name { color: #D97706; }
+    .flag-card.f-urg { border-left-color: #7C3AED; }
+    .flag-card.f-urg .flag-name { color: #7C3AED; }
+
+    /* ── Wireshark-style mock ── */
+    .ws-mock {
+      background: #1E1E1E; border-radius: var(--radius-lg);
+      overflow: hidden; border: 1px solid #333; margin: var(--s-md) 0;
+      font-family: var(--font-mono); font-size: 0.72rem;
+    }
+    .ws-mock-bar {
+      background: #2D2D2D; padding: 6px 14px; border-bottom: 1px solid #444;
+      color: #999; display: flex; align-items: center; gap: 8px;
+    }
+    .ws-mock-bar .dots { display: flex; gap: 4px; }
+    .ws-mock-bar .dots span { width: 8px; height: 8px; border-radius: 50%; }
+    .ws-mock-bar .dots span:nth-child(1) { background: #FF5F57; }
+    .ws-mock-bar .dots span:nth-child(2) { background: #FEBC2E; }
+    .ws-mock-bar .dots span:nth-child(3) { background: #28C840; }
+    .ws-pane { padding: 0; }
+    .ws-pane-label {
+      background: #262626; padding: 3px 14px; color: #888;
+      font-weight: 600; font-size: 0.66rem; letter-spacing: 0.03em;
+      border-bottom: 1px solid #333; text-transform: uppercase;
+    }
+    .ws-pane-content { padding: 6px 14px; color: #D4D4D4; line-height: 1.8; }
+    .ws-pane-content .hl-blue { color: #569CD6; }
+    .ws-pane-content .hl-green { color: #4EC9B0; }
+    .ws-pane-content .hl-yellow { color: #DCDCAA; }
+    .ws-pane-content .hl-orange { color: #CE9178; }
+    .ws-pane-content .hl-red { color: #F44747; }
+    .ws-pane-content .hl-gray { color: #666; }
+    .ws-pane-content .indent { padding-left: 20px; }
+
+    /* ── Callout box ── */
+    .callout {
+      background: var(--accent-dim); border: 1px solid var(--accent-light);
+      border-left: 3px solid var(--accent); border-radius: var(--radius);
+      padding: 12px 16px; margin: var(--s-md) 0;
+      font-size: 0.82rem; line-height: 1.6;
+    }
+    .callout strong { font-family: var(--font-display); }
+
+    /* ── Shortcut table ── */
+    .shortcut-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 6px;
+    }
+    .shortcut-item {
+      display: flex; align-items: center; gap: 8px;
+      padding: 6px 10px; font-size: 0.82rem;
+    }
+    .shortcut-item kbd {
+      font-family: var(--font-mono); font-size: 0.72rem; font-weight: 600;
+      background: var(--bg-recessed); border: 1px solid var(--border);
+      border-radius: 3px; padding: 2px 7px; white-space: nowrap;
+      box-shadow: 0 1px 0 var(--border);
+    }
+    .shortcut-item .sk-desc { color: var(--ink-secondary); }
+
+    /* ── Sequence patterns ── */
+    .pattern-list { list-style: none; padding: 0; }
+    .pattern-list li {
+      padding: 10px 0; border-bottom: 1px solid var(--bg-recessed);
+      font-size: 0.85rem;
+    }
+    .pattern-list .pat-name {
+      font-family: var(--font-display); font-weight: 600; font-size: 0.85rem;
+      margin-bottom: 2px;
+    }
+    .pattern-list .pat-filter {
+      font-family: var(--font-mono); font-size: 0.75rem; color: var(--accent);
+      background: var(--accent-dim); padding: 1px 6px; border-radius: 3px;
+    }
+    .pattern-list .pat-look {
+      font-size: 0.78rem; color: var(--ink-secondary); margin-top: 4px; line-height: 1.6;
+    }
+
+    /* ── Quick nav ── */
+    .quick-nav {
+      display: flex; flex-wrap: wrap; gap: 6px;
+      margin-bottom: var(--s-lg);
+    }
+    .quick-nav a {
+      font-family: var(--font-display); font-size: 0.78rem; font-weight: 500;
+      color: var(--ink-secondary); text-decoration: none;
+      padding: 4px 12px; border: 1px solid var(--border);
+      border-radius: 100px; transition: all 0.15s ease;
+    }
+    .quick-nav a:hover { border-color: var(--accent); color: var(--accent); }
+  </style>
+</head>
+<body>
+  <nav class="top-nav"></nav>
+  <div class="container">
+
+    <header class="page-header">
+      <h1>Wireshark for CCNA</h1>
+      <p class="subtitle">Everything you need to know about Wireshark for the CCNA exam. No fluff.</p>
+    </header>
+
+    <div class="quick-nav">
+      <a href="#install">Install</a>
+      <a href="#interface">Interface</a>
+      <a href="#filters">Filters</a>
+      <a href="#flags">TCP Flags</a>
+      <a href="#reading">Reading Captures</a>
+      <a href="#shortcuts">Shortcuts</a>
+      <a href="#patterns">Patterns</a>
+      <a href="#exam">Exam Tips</a>
+    </div>
+
+    <!-- ═══════════ INSTALL ═══════════ -->
+    <section class="ws-section" id="install">
+      <h2>Installation</h2>
+      <p>Free and open source. Download from <strong>wireshark.org</strong>.</p>
+      <div class="install-steps">
+        <div class="install-card">
+          <div class="os">Windows</div>
+          <ol>
+            <li>Download .exe installer from wireshark.org</li>
+            <li>Run installer &mdash; install <strong>Npcap</strong> when prompted (required for live capture)</li>
+            <li>Launch Wireshark &mdash; select your active NIC to start capturing</li>
+          </ol>
+        </div>
+        <div class="install-card">
+          <div class="os">macOS</div>
+          <ol>
+            <li><code>brew install --cask wireshark</code></li>
+            <li>Or download .dmg from wireshark.org</li>
+            <li>Grant network access when prompted</li>
+          </ol>
+        </div>
+        <div class="install-card">
+          <div class="os">Linux</div>
+          <ol>
+            <li><code>sudo apt install wireshark</code></li>
+            <li>Add your user to the <code>wireshark</code> group: <code>sudo usermod -aG wireshark $USER</code></li>
+            <li>Log out and back in</li>
+          </ol>
+        </div>
+      </div>
+      <div class="callout">
+        <strong>CCNA note:</strong> You won't install Wireshark on the exam. But you <em>will</em> be shown packet captures and asked to interpret them. Focus on reading captures, not operating the tool.
+      </div>
+    </section>
+
+    <!-- ═══════════ INTERFACE ═══════════ -->
+    <section class="ws-section" id="interface">
+      <h2>The Wireshark Interface</h2>
+      <p>Three panes, top to bottom. That's the whole UI.</p>
+      <div class="ws-mock">
+        <div class="ws-mock-bar"><div class="dots"><span></span><span></span><span></span></div> Wireshark &middot; Capturing on eth0</div>
+        <div class="ws-pane">
+          <div class="ws-pane-label">1. Packet List &mdash; every captured frame, one row each</div>
+          <div class="ws-pane-content">
+            <span class="hl-gray">No. &nbsp;Time &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Source &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Destination &nbsp;&nbsp;&nbsp;&nbsp;Proto &nbsp;Info</span><br>
+            <span class="hl-green">1 &nbsp;&nbsp;0.000000 &nbsp;192.168.1.10 &nbsp;&nbsp;10.0.0.1 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;TCP &nbsp;&nbsp;&nbsp;49152&rarr;443 [SYN] Seq=0</span><br>
+            <span class="hl-blue">2 &nbsp;&nbsp;0.000342 &nbsp;10.0.0.1 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;192.168.1.10 &nbsp;&nbsp;TCP &nbsp;&nbsp;&nbsp;443&rarr;49152 [SYN,ACK]</span><br>
+            <span>3 &nbsp;&nbsp;0.000485 &nbsp;192.168.1.10 &nbsp;&nbsp;10.0.0.1 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;TCP &nbsp;&nbsp;&nbsp;49152&rarr;443 [ACK]</span>
+          </div>
+        </div>
+        <div class="ws-pane">
+          <div class="ws-pane-label">2. Packet Details &mdash; expand each layer to see header fields</div>
+          <div class="ws-pane-content">
+            <span class="hl-yellow">&blacktriangledown; Ethernet II, Src: aa:bb:cc:11:22:33, Dst: dd:ee:ff:44:55:66</span><br>
+            <span class="hl-green">&blacktriangledown; Internet Protocol Version 4, Src: 192.168.1.10, Dst: 10.0.0.1</span><br>
+            <span class="indent hl-gray">Time to Live: 64</span><br>
+            <span class="indent hl-gray">Protocol: TCP (6)</span><br>
+            <span class="hl-blue">&blacktriangledown; Transmission Control Protocol, Src Port: 49152, Dst Port: 443</span><br>
+            <span class="indent hl-gray">Flags: 0x002 (SYN)</span><br>
+            <span class="indent hl-gray">Sequence Number: 0 (relative)</span><br>
+            <span class="indent hl-gray">Window: 65535</span>
+          </div>
+        </div>
+        <div class="ws-pane">
+          <div class="ws-pane-label">3. Packet Bytes &mdash; raw hex dump (rarely needed for CCNA)</div>
+          <div class="ws-pane-content">
+            <span class="hl-gray">0000 &nbsp;aa bb cc 11 22 33 dd ee &nbsp;ff 44 55 66 08 00 45 00</span><br>
+            <span class="hl-gray">0010 &nbsp;00 3c 1c 46 40 00 40 06 &nbsp;b1 e6 c0 a8 01 0a 0a 00</span>
+          </div>
+        </div>
+      </div>
+      <div class="callout">
+        <strong>Key insight:</strong> The Packet Details pane shows the OSI layers in order &mdash; Layer 2 (Ethernet) on top, Layer 3 (IP) next, Layer 4 (TCP/UDP) below. Expand each to see every header field. This is what the CCNA tests.
+      </div>
+    </section>
+
+    <!-- ═══════════ DISPLAY FILTERS ═══════════ -->
+    <section class="ws-section" id="filters">
+      <h2>Display Filters (CCNA Must-Know)</h2>
+      <p>Type these in the filter bar at the top. Green = valid filter. Red = syntax error.</p>
+
+      <table class="filter-table">
+        <thead><tr><th>Filter</th><th>What it shows</th></tr></thead>
+        <tbody>
+          <tr><td class="filter-cat" colspan="2">By Protocol</td></tr>
+          <tr><td><code>tcp</code></td><td class="desc">All TCP traffic</td></tr>
+          <tr><td><code>udp</code></td><td class="desc">All UDP traffic</td></tr>
+          <tr><td><code>icmp</code></td><td class="desc">Ping, traceroute, unreachable messages</td></tr>
+          <tr><td><code>arp</code></td><td class="desc">ARP requests and replies (MAC resolution)</td></tr>
+          <tr><td><code>dns</code></td><td class="desc">DNS queries and responses</td></tr>
+          <tr><td><code>dhcp</code></td><td class="desc">DHCP discover/offer/request/ack</td></tr>
+          <tr><td><code>http</code></td><td class="desc">HTTP traffic (not HTTPS &mdash; that's encrypted)</td></tr>
+          <tr><td><code>stp</code></td><td class="desc">Spanning Tree BPDUs</td></tr>
+          <tr><td><code>ospf</code></td><td class="desc">OSPF Hello, LSA, DBD packets</td></tr>
+          <tr><td><code>eigrp</code></td><td class="desc">EIGRP routing updates</td></tr>
+
+          <tr><td class="filter-cat" colspan="2">By IP Address</td></tr>
+          <tr><td><code>ip.addr == 10.0.0.1</code></td><td class="desc">Traffic to OR from 10.0.0.1</td></tr>
+          <tr><td><code>ip.src == 192.168.1.10</code></td><td class="desc">Traffic FROM this source only</td></tr>
+          <tr><td><code>ip.dst == 10.0.0.0/24</code></td><td class="desc">Traffic TO this subnet</td></tr>
+
+          <tr><td class="filter-cat" colspan="2">By Port</td></tr>
+          <tr><td><code>tcp.port == 443</code></td><td class="desc">HTTPS (src or dst port 443)</td></tr>
+          <tr><td><code>tcp.dstport == 80</code></td><td class="desc">Traffic going TO port 80 (HTTP)</td></tr>
+          <tr><td><code>udp.port == 53</code></td><td class="desc">DNS traffic</td></tr>
+          <tr><td><code>tcp.port == 22</code></td><td class="desc">SSH traffic</td></tr>
+
+          <tr><td class="filter-cat" colspan="2">By TCP Flags</td></tr>
+          <tr><td><code>tcp.flags.syn == 1</code></td><td class="desc">All SYN packets (connection starts)</td></tr>
+          <tr><td><code>tcp.flags.reset == 1</code></td><td class="desc">All RST packets (connection refused/reset)</td></tr>
+          <tr><td><code>tcp.flags.fin == 1</code></td><td class="desc">All FIN packets (connection teardowns)</td></tr>
+
+          <tr><td class="filter-cat" colspan="2">By MAC Address</td></tr>
+          <tr><td><code>eth.addr == aa:bb:cc:11:22:33</code></td><td class="desc">Traffic to/from this MAC</td></tr>
+          <tr><td><code>eth.dst == ff:ff:ff:ff:ff:ff</code></td><td class="desc">Broadcast frames only</td></tr>
+
+          <tr><td class="filter-cat" colspan="2">Combining Filters</td></tr>
+          <tr><td><code>tcp &amp;&amp; ip.addr == 10.0.0.1</code></td><td class="desc">TCP traffic involving 10.0.0.1</td></tr>
+          <tr><td><code>dns || dhcp</code></td><td class="desc">DNS or DHCP traffic</td></tr>
+          <tr><td><code>!arp</code></td><td class="desc">Everything EXCEPT ARP</td></tr>
+          <tr><td><code>tcp.port == 80 &amp;&amp; ip.src == 192.168.1.10</code></td><td class="desc">HTTP from specific host</td></tr>
+
+          <tr><td class="filter-cat" colspan="2">Troubleshooting Filters</td></tr>
+          <tr><td><code>tcp.analysis.retransmission</code></td><td class="desc">Retransmitted segments (packet loss)</td></tr>
+          <tr><td><code>tcp.analysis.duplicate_ack</code></td><td class="desc">Duplicate ACKs (out-of-order delivery)</td></tr>
+          <tr><td><code>tcp.analysis.zero_window</code></td><td class="desc">Receiver buffer full (flow control)</td></tr>
+          <tr><td><code>icmp.type == 3</code></td><td class="desc">Destination Unreachable messages</td></tr>
+          <tr><td><code>icmp.type == 11</code></td><td class="desc">TTL Exceeded (traceroute / routing loop)</td></tr>
+        </tbody>
+      </table>
+
+      <div class="callout">
+        <strong>Capture vs Display filters:</strong> Capture filters (set before capturing) use BPF syntax like <code>host 10.0.0.1</code>. Display filters (set after capturing) use Wireshark syntax like <code>ip.addr == 10.0.0.1</code>. The CCNA almost always shows display filters.
+      </div>
+    </section>
+
+    <!-- ═══════════ TCP FLAGS ═══════════ -->
+    <section class="ws-section" id="flags">
+      <h2>TCP Flags</h2>
+      <p>Six flags you must know. They appear in every TCP segment header.</p>
+      <div class="flags-grid">
+        <div class="flag-card f-syn">
+          <div class="flag-name">SYN</div>
+          <div class="flag-desc">Synchronize. Starts a connection. Sets initial sequence number.</div>
+        </div>
+        <div class="flag-card f-ack">
+          <div class="flag-name">ACK</div>
+          <div class="flag-desc">Acknowledge. Confirms receipt. Present in almost every segment after handshake.</div>
+        </div>
+        <div class="flag-card f-fin">
+          <div class="flag-name">FIN</div>
+          <div class="flag-desc">Finish. Gracefully closes one direction of the connection.</div>
+        </div>
+        <div class="flag-card f-rst">
+          <div class="flag-name">RST</div>
+          <div class="flag-desc">Reset. Abruptly terminates. "Connection refused" or "go away."</div>
+        </div>
+        <div class="flag-card f-psh">
+          <div class="flag-name">PSH</div>
+          <div class="flag-desc">Push. Deliver data to app immediately, don't buffer.</div>
+        </div>
+        <div class="flag-card f-urg">
+          <div class="flag-name">URG</div>
+          <div class="flag-desc">Urgent. Urgent pointer field is valid. Rarely used.</div>
+        </div>
+      </div>
+
+      <h3>Connection Lifecycle</h3>
+      <div class="ws-mock">
+        <div class="ws-mock-bar"><div class="dots"><span></span><span></span><span></span></div> TCP Connection Lifecycle</div>
+        <div class="ws-pane">
+          <div class="ws-pane-content">
+            <span class="hl-gray">&mdash;&mdash; 3-Way Handshake (open) &mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;</span><br>
+            <span class="hl-green">Client &rarr; Server &nbsp;[SYN] &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Seq=100</span><br>
+            <span class="hl-blue">Server &rarr; Client &nbsp;[SYN, ACK] &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Seq=300, Ack=101</span><br>
+            <span>Client &rarr; Server &nbsp;[ACK] &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Ack=301</span><br>
+            <br>
+            <span class="hl-gray">&mdash;&mdash; Data Transfer &mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;</span><br>
+            <span class="hl-yellow">Client &rarr; Server &nbsp;[PSH, ACK] &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Seq=101, Len=500</span><br>
+            <span>Server &rarr; Client &nbsp;[ACK] &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Ack=601</span><br>
+            <br>
+            <span class="hl-gray">&mdash;&mdash; 4-Way Teardown (close) &mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;</span><br>
+            <span class="hl-orange">Client &rarr; Server &nbsp;[FIN, ACK] &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Seq=601</span><br>
+            <span>Server &rarr; Client &nbsp;[ACK] &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Ack=602</span><br>
+            <span class="hl-orange">Server &rarr; Client &nbsp;[FIN, ACK] &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Seq=800</span><br>
+            <span>Client &rarr; Server &nbsp;[ACK] &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Ack=801</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════ READING CAPTURES ═══════════ -->
+    <section class="ws-section" id="reading">
+      <h2>How to Read a Capture</h2>
+      <p>When the exam shows you a capture, follow this order every time.</p>
+
+      <h3>Step 1: Check Source and Destination IPs</h3>
+      <p>Who is talking to whom? Is the source internal (192.168.x.x, 10.x.x.x, 172.16-31.x.x) or external? This tells you the direction of traffic.</p>
+
+      <h3>Step 2: Check the Protocol Column</h3>
+      <p>TCP, UDP, ICMP, ARP, DNS, DHCP, OSPF? This immediately tells you what kind of communication is happening.</p>
+
+      <h3>Step 3: Read the Info Column</h3>
+      <p>This is the summary. For TCP, look at the flags in brackets: <code>[SYN]</code>, <code>[ACK]</code>, <code>[RST]</code>. For ICMP, look for <code>Echo request</code> or <code>Destination unreachable</code>. For DNS, look for the queried domain name.</p>
+
+      <h3>Step 4: Expand Packet Details If Shown</h3>
+      <p>The exam may show expanded headers. Look for:</p>
+      <ul style="font-size:0.85rem;color:var(--ink-secondary);padding-left:20px;line-height:1.8;">
+        <li><strong>TTL</strong> &mdash; how many hops left (low TTL = many hops or near expiry)</li>
+        <li><strong>Window Size</strong> &mdash; receiver's buffer capacity (0 = flow control issue)</li>
+        <li><strong>Seq/Ack numbers</strong> &mdash; track data flow and retransmissions</li>
+        <li><strong>Src/Dst Port</strong> &mdash; identifies the application (80=HTTP, 443=HTTPS, 53=DNS, 22=SSH)</li>
+        <li><strong>Src/Dst MAC</strong> &mdash; identifies the Layer 2 path (changes at each hop)</li>
+      </ul>
+    </section>
+
+    <!-- ═══════════ SHORTCUTS ═══════════ -->
+    <section class="ws-section" id="shortcuts">
+      <h2>Keyboard Shortcuts</h2>
+      <div class="shortcut-grid">
+        <div class="shortcut-item"><kbd>Ctrl+E</kbd> <span class="sk-desc">Start/stop capture</span></div>
+        <div class="shortcut-item"><kbd>Ctrl+K</kbd> <span class="sk-desc">Capture options</span></div>
+        <div class="shortcut-item"><kbd>Ctrl+F</kbd> <span class="sk-desc">Find packet</span></div>
+        <div class="shortcut-item"><kbd>Ctrl+G</kbd> <span class="sk-desc">Go to packet #</span></div>
+        <div class="shortcut-item"><kbd>Ctrl+Shift+N</kbd> <span class="sk-desc">Next packet in conversation</span></div>
+        <div class="shortcut-item"><kbd>Ctrl+.</kbd> <span class="sk-desc">Next packet (same filter)</span></div>
+        <div class="shortcut-item"><kbd>/</kbd> <span class="sk-desc">Focus filter bar</span></div>
+        <div class="shortcut-item"><kbd>Ctrl+R</kbd> <span class="sk-desc">Reload capture file</span></div>
+      </div>
+    </section>
+
+    <!-- ═══════════ TROUBLESHOOTING PATTERNS ═══════════ -->
+    <section class="ws-section" id="patterns">
+      <h2>Troubleshooting Patterns</h2>
+      <p>What to look for when something is broken.</p>
+
+      <ul class="pattern-list">
+        <li>
+          <div class="pat-name">No response at all</div>
+          <span class="pat-filter">tcp.flags.syn == 1 && !tcp.flags.ack</span>
+          <div class="pat-look">You see SYN but no SYN-ACK. Firewall is dropping packets silently, host is down, or route doesn't exist. Check: is the SYN going to the right IP? Is the TTL too low?</div>
+        </li>
+        <li>
+          <div class="pat-name">Connection refused (RST)</div>
+          <span class="pat-filter">tcp.flags.reset == 1</span>
+          <div class="pat-look">SYN goes out, RST comes back. Port is closed &mdash; no service listening. Check: wrong port number? Service not started?</div>
+        </li>
+        <li>
+          <div class="pat-name">Slow connection (retransmissions)</div>
+          <span class="pat-filter">tcp.analysis.retransmission</span>
+          <div class="pat-look">Packets being resent. Packet loss on the link, congestion, or hardware errors. Check: how many retransmissions? Getting worse over time?</div>
+        </li>
+        <li>
+          <div class="pat-name">DNS failure</div>
+          <span class="pat-filter">dns</span>
+          <div class="pat-look">Query goes out, no response (DNS server down) or response says NXDOMAIN (name doesn't exist). Check: is the DNS server IP correct? Is UDP 53 blocked?</div>
+        </li>
+        <li>
+          <div class="pat-name">DHCP not working</div>
+          <span class="pat-filter">dhcp</span>
+          <div class="pat-look">You should see Discover &rarr; Offer &rarr; Request &rarr; Ack (DORA). If only Discover with no Offer: DHCP server is unreachable. If request but no ACK: address conflict.</div>
+        </li>
+        <li>
+          <div class="pat-name">Duplicate IP (ARP conflict)</div>
+          <span class="pat-filter">arp</span>
+          <div class="pat-look">Two different MAC addresses responding to the same IP in ARP replies. Clear sign of IP conflict.</div>
+        </li>
+        <li>
+          <div class="pat-name">Routing loop</div>
+          <span class="pat-filter">icmp.type == 11</span>
+          <div class="pat-look">ICMP Time Exceeded messages from routers. Packet is bouncing between routers until TTL hits 0. Check routing tables.</div>
+        </li>
+        <li>
+          <div class="pat-name">MTU / fragmentation issue</div>
+          <span class="pat-filter">ip.flags.mf == 1 || icmp.type == 3 && icmp.code == 4</span>
+          <div class="pat-look">Fragmented packets or "fragmentation needed but DF set" ICMP messages. Reduce MTU or enable Path MTU Discovery.</div>
+        </li>
+      </ul>
+    </section>
+
+    <!-- ═══════════ EXAM TIPS ═══════════ -->
+    <section class="ws-section" id="exam">
+      <h2>CCNA Exam Tips</h2>
+
+      <h3>What Cisco Actually Tests</h3>
+      <ul style="font-size:0.85rem;color:var(--ink-secondary);padding-left:20px;line-height:2;">
+        <li>Reading a capture and identifying what protocol is running</li>
+        <li>Identifying the TCP 3-way handshake in a capture</li>
+        <li>Matching port numbers to services (80, 443, 22, 23, 53, 67/68, 25, 110, 143)</li>
+        <li>Recognizing ARP request/reply pairs</li>
+        <li>Identifying DHCP DORA process</li>
+        <li>Understanding why a connection failed based on packet evidence</li>
+        <li>Knowing the difference between TCP and UDP behavior in a capture</li>
+        <li>Identifying source/destination at each OSI layer (MAC changes per hop, IP stays same)</li>
+      </ul>
+
+      <h3>Common Exam Port Numbers</h3>
+      <table class="filter-table">
+        <thead><tr><th>Port</th><th>Service</th><th>Protocol</th></tr></thead>
+        <tbody>
+          <tr><td><code>20/21</code></td><td class="desc">FTP (data/control)</td><td class="desc">TCP</td></tr>
+          <tr><td><code>22</code></td><td class="desc">SSH</td><td class="desc">TCP</td></tr>
+          <tr><td><code>23</code></td><td class="desc">Telnet</td><td class="desc">TCP</td></tr>
+          <tr><td><code>25</code></td><td class="desc">SMTP (send email)</td><td class="desc">TCP</td></tr>
+          <tr><td><code>53</code></td><td class="desc">DNS</td><td class="desc">TCP/UDP</td></tr>
+          <tr><td><code>67/68</code></td><td class="desc">DHCP (server/client)</td><td class="desc">UDP</td></tr>
+          <tr><td><code>69</code></td><td class="desc">TFTP</td><td class="desc">UDP</td></tr>
+          <tr><td><code>80</code></td><td class="desc">HTTP</td><td class="desc">TCP</td></tr>
+          <tr><td><code>110</code></td><td class="desc">POP3 (receive email)</td><td class="desc">TCP</td></tr>
+          <tr><td><code>143</code></td><td class="desc">IMAP (receive email)</td><td class="desc">TCP</td></tr>
+          <tr><td><code>161/162</code></td><td class="desc">SNMP (query/trap)</td><td class="desc">UDP</td></tr>
+          <tr><td><code>443</code></td><td class="desc">HTTPS</td><td class="desc">TCP</td></tr>
+          <tr><td><code>514</code></td><td class="desc">Syslog</td><td class="desc">UDP</td></tr>
+          <tr><td><code>3389</code></td><td class="desc">RDP</td><td class="desc">TCP</td></tr>
+        </tbody>
+      </table>
+
+      <div class="callout">
+        <strong>MAC vs IP rule:</strong> As a frame crosses routers, the <strong>source and destination MAC addresses change</strong> at every hop (rewritten by each router). The <strong>source and destination IP addresses stay the same</strong> end-to-end. This is one of the most tested concepts.
+      </div>
+    </section>
+
+  </div>
+
+  <script defer src="js/nav.js"></script>
+</body>
+</html>

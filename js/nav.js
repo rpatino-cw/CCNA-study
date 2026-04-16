@@ -32,6 +32,8 @@
       { text: "Jeremy's IT Lab", href: 'jeremy-labs.html' },
       { text: 'OSPF Mastery', href: 'ospf-mastery.html' },
       { text: 'Path Selection', href: 'path-selection.html' },
+      { text: 'Packet Theater', href: 'packet-theater.html' },
+      { text: 'Wireshark', href: 'wireshark.html' },
     ]},
     { text: 'Practice', children: [
       { text: 'Flashcards', href: 'flashcards.html' },

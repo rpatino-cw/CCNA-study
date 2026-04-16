@@ -1704,6 +1704,8 @@
         document.body.appendChild(s);
       });
     }
+    var lazyDataReady = false;
+    var lazyDataPromise = null;
     function lazyLoadData() {
       var files = [
         './data/questions-extra.js',
@@ -1714,12 +1716,14 @@
         './data/exam-focus.js',
         './data/glossary-data.js'
       ];
-      Promise.all(files.map(loadScript)).then(function() {
+      lazyDataPromise = Promise.all(files.map(loadScript)).then(function() {
         // Merge extra questions once loaded
         if (window.questionsExtra && Array.isArray(window.questionsExtra)) {
           allQuestions = allQuestions.concat(window.questionsExtra);
         }
+        lazyDataReady = true;
       });
+      return lazyDataPromise;
     }
 
 // ── Data ─────────────────────────────────────────────────────
@@ -2069,9 +2073,9 @@
           if (sc.visual && window.SubtopicVisuals) {
             inner += window.SubtopicVisuals.render(sc.visual);
           }
-          // Info paragraph
+          // Info content (may contain HTML paragraphs)
           if (sc.info) {
-            inner += `<p class="st-info">${sc.info}</p>`;
+            inner += `<div class="st-info">${sc.info}</div>`;
           }
           // Hack card
           if (sc.hack) {
@@ -2178,10 +2182,14 @@
       const domain = params.get('domain');
       const learn = params.get('learn');
 
-      // ?learn=topicId — open lesson for that topic
+      // ?learn=topicId — wait for lazy data (study content) then open lesson
       if (learn) {
         const found = allTopicsFlat.find(t => t.id === learn);
-        if (found) { openLesson(found); return; }
+        if (found) {
+          if (lazyDataReady) { openLesson(found); }
+          else if (lazyDataPromise) { lazyDataPromise.then(function() { openLesson(found); }); }
+          return;
+        }
       }
 
       if (topic) {

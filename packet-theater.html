@@ -272,9 +272,47 @@
       background: var(--bg-hover); padding: 1px 5px; border-radius: 3px;
     }
 
+    /* ── Wireshark capture terminal ── */
+    .capture-terminal { background:#1E1E1E; border-radius:var(--radius-lg); overflow:hidden; margin-top:var(--s-md); border:1px solid #333; }
+    .capture-titlebar { display:flex; align-items:center; gap:8px; padding:7px 14px; background:#2D2D2D; border-bottom:1px solid #444; }
+    .capture-titlebar .dots { display:flex; gap:5px; }
+    .capture-titlebar .dots span { width:10px; height:10px; border-radius:50%; }
+    .capture-titlebar .dots span:nth-child(1) { background:#FF5F57; }
+    .capture-titlebar .dots span:nth-child(2) { background:#FEBC2E; }
+    .capture-titlebar .dots span:nth-child(3) { background:#28C840; }
+    .capture-titlebar .title { font-family:var(--font-mono); font-size:0.72rem; color:#999; margin-left:6px; }
+    .capture-toolbar { display:flex; align-items:center; gap:8px; padding:5px 14px; background:#262626; border-bottom:1px solid #333; }
+    .capture-toolbar .filter-input { flex:1; background:#1A1A1A; border:1px solid #444; border-radius:3px; padding:3px 8px; color:#4EC9B0; font-family:var(--font-mono); font-size:0.72rem; }
+    .capture-toolbar .filter-input:focus { outline:none; border-color:#4EC9B0; }
+    .capture-toolbar .apply-btn { background:#3C6E3C; color:#C8E6C8; border:none; font-family:var(--font-mono); font-size:0.68rem; padding:3px 10px; border-radius:3px; cursor:pointer; }
+    .capture-header { display:grid; grid-template-columns:52px 58px 120px 120px 52px 50px 1fr; gap:0; padding:2px 14px; background:#2A2A2A; border-bottom:1px solid #333; font-family:var(--font-mono); font-size:0.66rem; color:#888; font-weight:600; letter-spacing:0.02em; }
+    .capture-body { max-height:200px; overflow-y:auto; scrollbar-width:thin; scrollbar-color:#444 #1E1E1E; }
+    .capture-body::-webkit-scrollbar { width:6px; }
+    .capture-body::-webkit-scrollbar-track { background:#1E1E1E; }
+    .capture-body::-webkit-scrollbar-thumb { background:#444; border-radius:3px; }
+    .capture-row { display:grid; grid-template-columns:52px 58px 120px 120px 52px 50px 1fr; gap:0; padding:2px 14px; font-family:var(--font-mono); font-size:0.68rem; color:#D4D4D4; border-bottom:1px solid #2A2A2A; opacity:0; animation:captureIn 0.3s ease forwards; cursor:default; transition:background 0.1s; }
+    .capture-row:hover { background:#264F78; }
+    @keyframes captureIn { from { opacity:0; transform:translateY(4px); } to { opacity:1; transform:translateY(0); } }
+    .capture-row.proto-syn { background:#1A2B1A; color:#A8E6A8; }
+    .capture-row.proto-syn:hover { background:#264F36; }
+    .capture-row.proto-synack { background:#1A1A2B; color:#A8A8E6; }
+    .capture-row.proto-synack:hover { background:#263F5F; }
+    .capture-row.proto-ack { background:#1E1E1E; color:#D4D4D4; }
+    .capture-row.proto-data { background:#2B2A1A; color:#E6DCA8; }
+    .capture-row.proto-data:hover { background:#4F4F26; }
+    .capture-row.proto-fin { background:#2B1A1A; color:#E6A8A8; }
+    .capture-row.proto-fin:hover { background:#5F2626; }
+    .capture-row.proto-rst { background:#3B1A1A; color:#FF8888; }
+    .capture-row.proto-rst:hover { background:#5F2626; }
+    .capture-row.proto-icmp { background:#1A2B2B; color:#A8E6E6; }
+    .capture-row.proto-icmp:hover { background:#264F4F; }
+    .capture-row .col { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; padding-right:6px; }
+    .capture-status { padding:4px 14px; background:#262626; border-top:1px solid #333; font-family:var(--font-mono); font-size:0.66rem; color:#666; display:flex; justify-content:space-between; }
+
     /* ── Reduced motion ── */
     @media (prefers-reduced-motion: reduce) {
       .seq-row, .encap-layer { transition: none; }
+      .capture-row { animation:none; opacity:1; }
     }
   </style>
 </head>
@@ -365,6 +403,13 @@
           <div class="seq-arrow"><div class="line right"></div><div class="head right"></div><span class="pkt-label" style="background:#16A34A22;color:#16A34A;">ACK</span></div>
           <span class="seq-side" style="color:var(--prof-strong);">CLOSED</span>
         </div>
+      </div>
+      <div class="capture-terminal" id="captureTerminal">
+        <div class="capture-titlebar"><div class="dots"><span></span><span></span><span></span></div><span class="title">Capturing on eth0 &mdash; Wireshark</span></div>
+        <div class="capture-toolbar"><input class="filter-input" type="text" value="tcp.port == 443" readonly><button class="apply-btn">Apply</button></div>
+        <div class="capture-header"><span>No.</span><span>Time</span><span>Source</span><span>Destination</span><span>Proto</span><span>Len</span><span>Info</span></div>
+        <div class="capture-body" id="captureBody"></div>
+        <div class="capture-status"><span id="captureCount">Packets: 0</span><span>Display filter: tcp.port == 443</span></div>
       </div>
     </section>
 
@@ -537,6 +582,13 @@
       <div class="issue-explain" id="issueExplain">
         <h4>Collision (CSMA/CD)</h4>
         <p>On shared media (hubs, 10Base-5), two hosts transmit simultaneously. Signals overlap and corrupt. Both detect the collision, send a <code>jam signal</code>, then back off for a random delay (binary exponential backoff) before retrying. Modern switched networks eliminate collisions — each switch port is its own collision domain.</p>
+      </div>
+      <div class="capture-terminal" id="issueCaptureTerminal">
+        <div class="capture-titlebar"><div class="dots"><span></span><span></span><span></span></div><span class="title">Capturing on eth0 &mdash; Wireshark</span></div>
+        <div class="capture-toolbar"><input class="filter-input" id="issueFilter" type="text" value="" readonly><button class="apply-btn">Apply</button></div>
+        <div class="capture-header"><span>No.</span><span>Time</span><span>Source</span><span>Destination</span><span>Proto</span><span>Len</span><span>Info</span></div>
+        <div class="capture-body" id="issueCaptureBody"></div>
+        <div class="capture-status"><span id="issueCaptureCount">Packets: 0</span><span id="issueCaptureFilter">No display filter</span></div>
       </div>
     </section>
   </div>
@@ -789,6 +841,31 @@
     playing: false, step: -1, t: 0, speed: 1,
     raf: null, time: 0,
     packets: [],
+    capturedSteps: {},
+
+    captureData: [
+      { no:1, time:'0.000000', src:'192.168.1.10', dst:'10.0.0.1', proto:'TCP', len:66, info:'49152 \u2192 443 [SYN] Seq=100 Win=65535 Len=0 MSS=1460', cls:'proto-syn' },
+      { no:2, time:'0.000342', src:'10.0.0.1', dst:'192.168.1.10', proto:'TCP', len:66, info:'443 \u2192 49152 [SYN, ACK] Seq=300 Ack=101 Win=65535 Len=0 MSS=1460', cls:'proto-synack' },
+      { no:3, time:'0.000485', src:'192.168.1.10', dst:'10.0.0.1', proto:'TCP', len:54, info:'49152 \u2192 443 [ACK] Seq=101 Ack=301 Win=65535 Len=0', cls:'proto-ack' },
+      { no:4, time:'0.001203', src:'192.168.1.10', dst:'10.0.0.1', proto:'TLSv1.3', len:583, info:'49152 \u2192 443 [PSH, ACK] Seq=101 Ack=301 Len=529 [Application Data]', cls:'proto-data' },
+      { no:5, time:'0.001587', src:'10.0.0.1', dst:'192.168.1.10', proto:'TCP', len:54, info:'443 \u2192 49152 [ACK] Seq=301 Ack=201 Win=65535 Len=0', cls:'proto-ack' },
+      { no:6, time:'0.045230', src:'192.168.1.10', dst:'10.0.0.1', proto:'TCP', len:54, info:'49152 \u2192 443 [FIN, ACK] Seq=201 Ack=301 Win=65535 Len=0', cls:'proto-fin' },
+      { no:7, time:'0.045612', src:'10.0.0.1', dst:'192.168.1.10', proto:'TCP', len:54, info:'443 \u2192 49152 [FIN, ACK] Seq=501 Ack=202 Win=65535 Len=0', cls:'proto-fin' },
+      { no:8, time:'0.045801', src:'192.168.1.10', dst:'10.0.0.1', proto:'TCP', len:54, info:'49152 \u2192 443 [ACK] Seq=202 Ack=502 Win=65535 Len=0', cls:'proto-ack' }
+    ],
+
+    addCaptureRow: function(idx) {
+      if (this.capturedSteps[idx]) return;
+      this.capturedSteps[idx] = true;
+      var d = this.captureData[idx]; if (!d) return;
+      var body = document.getElementById('captureBody');
+      var row = document.createElement('div');
+      row.className = 'capture-row ' + d.cls;
+      row.innerHTML = '<span class="col">'+d.no+'</span><span class="col">'+d.time+'</span><span class="col">'+d.src+'</span><span class="col">'+d.dst+'</span><span class="col">'+d.proto+'</span><span class="col">'+d.len+'</span><span class="col">'+d.info+'</span>';
+      body.appendChild(row);
+      body.scrollTop = body.scrollHeight;
+      document.getElementById('captureCount').textContent = 'Packets: ' + body.children.length + ' \u00b7 Displayed: ' + body.children.length;
+    },
 
     steps: [
       { dir: 'right', label: 'SYN', color: C.syn, fields: ['Seq=100','Flags: SYN'], desc: 'Client initiates connection' },
@@ -829,8 +906,11 @@
       this.playing = false;
       this.step = -1; this.t = 0;
       this.packets = [];
+      this.capturedSteps = {};
       document.querySelectorAll('.seq-row').forEach(function(r) { r.classList.remove('visible'); });
       document.getElementById('hsStepLabel').textContent = 'Ready';
+      document.getElementById('captureBody').innerHTML = '';
+      document.getElementById('captureCount').textContent = 'Packets: 0';
       if (this.raf) cancelAnimationFrame(this.raf);
       this.draw();
     },
@@ -844,8 +924,9 @@
         }
       });
       if (this.step >= 0 && this.step < this.steps.length) {
+        if (this.t > 0.3) this.addCaptureRow(this.step);
         document.getElementById('hsStepLabel').textContent =
-          'Step ' + (this.step+1) + '/' + this.steps.length + ' — ' + this.steps[this.step].desc;
+          'Step ' + (this.step+1) + '/' + this.steps.length + ' \u2014 ' + this.steps[this.step].desc;
       }
     },
 
@@ -1289,10 +1370,83 @@
       }
     },
 
+    issueCaptureData: {
+      collision: {
+        filter: 'eth.type == 0x0800',
+        rows: [
+          { no:1, time:'0.000000', src:'192.168.1.10', dst:'192.168.1.20', proto:'TCP', len:1514, info:'49152 \u2192 80 [PSH, ACK] Seq=1 Len=1460', cls:'proto-data' },
+          { no:2, time:'0.000000', src:'192.168.1.20', dst:'192.168.1.10', proto:'TCP', len:1514, info:'80 \u2192 49152 [PSH, ACK] Seq=1 Len=1460', cls:'proto-data' },
+          { no:3, time:'0.000003', src:'192.168.1.10', dst:'FF:FF:FF:FF:FF:FF', proto:'ETH', len:64, info:'[COLLISION DETECTED] Jam signal \u2014 32-bit jam pattern', cls:'proto-rst' },
+          { no:4, time:'0.000512', src:'192.168.1.10', dst:'192.168.1.20', proto:'TCP', len:1514, info:'[TCP Retransmission] 49152 \u2192 80 Seq=1 Len=1460', cls:'proto-syn' },
+          { no:5, time:'0.001024', src:'192.168.1.20', dst:'192.168.1.10', proto:'TCP', len:1514, info:'[TCP Retransmission] 80 \u2192 49152 Seq=1 Len=1460', cls:'proto-syn' }
+        ]
+      },
+      ttl: {
+        filter: 'icmp.type == 11',
+        rows: [
+          { no:1, time:'0.000000', src:'192.168.1.10', dst:'8.8.8.8', proto:'ICMP', len:98, info:'Echo (ping) request id=0x1234 seq=1 TTL=3', cls:'proto-icmp' },
+          { no:2, time:'0.001200', src:'10.0.1.1', dst:'10.0.2.1', proto:'IP', len:70, info:'TTL=2 (decremented at R1)', cls:'proto-ack' },
+          { no:3, time:'0.003400', src:'10.0.2.1', dst:'10.0.3.1', proto:'IP', len:70, info:'TTL=1 (decremented at R2)', cls:'proto-ack' },
+          { no:4, time:'0.005100', src:'10.0.3.1', dst:'\u2014', proto:'IP', len:70, info:'TTL=0 \u2014 PACKET DROPPED at R3', cls:'proto-rst' },
+          { no:5, time:'0.005300', src:'10.0.3.1', dst:'192.168.1.10', proto:'ICMP', len:70, info:'Type 11 (Time Exceeded) Code 0: TTL expired in transit', cls:'proto-icmp' }
+        ]
+      },
+      rst: {
+        filter: 'tcp.flags.reset == 1',
+        rows: [
+          { no:1, time:'0.000000', src:'192.168.1.10', dst:'10.0.0.1', proto:'TCP', len:66, info:'49152 \u2192 8080 [SYN] Seq=500 Win=65535 Len=0', cls:'proto-syn' },
+          { no:2, time:'0.000342', src:'10.0.0.1', dst:'192.168.1.10', proto:'TCP', len:54, info:'8080 \u2192 49152 [RST, ACK] Seq=0 Ack=501 Win=0 Len=0', cls:'proto-rst' },
+          { no:3, time:'0.000500', src:'192.168.1.10', dst:'\u2014', proto:'\u2014', len:0, info:'connect() returned ECONNREFUSED (errno 111)', cls:'proto-rst' }
+        ]
+      },
+      congestion: {
+        filter: 'tcp.analysis.lost_segment',
+        rows: [
+          { no:1, time:'0.000000', src:'192.168.1.10', dst:'10.0.0.1', proto:'TCP', len:1514, info:'49152 \u2192 443 [ACK] Seq=1 Len=1460 [cwnd=10]', cls:'proto-data' },
+          { no:2, time:'0.000100', src:'192.168.1.10', dst:'10.0.0.1', proto:'TCP', len:1514, info:'49152 \u2192 443 [ACK] Seq=1461 Len=1460', cls:'proto-data' },
+          { no:3, time:'0.000200', src:'192.168.1.10', dst:'10.0.0.1', proto:'TCP', len:1514, info:'49152 \u2192 443 [ACK] Seq=2921 Len=1460', cls:'proto-data' },
+          { no:4, time:'0.002000', src:'10.0.0.1', dst:'192.168.1.10', proto:'TCP', len:54, info:'443 \u2192 49152 [ACK] Ack=1461 Win=65535', cls:'proto-ack' },
+          { no:5, time:'0.002100', src:'10.0.0.1', dst:'192.168.1.10', proto:'TCP', len:66, info:'[TCP Dup ACK #1] 443 \u2192 49152 Ack=1461', cls:'proto-fin' },
+          { no:6, time:'0.002200', src:'10.0.0.1', dst:'192.168.1.10', proto:'TCP', len:66, info:'[TCP Dup ACK #2] 443 \u2192 49152 Ack=1461', cls:'proto-fin' },
+          { no:7, time:'0.002300', src:'10.0.0.1', dst:'192.168.1.10', proto:'TCP', len:66, info:'[TCP Dup ACK #3] 443 \u2192 49152 Ack=1461 \u2014 FAST RETRANSMIT', cls:'proto-rst' },
+          { no:8, time:'0.002400', src:'192.168.1.10', dst:'10.0.0.1', proto:'TCP', len:1514, info:'[TCP Fast Retransmission] Seq=1461 Len=1460 [cwnd=5]', cls:'proto-syn' }
+        ]
+      }
+    },
+
+    populateCapture: function(scenario) {
+      var data = this.issueCaptureData[scenario];
+      if (!data) return;
+      var body = document.getElementById('issueCaptureBody');
+      body.innerHTML = '';
+      document.getElementById('issueFilter').value = data.filter;
+      document.getElementById('issueCaptureFilter').textContent = 'Display filter: ' + data.filter;
+      var count = 0;
+      data.rows.forEach(function(d, i) {
+        setTimeout(function() {
+          var row = document.createElement('div');
+          row.className = 'capture-row ' + d.cls;
+          row.innerHTML =
+            '<span class="col">' + d.no + '</span>' +
+            '<span class="col">' + d.time + '</span>' +
+            '<span class="col">' + d.src + '</span>' +
+            '<span class="col">' + d.dst + '</span>' +
+            '<span class="col">' + d.proto + '</span>' +
+            '<span class="col">' + d.len + '</span>' +
+            '<span class="col">' + d.info + '</span>';
+          body.appendChild(row);
+          body.scrollTop = body.scrollHeight;
+          count++;
+          document.getElementById('issueCaptureCount').textContent = 'Packets: ' + count;
+        }, 400 + i * 600);
+      });
+    },
+
     init: function() {
       var s = setupCanvas(this.canvas);
       this.ctx = s.ctx; this.w = s.w; this.h = s.h;
       this.drawCollision();
+      this.populateCapture('collision');
     },
 
     play: function(scenario) {
@@ -1301,7 +1455,7 @@
       if (this.raf) cancelAnimationFrame(this.raf);
       document.getElementById('issueLabel').textContent = this.scenarios[this.active].label;
       document.getElementById('issueExplain').innerHTML = this.scenarios[this.active].explain;
-      var self = this;
+      this.populateCapture(this.active);
       switch (this.active) {
         case 'collision': this.drawCollision(); break;
         case 'ttl': this.drawTTL(); break;
