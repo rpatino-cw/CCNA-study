@@ -1081,43 +1081,43 @@ window.subtopicContentD34 = {
     info: "<p><strong>TFTP is the traditional method for IOS image management.</strong> The workflow uses the <code>copy</code> command with <strong>source-to-destination</strong> syntax:</p><p><strong>Backup IOS to TFTP:</strong> <code>copy flash: tftp:</code> — copies IOS from device flash to TFTP server. Prompts for source filename, server IP, and destination filename.</p><p><strong>Download new IOS:</strong> <code>copy tftp: flash:</code> — downloads from TFTP server to flash. Always verify flash space first with <code>show flash:</code>.</p><p><strong>IOS upgrade workflow:</strong> (1) <code>show flash:</code> — check space. (2) <code>copy flash: tftp:</code> — backup current IOS. (3) <code>copy tftp: flash:</code> — download new IOS. (4) <code>boot system flash:[new-image]</code>. (5) <code>write memory</code>. (6) <code>reload</code>.</p>",
     visual: { type: "packet-flow", params: { nodes: ["Router (flash:)", "copy flash: tftp:", "TFTP Server", "IOS image backup"], color: "#3b82f6" } },
     hack: {
-      memory: "'copy [from] [to]' — source first, destination second. 'copy flash: tftp:' = from the router to the server. 'copy tftp: flash:' = from the server to the router.",
-      practice: "In Packet Tracer, practice both directions: backup IOS to TFTP, then restore from TFTP. Verify with 'show flash:' that the file is present and correct size.",
+      memory: "'copy [FROM] [TO]' — source first, destination second. 'copy flash: tftp:' = from router TO server (backup). 'copy tftp: flash:' = from server TO router (upgrade). Always check flash space first with 'show flash:'. Always backup before upgrading.",
+      practice: "In Packet Tracer: (1) 'show flash:' to see current IOS. (2) 'copy flash: tftp:' to backup. (3) 'copy tftp: flash:' to download new image. (4) Verify with 'show flash:' that both images exist.",
       effort: "medium",
-      meta: "The 'copy' command syntax is heavily tested: 'copy [source] [destination]'. Know that 'copy tftp: flash:' prompts for server IP, source filename, and destination filename."
+      meta: "Jeremy's IT Lab Day 42 (FTP/TFTP). Wendell Odom OCG Chapter 9. The 'copy' command is tested in lab sims. Know the pattern: 'copy [source] [destination]'. The colons are required."
     }
   },
 
   "4.9.d": {
-    info: "FTP is used for larger file transfers where reliability and authentication matter. It's more suitable than TFTP for transferring large IOS images or multiple files because TCP handles error correction and retransmission. Configure FTP credentials on the router with 'ip ftp username [user]' and 'ip ftp password [pass]', then use 'copy ftp: flash:' to transfer.",
+    info: "<p><strong>FTP for network file operations</strong> is used when reliability and authentication matter. FTP's TCP transport provides error correction and retransmission, important for large IOS images where corruption is unacceptable. Configure credentials: <code>ip ftp username [user]</code> and <code>ip ftp password [pass]</code>, then <code>copy ftp: flash:</code>.</p><p><strong>When to use each:</strong> <strong>TFTP</strong> for quick config backups on trusted management networks. <strong>FTP</strong> when authentication is required or transferring large files. <strong>SCP</strong> when encryption is required (production, untrusted links). Security hierarchy: TFTP (no security) < FTP (auth, no encrypt) < SCP (auth + encrypt).</p>",
     visual: { type: "comparison", params: { left: { label: "TFTP Use Cases", items: ["Small config files", "Quick IOS backup/restore", "Trusted management VLAN", "No auth needed"] }, right: { label: "FTP Use Cases", items: ["Large IOS images", "Reliable transfers needed", "Multiple file operations", "Auth required"] } } },
     hack: {
-      memory: "TFTP for quick small jobs, FTP for bigger jobs that need reliability. Like sending a postcard (TFTP) vs a registered package (FTP).",
-      practice: "Know when to use each: TFTP for simple config backups on the management network, FTP when you need authentication or are transferring large files. No deep lab needed.",
+      memory: "TFTP = postcard (quick, no security). FTP = registered mail (tracked, signed for, but readable). SCP = sealed armored courier (tracked, signed for, locked). Use TFTP for trusted quick jobs, FTP for reliable authenticated transfers, SCP for secure production transfers.",
+      practice: "Make a 3-column comparison card: TFTP vs FTP vs SCP. Transport (UDP/TCP/TCP), Port (69/20-21/22), Auth (no/yes/yes), Encryption (no/no/yes). This single card answers any file transfer comparison question.",
       effort: "low",
-      meta: "The exam mostly tests TFTP for IOS operations. FTP appears as a comparison option. Know the key differences: UDP vs TCP, auth vs no auth, simple vs full-featured."
+      meta: "Jeremy's IT Lab Day 42 (FTP/TFTP). Wendell Odom OCG Chapter 9. The exam mostly tests TFTP for IOS operations, with FTP and SCP as comparison options. 'Most secure?' = SCP. Know port numbers and security characteristics."
     }
   },
 
   "4.9.e": {
-    info: "Common IOS file operations: 'copy running-config tftp:' saves the current config to a TFTP server, 'copy startup-config tftp:' saves the startup config, 'copy tftp: running-config' restores/merges a config from TFTP, 'copy tftp: flash:' downloads an IOS image. 'show flash:' lists files in flash memory. Always verify flash space before downloading new images.",
+    info: "<p><strong>Common IOS file operations</strong> use the <code>copy [source] [destination]</code> pattern. Key locations: <strong>running-config</strong> = active config in RAM. <strong>startup-config</strong> = saved config in NVRAM. <strong>flash:</strong> = IOS image storage. <strong>tftp:/ftp:/scp:</strong> = remote servers.</p><p><strong>Key commands:</strong> <code>copy running-config tftp:</code> (backup active config), <code>copy startup-config tftp:</code> (backup saved config), <code>copy tftp: running-config</code> (<strong>MERGES</strong> with current running config — does NOT replace), <code>copy tftp: startup-config</code> (<strong>REPLACES</strong> startup config), <code>copy tftp: flash:</code> (download IOS image). <code>show flash:</code> lists files and free space.</p><p><strong>Critical exam trap:</strong> <code>copy tftp: running-config</code> MERGES (additive). <code>copy tftp: startup-config</code> REPLACES (destructive). This behavioral difference is frequently tested.</p>",
     visual: { type: "layer-stack", params: { layers: ["copy running-config tftp:", "copy startup-config tftp:", "copy tftp: flash:", "copy flash: tftp:", "show flash:"], highlight: 2 } },
     hack: {
-      memory: "Always 'copy [from] [to]'. Running-config = live config in RAM. Startup-config = saved config in NVRAM. Flash = where IOS lives. TFTP = remote server.",
-      practice: "Practice every copy command variant in Packet Tracer: running to TFTP, startup to TFTP, TFTP to flash. Verify each transfer with the appropriate show command.",
+      memory: "'copy [FROM] [TO]' — always source first, destination second. CRITICAL TRAP: 'copy tftp: running-config' MERGES (old + new combined). 'copy tftp: startup-config' REPLACES (only new). Running-config = RAM (live). Startup-config = NVRAM (saved). Flash = IOS images.",
+      practice: "In Packet Tracer: (1) 'copy running-config tftp:' — backup active config. (2) Make changes. (3) 'copy tftp: running-config' — observe MERGE behavior. (4) 'copy tftp: startup-config' — observe REPLACE behavior. (5) Practice all variants until automatic.",
       effort: "medium",
-      meta: "The 'copy' command variations are tested in lab sims. The tricky one: 'copy tftp: running-config' MERGES (doesn't replace) the current running config. 'copy tftp: startup-config' replaces."
+      meta: "Jeremy's IT Lab Day 42 (FTP/TFTP). Wendell Odom OCG Chapter 9. The merge vs replace trap is tested: 'copy tftp: running-config' MERGES. 'copy tftp: startup-config' REPLACES. Know 'show flash:' to verify IOS images."
     }
   },
 
   "4.9.f": {
-    info: "SCP (Secure Copy Protocol) transfers files over SSH, providing both encryption and authentication. It's the secure alternative to TFTP and FTP. To use SCP on a Cisco device, SSH must be configured and 'ip scp server enable' must be set. Transfer command: 'copy scp: flash:'. SCP uses TCP port 22 (SSH) and is the recommended method for production file transfers.",
+    info: "<p><strong>SCP (Secure Copy Protocol)</strong> provides encrypted file transfers over an SSH connection, combining file transfer capability with SSH security. SCP uses <strong>TCP port 22</strong> (same as SSH) and requires an existing SSH configuration on the device.</p><p><strong>Requirements:</strong> SSH must be fully configured (all 6 steps) plus <code>ip scp server enable</code>. Transfer commands: <code>copy scp: flash:</code> or <code>copy flash: scp:</code>.</p><p><strong>Security comparison:</strong> TFTP = no auth, no encryption (UDP 69). FTP = auth, no encryption (TCP 20/21). SCP = auth + full encryption (TCP 22). SCP is the <strong>most secure</strong> file transfer method on Cisco devices and should be used in production environments.</p>",
     visual: { type: "shield", params: { items: ["SCP = file transfer over SSH", "TCP port 22 (encrypted)", "Requires SSH configured", "ip scp server enable", "Most secure option"], color: "#10b981" } },
     hack: {
-      memory: "SCP = SSH + file copy. Same encryption, same port (22), same authentication. If you already have SSH, SCP is the natural upgrade from TFTP/FTP.",
-      practice: "Know that SCP requires SSH to be working first. If SSH is configured (hostname, domain, RSA key, user, VTY), SCP just needs 'ip scp server enable' to activate.",
+      memory: "SCP = SSH + file copy. Same encryption, same port (22), same authentication. Prerequisite: SSH must be fully configured + 'ip scp server enable.' Security hierarchy: TFTP (nothing) < FTP (auth only) < SCP (auth + encrypted). SCP = the MOST SECURE file transfer option on Cisco devices.",
+      practice: "Know the prerequisite chain: SSH (all 6 steps) must work BEFORE SCP. Then add 'ip scp server enable.' The exam question: 'Most secure file transfer?' = SCP. 'What port?' = TCP 22. 'What prerequisite?' = SSH configured.",
       effort: "low",
-      meta: "The exam asks 'which is the most secure file transfer method?' Answer: SCP (encrypted, authenticated). TFTP = no security, FTP = auth but no encryption, SCP = both."
+      meta: "Jeremy's IT Lab Day 42 (FTP/TFTP) and Day 43 (SSH) together cover SCP. Wendell Odom OCG Chapter 9. 'Most secure file transfer?' = SCP. 'Which port?' = TCP 22. This is a 2-second recall question."
     }
   }
 
