@@ -152,8 +152,6 @@
   <div class="hero-action" id="heroAction"></div>
   <div class="stats-line" id="statsLine"></div>
 
-  <div id="filterBar" style="margin-bottom:var(--s-md)"></div>
-
   <div id="domainSections"></div>
 </div>
 
@@ -1106,22 +1104,6 @@ window.render=function(){
     '<span>Readiness: <strong>' + Math.round(readiness) + '%</strong></span>' +
     '<span>' + domains.length + ' domains</span>';
 
-  // Filter modes: '' = all, 'weak' = below 70%, 'speed' = speed run (below 70% + auto-expand + quick path only)
-  // Default to Speed Run for returning users (have proficiency data + weak topics)
-  var storedFilter=localStorage.getItem('ccna_core_filter');
-  var hasProf=Object.keys(prof).some(k=>prof[k]>0);
-  var filterMode=storedFilter!==null?storedFilter:(hasProf?'speed':'');
-  const showWeak=filterMode==='weak'||filterMode==='speed';
-  function fbtn(mode,label){
-    var active=filterMode===mode;
-    return'<button style="font-family:var(--font-display);font-size:.72rem;padding:6px 14px;background:'+(active?'var(--accent)':'var(--bg-surface)')+';color:'+(active?'#fff':'var(--ink-muted)')+';border:1px solid '+(active?'var(--accent)':'var(--border)')+';border-radius:var(--radius);cursor:pointer" onclick="localStorage.setItem(\'ccna_core_filter\',\''+mode+'\');render()">'+label+'</button>';
-  }
-  var weakCount=0;domains.forEach(d=>d.topics.forEach(t=>{if(isNetPlus&&!NP_SET.has(t.id))return;if((prof[t.id]||0)<0.7)weakCount++;}));
-  document.getElementById('filterBar').innerHTML='<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">'+
-    fbtn('','Show All')+fbtn('weak','Weak Only ('+weakCount+')')+fbtn('speed','Speed Run ('+weakCount+')')+
-    (filterMode==='speed'?'<span style="font-family:var(--font-body);font-size:.75rem;color:var(--ink-muted);margin-left:8px">Only objectives below 70%. Watch, quiz, pass, next.</span>':'')+
-    '</div>';
-
   // Domain sections
   document.getElementById('domainSections').innerHTML=domains.map(d=>{
     let sum=0;d.topics.forEach(t=>sum+=(prof[t.id]||0));
@@ -1133,8 +1115,6 @@ window.render=function(){
       const r=RES[t.id]||{};
       const isMastered=!!mastered[t.id];
       const isCCNAOnly=isNetPlus&&!NP_SET.has(t.id);
-      const hideCard=showWeak&&(isMastered||(prof[t.id]||0)>=0.7);
-      const isSpeedRun=filterMode==='speed';
       const subs=t.subtopics?'<ul class="obj-subs">'+t.subtopics.map(s=>'<li>'+esc(typeof s==='object'?s.name:s)+'</li>').join('')+'</ul>':'';
 
       let resHtml='';
@@ -1199,16 +1179,16 @@ window.render=function(){
       siteHtml+='</div>';
 
       if(isCCNAOnly)return'<div class="obj-card" id="obj-'+t.id+'" style="opacity:.3;pointer-events:none"><div class="obj-head"><span class="obj-id" style="color:var(--ink-muted)">'+t.id+'</span><span class="obj-name" style="color:var(--ink-muted)">'+esc(t.name)+'</span><span style="font-family:var(--font-mono);font-size:.6rem;color:var(--ink-muted);margin-left:auto">CCNA ONLY</span></div></div>';
-      return'<div class="obj-card'+(isMastered?' mastered':'')+'" id="obj-'+t.id+'"'+(hideCard?' style="display:none"':'')+(isNetPlus?' style="border-left:3px solid #7C3AED"':'')+'>'+
+      return'<div class="obj-card'+(isMastered?' mastered':'')+'" id="obj-'+t.id+'"'+(isNetPlus?' style="border-left:3px solid #7C3AED"':'')+'>'+
         '<div class="obj-head" onclick="toggleObj(\''+t.id+'\')">'+
           '<span class="obj-id" style="color:'+color+'">'+t.id+'</span>'+
           '<span class="obj-name">'+esc(t.name)+'</span>'+
           '<div class="obj-prof"><div class="obj-bar"><div class="obj-fill" style="transform:scaleX('+(p/100)+');background:'+profColor(p/100)+'"></div></div><span class="obj-pct" style="color:'+profColor(p/100)+'">'+p+'%</span></div>'+
         '</div>'+
-        '<div class="obj-body'+(isSpeedRun?' open':'')+'" id="objbody-'+t.id+'"><div class="obj-body-inner">'+
-          (isSpeedRun?'':subs)+
+        '<div class="obj-body" id="objbody-'+t.id+'"><div class="obj-body-inner">'+
+          subs+
           buildQuickPath(t,prof)+
-          (isSpeedRun?'':'<div class="res-section"><div class="res-title">Resources</div>'+siteHtml+'<div style="margin-top:10px">'+resHtml+'</div></div>')+
+          '<div class="res-section"><div class="res-title">Resources</div>'+siteHtml+'<div style="margin-top:10px">'+resHtml+'</div></div>'+
         '</div></div></div>';
     }catch(e){return'<div class="obj-card" style="padding:10px;color:var(--prof-weak);font-size:.78rem">Error rendering '+t.id+': '+e.message+'</div>';}
     }).join('');
@@ -1220,22 +1200,12 @@ window.render=function(){
       '<a href="exam-sim.html" style="display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:'+color+';color:#fff;border-radius:var(--radius);font-family:var(--font-display);font-size:.75rem;font-weight:700;text-decoration:none;margin-bottom:var(--s-sm)">Domain '+d.id+' Final Quiz — UNLOCKED</a>':
       '<div style="display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:var(--bg-recessed);color:var(--ink-muted);border-radius:var(--radius);font-family:var(--font-display);font-size:.75rem;font-weight:600;margin-bottom:var(--s-sm);opacity:.5">Domain '+d.id+' Final Quiz — '+at70+'/'+d.topics.length+' objectives at 70%+ — keep going</div>';
 
-    // Count visible cards in this domain (not hidden by filter)
-    const visibleCount=d.topics.filter(t=>{
-      if(isNetPlus&&!NP_SET.has(t.id))return false;
-      if(showWeak&&(mastered[t.id]||(prof[t.id]||0)>=0.7))return false;
-      return true;
-    }).length;
-    // Hide entire domain section if no visible cards in weak/speed mode
-    const hideDomain=showWeak&&visibleCount===0;
-
-    var autoOpen=filterMode==='speed'||filterMode==='weak';
-    return'<div class="domain-section" id="domain-'+d.id+'"'+(hideDomain?' style="display:none"':'')+'>'+
+    return'<div class="domain-section" id="domain-'+d.id+'">'+
       '<div class="ds-head" onclick="toggleDomain(\''+d.id+'\')">'+
-        '<div class="ds-title" style="color:'+color+'">Domain '+d.id+' — '+d.name+(showWeak?' <span style="font-family:var(--font-mono);font-size:.68rem;color:var(--ink-muted);font-weight:400">('+visibleCount+' remaining)</span>':'')+'</div>'+
-        '<div class="ds-meta"><span class="ds-weight">'+d.weight+'% of exam</span><span class="ds-pct" style="color:'+color+'">'+avg+'%</span><span class="ds-toggle'+(autoOpen?' open':'')+'" id="dtoggle-'+d.id+'">&#9662;</span></div>'+
+        '<div class="ds-title" style="color:'+color+'">Domain '+d.id+' — '+d.name+'</div>'+
+        '<div class="ds-meta"><span class="ds-weight">'+d.weight+'% of exam</span><span class="ds-pct" style="color:'+color+'">'+avg+'%</span><span class="ds-toggle" id="dtoggle-'+d.id+'">&#9662;</span></div>'+
       '</div>'+
-      '<div class="ds-body'+(autoOpen?' open':'')+'" id="dbody-'+d.id+'">'+quizBadge+topicsHtml+'</div></div>';
+      '<div class="ds-body" id="dbody-'+d.id+'">'+quizBadge+topicsHtml+'</div></div>';
   }).join('');
 
   // Auto-expand handled inline via class attribute in HTML above
