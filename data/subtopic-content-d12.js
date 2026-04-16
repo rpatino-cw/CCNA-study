@@ -1251,7 +1251,16 @@ window.subtopicContentD12 = {
       practice: "Write out 5 full IPv6 addresses without any shortening. Identify each hextet. Then expand these shortened addresses back to full form: 2001:DB8::1, FE80::1, FF02::1, FD00::1:2:3:4. In Packet Tracer, enable IPv6 on a router (ipv6 unicast-routing) and assign 2001:DB8:1::1/64 to an interface. Connect a PC and check its IPv6 address \u2014 notice it generates both a link-local (FE80::) and a global address automatically.",
       effort: "medium",
       meta: "IPv6 is about 10% of the CCNA exam. Know the format cold before diving into shortening rules. Jeremy IT Lab Day 31 introduces IPv6 addressing. Wendell Odom OCG Chapter 22 (Fundamentals of IPv6) covers the structure and IPv4-to-IPv6 comparison. The simplified header and no-broadcast facts are common exam questions."
-    }
+    },
+    micro: [
+      { id: "1.8.a.1", term: "IPv6 address length",          def: "128 bits. 2^128 ≈ 340 undecillion addresses. 4× larger than IPv4's 32 bits.", weight: "high" },
+      { id: "1.8.a.2", term: "Hextet",                       def: "One of the 8 groups in an IPv6 address. 16 bits = 4 hex digits. Separated by colons.", weight: "high" },
+      { id: "1.8.a.3", term: "IPv6 header size",             def: "Fixed 40 bytes. Simpler than IPv4 — no checksum, no fragmentation fields, options in extension headers.", weight: "high" },
+      { id: "1.8.a.4", term: "No broadcast in IPv6",         def: "IPv6 eliminates broadcast entirely. Replaced by multicast and anycast.", weight: "high" },
+      { id: "1.8.a.5", term: "SLAAC support",                def: "Hosts can generate their own addresses via Stateless Address Autoconfiguration. No DHCP required.", weight: "high" },
+      { id: "1.8.a.6", term: "64/64 split",                  def: "Standard IPv6 LAN: first 64 bits = network prefix, last 64 bits = interface ID.", weight: "high" },
+      { id: "1.8.a.7", term: "Why IPv6",                     def: "IPv4 exhaustion (last /8 allocated 2011). NAT added complexity. IPv6 removes need for NAT.", weight: "med" }
+    ]
   },
 
   "1.8.b": {
@@ -1268,7 +1277,15 @@ window.subtopicContentD12 = {
       practice: "Take 10 full IPv6 addresses and shorten them applying both rules. Then take 10 shortened addresses and expand them back to full form. Both directions matter for the exam. Tricky ones to practice: FE80:0000:0000:0000:0000:0000:0000:0001 = FE80::1, 2001:0DB8:0000:0001:0000:0000:0000:0001 = 2001:DB8:0:1::1 (the single 0 between DB8 and 1 cannot be replaced by :: since :: is used for the longer run). Use an IPv6 subnet calculator online to verify your answers.",
       effort: "medium",
       meta: "The exam will give shortened addresses and ask you to identify the full form, or vice versa. Jeremy IT Lab Day 31 covers shortening rules with examples. Wendell Odom OCG Chapter 22 provides practice problems. The one-time :: rule is the most common trick \u2014 if an answer uses :: twice, it is automatically wrong."
-    }
+    },
+    micro: [
+      { id: "1.8.b.1", term: "Rule 1: Drop leading zeros",   def: "Remove leading zeros in each hextet. 0DB8 → DB8, 0001 → 1, 0000 → 0. Must keep at least one digit.", weight: "high" },
+      { id: "1.8.b.2", term: "Rule 2: Double colon ::",      def: "Replace ONE consecutive run of all-zero hextets with ::. Use for the longest run.", weight: "high" },
+      { id: "1.8.b.3", term: ":: only ONCE",                 def: "Double colon can only appear once per address. Two would be ambiguous.", weight: "high" },
+      { id: "1.8.b.4", term: "Expanding ::",                 def: "Count visible hextets; subtract from 8; fill :: with that many 0000 groups.", weight: "high" },
+      { id: "1.8.b.5", term: ":: alone",                     def: "The unspecified address (all zeros). Equivalent to IPv4 0.0.0.0.", weight: "med" },
+      { id: "1.8.b.6", term: "::1 (loopback)",               def: "IPv6 loopback address. Equivalent to IPv4 127.0.0.1.", weight: "high" }
+    ]
   },
 
   "1.8.c": {
@@ -1286,7 +1303,14 @@ window.subtopicContentD12 = {
       practice: "Memorize the four key prefix lengths: /64, /48, /128, /127. In Packet Tracer, configure a router with a /64 on each LAN interface and a /127 on the link between two routers. Verify with show ipv6 interface brief and show ipv6 route. Notice how the routing table shows /64 connected routes for LANs and /127 for the P2P link. Calculate: given 2001:DB8:CAFE::/48, how many /64 subnets can you create? (2^16 = 65,536).",
       effort: "low",
       meta: "Knowing /64 for LANs is essential \u2014 the exam will not ask you to subnet IPv6 the way it does IPv4. Jeremy IT Lab Day 31-32 covers prefix lengths. Wendell Odom OCG Chapter 22-23 explains the hierarchy. The key insight: IPv6 subnetting is easy because you always use /64 for LANs and have practically unlimited subnets."
-    }
+    },
+    micro: [
+      { id: "1.8.c.1", term: "/64 standard LAN prefix",      def: "Every individual IPv6 LAN segment. Required for SLAAC (interface ID must be 64 bits).", weight: "high" },
+      { id: "1.8.c.2", term: "/48 site allocation",          def: "Typical block from ISP to organization. 16 bits available for internal subnetting → 65,536 /64 subnets.", weight: "high" },
+      { id: "1.8.c.3", term: "/127 point-to-point",          def: "Recommended for router-to-router P2P links (RFC 6164). 2 addresses, no waste. IPv6 analogue of IPv4 /30.", weight: "high" },
+      { id: "1.8.c.4", term: "/128 host route",              def: "Single address. Used for loopback interfaces and specific host routes.", weight: "high" },
+      { id: "1.8.c.5", term: "No subnet math (usually)",     def: "IPv6 standard LAN is always /64. You don't calculate IPv6 subnets on CCNA the way you do for IPv4.", weight: "med" }
+    ]
   },
 
   "1.8.d": {
@@ -1304,7 +1328,16 @@ window.subtopicContentD12 = {
       practice: "In Packet Tracer, configure a router with ipv6 unicast-routing and assign 2001:DB8:1::1/64 to an interface. Connect a PC set to auto-config (SLAAC). Check the PC\u2019s IPv6 address \u2014 it should have the 2001:DB8:1:: prefix with an auto-generated interface ID. On the router, use show ipv6 neighbors to see the PC\u2019s entry. Then add a second PC and verify both get unique addresses from the same /64. Try show ipv6 interface to see the RA settings.",
       effort: "medium",
       meta: "Know SLAAC vs Stateless DHCPv6 vs Stateful DHCPv6. The exam tests when each is used. Jeremy IT Lab Day 33 covers all three methods. Wendell Odom OCG Chapter 23 (SLAAC and DHCPv6) is the reference. Key: SLAAC = address from RA, no DHCP for addressing. The A/O/M flags determine which method is in use."
-    }
+    },
+    micro: [
+      { id: "1.8.d.1", term: "SLAAC",                        def: "Stateless Address Autoconfiguration. Host self-generates IPv6 address from RA prefix + interface ID. No DHCP required.", weight: "high" },
+      { id: "1.8.d.2", term: "Router Solicitation (RS)",     def: "ICMPv6 Type 133. Host sends to FF02::2 asking for network config.", weight: "high" },
+      { id: "1.8.d.3", term: "Router Advertisement (RA)",    def: "ICMPv6 Type 134. Router responds with prefix, default gateway (its link-local), and A/O/M flags.", weight: "high" },
+      { id: "1.8.d.4", term: "EUI-64 interface ID",          def: "Generated from MAC by inserting FFFE in middle and flipping 7th bit. 64 bits.", weight: "high" },
+      { id: "1.8.d.5", term: "Privacy extensions",           def: "RFC 7217. Random interface ID instead of EUI-64 to prevent MAC tracking. Default on modern OSes.", weight: "med" },
+      { id: "1.8.d.6", term: "DAD (Duplicate Address Detection)", def: "Host sends NS for its own address before claiming it. No reply = address is unique.", weight: "high" },
+      { id: "1.8.d.7", term: "A-flag",                       def: "Address Autoconfiguration flag in RA. A=1 tells host to use SLAAC for addressing.", weight: "high" }
+    ]
   },
 
   "1.8.e": {
@@ -1322,7 +1355,14 @@ window.subtopicContentD12 = {
       practice: "Know the RA flags cold: O-flag=1, M-flag=0 \u2192 stateless DHCPv6. Make a comparison table on paper: SLAAC (A=1, O=0, M=0) vs Stateless DHCPv6 (A=1, O=1, M=0) vs Stateful DHCPv6 (M=1). For each, list what provides the address and what provides DNS. In Packet Tracer (if supported), configure a router with ipv6 nd other-config-flag on the LAN interface and set up a DHCPv6 pool with dns-server and domain-name. Verify the PC gets its address from SLAAC but DNS from DHCPv6.",
       effort: "medium",
       meta: "The O-flag vs M-flag distinction is a common exam question. Jeremy IT Lab Day 33 covers the three-way comparison. Wendell Odom OCG Chapter 23 details stateless DHCPv6. Remember: O = other config (DNS only), M = managed (full addressing). The exam will describe a scenario and ask which method is in use based on the flags."
-    }
+    },
+    micro: [
+      { id: "1.8.e.1", term: "Stateless DHCPv6",             def: "Hybrid: SLAAC provides the address, DHCPv6 provides DNS/domain/NTP. Server does NOT track address assignments.", weight: "high" },
+      { id: "1.8.e.2", term: "O-flag",                       def: "Other Configuration. O=1 in RA tells host to query DHCPv6 for DNS/other info (but not address).", weight: "high" },
+      { id: "1.8.e.3", term: "FF02::1:2",                    def: "All DHCPv6 servers/relay agents multicast address. Clients send Information-Request here.", weight: "med" },
+      { id: "1.8.e.4", term: "RDNSS option (RFC 8106)",      def: "Recursive DNS Server option in RA. Modern alternative to stateless DHCPv6 for DNS.", weight: "low" },
+      { id: "1.8.e.5", term: "Cisco O-flag command",         def: "'ipv6 nd other-config-flag' under interface sets O=1 in outgoing RAs.", weight: "med" }
+    ]
   },
 
   "1.8.f": {
@@ -1340,7 +1380,15 @@ window.subtopicContentD12 = {
       practice: "Make a 3-column comparison table: SLAAC vs Stateless DHCPv6 vs Stateful DHCPv6. For each column, fill in: who provides the address, who provides DNS, what flags trigger it, does the server track state. This table is your exam cheat sheet for IPv6 addressing questions. In Packet Tracer, if supported, configure a stateful DHCPv6 pool with address prefix, dns-server, and domain-name. Set ipv6 nd managed-config-flag on the router interface. Verify the PC gets its address from the DHCPv6 server.",
       effort: "medium",
       meta: "The three-way comparison (SLAAC vs Stateless vs Stateful) is a guaranteed exam topic. Jeremy IT Lab Day 33 covers all three with clear examples. Wendell Odom OCG Chapter 23 is the definitive reference. The gateway-still-from-RA fact is a common trick question. Key: M-flag = managed = server assigns address."
-    }
+    },
+    micro: [
+      { id: "1.8.f.1", term: "Stateful DHCPv6",              def: "DHCPv6 server assigns full address and tracks it in a binding table. Like DHCPv4 for IPv6.", weight: "high" },
+      { id: "1.8.f.2", term: "M-flag",                       def: "Managed Address Configuration. M=1 in RA tells host to get its address from DHCPv6 server.", weight: "high" },
+      { id: "1.8.f.3", term: "SARR process",                 def: "Solicit → Advertise → Request → Reply. Four-step DHCPv6 exchange. Analogous to DORA in DHCPv4.", weight: "high" },
+      { id: "1.8.f.4", term: "Gateway STILL from RA",        def: "Even with stateful DHCPv6, the default gateway comes from the Router Advertisement, NOT DHCPv6. Classic exam gotcha.", weight: "high" },
+      { id: "1.8.f.5", term: "Link-local always auto",       def: "FE80:: link-local is always self-generated via SLAAC, regardless of which method is used for the global address.", weight: "high" },
+      { id: "1.8.f.6", term: "Cisco M-flag command",         def: "'ipv6 nd managed-config-flag' under interface sets M=1 in outgoing RAs.", weight: "med" }
+    ]
   },
 
   "1.8.g": {
@@ -1358,7 +1406,16 @@ window.subtopicContentD12 = {
       practice: "Flashcard the four NDP message types with their ICMPv6 type numbers: RS=133, RA=134, NS=135, NA=136. Know which replaces what: NS/NA replace ARP request/reply. RS/RA are new (IPv4 used DHCP for gateway discovery). In Packet Tracer, configure two PCs on the same IPv6 subnet. Ping from one to the other. Then check show ipv6 neighbors on the router to see the neighbor cache entries. Compare this to show arp on an IPv4 router \u2014 same concept, different protocol.",
       effort: "medium",
       meta: "NDP message types are heavily tested. Know all four by name, type number, and function. Jeremy IT Lab Day 32 covers NDP in detail. Wendell Odom OCG Chapter 22-23. The exam question What replaces ARP in IPv6? = NDP (specifically NS/NA). The solicited-node multicast optimization is a bonus concept that shows understanding."
-    }
+    },
+    micro: [
+      { id: "1.8.g.1", term: "NDP",                          def: "Neighbor Discovery Protocol. Uses ICMPv6. Replaces ARP + ICMP Router Discovery + ICMP Redirect from IPv4.", weight: "high" },
+      { id: "1.8.g.2", term: "RS (Type 133)",                def: "Router Solicitation. Host → FF02::2 asking for router info.", weight: "high" },
+      { id: "1.8.g.3", term: "RA (Type 134)",                def: "Router Advertisement. Router → FF02::1 with prefix, gateway, flags. Also sent periodically every 200s.", weight: "high" },
+      { id: "1.8.g.4", term: "NS (Type 135)",                def: "Neighbor Solicitation. Replaces ARP Request. Resolves IPv6 → MAC. Also used for DAD.", weight: "high" },
+      { id: "1.8.g.5", term: "NA (Type 136)",                def: "Neighbor Advertisement. Replaces ARP Reply. Carries MAC. Can be unsolicited.", weight: "high" },
+      { id: "1.8.g.6", term: "Solicited-node multicast",     def: "FF02::1:FFxx:xxxx. Last 24 bits of unicast. Efficient NS delivery; avoids full broadcast.", weight: "high" },
+      { id: "1.8.g.7", term: "show ipv6 neighbors",          def: "Neighbor cache view. IPv6 equivalent of 'show arp'.", weight: "high" }
+    ]
   },
 
   "1.8.h": {
@@ -1374,8 +1431,17 @@ window.subtopicContentD12 = {
       memory: "<code>ipv6 unicast-routing</code> = the master switch for IPv6 routing. Without it, the router processes IPv6 but does NOT route it. Think of it as turning on the engine before driving. Everything else is similar to IPv4: assign address on interface, no shutdown, verify with show commands. Link-local (FE80::) is auto-generated on every IPv6-enabled interface \u2014 you always get one for free.",
       practice: "In Packet Tracer, build a 2-router, 2-LAN topology. On each router: (1) ipv6 unicast-routing in global config, (2) Assign IPv6 addresses to LAN and WAN interfaces, (3) no shutdown. Add a static IPv6 route on each router to reach the other LAN. Verify with show ipv6 interface brief (addresses and status), show ipv6 route (C, L, S routes), and ping across the full path. Intentionally forget ipv6 unicast-routing on one router and observe that it cannot route \u2014 this cements the lesson.",
       effort: "medium",
-      meta: "The command ipv6 unicast-routing is the most forgotten step. If IPv6 is not working, check this first. Jeremy IT Lab Day 31-33 uses these commands extensively. Wendell Odom OCG Chapter 24 (Implementing IPv6) covers configuration and verification. The exam tests this exact scenario: IPv6 configured on interfaces but routing does not work because ipv6 unicast-routing is missing."
-    }
+      meta: "The command ipv6 unicast-routing is the most forgotten step. If IPv6 is not working, check this first. Jeremy IT Lab Day 31-33 uses these commands extensively. Wendell Odom OCG Chapter 24 (Implementing IPv6) covers configuration and verification. The exam tests this exact scenario: IPv6 configured on interfaces but routing does not work because ipv6 unicast-routing is missing.",
+    },
+    micro: [
+      { id: "1.8.h.1", term: "'ipv6 unicast-routing'",       def: "GLOBAL command. Master switch for IPv6 routing. Without it, router won't forward IPv6 or send RAs.", weight: "high" },
+      { id: "1.8.h.2", term: "'ipv6 address ... /64'",       def: "Interface command. Assigns global unicast. Auto-enables IPv6 and generates a link-local.", weight: "high" },
+      { id: "1.8.h.3", term: "'ipv6 enable'",                def: "Interface command. Enables IPv6 and generates ONLY link-local (no global). For local-only comms.", weight: "med" },
+      { id: "1.8.h.4", term: "'ipv6 address FE80::1 link-local'", def: "Manually set link-local to a memorable value. Good practice for router identity.", weight: "med" },
+      { id: "1.8.h.5", term: "show ipv6 interface brief",    def: "IPv6 analogue of show ip interface brief. Interface, addresses, status.", weight: "high" },
+      { id: "1.8.h.6", term: "show ipv6 route",              def: "IPv6 routing table. Codes: C (connected), L (local /128), S (static), O (OSPFv3), D (EIGRP for IPv6).", weight: "high" },
+      { id: "1.8.h.7", term: "ping ipv6-address",            def: "Test IPv6 reachability. Same behavior as IPv4 ping.", weight: "high" }
+    ]
   },
 
   /* ══════════════════════════════════════════════════════════════
@@ -1396,7 +1462,15 @@ window.subtopicContentD12 = {
       practice: "Given an IPv6 address, immediately identify the type by its first characters. Drill 20 random addresses: 2001:DB8::1 = GUA. FD00::1 = ULA. FE80::1 = LLA. 3FFE::1 = GUA (starts with 3). FC01::1 = technically ULA range but not used. FF02::1 = NOT unicast (multicast). In Packet Tracer, configure a router interface with a GUA (2001:DB8:1::1/64). Check show ipv6 interface brief \u2014 notice it shows BOTH the GUA and an auto-generated link-local (FE80::). The link-local is always there, even without configuring one.",
       effort: "medium",
       meta: "Type identification by prefix is guaranteed on the exam. Know instantly: 2/3 = GUA, FD = ULA, FE80 = LLA. Jeremy IT Lab Day 32 covers address types. Wendell Odom OCG Chapter 23 details each type with examples. The fact that link-local is always auto-generated and required is a common exam point."
-    }
+    },
+    micro: [
+      { id: "1.9.a.1", term: "Global Unicast Address (GUA)", def: "Prefix 2000::/3. Starts with 2 or 3. IPv6 equivalent of public IPv4. Internet-routable.", weight: "high" },
+      { id: "1.9.a.2", term: "Unique Local Address (ULA)",   def: "FC00::/7, in practice FD00::/8. Starts with FD. IPv6 equivalent of RFC 1918 private. Not internet-routable.", weight: "high" },
+      { id: "1.9.a.3", term: "Link-Local Address (LLA)",     def: "FE80::/10. Auto-generated on every IPv6-enabled interface. Never forwarded by routers.", weight: "high" },
+      { id: "1.9.a.4", term: "LLA required for IPv6",        def: "Every IPv6 interface MUST have a link-local. Used for NDP, routing protocol hellos, next-hop entries.", weight: "high" },
+      { id: "1.9.a.5", term: "GUA structure",                def: "Global Routing Prefix (from ISP, ~/48) + Subnet ID (~16 bits) + Interface ID (64 bits).", weight: "med" },
+      { id: "1.9.a.6", term: "Quick prefix recognition",     def: "2 or 3 → GUA. FD → ULA. FE80 → LLA. FF → multicast. Drill to instant recognition.", weight: "high" }
+    ]
   },
 
   "1.9.b": {
@@ -1407,7 +1481,14 @@ window.subtopicContentD12 = {
       practice: "Understand the concept: anycast looks like unicast but the same address is on multiple devices, and the network routes to the closest one. Know the Cisco command: ipv6 address [addr]/128 anycast. Know that DNS root servers use anycast (K-root, for example, has nodes worldwide all answering the same address). Flashcard only \u2014 no complex lab needed. Key exam facts: no special prefix, looks like unicast, routing decides which device answers.",
       effort: "low",
       meta: "Simple concept question on the exam. Know: anycast = same address on multiple devices, routed to nearest, no special prefix. Jeremy IT Lab Day 32 briefly covers anycast. Wendell Odom OCG Chapter 23. The Subnet Router Anycast address (all-zeros host portion) is a bonus fact that shows depth."
-    }
+    },
+    micro: [
+      { id: "1.9.b.1", term: "Anycast",                      def: "Same address on multiple devices. Routing delivers to the nearest. One-to-one-of-many.", weight: "high" },
+      { id: "1.9.b.2", term: "Anycast has no special prefix", def: "Syntactically identical to unicast. The distinction is deployment, not format.", weight: "high" },
+      { id: "1.9.b.3", term: "Anycast use cases",            def: "DNS root servers, CDN POPs, load balancing, redundancy. 8.8.8.8 is an anycast in IPv4 too.", weight: "med" },
+      { id: "1.9.b.4", term: "Cisco anycast command",        def: "'ipv6 address [addr]/128 anycast' on interface. Typically /128 so exact address is advertised.", weight: "med" },
+      { id: "1.9.b.5", term: "Subnet-Router Anycast",        def: "Address with all host bits = 0 in a /64. All routers on that subnet auto-respond.", weight: "low" }
+    ]
   },
 
   "1.9.c": {
@@ -1423,8 +1504,17 @@ window.subtopicContentD12 = {
       memory: "FF = Friends Forever (multicast family). FF02::1 = everyone on the link (replaces broadcast). FF02::2 = routers only. FF02::5 = OSPF routers. FF02::A = EIGRP routers. The 02 in FF02 means scope=2 (link-local). No broadcast in IPv6 \u2014 multicast handles everything that broadcast used to do. The solicited-node multicast (FF02::1:FFxx:xxxx) is how NDP avoids broadcast flooding.",
       practice: "Memorize the four key multicast addresses: ::1 (all nodes), ::2 (all routers), ::5 (OSPF), ::A (EIGRP). Then learn the solicited-node prefix: FF02::1:FF + last 24 bits of unicast. Practice: if a host has address 2001:DB8::ABCD:1234, its solicited-node multicast is FF02::1:FFCD:1234. In Packet Tracer, check show ipv6 interface on a configured interface \u2014 notice it lists the multicast groups joined, including FF02::1 and the solicited-node address.",
       effort: "low",
-      meta: "Know FF02::1 and FF02::2 cold. The exam asks: What replaces broadcast in IPv6? Answer: multicast, specifically FF02::1 for all nodes. Jeremy IT Lab Day 32 covers multicast addresses. Wendell Odom OCG Chapter 23. The solicited-node multicast concept is a deeper question that distinguishes A-level answers."
-    }
+      meta: "Know FF02::1 and FF02::2 cold. The exam asks: What replaces broadcast in IPv6? Answer: multicast, specifically FF02::1 for all nodes. Jeremy IT Lab Day 32 covers multicast addresses. Wendell Odom OCG Chapter 23. The solicited-node multicast concept is a deeper question that distinguishes A-level answers.",
+    },
+    micro: [
+      { id: "1.9.c.1", term: "IPv6 multicast prefix",        def: "FF00::/8. Any address starting with FF. Replaces IPv4 broadcast (which does not exist in IPv6).", weight: "high" },
+      { id: "1.9.c.2", term: "Multicast scope values",       def: "1=interface, 2=link, 5=site, 8=organization, E=global. FF02 means link-local scope.", weight: "high" },
+      { id: "1.9.c.3", term: "FF02::1 (all nodes)",          def: "All IPv6 nodes on the local link. Used by RAs. Closest equivalent to IPv4 broadcast.", weight: "high" },
+      { id: "1.9.c.4", term: "FF02::2 (all routers)",        def: "All IPv6 routers on the local link. Used by RS messages.", weight: "high" },
+      { id: "1.9.c.5", term: "FF02::5 (OSPF routers)",       def: "All OSPFv3 routers on the link. IPv6 equivalent of 224.0.0.5.", weight: "high" },
+      { id: "1.9.c.6", term: "FF02::A (EIGRP routers)",      def: "All EIGRP for IPv6 routers on the link.", weight: "med" },
+      { id: "1.9.c.7", term: "Solicited-node multicast",     def: "FF02::1:FFxx:xxxx. xx:xxxx = last 24 bits of a unicast. One solicited-node group per interface address.", weight: "high" }
+    ]
   },
 
   "1.9.d": {
@@ -1443,8 +1533,16 @@ window.subtopicContentD12 = {
       memory: "EUI-64 recipe: <strong>Split, Stuff, Flip</strong> (SSF). Split the MAC in half, Stuff FFFE in the middle, Flip the 7th bit. FFFE = For Full Ethernet Extension. The 7th bit flip = XOR with 0x02 on the first byte. Quick: if the first byte is even, add 2. If it already has the 2 set, subtract 2. Most common flip: 00\u219202 (burned-in MACs start with 0 in the U/L bit, EUI-64 flips it to 1).",
       practice: "Take 5 random MAC addresses and perform the full EUI-64 conversion by hand. Example: MAC AA:BB:CC:DD:EE:FF \u2192 Split: AA:BB:CC | DD:EE:FF \u2192 Stuff: AABB:CCFF:FEDD:EEFF \u2192 Flip 7th bit of AA (10101010 \u2192 10101000 = A8): A8BB:CCFF:FEDD:EEFF. Verify your answers with an online EUI-64 calculator. In Packet Tracer, assign a /64 to a router interface and set a PC to SLAAC. Check the PC address \u2014 compare the last 64 bits to the PC MAC address. You should be able to identify the FF:FE in the middle and the flipped bit.",
       effort: "high",
-      meta: "EUI-64 conversion is a guaranteed exam question. Practice the three steps until automatic. The 7th bit flip is the part that confuses most students \u2014 practice the XOR with 0x02 method on paper. Jeremy IT Lab Day 32 covers EUI-64 with worked examples. Wendell Odom OCG Chapter 23 provides detailed practice problems. Know that privacy extensions exist as the modern alternative, but EUI-64 is what the exam tests."
-    }
+      meta: "EUI-64 conversion is a guaranteed exam question. Practice the three steps until automatic. The 7th bit flip is the part that confuses most students \u2014 practice the XOR with 0x02 method on paper. Jeremy IT Lab Day 32 covers EUI-64 with worked examples. Wendell Odom OCG Chapter 23 provides detailed practice problems. Know that privacy extensions exist as the modern alternative, but EUI-64 is what the exam tests.",
+    },
+    micro: [
+      { id: "1.9.d.1", term: "Modified EUI-64",              def: "Method to generate 64-bit interface ID from 48-bit MAC. Used in SLAAC. Steps: Split, Stuff, Flip.", weight: "high" },
+      { id: "1.9.d.2", term: "Step 1: Split MAC",            def: "Divide 48-bit MAC into two 24-bit halves (OUI + device ID).", weight: "high" },
+      { id: "1.9.d.3", term: "Step 2: Stuff FFFE",           def: "Insert FF:FE between the two halves. Expands to 64 bits. Signature of EUI-64.", weight: "high" },
+      { id: "1.9.d.4", term: "Step 3: Flip 7th bit",         def: "XOR first byte with 0x02. U/L bit toggle. 00→02, 02→00, AA→A8, etc.", weight: "high" },
+      { id: "1.9.d.5", term: "EUI-64 example",               def: "MAC 00:1A:2B:3C:4D:5E → 021A:2BFF:FE3C:4D5E. First byte 00 flipped to 02.", weight: "high" },
+      { id: "1.9.d.6", term: "Privacy extensions (RFC 7217)", def: "Modern alternative to EUI-64. Random interface ID prevents MAC-based tracking. Default on Windows/macOS/iOS/Android.", weight: "med" }
+    ]
   },
 
   /* ══════════════════════════════════════════════════════════════
@@ -1464,8 +1562,16 @@ window.subtopicContentD12 = {
       memory: "Think 'I-P-C-O-N-F-I-G' = 'I Please Check Our Network's Foundation Immediately, Go!' The four variations build on each other: bare ipconfig = snapshot, /all = full physical, /release = drop it, /renew = grab fresh. Remember APIPA = 169.254.x.x = 'DHCP gave up, no server found.' If you see 169.254, immediately think 'release then renew.'",
       practice: "Packet Tracer lab (Jeremy's IT Lab Day 5 topology): Set up a DHCP server and a Windows PC. Run <code>ipconfig</code> and note IP/mask/gateway. Run <code>ipconfig /all</code> and identify the DHCP server IP, DNS servers, and lease times. Then <code>ipconfig /release</code> — observe 0.0.0.0. Then <code>ipconfig /renew</code> — verify a new lease appears. Finally, change the PC to a static IP and run <code>ipconfig /all</code> again — note 'DHCP Enabled: No.' On your real Windows PC, open CMD and run all four commands to see real output.",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 5 (IPv4 Addressing) covers client OS verification. Wendell Odom OCG Chapter 4 (Fundamentals of IPv4 Addressing and Routing) details these commands. The exam loves presenting <code>ipconfig /all</code> output and asking 'is this host using DHCP?' or 'what is the DNS server?' — practice reading the output fields until you can parse them instantly."
-    }
+      meta: "Jeremy's IT Lab Day 5 (IPv4 Addressing) covers client OS verification. Wendell Odom OCG Chapter 4 (Fundamentals of IPv4 Addressing and Routing) details these commands. The exam loves presenting <code>ipconfig /all</code> output and asking 'is this host using DHCP?' or 'what is the DNS server?' — practice reading the output fields until you can parse them instantly.",
+    },
+    micro: [
+      { id: "1.10.a.1", term: "ipconfig",                    def: "Windows command. Shows IP, mask, and gateway for each adapter. Quick connectivity check.", weight: "high" },
+      { id: "1.10.a.2", term: "ipconfig /all",               def: "Full details: MAC, DHCP status, DHCP server, lease times, DNS servers, DNS suffix.", weight: "high" },
+      { id: "1.10.a.3", term: "ipconfig /release",           def: "Sends DHCP Release. Drops current lease, interface IP becomes 0.0.0.0.", weight: "high" },
+      { id: "1.10.a.4", term: "ipconfig /renew",             def: "Triggers full DHCP DORA. Obtains a new lease.", weight: "high" },
+      { id: "1.10.a.5", term: "ipconfig /flushdns",          def: "Clears the local Windows DNS resolver cache.", weight: "med" },
+      { id: "1.10.a.6", term: "ipconfig is Windows-only",    def: "Does NOT exist on Linux or macOS. Identifying ipconfig output → Windows.", weight: "high" }
+    ]
   },
 
   "1.10.b": {
@@ -1481,8 +1587,15 @@ window.subtopicContentD12 = {
       memory: "'ip' is the new 'if' — <code>ip addr</code> replaced <code>ifconfig</code>, <code>ip route</code> replaced <code>route</code>, <code>ss</code> replaced <code>netstat</code>. Mnemonic for the Linux trio: 'A-R-L' — <code>ip addr</code> (Addresses), <code>ip route</code> (Routes), <code>ip link</code> (Links). For OS identification: CIDR notation (/24) in output = Linux. Dotted-decimal mask (255.255.255.0) = Windows.",
       practice: "Packet Tracer lab: If you have a Linux VM (or use a Packet Tracer PC in CLI mode), run <code>ip addr</code>, <code>ip route</code>, and <code>ss -tuln</code>. Write down the output format differences compared to Windows <code>ipconfig /all</code>. Create a flashcard table: left column = Windows command, right column = Linux equivalent. <code>ipconfig</code> = <code>ip addr</code>, <code>ipconfig /all</code> = <code>ip addr</code> + <code>ip route</code>, <code>tracert</code> = <code>traceroute</code>, <code>nslookup</code> = <code>dig</code>.",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 5 covers client OS verification across platforms. Wendell Odom OCG Chapter 4 references both Windows and Linux commands. The exam shows command output and asks you to identify the OS or the correct verification command for a given OS. Practice recognizing output format differences — this is a quick-win topic if you memorize the command mappings."
-    }
+      meta: "Jeremy's IT Lab Day 5 covers client OS verification across platforms. Wendell Odom OCG Chapter 4 references both Windows and Linux commands. The exam shows command output and asks you to identify the OS or the correct verification command for a given OS. Practice recognizing output format differences — this is a quick-win topic if you memorize the command mappings.",
+    },
+    micro: [
+      { id: "1.10.b.1", term: "ip addr (ip a)",              def: "Modern Linux command. Shows all interfaces, IPv4/IPv6 addresses in CIDR, MAC, state.", weight: "high" },
+      { id: "1.10.b.2", term: "ip route (ip r)",             def: "Linux routing table. 'default via [IP] dev [iface]' = the default gateway.", weight: "high" },
+      { id: "1.10.b.3", term: "ifconfig (Linux legacy)",     def: "Deprecated on modern Linux distros. Part of net-tools package. 'ip addr' replaces it.", weight: "med" },
+      { id: "1.10.b.4", term: "ss (socket statistics)",      def: "Replaces netstat on modern Linux. 'ss -tuln' = TCP/UDP listening ports.", weight: "low" },
+      { id: "1.10.b.5", term: "Linux interface names",       def: "eth0, ens33, wlan0, etc. Different from Windows. Helps identify OS from output.", weight: "med" }
+    ]
   },
 
   "1.10.c": {
@@ -1498,8 +1611,15 @@ window.subtopicContentD12 = {
       memory: "The OS command triangle: Windows = <code>ipconfig</code>, Linux = <code>ip addr</code>, macOS = <code>ifconfig</code>. Mnemonic: 'Windows-I-P, Linux-I-P, Mac-I-F' — the first two start with 'ip,' Mac starts with 'if.' macOS is the odd one out because it kept the legacy BSD tool that Linux dropped. For path tracing: Windows = trace<strong>rt</strong> (shortened), Linux/Mac = trace<strong>route</strong> (full word).",
       practice: "On your Mac (you have one!), open Terminal and run: (1) <code>ifconfig en0</code> — note the IP, mask (displayed as hex on some versions), and MAC. (2) <code>networksetup -getinfo Wi-Fi</code> — note how much cleaner the output is. (3) <code>netstat -rn</code> — find the default gateway route. (4) <code>scutil --dns</code> — see DNS resolver config. Compare this output mentally to what <code>ipconfig /all</code> would show on Windows. Create a 3-column flashcard: Windows | Linux | macOS for each verification task.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 5 briefly covers cross-platform verification. Wendell Odom OCG Chapter 4 mentions macOS in passing. The CCNA exam rarely asks macOS-specific questions, but it may present output and ask you to identify the OS. One or two flashcards mapping OS to command is sufficient. Focus more time on Windows and Linux."
-    }
+      meta: "Jeremy's IT Lab Day 5 briefly covers cross-platform verification. Wendell Odom OCG Chapter 4 mentions macOS in passing. The CCNA exam rarely asks macOS-specific questions, but it may present output and ask you to identify the OS. One or two flashcards mapping OS to command is sufficient. Focus more time on Windows and Linux.",
+    },
+    micro: [
+      { id: "1.10.c.1", term: "macOS uses ifconfig",         def: "macOS retained the BSD-era ifconfig. Different from modern Linux which moved to 'ip addr'.", weight: "med" },
+      { id: "1.10.c.2", term: "macOS interfaces (en0/lo0)",  def: "en0 = primary Ethernet/Wi-Fi, en1 = secondary, lo0 = loopback.", weight: "low" },
+      { id: "1.10.c.3", term: "networksetup",                def: "Apple-specific CLI. 'networksetup -getinfo Wi-Fi' shows IP, mask, router, DNS cleanly.", weight: "low" },
+      { id: "1.10.c.4", term: "OS command triangle",         def: "Windows = ipconfig, Linux = ip addr, macOS = ifconfig. Quickly identifies the OS from output.", weight: "high" },
+      { id: "1.10.c.5", term: "tracert vs traceroute",       def: "Windows uses 'tracert' (ICMP). Linux/macOS use 'traceroute' (UDP by default).", weight: "high" }
+    ]
   },
 
   "1.10.d": {
@@ -1515,8 +1635,16 @@ window.subtopicContentD12 = {
       memory: "'A Man Gets Directions' = Address, Mask, Gateway, DNS — the four vital signs. Map each to its failure symptom: <strong>Address</strong> wrong/APIPA = nothing works. <strong>Mask</strong> wrong = can talk to some hosts but not others (boundary confusion). <strong>Gateway</strong> missing = local-only (can ping neighbors, not the internet). <strong>DNS</strong> missing = IP pings work but names don't resolve ('internet is down' but it's really just DNS).",
       practice: "Packet Tracer lab (Jeremy's IT Lab Day 5 style): Set up a PC with DHCP. Verify all four parameters with <code>ipconfig /all</code>. Then break each one individually and observe: (1) Set a wrong IP — ping fails to everything. (2) Set wrong mask (/25 instead of /24) — some pings fail, others work depending on which side of the boundary. (3) Remove the gateway — local pings work, remote pings fail. (4) Set DNS to a bogus IP — <code>ping 8.8.8.8</code> works but <code>ping google.com</code> fails. Document each symptom. This maps directly to exam scenario questions.",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 5 covers IP parameter verification. Wendell Odom OCG Chapter 4 details the troubleshooting methodology. The exam presents scenarios like 'a user can ping 10.0.0.1 but cannot access www.example.com' and expects you to identify the broken parameter. Practice the symptom-to-parameter mapping until it is automatic — this is one of the highest-yield troubleshooting skills for both the exam and real life."
-    }
+      meta: "Jeremy's IT Lab Day 5 covers IP parameter verification. Wendell Odom OCG Chapter 4 details the troubleshooting methodology. The exam presents scenarios like 'a user can ping 10.0.0.1 but cannot access www.example.com' and expects you to identify the broken parameter. Practice the symptom-to-parameter mapping until it is automatic — this is one of the highest-yield troubleshooting skills for both the exam and real life.",
+    },
+    micro: [
+      { id: "1.10.d.1", term: "Four critical IP parameters",  def: "IP address, subnet mask, default gateway, DNS. Missing or wrong = specific symptoms.", weight: "high" },
+      { id: "1.10.d.2", term: "APIPA symptom",                def: "169.254.x.x address on host = DHCP server unreachable. Classic exam answer.", weight: "high" },
+      { id: "1.10.d.3", term: "Wrong subnet mask symptom",    def: "Some hosts reachable, others not. Boundary confusion — thinks remote is local or vice versa.", weight: "high" },
+      { id: "1.10.d.4", term: "Missing gateway symptom",      def: "Local pings succeed, remote pings fail. Host can reach its own subnet only.", weight: "high" },
+      { id: "1.10.d.5", term: "Wrong DNS symptom",            def: "ping 8.8.8.8 works, ping google.com fails. 'Internet is down' complaint, but really DNS.", weight: "high" },
+      { id: "1.10.d.6", term: "IP addressing mismatch",       def: "Host in wrong subnet (10.0.1.x vs 10.0.2.x). Usually wrong VLAN or DHCP scope.", weight: "med" }
+    ]
   },
 
   "1.10.e": {
@@ -1529,8 +1657,16 @@ window.subtopicContentD12 = {
       memory: "The troubleshooting ladder mnemonic: 'Lonely Iguanas Go Running Daily' = Loopback (127.0.0.1), Interface (own IP), Gateway, Remote IP, DNS (hostname). Each step tests one layer higher. The step that fails tells you where the break is. Also remember the OS differences: Windows = <code>tracert</code> and <code>pathping</code>, Linux/Mac = <code>traceroute</code> and <code>dig</code>.",
       practice: "Packet Tracer lab (Jeremy's IT Lab Day 5): Build a network with a PC, switch, router, and a server on a remote subnet. From the PC, execute the full ladder: (1) <code>ping 127.0.0.1</code>, (2) <code>ping [PC's own IP]</code>, (3) <code>ping [default gateway]</code>, (4) <code>ping [server IP]</code>, (5) <code>ping [server hostname]</code>. All should succeed. Then introduce failures one at a time — remove the default gateway, set wrong DNS, disconnect a cable — and re-run the ladder to see where it breaks. Also run <code>tracert [server IP]</code> on the Windows PC and identify each hop. Practice <code>nslookup</code> to verify DNS resolution. This is the single most practical lab for real-world troubleshooting.",
       effort: "high",
-      meta: "Jeremy's IT Lab Day 5 introduces these tools in a lab environment. Wendell Odom OCG Chapter 4 formalizes the bottom-up troubleshooting methodology. The CCNA exam presents broken network scenarios and expects you to choose the correct command to identify the problem. 'A user can ping 10.1.1.1 but not www.example.com' = DNS. 'A user cannot ping the default gateway' = local network issue (wrong IP, cable, VLAN). Practice these mappings — they are worth 3-5 exam questions."
-    }
+      meta: "Jeremy's IT Lab Day 5 introduces these tools in a lab environment. Wendell Odom OCG Chapter 4 formalizes the bottom-up troubleshooting methodology. The CCNA exam presents broken network scenarios and expects you to choose the correct command to identify the problem. 'A user can ping 10.1.1.1 but not www.example.com' = DNS. 'A user cannot ping the default gateway' = local network issue (wrong IP, cable, VLAN). Practice these mappings — they are worth 3-5 exam questions.",
+    },
+    micro: [
+      { id: "1.10.e.1", term: "ping",                        def: "ICMP Echo Request/Reply. Tests L3 reachability. !!!!! = success, ..... = fail, U = unreachable.", weight: "high" },
+      { id: "1.10.e.2", term: "traceroute / tracert",        def: "Hop-by-hop path. Shows each router's IP and RTT. Identifies where packets drop.", weight: "high" },
+      { id: "1.10.e.3", term: "nslookup",                    def: "DNS lookup. Queries configured DNS server. Works on Windows, Linux, macOS.", weight: "high" },
+      { id: "1.10.e.4", term: "dig",                         def: "Linux/macOS DNS tool. More detailed output than nslookup: TTL, authoritative answers, query time.", weight: "med" },
+      { id: "1.10.e.5", term: "pathping (Windows)",          def: "Combines ping + traceroute. Sends 100 pings per hop to calculate loss. Identifies intermittent issues.", weight: "low" },
+      { id: "1.10.e.6", term: "Troubleshooting ladder",      def: "(1) ping 127.0.0.1 (stack) (2) own IP (NIC) (3) gateway (local) (4) remote IP (routing) (5) hostname (DNS).", weight: "high" }
+    ]
   },
 
   /* ══════════════════════════════════════════════════════════════
@@ -1550,8 +1686,18 @@ window.subtopicContentD12 = {
       memory: "'One-Six-Eleven, Wi-Fi heaven' — the only 2.4 GHz channels that don't overlap. Why these three? Each channel is 22 MHz wide, spaced 5 MHz apart. 1 to 6 = five channels x 5 MHz = 25 MHz gap (enough to clear 22 MHz). Same for 6 to 11. Anything in between (channels 2-5, 7-10) overlaps with its neighbors. For 5 GHz: 'Five has more than five-times the channels' — 24+ non-overlapping. Also remember: CCI (same channel, share airtime) is bad, but ACI (overlapping channels, corrupt each other) is WORSE.",
       practice: "Packet Tracer lab (Jeremy's IT Lab Days 55-56): Deploy 4 APs in a floor plan diagram. Assign channels 1, 6, 11 to adjacent APs so no two neighbors share a channel. Draw the honeycomb pattern on paper. For 5 GHz, pick any 4 non-overlapping channels (e.g., 36, 40, 44, 48). Create a comparison flashcard: 2.4 GHz (3 non-overlapping, 22 MHz wide, more interference, better range/wall penetration) vs 5 GHz (24+ non-overlapping, 20/40/80/160 MHz, less interference, shorter range). Know common 2.4 GHz interferers: microwaves, Bluetooth, baby monitors.",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 55 (Wireless Fundamentals) covers channel planning in depth. Wendell Odom OCG Chapter 25 details RF fundamentals. Channels 1, 6, 11 is one of the most frequently tested wireless facts — it appears in nearly every CCNA wireless question. The distinction between CCI and ACI is also testable. Draw the channel overlap diagram once and you will never forget it."
-    }
+      meta: "Jeremy's IT Lab Day 55 (Wireless Fundamentals) covers channel planning in depth. Wendell Odom OCG Chapter 25 details RF fundamentals. Channels 1, 6, 11 is one of the most frequently tested wireless facts — it appears in nearly every CCNA wireless question. The distinction between CCI and ACI is also testable. Draw the channel overlap diagram once and you will never forget it.",
+    },
+    micro: [
+      { id: "1.11.a.1", term: "2.4 GHz channels 1, 6, 11",    def: "Only three non-overlapping 2.4 GHz channels in US. Each 22 MHz wide, spaced 5 MHz apart.", weight: "high" },
+      { id: "1.11.a.2", term: "5 GHz non-overlapping",        def: "24+ non-overlapping 20 MHz channels. Far less co-channel interference than 2.4 GHz.", weight: "high" },
+      { id: "1.11.a.3", term: "5 GHz channel bonding",        def: "20, 40, 80, 160 MHz widths. Wider = more throughput but fewer non-overlapping channels.", weight: "med" },
+      { id: "1.11.a.4", term: "Co-channel interference (CCI)", def: "Two APs on the SAME channel. They share airtime, halving effective throughput.", weight: "high" },
+      { id: "1.11.a.5", term: "Adjacent-channel interference (ACI)", def: "Two APs on OVERLAPPING channels (e.g., 1 and 3). Worse than CCI — signals corrupt each other.", weight: "high" },
+      { id: "1.11.a.6", term: "Honeycomb channel plan",       def: "Adjacent APs get different non-overlapping channels in a 1-6-11 pattern (2.4 GHz).", weight: "med" },
+      { id: "1.11.a.7", term: "2.4 GHz interference sources", def: "Microwaves (~2.45 GHz), Bluetooth, baby monitors, cordless phones. Why 5 GHz is cleaner.", weight: "med" },
+      { id: "1.11.a.8", term: "RRM (Radio Resource Management)", def: "Cisco WLC auto-assigns channels and transmit power across APs to minimize interference.", weight: "med" }
+    ]
   },
 
   "1.11.b": {
@@ -1561,8 +1707,17 @@ window.subtopicContentD12 = {
       memory: "Three S's of wireless identity: <strong>SSID</strong> = name tag (human name), <strong>BSSID</strong> = fingerprint (AP radio MAC), <strong>BSS</strong> = one AP's club (single AP + members), <strong>ESS</strong> = the franchise (multiple APs, same name, seamless roaming). Hidden SSID = taking the sign off the restaurant — Google Maps (probe requests) still shows the address to anyone who looks. It is NOT security.",
       practice: "Packet Tracer lab (Jeremy's IT Lab Days 55-56): Create two WLANs on a WLC — 'Corporate' and 'Guest.' Connect a wireless client and scan for networks to see both SSIDs. On the WLC, check the BSSID for each SSID. Create a flashcard defining: SSID, BSSID, BSS, ESS, and beacon. Also create a 'myth vs fact' card: 'Hiding the SSID provides security' = MYTH (SSIDs leak in probe requests, probe responses, association frames). For exam prep, know that one AP can broadcast multiple SSIDs, each mapped to a different VLAN.",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 55 covers wireless fundamentals including service sets. Wendell Odom OCG Chapter 25 defines BSS, ESS, SSID, and BSSID. The exam tests two things: (1) the definitions of SSID/BSSID/BSS/ESS, and (2) that hidden SSIDs are not a security measure. Both are quick memorization wins. The hidden SSID question is almost guaranteed to appear."
-    }
+      meta: "Jeremy's IT Lab Day 55 covers wireless fundamentals including service sets. Wendell Odom OCG Chapter 25 defines BSS, ESS, SSID, and BSSID. The exam tests two things: (1) the definitions of SSID/BSSID/BSS/ESS, and (2) that hidden SSIDs are not a security measure. Both are quick memorization wins. The hidden SSID question is almost guaranteed to appear.",
+    },
+    micro: [
+      { id: "1.11.b.1", term: "SSID",                         def: "Service Set Identifier. Human-readable network name. Broadcast in beacon frames every ~100ms.", weight: "high" },
+      { id: "1.11.b.2", term: "BSSID",                        def: "Basic Service Set Identifier. MAC address of the AP's radio. Uniquely identifies one AP radio.", weight: "high" },
+      { id: "1.11.b.3", term: "BSS",                          def: "Basic Service Set. One AP + its associated clients. A single RF cell.", weight: "high" },
+      { id: "1.11.b.4", term: "ESS",                          def: "Extended Service Set. Multiple APs sharing the same SSID. Enables seamless roaming.", weight: "high" },
+      { id: "1.11.b.5", term: "Beacon frame",                 def: "AP announcement sent periodically (~100ms). Contains SSID, supported rates, capabilities.", weight: "med" },
+      { id: "1.11.b.6", term: "Multiple SSIDs per AP",        def: "One AP can broadcast many SSIDs, each mapped to a different VLAN/policy (corp, guest, IoT).", weight: "high" },
+      { id: "1.11.b.7", term: "Hidden SSID != security",      def: "Suppressing SSID in beacons does NOT secure anything. Probe/association frames still expose it.", weight: "high" }
+    ]
   },
 
   "1.11.c": {
@@ -1575,8 +1730,18 @@ window.subtopicContentD12 = {
       memory: "dBm mnemonic — 'Less Negative = Louder': -30 dBm = shouting in your ear (excellent), -50 = normal conversation (good), -70 = whispering across the room (weak), -80 = barely audible (unusable). The 3 dB rule: +3 dB = double power, -3 dB = half power, +10 dB = 10x power. For SNR: think of it as 'how much louder is the speaker than the crowd noise' — 25+ dB SNR = clear hearing, <20 dB = hard to understand. For the 802.11 standards, use the Wi-Fi generation names: 4=n, 5=ac, 6=ax. 'N-ac-ax' = 'Nack-Axe.'",
       practice: "Packet Tracer won't simulate RF, so this is flashcard work (Jeremy's IT Lab Days 55-56): (1) Create a dBm scale flashcard with the ranges and quality labels. (2) Create a '2.4 vs 5 GHz' comparison card: range, wall penetration, channel count, interference sources. (3) Create an 802.11 standards table: standard name | Wi-Fi generation | frequency | max speed | key features. Drill the table until you can recite it. Key facts: 802.11n introduced MIMO, 802.11ac introduced MU-MIMO and is 5 GHz only, 802.11ax introduced OFDMA and BSS coloring.",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 55 covers RF fundamentals and 802.11 standards. Wendell Odom OCG Chapters 25-26 go into depth on wireless principles. The CCNA does not require RF calculations, but it asks conceptual questions: 'which band has better range?' (2.4 GHz), 'which has more non-overlapping channels?' (5 GHz), 'what does -70 dBm indicate?' (weak signal). The 802.11 standards table is guaranteed exam material — memorize the generation names and key features."
-    }
+      meta: "Jeremy's IT Lab Day 55 covers RF fundamentals and 802.11 standards. Wendell Odom OCG Chapters 25-26 go into depth on wireless principles. The CCNA does not require RF calculations, but it asks conceptual questions: 'which band has better range?' (2.4 GHz), 'which has more non-overlapping channels?' (5 GHz), 'what does -70 dBm indicate?' (weak signal). The 802.11 standards table is guaranteed exam material — memorize the generation names and key features.",
+    },
+    micro: [
+      { id: "1.11.c.1", term: "2.4 GHz vs 5 GHz tradeoff",    def: "2.4 GHz = better range/wall penetration, more interference. 5 GHz = faster, more channels, shorter range.", weight: "high" },
+      { id: "1.11.c.2", term: "dBm scale",                    def: "-30=excellent, -50=good, -60=OK, -70=weak minimum, -80=very weak, -90=unusable. Negative, closer to 0 = stronger.", weight: "high" },
+      { id: "1.11.c.3", term: "3 dB rule",                    def: "+3 dB = 2× power. +10 dB ≈ 10× power. Logarithmic.", weight: "med" },
+      { id: "1.11.c.4", term: "SNR (Signal-to-Noise Ratio)",  def: "Signal strength minus noise floor in dB. ≥20 dB minimum, ≥25 dB ideal.", weight: "med" },
+      { id: "1.11.c.5", term: "802.11n / Wi-Fi 4",            def: "2.4 + 5 GHz, up to 600 Mbps. Introduced MIMO (multiple antennas).", weight: "high" },
+      { id: "1.11.c.6", term: "802.11ac / Wi-Fi 5",           def: "5 GHz only, up to 6.9 Gbps. Introduced MU-MIMO (multi-user MIMO).", weight: "high" },
+      { id: "1.11.c.7", term: "802.11ax / Wi-Fi 6",           def: "2.4 + 5 GHz, up to 9.6 Gbps. Introduced OFDMA and BSS coloring.", weight: "high" },
+      { id: "1.11.c.8", term: "Wi-Fi 6E",                     def: "Extends Wi-Fi 6 to the 6 GHz band for additional clean spectrum.", weight: "med" }
+    ]
   },
 
   "1.11.d": {
@@ -1593,8 +1758,17 @@ window.subtopicContentD12 = {
       memory: "Evolution mnemonic — 'Weak, Patched, Actual, Safe': WEP = <strong>W</strong>eak (RC4, broken in minutes), WPA = <strong>P</strong>atched (TKIP, temporary fix), WPA2 = <strong>A</strong>ctual security (AES-CCMP, current standard), WPA3 = <strong>S</strong>AFE (SAE, forward secrecy). Cipher mapping: WEP→RC4, WPA→TKIP, WPA2→AES, WPA3→SAE+AES. For modes: Personal = PSK (shared password), Enterprise = 802.1X (individual credentials via RADIUS). Mnemonic for WPA3's key feature: 'SAE = Safe Against Eavesdroppers' (forward secrecy, no offline brute-force).",
       practice: "Packet Tracer lab (Jeremy's IT Lab Days 55-56 wireless security): Create two WLANs on a WLC — one with WPA2-PSK and one with WPA2-Enterprise (if Packet Tracer supports RADIUS configuration). Connect clients to each. Create a comprehensive flashcard table with columns: Standard | Cipher | Status | Personal Mode | Enterprise Mode. WEP: RC4, broken, N/A, N/A. WPA: TKIP, deprecated, PSK, 802.1X. WPA2: AES-CCMP, current, PSK, 802.1X. WPA3: SAE+AES, newest, SAE, 192-bit. Drill this table. Also know: 'Which do you recommend for a corporate network?' = WPA2-Enterprise (802.1X) minimum, WPA3-Enterprise ideal.",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 56 (Wireless Security) covers the full encryption evolution. Wendell Odom OCG Chapter 26 details WPA/WPA2/WPA3 in depth. The exam will ask: 'which encryption is broken?' (WEP), 'what replaced TKIP?' (AES-CCMP), 'what mode uses RADIUS?' (Enterprise/802.1X), 'what is the advantage of WPA3 SAE over WPA2 PSK?' (forward secrecy, no offline dictionary attack). These are 3-4 guaranteed questions."
-    }
+      meta: "Jeremy's IT Lab Day 56 (Wireless Security) covers the full encryption evolution. Wendell Odom OCG Chapter 26 details WPA/WPA2/WPA3 in depth. The exam will ask: 'which encryption is broken?' (WEP), 'what replaced TKIP?' (AES-CCMP), 'what mode uses RADIUS?' (Enterprise/802.1X), 'what is the advantage of WPA3 SAE over WPA2 PSK?' (forward secrecy, no offline dictionary attack). These are 3-4 guaranteed questions.",
+    },
+    micro: [
+      { id: "1.11.d.1", term: "WEP",                          def: "Wired Equivalent Privacy. RC4 cipher, static keys. BROKEN. Never use.", weight: "high" },
+      { id: "1.11.d.2", term: "WPA / TKIP",                   def: "Temporary fix for WEP. Introduced 4-way handshake and per-packet keys. Now deprecated.", weight: "high" },
+      { id: "1.11.d.3", term: "WPA2 / AES-CCMP",              def: "Current production minimum. Uses AES. Ratified as IEEE 802.11i.", weight: "high" },
+      { id: "1.11.d.4", term: "WPA3 / SAE",                   def: "Newest. Simultaneous Authentication of Equals (Dragonfly). Forward secrecy; resists offline dictionary attack.", weight: "high" },
+      { id: "1.11.d.5", term: "WPA2-Personal (PSK)",          def: "Pre-shared key. Everyone shares one password. Home/small office.", weight: "high" },
+      { id: "1.11.d.6", term: "WPA2-Enterprise (802.1X)",     def: "Individual credentials via RADIUS. Per-user keys. Required for corporate networks.", weight: "high" },
+      { id: "1.11.d.7", term: "OWE",                          def: "Opportunistic Wireless Encryption. Encrypts open networks without a password (WPA3 feature).", weight: "low" }
+    ]
   },
 
   /* ══════════════════════════════════════════════════════════════
@@ -1614,8 +1788,16 @@ window.subtopicContentD12 = {
       memory: "Type 1 = '#1 sits on the metal' — bare metal, no OS underneath, production-grade. Examples mnemonic: 'EHK' = ESXi, Hyper-V, KVM (the Big 3 Type 1s). Think of Type 1 as the 'first responder' — it is first to touch the hardware, nothing else between it and the CPU. The key selling points: performance (direct hardware access), isolation (hardware-level VM separation), and scale (hundreds of VMs per host).",
       practice: "Create a comparison flashcard: Type 1 column = bare metal, direct hardware, production, ESXi/Hyper-V/KVM, better performance, vSwitches. Type 2 column = hosted on OS, app-level, dev/test, VirtualBox/VMware Workstation, more overhead, easier install. For Packet Tracer: not directly labbed, but in real life you can download the free VMware ESXi ISO or enable Hyper-V on Windows to see a Type 1 hypervisor in action. Wendell Odom OCG does not require hands-on hypervisor labs for the exam.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 53 (Virtualization) covers Type 1 vs Type 2. Wendell Odom OCG Chapter 29 (Network Architecture) touches on virtualization concepts. The exam asks definition questions: 'which hypervisor type runs directly on hardware?' (Type 1), 'which is used in production?' (Type 1), 'name an example of a Type 1 hypervisor' (ESXi). Memorize the examples and the bare-metal concept — 2-3 questions maximum."
-    }
+      meta: "Jeremy's IT Lab Day 53 (Virtualization) covers Type 1 vs Type 2. Wendell Odom OCG Chapter 29 (Network Architecture) touches on virtualization concepts. The exam asks definition questions: 'which hypervisor type runs directly on hardware?' (Type 1), 'which is used in production?' (Type 1), 'name an example of a Type 1 hypervisor' (ESXi). Memorize the examples and the bare-metal concept — 2-3 questions maximum.",
+    },
+    micro: [
+      { id: "1.12.a.1", term: "Type 1 hypervisor",           def: "Bare-metal hypervisor. Runs directly on hardware — no underlying OS. Production standard.", weight: "high" },
+      { id: "1.12.a.2", term: "VMware ESXi",                 def: "Industry-leader Type 1 hypervisor. Managed by vCenter Server.", weight: "high" },
+      { id: "1.12.a.3", term: "Microsoft Hyper-V",           def: "Microsoft Type 1 hypervisor. Server role on Windows or free Hyper-V Server.", weight: "high" },
+      { id: "1.12.a.4", term: "KVM",                         def: "Kernel-based Virtual Machine. Built into the Linux kernel. Used by OpenStack and major cloud providers.", weight: "high" },
+      { id: "1.12.a.5", term: "Hardware virtualization",     def: "Intel VT-x / AMD-V. CPU extensions allowing near-native VM execution.", weight: "med" },
+      { id: "1.12.a.6", term: "Virtual switch (vSwitch)",    def: "Software switch inside the hypervisor. Connects VMs to physical NICs. Supports VLANs, mirroring, QoS.", weight: "med" }
+    ]
   },
 
   "1.12.b": {
@@ -1631,8 +1813,15 @@ window.subtopicContentD12 = {
       memory: "Type 2 = '#2 sits on an OS' — there are two layers (host OS + hypervisor) between VMs and hardware. Think of VirtualBox as an 'app' you installed, just like Chrome or Word — it lives inside your OS. Examples mnemonic: 'VWP' = VirtualBox, Workstation, Parallels. Key trade-off sentence: 'Type 2 is easy to install but slow to run; Type 1 is hard to install but fast to run.'",
       practice: "You already use a Type 2 hypervisor if you run VirtualBox or VMware on your Mac/PC for CCNA labs. Observe the performance difference: a VM running on VirtualBox feels slower than your native OS because of the overhead. Create a flashcard with the architecture stacks side by side: Type 1 = HW → Hypervisor → VMs, Type 2 = HW → Host OS → Hypervisor → VMs. Note the extra layer. For exam prep, know: 'a network engineer running GNS3 on their laptop is using which hypervisor type?' = Type 2.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 53 covers both hypervisor types. Wendell Odom OCG Chapter 29 mentions virtualization in the context of network architecture. The exam typically has one question distinguishing Type 1 from Type 2. The answer key: production data center = Type 1, engineer's laptop = Type 2. Know 2-3 examples of each and you are covered."
-    }
+      meta: "Jeremy's IT Lab Day 53 covers both hypervisor types. Wendell Odom OCG Chapter 29 mentions virtualization in the context of network architecture. The exam typically has one question distinguishing Type 1 from Type 2. The answer key: production data center = Type 1, engineer's laptop = Type 2. Know 2-3 examples of each and you are covered.",
+    },
+    micro: [
+      { id: "1.12.b.1", term: "Type 2 hypervisor",           def: "Hosted hypervisor. Runs on top of a regular OS (Windows/macOS/Linux) as an application. Dev/test use.", weight: "high" },
+      { id: "1.12.b.2", term: "VirtualBox",                  def: "Free Oracle Type 2 hypervisor. Common on dev laptops.", weight: "med" },
+      { id: "1.12.b.3", term: "VMware Workstation / Fusion", def: "Commercial Type 2 hypervisor. Workstation for Windows/Linux, Fusion for macOS.", weight: "med" },
+      { id: "1.12.b.4", term: "Parallels",                   def: "Popular Type 2 hypervisor for macOS. Runs Windows on Apple Silicon or Intel.", weight: "low" },
+      { id: "1.12.b.5", term: "Type 1 vs Type 2 tradeoff",   def: "Type 1 = faster, isolation, production. Type 2 = easier install, runs on any OS, dev/test.", weight: "high" }
+    ]
   },
 
   "1.12.c": {
@@ -1648,8 +1837,15 @@ window.subtopicContentD12 = {
       memory: "VM = 'a house with its own foundation' — each VM has its own OS (foundation), plumbing (drivers), and walls (isolation). Container = 'an apartment in a shared building' — shared foundation (kernel) but separate living spaces. The key comparison table: VMs = GB-sized, minutes to boot, hardware isolation, full OS. Containers = MB-sized, seconds to boot, process isolation, shared kernel. Mnemonic: 'VMs are Heavy Houses, Containers are Light Apartments.'",
       practice: "Create the definitive VM vs Container comparison flashcard (Jeremy's IT Lab Day 53): Size (VMs=GBs, Containers=MBs), Boot time (VMs=minutes, Containers=seconds), Isolation (VMs=hardware-level, Containers=process-level), OS (VMs=each has full OS, Containers=share host kernel), Density (VMs=20-50 per host, Containers=hundreds per host), Use case (VMs=strong isolation needed, Containers=microservices/fast scaling). This single flashcard covers the most-tested comparison on the exam.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 53 covers VMs and containers. Wendell Odom OCG Chapter 29 (Network Architecture) covers virtualization fundamentals. The VM vs container comparison is a guaranteed exam question — typically phrased as 'which technology provides stronger isolation?' (VMs) or 'which is more lightweight and faster to deploy?' (containers). Memorize the comparison table and you will answer correctly every time."
-    }
+      meta: "Jeremy's IT Lab Day 53 covers VMs and containers. Wendell Odom OCG Chapter 29 (Network Architecture) covers virtualization fundamentals. The VM vs container comparison is a guaranteed exam question — typically phrased as 'which technology provides stronger isolation?' (VMs) or 'which is more lightweight and faster to deploy?' (containers). Memorize the comparison table and you will answer correctly every time.",
+    },
+    micro: [
+      { id: "1.12.c.1", term: "Virtual Machine (VM)",        def: "Emulates a full computer. Has its own OS, virtual CPU, virtual NIC, virtual disk. Hardware-level isolation.", weight: "high" },
+      { id: "1.12.c.2", term: "Server consolidation",        def: "Primary VM driver. Many VMs on one physical host = better utilization, less hardware.", weight: "med" },
+      { id: "1.12.c.3", term: "VM isolation",                def: "Each VM runs in own memory space with own virtual hardware. Crash or compromise stays contained.", weight: "high" },
+      { id: "1.12.c.4", term: "Live migration (vMotion)",    def: "Move a running VM between physical hosts with no downtime. Key DC feature.", weight: "med" },
+      { id: "1.12.c.5", term: "VM vs container tradeoff",    def: "VM = heavier, stronger isolation, own OS. Container = lightweight, shares host kernel, faster start.", weight: "high" }
+    ]
   },
 
   "1.12.d": {
@@ -1665,8 +1861,15 @@ window.subtopicContentD12 = {
       memory: "Containers = 'apps in a shared apartment building' — everyone shares the building's foundation (kernel), plumbing (system calls), and utilities (base OS libraries), but each apartment (container) has its own furniture (app + dependencies). Docker = the landlord that manages the apartments. Kubernetes = the property management company that manages multiple buildings. Key mnemonic: 'Containers are FLIP' = Fast (seconds to boot), Light (MBs), Isolated (process-level), Portable (run anywhere Docker runs).",
       practice: "This is flashcard territory for the CCNA (Jeremy's IT Lab Day 53): Review your VM vs Container comparison card and ensure you can explain the trade-off in one sentence: 'VMs provide stronger isolation with more resource overhead; containers provide faster deployment with weaker isolation.' For hands-on understanding (not CCNA-required but valuable for CW work): install Docker on your machine, run <code>docker run -it ubuntu bash</code> to see how fast a container starts versus booting a VM. Observe that you are sharing your host's kernel.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 53 covers containers alongside VMs. Wendell Odom OCG Chapter 29 mentions containers in the context of modern application deployment. The CCNA exam asks 1-2 container questions, always in comparison to VMs: 'which is faster to deploy?' (container), 'which shares the host kernel?' (container), 'which provides hardware-level isolation?' (VM). Know Docker as the primary container platform and Kubernetes as the orchestration platform."
-    }
+      meta: "Jeremy's IT Lab Day 53 covers containers alongside VMs. Wendell Odom OCG Chapter 29 mentions containers in the context of modern application deployment. The CCNA exam asks 1-2 container questions, always in comparison to VMs: 'which is faster to deploy?' (container), 'which shares the host kernel?' (container), 'which provides hardware-level isolation?' (VM). Know Docker as the primary container platform and Kubernetes as the orchestration platform.",
+    },
+    micro: [
+      { id: "1.12.d.1", term: "Container",                   def: "Packaged application + dependencies running as an isolated process. Shares host kernel; no guest OS.", weight: "high" },
+      { id: "1.12.d.2", term: "Docker",                      def: "Most common container runtime. Defines images, runs containers, provides registry.", weight: "high" },
+      { id: "1.12.d.3", term: "Kubernetes (K8s)",            def: "Orchestration platform. Schedules, scales, and manages containers across many hosts.", weight: "high" },
+      { id: "1.12.d.4", term: "Container vs VM",             def: "Container: lightweight, fast start (~seconds), shares kernel. VM: heavy, stronger isolation, own OS.", weight: "high" },
+      { id: "1.12.d.5", term: "Container image",             def: "Immutable snapshot of an app + its libs. Pulled from a registry (Docker Hub, ECR, etc.) and run.", weight: "med" }
+    ]
   },
 
   "1.12.e": {
@@ -1682,8 +1885,14 @@ window.subtopicContentD12 = {
       memory: "VRF = 'Virtual Router inside a Real router.' Think of it as separate filing cabinets in one office — each cabinet (VRF) has its own set of addresses, and looking in Cabinet A tells you nothing about Cabinet B. The killer feature: <strong>overlapping IPs</strong>. Both Customer A and Customer B can use 10.1.1.0/24 because they are in different cabinets. Mnemonic: 'VRF = Very Real Fences' — real isolation between routing domains on one box.",
       practice: "Packet Tracer lab (conceptual — Packet Tracer has limited VRF support): Draw a diagram with one router serving two customers. Customer A has network 10.0.0.0/24 in VRF-A, Customer B also has 10.0.0.0/24 in VRF-B. Show that each VRF has a separate routing table. For CLI practice on real IOS or CML: <code>ip vrf CUSTOMER-A</code>, <code>interface Gi0/0</code>, <code>ip vrf forwarding CUSTOMER-A</code>, <code>ip address 10.0.0.1 255.255.255.0</code>. Verify with <code>show ip vrf</code> and <code>show ip route vrf CUSTOMER-A</code>. Know that assigning a VRF to an interface removes the existing IP.",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 53 covers VRF concepts. Wendell Odom OCG Chapter 29 discusses VRF in the context of network virtualization. The CCNA tests VRF conceptually — 'what technology allows overlapping IP address spaces on one router?' (VRF), 'how does a service provider isolate customer traffic on shared infrastructure?' (VRF). You will not need to configure VRF on the exam, but understand what it does and why it exists."
-    }
+      meta: "Jeremy's IT Lab Day 53 covers VRF concepts. Wendell Odom OCG Chapter 29 discusses VRF in the context of network virtualization. The CCNA tests VRF conceptually — 'what technology allows overlapping IP address spaces on one router?' (VRF), 'how does a service provider isolate customer traffic on shared infrastructure?' (VRF). You will not need to configure VRF on the exam, but understand what it does and why it exists.",
+    },
+    micro: [
+      { id: "1.12.e.1", term: "VRF",                         def: "Virtual Routing and Forwarding. Multiple separate routing tables on one router. Enables overlapping IPs and isolated customer traffic.", weight: "high" },
+      { id: "1.12.e.2", term: "VRF use cases",               def: "Service providers isolating customers on shared MPLS. Enterprises separating departments (HR/Finance/DMZ).", weight: "med" },
+      { id: "1.12.e.3", term: "Overlapping IP space",        def: "VRFs allow two customers to both use 10.0.0.0/8 on the same physical router. Each VRF is a separate namespace.", weight: "med" },
+      { id: "1.12.e.4", term: "VRF vs VLAN (L3 vs L2)",      def: "VLAN = L2 broadcast domain separation. VRF = L3 routing-table separation. Different layers, complementary.", weight: "med" }
+    ]
   },
 
   "1.12.f": {
@@ -1703,8 +1912,13 @@ window.subtopicContentD12 = {
       memory: "'Lite = Less Infrastructure, Traffic-isolated Everywhere' — VRF-Lite gives you VRF isolation without needing MPLS infrastructure. Think of full VRF+MPLS as a highway system with toll booths (labels) — built for massive scale. VRF-Lite is local roads with painted lane dividers (VLANs) — simpler, cheaper, works for a small town (campus network). Key sentence: 'VRF-Lite uses VLANs between routers instead of MPLS labels.'",
       practice: "Create a comparison flashcard: Full VRF+MPLS = service provider scale, label switching, P routers don't need VRF awareness, complex. VRF-Lite = campus scale, standard IP routing, every router must be VRF-aware, simpler. Also draw a campus diagram: Core Router with VRFs (Mgmt, Prod, Guest), trunk to Distribution Switch (VLANs 100, 200, 300 mapped to VRFs), Access Switches with ports in corresponding VLANs. This visual will clarify how VRF-Lite works in practice.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 53 mentions VRF-Lite. Wendell Odom OCG Chapter 29 distinguishes VRF from VRF-Lite. The CCNA may have one question: 'what is VRF-Lite?' — answer: VRF without MPLS, used for traffic segmentation in campus networks. One flashcard covering the distinction is sufficient. This is a low-weight exam topic."
-    }
+      meta: "Jeremy's IT Lab Day 53 mentions VRF-Lite. Wendell Odom OCG Chapter 29 distinguishes VRF from VRF-Lite. The CCNA may have one question: 'what is VRF-Lite?' — answer: VRF without MPLS, used for traffic segmentation in campus networks. One flashcard covering the distinction is sufficient. This is a low-weight exam topic.",
+    },
+    micro: [
+      { id: "1.12.f.1", term: "VRF-Lite",                    def: "VRF without MPLS. Provides traffic segmentation in campus/enterprise networks without a provider core.", weight: "med" },
+      { id: "1.12.f.2", term: "VRF-Lite vs full VRF",        def: "Full VRF = with MPLS (service-provider backbone). VRF-Lite = hop-by-hop VRF on non-MPLS links.", weight: "low" },
+      { id: "1.12.f.3", term: "VRF-Lite use case",           def: "Campus department segmentation without deploying MPLS. Works over standard L3 links.", weight: "low" }
+    ]
   },
 
   /* ══════════════════════════════════════════════════════════════
@@ -1725,8 +1939,15 @@ window.subtopicContentD12 = {
       memory: "MAC learning = 'the switch is a bouncer with a clipboard.' Every time someone (frame) walks in a door (port), the bouncer writes down their name (source MAC) and which door they entered. The bouncer NEVER learns names from the destination field — only from who walks in. Critical rule: 'Learn from source, forward by destination.' If a regular shows up at a new door, the bouncer updates the clipboard (device moved). If nobody comes through a door for 5 minutes (300 seconds), the name gets erased (aging).",
       practice: "Packet Tracer lab (Jeremy's IT Lab Day 6): Connect 3 PCs to a 2960 switch. Before any pings, run <code>show mac address-table</code> — it should be empty (or nearly empty). Have PC-A ping PC-B. Immediately check the MAC table — you should see PC-A's MAC learned on its port. Then have PC-B reply — now PC-B's MAC appears. Have PC-C ping PC-A — PC-C's MAC gets added. Observe that all entries are 'DYNAMIC.' Then run <code>clear mac address-table dynamic</code> and verify they disappear. Wait 5 minutes without any traffic and observe entries aging out naturally. This lab builds the intuition for how switches populate their tables.",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 6 (Ethernet LAN Switching) is the primary resource for MAC learning. Wendell Odom OCG Chapters 5-7 cover switching fundamentals in detail. The exam tests the learning process directly: 'when does a switch learn a MAC?' (when a frame arrives — from the source MAC), 'what happens when a device moves?' (the entry is updated to the new port). Also know the MAC flooding attack concept — it is why port security limits MACs per port."
-    }
+      meta: "Jeremy's IT Lab Day 6 (Ethernet LAN Switching) is the primary resource for MAC learning. Wendell Odom OCG Chapters 5-7 cover switching fundamentals in detail. The exam tests the learning process directly: 'when does a switch learn a MAC?' (when a frame arrives — from the source MAC), 'what happens when a device moves?' (the entry is updated to the new port). Also know the MAC flooding attack concept — it is why port security limits MACs per port.",
+    },
+    micro: [
+      { id: "1.13.a.1", term: "MAC learning (source MAC)",   def: "Switch learns from the SOURCE MAC of arriving frames — NEVER the destination. Maps MAC → ingress port.", weight: "high" },
+      { id: "1.13.a.2", term: "Dynamic entry",               def: "Learned automatically. Default aging time 300s (5 min). Timer resets on each frame from that MAC.", weight: "high" },
+      { id: "1.13.a.3", term: "Device moves ports",          def: "Switch updates the MAC table entry to the new port on the next frame from that MAC.", weight: "high" },
+      { id: "1.13.a.4", term: "show mac address-table",      def: "View the MAC address table. Columns: Vlan, Mac Address, Type (DYNAMIC/STATIC), Ports.", weight: "high" },
+      { id: "1.13.a.5", term: "MAC flooding attack",         def: "Attacker fills MAC table. Switch defaults to flooding everything → attacker sniffs all traffic.", weight: "med" }
+    ]
   },
 
   "1.13.b": {
@@ -1736,8 +1957,15 @@ window.subtopicContentD12 = {
       memory: "Three switching actions mnemonic: 'FFF' = Forward (known unicast — destination MAC is in the table, send out that port only), Flood (unknown unicast/broadcast/multicast — destination unknown, send everywhere), Filter (source and destination on same port — drop it, no need to forward). For frame forwarding methods: 'Store checks everything, Cut checks nothing, Fragment checks 64.' Store-and-Forward = full CRC = safe. Cut-Through = first 6 bytes only = fast. Fragment-Free = first 64 bytes = middle ground.",
       practice: "Packet Tracer lab (Jeremy's IT Lab Day 6): After the MAC learning lab, observe forwarding in action. With all MACs learned, ping PC-A to PC-B. Check the switch — traffic only goes to PC-B's port, not PC-C's. This is known unicast forwarding. Then create a flashcard for the three forwarding methods: Store-and-Forward (entire frame, CRC check, default on Catalyst), Cut-Through (first 6 bytes, no CRC, lowest latency), Fragment-Free (first 64 bytes, catches runts). Know the filtering action too — if source and destination are on the same port, the switch drops the frame.",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 6 covers frame forwarding methods. Wendell Odom OCG Chapter 5-6 goes into depth on store-and-forward vs cut-through. The exam asks: 'which method checks for errors before forwarding?' (store-and-forward), 'which has the lowest latency?' (cut-through), 'what is the default on Cisco Catalyst switches?' (store-and-forward). Also know the three actions (forward/flood/filter) — a classic exam question is 'what does a switch do when it receives a frame with a known destination MAC?'"
-    }
+      meta: "Jeremy's IT Lab Day 6 covers frame forwarding methods. Wendell Odom OCG Chapter 5-6 goes into depth on store-and-forward vs cut-through. The exam asks: 'which method checks for errors before forwarding?' (store-and-forward), 'which has the lowest latency?' (cut-through), 'what is the default on Cisco Catalyst switches?' (store-and-forward). Also know the three actions (forward/flood/filter) — a classic exam question is 'what does a switch do when it receives a frame with a known destination MAC?'",
+    },
+    micro: [
+      { id: "1.13.b.1", term: "Three switching actions (FFF)", def: "Forward (known unicast → send out specific port), Flood (unknown → all ports except source), Filter (same source and dest port → drop).", weight: "high" },
+      { id: "1.13.b.2", term: "Store-and-Forward",           def: "Receive entire frame, CRC check, then forward. Default on modern Catalyst. Drops corrupted frames.", weight: "high" },
+      { id: "1.13.b.3", term: "Cut-Through",                 def: "Read first 6 bytes (dest MAC) then forward immediately. Lowest latency. No CRC check.", weight: "high" },
+      { id: "1.13.b.4", term: "Fragment-Free",               def: "Read first 64 bytes then forward. Catches collision fragments. Middle ground between store-and-forward and cut-through.", weight: "med" },
+      { id: "1.13.b.5", term: "Known unicast forwarding",    def: "Destination MAC IS in the table → send frame ONLY out that one egress port. Most efficient case.", weight: "high" }
+    ]
   },
 
   "1.13.c": {
@@ -1747,8 +1975,15 @@ window.subtopicContentD12 = {
       memory: "Three flood triggers — 'UBM' = Unknown unicast, Broadcast, Multicast. Think: 'U Broadcast to Many.' Unknown unicast = 'I don't know where you live, so I'm yelling your name in every room.' Broadcast (FFFF.FFFF.FFFF) = 'attention everyone!' (ARP, DHCP). Multicast = 'calling all members of this group.' Key: flooding goes to ALL ports in the VLAN except the source port. A VLAN is the flood boundary — floods never cross VLAN borders without a router.",
       practice: "Packet Tracer lab (Jeremy's IT Lab Day 6): After building the MAC learning lab, run <code>clear mac address-table dynamic</code> to erase all learned MACs. Then have PC-A ping PC-B. In simulation mode, watch the first frame — the switch floods it out all ports (unknown unicast). PC-B replies, and the switch learns PC-B's MAC. The second frame from PC-A to PC-B is forwarded (not flooded) because the MAC is now known. Also observe ARP requests — they are always broadcast/flooded regardless of the MAC table state. Create a flowchart flashcard: Frame arrives → Is destination MAC in table? YES → Forward out that port. NO → Flood out all ports in VLAN (except source). Is destination FF:FF:FF:FF:FF:FF? → Always flood.",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 6 demonstrates flooding vs forwarding in Packet Tracer simulation mode. Wendell Odom OCG Chapter 5 covers the flooding/forwarding/filtering trio. The exam loves asking 'what happens when a switch receives a frame with an unknown destination MAC?' — answer: flood to all ports in the VLAN except the ingress port. Also know: 'why do VLANs exist?' — to limit broadcast/flood domains. These concepts tie directly into VLAN design (Domain 2.1)."
-    }
+      meta: "Jeremy's IT Lab Day 6 demonstrates flooding vs forwarding in Packet Tracer simulation mode. Wendell Odom OCG Chapter 5 covers the flooding/forwarding/filtering trio. The exam loves asking 'what happens when a switch receives a frame with an unknown destination MAC?' — answer: flood to all ports in the VLAN except the ingress port. Also know: 'why do VLANs exist?' — to limit broadcast/flood domains. These concepts tie directly into VLAN design (Domain 2.1).",
+    },
+    micro: [
+      { id: "1.13.c.1", term: "Three flood triggers (UBM)",  def: "Unknown unicast, Broadcast, Multicast. These three frame types are flooded by default.", weight: "high" },
+      { id: "1.13.c.2", term: "Unknown unicast flooding",    def: "Destination MAC NOT in table → flood to all ports in VLAN except source. Resolves once MAC is learned.", weight: "high" },
+      { id: "1.13.c.3", term: "Broadcast (FFFF.FFFF.FFFF)",  def: "Always flooded to all ports in VLAN. ARP requests, DHCP Discover, NetBIOS.", weight: "high" },
+      { id: "1.13.c.4", term: "Multicast flooding",          def: "By default flooded like broadcast. IGMP snooping lets switch forward only to interested ports.", weight: "high" },
+      { id: "1.13.c.5", term: "VLAN = flood boundary",       def: "Floods never cross VLAN boundaries without a router. Primary reason VLANs exist.", weight: "high" }
+    ]
   },
 
   "1.13.d": {
@@ -1764,8 +1999,16 @@ window.subtopicContentD12 = {
       memory: "MAC table aging = <strong>300 seconds = 5 minutes</strong>. Mnemonic: '5 minutes of silence and you're off the guest list.' If a device keeps talking, the timer refreshes back to 300 every time. Key numbers to memorize: 300 (MAC aging), 10 (CDP timer=60s, holdtime=180s), default VLAN=1. For entry types: DYNAMIC = learned (ages out), STATIC = configured (permanent). CAM = Content Addressable Memory — the hardware that makes MAC lookups fast (O(1) instead of searching a list).",
       practice: "Packet Tracer lab (Jeremy's IT Lab Day 6): After the MAC learning lab, run <code>show mac address-table</code> and identify each field: VLAN, MAC Address, Type, Ports. Run <code>show mac address-table dynamic</code> to see only learned entries. Run <code>show mac address-table count</code> to see how many entries exist vs the table capacity. Then <code>clear mac address-table dynamic</code> and verify the table is empty. Wait 5 minutes without any traffic and observe entries aging out naturally (or use Packet Tracer's fast-forward). For extra practice, configure a static MAC entry: <code>mac address-table static AAAA.BBBB.CCCC vlan 1 interface Gi0/1</code> — verify it appears as STATIC and does not age out.",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 6 covers the MAC address table in depth. Wendell Odom OCG Chapter 5-6 details CAM table operations. The exam shows <code>show mac address-table</code> output in simlets and asks you to interpret it — 'which port is device X connected to?', 'how many devices are in VLAN 10?', 'is this entry static or dynamic?'. Know the default aging time (300 seconds) — it is a guaranteed test point. Also know that <code>clear mac address-table dynamic</code> is used during troubleshooting to force re-learning."
-    }
+      meta: "Jeremy's IT Lab Day 6 covers the MAC address table in depth. Wendell Odom OCG Chapter 5-6 details CAM table operations. The exam shows <code>show mac address-table</code> output in simlets and asks you to interpret it — 'which port is device X connected to?', 'how many devices are in VLAN 10?', 'is this entry static or dynamic?'. Know the default aging time (300 seconds) — it is a guaranteed test point. Also know that <code>clear mac address-table dynamic</code> is used during troubleshooting to force re-learning.",
+    },
+    micro: [
+      { id: "1.13.d.1", term: "MAC address table / CAM table", def: "Maps MAC → VLAN → port. Core data structure for L2 forwarding. CAM = Content Addressable Memory (hardware-fast lookup).", weight: "high" },
+      { id: "1.13.d.2", term: "Entry fields",                def: "VLAN ID, MAC Address, Type (DYNAMIC/STATIC), Port. MAC is VLAN-scoped.", weight: "high" },
+      { id: "1.13.d.3", term: "Default aging time",          def: "300 seconds (5 min). Dynamic entries expire if no frame from that MAC within the window.", weight: "high" },
+      { id: "1.13.d.4", term: "Static MAC entry",            def: "Manually configured. NEVER ages out. Command: 'mac address-table static [MAC] vlan [id] interface [port]'.", weight: "med" },
+      { id: "1.13.d.5", term: "clear mac address-table dynamic", def: "Flush all learned entries. Forces re-learning. Common troubleshooting step.", weight: "med" },
+      { id: "1.13.d.6", term: "show mac address-table count", def: "Displays number of entries vs table capacity. Useful for detecting MAC flood attacks.", weight: "low" }
+    ]
   },
 
   /* ══════════════════════════════════════════════════════════════
