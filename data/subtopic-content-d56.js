@@ -500,8 +500,13 @@ window.subtopicContentD56 = {
       memory: "Site-to-Site = a PERMANENT bridge between two buildings. Always on, router-to-router, no client software. Like a dedicated highway between offices — the cars (users) don't know the road is encrypted.",
       practice: "Diagram a site-to-site VPN: Branch LAN (10.1.0.0/24) → Branch Router → Internet (encrypted tunnel) → HQ Router → HQ LAN (10.2.0.0/24). Label tunnel endpoints, protected subnets, and interesting traffic ACL.",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 54 (VPN Fundamentals). Wendell Odom OCG Chapter 16. The exam tests site-to-site vs remote access. Site-to-site = always-on, router-to-router. Remote access = on-demand, client-to-router."
-    }
+      meta: "Jeremy's IT Lab Day 54 (VPN Fundamentals). Wendell Odom OCG Chapter 16. The exam tests site-to-site vs remote access. Site-to-site = always-on, router-to-router. Remote access = on-demand, client-to-router.",
+    },
+    micro: [
+      { id: "5.5.a.1", term: "VPN",                          def: "Virtual Private Network. Creates a secure encrypted tunnel across an untrusted network (internet).", weight: "high" },
+      { id: "5.5.a.2", term: "Site-to-site VPN",             def: "Always-on router-to-router (or firewall-to-firewall). Connects entire networks.", weight: "high" },
+      { id: "5.5.a.3", term: "Remote access VPN",            def: "On-demand client-to-router. Individual user VPN (AnyConnect, OpenVPN, WireGuard).", weight: "high" }
+    ]
   },
 
   "5.5.b": {
@@ -511,8 +516,13 @@ window.subtopicContentD56 = {
       memory: "Remote Access = TEMPORARY tunnel from your laptop. You DIAL IN when you need it, disconnect when done. Client software required. Like a phone call vs a leased line (site-to-site).",
       practice: "Build a two-column comparison flashcard: Site-to-Site (permanent, router-to-router, no client, always on) vs Remote Access (on-demand, client-to-site, needs software, user-initiated). Drill scenario questions: 'traveling employee' = remote access, 'two offices' = site-to-site.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 54. Wendell Odom OCG Chapter 16. The exam gives scenarios: 'traveling employee needs HQ resources' = remote access VPN. 'Two offices need constant connectivity' = site-to-site VPN."
-    }
+      meta: "Jeremy's IT Lab Day 54. Wendell Odom OCG Chapter 16. The exam gives scenarios: 'traveling employee needs HQ resources' = remote access VPN. 'Two offices need constant connectivity' = site-to-site VPN.",
+    },
+    micro: [
+      { id: "5.5.b.1", term: "Traveling employee scenario",  def: "Remote access VPN. Single user needs access from anywhere. AnyConnect client connects to HQ.", weight: "high" },
+      { id: "5.5.b.2", term: "Branch-to-HQ always-on scenario", def: "Site-to-site VPN. Branch office connects to HQ continuously. Users don't know VPN exists.", weight: "high" },
+      { id: "5.5.b.3", term: "Clientless SSL VPN",           def: "Remote access via browser HTTPS. No VPN client software required. Limited to web-based apps.", weight: "med" }
+    ]
   },
 
   "5.5.c": {
@@ -522,8 +532,14 @@ window.subtopicContentD56 = {
       memory: "IPsec = CIA-R: Confidentiality, Integrity, Authentication, anti-Replay. Remember 'CIA Rocks.' Encryption = AES. Hashing = SHA. Authentication = PSK or certs. Anti-replay = sequence numbers.",
       practice: "Build a matrix: Security Service | What It Prevents | Algorithm | Protocol (AH/ESP). Confidentiality (eavesdropping, AES, ESP only). Integrity (tampering, SHA, both). Authentication (impersonation, PSK/certs, both). Anti-replay (replay attacks, sequence #, both).",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 54. Wendell Odom OCG Chapter 16. The exam loves: 'which IPsec service ensures data hasn't been modified?' = Integrity. 'Which ensures data can't be read?' = Confidentiality. Map each service to its definition."
-    }
+      meta: "Jeremy's IT Lab Day 54. Wendell Odom OCG Chapter 16. The exam loves: 'which IPsec service ensures data hasn't been modified?' = Integrity. 'Which ensures data can't be read?' = Confidentiality. Map each service to its definition.",
+    },
+    micro: [
+      { id: "5.5.c.1", term: "Confidentiality (IPsec)",      def: "Data CAN'T BE READ by eavesdroppers. Provided by encryption (AES, 3DES, DES).", weight: "high" },
+      { id: "5.5.c.2", term: "Integrity (IPsec)",            def: "Data HAS NOT BEEN MODIFIED in transit. Provided by HMAC hashing (MD5, SHA).", weight: "high" },
+      { id: "5.5.c.3", term: "Authentication (IPsec)",       def: "Confirms peer IDENTITY. Provided by pre-shared keys (PSK) or digital certificates.", weight: "high" },
+      { id: "5.5.c.4", term: "Anti-replay (IPsec)",          def: "Prevents attacker from re-sending captured packets. Sequence numbers detect replays.", weight: "med" }
+    ]
   },
 
   "5.5.d": {
@@ -533,8 +549,13 @@ window.subtopicContentD56 = {
       memory: "AH = Authentication Header = NO encryption. Protocol 51. 'AH, I forgot to encrypt!' AH authenticates the IP header too, which BREAKS NAT. That's why nobody uses AH anymore.",
       practice: "Draw AH packet format: [New IP | AH | Original IP + Data (visible/readable)]. Circle what's authenticated (everything). Circle what's encrypted (nothing). Compare with ESP immediately.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 54. Wendell Odom OCG Chapter 16. Key exam facts: AH = protocol 51, no encryption, authenticates IP header, incompatible with NAT. ESP = protocol 50, encryption + everything else."
-    }
+      meta: "Jeremy's IT Lab Day 54. Wendell Odom OCG Chapter 16. Key exam facts: AH = protocol 51, no encryption, authenticates IP header, incompatible with NAT. ESP = protocol 50, encryption + everything else.",
+    },
+    micro: [
+      { id: "5.5.d.1", term: "AH (Authentication Header)",   def: "IP protocol 51. Provides integrity + auth BUT NOT encryption. Authenticates entire packet including IP header.", weight: "high" },
+      { id: "5.5.d.2", term: "AH + NAT incompatibility",     def: "AH authenticates the IP header. NAT changes the IP header → AH breaks. Can't use AH through NAT.", weight: "high" },
+      { id: "5.5.d.3", term: "AH = protocol number 51",      def: "IP protocol 51, not TCP/UDP. Memorize.", weight: "high" }
+    ]
   },
 
   "5.5.e": {
@@ -544,8 +565,14 @@ window.subtopicContentD56 = {
       memory: "ESP = Encapsulating Security Payload = FULL protection. Protocol 50. 'ESP has Everything (50 = the whole package).' AH = 51 = 'Almost, Half-way' — no encryption. ESP works with NAT, AH doesn't.",
       practice: "Build a head-to-head table: Feature | AH (51) | ESP (50). Encryption: No/Yes. Integrity: Yes/Yes. Auth: Yes/Yes. Anti-Replay: Yes/Yes. NAT Compatible: No/Yes. Authenticates IP Header: Yes/No. ESP wins every practical category.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 54. Wendell Odom OCG Chapter 16. ESP vs AH is a classic exam question. ESP = 50 = encryption + everything. AH = 51 = no encryption, breaks with NAT."
-    }
+      meta: "Jeremy's IT Lab Day 54. Wendell Odom OCG Chapter 16. ESP vs AH is a classic exam question. ESP = 50 = encryption + everything. AH = 51 = no encryption, breaks with NAT.",
+    },
+    micro: [
+      { id: "5.5.e.1", term: "ESP (Encapsulating Security Payload)", def: "IP protocol 50. Provides encryption + integrity + auth. Standard IPsec choice in modern VPNs.", weight: "high" },
+      { id: "5.5.e.2", term: "ESP = protocol 50",            def: "IP protocol 50. AH = 51. ESP is the one with encryption.", weight: "high" },
+      { id: "5.5.e.3", term: "ESP works with NAT",           def: "ESP doesn't include IP header in authentication. NAT traversal (UDP 4500) makes it work across NAT.", weight: "high" },
+      { id: "5.5.e.4", term: "ESP vs AH rule",               def: "Use ESP (encryption). AH only provides integrity. Modern deployments use ESP exclusively.", weight: "high" }
+    ]
   },
 
   "5.5.f": {
@@ -555,8 +582,13 @@ window.subtopicContentD56 = {
       memory: "Phase 1 = INTRODUCE yourself and SHAKE HANDS before doing business. Three steps: Negotiate (what algorithms?), Exchange keys (DH), Authenticate (prove who you are). Result = ISAKMP SA (management tunnel).",
       practice: "Draw the Phase 1 sequence: 1) Algorithm proposal/acceptance, 2) Diffie-Hellman key exchange, 3) Authentication (PSK or cert). Label the output: one bidirectional ISAKMP SA. Then draw Phase 2 beside it.",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 54. Wendell Odom OCG Chapter 16. Phase 1 = authenticate peers + build management tunnel. Phase 2 = negotiate data tunnel. The exam tests the PURPOSE of each phase."
-    }
+      meta: "Jeremy's IT Lab Day 54. Wendell Odom OCG Chapter 16. Phase 1 = authenticate peers + build management tunnel. Phase 2 = negotiate data tunnel. The exam tests the PURPOSE of each phase.",
+    },
+    micro: [
+      { id: "5.5.f.1", term: "IKE Phase 1",                  def: "Authenticate peers, build bidirectional management (ISAKMP) SA. Happens first.", weight: "high" },
+      { id: "5.5.f.2", term: "IKE Phase 2",                  def: "Negotiate IPsec SAs (one per direction) for data traffic. Uses the Phase 1 tunnel to protect negotiation.", weight: "high" },
+      { id: "5.5.f.3", term: "Phase order",                  def: "Phase 1 ALWAYS first. Phase 2 can't happen without Phase 1 because it negotiates inside the P1 tunnel.", weight: "high" }
+    ]
   },
 
   "5.5.g": {
@@ -566,8 +598,13 @@ window.subtopicContentD56 = {
       memory: "Phase 2 = QUICK Mode = quickly build the DATA tunnel. Phase 1 = 1 bidirectional SA (management). Phase 2 = 2 unidirectional SAs (data, one per direction). Two phases, different tunnel types.",
       practice: "Draw the complete IKE/IPsec flow on one page: Phase 1 → ISAKMP SA (bidirectional, management) → Phase 2 → 2 IPsec SAs (unidirectional, data). Label the purpose of each. This is the master diagram.",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 54. Wendell Odom OCG Chapter 16. Key facts: Phase 1 = one bidirectional SA (ISAKMP). Phase 2 = two unidirectional SAs (IPsec, one per direction). Phase 2 = Quick Mode."
-    }
+      meta: "Jeremy's IT Lab Day 54. Wendell Odom OCG Chapter 16. Key facts: Phase 1 = one bidirectional SA (ISAKMP). Phase 2 = two unidirectional SAs (IPsec, one per direction). Phase 2 = Quick Mode.",
+    },
+    micro: [
+      { id: "5.5.g.1", term: "Phase 1 = 1 bidirectional SA",  def: "ISAKMP SA. Used only for Phase 2 negotiation. Not for user data.", weight: "high" },
+      { id: "5.5.g.2", term: "Phase 2 = 2 unidirectional SAs", def: "IPsec SAs. One for inbound, one for outbound. Protect actual data traffic.", weight: "high" },
+      { id: "5.5.g.3", term: "Quick Mode (Phase 2)",          def: "Phase 2 negotiation mode. Faster than Phase 1 because it reuses the P1 tunnel.", weight: "med" }
+    ]
   },
 
   "5.5.h": {
@@ -577,8 +614,13 @@ window.subtopicContentD56 = {
       memory: "TUNNEL mode = EVERYTHING hidden in the tunnel. Original IP header + payload = both encrypted. Like a sealed letter inside a new envelope. Default for site-to-site VPNs.",
       practice: "Draw side by side: Tunnel mode [New IP | ESP | Encrypted(Old IP + Data)] vs Transport mode [Original IP | ESP | Encrypted(Data only)]. Circle what's visible to an eavesdropper in each. Tunnel hides everything; transport exposes the IP header.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 54. Wendell Odom OCG Chapter 16. Tunnel = encrypts whole packet, hides original IPs (site-to-site default). Transport = encrypts payload only (host-to-host). The exam tests which mode hides the original IP."
-    }
+      meta: "Jeremy's IT Lab Day 54. Wendell Odom OCG Chapter 16. Tunnel = encrypts whole packet, hides original IPs (site-to-site default). Transport = encrypts payload only (host-to-host). The exam tests which mode hides the original IP.",
+    },
+    micro: [
+      { id: "5.5.h.1", term: "IPsec Tunnel mode",            def: "Entire original packet (incl. IP header) encrypted and wrapped in new IP header. Hides original IPs. Site-to-site default.", weight: "high" },
+      { id: "5.5.h.2", term: "IPsec Transport mode",         def: "Only payload encrypted. Original IP header preserved. Used host-to-host (end-to-end, not gateway-to-gateway).", weight: "high" },
+      { id: "5.5.h.3", term: "Which hides original IP?",     def: "TUNNEL mode. Transport mode leaves IP header visible. Exam test point.", weight: "high" }
+    ]
   },
 
   "5.5.i": {
@@ -588,8 +630,12 @@ window.subtopicContentD56 = {
       memory: "TRANSPORT mode = only the CARGO (payload) is encrypted. The shipping label (IP header) stays readable. Used when both hosts know each other's address and just need the data encrypted.",
       practice: "Scenario drill: 'Two routers connecting branches' = tunnel. 'Two servers in the same DC' = transport. 'Employee laptop to corporate VPN' = tunnel. 'GRE tunnel needing encryption' = transport. Run 5+ scenarios until automatic.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 54. Wendell Odom OCG Chapter 16. Tunnel = whole packet encrypted (site-to-site default). Transport = payload only (host-to-host). Most exam questions ask which mode hides the original IP header."
-    }
+      meta: "Jeremy's IT Lab Day 54. Wendell Odom OCG Chapter 16. Tunnel = whole packet encrypted (site-to-site default). Transport = payload only (host-to-host). Most exam questions ask which mode hides the original IP header.",
+    },
+    micro: [
+      { id: "5.5.i.1", term: "Site-to-site = Tunnel mode",   def: "Gateway-to-gateway IPsec always uses Tunnel mode. Entire original packet hidden inside the tunnel.", weight: "high" },
+      { id: "5.5.i.2", term: "Host-to-host = Transport mode", def: "End-to-end IPsec (e.g., between two servers). Transport mode protects just the payload.", weight: "high" }
+    ]
   },
 
   "5.5.j": {
@@ -599,8 +645,14 @@ window.subtopicContentD56 = {
       memory: "GRE = the moving truck (carries anything, including multicast). IPsec = the armored escort (encrypts everything). GRE over IPsec = armored moving truck. 'How do you run OSPF over a VPN?' = GRE over IPsec.",
       practice: "List what GRE adds that IPsec lacks: multicast, broadcast, non-IP protocols, routing protocols (OSPF/EIGRP). Then explain: GRE encapsulates these into unicast → IPsec encrypts the unicast. Problem solved.",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 54. Wendell Odom OCG Chapter 16. Classic exam question: 'How do you run OSPF over an IPsec VPN?' Answer: GRE over IPsec. Pure IPsec can't carry multicast — GRE bridges that gap."
-    }
+      meta: "Jeremy's IT Lab Day 54. Wendell Odom OCG Chapter 16. Classic exam question: 'How do you run OSPF over an IPsec VPN?' Answer: GRE over IPsec. Pure IPsec can't carry multicast — GRE bridges that gap.",
+    },
+    micro: [
+      { id: "5.5.j.1", term: "GRE",                          def: "Generic Routing Encapsulation. Cisco tunneling protocol. Carries multicast/broadcast and multiple L3 protocols.", weight: "high" },
+      { id: "5.5.j.2", term: "IPsec can't carry multicast",  def: "Pure IPsec is unicast only. Routing protocols (OSPF, EIGRP) use multicast, so pure IPsec can't run them.", weight: "high" },
+      { id: "5.5.j.3", term: "GRE over IPsec",               def: "Wrap traffic in GRE (adds multicast support) then encrypt with IPsec. Enables OSPF over VPN.", weight: "high" },
+      { id: "5.5.j.4", term: "DMVPN",                        def: "Dynamic Multipoint VPN. Cisco solution for scalable hub-and-spoke with dynamic spoke-to-spoke tunnels.", weight: "med" }
+    ]
   },
 
   // ── 5.6 Configure and verify ACLs ────────────────────────────
@@ -612,8 +664,15 @@ window.subtopicContentD56 = {
       memory: "Standard = Source only, numbers 1-99, placed near DESTINATION. Mnemonic: 'SD' — Standard → Destination. Standard is Simple — Source only, placed at the end of the path.",
       practice: "In Packet Tracer: <code>access-list 10 permit 192.168.1.0 0.0.0.255</code>, apply outbound on the interface nearest the destination: <code>ip access-group 10 out</code>. Verify with <code>show access-lists</code> and test traffic.",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 33-35 (Standard ACLs). Wendell Odom OCG Chapters 3-4 (Vol 2). ACL placement is a top-5 most tested CCNA concept. Standard = destination, Extended = source. Memorize as absolute rule."
-    }
+      meta: "Jeremy's IT Lab Day 33-35 (Standard ACLs). Wendell Odom OCG Chapters 3-4 (Vol 2). ACL placement is a top-5 most tested CCNA concept. Standard = destination, Extended = source. Memorize as absolute rule.",
+    },
+    micro: [
+      { id: "5.6.a.1", term: "Standard ACL",                 def: "Matches source IP ONLY. Numbered 1-99, 1300-1999. Simple, broad filtering.", weight: "high" },
+      { id: "5.6.a.2", term: "Standard ACL placement",       def: "As close to DESTINATION as possible. Broad source matching means you'd block legitimate traffic if placed near source.", weight: "high" },
+      { id: "5.6.a.3", term: "Standard ACL syntax",          def: "'access-list [1-99] {permit|deny} [source] [wildcard]'. Or named: 'ip access-list standard [name]'.", weight: "high" },
+      { id: "5.6.a.4", term: "host keyword",                 def: "Shortcut for exact match. 'host 10.1.1.1' = '10.1.1.1 0.0.0.0'.", weight: "med" },
+      { id: "5.6.a.5", term: "any keyword",                  def: "Shortcut for all. 'any' = '0.0.0.0 255.255.255.255'.", weight: "med" }
+    ]
   },
 
   "5.6.b": {
@@ -623,8 +682,14 @@ window.subtopicContentD56 = {
       memory: "Extended = EVERYTHING (src, dst, protocol, port). Numbers 100-199. Placed near SOURCE. Mnemonic: 'ES' — Extended → Source. Extended has Extra fields, so block precisely and early.",
       practice: "Write this from memory: <code>access-list 100 permit tcp 10.0.0.0 0.0.0.255 host 192.168.1.100 eq 443</code>. Apply inbound on source-side: <code>ip access-group 100 in</code>. Test: HTTPS should work, HTTP (80) should be denied by implicit deny.",
       effort: "high",
-      meta: "Jeremy's IT Lab Day 34-35 (Extended ACLs). Wendell Odom OCG Chapters 3-4 (Vol 2). Extended ACL syntax is HEAVILY tested. Practice writing the full command from scratch: protocol → source+wildcard → destination+wildcard → eq port."
-    }
+      meta: "Jeremy's IT Lab Day 34-35 (Extended ACLs). Wendell Odom OCG Chapters 3-4 (Vol 2). Extended ACL syntax is HEAVILY tested. Practice writing the full command from scratch: protocol → source+wildcard → destination+wildcard → eq port.",
+    },
+    micro: [
+      { id: "5.6.b.1", term: "Extended ACL",                 def: "Matches source + destination + protocol + port. Numbered 100-199, 2000-2699. Granular filtering.", weight: "high" },
+      { id: "5.6.b.2", term: "Extended ACL placement",       def: "As close to SOURCE as possible. Granular match = can block specific traffic without affecting others.", weight: "high" },
+      { id: "5.6.b.3", term: "Extended ACL syntax",          def: "'access-list [100-199] {permit|deny} [proto] [src wildcard] [dst wildcard] [operator port]'.", weight: "high" },
+      { id: "5.6.b.4", term: "Port operators",               def: "eq (equals), gt, lt, neq, range. Example: 'eq 80' matches HTTP. 'range 20 21' matches FTP.", weight: "high" }
+    ]
   },
 
   "5.6.c": {
@@ -634,8 +699,13 @@ window.subtopicContentD56 = {
       memory: "Named = NICE names. <code>BLOCK_TELNET</code> is instantly clear vs <code>access-list 150</code>. Named ACLs enter a sub-config mode where you type entries directly. Sequence numbers let you edit surgically.",
       practice: "Lab: <code>ip access-list extended ALLOW_WEB</code> → <code>10 permit tcp any any eq 80</code> → <code>20 permit tcp any any eq 443</code>. Then insert: <code>15 permit tcp any any eq 8080</code>. Delete: <code>no 20</code>. Verify with <code>show access-lists</code>.",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 35. Wendell Odom OCG Chapter 4 (Vol 2). The exam tests named ACL syntax and sequence number editing. Know the sub-config mode and <code>no [seq#]</code> to delete individual entries."
-    }
+      meta: "Jeremy's IT Lab Day 35. Wendell Odom OCG Chapter 4 (Vol 2). The exam tests named ACL syntax and sequence number editing. Know the sub-config mode and <code>no [seq#]</code> to delete individual entries.",
+    },
+    micro: [
+      { id: "5.6.c.1", term: "Named ACL",                    def: "Alternative to numbered. 'ip access-list {standard|extended} [name]' → sub-config mode.", weight: "high" },
+      { id: "5.6.c.2", term: "Sequence numbers",             def: "Each ACE has a seq number (10, 20, 30...). Insert by specifying seq. Delete with 'no [seq#]'.", weight: "high" },
+      { id: "5.6.c.3", term: "resequence command",           def: "'ip access-list resequence [name] [start] [increment]'. Renumber entries for easier insertion.", weight: "med" }
+    ]
   },
 
   "5.6.d": {
@@ -645,8 +715,13 @@ window.subtopicContentD56 = {
       memory: "Wildcard = 255 minus subnet mask, per octet. 0 = MUST match (check). 1 = DON'T care (ignore). Opposite of subnet mask. /24 → 0.0.0.255. /30 → 0.0.0.3. /28 → 0.0.0.15.",
       practice: "Speed drill: convert these to wildcards in under 60 seconds without a calculator: /24, /16, /28, /30, /27, /25, /32, /0. Then reverse: wildcard 0.0.0.63 = what prefix? (/26). Build speed.",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 33-35. Wendell Odom OCG Chapters 3-4 (Vol 2). Wildcard math appears on nearly every exam. The fastest method: 255 minus each octet. Practice until automatic — no thinking, just subtraction."
-    }
+      meta: "Jeremy's IT Lab Day 33-35. Wendell Odom OCG Chapters 3-4 (Vol 2). Wildcard math appears on nearly every exam. The fastest method: 255 minus each octet. Practice until automatic — no thinking, just subtraction.",
+    },
+    micro: [
+      { id: "5.6.d.1", term: "Wildcard mask",                def: "INVERSE of subnet mask. 0 = must match, 1 = don't care. 255.255.255.0 → 0.0.0.255.", weight: "high" },
+      { id: "5.6.d.2", term: "Quick math: 255 − mask octet", def: "/24 mask 255.255.255.0 → 0.0.0.255. /26 mask ...192 → 255-192=63 → 0.0.0.63.", weight: "high" },
+      { id: "5.6.d.3", term: "Single host wildcard",         def: "0.0.0.0 = exact IP match. 'host X.X.X.X' is shortcut for 'X.X.X.X 0.0.0.0'.", weight: "high" }
+    ]
   },
 
   "5.6.e": {
@@ -656,8 +731,13 @@ window.subtopicContentD56 = {
       memory: "0.0.0.0 = Host (all zeros = check ALL bits = one exact host). 255.255.255.255 = Any (all ones = check NO bits = any address). <code>host</code> and <code>any</code> are just shortcuts for these wildcards.",
       practice: "Translate both directions: <code>permit 10.1.1.1 0.0.0.0</code> → <code>permit host 10.1.1.1</code>. <code>deny 0.0.0.0 255.255.255.255</code> → <code>deny any</code>. <code>permit host 192.168.1.1</code> → <code>permit 192.168.1.1 0.0.0.0</code>. Practice until both forms are interchangeable in your mind.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 33-35. Wendell Odom OCG Chapters 3-4 (Vol 2). The exam uses both forms interchangeably. <code>host</code> = 0.0.0.0 wildcard. <code>any</code> = 255.255.255.255 wildcard. Know both directions instantly."
-    }
+      meta: "Jeremy's IT Lab Day 33-35. Wendell Odom OCG Chapters 3-4 (Vol 2). The exam uses both forms interchangeably. <code>host</code> = 0.0.0.0 wildcard. <code>any</code> = 255.255.255.255 wildcard. Know both directions instantly.",
+    },
+    micro: [
+      { id: "5.6.e.1", term: "host keyword",                 def: "'host 10.1.1.1' = '10.1.1.1 0.0.0.0'. Exact single-host match.", weight: "high" },
+      { id: "5.6.e.2", term: "any keyword",                  def: "'any' = '0.0.0.0 255.255.255.255'. Matches all IPs.", weight: "high" },
+      { id: "5.6.e.3", term: "Both forms valid",             def: "Exam uses both. 'permit host 10.1.1.1' and 'permit 10.1.1.1 0.0.0.0' are identical.", weight: "high" }
+    ]
   },
 
   "5.6.f": {
@@ -667,8 +747,13 @@ window.subtopicContentD56 = {
       memory: "Every ACL ends with an INVISIBLE 'deny all.' It's always there, you just can't see it. If you forget to permit something, it's gone. The invisible wall at the end catches EVERYTHING that wasn't explicitly allowed.",
       practice: "Lab: Create <code>access-list 10 permit 10.0.0.0 0.0.0.255</code> and apply it. Test: 10.x.x.x works, everything else blocked. Now add <code>access-list 10 deny any log</code> to make the implicit deny visible — watch the syslog messages for dropped packets.",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 33-35. Wendell Odom OCG Chapters 3-4 (Vol 2). The implicit deny is one of the most tested ACL concepts. If a question shows an ACL without <code>permit any</code>, ask: what gets silently blocked?"
-    }
+      meta: "Jeremy's IT Lab Day 33-35. Wendell Odom OCG Chapters 3-4 (Vol 2). The implicit deny is one of the most tested ACL concepts. If a question shows an ACL without <code>permit any</code>, ask: what gets silently blocked?",
+    },
+    micro: [
+      { id: "5.6.f.1", term: "Implicit deny any",            def: "Every ACL has invisible 'deny any' at the end. Traffic NOT explicitly permitted = BLOCKED.", weight: "high" },
+      { id: "5.6.f.2", term: "Always end with explicit deny?", def: "Optional but best practice — makes implicit deny visible. Also enables match-counter logging.", weight: "high" },
+      { id: "5.6.f.3", term: "Missing permit any trap",      def: "ACL only permits specific traffic → everything else silently dropped. Classic exam 'what's broken?' scenario.", weight: "high" }
+    ]
   },
 
   "5.6.g": {
@@ -678,8 +763,13 @@ window.subtopicContentD56 = {
       memory: "FIRST MATCH WINS. Like a bouncer with a checklist — checks top to bottom, acts on the FIRST match, ignores everything below. ORDER MATTERS. Specific before general. Always.",
       practice: "Write two ACLs: one correct (deny host first, permit subnet second) and one broken (reversed). Trace a packet from 10.0.0.5 through each. See how the broken order lets the host through. This cements the concept permanently.",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 33-35. Wendell Odom OCG Chapters 3-4 (Vol 2). Exam questions present ACLs and ask 'what happens to packet X?' Trace top-to-bottom, find first match, done. Don't read further."
-    }
+      meta: "Jeremy's IT Lab Day 33-35. Wendell Odom OCG Chapters 3-4 (Vol 2). Exam questions present ACLs and ask 'what happens to packet X?' Trace top-to-bottom, find first match, done. Don't read further.",
+    },
+    micro: [
+      { id: "5.6.g.1", term: "Top-down processing",          def: "Router evaluates ACEs in order (sequence number). First match wins. Stops processing immediately.", weight: "high" },
+      { id: "5.6.g.2", term: "Order matters",                def: "Specific rules must come BEFORE general rules. 'deny host X' above 'permit subnet' — reverse and host X would match 'permit' first.", weight: "high" },
+      { id: "5.6.g.3", term: "Trace exam method",            def: "Given packet + ACL, trace ACE-by-ACE until first match. Action at first match = the result.", weight: "high" }
+    ]
   },
 
   "5.6.h": {
@@ -689,8 +779,13 @@ window.subtopicContentD56 = {
       memory: "Standard = near Destination. Mnemonic: SD = Standard → Destination. Because standard only checks source, placing it near source blocks that source from reaching EVERYWHERE. Place at the end to be surgical.",
       practice: "Draw a network: Source → Router A → Router B → Router C → Destination. Also add a second destination off Router B. Place a standard ACL near the source and trace which destinations break. Move it near the intended destination and trace again. See the difference.",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 33-35. Wendell Odom OCG Chapters 3-4 (Vol 2). ACL placement = top-5 tested CCNA topic. Standard = destination, Extended = source. This alone answers many exam questions."
-    }
+      meta: "Jeremy's IT Lab Day 33-35. Wendell Odom OCG Chapters 3-4 (Vol 2). ACL placement = top-5 tested CCNA topic. Standard = destination, Extended = source. This alone answers many exam questions.",
+    },
+    micro: [
+      { id: "5.6.h.1", term: "Standard ACL near destination", def: "Blocks all source traffic. Must place near destination so legitimate traffic isn't blocked en route.", weight: "high" },
+      { id: "5.6.h.2", term: "Extended ACL near source",     def: "Specific match (src+dst+proto+port). Place near source to save bandwidth by dropping early.", weight: "high" },
+      { id: "5.6.h.3", term: "Why placement matters",        def: "Wrong placement = traffic dropped unnecessarily OR consumes bandwidth before being dropped.", weight: "high" }
+    ]
   },
 
   "5.6.i": {
@@ -700,8 +795,12 @@ window.subtopicContentD56 = {
       memory: "Extended = near Source. Mnemonic: ES = Extended → Source. Extended is specific enough to block precisely, so kill the bad traffic early and save bandwidth across the entire path.",
       practice: "Scenario: 'Block HTTP from 10.0.0.0/24 to 192.168.1.100.' Identify the source-side router. Write the ACL: <code>access-list 100 deny tcp 10.0.0.0 0.0.0.255 host 192.168.1.100 eq 80</code> + <code>access-list 100 permit ip any any</code>. Apply inbound on the source-side interface.",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 33-35. Wendell Odom OCG Chapters 3-4 (Vol 2). The exam gives a network diagram and asks where to place the ACL. Standard = destination, Extended = source. This pair of rules answers many questions."
-    }
+      meta: "Jeremy's IT Lab Day 33-35. Wendell Odom OCG Chapters 3-4 (Vol 2). The exam gives a network diagram and asks where to place the ACL. Standard = destination, Extended = source. This pair of rules answers many questions.",
+    },
+    micro: [
+      { id: "5.6.i.1", term: "ACL placement decision",        def: "Given topology diagram, determine where to apply ACL. Standard → closest to dest. Extended → closest to source.", weight: "high" },
+      { id: "5.6.i.2", term: "Scenario question method",     def: "Read: standard or extended? Read: source + destination. Apply the placement rule. Check direction.", weight: "high" }
+    ]
   },
 
   "5.6.j": {
@@ -711,8 +810,14 @@ window.subtopicContentD56 = {
       memory: "IN = coming INTO the router. OUT = going OUT of the router. Think from the ROUTER's view, not the user's. One ACL per direction per interface. Draw the router, draw arrows: IN points at the router, OUT points away.",
       practice: "Lab: <code>int Gi0/0</code> → <code>ip access-group 100 in</code>. Verify: <code>show ip interface Gi0/0</code> — look for 'Inbound access list is 100'. Test traffic in both directions to confirm only inbound is filtered.",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 33-35. Wendell Odom OCG Chapters 3-4 (Vol 2). The exam tests direction understanding. Draw the router, label interfaces, draw traffic arrows. IN = arrow toward router. OUT = arrow away."
-    }
+      meta: "Jeremy's IT Lab Day 33-35. Wendell Odom OCG Chapters 3-4 (Vol 2). The exam tests direction understanding. Draw the router, label interfaces, draw traffic arrows. IN = arrow toward router. OUT = arrow away.",
+    },
+    micro: [
+      { id: "5.6.j.1", term: "ACL direction: in",            def: "Traffic ENTERING the router through this interface. Before routing decision.", weight: "high" },
+      { id: "5.6.j.2", term: "ACL direction: out",           def: "Traffic LEAVING the router through this interface. After routing decision.", weight: "high" },
+      { id: "5.6.j.3", term: "ip access-group [ACL] {in|out}", def: "Apply ACL on an interface. Must specify direction.", weight: "high" },
+      { id: "5.6.j.4", term: "Think from router's view",     def: "Direction is relative to the ROUTER, not the client. In = into router. Out = out of router.", weight: "high" }
+    ]
   },
 
   "5.6.k": {
@@ -722,8 +827,13 @@ window.subtopicContentD56 = {
       memory: "access-CLASS = for VTY lines (who can SSH in). access-GROUP = for interfaces (what traffic flows through). CLASS = CLI access. GROUP = traffic flow. Don't mix them up — it's a common exam trap.",
       practice: "Lab: <code>access-list 5 permit host 10.0.0.50</code> → <code>line vty 0 15</code> → <code>access-class 5 in</code>. SSH from 10.0.0.50 (works) and from 10.0.0.99 (rejected). Verify with <code>show line vty 0</code>.",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 35. Wendell Odom OCG Chapter 4 (Vol 2). The exam specifically tests <code>access-class in</code> for VTY vs <code>ip access-group in|out</code> for interfaces. This distinction is a guaranteed trap question."
-    }
+      meta: "Jeremy's IT Lab Day 35. Wendell Odom OCG Chapter 4 (Vol 2). The exam specifically tests <code>access-class in</code> for VTY vs <code>ip access-group in|out</code> for interfaces. This distinction is a guaranteed trap question.",
+    },
+    micro: [
+      { id: "5.6.k.1", term: "access-class (VTY)",           def: "Apply ACL to VTY lines: 'access-class [ACL] in'. Controls who can SSH/Telnet to the router.", weight: "high" },
+      { id: "5.6.k.2", term: "ip access-group (interface)",  def: "Apply ACL to physical interface: 'ip access-group [ACL] {in|out}'. Filters transit traffic.", weight: "high" },
+      { id: "5.6.k.3", term: "Don't confuse the two",        def: "access-class for VTY, access-group for interfaces. Classic exam trap.", weight: "high" }
+    ]
   },
 
   "5.6.l": {
@@ -733,8 +843,13 @@ window.subtopicContentD56 = {
       memory: "Sequence numbers = line numbers in a text editor. Insert between lines, delete specific lines, renumber the whole file. Edit surgically — never destroy and rebuild the entire ACL.",
       practice: "Lab: Create a named ACL with 3 entries (10, 20, 30). Insert at 15. Delete 20 with <code>no 20</code>. Resequence with <code>ip access-list resequence MY_ACL 10 10</code>. Verify each step with <code>show access-lists</code>.",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 35. Wendell Odom OCG Chapter 4 (Vol 2). The exam tests ACL editing: <code>no [seq]</code> to delete, manual sequence to insert, <code>resequence</code> to renumber. Know you don't need to recreate the ACL."
-    }
+      meta: "Jeremy's IT Lab Day 35. Wendell Odom OCG Chapter 4 (Vol 2). The exam tests ACL editing: <code>no [seq]</code> to delete, manual sequence to insert, <code>resequence</code> to renumber. Know you don't need to recreate the ACL.",
+    },
+    micro: [
+      { id: "5.6.l.1", term: "ACL edit — delete entry",      def: "Under 'ip access-list' sub-config: 'no [seq#]'. Removes a single ACE without affecting others.", weight: "high" },
+      { id: "5.6.l.2", term: "ACL edit — insert entry",      def: "Type '[seq#] permit/deny ...' under the named ACL sub-config. Inserts at that sequence number.", weight: "high" },
+      { id: "5.6.l.3", term: "ip access-list resequence",    def: "Renumber existing ACEs to open space for inserts. E.g., 'resequence myacl 10 10' → 10, 20, 30...", weight: "med" }
+    ]
   },
 
   "5.6.m": {
@@ -744,8 +859,13 @@ window.subtopicContentD56 = {
       memory: "<code>show access-lists</code> = see the rules + hit counts. <code>show ip interface X</code> = see WHERE ACLs are applied. If hit count = 0, the ACL isn't matching traffic — wrong interface, wrong direction, or wrong rule.",
       practice: "Lab: Apply an ACL, generate traffic, run <code>show access-lists</code>. Watch match counters increment. If a rule shows 0 matches, troubleshoot: is the ACL on the right interface? Right direction? Is the rule order correct?",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 33-35. Wendell Odom OCG Chapters 3-4 (Vol 2). The exam shows <code>show access-lists</code> output and asks you to interpret it. Practice reading: sequence number → action (permit/deny) → criteria → match count."
-    }
+      meta: "Jeremy's IT Lab Day 33-35. Wendell Odom OCG Chapters 3-4 (Vol 2). The exam shows <code>show access-lists</code> output and asks you to interpret it. Practice reading: sequence number → action (permit/deny) → criteria → match count.",
+    },
+    micro: [
+      { id: "5.6.m.1", term: "show access-lists",            def: "Displays all ACLs and their entries with match counts. Primary ACL verification command.", weight: "high" },
+      { id: "5.6.m.2", term: "show ip interface [int]",      def: "Shows which ACL is applied on interface and direction. Useful for tracking application.", weight: "high" },
+      { id: "5.6.m.3", term: "show ip access-lists",         def: "Like show access-lists but IPv4 only. Same output format.", weight: "med" }
+    ]
   },
 
   // ── 5.7 Configure and verify Layer 2 security ────────────────
@@ -757,8 +877,13 @@ window.subtopicContentD56 = {
       memory: "DHCP Snooping = a SNOOPY guard checking DHCP packets. Untrusted ports can only ASK for addresses (client msgs), never GIVE them (server msgs). Trusted ports = real DHCP servers only.",
       practice: "In Packet Tracer: enable DHCP snooping globally and on VLAN 10. Set the uplink/server port as trusted. Connect a rogue DHCP server to an untrusted port — its Offer/ACK messages should be dropped.",
       effort: "high",
-      meta: "Jeremy's IT Lab Day 53 (DHCP Snooping). Wendell Odom OCG Chapter 30. DHCP snooping is foundational — DAI and IP Source Guard depend on the binding table. Learn snooping first, then DAI builds on top."
-    }
+      meta: "Jeremy's IT Lab Day 53 (DHCP Snooping). Wendell Odom OCG Chapter 30. DHCP snooping is foundational — DAI and IP Source Guard depend on the binding table. Learn snooping first, then DAI builds on top.",
+    },
+    micro: [
+      { id: "5.7.a.1", term: "DHCP snooping",                def: "L2 security feature. Blocks rogue DHCP servers. Only trusted ports forward DHCP offers.", weight: "high" },
+      { id: "5.7.a.2", term: "Trusted vs untrusted ports",   def: "Trusted = facing legit DHCP server. Untrusted = user ports, block DHCP server messages (offers).", weight: "high" },
+      { id: "5.7.a.3", term: "DHCP snooping binding table",  def: "IP ↔ MAC ↔ port ↔ VLAN. Built from observed DHCP transactions. Used by DAI and IP Source Guard.", weight: "high" }
+    ]
   },
 
   "5.7.b": {
@@ -768,8 +893,14 @@ window.subtopicContentD56 = {
       memory: "Three steps: 1) GLOBAL enable, 2) VLAN enable, 3) TRUST the server port. Forget any one and it fails. Gotcha: Option 82 can break DHCP — disable with <code>no ip dhcp snooping information option</code> if needed.",
       practice: "Type the full config from memory: <code>ip dhcp snooping</code> → <code>ip dhcp snooping vlan 10</code> → <code>int gi0/1</code> → <code>ip dhcp snooping trust</code>. Then add <code>no ip dhcp snooping information option</code>. Practice until eyes-closed.",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 53. Wendell Odom OCG Chapter 30. The exam tests exact commands and that you need BOTH global AND per-VLAN enablement. The Option 82 gotcha is a common lab troubleshooting issue."
-    }
+      meta: "Jeremy's IT Lab Day 53. Wendell Odom OCG Chapter 30. The exam tests exact commands and that you need BOTH global AND per-VLAN enablement. The Option 82 gotcha is a common lab troubleshooting issue.",
+    },
+    micro: [
+      { id: "5.7.b.1", term: "ip dhcp snooping (global)",    def: "Enables DHCP snooping globally on switch. Step 1.", weight: "high" },
+      { id: "5.7.b.2", term: "ip dhcp snooping vlan [#]",    def: "Enables snooping per-VLAN. Both global AND per-VLAN required.", weight: "high" },
+      { id: "5.7.b.3", term: "ip dhcp snooping trust",       def: "Interface command on trusted port (uplink toward DHCP server). Default = untrusted.", weight: "high" },
+      { id: "5.7.b.4", term: "Option 82 gotcha",             def: "By default DHCP snooping inserts Option 82. Relay may reject it. Use 'no ip dhcp snooping information option' if needed.", weight: "med" }
+    ]
   },
 
   "5.7.c": {
@@ -779,8 +910,12 @@ window.subtopicContentD56 = {
       memory: "The binding table = DHCP snooping's memory. It records WHO (MAC) got WHAT address (IP) on WHICH port (interface). DAI and IP Source Guard both READ this table for their validation.",
       practice: "Lab: Enable DHCP snooping, let a client obtain an address via DHCP, then <code>show ip dhcp snooping binding</code>. Verify the entry has MAC, IP, VLAN, and interface. This table is what DAI reads.",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 53. Wendell Odom OCG Chapter 30. The binding table links DHCP snooping to DAI. Exam question: 'What does DAI use to validate ARP?' Answer: the DHCP snooping binding table."
-    }
+      meta: "Jeremy's IT Lab Day 53. Wendell Odom OCG Chapter 30. The binding table links DHCP snooping to DAI. Exam question: 'What does DAI use to validate ARP?' Answer: the DHCP snooping binding table.",
+    },
+    micro: [
+      { id: "5.7.c.1", term: "Binding table = DAI source",   def: "DAI uses the DHCP snooping binding table to validate ARP replies. Without snooping, DAI has no data.", weight: "high" },
+      { id: "5.7.c.2", term: "show ip dhcp snooping binding", def: "View the binding table: IP, MAC, port, VLAN, lease expiration.", weight: "high" }
+    ]
   },
 
   "5.7.d": {
@@ -790,8 +925,13 @@ window.subtopicContentD56 = {
       memory: "Rate limiting = speed bumps for DHCP. Normal PC: 1-4 DHCP packets at a time. Starvation attack: thousands per second. Rate limit catches the flood and err-disables the port.",
       practice: "Lab: <code>int gi0/5</code> → <code>ip dhcp snooping limit rate 10</code>. Generate excessive DHCP traffic and watch the port go err-disabled. Recover with <code>shutdown</code> / <code>no shutdown</code>. Then configure auto-recovery: <code>errdisable recovery cause dhcp-rate-limit</code>.",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 53. Wendell Odom OCG Chapter 30. The exam may ask about DHCP starvation: what is it (MAC spoofing to exhaust the pool) and how to prevent it (DHCP snooping + rate limiting)."
-    }
+      meta: "Jeremy's IT Lab Day 53. Wendell Odom OCG Chapter 30. The exam may ask about DHCP starvation: what is it (MAC spoofing to exhaust the pool) and how to prevent it (DHCP snooping + rate limiting).",
+    },
+    micro: [
+      { id: "5.7.d.1", term: "DHCP starvation attack",       def: "Attacker requests many DHCP leases using spoofed MACs. Exhausts DHCP pool. Legit clients get denied.", weight: "high" },
+      { id: "5.7.d.2", term: "DHCP starvation mitigation",   def: "DHCP snooping + port security (limit MACs) + rate limiting DHCP messages per port.", weight: "high" },
+      { id: "5.7.d.3", term: "ip dhcp snooping limit rate",  def: "Per-port rate limit for DHCP packets. Prevents starvation and rogue flooding.", weight: "med" }
+    ]
   },
 
   "5.7.e": {
@@ -801,8 +941,14 @@ window.subtopicContentD56 = {
       memory: "DAI = the ARP detective. Checks every ARP packet against the binding table. If the story doesn't match the records, DROPPED. Prerequisite: DHCP snooping must be enabled first (provides the binding table).",
       practice: "Lab: Enable DHCP snooping first (global + VLAN + trust server port). Then enable DAI: <code>ip arp inspection vlan 10</code>. Trust uplinks: <code>ip arp inspection trust</code>. Verify with <code>show ip arp inspection</code>.",
       effort: "high",
-      meta: "Jeremy's IT Lab Day 53. Wendell Odom OCG Chapter 30. DAI depends on DHCP snooping. Exam question: 'What must be enabled before DAI?' = DHCP snooping. 'What does DAI use?' = DHCP snooping binding table."
-    }
+      meta: "Jeremy's IT Lab Day 53. Wendell Odom OCG Chapter 30. DAI depends on DHCP snooping. Exam question: 'What must be enabled before DAI?' = DHCP snooping. 'What does DAI use?' = DHCP snooping binding table.",
+    },
+    micro: [
+      { id: "5.7.e.1", term: "DAI (Dynamic ARP Inspection)", def: "L2 security. Validates ARP replies against DHCP snooping binding table. Stops ARP spoofing.", weight: "high" },
+      { id: "5.7.e.2", term: "DAI requires DHCP snooping",   def: "DAI uses the binding table that DHCP snooping builds. Enable snooping FIRST.", weight: "high" },
+      { id: "5.7.e.3", term: "ip arp inspection vlan [#]",   def: "Enable DAI per VLAN.", weight: "high" },
+      { id: "5.7.e.4", term: "ip arp inspection trust",      def: "Interface command. Trusted ports (uplinks) bypass ARP inspection. User ports = untrusted (default).", weight: "high" }
+    ]
   },
 
   "5.7.f": {
@@ -812,8 +958,13 @@ window.subtopicContentD56 = {
       memory: "DAI config mirrors DHCP snooping: enable per VLAN, trust uplinks. Same pattern. DHCP snooping MUST come first. For static IPs, use ARP ACLs to manually define bindings.",
       practice: "Full chain from scratch: DHCP snooping (global → VLAN → trust server) → DAI (VLAN → trust uplinks). For static hosts, add ARP ACL. Practice the entire chain as one workflow.",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 53. Wendell Odom OCG Chapter 30. The exam tests the full dependency chain: DHCP snooping → binding table → DAI. Trust the right ports on BOTH features."
-    }
+      meta: "Jeremy's IT Lab Day 53. Wendell Odom OCG Chapter 30. The exam tests the full dependency chain: DHCP snooping → binding table → DAI. Trust the right ports on BOTH features.",
+    },
+    micro: [
+      { id: "5.7.f.1", term: "Dependency chain",             def: "DHCP snooping → populates binding table → DAI reads binding table → validates ARP.", weight: "high" },
+      { id: "5.7.f.2", term: "Trust same ports on both",     def: "Port connecting to legit DHCP server + ARP source = trusted for both DHCP snooping AND DAI.", weight: "high" },
+      { id: "5.7.f.3", term: "Full L2 security stack",       def: "Port security + DHCP snooping + DAI + IP Source Guard = comprehensive access-layer security.", weight: "med" }
+    ]
   },
 
   "5.7.g": {
@@ -823,8 +974,13 @@ window.subtopicContentD56 = {
       memory: "Port security = a bouncer checking MAC IDs at the door. Only approved MACs get in. Too many strangers = the port shuts down. Prevents MAC flooding (CAM table overflow → switch acts like a hub).",
       practice: "Understand the MAC flooding attack: attacker sends random source MACs → CAM table fills → switch floods all traffic → attacker captures everything. Port security stops this by limiting MACs per port.",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 53 (Port Security). Wendell Odom OCG Chapter 30. Port security purpose, config, and violation modes are tested as a group. Study all three together as one unit."
-    }
+      meta: "Jeremy's IT Lab Day 53 (Port Security). Wendell Odom OCG Chapter 30. Port security purpose, config, and violation modes are tested as a group. Study all three together as one unit.",
+    },
+    micro: [
+      { id: "5.7.g.1", term: "Port security",                def: "L2 feature. Limits which MAC addresses can connect on a port. Prevents rogue device attachment.", weight: "high" },
+      { id: "5.7.g.2", term: "Max MACs per port",            def: "Default 1 when enabled. Configurable with 'switchport port-security maximum [N]'.", weight: "high" },
+      { id: "5.7.g.3", term: "Purpose",                      def: "Stops MAC flooding attacks + enforces 'one-device-per-port' policies. First line of access-layer defense.", weight: "high" }
+    ]
   },
 
   "5.7.h": {
@@ -834,8 +990,14 @@ window.subtopicContentD56 = {
       memory: "ACCESS mode first (prerequisite), then enable port-security, then max + violation + sticky/static. Without <code>switchport mode access</code>, port security refuses to activate. Defaults: max=1, violation=shutdown.",
       practice: "Full lab: <code>switchport mode access</code> → <code>switchport port-security</code> → <code>switchport port-security maximum 2</code> → <code>switchport port-security mac-address sticky</code> → <code>switchport port-security violation restrict</code>. Connect a device, verify with <code>show port-security interface</code>. Connect a third device — violation triggered.",
       effort: "high",
-      meta: "Jeremy's IT Lab Day 53. Wendell Odom OCG Chapter 30. The exam expects commands in correct order. Most common mistake: enabling port-security on a trunk or dynamic port — it ONLY works on access ports."
-    }
+      meta: "Jeremy's IT Lab Day 53. Wendell Odom OCG Chapter 30. The exam expects commands in correct order. Most common mistake: enabling port-security on a trunk or dynamic port — it ONLY works on access ports.",
+    },
+    micro: [
+      { id: "5.7.h.1", term: "Port-security prereq",         def: "Port must be ACCESS mode. 'switchport mode access' first. Fails on trunk or dynamic.", weight: "high" },
+      { id: "5.7.h.2", term: "switchport port-security",     def: "Interface command. Enables port security on the port.", weight: "high" },
+      { id: "5.7.h.3", term: "maximum / mac-address",        def: "'port-security maximum [N]' sets max MACs. 'port-security mac-address [MAC]' statically allows specific MAC.", weight: "high" },
+      { id: "5.7.h.4", term: "Config order",                 def: "(1) mode access, (2) port-security enable, (3) max, (4) mac-address or sticky, (5) violation mode.", weight: "high" }
+    ]
   },
 
   "5.7.i": {
@@ -845,8 +1007,13 @@ window.subtopicContentD56 = {
       memory: "STICKY = the MAC STICKS to the config like tape. Auto-learned but written to running-config. Must <code>copy run start</code> to survive reboot. Three modes: Dynamic (volatile) → Sticky (semi-persistent) → Static (manual, strongest).",
       practice: "Lab: Enable sticky. Connect a device. <code>show running-config interface Gi0/1</code> — see the sticky MAC auto-added. Bounce the port — MAC survives. <code>reload</code> without saving — MAC gone. Then save and reload — MAC persists.",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 53. Wendell Odom OCG Chapter 30. Exam question: 'How to auto-learn and retain MACs?' = sticky. Critical detail: must SAVE config (<code>copy run start</code>) or sticky MACs are lost on reboot."
-    }
+      meta: "Jeremy's IT Lab Day 53. Wendell Odom OCG Chapter 30. Exam question: 'How to auto-learn and retain MACs?' = sticky. Critical detail: must SAVE config (<code>copy run start</code>) or sticky MACs are lost on reboot.",
+    },
+    micro: [
+      { id: "5.7.i.1", term: "switchport port-security mac-address sticky", def: "Auto-learn connected MACs and ADD them to running-config. Convenient — no manual MAC entry.", weight: "high" },
+      { id: "5.7.i.2", term: "Sticky reboot gotcha",         def: "Sticky MACs are in RUNNING-config. Must 'copy run start' or they're lost on reboot (re-learned after).", weight: "high" },
+      { id: "5.7.i.3", term: "Static vs sticky",             def: "Static = manually typed in config. Sticky = auto-learned but saved as static. Both persistent.", weight: "high" }
+    ]
   },
 
   "5.7.j": {
@@ -856,8 +1023,14 @@ window.subtopicContentD56 = {
       memory: "P-R-S: Protect (silent drop), Restrict (drop + Report), Shutdown (Slam the port). Severity left to right. Default = Shutdown. Key fact: Protect has NO log — invisible. Restrict has a log — visible. Shutdown kills the port.",
       practice: "Lab: Test each mode sequentially. Set <code>violation protect</code> + trigger violation → traffic drops but nothing visible. Set <code>violation restrict</code> → see syslog message. Set <code>violation shutdown</code> → port goes err-disabled, verify with <code>show interfaces status</code>.",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 53. Wendell Odom OCG Chapter 30. The exam tests all three modes. Key facts: Protect = NO log. Restrict = log + port stays up. Shutdown = err-disabled (DEFAULT). Know what each does and doesn't do."
-    }
+      meta: "Jeremy's IT Lab Day 53. Wendell Odom OCG Chapter 30. The exam tests all three modes. Key facts: Protect = NO log. Restrict = log + port stays up. Shutdown = err-disabled (DEFAULT). Know what each does and doesn't do.",
+    },
+    micro: [
+      { id: "5.7.j.1", term: "Protect mode",                 def: "Drops violating frames silently. NO log, NO SNMP trap. Port stays up. Weakest enforcement.", weight: "high" },
+      { id: "5.7.j.2", term: "Restrict mode",                def: "Drops violating frames + LOGS syslog/SNMP trap + increments counter. Port stays up.", weight: "high" },
+      { id: "5.7.j.3", term: "Shutdown mode (default)",      def: "Port → err-disabled. Requires manual intervention. Logs + increments violation count. DEFAULT.", weight: "high" },
+      { id: "5.7.j.4", term: "switchport port-security violation", def: "Interface command. Takes 'protect', 'restrict', or 'shutdown'. Default is 'shutdown'.", weight: "high" }
+    ]
   },
 
   "5.7.k": {
@@ -867,8 +1040,13 @@ window.subtopicContentD56 = {
       memory: "Err-disabled = the port is in JAIL. Manual recovery = you bail it out (<code>shut</code> / <code>no shut</code>). Auto recovery = parole after a timer. Default timer: 300 seconds (5 min). Always investigate WHY before recovering.",
       practice: "Lab: Trigger err-disabled via port security. Recover manually: <code>shut</code> → <code>no shut</code>. Then enable auto-recovery: <code>errdisable recovery cause psecure-violation</code> → <code>errdisable recovery interval 30</code>. Trigger again and watch it auto-recover. Verify with <code>show errdisable recovery</code>.",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 53. Wendell Odom OCG Chapter 30. The exam tests both recovery methods. Manual = <code>shut</code> / <code>no shut</code>. Auto = <code>errdisable recovery cause</code> + <code>interval</code>. Know both."
-    }
+      meta: "Jeremy's IT Lab Day 53. Wendell Odom OCG Chapter 30. The exam tests both recovery methods. Manual = <code>shut</code> / <code>no shut</code>. Auto = <code>errdisable recovery cause</code> + <code>interval</code>. Know both.",
+    },
+    micro: [
+      { id: "5.7.k.1", term: "err-disabled recovery manual", def: "'shutdown' then 'no shutdown' on the port. Returns to normal operation.", weight: "high" },
+      { id: "5.7.k.2", term: "errdisable recovery cause",    def: "Global command to auto-recover. E.g., 'errdisable recovery cause psecure-violation' enables auto-recovery from port security.", weight: "high" },
+      { id: "5.7.k.3", term: "errdisable recovery interval", def: "Time (seconds) before auto-recovery attempt. Default 300s.", weight: "med" }
+    ]
   },
 
   // ── 5.8 Compare AAA concepts ──────────────────────────────────
@@ -880,8 +1058,14 @@ window.subtopicContentD56 = {
       memory: "Authentication = WHO are you? Show your ID at the door. First A in AAA. You can't authorize (what can you do?) until you authenticate (who are you?). Identity first, permissions second, logging third.",
       practice: "Map the AAA sequence to a building: 1) Authentication = showing your badge at the entrance (proving identity), 2) Authorization = your badge opens certain floors but not others (permissions), 3) Accounting = security cameras recording which floors you visited (audit trail).",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 50 (AAA). Wendell Odom OCG Chapter 10 + Chapter 27. Distinguish the three A's clearly: Authentication = identity, Authorization = permissions, Accounting = logging. The exam loves 'which AAA function does X?'"
-    }
+      meta: "Jeremy's IT Lab Day 50 (AAA). Wendell Odom OCG Chapter 10 + Chapter 27. Distinguish the three A's clearly: Authentication = identity, Authorization = permissions, Accounting = logging. The exam loves 'which AAA function does X?'",
+    },
+    micro: [
+      { id: "5.8.a.1", term: "Authentication",               def: "Proves WHO you are. Credentials verified (password, certificate, token).", weight: "high" },
+      { id: "5.8.a.2", term: "Authorization",                def: "Defines WHAT you can do. Privilege levels, command restrictions, access scope.", weight: "high" },
+      { id: "5.8.a.3", term: "Accounting",                   def: "Records WHAT you DID. Audit trail of actions for compliance and forensics.", weight: "high" },
+      { id: "5.8.a.4", term: "AAA order",                    def: "Authenticate first → Authorize → Account. Order matters — can't authorize unknown user.", weight: "med" }
+    ]
   },
 
   "5.8.b": {
@@ -891,8 +1075,13 @@ window.subtopicContentD56 = {
       memory: "Authorization = WHAT can you do? You're in the building (authenticated), but which doors can you open? Your badge level determines access. Priv 15 = all doors. Priv 1 = lobby only.",
       practice: "Scenario drill: Admin logs in → TACACS+ returns priv 15 → full CLI access. Helpdesk logs in → TACACS+ returns priv 5 → show commands only, no config mode. Different users, different authorization.",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 50. Wendell Odom OCG Chapter 10 + 27. Authorization = privilege levels and command restrictions. It defines WHAT the user can do AFTER proving WHO they are."
-    }
+      meta: "Jeremy's IT Lab Day 50. Wendell Odom OCG Chapter 10 + 27. Authorization = privilege levels and command restrictions. It defines WHAT the user can do AFTER proving WHO they are.",
+    },
+    micro: [
+      { id: "5.8.b.1", term: "Privilege levels",             def: "0-15. 15 = full access (enable). 1 = user-mode. Custom levels let you authorize specific commands.", weight: "high" },
+      { id: "5.8.b.2", term: "Per-command authorization",    def: "TACACS+ feature. Authorize/deny individual IOS commands per user. RADIUS can't do this.", weight: "high" },
+      { id: "5.8.b.3", term: "privilege exec level",         def: "Assign commands to custom privilege levels. Enables role-based access without full enable rights.", weight: "med" }
+    ]
   },
 
   "5.8.c": {
@@ -902,8 +1091,13 @@ window.subtopicContentD56 = {
       memory: "Accounting = the SECURITY CAMERA recording everything. Who logged in, what they typed, when they left. The audit trail that answers 'what happened?' Essential for compliance and forensics.",
       practice: "Configure accounting on a lab device: <code>aaa accounting exec default start-stop group tacacs+</code>. Log in, run commands, review accounting records on the server. See the trail of every command.",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 50. Wendell Odom OCG Chapter 10 + 27. Authentication = identity. Authorization = permissions. Accounting = logging. Accounting is often the forgotten A, but it's critical for compliance."
-    }
+      meta: "Jeremy's IT Lab Day 50. Wendell Odom OCG Chapter 10 + 27. Authentication = identity. Authorization = permissions. Accounting = logging. Accounting is often the forgotten A, but it's critical for compliance.",
+    },
+    micro: [
+      { id: "5.8.c.1", term: "Accounting purpose",           def: "Audit trail. Records who logged in, what commands they ran, when they logged out. For compliance and forensics.", weight: "high" },
+      { id: "5.8.c.2", term: "Accounting methods",           def: "Commands, exec (session start/stop), system events. Each can be logged separately.", weight: "med" },
+      { id: "5.8.c.3", term: "Compliance value",             def: "HIPAA, PCI-DSS, SOX require audit trails. Accounting provides the evidence for audits.", weight: "med" }
+    ]
   },
 
   "5.8.d": {
@@ -913,8 +1107,12 @@ window.subtopicContentD56 = {
       memory: "TACACS+ = TCP 49, Total encryption, Three separate AAA functions, per-command authorization. The T's: TCP, Total, Three, TACACS. Cisco-made for managing Cisco devices.",
       practice: "Build a TACACS+ vs RADIUS comparison table from memory: Port (49 vs 1812/1813), Protocol (TCP vs UDP), Encryption (full vs password-only), AAA Separation (yes vs no), Standard (Cisco vs open), Best for (device admin vs network access). Fill all 6 rows.",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 50. Wendell Odom OCG Chapter 10 + 27. TACACS+ vs RADIUS is one of the most tested AAA topics. Scenario: 'which protocol for device admin?' = TACACS+. 'For 802.1X?' = RADIUS."
-    }
+      meta: "Jeremy's IT Lab Day 50. Wendell Odom OCG Chapter 10 + 27. TACACS+ vs RADIUS is one of the most tested AAA topics. Scenario: 'which protocol for device admin?' = TACACS+. 'For 802.1X?' = RADIUS.",
+    },
+    micro: [
+      { id: "5.8.d.1", term: "Device admin → TACACS+",       def: "Cisco-proprietary. Full packet encryption. Separates AAA. Per-command authorization. Ideal for router/switch mgmt.", weight: "high" },
+      { id: "5.8.d.2", term: "Network access → RADIUS",      def: "Open standard. 802.1X wired/wireless, VPN authentication, WPA2-Enterprise. Multi-vendor.", weight: "high" }
+    ]
   },
 
   "5.8.e": {
@@ -924,8 +1122,13 @@ window.subtopicContentD56 = {
       memory: "RADIUS = UDP 1812/1813, password-only encryption, combines auth+authz (can't separate), open standard, multi-vendor. R = Remote access = RADIUS. Used for 802.1X, wireless, VPN.",
       practice: "Contrast with TACACS+: RADIUS = UDP + password encryption + combined auth/authz + open. TACACS+ = TCP + full encryption + separated AAA + Cisco. Drill until you can recite differences in 10 seconds.",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 50. Wendell Odom OCG Chapter 10 + 27. Key exam facts: RADIUS = UDP, open, password-only encryption, combined auth/authz. TACACS+ = TCP, Cisco, full encryption, separated AAA."
-    }
+      meta: "Jeremy's IT Lab Day 50. Wendell Odom OCG Chapter 10 + 27. Key exam facts: RADIUS = UDP, open, password-only encryption, combined auth/authz. TACACS+ = TCP, Cisco, full encryption, separated AAA.",
+    },
+    micro: [
+      { id: "5.8.e.1", term: "RADIUS recap",                 def: "UDP 1812/1813. Open standard. Only password encrypted. Combines auth+authz. Network ACCESS.", weight: "high" },
+      { id: "5.8.e.2", term: "TACACS+ recap",                def: "TCP 49. Cisco proprietary. FULL packet encryption. Separates AAA. Device ADMIN.", weight: "high" },
+      { id: "5.8.e.3", term: "Protocol/port summary",        def: "RADIUS=UDP 1812/1813. TACACS+=TCP 49. This is tested every exam cycle.", weight: "high" }
+    ]
   },
 
   "5.8.f": {
@@ -935,8 +1138,14 @@ window.subtopicContentD56 = {
       memory: "TACACS+ = managing DEVICES (admin CLI, per-command control). RADIUS = managing USER ACCESS to the network (802.1X, wireless, VPN). Both can coexist: TACACS+ for admin, RADIUS for users.",
       practice: "Scenario drill: 'Control which show commands helpdesk can run' = TACACS+ (per-command auth). 'Authenticate wireless users via 802.1X' = RADIUS. 'VPN user login' = RADIUS. 'Router management login' = TACACS+.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 50. Wendell Odom OCG Chapter 10 + 27. Use case determines protocol. Device admin = TACACS+. Network access = RADIUS. The 802.1X trio: Supplicant, Authenticator, Authentication Server."
-    }
+      meta: "Jeremy's IT Lab Day 50. Wendell Odom OCG Chapter 10 + 27. Use case determines protocol. Device admin = TACACS+. Network access = RADIUS. The 802.1X trio: Supplicant, Authenticator, Authentication Server.",
+    },
+    micro: [
+      { id: "5.8.f.1", term: "802.1X Supplicant",            def: "Client device requesting access. Runs 802.1X software. Provides credentials.", weight: "high" },
+      { id: "5.8.f.2", term: "802.1X Authenticator",         def: "Switch/WLC. Intermediate device. Forwards credentials from supplicant to authentication server. Enforces decision.", weight: "high" },
+      { id: "5.8.f.3", term: "802.1X Authentication Server", def: "Typically RADIUS server (Cisco ISE, Microsoft NPS). Validates credentials against user database.", weight: "high" },
+      { id: "5.8.f.4", term: "EAP",                          def: "Extensible Authentication Protocol. Framework 802.1X uses. EAP-TLS, PEAP, EAP-FAST are common methods.", weight: "med" }
+    ]
   },
 
   // ── 5.9 Describe wireless security protocols ──────────────────
@@ -948,8 +1157,13 @@ window.subtopicContentD56 = {
       memory: "WEP = Weak Encryption Protocol (unofficial but true). 24-bit IV = too short → repeats → cracked in minutes. RC4 cipher + static keys + short IV = completely broken. Never use WEP for anything.",
       practice: "Memorize the evolution timeline with cipher: WEP (RC4, 24-bit IV, broken) → WPA (TKIP/RC4, 48-bit IV, deprecated) → WPA2 (AES/CCMP, current) → WPA3 (SAE/OWE, newest). Know what each generation changes.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 56 (Wireless Security). Wendell Odom OCG Chapter 29. The exam tests WHY WEP is broken: 24-bit IV is too short and reuses keys. Don't just know 'WEP is bad' — know the mechanism."
-    }
+      meta: "Jeremy's IT Lab Day 56 (Wireless Security). Wendell Odom OCG Chapter 29. The exam tests WHY WEP is broken: 24-bit IV is too short and reuses keys. Don't just know 'WEP is bad' — know the mechanism.",
+    },
+    micro: [
+      { id: "5.9.a.1", term: "WEP",                          def: "Original wireless encryption. RC4 cipher. COMPLETELY BROKEN. Never use.", weight: "high" },
+      { id: "5.9.a.2", term: "WEP 24-bit IV problem",        def: "Initialization Vector is only 24 bits. Reuses within ~5000 frames. Attacker captures enough → cracks key in minutes.", weight: "high" },
+      { id: "5.9.a.3", term: "WEP static keys",              def: "Same key across all devices. Never rotated. If one device compromised, entire network is exposed.", weight: "med" }
+    ]
   },
 
   "5.9.b": {
@@ -959,8 +1173,13 @@ window.subtopicContentD56 = {
       memory: "WPA = band-aid over WEP. TKIP = Temporary Key Integrity Protocol — the name literally says TEMPORARY. Still uses RC4 but adds 48-bit IV + per-packet keys + MIC. Better than WEP, but now deprecated.",
       practice: "Build a comparison: WEP vs WPA — both use RC4, but WPA adds TKIP (48-bit IV, per-packet keys, MIC). Then WPA vs WPA2 — WPA2 drops RC4/TKIP entirely and uses AES/CCMP. Track the cipher changes.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 56. Wendell Odom OCG Chapter 29. Know the cipher per generation: WEP = RC4 (broken). WPA = TKIP/RC4 (deprecated). WPA2 = AES/CCMP (current). WPA3 = SAE + AES/GCMP."
-    }
+      meta: "Jeremy's IT Lab Day 56. Wendell Odom OCG Chapter 29. Know the cipher per generation: WEP = RC4 (broken). WPA = TKIP/RC4 (deprecated). WPA2 = AES/CCMP (current). WPA3 = SAE + AES/GCMP.",
+    },
+    micro: [
+      { id: "5.9.b.1", term: "WPA (TKIP)",                   def: "Wi-Fi Protected Access v1. Uses TKIP (still RC4-based). Temporary fix between WEP and WPA2. Now deprecated.", weight: "high" },
+      { id: "5.9.b.2", term: "TKIP purpose",                 def: "Made WEP-era hardware usable. Added per-packet keys and MIC. But TKIP itself has known weaknesses now.", weight: "med" },
+      { id: "5.9.b.3", term: "Wireless cipher evolution",    def: "WEP (RC4) → WPA (TKIP/RC4) → WPA2 (AES/CCMP) → WPA3 (AES/GCMP + SAE).", weight: "high" }
+    ]
   },
 
   "5.9.c": {
@@ -970,8 +1189,13 @@ window.subtopicContentD56 = {
       memory: "WPA2 = AES + CCMP = current gold standard. AES = the cipher that hasn't been cracked. CCMP = does BOTH encryption and integrity in one protocol. Two modes: Personal (PSK, shared password) vs Enterprise (802.1X, individual creds).",
       practice: "Configure WPA2-PSK in Packet Tracer: create WLAN → Security → WPA2/AES → set PSK. Connect a laptop. Then reconfigure for WPA2-Enterprise: point to RADIUS server → test 802.1X authentication. Know both workflows.",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 56. Wendell Odom OCG Chapter 29. WPA2 is the most heavily tested wireless security standard. Know: AES/CCMP, Personal vs Enterprise, and it's the minimum acceptable standard."
-    }
+      meta: "Jeremy's IT Lab Day 56. Wendell Odom OCG Chapter 29. WPA2 is the most heavily tested wireless security standard. Know: AES/CCMP, Personal vs Enterprise, and it's the minimum acceptable standard.",
+    },
+    micro: [
+      { id: "5.9.c.1", term: "WPA2",                         def: "IEEE 802.11i standard. Current production baseline. Uses AES-CCMP encryption.", weight: "high" },
+      { id: "5.9.c.2", term: "AES-CCMP",                     def: "WPA2's strong cipher. Counter Mode with CBC-MAC Protocol. Replaces TKIP.", weight: "high" },
+      { id: "5.9.c.3", term: "WPA2 minimum standard",        def: "Any enterprise deploying today should at minimum use WPA2 + AES. TKIP only for legacy compat.", weight: "high" }
+    ]
   },
 
   "5.9.d": {
@@ -981,8 +1205,14 @@ window.subtopicContentD56 = {
       memory: "WPA3 adds three things: SAE (kills offline dictionary attacks on passwords), OWE (encrypts open/public WiFi), 192-bit (government-grade enterprise crypto). SAE = Simultaneous Authentication of Equals. OWE = Opportunistic Wireless Encryption.",
       practice: "List what WPA3 fixes vs WPA2: 1) SAE replaces PSK 4-way handshake (no more offline cracking). 2) OWE encrypts open networks (no more cleartext at Starbucks). 3) 192-bit enterprise option. Know what each SOLVES.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 56. Wendell Odom OCG Chapter 29. WPA3 is newer exam content (CCNA v1.1). Know SAE, OWE, and 192-bit. The exam tests what WPA3 ADDS over WPA2 — not deep protocol details."
-    }
+      meta: "Jeremy's IT Lab Day 56. Wendell Odom OCG Chapter 29. WPA3 is newer exam content (CCNA v1.1). Know SAE, OWE, and 192-bit. The exam tests what WPA3 ADDS over WPA2 — not deep protocol details.",
+    },
+    micro: [
+      { id: "5.9.d.1", term: "WPA3",                         def: "Newest WPA standard. Adds SAE, OWE, forward secrecy. Drops WPS. Currently rolling out.", weight: "high" },
+      { id: "5.9.d.2", term: "SAE (Dragonfly)",              def: "Simultaneous Authentication of Equals. Replaces PSK handshake. Forward secrecy; resists offline dictionary attacks.", weight: "high" },
+      { id: "5.9.d.3", term: "OWE",                          def: "Opportunistic Wireless Encryption. Encrypts open networks (no password). Replaces plaintext on public WiFi.", weight: "high" },
+      { id: "5.9.d.4", term: "WPA3-Enterprise 192-bit",      def: "Higher-security mode. 192-bit crypto for government/financial. Uses CNSA suite.", weight: "med" }
+    ]
   },
 
   "5.9.e": {
@@ -992,8 +1222,13 @@ window.subtopicContentD56 = {
       memory: "Personal = PSK = one shared PASSWORD for everyone. Like a house key — if you give copies to 50 people, security depends on the most careless person. Simple but no accountability. Home/small office only.",
       practice: "Configure WPA2-Personal on a lab AP. Connect with the PSK. Change the PSK — verify old devices disconnect. Understand why managing 500 users with a shared password is impractical (that's what Enterprise solves).",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 56. Wendell Odom OCG Chapter 29. Personal = PSK = shared password = home/SOHO. Enterprise = 802.1X = individual credentials = corporate. The exam gives scenarios — pick the right mode."
-    }
+      meta: "Jeremy's IT Lab Day 56. Wendell Odom OCG Chapter 29. Personal = PSK = shared password = home/SOHO. Enterprise = 802.1X = individual credentials = corporate. The exam gives scenarios — pick the right mode.",
+    },
+    micro: [
+      { id: "5.9.e.1", term: "Personal mode",                def: "PSK (pre-shared key). Everyone uses the same password. Simple. Used in home/SOHO.", weight: "high" },
+      { id: "5.9.e.2", term: "Enterprise mode",              def: "802.1X. Each user has unique credentials. Requires RADIUS. Used in corporate networks.", weight: "high" },
+      { id: "5.9.e.3", term: "Scenario decision",            def: "'Home network' → Personal. 'Corporate with AD' → Enterprise. 'Small office no RADIUS' → Personal.", weight: "high" }
+    ]
   },
 
   "5.9.f": {
@@ -1003,8 +1238,13 @@ window.subtopicContentD56 = {
       memory: "Enterprise = 802.1X = RADIUS = INDIVIDUAL credentials. Three players: Supplicant (client requesting access), Authenticator (AP/switch controlling access), Authentication Server (RADIUS making the decision). S-A-S.",
       practice: "Set up 802.1X in Packet Tracer or a lab: configure the AP as authenticator pointing to a RADIUS server. Test with a supplicant (laptop). Verify the three-party flow: supplicant → authenticator → RADIUS → back.",
       effort: "high",
-      meta: "Jeremy's IT Lab Day 56. Wendell Odom OCG Chapter 10 + 29. The 802.1X roles (supplicant, authenticator, authentication server) are heavily tested. Know all three and which device fills each role."
-    }
+      meta: "Jeremy's IT Lab Day 56. Wendell Odom OCG Chapter 10 + 29. The 802.1X roles (supplicant, authenticator, authentication server) are heavily tested. Know all three and which device fills each role.",
+    },
+    micro: [
+      { id: "5.9.f.1", term: "Wireless 802.1X supplicant",   def: "Client device (laptop, phone). Has 802.1X software configured with credentials or cert.", weight: "high" },
+      { id: "5.9.f.2", term: "Wireless 802.1X authenticator", def: "The WLC or AP. Forwards EAP messages between supplicant and RADIUS server.", weight: "high" },
+      { id: "5.9.f.3", term: "Wireless 802.1X auth server",  def: "RADIUS server (ISE/NPS). Validates credentials against AD or internal database. Returns Accept/Reject.", weight: "high" }
+    ]
   },
 
   // ── 5.10 Configure WLAN with WPA2 PSK ────────────────────────
@@ -1016,8 +1256,13 @@ window.subtopicContentD56 = {
       memory: "WLC access = HTTPS to the management IP (like any web-managed device). Console for initial setup. GUI tabs: Monitor, WLANs, Controller, Wireless, Security, Management.",
       practice: "If you have access to Cisco CML, Packet Tracer (3504 WLC), or the Cisco DevNet Sandbox WLC, navigate the GUI. Click through each tab. Know where WLANs, Security, and Interfaces live.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 57-58 (WLC Configuration). Wendell Odom OCG Chapter 29. The exam tests WLC management basics: HTTPS for GUI, console for initial setup, and general navigation."
-    }
+      meta: "Jeremy's IT Lab Day 57-58 (WLC Configuration). Wendell Odom OCG Chapter 29. The exam tests WLC management basics: HTTPS for GUI, console for initial setup, and general navigation.",
+    },
+    micro: [
+      { id: "5.10.a.1", term: "WLC HTTPS GUI",               def: "Primary WLC management interface. Browser-based. Access via management IP on HTTPS.", weight: "high" },
+      { id: "5.10.a.2", term: "WLC console initial setup",   def: "First-time WLC config via console. After IP assigned, switch to HTTPS GUI for full management.", weight: "med" },
+      { id: "5.10.a.3", term: "WLC CLI limited",             def: "Some WLC CLI exists but most daily ops are GUI-driven. Different philosophy from IOS.", weight: "med" }
+    ]
   },
 
   "5.10.b": {
@@ -1027,8 +1272,13 @@ window.subtopicContentD56 = {
       memory: "Three fields to create a WLAN: Profile (admin name), SSID (what users see), ID (unique number 1-512). Mnemonic: PSI — Profile, SSID, ID. Profile and SSID CAN be different.",
       practice: "In a WLC simulator, create 3 WLANs with different profiles, SSIDs, and IDs. Make the profile name different from the SSID on at least one to prove they're independent. Verify each appears in the WLAN list.",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 57-58. Wendell Odom OCG Chapter 29. The exam may show a WLC screenshot and ask to identify or create a WLAN. Know the three required fields and that profile name can differ from SSID."
-    }
+      meta: "Jeremy's IT Lab Day 57-58. Wendell Odom OCG Chapter 29. The exam may show a WLC screenshot and ask to identify or create a WLAN. Know the three required fields and that profile name can differ from SSID.",
+    },
+    micro: [
+      { id: "5.10.b.1", term: "Three WLAN identifiers",      def: "Profile Name (internal), SSID (broadcast), WLAN ID (1-512). All three required.", weight: "high" },
+      { id: "5.10.b.2", term: "Profile Name ≠ SSID",         def: "Profile is internal label; SSID is what users see. Can match or differ.", weight: "high" },
+      { id: "5.10.b.3", term: "WLAN must be enabled",        def: "Default after creation is DISABLED. Set Status = Enabled to start broadcasting.", weight: "high" }
+    ]
   },
 
   "5.10.c": {
@@ -1038,8 +1288,13 @@ window.subtopicContentD56 = {
       memory: "Security config: WPA+WPA2 mode → enable WPA2 → AES encryption → PSK authentication → enter key. Mnemonic: MVCAK — Mode, Version, Cipher, Auth, Key. AES always, TKIP never.",
       practice: "Walk through the WLC security tab in a simulator: Layer 2 → WPA+WPA2 → WPA2 enabled → AES → PSK → enter a strong key. Connect a client and verify. Then deliberately set TKIP and note it's wrong for the exam.",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 57-58. Wendell Odom OCG Chapter 29. The exam shows WLC security configs and asks what's wrong or what to set. Correct answer: WPA2 + AES + PSK. If you see TKIP, that's the error."
-    }
+      meta: "Jeremy's IT Lab Day 57-58. Wendell Odom OCG Chapter 29. The exam shows WLC security configs and asks what's wrong or what to set. Correct answer: WPA2 + AES + PSK. If you see TKIP, that's the error.",
+    },
+    micro: [
+      { id: "5.10.c.1", term: "WPA2 + AES + PSK",            def: "Correct answer for WPA2-Personal scenarios. Layer 2 Security = WPA+WPA2, Encryption = AES, Auth = PSK.", weight: "high" },
+      { id: "5.10.c.2", term: "TKIP = wrong answer",         def: "If WLC shows TKIP enabled, that's the security issue. Disable TKIP, enable only AES.", weight: "high" },
+      { id: "5.10.c.3", term: "WPA2-PSK config",             def: "Security tab → Layer 2 Security → WPA+WPA2 → check AES → Auth Key Mgmt = PSK → enter key.", weight: "high" }
+    ]
   },
 
   "5.10.d": {
@@ -1049,8 +1304,13 @@ window.subtopicContentD56 = {
       memory: "WLAN → Interface → VLAN. The interface is the bridge from wireless to wired. Same concept as assigning a switch port to a VLAN, but for wireless. Different SSIDs → different VLANs → different security zones.",
       practice: "In a simulator, create two WLANs: 'Employee' mapped to VLAN 10 and 'Guest' mapped to VLAN 100. Connect clients to each and verify they get IPs from the correct DHCP scope and can't cross VLANs.",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 57-58. Wendell Odom OCG Chapter 29. The exam tests that WLANs must be mapped to interfaces/VLANs. Interface mapping controls which VLAN wireless clients join."
-    }
+      meta: "Jeremy's IT Lab Day 57-58. Wendell Odom OCG Chapter 29. The exam tests that WLANs must be mapped to interfaces/VLANs. Interface mapping controls which VLAN wireless clients join.",
+    },
+    micro: [
+      { id: "5.10.d.1", term: "WLAN → interface → VLAN",     def: "Each WLAN maps to a dynamic interface, which is tied to a VLAN. Clients get IPs from that VLAN's DHCP.", weight: "high" },
+      { id: "5.10.d.2", term: "General tab interface mapping", def: "WLAN's General tab has 'Interface/Interface Group' dropdown. Select the dynamic interface.", weight: "high" },
+      { id: "5.10.d.3", term: "Switch trunk must allow VLAN", def: "Trunk between switch and WLC must allow the VLANs mapped to WLANs. Common failure scenario.", weight: "high" }
+    ]
   },
 
   "5.10.e": {
@@ -1060,8 +1320,13 @@ window.subtopicContentD56 = {
       memory: "Creating a WLAN does NOT enable it. You must flip the switch: General tab → Status: Enabled → Apply. The #1 mistake: perfect config, but WLAN is still disabled. Always check status last.",
       practice: "Lab: Create a WLAN, leave it disabled, scan from a client (SSID missing). Enable it, scan again (SSID appears). Connect with PSK. This sequence — disabled → enabled → connected — burns the lesson in.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 57-58. Wendell Odom OCG Chapter 29. Easy exam point: 'Users can't see the new SSID — what's wrong?' Check WLAN status is Enabled. It's the simplest fix for the most common problem."
-    }
+      meta: "Jeremy's IT Lab Day 57-58. Wendell Odom OCG Chapter 29. Easy exam point: 'Users can't see the new SSID — what's wrong?' Check WLAN status is Enabled. It's the simplest fix for the most common problem.",
+    },
+    micro: [
+      { id: "5.10.e.1", term: "WLAN status Disabled = no broadcast", def: "WLAN exists in config but SSID is NOT broadcast. APs don't announce it in beacons.", weight: "high" },
+      { id: "5.10.e.2", term: "Enable the WLAN",             def: "WLANs tab → select WLAN → General → Status = Enabled → Apply. Now SSID appears.", weight: "high" },
+      { id: "5.10.e.3", term: "Most common oversight",       def: "Lab sim scenario: 'new SSID invisible'. First check: WLAN status. Cheapest easy-point answer.", weight: "high" }
+    ]
   },
 
   /* ══════════════════════════════════════════════════════════════
