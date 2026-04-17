@@ -3560,11 +3560,71 @@ window.subtopicContentD34 = {
       meta: "Jeremy's IT Lab Day 40 (SNMP) covers the architecture. Wendell Odom OCG Chapter 9. Know the three components (Manager, Agent, MIB), the two port numbers (161, 162), and that SNMP uses UDP only. The exam tests these as rapid-fire conceptual questions.",
     },
     micro: [
-      { id: "4.4.a.1", term: "SNMP",                         def: "Simple Network Management Protocol. Monitor and manage network devices. UDP only (not TCP).", weight: "high" },
-      { id: "4.4.a.2", term: "SNMP Manager",                 def: "The management station (e.g., SolarWinds, PRTG). Sends queries and receives traps.", weight: "high" },
-      { id: "4.4.a.3", term: "SNMP Agent",                   def: "Runs on managed device (router/switch). Responds to manager queries. Sends traps on events.", weight: "high" },
-      { id: "4.4.a.4", term: "MIB (Management Info Base)",   def: "Hierarchical database of manageable objects (OIDs) on a device. Agent exposes data via MIB.", weight: "high" },
-      { id: "4.4.a.5", term: "UDP 161 / UDP 162",            def: "161 = manager queries (GET/SET to agent). 162 = agent traps/informs (to manager).", weight: "high" }
+      {
+        id: "4.4.a.1",
+        term: "SNMP",
+        weight: "high",
+        info: "<p><strong>SNMP (Simple Network Management Protocol)</strong> is the standard protocol for monitoring and managing network devices. It allows a central management station to poll routers, switches, firewalls, and servers for operational data (interface counters, CPU, memory, temperature, errors) and to receive unsolicited alerts when events occur.</p><p>SNMP is entirely <strong>UDP-based</strong> — never TCP. It uses two well-known ports: <strong>UDP 161</strong> for manager-initiated queries (Get/Set) and <strong>UDP 162</strong> for agent-initiated notifications (Trap/Inform).</p><p>Three versions exist: <strong>v1</strong> (legacy, plaintext community strings), <strong>v2c</strong> (adds GetBulk, Inform, 64-bit counters, still plaintext), and <strong>v3</strong> (user-based security with optional authentication and encryption). Only v3 provides confidentiality.</p>",
+        visual: { type: "layer-stack", params: { layers: ["SNMPv1 (plaintext, legacy)", "SNMPv2c (plaintext + GetBulk/Inform)", "SNMPv3 (user-based, auth + encrypt)"], highlight: 2 } },
+        hack: {
+          memory: "SNMP = UDP only. 161 = queries, 162 = traps. v3 = only secure version.",
+          practice: "On a lab router, 'snmp-server community public ro' then poll with snmpwalk — see thousands of OIDs returned.",
+          effort: "low",
+          meta: "Core SNMP facts tested every exam: UDP, 161/162, v3 = encryption."
+        }
+      },
+      {
+        id: "4.4.a.2",
+        term: "SNMP Manager",
+        weight: "high",
+        info: "<p>The <strong>SNMP Manager</strong> (also called NMS — Network Management Station) is the centralized software that monitors the network. Examples: SolarWinds, PRTG, Nagios, LibreNMS, Zabbix, Cacti, Grafana (via SNMP exporter).</p><p>The manager does two things: (1) <strong>polls</strong> agents at regular intervals by sending Get/GetNext/GetBulk requests to UDP 161, and (2) <strong>listens</strong> on UDP 162 for Traps and Informs pushed by agents when events occur.</p><p>The manager stores polled data in a time-series database, draws graphs (bandwidth, CPU, errors), evaluates thresholds (alert if CPU > 80%), and can optionally push configuration changes to devices via SNMP Set.</p>",
+        visual: { type: "packet-flow", params: { nodes: ["NMS (manager)", "Poll via UDP 161 (Get)", "Listen on UDP 162 (Trap/Inform)", "Graph + alert + dashboard"], color: "#6366f1" } },
+        hack: {
+          memory: "Manager = the boss with the dashboard. Polls agents + listens for alerts.",
+          practice: "Install LibreNMS or PRTG free edition at home — add a router as a device — watch it auto-discover via SNMP.",
+          effort: "medium",
+          meta: "Manager vs Agent is a fundamental distinction. Manager pulls and receives; agent serves and pushes."
+        }
+      },
+      {
+        id: "4.4.a.3",
+        term: "SNMP Agent",
+        weight: "high",
+        info: "<p>The <strong>SNMP Agent</strong> is the software running ON the managed device (router, switch, server) that answers manager queries and sends unsolicited notifications. On Cisco IOS, the agent is built-in — you enable it with <code>snmp-server community</code> (v2c) or <code>snmp-server user</code> (v3) commands.</p><p>The agent listens on <strong>UDP 161</strong> for incoming Get/Set requests from the manager and responds with the requested OID values. When a significant event occurs (link down, config change, threshold crossed), the agent initiates a Trap or Inform to the manager on <strong>UDP 162</strong>.</p><p>The agent exposes the device's state through the MIB (Management Information Base) — the hierarchical database that defines every OID the agent can report on.</p>",
+        visual: { type: "packet-flow", params: { nodes: ["Agent on router", "Listens UDP 161 (Get/Set)", "Sends UDP 162 (Trap/Inform)", "Exposes MIB data"], color: "#10b981" } },
+        hack: {
+          memory: "Agent = on-device software. Listens 161, sends to 162. Talks to manager via MIB.",
+          practice: "On a Cisco router, 'snmp-server community lab ro' + 'snmp-server enable traps' — agent is now active.",
+          effort: "low",
+          meta: "Every managed device runs an agent. No agent = no SNMP data from that device."
+        }
+      },
+      {
+        id: "4.4.a.4",
+        term: "MIB (Management Info Base)",
+        weight: "high",
+        info: "<p>The <strong>MIB (Management Information Base)</strong> is a hierarchical, tree-structured database defining every manageable object on a device. Each object is identified by a unique <strong>OID (Object Identifier)</strong> expressed as a dotted-number path, like <code>1.3.6.1.2.1.1.3.0</code> (sysUpTime).</p><p>The MIB tree starts at <code>iso(1)</code> and descends: <code>iso.org.dod.internet.mgmt.mib-2.system.sysUpTime.0</code>. Standard MIBs (defined by IETF RFCs) cover universal objects like interfaces (IF-MIB), routing, and system (MIB-II). Vendor-specific MIBs (like CISCO-PROCESS-MIB) cover proprietary features.</p><p>Common OIDs: <strong>sysDescr</strong> (device description), <strong>sysUpTime</strong> (uptime), <strong>ifDescr</strong> (interface names), <strong>ifInOctets / ifOutOctets</strong> (bandwidth counters), <strong>ifOperStatus</strong> (up/down status).</p><pre>1.3.6.1.2.1.1.1.0      = sysDescr\n1.3.6.1.2.1.1.3.0      = sysUpTime\n1.3.6.1.2.1.2.2.1.10   = ifInOctets</pre>",
+        visual: { type: "hierarchy", params: { root: "iso(1)", children: [{ name: "org(3).dod(6).internet(1)", children: [{ name: "mgmt(2).mib-2(1)", children: [{ name: "system(1).sysDescr(1)" }, { name: "interfaces(2).ifTable(2)" }] }] }] } },
+        hack: {
+          memory: "MIB = tree of OIDs. OID = dotted path. sysUpTime = .1.3.6.1.2.1.1.3",
+          practice: "'snmpwalk -v2c -c public [router-IP] 1.3.6.1.2.1' — dumps every MIB-II OID on the device.",
+          effort: "medium",
+          meta: "Don't memorize OIDs — understand the MIB is a tree of objects the agent exposes."
+        }
+      },
+      {
+        id: "4.4.a.5",
+        term: "UDP 161 / UDP 162",
+        weight: "high",
+        info: "<p>SNMP uses two UDP ports, and knowing which is which is a near-guaranteed exam question:</p><ul><li><strong>UDP 161</strong> — Manager-to-Agent queries (Get, GetNext, GetBulk, Set). The agent listens on 161. Think: '161 = the agent answers the door.'</li><li><strong>UDP 162</strong> — Agent-to-Manager notifications (Trap, Inform). The manager listens on 162. Think: '162 = the manager gets a phone call.'</li></ul><p>Memory hook: <strong>161 comes first (lower) = the manager starts the conversation</strong>; 162 (higher) = the agent escalates on its own. Both are UDP — SNMP never uses TCP.</p>",
+        visual: { type: "comparison", params: { left: { label: "UDP 161 (agent listens)", items: ["Get / GetNext / GetBulk", "Set", "Manager initiates"] }, right: { label: "UDP 162 (manager listens)", items: ["Trap", "Inform", "Agent initiates"] } } },
+        hack: {
+          memory: "161 = agent side (inbound queries). 162 = manager side (inbound traps). Both UDP. Never TCP.",
+          practice: "Run 'show run | include snmp' on a Cisco device — see which community strings are configured.",
+          effort: "low",
+          meta: "Expect 1-2 port questions per exam: which port for polling vs trapping."
+        }
+      }
     ]
   },
 
@@ -3578,11 +3638,71 @@ window.subtopicContentD34 = {
       meta: "Jeremy's IT Lab Day 40 (SNMP) covers all message types. Wendell Odom OCG Chapter 9. Trap vs Inform is a guaranteed question: both are agent-initiated, UDP 162, but Inform is acknowledged (reliable). GetBulk is v2c+ only. Set requires rw access.",
     },
     micro: [
-      { id: "4.4.b.1", term: "Get / GetNext / GetBulk",      def: "Manager → Agent queries to retrieve OID values. GetBulk = multiple OIDs in one query (v2c+).", weight: "high" },
-      { id: "4.4.b.2", term: "Set",                          def: "Manager → Agent command to MODIFY a value. Requires read-write community/user.", weight: "high" },
-      { id: "4.4.b.3", term: "Trap",                         def: "Agent → Manager unsolicited alert. UDP 162. NOT acknowledged — fire-and-forget (unreliable).", weight: "high" },
-      { id: "4.4.b.4", term: "Inform",                       def: "Agent → Manager alert with ACK required. Reliable version of trap. Retransmitted if no ACK.", weight: "high" },
-      { id: "4.4.b.5", term: "Trap vs Inform",               def: "Both agent-initiated on UDP 162. Trap = fire-and-forget. Inform = reliable (ACK-based).", weight: "high" }
+      {
+        id: "4.4.b.1",
+        term: "Get / GetNext / GetBulk",
+        weight: "high",
+        info: "<p>The <strong>Get family</strong> of SNMP messages is how the manager pulls data from agents. All three go from manager to agent on UDP 161.</p><ul><li><strong>Get:</strong> Retrieve the value of ONE specific OID. 'Give me sysUpTime.' Returns the exact requested OID.</li><li><strong>GetNext:</strong> Retrieve the OID that comes immediately AFTER the specified one in the MIB tree. Used to walk through the MIB when you don't know the exact OID names. Basis of the <code>snmpwalk</code> utility.</li><li><strong>GetBulk:</strong> Retrieve a large block of consecutive OIDs in a single response. Dramatically more efficient than repeated GetNext calls. <strong>Available in SNMPv2c and v3 only</strong> — not v1.</li></ul>",
+        visual: { type: "comparison", params: { left: { label: "Single OID queries", items: ["Get = one specific OID", "GetNext = the next one after"] }, right: { label: "Bulk query", items: ["GetBulk = many at once", "v2c/v3 only (not v1)", "Replaces repeated GetNext"] } } },
+        hack: {
+          memory: "Get = one. GetNext = walk one step. GetBulk = dump a range (v2c+).",
+          practice: "'snmpget' = Get. 'snmpwalk' uses GetNext. 'snmpbulkget' = GetBulk. Try each.",
+          effort: "low",
+          meta: "GetBulk appeared in v2c — a frequent exam detail."
+        }
+      },
+      {
+        id: "4.4.b.2",
+        term: "Set",
+        weight: "high",
+        info: "<p><strong>Set</strong> is the write operation — the manager modifies a value on the agent. Set uses UDP 161 and requires <strong>read-write access</strong>: a RW community string (v2c) or a user with write privileges (v3).</p><p>Common uses: shutting down an interface, changing a hostname, rebooting a device, writing config changes, or clearing counters. Many organizations disable SNMP Set entirely for security reasons and only allow read-only SNMP, using SSH/NETCONF for any configuration changes.</p><p>Because Set can change device state, it is the single most dangerous SNMP message. A leaked RW community string (especially 'private') is equivalent to an admin login with zero auditing.</p>",
+        visual: { type: "shield", params: { items: ["Manager -> Agent write", "Requires RW community/user", "Can reboot devices", "Often disabled in production"], color: "#ef4444" } },
+        hack: {
+          memory: "Set = WRITE = dangerous = requires RW access. Often disabled entirely.",
+          practice: "In a lab, 'snmpset' to shut down an interface. See the real power (and danger) of SNMP Set.",
+          effort: "low",
+          meta: "Exam: 'Which SNMP message modifies a device?' = Set. Requires RW access."
+        }
+      },
+      {
+        id: "4.4.b.3",
+        term: "Trap",
+        weight: "high",
+        info: "<p>A <strong>Trap</strong> is an <strong>unsolicited, unreliable</strong> notification sent by the agent to the manager when an event occurs. Traps use <strong>UDP 162</strong> and are <strong>fire-and-forget</strong> — the agent sends once, hopes the manager received it, and moves on. No acknowledgment, no retransmission.</p><p>If the Trap packet is lost in transit (network congestion, firewall drop, packet corruption), the manager never knows the event occurred. This is the main weakness of Traps and the reason Informs were added in SNMPv2c.</p><p>Despite the weakness, Traps dominate in practice because they consume less bandwidth and agent resources than Informs. Common Traps: link down, link up, authentication failure, cold start (reboot), warm start (reload), config change.</p>",
+        visual: { type: "packet-flow", params: { nodes: ["Event: interface down", "Agent sends Trap (UDP 162)", "No ACK expected", "If lost -> event is never seen"], color: "#f59e0b" } },
+        hack: {
+          memory: "Trap = fire-and-forget. No ACK. If lost, gone forever. Cheap and unreliable.",
+          practice: "'snmp-server enable traps config' on a router. Make a config change. Watch the trap appear at the manager.",
+          effort: "low",
+          meta: "Trap vs Inform is THE most common SNMP question. Trap = unreliable."
+        }
+      },
+      {
+        id: "4.4.b.4",
+        term: "Inform",
+        weight: "high",
+        info: "<p>An <strong>Inform</strong> is a <strong>reliable</strong> version of a Trap. The agent sends the Inform on UDP 162, AND the manager must respond with an acknowledgment. If no ACK arrives within a timeout, the agent <strong>retransmits</strong> the Inform — up to a configurable retry count.</p><p>Informs guarantee delivery at the cost of bandwidth and agent state. The agent must remember each outstanding Inform until acknowledged, so there is a memory cost on busy devices.</p><p>Informs are <strong>v2c and v3 only</strong> — not available in v1. You configure them with <code>snmp-server host [ip] informs version 2c [community]</code> instead of the default trap syntax.</p>",
+        visual: { type: "handshake", params: { leftLabel: "Agent", rightLabel: "Manager", steps: ["INFORM ->", "<- ACK", "If no ACK -> retransmit", "Guaranteed delivery"] } },
+        hack: {
+          memory: "Inform = Trap + ACK = reliable. v2c/v3 only. Costs more bandwidth but doesn't lose alerts.",
+          practice: "Configure 'snmp-server host 10.1.1.100 informs version 2c lab' — note 'informs' keyword makes it reliable.",
+          effort: "low",
+          meta: "Inform = reliable = requires ACK = v2c+. All four facts tied together."
+        }
+      },
+      {
+        id: "4.4.b.5",
+        term: "Trap vs Inform",
+        weight: "high",
+        info: "<p>Both Trap and Inform are <strong>agent-initiated</strong> notifications sent to <strong>UDP 162</strong>. They differ only in reliability:</p><ul><li><strong>Trap:</strong> fire-and-forget. No ACK, no retransmission. Agent uses less memory but events can be silently lost.</li><li><strong>Inform:</strong> reliable. Manager must ACK; agent retransmits if no ACK. Costs more bandwidth and agent memory.</li></ul><p>Key points: (1) Both use UDP 162. (2) Both are sent by the agent. (3) Both can be SNMPv2c or v3 (Inform does not exist in v1). (4) Only Inform is reliable.</p><p>Exam answer template: 'Inform is the reliable/acknowledged version of Trap.'</p>",
+        visual: { type: "comparison", params: { left: { label: "Trap", items: ["Fire-and-forget", "No ACK", "Can be lost", "Less bandwidth"] }, right: { label: "Inform", items: ["Reliable", "Requires ACK", "Retransmits if lost", "More bandwidth/memory"] } } },
+        hack: {
+          memory: "Trap = unreliable. Inform = reliable. Both UDP 162. Both agent-initiated. Inform = v2c+.",
+          practice: "Flashcard this exact pairing. It will appear on the exam.",
+          effort: "low",
+          meta: "THE single most common SNMP exam question category."
+        }
+      }
     ]
   },
 
@@ -3596,10 +3716,58 @@ window.subtopicContentD34 = {
       meta: "Jeremy's IT Lab Day 40 (SNMP) covers v2c security. Wendell Odom OCG Chapter 9. The exam asks: 'Which SNMP version uses community strings without encryption?' Answer: v2c (and v1). 'What is the default read-only community string?' Answer: public. Know that community strings are case-sensitive and plaintext.",
     },
     micro: [
-      { id: "4.4.c.1", term: "SNMPv2c community strings",    def: "Plaintext passwords for SNMP access. Two types: read-only (RO) and read-write (RW). Case-sensitive.", weight: "high" },
-      { id: "4.4.c.2", term: "Default RO 'public'",          def: "Historic default read-only community string. 'public' / 'private' are textbook defaults — never use in production.", weight: "high" },
-      { id: "4.4.c.3", term: "v1 vs v2c",                    def: "Both plaintext community strings. v2c adds bulk operations (GetBulk) and Inform. v1 is basically obsolete.", weight: "med" },
-      { id: "4.4.c.4", term: "snmp-server community [str] [RO|RW]", def: "Cisco command to define community string and access level.", weight: "med" }
+      {
+        id: "4.4.c.1",
+        term: "SNMPv2c community strings",
+        weight: "high",
+        info: "<p><strong>Community strings</strong> are SNMPv2c's authentication mechanism — shared-secret passwords in <strong>plaintext</strong>. The manager includes the community string in every packet; the agent checks it against its configured value and replies only on a match.</p><p>There are two access levels:</p><ul><li><strong>Read-only (RO):</strong> allows Get operations only. Cannot modify the device.</li><li><strong>Read-write (RW):</strong> allows both Get and Set. Can modify the device.</li></ul><p>Community strings are <strong>case-sensitive</strong>. 'Public' and 'public' are different strings. Because they travel in the clear, anyone with a packet capture on the network path can read them — which is why SNMPv3 exists.</p>",
+        visual: { type: "shield", params: { items: ["Community = plaintext password", "RO = read-only (Get)", "RW = read-write (Get + Set)", "Case-sensitive"], color: "#f59e0b" } },
+        hack: {
+          memory: "Community string = plaintext password. RO = look only. RW = look + touch. Case-sensitive.",
+          practice: "'snmp-server community MySecret ro' then poll with wrong case — rejected.",
+          effort: "low",
+          meta: "Community strings = v1/v2c hallmark. v3 dropped them entirely."
+        }
+      },
+      {
+        id: "4.4.c.2",
+        term: "Default RO 'public'",
+        weight: "high",
+        info: "<p><strong>'public'</strong> (read-only) and <strong>'private'</strong> (read-write) are the historical default community strings on nearly every SNMP-capable device ever shipped. They are the first strings an attacker tries.</p><p>In production, you should NEVER use these defaults. A device with <code>snmp-server community public ro</code> configured is trivially discoverable via SNMP scans, and any RW community string exposes the device to remote reconfiguration.</p><p>Best practice: use long random strings (e.g., 20+ characters), rotate them periodically, restrict SNMP access with ACLs (<code>snmp-server community MySecret RO 10</code>), and move to SNMPv3 whenever possible.</p>",
+        visual: { type: "comparison", params: { left: { label: "Insecure defaults", items: ["'public' = RO default", "'private' = RW default", "Guessed in first attack attempt"] }, right: { label: "Secure practice", items: ["Long random string", "ACL to restrict source IP", "Rotate periodically", "Prefer SNMPv3"] } } },
+        hack: {
+          memory: "public = RO default. private = RW default. NEVER use in prod. First thing an attacker tries.",
+          practice: "Run an nmap SNMP scan on a test lab — watch how quickly it finds 'public'.",
+          effort: "low",
+          meta: "Guaranteed exam recall: public/private are the insecure defaults."
+        }
+      },
+      {
+        id: "4.4.c.3",
+        term: "v1 vs v2c",
+        weight: "med",
+        info: "<p>SNMPv1 and SNMPv2c share the same <strong>plaintext community-string security model</strong>. v2c's 'c' literally stands for 'community' — it kept v1's authentication approach but added operational improvements:</p><ul><li><strong>GetBulk:</strong> efficient retrieval of many OIDs in one message.</li><li><strong>Inform:</strong> reliable (acknowledged) notifications.</li><li><strong>64-bit counters:</strong> needed for gigabit+ interfaces (v1's 32-bit counters roll over in seconds on 10G links).</li><li><strong>Better error handling:</strong> more specific error codes.</li></ul><p>v2c did NOT improve security. Community strings still travel in plaintext. v1 is basically obsolete; v2c remains common in internal networks despite its weaknesses.</p>",
+        visual: { type: "comparison", params: { left: { label: "SNMPv1", items: ["Plaintext community", "No GetBulk", "No Inform", "32-bit counters (roll over)"] }, right: { label: "SNMPv2c", items: ["Plaintext community (same)", "Adds GetBulk", "Adds Inform", "64-bit counters"] } } },
+        hack: {
+          memory: "v1 -> v2c: added GetBulk, Inform, 64-bit counters. Security UNCHANGED.",
+          practice: "'show snmp' on a router shows which version is enabled; most Cisco defaults have v1 and v2c both enabled.",
+          effort: "low",
+          meta: "Security improvements are v3's job — v2c is just operational upgrades."
+        }
+      },
+      {
+        id: "4.4.c.4",
+        term: "snmp-server community [str] [RO|RW]",
+        weight: "med",
+        info: "<p><code>snmp-server community [string] [RO|RW] [acl]</code> is the Cisco IOS command that enables SNMPv2c access. It creates a community string and assigns its privilege level in one line.</p><p>Best-practice options: attach an ACL to restrict which source IPs can use the string (<code>snmp-server community MySecret RO 10</code> where ACL 10 permits only the NMS IP). Use <code>view</code> to limit which MIB subtree the community can see.</p><pre>Router(config)# access-list 10 permit host 10.1.1.100\nRouter(config)# snmp-server community Mon1t0rR0 RO 10\nRouter(config)# snmp-server community Mgmt-RW-x7$ RW 10\nRouter(config)# snmp-server host 10.1.1.100 version 2c Mon1t0rR0</pre>",
+        visual: { type: "encapsulation", params: { layers: [{ label: "snmp-server community", color: "#6366f1" }, { label: "[string]", color: "#3b82f6" }, { label: "[RO | RW]", color: "#10b981" }, { label: "[optional ACL]", color: "#f59e0b" }] } },
+        hack: {
+          memory: "snmp-server community STRING RO|RW ACL. ACL restricts the source IP — always use one.",
+          practice: "Configure with and without an ACL; verify only permitted IPs can poll.",
+          effort: "low",
+          meta: "Exam config recall. Know the keyword order."
+        }
+      }
     ]
   },
 
@@ -3613,11 +3781,71 @@ window.subtopicContentD34 = {
       meta: "Jeremy's IT Lab Day 40 (SNMP) covers v3 security levels. Wendell Odom OCG Chapter 9. The exam loves: 'Which SNMPv3 level provides both authentication AND encryption?' Answer: authPriv. 'Which algorithms does authPriv use?' Auth: MD5 or SHA. Encryption: DES, 3DES, or AES.",
     },
     micro: [
-      { id: "4.4.d.1", term: "SNMPv3",                       def: "Adds authentication AND encryption to SNMP. RECOMMENDED for production. Only secure SNMP version.", weight: "high" },
-      { id: "4.4.d.2", term: "noAuthNoPriv",                 def: "No authentication, no encryption. Uses username only. Weakest SNMPv3 level.", weight: "high" },
-      { id: "4.4.d.3", term: "authNoPriv",                   def: "Authentication (MD5/SHA) but no encryption. Prevents spoofing but traffic is plaintext.", weight: "high" },
-      { id: "4.4.d.4", term: "authPriv",                     def: "BOTH authentication AND encryption. Strongest level. Auth = MD5/SHA. Encryption = DES/3DES/AES.", weight: "high" },
-      { id: "4.4.d.5", term: "SNMPv3 algorithms",            def: "Auth: MD5, SHA (SHA is preferred). Encryption: DES (weak), 3DES, AES-128/192/256.", weight: "med" }
+      {
+        id: "4.4.d.1",
+        term: "SNMPv3",
+        weight: "high",
+        info: "<p><strong>SNMPv3</strong> is the modern, secure version of SNMP. It replaces community strings with a <strong>user-based security model (USM)</strong>: each user has a username, group membership, authentication credentials, and optional privacy (encryption) credentials.</p><p>v3 supports three security levels: <strong>noAuthNoPriv</strong> (username only), <strong>authNoPriv</strong> (username + hash authentication), and <strong>authPriv</strong> (username + auth + encryption). Only authPriv provides confidentiality of the SNMP payload.</p><p>v3 also adds <strong>views</strong> — fine-grained access control to specific subtrees of the MIB. You can give a monitoring user read access only to interface counters, while an admin user gets full access. This is impossible with v1/v2c communities.</p>",
+        visual: { type: "layer-stack", params: { layers: ["noAuthNoPriv (username only)", "authNoPriv (MD5/SHA auth)", "authPriv (auth + DES/3DES/AES)"], highlight: 2 } },
+        hack: {
+          memory: "v3 = user-based + optional auth + optional encryption. Only v3 encrypts SNMP.",
+          practice: "Configure a v3 user at authPriv; capture in Wireshark — payload is unreadable ciphertext.",
+          effort: "medium",
+          meta: "v3 = the only version tested as 'secure.' Know its three levels."
+        }
+      },
+      {
+        id: "4.4.d.2",
+        term: "noAuthNoPriv",
+        weight: "high",
+        info: "<p><strong>noAuthNoPriv</strong> is the weakest SNMPv3 security level. The user is identified by username only — no authentication hash, no encryption. Effectively the same security as v2c community strings, just with a username instead of a 'string.'</p><p>Used rarely and only in low-risk scenarios (read-only public-info polling behind trusted network perimeters). Never used when the data or device is sensitive.</p><p>Configuration: <code>snmp-server group G1 v3 noauth</code> and <code>snmp-server user U1 G1 v3</code> (no auth or priv keywords).</p>",
+        visual: { type: "shield", params: { items: ["Username only", "NO authentication hash", "NO encryption", "Weakest v3 level"], color: "#ef4444" } },
+        hack: {
+          memory: "noAuthNoPriv = username-only = barely better than v2c. Don't use.",
+          practice: "Configure a noAuth user and verify polling works — then realize anyone can spoof the username.",
+          effort: "low",
+          meta: "One of three v3 levels. Weakest. Rarely production-appropriate."
+        }
+      },
+      {
+        id: "4.4.d.3",
+        term: "authNoPriv",
+        weight: "high",
+        info: "<p><strong>authNoPriv</strong> adds <strong>authentication</strong> using an <strong>MD5 or SHA</strong> hash of the message + auth password. This verifies the sender's identity and ensures the message wasn't modified in transit — but the SNMP payload is still sent in cleartext.</p><p>Good for networks where spoofing prevention is needed but data confidentiality is not a concern (e.g., polling non-sensitive interface counters inside a trusted segment). SHA is preferred over MD5 — SHA is cryptographically stronger, though both are showing their age.</p><p>Configuration: <code>snmp-server group G1 v3 auth</code> and <code>snmp-server user U1 G1 v3 auth sha MyAuthPass</code>.</p>",
+        visual: { type: "shield", params: { items: ["Username + auth hash", "MD5 or SHA", "NO encryption (payload plaintext)", "Prevents spoofing only"], color: "#f59e0b" } },
+        hack: {
+          memory: "authNoPriv = signed letter in a clear envelope. Sender verified, contents visible.",
+          practice: "Capture authNoPriv traffic — see the HMAC auth field but plaintext OID values.",
+          effort: "low",
+          meta: "Middle v3 level. Auth yes, encryption no. Know the distinction from authPriv."
+        }
+      },
+      {
+        id: "4.4.d.4",
+        term: "authPriv",
+        weight: "high",
+        info: "<p><strong>authPriv</strong> is the strongest SNMPv3 security level: it provides <strong>both authentication AND encryption (privacy)</strong>. Authentication uses MD5 or SHA; encryption uses DES, 3DES, or AES (AES-128/192/256).</p><p>This is the ONLY SNMP configuration that provides confidentiality. All other levels (v1, v2c, v3 noAuthNoPriv, v3 authNoPriv) send SNMP data in plaintext.</p><p>Configuration example (SHA auth + AES-128 encryption):</p><pre>snmp-server group Admins v3 priv\nsnmp-server user NetAdmin Admins v3 auth sha MyAuthPass priv aes 128 MyPrivPass</pre>",
+        visual: { type: "shield", params: { items: ["Username + auth + ENCRYPTION", "Auth: MD5/SHA", "Encrypt: DES/3DES/AES", "Strongest SNMP level"], color: "#10b981" } },
+        hack: {
+          memory: "authPriv = the ONLY SNMP level that encrypts. auth=MD5/SHA, priv=DES/3DES/AES.",
+          practice: "Capture authPriv traffic in Wireshark — payload is unreadable ciphertext.",
+          effort: "medium",
+          meta: "Guaranteed exam question: 'Which level provides auth AND encryption?' = authPriv."
+        }
+      },
+      {
+        id: "4.4.d.5",
+        term: "SNMPv3 algorithms",
+        weight: "med",
+        info: "<p>SNMPv3 uses two categories of cryptographic algorithms:</p><ul><li><strong>Authentication (auth):</strong> <strong>MD5</strong> or <strong>SHA</strong>. SHA is preferred — MD5 is cryptographically broken for some use cases. Both produce an HMAC-style hash for message integrity and sender verification.</li><li><strong>Privacy (priv, encryption):</strong> <strong>DES</strong> (56-bit, weak, deprecated), <strong>3DES</strong> (168-bit, slow but available), or <strong>AES</strong> at 128/192/256 bits. AES is the modern standard and preferred choice.</li></ul><p>Cisco IOS defaults vary by platform and version, but modern best practice is <code>auth sha</code> + <code>priv aes 128</code> (or higher).</p>",
+        visual: { type: "comparison", params: { left: { label: "Authentication", items: ["MD5 (legacy)", "SHA (preferred)"] }, right: { label: "Encryption", items: ["DES (weak)", "3DES (older)", "AES-128/192/256 (prefer)"] } } },
+        hack: {
+          memory: "Auth: MD5 or SHA (SHA better). Privacy: DES/3DES/AES (AES best).",
+          practice: "Configure v3 with each algorithm combination and note command differences.",
+          effort: "low",
+          meta: "Know the algorithm families for auth vs priv."
+        }
+      }
     ]
   },
 
@@ -3631,10 +3859,58 @@ window.subtopicContentD34 = {
       meta: "Jeremy's IT Lab Day 40 (SNMP) covers version comparison. Wendell Odom OCG Chapter 9. This appears every exam cycle: 'Which SNMP version provides encryption?' = SNMPv3. 'Which security level provides both authentication and encryption?' = authPriv. These are 1-2 second recall questions — drill until instant.",
     },
     micro: [
-      { id: "4.4.e.1", term: "v1 security",                  def: "Plaintext community strings. No auth, no encryption. Effectively obsolete.", weight: "med" },
-      { id: "4.4.e.2", term: "v2c security",                 def: "Same as v1 (plaintext communities) but adds GetBulk and Inform messages.", weight: "high" },
-      { id: "4.4.e.3", term: "v3 security",                  def: "Username-based auth + optional encryption. noAuthNoPriv / authNoPriv / authPriv levels.", weight: "high" },
-      { id: "4.4.e.4", term: "Which provides encryption?",   def: "ONLY SNMPv3 (at authPriv level). v1 and v2c are always plaintext.", weight: "high" }
+      {
+        id: "4.4.e.1",
+        term: "v1 security",
+        weight: "med",
+        info: "<p>SNMPv1 has <strong>essentially no security</strong>. It uses <strong>plaintext community strings</strong> as its sole authentication mechanism. There is no hashing, no encryption, no user-based model, and no integrity checking.</p><p>Anyone with a packet capture on the path can read the community string and immediately gain equivalent SNMP access. v1 is considered obsolete and is only found on very old devices or legacy management systems.</p><p>v1 also lacks operational improvements: no GetBulk, no Inform, only 32-bit counters (which overflow in seconds on gigabit+ interfaces).</p>",
+        visual: { type: "shield", params: { items: ["Plaintext community", "No integrity check", "No encryption", "Obsolete — avoid"], color: "#ef4444" } },
+        hack: {
+          memory: "v1 = plaintext + nothing else. Obsolete. Don't deploy.",
+          practice: "Look at 'show snmp' on a legacy device; v1 may still be enabled — disable it.",
+          effort: "low",
+          meta: "Exam-level detail: v1 is the oldest, weakest, mostly deprecated."
+        }
+      },
+      {
+        id: "4.4.e.2",
+        term: "v2c security",
+        weight: "high",
+        info: "<p>SNMPv2c uses the <strong>same plaintext community string model as v1</strong> — no security improvements whatsoever. The 'c' in v2c stands for 'community.' What v2c adds are OPERATIONAL improvements: GetBulk, Inform, 64-bit counters, and better error codes.</p><p>Because of its simplicity and lack of key-management overhead, v2c is STILL the most widely deployed SNMP version in internal networks, despite its security weaknesses. Many organizations accept the risk because their management traffic flows over a trusted out-of-band network segment.</p>",
+        visual: { type: "comparison", params: { left: { label: "v1 vs v2c security", items: ["Both plaintext community", "No auth, no encryption", "Identical security model"] }, right: { label: "v2c operational adds", items: ["GetBulk (efficient)", "Inform (reliable)", "64-bit counters"] } } },
+        hack: {
+          memory: "v2c = v1 security + better messaging. Still plaintext. Most widely deployed in the real world.",
+          practice: "Capture v2c traffic — community string appears in clear, right in the packet bytes.",
+          effort: "low",
+          meta: "'Same security as v1' is the key test point for v2c."
+        }
+      },
+      {
+        id: "4.4.e.3",
+        term: "v3 security",
+        weight: "high",
+        info: "<p>SNMPv3 introduced the <strong>User-based Security Model (USM)</strong>, completely replacing community strings. Each SNMP user is defined on the agent with a username, authentication password (MD5/SHA), and optional privacy password (DES/3DES/AES).</p><p>Three levels of security are available: <strong>noAuthNoPriv</strong> (username only), <strong>authNoPriv</strong> (username + hash auth), and <strong>authPriv</strong> (username + auth + encryption). authPriv is the only level providing confidentiality.</p><p>v3 also adds <strong>view-based access control (VACM)</strong> — fine-grained restriction of which MIB subtrees a user can read or write. Combined with USM, v3 provides authentication, integrity, confidentiality, and authorization.</p>",
+        visual: { type: "layer-stack", params: { layers: ["noAuthNoPriv", "authNoPriv", "authPriv (auth + encryption)", "+ View-based access control"], highlight: 2 } },
+        hack: {
+          memory: "v3 = users + groups + 3 levels + views. Only v3 = real security.",
+          practice: "Configure a v3 user at authPriv — note the multi-line command vs v2c's one-liner.",
+          effort: "medium",
+          meta: "v3 = the 'secure SNMP' answer. Memorize: USM, three levels, views."
+        }
+      },
+      {
+        id: "4.4.e.4",
+        term: "Which provides encryption?",
+        weight: "high",
+        info: "<p><strong>Only SNMPv3 at the authPriv level provides encryption.</strong> Every other combination transmits SNMP data in plaintext:</p><ul><li>SNMPv1: plaintext (no auth, no encryption).</li><li>SNMPv2c: plaintext (no auth, no encryption).</li><li>SNMPv3 noAuthNoPriv: plaintext (username only, no encryption).</li><li>SNMPv3 authNoPriv: plaintext payload (auth hash but no encryption).</li><li><strong>SNMPv3 authPriv: ENCRYPTED</strong> (auth + DES/3DES/AES encryption).</li></ul><p>This is the #1 SNMP security question on the CCNA. Pattern: 'Which SNMP version/level provides encryption?' -> 'SNMPv3, authPriv.'</p>",
+        visual: { type: "shield", params: { items: ["v1: NO encryption", "v2c: NO encryption", "v3 noAuth: NO encryption", "v3 authNoPriv: NO encryption", "v3 authPriv: YES (AES)"], color: "#10b981" } },
+        hack: {
+          memory: "Only v3 authPriv encrypts. Literally one answer. Drill until instant.",
+          practice: "Write this on a flashcard: 'authPriv = only SNMP option that encrypts.' Review daily.",
+          effort: "low",
+          meta: "Most-tested SNMP question. Non-negotiable recall."
+        }
+      }
     ]
   },
 
