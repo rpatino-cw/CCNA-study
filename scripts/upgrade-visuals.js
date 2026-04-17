@@ -220,6 +220,54 @@ const RULES = [
   { re: /\beigrp metric|composite metric|feasible distance|reported distance|k-values\b/i, build: () => ({
     type: 'eigrp-metric',
     params: {}
+  })},
+
+  // ── IPv6 SLAAC ──────────────────────────────────────────────────
+  { re: /\bslaac|stateless autoconfig|router advertisement|eui-64|ipv6 autoconfig\b/i, build: () => ({
+    type: 'ipv6-slaac',
+    params: {}
+  })},
+
+  // ── OSPF DR/BDR ─────────────────────────────────────────────────
+  { re: /\b(dr|bdr|designated router|backup designated|ospf priority)\b/i, build: () => ({
+    type: 'ospf-dr-bdr',
+    params: {}
+  })},
+
+  // ── NTP ─────────────────────────────────────────────────────────
+  { re: /\bntp|stratum|network time protocol\b/i, build: () => ({
+    type: 'ntp-stratum',
+    params: {}
+  })},
+
+  // ── BGP ─────────────────────────────────────────────────────────
+  { re: /\bbgp|border gateway|path.vector|established|autonomous system\b/i, build: () => ({
+    type: 'bgp-neighbor',
+    params: { active: 5 }
+  })},
+
+  // ── SSH ─────────────────────────────────────────────────────────
+  { re: /\bssh(?!.?key)|secure shell|encrypted shell\b/i, build: () => ({
+    type: 'ssh-handshake',
+    params: {}
+  })},
+
+  // ── 802.1X / RADIUS ─────────────────────────────────────────────
+  { re: /\b802\.1x|eap|supplicant|authenticator|radius server\b/i, build: () => ({
+    type: 'radius-auth',
+    params: {}
+  })},
+
+  // ── PVST+ / RPVST ───────────────────────────────────────────────
+  { re: /\bpvst|per.vlan spanning|rapid-pvst\b/i, build: () => ({
+    type: 'pvst',
+    params: {}
+  })},
+
+  // ── Troubleshooting methodology ─────────────────────────────────
+  { re: /\btroubleshoot|osi model troubleshoot|bottom.up|top.down|divide.conquer\b/i, build: () => ({
+    type: 'osi-troubleshoot',
+    params: {}
   })}
 ];
 
