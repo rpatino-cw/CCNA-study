@@ -6104,11 +6104,71 @@ window.subtopicContentD12 = {
       meta: "Jeremy's IT Lab Day 56 covers AP connection types. Wendell Odom OCG Chapter 25. The exam asks: 'what type of switch port connects to a lightweight AP?' (access, in the AP management VLAN), 'what type connects to an autonomous AP?' (trunk, carrying all WLAN VLANs). Quick recall — know the rule and the reasoning.",
     },
     micro: [
-      { id: "2.7.a.1", term: "Autonomous AP → trunk port",   def: "Autonomous APs handle multiple VLANs locally, so switch port must be a trunk carrying all the VLANs.", weight: "high" },
-      { id: "2.7.a.2", term: "Lightweight AP → access port", def: "Client traffic tunneled via CAPWAP to WLC. Switch only sees management VLAN. Access port works.", weight: "high" },
-      { id: "2.7.a.3", term: "FlexConnect exception",        def: "If lightweight AP is FlexConnect with local switching, it may need a trunk for local VLANs.", weight: "med" },
-      { id: "2.7.a.4", term: "PoE for APs",                  def: "APs typically powered via PoE over the same Ethernet cable. Switch must support appropriate PoE standard (af/at/bt).", weight: "high" },
-      { id: "2.7.a.5", term: "AP management VLAN",           def: "Lightweight AP switch port must reach WLC management interface (same VLAN or L3-reachable).", weight: "med" }
+      {
+        id: "2.7.a.1",
+        term: "Autonomous AP → trunk port",
+        weight: "high",
+        info: "<p>An <strong>autonomous AP</strong> is a self-contained AP that handles all wireless functions locally — it authenticates clients, enforces security policies, maps SSIDs to VLANs, and bridges wireless traffic directly onto the wired network. Because one autonomous AP often broadcasts <strong>multiple SSIDs</strong> — each mapped to its own VLAN — the uplink to the switch must carry all of those VLANs simultaneously.</p><p>The only switch port type that can carry traffic for multiple VLANs with 802.1Q tags is a <strong>trunk port</strong>. Configure the AP-facing port with <code>switchport mode trunk</code>, <code>switchport trunk native vlan X</code> (for the AP's management VLAN, untagged), and <code>switchport trunk allowed vlan X,Y,Z</code> (all WLAN VLANs plus management). The autonomous AP tags egress frames with the VLAN ID matching the SSID the client is associated to, and the switch honors the tag natively.</p><p>Autonomous APs were the dominant model before centralized WLCs. Today they are mostly found in small deployments (SOHO, branch offices with 1-3 APs) where buying a dedicated WLC would be overkill. Cisco still sells IOS-based autonomous APs for these niche cases.</p><p><strong>Troubleshooting:</strong> if clients on SSID-Corporate get IPs from the guest DHCP scope, the most likely cause is a misconfigured VLAN tag or a missing VLAN on the trunk's allowed list. Run <code>show interfaces trunk</code> on the switch to confirm which VLANs are actively forwarded on the AP uplink.</p>",
+        visual: { type: "comparison", params: { left: { label: "Autonomous AP", items: ["Self-contained", "Handles SSID-to-VLAN mapping locally", "Tags frames with 802.1Q", "Needs trunk uplink"] }, right: { label: "Switch config", items: ["switchport mode trunk", "switchport trunk native vlan X", "switchport trunk allowed vlan ...", "show interfaces trunk"] } } },
+        hack: {
+          memory: "Autonomous = 'self-driving AP.' It does the VLAN sorting itself, tags every frame on its way out, and the switch must be a trunk to accept those tags. Rule: multiple SSIDs → multiple VLANs → trunk port, always.",
+          practice: "In Packet Tracer: drop a Cisco 1240/1242 autonomous AP, create 3 SSIDs mapped to VLANs 10/20/99. Connect to a 2960 switch port. Configure the port as access — clients on some SSIDs will fail to get IPs. Change to trunk with matching allowed VLANs — everything works. Run 'show interfaces trunk' to confirm VLANs are active.",
+          effort: "medium",
+          meta: "Jeremy's IT Lab Day 56 (AP Architectures) covers autonomous vs lightweight connectivity. Wendell Odom OCG Chapter 25. The exam pairs this rule with the lightweight AP rule — memorize both together: autonomous = trunk, lightweight = access."
+        }
+      },
+      {
+        id: "2.7.a.2",
+        term: "Lightweight AP → access port",
+        weight: "high",
+        info: "<p>A <strong>lightweight AP</strong> (LAP) is a 'dumb radio' — it cannot operate standalone. It forms a <strong>CAPWAP (Control And Provisioning of Wireless Access Points)</strong> tunnel to a WLC and forwards every client frame (wrapped inside CAPWAP) up to the WLC. All intelligence — authentication, SSID-to-VLAN mapping, roaming decisions — lives on the WLC, not the AP.</p><p>From the switch's perspective, the LAP is a single IP host sending and receiving one stream of traffic: <strong>CAPWAP data tunnel (UDP 5247) and CAPWAP control tunnel (UDP 5246)</strong>, both sourced and destined to a single IP on the AP's management VLAN. There are no 802.1Q tags coming from the AP — every client's traffic is hidden inside the CAPWAP payload. Therefore an <strong>access port</strong> in the AP's management VLAN is sufficient: <code>switchport mode access</code>, <code>switchport access vlan 99</code>.</p><p>This design is what makes centralized wireless scale. Add 200 APs? Each one just needs an access port in the management VLAN. The WLC handles all the VLAN logic on its own trunk. Switch configuration stays trivially simple.</p><p><strong>Common pitfall:</strong> students assume 'wireless needs VLANs on the switch' and configure the AP port as a trunk. This works (the AP ignores the extra tags), but it's unnecessary and can cause issues with STP, DHCP, and security ACLs. Stick to an access port unless the AP is FlexConnect with local switching.</p>",
+        visual: { type: "encapsulation", params: { layers: ["Client 802.11 frame", "CAPWAP header", "UDP 5247", "IP (AP mgmt IP → WLC mgmt IP)", "Ethernet (access port, 1 VLAN)"] } },
+        hack: {
+          memory: "Lightweight = 'dumb pipe.' Everything is tunneled to the WLC via CAPWAP, so the switch only ever sees one VLAN (management). Access port is enough — a trunk is overkill and invites config errors.",
+          practice: "In a Meraki or Cisco Catalyst lab: connect a LAP to an access port in VLAN 99. Run 'show cdp neighbors' to confirm the AP is seen. On the switch, 'show mac address-table interface Gi0/10' should show only ONE MAC (the AP's), not all the wireless clients — proof the CAPWAP tunnel is hiding them.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 56 is THE video for this rule. Wendell Odom OCG Chapter 25. Guaranteed exam question: 'What type of switch port connects to a lightweight AP?' = access port in the AP management VLAN."
+        }
+      },
+      {
+        id: "2.7.a.3",
+        term: "FlexConnect exception",
+        weight: "med",
+        info: "<p><strong>FlexConnect</strong> is a WLC deployment mode for branch offices where APs are remote from the WLC (over a WAN link). In normal centralized mode, every client packet crosses the WAN twice (client → AP → WAN → WLC → WAN → AP → client) — fine for a data center, terrible for a branch.</p><p>FlexConnect solves this by letting the AP perform <strong>local switching</strong>: client traffic is de-encapsulated at the AP and placed directly onto the local wired VLAN, bypassing the WLC for the data path. The control plane (CAPWAP control channel) still terminates on the WLC for configuration, authentication, and monitoring.</p><p>Because the AP is now placing frames onto multiple local VLANs (Corporate VLAN 10, Guest VLAN 20), the <strong>AP's switch port must be a trunk</strong>, not an access port. The native VLAN carries the CAPWAP control traffic (management VLAN); the tagged VLANs carry the locally-switched client data.</p><p><strong>Exam framing:</strong> the default lightweight rule is 'access port.' FlexConnect is the exception that flips it back to 'trunk.' If the exam scenario mentions a branch office, remote AP, or local switching — think FlexConnect → trunk.</p>",
+        visual: { type: "comparison", params: { left: { label: "Lightweight (central)", items: ["All traffic CAPWAP'd", "WLC de-encapsulates", "Access port sufficient", "One VLAN on uplink"] }, right: { label: "Lightweight (FlexConnect)", items: ["Local switching", "AP places frames on local VLANs", "Trunk port required", "Multiple VLANs on uplink"] } } },
+        hack: {
+          memory: "FlexConnect = 'Flex the rule.' Normally lightweight = access; when FlexConnect does local switching, it tags frames like an autonomous AP would → trunk port. Branch office + remote AP = FlexConnect signal.",
+          practice: "You don't need to lab FlexConnect for CCNA — just create a flashcard with the two columns: central mode (access port) vs FlexConnect local switching (trunk port). The exam tests recognition, not config.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 57 briefly mentions FlexConnect. Wendell Odom OCG Chapter 25. Unlikely to be a standalone exam question, but often a distractor on AP-connectivity questions — recognize the FlexConnect keyword to avoid picking 'access port' when the scenario describes local switching."
+        }
+      },
+      {
+        id: "2.7.a.4",
+        term: "PoE for APs",
+        weight: "high",
+        info: "<p>APs are almost always mounted where there are no power outlets — ceilings, plenum space, high walls. Running a 120V AC line to every AP would be expensive and sometimes against code. <strong>PoE (Power over Ethernet)</strong> solves this by delivering power over the same Cat5e/Cat6 cable that carries data. One cable, one termination, one port on the switch.</p><p>The three PoE standards you must know for CCNA:</p><ul><li><strong>802.3af (PoE)</strong> — up to <strong>15.4W at the PSE</strong>, ~12.95W at the PD. Sufficient for basic single-radio APs (older Wi-Fi 4/5 indoor APs).</li><li><strong>802.3at (PoE+)</strong> — up to <strong>30W at the PSE</strong>, ~25.5W at the PD. Required by most Wi-Fi 6 APs with 4x4 MIMO radios.</li><li><strong>802.3bt (PoE++/UPoE)</strong> — up to <strong>60W (Type 3) or 90W (Type 4)</strong>. Required by Wi-Fi 6E/7 APs, outdoor APs with heaters, and APs with external radios or USB peripherals.</li></ul><p><strong>PSE/PD negotiation:</strong> the switch (PSE) detects a connected PD by applying a small voltage and measuring resistance. Valid PDs return a specific signature. The switch then classifies the PD (class 0-8) to determine how much power to allocate. All of this happens before normal Ethernet link negotiation.</p><p><strong>Cisco proprietary UPoE:</strong> pre-dates 802.3bt, delivers 60W by using all 4 pairs of the Cat cable. Largely superseded by 802.3bt but still appears on Catalyst 9000 documentation.</p>",
+        visual: { type: "layer-stack", params: { layers: ["802.3af (15.4W) — basic APs", "802.3at/PoE+ (30W) — Wi-Fi 6", "802.3bt/PoE++ Type 3 (60W)", "802.3bt/PoE++ Type 4 (90W) — Wi-Fi 6E/7"], highlight: 1 } },
+        hack: {
+          memory: "PoE ladder: af (15.4) → at (30) → bt (60/90). Mnemonic 'AF AT BT' rhymes with 'A Fat Bat.' Rule of thumb: anything newer than Wi-Fi 5 probably needs PoE+, Wi-Fi 6E/7 probably needs PoE++. Always check the AP datasheet for the required class.",
+          practice: "On a real Catalyst switch: 'show power inline' — look at the 'Class' column (class 3 = PoE+, class 4 = PoE++). 'show power inline Gi1/0/10 detail' shows per-port negotiation including the detected class and allocated watts. If AP won't boot, this is the first command to run.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 56 intros AP power; Day 41 touches PoE troubleshooting. Wendell Odom OCG Chapter 25 + Chapter 2 (Ethernet basics). Exam asks: 'Which PoE standard provides 30W?' = 802.3at. 'Which provides up to 90W?' = 802.3bt."
+        }
+      },
+      {
+        id: "2.7.a.5",
+        term: "AP management VLAN",
+        weight: "med",
+        info: "<p>A lightweight AP cannot function until it joins its WLC. The AP accomplishes this by sourcing its CAPWAP discovery packets from an IP address on its <strong>management VLAN</strong> and sending them to the WLC's <strong>management interface IP</strong>. For this to work, the AP must be able to reach the WLC management IP at Layer 3.</p><p><strong>Two common designs:</strong></p><ul><li><strong>Flat design:</strong> AP management VLAN and WLC management interface are on the <em>same VLAN/subnet</em>. The AP uses ARP to find the WLC directly. Simple and reliable, used in single-site deployments.</li><li><strong>Routed design:</strong> AP is on VLAN 99 at the access layer; WLC is on VLAN 10 in the data center. Traffic is routed between the two subnets. The AP needs a default gateway (the SVI on the access switch or distribution switch) and IP reachability to the WLC's management IP.</li></ul><p><strong>How the AP learns the WLC IP:</strong> in order of preference — (1) static config on the AP, (2) DHCP Option 43 (vendor-specific option that lists WLC IPs), (3) DNS lookup for <code>CISCO-CAPWAP-CONTROLLER.localdomain</code>, (4) broadcast on the local subnet (only works in flat designs). Option 43 is the most common enterprise method.</p><p><strong>Troubleshooting 'AP stuck in discovery':</strong> first check the access port VLAN assignment, then DHCP (does the AP have an IP and gateway?), then Option 43 (is the WLC IP being handed out?), then firewall rules between AP VLAN and WLC VLAN (UDP 5246/5247 must be open both ways).</p>",
+        visual: { type: "packet-flow", params: { nodes: ["AP boots", "DHCP request (gets IP + Option 43)", "CAPWAP discovery to WLC mgmt IP", "CAPWAP join + config download", "AP operational"], color: "#3b82f6" } },
+        hack: {
+          memory: "AP management VLAN = 'the road the AP takes to reach the WLC.' Same subnet (flat) or routed (most common enterprise). The four discovery methods — static, DHCP Option 43, DNS, broadcast — are the 4 ways the AP can find its boss. Option 43 is the enterprise default.",
+          practice: "In a Cisco DHCP lab: configure 'ip dhcp pool AP_VLAN' → 'network 10.99.0.0 /24' → 'default-router 10.99.0.1' → 'option 43 hex f104.0a01.0105' (hex-encoded WLC IP 10.1.1.5). Boot an AP — it should discover the WLC within 60 seconds. Break Option 43 and watch the AP fail to join.",
+          effort: "medium",
+          meta: "Jeremy's IT Lab Day 57 covers WLC discovery methods. Wendell Odom OCG Chapter 25. The exam may ask 'how does a LAP find its WLC?' — answer includes DHCP Option 43 as the most common method."
+        }
+      }
     ]
   },
 
@@ -6122,10 +6182,58 @@ window.subtopicContentD12 = {
       meta: "Jeremy's IT Lab Day 57-58 covers WLC physical connections. Wendell Odom OCG Chapter 25. The exam tests: 'how does the WLC connect to the network?' (trunk port to switch), 'what VLANs must be allowed on the trunk?' (management + all WLAN VLANs). If the exam describes a WLC failing to place clients in the correct VLAN, check the trunk allowed VLAN list.",
     },
     micro: [
-      { id: "2.7.b.1", term: "WLC → trunk port",             def: "WLC connects to switch via trunk. Must carry management VLAN + all dynamic interface VLANs mapped to WLANs.", weight: "high" },
-      { id: "2.7.b.2", term: "WLC management interface",     def: "Primary in-band interface. AP CAPWAP traffic, admin access, RADIUS. Critical interface.", weight: "high" },
-      { id: "2.7.b.3", term: "WLC dynamic interface VLANs",  def: "Each dynamic interface maps a WLAN to a VLAN. Trunk to WLC must allow all these VLANs.", weight: "high" },
-      { id: "2.7.b.4", term: "WLC troubleshoot",             def: "Clients getting wrong IPs or no access often = trunk allowed-vlan misconfiguration on the switch.", weight: "med" }
+      {
+        id: "2.7.b.1",
+        term: "WLC → trunk port",
+        weight: "high",
+        info: "<p>The <strong>WLC is a Layer 2/Layer 3 VLAN aggregator</strong> for all wireless traffic. Every wireless client belongs to a WLAN, every WLAN maps to a dynamic interface, and every dynamic interface sits on a VLAN. When a client sends a packet, the WLC de-encapsulates CAPWAP and emits the frame tagged with the correct VLAN onto its uplink. That only works if the uplink is a <strong>trunk port</strong>.</p><p><strong>Switch-side config:</strong></p><pre>interface GigabitEthernet1/0/1\n description WLC-01 uplink\n switchport mode trunk\n switchport trunk native vlan 99\n switchport trunk allowed vlan 10,20,30,99\n spanning-tree portfast trunk\n spanning-tree bpduguard enable</pre><p><strong>Native VLAN matters:</strong> the WLC's <em>management interface</em> is usually untagged on the native VLAN. All <em>dynamic interfaces</em> are tagged. Mismatching the native VLAN between the WLC and the switch is a classic silent bug — management works, client VLANs break intermittently.</p><p><strong>LAG variation:</strong> if the WLC uses LAG, the switch side becomes a port-channel with <code>switchport mode trunk</code> on the logical interface. Individual physical members inherit the port-channel config.</p><p><strong>Sanity commands:</strong> <code>show interfaces trunk</code> on the switch, <code>show interface summary</code> on the WLC GUI, <code>show interface detailed management</code> to confirm VLAN tagging.</p>",
+        visual: { type: "packet-flow", params: { nodes: ["Wireless client", "AP (CAPWAP)", "WLC (de-encap + VLAN tag)", "Trunk port", "Distribution switch"], color: "#8b5cf6" } },
+        hack: {
+          memory: "WLC = VLAN traffic cop. It hands every wireless client off to the correct wired VLAN, so its uplink HAS to be a trunk. Management VLAN = native (untagged); dynamic interface VLANs = tagged. Allowed VLAN list = mgmt + every WLAN-mapped VLAN.",
+          practice: "Packet Tracer with a 2504 WLC: connect to a 3560 switch with a trunk. Create dynamic interfaces for VLAN 10 and 20. Map WLAN1 to VLAN 10, WLAN2 to VLAN 20. Connect two PCs (simulated wireless) — verify each gets a DHCP address in the correct subnet. Then remove VLAN 20 from the trunk's allowed list — watch WLAN2 clients break while WLAN1 clients keep working.",
+          effort: "medium",
+          meta: "Jeremy's IT Lab Day 58 is the canonical WLC-to-switch trunk lab. Wendell Odom OCG Chapter 25. Guaranteed exam topic — every WLC question assumes the uplink is a trunk."
+        }
+      },
+      {
+        id: "2.7.b.2",
+        term: "WLC management interface",
+        weight: "high",
+        info: "<p>The <strong>management interface</strong> is the WLC's primary in-band interface. It carries <strong>four critical types of traffic</strong>: (1) CAPWAP control and data tunnels to all joined APs, (2) administrator GUI/SSH/SNMP access to the WLC itself, (3) RADIUS/TACACS+ traffic to the AAA server, and (4) most mobility/inter-controller traffic.</p><p>It lives on a single VLAN (the <strong>management VLAN</strong>), has one IP address, and acts as the WLC's 'personality' on the network. If the management interface goes down, APs lose their tunnels and every wireless client eventually disconnects.</p><p><strong>Configuration fields (WLC GUI → Controller → Interfaces → management):</strong> VLAN ID (often 0 if untagged on the native VLAN), IP address + netmask, gateway, primary DHCP server (AP VLAN DHCP relay), port number, backup port.</p><p><strong>Why AP CAPWAP uses the management interface (not a dynamic interface):</strong> APs need a stable, always-available IP on the WLC. The management interface fits that bill. In older code (AireOS pre-8.0), APs could optionally use the AP-manager interface instead — modern controllers have merged both into the management interface.</p><p><strong>Hardening:</strong> restrict management interface access with a Management ACL (Security → Access Control Lists → CPU ACL). Only allow SSH/HTTPS from admin subnets.</p>",
+        visual: { type: "shield", params: { items: ["AP CAPWAP termination", "Admin GUI/SSH/SNMP", "RADIUS/TACACS+ traffic", "Mobility traffic", "Single VLAN, single IP"], color: "#3b82f6" } },
+        hack: {
+          memory: "Management interface = WLC's 'main phone number.' Everything important happens here — APs call in, admins call in, RADIUS calls in. If it goes down, wireless dies. Protect it with a CPU ACL.",
+          practice: "In the WLC GUI, go to Controller → Interfaces → management. Note the VLAN, IP, and port. Intentionally move the native VLAN on the switch trunk to a different value — watch the WLC drop off the network and APs unjoin. Restore and verify recovery.",
+          effort: "medium",
+          meta: "Jeremy's IT Lab Day 58 walks through WLC interfaces one by one. Wendell Odom OCG Chapter 25. Exam will name the interface: 'which WLC interface do APs use for CAPWAP?' = management."
+        }
+      },
+      {
+        id: "2.7.b.3",
+        term: "WLC dynamic interface VLANs",
+        weight: "high",
+        info: "<p>A <strong>dynamic interface</strong> is the WLC's equivalent of a switch <strong>SVI</strong>. Each dynamic interface represents one VLAN and provides the IP gateway for wireless clients assigned to that VLAN. Every production WLAN maps to exactly one dynamic interface.</p><p><strong>What a dynamic interface contains:</strong> VLAN ID (tagged on the trunk uplink), IP address and netmask (often set as the default gateway for wireless clients, though typically the gateway is on a router/L3 switch upstream), primary and secondary DHCP server IPs (for DHCP relay), interface name (used to map WLANs), port number.</p><p><strong>Flow of a wireless client packet:</strong> Client associates to WLAN-Corporate → WLC looks up WLAN-Corporate's interface mapping → finds dynamic interface 'employee' mapped to VLAN 10 → client gets an IP via DHCP relayed through this interface → client traffic egresses WLC's trunk tagged VLAN 10.</p><p><strong>Segmentation power:</strong> you can have dozens of dynamic interfaces — one for Corporate, Guest, IoT, VoIP, Contractors, Lab. Each WLAN picks its interface at creation. This is how wireless segmentation aligns with wired VLAN segmentation.</p><p><strong>AP groups add flexibility:</strong> the same WLAN can map to different dynamic interfaces depending on AP group. Example: WLAN-Guest at HQ uses VLAN 20, but at Branch-A uses VLAN 120. Configured via AP Groups → WLANs tab.</p>",
+        visual: { type: "hierarchy", params: { root: "WLC", children: [{ name: "Dynamic interface 'employee' → VLAN 10" }, { name: "Dynamic interface 'guest' → VLAN 20" }, { name: "Dynamic interface 'iot' → VLAN 30" }, { name: "Each mapped to a WLAN + SSID" }] } },
+        hack: {
+          memory: "Dynamic interface = wireless SVI. One per VLAN. Each WLAN picks one. Trunk to WLC must allow every dynamic interface's VLAN or clients get stranded.",
+          practice: "Create 3 dynamic interfaces on the WLC (emp/VLAN10, guest/VLAN20, iot/VLAN30). Create 3 WLANs mapped to them. Connect clients — verify each gets an IP in the right subnet. Remove VLAN 30 from the trunk allowed list — watch IoT clients break while Corp and Guest keep working.",
+          effort: "medium",
+          meta: "Jeremy's IT Lab Day 58 covers dynamic interfaces in detail. Wendell Odom OCG Chapter 26. Exam: 'how does the WLC place a client on the correct VLAN?' = via the dynamic interface mapped to the client's WLAN."
+        }
+      },
+      {
+        id: "2.7.b.4",
+        term: "WLC troubleshoot",
+        weight: "med",
+        info: "<p>The <strong>#1 WLC symptom:</strong> 'clients associate but never get an IP, or get the wrong IP.' Nine times out of ten, this is a <strong>trunk allowed-VLAN misconfiguration</strong> on the switch port facing the WLC.</p><p><strong>Troubleshooting ladder (top-down):</strong></p><ol><li><strong>Client perspective:</strong> does the client see the SSID? Does it authenticate? Does it get an IP? 'ipconfig' on the client reveals where it breaks.</li><li><strong>WLC perspective:</strong> Monitor → Clients → pick the client. Does it show 'Run' state? If stuck in DHCP or AAA, follow that clue.</li><li><strong>WLAN → dynamic interface mapping:</strong> WLANs tab → confirm the WLAN points to the correct interface, interface points to the right VLAN.</li><li><strong>Trunk allowed VLAN list:</strong> on the switch, <code>show interfaces trunk</code> — verify the VLAN is in the 'Allowed on trunk' AND 'Forwarding' lists.</li><li><strong>DHCP reachability:</strong> can the WLC ping the DHCP server? Is the dynamic interface configured with the correct DHCP server IP?</li><li><strong>L3 routing:</strong> if the wireless VLAN is routed to the DHCP server, does the upstream SVI exist and have an IP helper-address?</li></ol><p><strong>Common misconfigurations:</strong> forgetting to add a VLAN to the allowed list; native VLAN mismatch between WLC and switch; AP management VLAN blocked at a firewall; DHCP Option 43 missing; WLC management interface in wrong subnet.</p>",
+        visual: { type: "state-machine", params: { states: ["Client associates", "Check WLAN mapping", "Check dynamic interface", "Check trunk allowed VLANs", "Check DHCP reachability", "Client gets IP"], active: 3, transitions: true } },
+        hack: {
+          memory: "Wireless trouble → 'start at the trunk.' Missing VLAN on the trunk allowed list is the most common silent killer. Second most common: native VLAN mismatch. Third: DHCP Option 43.",
+          practice: "Script a break-fix drill: have a partner pick one of [remove VLAN from trunk, break native VLAN, disable DHCP pool] — you diagnose in under 3 minutes using the ladder above. Build muscle memory for the 'what changed?' instinct.",
+          effort: "medium",
+          meta: "Jeremy's IT Lab Day 58 includes troubleshooting tips. Wendell Odom OCG Chapter 26. Exam scenarios present the symptom and expect you to pick the most likely cause — 'allowed VLAN' is almost always the right answer."
+        }
+      }
     ]
   },
 
@@ -6139,9 +6247,45 @@ window.subtopicContentD12 = {
       meta: "Jeremy's IT Lab Day 57 mentions WLC LAG. Wendell Odom OCG Chapter 25. Simple concept: LAG on WLC = EtherChannel on switch. One flashcard covers this topic. The exam may ask about WLC redundancy — LAG is the answer for physical link redundancy.",
     },
     micro: [
-      { id: "2.7.c.1", term: "LAG (Link Aggregation)",       def: "WLC equivalent of EtherChannel. Bundles multiple WLC ports into one logical interface for bandwidth + redundancy.", weight: "med" },
-      { id: "2.7.c.2", term: "LAG on both sides",            def: "Enable LAG on WLC AND configure matching EtherChannel on the switch side. Same port-channel concept.", weight: "med" },
-      { id: "2.7.c.3", term: "WLC redundancy",               def: "LAG provides physical link redundancy. WLC HA pairs provide platform redundancy. Both complementary.", weight: "low" }
+      {
+        id: "2.7.c.1",
+        term: "LAG (Link Aggregation)",
+        weight: "med",
+        info: "<p><strong>LAG (Link Aggregation Group)</strong> is Cisco's name for the WLC-side implementation of <strong>EtherChannel</strong>. It bundles 2-8 physical Ethernet ports on the WLC into one logical pipe with combined bandwidth and automatic failover. Four 1-Gbps ports become a 4-Gbps aggregate; lose one port, traffic redistributes across the remaining three with no admin intervention.</p><p><strong>WLC LAG specifics:</strong> AireOS WLCs (2504, 5508, 5520, 8540) use a simple 'LAG enabled/disabled' toggle — it's all-or-nothing, all physical ports participate. Catalyst 9800 WLCs use modern LACP/PAgP-style port-channels with more flexibility. LAG is usually enabled during initial setup and rarely changed afterward.</p><p><strong>Load balancing algorithm:</strong> WLC LAG uses a hash of source+destination IP/MAC to pick a member link per flow. A single TCP flow will always take one physical link — LAG gives you more TOTAL bandwidth, not more per-flow bandwidth.</p><p><strong>When LAG is off:</strong> each WLC port is independent and can be assigned to a specific interface. This 'port map' mode is rare in modern deployments because it's less resilient and wastes ports.</p>",
+        visual: { type: "packet-flow", params: { nodes: ["WLC Port 1", "WLC Port 2", "WLC Port 3", "WLC Port 4", "→ LAG bundle → Switch port-channel"], color: "#f59e0b" } },
+        hack: {
+          memory: "LAG on WLC = EtherChannel on switch. Same concept, different vendor word. Bundles physical ports into one logical pipe for bandwidth + redundancy. 'LAG up, hashing by flow, any member can carry any packet.'",
+          practice: "No lab needed — Packet Tracer doesn't model WLC LAG well. Flashcard: 'WLC LAG = switch-side port-channel. One flow → one link. Redundancy on member failure. All-or-nothing config on older AireOS.'",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 57 mentions LAG briefly. Wendell Odom OCG Chapter 25. Exam: 'How does a WLC achieve uplink redundancy and additional bandwidth?' = LAG with switch-side port-channel."
+        }
+      },
+      {
+        id: "2.7.c.2",
+        term: "LAG on both sides",
+        weight: "med",
+        info: "<p>A LAG is only a LAG if <strong>both ends agree</strong>. Enable LAG on the WLC but forget to create a port-channel on the switch, and you get a broken network: the switch sees 4 separate ports learning the same MACs, causing MAC flapping, STP loops, and ARP chaos.</p><p><strong>Switch-side config (Cisco IOS):</strong></p><pre>interface range GigabitEthernet1/0/1 - 4\n description WLC-01 LAG members\n switchport mode trunk\n switchport trunk allowed vlan 10,20,30,99\n channel-group 1 mode on</pre><pre>interface Port-channel1\n description WLC-01 LAG\n switchport mode trunk\n switchport trunk allowed vlan 10,20,30,99</pre><p><strong>Mode 'on' vs LACP:</strong> older AireOS WLCs only support static 'on' mode (no negotiation protocol). Catalyst 9800 WLCs support LACP. <strong>Match whatever the WLC supports</strong> — don't put LACP on the switch if the WLC can only do static.</p><p><strong>Order of operations matters:</strong> enabling LAG on the WLC requires a reboot (AireOS). Configure the switch port-channel FIRST, then enable WLC LAG and reboot. Otherwise you have a brief outage window with inconsistent config on either side.</p><p><strong>Verify:</strong> <code>show etherchannel summary</code> (switch) should show all members as 'P' (bundled). <code>show interface summary</code> (WLC GUI) shows LAG status.</p>",
+        visual: { type: "comparison", params: { left: { label: "WLC side (LAG)", items: ["LAG enabled toggle", "All ports auto-bundle", "Static only (AireOS)", "Reboot required"] }, right: { label: "Switch side (port-channel)", items: ["channel-group N mode on", "Port-channel interface", "Trunk config on Po, not members", "show etherchannel summary"] } } },
+        hack: {
+          memory: "Both sides or it's broken. WLC enable LAG, switch create port-channel. AireOS = static 'on' mode only. Configure switch first, then WLC, then reboot WLC.",
+          practice: "Flashcard the commands: 'channel-group 1 mode on' on the physical ports, then 'interface Port-channel 1' with the trunk config. Remember: trunk config goes on the Port-channel interface, not the members (modern IOS copies it to members automatically).",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 57. Wendell Odom OCG Chapter 10 (EtherChannel). The exam tests the matching configs — WLC LAG on one side, port-channel mode 'on' on the switch."
+        }
+      },
+      {
+        id: "2.7.c.3",
+        term: "WLC redundancy",
+        weight: "low",
+        info: "<p>LAG solves <strong>physical link</strong> redundancy — if a cable or switch port fails, traffic reroutes across remaining LAG members. LAG does NOT solve <strong>WLC chassis</strong> failure. For that, you need <strong>WLC HA (High Availability)</strong>.</p><p><strong>WLC HA modes:</strong></p><ul><li><strong>SSO (Stateful Switchover)</strong> — two WLCs paired with a dedicated redundancy port (RP). One is active, one is hot-standby. On failure, standby takes over in &lt;1 second with full client state preserved.</li><li><strong>N+1 / N+N</strong> — multiple active WLCs with one backup WLC covering them all (N+1) or a mirrored pair for each WLC (N+N). APs join primary; fail over to backup via CAPWAP if primary is unreachable. Clients reauth during failover (not stateful).</li></ul><p><strong>Complementary, not redundant:</strong> LAG protects against port/switch failures; HA protects against WLC chassis failures. A fully resilient design has BOTH: WLCs with LAG uplinks, paired in an HA SSO configuration.</p><p><strong>CCNA scope:</strong> you only need to recognize that LAG and HA solve different problems. Deeper HA config (priority, RP IP, encryption) is CCNP territory.</p>",
+        visual: { type: "shield", params: { items: ["LAG = physical link redundancy", "HA SSO = chassis redundancy", "N+1 = backup WLC for many", "Both stacked = full resilience"], color: "#10b981" } },
+        hack: {
+          memory: "LAG fixes cables, HA fixes boxes. Put both in the design or you've only solved half the problem.",
+          practice: "Flashcard only. The exam won't ask you to configure HA, but may ask 'if a WLC chassis fails, what keeps wireless up?' = HA pairing, not LAG.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 58 mentions HA. Wendell Odom OCG Chapter 25. Low-weight exam topic — 1 question at most."
+        }
+      }
     ]
   },
 
@@ -6158,9 +6302,45 @@ window.subtopicContentD12 = {
       meta: "Jeremy's IT Lab Day 56 connects AP deployment to PoE requirements. Wendell Odom OCG Chapter 25. The exam ties PoE to AP deployment: 'what standard provides power to a standard AP?' (802.3af or 802.3at), 'what command verifies PoE status?' (<code>show power inline</code>). This cross-references Domain 1.1.h. If you already know the PoE standards, this is a quick recall topic.",
     },
     micro: [
-      { id: "2.7.d.1", term: "AP PoE requirements",          def: "Basic APs: 802.3af (15.4W). Modern Wi-Fi 6 APs: 802.3at (30W). High-end with multiple radios: 802.3bt (60-90W).", weight: "high" },
-      { id: "2.7.d.2", term: "show power inline",            def: "Verify PoE status per port: allocated watts, consumed, device class. Use when deploying APs.", weight: "high" },
-      { id: "2.7.d.3", term: "PoE budget planning",          def: "Sum AP power draws. Confirm switch budget supports it. Use higher-priority ports for critical APs.", weight: "med" }
+      {
+        id: "2.7.d.1",
+        term: "AP PoE requirements",
+        weight: "high",
+        info: "<p>APs have grown more power-hungry every Wi-Fi generation. Picking the right PoE standard for the right AP is a real-world deployment skill and a guaranteed CCNA recall question.</p><p><strong>Rough mapping:</strong></p><ul><li><strong>Wi-Fi 4 / early Wi-Fi 5 APs</strong> (Cisco 1600, 2600, 2700 series) — 802.3af (15.4W) is sufficient. Single or dual radio, 2x2 MIMO, no fancy extras.</li><li><strong>Wi-Fi 5 high-end / most Wi-Fi 6 APs</strong> (Cisco 3800, 9115, 9120) — 802.3at / PoE+ (30W). 4x4 MIMO, dual radios, often extra ports or BLE radio.</li><li><strong>Wi-Fi 6E / Wi-Fi 7 APs + outdoor/specialty</strong> (Cisco 9136, 9166, outdoor APs with heaters) — 802.3bt / PoE++ (60-90W). Tri-radio with 6GHz, external antennas, USB peripherals.</li></ul><p><strong>'Low power mode' gotcha:</strong> if an AP is plugged into PoE that meets the minimum spec but not the preferred spec, it often boots in a degraded state — 2.4GHz radio only, reduced TX power, USB ports disabled. Always check AP boot logs for 'operating in low power mode' warnings.</p><p><strong>Datasheet reading:</strong> every Cisco AP datasheet lists 'Power draw' and 'Required PoE class.' Always match the SWITCH'S available PoE class to the AP's required class, not just the watts. Class mismatches can fail to boot even if total watts look okay.</p>",
+        visual: { type: "layer-stack", params: { layers: ["Wi-Fi 4/5 basic → 802.3af (15.4W)", "Wi-Fi 5/6 standard → 802.3at (30W)", "Wi-Fi 6E/7 + outdoor → 802.3bt (60-90W)"], highlight: 1 } },
+        hack: {
+          memory: "More radios, more power. 4 → af, 6 → at, 6E/7 → bt. 'Low power mode' means the switch under-powered the AP.",
+          practice: "Open a Cisco 9120 AP datasheet and note 'required: 802.3at (class 4).' Compare to a 9166 datasheet — 'required: 802.3bt (class 6).' Build the mental map between model numbers and PoE class.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 56. Wendell Odom OCG Chapter 25. Exam: 'a Wi-Fi 6 AP with 4x4 MIMO requires which PoE standard?' = 802.3at at minimum."
+        }
+      },
+      {
+        id: "2.7.d.2",
+        term: "show power inline",
+        weight: "high",
+        info: "<p><code>show power inline</code> is the single most useful PoE troubleshooting command. It shows, for the whole switch or a specific interface: admin state, operational state, power allocated, power consumed, device class, and device description.</p><p><strong>Typical output:</strong></p><pre>Switch#show power inline\nAvailable:370.0(w) Used:125.0(w) Remaining:245.0(w)\n\nInterface Admin  Oper  Power   Device              Class\n--------- ------ ----- ------- ------------------- -----\nGi1/0/1   auto   on    30.0    AIR-AP9120AXI-B     4\nGi1/0/2   auto   on    15.4    AIR-AP2802I-B       3\nGi1/0/3   auto   off   0.0     n/a                 n/a\nGi1/0/10  auto   faulty 0.0    n/a                 n/a</pre><p><strong>Reading it:</strong></p><ul><li><strong>Admin:</strong> 'auto' = switch will negotiate PoE; 'static' = always on; 'never' = disabled.</li><li><strong>Oper:</strong> 'on' = delivering; 'off' = no PD detected; 'faulty' = PD drew too much or signature failed; 'power-deny' = budget exhausted.</li><li><strong>Class:</strong> 0 = default 15.4W; 3 = 15.4W; 4 = 30W (PoE+); 5-8 = various PoE++ tiers.</li></ul><p><strong>Per-port detail:</strong> <code>show power inline Gi1/0/1 detail</code> gives the full negotiation log, including the raw signature/classification values. Use this when the summary shows 'faulty' and you need to know why.</p><p><strong>Budget view:</strong> <code>show power inline | include Available|Used|Remaining</code> shows the three numbers that matter for capacity planning.</p>",
+        visual: { type: "comparison", params: { left: { label: "Summary view", items: ["Available / Used / Remaining", "Per-port Oper state", "Power allocated", "Device class"] }, right: { label: "Detail view", items: ["show power inline Gi1/0/1 detail", "Classification rounds", "Signature test results", "CDP-provided power request"] } } },
+        hack: {
+          memory: "'show power inline' = PoE's 'show ip interface brief.' First command to run when an AP won't boot. Look at Oper state: off (no PD), on (good), faulty (signature issue), power-deny (budget out).",
+          practice: "On a real Catalyst 9200 with 2-3 APs attached: run 'show power inline,' then 'show power inline Gi1/0/1 detail' for a live AP. Note the class, wattage, and device name (auto-detected via CDP). Unplug an AP and rerun — see the state change to 'off.'",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 56. Wendell Odom OCG Chapter 25. Common exam question: 'which command verifies PoE on a switch port?' = show power inline."
+        }
+      },
+      {
+        id: "2.7.d.3",
+        term: "PoE budget planning",
+        weight: "med",
+        info: "<p>Every PoE-capable switch has a fixed <strong>power budget</strong> determined by its internal power supply. A Catalyst 9300-48P has a 715W PoE budget. A Catalyst 2960X-48FPS has a 740W budget. When total allocated PoE exceeds the budget, the switch starts denying power to new devices (or, in strict mode, shutting off lower-priority ones).</p><p><strong>Budget math:</strong> if you have a 370W budget and want to deploy Wi-Fi 6 APs at 30W each, you can power <strong>~12 APs</strong> (370 / 30 = 12.3). If half your ports also power IP phones at 7W, subtract that total first. Always leave 10-15% headroom for negotiation overhead.</p><p><strong>Priorities:</strong> <code>power inline port priority high</code> on critical AP ports ensures they get power even if the budget gets tight and the switch has to shed lower-priority ports.</p><p><strong>When budget planning fails:</strong> symptoms are 'APs randomly won't boot' or 'AP boots in low-power mode.' 'show power inline' shows 'power-deny' states. Solutions: (1) upgrade to a higher-wattage PSU (stackable switches often have modular supplies), (2) spread APs across more switches, (3) use PoE injectors for a subset of APs.</p><p><strong>Design rule:</strong> when sizing a new deployment, sum the MAX power draw of every planned PoE device. If that exceeds 80% of the switch's budget, move to a higher-power model BEFORE ordering — you don't want to find out after install.</p>",
+        visual: { type: "hierarchy", params: { root: "PoE budget (e.g., 370W)", children: [{ name: "APs: 12 × 30W = 360W" }, { name: "IP phones: 10 × 7W = 70W" }, { name: "Total: 430W — OVER BUDGET" }, { name: "Fix: spread across switches or upgrade PSU" }] } },
+        hack: {
+          memory: "Budget = what the PSU can deliver. Add up every PoE device, leave 15% headroom, pick switch model accordingly. 'power-deny' in show output = budget exhausted, someone gets no juice.",
+          practice: "Grab the datasheet for a Catalyst 9300-24P (445W PoE budget). Calculate how many 9120 APs (30W each) it can power. Answer: ~14 (leaving headroom). Now assume you also have 8 IP phones at 7W — recalc: 445 - 56 = 389W for APs, ~12 APs max.",
+          effort: "medium",
+          meta: "Jeremy's IT Lab Day 56. Wendell Odom OCG Chapter 25. Lower-frequency exam question but realistic for deployment planning — 1 question possible."
+        }
+      }
     ]
   },
 
@@ -6184,10 +6364,58 @@ window.subtopicContentD12 = {
       meta: "Jeremy's IT Lab Day 41 (Device Management) covers console and VTY configuration. Wendell Odom OCG Chapter 6 details management access methods. The exam asks: 'how do you access a device with no IP?' (console), 'what are the default console settings?' (9600 8-N-1), 'what is the difference between out-of-band and in-band?' (physical vs network-based). Quick recall questions — know the terms and the default settings.",
     },
     micro: [
-      { id: "2.8.a.1", term: "Console access",               def: "Out-of-band. Physical serial connection (RJ-45 or USB). Works without network/IP.", weight: "high" },
-      { id: "2.8.a.2", term: "Console default settings",     def: "9600 baud, 8 data bits, No parity, 1 stop bit (8-N-1). No flow control.", weight: "high" },
-      { id: "2.8.a.3", term: "VTY lines",                    def: "Virtual TeletYpe. Remote CLI access lines (usually 0-4 or 0-15). Used by Telnet/SSH.", weight: "high" },
-      { id: "2.8.a.4", term: "Out-of-band vs in-band",       def: "Out-of-band = separate network/channel (console, management VLAN). In-band = uses production network.", weight: "high" }
+      {
+        id: "2.8.a.1",
+        term: "Console access",
+        weight: "high",
+        info: "<p><strong>Console access</strong> is the physical, out-of-band management channel built into every Cisco router and switch. A dedicated console port connects directly to a laptop via serial cable; the connection uses no IP addressing, no network, and no authentication beyond what you configure on the console line itself.</p><p><strong>Two hardware flavors:</strong> (1) <strong>Legacy RJ-45 console port</strong> — uses a light-blue 'rollover' cable plus a USB-to-serial adapter on modern laptops. (2) <strong>Modern USB console port</strong> (mini-USB or USB-C) — a direct USB cable works, the switch presents itself as a serial device to the OS.</p><p><strong>When you must use console:</strong> first-day provisioning (no IP yet), password recovery (wiping the startup config), network-wide outage (you can't SSH if the network is down), bootloader/ROMmon work, and upgrading IOS on a bricked device. Console access survives everything short of a dead device.</p><p><strong>Console line configuration:</strong></p><pre>line console 0\n password Cisco123\n login\n exec-timeout 10 0\n logging synchronous</pre><p><code>exec-timeout 10 0</code> = 10 minutes before auto-logout. <code>logging synchronous</code> keeps log messages from stomping on your typing.</p><p><strong>Security consideration:</strong> physical access to the console port means full device control. Lock racks, limit who has keys. Console is as powerful as root — treat it that way.</p>",
+        visual: { type: "comparison", params: { left: { label: "Console (Out-of-band)", items: ["Physical cable required", "No IP needed", "Works when network is down", "First-day provisioning", "Password recovery"] }, right: { label: "In-band (SSH/Telnet/HTTPS)", items: ["Requires IP + network", "Remote admin", "Dies when network dies", "Production-day operations"] } } },
+        hack: {
+          memory: "Console = umbilical cord. Direct, always-works, no network. Use it for day-one setup, password recovery, and disaster recovery. Physical access = total control, so guard the port.",
+          practice: "Packet Tracer: drop a new 2960 switch. Don't configure any IP. Try to 'telnet' to it — fails (no IP). Connect a PC to the console port via RS-232. Open the Terminal → Serial, accept 9600 8-N-1 defaults. You get a CLI prompt. Set hostname, save config. Now you understand why every initial config starts here.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 41 (Device Management) covers console + VTY. Wendell Odom OCG Chapter 6. Exam: 'how do you access a device with no IP configured?' = console port."
+        }
+      },
+      {
+        id: "2.8.a.2",
+        term: "Console default settings",
+        weight: "high",
+        info: "<p>The console port uses a <strong>serial protocol</strong>, not Ethernet. Your terminal emulator must match the device's serial settings or you'll see garbage characters (or nothing at all).</p><p><strong>The universal default: 9600 8-N-1.</strong></p><ul><li><strong>9600 baud</strong> — signaling rate. Higher speeds (19200, 115200) can be configured but 9600 is the assumed default on Cisco IOS.</li><li><strong>8 data bits</strong> — each character is 8 bits (standard ASCII).</li><li><strong>N parity</strong> — no parity bit. (Other options: even, odd, mark, space — not used on Cisco.)</li><li><strong>1 stop bit</strong> — one bit signals end of character.</li><li><strong>No flow control</strong> — no hardware (RTS/CTS) or software (XON/XOFF) flow control by default.</li></ul><p><strong>Terminal emulators:</strong> PuTTY (Windows — free, classic), SecureCRT (paid, professional), Tera Term (Windows, free), screen / minicom (Linux/Mac), ZOC, iTerm2 + screen command. All expose the same 9600 8-N-1 defaults.</p><p><strong>Changing baud:</strong> <code>line console 0</code> → <code>speed 115200</code>. Then match it on your terminal emulator BEFORE exiting — otherwise you lock yourself out of the console until the next reload. Most admins leave it at 9600 for exactly this reason.</p><p><strong>USB console detection:</strong> on modern switches, the USB console appears as a COM port (Windows) or /dev/tty.usbserial (Mac/Linux). Device Manager or <code>ls /dev/tty.*</code> reveals which port number to connect to.</p>",
+        visual: { type: "binary-breakdown", params: { segments: [{ label: "Baud", value: "9600" }, { label: "Data bits", value: "8" }, { label: "Parity", value: "N" }, { label: "Stop bits", value: "1" }, { label: "Flow ctrl", value: "None" }] } },
+        hack: {
+          memory: "9600 8-N-1, no flow control. Chant it. Every Cisco console expects this unless you change it. If you see garbage on the console, you got the settings wrong — 99% of the time it's baud.",
+          practice: "Open PuTTY → Session → Serial → confirm 9600, 8, None, 1, None. Connect to a switch via USB. Press Enter a few times — you should get the IOS prompt. Now change baud to 19200 in PuTTY — immediate garbage until you match it again.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 41 explains 8-N-1. Wendell Odom OCG Chapter 6. Exam: 'default console serial settings?' = 9600 8-N-1. Pure recall."
+        }
+      },
+      {
+        id: "2.8.a.3",
+        term: "VTY lines",
+        weight: "high",
+        info: "<p><strong>VTY lines (Virtual TeletYpe)</strong> are the logical 'channels' on a Cisco device that accept remote CLI sessions. When you Telnet or SSH into a switch, you land on a VTY line. Physical cables aren't involved — VTY is a software abstraction representing 'a simultaneous remote login slot.'</p><p><strong>Default line range:</strong> modern IOS provides <strong>16 VTY lines (0-15)</strong>. Older IOS had 5 lines (0-4). You can check with <code>show line</code> — look for lines labeled VTY.</p><p><strong>Standard config block:</strong></p><pre>line vty 0 15\n transport input ssh\n login local\n exec-timeout 15 0\n logging synchronous</pre><p>This applies settings to ALL 16 VTY lines. You can also configure a subset: <code>line vty 0 4</code> applies to lines 0-4 only.</p><p><strong>Why 16 lines:</strong> small devices rarely need more than 5 simultaneous admin sessions. Large devices with many scripts and automation can hit 16 at once. If all VTYs are busy, the next login attempt gets 'connection refused' — rarely an issue on CCNA-scale networks.</p><p><strong>ACL protection:</strong> <code>access-class [ACL] in</code> on a VTY line restricts WHICH source IPs can log in. Critical hardening step — without it, the only thing blocking external SSH attacks is the username/password.</p><pre>access-list 10 permit 10.1.1.0 0.0.0.255\nline vty 0 15\n access-class 10 in</pre><p>Now only 10.1.1.0/24 hosts can even attempt login.</p>",
+        visual: { type: "hierarchy", params: { root: "Remote CLI access", children: [{ name: "VTY 0-15 (16 concurrent logins)" }, { name: "transport input ssh (protocol filter)" }, { name: "login local (auth source)" }, { name: "access-class ACL in (IP filter)" }] } },
+        hack: {
+          memory: "VTY = virtual console. 16 simultaneous remote sessions by default. Configure 'line vty 0 15' once and hit all of them. Always lock down with transport-input + login local + access-class ACL.",
+          practice: "Packet Tracer: configure VTY lines, leave transport input unrestricted, log in via SSH. Now add 'access-class 10 in' with a tight ACL — try to SSH from a denied IP, get rejected. Try from permitted IP, succeed. This hands-on cements the three-layer defense (protocol, auth, IP).",
+          effort: "medium",
+          meta: "Jeremy's IT Lab Day 41. Wendell Odom OCG Chapter 6. Exam: 'what are VTY lines used for?' = remote CLI sessions via Telnet or SSH. Know the default range (0-15)."
+        }
+      },
+      {
+        id: "2.8.a.4",
+        term: "Out-of-band vs in-band",
+        weight: "high",
+        info: "<p>These two terms describe <strong>which network path</strong> carries management traffic. Pick the wrong one in an exam scenario and you'll pick the wrong answer.</p><p><strong>Out-of-band (OOB) management:</strong> uses a <em>dedicated, separate</em> network path — physically (console cable, dedicated management port) or logically (separate management VLAN/subnet on its own infrastructure). The key property: <strong>if the production network is down, OOB still works</strong>. Typical examples: serial console, terminal server ('console server') with modem dial-in, dedicated management interface connected to a separate out-of-band switch, cellular-connected management gateway.</p><p><strong>In-band management:</strong> uses the <em>same</em> network that carries production traffic. SSH, Telnet, HTTP/HTTPS, SNMP, NetFlow — all go over the same links as user traffic. Cheap, convenient, universally available, but <strong>dies when the production network dies</strong>. If you've ever lost SSH access to a router because you accidentally removed its default route, you've experienced why in-band alone is dangerous.</p><p><strong>Enterprise best practice: both.</strong> Every production device should have in-band (for normal ops) AND out-of-band (for disaster recovery). OOB typically uses a low-cost secondary ISP, cellular modem, or dedicated management network. You pay for it once, you save your job once.</p><p><strong>Exam framing:</strong> 'out-of-band' is paired with 'console' or 'dedicated management network.' 'In-band' is paired with 'SSH' / 'HTTPS' / 'uses production network.' The exam rarely asks config; it asks definitions.</p>",
+        visual: { type: "comparison", params: { left: { label: "Out-of-Band", items: ["Separate network path", "Console port / dedicated mgmt port", "Works when production is down", "Disaster recovery", "More infrastructure cost"] }, right: { label: "In-Band", items: ["Same network as user traffic", "SSH, HTTPS, SNMP", "Dies with production", "Day-to-day ops", "No extra cost"] } } },
+        hack: {
+          memory: "OOB = 'separate road.' In-band = 'same road as the cars.' If the road floods, only OOB still gets through. Best practice: have both, use in-band daily, fall back to OOB in disasters.",
+          practice: "Flashcard: 'an admin can SSH to a router whose production network is down — what type of management is this?' = out-of-band (likely via dedicated management port or console server). Contrast: 'SSH from admin PC over the corporate LAN' = in-band.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 41. Wendell Odom OCG Chapter 6. Exam: definition questions — 1-2 guaranteed."
+        }
+      }
     ]
   },
 
@@ -6204,10 +6432,58 @@ window.subtopicContentD12 = {
       meta: "Jeremy's IT Lab Day 41 covers Telnet vs SSH configuration. Wendell Odom OCG Chapter 6. The exam treats Telnet as the 'wrong answer' for security questions. Any question asking 'which protocol should be used for remote management?' = SSH. Know TCP port numbers: Telnet=23, SSH=22. Know <code>transport input ssh</code> to restrict VTY lines.",
     },
     micro: [
-      { id: "2.8.b.1", term: "Telnet",                       def: "TCP 23. Remote CLI access. ENTIRELY plaintext — all data including credentials visible on wire. Never use in production.", weight: "high" },
-      { id: "2.8.b.2", term: "SSH",                          def: "TCP 22. Secure remote CLI. Encrypted. Standard for production device management.", weight: "high" },
-      { id: "2.8.b.3", term: "transport input ssh",          def: "VTY config to restrict to SSH only. 'transport input all' or 'transport input telnet ssh' is insecure.", weight: "high" },
-      { id: "2.8.b.4", term: "SSH version 2",                def: "Command: 'ip ssh version 2'. SSHv1 is insecure. Always enforce v2.", weight: "high" }
+      {
+        id: "2.8.b.1",
+        term: "Telnet",
+        weight: "high",
+        info: "<p><strong>Telnet</strong> was Cisco's original remote CLI protocol — simple, universal, built into every OS since the 1980s. It uses <strong>TCP port 23</strong> and works over any IP network. It also transmits <strong>every single byte in plaintext</strong> — usernames, passwords, show output, configuration changes, everything.</p><p><strong>Attack model:</strong> anyone with packet-capture access on the path between you and the device — a compromised switch, a mirrored port, a malicious ISP — can Wireshark your Telnet session and walk away with your credentials. Searching pcap for 'Password:' returns the password in cleartext on the very next packet.</p><p><strong>Why Telnet still exists:</strong> (1) legacy devices that don't support SSH (rare today but real in some industrial gear), (2) isolated lab networks where convenience wins, (3) bootstrap scenarios where you need to enable SSH and Telnet is temporarily the only option.</p><p><strong>Production rule: NEVER use Telnet in production.</strong> This is absolute. Every modern Cisco device supports SSH. There is no legitimate production reason to pick Telnet over SSH. On the CCNA exam, any question involving security + remote management has SSH as the correct answer.</p><p><strong>Disabling Telnet:</strong> on VTY lines, use <code>transport input ssh</code> (explicitly excludes Telnet). Never use <code>transport input all</code> in production — that allows both.</p>",
+        visual: { type: "packet-flow", params: { nodes: ["Admin types password", "TCP 23 plaintext", "Attacker captures", "Password exposed", "Device (no idea anything's wrong)"], color: "#ef4444" } },
+        hack: {
+          memory: "Telnet = postcard. Everything readable. Use ONLY if the network isolates you from any possible attacker AND SSH isn't available. On production: never. On the exam: always wrong.",
+          practice: "In Packet Tracer: enable Telnet on a router, Telnet to it from a PC, open Simulation mode and click on a packet carrying the password — you'll see 'cisco' (or whatever password you set) in the payload in cleartext. This one demo makes the security argument viscerally obvious.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 41. Wendell Odom OCG Chapter 6. Exam: 'which remote management protocol should be avoided for security reasons?' = Telnet."
+        }
+      },
+      {
+        id: "2.8.b.2",
+        term: "SSH",
+        weight: "high",
+        info: "<p><strong>SSH (Secure Shell)</strong> is the encrypted replacement for Telnet. It uses <strong>TCP port 22</strong> and provides (1) confidentiality (AES encryption of all session data), (2) integrity (HMAC so attackers can't modify packets mid-flight), and (3) authentication (RSA/ECDSA server keys + username/password or public-key user auth).</p><p><strong>Handshake summary:</strong> TCP connects → client and server exchange supported ciphers → Diffie-Hellman key exchange establishes a shared session secret → server sends its RSA public key and signature (client verifies or TOFU-trusts it) → client sends username/password over the encrypted channel → authenticated session begins. Everything after the first few packets is encrypted and opaque to a packet sniffer.</p><p><strong>Two SSH versions:</strong> v1 has cryptographic vulnerabilities (insertion attacks, weak MACs) and is <strong>disabled</strong> in all modern deployments. v2 is the only acceptable version. Enforce with <code>ip ssh version 2</code>.</p><p><strong>Beyond the CCNA:</strong> SSH also carries SFTP (file transfer), SCP (secure copy), port forwarding (tunneling), and public-key auth (no passwords needed). Only SSH-CLI is in CCNA scope, but knowing the broader ecosystem helps in real jobs.</p><p><strong>SSH on the exam:</strong> always the correct answer for secure CLI management. Port 22. Requires hostname, domain-name, RSA key, local user, VTY transport.</p>",
+        visual: { type: "handshake", params: { steps: ["TCP port 22 SYN/ACK", "Cipher negotiation", "Diffie-Hellman key exchange", "Server key verification", "Username/password (encrypted)", "Encrypted CLI session"], color: "#10b981" } },
+        hack: {
+          memory: "SSH = locked box. TCP 22, v2 only, AES inside. Everything Telnet is but secure. On production: always. On the exam: always correct.",
+          practice: "Configure SSH on a lab device following the HDKUV recipe (see 2.8.c). From a PC, 'ssh -l admin 192.168.1.1'. Open Wireshark — capture the session and confirm the payload is encrypted gibberish, unlike the cleartext Telnet equivalent.",
+          effort: "medium",
+          meta: "Jeremy's IT Lab Day 41. Wendell Odom OCG Chapter 6. Exam: 'which protocol secures remote CLI?' = SSH (v2). Pair Telnet/SSH as insecure/secure CLI; HTTP/HTTPS as insecure/secure GUI."
+        }
+      },
+      {
+        id: "2.8.b.3",
+        term: "transport input ssh",
+        weight: "high",
+        info: "<p>The <code>transport input</code> command on VTY lines controls <strong>which remote protocols are accepted</strong>. It's the single most important security toggle in device management.</p><p><strong>Options:</strong></p><ul><li><code>transport input ssh</code> — <strong>SSH only. Telnet refused.</strong> This is the production setting.</li><li><code>transport input telnet</code> — Telnet only. Insecure; never in production.</li><li><code>transport input ssh telnet</code> or <code>transport input all</code> — both accepted. Insecure (attacker can just use Telnet).</li><li><code>transport input none</code> — no remote login accepted. Used to lock down unused VTY lines or during lockdown events.</li></ul><p><strong>Default behavior:</strong> varies by platform and IOS version. Modern IOS-XE typically defaults to <code>transport input none</code> until you configure it — a secure default. Older IOS defaulted to 'all,' which is insecure. <strong>Always set it explicitly.</strong></p><p><strong>Pair with login method:</strong></p><ul><li>Simple lab: <code>password Cisco123</code> + <code>login</code> (line password).</li><li>Production: <code>login local</code> + <code>username admin secret Cisco123</code> (local user database, per-user auth).</li><li>Enterprise: <code>login authentication MYMETHOD</code> + AAA pointing to TACACS+/RADIUS.</li></ul><p><strong>Hardening rule of thumb:</strong> every VTY configuration block should contain at minimum: <code>transport input ssh</code>, <code>login local</code> (or AAA), <code>exec-timeout 15 0</code>, and an <code>access-class</code> ACL restricting source IPs.</p>",
+        visual: { type: "shield", params: { items: ["transport input ssh → SSH only (production)", "transport input telnet → Telnet only (avoid)", "transport input all → both (insecure)", "transport input none → locked down"], color: "#10b981" } },
+        hack: {
+          memory: "'transport input ssh' = the one-line production hardening. Anything else is a compromise. Combine with login local + exec-timeout + access-class for defense in depth.",
+          practice: "On a switch, configure 'line vty 0 15 / transport input all'. Telnet AND SSH both work from a PC. Change to 'transport input ssh' — Telnet is refused ('connection refused'), SSH still works. Change to 'transport input none' — both are refused. This drill cements the command's power.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 41. Wendell Odom OCG Chapter 6. Exam: 'how do you restrict VTY to SSH only?' = transport input ssh."
+        }
+      },
+      {
+        id: "2.8.b.4",
+        term: "SSH version 2",
+        weight: "high",
+        info: "<p><strong>SSH has two protocol versions.</strong> v1 (1995) and v2 (2006). v1 has known flaws: weak integrity checking (CRC-32 instead of HMAC), susceptible to insertion attacks, limited cipher options, no support for modern key-exchange algorithms. v2 is a ground-up redesign and the only acceptable version in production.</p><p><strong>Command:</strong> <code>ip ssh version 2</code>. This forces the device to accept only v2 connections; any client trying v1 is refused. Default behavior on newer IOS is 'version 2 only' already, but older IOS defaulted to 1.99 (accepts both). <strong>Set it explicitly.</strong></p><p><strong>Verification:</strong> <code>show ip ssh</code> — look for the line 'SSH Enabled - version 2.0.' If it says 'version 1.99,' both are allowed; change it.</p><p><strong>Common pitfall:</strong> forgetting to set v2 on top of all the other SSH prereqs (hostname, domain, RSA key, local user, VTY transport). You can have a fully working SSH setup that's still running v1 if you didn't pin the version. Attackers can downgrade clients to v1 to exploit its weaknesses — always force v2.</p><p><strong>RSA key size and SSH version:</strong> SSH v2 requires an RSA key of at least 768 bits; <strong>use 2048 or higher</strong> for modern security. <code>crypto key generate rsa modulus 2048</code>. Some new platforms prefer ECDSA/Ed25519, but those are CCNP+ topics.</p>",
+        visual: { type: "comparison", params: { left: { label: "SSH v1 (1995)", items: ["CRC-32 integrity (weak)", "Insertion attack vulnerable", "Limited ciphers", "INSECURE — don't use"] }, right: { label: "SSH v2 (2006)", items: ["HMAC integrity", "DH key exchange", "Modern ciphers (AES, ChaCha20)", "SECURE — production standard"] } } },
+        hack: {
+          memory: "'ip ssh version 2' = always. v1 is broken, v1.99 is 'both,' v2 is 'v2 only.' Pin v2 explicitly or accept the risk.",
+          practice: "On a lab router: configure SSH without 'ip ssh version 2'. Run 'show ip ssh' — may see 'version 1.99' (both allowed). Add 'ip ssh version 2' and recheck — now shows 'version 2.0.' Drill this into the HDKUV recipe as the final step.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 41. Wendell Odom OCG Chapter 6. Exam: 'which SSH version should be used?' = v2. 'How do you enforce it?' = ip ssh version 2."
+        }
+      }
     ]
   },
 
@@ -6227,12 +6503,84 @@ window.subtopicContentD12 = {
       meta: "Jeremy's IT Lab Day 41 has a step-by-step SSH lab. Wendell Odom OCG Chapter 6 covers SSH prerequisites and configuration. SSH configuration is a <strong>common exam simlet</strong> — you will configure it from scratch. The exam tests: 'what must be configured before SSH works?' (hostname, domain name, RSA key, local user, VTY transport), 'what RSA key size is recommended?' (2048+), 'which SSH version should be used?' (v2). Practice the HDKUV recipe until automatic.",
     },
     micro: [
-      { id: "2.8.c.1", term: "SSH prereqs (HDKUV)",          def: "Hostname, Domain name, RSA Key, User (local), VTY config. All five required or SSH won't work.", weight: "high" },
-      { id: "2.8.c.2", term: "crypto key generate rsa",      def: "Generate RSA key pair for SSH. Choose 2048 bits minimum. Requires hostname and domain name first.", weight: "high" },
-      { id: "2.8.c.3", term: "ip domain-name",               def: "Global command. Required before RSA key generation (key name includes host.domain).", weight: "high" },
-      { id: "2.8.c.4", term: "username ... secret",          def: "Local user for SSH login. Use 'secret' (MD5/SHA hashed) not 'password' (weak/plaintext).", weight: "high" },
-      { id: "2.8.c.5", term: "VTY for SSH",                  def: "line vty 0 15 → transport input ssh → login local. Restricts to SSH and uses local credentials.", weight: "high" },
-      { id: "2.8.c.6", term: "ip ssh version 2",             def: "Enforce SSH v2 only. Reject insecure v1.", weight: "high" }
+      {
+        id: "2.8.c.1",
+        term: "SSH prereqs (HDKUV)",
+        weight: "high",
+        info: "<p>SSH has <strong>five prerequisites</strong> — miss any one and SSH fails silently (the device generates a misleading error or just refuses the connection). Memorize the mnemonic <strong>HDKUV</strong>:</p><ul><li><strong>H — Hostname</strong>: <code>hostname R1</code>. Cannot be the default 'Router' or 'Switch.' The RSA key includes the hostname; without a real hostname, key generation fails.</li><li><strong>D — Domain name</strong>: <code>ip domain-name example.com</code>. Also required for RSA key generation. The key is named <code>hostname.domain-name</code>.</li><li><strong>K — Key (RSA)</strong>: <code>crypto key generate rsa modulus 2048</code>. Generates the asymmetric keypair SSH uses for the handshake. 2048 bits is the modern minimum; 1024 is deprecated, 4096 is overkill for CCNA.</li><li><strong>U — User</strong>: <code>username admin privilege 15 secret Cisco123</code>. SSH requires username-based auth (cannot use a simple line password like Telnet can). Always use <code>secret</code> (hashed) not <code>password</code> (cleartext).</li><li><strong>V — VTY config</strong>: <code>line vty 0 15</code>, <code>transport input ssh</code>, <code>login local</code>. Tells VTY lines to accept SSH only and authenticate against the local username database.</li></ul><p><strong>Final hardening step:</strong> <code>ip ssh version 2</code> pins SSH to v2 only.</p><p><strong>Full config block (copy-paste friendly):</strong></p><pre>hostname R1\nip domain-name lab.local\ncrypto key generate rsa modulus 2048\nusername admin privilege 15 secret Cisco123\nline vty 0 15\n transport input ssh\n login local\n exec-timeout 15 0\nip ssh version 2</pre>",
+        visual: { type: "layer-stack", params: { layers: ["H — Hostname", "D — Domain name", "K — Key (RSA)", "U — User (local)", "V — VTY transport + login local", "+ ip ssh version 2"], highlight: 0 } },
+        hack: {
+          memory: "HDKUV — Hostname, Domain, Key, User, VTY. Miss one, SSH fails. Add 'ip ssh version 2' to finish. This sequence is the single most-tested simlet on the CCNA.",
+          practice: "Practice from a clean lab router: time yourself doing HDKUV + v2 in under 2 minutes without peeking. Repeat until automatic. On exam simlets, this drill saves 5+ minutes.",
+          effort: "high",
+          meta: "Jeremy's IT Lab Day 41 walks through HDKUV in order. Wendell Odom OCG Chapter 6. EXPECTED exam simlet — configure SSH from scratch. Know the exact commands by heart."
+        }
+      },
+      {
+        id: "2.8.c.2",
+        term: "crypto key generate rsa",
+        weight: "high",
+        info: "<p><code>crypto key generate rsa</code> creates the <strong>RSA asymmetric keypair</strong> SSH uses for the server-authentication step of the handshake. Without this key, SSH cannot start — the device rejects any connection attempt on TCP 22.</p><p><strong>Full syntax:</strong></p><pre>R1(config)# crypto key generate rsa modulus 2048\nThe name for the keys will be: R1.lab.local\n% The key modulus size is 2048 bits\n% Generating 2048 bit RSA keys, keys will be non-exportable...\n[OK] (elapsed time was 3 seconds)</pre><p><strong>Modulus / key size options:</strong></p><ul><li>512 — deprecated, insecure, do not use.</li><li>768 — SSH v2 minimum but still weak.</li><li>1024 — old default, now considered weak.</li><li><strong>2048 — modern standard, CCNA answer.</strong></li><li>4096 — more secure but slower handshake, fine for high-security environments.</li></ul><p><strong>Prerequisites:</strong> hostname and domain-name must already be set — the key's name is <code>hostname.domainname</code>. If either is missing, you get: <em>'Please define a domain-name first.'</em> or <em>'Please define a hostname other than Router.'</em></p><p><strong>Regenerate a key:</strong> <code>crypto key zeroize rsa</code> deletes the current key, then re-run <code>crypto key generate rsa modulus 2048</code>. All existing SSH sessions drop — plan accordingly.</p><p><strong>Verification:</strong> <code>show crypto key mypubkey rsa</code> — shows the key name, size, date generated, and the public key itself.</p>",
+        visual: { type: "packet-flow", params: { nodes: ["hostname R1", "ip domain-name lab.local", "crypto key generate rsa modulus 2048", "Keypair stored as R1.lab.local", "SSH daemon starts"], color: "#10b981" } },
+        hack: {
+          memory: "Key gen = SSH's ignition. Set hostname + domain FIRST, then generate, ALWAYS 2048 for CCNA. Without the key, SSH won't even listen on port 22.",
+          practice: "Packet Tracer: try 'crypto key generate rsa' on a default 'Router' with no domain — watch it fail. Set hostname and domain, retry — success. Zeroize and regenerate at 1024, then 2048 — note how the key size changes in 'show crypto key mypubkey rsa' output.",
+          effort: "medium",
+          meta: "Jeremy's IT Lab Day 41. Wendell Odom OCG Chapter 6. Exam: 'what RSA key size should be used for SSH?' = 2048 bits minimum."
+        }
+      },
+      {
+        id: "2.8.c.3",
+        term: "ip domain-name",
+        weight: "high",
+        info: "<p><code>ip domain-name [name]</code> sets the device's DNS domain suffix. On CCNA it plays two roles: (1) unqualified DNS lookups append this suffix, and (2) RSA key generation uses it as part of the key name.</p><p><strong>For SSH, the domain name is NOT optional.</strong> The RSA keypair is named <code>hostname.domainname</code> (e.g., R1.lab.local). Without a domain, the key can't be named, and <code>crypto key generate rsa</code> fails with: <em>'Please define a domain-name first.'</em></p><p><strong>Does the domain have to be real?</strong> No. Any string works for SSH purposes — <code>lab.local</code>, <code>example.com</code>, <code>cisco.test</code>. The device never actually resolves anything based on it unless you use DNS. For the exam, use any plausible value.</p><p><strong>Verification:</strong> <code>show running-config | include domain-name</code>. Or <code>show crypto key mypubkey rsa</code> to confirm the key name includes your domain.</p><p><strong>Non-SSH use:</strong> <code>ip domain-lookup</code> + <code>ip name-server [IP]</code> lets the device resolve hostnames (e.g., <code>ping google.com</code> works). The domain-name is appended to unqualified names — <code>ping R2</code> becomes <code>ping R2.lab.local</code>. This is less relevant to CCNA but useful in troubleshooting real networks.</p>",
+        visual: { type: "hierarchy", params: { root: "ip domain-name lab.local", children: [{ name: "Required for RSA key gen (SSH prereq)" }, { name: "Used for unqualified DNS lookups" }, { name: "Key name becomes hostname.domain" }] } },
+        hack: {
+          memory: "Domain-name = half of the SSH key's name. No domain, no key, no SSH. Set anything plausible — it doesn't have to resolve.",
+          practice: "On a fresh router: skip 'ip domain-name,' try 'crypto key generate rsa.' Error: domain-name required. Add it, retry — success. This one demo nails down WHY it's on the prereq list.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 41. Wendell Odom OCG Chapter 6. Exam: 'which commands are required before crypto key generate rsa will work?' = hostname + ip domain-name."
+        }
+      },
+      {
+        id: "2.8.c.4",
+        term: "username ... secret",
+        weight: "high",
+        info: "<p><code>username admin privilege 15 secret Cisco123</code> creates a <strong>local user account</strong> in the device's on-box credential database. SSH requires username-based authentication — a simple <code>password</code> on the VTY line isn't enough.</p><p><strong>secret vs password:</strong></p><ul><li><code>username admin <strong>secret</strong> Cisco123</code> — password stored as a <strong>hash</strong> (type 5 MD5 by default, type 8 SHA-256 on modern IOS-XE, type 9 Scrypt available). Recoverable only by brute force.</li><li><code>username admin <strong>password</strong> Cisco123</code> — password stored in <strong>cleartext or weak type 7 obfuscation</strong>. Easily recovered. <strong>Never use in production.</strong></li></ul><p>Always use <code>secret</code>.</p><p><strong>privilege 15:</strong> Cisco IOS has 16 privilege levels (0-15). Level 1 = user EXEC (basic show commands). Level 15 = privileged EXEC / enable mode = full access. For administrators, use 15. For limited operators, create intermediate levels or use AAA with per-command authorization via TACACS+.</p><p><strong>Multiple users:</strong> you can create as many as you want. Common pattern: a personal admin account per engineer, plus a break-glass account for emergencies.</p><pre>username romeo privilege 15 secret Str0ngP@ss\nusername jeff privilege 15 secret An0therPw\nusername emergency privilege 15 secret BreakG1ass</pre><p><strong>login local on VTY:</strong> tells the VTY lines to authenticate against the local username database (not a line password, not AAA). Without <code>login local</code>, the usernames don't help.</p>",
+        visual: { type: "comparison", params: { left: { label: "username ... password", items: ["Cleartext or type 7", "Recoverable easily", "INSECURE", "Avoid"] }, right: { label: "username ... secret", items: ["Hashed (type 5/8/9)", "Brute force only", "SECURE", "Production standard"] } } },
+        hack: {
+          memory: "'secret' (hashed) not 'password' (cleartext). 'privilege 15' for admins. Combine with 'login local' on VTY or the users do nothing.",
+          practice: "Create a user with both commands — 'username a password cisco' and 'username b secret cisco'. 'show running-config | include username' — a is cleartext (or type 7), b is a hashed mess. This visually proves the security gap.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 41. Wendell Odom OCG Chapter 6. Exam: 'which command stores a hashed password?' = username ... secret."
+        }
+      },
+      {
+        id: "2.8.c.5",
+        term: "VTY for SSH",
+        weight: "high",
+        info: "<p>The final VTY block wires together every other SSH prereq. Without this block, you can have a working RSA key and a perfect user database — and still fail to SSH in.</p><p><strong>Minimum production block:</strong></p><pre>line vty 0 15\n transport input ssh\n login local\n exec-timeout 15 0\n logging synchronous</pre><p><strong>Line-by-line:</strong></p><ul><li><code>line vty 0 15</code> — enter config for all 16 VTY lines at once.</li><li><code>transport input ssh</code> — only SSH is accepted. Telnet is refused. THIS is the security toggle.</li><li><code>login local</code> — authenticate against the local <code>username</code> database. Alternatives: <code>login</code> (uses line password — no usernames), <code>login authentication METHOD</code> (AAA).</li><li><code>exec-timeout 15 0</code> — auto-logout after 15 minutes of inactivity (15 min, 0 sec). Hardening step.</li><li><code>logging synchronous</code> — console log messages redraw your command prompt instead of interrupting your typing. Quality-of-life, not security.</li></ul><p><strong>Hardening extra: ACL on VTY.</strong></p><pre>access-list 10 permit 10.1.1.0 0.0.0.255\nline vty 0 15\n access-class 10 in</pre><p>Now only 10.1.1.0/24 can even attempt SSH. Combined with SSH-only and local auth, this is three layers of defense.</p><p><strong>Common mistakes:</strong> forgetting <code>login local</code> (device falls back to 'login' and demands a line password that isn't set, locking you out); using <code>transport input all</code> in production (allows Telnet); no <code>exec-timeout</code> (idle sessions linger).</p>",
+        visual: { type: "shield", params: { items: ["transport input ssh (protocol)", "login local (auth)", "access-class ACL in (IP)", "exec-timeout (idle logout)"], color: "#10b981" } },
+        hack: {
+          memory: "VTY = SSH's last mile. Three commands that MUST be there: transport input ssh, login local, (optional but strong) access-class. Miss login local and you lock yourself out — classic lab mistake.",
+          practice: "Configure the VTY block on a lab router. SSH in from a permitted IP — works. SSH from a denied IP (with access-class ACL) — refused. Telnet from anywhere — refused. This drill proves each line's effect.",
+          effort: "medium",
+          meta: "Jeremy's IT Lab Day 41. Wendell Odom OCG Chapter 6. Exam: 'what command restricts VTY to SSH?' = transport input ssh. 'What tells VTY to use local user database?' = login local."
+        }
+      },
+      {
+        id: "2.8.c.6",
+        term: "ip ssh version 2",
+        weight: "high",
+        info: "<p><code>ip ssh version 2</code> is the one-line security hardening that forces the SSH server to accept only v2 connections. Without it, the device may still answer v1 requests (or v1.99 = 'both'), exposing you to downgrade attacks.</p><p><strong>What 'version 1.99' means:</strong> Cisco's legacy default. The device advertises 'I support both v1 and v2; pick one.' A malicious client can insist on v1 to exploit its weaker crypto. Fix: <code>ip ssh version 2</code>.</p><p><strong>Verify:</strong> <code>show ip ssh</code> — look for <em>'SSH Enabled - version 2.0'</em>. If it says 'version 1.99,' the command isn't set or hasn't taken effect.</p><p><strong>Additional SSH tuning (not exam-required but realistic):</strong></p><ul><li><code>ip ssh time-out 60</code> — handshake timeout in seconds (default 120).</li><li><code>ip ssh authentication-retries 2</code> — max failed login attempts per session (default 3).</li><li><code>ip ssh source-interface Loopback0</code> — use a specific interface as the source for outbound SSH connections.</li></ul><p><strong>Placement in the HDKUV recipe:</strong> <code>ip ssh version 2</code> is the <em>sixth step</em> after the HDKUV prereqs. It doesn't fit the HDKUV mnemonic but it's always the last line of the full SSH config — 'finalize the version.'</p>",
+        visual: { type: "packet-flow", params: { nodes: ["HDKUV complete", "ip ssh version 2", "show ip ssh confirms v2", "SSH server refuses v1", "Production-ready"], color: "#10b981" } },
+        hack: {
+          memory: "'ip ssh version 2' = the cherry on top. HDKUV gets SSH working; this one command makes it safe.",
+          practice: "On a lab device: configure HDKUV, skip 'ip ssh version 2,' run 'show ip ssh' — may see 1.99. Add the command — recheck, now 2.0. This is the final exam-simlet answer: 'how do you ensure only SSHv2 is used?' = ip ssh version 2.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 41. Wendell Odom OCG Chapter 6. Exam: pure recall — 'which command restricts SSH to version 2?' = ip ssh version 2."
+        }
+      }
     ]
   },
 
@@ -6252,10 +6600,58 @@ window.subtopicContentD12 = {
       meta: "Jeremy's IT Lab Day 41 covers all management protocols. Wendell Odom OCG Chapter 6. The exam tests: 'which port does HTTPS use?' (443), 'which is more secure, HTTP or HTTPS?' (HTTPS), 'which management protocol encrypts all traffic?' (SSH for CLI, HTTPS for GUI). Quick recall — know the port numbers and the secure/insecure pairs.",
     },
     micro: [
-      { id: "2.8.d.1", term: "HTTP / HTTPS management",      def: "HTTP=TCP 80, HTTPS=TCP 443. Web GUI access to devices. Best practice: disable HTTP, enable only HTTPS.", weight: "high" },
-      { id: "2.8.d.2", term: "ip http server",               def: "Global command. Enable HTTP web GUI. Insecure — avoid.", weight: "med" },
-      { id: "2.8.d.3", term: "ip http secure-server",        def: "Global command. Enable HTTPS web GUI. Uses TLS and device certificate.", weight: "high" },
-      { id: "2.8.d.4", term: "WLC GUI = HTTPS",              def: "WLCs are primarily managed through HTTPS web GUI. Browser-based config.", weight: "high" }
+      {
+        id: "2.8.d.1",
+        term: "HTTP / HTTPS management",
+        weight: "high",
+        info: "<p>Network devices expose a <strong>web-based management GUI</strong> over HTTP (TCP 80) or HTTPS (TCP 443). Instead of memorizing CLI commands, admins click through a browser interface for configuration and monitoring. The tradeoff: GUIs are friendlier but slower for power users and can mask what's happening under the hood.</p><p><strong>HTTP:</strong> TCP port 80, cleartext. Anyone on the path can sniff sessions, including login cookies. Never enable on production.</p><p><strong>HTTPS:</strong> TCP port 443, TLS-encrypted. All traffic — credentials, config changes, session cookies — is protected by AES and HMAC similar to SSH. Production standard for GUI management.</p><p><strong>Who uses web management:</strong></p><ul><li><strong>WLCs</strong> — primarily managed via HTTPS GUI. CLI exists but the web UI is the intended experience.</li><li><strong>Meraki cloud-managed devices</strong> — HTTPS dashboard is the ONLY interface; no CLI.</li><li><strong>Catalyst 9000 + IOS-XE</strong> — both CLI and WebUI available; CLI still dominant for expert admins.</li><li><strong>SMB switches (SG/CBS series)</strong> — web GUI is the primary interface for less technical admins.</li></ul><p><strong>The insecure/secure pairs:</strong></p><ul><li>CLI: Telnet (23) — plaintext — vs SSH (22) — encrypted.</li><li>GUI: HTTP (80) — plaintext — vs HTTPS (443) — encrypted.</li><li>File transfer: FTP (21) — plaintext — vs SFTP/SCP over SSH (22) — encrypted. (TFTP port 69 is unencrypted and unauthenticated — only for bootstrap.)</li></ul><p>The exam always prefers the secure version of each pair.</p>",
+        visual: { type: "comparison", params: { left: { label: "HTTP (TCP 80)", items: ["Cleartext", "Insecure", "ip http server", "Never in production"] }, right: { label: "HTTPS (TCP 443)", items: ["TLS encrypted", "Secure", "ip http secure-server", "Production standard (WLC, etc.)"] } } },
+        hack: {
+          memory: "80 vs 443. Cleartext vs TLS. Same GUI, night-and-day security. Rule: always HTTPS. 'S' at the end = Secure = encrypted, in both SSH and HTTPS.",
+          practice: "Browser-test a WLC: http://<IP>:80 redirects or fails; https://<IP>:443 serves the GUI. On IOS: 'no ip http server' + 'ip http secure-server' forces HTTPS only.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 41. Wendell Odom OCG Chapter 6. Exam: 'which port does HTTPS use?' = 443. 'Which is secure?' = HTTPS."
+        }
+      },
+      {
+        id: "2.8.d.2",
+        term: "ip http server",
+        weight: "med",
+        info: "<p><code>ip http server</code> enables the built-in HTTP (cleartext, port 80) web server on an IOS device. For CCNA the command exists mostly to be <strong>disabled</strong> in favor of its secure sibling.</p><p><strong>Syntax:</strong></p><pre>R1(config)# ip http server          ! enables HTTP on TCP 80\nR1(config)# no ip http server       ! disables it (production setting)</pre><p><strong>When it's on:</strong> any browser can hit http://&lt;device-IP&gt;/ and (after auth) reach the WebUI. Credentials traverse the network in cleartext. Also exposed: the IOS <em>WebUI API</em> — management commands can be issued via HTTP, which means a sniffer captures every config change.</p><p><strong>Authentication for web UI:</strong> same <code>login local</code> principle — uses local username/password unless you point it to AAA. <code>ip http authentication local</code> / <code>ip http authentication aaa</code>.</p><p><strong>Best practice:</strong> explicitly disable HTTP and only enable HTTPS: <code>no ip http server</code> + <code>ip http secure-server</code>. Leave HTTP off unless a specific tool absolutely requires it (very rare).</p><p><strong>Exam framing:</strong> the question 'which command enables the insecure web UI?' = <code>ip http server</code>. 'Which should you use instead?' = <code>ip http secure-server</code>.</p>",
+        visual: { type: "packet-flow", params: { nodes: ["Admin browser", "http://device:80", "Cleartext creds + config", "Sniffer grabs it", "Device accepts"], color: "#ef4444" } },
+        hack: {
+          memory: "'ip http server' = insecure web UI. Disable it. Only exists so you know the command for the exam — and so you can turn it OFF.",
+          practice: "On a lab router: 'ip http server', browse http://<IP> — works, cleartext. 'no ip http server', retry — connection refused. Add 'ip http secure-server', browse https://<IP> — works, TLS-protected.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 41. Wendell Odom OCG Chapter 6. Exam: 'which command enables the HTTP server?' = ip http server. Low-weight recall."
+        }
+      },
+      {
+        id: "2.8.d.3",
+        term: "ip http secure-server",
+        weight: "high",
+        info: "<p><code>ip http secure-server</code> enables the <strong>HTTPS</strong> web server on an IOS device (TCP 443, TLS-encrypted). This is the production command for web GUI management.</p><p><strong>Auto-generated certificate:</strong> when you enable the secure server for the first time, IOS automatically generates a self-signed certificate using the RSA key (if one exists) or creates a new key. Browsers will warn about the untrusted certificate — expected behavior for a self-signed cert. In production, enterprises install a certificate from their internal CA to suppress the warning.</p><p><strong>Prerequisites:</strong> similar to SSH — hostname, domain, RSA key recommended. If no RSA key exists, IOS generates one during <code>ip http secure-server</code> enabling.</p><p><strong>Additional config knobs:</strong></p><ul><li><code>ip http secure-port 8443</code> — change HTTPS port from default 443 (rare, for obscurity).</li><li><code>ip http secure-ciphersuite aes-128-cbc-sha</code> — restrict allowed TLS ciphers (modern IOS uses secure defaults).</li><li><code>ip http secure-trustpoint TP_NAME</code> — use a specific PKI trustpoint instead of the auto-generated cert.</li><li><code>ip http authentication local</code> — authenticate with local user database.</li></ul><p><strong>Verification:</strong> <code>show ip http server secure status</code>. Then browse to https://&lt;device-IP&gt;/ and accept the self-signed cert warning.</p><p><strong>WLC context:</strong> WLCs have this enabled by default. The GUI is THE management interface — most admins never touch a WLC CLI.</p>",
+        visual: { type: "shield", params: { items: ["TCP 443 (HTTPS)", "TLS encryption", "Self-signed cert by default", "CA cert in production", "ip http authentication local"], color: "#10b981" } },
+        hack: {
+          memory: "'ip http secure-server' = GUI over HTTPS = the production way. Auto-generates a cert. Combine with 'no ip http server' for HTTPS-only.",
+          practice: "On a router: 'ip http secure-server'. Browser to https://<IP> — get a self-signed cert warning, accept, log in with local credentials. Compare to 'ip http server' experience — same GUI, zero encryption.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 41. Wendell Odom OCG Chapter 6. Exam: 'which command enables HTTPS web management?' = ip http secure-server."
+        }
+      },
+      {
+        id: "2.8.d.4",
+        term: "WLC GUI = HTTPS",
+        weight: "high",
+        info: "<p>Cisco <strong>WLCs (AireOS and Catalyst 9800)</strong> are primarily administered via a <strong>browser-based HTTPS GUI</strong> on the management interface IP. Unlike routers and switches where CLI is the default, WLCs treat the GUI as the main interface — WLAN creation, security, AP groups, mobility, reporting, and logs all have rich GUI pages, many with no CLI equivalent or a clunkier CLI equivalent.</p><p><strong>Access pattern:</strong></p><ol><li>Confirm WLC management interface IP (from serial console if unknown): <code>show interface summary</code>.</li><li>Browser to <code>https://&lt;WLC-mgmt-IP&gt;</code>.</li><li>Accept the self-signed certificate warning (or install a CA cert for production).</li><li>Log in with admin credentials (configured during initial setup wizard, or via <code>config mgmtuser add</code>).</li></ol><p><strong>Key GUI sections:</strong></p><ul><li><strong>Monitor</strong> — live status, client list, AP list, events.</li><li><strong>WLANs</strong> — SSID creation, security, VLAN mapping.</li><li><strong>Controller</strong> — interface config, mobility, DHCP, LAG.</li><li><strong>Wireless</strong> — AP management, groups, RF profiles.</li><li><strong>Security</strong> — AAA servers, ACLs, wireless IPS.</li><li><strong>Management</strong> — admin users, HTTP/HTTPS, SNMP, software.</li><li><strong>Commands</strong> — IOS-like command window, if you really want CLI.</li></ul><p><strong>Exam context:</strong> CCNA 2.9 topics are all about WLC GUI — creating a WLAN, configuring security, mapping to VLAN. Recognize that these happen in the HTTPS GUI, not in a CLI config file.</p><p><strong>CLI on WLC:</strong> AireOS has its own command style (not IOS). Catalyst 9800 runs IOS-XE and has a normal IOS-XE CLI. For CCNA, you only need to know GUI = HTTPS.</p>",
+        visual: { type: "hierarchy", params: { root: "WLC HTTPS GUI (default mgmt interface)", children: [{ name: "WLANs (SSID + security)" }, { name: "Controller (interfaces, mobility)" }, { name: "Wireless (APs, RF)" }, { name: "Security (AAA, ACLs)" }, { name: "Management (users, software)" }] } },
+        hack: {
+          memory: "WLC = GUI-first. HTTPS to the management IP. CLI exists but is rarely used. Every 2.9 topic ('create a WLAN,' 'configure security') happens in this GUI.",
+          practice: "Packet Tracer or CML: connect to a simulated WLC, browse to https://<mgmt-IP>, accept cert, log in. Click through WLANs → Create New to see the three-tab workflow (General, Security, QoS, Advanced). This maps directly to exam 2.9 questions.",
+          effort: "medium",
+          meta: "Jeremy's IT Lab Day 58 tours the WLC GUI. Wendell Odom OCG Chapter 26. Exam: 'how are WLCs typically managed?' = HTTPS web GUI."
+        }
+      }
     ]
   },
 
@@ -6275,11 +6671,71 @@ window.subtopicContentD12 = {
       meta: "Jeremy's IT Lab Day 41 covers TACACS+ vs RADIUS. Wendell Odom OCG Chapter 6 compares both in a table. This comparison is a <strong>guaranteed exam topic</strong>. The exam asks: 'which AAA protocol encrypts the entire packet?' (TACACS+), 'which separates authentication and authorization?' (TACACS+), 'which is used for 802.1X?' (RADIUS), 'which uses TCP?' (TACACS+). Memorize the comparison table — 2-3 questions guaranteed.",
     },
     micro: [
-      { id: "2.8.e.1", term: "TACACS+",                      def: "Terminal Access Controller Access-Control System Plus. Cisco-developed AAA. TCP port 49.", weight: "high" },
-      { id: "2.8.e.2", term: "TACACS+ full encryption",      def: "Encrypts ENTIRE packet body (not just password). Unique vs RADIUS.", weight: "high" },
-      { id: "2.8.e.3", term: "TACACS+ separates AAA",        def: "Authentication, Authorization, Accounting are three INDEPENDENT exchanges. Enables granular control.", weight: "high" },
-      { id: "2.8.e.4", term: "Per-command authorization",    def: "TACACS+ can authorize/deny INDIVIDUAL IOS commands per user. Critical for network device mgmt.", weight: "high" },
-      { id: "2.8.e.5", term: "TACACS+ best use case",        def: "Network device administration. Controlling which admins can run which commands.", weight: "high" }
+      {
+        id: "2.8.e.1",
+        term: "TACACS+",
+        weight: "high",
+        info: "<p><strong>TACACS+ (Terminal Access Controller Access-Control System Plus)</strong> is Cisco's AAA protocol for controlling administrator access to network devices. Developed as a proprietary protocol and later opened up, it runs over <strong>TCP port 49</strong> and is purpose-built for device management — particularly <strong>per-command authorization</strong> on router/switch CLIs.</p><p><strong>The three AAA functions in TACACS+:</strong></p><ul><li><strong>Authentication</strong> — 'who are you?' Verify username/password against the TACACS+ server's user database (often backed by Active Directory).</li><li><strong>Authorization</strong> — 'what are you allowed to do?' After auth, the server returns what privilege level or which exact commands the user can run.</li><li><strong>Accounting</strong> — 'what did you do?' Every command you execute is logged back to the server (timestamp, user, command, success/failure).</li></ul><p><strong>All three run as separate exchanges</strong> between the device and the TACACS+ server. This separation is TACACS+'s superpower — you can authenticate from AD but authorize from a custom role database, or log accounting to a different system entirely.</p><p><strong>TCP means reliability:</strong> unlike UDP, TCP provides delivery guarantees, retransmission, and connection state. Critical for device admin — you don't want an authorization decision lost in flight.</p><p><strong>Server platforms:</strong> <strong>Cisco ISE</strong> (Identity Services Engine) is the flagship AAA platform; it does both TACACS+ and RADIUS. <strong>Cisco ACS</strong> (legacy, end-of-life). <strong>tac_plus</strong> (open-source alternative).</p>",
+        visual: { type: "shield", params: { items: ["TCP port 49", "AAA: Auth + Authz + Acct (separate)", "Full packet encryption", "Per-command authorization", "Cisco-developed (now open)"], color: "#3b82f6" } },
+        hack: {
+          memory: "TACACS+ = 'Tactical AAA for Admins.' TCP 49, three separate AAA functions, full packet encryption, per-command control. Built for managing devices, NOT for end-user network access.",
+          practice: "Flashcard-level topic for CCNA. Focus on four attributes: TCP port 49, full encryption, separate AAA, per-command authz. Pair with RADIUS (UDP 1812/1813, password-only, combined authz).",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 41. Wendell Odom OCG Chapter 6. Exam: 'which AAA protocol is Cisco-proprietary and uses TCP?' = TACACS+."
+        }
+      },
+      {
+        id: "2.8.e.2",
+        term: "TACACS+ full encryption",
+        weight: "high",
+        info: "<p>TACACS+ encrypts the <strong>entire packet body</strong> between the NAS (router/switch) and the TACACS+ server. Everything — username, password, authorization requests, accounting records, replies — is encrypted with a shared secret + MD5-based key stream. Only the packet header is in cleartext (just enough for routing and basic parsing).</p><p><strong>Why it matters:</strong> an attacker sniffing TACACS+ traffic sees encrypted blobs. They can't extract usernames, can't see which commands were authorized, can't reconstruct session flows. Compare to RADIUS which only encrypts the password field — username, attributes, and accounting are visible in cleartext.</p><p><strong>Shared secret:</strong> both the NAS and the TACACS+ server must have the <em>same</em> shared secret string configured. IOS: <code>tacacs server SERVER1 / address ipv4 10.1.1.1 / key CiscoSecret</code>. ISE side: matching key under the network device definition.</p><p><strong>Caveat — not 'real' crypto:</strong> TACACS+ uses a pre-shared-key + MD5 scheme, not TLS. Modern security audits flag this as weak by 2020s standards. Newer deployments often wrap TACACS+ inside an IPsec tunnel or use the newer TACACS+ over TLS (RFC 8907 extension) for defense in depth.</p><p><strong>Exam framing:</strong> 'which AAA protocol encrypts the entire packet body?' = TACACS+. 'Which only encrypts the password?' = RADIUS. This distinction is tested directly on almost every CCNA.</p>",
+        visual: { type: "comparison", params: { left: { label: "TACACS+ encryption", items: ["Entire packet body encrypted", "Header in cleartext (minimal)", "Shared secret + MD5 stream", "Username hidden", "Authz + acct hidden"] }, right: { label: "RADIUS encryption", items: ["Only password field encrypted", "Rest of packet in cleartext", "Username visible", "Authz attributes visible", "Weaker"] } } },
+        hack: {
+          memory: "TACACS+ wraps the whole packet; RADIUS wraps only the password. Remember 'TACACS = Total encryption, RADIUS = just the Password.'",
+          practice: "Conceptual flashcard only. No lab needed. Memorize the side-by-side encryption comparison — guaranteed exam question.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 41. Wendell Odom OCG Chapter 6. Exam: direct comparison question, 1-2 guaranteed."
+        }
+      },
+      {
+        id: "2.8.e.3",
+        term: "TACACS+ separates AAA",
+        weight: "high",
+        info: "<p>TACACS+ treats <strong>Authentication, Authorization, and Accounting as three separate protocol exchanges</strong>. Each has its own request/response, its own state, and — if desired — its own server. This architectural separation is the primary reason TACACS+ is preferred for device administration.</p><p><strong>What the separation buys you:</strong></p><ul><li><strong>Different sources per function</strong> — authenticate against AD, authorize against a local policy database, log accounting to a SIEM. RADIUS can't do this — it bundles auth and authz into one Access-Accept.</li><li><strong>Per-command authorization</strong> — each command you type can trigger a separate authorization query: 'user romeo wants to run <code>show running-config</code> — yes or no?' RADIUS has no mechanism for this.</li><li><strong>Granular accounting</strong> — accounting records can tag exact commands, login/logout events, privilege changes. Security audit dream.</li></ul><p><strong>Example flow:</strong></p><ol><li>User SSHes to R1. R1 sends TACACS+ <em>Authentication START</em> → server.</li><li>Server prompts for password; user supplies. R1 sends <em>Authentication CONTINUE</em> with password.</li><li>Server replies <em>Authentication PASS</em>. User is logged in.</li><li>User types <code>show run</code>. R1 sends <em>Authorization REQUEST</em> for that command.</li><li>Server replies <em>Authorization PASS</em>. Command runs.</li><li>R1 sends <em>Accounting RECORD</em>: 'romeo ran show run at 14:32.'</li><li>Repeat steps 4-6 for every command in the session.</li></ol><p><strong>RADIUS equivalent:</strong> steps 4-6 don't exist — user gets a blanket authorization at login (e.g., VLAN assignment or privilege level) and then acts freely.</p>",
+        visual: { type: "state-machine", params: { states: ["Auth START", "Auth CONTINUE (password)", "Auth PASS", "Authz REQUEST (command)", "Authz PASS", "Acct RECORD"], active: 3, transitions: true } },
+        hack: {
+          memory: "TACACS+ = three separate phone calls (auth, authz, acct). RADIUS = one all-in-one call. Separation = flexibility = per-command control.",
+          practice: "Conceptual. Draw the TACACS+ flow vs RADIUS flow side by side on paper. See the three separate TACACS+ exchanges vs the single RADIUS Access-Accept. This drawing locks in the concept.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 41. Wendell Odom OCG Chapter 6. Exam: 'which AAA protocol separates authentication, authorization, and accounting?' = TACACS+."
+        }
+      },
+      {
+        id: "2.8.e.4",
+        term: "Per-command authorization",
+        weight: "high",
+        info: "<p><strong>Per-command authorization</strong> is TACACS+'s killer feature: the ability to control <strong>exactly which IOS commands</strong> each user can execute, on a command-by-command basis. Every time the user types a command, the device asks the TACACS+ server 'is this user allowed to run THIS command?' and enforces the answer in real time.</p><p><strong>Example policy:</strong></p><ul><li>Senior admins (AD group 'NetEng-Senior'): permit all commands.</li><li>Junior admins ('NetEng-Junior'): permit show/ping/traceroute, deny configure terminal.</li><li>Helpdesk ('Helpdesk'): permit only 'show interfaces' and 'show mac address-table.'</li><li>NOC ('NOC-Watch'): permit all show commands, deny all others.</li></ul><p>The device enforces this instantly — a junior admin typing <code>configure terminal</code> gets <em>'Command authorization failed.'</em></p><p><strong>Why RADIUS can't do this:</strong> RADIUS returns a single set of authorization attributes at login (e.g., privilege level 15). After that, the device doesn't ask again. All authorization happens client-side based on the initial attributes. TACACS+ keeps the server in the loop for every command.</p><p><strong>Use case for CoreWeave / enterprise:</strong> senior engineers need full access; contractors and junior staff need limited access. TACACS+ + AD integration lets you do this without creating per-user privilege levels on every device. Change the policy once on ISE, applies everywhere.</p><p><strong>Exam framing:</strong> 'which protocol allows per-command authorization?' = TACACS+. 'Which is better for controlling which commands admins can run?' = TACACS+. 1-2 guaranteed questions.</p>",
+        visual: { type: "packet-flow", params: { nodes: ["User types 'configure terminal'", "Device → TACACS+: Authz?", "Server checks policy", "Server: DENY", "User sees: 'Command authorization failed'"], color: "#3b82f6" } },
+        hack: {
+          memory: "Per-command authz = TACACS+'s trademark. The server gets a vote on EVERY command. Only TACACS+ can do it. RADIUS grants a blanket authz at login and goes silent.",
+          practice: "Conceptual. Flashcard: 'user needs to be restricted to show commands only' = TACACS+ per-command authorization. 'User needs to be put on VLAN 20 after auth' = RADIUS.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 41. Wendell Odom OCG Chapter 6. Exam: 'which protocol supports per-command authorization on Cisco devices?' = TACACS+. Almost guaranteed question."
+        }
+      },
+      {
+        id: "2.8.e.5",
+        term: "TACACS+ best use case",
+        weight: "high",
+        info: "<p><strong>Primary use case: controlling administrator access to network devices.</strong> Routers, switches, firewalls, WLCs — any device with a CLI where engineers log in to configure or troubleshoot. This is TACACS+'s sweet spot, and the CCNA answer whenever the scenario involves 'network admin,' 'engineer,' 'device CLI,' 'router/switch management,' or 'command control.'</p><p><strong>Real-world examples:</strong></p><ul><li>Enterprise with 500 routers and switches. 20 network engineers. TACACS+ + AD = centralized login, per-command authz, full accounting. Remove an employee from AD → access everywhere revoked instantly.</li><li>MSP managing customers. Separate admin tiers per engineer across hundreds of customer devices. TACACS+ policies defined in ISE.</li><li>Compliance-driven environments (HIPAA, PCI, SOX). Accounting records prove who did what, when — TACACS+ logs every command with timestamp.</li></ul><p><strong>NOT for end-user access:</strong> Wi-Fi authentication, VPN login, 802.1X port authentication — these are NETWORK access scenarios, not DEVICE management. Use RADIUS for those.</p><p><strong>Simple keyword map for the exam:</strong></p><ul><li>'Network admin access / router / switch / privileged CLI commands' → <strong>TACACS+</strong>.</li><li>'User connecting to network / Wi-Fi / VPN / 802.1X' → <strong>RADIUS</strong>.</li></ul><p><strong>One AAA server can do both:</strong> Cisco ISE, Microsoft NPS (RADIUS only), FreeRADIUS (RADIUS only), tac_plus (TACACS+ only). ISE is the enterprise choice because it handles both on one platform.</p>",
+        visual: { type: "comparison", params: { left: { label: "TACACS+ = Device Admin", items: ["Router/switch CLI access", "Per-command authz", "Full audit trail", "Senior vs junior admin tiers", "Cisco ISE or tac_plus"] }, right: { label: "RADIUS = Network Access", items: ["802.1X wired/wireless", "WPA2-Enterprise Wi-Fi", "VPN authentication", "Blanket auth at login", "Cisco ISE, MS NPS, FreeRADIUS"] } } },
+        hack: {
+          memory: "TACACS+ = controlling who's typing on your routers. RADIUS = controlling who's joining your network. Admins on CLI = TACACS+. Users on Wi-Fi = RADIUS.",
+          practice: "Practice pattern-matching exam keywords: 'granular command authorization' → TACACS+. 'WPA2-Enterprise' → RADIUS. 'Junior vs senior engineer' → TACACS+. 'VPN login' → RADIUS. Drill until instant.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 41. Wendell Odom OCG Chapter 6. Exam: scenario-based selection question, 1-2 guaranteed."
+        }
+      }
     ]
   },
 
@@ -6299,11 +6755,71 @@ window.subtopicContentD12 = {
       meta: "Jeremy's IT Lab Day 41 presents RADIUS alongside TACACS+. Wendell Odom OCG Chapter 6. The exam scenario mapping: user access (802.1X, Wi-Fi, VPN) = RADIUS. Device admin access (router/switch CLI) = TACACS+. Know both sides: 'RADIUS = UDP, password encryption, combined auth/authz' and 'TACACS+ = TCP, full encryption, separate AAA.' This is one of the highest-yield comparison topics for the exam.",
     },
     micro: [
-      { id: "2.8.f.1", term: "RADIUS",                       def: "Remote Authentication Dial-In User Service. Open standard AAA. UDP 1812 auth / 1813 accounting.", weight: "high" },
-      { id: "2.8.f.2", term: "RADIUS password-only encryption", def: "Only the password field is encrypted. Rest of packet is plaintext. Weaker than TACACS+.", weight: "high" },
-      { id: "2.8.f.3", term: "RADIUS combines auth+authz",   def: "Access-Accept returns both authentication success AND authorization attributes in one exchange.", weight: "high" },
-      { id: "2.8.f.4", term: "RADIUS best use case",         def: "Network ACCESS control — 802.1X wired/wireless, WPA2-Enterprise Wi-Fi, VPN. Multi-vendor.", weight: "high" },
-      { id: "2.8.f.5", term: "TACACS+ vs RADIUS scenario",   def: "Device admin access → TACACS+. User network access → RADIUS. Both can run on Cisco ISE.", weight: "high" }
+      {
+        id: "2.8.f.1",
+        term: "RADIUS",
+        weight: "high",
+        info: "<p><strong>RADIUS (Remote Authentication Dial-In User Service)</strong> is the <strong>open-standard AAA protocol</strong> for network access control. Defined in RFCs 2865 (auth) and 2866 (accounting), it runs over <strong>UDP ports 1812 (authentication) and 1813 (accounting)</strong>. Legacy ports 1645/1646 still work on old gear but are deprecated.</p><p><strong>Primary use case:</strong> authenticating users and devices <em>connecting to</em> the network — wired 802.1X, wireless WPA2/WPA3-Enterprise, VPN, dial-up (hence the name). The WLC, switch, or VPN concentrator acts as the NAS (Network Access Server) / RADIUS client; it forwards credentials to the RADIUS server and enforces the result.</p><p><strong>Open standard:</strong> every vendor supports RADIUS. Cisco, Aruba, Juniper, Microsoft, FreeRADIUS — they all interoperate. This is RADIUS's biggest advantage over TACACS+: universality.</p><p><strong>Typical flow (802.1X on a switch):</strong></p><ol><li>Laptop plugs in. Switch port is in 'pre-auth' state (802.1X enabled, no traffic allowed yet).</li><li>Switch acts as the EAP authenticator, wrapping the laptop's credentials in RADIUS.</li><li>Switch sends <em>Access-Request</em> to RADIUS server (UDP 1812).</li><li>Server checks credentials (against AD, LDAP, local DB).</li><li>Server replies <em>Access-Accept</em> (with VLAN assignment, ACL name, session timeout in attributes) or <em>Access-Reject</em>.</li><li>Switch moves the port to 'authorized' with the assigned VLAN. Laptop can now send traffic.</li><li>Switch periodically sends <em>Accounting-Request</em> messages to track the session.</li></ol><p><strong>RADIUS servers:</strong> Cisco ISE, Microsoft NPS (native Windows), FreeRADIUS (open source), Aruba ClearPass.</p>",
+        visual: { type: "shield", params: { items: ["UDP 1812 (auth) + 1813 (acct)", "Open standard (RFC 2865/2866)", "Password-only encryption", "Combined auth + authz", "Best for network access"], color: "#f59e0b" } },
+        hack: {
+          memory: "RADIUS = 'Remote Access DialIn User Service.' UDP 1812/1813, open, password-only encryption, combined auth+authz. Built for end-users joining the network — Wi-Fi, 802.1X, VPN.",
+          practice: "Conceptual. Memorize the four attributes: UDP 1812/1813, open, password-only, combined. Pair with TACACS+ opposites: TCP 49, Cisco-originated, full encryption, separate AAA.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 41. Wendell Odom OCG Chapter 6. Exam: 'which protocol is used for 802.1X?' = RADIUS. Pure recall, guaranteed question."
+        }
+      },
+      {
+        id: "2.8.f.2",
+        term: "RADIUS password-only encryption",
+        weight: "high",
+        info: "<p>RADIUS's big security weakness: only the <strong>User-Password attribute</strong> inside the Access-Request packet is encrypted. Everything else — username, NAS identifier, authorization attributes, accounting records — is <strong>cleartext</strong>. A packet sniffer on the path to the RADIUS server sees who's logging in and what they're authorized to do, even if they can't see the password itself.</p><p><strong>How the password is 'encrypted':</strong> the NAS hashes the shared secret + Request Authenticator + password using MD5 to produce a key stream, then XORs with the password. Reversible only by someone who knows the shared secret. Not strong by modern standards but better than nothing.</p><p><strong>What's visible in cleartext:</strong></p><ul><li>User-Name attribute — 'romeo.patino@company.com' readable.</li><li>NAS-IP-Address, NAS-Port — which device and port the user is connecting from.</li><li>Called-Station-Id (AP MAC), Calling-Station-Id (client MAC) — full wireless metadata.</li><li>Access-Accept response attributes — VLAN ID, Filter-Id (ACL), Session-Timeout.</li><li>Accounting-Request fields — full session data, commands, bytes in/out.</li></ul><p><strong>Hardening:</strong> send RADIUS over IPsec or TLS (RadSec — RADIUS over TLS, RFC 6614). CCNP+ topic, not CCNA.</p><p><strong>Contrast with TACACS+:</strong> TACACS+ encrypts the entire packet body. RADIUS encrypts only the password. This asymmetry is why TACACS+ wins for device admin (where audit trails matter) and RADIUS is acceptable for network access (where metadata visibility is less sensitive).</p>",
+        visual: { type: "comparison", params: { left: { label: "Encrypted (RADIUS)", items: ["User-Password attribute only"] }, right: { label: "Cleartext (RADIUS)", items: ["Username", "NAS IP + port", "Client MAC", "Authz attributes (VLAN, ACL)", "Accounting data"] } } },
+        hack: {
+          memory: "RADIUS hides the password; TACACS+ hides everything. A sniffer reading RADIUS sees 'romeo tried to log in from AP X to VLAN 20' but not the password itself. Weaker but acceptable for network access.",
+          practice: "Conceptual. Memorize 'RADIUS = password-only encryption' as a single fact. On the exam, this is often the distinguisher between RADIUS and TACACS+.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 41. Wendell Odom OCG Chapter 6. Exam: 'which AAA protocol encrypts only the password?' = RADIUS."
+        }
+      },
+      {
+        id: "2.8.f.3",
+        term: "RADIUS combines auth+authz",
+        weight: "high",
+        info: "<p>RADIUS bundles <strong>authentication and authorization into a single exchange</strong>. The NAS sends an <em>Access-Request</em>, the server responds with <em>Access-Accept</em> (with authorization attributes embedded) or <em>Access-Reject</em>. There is no separate 'authorization' protocol call — if you pass auth, you instantly receive your authz attributes.</p><p><strong>What's in an Access-Accept:</strong></p><ul><li><strong>Tunnel-Private-Group-ID</strong> — VLAN assignment (e.g., VLAN 10 for Corporate).</li><li><strong>Filter-Id</strong> — name of an ACL to apply to the session.</li><li><strong>Session-Timeout</strong> — how long the session lasts (seconds).</li><li><strong>Idle-Timeout</strong> — idle disconnect time.</li><li><strong>Acct-Interim-Interval</strong> — how often the NAS should send accounting updates.</li><li>Vendor-Specific Attributes (VSAs) — Cisco, Aruba, Meraki all add their own (e.g., Cisco-AVPair for URL redirection).</li></ul><p><strong>Tradeoff vs TACACS+:</strong></p><ul><li>RADIUS: one round-trip, simpler, faster, perfectly suited for 'VLAN assignment on Wi-Fi login' style decisions.</li><li>TACACS+: multiple round-trips, slower, but enables per-command authz which RADIUS can't do.</li></ul><p><strong>Why this is fine for network access:</strong> when a laptop joins Wi-Fi, you just need to say 'yes, assign VLAN 20, apply ACL X, session 8 hours.' There's no need to ask the server about every packet — the VLAN/ACL do the enforcement once applied. Per-packet authz would kill performance.</p>",
+        visual: { type: "packet-flow", params: { nodes: ["NAS → Access-Request (creds)", "Server checks", "Server → Access-Accept (VLAN + ACL + timeout)", "NAS applies attributes", "Session active"], color: "#f59e0b" } },
+        hack: {
+          memory: "RADIUS Access-Accept = 'you're authenticated AND here's everything you're allowed to do.' One round-trip, one answer. Perfect for Wi-Fi/VPN — overkill would slow down real-time auth.",
+          practice: "Conceptual flashcard: 'combined auth+authz' vs 'separate AAA.' Exam question hook: 'which AAA protocol returns authorization attributes in the same packet as authentication success?' = RADIUS.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 41. Wendell Odom OCG Chapter 6. Exam: 1 guaranteed question on this distinction."
+        }
+      },
+      {
+        id: "2.8.f.4",
+        term: "RADIUS best use case",
+        weight: "high",
+        info: "<p><strong>Primary use case: network access control.</strong> Authenticating end-users or devices as they connect to the network — not admins managing devices. RADIUS is the standard for:</p><ul><li><strong>802.1X wired authentication</strong> — switch port stays in pre-auth until user authenticates. Post-auth, switch places port on the assigned VLAN.</li><li><strong>WPA2-Enterprise / WPA3-Enterprise Wi-Fi</strong> — WLC forwards EAP credentials to RADIUS. Server returns Access-Accept with VLAN/ACL; WLC maps client to that VLAN via dynamic interface.</li><li><strong>VPN authentication</strong> — AnyConnect/ASA/FTD forward credentials to RADIUS. Server adds group policy attributes.</li><li><strong>NAC / MAB (MAC Authentication Bypass)</strong> — MAC-based auth for devices that don't support 802.1X (printers, IoT).</li></ul><p><strong>Not for:</strong> administrator CLI access to routers, switches, firewalls. Use TACACS+.</p><p><strong>Exam pattern:</strong> if the scenario involves 'user,' 'laptop,' 'Wi-Fi,' 'VPN,' '802.1X,' 'WPA2-Enterprise,' 'network access,' the answer is RADIUS. If the scenario involves 'admin,' 'engineer,' 'router,' 'switch CLI,' 'per-command,' 'command authorization,' the answer is TACACS+.</p><p><strong>CoreWeave-style example:</strong> Wi-Fi in the data center office uses WPA2-Enterprise with RADIUS pointing to Okta/AD. Engineers SSH to switches via TACACS+ with per-command authorization based on job role. Both are served from Cisco ISE.</p>",
+        visual: { type: "hierarchy", params: { root: "RADIUS best use cases", children: [{ name: "802.1X wired/wireless" }, { name: "WPA2/WPA3-Enterprise Wi-Fi" }, { name: "VPN authentication" }, { name: "NAC / MAB" }] } },
+        hack: {
+          memory: "RADIUS = Users joining the Network. TACACS+ = Admins typing on Routers. Scenario keyword scan decides the answer.",
+          practice: "Exam keyword drill: '802.1X' → RADIUS. 'WPA2-Enterprise' → RADIUS. 'VPN login' → RADIUS. 'Per-command authz' → TACACS+. 'Router CLI access' → TACACS+. Practice until instant.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 41. Wendell Odom OCG Chapter 6. Exam: scenario-based selection, 1-2 guaranteed."
+        }
+      },
+      {
+        id: "2.8.f.5",
+        term: "TACACS+ vs RADIUS scenario",
+        weight: "high",
+        info: "<p>The <strong>guaranteed comparison question</strong> on the CCNA. Know the full table by heart:</p><table><tr><th>Feature</th><th>TACACS+</th><th>RADIUS</th></tr><tr><td>Developer</td><td>Cisco-proprietary (now open)</td><td>Open standard (RFC)</td></tr><tr><td>Transport</td><td>TCP port 49</td><td>UDP 1812 (auth), 1813 (acct)</td></tr><tr><td>Encryption</td><td>Entire packet body</td><td>Password-only</td></tr><tr><td>AAA</td><td>Separate (auth, authz, acct)</td><td>Combined auth + authz</td></tr><tr><td>Per-command authz</td><td>Yes</td><td>No</td></tr><tr><td>Multi-vendor</td><td>Mostly Cisco</td><td>All vendors</td></tr><tr><td>Best for</td><td>Device admin (CLI)</td><td>Network access (Wi-Fi, 802.1X, VPN)</td></tr></table><p><strong>Both on Cisco ISE:</strong> the flagship AAA platform supports both protocols simultaneously. Enterprise best practice: TACACS+ for device admin, RADIUS for network access, one ISE cluster serves both.</p><p><strong>Scenario selection:</strong></p><ul><li>'Control which commands each admin can run on routers' → TACACS+ (per-command authz).</li><li>'Authenticate Wi-Fi users against Active Directory' → RADIUS (WPA2-Enterprise).</li><li>'Log every command typed on a switch' → TACACS+ (granular accounting).</li><li>'Assign VLANs to 802.1X-authenticated devices' → RADIUS (Access-Accept with VLAN attribute).</li><li>'Open standard, works with Aruba and Cisco together' → RADIUS.</li><li>'Full packet encryption for AAA traffic' → TACACS+.</li></ul><p><strong>2-3 questions guaranteed</strong> on this distinction. Memorize the table.</p>",
+        visual: { type: "comparison", params: { left: { label: "TACACS+", items: ["TCP 49", "Full encryption", "Separate AAA", "Per-command authz", "Device admin"] }, right: { label: "RADIUS", items: ["UDP 1812/1813", "Password-only encryption", "Combined auth+authz", "No per-command", "Network access"] } } },
+        hack: {
+          memory: "Four attribute pairs: TCP/UDP, Full/Password, Separate/Combined, Admin/Access. Say it as a chant: 'TACACS TCP Total Separate Admin, RADIUS UDP Password Combined Access.'",
+          practice: "Write out the comparison table from memory. Do it three times over three days. By exam day it should take 90 seconds flat. This is the single highest-yield memorization drill for Domain 2.8.",
+          effort: "medium",
+          meta: "Jeremy's IT Lab Day 41. Wendell Odom OCG Chapter 6. Exam: 2-3 guaranteed questions — ROI on memorizing this table is massive."
+        }
+      }
     ]
   },
 
@@ -6317,11 +6833,71 @@ window.subtopicContentD12 = {
       meta: "Jeremy's IT Lab Days 57-58 mention cloud-managed architectures. Wendell Odom OCG Chapter 25/29. Concept-only topic — no configuration tested. Know: 'what is zero-touch provisioning?' (device auto-configures from cloud), 'what is required for cloud management?' (internet + subscription), 'what happens if cloud goes down?' (devices continue with cached config). 1-2 questions maximum.",
     },
     micro: [
-      { id: "2.8.g.1", term: "Cloud-managed networking",     def: "Device mgmt via cloud dashboard (HTTPS). No on-prem controller required. Meraki is the canonical example.", weight: "high" },
-      { id: "2.8.g.2", term: "Zero-touch provisioning",      def: "Device plugs in → internet → downloads config from cloud automatically. Key cloud benefit.", weight: "high" },
-      { id: "2.8.g.3", term: "Cloud mgmt requirements",      def: "Internet connectivity to cloud + active subscription license. Both mandatory.", weight: "med" },
-      { id: "2.8.g.4", term: "Cloud offline behavior",       def: "If cloud unreachable, devices continue forwarding with cached config. Cannot configure until restored.", weight: "med" },
-      { id: "2.8.g.5", term: "Management models comparison", def: "CLI (traditional) vs On-prem controller (WLC/DNA Center) vs Cloud-managed (Meraki). Each has tradeoffs.", weight: "med" }
+      {
+        id: "2.8.g.1",
+        term: "Cloud-managed networking",
+        weight: "high",
+        info: "<p><strong>Cloud-managed networking</strong> moves the management plane from on-prem hardware (like a WLC or DNA Center) to a <strong>vendor-hosted cloud dashboard</strong> reachable via browser. Devices phone home to the cloud for configuration, monitoring, and software updates. The canonical example is <strong>Cisco Meraki</strong>, where every AP, switch, firewall, and camera is managed from a single <code>dashboard.meraki.com</code> URL.</p><p><strong>Architecture:</strong></p><ul><li><strong>Data plane</strong> — stays on-device. Switches forward frames, APs bridge wireless traffic, firewalls enforce policy. Client data never goes through the cloud.</li><li><strong>Management plane</strong> — lives in the cloud. Config, monitoring, alerting, updates all happen via HTTPS to the cloud dashboard.</li><li><strong>Control plane</strong> — split. Most control (routing, STP, radio decisions) stays on-device; long-term policies and some RF optimization happen in the cloud.</li></ul><p><strong>Contrast with traditional:</strong></p><ul><li><strong>Traditional</strong> — CLI per device, maybe a WLC for wireless and Prime/DNA Center for wired. All on-prem. Scales linearly with admin effort.</li><li><strong>Cloud-managed</strong> — one dashboard for thousands of devices across hundreds of sites. Each new device self-registers when plugged in.</li></ul><p><strong>Cisco cloud platforms:</strong></p><ul><li><strong>Meraki</strong> — fully cloud-native. No on-prem controller.</li><li><strong>Catalyst Center (formerly DNA Center)</strong> — on-prem appliance, optional cloud integration. More enterprise-focused.</li><li><strong>SD-WAN Viptela/vManage</strong> — cloud or on-prem, manages WAN edge routers.</li><li><strong>Catalyst 9800-CL</strong> — cloud-hosted WLC instance (public/private cloud).</li></ul>",
+        visual: { type: "hierarchy", params: { root: "Cloud-managed platform", children: [{ name: "Management plane: cloud (HTTPS dashboard)" }, { name: "Control plane: split" }, { name: "Data plane: on-device" }, { name: "Single pane across all sites" }] } },
+        hack: {
+          memory: "Cloud-managed = management plane in the cloud, data plane on-device. Meraki is the poster child. Client traffic never hits the cloud — only config and monitoring do.",
+          practice: "Browse to the Meraki dashboard demo (meraki.cisco.com/sandbox or similar). See the single pane showing APs, switches, client stats. Compare to the complexity of managing the same gear via WLC + Prime on-prem.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 58. Wendell Odom OCG Chapter 25/29. Exam: 'what is the key characteristic of cloud-managed networking?' = management via cloud dashboard; devices phone home."
+        }
+      },
+      {
+        id: "2.8.g.2",
+        term: "Zero-touch provisioning",
+        weight: "high",
+        info: "<p><strong>Zero-touch provisioning (ZTP)</strong> is the cloud-managed model's superpower. Plug a new device in, give it internet access, and it auto-configures from the cloud. No console cable, no manual CLI, no local admin intervention.</p><p><strong>ZTP flow (Meraki example):</strong></p><ol><li>Admin adds the device's serial number to the Meraki dashboard organization (at procurement or later).</li><li>Admin applies a template or network assignment to that serial.</li><li>Device is shipped to a branch office, plugged into the wall by a non-technical person.</li><li>Device boots, gets IP via DHCP, reaches out to dashboard.meraki.com (HTTPS).</li><li>Cloud authenticates the device by serial/certificate, pushes its assigned config.</li><li>Device comes online fully configured within 1-3 minutes.</li></ol><p><strong>Why it matters:</strong> deploying 100 branch offices traditionally requires a network engineer at each site (or shipping pre-configured gear). ZTP lets you ship stock devices to each site; a retail employee plugs them in; they come up configured. Deployment time drops from days to hours, cost drops dramatically.</p><p><strong>Cisco IOS-XE PnP (Plug and Play):</strong> similar concept for Catalyst 9000 series, integrates with Catalyst Center. Device contacts a 'PnP Server' (on-prem or cloud) and gets its config.</p><p><strong>Security:</strong> ZTP relies on device certificate authentication + serial number verification. Meraki certs are baked into hardware at manufacture. Rogue devices can't fake being a Meraki device.</p><p><strong>Exam framing:</strong> 'what is zero-touch provisioning?' = device self-configures from the cloud on first boot. 'What's the benefit of cloud-managed networking?' includes ZTP as a primary answer.</p>",
+        visual: { type: "state-machine", params: { states: ["Unboxed + plugged in", "DHCP gets IP", "HTTPS to cloud", "Cert + serial auth", "Config downloaded", "Online"], active: 2, transitions: true } },
+        hack: {
+          memory: "ZTP = 'ship it, plug it, done.' Serial number + cloud template = full config without touching the CLI. Meraki's signature feature.",
+          practice: "Read a Meraki ZTP case study — the 'deploy 200 stores in a month' narrative. Contrast with a traditional deployment requiring network engineer visits. This viscerally proves ZTP's value.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 58. Wendell Odom OCG Chapter 29. Exam: 'which feature of cloud-managed networking lets devices auto-configure?' = zero-touch provisioning."
+        }
+      },
+      {
+        id: "2.8.g.3",
+        term: "Cloud mgmt requirements",
+        weight: "med",
+        info: "<p>Cloud-managed networking has two non-negotiable requirements that distinguish it from on-prem:</p><p><strong>1. Internet connectivity to the cloud dashboard.</strong> Every device must reach the vendor's cloud endpoints over HTTPS (typically TCP 443, sometimes additional UDP ports for tunneling). If the internet connection fails, management is lost — though data plane keeps working (see 2.8.g.4).</p><p>Typical endpoints (Meraki example): <code>*.meraki.com</code>, <code>*.ikarem.io</code>, specific IPs documented by vendor. Enterprise firewalls must allow outbound to these destinations. No inbound access required — devices initiate all connections.</p><p><strong>2. Active subscription license.</strong> Cloud-managed platforms use per-device, time-based licenses. Meraki licenses are 1, 3, 5, 7, or 10 years per device. If the license expires, management access is progressively restricted:</p><ul><li>Day 0-30 after expiry — grace period, warnings only.</li><li>Day 30-90 — dashboard becomes read-only.</li><li>Day 90+ — device may stop passing traffic (depends on product line).</li></ul><p><strong>Other typical requirements:</strong></p><ul><li>DNS resolution (devices need to resolve dashboard hostnames).</li><li>NTP (for cert validation).</li><li>Sufficient bandwidth for config pulls and stats uploads (typically small — kilobits per device).</li></ul><p><strong>Enterprise policy gotchas:</strong> strict firewall rules can block cloud management. Some regulated environments (air-gapped, sensitive government) cannot use cloud-managed platforms at all — for these, Catalyst Center on-prem is the answer.</p>",
+        visual: { type: "shield", params: { items: ["Internet + HTTPS reachability", "DNS + NTP working", "Active subscription license", "Vendor cloud endpoints allowlisted", "Sufficient bandwidth"], color: "#f59e0b" } },
+        hack: {
+          memory: "Two mandatory things: internet + license. Miss either and cloud management breaks. Enterprise firewalls often block vendor endpoints — allowlist before you deploy.",
+          practice: "Flashcard: 'what are the two requirements for cloud-managed networking?' = internet connectivity to the cloud + active subscription license. Exam pure recall.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 58. Wendell Odom OCG Chapter 29. Exam: 'what does cloud-managed require?' = internet + license."
+        }
+      },
+      {
+        id: "2.8.g.4",
+        term: "Cloud offline behavior",
+        weight: "med",
+        info: "<p>What happens when the internet connection to the cloud fails? Most cloud-managed platforms are designed to <strong>keep forwarding traffic normally</strong> while management is offline — the data plane is decoupled from the cloud.</p><p><strong>Meraki offline behavior:</strong></p><ul><li><strong>Existing traffic:</strong> keeps working. APs keep broadcasting SSIDs. Switches keep forwarding. Firewalls keep applying rules. Clients don't notice.</li><li><strong>Existing clients:</strong> stay associated, keep working.</li><li><strong>New authentications (RADIUS-dependent):</strong> may fail if the RADIUS server is also cloud-hosted or the cloud is used as a proxy.</li><li><strong>Configuration changes:</strong> impossible. Dashboard is unreachable.</li><li><strong>Monitoring:</strong> stale. Stats and alerts don't reach the dashboard.</li><li><strong>Firmware updates:</strong> deferred until cloud returns.</li></ul><p><strong>How it works:</strong> devices cache their last-known-good config in local flash. On boot, they try to reach the cloud; if they can't, they use the cached config and keep operating. When cloud connectivity returns, devices sync and download any config changes made during the outage.</p><p><strong>Duration of offline tolerance:</strong> indefinite for data plane. Some features (captive portal, Meraki Auth, Air Marshal wireless IPS) degrade after extended outages. License grace periods apply (see 2.8.g.3).</p><p><strong>Design implication:</strong> even cloud-managed networks need resilient internet. Dual WAN (primary + backup LTE) is common for branch offices running Meraki. A site losing internet loses manageability even if data still flows.</p>",
+        visual: { type: "comparison", params: { left: { label: "Cloud online", items: ["Full dashboard access", "Live monitoring", "Config pushes", "Firmware updates", "Alerts work"] }, right: { label: "Cloud offline", items: ["Data plane keeps working", "Cached config in use", "No config changes possible", "Monitoring stale", "Sync on reconnect"] } } },
+        hack: {
+          memory: "Cloud offline = blind but not broken. Traffic flows; management doesn't. Cache + local forwarding keep the network alive. Once cloud returns, devices sync.",
+          practice: "Conceptual flashcard. Exam hook: 'what happens to a Meraki network if internet to dashboard fails?' = devices continue forwarding with cached config; no config changes until restored.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 58. Wendell Odom OCG Chapter 29. Exam: 1 question possible on offline behavior."
+        }
+      },
+      {
+        id: "2.8.g.5",
+        term: "Management models comparison",
+        weight: "med",
+        info: "<p>CCNA tests awareness of <strong>three management paradigms</strong>. Know the tradeoffs:</p><p><strong>1. Traditional CLI (SSH/console per device).</strong></p><ul><li>Pros: full control, no dependencies, no licensing, expert-friendly, scriptable (Ansible, Python).</li><li>Cons: doesn't scale — admin effort grows linearly with device count. No single pane. Config drift common.</li><li>Best for: small networks, labs, power users, regulated / air-gapped environments.</li></ul><p><strong>2. On-prem controller (WLC, Catalyst Center, Prime).</strong></p><ul><li>Pros: centralized management, GUI, still on-site (data sovereignty), scales better than CLI.</li><li>Cons: on-prem infrastructure to maintain, upgrade, secure. Controller failure is a single point of failure.</li><li>Best for: medium-large enterprises with network engineers; regulated environments wanting centralization without cloud.</li></ul><p><strong>3. Cloud-managed (Meraki, Catalyst 9800-CL, SD-WAN vManage cloud).</strong></p><ul><li>Pros: zero-touch provisioning, single pane across all sites, automatic updates, no on-prem controller. Great for distributed orgs.</li><li>Cons: internet-dependent for management, subscription cost over time, data leaves your network for management purposes.</li><li>Best for: retail chains, distributed orgs, MSPs, companies prioritizing operational simplicity.</li></ul><p><strong>Real world: hybrid is common.</strong> HQ data center = traditional CLI or Catalyst Center. Branch offices = Meraki cloud-managed. Wi-Fi everywhere = cloud-managed WLAN with local breakout. One size does not fit all.</p>",
+        visual: { type: "layer-stack", params: { layers: ["Traditional CLI (per-device SSH)", "On-prem controller (WLC, Catalyst Center)", "Cloud-managed (Meraki, vManage)", "Hybrid (mix per site)"], highlight: 2 } },
+        hack: {
+          memory: "Three tiers: CLI → on-prem controller → cloud. More automation each step, more dependencies each step. Pick per situation; most enterprises mix.",
+          practice: "Flashcard the three tiers with one pro and one con each. Exam scenario: 'retailer with 200 stores, no on-site IT' → cloud-managed (ZTP is the killer feature). 'Air-gapped lab' → CLI.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 58. Wendell Odom OCG Chapter 29. Exam: scenario-based, 1-2 questions possible."
+        }
+      }
     ]
   },
 
