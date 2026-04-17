@@ -20,8 +20,19 @@ window.subtopicContentD34 = {
       memory: "CSORD-B: 'Cisco Students Often Ride Dirty Buses' — Connected, Static, OSPF, RIP, EIGRP (D for DUAL), BGP. Also remember L for Local (/32 self-routes) and S* for candidate default.",
       practice: "In Packet Tracer, build a 3-router triangle: R1-R2 use OSPF, R2-R3 use a static route, R1-R3 are directly connected. Run 'show ip route' on R2 and identify every code letter (C, L, O, S). Then add a default route and verify S* appears. Practice reading route entries until you can parse AD, metric, next-hop, and age in under 5 seconds per line.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 11 (Static Routing) and Day 24 (OSPF Part 1) both show routing table output with codes. Wendell Odom OCG Chapters 15-16 cover routing table interpretation in depth. The exam will show you a routing table and ask 'how did the router learn this route?' — instant code recognition is required."
-    }
+      meta: "Jeremy's IT Lab Day 11 (Static Routing) and Day 24 (OSPF Part 1) both show routing table output with codes. Wendell Odom OCG Chapters 15-16 cover routing table interpretation in depth. The exam will show you a routing table and ask 'how did the router learn this route?' — instant code recognition is required.",
+    },
+    micro: [
+      { id: "3.1.a.1", term: "Code C (Connected)",           def: "Route for a directly-attached network. Added automatically when interface comes up. AD 0.", weight: "high" },
+      { id: "3.1.a.2", term: "Code L (Local)",               def: "/32 host route for the router's own interface IP. Auto-generated. Ensures local processing.", weight: "high" },
+      { id: "3.1.a.3", term: "Code S (Static)",              def: "Manually configured route. AD 1 by default.", weight: "high" },
+      { id: "3.1.a.4", term: "Code O (OSPF)",                def: "Learned via OSPF. AD 110. Additional subtypes: O IA (inter-area), O E1/E2 (external).", weight: "high" },
+      { id: "3.1.a.5", term: "Code D (EIGRP)",               def: "Learned via EIGRP's DUAL algorithm. AD 90 (internal), 170 (external).", weight: "high" },
+      { id: "3.1.a.6", term: "Code R (RIP)",                 def: "Learned via RIP. AD 120. Hop-count metric.", weight: "med" },
+      { id: "3.1.a.7", term: "Code B (BGP)",                 def: "Learned via BGP. eBGP AD 20, iBGP AD 200.", weight: "med" },
+      { id: "3.1.a.8", term: "S* candidate default",         def: "Static default route. Appears as 'Gateway of last resort' in show ip route.", weight: "high" },
+      { id: "3.1.a.9", term: "Route entry format",           def: "'O 10.1.1.0/24 [110/20] via 192.168.1.2' — code, network/mask, [AD/metric], next-hop.", weight: "high" }
+    ]
   },
 
   "3.1.b": {
@@ -31,8 +42,14 @@ window.subtopicContentD34 = {
       memory: "The prefix is the 'street name' — the network address with all host bits zeroed. 10.1.1.0 is the street, /24 defines how long the street is (256 addresses). The router checks if the destination house number falls on that street.",
       practice: "Pull up 'show ip route' on any router in Packet Tracer. For each route entry, identify the prefix and convert it: write the prefix in binary, circle the network bits (defined by the mask), and verify the host bits are all zeros. Then take 5 random IPs and determine which prefix in the table would match each one.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 11 (Static Routing) and Day 13 (Subnetting) cover prefix interpretation. Wendell Odom OCG Chapters 15-16 explain the routing table structure. The prefix itself is rarely a standalone exam question — it's tested indirectly through 'which route will the router use?' scenarios that require understanding prefix matching."
-    }
+      meta: "Jeremy's IT Lab Day 11 (Static Routing) and Day 13 (Subnetting) cover prefix interpretation. Wendell Odom OCG Chapters 15-16 explain the routing table structure. The prefix itself is rarely a standalone exam question — it's tested indirectly through 'which route will the router use?' scenarios that require understanding prefix matching.",
+    },
+    micro: [
+      { id: "3.1.b.1", term: "Prefix (network address)",     def: "Network portion of the route entry. All host bits zeroed. Defines which addresses the route covers.", weight: "high" },
+      { id: "3.1.b.2", term: "Prefix length impact",         def: "/8 covers 16M addresses, /24 covers 256, /32 covers 1. More specific prefix = fewer addresses.", weight: "high" },
+      { id: "3.1.b.3", term: "Prefix matching",              def: "Router compares destination IP's first N bits against prefix, where N = prefix length.", weight: "high" },
+      { id: "3.1.b.4", term: "Parent network grouping",      def: "IOS displays subnets under their parent network (e.g., all 10.x.x.x /24s under 10.0.0.0/8). Cosmetic only.", weight: "low" }
+    ]
   },
 
   "3.1.c": {
@@ -42,8 +59,14 @@ window.subtopicContentD34 = {
       memory: "Mask = stencil laid over the address. Network bits (1s) = 'must match exactly.' Host bits (0s) = 'don't care.' A /28 stencil is more precise than a /24 stencil, which is more precise than a /16 stencil. More 1s = more specific = wins the longest prefix match.",
       practice: "Create a flashcard deck with every prefix length from /16 through /30. Each card: front = prefix length, back = dotted-decimal mask, number of total addresses, number of usable hosts, and block size. Drill until you achieve sub-2-second recall per card. Then practice the magic number method: given an IP and mask, find the network address, broadcast address, and valid host range in under 30 seconds.",
       effort: "medium",
-      meta: "Jeremy's IT Lab Days 13-14 (Subnetting) are the definitive video lessons for this. Wendell Odom OCG Chapters 11-14 provide extensive subnetting practice. Subnetting speed is the #1 skill that separates passing from failing — Cisco allocates roughly 10 questions that require fast subnet math. Practice the magic number method daily until the exam."
-    }
+      meta: "Jeremy's IT Lab Days 13-14 (Subnetting) are the definitive video lessons for this. Wendell Odom OCG Chapters 11-14 provide extensive subnetting practice. Subnetting speed is the #1 skill that separates passing from failing — Cisco allocates roughly 10 questions that require fast subnet math. Practice the magic number method daily until the exam.",
+    },
+    micro: [
+      { id: "3.1.c.1", term: "Prefix length (CIDR)",         def: "Displayed as /N. Counts the 1-bits in the mask. /24 = 24 network bits.", weight: "high" },
+      { id: "3.1.c.2", term: "Mask specificity = match",     def: "Longer mask = more specific = wins longest prefix match. /28 > /24 > /16.", weight: "high" },
+      { id: "3.1.c.3", term: "Magic number method",          def: "Block size = 256 − interesting octet value. Subnets start at multiples of block size.", weight: "high" },
+      { id: "3.1.c.4", term: "/30 for P2P links",            def: "4 addresses, 2 usable. Standard for router-to-router serial/point-to-point.", weight: "high" }
+    ]
   },
 
   "3.1.d": {
@@ -53,8 +76,14 @@ window.subtopicContentD34 = {
       memory: "Next hop = the relay runner you hand the baton to. You don't run the whole race — you pass the packet to the next router closer to the finish line. The next hop MUST be on a subnet you're directly connected to (you can only hand off to someone within arm's reach).",
       practice: "Build a 4-router linear topology in Packet Tracer (R1-R2-R3-R4) with static routes. Run 'show ip route' on each router and trace a packet from R1 to R4's LAN step by step: write down each next-hop IP at each router. Then use 'traceroute' from R1 to R4's LAN and verify the hops match your manual trace. Practice reading 'via X.X.X.X' entries until you can map them to a topology diagram instantly.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 11 (Static Routing) demonstrates next-hop configuration and recursive lookups. Wendell Odom OCG Chapters 15-16 detail the forwarding process. The exam shows topology diagrams alongside routing tables — you must map 'via X.X.X.X' entries to the correct interface/router on the diagram. Practice this visual mapping skill."
-    }
+      meta: "Jeremy's IT Lab Day 11 (Static Routing) demonstrates next-hop configuration and recursive lookups. Wendell Odom OCG Chapters 15-16 detail the forwarding process. The exam shows topology diagrams alongside routing tables — you must map 'via X.X.X.X' entries to the correct interface/router on the diagram. Practice this visual mapping skill.",
+    },
+    micro: [
+      { id: "3.1.d.1", term: "Next-hop IP",                  def: "IP of the next router on the path. Must be on a directly-connected subnet (reachable via ARP).", weight: "high" },
+      { id: "3.1.d.2", term: "C / L have no next hop",       def: "Directly-connected and local routes don't need a next hop — destination reachable directly via ARP.", weight: "high" },
+      { id: "3.1.d.3", term: "Recursive lookup",             def: "Router looks up the next-hop IP in the routing table to find the exit interface.", weight: "med" },
+      { id: "3.1.d.4", term: "Exit interface only",          def: "Static route with only an exit interface. Fine on P2P. AVOID on Ethernet — causes excessive ARP.", weight: "high" }
+    ]
   },
 
   "3.1.e": {
@@ -64,8 +93,20 @@ window.subtopicContentD34 = {
       memory: "AD = trust score. 0 = 'I see it with my own eyes' (connected). 1 = 'my boss manually told me' (static). 20 = trusted external partner (eBGP). 90 = close colleague (EIGRP). 110 = acquaintance (OSPF). 120 = stranger at a party (RIP). 255 = 'I don't believe you at all.' Chant the numbers: 0-1-20-90-110-115-120-200.",
       practice: "Write the AD table from memory 10 times: Connected=0, Static=1, eBGP=20, EIGRP=90, OSPF=110, IS-IS=115, RIP=120, EIGRP ext=170, iBGP=200. Then in Packet Tracer, configure both OSPF and a static route to the same 10.1.1.0/24 network. Run 'show ip route 10.1.1.0' and verify the static route (AD 1) wins. Shut the static route's next-hop interface and confirm OSPF (AD 110) takes over.",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 11 (Static Routing) introduces AD, and Day 24 (OSPF) reinforces it. Wendell Odom OCG Chapters 15-16 have the complete AD table. This is a GUARANTEED exam question — Boson and Pearson practice exams always include at least one 'which route is installed?' question that requires comparing AD values. Write the AD table on your whiteboard as part of your exam brain dump."
-    }
+      meta: "Jeremy's IT Lab Day 11 (Static Routing) introduces AD, and Day 24 (OSPF) reinforces it. Wendell Odom OCG Chapters 15-16 have the complete AD table. This is a GUARANTEED exam question — Boson and Pearson practice exams always include at least one 'which route is installed?' question that requires comparing AD values. Write the AD table on your whiteboard as part of your exam brain dump.",
+    },
+    micro: [
+      { id: "3.1.e.1", term: "Administrative Distance (AD)", def: "0-255 trust score per route source. Lower = more trusted. Tiebreaker between different protocols.", weight: "high" },
+      { id: "3.1.e.2", term: "Connected AD = 0",             def: "Max trust. Router physically sees the network. Best possible AD.", weight: "high" },
+      { id: "3.1.e.3", term: "Static AD = 1",                def: "Explicitly configured by admin. Highly trusted.", weight: "high" },
+      { id: "3.1.e.4", term: "eBGP AD = 20",                 def: "External BGP routes. Trusted partners across AS boundaries.", weight: "high" },
+      { id: "3.1.e.5", term: "EIGRP AD = 90 (internal)",     def: "Cisco's IGP. Considered more reliable than OSPF.", weight: "high" },
+      { id: "3.1.e.6", term: "OSPF AD = 110",                def: "All OSPF types (intra-area, inter-area, external) use 110.", weight: "high" },
+      { id: "3.1.e.7", term: "RIP AD = 120",                 def: "Highest AD among common IGPs. Least trusted of the common dynamic protocols.", weight: "high" },
+      { id: "3.1.e.8", term: "EIGRP external AD = 170",      def: "EIGRP routes redistributed from another protocol. Lower trust than internal.", weight: "med" },
+      { id: "3.1.e.9", term: "iBGP AD = 200",                def: "Internal BGP routes. Lower trust than most IGPs because iBGP routes may traverse many hops.", weight: "med" },
+      { id: "3.1.e.10", term: "AD = 255 (unusable)",         def: "Route is NEVER installed. Effectively disables the route.", weight: "med" }
+    ]
   },
 
   "3.1.f": {
@@ -75,8 +116,15 @@ window.subtopicContentD34 = {
       memory: "Metric = mileage within the same GPS app. Two Google Maps routes — you pick the shorter one. AD picks WHICH app to use (Google Maps vs Waze); metric picks which route within that app. OSPF = cost, RIP = hops, EIGRP = bandwidth+delay. Lower always wins.",
       practice: "In Packet Tracer, build a triangle topology with OSPF. Make one path use 100 Mbps links (cost 1 each, total 2) and the alternate path use 10 Mbps links (cost 10 each, total 20). Run 'show ip route ospf' and verify the lower-cost path is selected. Then make both paths equal cost and confirm both appear in the routing table (ECMP). Check with 'show ip ospf interface brief' to see individual link costs.",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 24-26 (OSPF) cover cost calculation extensively. Wendell Odom OCG Chapters 19-21 detail OSPF metric math. For the exam: know that OSPF cost = ref BW / interface BW, RIP counts hops (max 15), and ECMP load-balances across equal-cost paths. The exam will ask you to calculate OSPF cost given bandwidth values."
-    }
+      meta: "Jeremy's IT Lab Day 24-26 (OSPF) cover cost calculation extensively. Wendell Odom OCG Chapters 19-21 detail OSPF metric math. For the exam: know that OSPF cost = ref BW / interface BW, RIP counts hops (max 15), and ECMP load-balances across equal-cost paths. The exam will ask you to calculate OSPF cost given bandwidth values.",
+    },
+    micro: [
+      { id: "3.1.f.1", term: "Metric purpose",               def: "Second number in [AD/metric]. Used to compare routes WITHIN THE SAME protocol.", weight: "high" },
+      { id: "3.1.f.2", term: "OSPF cost",                    def: "Reference bandwidth / interface bandwidth. Default reference = 100 Mbps. Lower = preferred.", weight: "high" },
+      { id: "3.1.f.3", term: "RIP hop count",                def: "Number of routers to destination. Max 15. 16 = unreachable (infinity).", weight: "high" },
+      { id: "3.1.f.4", term: "EIGRP composite metric",       def: "By default uses bandwidth + delay. Load and reliability optional.", weight: "med" },
+      { id: "3.1.f.5", term: "ECMP load balancing",          def: "Equal-Cost Multi-Path. Tied metrics → all paths installed. Default 4 paths. Max 32.", weight: "high" }
+    ]
   },
 
   "3.1.g": {
@@ -86,8 +134,15 @@ window.subtopicContentD34 = {
       memory: "Gateway of last resort = 'when in doubt, send it out.' It is the catch-all exit for unknown destinations. 0.0.0.0/0 = match everything with zero specificity. It always loses to any more specific route (longest prefix match), so it truly is the LAST resort.",
       practice: "In Packet Tracer: (1) Run 'show ip route' and note 'Gateway of last resort is not set.' (2) Configure 'ip route 0.0.0.0 0.0.0.0 [ISP-next-hop]'. (3) Run 'show ip route' again and verify the gateway is now set. (4) Ping 8.8.8.8 (simulated internet) and confirm it works. (5) Remove the default route and verify pings fail with 'destination unreachable.' Then practice injecting the default via OSPF with 'default-information originate' on the edge router.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 11 (Static Routing) covers default route configuration. Day 24-26 (OSPF) cover 'default-information originate.' Wendell Odom OCG Chapters 15-16 (routing table) and Chapter 19 (OSPF default route). The exam will test both the static command and the OSPF injection method. 'Gateway of last resort is not set' is a classic troubleshooting clue — if internet access is broken, check this first."
-    }
+      meta: "Jeremy's IT Lab Day 11 (Static Routing) covers default route configuration. Day 24-26 (OSPF) cover 'default-information originate.' Wendell Odom OCG Chapters 15-16 (routing table) and Chapter 19 (OSPF default route). The exam will test both the static command and the OSPF injection method. 'Gateway of last resort is not set' is a classic troubleshooting clue — if internet access is broken, check this first.",
+    },
+    micro: [
+      { id: "3.1.g.1", term: "Gateway of last resort",       def: "Default route (0.0.0.0/0). Used when no more specific route exists. Appears at top of show ip route.", weight: "high" },
+      { id: "3.1.g.2", term: "ip route 0.0.0.0 0.0.0.0 ...", def: "Static default route command. Typical pointing to ISP/upstream router.", weight: "high" },
+      { id: "3.1.g.3", term: "default-information originate", def: "OSPF/RIP command that injects a default route to all neighbors. On the edge router.", weight: "high" },
+      { id: "3.1.g.4", term: "'Gateway of last resort is not set'", def: "Troubleshooting red flag. No default = unknown destinations dropped.", weight: "high" },
+      { id: "3.1.g.5", term: "O*E2 0.0.0.0/0",               def: "OSPF external type 2 candidate default. Appears when default learned via OSPF.", weight: "med" }
+    ]
   },
 
   // ── 3.2  Determine how a router makes a forwarding decision ──
@@ -99,8 +154,15 @@ window.subtopicContentD34 = {
       memory: "Longest prefix = most specific address wins, ALWAYS, regardless of AD or metric. Like mail delivery: 'USA' matches, 'Illinois' is better, '123 Main St, Apt 4B, Chicago IL 60601' wins — because it's the most specific. /32 > /28 > /24 > /16 > /8 > /0.",
       practice: "Write 10 practice scenarios: create a routing table with 4-5 overlapping routes at different prefix lengths (/8, /16, /24, /28, /32), then pick 5 destination IPs and determine which route wins for each. Time yourself — aim for under 10 seconds per lookup. Verify in Packet Tracer using 'show ip route [destination]' which shows the exact match. Then use traceroute to confirm the path.",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 11 (Static Routing) and Day 15 (Routing Fundamentals) cover longest prefix match with examples. Wendell Odom OCG Chapters 15-16 detail the forwarding decision. This is the SINGLE most tested routing concept — every 'which route will the router use?' question starts with longest prefix match. If you master nothing else in Domain 3, master this."
-    }
+      meta: "Jeremy's IT Lab Day 11 (Static Routing) and Day 15 (Routing Fundamentals) cover longest prefix match with examples. Wendell Odom OCG Chapters 15-16 detail the forwarding decision. This is the SINGLE most tested routing concept — every 'which route will the router use?' question starts with longest prefix match. If you master nothing else in Domain 3, master this.",
+    },
+    micro: [
+      { id: "3.2.a.1", term: "Longest Prefix Match (LPM)",   def: "Router picks the route with the LONGEST matching mask. Most specific wins. Step 1 of forwarding decision.", weight: "high" },
+      { id: "3.2.a.2", term: "LPM beats AD",                 def: "LPM ALWAYS wins before AD is consulted. A /32 from RIP (AD 120) beats a /24 from connected (AD 0).", weight: "high" },
+      { id: "3.2.a.3", term: "/32 most specific",            def: "Host route. Matches exactly one IP. Always wins LPM.", weight: "high" },
+      { id: "3.2.a.4", term: "0.0.0.0/0 least specific",     def: "Default route. Loses to everything more specific. True last resort.", weight: "high" },
+      { id: "3.2.a.5", term: "show ip route [destination]",  def: "Shows which route the router actually uses for a specific IP. Best way to verify LPM.", weight: "high" }
+    ]
   },
 
   "3.2.b": {
@@ -110,8 +172,14 @@ window.subtopicContentD34 = {
       memory: "AD is the second judge in a three-judge panel. Judge 1 (longest prefix) picks the most specific route. If Judge 1 declares a tie (same prefix length), Judge 2 (lowest AD) picks the most trusted source. Connected (0) beats Static (1) beats OSPF (110) beats RIP (120).",
       practice: "Build a lab in Packet Tracer: configure both OSPF (AD 110) and a static route (AD 1) to the same 10.1.1.0/24 network. Run 'show ip route 10.1.1.0' and confirm the static route (S) wins. Then shut down the static route's exit interface or next-hop and run 'show ip route 10.1.1.0' again — the OSPF route (O) should now appear. Bring the interface back up and watch the static reclaim the slot.",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 11 (Static Routing) introduces AD, Day 24 (OSPF) reinforces it. Wendell Odom OCG Chapters 15-16 cover route selection in detail. The exam commonly shows two protocols learning the same network and asks 'which route appears in the table?' Always compare AD values when prefix lengths are equal."
-    }
+      meta: "Jeremy's IT Lab Day 11 (Static Routing) introduces AD, Day 24 (OSPF) reinforces it. Wendell Odom OCG Chapters 15-16 cover route selection in detail. The exam commonly shows two protocols learning the same network and asks 'which route appears in the table?' Always compare AD values when prefix lengths are equal.",
+    },
+    micro: [
+      { id: "3.2.b.1", term: "AD as tiebreaker",             def: "Used when routes have SAME prefix length but DIFFERENT protocols. Lower AD wins.", weight: "high" },
+      { id: "3.2.b.2", term: "Losing route kept as backup",  def: "Route not installed in table still lives in source protocol's database. Takes over if primary fails.", weight: "high" },
+      { id: "3.2.b.3", term: "AD not consulted across masks", def: "AD is NEVER consulted when prefix lengths differ. LPM decides first.", weight: "high" },
+      { id: "3.2.b.4", term: "show ip ospf database",        def: "View routes OSPF knows about, including those not installed due to losing AD battles.", weight: "med" }
+    ]
   },
 
   "3.2.c": {
@@ -121,8 +189,13 @@ window.subtopicContentD34 = {
       memory: "Chant: 'Connected 0, Static 1, External BGP 20, EIGRP 90, OSPF 110, IS-IS 115, RIP 120, Internal BGP 200.' Write this on your exam whiteboard FIRST. Mnemonic: 'Cool Students Earn Every Opportunity In Real Internships Before' → C=0, S=1, E=20, E=90, O=110, I=115, R=120, I=200.",
       practice: "Create physical flashcards: protocol on front, AD value on back. Shuffle and drill until you can recite all values in under 10 seconds. Then test yourself backwards: given AD 110, which protocol? (OSPF). Given AD 90? (EIGRP). Given AD 120? (RIP). Both directions must be instant.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 11 (Static Routing) presents the AD table. Wendell Odom OCG Chapter 15 has the complete default AD chart. This is 100% memorization and is tested on EVERY exam. Boson, Pearson, and the real exam all include AD comparison questions. Write the table on your whiteboard during the exam tutorial period as part of your brain dump."
-    }
+      meta: "Jeremy's IT Lab Day 11 (Static Routing) presents the AD table. Wendell Odom OCG Chapter 15 has the complete default AD chart. This is 100% memorization and is tested on EVERY exam. Boson, Pearson, and the real exam all include AD comparison questions. Write the table on your whiteboard during the exam tutorial period as part of your brain dump.",
+    },
+    micro: [
+      { id: "3.2.c.1", term: "AD values (memorize)",         def: "Connected=0, Static=1, eBGP=20, EIGRP=90, OSPF=110, IS-IS=115, RIP=120, EIGRP-ext=170, iBGP=200, Unknown=255.", weight: "high" },
+      { id: "3.2.c.2", term: "Chant the key values",         def: "'0-1-20-90-110-115-120-200.' Say until automatic. Write on whiteboard first thing in the exam.", weight: "high" },
+      { id: "3.2.c.3", term: "Modify AD",                    def: "'distance N' under routing protocol config. Or append N to static: 'ip route ... next-hop N'.", weight: "med" }
+    ]
   },
 
   "3.2.d": {
@@ -132,8 +205,14 @@ window.subtopicContentD34 = {
       memory: "Metric = the FINAL tiebreaker, only consulted when prefix length AND AD are both tied. Two OSPF routes? Lower cost wins. Two RIP routes? Fewer hops wins. Equal metric? Both go in the table — that's ECMP load balancing. Think of it as two equally-rated GPS routes — the shorter one wins, or if tied, you use both lanes.",
       practice: "In Packet Tracer: build a triangle topology (R1-R2-R3, all running OSPF). Create two paths from R1 to R3's LAN — one through fast links (cost 2) and one through slow links (cost 20). Run 'show ip route ospf' on R1 and verify only the low-cost path appears. Then change both paths to equal cost and verify BOTH paths appear in the routing table. Use 'show ip route 10.1.1.0' to see both next hops listed.",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 24-26 (OSPF) cover cost calculation and ECMP. Wendell Odom OCG Chapters 19-21 detail metric comparison. ECMP is a favorite exam topic — know that OSPF load-balances across equal-cost paths by default (up to 4). The exam may ask 'how many paths will appear in the routing table?' when costs are equal."
-    }
+      meta: "Jeremy's IT Lab Day 24-26 (OSPF) cover cost calculation and ECMP. Wendell Odom OCG Chapters 19-21 detail metric comparison. ECMP is a favorite exam topic — know that OSPF load-balances across equal-cost paths by default (up to 4). The exam may ask 'how many paths will appear in the routing table?' when costs are equal.",
+    },
+    micro: [
+      { id: "3.2.d.1", term: "Metric as 3rd tiebreaker",     def: "Same prefix AND same AD → metric decides. Within the same protocol. Lower wins.", weight: "high" },
+      { id: "3.2.d.2", term: "ECMP default 4 paths",         def: "Equal Cost Multi-Path. Tied metrics → all paths installed and load-balanced. OSPF default = 4, max = 32.", weight: "high" },
+      { id: "3.2.d.3", term: "maximum-paths command",        def: "Change ECMP path count: 'maximum-paths N' under routing protocol.", weight: "med" },
+      { id: "3.2.d.4", term: "CEF per-destination LB",       def: "Cisco Express Forwarding default. Load-balances by source-dest IP hash so flows stay on one path.", weight: "med" }
+    ]
   },
 
   "3.2.e": {
@@ -143,8 +222,15 @@ window.subtopicContentD34 = {
       memory: "PAM: Prefix first, AD second, Metric third. 'Please Ask Mom.' NEVER skip a step. The exam will try to trick you into jumping to AD before checking prefix length. A /32 from RIP (AD 120) still beats a /24 from a connected route (AD 0) because /32 > /24 in specificity. Prefix is king.",
       practice: "Create 10 multi-step scenarios on paper. Each scenario: routing table with 4-5 routes from mixed sources (connected, static, OSPF, RIP) with different prefix lengths and metrics. For each destination IP, work through PAM step by step and identify the winning route. Then verify in Packet Tracer with 'show ip route [destination]' and 'traceroute.' Aim for 100% accuracy before moving on.",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 11 (Static Routing) and Day 15 (Routing Fundamentals) walk through the full decision process. Wendell Odom OCG Chapters 15-16 formalize the three-step hierarchy. This is tested in multi-step questions: 'Given this routing table, which path does a packet to X.X.X.X take?' Work each step methodically. Boson practice exams have excellent forwarding-decision questions."
-    }
+      meta: "Jeremy's IT Lab Day 11 (Static Routing) and Day 15 (Routing Fundamentals) walk through the full decision process. Wendell Odom OCG Chapters 15-16 formalize the three-step hierarchy. This is tested in multi-step questions: 'Given this routing table, which path does a packet to X.X.X.X take?' Work each step methodically. Boson practice exams have excellent forwarding-decision questions.",
+    },
+    micro: [
+      { id: "3.2.e.1", term: "PAM (forwarding decision)",    def: "Prefix (LPM), AD, Metric. The 3-step hierarchy. NEVER skip a step or jump ahead.", weight: "high" },
+      { id: "3.2.e.2", term: "Step 1: Longest Prefix Match", def: "Most specific mask wins. Always first. Overrides AD and metric.", weight: "high" },
+      { id: "3.2.e.3", term: "Step 2: Lowest AD",            def: "Used only if Step 1 produces a tie (same mask). Lower AD wins.", weight: "high" },
+      { id: "3.2.e.4", term: "Step 3: Lowest metric",        def: "Used only if Steps 1 AND 2 tie (same mask + same protocol). Lower metric wins. Ties = ECMP.", weight: "high" },
+      { id: "3.2.e.5", term: "Exam trap",                    def: "Don't jump to AD before checking prefix length. A /28 from RIP still beats a /24 from connected.", weight: "high" }
+    ]
   },
 
   // ── 3.3  Configure and verify IPv4 and IPv6 static routing ──
@@ -156,8 +242,14 @@ window.subtopicContentD34 = {
       memory: "Default route = 'I don't know where this goes, so send it to the exit.' 0.0.0.0/0 matches everything but loses to any more specific route. It's the catch-all — like the 'miscellaneous' drawer for unknown destinations. S* in the routing table = static candidate default.",
       practice: "In Packet Tracer: (1) Build R1 (branch) connected to R2 (ISP). (2) Configure 'ip route 0.0.0.0 0.0.0.0 [R2-IP]' on R1. (3) Verify 'show ip route' shows the gateway of last resort. (4) Ping from R1 to a simulated internet address through R2. (5) Remove the default route and verify pings fail. (6) For IPv6: configure 'ipv6 route ::/0 [R2-IPv6]' and verify with 'show ipv6 route.'",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 11 (Static Routing) covers default route configuration. Day 26 (OSPF Part 3) covers OSPF default route injection. Wendell Odom OCG Chapters 15-16. Default route configuration is a near-guaranteed lab sim on the CCNA — practice the exact syntax for both IPv4 and IPv6 until it's muscle memory."
-    }
+      meta: "Jeremy's IT Lab Day 11 (Static Routing) covers default route configuration. Day 26 (OSPF Part 3) covers OSPF default route injection. Wendell Odom OCG Chapters 15-16. Default route configuration is a near-guaranteed lab sim on the CCNA — practice the exact syntax for both IPv4 and IPv6 until it's muscle memory.",
+    },
+    micro: [
+      { id: "3.3.a.1", term: "IPv4 default route",           def: "'ip route 0.0.0.0 0.0.0.0 [next-hop]'. Matches any destination. Gateway of last resort.", weight: "high" },
+      { id: "3.3.a.2", term: "IPv6 default route",           def: "'ipv6 route ::/0 [next-hop]'. Same concept; IPv6 syntax.", weight: "high" },
+      { id: "3.3.a.3", term: "Branch office pattern",        def: "Single default route to HQ/ISP. No need for full routing table.", weight: "med" },
+      { id: "3.3.a.4", term: "S* in route table",            def: "Static candidate default route marker. Only appears when a default is configured.", weight: "high" }
+    ]
   },
 
   "3.3.b": {
@@ -167,8 +259,14 @@ window.subtopicContentD34 = {
       memory: "Network static route = manual GPS waypoint. You hard-code: 'To reach THAT network, go through THIS next hop.' Simple, predictable, but dumb — it doesn't detect road closures. Always remember to configure the RETURN route too, or traffic will flow one way and die on the way back.",
       practice: "Build a 3-router chain (R1-R2-R3) in Packet Tracer. R1's LAN is 10.1.0.0/24, R3's LAN is 10.3.0.0/24. Configure static routes so all networks are reachable: R1 needs routes to R2's transit and R3's LAN, R3 needs routes back. Verify end-to-end connectivity with ping and traceroute from R1's LAN to R3's LAN. Then purposely omit the return route on R3 and observe pings fail (request times out, not destination unreachable).",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 11 (Static Routing) is the core lesson. Wendell Odom OCG Chapters 15-16. The exam tests both the command syntax and the concept of bidirectional routing. A classic exam trap: routing works in one direction but not the other because the return static route is missing."
-    }
+      meta: "Jeremy's IT Lab Day 11 (Static Routing) is the core lesson. Wendell Odom OCG Chapters 15-16. The exam tests both the command syntax and the concept of bidirectional routing. A classic exam trap: routing works in one direction but not the other because the return static route is missing.",
+    },
+    micro: [
+      { id: "3.3.b.1", term: "Network static route syntax",  def: "'ip route [network] [mask] [next-hop|interface]'. Manual route to a specific network.", weight: "high" },
+      { id: "3.3.b.2", term: "Static AD = 1",                def: "Default AD for static routes. Wins against all dynamic protocols unless AD is manually raised.", weight: "high" },
+      { id: "3.3.b.3", term: "Bidirectional routing rule",   def: "Need routes in BOTH directions. R1→R3's LAN AND R3→R1's LAN. Missing return route = classic trap.", weight: "high" },
+      { id: "3.3.b.4", term: "IPv6 static syntax",           def: "'ipv6 route [prefix/length] [next-hop|interface]'. Same concept.", weight: "high" }
+    ]
   },
 
   "3.3.c": {
@@ -178,8 +276,13 @@ window.subtopicContentD34 = {
       memory: "/32 = one and only one address. All 32 bits are network bits — zero flexibility, zero host bits. Like a GPS pin on a single house, not a neighborhood. L routes in 'show ip route' are automatic /32s for the router's own IPs. /32 ALWAYS wins longest prefix match — nothing is more specific.",
       practice: "Run 'show ip route' on any router in Packet Tracer and identify every L (local) entry — these are automatic /32 host routes. Note how each interface IP has both a C (connected network) and L (local host) entry. Then configure a manual host route: 'ip route 10.1.1.100 255.255.255.255 192.168.1.2'. Verify it appears as 'S 10.1.1.100/32' in the table and that traffic to 10.1.1.100 follows this route even if a broader /24 route exists.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 11 (Static Routing) shows host routes. Wendell Odom OCG Chapters 15-16. Host routes are tested indirectly — the exam won't ask 'what is a host route?' but will present scenarios where a /32 wins longest prefix match. Know that L codes are automatic /32s and that /32 always beats any other prefix length."
-    }
+      meta: "Jeremy's IT Lab Day 11 (Static Routing) shows host routes. Wendell Odom OCG Chapters 15-16. Host routes are tested indirectly — the exam won't ask 'what is a host route?' but will present scenarios where a /32 wins longest prefix match. Know that L codes are automatic /32s and that /32 always beats any other prefix length.",
+    },
+    micro: [
+      { id: "3.3.c.1", term: "Host route (/32)",             def: "Route for a single IP. Mask 255.255.255.255. Most specific possible — always wins LPM.", weight: "high" },
+      { id: "3.3.c.2", term: "L route = auto /32",           def: "Router auto-creates /32 local routes for its own interface IPs. Ensures local processing.", weight: "high" },
+      { id: "3.3.c.3", term: "Manual host route use case",   def: "Force specific traffic through a specific next-hop regardless of broader routes. Policy-based steering.", weight: "med" }
+    ]
   },
 
   "3.3.d": {
@@ -189,8 +292,15 @@ window.subtopicContentD34 = {
       memory: "Floating static = the backup generator sitting idle in the basement. Its higher AD (e.g., 210) keeps it out of the routing table during normal operation. When the main power (primary route) fails, the generator kicks in automatically. When power returns, the generator shuts off. The key: you MUST set the AD number at the end of the ip route command — forget it and the static route (AD 1) will always win.",
       practice: "Lab this in Packet Tracer: (1) Configure OSPF between R1 and R2 for network 10.1.1.0/24 (primary path). (2) Configure a floating static route on R1: 'ip route 10.1.1.0 255.255.255.0 [backup-next-hop] 210'. (3) Verify with 'show ip route' that only the OSPF route appears. (4) Shut down the OSPF interface on R2. (5) Verify the floating static now appears in 'show ip route'. (6) Bring the OSPF link back up and verify OSPF reclaims the route.",
       effort: "high",
-      meta: "Jeremy's IT Lab Day 11 (Static Routing) covers floating static routes. Wendell Odom OCG Chapters 15-16. This is a favorite exam scenario — both conceptual and lab sim. The most common student mistake: forgetting to append the AD value, leaving the static at AD 1 where it always overrides the dynamic protocol. The second most common mistake: setting the AD lower than the primary protocol's AD."
-    }
+      meta: "Jeremy's IT Lab Day 11 (Static Routing) covers floating static routes. Wendell Odom OCG Chapters 15-16. This is a favorite exam scenario — both conceptual and lab sim. The most common student mistake: forgetting to append the AD value, leaving the static at AD 1 where it always overrides the dynamic protocol. The second most common mistake: setting the AD lower than the primary protocol's AD.",
+    },
+    micro: [
+      { id: "3.3.d.1", term: "Floating static route",        def: "Static route with AD set HIGHER than primary. Stays out of table until primary fails.", weight: "high" },
+      { id: "3.3.d.2", term: "Set AD on static",             def: "'ip route [network] [mask] [next-hop] [AD]'. Append AD value at the end of the command.", weight: "high" },
+      { id: "3.3.d.3", term: "AD must exceed primary",       def: "If primary is OSPF (110), set floating static to 111+. Typical: 200-250 for safety margin.", weight: "high" },
+      { id: "3.3.d.4", term: "Common mistake",               def: "Forgetting to append AD leaves static at default 1 → always wins, primary never used. Classic failure.", weight: "high" },
+      { id: "3.3.d.5", term: "Failover behavior",            def: "Primary fails → floating static activates. Primary returns → primary reclaims, floating goes back to standby.", weight: "high" }
+    ]
   },
 
   "3.3.e": {
@@ -200,8 +310,15 @@ window.subtopicContentD34 = {
       memory: "IPv6 static = same concept as IPv4, longer addresses, CIDR notation. The ONE big gotcha: link-local next-hop (fe80::) REQUIRES the exit interface because fe80:: is ambiguous across interfaces. Command: 'ipv6 route ::/0 Gi0/0 fe80::1' — interface THEN link-local. Also: 'ipv6 unicast-routing' must be enabled or nothing gets routed.",
       practice: "Build an IPv6-only 3-router lab in Packet Tracer. (1) Enable 'ipv6 unicast-routing' on all routers. (2) Configure global unicast addresses on all interfaces. (3) Create static routes using global unicast next-hops and verify with 'show ipv6 route'. (4) Replace one route with a link-local next-hop WITHOUT specifying the exit interface — observe the error. (5) Fix it by adding the exit interface and verify it works. (6) Configure a default route: 'ipv6 route ::/0 Gi0/0 fe80::1'.",
       effort: "high",
-      meta: "Jeremy's IT Lab Day 31-33 (IPv6) cover IPv6 static routing. Wendell Odom OCG Chapters 23-25 detail IPv6 addressing and routing. IPv6 static routing appears every exam cycle. The link-local + exit-interface requirement is the #1 tested concept — if you remember nothing else about IPv6 static routes, remember this rule."
-    }
+      meta: "Jeremy's IT Lab Day 31-33 (IPv6) cover IPv6 static routing. Wendell Odom OCG Chapters 23-25 detail IPv6 addressing and routing. IPv6 static routing appears every exam cycle. The link-local + exit-interface requirement is the #1 tested concept — if you remember nothing else about IPv6 static routes, remember this rule.",
+    },
+    micro: [
+      { id: "3.3.e.1", term: "IPv6 static syntax",           def: "'ipv6 route [prefix/length] [next-hop|interface]'. Same structure as IPv4.", weight: "high" },
+      { id: "3.3.e.2", term: "ipv6 unicast-routing",         def: "GLOBAL command. Must be enabled or router won't forward IPv6. Most forgotten prerequisite.", weight: "high" },
+      { id: "3.3.e.3", term: "Link-local next-hop rule",     def: "If next-hop is fe80::..., MUST specify exit interface too: 'ipv6 route ::/0 Gi0/0 fe80::1'.", weight: "high" },
+      { id: "3.3.e.4", term: "Why link-local needs interface", def: "fe80:: addresses are unique per-interface, not globally. Router can't determine exit interface alone.", weight: "high" },
+      { id: "3.3.e.5", term: "Default IPv6 route",           def: "'ipv6 route ::/0 [next-hop]'. ::/0 = match everything. IPv6 default route.", weight: "high" }
+    ]
   },
 
   "3.3.f": {
@@ -211,8 +328,14 @@ window.subtopicContentD34 = {
       memory: "Next-hop IP = 'deliver to that specific person at the front desk' (single ARP, efficient). Exit interface only = 'throw it out that door and ARP for every person individually' (works on P2P, disaster on Ethernet). Fully specified = 'deliver to that person via that specific door' (best of both worlds).",
       practice: "In Packet Tracer, configure a next-hop-only static route and an exit-interface-only static route to different networks on the same router (Ethernet segment). Use 'debug arp' or 'show arp' to observe the difference in ARP behavior. The exit-interface route will generate ARP requests for every destination IP, while the next-hop route generates a single ARP for the next hop.",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 11 (Static Routing) compares all three methods. Wendell Odom OCG Chapters 15-16 explain the recursive lookup and ARP implications. The exam tests this as: 'which static route type causes excessive ARP on Ethernet?' Answer: exit-interface-only. Cisco recommends next-hop IP or fully specified on multi-access networks."
-    }
+      meta: "Jeremy's IT Lab Day 11 (Static Routing) compares all three methods. Wendell Odom OCG Chapters 15-16 explain the recursive lookup and ARP implications. The exam tests this as: 'which static route type causes excessive ARP on Ethernet?' Answer: exit-interface-only. Cisco recommends next-hop IP or fully specified on multi-access networks.",
+    },
+    micro: [
+      { id: "3.3.f.1", term: "Next-hop IP (recursive)",      def: "Router looks up next-hop in table to find exit interface. Preferred on Ethernet.", weight: "high" },
+      { id: "3.3.f.2", term: "Exit interface only",          def: "No recursive lookup. Fine on P2P. Causes ARP flooding on Ethernet (ARP per destination IP).", weight: "high" },
+      { id: "3.3.f.3", term: "Fully specified (both)",       def: "'ip route ... Gi0/0 192.168.1.2'. Best of both worlds. No recursion, no ARP issues.", weight: "high" },
+      { id: "3.3.f.4", term: "Cisco recommendation",         def: "Next-hop IP or fully-specified on Ethernet. Exit-interface-only ONLY on point-to-point.", weight: "high" }
+    ]
   },
 
   "3.3.g": {
@@ -222,8 +345,15 @@ window.subtopicContentD34 = {
       memory: "Three-step verification: CONFIG (show run | inc ip route) — is it typed? TABLE (show ip route static) — is it active? CONNECTIVITY (ping + traceroute) — does it actually work? A route can pass check 1 but fail check 2 (interface down). It can pass checks 1 and 2 but fail check 3 (missing return route). Always run all three.",
       practice: "After every static route you configure in Packet Tracer, run all three checks: (1) 'show run | inc ip route' to confirm the command. (2) 'show ip route static' to confirm it's in the table. (3) Ping AND traceroute end-to-end to confirm connectivity. Build this three-step habit — it's what real network engineers do and what the exam expects you to demonstrate in lab sims.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 11 (Static Routing) walks through verification. Wendell Odom OCG Chapters 15-16. Exam sims show you routing table output and ask 'what's wrong?' The most common answers: missing return route, wrong next-hop IP, exit interface in down state. Know what S, S*, and the [1/0] brackets mean in route output."
-    }
+      meta: "Jeremy's IT Lab Day 11 (Static Routing) walks through verification. Wendell Odom OCG Chapters 15-16. Exam sims show you routing table output and ask 'what's wrong?' The most common answers: missing return route, wrong next-hop IP, exit interface in down state. Know what S, S*, and the [1/0] brackets mean in route output.",
+    },
+    micro: [
+      { id: "3.3.g.1", term: "Step 1: Config check",         def: "'show running-config | include ip route' — verifies the command was entered.", weight: "high" },
+      { id: "3.3.g.2", term: "Step 2: Routing table check",  def: "'show ip route static' — verifies route is INSTALLED in the table (not just configured).", weight: "high" },
+      { id: "3.3.g.3", term: "Step 3: Connectivity check",   def: "ping + traceroute — verifies traffic actually reaches the destination end-to-end.", weight: "high" },
+      { id: "3.3.g.4", term: "Configured but not installed", def: "Route is in config but not in table = exit interface down OR next-hop unreachable.", weight: "high" },
+      { id: "3.3.g.5", term: "Common issues",                def: "Missing return route, wrong next-hop, wrong mask, down interface, asymmetric routing.", weight: "high" }
+    ]
   },
 
   // ── 3.4  Configure and verify single area OSPFv2 ───────────
