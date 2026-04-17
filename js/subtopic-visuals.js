@@ -1555,6 +1555,384 @@ window.SubtopicVisuals = (() => {
   }
 
   // ────────────────────────────────────────────────────────────────────
+  // 29. hsrp-failover — active/standby router election + virtual MAC/IP.
+  // ────────────────────────────────────────────────────────────────────
+  function hsrpFailover(p) {
+    const virtualIp = p.virtualIp || '10.1.1.1';
+    const virtualMac = p.virtualMac || '0000.0c07.ac0a';
+    const w = 360, h = 200;
+
+    let svg = `
+      <text x="${w/2}" y="16" text-anchor="middle" fill="#57534e" font-size="11" font-weight="700" font-family="'Space Grotesk',sans-serif">HSRP · virtual gateway ${esc(virtualIp)} · MAC ${esc(virtualMac)}</text>
+
+      <!-- Host with default gateway pointing to virtual IP -->
+      ${hostGlyph(180, 174, COLORS.slate, 'PC default-gw ' + virtualIp)}
+
+      <!-- Active router -->
+      ${routerGlyph(80, 70, COLORS.green, 'R1 ACTIVE')}
+      <text x="80" y="110" text-anchor="middle" fill="${COLORS.green}" font-size="9" font-family="'JetBrains Mono',monospace" font-weight="700">priority 110</text>
+      <text x="80" y="122" text-anchor="middle" fill="#78716c" font-size="8" font-family="'JetBrains Mono',monospace">preempt on</text>
+
+      <!-- Standby router -->
+      ${routerGlyph(280, 70, COLORS.amber, 'R2 STANDBY')}
+      <text x="280" y="110" text-anchor="middle" fill="${COLORS.amber}" font-size="9" font-family="'JetBrains Mono',monospace" font-weight="700">priority 100</text>
+      <text x="280" y="122" text-anchor="middle" fill="#78716c" font-size="8" font-family="'JetBrains Mono',monospace">waiting...</text>
+
+      <!-- Hello exchange between actives -->
+      <path d="M 102 70 Q 180 50 258 70" stroke="${COLORS.blue}" stroke-width="1.5" stroke-dasharray="3 3" fill="none" opacity="0.65"/>
+      <text x="180" y="44" text-anchor="middle" fill="${COLORS.blue}" font-size="9" font-family="'JetBrains Mono',monospace" font-weight="700">Hello · 3s · MC 224.0.0.2</text>
+
+      <!-- Active router traffic -->
+      <g>
+        <circle r="4" fill="${COLORS.green}">
+          <animate attributeName="cx" values="180;80" dur="1s" repeatCount="indefinite"/>
+          <animate attributeName="cy" values="174;94" dur="1s" repeatCount="indefinite"/>
+          <animate attributeName="opacity" values="1;0" dur="1s" repeatCount="indefinite"/>
+        </circle>
+      </g>
+
+      <!-- Breathing pulse on active -->
+      <rect x="${80 - 22}" y="${70 - 16}" width="44" height="36" rx="8" fill="none" stroke="${COLORS.green}" stroke-width="2" opacity="0.5">
+        <animate attributeName="opacity" values="0.3;0.7;0.3" dur="2s" repeatCount="indefinite"/>
+      </rect>
+
+      <text x="${w/2}" y="${h - 8}" text-anchor="middle" fill="#a8a29e" font-size="8" font-family="'JetBrains Mono',monospace">Active handles traffic · standby takes over in ~10s if hello dead · clients never change gateway</text>`;
+
+    return `<svg viewBox="0 0 ${w} ${h}" class="sv-anim" xmlns="http://www.w3.org/2000/svg">${svg}</svg>`;
+  }
+
+  // ────────────────────────────────────────────────────────────────────
+  // 30. dns-resolution — recursive resolver walking the tree root→TLD→auth.
+  // ────────────────────────────────────────────────────────────────────
+  function dnsResolution(p) {
+    const query = p.query || 'www.example.com';
+    const w = 360, h = 200;
+
+    let svg = `
+      <text x="${w/2}" y="16" text-anchor="middle" fill="#57534e" font-size="11" font-weight="700" font-family="'Space Grotesk',sans-serif">DNS recursive resolution · ${esc(query)}</text>
+
+      ${hostGlyph(40, 160, COLORS.slate, 'client')}
+
+      <rect x="100" y="140" width="60" height="28" rx="5" fill="${COLORS.blue}"/>
+      <text x="130" y="158" text-anchor="middle" fill="#fff" font-size="9" font-weight="700" font-family="'Space Grotesk',sans-serif">Resolver</text>
+
+      <!-- Root -->
+      <rect x="200" y="32" width="50" height="24" rx="4" fill="${COLORS.purple}"/>
+      <text x="225" y="48" text-anchor="middle" fill="#fff" font-size="9" font-weight="700" font-family="'JetBrains Mono',monospace">. root</text>
+
+      <!-- TLD -->
+      <rect x="200" y="82" width="50" height="24" rx="4" fill="${COLORS.amber}"/>
+      <text x="225" y="98" text-anchor="middle" fill="#fff" font-size="9" font-weight="700" font-family="'JetBrains Mono',monospace">.com TLD</text>
+
+      <!-- Authoritative -->
+      <rect x="200" y="132" width="60" height="24" rx="4" fill="${COLORS.green}"/>
+      <text x="230" y="148" text-anchor="middle" fill="#fff" font-size="9" font-weight="700" font-family="'JetBrains Mono',monospace">example.com</text>
+
+      <!-- Connectors -->
+      <line x1="160" y1="154" x2="200" y2="44" stroke="${COLORS.slate}" stroke-width="1" opacity="0.35"/>
+      <line x1="160" y1="154" x2="200" y2="94" stroke="${COLORS.slate}" stroke-width="1" opacity="0.35"/>
+      <line x1="160" y1="154" x2="200" y2="144" stroke="${COLORS.slate}" stroke-width="1" opacity="0.35"/>
+
+      <!-- Client → resolver (recursive) -->
+      <circle r="3" fill="${COLORS.blue}">
+        <animate attributeName="cx" values="54;100" dur="0.6s" begin="0s" fill="freeze"/>
+        <animate attributeName="cy" values="160;154" dur="0.6s" begin="0s" fill="freeze"/>
+        <animate attributeName="opacity" values="0;1;0" dur="0.6s" begin="0s" fill="freeze"/>
+      </circle>
+
+      <!-- Resolver → root (step 1) -->
+      <circle r="3" fill="${COLORS.purple}">
+        <animate attributeName="cx" values="160;200" dur="0.6s" begin="0.8s" fill="freeze"/>
+        <animate attributeName="cy" values="154;44" dur="0.6s" begin="0.8s" fill="freeze"/>
+        <animate attributeName="opacity" values="0;1;0" dur="0.6s" begin="0.8s" fill="freeze"/>
+      </circle>
+      <!-- Resolver → TLD (step 2) -->
+      <circle r="3" fill="${COLORS.amber}">
+        <animate attributeName="cx" values="160;200" dur="0.6s" begin="1.6s" fill="freeze"/>
+        <animate attributeName="cy" values="154;94" dur="0.6s" begin="1.6s" fill="freeze"/>
+        <animate attributeName="opacity" values="0;1;0" dur="0.6s" begin="1.6s" fill="freeze"/>
+      </circle>
+      <!-- Resolver → Auth (step 3) -->
+      <circle r="3" fill="${COLORS.green}">
+        <animate attributeName="cx" values="160;200" dur="0.6s" begin="2.4s" fill="freeze"/>
+        <animate attributeName="cy" values="154;144" dur="0.6s" begin="2.4s" fill="freeze"/>
+        <animate attributeName="opacity" values="0;1;0" dur="0.6s" begin="2.4s" fill="freeze"/>
+      </circle>
+
+      <text x="175" y="30" fill="${COLORS.purple}" font-size="8" font-family="'JetBrains Mono',monospace" font-weight="700" opacity="0">
+        <animate attributeName="opacity" values="0;1" dur="0.3s" begin="1.2s" fill="freeze"/>
+        1: ask root
+      </text>
+      <text x="175" y="80" fill="${COLORS.amber}" font-size="8" font-family="'JetBrains Mono',monospace" font-weight="700" opacity="0">
+        <animate attributeName="opacity" values="0;1" dur="0.3s" begin="2s" fill="freeze"/>
+        2: ask .com
+      </text>
+      <text x="175" y="130" fill="${COLORS.green}" font-size="8" font-family="'JetBrains Mono',monospace" font-weight="700" opacity="0">
+        <animate attributeName="opacity" values="0;1" dur="0.3s" begin="2.8s" fill="freeze"/>
+        3: get A record
+      </text>
+
+      <text x="${w/2}" y="${h - 8}" text-anchor="middle" fill="#a8a29e" font-size="8" font-family="'JetBrains Mono',monospace">Recursive: resolver does the work · iterative: client climbs the tree itself</text>`;
+
+    return `<svg viewBox="0 0 ${w} ${h}" class="sv-anim" xmlns="http://www.w3.org/2000/svg">${svg}</svg>`;
+  }
+
+  // ────────────────────────────────────────────────────────────────────
+  // 31. ipsec-tunnel — IKE phase 1/2 + ESP tunnel with encrypted payload.
+  // ────────────────────────────────────────────────────────────────────
+  function ipsecTunnel(p) {
+    const w = 360, h = 200;
+
+    let svg = `
+      <text x="${w/2}" y="16" text-anchor="middle" fill="#57534e" font-size="11" font-weight="700" font-family="'Space Grotesk',sans-serif">Site-to-site IPsec VPN · IKE + ESP</text>
+
+      ${routerGlyph(50, 90, COLORS.blue, 'R1 HQ')}
+      ${routerGlyph(310, 90, COLORS.blue, 'R2 Branch')}
+
+      <!-- Tunnel shell -->
+      <rect x="76" y="74" width="208" height="32" rx="16" fill="${COLORS.amber}" opacity="0.12" stroke="${COLORS.amber}" stroke-width="2" stroke-dasharray="5 3">
+        <animate attributeName="stroke-dashoffset" values="0;-8" dur="1.5s" repeatCount="indefinite"/>
+      </rect>
+      <text x="180" y="95" text-anchor="middle" fill="${COLORS.amber}" font-size="10" font-family="'Space Grotesk',sans-serif" font-weight="700">ESP tunnel · AES-256 · SHA256</text>
+
+      <!-- Phase 1 -->
+      <rect x="20" y="30" width="150" height="30" rx="4" fill="${COLORS.purple}" opacity="0.15" stroke="${COLORS.purple}" stroke-width="1"/>
+      <text x="95" y="46" text-anchor="middle" fill="${COLORS.purple}" font-size="9" font-weight="700" font-family="'JetBrains Mono',monospace">Phase 1 · ISAKMP SA</text>
+      <text x="95" y="57" text-anchor="middle" fill="${COLORS.purple}" font-size="8" font-family="'JetBrains Mono',monospace">auth peers · DH</text>
+
+      <rect x="190" y="30" width="150" height="30" rx="4" fill="${COLORS.green}" opacity="0.15" stroke="${COLORS.green}" stroke-width="1"/>
+      <text x="265" y="46" text-anchor="middle" fill="${COLORS.green}" font-size="9" font-weight="700" font-family="'JetBrains Mono',monospace">Phase 2 · IPsec SA</text>
+      <text x="265" y="57" text-anchor="middle" fill="${COLORS.green}" font-size="8" font-family="'JetBrains Mono',monospace">quick mode · PFS</text>
+
+      <!-- Encrypted payload dots -->
+      <circle r="4" fill="${COLORS.amber}">
+        <animate attributeName="cx" values="76;284" dur="1.2s" repeatCount="indefinite" calcMode="spline" keySplines="0.16 1 0.3 1"/>
+        <animate attributeName="cy" values="90;90" dur="1.2s" repeatCount="indefinite"/>
+      </circle>
+      <text y="94" text-anchor="middle" fill="#fff" font-size="8" font-weight="700" font-family="'JetBrains Mono',monospace">
+        <animate attributeName="x" values="76;284" dur="1.2s" repeatCount="indefinite" calcMode="spline" keySplines="0.16 1 0.3 1"/>
+        🔒
+      </text>
+
+      <text x="30" y="140" fill="${COLORS.blue}" font-size="9" font-family="'JetBrains Mono',monospace" font-weight="700">10.1.1.0/24</text>
+      <text x="340" y="140" text-anchor="end" fill="${COLORS.blue}" font-size="9" font-family="'JetBrains Mono',monospace" font-weight="700">10.2.2.0/24</text>
+
+      <text x="${w/2}" y="${h - 8}" text-anchor="middle" fill="#a8a29e" font-size="8" font-family="'JetBrains Mono',monospace">ESP proto 50 · encryption + integrity + auth + anti-replay · tunnel mode wraps entire packet</text>`;
+
+    return `<svg viewBox="0 0 ${w} ${h}" class="sv-anim" xmlns="http://www.w3.org/2000/svg">${svg}</svg>`;
+  }
+
+  // ────────────────────────────────────────────────────────────────────
+  // 32. syslog-severity — 8 severity levels with example messages.
+  // ────────────────────────────────────────────────────────────────────
+  function syslogSeverity(p) {
+    const active = p.active != null ? p.active : 5;
+    const w = 360, h = 240;
+    const levels = [
+      { n: 0, name: 'EMERG',   mnemonic: 'Every',    color: '#b91c1c', example: 'SYS-0-SHUTDOWN: system halted' },
+      { n: 1, name: 'ALERT',   mnemonic: 'Awesome',  color: '#dc2626', example: 'SEC_LOGIN-1-LOGIN_FAILED' },
+      { n: 2, name: 'CRIT',    mnemonic: 'Cisco',    color: '#ea580c', example: 'SYS-2-CORE: fatal error' },
+      { n: 3, name: 'ERR',     mnemonic: 'Engineer', color: '#f59e0b', example: 'LINEPROTO-3-UPDOWN: Gi0/1 down' },
+      { n: 4, name: 'WARN',    mnemonic: 'Will',     color: '#eab308', example: 'DUAL-4-DISCARD: discarded route' },
+      { n: 5, name: 'NOTICE',  mnemonic: 'Need',     color: '#10b981', example: 'SYS-5-CONFIG_I: configured by admin' },
+      { n: 6, name: 'INFO',    mnemonic: 'Ice cream', color: '#3b82f6', example: 'SNMP-6-COLDSTART: agent started' },
+      { n: 7, name: 'DEBUG',   mnemonic: 'Daily',    color: '#8b5cf6', example: 'OSPF-7-HELLO_SENT: hello tx' }
+    ];
+
+    let svg = `
+      <text x="${w/2}" y="16" text-anchor="middle" fill="#57534e" font-size="11" font-weight="700" font-family="'Space Grotesk',sans-serif">Syslog severity · Every Awesome Cisco Engineer Will Need Ice cream Daily</text>`;
+
+    levels.forEach((l, i) => {
+      const y = 30 + i * 25;
+      const isActive = i === active;
+      svg += `
+        <rect x="12" y="${y}" width="${isActive ? 336 : 28}" height="22" rx="3" fill="${l.color}" opacity="${isActive ? 0.9 : 0.8}"/>
+        <text x="26" y="${y + 15}" text-anchor="middle" fill="#fff" font-size="10" font-weight="700" font-family="'JetBrains Mono',monospace">${l.n}</text>
+        ${isActive
+          ? `<text x="48" y="${y + 15}" fill="#fff" font-size="10" font-weight="700" font-family="'Space Grotesk',sans-serif">${esc(l.name)}</text>
+             <text x="348" y="${y + 15}" text-anchor="end" fill="#fff" font-size="8.5" font-family="'JetBrains Mono',monospace">${esc(l.example)}</text>`
+          : `<text x="48" y="${y + 15}" fill="${l.color}" font-size="10" font-weight="700" font-family="'Space Grotesk',sans-serif">${esc(l.name)}</text>
+             <text x="120" y="${y + 15}" fill="#78716c" font-size="10" font-family="'Space Grotesk',sans-serif">${esc(l.mnemonic)}</text>`
+        }`;
+    });
+
+    svg += `<text x="${w/2}" y="${h - 8}" text-anchor="middle" fill="#a8a29e" font-size="8" font-family="'JetBrains Mono',monospace">Lower number = more severe · logging trap 6 sends 0-6 (excludes debug)</text>`;
+
+    return `<svg viewBox="0 0 ${w} ${h}" class="sv-anim" xmlns="http://www.w3.org/2000/svg">${svg}</svg>`;
+  }
+
+  // ────────────────────────────────────────────────────────────────────
+  // 33. traceroute-ladder — hops w/ RTT per probe, TTL expiry labels.
+  // ────────────────────────────────────────────────────────────────────
+  function tracerouteLadder(p) {
+    const hops = p.hops || [
+      { n: 1, ip: '10.1.1.1',      name: 'gw',          rtt: [1.2, 1.1, 1.3] },
+      { n: 2, ip: '192.168.100.1', name: 'ISP-edge',    rtt: [8.4, 8.2, 8.1] },
+      { n: 3, ip: '172.16.1.1',    name: 'ISP-core',    rtt: [12.1, 11.9, 12.3] },
+      { n: 4, ip: '8.8.8.8',       name: 'dns.google',  rtt: [14.2, 14.0, 14.5] }
+    ];
+    const w = 360, h = 60 + hops.length * 26 + 24;
+
+    let svg = `
+      <text x="16" y="16" fill="#57534e" font-size="10" font-weight="700" font-family="'Space Grotesk',sans-serif">traceroute 8.8.8.8 — TTL exhaustion per hop</text>
+      <rect x="12" y="22" width="336" height="20" rx="3" fill="#1c1917"/>
+      <text x="20" y="36" fill="#fde68a" font-size="9" font-family="'JetBrains Mono',monospace" font-weight="700">Hop</text>
+      <text x="50" y="36" fill="#fde68a" font-size="9" font-family="'JetBrains Mono',monospace" font-weight="700">Address</text>
+      <text x="196" y="36" fill="#fde68a" font-size="9" font-family="'JetBrains Mono',monospace" font-weight="700">Probe 1</text>
+      <text x="250" y="36" fill="#fde68a" font-size="9" font-family="'JetBrains Mono',monospace" font-weight="700">Probe 2</text>
+      <text x="306" y="36" fill="#fde68a" font-size="9" font-family="'JetBrains Mono',monospace" font-weight="700">Probe 3</text>`;
+
+    hops.forEach((h, i) => {
+      const y = 50 + i * 26;
+      svg += `
+        <rect x="12" y="${y}" width="336" height="22" rx="3" fill="${i % 2 ? '#faf8f4' : '#fff'}" stroke="#e7e5e4" stroke-width="0.6" opacity="0">
+          <animate attributeName="opacity" values="0;1" dur="0.4s" begin="${i * 0.4}s" fill="freeze"/>
+        </rect>
+        <text x="20" y="${y + 15}" fill="${COLORS.amber}" font-size="10" font-family="'JetBrains Mono',monospace" font-weight="700" opacity="0">
+          <animate attributeName="opacity" values="0;1" dur="0.3s" begin="${i * 0.4}s" fill="freeze"/>
+          ${h.n}
+        </text>
+        <text x="50" y="${y + 15}" fill="#1c1917" font-size="9" font-family="'JetBrains Mono',monospace" font-weight="600" opacity="0">
+          <animate attributeName="opacity" values="0;1" dur="0.3s" begin="${i * 0.4}s" fill="freeze"/>
+          ${esc(h.ip)} (${esc(h.name)})
+        </text>
+        <text x="196" y="${y + 15}" fill="${COLORS.green}" font-size="9" font-family="'JetBrains Mono',monospace" opacity="0">
+          <animate attributeName="opacity" values="0;1" dur="0.3s" begin="${i * 0.4 + 0.1}s" fill="freeze"/>
+          ${h.rtt[0]}ms
+        </text>
+        <text x="250" y="${y + 15}" fill="${COLORS.green}" font-size="9" font-family="'JetBrains Mono',monospace" opacity="0">
+          <animate attributeName="opacity" values="0;1" dur="0.3s" begin="${i * 0.4 + 0.2}s" fill="freeze"/>
+          ${h.rtt[1]}ms
+        </text>
+        <text x="306" y="${y + 15}" fill="${COLORS.green}" font-size="9" font-family="'JetBrains Mono',monospace" opacity="0">
+          <animate attributeName="opacity" values="0;1" dur="0.3s" begin="${i * 0.4 + 0.3}s" fill="freeze"/>
+          ${h.rtt[2]}ms
+        </text>`;
+    });
+
+    svg += `<text x="${w/2}" y="${h - 8}" text-anchor="middle" fill="#a8a29e" font-size="8" font-family="'JetBrains Mono',monospace">Each TTL=1→2→3... triggers ICMP Time Exceeded from next hop · reveals path</text>`;
+
+    return `<svg viewBox="0 0 ${w} ${h}" class="sv-anim" xmlns="http://www.w3.org/2000/svg">${svg}</svg>`;
+  }
+
+  // ────────────────────────────────────────────────────────────────────
+  // 34. cert-chain — X.509 trust chain root→intermediate→leaf.
+  // ────────────────────────────────────────────────────────────────────
+  function certChain(p) {
+    const certs = p.certs || [
+      { name: 'Root CA',         issuer: 'self',          subject: 'DigiCert Global',     color: COLORS.purple, trust: true },
+      { name: 'Intermediate',    issuer: 'DigiCert Global', subject: 'DigiCert TLS G1',   color: COLORS.blue,   trust: true },
+      { name: 'Leaf (server)',   issuer: 'DigiCert TLS G1', subject: 'example.com',       color: COLORS.green,  trust: true }
+    ];
+    const w = 360, h = 190;
+
+    let svg = `<text x="${w/2}" y="16" text-anchor="middle" fill="#57534e" font-size="11" font-weight="700" font-family="'Space Grotesk',sans-serif">X.509 certificate chain · trust anchored at root CA</text>`;
+
+    certs.forEach((c, i) => {
+      const y = 30 + i * 50;
+      svg += `
+        <rect x="20" y="${y}" width="320" height="40" rx="6" fill="${c.color}" opacity="0.12" stroke="${c.color}" stroke-width="1.5"/>
+        <rect x="20" y="${y}" width="80" height="40" rx="6" fill="${c.color}"/>
+        <text x="60" y="${y + 18}" text-anchor="middle" fill="#fff" font-size="10" font-weight="700" font-family="'Space Grotesk',sans-serif">${esc(c.name)}</text>
+        <text x="60" y="${y + 32}" text-anchor="middle" fill="#fff" font-size="8" font-family="'JetBrains Mono',monospace">LEVEL ${i}</text>
+
+        <text x="110" y="${y + 16}" fill="${c.color}" font-size="9" font-family="'JetBrains Mono',monospace" font-weight="700">Subject: ${esc(c.subject)}</text>
+        <text x="110" y="${y + 30}" fill="#78716c" font-size="9" font-family="'JetBrains Mono',monospace">Issued by: ${esc(c.issuer)}</text>
+
+        ${c.trust ? `<circle cx="325" cy="${y + 20}" r="9" fill="${COLORS.green}"/>
+          <path d="M 320 ${y + 20} L 324 ${y + 24} L 331 ${y + 16}" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>` : ''}`;
+
+      if (i < certs.length - 1) {
+        svg += `<path d="M 60 ${y + 40} L 60 ${y + 50}" stroke="${c.color}" stroke-width="2" marker-end="url(#cert-arr-${i})">
+          <animate attributeName="opacity" values="0.4;1;0.4" dur="1.8s" begin="${i * 0.3}s" repeatCount="indefinite"/>
+        </path>
+        <defs><marker id="cert-arr-${i}" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="4" markerHeight="4" orient="auto">
+          <path d="M 0 1 L 8 5 L 0 9 z" fill="${c.color}"/>
+        </marker></defs>`;
+      }
+    });
+
+    svg += `<text x="${w/2}" y="${h - 8}" text-anchor="middle" fill="#a8a29e" font-size="8" font-family="'JetBrains Mono',monospace">Browser validates leaf → checks signature via intermediate → stops at trusted root</text>`;
+
+    return `<svg viewBox="0 0 ${w} ${h}" class="sv-anim" xmlns="http://www.w3.org/2000/svg">${svg}</svg>`;
+  }
+
+  // ────────────────────────────────────────────────────────────────────
+  // 35. rstp-states — Port states transitioning disabled→blocking→listening→learning→forwarding.
+  // ────────────────────────────────────────────────────────────────────
+  function rstpStates(p) {
+    const active = p.active != null ? p.active : 4;
+    const w = 360, h = 150;
+    const states = [
+      { name: 'Disabled',   color: COLORS.slate, detail: 'admin down, no frames' },
+      { name: 'Blocking',   color: COLORS.red,   detail: 'hears BPDUs only, no data' },
+      { name: 'Listening',  color: COLORS.amber, detail: 'sends/hears BPDUs, no MACs' },
+      { name: 'Learning',   color: COLORS.blue,  detail: 'builds MAC table, no fwd' },
+      { name: 'Forwarding', color: COLORS.green, detail: 'full operation' }
+    ];
+
+    let svg = `<text x="${w/2}" y="16" text-anchor="middle" fill="#57534e" font-size="11" font-weight="700" font-family="'Space Grotesk',sans-serif">STP port states · ${esc(states[active].name)}</text>`;
+
+    const boxW = 60, gap = (w - states.length * boxW) / (states.length + 1);
+    states.forEach((s, i) => {
+      const x = gap + i * (boxW + gap);
+      const isActive = i === active;
+      svg += `
+        <rect x="${x}" y="40" width="${boxW}" height="38" rx="6" fill="${isActive ? s.color : '#f3f0eb'}" stroke="${s.color}" stroke-width="${isActive ? 2.2 : 1}">
+          ${isActive ? `<animate attributeName="stroke-width" values="1.6;2.8;1.6" dur="1.8s" repeatCount="indefinite"/>` : ''}
+        </rect>
+        <text x="${x + boxW/2}" y="${isActive ? 60 : 60}" text-anchor="middle" fill="${isActive ? '#fff' : s.color}" font-size="9" font-weight="700" font-family="'Space Grotesk',sans-serif">${esc(s.name)}</text>
+        <text x="${x + boxW/2}" y="${isActive ? 72 : 72}" text-anchor="middle" fill="${isActive ? '#fff' : '#78716c'}" font-size="8" font-family="'JetBrains Mono',monospace" opacity="0.9">${isActive ? '(active)' : (i + 1)}</text>`;
+
+      if (i < states.length - 1) {
+        const x1 = x + boxW;
+        const x2 = x + boxW + gap;
+        svg += `<path d="M ${x1 + 3} 59 L ${x2 - 3} 59" stroke="${s.color}" stroke-width="1.5" opacity="0.5" marker-end="url(#rstp-arr-${i})"/>
+        <defs><marker id="rstp-arr-${i}" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="4" markerHeight="4" orient="auto">
+          <path d="M 0 1 L 8 5 L 0 9 z" fill="${s.color}"/>
+        </marker></defs>`;
+      }
+    });
+
+    svg += `
+      <text x="${w/2}" y="108" text-anchor="middle" fill="${states[active].color}" font-size="10" font-weight="700" font-family="'JetBrains Mono',monospace">→ ${esc(states[active].detail)}</text>
+      <text x="${w/2}" y="${h - 8}" text-anchor="middle" fill="#a8a29e" font-size="8" font-family="'JetBrains Mono',monospace">STP: ~50s total convergence · RSTP: ~6s · PortFast skips listening/learning on edge</text>`;
+
+    return `<svg viewBox="0 0 ${w} ${h}" class="sv-anim" xmlns="http://www.w3.org/2000/svg">${svg}</svg>`;
+  }
+
+  // ────────────────────────────────────────────────────────────────────
+  // 36. wire-packet — Wireshark-style packet decode bytes per layer.
+  // ────────────────────────────────────────────────────────────────────
+  function wirePacket(p) {
+    const layers = p.layers || [
+      { name: 'Ethernet II', fields: 'dst=aabb.cc00.0002  src=aabb.cc00.0001  type=0x0800', color: COLORS.blue, bytes: 14 },
+      { name: 'IPv4',        fields: 'ver=4  TTL=64  proto=6  src=10.1.1.5  dst=10.1.1.10', color: COLORS.purple, bytes: 20 },
+      { name: 'TCP',         fields: 'src=49152  dst=80  seq=1  ack=1  flags=SYN',         color: COLORS.teal, bytes: 20 },
+      { name: 'Payload',     fields: 'GET / HTTP/1.1  Host: example.com',                  color: COLORS.green, bytes: 80 }
+    ];
+    const w = 360, h = 32 + layers.length * 36 + 24;
+
+    let svg = `<text x="16" y="16" fill="#57534e" font-size="10" font-weight="700" font-family="'Space Grotesk',sans-serif">Packet decode · Wireshark-style per-layer breakdown</text>`;
+
+    layers.forEach((l, i) => {
+      const y = 28 + i * 36;
+      const barW = Math.max(20, Math.min(140, l.bytes * 2));
+      svg += `
+        <rect x="12" y="${y}" width="336" height="32" rx="4" fill="${l.color}" opacity="0.08" stroke="${l.color}" stroke-width="1"/>
+        <rect x="16" y="${y + 4}" width="${barW}" height="24" rx="3" fill="${l.color}"/>
+        <text x="${16 + barW/2}" y="${y + 20}" text-anchor="middle" fill="#fff" font-size="10" font-family="'Space Grotesk',sans-serif" font-weight="700">${esc(l.name)}</text>
+        <text x="${20 + barW + 4}" y="${y + 15}" fill="#1c1917" font-size="9" font-family="'JetBrains Mono',monospace">${esc(l.fields)}</text>
+        <text x="344" y="${y + 27}" text-anchor="end" fill="${l.color}" font-size="9" font-family="'JetBrains Mono',monospace" font-weight="700">${l.bytes}B</text>`;
+    });
+
+    const total = layers.reduce((a, l) => a + l.bytes, 0);
+    svg += `<text x="${w/2}" y="${h - 8}" text-anchor="middle" fill="#a8a29e" font-size="8" font-family="'JetBrains Mono',monospace">Total: ${total} bytes · each layer adds its header, payload wraps the previous</text>`;
+
+    return `<svg viewBox="0 0 ${w} ${h}" class="sv-anim" xmlns="http://www.w3.org/2000/svg">${svg}</svg>`;
+  }
+
+  // ────────────────────────────────────────────────────────────────────
   // Renderer dispatch
   // ────────────────────────────────────────────────────────────────────
 
@@ -1586,7 +1964,15 @@ window.SubtopicVisuals = (() => {
     'tcp-window':        tcpWindow,
     'etherchannel':      etherchannel,
     'ospf-neighbor':     ospfNeighbor,
-    'spine-leaf':        spineLeaf
+    'spine-leaf':        spineLeaf,
+    'hsrp-failover':     hsrpFailover,
+    'dns-resolution':    dnsResolution,
+    'ipsec-tunnel':      ipsecTunnel,
+    'syslog-severity':   syslogSeverity,
+    'traceroute-ladder': tracerouteLadder,
+    'cert-chain':        certChain,
+    'rstp-states':       rstpStates,
+    'wire-packet':       wirePacket
   };
 
   // ────────────────────────────────────────────────────────────────────
