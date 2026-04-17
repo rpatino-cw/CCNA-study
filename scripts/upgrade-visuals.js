@@ -373,6 +373,46 @@ const RULES = [
   })}
 ];
 
+/**
+ * Check if the existing `visual: { type, params: {...} }` block at microOffset
+ * has params that look empty/default (no real lesson-specific content).
+ * Returns true only if params is `{}` or has 0-1 trivial keys.
+ */
+function existingParamsAreEmpty(source, microOffset) {
+  const visIdx = source.indexOf('visual:', microOffset);
+  if (visIdx === -1) return true; // no visual at all = fine to add
+  // Find end of this micro entry by matching outer braces — but easier: look for `params:`
+  // within a reasonable window (next 800 chars).
+  const window = source.slice(visIdx, visIdx + 800);
+  const pIdx = window.indexOf('params:');
+  if (pIdx === -1) return true;
+  // Find the { after params:
+  const afterParams = window.slice(pIdx + 'params:'.length);
+  const openIdx = afterParams.indexOf('{');
+  if (openIdx === -1) return true;
+  // Match braces
+  let depth = 1;
+  let j = openIdx + 1;
+  while (j < afterParams.length && depth > 0) {
+    const c = afterParams[j];
+    if (c === '"' || c === "'") {
+      const q = c;
+      j++;
+      while (j < afterParams.length) {
+        if (afterParams[j] === '\\') { j += 2; continue; }
+        if (afterParams[j] === q) break;
+        j++;
+      }
+    } else if (c === '{') depth++;
+    else if (c === '}') depth--;
+    j++;
+  }
+  const paramsBlock = afterParams.slice(openIdx, j).trim();
+  // Empty-ish: {} or {}  or just whitespace between {}
+  const inner = paramsBlock.slice(1, -1).trim();
+  return inner.length < 20; // under 20 chars means essentially empty
+}
+
 function upgradeVisual(term, existing) {
   for (const rule of RULES) {
     if (rule.re.test(term)) {
@@ -457,6 +497,9 @@ for (const file of FILES) {
     const { id, term, startIdx } = entries[e];
     const upgrade = upgradeVisual(term);
     if (!upgrade) continue;
+    // SAFETY: only upgrade if existing params look like empty {} or thin defaults.
+    // Lessons with rich lesson-specific params are preserved.
+    if (!existingParamsAreEmpty(source, startIdx)) continue;
     const newSrc = replaceVisual(source, startIdx, upgrade);
     if (newSrc) {
       source = newSrc;
