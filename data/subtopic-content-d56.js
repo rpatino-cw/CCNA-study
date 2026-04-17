@@ -20,8 +20,13 @@ window.subtopicContentD56 = {
       memory: "Threat = the TIGER outside the fence. It wants in, but it needs a hole (vulnerability) to get through. The tiger is the danger, not the hole.",
       practice: "Create flashcards with 10 scenarios. For each, classify it as a threat, vulnerability, exploit, or mitigation. Example: 'A disgruntled employee with admin access' = threat. 'An unpatched server running SMBv1' = vulnerability. Drill until instant recognition.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 51 (Network Security Fundamentals). Wendell Odom OCG Chapter 27 (Security Architectures). Most students confuse threat vs vulnerability — the exam loves 'which term best describes...' scenario questions."
-    }
+      meta: "Jeremy's IT Lab Day 51 (Network Security Fundamentals). Wendell Odom OCG Chapter 27 (Security Architectures). Most students confuse threat vs vulnerability — the exam loves 'which term best describes...' scenario questions.",
+    },
+    micro: [
+      { id: "5.1.a.1", term: "Threat",                       def: "Potential danger/actor. The WHO or WHAT — hacker, malware, insider, disaster.", weight: "high" },
+      { id: "5.1.a.2", term: "Threat categories",            def: "External (hackers, nation-state), internal (employees), environmental (disasters), accidental (human error).", weight: "med" },
+      { id: "5.1.a.3", term: "Attack chain vocab",           def: "Threat exploits Vulnerability using Exploit → Impact. Know each term's role.", weight: "high" }
+    ]
   },
 
   "5.1.b": {
@@ -31,8 +36,13 @@ window.subtopicContentD56 = {
       memory: "Vulnerability = the HOLE in the fence. The tiger (threat) gets in through the hole. The hole exists even if no tiger ever comes — it's still a weakness.",
       practice: "Run a mental audit of a default Cisco switch config. List 5 vulnerabilities: no enable secret, Telnet enabled, no port security, no DHCP snooping, no banners. For each, write the hardening command that fixes it.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 51 (Network Security Fundamentals). Wendell Odom OCG Chapter 27. Cisco pairs vulnerability with mitigation in exam questions — know common weakness-fix pairs cold."
-    }
+      meta: "Jeremy's IT Lab Day 51 (Network Security Fundamentals). Wendell Odom OCG Chapter 27. Cisco pairs vulnerability with mitigation in exam questions — know common weakness-fix pairs cold.",
+    },
+    micro: [
+      { id: "5.1.b.1", term: "Vulnerability",                def: "Weakness/flaw (passive). Exists until mitigated. NOT the attacker — the hole the attacker uses.", weight: "high" },
+      { id: "5.1.b.2", term: "Common vulnerability types",   def: "Software (unpatched), config (defaults, open ports), design (weak crypto), human (weak passwords), physical (open rooms).", weight: "high" },
+      { id: "5.1.b.3", term: "Risk formula",                 def: "Risk = Threat × Vulnerability × Impact. Reducing vulnerabilities is the most controllable factor.", weight: "med" }
+    ]
   },
 
   "5.1.c": {
@@ -42,8 +52,14 @@ window.subtopicContentD56 = {
       memory: "Exploit = the LOCKPICK that fits the hole. Threat has the lockpick, vulnerability is the lock, exploit is the action of picking it. Always the ACTION, never the weakness.",
       practice: "Map three attack chains on paper: 1) Hacker -> unpatched Apache -> buffer overflow -> web server compromised. 2) Phisher -> untrained user -> fake login page -> credentials stolen. 3) Insider -> excessive privileges -> data exfiltration -> IP theft. Label each element as threat/vulnerability/exploit/impact.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 51. Wendell Odom OCG Chapter 27. The exam tests the attack lifecycle — exploit is always the action/technique, never the weakness itself. Buffer overflow is the most commonly cited exploit example."
-    }
+      meta: "Jeremy's IT Lab Day 51. Wendell Odom OCG Chapter 27. The exam tests the attack lifecycle — exploit is always the action/technique, never the weakness itself. Buffer overflow is the most commonly cited exploit example.",
+    },
+    micro: [
+      { id: "5.1.c.1", term: "Exploit",                      def: "The technique/tool/code to take advantage of a vulnerability. ACTION, not weakness.", weight: "high" },
+      { id: "5.1.c.2", term: "Buffer overflow",              def: "Most commonly cited exploit. Send more data than buffer holds → overwrite memory → execute malicious code.", weight: "high" },
+      { id: "5.1.c.3", term: "Zero-day exploit",             def: "Attack against a vulnerability with NO patch available. Extremely dangerous — no defense exists yet.", weight: "high" },
+      { id: "5.1.c.4", term: "SQL injection / XSS",          def: "Web-app exploits. SQL: inject SQL commands via form inputs. XSS: inject scripts executed by other users' browsers.", weight: "med" }
+    ]
   },
 
   "5.1.d": {
@@ -53,8 +69,15 @@ window.subtopicContentD56 = {
       memory: "Mitigation = MENDING the fence. Patch the holes, add barbed wire, post guards. Each attack type has a specific best mitigation — learn the pairs.",
       practice: "Build a two-column flashcard deck: left side = attack type, right side = best Cisco mitigation. Phishing = training. ARP spoof = DAI. Rogue DHCP = DHCP snooping. Brute force = login block-for. Drill until automatic.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 51. Wendell Odom OCG Chapter 27. Cisco loves 'which is the best mitigation for X?' questions. The answer is always the most SPECIFIC control, not a general one."
-    }
+      meta: "Jeremy's IT Lab Day 51. Wendell Odom OCG Chapter 27. Cisco loves 'which is the best mitigation for X?' questions. The answer is always the most SPECIFIC control, not a general one.",
+    },
+    micro: [
+      { id: "5.1.d.1", term: "Mitigation / Countermeasure",  def: "Action reducing likelihood/impact of threat. Reduces risk to acceptable level — doesn't eliminate.", weight: "high" },
+      { id: "5.1.d.2", term: "Control categories",           def: "Preventive (firewall, ACL), Detective (IDS, syslog), Corrective (backup, IR), Deterrent (banner, cameras).", weight: "high" },
+      { id: "5.1.d.3", term: "ARP spoofing → DAI",           def: "Dynamic ARP Inspection uses DHCP snooping binding table to validate ARP replies.", weight: "high" },
+      { id: "5.1.d.4", term: "Rogue DHCP → DHCP snooping",   def: "Only trusted ports (toward legitimate server) can send DHCP offers. Blocks rogue servers.", weight: "high" },
+      { id: "5.1.d.5", term: "Phishing → training",          def: "Technology can't fully defend. User awareness training is the primary countermeasure.", weight: "high" }
+    ]
   },
 
   "5.1.e": {
@@ -64,8 +87,14 @@ window.subtopicContentD56 = {
       memory: "PHISHing = fishing for passwords. SPEAR phishing = aimed at one fish. WHALING = going after the big fish (CEO). VISHING = Voice phishing. SMISHING = SMS phishing. Each variant starts with a clue in the name.",
       practice: "Review 5 real phishing examples at phishingquiz.withgoogle.com. For each, identify: the urgency trigger, the spoofed sender, the suspicious URL, and the action requested. Then classify each as phishing, spear phishing, or whaling.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 51. Wendell Odom OCG Chapter 27. If the exam asks 'what is the best defense against phishing?' the answer is ALWAYS user awareness training — not a firewall, not an IPS."
-    }
+      meta: "Jeremy's IT Lab Day 51. Wendell Odom OCG Chapter 27. If the exam asks 'what is the best defense against phishing?' the answer is ALWAYS user awareness training — not a firewall, not an IPS.",
+    },
+    micro: [
+      { id: "5.1.e.1", term: "Social engineering",           def: "Manipulating humans to reveal credentials or bypass security. Bypasses technical controls entirely.", weight: "high" },
+      { id: "5.1.e.2", term: "Phishing",                     def: "Email deception attack. Fake login pages, malicious attachments, urgency tactics.", weight: "high" },
+      { id: "5.1.e.3", term: "Spear phishing",               def: "Targeted phishing aimed at specific individual/org. More research, more convincing than bulk phishing.", weight: "med" },
+      { id: "5.1.e.4", term: "User awareness training",      def: "Primary defense against social engineering. Technology alone cannot stop it.", weight: "high" }
+    ]
   },
 
   "5.1.f": {
@@ -75,8 +104,14 @@ window.subtopicContentD56 = {
       memory: "DoS = one person blocking a doorway. DDoS = a flash mob blocking every entrance. The 'D' means DISTRIBUTED — many zombies (botnet) attacking at once. SYN flood = most common type.",
       practice: "In Packet Tracer, configure 'ip tcp intercept' or rate limiting on a router to mitigate SYN floods. Also configure 'no ip directed-broadcast' to prevent smurf attacks. These are real Cisco mitigations.",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 51. Wendell Odom OCG Chapter 27. Know DoS vs DDoS (single vs distributed), SYN flood mechanics, and that DDoS requires distributed mitigation (scrubbing centers, not just ACLs)."
-    }
+      meta: "Jeremy's IT Lab Day 51. Wendell Odom OCG Chapter 27. Know DoS vs DDoS (single vs distributed), SYN flood mechanics, and that DDoS requires distributed mitigation (scrubbing centers, not just ACLs).",
+    },
+    micro: [
+      { id: "5.1.f.1", term: "DoS",                          def: "Denial of Service. Overwhelms target from a single source. Blockable by ACL or firewall rule.", weight: "high" },
+      { id: "5.1.f.2", term: "DDoS",                         def: "Distributed DoS. Many sources (botnet) attack simultaneously. Needs scrubbing centers/CDN defense.", weight: "high" },
+      { id: "5.1.f.3", term: "SYN flood",                    def: "Flood TCP SYNs without completing handshake. Target's half-open connection queue exhausts.", weight: "high" },
+      { id: "5.1.f.4", term: "Reflection/amplification",     def: "Attacker spoofs victim's IP in queries to open servers. Servers reply to victim with large responses.", weight: "med" }
+    ]
   },
 
   "5.1.g": {
@@ -86,8 +121,14 @@ window.subtopicContentD56 = {
       memory: "MITM = the postal worker who opens your mail, reads it, reseals it, and delivers it. You never know. ARP spoofing = lying about your address. DHCP spoofing = giving out fake directions.",
       practice: "In a Packet Tracer lab, enable DHCP snooping and DAI on a switch. Configure the server-facing port as trusted. Attempt to connect a rogue DHCP server on an untrusted port and verify it gets blocked. This ties directly into 5.7.",
       effort: "high",
-      meta: "Jeremy's IT Lab Day 51 + Day 53 (DHCP Snooping/DAI). Wendell Odom OCG Chapter 27 + Chapter 30. ARP spoofing and DHCP spoofing are THE two MITM examples Cisco tests. Study mitigations (DAI, DHCP snooping) in section 5.7."
-    }
+      meta: "Jeremy's IT Lab Day 51 + Day 53 (DHCP Snooping/DAI). Wendell Odom OCG Chapter 27 + Chapter 30. ARP spoofing and DHCP spoofing are THE two MITM examples Cisco tests. Study mitigations (DAI, DHCP snooping) in section 5.7.",
+    },
+    micro: [
+      { id: "5.1.g.1", term: "Man-in-the-Middle (MITM)",     def: "Attacker inserts between two communicating parties, intercepting and/or modifying traffic.", weight: "high" },
+      { id: "5.1.g.2", term: "ARP spoofing",                 def: "Attacker sends forged ARP replies. Hosts ARP-cache the attacker's MAC for other IPs. Traffic flows through attacker.", weight: "high" },
+      { id: "5.1.g.3", term: "DHCP spoofing",                def: "Rogue DHCP server gives victims attacker's IP as gateway/DNS. Attacker becomes MITM for all outbound traffic.", weight: "high" },
+      { id: "5.1.g.4", term: "MITM mitigations",             def: "DAI (stops ARP spoof), DHCP snooping (stops rogue DHCP), HTTPS/VPN (encrypts even if intercepted).", weight: "high" }
+    ]
   },
 
   "5.1.h": {
@@ -97,8 +138,15 @@ window.subtopicContentD56 = {
       memory: "WORM = Wriggles On its own through the network (no user needed). VIRUS = Very Infected, Requires User Start. TROJAN = looks like a gift, soldiers hide inside. RANSOM = your files are kidnapped, pay to get them back.",
       practice: "Create a comparison table from memory: Malware Type | How It Spreads | User Action Required? | Primary Damage | Example. Fill it for virus, worm, trojan, and ransomware. Then add spyware and rootkit as bonus rows.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 51. Wendell Odom OCG Chapter 27. The exam loves 'which malware type does X?' questions. The KEY differentiator is propagation: worm = automatic, virus = user action, trojan = deception."
-    }
+      meta: "Jeremy's IT Lab Day 51. Wendell Odom OCG Chapter 27. The exam loves 'which malware type does X?' questions. The KEY differentiator is propagation: worm = automatic, virus = user action, trojan = deception.",
+    },
+    micro: [
+      { id: "5.1.h.1", term: "Virus",                        def: "Malware that attaches to legit files. Requires USER ACTION (open file) to spread.", weight: "high" },
+      { id: "5.1.h.2", term: "Worm",                         def: "Self-propagating malware. Spreads AUTOMATICALLY across network without user action. More dangerous than virus.", weight: "high" },
+      { id: "5.1.h.3", term: "Trojan",                       def: "Malware disguised as legitimate software. Relies on DECEPTION. User installs willingly.", weight: "high" },
+      { id: "5.1.h.4", term: "Ransomware",                   def: "Encrypts victim's files, demands payment for decryption key. Major modern threat.", weight: "high" },
+      { id: "5.1.h.5", term: "Spyware / Adware",             def: "Spyware = steals data silently. Adware = pushes unwanted ads. Usually less destructive than ransomware.", weight: "med" }
+    ]
   },
 
   // ── 5.2 Describe security program elements ────────────────────
@@ -110,8 +158,13 @@ window.subtopicContentD56 = {
       memory: "Users are the weakest link AND the first line of defense. Awareness training turns liabilities into sensors. Technology can't fix a user who willingly hands over their password.",
       practice: "Download a sample Acceptable Use Policy template (SANS has free ones). Read it and identify 5 common violations: personal USB drives, sharing passwords, clicking unknown links, tailgating, using public WiFi for work. These show up as exam scenarios.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 51. Wendell Odom OCG Chapter 27. Cisco ALWAYS frames user awareness as the answer for social engineering mitigation. If the question is about phishing defense, think training first, technology second."
-    }
+      meta: "Jeremy's IT Lab Day 51. Wendell Odom OCG Chapter 27. Cisco ALWAYS frames user awareness as the answer for social engineering mitigation. If the question is about phishing defense, think training first, technology second.",
+    },
+    micro: [
+      { id: "5.2.a.1", term: "User awareness",               def: "General security education for all users. Phishing recognition, password hygiene, acceptable use.", weight: "high" },
+      { id: "5.2.a.2", term: "Awareness beats tech for SE",  def: "Social engineering bypasses technology. Trained users are the primary defense.", weight: "high" },
+      { id: "5.2.a.3", term: "Simulated phishing",           def: "Organizations send fake phishing emails to test users. Those who click get additional training.", weight: "med" }
+    ]
   },
 
   "5.2.b": {
@@ -121,8 +174,12 @@ window.subtopicContentD56 = {
       memory: "Awareness = knowing the stove is hot (everyone). Training = knowing HOW to put out the fire (technical staff). Both matter, but the exam tests which is which.",
       practice: "Create two lists: 'Awareness topics' (phishing recognition, password hygiene, clean desk, reporting) and 'Training topics' (incident response, hardening configs, forensics, pen testing). If an exam question specifies IT staff, pick from the training list.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 51. Wendell Odom OCG Chapter 27. The exam distinguishes awareness (general users) from training (technical/role-specific). If the question specifies IT staff or incident response, the answer is training."
-    }
+      meta: "Jeremy's IT Lab Day 51. Wendell Odom OCG Chapter 27. The exam distinguishes awareness (general users) from training (technical/role-specific). If the question specifies IT staff or incident response, the answer is training.",
+    },
+    micro: [
+      { id: "5.2.b.1", term: "Training (role-specific)",     def: "Technical/role-based skill building. IT admins, incident responders. Deeper than awareness.", weight: "high" },
+      { id: "5.2.b.2", term: "Awareness vs training",        def: "Awareness = general users (recognize phishing). Training = IT/technical staff (how to respond to incidents).", weight: "high" }
+    ]
   },
 
   "5.2.c": {
@@ -132,8 +189,13 @@ window.subtopicContentD56 = {
       memory: "MANTRAP = MAN gets TRAPPED between two doors. Like an airlock — you can't piggyback through. It specifically defeats TAILGATING.",
       practice: "Draw a layered physical security diagram for a data center: perimeter fence with gate → badge reader at building entrance → mantrap at server room → biometric at rack cage. Label what each control prevents.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 51. Wendell Odom OCG Chapter 27. Mantrap/security vestibule is a favorite exam question — it specifically prevents tailgating. Know the term 'security vestibule' as Cisco's preferred modern term."
-    }
+      meta: "Jeremy's IT Lab Day 51. Wendell Odom OCG Chapter 27. Mantrap/security vestibule is a favorite exam question — it specifically prevents tailgating. Know the term 'security vestibule' as Cisco's preferred modern term.",
+    },
+    micro: [
+      { id: "5.2.c.1", term: "Security vestibule (mantrap)", def: "Two-door airlock. One opens only after the other closes. Prevents tailgating. Cisco's preferred modern term.", weight: "high" },
+      { id: "5.2.c.2", term: "Tailgating",                   def: "Unauthorized person follows authorized person through access-controlled door. Security vestibule stops this.", weight: "high" },
+      { id: "5.2.c.3", term: "Badge access",                 def: "Physical ID cards (prox, smartcard). Common primary physical auth control.", weight: "med" }
+    ]
   },
 
   "5.2.d": {
@@ -143,8 +205,12 @@ window.subtopicContentD56 = {
       memory: "Cameras have three D's: Deter, Detect, Document (forensics). Motion sensors ALERT. Together they're the eyes and ears of physical security.",
       practice: "Classify each physical security control as preventive, detective, deterrent, or corrective. Cameras = detective + deterrent. Locks = preventive. Guards = preventive + detective. Backup generator = corrective. The exam tests these categories.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 51. Wendell Odom OCG Chapter 27. Low exam depth on surveillance specifics, but know that cameras and motion sensors are detective/deterrent controls — they record and discourage but don't physically prevent."
-    }
+      meta: "Jeremy's IT Lab Day 51. Wendell Odom OCG Chapter 27. Low exam depth on surveillance specifics, but know that cameras and motion sensors are detective/deterrent controls — they record and discourage but don't physically prevent.",
+    },
+    micro: [
+      { id: "5.2.d.1", term: "Surveillance cameras",         def: "Detective + deterrent control. Records evidence, discourages casual wrongdoing. Doesn't physically stop anything.", weight: "low" },
+      { id: "5.2.d.2", term: "Motion sensors",               def: "Detective control. Triggers alert/recording when movement detected. Used in secure areas after hours.", weight: "low" }
+    ]
   },
 
   "5.2.e": {
@@ -154,8 +220,12 @@ window.subtopicContentD56 = {
       memory: "Environmental = protecting gear from the ENVIRONMENT: heat (HVAC), fire (suppression), power loss (UPS), theft (cages/locks). If it's not a human attack, it's an environmental threat.",
       practice: "Mental walkthrough of a proper server room: locked door (physical access), equipment cages (per-tenant), HVAC (cooling), FM-200 (fire), UPS + generator (power), cameras (surveillance), cable management (organization). List all controls.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 51. Wendell Odom OCG Chapter 27. Low exam weight but testable. Cable locks and equipment cages are the most likely to appear. Know they fall under physical/environmental controls, not logical/technical."
-    }
+      meta: "Jeremy's IT Lab Day 51. Wendell Odom OCG Chapter 27. Low exam weight but testable. Cable locks and equipment cages are the most likely to appear. Know they fall under physical/environmental controls, not logical/technical.",
+    },
+    micro: [
+      { id: "5.2.e.1", term: "Equipment locks / cages",      def: "Physical controls protecting hardware. Rack locks, data hall cages. Physical category (not logical/technical).", weight: "low" },
+      { id: "5.2.e.2", term: "Cable locks",                  def: "Secure laptops/equipment to fixed objects. Low-tech but effective anti-theft.", weight: "low" }
+    ]
   },
 
   // ── 5.3 Configure and verify device access control ────────────
@@ -167,8 +237,14 @@ window.subtopicContentD56 = {
       memory: "enable PASSWORD = PLAIN to see (plaintext, Type 0). enable SECRET = Securely encrypted (hashed, Type 5). If both exist, SECRET always wins. If you see 'password' in a config, that's the wrong one.",
       practice: "In Packet Tracer: configure both <code>enable password cisco</code> and <code>enable secret cisco123</code>. Run <code>show running-config | include enable</code>. Notice 'cisco' is visible but 'cisco123' is a hash. Try logging in — only 'cisco123' works.",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 4 (CLI basics) + Day 52 (Device Security). Wendell Odom OCG Chapter 6 (CLI config) + Chapter 27. The exam tests that enable secret ALWAYS wins over enable password. Know Type 0 = plaintext."
-    }
+      meta: "Jeremy's IT Lab Day 4 (CLI basics) + Day 52 (Device Security). Wendell Odom OCG Chapter 6 (CLI config) + Chapter 27. The exam tests that enable secret ALWAYS wins over enable password. Know Type 0 = plaintext.",
+    },
+    micro: [
+      { id: "5.3.a.1", term: "enable secret",                def: "Sets priv-exec password with HASH (Type 5 MD5 or Type 8/9). Preferred. Cannot be reversed.", weight: "high" },
+      { id: "5.3.a.2", term: "enable password",              def: "LEGACY. Stores password in plaintext (Type 0) unless service password-encryption. WEAK.", weight: "high" },
+      { id: "5.3.a.3", term: "secret ALWAYS wins",           def: "If both 'enable secret' and 'enable password' are set, 'secret' is used. 'password' is ignored.", weight: "high" },
+      { id: "5.3.a.4", term: "Type 0 = plaintext",           def: "Unencrypted in running config. Visible with 'show running-config'. Avoid in production.", weight: "high" }
+    ]
   },
 
   "5.3.b": {
@@ -178,8 +254,15 @@ window.subtopicContentD56 = {
       memory: "Type 0 = plaintext. Type 5 = MD5 (enable secret default). Type 7 = Vigenere (reversible junk). Type 8 = PBKDF2. Type 9 = scrypt (strongest). Remember: 0-5-7-8-9, and 5 is the one that matters most.",
       practice: "Configure <code>enable secret MyPass123</code> in Packet Tracer. Then <code>show running-config | include enable</code> and observe the Type 5 hash starting with <code>$1$</code>. Try to log in with 'MyPass123' — it works despite the hash.",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 4 + Day 52. Wendell Odom OCG Chapter 6 + Chapter 27. Memorize Type numbers cold: 0 = plain, 5 = MD5, 7 = Vigenere (weak), 8 = PBKDF2, 9 = scrypt. The exam loves asking which type is which."
-    }
+      meta: "Jeremy's IT Lab Day 4 + Day 52. Wendell Odom OCG Chapter 6 + Chapter 27. Memorize Type numbers cold: 0 = plain, 5 = MD5, 7 = Vigenere (weak), 8 = PBKDF2, 9 = scrypt. The exam loves asking which type is which.",
+    },
+    micro: [
+      { id: "5.3.b.1", term: "Type 0",                       def: "Plaintext. No encryption. Visible in running-config. AVOID.", weight: "high" },
+      { id: "5.3.b.2", term: "Type 5",                       def: "MD5 hash. One-way, but MD5 is now considered weak by modern standards.", weight: "high" },
+      { id: "5.3.b.3", term: "Type 7",                       def: "Vigenère cipher. REVERSIBLE — can be decrypted easily with online tools. Only applied by 'service password-encryption'.", weight: "high" },
+      { id: "5.3.b.4", term: "Type 8",                       def: "PBKDF2 with SHA-256. Strong modern hash. Use when available.", weight: "high" },
+      { id: "5.3.b.5", term: "Type 9",                       def: "scrypt. Strongest current Cisco password hash. Memory-hard, resistant to GPU attacks.", weight: "high" }
+    ]
   },
 
   "5.3.c": {
@@ -189,8 +272,14 @@ window.subtopicContentD56 = {
       memory: "Console = PHYSICAL access. Line console 0 = the ONE physical port. Two steps: set password + enable login. Forgetting 'login' = password exists but is never asked for. Like installing a lock but never closing the door.",
       practice: "In Packet Tracer: <code>line con 0</code> → <code>password cisco</code> → <code>login</code> → <code>exec-timeout 5 0</code>. Disconnect and reconnect — verify the prompt appears. Then switch to <code>login local</code> with a username and test.",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 4 (CLI) + Day 52 (Device Security). Wendell Odom OCG Chapter 6 + Chapter 27. The exam tests exact commands. The critical 'gotcha': forgetting <code>login</code> means the password is set but never enforced."
-    }
+      meta: "Jeremy's IT Lab Day 4 (CLI) + Day 52 (Device Security). Wendell Odom OCG Chapter 6 + Chapter 27. The exam tests exact commands. The critical 'gotcha': forgetting <code>login</code> means the password is set but never enforced.",
+    },
+    micro: [
+      { id: "5.3.c.1", term: "Console password config",      def: "line console 0 → password [pw] → login. Critical: 'login' is required or password is NOT enforced.", weight: "high" },
+      { id: "5.3.c.2", term: "'login' gotcha",               def: "Password set but no 'login' = password is ignored. Classic exam trap question.", weight: "high" },
+      { id: "5.3.c.3", term: "logging synchronous",          def: "Under line console. Prevents log messages from interrupting commands being typed. QoL setting.", weight: "med" },
+      { id: "5.3.c.4", term: "exec-timeout",                 def: "Auto-logout after N minutes idle. 'exec-timeout 10 0' = 10 min 0 sec. Security best practice.", weight: "med" }
+    ]
   },
 
   "5.3.d": {
@@ -200,8 +289,14 @@ window.subtopicContentD56 = {
       memory: "VTY = Virtual TeletYpe = remote access. 0 to 15 = 16 lines. No password on VTY = NO remote access at all (connection refused). access-CLASS (not access-group) restricts who can SSH in.",
       practice: "Full VTY hardening lab: <code>line vty 0 15</code> → <code>login local</code> → <code>transport input ssh</code> → <code>access-class 10 in</code> → <code>exec-timeout 5 0</code>. Then test: Telnet should be refused, SSH should work only from permitted IPs.",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 4 + Day 52 + Day 43 (SSH). Wendell Odom OCG Chapter 6 + Chapter 27. Critical exam topic. The 'no password = no access' gotcha is tested frequently. Know access-class (VTY) vs access-group (interfaces)."
-    }
+      meta: "Jeremy's IT Lab Day 4 + Day 52 + Day 43 (SSH). Wendell Odom OCG Chapter 6 + Chapter 27. Critical exam topic. The 'no password = no access' gotcha is tested frequently. Know access-class (VTY) vs access-group (interfaces).",
+    },
+    micro: [
+      { id: "5.3.d.1", term: "VTY password config",          def: "line vty 0 15 → password [pw] → login (or login local). Password protects remote access.", weight: "high" },
+      { id: "5.3.d.2", term: "No password = no access",      def: "If VTY has no password configured, remote login is REJECTED by default on IOS. Access denied.", weight: "high" },
+      { id: "5.3.d.3", term: "access-class (VTY)",           def: "Apply ACL to VTY to restrict which IPs can connect: 'access-class [ACL] in'. Use for management IP restrictions.", weight: "high" },
+      { id: "5.3.d.4", term: "access-class vs access-group", def: "access-class = VTY lines. access-group = physical interfaces. Don't confuse them.", weight: "high" }
+    ]
   },
 
   "5.3.e": {
@@ -211,8 +306,12 @@ window.subtopicContentD56 = {
       memory: "AUX = AUXiliary = the backup phone line. Think old-school modem port. Best practice: <code>no exec</code> to disable it. Same security config as console if you keep it.",
       practice: "In Packet Tracer: <code>line aux 0</code> → <code>no exec</code> to disable it. Verify with <code>show line</code>. Then compare all three management methods: console, AUX, VTY — know how to secure each.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 52. Wendell Odom OCG Chapter 27. Low exam weight but testable. Know that AUX exists, it's for modem access, and best practice is <code>no exec</code> if not in use."
-    }
+      meta: "Jeremy's IT Lab Day 52. Wendell Odom OCG Chapter 27. Low exam weight but testable. Know that AUX exists, it's for modem access, and best practice is <code>no exec</code> if not in use.",
+    },
+    micro: [
+      { id: "5.3.e.1", term: "AUX port",                     def: "Auxiliary port. Legacy dial-in modem access to router. Rarely used today. 'line aux 0' to configure.", weight: "low" },
+      { id: "5.3.e.2", term: "no exec (AUX)",                def: "Best practice if AUX unused. Prevents anyone plugging in from getting exec prompt.", weight: "low" }
+    ]
   },
 
   "5.3.f": {
@@ -222,8 +321,13 @@ window.subtopicContentD56 = {
       memory: "LOCAL = credentials stored LOCALLY on the device. <code>login local</code> = check the LOCAL database. Priv 0 = almost nothing. Priv 1 = show commands. Priv 15 = god mode. Use <code>secret</code> not <code>password</code>.",
       practice: "Lab: <code>username admin privilege 15 secret Cisco123</code> then <code>line con 0</code> → <code>login local</code>. Test login. Create a priv 1 user and verify limited commands. Try <code>configure terminal</code> from priv 1 — it should be denied.",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 52. Wendell Odom OCG Chapter 27. The exam expects <code>username X secret Y</code> (not 'password') and that <code>login local</code> activates it. Without <code>login local</code>, the local database is ignored."
-    }
+      meta: "Jeremy's IT Lab Day 52. Wendell Odom OCG Chapter 27. The exam expects <code>username X secret Y</code> (not 'password') and that <code>login local</code> activates it. Without <code>login local</code>, the local database is ignored.",
+    },
+    micro: [
+      { id: "5.3.f.1", term: "username X secret Y",          def: "Creates local user with hashed password. Preferred over 'username X password Y' (plaintext).", weight: "high" },
+      { id: "5.3.f.2", term: "login local",                  def: "On line (VTY/console) — activates local user database. Without it, local usernames are ignored.", weight: "high" },
+      { id: "5.3.f.3", term: "privilege 15",                 def: "Max privilege level. 'username admin privilege 15 secret X' gives instant enable-mode access on login.", weight: "high" }
+    ]
   },
 
   "5.3.g": {
@@ -233,8 +337,13 @@ window.subtopicContentD56 = {
       memory: "Type 7 = TRIVIALLY reversible. It's like ROT13 — better than nothing, but barely. Real security = Type 5 (<code>secret</code>). Type 7 stops shoulder-surfing, nothing more.",
       practice: "Lab: Set <code>line con 0</code> → <code>password cisco</code>. Run <code>show run</code> — see plaintext. Then <code>service password-encryption</code> → <code>show run</code> — see Type 7 hash. Google 'Type 7 decoder' and paste the hash to prove it's crackable in seconds.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 52. Wendell Odom OCG Chapter 6 + 27. Type 7 = weak/reversible (Vigenere). Type 5 = MD5 (one-way). Always prefer <code>secret</code>. <code>service password-encryption</code> is a safety net, not real encryption."
-    }
+      meta: "Jeremy's IT Lab Day 52. Wendell Odom OCG Chapter 6 + 27. Type 7 = weak/reversible (Vigenere). Type 5 = MD5 (one-way). Always prefer <code>secret</code>. <code>service password-encryption</code> is a safety net, not real encryption.",
+    },
+    micro: [
+      { id: "5.3.g.1", term: "service password-encryption",  def: "Applies Type 7 (Vigenère — REVERSIBLE) to plaintext passwords. Not real security — only obscures casual viewing.", weight: "high" },
+      { id: "5.3.g.2", term: "Type 7 weakness",              def: "Vigenère cipher. Reversible with online Cisco Type 7 decoders. Same password always produces same cipher.", weight: "high" },
+      { id: "5.3.g.3", term: "Always prefer 'secret'",       def: "Use 'enable secret' and 'username X secret Y'. Both use one-way hashing, can't be reversed.", weight: "high" }
+    ]
   },
 
   "5.3.h": {
@@ -244,8 +353,13 @@ window.subtopicContentD56 = {
       memory: "Display order: M-L-E = MOTD → Login → EXEC. Mnemonic: My Lawyer Explains. MOTD = first thing everyone sees (legal warning). Login = before auth. EXEC = after auth. NEVER say 'Welcome' or reveal device info.",
       practice: "Configure all three: <code>banner motd #Unauthorized access prohibited#</code>, <code>banner login #Enter credentials#</code>, <code>banner exec #Maintenance window Sunday 2AM#</code>. Disconnect and reconnect to verify the M-L-E order.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 52. Wendell Odom OCG Chapter 27. The exam tests display order (MOTD → Login → EXEC) and that MOTD should contain a legal notice but NEVER device info or 'Welcome.'"
-    }
+      meta: "Jeremy's IT Lab Day 52. Wendell Odom OCG Chapter 27. The exam tests display order (MOTD → Login → EXEC) and that MOTD should contain a legal notice but NEVER device info or 'Welcome.'",
+    },
+    micro: [
+      { id: "5.3.h.1", term: "Banner display order",         def: "MOTD → Login banner → password prompt → EXEC banner. MOTD first, EXEC last (post-login).", weight: "high" },
+      { id: "5.3.h.2", term: "MOTD banner content",          def: "Should contain LEGAL NOTICE (unauthorized access prohibited). NEVER 'Welcome' or device info.", weight: "high" },
+      { id: "5.3.h.3", term: "banner motd # text #",         def: "Delimiter character (commonly #) surrounds text. Shown before login prompt.", weight: "med" }
+    ]
   },
 
   "5.3.i": {
@@ -255,8 +369,12 @@ window.subtopicContentD56 = {
       memory: "MIN-LENGTH = the bouncer checking your ID at the door. Too short? Rejected. But existing guests (passwords already set) aren't kicked out. Only applies to NEW passwords going forward.",
       practice: "Lab: <code>security passwords min-length 10</code>. Try <code>enable secret short</code> — rejected. Try <code>enable secret LongEnough1</code> — accepted. Then check: does the old short password still work? Yes — min-length is not retroactive.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 52. Wendell Odom OCG Chapter 27. Quick exam point: exact command is <code>security passwords min-length X</code>. Remember: only affects NEW passwords, not existing ones."
-    }
+      meta: "Jeremy's IT Lab Day 52. Wendell Odom OCG Chapter 27. Quick exam point: exact command is <code>security passwords min-length X</code>. Remember: only affects NEW passwords, not existing ones.",
+    },
+    micro: [
+      { id: "5.3.i.1", term: "security passwords min-length", def: "Global command. Enforces minimum length for NEW passwords. Does NOT affect existing passwords.", weight: "high" },
+      { id: "5.3.i.2", term: "Enforcement scope",            def: "Only applies to passwords configured AFTER the command. Existing weak passwords remain.", weight: "med" }
+    ]
   },
 
   "5.3.j": {
@@ -266,8 +384,13 @@ window.subtopicContentD56 = {
       memory: "Read the command as a sentence: 'Block FOR 120 seconds after 3 ATTEMPTS WITHIN 60 seconds.' Block-for = lockout time. Attempts = threshold. Within = counting window. Quiet-mode ACL = admin escape hatch.",
       practice: "Lab: <code>login block-for 60 attempts 3 within 30</code>. Intentionally fail 3 SSH logins quickly — verify lockout. Then add <code>login quiet-mode access-class ADMIN_IPS</code> with your IP permitted and verify you can still log in during lockout.",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 52. Wendell Odom OCG Chapter 27. The exam tests exact syntax and parameter order. Practice typing the full command from memory: block-for → attempts → within."
-    }
+      meta: "Jeremy's IT Lab Day 52. Wendell Odom OCG Chapter 27. The exam tests exact syntax and parameter order. Practice typing the full command from memory: block-for → attempts → within.",
+    },
+    micro: [
+      { id: "5.3.j.1", term: "login block-for",              def: "Global command. Throttles login attempts. Syntax: 'login block-for [sec] attempts [N] within [sec]'.", weight: "high" },
+      { id: "5.3.j.2", term: "Block-for example",            def: "'login block-for 120 attempts 3 within 60' = block login for 120s after 3 failed attempts in 60s.", weight: "high" },
+      { id: "5.3.j.3", term: "Parameter order",              def: "block-for THEN attempts THEN within. Memorize the exact order — exam tests this.", weight: "high" }
+    ]
   },
 
   // ── 5.4 Describe security password policy ─────────────────────
@@ -279,8 +402,13 @@ window.subtopicContentD56 = {
       memory: "Complexity = ULNS — Uppercase, Lowercase, Numbers, Symbols. But length beats complexity: a 20-char passphrase > an 8-char P@$$w0rd. IOS enforces length only, not complexity — that needs a RADIUS/TACACS+ server.",
       practice: "Compare password strength: calculate time to brute-force an 8-char complex password vs a 16-char simple passphrase. Use an online calculator like howsecureismypassword.net. Understand why NIST now recommends length over complexity.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 52. Wendell Odom OCG Chapter 27. The exam tests concepts, not math. Know: complexity + length = strongest, IOS enforces length only, AAA servers enforce complexity."
-    }
+      meta: "Jeremy's IT Lab Day 52. Wendell Odom OCG Chapter 27. The exam tests concepts, not math. Know: complexity + length = strongest, IOS enforces length only, AAA servers enforce complexity.",
+    },
+    micro: [
+      { id: "5.4.a.1", term: "Password complexity",          def: "Mix of upper/lower case, numbers, symbols. IOS doesn't enforce; AAA servers (ISE) do.", weight: "high" },
+      { id: "5.4.a.2", term: "Password length",              def: "Longer = stronger. IOS enforces with 'security passwords min-length'. Longer+complex = strongest.", weight: "high" },
+      { id: "5.4.a.3", term: "NIST guidance",                def: "Modern NIST recommends long passphrases over complex short passwords. Length beats complexity.", weight: "med" }
+    ]
   },
 
   "5.4.b": {
@@ -290,8 +418,13 @@ window.subtopicContentD56 = {
       memory: "Rotation = CHANGE it regularly. History = CAN'T REUSE old ones. Lockout = too many failures = account frozen. NIST says: stop forcing rotation — users just pick weaker passwords. Change only when compromised.",
       practice: "Design two password policies: 'Traditional' (rotate 90 days, history 12, lockout after 5, min 8 chars) vs 'NIST Modern' (no forced rotation, min 15 chars, check against breach lists, change on compromise). Know both for the exam.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 52. Wendell Odom OCG Chapter 27. The exam may test traditional rotation policies even though NIST has updated guidance. Know both perspectives and be ready for either."
-    }
+      meta: "Jeremy's IT Lab Day 52. Wendell Odom OCG Chapter 27. The exam may test traditional rotation policies even though NIST has updated guidance. Know both perspectives and be ready for either.",
+    },
+    micro: [
+      { id: "5.4.b.1", term: "Traditional rotation (90 days)", def: "Old guidance: change passwords every 60-90 days. Widely enforced by compliance standards.", weight: "med" },
+      { id: "5.4.b.2", term: "Modern NIST guidance",         def: "Only change when compromised. Frequent rotation leads to weak patterns (Password1, Password2...).", weight: "med" },
+      { id: "5.4.b.3", term: "Password history",             def: "Prevents reuse of last N passwords. Enforced on AAA server or OS (not usually IOS).", weight: "low" }
+    ]
   },
 
   "5.4.c": {
@@ -301,8 +434,13 @@ window.subtopicContentD56 = {
       memory: "MFA = Know-Have-Are (KHA). Must use DIFFERENT categories. Password (Know) + Phone OTP (Have) = real MFA. Password + Security Question = NOT MFA (both Know). Password + PIN = NOT MFA (both Know).",
       practice: "Create 10 authentication scenarios and classify each: 'Password + fingerprint' = MFA (Know + Are). 'PIN + security question' = NOT MFA (both Know). 'Badge + phone OTP' = MFA (Have + Have)? Actually NO — same category. Tricky ones build exam readiness.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 52. Wendell Odom OCG Chapter 27. Guaranteed exam question. The trap: two passwords, password + security question, or password + PIN are all NOT MFA because they're the same factor category."
-    }
+      meta: "Jeremy's IT Lab Day 52. Wendell Odom OCG Chapter 27. Guaranteed exam question. The trap: two passwords, password + security question, or password + PIN are all NOT MFA because they're the same factor category.",
+    },
+    micro: [
+      { id: "5.4.c.1", term: "MFA (Multi-Factor Auth)",      def: "Authentication using 2+ factors from DIFFERENT categories. Something you know + have + are.", weight: "high" },
+      { id: "5.4.c.2", term: "Three factor categories",      def: "Know (password, PIN, security question). Have (token, phone, smartcard). Are (biometric).", weight: "high" },
+      { id: "5.4.c.3", term: "MFA trap (same category)",     def: "Password + PIN = NOT MFA (both 'know'). Password + security question = NOT MFA. Must be different categories.", weight: "high" }
+    ]
   },
 
   "5.4.d": {
@@ -312,8 +450,12 @@ window.subtopicContentD56 = {
       memory: "Test: can BOTH factors be stolen the same way? If a phishing email could grab both → NOT MFA. If stealing one factor tells you nothing about the other → real MFA. Different CATEGORIES, not just different credentials.",
       practice: "Flash drill: 10 rapid-fire combos. For each, say 'MFA' or 'NOT MFA' instantly. Badge + PIN = MFA. Two passwords = NOT. Retina + fingerprint = NOT (both Are). Password + YubiKey = MFA. Speed matters for the exam.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 52. Wendell Odom OCG Chapter 27. Cisco specifically tests the 'different categories' requirement. This is one of the most commonly missed questions — students think any two credentials = MFA."
-    }
+      meta: "Jeremy's IT Lab Day 52. Wendell Odom OCG Chapter 27. Cisco specifically tests the 'different categories' requirement. This is one of the most commonly missed questions — students think any two credentials = MFA.",
+    },
+    micro: [
+      { id: "5.4.d.1", term: "Different categories required", def: "MFA requires factors from DIFFERENT categories. Not just 'two things' — specifically different types.", weight: "high" },
+      { id: "5.4.d.2", term: "Valid MFA examples",           def: "Password + TOTP token (know + have). Fingerprint + card (are + have). Password + fingerprint (know + are).", weight: "high" }
+    ]
   },
 
   "5.4.e": {
@@ -323,8 +465,14 @@ window.subtopicContentD56 = {
       memory: "PKI = Public Key Infrastructure. CA = Certificate Authority = the notary who stamps your ID as legit. X.509 = the standard certificate format. Chain of trust: Root CA → Intermediate CA → End Certificate.",
       practice: "Click the lock icon on any HTTPS website in Chrome. View the certificate: find the subject, issuer, validity dates, public key, and trace the chain up to the root CA. This makes the abstract concept concrete.",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 52. Wendell Odom OCG Chapter 27. The exam tests PKI concepts, not crypto math. Know: what a CA does, X.509 contents (subject, issuer, public key, validity), and the chain of trust model."
-    }
+      meta: "Jeremy's IT Lab Day 52. Wendell Odom OCG Chapter 27. The exam tests PKI concepts, not crypto math. Know: what a CA does, X.509 contents (subject, issuer, public key, validity), and the chain of trust model.",
+    },
+    micro: [
+      { id: "5.4.e.1", term: "Digital certificate (X.509)",  def: "Electronic document binding a public key to an identity. Signed by a CA. Used for HTTPS, SSL/TLS, IPsec.", weight: "high" },
+      { id: "5.4.e.2", term: "Certificate Authority (CA)",   def: "Trusted third party that signs certificates. Chain of trust: root CA → intermediate CA → end-entity cert.", weight: "high" },
+      { id: "5.4.e.3", term: "X.509 contents",               def: "Subject (owner), Issuer (CA), public key, validity (not-before/not-after), serial number, signature.", weight: "high" },
+      { id: "5.4.e.4", term: "PKI",                          def: "Public Key Infrastructure. Framework for issuing, distributing, and revoking digital certificates.", weight: "med" }
+    ]
   },
 
   "5.4.f": {
@@ -334,8 +482,13 @@ window.subtopicContentD56 = {
       memory: "Biometrics = Body metrics = Something you ARE. Strongest single factor but CANNOT BE CHANGED if compromised. You can reset a password but you can't reset your fingerprint. Always pair with another factor.",
       practice: "Build a pros/cons table: Fingerprint (cheap, fast, liftable), Iris (very accurate, expensive), Face (touchless, fooled by photos), Voice (convenient, noise-sensitive). Know trade-offs for scenario questions.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 52. Wendell Odom OCG Chapter 27. The exam tests biometrics as 'something you are' in MFA. Key disadvantage = non-changeable if compromised. Know FAR/FRR/CER for bonus points."
-    }
+      meta: "Jeremy's IT Lab Day 52. Wendell Odom OCG Chapter 27. The exam tests biometrics as 'something you are' in MFA. Key disadvantage = non-changeable if compromised. Know FAR/FRR/CER for bonus points.",
+    },
+    micro: [
+      { id: "5.4.f.1", term: "Biometrics",                   def: "'Something you ARE.' Fingerprint, iris, facial recognition, voice. Physical characteristics.", weight: "high" },
+      { id: "5.4.f.2", term: "Biometric disadvantage",       def: "CANNOT BE CHANGED if compromised. Unlike passwords, you can't reset your fingerprint.", weight: "high" },
+      { id: "5.4.f.3", term: "FAR / FRR / CER",              def: "FAR = False Accept Rate (bad). FRR = False Reject Rate. CER = Crossover Error Rate (FAR=FRR, tuning point).", weight: "low" }
+    ]
   },
 
   // ── 5.5 Describe IPsec VPNs ──────────────────────────────────
