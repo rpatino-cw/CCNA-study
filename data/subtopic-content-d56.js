@@ -1342,8 +1342,12 @@ window.subtopicContentD56 = {
       memory: "Humans make typos. Scripts don't. One bad <code>shut</code> on the wrong interface takes down a site. Automation runs the TESTED playbook every time. 40-80% of outages = human error. Automation directly fixes this.",
       practice: "Write a simple Ansible playbook that configures NTP on a switch. Now imagine typing <code>ntp server 10.0.0.1</code> manually on 200 switches via SSH. One typo, one wrong device, one missed switch — that's why automation exists.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 60-62 (Network Automation). Wendell Odom OCG Chapter 19-20. The exam tests automation benefits conceptually. The key stat: 40-80% of outages = human error, and automation directly addresses this."
-    }
+      meta: "Jeremy's IT Lab Day 60-62 (Network Automation). Wendell Odom OCG Chapter 19-20. The exam tests automation benefits conceptually. The key stat: 40-80% of outages = human error, and automation directly addresses this.",
+    },
+    micro: [
+      { id: "6.1.a.1", term: "Automation reduces human error", def: "40-80% of outages from human error. Automation applies tested templates → fewer typos, misconfigs.", weight: "high" },
+      { id: "6.1.a.2", term: "Key automation benefits",      def: "Speed, consistency, scalability, self-healing, reduced errors. Test emphasizes these.", weight: "high" }
+    ]
   },
 
   "6.1.b": {
@@ -1353,8 +1357,12 @@ window.subtopicContentD56 = {
       memory: "Manual = hours per device. Automated = seconds per device. At 500 devices, the math is brutal. ZTP = Zero-Touch Provisioning: plug it in, boot it up, config appears automatically. No SSH, no console, no engineer on site.",
       practice: "Research Cisco ZTP and PnP (Plug and Play). Understand the flow: new device → DHCP → downloads config → operational. No human touch. This is the gold standard for provisioning at scale.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 60-62. Wendell Odom OCG Chapter 19-20. Speed and ZTP are key automation benefits. The exam frames it as 'what does automation improve for deployment?' = speed, consistency, scale."
-    }
+      meta: "Jeremy's IT Lab Day 60-62. Wendell Odom OCG Chapter 19-20. Speed and ZTP are key automation benefits. The exam frames it as 'what does automation improve for deployment?' = speed, consistency, scale.",
+    },
+    micro: [
+      { id: "6.1.b.1", term: "Automation speed benefit",     def: "Deploy 100 switches in minutes instead of days. Push config changes across fleet in seconds.", weight: "high" },
+      { id: "6.1.b.2", term: "ZTP (Zero-Touch Provisioning)", def: "Plug in new device → it auto-fetches its config from the network. No manual staging.", weight: "high" }
+    ]
   },
 
   "6.1.c": {
@@ -1364,8 +1372,12 @@ window.subtopicContentD56 = {
       memory: "Without automation: 10 devices = 1 engineer. 10,000 = need 1,000 engineers. With automation: 10,000 devices = 1 engineer + good playbooks. Automation makes the effort FLAT, not proportional to device count.",
       practice: "Thought experiment: change the NTP server on every network device in a 500-device network. Manually: ~50 hours (6+ min/device). Ansible: 5 minutes (one playbook, parallel execution). That's the scalability argument.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 60-62. Wendell Odom OCG Chapter 19-20. Scalability is automation's strongest argument for enterprise networks. The exam asks 'what benefit for growing networks?' = scalability."
-    }
+      meta: "Jeremy's IT Lab Day 60-62. Wendell Odom OCG Chapter 19-20. Scalability is automation's strongest argument for enterprise networks. The exam asks 'what benefit for growing networks?' = scalability.",
+    },
+    micro: [
+      { id: "6.1.c.1", term: "Scalability benefit",          def: "Same effort to manage 1,000 devices as 10. One template applies to entire fleet.", weight: "high" },
+      { id: "6.1.c.2", term: "Linear vs sub-linear growth",  def: "Manual ops scale linearly with devices. Automation scales sub-linearly — more devices, minimal extra effort.", weight: "med" }
+    ]
   },
 
   "6.1.d": {
@@ -1375,8 +1387,13 @@ window.subtopicContentD56 = {
       memory: "Consistency = every device configured identically (golden templates). Compliance = you can PROVE it (automated audits). Drift detection = catching unauthorized changes automatically. Templates + audits = consistency + compliance.",
       practice: "Design a compliance automation concept: 1) Define golden template. 2) Pull running-config from all devices nightly. 3) Compare against template. 4) Report differences. 5) Auto-remediate or alert. This is real-world network automation.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 60-62. Wendell Odom OCG Chapter 19-20. Consistency is a key exam benefit. Know: templates ensure identical configs, drift detection catches unauthorized changes, compliance is provable."
-    }
+      meta: "Jeremy's IT Lab Day 60-62. Wendell Odom OCG Chapter 19-20. Consistency is a key exam benefit. Know: templates ensure identical configs, drift detection catches unauthorized changes, compliance is provable.",
+    },
+    micro: [
+      { id: "6.1.d.1", term: "Consistency via templates",    def: "Same template → identical configs across devices. Eliminates 'snowflake' devices with unique tweaks.", weight: "high" },
+      { id: "6.1.d.2", term: "Configuration drift",          def: "Devices gradually differ from intended config. Automation detects drift and re-aligns to template.", weight: "high" },
+      { id: "6.1.d.3", term: "Compliance provability",       def: "Automation tools log exactly what config each device has at any time. Easy to prove compliance.", weight: "med" }
+    ]
   },
 
   "6.1.e": {
@@ -1386,8 +1403,13 @@ window.subtopicContentD56 = {
       memory: "Self-healing = the network is its own doctor. Detect (syslog/SNMP/telemetry) → Diagnose (correlate events) → Fix (run remediation script) → Notify (alert the team). Goal: MTTR from hours to seconds.",
       practice: "Design a self-healing scenario: link down → syslog EEM trigger → script activates backup path → notification to Slack/email. Map the complete automation chain from detection to resolution.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 60-62. Wendell Odom OCG Chapter 19-20. Self-healing is a newer exam concept. Know: event-driven automation detects and fixes issues without human intervention. MTTR reduction is the key metric."
-    }
+      meta: "Jeremy's IT Lab Day 60-62. Wendell Odom OCG Chapter 19-20. Self-healing is a newer exam concept. Know: event-driven automation detects and fixes issues without human intervention. MTTR reduction is the key metric.",
+    },
+    micro: [
+      { id: "6.1.e.1", term: "Self-healing networks",        def: "Event-driven automation. Detects issues (interface down, congestion) and auto-remediates without human.", weight: "high" },
+      { id: "6.1.e.2", term: "MTTR reduction",               def: "Mean Time To Recovery. Automation cuts MTTR from hours to minutes/seconds.", weight: "med" },
+      { id: "6.1.e.3", term: "Example auto-remediation",     def: "Link down → automation reroutes + opens ticket. High CPU → script kills runaway process.", weight: "med" }
+    ]
   },
 
   // ── 6.2 Compare traditional vs controller-based networking ────
@@ -1399,8 +1421,13 @@ window.subtopicContentD56 = {
       memory: "Traditional = every device is its own boss. Like a company with no manager — each employee decides independently. Works for small teams, chaos at scale. Config changes = N devices = N SSH sessions.",
       practice: "List management challenges of a 500-device traditional network: config consistency across devices, change windows requiring per-device SSH, troubleshooting flows across 10 hops, no single source of truth. This motivates why SDN exists.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 60 (SDN). Wendell Odom OCG Chapter 17. Traditional = distributed, CLI, per-device. SDN = centralized, API, controller-managed. The exam contrasts these two architectures heavily."
-    }
+      meta: "Jeremy's IT Lab Day 60 (SDN). Wendell Odom OCG Chapter 17. Traditional = distributed, CLI, per-device. SDN = centralized, API, controller-managed. The exam contrasts these two architectures heavily.",
+    },
+    micro: [
+      { id: "6.2.a.1", term: "Traditional networking",       def: "Distributed control plane. Each device independently runs routing/STP. CLI per-device config. Manual.", weight: "high" },
+      { id: "6.2.a.2", term: "SDN / controller-based",       def: "Centralized control plane. Controller pushes config to devices. API-driven. Policy-based.", weight: "high" },
+      { id: "6.2.a.3", term: "Contrast table",               def: "Traditional: per-device CLI, distributed. SDN: centralized controller, APIs, single pane of glass.", weight: "high" }
+    ]
   },
 
   "6.2.b": {
@@ -1410,8 +1437,13 @@ window.subtopicContentD56 = {
       memory: "SDN = the BRAIN (controller) tells the HANDS (switches) what to do. The brain sees the whole body (network-wide view); each hand only knows its own fingers (local forwarding). Centralized intelligence + distributed forwarding.",
       practice: "Draw the three-layer SDN architecture: Application Layer (top) → Controller Layer (middle) → Infrastructure Layer (bottom). Label northbound APIs (apps → controller) and southbound APIs (controller → devices). This diagram appears on the exam.",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 60. Wendell Odom OCG Chapter 17. The exam heavily tests SDN architecture. Controller = centralized control plane. Devices = data plane. Communication = southbound APIs (OpenFlow, NETCONF)."
-    }
+      meta: "Jeremy's IT Lab Day 60. Wendell Odom OCG Chapter 17. The exam heavily tests SDN architecture. Controller = centralized control plane. Devices = data plane. Communication = southbound APIs (OpenFlow, NETCONF).",
+    },
+    micro: [
+      { id: "6.2.b.1", term: "SDN controller",               def: "Centralized brain. Hosts control plane logic. Pushes forwarding info to devices via southbound APIs.", weight: "high" },
+      { id: "6.2.b.2", term: "Data plane (devices)",         def: "Switches/routers in SDN only forward traffic. No local control decisions.", weight: "high" },
+      { id: "6.2.b.3", term: "Southbound APIs",              def: "Controller → devices. Examples: OpenFlow, NETCONF, RESTCONF. Push config and forwarding rules.", weight: "high" }
+    ]
   },
 
   "6.2.c": {
@@ -1421,8 +1453,12 @@ window.subtopicContentD56 = {
       memory: "Single pane of glass = one window to see EVERYTHING. No more SSH into 50 devices to troubleshoot one flow. The controller sees the whole network at once. Intent-based = tell it WHAT you want, not HOW.",
       practice: "If you've used Meraki, DNA Center, or UniFi, recall the dashboard experience — full network visibility from one screen. Compare to logging into 20 individual switches via SSH to track one packet flow. That contrast IS the exam answer.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 60. Wendell Odom OCG Chapter 17. 'Single pane of glass' is THE SDN buzzword. Know it. Also know: intent-based networking = describe desired state, controller implements it."
-    }
+      meta: "Jeremy's IT Lab Day 60. Wendell Odom OCG Chapter 17. 'Single pane of glass' is THE SDN buzzword. Know it. Also know: intent-based networking = describe desired state, controller implements it.",
+    },
+    micro: [
+      { id: "6.2.c.1", term: "Single pane of glass",         def: "One dashboard manages all devices. Replaces SSH-ing to each device individually. SDN buzzword.", weight: "high" },
+      { id: "6.2.c.2", term: "Intent-Based Networking (IBN)", def: "Describe DESIRED state (intent) → controller translates to device config. Declarative, not procedural.", weight: "high" }
+    ]
   },
 
   "6.2.d": {
@@ -1432,8 +1468,13 @@ window.subtopicContentD56 = {
       memory: "DNA Center = Cisco's SDN controller for campus. Four pillars: DPPA — Design, Policy, Provision, Assurance. Intent-based = tell it WHAT you want, not HOW. Uses REST APIs + NETCONF/YANG. Integrates with ISE.",
       practice: "Access the free Cisco DevNet Sandbox (devnetsandbox.cisco.com) to explore DNA Center's GUI. Navigate the four workflow areas: Design, Policy, Provision, Assurance. Know what lives in each section.",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 60. Wendell Odom OCG Chapter 17. DNA Center is testable on the CCNA. Know: intent-based, four pillars (DPPA), REST APIs, SD-Access for segmentation. Conceptual knowledge only — no configuration."
-    }
+      meta: "Jeremy's IT Lab Day 60. Wendell Odom OCG Chapter 17. DNA Center is testable on the CCNA. Know: intent-based, four pillars (DPPA), REST APIs, SD-Access for segmentation. Conceptual knowledge only — no configuration.",
+    },
+    micro: [
+      { id: "6.2.d.1", term: "DNA Center / Catalyst Center", def: "Cisco's IBN platform. Network-wide controller (not just wireless). On-prem, manages wired + wireless.", weight: "high" },
+      { id: "6.2.d.2", term: "DPPA four pillars",            def: "Design, Policy, Provision, Assurance. Memorize the acronym.", weight: "high" },
+      { id: "6.2.d.3", term: "REST APIs",                    def: "DNA Center exposes REST APIs for automation. Integrates with external systems via HTTPS/JSON.", weight: "med" }
+    ]
   },
 
   // ── 6.3 Describe SDN architecture ─────────────────────────────
@@ -1445,8 +1486,13 @@ window.subtopicContentD56 = {
       memory: "Control plane = the GPS telling you where to turn (decisions). Data plane = your legs doing the walking (forwarding). Management plane = the settings app on the GPS. SDN = one centralized GPS for everyone.",
       practice: "List 3 functions per plane: Control = routing decisions, path computation, ACL logic. Data = packet forwarding, encapsulation, QoS queuing. Management = SSH, SNMP, syslog. Know which plane owns each function.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 60. Wendell Odom OCG Chapter 17. THE foundational SDN concept. Exam question: 'What does SDN separate?' = control plane from data plane. Control = centralized. Data = distributed."
-    }
+      meta: "Jeremy's IT Lab Day 60. Wendell Odom OCG Chapter 17. THE foundational SDN concept. Exam question: 'What does SDN separate?' = control plane from data plane. Control = centralized. Data = distributed.",
+    },
+    micro: [
+      { id: "6.3.a.1", term: "Control plane vs data plane",  def: "Control = routing decisions (who to send where). Data = actual packet forwarding. SDN separates them.", weight: "high" },
+      { id: "6.3.a.2", term: "SDN separation",               def: "Traditional: each device has both. SDN: control centralized on controller, data stays distributed on devices.", weight: "high" },
+      { id: "6.3.a.3", term: "Management plane",             def: "Third plane. Config, monitoring. SSH, SNMP, NETCONF live here.", weight: "med" }
+    ]
   },
 
   "6.3.b": {
@@ -1456,8 +1502,13 @@ window.subtopicContentD56 = {
       memory: "Northbound = UP to APPS (North on a map = up). Southbound = DOWN to DEVICES (South = down). NBIs = REST APIs (JSON). SBIs = OpenFlow, NETCONF, RESTCONF. Draw the sandwich: Apps | Controller | Devices.",
       practice: "Draw the three-layer SDN diagram from memory. Top: Application Layer (business apps). Middle: Controller (SDN brain). Bottom: Infrastructure (switches/routers). Label NBI (REST, up arrow) and SBI (OpenFlow/NETCONF, down arrow).",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 60. Wendell Odom OCG Chapter 17. Northbound vs Southbound is a guaranteed exam question. North = apps (REST APIs). South = devices (OpenFlow, NETCONF, RESTCONF). Draw the diagram once."
-    }
+      meta: "Jeremy's IT Lab Day 60. Wendell Odom OCG Chapter 17. Northbound vs Southbound is a guaranteed exam question. North = apps (REST APIs). South = devices (OpenFlow, NETCONF, RESTCONF). Draw the diagram once.",
+    },
+    micro: [
+      { id: "6.3.b.1", term: "Northbound APIs",              def: "Controller ↔ applications. REST APIs typically. Apps use these to program the network.", weight: "high" },
+      { id: "6.3.b.2", term: "Southbound APIs",              def: "Controller ↔ devices. OpenFlow, NETCONF, RESTCONF. Push device config and rules.", weight: "high" },
+      { id: "6.3.b.3", term: "North vs South memory trick",  def: "Apps are 'up top' (north), devices are 'below' (south). Controller in the middle.", weight: "high" }
+    ]
   },
 
   "6.3.c": {
@@ -1467,8 +1518,13 @@ window.subtopicContentD56 = {
       memory: "Underlay = the ROAD (physical infrastructure — switches, cables, IP routing). Overlay = the LANES painted on the road (virtual networks). You need the road (underlay) before you can paint lanes (overlay).",
       practice: "Think of your home network: physical switches and cables = underlay. VLANs running on top = simple overlay. VXLAN in a data center = advanced overlay. The concept scales from small to massive networks.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 60. Wendell Odom OCG Chapter 17. Underlay = physical. Overlay = virtual. Fabric = both together. Three definitions to memorize for the exam."
-    }
+      meta: "Jeremy's IT Lab Day 60. Wendell Odom OCG Chapter 17. Underlay = physical. Overlay = virtual. Fabric = both together. Three definitions to memorize for the exam.",
+    },
+    micro: [
+      { id: "6.3.c.1", term: "Underlay network",             def: "Physical network. Actual devices, links, routing protocols. Foundation.", weight: "high" },
+      { id: "6.3.c.2", term: "Overlay network",              def: "Virtual network built on top of underlay. VXLAN tunnels. Logically independent from physical paths.", weight: "high" },
+      { id: "6.3.c.3", term: "Fabric",                       def: "Underlay + overlay together. Integrated programmable network. SD-Access, ACI, etc.", weight: "high" }
+    ]
   },
 
   "6.3.d": {
@@ -1478,8 +1534,13 @@ window.subtopicContentD56 = {
       memory: "VXLAN = VLAN eXtended. 24-bit VNI = 16 million virtual networks (vs VLAN's 4,096 with 12-bit ID). L2 over L3 encapsulation. UDP port 4789. VTEPs = tunnel endpoints.",
       practice: "Compare: VLAN (12-bit ID → 4,096 max, L2 only, same broadcast domain required) vs VXLAN (24-bit VNI → 16M max, L2 over L3, works across routers). Know why data centers need VXLAN's scale.",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 60. Wendell Odom OCG Chapter 17. VXLAN is THE overlay technology for the exam. Know: 24-bit VNI, 16 million segments, L2 over L3, UDP 4789. Compare to VLAN's 4,096."
-    }
+      meta: "Jeremy's IT Lab Day 60. Wendell Odom OCG Chapter 17. VXLAN is THE overlay technology for the exam. Know: 24-bit VNI, 16 million segments, L2 over L3, UDP 4789. Compare to VLAN's 4,096.",
+    },
+    micro: [
+      { id: "6.3.d.1", term: "VXLAN",                        def: "Virtual Extensible LAN. L2 frames tunneled over L3 networks. Primary DC overlay technology.", weight: "high" },
+      { id: "6.3.d.2", term: "VNI (VXLAN Network ID)",       def: "24-bit identifier. 16 million segments — vs VLAN's 12-bit / 4094. Massive scale.", weight: "high" },
+      { id: "6.3.d.3", term: "VXLAN UDP 4789",               def: "VXLAN encapsulates in UDP 4789. Travels over any L3 infrastructure.", weight: "high" }
+    ]
   },
 
   "6.3.e": {
@@ -1489,8 +1550,13 @@ window.subtopicContentD56 = {
       memory: "Fabric = Underlay + Overlay = the WHOLE system. Like fabric in clothing — threads (underlay) woven into unified cloth (fabric). SD-Access = IS-IS (routing) + VXLAN (overlay) + LISP (mapping) + CTS/SGT (segmentation).",
       practice: "Name the four SD-Access components and their roles: IS-IS (underlay routing), VXLAN (overlay encapsulation), LISP (endpoint discovery/mobility), CTS/SGT (group-based segmentation). Know each role.",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 60. Wendell Odom OCG Chapter 17. Fabric = underlay + overlay combined. SD-Access = IS-IS + VXLAN + LISP + CTS. You won't configure it but must describe the components and their roles."
-    }
+      meta: "Jeremy's IT Lab Day 60. Wendell Odom OCG Chapter 17. Fabric = underlay + overlay combined. SD-Access = IS-IS + VXLAN + LISP + CTS. You won't configure it but must describe the components and their roles.",
+    },
+    micro: [
+      { id: "6.3.e.1", term: "SD-Access fabric",             def: "Cisco campus fabric. Underlay = IS-IS. Overlay = VXLAN. Control plane = LISP. Policy = CTS/SGTs.", weight: "high" },
+      { id: "6.3.e.2", term: "LISP (in SDA)",                def: "Locator/ID Separation Protocol. Tracks endpoint-to-location mapping. Enables mobility without readdressing.", weight: "med" },
+      { id: "6.3.e.3", term: "CTS / SGTs",                   def: "Cisco TrustSec with Scalable Group Tags. Policy based on user/device group, not IP. Microsegmentation.", weight: "med" }
+    ]
   },
 
   // ── 6.4 Explain AI and ML in network operations ───────────────
@@ -1502,8 +1568,12 @@ window.subtopicContentD56 = {
       memory: "Generative AI = tell it WHAT you want in plain English, it GENERATES the config. Like a translator between human intent and CLI syntax. But always VERIFY the output — AI can hallucinate wrong configs.",
       practice: "Try describing an ACL requirement to an AI assistant: 'Block Telnet from 10.0.0.0/24 to server 192.168.1.100 but allow SSH.' Compare the generated config to what you'd write manually. Note any errors.",
       effort: "low",
-      meta: "Jeremy's IT Lab may cover this in updated content. Wendell Odom OCG Chapter 17 (updated editions). New CCNA v1.1 topic. Conceptual understanding only — what generative AI does for networking, not how AI works internally."
-    }
+      meta: "Jeremy's IT Lab may cover this in updated content. Wendell Odom OCG Chapter 17 (updated editions). New CCNA v1.1 topic. Conceptual understanding only — what generative AI does for networking, not how AI works internally.",
+    },
+    micro: [
+      { id: "6.4.a.1", term: "Generative AI in networking",  def: "AI that CREATES output — configs, summaries, troubleshooting suggestions. ChatGPT-style assistance for netops.", weight: "high" },
+      { id: "6.4.a.2", term: "Gen-AI use cases",             def: "Config generation from natural language, log summarization, incident triage, documentation.", weight: "med" }
+    ]
   },
 
   "6.4.b": {
@@ -1513,8 +1583,13 @@ window.subtopicContentD56 = {
       memory: "Predictive AI = a weather forecast for your network. It looks at historical patterns and predicts storms (failures) before they hit. Reactive = fix after crash. Proactive = fix before crash. Generative = creates. Predictive = forecasts.",
       practice: "List 3 things predictive AI could detect: 1) Switch CPU slowly climbing toward 100% (capacity). 2) Interface CRC errors increasing weekly (hardware failing). 3) Unusual DNS traffic from one host at 3 AM (security breach). All caught before they become outages.",
       effort: "low",
-      meta: "Jeremy's IT Lab (updated content). Wendell Odom OCG Chapter 17. The exam tests: predictive AI = forecasting + anomaly detection + proactive operations. Know the difference: predictive (forecasts) vs generative (creates)."
-    }
+      meta: "Jeremy's IT Lab (updated content). Wendell Odom OCG Chapter 17. The exam tests: predictive AI = forecasting + anomaly detection + proactive operations. Know the difference: predictive (forecasts) vs generative (creates).",
+    },
+    micro: [
+      { id: "6.4.b.1", term: "Predictive AI",                def: "AI that FORECASTS — detects anomalies, predicts failures, trends traffic. Proactive ops.", weight: "high" },
+      { id: "6.4.b.2", term: "Generative vs Predictive",     def: "Generative CREATES (content). Predictive FORECASTS (outcomes/anomalies). Different use cases.", weight: "high" },
+      { id: "6.4.b.3", term: "Anomaly detection",            def: "ML detects patterns that deviate from baseline. Catches zero-day attacks, hardware degradation.", weight: "med" }
+    ]
   },
 
   "6.4.c": {
@@ -1524,8 +1599,12 @@ window.subtopicContentD56 = {
       memory: "ML monitoring LEARNS what 'normal' looks like for each device at each time. Static thresholds are dumb — same number 24/7. ML says 'this is unusual FOR THIS TIME.' 85% at 9 AM = fine. 85% at 3 AM = problem.",
       practice: "Thought experiment: web server CPU. Static alert at 80%. Result: alerts every Monday at 9 AM (normal login spike) but misses a 50% anomaly at midnight (unusual). ML baseline catches the midnight anomaly and ignores the Monday spike.",
       effort: "low",
-      meta: "Jeremy's IT Lab (updated content). Wendell Odom OCG Chapter 17. The exam tests ML baselines vs static thresholds. ML adapts to patterns and detects contextual anomalies. Cisco DNA Center Assurance is the concrete example."
-    }
+      meta: "Jeremy's IT Lab (updated content). Wendell Odom OCG Chapter 17. The exam tests ML baselines vs static thresholds. ML adapts to patterns and detects contextual anomalies. Cisco DNA Center Assurance is the concrete example.",
+    },
+    micro: [
+      { id: "6.4.c.1", term: "ML-based baselines",           def: "Learns normal patterns over time (daily/weekly/monthly). Adapts. Unlike static 'CPU > 80%' thresholds.", weight: "high" },
+      { id: "6.4.c.2", term: "Cisco DNA Center Assurance",   def: "ML-driven monitoring. Detects anomalies, suggests root causes, flags degradation before failure.", weight: "high" }
+    ]
   },
 
   "6.4.d": {
@@ -1535,8 +1614,13 @@ window.subtopicContentD56 = {
       memory: "AIOps = AI that does what a NOC team does: correlate 1000 alerts → find 1 root cause → suggest the fix. Turns hours of troubleshooting into seconds of analysis. Cisco DNA Center Assurance is the real-world example.",
       practice: "Scenario: switch fails → 200 SNMP traps + 50 syslog messages + 30 client complaints. Manual NOC: 2 hours to identify root cause. AIOps: 30 seconds to correlate, identify failed switch, and suggest failover. That's the value.",
       effort: "low",
-      meta: "Jeremy's IT Lab (updated content). Wendell Odom OCG Chapter 17. AIOps = event correlation + automated root cause analysis + remediation. Know: Cisco DNA Center Assurance as the concrete example."
-    }
+      meta: "Jeremy's IT Lab (updated content). Wendell Odom OCG Chapter 17. AIOps = event correlation + automated root cause analysis + remediation. Know: Cisco DNA Center Assurance as the concrete example.",
+    },
+    micro: [
+      { id: "6.4.d.1", term: "AIOps",                        def: "AI for IT Operations. Event correlation across many sources → automated root-cause analysis → remediation.", weight: "high" },
+      { id: "6.4.d.2", term: "Event correlation",            def: "Connects seemingly unrelated events to find true cause. Dozens of alarms → one root problem.", weight: "high" },
+      { id: "6.4.d.3", term: "Automated root cause",         def: "AIOps doesn't just alert — it tells you WHY. 'Link X down caused 47 downstream alarms'.", weight: "med" }
+    ]
   },
 
   // ── 6.5 Describe REST-based APIs ──────────────────────────────
@@ -1548,8 +1632,14 @@ window.subtopicContentD56 = {
       memory: "REST = Stateless + URI + HTTP verbs + JSON. Each request is INDEPENDENT — the server has amnesia between requests. Everything the server needs is in the request itself. URIs identify resources, HTTP verbs define actions.",
       practice: "Use curl or Postman to hit a public REST API (jsonplaceholder.typicode.com). Make GET, POST, PUT, DELETE requests. See how URIs identify resources and verbs define operations.",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 62 (REST APIs). Wendell Odom OCG Chapter 18. REST principles are heavily tested. Know: stateless, client-server, URI-based resources, HTTP verbs. Exam question: 'what makes an API RESTful?'"
-    }
+      meta: "Jeremy's IT Lab Day 62 (REST APIs). Wendell Odom OCG Chapter 18. REST principles are heavily tested. Know: stateless, client-server, URI-based resources, HTTP verbs. Exam question: 'what makes an API RESTful?'",
+    },
+    micro: [
+      { id: "6.5.a.1", term: "REST",                         def: "REpresentational State Transfer. Architecture style for APIs. Uses HTTP methods + URIs + JSON/XML.", weight: "high" },
+      { id: "6.5.a.2", term: "Stateless",                    def: "Each request contains all info needed. Server doesn't store client session between requests.", weight: "high" },
+      { id: "6.5.a.3", term: "Client-server",                def: "Separation of concerns. Client handles UI; server handles data and logic. Independent evolution.", weight: "high" },
+      { id: "6.5.a.4", term: "URI-based resources",          def: "Each resource has a unique URI. /api/v1/devices/42 represents device ID 42. Nouns, not verbs.", weight: "high" }
+    ]
   },
 
   "6.5.b": {
@@ -1559,8 +1649,15 @@ window.subtopicContentD56 = {
       memory: "CRUD = Create-Read-Update-Delete. HTTP = POST-GET-PUT-DELETE. Mnemonic: POST Creates, GET Reads, PUT Updates, DELETE Deletes. PGPD matches CRUD. GET is safe (read-only). POST is not idempotent (creates duplicates).",
       practice: "Build a mental table: <code>GET /devices</code> = list all. <code>GET /devices/5</code> = read one. <code>POST /devices</code> = create new. <code>PUT /devices/5</code> = replace entirely. <code>PATCH /devices/5</code> = modify fields. <code>DELETE /devices/5</code> = remove.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 62. Wendell Odom OCG Chapter 18. The CRUD-to-HTTP mapping is GUARANTEED on the exam. Memorize cold: POST=Create, GET=Read, PUT/PATCH=Update, DELETE=Delete."
-    }
+      meta: "Jeremy's IT Lab Day 62. Wendell Odom OCG Chapter 18. The CRUD-to-HTTP mapping is GUARANTEED on the exam. Memorize cold: POST=Create, GET=Read, PUT/PATCH=Update, DELETE=Delete.",
+    },
+    micro: [
+      { id: "6.5.b.1", term: "POST = Create",                def: "Add a new resource. 'POST /devices' creates a device. Server assigns ID.", weight: "high" },
+      { id: "6.5.b.2", term: "GET = Read",                   def: "Retrieve resource(s). 'GET /devices' lists all. 'GET /devices/42' gets one. Read-only, no side effects.", weight: "high" },
+      { id: "6.5.b.3", term: "PUT = Update (full)",          def: "Replace an existing resource entirely. 'PUT /devices/42' overwrites device 42.", weight: "high" },
+      { id: "6.5.b.4", term: "PATCH = Update (partial)",     def: "Modify specific fields. 'PATCH /devices/42' updates only the specified attributes.", weight: "high" },
+      { id: "6.5.b.5", term: "DELETE = Delete",              def: "Remove resource. 'DELETE /devices/42' destroys the device entry.", weight: "high" }
+    ]
   },
 
   "6.5.c": {
@@ -1570,8 +1667,18 @@ window.subtopicContentD56 = {
       memory: "2xx = success (Too good). 4xx = YOUR fault (client error — FOURbidden). 5xx = THEIR fault (server error — FIVE alarm fire). Key codes: 200=OK, 201=Created, 400=Bad Request, 401=Unauthorized, 403=Forbidden, 404=Not Found, 500=Server Error.",
       practice: "Use Postman to intentionally trigger different codes: valid GET (200), POST to create (201), malformed JSON body (400), wrong API key (401), non-existent resource (404). See each code in practice.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 62. Wendell Odom OCG Chapter 18. The exam tests specific codes: 200, 201, 400, 401, 403, 404, 500. Know what each means and whether it's client (4xx) or server (5xx) error."
-    }
+      meta: "Jeremy's IT Lab Day 62. Wendell Odom OCG Chapter 18. The exam tests specific codes: 200, 201, 400, 401, 403, 404, 500. Know what each means and whether it's client (4xx) or server (5xx) error.",
+    },
+    micro: [
+      { id: "6.5.c.1", term: "200 OK",                       def: "Success. GET/PUT/DELETE returned what was expected.", weight: "high" },
+      { id: "6.5.c.2", term: "201 Created",                  def: "POST succeeded. New resource was created. Response often includes location header with new URI.", weight: "high" },
+      { id: "6.5.c.3", term: "400 Bad Request",              def: "Client sent malformed request. Syntax or validation error.", weight: "high" },
+      { id: "6.5.c.4", term: "401 Unauthorized",             def: "Missing or invalid credentials. Authentication required.", weight: "high" },
+      { id: "6.5.c.5", term: "403 Forbidden",                def: "Authenticated but NOT authorized. Valid creds but not allowed to access this resource.", weight: "high" },
+      { id: "6.5.c.6", term: "404 Not Found",                def: "Resource doesn't exist at that URI.", weight: "high" },
+      { id: "6.5.c.7", term: "500 Internal Server Error",    def: "Server-side failure. Not client's fault — server bug or crash.", weight: "high" },
+      { id: "6.5.c.8", term: "4xx vs 5xx",                   def: "4xx = CLIENT error (you sent bad request). 5xx = SERVER error (server failed to handle valid request).", weight: "high" }
+    ]
   },
 
   "6.5.d": {
@@ -1581,8 +1688,14 @@ window.subtopicContentD56 = {
       memory: "API Key = library card (simple ID). Bearer Token = security badge (time-limited access). OAuth 2.0 = company SSO (delegated authorization, no password sharing). Complexity and security increase left to right.",
       practice: "Get a free API key from a public API (OpenWeatherMap, GitHub). Make requests with it in the header. Then try a Bearer token with the GitHub API after authenticating. See both in action.",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 62. Wendell Odom OCG Chapter 18. Know what each method is and when to use it. API key = simplest. Bearer token = session-based. OAuth 2.0 = enterprise delegated access."
-    }
+      meta: "Jeremy's IT Lab Day 62. Wendell Odom OCG Chapter 18. Know what each method is and when to use it. API key = simplest. Bearer token = session-based. OAuth 2.0 = enterprise delegated access.",
+    },
+    micro: [
+      { id: "6.5.d.1", term: "API key",                      def: "Static secret string sent in header. Simplest auth. Fine for internal or low-sensitivity APIs.", weight: "high" },
+      { id: "6.5.d.2", term: "Bearer token",                 def: "Token obtained after login, sent in 'Authorization: Bearer [token]' header. Session-based.", weight: "high" },
+      { id: "6.5.d.3", term: "OAuth 2.0",                    def: "Delegated access. User grants limited permissions to third-party apps without sharing password.", weight: "high" },
+      { id: "6.5.d.4", term: "Basic Auth",                   def: "Base64-encoded username:password in header. Not encryption — must be combined with HTTPS. Legacy.", weight: "med" }
+    ]
   },
 
   "6.5.e": {
@@ -1592,8 +1705,14 @@ window.subtopicContentD56 = {
       memory: "JSON = curly braces { }. XML = angle brackets < >. YAML = indentation (no brackets). JSON → REST APIs. XML → NETCONF. YAML → Ansible. See brackets? JSON. See tags? XML. See indentation? YAML.",
       practice: "Write the same data (hostname: SW1, IP: 10.0.0.1, VLANs: 10, 20) in all three formats. JSON: <code>{\"hostname\":\"SW1\"}</code>. XML: <code>&lt;hostname&gt;SW1&lt;/hostname&gt;</code>. YAML: <code>hostname: SW1</code>. Practice identifying format at a glance.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 62. Wendell Odom OCG Chapter 18. The exam focuses heavily on JSON. Also know: XML = NETCONF, YAML = Ansible. Be able to identify format by sight."
-    }
+      meta: "Jeremy's IT Lab Day 62. Wendell Odom OCG Chapter 18. The exam focuses heavily on JSON. Also know: XML = NETCONF, YAML = Ansible. Be able to identify format by sight.",
+    },
+    micro: [
+      { id: "6.5.e.1", term: "JSON",                         def: "JavaScript Object Notation. Most common REST data format. { } for objects, [ ] for arrays.", weight: "high" },
+      { id: "6.5.e.2", term: "XML",                          def: "Extensible Markup Language. Used by NETCONF. Tag-based: <tag>value</tag>. More verbose than JSON.", weight: "high" },
+      { id: "6.5.e.3", term: "YAML",                         def: "YAML Ain't Markup Language. Human-friendly. Used by Ansible playbooks. Indentation-based.", weight: "high" },
+      { id: "6.5.e.4", term: "Identify by sight",            def: "{ } JSON. < /> XML. --- + indented lines = YAML. Exam may show a snippet and ask format.", weight: "high" }
+    ]
   },
 
   "6.5.f": {
@@ -1603,8 +1722,12 @@ window.subtopicContentD56 = {
       memory: "CRUD = the four things you do with data (Create, Read, Update, Delete). REST = how you do them over HTTP (POST, GET, PUT/PATCH, DELETE). Same concept, different vocabulary. URI = which resource. Verb = what action.",
       practice: "Use Postman or curl against jsonplaceholder.typicode.com: <code>POST /posts</code> (create), <code>GET /posts/1</code> (read), <code>PUT /posts/1</code> (update), <code>DELETE /posts/1</code> (delete). See all four CRUD operations in action.",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 62. Wendell Odom OCG Chapter 18. The exam shows API calls and asks 'what CRUD operation is this?' or vice versa. Practice translating both directions instantly."
-    }
+      meta: "Jeremy's IT Lab Day 62. Wendell Odom OCG Chapter 18. The exam shows API calls and asks 'what CRUD operation is this?' or vice versa. Practice translating both directions instantly.",
+    },
+    micro: [
+      { id: "6.5.f.1", term: "API call format",              def: "HTTP verb + URI + headers + body. Example: 'POST /api/devices' + JSON body = create a device.", weight: "high" },
+      { id: "6.5.f.2", term: "CRUD ↔ HTTP mapping drill",    def: "Given 'PUT /devices/42' → Update. Given 'Create a device' → POST /devices. Practice both directions.", weight: "high" }
+    ]
   },
 
   // ── 6.6 Recognize configuration management ────────────────────
@@ -1616,8 +1739,14 @@ window.subtopicContentD56 = {
       memory: "Ansible = Agentless + SSH + YAML + Push + Idempotent. No agents on devices, just SSH in and configure. YAML playbooks = recipes anyone can read. Run twice = same result (idempotent).",
       practice: "Use the Cisco DevNet Sandbox or install Ansible locally. Write a playbook that sets the hostname on a network device. Run it twice and verify idempotency — second run shows 'ok' (no changes).",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 61-62 (Ansible). Wendell Odom OCG Chapter 19-20. Ansible is THE most tested config management tool. Know: agentless, SSH, YAML, push model, idempotent. Compare against Puppet/Chef (agent-based, pull)."
-    }
+      meta: "Jeremy's IT Lab Day 61-62 (Ansible). Wendell Odom OCG Chapter 19-20. Ansible is THE most tested config management tool. Know: agentless, SSH, YAML, push model, idempotent. Compare against Puppet/Chef (agent-based, pull).",
+    },
+    micro: [
+      { id: "6.6.a.1", term: "Ansible",                      def: "Config management tool. AGENTLESS (uses SSH). YAML playbooks. PUSH model. Idempotent.", weight: "high" },
+      { id: "6.6.a.2", term: "Agentless",                    def: "No software installed on managed devices. Uses SSH/WinRM. Network-friendly.", weight: "high" },
+      { id: "6.6.a.3", term: "Idempotent",                   def: "Running a playbook multiple times produces the same result. Safe to re-run.", weight: "high" },
+      { id: "6.6.a.4", term: "Ansible vs Puppet/Chef",       def: "Ansible = agentless, push, YAML. Puppet/Chef = agent-based, pull, Ruby DSL.", weight: "high" }
+    ]
   },
 
   "6.6.b": {
@@ -1627,8 +1756,14 @@ window.subtopicContentD56 = {
       memory: "IPMRT: Inventory (who to configure), Playbooks (what to do), Modules (how to do it), Roles (reusable packages), Templates (device-specific configs). Inventory = guest list. Playbooks = instructions. Modules = tools.",
       practice: "Create an Ansible directory: inventory file (3 devices in 2 groups), a playbook with 2 tasks using <code>ios_command</code> module. Run <code>ansible-playbook -i inventory playbook.yml</code>. See how components connect.",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 61-62. Wendell Odom OCG Chapter 19-20. The exam tests component definitions: inventory = device list, playbook = task sequence, module = action unit, role = reusable bundle."
-    }
+      meta: "Jeremy's IT Lab Day 61-62. Wendell Odom OCG Chapter 19-20. The exam tests component definitions: inventory = device list, playbook = task sequence, module = action unit, role = reusable bundle.",
+    },
+    micro: [
+      { id: "6.6.b.1", term: "Inventory",                    def: "List of managed devices. Can be static file or dynamic (cloud API). Groups devices by role/env.", weight: "high" },
+      { id: "6.6.b.2", term: "Playbook",                     def: "YAML file defining a sequence of tasks to run against devices. The 'what to do'.", weight: "high" },
+      { id: "6.6.b.3", term: "Module",                       def: "Individual action (install package, copy file, run command). Playbooks call modules.", weight: "high" },
+      { id: "6.6.b.4", term: "Role",                         def: "Reusable bundle of tasks/files/templates. 'role: webserver' applies all web-related config.", weight: "med" }
+    ]
   },
 
   "6.6.c": {
@@ -1638,8 +1773,14 @@ window.subtopicContentD56 = {
       memory: "Terraform = the ARCHITECT that builds the building (infrastructure). Ansible = the ELECTRICIAN that wires it (configuration). Terraform CREATES resources; Ansible CONFIGURES them. Complementary, not competing.",
       practice: "Read a simple Terraform HCL file that creates a cloud VM. Compare to an Ansible playbook that configures a switch. See the difference: provisioning (Terraform) vs configuration (Ansible).",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 62. Wendell Odom OCG Chapter 19-20. Terraform vs Ansible: Terraform = create/destroy infrastructure (IaC, declarative, state file). Ansible = configure existing devices (agentless, procedural, SSH)."
-    }
+      meta: "Jeremy's IT Lab Day 62. Wendell Odom OCG Chapter 19-20. Terraform vs Ansible: Terraform = create/destroy infrastructure (IaC, declarative, state file). Ansible = configure existing devices (agentless, procedural, SSH).",
+    },
+    micro: [
+      { id: "6.6.c.1", term: "Terraform",                    def: "Infrastructure as Code tool. CREATES/DESTROYS cloud resources. HCL language. Declarative. Maintains state file.", weight: "high" },
+      { id: "6.6.c.2", term: "IaC (Infrastructure as Code)", def: "Define infrastructure in code files. Version-controlled, repeatable, reviewable. Terraform is the canonical IaC tool.", weight: "high" },
+      { id: "6.6.c.3", term: "State file (Terraform)",       def: "Tracks what resources Terraform manages. Required to plan and apply changes correctly.", weight: "med" },
+      { id: "6.6.c.4", term: "Declarative vs procedural",    def: "Declarative (Terraform): describe end state. Procedural (Ansible): describe steps to reach state.", weight: "high" }
+    ]
   },
 
   "6.6.d": {
@@ -1649,8 +1790,14 @@ window.subtopicContentD56 = {
       memory: "Init, Plan, Apply, Destroy = IPAD. Init = download plugins. Plan = dry run (preview). Apply = execute changes. Destroy = tear it all down. ALWAYS plan before apply — the plan is your safety net.",
       practice: "Walk through the workflow: <code>terraform init</code> (setup) → <code>terraform plan</code> (see what will change) → <code>terraform apply</code> (make it happen) → <code>terraform destroy</code> (clean up). Know the four stages in order.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 62. Wendell Odom OCG Chapter 19-20. The four Terraform stages in order: init → plan → apply → destroy. Plan is the safety net — always review before apply."
-    }
+      meta: "Jeremy's IT Lab Day 62. Wendell Odom OCG Chapter 19-20. The four Terraform stages in order: init → plan → apply → destroy. Plan is the safety net — always review before apply.",
+    },
+    micro: [
+      { id: "6.6.d.1", term: "terraform init",               def: "Initialize working directory. Downloads provider plugins. First command you run.", weight: "high" },
+      { id: "6.6.d.2", term: "terraform plan",               def: "Preview changes. Shows what Terraform WOULD do. Safety net — always review before apply.", weight: "high" },
+      { id: "6.6.d.3", term: "terraform apply",              def: "Execute the plan. Creates/modifies/destroys resources to match config.", weight: "high" },
+      { id: "6.6.d.4", term: "terraform destroy",            def: "Tear down all managed resources. Useful for test environments. Irreversible.", weight: "high" }
+    ]
   },
 
   "6.6.e": {
@@ -1660,8 +1807,12 @@ window.subtopicContentD56 = {
       memory: "Terraform BUILDS the house (infrastructure). Ansible FURNISHES it (configuration). Use both together: Terraform creates VMs → Ansible configures them. Infrastructure creation = Terraform. Device config = Ansible.",
       practice: "Scenario drill: 'Deploy 50 VMs in AWS' = Terraform. 'Configure OSPF on 50 routers' = Ansible. 'Create a VPC with subnets' = Terraform. 'Push ACLs to switches' = Ansible. 'Destroy a test environment' = Terraform.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 62. Wendell Odom OCG Chapter 19-20. The exam gives scenarios and asks which tool. Infrastructure creation = Terraform. Device configuration = Ansible. They're complementary, not competing."
-    }
+      meta: "Jeremy's IT Lab Day 62. Wendell Odom OCG Chapter 19-20. The exam gives scenarios and asks which tool. Infrastructure creation = Terraform. Device configuration = Ansible. They're complementary, not competing.",
+    },
+    micro: [
+      { id: "6.6.e.1", term: "Tool selection scenario",      def: "Create VMs, VPCs, cloud infra → Terraform. Configure existing routers/servers → Ansible.", weight: "high" },
+      { id: "6.6.e.2", term: "Complementary use",            def: "Real workflow: Terraform creates VMs → Ansible configures them. Each tool's strength.", weight: "high" }
+    ]
   },
 
   "6.6.f": {
@@ -1671,8 +1822,13 @@ window.subtopicContentD56 = {
       memory: "Push (Ansible) = YOU send the config on-demand via SSH. Pull (Puppet/Chef) = DEVICE asks for config periodically from server. Ansible = agentless. Puppet/Chef = agent required. Ansible = YAML. Puppet = DSL. Chef = Ruby.",
       practice: "Build a 3-column comparison table from memory: Ansible (agentless, push, SSH, YAML, network-friendly) vs Puppet (agent, pull, DSL, server-focused) vs Chef (agent, pull, Ruby, server-focused). Drill until instant recall.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 61-62. Wendell Odom OCG Chapter 19-20. The exam tests: push vs pull, agent vs agentless. Ansible = agentless push (most popular for networking). Puppet/Chef = agent-based pull (servers)."
-    }
+      meta: "Jeremy's IT Lab Day 61-62. Wendell Odom OCG Chapter 19-20. The exam tests: push vs pull, agent vs agentless. Ansible = agentless push (most popular for networking). Puppet/Chef = agent-based pull (servers).",
+    },
+    micro: [
+      { id: "6.6.f.1", term: "Push model",                   def: "Server pushes config to managed devices on demand. Ansible uses push. Immediate application.", weight: "high" },
+      { id: "6.6.f.2", term: "Pull model",                   def: "Agent on device periodically pulls config from master. Puppet/Chef use pull. Continuous reconciliation.", weight: "high" },
+      { id: "6.6.f.3", term: "Agent vs agentless",           def: "Agent = software running on device. Agentless = remote connection (SSH/WinRM). Ansible is agentless.", weight: "high" }
+    ]
   },
 
   // ── 6.7 Recognize JSON-encoded data ───────────────────────────
@@ -1684,8 +1840,13 @@ window.subtopicContentD56 = {
       memory: "Curly braces { } = Object = key:value pairs. Think of { } as a labeled container. Every key MUST be a string in double quotes. Values can be any JSON type. Commas between pairs, colon between key and value.",
       practice: "Write a JSON object representing a network device: hostname, management IP, model, serial number, VLAN list, enabled status. Validate it at jsonlint.com. Get comfortable with the syntax.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 62. Wendell Odom OCG Chapter 18. The exam shows JSON snippets and asks you to identify objects vs arrays or extract specific values. Practice reading JSON until natural."
-    }
+      meta: "Jeremy's IT Lab Day 62. Wendell Odom OCG Chapter 18. The exam shows JSON snippets and asks you to identify objects vs arrays or extract specific values. Practice reading JSON until natural.",
+    },
+    micro: [
+      { id: "6.7.a.1", term: "JSON structure",               def: "Key-value pairs. Keys in quotes. Values: string, number, boolean, null, object, array.", weight: "high" },
+      { id: "6.7.a.2", term: "JSON object",                  def: "{ } braces. Key-value pairs inside. Example: {\"name\": \"R1\", \"type\": \"router\"}.", weight: "high" },
+      { id: "6.7.a.3", term: "JSON array",                   def: "[ ] brackets. Ordered list of values. Example: [\"R1\", \"R2\", \"R3\"].", weight: "high" }
+    ]
   },
 
   "6.7.b": {
@@ -1695,8 +1856,13 @@ window.subtopicContentD56 = {
       memory: "Square brackets [ ] = Array = ordered list. [ ] looks like a shelf holding items in a row. { } = one thing with properties (object). [ ] = many things in a list (array). See brackets? Identify instantly.",
       practice: "Write a JSON array of 3 device objects: <code>[{\"name\":\"SW1\"},{\"name\":\"SW2\"},{\"name\":\"SW3\"}]</code>. Then a simple VLAN array: <code>[10, 20, 30]</code>. Practice both patterns — arrays of objects are the most common API response format.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 62. Wendell Odom OCG Chapter 18. Instant ID: { } = object, [ ] = array. If the exam shows curly braces, it's an object. Square brackets = array. Know the visual difference cold."
-    }
+      meta: "Jeremy's IT Lab Day 62. Wendell Odom OCG Chapter 18. Instant ID: { } = object, [ ] = array. If the exam shows curly braces, it's an object. Square brackets = array. Know the visual difference cold.",
+    },
+    micro: [
+      { id: "6.7.b.1", term: "{ } = object",                 def: "Curly braces. Collection of unordered key-value pairs. Access by key.", weight: "high" },
+      { id: "6.7.b.2", term: "[ ] = array",                  def: "Square brackets. Ordered list. Access by numeric index (0-based).", weight: "high" },
+      { id: "6.7.b.3", term: "Visual identification",        def: "{ → object. [ → array. First character of snippet tells you the type.", weight: "high" }
+    ]
   },
 
   "6.7.c": {
@@ -1706,8 +1872,13 @@ window.subtopicContentD56 = {
       memory: "6 types: String (quotes), Number (no quotes), Boolean (true/false, lowercase), Null (null, lowercase), Object ({ }), Array ([ ]). No date type, no comments, no single quotes, no capitalized True/False.",
       practice: "Write one JSON document using all 6 types: <code>{\"name\":\"SW1\", \"vlans\":[10,20], \"uptime\":99.5, \"managed\":true, \"location\":null, \"config\":{\"hostname\":\"SW1\"}}</code>. Validate at jsonlint.com.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 62. Wendell Odom OCG Chapter 18. The exam asks 'which is a valid JSON data type?' Know all six. Traps: no 'date' type, no 'undefined,' capitalized True is invalid."
-    }
+      meta: "Jeremy's IT Lab Day 62. Wendell Odom OCG Chapter 18. The exam asks 'which is a valid JSON data type?' Know all six. Traps: no 'date' type, no 'undefined,' capitalized True is invalid.",
+    },
+    micro: [
+      { id: "6.7.c.1", term: "6 valid JSON types",           def: "string, number, boolean, null, object, array. Memorize all six.", weight: "high" },
+      { id: "6.7.c.2", term: "JSON booleans lowercase",      def: "'true' / 'false' only. 'True' or 'FALSE' = INVALID JSON. Must be lowercase.", weight: "high" },
+      { id: "6.7.c.3", term: "No date/undefined in JSON",    def: "JSON has no 'date' type (use string). No 'undefined' (use null). Common exam traps.", weight: "high" }
+    ]
   },
 
   "6.7.d": {
@@ -1717,8 +1888,13 @@ window.subtopicContentD56 = {
       memory: "Nesting = Russian dolls. Objects inside objects inside arrays. Read nested JSON by following the path: device → interfaces → [0] → ip. Each arrow goes one level deeper. Arrays use index numbers [0], [1].",
       practice: "Given the nested JSON above, extract: 'What is the VLAN of the second interface?' Path: device → interfaces → [1] → vlan → answer: 20. Practice 5 extractions until the path-following is automatic.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 62. Wendell Odom OCG Chapter 18. The exam shows nested JSON and asks for a specific value. Practice tracing paths: object key → array index → nested key → value."
-    }
+      meta: "Jeremy's IT Lab Day 62. Wendell Odom OCG Chapter 18. The exam shows nested JSON and asks for a specific value. Practice tracing paths: object key → array index → nested key → value.",
+    },
+    micro: [
+      { id: "6.7.d.1", term: "Nested JSON",                  def: "Objects inside objects, arrays inside objects, etc. Exam shows nested structure and asks for a value.", weight: "high" },
+      { id: "6.7.d.2", term: "Access path",                  def: "Dot notation + brackets. data.devices[0].name = first device's name field.", weight: "high" },
+      { id: "6.7.d.3", term: "Tracing strategy",             def: "Read outer keys first → drill down. Object key → array index [N] → nested key → value.", weight: "high" }
+    ]
   },
 
   "6.7.e": {
@@ -1728,8 +1904,15 @@ window.subtopicContentD56 = {
       memory: "JSON validation checklist: DOUBLE quotes only (not single), NO trailing commas, NO comments, lowercase true/false/null (not True/False/Null), no leading zeros on numbers. Check these five things first when debugging.",
       practice: "Write 5 invalid JSON examples and fix each: 1) Single quotes → double. 2) Trailing comma → remove. 3) Comment → remove. 4) Capitalized True → lowercase true. 5) Leading zero 01 → 1. Validate each at jsonlint.com.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 62. Wendell Odom OCG Chapter 18. The exam shows JSON and asks 'which is valid?' Traps: single quotes, trailing commas, comments, capitalized booleans. Know what makes JSON INVALID."
-    }
+      meta: "Jeremy's IT Lab Day 62. Wendell Odom OCG Chapter 18. The exam shows JSON and asks 'which is valid?' Traps: single quotes, trailing commas, comments, capitalized booleans. Know what makes JSON INVALID.",
+    },
+    micro: [
+      { id: "6.7.e.1", term: "JSON uses double quotes",      def: "Strings + keys MUST use double quotes \" \". Single quotes ' ' are INVALID JSON.", weight: "high" },
+      { id: "6.7.e.2", term: "No trailing commas",           def: "[1, 2, 3,] is INVALID. Final element cannot have trailing comma. JavaScript allows it; JSON does NOT.", weight: "high" },
+      { id: "6.7.e.3", term: "No comments",                  def: "JSON does NOT support // or /* */ comments. Any comment = invalid JSON.", weight: "high" },
+      { id: "6.7.e.4", term: "No single quotes / capitalized booleans", def: "'text' INVALID. True/FALSE INVALID. Must be: \"text\", true, false.", weight: "high" },
+      { id: "6.7.e.5", term: "Exam JSON validation",         def: "Scan for: double quotes only, no trailing commas, no comments, lowercase booleans. Any violation = invalid.", weight: "high" }
+    ]
   }
 
 };
