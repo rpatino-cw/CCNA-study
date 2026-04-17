@@ -2572,6 +2572,256 @@ window.SubtopicVisuals = (() => {
   }
 
   // ────────────────────────────────────────────────────────────────────
+  // 53. cloud-stack — IaaS / PaaS / SaaS shared responsibility split.
+  // ────────────────────────────────────────────────────────────────────
+  function cloudStack(p) {
+    const w = 360, h = 260;
+    const layers = ['Applications', 'Data', 'Runtime', 'Middleware', 'OS', 'Virtualization', 'Servers', 'Storage', 'Networking'];
+    // Customer vs provider for each model
+    const models = [
+      { name: 'On-prem', provider: 0, color: COLORS.slate },
+      { name: 'IaaS',    provider: 3, color: COLORS.blue },
+      { name: 'PaaS',    provider: 6, color: COLORS.purple },
+      { name: 'SaaS',    provider: 9, color: COLORS.green }
+    ];
+    const colW = (w - 40) / models.length;
+    const rowH = (h - 64) / layers.length;
+
+    let svg = `<text x="${w/2}" y="16" text-anchor="middle" fill="#57534e" font-size="11" font-weight="700" font-family="'Space Grotesk',sans-serif">Cloud shared responsibility · what provider manages</text>`;
+
+    // Column headers
+    models.forEach((m, i) => {
+      const x = 20 + i * colW;
+      svg += `
+        <rect x="${x}" y="28" width="${colW - 6}" height="22" rx="3" fill="${m.color}"/>
+        <text x="${x + colW/2 - 3}" y="43" text-anchor="middle" fill="#fff" font-size="10" font-weight="700" font-family="'Space Grotesk',sans-serif">${esc(m.name)}</text>`;
+    });
+
+    // Rows: layers
+    layers.forEach((layer, li) => {
+      const y = 56 + li * rowH;
+      models.forEach((m, mi) => {
+        const x = 20 + mi * colW;
+        const isProvider = li >= layers.length - m.provider;
+        const fill = isProvider ? m.color : '#f3f0eb';
+        const fillOpacity = isProvider ? 0.9 : 0.8;
+        const textFill = isProvider ? '#fff' : '#57534e';
+        svg += `
+          <rect x="${x}" y="${y}" width="${colW - 6}" height="${rowH - 2}" rx="2" fill="${fill}" fill-opacity="${fillOpacity}" stroke="#e7e5e4" stroke-width="0.6"/>
+          <text x="${x + colW/2 - 3}" y="${y + rowH/2 + 3}" text-anchor="middle" fill="${textFill}" font-size="9" font-family="'Space Grotesk',sans-serif" font-weight="${isProvider ? 600 : 500}">${mi === 0 ? esc(layer.substring(0, 12)) : (isProvider ? 'provider' : 'you')}</text>`;
+      });
+    });
+
+    svg += `<text x="${w/2}" y="${h - 6}" text-anchor="middle" fill="#a8a29e" font-size="8" font-family="'JetBrains Mono',monospace">IaaS: HW only · PaaS: HW+OS+runtime · SaaS: everything · security always shared</text>`;
+
+    return `<svg viewBox="0 0 ${w} ${h}" class="sv-anim" xmlns="http://www.w3.org/2000/svg">${svg}</svg>`;
+  }
+
+  // ────────────────────────────────────────────────────────────────────
+  // 54. capwap-tunnel — WLC + lightweight AP CAPWAP control/data.
+  // ────────────────────────────────────────────────────────────────────
+  function capwapTunnel(p) {
+    const w = 360, h = 210;
+
+    let svg = `
+      <text x="${w/2}" y="16" text-anchor="middle" fill="#57534e" font-size="11" font-weight="700" font-family="'Space Grotesk',sans-serif">CAPWAP · lightweight AP ↔ WLC</text>
+
+      <rect x="40" y="40" width="80" height="40" rx="6" fill="${COLORS.purple}"/>
+      <text x="80" y="58" text-anchor="middle" fill="#fff" font-size="10" font-weight="700" font-family="'Space Grotesk',sans-serif">WLC</text>
+      <text x="80" y="72" text-anchor="middle" fill="#fff" font-size="8" font-family="'JetBrains Mono',monospace">controller</text>
+
+      <rect x="240" y="40" width="80" height="40" rx="6" fill="${COLORS.blue}"/>
+      <text x="280" y="58" text-anchor="middle" fill="#fff" font-size="10" font-weight="700" font-family="'Space Grotesk',sans-serif">LWAP</text>
+      <text x="280" y="72" text-anchor="middle" fill="#fff" font-size="8" font-family="'JetBrains Mono',monospace">lightweight AP</text>
+
+      <!-- Control tunnel UDP 5246 -->
+      <path d="M 120 52 Q 180 20 240 52" stroke="${COLORS.amber}" stroke-width="2" fill="none"/>
+      <text x="180" y="22" text-anchor="middle" fill="${COLORS.amber}" font-size="9" font-family="'JetBrains Mono',monospace" font-weight="700">CAPWAP control · UDP 5246</text>
+
+      <!-- Data tunnel UDP 5247 -->
+      <path d="M 120 68 Q 180 100 240 68" stroke="${COLORS.green}" stroke-width="2" fill="none"/>
+      <text x="180" y="104" text-anchor="middle" fill="${COLORS.green}" font-size="9" font-family="'JetBrains Mono',monospace" font-weight="700">CAPWAP data · UDP 5247</text>
+
+      <!-- Control traffic flow -->
+      <circle r="3" fill="${COLORS.amber}">
+        <animateMotion path="M 120 52 Q 180 20 240 52" dur="1.5s" repeatCount="indefinite"/>
+      </circle>
+      <circle r="3" fill="${COLORS.green}">
+        <animateMotion path="M 240 68 Q 180 100 120 68" dur="1.5s" repeatCount="indefinite"/>
+      </circle>
+
+      <!-- Clients connected to AP -->
+      ${hostGlyph(240, 150, COLORS.slate, 'client-A')}
+      ${hostGlyph(300, 150, COLORS.slate, 'client-B')}
+      <line x1="280" y1="80" x2="240" y2="130" stroke="${COLORS.blue}" stroke-width="1" opacity="0.45" stroke-dasharray="2 3"/>
+      <line x1="280" y1="80" x2="300" y2="130" stroke="${COLORS.blue}" stroke-width="1" opacity="0.45" stroke-dasharray="2 3"/>
+
+      <text x="${w/2}" y="${h - 8}" text-anchor="middle" fill="#a8a29e" font-size="8" font-family="'JetBrains Mono',monospace">Local mode: all client traffic tunneled to WLC · FlexConnect: local forwarding</text>`;
+
+    return `<svg viewBox="0 0 ${w} ${h}" class="sv-anim" xmlns="http://www.w3.org/2000/svg">${svg}</svg>`;
+  }
+
+  // ────────────────────────────────────────────────────────────────────
+  // 55. tcp-flags — TCP flags decoded from a hex byte.
+  // ────────────────────────────────────────────────────────────────────
+  function tcpFlags(p) {
+    const hex = p.hex || '0x12';
+    const flags = p.flags || { URG: 0, ACK: 1, PSH: 0, RST: 0, SYN: 1, FIN: 0 };
+    const order = ['CWR', 'ECE', 'URG', 'ACK', 'PSH', 'RST', 'SYN', 'FIN'];
+    const w = 360, h = 160;
+
+    let svg = `
+      <text x="${w/2}" y="16" text-anchor="middle" fill="#57534e" font-size="11" font-weight="700" font-family="'Space Grotesk',sans-serif">TCP flags byte · ${esc(hex)} → ${Object.keys(flags).filter(k => flags[k]).join('+')}</text>
+
+      <!-- 8 bit cells -->
+      ${order.map((f, i) => {
+        const x = 20 + i * 42;
+        const on = (flags[f] || 0) === 1;
+        const col = on ? COLORS.green : COLORS.slate;
+        return `
+          <rect x="${x}" y="40" width="36" height="32" rx="4" fill="${on ? col : '#f3f0eb'}" stroke="${col}" stroke-width="${on ? 2 : 1}"/>
+          <text x="${x + 18}" y="60" text-anchor="middle" fill="${on ? '#fff' : col}" font-size="11" font-weight="700" font-family="'JetBrains Mono',monospace">${on ? '1' : '0'}</text>
+          <text x="${x + 18}" y="84" text-anchor="middle" fill="${col}" font-size="9" font-weight="700" font-family="'Space Grotesk',sans-serif">${f}</text>`;
+      }).join('')}
+
+      <text x="${w/2}" y="110" text-anchor="middle" fill="${COLORS.green}" font-size="11" font-family="'JetBrains Mono',monospace" font-weight="700">${esc(hex)} · 0b${order.map(f => flags[f] ? 1 : 0).join('')}</text>
+      <text x="${w/2}" y="128" text-anchor="middle" fill="#57534e" font-size="10" font-family="'Space Grotesk',sans-serif">SYN+ACK = handshake reply · RST = abortive close · FIN = graceful close</text>
+
+      <text x="${w/2}" y="${h - 8}" text-anchor="middle" fill="#a8a29e" font-size="8" font-family="'JetBrains Mono',monospace">8 bits: CWR ECE URG ACK PSH RST SYN FIN · typical 3-way: SYN, SYN+ACK, ACK</text>`;
+
+    return `<svg viewBox="0 0 ${w} ${h}" class="sv-anim" xmlns="http://www.w3.org/2000/svg">${svg}</svg>`;
+  }
+
+  // ────────────────────────────────────────────────────────────────────
+  // 56. ad-comparison — administrative distance table across protocols.
+  // ────────────────────────────────────────────────────────────────────
+  function adComparison(p) {
+    const rows = p.rows || [
+      { src: 'Directly connected', ad: 0,   color: COLORS.green },
+      { src: 'Static route',        ad: 1,   color: COLORS.green },
+      { src: 'eBGP',                ad: 20,  color: COLORS.blue },
+      { src: 'EIGRP (internal)',    ad: 90,  color: COLORS.blue },
+      { src: 'OSPF',                ad: 110, color: COLORS.amber },
+      { src: 'IS-IS',               ad: 115, color: COLORS.amber },
+      { src: 'RIP',                 ad: 120, color: COLORS.red },
+      { src: 'EIGRP (external)',    ad: 170, color: COLORS.red },
+      { src: 'iBGP',                ad: 200, color: COLORS.red }
+    ];
+    const w = 360, h = 50 + rows.length * 22 + 24;
+
+    let svg = `
+      <text x="${w/2}" y="16" text-anchor="middle" fill="#57534e" font-size="11" font-weight="700" font-family="'Space Grotesk',sans-serif">Administrative Distance · lower = more trustworthy</text>
+      <rect x="12" y="24" width="336" height="20" rx="3" fill="#1c1917"/>
+      <text x="22" y="38" fill="#fde68a" font-size="9" font-family="'JetBrains Mono',monospace" font-weight="700">Route source</text>
+      <text x="250" y="38" fill="#fde68a" font-size="9" font-family="'JetBrains Mono',monospace" font-weight="700">AD</text>
+      <text x="344" y="38" text-anchor="end" fill="#fde68a" font-size="9" font-family="'JetBrains Mono',monospace" font-weight="700">trust</text>`;
+
+    rows.forEach((r, i) => {
+      const y = 50 + i * 22;
+      const barW = Math.max(10, (255 - r.ad) / 255 * 100);
+      svg += `
+        <rect x="12" y="${y}" width="336" height="20" rx="3" fill="${i % 2 ? '#faf8f4' : '#fff'}" stroke="#e7e5e4" stroke-width="0.6"/>
+        <text x="22" y="${y + 14}" fill="${r.color}" font-size="10" font-family="'Space Grotesk',sans-serif" font-weight="700">${esc(r.src)}</text>
+        <text x="250" y="${y + 14}" fill="#1c1917" font-size="11" font-family="'JetBrains Mono',monospace" font-weight="700">${r.ad}</text>
+        <rect x="244" y="${y + 5}" width="${barW}" height="10" rx="2" fill="${r.color}" opacity="0">
+          <animate attributeName="opacity" values="0;0.8" dur="0.4s" begin="${i * 0.1}s" fill="freeze"/>
+          <animate attributeName="x" from="344" to="${344 - barW}" dur="0.6s" begin="${i * 0.1}s" fill="freeze" calcMode="spline" keySplines="0.16 1 0.3 1"/>
+          <animate attributeName="width" from="0" to="${barW}" dur="0.6s" begin="${i * 0.1}s" fill="freeze" calcMode="spline" keySplines="0.16 1 0.3 1"/>
+        </rect>`;
+    });
+
+    svg += `<text x="${w/2}" y="${h - 8}" text-anchor="middle" fill="#a8a29e" font-size="8" font-family="'JetBrains Mono',monospace">Prefix match first · AD is tiebreaker · 255 = never install (floating static)</text>`;
+
+    return `<svg viewBox="0 0 ${w} ${h}" class="sv-anim" xmlns="http://www.w3.org/2000/svg">${svg}</svg>`;
+  }
+
+  // ────────────────────────────────────────────────────────────────────
+  // 57. cli-terminal — terminal-styled config snippet with cursor.
+  // ────────────────────────────────────────────────────────────────────
+  function cliTerminal(p) {
+    const prompt = p.prompt || 'R1#';
+    const lines = p.lines || [
+      { text: 'show running-config | section ospf', color: COLORS.green, isPrompt: true },
+      { text: 'router ospf 1',                       color: '#e7e5e4' },
+      { text: ' router-id 1.1.1.1',                  color: '#e7e5e4' },
+      { text: ' network 10.0.0.0 0.0.0.255 area 0',  color: '#e7e5e4' },
+      { text: ' passive-interface default',          color: '#e7e5e4' },
+      { text: ' no passive-interface Gi0/1',         color: '#e7e5e4' },
+      { text: '!',                                   color: '#78716c' }
+    ];
+    const w = 360, h = 50 + lines.length * 20 + 16;
+
+    let svg = `
+      <rect x="12" y="20" width="336" height="${h - 32}" rx="6" fill="#0a0a0a"/>
+      <!-- Header bar -->
+      <rect x="12" y="20" width="336" height="18" rx="6" fill="#171717"/>
+      <circle cx="26" cy="29" r="3" fill="#ef4444"/>
+      <circle cx="38" cy="29" r="3" fill="#f59e0b"/>
+      <circle cx="50" cy="29" r="3" fill="#10b981"/>
+      <text x="340" y="33" text-anchor="end" fill="#a8a29e" font-size="9" font-family="'JetBrains Mono',monospace">${esc(prompt)}</text>`;
+
+    lines.forEach((l, i) => {
+      const y = 50 + i * 20;
+      svg += `<text x="22" y="${y}" fill="${l.color}" font-size="11" font-family="'JetBrains Mono',monospace" opacity="0">
+        <animate attributeName="opacity" values="0;1" dur="0.15s" begin="${i * 0.25}s" fill="freeze"/>
+        ${l.isPrompt ? `<tspan fill="${COLORS.amber}">${esc(prompt)}</tspan> ` : ''}${esc(l.text)}
+      </text>`;
+    });
+
+    // Blinking cursor
+    svg += `<rect x="22" y="${50 + lines.length * 20 - 10}" width="7" height="12" fill="#e7e5e4" opacity="0">
+      <animate attributeName="opacity" values="0;1;0" dur="1.2s" begin="${lines.length * 0.25}s" repeatCount="indefinite"/>
+    </rect>`;
+
+    return `<svg viewBox="0 0 ${w} ${h}" class="sv-anim" xmlns="http://www.w3.org/2000/svg">${svg}</svg>`;
+  }
+
+  // ────────────────────────────────────────────────────────────────────
+  // 58. ipv6-unicast — IPv6 address type taxonomy with prefix ranges.
+  // ────────────────────────────────────────────────────────────────────
+  function ipv6Types(p) {
+    const w = 360, h = 220;
+    const types = [
+      { cat: 'Unicast', color: COLORS.blue,   entries: [
+        { prefix: '2000::/3',   name: 'Global unicast',  detail: 'publicly routable' },
+        { prefix: 'fc00::/7',   name: 'Unique local',    detail: 'private, not routed on internet' },
+        { prefix: 'fe80::/10',  name: 'Link-local',      detail: 'auto-assigned, not routed' }
+      ]},
+      { cat: 'Multicast', color: COLORS.amber, entries: [
+        { prefix: 'ff00::/8',   name: 'Multicast',       detail: 'group delivery' }
+      ]},
+      { cat: 'Special', color: COLORS.green, entries: [
+        { prefix: '::/128',     name: 'Unspecified',     detail: 'source before config' },
+        { prefix: '::1/128',    name: 'Loopback',        detail: 'self-ping (like 127.0.0.1)' }
+      ]}
+    ];
+
+    let svg = `<text x="${w/2}" y="16" text-anchor="middle" fill="#57534e" font-size="11" font-weight="700" font-family="'Space Grotesk',sans-serif">IPv6 address types · no broadcast (replaced by multicast)</text>`;
+
+    let y = 30;
+    types.forEach((t, ti) => {
+      svg += `
+        <rect x="12" y="${y}" width="60" height="${t.entries.length * 28 + 6}" rx="4" fill="${t.color}"/>
+        <text x="42" y="${y + (t.entries.length * 28 + 6)/2 + 4}" text-anchor="middle" fill="#fff" font-size="10" font-weight="700" font-family="'Space Grotesk',sans-serif">${esc(t.cat)}</text>`;
+
+      t.entries.forEach((e, ei) => {
+        const ey = y + 3 + ei * 28;
+        svg += `
+          <rect x="76" y="${ey}" width="272" height="24" rx="3" fill="${t.color}" opacity="0.10" stroke="${t.color}" stroke-width="1"/>
+          <text x="84" y="${ey + 15}" fill="${t.color}" font-size="10" font-family="'JetBrains Mono',monospace" font-weight="700">${esc(e.prefix)}</text>
+          <text x="172" y="${ey + 15}" fill="#1c1917" font-size="10" font-family="'Space Grotesk',sans-serif" font-weight="700">${esc(e.name)}</text>
+          <text x="344" y="${ey + 15}" text-anchor="end" fill="#78716c" font-size="9" font-family="'JetBrains Mono',monospace">${esc(e.detail)}</text>`;
+      });
+
+      y += t.entries.length * 28 + 10;
+    });
+
+    svg += `<text x="${w/2}" y="${h - 8}" text-anchor="middle" fill="#a8a29e" font-size="8" font-family="'JetBrains Mono',monospace">Anycast uses normal unicast prefix · routed to nearest node</text>`;
+
+    return `<svg viewBox="0 0 ${w} ${h}" class="sv-anim" xmlns="http://www.w3.org/2000/svg">${svg}</svg>`;
+  }
+
+  // ────────────────────────────────────────────────────────────────────
   // Renderer dispatch
   // ────────────────────────────────────────────────────────────────────
 
@@ -2627,7 +2877,13 @@ window.SubtopicVisuals = (() => {
     'ssh-handshake':     sshHandshake,
     'radius-auth':       radiusAuth,
     'pvst':              pvst,
-    'osi-troubleshoot':  osiTroubleshoot
+    'osi-troubleshoot':  osiTroubleshoot,
+    'cloud-stack':       cloudStack,
+    'capwap-tunnel':     capwapTunnel,
+    'tcp-flags':         tcpFlags,
+    'ad-comparison':     adComparison,
+    'cli-terminal':      cliTerminal,
+    'ipv6-types':        ipv6Types
   };
 
   // ────────────────────────────────────────────────────────────────────
