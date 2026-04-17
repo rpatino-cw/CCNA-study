@@ -1,0 +1,430 @@
+{
+  "4.3.a": [
+    {
+      "id": "4.3.a.1",
+      "term": "DORA process",
+      "weight": "high",
+      "info": "<p><strong>DORA</strong> is the four-step exchange every DHCP client uses to obtain an IP lease from a DHCP server: <strong>D</strong>iscover, <strong>O</strong>ffer, <strong>R</strong>equest, <strong>A</strong>cknowledge. The client starts with no IP address at all, so the first two steps rely heavily on Layer 2 broadcasts to find any available server.</p><p>Step-by-step: <strong>(1) Discover</strong> — client broadcasts <code>DHCPDISCOVER</code> (src 0.0.0.0, dst 255.255.255.255). <strong>(2) Offer</strong> — one or more servers respond with <code>DHCPOFFER</code> containing a proposed IP, mask, gateway, DNS, and lease time. <strong>(3) Request</strong> — client broadcasts <code>DHCPREQUEST</code> naming the chosen server (so other servers know to release their offers). <strong>(4) Acknowledge</strong> — chosen server sends <code>DHCPACK</code> finalizing the lease; client can now use the IP.</p><p><strong>Exam traps:</strong> Discover and Request are BOTH broadcasts — easy to forget. The server's Offer and Ack can be unicast or broadcast depending on whether the client set the broadcast flag. Because Discover is a broadcast, it will not cross a router boundary without <code>ip helper-address</code> relay.</p><ul><li>Src/Dst IP during Discover: 0.0.0.0 -> 255.255.255.255</li><li>UDP ports throughout: client 68, server 67</li><li>If DORA fails, Windows assigns APIPA 169.254.x.x/16</li></ul>",
+      "visual": { "type": "handshake", "params": { "leftLabel": "Client (UDP 68)", "rightLabel": "Server (UDP 67)", "steps": ["1. DISCOVER (broadcast) ->", "<- 2. OFFER (IP + options)", "3. REQUEST (broadcast) ->", "<- 4. ACK (lease confirmed)"] } },
+      "hack": {
+        "memory": "DORA like Dora the Explorer: Discovers, gets Offered help, Requests it, is Acknowledged. Discover + Request are broadcasts. Client=68, Server=67 (lower port = server, easy to flip).",
+        "practice": "In Packet Tracer, switch to Simulation mode, run 'ipconfig /release' then 'ipconfig /renew' on a PC. Click each of the 4 packets and verify source/dest IP, ports, and whether it's broadcast or unicast.",
+        "effort": "medium",
+        "meta": "Jeremy's IT Lab Day 39. DORA is on nearly every CCNA exam — know the order, the broadcasts, and the ports cold."
+      }
+    },
+    {
+      "id": "4.3.a.2",
+      "term": "D = Discover",
+      "weight": "high",
+      "info": "<p><strong>DHCPDISCOVER</strong> is the first packet a DHCP client ever sends. Because the client has no IP yet, it uses <strong>0.0.0.0 as the source IP</strong> and <strong>255.255.255.255 as the destination</strong> (limited broadcast). The Ethernet frame destination is <code>ff:ff:ff:ff:ff:ff</code>.</p><p>Ports are the opposite of what most people expect: the client sources from <strong>UDP 68</strong> and destines <strong>UDP 67</strong>. The client embeds its own MAC address in the <code>chaddr</code> (client hardware address) field so the server can respond back to it even before it has an IP.</p><p><strong>Why it matters:</strong> Because Discover is a broadcast, it is scoped to a single broadcast domain. Any DHCP server on a different subnet will never see this packet unless a DHCP relay (<code>ip helper-address</code>) converts the broadcast into a unicast toward the server. This single fact drives most DHCP troubleshooting in real networks.</p><pre>Src IP: 0.0.0.0\nDst IP: 255.255.255.255\nSrc Port: UDP 68 (client)\nDst Port: UDP 67 (server)\nL2 Dst: ff:ff:ff:ff:ff:ff</pre>",
+      "visual": { "type": "packet-flow", "params": { "nodes": ["Client (0.0.0.0)", "UDP 68 -> 67", "Broadcast 255.255.255.255", "All DHCP servers on subnet"], "color": "#3b82f6" } },
+      "hack": {
+        "memory": "Discover = 'Is anybody out there?' shouted to the whole subnet. Client has no IP, so src=0.0.0.0, dst=255.255.255.255. Client port 68, server port 67.",
+        "practice": "Capture a DHCPDISCOVER in Wireshark or Packet Tracer simulation mode. Verify src=0.0.0.0, dst=255.255.255.255, UDP 68->67, and the client's MAC in chaddr.",
+        "effort": "low",
+        "meta": "CCNA loves asking the source IP of a DHCP Discover. Answer: 0.0.0.0. Never 127.0.0.1. Never the APIPA address."
+      }
+    },
+    {
+      "id": "4.3.a.3",
+      "term": "O = Offer",
+      "weight": "high",
+      "info": "<p><strong>DHCPOFFER</strong> is the server's reply with a proposed lease. It contains the offered IP, subnet mask, default gateway, DNS servers, domain name, lease duration, and any other options the server is configured to hand out (NTP, TFTP, option 43 for WLCs, option 150 for phones, etc.).</p><p>The server sources from <strong>UDP 67</strong> and destines <strong>UDP 68</strong>. The destination IP can be the offered IP as a unicast, or a broadcast if the client set the <strong>broadcast flag</strong> in the Discover (some older clients cannot accept a unicast before they have an IP bound to their NIC).</p><p>If multiple DHCP servers respond, the client will usually accept the first Offer it receives. The other servers' offered addresses remain reserved briefly until the client's Request identifies the chosen server, at which point the non-chosen servers release their offer.</p>",
+      "visual": { "type": "packet-flow", "params": { "nodes": ["Server (67)", "Offer: IP + mask + gw + DNS + lease", "Client (68)", "Client picks first Offer"], "color": "#10b981" } },
+      "hack": {
+        "memory": "Offer = the server's business card: IP, mask, gateway, DNS, lease. UDP 67 -> 68. Broadcast flag decides if it comes as unicast or broadcast.",
+        "practice": "On a Cisco DHCP server, run 'show ip dhcp pool' — the 'offered' counter increments each time an Offer is sent. Generate a renewal and watch the counter.",
+        "effort": "low",
+        "meta": "The Offer packet carries all the DHCP options — know what's inside it: the Big 4 (IP/mask/gw/DNS) plus lease time."
+      }
+    },
+    {
+      "id": "4.3.a.4",
+      "term": "R = Request",
+      "weight": "high",
+      "info": "<p><strong>DHCPREQUEST</strong> is broadcast by the client to formally accept one specific Offer. Even though the client now knows which server it wants to lease from, it still broadcasts the Request so every DHCP server on the subnet hears it. This lets the non-chosen servers release the IPs they had offered back into their pools.</p><p>The Request includes a <strong>Server Identifier option</strong> naming the chosen server, and a <strong>Requested IP Address option</strong> specifying which offered IP the client wants to keep.</p><p>Request is also the packet used during <strong>renewal</strong> at T1 (50% of lease), this time as a <strong>unicast</strong> directly to the original server — no Discover/Offer needed, just Request/Ack.</p>",
+      "visual": { "type": "packet-flow", "params": { "nodes": ["Client (broadcast)", "Server ID = chosen server", "Requested IP = offered IP", "Other servers release their offers"], "color": "#f59e0b" } },
+      "hack": {
+        "memory": "Request = 'I'll take this one, everyone else can stop holding' — that's why it is still broadcast. During renewal, Request becomes unicast to the one server.",
+        "practice": "In simulation mode, watch the Request packet and open the DHCP options — confirm Server Identifier and Requested IP are present.",
+        "effort": "low",
+        "meta": "Exam trap: 'Which DHCP message is broadcast by the client AFTER receiving an Offer?' Answer: Request. Not Discover again."
+      }
+    },
+    {
+      "id": "4.3.a.5",
+      "term": "A = Acknowledge",
+      "weight": "high",
+      "info": "<p><strong>DHCPACK</strong> is the server's final confirmation that the lease is granted. After the Ack arrives, the client installs the IP, mask, gateway, and DNS; starts the T1 renewal timer at 50% of the lease; and begins forwarding traffic through its newly configured default gateway.</p><p>If the server cannot fulfill the Request (e.g., the IP is no longer available because another client grabbed it first), it sends a <strong>DHCPNAK</strong> instead, forcing the client back to square one with a new Discover.</p><p>Before accepting the Ack, many clients send a <strong>gratuitous ARP</strong> to verify no other host on the subnet is already using the offered IP. If a duplicate is detected, the client sends a <code>DHCPDECLINE</code> and restarts DORA.</p>",
+      "visual": { "type": "handshake", "params": { "leftLabel": "Client", "rightLabel": "Server", "steps": ["REQUEST ->", "<- ACK (lease confirmed)", "Gratuitous ARP check", "Install IP, start T1 timer"] } },
+      "hack": {
+        "memory": "Ack = 'It's yours, go use it.' Lease timer starts the moment Ack arrives. If anything is wrong, server sends NAK and DORA restarts.",
+        "practice": "'show ip dhcp binding' on the server after an Ack — you'll see the active lease with the client's MAC, assigned IP, and lease expiration.",
+        "effort": "low",
+        "meta": "Know the four-step sequence by letter: D-O-R-A. The final A = Acknowledge (not Accept, not Allocate)."
+      }
+    },
+    {
+      "id": "4.3.a.6",
+      "term": "ip helper-address",
+      "weight": "high",
+      "info": "<p><code>ip helper-address [server-ip]</code> is configured on the <strong>client-facing</strong> router interface (the SVI or routed port that is the client's default gateway). It tells the router: 'When you see a DHCP broadcast on this interface, convert it to a unicast and forward it to this server IP.'</p><p>The router also populates the <strong>GIADDR</strong> (Gateway IP Address) field in the DHCP packet with its own interface IP. The DHCP server uses GIADDR to know which pool to draw from — it matches GIADDR against the pool's <code>network</code> statement to pick the right subnet.</p><p>You can configure multiple <code>ip helper-address</code> commands on the same interface to point at multiple DHCP servers for redundancy. The router will forward to all of them simultaneously. Beyond DHCP, <code>ip helper-address</code> also forwards eight other UDP protocols by default (TFTP, DNS, time, NetBIOS, etc.) — which is sometimes surprising.</p><pre>interface Vlan10\n ip address 10.10.10.1 255.255.255.0\n ip helper-address 10.1.1.100\n ip helper-address 10.1.1.101</pre>",
+      "visual": { "type": "packet-flow", "params": { "nodes": ["Client broadcast", "SVI (ip helper-address)", "Unicast + GIADDR filled", "DHCP server"], "color": "#8b5cf6" } },
+      "hack": {
+        "memory": "Helper goes on the CLIENT side, points at the SERVER's IP. GIADDR = the router's interface IP = tells the server which pool to use.",
+        "practice": "Build a two-subnet topology. Client on VLAN 10, server on VLAN 20. Without helper: fails. Add 'ip helper-address' on the VLAN 10 SVI pointing at the server IP. Works immediately.",
+        "effort": "medium",
+        "meta": "The #1 DHCP troubleshooting command. Exam loves asking 'where do you put ip helper-address?' Answer: on the client-facing interface."
+      }
+    },
+    {
+      "id": "4.3.a.7",
+      "term": "DHCP relay",
+      "weight": "high",
+      "info": "<p>A <strong>DHCP relay agent</strong> is any Layer 3 device (router or L3 switch) that forwards DHCP messages between subnets. Without a relay, DHCP simply does not work across a Layer 3 boundary because Discover/Request are broadcasts and broadcasts don't cross routers.</p><p>On Cisco IOS, the relay is enabled by configuring <code>ip helper-address</code> on the client-facing interface. The relay does four things on each client broadcast: (1) catches the broadcast on the client side, (2) inserts its own IP into the GIADDR field, (3) changes the destination to the configured server IP, (4) forwards it as a unicast.</p><p>On the return path, the server unicasts the Offer/Ack back to the GIADDR, and the relay broadcasts (or unicasts) it onto the client's subnet so the client can receive it.</p>",
+      "visual": { "type": "state-machine", "params": { "states": ["Client broadcast", "Relay catches it", "GIADDR inserted", "Unicast to DHCP server", "Server response via GIADDR", "Relay forwards to client"], "active": 2, "transitions": true } },
+      "hack": {
+        "memory": "Relay = the translator between broadcast land and the far-away server. No relay = no DHCP across subnets.",
+        "practice": "Remove the helper-address and watch DORA fail in simulation mode — the broadcast dies at the router. Add it back, watch DORA succeed.",
+        "effort": "medium",
+        "meta": "Concept vs command: a 'DHCP relay' is the function; 'ip helper-address' is the Cisco command that enables it."
+      }
+    }
+  ],
+  "4.3.b": [
+    {
+      "id": "4.3.b.1",
+      "term": "ip dhcp pool [name]",
+      "weight": "high",
+      "info": "<p><code>ip dhcp pool [name]</code> is a global configuration command that creates a named DHCP address pool and drops you into <strong>DHCP pool configuration mode</strong> (prompt changes to <code>(dhcp-config)#</code>). Every pool on a router needs a unique name — the name is local to the router and has no protocol meaning.</p><p>Inside the pool you configure the subnet to serve (<code>network</code>), the gateway (<code>default-router</code>), DNS (<code>dns-server</code>), optional domain name, and the lease time. The pool activates as soon as the router has an interface with an IP inside the pool's <code>network</code> range.</p><p>A single router can host many pools — one per LAN subnet. The router automatically picks the correct pool based on the receiving interface's IP (or GIADDR if the request came through a relay).</p><pre>Router(config)# ip dhcp pool LAN10\nRouter(dhcp-config)# network 192.168.10.0 /24\nRouter(dhcp-config)# default-router 192.168.10.1\nRouter(dhcp-config)# dns-server 8.8.8.8\nRouter(dhcp-config)# lease 0 8 0</pre>",
+      "visual": { "type": "encapsulation", "params": { "layers": [{ "label": "ip dhcp pool LAN10", "color": "#6366f1" }, { "label": "network 192.168.10.0 /24", "color": "#3b82f6" }, { "label": "default-router 192.168.10.1", "color": "#10b981" }, { "label": "dns-server 8.8.8.8", "color": "#f59e0b" }, { "label": "lease 0 8 0", "color": "#ef4444" }] } },
+      "hack": {
+        "memory": "Pool = a named bucket of IPs with settings attached. The name is just a label — the 'network' statement is what ties it to a subnet.",
+        "practice": "Build two pools on one router for two different LANs. Verify each LAN gets addresses from its correct pool using 'show ip dhcp binding.'",
+        "effort": "low",
+        "meta": "The first command you type when turning a router into a DHCP server. Know the prompt change it triggers."
+      }
+    },
+    {
+      "id": "4.3.b.2",
+      "term": "network [subnet] [mask]",
+      "weight": "high",
+      "info": "<p>Inside a DHCP pool, <code>network [subnet] [mask]</code> declares the range of IP addresses the pool can hand out. For example, <code>network 192.168.10.0 255.255.255.0</code> makes all usable host addresses in 192.168.10.0/24 available for lease.</p><p>The router will not hand out the network address (.0) or the directed broadcast (.255). To reserve additional addresses (like the gateway itself, static servers, or printers), use <code>ip dhcp excluded-address</code> globally — that command lives OUTSIDE pool config mode.</p><p>You can also use prefix-length notation: <code>network 192.168.10.0 /24</code>.</p>",
+      "visual": { "type": "binary-breakdown", "params": { "address": "192.168.10.0/24", "rows": [{ "label": "Network", "bits": "192.168.10.0" }, { "label": "First usable", "bits": "192.168.10.1" }, { "label": "Last usable", "bits": "192.168.10.254" }, { "label": "Broadcast", "bits": "192.168.10.255" }] } },
+      "hack": {
+        "memory": "'network' = what SUBNET the pool serves. Excluded addresses are separate — they go OUTSIDE the pool.",
+        "practice": "Create a pool for 192.168.10.0/24, exclude 192.168.10.1-10, and verify clients get .11 or higher.",
+        "effort": "low",
+        "meta": "Exam rarely tests the command syntax directly, but it will show you a config and ask what address range clients will receive."
+      }
+    },
+    {
+      "id": "4.3.b.3",
+      "term": "default-router [ip]",
+      "weight": "high",
+      "info": "<p><code>default-router [ip]</code> inside the pool sets the <strong>default gateway</strong> sent to clients. This is the single most commonly missed DHCP command name — many students type <code>default-gateway</code> and get a syntax error.</p><p>The rule: on a Cisco device, the command for telling CLIENTS about their gateway is <code>default-router</code>. The command for the device itself to have a gateway (relevant only in switch or legacy contexts) is <code>ip default-gateway</code>. They are not interchangeable.</p><p>You can specify up to eight gateway IPs for redundancy; clients typically use the first one. Always make sure the default-router IP is inside the pool's <code>network</code> range, and also <code>ip dhcp excluded-address</code> it so DHCP doesn't try to hand out the same IP to a host.</p>",
+      "visual": { "type": "comparison", "params": { "left": { "label": "Inside DHCP pool", "items": ["default-router 192.168.1.1", "Correct syntax", "Sent to clients as gateway"] }, "right": { "label": "Common wrong answer", "items": ["default-gateway 192.168.1.1", "WRONG inside DHCP pool", "Belongs to switch global config"] } } },
+      "hack": {
+        "memory": "Cisco DHCP: default-ROUTER (not gateway). Think 'the ROUTER is what does the routing, so the router is the default.'",
+        "practice": "Type 'default-gateway' inside a pool intentionally — see the error. Then type 'default-router' — success. Muscle memory.",
+        "effort": "low",
+        "meta": "Classic trap question. Answer is ALWAYS default-router inside a DHCP pool."
+      }
+    },
+    {
+      "id": "4.3.b.4",
+      "term": "dns-server [ip]",
+      "weight": "high",
+      "info": "<p><code>dns-server [ip] [ip2...]</code> sets the DNS servers sent to clients via DHCP option 6. You can list multiple, space-separated — clients use them in order.</p><p>Without this command, clients still get an IP and gateway but cannot resolve names. This is a common 'DHCP works but browsing is broken' scenario in labs and real networks.</p><p>Related options: <code>domain-name example.com</code> (option 15) appends a search domain, so a hostname like <code>web</code> is auto-completed to <code>web.example.com</code>.</p>",
+      "visual": { "type": "layer-stack", "params": { "layers": ["dns-server 8.8.8.8 1.1.1.1", "domain-name example.com", "(option 6 + option 15)", "Clients can now resolve names"], "highlight": 0 } },
+      "hack": {
+        "memory": "No dns-server = IP works but no names resolve. Classic 'internet is broken' help-desk symptom.",
+        "practice": "Remove the dns-server command, renew a client, and try pinging an IP vs a name. IP works, name fails.",
+        "effort": "low",
+        "meta": "Option 6 (DNS) is tested conceptually — 'what does DHCP provide besides an IP?' DNS is in the core set."
+      }
+    },
+    {
+      "id": "4.3.b.5",
+      "term": "lease [days hours minutes]",
+      "weight": "med",
+      "info": "<p><code>lease [days] [hours] [minutes]</code> sets how long a client can hold an IP before renewal. Default is <strong>1 day (24 hours)</strong>. You can also use <code>lease infinite</code> for permanent leases (rare — used for printers, IP phones, or specific reservations).</p><p>Lease length is a trade-off: <strong>long leases</strong> reduce DHCP traffic and keep devices stable but slow IP reclamation; <strong>short leases</strong> reclaim addresses quickly but generate more DORA traffic. Wireless networks often use shorter leases (4–8 hours) because clients roam in and out.</p><p>The renewal timers T1 and T2 are always derived from the lease: T1 = 50% of lease, T2 = 87.5% of lease.</p>",
+      "visual": { "type": "state-machine", "params": { "states": ["Lease issued (T0)", "T1 = 50% (unicast renew)", "T2 = 87.5% (broadcast renew)", "T3 = 100% (release + DORA)"], "active": 0, "transitions": true } },
+      "hack": {
+        "memory": "Default lease = 24 hours. 'lease 0 8 0' = 8 hours. 'lease infinite' = permanent (save for reservations).",
+        "practice": "Set 'lease 0 0 2' (2 minutes) and watch renewals fire in Packet Tracer simulation.",
+        "effort": "low",
+        "meta": "Know the default (1 day) and that T1/T2 are always fractions of the lease."
+      }
+    },
+    {
+      "id": "4.3.b.6",
+      "term": "ip dhcp excluded-address",
+      "weight": "high",
+      "info": "<p><code>ip dhcp excluded-address [start] [end]</code> is a <strong>global</strong> command (NOT inside pool config) that tells the router 'never hand these IPs out via DHCP.' Use it to reserve the gateway, DNS servers, static hosts, and management IPs that live inside the pool's network range.</p><p>You can specify a single address or a range. Multiple excluded-address statements can exist; they accumulate.</p><p>Without exclusions, the router will happily lease out .1 to a PC, and now your gateway IP is in conflict. Always configure exclusions BEFORE enabling the pool.</p><pre>Router(config)# ip dhcp excluded-address 192.168.10.1 192.168.10.10\nRouter(config)# ip dhcp pool LAN10\nRouter(dhcp-config)# network 192.168.10.0 /24\nRouter(dhcp-config)# default-router 192.168.10.1</pre>",
+      "visual": { "type": "shield", "params": { "items": ["Excluded: 192.168.10.1 (gateway)", "Excluded: 192.168.10.2-10 (servers)", "Pool leases: 192.168.10.11-254", "Prevents IP conflicts"], "color": "#ef4444" } },
+      "hack": {
+        "memory": "excluded-address = GLOBAL command, not inside pool. Reserve gateway + servers before enabling the pool.",
+        "practice": "Forget to exclude the gateway, let a PC grab it, watch everything break. Now exclude and reconfigure — fixed.",
+        "effort": "low",
+        "meta": "The 'global vs pool-config' distinction is a common exam trap. Remember: excluded-address lives OUTSIDE pool mode."
+      }
+    }
+  ],
+  "4.3.c": [
+    {
+      "id": "4.3.c.1",
+      "term": "T1 renewal (50%)",
+      "weight": "high",
+      "info": "<p><strong>T1 is the first renewal timer</strong>, fired at <strong>50% of the lease duration</strong>. When T1 expires, the client sends a <strong>unicast DHCPREQUEST</strong> directly to the server that granted the original lease — no Discover, no broadcast, no fuss.</p><p>If the server responds with a DHCPACK, the lease is extended and all timers reset. This is the happy path — over 95% of renewals succeed at T1 in healthy networks, and the client generates almost zero extra DHCP traffic.</p><p>If the original server is down or unreachable, T1 renewal fails silently and the client waits until T2 (87.5%) to escalate.</p>",
+      "visual": { "type": "state-machine", "params": { "states": ["Lease granted", "T1 = 50% (unicast renew)", "ACK received, reset timers", "(T2 never needed)"], "active": 1, "transitions": true } },
+      "hack": {
+        "memory": "T1 = 50% = polite unicast to the original server. Think 'half-way check-in.'",
+        "practice": "Set a 2-minute lease in Packet Tracer and watch T1 fire around the 1-minute mark.",
+        "effort": "low",
+        "meta": "Exam: 'When does a DHCP client first attempt renewal?' 50% of lease. 'How?' Unicast Request."
+      }
+    },
+    {
+      "id": "4.3.c.2",
+      "term": "T2 rebinding (87.5%)",
+      "weight": "high",
+      "info": "<p><strong>T2 is the escalation timer</strong>, fired at <strong>87.5% of the lease duration</strong>. T2 only triggers if the T1 unicast renewal failed. At T2, the client sends a <strong>broadcast DHCPREQUEST</strong> so that ANY DHCP server on the subnet can respond — not just the original one.</p><p>This is the rebinding phase because the client is effectively saying 'my original server is gone, can anyone else confirm this lease?' If a different DHCP server has the lease in its database (for example in a failover pair), it can send an Ack and the client is rebound to that server.</p><p>If T2 also fails, the client waits until the lease expires at 100% and then releases the IP and restarts DORA from scratch.</p>",
+      "visual": { "type": "state-machine", "params": { "states": ["T1 failed", "T2 = 87.5% (broadcast renew)", "Any server can Ack", "If no response -> wait for 100%"], "active": 1, "transitions": true } },
+      "hack": {
+        "memory": "T2 = 87.5% = 'original server is dead, anyone can help me.' Broadcast, not unicast.",
+        "practice": "Block the original server's replies mid-lease and watch T2 broadcast fire. A backup server can respond.",
+        "effort": "low",
+        "meta": "87.5% is an oddly specific number — memorize as 7/8 of the lease."
+      }
+    },
+    {
+      "id": "4.3.c.3",
+      "term": "Renewal failure behavior",
+      "weight": "med",
+      "info": "<p>If both T1 and T2 renewal attempts fail and the lease reaches <strong>100% expiration</strong>, the client MUST stop using the IP. The NIC is de-configured: no IP, no gateway, no DNS.</p><p>The client immediately restarts DORA from scratch with a new Discover. On Windows, if no server responds, the OS assigns an <strong>APIPA address (169.254.x.x/16)</strong> — a giveaway in <code>ipconfig</code> that DHCP has failed entirely.</p><p>During the outage window (from lease expiration until a new Ack), the host has no network connectivity. This is why lease lengths are tuned — too short means more renewal traffic and more outage risk; too long means stale addresses linger.</p>",
+      "visual": { "type": "state-machine", "params": { "states": ["Lease at 100%", "Release IP (no IP on NIC)", "Restart DORA (Discover)", "If fails -> APIPA 169.254.x.x"], "active": 2, "transitions": true } },
+      "hack": {
+        "memory": "100% = game over. Release IP, start DORA, fall back to APIPA if nothing answers.",
+        "practice": "Disable your DHCP server and wait for a client's lease to fully expire — watch it pick up 169.254.x.x.",
+        "effort": "low",
+        "meta": "Seeing 169.254 in ipconfig is the #1 help-desk DHCP failure indicator."
+      }
+    },
+    {
+      "id": "4.3.c.4",
+      "term": "Unicast vs broadcast renewal",
+      "weight": "high",
+      "info": "<p>The two renewal phases use different Layer 2/3 behaviors: <strong>T1 renewal is UNICAST</strong> directly to the original server's IP. <strong>T2 rebinding is BROADCAST</strong> so any DHCP server can respond.</p><p>This distinction matters because a unicast can cross Layer 3 boundaries without a relay — the router simply routes it normally. A broadcast, however, stays on the local subnet unless <code>ip helper-address</code> is configured.</p><p>So in relayed environments, T1 renewal works even when the DHCP relay is down (the client unicasts through normal routing), but T2 rebinding needs the relay to be up to reach a server in another subnet.</p>",
+      "visual": { "type": "comparison", "params": { "left": { "label": "T1 (50%)", "items": ["UNICAST", "Goes directly to original server", "Crosses routers normally", "Doesn't need relay"] }, "right": { "label": "T2 (87.5%)", "items": ["BROADCAST", "Any server can respond", "Stuck on local subnet", "Needs relay to reach remote server"] } } },
+      "hack": {
+        "memory": "T1 = unicast = direct. T2 = broadcast = 'help, anyone!'",
+        "practice": "In simulation mode, verify T1 packet destination is the server IP (unicast) and T2 destination is 255.255.255.255 (broadcast).",
+        "effort": "low",
+        "meta": "Exam often asks which renewal is unicast vs broadcast — T1 = unicast, T2 = broadcast."
+      }
+    }
+  ],
+  "4.3.d": [
+    {
+      "id": "4.3.d.1",
+      "term": "A record",
+      "weight": "high",
+      "info": "<p>An <strong>A record</strong> (Address record) maps a hostname to an <strong>IPv4 address</strong>. It is the most fundamental and most common DNS record type. Example: <code>www.cisco.com</code> -> <code>72.163.4.185</code>.</p><p>A single hostname can have multiple A records (used for round-robin load balancing), and a single IPv4 address can be referenced by multiple hostnames.</p><p>Each A record has a <strong>TTL (Time To Live)</strong> value that tells resolvers how long to cache the answer. Short TTLs (60 seconds) mean changes propagate fast but increase DNS load; long TTLs (24 hours) are efficient but slow to change.</p><pre>example.com.    300    IN    A    93.184.216.34</pre>",
+      "visual": { "type": "packet-flow", "params": { "nodes": ["Query: www.cisco.com", "DNS server (A lookup)", "Answer: 72.163.4.185", "Client uses IPv4"], "color": "#3b82f6" } },
+      "hack": {
+        "memory": "A = Address = IPv4 (32 bits). Most common record. TTL controls how long answers are cached.",
+        "practice": "Run 'nslookup -type=A cisco.com' — note the IPv4 result.",
+        "effort": "low",
+        "meta": "Exam: 'Which record maps hostname to IPv4?' = A. Easy recall, tested often."
+      }
+    },
+    {
+      "id": "4.3.d.2",
+      "term": "AAAA record",
+      "weight": "high",
+      "info": "<p>An <strong>AAAA record</strong> (pronounced 'quad-A') maps a hostname to an <strong>IPv6 address</strong>. The name 'quad-A' is a memory hook: IPv6 addresses are 128 bits = 4x larger than IPv4's 32 bits, so the record name is four A's.</p><p>AAAA records coexist with A records on the same hostname. When a client supports both stacks, it typically prefers the AAAA (IPv6) answer over the A (IPv4) answer, per the happy-eyeballs algorithm.</p><pre>example.com.    300    IN    AAAA    2606:2800:220:1:248:1893:25c8:1946</pre>",
+      "visual": { "type": "comparison", "params": { "left": { "label": "A record", "items": ["Maps to IPv4", "32 bits", "Dotted-decimal: 93.184.216.34"] }, "right": { "label": "AAAA record", "items": ["Maps to IPv6", "128 bits (4x larger)", "Hex colons: 2606:2800:220:1:...:1946"] } } },
+      "hack": {
+        "memory": "AAAA = quad-A = 4x bigger than A = IPv6. Memorize the '4x' relationship.",
+        "practice": "Run 'nslookup -type=AAAA google.com' — see the IPv6 answer.",
+        "effort": "low",
+        "meta": "Guaranteed exam question: AAAA = IPv6, period."
+      }
+    },
+    {
+      "id": "4.3.d.3",
+      "term": "CNAME record",
+      "weight": "high",
+      "info": "<p>A <strong>CNAME record</strong> (Canonical Name) creates an <strong>alias</strong> — it maps one hostname to another hostname (not to an IP). When a client queries the alias, the DNS resolver returns the CNAME pointer, then resolves the canonical name to its A/AAAA record.</p><p>Example: <code>www.example.com</code> CNAME -> <code>example.com</code>. A query for <code>www.example.com</code> returns both the CNAME pointer AND the A record of <code>example.com</code>, so the client can go straight to the IP.</p><p><strong>Rule:</strong> A CNAME cannot coexist with any other record for the same name. You cannot have both a CNAME and an A record on <code>www.example.com</code> — it must be one or the other. This is the most common DNS config mistake.</p>",
+      "visual": { "type": "packet-flow", "params": { "nodes": ["www.example.com", "CNAME -> example.com", "A lookup on example.com", "Final IP: 93.184.216.34"], "color": "#8b5cf6" } },
+      "hack": {
+        "memory": "CNAME = Canonical Name = alias = 'go ask this other name.' Cannot coexist with A/AAAA on the same name.",
+        "practice": "Run 'nslookup www.github.com' — you'll often see a CNAME chain before the final A record.",
+        "effort": "low",
+        "meta": "CNAME = alias to another NAME (not an IP). Common mistake: pointing a CNAME at an IP — illegal."
+      }
+    },
+    {
+      "id": "4.3.d.4",
+      "term": "MX record",
+      "weight": "high",
+      "info": "<p>An <strong>MX record</strong> (Mail Exchange) specifies which mail server receives email for a domain. MX records are queried by sending mail servers to know where to deliver messages addressed to <code>user@example.com</code>.</p><p>Each MX record has a <strong>priority value</strong> (lower = more preferred). A domain can have multiple MX records for redundancy: the sender tries the lowest-priority server first and falls back to higher-priority ones if it's unreachable.</p><pre>example.com.    300    IN    MX    10 mail1.example.com.\nexample.com.    300    IN    MX    20 mail2.example.com.</pre><p>In the example above, mail1 (priority 10) is tried first; mail2 (priority 20) is the backup.</p>",
+      "visual": { "type": "hierarchy", "params": { "root": "example.com MX", "children": [{ "name": "Priority 10 -> mail1.example.com", "children": [{ "name": "A record -> 10.0.0.1" }] }, { "name": "Priority 20 -> mail2.example.com (backup)", "children": [{ "name": "A record -> 10.0.0.2" }] }] } },
+      "hack": {
+        "memory": "MX = Mail eXchange. Priority: LOWER = BETTER (like golf). Primary first, backup second.",
+        "practice": "Run 'nslookup -type=MX gmail.com' — see multiple MX records with priorities.",
+        "effort": "low",
+        "meta": "Exam: 'Which record identifies a mail server?' = MX. Priority is a detail sometimes tested."
+      }
+    },
+    {
+      "id": "4.3.d.5",
+      "term": "PTR record",
+      "weight": "high",
+      "info": "<p>A <strong>PTR record</strong> (Pointer) provides <strong>reverse DNS</strong> — it maps an IP address back to a hostname. PTR records live in special reverse zones: <code>in-addr.arpa</code> for IPv4 and <code>ip6.arpa</code> for IPv6.</p><p>Example: the PTR for 8.8.8.8 is stored at <code>8.8.8.8.in-addr.arpa</code> and returns <code>dns.google</code>.</p><p><strong>Why it matters:</strong> Mail servers use PTR records to check whether an incoming SMTP connection has valid reverse DNS — this helps filter spam. Many mail servers reject mail from IPs that have no PTR record. Traceroute output also uses PTRs to show hostnames alongside IPs.</p>",
+      "visual": { "type": "comparison", "params": { "left": { "label": "Forward (A)", "items": ["dns.google -> 8.8.8.8", "Hostname to IP"] }, "right": { "label": "Reverse (PTR)", "items": ["8.8.8.8 -> dns.google", "IP to hostname", "Lives in in-addr.arpa zone"] } } },
+      "hack": {
+        "memory": "PTR = PoinTeR = IP to name (reverse). A = name to IP (forward). They are INVERSES.",
+        "practice": "Run 'nslookup 8.8.8.8' — the answer is a PTR lookup returning dns.google.",
+        "effort": "low",
+        "meta": "PTR = reverse DNS. If a question says 'IP -> hostname,' answer is PTR."
+      }
+    },
+    {
+      "id": "4.3.d.6",
+      "term": "NS record",
+      "weight": "med",
+      "info": "<p>An <strong>NS record</strong> (Name Server) specifies which DNS servers are <strong>authoritative</strong> for a zone. NS records live at both the parent zone (delegation) and inside the zone itself (apex).</p><p>When a resolver follows the DNS hierarchy, the .com TLD server returns NS records pointing to the authoritative servers for <code>example.com</code>. The resolver then queries those servers for the actual record (A, MX, etc.).</p><pre>example.com.    172800    IN    NS    ns1.example.com.\nexample.com.    172800    IN    NS    ns2.example.com.</pre>",
+      "visual": { "type": "hierarchy", "params": { "root": "example.com (NS records)", "children": [{ "name": "ns1.example.com (authoritative)" }, { "name": "ns2.example.com (authoritative)" }] } },
+      "hack": {
+        "memory": "NS = Name Server = 'these are the servers that know about this zone.' Delegation happens via NS.",
+        "practice": "Run 'nslookup -type=NS cisco.com' — see the list of authoritative servers.",
+        "effort": "low",
+        "meta": "Lightly tested at CCNA level. Just know: NS = who is authoritative for the zone."
+      }
+    },
+    {
+      "id": "4.3.d.7",
+      "term": "SOA record",
+      "weight": "med",
+      "info": "<p>A <strong>SOA record</strong> (Start of Authority) sits at the top of every DNS zone and contains zone administration metadata: the primary authoritative nameserver, the admin contact email (with @ replaced by a dot), the serial number, and the refresh/retry/expire/minimum TTL timers.</p><p>Secondary DNS servers compare their SOA serial number to the primary's. If the primary's serial has incremented, the secondary triggers a <strong>zone transfer</strong> to pull the updated records.</p><pre>example.com. 3600 IN SOA ns1.example.com. admin.example.com. (\n  2026041601 ; serial (YYYYMMDDnn)\n  7200       ; refresh\n  3600       ; retry\n  1209600    ; expire\n  3600 )     ; minimum TTL</pre>",
+      "visual": { "type": "encapsulation", "params": { "layers": [{ "label": "Primary NS: ns1.example.com", "color": "#6366f1" }, { "label": "Admin: admin.example.com", "color": "#3b82f6" }, { "label": "Serial: 2026041601", "color": "#10b981" }, { "label": "Refresh/Retry/Expire", "color": "#f59e0b" }] } },
+      "hack": {
+        "memory": "SOA = Start Of Authority = zone metadata. Serial number drives secondary refresh.",
+        "practice": "Run 'dig example.com SOA' and identify each field.",
+        "effort": "low",
+        "meta": "At CCNA depth, just know: SOA = zone admin/metadata record, exists once per zone."
+      }
+    }
+  ],
+  "4.3.e": [
+    {
+      "id": "4.3.e.1",
+      "term": "Recursive query",
+      "weight": "high",
+      "info": "<p>A <strong>recursive query</strong> asks a DNS server to do ALL the work and return a single final answer. The client sends one query and expects either the resolved IP address or an error — no referrals.</p><p>Almost all client-to-local-resolver queries are recursive. The client (your PC) is 'lazy' — it just asks its configured DNS server (e.g., 8.8.8.8 or 192.168.1.1) 'give me the IP for www.cisco.com' and waits for the final answer. The local resolver does all the climbing through the DNS hierarchy on the client's behalf.</p><p>Recursive queries put the workload on the DNS server, which is why public resolvers (Google 8.8.8.8, Cloudflare 1.1.1.1) cache aggressively — otherwise they'd be overwhelmed.</p>",
+      "visual": { "type": "packet-flow", "params": { "nodes": ["Client: 'give me the IP'", "Local resolver (does the work)", "Walks root -> TLD -> auth", "Returns final answer to client"], "color": "#8b5cf6" } },
+      "hack": {
+        "memory": "Recursive = 'YOU do the work, give me THE answer.' Lazy client, busy resolver.",
+        "practice": "'nslookup www.cisco.com' — one query, one answer. You just made a recursive request.",
+        "effort": "low",
+        "meta": "Exam: 'Which query type expects the DNS server to return the final answer?' = Recursive."
+      }
+    },
+    {
+      "id": "4.3.e.2",
+      "term": "Iterative query",
+      "weight": "high",
+      "info": "<p>An <strong>iterative query</strong> returns the <strong>best answer the server currently has</strong> — which may be a referral to another server rather than the final answer. The querying device is responsible for following up with the referred server.</p><p>Iterative queries are how DNS servers talk to each other. When your local resolver needs to resolve <code>www.cisco.com</code>, it iteratively queries: (1) a root server, gets a referral to .com TLD; (2) .com TLD, gets a referral to Cisco's authoritative servers; (3) Cisco's servers, gets the final answer.</p><p>The root and TLD servers refuse to do recursion — they would drown in traffic. They only provide referrals. This is why DNS scales to billions of queries per day.</p>",
+      "visual": { "type": "packet-flow", "params": { "nodes": ["Resolver -> Root (returns TLD NS)", "Resolver -> TLD (returns auth NS)", "Resolver -> Auth (returns IP)", "Resolver caches + answers client"], "color": "#f59e0b" } },
+      "hack": {
+        "memory": "Iterative = 'Here's a hint, go ask them.' Cooperative referrals. Root/TLD servers ONLY do iterative.",
+        "practice": "'dig +trace cisco.com' — shows every iterative step from root down to authoritative.",
+        "effort": "low",
+        "meta": "Root servers only answer iteratively. Memorize that pattern."
+      }
+    },
+    {
+      "id": "4.3.e.3",
+      "term": "Typical client query",
+      "weight": "high",
+      "info": "<p>A normal DNS lookup involves <strong>both query types in sequence</strong>:</p><ol><li><strong>Client -> Local resolver: RECURSIVE.</strong> The PC sends one recursive query and waits.</li><li><strong>Local resolver -> Root: ITERATIVE.</strong> Root returns a referral to the .com TLD servers.</li><li><strong>Local resolver -> .com TLD: ITERATIVE.</strong> TLD returns a referral to example.com's authoritative servers.</li><li><strong>Local resolver -> Authoritative: ITERATIVE.</strong> Authoritative returns the A record.</li><li><strong>Local resolver -> Client: Final answer returned.</strong> The resolver also caches the answer per the TTL.</li></ol><p>The client only ever makes ONE query (the recursive one). All the iterative legwork happens inside the resolver, invisibly.</p>",
+      "visual": { "type": "state-machine", "params": { "states": ["Client recursive query", "Resolver cache hit? return", "Iterative: root -> TLD -> auth", "Cache answer + return to client"], "active": 2, "transitions": true } },
+      "hack": {
+        "memory": "Client always recursive (lazy). Resolver is iterative (climbs tree). One + many = answer.",
+        "practice": "Clear your OS DNS cache ('ipconfig /flushdns' on Windows) and run a lookup — you just forced a full resolution.",
+        "effort": "low",
+        "meta": "Know that the client sends ONE recursive query. Resolver hides all iterative work."
+      }
+    },
+    {
+      "id": "4.3.e.4",
+      "term": "DNS caching",
+      "weight": "med",
+      "info": "<p><strong>DNS caching</strong> stores resolved answers temporarily so repeat queries don't require a full resolution. Caching happens at multiple layers: browser cache, OS cache, local resolver cache, and sometimes enterprise DNS appliance cache.</p><p>Each record includes a <strong>TTL (Time To Live)</strong> set by the authoritative server. Resolvers keep the answer cached for exactly TTL seconds, then discard it and re-query. Common TTLs: 300 sec (5 min) for volatile records, 86400 sec (1 day) for stable records.</p><p>Caching is what makes DNS scale. Without it, every web click would require a full root->TLD->auth chain. With it, 80%+ of queries are served from cache within milliseconds.</p>",
+      "visual": { "type": "layer-stack", "params": { "layers": ["Browser cache (seconds)", "OS DNS cache", "Local resolver cache", "Authoritative (source of truth)"], "highlight": 2 } },
+      "hack": {
+        "memory": "TTL = cache lifetime. Short TTL = fast change propagation. Long TTL = efficient but slow to update.",
+        "practice": "'ipconfig /displaydns' on Windows shows cached entries and remaining TTLs.",
+        "effort": "low",
+        "meta": "Caching is a conceptual topic — know WHY it exists (scale, speed) and that TTL drives it."
+      }
+    }
+  ],
+  "4.3.f": [
+    {
+      "id": "4.3.f.1",
+      "term": "DNS hierarchy",
+      "weight": "high",
+      "info": "<p>The <strong>DNS namespace is a tree</strong>: the <strong>root</strong> (.) at the top, then <strong>TLDs</strong> (<code>.com</code>, <code>.org</code>, country codes like <code>.uk</code>), then <strong>second-level domains</strong> (<code>example.com</code>, <code>cisco.com</code>), then <strong>hosts/subdomains</strong> (<code>www.example.com</code>, <code>mail.example.com</code>).</p><p>Names are read RIGHT-TO-LEFT in DNS terms — <code>www.cisco.com</code> means: root (implied trailing dot), then .com TLD, then cisco.com, then the www host. Each level is managed by different entities: IANA runs the root, registries like Verisign run .com, domain owners run their own zones.</p><p><strong>Resolution path:</strong> every lookup conceptually starts at the root and walks down through referrals. In practice, cached results short-circuit most queries before they reach the root.</p>",
+      "visual": { "type": "hierarchy", "params": { "root": ". (Root)", "children": [{ "name": ".com (TLD)", "children": [{ "name": "cisco.com", "children": [{ "name": "www.cisco.com" }] }, { "name": "example.com" }] }, { "name": ".org (TLD)", "children": [{ "name": "wikipedia.org" }] }] } },
+      "hack": {
+        "memory": "Read RIGHT to LEFT: . -> .com -> cisco.com -> www.cisco.com. Each level delegates to the next.",
+        "practice": "Trace the resolution of www.cisco.com on paper: root refers to .com, .com refers to cisco.com, cisco.com gives the IP.",
+        "effort": "low",
+        "meta": "Know the order: root -> TLD -> 2nd level -> host. Classic CCNA recall question."
+      }
+    },
+    {
+      "id": "4.3.f.2",
+      "term": "13 root server clusters",
+      "weight": "med",
+      "info": "<p>There are <strong>13 named root server clusters</strong>, lettered <strong>A through M</strong> (<code>a.root-servers.net</code> through <code>m.root-servers.net</code>). The number 13 comes from the original design constraint: all root NS records had to fit in a single 512-byte UDP DNS response.</p><p>Each 'root server' is actually a globally distributed <strong>anycast cluster</strong> of hundreds of physical servers sharing the same IP address. When you query <code>a.root-servers.net</code>, BGP anycast routes your packet to the nearest instance — which might be 10ms away in your city instead of halfway around the world.</p><p>Root servers only answer iterative queries for TLD referrals. They never return A records for individual domains.</p>",
+      "visual": { "type": "hierarchy", "params": { "root": "Root (.)", "children": [{ "name": "A-M: 13 root server clusters" }, { "name": "Anycast: hundreds of physical servers" }, { "name": "Only return TLD referrals" }] } },
+      "hack": {
+        "memory": "13 letters (A-M), anycast = many physical servers behind each letter. Iterative only.",
+        "practice": "Run 'dig . NS' and see all 13 root server names returned.",
+        "effort": "low",
+        "meta": "Occasionally tested: 'How many root DNS servers?' = 13 (clusters). The trivia answer."
+      }
+    },
+    {
+      "id": "4.3.f.3",
+      "term": "TLD (Top-Level Domain)",
+      "weight": "med",
+      "info": "<p>A <strong>TLD (Top-Level Domain)</strong> is the right-most label of a domain name before the implied root dot. There are two main categories:</p><ul><li><strong>gTLDs (generic):</strong> <code>.com</code>, <code>.org</code>, <code>.net</code>, <code>.edu</code>, <code>.gov</code>, newer ones like <code>.io</code>, <code>.dev</code>, <code>.ai</code>.</li><li><strong>ccTLDs (country code):</strong> two letters per ISO country code. <code>.us</code>, <code>.uk</code>, <code>.de</code>, <code>.jp</code>, <code>.mx</code>, <code>.ca</code>.</li></ul><p>Each TLD is operated by a <strong>registry</strong> (e.g., Verisign runs .com and .net). The TLD's servers know which authoritative DNS servers are responsible for each second-level domain beneath it.</p>",
+      "visual": { "type": "comparison", "params": { "left": { "label": "gTLDs", "items": [".com (commercial)", ".org (organizations)", ".net, .edu, .gov", "New: .io, .dev, .ai"] }, "right": { "label": "ccTLDs", "items": [".us, .uk, .de, .jp", "Two-letter ISO country code", "Operated per country"] } } },
+      "hack": {
+        "memory": "TLD = the last piece (.com, .uk). gTLD = generic, ccTLD = country. Registries run TLDs.",
+        "practice": "Run 'whois cisco.com' — see the registry information for the .com TLD.",
+        "effort": "low",
+        "meta": "Light exam coverage — just know TLD = right-most label, gTLD vs ccTLD categories."
+      }
+    },
+    {
+      "id": "4.3.f.4",
+      "term": "FQDN",
+      "weight": "low",
+      "info": "<p>An <strong>FQDN (Fully Qualified Domain Name)</strong> is the complete, unambiguous name of a host in the DNS hierarchy, including every label up to and including the root. The trailing dot represents the root: <code>www.cisco.com.</code> (with the final dot) is technically an FQDN; <code>www.cisco.com</code> (without) is usually treated as one in practice.</p><p>Contrast with a <strong>relative hostname</strong> like <code>www</code>, which is only meaningful inside a specific domain context (with a search suffix like <code>cisco.com</code>). FQDNs are absolute and globally unique.</p><p>On Cisco devices, hostnames in config are often relative (<code>R1</code>) but DNS-based tools use FQDNs (<code>R1.lab.example.com.</code>).</p>",
+      "visual": { "type": "encapsulation", "params": { "layers": [{ "label": "www (host)", "color": "#3b82f6" }, { "label": "cisco (2nd-level domain)", "color": "#8b5cf6" }, { "label": "com (TLD)", "color": "#10b981" }, { "label": ". (root, implied trailing dot)", "color": "#f59e0b" }] } },
+      "hack": {
+        "memory": "FQDN = full name + trailing dot for root. Absolute, unambiguous. 'www.cisco.com.' vs just 'www'.",
+        "practice": "In resolv.conf or DNS suffix settings, note how 'web' becomes 'web.example.com.' — that's FQDN completion.",
+        "effort": "low",
+        "meta": "Low weight but often a one-line definition question on the exam."
+      }
+    }
+  ]
+}
