@@ -1307,6 +1307,254 @@ window.SubtopicVisuals = (() => {
   }
 
   // ────────────────────────────────────────────────────────────────────
+  // 24. dhcp-dora — full DORA lifecycle w/ broadcast MAC + lease IP.
+  // ────────────────────────────────────────────────────────────────────
+  function dhcpDora(p) {
+    const offered = p.offered || '192.168.1.107';
+    const serverIp = p.serverIp || '192.168.1.1';
+    const lease = p.lease || '24h';
+    const w = 360, h = 220;
+
+    let svg = `
+      <text x="${w/2}" y="16" text-anchor="middle" fill="#57534e" font-size="11" font-weight="700" font-family="'Space Grotesk',sans-serif">DHCP DORA — ${esc(offered)} offered by ${esc(serverIp)}</text>
+
+      ${hostGlyph(50, 50, COLORS.blue, 'Client')}
+      <text x="50" y="82" text-anchor="middle" fill="#a8a29e" font-size="8" font-family="'JetBrains Mono',monospace">src 0.0.0.0</text>
+
+      <rect x="280" y="38" width="60" height="40" rx="5" fill="${COLORS.green}" opacity="0.12" stroke="${COLORS.green}" stroke-width="1.5"/>
+      <rect x="288" y="42" width="44" height="6" rx="1" fill="${COLORS.green}" opacity="0.7"/>
+      <rect x="288" y="50" width="44" height="6" rx="1" fill="${COLORS.green}" opacity="0.55"/>
+      <rect x="288" y="58" width="44" height="6" rx="1" fill="${COLORS.green}" opacity="0.4"/>
+      <text x="310" y="92" text-anchor="middle" fill="${COLORS.green}" font-size="9" font-family="'Space Grotesk',sans-serif" font-weight="700">DHCP Server</text>
+      <text x="310" y="102" text-anchor="middle" fill="#a8a29e" font-size="8" font-family="'JetBrains Mono',monospace">${esc(serverIp)}</text>
+
+      <line x1="72" y1="50" x2="278" y2="50" stroke="#d4d0c8" stroke-width="1.2" stroke-dasharray="3 3"/>`;
+
+    const steps = [
+      { label: 'DISCOVER',  dir: 'r', color: COLORS.amber, y: 120, bcast: true,  detail: 'broadcast ff:ff:ff:ff:ff:ff · src 0.0.0.0' },
+      { label: 'OFFER',     dir: 'l', color: COLORS.blue,  y: 144, bcast: true,  detail: 'offers ' + offered },
+      { label: 'REQUEST',   dir: 'r', color: COLORS.amber, y: 168, bcast: true,  detail: 'confirms choice' },
+      { label: 'ACK',       dir: 'l', color: COLORS.green, y: 192, bcast: false, detail: 'lease ' + lease }
+    ];
+
+    steps.forEach((s, i) => {
+      const isR = s.dir === 'r';
+      const x1 = isR ? 80 : 280;
+      const x2 = isR ? 280 : 80;
+      const t = i * 1.1;
+      svg += `
+        <rect y="${s.y - 9}" width="52" height="16" rx="3" fill="${s.color}" opacity="0">
+          <animate attributeName="x" values="${x1 - 26};${x2 - 26}" dur="0.8s" begin="${t}s" fill="freeze" calcMode="spline" keySplines="0.16 1 0.3 1"/>
+          <animate attributeName="opacity" values="0;0.95" dur="0.3s" begin="${t}s" fill="freeze"/>
+        </rect>
+        <text y="${s.y + 2}" text-anchor="middle" fill="#fff" font-size="9" font-family="'JetBrains Mono',monospace" font-weight="700" opacity="0">
+          <animate attributeName="x" values="${x1};${x2}" dur="0.8s" begin="${t}s" fill="freeze" calcMode="spline" keySplines="0.16 1 0.3 1"/>
+          <animate attributeName="opacity" values="0;1" dur="0.3s" begin="${t}s" fill="freeze"/>
+          ${s.label}
+        </text>
+        <text x="180" y="${s.y - 12}" text-anchor="middle" fill="${s.color}" font-size="8" font-family="'JetBrains Mono',monospace" opacity="0">
+          <animate attributeName="opacity" values="0;0.9" dur="0.3s" begin="${t + 0.4}s" fill="freeze"/>
+          ${esc(s.detail)}
+        </text>`;
+    });
+
+    return `<svg viewBox="0 0 ${w} ${h}" class="sv-anim" xmlns="http://www.w3.org/2000/svg">${svg}</svg>`;
+  }
+
+  // ────────────────────────────────────────────────────────────────────
+  // 25. tcp-window — sliding window, SEQ/ACK, retransmit on loss.
+  // ────────────────────────────────────────────────────────────────────
+  function tcpWindow(p) {
+    const window = p.window || 4;
+    const sent = p.sent || [1, 2, 3, 4, 5, 6, 7, 8];
+    const acked = p.acked || 3;
+    const lost = p.lost || 5;
+    const w = 360, h = 150;
+
+    const cellW = 32;
+    const startX = (w - cellW * sent.length) / 2;
+
+    let svg = `
+      <text x="${w/2}" y="16" text-anchor="middle" fill="#57534e" font-size="11" font-weight="700" font-family="'Space Grotesk',sans-serif">TCP sliding window · window=${window}</text>
+      <text x="${w/2}" y="32" text-anchor="middle" fill="#a8a29e" font-size="9" font-family="'JetBrains Mono',monospace">last ACK ${acked + 1} · segment ${lost} lost → fast retransmit on 3 dupACKs</text>`;
+
+    sent.forEach((seq, i) => {
+      const x = startX + i * cellW;
+      const isAcked = seq <= acked;
+      const isLost = seq === lost;
+      const inWindow = !isAcked && seq <= acked + window;
+      const fill = isAcked ? COLORS.green : (isLost ? COLORS.red : (inWindow ? COLORS.amber : '#f3f0eb'));
+      const stroke = isAcked ? COLORS.green : (isLost ? COLORS.red : (inWindow ? COLORS.amber : '#d4d0c8'));
+      svg += `
+        <rect x="${x + 2}" y="48" width="${cellW - 4}" height="28" rx="3" fill="${fill}" stroke="${stroke}" stroke-width="1.3"/>
+        <text x="${x + cellW/2}" y="66" text-anchor="middle" fill="${isAcked || inWindow || isLost ? '#fff' : '#a8a29e'}" font-size="10" font-family="'JetBrains Mono',monospace" font-weight="700">${seq}</text>`;
+      if (isLost) {
+        svg += `<line x1="${x + 4}" y1="48" x2="${x + cellW - 4}" y2="76" stroke="#fff" stroke-width="2" opacity="0.9"/>
+          <line x1="${x + cellW - 4}" y1="48" x2="${x + 4}" y2="76" stroke="#fff" stroke-width="2" opacity="0.9"/>`;
+      }
+    });
+
+    // Window bracket
+    const winStart = startX + (acked) * cellW;
+    const winEnd = startX + (acked + window) * cellW;
+    svg += `
+      <line x1="${winStart}" y1="80" x2="${winEnd}" y2="80" stroke="${COLORS.amber}" stroke-width="2">
+        <animate attributeName="x1" values="${winStart};${winStart + cellW}" dur="2s" repeatCount="indefinite"/>
+        <animate attributeName="x2" values="${winEnd};${winEnd + cellW}" dur="2s" repeatCount="indefinite"/>
+      </line>
+      <text x="${(winStart + winEnd)/2}" y="94" text-anchor="middle" fill="${COLORS.amber}" font-size="9" font-family="'Space Grotesk',sans-serif" font-weight="700">WINDOW slides right on each ACK</text>
+
+      <text x="${startX}" y="110" fill="${COLORS.green}" font-size="9" font-family="'JetBrains Mono',monospace" font-weight="700">✓ ACKed</text>
+      <text x="${startX + 80}" y="110" fill="${COLORS.amber}" font-size="9" font-family="'JetBrains Mono',monospace" font-weight="700">⋯ In flight</text>
+      <text x="${startX + 180}" y="110" fill="${COLORS.red}" font-size="9" font-family="'JetBrains Mono',monospace" font-weight="700">✗ Lost</text>
+      <text x="${startX + 260}" y="110" fill="#a8a29e" font-size="9" font-family="'JetBrains Mono',monospace">◦ Not sent</text>
+
+      <text x="${w/2}" y="${h - 8}" text-anchor="middle" fill="#a8a29e" font-size="8" font-family="'JetBrains Mono',monospace">Cumulative ACK N = "got everything up to N-1" · selective ACK (SACK) ACKs ranges</text>`;
+
+    return `<svg viewBox="0 0 ${w} ${h}" class="sv-anim" xmlns="http://www.w3.org/2000/svg">${svg}</svg>`;
+  }
+
+  // ────────────────────────────────────────────────────────────────────
+  // 26. etherchannel — 4 physical links bundling into 1 logical Po1.
+  // ────────────────────────────────────────────────────────────────────
+  function etherchannel(p) {
+    const links = p.links || 4;
+    const protocol = p.protocol || 'LACP';
+    const w = 360, h = 170;
+
+    let svg = `
+      <text x="${w/2}" y="16" text-anchor="middle" fill="#57534e" font-size="11" font-weight="700" font-family="'Space Grotesk',sans-serif">EtherChannel · ${esc(protocol)} · Po1 = ${links}×1G</text>
+      ${switchGlyph(50, 80, COLORS.blue, 'SW1')}
+      ${switchGlyph(310, 80, COLORS.blue, 'SW2')}`;
+
+    for (let i = 0; i < links; i++) {
+      const y = 60 + i * 10;
+      const colorI = [COLORS.green, COLORS.blue, COLORS.purple, COLORS.amber][i % 4];
+      svg += `
+        <line x1="72" y1="${y}" x2="288" y2="${y}" stroke="${colorI}" stroke-width="2" opacity="0.5"/>
+        <circle r="3" fill="${colorI}">
+          <animate attributeName="cx" values="72;288" dur="${1 + i * 0.1}s" repeatCount="indefinite" calcMode="spline" keySplines="0.16 1 0.3 1"/>
+          <animate attributeName="cy" values="${y};${y}" dur="${1 + i * 0.1}s" repeatCount="indefinite"/>
+          <animate attributeName="opacity" values="1;0" dur="${1 + i * 0.1}s" repeatCount="indefinite"/>
+        </circle>
+        <text x="82" y="${y - 3}" fill="${colorI}" font-size="7" font-family="'JetBrains Mono',monospace" font-weight="700">Gi0/${i + 1}</text>`;
+    }
+
+    // Logical wrapper showing bundle
+    svg += `
+      <rect x="76" y="${60 - 6}" width="208" height="${links * 10 + 6}" rx="10" fill="none" stroke="${COLORS.amber}" stroke-width="1.5" stroke-dasharray="4 3" opacity="0.55">
+        <animate attributeName="opacity" values="0.35;0.85;0.35" dur="2.2s" repeatCount="indefinite"/>
+      </rect>
+      <text x="180" y="130" text-anchor="middle" fill="${COLORS.amber}" font-size="10" font-family="'Space Grotesk',sans-serif" font-weight="700">logical Port-channel 1 (${links} Gbps)</text>
+
+      <text x="${w/2}" y="${h - 6}" text-anchor="middle" fill="#a8a29e" font-size="8" font-family="'JetBrains Mono',monospace">Hash(src/dst IP/MAC/port) picks which physical link · failover when link drops</text>`;
+
+    return `<svg viewBox="0 0 ${w} ${h}" class="sv-anim" xmlns="http://www.w3.org/2000/svg">${svg}</svg>`;
+  }
+
+  // ────────────────────────────────────────────────────────────────────
+  // 27. ospf-neighbor — 7-state neighbor FSM with Hello/DBD/LSR boxes.
+  // ────────────────────────────────────────────────────────────────────
+  function ospfNeighbor(p) {
+    const current = p.current != null ? p.current : 6;
+    const states = [
+      { name: 'Down',     detail: 'no hellos received' },
+      { name: 'Attempt',  detail: 'NBMA: unicast hello sent' },
+      { name: 'Init',     detail: 'hello received (one-way)' },
+      { name: '2-Way',    detail: 'own RID in neighbor hello' },
+      { name: 'ExStart',  detail: 'master/slave negotiation' },
+      { name: 'Exchange', detail: 'DBD exchange' },
+      { name: 'Loading',  detail: 'LSR / LSU / LSAck' },
+      { name: 'Full',     detail: 'LSDB synced' }
+    ];
+    const n = states.length;
+    const w = 360, h = 170;
+
+    const boxW = (w - 30) / n;
+    let svg = `
+      <text x="${w/2}" y="16" text-anchor="middle" fill="#57534e" font-size="11" font-weight="700" font-family="'Space Grotesk',sans-serif">OSPF neighbor FSM — current: ${esc(states[current].name)}</text>`;
+
+    states.forEach((s, i) => {
+      const x = 15 + i * boxW;
+      const isActive = i === current;
+      const isPast = i < current;
+      const fill = isActive ? COLORS.amber : (isPast ? COLORS.green : '#f3f0eb');
+      const txt = isActive || isPast ? '#fff' : '#78716c';
+      svg += `
+        <rect x="${x}" y="42" width="${boxW - 4}" height="28" rx="4" fill="${fill}" stroke="${isActive ? COLORS.amber : (isPast ? COLORS.green : '#d4d0c8')}" stroke-width="${isActive ? 1.8 : 1}">
+          ${isActive ? `<animate attributeName="stroke-width" values="1.4;2.4;1.4" dur="1.8s" repeatCount="indefinite"/>` : ''}
+        </rect>
+        <text x="${x + boxW/2 - 2}" y="60" text-anchor="middle" fill="${txt}" font-size="9" font-weight="700" font-family="'Space Grotesk',sans-serif">${esc(s.name)}</text>`;
+
+      if (i < n - 1) {
+        const arrX1 = x + boxW - 4;
+        const arrX2 = x + boxW + 2;
+        svg += `<path d="M ${arrX1} 56 L ${arrX2} 56" stroke="${isPast ? COLORS.green : '#d4d0c8'}" stroke-width="1.2" marker-end="url(#ospf-arr)"/>`;
+      }
+    });
+
+    svg += `
+      <text x="${w/2}" y="95" text-anchor="middle" fill="${COLORS.amber}" font-size="10" font-family="'JetBrains Mono',monospace" font-weight="700">⟶ ${esc(states[current].detail)}</text>
+      <text x="${w/2}" y="114" text-anchor="middle" fill="#78716c" font-size="9" font-family="'Space Grotesk',sans-serif">Hello packets drive Down→Init→2-Way; DBD drives Exchange; LSR drives Loading</text>
+
+      <text x="${w/2}" y="140" text-anchor="middle" fill="#a8a29e" font-size="8" font-family="'JetBrains Mono',monospace">Hello timer 10s · Dead timer 40s (broadcast) · mismatches → never reach 2-Way</text>
+      <defs><marker id="ospf-arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+        <path d="M 0 1 L 8 5 L 0 9 z" fill="#78716c"/>
+      </marker></defs>`;
+
+    return `<svg viewBox="0 0 ${w} ${h}" class="sv-anim" xmlns="http://www.w3.org/2000/svg">${svg}</svg>`;
+  }
+
+  // ────────────────────────────────────────────────────────────────────
+  // 28. spine-leaf — 3D-feeling fabric with east-west predictable 2-hop.
+  // ────────────────────────────────────────────────────────────────────
+  function spineLeaf(p) {
+    const spines = p.spines || 3;
+    const leaves = p.leaves || 4;
+    const w = 360, h = 200;
+    const spineY = 50;
+    const leafY = 140;
+
+    let svg = `<text x="${w/2}" y="16" text-anchor="middle" fill="#57534e" font-size="11" font-weight="700" font-family="'Space Grotesk',sans-serif">Spine-Leaf fabric · every leaf ↔ every spine · ECMP, 2-hop predictable</text>`;
+
+    const spineX = (i) => 60 + i * ((w - 120) / (spines - 1));
+    const leafX  = (i) => 40 + i * ((w - 80) / (leaves - 1));
+
+    // Full mesh connections
+    for (let i = 0; i < spines; i++) {
+      for (let j = 0; j < leaves; j++) {
+        svg += `<line x1="${spineX(i)}" y1="${spineY}" x2="${leafX(j)}" y2="${leafY}" stroke="${COLORS.slate}" stroke-width="0.8" opacity="0.35"/>`;
+      }
+    }
+
+    // Flowing traffic leaf-to-spine-to-leaf (east-west)
+    const fromLeaf = 0, toLeaf = leaves - 1, viaSpine = Math.floor(spines / 2);
+    svg += `
+      <circle r="4" fill="${COLORS.amber}">
+        <animate attributeName="cx" values="${leafX(fromLeaf)};${spineX(viaSpine)};${leafX(toLeaf)}" dur="2s" repeatCount="indefinite" calcMode="linear"/>
+        <animate attributeName="cy" values="${leafY};${spineY};${leafY}" dur="2s" repeatCount="indefinite"/>
+        <animate attributeName="opacity" values="1;1;1;0" dur="2s" repeatCount="indefinite" keyTimes="0;0.48;0.98;1"/>
+      </circle>`;
+
+    // Spines
+    for (let i = 0; i < spines; i++) {
+      svg += `
+        <rect x="${spineX(i) - 30}" y="${spineY - 16}" width="60" height="28" rx="5" fill="${COLORS.purple}"/>
+        <text x="${spineX(i)}" y="${spineY + 2}" text-anchor="middle" fill="#fff" font-size="10" font-weight="700" font-family="'Space Grotesk',sans-serif">SPINE ${i + 1}</text>`;
+    }
+    // Leaves
+    for (let j = 0; j < leaves; j++) {
+      svg += `
+        <rect x="${leafX(j) - 28}" y="${leafY - 12}" width="56" height="24" rx="4" fill="${COLORS.blue}"/>
+        <text x="${leafX(j)}" y="${leafY + 4}" text-anchor="middle" fill="#fff" font-size="9" font-weight="700" font-family="'Space Grotesk',sans-serif">LEAF ${j + 1}</text>`;
+    }
+
+    svg += `<text x="${w/2}" y="${h - 6}" text-anchor="middle" fill="#a8a29e" font-size="8" font-family="'JetBrains Mono',monospace">Leaves never connect to leaves · spines never to spines · VXLAN overlay on top</text>`;
+
+    return `<svg viewBox="0 0 ${w} ${h}" class="sv-anim" xmlns="http://www.w3.org/2000/svg">${svg}</svg>`;
+  }
+
+  // ────────────────────────────────────────────────────────────────────
   // Renderer dispatch
   // ────────────────────────────────────────────────────────────────────
 
@@ -1333,7 +1581,12 @@ window.SubtopicVisuals = (() => {
     'qos-queues':        qosQueues,
     'trunk-tagging':     trunkTagging,
     'rf-heatmap':        rfHeatmap,
-    'subnet-divide':     subnetDivide
+    'subnet-divide':     subnetDivide,
+    'dhcp-dora':         dhcpDora,
+    'tcp-window':        tcpWindow,
+    'etherchannel':      etherchannel,
+    'ospf-neighbor':     ospfNeighbor,
+    'spine-leaf':        spineLeaf
   };
 
   // ────────────────────────────────────────────────────────────────────
