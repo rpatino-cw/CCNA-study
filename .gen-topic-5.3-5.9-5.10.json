@@ -1,0 +1,283 @@
+{
+  "5.3.a": [
+    {
+      "id": "5.3.a",
+      "term": "enable password command",
+      "weight": "high",
+      "info": "<p>The <code>enable password</code> command sets the password required to move from user EXEC mode (the <code>&gt;</code> prompt) into <strong>privileged EXEC mode</strong> (the <code>#</code> prompt). It is one of the oldest Cisco IOS commands — and one of the most dangerous if used in production, because it stores the password as <strong>Type 0 (plaintext)</strong> in the running configuration.</p><p>The core flaw: anyone with read access to the config can see the password. <code>show running-config</code>, TFTP backups, emailed configs, screenshot shares — all expose the cleartext password. Even with <code>service password-encryption</code> enabled, the password is only upgraded to Type 7 (Vigenere) which is trivially reversible with free online decoders.</p><p>Key behavioral rules:</p><ul><li>Stored as <strong>Type 0</strong> by default in <code>show running-config</code></li><li>When both <code>enable password</code> and <code>enable secret</code> exist, <strong><code>enable secret</code> ALWAYS wins</strong>. The <code>enable password</code> value is effectively ignored.</li><li>Cannot be hashed natively — it only supports Type 0 or Type 7 (with service password-encryption)</li><li>Cisco marks it deprecated. Best practice is to remove it entirely and use only <code>enable secret</code>.</li></ul><p><strong>Exam trap:</strong> a <code>show running-config</code> snippet shows both <code>enable password cisco</code> and <code>enable secret cisco123</code>. Which password gets you into priv exec? Answer: <code>cisco123</code> — because <code>enable secret</code> takes precedence.</p>",
+      "visual": { "type": "comparison", "params": { "left": { "label": "enable password", "items": ["Stored PLAINTEXT (Type 0)", "Visible in show run", "Service pw-enc = Type 7 (reversible)", "NEVER use in production"] }, "right": { "label": "enable secret", "items": ["Stored HASHED (Type 5/8/9)", "Hash visible, password not recoverable", "One-way MD5/PBKDF2/scrypt", "ALWAYS use this"] } } },
+      "hack": {
+        "memory": "enable PASSWORD = PLAIN to see. enable SECRET = Securely encrypted. Both configured? SECRET wins, password is ignored. Rule: if you can READ the password in show run, it is the wrong one.",
+        "practice": "In Packet Tracer: configure <code>enable password cisco</code> AND <code>enable secret cisco123</code>. Exit to user mode, try <code>enable</code> with 'cisco' (fails) then 'cisco123' (works). Then <code>show run | include enable</code> to see cisco in plaintext and cisco123 as a $1$ hash.",
+        "effort": "low",
+        "meta": "Jeremy's IT Lab Day 4 (CLI basics) + Day 52 (Device Security). Wendell Odom OCG Chapter 6 + 27. The exam loves to show both commands in the same config and ask which is enforced — always enable secret."
+      }
+    },
+    {
+      "id": "5.3.a.1",
+      "term": "enable secret",
+      "weight": "high",
+      "info": "<p><code>enable secret [password]</code> sets the privileged EXEC password and stores it as a <strong>one-way hash</strong> — by default <strong>Type 5 (MD5)</strong>, or Type 8 (PBKDF2-SHA256) / Type 9 (scrypt) on newer IOS versions. Unlike <code>enable password</code>, the original password cannot be recovered from the config.</p><p>When you type <code>enable secret MyPass123</code>, IOS immediately hashes the password and stores only the hash string, which looks like <code>enable secret 5 $1$mERr$hx5rVt7rPNoS4wqbXKX7m0</code>. The <code>5</code> indicates Type 5 (MD5). An admin reviewing the config sees the hash but cannot reverse it back to <code>MyPass123</code>.</p><p><strong>Precedence rule (must memorize):</strong> if both <code>enable password</code> and <code>enable secret</code> are configured on the same device, <code>enable secret</code> always takes precedence. The IOS authentication logic ignores <code>enable password</code> entirely when an <code>enable secret</code> exists.</p><p><strong>Command variants:</strong></p><ul><li><code>enable secret MyPass</code> — default Type 5 on older IOS, may default to Type 9 on newer IOS</li><li><code>enable algorithm-type scrypt secret MyPass</code> — force Type 9 (strongest)</li><li><code>enable algorithm-type sha256 secret MyPass</code> — force Type 8</li><li><code>enable secret 5 $1$abc$hashvalue</code> — paste an already-hashed password (migration scenario)</li></ul>",
+      "visual": { "type": "state-machine", "params": { "states": ["User EXEC (>)", "enable + password", "Privileged EXEC (#)"], "active": 2, "transitions": true } },
+      "hack": {
+        "memory": "enable SECRET = Securely hashed. Preferred. Cannot be reversed. Wins over enable password every time. Type 5 = $1$ hash prefix = MD5. Type 8 = PBKDF2. Type 9 = scrypt (strongest).",
+        "practice": "Lab: <code>enable secret Cisco123!</code>. Then <code>show run | include enable secret</code>. See the hash. Paste it into a Type 5 decoder online — it cannot be reversed (only brute-forced). Compare with enable password (instantly readable).",
+        "effort": "low",
+        "meta": "Jeremy's IT Lab Day 52. Wendell Odom OCG Chapter 27. Exam expects you to know: enable secret uses hashing, always wins over enable password, Type 5 default (MD5) with newer IOS supporting Type 8/9."
+      }
+    },
+    {
+      "id": "5.3.a.2",
+      "term": "enable password",
+      "weight": "high",
+      "info": "<p><code>enable password [password]</code> is the LEGACY method to protect privileged EXEC access. It stores the password as <strong>Type 0 (plaintext)</strong> in the running configuration. It exists only for backward compatibility with ancient IOS versions and should be considered deprecated in all modern deployments.</p><p><strong>Why it is weak:</strong></p><ul><li>Type 0 = no encryption, no hashing — literally the ASCII text of the password in <code>show run</code></li><li>Even when <code>service password-encryption</code> is applied, it upgrades only to Type 7 (Vigenere cipher with a known fixed key) — reversible in milliseconds with any online Cisco Type 7 decoder</li><li>Password is visible to anyone with read access to the config: backup server admins, version control, emailed configs, screen shares</li></ul><p><strong>Ignored when enable secret is set:</strong> if both commands are configured, IOS authentication completely ignores <code>enable password</code>. The only password that works is the one set by <code>enable secret</code>. Many admins mistakenly think the two must match — they don't. You can type <code>enable password A</code> and <code>enable secret B</code> — only B works.</p><p><strong>Exam guidance:</strong> if a question asks what command to use to protect priv exec, the answer is <code>enable secret</code>, never <code>enable password</code>. If a config shows both, know that enable secret wins.</p>",
+      "visual": { "type": "comparison", "params": { "left": { "label": "What enable password is", "items": ["Legacy command", "Type 0 plaintext storage", "Type 7 with service pw-enc (still weak)", "Ignored when enable secret exists"] }, "right": { "label": "Why to avoid", "items": ["Visible in show run", "Reversible encryption at best", "No hashing option", "Violates modern security guidelines"] } } },
+      "hack": {
+        "memory": "enable password = the password you can SEE. Legacy. Type 0 by default. Even Type 7 is reversible. If enable secret exists, this command is a DECOY — completely ignored.",
+        "practice": "Configure <code>enable password cisco</code>, run <code>show run | i enable</code> — see 'cisco' in plaintext. Add <code>service password-encryption</code>, run <code>show run</code> again — see Type 7 hash. Paste it into an online Type 7 decoder, get 'cisco' back instantly.",
+        "effort": "low",
+        "meta": "Jeremy's IT Lab Day 52. Wendell Odom OCG Chapter 27. Exam tests the precedence rule (secret wins) and the Type 0/Type 7 weakness. Memorize: enable password = insecure legacy, always override with enable secret."
+      }
+    },
+    {
+      "id": "5.3.a.3",
+      "term": "enable secret takes precedence",
+      "weight": "high",
+      "info": "<p>This is the single most tested rule in 5.3: <strong>when both <code>enable password</code> and <code>enable secret</code> are configured, <code>enable secret</code> ALWAYS wins</strong>. The enable password value is parsed into the config but is never used for authentication.</p><p><strong>Why this rule exists:</strong> Cisco introduced <code>enable secret</code> as the secure replacement for <code>enable password</code>. To ease migration, they kept both commands valid — but the authentication logic was updated so that IOS checks for <code>enable secret</code> first. If found, it is used exclusively. The legacy <code>enable password</code> becomes a zombie value in the config, still visible but never enforced.</p><p><strong>Config example:</strong></p><pre>R1(config)# enable password cisco\nR1(config)# enable secret ciscoSecure123\nR1(config)# exit\nR1# disable\nR1&gt; enable\nPassword: cisco         &lt;-- rejected\nPassword: ciscoSecure123 &lt;-- accepted</pre><p><strong>Classic exam trap:</strong> the question shows a config snippet with both commands and asks 'What password does the admin type at the Password: prompt?' Many students pick <code>enable password</code> because it was configured first (or was typed last, or because they assume both work). The correct answer is always the <code>enable secret</code> value.</p><p><strong>Best practice:</strong> never configure <code>enable password</code> in modern deployments. If you inherit a device with both, remove <code>enable password</code> with <code>no enable password</code> to eliminate the confusion and the plaintext exposure in the config.</p>",
+      "visual": { "type": "hierarchy", "params": { "root": "Priv EXEC authentication", "children": [{ "name": "enable secret configured?", "children": [{ "name": "YES: use enable secret (ignore enable password)" }, { "name": "NO: fall back to enable password" }] }] } },
+      "hack": {
+        "memory": "Both set? SECRET WINS. Every time. No exceptions. enable password becomes a ghost in the config — visible, parseable, but never used for authentication.",
+        "practice": "Build the config with both commands, different values. Try to log in with each. Only the secret works. Then <code>no enable password</code> to clean up. Teach yourself that the legacy command is just noise.",
+        "effort": "low",
+        "meta": "Jeremy's IT Lab Day 52. Wendell Odom OCG Chapter 27. 100% guaranteed exam concept — Cisco loves this trap. Know the precedence rule cold."
+      }
+    },
+    {
+      "id": "5.3.a.4",
+      "term": "Password Type 0 (plaintext)",
+      "weight": "high",
+      "info": "<p><strong>Type 0</strong> means the password is stored as literal ASCII text in the running configuration — no encryption, no hashing, no obfuscation. It is the default storage for <code>enable password</code>, line passwords (<code>password cisco</code> under <code>line con 0</code>), and <code>username X password Y</code>.</p><p>Identifying Type 0 in configs:</p><ul><li><code>enable password 0 cisco</code> — explicit Type 0</li><li><code>enable password cisco</code> — implicit Type 0 (no digit means plaintext)</li><li><code>password cisco</code> under a line — plaintext line password</li><li><code>username admin password cisco</code> — plaintext local user password</li></ul><p><strong>Risks:</strong></p><ul><li>Any config backup exposes the password</li><li>Anyone with <code>show running-config</code> access sees the password</li><li>Passwords end up in monitoring tools, SIEM logs, ticket attachments, screenshots</li><li>Even brief accidental exposure (Slack paste, email, screen share) is a permanent compromise — the password cannot be 'un-seen'</li></ul><p><strong>Mitigations in order of strength:</strong></p><ol><li><strong>Type 7</strong> via <code>service password-encryption</code> — weak obfuscation, reversible, better than nothing</li><li><strong>Type 5</strong> via <code>enable secret</code> or <code>username X secret Y</code> — one-way MD5 hash</li><li><strong>Type 8</strong> (PBKDF2-SHA256) or <strong>Type 9</strong> (scrypt) — strong modern hashes, use when IOS supports them</li></ol><p>Rule of thumb: any time you see a Type 0 password in a production config, it is a finding — fix it immediately.</p>",
+      "visual": { "type": "layer-stack", "params": { "layers": ["Type 0 — plaintext (WORST)", "Type 7 — Vigenere (reversible)", "Type 5 — MD5 hash", "Type 8 — PBKDF2-SHA256", "Type 9 — scrypt (BEST)"], "highlight": 0 } },
+      "hack": {
+        "memory": "Type 0 = zero protection. Plaintext. Readable by anyone with show-run access. Use the 'secret' keyword or enable service password-encryption to upgrade — but hashed (Type 5/8/9) beats encrypted (Type 7) every time.",
+        "practice": "Configure <code>username test password MyPass</code>. Run <code>show run | i username</code> — see 'MyPass' in plaintext. Now configure <code>username test2 secret MyPass</code>. Run show run again — see $1$ hash for test2. Proves secret > password.",
+        "effort": "low",
+        "meta": "Jeremy's IT Lab Day 52. Wendell Odom OCG Chapter 27. Memorize the type ladder: 0 (plain), 7 (weak encrypt), 5 (MD5), 8 (PBKDF2), 9 (scrypt). Exam shows hashes and asks to identify the type — the $1$ prefix = Type 5."
+      }
+    }
+  ],
+  "5.3.b": [
+    {
+      "id": "5.3.b",
+      "term": "enable secret and password hash types",
+      "weight": "high",
+      "info": "<p>The <code>enable secret</code> command sets a <strong>hashed password</strong> for privileged EXEC mode. The hash type depends on the IOS version and the optional <code>algorithm-type</code> keyword. Understanding the five Cisco password types is a high-frequency exam topic.</p><p><strong>The five password types (memorize cold):</strong></p><ul><li><strong>Type 0 — Plaintext.</strong> No protection. Default for <code>enable password</code> and line <code>password</code> commands. Visible verbatim in <code>show running-config</code>.</li><li><strong>Type 4 — SHA-256.</strong> Deprecated in later IOS because it used a single unsalted SHA-256 pass. Superseded by Type 8.</li><li><strong>Type 5 — MD5 hash.</strong> Default for legacy <code>enable secret</code>. Recognizable by the <code>$1$</code> prefix. One-way. MD5 is weak by modern standards but the hash still cannot be reversed — only brute-forced.</li><li><strong>Type 7 — Vigenere cipher.</strong> Reversible. Applied only by <code>service password-encryption</code>. Weak obfuscation, not true encryption. Cracked in seconds by any Cisco Type 7 decoder.</li><li><strong>Type 8 — PBKDF2 with SHA-256.</strong> Modern, strong. 20,000 iterations. Use on newer IOS when available.</li><li><strong>Type 9 — scrypt.</strong> Strongest. Memory-hard — resists GPU/ASIC brute-force. Slowest to compute (intentional). Preferred on any IOS that supports it.</li></ul><p><strong>Forcing a specific type:</strong></p><ul><li><code>enable algorithm-type scrypt secret MyPass</code> → Type 9</li><li><code>enable algorithm-type sha256 secret MyPass</code> → Type 8</li><li><code>enable algorithm-type md5 secret MyPass</code> → Type 5</li><li><code>enable secret MyPass</code> → depends on IOS default (usually Type 5 on older, Type 9 on newer)</li></ul><p><strong>Precedence reminder:</strong> if both <code>enable password</code> and <code>enable secret</code> exist, <code>enable secret</code> always wins — regardless of the secret's hash type.</p>",
+      "visual": { "type": "layer-stack", "params": { "layers": ["Type 0 (plain) — WORST", "Type 7 (Vigenere) — reversible", "Type 5 (MD5) — one-way, weakish", "Type 8 (PBKDF2) — strong", "Type 9 (scrypt) — STRONGEST"], "highlight": 4 } },
+      "hack": {
+        "memory": "0-4-5-7-8-9. Plain, SHA256-old, MD5, Vigenere, PBKDF2, scrypt. Only 5 matters for the default enable secret. Only 7 is 'encryption' (reversible). 8 and 9 are modern and strong. Rank: 9 > 8 > 5 > 7 > 0.",
+        "practice": "On a lab router: <code>enable algorithm-type scrypt secret MyScrypt</code> then <code>enable algorithm-type md5 secret MyMD5</code> then <code>enable secret MyDefault</code>. Check <code>show run | i enable secret</code> — see the <code>9</code>, <code>5</code>, and default prefixes. Identify each.",
+        "effort": "medium",
+        "meta": "Jeremy's IT Lab Day 4 + 52. Wendell Odom OCG Chapter 6 + 27. Exam asks 'which type is MD5?' (5), 'which is reversible?' (7), 'which is strongest?' (9). Drill these numbers until automatic."
+      }
+    },
+    {
+      "id": "5.3.b.1",
+      "term": "Type 0 (plaintext)",
+      "weight": "high",
+      "info": "<p><strong>Type 0</strong> means the password is stored verbatim in the configuration — no encryption, no hashing, no scrambling. It is the default for legacy commands like <code>enable password</code>, line <code>password</code>, and <code>username X password Y</code>.</p><p><strong>How to spot it:</strong></p><ul><li>Literal text in <code>show running-config</code>: <code>password cisco</code> or <code>enable password cisco</code></li><li>Explicit <code>0</code> indicator: <code>password 0 cisco</code> — the <code>0</code> means Type 0</li></ul><p><strong>Why it fails security audits:</strong> any time the config is viewed, copied, backed up, emailed, pasted into a ticket, or shown on a screen share, the password is instantly compromised. No after-the-fact mitigation exists — once seen, it is forever exposed.</p><p><strong>Upgrading from Type 0:</strong></p><ul><li>Add <code>service password-encryption</code> globally to convert existing Type 0 passwords to Type 7 (weak but better than nothing)</li><li>Better: replace <code>password</code> with <code>secret</code> keyword in <code>enable</code> and <code>username</code> commands — this forces hashing (Type 5 or higher)</li></ul>",
+      "visual": { "type": "shield", "params": { "items": ["Plaintext in config", "Visible in show run", "Readable by any admin", "AVOID in production"], "color": "#ef4444" } },
+      "hack": {
+        "memory": "Type 0 = Zero protection. The number matches the reality. If you can read the password without a decoder, it is Type 0.",
+        "practice": "Set <code>username test password Lab123</code>. Run <code>show run | i username</code> — 'Lab123' is plainly visible. Delete and replace with <code>username test secret Lab123</code>. Run show run again — now it is a $1$ hash.",
+        "effort": "low",
+        "meta": "Jeremy's IT Lab Day 52. Exam identifies Type 0 via the plaintext string or explicit '0' indicator. Always avoid in production."
+      }
+    },
+    {
+      "id": "5.3.b.2",
+      "term": "Type 5 (MD5)",
+      "weight": "high",
+      "info": "<p><strong>Type 5</strong> is the classic Cisco MD5 hash, used by <code>enable secret</code> by default on older IOS versions. The hash is <strong>one-way</strong> — IOS cannot reverse it to recover the original password. Authentication works by hashing the user's input and comparing the two hashes.</p><p><strong>How to recognize Type 5:</strong></p><ul><li>In the config: <code>enable secret 5 $1$mERr$hx5rVt7rPNoS4wqbXKX7m0</code></li><li>The <code>5</code> after 'secret' indicates the type</li><li>The hash string starts with <strong><code>$1$</code></strong> — this is the Unix/Cisco MD5 identifier</li><li>Structure: <code>$1$[salt]$[hash]</code> — the salt prevents rainbow-table attacks</li></ul><p><strong>Strengths:</strong></p><ul><li>One-way — cannot be reversed mathematically</li><li>Salted — two admins with the same password get different hashes</li><li>Widely supported across all modern IOS versions</li></ul><p><strong>Weaknesses:</strong></p><ul><li>MD5 is cryptographically broken for collision resistance (not relevant to password hashing, but signals aging crypto)</li><li>Fast to compute — GPUs can brute-force billions of MD5 hashes per second against weak passwords</li><li>For short or dictionary-word passwords, Type 5 can be cracked in hours</li><li>Superseded by Type 8 (PBKDF2) and Type 9 (scrypt) on modern IOS</li></ul><p><strong>Bottom line:</strong> Type 5 is far better than Type 0 or Type 7, but if the platform supports it, use Type 8 or Type 9 instead.</p>",
+      "visual": { "type": "comparison", "params": { "left": { "label": "Type 5 MD5", "items": ["One-way hash", "$1$salt$hash format", "Default for enable secret (legacy)", "Weakened by modern GPUs"] }, "right": { "label": "Prefer instead", "items": ["Type 8 (PBKDF2)", "Type 9 (scrypt)", "algorithm-type keyword", "Memory-hard = GPU-resistant"] } } },
+      "hack": {
+        "memory": "Type 5 = MD5 = $1$ prefix. One-way, salted, but fast to brute-force. Better than 0 or 7. Worse than 8 or 9. Default for old enable secret.",
+        "practice": "Run <code>enable secret Cisco123</code>. Check <code>show run | i enable secret</code>. The line shows <code>enable secret 5 $1$...</code>. The '5' and '$1$' both confirm MD5.",
+        "effort": "low",
+        "meta": "Jeremy's IT Lab Day 52. Wendell Odom OCG Chapter 27. Exam loves the $1$ prefix identifier — memorize it."
+      }
+    },
+    {
+      "id": "5.3.b.3",
+      "term": "Type 7 (Vigenere — reversible)",
+      "weight": "high",
+      "info": "<p><strong>Type 7</strong> is a reversible Vigenere-cipher obfuscation applied by the <code>service password-encryption</code> global command. It is the weakest 'encryption' Cisco offers — intended only to stop casual shoulder-surfing, not actual attackers.</p><p><strong>How it works:</strong></p><ul><li>Cisco uses a fixed, publicly known Vigenere key to XOR-obfuscate the plaintext password</li><li>The resulting hex string is stored with a <code>7</code> type indicator: <code>password 7 0822455D0A16</code></li><li>Any Cisco Type 7 decoder (dozens of free websites, the Python module <code>ciscot7</code>, etc.) reverses the obfuscation instantly</li></ul><p><strong>What service password-encryption affects:</strong></p><ul><li>Line passwords (<code>password</code> under line con/vty/aux)</li><li><code>enable password</code> (Type 0 → Type 7)</li><li><code>username X password Y</code> entries</li><li>Does NOT affect any password set with the <code>secret</code> keyword — those remain Type 5/8/9</li></ul><p><strong>Important gotchas:</strong></p><ul><li>Running <code>no service password-encryption</code> does NOT un-encrypt passwords already converted — they stay Type 7 until manually rewritten</li><li>The same plaintext produces the same Type 7 hash every time — no salt, so two admins with 'cisco' have identical ciphertext</li><li>Type 7 is considered <strong>obfuscation</strong>, not encryption — Cisco documentation itself warns against relying on it for security</li></ul><p><strong>Use case:</strong> a safety net. Enable <code>service password-encryption</code> as a baseline so that if an admin accidentally sets a line password with <code>password</code> instead of using <code>secret</code>, at least it is not sitting in the config as Type 0.</p>",
+      "visual": { "type": "comparison", "params": { "left": { "label": "Type 7 is", "items": ["Vigenere cipher", "Reversible with known key", "Obfuscation, not encryption", "Cracked in < 1 second"] }, "right": { "label": "Type 7 is NOT", "items": ["Secure", "One-way like a hash", "A substitute for 'secret'", "Acceptable in compliance audits"] } } },
+      "hack": {
+        "memory": "Type 7 = Weak. Vigenere. Reversible. Like writing a secret in pig-latin — technically hidden, actually trivial. Use 'secret' keyword instead to get Type 5/8/9.",
+        "practice": "Configure <code>line con 0</code> → <code>password cisco</code> → <code>exit</code> → <code>service password-encryption</code>. Run <code>show run | i password</code> — see <code>password 7 0822455D0A16</code>. Paste into ifm.net.nz/cookbooks/passwordcracker.html — instantly returns 'cisco'.",
+        "effort": "low",
+        "meta": "Jeremy's IT Lab Day 52. Wendell Odom OCG Chapter 27. Exam tests: Type 7 is REVERSIBLE, applied by service password-encryption, weak. The '7' indicator and hex string are the visual giveaway."
+      }
+    },
+    {
+      "id": "5.3.b.4",
+      "term": "Type 8 (PBKDF2-SHA256)",
+      "weight": "high",
+      "info": "<p><strong>Type 8</strong> uses <strong>PBKDF2 (Password-Based Key Derivation Function 2) with SHA-256</strong>. It is a modern, strong password-hashing algorithm introduced on newer IOS/IOS-XE versions.</p><p><strong>How PBKDF2 works:</strong></p><ul><li>Takes the password + salt as input</li><li>Applies SHA-256 hashing repeatedly — Cisco uses <strong>20,000 iterations</strong> by default</li><li>The iteration count deliberately slows down hashing, making brute-force attacks 20,000x more expensive than a single SHA-256 pass</li><li>Output is a long, salted hash that cannot be reversed</li></ul><p><strong>How to identify Type 8:</strong></p><ul><li>The config line shows <code>enable secret 8 $8$salt$hashvalue</code></li><li>The <code>8</code> indicator follows 'secret'</li><li>Hash prefix <code>$8$</code></li></ul><p><strong>Enabling Type 8:</strong></p><ul><li><code>enable algorithm-type sha256 secret MyPass</code> → forces Type 8</li><li><code>username admin algorithm-type sha256 secret MyPass</code> → local user with Type 8</li></ul><p><strong>When to use:</strong> on any IOS that supports Type 8 or Type 9, prefer these over Type 5. Type 8 is much stronger than MD5 against GPU-based brute-force. Type 9 (scrypt) is even stronger because it is memory-hard, but Type 8 is a solid modern choice.</p><p>A common deployment pattern: set <code>enable algorithm-type scrypt secret</code> for the enable password (Type 9), and use Type 8 for local user accounts if scrypt creates performance concerns at scale.</p>",
+      "visual": { "type": "shield", "params": { "items": ["PBKDF2-SHA256", "20,000 iterations", "Salted", "$8$ prefix"], "color": "#3b82f6" } },
+      "hack": {
+        "memory": "Type 8 = PBKDF2-SHA256. $8$ prefix. 20,000 iterations = slow by design. Strong modern hash. Use when IOS supports it.",
+        "practice": "On a newer IOS: <code>enable algorithm-type sha256 secret LabPass</code>. Verify with <code>show run | i enable secret</code> — expect <code>enable secret 8 $8$...</code>. Compare the hash length to Type 5 — Type 8 is much longer.",
+        "effort": "low",
+        "meta": "Jeremy's IT Lab Day 52. Wendell Odom OCG Chapter 27. Exam knows Type 8 = PBKDF2, Type 9 = scrypt, and both are stronger than Type 5."
+      }
+    },
+    {
+      "id": "5.3.b.5",
+      "term": "Type 9 (scrypt — strongest)",
+      "weight": "high",
+      "info": "<p><strong>Type 9</strong> uses the <strong>scrypt</strong> key derivation function — the strongest password hash Cisco IOS currently offers. scrypt was designed specifically to resist the kind of hardware-accelerated brute-force attacks that threaten faster hashes like MD5 and even SHA-256.</p><p><strong>Why scrypt is stronger:</strong></p><ul><li><strong>Memory-hard</strong> — computing a single scrypt hash requires a significant amount of RAM, not just CPU cycles</li><li>GPUs and ASICs excel at parallel hashing with minimal memory per thread. scrypt forces each hash attempt to consume memory, neutralizing the GPU/ASIC advantage</li><li>An attacker with a high-end GPU farm that could crack billions of MD5 hashes per second may only manage thousands of scrypt hashes per second</li><li>Used by cryptocurrencies like Litecoin specifically for its resistance to specialized mining hardware</li></ul><p><strong>Identifying Type 9:</strong></p><ul><li>Config line: <code>enable secret 9 $9$salt$hashvalue</code></li><li>The <code>9</code> indicator after 'secret'</li><li>Hash prefix <code>$9$</code></li></ul><p><strong>Enabling Type 9:</strong></p><ul><li><code>enable algorithm-type scrypt secret MyPass</code> → Type 9</li><li><code>username admin algorithm-type scrypt secret MyPass</code> → local user with Type 9</li></ul><p><strong>Best practice:</strong> on any IOS that supports Type 9, use it for <code>enable secret</code> and high-value local accounts. The slight CPU/memory overhead during authentication is negligible compared to the security benefit.</p>",
+      "visual": { "type": "shield", "params": { "items": ["scrypt — memory-hard", "Strongest Cisco hash", "GPU/ASIC resistant", "$9$ prefix"], "color": "#10b981" } },
+      "hack": {
+        "memory": "Type 9 = scrypt = the STRONGEST. $9$ prefix. Memory-hard = breaks GPU farms. Top tier. Always preferred when IOS supports it.",
+        "practice": "On a newer IOS router: <code>enable algorithm-type scrypt secret MyPass</code>. Show run — confirm Type 9 and $9$ prefix. Compare hash length and format across Types 5, 8, 9 — each is distinct and recognizable.",
+        "effort": "low",
+        "meta": "Jeremy's IT Lab Day 52. Wendell Odom OCG Chapter 27. Exam: 'strongest Cisco password hash?' = Type 9 (scrypt). 'Identifier prefix?' = $9$. Drill these."
+      }
+    }
+  ],
+  "5.3.c": [
+    {
+      "id": "5.3.c",
+      "term": "Console port security",
+      "weight": "high",
+      "info": "<p>The <strong>console port</strong> is the physical RJ-45 or USB port on a Cisco router or switch used for direct, out-of-band management. It is accessed via a <strong>rollover cable</strong> from a laptop running a terminal emulator (PuTTY, SecureCRT, Tera Term). Console access is essential for initial configuration, password recovery, and emergency troubleshooting when network access is lost.</p><p><strong>Securing the console requires TWO commands working together:</strong></p><ul><li><code>line console 0</code> — enter console-line configuration mode (there is only one console port, hence <code>0</code>)</li><li><code>password [pw]</code> — set the line password</li><li><code>login</code> — CRITICAL: tells IOS to actually prompt for the password on connection. Without this, the password is set but never requested.</li><li><code>exec-timeout [min] [sec]</code> — auto-disconnect idle sessions (default 10 minutes)</li></ul><p><strong>The 'login' gotcha:</strong> this is one of the most tested traps on the exam. Configuring <code>password cisco</code> alone does NOT secure the console — the <code>login</code> command is what enables password enforcement. Forgetting <code>login</code> leaves the console wide open despite the password being configured.</p><p><strong>Better alternative — local authentication:</strong></p><pre>username admin secret MyPass123\nline console 0\n login local\n exec-timeout 5 0</pre><p><code>login local</code> replaces the simple line password with the local user database. Each admin logs in with their own username, providing individual accountability in logs.</p><p><strong>Additional useful commands:</strong></p><ul><li><code>logging synchronous</code> — prevents log messages from breaking up commands you are typing</li><li><code>exec-timeout 0 0</code> — disables timeout (NOT recommended for security)</li></ul>",
+      "visual": { "type": "handshake", "params": { "leftLabel": "Admin + rollover cable", "rightLabel": "Router/Switch console", "steps": ["Physical connection ->", "<- User Access Verification", "Username/password ->", "<- Router>"] } },
+      "hack": {
+        "memory": "Console = direct PHYSICAL access port. line console 0 (there's only one). Set password + type 'login' or it is ignored. login local = use the username database instead of a shared password.",
+        "practice": "Lab: <code>line con 0</code> → <code>password cisco</code> — deliberately OMIT <code>login</code>. Disconnect, reconnect via console — you get straight to EXEC with NO prompt. That is the gotcha. Add <code>login</code>, reconnect, now it prompts. Lesson learned permanently.",
+        "effort": "medium",
+        "meta": "Jeremy's IT Lab Day 4 + 52. Wendell Odom OCG Chapter 6 + 27. The 'login' gotcha is a classic exam trap — password set but not enforced. Memorize: password + login = enforced."
+      }
+    },
+    {
+      "id": "5.3.c.1",
+      "term": "Console password configuration",
+      "weight": "high",
+      "info": "<p>The canonical console-hardening sequence:</p><pre>Router(config)# line console 0\nRouter(config-line)# password SecureConsole123\nRouter(config-line)# login\nRouter(config-line)# exec-timeout 5 0\nRouter(config-line)# logging synchronous\nRouter(config-line)# exit</pre><p><strong>Command-by-command:</strong></p><ul><li><code>line console 0</code> — the ONE console port. The <code>0</code> is literally the index (there is no console 1). Entering this mode changes the prompt to <code>(config-line)#</code>.</li><li><code>password [pw]</code> — sets the simple line password. Stored as Type 0 by default, Type 7 if <code>service password-encryption</code> is enabled.</li><li><code>login</code> — REQUIRED to enforce the password. Without this, IOS knows the password exists but will not prompt.</li><li><code>exec-timeout 5 0</code> — disconnect after 5 minutes of idle time. The two numbers are <em>minutes</em> and <em>seconds</em>.</li><li><code>logging synchronous</code> — quality-of-life: when a syslog message interrupts your typing, IOS re-displays the command line so you can continue without retyping.</li></ul><p><strong>Alternative using local auth:</strong></p><pre>username admin secret Cisco123!\nline console 0\n login local\n exec-timeout 5 0\n logging synchronous</pre><p><code>login local</code> is preferred in production — it provides per-user accountability and replaces the weak shared line password with a hashed entry in the local user database.</p>",
+      "visual": { "type": "layer-stack", "params": { "layers": ["line console 0", "password [pw]", "login (or login local)", "exec-timeout 5 0", "logging synchronous"], "highlight": 2 } },
+      "hack": {
+        "memory": "Four lines to harden the console: line con 0, password, login, exec-timeout. The middle two MUST be together — setting password without login = password never asked.",
+        "practice": "Memorize the block. Type it blindfolded in Packet Tracer 10 times until it is muscle memory. On exam simulations you will be asked to secure the console with an exact command sequence.",
+        "effort": "low",
+        "meta": "Jeremy's IT Lab Day 4. Exam tests exact command order and the login requirement."
+      }
+    },
+    {
+      "id": "5.3.c.2",
+      "term": "'login' gotcha",
+      "weight": "high",
+      "info": "<p>The <strong>#1 exam trap</strong> in console/VTY configuration: <code>password [pw]</code> alone does NOT enforce password prompts. The <code>login</code> command is what tells IOS to actually challenge incoming connections for the password.</p><p><strong>What 'login' does:</strong></p><ul><li><code>login</code> (plain) — prompts for the line password configured by <code>password [pw]</code></li><li><code>login local</code> — prompts for a username/password pair from the local user database (<code>username X secret Y</code>)</li><li><code>login authentication [AAA-method]</code> — uses a named AAA method list (RADIUS/TACACS+)</li><li><code>no login</code> — disables password prompts entirely (allows anonymous access IF no other auth method is present)</li></ul><p><strong>The trap scenario (word-for-word exam style):</strong></p><pre>line console 0\n password cisco</pre><p>Question: 'Is the console secured?' Answer: <strong>NO</strong>. The password is configured but never prompted for — anyone with physical access walks straight to the EXEC prompt.</p><p><strong>Fix:</strong></p><pre>line console 0\n password cisco\n login</pre><p>Now the console prompts for 'cisco' on connection.</p><p><strong>VTY version of the gotcha:</strong> VTY lines behave differently — if no password AND no <code>login</code> exists, IOS blocks all Telnet/SSH connections with 'Password required, but none set.' This is intentional: Cisco refuses passwordless remote access by default. So the gotcha manifests differently — on console, missing <code>login</code> = wide open; on VTY, missing <code>login</code> + missing password = connection refused.</p>",
+      "visual": { "type": "comparison", "params": { "left": { "label": "Wrong (password only)", "items": ["line con 0", "password cisco", "(no login)", "= UNSECURED — no prompt"] }, "right": { "label": "Right (password + login)", "items": ["line con 0", "password cisco", "login", "= secured — prompts for cisco"] } } },
+      "hack": {
+        "memory": "password = the password. LOGIN = the command that makes IOS ASK. No login = no prompt = no security. Password without login is like installing a lock but never closing the door.",
+        "practice": "Lab the broken config in Packet Tracer. Reconnect — straight to > prompt, no password asked. Add <code>login</code>. Reconnect — now prompted. Seeing the unsecured behavior firsthand burns the lesson in.",
+        "effort": "low",
+        "meta": "Jeremy's IT Lab Day 4. Wendell Odom OCG Chapter 6. Exam tests this directly: 'why isn't the password being requested?' — answer is the missing login command."
+      }
+    },
+    {
+      "id": "5.3.c.3",
+      "term": "logging synchronous",
+      "weight": "med",
+      "info": "<p><code>logging synchronous</code> is a quality-of-life command configured under console, VTY, or AUX lines. It prevents log messages (syslog events like interface up/down, OSPF adjacency changes, etc.) from garbling commands that are being typed.</p><p><strong>Problem without it:</strong></p><pre>Router# configure terminal\nRouter(config)# interface g\n*Mar 1 00:05:23: %LINK-3-UPDOWN: Interface GigabitEthernet0/1, changed state to down\nigabitEthernet0/0</pre><p>A log message appeared mid-command. IOS doesn't re-display your input — you have to visually reconstruct what you were typing. On a busy router with frequent syslog events, this is maddening.</p><p><strong>With logging synchronous:</strong> when IOS needs to output a log message while you are typing, it prints the log, then <em>re-displays your current command line on a new prompt</em>, so you can see exactly what you were typing and continue seamlessly.</p><p><strong>Configuration:</strong></p><pre>line console 0\n logging synchronous\nline vty 0 15\n logging synchronous</pre><p><strong>Security angle:</strong> not a security feature per se, but it is listed in 5.3 because it is part of the standard console-hardening block. Most engineers add it reflexively when configuring any management line.</p><p><strong>Levels option:</strong> <code>logging synchronous level [0-7]</code> — only messages at or above this severity trigger the re-display. Default is level 2 (critical).</p>",
+      "visual": { "type": "comparison", "params": { "left": { "label": "Without sync", "items": ["Log interrupts typing", "Your input gets garbled", "You guess what you typed", "Hard to use in busy networks"] }, "right": { "label": "With sync", "items": ["Log prints cleanly", "Your command is re-shown", "Continue typing normally", "Standard for all mgmt lines"] } } },
+      "hack": {
+        "memory": "logging SYNCHRONOUS = keep the log and the CLI in sync. Your typing never gets eaten by a syslog message. Quality of life, not security.",
+        "practice": "In a busy lab, bring interfaces up/down repeatedly while typing long commands. Without logging synchronous, your commands get cut off by up/down messages. With it, the command reappears after each log.",
+        "effort": "low",
+        "meta": "Jeremy's IT Lab Day 4. Low weight but mentioned in CCNA context. Standard part of line-configuration best-practice blocks."
+      }
+    },
+    {
+      "id": "5.3.c.4",
+      "term": "exec-timeout",
+      "weight": "med",
+      "info": "<p><code>exec-timeout [minutes] [seconds]</code> automatically logs out an idle console, VTY, or AUX session after the specified inactivity period. It is a baseline security control — if an admin walks away from a logged-in session, the session disconnects on its own.</p><p><strong>Defaults and ranges:</strong></p><ul><li>Default: 10 minutes, 0 seconds</li><li>Range: 0 minutes 0 seconds (disabled) to 35791 minutes 2147483 seconds (essentially forever)</li><li><code>exec-timeout 0 0</code> = NO timeout — session stays logged in indefinitely (DO NOT use in production)</li></ul><p><strong>Recommended values:</strong></p><ul><li>Console: 5-10 minutes (admins are usually physically present)</li><li>VTY (remote): 5 minutes — tighter because remote sessions are more exposed</li><li>AUX: 5 minutes if used; <code>no exec</code> if not used</li></ul><p><strong>Configuration:</strong></p><pre>line console 0\n exec-timeout 5 0\nline vty 0 15\n exec-timeout 5 0</pre><p><strong>Security rationale:</strong> an admin leaves a session open, walks to lunch, and an attacker (or an unauthorized colleague) walks up and starts issuing privileged commands. exec-timeout limits this window — the session disconnects after 5 minutes of idle time, requiring re-authentication.</p><p><strong>Gotcha:</strong> long-running commands (like <code>debug</code> or <code>show tech-support</code>) do count as activity, so they won't trigger timeout. But if you are reading a large <code>show</code> output and pause scrolling, you can time out. Mitigate with <code>terminal length 0</code> to dump without paging, or just move quickly.</p>",
+      "visual": { "type": "state-machine", "params": { "states": ["Logged in", "Idle (timer running)", "Idle > N minutes", "Auto-disconnected"], "active": 3, "transitions": true } },
+      "hack": {
+        "memory": "exec-timeout X Y = minutes SPACE seconds. Default 10 min. 'exec-timeout 0 0' = NEVER timeout = bad. Recommended: 5 min on all management lines.",
+        "practice": "Lab: <code>line con 0</code> → <code>exec-timeout 0 30</code> (30 sec). Log in, wait 30 sec without typing — session disconnects. Critical security control, cheap to configure.",
+        "effort": "low",
+        "meta": "Jeremy's IT Lab Day 4 + 52. Security best practice on every management line. Exam may ask the syntax — it's minutes first, then seconds."
+      }
+    }
+  ],
+  "5.3.d": [
+    {
+      "id": "5.3.d",
+      "term": "VTY (Virtual TeleType) lines",
+      "weight": "high",
+      "info": "<p><strong>VTY (Virtual TeleType) lines</strong> are logical management interfaces used for remote administrative access via <strong>Telnet or SSH</strong>. They are not physical ports — they are software constructs that IOS creates to allow multiple simultaneous remote sessions. Most Cisco devices support <strong>16 VTY lines (0-15)</strong>, meaning up to 16 admins can SSH into the device at the same time.</p><p><strong>Essential VTY hardening:</strong></p><pre>username admin secret Cisco123!\nline vty 0 15\n login local\n transport input ssh\n access-class 10 in\n exec-timeout 5 0\nip access-list standard 10\n permit 192.168.100.0 0.0.0.255</pre><p><strong>Command breakdown:</strong></p><ul><li><code>line vty 0 15</code> — configure all 16 VTY lines at once (range syntax)</li><li><code>login local</code> — authenticate against the local username database. Preferred over simple <code>login</code> + line password.</li><li><code>transport input ssh</code> — allow ONLY SSH. Block Telnet (which sends passwords in cleartext). Other options: <code>telnet</code>, <code>all</code>, <code>none</code>, <code>ssh telnet</code>.</li><li><code>access-class [ACL] in</code> — apply an ACL to restrict WHICH source IPs can even attempt to connect. Note: <code>access-class</code> (VTY) is different from <code>access-group</code> (interfaces).</li><li><code>exec-timeout 5 0</code> — disconnect idle sessions after 5 minutes</li></ul><p><strong>The 'no password, no access' rule:</strong> if a VTY line has NO password configured and NO <code>login local</code>/AAA method, IOS <strong>refuses</strong> all incoming connections with the message 'Password required, but none set.' This is a safety default — Cisco will not allow passwordless remote access.</p><p><strong>SSH prerequisites:</strong> for <code>transport input ssh</code> to actually work, you also need:</p><ol><li>A hostname (<code>hostname MyRouter</code>)</li><li>A domain name (<code>ip domain-name lab.local</code>)</li><li>An RSA key pair (<code>crypto key generate rsa modulus 2048</code>)</li><li>SSH version 2 (<code>ip ssh version 2</code>)</li><li>At least one local user (<code>username X secret Y</code>)</li></ol>",
+      "visual": { "type": "handshake", "params": { "leftLabel": "Remote admin (SSH)", "rightLabel": "Router VTY 0-15", "steps": ["SSH connect ->", "<- Username prompt", "Credentials ->", "<- Access granted or denied by access-class"] } },
+      "hack": {
+        "memory": "VTY = Virtual TeletYpe = remote lines (Telnet/SSH). 16 lines (0-15). No password = connection refused. access-CLASS restricts by IP (not access-group). transport input SSH blocks Telnet.",
+        "practice": "Full hardening lab: username + line vty 0 15 + login local + transport input ssh + access-class 10 in + exec-timeout. From a permitted IP, SSH works. From a non-permitted IP, connection refused. Telnet always refused.",
+        "effort": "medium",
+        "meta": "Jeremy's IT Lab Day 4 + 43 (SSH) + 52. Wendell Odom OCG Chapter 6 + 27. High-frequency exam topic. Know the 5-command hardening block cold."
+      }
+    },
+    {
+      "id": "5.3.d.1",
+      "term": "VTY password configuration",
+      "weight": "high",
+      "info": "<p>Two valid approaches to authenticate VTY access:</p><p><strong>1) Simple line password (basic, not preferred):</strong></p><pre>line vty 0 15\n password RemotePass123\n login\n transport input ssh\n exec-timeout 5 0</pre><p>Every admin uses the same shared password. No individual accountability. The <code>login</code> command is required — without it, the password is configured but not enforced (same gotcha as console).</p><p><strong>2) Local authentication (preferred):</strong></p><pre>username admin privilege 15 secret Cisco123!\nusername helpdesk privilege 1 secret HelpDesk456\nline vty 0 15\n login local\n transport input ssh\n exec-timeout 5 0</pre><p>Each admin has their own credentials. <code>login local</code> references the local user database. Syslog and audit trails show WHO connected, enabling accountability.</p><p><strong>3) AAA with RADIUS/TACACS+ (enterprise, covered in 5.8):</strong></p><pre>aaa new-model\naaa authentication login default group radius local\nline vty 0 15\n login authentication default</pre><p>Credentials validated against a central RADIUS or TACACS+ server. Scalable for hundreds of devices.</p><p><strong>Configuring a range of lines:</strong> <code>line vty 0 15</code> configures all 16 lines simultaneously. On older IOS or smaller platforms you may see only 5 lines (<code>line vty 0 4</code>). Always configure the FULL range to avoid having some hardened lines and some unsecured lines.</p>",
+      "visual": { "type": "hierarchy", "params": { "root": "VTY authentication options", "children": [{ "name": "password + login", "children": [{ "name": "Shared, simple" }] }, { "name": "login local", "children": [{ "name": "Individual accounts, preferred" }] }, { "name": "AAA (RADIUS/TACACS+)", "children": [{ "name": "Enterprise-scale, centralized" }] }] } },
+      "hack": {
+        "memory": "Three VTY auth models: shared password + login, login local (usernames), AAA. For CCNA basics: use login local. Always configure line vty 0 15 (all 16) — don't leave some unsecured.",
+        "practice": "Build the 5-command VTY hardening block. Test with Telnet (should fail — transport input ssh). Test with SSH from allowed IP (works). Test from unauthorized IP (access-class blocks). Verify with <code>show users</code>.",
+        "effort": "medium",
+        "meta": "Jeremy's IT Lab Day 4 + 43. Wendell Odom OCG Chapter 6. Exam tests the login-local pattern heavily."
+      }
+    },
+    {
+      "id": "5.3.d.2",
+      "term": "No password = no VTY access",
+      "weight": "high",
+      "info": "<p>Cisco IOS <strong>refuses all remote logins on a VTY line that has no password AND no alternate authentication method configured</strong>. This is a built-in safety feature — Cisco will not allow passwordless SSH or Telnet access by default.</p><p><strong>What triggers the refusal:</strong></p><ul><li>VTY line has no <code>password</code> configured</li><li>AND no <code>login local</code> (no local user database reference)</li><li>AND no AAA method list applied</li></ul><p>Result: incoming connection receives the error:</p><pre>% Password required, but none set.</pre><p>The connection is immediately terminated by the device.</p><p><strong>How to resolve:</strong> configure at least one authentication method:</p><ol><li><code>password [pw]</code> + <code>login</code> — shared line password</li><li><code>username X secret Y</code> + <code>login local</code> — local user database (preferred)</li><li>AAA method list + <code>login authentication</code> — RADIUS/TACACS+</li></ol><p><strong>Why this default matters:</strong> contrast with the console port — if you don't configure a password on console, you still get in (console is trusted because it requires physical access). On VTY (remote access), Cisco assumes the network is hostile and refuses by default. This protects against admins accidentally exposing a new device.</p><p><strong>Exam trap:</strong> 'User cannot SSH to the router despite SSH being enabled globally. Why?' Check the VTY lines — if password/login-local is missing, that's the answer.</p>",
+      "visual": { "type": "state-machine", "params": { "states": ["Connection attempt", "No password set", "IOS rejects", "'Password required, but none set'"], "active": 3, "transitions": true } },
+      "hack": {
+        "memory": "VTY with no auth = connection REFUSED. Cisco default. 'Password required, but none set' is the dead giveaway message. Console = open without pw; VTY = closed without pw.",
+        "practice": "Lab: on a fresh VTY line, enable SSH globally but do NOT configure a password or login local. SSH in — get the error. Add <code>login local</code> with a username — SSH now works.",
+        "effort": "low",
+        "meta": "Jeremy's IT Lab Day 43. Exam may show this exact error message as a troubleshooting clue."
+      }
+    },
+    {
+      "id": "5.3.d.3",
+      "term": "access-class (VTY ACL)",
+      "weight": "high",
+      "info": "<p><code>access-class [ACL-number | ACL-name] in</code> applies an access control list to VTY lines to <strong>restrict which source IP addresses are allowed to connect</strong>. This is critical for production security — even with strong passwords, limiting SSH access to a small management subnet dramatically reduces attack surface.</p><p><strong>Configuration example:</strong></p><pre>ip access-list standard MGMT_ONLY\n permit 192.168.100.0 0.0.0.255\n permit host 10.1.1.50\n deny any\n!\nline vty 0 15\n access-class MGMT_ONLY in\n login local\n transport input ssh</pre><p>Only hosts in 192.168.100.0/24 or the specific host 10.1.1.50 can even attempt to SSH. All other source IPs are silently dropped at the VTY layer before authentication is even attempted.</p><p><strong>Key behaviors:</strong></p><ul><li><code>in</code> = inbound (connections TO the device). <code>out</code> = outbound (connections FROM the device's VTY to other devices)</li><li>Works with both standard and extended ACLs, and named or numbered ACLs</li><li>Silent drop — unauthorized hosts get connection timeout, not an error message. Attackers cannot tell if the device exists.</li><li>Applied per-line — you can configure different access-classes on different VTY line ranges if needed, though typically all 16 lines get the same policy</li></ul><p><strong>Best practice:</strong> always restrict VTY to a dedicated management subnet. Combine with password/login-local for defense in depth. This is one of the highest-ROI security controls on any network device.</p>",
+      "visual": { "type": "packet-flow", "params": { "nodes": ["SSH connection attempt", "VTY access-class check", "Source IP permitted?", "Auth prompt or silent drop"], "color": "#3b82f6" } },
+      "hack": {
+        "memory": "access-CLASS = VTY. access-GROUP = interface. Never confuse them. Use access-class to restrict SSH to a management subnet. Silent drop means attackers don't even get a login prompt.",
+        "practice": "Lab: ACL permitting only your PC's IP, applied with <code>access-class 10 in</code>. SSH from your PC — works. Change your PC's IP outside the permit range — SSH times out with no response. That's the silent drop.",
+        "effort": "medium",
+        "meta": "Jeremy's IT Lab Day 43 + 52. Wendell Odom OCG Chapter 6 + 27. High exam weight. Critical real-world control."
+      }
+    },
+    {
+      "id": "5.3.d.4",
+      "term": "access-class vs access-group",
+      "weight": "high",
+      "info": "<p>Two similar-sounding commands, two entirely different purposes. Confusing them is a common exam pitfall.</p><p><strong><code>access-class [ACL] in|out</code></strong></p><ul><li>Applied under <strong>line configuration</strong> (VTY lines)</li><li>Filters Telnet/SSH connections to/from the device itself</li><li>'Who can remotely manage this device?'</li><li>Command context: <code>line vty 0 15</code> → <code>access-class 10 in</code></li></ul><p><strong><code>ip access-group [ACL] in|out</code></strong></p><ul><li>Applied under <strong>interface configuration</strong> (physical or logical interface)</li><li>Filters traffic PASSING THROUGH the interface</li><li>'What traffic is allowed to traverse this interface?'</li><li>Command context: <code>interface Gi0/0</code> → <code>ip access-group 110 in</code></li></ul><p><strong>Memory device:</strong></p><ul><li>access-CLASS = line — 'which CLASS of users can access the management plane?'</li><li>access-GROUP = interface — 'which GROUP of packets can pass through this door?'</li></ul><p><strong>Exam scenario:</strong> 'You want to restrict SSH access to management subnet 192.168.100.0/24. Where is the ACL applied?' Answer: VTY lines with <code>access-class</code>, not the interface with <code>ip access-group</code>. Using access-group on the interface would also block legitimate transit traffic — completely different behavior.</p><p><strong>Both can coexist:</strong> a router typically has both — access-class on VTY for management-plane protection, access-group on interfaces for transit traffic filtering. They don't conflict.</p>",
+      "visual": { "type": "comparison", "params": { "left": { "label": "access-class (VTY)", "items": ["Under line vty", "Management plane", "Who can SSH in", "Restricts remote admins"] }, "right": { "label": "ip access-group (interface)", "items": ["Under interface", "Data plane", "What traffic transits", "Restricts transit packets"] } } },
+      "hack": {
+        "memory": "CLASS = line (management). GROUP = interface (transit). VTY gets access-class. Ethernet gets access-group. Mix them up and you configure the wrong control in the wrong place.",
+        "practice": "Build both: <code>access-class 10 in</code> on VTY to restrict SSH sources, AND <code>ip access-group 110 in</code> on Gi0/0 to block specific transit traffic. Test each independently. Understand they solve different problems.",
+        "effort": "medium",
+        "meta": "Jeremy's IT Lab Day 43 + 52. Wendell Odom OCG Chapter 6 + 27. Classic exam trap — Cisco loves to substitute one for the other in questions."
+      }
+    }
+  ]
+}
