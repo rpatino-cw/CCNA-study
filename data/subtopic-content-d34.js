@@ -365,8 +365,17 @@ window.subtopicContentD34 = {
       memory: "HAMSS: Hello/Dead timers, Area ID, MTU (for ExStart), Subnet mask, Stub flag — all must match. If neighbors are stuck in Init, check Hello packet delivery. If stuck in ExStart, check MTU. If stuck in 2-Way, check DR/BDR (2-Way is normal for DROther-to-DROther). The mnemonic 'HAM SubS' covers the match requirements.",
       practice: "In Packet Tracer: (1) Configure OSPF between two routers and verify Full adjacency. (2) Change the Hello timer on one side: 'ip ospf hello-interval 15'. Watch the adjacency break. (3) Fix it. (4) Change the area ID on one side and observe. (5) Change the subnet mask on one side and observe. For each mismatch, run 'show ip ospf neighbor' and note the stuck state. Build a troubleshooting table: symptom -> cause -> fix.",
       effort: "high",
-      meta: "Jeremy's IT Lab Day 24-26 (OSPF) cover neighbor formation in detail. Wendell Odom OCG Chapters 19-21 explain the state machine and match requirements. 'Why are my OSPF neighbors not forming?' is the #1 OSPF troubleshooting question on the CCNA. Memorize the match requirements and check each one systematically. The exam will present you with mismatched parameters and ask you to identify the problem."
-    }
+      meta: "Jeremy's IT Lab Day 24-26 (OSPF) cover neighbor formation in detail. Wendell Odom OCG Chapters 19-21 explain the state machine and match requirements. 'Why are my OSPF neighbors not forming?' is the #1 OSPF troubleshooting question on the CCNA. Memorize the match requirements and check each one systematically. The exam will present you with mismatched parameters and ask you to identify the problem.",
+    },
+    micro: [
+      { id: "3.4.a.1", term: "OSPF Hello packets",           def: "Sent every 10s (broadcast/P2P) or 30s (NBMA). Discover and maintain neighbor relationships.", weight: "high" },
+      { id: "3.4.a.2", term: "OSPF Dead interval",           def: "4× Hello by default. 40s (broadcast/P2P) or 120s (NBMA). Neighbor declared down after this.", weight: "high" },
+      { id: "3.4.a.3", term: "HAMSS match requirements",     def: "Hello/Dead timers, Area ID, MTU, Subnet mask, Stub flag. ALL must match for adjacency.", weight: "high" },
+      { id: "3.4.a.4", term: "OSPF states (D-I-2-Ex-L-F)",   def: "Down → Init → 2-Way → ExStart → Exchange → Loading → Full. Full = synced, ready.", weight: "high" },
+      { id: "3.4.a.5", term: "Stuck in Init",                def: "Hellos not arriving. ACL blocking 224.0.0.5/224.0.0.6 or interface issue.", weight: "high" },
+      { id: "3.4.a.6", term: "Stuck in ExStart/Exchange",    def: "MTU mismatch between interfaces. Classic hard-to-diagnose issue.", weight: "high" },
+      { id: "3.4.a.7", term: "2-Way is normal for DROther",  def: "On broadcast networks, DROther-to-DROther stays 2-Way. Full only with DR/BDR. Not a problem.", weight: "high" }
+    ]
   },
 
   "3.4.b": {
@@ -376,8 +385,14 @@ window.subtopicContentD34 = {
       memory: "Point-to-point = two-person conversation. No need to elect a moderator (DR) when only two people are talking. Adjacency goes straight to Full. You can FORCE Ethernet to act as P2P with 'ip ospf network point-to-point' — useful on /30 links between two routers to skip DR election and converge faster.",
       practice: "In Packet Tracer: (1) Configure OSPF on a serial link between two routers. (2) Run 'show ip ospf interface [serial-int]' and verify Network Type POINT_TO_POINT and 'No designated router.' (3) Run 'show ip ospf neighbor' and verify FULL/ - state. (4) Now configure two routers on an Ethernet /30 link, run 'ip ospf network point-to-point' on both interfaces, and verify the same P2P behavior on Ethernet.",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 25 (OSPF Part 2) covers network types including P2P. Wendell Odom OCG Chapters 19-21. The exam tests: (1) P2P networks have no DR/BDR. (2) You can change Ethernet to P2P with 'ip ospf network point-to-point.' (3) P2P Hello default is 10 seconds. Know that 'FULL/ -' in the neighbor table means P2P (the dash = no DR role)."
-    }
+      meta: "Jeremy's IT Lab Day 25 (OSPF Part 2) covers network types including P2P. Wendell Odom OCG Chapters 19-21. The exam tests: (1) P2P networks have no DR/BDR. (2) You can change Ethernet to P2P with 'ip ospf network point-to-point.' (3) P2P Hello default is 10 seconds. Know that 'FULL/ -' in the neighbor table means P2P (the dash = no DR role).",
+    },
+    micro: [
+      { id: "3.4.b.1", term: "OSPF P2P network type",        def: "No DR/BDR election needed. Two routers on link go directly to Full adjacency.", weight: "high" },
+      { id: "3.4.b.2", term: "ip ospf network point-to-point", def: "Interface command to force Ethernet to act as P2P. Skip DR election, faster convergence.", weight: "high" },
+      { id: "3.4.b.3", term: "FULL/ - state",                def: "show ip ospf neighbor output. Dash = no DR role = P2P network type.", weight: "high" },
+      { id: "3.4.b.4", term: "P2P Hello timer",              def: "10 seconds (default). Dead interval 40 seconds (4×).", weight: "med" }
+    ]
   },
 
   "3.4.c": {
@@ -387,8 +402,17 @@ window.subtopicContentD34 = {
       memory: "DR election = class president election: highest priority wins, ties broken by student ID (router ID). Priority 0 = 'I'm not running.' Non-preemptive = once elected, you're president until you leave school — a transfer student with higher grades (priority) does NOT trigger a re-election. DROther-to-DROther stays 2-Way (normal, not a problem).",
       practice: "In Packet Tracer: (1) Connect 3 routers to a common switch. (2) Set priorities: R1=100, R2=50, R3=0. (3) Enable OSPF and verify DR/BDR with 'show ip ospf neighbor.' R1 should be DR, R2 should be BDR, R3 should be DROther. (4) Change R3's priority to 200 — verify with 'show ip ospf neighbor' that R1 is STILL DR (non-preemptive). (5) Run 'clear ip ospf process' on all routers — now R3 should become DR.",
       effort: "high",
-      meta: "Jeremy's IT Lab Day 25 (OSPF Part 2) covers DR/BDR election in depth. Wendell Odom OCG Chapters 19-21. Non-preemptive behavior is the #1 DR election trap question. Students who assume 'higher priority always becomes DR immediately' will get the question wrong. The correct answer: changing priority has NO immediate effect — DR stays until it fails or OSPF restarts."
-    }
+      meta: "Jeremy's IT Lab Day 25 (OSPF Part 2) covers DR/BDR election in depth. Wendell Odom OCG Chapters 19-21. Non-preemptive behavior is the #1 DR election trap question. Students who assume 'higher priority always becomes DR immediately' will get the question wrong. The correct answer: changing priority has NO immediate effect — DR stays until it fails or OSPF restarts.",
+    },
+    micro: [
+      { id: "3.4.c.1", term: "DR (Designated Router)",       def: "Elected on broadcast/multi-access networks. Reduces LSA flooding. Highest priority wins.", weight: "high" },
+      { id: "3.4.c.2", term: "BDR (Backup DR)",              def: "Second-highest priority. Takes over if DR fails.", weight: "high" },
+      { id: "3.4.c.3", term: "DR election tiebreaker",       def: "Highest priority wins. Tie → highest Router ID. Priority 0 = never DR.", weight: "high" },
+      { id: "3.4.c.4", term: "Non-preemptive election",      def: "DR stays until it FAILS. Higher priority joining later does NOT trigger new election. Classic trap.", weight: "high" },
+      { id: "3.4.c.5", term: "Force new election",           def: "'clear ip ospf process' or shutdown DR's interface. Changing priority alone does NOT.", weight: "high" },
+      { id: "3.4.c.6", term: "ip ospf priority [0-255]",     def: "Interface command. Sets OSPF priority. Default 1. 0 = opt out of DR/BDR role.", weight: "high" },
+      { id: "3.4.c.7", term: "224.0.0.5 / 224.0.0.6",        def: "AllSPFRouters / AllDRouters multicast. Routers → 224.0.0.5 for Hello. LSAs to DR/BDR on 224.0.0.6.", weight: "med" }
+    ]
   },
 
   "3.4.d": {
@@ -398,8 +422,15 @@ window.subtopicContentD34 = {
       memory: "Router ID priority = MLP: Manual, Loopback, Physical. 'My Loopback's Perfect.' Manual always wins. If not set, highest loopback. If no loopback, highest active physical IP. IMPORTANT: the RID is locked at OSPF startup — changing it requires 'clear ip ospf process' to take effect. This restart drops ALL adjacencies temporarily.",
       practice: "In Packet Tracer: (1) Configure a router with Gi0/0 = 10.0.0.1 and Loopback0 = 192.168.1.1. (2) Start OSPF without a manual router-id. (3) Run 'show ip ospf' — RID should be 192.168.1.1 (highest loopback). (4) Add 'router-id 1.1.1.1' under OSPF. (5) Run 'show ip ospf' again — RID is STILL 192.168.1.1 (hasn't restarted). (6) Run 'clear ip ospf process' and confirm — now RID is 1.1.1.1.",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 24 (OSPF Part 1) covers Router ID selection. Wendell Odom OCG Chapters 19-20. The exam tests two things: (1) the MLP priority order, and (2) the fact that changing the RID requires 'clear ip ospf process.' Always manually set router-id in production for predictability."
-    }
+      meta: "Jeremy's IT Lab Day 24 (OSPF Part 1) covers Router ID selection. Wendell Odom OCG Chapters 19-20. The exam tests two things: (1) the MLP priority order, and (2) the fact that changing the RID requires 'clear ip ospf process.' Always manually set router-id in production for predictability.",
+    },
+    micro: [
+      { id: "3.4.d.1", term: "OSPF Router ID (RID)",         def: "32-bit unique identifier per OSPF router. Formatted like IP address. Must be unique in OSPF domain.", weight: "high" },
+      { id: "3.4.d.2", term: "MLP priority order",           def: "Manual 'router-id' > highest Loopback IP > highest active Physical IP.", weight: "high" },
+      { id: "3.4.d.3", term: "RID locked at startup",        def: "Determined when OSPF process starts. Does NOT auto-update when you change config or add loopbacks.", weight: "high" },
+      { id: "3.4.d.4", term: "clear ip ospf process",        def: "Restart OSPF to apply new RID. Drops all adjacencies temporarily.", weight: "high" },
+      { id: "3.4.d.5", term: "router-id X.X.X.X",            def: "Best practice. Manual RID is predictable and survives interface changes.", weight: "high" }
+    ]
   },
 
   "3.4.e": {
@@ -409,8 +440,16 @@ window.subtopicContentD34 = {
       memory: "OSPF config recipe: 'router ospf [#]' (# is local only, doesn't need to match), 'router-id X.X.X.X', then either 'network [IP] [wildcard] area 0' or 'ip ospf [#] area 0' on each interface. Wildcard = inverse of subnet mask: /24 -> 0.0.0.255, /30 -> 0.0.0.3, /32 -> 0.0.0.0. The interface-level command ('ip ospf 1 area 0') avoids wildcard confusion entirely.",
       practice: "In Packet Tracer: (1) Build a 3-router triangle (all Ethernet). (2) Configure OSPF using the network command on R1: 'router ospf 1', 'router-id 1.1.1.1', 'network 10.0.0.0 0.0.0.255 area 0'. (3) Configure OSPF using the interface command on R2: 'ip ospf 1 area 0' under each interface. (4) Configure R3 either way. (5) Verify all neighbors reach Full state with 'show ip ospf neighbor'. (6) Verify all networks are learned with 'show ip route ospf'. (7) Practice calculating wildcard masks: given 192.168.1.0/24, what wildcard? (0.0.0.255). Given 10.0.0.0/30? (0.0.0.3).",
       effort: "high",
-      meta: "Jeremy's IT Lab Day 24-26 (OSPF Parts 1-3) cover configuration start to finish. Wendell Odom OCG Chapters 19-21. The exam expects you to configure OSPF in a lab sim. Both methods (network and interface-level) may be tested. Wildcard masks are the #1 student stumbling block — practice converting subnet masks to wildcards until it's instant. The process ID is locally significant (common trick question)."
-    }
+      meta: "Jeremy's IT Lab Day 24-26 (OSPF Parts 1-3) cover configuration start to finish. Wendell Odom OCG Chapters 19-21. The exam expects you to configure OSPF in a lab sim. Both methods (network and interface-level) may be tested. Wildcard masks are the #1 student stumbling block — practice converting subnet masks to wildcards until it's instant. The process ID is locally significant (common trick question).",
+    },
+    micro: [
+      { id: "3.4.e.1", term: "router ospf [process-id]",     def: "Start OSPF process. Process ID is LOCALLY SIGNIFICANT — does NOT need to match between routers.", weight: "high" },
+      { id: "3.4.e.2", term: "router-id X.X.X.X",            def: "Under OSPF process. Manually set RID. Best practice in production.", weight: "high" },
+      { id: "3.4.e.3", term: "network [IP] [wildcard] area 0", def: "Traditional method. Wildcard = inverse of subnet mask. Activates OSPF on matching interfaces.", weight: "high" },
+      { id: "3.4.e.4", term: "ip ospf [pid] area 0",         def: "Modern method. Per-interface command. No wildcard math needed. Preferred.", weight: "high" },
+      { id: "3.4.e.5", term: "Wildcard conversions",         def: "/24 → 0.0.0.255, /30 → 0.0.0.3, /32 → 0.0.0.0. Practice until instant.", weight: "high" },
+      { id: "3.4.e.6", term: "Area 0 (backbone)",            def: "Single-area OSPF uses area 0 exclusively. Multi-area is out of CCNA scope.", weight: "high" }
+    ]
   },
 
   "3.4.f": {
@@ -420,8 +459,14 @@ window.subtopicContentD34 = {
       memory: "Passive = 'I'll tell everyone about my subnet, but I won't talk on that interface.' Like posting a sign outside your door (network advertised) but never opening it (no Hellos). Best practice: 'passive-interface default' then 'no passive-interface' only on router-facing interfaces. If OSPF neighbors won't form, check if the interface is accidentally passive.",
       practice: "In Packet Tracer: (1) Configure OSPF with 'passive-interface default'. (2) Run 'show ip ospf neighbor' — no neighbors should form. (3) Add 'no passive-interface Gi0/0' and 'no passive-interface Gi0/1' on router-facing interfaces. (4) Verify neighbors form. (5) Verify the user-facing interface's subnet still appears in 'show ip route ospf' on other routers even though it's passive. (6) Run 'show ip protocols' and confirm the passive interface list.",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 25 (OSPF Part 2) covers passive interfaces. Wendell Odom OCG Chapter 20. The exam tests: (1) passive interfaces still advertise their networks, (2) 'passive-interface default' is best practice, (3) accidentally passive interfaces prevent adjacencies. A common exam trap: 'OSPF is configured correctly but neighbors won't form' — check passive-interface settings first."
-    }
+      meta: "Jeremy's IT Lab Day 25 (OSPF Part 2) covers passive interfaces. Wendell Odom OCG Chapter 20. The exam tests: (1) passive interfaces still advertise their networks, (2) 'passive-interface default' is best practice, (3) accidentally passive interfaces prevent adjacencies. A common exam trap: 'OSPF is configured correctly but neighbors won't form' — check passive-interface settings first.",
+    },
+    micro: [
+      { id: "3.4.f.1", term: "Passive interface",            def: "Interface that advertises its network but does NOT send/receive Hellos. No OSPF adjacencies formed.", weight: "high" },
+      { id: "3.4.f.2", term: "passive-interface default",    def: "Best practice. Makes ALL interfaces passive, then selectively enable with 'no passive-interface [int]'.", weight: "high" },
+      { id: "3.4.f.3", term: "Passive still advertises",     def: "Network is still in OSPF database and shared with neighbors. Only Hellos suppressed.", weight: "high" },
+      { id: "3.4.f.4", term: "Troubleshooting passive",      def: "If OSPF neighbor won't form on interface that should be active, check if it's accidentally passive.", weight: "high" }
+    ]
   },
 
   "3.4.g": {
@@ -431,8 +476,15 @@ window.subtopicContentD34 = {
       memory: "Cost = reference / bandwidth. Default reference 100 Mbps makes FastEthernet AND GigE both cost 1 (bad). Fix: 'auto-cost reference-bandwidth 10000' on EVERY router. Then: 10G=1, 1G=10, 100M=100, 10M=1000. Manual override: 'ip ospf cost [value]' on the interface. The exam WILL ask you to calculate cost given a reference bandwidth.",
       practice: "In Packet Tracer: (1) Build a 3-router topology with mixed link speeds. (2) Run 'show ip ospf interface brief' and note all links show cost 1 (default reference problem). (3) Configure 'auto-cost reference-bandwidth 10000' on all routers. (4) Verify costs now differ with 'show ip ospf interface brief'. (5) Calculate the total path cost by summing interface costs along a route and verify it matches 'show ip route ospf' metric. (6) Set 'ip ospf cost 5' on one interface and verify the override.",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 25 (OSPF Part 2) covers cost calculation and reference bandwidth. Wendell Odom OCG Chapters 19-21. The exam expects you to: (1) calculate cost given reference and bandwidth, (2) know the default reference is 100 Mbps, (3) know 'auto-cost reference-bandwidth' must be consistent across all routers, (4) know 'ip ospf cost' overrides the calculated value."
-    }
+      meta: "Jeremy's IT Lab Day 25 (OSPF Part 2) covers cost calculation and reference bandwidth. Wendell Odom OCG Chapters 19-21. The exam expects you to: (1) calculate cost given reference and bandwidth, (2) know the default reference is 100 Mbps, (3) know 'auto-cost reference-bandwidth' must be consistent across all routers, (4) know 'ip ospf cost' overrides the calculated value.",
+    },
+    micro: [
+      { id: "3.4.g.1", term: "OSPF cost formula",            def: "cost = reference BW / interface BW. Sum along path. Lower total = preferred.", weight: "high" },
+      { id: "3.4.g.2", term: "Default reference = 100 Mbps", def: "Problem: 100M and 1G and 10G all calculate to cost 1 (min). Can't differentiate modern speeds.", weight: "high" },
+      { id: "3.4.g.3", term: "auto-cost reference-bandwidth", def: "OSPF process command. Set to 10000 (10 Gbps) to differentiate modern links. MUST match on all routers.", weight: "high" },
+      { id: "3.4.g.4", term: "ip ospf cost [value]",         def: "Interface command. Manually overrides calculated cost. Useful for fine path tuning.", weight: "med" },
+      { id: "3.4.g.5", term: "Cost calculation examples",    def: "Ref 10000: 10M=1000, 100M=100, 1G=10, 10G=1. Memorize.", weight: "high" }
+    ]
   },
 
   "3.4.h": {
@@ -442,8 +494,15 @@ window.subtopicContentD34 = {
       memory: "'default-information originate' = 'I know the way to the internet — follow me.' Without 'always', the router must actually HAVE a default route first (honest advertising). With 'always', it advertises regardless (potentially lying if the internet path is down). The result on other routers: O*E2 0.0.0.0/0 — OSPF external type 2 candidate default.",
       practice: "In Packet Tracer: (1) Configure a static default route on the edge router: 'ip route 0.0.0.0 0.0.0.0 [ISP-IP]'. (2) Under OSPF, add 'default-information originate'. (3) On internal routers, verify 'show ip route' shows 'O*E2 0.0.0.0/0' and 'Gateway of last resort is set.' (4) Remove the static default route on the edge router — verify internal routers LOSE the default. (5) Add 'default-information originate always' — verify internal routers regain the default even without the static route on the edge.",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 26 (OSPF Part 3) covers default route injection. Wendell Odom OCG Chapter 21. The 'always' keyword is a common exam trap. Without it: needs a default route in the local table first. With it: advertises unconditionally. The exam will test this distinction directly."
-    }
+      meta: "Jeremy's IT Lab Day 26 (OSPF Part 3) covers default route injection. Wendell Odom OCG Chapter 21. The 'always' keyword is a common exam trap. Without it: needs a default route in the local table first. With it: advertises unconditionally. The exam will test this distinction directly.",
+    },
+    micro: [
+      { id: "3.4.h.1", term: "default-information originate", def: "OSPF command. Advertise 0.0.0.0/0 as external type 2 LSA to all OSPF neighbors.", weight: "high" },
+      { id: "3.4.h.2", term: "Without 'always'",              def: "Only advertises default if router HAS a default route in its own table first. Safer.", weight: "high" },
+      { id: "3.4.h.3", term: "With 'always'",                 def: "Advertises default regardless. Router may advertise even when its own internet path is down. Less safe.", weight: "high" },
+      { id: "3.4.h.4", term: "O*E2 0.0.0.0/0",               def: "How the default appears on receiving routers. OSPF external type 2 candidate default.", weight: "high" },
+      { id: "3.4.h.5", term: "E2 metric doesn't increment",   def: "External type 2 cost stays constant across OSPF domain (unlike E1 which adds internal cost).", weight: "med" }
+    ]
   },
 
   "3.4.i": {
@@ -453,8 +512,16 @@ window.subtopicContentD34 = {
       memory: "The OSPF 'Big 5' show commands: (1) 'show ip ospf neighbor' = who are my friends and what state? (2) 'show ip ospf interface' = what are my settings per interface? (3) 'show ip ospf' = what's my Router ID and process config? (4) 'show ip route ospf' = what routes did OSPF teach me? (5) 'show ip protocols' = overview of all routing config. Memorize these — the exam shows you their output and asks you to diagnose problems.",
       practice: "After every OSPF lab, run ALL five commands and interpret every field: (1) In 'show ip ospf neighbor', identify Full vs 2-Way vs stuck states. (2) In 'show ip ospf interface', verify cost, timers, network type, and passive status. (3) In 'show ip ospf', confirm Router ID and reference bandwidth. (4) In 'show ip route ospf', trace learned routes back to their source. (5) In 'show ip protocols', verify all expected networks are listed. Practice until you can read each output in under 10 seconds.",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 24-26 (OSPF) use these commands extensively. Wendell Odom OCG Chapters 19-21 show sample outputs for each. The exam frequently presents OSPF show command output and asks you to identify the problem — mismatched timers, wrong area, incorrect cost, stuck neighbor state, or missing passive-interface. Practice reading the output until you can spot issues at a glance."
-    }
+      meta: "Jeremy's IT Lab Day 24-26 (OSPF) use these commands extensively. Wendell Odom OCG Chapters 19-21 show sample outputs for each. The exam frequently presents OSPF show command output and asks you to identify the problem — mismatched timers, wrong area, incorrect cost, stuck neighbor state, or missing passive-interface. Practice reading the output until you can spot issues at a glance.",
+    },
+    micro: [
+      { id: "3.4.i.1", term: "show ip ospf neighbor",        def: "Primary OSPF verification. State (Full/2-Way/Init/etc.), RID, priority, DR/BDR role, dead timer.", weight: "high" },
+      { id: "3.4.i.2", term: "show ip ospf interface brief", def: "Per-interface summary: area, cost, state, neighbor count. Fast overview.", weight: "high" },
+      { id: "3.4.i.3", term: "show ip ospf interface [int]", def: "Detailed view: timers, network type, DR/BDR IPs, passive status.", weight: "high" },
+      { id: "3.4.i.4", term: "show ip ospf",                 def: "OSPF process info: RID, area config, SPF stats, reference bandwidth.", weight: "high" },
+      { id: "3.4.i.5", term: "show ip route ospf",           def: "OSPF-learned routes only. O (intra), O IA (inter-area), O E1/E2 (external).", weight: "high" },
+      { id: "3.4.i.6", term: "show ip protocols",            def: "All running routing protocols overview. Quick sanity check for OSPF config.", weight: "high" }
+    ]
   },
 
   // ── 3.5  Describe first hop redundancy protocols ────────────
@@ -466,8 +533,15 @@ window.subtopicContentD34 = {
       memory: "FHRP = two pilots in the cockpit sharing ONE call sign. Passengers (hosts) always radio 'the pilot' (virtual IP). If pilot 1 passes out, pilot 2 answers the same call sign — passengers never notice the switch. The virtual IP is the call sign. Hosts NEVER point to a physical router IP as their gateway in an FHRP setup.",
       practice: "Draw a diagram: two routers (R1: 10.0.0.2, R2: 10.0.0.3) sharing virtual IP 10.0.0.1 on a common switch. PCs use 10.0.0.1 as their gateway. Walk through: (1) Normal operation — R1 (active) responds to ARP for 10.0.0.1. (2) R1 fails — R2 takes over 10.0.0.1. (3) PCs don't change anything. This conceptual understanding is more important than configuration details for the exam.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 29 (First Hop Redundancy Protocols) covers all FHRPs. Wendell Odom OCG Chapter 18. The exam asks: 'which technology prevents a single point of failure at the default gateway?' (FHRP), 'what IP do hosts configure as their gateway?' (the virtual IP, NOT a physical router IP). Understand the WHY before memorizing protocol-specific details."
-    }
+      meta: "Jeremy's IT Lab Day 29 (First Hop Redundancy Protocols) covers all FHRPs. Wendell Odom OCG Chapter 18. The exam asks: 'which technology prevents a single point of failure at the default gateway?' (FHRP), 'what IP do hosts configure as their gateway?' (the virtual IP, NOT a physical router IP). Understand the WHY before memorizing protocol-specific details.",
+    },
+    micro: [
+      { id: "3.5.a.1", term: "FHRP",                         def: "First Hop Redundancy Protocol. Eliminates single point of failure at default gateway.", weight: "high" },
+      { id: "3.5.a.2", term: "Virtual IP (VIP)",             def: "Shared IP that hosts use as default gateway. Active router responds with shared virtual MAC.", weight: "high" },
+      { id: "3.5.a.3", term: "Virtual MAC",                  def: "Shared L2 address. Takes over with VIP on failover. Hosts continue without reconfiguration.", weight: "high" },
+      { id: "3.5.a.4", term: "Three FHRPs",                  def: "HSRP (Cisco, Active/Standby), VRRP (open, Master/Backup), GLBP (Cisco, load-balancing).", weight: "high" },
+      { id: "3.5.a.5", term: "Failover is transparent",      def: "Hosts never reconfigure gateway. Traffic continues through a different router using the same VIP+MAC.", weight: "high" }
+    ]
   },
 
   "3.5.b": {
@@ -477,8 +551,17 @@ window.subtopicContentD34 = {
       memory: "HSRP = Cisco proprietary. Active/Standby terminology. Virtual MAC = 0000.0c07.acXX (group in hex). UDP 1985. Hello 3s, Hold 10s. Priority default 100 (higher wins). Preempt OFF by default. Mnemonic: 'Hot Standby = Hollywood Stunt Person' — the stunt double (Standby) waits, then takes the star's (Active's) place. Cisco-only, like Hollywood.",
       practice: "In Packet Tracer: (1) Connect R1 and R2 to a switch with PCs. (2) Configure HSRP group 1: R1 with priority 110, R2 with priority 100, virtual IP 10.0.0.1. (3) Run 'show standby brief' — R1 should be Active. (4) Shut R1's interface — R2 becomes Active. (5) Bring R1 back — R2 STAYS Active (preempt is off). (6) Add 'standby 1 preempt' on R1, shut/unshut R1's interface — now R1 reclaims Active.",
       effort: "high",
-      meta: "Jeremy's IT Lab Day 29 (FHRP) covers HSRP configuration and verification. Wendell Odom OCG Chapter 18. The exam differentiates HSRP from VRRP by terminology — 'Active/Standby' = HSRP, 'Master/Backup' = VRRP. Also know: virtual MAC format, UDP 1985, preempt OFF by default, timers 3/10."
-    }
+      meta: "Jeremy's IT Lab Day 29 (FHRP) covers HSRP configuration and verification. Wendell Odom OCG Chapter 18. The exam differentiates HSRP from VRRP by terminology — 'Active/Standby' = HSRP, 'Master/Backup' = VRRP. Also know: virtual MAC format, UDP 1985, preempt OFF by default, timers 3/10.",
+    },
+    micro: [
+      { id: "3.5.b.1", term: "HSRP",                         def: "Hot Standby Router Protocol. Cisco proprietary FHRP. Active/Standby terminology.", weight: "high" },
+      { id: "3.5.b.2", term: "HSRP virtual MAC",             def: "0000.0c07.acXX (v1) where XX = group in hex. Memorize format.", weight: "high" },
+      { id: "3.5.b.3", term: "HSRP transport",               def: "UDP port 1985. Multicast 224.0.0.2 (v1) / 224.0.0.102 (v2).", weight: "high" },
+      { id: "3.5.b.4", term: "HSRP timers",                  def: "Hello 3s, Hold 10s. Dead = 3× Hello.", weight: "high" },
+      { id: "3.5.b.5", term: "HSRP priority default = 100",  def: "Range 0-255. Higher wins. Ties broken by highest interface IP.", weight: "high" },
+      { id: "3.5.b.6", term: "HSRP preempt OFF by default",  def: "Higher-priority router does NOT auto-reclaim Active role. Must enable with 'standby [grp] preempt'.", weight: "high" },
+      { id: "3.5.b.7", term: "HSRP config commands",         def: "standby [grp] ip [vip], standby [grp] priority [n], standby [grp] preempt.", weight: "high" }
+    ]
   },
 
   "3.5.c": {
@@ -488,8 +571,15 @@ window.subtopicContentD34 = {
       memory: "HSRPv2 = 'More of everything.' More groups (4095 vs 255), more addressing (IPv6), new MAC (0000.0c9f.fXXX), dedicated multicast (224.0.0.102). NOT backward compatible — all routers in the group must match versions. Command to switch: 'standby version 2' under the interface.",
       practice: "Make a comparison flashcard: HSRPv1 vs HSRPv2 with group range, MAC format, multicast, and IPv6 support. This single card covers 90% of what the exam asks about v2. No deep lab needed — configure 'standby version 2' in Packet Tracer and compare 'show standby' output between versions.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 29 (FHRP) mentions v2 differences. Wendell Odom OCG Chapter 18. The exam rarely deep-dives HSRPv2, but you must know: (1) IPv6 support, (2) different MAC/multicast, (3) larger group range, (4) not compatible with v1. One comparison flashcard is sufficient."
-    }
+      meta: "Jeremy's IT Lab Day 29 (FHRP) mentions v2 differences. Wendell Odom OCG Chapter 18. The exam rarely deep-dives HSRPv2, but you must know: (1) IPv6 support, (2) different MAC/multicast, (3) larger group range, (4) not compatible with v1. One comparison flashcard is sufficient.",
+    },
+    micro: [
+      { id: "3.5.c.1", term: "HSRPv2 group range",           def: "0-4095 (vs v1's 0-255). Supports large VLAN deployments.", weight: "med" },
+      { id: "3.5.c.2", term: "HSRPv2 virtual MAC",           def: "0000.0c9f.fXXX (where XXX = group number). Different format from v1.", weight: "med" },
+      { id: "3.5.c.3", term: "HSRPv2 multicast",             def: "224.0.0.102 (IPv4) / ff02::66 (IPv6). Dedicated v2 multicast.", weight: "med" },
+      { id: "3.5.c.4", term: "HSRPv2 IPv6 support",          def: "v1 is IPv4 only. v2 supports both IPv4 and IPv6.", weight: "med" },
+      { id: "3.5.c.5", term: "v1 ≠ v2 compatibility",        def: "All routers in an HSRP group MUST run the same version. Mixing breaks the group.", weight: "med" }
+    ]
   },
 
   "3.5.d": {
@@ -499,8 +589,17 @@ window.subtopicContentD34 = {
       memory: "VRRP = open standard (RFC 5798). Master/Backup terminology. Preempt ON by default (assertive). Virtual IP CAN equal a physical IP (IP owner gets priority 255). IP protocol 112, multicast 224.0.0.18. Advertisement 1 second (faster than HSRP's 3s). The exam differentiates by terminology: see 'Master/Backup'? It's VRRP. See 'Active/Standby'? It's HSRP.",
       practice: "Create a detailed comparison table: HSRP vs VRRP covering roles, preemption default, virtual IP rules, transport, multicast address, timers, priority range/default, and vendor. This table is your primary study tool for FHRP exam questions. The exam tests differences, not individual protocol details.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 29 (FHRP) compares HSRP and VRRP. Wendell Odom OCG Chapter 18. The exam almost always includes one HSRP-vs-VRRP comparison question. Guaranteed comparison points: terminology, preemption default, and virtual IP rules. Know that VRRP allows the virtual IP to match a router's physical IP — this is unique to VRRP."
-    }
+      meta: "Jeremy's IT Lab Day 29 (FHRP) compares HSRP and VRRP. Wendell Odom OCG Chapter 18. The exam almost always includes one HSRP-vs-VRRP comparison question. Guaranteed comparison points: terminology, preemption default, and virtual IP rules. Know that VRRP allows the virtual IP to match a router's physical IP — this is unique to VRRP.",
+    },
+    micro: [
+      { id: "3.5.d.1", term: "VRRP",                         def: "Virtual Router Redundancy Protocol. Open standard RFC 5798. Master/Backup terminology.", weight: "high" },
+      { id: "3.5.d.2", term: "VRRP Master / Backup",         def: "Active = Master. Standby = Backup. See these terms → it's VRRP.", weight: "high" },
+      { id: "3.5.d.3", term: "VRRP preempt ON by default",   def: "Opposite of HSRP. Higher-priority router auto-reclaims Master role on return.", weight: "high" },
+      { id: "3.5.d.4", term: "VRRP virtual IP can match physical", def: "Unique to VRRP. IP owner automatically has priority 255.", weight: "high" },
+      { id: "3.5.d.5", term: "VRRP transport",               def: "IP protocol 112 (not UDP). Multicast 224.0.0.18.", weight: "high" },
+      { id: "3.5.d.6", term: "VRRP advertisement timer",     def: "1 second (faster than HSRP's 3s). Dead typically 3× advertisement = 3s.", weight: "med" },
+      { id: "3.5.d.7", term: "VRRP priority",                def: "1-254 range, default 100. Priority 255 reserved for IP address owner.", weight: "med" }
+    ]
   },
 
   "3.5.e": {
@@ -510,8 +609,15 @@ window.subtopicContentD34 = {
       memory: "GLBP = only FHRP that load-balances. AVG = the dispatcher who assigns different virtual MACs to different hosts via ARP responses. AVFs = the workers who forward traffic. Same virtual IP, different MACs per host = traffic distributed across multiple routers. Cisco proprietary. 'GLBP = Gateway Load Balancing Protocol' — the name tells you what makes it special.",
       practice: "Draw the GLBP concept: virtual IP 10.0.0.1 with 3 routers. Host A asks 'who has 10.0.0.1?' and gets MAC-A (R1). Host B asks and gets MAC-B (R2). Both hosts use the same gateway IP but reach different routers. Understand this concept — GLBP configuration is not tested on the CCNA.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 29 (FHRP) covers GLBP conceptually. Wendell Odom OCG Chapter 18. GLBP appears as: 'which FHRP provides both redundancy and load balancing?' Answer: GLBP. 'What are the roles in GLBP?' Answer: AVG and AVF. Know it's Cisco-only. This is a 1-2 question topic at most — one flashcard covers it."
-    }
+      meta: "Jeremy's IT Lab Day 29 (FHRP) covers GLBP conceptually. Wendell Odom OCG Chapter 18. GLBP appears as: 'which FHRP provides both redundancy and load balancing?' Answer: GLBP. 'What are the roles in GLBP?' Answer: AVG and AVF. Know it's Cisco-only. This is a 1-2 question topic at most — one flashcard covers it.",
+    },
+    micro: [
+      { id: "3.5.e.1", term: "GLBP",                         def: "Gateway Load Balancing Protocol. Cisco proprietary. ONLY FHRP with active-active load balancing.", weight: "high" },
+      { id: "3.5.e.2", term: "AVG (Active Virtual Gateway)", def: "Responds to ARP requests. Hands out different virtual MACs per host to distribute load.", weight: "high" },
+      { id: "3.5.e.3", term: "AVF (Active Virtual Forwarder)", def: "Router that forwards traffic for its assigned virtual MAC. Up to 4 AVFs per group.", weight: "high" },
+      { id: "3.5.e.4", term: "GLBP load-balance modes",      def: "round-robin (default), weighted, host-dependent.", weight: "med" },
+      { id: "3.5.e.5", term: "GLBP virtual MAC",             def: "0007.b400.XXYY (XX = group, YY = forwarder). UDP 3222, multicast 224.0.0.102.", weight: "low" }
+    ]
   },
 
   "3.5.f": {
@@ -521,8 +627,15 @@ window.subtopicContentD34 = {
       memory: "HSRP preempt = OFF by default (polite — 'you took over while I was gone, I won't take it back'). VRRP preempt = ON by default (assertive — 'I'm back and I'm in charge again'). Enable HSRP preempt: 'standby [group] preempt.' Without it, the original Active does NOT reclaim its role after recovery. This default difference is a classic exam trap.",
       practice: "In Packet Tracer: (1) Configure HSRP with R1 priority 110 (Active) and R2 priority 100 (Standby). No preempt configured. (2) Verify R1 is Active. (3) Shut R1's HSRP interface — R2 becomes Active. (4) Bring R1 back up — R2 STAYS Active (no preempt). (5) Now add 'standby 1 preempt' on R1. (6) Shut/unshut R1 again — this time R1 reclaims Active. (7) Verify with 'show standby brief' after each step.",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 29 (FHRP) demonstrates preemption behavior. Wendell Odom OCG Chapter 18. The preemption default difference (HSRP off, VRRP on) is tested every exam cycle. Also know: in GLBP, preemption controls exist per-AVF role. For the exam, focus on HSRP preemption — that's where the trap questions live."
-    }
+      meta: "Jeremy's IT Lab Day 29 (FHRP) demonstrates preemption behavior. Wendell Odom OCG Chapter 18. The preemption default difference (HSRP off, VRRP on) is tested every exam cycle. Also know: in GLBP, preemption controls exist per-AVF role. For the exam, focus on HSRP preemption — that's where the trap questions live.",
+    },
+    micro: [
+      { id: "3.5.f.1", term: "Preemption",                   def: "Whether a higher-priority router auto-reclaims Active/Master role after recovery.", weight: "high" },
+      { id: "3.5.f.2", term: "HSRP preempt OFF default",     def: "Returning higher-priority router does NOT reclaim. Must enable: 'standby [grp] preempt'.", weight: "high" },
+      { id: "3.5.f.3", term: "VRRP preempt ON default",      def: "Returning higher-priority router automatically reclaims Master. Disable with 'no vrrp [grp] preempt'.", weight: "high" },
+      { id: "3.5.f.4", term: "Preemption rationale",         def: "Preferred router usually has best path (closest to WAN). Preemption ensures it returns to primary role.", weight: "high" },
+      { id: "3.5.f.5", term: "Classic exam trap",            def: "Scenario: HSRP active fails, returns. Without preempt, it stays as standby. Students often get this wrong.", weight: "high" }
+    ]
   },
 
   /* ══════════════════════════════════════════════════════════════
