@@ -832,6 +832,31 @@
       margin: 0;
     }
 
+    /* Micro-lesson cards (nested inside subtopic) */
+    #state-lesson .terms-list .subtopic-card.micro-lesson {
+      margin-bottom: 8px;
+      border-left: 2px solid var(--accent);
+      background: var(--bg-surface);
+    }
+    #state-lesson .terms-list .subtopic-card.micro-lesson .subtopic-toggle {
+      padding: 10px 14px;
+      font-size: 0.88rem;
+    }
+    #state-lesson .terms-list .subtopic-card.micro-lesson .subtopic-inner {
+      padding: 8px 14px 14px;
+    }
+    #state-lesson .terms-list .subtopic-card.micro-lesson .st-info {
+      font-size: 0.88rem;
+      margin: 8px 0;
+    }
+    #state-lesson .terms-list .subtopic-card.micro-lesson .hack-card {
+      margin-top: 10px;
+      padding: 12px 14px;
+    }
+    #state-lesson .terms-list .subtopic-card.micro-lesson .hack-item {
+      font-size: 0.78rem;
+    }
+
     /* ── Exam Focus ───────────────────────────────────────────── */
     .exam-focus {
       margin-top: 36px;
@@ -2194,21 +2219,62 @@
               </div>
             </div>`;
           }
-          // Key Terms (micro-subtopics)
+          // Micro-subtopics (deep mini-lessons OR glossary entries)
           if (sc.micro && sc.micro.length) {
-            const items = sc.micro.map(m => `
-              <div class="term-item" data-term-id="${escHtml(m.id)}">
-                <div class="term-id">${escHtml(m.id)}</div>
-                <div>
-                  <div class="term-head">
-                    <span class="term-name">${escHtml(m.term)}</span>
-                    <span class="term-weight ${escHtml(m.weight || 'med')}">${escHtml(m.weight || 'med')}</span>
+            const items = sc.micro.map(m => {
+              // Deep entry = has info/hack (full mini-lesson). Glossary entry = has def only.
+              const isDeep = !!(m.info || m.hack);
+              if (isDeep) {
+                let microInner = '';
+                if (m.visual && window.SubtopicVisuals) {
+                  microInner += window.SubtopicVisuals.render(m.visual);
+                }
+                if (m.info) {
+                  microInner += `<div class="st-info">${m.info}</div>`;
+                }
+                if (m.hack) {
+                  const h = m.hack;
+                  microInner += `<div class="hack-card">
+                    <div class="hack-title">Study Hack</div>
+                    <div class="hack-grid">
+                      ${h.memory ? `<div class="hack-item"><div class="hack-label memory">Remember</div><p>${escHtml(h.memory)}</p></div>` : ''}
+                      ${h.practice ? `<div class="hack-item"><div class="hack-label practice">Practice</div><p>${escHtml(h.practice)}</p></div>` : ''}
+                      ${h.meta ? `<div class="hack-item"><div class="hack-label meta">Meta Strategy</div><p>${escHtml(h.meta)}</p></div>` : ''}
+                    </div>
+                  </div>`;
+                }
+                return `
+                  <div class="subtopic-card micro-lesson" data-sub="${escHtml(m.id)}">
+                    <button class="subtopic-toggle" aria-expanded="false">
+                      <span class="st-id">${escHtml(m.id)}</span>
+                      <span class="st-name">${escHtml(m.term)}</span>
+                      <span class="term-weight ${escHtml(m.weight || 'med')}">${escHtml(m.weight || 'med')}</span>
+                      <span class="st-chevron">&#9656;</span>
+                    </button>
+                    <div class="subtopic-body">
+                      <div class="subtopic-inner">${microInner}</div>
+                    </div>
+                  </div>`;
+              }
+              // Glossary fallback (legacy data)
+              return `
+                <div class="term-item" data-term-id="${escHtml(m.id)}">
+                  <div class="term-id">${escHtml(m.id)}</div>
+                  <div>
+                    <div class="term-head">
+                      <span class="term-name">${escHtml(m.term)}</span>
+                      <span class="term-weight ${escHtml(m.weight || 'med')}">${escHtml(m.weight || 'med')}</span>
+                    </div>
+                    <p class="term-def">${escHtml(m.def || '')}</p>
                   </div>
-                  <p class="term-def">${escHtml(m.def)}</p>
-                </div>
-              </div>`).join('');
+                </div>`;
+            }).join('');
+            const deepCount = sc.micro.filter(m => m.info || m.hack).length;
+            const title = deepCount > 0
+              ? `Micro-lessons <span class="terms-count">· ${deepCount} deep · click to expand</span>`
+              : `Key Terms <span class="terms-count">· ${sc.micro.length} to master</span>`;
             inner += `<div class="terms-card">
-              <div class="terms-title">Key Terms <span class="terms-count">· ${sc.micro.length} to master</span></div>
+              <div class="terms-title">${title}</div>
               <div class="terms-list">${items}</div>
             </div>`;
           }
@@ -2242,7 +2308,8 @@
     // ── Bind Subtopic Accordion ──────────────────────────────────
     function bindSubtopicToggles() {
       document.querySelectorAll('#lesson-viewer-content .subtopic-toggle').forEach(btn => {
-        btn.addEventListener('click', () => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
           const card = btn.closest('.subtopic-card');
           const isOpen = card.classList.contains('open');
           card.classList.toggle('open');
