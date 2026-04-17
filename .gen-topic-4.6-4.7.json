@@ -1,0 +1,628 @@
+{
+  "4.6.a": [
+    {
+      "id": "4.6.a.1",
+      "term": "ip address dhcp",
+      "weight": "high",
+      "info": "<p><code>ip address dhcp</code> is an interface-level command that turns the interface into a <strong>DHCP client</strong>. Instead of hardcoding an IP with <code>ip address 192.0.2.1 255.255.255.0</code>, the router sends a DORA (Discover / Offer / Request / Ack) sequence out this interface and installs whatever IP, mask, and optional default gateway the server hands back.</p><p>Behind the scenes, once you issue <code>no shutdown</code>, the interface is in up/up state but carries no IPv4 address until the DHCP server responds. Cisco IOS then installs the leased address and creates a connected route plus a local (/32) route in the routing table, exactly like a static interface would. If the server also sends a default gateway option, IOS installs a static default route with the next-hop pointing at that gateway.</p><p>The classic use case is a WAN edge router where the ISP controls addressing (residential cable/DSL, some business fiber). It is less common on LAN interfaces because a router usually wants a stable static IP that clients use as a default-gateway. Putting <code>ip address dhcp</code> on a LAN interface means the gateway IP could change on every reboot, which breaks the DHCP scope the router itself serves.</p><p>Verification commands: <code>show ip interface brief</code> shows the learned IP instead of 'unassigned'; <code>show dhcp lease</code> shows lease time, server IP, and options received. You can release and renew with <code>release dhcp [interface]</code> / <code>renew dhcp [interface]</code> in privileged EXEC.</p><p>Common mistake: confusing this with the router acting as a DHCP server. <code>ip address dhcp</code> makes the router a CLIENT only — it receives an IP. Serving IPs to other devices requires an <code>ip dhcp pool</code>.</p>",
+      "visual": { "type": "handshake", "params": { "client": "Router Gi0/0 (ip address dhcp)", "server": "ISP DHCP Server", "steps": ["DISCOVER (broadcast)", "OFFER (IP + options)", "REQUEST", "ACK → lease installed"] } },
+      "hack": {
+        "memory": "'ip address dhcp' = 'I don't have an address, please assign one.' The router becomes a DHCP client. Almost always lives on a WAN/ISP-facing interface, never on the LAN side where you need a stable gateway IP.",
+        "practice": "Packet Tracer: put a DHCP server on one side of a router. Configure the router's outside interface with 'ip address dhcp' + 'no shutdown'. Run 'show ip interface brief' — the IP appears after a few seconds. Run 'show dhcp lease' and note the server IP and lease time. Release and renew to watch DORA fire again.",
+        "effort": "low",
+        "meta": "Jeremy's IT Lab Day 39 (DHCP). Wendell Odom OCG Chapter 8. The exam asks 'which command configures an interface to receive its IP via DHCP?' — answer is 'ip address dhcp'. Remember this makes the router a CLIENT, not a server."
+      }
+    },
+    {
+      "id": "4.6.a.2",
+      "term": "Router as DHCP client",
+      "weight": "high",
+      "info": "<p>A Cisco router acting as a DHCP client is most common on a WAN uplink where the service provider owns the addressing. Cable, DSL, and many metro-Ethernet services hand out public IPs via DHCP. Putting <code>ip address dhcp</code> on the outside interface lets the router bring up the link without manual coordination every time the ISP reassigns an IP.</p><p>The DORA exchange is the same one a PC uses. The router sends a DHCPDISCOVER out the configured interface (broadcast destination 255.255.255.255 / FF:FF:FF:FF:FF:FF). Any DHCP server on that segment that has a matching pool responds with a DHCPOFFER. The router replies with a DHCPREQUEST selecting one offer, and the server finalizes with a DHCPACK that carries the lease time, subnet mask, default gateway, and DNS servers.</p><p>Key options the router can consume: <strong>Option 3</strong> (router / default gateway — IOS installs this as a static default route via the DHCP-learned next hop), <strong>Option 6</strong> (DNS servers — populated into the device's name-server list), <strong>Option 51</strong> (lease time — controls when the router must renew), and <strong>Option 15</strong> (domain name).</p><p>To prevent the DHCP-learned default route from fighting with a manually configured one, IOS installs it with a specific administrative distance. If you also have a static default route, you can control preference with floating-static AD values.</p><p>Troubleshooting flow: (1) verify L1/L2 up with <code>show interfaces</code>; (2) verify no IP learned with <code>show ip interface brief</code>; (3) debug with <code>debug dhcp detail</code> to see Discover/Offer/Request/Ack exchanges. No offer usually means no reachable DHCP server or a broadcast path problem.</p>",
+      "visual": { "type": "packet-flow", "params": { "nodes": ["Router WAN interface", "DHCPDISCOVER (bcast)", "ISP DHCP Server", "DHCPOFFER", "DHCPREQUEST", "DHCPACK + options"], "color": "#3b82f6" } },
+      "hack": {
+        "memory": "Router-as-DHCP-client = same DORA as a laptop, just sourced from a WAN interface. Router learns IP + gateway (Option 3) + DNS (Option 6) + lease (Option 51). If your outside interface stays 'unassigned' with 'ip address dhcp' configured, DORA is failing somewhere — check L1, then run 'debug dhcp detail'.",
+        "practice": "In Packet Tracer: build ISP-router + your-router with a shared link. Put 'ip address dhcp' on your router's WAN. Confirm with 'show ip interface brief' and 'show ip route' — you should see a connected route from DHCP plus a static default route also from DHCP (0.0.0.0/0 via the learned gateway).",
+        "effort": "low",
+        "meta": "Jeremy's IT Lab Day 39. Wendell Odom OCG Chapter 8. The exam may describe an edge router that 'learns its IP from the provider' — that points directly at 'ip address dhcp'. Also know that the router can then redistribute that learned default route into routing protocols with 'default-information originate'."
+      }
+    }
+  ],
+  "4.6.b": [
+    {
+      "id": "4.6.b.1",
+      "term": "ip helper-address [server-ip]",
+      "weight": "high",
+      "info": "<p><code>ip helper-address</code> is the interface-level command that turns a Cisco router (or L3 switch SVI) into a <strong>DHCP relay agent</strong>. When a client sends a broadcast DHCPDISCOVER on the subnet, the relay catches the broadcast, rewrites it as a unicast to the server IP configured in the helper statement, and forwards it across the routed network.</p><p>Syntax: <code>interface Gi0/0</code> → <code>ip helper-address 10.50.50.10</code>. The IP you list is the <strong>DHCP server's IP</strong>, not the client's. You can stack multiple helper addresses on the same interface to send the relayed request to several servers in parallel — useful when you have redundant DHCP servers in different data centers.</p><p>When the relay forwards the message, it fills in the <strong>GIADDR (Gateway IP Address)</strong> field of the DHCP header with the IP of the interface that received the broadcast. The server uses GIADDR to pick the correct pool (a pool whose <code>network</code> statement matches the GIADDR subnet). Without a valid GIADDR, the server has no idea which subnet the client is on.</p><p>Helper-address does not only forward DHCP. By default it also relays seven UDP services at once: <strong>BOOTP 67/68, TFTP 69, DNS 53, NetBIOS name service 137, NetBIOS datagram service 138, TACACS 49, and Time 37</strong>. You can add or remove ports with global <code>ip forward-protocol udp [port]</code> and <code>no ip forward-protocol udp [port]</code>.</p><p>Verification: <code>show ip interface Gi0/0</code> shows 'Helper address is 10.50.50.10' on the interface. Packet captures between the relay and server should show unicast DHCP messages sourced from the relay's IP to the server's IP.</p>",
+      "visual": { "type": "packet-flow", "params": { "nodes": ["Client broadcast DISCOVER", "Relay interface (ip helper-address)", "GIADDR filled in", "Unicast to DHCP server", "Server OFFER via relay", "Client receives lease"], "color": "#10b981" } },
+      "hack": {
+        "memory": "'ip helper-address <server-IP>' lives on the CLIENT-facing interface and points at the SERVER. It converts the client's DHCPDISCOVER broadcast into a unicast the server can actually see. Also quietly forwards BOOTP, TFTP, DNS, NetBIOS NS/DS, TACACS, and Time — not just DHCP.",
+        "practice": "Packet Tracer: put a DHCP server on VLAN 20, a PC on VLAN 10, and route between them. Without helper-address the PC can't DHCP. Add 'ip helper-address <server-IP>' on the VLAN 10 SVI. PC now gets an IP. Confirm on the server with 'show ip dhcp binding' — the GIADDR decides which pool was used.",
+        "effort": "medium",
+        "meta": "Jeremy's IT Lab Day 39 (DHCP). Wendell Odom OCG Chapter 8. Heavy-hitter topic: 'where does ip helper-address go?' (client-facing interface), 'what IP does it point to?' (server), 'why is it needed?' (routers drop broadcasts). Also know the 7 default UDP ports."
+      }
+    },
+    {
+      "id": "4.6.b.2",
+      "term": "Configure on client-facing interface",
+      "weight": "high",
+      "info": "<p>The #1 deployment error with DHCP relay is configuring <code>ip helper-address</code> on the wrong side of the router. It <strong>must go on the interface facing the clients</strong> — the same interface that the clients use as their default gateway — not the interface facing the DHCP server.</p><p>Why: the relay has to <em>receive</em> the client's broadcast before it can forward it. Broadcasts stay on the local segment. Only the interface connected to that segment sees them, so that interface is the one that needs the helper statement. Configuring helper-address on the server-facing interface means the broadcast is already lost before the relay ever sees it.</p><p>In a typical campus design with inter-VLAN routing, helper-address is configured on each <strong>SVI (interface vlan X)</strong> that represents a client VLAN. VLAN 10 SVI gets a helper, VLAN 20 SVI gets a helper, and so on. Each SVI becomes its own relay for its subnet, and each uses its own IP as GIADDR so the server knows which pool to pull from.</p><p>On routers with many client subnets (branch offices, large access switches), you usually repeat the same helper statement on every client-facing SVI. Some shops template this into configuration standards so it's always consistent.</p><p>Exam framing: scenario describes clients failing to get an IP, then shows a config with <code>ip helper-address</code> on the wrong interface. The fix is always 'move it to the client-facing interface'. Also common: asking which interface on a multi-VLAN L3 switch needs the helper — answer is each client SVI.</p>",
+      "visual": { "type": "comparison", "params": { "left": { "label": "Correct (client-facing)", "items": ["interface vlan 10 (SVI)", "ip helper-address 10.50.50.10", "Relay sees broadcast", "GIADDR = 10.10.10.1"] }, "right": { "label": "Wrong (server-facing)", "items": ["interface Gi0/1 → server", "ip helper-address 10.50.50.10", "Never hears client broadcast", "DHCP still fails"] } } },
+      "hack": {
+        "memory": "Helper-address goes on the CLIENT'S gateway interface. You only catch broadcasts on the segment they're broadcast on. Put it on the server side and it never hears a peep from the client.",
+        "practice": "Build a topology with two client VLANs (10 and 20) and one DHCP server on VLAN 99. Put helper-address on VLAN 10 SVI only. VLAN 10 PCs get IPs; VLAN 20 PCs fail. Add helper-address to VLAN 20 SVI and watch VLAN 20 start working. This one lab wires in the concept for good.",
+        "effort": "low",
+        "meta": "Exam trap: config screenshot shows helper-address on the server-side interface; question asks why DHCP fails. Jeremy's IT Lab Day 39. Wendell Odom OCG Chapter 8."
+      }
+    },
+    {
+      "id": "4.6.b.3",
+      "term": "Points to SERVER's IP",
+      "weight": "high",
+      "info": "<p>The IP listed after <code>ip helper-address</code> is the <strong>DHCP server's IP address</strong>. It is the destination the relay unicasts the converted DHCP message to. A common rookie mistake is entering the client's subnet or the relay's own IP — both will break relaying.</p><p>The server IP can live anywhere the router has a route to — same building, different floor, different data center. As long as a routed path exists between the relay interface and the server IP, the unicast DHCP will reach it. The source IP of that unicast is the relay's interface IP (which is also what lands in GIADDR), so the server's reply is routed back to the relay naturally.</p><p>You can also configure multiple helper statements on a single interface for redundancy. Example: <code>ip helper-address 10.50.50.10</code> + <code>ip helper-address 10.50.50.11</code>. The relay sends the request to BOTH servers simultaneously. Whichever answers first gets used; duplicate offers are handled by the client selecting one in the DHCPREQUEST stage.</p><p>Design consideration: if you're relaying to a cluster of DHCP servers (Microsoft DHCP failover, ISC Kea pairs, Infoblox appliances), list all of them. It's cheap insurance. Servers behind a load balancer or VIP can be represented by a single helper address pointing at the VIP, but classic DHCP has some quirks with L7 load balancers — direct unicast to each server is simpler.</p><p>Verification: <code>show ip interface [name]</code> lists every helper address. <code>show running-config interface [name]</code> shows them in config form. Packet capture on the relay-to-server path should show UDP 67 unicast traffic sourced from the relay, destined to each listed helper IP.</p>",
+      "visual": { "type": "hierarchy", "params": { "root": "Relay interface (client-facing)", "children": [{ "name": "ip helper-address 10.50.50.10 (primary)" }, { "name": "ip helper-address 10.50.50.11 (backup)" }, { "name": "Both receive the relayed DISCOVER" }] } },
+      "hack": {
+        "memory": "Helper points at the SERVER's IP — the unicast destination. Stack multiple 'ip helper-address' lines for redundant servers; the relay will send to all of them. Source IP of the relayed DHCP = the relay's interface IP = the GIADDR.",
+        "practice": "Take your single-helper lab and add a second DHCP server. Configure TWO 'ip helper-address' lines on the client SVI. Capture on the server-side — both servers see the DISCOVER. Pull the power on the primary server and verify clients still get a lease from the backup.",
+        "effort": "low",
+        "meta": "Jeremy's IT Lab Day 39. Wendell Odom OCG Chapter 8. Exam: 'which IP do you enter in ip helper-address?' = the DHCP server's IP. Multiple helpers are allowed for redundancy."
+      }
+    }
+  ],
+  "4.6.c": [
+    {
+      "id": "4.6.c.1",
+      "term": "Broadcasts don't cross routers",
+      "weight": "high",
+      "info": "<p>The reason DHCP relay even exists is a fundamental routing rule: <strong>routers do not forward Layer 2 broadcasts between interfaces</strong>. Each router interface is its own broadcast domain. A frame with destination MAC <code>FF:FF:FF:FF:FF:FF</code> or an IP of 255.255.255.255 reaches the router and stops there.</p><p>DHCPDISCOVER is a broadcast. The client has no IP yet, doesn't know a default gateway, and doesn't know where the DHCP server is, so it blasts the Discover as a local broadcast and hopes someone is listening. On the client's local subnet, any DHCP server (or relay agent) will hear it.</p><p>If the DHCP server lives on a different subnet, the router between them drops the broadcast at L3. The server never sees the Discover, the client never gets an Offer, and the client eventually self-assigns an APIPA 169.254.x.x address. That APIPA address is the telltale sign that DHCP failed to reach a server.</p><p>This isn't a bug — it's a design feature. Without broadcast containment, every DHCP Discover, ARP request, and NetBIOS lookup would flood the entire enterprise network, and broadcast storms would take down large segments. Broadcasts are intentionally contained to small fault domains.</p><p>The fix is DHCP relay. The relay agent listens for broadcasts on the client subnet, converts them to unicasts pointed at a known DHCP server IP, and forwards them across the routed network. The server's response comes back the same way — unicast to the relay, then broadcast (or unicast) to the client depending on the BROADCAST flag in the DHCP header.</p>",
+      "visual": { "type": "state-machine", "params": { "states": ["Client: DISCOVER (bcast)", "Hits router interface", "Broadcasts blocked at L3", "Without relay: DHCP fails"], "active": 2, "transitions": true } },
+      "hack": {
+        "memory": "Routers = broadcast firewalls. DHCPDISCOVER is a broadcast. Broadcasts die at every router interface. No relay = no DHCP across subnets = APIPA 169.254.x.x on the client.",
+        "practice": "Packet Tracer simulation mode: client sends DHCPDISCOVER with no 'ip helper-address' configured. Watch the frame hit the router and vanish. Check the client — it ends up with APIPA. Add 'ip helper-address' and re-run; now the frame survives as a unicast past the router.",
+        "effort": "low",
+        "meta": "Jeremy's IT Lab Day 39 and Day 6 (broadcast domains). Wendell Odom OCG Chapters 5 and 8. Exam wording: 'why can a client on VLAN 10 not get an address from a DHCP server on VLAN 20 without configuration?' — routers block broadcasts; need a relay."
+      }
+    },
+    {
+      "id": "4.6.c.2",
+      "term": "DHCP relay agent",
+      "weight": "high",
+      "info": "<p>A <strong>DHCP relay agent</strong> is any device (usually a router or L3 switch) that forwards DHCP messages between clients on one subnet and servers on another. On Cisco, it's activated with <code>ip helper-address</code>. On Linux/Unix, with <code>dhcrelay</code>. On enterprise firewalls, often a checkbox in the DHCP settings.</p><p>Functionally, the relay does three things: (1) <strong>receives</strong> the client's broadcast DHCP message on the client-facing interface; (2) <strong>rewrites</strong> it as a unicast IP packet destined to the configured DHCP server, setting GIADDR = the relay interface's IP so the server knows which subnet to serve from; (3) <strong>forwards</strong> the server's reply back toward the client, either as a unicast to the client's new IP or a broadcast onto the client's subnet, controlled by the BROADCAST flag.</p><p>Relays make <strong>centralized DHCP</strong> possible. Without them, every subnet would need its own DHCP server — operationally painful at scale. With relays, a single DHCP server (or pair) at HQ serves every subnet in every branch, each subnet's relay pointing at HQ's DHCP IP.</p><p>Relay vs server: a relay does not hold the pool. It doesn't decide what IP to hand out. It just shuttles messages between the client and the real DHCP server. Config on the relay is trivial — one line per interface. The intelligence lives on the server.</p><p>Relay is also what makes features like <strong>Option 82 (DHCP relay agent information)</strong> work — the relay can insert information like circuit ID and remote ID so the server can apply per-port or per-customer policies. This is used heavily in ISP edge deployments and port-based authentication.</p>",
+      "visual": { "type": "handshake", "params": { "client": "DHCP Client (VLAN 10)", "server": "DHCP Server (VLAN 99)", "steps": ["DISCOVER bcast → Relay", "Relay unicasts to server (GIADDR set)", "Server OFFER unicast → Relay", "Relay → Client (bcast or unicast)"] } },
+      "hack": {
+        "memory": "Relay agent = postal courier. Takes the client's broadcast envelope, stuffs it in a unicast envelope addressed to the DHCP server, drops it on the routed network, then hands the server's reply back to the client. Relay has no pool, makes no decisions — it just shuttles messages.",
+        "practice": "In a lab with 3 VLANs + 1 central DHCP server, configure helper-address on all 3 VLAN SVIs pointing at the server. Watch every PC in every VLAN get an IP from the matching pool (server uses GIADDR to pick pools). This is exactly how enterprise centralized DHCP works.",
+        "effort": "low",
+        "meta": "Jeremy's IT Lab Day 39. Wendell Odom OCG Chapter 8. Know: relay forwards broadcast as unicast, uses GIADDR, enables centralized DHCP, and is configured with 'ip helper-address' on the client interface."
+      }
+    },
+    {
+      "id": "4.6.c.3",
+      "term": "Centralized DHCP design",
+      "weight": "med",
+      "info": "<p><strong>Centralized DHCP</strong> means one (or a small cluster of) DHCP server(s) hand out addresses for every subnet in the enterprise — instead of a local DHCP server per site or per VLAN. It's the dominant design in medium/large networks because it reduces operational overhead.</p><p>Benefits: one place to audit leases, one place to update scopes, one place to patch. Integrating with IPAM (Infoblox, SolarWinds, Bluecat) is straightforward with centralized servers. Option 82 policies for per-port security are easier to manage. Backup and DR are simpler.</p><p>Architecture: DHCP server lives in a data center or secure management VLAN. Every client-facing SVI in the campus has <code>ip helper-address</code> pointing at that server (or a VIP for a server cluster). The server's scopes are defined per subnet, matching the GIADDR inserted by each relay.</p><p>Scope selection on the server: when GIADDR = 10.10.10.1 (relay interface IP on VLAN 10), the server looks for a scope whose network matches 10.10.10.0/24 and pulls an IP from there. When GIADDR = 10.20.20.1, it picks from the 10.20.20.0/24 scope. The relay's interface IP is the critical hint that makes centralized DHCP work.</p><p>Redundancy: pair two DHCP servers with failover (Windows DHCP Failover protocol, ISC Kea HA, or Active/Passive cluster). List both server IPs on every relay interface (<code>ip helper-address</code> x2). Most enterprises also keep lease times short enough (4-12 hours) that a failed server won't cause widespread outages.</p>",
+      "visual": { "type": "hierarchy", "params": { "root": "Central DHCP Cluster (HQ)", "children": [{ "name": "Site A — VLAN 10 SVI helper → HQ", "children": [{ "name": "PCs get IPs via relay" }] }, { "name": "Site B — VLAN 20 SVI helper → HQ" }, { "name": "Site C — VLAN 30 SVI helper → HQ" }] } },
+      "hack": {
+        "memory": "Centralized DHCP = one DHCP server rules all subnets. Every client-facing SVI has 'ip helper-address' pointing at the central server. GIADDR tells the server which scope to pull from. Add a second helper-address for redundancy.",
+        "practice": "Design exercise: sketch a 3-site network with 2 VLANs per site. Mark the DHCP server at HQ. Draw an arrow from each client SVI to the DHCP server's IP labeled 'helper-address'. This visualization makes the centralized pattern click.",
+        "effort": "low",
+        "meta": "Less commonly drilled on the exam but conceptually important. Wendell Odom OCG Chapter 8. Know that centralized DHCP + relay is the standard enterprise design."
+      }
+    }
+  ],
+  "4.6.d": [
+    {
+      "id": "4.6.d.1",
+      "term": "Full DHCP server recipe",
+      "weight": "high",
+      "info": "<p>Cisco IOS can act as a full DHCP server. The complete recipe has <strong>six commands</strong> executed in order: (1) exclude static IPs, (2) create the pool, (3) define the network, (4) set the default router, (5) set the DNS server, (6) set the lease time.</p><p>Example for a /24 subnet:</p><pre>! 1) Exclude static IPs (GLOBAL config, before the pool)\nip dhcp excluded-address 10.1.1.1 10.1.1.10\n!\n! 2) Create the pool\nip dhcp pool LAN\n!\n! 3) Network / subnet\n network 10.1.1.0 /24\n!\n! 4) Default gateway (the router's LAN IP)\n default-router 10.1.1.1\n!\n! 5) DNS servers\n dns-server 8.8.8.8 8.8.4.4\n!\n! 6) Lease time (days hours minutes)\n lease 7</pre><p><strong>Critical trap:</strong> the command is <code>default-router</code>, NOT <code>default-gateway</code>. 'default-gateway' exists but it's a <em>device-level</em> command for a switch or router without routing enabled, not a DHCP pool option. Many students lose points swapping these.</p><p>Optional extras inside the pool: <code>domain-name example.com</code>, <code>netbios-name-server x.x.x.x</code>, <code>option 150 ip x.x.x.x</code> (used for Cisco IP phones to find their TFTP server), <code>import all</code> (import DHCP options from an upstream DHCP server, useful when the Cisco router is both a client and a relay).</p><p>Verification: <code>show ip dhcp pool</code> (pool utilization), <code>show ip dhcp binding</code> (active leases), <code>show running-config | section dhcp</code> (full DHCP config).</p>",
+      "visual": { "type": "layer-stack", "params": { "layers": ["ip dhcp excluded-address 10.1.1.1 10.1.1.10", "ip dhcp pool LAN", "  network 10.1.1.0 /24", "  default-router 10.1.1.1", "  dns-server 8.8.8.8 8.8.4.4", "  lease 7"], "highlight": 0 } },
+      "hack": {
+        "memory": "6-step recipe: EXCLUDE → POOL → NETWORK → DEFAULT-ROUTER → DNS-SERVER → LEASE. Mnemonic: 'Every Pool Needs Default DNS Leased' (E-P-N-D-D-L). TRAP: it's 'default-ROUTER' not 'default-gateway' inside the pool.",
+        "practice": "In Packet Tracer: build the entire pool from memory. Verify with 'show ip dhcp pool' — should show total, leased, excluded counts. Connect 3 PCs, confirm each gets an IP, gateway, and DNS. Practice typing all 6 commands in under 60 seconds until it's muscle memory for the exam lab sim.",
+        "effort": "medium",
+        "meta": "Jeremy's IT Lab Day 39. Wendell Odom OCG Chapter 8. Lab-sim territory. 'default-router' vs 'default-gateway' is the most-missed trap. Exclusions go in GLOBAL config, the rest go inside the pool."
+      }
+    },
+    {
+      "id": "4.6.d.2",
+      "term": "Order matters?",
+      "weight": "med",
+      "info": "<p>Technically, Cisco IOS accepts the DHCP configuration commands in either order (exclusion before pool, or pool before exclusion). Practically, <strong>exclusions should be configured BEFORE clients start requesting IPs</strong>. If you create a pool first, let clients grab addresses, then add exclusions, the already-leased IPs stay assigned until the leases expire — the exclusion only prevents FUTURE assignments.</p><p>Best practice sequence: (1) <code>ip dhcp excluded-address</code> for every static IP on the subnet; (2) <code>ip dhcp pool NAME</code>; (3) all pool sub-commands. This order guarantees that no lease is ever issued from the excluded range.</p><p>If you need to retroactively exclude addresses after leases exist, pair the exclusion with <code>clear ip dhcp binding *</code> (clears all active bindings) or <code>clear ip dhcp binding [ip]</code> (clears a single binding). Clients renew and get safe addresses.</p><p>Inside the pool itself, most sub-commands are order-independent at save time — IOS reorders them in the running config. But when typing, follow the recipe order above so you don't forget any component.</p><p>One order that DOES matter: if you change the <code>network</code> statement, IOS may clear existing bindings for the old network and restart. Don't modify a production pool's network statement without planning a brief outage window.</p>",
+      "visual": { "type": "comparison", "params": { "left": { "label": "Good order", "items": ["1) ip dhcp excluded-address", "2) ip dhcp pool + sub-cmds", "3) Clients request IPs", "Static IPs never handed out"] }, "right": { "label": "Bad order", "items": ["1) ip dhcp pool + sub-cmds", "2) Clients get IPs (maybe .1!)", "3) Add exclusions later", "Existing conflicts persist"] } } },
+      "hack": {
+        "memory": "Exclude BEFORE pool goes live. IOS will accept commands in any order, but clients grabbing .1 before you exclude it = active IP conflict. Always configure exclusions first, especially for the gateway IP.",
+        "practice": "Deliberately create a pool without exclusions, let a PC grab 10.1.1.1 (your planned gateway), then configure the gateway statically and watch the conflict. Fix with 'clear ip dhcp binding *' + add exclusion. This bad experience teaches the right order forever.",
+        "effort": "low",
+        "meta": "Wendell Odom OCG Chapter 8. Exam may ask 'what happens if you add an exclusion after leases exist?' — existing leases stay until expiration; exclusion only affects new leases. Pair with 'clear ip dhcp binding' to force renewal."
+      }
+    },
+    {
+      "id": "4.6.d.3",
+      "term": "Cisco router as DHCP server",
+      "weight": "high",
+      "info": "<p>A Cisco IOS router can host a full DHCP server — not just relay. It supports multiple pools, per-pool options, address exclusions, conflict detection, and all the standard DHCP options (gateway, DNS, domain name, NTP, TFTP server, etc.). For small branch offices and home-office deployments, the router-as-server model eliminates the need for a separate DHCP appliance.</p><p>Typical deployment: branch router serves DHCP for the local LAN VLANs. One <code>ip dhcp pool</code> per subnet, each with its own network, default-router, DNS, lease, and options. The router also handles routing, NAT, and security for the branch — a single device for the whole site.</p><p>Limits: a Cisco router is fine for small-to-medium subnets (up to a few hundred clients per pool). For enterprise-scale DHCP (thousands of clients, option 82 policies, failover, IPAM integration), use dedicated DHCP servers (Windows, ISC Kea, Infoblox). The router's DHCP daemon is single-threaded and not optimized for huge volumes.</p><p>Important operational detail: the router-as-DHCP-server does NOT lease its own interface IPs. The router keeps a local /32 for each interface and will refuse to hand out an address that overlaps with a configured static IP. Conflict detection via ICMP ping before handing out a lease helps catch duplicates (<code>ip dhcp ping packets 2</code> sends 2 pings, 500ms timeout default).</p><p>Combine with relay on other subnets: a single router can be the DHCP server for its own LAN and also a relay for DHCP traffic heading to another server elsewhere — different interfaces, different roles.</p>",
+      "visual": { "type": "hierarchy", "params": { "root": "Branch Router (DHCP Server)", "children": [{ "name": "Pool VLAN10", "children": [{ "name": "network 10.10.10.0/24" }, { "name": "default-router 10.10.10.1" }] }, { "name": "Pool VLAN20", "children": [{ "name": "network 10.10.20.0/24" }] }, { "name": "Pool GUEST", "children": [{ "name": "Short lease, different DNS" }] }] } },
+      "hack": {
+        "memory": "Cisco router = full DHCP server (multiple pools, full options, conflict detection). Perfect for small branches. Not the right tool for enterprise-scale DHCP — that's what dedicated servers are for. Router can also do DHCP AND relay simultaneously on different interfaces.",
+        "practice": "In Packet Tracer: give a single router 2 LAN VLANs with SVIs. Create 2 pools on the same router, each for its own VLAN. Connect PCs to each VLAN and verify each PC gets an IP from the correct pool. Then test multi-role: keep the same router serving DHCP on VLAN 10 while relaying to an external DHCP server for VLAN 20.",
+        "effort": "medium",
+        "meta": "Jeremy's IT Lab Day 39. Wendell Odom OCG Chapter 8. Exam: 'can a Cisco router serve as a DHCP server?' = yes. 'Can it do server AND relay on the same device?' = yes, on different interfaces."
+      }
+    }
+  ],
+  "4.6.e": [
+    {
+      "id": "4.6.e.1",
+      "term": "ip dhcp excluded-address",
+      "weight": "high",
+      "info": "<p><code>ip dhcp excluded-address</code> is a <strong>global configuration</strong> command (NOT a sub-command of <code>ip dhcp pool</code>). It reserves specific IPs or ranges so the DHCP server never leases them to clients. The most common mistake is trying to enter it inside the pool — IOS will reject it.</p><p>Syntax:</p><pre>! Single IP\nip dhcp excluded-address 10.1.1.1\n!\n! Range\nip dhcp excluded-address 10.1.1.1 10.1.1.10\n!\n! Multiple non-contiguous ranges\nip dhcp excluded-address 10.1.1.1 10.1.1.10\nip dhcp excluded-address 10.1.1.200 10.1.1.210</pre><p>You can stack as many exclusion statements as you need. Each is evaluated independently when the DHCP server picks an address from the pool.</p><p>Typical things to exclude on any subnet: the router's LAN IP (default-gateway), statically assigned servers, printers, access points, VoIP gateways, management IPs, and network devices like switches with SVIs. A common convention is to exclude the bottom 10-20 addresses (e.g., .1 through .20) for static assignment and let DHCP start leasing from .21 onward.</p><p>When exclusions are configured, <code>show ip dhcp pool</code> shows the reduced pool size and the number of excluded addresses. This is a good sanity check before putting the pool into production.</p><p>Edge case: if you remove an exclusion with <code>no ip dhcp excluded-address ...</code>, those IPs become eligible for leasing immediately. Be careful — you could hand out an IP that a static device is still using.</p>",
+      "visual": { "type": "binary-breakdown", "params": { "label": "10.1.1.0/24 pool space", "segments": [{ "range": ".1 - .10", "role": "Excluded (gateway + static)" }, { "range": ".11 - .254", "role": "Leasable via DHCP" }, { "range": ".255", "role": "Broadcast (never used)" }] } },
+      "hack": {
+        "memory": "'ip dhcp excluded-address' lives in GLOBAL config, not inside the pool. Reserves IPs from leasing. Stack multiple lines for multiple ranges. Always exclude the gateway, at minimum.",
+        "practice": "In Packet Tracer: configure a pool WITHOUT exclusions, give the router 10.1.1.1 as its static gateway, and connect 5 PCs. Watch one PC end up with 10.1.1.1 → IP conflict. Fix by adding 'ip dhcp excluded-address 10.1.1.1 10.1.1.10' in global config, then 'clear ip dhcp binding *'. Re-check — PCs now lease from .11 onward.",
+        "effort": "low",
+        "meta": "Jeremy's IT Lab Day 39. Wendell Odom OCG Chapter 8. Exam focus: (1) exclusions are GLOBAL config, not pool config; (2) must exclude statically assigned IPs; (3) syntax supports single or range."
+      }
+    },
+    {
+      "id": "4.6.e.2",
+      "term": "Always exclude gateway",
+      "weight": "high",
+      "info": "<p>The router's own LAN interface IP is almost always the default-gateway for that subnet (commonly .1 or .254). If you don't exclude it, the DHCP server has no idea it's taken and can hand out a conflicting address to the next client that joins the network.</p><p>Impact of a gateway conflict: two devices with the same IP on the same subnet triggers ARP flapping — the MAC-address mapping for .1 in ARP tables bounces between the router's MAC and the PC's MAC. Half the traffic that should exit through the gateway gets black-holed. Users see intermittent internet outages. The root cause can be painful to diagnose without looking at ARP tables.</p><p>Rule: <strong>always exclude every statically assigned IP on the subnet</strong>. Gateway is the most obvious one, but don't forget servers, printers, APs, and anything else on a fixed address. A safe blanket rule is to exclude a range (like .1-.20) so you have room to add future static devices without remembering to update exclusions.</p><p>Some organizations standardize on patterns like: .1 for gateway, .2-.10 for infrastructure (switches, APs, printers), .11-.100 for DHCP, .101-.200 for servers with static IPs, .201-.254 reserved for future use. Exclusions mirror the static ranges: <code>ip dhcp excluded-address 10.1.1.1 10.1.1.10</code> and <code>ip dhcp excluded-address 10.1.1.101 10.1.1.254</code>.</p><p>If a conflict does occur despite exclusions (perhaps from an unauthorized static IP on the network), Cisco's conflict detection catches it: the DHCP server pings an address before leasing it. If it responds, the IP goes into the conflict list (visible with <code>show ip dhcp conflict</code>) and is skipped on future assignments.</p>",
+      "visual": { "type": "shield", "params": { "protected": ["Gateway 10.1.1.1", "Server 10.1.1.5", "Printer 10.1.1.10", "AP 10.1.1.8"], "threat": "DHCP could lease these to clients → IP conflict" } },
+      "hack": {
+        "memory": "ALWAYS exclude the gateway IP. Failing to exclude .1 = guaranteed DHCP conflict the moment a client grabs it. Block out a whole static range (e.g., .1-.20) so future statics don't collide with DHCP.",
+        "practice": "Sketch a 10.1.1.0/24 subnet on paper. Mark .1 = gateway, .5 = print server, .10 = access point. Write the exact exclusion command(s) that protect them: 'ip dhcp excluded-address 10.1.1.1 10.1.1.10'. Single range covers them all. This becomes habit.",
+        "effort": "low",
+        "meta": "Jeremy's IT Lab Day 39. Wendell Odom OCG Chapter 8. Exam may show output where a client has the same IP as the gateway — root cause is missing exclusion. 'ip dhcp conflict' can catch it after the fact, but prevention is the real answer."
+      }
+    },
+    {
+      "id": "4.6.e.3",
+      "term": "Exclude range syntax",
+      "weight": "med",
+      "info": "<p>Exclude syntax has two forms: a single address or a contiguous range. Both work in the same global config command.</p><p>Single address: <code>ip dhcp excluded-address 10.1.1.1</code> — protects exactly one IP. Useful when you have one static device and don't want to block a whole range.</p><p>Range: <code>ip dhcp excluded-address 10.1.1.1 10.1.1.10</code> — protects every IP from start to end, inclusive. The start must be numerically ≤ the end; IOS rejects reversed ranges.</p><p>For multiple non-contiguous ranges, stack separate statements:</p><pre>ip dhcp excluded-address 10.1.1.1 10.1.1.10\nip dhcp excluded-address 10.1.1.100 10.1.1.110\nip dhcp excluded-address 10.1.1.240</pre><p>IOS handles overlapping ranges gracefully — the union of all exclusions is what's reserved. You can also use the range form for IPv6 prefix exclusions with <code>ipv6 dhcp excluded-address</code>, but IPv6 has its own SLAAC-heavy addressing model and exclusion is less common.</p><p>Check exclusions with <code>show running-config | include excluded</code> (lists every statement) or <code>show ip dhcp pool</code> (shows the pool's effective size after exclusions). If numbers look wrong (too many excluded, not enough leasable), compare the output against what you meant to configure.</p><p>Removing exclusions: <code>no ip dhcp excluded-address 10.1.1.1 10.1.1.10</code>. You must specify the exact same range you originally entered — you can't remove a subset of a range.</p>",
+      "visual": { "type": "comparison", "params": { "left": { "label": "Single IP", "items": ["ip dhcp excluded-address 10.1.1.1", "Blocks exactly one address"] }, "right": { "label": "Range", "items": ["ip dhcp excluded-address 10.1.1.1 10.1.1.10", "Blocks .1 through .10 inclusive"] } } },
+      "hack": {
+        "memory": "Exclude syntax: 'ip dhcp excluded-address <start> [end]'. One address or a range. Multiple statements stack. Can't remove half a range — remove the full range you originally typed.",
+        "practice": "Configure 3 exclusions on a single pool: one single IP, one range, one non-contiguous second range. Verify with 'show running-config | include excluded' and 'show ip dhcp pool'. Remove one and watch the pool size grow. Every combination builds muscle memory.",
+        "effort": "low",
+        "meta": "Jeremy's IT Lab Day 39. Wendell Odom OCG Chapter 8. Exam: know the syntax forms (single + range), know it's global not pool config, and know that 'no' requires the exact same argument."
+      }
+    }
+  ],
+  "4.6.f": [
+    {
+      "id": "4.6.f.1",
+      "term": "show ip dhcp binding",
+      "weight": "high",
+      "info": "<p><code>show ip dhcp binding</code> is the DHCP server's lease table — the authoritative list of who currently has which IP, matched by client hardware address (MAC). Output looks like:</p><pre>IP address      Client-ID/             Lease expiration        Type\n                Hardware address/\n                User name\n10.1.1.11       0100.1234.5678.90      Mar 15 2026 10:22       Automatic\n10.1.1.12       0100.aabb.ccdd.eeff    Mar 15 2026 10:30       Automatic</pre><p>The <strong>Client-ID</strong> column contains the client's hardware address prefixed by a hardware type byte (01 = Ethernet). You match the MAC by stripping the leading '01'. Example: <code>0100.1234.5678.90</code> → MAC <code>0012.3456.7890</code>. The type column shows <strong>Automatic</strong> for DHCP-assigned leases, <strong>Manual</strong> for static reservations, and <strong>Relay</strong> for leases served through a DHCP relay.</p><p>Exam scenarios: you get this output and have to answer 'which IP did MAC X get?' or 'when does MAC Y's lease expire?'. It's pure table lookup — practice reading the columns until it's automatic. Remember to account for the 01 prefix in the Client-ID.</p><p>Related commands: <code>show ip dhcp binding [ip]</code> filters to a single binding. <code>clear ip dhcp binding [ip]</code> or <code>clear ip dhcp binding *</code> forcibly releases a lease (client will renew and possibly get a new IP). Useful for testing and for forcing renewal after an exclusion change.</p><p>Lease counts too high? Lease time too long for your environment? Check current bindings before lowering the lease — clients with existing long leases won't renew until their half-life, so changes take effect gradually.</p>",
+      "visual": { "type": "encapsulation", "params": { "label": "Binding row fields", "layers": ["IP address → leased address", "Client-ID → hw-type (01=Ether) + MAC", "Lease expiration → absolute time", "Type → Automatic / Manual / Relay"] } },
+      "hack": {
+        "memory": "'show ip dhcp binding' = the lease table. Client-ID has a hardware-type prefix '01' before the MAC — strip it to match the client's MAC. Type: Automatic = DHCP, Manual = reservation, Relay = came through a relay agent.",
+        "practice": "Run 'show ip dhcp binding' in Packet Tracer. Pick any row and check the PC's MAC with 'ipconfig /all' — drop the '01.' and you'll see the MACs match. Do this 5x until the Client-ID format is automatic.",
+        "effort": "low",
+        "meta": "Jeremy's IT Lab Day 39. Wendell Odom OCG Chapter 8. Favorite exam prop: a binding table screenshot and 'which IP has MAC 0011.2233.4455?' — answer requires stripping the 01 prefix from Client-ID."
+      }
+    },
+    {
+      "id": "4.6.f.2",
+      "term": "show ip dhcp pool",
+      "weight": "med",
+      "info": "<p><code>show ip dhcp pool</code> shows pool-level statistics — how big the pool is, how many addresses are currently leased, and how many were excluded. Output looks like:</p><pre>Pool LAN :\n Utilization mark (high/low)    : 100 / 0\n Subnet size (first/next)       : 0 / 0\n Total addresses                : 254\n Leased addresses               : 12\n Excluded addresses             : 10\n Pending event                  : none\n 1 subnet is currently in the pool :\n Current index    IP address range               Leased/Excluded/Total\n 10.1.1.11        10.1.1.1    - 10.1.1.254        12     / 10    / 254</pre><p>Key numbers: <strong>Total</strong> = all addresses in the network minus the broadcast (a /24 gives 254 usable). <strong>Leased</strong> = active bindings. <strong>Excluded</strong> = addresses protected by <code>ip dhcp excluded-address</code>. The effective pool size for DHCP is Total - Excluded.</p><p>Utilization mark triggers alerts (syslog messages) when lease usage crosses the high-mark threshold. Defaults are 100/0 (never alert). Shops with capacity-management practices set marks like 85/70 to get warned before the pool runs out.</p><p>Troubleshooting use: if clients stop getting IPs and 'Leased = Total', your pool is exhausted. Either expand the subnet, reduce lease time, or release stale bindings with <code>clear ip dhcp binding *</code>.</p><p>Multiple pools on one router? Run <code>show ip dhcp pool [name]</code> to filter, or just <code>show ip dhcp pool</code> to list every pool the router owns.</p>",
+      "visual": { "type": "comparison", "params": { "left": { "label": "Healthy pool", "items": ["Total 254", "Leased 60", "Excluded 10", "Free: 184"] }, "right": { "label": "Exhausted pool", "items": ["Total 254", "Leased 244", "Excluded 10", "Free: 0 → clients fail"] } } },
+      "hack": {
+        "memory": "'show ip dhcp pool' = pool capacity report. Watch Total vs Leased vs Excluded. Pool exhausted = clients can't get IPs. Fix = bigger subnet, shorter leases, or clear stale bindings.",
+        "practice": "In Packet Tracer: shrink the pool by excluding a big range, then keep connecting clients until DHCP fails. Observe 'show ip dhcp pool' as Leased approaches Total minus Excluded. Now run 'clear ip dhcp binding *' and watch Leased reset to 0.",
+        "effort": "low",
+        "meta": "Wendell Odom OCG Chapter 8. Exam less likely to show this exact output than 'show ip dhcp binding', but know what each column means for troubleshooting scenarios."
+      }
+    },
+    {
+      "id": "4.6.f.3",
+      "term": "show ip dhcp conflict",
+      "weight": "low",
+      "info": "<p><code>show ip dhcp conflict</code> lists IPs that the DHCP server has detected as conflicted — meaning the server pinged the IP before handing it out and got a response, or a client reported a DHCPDECLINE because it couldn't use the address it was offered.</p><p>Cisco DHCP servers ping-probe addresses before leasing them (<code>ip dhcp ping packets 2</code>, 2 packets by default with a 500ms timeout). If the probe gets a response, the server logs the IP as conflicted and refuses to hand it out. Normal pool operation skips over conflicted IPs automatically.</p><p>Sample output:</p><pre>IP address       Detection method    Detection time\n10.1.1.15        Ping                Mar 15 2026 10:00\n10.1.1.18        Gratuitous ARP      Mar 15 2026 10:05</pre><p><strong>Detection methods:</strong> <strong>Ping</strong> — server's probe got a response before lease. <strong>Gratuitous ARP</strong> — a client sent a gratuitous ARP showing it already owns that IP. <strong>Relay-Agent</strong> (rare) — the relay reported a conflict.</p><p>Clearing conflicts: <code>clear ip dhcp conflict *</code> or <code>clear ip dhcp conflict [ip]</code> removes entries from the conflict list. The server can then re-attempt handing that address out on the next lease request. Only clear conflicts after you've fixed the underlying duplicate-IP situation — otherwise the conflict just reappears.</p><p>Use case: conflicts usually indicate someone assigned a static IP inside the DHCP range without an exclusion. Audit: who owns the conflicted IP statically? Add it to <code>ip dhcp excluded-address</code>, clear the conflict, and move on.</p>",
+      "visual": { "type": "state-machine", "params": { "states": ["Server about to lease 10.1.1.15", "Ping probe → reply received", "Mark IP as conflict", "Skip to next free IP"], "active": 2, "transitions": true } },
+      "hack": {
+        "memory": "'show ip dhcp conflict' = IPs the server found already in use (via ping or gratuitous ARP). Server auto-skips them. Real fix: exclude the IP and hunt down the rogue static device. Clear conflicts only after fixing the root cause.",
+        "practice": "In Packet Tracer: statically assign a PC to 10.1.1.15 (inside the DHCP pool, not excluded). Request a new DHCP lease from another PC. Run 'show ip dhcp conflict' — 10.1.1.15 shows up. Add exclusion, clear conflict, remove static, and try again.",
+        "effort": "low",
+        "meta": "Less common on the exam but worth knowing. Wendell Odom OCG Chapter 8. Detection methods: Ping vs Gratuitous ARP — both are tested occasionally."
+      }
+    }
+  ],
+  "4.7.a": [
+    {
+      "id": "4.7.a.1",
+      "term": "QoS processing order",
+      "weight": "high",
+      "info": "<p>QoS isn't a single feature — it's a pipeline. Packets pass through stages in a specific order, and each stage builds on the previous one. The canonical order is: <strong>Classification → Marking → Queuing → Policing/Shaping → Congestion avoidance</strong>. Memorize this order cold — the exam tests it directly.</p><p><strong>Classification</strong> identifies traffic types (voice, video, transactional, bulk). <strong>Marking</strong> tags packets with a DSCP or CoS value so downstream devices know the priority without re-classifying. <strong>Queuing</strong> puts traffic into different output queues based on marking (voice in LLQ, data in CBWFQ, etc.). <strong>Policing/Shaping</strong> enforces rate limits — policing drops excess, shaping buffers it. <strong>Congestion avoidance</strong> (WRED) prevents queue tail-drop by proactively dropping low-priority packets before the queue fills.</p><p>Classification and marking should happen as close to the traffic source as possible — at the access switch or IP phone. This is the <strong>trust boundary</strong>. Beyond that boundary, every device just reads the mark and acts. Marking once at the edge is vastly more efficient than classifying at every hop.</p><p>A packet might skip stages. Best-effort traffic isn't classified at all — it gets default treatment throughout. Low-traffic networks never hit congestion so they never engage WRED. But high-value traffic (voice, video) goes through all five stages every hop.</p><p>Why order matters: you can't mark what you haven't classified. You can't queue what you haven't marked. You can't police what you haven't identified. Reverse any step and the pipeline breaks. CCNA test question format: 'Match each QoS action to its pipeline step' or 'Which step comes immediately after classification?' (marking).</p>",
+      "visual": { "type": "state-machine", "params": { "states": ["Classification (identify)", "Marking (tag DSCP/CoS)", "Queuing (sort into queues)", "Policing/Shaping (rate enforce)", "Congestion avoidance (WRED)"], "active": 0, "transitions": true } },
+      "hack": {
+        "memory": "QoS order: CMQPC — Classify, Mark, Queue, Police/Shape, Congestion-avoid. Or mnemonic: 'Cops Make Quiet People Cry'. Classify first because you can't prioritize what you haven't identified.",
+        "practice": "Draw the 5-stage pipeline as a flowchart. Put example traffic through it: voice call from a SIP phone → classified as voice (port 5060 / RTP) → marked EF/46 → queued in LLQ → policed at 1 Mbps per call → never hits WRED (it's in the priority queue). This mental walkthrough is the easiest way to internalize the order.",
+        "effort": "low",
+        "meta": "Jeremy's IT Lab Day 46. Wendell Odom OCG Chapter 12. Guaranteed exam question about pipeline order. You will not configure QoS on CCNA — pure concepts."
+      }
+    },
+    {
+      "id": "4.7.a.2",
+      "term": "Classification",
+      "weight": "high",
+      "info": "<p><strong>Classification</strong> is the step where the router or switch decides 'what kind of traffic is this?'. Every subsequent QoS action (marking, queuing, policing) depends on classification. Without it, all traffic gets the same best-effort treatment.</p><p>Classification methods, from simplest to most intelligent: (1) <strong>Incoming interface</strong> — all traffic from Gi0/0 is classified as X. Crude but useful at trust boundaries. (2) <strong>Port number</strong> — UDP 5060 = SIP signaling, UDP 16384-32767 = RTP voice. Fast but fooled by non-standard ports. (3) <strong>ACLs</strong> — match by source/destination IP and port. More granular. (4) <strong>DSCP/CoS trust</strong> — honor the existing marking from a trusted upstream device (IP phone, another router inside the trust boundary). (5) <strong>NBAR (Network-Based Application Recognition)</strong> — deep packet inspection that identifies applications by signature even when they use dynamic ports (Skype, BitTorrent, WebEx, etc.).</p><p>NBAR is the heaviest tool. It's Cisco's DPI engine, updated via Protocol Pack downloads. It can distinguish HTTP video streaming from HTTP file downloads, identify specific SaaS apps, and catch evasive protocols. Costs CPU and memory — more expensive than ACL-based classification. NBAR2 adds even deeper application visibility.</p><p>Classification happens once at the trust boundary; after that, devices rely on the marking rather than re-classifying. This is both a performance optimization (re-classifying is expensive) and a consistency guarantee (one classification policy, enforced everywhere).</p><p>CCNA scope: know the classification methods and that NBAR is DPI. You won't configure class-maps. Expect questions like 'which classification method uses deep packet inspection?' (NBAR) or 'which is the most granular way to classify traffic?' (NBAR; next-best is ACLs).</p>",
+      "visual": { "type": "hierarchy", "params": { "root": "Classification methods", "children": [{ "name": "Incoming interface (crude)" }, { "name": "Port number (fast)" }, { "name": "ACL (granular)" }, { "name": "Trust existing DSCP/CoS" }, { "name": "NBAR (deep packet inspection)" }] } },
+      "hack": {
+        "memory": "Classification = 'what kind of traffic is this?'. Methods range from dumb (incoming interface) to smart (NBAR deep packet inspection). Classify once at the trust boundary; everywhere else just trusts the mark.",
+        "practice": "Flashcard: list the 5 classification methods and one pro/con each. NBAR = most accurate but most CPU. Port = fast but fooled by non-standard ports. ACL = precise but manual maintenance. Trust = cheap if you trust the upstream.",
+        "effort": "low",
+        "meta": "Jeremy's IT Lab Day 46. Wendell Odom OCG Chapter 12. Exam favorite: 'which classification method uses DPI?' = NBAR. Also: 'why classify at the trust boundary?' = so downstream devices can rely on the mark."
+      }
+    },
+    {
+      "id": "4.7.a.3",
+      "term": "Marking",
+      "weight": "high",
+      "info": "<p><strong>Marking</strong> writes a priority value into the frame/packet header so every downstream device knows how to treat it without re-classifying. Classification identifies; marking records the decision on the packet itself.</p><p>Two primary marking fields: <strong>CoS (Class of Service)</strong> — 3 bits in the 802.1Q VLAN tag, values 0-7, lives at Layer 2, lost when the frame is routed or untagged. <strong>DSCP (Differentiated Services Code Point)</strong> — 6 bits in the IP header's ToS byte, values 0-63, lives at Layer 3, survives across router hops and into the WAN.</p><p>Marking happens <strong>at the trust boundary</strong> (typically the access switch). An IP phone sends its voice RTP with CoS=5 or DSCP=EF already set; the switch trusts the phone and preserves the mark. A PC behind the phone sends data with its own DSCP; the switch does NOT trust the PC and re-marks that traffic to best-effort or re-classifies and re-marks based on its own policy.</p><p>Inside a routed network, DSCP is king because it survives every hop. CoS is useful only within a single VLAN or across trunk links; it vanishes the moment the frame is L3-forwarded. For end-to-end QoS across a WAN, you must use DSCP or re-mark at each boundary.</p><p>One packet carries both markings simultaneously: DSCP in the IP header AND CoS in the 802.1Q tag (on trunk links). Switches and routers can copy DSCP into CoS (or vice versa) at boundary points so both marks stay in sync. This mapping is called <strong>CoS-to-DSCP translation</strong>.</p>",
+      "visual": { "type": "binary-breakdown", "params": { "label": "Where markings live in frame/packet", "segments": [{ "range": "L2 802.1Q tag (3 bits)", "role": "CoS 0-7" }, { "range": "L3 IP ToS byte (6 bits)", "role": "DSCP 0-63" }, { "range": "L3 IP ToS byte (3 high bits)", "role": "IP Precedence (legacy)" }] } },
+      "hack": {
+        "memory": "Marking = writing the priority on the packet itself. CoS = L2 sticker (lost at routing). DSCP = L3 stamp (survives routing). Mark once at the trust boundary; every hop reads and acts.",
+        "practice": "Sketch an IP phone + PC + access switch + router + WAN scenario. On the phone-switch link, both CoS and DSCP exist. On the switch-router-WAN path, only DSCP survives. This diagram shows why DSCP is the real end-to-end marker.",
+        "effort": "low",
+        "meta": "Jeremy's IT Lab Day 46. Wendell Odom OCG Chapter 12. Exam: 'which marking survives across routers?' = DSCP. 'How many bits is CoS?' = 3. 'How many is DSCP?' = 6."
+      }
+    },
+    {
+      "id": "4.7.a.4",
+      "term": "Per-Hop Behavior (PHB)",
+      "weight": "med",
+      "info": "<p><strong>Per-Hop Behavior (PHB)</strong> is the DiffServ architecture's core concept: each router along the path independently applies QoS treatment based on the packet's DSCP marking. There's no end-to-end signaling protocol negotiating priorities — each hop just reads the mark and does its local thing.</p><p>This is the opposite of IntServ (RSVP), which tries to reserve bandwidth end-to-end across every device. IntServ doesn't scale. DiffServ with PHB is how the real internet and enterprise networks do QoS.</p><p>Standard PHBs defined by RFCs: <strong>EF (Expedited Forwarding, DSCP 46)</strong> — low latency, low loss, low jitter; used for voice. <strong>AF (Assured Forwarding, DSCP 10-43)</strong> — 4 classes × 3 drop precedences, used for video and data with different priority/drop combinations. <strong>CS (Class Selector, DSCP 0-56 in 8 increments)</strong> — backward-compatible with IP Precedence. <strong>Default / Best Effort (DSCP 0)</strong> — no QoS.</p><p>For PHBs to work end-to-end, every router must implement the same DSCP-to-treatment mapping. If R1 treats DSCP 46 as priority but R2 treats DSCP 46 as best-effort, voice quality collapses at R2. This requires a consistent QoS policy across the domain — a typical source of service-provider/enterprise QoS debates.</p><p>CCNA focus: know that PHB means 'each router independently applies QoS based on DSCP'. Know the standard PHBs (EF, AF, CS, Default). Know that end-to-end consistency depends on every device honoring the same marking.</p>",
+      "visual": { "type": "hierarchy", "params": { "root": "DiffServ Per-Hop Behaviors (PHB)", "children": [{ "name": "EF (46) — voice, low latency" }, { "name": "AF (10-43) — 4 classes × 3 drop probs" }, { "name": "CS (0-56) — IP Precedence compat" }, { "name": "Default (0) — best effort" }] } },
+      "hack": {
+        "memory": "PHB = each router decides QoS treatment based on DSCP, independently. No end-to-end negotiation. If any hop ignores DSCP or uses a different mapping, end-to-end QoS breaks. Standard PHBs: EF, AF, CS, Default.",
+        "practice": "Think through a voice call traversing 5 routers. Every router reads DSCP=46 and puts the packet in its priority queue. If router 3 is misconfigured and treats DSCP=46 as best-effort, the call quality degrades there. This is why consistent PHB policy across the network matters.",
+        "effort": "low",
+        "meta": "Jeremy's IT Lab Day 46. Wendell Odom OCG Chapter 12. Exam: 'what is a Per-Hop Behavior?' = each router independently applies QoS based on marking. Know EF/AF/CS/Default as the main PHBs."
+      }
+    },
+    {
+      "id": "4.7.a.5",
+      "term": "CCNA QoS scope = concepts only",
+      "weight": "high",
+      "info": "<p>Unlike SSH or DHCP, QoS on the CCNA 200-301 exam is <strong>purely conceptual</strong>. You will not be asked to configure a class-map, a policy-map, or a service-policy. No MQC CLI. No shaping or policing configuration. No trust-boundary CLI. The exam tests understanding of WHAT each QoS piece does, not HOW to configure it.</p><p>Your study list: (1) The processing order (Classify → Mark → Queue → Police/Shape → Avoid congestion). (2) Classification methods (ACL, port, NBAR, trust). (3) Marking fields (CoS, DSCP, IP Precedence). (4) Key DSCP values (EF=46 voice, AF classes, CS, Default=0). (5) Queuing mechanisms (LLQ, CBWFQ, WFQ, FIFO). (6) Congestion avoidance (WRED, tail drop, TCP global sync). (7) Policing vs Shaping (drops vs buffers). (8) Trust boundary placement.</p><p>Expected exam question types: 'Which queuing mechanism provides strict priority?' (LLQ). 'What does WRED prevent?' (Tail drop, TCP global synchronization). 'Which marking survives routing?' (DSCP). 'What does shaping do with excess traffic?' (Buffer it). 'Where should the trust boundary be?' (As close to the source as possible, typically the access switch).</p><p>Because it's concept-only, your study strategy is flashcards and diagrams, not lab hours. A single 2-hour focused session covering every QoS concept, with comparison tables (policing vs shaping, CoS vs DSCP, LLQ vs CBWFQ), typically nails the 3-5 QoS exam questions.</p><p>CCNP Enterprise ENCOR goes deeper and includes hands-on configuration. For CCNA, stop at concepts.</p>",
+      "visual": { "type": "comparison", "params": { "left": { "label": "CCNA QoS = know", "items": ["Pipeline order", "Marking fields (CoS/DSCP)", "DSCP values (EF=46)", "LLQ vs CBWFQ", "Policing vs shaping", "Trust boundary concept"] }, "right": { "label": "CCNA QoS ≠ configure", "items": ["No class-maps", "No policy-maps", "No service-policy commands", "No shaping/policing CLI", "Leave for CCNP"] } } },
+      "hack": {
+        "memory": "CCNA QoS = concepts only. No CLI tested. Flashcard the pipeline, marking fields, DSCP values, queuing mechanisms, WRED, policing-vs-shaping, and trust boundary. Skip the config chapters.",
+        "practice": "Build 5 comparison flashcards: (1) CoS vs DSCP, (2) LLQ vs CBWFQ, (3) Policing vs Shaping, (4) Tail drop vs WRED, (5) Trust boundary location rule. These 5 cards cover ~90% of CCNA QoS questions.",
+        "effort": "low",
+        "meta": "Jeremy's IT Lab Day 46 confirms concept-only scope for CCNA. Wendell Odom OCG Chapter 12. Spend time on concepts, not labs."
+      }
+    }
+  ],
+  "4.7.b": [
+    {
+      "id": "4.7.b.1",
+      "term": "CoS (Class of Service)",
+      "weight": "high",
+      "info": "<p><strong>CoS (Class of Service)</strong> is a <strong>Layer 2</strong> QoS marking that lives inside the <strong>802.1Q VLAN tag</strong>. Specifically, it occupies the 3-bit <strong>PCP (Priority Code Point)</strong> field, giving 8 possible values (0-7). The IEEE 802.1p standard defines the meanings (0=best effort, 5=voice, 6=internetwork control, 7=network control).</p><p>CoS only exists where an 802.1Q tag exists — that means trunk links between switches and certain access ports (like ports connected to IP phones that receive the voice VLAN via 802.1Q). On untagged access ports, there's no CoS field to carry. When a switch removes the 802.1Q tag (e.g., forwarding to an access port), the CoS marking is lost.</p><p>When a frame crosses a <strong>Layer 3 boundary (a router)</strong>, the router strips the original L2 frame entirely and rebuilds a new one for the outgoing interface. The CoS value from the old frame is gone. If downstream routers need priority info, they must rely on Layer 3 markings (DSCP) or the switch must pre-copy CoS into DSCP before routing.</p><p>Standard CoS-to-traffic-type mappings (IEEE 802.1p recommendations): 0 = best effort, 1 = background, 2 = excellent effort, 3 = critical apps, 4 = video, 5 = voice, 6 = internetwork control, 7 = network control. These are recommendations, not hard rules — your network might use different mappings, but using the standards avoids interop pain.</p><p>Use case: between switches in the same switched domain, CoS is fast and cheap to process. Voice VLANs on IP phones typically trust the phone's CoS=5 marking for voice traffic.</p>",
+      "visual": { "type": "binary-breakdown", "params": { "label": "802.1Q tag (4 bytes total)", "segments": [{ "range": "TPID (16 bits)", "role": "0x8100" }, { "range": "PCP (3 bits)", "role": "CoS 0-7" }, { "range": "DEI (1 bit)", "role": "Drop Eligible" }, { "range": "VID (12 bits)", "role": "VLAN ID 0-4095" }] } },
+      "hack": {
+        "memory": "CoS = 3 bits in 802.1Q tag = 8 values (0-7). Layer 2 only. Dies when the frame is routed or untagged. Standard voice = CoS 5.",
+        "practice": "Wireshark an 802.1Q tagged frame. Expand the 802.1Q header — the PCP field is the CoS value. Change a switch port from access to trunk and watch the CoS field appear on captured traffic.",
+        "effort": "low",
+        "meta": "Jeremy's IT Lab Day 46. Wendell Odom OCG Chapter 12. Exam: 'how many bits is CoS?' = 3. 'Where does CoS live?' = 802.1Q tag. 'Does CoS survive routing?' = no."
+      }
+    },
+    {
+      "id": "4.7.b.2",
+      "term": "DSCP",
+      "weight": "high",
+      "info": "<p><strong>DSCP (Differentiated Services Code Point)</strong> is the modern Layer 3 QoS marking. It lives in the 6 most-significant bits of the <strong>IP header's ToS byte</strong> (the remaining 2 bits are used for ECN — Explicit Congestion Notification). 6 bits = <strong>64 possible values (0-63)</strong>.</p><p>Key advantage over CoS: DSCP is in the IP header, which doesn't get rewritten at Layer 3 hops. A packet marked DSCP=46 at an access switch will still be DSCP=46 when it reaches a server on the other side of a WAN, as long as no device along the way strips or rewrites the marking. This makes DSCP the standard for <strong>end-to-end QoS</strong>.</p><p>DSCP values organize into well-known categories: <strong>EF (46)</strong> for voice, <strong>AF classes (10-43)</strong> for video/data, <strong>CS values (0, 8, 16, 24, 32, 40, 48, 56)</strong> for backward compat with IP Precedence, and <strong>Default (0)</strong> for best effort. These are defined by RFCs and form the DiffServ PHB vocabulary.</p><p>DSCP works in both IPv4 and IPv6. In IPv4 it's the top 6 bits of the ToS byte. In IPv6 it's the top 6 bits of the Traffic Class field. Same values, same meanings.</p><p>Operationally: mark DSCP at the trust boundary (the access switch or IP phone), trust DSCP at every downstream router, and let the WAN QoS policies act on it. If any device along the way strips DSCP (some WAN providers do this on low-cost services), you lose end-to-end QoS. Ask your provider about DSCP preservation before depending on it across their network.</p>",
+      "visual": { "type": "encapsulation", "params": { "label": "IPv4 ToS byte", "layers": ["DSCP (6 bits, values 0-63)", "ECN (2 bits, congestion signaling)"] } },
+      "hack": {
+        "memory": "DSCP = 6 bits in IP header = 64 values (0-63). Layer 3. Survives routing end-to-end. EF=46 for voice is the one value you must memorize cold.",
+        "practice": "Wireshark a packet from a VoIP call. Expand the IP header. Find the DSCP field — it should be 46 (EF) for RTP voice. This single capture cements DSCP location and meaning.",
+        "effort": "low",
+        "meta": "Jeremy's IT Lab Day 46. Wendell Odom OCG Chapter 12. Exam: 'how many bits is DSCP?' = 6. 'Does DSCP survive routing?' = yes. 'What's EF?' = DSCP 46, voice."
+      }
+    },
+    {
+      "id": "4.7.b.3",
+      "term": "CoS vs DSCP",
+      "weight": "high",
+      "info": "<p>CoS vs DSCP is the classic QoS comparison question. Here's the full breakdown:</p><p><strong>Layer:</strong> CoS = L2. DSCP = L3. <strong>Field:</strong> CoS lives in the 802.1Q VLAN tag (PCP bits). DSCP lives in the IP header ToS byte. <strong>Bits:</strong> CoS = 3 bits. DSCP = 6 bits. <strong>Values:</strong> CoS = 0-7 (8 values). DSCP = 0-63 (64 values). <strong>Persistence:</strong> CoS is lost at L3 boundaries (when a router re-encapsulates) or when the 802.1Q tag is stripped (untagged access port). DSCP survives every router hop.</p><p><strong>When to use each:</strong> CoS is fine within a single switched/VLAN environment. DSCP is required for end-to-end QoS across a routed network or WAN. Most modern designs mark DSCP at the source and use CoS only as a transient L2 signaling between switches.</p><p><strong>CoS-to-DSCP mapping:</strong> Switches often map CoS values from 802.1Q frames to corresponding DSCP values in the IP header so both L2 and L3 devices see the same priority. Default Cisco mapping: CoS 5 → DSCP 46 (EF, voice), CoS 3 → DSCP 24 (CS3, signaling), CoS 0 → DSCP 0 (default). This mapping can be customized.</p><p><strong>Common exam question:</strong> 'Which marking survives when a frame is routed?' — answer is always DSCP. 'Which marking is used only within Layer 2?' — CoS.</p>",
+      "visual": { "type": "comparison", "params": { "left": { "label": "CoS", "items": ["Layer 2", "3 bits in 802.1Q tag", "0-7 (8 values)", "Lost at router / untag", "Switch-to-switch only"] }, "right": { "label": "DSCP", "items": ["Layer 3", "6 bits in IP header ToS", "0-63 (64 values)", "Survives routing", "End-to-end"] } } },
+      "hack": {
+        "memory": "CoS = L2, 3 bits, 0-7, 802.1Q tag, lost at routing. DSCP = L3, 6 bits, 0-63, IP header, survives routing. If the question has 'end-to-end' or 'across routers', the answer is always DSCP.",
+        "practice": "Build one comparison flashcard with the 5 rows above. Recite both sides in under 10 seconds. This is the single most important QoS flashcard.",
+        "effort": "low",
+        "meta": "Guaranteed exam question. Jeremy's IT Lab Day 46. Wendell Odom OCG Chapter 12. Memorize the table — it answers every CoS vs DSCP question variant."
+      }
+    },
+    {
+      "id": "4.7.b.4",
+      "term": "IP Precedence (legacy)",
+      "weight": "med",
+      "info": "<p><strong>IP Precedence (IPP)</strong> is the legacy Layer 3 QoS marking, originally defined in RFC 791. It uses the top 3 bits of the ToS byte in the IPv4 header — giving 8 values (0-7). Exactly the same real estate that DSCP's top 3 bits now occupy.</p><p>Historical context: IP Precedence was the original QoS marking. It worked, but 8 values weren't granular enough for modern applications. The DiffServ working group expanded the field to 6 bits (64 values) and redefined it as DSCP. To maintain backward compatibility, DSCP defined the <strong>Class Selector (CS)</strong> values — DSCP values where the bottom 3 bits are 0, so the top 3 bits match an equivalent IPP value.</p><p>IPP-to-CS mapping:</p><pre>IP Prec 0 (routine)           → CS0 → DSCP 0\nIP Prec 1 (priority)          → CS1 → DSCP 8\nIP Prec 2 (immediate)         → CS2 → DSCP 16\nIP Prec 3 (flash)             → CS3 → DSCP 24\nIP Prec 4 (flash override)    → CS4 → DSCP 32\nIP Prec 5 (critical)          → CS5 → DSCP 40\nIP Prec 6 (internetwork ctrl) → CS6 → DSCP 48\nIP Prec 7 (network control)   → CS7 → DSCP 56</pre><p>You'll occasionally see IPP in older router/switch configurations, ISP contracts, or legacy applications. Modern networks are almost entirely DSCP. For CCNA, just know that IPP is the legacy 3-bit L3 marking and that CS values are the DSCP values that map 1-to-1 with IPP.</p><p>Practical note: if you have old gear that only understands IPP and new gear that speaks DSCP, configure CS values on the DSCP side — both worlds see the same priority bits.</p>",
+      "visual": { "type": "layer-stack", "params": { "layers": ["ToS byte (8 bits total)", "Bits 0-2: IPP (legacy, 0-7)", "Bits 0-5: DSCP (modern, 0-63)", "CS values use only bits 0-2, match IPP"], "highlight": 3 } },
+      "hack": {
+        "memory": "IP Precedence = legacy L3 marking. 3 bits, 0-7. Same position as DSCP's top 3 bits. CS0-CS7 are the DSCP values that mirror IPP. Mostly academic knowledge — modern networks use DSCP directly.",
+        "practice": "Quick flashcard: map IPP 5 → CS5 → DSCP 40. Know this mapping exists so you can parse old docs or answer backward-compat exam questions.",
+        "effort": "low",
+        "meta": "Jeremy's IT Lab Day 46. Wendell Odom OCG Chapter 12. Exam: 'what replaces IP Precedence?' = DSCP. 'Why does DSCP have CS values?' = for backward compatibility with IPP."
+      }
+    }
+  ],
+  "4.7.c": [
+    {
+      "id": "4.7.c.1",
+      "term": "EF (Expedited Forwarding)",
+      "weight": "high",
+      "info": "<p><strong>EF (Expedited Forwarding, DSCP 46)</strong> is the single most important DSCP value to memorize. It's reserved for real-time traffic that absolutely cannot tolerate delay, jitter, or loss — <strong>voice (VoIP RTP streams) and sometimes critical video conferencing</strong>.</p><p>Defined in RFC 3246, EF represents the highest-priority forwarding behavior a network offers. Devices implementing EF guarantee <strong>low latency, low jitter, and low loss</strong> for packets marked DSCP 46. In practice, EF-marked traffic goes into a <strong>strict priority queue (LLQ)</strong> that's always serviced first, ahead of everything else.</p><p>Voice requirements that EF serves: <strong>one-way delay ≤ 150 ms</strong>, <strong>jitter ≤ 30 ms</strong>, <strong>packet loss ≤ 1%</strong>. These come from the G.114 ITU recommendation for voice quality. Missing any of them degrades call quality quickly.</p><p>Why DSCP 46? The binary is 101110. Reserved in the DiffServ RFC specifically for EF. Most Cisco IOS defaults (class-map match any EF, priority queue commands) key off DSCP 46 automatically.</p><p>Design implication: EF traffic must be <strong>policed</strong>. If you dump unlimited EF traffic into the priority queue, it can starve every other queue — data transfers stop, video lags, everything grinds. Typical design: allow EF up to a percentage of link bandwidth (often 33%) and police anything beyond that. A single voice call is ~100 Kbps with G.711 codec; a link can support many calls before hitting the EF cap.</p>",
+      "visual": { "type": "shield", "params": { "protected": ["EF (DSCP 46) — Voice", "< 150 ms one-way delay", "< 30 ms jitter", "< 1% packet loss"], "threat": "Queue congestion, bufferbloat, competing traffic" } },
+      "hack": {
+        "memory": "EF = 46 = Voice. 'Express Freeway' — always in the strict-priority lane. Memorize DSCP 46 = EF = voice. Voice needs ≤150ms delay, ≤30ms jitter, ≤1% loss.",
+        "practice": "Capture a live voice call in Wireshark. Every RTP packet should be DSCP 46 (EF). Confirm this one time and it'll stick forever.",
+        "effort": "low",
+        "meta": "Jeremy's IT Lab Day 46. Wendell Odom OCG Chapter 12. Guaranteed exam question: 'what DSCP value is used for voice?' = 46. 'What traffic uses EF?' = voice / real-time."
+      }
+    },
+    {
+      "id": "4.7.c.2",
+      "term": "AF (Assured Forwarding)",
+      "weight": "med",
+      "info": "<p><strong>AF (Assured Forwarding)</strong> is the DiffServ PHB for traffic that needs a bandwidth guarantee but isn't as time-sensitive as voice. Defined in RFC 2597. Organized as <strong>4 classes × 3 drop precedences</strong> = 12 distinct DSCP values (AF11, AF12, AF13, AF21, AF22, AF23, AF31, AF32, AF33, AF41, AF42, AF43).</p><p><strong>Naming convention:</strong> AF<em>X</em><em>Y</em> where X = class (1-4) and Y = drop probability (1=low drop, 2=medium, 3=high). Class 4 is the highest priority; Class 1 is the lowest. Within a class, the drop probability controls who dies first during congestion — AF11 (low drop) survives; AF13 (high drop) is tossed first.</p><p><strong>AF decimal values (memorize only if you're aiming for a perfect score):</strong></p><pre>AF11 = 10    AF21 = 18    AF31 = 26    AF41 = 34\nAF12 = 12    AF22 = 20    AF32 = 28    AF42 = 36\nAF13 = 14    AF23 = 22    AF33 = 30    AF43 = 38</pre><p>Pattern: first digit indicates class (multiply by 8 for the base), second digit (1/2/3) adds 2/4/6 for drop probability. For CCNA you mainly need to know the structure, not every decimal.</p><p><strong>Typical usage:</strong> AF41 = high-priority video conferencing. AF31 = call signaling (SIP). AF21 = transactional data (Oracle, SAP). AF11 = bulk data (backups, file transfers). Each class has its own CBWFQ queue with a guaranteed bandwidth percentage.</p>",
+      "visual": { "type": "hierarchy", "params": { "root": "AF Classes (4) × Drop Precedences (3)", "children": [{ "name": "AF4 (highest) — video", "children": [{ "name": "AF41 10  AF42 12  AF43 14 (low→high drop)" }] }, { "name": "AF3 — signaling" }, { "name": "AF2 — transactional" }, { "name": "AF1 (lowest) — bulk" }] } },
+      "hack": {
+        "memory": "AF = 4 classes × 3 drop precedences = 12 values. First digit = class (priority: 4>3>2>1). Second digit = drop prob (1=survive, 3=die first). AF41 = high-pri video. AF11 = bulk data.",
+        "practice": "Sketch a 4x3 grid. Rows = classes 1-4 (priority). Columns = drop probs 1-3. Fill in the 12 AF names. Redo from memory a few times until the structure sticks. Don't memorize decimals unless you're chasing extra points.",
+        "effort": "medium",
+        "meta": "Jeremy's IT Lab Day 46. Wendell Odom OCG Chapter 12. Exam tests the structure (4 classes, 3 drops), not every decimal value. Know AF41 = highest video priority, AF43 = most likely to be dropped in class 4."
+      }
+    },
+    {
+      "id": "4.7.c.3",
+      "term": "CS (Class Selector)",
+      "weight": "med",
+      "info": "<p><strong>CS (Class Selector)</strong> DSCP values provide backward compatibility with the legacy 3-bit IP Precedence marking. Defined in RFC 2474. CS values use only the top 3 bits of the DSCP field (the bottom 3 are always 0), which exactly matches where IP Precedence used to live.</p><p><strong>The 8 CS values:</strong></p><pre>CS0 = DSCP 0   (IPP 0 = routine / best effort)\nCS1 = DSCP 8   (IPP 1 = priority)\nCS2 = DSCP 16  (IPP 2 = immediate)\nCS3 = DSCP 24  (IPP 3 = flash)\nCS4 = DSCP 32  (IPP 4 = flash override)\nCS5 = DSCP 40  (IPP 5 = critical / voice signaling)\nCS6 = DSCP 48  (IPP 6 = internetwork control — routing protocols)\nCS7 = DSCP 56  (IPP 7 = network control — STP, BPDU)</pre><p>The arithmetic: <code>CS<em>N</em> = N × 8</code>. CS3 = 3×8 = 24. CS6 = 6×8 = 48. Easy memorization once you see the pattern.</p><p><strong>Practical use today:</strong> CS6 is commonly marked on routing protocol traffic (OSPF, EIGRP, BGP hellos) to ensure those packets don't get queued behind bulk data. CS7 for spanning-tree BPDUs. CS5 sometimes for call signaling. CS0 is just best-effort (same as DSCP 0 and Default).</p><p><strong>CCNA scope:</strong> know that CS values map 1:1 with IP Precedence and use the pattern CS<em>N</em> = N × 8. You won't be asked to memorize every decimal value. Know that CS6 is typical for routing protocol traffic.</p>",
+      "visual": { "type": "layer-stack", "params": { "layers": ["CS0 = 0 (best effort)", "CS1 = 8", "CS2 = 16", "CS3 = 24 (signaling)", "CS4 = 32", "CS5 = 40", "CS6 = 48 (routing protocols)", "CS7 = 56 (network control)"], "highlight": 6 } },
+      "hack": {
+        "memory": "CS = Class Selector. 8 values, 0-7 as IPP compat. Formula: CS<em>N</em> = N × 8. CS6 = 48 (routing protocols). CS7 = 56 (network control like STP).",
+        "practice": "Fill in the CS table from memory using CS<em>N</em> = N × 8. Do it 3 times. This covers CCNA's CS-value questions.",
+        "effort": "low",
+        "meta": "Jeremy's IT Lab Day 46. Wendell Odom OCG Chapter 12. Exam might ask 'what is CS6 used for?' = internetwork control / routing protocols. Know the CS<em>N</em> × 8 formula."
+      }
+    },
+    {
+      "id": "4.7.c.4",
+      "term": "Default DSCP 0",
+      "weight": "med",
+      "info": "<p><strong>DSCP 0</strong> is the default/best-effort marking. Every IP packet starts life as DSCP 0 unless some device along the way marks it. Packets that haven't been classified, packets from untrusted devices, and packets on networks with no QoS policy all carry DSCP 0.</p><p>Best effort means exactly that: no priority, no guarantees, first-in-first-out with everyone else in the default queue. Best-effort traffic gets whatever bandwidth is left after priority queues and bandwidth-reserved queues have been served.</p><p>DSCP 0 is also <strong>CS0</strong> (Class Selector 0) and sometimes called <strong>BE (Best Effort)</strong>. All three terms refer to the same DSCP value. RFC naming overlap.</p><p>Why it matters: when a trust boundary re-marks untrusted traffic, it usually resets DSCP to 0. This demotes unauthorized high-priority claims to best-effort. A PC trying to mark its own traffic as EF gets its DSCP reset to 0 at the access switch so it can't abuse the priority queue.</p><p>In routing terms: DSCP 0 is the universal baseline. Every network device knows it. No configuration is required to forward DSCP 0 traffic. It's the unconfigured, unspecial default — which is exactly why identifying the priority traffic (voice, video, critical apps) and marking it above 0 is what QoS is really about.</p>",
+      "visual": { "type": "comparison", "params": { "left": { "label": "Default / BE (DSCP 0)", "items": ["No priority", "Default queue (often FIFO)", "Gets leftover bandwidth", "Everything untagged starts here"] }, "right": { "label": "Marked traffic (DSCP > 0)", "items": ["Priority or bandwidth guarantees", "Special queue (LLQ/CBWFQ)", "Preferred treatment", "Classified and trusted"] } } },
+      "hack": {
+        "memory": "DSCP 0 = Default = Best Effort = CS0. All traffic starts here. Trust boundary re-marks untrusted endpoint traffic back to 0 so they can't game QoS.",
+        "practice": "Capture any random web or DNS packet. DSCP will almost always be 0 unless the app specifically marks itself. This confirms 'most traffic is best-effort by default'.",
+        "effort": "low",
+        "meta": "Jeremy's IT Lab Day 46. Wendell Odom OCG Chapter 12. Exam: 'what is DSCP 0?' = default / best effort. Sometimes written as CS0 or BE — same thing."
+      }
+    }
+  ],
+  "4.7.d": [
+    {
+      "id": "4.7.d.1",
+      "term": "LLQ (Low Latency Queuing)",
+      "weight": "high",
+      "info": "<p><strong>LLQ (Low Latency Queuing)</strong> is a <strong>strict priority queue</strong> added on top of CBWFQ. Traffic in the LLQ is ALWAYS sent before any other queue — the scheduler never services a non-LLQ queue while the LLQ has packets waiting. This gives the lowest possible latency and jitter, which is exactly what voice needs.</p><p>Why voice needs LLQ: voice packets arrive every 20ms from a phone. If a bulk data transfer is ahead of them in the queue, the voice packet waits. Waits = latency. Variable waits = jitter. Either breaks the call. LLQ bypasses the wait by preempting the queue — voice goes out immediately.</p><p><strong>Built-in policer:</strong> LLQ includes a bandwidth cap (often expressed as a percentage of link bandwidth, e.g., <code>priority 33</code> = 33% of the link). If priority traffic exceeds the cap, LLQ drops the excess. This prevents LLQ from starving other queues. Without the policer, unlimited priority traffic could consume 100% of bandwidth and leave nothing for data.</p><p>Typical deployment: one LLQ for voice (EF, DSCP 46), sometimes a second LLQ for critical video (AF41). Everything else goes into CBWFQ queues with bandwidth guarantees. Default traffic gets whatever's left.</p><p>Configuration concept (not tested on CCNA): <code>class voice; priority percent 33</code> inside a policy-map. The 'priority' keyword makes it an LLQ vs 'bandwidth' which makes it a CBWFQ queue.</p><p>Design rule of thumb: keep LLQ small — 33% of bandwidth is a common ceiling. More than that often means voice is bleeding into data's budget and you need more bandwidth on the link.</p>",
+      "visual": { "type": "hierarchy", "params": { "root": "Output Scheduler", "children": [{ "name": "LLQ (strict priority)", "children": [{ "name": "Voice EF — ALWAYS goes first" }, { "name": "Built-in policer caps BW" }] }, { "name": "CBWFQ queues", "children": [{ "name": "Video 30%" }, { "name": "Data 20%" }, { "name": "Default (remaining)" }] }] } },
+      "hack": {
+        "memory": "LLQ = strict priority + built-in policer. Voice goes FIRST, every time. Policer caps it so it doesn't starve everything else. Typical cap: 33% of link BW.",
+        "practice": "Draw the output scheduler: one LLQ box at the top (voice), multiple CBWFQ boxes below (video, data, default). Arrow labeled 'serviced first' from scheduler to LLQ. Put a policer symbol on the LLQ input. This diagram is worth 2 exam questions by itself.",
+        "effort": "low",
+        "meta": "Jeremy's IT Lab Day 46. Wendell Odom OCG Chapter 12. Exam: 'which queuing provides strict priority?' = LLQ. 'What prevents LLQ from starving other queues?' = built-in policer."
+      }
+    },
+    {
+      "id": "4.7.d.2",
+      "term": "CBWFQ",
+      "weight": "high",
+      "info": "<p><strong>CBWFQ (Class-Based Weighted Fair Queuing)</strong> assigns <strong>guaranteed minimum bandwidth</strong> to different traffic classes. Each class configured with CBWFQ gets a reserved percentage (or Kbps) of the interface bandwidth during congestion. When no congestion exists, any class can burst above its reservation using free bandwidth.</p><p>How it works during congestion: the scheduler services each CBWFQ queue based on its weight (configured bandwidth share). A 'video' class with <code>bandwidth percent 30</code> is guaranteed 30% of the link even if data traffic is trying to use it all. Inside each class, packets are sent in FIFO order by default (or with fair queuing if the interface type supports it).</p><p><strong>CBWFQ vs fair-share:</strong> without CBWFQ, the default queueing on a congested interface (FIFO or WFQ) gives no guarantees — a bulk data transfer can monopolize the link. CBWFQ carves out per-class reservations so critical apps always have a share, even under load.</p><p>CBWFQ combines with LLQ in nearly every real policy: LLQ for voice (strict priority), CBWFQ for video / transactional / bulk (bandwidth reservations), default class for everything else.</p><p><strong>'Weighted'</strong> in CBWFQ refers to the bandwidth weight assigned to each class. Higher weight = more bandwidth share during congestion. The 'class-based' part means matching is done by class-maps (ACLs, DSCP values, NBAR output, etc.) rather than flat FIFO or per-flow WFQ.</p><p>CCNA won't ask you to configure CBWFQ. Know: <em>CBWFQ guarantees minimum bandwidth per class</em>. That one sentence answers most CBWFQ exam questions.</p>",
+      "visual": { "type": "layer-stack", "params": { "layers": ["Voice (LLQ, strict priority)", "Video CBWFQ — 30% guaranteed", "Transactional CBWFQ — 20%", "Bulk CBWFQ — 10%", "Default — remaining bandwidth"], "highlight": 1 } },
+      "hack": {
+        "memory": "CBWFQ = Class-Based Weighted Fair Queuing = guaranteed minimum bandwidth per class. During congestion each class gets its reserved share. Sits next to LLQ in typical policies.",
+        "practice": "Given an interface with 100 Mbps: LLQ voice = 20%, CBWFQ video = 30%, CBWFQ data = 20%, default = remaining. Calculate: 20M voice, 30M video, 20M data, 30M default. This is what CBWFQ guarantees under congestion.",
+        "effort": "low",
+        "meta": "Jeremy's IT Lab Day 46. Wendell Odom OCG Chapter 12. Exam: 'what queuing gives bandwidth guarantees?' = CBWFQ. 'Difference between LLQ and CBWFQ?' = LLQ is strict priority, CBWFQ is bandwidth reservation."
+      }
+    },
+    {
+      "id": "4.7.d.3",
+      "term": "FIFO",
+      "weight": "med",
+      "info": "<p><strong>FIFO (First-In, First-Out)</strong> is the simplest possible queuing discipline: one queue, packets serviced strictly in arrival order. No prioritization, no bandwidth reservation. The first packet in the door is the first packet out.</p><p>FIFO is the <strong>default queueing on high-speed interfaces</strong> (Ethernet ≥ 2.048 Mbps). On faster links, congestion is rare, so the overhead of more complex queuing isn't worth it. FIFO's simplicity makes it extremely fast and predictable under normal load.</p><p>The downside: when congestion DOES happen on a FIFO interface, all traffic is treated equally. A voice call's RTP packets wait behind a large file transfer. Latency spikes, jitter explodes, voice quality tanks. FIFO has no concept of priority.</p><p>Large packets create 'head-of-line blocking' in FIFO: a 1500-byte packet ahead of a 200-byte voice packet means the voice waits until the 1500-byte packet finishes transmitting. On a 1 Mbps link, 1500 bytes = 12 ms of delay. On a 64 Kbps link, 1500 bytes = 187 ms of delay — already violating voice's 150 ms budget.</p><p>When to use FIFO: high-speed, uncongested interfaces where QoS overhead isn't justified. When to replace FIFO: any link carrying real-time traffic (voice, video) or any link that gets congested. The replacement is usually LLQ + CBWFQ.</p>",
+      "visual": { "type": "comparison", "params": { "left": { "label": "FIFO (default, high-speed)", "items": ["Single queue", "Strict arrival order", "No priority", "Fast under low load"] }, "right": { "label": "FIFO problem under congestion", "items": ["Voice waits behind bulk data", "Large packets block small ones", "Latency/jitter spikes", "Terrible for voice/video"] } } },
+      "hack": {
+        "memory": "FIFO = First-In-First-Out = one queue, arrival order, no priority. Default on fast interfaces. Awful when congested — large packets block small ones. Replace with LLQ+CBWFQ if voice/video or congestion is present.",
+        "practice": "Simulate on paper: a 1 Mbps link, voice packet arrives right behind a 1500-byte data packet. Voice waits 12 ms. Add more data packets and watch voice latency grow. This is why FIFO + voice = bad.",
+        "effort": "low",
+        "meta": "Jeremy's IT Lab Day 46. Wendell Odom OCG Chapter 12. Exam: 'what's the default queuing on Ethernet?' = FIFO. 'Why is FIFO bad for voice?' = no prioritization, head-of-line blocking."
+      }
+    },
+    {
+      "id": "4.7.d.4",
+      "term": "Tail drop",
+      "weight": "med",
+      "info": "<p><strong>Tail drop</strong> is what happens when a queue fills up: every new packet arriving at the tail of the queue is dropped, regardless of priority or class. It's the simplest congestion response — also the dumbest.</p><p>Tail drop treats all packets equally at the point of failure. Voice packet, video packet, backup packet — if the queue is full, they all get dropped. No DSCP inspection, no class awareness. This is unacceptable for QoS networks where priority traffic must survive congestion.</p><p>Worse: tail drop causes <strong>TCP global synchronization</strong>. When a queue fills, it drops packets from every TCP flow simultaneously. Every sender detects loss at the same time, backs off its window simultaneously, and resumes sending simultaneously. The result is oscillating congestion — bandwidth goes from saturated to nearly idle and back in waves, wasting capacity.</p><p>Solution: <strong>WRED (Weighted Random Early Detection)</strong>. WRED starts dropping packets BEFORE the queue is full, and drops selectively by priority (lower priority = dropped first). This prevents tail drop and staggers TCP backoffs so flows don't all sync up.</p><p>Tail drop is still a fallback even with WRED — if packets arrive faster than WRED can drop them, the queue still fills and tail drop kicks in. In practice, well-tuned WRED keeps queues below the tail-drop threshold under normal congestion.</p>",
+      "visual": { "type": "state-machine", "params": { "states": ["Queue filling", "Queue FULL", "Tail drop: discard all newcomers", "TCP flows detect loss simultaneously → global sync"], "active": 2, "transitions": true } },
+      "hack": {
+        "memory": "Tail drop = queue full, drop everything new regardless of priority. Indiscriminate. Causes TCP global synchronization. WRED is the fix — drop proactively, selectively.",
+        "practice": "Draw a queue filling up. At 100% utilization, draw arrows showing new packets (voice, video, data) all getting rejected equally. That's tail drop. Now draw WRED: at 70% utilization, start dropping low-priority packets proactively so the queue never fills.",
+        "effort": "low",
+        "meta": "Jeremy's IT Lab Day 46. Wendell Odom OCG Chapter 12. Exam: 'what is tail drop?' = queue full, new packets dropped. 'What problem does it cause?' = TCP global synchronization. 'What fixes it?' = WRED."
+      }
+    }
+  ],
+  "4.7.e": [
+    {
+      "id": "4.7.e.1",
+      "term": "WRED",
+      "weight": "high",
+      "info": "<p><strong>WRED (Weighted Random Early Detection)</strong> is a congestion-avoidance mechanism that prevents tail drop by proactively dropping packets BEFORE the queue fills. Instead of waiting until the queue is completely full and dumping everything, WRED watches queue depth and starts randomly dropping packets when depth crosses a low threshold.</p><p><strong>Weighted</strong> means the drop probability depends on the packet's priority (DSCP or IP Precedence). Lower-priority packets (higher drop precedence in AF terms) start being dropped at lower queue depths. Higher-priority packets are protected until queue depth is much deeper. This ensures voice and critical traffic survive congestion while bulk data takes the hit.</p><p>Example thresholds on a CBWFQ class queue: minimum threshold 20, maximum threshold 40, max drop probability 1/10. WRED behavior:</p><ul><li>Queue depth < 20: no drops, all packets enqueued.</li><li>Queue depth 20-40: <strong>random</strong> drops, probability rises linearly from 0 to 1/10 based on depth.</li><li>Queue depth > 40: all packets dropped (tail drop fallback).</li></ul><p>Different drop precedences within AF classes have different min/max thresholds. AF11 (low drop) might start dropping at queue depth 30; AF13 (high drop) at depth 15. This is how WRED enforces the drop precedence hierarchy.</p><p>Benefits: (1) TCP flows detect loss at staggered times — no global synchronization. (2) Queue depth stays below max, so voice and other priority traffic maintain low latency. (3) Low-priority traffic gets squeezed first, preserving mission-critical apps.</p><p>Voice in the LLQ is NOT subject to WRED. LLQ has its own policer and is managed separately. WRED applies to CBWFQ classes and the default class.</p>",
+      "visual": { "type": "state-machine", "params": { "states": ["Queue 0-20: no drop", "Queue 20-40: random drop, weighted by DSCP", "Queue > 40: tail drop", "Effect: queue rarely fills; voice protected"], "active": 1, "transitions": true } },
+      "hack": {
+        "memory": "WRED = Weighted Random Early Detection. Start dropping packets BEFORE queue fills. 'Weighted' = low-priority dropped first. 'Early' = below tail-drop threshold. 'Random' = packets from different flows dropped at different times.",
+        "practice": "Draw a queue with thresholds: min, max, and 100%. Between min and max, show random drops of low-priority packets. Below min, no drops. Above max, tail drop. This diagram shows WRED's job in one picture.",
+        "effort": "low",
+        "meta": "Jeremy's IT Lab Day 46. Wendell Odom OCG Chapter 12. Exam: 'what does WRED do?' = drop packets proactively to avoid tail drop. 'Why weighted?' = drop low-priority first."
+      }
+    },
+    {
+      "id": "4.7.e.2",
+      "term": "TCP global synchronization",
+      "weight": "high",
+      "info": "<p><strong>TCP global synchronization</strong> is the pathological pattern caused by tail drop on a congested link carrying many TCP flows. Every flow loses packets at the same time (when the queue fills), every sender backs off simultaneously, and then every sender ramps back up together. Throughput oscillates in waves instead of staying steady near link capacity.</p><p>The mechanism: TCP's congestion-control algorithm responds to packet loss by cutting its window size (typically halving it with classic Reno or TCP Cubic). When tail drop hits, every flow on the link sees loss in the same few milliseconds. They all halve their windows together. Total traffic suddenly drops to maybe 10-20% of link capacity. Senders then slowly ramp back up (slow start or congestion avoidance), and traffic grows until the queue fills again — and the cycle repeats.</p><p>Observable symptoms: utilization graphs that look like a sawtooth or waveform rather than a smooth line. Average utilization is surprisingly low (maybe 40-60%) on a link you thought was congested. Performance is inconsistent.</p><p>WRED breaks the synchronization by dropping packets at randomized times from different flows BEFORE the queue fills. Flow A loses a packet at t=1, flow B at t=2, flow C at t=3. Each flow backs off independently. Total traffic stays relatively steady at near-capacity. No waveform.</p><p>Also related: some modern TCP stacks (CUBIC, BBR) are less prone to synchronization, but the problem is still real on networks with many conventional TCP flows.</p>",
+      "visual": { "type": "comparison", "params": { "left": { "label": "With tail drop", "items": ["All flows lose packets simultaneously", "All windows collapse together", "Utilization oscillates", "Bandwidth wasted in troughs"] }, "right": { "label": "With WRED", "items": ["Flows lose packets at staggered times", "Windows collapse independently", "Utilization stays steady", "Full bandwidth utilized"] } } },
+      "hack": {
+        "memory": "TCP global sync = everyone backs off at once because tail drop hits everyone at once. Bandwidth oscillates, sawtooth pattern, low average utilization. WRED fixes it by staggering drops across flows.",
+        "practice": "Think of a highway with traffic signals all timed together: everyone stops, everyone goes, throughput is terrible. Now stagger the signals: some always green, some red, but traffic keeps flowing. WRED = staggered signals for TCP.",
+        "effort": "low",
+        "meta": "Jeremy's IT Lab Day 46. Wendell Odom OCG Chapter 12. Exam: 'what is TCP global synchronization?' = many TCP flows all back off simultaneously after tail drop. 'What mitigates it?' = WRED."
+      }
+    },
+    {
+      "id": "4.7.e.3",
+      "term": "WRED vs tail drop",
+      "weight": "high",
+      "info": "<p>Side-by-side comparison of the two congestion responses:</p><p><strong>Tail drop</strong> — the naive default. Queue fills, everything past the end of the queue is dropped. Treats all packets equally at the point of failure. Causes TCP global synchronization. Available everywhere by default because it requires no configuration.</p><p><strong>WRED</strong> — the intelligent response. Starts dropping packets randomly when the queue crosses a low threshold (below full). Drops lower-priority traffic first (weighted). Prevents the queue from filling, preserving latency for high-priority traffic. Breaks TCP global synchronization by staggering drops. Requires configuration (thresholds and max drop probability per DSCP or IPP class).</p><p><strong>Decision matrix:</strong></p><ul><li><strong>Reactive vs proactive:</strong> tail drop = reactive (drop when full). WRED = proactive (drop before full).</li><li><strong>Fairness:</strong> tail drop = indiscriminate. WRED = class-aware, low priority dies first.</li><li><strong>TCP behavior:</strong> tail drop = synchronization (waveform bandwidth). WRED = staggered (steady bandwidth).</li><li><strong>Configuration:</strong> tail drop = none required, default. WRED = min/max thresholds per class.</li></ul><p>Use case: always prefer WRED on any interface carrying mixed traffic classes or any link that experiences congestion. Tail drop is acceptable only as a last-resort fallback when WRED itself can't keep up (very rare with correct tuning).</p><p>In modern Cisco gear, WRED is often automatically enabled on CBWFQ queues. You just have to know the concept for CCNA.</p>",
+      "visual": { "type": "comparison", "params": { "left": { "label": "Tail drop", "items": ["Reactive", "Indiscriminate", "Queue fills first", "TCP global sync", "Zero config"] }, "right": { "label": "WRED", "items": ["Proactive", "Class-aware (weighted)", "Drops before queue fills", "Staggered TCP backoff", "Needs thresholds"] } } },
+      "hack": {
+        "memory": "Tail drop = reactive + indiscriminate. WRED = proactive + selective. Tail drop is the default on a raw queue; WRED is what you want. WRED prevents tail drop and TCP global sync in one mechanism.",
+        "practice": "Make a 4-row comparison table: (1) timing (reactive vs proactive), (2) selectivity (none vs weighted), (3) TCP impact (sync vs staggered), (4) config (none vs thresholds). This table covers every tail-drop-vs-WRED exam question.",
+        "effort": "low",
+        "meta": "Jeremy's IT Lab Day 46. Wendell Odom OCG Chapter 12. Guaranteed exam question about the difference. Reactive/proactive + indiscriminate/selective is the frame that answers it cleanly."
+      }
+    }
+  ],
+  "4.7.f": [
+    {
+      "id": "4.7.f.1",
+      "term": "Policing",
+      "weight": "high",
+      "info": "<p><strong>Policing</strong> enforces a strict traffic rate by immediately <strong>dropping or re-marking</strong> packets that exceed the configured limit. No buffering, no delay — excess traffic is dealt with instantly. Think of it as a hard ceiling with no tolerance for bursts.</p><p>Policing uses a <strong>token bucket</strong> model. The bucket fills with tokens at the committed information rate (CIR) up to the committed burst size (Bc). Each packet 'spends' tokens equal to its size. If tokens are available, the packet conforms and passes. If not, the packet exceeds and is either dropped or re-marked to a lower priority (typically AF13 or best-effort).</p><p><strong>Three-color policer</strong> (commonly used): green (conforming) packets pass unchanged. Yellow (exceeding) packets are re-marked with higher drop precedence. Red (violating) packets are dropped. This lets you give some leniency to small bursts while still enforcing the hard ceiling for sustained excess.</p><p><strong>Deployment points:</strong> policing can happen at <strong>ingress or egress</strong>. Ingress policing is typical at network boundaries — the customer's traffic is rate-limited as it enters the ISP's network. Egress policing is less common but used when you want to enforce a limit on traffic leaving a class.</p><p><strong>Characteristics:</strong> bursty output (traffic is either passed at full rate or dropped), no added latency, no buffer memory required. Good for enforcing SLAs where bandwidth caps must be hard. Bad for TCP because drops trigger retransmissions; TCP will naturally adjust its sending rate but loses packets in the process.</p>",
+      "visual": { "type": "state-machine", "params": { "states": ["Packet arrives", "Check token bucket", "Tokens available → PASS", "No tokens → DROP or RE-MARK"], "active": 0, "transitions": true } },
+      "hack": {
+        "memory": "Policing = immediate drop or re-mark of excess. Hard limit, no buffering. Token bucket (CIR + Bc). Ingress or egress. Bursty output. No added latency. Used at network boundaries for SLA enforcement.",
+        "practice": "Imagine an ISP limiting a customer to 50 Mbps. Customer sends 60 Mbps. Policer drops 10 Mbps instantly. Customer sees dropped packets, retransmits, TCP adjusts down to ~50 Mbps. The customer never exceeds 50 Mbps even briefly.",
+        "effort": "low",
+        "meta": "Jeremy's IT Lab Day 46. Wendell Odom OCG Chapter 12. Exam: 'what does policing do with excess traffic?' = drops or re-marks it. 'Can policing add latency?' = no, it's immediate."
+      }
+    },
+    {
+      "id": "4.7.f.2",
+      "term": "Shaping",
+      "weight": "high",
+      "info": "<p><strong>Shaping</strong> enforces a traffic rate by <strong>buffering excess packets</strong> and releasing them gradually when bandwidth becomes available. Unlike policing (which drops), shaping queues excess and transmits smoothly. The result is a steady output rate matching the shaped rate — but at the cost of added latency from buffering.</p><p>Shaping also uses a <strong>token bucket</strong>, but instead of dropping when tokens run out, excess packets are held in a shape queue. When new tokens arrive, queued packets are sent. The queue grows during bursts and drains during lulls.</p><p><strong>Egress only:</strong> shaping is applied on outbound interfaces only. You can't shape traffic coming into a device — that requires policing (drop) or backpressure signaling. Shaping makes sense on egress because you control the buffer and the send timing of traffic leaving your device.</p><p><strong>Use case:</strong> typical on WAN egress where the physical link speed is higher than the contracted/available rate. Example: a 100 Mbps Ethernet link to an ISP with a 50 Mbps Committed Information Rate. The router shapes outbound traffic to 50 Mbps, smoothing bursts, so the provider never sees excess (which they would drop with their own policer).</p><p><strong>Characteristics:</strong> smooth output (no bursts beyond shaped rate), adds latency (packets wait in shape queue), uses buffer memory, good for TCP (no drops, no retransmits), bad for voice (buffering = latency).</p><p>Design rule: don't shape voice. Voice needs low latency; any buffering hurts. Voice should go through an LLQ (strict priority) and avoid the shaping queue.</p>",
+      "visual": { "type": "state-machine", "params": { "states": ["Packet arrives, rate exceeded", "Queue excess in shape buffer", "Token arrives → send packet", "Output stream stays at shaped rate"], "active": 1, "transitions": true } },
+      "hack": {
+        "memory": "Shaping = buffer excess, release gradually. Smooth output, adds latency. Egress only. Good for TCP (no drops). Bad for voice (latency). Typical on WAN links where physical speed > contracted rate.",
+        "practice": "A 100 Mbps link shaped to 50 Mbps: when the device tries to send 80 Mbps, 50 Mbps goes out now, 30 Mbps waits in the shape buffer and goes out in the next slot. Output graph looks like a flat line at 50, not a bursty 80.",
+        "effort": "low",
+        "meta": "Jeremy's IT Lab Day 46. Wendell Odom OCG Chapter 12. Exam: 'what does shaping do with excess?' = buffer it. 'Where is shaping applied?' = egress only. 'Effect on latency?' = adds latency."
+      }
+    },
+    {
+      "id": "4.7.f.3",
+      "term": "Policing vs shaping",
+      "weight": "high",
+      "info": "<p>The most-tested QoS comparison on the CCNA. Memorize every row:</p><p><strong>Excess traffic:</strong> Policing DROPS (or re-marks). Shaping BUFFERS (queues and delays).</p><p><strong>Deployment:</strong> Policing = ingress OR egress. Shaping = egress ONLY.</p><p><strong>Output pattern:</strong> Policing = bursty (packets either pass at full rate or get dropped, no smoothing). Shaping = smooth (steady rate at the shaped cap).</p><p><strong>Latency impact:</strong> Policing adds no latency (immediate action). Shaping adds latency (buffering).</p><p><strong>TCP friendliness:</strong> Policing causes TCP retransmits (drops trigger loss detection). Shaping is TCP-friendly (no drops from shaping itself).</p><p><strong>Voice friendliness:</strong> Policing is OK for voice (no buffering, losses happen fast and TCP doesn't care because voice uses UDP). Shaping is BAD for voice (any buffering = latency, voice hates latency).</p><p><strong>Typical use case:</strong> Policing at network boundaries for SLA enforcement (ISP limits customer to CIR). Shaping on WAN egress when the physical link exceeds the contracted rate (router shapes to contracted rate so ISP doesn't drop excess).</p><p><strong>One-liner to remember:</strong> 'Policing is a cliff. Shaping is a ramp.' Policing drops the excess over the edge instantly. Shaping eases the excess down gradually.</p>",
+      "visual": { "type": "comparison", "params": { "left": { "label": "Policing", "items": ["Drops/re-marks excess", "Ingress or egress", "Bursty output", "No latency added", "TCP unfriendly (drops)"] }, "right": { "label": "Shaping", "items": ["Buffers excess", "Egress only", "Smooth output", "Adds latency", "TCP friendly (no drops)"] } } },
+      "hack": {
+        "memory": "Policing = drop (cliff). Shaping = buffer (ramp). Policing = ingress or egress. Shaping = egress only. Policing = no latency. Shaping = adds latency. Don't shape voice.",
+        "practice": "Write this 6-row table on paper without looking. Do it 3 times in a row. If you can reproduce it cold, you'll nail every policing-vs-shaping exam question.",
+        "effort": "low",
+        "meta": "Jeremy's IT Lab Day 46. Wendell Odom OCG Chapter 12. Literally the most tested QoS comparison. The 6-row table covers every variant."
+      }
+    }
+  ],
+  "4.7.g": [
+    {
+      "id": "4.7.g.1",
+      "term": "Shaping adds latency",
+      "weight": "high",
+      "info": "<p>Shaping's core tradeoff: it adds latency because excess traffic sits in a buffer waiting for bandwidth. The shape queue is exactly that — a queue. Packets wait their turn. Wait = latency.</p><p>How much latency? Depends on queue depth and shaped rate. A shape queue holding 100 ms of traffic adds 100 ms of latency to packets at the tail. On a voice call with a 150 ms one-way budget, a 100 ms shape queue wipes out 67% of your latency budget before the packet even leaves the router.</p><p>This is why <strong>voice should never be shaped</strong>. Voice should go through an LLQ (strict priority) where it bypasses the shape queue entirely. Shape the bulk and default traffic; let voice fly straight through.</p><p>Shaping is acceptable for: bulk data (backups, file transfers — no latency sensitivity), transactional data (some tolerance for latency), video streaming with large jitter buffers (can handle variable latency). Shaping is NOT acceptable for: voice, real-time video conferencing, financial trading, interactive terminal sessions.</p><p>Design rule: combine shaping with LLQ. The policy-map uses <code>shape average 50000000</code> on the parent class to cap the interface to 50 Mbps, while inside the shape, an LLQ provides strict priority for voice. Voice exits via the LLQ without shape-queue delay; everything else is shaped smoothly.</p><p>On WAN links where the provider drops excess, shaping makes sense. Better to smooth out bursts on your side than have the provider drop packets on theirs. But always protect voice from the shape queue.</p>",
+      "visual": { "type": "layer-stack", "params": { "layers": ["Voice (LLQ) — bypasses shape queue", "Video (CBWFQ) — goes through shape", "Data (CBWFQ) — shaped", "Shape average 50 Mbps (parent)"], "highlight": 0 } },
+      "hack": {
+        "memory": "Shaping = latency. Never shape voice — it hates latency. Voice uses LLQ to bypass the shape queue. Everything else can be shaped.",
+        "practice": "Calculate: shape queue holds 80 ms of traffic. Voice budget is 150 ms end-to-end. A shaped voice packet immediately loses 53% of its latency budget. This math explains why voice skips the shape queue via LLQ.",
+        "effort": "low",
+        "meta": "Jeremy's IT Lab Day 46. Wendell Odom OCG Chapter 12. Exam: 'why is shaping bad for voice?' = buffering adds latency. 'How do you protect voice when shaping?' = put voice in an LLQ that bypasses the shape queue."
+      }
+    },
+    {
+      "id": "4.7.g.2",
+      "term": "Policing doesn't add latency",
+      "weight": "high",
+      "info": "<p>Policing's compensating advantage over shaping: it adds zero latency. The policer's decision is instantaneous — conform or exceed, pass or drop. No queue, no wait. Packets that conform pass at line rate. Packets that exceed are dropped immediately.</p><p>This makes policing useful when <strong>latency must not increase</strong> and you can tolerate drops. Voice is actually a reasonable fit for policing in some scenarios: voice uses UDP (no retransmit overhead), voice codecs handle small amounts of loss gracefully (≤1% is generally OK), and voice hates latency more than it hates loss. Better to drop a voice packet than delay it.</p><p>Policing at the ingress of a priority queue is the classic pattern: <code>priority percent 33</code> in an LLQ creates a built-in policer. Voice packets above the cap are dropped, not buffered. Voice latency stays low; excess voice (which shouldn't happen in a well-designed network) is sacrificed rather than delayed.</p><p>Compare to shaping, which would buffer the excess voice and add latency — much worse for voice quality.</p><p>Policing is also appropriate for <strong>enforcing strict SLAs</strong>. An ISP selling a 50 Mbps circuit will policer at 50 Mbps. The customer either sends ≤ 50 Mbps (conforms) or gets dropped above that. TCP adjusts; UDP users notice drops. Either way, the ISP enforces their product boundary.</p><p>Downside: policing's bursty output is hard on TCP (many flows retransmitting creates congestion churn) and causes visible packet loss to users. If TCP-friendliness and smoothness matter more than latency, shape instead.</p>",
+      "visual": { "type": "comparison", "params": { "left": { "label": "Policing (no latency)", "items": ["Voice conforms → pass immediately", "Voice excess → drop immediately", "No queue, no wait", "Fine for UDP"] }, "right": { "label": "Shaping (added latency)", "items": ["Voice conforms → pass", "Voice excess → queue & delay", "Buffer fills up", "Bad for voice"] } } },
+      "hack": {
+        "memory": "Policing = zero latency (drop or pass instantly). Good for voice at the edge when you can tolerate small losses. Shaping = adds latency (buffers). Bad for voice.",
+        "practice": "LLQ with priority + built-in policer = voice gets strict priority up to its cap, then excess is dropped (not queued). This is exactly why LLQ uses policing, not shaping, for the priority cap.",
+        "effort": "low",
+        "meta": "Jeremy's IT Lab Day 46. Wendell Odom OCG Chapter 12. Exam: 'does policing add latency?' = no. 'Is policing OK for voice?' = yes, better than shaping because no buffering."
+      }
+    },
+    {
+      "id": "4.7.g.3",
+      "term": "Typical use cases",
+      "weight": "med",
+      "info": "<p>When to choose policing vs shaping in the real world:</p><p><strong>Policing use cases:</strong></p><ul><li><strong>ISP edge SLA enforcement</strong> — customer gets rate-limited at ingress. Drop excess, enforce the product.</li><li><strong>LLQ priority cap</strong> — prevent voice from starving other queues. Built-in policer drops voice above cap.</li><li><strong>Security rate limits</strong> — limit SYN/ICMP rate to prevent abuse. Drops attackers.</li><li><strong>Service tier enforcement</strong> — 'bronze' traffic gets policed to 10 Mbps, 'gold' to 50 Mbps, strict caps.</li></ul><p><strong>Shaping use cases:</strong></p><ul><li><strong>WAN egress smoothing</strong> — link speed exceeds contracted rate; shape to contracted rate so provider never drops.</li><li><strong>Bursty app management</strong> — smooth out large database syncs or backup flows.</li><li><strong>Frame Relay or MPLS sub-rate circuits</strong> — physical port faster than CIR, shape to CIR.</li><li><strong>TCP-heavy traffic</strong> — prefer shaping over policing for bulk TCP to avoid retransmit churn.</li></ul><p><strong>Hybrid designs</strong> are common: shape the WAN egress interface overall (e.g., shape average to the provider CIR), and within the shape, run an LLQ + CBWFQ hierarchy. LLQ's built-in policer caps voice. CBWFQ reserves bandwidth per data class. Shape queue smooths overall output. Three QoS tools working together.</p><p>CCNA won't ask you to design this — it asks when each tool is the right choice. Policing = hard caps, no latency, ingress or egress. Shaping = smoothing, added latency, egress only.</p>",
+      "visual": { "type": "hierarchy", "params": { "root": "Use-case selection", "children": [{ "name": "Policing", "children": [{ "name": "SLA enforcement" }, { "name": "LLQ priority cap" }, { "name": "Security rate limits" }] }, { "name": "Shaping", "children": [{ "name": "WAN egress to provider CIR" }, { "name": "Bursty TCP smoothing" }, { "name": "Sub-rate circuits" }] }] } },
+      "hack": {
+        "memory": "Policing = enforcement (hard cap, drops). Shaping = smoothing (soft cap, buffers). Use police at the ingress boundary; use shape on WAN egress. Combine them in hierarchical policies with LLQ + CBWFQ.",
+        "practice": "Given a scenario: '100 Mbps port, ISP contracted for 50 Mbps, provider polices excess.' Your side should SHAPE to 50 so ISP doesn't drop. Given: 'customer purchased a 20 Mbps plan.' ISP should POLICE to 20 to enforce the SLA. Each scenario has one correct tool.",
+        "effort": "low",
+        "meta": "Wendell Odom OCG Chapter 12. Jeremy's IT Lab Day 46. Exam: match the use case to the right tool. Memorize the policing-vs-shaping table and the typical deployment patterns."
+      }
+    }
+  ],
+  "4.7.h": [
+    {
+      "id": "4.7.h.1",
+      "term": "QoS trust boundary",
+      "weight": "high",
+      "info": "<p>The <strong>QoS trust boundary</strong> is the point in the network where QoS markings (DSCP/CoS) on incoming traffic are first accepted as valid. Before the trust boundary, endpoint-supplied markings are suspect and typically re-marked or reset. After the trust boundary, every device trusts the marking and applies the matching PHB.</p><p>Why it matters: without a trust boundary, any endpoint can mark its own traffic as high-priority. A user could configure their PC to tag all its traffic as EF (DSCP 46). The network, believing it's voice, would put it in the strict-priority LLQ and starve legitimate voice calls. Trust boundaries prevent this abuse.</p><p>Typical placement: the <strong>access layer switch</strong> — the first network device the endpoint connects to. The switch either trusts specific devices on specific ports (IP phones) or re-marks everything from untrusted devices to a safe default (usually DSCP 0).</p><p>Modern deployments use Cisco's <strong>AutoQoS</strong> or similar tools to auto-configure trust boundaries. AutoQoS on a switch port that recognizes a CDP/LLDP handshake with an IP phone will trust the phone's CoS markings automatically. Other ports default to untrusted / re-mark-to-0.</p><p>Beyond the trust boundary, all devices inside the enterprise trust the markings. Core and distribution routers don't re-classify or re-mark — they simply read DSCP and apply the PHB. This is efficient because classification (especially NBAR) is CPU-expensive; doing it once at the edge is cheaper than doing it at every hop.</p>",
+      "visual": { "type": "shield", "params": { "protected": ["Network core (trusts DSCP)"], "threat": "Untrusted endpoint marking its own traffic as high-priority" } },
+      "hack": {
+        "memory": "Trust boundary = where QoS markings start being believed. Typically the access switch. Before the boundary, markings are suspect and often re-written. After the boundary, every device trusts the mark.",
+        "practice": "Sketch: PC → IP Phone → Access Switch → Distribution → Core. Draw the trust boundary at the access switch. Phone is trusted (CoS preserved). PC is untrusted (re-marked). Everything past the access switch trusts DSCP and applies PHB.",
+        "effort": "low",
+        "meta": "Jeremy's IT Lab Day 46. Wendell Odom OCG Chapter 12. Exam: 'what is a trust boundary?' = the point where markings are first trusted. 'Where should it be?' = as close to source as possible, typically access switch."
+      }
+    },
+    {
+      "id": "4.7.h.2",
+      "term": "Placement rule",
+      "weight": "high",
+      "info": "<p>Design rule for trust boundaries: place them <strong>as close to the traffic source as possible</strong>. In practice, this means the access-layer switch (or the IP phone connected to it).</p><p>Why close to the source? Two reasons. First, shorter trust chains = fewer places to compromise. The fewer hops between the endpoint and the trust boundary, the less attack surface for someone to spoof markings. Second, classification at the source has the most context: the device knows who's sending, from which port, with what CDP/LLDP identity. Distribution switches and core routers don't have that context — they'd have to infer from IPs and ports, which is less accurate.</p><p><strong>Typical boundary positions:</strong></p><ul><li><strong>IP phone</strong> — the phone marks its own RTP voice as EF/CoS=5 and signals (SIP/SCCP) as CS3. Phone is the trust boundary for voice.</li><li><strong>Access switch</strong> — trusts the IP phone (CoS preserved for voice VLAN), does not trust the PC (re-marks PC traffic to 0 or classifies via NBAR/ACLs).</li><li><strong>Dedicated server VLAN access switch</strong> — trusts known server traffic because the servers are managed and trusted. Re-marks external-facing traffic.</li></ul><p>Beyond the access layer, <strong>every device trusts DSCP</strong>. Distribution and core switches/routers apply PHB based on the marking — no re-classification. This keeps the network efficient: expensive classification happens once, at the edge.</p><p>If you can't trust the IP phone (rare — usually phones are trusted), the access switch becomes the first trusted device. It classifies voice traffic by port (5060, 16384-32767) or by ACL matching the phone's subnet, then marks DSCP. The phone is then untrusted and re-marked.</p>",
+      "visual": { "type": "hierarchy", "params": { "root": "Trust Boundary Placement", "children": [{ "name": "Best: IP phone (marks at source)" }, { "name": "Next: Access switch (trusts phone, re-marks PC)" }, { "name": "Fallback: Distribution (less context, worse choice)" }, { "name": "Worst: Core (too late)" }] } },
+      "hack": {
+        "memory": "Trust boundary goes as CLOSE to source as possible. IP phone ideal (marks voice itself). Access switch next (trusts phone, re-marks PC). The closer to source, the better.",
+        "practice": "Scenario: PC → IP phone → Access → Dist → Core. Where's the trust boundary? At the phone (best) or access switch (next best). Why not at core? Too far from source, too many untrusted hops.",
+        "effort": "low",
+        "meta": "Jeremy's IT Lab Day 46. Wendell Odom OCG Chapter 12. Exam: 'where should the trust boundary be?' = as close to source as possible. Typically the access switch or IP phone."
+      }
+    },
+    {
+      "id": "4.7.h.3",
+      "term": "Why it matters",
+      "weight": "high",
+      "info": "<p>Without a trust boundary, any endpoint can mark its own traffic as high-priority DSCP. A single malicious or ignorant PC marking all traffic as EF (46) can take over the priority queue, starve real voice traffic, and collapse call quality for the entire enterprise.</p><p>Consider the attack: user installs a script on their PC that sets the DSCP field on outgoing packets to 46. Network sees DSCP 46 and puts it in the LLQ. LLQ services it first, ahead of legitimate voice. If the PC sends enough traffic, voice latency spikes, jitter explodes, calls drop. All because one endpoint successfully 'claimed' priority without being authorized.</p><p>Trust boundary prevents this. At the access switch, the PC's traffic is untrusted and its DSCP is reset to 0. Now the PC's traffic gets best-effort treatment no matter what it claims. Voice from the IP phone (which the switch trusts) retains its EF marking and its priority queue slot.</p><p>Real-world implications:</p><ul><li>Enterprise networks with VoIP MUST have trust boundaries; otherwise a single misbehaving endpoint can degrade every call in the building.</li><li>Service providers configure ingress policing/remarking on customer-facing links so customers can't cheat their way into better QoS classes.</li><li>Even accidental misconfigurations (a sysadmin tagging test traffic wrong) are contained by trust boundaries.</li></ul><p>The trust boundary is a <strong>security control</strong> as much as a QoS design element. Treat it like an authentication point: 'is this marking legitimate? who marked it?'. If you can't verify, don't trust.</p>",
+      "visual": { "type": "state-machine", "params": { "states": ["Endpoint sends traffic marked DSCP 46", "Without boundary: trusted → LLQ → starves real voice", "With boundary: re-marked to 0 → default queue", "Network protected"], "active": 2, "transitions": true } },
+      "hack": {
+        "memory": "No trust boundary = any endpoint can claim priority and wreck voice for everyone. Trust boundary = security control that rejects bogus markings. Treat markings like authentication claims — verify before trusting.",
+        "practice": "Think-through: attacker sets their PC's DSCP to 46 on all outgoing traffic. If the access switch is the trust boundary, all that traffic is reset to 0 before entering the network. Attack neutralized. If there's no trust boundary, LLQ is full of PC traffic and real voice suffers.",
+        "effort": "low",
+        "meta": "Jeremy's IT Lab Day 46. Wendell Odom OCG Chapter 12. Exam: 'why do we need a trust boundary?' = prevent untrusted endpoints from abusing QoS markings. 'What's the risk without it?' = any endpoint can claim priority and degrade real priority traffic."
+      }
+    }
+  ]
+}
