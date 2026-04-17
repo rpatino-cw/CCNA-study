@@ -107,21 +107,21 @@ window.SubtopicVisuals = (() => {
     const packetSvg = `
       <g opacity="1">
         <rect x="-14" y="${yMid + 18}" width="28" height="18" rx="3" fill="${color}" opacity="0.92">
-          <animate attributeName="x" values="${nodes.map((_,i)=>(40+i*gap-14)).join(';')}" dur="${(n-1)*1.3}s" repeatCount="indefinite" calcMode="spline" keySplines="${nodes.slice(1).map(()=>'0.45 0 0.55 1').join(';')}"/>
+          <animate attributeName="x" values="${nodes.map((_,i)=>(40+i*gap-14)).join(';')}" dur="${(n-1)*1.3}s" repeatCount="indefinite" calcMode="spline" keySplines="${nodes.slice(1).map(()=>'0.16 1 0.3 1').join(';')}"/>
         </rect>
         <text x="0" y="${yMid + 30}" text-anchor="middle" fill="#fff" font-size="8.5" font-weight="700" font-family="'JetBrains Mono',monospace">
-          <animate attributeName="x" values="${xPath}" dur="${(n-1)*1.3}s" repeatCount="indefinite" calcMode="spline" keySplines="${nodes.slice(1).map(()=>'0.45 0 0.55 1').join(';')}"/>
+          <animate attributeName="x" values="${xPath}" dur="${(n-1)*1.3}s" repeatCount="indefinite" calcMode="spline" keySplines="${nodes.slice(1).map(()=>'0.16 1 0.3 1').join(';')}"/>
           PKT
         </text>
         <text x="0" y="${yMid - 18}" text-anchor="middle" fill="${color}" font-size="8" font-family="'JetBrains Mono',monospace" opacity="0.85" font-weight="700">
-          <animate attributeName="x" values="${xPath}" dur="${(n-1)*1.3}s" repeatCount="indefinite" calcMode="spline" keySplines="${nodes.slice(1).map(()=>'0.45 0 0.55 1').join(';')}"/>
+          <animate attributeName="x" values="${xPath}" dur="${(n-1)*1.3}s" repeatCount="indefinite" calcMode="spline" keySplines="${nodes.slice(1).map(()=>'0.16 1 0.3 1').join(';')}"/>
           <animate attributeName="opacity" values="0;0.9;0.9;0" dur="1.3s" repeatCount="indefinite" begin="0s"/>
           TTL=<animate attributeName="textContent" values="${ttlValues}" dur="${(n-1)*1.3}s" repeatCount="indefinite"/>
         </text>
       </g>
       <g>
         <circle r="3" fill="${color}" opacity="0.6" filter="url(#${id}-glow)">
-          <animate attributeName="cx" values="${xPath}" dur="${(n-1)*1.3}s" repeatCount="indefinite" calcMode="spline" keySplines="${nodes.slice(1).map(()=>'0.45 0 0.55 1').join(';')}"/>
+          <animate attributeName="cx" values="${xPath}" dur="${(n-1)*1.3}s" repeatCount="indefinite" calcMode="spline" keySplines="${nodes.slice(1).map(()=>'0.16 1 0.3 1').join(';')}"/>
           <animate attributeName="cy" values="${nodes.map(()=>yMid+27).join(';')}" dur="${(n-1)*1.3}s" repeatCount="indefinite"/>
         </circle>
       </g>`;
@@ -303,10 +303,10 @@ window.SubtopicVisuals = (() => {
         <g opacity="0">
           <animate attributeName="opacity" values="0;1;1;1" keyTimes="0;0.1;0.9;1" dur="${flightT}s" begin="${startT}s" fill="freeze"/>
           <rect x="${x1 - 18}" y="${y - 9}" width="36" height="16" rx="3" fill="${col}" opacity="0.92">
-            <animate attributeName="x" values="${x1 - 18};${x2 - 18}" dur="${flightT}s" begin="${startT}s" fill="freeze" calcMode="spline" keySplines="0.42 0 0.18 1"/>
+            <animate attributeName="x" values="${x1 - 18};${x2 - 18}" dur="${flightT}s" begin="${startT}s" fill="freeze" calcMode="spline" keySplines="0.16 1 0.3 1"/>
           </rect>
           <text x="${x1}" y="${y + 2}" text-anchor="middle" fill="#fff" font-size="9" font-weight="700" font-family="'JetBrains Mono',monospace">
-            <animate attributeName="x" values="${x1};${x2}" dur="${flightT}s" begin="${startT}s" fill="freeze" calcMode="spline" keySplines="0.42 0 0.18 1"/>
+            <animate attributeName="x" values="${x1};${x2}" dur="${flightT}s" begin="${startT}s" fill="freeze" calcMode="spline" keySplines="0.16 1 0.3 1"/>
             ${esc(label.substring(0, 10))}
           </text>
         </g>
@@ -704,10 +704,10 @@ window.SubtopicVisuals = (() => {
         <g opacity="0">
           <animate attributeName="opacity" values="0;1" dur="0.3s" begin="${delay}s" fill="freeze"/>
           <rect y="${y - 7}" width="${packetW}" height="14" rx="2" fill="${color}" opacity="0.95">
-            <animate attributeName="x" values="${x1 - packetW/2};${x2 - packetW/2}" dur="${flight}s" begin="${delay}s" fill="freeze" calcMode="spline" keySplines="0.42 0 0.2 1"/>
+            <animate attributeName="x" values="${x1 - packetW/2};${x2 - packetW/2}" dur="${flight}s" begin="${delay}s" fill="freeze" calcMode="spline" keySplines="0.16 1 0.3 1"/>
           </rect>
           <text y="${y + 2}" text-anchor="middle" fill="#fff" font-size="8" font-weight="700" font-family="'JetBrains Mono',monospace">
-            <animate attributeName="x" values="${x1};${x2}" dur="${flight}s" begin="${delay}s" fill="freeze" calcMode="spline" keySplines="0.42 0 0.2 1"/>
+            <animate attributeName="x" values="${x1};${x2}" dur="${flight}s" begin="${delay}s" fill="freeze" calcMode="spline" keySplines="0.16 1 0.3 1"/>
             ${esc((e.label || '').substring(0, 8))}
           </text>
         </g>
@@ -836,12 +836,133 @@ window.SubtopicVisuals = (() => {
     'topology-live':     topologyLive
   };
 
+  // ────────────────────────────────────────────────────────────────────
+  // Accessibility + performance layer
+  // ────────────────────────────────────────────────────────────────────
+  const reducedMotion = typeof window !== 'undefined' && window.matchMedia
+    ? window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    : false;
+
+  // Strip SMIL animations for reduced-motion users. Keeps the final visual
+  // state (dots where they end up, bars filled, etc.) by collapsing <animate>
+  // into their `to` / last `values` value via a regex pass.
+  function staticize(svg) {
+    return svg
+      // <animate ...attributeName="X" ... values="a;b;c"/> → keep last value as attribute
+      .replace(/<animate\b[^>]*attributeName="([^"]+)"[^>]*(?:values="([^"]+)"|to="([^"]+)")[^>]*\/?>/g,
+        (_m, attr, values, to) => {
+          const final = to || (values ? values.split(';').pop() : null);
+          return final ? `<!-- reduced-motion: ${attr}=${final} -->` : '';
+        })
+      // Any remaining <animate> tags just get dropped
+      .replace(/<animate\b[^>]*\/?>/g, '')
+      .replace(/<animate\b[^>]*>[^<]*<\/animate>/g, '');
+  }
+
+  // Auto-wire IntersectionObserver entrance animation + focus support.
+  // Idempotent: calling init() multiple times is safe.
+  let _ioStarted = false;
+  function initEntranceObserver() {
+    if (_ioStarted || typeof window === 'undefined' || !('IntersectionObserver' in window)) return;
+    _ioStarted = true;
+    const io = new IntersectionObserver((entries) => {
+      for (const e of entries) {
+        if (e.isIntersecting) {
+          // Trigger entrance: enter → visible on next frame
+          e.target.classList.add('sv-entering');
+          requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+              e.target.classList.remove('sv-entering');
+              e.target.classList.add('sv-visible');
+            });
+          });
+          io.unobserve(e.target);
+        }
+      }
+    }, { rootMargin: '80px 0px', threshold: 0.12 });
+    document.querySelectorAll('.sv-wrap:not(.sv-visible)').forEach(el => io.observe(el));
+    const mo = new MutationObserver((muts) => {
+      for (const m of muts) {
+        m.addedNodes.forEach(node => {
+          if (node.nodeType !== 1) return;
+          if (node.classList && node.classList.contains('sv-wrap')) io.observe(node);
+          node.querySelectorAll && node.querySelectorAll('.sv-wrap:not(.sv-visible)').forEach(el => io.observe(el));
+        });
+      }
+    });
+    mo.observe(document.body, { childList: true, subtree: true });
+  }
+
+  // Inject global style for entrance + hover + reduced-motion. One-time.
+  let _styleInjected = false;
+  function injectStyle() {
+    if (_styleInjected || typeof document === 'undefined') return;
+    _styleInjected = true;
+    const s = document.createElement('style');
+    s.setAttribute('data-sv', 'subtopic-visuals');
+    s.textContent = `
+      .sv-wrap {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+        transition: opacity 520ms cubic-bezier(.16, 1, .3, 1),
+                    transform 520ms cubic-bezier(.16, 1, .3, 1),
+                    box-shadow 220ms cubic-bezier(.16, 1, .3, 1);
+        will-change: opacity, transform;
+      }
+      .sv-wrap.sv-entering {
+        opacity: 0;
+        transform: translateY(8px) scale(0.99);
+      }
+      .sv-wrap.sv-visible {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+      .sv-wrap:hover {
+        box-shadow: 0 6px 24px rgba(180, 83, 9, 0.08);
+      }
+      .sv-wrap:focus-within {
+        outline: 2px solid var(--accent, #B45309);
+        outline-offset: 2px;
+      }
+      .sv-anim text { font-feature-settings: 'tnum' 1, 'cv11' 1; }
+      .sv-anim rect, .sv-anim circle, .sv-anim path, .sv-anim line {
+        transition: stroke-width 200ms cubic-bezier(.16, 1, .3, 1);
+      }
+      .sv-wrap:hover .sv-anim rect[stroke],
+      .sv-wrap:hover .sv-anim circle[stroke],
+      .sv-wrap:hover .sv-anim path[stroke],
+      .sv-wrap:hover .sv-anim line[stroke] {
+        stroke-width: 2;
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .sv-wrap {
+          opacity: 1 !important;
+          transform: none !important;
+          transition: none !important;
+        }
+        .sv-anim * { animation: none !important; }
+      }
+    `;
+    document.head.appendChild(s);
+  }
+
+  // Kick off the DOM hooks as soon as the document is ready (non-blocking).
+  if (typeof document !== 'undefined') {
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', () => { injectStyle(); initEntranceObserver(); });
+    } else {
+      injectStyle(); initEntranceObserver();
+    }
+  }
+
   function render(visual) {
     if (!visual || !visual.type || !renderers[visual.type]) {
       return '<div class="sv-missing">Visual not available</div>';
     }
-    return `<div class="sv-wrap">${renderers[visual.type](visual.params || {})}</div>`;
+    let svg = renderers[visual.type](visual.params || {});
+    if (reducedMotion) svg = staticize(svg);
+    return `<div class="sv-wrap" tabindex="0" role="img" aria-label="${esc(visual.type)} diagram">${svg}</div>`;
   }
 
-  return { render, renderers };
+  return { render, renderers, initEntranceObserver, injectStyle };
 })();
