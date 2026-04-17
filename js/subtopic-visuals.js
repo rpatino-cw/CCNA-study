@@ -3055,6 +3055,263 @@ window.SubtopicVisuals = (() => {
   }
 
   // ────────────────────────────────────────────────────────────────────
+  // 65. dscp-grid — DSCP 6-bit value space with per-class buckets.
+  // ────────────────────────────────────────────────────────────────────
+  function dscpGrid(p) {
+    const w = 360, h = 200;
+    const highlights = p.highlights || { 46: 'EF (voice)', 34: 'AF41', 26: 'AF31', 18: 'AF21', 10: 'AF11', 0: 'BE' };
+
+    let svg = `
+      <text x="${w/2}" y="16" text-anchor="middle" fill="#57534e" font-size="11" font-weight="700" font-family="'Space Grotesk',sans-serif">DSCP 6-bit value space · 64 values</text>
+      <text x="${w/2}" y="32" text-anchor="middle" fill="#78716c" font-size="9" font-family="'JetBrains Mono',monospace">EF=46 voice · AF41=34 video · default/BE=0</text>`;
+
+    for (let v = 0; v < 64; v++) {
+      const col = v % 8;
+      const row = Math.floor(v / 8);
+      const x = 24 + col * 40;
+      const y = 42 + row * 18;
+      const hl = highlights[v];
+      const color = hl
+        ? (hl.startsWith('EF') ? COLORS.red
+          : hl.startsWith('AF') ? COLORS.blue
+          : hl.startsWith('BE') ? COLORS.slate
+          : COLORS.amber)
+        : '#e7e5e4';
+      svg += `
+        <rect x="${x}" y="${y}" width="36" height="14" rx="2" fill="${hl ? color : '#f3f0eb'}" stroke="${hl ? color : '#d4d0c8'}" stroke-width="${hl ? 1.5 : 0.6}">
+          ${hl ? `<animate attributeName="stroke-width" values="1.2;2;1.2" dur="2s" begin="${v * 0.03}s" repeatCount="indefinite"/>` : ''}
+        </rect>
+        <text x="${x + 18}" y="${y + 10}" text-anchor="middle" fill="${hl ? '#fff' : '#78716c'}" font-size="8" font-family="'JetBrains Mono',monospace" font-weight="${hl ? 700 : 500}">${v}</text>`;
+      if (hl) {
+        svg += `<text x="${x + 18}" y="${y + 24}" text-anchor="middle" fill="${color}" font-size="7" font-family="'JetBrains Mono',monospace" font-weight="700">${esc(hl.substring(0, 8))}</text>`;
+      }
+    }
+
+    svg += `<text x="${w/2}" y="${h - 4}" text-anchor="middle" fill="#a8a29e" font-size="8" font-family="'JetBrains Mono',monospace">DSCP = top 6 bits of ToS byte · 2 ECN bits remain</text>`;
+
+    return `<svg viewBox="0 0 ${w} ${h}" class="sv-anim" xmlns="http://www.w3.org/2000/svg">${svg}</svg>`;
+  }
+
+  // ────────────────────────────────────────────────────────────────────
+  // 66. svi-inter-vlan — L3 switch SVI-based inter-VLAN (vs router).
+  // ────────────────────────────────────────────────────────────────────
+  function sviInterVlan(p) {
+    const w = 360, h = 210;
+
+    let svg = `
+      <text x="${w/2}" y="16" text-anchor="middle" fill="#57534e" font-size="11" font-weight="700" font-family="'Space Grotesk',sans-serif">L3 switch · SVI inter-VLAN routing (no router needed)</text>
+
+      <!-- L3 switch box -->
+      <rect x="50" y="36" width="260" height="70" rx="8" fill="${COLORS.purple}" opacity="0.12" stroke="${COLORS.purple}" stroke-width="1.8"/>
+      <text x="62" y="52" fill="${COLORS.purple}" font-size="10" font-weight="700" font-family="'Space Grotesk',sans-serif">Multilayer Switch (Catalyst 9300)</text>
+
+      <!-- SVIs inside -->
+      <rect x="68" y="60" width="106" height="36" rx="5" fill="${COLORS.blue}"/>
+      <text x="121" y="76" text-anchor="middle" fill="#fff" font-size="10" font-weight="700" font-family="'Space Grotesk',sans-serif">SVI VLAN 10</text>
+      <text x="121" y="89" text-anchor="middle" fill="#fff" font-size="9" font-family="'JetBrains Mono',monospace">10.1.10.1/24</text>
+
+      <rect x="186" y="60" width="106" height="36" rx="5" fill="${COLORS.green}"/>
+      <text x="239" y="76" text-anchor="middle" fill="#fff" font-size="10" font-weight="700" font-family="'Space Grotesk',sans-serif">SVI VLAN 20</text>
+      <text x="239" y="89" text-anchor="middle" fill="#fff" font-size="9" font-family="'JetBrains Mono',monospace">10.1.20.1/24</text>
+
+      <!-- Route arrow between SVIs -->
+      <path d="M 174 78 L 186 78" stroke="${COLORS.amber}" stroke-width="2" marker-end="url(#svi-arr)"/>
+      <defs><marker id="svi-arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="4" markerHeight="4" orient="auto">
+        <path d="M 0 1 L 8 5 L 0 9 z" fill="${COLORS.amber}"/>
+      </marker></defs>
+
+      <!-- Access ports below -->
+      ${hostGlyph(80, 150, COLORS.blue, 'VLAN 10')}
+      ${hostGlyph(280, 150, COLORS.green, 'VLAN 20')}
+      <line x1="80" y1="135" x2="121" y2="100" stroke="${COLORS.blue}" stroke-width="1.3" opacity="0.6"/>
+      <line x1="280" y1="135" x2="239" y2="100" stroke="${COLORS.green}" stroke-width="1.3" opacity="0.6"/>
+
+      <!-- Inter-VLAN flow -->
+      <circle r="3" fill="${COLORS.amber}">
+        <animate attributeName="cx" values="80;121;239;280" dur="2s" repeatCount="indefinite"/>
+        <animate attributeName="cy" values="135;78;78;135" dur="2s" repeatCount="indefinite"/>
+        <animate attributeName="opacity" values="1;1;1;0" dur="2s" repeatCount="indefinite" keyTimes="0;0.45;0.95;1"/>
+      </circle>
+
+      <text x="${w/2}" y="${h - 8}" text-anchor="middle" fill="#a8a29e" font-size="8" font-family="'JetBrains Mono',monospace">ip routing enabled · each SVI gets its VLAN's gateway IP · wire-speed L3 in ASIC</text>`;
+
+    return `<svg viewBox="0 0 ${w} ${h}" class="sv-anim" xmlns="http://www.w3.org/2000/svg">${svg}</svg>`;
+  }
+
+  // ────────────────────────────────────────────────────────────────────
+  // 67. ios-copy — TFTP/flash copy with progress bar.
+  // ────────────────────────────────────────────────────────────────────
+  function iosCopy(p) {
+    const source = p.source || 'tftp://10.1.1.100/c2960-ipbase-mz.152-4.bin';
+    const dest = p.dest || 'flash:';
+    const percent = p.percent || 68;
+    const w = 360, h = 150;
+
+    let svg = `
+      <text x="${w/2}" y="16" text-anchor="middle" fill="#57534e" font-size="11" font-weight="700" font-family="'Space Grotesk',sans-serif">copy ${esc(source).split('/').pop()} → ${esc(dest)}</text>
+
+      <!-- TFTP server -->
+      <rect x="20" y="40" width="80" height="48" rx="5" fill="${COLORS.green}"/>
+      <text x="60" y="58" text-anchor="middle" fill="#fff" font-size="10" font-weight="700" font-family="'Space Grotesk',sans-serif">TFTP</text>
+      <text x="60" y="72" text-anchor="middle" fill="#fff" font-size="8" font-family="'JetBrains Mono',monospace">UDP 69</text>
+      <text x="60" y="84" text-anchor="middle" fill="#fff" font-size="8" font-family="'JetBrains Mono',monospace">10.1.1.100</text>
+
+      <!-- Router -->
+      ${routerGlyph(300, 64, COLORS.blue, 'R1 flash:')}
+
+      <!-- Transfer -->
+      <line x1="100" y1="64" x2="270" y2="64" stroke="${COLORS.amber}" stroke-width="2" stroke-dasharray="4 3">
+        <animate attributeName="stroke-dashoffset" values="0;-7" dur="0.5s" repeatCount="indefinite"/>
+      </line>
+      <circle r="4" fill="${COLORS.amber}">
+        <animate attributeName="cx" values="100;270" dur="0.9s" repeatCount="indefinite"/>
+        <animate attributeName="cy" values="64;64" dur="0.9s" repeatCount="indefinite"/>
+      </circle>
+
+      <!-- Progress -->
+      <text x="20" y="108" fill="#57534e" font-size="10" font-weight="700" font-family="'Space Grotesk',sans-serif">Progress</text>
+      <rect x="80" y="100" width="240" height="12" rx="6" fill="#f3f0eb" stroke="#e7e5e4"/>
+      <rect x="80" y="100" width="0" height="12" rx="6" fill="${COLORS.green}">
+        <animate attributeName="width" from="0" to="${2.4 * percent}" dur="1.5s" fill="freeze" calcMode="spline" keySplines="0.16 1 0.3 1"/>
+      </rect>
+      <text x="330" y="110" text-anchor="end" fill="${COLORS.green}" font-size="10" font-family="'JetBrains Mono',monospace" font-weight="700">${percent}%</text>
+
+      <text x="${w/2}" y="${h - 8}" text-anchor="middle" fill="#a8a29e" font-size="8" font-family="'JetBrains Mono',monospace">!!!!!!! = ACK per 512-byte block · TFTP is trusted LAN only (no auth, no encryption)</text>`;
+
+    return `<svg viewBox="0 0 ${w} ${h}" class="sv-anim" xmlns="http://www.w3.org/2000/svg">${svg}</svg>`;
+  }
+
+  // ────────────────────────────────────────────────────────────────────
+  // 68. native-vlan-mismatch — breaks when native VLANs differ across trunk.
+  // ────────────────────────────────────────────────────────────────────
+  function nativeVlanMismatch(p) {
+    const w = 360, h = 190;
+
+    let svg = `
+      <text x="${w/2}" y="16" text-anchor="middle" fill="#57534e" font-size="11" font-weight="700" font-family="'Space Grotesk',sans-serif">Native VLAN mismatch — silent black hole for untagged traffic</text>
+
+      ${switchGlyph(60, 70, COLORS.blue, 'SW1')}
+      ${switchGlyph(300, 70, COLORS.blue, 'SW2')}
+
+      <!-- Trunk with mismatched natives -->
+      <line x1="82" y1="70" x2="278" y2="70" stroke="${COLORS.amber}" stroke-width="2"/>
+
+      <text x="88" y="58" fill="${COLORS.green}" font-size="10" font-family="'JetBrains Mono',monospace" font-weight="700">native 1</text>
+      <text x="272" y="58" text-anchor="end" fill="${COLORS.red}" font-size="10" font-family="'JetBrains Mono',monospace" font-weight="700">native 99</text>
+
+      <!-- Mismatch warning -->
+      <circle cx="180" cy="70" r="14" fill="${COLORS.red}">
+        <animate attributeName="r" values="12;16;12" dur="1.5s" repeatCount="indefinite"/>
+      </circle>
+      <text x="180" y="74" text-anchor="middle" fill="#fff" font-size="12" font-weight="700">!</text>
+
+      <!-- Frame dropping -->
+      <g>
+        <rect x="85" y="100" width="40" height="14" rx="2" fill="${COLORS.green}">
+          <animate attributeName="x" values="85;165;165" dur="2s" repeatCount="indefinite" keyTimes="0;0.5;1"/>
+          <animate attributeName="opacity" values="1;1;0" dur="2s" repeatCount="indefinite" keyTimes="0;0.5;1"/>
+        </rect>
+        <text x="105" y="111" text-anchor="middle" fill="#fff" font-size="8" font-family="'JetBrains Mono',monospace" font-weight="700">
+          <animate attributeName="x" values="105;185;185" dur="2s" repeatCount="indefinite" keyTimes="0;0.5;1"/>
+          <animate attributeName="opacity" values="1;1;0" dur="2s" repeatCount="indefinite" keyTimes="0;0.5;1"/>
+          untagged
+        </text>
+      </g>
+
+      <text x="180" y="130" text-anchor="middle" fill="${COLORS.red}" font-size="10" font-family="'JetBrains Mono',monospace" font-weight="700">frame dropped · CDP logs NATIVE_VLAN_MISMATCH</text>
+      <text x="180" y="148" text-anchor="middle" fill="#57534e" font-size="10" font-family="'Space Grotesk',sans-serif">Fix: set native VLAN the same on both ends (default 1)</text>
+
+      <text x="${w/2}" y="${h - 8}" text-anchor="middle" fill="#a8a29e" font-size="8" font-family="'JetBrains Mono',monospace">switchport trunk native vlan 99 · do it on BOTH switches to match</text>`;
+
+    return `<svg viewBox="0 0 ${w} ${h}" class="sv-anim" xmlns="http://www.w3.org/2000/svg">${svg}</svg>`;
+  }
+
+  // ────────────────────────────────────────────────────────────────────
+  // 69. auth-compare — RADIUS vs TACACS+ feature comparison.
+  // ────────────────────────────────────────────────────────────────────
+  function authCompare(p) {
+    const w = 360, h = 230;
+    const rows = [
+      { label: 'Transport',          radius: 'UDP 1812/1813',  tacacs: 'TCP 49' },
+      { label: 'Encryption',         radius: 'Password only',   tacacs: 'Full packet' },
+      { label: 'Authn + Authz',      radius: 'Combined',        tacacs: 'Separate' },
+      { label: 'Per-command authz',  radius: 'No',              tacacs: 'Yes' },
+      { label: 'Standard',           radius: 'Open (RFC)',      tacacs: 'Cisco' },
+      { label: 'Primary use',        radius: '802.1X, VPN',     tacacs: 'Device admin' }
+    ];
+
+    let svg = `
+      <text x="${w/2}" y="16" text-anchor="middle" fill="#57534e" font-size="11" font-weight="700" font-family="'Space Grotesk',sans-serif">RADIUS vs TACACS+ — when to use which</text>
+
+      <!-- Headers -->
+      <rect x="12" y="28" width="100" height="24" rx="3" fill="#f3f0eb"/>
+      <text x="62" y="44" text-anchor="middle" fill="#78716c" font-size="10" font-weight="700" font-family="'Space Grotesk',sans-serif">Feature</text>
+
+      <rect x="112" y="28" width="118" height="24" rx="3" fill="${COLORS.blue}"/>
+      <text x="171" y="44" text-anchor="middle" fill="#fff" font-size="10" font-weight="700" font-family="'Space Grotesk',sans-serif">RADIUS</text>
+
+      <rect x="230" y="28" width="118" height="24" rx="3" fill="${COLORS.purple}"/>
+      <text x="289" y="44" text-anchor="middle" fill="#fff" font-size="10" font-weight="700" font-family="'Space Grotesk',sans-serif">TACACS+</text>`;
+
+    rows.forEach((r, i) => {
+      const y = 52 + i * 26;
+      svg += `
+        <rect x="12" y="${y}" width="100" height="24" rx="3" fill="${i % 2 ? '#faf8f4' : '#fff'}" stroke="#e7e5e4" stroke-width="0.6"/>
+        <text x="22" y="${y + 16}" fill="#57534e" font-size="10" font-family="'Space Grotesk',sans-serif" font-weight="600">${esc(r.label)}</text>
+
+        <rect x="112" y="${y}" width="118" height="24" rx="3" fill="${i % 2 ? '#dbeafe' : '#eff6ff'}" stroke="${COLORS.blue}" stroke-width="0.6"/>
+        <text x="171" y="${y + 16}" text-anchor="middle" fill="#1e40af" font-size="9" font-family="'JetBrains Mono',monospace">${esc(r.radius)}</text>
+
+        <rect x="230" y="${y}" width="118" height="24" rx="3" fill="${i % 2 ? '#e9d5ff' : '#faf5ff'}" stroke="${COLORS.purple}" stroke-width="0.6"/>
+        <text x="289" y="${y + 16}" text-anchor="middle" fill="#6b21a8" font-size="9" font-family="'JetBrains Mono',monospace">${esc(r.tacacs)}</text>`;
+    });
+
+    return `<svg viewBox="0 0 ${w} ${h}" class="sv-anim" xmlns="http://www.w3.org/2000/svg">${svg}</svg>`;
+  }
+
+  // ────────────────────────────────────────────────────────────────────
+  // 70. pi-ladder — ICMP ping request/reply with timing.
+  // ────────────────────────────────────────────────────────────────────
+  function pingLadder(p) {
+    const target = p.target || '8.8.8.8';
+    const probes = p.probes || [
+      { seq: 1, rtt: 12.3, ok: true },
+      { seq: 2, rtt: 11.9, ok: true },
+      { seq: 3, rtt: null, ok: false },
+      { seq: 4, rtt: 12.5, ok: true }
+    ];
+    const w = 360, h = 36 + probes.length * 32 + 60;
+
+    let svg = `
+      <text x="${w/2}" y="16" text-anchor="middle" fill="#57534e" font-size="11" font-weight="700" font-family="'Space Grotesk',sans-serif">ping ${esc(target)} · ICMP Echo Request/Reply</text>
+      <rect x="14" y="24" width="60" height="22" rx="4" fill="${COLORS.blue}"/>
+      <text x="44" y="39" text-anchor="middle" fill="#fff" font-size="10" font-weight="700" font-family="'Space Grotesk',sans-serif">Host</text>
+      <rect x="286" y="24" width="60" height="22" rx="4" fill="${COLORS.green}"/>
+      <text x="316" y="39" text-anchor="middle" fill="#fff" font-size="10" font-weight="700" font-family="'Space Grotesk',sans-serif">${esc(target)}</text>
+      <line x1="44" y1="46" x2="44" y2="${h - 20}" stroke="#d4d0c8" stroke-width="1.3" stroke-dasharray="2 3"/>
+      <line x1="316" y1="46" x2="316" y2="${h - 20}" stroke="#d4d0c8" stroke-width="1.3" stroke-dasharray="2 3"/>`;
+
+    probes.forEach((p, i) => {
+      const y = 60 + i * 32;
+      const col = p.ok ? COLORS.green : COLORS.red;
+      svg += `
+        <text x="180" y="${y - 4}" text-anchor="middle" fill="${col}" font-size="9" font-family="'JetBrains Mono',monospace" font-weight="700">seq=${p.seq} · ${p.ok ? p.rtt + ' ms' : 'REQUEST TIMED OUT'}</text>
+        <line x1="52" y1="${y + 4}" x2="308" y2="${y + 4}" stroke="${col}" stroke-width="1.5" ${p.ok ? '' : 'stroke-dasharray="3 3"'} opacity="${p.ok ? 0.85 : 0.55}"/>
+        ${p.ok ? `<line x1="308" y1="${y + 16}" x2="52" y2="${y + 16}" stroke="${col}" stroke-width="1.5" opacity="0.85"/>` : ''}
+        <circle r="3" fill="${col}">
+          <animate attributeName="cx" values="52;308" dur="0.5s" begin="${i * 0.5}s" fill="freeze"/>
+          <animate attributeName="cy" values="${y + 4};${y + 4}" dur="0.5s" begin="${i * 0.5}s" fill="freeze"/>
+        </circle>`;
+    });
+
+    const successCount = probes.filter(p => p.ok).length;
+    svg += `
+      <text x="${w/2}" y="${h - 8}" text-anchor="middle" fill="#57534e" font-size="10" font-family="'JetBrains Mono',monospace">${successCount}/${probes.length} received · ${Math.round((1 - successCount/probes.length) * 100)}% loss</text>`;
+
+    return `<svg viewBox="0 0 ${w} ${h}" class="sv-anim" xmlns="http://www.w3.org/2000/svg">${svg}</svg>`;
+  }
+
+  // ────────────────────────────────────────────────────────────────────
   // Renderer dispatch
   // ────────────────────────────────────────────────────────────────────
 
@@ -3122,7 +3379,13 @@ window.SubtopicVisuals = (() => {
     'mtu-fragmentation': mtuFragmentation,
     'collision-broadcast': collisionBroadcast,
     'port-magic':        portMagic,
-    'waterfall-vlsm':    waterfallVlsm
+    'waterfall-vlsm':    waterfallVlsm,
+    'dscp-grid':         dscpGrid,
+    'svi-inter-vlan':    sviInterVlan,
+    'ios-copy':          iosCopy,
+    'native-vlan-mismatch': nativeVlanMismatch,
+    'auth-compare':      authCompare,
+    'ping-ladder':       pingLadder
   };
 
   // ────────────────────────────────────────────────────────────────────
@@ -3364,7 +3627,13 @@ window.SubtopicVisuals = (() => {
     'mtu-fragmentation': 'Oversized packet fragmented at MTU',
     'collision-broadcast': 'Collision vs broadcast domain boundaries',
     'port-magic':        'Subnet magic number trick',
-    'waterfall-vlsm':    'VLSM — largest need first'
+    'waterfall-vlsm':    'VLSM — largest need first',
+    'dscp-grid':         'DSCP 6-bit value space · 64 values',
+    'svi-inter-vlan':    'SVI-based inter-VLAN on L3 switch',
+    'ios-copy':          'IOS file transfer via TFTP/flash',
+    'native-vlan-mismatch': 'Trunk native VLAN mismatch black hole',
+    'auth-compare':      'RADIUS vs TACACS+ feature comparison',
+    'ping-ladder':       'ICMP ping probes + RTT'
   };
 
   // Click-to-pause handler. One delegated listener on document.

@@ -334,6 +334,42 @@ const RULES = [
   { re: /\bmagic number|block size|subnet jump|256 minus\b/i, build: () => ({
     type: 'port-magic',
     params: { mask: 26 }
+  })},
+
+  // ── DSCP / ToS ──────────────────────────────────────────────────
+  { re: /\bdscp|ef (46|expedited)|af(\d{2})|cs(\d+)|tos byte\b/i, build: () => ({
+    type: 'dscp-grid',
+    params: {}
+  })},
+
+  // ── SVI / L3 switch ─────────────────────────────────────────────
+  { re: /\bsvi|switched virtual interface|l3 switch|multilayer switch\b/i, build: () => ({
+    type: 'svi-inter-vlan',
+    params: {}
+  })},
+
+  // ── IOS copy commands ───────────────────────────────────────────
+  { re: /\bcopy (tftp|flash|running-config|startup-config)|ios upgrade|ios image\b/i, build: () => ({
+    type: 'ios-copy',
+    params: { percent: 68 }
+  })},
+
+  // ── Native VLAN mismatch ────────────────────────────────────────
+  { re: /\bnative vlan|vlan mismatch\b/i, build: () => ({
+    type: 'native-vlan-mismatch',
+    params: {}
+  })},
+
+  // ── RADIUS vs TACACS comparison ─────────────────────────────────
+  { re: /\bradius vs tacacs|tacacs vs radius|aaa comparison\b/i, build: () => ({
+    type: 'auth-compare',
+    params: {}
+  })},
+
+  // ── Ping / ICMP echo ────────────────────────────────────────────
+  { re: /\bping|icmp echo|echo request|echo reply\b/i, build: () => ({
+    type: 'ping-ladder',
+    params: {}
   })}
 ];
 
