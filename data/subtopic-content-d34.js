@@ -901,8 +901,17 @@ window.subtopicContentD34 = {
       memory: "DORA: Discover, Offer, Request, Acknowledge. 'Dora the Explorer: Discovers, gets Offered help, Requests it, gets Acknowledged.' Discover and Request are BROADCASTS (client has no IP, needs everyone to hear). Ports: client 68, server 67. If DHCP fails, Windows clients get 169.254.x.x (APIPA).",
       practice: "In Packet Tracer: (1) Set up a DHCP server and client on the same subnet. (2) Switch to SIMULATION mode. (3) Release the client's IP ('ipconfig /release'). (4) Renew ('ipconfig /renew'). (5) Watch all 4 DORA packets — click each one and examine source/destination IP, source/destination port, and broadcast vs unicast. This visual exercise cements the DORA process.",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 39 (DHCP) covers DORA in detail with Packet Tracer simulation. Wendell Odom OCG Chapter 8 covers DHCP operations. DORA is tested EVERY exam. Know: the four-step order, which are broadcast, the UDP ports (67/68), and that broadcasts don't cross routers (requiring relay)."
-    }
+      meta: "Jeremy's IT Lab Day 39 (DHCP) covers DORA in detail with Packet Tracer simulation. Wendell Odom OCG Chapter 8 covers DHCP operations. DORA is tested EVERY exam. Know: the four-step order, which are broadcast, the UDP ports (67/68), and that broadcasts don't cross routers (requiring relay).",
+    },
+    micro: [
+      { id: "4.3.a.1", term: "DORA process",                 def: "Discover → Offer → Request → Acknowledge. Four-step DHCP IP assignment sequence.", weight: "high" },
+      { id: "4.3.a.2", term: "D = Discover",                 def: "Client broadcasts 'anyone have an IP?' (dest 255.255.255.255, src 0.0.0.0). Client UDP 68 → server UDP 67.", weight: "high" },
+      { id: "4.3.a.3", term: "O = Offer",                    def: "Server broadcasts offer with proposed IP, mask, gateway, DNS, lease time. Server UDP 67 → client UDP 68.", weight: "high" },
+      { id: "4.3.a.4", term: "R = Request",                  def: "Client broadcasts 'I'll take this offer.' Tells other DHCP servers to withdraw. Required so other servers free their offers.", weight: "high" },
+      { id: "4.3.a.5", term: "A = Acknowledge",              def: "Server confirms the lease. Client now uses the IP. Lease timer starts.", weight: "high" },
+      { id: "4.3.a.6", term: "ip helper-address",            def: "Configured on a SVI/interface. Forwards DHCP broadcasts as unicast to DHCP server across subnets.", weight: "high" },
+      { id: "4.3.a.7", term: "DHCP relay",                   def: "Router/L3 switch acts as relay because broadcasts don't cross L3 boundaries. 'ip helper-address' does this.", weight: "high" }
+    ]
   },
 
   "4.3.b": {
@@ -912,8 +921,16 @@ window.subtopicContentD34 = {
       memory: "DHCP provides the 'Big 4': IP address, Subnet mask, Default gateway, DNS server. Plus the lease timer (how long you can keep the IP). The gateway command is 'default-ROUTER' not 'default-gateway' — this is a common exam trap. Default lease = 1 day. Verify on Windows: 'ipconfig /all.'",
       practice: "In Packet Tracer: (1) Configure a full DHCP pool on a router: pool name, network, default-router, dns-server, lease. (2) Configure 'ip dhcp excluded-address' for the gateway and server IPs. (3) Connect PCs as DHCP clients. (4) Verify with 'ipconfig /all' on PCs — check that all 4 parameters are received correctly. (5) On the router, run 'show ip dhcp binding' to see active leases.",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 39 (DHCP) covers pool configuration. Wendell Odom OCG Chapter 8. The exam tests DHCP pool configuration in lab sims. Know the five commands: pool name, network, default-router, dns-server, lease. The 'default-router' vs 'default-gateway' distinction is a real exam trap."
-    }
+      meta: "Jeremy's IT Lab Day 39 (DHCP) covers pool configuration. Wendell Odom OCG Chapter 8. The exam tests DHCP pool configuration in lab sims. Know the five commands: pool name, network, default-router, dns-server, lease. The 'default-router' vs 'default-gateway' distinction is a real exam trap.",
+    },
+    micro: [
+      { id: "4.3.b.1", term: "ip dhcp pool [name]",          def: "Create a DHCP pool. Enters DHCP pool config mode.", weight: "high" },
+      { id: "4.3.b.2", term: "network [subnet] [mask]",      def: "Specify the subnet the pool serves. Under pool config.", weight: "high" },
+      { id: "4.3.b.3", term: "default-router [ip]",          def: "Gateway IP sent to clients. IMPORTANT: 'default-router' (not 'default-gateway'). Classic exam trap.", weight: "high" },
+      { id: "4.3.b.4", term: "dns-server [ip]",              def: "DNS server(s) sent to clients in the offer.", weight: "high" },
+      { id: "4.3.b.5", term: "lease [days hours minutes]",   def: "Lease duration. Default 24 hours. Longer leases reduce DHCP traffic but slow reclaiming.", weight: "med" },
+      { id: "4.3.b.6", term: "ip dhcp excluded-address",     def: "Global command (OUTSIDE pool config). Reserves IPs so DHCP won't assign them (e.g., gateway, servers).", weight: "high" }
+    ]
   },
 
   "4.3.c": {
@@ -923,8 +940,14 @@ window.subtopicContentD34 = {
       memory: "50% = polite ask (unicast to YOUR server). 87.5% = desperate shout (broadcast to ANY server). 100% = game over — release IP, restart DORA from scratch. The exam asks: 'When does a DHCP client first attempt renewal?' Answer: 50% of the lease time, via unicast.",
       practice: "In Packet Tracer: set a very short DHCP lease (e.g., 'lease 0 0 2' for 2 minutes). Use simulation mode to watch the renewal process. You'll see the unicast renewal at ~1 minute and can observe the full lifecycle if you block the server's response.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 39 (DHCP) covers the renewal process. Wendell Odom OCG Chapter 8. Know the two percentages: 50% (unicast) and 87.5% (broadcast). The exam commonly asks: 'At what point does the client attempt to renew?' or 'What happens if the renewal at 50% fails?'"
-    }
+      meta: "Jeremy's IT Lab Day 39 (DHCP) covers the renewal process. Wendell Odom OCG Chapter 8. Know the two percentages: 50% (unicast) and 87.5% (broadcast). The exam commonly asks: 'At what point does the client attempt to renew?' or 'What happens if the renewal at 50% fails?'",
+    },
+    micro: [
+      { id: "4.3.c.1", term: "T1 renewal (50%)",             def: "At 50% of lease, client unicasts DHCPREQUEST to original server for renewal.", weight: "high" },
+      { id: "4.3.c.2", term: "T2 rebinding (87.5%)",         def: "At 87.5% of lease, if T1 failed, client broadcasts DHCPREQUEST to ANY DHCP server.", weight: "high" },
+      { id: "4.3.c.3", term: "Renewal failure behavior",     def: "If lease expires without renewal, client releases IP and restarts DORA.", weight: "med" },
+      { id: "4.3.c.4", term: "Unicast vs broadcast renewal", def: "T1 = unicast (direct to original server). T2 = broadcast (any server can help).", weight: "high" }
+    ]
   },
 
   "4.3.d": {
@@ -934,8 +957,17 @@ window.subtopicContentD34 = {
       memory: "A = Address (IPv4). AAAA = quad-A = Address x4 (IPv6, 4 times bigger). CNAME = Clone/alias name. MX = Mail eXchange. PTR = PoinTeR (reverse: IP -> name). NS = Name Server (authoritative). SOA = Start Of Authority. DNS uses UDP 53 (queries) and TCP 53 (zone transfers).",
       practice: "From any command line, practice querying each record type: 'nslookup -type=A cisco.com', 'nslookup -type=AAAA google.com', 'nslookup -type=MX gmail.com', 'nslookup -type=NS example.com'. See real results for each record type. Make flashcards: record type on front, purpose + example on back.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 38 (DNS) covers record types. Wendell Odom OCG Chapter 8 covers DNS fundamentals. All record types are tested as rapid-fire recall: 'Which record resolves a hostname to an IPv6 address?' (AAAA). 'Which record identifies a mail server?' (MX). 'Which record maps an IP to a hostname?' (PTR). Memorize all seven."
-    }
+      meta: "Jeremy's IT Lab Day 38 (DNS) covers record types. Wendell Odom OCG Chapter 8 covers DNS fundamentals. All record types are tested as rapid-fire recall: 'Which record resolves a hostname to an IPv6 address?' (AAAA). 'Which record identifies a mail server?' (MX). 'Which record maps an IP to a hostname?' (PTR). Memorize all seven.",
+    },
+    micro: [
+      { id: "4.3.d.1", term: "A record",                     def: "Hostname → IPv4 address. Most common DNS record. example.com → 93.184.216.34.", weight: "high" },
+      { id: "4.3.d.2", term: "AAAA record",                  def: "Hostname → IPv6 address. The IPv6 equivalent of an A record.", weight: "high" },
+      { id: "4.3.d.3", term: "CNAME record",                 def: "Canonical name (alias). Maps one name to another name. www.example.com → example.com.", weight: "high" },
+      { id: "4.3.d.4", term: "MX record",                    def: "Mail Exchange. Specifies email server(s) for a domain. Includes priority value.", weight: "high" },
+      { id: "4.3.d.5", term: "PTR record",                   def: "Pointer (reverse DNS). Maps IP → hostname. Used for reverse lookups.", weight: "high" },
+      { id: "4.3.d.6", term: "NS record",                    def: "Name Server. Specifies authoritative DNS servers for a zone.", weight: "med" },
+      { id: "4.3.d.7", term: "SOA record",                   def: "Start of Authority. Metadata about a DNS zone (primary server, admin email, serial, timers).", weight: "med" }
+    ]
   },
 
   "4.3.e": {
@@ -945,8 +977,14 @@ window.subtopicContentD34 = {
       memory: "Recursive = 'Do all the work for me and give me the final answer.' Iterative = 'Here's a hint — go ask them yourself.' Clients send RECURSIVE queries to their DNS server (lazy). DNS servers send ITERATIVE queries to root/TLD/authoritative servers (cooperative chain). The local DNS server does the heavy lifting.",
       practice: "Use 'dig +trace cisco.com' on a Linux/Mac command line to see the full iterative resolution chain from root to authoritative. Each referral step is visible. Understand that the client only sent ONE recursive query — the DNS server handled all the iterative steps internally.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 38 (DNS) covers recursive vs iterative. Wendell Odom OCG Chapter 8. The exam tests the distinction: 'Which type of DNS query expects the server to return the final answer?' (Recursive). 'Which type may return a referral?' (Iterative). Also know that caching reduces the need for repeated full lookups."
-    }
+      meta: "Jeremy's IT Lab Day 38 (DNS) covers recursive vs iterative. Wendell Odom OCG Chapter 8. The exam tests the distinction: 'Which type of DNS query expects the server to return the final answer?' (Recursive). 'Which type may return a referral?' (Iterative). Also know that caching reduces the need for repeated full lookups.",
+    },
+    micro: [
+      { id: "4.3.e.1", term: "Recursive query",              def: "Client expects the DNS server to return the FINAL answer. Server does all the work.", weight: "high" },
+      { id: "4.3.e.2", term: "Iterative query",              def: "DNS server may return a REFERRAL (another server to ask). Caller keeps asking.", weight: "high" },
+      { id: "4.3.e.3", term: "Typical client query",         def: "Recursive to local DNS resolver. Resolver then does iterative queries up the hierarchy.", weight: "high" },
+      { id: "4.3.e.4", term: "DNS caching",                  def: "Resolvers cache answers based on TTL. Reduces repeated full lookups and load on authoritative servers.", weight: "med" }
+    ]
   },
 
   "4.3.f": {
@@ -956,8 +994,14 @@ window.subtopicContentD34 = {
       memory: "DNS tree: Root (.) -> TLD (.com, .org) -> Domain (cisco.com) -> Host (www.cisco.com). Like a postal system: Country -> State -> City -> Street address. 13 root server clusters (A through M). Each level only knows the next level down — root knows TLDs, TLDs know domains. FQDN = full address ending with a dot.",
       practice: "Trace a DNS lookup for www.cisco.com manually on paper: (1) Query root — get referral to .com TLD. (2) Query .com TLD — get referral to cisco.com authoritative DNS. (3) Query cisco.com DNS — get the A record for www (the final IP). This three-step referral chain is the fundamental DNS resolution pattern.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 38 (DNS) covers the hierarchy. Wendell Odom OCG Chapter 8. The exam tests: (1) the hierarchy order (root -> TLD -> domain -> host), (2) there are 13 root server clusters, (3) resolution starts at the root and works down. This is conceptual — no DNS configuration is tested on the CCNA."
-    }
+      meta: "Jeremy's IT Lab Day 38 (DNS) covers the hierarchy. Wendell Odom OCG Chapter 8. The exam tests: (1) the hierarchy order (root -> TLD -> domain -> host), (2) there are 13 root server clusters, (3) resolution starts at the root and works down. This is conceptual — no DNS configuration is tested on the CCNA.",
+    },
+    micro: [
+      { id: "4.3.f.1", term: "DNS hierarchy",                def: "Root → TLD (.com, .org, .net) → domain (example.com) → host (www.example.com).", weight: "high" },
+      { id: "4.3.f.2", term: "13 root server clusters",      def: "A through M. Globally distributed (anycast). Resolution starts at the root.", weight: "med" },
+      { id: "4.3.f.3", term: "TLD (Top-Level Domain)",       def: ".com, .org, .net, .io, country codes. Managed by specific registries.", weight: "med" },
+      { id: "4.3.f.4", term: "FQDN",                         def: "Fully Qualified Domain Name. Full name including all levels: 'www.example.com.' (trailing dot = root).", weight: "low" }
+    ]
   },
 
   // ── 4.4  Explain SNMP ──────────────────────────────────────
@@ -969,8 +1013,15 @@ window.subtopicContentD34 = {
       memory: "Three components: Manager (the boss who asks questions), Agent (the on-site employee who answers), MIB (the clipboard of all available stats). Two port numbers: UDP 161 = queries (manager asks agent), UDP 162 = notifications (agent alerts manager). All UDP, never TCP.",
       practice: "Make a diagram showing the NMS, a router with an agent and MIB, and arrows for each message type. Label the ports: 161 for Get/Set (manager -> agent) and 162 for Trap/Inform (agent -> manager). This single diagram covers all SNMP architecture exam questions.",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 40 (SNMP) covers the architecture. Wendell Odom OCG Chapter 9. Know the three components (Manager, Agent, MIB), the two port numbers (161, 162), and that SNMP uses UDP only. The exam tests these as rapid-fire conceptual questions."
-    }
+      meta: "Jeremy's IT Lab Day 40 (SNMP) covers the architecture. Wendell Odom OCG Chapter 9. Know the three components (Manager, Agent, MIB), the two port numbers (161, 162), and that SNMP uses UDP only. The exam tests these as rapid-fire conceptual questions.",
+    },
+    micro: [
+      { id: "4.4.a.1", term: "SNMP",                         def: "Simple Network Management Protocol. Monitor and manage network devices. UDP only (not TCP).", weight: "high" },
+      { id: "4.4.a.2", term: "SNMP Manager",                 def: "The management station (e.g., SolarWinds, PRTG). Sends queries and receives traps.", weight: "high" },
+      { id: "4.4.a.3", term: "SNMP Agent",                   def: "Runs on managed device (router/switch). Responds to manager queries. Sends traps on events.", weight: "high" },
+      { id: "4.4.a.4", term: "MIB (Management Info Base)",   def: "Hierarchical database of manageable objects (OIDs) on a device. Agent exposes data via MIB.", weight: "high" },
+      { id: "4.4.a.5", term: "UDP 161 / UDP 162",            def: "161 = manager queries (GET/SET to agent). 162 = agent traps/informs (to manager).", weight: "high" }
+    ]
   },
 
   "4.4.b": {
@@ -980,8 +1031,15 @@ window.subtopicContentD34 = {
       memory: "Manager -> Agent (port 161): Get = 'tell me this,' GetNext = 'tell me what's next,' GetBulk = 'dump a section,' Set = 'change this.' Agent -> Manager (port 162): Trap = 'FIRE!' (hope someone hears — unreliable, no ACK), Inform = 'FIRE! Did you hear me?' (reliable, acknowledged). Trap = fire-and-forget. Inform = confirmed delivery.",
       practice: "Create flashcards for all 6 message types. Each card: message name, direction (manager->agent or agent->manager), port number, and whether it's acknowledged. The exam tests: 'Which SNMP message is reliable?' (Inform). 'Which messages are sent by the agent?' (Trap and Inform). 'Which message modifies a device?' (Set).",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 40 (SNMP) covers all message types. Wendell Odom OCG Chapter 9. Trap vs Inform is a guaranteed question: both are agent-initiated, UDP 162, but Inform is acknowledged (reliable). GetBulk is v2c+ only. Set requires rw access."
-    }
+      meta: "Jeremy's IT Lab Day 40 (SNMP) covers all message types. Wendell Odom OCG Chapter 9. Trap vs Inform is a guaranteed question: both are agent-initiated, UDP 162, but Inform is acknowledged (reliable). GetBulk is v2c+ only. Set requires rw access.",
+    },
+    micro: [
+      { id: "4.4.b.1", term: "Get / GetNext / GetBulk",      def: "Manager → Agent queries to retrieve OID values. GetBulk = multiple OIDs in one query (v2c+).", weight: "high" },
+      { id: "4.4.b.2", term: "Set",                          def: "Manager → Agent command to MODIFY a value. Requires read-write community/user.", weight: "high" },
+      { id: "4.4.b.3", term: "Trap",                         def: "Agent → Manager unsolicited alert. UDP 162. NOT acknowledged — fire-and-forget (unreliable).", weight: "high" },
+      { id: "4.4.b.4", term: "Inform",                       def: "Agent → Manager alert with ACK required. Reliable version of trap. Retransmitted if no ACK.", weight: "high" },
+      { id: "4.4.b.5", term: "Trap vs Inform",               def: "Both agent-initiated on UDP 162. Trap = fire-and-forget. Inform = reliable (ACK-based).", weight: "high" }
+    ]
   },
 
   "4.4.c": {
@@ -991,8 +1049,14 @@ window.subtopicContentD34 = {
       memory: "SNMPv2c = passwords (community strings) sent in the clear. Read-only (ro) = can look but not touch. Read-write (rw) = full access. Defaults: 'public' (ro), 'private' (rw) — NEVER use defaults. No encryption at all — anyone sniffing can see everything. The 'c' = community (that's the authentication method).",
       practice: "In Packet Tracer: (1) Configure 'snmp-server community MyString ro'. (2) Configure a trap receiver: 'snmp-server host [NMS-IP] version 2c MyString'. If possible, use Wireshark on a real lab to capture an SNMP packet and find the community string in plaintext — this viscerally demonstrates why v3 is needed.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 40 (SNMP) covers v2c security. Wendell Odom OCG Chapter 9. The exam asks: 'Which SNMP version uses community strings without encryption?' Answer: v2c (and v1). 'What is the default read-only community string?' Answer: public. Know that community strings are case-sensitive and plaintext."
-    }
+      meta: "Jeremy's IT Lab Day 40 (SNMP) covers v2c security. Wendell Odom OCG Chapter 9. The exam asks: 'Which SNMP version uses community strings without encryption?' Answer: v2c (and v1). 'What is the default read-only community string?' Answer: public. Know that community strings are case-sensitive and plaintext.",
+    },
+    micro: [
+      { id: "4.4.c.1", term: "SNMPv2c community strings",    def: "Plaintext passwords for SNMP access. Two types: read-only (RO) and read-write (RW). Case-sensitive.", weight: "high" },
+      { id: "4.4.c.2", term: "Default RO 'public'",          def: "Historic default read-only community string. 'public' / 'private' are textbook defaults — never use in production.", weight: "high" },
+      { id: "4.4.c.3", term: "v1 vs v2c",                    def: "Both plaintext community strings. v2c adds bulk operations (GetBulk) and Inform. v1 is basically obsolete.", weight: "med" },
+      { id: "4.4.c.4", term: "snmp-server community [str] [RO|RW]", def: "Cisco command to define community string and access level.", weight: "med" }
+    ]
   },
 
   "4.4.d": {
@@ -1002,8 +1066,15 @@ window.subtopicContentD34 = {
       memory: "Three SNMPv3 security levels: noAuthNoPriv = 'just a name tag' (username, no proof, no encryption). authNoPriv = 'ID badge with photo' (verified identity, but anyone can read your clipboard). authPriv = 'ID badge + locked briefcase' (verified identity + encrypted data). Only authPriv encrypts. Auth algorithms: MD5, SHA. Encryption: DES, 3DES, AES (prefer AES).",
       practice: "Make a 3-row table: Level | Authentication | Encryption | Use case. noAuthNoPriv: No/No/Don't use. authNoPriv: Yes (MD5/SHA)/No/When you need identity but data isn't sensitive. authPriv: Yes/Yes (AES)/Always in production. This table covers every exam question about SNMPv3 levels.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 40 (SNMP) covers v3 security levels. Wendell Odom OCG Chapter 9. The exam loves: 'Which SNMPv3 level provides both authentication AND encryption?' Answer: authPriv. 'Which algorithms does authPriv use?' Auth: MD5 or SHA. Encryption: DES, 3DES, or AES."
-    }
+      meta: "Jeremy's IT Lab Day 40 (SNMP) covers v3 security levels. Wendell Odom OCG Chapter 9. The exam loves: 'Which SNMPv3 level provides both authentication AND encryption?' Answer: authPriv. 'Which algorithms does authPriv use?' Auth: MD5 or SHA. Encryption: DES, 3DES, or AES.",
+    },
+    micro: [
+      { id: "4.4.d.1", term: "SNMPv3",                       def: "Adds authentication AND encryption to SNMP. RECOMMENDED for production. Only secure SNMP version.", weight: "high" },
+      { id: "4.4.d.2", term: "noAuthNoPriv",                 def: "No authentication, no encryption. Uses username only. Weakest SNMPv3 level.", weight: "high" },
+      { id: "4.4.d.3", term: "authNoPriv",                   def: "Authentication (MD5/SHA) but no encryption. Prevents spoofing but traffic is plaintext.", weight: "high" },
+      { id: "4.4.d.4", term: "authPriv",                     def: "BOTH authentication AND encryption. Strongest level. Auth = MD5/SHA. Encryption = DES/3DES/AES.", weight: "high" },
+      { id: "4.4.d.5", term: "SNMPv3 algorithms",            def: "Auth: MD5, SHA (SHA is preferred). Encryption: DES (weak), 3DES, AES-128/192/256.", weight: "med" }
+    ]
   },
 
   "4.4.e": {
@@ -1013,8 +1084,14 @@ window.subtopicContentD34 = {
       memory: "Only v3 encrypts. Period. v1 = plaintext community, no encryption. v2c = plaintext community, no encryption (but added GetBulk/Inform). v3 = users/groups, optional auth and encryption. v3 authPriv = the ONLY combination that encrypts SNMP traffic. Mnemonic: 'v3 = the only one with a vault.'",
       practice: "Write this on a flashcard: 'Which SNMP version provides encryption? v3. Which security level? authPriv. Which algorithms? Auth: MD5/SHA. Encrypt: DES/3DES/AES.' Review daily until the exam. This single flashcard covers the most common SNMP exam question.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 40 (SNMP) covers version comparison. Wendell Odom OCG Chapter 9. This appears every exam cycle: 'Which SNMP version provides encryption?' = SNMPv3. 'Which security level provides both authentication and encryption?' = authPriv. These are 1-2 second recall questions — drill until instant."
-    }
+      meta: "Jeremy's IT Lab Day 40 (SNMP) covers version comparison. Wendell Odom OCG Chapter 9. This appears every exam cycle: 'Which SNMP version provides encryption?' = SNMPv3. 'Which security level provides both authentication and encryption?' = authPriv. These are 1-2 second recall questions — drill until instant.",
+    },
+    micro: [
+      { id: "4.4.e.1", term: "v1 security",                  def: "Plaintext community strings. No auth, no encryption. Effectively obsolete.", weight: "med" },
+      { id: "4.4.e.2", term: "v2c security",                 def: "Same as v1 (plaintext communities) but adds GetBulk and Inform messages.", weight: "high" },
+      { id: "4.4.e.3", term: "v3 security",                  def: "Username-based auth + optional encryption. noAuthNoPriv / authNoPriv / authPriv levels.", weight: "high" },
+      { id: "4.4.e.4", term: "Which provides encryption?",   def: "ONLY SNMPv3 (at authPriv level). v1 and v2c are always plaintext.", weight: "high" }
+    ]
   },
 
   // ── 4.5  Describe syslog ───────────────────────────────────
@@ -1026,8 +1103,15 @@ window.subtopicContentD34 = {
       memory: "Level 0 = system is dead or dying. Lowest number = highest severity (counterintuitive). The entire syslog scale: 0 = Emergency, 1 = Alert, 2 = Critical, 3 = Error, 4 = Warning, 5 = Notification, 6 = Informational, 7 = Debugging. 'logging trap [level]' captures that level AND all more severe (lower numbers).",
       practice: "Memorize all 8 levels using the mnemonic: 'Every Awesome Cisco Engineer Will Need Ice cream Daily' — Emergency, Alert, Critical, Error, Warning, Notification, Informational, Debugging. Write it 5 times from memory. Then practice: 'What does logging trap 4 capture?' Answer: levels 0-4 (Emergency through Warning).",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 41 (Syslog) covers all severity levels. Wendell Odom OCG Chapter 9. The exam tests: (1) the mnemonic/order, (2) lower number = more severe, (3) 'logging trap [level]' captures that level and below. Write the mnemonic on your exam whiteboard as part of your brain dump."
-    }
+      meta: "Jeremy's IT Lab Day 41 (Syslog) covers all severity levels. Wendell Odom OCG Chapter 9. The exam tests: (1) the mnemonic/order, (2) lower number = more severe, (3) 'logging trap [level]' captures that level and below. Write the mnemonic on your exam whiteboard as part of your brain dump.",
+    },
+    micro: [
+      { id: "4.5.a.1", term: "Syslog severity 0-7",          def: "0 Emergency, 1 Alert, 2 Critical, 3 Error, 4 Warning, 5 Notification, 6 Informational, 7 Debug.", weight: "high" },
+      { id: "4.5.a.2", term: "Mnemonic",                     def: "'Every Awesome Cisco Engineer Will Need Ice-cream Daily.' E-A-C-E-W-N-I-D = 0-1-2-3-4-5-6-7.", weight: "high" },
+      { id: "4.5.a.3", term: "Lower number = more severe",   def: "0 = most critical (emergency). 7 = most verbose (debug). Severity INVERSELY related to number.", weight: "high" },
+      { id: "4.5.a.4", term: "logging trap [level]",         def: "Captures that level AND MORE SEVERE (lower). trap 4 = levels 0-4 (emergency through warning).", weight: "high" },
+      { id: "4.5.a.5", term: "Syslog UDP 514",               def: "Destination port for syslog messages. Remember: UDP (not TCP), port 514.", weight: "high" }
+    ]
   },
 
   "4.5.b": {
@@ -1037,8 +1121,12 @@ window.subtopicContentD34 = {
       memory: "Level 1 = 'Red alert — act NOW or it becomes level 0.' System is alive but something critical needs fixing immediately. Levels 0-1 = crisis levels. 'A' in the mnemonic = 'Awesome' = Alert. Think: 'Awesome' because it's so serious you'd use strong language.",
       practice: "Group the levels mentally: 0-3 = crisis levels (wake-you-up severity). 4-7 = operational levels (daily monitoring). This grouping helps you quickly assess severity when reading logs. The exam doesn't test individual level definitions deeply — it tests the ORDER and the mnemonic.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 41 (Syslog). Wendell Odom OCG Chapter 9. Levels 0-1 are rarely tested individually. The exam focuses on the complete sequence, the mnemonic, and the 'logging trap' filter logic."
-    }
+      meta: "Jeremy's IT Lab Day 41 (Syslog). Wendell Odom OCG Chapter 9. Levels 0-1 are rarely tested individually. The exam focuses on the complete sequence, the mnemonic, and the 'logging trap' filter logic.",
+    },
+    micro: [
+      { id: "4.5.b.1", term: "0 Emergency",                  def: "System unusable. Device about to crash or panic. Action required immediately.", weight: "med" },
+      { id: "4.5.b.2", term: "1 Alert",                      def: "Immediate action needed. Something critical happened but device may still operate.", weight: "med" }
+    ]
   },
 
   "4.5.c": {
@@ -1048,8 +1136,12 @@ window.subtopicContentD34 = {
       memory: "Level 2 = 'Something important broke but the system is limping along.' Think hardware failure with redundancy still covering. 'C' in the mnemonic = 'Cisco' = Critical. Cisco syslog format: %FACILITY-SEVERITY-MNEMONIC — the middle number IS the severity level.",
       practice: "Learn to read the Cisco syslog format: %SYS-2-MALLOCFAIL means the SYS facility generated a level 2 (Critical) message about memory allocation failure. Practice identifying the severity level from the middle number in sample syslog messages.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 41 (Syslog). Wendell Odom OCG Chapter 9. Know the syslog message format (%FACILITY-SEVERITY-MNEMONIC) — the exam may show a syslog message and ask 'what is the severity level?' You read the middle number."
-    }
+      meta: "Jeremy's IT Lab Day 41 (Syslog). Wendell Odom OCG Chapter 9. Know the syslog message format (%FACILITY-SEVERITY-MNEMONIC) — the exam may show a syslog message and ask 'what is the severity level?' You read the middle number.",
+    },
+    micro: [
+      { id: "4.5.c.1", term: "2 Critical",                   def: "Critical condition. Serious but device still runs. Example: hardware temperature critical.", weight: "med" },
+      { id: "4.5.c.2", term: "Syslog message format",        def: "%FACILITY-SEVERITY-MNEMONIC: message. Example: %LINK-3-UPDOWN. Middle number = severity.", weight: "high" }
+    ]
   },
 
   "4.5.d": {
@@ -1059,8 +1151,12 @@ window.subtopicContentD34 = {
       memory: "Level 3 = 'Something broke but the system is fine overall.' An operation failed, not the system. 'E' in the mnemonic = 'Engineer' = Error. Error (3) means it ALREADY happened. Warning (4) means it MIGHT happen. This past vs future distinction is how to tell them apart.",
       practice: "In Packet Tracer: shut an interface and check the log with 'show logging'. The interface down message is a level 3 or 5 event. Practice reading syslog output and identifying the severity from the message format.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 41 (Syslog). Wendell Odom OCG Chapter 9. Level 3 errors are the bread-and-butter of daily troubleshooting. The exam tests severity ordering, not individual error classification."
-    }
+      meta: "Jeremy's IT Lab Day 41 (Syslog). Wendell Odom OCG Chapter 9. Level 3 errors are the bread-and-butter of daily troubleshooting. The exam tests severity ordering, not individual error classification.",
+    },
+    micro: [
+      { id: "4.5.d.1", term: "3 Error",                      def: "Error condition. Something failed but device recovers. Most daily troubleshooting lives here.", weight: "med" },
+      { id: "4.5.d.2", term: "Example level 3 messages",     def: "OSPF neighbor down, interface errors, authentication failures. Common real-world logs.", weight: "low" }
+    ]
   },
 
   "4.5.e": {
@@ -1070,8 +1166,12 @@ window.subtopicContentD34 = {
       memory: "Level 4 = 'Yellow light — pay attention or it'll turn red.' Not broken yet, but heading that way. 'W' in the mnemonic = 'Will' = Warning. Key exam concept: 'logging trap [level]' captures THAT level + all lower (more severe). 'logging trap 4' = 0+1+2+3+4. Levels 0-4 = problems. Levels 5-7 = normal operations.",
       practice: "Practice the trap filter logic: If 'logging trap warnings' is configured, which levels go to the server? Answer: 0, 1, 2, 3, 4. If 'logging trap informational' (level 6)? Answer: 0-6. If 'logging trap debugging' (level 7)? Answer: 0-7 (everything). This filter logic is commonly tested.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 41 (Syslog). Wendell Odom OCG Chapter 9. The 'logging trap' filter logic is a key exam concept. Know that specifying a level captures that level AND all more severe (lower numbers). 'logging trap 4' means Emergency through Warning."
-    }
+      meta: "Jeremy's IT Lab Day 41 (Syslog). Wendell Odom OCG Chapter 9. The 'logging trap' filter logic is a key exam concept. Know that specifying a level captures that level AND all more severe (lower numbers). 'logging trap 4' means Emergency through Warning.",
+    },
+    micro: [
+      { id: "4.5.e.1", term: "4 Warning",                    def: "Warning condition. Potentially problematic but not yet an error. Example: config changed.", weight: "med" },
+      { id: "4.5.e.2", term: "logging trap 4",               def: "Sends levels 0-4 (Emergency through Warning) to syslog server. Common production setting.", weight: "high" }
+    ]
   },
 
   "4.5.f": {
@@ -1081,8 +1181,12 @@ window.subtopicContentD34 = {
       memory: "Level 5 = 'FYI — this happened and it's normal.' Not a problem, just noteworthy. OSPF neighbor up? Level 5. Interface state change? Level 5. Config saved? Level 5. 'N' in the mnemonic = 'Need' = Notification. The 4/5 boundary = problems end, normal events begin.",
       practice: "Run 'show logging' on any Cisco device. Most logged messages are level 5-6. Identify the severity from the message format (%FACILITY-5-MNEMONIC) and note which events Cisco considers 'notification' vs 'informational.'",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 41 (Syslog). Wendell Odom OCG Chapter 9. Level 5 is tested as part of the full sequence. Know that many common Cisco state-change messages (OSPF neighbor up, interface up/down) are level 5."
-    }
+      meta: "Jeremy's IT Lab Day 41 (Syslog). Wendell Odom OCG Chapter 9. Level 5 is tested as part of the full sequence. Know that many common Cisco state-change messages (OSPF neighbor up, interface up/down) are level 5.",
+    },
+    micro: [
+      { id: "4.5.f.1", term: "5 Notification",               def: "Normal but significant event. OSPF adjacency up/down, interface state change, config save.", weight: "med" },
+      { id: "4.5.f.2", term: "Common level 5 events",        def: "%LINK-5-CHANGED (interface state), %OSPF-5-ADJCHG (OSPF neighbor state).", weight: "low" }
+    ]
   },
 
   "4.5.g": {
@@ -1092,8 +1196,12 @@ window.subtopicContentD34 = {
       memory: "Level 6 = 'Everything's fine, here's the record.' Routine operations logged for reference. 'I' in the mnemonic = 'Ice cream' = Informational. Default logging level on most Cisco devices is 6 (informational). Trap: don't confuse Notification (5) with Informational (6) — know which number goes with which name.",
       practice: "Run 'show logging' on a Cisco device. Note the default logging level (usually informational/6 for console and buffer). Scroll through the buffer messages and identify which are level 5 (notification) vs level 6 (informational) by reading the severity number in each message.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 41 (Syslog). Wendell Odom OCG Chapter 9. The exam trick: Notification = 5, Informational = 6. Students mix these up. Memorize the mnemonic and the exact number-to-name pairing."
-    }
+      meta: "Jeremy's IT Lab Day 41 (Syslog). Wendell Odom OCG Chapter 9. The exam trick: Notification = 5, Informational = 6. Students mix these up. Memorize the mnemonic and the exact number-to-name pairing.",
+    },
+    micro: [
+      { id: "4.5.g.1", term: "6 Informational",              def: "Informational message. Routine events. Classic trap: Notification=5, Informational=6. Don't swap them.", weight: "med" },
+      { id: "4.5.g.2", term: "5 vs 6 mix-up",                def: "Notification (5) is more significant than Informational (6). Mnemonic has N before I.", weight: "med" }
+    ]
   },
 
   "4.5.h": {
@@ -1103,8 +1211,12 @@ window.subtopicContentD34 = {
       memory: "Level 7 = 'show me EVERYTHING' — the firehose. Highest number = least severe = most verbose. NEVER leave on production devices — can crash routers. Always 'undebug all' when done. 'D' in the mnemonic = 'Daily' = Debugging. Exam questions: 'Least severe level?' = 7. 'Should NOT be left on production?' = 7. 'Most verbose?' = 7.",
       practice: "In Packet Tracer (safe environment): (1) Run 'debug ip icmp'. (2) Ping something. (3) Watch the flood of level 7 messages. (4) Immediately run 'undebug all'. This shows why debugging is dangerous — even a simple ICMP debug generates significant output. Imagine this on a production router handling thousands of packets per second.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 41 (Syslog). Wendell Odom OCG Chapter 9. Level 7 questions are guaranteed: 'Which level should NOT be left on production?' (7/debugging). 'Which is least severe?' (7). 'Which is most verbose?' (7). All the same answer."
-    }
+      meta: "Jeremy's IT Lab Day 41 (Syslog). Wendell Odom OCG Chapter 9. Level 7 questions are guaranteed: 'Which level should NOT be left on production?' (7/debugging). 'Which is least severe?' (7). 'Which is most verbose?' (7). All the same answer.",
+    },
+    micro: [
+      { id: "4.5.h.1", term: "7 Debug",                      def: "Least severe, MOST verbose. Enable only for troubleshooting. Never leave on in production — floods logs.", weight: "high" },
+      { id: "4.5.h.2", term: "debug commands",               def: "'debug ...' at privileged exec. Generates level 7 messages. Turn off with 'no debug all' or 'undebug all'.", weight: "med" }
+    ]
   },
 
   "4.5.i": {
@@ -1114,8 +1226,12 @@ window.subtopicContentD34 = {
       memory: "EVERY AWESOME CISCO ENGINEER WILL NEED ICE CREAM DAILY. Emergency-Alert-Critical-Error-Warning-Notification-Informational-Debugging. 0-1-2-3-4-5-6-7. Write this on your exam whiteboard FIRST THING. Anchors: 0=worst, 7=least severe, 4=problem/normal boundary.",
       practice: "Write the mnemonic and all 8 level names/numbers from memory 5 times. Then test yourself backwards: given 'level 5,' what is it? (Notification). Given 'Error,' what level? (3). Given 'logging trap 3,' which levels are captured? (0-3). Practice all three directions until instant.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 41 (Syslog). Wendell Odom OCG Chapter 9. This mnemonic is the #1 community recommendation. Boson and Pearson practice exams test syslog levels in multiple questions per exam. Brain dump this mnemonic onto the whiteboard along with your AD values and subnet chart."
-    }
+      meta: "Jeremy's IT Lab Day 41 (Syslog). Wendell Odom OCG Chapter 9. This mnemonic is the #1 community recommendation. Boson and Pearson practice exams test syslog levels in multiple questions per exam. Brain dump this mnemonic onto the whiteboard along with your AD values and subnet chart.",
+    },
+    micro: [
+      { id: "4.5.i.1", term: "'Every Awesome Cisco Engineer Will Need Ice-cream Daily'", def: "Mnemonic for 0-7: Emergency, Alert, Critical, Error, Warning, Notification, Informational, Debug.", weight: "high" },
+      { id: "4.5.i.2", term: "Brain dump on whiteboard",     def: "Write syslog severities + AD values + subnet chart FIRST at exam start. Frees mental space for questions.", weight: "high" }
+    ]
   },
 
   "4.5.j": {
@@ -1125,8 +1241,15 @@ window.subtopicContentD34 = {
       memory: "Four destinations: Console (direct), Monitor (VTY, needs 'terminal monitor'), Buffer (RAM, lost on reboot), Server (remote, UDP 514, survives reboot). Each has its own level filter. Only the syslog server survives reboot. Mnemonic: CMBS = 'Cisco Makes Better Switches.'",
       practice: "In Packet Tracer: (1) Configure 'logging console warnings' (levels 0-4 on console). (2) Configure 'logging buffered 16384 informational' (levels 0-6 in RAM). (3) Configure 'logging host 10.1.1.100' + 'logging trap notifications' (levels 0-5 to server). (4) Run 'show logging' and verify each destination shows its configured level.",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 41 (Syslog). Wendell Odom OCG Chapter 9. The exam asks: 'Which logging destination survives a reboot?' (syslog server — not buffer, which is RAM). 'Which command shows buffered logs?' ('show logging'). 'What port does syslog use?' (UDP 514). Know all four destinations and their characteristics."
-    }
+      meta: "Jeremy's IT Lab Day 41 (Syslog). Wendell Odom OCG Chapter 9. The exam asks: 'Which logging destination survives a reboot?' (syslog server — not buffer, which is RAM). 'Which command shows buffered logs?' ('show logging'). 'What port does syslog use?' (UDP 514). Know all four destinations and their characteristics.",
+    },
+    micro: [
+      { id: "4.5.j.1", term: "Four logging destinations",    def: "Console, VTY terminal, buffer (RAM), syslog server. Each has its own severity filter.", weight: "high" },
+      { id: "4.5.j.2", term: "Console logging",              def: "'logging console [level]'. Default enabled at level 7. Seen on direct console connection.", weight: "high" },
+      { id: "4.5.j.3", term: "Terminal (VTY) logging",       def: "'logging monitor [level]' + 'terminal monitor' per session. Seen over SSH/Telnet.", weight: "med" },
+      { id: "4.5.j.4", term: "Buffer logging",               def: "'logging buffered [level]'. Stored in RAM. View with 'show logging'. Lost on reboot.", weight: "high" },
+      { id: "4.5.j.5", term: "Syslog server logging",        def: "'logging [server-ip]' + 'logging trap [level]'. Survives reboot. UDP 514. Best for production.", weight: "high" }
+    ]
   },
 
   "4.5.k": {
@@ -1136,8 +1259,14 @@ window.subtopicContentD34 = {
       memory: "'logging trap' = what severity goes to the SYSLOG SERVER. 'logging buffered' = what goes to RAM. 'logging console' = what goes to the screen. 'service timestamps log datetime msec' = ALWAYS configure this for useful logs. The trap level is a FLOOR — captures that level + all more severe (lower numbers). logging trap 4 = levels 0-4.",
       practice: "In Packet Tracer: (1) Configure 'service timestamps log datetime msec'. (2) Configure 'logging host 10.1.1.100' and 'logging trap warnings'. (3) Configure 'logging buffered 32768 informational'. (4) Generate events (shut/no shut an interface). (5) Run 'show logging' — verify timestamped messages in the buffer. (6) Change to 'logging trap debugging' and verify all levels are now captured.",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 41 (Syslog). Wendell Odom OCG Chapter 9. The exam heavily tests 'logging trap': 'If logging trap is set to 4, which messages are sent to the server?' (0-4). Always remember: the trap level = floor, includes that level + all more severe. 'service timestamps' is a best practice tested in lab sims."
-    }
+      meta: "Jeremy's IT Lab Day 41 (Syslog). Wendell Odom OCG Chapter 9. The exam heavily tests 'logging trap': 'If logging trap is set to 4, which messages are sent to the server?' (0-4). Always remember: the trap level = floor, includes that level + all more severe. 'service timestamps' is a best practice tested in lab sims.",
+    },
+    micro: [
+      { id: "4.5.k.1", term: "logging host / logging [ip]",  def: "Set syslog server destination. Required first step for server logging.", weight: "high" },
+      { id: "4.5.k.2", term: "logging trap [level]",         def: "Filter messages sent to syslog server. Captures that level + all more severe (lower numbers).", weight: "high" },
+      { id: "4.5.k.3", term: "service timestamps log datetime", def: "Best practice. Adds date/time to every log message. Critical for correlation.", weight: "high" },
+      { id: "4.5.k.4", term: "service sequence-numbers",     def: "Adds sequence numbers to log messages. Helps detect dropped messages.", weight: "low" }
+    ]
   },
 
   // ── 4.6  Configure DHCP client and relay ───────────────────
@@ -1149,8 +1278,12 @@ window.subtopicContentD34 = {
       memory: "'ip address dhcp' = 'I don't have my own address — please assign me one.' Used on ISP-facing interfaces when the ISP controls addressing. This makes the ROUTER a DHCP client. Verify with 'show ip interface brief' and 'show dhcp lease.'",
       practice: "In Packet Tracer: (1) Set up a DHCP server on one side. (2) Configure a router's interface with 'ip address dhcp' instead of a static IP. (3) Verify the interface receives an IP with 'show ip interface brief.' (4) Compare to a statically configured interface — the behavior is identical after the address is assigned.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 39 (DHCP) covers DHCP client configuration. Wendell Odom OCG Chapter 8. This is a one-command concept: 'Which command configures an interface to receive its IP via DHCP?' Answer: 'ip address dhcp.' Simple recall — but know that this makes the ROUTER a client, not a server."
-    }
+      meta: "Jeremy's IT Lab Day 39 (DHCP) covers DHCP client configuration. Wendell Odom OCG Chapter 8. This is a one-command concept: 'Which command configures an interface to receive its IP via DHCP?' Answer: 'ip address dhcp.' Simple recall — but know that this makes the ROUTER a client, not a server.",
+    },
+    micro: [
+      { id: "4.6.a.1", term: "ip address dhcp",              def: "Interface command. Makes the router interface a DHCP CLIENT. Gets IP from a DHCP server.", weight: "high" },
+      { id: "4.6.a.2", term: "Router as DHCP client",        def: "Used for WAN interface facing ISP. ISP runs DHCP; router gets public IP dynamically.", weight: "high" }
+    ]
   },
 
   "4.6.b": {
@@ -1160,8 +1293,13 @@ window.subtopicContentD34 = {
       memory: "'ip helper-address [server-IP]' = the relay runner. Configured on the CLIENT-facing interface (gateway), points to the SERVER's IP. The relay catches the client's broadcast (which would die at the router) and hand-delivers it as a unicast to the server. GIADDR field tells the server which subnet the client is on.",
       practice: "In Packet Tracer: (1) Build a topology where DHCP server is on a different VLAN/subnet than clients. (2) Try getting a DHCP address from a client — it fails (broadcasts don't cross routers). (3) Configure 'ip helper-address [server-IP]' on the client's gateway interface. (4) Try again — it works. (5) Run 'show ip dhcp binding' on the server to verify the lease.",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 39 (DHCP) covers relay configuration. Wendell Odom OCG Chapter 8. This is heavily tested. Know THREE things: (1) Configured on the CLIENT-facing interface. (2) Points to the SERVER's IP. (3) Needed because broadcasts don't cross routers. These three facts answer every DHCP relay exam question."
-    }
+      meta: "Jeremy's IT Lab Day 39 (DHCP) covers relay configuration. Wendell Odom OCG Chapter 8. This is heavily tested. Know THREE things: (1) Configured on the CLIENT-facing interface. (2) Points to the SERVER's IP. (3) Needed because broadcasts don't cross routers. These three facts answer every DHCP relay exam question.",
+    },
+    micro: [
+      { id: "4.6.b.1", term: "ip helper-address [server-ip]", def: "Interface command. Forwards DHCP broadcasts as unicast to the server IP.", weight: "high" },
+      { id: "4.6.b.2", term: "Configure on client-facing",   def: "Apply to the interface that the client uses (the router's LAN-side SVI, not the server-side).", weight: "high" },
+      { id: "4.6.b.3", term: "Points to SERVER's IP",        def: "The IP you enter in 'ip helper-address' is the DHCP server's address, not the client's.", weight: "high" }
+    ]
   },
 
   "4.6.c": {
@@ -1171,8 +1309,13 @@ window.subtopicContentD34 = {
       memory: "Broadcasts stop at the router — that's a fundamental rule. DHCP Discover is a broadcast. Without a relay, the broadcast dies at the router boundary, and the server on the other subnet never hears it. 'ip helper-address' converts the broadcast to unicast, letting it cross the router. Bonus: helper-address also relays TFTP, DNS, and other UDP broadcasts (not just DHCP).",
       practice: "In Packet Tracer: Use SIMULATION mode. (1) Without helper-address: send a DHCP Discover and watch it get dropped at the router (no packet leaves the client's subnet). (2) Add 'ip helper-address' on the gateway. (3) Send another Discover and watch it traverse to the DHCP server as a unicast. This visual demonstration cements the concept.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 39 (DHCP). Wendell Odom OCG Chapter 8. The 'why' is tested conceptually: 'Why can't a client on subnet A get a DHCP address from a server on subnet B without configuration?' Answer: broadcasts don't cross routers (Layer 3 boundaries). The solution: DHCP relay agent (ip helper-address)."
-    }
+      meta: "Jeremy's IT Lab Day 39 (DHCP). Wendell Odom OCG Chapter 8. The 'why' is tested conceptually: 'Why can't a client on subnet A get a DHCP address from a server on subnet B without configuration?' Answer: broadcasts don't cross routers (Layer 3 boundaries). The solution: DHCP relay agent (ip helper-address).",
+    },
+    micro: [
+      { id: "4.6.c.1", term: "Broadcasts don't cross routers", def: "Routers drop broadcasts by default. DHCP Discover is a broadcast — won't reach server on another subnet.", weight: "high" },
+      { id: "4.6.c.2", term: "DHCP relay agent",             def: "Router converts client broadcast to unicast to the DHCP server. Essential for centralized DHCP.", weight: "high" },
+      { id: "4.6.c.3", term: "Centralized DHCP design",      def: "One DHCP server serves all subnets. Each router with a client-facing SVI has 'ip helper-address'.", weight: "med" }
+    ]
   },
 
   "4.6.d": {
@@ -1182,8 +1325,13 @@ window.subtopicContentD34 = {
       memory: "DHCP server recipe: 5 commands. (1) ip dhcp pool [name], (2) network [IP] [mask], (3) default-router [gateway], (4) dns-server [IP], (5) lease [d h m]. Mnemonic: 'Please Name Default DNS Leases.' TRAP: it's 'default-ROUTER' not 'default-gateway.' Also configure exclusions BEFORE the pool in global config.",
       practice: "In Packet Tracer: (1) Configure excluded addresses: 'ip dhcp excluded-address 192.168.1.1 192.168.1.10'. (2) Create the pool with all 5 commands. (3) Connect 3 PCs as DHCP clients. (4) Verify each PC got an IP with 'ipconfig /all' — check IP, mask, gateway, DNS. (5) Run 'show ip dhcp binding' on the router — verify all 3 leases. (6) Run 'show ip dhcp pool' — check utilization. Practice until you can type all commands from memory in under 60 seconds.",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 39 (DHCP) covers full server configuration. Wendell Odom OCG Chapter 8. The exam expects you to configure a DHCP server in a lab sim. Practice the five pool commands and the excluded-address command until they're muscle memory. The 'default-router' vs 'default-gateway' trap is real."
-    }
+      meta: "Jeremy's IT Lab Day 39 (DHCP) covers full server configuration. Wendell Odom OCG Chapter 8. The exam expects you to configure a DHCP server in a lab sim. Practice the five pool commands and the excluded-address command until they're muscle memory. The 'default-router' vs 'default-gateway' trap is real.",
+    },
+    micro: [
+      { id: "4.6.d.1", term: "Full DHCP server recipe",      def: "1) exclude gateway/static IPs, 2) pool NAME, 3) network, 4) default-router, 5) dns-server, 6) lease.", weight: "high" },
+      { id: "4.6.d.2", term: "Order matters?",               def: "Exclude BEFORE pool is safest (excluded IPs never leased). IOS accepts either order but practice best.", weight: "med" },
+      { id: "4.6.d.3", term: "Cisco router as DHCP server",  def: "Full DHCP pool support built in. Can serve multiple subnets (multiple pools).", weight: "high" }
+    ]
   },
 
   "4.6.e": {
@@ -1193,8 +1341,13 @@ window.subtopicContentD34 = {
       memory: "Exclusions = reserved parking spots. DHCP won't assign these IPs because they're already taken by static devices (gateway, servers, printers). KEY: configured in GLOBAL config, NOT inside the pool. 'ip dhcp excluded-address [start] [end].' Always exclude the gateway IP at minimum.",
       practice: "In Packet Tracer: (1) Configure a DHCP pool WITHOUT exclusions. (2) Statically assign 192.168.1.1 to the gateway. (3) Connect PCs — one might get 192.168.1.1 (IP conflict!). (4) Fix it: add 'ip dhcp excluded-address 192.168.1.1 192.168.1.10' in global config. (5) Clear bindings: 'clear ip dhcp binding *'. (6) Verify PCs now get .11 and above.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 39 (DHCP). Wendell Odom OCG Chapter 8. The exam tests: (1) excluded-address is in GLOBAL config (not pool config), (2) always exclude static IPs (especially the gateway), (3) the command takes a single IP or a range. Students losing points by configuring it in the wrong mode is very common."
-    }
+      meta: "Jeremy's IT Lab Day 39 (DHCP). Wendell Odom OCG Chapter 8. The exam tests: (1) excluded-address is in GLOBAL config (not pool config), (2) always exclude static IPs (especially the gateway), (3) the command takes a single IP or a range. Students losing points by configuring it in the wrong mode is very common.",
+    },
+    micro: [
+      { id: "4.6.e.1", term: "ip dhcp excluded-address",     def: "GLOBAL command (NOT inside pool config). Reserves IPs so DHCP won't assign them.", weight: "high" },
+      { id: "4.6.e.2", term: "Always exclude gateway",       def: "The router's own gateway IP is usually at .1. Must exclude or DHCP could assign it to a client (conflict).", weight: "high" },
+      { id: "4.6.e.3", term: "Exclude range syntax",         def: "'ip dhcp excluded-address 10.0.0.1 10.0.0.10' reserves the whole range. Supports single or range.", weight: "med" }
+    ]
   },
 
   "4.6.f": {
@@ -1204,8 +1357,13 @@ window.subtopicContentD34 = {
       memory: "Four DHCP show commands: Binding = who has what IP (roster). Pool = how full is the pool (capacity). Conflict = duplicate IPs detected (problems). Statistics = DORA message counts (traffic). Troubleshooting order: reachability -> helper-address -> pool availability -> configuration.",
       practice: "After configuring a DHCP server in Packet Tracer: (1) Run 'show ip dhcp binding' — identify which MAC got which IP. (2) Run 'show ip dhcp pool' — check total/available/excluded counts match expectations. (3) Run 'show ip dhcp server statistics' — verify Discover and Acknowledge counts are non-zero. (4) Run 'show ip dhcp conflict' — should be empty on a clean setup.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 39 (DHCP). Wendell Odom OCG Chapter 8. The exam commonly shows 'show ip dhcp binding' output and asks: 'Which IP was assigned to MAC XXXX.XXXX.XXXX?' Practice reading this output — it's a straightforward table lookup question."
-    }
+      meta: "Jeremy's IT Lab Day 39 (DHCP). Wendell Odom OCG Chapter 8. The exam commonly shows 'show ip dhcp binding' output and asks: 'Which IP was assigned to MAC XXXX.XXXX.XXXX?' Practice reading this output — it's a straightforward table lookup question.",
+    },
+    micro: [
+      { id: "4.6.f.1", term: "show ip dhcp binding",         def: "Shows active DHCP leases: IP, client MAC, lease expiration. Exam often reads from this output.", weight: "high" },
+      { id: "4.6.f.2", term: "show ip dhcp pool",            def: "Shows pool stats: total addresses, leased, excluded.", weight: "med" },
+      { id: "4.6.f.3", term: "show ip dhcp conflict",        def: "Shows IP conflict detection. If two devices claim same IP, DHCP logs it here.", weight: "low" }
+    ]
   },
 
   // ── 4.7  Explain QoS (PHB) ────────────────────────────────
@@ -1217,8 +1375,15 @@ window.subtopicContentD34 = {
       memory: "Classification = sorting mail into bins (voice, video, data, junk). You must identify the traffic before you can treat it differently. QoS pipeline: Classify -> Mark -> Queue -> Schedule. No classification = best-effort (all traffic equal). QoS on CCNA is CONCEPTUAL ONLY — no configuration.",
       practice: "Memorize the QoS pipeline order: Classification -> Marking -> Queuing/Congestion Management -> Congestion Avoidance -> Scheduling. Know what each step does. No lab needed — create flashcards for each QoS concept with its definition and purpose.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 46 (QoS) covers all concepts. Wendell Odom OCG Chapter 12. QoS on CCNA = concepts only. Know the processing order, the terminology (classification, marking, queuing, policing, shaping), and the difference between per-hop behaviors. No configuration is tested."
-    }
+      meta: "Jeremy's IT Lab Day 46 (QoS) covers all concepts. Wendell Odom OCG Chapter 12. QoS on CCNA = concepts only. Know the processing order, the terminology (classification, marking, queuing, policing, shaping), and the difference between per-hop behaviors. No configuration is tested.",
+    },
+    micro: [
+      { id: "4.7.a.1", term: "QoS processing order",         def: "Classification → Marking → Queuing → Policing/Shaping → Congestion avoidance. Memorize the order.", weight: "high" },
+      { id: "4.7.a.2", term: "Classification",               def: "Identify traffic type (voice, video, data). Based on ACL, protocol, port, or deep packet inspection.", weight: "high" },
+      { id: "4.7.a.3", term: "Marking",                      def: "Tag frames/packets with QoS value (CoS, DSCP). Subsequent hops use the mark to prioritize.", weight: "high" },
+      { id: "4.7.a.4", term: "Per-Hop Behavior (PHB)",       def: "Each router independently applies QoS based on the marking. End-to-end consistency requires all routers to agree.", weight: "med" },
+      { id: "4.7.a.5", term: "CCNA QoS scope = concepts only", def: "No config tested. Know terminology, order, and what each component does.", weight: "high" }
+    ]
   },
 
   "4.7.b": {
@@ -1228,8 +1393,14 @@ window.subtopicContentD34 = {
       memory: "CoS = sticker on the OUTSIDE of the envelope (removed when the envelope is opened/re-enveloped at the router). DSCP = stamp INSIDE the letter (stays with the letter forever). CoS = Layer 2, 3 bits, 0-7, 802.1Q tag, lost at routing. DSCP = Layer 3, 6 bits, 0-63, IP header, survives routing. DSCP always wins for end-to-end QoS.",
       practice: "Make a comparison flashcard: CoS vs DSCP — layer, bits, values, location, persistence. This single card answers every marking exam question. Know that switches use CoS internally but must map CoS to DSCP when traffic crosses a router.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 46 (QoS). Wendell Odom OCG Chapter 12. Guaranteed exam question: 'Which QoS marking survives across Layer 3 hops?' Answer: DSCP. 'Which is in the 802.1Q tag?' Answer: CoS. 'How many bits/values?' CoS=3/8, DSCP=6/64."
-    }
+      meta: "Jeremy's IT Lab Day 46 (QoS). Wendell Odom OCG Chapter 12. Guaranteed exam question: 'Which QoS marking survives across Layer 3 hops?' Answer: DSCP. 'Which is in the 802.1Q tag?' Answer: CoS. 'How many bits/values?' CoS=3/8, DSCP=6/64.",
+    },
+    micro: [
+      { id: "4.7.b.1", term: "CoS (Class of Service)",       def: "L2 marking. 3 bits in 802.1Q tag (PCP field). 8 values (0-7). Lost at L3 boundaries.", weight: "high" },
+      { id: "4.7.b.2", term: "DSCP",                         def: "L3 marking. 6 bits in IP header (ToS field). 64 values. SURVIVES across L3 hops.", weight: "high" },
+      { id: "4.7.b.3", term: "CoS vs DSCP",                  def: "CoS = L2 only. DSCP = L3, end-to-end. For end-to-end QoS across routed networks, use DSCP.", weight: "high" },
+      { id: "4.7.b.4", term: "IP Precedence (legacy)",       def: "Older L3 marking. 3 bits (same position as CoS but in IP header). Replaced by DSCP.", weight: "med" }
+    ]
   },
 
   "4.7.c": {
@@ -1239,8 +1410,14 @@ window.subtopicContentD34 = {
       memory: "EF = 46 = voice (Express Freeway — always goes first). AF = Assured Forwarding: 4 classes (1-4), 3 drop levels (1-3). Higher class = more priority. Higher drop = more likely to be dropped during congestion. CS = Class Selector for backward compatibility with IP Precedence. Default = DSCP 0 = best effort. Memorize: EF=46, Default=0. That covers most exam questions.",
       practice: "Memorize: EF = DSCP 46 (voice). AF classes range from 1 (bulk) to 4 (video). Drop precedence: 1 = low drop, 3 = high drop. Default = DSCP 0. Make a quick reference table, but don't memorize all decimal AF values — just know the structure (class x drop precedence).",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 46 (QoS). Wendell Odom OCG Chapter 12. For the exam: EF=46 (voice) is the #1 tested value. Know that AF has 4 classes with 3 drop precedences each. Know that CS provides backward compatibility with IP Precedence. Don't memorize every AF decimal value — know the structure."
-    }
+      meta: "Jeremy's IT Lab Day 46 (QoS). Wendell Odom OCG Chapter 12. For the exam: EF=46 (voice) is the #1 tested value. Know that AF has 4 classes with 3 drop precedences each. Know that CS provides backward compatibility with IP Precedence. Don't memorize every AF decimal value — know the structure.",
+    },
+    micro: [
+      { id: "4.7.c.1", term: "EF (Expedited Forwarding)",    def: "DSCP value 46. Used for VOICE traffic (VoIP). Lowest latency, strict priority.", weight: "high" },
+      { id: "4.7.c.2", term: "AF (Assured Forwarding)",      def: "4 classes × 3 drop precedences (12 values). Used for video and data classes. AF41 = high priority video.", weight: "med" },
+      { id: "4.7.c.3", term: "CS (Class Selector)",          def: "Backward compatibility with IP Precedence. CS0-CS7. First 3 DSCP bits mirror IPP values.", weight: "med" },
+      { id: "4.7.c.4", term: "Default DSCP 0",               def: "Best-effort. Untagged or default traffic. Gets whatever bandwidth remains after priority queues.", weight: "med" }
+    ]
   },
 
   "4.7.d": {
@@ -1250,8 +1427,14 @@ window.subtopicContentD34 = {
       memory: "LLQ = VIP express lane (strict priority, always goes first — used for voice/video). CBWFQ = guaranteed lanes on the highway (each class gets a minimum bandwidth percentage). Together: voice gets LLQ (always first), everything else gets CBWFQ (fair bandwidth shares). LLQ has a built-in policer to prevent priority traffic from taking ALL bandwidth.",
       practice: "Draw the queuing model: one priority queue (LLQ for voice) feeding directly to the output, plus multiple CBWFQ queues (video=30%, data=20%, default=remaining) sharing the rest. This single diagram covers the queuing concept for the exam. No configuration is tested.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 46 (QoS). Wendell Odom OCG Chapter 12. Know: LLQ = strict priority for voice (low latency), CBWFQ = bandwidth guarantees for data classes. The exam tests concepts: 'Which queuing mechanism provides strict priority?' (LLQ). 'Which guarantees minimum bandwidth?' (CBWFQ)."
-    }
+      meta: "Jeremy's IT Lab Day 46 (QoS). Wendell Odom OCG Chapter 12. Know: LLQ = strict priority for voice (low latency), CBWFQ = bandwidth guarantees for data classes. The exam tests concepts: 'Which queuing mechanism provides strict priority?' (LLQ). 'Which guarantees minimum bandwidth?' (CBWFQ).",
+    },
+    micro: [
+      { id: "4.7.d.1", term: "LLQ (Low Latency Queuing)",    def: "Strict priority queue. Used for voice. Always served first. Has policing to prevent starving other queues.", weight: "high" },
+      { id: "4.7.d.2", term: "CBWFQ",                        def: "Class-Based Weighted Fair Queuing. Guarantees minimum bandwidth per class. Used for video and data.", weight: "high" },
+      { id: "4.7.d.3", term: "FIFO",                         def: "First-In-First-Out. Default queuing. No prioritization. Large packets delay small ones.", weight: "med" },
+      { id: "4.7.d.4", term: "Tail drop",                    def: "Simple queue-full behavior — new packets dropped. Can cause TCP global synchronization.", weight: "med" }
+    ]
   },
 
   "4.7.e": {
@@ -1261,8 +1444,13 @@ window.subtopicContentD34 = {
       memory: "WRED = the bouncer who starts turning away less important guests BEFORE the club is full, so VIPs can still get in. Without WRED: queue fills up -> tail drop -> ALL packets dropped -> TCP global synchronization (all flows back off at once = traffic wave). WRED prevents this by early, selective dropping based on priority.",
       practice: "Know two things: (1) Tail drop = queue full, all dropped equally = TCP global synchronization. (2) WRED = selective early dropping based on priority = prevents tail drop and global sync. Draw the two scenarios side by side. No configuration needed for CCNA.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 46 (QoS). Wendell Odom OCG Chapter 12. Exam questions: 'Which mechanism prevents tail drop?' (WRED). 'What does WRED prevent?' (TCP global synchronization). 'How does WRED differ from tail drop?' (Selective vs indiscriminate dropping, proactive vs reactive)."
-    }
+      meta: "Jeremy's IT Lab Day 46 (QoS). Wendell Odom OCG Chapter 12. Exam questions: 'Which mechanism prevents tail drop?' (WRED). 'What does WRED prevent?' (TCP global synchronization). 'How does WRED differ from tail drop?' (Selective vs indiscriminate dropping, proactive vs reactive).",
+    },
+    micro: [
+      { id: "4.7.e.1", term: "WRED",                         def: "Weighted Random Early Detection. Drops packets proactively BEFORE queue is full. Selective by class.", weight: "high" },
+      { id: "4.7.e.2", term: "TCP global synchronization",   def: "Problem WRED solves. Many TCP flows hit tail drop simultaneously → all back off in unison → bandwidth wasted.", weight: "high" },
+      { id: "4.7.e.3", term: "WRED vs tail drop",            def: "WRED = proactive, selective, class-aware. Tail drop = reactive, indiscriminate, at-the-brink.", weight: "high" }
+    ]
   },
 
   "4.7.f": {
@@ -1272,8 +1460,13 @@ window.subtopicContentD34 = {
       memory: "Policing = speed camera: over the limit? Ticket (drop) immediately. No warning, no slowing down, no buffering. Applied at ingress or egress, typically at network edge to enforce SLAs. The ONE thing to remember: policing DROPS excess. Shaping BUFFERS excess. That single distinction answers the exam question.",
       practice: "Make a single comparison flashcard: Policing vs Shaping. Columns: What happens to excess traffic? (Drop vs Buffer). Where applied? (Ingress/Egress vs Egress only). Output pattern? (Bursty vs Smooth). Latency added? (No vs Yes). This card covers the guaranteed exam question.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 46 (QoS). Wendell Odom OCG Chapter 12. Policing vs shaping is a guaranteed exam question. Know: Policing = drops, hard limit, ingress/egress, bursty. Shaping = buffers, soft limit, egress only, smooth. One comparison = one correct answer."
-    }
+      meta: "Jeremy's IT Lab Day 46 (QoS). Wendell Odom OCG Chapter 12. Policing vs shaping is a guaranteed exam question. Know: Policing = drops, hard limit, ingress/egress, bursty. Shaping = buffers, soft limit, egress only, smooth. One comparison = one correct answer.",
+    },
+    micro: [
+      { id: "4.7.f.1", term: "Policing",                     def: "DROPS or re-marks excess traffic. Hard limit. Bursty output. Can be applied at ingress OR egress.", weight: "high" },
+      { id: "4.7.f.2", term: "Shaping",                      def: "BUFFERS excess traffic and releases at a smooth rate. Soft limit. Egress only. Adds latency.", weight: "high" },
+      { id: "4.7.f.3", term: "Policing vs shaping",          def: "Policing drops/remarks. Shaping buffers/delays. Policing = strict, shaping = gentle.", weight: "high" }
+    ]
   },
 
   "4.7.g": {
@@ -1283,8 +1476,13 @@ window.subtopicContentD34 = {
       memory: "Shaping = speed bump that slows you down but doesn't stop you. Excess traffic waits in a buffer and gets released gradually. Egress only. Adds latency (bad for voice, OK for data). Smooth output. Policing = cliff (instant drop). Shaping = ramp (gradual slowdown). Both control rate, different mechanisms.",
       practice: "Draw two graphs: Policing shows a hard line with drops above it (bursty output). Shaping shows a smooth curve where peaks are absorbed and released gradually (smooth output). This visual comparison helps on exam day when you need to quickly identify which mechanism is described.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 46 (QoS). Wendell Odom OCG Chapter 12. Know: shaping adds latency (bad for voice), policing doesn't. Shaping = egress only, policing = ingress or egress. Shaping = buffer excess, policing = drop excess. Use shaping for WAN links, policing for enforcement."
-    }
+      meta: "Jeremy's IT Lab Day 46 (QoS). Wendell Odom OCG Chapter 12. Know: shaping adds latency (bad for voice), policing doesn't. Shaping = egress only, policing = ingress or egress. Shaping = buffer excess, policing = drop excess. Use shaping for WAN links, policing for enforcement.",
+    },
+    micro: [
+      { id: "4.7.g.1", term: "Shaping adds latency",         def: "Buffering = delay. BAD for voice/video. Use on WAN links that aggregate traffic.", weight: "high" },
+      { id: "4.7.g.2", term: "Policing doesn't add latency", def: "Drops immediately. Good for enforcing strict caps. OK for voice (drops bad voice packets fast).", weight: "high" },
+      { id: "4.7.g.3", term: "Typical use cases",            def: "Shaping: egress WAN links (burst smoothing). Policing: rate-limit enforcement on ingress or egress.", weight: "med" }
+    ]
   },
 
   "4.7.h": {
@@ -1294,8 +1492,13 @@ window.subtopicContentD34 = {
       memory: "Trust boundary = the TSA checkpoint. Before it, anyone can claim to be VIP. After it, only legitimate VIPs pass through. Place it as CLOSE to the source as possible (access switch). IP phones = trusted (voice markings preserved). PCs = untrusted (markings reset). Without a trust boundary, any device could mark all its traffic as voice-priority.",
       practice: "Understand the concept: draw a network with PCs connected to IP phones connected to an access switch. The trust boundary is at the switch. Phone CoS markings for voice are trusted. PC traffic is re-marked. Beyond the access switch, all devices trust the markings. No configuration tested on CCNA — just the concept.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 46 (QoS). Wendell Odom OCG Chapter 12. Exam question: 'Where should the QoS trust boundary be placed?' Answer: as close to the source as possible, typically the access layer switch. 'What is the purpose of the trust boundary?' Prevent untrusted endpoints from setting their own priority markings."
-    }
+      meta: "Jeremy's IT Lab Day 46 (QoS). Wendell Odom OCG Chapter 12. Exam question: 'Where should the QoS trust boundary be placed?' Answer: as close to the source as possible, typically the access layer switch. 'What is the purpose of the trust boundary?' Prevent untrusted endpoints from setting their own priority markings.",
+    },
+    micro: [
+      { id: "4.7.h.1", term: "QoS trust boundary",           def: "Demarcation where the network starts trusting incoming QoS markings. Usually the access-layer switch.", weight: "high" },
+      { id: "4.7.h.2", term: "Placement rule",               def: "As close to source as possible. Access switches mark traffic; core just honors markings.", weight: "high" },
+      { id: "4.7.h.3", term: "Why it matters",               def: "Untrusted endpoints could mark their own traffic as EF (voice priority) and abuse QoS. Boundary prevents that.", weight: "high" }
+    ]
   },
 
   // ── 4.8  Configure SSH ─────────────────────────────────────
@@ -1307,8 +1510,12 @@ window.subtopicContentD34 = {
       memory: "SSH 6-step recipe: (1) hostname, (2) ip domain-name, (3) crypto key generate rsa modulus 2048, (4) ip ssh version 2, (5) username [name] secret [pass], (6) line vty 0 15 + transport input ssh + login local. Missing ANY step = SSH broken. Step 1: hostname gives the device its identity for the RSA key label.",
       practice: "In Packet Tracer: configure SSH end-to-end using all 6 steps. After each step, try to SSH in from another device — it won't work until ALL steps are complete. This demonstrates why every step is required. Practice until you can type all commands from memory in under 2 minutes.",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 43 (SSH) covers the complete 6-step process. Wendell Odom OCG Chapter 6. SSH configuration is a GUARANTEED lab sim on the CCNA. The 6-step sequence must be memorized cold. Missing any single step = SSH fails = lost points."
-    }
+      meta: "Jeremy's IT Lab Day 43 (SSH) covers the complete 6-step process. Wendell Odom OCG Chapter 6. SSH configuration is a GUARANTEED lab sim on the CCNA. The 6-step sequence must be memorized cold. Missing any single step = SSH fails = lost points.",
+    },
+    micro: [
+      { id: "4.8.a.1", term: "SSH 6-step recipe",            def: "1) hostname, 2) domain-name, 3) RSA key, 4) user, 5) VTY config, 6) version 2.", weight: "high" },
+      { id: "4.8.a.2", term: "All 6 steps required",         def: "Miss any one → SSH fails. Exam lab sim = memorize sequence cold.", weight: "high" }
+    ]
   },
 
   "4.8.b": {
@@ -1318,8 +1525,12 @@ window.subtopicContentD34 = {
       memory: "Domain name = the device's 'last name.' Hostname + domain = full name on the RSA key (R1.lab.local). Without this, RSA key generation FAILS. This is the most forgotten step. Command: 'ip domain-name lab.local' (any domain works). If RSA fails, check hostname AND domain name — both must be set.",
       practice: "In Packet Tracer: (1) Try running 'crypto key generate rsa' without setting a domain name — note the error. (2) Configure 'ip domain-name lab.local'. (3) Retry 'crypto key generate rsa' — now it succeeds. This exercise cements the dependency.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 43 (SSH). Wendell Odom OCG Chapter 6. Students forget this step more than any other. In the exam lab sim, if RSA key generation fails, check hostname AND domain name. Both are prerequisites for Step 3."
-    }
+      meta: "Jeremy's IT Lab Day 43 (SSH). Wendell Odom OCG Chapter 6. Students forget this step more than any other. In the exam lab sim, if RSA key generation fails, check hostname AND domain name. Both are prerequisites for Step 3.",
+    },
+    micro: [
+      { id: "4.8.b.1", term: "hostname + domain-name",       def: "Both required BEFORE RSA key generation. RSA key name = hostname.domain-name.", weight: "high" },
+      { id: "4.8.b.2", term: "Default 'Router' hostname issue", def: "If hostname is still 'Router' (default), key generation fails or produces weak key. Change hostname first.", weight: "high" }
+    ]
   },
 
   "4.8.c": {
@@ -1329,8 +1540,12 @@ window.subtopicContentD34 = {
       memory: "RSA 2048 = the encryption engine that makes SSH possible. Without this key, SSH has no encryption and doesn't work. Command: 'crypto key generate rsa modulus 2048'. Always 2048 on the exam. The key is named hostname.domain (e.g., R1.lab.local). Verify: 'show crypto key mypubkey rsa.'",
       practice: "In Packet Tracer: (1) Generate the RSA key with modulus 2048. (2) Verify with 'show crypto key mypubkey rsa'. (3) Note the key name matches hostname.domain. (4) If you need to regenerate: 'crypto key zeroize rsa' then regenerate.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 43 (SSH). Wendell Odom OCG Chapter 6. The exam expects modulus 2048. If given a choice between 1024 and 2048, pick 2048. SSHv2 requires at least 768-bit minimum, but 2048 is the correct answer."
-    }
+      meta: "Jeremy's IT Lab Day 43 (SSH). Wendell Odom OCG Chapter 6. The exam expects modulus 2048. If given a choice between 1024 and 2048, pick 2048. SSHv2 requires at least 768-bit minimum, but 2048 is the correct answer.",
+    },
+    micro: [
+      { id: "4.8.c.1", term: "crypto key generate rsa modulus 2048", def: "Generates 2048-bit RSA key. Size 2048 is exam answer (vs. weaker 1024 or 768).", weight: "high" },
+      { id: "4.8.c.2", term: "SSHv2 minimum 768 bits",       def: "Technical minimum. But exam/production answer is 2048 bits for security.", weight: "med" }
+    ]
   },
 
   "4.8.d": {
@@ -1340,8 +1555,12 @@ window.subtopicContentD34 = {
       memory: "SSHv2 = the only acceptable version. SSHv1 = known vulnerabilities, never use. Without 'ip ssh version 2', the device accepts both (version 1.99 = danger). Command: 'ip ssh version 2.' Verify: 'show ip ssh' should show version 2.0, not 1.99.",
       practice: "In Packet Tracer: (1) Complete SSH setup without 'ip ssh version 2'. (2) Run 'show ip ssh' — note version 1.99. (3) Add 'ip ssh version 2'. (4) Run 'show ip ssh' again — verify version 2.0. The version 1.99 to 2.0 change is visible and testable.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 43 (SSH). Wendell Odom OCG Chapter 6. Exam question: 'Which command restricts SSH to version 2?' Answer: 'ip ssh version 2.' Students sometimes forget this in lab sims — always include it."
-    }
+      meta: "Jeremy's IT Lab Day 43 (SSH). Wendell Odom OCG Chapter 6. Exam question: 'Which command restricts SSH to version 2?' Answer: 'ip ssh version 2.' Students sometimes forget this in lab sims — always include it.",
+    },
+    micro: [
+      { id: "4.8.d.1", term: "ip ssh version 2",             def: "Global command. Forces SSHv2 only. Rejects insecure SSHv1.", weight: "high" },
+      { id: "4.8.d.2", term: "Why enforce v2",               def: "SSHv1 has known vulnerabilities. V2 uses stronger crypto and is the standard today.", weight: "med" }
+    ]
   },
 
   "4.8.e": {
@@ -1351,8 +1570,12 @@ window.subtopicContentD34 = {
       memory: "'secret' = one-way hash (SAFE). 'password' = plaintext or weak encryption (UNSAFE). ALWAYS use 'secret'. In 'show run': 'secret' shows $9$hash... (unreadable). 'password' shows the actual password (readable). The exam penalizes 'password' — always use 'username [name] secret [pass].'",
       practice: "In Packet Tracer: (1) Create 'username admin secret MyPass123'. (2) Create 'username test password BadPass'. (3) Run 'show running-config | include username'. Compare: 'secret' shows a hash, 'password' shows the plaintext password. (4) Delete the insecure user and keep only the 'secret' one.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 43 (SSH). Wendell Odom OCG Chapter 6. The 'secret' vs 'password' distinction is tested in both lab sims and conceptual questions. Using 'password' in a lab sim = lost points. Always use 'secret.'"
-    }
+      meta: "Jeremy's IT Lab Day 43 (SSH). Wendell Odom OCG Chapter 6. The 'secret' vs 'password' distinction is tested in both lab sims and conceptual questions. Using 'password' in a lab sim = lost points. Always use 'secret.'",
+    },
+    micro: [
+      { id: "4.8.e.1", term: "username [name] secret [pass]", def: "Creates local user with HASHED password (MD5/SCRYPT). Use THIS, not 'password'.", weight: "high" },
+      { id: "4.8.e.2", term: "secret vs password",           def: "'secret' = hashed (secure). 'password' = Type 7 reversible encoding (weak). Always use 'secret' on exam.", weight: "high" }
+    ]
   },
 
   "4.8.f": {
@@ -1362,8 +1585,13 @@ window.subtopicContentD34 = {
       memory: "Three commands under 'line vty 0 15': (1) 'transport input ssh' = SSH only, Telnet blocked. (2) 'login local' = check the local user database. (3) Both are REQUIRED — missing either = SSH fails or is insecure. Always configure ALL VTY lines (0 15), not just 0 4.",
       practice: "In Packet Tracer: (1) Complete all 6 SSH steps. (2) From another device, SSH to the router: 'ssh -l admin [IP]'. (3) Verify login works. (4) Try Telnet: 'telnet [IP]' — should be refused. (5) Run 'show users' on the router to see your active SSH session. (6) Run 'show line vty 0 15' to verify transport and login settings.",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 43 (SSH). Wendell Odom OCG Chapter 6. In lab sims: configure ALL VTY lines (0 15, not just 0 4). Use 'transport input ssh' AND 'login local' together. Missing either one = lost points. Test by SSHing in AND testing that Telnet is refused."
-    }
+      meta: "Jeremy's IT Lab Day 43 (SSH). Wendell Odom OCG Chapter 6. In lab sims: configure ALL VTY lines (0 15, not just 0 4). Use 'transport input ssh' AND 'login local' together. Missing either one = lost points. Test by SSHing in AND testing that Telnet is refused.",
+    },
+    micro: [
+      { id: "4.8.f.1", term: "line vty 0 15",                def: "Enters config for ALL 16 VTY lines. Modern best practice (was 'line vty 0 4' on older IOS).", weight: "high" },
+      { id: "4.8.f.2", term: "transport input ssh",          def: "Restricts VTY to SSH only. Rejects Telnet. Critical for security.", weight: "high" },
+      { id: "4.8.f.3", term: "login local",                  def: "Uses local username/secret database. Alternative: 'login authentication default' for AAA.", weight: "high" }
+    ]
   },
 
   "4.8.g": {
@@ -1373,8 +1601,12 @@ window.subtopicContentD34 = {
       memory: "Telnet = shouting your password across a crowded room (plaintext, port 23). SSH = whispering through an encrypted tunnel (encrypted, port 22). 'transport input ssh' = shut the Telnet door forever, only SSH allowed. This single command disables Telnet AND enables SSH-only access on VTY lines.",
       practice: "After configuring SSH in Packet Tracer: (1) SSH in successfully. (2) Try 'telnet [IP]' from another device — verify it's refused. (3) Temporarily change to 'transport input ssh telnet' and verify Telnet now works. (4) Change back to 'transport input ssh' — Telnet refused again. This demonstrates the command's effect clearly.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 43 (SSH). Wendell Odom OCG Chapter 6. Exam question: 'Which command prevents Telnet access to VTY lines?' Answer: 'transport input ssh.' Also know: Telnet = port 23 (plaintext), SSH = port 22 (encrypted). Telnet in cleartext is a guaranteed security concept question."
-    }
+      meta: "Jeremy's IT Lab Day 43 (SSH). Wendell Odom OCG Chapter 6. Exam question: 'Which command prevents Telnet access to VTY lines?' Answer: 'transport input ssh.' Also know: Telnet = port 23 (plaintext), SSH = port 22 (encrypted). Telnet in cleartext is a guaranteed security concept question.",
+    },
+    micro: [
+      { id: "4.8.g.1", term: "transport input all vs ssh",   def: "'all' allows Telnet AND SSH. 'ssh' rejects Telnet. Always use 'transport input ssh' in secure configs.", weight: "high" },
+      { id: "4.8.g.2", term: "Telnet plaintext risk",        def: "Telnet transmits credentials IN CLEARTEXT. Anyone sniffing sees passwords. Never use in production.", weight: "high" }
+    ]
   },
 
   "4.8.h": {
@@ -1384,8 +1616,12 @@ window.subtopicContentD34 = {
       memory: "'show ip ssh' = is SSH configured correctly? (version, timeout, retries, key status). 'show ssh' = who's connected right now? (active sessions, users, encryption). 'show ip ssh' = the setup check. 'show ssh' = the live connection list. If 'show ip ssh' says 'SSH Disabled,' Step 3 (RSA key) is missing.",
       practice: "After completing SSH setup in Packet Tracer: (1) Run 'show ip ssh' — verify version 2.0, timeout, retries. (2) SSH in from another device. (3) On the original device, run 'show ssh' — verify your session appears. (4) Run 'show users' — see the session listed with VTY line number and source IP.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 43 (SSH). Wendell Odom OCG Chapter 6. The exam shows 'show ip ssh' output and asks: 'What SSH version is configured?' (read from output) or 'What is the authentication timeout?' (read from output). Practice reading these outputs until familiar."
-    }
+      meta: "Jeremy's IT Lab Day 43 (SSH). Wendell Odom OCG Chapter 6. The exam shows 'show ip ssh' output and asks: 'What SSH version is configured?' (read from output) or 'What is the authentication timeout?' (read from output). Practice reading these outputs until familiar.",
+    },
+    micro: [
+      { id: "4.8.h.1", term: "show ip ssh",                  def: "Shows SSH version, auth timeout, retry count. Verifies SSH is enabled and configured.", weight: "high" },
+      { id: "4.8.h.2", term: "show ssh",                     def: "Shows currently active SSH connections: who is connected, version, encryption.", weight: "med" }
+    ]
   },
 
   // ── 4.9  Describe TFTP/FTP ─────────────────────────────────
@@ -1397,8 +1633,13 @@ window.subtopicContentD34 = {
       memory: "TFTP = 'Tiny, Fast, Trivially Plain.' UDP 69. No auth, no encryption, no frills — just read and write. Used for IOS images and config files on trusted management networks. Comparison: TFTP = UDP 69, no auth. FTP = TCP 20/21, has auth. SCP = TCP 22, encrypted.",
       practice: "In Packet Tracer: (1) Set up a TFTP server on a PC. (2) On a router, run 'copy running-config tftp:' — enter the server IP and filename. (3) Verify the file exists on the server. (4) Run 'copy tftp: running-config' to restore. This round-trip exercise covers the most common TFTP use case.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 42 (FTP/TFTP). Wendell Odom OCG Chapter 9. The exam tests: TFTP = UDP 69, no auth. FTP = TCP 20/21, has auth. SCP = TCP 22, encrypted. Know the port numbers and security characteristics of each."
-    }
+      meta: "Jeremy's IT Lab Day 42 (FTP/TFTP). Wendell Odom OCG Chapter 9. The exam tests: TFTP = UDP 69, no auth. FTP = TCP 20/21, has auth. SCP = TCP 22, encrypted. Know the port numbers and security characteristics of each.",
+    },
+    micro: [
+      { id: "4.9.a.1", term: "TFTP",                         def: "Trivial FTP. UDP 69. NO authentication. Simple. Used for IOS images and config transfer.", weight: "high" },
+      { id: "4.9.a.2", term: "FTP",                          def: "File Transfer Protocol. TCP 20 (data) + 21 (control). HAS authentication (username/password). Cleartext credentials.", weight: "high" },
+      { id: "4.9.a.3", term: "SCP",                          def: "Secure Copy. TCP 22 (uses SSH). Encrypted transfer WITH authentication. Most secure file transfer.", weight: "high" }
+    ]
   },
 
   "4.9.b": {
@@ -1408,8 +1649,13 @@ window.subtopicContentD34 = {
       memory: "FTP = two channels, two ports. Port 21 = control (commands, login). Port 20 = data (file transfer). Mnemonic: '21 gives orders, 20 does the work.' Auth required but credentials sent in CLEARTEXT. For secure: use SCP (port 22, encrypted).",
       practice: "Memorize cold: FTP control = TCP 21, FTP data = TCP 20. Make a flashcard and drill until instant recall. The exam asks this directly: 'Which port for data?' (20). 'Which for control?' (21).",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 42 (FTP/TFTP). Wendell Odom OCG Chapter 9. FTP port numbers are a guaranteed question: 20 = data, 21 = control. Also know: FTP has auth but no encryption, credentials in cleartext."
-    }
+      meta: "Jeremy's IT Lab Day 42 (FTP/TFTP). Wendell Odom OCG Chapter 9. FTP port numbers are a guaranteed question: 20 = data, 21 = control. Also know: FTP has auth but no encryption, credentials in cleartext.",
+    },
+    micro: [
+      { id: "4.9.b.1", term: "FTP TCP 21 (control)",         def: "Control channel — login, commands (ls, get, put). Session stays open throughout.", weight: "high" },
+      { id: "4.9.b.2", term: "FTP TCP 20 (data)",            def: "Data channel in ACTIVE mode. Server connects back to client on this port to transfer files.", weight: "high" },
+      { id: "4.9.b.3", term: "FTP credentials cleartext",    def: "FTP has auth but no encryption. Username/password visible on wire. Use SFTP/SCP in production.", weight: "high" }
+    ]
   },
 
   "4.9.c": {
@@ -1419,8 +1665,12 @@ window.subtopicContentD34 = {
       memory: "'copy [FROM] [TO]' — source first, destination second. 'copy flash: tftp:' = from router TO server (backup). 'copy tftp: flash:' = from server TO router (upgrade). Always check flash space first with 'show flash:'. Always backup before upgrading.",
       practice: "In Packet Tracer: (1) 'show flash:' to see current IOS. (2) 'copy flash: tftp:' to backup. (3) 'copy tftp: flash:' to download new image. (4) Verify with 'show flash:' that both images exist.",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 42 (FTP/TFTP). Wendell Odom OCG Chapter 9. The 'copy' command is tested in lab sims. Know the pattern: 'copy [source] [destination]'. The colons are required."
-    }
+      meta: "Jeremy's IT Lab Day 42 (FTP/TFTP). Wendell Odom OCG Chapter 9. The 'copy' command is tested in lab sims. Know the pattern: 'copy [source] [destination]'. The colons are required.",
+    },
+    micro: [
+      { id: "4.9.c.1", term: "copy command syntax",          def: "'copy [source]: [destination]:'. Colons required. Examples: 'copy tftp: flash:', 'copy running-config startup-config'.", weight: "high" },
+      { id: "4.9.c.2", term: "Source/dest keywords",         def: "tftp:, ftp:, scp:, flash:, running-config, startup-config, nvram:. Standard IOS file system locations.", weight: "high" }
+    ]
   },
 
   "4.9.d": {
@@ -1430,8 +1680,13 @@ window.subtopicContentD34 = {
       memory: "TFTP = postcard (quick, no security). FTP = registered mail (tracked, signed for, but readable). SCP = sealed armored courier (tracked, signed for, locked). Use TFTP for trusted quick jobs, FTP for reliable authenticated transfers, SCP for secure production transfers.",
       practice: "Make a 3-column comparison card: TFTP vs FTP vs SCP. Transport (UDP/TCP/TCP), Port (69/20-21/22), Auth (no/yes/yes), Encryption (no/no/yes). This single card answers any file transfer comparison question.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 42 (FTP/TFTP). Wendell Odom OCG Chapter 9. The exam mostly tests TFTP for IOS operations, with FTP and SCP as comparison options. 'Most secure?' = SCP. Know port numbers and security characteristics."
-    }
+      meta: "Jeremy's IT Lab Day 42 (FTP/TFTP). Wendell Odom OCG Chapter 9. The exam mostly tests TFTP for IOS operations, with FTP and SCP as comparison options. 'Most secure?' = SCP. Know port numbers and security characteristics.",
+    },
+    micro: [
+      { id: "4.9.d.1", term: "TFTP for IOS images",          def: "Classic use case. 'copy tftp: flash:' transfers new IOS. TFTP chosen for simplicity (no auth needed).", weight: "high" },
+      { id: "4.9.d.2", term: "Most secure = SCP",            def: "Exam answer to 'most secure file transfer'. Uses SSH for auth + encryption.", weight: "high" },
+      { id: "4.9.d.3", term: "File transfer comparison",     def: "TFTP (UDP 69, no auth) → FTP (TCP 21/20, plain auth) → SCP (TCP 22, encrypted + auth).", weight: "high" }
+    ]
   },
 
   "4.9.e": {
@@ -1441,8 +1696,13 @@ window.subtopicContentD34 = {
       memory: "'copy [FROM] [TO]' — always source first, destination second. CRITICAL TRAP: 'copy tftp: running-config' MERGES (old + new combined). 'copy tftp: startup-config' REPLACES (only new). Running-config = RAM (live). Startup-config = NVRAM (saved). Flash = IOS images.",
       practice: "In Packet Tracer: (1) 'copy running-config tftp:' — backup active config. (2) Make changes. (3) 'copy tftp: running-config' — observe MERGE behavior. (4) 'copy tftp: startup-config' — observe REPLACE behavior. (5) Practice all variants until automatic.",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 42 (FTP/TFTP). Wendell Odom OCG Chapter 9. The merge vs replace trap is tested: 'copy tftp: running-config' MERGES. 'copy tftp: startup-config' REPLACES. Know 'show flash:' to verify IOS images."
-    }
+      meta: "Jeremy's IT Lab Day 42 (FTP/TFTP). Wendell Odom OCG Chapter 9. The merge vs replace trap is tested: 'copy tftp: running-config' MERGES. 'copy tftp: startup-config' REPLACES. Know 'show flash:' to verify IOS images.",
+    },
+    micro: [
+      { id: "4.9.e.1", term: "copy to running-config = MERGE", def: "'copy tftp: running-config' MERGES incoming config with current. Doesn't delete existing commands.", weight: "high" },
+      { id: "4.9.e.2", term: "copy to startup-config = REPLACE", def: "'copy tftp: startup-config' REPLACES startup-config entirely. Changes apply after reboot.", weight: "high" },
+      { id: "4.9.e.3", term: "show flash:",                  def: "Lists contents of flash memory. Used to verify IOS image after 'copy tftp: flash:'.", weight: "high" }
+    ]
   },
 
   "4.9.f": {
@@ -1452,8 +1712,13 @@ window.subtopicContentD34 = {
       memory: "SCP = SSH + file copy. Same encryption, same port (22), same authentication. Prerequisite: SSH must be fully configured + 'ip scp server enable.' Security hierarchy: TFTP (nothing) < FTP (auth only) < SCP (auth + encrypted). SCP = the MOST SECURE file transfer option on Cisco devices.",
       practice: "Know the prerequisite chain: SSH (all 6 steps) must work BEFORE SCP. Then add 'ip scp server enable.' The exam question: 'Most secure file transfer?' = SCP. 'What port?' = TCP 22. 'What prerequisite?' = SSH configured.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 42 (FTP/TFTP) and Day 43 (SSH) together cover SCP. Wendell Odom OCG Chapter 9. 'Most secure file transfer?' = SCP. 'Which port?' = TCP 22. This is a 2-second recall question."
-    }
+      meta: "Jeremy's IT Lab Day 42 (FTP/TFTP) and Day 43 (SSH) together cover SCP. Wendell Odom OCG Chapter 9. 'Most secure file transfer?' = SCP. 'Which port?' = TCP 22. This is a 2-second recall question.",
+    },
+    micro: [
+      { id: "4.9.f.1", term: "SCP (Secure Copy)",            def: "Uses SSH for auth + encryption. Most secure file transfer. TCP 22 (same as SSH).", weight: "high" },
+      { id: "4.9.f.2", term: "SFTP vs SCP",                  def: "Both use SSH. SFTP = file management protocol (rich operations). SCP = simple copy only.", weight: "med" },
+      { id: "4.9.f.3", term: "ip scp server enable",         def: "Cisco router command to enable SCP server mode. Allows clients to push config/images via SCP.", weight: "low" }
+    ]
   }
 
 };
