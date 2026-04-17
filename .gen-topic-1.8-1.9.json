@@ -664,5 +664,325 @@
         "meta": "Basic verification. Jeremy IT Lab Day 31. Wendell Odom OCG Chapter 24."
       }
     }
+  ],
+  "1.9.a": [
+    {
+      "id": "1.9.a.1",
+      "term": "Global Unicast Address (GUA)",
+      "weight": "high",
+      "info": "<p><strong>Global Unicast Addresses (GUAs)</strong> are the IPv6 equivalent of public IPv4 addresses — globally routable on the internet. Currently IANA only allocates from <strong><code>2000::/3</code></strong>, meaning every currently-routable GUA starts with a hex digit of <strong>2 or 3</strong> (binary <code>001xxxxx...</code>). This is the easiest-to-spot IPv6 address type for the exam.</p><p><strong>Structure of a GUA:</strong></p><ul><li><strong>Global Routing Prefix (first 48 bits typically):</strong> assigned by ISP/RIR. Example: <code>2001:0DB8:CAFE::/48</code>.</li><li><strong>Subnet ID (bits 49–64):</strong> organization controls. 16 bits = 65,536 subnets per /48.</li><li><strong>Interface ID (last 64 bits):</strong> per-host, via EUI-64, RFC 7217, or manual.</li></ul><p><strong>Example GUA:</strong> <code>2001:0DB8:CAFE:0001:021A:2BFF:FE3C:4D5E</code>. Breakdown: <code>2001:0DB8:CAFE</code> (global routing prefix /48), <code>0001</code> (subnet ID), <code>021A:2BFF:FE3C:4D5E</code> (interface ID, EUI-64 from MAC 00:1A:2B:3C:4D:5E).</p><p><strong>Reserved documentation range:</strong> <code>2001:DB8::/32</code> — used in RFC examples, training materials, and Cisco docs. Never routable on real networks.</p><p><strong>Exam prefix recognition:</strong></p><ul><li>Starts with <strong>2</strong> or <strong>3</strong> → GUA</li><li>Starts with <strong>FD</strong> → ULA (private)</li><li>Starts with <strong>FE80</strong> → link-local</li><li>Starts with <strong>FF</strong> → multicast</li></ul><p>Recognize instantly. No computation required.</p>",
+      "visual": { "type": "hierarchy", "params": { "root": "GUA (2000::/3)", "children": [{ "name": "Global Routing Prefix (/48 from ISP)" }, { "name": "Subnet ID (16 bits, org controls)" }, { "name": "Interface ID (64 bits, per-host)" }] } },
+      "hack": {
+        "memory": "GUA = Global Unicast = IPv4 public equivalent. Starts with 2 or 3. 2000::/3. Hierarchical: /48 site, /64 LAN. 2001:DB8:: is documentation only.",
+        "practice": "Spot GUAs: 2001:DB8::1 = yes. 3FFE::1 = yes. FD00::1 = no (ULA). FE80::1 = no (link-local). Drill until instant.",
+        "effort": "low",
+        "meta": "Guaranteed exam recognition question. Jeremy IT Lab Day 32. Wendell Odom OCG Chapter 23."
+      }
+    },
+    {
+      "id": "1.9.a.2",
+      "term": "Unique Local Address (ULA)",
+      "weight": "high",
+      "info": "<p><strong>Unique Local Addresses (ULAs, RFC 4193)</strong> are the IPv6 equivalent of IPv4's RFC 1918 private addresses (10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16). They are used for <strong>internal communication within a site or organization</strong> and are <strong>not routable on the public internet</strong> — ISPs filter them at their borders.</p><p><strong>Prefix:</strong> officially <code>FC00::/7</code>. The first bit after FC is the <strong>L-bit</strong> — when L=1 the address is in <code>FD00::/8</code>, which is where all ULAs are allocated today. <code>FC00::/8</code> is reserved for future (centrally assigned ULAs) but has never been defined. So in practice, <strong>every ULA starts with FD</strong>.</p><p><strong>Structure of a ULA:</strong></p><ul><li><strong>FD</strong> (8 bits) — prefix</li><li><strong>40-bit random Global ID</strong> — minimizes collisions if two organizations merge networks. You are supposed to generate this pseudo-randomly.</li><li><strong>16-bit Subnet ID</strong> — organization's subnet plan</li><li><strong>64-bit Interface ID</strong> — per-host</li></ul><p><strong>Example:</strong> <code>FD12:3456:789A:0001::/64</code>. Breakdown: <code>FD</code> (prefix), <code>12:3456:789A</code> (40-bit random global ID), <code>0001</code> (subnet ID), and the last /64 is the LAN segment.</p><p><strong>Why 40 random bits?</strong> If two organizations each use <code>FD00::/48</code> with sequential subnets and then merge (VPN, acquisition), they collide. RFC 4193 mandates random global IDs so collision probability between two randomly generated ULA sites is ~2^−40 ≈ 1 in a trillion.</p><p><strong>Analogous to RFC 1918:</strong></p><ul><li>RFC 1918: 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16 — private IPv4</li><li>RFC 4193: FC00::/7 (in practice FD00::/8) — private IPv6</li></ul>",
+      "visual": { "type": "comparison", "params": { "left": { "label": "IPv4 Private", "items": ["RFC 1918", "10.0.0.0/8, 172.16/12, 192.168/16", "Not routed on internet"] }, "right": { "label": "IPv6 ULA", "items": ["RFC 4193", "FC00::/7 (FD00::/8 in practice)", "Not routed on internet, 40-bit random ID"] } } },
+      "hack": {
+        "memory": "ULA = Unique Local = IPv6's RFC 1918. Always starts with FD. 40 random bits prevent merger collisions. Not routed on internet.",
+        "practice": "Spot ULAs: FD00::1 = yes. FC00::1 = technically in range but unused. FE80::1 = no (link-local). Generate a random ULA prefix using an online tool.",
+        "effort": "low",
+        "meta": "Guaranteed exam recognition. Jeremy IT Lab Day 32. Wendell Odom OCG Chapter 23. Know: ULA starts with FD, RFC 4193."
+      }
+    },
+    {
+      "id": "1.9.a.3",
+      "term": "Link-Local Address (LLA)",
+      "weight": "high",
+      "info": "<p><strong>Link-Local Addresses (LLAs)</strong> are IPv6 addresses valid only on a single network segment (link). Prefix: <strong><code>FE80::/10</code></strong>, though in practice all LLAs use <code>FE80::/64</code> (bits 11–64 are always zero). <strong>Every IPv6-enabled interface automatically has a link-local address</strong> — it is not optional.</p><p><strong>Auto-generation:</strong></p><ul><li>Take the prefix <code>FE80::/64</code></li><li>Append a 64-bit interface ID (EUI-64 from MAC, or RFC 7217 random)</li><li>Run DAD on the resulting address</li><li>Claim it once DAD passes</li></ul><p><strong>Scope:</strong> strictly <strong>link-local</strong> — routers never forward link-local packets to other interfaces. An LLA on one LAN cannot talk to an LLA on a different LAN. This is enforced by hardware/software forwarding logic, not just policy.</p><p><strong>Essential uses:</strong></p><ul><li><strong>NDP messages</strong> — RS, RA, NS, NA use link-local sources.</li><li><strong>Default gateway</strong> — hosts learn the router's link-local as their gateway. This stays valid even if the router's global address changes.</li><li><strong>Routing protocols</strong> — OSPFv3, EIGRP for IPv6 form adjacencies using link-local addresses. In <code>show ipv6 route</code>, next-hops for dynamic routes are link-local.</li><li><strong>DHCPv6 client source</strong> — exchange uses link-local as the source when communicating to FF02::1:2.</li></ul><p><strong>Zone identifier:</strong> because link-local is valid on every link, you must specify which interface when pinging. Cisco prompts interactively; Linux uses <code>FE80::1%eth0</code> syntax.</p><p><strong>Manual override:</strong> <code>ipv6 address FE80::1 link-local</code> replaces the auto-generated LLA with something memorable.</p>",
+      "visual": { "type": "shield", "params": { "items": ["FE80::/10 prefix", "Auto-generated on every IPv6 interface", "Never forwarded by routers", "Used for NDP, gateway, routing protocols"], "color": "#3b82f6" } },
+      "hack": {
+        "memory": "LLA = FE80:: prefix, auto on every IPv6 interface, never leaves the link. Router gateway, NDP, and routing protocol hellos all use link-local.",
+        "practice": "On any router, run show ipv6 interface brief — every IPv6-enabled interface shows FE80:: address. Try to ping FE80::1 without interface — fails. Specify interface — works.",
+        "effort": "low",
+        "meta": "Core IPv6 concept. Jeremy IT Lab Day 32. Wendell Odom OCG Chapter 23. Know: FE80::/10, auto, link-only."
+      }
+    },
+    {
+      "id": "1.9.a.4",
+      "term": "LLA required for IPv6",
+      "weight": "high",
+      "info": "<p><strong>Every IPv6-enabled interface MUST have a link-local address.</strong> This is not optional — it is a requirement of the IPv6 spec (RFC 4291, RFC 4861). Without a link-local address, NDP cannot function, routers cannot advertise, and hosts cannot discover each other.</p><p><strong>Why the requirement exists:</strong></p><ul><li><strong>NDP depends on link-local:</strong> RS, RA, NS, NA messages require link-local sources to work correctly. DAD runs against link-local first.</li><li><strong>Default gateway is link-local:</strong> the RA source is the router's link-local. If hosts cannot receive or interpret link-local, they have no gateway.</li><li><strong>Routing protocols use link-local:</strong> OSPFv3 and EIGRP for IPv6 form adjacencies via link-local. The neighbor's link-local is the next-hop in the routing table.</li><li><strong>Guaranteed local communication:</strong> even if global addressing fails (DHCPv6 server down, ISP link flaps), link-local connectivity remains. This lets admins troubleshoot local issues without depending on external infrastructure.</li></ul><p><strong>Consequence:</strong> you cannot disable link-local on an IPv6 interface while keeping IPv6 enabled. The only way to 'remove' link-local is to disable IPv6 entirely on that interface.</p><p><strong>Verification:</strong> on any Cisco router, <code>show ipv6 interface brief</code> always shows a FE80:: address for every IPv6-enabled interface — you cannot have IPv6 without it.</p><p><strong>Exam phrasing:</strong> 'True or false: every IPv6-enabled interface has a link-local address.' → True, always.</p>",
+      "visual": { "type": "layer-stack", "params": { "layers": ["Link-local (FE80::) — ALWAYS present", "Global (optional)", "Loopback (::1/128) — per stack"], "highlight": 0 } },
+      "hack": {
+        "memory": "Link-local is mandatory. Every IPv6 interface has one. NDP, routing protocols, and gateway discovery all depend on it. Cannot be disabled while keeping IPv6 enabled.",
+        "practice": "Flashcard: is link-local required? Yes. Why? NDP, gateway, routing protocols. Can you have IPv6 without link-local? No.",
+        "effort": "low",
+        "meta": "Simple but important. Jeremy IT Lab Day 32. Wendell Odom OCG Chapter 23. Know: link-local is required, not optional."
+      }
+    },
+    {
+      "id": "1.9.a.5",
+      "term": "GUA structure",
+      "weight": "med",
+      "info": "<p>A <strong>GUA has a three-part hierarchical structure</strong> that matches how the global IPv6 address space is allocated from IANA down to individual hosts.</p><p><strong>The three parts:</strong></p><ol><li><strong>Global Routing Prefix (first N bits, typically 48):</strong> assigned by the ISP/RIR. Includes the bits that identify a site globally. Example: <code>2001:0DB8:CAFE::/48</code>.</li><li><strong>Subnet ID (next 16 bits, in a /48 allocation):</strong> the organization's internal subnet planning. Provides 65,536 possible subnets (2^16). Example: <code>2001:0DB8:CAFE:<strong>0001</strong>::</code> might be Engineering LAN.</li><li><strong>Interface ID (last 64 bits):</strong> identifies a specific host within the subnet. Generated via EUI-64, RFC 7217 privacy, or manual config.</li></ol><p><strong>Full example:</strong> <code>2001:0DB8:CAFE:0001:021A:2BFF:FE3C:4D5E</code></p><ul><li><code>2001:0DB8:CAFE</code> → Global Routing Prefix (/48 from ISP)</li><li><code>0001</code> → Subnet ID (VLAN/LAN)</li><li><code>021A:2BFF:FE3C:4D5E</code> → Interface ID (EUI-64 from MAC 00:1A:2B:3C:4D:5E)</li></ul><p><strong>RIR allocations:</strong></p><ul><li>RIR (IANA) → allocates <strong>/12</strong> to regional registries</li><li>RIR → allocates <strong>/32 to /36</strong> to ISPs</li><li>ISP → allocates <strong>/48 to /60</strong> to customers (organizations or residential)</li><li>Customer → subnets into <strong>/64</strong> per LAN</li></ul><p><strong>The prefix length is flexible.</strong> If an organization gets a /56 instead of /48, they have only 8 bits (256 subnets) for subnet ID. Still plenty for most residential or small-business needs.</p>",
+      "visual": { "type": "binary-breakdown", "params": { "bits": "| Global Routing Prefix /48 | Subnet ID /16 | Interface ID /64 |", "label": "GUA three-part structure", "highlight": [0,1,2] } },
+      "hack": {
+        "memory": "GUA = 3 parts. /48 from ISP (Global Routing Prefix) + /16 subnet ID (org controls) + /64 interface ID (per-host). 48 + 16 + 64 = 128. Memorize the 48/16/64 split.",
+        "practice": "Given 2001:DB8:CAFE:0001:021A:2BFF:FE3C:4D5E, identify each part. Practice 5 different GUAs.",
+        "effort": "medium",
+        "meta": "Medium-frequency exam topic. Jeremy IT Lab Day 32. Wendell Odom OCG Chapter 22-23."
+      }
+    },
+    {
+      "id": "1.9.a.6",
+      "term": "Quick prefix recognition",
+      "weight": "high",
+      "info": "<p><strong>Instant IPv6 address type recognition is a guaranteed exam skill.</strong> Memorize these prefixes so that seeing the first few hex digits immediately tells you the address type — no thinking required.</p><p><strong>The recognition table:</strong></p><ul><li><strong>Starts with <code>2</code> or <code>3</code></strong> → <strong>GUA</strong> (Global Unicast, 2000::/3). Public, internet-routable.</li><li><strong>Starts with <code>FD</code></strong> → <strong>ULA</strong> (Unique Local, FC00::/7 but in practice FD00::/8). Private, internal only.</li><li><strong>Starts with <code>FE80</code></strong> → <strong>Link-Local</strong> (FE80::/10). Auto, link-only, required.</li><li><strong>Starts with <code>FF</code></strong> → <strong>Multicast</strong> (FF00::/8). One-to-many.</li><li><strong>Equals <code>::</code></strong> → <strong>Unspecified</strong> (all zeros). Source-only.</li><li><strong>Equals <code>::1</code></strong> → <strong>Loopback</strong>. Host stack test.</li></ul><p><strong>Practice set:</strong></p><ul><li><code>2001:DB8::1</code> → GUA (documentation range)</li><li><code>3FFE::1</code> → GUA (starts with 3)</li><li><code>FD12:3456:789A::1</code> → ULA</li><li><code>FE80::21A:2BFF:FE3C:4D5E</code> → Link-Local</li><li><code>FF02::1</code> → Multicast (all-nodes)</li><li><code>FF02::2</code> → Multicast (all-routers)</li><li><code>::1</code> → Loopback</li><li><code>::</code> → Unspecified</li></ul><p><strong>Speed:</strong> under 2 seconds per address. If you have to stop and think, drill more.</p><p><strong>Exam questions that depend on this skill:</strong> any question showing an IPv6 address and asking 'what type is this?' — you must answer by looking at the first 2–4 characters.</p>",
+      "visual": { "type": "comparison", "params": { "left": { "label": "Prefix start", "items": ["2 or 3", "FD", "FE80", "FF", "::1", "::"] }, "right": { "label": "Type", "items": ["GUA (public)", "ULA (private)", "Link-Local", "Multicast", "Loopback", "Unspecified"] } } },
+      "hack": {
+        "memory": "2/3 = GUA. FD = ULA. FE80 = LLA. FF = multicast. ::1 = loopback. :: = unspecified. Drill until under 2 seconds per address.",
+        "practice": "Generate 20 random IPv6 addresses. Label each in under 2 seconds. Repeat daily until automatic.",
+        "effort": "medium",
+        "meta": "Guaranteed exam skill. Jeremy IT Lab Day 32. Wendell Odom OCG Chapter 23."
+      }
+    }
+  ],
+  "1.9.b": [
+    {
+      "id": "1.9.b.1",
+      "term": "Anycast",
+      "weight": "high",
+      "info": "<p><strong>Anycast</strong> is an IPv6 concept where the <strong>same address is configured on multiple devices</strong> in different locations. Packets sent to that address are routed to the <strong>nearest</strong> device (by routing metric, not geographic distance). This gives you <strong>one-to-nearest</strong> communication — unlike unicast (one-to-one) or multicast (one-to-many).</p><p><strong>How it works:</strong></p><ol><li>The same /128 address is assigned to, say, 3 DNS servers in Chicago, Frankfurt, and Singapore.</li><li>Each location advertises the /128 into the routing system (BGP, OSPF).</li><li>Routers pick the shortest path to whichever location is closest to the sender.</li><li>If Chicago goes down, the routing protocols withdraw its advertisement and traffic flows to Frankfurt instead — transparently.</li></ol><p><strong>Failover by routing:</strong> anycast provides natural load balancing and resilience. No explicit failover logic is needed — routing protocols handle it. If one node fails, clients keep working without noticing.</p><p><strong>Use cases:</strong></p><ul><li><strong>DNS root servers</strong> — all 13 root letters use anycast with hundreds of nodes worldwide.</li><li><strong>CDN nodes</strong> — Cloudflare, Akamai, Google DNS (8.8.8.8 is anycast in IPv4).</li><li><strong>Multicast RP (Rendezvous Point)</strong> in PIM deployments.</li><li><strong>IPv6 6to4 relay routers</strong> — anycast at 192.88.99.1 (historical).</li></ul><p><strong>IPv6 specific traits:</strong> anycast uses <strong>normal unicast address format</strong> — there is no separate prefix or bit flag that marks an address as anycast. The only difference is that the address is configured on multiple devices. This is why you cannot 'recognize' an anycast address by looking at it — the context of deployment tells you.</p>",
+      "visual": { "type": "packet-flow", "params": { "nodes": ["Client sends to anycast address", "Router picks nearest via routing metric", "Nearest node receives", "If it fails, next-nearest gets traffic"], "color": "#f59e0b" } },
+      "hack": {
+        "memory": "Anycast = same address, many devices, routed to nearest. One-to-nearest. No special prefix — looks like unicast. DNS roots and CDNs use it.",
+        "practice": "Flashcard: anycast means what? → same address on multiple devices. Routing determines which one? → yes. Special prefix? → no.",
+        "effort": "low",
+        "meta": "Conceptual exam question. Jeremy IT Lab Day 32. Wendell Odom OCG Chapter 23."
+      }
+    },
+    {
+      "id": "1.9.b.2",
+      "term": "Anycast has no special prefix",
+      "weight": "high",
+      "info": "<p><strong>Anycast addresses look identical to unicast addresses.</strong> There is no dedicated prefix like <code>FE80::/10</code> for link-local or <code>FF00::/8</code> for multicast. The same GUA (or ULA or link-local) can be deployed as anycast simply by configuring it on multiple devices.</p><p><strong>Why no special prefix?</strong> Anycast is a <strong>deployment property</strong>, not a packet-level property. A packet addressed to an anycast address is indistinguishable from a unicast packet in the header. The routing infrastructure handles delivery — the wire format is identical.</p><p><strong>Contrast with multicast:</strong> multicast addresses (FF00::/8) are recognizable by the header. Every device parses the destination and knows immediately that it is multicast. Multicast processing (IGMP/MLD joins, forwarding by multicast groups) kicks in. Anycast has no such mechanism.</p><p><strong>Configuration marker on Cisco:</strong> you mark an address as anycast with the <code>anycast</code> keyword when assigning it:</p><pre>ipv6 address 2001:DB8::1/128 anycast</pre><p>This tells the router to treat DAD and neighbor advertisement behavior correctly for anycast (no DAD conflict expected since the same address is intentionally on multiple devices; NA must have S=0 for anycast). But the packets on the wire still look like unicast.</p><p><strong>Exam phrasing:</strong> 'Which address type has no special prefix?' → Anycast. 'How do you recognize an anycast address?' → You cannot by looking — only by deployment context.</p>",
+      "visual": { "type": "comparison", "params": { "left": { "label": "Unicast", "items": ["One address, one device", "No prefix marker needed"] }, "right": { "label": "Anycast", "items": ["Same address, multiple devices", "No prefix marker — looks like unicast"] } } },
+      "hack": {
+        "memory": "Anycast has no special prefix. Looks like unicast. The 'anycast' keyword on Cisco is a deployment hint, not a wire-format flag.",
+        "practice": "Flashcard: can you tell if an address is anycast by looking at it? No. Why? Anycast is deployment, not packet format.",
+        "effort": "low",
+        "meta": "Common exam distinction. Jeremy IT Lab Day 32. Wendell Odom OCG Chapter 23."
+      }
+    },
+    {
+      "id": "1.9.b.3",
+      "term": "Anycast use cases",
+      "weight": "med",
+      "info": "<p>Anycast solves problems where you want the same service available in multiple locations with automatic proximity-based routing and transparent failover.</p><p><strong>Major use cases:</strong></p><ul><li><strong>DNS root servers:</strong> All 13 root server letters (A-root through M-root) use anycast. Each letter has dozens to hundreds of physical nodes globally. Example: K-root operated by RIPE has 70+ nodes. Clients querying K-root's anycast address reach the nearest node automatically.</li><li><strong>Public DNS resolvers:</strong> Google Public DNS (8.8.8.8 / 2001:4860:4860::8888), Cloudflare (1.1.1.1 / 2606:4700:4700::1111), Quad9 (9.9.9.9) all use anycast. Users worldwide query the same address and get routed to the nearest datacenter.</li><li><strong>CDN (Content Delivery Networks):</strong> Cloudflare, Fastly, Akamai use anycast to route user traffic to the nearest edge POP (Point of Presence). A user in Tokyo and a user in London both query <code>www.example.com</code> resolving to the same anycast IP, but each reaches a different POP.</li><li><strong>Load balancing:</strong> a single anycast address in front of multiple datacenters lets traffic spread naturally based on routing distance.</li><li><strong>DDoS mitigation:</strong> anycast absorbs attack traffic across many nodes, preventing any single node from being overwhelmed.</li><li><strong>6to4 tunneling relays (historical):</strong> 192.88.99.1 was anycast for 6to4 relay routers — deprecated in RFC 7526 (2015).</li></ul><p><strong>IPv4 examples:</strong> anycast works on IPv4 too. 8.8.8.8 (Google DNS) is the most famous IPv4 anycast address — it is configured on dozens of Google datacenters worldwide.</p>",
+      "visual": { "type": "hierarchy", "params": { "root": "Anycast Deployments", "children": [{ "name": "DNS root servers (all 13 letters)" }, { "name": "Public DNS (8.8.8.8, 1.1.1.1)" }, { "name": "CDNs (Cloudflare, Fastly, Akamai)" }, { "name": "DDoS mitigation / load balancing" }] } },
+      "hack": {
+        "memory": "Anycast use cases: DNS roots, public DNS (8.8.8.8), CDNs. Same address worldwide, routed to nearest. 8.8.8.8 is anycast even in IPv4.",
+        "practice": "Name 3 anycast use cases: DNS roots, public DNS, CDNs. Confirm 8.8.8.8 is anycast in IPv4.",
+        "effort": "low",
+        "meta": "Background context. Jeremy IT Lab Day 32. Wendell Odom OCG Chapter 23."
+      }
+    },
+    {
+      "id": "1.9.b.4",
+      "term": "Cisco anycast command",
+      "weight": "med",
+      "info": "<p>On Cisco routers, configure an anycast address by adding the <strong><code>anycast</code></strong> keyword to the <code>ipv6 address</code> command. The typical prefix length is <strong>/128</strong> because you want the exact address advertised into routing, not an entire subnet.</p><p><strong>Example:</strong></p><pre>interface GigabitEthernet0/0\n ipv6 address 2001:DB8::1/128 anycast\n no shutdown</pre><p>The <code>anycast</code> keyword does three things:</p><ol><li><strong>Disables DAD</strong> for this address — because the same address is intentionally on multiple devices, DAD would always fail.</li><li><strong>Adjusts NA behavior</strong> — NAs sent in response to NS for this address set the S-bit (Solicited) to 0 and the O-bit (Override) to 0, conforming to RFC 4861's anycast rules.</li><li><strong>Declares intent</strong> — makes the config readable and lets Cisco's IPv6 stack apply anycast-aware logic.</li></ol><p><strong>Propagation into routing:</strong> a /128 anycast address on an interface shows up as a local (L) route. To advertise it globally, you typically redistribute connected routes into your routing protocol (OSPF, BGP). Multiple devices advertising the same /128 with different costs gives routing the info it needs to pick the nearest one.</p><p><strong>Subnet Router Anycast (special case):</strong> the address with all-zero host bits in any /64 is automatically an anycast address for all routers on that subnet. <code>2001:DB8:1:1::/128</code> with all-zero host bits (in the 2001:DB8:1:1::/64 subnet) is the Subnet-Router Anycast. All routers on the subnet automatically respond to it. No explicit config needed.</p><p><strong>Verification:</strong> <code>show ipv6 interface Gi0/0</code> — shows the anycast address tagged accordingly.</p>",
+      "visual": { "type": "packet-flow", "params": { "nodes": ["ipv6 address 2001:DB8::1/128 anycast", "DAD disabled", "NA responds with S=0", "Advertise /128 into routing"], "color": "#8b5cf6" } },
+      "hack": {
+        "memory": "Anycast config: ipv6 address <addr>/128 anycast. /128 because you advertise the exact address. Subnet-Router Anycast = all-zero host bits in any /64, auto-active on all routers.",
+        "practice": "Configure an anycast address on a router interface. Verify DAD did not run and the address shows in the routing table as L /128.",
+        "effort": "medium",
+        "meta": "Less common exam topic. Jeremy IT Lab Day 32. Wendell Odom OCG Chapter 23."
+      }
+    },
+    {
+      "id": "1.9.b.5",
+      "term": "Subnet-Router Anycast",
+      "weight": "low",
+      "info": "<p>The <strong>Subnet-Router Anycast address</strong> is a special reserved anycast address defined in RFC 4291: within any /64 subnet, the address with <strong>all-zero host bits</strong> is automatically an anycast address for all routers on that subnet. No configuration required.</p><p><strong>Format:</strong> for subnet <code>2001:DB8:1:1::/64</code>, the Subnet-Router Anycast address is <code>2001:DB8:1:1::</code> (all 64 host bits are zero). Any packet sent to this address is delivered to the nearest router on that subnet.</p><p><strong>Use case:</strong> a host can reach ANY router on its subnet without needing to know any specific router's unicast address. Useful for:</p><ul><li>Host-initiated configuration queries to 'any router here'</li><li>Mobile IPv6 home agent discovery (historical)</li><li>Administrative tools that want to talk to a router but do not care which</li></ul><p><strong>Why IPv6 reserves this:</strong> in IPv4, the all-zeros host address is the <strong>network address</strong> (10.1.1.0 for 10.1.1.0/24). In IPv6, there is no network address concept — addresses with all-zero host bits are perfectly valid and usable. RFC 4291 defines them as Subnet-Router Anycast instead of wasting them.</p><p><strong>Exam relevance:</strong> low priority. You just need to know the concept exists. Do not memorize details. Know: 'the address with all host bits zero in any /64 is a subnet-router anycast address.'</p><p><strong>Difference from manually configured anycast:</strong> Subnet-Router Anycast is automatic — every router on the subnet responds to it without any config. Custom anycast requires the <code>anycast</code> keyword on the configured address.</p>",
+      "visual": { "type": "hierarchy", "params": { "root": "Subnet-Router Anycast", "children": [{ "name": "Address with all host bits = 0 in a /64" }, { "name": "Auto-active on every router on the subnet" }, { "name": "Host sends → reaches nearest router" }] } },
+      "hack": {
+        "memory": "Subnet-Router Anycast = all-zero host bits in any /64 = automatic anycast to any router on the subnet. No config needed. RFC 4291.",
+        "practice": "Quick recognition: for 2001:DB8:1:1::/64, the Subnet-Router Anycast is 2001:DB8:1:1::. All routers respond automatically.",
+        "effort": "low",
+        "meta": "Bonus fact. Jeremy IT Lab briefly mentions. Wendell Odom OCG Chapter 23. Low exam priority."
+      }
+    }
+  ],
+  "1.9.c": [
+    {
+      "id": "1.9.c.1",
+      "term": "IPv6 multicast prefix",
+      "weight": "high",
+      "info": "<p><strong>All IPv6 multicast addresses start with <code>FF</code></strong> (prefix <code>FF00::/8</code>). Any address beginning with FF is multicast by definition — this makes multicast the easiest address type to recognize at a glance.</p><p><strong>Structure of a multicast address:</strong></p><ul><li><strong>First 8 bits: <code>FF</code></strong> (all ones in binary: 11111111) — multicast marker</li><li><strong>Next 4 bits: Flags</strong> — T, P, R, reserved</li><li><strong>Next 4 bits: Scope</strong> — how far the multicast can travel</li><li><strong>Last 112 bits: Group ID</strong> — identifies the multicast group</li></ul><p><strong>Why FF00::/8 and not a smaller range?</strong> The choice to reserve the entire FF00::/8 block was intentional — it provides 2^120 possible multicast groups, more than enough for every conceivable application, protocol, and scoped distribution.</p><p><strong>Replaces IPv4 broadcast:</strong> since IPv6 has no broadcast, multicast handles everything broadcast used to do. Typical replacements:</p><ul><li>IPv4 all-hosts broadcast (255.255.255.255) → IPv6 <code>FF02::1</code></li><li>IPv4 ARP request (broadcast) → IPv6 NS to solicited-node multicast <code>FF02::1:FFxx:xxxx</code></li><li>IPv4 DHCP Discover (broadcast) → IPv6 DHCPv6 Solicit to <code>FF02::1:2</code></li></ul><p><strong>More efficient than broadcast:</strong> only devices that joined the multicast group process the frame. Uninterested hosts ignore it at L2. For large networks, this dramatically reduces CPU and bandwidth overhead.</p><p><strong>Exam recognition:</strong> see FF? Multicast. Instant.</p>",
+      "visual": { "type": "binary-breakdown", "params": { "bits": "FF | flags | scope | group ID (112 bits)", "label": "Multicast address structure", "highlight": [0,1] } },
+      "hack": {
+        "memory": "All multicast starts with FF. FF00::/8. Structure: FF | flags | scope | group ID. Replaces IPv4 broadcast.",
+        "practice": "Spot multicast: FF02::1 = yes. FE80::1 = no. FF02::5 = yes. FD00::1 = no. Drill until under 1 second.",
+        "effort": "low",
+        "meta": "Guaranteed exam fact. Jeremy IT Lab Day 32. Wendell Odom OCG Chapter 23."
+      }
+    },
+    {
+      "id": "1.9.c.2",
+      "term": "Multicast scope values",
+      "weight": "high",
+      "info": "<p>The <strong>scope field (4 bits)</strong> in a multicast address controls how far the multicast traffic can propagate. Routers use this field to enforce boundaries — traffic with scope=1 never leaves the interface, scope=2 never leaves the link, etc.</p><p><strong>Scope values (hex):</strong></p><ul><li><strong>1 = Interface-local</strong> — never leaves the device. Used for loopback multicast.</li><li><strong>2 = Link-local</strong> — stays on the local network segment. <strong>Most common scope for CCNA.</strong> FF02:: addresses.</li><li><strong>4 = Admin-local</strong> — admin-defined boundary</li><li><strong>5 = Site-local</strong> — within an organization's site (multi-subnet, same physical site)</li><li><strong>8 = Organization-local</strong> — across an organization (multiple sites)</li><li><strong>E = Global</strong> — internet-wide multicast</li></ul><p><strong>Reading the scope from the second character:</strong> in an address like <code>FF02::1</code>, the second hex digit (<code>2</code>) is part of the scope field. FF02 = link-local multicast. FF05 = site-local. FF0E = global.</p><p><strong>Well-known addresses by scope:</strong></p><ul><li><code>FF02::1</code> — all-nodes (link-local)</li><li><code>FF02::2</code> — all-routers (link-local)</li><li><code>FF02::5</code> — OSPFv3 routers (link-local)</li><li><code>FF05::1:3</code> — DHCPv6 servers site-scope</li><li><code>FF0E::101</code> — NTP global (rare)</li></ul><p><strong>Router enforcement:</strong> routers drop multicast packets when their scope would be exceeded. A router will not forward FF02:: (link-local) to a different interface. It will forward FF0E:: (global) based on multicast routing protocols.</p><p><strong>CCNA focus:</strong> know scope values 1, 2, 5, 8, E and recognize that FF02:: is the link-local scope you see most often.</p>",
+      "visual": { "type": "hierarchy", "params": { "root": "Multicast Scopes", "children": [{ "name": "1 = Interface-local" }, { "name": "2 = Link-local (FF02::)" }, { "name": "5 = Site-local (FF05::)" }, { "name": "8 = Organization-local (FF08::)" }, { "name": "E = Global (FF0E::)" }] } },
+      "hack": {
+        "memory": "Scope values: 1=interface, 2=link (FF02::), 5=site, 8=org, E=global. The '2' in FF02 = link-local. Most CCNA multicast is FF02::.",
+        "practice": "Flashcard all 5 scope values. Identify scope of FF02::1 (link), FF05::2 (site), FF0E::1 (global).",
+        "effort": "medium",
+        "meta": "Common exam topic. Jeremy IT Lab Day 32. Wendell Odom OCG Chapter 23."
+      }
+    },
+    {
+      "id": "1.9.c.3",
+      "term": "FF02::1 (all nodes)",
+      "weight": "high",
+      "info": "<p><strong><code>FF02::1</code> is the all-nodes multicast address</strong> — link-local scope (FF02), group ID 1. Every IPv6 node (host, router, any device with an IPv6 stack) automatically joins this group. This is the closest IPv6 equivalent of IPv4's broadcast 255.255.255.255.</p><p><strong>When FF02::1 is used:</strong></p><ul><li><strong>Router Advertisements (RA)</strong> periodic announcements. Routers send RAs to FF02::1 so every node on the link receives them.</li><li><strong>Unsolicited Neighbor Advertisements</strong> when a host's MAC changes (VRRP failover, NIC swap).</li><li><strong>Debugging</strong> — ping FF02::1 to find all nodes on the local link.</li></ul><p><strong>Pinging FF02::1:</strong> on Cisco: <code>ping FF02::1</code> prompts for an interface. On Linux: <code>ping6 -I eth0 FF02::1</code>. Every node on the link that implements IPv6 will respond with an echo reply — useful for discovering local neighbors.</p><p><strong>Scope enforcement:</strong> FF02::1 is link-local (scope 2), so routers never forward it to other interfaces. A ping to FF02::1 reaches only devices on your current segment.</p><p><strong>Automatic membership:</strong> the moment a node enables IPv6 on an interface, it joins FF02::1 for that interface. No explicit action required. Confirm with <code>show ipv6 interface Gi0/0</code> — the 'Joined group addresses' list always includes FF02::1.</p><p><strong>Exam phrasing:</strong> 'Which IPv6 address reaches all nodes on the local link?' → FF02::1. 'What is the IPv6 equivalent of an IPv4 all-hosts broadcast?' → FF02::1.</p>",
+      "visual": { "type": "packet-flow", "params": { "nodes": ["Sender → FF02::1", "Every node on link receives", "Auto-joined by every IPv6 device", "Not forwarded by routers"], "color": "#8b5cf6" } },
+      "hack": {
+        "memory": "FF02::1 = all nodes = IPv6's broadcast replacement for the local link. Every node auto-joins. Used by RAs and debugging.",
+        "practice": "Ping FF02::1 with interface specified. Count replies. Verify on show ipv6 interface that FF02::1 appears in joined groups.",
+        "effort": "low",
+        "meta": "Must know. Jeremy IT Lab Day 32. Wendell Odom OCG Chapter 23."
+      }
+    },
+    {
+      "id": "1.9.c.4",
+      "term": "FF02::2 (all routers)",
+      "weight": "high",
+      "info": "<p><strong><code>FF02::2</code> is the all-routers multicast address</strong> — link-local scope, group ID 2. <strong>Only IPv6 routers join this group</strong>; regular hosts do not. This makes FF02::2 an efficient way to address messages to routers without bothering uninvolved hosts.</p><p><strong>When FF02::2 is used:</strong></p><ul><li><strong>Router Solicitations (RS)</strong> — hosts send RS to FF02::2 to trigger routers to send RAs. Only routers process the frame.</li><li><strong>Administrative router discovery</strong> — management tools can ping FF02::2 to find all routers on the segment.</li></ul><p><strong>Who joins:</strong> a Cisco router joins FF02::2 when <code>ipv6 unicast-routing</code> is enabled globally (which makes it a router). A host without forwarding enabled does not join FF02::2.</p><p><strong>Contrast with FF02::1:</strong> FF02::1 includes everyone (hosts + routers). FF02::2 includes only routers. Messages addressed to FF02::2 reach a smaller, targeted group.</p><p><strong>Pinging FF02::2:</strong> on Cisco, <code>ping FF02::2</code> with interface specified will get replies from all routers on the link. Useful for quickly inventorying routers.</p><p><strong>Scope:</strong> link-local, so routers never forward it to other interfaces.</p><p><strong>Exam phrasing:</strong> 'Which IPv6 address reaches all routers on the local link?' → FF02::2. 'What destination does a host's RS message use?' → FF02::2.</p>",
+      "visual": { "type": "packet-flow", "params": { "nodes": ["Host sends RS → FF02::2", "Only routers process", "Each router replies with RA", "Hosts learn prefix + gateway"], "color": "#3b82f6" } },
+      "hack": {
+        "memory": "FF02::2 = all routers. Only routers join. Used by RS (Router Solicitation). Counterpart to FF02::1 (all nodes).",
+        "practice": "Flashcard FF02::1 vs FF02::2. Know: ::1 all nodes, ::2 all routers. RS goes to ::2.",
+        "effort": "low",
+        "meta": "Must know. Jeremy IT Lab Day 32. Wendell Odom OCG Chapter 23."
+      }
+    },
+    {
+      "id": "1.9.c.5",
+      "term": "FF02::5 (OSPF routers)",
+      "weight": "high",
+      "info": "<p><strong><code>FF02::5</code> is the OSPFv3 all-routers multicast address</strong> — link-local scope, group ID 5. OSPFv3 routers on a segment send Hello packets and other OSPF messages to FF02::5 for efficient link-state flooding. This is the direct IPv6 analogue of IPv4's <code>224.0.0.5</code>.</p><p><strong>Companion address:</strong> <strong><code>FF02::6</code></strong> is the OSPF DR (Designated Router) multicast address, equivalent to IPv4's 224.0.0.6. DR-bound traffic (LS updates to the DR, LS ACKs) uses ::6.</p><p><strong>Who joins:</strong> an interface joins FF02::5 when OSPFv3 is enabled on it. Joining is automatic once <code>ipv6 router ospf &lt;process&gt;</code> is active and the interface is added to the OSPF process.</p><p><strong>When used:</strong></p><ul><li>OSPFv3 Hello packets (every 10 seconds on broadcast networks)</li><li>LSA flooding to all OSPF routers on the segment</li><li>Neighbor discovery and adjacency maintenance</li></ul><p><strong>Adjacency uses link-local:</strong> even though OSPFv3 sends to FF02::5 (multicast), the <strong>neighbor addresses</strong> are link-local. OSPFv3 peers identify each other by FE80:: addresses, not FF02::5. In <code>show ipv6 ospf neighbor</code>, you see link-local addresses as the neighbor ID.</p><p><strong>IPv4 → IPv6 OSPF multicast mapping:</strong></p><ul><li>224.0.0.5 (IPv4 AllSPFRouters) → FF02::5 (IPv6)</li><li>224.0.0.6 (IPv4 AllDRouters) → FF02::6 (IPv6)</li></ul><p><strong>Exam fact:</strong> memorize FF02::5 for OSPF. The exam will test: 'What multicast does OSPFv3 use for Hello packets?' → FF02::5.</p>",
+      "visual": { "type": "hierarchy", "params": { "root": "OSPFv3 Multicast", "children": [{ "name": "FF02::5 — all OSPF routers (Hellos, LSAs)" }, { "name": "FF02::6 — DR multicast (LSU to DR)" }, { "name": "IPv4 analogue: 224.0.0.5 / 224.0.0.6" }] } },
+      "hack": {
+        "memory": "FF02::5 = OSPFv3 all routers. FF02::6 = OSPFv3 DR. IPv4 analogues: 224.0.0.5 and 224.0.0.6. Same last digit.",
+        "practice": "Flashcard FF02::5 = OSPF, FF02::A = EIGRP, FF02::D = PIM (rare). Correlate to IPv4: just replace 224.0.0.X with FF02::X.",
+        "effort": "low",
+        "meta": "Guaranteed exam fact. Jeremy IT Lab Day 34 (OSPFv3). Wendell Odom OCG Chapter 23."
+      }
+    },
+    {
+      "id": "1.9.c.6",
+      "term": "FF02::A (EIGRP routers)",
+      "weight": "med",
+      "info": "<p><strong><code>FF02::A</code> is the EIGRP for IPv6 all-routers multicast address</strong> — link-local scope, group ID A (hex 10, decimal 10). EIGRP routers send Hello packets and updates to FF02::A. Direct analogue of IPv4's <code>224.0.0.10</code>.</p><p><strong>Who joins:</strong> an interface joins FF02::A when EIGRP for IPv6 (<code>ipv6 router eigrp</code>) is enabled on it.</p><p><strong>When used:</strong></p><ul><li>EIGRP Hello packets (default 5 seconds on broadcast media)</li><li>Query/Reply/Update floods</li></ul><p><strong>Neighbor adjacency:</strong> EIGRP for IPv6 neighbors identify each other by <strong>link-local addresses</strong>, just like OSPFv3. The multicast is the transport; link-local is the peer identity.</p><p><strong>Mapping to IPv4:</strong></p><ul><li>224.0.0.10 (IPv4 EIGRP) → FF02::A (IPv6 EIGRP)</li></ul><p><strong>Memory trick:</strong> 'A' in hex is 10 in decimal. IPv4 EIGRP uses .10. IPv6 EIGRP uses ::A. Same number, different notation.</p><p><strong>CCNA weight:</strong> EIGRP for IPv6 is less tested than OSPFv3 on CCNA 200-301 v1.1. Know the multicast address conceptually but do not dwell.</p>",
+      "visual": { "type": "comparison", "params": { "left": { "label": "IPv4 EIGRP", "items": ["224.0.0.10"] }, "right": { "label": "IPv6 EIGRP", "items": ["FF02::A (hex A = decimal 10)"] } } },
+      "hack": {
+        "memory": "FF02::A = EIGRP for IPv6 (A hex = 10 decimal, matches IPv4 224.0.0.10). OSPFv3 = FF02::5.",
+        "practice": "Flashcard: FF02::5 OSPF, FF02::A EIGRP. IPv4 counterparts: 224.0.0.5 and 224.0.0.10.",
+        "effort": "low",
+        "meta": "Lower exam priority. Jeremy IT Lab Day 32. Wendell Odom OCG Chapter 23."
+      }
+    },
+    {
+      "id": "1.9.c.7",
+      "term": "Solicited-node multicast",
+      "weight": "high",
+      "info": "<p>The <strong>solicited-node multicast address</strong> is a per-unicast-address multicast group auto-joined by every IPv6 interface. Format: <code>FF02::1:FF</code> + <strong>last 24 bits</strong> of the unicast address. Purpose: efficient target-specific NS delivery, replacing ARP broadcast.</p><p><strong>Construction example:</strong></p><ul><li>Unicast: <code>2001:DB8::1234:5678</code></li><li>Last 24 bits: <code>34:5678</code></li><li>Solicited-node: <code>FF02::1:FF34:5678</code></li></ul><p><strong>More examples:</strong></p><ul><li>Unicast <code>FE80::21A:2BFF:FE3C:4D5E</code> → SN <code>FF02::1:FF3C:4D5E</code></li><li>Unicast <code>2001:DB8::1</code> → SN <code>FF02::1:FF00:0001</code> = <code>FF02::1:FF00:1</code></li><li>Unicast <code>2001:DB8:CAFE:1:ABCD:EF12:3456:789A</code> → SN <code>FF02::1:FF56:789A</code></li></ul><p><strong>Prefix:</strong> the solicited-node range is <code>FF02::1:FF00:0/104</code> — the first 104 bits (13 bytes) are fixed, only the last 24 bits (3 bytes) vary.</p><p><strong>Why this design is efficient:</strong></p><ul><li>An NS to FF02::1:FFxx:xxxx reaches only devices that have a unicast address ending in the same 24 bits.</li><li>Typically only one device matches — the target.</li><li>Switches that support MLD snooping can further restrict the flood to the target's port only.</li><li>Compare to ARP: ARP broadcast hits every device, which wastes CPU on all uninvolved hosts.</li></ul><p><strong>Auto-join:</strong> every time a host configures a unicast address, it joins that address's solicited-node group. Verify with <code>show ipv6 interface</code> — the joined groups list always includes solicited-node entries.</p><p><strong>Used by:</strong> NS for address resolution, NS for DAD. Both use the solicited-node multicast as destination.</p>",
+      "visual": { "type": "binary-breakdown", "params": { "bits": "FF02::1:FF | xx:xxxx (last 24 bits of unicast)", "label": "Solicited-node multicast structure", "highlight": [2,3] } },
+      "hack": {
+        "memory": "Solicited-node = FF02::1:FF + last 24 bits of unicast. Auto-joined per unicast address. Used by NS (addr resolve + DAD). Replaces ARP broadcast.",
+        "practice": "Compute solicited-node for: 2001:DB8::1 → FF02::1:FF00:1. FE80::ABCD:1234 → FF02::1:FFCD:1234. Drill 10 conversions.",
+        "effort": "medium",
+        "meta": "Common calculation. Jeremy IT Lab Day 32. Wendell Odom OCG Chapter 23."
+      }
+    }
+  ],
+  "1.9.d": [
+    {
+      "id": "1.9.d.1",
+      "term": "Modified EUI-64",
+      "weight": "high",
+      "info": "<p><strong>Modified EUI-64</strong> is the classic method to generate a <strong>64-bit IPv6 interface ID from a 48-bit MAC address</strong>. It was the original interface ID scheme for SLAAC, defined in RFC 4291. Modern OSes often use RFC 7217 instead for privacy, but EUI-64 remains a heavily-tested CCNA mechanic.</p><p><strong>Three-step recipe:</strong></p><ol><li><strong>Split</strong> — divide the 48-bit MAC into two 24-bit halves (OUI + device ID).</li><li><strong>Stuff</strong> — insert <code>FFFE</code> (16 bits) between the halves, expanding to 64 bits.</li><li><strong>Flip</strong> — toggle the 7th bit of the first byte (XOR with 0x02).</li></ol><p><strong>Worked example:</strong> MAC <code>00:1A:2B:3C:4D:5E</code></p><ul><li>Split: <code>00:1A:2B</code> | <code>3C:4D:5E</code></li><li>Stuff: <code>00:1A:2B:FF:FE:3C:4D:5E</code> = <code>001A:2BFF:FE3C:4D5E</code></li><li>Flip: 00 → 02 (XOR with 0x02)</li><li>Final interface ID: <code>021A:2BFF:FE3C:4D5E</code></li></ul><p>Combined with prefix <code>2001:DB8:1::/64</code>: full address <code>2001:DB8:1::21A:2BFF:FE3C:4D5E</code>.</p><p><strong>Recognizing an EUI-64 interface ID:</strong> look for <code>FF:FE</code> in the middle (bits 25–40 of the interface ID). If you see it, the address was derived from a MAC via EUI-64.</p><p><strong>Why it exists:</strong> guarantees a unique 64-bit interface ID on every NIC without central coordination. MACs are globally unique (OUI + device serial), so EUI-64 inherits that uniqueness.</p><p><strong>Why privacy extensions replaced it:</strong> the EUI-64 ID embeds the MAC address, allowing device tracking across networks. RFC 7217 generates pseudo-random interface IDs stable per (prefix, interface) but different across networks.</p>",
+      "visual": { "type": "encapsulation", "params": { "layers": [{ "label": "MAC: 00:1A:2B:3C:4D:5E", "color": "#3b82f6" }, { "label": "Split + stuff FFFE → 001A:2BFF:FE3C:4D5E", "color": "#8b5cf6" }, { "label": "Flip bit 7 → 021A:2BFF:FE3C:4D5E", "color": "#10b981" }] } },
+      "hack": {
+        "memory": "Modified EUI-64 = Split, Stuff, Flip (SSF). Three steps. FFFE in the middle. Flip 7th bit (XOR first byte with 0x02).",
+        "practice": "Convert 5 MACs to EUI-64 IDs by hand. Verify with online calculator.",
+        "effort": "high",
+        "meta": "Guaranteed exam conversion. Jeremy IT Lab Day 32. Wendell Odom OCG Chapter 23."
+      }
+    },
+    {
+      "id": "1.9.d.2",
+      "term": "Step 1: Split MAC",
+      "weight": "high",
+      "info": "<p><strong>Step 1 of EUI-64:</strong> divide the 48-bit MAC address into two equal halves — the <strong>OUI (first 24 bits)</strong> and the <strong>device ID (last 24 bits)</strong>.</p><p><strong>MAC address structure recap:</strong></p><ul><li>Bits 1–24: <strong>OUI (Organizationally Unique Identifier)</strong> — identifies the manufacturer. Assigned by IEEE.</li><li>Bits 25–48: <strong>Device-specific identifier</strong> — the vendor assigns this sequentially or randomly.</li></ul><p><strong>Split examples:</strong></p><ul><li>MAC <code>00:1A:2B:3C:4D:5E</code> → <code>00:1A:2B</code> | <code>3C:4D:5E</code></li><li>MAC <code>AA:BB:CC:DD:EE:FF</code> → <code>AA:BB:CC</code> | <code>DD:EE:FF</code></li><li>MAC <code>3C:5A:B4:12:34:56</code> → <code>3C:5A:B4</code> | <code>12:34:56</code></li></ul><p><strong>Why split here?</strong> The FFFE insertion (step 2) happens exactly at this 24/24 boundary. Splitting exposes where to stuff the extra 16 bits.</p><p><strong>Notation:</strong> MACs are written in several formats. The split applies regardless:</p><ul><li>Colon: <code>00:1A:2B:3C:4D:5E</code></li><li>Dash: <code>00-1A-2B-3C-4D-5E</code></li><li>Cisco dotted: <code>001A.2B3C.4D5E</code></li></ul><p>The split is always 3 bytes / 3 bytes, regardless of punctuation.</p>",
+      "visual": { "type": "binary-breakdown", "params": { "bits": "[ OUI 24 bits ] | [ Device ID 24 bits ]", "label": "Step 1: Split MAC into two halves", "highlight": [0,1] } },
+      "hack": {
+        "memory": "Step 1: Split MAC in half at 24/24. First 3 bytes = OUI, last 3 bytes = device ID. Notation (colon/dash/dotted) does not matter.",
+        "practice": "Split 5 MACs. Verify each becomes two 3-byte halves.",
+        "effort": "low",
+        "meta": "First step of EUI-64. Jeremy IT Lab Day 32. Wendell Odom OCG Chapter 23."
+      }
+    },
+    {
+      "id": "1.9.d.3",
+      "term": "Step 2: Stuff FFFE",
+      "weight": "high",
+      "info": "<p><strong>Step 2 of EUI-64:</strong> insert the 16-bit value <strong><code>FFFE</code></strong> (which is <code>FF:FE</code> as two bytes) between the two MAC halves. This expands the 48-bit MAC to a 64-bit value.</p><p><strong>Why FFFE specifically?</strong> RFC 2373 chose FFFE because it is a reserved OUI — no vendor has FFFE as a valid OUI, so no real MAC could legitimately contain FFFE in those bits. This makes the combined value distinct from any actual MAC, preventing confusion.</p><p><strong>Stuffing examples:</strong></p><ul><li><code>00:1A:2B</code> | <code>3C:4D:5E</code> → <code>00:1A:2B:FF:FE:3C:4D:5E</code> = <code>001A:2BFF:FE3C:4D5E</code></li><li><code>AA:BB:CC</code> | <code>DD:EE:FF</code> → <code>AA:BB:CC:FF:FE:DD:EE:FF</code> = <code>AABB:CCFF:FEDD:EEFF</code></li><li><code>3C:5A:B4</code> | <code>12:34:56</code> → <code>3C:5A:B4:FF:FE:12:34:56</code> = <code>3C5A:B4FF:FE12:3456</code></li></ul><p><strong>Pattern to spot an EUI-64:</strong> the FFFE signature lives at bits 25–40 of the interface ID. If you see FFFE in the middle (third hextet mostly, crossing into fourth), the address was likely derived via EUI-64.</p><p><strong>After stuffing:</strong> you have a 64-bit value. Step 3 (flip the 7th bit) modifies the first byte before the interface ID is ready for use.</p>",
+      "visual": { "type": "packet-flow", "params": { "nodes": ["00:1A:2B | 3C:4D:5E", "Insert FF:FE in middle", "00:1A:2B:FF:FE:3C:4D:5E", "Rewrite as 4 hextets: 001A:2BFF:FE3C:4D5E"], "color": "#8b5cf6" } },
+      "hack": {
+        "memory": "Step 2: stuff FFFE between the two MAC halves. FFFE is reserved — no real MAC has it. Look for FFFE in the middle to spot an EUI-64 ID.",
+        "practice": "Insert FFFE into 5 split MACs. Verify the result is 64 bits = 4 hextets.",
+        "effort": "low",
+        "meta": "Second step of EUI-64. Jeremy IT Lab Day 32. Wendell Odom OCG Chapter 23."
+      }
+    },
+    {
+      "id": "1.9.d.4",
+      "term": "Step 3: Flip 7th bit",
+      "weight": "high",
+      "info": "<p><strong>Step 3 of EUI-64:</strong> flip the <strong>7th bit</strong> (the U/L bit, Universal/Local) of the first byte. Mathematically, this is <strong>XOR the first byte with 0x02</strong>.</p><p><strong>The U/L bit:</strong> in a MAC address, bit 7 of byte 1 (counting from the left, where bit 1 is the leftmost) indicates:</p><ul><li><strong>U/L = 0</strong> — Universally administered (burned-in MAC)</li><li><strong>U/L = 1</strong> — Locally administered (custom MAC, such as VMs or virtual interfaces)</li></ul><p>In EUI-64, the semantics are <em>inverted</em>: bit 7 of the interface ID's first byte means:</p><ul><li><strong>0</strong> — Locally administered</li><li><strong>1</strong> — Universally administered</li></ul><p>Flipping the bit converts the MAC's U/L bit convention to EUI-64's convention.</p><p><strong>XOR with 0x02 examples (byte 1 only):</strong></p><ul><li>00 (00000000) → 02 (00000010)</li><li>02 → 00</li><li>0A → 08</li><li>0C → 0E</li><li>1A → 18</li><li>3C → 3E</li><li>AA (10101010) → A8 (10101000)</li><li>FF → FD</li></ul><p><strong>Pattern:</strong> look at the second hex digit of the first byte. If it is even, add 2. If it already has bit 2 set, subtract 2. The first hex digit never changes.</p><p><strong>Why the flip matters:</strong> without it, most burned-in MACs (starting with 00, 02, etc.) would produce interface IDs that do not conform to EUI-64's U/L convention. The flip normalizes them.</p>",
+      "visual": { "type": "binary-breakdown", "params": { "bits": "First byte: b1 b2 b3 b4 b5 b6 [U/L] b8   — flip bit 7", "label": "Step 3: Flip bit 7 (XOR with 0x02)", "highlight": [6] } },
+      "hack": {
+        "memory": "Flip the 7th bit = XOR first byte with 0x02. Even becomes even+2, odd (with bit 2 set) becomes even-2. 00→02, AA→A8, 1A→18.",
+        "practice": "Flip the first byte of 10 values: 00, 02, 04, 08, 0A, 1A, 3C, 5E, AA, FF. Write the XOR results. Verify: 00→02, 02→00, AA→A8, FF→FD.",
+        "effort": "high",
+        "meta": "Trickiest step of EUI-64. Jeremy IT Lab Day 32. Wendell Odom OCG Chapter 23. Practice until XOR 0x02 is automatic."
+      }
+    },
+    {
+      "id": "1.9.d.5",
+      "term": "EUI-64 example",
+      "weight": "high",
+      "info": "<p><strong>Full worked EUI-64 example</strong> — memorize this end-to-end conversion as your exam reference.</p><p><strong>Given:</strong></p><ul><li>MAC: <code>00:1A:2B:3C:4D:5E</code></li><li>Network prefix: <code>2001:DB8:1::/64</code></li></ul><p><strong>Step 1 — Split:</strong> <code>00:1A:2B</code> | <code>3C:4D:5E</code></p><p><strong>Step 2 — Stuff FFFE:</strong> <code>00:1A:2B:FF:FE:3C:4D:5E</code> = <code>001A:2BFF:FE3C:4D5E</code></p><p><strong>Step 3 — Flip bit 7 of first byte:</strong> 00 (binary 00000000) → flip bit 7 → 00000010 → <strong>02</strong></p><p><strong>Final interface ID:</strong> <code>021A:2BFF:FE3C:4D5E</code></p><p><strong>Full IPv6 address:</strong> <code>2001:DB8:1::<strong>21A:2BFF:FE3C:4D5E</strong></code> — note the leading zero on 02 is dropped, giving <code>21A</code> in the shortened form.</p><p><strong>Reverse engineering (given EUI-64, find MAC):</strong></p><ol><li>Take interface ID <code>021A:2BFF:FE3C:4D5E</code></li><li>Flip bit 7 of first byte: 02 → 00</li><li>Remove the FFFE in the middle</li><li>Result: <code>00:1A:2B:3C:4D:5E</code> (original MAC)</li></ol><p><strong>Additional practice examples:</strong></p><ul><li>MAC <code>AA:BB:CC:DD:EE:FF</code> + prefix <code>2001:DB8::/64</code> → interface ID <code>A8BB:CCFF:FEDD:EEFF</code> → full <code>2001:DB8::A8BB:CCFF:FEDD:EEFF</code></li><li>MAC <code>00:50:56:AB:CD:EF</code> + prefix <code>FE80::/64</code> → interface ID <code>0250:56FF:FEAB:CDEF</code> → full <code>FE80::250:56FF:FEAB:CDEF</code></li></ul>",
+      "visual": { "type": "encapsulation", "params": { "layers": [{ "label": "MAC 00:1A:2B:3C:4D:5E", "color": "#3b82f6" }, { "label": "Split + FFFE: 001A:2BFF:FE3C:4D5E", "color": "#8b5cf6" }, { "label": "Flip 7th bit: 021A:2BFF:FE3C:4D5E", "color": "#10b981" }, { "label": "With prefix: 2001:DB8:1::21A:2BFF:FE3C:4D5E", "color": "#f59e0b" }] } },
+      "hack": {
+        "memory": "Memorize the canonical example: MAC 00:1A:2B:3C:4D:5E + 2001:DB8:1::/64 → 2001:DB8:1::21A:2BFF:FE3C:4D5E. First byte 00 → 02 after flip.",
+        "practice": "Perform the full conversion on 5 different MAC + prefix combinations. Then reverse engineer 3 EUI-64 IDs back to MACs.",
+        "effort": "high",
+        "meta": "Exam staple. Jeremy IT Lab Day 32. Wendell Odom OCG Chapter 23. Practice until automatic."
+      }
+    },
+    {
+      "id": "1.9.d.6",
+      "term": "Privacy extensions (RFC 7217)",
+      "weight": "med",
+      "info": "<p><strong>Privacy extensions</strong> generate a <strong>randomized interface ID</strong> for SLAAC instead of using the MAC-derived EUI-64. This prevents an observer from tracking a device by its constant EUI-64 ID across networks.</p><p><strong>Two RFCs, two approaches:</strong></p><ul><li><strong>RFC 4941 (Temporary addresses):</strong> generates random interface IDs that rotate periodically (hours to days). The device maintains multiple addresses simultaneously — the newest is used for outgoing connections, older ones remain valid briefly to avoid breaking existing sessions.</li><li><strong>RFC 7217 (Stable randomized):</strong> generates a pseudo-random interface ID that is <strong>stable for a given (prefix, interface, network_id) tuple</strong> but changes when any of those inputs change. Combines privacy (no MAC leak) with stability (same LAN = same address across reboots).</li></ul><p><strong>Default behavior by OS:</strong></p><ul><li><strong>Windows 10/11:</strong> RFC 7217 stable + RFC 4941 temporary, both enabled by default</li><li><strong>macOS, iOS:</strong> RFC 7217 default (since 10.11/iOS 8), RFC 4941 supplement</li><li><strong>Linux (systemd-networkd):</strong> RFC 7217 default in modern distros</li><li><strong>Android:</strong> RFC 7217 default since 4.x</li></ul><p><strong>Privacy implication:</strong> with EUI-64, your MAC-derived interface ID stays the same across every network you join. A tracker can correlate sessions by that ID. With privacy extensions, the interface ID differs per network (RFC 7217) or rotates constantly (RFC 4941), breaking this tracking.</p><p><strong>Spotting a privacy address:</strong> no FFFE in the middle. Looks like random hex: <code>2001:DB8::a8b2:fd4c:e192:1234</code> (no recognizable MAC pattern).</p><p><strong>CCNA exam context:</strong> know that privacy extensions exist as the modern alternative to EUI-64. The exam primarily tests EUI-64 mechanics, but mentioning RFC 7217 shows awareness of real-world deployment.</p>",
+      "visual": { "type": "comparison", "params": { "left": { "label": "EUI-64", "items": ["Deterministic from MAC", "Same across networks", "Contains FFFE in middle", "Trackable"] }, "right": { "label": "Privacy Extensions", "items": ["Random or pseudo-random", "Differs per network (7217)", "No FFFE pattern", "Not trackable"] } } },
+      "hack": {
+        "memory": "Privacy extensions = random interface IDs. RFC 4941 rotates (temporary). RFC 7217 stable-per-prefix. Default on modern clients. No FFFE in the middle.",
+        "practice": "On your laptop, check your IPv6 address. If no FFFE in the middle, you are using a privacy extension. Compare with a router's address (typically EUI-64 with FFFE).",
+        "effort": "low",
+        "meta": "Modern context. Jeremy IT Lab Day 32. Wendell Odom OCG Chapter 23. Low exam priority."
+      }
+    }
   ]
 }
