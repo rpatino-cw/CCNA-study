@@ -5997,11 +5997,71 @@ window.subtopicContentD12 = {
       meta: "Jeremy's IT Lab Days 57-58 cover WLC WLAN creation. Wendell Odom OCG Chapter 26 details WLC GUI configuration. The exam may show the WLC GUI and ask you to create or identify WLAN settings. Know the three identifiers and that the WLAN must be enabled. Also know: WLANs 1-16 are available by default; additional WLANs require specific WLC models.",
     },
     micro: [
-      { id: "2.9.a.1", term: "WLAN Profile Name",            def: "Internal WLC label for admins (e.g., 'Corporate-WiFi'). Not visible to wireless clients.", weight: "high" },
-      { id: "2.9.a.2", term: "WLAN SSID",                    def: "Broadcast network name seen by clients. Visible in beacons (e.g., 'CorpNet'). Can differ from Profile Name.", weight: "high" },
-      { id: "2.9.a.3", term: "WLAN ID (1-512)",              def: "Numeric identifier for the WLAN on the WLC. Range 1-512 (model-dependent).", weight: "med" },
-      { id: "2.9.a.4", term: "WLAN Status: Enabled",         def: "WLAN is disabled by default after creation. Must be explicitly enabled before APs broadcast.", weight: "high" },
-      { id: "2.9.a.5", term: "Multiple WLANs per WLC",       def: "A single WLC supports many WLANs (16 default, up to 512). Each with its own security and VLAN mapping.", weight: "med" }
+      {
+        id: "2.9.a.1",
+        term: "WLAN Profile Name",
+        weight: "high",
+        info: "<p>The <strong>WLAN Profile Name</strong> is the <strong>internal administrative label</strong> used on the WLC to identify a WLAN configuration. It is the name you see in the WLC's WLANs list, dropdowns, logs, and in configuration backups. Clients <strong>never see the Profile Name</strong> — it is for IT/admin use only.</p><p>When you click <code>WLANs → Create New</code> on the WLC GUI, the first field you type is Profile Name. Cisco best practice is to use a descriptive name that encodes purpose and location, for example <code>Corp-HQ-Employee</code>, <code>Guest-Lobby</code>, <code>IoT-Sensors-VLAN30</code>. This makes troubleshooting and mass operations far easier when a WLC hosts 16-50 WLANs.</p><p>The Profile Name can be <strong>the same as the SSID or completely different</strong>. Many shops keep them identical (e.g., Profile <code>CorpNet</code>, SSID <code>CorpNet</code>) for simplicity. But if you need <strong>two WLANs that broadcast the same SSID</strong> (for example, one mapped to interface-group A for North building, another to interface-group B for South building), the Profile Name is what keeps them distinct in the config.</p><p><strong>Exam trap:</strong> if a question shows a WLAN list with a Profile Name column and an SSID column, do NOT assume they are the same value. Read both columns. The field users actually join is the SSID, not the Profile Name.</p>",
+        visual: { type: "comparison", params: { left: { label: "Profile Name (admin-only)", items: ["Shown in WLC GUI", "Used in logs/config", "Invisible to clients", "e.g., Corp-HQ-Employee"] }, right: { label: "SSID (client-visible)", items: ["Broadcast in beacons", "Shown on phones/laptops", "What users tap to join", "e.g., CorpNet"] } } },
+        hack: {
+          memory: "Profile Name = the <strong>filename</strong> of the WLAN (admin sees it). SSID = the <strong>title on the book cover</strong> (users see it). They can match or differ. Mnemonic: 'Profile is Private, SSID is Shown.'",
+          practice: "In Packet Tracer or a WLC simulator: create a WLAN with Profile Name <code>Lab-Profile-1</code> and SSID <code>ClassroomWiFi</code>. On your phone's Wi-Fi list, verify you see <code>ClassroomWiFi</code> (not <code>Lab-Profile-1</code>). Then rename the Profile Name to <code>Lab-Profile-RENAMED</code> without touching SSID — the SSID on your phone does not change. This cements the client-vs-admin split.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 57 shows the WLC WLAN creation wizard. Wendell Odom OCG Chapter 26 documents the three identifiers. On the exam, expect a screenshot of the WLAN list — you must know which column users see (SSID) and which is internal (Profile Name)."
+        }
+      },
+      {
+        id: "2.9.a.2",
+        term: "WLAN SSID",
+        weight: "high",
+        info: "<p>The <strong>SSID (Service Set Identifier)</strong> is the <strong>human-readable network name</strong> that APs broadcast in their <strong>beacon frames</strong> about every 100 ms. It is the string that shows up in the Wi-Fi list on a phone, laptop, or IoT device. Maximum length is <strong>32 octets</strong>, case-sensitive, and can include spaces and most special characters.</p><p>On the WLC GUI, the SSID is set on the WLAN <code>General</code> tab in the <code>SSID</code> field. Every beacon frame broadcast from any AP in that WLC's control plane will carry this SSID (unless you enable <strong>SSID Broadcast = disabled / hidden SSID</strong>, which only stops beacons from advertising the name — the SSID is still required on the client to associate).</p><p>The SSID is also how <strong>roaming</strong> works: a client associated to SSID <code>CorpNet</code> on AP-1 can roam to AP-2 seamlessly because AP-2 also advertises <code>CorpNet</code> under the same WLC. Roaming is per-SSID, not per-AP.</p><p><strong>Design tips:</strong> (1) Avoid generic names like <code>wireless</code> or <code>default</code> — clients may auto-join the wrong network. (2) Do not embed the Wi-Fi password in the SSID. (3) Reserve one clean SSID for production and another for IoT; mixing them complicates security policy. (4) Changing an SSID forces every client to forget and re-add the network — plan SSID renames carefully.</p>",
+        visual: { type: "packet-flow", params: { nodes: ["AP beacon", "SSID: CorpNet", "Client scans", "Client joins CorpNet"], color: "#3b82f6" } },
+        hack: {
+          memory: "SSID = the <strong>neighborhood sign</strong> that says 'CorpNet' — anyone driving by sees it. 32 chars max, case-sensitive. 'Hiding' the SSID just takes the sign down; the neighborhood still exists and clients who know the name can still enter.",
+          practice: "Create two WLANs with SSIDs <code>CorpNet</code> and <code>corpnet</code> (different case). On your phone, verify both appear as separate networks in the Wi-Fi list — proving SSIDs are case-sensitive. Then disable SSID Broadcast on one and confirm it disappears from scans but you can still manually add it by typing the exact name.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 57. Wendell Odom OCG Chapter 26. Exam: know SSID is 32 octets max, case-sensitive, broadcast in beacons. A common question asks what clients use to join a WLAN — the answer is always SSID, never Profile Name or WLAN ID."
+        }
+      },
+      {
+        id: "2.9.a.3",
+        term: "WLAN ID (1-512)",
+        weight: "med",
+        info: "<p>The <strong>WLAN ID</strong> is a numeric handle (range <strong>1-512</strong>) that the WLC uses internally to reference a WLAN. It is a <strong>primary key</strong> for the WLAN — the WLC, APs, and CAPWAP control messages all use the WLAN ID (not the SSID or Profile Name) to track which WLAN a client is associated to, which QoS profile to apply, which VLAN to place traffic on, etc.</p><p>On most Cisco WLCs, WLAN IDs <strong>1-16 are broadcast by default by every AP</strong>. IDs <strong>17-512</strong> exist on higher-end models but require explicit AP group mapping before APs will broadcast them. This is why production deployments with more than 16 SSIDs often use AP groups for traffic segmentation.</p><p>When you create a WLAN in the GUI, the WLC auto-assigns the next available WLAN ID, but you can override it. On the CLI, the WLAN ID is typed explicitly: <code>config wlan create 1 CorpProfile CorpNet</code>. In debug output and client tables, you will see lines like <code>WLAN ID: 1</code> — that number is your only clue to which WLAN the client is on if you are reading raw output.</p><p><strong>Key exam fact:</strong> the range is <strong>1 to 512</strong>. Not 0-511, not 1-255. Memorize <strong>1-512</strong>.</p>",
+        visual: { type: "layer-stack", params: { layers: ["WLAN ID 1-16 (default, broadcast by all APs)", "WLAN ID 17-512 (AP-group only)", "Max 512 total WLANs per WLC"], highlight: 0 } },
+        hack: {
+          memory: "WLAN ID = the <strong>row number</strong> in the WLC's WLAN table. 1-512, and the first 16 are broadcast everywhere by default. Mnemonic: 'First 16 are free, 17+ need an AP group sponsor.'",
+          practice: "On the WLC GUI, create WLANs until you have IDs 1 through 17. Observe which ones show up on a test AP's scan by default. Then create an AP group, assign WLAN 17 to it, associate the AP with the group — now ID 17 also broadcasts from that AP.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 57. Wendell Odom OCG Chapter 26. Exam: know the 1-512 range and that IDs 1-16 are the default broadcast set. Multiple-choice questions will tempt you with 1-256 or 0-511 — reject both."
+        }
+      },
+      {
+        id: "2.9.a.4",
+        term: "WLAN Status: Enabled",
+        weight: "high",
+        info: "<p>Every newly created WLAN on a Cisco WLC starts in <strong>disabled</strong> state. This is a deliberate <strong>safety default</strong>: a half-configured WLAN (no security selected, wrong VLAN mapped) should NOT go live and accept clients the moment you click Save. You must explicitly flip <strong>Status = Enabled</strong> on the General tab before the WLC tells APs to start beaconing the SSID.</p><p>The enable flag is checked at two places: (1) <strong>the WLC control plane</strong> — only enabled WLANs are pushed into AP radio configs; (2) <strong>the AP beacons</strong> — APs only broadcast beacons for enabled WLANs mapped to their AP group. Disabling a WLAN causes APs to stop beaconing that SSID within seconds and existing clients are deauthenticated.</p><p>This is a useful <strong>operational tool</strong>: if a WLAN is under attack or misconfigured, you can disable it instantly from the GUI to take it offline without deleting the configuration. Re-enable when fixed. Disable + enable is also the cleanest way to force every client on a WLAN to re-authenticate (useful after a PSK rotation).</p><p><strong>Exam fact:</strong> 'After creating a WLAN, the administrator cannot see the SSID on a phone — what is the most likely cause?' The textbook answer is <strong>WLAN is disabled</strong>. Second guess: SSID Broadcast is off. Third: the AP group does not include the WLAN.</p>",
+        visual: { type: "state-machine", params: { states: ["Created (Disabled)", "Enabled (Beaconing)", "Disabled again (Offline)"], active: 1, transitions: true } },
+        hack: {
+          memory: "New WLAN = light switch <strong>OFF</strong>. You built the wiring and installed the bulb, but until you flip the switch, the room stays dark. Flip Status = Enabled to turn it on. Mnemonic: 'Save does NOT equal ship — Enable is ship.'",
+          practice: "In the WLC GUI: create a WLAN, save it, and without enabling it, open your phone's Wi-Fi list — the SSID is not there. Enable the WLAN, wait 10 seconds, re-scan — the SSID appears. Disable it again — it vanishes. This 30-second loop makes the default-disabled behavior impossible to forget.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 57. Wendell Odom OCG Chapter 26. The exam loves this trivia: new WLANs are disabled by default. Every troubleshooting question about 'SSID not visible' should include 'is the WLAN enabled?' as the first check."
+        }
+      },
+      {
+        id: "2.9.a.5",
+        term: "Multiple WLANs per WLC",
+        weight: "med",
+        info: "<p>A single WLC can host <strong>many WLANs simultaneously</strong>, each with independent configuration. Entry-level WLCs typically support <strong>16 WLANs</strong>, while enterprise models support up to <strong>512 WLANs</strong>. Each WLAN has its own SSID, security policy, dynamic interface/VLAN mapping, QoS profile, and advanced settings.</p><p>Why would you want multiple WLANs? <strong>Segmentation.</strong> A typical enterprise deployment has at least: <code>Corporate</code> (employees, 802.1X, VLAN 10), <code>Guest</code> (visitors, PSK + web auth, VLAN 20, P2P blocked), <code>IoT</code> (cameras/sensors, PSK or MAB, VLAN 30, limited ACL), and sometimes <code>VoIP</code> (Platinum QoS, VLAN 40). Each SSID maps to a different VLAN, which means a different subnet, different ACLs, different internet egress policy, and different DHCP scope.</p><p>There is a <strong>cost</strong> to running many WLANs: every enabled WLAN adds to the size of beacon and probe response frames, consuming <strong>airtime overhead</strong>. Cisco's guideline is to keep the number of broadcast SSIDs on a single AP group to <strong>3-5</strong> for best performance. Beyond that, airtime spent on management frames starves real data throughput. Use AP groups to vary which WLANs are broadcast where, rather than enabling all of them everywhere.</p><p>APs broadcast one beacon per enabled WLAN per radio every 100 ms — so 8 WLANs on a dual-band AP means 16 beacons every 100 ms, or 160 beacons/second just in management traffic.</p>",
+        visual: { type: "hierarchy", params: { root: "WLC (up to 512 WLANs)", children: [{ name: "Corp (VLAN 10, 802.1X)" }, { name: "Guest (VLAN 20, PSK)" }, { name: "IoT (VLAN 30, PSK)" }, { name: "Voice (VLAN 40, Platinum QoS)" }] } },
+        hack: {
+          memory: "One WLC = one wireless apartment building, each WLAN = one floor with its own lock and rules. 16 floors default, 512 max. Keep airtime sane: 3-5 SSIDs per AP group, not all 16.",
+          practice: "On the WLC: create four WLANs (Corp, Guest, IoT, Voice) mapped to VLANs 10/20/30/40. Enable all four. Use a Wi-Fi scanner app on your phone to see all four SSIDs broadcasting simultaneously. Then disable three — notice beacon count drops. This visualizes the airtime cost of too many SSIDs.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 57-58. Wendell Odom OCG Chapter 26. Exam: know the default WLAN limit (16) and the absolute max (512), and the design trade-off (every SSID costs airtime — 3-5 per AP is the sweet spot)."
+        }
+      }
     ]
   },
 
@@ -6021,11 +6081,71 @@ window.subtopicContentD12 = {
       meta: "Jeremy's IT Lab Days 57-58 cover WLC security configuration. Wendell Odom OCG Chapter 26 details WPA2-Personal vs WPA2-Enterprise. The exam asks: 'which authentication method requires a RADIUS server?' (802.1X), 'which provides per-user credentials?' (802.1X), 'which is appropriate for a small office?' (PSK). Also know: WPA2 + AES is the minimum recommended standard. Never recommend WEP or WPA/TKIP.",
     },
     micro: [
-      { id: "2.9.b.1", term: "WPA2 + AES-CCMP",              def: "Current production standard. Layer 2 Security = WPA+WPA2 + AES cipher. Do NOT enable TKIP.", weight: "high" },
-      { id: "2.9.b.2", term: "WPA2-Personal (PSK)",          def: "Pre-shared key. Auth Key Mgmt = PSK. Everyone shares one password. Home/small office.", weight: "high" },
-      { id: "2.9.b.3", term: "WPA2-Enterprise (802.1X)",     def: "Per-user credentials via RADIUS. Auth Key Mgmt = 802.1X. Corporate standard.", weight: "high" },
-      { id: "2.9.b.4", term: "RADIUS server on WLC",         def: "Configured at Security → AAA → RADIUS → Authentication. WLC acts as NAS forwarding to RADIUS.", weight: "high" },
-      { id: "2.9.b.5", term: "PSK vs 802.1X decision",       def: "Small office, no RADIUS = PSK. Enterprise, per-user auth, audit trail = 802.1X.", weight: "high" }
+      {
+        id: "2.9.b.1",
+        term: "WPA2 + AES-CCMP",
+        weight: "high",
+        info: "<p><strong>WPA2 (Wi-Fi Protected Access 2)</strong> with the <strong>AES-CCMP</strong> cipher is the current production-baseline encryption for enterprise Wi-Fi. On the WLC, it is configured on the WLAN's <code>Security → Layer 2</code> tab: select <code>Layer 2 Security = WPA+WPA2</code>, then under <code>WPA+WPA2 Parameters</code> enable the <strong>WPA2 Policy</strong> check box and the <strong>AES</strong> check box. Leave <strong>TKIP unchecked</strong>.</p><p><strong>AES (Advanced Encryption Standard)</strong> is the symmetric block cipher doing the actual encryption. <strong>CCMP (Counter Mode with Cipher Block Chaining Message Authentication Code Protocol)</strong> is the AES mode used by 802.11i/WPA2 — it provides both <strong>confidentiality</strong> (the data is encrypted) and <strong>integrity</strong> (tampering is detected via a MIC). CCMP uses a 128-bit key and 128-bit block size.</p><p><strong>Why not TKIP?</strong> TKIP (Temporal Key Integrity Protocol) was a stopgap designed to run on WEP-era hardware by recycling the RC4 cipher. It has known vulnerabilities (Beck-Tews attack, 2008) and is officially <strong>deprecated by the Wi-Fi Alliance since 2012</strong>. Enabling TKIP alongside AES also forces the AP to fall back to TKIP-level protection for the group key, weakening the whole cell. Modern client devices (2015+) all support AES-CCMP — there is no reason to enable TKIP.</p><p><strong>WPA3</strong> is the newer standard (released 2018) with stronger protections (SAE handshake, forward secrecy), but WPA2-AES remains the CCNA baseline because most deployed infrastructure is still WPA2. On the exam, if a question asks 'which is the current recommended encryption?' the answer is <strong>WPA2 + AES (CCMP)</strong>.</p>",
+        visual: { type: "comparison", params: { left: { label: "USE: WPA2 + AES-CCMP", items: ["AES cipher (secure)", "CCMP mode (integrity + confidentiality)", "128-bit key", "All modern clients support"] }, right: { label: "AVOID: WPA + TKIP", items: ["RC4 cipher (broken)", "Beck-Tews attack (2008)", "Deprecated 2012", "Drags group key down"] } } },
+        hack: {
+          memory: "Checkbox discipline: <strong>WPA2 YES, AES YES, TKIP NO</strong>. Mnemonic: 'WAY TRUE' — WPA2 = yes, AES = yes, TKIP = no. CCMP is just 'AES in the Wi-Fi flavor.'",
+          practice: "On a WLC, deliberately create three WLANs: (a) WPA2 + AES only, (b) WPA2 + AES + TKIP mixed, (c) WPA + TKIP only. Connect a modern phone to each. Record the negotiated cipher in the WLC client details (Monitor → Clients). You will see (a) uses CCMP, (c) uses TKIP (or fails on newer OSes), and (b) falls back to the weaker cipher for the group key. Keep only (a) in production.",
+          effort: "medium",
+          meta: "Jeremy's IT Lab Day 57-58. Wendell Odom OCG Chapter 26, and Chapter 28 covers the crypto background. Exam: 'which cipher is recommended?' = AES-CCMP. 'Which is deprecated?' = TKIP/WPA. 'What replaces WEP?' = WPA2 (WPA was transitional)."
+        }
+      },
+      {
+        id: "2.9.b.2",
+        term: "WPA2-Personal (PSK)",
+        weight: "high",
+        info: "<p><strong>WPA2-Personal</strong>, also called <strong>PSK mode</strong> (Pre-Shared Key), uses a <strong>single shared password</strong> for every client on the WLAN. On the WLC, select <code>Security → Layer 2 → WPA+WPA2</code>, enable AES, then under <code>Auth Key Mgmt</code> choose <strong>PSK</strong> and type the pre-shared key in the <code>PSK Format</code> field (ASCII 8-63 chars or 64 hex chars).</p><p>When a client joins, the 4-way handshake between client and AP derives a unique <strong>pairwise key</strong> from the PSK + nonces + MAC addresses. So each client does get a <strong>unique session key</strong> — but anyone who knows the PSK can potentially <strong>decrypt other clients' traffic</strong> by sniffing their 4-way handshake (this is the foundation of the classic Wi-Fi Pineapple attack). This is the fundamental weakness of PSK mode.</p><p><strong>When to use PSK:</strong> home networks, small offices (&lt; 10 users), IoT devices that cannot do 802.1X, guest networks where simplicity matters, temporary event Wi-Fi. PSK is easy — no RADIUS server, no certificates, no user database. You print the password on a card and hand it out.</p><p><strong>When NOT to use PSK:</strong> anywhere you need per-user accountability, anywhere you need to revoke one user without affecting others, or anywhere you have &gt; 20 users (because password sharing is inevitable and a departing employee knows the key). Also, PSKs are vulnerable to <strong>offline dictionary attacks</strong>: capture one 4-way handshake, then brute-force at leisure. Use long (20+ char) random PSKs to raise the cost.</p>",
+        visual: { type: "handshake", params: { steps: ["Client: I want to join", "AP: Nonce A", "Client: Nonce B + MIC (from PSK)", "AP: verify MIC, install key", "Data encrypted with per-client pairwise key"] } },
+        hack: {
+          memory: "PSK = <strong>one house key under the mat</strong>. Easy to share, but anyone who has it can unlock the door. Great for home/coffee shop, terrible for a corporate office with 500 employees. 8-63 ASCII chars — use 20+ for real security.",
+          practice: "On the WLC: build a WLAN with PSK <code>WelcomeToMyNet2026</code>. Connect 3 devices. In the WLC client view, confirm each client has a unique session key derived from the handshake. Then rotate the PSK — note that every client disconnects and must re-enter the new key. This is the operational pain of PSK rotation.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 58. Wendell Odom OCG Chapter 26. Exam: PSK = shared password, no RADIUS, small office/home. Know the 8-63 character limit and that it is vulnerable to offline dictionary attack from a captured handshake."
+        }
+      },
+      {
+        id: "2.9.b.3",
+        term: "WPA2-Enterprise (802.1X)",
+        weight: "high",
+        info: "<p><strong>WPA2-Enterprise</strong> uses <strong>802.1X + EAP</strong> for authentication against a backend <strong>RADIUS server</strong>. Each user has <strong>unique credentials</strong> (username/password, certificate, or token) and the WLC acts as the authenticator, forwarding EAP messages between the client (supplicant) and the RADIUS server (authentication server).</p><p>On the WLC, configure it on <code>Security → Layer 2 → WPA+WPA2</code>: enable AES, then under <code>Auth Key Mgmt</code> choose <strong>802.1X</strong>. No password field appears — because the password lives on the RADIUS server, not the WLC. You then bind the WLAN to a RADIUS server entry on the <code>Security → AAA</code> tab.</p><p>The <strong>EAP methods</strong> commonly tested: <strong>EAP-TLS</strong> (mutual certificate auth — strongest, most complex to deploy), <strong>PEAP-MSCHAPv2</strong> (server cert + client username/password inside TLS tunnel — most common in enterprises with AD), <strong>EAP-FAST</strong> (Cisco's PAC-based method). The WLC does not process EAP internally; it just tunnels EAPoL between client and RADIUS.</p><p>After successful EAP auth, the RADIUS server sends the WLC a <strong>Master Session Key (MSK)</strong>. The WLC + client then do the 4-way handshake using the MSK instead of a PSK — same handshake mechanics, different seed. This gives <strong>per-user, per-session pairwise keys</strong> with NO shared secret that can be leaked.</p><p><strong>Benefits over PSK:</strong> (1) revoke one user in RADIUS, they are instantly locked out; (2) full audit trail per user; (3) no password sharing; (4) can apply per-user policy (dynamic VLAN assignment, ACLs via RADIUS attributes). This is the <strong>corporate standard</strong>.</p>",
+        visual: { type: "handshake", params: { steps: ["Client: EAPoL-Start", "WLC: EAP-Request Identity", "Client: username (forwarded to RADIUS)", "RADIUS ↔ Client: EAP method exchange (TLS/PEAP)", "RADIUS: Access-Accept + MSK → WLC", "WLC + Client: 4-way handshake → PTK"] } },
+        hack: {
+          memory: "802.1X = <strong>personal ID card at the door</strong>. Each employee swipes their own badge (unique credential) to a RADIUS server; WLC just relays the conversation. Fire one employee? Revoke their badge. No one else is affected. Corporate standard.",
+          practice: "Build a full enterprise stack: WLC + FreeRADIUS (or Cisco ISE trial) + AD. Configure 802.1X on the WLAN, point the WLC at the RADIUS server. Test with user1/user2 — both get in with their own passwords. Disable user1 in AD — user1 instantly fails to associate, user2 is unaffected. This hands-on demonstrates the whole point of 802.1X over PSK.",
+          effort: "high",
+          meta: "Jeremy's IT Lab Day 58. Wendell Odom OCG Chapter 26. Exam: 802.1X requires a RADIUS server, provides per-user credentials, enterprise standard. Know that PEAP-MSCHAPv2 is the most common enterprise EAP method and EAP-TLS is the most secure (certs on both sides)."
+        }
+      },
+      {
+        id: "2.9.b.4",
+        term: "RADIUS server on WLC",
+        weight: "high",
+        info: "<p>For WPA2-Enterprise (802.1X) to work, the WLC must be configured with a <strong>RADIUS server</strong> to forward authentication requests to. This is a separate configuration from the WLAN itself — you set up the RADIUS server(s) once under <code>Security → AAA → RADIUS → Authentication</code>, then reference them from each WLAN's security settings.</p><p><strong>RADIUS server config fields:</strong> (1) <strong>Server IP</strong> — the reachable IP of the RADIUS server (Cisco ISE, FreeRADIUS, Windows NPS). (2) <strong>Shared Secret</strong> — a password known to both the WLC and the RADIUS server, used to sign RADIUS packets (NOT the user password — a device-level secret). (3) <strong>Auth Port</strong> — UDP <strong>1812</strong> for authentication (1645 is legacy). (4) <strong>Accounting Port</strong> — UDP <strong>1813</strong> (1646 legacy) if you also want accounting. (5) <strong>Server Timeout</strong> and <strong>Retransmit count</strong>.</p><p><strong>The WLC acts as a NAS (Network Access Server)</strong> in RADIUS terminology. It does not see or store user passwords — it just tunnels EAP between the client and the RADIUS server, then receives an Access-Accept or Access-Reject decision. The shared secret is the only credential the WLC itself holds.</p><p>Best practice is to configure <strong>two RADIUS servers</strong> (primary + secondary) for redundancy. If the primary does not respond within the timeout, the WLC fails over to the secondary. Many deployments also configure <strong>accounting</strong> (port 1813) to log every user login/logout for compliance.</p><p><strong>Exam ports to memorize:</strong> RADIUS auth <strong>1812</strong>, RADIUS accounting <strong>1813</strong>. TACACS+ uses TCP 49 — do not confuse the two.</p>",
+        visual: { type: "encapsulation", params: { layers: ["Client EAP", "WLC (NAS) wraps EAP in RADIUS", "UDP 1812 to RADIUS server", "RADIUS Access-Accept/Reject back"] } },
+        hack: {
+          memory: "RADIUS on WLC = <strong>WLC forwards your credentials to the real authenticator</strong>. Ports: 1812 auth, 1813 acct. Shared secret = device trust, not user password. Mnemonic: '1812 / 1813 — Radio Auth Twelve, Radio Acct Thirteen.'",
+          practice: "Set up FreeRADIUS in a VM. On the WLC: Security → AAA → RADIUS → Authentication → New. Enter IP, shared secret <code>Cisco123</code>, port 1812. Reference it from a WLAN's 802.1X config. Use <code>radtest</code> from the CLI to verify basic auth works, then connect a client. Watch <code>tail -f /var/log/freeradius/radius.log</code> — every auth attempt shows up. This cements the NAS/RADIUS relationship.",
+          effort: "medium",
+          meta: "Jeremy's IT Lab Day 58. Wendell Odom OCG Chapter 26 and Chapter 21 (AAA). Exam: know UDP 1812 (auth) and 1813 (acct) for RADIUS, TCP 49 for TACACS+. The WLC is the RADIUS 'client' / NAS — users never talk to RADIUS directly."
+        }
+      },
+      {
+        id: "2.9.b.5",
+        term: "PSK vs 802.1X decision",
+        weight: "high",
+        info: "<p>Choosing between <strong>PSK (Personal)</strong> and <strong>802.1X (Enterprise)</strong> is the most common wireless design decision on the exam. The decision hinges on four factors: <strong>user count, infrastructure available, security requirements, and operational overhead</strong>.</p><p><strong>Choose PSK when:</strong> (a) you have no RADIUS server and no time to deploy one; (b) the user community is small and trusted (home, SOHO, small coffee shop); (c) the devices cannot do 802.1X (many IoT gadgets, some printers, legacy barcode scanners); (d) the WLAN is temporary (event Wi-Fi, contractor access); (e) you need a guest network with a printed password.</p><p><strong>Choose 802.1X when:</strong> (a) a RADIUS server is available (Cisco ISE, Windows NPS, FreeRADIUS); (b) users need per-identity accountability (audit logs, per-user VLAN assignment); (c) you must be able to <strong>revoke a single user</strong> without changing the key for everyone; (d) the organization has compliance requirements (HIPAA, PCI, SOX); (e) user count &gt; 20 — PSK rotation becomes operationally painful.</p><p><strong>Hybrid approach</strong> (common in the real world): Corporate SSID = 802.1X. Guest SSID = PSK or web auth. IoT SSID = PSK + MAC filtering. This uses each method where it fits.</p><p><strong>Exam decision phrases:</strong> 'small office, no RADIUS' → PSK. 'Must authenticate users individually' → 802.1X. 'Provides per-user audit trail' → 802.1X. 'Simplest to deploy' → PSK. 'Most secure' → 802.1X.</p>",
+        visual: { type: "comparison", params: { left: { label: "Use PSK when", items: ["No RADIUS available", "Small / trusted community", "IoT devices can't do 802.1X", "Temporary / event WLAN", "Guest network"] }, right: { label: "Use 802.1X when", items: ["RADIUS available (ISE/NPS/FreeRADIUS)", "Need per-user audit trail", "Must revoke individual users", "Compliance (HIPAA/PCI/SOX)", "Corporate / >20 users"] } } },
+        hack: {
+          memory: "<strong>Scale test</strong>: if your Wi-Fi has &lt; 20 users, PSK is fine. Above that, you cannot stop password leakage and PSK rotation becomes hell — go 802.1X. <strong>RADIUS test</strong>: no RADIUS = no 802.1X, period.",
+          practice: "Write five one-line scenarios on flashcards (coffee shop, 500-employee office, IoT cameras, contractor event, regulated hospital) and answer PSK or 802.1X for each in under 5 seconds. Justify with the decision phrases above. This is the fastest path to instant recall on exam day.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 58. Wendell Odom OCG Chapter 26. Exam nearly always presents a scenario and asks you to pick. Match the scenario language to the decision phrase: 'RADIUS' = 802.1X, 'home' / 'small' = PSK, 'individual accountability' = 802.1X, 'no server infrastructure' = PSK."
+        }
+      }
     ]
   },
 
@@ -6049,10 +6169,58 @@ window.subtopicContentD12 = {
       meta: "Jeremy's IT Lab Days 57-58 cover WLAN-to-VLAN mapping on the WLC. Wendell Odom OCG Chapter 26 details dynamic interfaces and WLAN configuration. The exam tests: 'how does the WLC assign wireless clients to VLANs?' (WLAN → dynamic interface → VLAN), 'what must exist on the switch for this to work?' (trunk carrying the WLAN VLANs). This concept ties together WLC configuration (Domain 2.9) with VLAN/trunk knowledge (Domain 2.1-2.2).",
     },
     micro: [
-      { id: "2.9.c.1", term: "Dynamic interface",            def: "WLC virtual interface tied to a VLAN. Has IP/mask/gateway on that VLAN. Like an SVI on a L3 switch.", weight: "high" },
-      { id: "2.9.c.2", term: "WLAN → Interface → VLAN",      def: "Mapping chain: WLAN's General tab selects interface → interface is tied to VLAN → client traffic flows on that VLAN.", weight: "high" },
-      { id: "2.9.c.3", term: "Switch trunk requirement",     def: "Trunk to the WLC must allow ALL dynamic interface VLANs (plus management).", weight: "high" },
-      { id: "2.9.c.4", term: "Wireless segmentation",        def: "Different SSIDs → different VLANs → different policies (ACLs, DHCP scope, QoS).", weight: "high" }
+      {
+        id: "2.9.c.1",
+        term: "Dynamic interface",
+        weight: "high",
+        info: "<p>A <strong>dynamic interface</strong> is a WLC virtual interface bound to a single <strong>VLAN</strong>. It is the WLC's presence on that VLAN — logically equivalent to an <strong>SVI (Switched Virtual Interface)</strong> on a Layer 3 switch. Dynamic interfaces are created under <code>Controller → Interfaces → New</code> and every WLAN must be mapped to one (or to an interface-group).</p><p><strong>Dynamic interface fields:</strong> (1) <strong>Interface Name</strong> (e.g., <code>corp-intf</code>). (2) <strong>VLAN Identifier</strong> (the 802.1Q VLAN ID, e.g., 10). (3) <strong>IP address, netmask, gateway</strong> — the WLC's IP on that VLAN. (4) <strong>Physical port</strong> — which WLC physical uplink this VLAN rides (often 'LAG' if port-channel is used). (5) <strong>Primary DHCP server</strong> — the address the WLC uses when it relays DHCP requests from wireless clients on this VLAN.</p><p>The WLC does <strong>DHCP relay (proxy)</strong> by default for wireless clients: when a client on VLAN 10 broadcasts a DHCP Discover, the WLC's dynamic interface for VLAN 10 receives it and relays it as a unicast to the configured DHCP server. Without a dynamic interface on that VLAN, the WLC cannot relay DHCP and wireless clients on that VLAN will not get IP addresses.</p><p><strong>There are also STATIC interfaces</strong> on the WLC (Management, AP-Manager, Service-Port, Virtual) — these are reserved for WLC control plane traffic. Dynamic interfaces are the ones you create for data-plane user VLANs. The CCNA expects you to know: <strong>each user VLAN needs one dynamic interface</strong> before a WLAN can be mapped to it.</p>",
+        visual: { type: "layer-stack", params: { layers: ["Static: Management (WLC mgmt)", "Static: AP-Manager (CAPWAP)", "Static: Virtual (web-auth)", "Dynamic: corp-intf VLAN 10", "Dynamic: guest-intf VLAN 20", "Dynamic: iot-intf VLAN 30"], highlight: 3 } },
+        hack: {
+          memory: "Dynamic interface = WLC's SVI for a data VLAN. One per user VLAN. Same fields as a switch SVI (IP/mask/gw) plus a DHCP helper. 'Dynamic' means admin-created for data, not 'automatically created'.",
+          practice: "On the WLC: Controller → Interfaces → New. Name <code>corp-intf</code>, VLAN 10, IP <code>10.10.10.2/24</code>, gateway <code>10.10.10.1</code>, DHCP <code>10.10.10.5</code>. Repeat for VLAN 20. Now try to map a WLAN to VLAN 30 — it will fail until you add a dynamic interface for VLAN 30. This cements the one-to-one rule.",
+          effort: "medium",
+          meta: "Jeremy's IT Lab Day 57-58. Wendell Odom OCG Chapter 26. Exam: know that dynamic interfaces map 1:1 to VLANs, are created under Controller → Interfaces, and are required before a WLAN can use that VLAN."
+        }
+      },
+      {
+        id: "2.9.c.2",
+        term: "WLAN → Interface → VLAN",
+        weight: "high",
+        info: "<p>The <strong>SSID-to-VLAN chain</strong> is the mental model every CCNA candidate must carry: <strong>WLAN → Dynamic Interface → VLAN</strong>. A WLAN is the broadcast SSID clients see. A dynamic interface is the WLC's logical interface on a VLAN. The VLAN is the 802.1Q-tagged Layer 2 broadcast domain on the switched network.</p><p><strong>Mapping workflow:</strong> (1) Create the <strong>VLAN</strong> on the switch (<code>vlan 10 / name Corp</code>). (2) Create the <strong>dynamic interface</strong> on the WLC bound to VLAN 10. (3) Create the <strong>WLAN</strong>, then on the General tab set <code>Interface/Interface Group(G) = corp-intf</code>. (4) Ensure the trunk from the switch to the WLC <strong>allows VLAN 10</strong>. Save and enable.</p><p>When a client associates to the WLAN, the WLC tags that client's traffic with VLAN 10 when it leaves the WLC's uplink. The switch forwards the tagged frames into the corp VLAN and the client's DHCP Discover is relayed to the configured DHCP server on VLAN 10's subnet. The client gets an IP on 10.10.10.0/24 and starts communicating just like a wired VLAN 10 host.</p><p><strong>This chain is also the troubleshooting order:</strong> if wireless clients can join the SSID but cannot get an IP, walk the chain. Is the VLAN on the switch? Does the trunk allow the VLAN? Does the WLC have a dynamic interface on that VLAN? Is the WLAN mapped to the right interface? Is the DHCP server reachable from the WLC's interface IP? Ninety percent of WLAN-to-VLAN bugs are a broken link in this chain.</p>",
+        visual: { type: "hierarchy", params: { root: "WLAN 'CorpNet'", children: [{ name: "Interface: corp-intf", children: [{ name: "VLAN 10", children: [{ name: "Subnet 10.10.10.0/24 + DHCP" }] }] }] } },
+        hack: {
+          memory: "Three-step chain, say it out loud: <strong>WLAN → Interface → VLAN</strong>. Break any link, client fails. Troubleshoot in that exact order: 'Is my WLAN up? Is it pointing at the right interface? Is that interface's VLAN on the trunk?'",
+          practice: "Deliberately break each link in a lab and watch what happens: (1) disable the WLAN — SSID disappears. (2) Re-enable WLAN but point it at a dynamic interface for the wrong VLAN — client joins but lands in the wrong subnet. (3) Fix the interface but strip the VLAN from the trunk — client joins, gets no DHCP. Each failure mode teaches one link of the chain.",
+          effort: "medium",
+          meta: "Jeremy's IT Lab Day 57-58. Wendell Odom OCG Chapter 26. The most likely WLC exam question is a simlet showing the WLC GUI and asking you to set the interface mapping correctly. Know: WLAN General tab → Interface dropdown is the mapping control."
+        }
+      },
+      {
+        id: "2.9.c.3",
+        term: "Switch trunk requirement",
+        weight: "high",
+        info: "<p>The <strong>switch port that connects to the WLC must be a trunk</strong>, and that trunk <strong>must allow every VLAN that has a dynamic interface on the WLC</strong>, plus the <strong>management VLAN</strong>. Without this, the WLC can create all the dynamic interfaces it wants but the frames will never reach the user VLANs on the switched network.</p><p><strong>Switch-side config</strong> (example for a Catalyst):</p><pre>interface GigabitEthernet1/0/48\n switchport mode trunk\n switchport trunk encapsulation dot1q\n switchport trunk native vlan 99\n switchport trunk allowed vlan 10,20,30,99\n description WLC-uplink</pre><p>The <strong>native VLAN</strong> (untagged) is typically used for the WLC's management interface traffic. Every user VLAN (10, 20, 30) must be in the allowed list. Forgetting one VLAN is a classic bug — clients join the SSID but get no DHCP because their tagged frames are dropped at the trunk.</p><p><strong>WLC-side</strong>: the WLC's physical port (or LAG) is implicitly a trunk — you tag each dynamic interface with its VLAN ID, and the WLC sends 802.1Q-tagged frames for everything except the management/native VLAN. No <code>switchport</code> command on the WLC — you just configure the dynamic interfaces.</p><p><strong>When scaling WLANs</strong>: every new WLAN that maps to a new VLAN means a new line item to add to <code>switchport trunk allowed vlan</code>. Use <code>switchport trunk allowed vlan add X</code> (not just <code>allowed vlan X</code> — that overwrites the list).</p>",
+        visual: { type: "packet-flow", params: { nodes: ["Wireless client", "AP (CAPWAP to WLC)", "WLC tags 802.1Q VLAN 10", "Trunk (allows 10,20,30,99)", "Switch core → Router"], color: "#10b981" } },
+        hack: {
+          memory: "WLC uplink = trunk. Every user VLAN in dynamic interfaces must be in <code>switchport trunk allowed vlan</code>. Forget one → clients join SSID but get no DHCP. Always use <code>allowed vlan add</code>, never overwrite.",
+          practice: "Lab: create 3 WLANs mapped to VLANs 10, 20, 30. On the switch, set the trunk to <code>allowed vlan 10,20</code> (missing 30 on purpose). Connect clients to each SSID. Confirm VLAN 10 and 20 clients get IPs but VLAN 30 clients time out on DHCP. Add 30: <code>switchport trunk allowed vlan add 30</code>. VLAN 30 clients immediately start working. The fastest way to internalize the trunk dependency.",
+          effort: "medium",
+          meta: "Jeremy's IT Lab Day 57-58. Wendell Odom OCG Chapter 26, and Chapter 8 (VLAN trunking). Exam favorite: 'wireless clients can join the SSID but cannot get a DHCP address — what is the most likely cause?' Top answers: trunk missing the VLAN, dynamic interface not created, or DHCP helper misconfigured."
+        }
+      },
+      {
+        id: "2.9.c.4",
+        term: "Wireless segmentation",
+        weight: "high",
+        info: "<p><strong>Wireless segmentation</strong> is the practice of using multiple SSIDs, each mapped to a different VLAN, to apply <strong>different security policies, ACLs, QoS, and internet egress</strong> to different user populations. This is the entire reason the WLAN → Interface → VLAN chain exists.</p><p><strong>Typical segmentation design:</strong></p><ul><li><strong>Corporate SSID</strong> → VLAN 10 → full internal access, 802.1X auth, Silver QoS.</li><li><strong>Voice SSID</strong> → VLAN 40 → voice subnet, 802.1X, Platinum QoS.</li><li><strong>Guest SSID</strong> → VLAN 20 → internet-only (ACL blocks internal), PSK or web auth, Bronze QoS, P2P blocking on.</li><li><strong>IoT SSID</strong> → VLAN 30 → heavily restricted ACL (only cameras-to-NVR, sensors-to-collector), PSK.</li></ul><p>Because each VLAN is a separate <strong>Layer 3 subnet</strong>, you can enforce inter-VLAN policy at the core router / firewall: deny Guest → Corporate, deny IoT → Corporate, allow all → internet, deny Guest → IoT, etc. Without segmentation, every wireless user lands in the same subnet and the firewall has nothing to enforce against.</p><p><strong>Segmentation also contains compromise</strong>: an attacker who cracks the Guest PSK only gains access to the Guest VLAN. They cannot reach servers on VLAN 10 because the router ACL blocks it. This is <strong>defense in depth</strong> — one compromised credential does not mean full-network compromise.</p><p><strong>Exam question pattern:</strong> 'Your company wants to prevent guest users from reaching corporate servers — what do you configure?' The answer is <strong>separate WLANs mapped to separate VLANs with an ACL between them</strong>, often phrased as 'wireless segmentation' or 'VLAN-based isolation'.</p>",
+        visual: { type: "shield", params: { items: ["Corp VLAN 10 — full internal", "Voice VLAN 40 — voice subnet + Platinum", "Guest VLAN 20 — internet-only ACL", "IoT VLAN 30 — tight ACL, sensor-only"], color: "#3b82f6" } },
+        hack: {
+          memory: "Segmentation = different Wi-Fi doors lead to different rooms. Corp, Guest, Voice, IoT each get their own VLAN + ACL. A cracked Guest key only opens the Guest room. Without segmentation, one key = full building.",
+          practice: "Design a four-SSID school network on paper: Staff, Student, Guest, IoT. Assign each to VLAN 10/20/30/40. Write the inter-VLAN ACL: Staff ↔ Student blocked, Guest ↔ everything blocked except internet, IoT ↔ only management VLAN. Implement in a lab and verify each SSID lands in its subnet and cannot cross-talk.",
+          effort: "medium",
+          meta: "Jeremy's IT Lab Day 57-58. Wendell Odom OCG Chapter 26, and Chapter 8 (VLANs) for the Layer 2 background. Exam loves this concept: one SSID per user group, each mapped to its own VLAN, with router-level ACLs enforcing policy between VLANs."
+        }
+      }
     ]
   },
 
@@ -6073,11 +6241,71 @@ window.subtopicContentD12 = {
       meta: "Jeremy's IT Lab Day 57-58 mention WLC QoS profiles. Wendell Odom OCG Chapter 26. Simple memorization: Platinum=Voice, Gold=Video, Silver=Default, Bronze=Background. The exam asks one question: 'which profile for VoIP?' = Platinum. Know the order and the default (Silver). One flashcard is sufficient.",
     },
     micro: [
-      { id: "2.9.d.1", term: "Platinum — Voice",             def: "Highest priority. Use for VoIP WLANs. Maps to AC_VO, DSCP EF (46).", weight: "high" },
-      { id: "2.9.d.2", term: "Gold — Video",                 def: "High priority. Video conferencing/streaming. Maps to AC_VI, DSCP AF41.", weight: "high" },
-      { id: "2.9.d.3", term: "Silver — Best Effort",         def: "DEFAULT for data WLANs. Maps to AC_BE, DSCP 0.", weight: "high" },
-      { id: "2.9.d.4", term: "Bronze — Background",          def: "Lowest priority. Guest WLANs, bulk/backup transfers. Maps to AC_BK, DSCP AF11.", weight: "high" },
-      { id: "2.9.d.5", term: "QoS profile assignment scheme", def: "VoIP → Platinum. Corporate data → Silver. Guest → Bronze. Protects voice even under congestion.", weight: "high" }
+      {
+        id: "2.9.d.1",
+        term: "Platinum — Voice",
+        weight: "high",
+        info: "<p><strong>Platinum</strong> is the <strong>highest-priority WLC QoS profile</strong>, reserved for <strong>voice traffic</strong> (VoIP calls over Wi-Fi). It maps to the 802.11e/WMM access category <strong>AC_VO (Voice)</strong> and marks frames with <strong>DSCP EF (Expedited Forwarding, value 46)</strong>. The entire point of Platinum is to guarantee <strong>low latency and low jitter</strong> — voice is intolerant of delay (&gt; 150 ms end-to-end is audible) and jitter (variation in delay causes choppy audio).</p><p>On the WLC, you assign Platinum per-WLAN: <code>WLAN → QoS tab → Quality of Service (QoS) = Platinum (voice)</code>. Once assigned, the WLC marks outbound frames from that WLAN with DSCP 46 and asks the AP to queue them in the AC_VO radio queue, which contends for airtime more aggressively (shorter AIFS, smaller contention window) than any other category.</p><p><strong>AC_VO inter-frame spacing (AIFSN) is 2</strong>, the shortest of the four access categories — meaning voice frames wait only 2 slot times after a busy channel before transmitting, versus 7 for Best Effort and 3 for Video. Combined with a small contention window (CWmin = 3, CWmax = 7), voice frames almost always win the airtime lottery over data frames.</p><p><strong>Wired-side handoff</strong>: when the AP's voice frames arrive at the switch, the switch reads DSCP 46 and places them in its <strong>priority queue (LLQ)</strong>. From there, routers honor DSCP 46 end-to-end via priority queuing, so the whole voice path — client → AP → switch → router → WAN — is expedited.</p>",
+        visual: { type: "layer-stack", params: { layers: ["Platinum — Voice (AC_VO)", "DSCP EF (46)", "AIFSN = 2, smallest CW", "Goal: <150 ms latency, minimal jitter"], highlight: 0 } },
+        hack: {
+          memory: "Platinum = Phone. The VoIP WLAN always gets Platinum. DSCP <strong>EF = 46</strong> = 'Expedited Forwarding' (voice's special fast lane). Mnemonic: 'Platinum Phone, Expedited Forty-six.'",
+          practice: "Flash the 4×4 card: Platinum → Voice → AC_VO → DSCP 46. Gold → Video → AC_VI → AF41. Silver → Best Effort → AC_BE → 0. Bronze → Background → AC_BK → AF11. Say it until you can recite in both directions (metal → DSCP AND DSCP → metal) in under 10 seconds.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 57-58. Wendell Odom OCG Chapter 26. Exam: 'company deploys VoIP phones on Wi-Fi — which QoS profile?' = Platinum. Know DSCP 46 / EF and the AC_VO mapping."
+        }
+      },
+      {
+        id: "2.9.d.2",
+        term: "Gold — Video",
+        weight: "high",
+        info: "<p><strong>Gold</strong> is the second-highest WLC QoS profile and maps to <strong>video traffic</strong> (video conferencing, video streaming). It uses the 802.11e access category <strong>AC_VI (Video)</strong> and DSCP <strong>AF41 (value 34)</strong>. Video needs bandwidth more than the ultra-low latency that voice needs — but it still needs to be prioritized ahead of bulk data.</p><p>Use Gold for WLANs that carry Webex, Teams, Zoom, Jabber, or streaming video from training platforms. On the WLC: <code>WLAN → QoS tab → Quality of Service (QoS) = Gold (video)</code>. Frames are marked DSCP AF41 outbound, and queued in AC_VI.</p><p><strong>AC_VI AIFSN is 2</strong> (same as voice) but the <strong>contention window is larger</strong> (CWmin = 7 vs voice's 3). So video will almost always yield to voice in an airtime contention but beats Best Effort easily. DSCP AF41 means <strong>Assured Forwarding class 4, drop precedence 1</strong> — the highest AF class, lowest drop preference (last to be dropped under congestion).</p><p><strong>Trade-off to know</strong>: if you mark all corporate traffic as Gold, nothing is prioritized — QoS only works because most traffic is Silver/Bronze. Reserve Gold for actual video endpoints; everything else stays Silver.</p>",
+        visual: { type: "layer-stack", params: { layers: ["Gold — Video (AC_VI)", "DSCP AF41 (34)", "AIFSN = 2, CWmin = 7", "Yields to Voice, beats Best Effort"], highlight: 0 } },
+        hack: {
+          memory: "Gold = Video. Mnemonic: 'Gold for Great video.' DSCP <strong>AF41 = 34</strong>. Yields to Platinum Voice but beats everything else.",
+          practice: "Run a Webex or Teams call over a Gold-marked WLAN and a Silver-marked WLAN under heavy background download. On the Silver WLAN the video pixelates; on Gold it stays smooth — because AC_VI gets airtime preference and DSCP AF41 gets WAN queue preference. This is the easiest way to feel QoS working.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 57-58. Wendell Odom OCG Chapter 26. Exam: Gold = Video = DSCP AF41 / 34. Second most prioritized after Platinum."
+        }
+      },
+      {
+        id: "2.9.d.3",
+        term: "Silver — Best Effort",
+        weight: "high",
+        info: "<p><strong>Silver</strong> is the <strong>default WLC QoS profile</strong> for all newly created WLANs and the correct choice for <strong>standard corporate data traffic</strong> (web browsing, email, file sharing, SaaS apps). It uses 802.11e access category <strong>AC_BE (Best Effort)</strong> and marks frames with <strong>DSCP 0 (no preference)</strong>.</p><p>'Best Effort' means the traffic gets no preferential treatment and no penalty. It contends for airtime and wired queue space like a normal citizen — fair queuing, fair loss, fair delay. On wired networks, DSCP 0 is the default class the switch treats as normal traffic.</p><p>Every new WLAN created on a WLC defaults to Silver. You only change it if there is a specific reason: Platinum for a voice-only SSID, Gold for a video-only SSID, Bronze for guest. <strong>Corporate data should stay Silver</strong> — promoting it to Gold 'just in case' defeats the QoS pyramid (if everything is prioritized, nothing is).</p><p><strong>AC_BE AIFSN is 3</strong>, with larger contention windows. It waits longer than voice/video but shorter than Background. This is the baseline airtime fairness.</p><p><strong>Exam fact:</strong> the DEFAULT QoS profile on a new WLAN is <strong>Silver</strong>. If a question asks 'a new WLAN is created on the WLC — what is the default QoS profile?' the answer is Silver.</p>",
+        visual: { type: "layer-stack", params: { layers: ["Silver — Best Effort (AC_BE)", "DSCP 0 (default, no preference)", "AIFSN = 3", "DEFAULT for all new WLANs"], highlight: 0 } },
+        hack: {
+          memory: "Silver = Standard. <strong>DEFAULT for every new WLAN</strong>. DSCP 0 = no marking = best effort. 'Silver is the default silverware in the drawer.'",
+          practice: "On the WLC, create a brand new WLAN and look at the QoS tab <em>without changing anything</em>. Confirm it reads <code>Silver (Best Effort)</code>. Make this a habit — every time you create a WLAN, actively decide if the default is right or if you need to change it.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 57-58. Wendell Odom OCG Chapter 26. Exam: 'default WLC QoS profile?' = Silver. DSCP 0. Corporate data stays Silver; only voice/video/guest get promoted or demoted."
+        }
+      },
+      {
+        id: "2.9.d.4",
+        term: "Bronze — Background",
+        weight: "high",
+        info: "<p><strong>Bronze</strong> is the <strong>lowest-priority WLC QoS profile</strong>, used for <strong>background and bulk traffic</strong> that should NEVER compete with real-time applications. It uses 802.11e access category <strong>AC_BK (Background)</strong> and DSCP <strong>AF11 (value 10)</strong>.</p><p>Use Bronze for: <strong>guest WLANs</strong> (so guests cannot starve corporate traffic), <strong>OS update/patching WLANs</strong>, <strong>backup or bulk file sync</strong>, or <strong>IoT telemetry</strong> where latency does not matter. The philosophy: Bronze traffic yields to everything else and only gets airtime when nothing higher-priority is queued.</p><p><strong>AC_BK AIFSN is 7</strong> — the LONGEST of all access categories. Bronze frames wait through the maximum inter-frame gap before transmitting, meaning any higher-priority frame queued during that wait will go first. This is the airtime mechanism that makes Bronze truly last-in-line.</p><p><strong>Guest WLAN default best practice</strong>: Bronze + P2P blocking + separate VLAN + ACL to internet only. This combination means guests have no network privileges, their traffic cannot starve corporate users, they cannot attack each other, and they cannot reach internal resources. The WLC makes it a one-dropdown change.</p><p><strong>Counter-intuitive exam trap:</strong> do NOT put your IoT cameras on Bronze if they need real-time video. Only use Bronze for traffic that truly does not care about delay.</p>",
+        visual: { type: "layer-stack", params: { layers: ["Bronze — Background (AC_BK)", "DSCP AF11 (10)", "AIFSN = 7 (longest wait)", "Yields to EVERYTHING else"], highlight: 0 } },
+        hack: {
+          memory: "Bronze = Background. Lowest priority. Perfect for <strong>Guest WLAN</strong> (keeps guests from hogging airtime) and bulk/update traffic. DSCP <strong>AF11 = 10</strong>. 'Bronze = Basement = Background.'",
+          practice: "Configure a Guest SSID on Bronze + P2P blocking. Run a speed test from the guest while a corporate user is on a Gold video call. The guest's speed test throttles when the call needs airtime — the guest cannot starve the corporate call. That is Bronze working as designed.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 57-58. Wendell Odom OCG Chapter 26. Exam: Bronze = Background = guest or bulk, DSCP AF11. Typical best-practice design puts guest WLANs on Bronze."
+        }
+      },
+      {
+        id: "2.9.d.5",
+        term: "QoS profile assignment scheme",
+        weight: "high",
+        info: "<p>The <strong>canonical WLC QoS assignment scheme</strong> every CCNA candidate should memorize:</p><ul><li><strong>Voice SSID</strong> → <strong>Platinum</strong> (DSCP EF/46, AC_VO) — VoIP only.</li><li><strong>Video SSID</strong> → <strong>Gold</strong> (DSCP AF41/34, AC_VI) — video conferencing, streaming.</li><li><strong>Corporate data SSID</strong> → <strong>Silver</strong> (DSCP 0, AC_BE) — default, no change.</li><li><strong>Guest SSID</strong> → <strong>Bronze</strong> (DSCP AF11/10, AC_BK) — lowest priority so guests cannot starve corporate.</li></ul><p><strong>Why this ordering works</strong>: it mirrors real business priority. Voice is real-time and intolerant of delay → highest queue. Video is real-time but more tolerant → second queue. Corporate data is 95% of traffic → baseline, no change. Guest is nice-to-have and untrusted → lowest queue.</p><p><strong>Common anti-patterns to avoid:</strong> (a) marking everything Platinum — the AP queue system only helps when most traffic is NOT Platinum. (b) Leaving guest on Silver — guests compete equally with corporate, which is the wrong political choice during congestion. (c) Putting IoT cameras on Bronze — live video needs Gold or Silver, not Background.</p><p><strong>The whole chain works only if</strong> the wired infrastructure honors DSCP end-to-end. Most modern Catalyst switches and ISR routers do this out of the box, but on some older gear you must explicitly trust DSCP on the access port (<code>mls qos trust dscp</code> or Auto-QoS).</p><p><strong>Exam patterns</strong>: 'a company has voice, video, corporate data, and guest WLANs — which QoS profile for each?' Answer with the table above. Or 'which QoS profile is the default?' = Silver.</p>",
+        visual: { type: "comparison", params: { left: { label: "Use case → Profile", items: ["VoIP → Platinum", "Video conferencing → Gold", "Corporate data → Silver (default)", "Guest Internet → Bronze"] }, right: { label: "Profile → DSCP", items: ["Platinum → EF (46)", "Gold → AF41 (34)", "Silver → 0 (default)", "Bronze → AF11 (10)"] } } },
+        hack: {
+          memory: "Metals map one-to-one with use case: Platinum-Phone, Gold-Gaze (video), Silver-Standard, Bronze-Background. Say it: 'PGSB = Phone, Gaze, Standard, Background.' Default always = Silver.",
+          practice: "Take four sticky notes, write Platinum/Gold/Silver/Bronze on them, then mix up four sticky notes with use cases (VoIP, Teams, file share, Guest) and match them under pressure. Repeat until you can do all four in under 5 seconds. Same drill for the DSCP values.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 57-58. Wendell Odom OCG Chapter 26. This is the single highest-ROI flashcard for 2.9.d — it folds in four sub-facts and covers nearly every possible WLC QoS question on the exam."
+        }
+      }
     ]
   },
 
@@ -6097,10 +6325,58 @@ window.subtopicContentD12 = {
       meta: "Jeremy's IT Lab Day 58 mentions advanced WLAN settings. Wendell Odom OCG Chapter 26 covers per-WLAN security features. These are concept-level questions — the exam may present one of these features as an answer option in a 'which feature does X?' question. Know: client exclusion = brute-force prevention, P2P blocking = client isolation, session timeout = forced re-authentication. Not heavily tested but appears as wrong/right answer options.",
     },
     micro: [
-      { id: "2.9.e.1", term: "Client Exclusion",             def: "Auto-block client after N failed auth attempts. Prevents brute-force against PSK. Configurable timeout.", weight: "med" },
-      { id: "2.9.e.2", term: "P2P Blocking (client isolation)", def: "Prevents wireless clients on same WLAN from communicating directly. Best practice for guest networks.", weight: "high" },
-      { id: "2.9.e.3", term: "Session Timeout",              def: "Forces client to re-authenticate after a set time (e.g., 8h). Useful for guest day passes and key refresh.", weight: "med" },
-      { id: "2.9.e.4", term: "DTIM Period",                  def: "Delivery Traffic Indication Message interval. Controls multicast/broadcast delivery to sleeping clients.", weight: "low" }
+      {
+        id: "2.9.e.1",
+        term: "Client Exclusion",
+        weight: "med",
+        info: "<p><strong>Client Exclusion</strong> is a WLC feature that <strong>automatically quarantines a client's MAC address</strong> after repeated authentication failures. The goal is to <strong>defeat brute-force attacks</strong> against WPA2-PSK and 802.1X by forcing the attacker's device into a timeout, drastically reducing how many passwords they can try per minute.</p><p>On the WLC, client exclusion is configured in two places: (1) <strong>Global</strong> at <code>Security → Wireless Protection Policies → Client Exclusion Policies</code>, where you enable the trigger conditions (excessive 802.11 association failures, excessive 802.11 auth failures, excessive 802.1X auth failures, excessive web-auth failures, IP theft / reuse). (2) <strong>Per-WLAN</strong> on the <code>Advanced</code> tab, where you enable Client Exclusion and set the <strong>exclusion timeout</strong> (default 60 seconds, configurable 0-2^31 seconds; 0 = permanent until manual clear).</p><p>When a client hits the failure threshold, its MAC is added to the <strong>exclusion list</strong> and the WLC refuses association for the timeout period. You can view excluded clients at <code>Monitor → Clients → Exclusion List</code> and manually clear them if a legitimate user got accidentally excluded (typo'd PSK too many times).</p><p><strong>Threat model</strong>: without exclusion, an attacker captures the 4-way handshake once (offline attack), but also tries online brute-force in parallel. Exclusion kills the online attack and buys your ops team time to detect and respond. It does NOT stop offline dictionary attacks against a captured handshake — for that, use a long random PSK or switch to 802.1X.</p>",
+        visual: { type: "state-machine", params: { states: ["Client connecting", "Fail auth (3x)", "MAC added to exclusion list", "Timeout (60s default)", "Re-allowed"], active: 2, transitions: true } },
+        hack: {
+          memory: "Client Exclusion = <strong>three strikes, you're out</strong>. Failed auth triggers a MAC timeout. Default 60s. Stops online brute-force. Does NOT stop offline handshake cracking — that needs a strong PSK or 802.1X.",
+          practice: "In the WLC GUI, enable client exclusion on a test WLAN with threshold 3 failures and timeout 60s. Type the wrong PSK on your phone three times. Watch the phone go silent for a minute — it cannot even see the SSID in scans, or it sees it but cannot associate. Then check Monitor → Clients → Exclusion List — your phone's MAC is there. After 60s it ages out.",
+          effort: "medium",
+          meta: "Jeremy's IT Lab Day 58. Wendell Odom OCG Chapter 26. Exam: 'which feature prevents brute-force attacks against WPA2-PSK?' = Client Exclusion. Know the default timeout is around 60 seconds and it can be set to manual-clear."
+        }
+      },
+      {
+        id: "2.9.e.2",
+        term: "P2P Blocking (client isolation)",
+        weight: "high",
+        info: "<p><strong>Peer-to-Peer (P2P) Blocking</strong>, also called <strong>client isolation</strong>, prevents two wireless clients <strong>on the same WLAN</strong> from talking directly to each other at Layer 2. Without P2P blocking, every device associated to the same SSID can see each other's broadcasts, ARP for each other's MAC, and open TCP/UDP connections — a significant exposure on any untrusted WLAN.</p><p>On the WLC, it is configured per-WLAN at <code>WLAN → Advanced tab → P2P Blocking Action</code>. Three options: (1) <strong>Disabled</strong> (default — clients can talk). (2) <strong>Drop</strong> — any frame from client A to client B on the same WLAN is dropped. (3) <strong>Forward-UpStream</strong> — the WLC forwards the frame upstream to the switch/router instead of locally bridging, so an upstream firewall/ACL can decide.</p><p><strong>The critical use case is GUEST WLANs</strong>. Your coffee shop Wi-Fi has 30 strangers associated to the same SSID — you do NOT want them scanning each other, fingerprinting OSes, or launching opportunistic attacks. Turning on P2P blocking makes every guest an island — their only visible destination is the gateway (which, with a proper ACL, only allows internet).</p><p><strong>It also hardens classrooms, hotel Wi-Fi, conference Wi-Fi, open public Wi-Fi</strong> — basically any WLAN where users are NOT a trusted group. It does not break legitimate use cases (web, email, SaaS) because those always go through the gateway, not peer-to-peer.</p><p><strong>What P2P blocking does NOT do</strong>: it only blocks <em>same-WLAN</em> peer traffic. Two clients on DIFFERENT WLANs are already separated by VLAN + ACL. And if a user brings two devices to the guest WLAN, those two devices cannot talk either — which may break legitimate mobile-to-laptop tethering.</p>",
+        visual: { type: "shield", params: { items: ["Guest A → Gateway: ALLOWED", "Guest A → Guest B: DROPPED", "Guest B → Gateway: ALLOWED", "Guest B → Guest A: DROPPED"], color: "#8b5cf6" } },
+        hack: {
+          memory: "P2P Blocking = <strong>no talking between guests</strong>. Every client on the WLAN becomes an island. Only the gateway is reachable. Critical for Guest SSIDs. WLC → WLAN → Advanced tab.",
+          practice: "Connect two phones to a test SSID. Without P2P blocking: open a web server on phone A, browse to A's IP from phone B — works. Enable P2P Blocking = Drop. Refresh from phone B — times out. The same SSID, the same subnet, but direct peer traffic is now dropped by the WLC.",
+          effort: "medium",
+          meta: "Jeremy's IT Lab Day 58. Wendell Odom OCG Chapter 26. Exam: 'how do you prevent wireless guests from attacking each other on the same SSID?' = P2P Blocking / client isolation. This is the single most tested advanced WLAN feature."
+        }
+      },
+      {
+        id: "2.9.e.3",
+        term: "Session Timeout",
+        weight: "med",
+        info: "<p><strong>Session Timeout</strong> forces a wireless client to <strong>fully re-authenticate</strong> after a configurable time period, regardless of whether the session is active. When the timer expires, the WLC sends a deauthentication frame and the client must run the full handshake again (enter PSK or do 802.1X EAP).</p><p>On the WLC, configure per-WLAN at <code>WLAN → Advanced tab → Enable Session Timeout</code>, then enter seconds (default 1800s = 30 min for 802.1X, 86400s = 24 h for PSK, varies by release). Set to 0 or disable the checkbox to disable session timeout entirely.</p><p><strong>Reasons to set a session timeout:</strong> (1) <strong>Credential freshness</strong> — if an employee leaves and their AD account is disabled, the next session timeout will boot them off because RADIUS will reject the re-auth. (2) <strong>Key rotation</strong> — each re-auth produces fresh pairwise keys, limiting the damage of a key compromise. (3) <strong>Guest time limits</strong> — a day-pass voucher paired with a 24-hour session timeout means the guest is automatically disconnected when the pass expires.</p><p><strong>Trade-off</strong>: short timeouts (15 min) annoy users with frequent re-auth prompts, especially on PSK networks. Long timeouts (8+ hours) are comfortable but delay the effect of credential revocation. Enterprise defaults are typically <strong>8-12 hours for 802.1X corp WLANs</strong> and <strong>1-8 hours for guest WLANs</strong>.</p><p><strong>Exam distinction</strong>: session timeout is NOT idle timeout. Idle timeout disconnects a client that has been silent for X minutes. Session timeout disconnects regardless of activity — even an actively used session is terminated when the timer hits zero.</p>",
+        visual: { type: "state-machine", params: { states: ["Client joins (t=0)", "Authenticated + data", "Session timer expires (t=8h)", "Deauth", "Re-auth (EAP or PSK)"], active: 2, transitions: true } },
+        hack: {
+          memory: "Session Timeout = <strong>periodic ID check</strong>. Client is kicked and must re-auth after N hours, even if actively using. Different from idle timeout (silence-based). Use it for credential freshness and guest day-pass expiry.",
+          practice: "Set Session Timeout to 300 seconds (5 min) on a test 802.1X WLAN. Connect and start a ping. At the 5-minute mark, the ping drops for a moment and the client re-authenticates. On 802.1X with a valid AD account it is transparent (password cached); on PSK the user sees a prompt. Try disabling the AD user mid-session — at the 5-min timeout they fail to re-auth and are locked out.",
+          effort: "medium",
+          meta: "Jeremy's IT Lab Day 58. Wendell Odom OCG Chapter 26. Exam: 'which feature forces wireless clients to re-authenticate after a set time regardless of activity?' = Session Timeout. Do not confuse with idle timeout."
+        }
+      },
+      {
+        id: "2.9.e.4",
+        term: "DTIM Period",
+        weight: "low",
+        info: "<p><strong>DTIM (Delivery Traffic Indication Message)</strong> is a special marker embedded in 802.11 beacons that tells sleeping clients 'I have buffered multicast/broadcast frames for you — wake up'. The <strong>DTIM Period</strong> is how often that marker appears, measured in <strong>beacon intervals</strong>. Default beacon interval is 100 ms, and default DTIM period on the WLC is <strong>1</strong> — meaning every beacon carries a DTIM.</p><p>Wi-Fi devices save battery by sleeping their radio between beacons. The AP buffers unicast frames for sleeping clients and delivers them on wake. <strong>Multicast/broadcast frames</strong> are special — the AP can only deliver them to <em>all</em> sleeping clients at once, so it holds them until the next DTIM beacon, then transmits them right after.</p><p><strong>DTIM Period tradeoff:</strong> (a) <strong>Short DTIM (1-2 beacons)</strong> → multicast/broadcast delivered frequently, lower latency for mDNS / AirPlay / Chromecast / Bonjour, but clients wake more often → shorter battery life. (b) <strong>Long DTIM (5-10 beacons)</strong> → clients sleep longer → better battery, but multicast traffic (like streaming/discovery) may experience lag or loss.</p><p>Typical deployments: <strong>DTIM = 1</strong> for voice/video WLANs (latency matters), <strong>DTIM = 3</strong> for general corporate data, <strong>DTIM = 3-5</strong> for IoT (battery matters more than multicast latency). It is configured under <code>WLAN → Advanced tab</code> on the WLC, or globally on some controller versions.</p><p><strong>Exam relevance is low for DTIM</strong> — it is a 'nice to know' concept, mostly useful for recognizing it as a distractor answer on advanced WLAN settings questions. Do not over-study this one.</p>",
+        visual: { type: "packet-flow", params: { nodes: ["Beacon + DTIM", "Client wakes radio", "AP drains mcast/bcast queue", "Client sleeps again"], color: "#6b7280" } },
+        hack: {
+          memory: "DTIM = <strong>mass wake-up alarm</strong> on beacons. Low DTIM (1) = frequent wake, low latency, worse battery. High DTIM (5+) = rare wake, better battery, slower multicast. Default is 1.",
+          practice: "On a battery-sensitive IoT network, bump DTIM from 1 to 3 and measure battery drain over 24 hours — you will see a meaningful improvement on sleep-heavy devices. On a voice WLAN leave it at 1 so Bonjour/SIP multicast does not stutter.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 58 mentions DTIM in passing. Wendell Odom OCG Chapter 26. Exam: likely a distractor, not a primary answer. Know the concept — beacon marker for delivering buffered multicast to sleeping clients — and the battery-vs-latency tradeoff."
+        }
+      }
     ]
   }
 
