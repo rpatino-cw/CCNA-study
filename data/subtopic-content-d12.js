@@ -1410,12 +1410,84 @@ window.subtopicContentD12 = {
       meta: "Jeremy's IT Lab Day 9 (Switch Interfaces) covers duplex, speed, and collision troubleshooting. Wendell Odom OCG Chapter 5 covers Ethernet LAN switching fundamentals. The exam loves showing 'show interfaces' output with incrementing late collision counters and asking 'What is the most likely cause?' The answer is almost always duplex mismatch. Remember: 64 bytes is the magic number -- collisions before 64 bytes are normal on half-duplex, after 64 bytes are always a problem."
     },
     micro: [
-      { id: "1.4.a.1", term: "Collision",                    def: "Two devices transmit on a shared collision domain at the same time; frames corrupt. Normal on half-duplex, never on full-duplex.", weight: "high" },
-      { id: "1.4.a.2", term: "CSMA/CD",                      def: "Carrier Sense Multiple Access with Collision Detection. Listen before transmit, detect collision, jam, random backoff, retry.", weight: "high" },
-      { id: "1.4.a.3", term: "Slot time (64 bytes)",         def: "Collision window — collisions detected within the first 64 bytes are normal on half-duplex. Anything after 64 bytes is a late collision.", weight: "high" },
-      { id: "1.4.a.4", term: "Late collision",               def: "Collision detected after 64 bytes. Always abnormal. #1 symptom of duplex mismatch.", weight: "high" },
-      { id: "1.4.a.5", term: "Late collision causes",        def: "Duplex mismatch (most common), cable > 100m, faulty NIC.", weight: "high" },
-      { id: "1.4.a.6", term: "Collisions on full-duplex",    def: "Should be zero. Nonzero = something broken (duplex mismatch or hardware).", weight: "high" }
+      {
+        id: "1.4.a.1",
+        term: "Collision",
+        weight: "high",
+        info: "<p>A <strong>collision</strong> happens when two devices in the same collision domain place an electrical signal on the wire at the same moment. The two signals overlap, the voltage levels on the cable become garbage, and both frames are corrupted beyond recognition. Collisions are a fundamental property of <strong>shared media</strong> — the classic example is a hub where every port sits on one big electrical bus.</p><p>Collisions are <strong>normal and expected on half-duplex links</strong> because half-duplex means only one device can transmit at a time. When two devices try simultaneously, CSMA/CD kicks in, jams the line, backs off, and retries. On a healthy half-duplex segment, a small number of collisions is perfectly acceptable — it's how the protocol shares the wire.</p><p>On a <strong>full-duplex</strong> link there is no collision domain at all. Each direction has its own dedicated pair of wires (TX and RX), so a collision is physically impossible. If the <code>collisions</code> counter increments on a full-duplex interface, something is broken — most often a <strong>duplex mismatch</strong> where the other side is actually running half-duplex.</p><ul><li><code>show interfaces Gi0/1</code> → look for <code>0 collisions</code> on full-duplex</li><li>Any non-zero value on full-duplex = investigate</li><li>Half-duplex with a few collisions = normal</li></ul><p>On the exam, always ask yourself: <strong>what duplex is this interface?</strong> before judging whether a collision count is a problem.</p>",
+        visual: { type: "packet-flow", params: { nodes: ["Device A (TX)", "Shared Wire — SMASH", "Device B (TX)"], color: "#ef4444" } },
+        hack: {
+          memory: "Collision = two people shouting into the same walkie-talkie channel at once. Nobody understands either of them. Half-duplex channel = expected. Full-duplex phone line with separate speakers/mics = collisions are impossible, and if they show up, the phone is broken.",
+          practice: "In Packet Tracer, build PC-Hub-PC. Send a continuous ping from both PCs simultaneously. Run `show interfaces` on the hub-connected switch and watch the collision counter climb. Then swap the hub for a switch — collisions flatline at zero.",
+          effort: "medium",
+          meta: "Jeremy's IT Lab Day 9 (Switch Interfaces & Duplex). Wendell Odom OCG Ch. 5. The exam trick: collisions on a full-duplex port = duplex mismatch, not 'normal Ethernet behavior.'"
+        }
+      },
+      {
+        id: "1.4.a.2",
+        term: "CSMA/CD",
+        weight: "high",
+        info: "<p><strong>CSMA/CD</strong> — Carrier Sense Multiple Access with Collision Detection — is the access method Ethernet uses on half-duplex shared media. It is how devices decide when it is safe to transmit on a wire they share with other talkers.</p><p>The algorithm in plain English:</p><ul><li><strong>Carrier Sense</strong> — listen to the wire before transmitting. If another signal is present, wait.</li><li><strong>Multiple Access</strong> — every device on the segment has equal right to transmit.</li><li><strong>Collision Detection</strong> — while transmitting, keep listening. If the voltage looks wrong, a collision just occurred.</li><li><strong>Jam signal</strong> — on detecting a collision, send a 32-bit jam pattern so every other device also sees the collision.</li><li><strong>Binary exponential backoff</strong> — wait a random slot time from 0 to 2^n − 1 (n grows with each retry, up to 10), then try again.</li></ul><p>CSMA/CD is <strong>only relevant on half-duplex</strong> links. Full-duplex interfaces disable CSMA/CD entirely because separate TX/RX pairs eliminate the shared medium. When you hard-code an interface to full-duplex, you are telling it 'do not run CSMA/CD.' That is exactly why a duplex mismatch is so destructive — the full-duplex side never backs off, and the half-duplex side keeps seeing corrupted frames as collisions.</p><p>Know that CSMA/CD exists, know it is a half-duplex mechanism, and know that it is the reason late collisions are a diagnostic flag.</p>",
+        visual: { type: "state-machine", params: { states: ["Sense (idle?)", "Transmit", "Collision detected", "Jam + Backoff", "Retry"], active: 3, transitions: true } },
+        hack: {
+          memory: "CSMA/CD = a polite meeting rule. 1) Listen before you talk. 2) If you hear someone else start at the same time, both shut up. 3) Flip a coin to decide who speaks first. Full-duplex = everyone wears headphones and a mic — no need for the rule.",
+          practice: "Write the five steps from memory: Sense → Transmit → Detect → Jam → Backoff → Retry. Then draw a flowchart. Label which steps are skipped on a full-duplex port (all of them after Transmit).",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 9. OCG Ch. 5. Exam fact: CSMA/CD is a half-duplex-only mechanism. If a question says 'full-duplex Ethernet uses CSMA/CD,' that answer is wrong."
+        }
+      },
+      {
+        id: "1.4.a.3",
+        term: "Slot time (64 bytes)",
+        weight: "high",
+        info: "<p>The <strong>slot time</strong> is Ethernet's collision window — the amount of time the transmitting station must keep listening for collisions after it starts sending. For 10/100 Mbps Ethernet the slot time is defined as <strong>512 bit times</strong>, which equals <strong>64 bytes</strong>. That is why Ethernet's minimum frame size is also 64 bytes: the frame has to be long enough for the collision signal to travel to the far end of the segment and back before the sender finishes transmitting.</p><p>Practical consequence: any collision detected during the first 64 bytes of a frame is a <strong>normal collision</strong>. Both stations saw the conflict in time, jammed, and will back off and retry. The network is working as designed.</p><p>Any collision detected <strong>after</strong> 64 bytes is a <strong>late collision</strong> — and late collisions are never normal. Something about the physical layer is violating the assumption that built the 64-byte number in the first place, usually cable length exceeding 100 meters or a duplex mismatch.</p><ul><li>Slot time 10/100 Mbps = 512 bit times = 64 bytes</li><li>Minimum frame size = 64 bytes (not a coincidence)</li><li>GigE uses carrier extension to preserve the 64-byte slot at higher speeds</li></ul><p>Memorize 64 bytes. It appears in runt questions, collision questions, and CRC questions.</p>",
+        visual: { type: "binary-breakdown", params: { bits: ["Preamble (8B)", "Dst MAC (6B)", "Src MAC (6B)", "Type (2B)", "Payload (≥46B)", "FCS (4B)"], highlight: 4, label: "64-byte minimum" } },
+        hack: {
+          memory: "Slot time = the echo window. Shout and listen for 64 bytes' worth of echo. If the echo of a crash comes back during that window, normal collision. If it comes back after you finished shouting, you're either too far from the canyon wall (cable > 100m) or the other hiker is deaf to your rules (duplex mismatch).",
+          practice: "Flashcard: 'Ethernet slot time?' → 512 bit times / 64 bytes. 'Minimum frame size?' → 64 bytes. 'Why are they the same number?' → Slot time is what forced the minimum.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 9. OCG Ch. 5. The exam loves 64 and 1518 as byte thresholds — expect at least one question that requires recognizing 64."
+        }
+      },
+      {
+        id: "1.4.a.4",
+        term: "Late collision",
+        weight: "high",
+        info: "<p>A <strong>late collision</strong> is a collision detected <strong>after the first 64 bytes</strong> of a frame have already been transmitted. It shows up as a separate counter in <code>show interfaces</code>: <code>late collisions</code>, sitting under the output statistics.</p><p>Late collisions break a core Ethernet assumption — that any two colliding stations would notice the collision before finishing a minimum-size frame. When a late collision happens, it means the transmitter already committed to the frame, so the sender does <strong>not</strong> automatically retransmit. The upper-layer protocol (usually TCP) has to notice the loss and resend. That is why late collisions cause user-visible slowness, not just counter noise.</p><p>Two main causes on the CCNA:</p><ul><li><strong>Duplex mismatch</strong> — the #1 answer on the exam. The half-duplex side keeps detecting 'collisions' because the full-duplex side transmits whenever it wants.</li><li><strong>Cable too long</strong> — beyond the 100 m UTP limit, signals take so long to propagate that collisions can't be seen within the slot time.</li></ul><p>Less common: faulty NIC, bad transceiver, or a repeater/hub chained past the allowed distance.</p><p><strong>Diagnostic pattern:</strong> <code>show interfaces</code> shows <code>up/up</code>, users complain the network is slow, and the late-collision counter is climbing. That combination is a duplex-mismatch fingerprint until proven otherwise.</p>",
+        visual: { type: "comparison", params: { left: { label: "Normal Collision (<64B)", items: ["Detected during slot time", "Auto-retransmit", "Expected on half-duplex", "No user impact"] }, right: { label: "Late Collision (>64B)", items: ["Detected after slot time", "No auto-retransmit", "Always abnormal", "Duplex mismatch or long cable"] } } },
+        hack: {
+          memory: "Normal collision = fender-bender in the parking lot, you both stop and restart. Late collision = crash on the highway after you've already merged — nobody can undo it, TCP has to mop up. Late collisions = duplex mismatch until proven innocent.",
+          practice: "Lab: `duplex half` on one side, `duplex full` on the other. Push traffic. Run `show interfaces` on the half-duplex side and point to the late-collisions counter climbing. Fix: set both to `auto` — watch it stop.",
+          effort: "medium",
+          meta: "Jeremy's IT Lab Day 9. OCG Ch. 5–6. Highest-yield troubleshooting scenario on the CCNA. If the output shows late collisions, the answer is duplex mismatch."
+        }
+      },
+      {
+        id: "1.4.a.5",
+        term: "Late collision causes",
+        weight: "high",
+        info: "<p>When late collisions appear on a Cisco interface, work the causes in this order:</p><ol><li><strong>Duplex mismatch</strong> — the #1 cause. One side full, the other half. Symptoms pile up on both sides: late collisions on the half side, CRC/runts on the full side. Confirm with <code>show interfaces status</code>.</li><li><strong>Cable length &gt; 100 m</strong> — exceeds the Cat5e/Cat6 standard. Signal propagation delay pushes the collision-detect round trip past the 64-byte slot time. Confirm with the cable plant documentation or a cable tester.</li><li><strong>Faulty NIC</strong> — a NIC that mis-implements CSMA/CD can generate late collisions even on a correct half-duplex topology. Replace and retest.</li><li><strong>Chained hubs/repeaters</strong> — exceeding the 5-4-3 rule on 10BASE-T (5 segments, 4 repeaters, 3 populated) extends the round-trip time beyond slot time.</li><li><strong>Bad transceiver/SFP</strong> — rare, but a marginal optical module can introduce enough latency to push collision detection past the window.</li></ol><p>Start the troubleshooting at the top and stop when you find the cause. In exam scenarios, you will almost always land on duplex mismatch.</p>",
+        visual: { type: "hierarchy", params: { root: "Late Collision", children: ["Duplex mismatch", "Cable > 100m", "Faulty NIC", "Too many repeaters", "Bad transceiver"] } },
+        hack: {
+          memory: "Late-collision causes, in order of likelihood: Duplex, Distance, Defective NIC, Daisy-chained hubs, Damaged optics. Five D's.",
+          practice: "Write the 5 D's as flashcards. When you see late collisions in practice questions, say them out loud in order and pick the first one the question supports.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 9. OCG Ch. 5. Exam: if late collisions are present and the question mentions 'one side manual, one side auto,' the answer is duplex mismatch, full stop."
+        }
+      },
+      {
+        id: "1.4.a.6",
+        term: "Collisions on full-duplex",
+        weight: "high",
+        info: "<p>A full-duplex Ethernet link has <strong>no shared medium</strong>. TX and RX run on separate wire pairs, CSMA/CD is disabled, and both sides can transmit and receive simultaneously with zero interference. The collision counter should therefore read <strong>zero</strong> and stay at zero forever.</p><p>If you see a non-zero collisions count on a full-duplex interface, one of three things is true:</p><ul><li><strong>Duplex mismatch</strong> — the remote side is actually running half-duplex. The local side won't log collisions but will log <strong>CRC errors</strong> and <strong>runts</strong>; the remote side logs the late collisions. Easy to miss because each side only sees half the symptom.</li><li><strong>Hardware fault</strong> — a bad NIC, damaged switch ASIC, or miscounting firmware. Rare, but real.</li><li><strong>The link is actually half-duplex</strong> — someone pinned it with <code>duplex half</code> or the port auto-negotiated down to half because the peer is manual.</li></ul><p>Practical check: <code>show interfaces Gi0/1</code> and look at both the duplex value and the collision counters in one glance. If the interface is listed as 'Full-duplex' but <code>collisions</code> is non-zero, treat the reported duplex as suspect and re-verify on the peer.</p>",
+        visual: { type: "comparison", params: { left: { label: "Full-Duplex (healthy)", items: ["Separate TX/RX pairs", "CSMA/CD disabled", "0 collisions always", "0 late collisions"] }, right: { label: "Full-Duplex with collisions", items: ["Impossible on working link", "= duplex mismatch", "or hardware fault", "Investigate immediately"] } } },
+        hack: {
+          memory: "Full-duplex collision = unicorn sighting. If you see one, it's not a unicorn, it's a costume. The costume is almost always duplex mismatch.",
+          practice: "Set up two switches back-to-back, hard-code one side to `duplex half`. Run `show interfaces` on both sides. Note: half side shows collisions, full side shows CRC/runts — the mismatch fingerprint.",
+          effort: "medium",
+          meta: "Jeremy's IT Lab Day 9. OCG Ch. 5. Exam pattern: 'Gi0/1 is full-duplex and shows 500 collisions.' Correct answer = duplex mismatch, not 'heavy traffic.'"
+        }
+      }
     ]
   },
 
@@ -1438,11 +1510,71 @@ window.subtopicContentD12 = {
       meta: "Jeremy's IT Lab Day 9 covers interface troubleshooting and error counters. Wendell Odom OCG Chapter 5-6 covers Ethernet frame structure and the FCS/CRC mechanism. The exam frequently shows 'show interfaces' output with CRC errors and asks for the cause. The answer is always a physical layer issue -- bad cable is the #1 cause. Remember that CRC errors sit inside the 'input errors' total, and troubleshooting always starts at Layer 1."
     },
     micro: [
-      { id: "1.4.b.1", term: "CRC / FCS",                    def: "Frame Check Sequence. 32-bit checksum appended to each Ethernet frame. Receiver recalculates and compares.", weight: "high" },
-      { id: "1.4.b.2", term: "CRC error",                    def: "FCS mismatch at receiver → frame discarded. Counter increments. Always a Layer 1 problem.", weight: "high" },
-      { id: "1.4.b.3", term: "CRC error causes",             def: "Bad/damaged cable (#1), EMI, faulty NIC or port, duplex mismatch, dirty fiber connectors.", weight: "high" },
-      { id: "1.4.b.4", term: "Input errors hierarchy",       def: "input errors = CRC + runts + giants + frame + overrun + ignored. Identify which sub-counter is rising.", weight: "high" },
-      { id: "1.4.b.5", term: "Troubleshooting order (L1)",   def: "Replace cable → check EMI → different port → replace NIC → check duplex. Always bottom-up.", weight: "med" }
+      {
+        id: "1.4.b.1",
+        term: "CRC / FCS",
+        weight: "high",
+        info: "<p>The <strong>FCS (Frame Check Sequence)</strong> is a 4-byte (32-bit) field at the tail of every Ethernet frame. It holds a <strong>CRC-32</strong> value calculated by the sender over the entire frame (destination MAC, source MAC, type/length, and payload). The receiver repeats the same CRC-32 math on the received bits and compares the result to the FCS field. Match = frame accepted. Mismatch = frame discarded and the <code>CRC</code> counter on the receiving interface increments.</p><p>CRC is a <strong>detection</strong> mechanism, not correction. Ethernet does not ask for a retransmission — that's the job of the upper layer (TCP, or the application). The switch/router simply drops the frame silently and moves on, which is why CRC errors show up as 'mysterious slowness' rather than loud failures.</p><ul><li>Field size: 4 bytes at end of frame</li><li>Algorithm: CRC-32 (IEEE 802.3 polynomial)</li><li>Scope: covers everything from Dst MAC through end of payload; does not cover preamble/SFD</li></ul><p>When you hear 'CRC error,' think 'bits flipped somewhere between sender and receiver.' That 'somewhere' is always a <strong>Layer 1</strong> issue — bad cable, EMI, dirty fiber, or a flaky NIC — even though the counter is exposed by a Layer 2 frame check.</p>",
+        visual: { type: "encapsulation", params: { layers: [{ label: "Preamble + SFD (8B)", color: "#64748b" }, { label: "Dst MAC (6B)", color: "#3b82f6" }, { label: "Src MAC (6B)", color: "#3b82f6" }, { label: "Type/Length (2B)", color: "#3b82f6" }, { label: "Payload (46–1500B)", color: "#3b82f6" }, { label: "FCS / CRC-32 (4B)", color: "#ef4444" }] } },
+        hack: {
+          memory: "FCS = a tamper-evident sticker on the frame. Sender stamps it. Receiver re-computes the stamp. Broken stamp = bits got bumped in transit = frame in the trash.",
+          practice: "On a live switch, run `show interfaces Gi0/1` and locate the line 'input errors, CRC, frame, overrun, ignored.' Trace each word back to a definition. CRC is the count of bad FCS values.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 9. OCG Ch. 5. Know: FCS is 4 bytes, uses CRC-32, and sits at the end of every Ethernet frame."
+        }
+      },
+      {
+        id: "1.4.b.2",
+        term: "CRC error",
+        weight: "high",
+        info: "<p>A <strong>CRC error</strong> is a frame whose FCS value did not match the receiver's recalculation. The frame is dropped, the <code>CRC</code> counter on the receiving interface increments by one, and the sender gets no Ethernet-level feedback.</p><p>Because the FCS is only sensitive to bit-level corruption, a CRC error always points to a <strong>physical-layer event</strong> that flipped bits between sender and receiver:</p><ul><li>Copper: degraded jacket, crushed cable, EMI from fluorescent lights or motors, bad crimp, corroded RJ-45</li><li>Fiber: dirty connector end-face, exceeded bend radius, wrong wavelength transceiver, split patch</li><li>Port: bad ASIC on the switch port, failing SFP, damaged NIC</li><li>Duplex mismatch (edge case): the full-duplex side sees the half-duplex side's collision fragments as corrupted frames, which show up as CRC increments</li></ul><p>Diagnostic move: <code>clear counters Gi0/1</code> to reset the baseline, then watch for a minute. If CRC climbs with traffic, replace the cable first (cheapest fix). If it persists, swap the port, then swap the SFP, then swap the NIC. Always start at Layer 1.</p>",
+        visual: { type: "packet-flow", params: { nodes: ["Sender (FCS OK)", "Cable/EMI corruption", "Receiver recalculates", "FCS mismatch → drop + CRC++"], color: "#ef4444" } },
+        hack: {
+          memory: "CRC error = the package arrived but the receipt inside got smeared. You can't prove what was supposed to be in the box, so it goes in the trash. The smear happened on the truck, not at either store — always a physical-layer problem.",
+          practice: "Bend a patch cable sharply (or use a cable with a known bad pin) between two switches. Send ping floods. Watch the CRC counter on the receiving side climb. Replace the cable — counter goes still.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 9. OCG Ch. 5. Exam pattern: CRC errors + up/up = Layer 1 problem. Answer is bad cable / EMI / bad transceiver."
+        }
+      },
+      {
+        id: "1.4.b.3",
+        term: "CRC error causes",
+        weight: "high",
+        info: "<p>Rank-ordered causes of CRC errors, from most common to least common in a real campus network:</p><ol><li><strong>Bad or damaged cable</strong> — crushed, kinked, sharply bent, poorly terminated. This is where you start. It's cheap to swap and it's the answer ~70% of the time.</li><li><strong>EMI (electromagnetic interference)</strong> — UTP runs parallel to power cables, fluorescent lighting, elevator motors, or HVAC. Unshielded copper is sensitive to magnetic fields. Re-route the cable or switch to STP/FTP.</li><li><strong>Dirty / damaged fiber connector</strong> — for fiber links, 80% of all fiber issues are contamination. Clean with a one-click cleaner and inspect with a scope.</li><li><strong>Wrong transceiver or wavelength</strong> — mismatched SFP types (SR vs LR), duplex fiber swapped with simplex, wavelength mismatch on CWDM/DWDM.</li><li><strong>Duplex mismatch</strong> — collision fragments from the half-duplex side arrive as malformed frames and log as CRC on the full-duplex side.</li><li><strong>Bad NIC or switch port ASIC</strong> — last resort. Swap the port first, then the SFP, then blame hardware.</li></ol><p>Process: replace cable → try a different port → swap SFP → swap NIC → check duplex. Physical layer first, every time.</p>",
+        visual: { type: "hierarchy", params: { root: "CRC Error", children: ["Bad cable (copper)", "EMI interference", "Dirty fiber connector", "Wrong transceiver", "Duplex mismatch", "Bad NIC/port"] } },
+        hack: {
+          memory: "CRC troubleshooting order: Cable, Environment (EMI), Connector (fiber), Transceiver, Duplex, Hardware. CECTD-H — 'Careful Engineers Can Tell Duplex Hiccups.'",
+          practice: "Build a checklist card. For any CRC question on the exam, scan answers for 'bad cable' first — it's right ~70% of the time.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 9. OCG Ch. 5. Exam bias: physical cable is the top answer. EMI is the 'gotcha' answer when the scenario mentions industrial/factory environments."
+        }
+      },
+      {
+        id: "1.4.b.4",
+        term: "Input errors hierarchy",
+        weight: "high",
+        info: "<p>In <code>show interfaces</code>, the line <code>X input errors, Y CRC, Z frame, W overrun, V ignored</code> shows a <strong>total</strong> (<code>input errors</code>) and a set of <strong>sub-counters</strong> that break the total down. <code>input errors</code> is the sum of every inbound frame the interface rejected.</p><p>The sub-counters and what they mean:</p><ul><li><strong>CRC</strong> — FCS mismatch. Layer 1 corruption.</li><li><strong>Frame</strong> — bit-level framing error (non-octet-aligned frame). Often paired with CRC; cabling or NIC fault.</li><li><strong>Runts</strong> — frame smaller than 64 bytes. Collision fragment (half-duplex) or duplex mismatch symptom.</li><li><strong>Giants</strong> — frame larger than 1518 (or 1522 on a trunk). MTU mismatch or jumbo frame leak.</li><li><strong>Overrun</strong> — the interface's input buffer filled up and frames were dropped before the CPU could read them. Switch is overwhelmed.</li><li><strong>Ignored</strong> — frames discarded because the switch had no buffer space available at all. Worse than overrun.</li></ul><p>Diagnostic rule: look at <strong>which sub-counter is rising</strong>, not just the total. A big <code>input errors</code> number with all CRC is a cable problem. The same number with all runts is a duplex problem. Same number with overrun/ignored is a capacity problem.</p>",
+        visual: { type: "hierarchy", params: { root: "input errors (total)", children: ["CRC (FCS bad)", "Frame (alignment)", "Runts (<64B)", "Giants (>1518B)", "Overrun (buffer full)", "Ignored (no buffer)"] } },
+        hack: {
+          memory: "input errors is the umbrella. CRC/Frame/Runt/Giant/Overrun/Ignored are the rain types underneath. Don't react to the umbrella — look at which rain is actually falling.",
+          practice: "On any `show interfaces` output, cover the `input errors` total with your finger. Identify the biggest sub-counter. State the cause out loud. Uncover and verify.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 9. OCG Ch. 5. Exam simulations always ask 'what is the most likely cause?' — the answer comes from which sub-counter dominates."
+        }
+      },
+      {
+        id: "1.4.b.5",
+        term: "Troubleshooting order (L1)",
+        weight: "med",
+        info: "<p>CRC errors are a Layer 1 problem. Troubleshoot bottom-up, cheapest move first:</p><ol><li><strong>Replace the patch cable</strong> on both ends. 90% of CRC issues die here. Takes 30 seconds.</li><li><strong>Try a different switch port</strong> on the same switch. Rules out the specific port ASIC/jack.</li><li><strong>Inspect the cable path for EMI</strong> — is it zip-tied to a power cable? Running past a motor? Reroute.</li><li><strong>Swap the SFP/transceiver</strong> (fiber links). Clean fiber end-faces while you're there.</li><li><strong>Replace the NIC</strong> (or test the host with a known-good device plugged into the same port).</li><li><strong>Check duplex settings</strong> on both ends. Full vs half mismatch can manifest as CRC on the full side.</li></ol><p>Always <code>clear counters</code> after each change so you can see if the fix worked inside a minute, not after waiting for counts to 'feel' better.</p>",
+        visual: { type: "state-machine", params: { states: ["Swap cable", "Swap port", "Check EMI", "Swap SFP", "Swap NIC", "Check duplex"], active: 0, transitions: true } },
+        hack: {
+          memory: "Cheapest-first rule: cable, port, path, optic, NIC, config. You move up the cost ladder one rung at a time and stop when the CRC stops.",
+          practice: "Build a tiny runbook card titled 'CRC errors.' Listed steps 1–6 in order. Tape it to your lab monitor. Every time you see CRC, work down the card.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 9. OCG Ch. 5. Exam pattern: 'What should you check FIRST?' → bad/damaged cable."
+        }
+      }
     ]
   },
 
@@ -1462,12 +1594,84 @@ window.subtopicContentD12 = {
       meta: "Jeremy's IT Lab Day 9 covers interface errors. Wendell Odom OCG Chapter 5-6. The exam asks for exact byte thresholds -- 64 and 1518 are guaranteed to appear. A common trick question: 'A frame of 1522 bytes is received on a trunk port. Is this a giant?' Answer: No, 1522 is valid with an 802.1Q tag (4 extra bytes). Only frames exceeding 1522 on a trunk are giants."
     },
     micro: [
-      { id: "1.4.c.1", term: "Ethernet minimum frame size",  def: "64 bytes. Anything smaller is a runt. Includes 14-byte header + 46-byte min payload + 4-byte FCS.", weight: "high" },
-      { id: "1.4.c.2", term: "Ethernet maximum frame size",  def: "1518 bytes standard. 1522 bytes with a single 802.1Q tag. Anything larger is a giant.", weight: "high" },
-      { id: "1.4.c.3", term: "Runt",                         def: "Frame < 64 bytes. Collision fragment on half-duplex (normal). On full-duplex = duplex mismatch or bad NIC.", weight: "high" },
-      { id: "1.4.c.4", term: "Giant",                        def: "Frame > 1518 bytes (or > 1522 on trunk). Caused by MTU mismatch or faulty NIC.", weight: "high" },
-      { id: "1.4.c.5", term: "Baby giant",                   def: "Slightly over 1518 due to 802.1Q (1522), Q-in-Q (1526), or MPLS labels. Some switches accept via 'system mtu' config.", weight: "med" },
-      { id: "1.4.c.6", term: "MTU mismatch",                 def: "One side configured for jumbo (9000 bytes), other for standard 1518 → giants on the receiving side.", weight: "med" }
+      {
+        id: "1.4.c.1",
+        term: "Ethernet minimum frame size",
+        weight: "high",
+        info: "<p>The <strong>minimum Ethernet frame size is 64 bytes</strong>, measured from the destination MAC through the FCS. This is NOT a convention — it is enforced by the IEEE 802.3 standard and is tied directly to the <strong>slot time</strong> (the collision detection window on half-duplex links).</p><p>Breakdown of the 64-byte minimum:</p><ul><li><strong>6 bytes</strong> — Destination MAC</li><li><strong>6 bytes</strong> — Source MAC</li><li><strong>2 bytes</strong> — Type / Length</li><li><strong>46 bytes</strong> — minimum payload (padded with zeros if the upper-layer data is shorter)</li><li><strong>4 bytes</strong> — FCS</li><li><strong>Total</strong>: 14 + 46 + 4 = 64 bytes</li></ul><p>Note that the <strong>8-byte preamble + SFD</strong> is NOT counted toward the 64 bytes — those bits are for the receiver to lock onto the signal, not part of the frame data.</p><p>A frame that arrives smaller than 64 bytes is called a <strong>runt</strong> and is dropped with the runts counter incremented. Anything padded by the sender to reach 46 bytes of payload is still valid — padding is how short protocols (like ARP, which is only 42 bytes) satisfy the minimum.</p>",
+        visual: { type: "encapsulation", params: { layers: [{ label: "Preamble+SFD (8B) — not counted", color: "#94a3b8" }, { label: "Dst MAC (6B)", color: "#3b82f6" }, { label: "Src MAC (6B)", color: "#3b82f6" }, { label: "Type (2B)", color: "#3b82f6" }, { label: "Payload (46B min — padded)", color: "#3b82f6" }, { label: "FCS (4B)", color: "#ef4444" }] } },
+        hack: {
+          memory: "Minimum frame = 64 bytes. Remember '6 + 6 + 2 + 46 + 4 = 64' (MACs, type, min payload, FCS). Preamble is not included — it's an alarm clock, not the message.",
+          practice: "Flashcard: 'What is Ethernet's minimum frame size?' → 64 bytes. 'Why 64?' → slot time / collision detection window.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 9. OCG Ch. 5. Exam: this exact number and the breakdown (14-byte header + 46-byte min payload + 4-byte FCS) show up directly."
+        }
+      },
+      {
+        id: "1.4.c.2",
+        term: "Ethernet maximum frame size",
+        weight: "high",
+        info: "<p>The <strong>standard maximum Ethernet frame size is 1518 bytes</strong>. With a single 802.1Q VLAN tag, the allowed maximum grows to <strong>1522 bytes</strong> — the 4-byte tag is inserted between the source MAC and the type field. Anything larger than 1518 (or 1522 on a trunk) is a <strong>giant</strong>, dropped with the giants counter incremented.</p><p>Breakdown of the 1518 maximum:</p><ul><li>14 bytes — header (Dst MAC + Src MAC + Type)</li><li>1500 bytes — maximum payload (the standard Ethernet <strong>MTU</strong>)</li><li>4 bytes — FCS</li></ul><p>Related numbers to remember:</p><ul><li><strong>1518</strong> — standard max frame</li><li><strong>1522</strong> — max with one 802.1Q tag</li><li><strong>1526</strong> — max with Q-in-Q (double tag)</li><li><strong>9216</strong> — common jumbo frame max (configured via <code>system mtu jumbo</code> or per-interface <code>mtu 9216</code>)</li></ul><p>The MTU of 1500 is the value you change with the <code>mtu</code> and <code>ip mtu</code> commands. A jumbo frame of 9000 bytes of payload gives a frame size around 9018 — exceeding the 1518 ceiling but legal on jumbo-capable ports.</p>",
+        visual: { type: "comparison", params: { left: { label: "Standard", items: ["14B header", "1500B MTU", "4B FCS", "Total 1518B"] }, right: { label: "With 802.1Q tag", items: ["14B header", "4B VLAN tag", "1500B MTU", "4B FCS", "Total 1522B"] } } },
+        hack: {
+          memory: "Max frame = 1518. 'One-five-one-eight.' With a trunk tag, +4 = 1522. Jumbo = 9216 (think 'nine thousand and change'). MTU = payload only = 1500.",
+          practice: "Draw the frame layout with byte sizes. Add a VLAN tag. Confirm the total = 1522. Add a second tag (Q-in-Q). Total = 1526.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 9. OCG Ch. 5. Exam: know 1518 vs 1522 cold. The 'trunk + 1522' trap catches people."
+        }
+      },
+      {
+        id: "1.4.c.3",
+        term: "Runt",
+        weight: "high",
+        info: "<p>A <strong>runt</strong> is any received Ethernet frame <strong>smaller than 64 bytes</strong>. Runts are dropped on arrival and the <code>runts</code> sub-counter under <code>input errors</code> increments.</p><p>Runts have two distinct meanings depending on the duplex of the receiving link:</p><ul><li><strong>Half-duplex link</strong> — runts are usually <strong>collision fragments</strong>. When a collision happens during the first 64 bytes, both senders abort mid-frame, leaving a partial frame on the wire shorter than 64 bytes. This is expected at low rates on half-duplex and not a cause for alarm.</li><li><strong>Full-duplex link</strong> — runts should be zero. A rising runts counter on a full-duplex interface means: (a) <strong>duplex mismatch</strong> (the peer is actually half-duplex and their collision fragments are landing on your RX pair), (b) a <strong>faulty NIC</strong> transmitting incomplete frames, or (c) a bad cable causing the FCS math to make a normal-size frame look runt-ish.</li></ul><p>Pairing: runts on one side + late collisions on the other = textbook duplex mismatch. Whenever you see one, check the other.</p>",
+        visual: { type: "comparison", params: { left: { label: "Runt on half-duplex", items: ["Collision fragment", "Normal at low volume", "CSMA/CD working"] }, right: { label: "Runt on full-duplex", items: ["Should be zero", "= duplex mismatch OR", "= bad NIC/cable", "Investigate"] } } },
+        hack: {
+          memory: "Runt = 'runt of the litter' — smaller than it should be. Under 64 bytes. On half-duplex = leftovers from a collision. On full-duplex = something wrong with the peer.",
+          practice: "Force a duplex mismatch in Packet Tracer. Run `show interfaces` on both sides. Full-duplex side shows rising runts; half-duplex side shows rising late collisions. Memorize the pairing.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 9. OCG Ch. 5. Exam: 'Full-duplex interface shows incrementing runts and CRC. What is the cause?' → duplex mismatch."
+        }
+      },
+      {
+        id: "1.4.c.4",
+        term: "Giant",
+        weight: "high",
+        info: "<p>A <strong>giant</strong> is any received Ethernet frame <strong>larger than 1518 bytes</strong> (or 1522 on an 802.1Q trunk) when jumbo frames have not been explicitly configured. Giants are dropped on arrival and the <code>giants</code> sub-counter under <code>input errors</code> increments.</p><p>Primary causes:</p><ul><li><strong>MTU mismatch</strong> — peer configured for jumbo frames (MTU 9000) but the local switch is still at 1500. Large frames arrive and get rejected.</li><li><strong>Faulty NIC or driver</strong> — hardware/software that fails to enforce the standard maximum frame length.</li><li><strong>Rogue configuration</strong> — somebody set <code>mtu 9216</code> on one end of a link and not the other.</li></ul><p>Giants are less common in practice than runts or CRC errors. When they appear, the fix is to <strong>align MTU on both ends</strong>. If the network genuinely wants jumbo frames (storage networks, vMotion, backup), configure them end-to-end and make sure every transit device supports the larger MTU.</p><p>Note the distinction: a <strong>baby giant</strong> (1519–1600 bytes) is often a valid frame with additional encapsulation (802.1Q, MPLS, Q-in-Q) that a misconfigured switch drops as a giant. Modern IOS accepts baby giants by default; older images needed <code>system mtu jumbo</code> tweaks.</p>",
+        visual: { type: "binary-breakdown", params: { bits: ["0–1518", "1519–1526 (baby giant)", "1527–9000", "9001+"], highlight: 1, label: "Giant thresholds" } },
+        hack: {
+          memory: "Giant = 'too big for the box.' Over 1518 without jumbo configured = instant drop. MTU mismatch is the usual suspect.",
+          practice: "Set `mtu 9000` on one side of a link and leave the other side at default. Send a large payload. Watch `giants` climb on the receiving side. Fix by matching MTU.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 9. OCG Ch. 5. Exam: giants = MTU mismatch or misconfigured jumbo."
+        }
+      },
+      {
+        id: "1.4.c.5",
+        term: "Baby giant",
+        weight: "med",
+        info: "<p>A <strong>baby giant</strong> is a frame between <strong>1519 and about 1600 bytes</strong> — slightly larger than the 1518 standard ceiling, but only because of legitimate encapsulation overhead. Common sources:</p><ul><li><strong>802.1Q tag</strong> — adds 4 bytes → 1522 max</li><li><strong>Q-in-Q (double tag)</strong> — adds 8 bytes → 1526 max</li><li><strong>MPLS labels</strong> — each label adds 4 bytes; typical 1-to-2 label stacks push frames to 1522–1530</li><li><strong>ISL (legacy Cisco)</strong> — adds 26 bytes plus 4-byte FCS; obsolete on CCNA but historically a baby-giant source</li></ul><p>Modern Cisco switches accept baby giants by default — that's why an 802.1Q-tagged frame at 1522 bytes doesn't log as a giant. On older IOS or specific platforms, you may need <code>system mtu jumbo 1600</code> (or similar) to accept baby giants without dropping them.</p><p>Takeaway: if giants are incrementing on a trunk port, verify whether the 'giants' are truly giants or just tagged frames being rejected by an undersized MTU setting. The fix is almost never 'change the peer' — it's 'let the switch accept the tagged frames.'</p>",
+        visual: { type: "comparison", params: { left: { label: "True giant", items: [">1522 on trunk", "MTU mismatch", "Bad NIC", "Drop + investigate"] }, right: { label: "Baby giant", items: ["1519–1600", "802.1Q / MPLS / Q-in-Q", "Legitimate overhead", "Configure switch to accept"] } } },
+        hack: {
+          memory: "Baby giant = slightly chunky but still a baby. 802.1Q adds 4 bytes, MPLS labels add 4 bytes each. The number 1522 should trigger 'trunk tag, not a giant.'",
+          practice: "On a trunk port, generate VLAN-tagged traffic at the MTU. Confirm frames = 1522 bytes arrive cleanly and do NOT log as giants on modern IOS.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 9. OCG Ch. 5. Exam trick: '1522-byte frame on a trunk — is it a giant?' → No, valid with 802.1Q tag."
+        }
+      },
+      {
+        id: "1.4.c.6",
+        term: "MTU mismatch",
+        weight: "med",
+        info: "<p>An <strong>MTU mismatch</strong> is when two directly connected devices, or two devices on the same path, disagree on the maximum allowed payload size. Symptoms depend on which side is smaller:</p><ul><li><strong>Small-to-big</strong> (sender MTU 1500, receiver MTU 9000): everything works. The larger MTU is a superset.</li><li><strong>Big-to-small</strong> (sender MTU 9000, receiver MTU 1500): large frames are dropped as <strong>giants</strong> at the receiver, and the sender sees application timeouts or hangs.</li></ul><p>On Layer 3 paths, MTU mismatch creates fragmentation or black holes. If a router has <strong>Don't Fragment (DF)</strong> bit set on IP packets and the next-hop MTU is smaller, the router sends an <strong>ICMP Type 3 Code 4 (Destination Unreachable / Fragmentation Needed)</strong> and drops the packet. If ICMP is blocked (common firewall misconfiguration), the path becomes an invisible black hole — the packets disappear silently.</p><p>Fixes:</p><ul><li>Match MTU on both ends of every link</li><li>Enable <strong>Path MTU Discovery (PMTUD)</strong> and ensure ICMP Type 3 Code 4 is not blocked</li><li>For jumbo frame networks, every switch, router, and NIC in the path must agree</li></ul>",
+        visual: { type: "packet-flow", params: { nodes: ["Sender MTU 9000", "Link MTU 1500", "DF bit set → drop", "ICMP Frag Needed"], color: "#f59e0b" } },
+        hack: {
+          memory: "MTU mismatch = trying to drive a semi-truck through a tunnel that's too short. If the semi has 'Don't Fragment' painted on it, the tunnel gate drops the load and sends an ICMP 'Frag Needed' sticky note. If the sticky note is blocked by a firewall, the semi just disappears.",
+          practice: "Set `ip mtu 1400` on one router interface. Ping with `size 1500 df-bit` from the peer. Observe the 'packet too big' ICMP response. Drop the df-bit and watch fragmentation kick in.",
+          effort: "medium",
+          meta: "Jeremy's IT Lab Day 9. OCG Ch. 5. Exam: MTU mismatch often shows up as 'some apps work, large transfers hang' — classic PMTUD black hole signature."
+        }
+      }
     ]
   },
 
@@ -1487,13 +1691,97 @@ window.subtopicContentD12 = {
       meta: "Jeremy's IT Lab Day 9 covers switch interface troubleshooting. Wendell Odom OCG Chapter 5-6. The exam WILL show you 'show interfaces' output and ask you to diagnose the problem. This is one of the most common simlet scenarios. Practice reading the output until you can instantly identify: which counters are incrementing, what they mean, and what to check first. Know that 'clear counters' resets the counters so you can measure error rates over a specific time window."
     },
     micro: [
-      { id: "1.4.d.1", term: "Input errors",                 def: "Total count of all inbound frame problems (CRC + runts + giants + frame + overrun + ignored).", weight: "high" },
-      { id: "1.4.d.2", term: "Output errors",                def: "Couldn't transmit a frame. Usually congestion (TX queue full). Often paired with output drops.", weight: "high" },
-      { id: "1.4.d.3", term: "Output drops",                 def: "Frames discarded from the output queue because it was full. Symptom of congestion.", weight: "med" },
-      { id: "1.4.d.4", term: "Interface resets",             def: "Interface reinitialized. Causes: shut/no-shut, keepalive failure, cable unplug, link flap.", weight: "med" },
-      { id: "1.4.d.5", term: "Carrier transitions",          def: "Count of down→up transitions. High = link flapping, usually a physical-layer problem.", weight: "high" },
-      { id: "1.4.d.6", term: "Overrun / ignored",            def: "Input buffer overflowed or frames ignored because buffer was full. Switch is overwhelmed.", weight: "med" },
-      { id: "1.4.d.7", term: "clear counters",               def: "Reset interface counters to zero. Use to measure error rates within a specific window.", weight: "med" }
+      {
+        id: "1.4.d.1",
+        term: "Input errors",
+        weight: "high",
+        info: "<p><code>input errors</code> is the <strong>aggregate counter</strong> for all inbound frame problems on a Cisco interface. It appears in <code>show interfaces</code> as the line that reads, for example:</p><p><code>5345 input errors, 4800 CRC, 200 frame, 345 overrun, 0 ignored</code></p><p>The total on the left equals the sum of the sub-counters on the right, which always include:</p><ul><li><strong>CRC</strong> — FCS mismatch (physical-layer corruption)</li><li><strong>Frame</strong> — alignment error (bit stream not octet-aligned)</li><li><strong>Runts</strong> — frames &lt; 64 bytes</li><li><strong>Giants</strong> — frames &gt; 1518 bytes</li><li><strong>Overrun</strong> — input buffer full when a frame arrived</li><li><strong>Ignored</strong> — no buffer space available at all</li></ul><p>The practical move: look at the sub-counter with the largest value and drive your diagnosis from there. A 'lots of input errors' headline means nothing on its own — the sub-counter tells you whether to check the cable (CRC), the duplex (runts), the MTU (giants), or the switch load (overrun/ignored).</p><p>Input errors only counts problems on the receive path. Transmit-side problems show up under <code>output errors</code>, <code>output drops</code>, and <code>collisions</code>.</p>",
+        visual: { type: "hierarchy", params: { root: "input errors (total)", children: ["CRC", "Frame", "Runts", "Giants", "Overrun", "Ignored"] } },
+        hack: {
+          memory: "input errors = scoreboard. The sub-counters are individual players. Don't announce the total — name the top scorer and chase that player.",
+          practice: "Every `show interfaces` in lab: find the input errors line, name the dominant sub-counter, state the probable cause in one sentence.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 9. OCG Ch. 5. Exam simulations hinge on reading this line correctly."
+        }
+      },
+      {
+        id: "1.4.d.2",
+        term: "Output errors",
+        weight: "high",
+        info: "<p><code>output errors</code> counts frames the interface <strong>could not transmit successfully</strong>. Unlike input errors (which are mostly L1 corruption), output errors are usually congestion or policy-related.</p><p>Common causes:</p><ul><li><strong>Output queue overflow</strong> — the interface is trying to push more traffic than the link can carry (aggregate ingress &gt; link speed). Frames get dropped before they leave.</li><li><strong>Collisions on half-duplex</strong> — each retransmitted frame counts against the output counters; enough collisions raise <code>output errors</code>.</li><li><strong>Underruns</strong> — the transmit buffer couldn't be filled fast enough by the CPU or fabric. Rare, hardware-level.</li><li><strong>Late collisions</strong> — counted under output errors on the transmitting side.</li></ul><p>Often paired with <code>output drops</code> (frames dropped from the queue by QoS or tail-drop) and <code>late collisions</code>. A switch port funneling five 1Gbps access ports into one 1Gbps uplink will naturally produce output drops under load — the fix is more bandwidth or QoS, not replacing cables.</p><p>When troubleshooting 'slow from site A to site B' and <code>output errors</code> is high on the uplink, check link utilization (<code>show interfaces</code> load field) and consider upgrading or adding an EtherChannel.</p>",
+        visual: { type: "comparison", params: { left: { label: "Input errors (L1)", items: ["CRC", "Runts", "Giants", "Bad cable / EMI"] }, right: { label: "Output errors (congestion)", items: ["Queue full", "Buffer overrun", "Late collisions", "Too much traffic"] } } },
+        hack: {
+          memory: "Input errors = problems arriving at the front door (bad mail). Output errors = problems leaving the back door (outbox too full). Two completely different neighborhoods of problem.",
+          practice: "Generate heavy traffic from multiple hosts to a single uplink. Run `show interfaces` on the uplink — watch output drops/errors climb. Cap ingress with a policer and watch it stop.",
+          effort: "medium",
+          meta: "Jeremy's IT Lab Day 9. OCG Ch. 5. Exam: output errors on an uplink = capacity problem, not a physical problem."
+        }
+      },
+      {
+        id: "1.4.d.3",
+        term: "Output drops",
+        weight: "med",
+        info: "<p><strong>Output drops</strong> are frames discarded from the interface's transmit queue before they could be sent. The line in <code>show interfaces</code> looks like:</p><p><code>Output queue: 0/40 (size/max), 1234 drops</code></p><p>The mechanism is straightforward: the interface's egress buffer has a fixed depth (e.g., 40 packets by default on many platforms). When the queue fills faster than the interface can drain it, new frames are tail-dropped, and the counter increments.</p><p>Root cause is almost always <strong>congestion</strong> — more traffic wants to leave than the link can carry. Common scenarios:</p><ul><li>Many-to-one aggregation (several 1Gbps clients sending to one 1Gbps uplink)</li><li>Speed stepdown (10G switch to 1G server port)</li><li>Microbursts (short spikes of traffic that fill the buffer momentarily)</li></ul><p>Fixes in order of cost:</p><ol><li>Apply <strong>QoS</strong> — prioritize important traffic (voice, mgmt) so it never waits behind bulk transfer</li><li>Increase <strong>buffer size</strong> if the platform allows</li><li>Upgrade link speed or bond links with <strong>EtherChannel</strong></li></ol><p>Unlike input errors, output drops rarely indicate a broken link — they indicate an over-subscribed one.</p>",
+        visual: { type: "packet-flow", params: { nodes: ["Many sources →", "Queue filling...", "Queue full — TAIL DROP", "Wire (1Gbps)"], color: "#f59e0b" } },
+        hack: {
+          memory: "Output drops = letters tossed from a full outbox before the mail carrier could pick them up. Fix = more carriers (bandwidth), bigger outbox (buffer), or priority mail (QoS).",
+          practice: "Generate 3 Gbps of traffic toward a 1 Gbps uplink in Packet Tracer / GNS3. Watch `show interfaces` report climbing output drops. Apply a simple QoS policy and note how critical traffic stops getting dropped.",
+          effort: "medium",
+          meta: "Jeremy's IT Lab Day 9. OCG Ch. 5. Exam: output drops = congestion = QoS or upgrade."
+        }
+      },
+      {
+        id: "1.4.d.4",
+        term: "Interface resets",
+        weight: "med",
+        info: "<p><strong>Interface resets</strong> is a counter of how many times the interface has been reinitialized since boot (or since <code>clear counters</code>). Each reset drops whatever state was active on the link and re-establishes the physical/data-link connection.</p><p>Legitimate causes:</p><ul><li>Administrator issued <code>shutdown</code> / <code>no shutdown</code></li><li>Cable physically unplugged and plugged back in</li><li>Speed/duplex renegotiation</li><li>Configuration change requiring a port bounce</li></ul><p>Concerning causes:</p><ul><li><strong>Keepalive failures</strong> — the interface sent keepalives and received no reply within timeout, so it declared the link dead and reset. Common on serial links where the peer is misconfigured or down.</li><li><strong>Excessive errors</strong> — some platforms auto-reset an interface that hits an error threshold</li><li><strong>Flapping hardware</strong> — failing SFP, loose connector, marginal cable — generates rapid resets</li></ul><p>A high interface-resets count combined with a high <code>carrier transitions</code> count is a textbook <strong>link flap</strong> fingerprint. The remedy is always physical: swap the cable, swap the SFP, reseat the connector.</p>",
+        visual: { type: "state-machine", params: { states: ["Up", "Keepalive lost", "Reset", "Re-negotiate", "Up again"], active: 2, transitions: true } },
+        hack: {
+          memory: "Interface reset = the port rebooted. One or two = normal (admin action). A hundred since yesterday = the cable is breathing in and out — it's flapping.",
+          practice: "Bounce an interface with `shut` / `no shut` and verify resets counter increments by 1. Then yank and re-plug the cable — counter increments again. Finally, create an unstable connection (wiggle the cable) and watch the counter fly.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 9. OCG Ch. 5. Exam: resets paired with carrier transitions = link flap = physical problem."
+        }
+      },
+      {
+        id: "1.4.d.5",
+        term: "Carrier transitions",
+        weight: "high",
+        info: "<p><strong>Carrier transitions</strong> counts every time the interface's line protocol state toggled between up and down. On an Ethernet interface this corresponds to the link light blinking off and back on — the physical carrier signal was lost and reacquired.</p><p>A healthy, stable interface has a <strong>low and slowly-growing</strong> carrier-transitions count (one transition at boot, one per intentional admin bounce). A rising count during normal operation is a red flag.</p><p>Primary causes of high carrier transitions:</p><ul><li><strong>Loose or intermittent cable connection</strong> — marginal RJ-45 latch, damaged connector, cable halfway out of the port</li><li><strong>Failing SFP / transceiver</strong> — thermally flaky optic that loses lock intermittently</li><li><strong>Bad switch port</strong> — damaged ASIC or port jack</li><li><strong>EMI interference</strong> — large transient events flooding the carrier sense</li><li><strong>Misbehaving peer</strong> — NIC power-saving features that park the link</li></ul><p>Diagnostic: <code>clear counters Gi0/1</code>, wait 5 minutes, re-run <code>show interfaces</code>. Any new carrier transitions in that window on an otherwise quiet link means you have a flapping interface — fix the physical layer before any upper-layer troubleshooting continues.</p>",
+        visual: { type: "state-machine", params: { states: ["Link Up", "Lost carrier", "Link Down", "Reacquired", "Link Up (transition++)"], active: 4, transitions: true } },
+        hack: {
+          memory: "Carrier transitions = how many times the port has breathed. Normal = one breath at boot. Gasping = flapping link = physical problem right now.",
+          practice: "Wiggle a cable halfway out of a port. Run `show interfaces` every few seconds. Watch the carrier-transitions counter spike. Plug it firmly — flat line. That's the signature.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 9. OCG Ch. 5. Exam: high carrier transitions = flapping link = check cable/SFP."
+        }
+      },
+      {
+        id: "1.4.d.6",
+        term: "Overrun / ignored",
+        weight: "med",
+        info: "<p><strong>Overrun</strong> and <strong>ignored</strong> are two closely related input-side counters that indicate the interface could not move received frames into main memory fast enough.</p><ul><li><strong>Overrun</strong> — a frame arrived while the input hardware FIFO was full. The hardware dropped the frame because the CPU or fabric hadn't drained the buffer in time.</li><li><strong>Ignored</strong> — a frame arrived and the switch had <strong>no buffer space at all</strong> to receive it. This is worse than overrun; the interface simply couldn't participate.</li></ul><p>Both indicate the switch/router is <strong>overwhelmed</strong>. Common scenarios:</p><ul><li>CPU pegged by process switching (e.g., Cisco Express Forwarding disabled)</li><li>Control-plane attack / excessive ARP / broadcast storm</li><li>Undersized platform handling traffic it wasn't designed for</li><li>Heavy inspection (NAT, firewall, QoS classification) on low-end hardware</li></ul><p>Fixes are platform/architecture-level: enable hardware forwarding (CEF), shed traffic with rate limiting, or upgrade the device. Cable swaps don't help here — this is an internal capacity problem.</p>",
+        visual: { type: "packet-flow", params: { nodes: ["Frames arrive →", "Input FIFO", "CPU/fabric slow", "Overrun / Ignored drop"], color: "#f59e0b" } },
+        hack: {
+          memory: "Overrun = mailbox briefly full when the mail truck arrived. Ignored = no mailbox at all. Both mean the switch's internal plumbing, not its cable, is the problem.",
+          practice: "Check `show interfaces | include input errors` on a busy distribution switch. If overrun/ignored is non-zero, jump to `show processes cpu` to see if CPU is saturated.",
+          effort: "medium",
+          meta: "Jeremy's IT Lab Day 9. OCG Ch. 5. Exam: overrun/ignored = device overwhelmed = not a cable problem."
+        }
+      },
+      {
+        id: "1.4.d.7",
+        term: "clear counters",
+        weight: "med",
+        info: "<p><code>clear counters [interface]</code> resets all the interface counters (input/output packets, errors, resets, carrier transitions, etc.) back to zero. It does <strong>not</strong> affect the interface's operational state — no traffic is lost, no link bounces.</p><p>Why and when to use it:</p><ul><li><strong>Establish a fresh baseline</strong> — counters since boot may be months old and useless for diagnosing a problem right now</li><li><strong>Measure error rate</strong> — clear, wait 60 seconds under normal traffic, check if counters moved. Much more useful than 'interface has had 500,000 errors total since last year'</li><li><strong>Validate a fix</strong> — replaced a cable? Clear counters, verify CRC stays at zero under load</li></ul><p>Syntax examples:</p><ul><li><code>clear counters Gi0/1</code> — single interface</li><li><code>clear counters</code> — all interfaces (prompts for confirmation)</li></ul><p>Caveat: on some platforms, a few counters (SNMP totals, MIB values) reset independently. For CCNA, treat <code>clear counters</code> as 'zero everything on this interface.'</p>",
+        visual: { type: "state-machine", params: { states: ["Counters old", "clear counters", "Zeroed", "Wait 60s under traffic", "Read new error rate"], active: 4, transitions: true } },
+        hack: {
+          memory: "`clear counters` = stopwatch reset. Stops the old lap, starts a new one. Use it before/after any fix to prove the fix worked in the last 60 seconds, not 'over all time.'",
+          practice: "On any lab device: `show interfaces Gi0/1 | include error`, then `clear counters Gi0/1`, then check again — errors should read 0. Run a ping flood for 30 seconds, recheck.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 9. OCG Ch. 5. Troubleshooting best practice: always clear counters before measuring."
+        }
+      }
     ]
   },
 
@@ -1514,12 +1802,84 @@ window.subtopicContentD12 = {
       meta: "Jeremy's IT Lab Day 9 covers duplex/speed mismatch in detail. Wendell Odom OCG Chapter 5-6. This is one of the most tested troubleshooting topics on the CCNA. The classic exam question: 'A user reports slow performance. The interface shows late collisions incrementing. What is the most likely cause?' Answer: duplex mismatch. Best practice: use auto-negotiate on both sides (Cisco's recommendation). Never set only one side manually."
     },
     micro: [
-      { id: "1.4.e.1", term: "Duplex mismatch",              def: "One side full-duplex, the other half-duplex. Link shows up/up but performance is terrible.", weight: "high" },
-      { id: "1.4.e.2", term: "Half-duplex side symptoms",    def: "Late collisions + FCS errors. Full-duplex side transmits whenever it wants; half-duplex detects it as collisions.", weight: "high" },
-      { id: "1.4.e.3", term: "Full-duplex side symptoms",    def: "CRC/FCS errors + runts. Collision-aborted frames from half-duplex side arrive as corrupted fragments.", weight: "high" },
-      { id: "1.4.e.4", term: "Root cause (manual+auto)",     def: "One side manual, other auto. Auto can't negotiate — falls back to IEEE defaults → mismatch.", weight: "high" },
-      { id: "1.4.e.5", term: "Fix",                          def: "Both sides auto (preferred) OR both sides manually set to identical speed+duplex.", weight: "high" },
-      { id: "1.4.e.6", term: "Detection commands",           def: "show interfaces status (fast scan), show interfaces [int] (error counters), show cdp neighbors detail (remote info).", weight: "med" }
+      {
+        id: "1.4.e.1",
+        term: "Duplex mismatch",
+        weight: "high",
+        info: "<p>A <strong>duplex mismatch</strong> occurs when one end of an Ethernet link operates in <strong>full-duplex</strong> and the other end operates in <strong>half-duplex</strong>. Both sides negotiate a speed that works (the link comes up), but they disagree on the access method — one side runs CSMA/CD and the other doesn't.</p><p>The most damaging property of a duplex mismatch is that <strong>the link shows as up/up</strong>. Admins looking at <code>show ip interface brief</code> see 'connected' on both sides and assume the link is fine. Performance is terrible but nothing visibly broken. Users complain about slowness. Everyone blames the WAN, the firewall, the server — anything but the duplex setting.</p><p>Under light traffic (small pings, light web), symptoms are subtle or absent. Under heavy traffic (file transfers, backups, video calls), throughput collapses to a small fraction of link speed because both sides are constantly retransmitting.</p><ul><li>Link status: <strong>up/up</strong> (deceptive)</li><li>Throughput: catastrophic under load, sometimes 10x worse than expected</li><li>Error counters: late collisions on the half side, CRC/runts on the full side</li></ul><p>Because the counters are split across two devices, you have to check both sides to see the full picture. That's why duplex mismatches are missed so often.</p>",
+        visual: { type: "handshake", params: { leftLabel: "Side A — Full-Duplex", rightLabel: "Side B — Half-Duplex", steps: ["A: TX whenever →", "B: sees A's TX + its own TX → collision!", "A keeps transmitting", "B: late collision, aborts frame → CRC/runt on A"] } },
+        hack: {
+          memory: "Duplex mismatch = one person on a full telephone (talks and listens at once), the other on a walkie-talkie (one at a time). The walkie-talkie user keeps getting stepped on and never finishes a sentence. The phone user hears fragmented garbage. Everyone's convinced the call quality is bad 'for some other reason.'",
+          practice: "On two directly-connected switches: `interface Gi0/1` + `duplex full` on one, `duplex half` on the other. Run `iperf` or heavy pings. Observe tanked throughput and the split error counters.",
+          effort: "medium",
+          meta: "Jeremy's IT Lab Day 9. OCG Ch. 5. The #1 'hidden cause of slowness' on the CCNA. Classic trap: link is up, but performance is garbage."
+        }
+      },
+      {
+        id: "1.4.e.2",
+        term: "Half-duplex side symptoms",
+        weight: "high",
+        info: "<p>When half-duplex is paired with full-duplex, the half-duplex side's view of the world looks like this:</p><ul><li><strong>Late collisions</strong> — the signature symptom. The full-duplex peer transmits whenever it wants (no CSMA/CD), so the half-duplex side, mid-transmit, keeps detecting 'signals on the wire' that look like collisions. Because the peer's frame is already past the 64-byte slot time when detected, they all log as <strong>late</strong>.</li><li><strong>FCS / CRC errors</strong> — frames received from the full-duplex side while the half-duplex side was also transmitting come in corrupted.</li><li><strong>Deferred frames</strong> — the half-duplex side constantly sees 'wire busy' and waits, inflating the <code>deferred</code> counter.</li><li><strong>Throughput collapse</strong> — every collision aborts a frame and forces TCP retransmit after a timeout. Effective throughput often drops to 1–10% of link speed under load.</li></ul><p>Diagnostic: on the suspected half-duplex side, <code>show interfaces Gi0/1</code> and look for the combination of <code>Half-duplex</code> in the header and <strong>rising late collisions</strong> at the bottom. That pairing is a duplex mismatch fingerprint — you don't even need to check the peer.</p>",
+        visual: { type: "comparison", params: { left: { label: "Half-duplex side counters", items: ["Late collisions ↑", "FCS/CRC errors ↑", "Deferred ↑", "Throughput ↓↓"] }, right: { label: "Visible in show interfaces", items: ["Half-duplex in header", "Late collisions line", "Input errors: CRC"] } } },
+        hack: {
+          memory: "Half-duplex sees a storm of collisions it can't win. Symptom = 'late collisions + CRC on a half-duplex port' = full-duplex peer stepping on it.",
+          practice: "Force the mismatch in lab. On the half-duplex side, `show interfaces` and point to late collisions under the output section. Re-run after you fix the mismatch — late collisions freeze.",
+          effort: "medium",
+          meta: "Jeremy's IT Lab Day 9. OCG Ch. 5. Exam: late collisions on a half-duplex port → duplex mismatch (answer also works if the port is forced half-duplex while peer is auto)."
+        }
+      },
+      {
+        id: "1.4.e.3",
+        term: "Full-duplex side symptoms",
+        weight: "high",
+        info: "<p>The full-duplex side's view of a duplex mismatch is different — and subtler — than the half-duplex side:</p><ul><li><strong>No collisions</strong> — full-duplex disables CSMA/CD, so the <code>collisions</code> counter stays at zero. This is the trap: admins see '0 collisions' and conclude 'no duplex problem.' Wrong.</li><li><strong>CRC / FCS errors</strong> — the half-duplex peer keeps aborting its own transmissions mid-frame when it thinks it sees a collision. Those aborted fragments arrive on the full-duplex side as <strong>malformed frames with bad FCS</strong>, and log as CRC errors.</li><li><strong>Runts</strong> — those same aborted fragments are usually under 64 bytes, so they count as runts in parallel with CRC.</li><li><strong>Throughput collapse</strong> — the TCP connections on the full-duplex side time out waiting for ACKs that never arrive (because they were trashed in transit). Window size shrinks, effective throughput plummets.</li></ul><p>Diagnostic: on the full-duplex side, <code>show interfaces</code> shows <code>Full-duplex</code> in the header and an alarming cocktail of CRC + runts in the input error line. Combined with the peer's late collisions, the diagnosis is airtight.</p>",
+        visual: { type: "comparison", params: { left: { label: "Full-duplex side counters", items: ["Collisions = 0 (TRAP)", "CRC errors ↑", "Runts ↑", "Throughput ↓↓"] }, right: { label: "Visible in show interfaces", items: ["Full-duplex in header", "Input errors: CRC", "Input errors: runts"] } } },
+        hack: {
+          memory: "Full-duplex side sees torn envelopes arriving. It never sees a collision — it just sees trash. Symptom = 'CRC + runts on a full-duplex port with zero collisions.'",
+          practice: "In lab mismatch: on the full-duplex side, `show interfaces` — point to CRC and runts climbing, collisions at zero. Contrast with the peer's late collisions. That's the two-sided fingerprint.",
+          effort: "medium",
+          meta: "Jeremy's IT Lab Day 9. OCG Ch. 5. Exam trap: 'Gi0/1 is full-duplex with zero collisions and 500 CRC errors.' The answer is duplex mismatch, not bad cable."
+        }
+      },
+      {
+        id: "1.4.e.4",
+        term: "Root cause (manual+auto)",
+        weight: "high",
+        info: "<p>The most common way a duplex mismatch is <em>created</em> is when one side of a link is <strong>manually configured</strong> (with <code>speed X</code> and <code>duplex Y</code>) and the other side is left on <strong>auto-negotiate</strong>. The resulting behavior is not intuitive and catches people constantly.</p><p>How it breaks:</p><ol><li>The auto side sends <strong>Fast Link Pulses (FLPs)</strong> advertising its capabilities.</li><li>The manual side does <strong>not participate</strong> in autonegotiation (manual = negotiation disabled).</li><li>The auto side receives no FLPs back — autonegotiation fails.</li><li>The auto side falls back to <strong>IEEE 802.3 defaults</strong>:<ul><li>Speed → detected via parallel detection (usually matches)</li><li>Duplex → <strong>half-duplex for 10/100, full-duplex for 1000</strong></li></ul></li><li>If the manual side was set to <code>100 Mbps full-duplex</code>, the auto side now lands on <code>100 Mbps half-duplex</code>. Mismatch complete. Link comes up. Performance tanks.</li></ol><p>This is the reason Cisco's best practice is 'either both sides auto, or both sides manual (and matching).' Never one of each.</p>",
+        visual: { type: "handshake", params: { leftLabel: "Manual 100/Full", rightLabel: "Auto", steps: ["Auto sends FLP →", "Manual ignores FLP", "Auto: no reply → parallel detection", "Auto chooses 100 Mbps half-duplex (IEEE default)", "Link up at 100-full / 100-half → MISMATCH"] } },
+        hack: {
+          memory: "One side manual + one side auto = auto guesses wrong 50% of the time at 10/100 (defaults to half). The rule: 'Auto talks to Auto, Manual matches Manual. Never mix.'",
+          practice: "Lab: `duplex full` + `speed 100` on Side A. Leave Side B at `duplex auto` + `speed auto`. Check `show interfaces` on B — speed will show 100 (parallel detection worked), duplex will show half (IEEE default). Instant mismatch.",
+          effort: "medium",
+          meta: "Jeremy's IT Lab Day 9. OCG Ch. 5. Exam classic: 'Side A is 100/full manual, Side B is auto. What does B negotiate to?' → 100/half. Memorize."
+        }
+      },
+      {
+        id: "1.4.e.5",
+        term: "Fix",
+        weight: "high",
+        info: "<p>Two valid configurations. Pick one and apply it consistently on <strong>both</strong> ends of every link:</p><ol><li><strong>Both sides auto-negotiate</strong> (Cisco's recommended default):<ul><li><code>interface Gi0/1</code></li><li><code>speed auto</code></li><li><code>duplex auto</code></li></ul>This is the default config. Both sides exchange FLPs, agree on the highest mutual speed/duplex, and the link comes up clean. Works in 99% of cases.</li><li><strong>Both sides manual</strong> (matching values):<ul><li><code>interface Gi0/1</code></li><li><code>speed 1000</code></li><li><code>duplex full</code></li></ul>On <strong>both</strong> switches, identically. Use this only when you have a specific reason (certain old NICs, some uplink-speed enforcement policies). Never 'half manual.'</li></ol><p>Forbidden: one side manual + one side auto. That's the recipe for the mismatch described in 1.4.e.4.</p><p>When troubleshooting an existing mismatch, the fastest fix is to set both sides to <code>speed auto</code> + <code>duplex auto</code>, bounce the interface (<code>shutdown</code> / <code>no shutdown</code>), and re-verify with <code>show interfaces status</code>. Both sides should now show <code>a-full</code> and matching speed.</p>",
+        visual: { type: "comparison", params: { left: { label: "Good config (both auto)", items: ["speed auto", "duplex auto", "Negotiates cleanly", "a-full on both sides"] }, right: { label: "Good config (both manual)", items: ["speed 1000 both sides", "duplex full both sides", "Identical values", "Works but rigid"] } } },
+        hack: {
+          memory: "Duplex fix rule: 'Both auto, or both manual matching.' The only wrong answer is 'one of each.'",
+          practice: "Fix the lab mismatch two ways: (1) set both to auto, bounce, verify a-full on both. (2) set both to `duplex full speed 1000` manually, bounce, verify. Both configurations should eliminate the errors.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 9. OCG Ch. 5. Exam: Cisco's preferred practice is 'both auto.' If the exam forces manual, it must be matching on both sides."
+        }
+      },
+      {
+        id: "1.4.e.6",
+        term: "Detection commands",
+        weight: "med",
+        info: "<p>Three commands cover duplex-mismatch detection, fastest first:</p><ol><li><code>show interfaces status</code> — the quick-scan table. Lists every port's duplex column as <code>a-full</code>, <code>a-half</code>, <code>full</code>, or <code>half</code>. The <strong>a-</strong> prefix means auto-negotiated; no prefix means hardcoded. Any row where duplex is clearly wrong (half on a gig link, or a-half when a-full was expected) jumps out visually.</li><li><code>show interfaces [int]</code> — drill down on a suspect port. Shows the operational duplex, input errors with CRC/runts breakdown, output errors with late collisions. One glance at this output and you can tell which side of the mismatch you're on.</li><li><code>show cdp neighbors detail</code> — reveals what the <em>peer</em> thinks it's running. If CDP is enabled between two Cisco devices, you can verify remote-side duplex/speed without logging into the other device. Useful when you only have access to one side.</li></ol><p>Bonus: <code>show interfaces counters errors</code> gives a one-line summary of each error counter across all ports — great for spotting the one port in 48 that is misbehaving.</p>",
+        visual: { type: "hierarchy", params: { root: "Duplex mismatch detection", children: ["show interfaces status (scan all)", "show interfaces [int] (drill down)", "show cdp neighbors detail (check peer)", "show interfaces counters errors (port compare)"] } },
+        hack: {
+          memory: "Three-step drill: `status` to scan, `interfaces` to drill, `cdp neighbors detail` to peek at the peer. Fastest to deepest.",
+          practice: "On any switch: run all four commands in sequence. Note which one showed the problem first. In almost every case, `show interfaces status` reveals the oddball port in seconds.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 9. OCG Ch. 5. Exam: `show interfaces status` is the canonical answer for 'fastest way to spot a duplex/speed mismatch.'"
+        }
+      }
     ]
   },
 
@@ -1540,11 +1900,71 @@ window.subtopicContentD12 = {
       meta: "Jeremy's IT Lab Day 9 covers auto-negotiation and the fallback rules. Wendell Odom OCG Chapter 5-6 covers Ethernet autonegotiation in detail. The exam tests the fallback behavior directly: 'Interface A is set to 100/full. Interface B is set to auto. What does Interface B negotiate to?' Answer: 100/half (speed sensed, duplex defaults to half because negotiation failed). This is one of the most missed questions. Memorize the fallback rules."
     },
     micro: [
-      { id: "1.4.f.1", term: "Speed mismatch",               def: "Different speeds on each side. Link usually fails to come up at all (down/down). Easier to spot than duplex mismatch.", weight: "high" },
-      { id: "1.4.f.2", term: "Auto-negotiation (IEEE 802.3u)", def: "Two sides exchange capabilities and pick best common speed/duplex. Requires BOTH sides set to auto.", weight: "high" },
-      { id: "1.4.f.3", term: "Parallel detection",           def: "When negotiation fails, auto side senses speed from electrical signal (usually correct).", weight: "med" },
-      { id: "1.4.f.4", term: "IEEE fallback defaults",       def: "When negotiation fails: half-duplex for 10/100 Mbps, full-duplex for 1000 Mbps. Source of duplex mismatch.", weight: "high" },
-      { id: "1.4.f.5", term: "Cisco best practice",          def: "Both sides auto-negotiate. If manual, match both sides exactly. Never one manual + one auto.", weight: "high" }
+      {
+        id: "1.4.f.1",
+        term: "Speed mismatch",
+        weight: "high",
+        info: "<p>A <strong>speed mismatch</strong> occurs when the two ends of an Ethernet link try to operate at different line rates — for example, one side hardcoded to 1000 Mbps and the other to 100 Mbps. Unlike duplex mismatch, speed mismatch usually manifests as <strong>the link not coming up at all</strong>.</p><p>Why? Because the two sides can't even synchronize the electrical carrier:</p><ul><li>1000BASE-T uses all four wire pairs with specific PAM-5 signaling</li><li>100BASE-TX uses two pairs with MLT-3 signaling</li><li>10BASE-T uses two pairs with Manchester encoding</li></ul><p>If one side is clocking at one rate and the other at another, there's no coherent signal for the PHY to lock onto. The result in <code>show interfaces</code> is <strong>down/down</strong> — no link. This is actually <em>easier</em> to diagnose than duplex mismatch because the link visibly fails instead of silently underperforming.</p><p>The caveat: autonegotiation on modern switches usually prevents this. If both sides are on <code>speed auto</code>, they will agree on the highest mutually supported rate. Mismatches only happen when someone hard-codes one side.</p>",
+        visual: { type: "comparison", params: { left: { label: "Speed mismatch", items: ["One side 1000", "Other side 100", "No carrier lock", "Link down/down"] }, right: { label: "Duplex mismatch", items: ["Both sides same speed", "One full / one half", "Link up/up (trap!)", "Throughput tanks"] } } },
+        hack: {
+          memory: "Speed mismatch = the cars can't even start. Link goes down/down. Duplex mismatch = cars run but crash constantly. Link stays up/up. The dead link is actually the easier problem to spot.",
+          practice: "Force one side to `speed 100` + the other to `speed 1000` in lab. Check `show ip interface brief` — both show 'down' status. Fix by setting both to auto — link pops up.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 9. OCG Ch. 5. Exam: speed mismatch = link won't come up. Easier to find than duplex."
+        }
+      },
+      {
+        id: "1.4.f.2",
+        term: "Auto-negotiation (IEEE 802.3u)",
+        weight: "high",
+        info: "<p><strong>Autonegotiation</strong> is the IEEE 802.3u mechanism defining how two Ethernet interfaces agree on a common speed and duplex. It uses <strong>Fast Link Pulses (FLPs)</strong> — short bursts of link-test pulses that encode 16-bit capability advertisements.</p><p>Process:</p><ol><li>Each side sends FLPs advertising every speed/duplex it supports (e.g., 'I can do 10/half, 10/full, 100/half, 100/full, 1000/full').</li><li>Each side receives the other's FLP list.</li><li>Both sides compute the <strong>highest common denominator</strong> from the intersection of their capability lists.</li><li>Both sides independently configure to that value and link comes up.</li></ol><p>The key requirement: <strong>both sides must actively participate</strong>. Autonegotiation is a conversation, not a detection. If one side is hardcoded (manual), it doesn't send FLPs, which means the auto side gets silence and falls back to parallel detection + IEEE default duplex — the root cause of most duplex mismatches.</p><p>Autonegotiation is the default on all modern Cisco switch ports. On 1000BASE-T and above, it is <strong>mandatory by standard</strong> — gigabit links cannot be reliably established without autonegotiation.</p>",
+        visual: { type: "handshake", params: { leftLabel: "Side A", rightLabel: "Side B", steps: ["A sends FLP (capabilities) →", "← B sends FLP (capabilities)", "Both compute highest common", "Both configure to agreed speed/duplex", "Link up!"] } },
+        hack: {
+          memory: "Autoneg = 'card swap' at the start of a deal. Both sides lay cards on the table, pick the best common card, and shake on it. If only one side shows cards, the other side guesses — and guesses wrong half the time.",
+          practice: "Run `show interfaces Gi0/1` on a link with auto on both sides. Notice the header says 'Auto-duplex, Auto-speed' followed by the negotiated values. That's FLP-based autoneg doing its job.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 9. OCG Ch. 5. Exam fact: autoneg uses Fast Link Pulses (FLPs) and requires both sides to participate."
+        }
+      },
+      {
+        id: "1.4.f.3",
+        term: "Parallel detection",
+        weight: "med",
+        info: "<p><strong>Parallel detection</strong> is the IEEE 802.3 fallback that lets an auto-negotiating interface determine <strong>speed</strong> even when the peer is not participating in negotiation. It works by analyzing the <strong>idle symbols</strong> the peer sends between frames.</p><p>Each Ethernet speed has a distinct idle signal:</p><ul><li>10BASE-T → Normal Link Pulses (NLPs), continuous link test pulses</li><li>100BASE-TX → MLT-3 encoded idle stream</li><li>1000BASE-T → PAM-5 idle pattern</li></ul><p>The auto side looks at the incoming signal and matches it to one of these patterns. That tells it the peer's speed with high reliability. <strong>Parallel detection does NOT determine duplex</strong> — idle symbols don't carry duplex information.</p><p>Because duplex can't be detected parallel-style, the auto side applies the <strong>IEEE default fallback rule</strong> for duplex: half-duplex at 10/100, full-duplex at 1000. This fallback is what creates duplex mismatches when the peer is manually set to full on 10/100 links.</p>",
+        visual: { type: "packet-flow", params: { nodes: ["Peer sends manual idle signal", "Auto side: what symbols?", "→ speed detected", "Duplex? Default by IEEE rule"], color: "#f59e0b" } },
+        hack: {
+          memory: "Parallel detection = reading the peer's idle language. Speed gets decoded. Duplex doesn't, so it falls back to IEEE defaults. That fallback is why one-manual + one-auto goes bad.",
+          practice: "Flashcard: 'If the peer is manual, can the auto side detect speed?' → Yes, via parallel detection. 'Can it detect duplex?' → No, it uses IEEE defaults.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 9. OCG Ch. 5. Exam: parallel detection handles speed only, not duplex."
+        }
+      },
+      {
+        id: "1.4.f.4",
+        term: "IEEE fallback defaults",
+        weight: "high",
+        info: "<p>When autonegotiation fails (because the peer is hardcoded and not sending FLPs), the auto side applies <strong>IEEE 802.3 fallback rules</strong> for duplex:</p><ul><li><strong>10 Mbps</strong> → half-duplex</li><li><strong>100 Mbps</strong> → half-duplex</li><li><strong>1000 Mbps (Gigabit)</strong> → full-duplex</li><li><strong>10 Gbps+</strong> → full-duplex (autoneg mandatory; if it fails, link stays down)</li></ul><p>Read that twice. The 10/100 defaults are <strong>half-duplex</strong>. That's the trap. If someone manually sets a 100 Mbps link to full on one side and leaves the other on auto, the auto side parallel-detects 100 Mbps but defaults to half — instant mismatch.</p><p>At 1000 Mbps, the fallback defaults to full-duplex, which happens to match most manual configs (gigabit is full-duplex only in practice). So gigabit mismatches from auto/manual pairings are rarer than 100 Mbps mismatches. The real world sees the most pain on legacy 100 Mbps links.</p><p>CCNA-level rule: <strong>'When auto stands alone, 10/100 goes half, 1000 goes full.'</strong> Memorize this phrase — it's the exam tattoo.</p>",
+        visual: { type: "comparison", params: { left: { label: "Auto failure defaults", items: ["10 Mbps → half", "100 Mbps → half", "1000 Mbps → full", "10+ Gbps → full (or down)"] }, right: { label: "Why it matters", items: ["Manual 100/full + auto peer = mismatch", "Manual 1000/full + auto peer = usually OK", "Best practice: both auto"] } } },
+        hack: {
+          memory: "'When auto stands alone: 10/100 goes half, 1000 goes full.' Chant it. Write it on a card. It's the most tested piece of duplex trivia on the CCNA.",
+          practice: "Build a 3x2 table: speed (10/100/1000) × duplex (half/full) × which is the IEEE default. Drill until you can fill it from memory in 10 seconds.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 9. OCG Ch. 5. This fact shows up on almost every CCNA practice test."
+        }
+      },
+      {
+        id: "1.4.f.5",
+        term: "Cisco best practice",
+        weight: "high",
+        info: "<p>Cisco's recommended configuration for Ethernet speed and duplex on switch ports:</p><ol><li><strong>Both sides auto-negotiate</strong> (the default):<ul><li><code>speed auto</code></li><li><code>duplex auto</code></li></ul>This is the factory default on every modern Cisco switch port. It handles 99% of cases cleanly.</li><li><strong>If you must go manual, match both sides exactly</strong>:<ul><li>Same speed on both sides</li><li>Same duplex on both sides</li><li>Both explicitly configured, never one implied</li></ul>Use manual only for specific legacy devices that don't autonegotiate reliably.</li></ol><p><strong>What to never do:</strong> manual on one side + auto on the other. This is the direct recipe for duplex mismatches, and it's how most real-world incidents are born. A cautious admin 'hardcodes the uplink' on the switch and forgets to hardcode the other end. The link comes up looking fine and then tanks under load.</p><p>On gigabit and above, autonegotiation is <strong>required by standard</strong>. Some Cisco platforms won't even let you manually configure a 1000/1 without errors. Trust autoneg on gig — it was designed to work, and it does.</p>",
+        visual: { type: "comparison", params: { left: { label: "Do", items: ["Both sides auto", "Both sides matching manual", "Trust autoneg on gig"] }, right: { label: "Don't", items: ["One manual, one auto", "Mismatched manual values", "Hardcode gig without reason"] } } },
+        hack: {
+          memory: "'Both auto, or both matched.' That's the entire rule. One manual + one auto = the duplex-mismatch factory.",
+          practice: "Audit a friend's lab. Every port with manual config: verify the peer matches exactly. If you find even one `duplex half` pinned next to an `auto`, you've found the bug without running a ping.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 9. OCG Ch. 5. Cisco's official stance on duplex is the exam stance: prefer autoneg on both sides."
+        }
+      }
     ]
   },
 
@@ -1565,13 +1985,97 @@ window.subtopicContentD12 = {
       meta: "Jeremy's IT Lab Day 9 (Interface Configuration) covers status codes. Wendell Odom OCG Chapter 5. This is one of the most frequently tested topics on the CCNA -- expect 2-3 questions involving interface status interpretation. The exam shows you 'show ip interface brief' output and asks what the problem is. Memorize: admin down = shutdown command, down/down = Layer 1 (cable/physical), up/down = Layer 2 (protocol), up/up = working. Also remember that router interfaces default to shutdown while switch interfaces default to no shutdown."
     },
     micro: [
-      { id: "1.4.g.1", term: "up/up",                        def: "Both L1 and L2 operational. Interface working normally. Desired state.", weight: "high" },
-      { id: "1.4.g.2", term: "up/down",                      def: "L1 up but L2 protocol failed. Causes: encapsulation mismatch, keepalive failure, missing clock rate on DCE serial.", weight: "high" },
-      { id: "1.4.g.3", term: "down/down",                    def: "L1 failure. Check cable, connectors, remote power, remote interface, SFP/transceiver.", weight: "high" },
-      { id: "1.4.g.4", term: "administratively down/down",   def: "Interface manually disabled with 'shutdown'. Bring up with 'no shutdown'.", weight: "high" },
-      { id: "1.4.g.5", term: "Router interface default",     def: "Shutdown by default. You must 'no shutdown' after configuring.", weight: "high" },
-      { id: "1.4.g.6", term: "Switch interface default",     def: "NOT shutdown by default. Comes up automatically when a cable is connected.", weight: "high" },
-      { id: "1.4.g.7", term: "show ip interface brief",      def: "Primary command for status code check. Shows interface, IP, Status, Protocol columns.", weight: "high" }
+      {
+        id: "1.4.g.1",
+        term: "up/up",
+        weight: "high",
+        info: "<p><strong>up/up</strong> means both the <strong>interface status (Layer 1)</strong> and the <strong>line protocol (Layer 2)</strong> are operational. This is the desired steady state for any active interface. The physical layer has carrier, the data-link protocol is exchanging frames successfully, and the interface is ready to forward traffic.</p><p>In <code>show ip interface brief</code> output, this appears as:</p><p><code>GigabitEthernet0/1   10.1.1.1   YES manual  up                    up</code></p><p>In <code>show interfaces</code>, it appears as:</p><p><code>GigabitEthernet0/1 is up, line protocol is up</code></p><p>Being up/up does NOT mean the interface is problem-free. It just means the basic link is operational. You still might have:</p><ul><li>High error counters (CRC, late collisions)</li><li>Wrong IP address or subnet mask</li><li>Wrong VLAN on an access port</li><li>Missing routing entries</li><li>ACL blocking traffic</li></ul><p>up/up is 'green' but not 'healthy.' Always follow up with error-counter checks and end-to-end connectivity tests. When solving a 'users can't reach X' problem, up/up means 'the problem isn't physical — look higher in the stack.'</p>",
+        visual: { type: "state-machine", params: { states: ["admin down/down", "down/down (L1)", "up/down (L2)", "up/up (operational)"], active: 3, transitions: true } },
+        hack: {
+          memory: "up/up = green light in both cars (L1 + L2). Traffic light is green, but that doesn't mean your destination is correct or your tires aren't flat. Check error counters before celebrating.",
+          practice: "On any lab switch: verify a working port shows up/up in `show ip interface brief`. Then run `show interfaces` and confirm error counters are low/zero. Both checks together = real health.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 9. OCG Ch. 5. Exam default good state. Knowing WHAT up/up doesn't guarantee is as important as knowing what it does."
+        }
+      },
+      {
+        id: "1.4.g.2",
+        term: "up/down",
+        weight: "high",
+        info: "<p><strong>up/down</strong> means Layer 1 is operational but the <strong>Layer 2 line protocol has failed</strong>. Physically, carrier is present (cable plugged, signal detected), but the two sides cannot exchange data-link frames successfully.</p><p>On Ethernet, up/down is relatively rare but happens. On serial WAN links, it's common.</p><p>Ethernet causes:</p><ul><li><strong>Keepalive failure</strong> — the interface expects to see periodic keepalives from the peer and stops receiving them. On some platforms, loopback conditions trigger up/down.</li><li><strong>Loopback mode without remote</strong> — one side in physical loopback but unable to maintain L2 state.</li></ul><p>Serial causes (still sometimes tested):</p><ul><li><strong>Encapsulation mismatch</strong> — one end PPP, the other HDLC</li><li><strong>Missing clock rate</strong> on the DCE end of a back-to-back serial link</li><li><strong>PPP authentication failure</strong> — wrong CHAP/PAP credentials</li><li><strong>Keepalive mismatch</strong></li></ul><p>Troubleshoot at Layer 2: verify encapsulation matches, check keepalives, confirm clock rate on DCE, check PPP auth. Don't waste time on cables — Layer 1 is already working.</p>",
+        visual: { type: "layer-stack", params: { layers: [{ label: "L1 Physical — UP", color: "#22c55e" }, { label: "L2 Data Link — DOWN", color: "#ef4444" }, { label: "L3+ — unreachable", color: "#64748b" }] } },
+        hack: {
+          memory: "up/down = cable works, language broken. Like two people on a working phone line speaking different languages. No L1 fix helps — adjust the L2 config (encap, auth, clock).",
+          practice: "On a serial interface, set encapsulation PPP on one side and leave HDLC on the other. Observe up/down. Match encapsulation → up/up.",
+          effort: "medium",
+          meta: "Jeremy's IT Lab Day 9. OCG Ch. 12 (Serial WAN). Exam: up/down = L2 protocol issue, not physical."
+        }
+      },
+      {
+        id: "1.4.g.3",
+        term: "down/down",
+        weight: "high",
+        info: "<p><strong>down/down</strong> is a Layer 1 failure. The interface has no carrier, no signal, no electrical connection. Both columns in <code>show ip interface brief</code> read 'down.'</p><p>Common causes, in order of likelihood:</p><ol><li><strong>Cable unplugged or disconnected</strong> — check both ends</li><li><strong>Cable damaged</strong> — crushed, cut, chewed by rodents, crimped wrong</li><li><strong>Remote device powered off</strong> — the peer switch/router/server isn't running</li><li><strong>Remote interface shut down</strong> — peer admin disabled it</li><li><strong>Bad SFP / transceiver</strong> — failed optic on either side</li><li><strong>Wrong cable type</strong> — rare today thanks to auto-MDIX, but still happens with old gear. Straight-through vs crossover used to matter.</li><li><strong>Incompatible speed negotiation</strong> — speed mismatch where sides can't lock</li></ol><p>Troubleshooting move: <code>show interfaces Gi0/1</code> and look at the header. Down/down on Ethernet almost always points at something physical. Walk to the rack, check the cable, check the link light. If there's no light on either side, it's physical. Replace cable → reseat SFP → verify remote is up.</p>",
+        visual: { type: "layer-stack", params: { layers: [{ label: "L1 Physical — DOWN", color: "#ef4444" }, { label: "L2 Data Link — DOWN (consequence)", color: "#ef4444" }, { label: "L3+ — unreachable", color: "#64748b" }] } },
+        hack: {
+          memory: "down/down = both legs broken. Nothing higher up will help until you fix Layer 1. Walk to the cable. Seriously — walk to the cable.",
+          practice: "Unplug a cable mid-session and run `show ip interface brief` — both columns flip to down. Plug it back in — both flip to up. Memorize the before/after.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 9. OCG Ch. 5. Exam: down/down = L1 failure. Always check physical first."
+        }
+      },
+      {
+        id: "1.4.g.4",
+        term: "administratively down/down",
+        weight: "high",
+        info: "<p><strong>administratively down/down</strong> means someone explicitly disabled the interface with the <code>shutdown</code> command. Both Layer 1 and Layer 2 are forced down by configuration, regardless of whether a cable is plugged in or the peer is functional.</p><p>Recognition: <code>show ip interface brief</code> shows the Status column as 'administratively down' and the Protocol column as 'down.'</p><p>Causes:</p><ul><li>Administrator disabled the port intentionally (security, decommission, troubleshooting)</li><li><strong>Default state on routers</strong> — all router interfaces start in shutdown. You must explicitly <code>no shutdown</code> each one after assigning an IP.</li><li>Automatic err-disable in some edge cases (rare; usually err-disable is its own state)</li></ul><p>Fix: <code>interface Gi0/1</code> followed by <code>no shutdown</code>. The interface goes through <code>down/down</code> briefly while it reinitializes, then comes up to <code>up/up</code> (assuming the cable is plugged in and the peer is up).</p><p>Useful trick: <code>show interfaces description</code> will still show admin-down ports along with whatever description you configured, which makes tracking 'why did I shut this down?' easier.</p>",
+        visual: { type: "state-machine", params: { states: ["Configured 'shutdown'", "administratively down/down", "Config: no shutdown", "down/down briefly", "up/up"], active: 1, transitions: true } },
+        hack: {
+          memory: "admin down = someone flipped the light switch to OFF. `no shutdown` = flip it back on. If the bulb still doesn't light, then check wiring (down/down → Layer 1).",
+          practice: "Shut an interface. Verify the exact text 'administratively down' appears. `no shutdown`. Watch it transition through down/down → up/up.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 9. OCG Ch. 5. Exam: 'administratively down' = the `shutdown` command was used. Fix with `no shutdown`."
+        }
+      },
+      {
+        id: "1.4.g.5",
+        term: "Router interface default",
+        weight: "high",
+        info: "<p><strong>All router interfaces are shut down by default.</strong> Fresh out of the box, every router port shows <code>administratively down/down</code> in <code>show ip interface brief</code>. You must explicitly enable each interface with <code>no shutdown</code> after configuring it.</p><p>Typical first-time router interface config:</p><ul><li><code>interface Gi0/0</code></li><li><code>ip address 192.168.1.1 255.255.255.0</code></li><li><code>no shutdown</code> ← <strong>required, or nothing works</strong></li></ul><p>This is one of the most common mistakes for new CCNA candidates. They configure the IP, assume the interface will come up, and then spend an hour troubleshooting before realizing the interface was never enabled.</p><p>Historical context: routers were originally designed for WAN circuits, where leaving interfaces up by default could cause problems (routing loops, unexpected advertisements). The safe default was 'start disabled, require explicit enable.' That convention stuck.</p><p>Always verify with <code>show ip interface brief</code> after any initial router configuration — if the Status column says 'administratively down,' you forgot <code>no shutdown</code>.</p>",
+        visual: { type: "state-machine", params: { states: ["Router boot", "All interfaces: admin down", "Configure IP", "Still admin down!", "no shutdown → up"], active: 1, transitions: true } },
+        hack: {
+          memory: "Router = 'off by default, must turn on.' Assigning an IP address is NOT the same as enabling the interface. `no shutdown` is the light switch. Forget it and you'll stare at down/down forever.",
+          practice: "Configure a fresh router interface with an IP and ping from another device. It will fail. Add `no shutdown`. Ping succeeds. Do this once and you'll never forget.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 9. OCG Ch. 6–7. Exam: 'After configuring an IP, why is the interface still down?' → forgot `no shutdown`."
+        }
+      },
+      {
+        id: "1.4.g.6",
+        term: "Switch interface default",
+        weight: "high",
+        info: "<p><strong>Switch interfaces are NOT shut down by default.</strong> On a fresh Cisco switch, every port starts in the 'no shutdown' state. Plug a cable in, the link comes up automatically, no configuration required.</p><p>Why the different default from routers? Switches are plug-and-play by design. An access switch in a closet should accept any user who plugs in a laptop without the admin manually enabling every port. If switch ports started shut down like routers, the network would be useless out of the box.</p><p>Consequence: if a switch port is <code>administratively down</code>, someone actively ran <code>shutdown</code> on it. Common reasons:</p><ul><li>Port decommissioned / unused port disabled for security</li><li>Err-disabled by security feature (port security violation, BPDU guard)</li><li>Intentional maintenance shutdown</li></ul><p>Bring it back up with <code>no shutdown</code>. If it's err-disabled (a separate state), you may need <code>shutdown</code> followed by <code>no shutdown</code>, or <code>errdisable recovery cause X</code> depending on the platform.</p><p>This router-vs-switch default difference is a favorite exam trap: 'Why is port Gi0/1 on this switch in admin-down state?' → Someone must have manually shut it; switch ports don't default to that state.</p>",
+        visual: { type: "comparison", params: { left: { label: "Router interface", items: ["Default: shutdown", "Require no shutdown", "Safe WAN default"] }, right: { label: "Switch interface", items: ["Default: no shutdown", "Up automatically", "Plug-and-play LAN"] } } },
+        hack: {
+          memory: "Router = off by default. Switch = on by default. Router says 'configure me first.' Switch says 'just plug me in.'",
+          practice: "Boot a fresh switch in lab, don't touch any interface. Plug cables in — every port comes up. Now boot a fresh router, same cables — ports stay down until you `no shutdown`.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 9. OCG Ch. 5. Classic exam trap. Router vs switch default states differ — don't confuse them."
+        }
+      },
+      {
+        id: "1.4.g.7",
+        term: "show ip interface brief",
+        weight: "high",
+        info: "<p><code>show ip interface brief</code> (often abbreviated <code>sh ip int br</code>) is the single most-used interface status command on Cisco devices. It displays a compact table with these columns:</p><ul><li><strong>Interface</strong> — name (Gi0/1, Fa0/1, Vlan10, Loopback0, etc.)</li><li><strong>IP-Address</strong> — configured IP, or 'unassigned'</li><li><strong>OK?</strong> — YES if the IP config is valid, NO if there's a problem</li><li><strong>Method</strong> — how the IP was learned (manual, DHCP, unset, NVRAM)</li><li><strong>Status</strong> — Layer 1 state (up, down, administratively down)</li><li><strong>Protocol</strong> — Layer 2 state (up, down)</li></ul><p>Typical output:</p><p><code>GigabitEthernet0/1   10.1.1.1       YES manual  up                    up<br>GigabitEthernet0/2   unassigned     YES unset   administratively down down<br>GigabitEthernet0/3   10.1.2.1       YES manual  down                  down</code></p><p>Reading rules:</p><ul><li>Both columns 'up' → interface operational (up/up)</li><li>Status 'up' + Protocol 'down' → Layer 2 issue (up/down)</li><li>Both 'down' → Layer 1 issue (down/down)</li><li>Status 'administratively down' → someone shut it manually</li></ul><p>This is always the first command to run when a user reports connectivity issues. Five seconds of output gives you the layer to troubleshoot at.</p>",
+        visual: { type: "hierarchy", params: { root: "show ip interface brief", children: ["Interface name", "IP-Address", "OK? (config valid)", "Method (manual/DHCP)", "Status (L1)", "Protocol (L2)"] } },
+        hack: {
+          memory: "`sh ip int br` = your first five seconds of troubleshooting. Read the two rightmost columns (Status/Protocol). Match to up/up, up/down, down/down, or admin-down. That tells you which layer to attack.",
+          practice: "Make this your muscle-memory first command. On every lab device, run it before any other show command. Then ask: what layer owns the problem?",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 9. OCG Ch. 5. The most-asked command on the CCNA. Expect to read its output and diagnose on multiple exam questions."
+        }
+      }
     ]
   },
 
@@ -1591,13 +2095,97 @@ window.subtopicContentD12 = {
       meta: "Jeremy's IT Lab Day 9 covers these commands. Wendell Odom OCG Chapter 5-6. The exam WILL show you output from these commands and ask you to identify the problem -- this is one of the most common simlet formats. Practice reading real output (not just memorizing concepts). Key things to look for in 'show interfaces status': err-disabled status (security violation), wrong VLAN assignment, duplex mismatch (one side full, other half), notconnect (cable issue). In 'show interfaces': incrementing error counters (CRC, late collisions, runts) and carrier transitions (link flapping)."
     },
     micro: [
-      { id: "1.4.h.1", term: "show interfaces [int]",        def: "Deep per-interface view. MAC, MTU, bandwidth, duplex, speed, and all error counters.", weight: "high" },
-      { id: "1.4.h.2", term: "show interfaces status",       def: "Summary table of all ports: Port, Name, Status, Vlan, Duplex, Speed, Type. Fastest way to scan for problems.", weight: "high" },
-      { id: "1.4.h.3", term: "Status column values",         def: "connected (up/up), notconnect (down/down), disabled (shutdown), err-disabled (auto-shut).", weight: "high" },
-      { id: "1.4.h.4", term: "err-disabled",                 def: "Switch auto-shutdown due to security violation (port security), BPDU guard, or error condition. Requires shut/no-shut or errdisable recovery to restore.", weight: "high" },
-      { id: "1.4.h.5", term: "show ip interface brief",      def: "L3-focused: interface name, IP, OK?, Method, Status, Protocol. Use for IP and up/down check.", weight: "high" },
-      { id: "1.4.h.6", term: "show interfaces trunk",        def: "Trunk-specific: native VLAN, allowed VLANs, encapsulation, trunking mode.", weight: "high" },
-      { id: "1.4.h.7", term: "a- prefix on duplex",          def: "Means auto-negotiated result (e.g., a-full = auto-negotiated to full-duplex).", weight: "med" }
+      {
+        id: "1.4.h.1",
+        term: "show interfaces [int]",
+        weight: "high",
+        info: "<p><code>show interfaces [type number]</code> (e.g., <code>show interfaces Gi0/1</code>) is the deep-dive command for a single interface. It dumps every piece of operational data the device tracks for that port.</p><p>Key sections in the output:</p><ul><li><strong>Interface state</strong> — 'Gi0/1 is up, line protocol is up' (maps to up/up)</li><li><strong>Hardware type + MAC address</strong> — e.g., 'Hardware is Gigabit Ethernet, address is aabb.cc00.0100'</li><li><strong>Description</strong> — if configured</li><li><strong>Internet address</strong> — IP/mask</li><li><strong>MTU, bandwidth (BW), delay (DLY), reliability, load</strong></li><li><strong>Encapsulation</strong> — usually ARPA for Ethernet</li><li><strong>Duplex, speed, media type</strong></li><li><strong>Input queue / output queue</strong> — depth and drops</li><li><strong>5 minute input/output rate</strong> — bits/sec and pps</li><li><strong>Error counters</strong>:<ul><li>Packets input, bytes</li><li>Input errors, CRC, frame, overrun, ignored</li><li>Packets output, bytes</li><li>Output errors, collisions, late collisions, deferred</li><li>Interface resets, carrier transitions</li></ul></li></ul><p>Use this command when you know which port is acting up and need to pinpoint the cause. Read it top to bottom — the state tells you the layer, the duplex/speed tells you the config, and the error counters tell you the failure mode.</p>",
+        visual: { type: "layer-stack", params: { layers: [{ label: "Header (state, MAC, IP)", color: "#3b82f6" }, { label: "Config (MTU, BW, duplex, speed)", color: "#22c55e" }, { label: "Rate (5-min input/output)", color: "#f59e0b" }, { label: "Error counters (CRC, runts, late coll, resets)", color: "#ef4444" }] } },
+        hack: {
+          memory: "`show interfaces Gi0/1` = full medical chart for one patient. Every vitals reading, every lab result. Read header to footer: state, config, rate, errors.",
+          practice: "On any working switch port: run `show interfaces Gi0/1` and annotate each section of the output on paper. Name the top-level purpose of each block. Repeat until you can do it cold.",
+          effort: "medium",
+          meta: "Jeremy's IT Lab Day 9. OCG Ch. 5. Exam sim: you'll be handed this output and asked 'what's the problem?' Practice reading real output."
+        }
+      },
+      {
+        id: "1.4.h.2",
+        term: "show interfaces status",
+        weight: "high",
+        info: "<p><code>show interfaces status</code> gives a compact, scannable summary table of <strong>every interface on the switch</strong>. One row per port, fixed-width columns. This is the fastest way to spot an odd port out of 48.</p><p>Columns:</p><ul><li><strong>Port</strong> — interface ID (Gi0/1, Fa0/1, Po1, etc.)</li><li><strong>Name</strong> — description (if configured)</li><li><strong>Status</strong> — connected, notconnect, disabled, err-disabled, monitoring</li><li><strong>Vlan</strong> — access VLAN number OR 'trunk' OR 'routed'</li><li><strong>Duplex</strong> — full, half, a-full, a-half, auto</li><li><strong>Speed</strong> — 10, 100, 1000, 10G, auto, a-10, a-100, a-1000</li><li><strong>Type</strong> — 10/100/1000BaseTX, 1000BaseSX, etc.</li></ul><p>The <strong>a-</strong> prefix on duplex and speed means 'auto-negotiated.' No prefix means 'hardcoded.' A quick scan for rows where the a-values look wrong (a-half on a gig link, a-10 on a gig link) reveals mismatches instantly.</p><p>Typical use case: user reports slowness somewhere on a 48-port switch. Run <code>show interfaces status</code>, eyeball the table for the one oddball row (err-disabled? wrong VLAN? a-half?), then drill into that port with <code>show interfaces Gi0/X</code>.</p>",
+        visual: { type: "comparison", params: { left: { label: "show interfaces [int]", items: ["One port, full detail", "Error counters", "Rate graphs", "Deep diagnosis"] }, right: { label: "show interfaces status", items: ["All ports, table view", "Status/VLAN/Duplex/Speed", "Scan for odd row", "Broad overview"] } } },
+        hack: {
+          memory: "`status` = quick triage board for the whole ward. `show interfaces [int]` = full chart for one patient. Triage first, chart second.",
+          practice: "On a switch with 24+ ports: run `show interfaces status` and read the table left to right. Note any a-half values or unusual status columns. Every time you sit at a switch, use this command first.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 9. OCG Ch. 5. Expect exam questions asking 'What is the fastest way to check duplex/VLAN across all ports?' → `show interfaces status`."
+        }
+      },
+      {
+        id: "1.4.h.3",
+        term: "Status column values",
+        weight: "high",
+        info: "<p>The <strong>Status</strong> column in <code>show interfaces status</code> uses a small fixed vocabulary. Each value maps to a specific operational state:</p><ul><li><strong>connected</strong> — interface is up/up, carrying traffic. Equivalent to 'up/up' in <code>show ip interface brief</code>.</li><li><strong>notconnect</strong> — no physical link. Equivalent to 'down/down.' Cable unplugged, peer down, or bad transceiver.</li><li><strong>disabled</strong> — interface was administratively shut down. Equivalent to 'administratively down/down.' Fix with <code>no shutdown</code>.</li><li><strong>err-disabled</strong> — interface was automatically shut down by a safety feature (see 1.4.h.4). Requires <code>shutdown</code> / <code>no shutdown</code> or errdisable recovery.</li><li><strong>monitoring</strong> — port is part of a SPAN/RSPAN session, mirroring traffic.</li><li><strong>faulty</strong> — platform-detected hardware fault (rare).</li><li><strong>suspended</strong> — port is a member of a port-channel (EtherChannel) that isn't bundled properly.</li></ul><p>Mapping to <code>show ip interface brief</code>:</p><ul><li>connected ↔ up/up</li><li>notconnect ↔ down/down</li><li>disabled ↔ administratively down/down</li></ul><p>The two commands describe the same states but use different vocabulary.</p>",
+        visual: { type: "comparison", params: { left: { label: "show interfaces status", items: ["connected", "notconnect", "disabled", "err-disabled"] }, right: { label: "show ip interface brief", items: ["up/up", "down/down", "admin down/down", "down/down (but by feature)"] } } },
+        hack: {
+          memory: "connected = up/up. notconnect = down/down. disabled = admin down. err-disabled = switch killed it for safety. Four words cover 99% of switch port life.",
+          practice: "On a real switch, recreate each state: normal connected port, unplug one (notconnect), shutdown one (disabled), trigger port security violation (err-disabled). Verify each value appears in `show interfaces status`.",
+          effort: "medium",
+          meta: "Jeremy's IT Lab Day 9. OCG Ch. 5. Exam: know the mapping between status values and up/down states."
+        }
+      },
+      {
+        id: "1.4.h.4",
+        term: "err-disabled",
+        weight: "high",
+        info: "<p><strong>err-disabled</strong> is a Cisco-specific state where the switch automatically shuts down a port because a protection mechanism triggered. The port is both electrically down and administratively locked out — it won't come back without explicit operator action.</p><p>Common causes:</p><ul><li><strong>Port security violation</strong> — unauthorized MAC address appeared on a secured port</li><li><strong>BPDU guard</strong> — a BPDU appeared on a PortFast-enabled access port (indicating a rogue switch)</li><li><strong>Root guard</strong> — an inferior BPDU advertised a better root bridge than configured</li><li><strong>Loopback detection</strong> — the switch saw its own BPDU echoed back</li><li><strong>Unidirectional Link Detection (UDLD)</strong> failure</li><li><strong>Storm control</strong> action — threshold exceeded</li><li><strong>Link flap</strong> — too many up/down transitions in a short window</li></ul><p>Recovery options:</p><ol><li>Manual: <code>interface Gi0/1</code> → <code>shutdown</code> → <code>no shutdown</code>. Required for most err-disable conditions by default.</li><li>Automatic: configure <code>errdisable recovery cause X</code> (e.g., <code>errdisable recovery cause psecure-violation</code>) plus <code>errdisable recovery interval Y</code>. The switch will attempt to recover the port automatically after Y seconds.</li></ol><p>Diagnose the root cause first! Simply bouncing the port without fixing what caused it will just trigger err-disable again.</p>",
+        visual: { type: "state-machine", params: { states: ["connected", "Security violation detected", "err-disabled", "Operator: shut/no shut", "connected"], active: 2, transitions: true } },
+        hack: {
+          memory: "err-disabled = switch's emergency stop button. Someone (or something) tripped a safety. The port stays locked until you physically clear the condition, THEN flip it back on. Don't just keep bouncing it — figure out why it tripped.",
+          practice: "Configure port security with `switchport port-security maximum 1`. Plug a different laptop in. Watch the port go err-disabled. Read the syslog for the reason. Fix the root cause, then shut/no shut.",
+          effort: "medium",
+          meta: "Jeremy's IT Lab Day 9 + Day 22 (Port Security). OCG Ch. 5 + 8. Exam: err-disabled = safety feature fired; requires manual or auto recovery after fixing cause."
+        }
+      },
+      {
+        id: "1.4.h.5",
+        term: "show ip interface brief",
+        weight: "high",
+        info: "<p><code>show ip interface brief</code> is the Layer-3-focused quick status command. It's the first command to memorize on Cisco devices.</p><p>Columns and meaning:</p><ul><li><strong>Interface</strong> — name</li><li><strong>IP-Address</strong> — configured IP, or 'unassigned' if none</li><li><strong>OK?</strong> — 'YES' if IP config is valid; 'NO' if broken</li><li><strong>Method</strong> — how the interface learned its IP:<ul><li>manual — configured with <code>ip address X</code></li><li>DHCP — learned via DHCP</li><li>unset — never configured</li><li>NVRAM — loaded from startup config</li></ul></li><li><strong>Status</strong> — Layer 1 state: up, down, administratively down</li><li><strong>Protocol</strong> — Layer 2 state: up, down</li></ul><p>Compare to <code>show interfaces status</code> (L2 focus, all ports, VLAN/duplex/speed) vs <code>show ip interface brief</code> (L3 focus, all ports, IP address + up/down). Use this command when the question is 'does the interface have an IP and is it up?' Use <code>show interfaces status</code> when the question is 'what VLAN/duplex/speed is this port?'</p><p>Both are one-line-per-port summary commands. Most troubleshooting starts with one of the two.</p>",
+        visual: { type: "comparison", params: { left: { label: "show ip interface brief", items: ["L3 focus", "Interface + IP", "Status + Protocol", "Router's favorite"] }, right: { label: "show interfaces status", items: ["L2 focus", "Port + VLAN", "Duplex + Speed", "Switch's favorite"] } } },
+        hack: {
+          memory: "Two quick-scan commands: `sh ip int br` for L3 (IP, up/down). `sh int status` for L2 (VLAN, duplex). Routers → IP question. Switches → port/VLAN question.",
+          practice: "Run both commands on a router and on a switch. Compare. Note which gives you the info you need for which layer of the problem.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 9. OCG Ch. 5. Both commands appear constantly on the exam. Know when to reach for each."
+        }
+      },
+      {
+        id: "1.4.h.6",
+        term: "show interfaces trunk",
+        weight: "high",
+        info: "<p><code>show interfaces trunk</code> displays everything trunking-related for all trunk ports on the switch. Absolutely essential when troubleshooting VLAN connectivity between switches.</p><p>Output sections:</p><ol><li><strong>Trunk ports with mode and encapsulation</strong>:<ul><li>Port (e.g., Gi0/1)</li><li>Mode (on, off, auto, desirable)</li><li>Encapsulation (802.1q, ISL, negotiate)</li><li>Status (trunking, not-trunking)</li><li>Native VLAN</li></ul></li><li><strong>VLANs allowed on trunk</strong> — the configured allowed list (1-4094 by default)</li><li><strong>VLANs allowed and active in management domain</strong> — VLANs that actually exist on this switch</li><li><strong>VLANs in spanning tree forwarding state and not pruned</strong> — VLANs passing traffic through this trunk right now</li></ol><p>Common troubleshooting uses:</p><ul><li><strong>VLAN 10 works on SW1 but not SW2</strong>: check if VLAN 10 is in the 'allowed and active' list on the trunk connecting them</li><li><strong>Native VLAN mismatch warnings</strong>: CDP will log these; <code>show interfaces trunk</code> confirms which native VLAN each end uses</li><li><strong>Trunk not forming</strong>: verify mode+encapsulation on both sides match (desirable/desirable works; on/on works; auto/auto does NOT form a trunk)</li></ul><p>If you're troubleshooting a switch-to-switch VLAN problem, this command is the single best starting point.</p>",
+        visual: { type: "hierarchy", params: { root: "show interfaces trunk", children: ["Trunk ports (mode, encap)", "Native VLAN", "Allowed VLANs", "Active VLANs", "Forwarding VLANs"] } },
+        hack: {
+          memory: "`show interfaces trunk` = the VLAN passport office. Which VLANs are allowed through the gate? Which are actually active? Which are forwarding right now? All four answers in one command.",
+          practice: "On two switches with a trunk, add VLAN 50 to SW1 only. Ping a host in VLAN 50 from SW2 — fails. Run `show interfaces trunk` on SW2 — VLAN 50 is in 'allowed' but not 'active.' Create VLAN 50 on SW2, fix.",
+          effort: "medium",
+          meta: "Jeremy's IT Lab Day 15 (VLAN Trunks). OCG Ch. 8. Exam: for VLAN connectivity across switches, `show interfaces trunk` is the go-to verify command."
+        }
+      },
+      {
+        id: "1.4.h.7",
+        term: "a- prefix on duplex",
+        weight: "med",
+        info: "<p>The <strong>a- prefix</strong> in the Duplex or Speed column of <code>show interfaces status</code> indicates the value was <strong>auto-negotiated</strong>, not hardcoded.</p><p>Examples:</p><ul><li><code>a-full</code> — auto-negotiated to full-duplex</li><li><code>a-half</code> — auto-negotiated to half-duplex (red flag on gig links)</li><li><code>full</code> (no prefix) — hardcoded to full-duplex via <code>duplex full</code></li><li><code>half</code> (no prefix) — hardcoded to half-duplex via <code>duplex half</code></li><li><code>auto</code> — set to auto but not yet negotiated (e.g., port is down)</li></ul><p>Same convention for speed:</p><ul><li><code>a-1000</code> — auto-negotiated to 1 Gbps</li><li><code>a-100</code> — auto-negotiated to 100 Mbps</li><li><code>1000</code> — hardcoded to 1 Gbps via <code>speed 1000</code></li></ul><p>Why this matters for troubleshooting: if you see <code>a-half</code> on a port that should be gigabit full-duplex, the auto-negotiation almost certainly failed and parallel detection + IEEE defaults kicked in. That's a sign the peer is hardcoded to something other than auto, creating a duplex mismatch setup.</p><p>Also useful: a port showing <code>full</code> (no a-) tells you someone manually configured it, which — combined with a peer showing <code>a-</code> anything — means you're looking at a likely manual+auto mismatch.</p>",
+        visual: { type: "comparison", params: { left: { label: "With a- prefix", items: ["a-full = auto-negotiated full", "a-half = auto fell back to half (bad on gig)", "a-1000 = auto-negotiated 1G"] }, right: { label: "Without prefix", items: ["full = hardcoded full", "half = hardcoded half", "1000 = hardcoded 1G"] } } },
+        hack: {
+          memory: "a- prefix = auto-negotiated. No prefix = hardcoded. a-half on a gig link is the fingerprint of a failed autoneg — the peer is almost certainly hardcoded.",
+          practice: "In Packet Tracer or lab: run `show interfaces status` on a port where both sides are auto (expect a-full / a-1000). Then hardcode one side to `duplex full` and `speed 100` — note how the auto side shifts to `a-100` / `a-half`.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 9. OCG Ch. 5. Exam: a-half on a gig port = autoneg failure = likely peer is hardcoded = likely duplex mismatch about to cause pain."
+        }
+      }
     ]
   },
 
