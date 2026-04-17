@@ -304,6 +304,36 @@ const RULES = [
   { re: /\bipv6 (address type|unicast|multicast|anycast|global unicast|link.local|unique local)\b/i, build: () => ({
     type: 'ipv6-types',
     params: {}
+  })},
+
+  // ── Router-on-a-stick / inter-VLAN ──────────────────────────────
+  { re: /\brouter.on.a.stick|inter.vlan|subinterface|sub-interface|encapsulation dot1q\b/i, build: () => ({
+    type: 'router-on-stick',
+    params: {}
+  })},
+
+  // ── Wildcard mask ───────────────────────────────────────────────
+  { re: /\bwildcard mask|inverse mask|0\.0\.0\.\d+\b/i, build: () => ({
+    type: 'wildcard-mask',
+    params: {}
+  })},
+
+  // ── MTU / fragmentation ─────────────────────────────────────────
+  { re: /\bmtu|jumbo frame|fragmentation|pmtud|don.?t fragment\b/i, build: () => ({
+    type: 'mtu-fragmentation',
+    params: {}
+  })},
+
+  // ── Collision / broadcast domains ───────────────────────────────
+  { re: /\bcollision domain|broadcast domain|micro.segmentation|csma.cd\b/i, build: () => ({
+    type: 'collision-broadcast',
+    params: {}
+  })},
+
+  // ── Magic number ────────────────────────────────────────────────
+  { re: /\bmagic number|block size|subnet jump|256 minus\b/i, build: () => ({
+    type: 'port-magic',
+    params: { mask: 26 }
   })}
 ];
 

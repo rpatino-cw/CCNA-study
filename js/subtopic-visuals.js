@@ -2822,6 +2822,239 @@ window.SubtopicVisuals = (() => {
   }
 
   // ────────────────────────────────────────────────────────────────────
+  // 59. router-on-stick — inter-VLAN routing via sub-interfaces.
+  // ────────────────────────────────────────────────────────────────────
+  function routerOnStick(p) {
+    const w = 360, h = 220;
+
+    let svg = `
+      <text x="${w/2}" y="16" text-anchor="middle" fill="#57534e" font-size="11" font-weight="700" font-family="'Space Grotesk',sans-serif">Router-on-a-stick · sub-interfaces per VLAN</text>
+
+      ${routerGlyph(180, 50, COLORS.purple, 'R1')}
+      ${switchGlyph(180, 130, COLORS.blue, 'SW1 trunk')}
+
+      <!-- Trunk link -->
+      <rect x="172" y="72" width="16" height="40" rx="2" fill="${COLORS.amber}" opacity="0.25" stroke="${COLORS.amber}" stroke-width="1.5" stroke-dasharray="4 3">
+        <animate attributeName="stroke-dashoffset" values="0;-10" dur="1s" repeatCount="indefinite"/>
+      </rect>
+      <text x="200" y="94" fill="${COLORS.amber}" font-size="9" font-family="'JetBrains Mono',monospace" font-weight="700">trunk (tagged)</text>
+
+      <!-- Sub-interfaces -->
+      <g transform="translate(0, 170)">
+        <text x="40" y="0" fill="${COLORS.blue}" font-size="9" font-family="'JetBrains Mono',monospace" font-weight="700">Gi0/0.10</text>
+        <text x="40" y="14" fill="#1c1917" font-size="9" font-family="'JetBrains Mono',monospace">encapsulation dot1q 10</text>
+        <text x="40" y="28" fill="#57534e" font-size="9" font-family="'JetBrains Mono',monospace">10.1.10.1/24</text>
+
+        <text x="180" y="0" fill="${COLORS.green}" font-size="9" font-family="'JetBrains Mono',monospace" font-weight="700">Gi0/0.20</text>
+        <text x="180" y="14" fill="#1c1917" font-size="9" font-family="'JetBrains Mono',monospace">encapsulation dot1q 20</text>
+        <text x="180" y="28" fill="#57534e" font-size="9" font-family="'JetBrains Mono',monospace">10.1.20.1/24</text>
+      </g>
+
+      <!-- VLAN access ports coming off switch -->
+      ${hostGlyph(50, 180, COLORS.blue, 'VLAN 10 PC-A')}
+      ${hostGlyph(300, 180, COLORS.green, 'VLAN 20 PC-B')}
+      <line x1="160" y1="140" x2="70" y2="170" stroke="${COLORS.blue}" stroke-width="1.3" opacity="0.6"/>
+      <line x1="200" y1="140" x2="280" y2="170" stroke="${COLORS.green}" stroke-width="1.3" opacity="0.6"/>
+
+      <text x="${w/2}" y="${h - 8}" text-anchor="middle" fill="#a8a29e" font-size="8" font-family="'JetBrains Mono',monospace">Inter-VLAN traffic goes UP to router, gets L3 routed, comes back DOWN tagged to other VLAN</text>`;
+
+    return `<svg viewBox="0 0 ${w} ${h}" class="sv-anim" xmlns="http://www.w3.org/2000/svg">${svg}</svg>`;
+  }
+
+  // ────────────────────────────────────────────────────────────────────
+  // 60. wildcard-mask — wildcard mask bit pattern (0=match, 1=any).
+  // ────────────────────────────────────────────────────────────────────
+  function wildcardMask(p) {
+    const ip = p.ip || '10.1.1.0';
+    const mask = p.mask || '0.0.0.255';
+    const w = 360, h = 150;
+
+    // Convert to bits for display
+    function toBits(s) {
+      return s.split('.').map(o => parseInt(o).toString(2).padStart(8, '0')).join('.');
+    }
+    const ipBits = toBits(ip);
+    const maskBits = toBits(mask);
+
+    let svg = `
+      <text x="${w/2}" y="16" text-anchor="middle" fill="#57534e" font-size="11" font-weight="700" font-family="'Space Grotesk',sans-serif">Wildcard mask · 0 = must match · 1 = don't care</text>
+
+      <text x="20" y="44" fill="${COLORS.blue}" font-size="10" font-weight="700" font-family="'JetBrains Mono',monospace">IP</text>
+      <text x="45" y="44" fill="#1c1917" font-size="11" font-family="'JetBrains Mono',monospace">${esc(ip).padEnd(15)}</text>
+      <text x="155" y="44" fill="#a8a29e" font-size="9" font-family="'JetBrains Mono',monospace">${esc(ipBits)}</text>
+
+      <text x="20" y="68" fill="${COLORS.amber}" font-size="10" font-weight="700" font-family="'JetBrains Mono',monospace">WC</text>
+      <text x="45" y="68" fill="#1c1917" font-size="11" font-family="'JetBrains Mono',monospace">${esc(mask).padEnd(15)}</text>
+      <text x="155" y="68" fill="${COLORS.amber}" font-size="9" font-family="'JetBrains Mono',monospace">${esc(maskBits)}</text>
+
+      <!-- Bit match indicator -->
+      <rect x="12" y="80" width="336" height="28" rx="4" fill="#f3f0eb"/>
+      <text x="22" y="98" fill="#57534e" font-size="10" font-family="'JetBrains Mono',monospace" font-weight="700">Matches:</text>
+      <text x="90" y="98" fill="#1c1917" font-size="11" font-family="'JetBrains Mono',monospace">${esc(ip)}/$24 — any host 10.1.1.0-10.1.1.255</text>
+
+      <text x="${w/2}" y="128" text-anchor="middle" fill="${COLORS.purple}" font-size="11" font-family="'JetBrains Mono',monospace" font-weight="700">wildcard = 255.255.255.255 − subnet mask</text>
+
+      <text x="${w/2}" y="${h - 6}" text-anchor="middle" fill="#a8a29e" font-size="8" font-family="'JetBrains Mono',monospace">host = 0.0.0.0 · any = 255.255.255.255 · /24 = 0.0.0.255 · /16 = 0.0.255.255</text>`;
+
+    return `<svg viewBox="0 0 ${w} ${h}" class="sv-anim" xmlns="http://www.w3.org/2000/svg">${svg}</svg>`;
+  }
+
+  // ────────────────────────────────────────────────────────────────────
+  // 61. mtu-fragmentation — oversized packet fragmenting at MTU boundary.
+  // ────────────────────────────────────────────────────────────────────
+  function mtuFragmentation(p) {
+    const w = 360, h = 180;
+
+    let svg = `
+      <text x="${w/2}" y="16" text-anchor="middle" fill="#57534e" font-size="11" font-weight="700" font-family="'Space Grotesk',sans-serif">MTU 1500 fragmentation · IP packet too big for link</text>
+
+      <!-- Input packet -->
+      <rect x="20" y="36" width="320" height="22" rx="3" fill="${COLORS.red}" opacity="0.9"/>
+      <text x="180" y="51" text-anchor="middle" fill="#fff" font-size="10" font-family="'JetBrains Mono',monospace" font-weight="700">3000-byte packet · too big!</text>
+
+      <path d="M 180 62 L 180 78" stroke="${COLORS.slate}" stroke-width="2" marker-end="url(#mtu-arr)"/>
+      <defs><marker id="mtu-arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+        <path d="M 0 1 L 8 5 L 0 9 z" fill="${COLORS.slate}"/>
+      </marker></defs>
+
+      <text x="180" y="78" text-anchor="middle" fill="${COLORS.slate}" font-size="9" font-family="'Space Grotesk',sans-serif">router fragments (if DF=0)</text>
+
+      <!-- Fragmented pieces -->
+      <rect x="20" y="96" width="155" height="22" rx="3" fill="${COLORS.blue}" opacity="0.85"/>
+      <text x="97" y="111" text-anchor="middle" fill="#fff" font-size="9" font-family="'JetBrains Mono',monospace" font-weight="700">Frag 1 · 1480B · MF=1 · off=0</text>
+
+      <rect x="185" y="96" width="155" height="22" rx="3" fill="${COLORS.blue}" opacity="0.85"/>
+      <text x="262" y="111" text-anchor="middle" fill="#fff" font-size="9" font-family="'JetBrains Mono',monospace" font-weight="700">Frag 2 · 1480B · MF=1 · off=185</text>
+
+      <rect x="20" y="128" width="80" height="22" rx="3" fill="${COLORS.blue}" opacity="0.85"/>
+      <text x="60" y="143" text-anchor="middle" fill="#fff" font-size="9" font-family="'JetBrains Mono',monospace" font-weight="700">Frag 3 · 40B · MF=0</text>
+
+      <text x="${w/2}" y="${h - 6}" text-anchor="middle" fill="#a8a29e" font-size="8" font-family="'JetBrains Mono',monospace">If DF=1: router drops + sends ICMP "too big" → Path MTU Discovery · IPv6: hosts fragment, not routers</text>`;
+
+    return `<svg viewBox="0 0 ${w} ${h}" class="sv-anim" xmlns="http://www.w3.org/2000/svg">${svg}</svg>`;
+  }
+
+  // ────────────────────────────────────────────────────────────────────
+  // 62. collision-broadcast — collision vs broadcast domain boundaries.
+  // ────────────────────────────────────────────────────────────────────
+  function collisionBroadcast(p) {
+    const w = 360, h = 200;
+
+    let svg = `
+      <text x="${w/2}" y="16" text-anchor="middle" fill="#57534e" font-size="11" font-weight="700" font-family="'Space Grotesk',sans-serif">Collision vs broadcast domain boundaries</text>
+
+      <!-- Router stops both -->
+      ${routerGlyph(180, 54, COLORS.red, 'R1 L3 stops BOTH')}
+
+      <!-- Switch stops collision, not broadcast -->
+      ${switchGlyph(80, 130, COLORS.amber, 'SW1')}
+      ${switchGlyph(280, 130, COLORS.amber, 'SW2')}
+
+      <line x1="180" y1="78" x2="80" y2="120" stroke="${COLORS.slate}" stroke-width="1.5" opacity="0.6"/>
+      <line x1="180" y1="78" x2="280" y2="120" stroke="${COLORS.slate}" stroke-width="1.5" opacity="0.6"/>
+
+      <!-- Hosts per switch -->
+      ${hostGlyph(40, 180, COLORS.slate, 'PC1')}
+      ${hostGlyph(120, 180, COLORS.slate, 'PC2')}
+      ${hostGlyph(240, 180, COLORS.slate, 'PC3')}
+      ${hostGlyph(320, 180, COLORS.slate, 'PC4')}
+
+      <!-- Collision domain bubbles (one per switch port) -->
+      <ellipse cx="40" cy="170" rx="22" ry="18" fill="${COLORS.green}" fill-opacity="0.15" stroke="${COLORS.green}" stroke-width="1.2" stroke-dasharray="3 2"/>
+      <ellipse cx="120" cy="170" rx="22" ry="18" fill="${COLORS.green}" fill-opacity="0.15" stroke="${COLORS.green}" stroke-width="1.2" stroke-dasharray="3 2"/>
+      <ellipse cx="240" cy="170" rx="22" ry="18" fill="${COLORS.green}" fill-opacity="0.15" stroke="${COLORS.green}" stroke-width="1.2" stroke-dasharray="3 2"/>
+      <ellipse cx="320" cy="170" rx="22" ry="18" fill="${COLORS.green}" fill-opacity="0.15" stroke="${COLORS.green}" stroke-width="1.2" stroke-dasharray="3 2"/>
+
+      <!-- Broadcast domain (one per VLAN/subnet, spans both switches) -->
+      <ellipse cx="80" cy="150" rx="76" ry="48" fill="none" stroke="${COLORS.blue}" stroke-width="1.5" stroke-dasharray="5 3"/>
+      <text x="80" y="202" text-anchor="middle" fill="${COLORS.blue}" font-size="9" font-family="'JetBrains Mono',monospace" font-weight="700">broadcast domain A</text>
+
+      <ellipse cx="280" cy="150" rx="76" ry="48" fill="none" stroke="${COLORS.purple}" stroke-width="1.5" stroke-dasharray="5 3"/>
+      <text x="280" y="202" text-anchor="middle" fill="${COLORS.purple}" font-size="9" font-family="'JetBrains Mono',monospace" font-weight="700">broadcast domain B</text>
+
+      <text x="${w/2}" y="34" text-anchor="middle" fill="${COLORS.green}" font-size="9" font-family="'JetBrains Mono',monospace" font-weight="700">green = collision domain · 1 per switch port</text>`;
+
+    return `<svg viewBox="0 0 ${w} ${h}" class="sv-anim" xmlns="http://www.w3.org/2000/svg">${svg}</svg>`;
+  }
+
+  // ────────────────────────────────────────────────────────────────────
+  // 63. port-magic — magic number / block size for subnetting.
+  // ────────────────────────────────────────────────────────────────────
+  function portMagic(p) {
+    const mask = p.mask || 26;
+    const w = 360, h = 180;
+    const blockSize = Math.pow(2, 32 - mask) >= 256 ? Math.pow(2, (32 - mask) - 8) * 256 : Math.pow(2, 32 - mask);
+    const magic = 256 - (mask < 24 ? 0 : Math.pow(2, 32 - mask));
+
+    let svg = `
+      <text x="${w/2}" y="16" text-anchor="middle" fill="#57534e" font-size="11" font-weight="700" font-family="'Space Grotesk',sans-serif">Magic number trick · /${mask} = block size ${blockSize}</text>
+
+      <rect x="20" y="32" width="320" height="36" rx="5" fill="${COLORS.amber}" opacity="0.12" stroke="${COLORS.amber}" stroke-width="1.5"/>
+      <text x="${w/2}" y="48" text-anchor="middle" fill="${COLORS.amber}" font-size="11" font-family="'JetBrains Mono',monospace" font-weight="700">256 − mask_octet = block size</text>
+      <text x="${w/2}" y="62" text-anchor="middle" fill="${COLORS.amber}" font-size="10" font-family="'JetBrains Mono',monospace">256 − ${256 - magic} = ${magic}</text>
+
+      <!-- Examples -->
+      <text x="20" y="92" fill="#78716c" font-size="10" font-weight="700" font-family="'JetBrains Mono',monospace">Quick reference:</text>
+      ${[
+        { mask: 24, bsz: 256 },
+        { mask: 25, bsz: 128 },
+        { mask: 26, bsz: 64 },
+        { mask: 27, bsz: 32 },
+        { mask: 28, bsz: 16 },
+        { mask: 29, bsz: 8 },
+        { mask: 30, bsz: 4 }
+      ].map((r, i) => {
+        const x = 20 + (i % 4) * 80;
+        const y = 104 + Math.floor(i / 4) * 28;
+        const isActive = r.mask === mask;
+        return `
+          <rect x="${x}" y="${y}" width="72" height="22" rx="3" fill="${isActive ? COLORS.amber : '#f3f0eb'}" stroke="${COLORS.amber}" stroke-width="${isActive ? 1.5 : 0.5}"/>
+          <text x="${x + 36}" y="${y + 15}" text-anchor="middle" fill="${isActive ? '#fff' : '#57534e'}" font-size="10" font-family="'JetBrains Mono',monospace" font-weight="700">/${r.mask} → ${r.bsz}</text>`;
+      }).join('')}
+
+      <text x="${w/2}" y="${h - 6}" text-anchor="middle" fill="#a8a29e" font-size="8" font-family="'JetBrains Mono',monospace">Subnet boundaries always start on block-size multiples (0, 64, 128, 192 for /26)</text>`;
+
+    return `<svg viewBox="0 0 ${w} ${h}" class="sv-anim" xmlns="http://www.w3.org/2000/svg">${svg}</svg>`;
+  }
+
+  // ────────────────────────────────────────────────────────────────────
+  // 64. waterfall-vlsm — VLSM allocation waterfall from biggest→smallest.
+  // ────────────────────────────────────────────────────────────────────
+  function waterfallVlsm(p) {
+    const rows = p.rows || [
+      { need: 60, mask: 26, cidr: '192.168.1.0/26',   range: '.0-.63'    },
+      { need: 28, mask: 27, cidr: '192.168.1.64/27',  range: '.64-.95'   },
+      { need: 12, mask: 28, cidr: '192.168.1.96/28',  range: '.96-.111'  },
+      { need: 2,  mask: 30, cidr: '192.168.1.112/30', range: '.112-.115' }
+    ];
+    const w = 360, h = 50 + rows.length * 26 + 24;
+
+    let svg = `
+      <text x="${w/2}" y="16" text-anchor="middle" fill="#57534e" font-size="11" font-weight="700" font-family="'Space Grotesk',sans-serif">VLSM · allocate largest need first, smaller at the tail</text>
+      <rect x="12" y="24" width="336" height="20" rx="3" fill="#1c1917"/>
+      <text x="22" y="38" fill="#fde68a" font-size="9" font-family="'JetBrains Mono',monospace" font-weight="700">Need</text>
+      <text x="75" y="38" fill="#fde68a" font-size="9" font-family="'JetBrains Mono',monospace" font-weight="700">Mask</text>
+      <text x="130" y="38" fill="#fde68a" font-size="9" font-family="'JetBrains Mono',monospace" font-weight="700">Subnet CIDR</text>
+      <text x="344" y="38" text-anchor="end" fill="#fde68a" font-size="9" font-family="'JetBrains Mono',monospace" font-weight="700">Range</text>`;
+
+    rows.forEach((r, i) => {
+      const y = 50 + i * 26;
+      const indent = i * 14;
+      svg += `
+        <rect x="12" y="${y}" width="336" height="22" rx="3" fill="${i % 2 ? '#faf8f4' : '#fff'}" stroke="#e7e5e4" stroke-width="0.6"/>
+        <rect x="${14 + indent}" y="${y + 3}" width="16" height="16" rx="2" fill="${COLORS.blue}"/>
+        <text x="${44 + indent}" y="${y + 15}" fill="#1c1917" font-size="10" font-family="'JetBrains Mono',monospace" font-weight="700">${r.need}</text>
+        <text x="75" y="${y + 15}" fill="${COLORS.amber}" font-size="10" font-family="'JetBrains Mono',monospace" font-weight="700">/${r.mask}</text>
+        <text x="130" y="${y + 15}" fill="${COLORS.purple}" font-size="10" font-family="'JetBrains Mono',monospace" font-weight="700">${esc(r.cidr)}</text>
+        <text x="344" y="${y + 15}" text-anchor="end" fill="#78716c" font-size="9" font-family="'JetBrains Mono',monospace">${esc(r.range)}</text>`;
+    });
+
+    svg += `<text x="${w/2}" y="${h - 8}" text-anchor="middle" fill="#a8a29e" font-size="8" font-family="'JetBrains Mono',monospace">Always allocate biggest first → prevents wasted address space · 2ʰ − 2 usable hosts per subnet</text>`;
+
+    return `<svg viewBox="0 0 ${w} ${h}" class="sv-anim" xmlns="http://www.w3.org/2000/svg">${svg}</svg>`;
+  }
+
+  // ────────────────────────────────────────────────────────────────────
   // Renderer dispatch
   // ────────────────────────────────────────────────────────────────────
 
@@ -2883,7 +3116,13 @@ window.SubtopicVisuals = (() => {
     'tcp-flags':         tcpFlags,
     'ad-comparison':     adComparison,
     'cli-terminal':      cliTerminal,
-    'ipv6-types':        ipv6Types
+    'ipv6-types':        ipv6Types,
+    'router-on-stick':   routerOnStick,
+    'wildcard-mask':     wildcardMask,
+    'mtu-fragmentation': mtuFragmentation,
+    'collision-broadcast': collisionBroadcast,
+    'port-magic':        portMagic,
+    'waterfall-vlsm':    waterfallVlsm
   };
 
   // ────────────────────────────────────────────────────────────────────
