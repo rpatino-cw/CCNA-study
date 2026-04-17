@@ -268,6 +268,42 @@ const RULES = [
   { re: /\btroubleshoot|osi model troubleshoot|bottom.up|top.down|divide.conquer\b/i, build: () => ({
     type: 'osi-troubleshoot',
     params: {}
+  })},
+
+  // ── Cloud (IaaS/PaaS/SaaS) ──────────────────────────────────────
+  { re: /\b(iaas|paas|saas|cloud.?model|shared responsibility|cloud service model)\b/i, build: () => ({
+    type: 'cloud-stack',
+    params: {}
+  })},
+
+  // ── CAPWAP / WLC ───────────────────────────────────────────────
+  { re: /\bcapwap|wlc|lightweight ap|lwap|wireless controller\b/i, build: () => ({
+    type: 'capwap-tunnel',
+    params: {}
+  })},
+
+  // ── TCP flags ───────────────────────────────────────────────────
+  { re: /\btcp flag|syn.ack|fin|rst|psh|urg flag|tcp header\b/i, build: () => ({
+    type: 'tcp-flags',
+    params: {}
+  })},
+
+  // ── Administrative Distance ─────────────────────────────────────
+  { re: /\b(administrative distance|\bad\b.*tiebreak|route trustworth|ad value)\b/i, build: () => ({
+    type: 'ad-comparison',
+    params: {}
+  })},
+
+  // ── CLI / config snippets ──────────────────────────────────────
+  { re: /\b(show running-config|show run|show ip route|show ver|show interface|show arp|configure terminal|enable secret)\b/i, build: () => ({
+    type: 'cli-terminal',
+    params: {}
+  })},
+
+  // ── IPv6 address types ──────────────────────────────────────────
+  { re: /\bipv6 (address type|unicast|multicast|anycast|global unicast|link.local|unique local)\b/i, build: () => ({
+    type: 'ipv6-types',
+    params: {}
   })}
 ];
 
