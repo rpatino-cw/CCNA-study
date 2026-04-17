@@ -1933,6 +1933,313 @@ window.SubtopicVisuals = (() => {
   }
 
   // ────────────────────────────────────────────────────────────────────
+  // 37. arp-resolve — ARP request broadcast + unicast reply.
+  // ────────────────────────────────────────────────────────────────────
+  function arpResolve(p) {
+    const target = p.target || '10.1.1.5';
+    const targetMac = p.targetMac || 'aabb.cc00.0005';
+    const w = 360, h = 190;
+
+    let svg = `
+      <text x="${w/2}" y="16" text-anchor="middle" fill="#57534e" font-size="11" font-weight="700" font-family="'Space Grotesk',sans-serif">ARP · who has ${esc(target)}? tell 10.1.1.10</text>
+
+      ${hostGlyph(50, 60, COLORS.blue, 'PC-A 10.1.1.10')}
+      ${hostGlyph(310, 60, COLORS.green, 'PC-B ' + target)}
+      ${hostGlyph(180, 140, COLORS.slate, 'PC-C (listens)')}
+
+      <!-- Shared bus line -->
+      <line x1="40" y1="90" x2="320" y2="90" stroke="#d4d0c8" stroke-width="2"/>
+      <line x1="180" y1="90" x2="180" y2="120" stroke="#d4d0c8" stroke-width="2"/>
+
+      <!-- Request: broadcast FF:FF:FF:FF:FF:FF -->
+      <g>
+        <rect x="30" y="86" width="52" height="14" rx="3" fill="${COLORS.amber}" opacity="0.95">
+          <animate attributeName="x" values="30;268" dur="1.5s" repeatCount="indefinite" calcMode="spline" keySplines="0.16 1 0.3 1"/>
+        </rect>
+        <text x="56" y="96" text-anchor="middle" fill="#fff" font-size="8" font-family="'JetBrains Mono',monospace" font-weight="700">
+          <animate attributeName="x" values="56;294" dur="1.5s" repeatCount="indefinite" calcMode="spline" keySplines="0.16 1 0.3 1"/>
+          REQ BCAST
+        </text>
+      </g>
+
+      <!-- Reply: unicast back -->
+      <g>
+        <rect x="280" y="104" width="52" height="14" rx="3" fill="${COLORS.green}" opacity="0">
+          <animate attributeName="opacity" values="0;0.95" dur="0.2s" begin="1.7s" fill="freeze"/>
+          <animate attributeName="x" values="280;32" dur="1s" begin="1.7s" fill="freeze" calcMode="spline" keySplines="0.16 1 0.3 1"/>
+        </rect>
+        <text x="306" y="114" text-anchor="middle" fill="#fff" font-size="8" font-family="'JetBrains Mono',monospace" font-weight="700" opacity="0">
+          <animate attributeName="opacity" values="0;1" dur="0.2s" begin="1.7s" fill="freeze"/>
+          <animate attributeName="x" values="306;58" dur="1s" begin="1.7s" fill="freeze" calcMode="spline" keySplines="0.16 1 0.3 1"/>
+          REPLY UNICAST
+        </text>
+      </g>
+
+      <text x="${w/2}" y="${h - 8}" text-anchor="middle" fill="#a8a29e" font-size="8" font-family="'JetBrains Mono',monospace">Request is broadcast · reply is unicast · learned MAC cached in ARP table for 240s</text>
+      <text x="${w/2}" y="${h - 22}" text-anchor="middle" fill="${COLORS.green}" font-size="9" font-family="'JetBrains Mono',monospace" font-weight="700">→ ${esc(target)} is at ${esc(targetMac)}</text>`;
+
+    return `<svg viewBox="0 0 ${w} ${h}" class="sv-anim" xmlns="http://www.w3.org/2000/svg">${svg}</svg>`;
+  }
+
+  // ────────────────────────────────────────────────────────────────────
+  // 38. cdp-neighbor — show cdp neighbor table style.
+  // ────────────────────────────────────────────────────────────────────
+  function cdpNeighbor(p) {
+    const entries = p.entries || [
+      { deviceId: 'SW2',   local: 'Gi0/1', remote: 'Gi0/24', hold: 150, cap: 'S I',   platform: 'cat9300' },
+      { deviceId: 'R1',    local: 'Gi0/2', remote: 'Gi0/0',  hold: 170, cap: 'R',     platform: 'ISR4321' },
+      { deviceId: 'AP-01', local: 'Gi0/5', remote: 'Gi0',    hold: 130, cap: 'T B',   platform: 'AIR-AP1815' }
+    ];
+    const w = 360, h = 50 + entries.length * 28 + 32;
+
+    let svg = `
+      <text x="16" y="16" fill="#57534e" font-size="10" font-weight="700" font-family="'Space Grotesk',sans-serif">show cdp neighbor detail — layer 2 discovery</text>
+      <rect x="12" y="22" width="336" height="22" rx="3" fill="#1c1917"/>
+      <text x="20" y="36" fill="#fde68a" font-size="9" font-family="'JetBrains Mono',monospace" font-weight="700">Device ID</text>
+      <text x="110" y="36" fill="#fde68a" font-size="9" font-family="'JetBrains Mono',monospace" font-weight="700">Local Intf</text>
+      <text x="174" y="36" fill="#fde68a" font-size="9" font-family="'JetBrains Mono',monospace" font-weight="700">Hold</text>
+      <text x="218" y="36" fill="#fde68a" font-size="9" font-family="'JetBrains Mono',monospace" font-weight="700">Cap</text>
+      <text x="280" y="36" fill="#fde68a" font-size="9" font-family="'JetBrains Mono',monospace" font-weight="700">Platform</text>`;
+
+    entries.forEach((e, i) => {
+      const y = 52 + i * 28;
+      svg += `
+        <rect x="12" y="${y}" width="336" height="24" rx="3" fill="${i % 2 ? '#faf8f4' : '#fff'}" stroke="#e7e5e4" stroke-width="0.6"/>
+        <text x="20" y="${y + 16}" fill="${COLORS.blue}" font-size="10" font-family="'JetBrains Mono',monospace" font-weight="700">${esc(e.deviceId)}</text>
+        <text x="110" y="${y + 16}" fill="#1c1917" font-size="9" font-family="'JetBrains Mono',monospace">${esc(e.local)}</text>
+        <text x="174" y="${y + 16}" fill="${COLORS.amber}" font-size="9" font-family="'JetBrains Mono',monospace" font-weight="700">${e.hold}s</text>
+        <text x="218" y="${y + 16}" fill="#57534e" font-size="9" font-family="'JetBrains Mono',monospace" font-weight="700">${esc(e.cap)}</text>
+        <text x="280" y="${y + 16}" fill="#78716c" font-size="9" font-family="'JetBrains Mono',monospace">${esc(e.platform)}</text>
+        <circle cx="8" cy="${y + 12}" r="2.5" fill="${COLORS.blue}">
+          <animate attributeName="opacity" values="0.2;1;0.2" dur="2.5s" begin="${i * 0.3}s" repeatCount="indefinite"/>
+        </circle>`;
+    });
+
+    svg += `<text x="${w/2}" y="${h - 8}" text-anchor="middle" fill="#a8a29e" font-size="8" font-family="'JetBrains Mono',monospace">Cap codes: R=Router S=Switch I=IGMP T=Telephone B=Bridge · hello every 60s · hold 180s</text>`;
+
+    return `<svg viewBox="0 0 ${w} ${h}" class="sv-anim" xmlns="http://www.w3.org/2000/svg">${svg}</svg>`;
+  }
+
+  // ────────────────────────────────────────────────────────────────────
+  // 39. port-security — violation actions protect/restrict/shutdown.
+  // ────────────────────────────────────────────────────────────────────
+  function portSecurity(p) {
+    const maxMacs = p.maxMacs || 2;
+    const action = p.action || 'shutdown';
+    const violatorMac = p.violatorMac || 'bada.bada.0001';
+    const actionColor = { protect: COLORS.amber, restrict: COLORS.purple, shutdown: COLORS.red };
+    const w = 360, h = 200;
+
+    let svg = `
+      <text x="${w/2}" y="16" text-anchor="middle" fill="#57534e" font-size="11" font-weight="700" font-family="'Space Grotesk',sans-serif">Port security · max ${maxMacs} MACs · violation → ${esc(action).toUpperCase()}</text>
+
+      ${switchGlyph(180, 60, COLORS.blue, 'SW1 Gi0/1')}
+
+      <!-- Allowed devices -->
+      ${hostGlyph(60, 130, COLORS.green, 'PC1 aabb.cc00.01')}
+      ${hostGlyph(180, 130, COLORS.green, 'PC2 aabb.cc00.02')}
+      ${hostGlyph(300, 130, COLORS.red, 'ROGUE ' + violatorMac.slice(-5))}
+
+      <line x1="60" y1="112" x2="180" y2="80" stroke="${COLORS.green}" stroke-width="1.5" opacity="0.6"/>
+      <line x1="180" y1="112" x2="180" y2="80" stroke="${COLORS.green}" stroke-width="1.5" opacity="0.6"/>
+      <line x1="300" y1="112" x2="180" y2="80" stroke="${COLORS.red}" stroke-width="2" stroke-dasharray="3 3"/>
+
+      <!-- Blocked indicator at violator -->
+      <circle cx="300" cy="110" r="12" fill="${actionColor[action]}">
+        <animate attributeName="r" values="10;14;10" dur="1.4s" repeatCount="indefinite"/>
+      </circle>
+      <text x="300" y="114" text-anchor="middle" fill="#fff" font-size="12" font-weight="700">×</text>
+
+      <!-- Action block -->
+      <rect x="20" y="168" width="320" height="22" rx="4" fill="${actionColor[action]}" opacity="0.12" stroke="${actionColor[action]}" stroke-width="1.5"/>
+      <text x="180" y="183" text-anchor="middle" fill="${actionColor[action]}" font-size="10" font-family="'JetBrains Mono',monospace" font-weight="700">
+        ${action === 'shutdown' ? 'Port goes err-disabled · shutdown/no shutdown to recover'
+          : action === 'restrict' ? 'Frame dropped + SYSLOG + counter increments'
+          : 'Frame dropped silently · no logging'}
+      </text>`;
+
+    return `<svg viewBox="0 0 ${w} ${h}" class="sv-anim" xmlns="http://www.w3.org/2000/svg">${svg}</svg>`;
+  }
+
+  // ────────────────────────────────────────────────────────────────────
+  // 40. eigrp-metric — composite metric calculation with DUAL.
+  // ────────────────────────────────────────────────────────────────────
+  function eigrpMetric(p) {
+    const bw = p.bw || 1544;
+    const delay = p.delay || 20000;
+    const result = p.result || 2172416;
+    const w = 360, h = 180;
+
+    let svg = `
+      <text x="${w/2}" y="16" text-anchor="middle" fill="#57534e" font-size="11" font-weight="700" font-family="'Space Grotesk',sans-serif">EIGRP composite metric · default K-values</text>
+      <text x="${w/2}" y="30" text-anchor="middle" fill="#78716c" font-size="9" font-family="'JetBrains Mono',monospace">metric = (10⁷/min-bw + Σdelay) × 256</text>
+
+      <!-- Bandwidth -->
+      <rect x="20" y="48" width="150" height="36" rx="5" fill="${COLORS.blue}" opacity="0.12" stroke="${COLORS.blue}" stroke-width="1.5"/>
+      <text x="95" y="62" text-anchor="middle" fill="${COLORS.blue}" font-size="10" font-weight="700" font-family="'Space Grotesk',sans-serif">Min Bandwidth</text>
+      <text x="95" y="78" text-anchor="middle" fill="${COLORS.blue}" font-size="13" font-weight="700" font-family="'JetBrains Mono',monospace">${bw} kbps</text>
+
+      <!-- Delay -->
+      <rect x="190" y="48" width="150" height="36" rx="5" fill="${COLORS.amber}" opacity="0.12" stroke="${COLORS.amber}" stroke-width="1.5"/>
+      <text x="265" y="62" text-anchor="middle" fill="${COLORS.amber}" font-size="10" font-weight="700" font-family="'Space Grotesk',sans-serif">Total Delay</text>
+      <text x="265" y="78" text-anchor="middle" fill="${COLORS.amber}" font-size="13" font-weight="700" font-family="'JetBrains Mono',monospace">${delay} µs</text>
+
+      <!-- Arrow into metric -->
+      <path d="M 180 100 L 180 120" stroke="${COLORS.slate}" stroke-width="2" marker-end="url(#eig-arr)"/>
+      <defs><marker id="eig-arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+        <path d="M 0 1 L 8 5 L 0 9 z" fill="${COLORS.slate}"/>
+      </marker></defs>
+
+      <rect x="60" y="130" width="240" height="34" rx="5" fill="${COLORS.green}"/>
+      <text x="180" y="145" text-anchor="middle" fill="#fff" font-size="10" font-weight="700" font-family="'Space Grotesk',sans-serif">Composite metric</text>
+      <text x="180" y="160" text-anchor="middle" fill="#fff" font-size="14" font-weight="700" font-family="'JetBrains Mono',monospace">${result.toLocaleString()}</text>`;
+
+    return `<svg viewBox="0 0 ${w} ${h}" class="sv-anim" xmlns="http://www.w3.org/2000/svg">${svg}</svg>`;
+  }
+
+  // ────────────────────────────────────────────────────────────────────
+  // 41. vlan-colors — switch with VLAN-colored ports.
+  // ────────────────────────────────────────────────────────────────────
+  function vlanColors(p) {
+    const vlans = p.vlans || [
+      { id: 10,  name: 'DATA',    color: COLORS.blue,   ports: ['Fa0/1', 'Fa0/2', 'Fa0/3'] },
+      { id: 20,  name: 'VOICE',   color: COLORS.green,  ports: ['Fa0/4', 'Fa0/5'] },
+      { id: 30,  name: 'GUEST',   color: COLORS.amber,  ports: ['Fa0/6'] },
+      { id: 99,  name: 'MGMT',    color: COLORS.purple, ports: ['Gi0/1'] }
+    ];
+    const w = 360, h = 36 + vlans.length * 32 + 24;
+
+    let svg = `
+      <text x="16" y="16" fill="#57534e" font-size="10" font-weight="700" font-family="'Space Grotesk',sans-serif">VLAN membership — each VLAN is its own broadcast domain</text>`;
+
+    vlans.forEach((v, i) => {
+      const y = 28 + i * 32;
+      svg += `
+        <rect x="12" y="${y}" width="336" height="28" rx="5" fill="${v.color}" opacity="0.10" stroke="${v.color}" stroke-width="1.2"/>
+        <rect x="16" y="${y + 3}" width="54" height="22" rx="3" fill="${v.color}"/>
+        <text x="43" y="${y + 18}" text-anchor="middle" fill="#fff" font-size="10" font-weight="700" font-family="'JetBrains Mono',monospace">VLAN ${v.id}</text>
+        <text x="80" y="${y + 18}" fill="${v.color}" font-size="10" font-weight="700" font-family="'Space Grotesk',sans-serif">${esc(v.name)}</text>
+        ${v.ports.map((pt, j) => `
+          <rect x="${150 + j * 40}" y="${y + 7}" width="36" height="14" rx="2" fill="${v.color}" opacity="0.85"/>
+          <text x="${168 + j * 40}" y="${y + 18}" text-anchor="middle" fill="#fff" font-size="8" font-family="'JetBrains Mono',monospace" font-weight="600">${esc(pt)}</text>`).join('')}`;
+    });
+
+    svg += `<text x="${w/2}" y="${h - 6}" text-anchor="middle" fill="#a8a29e" font-size="8" font-family="'JetBrains Mono',monospace">Intra-VLAN = switch only · inter-VLAN needs router or SVI</text>`;
+
+    return `<svg viewBox="0 0 ${w} ${h}" class="sv-anim" xmlns="http://www.w3.org/2000/svg">${svg}</svg>`;
+  }
+
+  // ────────────────────────────────────────────────────────────────────
+  // 42. aaa-flow — authentication/authorization/accounting transactions.
+  // ────────────────────────────────────────────────────────────────────
+  function aaaFlow(p) {
+    const w = 360, h = 220;
+
+    let svg = `
+      <text x="${w/2}" y="16" text-anchor="middle" fill="#57534e" font-size="11" font-weight="700" font-family="'Space Grotesk',sans-serif">AAA · TACACS+ (TCP 49) separates Authn/Authz/Acct</text>
+
+      ${hostGlyph(40, 60, COLORS.blue, 'admin')}
+      ${switchGlyph(180, 60, COLORS.amber, 'SW1 NAS')}
+
+      <rect x="298" y="36" width="54" height="48" rx="5" fill="${COLORS.green}"/>
+      <text x="325" y="54" text-anchor="middle" fill="#fff" font-size="9" font-weight="700" font-family="'Space Grotesk',sans-serif">TACACS+</text>
+      <text x="325" y="68" text-anchor="middle" fill="#fff" font-size="9" font-weight="700" font-family="'JetBrains Mono',monospace">server</text>
+      <text x="325" y="82" text-anchor="middle" fill="#fff" font-size="8" font-family="'JetBrains Mono',monospace">:49</text>
+
+      <!-- Phase rows -->
+      ${[
+        { y: 108, label: 'AUTHN', sub: 'who are you?',   col: COLORS.purple, desc: 'user login prompt · password' },
+        { y: 140, label: 'AUTHZ', sub: 'what can you do?', col: COLORS.blue,  desc: 'per-command privilege' },
+        { y: 172, label: 'ACCT',  sub: 'what did you do?', col: COLORS.green, desc: 'start / stop logs' }
+      ].map(ph => `
+        <rect x="12" y="${ph.y - 10}" width="60" height="22" rx="4" fill="${ph.col}"/>
+        <text x="42" y="${ph.y + 4}" text-anchor="middle" fill="#fff" font-size="10" font-weight="700" font-family="'Space Grotesk',sans-serif">${ph.label}</text>
+        <text x="80" y="${ph.y - 2}" fill="${ph.col}" font-size="10" font-family="'Space Grotesk',sans-serif" font-weight="700">${ph.sub}</text>
+        <text x="80" y="${ph.y + 10}" fill="#78716c" font-size="9" font-family="'JetBrains Mono',monospace">${ph.desc}</text>
+      `).join('')}
+
+      <text x="${w/2}" y="${h - 6}" text-anchor="middle" fill="#a8a29e" font-size="8" font-family="'JetBrains Mono',monospace">RADIUS combines Authn+Authz · TACACS+ separates all three · TACACS+ encrypts the full packet</text>`;
+
+    return `<svg viewBox="0 0 ${w} ${h}" class="sv-anim" xmlns="http://www.w3.org/2000/svg">${svg}</svg>`;
+  }
+
+  // ────────────────────────────────────────────────────────────────────
+  // 43. api-request — REST HTTP verbs with CRUD mapping + status codes.
+  // ────────────────────────────────────────────────────────────────────
+  function apiRequest(p) {
+    const w = 360, h = 200;
+    const verbs = [
+      { name: 'POST',   color: COLORS.green,  crud: 'Create', code: '201' },
+      { name: 'GET',    color: COLORS.blue,   crud: 'Read',   code: '200' },
+      { name: 'PUT',    color: COLORS.amber,  crud: 'Replace', code: '200' },
+      { name: 'PATCH',  color: COLORS.purple, crud: 'Update', code: '200' },
+      { name: 'DELETE', color: COLORS.red,    crud: 'Delete', code: '204' }
+    ];
+
+    let svg = `
+      <text x="${w/2}" y="16" text-anchor="middle" fill="#57534e" font-size="11" font-weight="700" font-family="'Space Grotesk',sans-serif">REST API · HTTP verbs → CRUD operations</text>
+      <text x="${w/2}" y="32" text-anchor="middle" fill="#78716c" font-size="9" font-family="'JetBrains Mono',monospace">https://dnac.example.com/api/v1/network-device/{id}</text>`;
+
+    verbs.forEach((v, i) => {
+      const y = 44 + i * 28;
+      svg += `
+        <rect x="20" y="${y}" width="66" height="22" rx="4" fill="${v.color}"/>
+        <text x="53" y="${y + 15}" text-anchor="middle" fill="#fff" font-size="10" font-weight="700" font-family="'JetBrains Mono',monospace">${v.name}</text>
+        <text x="98" y="${y + 14}" fill="${v.color}" font-size="11" font-weight="700" font-family="'Space Grotesk',sans-serif">${v.crud}</text>
+        <circle cx="190" cy="${y + 11}" r="3" fill="#a8a29e"/>
+        <text x="205" y="${y + 14}" fill="#57534e" font-size="9" font-family="'JetBrains Mono',monospace">→ ${v.code}</text>
+        <text x="245" y="${y + 14}" fill="#78716c" font-size="9" font-family="'JetBrains Mono',monospace">${v.code === '200' ? 'OK' : v.code === '201' ? 'Created' : v.code === '204' ? 'No Content' : ''}</text>
+        <text x="300" y="${y + 14}" fill="#a8a29e" font-size="8" font-family="'JetBrains Mono',monospace">JSON body</text>`;
+    });
+
+    svg += `<text x="${w/2}" y="${h - 6}" text-anchor="middle" fill="#a8a29e" font-size="8" font-family="'JetBrains Mono',monospace">Auth: Bearer token · Content-Type: application/json · Stateless between calls</text>`;
+
+    return `<svg viewBox="0 0 ${w} ${h}" class="sv-anim" xmlns="http://www.w3.org/2000/svg">${svg}</svg>`;
+  }
+
+  // ────────────────────────────────────────────────────────────────────
+  // 44. json-tree — nested JSON object with syntax highlighting.
+  // ────────────────────────────────────────────────────────────────────
+  function jsonTree(p) {
+    const w = 360, h = 240;
+    const lines = p.lines || [
+      { indent: 0, text: '{',                                 color: '#1c1917' },
+      { indent: 1, text: '"device": "R1",',                   color: null },
+      { indent: 1, text: '"interfaces": [',                   color: null },
+      { indent: 2, text: '{ "name": "Gi0/0", "ip": "10.1.1.1", "up": true },', color: null },
+      { indent: 2, text: '{ "name": "Gi0/1", "ip": null, "up": false }',       color: null },
+      { indent: 1, text: '],',                                color: '#1c1917' },
+      { indent: 1, text: '"tags": ["core", "prod"]',          color: null },
+      { indent: 0, text: '}',                                 color: '#1c1917' }
+    ];
+
+    function color(txt) {
+      return txt
+        .replace(/(")(\w+)(")\s*:/g, `<tspan fill="${COLORS.purple}">$1$2$3</tspan>:`)
+        .replace(/:\s*(")([^"]*)(")/g, `: <tspan fill="${COLORS.green}">$1$2$3</tspan>`)
+        .replace(/\b(true|false)\b/g, `<tspan fill="${COLORS.blue}">$1</tspan>`)
+        .replace(/\b(null)\b/g, `<tspan fill="${COLORS.red}">$1</tspan>`);
+    }
+
+    let svg = `
+      <text x="16" y="16" fill="#57534e" font-size="10" font-weight="700" font-family="'Space Grotesk',sans-serif">JSON · keys purple, strings green, booleans blue, null red</text>
+      <rect x="12" y="22" width="336" height="${h - 44}" rx="6" fill="#1c1917"/>`;
+
+    lines.forEach((l, i) => {
+      const x = 22 + l.indent * 18;
+      const y = 46 + i * 22;
+      svg += `<text x="${x}" y="${y}" fill="#e7e5e4" font-size="11" font-family="'JetBrains Mono',monospace" opacity="0">
+        <animate attributeName="opacity" values="0;1" dur="0.3s" begin="${i * 0.15}s" fill="freeze"/>
+        ${color(l.text)}
+      </text>`;
+    });
+
+    svg += `<text x="${w/2}" y="${h - 8}" text-anchor="middle" fill="#a8a29e" font-size="8" font-family="'JetBrains Mono',monospace">Keys must be double-quoted · no trailing commas · no comments</text>`;
+
+    return `<svg viewBox="0 0 ${w} ${h}" class="sv-anim" xmlns="http://www.w3.org/2000/svg">${svg}</svg>`;
+  }
+
+  // ────────────────────────────────────────────────────────────────────
   // Renderer dispatch
   // ────────────────────────────────────────────────────────────────────
 
@@ -1972,7 +2279,15 @@ window.SubtopicVisuals = (() => {
     'traceroute-ladder': tracerouteLadder,
     'cert-chain':        certChain,
     'rstp-states':       rstpStates,
-    'wire-packet':       wirePacket
+    'wire-packet':       wirePacket,
+    'arp-resolve':       arpResolve,
+    'cdp-neighbor':      cdpNeighbor,
+    'port-security':     portSecurity,
+    'eigrp-metric':      eigrpMetric,
+    'vlan-colors':       vlanColors,
+    'aaa-flow':          aaaFlow,
+    'api-request':       apiRequest,
+    'json-tree':         jsonTree
   };
 
   // ────────────────────────────────────────────────────────────────────
