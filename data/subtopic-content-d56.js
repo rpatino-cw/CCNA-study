@@ -20,8 +20,13 @@ window.subtopicContentD56 = {
       memory: "Threat = the TIGER outside the fence. It wants in, but it needs a hole (vulnerability) to get through. The tiger is the danger, not the hole.",
       practice: "Create flashcards with 10 scenarios. For each, classify it as a threat, vulnerability, exploit, or mitigation. Example: 'A disgruntled employee with admin access' = threat. 'An unpatched server running SMBv1' = vulnerability. Drill until instant recognition.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 51 (Network Security Fundamentals). Wendell Odom OCG Chapter 27 (Security Architectures). Most students confuse threat vs vulnerability — the exam loves 'which term best describes...' scenario questions."
-    }
+      meta: "Jeremy's IT Lab Day 51 (Network Security Fundamentals). Wendell Odom OCG Chapter 27 (Security Architectures). Most students confuse threat vs vulnerability — the exam loves 'which term best describes...' scenario questions.",
+    },
+    micro: [
+      { id: "5.1.a.1", term: "Threat",                       def: "Potential danger/actor. The WHO or WHAT — hacker, malware, insider, disaster.", weight: "high" },
+      { id: "5.1.a.2", term: "Threat categories",            def: "External (hackers, nation-state), internal (employees), environmental (disasters), accidental (human error).", weight: "med" },
+      { id: "5.1.a.3", term: "Attack chain vocab",           def: "Threat exploits Vulnerability using Exploit → Impact. Know each term's role.", weight: "high" }
+    ]
   },
 
   "5.1.b": {
@@ -31,8 +36,13 @@ window.subtopicContentD56 = {
       memory: "Vulnerability = the HOLE in the fence. The tiger (threat) gets in through the hole. The hole exists even if no tiger ever comes — it's still a weakness.",
       practice: "Run a mental audit of a default Cisco switch config. List 5 vulnerabilities: no enable secret, Telnet enabled, no port security, no DHCP snooping, no banners. For each, write the hardening command that fixes it.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 51 (Network Security Fundamentals). Wendell Odom OCG Chapter 27. Cisco pairs vulnerability with mitigation in exam questions — know common weakness-fix pairs cold."
-    }
+      meta: "Jeremy's IT Lab Day 51 (Network Security Fundamentals). Wendell Odom OCG Chapter 27. Cisco pairs vulnerability with mitigation in exam questions — know common weakness-fix pairs cold.",
+    },
+    micro: [
+      { id: "5.1.b.1", term: "Vulnerability",                def: "Weakness/flaw (passive). Exists until mitigated. NOT the attacker — the hole the attacker uses.", weight: "high" },
+      { id: "5.1.b.2", term: "Common vulnerability types",   def: "Software (unpatched), config (defaults, open ports), design (weak crypto), human (weak passwords), physical (open rooms).", weight: "high" },
+      { id: "5.1.b.3", term: "Risk formula",                 def: "Risk = Threat × Vulnerability × Impact. Reducing vulnerabilities is the most controllable factor.", weight: "med" }
+    ]
   },
 
   "5.1.c": {
@@ -42,8 +52,14 @@ window.subtopicContentD56 = {
       memory: "Exploit = the LOCKPICK that fits the hole. Threat has the lockpick, vulnerability is the lock, exploit is the action of picking it. Always the ACTION, never the weakness.",
       practice: "Map three attack chains on paper: 1) Hacker -> unpatched Apache -> buffer overflow -> web server compromised. 2) Phisher -> untrained user -> fake login page -> credentials stolen. 3) Insider -> excessive privileges -> data exfiltration -> IP theft. Label each element as threat/vulnerability/exploit/impact.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 51. Wendell Odom OCG Chapter 27. The exam tests the attack lifecycle — exploit is always the action/technique, never the weakness itself. Buffer overflow is the most commonly cited exploit example."
-    }
+      meta: "Jeremy's IT Lab Day 51. Wendell Odom OCG Chapter 27. The exam tests the attack lifecycle — exploit is always the action/technique, never the weakness itself. Buffer overflow is the most commonly cited exploit example.",
+    },
+    micro: [
+      { id: "5.1.c.1", term: "Exploit",                      def: "The technique/tool/code to take advantage of a vulnerability. ACTION, not weakness.", weight: "high" },
+      { id: "5.1.c.2", term: "Buffer overflow",              def: "Most commonly cited exploit. Send more data than buffer holds → overwrite memory → execute malicious code.", weight: "high" },
+      { id: "5.1.c.3", term: "Zero-day exploit",             def: "Attack against a vulnerability with NO patch available. Extremely dangerous — no defense exists yet.", weight: "high" },
+      { id: "5.1.c.4", term: "SQL injection / XSS",          def: "Web-app exploits. SQL: inject SQL commands via form inputs. XSS: inject scripts executed by other users' browsers.", weight: "med" }
+    ]
   },
 
   "5.1.d": {
@@ -53,8 +69,15 @@ window.subtopicContentD56 = {
       memory: "Mitigation = MENDING the fence. Patch the holes, add barbed wire, post guards. Each attack type has a specific best mitigation — learn the pairs.",
       practice: "Build a two-column flashcard deck: left side = attack type, right side = best Cisco mitigation. Phishing = training. ARP spoof = DAI. Rogue DHCP = DHCP snooping. Brute force = login block-for. Drill until automatic.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 51. Wendell Odom OCG Chapter 27. Cisco loves 'which is the best mitigation for X?' questions. The answer is always the most SPECIFIC control, not a general one."
-    }
+      meta: "Jeremy's IT Lab Day 51. Wendell Odom OCG Chapter 27. Cisco loves 'which is the best mitigation for X?' questions. The answer is always the most SPECIFIC control, not a general one.",
+    },
+    micro: [
+      { id: "5.1.d.1", term: "Mitigation / Countermeasure",  def: "Action reducing likelihood/impact of threat. Reduces risk to acceptable level — doesn't eliminate.", weight: "high" },
+      { id: "5.1.d.2", term: "Control categories",           def: "Preventive (firewall, ACL), Detective (IDS, syslog), Corrective (backup, IR), Deterrent (banner, cameras).", weight: "high" },
+      { id: "5.1.d.3", term: "ARP spoofing → DAI",           def: "Dynamic ARP Inspection uses DHCP snooping binding table to validate ARP replies.", weight: "high" },
+      { id: "5.1.d.4", term: "Rogue DHCP → DHCP snooping",   def: "Only trusted ports (toward legitimate server) can send DHCP offers. Blocks rogue servers.", weight: "high" },
+      { id: "5.1.d.5", term: "Phishing → training",          def: "Technology can't fully defend. User awareness training is the primary countermeasure.", weight: "high" }
+    ]
   },
 
   "5.1.e": {
@@ -64,8 +87,14 @@ window.subtopicContentD56 = {
       memory: "PHISHing = fishing for passwords. SPEAR phishing = aimed at one fish. WHALING = going after the big fish (CEO). VISHING = Voice phishing. SMISHING = SMS phishing. Each variant starts with a clue in the name.",
       practice: "Review 5 real phishing examples at phishingquiz.withgoogle.com. For each, identify: the urgency trigger, the spoofed sender, the suspicious URL, and the action requested. Then classify each as phishing, spear phishing, or whaling.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 51. Wendell Odom OCG Chapter 27. If the exam asks 'what is the best defense against phishing?' the answer is ALWAYS user awareness training — not a firewall, not an IPS."
-    }
+      meta: "Jeremy's IT Lab Day 51. Wendell Odom OCG Chapter 27. If the exam asks 'what is the best defense against phishing?' the answer is ALWAYS user awareness training — not a firewall, not an IPS.",
+    },
+    micro: [
+      { id: "5.1.e.1", term: "Social engineering",           def: "Manipulating humans to reveal credentials or bypass security. Bypasses technical controls entirely.", weight: "high" },
+      { id: "5.1.e.2", term: "Phishing",                     def: "Email deception attack. Fake login pages, malicious attachments, urgency tactics.", weight: "high" },
+      { id: "5.1.e.3", term: "Spear phishing",               def: "Targeted phishing aimed at specific individual/org. More research, more convincing than bulk phishing.", weight: "med" },
+      { id: "5.1.e.4", term: "User awareness training",      def: "Primary defense against social engineering. Technology alone cannot stop it.", weight: "high" }
+    ]
   },
 
   "5.1.f": {
@@ -75,8 +104,14 @@ window.subtopicContentD56 = {
       memory: "DoS = one person blocking a doorway. DDoS = a flash mob blocking every entrance. The 'D' means DISTRIBUTED — many zombies (botnet) attacking at once. SYN flood = most common type.",
       practice: "In Packet Tracer, configure 'ip tcp intercept' or rate limiting on a router to mitigate SYN floods. Also configure 'no ip directed-broadcast' to prevent smurf attacks. These are real Cisco mitigations.",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 51. Wendell Odom OCG Chapter 27. Know DoS vs DDoS (single vs distributed), SYN flood mechanics, and that DDoS requires distributed mitigation (scrubbing centers, not just ACLs)."
-    }
+      meta: "Jeremy's IT Lab Day 51. Wendell Odom OCG Chapter 27. Know DoS vs DDoS (single vs distributed), SYN flood mechanics, and that DDoS requires distributed mitigation (scrubbing centers, not just ACLs).",
+    },
+    micro: [
+      { id: "5.1.f.1", term: "DoS",                          def: "Denial of Service. Overwhelms target from a single source. Blockable by ACL or firewall rule.", weight: "high" },
+      { id: "5.1.f.2", term: "DDoS",                         def: "Distributed DoS. Many sources (botnet) attack simultaneously. Needs scrubbing centers/CDN defense.", weight: "high" },
+      { id: "5.1.f.3", term: "SYN flood",                    def: "Flood TCP SYNs without completing handshake. Target's half-open connection queue exhausts.", weight: "high" },
+      { id: "5.1.f.4", term: "Reflection/amplification",     def: "Attacker spoofs victim's IP in queries to open servers. Servers reply to victim with large responses.", weight: "med" }
+    ]
   },
 
   "5.1.g": {
@@ -86,8 +121,14 @@ window.subtopicContentD56 = {
       memory: "MITM = the postal worker who opens your mail, reads it, reseals it, and delivers it. You never know. ARP spoofing = lying about your address. DHCP spoofing = giving out fake directions.",
       practice: "In a Packet Tracer lab, enable DHCP snooping and DAI on a switch. Configure the server-facing port as trusted. Attempt to connect a rogue DHCP server on an untrusted port and verify it gets blocked. This ties directly into 5.7.",
       effort: "high",
-      meta: "Jeremy's IT Lab Day 51 + Day 53 (DHCP Snooping/DAI). Wendell Odom OCG Chapter 27 + Chapter 30. ARP spoofing and DHCP spoofing are THE two MITM examples Cisco tests. Study mitigations (DAI, DHCP snooping) in section 5.7."
-    }
+      meta: "Jeremy's IT Lab Day 51 + Day 53 (DHCP Snooping/DAI). Wendell Odom OCG Chapter 27 + Chapter 30. ARP spoofing and DHCP spoofing are THE two MITM examples Cisco tests. Study mitigations (DAI, DHCP snooping) in section 5.7.",
+    },
+    micro: [
+      { id: "5.1.g.1", term: "Man-in-the-Middle (MITM)",     def: "Attacker inserts between two communicating parties, intercepting and/or modifying traffic.", weight: "high" },
+      { id: "5.1.g.2", term: "ARP spoofing",                 def: "Attacker sends forged ARP replies. Hosts ARP-cache the attacker's MAC for other IPs. Traffic flows through attacker.", weight: "high" },
+      { id: "5.1.g.3", term: "DHCP spoofing",                def: "Rogue DHCP server gives victims attacker's IP as gateway/DNS. Attacker becomes MITM for all outbound traffic.", weight: "high" },
+      { id: "5.1.g.4", term: "MITM mitigations",             def: "DAI (stops ARP spoof), DHCP snooping (stops rogue DHCP), HTTPS/VPN (encrypts even if intercepted).", weight: "high" }
+    ]
   },
 
   "5.1.h": {
@@ -97,8 +138,15 @@ window.subtopicContentD56 = {
       memory: "WORM = Wriggles On its own through the network (no user needed). VIRUS = Very Infected, Requires User Start. TROJAN = looks like a gift, soldiers hide inside. RANSOM = your files are kidnapped, pay to get them back.",
       practice: "Create a comparison table from memory: Malware Type | How It Spreads | User Action Required? | Primary Damage | Example. Fill it for virus, worm, trojan, and ransomware. Then add spyware and rootkit as bonus rows.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 51. Wendell Odom OCG Chapter 27. The exam loves 'which malware type does X?' questions. The KEY differentiator is propagation: worm = automatic, virus = user action, trojan = deception."
-    }
+      meta: "Jeremy's IT Lab Day 51. Wendell Odom OCG Chapter 27. The exam loves 'which malware type does X?' questions. The KEY differentiator is propagation: worm = automatic, virus = user action, trojan = deception.",
+    },
+    micro: [
+      { id: "5.1.h.1", term: "Virus",                        def: "Malware that attaches to legit files. Requires USER ACTION (open file) to spread.", weight: "high" },
+      { id: "5.1.h.2", term: "Worm",                         def: "Self-propagating malware. Spreads AUTOMATICALLY across network without user action. More dangerous than virus.", weight: "high" },
+      { id: "5.1.h.3", term: "Trojan",                       def: "Malware disguised as legitimate software. Relies on DECEPTION. User installs willingly.", weight: "high" },
+      { id: "5.1.h.4", term: "Ransomware",                   def: "Encrypts victim's files, demands payment for decryption key. Major modern threat.", weight: "high" },
+      { id: "5.1.h.5", term: "Spyware / Adware",             def: "Spyware = steals data silently. Adware = pushes unwanted ads. Usually less destructive than ransomware.", weight: "med" }
+    ]
   },
 
   // ── 5.2 Describe security program elements ────────────────────
@@ -110,8 +158,13 @@ window.subtopicContentD56 = {
       memory: "Users are the weakest link AND the first line of defense. Awareness training turns liabilities into sensors. Technology can't fix a user who willingly hands over their password.",
       practice: "Download a sample Acceptable Use Policy template (SANS has free ones). Read it and identify 5 common violations: personal USB drives, sharing passwords, clicking unknown links, tailgating, using public WiFi for work. These show up as exam scenarios.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 51. Wendell Odom OCG Chapter 27. Cisco ALWAYS frames user awareness as the answer for social engineering mitigation. If the question is about phishing defense, think training first, technology second."
-    }
+      meta: "Jeremy's IT Lab Day 51. Wendell Odom OCG Chapter 27. Cisco ALWAYS frames user awareness as the answer for social engineering mitigation. If the question is about phishing defense, think training first, technology second.",
+    },
+    micro: [
+      { id: "5.2.a.1", term: "User awareness",               def: "General security education for all users. Phishing recognition, password hygiene, acceptable use.", weight: "high" },
+      { id: "5.2.a.2", term: "Awareness beats tech for SE",  def: "Social engineering bypasses technology. Trained users are the primary defense.", weight: "high" },
+      { id: "5.2.a.3", term: "Simulated phishing",           def: "Organizations send fake phishing emails to test users. Those who click get additional training.", weight: "med" }
+    ]
   },
 
   "5.2.b": {
@@ -121,8 +174,12 @@ window.subtopicContentD56 = {
       memory: "Awareness = knowing the stove is hot (everyone). Training = knowing HOW to put out the fire (technical staff). Both matter, but the exam tests which is which.",
       practice: "Create two lists: 'Awareness topics' (phishing recognition, password hygiene, clean desk, reporting) and 'Training topics' (incident response, hardening configs, forensics, pen testing). If an exam question specifies IT staff, pick from the training list.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 51. Wendell Odom OCG Chapter 27. The exam distinguishes awareness (general users) from training (technical/role-specific). If the question specifies IT staff or incident response, the answer is training."
-    }
+      meta: "Jeremy's IT Lab Day 51. Wendell Odom OCG Chapter 27. The exam distinguishes awareness (general users) from training (technical/role-specific). If the question specifies IT staff or incident response, the answer is training.",
+    },
+    micro: [
+      { id: "5.2.b.1", term: "Training (role-specific)",     def: "Technical/role-based skill building. IT admins, incident responders. Deeper than awareness.", weight: "high" },
+      { id: "5.2.b.2", term: "Awareness vs training",        def: "Awareness = general users (recognize phishing). Training = IT/technical staff (how to respond to incidents).", weight: "high" }
+    ]
   },
 
   "5.2.c": {
@@ -132,8 +189,13 @@ window.subtopicContentD56 = {
       memory: "MANTRAP = MAN gets TRAPPED between two doors. Like an airlock — you can't piggyback through. It specifically defeats TAILGATING.",
       practice: "Draw a layered physical security diagram for a data center: perimeter fence with gate → badge reader at building entrance → mantrap at server room → biometric at rack cage. Label what each control prevents.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 51. Wendell Odom OCG Chapter 27. Mantrap/security vestibule is a favorite exam question — it specifically prevents tailgating. Know the term 'security vestibule' as Cisco's preferred modern term."
-    }
+      meta: "Jeremy's IT Lab Day 51. Wendell Odom OCG Chapter 27. Mantrap/security vestibule is a favorite exam question — it specifically prevents tailgating. Know the term 'security vestibule' as Cisco's preferred modern term.",
+    },
+    micro: [
+      { id: "5.2.c.1", term: "Security vestibule (mantrap)", def: "Two-door airlock. One opens only after the other closes. Prevents tailgating. Cisco's preferred modern term.", weight: "high" },
+      { id: "5.2.c.2", term: "Tailgating",                   def: "Unauthorized person follows authorized person through access-controlled door. Security vestibule stops this.", weight: "high" },
+      { id: "5.2.c.3", term: "Badge access",                 def: "Physical ID cards (prox, smartcard). Common primary physical auth control.", weight: "med" }
+    ]
   },
 
   "5.2.d": {
@@ -143,8 +205,12 @@ window.subtopicContentD56 = {
       memory: "Cameras have three D's: Deter, Detect, Document (forensics). Motion sensors ALERT. Together they're the eyes and ears of physical security.",
       practice: "Classify each physical security control as preventive, detective, deterrent, or corrective. Cameras = detective + deterrent. Locks = preventive. Guards = preventive + detective. Backup generator = corrective. The exam tests these categories.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 51. Wendell Odom OCG Chapter 27. Low exam depth on surveillance specifics, but know that cameras and motion sensors are detective/deterrent controls — they record and discourage but don't physically prevent."
-    }
+      meta: "Jeremy's IT Lab Day 51. Wendell Odom OCG Chapter 27. Low exam depth on surveillance specifics, but know that cameras and motion sensors are detective/deterrent controls — they record and discourage but don't physically prevent.",
+    },
+    micro: [
+      { id: "5.2.d.1", term: "Surveillance cameras",         def: "Detective + deterrent control. Records evidence, discourages casual wrongdoing. Doesn't physically stop anything.", weight: "low" },
+      { id: "5.2.d.2", term: "Motion sensors",               def: "Detective control. Triggers alert/recording when movement detected. Used in secure areas after hours.", weight: "low" }
+    ]
   },
 
   "5.2.e": {
@@ -154,8 +220,12 @@ window.subtopicContentD56 = {
       memory: "Environmental = protecting gear from the ENVIRONMENT: heat (HVAC), fire (suppression), power loss (UPS), theft (cages/locks). If it's not a human attack, it's an environmental threat.",
       practice: "Mental walkthrough of a proper server room: locked door (physical access), equipment cages (per-tenant), HVAC (cooling), FM-200 (fire), UPS + generator (power), cameras (surveillance), cable management (organization). List all controls.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 51. Wendell Odom OCG Chapter 27. Low exam weight but testable. Cable locks and equipment cages are the most likely to appear. Know they fall under physical/environmental controls, not logical/technical."
-    }
+      meta: "Jeremy's IT Lab Day 51. Wendell Odom OCG Chapter 27. Low exam weight but testable. Cable locks and equipment cages are the most likely to appear. Know they fall under physical/environmental controls, not logical/technical.",
+    },
+    micro: [
+      { id: "5.2.e.1", term: "Equipment locks / cages",      def: "Physical controls protecting hardware. Rack locks, data hall cages. Physical category (not logical/technical).", weight: "low" },
+      { id: "5.2.e.2", term: "Cable locks",                  def: "Secure laptops/equipment to fixed objects. Low-tech but effective anti-theft.", weight: "low" }
+    ]
   },
 
   // ── 5.3 Configure and verify device access control ────────────
@@ -167,8 +237,14 @@ window.subtopicContentD56 = {
       memory: "enable PASSWORD = PLAIN to see (plaintext, Type 0). enable SECRET = Securely encrypted (hashed, Type 5). If both exist, SECRET always wins. If you see 'password' in a config, that's the wrong one.",
       practice: "In Packet Tracer: configure both <code>enable password cisco</code> and <code>enable secret cisco123</code>. Run <code>show running-config | include enable</code>. Notice 'cisco' is visible but 'cisco123' is a hash. Try logging in — only 'cisco123' works.",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 4 (CLI basics) + Day 52 (Device Security). Wendell Odom OCG Chapter 6 (CLI config) + Chapter 27. The exam tests that enable secret ALWAYS wins over enable password. Know Type 0 = plaintext."
-    }
+      meta: "Jeremy's IT Lab Day 4 (CLI basics) + Day 52 (Device Security). Wendell Odom OCG Chapter 6 (CLI config) + Chapter 27. The exam tests that enable secret ALWAYS wins over enable password. Know Type 0 = plaintext.",
+    },
+    micro: [
+      { id: "5.3.a.1", term: "enable secret",                def: "Sets priv-exec password with HASH (Type 5 MD5 or Type 8/9). Preferred. Cannot be reversed.", weight: "high" },
+      { id: "5.3.a.2", term: "enable password",              def: "LEGACY. Stores password in plaintext (Type 0) unless service password-encryption. WEAK.", weight: "high" },
+      { id: "5.3.a.3", term: "secret ALWAYS wins",           def: "If both 'enable secret' and 'enable password' are set, 'secret' is used. 'password' is ignored.", weight: "high" },
+      { id: "5.3.a.4", term: "Type 0 = plaintext",           def: "Unencrypted in running config. Visible with 'show running-config'. Avoid in production.", weight: "high" }
+    ]
   },
 
   "5.3.b": {
@@ -178,8 +254,15 @@ window.subtopicContentD56 = {
       memory: "Type 0 = plaintext. Type 5 = MD5 (enable secret default). Type 7 = Vigenere (reversible junk). Type 8 = PBKDF2. Type 9 = scrypt (strongest). Remember: 0-5-7-8-9, and 5 is the one that matters most.",
       practice: "Configure <code>enable secret MyPass123</code> in Packet Tracer. Then <code>show running-config | include enable</code> and observe the Type 5 hash starting with <code>$1$</code>. Try to log in with 'MyPass123' — it works despite the hash.",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 4 + Day 52. Wendell Odom OCG Chapter 6 + Chapter 27. Memorize Type numbers cold: 0 = plain, 5 = MD5, 7 = Vigenere (weak), 8 = PBKDF2, 9 = scrypt. The exam loves asking which type is which."
-    }
+      meta: "Jeremy's IT Lab Day 4 + Day 52. Wendell Odom OCG Chapter 6 + Chapter 27. Memorize Type numbers cold: 0 = plain, 5 = MD5, 7 = Vigenere (weak), 8 = PBKDF2, 9 = scrypt. The exam loves asking which type is which.",
+    },
+    micro: [
+      { id: "5.3.b.1", term: "Type 0",                       def: "Plaintext. No encryption. Visible in running-config. AVOID.", weight: "high" },
+      { id: "5.3.b.2", term: "Type 5",                       def: "MD5 hash. One-way, but MD5 is now considered weak by modern standards.", weight: "high" },
+      { id: "5.3.b.3", term: "Type 7",                       def: "Vigenère cipher. REVERSIBLE — can be decrypted easily with online tools. Only applied by 'service password-encryption'.", weight: "high" },
+      { id: "5.3.b.4", term: "Type 8",                       def: "PBKDF2 with SHA-256. Strong modern hash. Use when available.", weight: "high" },
+      { id: "5.3.b.5", term: "Type 9",                       def: "scrypt. Strongest current Cisco password hash. Memory-hard, resistant to GPU attacks.", weight: "high" }
+    ]
   },
 
   "5.3.c": {
@@ -189,8 +272,14 @@ window.subtopicContentD56 = {
       memory: "Console = PHYSICAL access. Line console 0 = the ONE physical port. Two steps: set password + enable login. Forgetting 'login' = password exists but is never asked for. Like installing a lock but never closing the door.",
       practice: "In Packet Tracer: <code>line con 0</code> → <code>password cisco</code> → <code>login</code> → <code>exec-timeout 5 0</code>. Disconnect and reconnect — verify the prompt appears. Then switch to <code>login local</code> with a username and test.",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 4 (CLI) + Day 52 (Device Security). Wendell Odom OCG Chapter 6 + Chapter 27. The exam tests exact commands. The critical 'gotcha': forgetting <code>login</code> means the password is set but never enforced."
-    }
+      meta: "Jeremy's IT Lab Day 4 (CLI) + Day 52 (Device Security). Wendell Odom OCG Chapter 6 + Chapter 27. The exam tests exact commands. The critical 'gotcha': forgetting <code>login</code> means the password is set but never enforced.",
+    },
+    micro: [
+      { id: "5.3.c.1", term: "Console password config",      def: "line console 0 → password [pw] → login. Critical: 'login' is required or password is NOT enforced.", weight: "high" },
+      { id: "5.3.c.2", term: "'login' gotcha",               def: "Password set but no 'login' = password is ignored. Classic exam trap question.", weight: "high" },
+      { id: "5.3.c.3", term: "logging synchronous",          def: "Under line console. Prevents log messages from interrupting commands being typed. QoL setting.", weight: "med" },
+      { id: "5.3.c.4", term: "exec-timeout",                 def: "Auto-logout after N minutes idle. 'exec-timeout 10 0' = 10 min 0 sec. Security best practice.", weight: "med" }
+    ]
   },
 
   "5.3.d": {
@@ -200,8 +289,14 @@ window.subtopicContentD56 = {
       memory: "VTY = Virtual TeletYpe = remote access. 0 to 15 = 16 lines. No password on VTY = NO remote access at all (connection refused). access-CLASS (not access-group) restricts who can SSH in.",
       practice: "Full VTY hardening lab: <code>line vty 0 15</code> → <code>login local</code> → <code>transport input ssh</code> → <code>access-class 10 in</code> → <code>exec-timeout 5 0</code>. Then test: Telnet should be refused, SSH should work only from permitted IPs.",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 4 + Day 52 + Day 43 (SSH). Wendell Odom OCG Chapter 6 + Chapter 27. Critical exam topic. The 'no password = no access' gotcha is tested frequently. Know access-class (VTY) vs access-group (interfaces)."
-    }
+      meta: "Jeremy's IT Lab Day 4 + Day 52 + Day 43 (SSH). Wendell Odom OCG Chapter 6 + Chapter 27. Critical exam topic. The 'no password = no access' gotcha is tested frequently. Know access-class (VTY) vs access-group (interfaces).",
+    },
+    micro: [
+      { id: "5.3.d.1", term: "VTY password config",          def: "line vty 0 15 → password [pw] → login (or login local). Password protects remote access.", weight: "high" },
+      { id: "5.3.d.2", term: "No password = no access",      def: "If VTY has no password configured, remote login is REJECTED by default on IOS. Access denied.", weight: "high" },
+      { id: "5.3.d.3", term: "access-class (VTY)",           def: "Apply ACL to VTY to restrict which IPs can connect: 'access-class [ACL] in'. Use for management IP restrictions.", weight: "high" },
+      { id: "5.3.d.4", term: "access-class vs access-group", def: "access-class = VTY lines. access-group = physical interfaces. Don't confuse them.", weight: "high" }
+    ]
   },
 
   "5.3.e": {
@@ -211,8 +306,12 @@ window.subtopicContentD56 = {
       memory: "AUX = AUXiliary = the backup phone line. Think old-school modem port. Best practice: <code>no exec</code> to disable it. Same security config as console if you keep it.",
       practice: "In Packet Tracer: <code>line aux 0</code> → <code>no exec</code> to disable it. Verify with <code>show line</code>. Then compare all three management methods: console, AUX, VTY — know how to secure each.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 52. Wendell Odom OCG Chapter 27. Low exam weight but testable. Know that AUX exists, it's for modem access, and best practice is <code>no exec</code> if not in use."
-    }
+      meta: "Jeremy's IT Lab Day 52. Wendell Odom OCG Chapter 27. Low exam weight but testable. Know that AUX exists, it's for modem access, and best practice is <code>no exec</code> if not in use.",
+    },
+    micro: [
+      { id: "5.3.e.1", term: "AUX port",                     def: "Auxiliary port. Legacy dial-in modem access to router. Rarely used today. 'line aux 0' to configure.", weight: "low" },
+      { id: "5.3.e.2", term: "no exec (AUX)",                def: "Best practice if AUX unused. Prevents anyone plugging in from getting exec prompt.", weight: "low" }
+    ]
   },
 
   "5.3.f": {
@@ -222,8 +321,13 @@ window.subtopicContentD56 = {
       memory: "LOCAL = credentials stored LOCALLY on the device. <code>login local</code> = check the LOCAL database. Priv 0 = almost nothing. Priv 1 = show commands. Priv 15 = god mode. Use <code>secret</code> not <code>password</code>.",
       practice: "Lab: <code>username admin privilege 15 secret Cisco123</code> then <code>line con 0</code> → <code>login local</code>. Test login. Create a priv 1 user and verify limited commands. Try <code>configure terminal</code> from priv 1 — it should be denied.",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 52. Wendell Odom OCG Chapter 27. The exam expects <code>username X secret Y</code> (not 'password') and that <code>login local</code> activates it. Without <code>login local</code>, the local database is ignored."
-    }
+      meta: "Jeremy's IT Lab Day 52. Wendell Odom OCG Chapter 27. The exam expects <code>username X secret Y</code> (not 'password') and that <code>login local</code> activates it. Without <code>login local</code>, the local database is ignored.",
+    },
+    micro: [
+      { id: "5.3.f.1", term: "username X secret Y",          def: "Creates local user with hashed password. Preferred over 'username X password Y' (plaintext).", weight: "high" },
+      { id: "5.3.f.2", term: "login local",                  def: "On line (VTY/console) — activates local user database. Without it, local usernames are ignored.", weight: "high" },
+      { id: "5.3.f.3", term: "privilege 15",                 def: "Max privilege level. 'username admin privilege 15 secret X' gives instant enable-mode access on login.", weight: "high" }
+    ]
   },
 
   "5.3.g": {
@@ -233,8 +337,13 @@ window.subtopicContentD56 = {
       memory: "Type 7 = TRIVIALLY reversible. It's like ROT13 — better than nothing, but barely. Real security = Type 5 (<code>secret</code>). Type 7 stops shoulder-surfing, nothing more.",
       practice: "Lab: Set <code>line con 0</code> → <code>password cisco</code>. Run <code>show run</code> — see plaintext. Then <code>service password-encryption</code> → <code>show run</code> — see Type 7 hash. Google 'Type 7 decoder' and paste the hash to prove it's crackable in seconds.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 52. Wendell Odom OCG Chapter 6 + 27. Type 7 = weak/reversible (Vigenere). Type 5 = MD5 (one-way). Always prefer <code>secret</code>. <code>service password-encryption</code> is a safety net, not real encryption."
-    }
+      meta: "Jeremy's IT Lab Day 52. Wendell Odom OCG Chapter 6 + 27. Type 7 = weak/reversible (Vigenere). Type 5 = MD5 (one-way). Always prefer <code>secret</code>. <code>service password-encryption</code> is a safety net, not real encryption.",
+    },
+    micro: [
+      { id: "5.3.g.1", term: "service password-encryption",  def: "Applies Type 7 (Vigenère — REVERSIBLE) to plaintext passwords. Not real security — only obscures casual viewing.", weight: "high" },
+      { id: "5.3.g.2", term: "Type 7 weakness",              def: "Vigenère cipher. Reversible with online Cisco Type 7 decoders. Same password always produces same cipher.", weight: "high" },
+      { id: "5.3.g.3", term: "Always prefer 'secret'",       def: "Use 'enable secret' and 'username X secret Y'. Both use one-way hashing, can't be reversed.", weight: "high" }
+    ]
   },
 
   "5.3.h": {
@@ -244,8 +353,13 @@ window.subtopicContentD56 = {
       memory: "Display order: M-L-E = MOTD → Login → EXEC. Mnemonic: My Lawyer Explains. MOTD = first thing everyone sees (legal warning). Login = before auth. EXEC = after auth. NEVER say 'Welcome' or reveal device info.",
       practice: "Configure all three: <code>banner motd #Unauthorized access prohibited#</code>, <code>banner login #Enter credentials#</code>, <code>banner exec #Maintenance window Sunday 2AM#</code>. Disconnect and reconnect to verify the M-L-E order.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 52. Wendell Odom OCG Chapter 27. The exam tests display order (MOTD → Login → EXEC) and that MOTD should contain a legal notice but NEVER device info or 'Welcome.'"
-    }
+      meta: "Jeremy's IT Lab Day 52. Wendell Odom OCG Chapter 27. The exam tests display order (MOTD → Login → EXEC) and that MOTD should contain a legal notice but NEVER device info or 'Welcome.'",
+    },
+    micro: [
+      { id: "5.3.h.1", term: "Banner display order",         def: "MOTD → Login banner → password prompt → EXEC banner. MOTD first, EXEC last (post-login).", weight: "high" },
+      { id: "5.3.h.2", term: "MOTD banner content",          def: "Should contain LEGAL NOTICE (unauthorized access prohibited). NEVER 'Welcome' or device info.", weight: "high" },
+      { id: "5.3.h.3", term: "banner motd # text #",         def: "Delimiter character (commonly #) surrounds text. Shown before login prompt.", weight: "med" }
+    ]
   },
 
   "5.3.i": {
@@ -255,8 +369,12 @@ window.subtopicContentD56 = {
       memory: "MIN-LENGTH = the bouncer checking your ID at the door. Too short? Rejected. But existing guests (passwords already set) aren't kicked out. Only applies to NEW passwords going forward.",
       practice: "Lab: <code>security passwords min-length 10</code>. Try <code>enable secret short</code> — rejected. Try <code>enable secret LongEnough1</code> — accepted. Then check: does the old short password still work? Yes — min-length is not retroactive.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 52. Wendell Odom OCG Chapter 27. Quick exam point: exact command is <code>security passwords min-length X</code>. Remember: only affects NEW passwords, not existing ones."
-    }
+      meta: "Jeremy's IT Lab Day 52. Wendell Odom OCG Chapter 27. Quick exam point: exact command is <code>security passwords min-length X</code>. Remember: only affects NEW passwords, not existing ones.",
+    },
+    micro: [
+      { id: "5.3.i.1", term: "security passwords min-length", def: "Global command. Enforces minimum length for NEW passwords. Does NOT affect existing passwords.", weight: "high" },
+      { id: "5.3.i.2", term: "Enforcement scope",            def: "Only applies to passwords configured AFTER the command. Existing weak passwords remain.", weight: "med" }
+    ]
   },
 
   "5.3.j": {
@@ -266,8 +384,13 @@ window.subtopicContentD56 = {
       memory: "Read the command as a sentence: 'Block FOR 120 seconds after 3 ATTEMPTS WITHIN 60 seconds.' Block-for = lockout time. Attempts = threshold. Within = counting window. Quiet-mode ACL = admin escape hatch.",
       practice: "Lab: <code>login block-for 60 attempts 3 within 30</code>. Intentionally fail 3 SSH logins quickly — verify lockout. Then add <code>login quiet-mode access-class ADMIN_IPS</code> with your IP permitted and verify you can still log in during lockout.",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 52. Wendell Odom OCG Chapter 27. The exam tests exact syntax and parameter order. Practice typing the full command from memory: block-for → attempts → within."
-    }
+      meta: "Jeremy's IT Lab Day 52. Wendell Odom OCG Chapter 27. The exam tests exact syntax and parameter order. Practice typing the full command from memory: block-for → attempts → within.",
+    },
+    micro: [
+      { id: "5.3.j.1", term: "login block-for",              def: "Global command. Throttles login attempts. Syntax: 'login block-for [sec] attempts [N] within [sec]'.", weight: "high" },
+      { id: "5.3.j.2", term: "Block-for example",            def: "'login block-for 120 attempts 3 within 60' = block login for 120s after 3 failed attempts in 60s.", weight: "high" },
+      { id: "5.3.j.3", term: "Parameter order",              def: "block-for THEN attempts THEN within. Memorize the exact order — exam tests this.", weight: "high" }
+    ]
   },
 
   // ── 5.4 Describe security password policy ─────────────────────
@@ -279,8 +402,13 @@ window.subtopicContentD56 = {
       memory: "Complexity = ULNS — Uppercase, Lowercase, Numbers, Symbols. But length beats complexity: a 20-char passphrase > an 8-char P@$$w0rd. IOS enforces length only, not complexity — that needs a RADIUS/TACACS+ server.",
       practice: "Compare password strength: calculate time to brute-force an 8-char complex password vs a 16-char simple passphrase. Use an online calculator like howsecureismypassword.net. Understand why NIST now recommends length over complexity.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 52. Wendell Odom OCG Chapter 27. The exam tests concepts, not math. Know: complexity + length = strongest, IOS enforces length only, AAA servers enforce complexity."
-    }
+      meta: "Jeremy's IT Lab Day 52. Wendell Odom OCG Chapter 27. The exam tests concepts, not math. Know: complexity + length = strongest, IOS enforces length only, AAA servers enforce complexity.",
+    },
+    micro: [
+      { id: "5.4.a.1", term: "Password complexity",          def: "Mix of upper/lower case, numbers, symbols. IOS doesn't enforce; AAA servers (ISE) do.", weight: "high" },
+      { id: "5.4.a.2", term: "Password length",              def: "Longer = stronger. IOS enforces with 'security passwords min-length'. Longer+complex = strongest.", weight: "high" },
+      { id: "5.4.a.3", term: "NIST guidance",                def: "Modern NIST recommends long passphrases over complex short passwords. Length beats complexity.", weight: "med" }
+    ]
   },
 
   "5.4.b": {
@@ -290,8 +418,13 @@ window.subtopicContentD56 = {
       memory: "Rotation = CHANGE it regularly. History = CAN'T REUSE old ones. Lockout = too many failures = account frozen. NIST says: stop forcing rotation — users just pick weaker passwords. Change only when compromised.",
       practice: "Design two password policies: 'Traditional' (rotate 90 days, history 12, lockout after 5, min 8 chars) vs 'NIST Modern' (no forced rotation, min 15 chars, check against breach lists, change on compromise). Know both for the exam.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 52. Wendell Odom OCG Chapter 27. The exam may test traditional rotation policies even though NIST has updated guidance. Know both perspectives and be ready for either."
-    }
+      meta: "Jeremy's IT Lab Day 52. Wendell Odom OCG Chapter 27. The exam may test traditional rotation policies even though NIST has updated guidance. Know both perspectives and be ready for either.",
+    },
+    micro: [
+      { id: "5.4.b.1", term: "Traditional rotation (90 days)", def: "Old guidance: change passwords every 60-90 days. Widely enforced by compliance standards.", weight: "med" },
+      { id: "5.4.b.2", term: "Modern NIST guidance",         def: "Only change when compromised. Frequent rotation leads to weak patterns (Password1, Password2...).", weight: "med" },
+      { id: "5.4.b.3", term: "Password history",             def: "Prevents reuse of last N passwords. Enforced on AAA server or OS (not usually IOS).", weight: "low" }
+    ]
   },
 
   "5.4.c": {
@@ -301,8 +434,13 @@ window.subtopicContentD56 = {
       memory: "MFA = Know-Have-Are (KHA). Must use DIFFERENT categories. Password (Know) + Phone OTP (Have) = real MFA. Password + Security Question = NOT MFA (both Know). Password + PIN = NOT MFA (both Know).",
       practice: "Create 10 authentication scenarios and classify each: 'Password + fingerprint' = MFA (Know + Are). 'PIN + security question' = NOT MFA (both Know). 'Badge + phone OTP' = MFA (Have + Have)? Actually NO — same category. Tricky ones build exam readiness.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 52. Wendell Odom OCG Chapter 27. Guaranteed exam question. The trap: two passwords, password + security question, or password + PIN are all NOT MFA because they're the same factor category."
-    }
+      meta: "Jeremy's IT Lab Day 52. Wendell Odom OCG Chapter 27. Guaranteed exam question. The trap: two passwords, password + security question, or password + PIN are all NOT MFA because they're the same factor category.",
+    },
+    micro: [
+      { id: "5.4.c.1", term: "MFA (Multi-Factor Auth)",      def: "Authentication using 2+ factors from DIFFERENT categories. Something you know + have + are.", weight: "high" },
+      { id: "5.4.c.2", term: "Three factor categories",      def: "Know (password, PIN, security question). Have (token, phone, smartcard). Are (biometric).", weight: "high" },
+      { id: "5.4.c.3", term: "MFA trap (same category)",     def: "Password + PIN = NOT MFA (both 'know'). Password + security question = NOT MFA. Must be different categories.", weight: "high" }
+    ]
   },
 
   "5.4.d": {
@@ -312,8 +450,12 @@ window.subtopicContentD56 = {
       memory: "Test: can BOTH factors be stolen the same way? If a phishing email could grab both → NOT MFA. If stealing one factor tells you nothing about the other → real MFA. Different CATEGORIES, not just different credentials.",
       practice: "Flash drill: 10 rapid-fire combos. For each, say 'MFA' or 'NOT MFA' instantly. Badge + PIN = MFA. Two passwords = NOT. Retina + fingerprint = NOT (both Are). Password + YubiKey = MFA. Speed matters for the exam.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 52. Wendell Odom OCG Chapter 27. Cisco specifically tests the 'different categories' requirement. This is one of the most commonly missed questions — students think any two credentials = MFA."
-    }
+      meta: "Jeremy's IT Lab Day 52. Wendell Odom OCG Chapter 27. Cisco specifically tests the 'different categories' requirement. This is one of the most commonly missed questions — students think any two credentials = MFA.",
+    },
+    micro: [
+      { id: "5.4.d.1", term: "Different categories required", def: "MFA requires factors from DIFFERENT categories. Not just 'two things' — specifically different types.", weight: "high" },
+      { id: "5.4.d.2", term: "Valid MFA examples",           def: "Password + TOTP token (know + have). Fingerprint + card (are + have). Password + fingerprint (know + are).", weight: "high" }
+    ]
   },
 
   "5.4.e": {
@@ -323,8 +465,14 @@ window.subtopicContentD56 = {
       memory: "PKI = Public Key Infrastructure. CA = Certificate Authority = the notary who stamps your ID as legit. X.509 = the standard certificate format. Chain of trust: Root CA → Intermediate CA → End Certificate.",
       practice: "Click the lock icon on any HTTPS website in Chrome. View the certificate: find the subject, issuer, validity dates, public key, and trace the chain up to the root CA. This makes the abstract concept concrete.",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 52. Wendell Odom OCG Chapter 27. The exam tests PKI concepts, not crypto math. Know: what a CA does, X.509 contents (subject, issuer, public key, validity), and the chain of trust model."
-    }
+      meta: "Jeremy's IT Lab Day 52. Wendell Odom OCG Chapter 27. The exam tests PKI concepts, not crypto math. Know: what a CA does, X.509 contents (subject, issuer, public key, validity), and the chain of trust model.",
+    },
+    micro: [
+      { id: "5.4.e.1", term: "Digital certificate (X.509)",  def: "Electronic document binding a public key to an identity. Signed by a CA. Used for HTTPS, SSL/TLS, IPsec.", weight: "high" },
+      { id: "5.4.e.2", term: "Certificate Authority (CA)",   def: "Trusted third party that signs certificates. Chain of trust: root CA → intermediate CA → end-entity cert.", weight: "high" },
+      { id: "5.4.e.3", term: "X.509 contents",               def: "Subject (owner), Issuer (CA), public key, validity (not-before/not-after), serial number, signature.", weight: "high" },
+      { id: "5.4.e.4", term: "PKI",                          def: "Public Key Infrastructure. Framework for issuing, distributing, and revoking digital certificates.", weight: "med" }
+    ]
   },
 
   "5.4.f": {
@@ -334,8 +482,13 @@ window.subtopicContentD56 = {
       memory: "Biometrics = Body metrics = Something you ARE. Strongest single factor but CANNOT BE CHANGED if compromised. You can reset a password but you can't reset your fingerprint. Always pair with another factor.",
       practice: "Build a pros/cons table: Fingerprint (cheap, fast, liftable), Iris (very accurate, expensive), Face (touchless, fooled by photos), Voice (convenient, noise-sensitive). Know trade-offs for scenario questions.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 52. Wendell Odom OCG Chapter 27. The exam tests biometrics as 'something you are' in MFA. Key disadvantage = non-changeable if compromised. Know FAR/FRR/CER for bonus points."
-    }
+      meta: "Jeremy's IT Lab Day 52. Wendell Odom OCG Chapter 27. The exam tests biometrics as 'something you are' in MFA. Key disadvantage = non-changeable if compromised. Know FAR/FRR/CER for bonus points.",
+    },
+    micro: [
+      { id: "5.4.f.1", term: "Biometrics",                   def: "'Something you ARE.' Fingerprint, iris, facial recognition, voice. Physical characteristics.", weight: "high" },
+      { id: "5.4.f.2", term: "Biometric disadvantage",       def: "CANNOT BE CHANGED if compromised. Unlike passwords, you can't reset your fingerprint.", weight: "high" },
+      { id: "5.4.f.3", term: "FAR / FRR / CER",              def: "FAR = False Accept Rate (bad). FRR = False Reject Rate. CER = Crossover Error Rate (FAR=FRR, tuning point).", weight: "low" }
+    ]
   },
 
   // ── 5.5 Describe IPsec VPNs ──────────────────────────────────
@@ -347,8 +500,13 @@ window.subtopicContentD56 = {
       memory: "Site-to-Site = a PERMANENT bridge between two buildings. Always on, router-to-router, no client software. Like a dedicated highway between offices — the cars (users) don't know the road is encrypted.",
       practice: "Diagram a site-to-site VPN: Branch LAN (10.1.0.0/24) → Branch Router → Internet (encrypted tunnel) → HQ Router → HQ LAN (10.2.0.0/24). Label tunnel endpoints, protected subnets, and interesting traffic ACL.",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 54 (VPN Fundamentals). Wendell Odom OCG Chapter 16. The exam tests site-to-site vs remote access. Site-to-site = always-on, router-to-router. Remote access = on-demand, client-to-router."
-    }
+      meta: "Jeremy's IT Lab Day 54 (VPN Fundamentals). Wendell Odom OCG Chapter 16. The exam tests site-to-site vs remote access. Site-to-site = always-on, router-to-router. Remote access = on-demand, client-to-router.",
+    },
+    micro: [
+      { id: "5.5.a.1", term: "VPN",                          def: "Virtual Private Network. Creates a secure encrypted tunnel across an untrusted network (internet).", weight: "high" },
+      { id: "5.5.a.2", term: "Site-to-site VPN",             def: "Always-on router-to-router (or firewall-to-firewall). Connects entire networks.", weight: "high" },
+      { id: "5.5.a.3", term: "Remote access VPN",            def: "On-demand client-to-router. Individual user VPN (AnyConnect, OpenVPN, WireGuard).", weight: "high" }
+    ]
   },
 
   "5.5.b": {
@@ -358,8 +516,13 @@ window.subtopicContentD56 = {
       memory: "Remote Access = TEMPORARY tunnel from your laptop. You DIAL IN when you need it, disconnect when done. Client software required. Like a phone call vs a leased line (site-to-site).",
       practice: "Build a two-column comparison flashcard: Site-to-Site (permanent, router-to-router, no client, always on) vs Remote Access (on-demand, client-to-site, needs software, user-initiated). Drill scenario questions: 'traveling employee' = remote access, 'two offices' = site-to-site.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 54. Wendell Odom OCG Chapter 16. The exam gives scenarios: 'traveling employee needs HQ resources' = remote access VPN. 'Two offices need constant connectivity' = site-to-site VPN."
-    }
+      meta: "Jeremy's IT Lab Day 54. Wendell Odom OCG Chapter 16. The exam gives scenarios: 'traveling employee needs HQ resources' = remote access VPN. 'Two offices need constant connectivity' = site-to-site VPN.",
+    },
+    micro: [
+      { id: "5.5.b.1", term: "Traveling employee scenario",  def: "Remote access VPN. Single user needs access from anywhere. AnyConnect client connects to HQ.", weight: "high" },
+      { id: "5.5.b.2", term: "Branch-to-HQ always-on scenario", def: "Site-to-site VPN. Branch office connects to HQ continuously. Users don't know VPN exists.", weight: "high" },
+      { id: "5.5.b.3", term: "Clientless SSL VPN",           def: "Remote access via browser HTTPS. No VPN client software required. Limited to web-based apps.", weight: "med" }
+    ]
   },
 
   "5.5.c": {
@@ -369,8 +532,14 @@ window.subtopicContentD56 = {
       memory: "IPsec = CIA-R: Confidentiality, Integrity, Authentication, anti-Replay. Remember 'CIA Rocks.' Encryption = AES. Hashing = SHA. Authentication = PSK or certs. Anti-replay = sequence numbers.",
       practice: "Build a matrix: Security Service | What It Prevents | Algorithm | Protocol (AH/ESP). Confidentiality (eavesdropping, AES, ESP only). Integrity (tampering, SHA, both). Authentication (impersonation, PSK/certs, both). Anti-replay (replay attacks, sequence #, both).",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 54. Wendell Odom OCG Chapter 16. The exam loves: 'which IPsec service ensures data hasn't been modified?' = Integrity. 'Which ensures data can't be read?' = Confidentiality. Map each service to its definition."
-    }
+      meta: "Jeremy's IT Lab Day 54. Wendell Odom OCG Chapter 16. The exam loves: 'which IPsec service ensures data hasn't been modified?' = Integrity. 'Which ensures data can't be read?' = Confidentiality. Map each service to its definition.",
+    },
+    micro: [
+      { id: "5.5.c.1", term: "Confidentiality (IPsec)",      def: "Data CAN'T BE READ by eavesdroppers. Provided by encryption (AES, 3DES, DES).", weight: "high" },
+      { id: "5.5.c.2", term: "Integrity (IPsec)",            def: "Data HAS NOT BEEN MODIFIED in transit. Provided by HMAC hashing (MD5, SHA).", weight: "high" },
+      { id: "5.5.c.3", term: "Authentication (IPsec)",       def: "Confirms peer IDENTITY. Provided by pre-shared keys (PSK) or digital certificates.", weight: "high" },
+      { id: "5.5.c.4", term: "Anti-replay (IPsec)",          def: "Prevents attacker from re-sending captured packets. Sequence numbers detect replays.", weight: "med" }
+    ]
   },
 
   "5.5.d": {
@@ -380,8 +549,13 @@ window.subtopicContentD56 = {
       memory: "AH = Authentication Header = NO encryption. Protocol 51. 'AH, I forgot to encrypt!' AH authenticates the IP header too, which BREAKS NAT. That's why nobody uses AH anymore.",
       practice: "Draw AH packet format: [New IP | AH | Original IP + Data (visible/readable)]. Circle what's authenticated (everything). Circle what's encrypted (nothing). Compare with ESP immediately.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 54. Wendell Odom OCG Chapter 16. Key exam facts: AH = protocol 51, no encryption, authenticates IP header, incompatible with NAT. ESP = protocol 50, encryption + everything else."
-    }
+      meta: "Jeremy's IT Lab Day 54. Wendell Odom OCG Chapter 16. Key exam facts: AH = protocol 51, no encryption, authenticates IP header, incompatible with NAT. ESP = protocol 50, encryption + everything else.",
+    },
+    micro: [
+      { id: "5.5.d.1", term: "AH (Authentication Header)",   def: "IP protocol 51. Provides integrity + auth BUT NOT encryption. Authenticates entire packet including IP header.", weight: "high" },
+      { id: "5.5.d.2", term: "AH + NAT incompatibility",     def: "AH authenticates the IP header. NAT changes the IP header → AH breaks. Can't use AH through NAT.", weight: "high" },
+      { id: "5.5.d.3", term: "AH = protocol number 51",      def: "IP protocol 51, not TCP/UDP. Memorize.", weight: "high" }
+    ]
   },
 
   "5.5.e": {
@@ -391,8 +565,14 @@ window.subtopicContentD56 = {
       memory: "ESP = Encapsulating Security Payload = FULL protection. Protocol 50. 'ESP has Everything (50 = the whole package).' AH = 51 = 'Almost, Half-way' — no encryption. ESP works with NAT, AH doesn't.",
       practice: "Build a head-to-head table: Feature | AH (51) | ESP (50). Encryption: No/Yes. Integrity: Yes/Yes. Auth: Yes/Yes. Anti-Replay: Yes/Yes. NAT Compatible: No/Yes. Authenticates IP Header: Yes/No. ESP wins every practical category.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 54. Wendell Odom OCG Chapter 16. ESP vs AH is a classic exam question. ESP = 50 = encryption + everything. AH = 51 = no encryption, breaks with NAT."
-    }
+      meta: "Jeremy's IT Lab Day 54. Wendell Odom OCG Chapter 16. ESP vs AH is a classic exam question. ESP = 50 = encryption + everything. AH = 51 = no encryption, breaks with NAT.",
+    },
+    micro: [
+      { id: "5.5.e.1", term: "ESP (Encapsulating Security Payload)", def: "IP protocol 50. Provides encryption + integrity + auth. Standard IPsec choice in modern VPNs.", weight: "high" },
+      { id: "5.5.e.2", term: "ESP = protocol 50",            def: "IP protocol 50. AH = 51. ESP is the one with encryption.", weight: "high" },
+      { id: "5.5.e.3", term: "ESP works with NAT",           def: "ESP doesn't include IP header in authentication. NAT traversal (UDP 4500) makes it work across NAT.", weight: "high" },
+      { id: "5.5.e.4", term: "ESP vs AH rule",               def: "Use ESP (encryption). AH only provides integrity. Modern deployments use ESP exclusively.", weight: "high" }
+    ]
   },
 
   "5.5.f": {
@@ -402,8 +582,13 @@ window.subtopicContentD56 = {
       memory: "Phase 1 = INTRODUCE yourself and SHAKE HANDS before doing business. Three steps: Negotiate (what algorithms?), Exchange keys (DH), Authenticate (prove who you are). Result = ISAKMP SA (management tunnel).",
       practice: "Draw the Phase 1 sequence: 1) Algorithm proposal/acceptance, 2) Diffie-Hellman key exchange, 3) Authentication (PSK or cert). Label the output: one bidirectional ISAKMP SA. Then draw Phase 2 beside it.",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 54. Wendell Odom OCG Chapter 16. Phase 1 = authenticate peers + build management tunnel. Phase 2 = negotiate data tunnel. The exam tests the PURPOSE of each phase."
-    }
+      meta: "Jeremy's IT Lab Day 54. Wendell Odom OCG Chapter 16. Phase 1 = authenticate peers + build management tunnel. Phase 2 = negotiate data tunnel. The exam tests the PURPOSE of each phase.",
+    },
+    micro: [
+      { id: "5.5.f.1", term: "IKE Phase 1",                  def: "Authenticate peers, build bidirectional management (ISAKMP) SA. Happens first.", weight: "high" },
+      { id: "5.5.f.2", term: "IKE Phase 2",                  def: "Negotiate IPsec SAs (one per direction) for data traffic. Uses the Phase 1 tunnel to protect negotiation.", weight: "high" },
+      { id: "5.5.f.3", term: "Phase order",                  def: "Phase 1 ALWAYS first. Phase 2 can't happen without Phase 1 because it negotiates inside the P1 tunnel.", weight: "high" }
+    ]
   },
 
   "5.5.g": {
@@ -413,8 +598,13 @@ window.subtopicContentD56 = {
       memory: "Phase 2 = QUICK Mode = quickly build the DATA tunnel. Phase 1 = 1 bidirectional SA (management). Phase 2 = 2 unidirectional SAs (data, one per direction). Two phases, different tunnel types.",
       practice: "Draw the complete IKE/IPsec flow on one page: Phase 1 → ISAKMP SA (bidirectional, management) → Phase 2 → 2 IPsec SAs (unidirectional, data). Label the purpose of each. This is the master diagram.",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 54. Wendell Odom OCG Chapter 16. Key facts: Phase 1 = one bidirectional SA (ISAKMP). Phase 2 = two unidirectional SAs (IPsec, one per direction). Phase 2 = Quick Mode."
-    }
+      meta: "Jeremy's IT Lab Day 54. Wendell Odom OCG Chapter 16. Key facts: Phase 1 = one bidirectional SA (ISAKMP). Phase 2 = two unidirectional SAs (IPsec, one per direction). Phase 2 = Quick Mode.",
+    },
+    micro: [
+      { id: "5.5.g.1", term: "Phase 1 = 1 bidirectional SA",  def: "ISAKMP SA. Used only for Phase 2 negotiation. Not for user data.", weight: "high" },
+      { id: "5.5.g.2", term: "Phase 2 = 2 unidirectional SAs", def: "IPsec SAs. One for inbound, one for outbound. Protect actual data traffic.", weight: "high" },
+      { id: "5.5.g.3", term: "Quick Mode (Phase 2)",          def: "Phase 2 negotiation mode. Faster than Phase 1 because it reuses the P1 tunnel.", weight: "med" }
+    ]
   },
 
   "5.5.h": {
@@ -424,8 +614,13 @@ window.subtopicContentD56 = {
       memory: "TUNNEL mode = EVERYTHING hidden in the tunnel. Original IP header + payload = both encrypted. Like a sealed letter inside a new envelope. Default for site-to-site VPNs.",
       practice: "Draw side by side: Tunnel mode [New IP | ESP | Encrypted(Old IP + Data)] vs Transport mode [Original IP | ESP | Encrypted(Data only)]. Circle what's visible to an eavesdropper in each. Tunnel hides everything; transport exposes the IP header.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 54. Wendell Odom OCG Chapter 16. Tunnel = encrypts whole packet, hides original IPs (site-to-site default). Transport = encrypts payload only (host-to-host). The exam tests which mode hides the original IP."
-    }
+      meta: "Jeremy's IT Lab Day 54. Wendell Odom OCG Chapter 16. Tunnel = encrypts whole packet, hides original IPs (site-to-site default). Transport = encrypts payload only (host-to-host). The exam tests which mode hides the original IP.",
+    },
+    micro: [
+      { id: "5.5.h.1", term: "IPsec Tunnel mode",            def: "Entire original packet (incl. IP header) encrypted and wrapped in new IP header. Hides original IPs. Site-to-site default.", weight: "high" },
+      { id: "5.5.h.2", term: "IPsec Transport mode",         def: "Only payload encrypted. Original IP header preserved. Used host-to-host (end-to-end, not gateway-to-gateway).", weight: "high" },
+      { id: "5.5.h.3", term: "Which hides original IP?",     def: "TUNNEL mode. Transport mode leaves IP header visible. Exam test point.", weight: "high" }
+    ]
   },
 
   "5.5.i": {
@@ -435,8 +630,12 @@ window.subtopicContentD56 = {
       memory: "TRANSPORT mode = only the CARGO (payload) is encrypted. The shipping label (IP header) stays readable. Used when both hosts know each other's address and just need the data encrypted.",
       practice: "Scenario drill: 'Two routers connecting branches' = tunnel. 'Two servers in the same DC' = transport. 'Employee laptop to corporate VPN' = tunnel. 'GRE tunnel needing encryption' = transport. Run 5+ scenarios until automatic.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 54. Wendell Odom OCG Chapter 16. Tunnel = whole packet encrypted (site-to-site default). Transport = payload only (host-to-host). Most exam questions ask which mode hides the original IP header."
-    }
+      meta: "Jeremy's IT Lab Day 54. Wendell Odom OCG Chapter 16. Tunnel = whole packet encrypted (site-to-site default). Transport = payload only (host-to-host). Most exam questions ask which mode hides the original IP header.",
+    },
+    micro: [
+      { id: "5.5.i.1", term: "Site-to-site = Tunnel mode",   def: "Gateway-to-gateway IPsec always uses Tunnel mode. Entire original packet hidden inside the tunnel.", weight: "high" },
+      { id: "5.5.i.2", term: "Host-to-host = Transport mode", def: "End-to-end IPsec (e.g., between two servers). Transport mode protects just the payload.", weight: "high" }
+    ]
   },
 
   "5.5.j": {
@@ -446,8 +645,14 @@ window.subtopicContentD56 = {
       memory: "GRE = the moving truck (carries anything, including multicast). IPsec = the armored escort (encrypts everything). GRE over IPsec = armored moving truck. 'How do you run OSPF over a VPN?' = GRE over IPsec.",
       practice: "List what GRE adds that IPsec lacks: multicast, broadcast, non-IP protocols, routing protocols (OSPF/EIGRP). Then explain: GRE encapsulates these into unicast → IPsec encrypts the unicast. Problem solved.",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 54. Wendell Odom OCG Chapter 16. Classic exam question: 'How do you run OSPF over an IPsec VPN?' Answer: GRE over IPsec. Pure IPsec can't carry multicast — GRE bridges that gap."
-    }
+      meta: "Jeremy's IT Lab Day 54. Wendell Odom OCG Chapter 16. Classic exam question: 'How do you run OSPF over an IPsec VPN?' Answer: GRE over IPsec. Pure IPsec can't carry multicast — GRE bridges that gap.",
+    },
+    micro: [
+      { id: "5.5.j.1", term: "GRE",                          def: "Generic Routing Encapsulation. Cisco tunneling protocol. Carries multicast/broadcast and multiple L3 protocols.", weight: "high" },
+      { id: "5.5.j.2", term: "IPsec can't carry multicast",  def: "Pure IPsec is unicast only. Routing protocols (OSPF, EIGRP) use multicast, so pure IPsec can't run them.", weight: "high" },
+      { id: "5.5.j.3", term: "GRE over IPsec",               def: "Wrap traffic in GRE (adds multicast support) then encrypt with IPsec. Enables OSPF over VPN.", weight: "high" },
+      { id: "5.5.j.4", term: "DMVPN",                        def: "Dynamic Multipoint VPN. Cisco solution for scalable hub-and-spoke with dynamic spoke-to-spoke tunnels.", weight: "med" }
+    ]
   },
 
   // ── 5.6 Configure and verify ACLs ────────────────────────────
@@ -459,8 +664,15 @@ window.subtopicContentD56 = {
       memory: "Standard = Source only, numbers 1-99, placed near DESTINATION. Mnemonic: 'SD' — Standard → Destination. Standard is Simple — Source only, placed at the end of the path.",
       practice: "In Packet Tracer: <code>access-list 10 permit 192.168.1.0 0.0.0.255</code>, apply outbound on the interface nearest the destination: <code>ip access-group 10 out</code>. Verify with <code>show access-lists</code> and test traffic.",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 33-35 (Standard ACLs). Wendell Odom OCG Chapters 3-4 (Vol 2). ACL placement is a top-5 most tested CCNA concept. Standard = destination, Extended = source. Memorize as absolute rule."
-    }
+      meta: "Jeremy's IT Lab Day 33-35 (Standard ACLs). Wendell Odom OCG Chapters 3-4 (Vol 2). ACL placement is a top-5 most tested CCNA concept. Standard = destination, Extended = source. Memorize as absolute rule.",
+    },
+    micro: [
+      { id: "5.6.a.1", term: "Standard ACL",                 def: "Matches source IP ONLY. Numbered 1-99, 1300-1999. Simple, broad filtering.", weight: "high" },
+      { id: "5.6.a.2", term: "Standard ACL placement",       def: "As close to DESTINATION as possible. Broad source matching means you'd block legitimate traffic if placed near source.", weight: "high" },
+      { id: "5.6.a.3", term: "Standard ACL syntax",          def: "'access-list [1-99] {permit|deny} [source] [wildcard]'. Or named: 'ip access-list standard [name]'.", weight: "high" },
+      { id: "5.6.a.4", term: "host keyword",                 def: "Shortcut for exact match. 'host 10.1.1.1' = '10.1.1.1 0.0.0.0'.", weight: "med" },
+      { id: "5.6.a.5", term: "any keyword",                  def: "Shortcut for all. 'any' = '0.0.0.0 255.255.255.255'.", weight: "med" }
+    ]
   },
 
   "5.6.b": {
@@ -470,8 +682,14 @@ window.subtopicContentD56 = {
       memory: "Extended = EVERYTHING (src, dst, protocol, port). Numbers 100-199. Placed near SOURCE. Mnemonic: 'ES' — Extended → Source. Extended has Extra fields, so block precisely and early.",
       practice: "Write this from memory: <code>access-list 100 permit tcp 10.0.0.0 0.0.0.255 host 192.168.1.100 eq 443</code>. Apply inbound on source-side: <code>ip access-group 100 in</code>. Test: HTTPS should work, HTTP (80) should be denied by implicit deny.",
       effort: "high",
-      meta: "Jeremy's IT Lab Day 34-35 (Extended ACLs). Wendell Odom OCG Chapters 3-4 (Vol 2). Extended ACL syntax is HEAVILY tested. Practice writing the full command from scratch: protocol → source+wildcard → destination+wildcard → eq port."
-    }
+      meta: "Jeremy's IT Lab Day 34-35 (Extended ACLs). Wendell Odom OCG Chapters 3-4 (Vol 2). Extended ACL syntax is HEAVILY tested. Practice writing the full command from scratch: protocol → source+wildcard → destination+wildcard → eq port.",
+    },
+    micro: [
+      { id: "5.6.b.1", term: "Extended ACL",                 def: "Matches source + destination + protocol + port. Numbered 100-199, 2000-2699. Granular filtering.", weight: "high" },
+      { id: "5.6.b.2", term: "Extended ACL placement",       def: "As close to SOURCE as possible. Granular match = can block specific traffic without affecting others.", weight: "high" },
+      { id: "5.6.b.3", term: "Extended ACL syntax",          def: "'access-list [100-199] {permit|deny} [proto] [src wildcard] [dst wildcard] [operator port]'.", weight: "high" },
+      { id: "5.6.b.4", term: "Port operators",               def: "eq (equals), gt, lt, neq, range. Example: 'eq 80' matches HTTP. 'range 20 21' matches FTP.", weight: "high" }
+    ]
   },
 
   "5.6.c": {
@@ -481,8 +699,13 @@ window.subtopicContentD56 = {
       memory: "Named = NICE names. <code>BLOCK_TELNET</code> is instantly clear vs <code>access-list 150</code>. Named ACLs enter a sub-config mode where you type entries directly. Sequence numbers let you edit surgically.",
       practice: "Lab: <code>ip access-list extended ALLOW_WEB</code> → <code>10 permit tcp any any eq 80</code> → <code>20 permit tcp any any eq 443</code>. Then insert: <code>15 permit tcp any any eq 8080</code>. Delete: <code>no 20</code>. Verify with <code>show access-lists</code>.",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 35. Wendell Odom OCG Chapter 4 (Vol 2). The exam tests named ACL syntax and sequence number editing. Know the sub-config mode and <code>no [seq#]</code> to delete individual entries."
-    }
+      meta: "Jeremy's IT Lab Day 35. Wendell Odom OCG Chapter 4 (Vol 2). The exam tests named ACL syntax and sequence number editing. Know the sub-config mode and <code>no [seq#]</code> to delete individual entries.",
+    },
+    micro: [
+      { id: "5.6.c.1", term: "Named ACL",                    def: "Alternative to numbered. 'ip access-list {standard|extended} [name]' → sub-config mode.", weight: "high" },
+      { id: "5.6.c.2", term: "Sequence numbers",             def: "Each ACE has a seq number (10, 20, 30...). Insert by specifying seq. Delete with 'no [seq#]'.", weight: "high" },
+      { id: "5.6.c.3", term: "resequence command",           def: "'ip access-list resequence [name] [start] [increment]'. Renumber entries for easier insertion.", weight: "med" }
+    ]
   },
 
   "5.6.d": {
@@ -492,8 +715,13 @@ window.subtopicContentD56 = {
       memory: "Wildcard = 255 minus subnet mask, per octet. 0 = MUST match (check). 1 = DON'T care (ignore). Opposite of subnet mask. /24 → 0.0.0.255. /30 → 0.0.0.3. /28 → 0.0.0.15.",
       practice: "Speed drill: convert these to wildcards in under 60 seconds without a calculator: /24, /16, /28, /30, /27, /25, /32, /0. Then reverse: wildcard 0.0.0.63 = what prefix? (/26). Build speed.",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 33-35. Wendell Odom OCG Chapters 3-4 (Vol 2). Wildcard math appears on nearly every exam. The fastest method: 255 minus each octet. Practice until automatic — no thinking, just subtraction."
-    }
+      meta: "Jeremy's IT Lab Day 33-35. Wendell Odom OCG Chapters 3-4 (Vol 2). Wildcard math appears on nearly every exam. The fastest method: 255 minus each octet. Practice until automatic — no thinking, just subtraction.",
+    },
+    micro: [
+      { id: "5.6.d.1", term: "Wildcard mask",                def: "INVERSE of subnet mask. 0 = must match, 1 = don't care. 255.255.255.0 → 0.0.0.255.", weight: "high" },
+      { id: "5.6.d.2", term: "Quick math: 255 − mask octet", def: "/24 mask 255.255.255.0 → 0.0.0.255. /26 mask ...192 → 255-192=63 → 0.0.0.63.", weight: "high" },
+      { id: "5.6.d.3", term: "Single host wildcard",         def: "0.0.0.0 = exact IP match. 'host X.X.X.X' is shortcut for 'X.X.X.X 0.0.0.0'.", weight: "high" }
+    ]
   },
 
   "5.6.e": {
@@ -503,8 +731,13 @@ window.subtopicContentD56 = {
       memory: "0.0.0.0 = Host (all zeros = check ALL bits = one exact host). 255.255.255.255 = Any (all ones = check NO bits = any address). <code>host</code> and <code>any</code> are just shortcuts for these wildcards.",
       practice: "Translate both directions: <code>permit 10.1.1.1 0.0.0.0</code> → <code>permit host 10.1.1.1</code>. <code>deny 0.0.0.0 255.255.255.255</code> → <code>deny any</code>. <code>permit host 192.168.1.1</code> → <code>permit 192.168.1.1 0.0.0.0</code>. Practice until both forms are interchangeable in your mind.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 33-35. Wendell Odom OCG Chapters 3-4 (Vol 2). The exam uses both forms interchangeably. <code>host</code> = 0.0.0.0 wildcard. <code>any</code> = 255.255.255.255 wildcard. Know both directions instantly."
-    }
+      meta: "Jeremy's IT Lab Day 33-35. Wendell Odom OCG Chapters 3-4 (Vol 2). The exam uses both forms interchangeably. <code>host</code> = 0.0.0.0 wildcard. <code>any</code> = 255.255.255.255 wildcard. Know both directions instantly.",
+    },
+    micro: [
+      { id: "5.6.e.1", term: "host keyword",                 def: "'host 10.1.1.1' = '10.1.1.1 0.0.0.0'. Exact single-host match.", weight: "high" },
+      { id: "5.6.e.2", term: "any keyword",                  def: "'any' = '0.0.0.0 255.255.255.255'. Matches all IPs.", weight: "high" },
+      { id: "5.6.e.3", term: "Both forms valid",             def: "Exam uses both. 'permit host 10.1.1.1' and 'permit 10.1.1.1 0.0.0.0' are identical.", weight: "high" }
+    ]
   },
 
   "5.6.f": {
@@ -514,8 +747,13 @@ window.subtopicContentD56 = {
       memory: "Every ACL ends with an INVISIBLE 'deny all.' It's always there, you just can't see it. If you forget to permit something, it's gone. The invisible wall at the end catches EVERYTHING that wasn't explicitly allowed.",
       practice: "Lab: Create <code>access-list 10 permit 10.0.0.0 0.0.0.255</code> and apply it. Test: 10.x.x.x works, everything else blocked. Now add <code>access-list 10 deny any log</code> to make the implicit deny visible — watch the syslog messages for dropped packets.",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 33-35. Wendell Odom OCG Chapters 3-4 (Vol 2). The implicit deny is one of the most tested ACL concepts. If a question shows an ACL without <code>permit any</code>, ask: what gets silently blocked?"
-    }
+      meta: "Jeremy's IT Lab Day 33-35. Wendell Odom OCG Chapters 3-4 (Vol 2). The implicit deny is one of the most tested ACL concepts. If a question shows an ACL without <code>permit any</code>, ask: what gets silently blocked?",
+    },
+    micro: [
+      { id: "5.6.f.1", term: "Implicit deny any",            def: "Every ACL has invisible 'deny any' at the end. Traffic NOT explicitly permitted = BLOCKED.", weight: "high" },
+      { id: "5.6.f.2", term: "Always end with explicit deny?", def: "Optional but best practice — makes implicit deny visible. Also enables match-counter logging.", weight: "high" },
+      { id: "5.6.f.3", term: "Missing permit any trap",      def: "ACL only permits specific traffic → everything else silently dropped. Classic exam 'what's broken?' scenario.", weight: "high" }
+    ]
   },
 
   "5.6.g": {
@@ -525,8 +763,13 @@ window.subtopicContentD56 = {
       memory: "FIRST MATCH WINS. Like a bouncer with a checklist — checks top to bottom, acts on the FIRST match, ignores everything below. ORDER MATTERS. Specific before general. Always.",
       practice: "Write two ACLs: one correct (deny host first, permit subnet second) and one broken (reversed). Trace a packet from 10.0.0.5 through each. See how the broken order lets the host through. This cements the concept permanently.",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 33-35. Wendell Odom OCG Chapters 3-4 (Vol 2). Exam questions present ACLs and ask 'what happens to packet X?' Trace top-to-bottom, find first match, done. Don't read further."
-    }
+      meta: "Jeremy's IT Lab Day 33-35. Wendell Odom OCG Chapters 3-4 (Vol 2). Exam questions present ACLs and ask 'what happens to packet X?' Trace top-to-bottom, find first match, done. Don't read further.",
+    },
+    micro: [
+      { id: "5.6.g.1", term: "Top-down processing",          def: "Router evaluates ACEs in order (sequence number). First match wins. Stops processing immediately.", weight: "high" },
+      { id: "5.6.g.2", term: "Order matters",                def: "Specific rules must come BEFORE general rules. 'deny host X' above 'permit subnet' — reverse and host X would match 'permit' first.", weight: "high" },
+      { id: "5.6.g.3", term: "Trace exam method",            def: "Given packet + ACL, trace ACE-by-ACE until first match. Action at first match = the result.", weight: "high" }
+    ]
   },
 
   "5.6.h": {
@@ -536,8 +779,13 @@ window.subtopicContentD56 = {
       memory: "Standard = near Destination. Mnemonic: SD = Standard → Destination. Because standard only checks source, placing it near source blocks that source from reaching EVERYWHERE. Place at the end to be surgical.",
       practice: "Draw a network: Source → Router A → Router B → Router C → Destination. Also add a second destination off Router B. Place a standard ACL near the source and trace which destinations break. Move it near the intended destination and trace again. See the difference.",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 33-35. Wendell Odom OCG Chapters 3-4 (Vol 2). ACL placement = top-5 tested CCNA topic. Standard = destination, Extended = source. This alone answers many exam questions."
-    }
+      meta: "Jeremy's IT Lab Day 33-35. Wendell Odom OCG Chapters 3-4 (Vol 2). ACL placement = top-5 tested CCNA topic. Standard = destination, Extended = source. This alone answers many exam questions.",
+    },
+    micro: [
+      { id: "5.6.h.1", term: "Standard ACL near destination", def: "Blocks all source traffic. Must place near destination so legitimate traffic isn't blocked en route.", weight: "high" },
+      { id: "5.6.h.2", term: "Extended ACL near source",     def: "Specific match (src+dst+proto+port). Place near source to save bandwidth by dropping early.", weight: "high" },
+      { id: "5.6.h.3", term: "Why placement matters",        def: "Wrong placement = traffic dropped unnecessarily OR consumes bandwidth before being dropped.", weight: "high" }
+    ]
   },
 
   "5.6.i": {
@@ -547,8 +795,12 @@ window.subtopicContentD56 = {
       memory: "Extended = near Source. Mnemonic: ES = Extended → Source. Extended is specific enough to block precisely, so kill the bad traffic early and save bandwidth across the entire path.",
       practice: "Scenario: 'Block HTTP from 10.0.0.0/24 to 192.168.1.100.' Identify the source-side router. Write the ACL: <code>access-list 100 deny tcp 10.0.0.0 0.0.0.255 host 192.168.1.100 eq 80</code> + <code>access-list 100 permit ip any any</code>. Apply inbound on the source-side interface.",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 33-35. Wendell Odom OCG Chapters 3-4 (Vol 2). The exam gives a network diagram and asks where to place the ACL. Standard = destination, Extended = source. This pair of rules answers many questions."
-    }
+      meta: "Jeremy's IT Lab Day 33-35. Wendell Odom OCG Chapters 3-4 (Vol 2). The exam gives a network diagram and asks where to place the ACL. Standard = destination, Extended = source. This pair of rules answers many questions.",
+    },
+    micro: [
+      { id: "5.6.i.1", term: "ACL placement decision",        def: "Given topology diagram, determine where to apply ACL. Standard → closest to dest. Extended → closest to source.", weight: "high" },
+      { id: "5.6.i.2", term: "Scenario question method",     def: "Read: standard or extended? Read: source + destination. Apply the placement rule. Check direction.", weight: "high" }
+    ]
   },
 
   "5.6.j": {
@@ -558,8 +810,14 @@ window.subtopicContentD56 = {
       memory: "IN = coming INTO the router. OUT = going OUT of the router. Think from the ROUTER's view, not the user's. One ACL per direction per interface. Draw the router, draw arrows: IN points at the router, OUT points away.",
       practice: "Lab: <code>int Gi0/0</code> → <code>ip access-group 100 in</code>. Verify: <code>show ip interface Gi0/0</code> — look for 'Inbound access list is 100'. Test traffic in both directions to confirm only inbound is filtered.",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 33-35. Wendell Odom OCG Chapters 3-4 (Vol 2). The exam tests direction understanding. Draw the router, label interfaces, draw traffic arrows. IN = arrow toward router. OUT = arrow away."
-    }
+      meta: "Jeremy's IT Lab Day 33-35. Wendell Odom OCG Chapters 3-4 (Vol 2). The exam tests direction understanding. Draw the router, label interfaces, draw traffic arrows. IN = arrow toward router. OUT = arrow away.",
+    },
+    micro: [
+      { id: "5.6.j.1", term: "ACL direction: in",            def: "Traffic ENTERING the router through this interface. Before routing decision.", weight: "high" },
+      { id: "5.6.j.2", term: "ACL direction: out",           def: "Traffic LEAVING the router through this interface. After routing decision.", weight: "high" },
+      { id: "5.6.j.3", term: "ip access-group [ACL] {in|out}", def: "Apply ACL on an interface. Must specify direction.", weight: "high" },
+      { id: "5.6.j.4", term: "Think from router's view",     def: "Direction is relative to the ROUTER, not the client. In = into router. Out = out of router.", weight: "high" }
+    ]
   },
 
   "5.6.k": {
@@ -569,8 +827,13 @@ window.subtopicContentD56 = {
       memory: "access-CLASS = for VTY lines (who can SSH in). access-GROUP = for interfaces (what traffic flows through). CLASS = CLI access. GROUP = traffic flow. Don't mix them up — it's a common exam trap.",
       practice: "Lab: <code>access-list 5 permit host 10.0.0.50</code> → <code>line vty 0 15</code> → <code>access-class 5 in</code>. SSH from 10.0.0.50 (works) and from 10.0.0.99 (rejected). Verify with <code>show line vty 0</code>.",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 35. Wendell Odom OCG Chapter 4 (Vol 2). The exam specifically tests <code>access-class in</code> for VTY vs <code>ip access-group in|out</code> for interfaces. This distinction is a guaranteed trap question."
-    }
+      meta: "Jeremy's IT Lab Day 35. Wendell Odom OCG Chapter 4 (Vol 2). The exam specifically tests <code>access-class in</code> for VTY vs <code>ip access-group in|out</code> for interfaces. This distinction is a guaranteed trap question.",
+    },
+    micro: [
+      { id: "5.6.k.1", term: "access-class (VTY)",           def: "Apply ACL to VTY lines: 'access-class [ACL] in'. Controls who can SSH/Telnet to the router.", weight: "high" },
+      { id: "5.6.k.2", term: "ip access-group (interface)",  def: "Apply ACL to physical interface: 'ip access-group [ACL] {in|out}'. Filters transit traffic.", weight: "high" },
+      { id: "5.6.k.3", term: "Don't confuse the two",        def: "access-class for VTY, access-group for interfaces. Classic exam trap.", weight: "high" }
+    ]
   },
 
   "5.6.l": {
@@ -580,8 +843,13 @@ window.subtopicContentD56 = {
       memory: "Sequence numbers = line numbers in a text editor. Insert between lines, delete specific lines, renumber the whole file. Edit surgically — never destroy and rebuild the entire ACL.",
       practice: "Lab: Create a named ACL with 3 entries (10, 20, 30). Insert at 15. Delete 20 with <code>no 20</code>. Resequence with <code>ip access-list resequence MY_ACL 10 10</code>. Verify each step with <code>show access-lists</code>.",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 35. Wendell Odom OCG Chapter 4 (Vol 2). The exam tests ACL editing: <code>no [seq]</code> to delete, manual sequence to insert, <code>resequence</code> to renumber. Know you don't need to recreate the ACL."
-    }
+      meta: "Jeremy's IT Lab Day 35. Wendell Odom OCG Chapter 4 (Vol 2). The exam tests ACL editing: <code>no [seq]</code> to delete, manual sequence to insert, <code>resequence</code> to renumber. Know you don't need to recreate the ACL.",
+    },
+    micro: [
+      { id: "5.6.l.1", term: "ACL edit — delete entry",      def: "Under 'ip access-list' sub-config: 'no [seq#]'. Removes a single ACE without affecting others.", weight: "high" },
+      { id: "5.6.l.2", term: "ACL edit — insert entry",      def: "Type '[seq#] permit/deny ...' under the named ACL sub-config. Inserts at that sequence number.", weight: "high" },
+      { id: "5.6.l.3", term: "ip access-list resequence",    def: "Renumber existing ACEs to open space for inserts. E.g., 'resequence myacl 10 10' → 10, 20, 30...", weight: "med" }
+    ]
   },
 
   "5.6.m": {
@@ -591,8 +859,13 @@ window.subtopicContentD56 = {
       memory: "<code>show access-lists</code> = see the rules + hit counts. <code>show ip interface X</code> = see WHERE ACLs are applied. If hit count = 0, the ACL isn't matching traffic — wrong interface, wrong direction, or wrong rule.",
       practice: "Lab: Apply an ACL, generate traffic, run <code>show access-lists</code>. Watch match counters increment. If a rule shows 0 matches, troubleshoot: is the ACL on the right interface? Right direction? Is the rule order correct?",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 33-35. Wendell Odom OCG Chapters 3-4 (Vol 2). The exam shows <code>show access-lists</code> output and asks you to interpret it. Practice reading: sequence number → action (permit/deny) → criteria → match count."
-    }
+      meta: "Jeremy's IT Lab Day 33-35. Wendell Odom OCG Chapters 3-4 (Vol 2). The exam shows <code>show access-lists</code> output and asks you to interpret it. Practice reading: sequence number → action (permit/deny) → criteria → match count.",
+    },
+    micro: [
+      { id: "5.6.m.1", term: "show access-lists",            def: "Displays all ACLs and their entries with match counts. Primary ACL verification command.", weight: "high" },
+      { id: "5.6.m.2", term: "show ip interface [int]",      def: "Shows which ACL is applied on interface and direction. Useful for tracking application.", weight: "high" },
+      { id: "5.6.m.3", term: "show ip access-lists",         def: "Like show access-lists but IPv4 only. Same output format.", weight: "med" }
+    ]
   },
 
   // ── 5.7 Configure and verify Layer 2 security ────────────────
@@ -604,8 +877,13 @@ window.subtopicContentD56 = {
       memory: "DHCP Snooping = a SNOOPY guard checking DHCP packets. Untrusted ports can only ASK for addresses (client msgs), never GIVE them (server msgs). Trusted ports = real DHCP servers only.",
       practice: "In Packet Tracer: enable DHCP snooping globally and on VLAN 10. Set the uplink/server port as trusted. Connect a rogue DHCP server to an untrusted port — its Offer/ACK messages should be dropped.",
       effort: "high",
-      meta: "Jeremy's IT Lab Day 53 (DHCP Snooping). Wendell Odom OCG Chapter 30. DHCP snooping is foundational — DAI and IP Source Guard depend on the binding table. Learn snooping first, then DAI builds on top."
-    }
+      meta: "Jeremy's IT Lab Day 53 (DHCP Snooping). Wendell Odom OCG Chapter 30. DHCP snooping is foundational — DAI and IP Source Guard depend on the binding table. Learn snooping first, then DAI builds on top.",
+    },
+    micro: [
+      { id: "5.7.a.1", term: "DHCP snooping",                def: "L2 security feature. Blocks rogue DHCP servers. Only trusted ports forward DHCP offers.", weight: "high" },
+      { id: "5.7.a.2", term: "Trusted vs untrusted ports",   def: "Trusted = facing legit DHCP server. Untrusted = user ports, block DHCP server messages (offers).", weight: "high" },
+      { id: "5.7.a.3", term: "DHCP snooping binding table",  def: "IP ↔ MAC ↔ port ↔ VLAN. Built from observed DHCP transactions. Used by DAI and IP Source Guard.", weight: "high" }
+    ]
   },
 
   "5.7.b": {
@@ -615,8 +893,14 @@ window.subtopicContentD56 = {
       memory: "Three steps: 1) GLOBAL enable, 2) VLAN enable, 3) TRUST the server port. Forget any one and it fails. Gotcha: Option 82 can break DHCP — disable with <code>no ip dhcp snooping information option</code> if needed.",
       practice: "Type the full config from memory: <code>ip dhcp snooping</code> → <code>ip dhcp snooping vlan 10</code> → <code>int gi0/1</code> → <code>ip dhcp snooping trust</code>. Then add <code>no ip dhcp snooping information option</code>. Practice until eyes-closed.",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 53. Wendell Odom OCG Chapter 30. The exam tests exact commands and that you need BOTH global AND per-VLAN enablement. The Option 82 gotcha is a common lab troubleshooting issue."
-    }
+      meta: "Jeremy's IT Lab Day 53. Wendell Odom OCG Chapter 30. The exam tests exact commands and that you need BOTH global AND per-VLAN enablement. The Option 82 gotcha is a common lab troubleshooting issue.",
+    },
+    micro: [
+      { id: "5.7.b.1", term: "ip dhcp snooping (global)",    def: "Enables DHCP snooping globally on switch. Step 1.", weight: "high" },
+      { id: "5.7.b.2", term: "ip dhcp snooping vlan [#]",    def: "Enables snooping per-VLAN. Both global AND per-VLAN required.", weight: "high" },
+      { id: "5.7.b.3", term: "ip dhcp snooping trust",       def: "Interface command on trusted port (uplink toward DHCP server). Default = untrusted.", weight: "high" },
+      { id: "5.7.b.4", term: "Option 82 gotcha",             def: "By default DHCP snooping inserts Option 82. Relay may reject it. Use 'no ip dhcp snooping information option' if needed.", weight: "med" }
+    ]
   },
 
   "5.7.c": {
@@ -626,8 +910,12 @@ window.subtopicContentD56 = {
       memory: "The binding table = DHCP snooping's memory. It records WHO (MAC) got WHAT address (IP) on WHICH port (interface). DAI and IP Source Guard both READ this table for their validation.",
       practice: "Lab: Enable DHCP snooping, let a client obtain an address via DHCP, then <code>show ip dhcp snooping binding</code>. Verify the entry has MAC, IP, VLAN, and interface. This table is what DAI reads.",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 53. Wendell Odom OCG Chapter 30. The binding table links DHCP snooping to DAI. Exam question: 'What does DAI use to validate ARP?' Answer: the DHCP snooping binding table."
-    }
+      meta: "Jeremy's IT Lab Day 53. Wendell Odom OCG Chapter 30. The binding table links DHCP snooping to DAI. Exam question: 'What does DAI use to validate ARP?' Answer: the DHCP snooping binding table.",
+    },
+    micro: [
+      { id: "5.7.c.1", term: "Binding table = DAI source",   def: "DAI uses the DHCP snooping binding table to validate ARP replies. Without snooping, DAI has no data.", weight: "high" },
+      { id: "5.7.c.2", term: "show ip dhcp snooping binding", def: "View the binding table: IP, MAC, port, VLAN, lease expiration.", weight: "high" }
+    ]
   },
 
   "5.7.d": {
@@ -637,8 +925,13 @@ window.subtopicContentD56 = {
       memory: "Rate limiting = speed bumps for DHCP. Normal PC: 1-4 DHCP packets at a time. Starvation attack: thousands per second. Rate limit catches the flood and err-disables the port.",
       practice: "Lab: <code>int gi0/5</code> → <code>ip dhcp snooping limit rate 10</code>. Generate excessive DHCP traffic and watch the port go err-disabled. Recover with <code>shutdown</code> / <code>no shutdown</code>. Then configure auto-recovery: <code>errdisable recovery cause dhcp-rate-limit</code>.",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 53. Wendell Odom OCG Chapter 30. The exam may ask about DHCP starvation: what is it (MAC spoofing to exhaust the pool) and how to prevent it (DHCP snooping + rate limiting)."
-    }
+      meta: "Jeremy's IT Lab Day 53. Wendell Odom OCG Chapter 30. The exam may ask about DHCP starvation: what is it (MAC spoofing to exhaust the pool) and how to prevent it (DHCP snooping + rate limiting).",
+    },
+    micro: [
+      { id: "5.7.d.1", term: "DHCP starvation attack",       def: "Attacker requests many DHCP leases using spoofed MACs. Exhausts DHCP pool. Legit clients get denied.", weight: "high" },
+      { id: "5.7.d.2", term: "DHCP starvation mitigation",   def: "DHCP snooping + port security (limit MACs) + rate limiting DHCP messages per port.", weight: "high" },
+      { id: "5.7.d.3", term: "ip dhcp snooping limit rate",  def: "Per-port rate limit for DHCP packets. Prevents starvation and rogue flooding.", weight: "med" }
+    ]
   },
 
   "5.7.e": {
@@ -648,8 +941,14 @@ window.subtopicContentD56 = {
       memory: "DAI = the ARP detective. Checks every ARP packet against the binding table. If the story doesn't match the records, DROPPED. Prerequisite: DHCP snooping must be enabled first (provides the binding table).",
       practice: "Lab: Enable DHCP snooping first (global + VLAN + trust server port). Then enable DAI: <code>ip arp inspection vlan 10</code>. Trust uplinks: <code>ip arp inspection trust</code>. Verify with <code>show ip arp inspection</code>.",
       effort: "high",
-      meta: "Jeremy's IT Lab Day 53. Wendell Odom OCG Chapter 30. DAI depends on DHCP snooping. Exam question: 'What must be enabled before DAI?' = DHCP snooping. 'What does DAI use?' = DHCP snooping binding table."
-    }
+      meta: "Jeremy's IT Lab Day 53. Wendell Odom OCG Chapter 30. DAI depends on DHCP snooping. Exam question: 'What must be enabled before DAI?' = DHCP snooping. 'What does DAI use?' = DHCP snooping binding table.",
+    },
+    micro: [
+      { id: "5.7.e.1", term: "DAI (Dynamic ARP Inspection)", def: "L2 security. Validates ARP replies against DHCP snooping binding table. Stops ARP spoofing.", weight: "high" },
+      { id: "5.7.e.2", term: "DAI requires DHCP snooping",   def: "DAI uses the binding table that DHCP snooping builds. Enable snooping FIRST.", weight: "high" },
+      { id: "5.7.e.3", term: "ip arp inspection vlan [#]",   def: "Enable DAI per VLAN.", weight: "high" },
+      { id: "5.7.e.4", term: "ip arp inspection trust",      def: "Interface command. Trusted ports (uplinks) bypass ARP inspection. User ports = untrusted (default).", weight: "high" }
+    ]
   },
 
   "5.7.f": {
@@ -659,8 +958,13 @@ window.subtopicContentD56 = {
       memory: "DAI config mirrors DHCP snooping: enable per VLAN, trust uplinks. Same pattern. DHCP snooping MUST come first. For static IPs, use ARP ACLs to manually define bindings.",
       practice: "Full chain from scratch: DHCP snooping (global → VLAN → trust server) → DAI (VLAN → trust uplinks). For static hosts, add ARP ACL. Practice the entire chain as one workflow.",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 53. Wendell Odom OCG Chapter 30. The exam tests the full dependency chain: DHCP snooping → binding table → DAI. Trust the right ports on BOTH features."
-    }
+      meta: "Jeremy's IT Lab Day 53. Wendell Odom OCG Chapter 30. The exam tests the full dependency chain: DHCP snooping → binding table → DAI. Trust the right ports on BOTH features.",
+    },
+    micro: [
+      { id: "5.7.f.1", term: "Dependency chain",             def: "DHCP snooping → populates binding table → DAI reads binding table → validates ARP.", weight: "high" },
+      { id: "5.7.f.2", term: "Trust same ports on both",     def: "Port connecting to legit DHCP server + ARP source = trusted for both DHCP snooping AND DAI.", weight: "high" },
+      { id: "5.7.f.3", term: "Full L2 security stack",       def: "Port security + DHCP snooping + DAI + IP Source Guard = comprehensive access-layer security.", weight: "med" }
+    ]
   },
 
   "5.7.g": {
@@ -670,8 +974,13 @@ window.subtopicContentD56 = {
       memory: "Port security = a bouncer checking MAC IDs at the door. Only approved MACs get in. Too many strangers = the port shuts down. Prevents MAC flooding (CAM table overflow → switch acts like a hub).",
       practice: "Understand the MAC flooding attack: attacker sends random source MACs → CAM table fills → switch floods all traffic → attacker captures everything. Port security stops this by limiting MACs per port.",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 53 (Port Security). Wendell Odom OCG Chapter 30. Port security purpose, config, and violation modes are tested as a group. Study all three together as one unit."
-    }
+      meta: "Jeremy's IT Lab Day 53 (Port Security). Wendell Odom OCG Chapter 30. Port security purpose, config, and violation modes are tested as a group. Study all three together as one unit.",
+    },
+    micro: [
+      { id: "5.7.g.1", term: "Port security",                def: "L2 feature. Limits which MAC addresses can connect on a port. Prevents rogue device attachment.", weight: "high" },
+      { id: "5.7.g.2", term: "Max MACs per port",            def: "Default 1 when enabled. Configurable with 'switchport port-security maximum [N]'.", weight: "high" },
+      { id: "5.7.g.3", term: "Purpose",                      def: "Stops MAC flooding attacks + enforces 'one-device-per-port' policies. First line of access-layer defense.", weight: "high" }
+    ]
   },
 
   "5.7.h": {
@@ -681,8 +990,14 @@ window.subtopicContentD56 = {
       memory: "ACCESS mode first (prerequisite), then enable port-security, then max + violation + sticky/static. Without <code>switchport mode access</code>, port security refuses to activate. Defaults: max=1, violation=shutdown.",
       practice: "Full lab: <code>switchport mode access</code> → <code>switchport port-security</code> → <code>switchport port-security maximum 2</code> → <code>switchport port-security mac-address sticky</code> → <code>switchport port-security violation restrict</code>. Connect a device, verify with <code>show port-security interface</code>. Connect a third device — violation triggered.",
       effort: "high",
-      meta: "Jeremy's IT Lab Day 53. Wendell Odom OCG Chapter 30. The exam expects commands in correct order. Most common mistake: enabling port-security on a trunk or dynamic port — it ONLY works on access ports."
-    }
+      meta: "Jeremy's IT Lab Day 53. Wendell Odom OCG Chapter 30. The exam expects commands in correct order. Most common mistake: enabling port-security on a trunk or dynamic port — it ONLY works on access ports.",
+    },
+    micro: [
+      { id: "5.7.h.1", term: "Port-security prereq",         def: "Port must be ACCESS mode. 'switchport mode access' first. Fails on trunk or dynamic.", weight: "high" },
+      { id: "5.7.h.2", term: "switchport port-security",     def: "Interface command. Enables port security on the port.", weight: "high" },
+      { id: "5.7.h.3", term: "maximum / mac-address",        def: "'port-security maximum [N]' sets max MACs. 'port-security mac-address [MAC]' statically allows specific MAC.", weight: "high" },
+      { id: "5.7.h.4", term: "Config order",                 def: "(1) mode access, (2) port-security enable, (3) max, (4) mac-address or sticky, (5) violation mode.", weight: "high" }
+    ]
   },
 
   "5.7.i": {
@@ -692,8 +1007,13 @@ window.subtopicContentD56 = {
       memory: "STICKY = the MAC STICKS to the config like tape. Auto-learned but written to running-config. Must <code>copy run start</code> to survive reboot. Three modes: Dynamic (volatile) → Sticky (semi-persistent) → Static (manual, strongest).",
       practice: "Lab: Enable sticky. Connect a device. <code>show running-config interface Gi0/1</code> — see the sticky MAC auto-added. Bounce the port — MAC survives. <code>reload</code> without saving — MAC gone. Then save and reload — MAC persists.",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 53. Wendell Odom OCG Chapter 30. Exam question: 'How to auto-learn and retain MACs?' = sticky. Critical detail: must SAVE config (<code>copy run start</code>) or sticky MACs are lost on reboot."
-    }
+      meta: "Jeremy's IT Lab Day 53. Wendell Odom OCG Chapter 30. Exam question: 'How to auto-learn and retain MACs?' = sticky. Critical detail: must SAVE config (<code>copy run start</code>) or sticky MACs are lost on reboot.",
+    },
+    micro: [
+      { id: "5.7.i.1", term: "switchport port-security mac-address sticky", def: "Auto-learn connected MACs and ADD them to running-config. Convenient — no manual MAC entry.", weight: "high" },
+      { id: "5.7.i.2", term: "Sticky reboot gotcha",         def: "Sticky MACs are in RUNNING-config. Must 'copy run start' or they're lost on reboot (re-learned after).", weight: "high" },
+      { id: "5.7.i.3", term: "Static vs sticky",             def: "Static = manually typed in config. Sticky = auto-learned but saved as static. Both persistent.", weight: "high" }
+    ]
   },
 
   "5.7.j": {
@@ -703,8 +1023,14 @@ window.subtopicContentD56 = {
       memory: "P-R-S: Protect (silent drop), Restrict (drop + Report), Shutdown (Slam the port). Severity left to right. Default = Shutdown. Key fact: Protect has NO log — invisible. Restrict has a log — visible. Shutdown kills the port.",
       practice: "Lab: Test each mode sequentially. Set <code>violation protect</code> + trigger violation → traffic drops but nothing visible. Set <code>violation restrict</code> → see syslog message. Set <code>violation shutdown</code> → port goes err-disabled, verify with <code>show interfaces status</code>.",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 53. Wendell Odom OCG Chapter 30. The exam tests all three modes. Key facts: Protect = NO log. Restrict = log + port stays up. Shutdown = err-disabled (DEFAULT). Know what each does and doesn't do."
-    }
+      meta: "Jeremy's IT Lab Day 53. Wendell Odom OCG Chapter 30. The exam tests all three modes. Key facts: Protect = NO log. Restrict = log + port stays up. Shutdown = err-disabled (DEFAULT). Know what each does and doesn't do.",
+    },
+    micro: [
+      { id: "5.7.j.1", term: "Protect mode",                 def: "Drops violating frames silently. NO log, NO SNMP trap. Port stays up. Weakest enforcement.", weight: "high" },
+      { id: "5.7.j.2", term: "Restrict mode",                def: "Drops violating frames + LOGS syslog/SNMP trap + increments counter. Port stays up.", weight: "high" },
+      { id: "5.7.j.3", term: "Shutdown mode (default)",      def: "Port → err-disabled. Requires manual intervention. Logs + increments violation count. DEFAULT.", weight: "high" },
+      { id: "5.7.j.4", term: "switchport port-security violation", def: "Interface command. Takes 'protect', 'restrict', or 'shutdown'. Default is 'shutdown'.", weight: "high" }
+    ]
   },
 
   "5.7.k": {
@@ -714,8 +1040,13 @@ window.subtopicContentD56 = {
       memory: "Err-disabled = the port is in JAIL. Manual recovery = you bail it out (<code>shut</code> / <code>no shut</code>). Auto recovery = parole after a timer. Default timer: 300 seconds (5 min). Always investigate WHY before recovering.",
       practice: "Lab: Trigger err-disabled via port security. Recover manually: <code>shut</code> → <code>no shut</code>. Then enable auto-recovery: <code>errdisable recovery cause psecure-violation</code> → <code>errdisable recovery interval 30</code>. Trigger again and watch it auto-recover. Verify with <code>show errdisable recovery</code>.",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 53. Wendell Odom OCG Chapter 30. The exam tests both recovery methods. Manual = <code>shut</code> / <code>no shut</code>. Auto = <code>errdisable recovery cause</code> + <code>interval</code>. Know both."
-    }
+      meta: "Jeremy's IT Lab Day 53. Wendell Odom OCG Chapter 30. The exam tests both recovery methods. Manual = <code>shut</code> / <code>no shut</code>. Auto = <code>errdisable recovery cause</code> + <code>interval</code>. Know both.",
+    },
+    micro: [
+      { id: "5.7.k.1", term: "err-disabled recovery manual", def: "'shutdown' then 'no shutdown' on the port. Returns to normal operation.", weight: "high" },
+      { id: "5.7.k.2", term: "errdisable recovery cause",    def: "Global command to auto-recover. E.g., 'errdisable recovery cause psecure-violation' enables auto-recovery from port security.", weight: "high" },
+      { id: "5.7.k.3", term: "errdisable recovery interval", def: "Time (seconds) before auto-recovery attempt. Default 300s.", weight: "med" }
+    ]
   },
 
   // ── 5.8 Compare AAA concepts ──────────────────────────────────
@@ -727,8 +1058,14 @@ window.subtopicContentD56 = {
       memory: "Authentication = WHO are you? Show your ID at the door. First A in AAA. You can't authorize (what can you do?) until you authenticate (who are you?). Identity first, permissions second, logging third.",
       practice: "Map the AAA sequence to a building: 1) Authentication = showing your badge at the entrance (proving identity), 2) Authorization = your badge opens certain floors but not others (permissions), 3) Accounting = security cameras recording which floors you visited (audit trail).",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 50 (AAA). Wendell Odom OCG Chapter 10 + Chapter 27. Distinguish the three A's clearly: Authentication = identity, Authorization = permissions, Accounting = logging. The exam loves 'which AAA function does X?'"
-    }
+      meta: "Jeremy's IT Lab Day 50 (AAA). Wendell Odom OCG Chapter 10 + Chapter 27. Distinguish the three A's clearly: Authentication = identity, Authorization = permissions, Accounting = logging. The exam loves 'which AAA function does X?'",
+    },
+    micro: [
+      { id: "5.8.a.1", term: "Authentication",               def: "Proves WHO you are. Credentials verified (password, certificate, token).", weight: "high" },
+      { id: "5.8.a.2", term: "Authorization",                def: "Defines WHAT you can do. Privilege levels, command restrictions, access scope.", weight: "high" },
+      { id: "5.8.a.3", term: "Accounting",                   def: "Records WHAT you DID. Audit trail of actions for compliance and forensics.", weight: "high" },
+      { id: "5.8.a.4", term: "AAA order",                    def: "Authenticate first → Authorize → Account. Order matters — can't authorize unknown user.", weight: "med" }
+    ]
   },
 
   "5.8.b": {
@@ -738,8 +1075,13 @@ window.subtopicContentD56 = {
       memory: "Authorization = WHAT can you do? You're in the building (authenticated), but which doors can you open? Your badge level determines access. Priv 15 = all doors. Priv 1 = lobby only.",
       practice: "Scenario drill: Admin logs in → TACACS+ returns priv 15 → full CLI access. Helpdesk logs in → TACACS+ returns priv 5 → show commands only, no config mode. Different users, different authorization.",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 50. Wendell Odom OCG Chapter 10 + 27. Authorization = privilege levels and command restrictions. It defines WHAT the user can do AFTER proving WHO they are."
-    }
+      meta: "Jeremy's IT Lab Day 50. Wendell Odom OCG Chapter 10 + 27. Authorization = privilege levels and command restrictions. It defines WHAT the user can do AFTER proving WHO they are.",
+    },
+    micro: [
+      { id: "5.8.b.1", term: "Privilege levels",             def: "0-15. 15 = full access (enable). 1 = user-mode. Custom levels let you authorize specific commands.", weight: "high" },
+      { id: "5.8.b.2", term: "Per-command authorization",    def: "TACACS+ feature. Authorize/deny individual IOS commands per user. RADIUS can't do this.", weight: "high" },
+      { id: "5.8.b.3", term: "privilege exec level",         def: "Assign commands to custom privilege levels. Enables role-based access without full enable rights.", weight: "med" }
+    ]
   },
 
   "5.8.c": {
@@ -749,8 +1091,13 @@ window.subtopicContentD56 = {
       memory: "Accounting = the SECURITY CAMERA recording everything. Who logged in, what they typed, when they left. The audit trail that answers 'what happened?' Essential for compliance and forensics.",
       practice: "Configure accounting on a lab device: <code>aaa accounting exec default start-stop group tacacs+</code>. Log in, run commands, review accounting records on the server. See the trail of every command.",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 50. Wendell Odom OCG Chapter 10 + 27. Authentication = identity. Authorization = permissions. Accounting = logging. Accounting is often the forgotten A, but it's critical for compliance."
-    }
+      meta: "Jeremy's IT Lab Day 50. Wendell Odom OCG Chapter 10 + 27. Authentication = identity. Authorization = permissions. Accounting = logging. Accounting is often the forgotten A, but it's critical for compliance.",
+    },
+    micro: [
+      { id: "5.8.c.1", term: "Accounting purpose",           def: "Audit trail. Records who logged in, what commands they ran, when they logged out. For compliance and forensics.", weight: "high" },
+      { id: "5.8.c.2", term: "Accounting methods",           def: "Commands, exec (session start/stop), system events. Each can be logged separately.", weight: "med" },
+      { id: "5.8.c.3", term: "Compliance value",             def: "HIPAA, PCI-DSS, SOX require audit trails. Accounting provides the evidence for audits.", weight: "med" }
+    ]
   },
 
   "5.8.d": {
@@ -760,8 +1107,12 @@ window.subtopicContentD56 = {
       memory: "TACACS+ = TCP 49, Total encryption, Three separate AAA functions, per-command authorization. The T's: TCP, Total, Three, TACACS. Cisco-made for managing Cisco devices.",
       practice: "Build a TACACS+ vs RADIUS comparison table from memory: Port (49 vs 1812/1813), Protocol (TCP vs UDP), Encryption (full vs password-only), AAA Separation (yes vs no), Standard (Cisco vs open), Best for (device admin vs network access). Fill all 6 rows.",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 50. Wendell Odom OCG Chapter 10 + 27. TACACS+ vs RADIUS is one of the most tested AAA topics. Scenario: 'which protocol for device admin?' = TACACS+. 'For 802.1X?' = RADIUS."
-    }
+      meta: "Jeremy's IT Lab Day 50. Wendell Odom OCG Chapter 10 + 27. TACACS+ vs RADIUS is one of the most tested AAA topics. Scenario: 'which protocol for device admin?' = TACACS+. 'For 802.1X?' = RADIUS.",
+    },
+    micro: [
+      { id: "5.8.d.1", term: "Device admin → TACACS+",       def: "Cisco-proprietary. Full packet encryption. Separates AAA. Per-command authorization. Ideal for router/switch mgmt.", weight: "high" },
+      { id: "5.8.d.2", term: "Network access → RADIUS",      def: "Open standard. 802.1X wired/wireless, VPN authentication, WPA2-Enterprise. Multi-vendor.", weight: "high" }
+    ]
   },
 
   "5.8.e": {
@@ -771,8 +1122,13 @@ window.subtopicContentD56 = {
       memory: "RADIUS = UDP 1812/1813, password-only encryption, combines auth+authz (can't separate), open standard, multi-vendor. R = Remote access = RADIUS. Used for 802.1X, wireless, VPN.",
       practice: "Contrast with TACACS+: RADIUS = UDP + password encryption + combined auth/authz + open. TACACS+ = TCP + full encryption + separated AAA + Cisco. Drill until you can recite differences in 10 seconds.",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 50. Wendell Odom OCG Chapter 10 + 27. Key exam facts: RADIUS = UDP, open, password-only encryption, combined auth/authz. TACACS+ = TCP, Cisco, full encryption, separated AAA."
-    }
+      meta: "Jeremy's IT Lab Day 50. Wendell Odom OCG Chapter 10 + 27. Key exam facts: RADIUS = UDP, open, password-only encryption, combined auth/authz. TACACS+ = TCP, Cisco, full encryption, separated AAA.",
+    },
+    micro: [
+      { id: "5.8.e.1", term: "RADIUS recap",                 def: "UDP 1812/1813. Open standard. Only password encrypted. Combines auth+authz. Network ACCESS.", weight: "high" },
+      { id: "5.8.e.2", term: "TACACS+ recap",                def: "TCP 49. Cisco proprietary. FULL packet encryption. Separates AAA. Device ADMIN.", weight: "high" },
+      { id: "5.8.e.3", term: "Protocol/port summary",        def: "RADIUS=UDP 1812/1813. TACACS+=TCP 49. This is tested every exam cycle.", weight: "high" }
+    ]
   },
 
   "5.8.f": {
@@ -782,8 +1138,14 @@ window.subtopicContentD56 = {
       memory: "TACACS+ = managing DEVICES (admin CLI, per-command control). RADIUS = managing USER ACCESS to the network (802.1X, wireless, VPN). Both can coexist: TACACS+ for admin, RADIUS for users.",
       practice: "Scenario drill: 'Control which show commands helpdesk can run' = TACACS+ (per-command auth). 'Authenticate wireless users via 802.1X' = RADIUS. 'VPN user login' = RADIUS. 'Router management login' = TACACS+.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 50. Wendell Odom OCG Chapter 10 + 27. Use case determines protocol. Device admin = TACACS+. Network access = RADIUS. The 802.1X trio: Supplicant, Authenticator, Authentication Server."
-    }
+      meta: "Jeremy's IT Lab Day 50. Wendell Odom OCG Chapter 10 + 27. Use case determines protocol. Device admin = TACACS+. Network access = RADIUS. The 802.1X trio: Supplicant, Authenticator, Authentication Server.",
+    },
+    micro: [
+      { id: "5.8.f.1", term: "802.1X Supplicant",            def: "Client device requesting access. Runs 802.1X software. Provides credentials.", weight: "high" },
+      { id: "5.8.f.2", term: "802.1X Authenticator",         def: "Switch/WLC. Intermediate device. Forwards credentials from supplicant to authentication server. Enforces decision.", weight: "high" },
+      { id: "5.8.f.3", term: "802.1X Authentication Server", def: "Typically RADIUS server (Cisco ISE, Microsoft NPS). Validates credentials against user database.", weight: "high" },
+      { id: "5.8.f.4", term: "EAP",                          def: "Extensible Authentication Protocol. Framework 802.1X uses. EAP-TLS, PEAP, EAP-FAST are common methods.", weight: "med" }
+    ]
   },
 
   // ── 5.9 Describe wireless security protocols ──────────────────
@@ -795,8 +1157,13 @@ window.subtopicContentD56 = {
       memory: "WEP = Weak Encryption Protocol (unofficial but true). 24-bit IV = too short → repeats → cracked in minutes. RC4 cipher + static keys + short IV = completely broken. Never use WEP for anything.",
       practice: "Memorize the evolution timeline with cipher: WEP (RC4, 24-bit IV, broken) → WPA (TKIP/RC4, 48-bit IV, deprecated) → WPA2 (AES/CCMP, current) → WPA3 (SAE/OWE, newest). Know what each generation changes.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 56 (Wireless Security). Wendell Odom OCG Chapter 29. The exam tests WHY WEP is broken: 24-bit IV is too short and reuses keys. Don't just know 'WEP is bad' — know the mechanism."
-    }
+      meta: "Jeremy's IT Lab Day 56 (Wireless Security). Wendell Odom OCG Chapter 29. The exam tests WHY WEP is broken: 24-bit IV is too short and reuses keys. Don't just know 'WEP is bad' — know the mechanism.",
+    },
+    micro: [
+      { id: "5.9.a.1", term: "WEP",                          def: "Original wireless encryption. RC4 cipher. COMPLETELY BROKEN. Never use.", weight: "high" },
+      { id: "5.9.a.2", term: "WEP 24-bit IV problem",        def: "Initialization Vector is only 24 bits. Reuses within ~5000 frames. Attacker captures enough → cracks key in minutes.", weight: "high" },
+      { id: "5.9.a.3", term: "WEP static keys",              def: "Same key across all devices. Never rotated. If one device compromised, entire network is exposed.", weight: "med" }
+    ]
   },
 
   "5.9.b": {
@@ -806,8 +1173,13 @@ window.subtopicContentD56 = {
       memory: "WPA = band-aid over WEP. TKIP = Temporary Key Integrity Protocol — the name literally says TEMPORARY. Still uses RC4 but adds 48-bit IV + per-packet keys + MIC. Better than WEP, but now deprecated.",
       practice: "Build a comparison: WEP vs WPA — both use RC4, but WPA adds TKIP (48-bit IV, per-packet keys, MIC). Then WPA vs WPA2 — WPA2 drops RC4/TKIP entirely and uses AES/CCMP. Track the cipher changes.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 56. Wendell Odom OCG Chapter 29. Know the cipher per generation: WEP = RC4 (broken). WPA = TKIP/RC4 (deprecated). WPA2 = AES/CCMP (current). WPA3 = SAE + AES/GCMP."
-    }
+      meta: "Jeremy's IT Lab Day 56. Wendell Odom OCG Chapter 29. Know the cipher per generation: WEP = RC4 (broken). WPA = TKIP/RC4 (deprecated). WPA2 = AES/CCMP (current). WPA3 = SAE + AES/GCMP.",
+    },
+    micro: [
+      { id: "5.9.b.1", term: "WPA (TKIP)",                   def: "Wi-Fi Protected Access v1. Uses TKIP (still RC4-based). Temporary fix between WEP and WPA2. Now deprecated.", weight: "high" },
+      { id: "5.9.b.2", term: "TKIP purpose",                 def: "Made WEP-era hardware usable. Added per-packet keys and MIC. But TKIP itself has known weaknesses now.", weight: "med" },
+      { id: "5.9.b.3", term: "Wireless cipher evolution",    def: "WEP (RC4) → WPA (TKIP/RC4) → WPA2 (AES/CCMP) → WPA3 (AES/GCMP + SAE).", weight: "high" }
+    ]
   },
 
   "5.9.c": {
@@ -817,8 +1189,13 @@ window.subtopicContentD56 = {
       memory: "WPA2 = AES + CCMP = current gold standard. AES = the cipher that hasn't been cracked. CCMP = does BOTH encryption and integrity in one protocol. Two modes: Personal (PSK, shared password) vs Enterprise (802.1X, individual creds).",
       practice: "Configure WPA2-PSK in Packet Tracer: create WLAN → Security → WPA2/AES → set PSK. Connect a laptop. Then reconfigure for WPA2-Enterprise: point to RADIUS server → test 802.1X authentication. Know both workflows.",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 56. Wendell Odom OCG Chapter 29. WPA2 is the most heavily tested wireless security standard. Know: AES/CCMP, Personal vs Enterprise, and it's the minimum acceptable standard."
-    }
+      meta: "Jeremy's IT Lab Day 56. Wendell Odom OCG Chapter 29. WPA2 is the most heavily tested wireless security standard. Know: AES/CCMP, Personal vs Enterprise, and it's the minimum acceptable standard.",
+    },
+    micro: [
+      { id: "5.9.c.1", term: "WPA2",                         def: "IEEE 802.11i standard. Current production baseline. Uses AES-CCMP encryption.", weight: "high" },
+      { id: "5.9.c.2", term: "AES-CCMP",                     def: "WPA2's strong cipher. Counter Mode with CBC-MAC Protocol. Replaces TKIP.", weight: "high" },
+      { id: "5.9.c.3", term: "WPA2 minimum standard",        def: "Any enterprise deploying today should at minimum use WPA2 + AES. TKIP only for legacy compat.", weight: "high" }
+    ]
   },
 
   "5.9.d": {
@@ -828,8 +1205,14 @@ window.subtopicContentD56 = {
       memory: "WPA3 adds three things: SAE (kills offline dictionary attacks on passwords), OWE (encrypts open/public WiFi), 192-bit (government-grade enterprise crypto). SAE = Simultaneous Authentication of Equals. OWE = Opportunistic Wireless Encryption.",
       practice: "List what WPA3 fixes vs WPA2: 1) SAE replaces PSK 4-way handshake (no more offline cracking). 2) OWE encrypts open networks (no more cleartext at Starbucks). 3) 192-bit enterprise option. Know what each SOLVES.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 56. Wendell Odom OCG Chapter 29. WPA3 is newer exam content (CCNA v1.1). Know SAE, OWE, and 192-bit. The exam tests what WPA3 ADDS over WPA2 — not deep protocol details."
-    }
+      meta: "Jeremy's IT Lab Day 56. Wendell Odom OCG Chapter 29. WPA3 is newer exam content (CCNA v1.1). Know SAE, OWE, and 192-bit. The exam tests what WPA3 ADDS over WPA2 — not deep protocol details.",
+    },
+    micro: [
+      { id: "5.9.d.1", term: "WPA3",                         def: "Newest WPA standard. Adds SAE, OWE, forward secrecy. Drops WPS. Currently rolling out.", weight: "high" },
+      { id: "5.9.d.2", term: "SAE (Dragonfly)",              def: "Simultaneous Authentication of Equals. Replaces PSK handshake. Forward secrecy; resists offline dictionary attacks.", weight: "high" },
+      { id: "5.9.d.3", term: "OWE",                          def: "Opportunistic Wireless Encryption. Encrypts open networks (no password). Replaces plaintext on public WiFi.", weight: "high" },
+      { id: "5.9.d.4", term: "WPA3-Enterprise 192-bit",      def: "Higher-security mode. 192-bit crypto for government/financial. Uses CNSA suite.", weight: "med" }
+    ]
   },
 
   "5.9.e": {
@@ -839,8 +1222,13 @@ window.subtopicContentD56 = {
       memory: "Personal = PSK = one shared PASSWORD for everyone. Like a house key — if you give copies to 50 people, security depends on the most careless person. Simple but no accountability. Home/small office only.",
       practice: "Configure WPA2-Personal on a lab AP. Connect with the PSK. Change the PSK — verify old devices disconnect. Understand why managing 500 users with a shared password is impractical (that's what Enterprise solves).",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 56. Wendell Odom OCG Chapter 29. Personal = PSK = shared password = home/SOHO. Enterprise = 802.1X = individual credentials = corporate. The exam gives scenarios — pick the right mode."
-    }
+      meta: "Jeremy's IT Lab Day 56. Wendell Odom OCG Chapter 29. Personal = PSK = shared password = home/SOHO. Enterprise = 802.1X = individual credentials = corporate. The exam gives scenarios — pick the right mode.",
+    },
+    micro: [
+      { id: "5.9.e.1", term: "Personal mode",                def: "PSK (pre-shared key). Everyone uses the same password. Simple. Used in home/SOHO.", weight: "high" },
+      { id: "5.9.e.2", term: "Enterprise mode",              def: "802.1X. Each user has unique credentials. Requires RADIUS. Used in corporate networks.", weight: "high" },
+      { id: "5.9.e.3", term: "Scenario decision",            def: "'Home network' → Personal. 'Corporate with AD' → Enterprise. 'Small office no RADIUS' → Personal.", weight: "high" }
+    ]
   },
 
   "5.9.f": {
@@ -850,8 +1238,13 @@ window.subtopicContentD56 = {
       memory: "Enterprise = 802.1X = RADIUS = INDIVIDUAL credentials. Three players: Supplicant (client requesting access), Authenticator (AP/switch controlling access), Authentication Server (RADIUS making the decision). S-A-S.",
       practice: "Set up 802.1X in Packet Tracer or a lab: configure the AP as authenticator pointing to a RADIUS server. Test with a supplicant (laptop). Verify the three-party flow: supplicant → authenticator → RADIUS → back.",
       effort: "high",
-      meta: "Jeremy's IT Lab Day 56. Wendell Odom OCG Chapter 10 + 29. The 802.1X roles (supplicant, authenticator, authentication server) are heavily tested. Know all three and which device fills each role."
-    }
+      meta: "Jeremy's IT Lab Day 56. Wendell Odom OCG Chapter 10 + 29. The 802.1X roles (supplicant, authenticator, authentication server) are heavily tested. Know all three and which device fills each role.",
+    },
+    micro: [
+      { id: "5.9.f.1", term: "Wireless 802.1X supplicant",   def: "Client device (laptop, phone). Has 802.1X software configured with credentials or cert.", weight: "high" },
+      { id: "5.9.f.2", term: "Wireless 802.1X authenticator", def: "The WLC or AP. Forwards EAP messages between supplicant and RADIUS server.", weight: "high" },
+      { id: "5.9.f.3", term: "Wireless 802.1X auth server",  def: "RADIUS server (ISE/NPS). Validates credentials against AD or internal database. Returns Accept/Reject.", weight: "high" }
+    ]
   },
 
   // ── 5.10 Configure WLAN with WPA2 PSK ────────────────────────
@@ -863,8 +1256,13 @@ window.subtopicContentD56 = {
       memory: "WLC access = HTTPS to the management IP (like any web-managed device). Console for initial setup. GUI tabs: Monitor, WLANs, Controller, Wireless, Security, Management.",
       practice: "If you have access to Cisco CML, Packet Tracer (3504 WLC), or the Cisco DevNet Sandbox WLC, navigate the GUI. Click through each tab. Know where WLANs, Security, and Interfaces live.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 57-58 (WLC Configuration). Wendell Odom OCG Chapter 29. The exam tests WLC management basics: HTTPS for GUI, console for initial setup, and general navigation."
-    }
+      meta: "Jeremy's IT Lab Day 57-58 (WLC Configuration). Wendell Odom OCG Chapter 29. The exam tests WLC management basics: HTTPS for GUI, console for initial setup, and general navigation.",
+    },
+    micro: [
+      { id: "5.10.a.1", term: "WLC HTTPS GUI",               def: "Primary WLC management interface. Browser-based. Access via management IP on HTTPS.", weight: "high" },
+      { id: "5.10.a.2", term: "WLC console initial setup",   def: "First-time WLC config via console. After IP assigned, switch to HTTPS GUI for full management.", weight: "med" },
+      { id: "5.10.a.3", term: "WLC CLI limited",             def: "Some WLC CLI exists but most daily ops are GUI-driven. Different philosophy from IOS.", weight: "med" }
+    ]
   },
 
   "5.10.b": {
@@ -874,8 +1272,13 @@ window.subtopicContentD56 = {
       memory: "Three fields to create a WLAN: Profile (admin name), SSID (what users see), ID (unique number 1-512). Mnemonic: PSI — Profile, SSID, ID. Profile and SSID CAN be different.",
       practice: "In a WLC simulator, create 3 WLANs with different profiles, SSIDs, and IDs. Make the profile name different from the SSID on at least one to prove they're independent. Verify each appears in the WLAN list.",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 57-58. Wendell Odom OCG Chapter 29. The exam may show a WLC screenshot and ask to identify or create a WLAN. Know the three required fields and that profile name can differ from SSID."
-    }
+      meta: "Jeremy's IT Lab Day 57-58. Wendell Odom OCG Chapter 29. The exam may show a WLC screenshot and ask to identify or create a WLAN. Know the three required fields and that profile name can differ from SSID.",
+    },
+    micro: [
+      { id: "5.10.b.1", term: "Three WLAN identifiers",      def: "Profile Name (internal), SSID (broadcast), WLAN ID (1-512). All three required.", weight: "high" },
+      { id: "5.10.b.2", term: "Profile Name ≠ SSID",         def: "Profile is internal label; SSID is what users see. Can match or differ.", weight: "high" },
+      { id: "5.10.b.3", term: "WLAN must be enabled",        def: "Default after creation is DISABLED. Set Status = Enabled to start broadcasting.", weight: "high" }
+    ]
   },
 
   "5.10.c": {
@@ -885,8 +1288,13 @@ window.subtopicContentD56 = {
       memory: "Security config: WPA+WPA2 mode → enable WPA2 → AES encryption → PSK authentication → enter key. Mnemonic: MVCAK — Mode, Version, Cipher, Auth, Key. AES always, TKIP never.",
       practice: "Walk through the WLC security tab in a simulator: Layer 2 → WPA+WPA2 → WPA2 enabled → AES → PSK → enter a strong key. Connect a client and verify. Then deliberately set TKIP and note it's wrong for the exam.",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 57-58. Wendell Odom OCG Chapter 29. The exam shows WLC security configs and asks what's wrong or what to set. Correct answer: WPA2 + AES + PSK. If you see TKIP, that's the error."
-    }
+      meta: "Jeremy's IT Lab Day 57-58. Wendell Odom OCG Chapter 29. The exam shows WLC security configs and asks what's wrong or what to set. Correct answer: WPA2 + AES + PSK. If you see TKIP, that's the error.",
+    },
+    micro: [
+      { id: "5.10.c.1", term: "WPA2 + AES + PSK",            def: "Correct answer for WPA2-Personal scenarios. Layer 2 Security = WPA+WPA2, Encryption = AES, Auth = PSK.", weight: "high" },
+      { id: "5.10.c.2", term: "TKIP = wrong answer",         def: "If WLC shows TKIP enabled, that's the security issue. Disable TKIP, enable only AES.", weight: "high" },
+      { id: "5.10.c.3", term: "WPA2-PSK config",             def: "Security tab → Layer 2 Security → WPA+WPA2 → check AES → Auth Key Mgmt = PSK → enter key.", weight: "high" }
+    ]
   },
 
   "5.10.d": {
@@ -896,8 +1304,13 @@ window.subtopicContentD56 = {
       memory: "WLAN → Interface → VLAN. The interface is the bridge from wireless to wired. Same concept as assigning a switch port to a VLAN, but for wireless. Different SSIDs → different VLANs → different security zones.",
       practice: "In a simulator, create two WLANs: 'Employee' mapped to VLAN 10 and 'Guest' mapped to VLAN 100. Connect clients to each and verify they get IPs from the correct DHCP scope and can't cross VLANs.",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 57-58. Wendell Odom OCG Chapter 29. The exam tests that WLANs must be mapped to interfaces/VLANs. Interface mapping controls which VLAN wireless clients join."
-    }
+      meta: "Jeremy's IT Lab Day 57-58. Wendell Odom OCG Chapter 29. The exam tests that WLANs must be mapped to interfaces/VLANs. Interface mapping controls which VLAN wireless clients join.",
+    },
+    micro: [
+      { id: "5.10.d.1", term: "WLAN → interface → VLAN",     def: "Each WLAN maps to a dynamic interface, which is tied to a VLAN. Clients get IPs from that VLAN's DHCP.", weight: "high" },
+      { id: "5.10.d.2", term: "General tab interface mapping", def: "WLAN's General tab has 'Interface/Interface Group' dropdown. Select the dynamic interface.", weight: "high" },
+      { id: "5.10.d.3", term: "Switch trunk must allow VLAN", def: "Trunk between switch and WLC must allow the VLANs mapped to WLANs. Common failure scenario.", weight: "high" }
+    ]
   },
 
   "5.10.e": {
@@ -907,8 +1320,13 @@ window.subtopicContentD56 = {
       memory: "Creating a WLAN does NOT enable it. You must flip the switch: General tab → Status: Enabled → Apply. The #1 mistake: perfect config, but WLAN is still disabled. Always check status last.",
       practice: "Lab: Create a WLAN, leave it disabled, scan from a client (SSID missing). Enable it, scan again (SSID appears). Connect with PSK. This sequence — disabled → enabled → connected — burns the lesson in.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 57-58. Wendell Odom OCG Chapter 29. Easy exam point: 'Users can't see the new SSID — what's wrong?' Check WLAN status is Enabled. It's the simplest fix for the most common problem."
-    }
+      meta: "Jeremy's IT Lab Day 57-58. Wendell Odom OCG Chapter 29. Easy exam point: 'Users can't see the new SSID — what's wrong?' Check WLAN status is Enabled. It's the simplest fix for the most common problem.",
+    },
+    micro: [
+      { id: "5.10.e.1", term: "WLAN status Disabled = no broadcast", def: "WLAN exists in config but SSID is NOT broadcast. APs don't announce it in beacons.", weight: "high" },
+      { id: "5.10.e.2", term: "Enable the WLAN",             def: "WLANs tab → select WLAN → General → Status = Enabled → Apply. Now SSID appears.", weight: "high" },
+      { id: "5.10.e.3", term: "Most common oversight",       def: "Lab sim scenario: 'new SSID invisible'. First check: WLAN status. Cheapest easy-point answer.", weight: "high" }
+    ]
   },
 
   /* ══════════════════════════════════════════════════════════════
@@ -924,8 +1342,12 @@ window.subtopicContentD56 = {
       memory: "Humans make typos. Scripts don't. One bad <code>shut</code> on the wrong interface takes down a site. Automation runs the TESTED playbook every time. 40-80% of outages = human error. Automation directly fixes this.",
       practice: "Write a simple Ansible playbook that configures NTP on a switch. Now imagine typing <code>ntp server 10.0.0.1</code> manually on 200 switches via SSH. One typo, one wrong device, one missed switch — that's why automation exists.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 60-62 (Network Automation). Wendell Odom OCG Chapter 19-20. The exam tests automation benefits conceptually. The key stat: 40-80% of outages = human error, and automation directly addresses this."
-    }
+      meta: "Jeremy's IT Lab Day 60-62 (Network Automation). Wendell Odom OCG Chapter 19-20. The exam tests automation benefits conceptually. The key stat: 40-80% of outages = human error, and automation directly addresses this.",
+    },
+    micro: [
+      { id: "6.1.a.1", term: "Automation reduces human error", def: "40-80% of outages from human error. Automation applies tested templates → fewer typos, misconfigs.", weight: "high" },
+      { id: "6.1.a.2", term: "Key automation benefits",      def: "Speed, consistency, scalability, self-healing, reduced errors. Test emphasizes these.", weight: "high" }
+    ]
   },
 
   "6.1.b": {
@@ -935,8 +1357,12 @@ window.subtopicContentD56 = {
       memory: "Manual = hours per device. Automated = seconds per device. At 500 devices, the math is brutal. ZTP = Zero-Touch Provisioning: plug it in, boot it up, config appears automatically. No SSH, no console, no engineer on site.",
       practice: "Research Cisco ZTP and PnP (Plug and Play). Understand the flow: new device → DHCP → downloads config → operational. No human touch. This is the gold standard for provisioning at scale.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 60-62. Wendell Odom OCG Chapter 19-20. Speed and ZTP are key automation benefits. The exam frames it as 'what does automation improve for deployment?' = speed, consistency, scale."
-    }
+      meta: "Jeremy's IT Lab Day 60-62. Wendell Odom OCG Chapter 19-20. Speed and ZTP are key automation benefits. The exam frames it as 'what does automation improve for deployment?' = speed, consistency, scale.",
+    },
+    micro: [
+      { id: "6.1.b.1", term: "Automation speed benefit",     def: "Deploy 100 switches in minutes instead of days. Push config changes across fleet in seconds.", weight: "high" },
+      { id: "6.1.b.2", term: "ZTP (Zero-Touch Provisioning)", def: "Plug in new device → it auto-fetches its config from the network. No manual staging.", weight: "high" }
+    ]
   },
 
   "6.1.c": {
@@ -946,8 +1372,12 @@ window.subtopicContentD56 = {
       memory: "Without automation: 10 devices = 1 engineer. 10,000 = need 1,000 engineers. With automation: 10,000 devices = 1 engineer + good playbooks. Automation makes the effort FLAT, not proportional to device count.",
       practice: "Thought experiment: change the NTP server on every network device in a 500-device network. Manually: ~50 hours (6+ min/device). Ansible: 5 minutes (one playbook, parallel execution). That's the scalability argument.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 60-62. Wendell Odom OCG Chapter 19-20. Scalability is automation's strongest argument for enterprise networks. The exam asks 'what benefit for growing networks?' = scalability."
-    }
+      meta: "Jeremy's IT Lab Day 60-62. Wendell Odom OCG Chapter 19-20. Scalability is automation's strongest argument for enterprise networks. The exam asks 'what benefit for growing networks?' = scalability.",
+    },
+    micro: [
+      { id: "6.1.c.1", term: "Scalability benefit",          def: "Same effort to manage 1,000 devices as 10. One template applies to entire fleet.", weight: "high" },
+      { id: "6.1.c.2", term: "Linear vs sub-linear growth",  def: "Manual ops scale linearly with devices. Automation scales sub-linearly — more devices, minimal extra effort.", weight: "med" }
+    ]
   },
 
   "6.1.d": {
@@ -957,8 +1387,13 @@ window.subtopicContentD56 = {
       memory: "Consistency = every device configured identically (golden templates). Compliance = you can PROVE it (automated audits). Drift detection = catching unauthorized changes automatically. Templates + audits = consistency + compliance.",
       practice: "Design a compliance automation concept: 1) Define golden template. 2) Pull running-config from all devices nightly. 3) Compare against template. 4) Report differences. 5) Auto-remediate or alert. This is real-world network automation.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 60-62. Wendell Odom OCG Chapter 19-20. Consistency is a key exam benefit. Know: templates ensure identical configs, drift detection catches unauthorized changes, compliance is provable."
-    }
+      meta: "Jeremy's IT Lab Day 60-62. Wendell Odom OCG Chapter 19-20. Consistency is a key exam benefit. Know: templates ensure identical configs, drift detection catches unauthorized changes, compliance is provable.",
+    },
+    micro: [
+      { id: "6.1.d.1", term: "Consistency via templates",    def: "Same template → identical configs across devices. Eliminates 'snowflake' devices with unique tweaks.", weight: "high" },
+      { id: "6.1.d.2", term: "Configuration drift",          def: "Devices gradually differ from intended config. Automation detects drift and re-aligns to template.", weight: "high" },
+      { id: "6.1.d.3", term: "Compliance provability",       def: "Automation tools log exactly what config each device has at any time. Easy to prove compliance.", weight: "med" }
+    ]
   },
 
   "6.1.e": {
@@ -968,8 +1403,13 @@ window.subtopicContentD56 = {
       memory: "Self-healing = the network is its own doctor. Detect (syslog/SNMP/telemetry) → Diagnose (correlate events) → Fix (run remediation script) → Notify (alert the team). Goal: MTTR from hours to seconds.",
       practice: "Design a self-healing scenario: link down → syslog EEM trigger → script activates backup path → notification to Slack/email. Map the complete automation chain from detection to resolution.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 60-62. Wendell Odom OCG Chapter 19-20. Self-healing is a newer exam concept. Know: event-driven automation detects and fixes issues without human intervention. MTTR reduction is the key metric."
-    }
+      meta: "Jeremy's IT Lab Day 60-62. Wendell Odom OCG Chapter 19-20. Self-healing is a newer exam concept. Know: event-driven automation detects and fixes issues without human intervention. MTTR reduction is the key metric.",
+    },
+    micro: [
+      { id: "6.1.e.1", term: "Self-healing networks",        def: "Event-driven automation. Detects issues (interface down, congestion) and auto-remediates without human.", weight: "high" },
+      { id: "6.1.e.2", term: "MTTR reduction",               def: "Mean Time To Recovery. Automation cuts MTTR from hours to minutes/seconds.", weight: "med" },
+      { id: "6.1.e.3", term: "Example auto-remediation",     def: "Link down → automation reroutes + opens ticket. High CPU → script kills runaway process.", weight: "med" }
+    ]
   },
 
   // ── 6.2 Compare traditional vs controller-based networking ────
@@ -981,8 +1421,13 @@ window.subtopicContentD56 = {
       memory: "Traditional = every device is its own boss. Like a company with no manager — each employee decides independently. Works for small teams, chaos at scale. Config changes = N devices = N SSH sessions.",
       practice: "List management challenges of a 500-device traditional network: config consistency across devices, change windows requiring per-device SSH, troubleshooting flows across 10 hops, no single source of truth. This motivates why SDN exists.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 60 (SDN). Wendell Odom OCG Chapter 17. Traditional = distributed, CLI, per-device. SDN = centralized, API, controller-managed. The exam contrasts these two architectures heavily."
-    }
+      meta: "Jeremy's IT Lab Day 60 (SDN). Wendell Odom OCG Chapter 17. Traditional = distributed, CLI, per-device. SDN = centralized, API, controller-managed. The exam contrasts these two architectures heavily.",
+    },
+    micro: [
+      { id: "6.2.a.1", term: "Traditional networking",       def: "Distributed control plane. Each device independently runs routing/STP. CLI per-device config. Manual.", weight: "high" },
+      { id: "6.2.a.2", term: "SDN / controller-based",       def: "Centralized control plane. Controller pushes config to devices. API-driven. Policy-based.", weight: "high" },
+      { id: "6.2.a.3", term: "Contrast table",               def: "Traditional: per-device CLI, distributed. SDN: centralized controller, APIs, single pane of glass.", weight: "high" }
+    ]
   },
 
   "6.2.b": {
@@ -992,8 +1437,13 @@ window.subtopicContentD56 = {
       memory: "SDN = the BRAIN (controller) tells the HANDS (switches) what to do. The brain sees the whole body (network-wide view); each hand only knows its own fingers (local forwarding). Centralized intelligence + distributed forwarding.",
       practice: "Draw the three-layer SDN architecture: Application Layer (top) → Controller Layer (middle) → Infrastructure Layer (bottom). Label northbound APIs (apps → controller) and southbound APIs (controller → devices). This diagram appears on the exam.",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 60. Wendell Odom OCG Chapter 17. The exam heavily tests SDN architecture. Controller = centralized control plane. Devices = data plane. Communication = southbound APIs (OpenFlow, NETCONF)."
-    }
+      meta: "Jeremy's IT Lab Day 60. Wendell Odom OCG Chapter 17. The exam heavily tests SDN architecture. Controller = centralized control plane. Devices = data plane. Communication = southbound APIs (OpenFlow, NETCONF).",
+    },
+    micro: [
+      { id: "6.2.b.1", term: "SDN controller",               def: "Centralized brain. Hosts control plane logic. Pushes forwarding info to devices via southbound APIs.", weight: "high" },
+      { id: "6.2.b.2", term: "Data plane (devices)",         def: "Switches/routers in SDN only forward traffic. No local control decisions.", weight: "high" },
+      { id: "6.2.b.3", term: "Southbound APIs",              def: "Controller → devices. Examples: OpenFlow, NETCONF, RESTCONF. Push config and forwarding rules.", weight: "high" }
+    ]
   },
 
   "6.2.c": {
@@ -1003,8 +1453,12 @@ window.subtopicContentD56 = {
       memory: "Single pane of glass = one window to see EVERYTHING. No more SSH into 50 devices to troubleshoot one flow. The controller sees the whole network at once. Intent-based = tell it WHAT you want, not HOW.",
       practice: "If you've used Meraki, DNA Center, or UniFi, recall the dashboard experience — full network visibility from one screen. Compare to logging into 20 individual switches via SSH to track one packet flow. That contrast IS the exam answer.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 60. Wendell Odom OCG Chapter 17. 'Single pane of glass' is THE SDN buzzword. Know it. Also know: intent-based networking = describe desired state, controller implements it."
-    }
+      meta: "Jeremy's IT Lab Day 60. Wendell Odom OCG Chapter 17. 'Single pane of glass' is THE SDN buzzword. Know it. Also know: intent-based networking = describe desired state, controller implements it.",
+    },
+    micro: [
+      { id: "6.2.c.1", term: "Single pane of glass",         def: "One dashboard manages all devices. Replaces SSH-ing to each device individually. SDN buzzword.", weight: "high" },
+      { id: "6.2.c.2", term: "Intent-Based Networking (IBN)", def: "Describe DESIRED state (intent) → controller translates to device config. Declarative, not procedural.", weight: "high" }
+    ]
   },
 
   "6.2.d": {
@@ -1014,8 +1468,13 @@ window.subtopicContentD56 = {
       memory: "DNA Center = Cisco's SDN controller for campus. Four pillars: DPPA — Design, Policy, Provision, Assurance. Intent-based = tell it WHAT you want, not HOW. Uses REST APIs + NETCONF/YANG. Integrates with ISE.",
       practice: "Access the free Cisco DevNet Sandbox (devnetsandbox.cisco.com) to explore DNA Center's GUI. Navigate the four workflow areas: Design, Policy, Provision, Assurance. Know what lives in each section.",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 60. Wendell Odom OCG Chapter 17. DNA Center is testable on the CCNA. Know: intent-based, four pillars (DPPA), REST APIs, SD-Access for segmentation. Conceptual knowledge only — no configuration."
-    }
+      meta: "Jeremy's IT Lab Day 60. Wendell Odom OCG Chapter 17. DNA Center is testable on the CCNA. Know: intent-based, four pillars (DPPA), REST APIs, SD-Access for segmentation. Conceptual knowledge only — no configuration.",
+    },
+    micro: [
+      { id: "6.2.d.1", term: "DNA Center / Catalyst Center", def: "Cisco's IBN platform. Network-wide controller (not just wireless). On-prem, manages wired + wireless.", weight: "high" },
+      { id: "6.2.d.2", term: "DPPA four pillars",            def: "Design, Policy, Provision, Assurance. Memorize the acronym.", weight: "high" },
+      { id: "6.2.d.3", term: "REST APIs",                    def: "DNA Center exposes REST APIs for automation. Integrates with external systems via HTTPS/JSON.", weight: "med" }
+    ]
   },
 
   // ── 6.3 Describe SDN architecture ─────────────────────────────
@@ -1027,8 +1486,13 @@ window.subtopicContentD56 = {
       memory: "Control plane = the GPS telling you where to turn (decisions). Data plane = your legs doing the walking (forwarding). Management plane = the settings app on the GPS. SDN = one centralized GPS for everyone.",
       practice: "List 3 functions per plane: Control = routing decisions, path computation, ACL logic. Data = packet forwarding, encapsulation, QoS queuing. Management = SSH, SNMP, syslog. Know which plane owns each function.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 60. Wendell Odom OCG Chapter 17. THE foundational SDN concept. Exam question: 'What does SDN separate?' = control plane from data plane. Control = centralized. Data = distributed."
-    }
+      meta: "Jeremy's IT Lab Day 60. Wendell Odom OCG Chapter 17. THE foundational SDN concept. Exam question: 'What does SDN separate?' = control plane from data plane. Control = centralized. Data = distributed.",
+    },
+    micro: [
+      { id: "6.3.a.1", term: "Control plane vs data plane",  def: "Control = routing decisions (who to send where). Data = actual packet forwarding. SDN separates them.", weight: "high" },
+      { id: "6.3.a.2", term: "SDN separation",               def: "Traditional: each device has both. SDN: control centralized on controller, data stays distributed on devices.", weight: "high" },
+      { id: "6.3.a.3", term: "Management plane",             def: "Third plane. Config, monitoring. SSH, SNMP, NETCONF live here.", weight: "med" }
+    ]
   },
 
   "6.3.b": {
@@ -1038,8 +1502,13 @@ window.subtopicContentD56 = {
       memory: "Northbound = UP to APPS (North on a map = up). Southbound = DOWN to DEVICES (South = down). NBIs = REST APIs (JSON). SBIs = OpenFlow, NETCONF, RESTCONF. Draw the sandwich: Apps | Controller | Devices.",
       practice: "Draw the three-layer SDN diagram from memory. Top: Application Layer (business apps). Middle: Controller (SDN brain). Bottom: Infrastructure (switches/routers). Label NBI (REST, up arrow) and SBI (OpenFlow/NETCONF, down arrow).",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 60. Wendell Odom OCG Chapter 17. Northbound vs Southbound is a guaranteed exam question. North = apps (REST APIs). South = devices (OpenFlow, NETCONF, RESTCONF). Draw the diagram once."
-    }
+      meta: "Jeremy's IT Lab Day 60. Wendell Odom OCG Chapter 17. Northbound vs Southbound is a guaranteed exam question. North = apps (REST APIs). South = devices (OpenFlow, NETCONF, RESTCONF). Draw the diagram once.",
+    },
+    micro: [
+      { id: "6.3.b.1", term: "Northbound APIs",              def: "Controller ↔ applications. REST APIs typically. Apps use these to program the network.", weight: "high" },
+      { id: "6.3.b.2", term: "Southbound APIs",              def: "Controller ↔ devices. OpenFlow, NETCONF, RESTCONF. Push device config and rules.", weight: "high" },
+      { id: "6.3.b.3", term: "North vs South memory trick",  def: "Apps are 'up top' (north), devices are 'below' (south). Controller in the middle.", weight: "high" }
+    ]
   },
 
   "6.3.c": {
@@ -1049,8 +1518,13 @@ window.subtopicContentD56 = {
       memory: "Underlay = the ROAD (physical infrastructure — switches, cables, IP routing). Overlay = the LANES painted on the road (virtual networks). You need the road (underlay) before you can paint lanes (overlay).",
       practice: "Think of your home network: physical switches and cables = underlay. VLANs running on top = simple overlay. VXLAN in a data center = advanced overlay. The concept scales from small to massive networks.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 60. Wendell Odom OCG Chapter 17. Underlay = physical. Overlay = virtual. Fabric = both together. Three definitions to memorize for the exam."
-    }
+      meta: "Jeremy's IT Lab Day 60. Wendell Odom OCG Chapter 17. Underlay = physical. Overlay = virtual. Fabric = both together. Three definitions to memorize for the exam.",
+    },
+    micro: [
+      { id: "6.3.c.1", term: "Underlay network",             def: "Physical network. Actual devices, links, routing protocols. Foundation.", weight: "high" },
+      { id: "6.3.c.2", term: "Overlay network",              def: "Virtual network built on top of underlay. VXLAN tunnels. Logically independent from physical paths.", weight: "high" },
+      { id: "6.3.c.3", term: "Fabric",                       def: "Underlay + overlay together. Integrated programmable network. SD-Access, ACI, etc.", weight: "high" }
+    ]
   },
 
   "6.3.d": {
@@ -1060,8 +1534,13 @@ window.subtopicContentD56 = {
       memory: "VXLAN = VLAN eXtended. 24-bit VNI = 16 million virtual networks (vs VLAN's 4,096 with 12-bit ID). L2 over L3 encapsulation. UDP port 4789. VTEPs = tunnel endpoints.",
       practice: "Compare: VLAN (12-bit ID → 4,096 max, L2 only, same broadcast domain required) vs VXLAN (24-bit VNI → 16M max, L2 over L3, works across routers). Know why data centers need VXLAN's scale.",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 60. Wendell Odom OCG Chapter 17. VXLAN is THE overlay technology for the exam. Know: 24-bit VNI, 16 million segments, L2 over L3, UDP 4789. Compare to VLAN's 4,096."
-    }
+      meta: "Jeremy's IT Lab Day 60. Wendell Odom OCG Chapter 17. VXLAN is THE overlay technology for the exam. Know: 24-bit VNI, 16 million segments, L2 over L3, UDP 4789. Compare to VLAN's 4,096.",
+    },
+    micro: [
+      { id: "6.3.d.1", term: "VXLAN",                        def: "Virtual Extensible LAN. L2 frames tunneled over L3 networks. Primary DC overlay technology.", weight: "high" },
+      { id: "6.3.d.2", term: "VNI (VXLAN Network ID)",       def: "24-bit identifier. 16 million segments — vs VLAN's 12-bit / 4094. Massive scale.", weight: "high" },
+      { id: "6.3.d.3", term: "VXLAN UDP 4789",               def: "VXLAN encapsulates in UDP 4789. Travels over any L3 infrastructure.", weight: "high" }
+    ]
   },
 
   "6.3.e": {
@@ -1071,8 +1550,13 @@ window.subtopicContentD56 = {
       memory: "Fabric = Underlay + Overlay = the WHOLE system. Like fabric in clothing — threads (underlay) woven into unified cloth (fabric). SD-Access = IS-IS (routing) + VXLAN (overlay) + LISP (mapping) + CTS/SGT (segmentation).",
       practice: "Name the four SD-Access components and their roles: IS-IS (underlay routing), VXLAN (overlay encapsulation), LISP (endpoint discovery/mobility), CTS/SGT (group-based segmentation). Know each role.",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 60. Wendell Odom OCG Chapter 17. Fabric = underlay + overlay combined. SD-Access = IS-IS + VXLAN + LISP + CTS. You won't configure it but must describe the components and their roles."
-    }
+      meta: "Jeremy's IT Lab Day 60. Wendell Odom OCG Chapter 17. Fabric = underlay + overlay combined. SD-Access = IS-IS + VXLAN + LISP + CTS. You won't configure it but must describe the components and their roles.",
+    },
+    micro: [
+      { id: "6.3.e.1", term: "SD-Access fabric",             def: "Cisco campus fabric. Underlay = IS-IS. Overlay = VXLAN. Control plane = LISP. Policy = CTS/SGTs.", weight: "high" },
+      { id: "6.3.e.2", term: "LISP (in SDA)",                def: "Locator/ID Separation Protocol. Tracks endpoint-to-location mapping. Enables mobility without readdressing.", weight: "med" },
+      { id: "6.3.e.3", term: "CTS / SGTs",                   def: "Cisco TrustSec with Scalable Group Tags. Policy based on user/device group, not IP. Microsegmentation.", weight: "med" }
+    ]
   },
 
   // ── 6.4 Explain AI and ML in network operations ───────────────
@@ -1084,8 +1568,12 @@ window.subtopicContentD56 = {
       memory: "Generative AI = tell it WHAT you want in plain English, it GENERATES the config. Like a translator between human intent and CLI syntax. But always VERIFY the output — AI can hallucinate wrong configs.",
       practice: "Try describing an ACL requirement to an AI assistant: 'Block Telnet from 10.0.0.0/24 to server 192.168.1.100 but allow SSH.' Compare the generated config to what you'd write manually. Note any errors.",
       effort: "low",
-      meta: "Jeremy's IT Lab may cover this in updated content. Wendell Odom OCG Chapter 17 (updated editions). New CCNA v1.1 topic. Conceptual understanding only — what generative AI does for networking, not how AI works internally."
-    }
+      meta: "Jeremy's IT Lab may cover this in updated content. Wendell Odom OCG Chapter 17 (updated editions). New CCNA v1.1 topic. Conceptual understanding only — what generative AI does for networking, not how AI works internally.",
+    },
+    micro: [
+      { id: "6.4.a.1", term: "Generative AI in networking",  def: "AI that CREATES output — configs, summaries, troubleshooting suggestions. ChatGPT-style assistance for netops.", weight: "high" },
+      { id: "6.4.a.2", term: "Gen-AI use cases",             def: "Config generation from natural language, log summarization, incident triage, documentation.", weight: "med" }
+    ]
   },
 
   "6.4.b": {
@@ -1095,8 +1583,13 @@ window.subtopicContentD56 = {
       memory: "Predictive AI = a weather forecast for your network. It looks at historical patterns and predicts storms (failures) before they hit. Reactive = fix after crash. Proactive = fix before crash. Generative = creates. Predictive = forecasts.",
       practice: "List 3 things predictive AI could detect: 1) Switch CPU slowly climbing toward 100% (capacity). 2) Interface CRC errors increasing weekly (hardware failing). 3) Unusual DNS traffic from one host at 3 AM (security breach). All caught before they become outages.",
       effort: "low",
-      meta: "Jeremy's IT Lab (updated content). Wendell Odom OCG Chapter 17. The exam tests: predictive AI = forecasting + anomaly detection + proactive operations. Know the difference: predictive (forecasts) vs generative (creates)."
-    }
+      meta: "Jeremy's IT Lab (updated content). Wendell Odom OCG Chapter 17. The exam tests: predictive AI = forecasting + anomaly detection + proactive operations. Know the difference: predictive (forecasts) vs generative (creates).",
+    },
+    micro: [
+      { id: "6.4.b.1", term: "Predictive AI",                def: "AI that FORECASTS — detects anomalies, predicts failures, trends traffic. Proactive ops.", weight: "high" },
+      { id: "6.4.b.2", term: "Generative vs Predictive",     def: "Generative CREATES (content). Predictive FORECASTS (outcomes/anomalies). Different use cases.", weight: "high" },
+      { id: "6.4.b.3", term: "Anomaly detection",            def: "ML detects patterns that deviate from baseline. Catches zero-day attacks, hardware degradation.", weight: "med" }
+    ]
   },
 
   "6.4.c": {
@@ -1106,8 +1599,12 @@ window.subtopicContentD56 = {
       memory: "ML monitoring LEARNS what 'normal' looks like for each device at each time. Static thresholds are dumb — same number 24/7. ML says 'this is unusual FOR THIS TIME.' 85% at 9 AM = fine. 85% at 3 AM = problem.",
       practice: "Thought experiment: web server CPU. Static alert at 80%. Result: alerts every Monday at 9 AM (normal login spike) but misses a 50% anomaly at midnight (unusual). ML baseline catches the midnight anomaly and ignores the Monday spike.",
       effort: "low",
-      meta: "Jeremy's IT Lab (updated content). Wendell Odom OCG Chapter 17. The exam tests ML baselines vs static thresholds. ML adapts to patterns and detects contextual anomalies. Cisco DNA Center Assurance is the concrete example."
-    }
+      meta: "Jeremy's IT Lab (updated content). Wendell Odom OCG Chapter 17. The exam tests ML baselines vs static thresholds. ML adapts to patterns and detects contextual anomalies. Cisco DNA Center Assurance is the concrete example.",
+    },
+    micro: [
+      { id: "6.4.c.1", term: "ML-based baselines",           def: "Learns normal patterns over time (daily/weekly/monthly). Adapts. Unlike static 'CPU > 80%' thresholds.", weight: "high" },
+      { id: "6.4.c.2", term: "Cisco DNA Center Assurance",   def: "ML-driven monitoring. Detects anomalies, suggests root causes, flags degradation before failure.", weight: "high" }
+    ]
   },
 
   "6.4.d": {
@@ -1117,8 +1614,13 @@ window.subtopicContentD56 = {
       memory: "AIOps = AI that does what a NOC team does: correlate 1000 alerts → find 1 root cause → suggest the fix. Turns hours of troubleshooting into seconds of analysis. Cisco DNA Center Assurance is the real-world example.",
       practice: "Scenario: switch fails → 200 SNMP traps + 50 syslog messages + 30 client complaints. Manual NOC: 2 hours to identify root cause. AIOps: 30 seconds to correlate, identify failed switch, and suggest failover. That's the value.",
       effort: "low",
-      meta: "Jeremy's IT Lab (updated content). Wendell Odom OCG Chapter 17. AIOps = event correlation + automated root cause analysis + remediation. Know: Cisco DNA Center Assurance as the concrete example."
-    }
+      meta: "Jeremy's IT Lab (updated content). Wendell Odom OCG Chapter 17. AIOps = event correlation + automated root cause analysis + remediation. Know: Cisco DNA Center Assurance as the concrete example.",
+    },
+    micro: [
+      { id: "6.4.d.1", term: "AIOps",                        def: "AI for IT Operations. Event correlation across many sources → automated root-cause analysis → remediation.", weight: "high" },
+      { id: "6.4.d.2", term: "Event correlation",            def: "Connects seemingly unrelated events to find true cause. Dozens of alarms → one root problem.", weight: "high" },
+      { id: "6.4.d.3", term: "Automated root cause",         def: "AIOps doesn't just alert — it tells you WHY. 'Link X down caused 47 downstream alarms'.", weight: "med" }
+    ]
   },
 
   // ── 6.5 Describe REST-based APIs ──────────────────────────────
@@ -1130,8 +1632,14 @@ window.subtopicContentD56 = {
       memory: "REST = Stateless + URI + HTTP verbs + JSON. Each request is INDEPENDENT — the server has amnesia between requests. Everything the server needs is in the request itself. URIs identify resources, HTTP verbs define actions.",
       practice: "Use curl or Postman to hit a public REST API (jsonplaceholder.typicode.com). Make GET, POST, PUT, DELETE requests. See how URIs identify resources and verbs define operations.",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 62 (REST APIs). Wendell Odom OCG Chapter 18. REST principles are heavily tested. Know: stateless, client-server, URI-based resources, HTTP verbs. Exam question: 'what makes an API RESTful?'"
-    }
+      meta: "Jeremy's IT Lab Day 62 (REST APIs). Wendell Odom OCG Chapter 18. REST principles are heavily tested. Know: stateless, client-server, URI-based resources, HTTP verbs. Exam question: 'what makes an API RESTful?'",
+    },
+    micro: [
+      { id: "6.5.a.1", term: "REST",                         def: "REpresentational State Transfer. Architecture style for APIs. Uses HTTP methods + URIs + JSON/XML.", weight: "high" },
+      { id: "6.5.a.2", term: "Stateless",                    def: "Each request contains all info needed. Server doesn't store client session between requests.", weight: "high" },
+      { id: "6.5.a.3", term: "Client-server",                def: "Separation of concerns. Client handles UI; server handles data and logic. Independent evolution.", weight: "high" },
+      { id: "6.5.a.4", term: "URI-based resources",          def: "Each resource has a unique URI. /api/v1/devices/42 represents device ID 42. Nouns, not verbs.", weight: "high" }
+    ]
   },
 
   "6.5.b": {
@@ -1141,8 +1649,15 @@ window.subtopicContentD56 = {
       memory: "CRUD = Create-Read-Update-Delete. HTTP = POST-GET-PUT-DELETE. Mnemonic: POST Creates, GET Reads, PUT Updates, DELETE Deletes. PGPD matches CRUD. GET is safe (read-only). POST is not idempotent (creates duplicates).",
       practice: "Build a mental table: <code>GET /devices</code> = list all. <code>GET /devices/5</code> = read one. <code>POST /devices</code> = create new. <code>PUT /devices/5</code> = replace entirely. <code>PATCH /devices/5</code> = modify fields. <code>DELETE /devices/5</code> = remove.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 62. Wendell Odom OCG Chapter 18. The CRUD-to-HTTP mapping is GUARANTEED on the exam. Memorize cold: POST=Create, GET=Read, PUT/PATCH=Update, DELETE=Delete."
-    }
+      meta: "Jeremy's IT Lab Day 62. Wendell Odom OCG Chapter 18. The CRUD-to-HTTP mapping is GUARANTEED on the exam. Memorize cold: POST=Create, GET=Read, PUT/PATCH=Update, DELETE=Delete.",
+    },
+    micro: [
+      { id: "6.5.b.1", term: "POST = Create",                def: "Add a new resource. 'POST /devices' creates a device. Server assigns ID.", weight: "high" },
+      { id: "6.5.b.2", term: "GET = Read",                   def: "Retrieve resource(s). 'GET /devices' lists all. 'GET /devices/42' gets one. Read-only, no side effects.", weight: "high" },
+      { id: "6.5.b.3", term: "PUT = Update (full)",          def: "Replace an existing resource entirely. 'PUT /devices/42' overwrites device 42.", weight: "high" },
+      { id: "6.5.b.4", term: "PATCH = Update (partial)",     def: "Modify specific fields. 'PATCH /devices/42' updates only the specified attributes.", weight: "high" },
+      { id: "6.5.b.5", term: "DELETE = Delete",              def: "Remove resource. 'DELETE /devices/42' destroys the device entry.", weight: "high" }
+    ]
   },
 
   "6.5.c": {
@@ -1152,8 +1667,18 @@ window.subtopicContentD56 = {
       memory: "2xx = success (Too good). 4xx = YOUR fault (client error — FOURbidden). 5xx = THEIR fault (server error — FIVE alarm fire). Key codes: 200=OK, 201=Created, 400=Bad Request, 401=Unauthorized, 403=Forbidden, 404=Not Found, 500=Server Error.",
       practice: "Use Postman to intentionally trigger different codes: valid GET (200), POST to create (201), malformed JSON body (400), wrong API key (401), non-existent resource (404). See each code in practice.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 62. Wendell Odom OCG Chapter 18. The exam tests specific codes: 200, 201, 400, 401, 403, 404, 500. Know what each means and whether it's client (4xx) or server (5xx) error."
-    }
+      meta: "Jeremy's IT Lab Day 62. Wendell Odom OCG Chapter 18. The exam tests specific codes: 200, 201, 400, 401, 403, 404, 500. Know what each means and whether it's client (4xx) or server (5xx) error.",
+    },
+    micro: [
+      { id: "6.5.c.1", term: "200 OK",                       def: "Success. GET/PUT/DELETE returned what was expected.", weight: "high" },
+      { id: "6.5.c.2", term: "201 Created",                  def: "POST succeeded. New resource was created. Response often includes location header with new URI.", weight: "high" },
+      { id: "6.5.c.3", term: "400 Bad Request",              def: "Client sent malformed request. Syntax or validation error.", weight: "high" },
+      { id: "6.5.c.4", term: "401 Unauthorized",             def: "Missing or invalid credentials. Authentication required.", weight: "high" },
+      { id: "6.5.c.5", term: "403 Forbidden",                def: "Authenticated but NOT authorized. Valid creds but not allowed to access this resource.", weight: "high" },
+      { id: "6.5.c.6", term: "404 Not Found",                def: "Resource doesn't exist at that URI.", weight: "high" },
+      { id: "6.5.c.7", term: "500 Internal Server Error",    def: "Server-side failure. Not client's fault — server bug or crash.", weight: "high" },
+      { id: "6.5.c.8", term: "4xx vs 5xx",                   def: "4xx = CLIENT error (you sent bad request). 5xx = SERVER error (server failed to handle valid request).", weight: "high" }
+    ]
   },
 
   "6.5.d": {
@@ -1163,8 +1688,14 @@ window.subtopicContentD56 = {
       memory: "API Key = library card (simple ID). Bearer Token = security badge (time-limited access). OAuth 2.0 = company SSO (delegated authorization, no password sharing). Complexity and security increase left to right.",
       practice: "Get a free API key from a public API (OpenWeatherMap, GitHub). Make requests with it in the header. Then try a Bearer token with the GitHub API after authenticating. See both in action.",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 62. Wendell Odom OCG Chapter 18. Know what each method is and when to use it. API key = simplest. Bearer token = session-based. OAuth 2.0 = enterprise delegated access."
-    }
+      meta: "Jeremy's IT Lab Day 62. Wendell Odom OCG Chapter 18. Know what each method is and when to use it. API key = simplest. Bearer token = session-based. OAuth 2.0 = enterprise delegated access.",
+    },
+    micro: [
+      { id: "6.5.d.1", term: "API key",                      def: "Static secret string sent in header. Simplest auth. Fine for internal or low-sensitivity APIs.", weight: "high" },
+      { id: "6.5.d.2", term: "Bearer token",                 def: "Token obtained after login, sent in 'Authorization: Bearer [token]' header. Session-based.", weight: "high" },
+      { id: "6.5.d.3", term: "OAuth 2.0",                    def: "Delegated access. User grants limited permissions to third-party apps without sharing password.", weight: "high" },
+      { id: "6.5.d.4", term: "Basic Auth",                   def: "Base64-encoded username:password in header. Not encryption — must be combined with HTTPS. Legacy.", weight: "med" }
+    ]
   },
 
   "6.5.e": {
@@ -1174,8 +1705,14 @@ window.subtopicContentD56 = {
       memory: "JSON = curly braces { }. XML = angle brackets < >. YAML = indentation (no brackets). JSON → REST APIs. XML → NETCONF. YAML → Ansible. See brackets? JSON. See tags? XML. See indentation? YAML.",
       practice: "Write the same data (hostname: SW1, IP: 10.0.0.1, VLANs: 10, 20) in all three formats. JSON: <code>{\"hostname\":\"SW1\"}</code>. XML: <code>&lt;hostname&gt;SW1&lt;/hostname&gt;</code>. YAML: <code>hostname: SW1</code>. Practice identifying format at a glance.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 62. Wendell Odom OCG Chapter 18. The exam focuses heavily on JSON. Also know: XML = NETCONF, YAML = Ansible. Be able to identify format by sight."
-    }
+      meta: "Jeremy's IT Lab Day 62. Wendell Odom OCG Chapter 18. The exam focuses heavily on JSON. Also know: XML = NETCONF, YAML = Ansible. Be able to identify format by sight.",
+    },
+    micro: [
+      { id: "6.5.e.1", term: "JSON",                         def: "JavaScript Object Notation. Most common REST data format. { } for objects, [ ] for arrays.", weight: "high" },
+      { id: "6.5.e.2", term: "XML",                          def: "Extensible Markup Language. Used by NETCONF. Tag-based: <tag>value</tag>. More verbose than JSON.", weight: "high" },
+      { id: "6.5.e.3", term: "YAML",                         def: "YAML Ain't Markup Language. Human-friendly. Used by Ansible playbooks. Indentation-based.", weight: "high" },
+      { id: "6.5.e.4", term: "Identify by sight",            def: "{ } JSON. < /> XML. --- + indented lines = YAML. Exam may show a snippet and ask format.", weight: "high" }
+    ]
   },
 
   "6.5.f": {
@@ -1185,8 +1722,12 @@ window.subtopicContentD56 = {
       memory: "CRUD = the four things you do with data (Create, Read, Update, Delete). REST = how you do them over HTTP (POST, GET, PUT/PATCH, DELETE). Same concept, different vocabulary. URI = which resource. Verb = what action.",
       practice: "Use Postman or curl against jsonplaceholder.typicode.com: <code>POST /posts</code> (create), <code>GET /posts/1</code> (read), <code>PUT /posts/1</code> (update), <code>DELETE /posts/1</code> (delete). See all four CRUD operations in action.",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 62. Wendell Odom OCG Chapter 18. The exam shows API calls and asks 'what CRUD operation is this?' or vice versa. Practice translating both directions instantly."
-    }
+      meta: "Jeremy's IT Lab Day 62. Wendell Odom OCG Chapter 18. The exam shows API calls and asks 'what CRUD operation is this?' or vice versa. Practice translating both directions instantly.",
+    },
+    micro: [
+      { id: "6.5.f.1", term: "API call format",              def: "HTTP verb + URI + headers + body. Example: 'POST /api/devices' + JSON body = create a device.", weight: "high" },
+      { id: "6.5.f.2", term: "CRUD ↔ HTTP mapping drill",    def: "Given 'PUT /devices/42' → Update. Given 'Create a device' → POST /devices. Practice both directions.", weight: "high" }
+    ]
   },
 
   // ── 6.6 Recognize configuration management ────────────────────
@@ -1198,8 +1739,14 @@ window.subtopicContentD56 = {
       memory: "Ansible = Agentless + SSH + YAML + Push + Idempotent. No agents on devices, just SSH in and configure. YAML playbooks = recipes anyone can read. Run twice = same result (idempotent).",
       practice: "Use the Cisco DevNet Sandbox or install Ansible locally. Write a playbook that sets the hostname on a network device. Run it twice and verify idempotency — second run shows 'ok' (no changes).",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 61-62 (Ansible). Wendell Odom OCG Chapter 19-20. Ansible is THE most tested config management tool. Know: agentless, SSH, YAML, push model, idempotent. Compare against Puppet/Chef (agent-based, pull)."
-    }
+      meta: "Jeremy's IT Lab Day 61-62 (Ansible). Wendell Odom OCG Chapter 19-20. Ansible is THE most tested config management tool. Know: agentless, SSH, YAML, push model, idempotent. Compare against Puppet/Chef (agent-based, pull).",
+    },
+    micro: [
+      { id: "6.6.a.1", term: "Ansible",                      def: "Config management tool. AGENTLESS (uses SSH). YAML playbooks. PUSH model. Idempotent.", weight: "high" },
+      { id: "6.6.a.2", term: "Agentless",                    def: "No software installed on managed devices. Uses SSH/WinRM. Network-friendly.", weight: "high" },
+      { id: "6.6.a.3", term: "Idempotent",                   def: "Running a playbook multiple times produces the same result. Safe to re-run.", weight: "high" },
+      { id: "6.6.a.4", term: "Ansible vs Puppet/Chef",       def: "Ansible = agentless, push, YAML. Puppet/Chef = agent-based, pull, Ruby DSL.", weight: "high" }
+    ]
   },
 
   "6.6.b": {
@@ -1209,8 +1756,14 @@ window.subtopicContentD56 = {
       memory: "IPMRT: Inventory (who to configure), Playbooks (what to do), Modules (how to do it), Roles (reusable packages), Templates (device-specific configs). Inventory = guest list. Playbooks = instructions. Modules = tools.",
       practice: "Create an Ansible directory: inventory file (3 devices in 2 groups), a playbook with 2 tasks using <code>ios_command</code> module. Run <code>ansible-playbook -i inventory playbook.yml</code>. See how components connect.",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 61-62. Wendell Odom OCG Chapter 19-20. The exam tests component definitions: inventory = device list, playbook = task sequence, module = action unit, role = reusable bundle."
-    }
+      meta: "Jeremy's IT Lab Day 61-62. Wendell Odom OCG Chapter 19-20. The exam tests component definitions: inventory = device list, playbook = task sequence, module = action unit, role = reusable bundle.",
+    },
+    micro: [
+      { id: "6.6.b.1", term: "Inventory",                    def: "List of managed devices. Can be static file or dynamic (cloud API). Groups devices by role/env.", weight: "high" },
+      { id: "6.6.b.2", term: "Playbook",                     def: "YAML file defining a sequence of tasks to run against devices. The 'what to do'.", weight: "high" },
+      { id: "6.6.b.3", term: "Module",                       def: "Individual action (install package, copy file, run command). Playbooks call modules.", weight: "high" },
+      { id: "6.6.b.4", term: "Role",                         def: "Reusable bundle of tasks/files/templates. 'role: webserver' applies all web-related config.", weight: "med" }
+    ]
   },
 
   "6.6.c": {
@@ -1220,8 +1773,14 @@ window.subtopicContentD56 = {
       memory: "Terraform = the ARCHITECT that builds the building (infrastructure). Ansible = the ELECTRICIAN that wires it (configuration). Terraform CREATES resources; Ansible CONFIGURES them. Complementary, not competing.",
       practice: "Read a simple Terraform HCL file that creates a cloud VM. Compare to an Ansible playbook that configures a switch. See the difference: provisioning (Terraform) vs configuration (Ansible).",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 62. Wendell Odom OCG Chapter 19-20. Terraform vs Ansible: Terraform = create/destroy infrastructure (IaC, declarative, state file). Ansible = configure existing devices (agentless, procedural, SSH)."
-    }
+      meta: "Jeremy's IT Lab Day 62. Wendell Odom OCG Chapter 19-20. Terraform vs Ansible: Terraform = create/destroy infrastructure (IaC, declarative, state file). Ansible = configure existing devices (agentless, procedural, SSH).",
+    },
+    micro: [
+      { id: "6.6.c.1", term: "Terraform",                    def: "Infrastructure as Code tool. CREATES/DESTROYS cloud resources. HCL language. Declarative. Maintains state file.", weight: "high" },
+      { id: "6.6.c.2", term: "IaC (Infrastructure as Code)", def: "Define infrastructure in code files. Version-controlled, repeatable, reviewable. Terraform is the canonical IaC tool.", weight: "high" },
+      { id: "6.6.c.3", term: "State file (Terraform)",       def: "Tracks what resources Terraform manages. Required to plan and apply changes correctly.", weight: "med" },
+      { id: "6.6.c.4", term: "Declarative vs procedural",    def: "Declarative (Terraform): describe end state. Procedural (Ansible): describe steps to reach state.", weight: "high" }
+    ]
   },
 
   "6.6.d": {
@@ -1231,8 +1790,14 @@ window.subtopicContentD56 = {
       memory: "Init, Plan, Apply, Destroy = IPAD. Init = download plugins. Plan = dry run (preview). Apply = execute changes. Destroy = tear it all down. ALWAYS plan before apply — the plan is your safety net.",
       practice: "Walk through the workflow: <code>terraform init</code> (setup) → <code>terraform plan</code> (see what will change) → <code>terraform apply</code> (make it happen) → <code>terraform destroy</code> (clean up). Know the four stages in order.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 62. Wendell Odom OCG Chapter 19-20. The four Terraform stages in order: init → plan → apply → destroy. Plan is the safety net — always review before apply."
-    }
+      meta: "Jeremy's IT Lab Day 62. Wendell Odom OCG Chapter 19-20. The four Terraform stages in order: init → plan → apply → destroy. Plan is the safety net — always review before apply.",
+    },
+    micro: [
+      { id: "6.6.d.1", term: "terraform init",               def: "Initialize working directory. Downloads provider plugins. First command you run.", weight: "high" },
+      { id: "6.6.d.2", term: "terraform plan",               def: "Preview changes. Shows what Terraform WOULD do. Safety net — always review before apply.", weight: "high" },
+      { id: "6.6.d.3", term: "terraform apply",              def: "Execute the plan. Creates/modifies/destroys resources to match config.", weight: "high" },
+      { id: "6.6.d.4", term: "terraform destroy",            def: "Tear down all managed resources. Useful for test environments. Irreversible.", weight: "high" }
+    ]
   },
 
   "6.6.e": {
@@ -1242,8 +1807,12 @@ window.subtopicContentD56 = {
       memory: "Terraform BUILDS the house (infrastructure). Ansible FURNISHES it (configuration). Use both together: Terraform creates VMs → Ansible configures them. Infrastructure creation = Terraform. Device config = Ansible.",
       practice: "Scenario drill: 'Deploy 50 VMs in AWS' = Terraform. 'Configure OSPF on 50 routers' = Ansible. 'Create a VPC with subnets' = Terraform. 'Push ACLs to switches' = Ansible. 'Destroy a test environment' = Terraform.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 62. Wendell Odom OCG Chapter 19-20. The exam gives scenarios and asks which tool. Infrastructure creation = Terraform. Device configuration = Ansible. They're complementary, not competing."
-    }
+      meta: "Jeremy's IT Lab Day 62. Wendell Odom OCG Chapter 19-20. The exam gives scenarios and asks which tool. Infrastructure creation = Terraform. Device configuration = Ansible. They're complementary, not competing.",
+    },
+    micro: [
+      { id: "6.6.e.1", term: "Tool selection scenario",      def: "Create VMs, VPCs, cloud infra → Terraform. Configure existing routers/servers → Ansible.", weight: "high" },
+      { id: "6.6.e.2", term: "Complementary use",            def: "Real workflow: Terraform creates VMs → Ansible configures them. Each tool's strength.", weight: "high" }
+    ]
   },
 
   "6.6.f": {
@@ -1253,8 +1822,13 @@ window.subtopicContentD56 = {
       memory: "Push (Ansible) = YOU send the config on-demand via SSH. Pull (Puppet/Chef) = DEVICE asks for config periodically from server. Ansible = agentless. Puppet/Chef = agent required. Ansible = YAML. Puppet = DSL. Chef = Ruby.",
       practice: "Build a 3-column comparison table from memory: Ansible (agentless, push, SSH, YAML, network-friendly) vs Puppet (agent, pull, DSL, server-focused) vs Chef (agent, pull, Ruby, server-focused). Drill until instant recall.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 61-62. Wendell Odom OCG Chapter 19-20. The exam tests: push vs pull, agent vs agentless. Ansible = agentless push (most popular for networking). Puppet/Chef = agent-based pull (servers)."
-    }
+      meta: "Jeremy's IT Lab Day 61-62. Wendell Odom OCG Chapter 19-20. The exam tests: push vs pull, agent vs agentless. Ansible = agentless push (most popular for networking). Puppet/Chef = agent-based pull (servers).",
+    },
+    micro: [
+      { id: "6.6.f.1", term: "Push model",                   def: "Server pushes config to managed devices on demand. Ansible uses push. Immediate application.", weight: "high" },
+      { id: "6.6.f.2", term: "Pull model",                   def: "Agent on device periodically pulls config from master. Puppet/Chef use pull. Continuous reconciliation.", weight: "high" },
+      { id: "6.6.f.3", term: "Agent vs agentless",           def: "Agent = software running on device. Agentless = remote connection (SSH/WinRM). Ansible is agentless.", weight: "high" }
+    ]
   },
 
   // ── 6.7 Recognize JSON-encoded data ───────────────────────────
@@ -1266,8 +1840,13 @@ window.subtopicContentD56 = {
       memory: "Curly braces { } = Object = key:value pairs. Think of { } as a labeled container. Every key MUST be a string in double quotes. Values can be any JSON type. Commas between pairs, colon between key and value.",
       practice: "Write a JSON object representing a network device: hostname, management IP, model, serial number, VLAN list, enabled status. Validate it at jsonlint.com. Get comfortable with the syntax.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 62. Wendell Odom OCG Chapter 18. The exam shows JSON snippets and asks you to identify objects vs arrays or extract specific values. Practice reading JSON until natural."
-    }
+      meta: "Jeremy's IT Lab Day 62. Wendell Odom OCG Chapter 18. The exam shows JSON snippets and asks you to identify objects vs arrays or extract specific values. Practice reading JSON until natural.",
+    },
+    micro: [
+      { id: "6.7.a.1", term: "JSON structure",               def: "Key-value pairs. Keys in quotes. Values: string, number, boolean, null, object, array.", weight: "high" },
+      { id: "6.7.a.2", term: "JSON object",                  def: "{ } braces. Key-value pairs inside. Example: {\"name\": \"R1\", \"type\": \"router\"}.", weight: "high" },
+      { id: "6.7.a.3", term: "JSON array",                   def: "[ ] brackets. Ordered list of values. Example: [\"R1\", \"R2\", \"R3\"].", weight: "high" }
+    ]
   },
 
   "6.7.b": {
@@ -1277,8 +1856,13 @@ window.subtopicContentD56 = {
       memory: "Square brackets [ ] = Array = ordered list. [ ] looks like a shelf holding items in a row. { } = one thing with properties (object). [ ] = many things in a list (array). See brackets? Identify instantly.",
       practice: "Write a JSON array of 3 device objects: <code>[{\"name\":\"SW1\"},{\"name\":\"SW2\"},{\"name\":\"SW3\"}]</code>. Then a simple VLAN array: <code>[10, 20, 30]</code>. Practice both patterns — arrays of objects are the most common API response format.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 62. Wendell Odom OCG Chapter 18. Instant ID: { } = object, [ ] = array. If the exam shows curly braces, it's an object. Square brackets = array. Know the visual difference cold."
-    }
+      meta: "Jeremy's IT Lab Day 62. Wendell Odom OCG Chapter 18. Instant ID: { } = object, [ ] = array. If the exam shows curly braces, it's an object. Square brackets = array. Know the visual difference cold.",
+    },
+    micro: [
+      { id: "6.7.b.1", term: "{ } = object",                 def: "Curly braces. Collection of unordered key-value pairs. Access by key.", weight: "high" },
+      { id: "6.7.b.2", term: "[ ] = array",                  def: "Square brackets. Ordered list. Access by numeric index (0-based).", weight: "high" },
+      { id: "6.7.b.3", term: "Visual identification",        def: "{ → object. [ → array. First character of snippet tells you the type.", weight: "high" }
+    ]
   },
 
   "6.7.c": {
@@ -1288,8 +1872,13 @@ window.subtopicContentD56 = {
       memory: "6 types: String (quotes), Number (no quotes), Boolean (true/false, lowercase), Null (null, lowercase), Object ({ }), Array ([ ]). No date type, no comments, no single quotes, no capitalized True/False.",
       practice: "Write one JSON document using all 6 types: <code>{\"name\":\"SW1\", \"vlans\":[10,20], \"uptime\":99.5, \"managed\":true, \"location\":null, \"config\":{\"hostname\":\"SW1\"}}</code>. Validate at jsonlint.com.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 62. Wendell Odom OCG Chapter 18. The exam asks 'which is a valid JSON data type?' Know all six. Traps: no 'date' type, no 'undefined,' capitalized True is invalid."
-    }
+      meta: "Jeremy's IT Lab Day 62. Wendell Odom OCG Chapter 18. The exam asks 'which is a valid JSON data type?' Know all six. Traps: no 'date' type, no 'undefined,' capitalized True is invalid.",
+    },
+    micro: [
+      { id: "6.7.c.1", term: "6 valid JSON types",           def: "string, number, boolean, null, object, array. Memorize all six.", weight: "high" },
+      { id: "6.7.c.2", term: "JSON booleans lowercase",      def: "'true' / 'false' only. 'True' or 'FALSE' = INVALID JSON. Must be lowercase.", weight: "high" },
+      { id: "6.7.c.3", term: "No date/undefined in JSON",    def: "JSON has no 'date' type (use string). No 'undefined' (use null). Common exam traps.", weight: "high" }
+    ]
   },
 
   "6.7.d": {
@@ -1299,8 +1888,13 @@ window.subtopicContentD56 = {
       memory: "Nesting = Russian dolls. Objects inside objects inside arrays. Read nested JSON by following the path: device → interfaces → [0] → ip. Each arrow goes one level deeper. Arrays use index numbers [0], [1].",
       practice: "Given the nested JSON above, extract: 'What is the VLAN of the second interface?' Path: device → interfaces → [1] → vlan → answer: 20. Practice 5 extractions until the path-following is automatic.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 62. Wendell Odom OCG Chapter 18. The exam shows nested JSON and asks for a specific value. Practice tracing paths: object key → array index → nested key → value."
-    }
+      meta: "Jeremy's IT Lab Day 62. Wendell Odom OCG Chapter 18. The exam shows nested JSON and asks for a specific value. Practice tracing paths: object key → array index → nested key → value.",
+    },
+    micro: [
+      { id: "6.7.d.1", term: "Nested JSON",                  def: "Objects inside objects, arrays inside objects, etc. Exam shows nested structure and asks for a value.", weight: "high" },
+      { id: "6.7.d.2", term: "Access path",                  def: "Dot notation + brackets. data.devices[0].name = first device's name field.", weight: "high" },
+      { id: "6.7.d.3", term: "Tracing strategy",             def: "Read outer keys first → drill down. Object key → array index [N] → nested key → value.", weight: "high" }
+    ]
   },
 
   "6.7.e": {
@@ -1310,8 +1904,15 @@ window.subtopicContentD56 = {
       memory: "JSON validation checklist: DOUBLE quotes only (not single), NO trailing commas, NO comments, lowercase true/false/null (not True/False/Null), no leading zeros on numbers. Check these five things first when debugging.",
       practice: "Write 5 invalid JSON examples and fix each: 1) Single quotes → double. 2) Trailing comma → remove. 3) Comment → remove. 4) Capitalized True → lowercase true. 5) Leading zero 01 → 1. Validate each at jsonlint.com.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 62. Wendell Odom OCG Chapter 18. The exam shows JSON and asks 'which is valid?' Traps: single quotes, trailing commas, comments, capitalized booleans. Know what makes JSON INVALID."
-    }
+      meta: "Jeremy's IT Lab Day 62. Wendell Odom OCG Chapter 18. The exam shows JSON and asks 'which is valid?' Traps: single quotes, trailing commas, comments, capitalized booleans. Know what makes JSON INVALID.",
+    },
+    micro: [
+      { id: "6.7.e.1", term: "JSON uses double quotes",      def: "Strings + keys MUST use double quotes \" \". Single quotes ' ' are INVALID JSON.", weight: "high" },
+      { id: "6.7.e.2", term: "No trailing commas",           def: "[1, 2, 3,] is INVALID. Final element cannot have trailing comma. JavaScript allows it; JSON does NOT.", weight: "high" },
+      { id: "6.7.e.3", term: "No comments",                  def: "JSON does NOT support // or /* */ comments. Any comment = invalid JSON.", weight: "high" },
+      { id: "6.7.e.4", term: "No single quotes / capitalized booleans", def: "'text' INVALID. True/FALSE INVALID. Must be: \"text\", true, false.", weight: "high" },
+      { id: "6.7.e.5", term: "Exam JSON validation",         def: "Scan for: double quotes only, no trailing commas, no comments, lowercase booleans. Any violation = invalid.", weight: "high" }
+    ]
   }
 
 };
