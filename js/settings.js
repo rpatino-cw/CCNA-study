@@ -299,24 +299,11 @@
       tc('bollywood','\u2728',      'Bollywood',  'Full filmi energy') +
       '</div></div>' +
 
-      /* Display */
-      '<div class="st-sec"><div class="st-lbl">Display</div>' +
-      '<div class="st-row"><span class="rl">Font Size</span><div class="st-sizes">' +
-      sz('small','S') + sz('medium','M') + sz('large','L') +
-      '</div></div>' +
-      tog('Compact Mode', 'compact') +
-      tog('Reduce Motion', 'reduceMotion') +
-      tog('Auto-collapse Sections', 'autoCollapse') +
-      tog('Nav on Left Side', 'sidebarLeft') +
-      '</div>' +
-
-      /* Sound */
-      '<div class="st-sec"><div class="st-lbl">Sound</div>' +
-      tog('Theme Music', 'musicOn') +
-      '</div>' +
-
-      /* Reset */
-      '<div class="st-sec"><button class="st-reset" id="stReset">Reset to Default</button></div>';
+      /* Reset Progress */
+      '<div class="st-sec"><div class="st-lbl">Progress</div>' +
+      '<button class="st-reset" id="stReset">Reset Progress</button>' +
+      '<div style="font-size:.7rem;color:var(--ink-muted);margin-top:8px;line-height:1.4">Clears quizzes, proficiency, streaks, labs, and diagnostics. Theme is preserved.</div>' +
+      '</div>';
   }
 
   function tc(id, icon, name, desc) {
@@ -360,11 +347,15 @@
     }
     /* Close */
     if (e.target.closest('#stX')) closeP();
-    /* Reset */
+    /* Reset Progress */
     if (e.target.closest('#stReset')) {
-      S = merge(DEFAULTS, {});
-      save();
-      switchTheme('default');
+      if (!confirm('Reset all study progress? This clears quizzes, proficiency, streaks, lab scores, and diagnostic results. Theme settings are preserved.')) return;
+      for (var i = localStorage.length - 1; i >= 0; i--) {
+        var k = localStorage.key(i);
+        if (k && k.indexOf('ccna_') === 0 && k !== 'ccna_settings') localStorage.removeItem(k);
+      }
+      closeP();
+      location.reload();
     }
   });
 
