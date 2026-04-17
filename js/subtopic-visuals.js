@@ -2240,6 +2240,338 @@ window.SubtopicVisuals = (() => {
   }
 
   // ────────────────────────────────────────────────────────────────────
+  // 45. ipv6-slaac — Router Advertisement driving EUI-64 address.
+  // ────────────────────────────────────────────────────────────────────
+  function ipv6Slaac(p) {
+    const prefix = p.prefix || '2001:db8:1::/64';
+    const mac = p.mac || '00:1A:2B:3C:4D:5E';
+    const addr = p.addr || '2001:db8:1:0:21a:2bff:fe3c:4d5e/64';
+    const w = 360, h = 200;
+
+    let svg = `
+      <text x="${w/2}" y="16" text-anchor="middle" fill="#57534e" font-size="11" font-weight="700" font-family="'Space Grotesk',sans-serif">IPv6 SLAAC · autoconfig via Router Advertisement</text>
+
+      ${hostGlyph(50, 60, COLORS.blue, 'Host MAC ' + mac.slice(-5))}
+      ${routerGlyph(310, 60, COLORS.green, 'R1 Router')}
+
+      <!-- RS + RA exchange -->
+      <path d="M 78 60 L 282 60" stroke="#d4d0c8" stroke-width="1" stroke-dasharray="2 3"/>
+      <g>
+        <rect x="80" y="44" width="52" height="14" rx="3" fill="${COLORS.blue}" opacity="0.95">
+          <animate attributeName="x" values="80;228" dur="0.8s" repeatCount="indefinite"/>
+        </rect>
+        <text y="54" text-anchor="middle" fill="#fff" font-size="8" font-family="'JetBrains Mono',monospace" font-weight="700">
+          <animate attributeName="x" values="106;254" dur="0.8s" repeatCount="indefinite"/>
+          RS ff02::2
+        </text>
+      </g>
+      <g>
+        <rect x="230" y="64" width="52" height="14" rx="3" fill="${COLORS.green}" opacity="0">
+          <animate attributeName="opacity" values="0;0.95" dur="0.2s" begin="1s" fill="freeze"/>
+          <animate attributeName="x" values="230;80" dur="0.8s" begin="1s" fill="freeze"/>
+        </rect>
+        <text y="74" text-anchor="middle" fill="#fff" font-size="8" font-family="'JetBrains Mono',monospace" font-weight="700" opacity="0">
+          <animate attributeName="opacity" values="0;1" dur="0.2s" begin="1s" fill="freeze"/>
+          <animate attributeName="x" values="256;106" dur="0.8s" begin="1s" fill="freeze"/>
+          RA prefix
+        </text>
+      </g>
+
+      <!-- EUI-64 box -->
+      <rect x="20" y="100" width="320" height="56" rx="5" fill="#fef3c7" stroke="${COLORS.amber}" stroke-width="1.5"/>
+      <text x="30" y="116" fill="${COLORS.amber}" font-size="10" font-weight="700" font-family="'Space Grotesk',sans-serif">EUI-64 interface ID from MAC</text>
+      <text x="30" y="134" fill="#1c1917" font-size="10" font-family="'JetBrains Mono',monospace">${esc(mac)} → insert FFFE + flip U/L bit</text>
+      <text x="30" y="150" fill="#1c1917" font-size="11" font-family="'JetBrains Mono',monospace" font-weight="700">${esc(addr)}</text>
+
+      <text x="${w/2}" y="${h - 8}" text-anchor="middle" fill="#a8a29e" font-size="8" font-family="'JetBrains Mono',monospace">DAD (Neighbor Solicitation) checks for duplicates before using address</text>`;
+
+    return `<svg viewBox="0 0 ${w} ${h}" class="sv-anim" xmlns="http://www.w3.org/2000/svg">${svg}</svg>`;
+  }
+
+  // ────────────────────────────────────────────────────────────────────
+  // 46. ospf-dr-bdr — DR/BDR election on broadcast segment.
+  // ────────────────────────────────────────────────────────────────────
+  function ospfDrBdr(p) {
+    const dr  = p.dr  || { id: 'R1', rid: '1.1.1.1',   priority: 10 };
+    const bdr = p.bdr || { id: 'R2', rid: '2.2.2.2',   priority: 5 };
+    const drother = p.drother || [
+      { id: 'R3', rid: '3.3.3.3', priority: 1 },
+      { id: 'R4', rid: '4.4.4.4', priority: 0 }
+    ];
+    const w = 360, h = 220;
+
+    let svg = `
+      <text x="${w/2}" y="16" text-anchor="middle" fill="#57534e" font-size="11" font-weight="700" font-family="'Space Grotesk',sans-serif">OSPF DR/BDR on broadcast segment</text>
+
+      <!-- Segment bus -->
+      <rect x="20" y="92" width="320" height="8" rx="4" fill="${COLORS.slate}" opacity="0.25"/>
+      <text x="180" y="118" text-anchor="middle" fill="#a8a29e" font-size="9" font-family="'JetBrains Mono',monospace">BROADCAST SEGMENT · ff02::5 / 224.0.0.5 (allOSPF)</text>
+
+      ${[{ r: dr, label: 'DR',  color: COLORS.amber, x: 70,  active: true },
+         { r: bdr, label: 'BDR', color: COLORS.purple, x: 150, active: true },
+         { r: drother[0], label: 'DROTHER', color: COLORS.slate, x: 225, active: false },
+         { r: drother[1], label: 'DROTHER', color: COLORS.slate, x: 300, active: false }
+      ].map(n => `
+        <rect x="${n.x - 30}" y="36" width="60" height="48" rx="5" fill="${n.color}" opacity="${n.active ? 1 : 0.35}"/>
+        <text x="${n.x}" y="50" text-anchor="middle" fill="#fff" font-size="10" font-weight="700" font-family="'Space Grotesk',sans-serif">${esc(n.r.id)}</text>
+        <text x="${n.x}" y="63" text-anchor="middle" fill="#fff" font-size="8" font-family="'JetBrains Mono',monospace">RID ${esc(n.r.rid)}</text>
+        <text x="${n.x}" y="76" text-anchor="middle" fill="#fff" font-size="8" font-family="'JetBrains Mono',monospace">pri ${n.r.priority}</text>
+        <line x1="${n.x}" y1="84" x2="${n.x}" y2="92" stroke="${n.color}" stroke-width="2"/>
+        <text x="${n.x}" y="148" text-anchor="middle" fill="${n.color}" font-size="9" font-family="'JetBrains Mono',monospace" font-weight="700">${n.label}</text>
+      `).join('')}
+
+      <!-- LSA flow from DR to all -->
+      <circle r="3" fill="${COLORS.amber}">
+        <animate attributeName="cx" values="70;300" dur="1.5s" repeatCount="indefinite"/>
+        <animate attributeName="cy" values="96;96" dur="1.5s" repeatCount="indefinite"/>
+        <animate attributeName="opacity" values="1;1;0" dur="1.5s" repeatCount="indefinite" keyTimes="0;0.85;1"/>
+      </circle>
+
+      <text x="${w/2}" y="168" text-anchor="middle" fill="${COLORS.amber}" font-size="10" font-family="'JetBrains Mono',monospace" font-weight="700">Highest priority wins · ties broken by highest RID</text>
+      <text x="${w/2}" y="184" text-anchor="middle" fill="#57534e" font-size="9" font-family="'Space Grotesk',sans-serif">Priority 0 = never eligible · n(n-1) adjacencies → n adjacencies w/ DR</text>
+      <text x="${w/2}" y="${h - 8}" text-anchor="middle" fill="#a8a29e" font-size="8" font-family="'JetBrains Mono',monospace">Non-preemptive: already-elected DR stays even if higher-priority router joins</text>`;
+
+    return `<svg viewBox="0 0 ${w} ${h}" class="sv-anim" xmlns="http://www.w3.org/2000/svg">${svg}</svg>`;
+  }
+
+  // ────────────────────────────────────────────────────────────────────
+  // 47. ntp-stratum — clock hierarchy from stratum 0 → 4.
+  // ────────────────────────────────────────────────────────────────────
+  function ntpStratum(p) {
+    const levels = p.levels || [
+      { n: 0, label: 'Atomic / GPS',       detail: 'reference clock',   color: COLORS.purple },
+      { n: 1, label: 'Primary NTP',         detail: 'directly attached', color: COLORS.blue },
+      { n: 2, label: 'Secondary NTP',       detail: 'via stratum 1',     color: COLORS.green },
+      { n: 3, label: 'Regional server',     detail: 'via stratum 2',     color: COLORS.amber },
+      { n: 4, label: 'Edge router · clients', detail: 'via stratum 3',   color: COLORS.red }
+    ];
+    const w = 360, h = 50 + levels.length * 28 + 24;
+
+    let svg = `<text x="${w/2}" y="16" text-anchor="middle" fill="#57534e" font-size="11" font-weight="700" font-family="'Space Grotesk',sans-serif">NTP stratum · accuracy decreases with hops · UDP 123</text>`;
+
+    levels.forEach((l, i) => {
+      const y = 34 + i * 28;
+      const indent = i * 18;
+      svg += `
+        <rect x="${20 + indent}" y="${y}" width="${320 - indent * 2}" height="22" rx="4" fill="${l.color}" opacity="0.15" stroke="${l.color}" stroke-width="1.2"/>
+        <rect x="${20 + indent}" y="${y}" width="44" height="22" rx="4" fill="${l.color}"/>
+        <text x="${42 + indent}" y="${y + 16}" text-anchor="middle" fill="#fff" font-size="10" font-weight="700" font-family="'JetBrains Mono',monospace">S${l.n}</text>
+        <text x="${72 + indent}" y="${y + 16}" fill="${l.color}" font-size="10" font-weight="700" font-family="'Space Grotesk',sans-serif">${esc(l.label)}</text>
+        <text x="${340 - indent}" y="${y + 16}" text-anchor="end" fill="#78716c" font-size="9" font-family="'JetBrains Mono',monospace">${esc(l.detail)}</text>`;
+
+      if (i < levels.length - 1) {
+        svg += `<line x1="${42 + indent}" y1="${y + 22}" x2="${42 + indent + 18}" y2="${y + 28}" stroke="${l.color}" stroke-width="1.2" opacity="0.45"/>`;
+      }
+    });
+
+    svg += `<text x="${w/2}" y="${h - 8}" text-anchor="middle" fill="#a8a29e" font-size="8" font-family="'JetBrains Mono',monospace">Stratum 16 = unsynchronized · ntp server IP (client) · ntp master N (acts as server)</text>`;
+
+    return `<svg viewBox="0 0 ${w} ${h}" class="sv-anim" xmlns="http://www.w3.org/2000/svg">${svg}</svg>`;
+  }
+
+  // ────────────────────────────────────────────────────────────────────
+  // 48. bgp-neighbor — BGP FSM states Idle → Connect → Active → OpenSent → OpenConfirm → Established.
+  // ────────────────────────────────────────────────────────────────────
+  function bgpNeighbor(p) {
+    const active = p.active != null ? p.active : 5;
+    const w = 360, h = 160;
+    const states = [
+      { name: 'Idle',         color: COLORS.slate },
+      { name: 'Connect',      color: COLORS.blue },
+      { name: 'Active',       color: COLORS.amber },
+      { name: 'OpenSent',     color: COLORS.purple },
+      { name: 'OpenConfirm',  color: COLORS.teal },
+      { name: 'Established',  color: COLORS.green }
+    ];
+
+    let svg = `<text x="${w/2}" y="16" text-anchor="middle" fill="#57534e" font-size="11" font-weight="700" font-family="'Space Grotesk',sans-serif">BGP neighbor FSM · TCP 179 · path-vector protocol</text>`;
+
+    const boxW = 52, gap = (w - 24 - states.length * boxW) / (states.length - 1);
+    states.forEach((s, i) => {
+      const x = 12 + i * (boxW + gap);
+      const isActive = i === active;
+      const isPast = i < active;
+      svg += `
+        <rect x="${x}" y="44" width="${boxW}" height="32" rx="5" fill="${isActive || isPast ? s.color : '#f3f0eb'}" stroke="${s.color}" stroke-width="${isActive ? 2.2 : 1}">
+          ${isActive ? `<animate attributeName="stroke-width" values="1.6;2.8;1.6" dur="1.8s" repeatCount="indefinite"/>` : ''}
+        </rect>
+        <text x="${x + boxW/2}" y="${60}" text-anchor="middle" fill="${isActive || isPast ? '#fff' : s.color}" font-size="9" font-weight="700" font-family="'Space Grotesk',sans-serif">${esc(s.name)}</text>
+        <text x="${x + boxW/2}" y="${72}" text-anchor="middle" fill="${isActive || isPast ? '#fff' : '#78716c'}" font-size="8" font-family="'JetBrains Mono',monospace">${i}</text>`;
+
+      if (i < states.length - 1) {
+        const arrX1 = x + boxW;
+        const arrX2 = x + boxW + gap;
+        svg += `<path d="M ${arrX1} 60 L ${arrX2} 60" stroke="${isPast ? s.color : '#d4d0c8'}" stroke-width="1.2"/>`;
+      }
+    });
+
+    svg += `
+      <text x="${w/2}" y="104" text-anchor="middle" fill="${COLORS.green}" font-size="10" font-family="'JetBrains Mono',monospace" font-weight="700">${esc(states[active].name)} — routes exchanged, UPDATE messages flow</text>
+      <text x="${w/2}" y="124" text-anchor="middle" fill="#78716c" font-size="9" font-family="'Space Grotesk',sans-serif">Keepalive 60s · hold 180s · neighbor AS must match config</text>
+      <text x="${w/2}" y="${h - 8}" text-anchor="middle" fill="#a8a29e" font-size="8" font-family="'JetBrains Mono',monospace">eBGP (AD 20) between ASes · iBGP (AD 200) within AS</text>`;
+
+    return `<svg viewBox="0 0 ${w} ${h}" class="sv-anim" xmlns="http://www.w3.org/2000/svg">${svg}</svg>`;
+  }
+
+  // ────────────────────────────────────────────────────────────────────
+  // 49. ssh-handshake — SSH key exchange + authentication.
+  // ────────────────────────────────────────────────────────────────────
+  function sshHandshake(p) {
+    const w = 360, h = 240;
+    const steps = [
+      { label: 'TCP 22 connect',           dir: 'r', color: COLORS.blue,   detail: '3-way handshake' },
+      { label: 'SSH version exchange',     dir: 'b', color: COLORS.amber,  detail: 'SSH-2.0 banner' },
+      { label: 'Key exchange (DH)',        dir: 'b', color: COLORS.purple, detail: 'shared secret' },
+      { label: 'Server host key',          dir: 'l', color: COLORS.green,  detail: 'server RSA/Ed25519' },
+      { label: 'User auth (key/password)', dir: 'r', color: COLORS.teal,   detail: 'credentials proven' },
+      { label: 'Encrypted session',        dir: 'b', color: COLORS.red,    detail: 'AES-GCM + HMAC' }
+    ];
+
+    let svg = `
+      <text x="${w/2}" y="16" text-anchor="middle" fill="#57534e" font-size="11" font-weight="700" font-family="'Space Grotesk',sans-serif">SSH · TCP 22 · encrypted remote access</text>
+      <rect x="30" y="28" width="70" height="22" rx="4" fill="${COLORS.blue}"/>
+      <text x="65" y="43" text-anchor="middle" fill="#fff" font-size="10" font-weight="700" font-family="'Space Grotesk',sans-serif">Client</text>
+      <rect x="260" y="28" width="70" height="22" rx="4" fill="${COLORS.green}"/>
+      <text x="295" y="43" text-anchor="middle" fill="#fff" font-size="10" font-weight="700" font-family="'Space Grotesk',sans-serif">Server</text>
+      <line x1="65" y1="50" x2="65" y2="${h - 10}" stroke="#d4d0c8" stroke-dasharray="2 3"/>
+      <line x1="295" y1="50" x2="295" y2="${h - 10}" stroke="#d4d0c8" stroke-dasharray="2 3"/>`;
+
+    steps.forEach((s, i) => {
+      const y = 68 + i * 28;
+      svg += `
+        <rect x="95" y="${y - 9}" width="170" height="18" rx="3" fill="${s.color}" opacity="0">
+          <animate attributeName="opacity" values="0;0.95" dur="0.3s" begin="${i * 0.6}s" fill="freeze"/>
+        </rect>
+        <text x="180" y="${y + 3}" text-anchor="middle" fill="#fff" font-size="9" font-weight="700" font-family="'JetBrains Mono',monospace" opacity="0">
+          <animate attributeName="opacity" values="0;1" dur="0.3s" begin="${i * 0.6}s" fill="freeze"/>
+          ${esc(s.label)}
+        </text>
+        <text x="${w/2}" y="${y - 14}" text-anchor="middle" fill="${s.color}" font-size="8" font-family="'JetBrains Mono',monospace" font-weight="700" opacity="0">
+          <animate attributeName="opacity" values="0;0.9" dur="0.3s" begin="${i * 0.6 + 0.3}s" fill="freeze"/>
+          ${esc(s.detail)}
+        </text>`;
+    });
+
+    return `<svg viewBox="0 0 ${w} ${h}" class="sv-anim" xmlns="http://www.w3.org/2000/svg">${svg}</svg>`;
+  }
+
+  // ────────────────────────────────────────────────────────────────────
+  // 50. radius-auth — 802.1X EAP over RADIUS flow.
+  // ────────────────────────────────────────────────────────────────────
+  function radiusAuth(p) {
+    const w = 360, h = 240;
+
+    let svg = `
+      <text x="${w/2}" y="16" text-anchor="middle" fill="#57534e" font-size="11" font-weight="700" font-family="'Space Grotesk',sans-serif">802.1X · supplicant ↔ authenticator ↔ RADIUS server</text>
+
+      ${hostGlyph(40, 56, COLORS.blue, 'Supplicant')}
+      ${switchGlyph(180, 56, COLORS.amber, 'Switch Authenticator')}
+      <rect x="300" y="40" width="52" height="40" rx="5" fill="${COLORS.green}"/>
+      <text x="326" y="58" text-anchor="middle" fill="#fff" font-size="9" font-weight="700" font-family="'Space Grotesk',sans-serif">RADIUS</text>
+      <text x="326" y="72" text-anchor="middle" fill="#fff" font-size="9" font-family="'JetBrains Mono',monospace">UDP 1812</text>
+
+      <!-- EAPoL left, RADIUS right -->
+      <text x="140" y="96" text-anchor="middle" fill="${COLORS.blue}" font-size="9" font-family="'JetBrains Mono',monospace" font-weight="700">EAP over LAN (EAPoL)</text>
+      <text x="268" y="96" text-anchor="middle" fill="${COLORS.green}" font-size="9" font-family="'JetBrains Mono',monospace" font-weight="700">RADIUS (UDP 1812)</text>
+
+      ${[
+        { y: 112, label: 'EAP-Request / Identity',     dirL: true, dirR: false },
+        { y: 134, label: 'EAP-Response / Identity',    dirL: false, dirR: true },
+        { y: 156, label: 'EAP-TLS/PEAP exchange',      dirL: true, dirR: true },
+        { y: 178, label: 'Access-Accept',               dirL: false, dirR: false },
+        { y: 200, label: 'EAP-Success · port opens',    dirL: true, dirR: false }
+      ].map((row, i) => `
+        <text x="180" y="${row.y - 4}" text-anchor="middle" fill="#57534e" font-size="9" font-family="'Space Grotesk',sans-serif" opacity="0">
+          <animate attributeName="opacity" values="0;1" dur="0.3s" begin="${i * 0.6}s" fill="freeze"/>
+          ${esc(row.label)}
+        </text>
+        <line x1="68" y1="${row.y + 4}" x2="156" y2="${row.y + 4}" stroke="${COLORS.blue}" stroke-width="1.5" stroke-dasharray="2 2" opacity="0">
+          <animate attributeName="opacity" values="0;1" dur="0.3s" begin="${i * 0.6}s" fill="freeze"/>
+        </line>
+        <line x1="204" y1="${row.y + 4}" x2="296" y2="${row.y + 4}" stroke="${COLORS.green}" stroke-width="1.5" stroke-dasharray="2 2" opacity="0">
+          <animate attributeName="opacity" values="0;1" dur="0.3s" begin="${i * 0.6 + 0.2}s" fill="freeze"/>
+        </line>
+      `).join('')}
+
+      <text x="${w/2}" y="${h - 8}" text-anchor="middle" fill="#a8a29e" font-size="8" font-family="'JetBrains Mono',monospace">Until auth, port is in "Unauthorized" state — only EAPoL passes</text>`;
+
+    return `<svg viewBox="0 0 ${w} ${h}" class="sv-anim" xmlns="http://www.w3.org/2000/svg">${svg}</svg>`;
+  }
+
+  // ────────────────────────────────────────────────────────────────────
+  // 51. pvst — per-VLAN spanning tree with separate roots per VLAN.
+  // ────────────────────────────────────────────────────────────────────
+  function pvst(p) {
+    const w = 360, h = 200;
+    const vlans = p.vlans || [
+      { id: 10, root: 'SW1', color: COLORS.blue },
+      { id: 20, root: 'SW2', color: COLORS.green },
+      { id: 30, root: 'SW3', color: COLORS.purple }
+    ];
+
+    let svg = `<text x="${w/2}" y="16" text-anchor="middle" fill="#57534e" font-size="11" font-weight="700" font-family="'Space Grotesk',sans-serif">PVST+ · separate root bridge per VLAN · load balancing</text>`;
+
+    vlans.forEach((v, i) => {
+      const y = 36 + i * 50;
+      svg += `
+        <rect x="14" y="${y}" width="70" height="42" rx="5" fill="${v.color}"/>
+        <text x="49" y="${y + 16}" text-anchor="middle" fill="#fff" font-size="10" font-weight="700" font-family="'Space Grotesk',sans-serif">VLAN ${v.id}</text>
+        <text x="49" y="${y + 30}" text-anchor="middle" fill="#fff" font-size="8" font-family="'JetBrains Mono',monospace">root: ${esc(v.root)}</text>`;
+
+      // Tree branches
+      svg += `
+        <rect x="150" y="${y + 4}" width="44" height="34" rx="4" fill="${v.root === 'SW1' ? v.color : '#fff'}" stroke="${v.color}" stroke-width="${v.root === 'SW1' ? 2 : 1}"/>
+        <text x="172" y="${y + 25}" text-anchor="middle" fill="${v.root === 'SW1' ? '#fff' : v.color}" font-size="9" font-weight="700" font-family="'Space Grotesk',sans-serif">SW1</text>
+
+        <rect x="220" y="${y + 4}" width="44" height="34" rx="4" fill="${v.root === 'SW2' ? v.color : '#fff'}" stroke="${v.color}" stroke-width="${v.root === 'SW2' ? 2 : 1}"/>
+        <text x="242" y="${y + 25}" text-anchor="middle" fill="${v.root === 'SW2' ? '#fff' : v.color}" font-size="9" font-weight="700" font-family="'Space Grotesk',sans-serif">SW2</text>
+
+        <rect x="290" y="${y + 4}" width="44" height="34" rx="4" fill="${v.root === 'SW3' ? v.color : '#fff'}" stroke="${v.color}" stroke-width="${v.root === 'SW3' ? 2 : 1}"/>
+        <text x="312" y="${y + 25}" text-anchor="middle" fill="${v.root === 'SW3' ? '#fff' : v.color}" font-size="9" font-weight="700" font-family="'Space Grotesk',sans-serif">SW3</text>
+
+        <line x1="194" y1="${y + 21}" x2="220" y2="${y + 21}" stroke="${v.color}" stroke-width="1.5"/>
+        <line x1="264" y1="${y + 21}" x2="290" y2="${y + 21}" stroke="${v.color}" stroke-width="1.5"/>`;
+    });
+
+    svg += `<text x="${w/2}" y="${h - 8}" text-anchor="middle" fill="#a8a29e" font-size="8" font-family="'JetBrains Mono',monospace">Different VLANs can use different uplinks → load balancing without bonding</text>`;
+
+    return `<svg viewBox="0 0 ${w} ${h}" class="sv-anim" xmlns="http://www.w3.org/2000/svg">${svg}</svg>`;
+  }
+
+  // ────────────────────────────────────────────────────────────────────
+  // 52. osi-troubleshoot — layer-by-layer ping/probe results.
+  // ────────────────────────────────────────────────────────────────────
+  function osiTroubleshoot(p) {
+    const tests = p.tests || [
+      { layer: 1, name: 'Cable plugged?',     ok: true,  cmd: 'show interface status' },
+      { layer: 2, name: 'Link up, MAC learned?', ok: true, cmd: 'show mac address-table' },
+      { layer: 3, name: 'Ping gateway?',      ok: true,  cmd: 'ping 10.1.1.1' },
+      { layer: 3, name: 'Ping remote host?',  ok: false, cmd: 'ping 10.2.2.5  (fails)' },
+      { layer: 4, name: 'TCP 443 reachable?', ok: false, cmd: 'telnet host 443' },
+      { layer: 7, name: 'DNS resolves?',      ok: false, cmd: 'nslookup example.com' }
+    ];
+    const w = 360, h = 36 + tests.length * 26 + 24;
+
+    let svg = `<text x="${w/2}" y="16" text-anchor="middle" fill="#57534e" font-size="11" font-weight="700" font-family="'Space Grotesk',sans-serif">OSI troubleshooting · walk the stack bottom-up or top-down</text>`;
+
+    tests.forEach((t, i) => {
+      const y = 28 + i * 26;
+      const icon = t.ok ? '✓' : '✗';
+      const col = t.ok ? COLORS.green : COLORS.red;
+      svg += `
+        <rect x="12" y="${y}" width="336" height="22" rx="3" fill="${t.ok ? '#ecfdf5' : '#fef2f2'}" stroke="${col}" stroke-width="1"/>
+        <rect x="16" y="${y + 3}" width="36" height="16" rx="2" fill="${col}"/>
+        <text x="34" y="${y + 15}" text-anchor="middle" fill="#fff" font-size="9" font-weight="700" font-family="'JetBrains Mono',monospace">L${t.layer}</text>
+        <text x="60" y="${y + 15}" fill="${col}" font-size="10" font-weight="700" font-family="'Space Grotesk',sans-serif">${icon} ${esc(t.name)}</text>
+        <text x="344" y="${y + 15}" text-anchor="end" fill="#57534e" font-size="9" font-family="'JetBrains Mono',monospace">${esc(t.cmd)}</text>`;
+    });
+
+    svg += `<text x="${w/2}" y="${h - 8}" text-anchor="middle" fill="#a8a29e" font-size="8" font-family="'JetBrains Mono',monospace">Bottom-up: physical first · Top-down: application first · binary-search the stack</text>`;
+
+    return `<svg viewBox="0 0 ${w} ${h}" class="sv-anim" xmlns="http://www.w3.org/2000/svg">${svg}</svg>`;
+  }
+
+  // ────────────────────────────────────────────────────────────────────
   // Renderer dispatch
   // ────────────────────────────────────────────────────────────────────
 
@@ -2287,7 +2619,15 @@ window.SubtopicVisuals = (() => {
     'vlan-colors':       vlanColors,
     'aaa-flow':          aaaFlow,
     'api-request':       apiRequest,
-    'json-tree':         jsonTree
+    'json-tree':         jsonTree,
+    'ipv6-slaac':        ipv6Slaac,
+    'ospf-dr-bdr':       ospfDrBdr,
+    'ntp-stratum':       ntpStratum,
+    'bgp-neighbor':      bgpNeighbor,
+    'ssh-handshake':     sshHandshake,
+    'radius-auth':       radiusAuth,
+    'pvst':              pvst,
+    'osi-troubleshoot':  osiTroubleshoot
   };
 
   // ────────────────────────────────────────────────────────────────────
