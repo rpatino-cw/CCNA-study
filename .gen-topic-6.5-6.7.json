@@ -1,0 +1,365 @@
+{
+  "6.5.a": [
+    {
+      "id": "6.5.a.1",
+      "term": "REST",
+      "weight": "high",
+      "info": "<p><strong>REST (REpresentational State Transfer)</strong> is an <em>architectural style</em> for building web APIs, defined by Roy Fielding in his 2000 doctoral dissertation. It is not a protocol and not a standard — it is a set of constraints that, when followed, produce APIs that are simple, scalable, and loosely coupled. Modern SDN controllers (Cisco DNA Center, Meraki Dashboard, Catalyst SD-WAN vManage) and virtually every cloud platform expose their management plane through REST.</p><p>The six REST constraints are: <strong>client-server</strong> (separate UI from storage), <strong>stateless</strong> (each request carries all context), <strong>cacheable</strong> (responses labeled cacheable or not), <strong>uniform interface</strong> (resources identified by URIs, manipulated through representations), <strong>layered system</strong> (client cannot tell if it is talking to the origin or a proxy), and <strong>code-on-demand</strong> (optional — server can ship executable code to client). On the CCNA you mostly need the first five.</p><p>The practical implementation on the wire is almost always: <strong>HTTP(S) + JSON + URIs + standard HTTP verbs (GET/POST/PUT/PATCH/DELETE) + HTTP status codes</strong>. A RESTful request looks like:</p><pre>GET /api/v1/devices/42 HTTP/1.1\nHost: dnac.example.com\nAuthorization: Bearer eyJhbGciOi...\nAccept: application/json</pre><p>And the response body is JSON describing the resource. The server never needs to remember who you are between calls — every request re-presents the token.</p><p><strong>Why the CCNA cares:</strong> network automation workflows (DNA Center intent APIs, Meraki Dashboard API, vManage API) are REST. Being able to read a URL, verb, and JSON body and say what it does is a guaranteed exam competency.</p>",
+      "visual": { "type": "handshake", "params": { "leftLabel": "Client (Python/Postman)", "rightLabel": "REST API Server", "steps": ["GET /api/v1/devices →", "← 200 OK + JSON array", "POST /api/v1/devices + body →", "← 201 Created + new resource JSON", "DELETE /api/v1/devices/5 →", "← 204 No Content"] } },
+      "hack": {
+        "memory": "REST = Stateless + URI + HTTP verbs + JSON. Every call is a self-contained postcard: the address (URI) says WHICH thing, the verb says WHAT to do, the body says WITH WHAT DATA, and the token on every postcard proves WHO you are. Server has amnesia between postcards.",
+        "practice": "In Postman: hit https://jsonplaceholder.typicode.com/posts/1 with GET. Look at the response — URI identified the resource, GET pulled it, JSON came back. Now DELETE it. Same URI, different verb, different result. This one-minute exercise cements REST.",
+        "effort": "low",
+        "meta": "Jeremy's IT Lab Day 62 introduces REST fundamentals. Wendell Odom OCG Chapter 30 (v1.1). Expect at least one 'which of these describes REST?' conceptual question — stateless, client-server, URI-based, uses HTTP methods. Do NOT confuse REST with SOAP (XML + strict envelope) or gRPC (binary + protobuf)."
+      }
+    },
+    {
+      "id": "6.5.a.2",
+      "term": "Stateless",
+      "weight": "high",
+      "info": "<p><strong>Stateless</strong> means the server does <em>not</em> store any client context between requests. Every REST request must contain <strong>all the information the server needs to process it</strong> — authentication token, query filters, body payload, the lot. If the connection dropped and a different backend server picked up your next request, it should still work identically.</p><p>Contrast this with a stateful protocol like classic FTP or Telnet, where the server remembers 'you are logged in as admin, currently in /etc/.' REST explicitly forbids that. If you need to say 'GET the third page of devices filtered by site=EVI01,' you must put all of that in the URL or headers of each request:</p><pre>GET /api/v1/devices?site=EVI01&page=3 HTTP/1.1\nAuthorization: Bearer eyJ...</pre><p><strong>Why stateless is a feature, not a bug:</strong> it enables horizontal scaling. Any server in a load-balanced pool can answer any request. It also simplifies failure recovery — if a node dies, another picks up with no session replication needed. And it makes caching easy, because a given URL+method+headers deterministically produces the same response.</p><p><strong>The tradeoff:</strong> requests are bigger (you carry the token every time) and the client has to track its own state (pagination cursor, filters). Modern REST APIs accept this cost because scale matters more than wire efficiency.</p><p><strong>Exam angle:</strong> 'What is a characteristic of a RESTful API?' — stateless is the answer that separates REST from session-based protocols.</p>",
+      "visual": { "type": "comparison", "params": { "left": { "label": "Stateful (e.g. Telnet/FTP)", "items": ["Server remembers login", "Server remembers cwd", "Must stay on same server", "Session cookies required"] }, "right": { "label": "Stateless (REST)", "items": ["Each request re-presents token", "Each request re-specifies filter", "Any backend can answer", "No server-side session needed"] } } },
+      "hack": {
+        "memory": "Stateless = every request is a Post-it note with EVERYTHING on it. Server reads Post-it, acts, throws it away. Next Post-it must also re-state who you are and what you want. No memory, no context, no shortcuts.",
+        "practice": "Try this: make a GET /api/v1/devices request with a bearer token. Then make the next one WITHOUT the token. It fails — the server didn't remember you. In a stateful protocol, one login would authorize all following calls. REST makes you prove yourself every single time.",
+        "effort": "low",
+        "meta": "Jeremy's IT Lab Day 62. OCG Chapter 30. Exam test: 'RESTful APIs are stateless' — TRUE. Stateless is the #1 REST property asked about. Second most common trap: thinking 'stateless' means 'no authentication' — wrong, it means 'no stored session.' You still authenticate every call, you just do it fresh each time."
+      }
+    },
+    {
+      "id": "6.5.a.3",
+      "term": "Client-server",
+      "weight": "high",
+      "info": "<p><strong>Client-server</strong> is the first REST constraint: the client (app requesting data) and the server (system that stores and processes data) are <em>cleanly separated</em> and communicate only through a well-defined API contract. They can be written in different languages, deployed on different continents, and upgraded on different schedules — as long as the contract holds.</p><p>In networking terms: a Python script on your laptop (client) makes an HTTPS call to Cisco DNA Center (server). The Python script has no idea what database DNA Center uses, what programming language it is written in, or how many microservices answer the request. It only knows the API contract: URIs, verbs, JSON shapes, status codes.</p><p><strong>The separation gives you:</strong></p><ul><li><strong>Independent evolution</strong> — the server team can rewrite the backend from Java to Go without changing any client.</li><li><strong>Multiple clients from one API</strong> — the same REST endpoints serve a web UI, a mobile app, a CLI tool, and a network automation script.</li><li><strong>Clear security boundary</strong> — authentication and authorization happen at the API edge.</li></ul><p>The client-server constraint is the reason the rest of REST is possible. Without a clean split, you cannot enforce statelessness, uniform interface, or caching.</p>",
+      "visual": { "type": "layer-stack", "params": { "layers": ["Client: Python/Postman/UI", "HTTPS over the internet", "REST API contract (URIs + verbs + JSON)", "Server: DNA Center / Meraki / vManage", "Backend DB (hidden from client)"], "highlight": 2 } },
+      "hack": {
+        "memory": "Client-server = waiter vs kitchen. You (client) talk to the waiter (API) and never enter the kitchen (database). The kitchen can change chefs, change stoves, change the whole building layout — you still order through the same menu (API contract) at the same table.",
+        "practice": "Open any REST API documentation (Meraki, GitHub, OpenWeather). Notice: it tells you URIs, verbs, and response shapes — nothing about the server's database or language. That opacity is the client-server constraint in action.",
+        "effort": "low",
+        "meta": "Jeremy's IT Lab Day 62. OCG Chapter 30. Exam angle: 'what is a characteristic of REST?' — client-server separation is one of the listed constraints. Usually pairs with stateless on multi-select questions."
+      }
+    },
+    {
+      "id": "6.5.a.4",
+      "term": "URI-based resources",
+      "weight": "high",
+      "info": "<p>In REST, everything the server manages is a <strong>resource</strong>, and every resource is identified by a <strong>URI (Uniform Resource Identifier)</strong>. Resources are <em>nouns</em>, not verbs. <code>/api/v1/devices</code> is the collection of all devices; <code>/api/v1/devices/42</code> is device number 42; <code>/api/v1/devices/42/interfaces</code> is that device's interfaces.</p><p><strong>Good REST URI design:</strong></p><ul><li>Plural nouns for collections: <code>/devices</code>, not <code>/device</code> or <code>/getDevices</code>.</li><li>Hierarchy reflects containment: <code>/sites/sjc01/devices/42/interfaces/Gi0/1</code>.</li><li>Verbs belong in the HTTP method, not the URI. <code>GET /devices/42</code> — not <code>GET /getDevice?id=42</code>.</li><li>Query strings for filters and pagination: <code>/devices?site=EVI01&page=2&limit=50</code>.</li><li>Versioning in the path: <code>/api/v1/...</code> so you can ship <code>/api/v2/...</code> later without breaking clients.</li></ul><p><strong>Real examples from Cisco:</strong></p><pre>GET /dna/intent/api/v1/network-device\nGET /api/v1/organizations/{orgId}/networks\nPOST /dataservice/template/device\nDELETE /api/v1/interfaces/42</pre><p>A URI always answers the question 'WHICH resource?' The HTTP verb answers 'WHAT should I do with it?' Keeping these separate is the core of the uniform-interface constraint.</p><p><strong>Common exam trap:</strong> a URL like <code>/api/deleteDevice/42</code> uses a verb in the path — that is not RESTful. The correct form is <code>DELETE /api/devices/42</code>.</p>",
+      "visual": { "type": "hierarchy", "params": { "root": "/api/v1", "children": [{ "name": "/devices (collection)", "children": [{ "name": "/devices/42 (single device)", "children": [{ "name": "/devices/42/interfaces" }, { "name": "/devices/42/vlans" }] }] }, { "name": "/sites (collection)" }] } },
+      "hack": {
+        "memory": "URIs are STREET ADDRESSES for resources. /devices/42 = house number 42 on Devices Street. HTTP verb = what you do at that address (knock = GET, drop a package = POST, bulldoze = DELETE). Never put the action in the address.",
+        "practice": "Critique these URLs — RESTful or not? (1) GET /getAllDevices (2) POST /devices (3) GET /devices/42/interfaces (4) POST /deleteDevice?id=42 (5) DELETE /devices/42. Answers: 1 bad (verb in path), 2 good, 3 good, 4 bad (verb in path AND wrong method), 5 good. Do 10 of these and URI design clicks.",
+        "effort": "low",
+        "meta": "Jeremy's IT Lab Day 62. OCG Chapter 30. Exam will show you a URL+verb and ask what operation it performs, or which of several URLs is RESTful. Rule of thumb: nouns in the path, verbs in the HTTP method."
+      }
+    }
+  ],
+  "6.5.b": [
+    {
+      "id": "6.5.b.1",
+      "term": "POST = Create",
+      "weight": "high",
+      "info": "<p><strong>POST</strong> is the HTTP verb that creates a new resource on the server. The client sends the resource data in the request body (usually JSON), and the server assigns an ID, stores it, and returns <strong>201 Created</strong> along with the new resource (including its server-assigned ID) in the response body. A <code>Location</code> header in the response points to the new URI.</p><p><strong>Example — create a device:</strong></p><pre>POST /api/v1/devices HTTP/1.1\nHost: dnac.example.com\nAuthorization: Bearer eyJ...\nContent-Type: application/json\n\n{\"hostname\": \"SW5\", \"ip\": \"10.0.0.5\", \"model\": \"C9300\"}</pre><p>Response:</p><pre>HTTP/1.1 201 Created\nLocation: /api/v1/devices/42\nContent-Type: application/json\n\n{\"id\": 42, \"hostname\": \"SW5\", \"ip\": \"10.0.0.5\", \"model\": \"C9300\"}</pre><p><strong>POST is NOT idempotent.</strong> This is the most-tested property. Calling POST twice with the same body creates <em>two</em> resources (device 42 and device 43), not one. If you want 'create or update, but only ever one copy,' use PUT. If you want 'create this exact thing and fail if it already exists,' most APIs expose a unique constraint that returns 409 Conflict on the second call.</p><p><strong>POST is also used for non-CRUD actions</strong> that do not fit GET/PUT/DELETE — for example <code>POST /api/v1/devices/42/actions/reboot</code>. This is a pragmatic exception in real APIs.</p>",
+      "visual": { "type": "handshake", "params": { "leftLabel": "Client", "rightLabel": "Server", "steps": ["POST /api/v1/devices", "+ JSON body: {hostname, ip, model}", "Server validates, assigns id=42", "201 Created", "+ Location: /api/v1/devices/42", "+ JSON response with id"] } },
+      "hack": {
+        "memory": "POST = 'Please Ordain a Sacred Thing' — the server creates it and blesses it with an ID. Always returns 201 Created. Not idempotent: call twice = two devices. Contrast PUT (idempotent, replaces a specific URI).",
+        "practice": "In Postman: POST to https://jsonplaceholder.typicode.com/posts with body {\"title\":\"hi\",\"body\":\"test\",\"userId\":1}. Response: 201 + the object with a new id. POST again — you get another id. That is non-idempotent behavior in action.",
+        "effort": "low",
+        "meta": "Jeremy's IT Lab Day 62. OCG Chapter 30. Exam: 'Which HTTP method creates a resource?' = POST. 'Which HTTP method is NOT idempotent?' = POST. Know 201 Created as its signature response code."
+      }
+    },
+    {
+      "id": "6.5.b.2",
+      "term": "GET = Read",
+      "weight": "high",
+      "info": "<p><strong>GET</strong> retrieves a representation of a resource without modifying it. It is the most common HTTP verb — every web page load is a GET. In REST APIs, GET is used to list collections, read a single resource, or query with filters.</p><p><strong>Two flavors:</strong></p><ul><li><strong>GET collection</strong>: <code>GET /api/v1/devices</code> — returns a JSON array of all devices (usually paginated).</li><li><strong>GET single</strong>: <code>GET /api/v1/devices/42</code> — returns one JSON object for device 42, or 404 if it does not exist.</li></ul><p><strong>Filters and pagination</strong> go in the query string:</p><pre>GET /api/v1/devices?site=EVI01&status=up&page=2&limit=50 HTTP/1.1</pre><p><strong>Two critical properties:</strong></p><ul><li><strong>Safe</strong> — GET must never cause a side effect on the server. You can call it a million times and nothing changes. Crawlers, prefetchers, and caches rely on this.</li><li><strong>Idempotent</strong> — calling GET once or ten times yields the same server state. (Note: the <em>response</em> body may change if another client updates the resource between calls — idempotent means the server state is not altered by YOUR call, not that the world stands still.)</li></ul><p><strong>GET has no request body.</strong> All parameters go in the URL or headers. Some APIs technically accept GET bodies, but it is non-standard and many proxies will strip them.</p>",
+      "visual": { "type": "handshake", "params": { "leftLabel": "Client", "rightLabel": "Server", "steps": ["GET /api/v1/devices?site=EVI01", "(no body — params in URL)", "Server queries DB", "200 OK", "+ JSON array of matching devices", "+ pagination headers"] } },
+      "hack": {
+        "memory": "GET = GRAB. Safe (no side effects) + idempotent (repeatable) + no body (params in URL). Two shapes: GET /collection (list) or GET /collection/id (one). Query string = ?filter=value.",
+        "practice": "curl -s https://jsonplaceholder.typicode.com/posts | jq length → 100. Now curl https://jsonplaceholder.typicode.com/posts/1 — just one. Now curl https://jsonplaceholder.typicode.com/posts?userId=1 — only posts for user 1. Three variations of GET, all read-only.",
+        "effort": "low",
+        "meta": "Jeremy's IT Lab Day 62. OCG Chapter 30. Exam: 'Which HTTP method retrieves data?' = GET. 'Which HTTP method is safe AND idempotent?' = GET. Know it has no body."
+      }
+    },
+    {
+      "id": "6.5.b.3",
+      "term": "PUT = Update (full)",
+      "weight": "high",
+      "info": "<p><strong>PUT</strong> replaces an entire resource at a specific URI with the representation sent in the request body. Unlike POST (create new), PUT targets a known ID: you are saying 'the resource at <code>/devices/42</code> should now look exactly like this JSON.'</p><pre>PUT /api/v1/devices/42 HTTP/1.1\nContent-Type: application/json\nAuthorization: Bearer eyJ...\n\n{\"hostname\": \"SW5-new\", \"ip\": \"10.0.0.5\", \"model\": \"C9300\", \"site\": \"EVI01\"}</pre><p>The server replaces all fields of device 42 with the body. Response is usually <strong>200 OK</strong> (with the updated resource) or <strong>204 No Content</strong> (if the server does not return a body).</p><p><strong>PUT is idempotent.</strong> Running the same PUT ten times leaves the resource in exactly the same state as running it once. This is why PUT is preferred for automation retries — if a network blip caused you to retry, you will not create duplicates or accumulate changes.</p><p><strong>Full replace vs partial update — the PUT/PATCH tradeoff:</strong> If the body you PUT omits a field that previously existed, the server is supposed to treat it as 'unset' or default. That surprises engineers used to partial updates. Use PATCH when you want to change only certain fields.</p><p><strong>PUT can create when the URI is known.</strong> Some APIs allow <code>PUT /devices/sw5</code> (where <code>sw5</code> is a client-chosen ID) to create device sw5 if it does not exist, or replace it if it does. That makes PUT idempotent-create, unlike POST.</p>",
+      "visual": { "type": "comparison", "params": { "left": { "label": "PUT /devices/42 (full)", "items": ["Targets known URI", "Body = complete new state", "Missing fields → unset/default", "Idempotent: 10 calls = 1 call", "Used for replace"] }, "right": { "label": "POST /devices (create)", "items": ["Targets collection URI", "Body = new resource data", "Server assigns ID", "NOT idempotent: 10 calls = 10 rows", "Used for create-new"] } } },
+      "hack": {
+        "memory": "PUT = Place/replace at a specific URI. Idempotent. Whole-object replace: anything you omit gets wiped. Think 'overwrite the file at this path.' PUT 10x = same final state.",
+        "practice": "In Postman: PUT https://jsonplaceholder.typicode.com/posts/1 with body {\"id\":1,\"title\":\"new\",\"body\":\"new\",\"userId\":1}. Response replaces the whole post. Run it 5 times — same result every time (idempotent).",
+        "effort": "low",
+        "meta": "Jeremy's IT Lab Day 62. OCG Chapter 30. Exam: 'Which HTTP method replaces a resource?' = PUT. 'Which HTTP methods are idempotent?' = GET, PUT, DELETE (POST is the oddball that is NOT). Memorize that grouping."
+      }
+    },
+    {
+      "id": "6.5.b.4",
+      "term": "PATCH = Update (partial)",
+      "weight": "high",
+      "info": "<p><strong>PATCH</strong> modifies specific fields of an existing resource without replacing the entire thing. You send only the fields you want to change; untouched fields are left alone.</p><pre>PATCH /api/v1/devices/42 HTTP/1.1\nContent-Type: application/json\nAuthorization: Bearer eyJ...\n\n{\"hostname\": \"SW5-renamed\"}</pre><p>Device 42's other fields (ip, model, site, interfaces) stay untouched; only <code>hostname</code> is changed. The response is typically <strong>200 OK</strong> with the updated resource.</p><p><strong>PATCH vs PUT — when to use each:</strong></p><ul><li>Use <strong>PUT</strong> when you have the full new object and want 'make it exactly this.'</li><li>Use <strong>PATCH</strong> when you want to change a few fields and do not want to risk clobbering fields you did not touch.</li></ul><p>In practice, PATCH is what network automation uses most — you rarely have the entire device record in hand; you just want to update one interface's description or flip one VLAN membership.</p><p><strong>Idempotency of PATCH is 'it depends.'</strong> <code>PATCH hostname=SW5-renamed</code> is idempotent — run it twice, same final state. But <code>PATCH vlans: {add: 30}</code> that appends to a list is NOT idempotent. The spec says PATCH <em>can</em> be idempotent but is not required to be. On the CCNA, treat PATCH as 'partial update' and move on — the exam rarely drills PATCH idempotency.</p>",
+      "visual": { "type": "comparison", "params": { "left": { "label": "PUT /devices/42", "items": ["Body = full object", "Replaces everything", "Missing fields = wiped", "Always idempotent"] }, "right": { "label": "PATCH /devices/42", "items": ["Body = only changed fields", "Merges with existing", "Untouched fields preserved", "Usually idempotent"] } } },
+      "hack": {
+        "memory": "PATCH = patch a hole. Send only the diff. Other fields untouched. PUT = paint the whole wall. PATCH = touch up the crack. If you do not know the full object, PATCH is safer.",
+        "practice": "Run PUT /posts/1 with a body missing 'userId' — you will see userId disappear in some APIs (PUT is full replace). Now run PATCH /posts/1 with just {\"title\":\"new\"} — only the title changes, userId is preserved. This side-by-side makes the difference permanent.",
+        "effort": "low",
+        "meta": "Jeremy's IT Lab Day 62. OCG Chapter 30. Exam: 'Which HTTP method partially updates a resource?' = PATCH. Know that PUT and PATCH are both Update in the CRUD sense, but PUT=full, PATCH=partial."
+      }
+    },
+    {
+      "id": "6.5.b.5",
+      "term": "DELETE = Delete",
+      "weight": "high",
+      "info": "<p><strong>DELETE</strong> removes the resource identified by the URI. No request body is required (though some APIs accept one for confirmation or soft-delete metadata).</p><pre>DELETE /api/v1/devices/42 HTTP/1.1\nAuthorization: Bearer eyJ...</pre><p>Typical responses:</p><ul><li><strong>204 No Content</strong> — the most common success. The resource is gone; nothing to return in the body.</li><li><strong>200 OK</strong> + JSON confirming the deleted object — some APIs echo what was deleted as a convenience.</li><li><strong>404 Not Found</strong> — the resource did not exist. Some APIs return 404 on repeat deletes, others return 204 to keep the call idempotent.</li><li><strong>409 Conflict</strong> — the resource cannot be deleted because something depends on it (e.g., a VLAN with active interfaces).</li></ul><p><strong>DELETE is idempotent.</strong> Deleting an already-deleted resource should not cause additional side effects — it is already gone. This is why a second DELETE of the same URI still 'succeeds' in spirit even if it returns 404.</p><p><strong>DELETE is destructive.</strong> In network automation, always review <code>terraform plan</code> or dry-run API calls before issuing DELETEs against production. Many APIs also support <code>?force=true</code> or <code>?cascade=true</code> query parameters that change delete semantics.</p>",
+      "visual": { "type": "handshake", "params": { "leftLabel": "Client", "rightLabel": "Server", "steps": ["DELETE /api/v1/devices/42", "(no body)", "Server removes resource", "204 No Content", "(second DELETE → 404 Not Found)", "still idempotent: already gone"] } },
+      "hack": {
+        "memory": "DELETE = destroy. Idempotent (gone stays gone). 204 No Content is the signature success code. Second call usually 404 but the effect (resource absent) is identical.",
+        "practice": "DELETE /posts/1 on jsonplaceholder — 200 OK (they fake it). Repeat — same response. In a real API, first DELETE is 204, second is 404, but the world is in the same state. That is idempotency.",
+        "effort": "low",
+        "meta": "Jeremy's IT Lab Day 62. OCG Chapter 30. Exam: 'Which HTTP method removes a resource?' = DELETE. Know it is idempotent and pairs with 204 No Content."
+      }
+    }
+  ],
+  "6.5.c": [
+    {
+      "id": "6.5.c.1",
+      "term": "200 OK",
+      "weight": "high",
+      "info": "<p><strong>200 OK</strong> is the universal 'request succeeded' status code. The server received, understood, and fulfilled the request, and the response body contains the result. It is the default success for <strong>GET</strong>, <strong>PUT</strong>, and <strong>PATCH</strong>.</p><p>Typical shape:</p><pre>HTTP/1.1 200 OK\nContent-Type: application/json\nContent-Length: 184\n\n{\"id\": 42, \"hostname\": \"SW5\", \"ip\": \"10.0.0.5\", \"status\": \"up\"}</pre><p><strong>200 vs 201 vs 204 — pick the right one:</strong></p><ul><li><strong>200 OK</strong> — request succeeded AND there is content to return. Most GET responses.</li><li><strong>201 Created</strong> — a new resource was created (POST).</li><li><strong>204 No Content</strong> — success but no body to return (DELETE, or PUT without echoing).</li></ul><p>Any 2xx code means success. If you ever see a 2xx you do not recognize (206 Partial Content, 202 Accepted), it is still a success — just a nuanced one. On the CCNA you only need to know 200, 201, 204.</p>",
+      "visual": { "type": "layer-stack", "params": { "layers": ["200 OK — success with body", "201 Created — new resource made", "204 No Content — success, no body", "(2xx family = success)"], "highlight": 0 } },
+      "hack": {
+        "memory": "200 = it worked, here is your data. 201 = I made a new one. 204 = done, nothing to say. All 2xx = good news.",
+        "practice": "curl -i https://jsonplaceholder.typicode.com/posts/1 — first line shows 'HTTP/1.1 200 OK'. The -i flag reveals the status line. Use this habit to read real API responses.",
+        "effort": "low",
+        "meta": "Jeremy's IT Lab Day 62. OCG Chapter 30. Exam: '200 OK means ___' = success with content. '201 Created' typically follows POST, '204 No Content' typically follows DELETE."
+      }
+    },
+    {
+      "id": "6.5.c.2",
+      "term": "201 Created",
+      "weight": "high",
+      "info": "<p><strong>201 Created</strong> signals that a new resource was successfully created. It is the canonical response for a successful <strong>POST</strong>.</p><p>Along with the status code, a well-designed REST API returns:</p><ul><li>A <strong>Location header</strong> with the URI of the new resource, so the client knows where to find it.</li><li>A <strong>response body</strong> with the new resource's server-assigned fields (especially its ID).</li></ul><pre>HTTP/1.1 201 Created\nLocation: /api/v1/devices/42\nContent-Type: application/json\n\n{\"id\": 42, \"hostname\": \"SW5\", \"ip\": \"10.0.0.5\"}</pre><p><strong>Why a separate 201 instead of just 200?</strong> Because 'created a new thing' is different from 'returned existing data.' Clients and proxies may treat the two differently for caching, logging, and workflow triggers. A CI pipeline might fire a Slack notification only on 201s, for example.</p><p><strong>PUT can also return 201</strong> if the PUT created the resource (when you supplied the ID yourself and it did not exist). PUT on an existing resource returns 200 or 204.</p>",
+      "visual": { "type": "handshake", "params": { "leftLabel": "Client", "rightLabel": "Server", "steps": ["POST /devices + JSON body", "Server validates & stores", "Assigns id=42", "201 Created", "Location: /devices/42", "+ JSON with id"] } },
+      "hack": {
+        "memory": "201 Created = a new resource was BORN. Pair with POST. Look for the Location header — it tells you the new URI (birth certificate).",
+        "practice": "POST a new item to jsonplaceholder and inspect the response with curl -i. You will see 201 and a body with an id that did not exist before.",
+        "effort": "low",
+        "meta": "Jeremy's IT Lab Day 62. OCG Chapter 30. Exam: 'What status code follows a successful POST?' = 201 Created. Easy recall question."
+      }
+    },
+    {
+      "id": "6.5.c.3",
+      "term": "400 Bad Request",
+      "weight": "high",
+      "info": "<p><strong>400 Bad Request</strong> means the server could not understand or process the request because the client sent something malformed. It is the generic 'your fault' error.</p><p>Common causes:</p><ul><li>Malformed JSON body (trailing comma, missing brace, bad quotes)</li><li>Missing a required field</li><li>A field has the wrong data type (sent a string where a number is expected)</li><li>A value violates validation rules (IP is not a valid address; VLAN ID is out of range)</li><li>Query parameters are missing or malformed</li></ul><pre>HTTP/1.1 400 Bad Request\nContent-Type: application/json\n\n{\"error\": \"vlan_id must be between 1 and 4094\", \"field\": \"vlan_id\"}</pre><p><strong>400 vs 401 vs 403 vs 404 — the 4xx lineup:</strong></p><ul><li><strong>400</strong> — the request itself is malformed.</li><li><strong>401</strong> — you did not prove who you are (no/bad token).</li><li><strong>403</strong> — you proved who you are, but you are not allowed.</li><li><strong>404</strong> — the resource does not exist.</li></ul><p>Distinguishing these is exam-tested and career-critical. A production incident where you get 403s is a permissions issue; 400s are a payload issue; 404s are a URL/ID issue. Treating them the same wastes hours.</p>",
+      "visual": { "type": "comparison", "params": { "left": { "label": "400 Bad Request", "items": ["Malformed JSON", "Missing required field", "Wrong data type", "Validation failed"] }, "right": { "label": "vs other 4xx", "items": ["401 = no/bad auth", "403 = auth OK, not allowed", "404 = URI does not exist", "429 = rate limited"] } } },
+      "hack": {
+        "memory": "400 = YOUR payload is garbage. 401 = WHO are you? 403 = you are known, BUT not allowed. 404 = not here. Fix 400 by fixing the JSON body; fix 401 by fixing the token; fix 403 by asking for permission; fix 404 by fixing the URL.",
+        "practice": "POST to jsonplaceholder/posts with body '{\"title\": unquoted}' — malformed JSON triggers 400. Now POST to a real API with missing required fields — same 400. Get a feel for which mistakes the server catches.",
+        "effort": "low",
+        "meta": "Jeremy's IT Lab Day 62. OCG Chapter 30. Exam: '400 Bad Request means ___' = client sent a malformed or invalid request. Not an auth problem. Not a missing-resource problem."
+      }
+    },
+    {
+      "id": "6.5.c.4",
+      "term": "401 Unauthorized",
+      "weight": "high",
+      "info": "<p><strong>401 Unauthorized</strong> is misnamed — it actually means <em>unauthenticated</em>. The server does not know who you are because you did not send credentials, or the ones you sent are invalid/expired.</p><p>Typical causes:</p><ul><li>No <code>Authorization</code> header at all</li><li>Bearer token has expired</li><li>API key is wrong or revoked</li><li>Basic Auth with wrong username/password</li><li>OAuth token is malformed</li></ul><pre>HTTP/1.1 401 Unauthorized\nWWW-Authenticate: Bearer realm=\"api\"\nContent-Type: application/json\n\n{\"error\": \"invalid_token\", \"error_description\": \"Token expired\"}</pre><p>The <code>WWW-Authenticate</code> response header tells the client what authentication scheme the server expects.</p><p><strong>Fix workflow when you hit 401:</strong> (1) verify the token is present on the request, (2) verify it is the right token (often there are separate dev/prod tokens), (3) verify it has not expired, (4) re-run the auth flow to get a fresh token. A 401 is almost never a code bug — it is a credentials problem.</p><p><strong>Common confusion:</strong> 401 vs 403. If you sent no token → 401. If you sent a token that is valid but lacks permission for this resource → 403.</p>",
+      "visual": { "type": "state-machine", "params": { "states": ["Request sent", "Token missing/expired?", "401 Unauthorized", "Client refreshes token", "Retry with new token"], "active": 2, "transitions": true } },
+      "hack": {
+        "memory": "401 = 'I don't know you.' Not authenticated. First things to check: is the Authorization header on the request? Is the token expired? (Decode the JWT at jwt.io and look at 'exp'.) Do not refactor code before checking these.",
+        "practice": "Hit any token-protected API without a token — instant 401. Add an expired token — 401 again. Add a fresh token — 200. Three runs, three auth states, one lesson.",
+        "effort": "low",
+        "meta": "Jeremy's IT Lab Day 62. OCG Chapter 30. Exam: '401 Unauthorized means ___' = authentication failed / credentials missing or invalid. Memory tie to MEMORY.md: 'verify API keys/tokens before deep troubleshooting.'"
+      }
+    },
+    {
+      "id": "6.5.c.5",
+      "term": "403 Forbidden",
+      "weight": "high",
+      "info": "<p><strong>403 Forbidden</strong> means the server understood the request and knows who you are, but you are <em>not allowed</em> to perform this action on this resource. Authentication succeeded; authorization failed.</p><p>Typical causes:</p><ul><li>Your token is for a read-only role, but you tried to POST/PUT/DELETE</li><li>The resource is in a tenant/organization you do not have access to</li><li>Role-Based Access Control (RBAC) policy denies the action</li><li>The resource is deliberately locked (e.g., a protected admin account)</li></ul><pre>HTTP/1.1 403 Forbidden\nContent-Type: application/json\n\n{\"error\": \"insufficient_scope\", \"required_role\": \"admin\"}</pre><p><strong>Why the distinction from 401 matters:</strong> on a 403, re-authenticating will NOT help — your credentials are fine, they just lack the needed permission. You need an admin to grant additional scope/role, or you need to use a different resource. Retrying the call is useless.</p><p><strong>Exam-classic contrast:</strong> 401 = 'prove who you are again' (re-auth may fix). 403 = 'you have been seen and denied' (re-auth will not fix).</p>",
+      "visual": { "type": "comparison", "params": { "left": { "label": "401 Unauthorized", "items": ["Not authenticated", "Token missing/expired", "Fix: refresh token", "Retry can succeed"] }, "right": { "label": "403 Forbidden", "items": ["Authenticated but not allowed", "RBAC/scope denies", "Fix: get more permission", "Retry will fail identically"] } } },
+      "hack": {
+        "memory": "401 = 'I don't know you.' 403 = 'I know you, and NO.' 403 is the bouncer who recognizes your face from last time but you are still not on the list. Refreshing your ID won't help — you need to talk to the owner.",
+        "practice": "Create a read-only API key and try a POST — you will see 403. Using a full-access key gives 200/201. The same request body, same URL, same verb — just the scope of the key changes.",
+        "effort": "low",
+        "meta": "Jeremy's IT Lab Day 62. OCG Chapter 30. Classic exam trap: distinguishing 401 from 403. 401 = auth failed, 403 = authorized-identity-lacks-permission. Memorize the pair."
+      }
+    },
+    {
+      "id": "6.5.c.6",
+      "term": "404 Not Found",
+      "weight": "high",
+      "info": "<p><strong>404 Not Found</strong> means the requested URI does not correspond to any resource on this server. Either the resource never existed, was deleted, or you typed the URL wrong.</p><pre>GET /api/v1/devices/999999 HTTP/1.1\n\nHTTP/1.1 404 Not Found\nContent-Type: application/json\n\n{\"error\": \"device 999999 not found\"}</pre><p><strong>Common causes:</strong></p><ul><li>Typo in URL: <code>/devces/42</code> instead of <code>/devices/42</code></li><li>Wrong API version: calling <code>/api/v1/...</code> on a server that only exposes <code>/api/v2/...</code></li><li>Resource ID does not exist (device was deleted, or never existed)</li><li>Case mismatch: some APIs treat <code>/Devices</code> and <code>/devices</code> differently</li></ul><p><strong>404 vs 403 — a subtle security choice:</strong> some APIs return 404 instead of 403 when a resource exists but you lack access, so attackers cannot probe for the existence of sensitive IDs. If you hit a resource you know should exist and you get 404, check whether you have permission.</p><p><strong>A 404 after a DELETE</strong> is normal and harmless — the resource is gone, which is exactly what you wanted. DELETE is idempotent: the second call 404s but the world is in the intended state.</p>",
+      "visual": { "type": "hierarchy", "params": { "root": "Got 404?", "children": [{ "name": "Typo in URI path" }, { "name": "Wrong API version (/v1 vs /v2)" }, { "name": "Resource does not exist" }, { "name": "Hidden-by-permission (stealth 403)" }] } },
+      "hack": {
+        "memory": "404 = the URL points at nothing. Your fault (wrong path) or the server's history (thing got deleted). Compare with the typo in your URL first. Then check the ID actually exists.",
+        "practice": "GET https://jsonplaceholder.typicode.com/posts/999999 — instant 404. GET /postz/1 — also 404. One-minute exercise to feel how 404 manifests.",
+        "effort": "low",
+        "meta": "Jeremy's IT Lab Day 62. OCG Chapter 30. Classic exam recall: '404 means ___' = the resource at that URI does not exist."
+      }
+    },
+    {
+      "id": "6.5.c.7",
+      "term": "500 Internal Server Error",
+      "weight": "high",
+      "info": "<p><strong>500 Internal Server Error</strong> is the generic 'something broke on OUR side' response. The request was valid, but the server crashed, threw an unhandled exception, or otherwise failed to complete the work.</p><pre>HTTP/1.1 500 Internal Server Error\nContent-Type: application/json\n\n{\"error\": \"internal error\", \"request_id\": \"abc123\"}</pre><p><strong>Causes you cannot fix as a client:</strong></p><ul><li>Unhandled exception in server code</li><li>Database connection dropped</li><li>Dependency service is down</li><li>Bug in the API implementation</li></ul><p><strong>What to do when you hit 500:</strong> (1) capture the <code>request_id</code> if the server returned one, (2) retry with exponential backoff (500s are sometimes transient), (3) if it persists, open a ticket with the API provider and include the request_id. Do not keep hammering — you will be rate-limited or locked out.</p><p><strong>Related 5xx codes:</strong></p><ul><li><strong>502 Bad Gateway</strong> — an upstream server returned an invalid response (often a load balancer issue).</li><li><strong>503 Service Unavailable</strong> — server is temporarily down (maintenance, overload). Usually includes a <code>Retry-After</code> header.</li><li><strong>504 Gateway Timeout</strong> — upstream did not respond in time.</li></ul><p><strong>5xx vs 4xx is the most-tested distinction on the CCNA.</strong> 5xx = server problem, client cannot fix by changing the request. 4xx = client problem, the request itself is wrong.</p>",
+      "visual": { "type": "comparison", "params": { "left": { "label": "4xx (client fault)", "items": ["400 Bad Request", "401 Unauthorized", "403 Forbidden", "404 Not Found", "Fix by changing request"] }, "right": { "label": "5xx (server fault)", "items": ["500 Internal Server Error", "502 Bad Gateway", "503 Service Unavailable", "504 Gateway Timeout", "Client cannot fix; retry or escalate"] } } },
+      "hack": {
+        "memory": "500 = five-alarm fire on the server. Not your fault. Retry with backoff; if persistent, open a ticket. 4xx = you broke it. 5xx = they broke it.",
+        "practice": "Most APIs do not let you trigger 500 on demand, but you can simulate with a local Flask app that raises an exception — curl returns 500. Watch the server log for the stack trace that the client never sees.",
+        "effort": "low",
+        "meta": "Jeremy's IT Lab Day 62. OCG Chapter 30. The 4xx-vs-5xx split is the most-tested status-code concept. Know which side the common codes fall on."
+      }
+    },
+    {
+      "id": "6.5.c.8",
+      "term": "4xx vs 5xx",
+      "weight": "high",
+      "info": "<p>The single-digit rule of HTTP status codes: the <strong>first digit is the category</strong>. Get this right and you have solved 80% of the exam's status-code questions.</p><ul><li><strong>1xx — Informational</strong> — rare; 100 Continue, 101 Switching Protocols. Not on the CCNA.</li><li><strong>2xx — Success</strong> — 200, 201, 204. The request worked.</li><li><strong>3xx — Redirection</strong> — 301, 302, 304. Try another URL or use your cache.</li><li><strong>4xx — Client Error</strong> — YOUR fault. 400, 401, 403, 404, 405, 409, 429. Fix the request.</li><li><strong>5xx — Server Error</strong> — THEIR fault. 500, 502, 503, 504. Retry or escalate.</li></ul><p><strong>Diagnostic flow when an API call fails:</strong></p><ul><li>First digit is 4? → look at YOUR request (headers, body, URL, token, permissions).</li><li>First digit is 5? → look at the SERVER (retry with backoff, check status page, open ticket).</li><li>First digit is 3? → follow the redirect or update your cached URL.</li></ul><p>This triage saves hours. Engineers who do not internalize 4xx-vs-5xx spend time refactoring client code on server outages, or escalating to vendors on their own payload bugs.</p>",
+      "visual": { "type": "layer-stack", "params": { "layers": ["1xx informational (rare)", "2xx success — good", "3xx redirect — follow", "4xx client error — your fault", "5xx server error — their fault"], "highlight": 3 } },
+      "hack": {
+        "memory": "FIRST DIGIT IS THE CATEGORY. 2 = good. 3 = go elsewhere. 4 = FOUR-bidden (your fault). 5 = FIVE-alarm (their fault). One glance at the first digit tells you where to look next.",
+        "practice": "Make a list of 10 status codes from API logs. Group them by first digit without looking up meanings. Practice until it is automatic — then look up the specifics only for codes you do not recognize.",
+        "effort": "low",
+        "meta": "Jeremy's IT Lab Day 62. OCG Chapter 30. The 4xx-vs-5xx split is the MOST-tested status-code concept on the CCNA. If you learn nothing else about HTTP codes, learn this."
+      }
+    }
+  ],
+  "6.5.d": [
+    {
+      "id": "6.5.d.1",
+      "term": "API key",
+      "weight": "high",
+      "info": "<p>An <strong>API key</strong> is a long random string issued by the server that identifies the calling application. It is the simplest form of REST authentication — no sessions, no tokens to refresh, no OAuth dance. You send the key on every request; the server looks it up and either allows or denies.</p><p>Two common delivery methods:</p><ul><li><strong>Custom HTTP header</strong> (preferred): <code>X-API-Key: abcdef1234567890</code></li><li><strong>Query string parameter</strong> (easier but less safe — keys land in server access logs): <code>?api_key=abcdef1234567890</code></li></ul><pre>GET /api/v1/devices HTTP/1.1\nHost: api.meraki.com\nX-Cisco-Meraki-API-Key: 1a2b3c4d5e6f7890</pre><p><strong>Strengths:</strong></p><ul><li>Dead simple to implement on client and server.</li><li>No expiration unless you rotate — good for server-to-server calls in automation.</li><li>Widely supported by public APIs (GitHub, OpenWeather, Meraki Dashboard).</li></ul><p><strong>Weaknesses:</strong></p><ul><li>Key = password. If it leaks, anyone can use it until you rotate.</li><li>Usually no expiration, no scopes, no per-user identity — the key identifies the <em>app</em>, not the user.</li><li>Must be sent over HTTPS (otherwise a passive sniffer steals it).</li></ul><p><strong>Best practices:</strong> store in environment variables or secret manager (never in code), rotate regularly, scope keys to minimum privilege, and revoke immediately if leaked.</p>",
+      "visual": { "type": "handshake", "params": { "leftLabel": "Client", "rightLabel": "API Server", "steps": ["GET /api/v1/devices", "X-API-Key: abc123...", "Server looks up key", "Key valid & scope OK", "200 OK + JSON"] } },
+      "hack": {
+        "memory": "API key = library card. One string, no expiration, identifies the app. Treat like a password. Send in header X-API-Key, never in the URL if you can avoid it. Leak = rotate immediately.",
+        "practice": "Sign up for Meraki Dashboard API, grab your key, curl https://api.meraki.com/api/v1/organizations with header 'X-Cisco-Meraki-API-Key: <key>'. Two-minute win that makes API keys concrete.",
+        "effort": "low",
+        "meta": "Jeremy's IT Lab Day 62. OCG Chapter 30. Exam: 'Simplest REST auth method' = API key. Know it is sent in a header (or query string), identifies the app, and must be kept secret."
+      }
+    },
+    {
+      "id": "6.5.d.2",
+      "term": "Bearer token",
+      "weight": "high",
+      "info": "<p>A <strong>Bearer token</strong> is an access credential (often a JWT — JSON Web Token) that the client obtains through an authentication flow and then presents on every subsequent request. 'Bearer' means 'whoever holds this token is granted access' — the server does not require additional proof of identity; possession is authorization.</p><p>Sent in the Authorization header:</p><pre>GET /api/v1/devices HTTP/1.1\nAuthorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IlJvbWVvIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c</pre><p><strong>Typical flow:</strong></p><ul><li>Client POSTs username/password (or client credentials) to <code>/auth/token</code>.</li><li>Server returns a JWT bearer token with an expiry (usually 15 minutes to 1 hour).</li><li>Client includes <code>Authorization: Bearer &lt;token&gt;</code> on every API call.</li><li>When the token expires, the client uses a <strong>refresh token</strong> (long-lived) to get a new access token.</li></ul><p><strong>Why Bearer tokens beat API keys:</strong></p><ul><li>Short-lived — leak window is minutes, not forever.</li><li>Self-contained — JWTs carry user ID, roles, and scopes, so the server does not need to hit a DB for every call.</li><li>Works cleanly with OAuth 2.0 and OIDC flows.</li></ul><p><strong>Exam pattern:</strong> see <code>Authorization: Bearer ...</code> in a header? That is a bearer token. It is the most common auth scheme in modern enterprise REST APIs, including Cisco DNA Center.</p>",
+      "visual": { "type": "handshake", "params": { "leftLabel": "Client", "rightLabel": "Server", "steps": ["POST /auth/token + creds", "200 + access_token + refresh_token", "GET /api/v1/devices", "Authorization: Bearer <token>", "200 OK + JSON", "(token expires)", "POST /auth/refresh + refresh_token"] } },
+      "hack": {
+        "memory": "Bearer token = security badge with expiration. Whoever has it is in — so do NOT leak it. Header: Authorization: Bearer <long-string>. Refreshable. Short-lived. Most common enterprise REST auth.",
+        "practice": "DNA Center always-on sandbox: POST /dna/system/api/v1/auth/token with Basic auth to get a token, then use Authorization: Bearer <token> on /dna/intent/api/v1/network-device. Two-step flow teaches you the whole bearer pattern.",
+        "effort": "medium",
+        "meta": "Jeremy's IT Lab Day 62. OCG Chapter 30. Exam: 'Authorization: Bearer ...' header = bearer token auth. Know it is more secure than API keys because of expiry, and know it is what DNA Center uses."
+      }
+    },
+    {
+      "id": "6.5.d.3",
+      "term": "OAuth 2.0",
+      "weight": "high",
+      "info": "<p><strong>OAuth 2.0</strong> is an authorization framework (RFC 6749) that lets a user grant a third-party application limited access to their resources <em>without sharing their password</em>. It is not an authentication protocol per se — it issues access tokens that API servers then trust.</p><p><strong>The key idea — delegation:</strong> instead of pasting your Google password into a third-party app, the app redirects you to Google's login, you authenticate there, Google asks 'do you allow this app to read your calendar?', and if you click Allow, Google issues a scoped access token that the app uses on your behalf. Your password never touches the third party.</p><p><strong>Core concepts:</strong></p><ul><li><strong>Resource Owner</strong> — the end user who owns the data.</li><li><strong>Client</strong> — the app that wants access.</li><li><strong>Authorization Server</strong> — issues tokens (Google, Okta, Azure AD).</li><li><strong>Resource Server</strong> — the API that holds the data and accepts the tokens.</li><li><strong>Access Token</strong> — short-lived (minutes), used on API calls.</li><li><strong>Refresh Token</strong> — long-lived (days/weeks), used to get new access tokens.</li><li><strong>Scopes</strong> — granular permissions (e.g., <code>read:devices</code>, <code>write:interfaces</code>).</li></ul><p><strong>Grant types (flows):</strong></p><ul><li><strong>Authorization Code</strong> — most common for web apps with a user in the browser.</li><li><strong>Client Credentials</strong> — server-to-server, no user — often used in network automation where a script authenticates as itself.</li><li><strong>Device Code</strong> — CLIs and IoT devices with limited input.</li></ul><p>On the CCNA you do not need to know the grant type details — just know OAuth 2.0 is delegated authorization, uses access + refresh tokens and scopes, and is the gold standard for enterprise APIs.</p>",
+      "visual": { "type": "state-machine", "params": { "states": ["Client → Authorization Server", "User logs in + approves scopes", "Auth server issues access + refresh token", "Client → Resource Server with Bearer access token", "Token expires → refresh flow"], "active": 3, "transitions": true } },
+      "hack": {
+        "memory": "OAuth 2.0 = company SSO with permission slips. You never give the app your password — you tell Google/Okta 'let this app do X and Y on my behalf.' Scopes = what the app can do. Refresh token = pass for getting new access tokens. Most secure and most complex.",
+        "practice": "Sign into any app 'with Google' or 'with GitHub.' That redirect + consent screen + 'logged in' is OAuth 2.0 authorization code flow. You just ran it. Look at the URL during the redirect — you will see client_id, scope, redirect_uri, state — the OAuth vocabulary in the wild.",
+        "effort": "medium",
+        "meta": "Jeremy's IT Lab Day 62. OCG Chapter 30. Exam: 'OAuth 2.0 enables ___' = delegated authorization / third-party access without sharing password. Know it uses access + refresh tokens and scopes."
+      }
+    },
+    {
+      "id": "6.5.d.4",
+      "term": "Basic Auth",
+      "weight": "med",
+      "info": "<p><strong>HTTP Basic Authentication</strong> is the oldest and simplest auth scheme: username and password are base64-encoded and sent in the <code>Authorization</code> header on every request.</p><pre>GET /api/v1/devices HTTP/1.1\nAuthorization: Basic cm9tZW86c3VwZXJzZWNyZXQ=</pre><p>Decode <code>cm9tZW86c3VwZXJzZWNyZXQ=</code> with base64 → <code>romeo:supersecret</code>. That is the entire security — reversible encoding, not encryption.</p><p><strong>Critical safety rule: Basic Auth MUST be used over HTTPS.</strong> Over plain HTTP, anyone sniffing the wire sees your password in seconds. Base64 is not encryption, it is just a text-safe representation of binary.</p><p><strong>Where you still see Basic Auth:</strong></p><ul><li>Cisco DNA Center's initial token-request endpoint (<code>POST /dna/system/api/v1/auth/token</code>) — you Basic-Auth once to get a bearer token, then use the bearer for every call after.</li><li>Legacy enterprise gear.</li><li>Internal tools where simplicity beats token infrastructure.</li></ul><p><strong>Weaknesses vs Bearer/OAuth:</strong></p><ul><li>No expiration — credentials valid until you change the password.</li><li>No scope — full account access or nothing.</li><li>Password on every request — bigger leak blast radius.</li></ul><p>On the CCNA, recognize the pattern <code>Authorization: Basic &lt;base64&gt;</code> and know it must be paired with HTTPS. It is a 'know it exists, do not use it as your primary auth in 2026' item.</p>",
+      "visual": { "type": "comparison", "params": { "left": { "label": "Basic Auth", "items": ["Authorization: Basic <base64>", "username:password encoded", "No expiration", "No scopes", "MUST use HTTPS"] }, "right": { "label": "Bearer Token", "items": ["Authorization: Bearer <token>", "Short-lived JWT", "Refreshable", "Scoped", "Modern default"] } } },
+      "hack": {
+        "memory": "Basic Auth = base64(user:pass) in the Authorization header. Base64 is NOT encryption — it is reversible encoding. Use HTTPS or your password leaks instantly. DNA Center uses it ONLY to bootstrap the token flow, then switches to Bearer.",
+        "practice": "echo -n 'romeo:supersecret' | base64 → cm9tZW86c3VwZXJzZWNyZXQ=. Now echo cm9tZW86c3VwZXJzZWNyZXQ= | base64 -d → romeo:supersecret. That 20-second experiment makes 'base64 is not encryption' unforgettable.",
+        "effort": "low",
+        "meta": "Jeremy's IT Lab Day 62. OCG Chapter 30. Exam: 'Authorization: Basic ...' header = Basic Auth. Know it must be over HTTPS and that base64 is encoding, not encryption."
+      }
+    }
+  ],
+  "6.5.e": [
+    {
+      "id": "6.5.e.1",
+      "term": "JSON",
+      "weight": "high",
+      "info": "<p><strong>JSON (JavaScript Object Notation)</strong> is a lightweight, text-based data format derived from JavaScript object literals. It is the default wire format for nearly every modern REST API, SDN controller, and cloud service.</p><p><strong>Why JSON won:</strong></p><ul><li>Human-readable — you can open a JSON response and understand it without tools.</li><li>Compact — less overhead than XML (no closing tags, no schemas required).</li><li>Language-agnostic — every modern language has a built-in JSON parser.</li><li>Maps cleanly to in-memory data structures: objects to dicts/hashes, arrays to lists.</li></ul><p>Minimal structure:</p><pre>{\n  \"hostname\": \"SW1\",\n  \"vlans\": [10, 20, 30],\n  \"managed\": true\n}</pre><p><strong>Two container types:</strong> objects in <code>{ }</code> and arrays in <code>[ ]</code>. Six value types: string, number, boolean, null, object, array. (Topic 6.7 drills into these.)</p><p><strong>Where you will see JSON in networking:</strong></p><ul><li>DNA Center intent API responses.</li><li>Meraki Dashboard API — both requests and responses.</li><li>Catalyst SD-WAN vManage REST API.</li><li>Device telemetry streamed via HTTP/gRPC.</li><li>Almost every cloud management API (AWS, GCP, Azure).</li></ul><p>On the CCNA, JSON is the primary data-format focus. XML and YAML appear as contrast points.</p>",
+      "visual": { "type": "comparison", "params": { "left": { "label": "JSON", "items": ["{ } and [ ]", "Human-readable", "Light on syntax", "Default REST body format"] }, "right": { "label": "Why not XML/YAML?", "items": ["XML verbose, legacy (NETCONF)", "YAML great for configs, rare on wire", "JSON is the REST winner"] } } },
+      "hack": {
+        "memory": "JSON = JavaScript Object Notation. { } = objects (key:value pairs). [ ] = arrays (ordered lists). The REST wire format. If you see curly braces and quoted keys, it is JSON.",
+        "practice": "curl -s https://jsonplaceholder.typicode.com/posts/1 | jq. You will see colored JSON in the terminal. That is the format 95% of modern APIs use.",
+        "effort": "low",
+        "meta": "Jeremy's IT Lab Day 62. OCG Chapter 30. Exam: 'Most common REST data format' = JSON. Know its characteristics and that it maps to dicts/lists in code."
+      }
+    },
+    {
+      "id": "6.5.e.2",
+      "term": "XML",
+      "weight": "high",
+      "info": "<p><strong>XML (eXtensible Markup Language)</strong> is an older, verbose, tag-based data format. In networking, XML survives in two important places: <strong>NETCONF</strong> (network configuration protocol, RFC 6241) and legacy SOAP APIs.</p><p>Same device data in XML:</p><pre>&lt;device&gt;\n  &lt;hostname&gt;SW1&lt;/hostname&gt;\n  &lt;vlans&gt;\n    &lt;vlan&gt;10&lt;/vlan&gt;\n    &lt;vlan&gt;20&lt;/vlan&gt;\n  &lt;/vlans&gt;\n  &lt;managed&gt;true&lt;/managed&gt;\n&lt;/device&gt;</pre><p>Compare to JSON — XML is 2-3x more bytes and harder to read. But XML has strengths: it supports schemas (XSD) for strict validation, namespaces for federated data models, and the YANG+NETCONF ecosystem uses it for a reason.</p><p><strong>XML visual signature:</strong> angle-bracket tags like HTML. If you see <code>&lt;hostname&gt;SW1&lt;/hostname&gt;</code>, it is XML. Self-closing tags and attributes like <code>&lt;vlan id=\"10\"/&gt;</code> also hint at XML.</p><p><strong>Where you will see XML in networking:</strong></p><ul><li>NETCONF payloads (Cisco IOS-XE, IOS-XR, NX-OS support NETCONF).</li><li>SOAP APIs on older systems.</li><li>Legacy CMDB tools.</li></ul><p>On the CCNA, memorize: <strong>XML = angle brackets, tag-based, used by NETCONF</strong>. You do not need to parse it, just recognize it.</p>",
+      "visual": { "type": "comparison", "params": { "left": { "label": "XML", "items": ["<tag>value</tag>", "Verbose, schema-friendly", "NETCONF + SOAP", "Harder to read than JSON"] }, "right": { "label": "JSON", "items": ["{\"key\":\"value\"}", "Compact, REST default", "Most cloud + SDN APIs", "Easier to read"] } } },
+      "hack": {
+        "memory": "XML = X-tremely angle-bracket happy. NETCONF = XML over SSH port 830. SOAP = XML over HTTP. Recognize the <tag> pattern instantly. Verbose but strict.",
+        "practice": "Open any NETCONF tutorial and look at a <rpc> payload — full of <edit-config>, <target>, <running/> tags. That is the XML world you need to identify but not author.",
+        "effort": "low",
+        "meta": "Jeremy's IT Lab Day 62. OCG Chapter 30. Exam: 'Which format uses angle-bracket tags?' = XML. 'Which protocol uses XML?' = NETCONF. Recognition, not authoring."
+      }
+    },
+    {
+      "id": "6.5.e.3",
+      "term": "YAML",
+      "weight": "high",
+      "info": "<p><strong>YAML (YAML Ain't Markup Language)</strong> is an indentation-based, human-friendly data format. It is a strict superset of JSON — every valid JSON document is valid YAML — but in practice YAML uses its own cleaner syntax. YAML is everywhere in config-as-code: Ansible playbooks, Docker Compose files, Kubernetes manifests, GitHub Actions workflows.</p><p>Same device data in YAML:</p><pre>hostname: SW1\nvlans:\n  - 10\n  - 20\n  - 30\nmanaged: true</pre><p>Notice: no braces, no quotes on keys, indentation does the grouping. Lists use <code>-</code> prefixes.</p><p><strong>Strengths:</strong></p><ul><li>Most human-readable of the three formats.</li><li>Supports comments with <code>#</code> (JSON does not).</li><li>Trivially diff-able in git — each item on its own line.</li></ul><p><strong>Gotchas:</strong></p><ul><li>Indentation matters — <strong>spaces only, no tabs</strong>. Mixed indentation breaks parsers.</li><li>Certain unquoted values auto-cast surprisingly: <code>no</code> becomes the boolean false, <code>version: 1.10</code> becomes the number 1.1 (trailing zero lost). Quote them if precision matters.</li><li>Parser-dependent edge cases — use <code>yamllint</code> and explicit quoting in production.</li></ul><p><strong>Where you will see YAML in networking:</strong> Ansible playbooks, inventories, and roles; Cisco NSO configs; most modern CI/CD pipelines. On the CCNA: <strong>YAML = indentation-based, used by Ansible</strong>.</p>",
+      "visual": { "type": "comparison", "params": { "left": { "label": "YAML (Ansible)", "items": ["Indentation-based", "# comments allowed", "Lists with - prefix", "Superset of JSON"] }, "right": { "label": "JSON (REST)", "items": ["Braces + brackets", "No comments allowed", "Strict punctuation", "Default REST wire format"] } } },
+      "hack": {
+        "memory": "YAML = 'whitespace is the syntax.' No braces, no angle brackets. Indent to nest. Dashes for lists. # for comments. If an Ansible playbook's opening line is '---', that is YAML announcing itself.",
+        "practice": "Write an Ansible playbook with 3 tasks. Notice: no braces, no semicolons, just indentation. Break indentation on purpose — ansible-playbook errors immediately. Whitespace is the structure.",
+        "effort": "low",
+        "meta": "Jeremy's IT Lab Day 62. OCG Chapter 30. Exam: 'Which format is used by Ansible playbooks?' = YAML. 'Which format uses indentation instead of brackets?' = YAML."
+      }
+    },
+    {
+      "id": "6.5.e.4",
+      "term": "Identify by sight",
+      "weight": "high",
+      "info": "<p>On the exam you will be shown a code snippet and asked 'what format is this?' The first character usually tells you:</p><ul><li><strong>Starts with <code>{</code> or <code>[</code></strong> — JSON. Quoted keys, colons, commas.</li><li><strong>Starts with <code>&lt;</code></strong> — XML. Angle-bracket tags, sometimes an <code>&lt;?xml version=\"1.0\"?&gt;</code> prolog.</li><li><strong>Starts with <code>---</code> or an unquoted key like <code>hostname:</code></strong> — YAML. Indented structure, no braces.</li></ul><p>Mini drills — identify the format:</p><pre>(1)  {\"hostname\":\"SW1\",\"vlans\":[10,20]}\n(2)  &lt;device&gt;&lt;hostname&gt;SW1&lt;/hostname&gt;&lt;/device&gt;\n(3)  hostname: SW1\n     vlans:\n       - 10\n       - 20</pre><p>Answers: (1) JSON — curly braces, quoted keys. (2) XML — angle-bracket tags. (3) YAML — indentation, dash-prefixed list.</p><p><strong>Format-to-tool mapping (memorize):</strong></p><ul><li>JSON → REST APIs (DNA Center, Meraki, vManage, cloud).</li><li>XML → NETCONF (on IOS-XE, IOS-XR, NX-OS), SOAP.</li><li>YAML → Ansible, Docker Compose, Kubernetes, GitHub Actions.</li></ul><p>You will not be asked to hand-write any of these, but instant format recognition is an easy, guaranteed point on the exam.</p>",
+      "visual": { "type": "hierarchy", "params": { "root": "First character?", "children": [{ "name": "{ or [ → JSON (REST)" }, { "name": "< → XML (NETCONF/SOAP)" }, { "name": "--- or unquoted key: → YAML (Ansible)" }] } },
+      "hack": {
+        "memory": "One glance identifies the format. { = JSON. < = XML. Plain words with indentation = YAML. Pair them with tools: JSON→REST, XML→NETCONF, YAML→Ansible. That's the full exam mapping.",
+        "practice": "Screenshot 10 snippets from real docs (Meraki JSON, NETCONF XML examples, Ansible playbooks) and flash-card them. Under 2 seconds per snippet. Format ID is a free point.",
+        "effort": "low",
+        "meta": "Jeremy's IT Lab Day 62. OCG Chapter 30. The 'identify the format' question appears on nearly every practice exam. Memorize the three signatures and the tool mapping."
+      }
+    }
+  ],
+  "6.5.f": [
+    {
+      "id": "6.5.f.1",
+      "term": "API call format",
+      "weight": "high",
+      "info": "<p>Every REST API call has the same four ingredients. If you can identify them in any snippet, you can read any REST API documentation in the world.</p><ol><li><strong>HTTP verb</strong> — what to do: GET, POST, PUT, PATCH, DELETE.</li><li><strong>URI</strong> — which resource: <code>https://dnac.example.com/dna/intent/api/v1/network-device/42</code>.</li><li><strong>Headers</strong> — metadata: <code>Authorization: Bearer ...</code>, <code>Content-Type: application/json</code>, <code>Accept: application/json</code>.</li><li><strong>Body</strong> — payload (POST/PUT/PATCH only): JSON representation of the resource.</li></ol><p><strong>Full example — create a device in DNA Center:</strong></p><pre>POST /dna/intent/api/v1/network-device HTTP/1.1\nHost: dnac.example.com\nAuthorization: Bearer eyJhbGciOi...\nContent-Type: application/json\nAccept: application/json\n\n{\n  \"ipAddress\": [\"10.0.0.5\"],\n  \"snmpVersion\": \"v2\",\n  \"snmpROCommunity\": \"public\",\n  \"cliTransport\": \"ssh\"\n}</pre><p>The response follows the same four-part shape: status line (<code>HTTP/1.1 202 Accepted</code>), headers (<code>Content-Type: application/json</code>, <code>Location: /task/abc123</code>), and body (JSON with a task ID to poll).</p><p><strong>Key headers to remember:</strong></p><ul><li><code>Content-Type: application/json</code> — describes the body you are SENDING.</li><li><code>Accept: application/json</code> — describes the format you WANT BACK.</li><li><code>Authorization: Bearer ...</code> — who you are.</li></ul><p>On the exam you may be handed a snippet and asked to pick out the verb, the URI, or what action the call performs. Practice until you can dissect any REST call in under 5 seconds.</p>",
+      "visual": { "type": "layer-stack", "params": { "layers": ["HTTP verb (GET/POST/PUT/PATCH/DELETE)", "URI — which resource", "Headers — Auth, Content-Type, Accept", "Body — JSON payload (write verbs)"], "highlight": 0 } },
+      "hack": {
+        "memory": "Verb + URI + Headers + Body = any REST call. Verb = what. URI = which. Headers = how/who. Body = with-what-data. Four-part recipe, no exceptions.",
+        "practice": "Open Postman, hit any public API. Look at the four panes: Method (verb), URL (URI), Headers, Body. That UI mirrors the HTTP request on the wire. Dissect five requests this way and the format is second nature.",
+        "effort": "low",
+        "meta": "Jeremy's IT Lab Day 62. OCG Chapter 30. Exam: snippet identification — 'what does this REST call do?' Dissect it: verb + URI + headers + body → CRUD operation."
+      }
+    },
+    {
+      "id": "6.5.f.2",
+      "term": "CRUD ↔ HTTP mapping drill",
+      "weight": "high",
+      "info": "<p><strong>CRUD</strong> (Create, Read, Update, Delete) is the vocabulary of databases and OO programming. <strong>REST</strong> uses HTTP verbs to express the same four operations. The exam tests both directions — CRUD to HTTP and HTTP to CRUD.</p><table><thead><tr><th>CRUD</th><th>HTTP</th><th>Example URI</th><th>Success code</th></tr></thead><tbody><tr><td>Create</td><td>POST</td><td>POST /devices</td><td>201 Created</td></tr><tr><td>Read (list)</td><td>GET</td><td>GET /devices</td><td>200 OK</td></tr><tr><td>Read (one)</td><td>GET</td><td>GET /devices/42</td><td>200 OK</td></tr><tr><td>Update (full)</td><td>PUT</td><td>PUT /devices/42</td><td>200 OK</td></tr><tr><td>Update (partial)</td><td>PATCH</td><td>PATCH /devices/42</td><td>200 OK</td></tr><tr><td>Delete</td><td>DELETE</td><td>DELETE /devices/42</td><td>204 No Content</td></tr></tbody></table><p><strong>Both-ways drill — answer in under 3 seconds:</strong></p><ul><li>'Create a new VLAN' → POST /vlans</li><li>'Retrieve the list of interfaces' → GET /interfaces</li><li>'Replace device 42's config entirely' → PUT /devices/42</li><li>'Rename just one interface' → PATCH /interfaces/Gi0-1</li><li>'Remove an ACL' → DELETE /acls/42</li><li>'GET /vlans' → Read all VLANs</li><li>'POST /routes' → Create a route</li><li>'DELETE /vlans/10' → Remove VLAN 10</li></ul><p><strong>Network automation real example:</strong> DNA Center's intent API uses exactly this mapping. <code>POST /network-device</code> adds a device, <code>GET /network-device/{id}</code> reads it, <code>PUT /network-device</code> updates it, <code>DELETE /network-device/{id}</code> decommissions it. Same CRUD-HTTP mapping everywhere.</p>",
+      "visual": { "type": "comparison", "params": { "left": { "label": "CRUD", "items": ["Create", "Read", "Update (full)", "Update (partial)", "Delete"] }, "right": { "label": "HTTP", "items": ["POST + body", "GET", "PUT + full body", "PATCH + partial body", "DELETE"] } } },
+      "hack": {
+        "memory": "CRUD = Create/Read/Update/Delete. HTTP = POST/GET/PUT/DELETE (+ PATCH for partial). Drill until instant: 'Remove a route' = DELETE. 'Rename a host' = PATCH. 'List all devices' = GET.",
+        "practice": "Flash-card drill: 20 CRUD phrases on one side, HTTP verbs + URI patterns on the other. Shuffle. Answer each in under 3 seconds. 3 rounds a day for a week = permanent recall.",
+        "effort": "low",
+        "meta": "Jeremy's IT Lab Day 62. OCG Chapter 30. Both directions (CRUD→HTTP and HTTP→CRUD) are exam-tested. This single drill covers 80% of Domain 6.5's points."
+      }
+    }
+  ]
+}
