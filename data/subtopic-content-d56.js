@@ -23,9 +23,45 @@ window.subtopicContentD56 = {
       meta: "Jeremy's IT Lab Day 51 (Network Security Fundamentals). Wendell Odom OCG Chapter 27 (Security Architectures). Most students confuse threat vs vulnerability — the exam loves 'which term best describes...' scenario questions.",
     },
     micro: [
-      { id: "5.1.a.1", term: "Threat",                       def: "Potential danger/actor. The WHO or WHAT — hacker, malware, insider, disaster.", weight: "high" },
-      { id: "5.1.a.2", term: "Threat categories",            def: "External (hackers, nation-state), internal (employees), environmental (disasters), accidental (human error).", weight: "med" },
-      { id: "5.1.a.3", term: "Attack chain vocab",           def: "Threat exploits Vulnerability using Exploit → Impact. Know each term's role.", weight: "high" }
+      {
+        id: "5.1.a.1",
+        term: "Threat",
+        weight: "high",
+        info: "<p>A <strong>threat</strong> is any person, entity, event, or circumstance that has the potential to cause harm to information assets. In security parlance, the threat is the <strong>actor or agent</strong> — never the weakness and never the technique. A threat without a vulnerability to exploit is inert; a vulnerability without a threat is merely latent risk. The pairing is what produces an incident.</p><p>Threats fall into four broad buckets the CCNA exam consistently reuses: <strong>external</strong> (organized crime, nation-states, hacktivists, script kiddies), <strong>internal</strong> (disgruntled employees, careless contractors, third-party vendors with legitimate access), <strong>environmental</strong> (flood, fire, earthquake, HVAC failure, power loss), and <strong>accidental</strong> (misconfigurations, fat-fingered commands, poor change management).</p><p>Security professionals further classify threats by capability. <strong>Structured threats</strong> are well-funded, technically skilled, and persistent — Advanced Persistent Threat (APT) groups like APT29 fit this profile. <strong>Unstructured threats</strong> are opportunistic: script kiddies running downloaded tools against any reachable target.</p><p>The exam vocabulary chain you must recite on demand: <strong>Threat</strong> (the who/what) uses an <strong>Exploit</strong> (the technique) against a <strong>Vulnerability</strong> (the weakness) to produce an <strong>Impact</strong> (the damage). Questions will describe a scenario and ask you to label one element — mis-labeling the actor as the weakness is the most common error.</p><p><strong>Key idea:</strong> reducing threats is hard (you don't control attackers). Reducing vulnerabilities is controllable (patching, hardening, ACLs). Most security budgets therefore focus on vulnerability reduction and impact reduction, not threat elimination.</p>",
+        visual: { type: "shield", params: { items: ["External actors", "Insider threats", "Environmental", "Accidental errors"], color: "#ef4444" } },
+        hack: {
+          memory: "Threat = the TIGER outside the fence. The tiger is the danger — not the hole in the fence (vulnerability), not the act of squeezing through (exploit), not the chewed-up sheep (impact). If a question names a person, group, or natural force, that is the threat.",
+          practice: "Write 10 scenarios and label each element. 'A ransomware gang targets hospitals' — gang = threat, unpatched SMB = vulnerability, EternalBlue = exploit, encrypted files = impact. Drill until you can classify any element in under 3 seconds.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 51. Wendell Odom OCG Chapter 27. The exam's favorite trap is handing you a vulnerability and asking 'what is the threat?' — the threat is the actor, not the weakness. Also know structured vs unstructured: structured = skilled/funded, unstructured = opportunistic."
+        }
+      },
+      {
+        id: "5.1.a.2",
+        term: "Threat categories",
+        weight: "med",
+        info: "<p>Threat categories organize attackers and dangers by origin and motivation, which drives the appropriate mitigation strategy. The CCNA tests four primary categories.</p><p><strong>External threats</strong> originate outside the organization's trust boundary. Examples: organized crime groups running ransomware-as-a-service, nation-state actors conducting espionage, hacktivists (Anonymous-style groups) pursuing political aims, and script kiddies running automated scanners. External threats are mitigated primarily by perimeter controls — firewalls, IPS, edge ACLs, VPNs.</p><p><strong>Internal threats</strong> come from people with legitimate access: disgruntled employees, contractors with elevated privileges, or trusted vendors whose accounts get compromised. Internal threats bypass perimeter defenses because they start inside the trust boundary. Mitigations: least-privilege access, separation of duties, logging/SIEM, AAA (RADIUS/TACACS+) with per-command accounting, DLP.</p><p><strong>Environmental threats</strong> are non-human: fire, flood, earthquake, HVAC failure, utility power loss, lightning strikes. Mitigations: UPS, generators, fire suppression (FM-200/Novec 1230), redundant HVAC, geographic DR sites.</p><p><strong>Accidental threats</strong> arise from human error without malice: a technician pastes the wrong ACL, an admin deletes a production VLAN, a user forwards sensitive data to their personal email by mistake. Mitigations: change management, peer review, configuration backups, rollback procedures, role-based access control.</p><p><strong>Motivations matrix</strong>: financial (ransomware, carding), political (hacktivism, state-sponsored), personal (revenge, ego), opportunistic (whatever is vulnerable). Knowing the motivation helps predict the attack pattern.</p>",
+        visual: { type: "hierarchy", params: { root: "Threat categories", children: [{ name: "External" }, { name: "Internal" }, { name: "Environmental" }, { name: "Accidental" }] } },
+        hack: {
+          memory: "Four buckets: EXTERNAL (hackers outside), INTERNAL (insiders with keys), ENVIRONMENTAL (mother nature + infrastructure), ACCIDENTAL (oops — human error). Each bucket has a different mitigation strategy: perimeter, least-privilege, redundancy, change management.",
+          practice: "For each category, list 3 real-world examples and 3 specific mitigations. External: firewall, IPS, VPN. Internal: AAA, logging, DLP. Environmental: UPS, FM-200, generator. Accidental: change control, backups, peer review. Recite until automatic.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 51. Wendell Odom OCG Chapter 27. Exam may ask 'which threat category is [scenario]?' — look for the origin and motivation. A contractor with too much access = internal. A hurricane = environmental. A typo that broke routing = accidental."
+        }
+      },
+      {
+        id: "5.1.a.3",
+        term: "Attack chain vocab (Threat → Vulnerability → Exploit → Impact)",
+        weight: "high",
+        info: "<p>The four-step <strong>attack chain</strong> is the CCNA's required vocabulary for reasoning about security incidents. Every exam security scenario maps cleanly to these four roles, and the exam deliberately swaps labels to test whether you can tell them apart.</p><ol><li><strong>Threat</strong> — the actor or danger (WHO or WHAT). Example: a ransomware operator.</li><li><strong>Vulnerability</strong> — the weakness (WHERE). Example: an unpatched SMBv1 server.</li><li><strong>Exploit</strong> — the technique that leverages the weakness (HOW). Example: the EternalBlue exploit code.</li><li><strong>Impact</strong> — the damage (WHAT HAPPENED). Example: encrypted files, $2M ransom demand, 3 days of downtime.</li></ol><p>This chain is productive because it maps each step to a different defense. You cannot usually eliminate the threat (attackers exist), but you can <strong>reduce vulnerabilities</strong> (patch, harden), <strong>block exploits</strong> (IPS signatures, WAF rules), and <strong>reduce impact</strong> (backups, segmentation, incident response).</p><p><strong>Common exam traps:</strong> (1) calling the exploit the threat — wrong; the exploit is the technique, the threat is the actor using it. (2) calling the vulnerability the impact — wrong; the vulnerability is the gap that let the impact happen. (3) calling 'data loss' a threat — wrong; data loss is the impact.</p><p><strong>Scenario walk-through:</strong> 'A nation-state group uses a zero-day in Cisco IOS XE WebUI to enable a privileged user and deploy an implant.' Threat = nation-state group. Vulnerability = the zero-day in WebUI. Exploit = the HTTP request sequence that triggers privilege escalation. Impact = persistent remote root on the router.</p><p>Memorize this chain cold — it is the foundation for everything else in Domain 5.</p>",
+        visual: { type: "packet-flow", params: { nodes: ["Threat (actor)", "Exploit (technique)", "Vulnerability (weakness)", "Impact (damage)"], color: "#ef4444" } },
+        hack: {
+          memory: "T-V-E-I or T-E-V-I: Threat uses Exploit against Vulnerability to cause Impact. Tigers (T) pick Locks (E) in Fences (V) to eat Sheep (I). If you can narrate this story for any scenario, you will not miss attack-chain questions.",
+          practice: "Take 10 news headlines about breaches. For each, extract the four elements. Solarwinds: threat=APT29, vulnerability=supply-chain code-signing gap, exploit=trojanized Orion update, impact=access to US agencies. Equifax: threat=opportunistic attackers, vulnerability=unpatched Struts, exploit=CVE-2017-5638 RCE, impact=147M records.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 51. Wendell Odom OCG Chapter 27. This is the #1 tested concept in 5.1. Expect at least one question asking you to classify a term, and possibly a multi-part scenario that reuses all four labels."
+        }
+      }
     ]
   },
 
@@ -39,9 +75,45 @@ window.subtopicContentD56 = {
       meta: "Jeremy's IT Lab Day 51 (Network Security Fundamentals). Wendell Odom OCG Chapter 27. Cisco pairs vulnerability with mitigation in exam questions — know common weakness-fix pairs cold.",
     },
     micro: [
-      { id: "5.1.b.1", term: "Vulnerability",                def: "Weakness/flaw (passive). Exists until mitigated. NOT the attacker — the hole the attacker uses.", weight: "high" },
-      { id: "5.1.b.2", term: "Common vulnerability types",   def: "Software (unpatched), config (defaults, open ports), design (weak crypto), human (weak passwords), physical (open rooms).", weight: "high" },
-      { id: "5.1.b.3", term: "Risk formula",                 def: "Risk = Threat × Vulnerability × Impact. Reducing vulnerabilities is the most controllable factor.", weight: "med" }
+      {
+        id: "5.1.b.1",
+        term: "Vulnerability",
+        weight: "high",
+        info: "<p>A <strong>vulnerability</strong> is a weakness in a system, software, configuration, process, or human factor that <em>could</em> be exploited to compromise confidentiality, integrity, or availability. Vulnerabilities are <strong>passive</strong> — they exist regardless of whether any attacker has noticed them. The moment they are discovered and weaponized, they become exploitable.</p><p>Vulnerabilities are catalogued publicly in the <strong>CVE (Common Vulnerabilities and Exposures)</strong> database, maintained by MITRE. Each entry gets a CVE ID (e.g., <code>CVE-2024-3400</code>), a description, affected products, and usually a <strong>CVSS (Common Vulnerability Scoring System)</strong> score from 0.0 to 10.0 indicating severity. A CVSS 9.8 critical vulnerability with network attack vector and no authentication is a fire-drill patch.</p><p><strong>Key distinction from threats:</strong> a vulnerability is the <em>hole</em>, not the <em>attacker</em>. An unpatched server is a vulnerability. The person trying to exploit it is the threat. Confusing these is the most common Domain 5 exam error.</p><p><strong>Lifecycle of a vulnerability:</strong> discovery (researcher or attacker finds it) → disclosure (responsible disclosure to vendor, or public dump) → patch released → patch deployed → vulnerability closed. The <strong>window of exposure</strong> between disclosure and patch deployment is when most opportunistic attacks happen. Zero-days are vulnerabilities with no patch yet — the worst case.</p><p><strong>Not all vulnerabilities are technical.</strong> A badge policy that lets anyone tailgate into the data center is a vulnerability. A network engineer who reuses passwords across 30 devices is a vulnerability. The exam treats people and process gaps as vulnerabilities equally with software CVEs.</p>",
+        visual: { type: "shield", params: { items: ["Unpatched CVEs", "Default credentials", "Open ports", "Misconfigurations", "Weak crypto"], color: "#f59e0b" } },
+        hack: {
+          memory: "Vulnerability = the HOLE in the fence. The hole exists even if no tiger ever shows up. It's passive — sitting there waiting. Patching is filling the hole. CVE = the official registry of known holes. CVSS = how big the hole is (0-10).",
+          practice: "Browse nvd.nist.gov and pull 5 CVEs from the last 30 days. For each, record: CVE ID, CVSS score, attack vector (network/local/physical), and whether a patch exists. Notice how many are network-exploitable with no auth — those are the fire-drill ones.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 51. Wendell Odom OCG Chapter 27. The exam loves scenario questions where you must identify the vulnerability among several security terms. Remember: it is the weakness (passive), never the attacker (active)."
+        }
+      },
+      {
+        id: "5.1.b.2",
+        term: "Common vulnerability types",
+        weight: "high",
+        info: "<p>Vulnerabilities cluster into five recurring types on the CCNA. Knowing the type instantly tells you the mitigation family.</p><p><strong>1. Software vulnerabilities</strong> — bugs in code: buffer overflows, use-after-free, SQL injection sinks, insecure deserialization. Examples: Log4Shell (CVE-2021-44228), Heartbleed (CVE-2014-0160), EternalBlue (CVE-2017-0144). <strong>Mitigation:</strong> patching, SDLC/SAST, WAF, IPS signatures.</p><p><strong>2. Configuration vulnerabilities</strong> — the software is fine, but it is set up insecurely: default credentials left unchanged, SNMPv2c public community, Telnet enabled, HTTP management interfaces exposed to the internet, open recursive DNS resolvers. <strong>Mitigation:</strong> hardening guides (CIS Benchmarks), configuration management, periodic audits.</p><p><strong>3. Design vulnerabilities</strong> — the protocol or architecture itself is flawed. WEP's RC4 key reuse. DES's 56-bit key. Telnet/HTTP/FTP/SNMPv1-v2c sending credentials in cleartext. STP accepting superior BPDUs from any port. <strong>Mitigation:</strong> deprecate weak protocols (use WPA3, SSH, HTTPS, SNMPv3), enable protocol-specific protections (BPDU Guard, Root Guard, DHCP Snooping, DAI).</p><p><strong>4. Human vulnerabilities</strong> — weak passwords, phishing susceptibility, shadow IT, lost laptops, shoulder-surfing. <strong>Mitigation:</strong> user awareness training, simulated phishing, MFA, password policies, device encryption.</p><p><strong>5. Physical vulnerabilities</strong> — unlocked server rooms, exposed console ports, unmonitored wiring closets, unshredded paper waste, unlocked network racks in shared buildings. <strong>Mitigation:</strong> badge access, security vestibules, cable locks, locked cabinets, cameras, security guards.</p><p><strong>Exam pattern:</strong> questions will describe one vulnerability and ask for the best mitigation, or describe one mitigation and ask which vulnerability it addresses. Memorize the pairings until they are automatic.</p>",
+        visual: { type: "comparison", params: { left: { label: "Types", items: ["Software (CVE)", "Configuration (defaults)", "Design (weak protocol)", "Human (weak password)", "Physical (open door)"] }, right: { label: "Mitigations", items: ["Patching / IPS", "Hardening / CIS", "Replace protocol", "Training / MFA", "Locks / vestibule"] } } },
+        hack: {
+          memory: "Five types: SOFT-CON-DES-HUM-PHY. Software = code bug. Configuration = bad setup. Design = bad protocol. Human = weak meatware. Physical = open door. Each maps 1:1 to a mitigation family — memorize pairs.",
+          practice: "Audit a default Cisco switch config mentally. No enable secret (config). Telnet enabled (design + config). No port security (config). Public SNMP (config). No banner (config). Then write the one-line fix for each. This is the exam's favorite exercise.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 51. Wendell Odom OCG Chapter 27. Domain 5.7 (Layer 2 hardening) will drill these pairs again with specific Cisco commands — DHCP snooping, DAI, BPDU Guard. Learn the pairings now and you will save time later."
+        }
+      },
+      {
+        id: "5.1.b.3",
+        term: "Risk formula (Risk = Threat x Vulnerability x Impact)",
+        weight: "med",
+        info: "<p><strong>Risk</strong> is the probability that a threat will exploit a vulnerability and cause a specific impact. The textbook formula is:</p><pre>Risk = Threat x Vulnerability x Impact</pre><p>If any factor is zero, risk is zero. No threat = no risk. No vulnerability = no risk. No impact = no risk. This is why security budgets focus on reducing the factors you <em>can</em> control.</p><p><strong>Which factors are controllable?</strong></p><ul><li><strong>Threat</strong> — mostly uncontrollable. You cannot stop attackers from existing. You can discourage specific attackers (takedowns, law enforcement), but new ones appear.</li><li><strong>Vulnerability</strong> — highly controllable. Patch, harden, segment, disable unused services. This is where most defensive effort should go.</li><li><strong>Impact</strong> — partially controllable. Backups reduce ransomware impact. Segmentation reduces breach blast radius. Encryption reduces data-loss impact. Incident response reduces downtime impact.</li></ul><p><strong>Risk treatment options:</strong> (1) <strong>Accept</strong> — the cost of mitigation exceeds the potential loss, so you document and live with it. (2) <strong>Mitigate</strong> — reduce the risk via controls. (3) <strong>Transfer</strong> — buy cyber insurance, outsource to a vendor with SLA. (4) <strong>Avoid</strong> — stop doing the activity that creates the risk.</p><p><strong>Residual risk</strong> is what remains after controls are applied. Zero risk is not achievable — the goal is to reduce risk to an acceptable level defined by business tolerance. Compliance frameworks (PCI-DSS, HIPAA, SOX, ISO 27001) define what 'acceptable' looks like for specific industries.</p>",
+        visual: { type: "gauge", params: { level: 50, label: "Risk = T x V x I (reduce what you control)", color: "#f59e0b" } },
+        hack: {
+          memory: "Risk = T x V x I. Multiplication means zeroing any factor zeros the risk. You cannot zero Threat (attackers exist), so zero Vulnerability (patch) and reduce Impact (backups + segmentation). Four treatments: Accept, Mitigate, Transfer, Avoid — AMTA.",
+          practice: "Pick 3 risks: ransomware on the file server, phishing of the CFO, HVAC failure in the data hall. For each, identify T, V, I, and propose one control per factor where possible. This maps straight to how CISOs budget.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 51. Wendell Odom OCG Chapter 27. The exam may not ask the formula directly but will test the concept: 'which control reduces impact?' = backups/encryption. 'Which reduces vulnerability?' = patching. 'Which reduces threat?' = rare — maybe takedowns or threat-intel sharing."
+        }
+      }
     ]
   },
 
@@ -55,10 +127,58 @@ window.subtopicContentD56 = {
       meta: "Jeremy's IT Lab Day 51. Wendell Odom OCG Chapter 27. The exam tests the attack lifecycle — exploit is always the action/technique, never the weakness itself. Buffer overflow is the most commonly cited exploit example.",
     },
     micro: [
-      { id: "5.1.c.1", term: "Exploit",                      def: "The technique/tool/code to take advantage of a vulnerability. ACTION, not weakness.", weight: "high" },
-      { id: "5.1.c.2", term: "Buffer overflow",              def: "Most commonly cited exploit. Send more data than buffer holds → overwrite memory → execute malicious code.", weight: "high" },
-      { id: "5.1.c.3", term: "Zero-day exploit",             def: "Attack against a vulnerability with NO patch available. Extremely dangerous — no defense exists yet.", weight: "high" },
-      { id: "5.1.c.4", term: "SQL injection / XSS",          def: "Web-app exploits. SQL: inject SQL commands via form inputs. XSS: inject scripts executed by other users' browsers.", weight: "med" }
+      {
+        id: "5.1.c.1",
+        term: "Exploit",
+        weight: "high",
+        info: "<p>An <strong>exploit</strong> is the specific technique, tool, code, or command sequence that leverages a vulnerability to produce an unauthorized action. Exploits are the <strong>active verb</strong> of the attack chain — threats use exploits, vulnerabilities are their targets, impact is their result.</p><p>Exploits come in many forms: compiled binaries (Metasploit modules), crafted network packets (malformed DNS queries), specific HTTP request sequences (path traversal strings like <code>../../../etc/passwd</code>), SQL fragments injected into a form field (<code>' OR 1=1 --</code>), or even social-engineering scripts (a pretext phone call).</p><p><strong>Exploit categories:</strong></p><ul><li><strong>Remote code execution (RCE)</strong> — attacker runs arbitrary commands on the target without physical access. Most dangerous class. EternalBlue, Log4Shell, CVE-2024-3400 (Palo Alto).</li><li><strong>Privilege escalation</strong> — attacker already has low access, elevates to admin/root. Dirty COW (Linux), PrintNightmare (Windows).</li><li><strong>Denial of Service</strong> — not theft, but disruption. Crashes the service by triggering a bug.</li><li><strong>Information disclosure</strong> — reads memory or files the attacker shouldn't see. Heartbleed leaked server RAM over TLS.</li><li><strong>Authentication bypass</strong> — skips login entirely. Default credentials, session-fixation, JWT algorithm confusion.</li></ul><p><strong>Zero-day exploit</strong> = an exploit for a vulnerability with no patch available. The name comes from defenders having had zero days to prepare. Zero-days trade on black markets for six figures because they work against fully patched systems.</p><p><strong>Exploit chain</strong> = multiple exploits combined. Example: phishing link (initial access) → browser RCE (foothold) → kernel privilege escalation (SYSTEM) → credential dump (lateral movement) → domain controller compromise. Modern attacks rarely use a single exploit.</p><p><strong>Exam note:</strong> the exploit is always the <em>action/technique</em>, never the weakness or the actor. Buffer overflow, SQL injection, phishing email — these are exploits/techniques. The unpatched service is the vulnerability. The attacker is the threat.</p>",
+        visual: { type: "packet-flow", params: { nodes: ["Attacker", "Crafted input", "Vulnerable service", "Code execution", "Persistence"], color: "#ef4444" } },
+        hack: {
+          memory: "Exploit = the LOCKPICK that fits the lock-hole. It is always the ACTION — the technique, the code, the request sequence. Not the picker (threat) and not the lock (vulnerability). If the CCNA names a technique, that is the exploit.",
+          practice: "Open exploit-db.com and browse 10 recent entries. For each, identify the vulnerability it targets (CVE), the impact (RCE, DoS, disclosure), and whether it needs authentication. You will see exploit types recur — learn the categories.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 51. Wendell Odom OCG Chapter 27. Exam scenarios love to list 'buffer overflow,' 'SQL injection,' 'phishing email' and ask which term applies — answer is always 'exploit' or 'attack technique,' never 'threat' or 'vulnerability.'"
+        }
+      },
+      {
+        id: "5.1.c.2",
+        term: "Buffer overflow",
+        weight: "high",
+        info: "<p>A <strong>buffer overflow</strong> is the classic memory-corruption exploit the CCNA loves to cite. It occurs when a program writes more data into a fixed-size memory buffer than the buffer can hold, and the extra bytes spill into adjacent memory — overwriting other variables, function pointers, or return addresses on the stack.</p><p><strong>How it works (stack-based, simplified):</strong> a C function allocates a 64-byte buffer on the stack and uses <code>strcpy</code> (unsafe) to copy user input into it. The attacker supplies 128 bytes. The first 64 bytes fill the buffer; the next 64 overwrite the saved return address. When the function returns, CPU execution jumps to an attacker-controlled address — typically shellcode the attacker planted earlier in the input. Now the attacker's code runs with the program's privileges.</p><p><strong>Why it matters:</strong> buffer overflows remain one of the most common root causes of RCE vulnerabilities after 30+ years, because C/C++ is still everywhere (OS kernels, network services, firmware). Modern mitigations — <strong>DEP/NX bit</strong> (stack is non-executable), <strong>ASLR</strong> (addresses randomized), <strong>stack canaries</strong> (guard value before return address) — raise the bar but don't eliminate it. Memory-safe languages (Rust, Go) eliminate the class entirely.</p><p><strong>Variants to recognize:</strong></p><ul><li><strong>Stack buffer overflow</strong> — overflows into saved return address (classic).</li><li><strong>Heap overflow</strong> — overflows a heap chunk, corrupts adjacent allocations.</li><li><strong>Integer overflow</strong> — arithmetic wraparound causes undersized buffer allocation, leading to a subsequent overflow.</li><li><strong>Format string</strong> — not exactly overflow but related: <code>printf(user_input)</code> lets attacker read/write arbitrary memory.</li></ul><p><strong>Mitigations at scale:</strong> patching, IPS signatures, WAF, and replacing vulnerable services with memory-safe alternatives. Cisco devices have been hit by buffer overflows in SSH, IOS parsing, and WebUI — this is why patching network gear matters as much as servers.</p>",
+        visual: { type: "binary-breakdown", params: { segments: [{ label: "buffer[64]", value: "user data" }, { label: "saved EBP", value: "AAAA" }, { label: "return addr", value: "attacker addr" }] } },
+        hack: {
+          memory: "Buffer overflow = pouring 2 gallons of water into a 1-gallon jug. The extra gallon floods the counter (adjacent memory). In stack overflows, the 'counter' is the return address — overwrite it with your shellcode address and the CPU runs your code when the function returns.",
+          practice: "Read a Metasploit module for a classic overflow (e.g., ms08_067) — even if you don't understand every line, notice the padding-to-offset, then the overwritten return, then the NOP sled, then the shellcode. That structure is universal.",
+          effort: "medium",
+          meta: "Jeremy's IT Lab Day 51. Wendell Odom OCG Chapter 27. Buffer overflow is Cisco's go-to example of an exploit. Expect at least a conceptual question: 'what mitigations reduce buffer overflow risk?' — answer: patching, DEP/NX, ASLR, stack canaries, input validation, memory-safe languages."
+        }
+      },
+      {
+        id: "5.1.c.3",
+        term: "Zero-day exploit",
+        weight: "high",
+        info: "<p>A <strong>zero-day exploit</strong> targets a vulnerability that has <strong>no patch available</strong> at the time of exploitation. The name comes from the defender having had zero days to prepare: the vulnerability is unknown to the vendor, or the vendor knows but hasn't released a fix yet.</p><p>Zero-days are dangerous because traditional patch management cannot help you — there is nothing to install. Signature-based IPS may not have a signature either, because the attack pattern is new. Defense against zero-days relies on <strong>compensating controls</strong>: behavioral detection (EDR flags unusual process behavior), network segmentation (limits blast radius), least privilege (limits what a compromised account can do), and rapid incident response.</p><p><strong>Zero-day lifecycle:</strong></p><ol><li>Researcher or attacker discovers a vulnerability.</li><li>Exploit is developed. If attacker-discovered and kept private, it stays a zero-day for months or years.</li><li>Exploit is used in targeted attacks (nation-state, financially motivated APT).</li><li>Discovery — defender IR finds anomalous behavior, malware analysis extracts the exploit.</li><li>Disclosure to vendor, patch is developed and released (vulnerability becomes 'N-day' — no longer zero).</li><li>Public proof-of-concept code appears, mass exploitation window until patches deploy.</li></ol><p><strong>Economics:</strong> zero-day exploits trade on legitimate markets (ZDI, bug bounty programs pay $50K-$2M+) and black markets (nation-state brokers pay $1M-$10M for critical RCEs in iOS, Android, Windows, Chrome). The high price reflects their utility against fully patched targets.</p><p><strong>Famous zero-days:</strong> Stuxnet (4 Windows zero-days used against Iranian centrifuges, 2010). Heartbleed (OpenSSL memory disclosure, 2014, technically not zero-day at disclosure but had been exploitable for 2 years). Log4Shell (Log4j JNDI RCE, 2021, mass-exploited within hours of disclosure). CVE-2024-3400 (Palo Alto GlobalProtect, 2024).</p><p><strong>Exam takeaway:</strong> the exam will not ask for CVE specifics, but will test that you know a zero-day has no patch yet and is therefore defended with compensating controls, not patching.</p>",
+        visual: { type: "state-machine", params: { states: ["Discovered (private)", "Exploited in wild", "Disclosed to vendor", "Patch released", "N-day (patchable)"], active: 1, transitions: true } },
+        hack: {
+          memory: "Zero-day = zero days to prepare. No patch exists. Your antivirus doesn't know the signature yet. Defense = defense in depth: segmentation, least privilege, EDR behavioral detection, incident response. Patching doesn't help until day 1 (when the patch drops).",
+          practice: "Read the Log4Shell timeline. Disclosure Dec 9, 2021; mass exploitation by Dec 10. Organizations with WAFs, egress filtering, and rapid patch pipelines fared far better than those relying on perimeter + signatures. That is the zero-day defense lesson.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 51. Wendell Odom OCG Chapter 27. Exam may ask 'which attack has no vendor patch at time of use?' = zero-day. Or 'best defense against zero-days?' = defense in depth / compensating controls, never 'patching' alone."
+        }
+      },
+      {
+        id: "5.1.c.4",
+        term: "SQL injection / XSS",
+        weight: "med",
+        info: "<p><strong>SQL injection (SQLi)</strong> and <strong>cross-site scripting (XSS)</strong> are the two most tested web-application exploits on the CCNA. Both exploit the same underlying flaw: the application trusts user input and mixes it into a structured context (SQL query or HTML page) without proper sanitization.</p><p><strong>SQL Injection:</strong> a web form takes user input (username, search term) and concatenates it directly into a SQL query. Attacker supplies SQL metacharacters that break out of the expected string context and alter the query logic.</p><pre>query = \"SELECT * FROM users WHERE name='\" + user_input + \"'\"\nuser_input = ' OR '1'='1\nfinal = SELECT * FROM users WHERE name='' OR '1'='1'</pre><p>Now the WHERE clause matches every row, returning the full user table. More advanced SQLi extracts specific data (UNION-based), exfiltrates via timing (blind), or executes OS commands (xp_cmdshell on MSSQL). <strong>Mitigation:</strong> <em>parameterized queries / prepared statements</em> (the database treats input as data, not code), input validation, least-privilege DB accounts, WAF.</p><p><strong>Cross-Site Scripting (XSS):</strong> attacker injects JavaScript into a web page that is then rendered in other users' browsers. Three variants:</p><ul><li><strong>Reflected XSS</strong> — malicious script in URL, echoed back in page. Requires victim to click attacker link.</li><li><strong>Stored XSS</strong> — script saved in database (forum post, profile), runs for every viewer. Worst variant.</li><li><strong>DOM-based XSS</strong> — client-side JS takes attacker input and writes to DOM unsafely.</li></ul><p>XSS steals session cookies, performs actions as the victim (CSRF-style), or redirects to phishing. <strong>Mitigation:</strong> output encoding (HTML-escape before rendering), Content-Security-Policy headers, HttpOnly + Secure cookies, input validation, WAF.</p><p><strong>Both flaws</strong> are on the OWASP Top 10 and have been for 20+ years. They remain common because developers keep building string-concatenation code paths despite decades of guidance. Cisco devices with WebUI have had SQLi and XSS CVEs — network engineers are not exempt from caring about these.</p>",
+        visual: { type: "comparison", params: { left: { label: "SQL Injection", items: ["Input mixed into SQL", "Extracts/alters DB data", "Fix: parameterized queries"] }, right: { label: "XSS", items: ["Input rendered as HTML/JS", "Runs in victim's browser", "Fix: output encoding + CSP"] } } },
+        hack: {
+          memory: "SQLi = escape out of the query, take over the database. XSS = escape out of the page, take over the user's browser. Same root cause: trusting input in a structured context. Same family of fixes: treat input as data, not code.",
+          practice: "Spin up DVWA or OWASP Juice Shop locally. Practice one SQLi (login bypass with ' OR 1=1 --) and one stored XSS (comment field with <script>alert(1)</script>). Seeing them work once cements the concept permanently.",
+          effort: "medium",
+          meta: "Jeremy's IT Lab Day 51. Wendell Odom OCG Chapter 27. Exam will not require exploitation syntax but expects you to recognize SQLi and XSS as web-app exploits, and to pair each with its mitigation (parameterized queries, output encoding)."
+        }
+      }
     ]
   },
 
@@ -72,11 +192,71 @@ window.subtopicContentD56 = {
       meta: "Jeremy's IT Lab Day 51. Wendell Odom OCG Chapter 27. Cisco loves 'which is the best mitigation for X?' questions. The answer is always the most SPECIFIC control, not a general one.",
     },
     micro: [
-      { id: "5.1.d.1", term: "Mitigation / Countermeasure",  def: "Action reducing likelihood/impact of threat. Reduces risk to acceptable level — doesn't eliminate.", weight: "high" },
-      { id: "5.1.d.2", term: "Control categories",           def: "Preventive (firewall, ACL), Detective (IDS, syslog), Corrective (backup, IR), Deterrent (banner, cameras).", weight: "high" },
-      { id: "5.1.d.3", term: "ARP spoofing → DAI",           def: "Dynamic ARP Inspection uses DHCP snooping binding table to validate ARP replies.", weight: "high" },
-      { id: "5.1.d.4", term: "Rogue DHCP → DHCP snooping",   def: "Only trusted ports (toward legitimate server) can send DHCP offers. Blocks rogue servers.", weight: "high" },
-      { id: "5.1.d.5", term: "Phishing → training",          def: "Technology can't fully defend. User awareness training is the primary countermeasure.", weight: "high" }
+      {
+        id: "5.1.d.1",
+        term: "Mitigation / Countermeasure",
+        weight: "high",
+        info: "<p>A <strong>mitigation</strong> (also called <strong>countermeasure</strong> or <strong>control</strong>) is any action, device, process, or policy that reduces the likelihood or impact of a security threat. Mitigations do not eliminate risk — they reduce it to an <strong>acceptable level</strong> defined by business tolerance.</p><p>The goal of a mitigation is to make an attack harder, more expensive, slower, or less rewarding. Attackers are rational economic actors: if the cost of attacking you exceeds the expected reward, they move to easier targets. Every control you layer raises attacker cost.</p><p><strong>The control-selection workflow:</strong></p><ol><li>Identify the asset (what you're protecting).</li><li>Identify the threats against it.</li><li>Identify the vulnerabilities that could be exploited.</li><li>Select controls that reduce likelihood (preventive, deterrent) and/or impact (detective, corrective).</li><li>Measure residual risk; accept, transfer, or further mitigate.</li></ol><p><strong>Depth of defense:</strong> a single control is a single point of failure. Real security stacks multiple controls so that bypassing one still leaves others. Example: phishing defense layers = email filter (preventive) + user awareness training (preventive) + MFA (preventive) + EDR on endpoints (detective) + SIEM alerting (detective) + incident response (corrective). No single layer is perfect, but together they are strong.</p><p><strong>Cost/benefit reality:</strong> controls cost money and operational overhead. A $1M control protecting a $100K asset makes no business sense. Risk assessment drives prioritization: spend the most on the highest-value + highest-likelihood threats.</p>",
+        visual: { type: "shield", params: { items: ["Preventive", "Detective", "Corrective", "Deterrent", "Compensating"], color: "#10b981" } },
+        hack: {
+          memory: "Mitigation = MEND the fence. Controls REDUCE risk, they don't eliminate it. Layer them (defense in depth) so no single failure lets the attacker through. The best control for a given threat is the most SPECIFIC one — not a generic firewall for every problem.",
+          practice: "Take one threat (phishing) and list 6 layered controls: email filter, URL rewriting, user training, MFA, EDR, SIEM. For each, note whether it's preventive, detective, or corrective. This is the defense-in-depth exercise Cisco expects you to think in.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 51. Wendell Odom OCG Chapter 27. Exam will ask 'best mitigation for X' — answer is always the most specific control, not a generic one. Phishing → training, ARP spoofing → DAI, rogue DHCP → DHCP snooping."
+        }
+      },
+      {
+        id: "5.1.d.2",
+        term: "Control categories",
+        weight: "high",
+        info: "<p>Security controls are classified by <strong>function</strong> — what they do in an attack lifecycle. The CCNA uses four primary categories and one supplementary one. Knowing which category a control belongs to is a common exam pattern.</p><p><strong>1. Preventive controls</strong> — stop an attack from succeeding. Examples: firewall, ACL, port security, encryption (IPsec/SSH), strong authentication, physical locks, MFA, patching. These are the first line of defense; if they work, the attack never happens.</p><p><strong>2. Detective controls</strong> — identify an attack in progress or after the fact. Examples: IDS, syslog, SNMP monitoring, SIEM correlation, security cameras, file integrity monitoring, NetFlow analysis. Detective controls assume prevention will sometimes fail; their job is to raise the alarm quickly.</p><p><strong>3. Corrective controls</strong> — repair damage after an incident. Examples: backups, disaster recovery plans, incident response procedures, patching (after exploitation), rebuilding compromised systems, restoring from snapshots. These minimize downtime and data loss.</p><p><strong>4. Deterrent controls</strong> — discourage attackers from attempting. Examples: login banners with legal warnings, visible cameras, security guards, published penalties. Deterrents don't physically stop anyone — they change attacker calculus.</p><p><strong>5. Compensating controls</strong> — substitute when the 'ideal' control isn't feasible. Example: you can't patch a legacy SCADA system because the vendor is out of business, so you segment it on an isolated VLAN and monitor all traffic in/out. The segmentation + monitoring compensates for the missing patch.</p><p><strong>Exam pattern:</strong> 'a fire suppression system is what type of control?' = corrective (it mitigates impact after a fire starts). 'A login banner?' = deterrent. 'An IDS?' = detective. 'A firewall?' = preventive. Memorize the mappings.</p>",
+        visual: { type: "hierarchy", params: { root: "Controls by function", children: [{ name: "Preventive" }, { name: "Detective" }, { name: "Corrective" }, { name: "Deterrent" }, { name: "Compensating" }] } },
+        hack: {
+          memory: "PDCDC: Preventive (stop it), Detective (spot it), Corrective (fix it), Deterrent (discourage it), Compensating (substitute). Locks = preventive. Cameras = detective + deterrent. Backups = corrective. Banners = deterrent. Segmenting an un-patchable system = compensating.",
+          practice: "List 20 controls (firewall, IDS, camera, lock, backup, banner, IPS, SIEM, badge reader, fire extinguisher, UPS, DR plan, MFA, patch management, DAI, DHCP snooping, port security, BPDU guard, training, encryption). Classify each into PDCDC. Drill until instant.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 51. Wendell Odom OCG Chapter 27. Expect a question asking the category of a given control. Watch for cameras — they are BOTH detective and deterrent. Backups are corrective (not preventive — they don't stop data loss, they recover from it)."
+        }
+      },
+      {
+        id: "5.1.d.3",
+        term: "ARP spoofing → DAI",
+        weight: "high",
+        info: "<p><strong>Dynamic ARP Inspection (DAI)</strong> is Cisco's layer-2 mitigation for ARP spoofing / ARP poisoning attacks. DAI validates every ARP packet against a trusted binding table, dropping any that claim an IP-to-MAC mapping the switch knows to be false.</p><p><strong>The attack it stops:</strong> an attacker on the same VLAN sends gratuitous ARP replies claiming <code>I am 10.0.0.1 (the default gateway)</code> with their own MAC. Victim hosts update their ARP caches and start sending gateway-bound traffic to the attacker. The attacker forwards it onward, becoming an invisible MITM.</p><p><strong>How DAI works:</strong></p><ol><li>Build a trusted <strong>DHCP snooping binding database</strong> — a table of (MAC, IP, VLAN, interface) learned from legitimate DHCP transactions on untrusted ports. DAI depends on DHCP snooping being configured first.</li><li>On untrusted ports, inspect every ARP packet. Check that the sender's MAC and claimed IP match the binding table.</li><li>Drop any ARP packet whose sender MAC/IP pair is not in the binding table (or is inconsistent with it).</li><li>Trusted ports (typically uplinks to other switches) bypass inspection.</li></ol><p><strong>Key config commands</strong> (covered in detail in 5.7):</p><ul><li><code>ip arp inspection vlan 10</code> — enable DAI for VLAN 10.</li><li><code>ip arp inspection trust</code> — mark a port as trusted (on interface).</li><li><code>ip arp inspection validate src-mac dst-mac ip</code> — extra optional checks.</li></ul><p>For static IPs (no DHCP), supplement DAI with <strong>ARP ACLs</strong> to hard-code approved mappings.</p><p><strong>Exam pattern:</strong> 'Best mitigation for ARP spoofing?' = DAI. 'What does DAI depend on?' = DHCP snooping binding database. 'Which port type bypasses inspection?' = trusted port (usually uplinks).</p>",
+        visual: { type: "handshake", params: { leftLabel: "Attacker", rightLabel: "Switch (DAI)", steps: ["Forged ARP (I am GW) ->", "<- DAI checks binding", "MAC/IP mismatch ->", "<- DROP + log"] } },
+        hack: {
+          memory: "ARP spoofing = LYING about your address. DAI = the fact-checker that consults the DHCP snooping database and drops lies. DAI requires DHCP snooping FIRST (that's where the binding table comes from). Uplinks to other switches = trusted (bypass inspection).",
+          practice: "In Packet Tracer: enable ip dhcp snooping, then ip arp inspection vlan 10. Mark the server-facing port as trusted. Attempt to send a fake ARP from a PC — watch the switch drop it. This is the classic 5.7 lab.",
+          effort: "medium",
+          meta: "Jeremy's IT Lab Day 53 (DHCP Snooping/DAI). Wendell Odom OCG Chapter 30. The exam tests the vulnerability-to-mitigation pair: ARP spoofing → DAI. Also know the dependency: DAI uses the DHCP snooping binding table."
+        }
+      },
+      {
+        id: "5.1.d.4",
+        term: "Rogue DHCP → DHCP snooping",
+        weight: "high",
+        info: "<p><strong>DHCP snooping</strong> is Cisco's mitigation for rogue DHCP servers. It classifies switch ports as <strong>trusted</strong> (allowed to send DHCP server messages) or <strong>untrusted</strong> (only allowed to send DHCP client messages), and drops server messages on untrusted ports.</p><p><strong>The attack it stops:</strong> an attacker plugs a rogue DHCP server into an access port (or runs one on a compromised host). The rogue responds to DHCP DISCOVER faster than the legitimate server, assigning victims an IP with the <em>attacker's</em> IP as the default gateway or DNS server. The attacker becomes a MITM for all outbound traffic.</p><p><strong>How DHCP snooping works:</strong></p><ol><li>Enable globally: <code>ip dhcp snooping</code>.</li><li>Enable per-VLAN: <code>ip dhcp snooping vlan 10</code>.</li><li>Mark trusted ports (those facing legitimate DHCP servers): interface <code>ip dhcp snooping trust</code>. All other ports are untrusted by default.</li><li>On untrusted ports, the switch drops <strong>DHCPOFFER</strong>, <strong>DHCPACK</strong>, and <strong>DHCPNAK</strong> messages (server-sourced). It allows DHCPDISCOVER, DHCPREQUEST, DHCPRELEASE (client-sourced).</li><li>As clients complete DHCP, the switch builds the <strong>DHCP snooping binding database</strong> — a table of (MAC, IP, lease, VLAN, interface) used by DAI and IP Source Guard.</li></ol><p><strong>Optional rate limiting</strong>: <code>ip dhcp snooping limit rate N</code> on untrusted ports prevents DHCP starvation attacks (where attacker exhausts the pool by requesting leases with spoofed MACs).</p><p><strong>Option 82</strong>: DHCP snooping can insert Option 82 info (switch + port identity) into relayed DHCP requests, giving the DHCP server visibility into which port a client connects from.</p><p><strong>Exam pattern:</strong> 'Best mitigation for rogue DHCP?' = DHCP snooping. 'What does DAI rely on?' = DHCP snooping binding table. Trusted port = faces legitimate DHCP server (usually uplink).</p>",
+        visual: { type: "packet-flow", params: { nodes: ["Client DISCOVER", "Trusted port allowed", "Untrusted port = DROP server replies", "Binding DB built"], color: "#10b981" } },
+        hack: {
+          memory: "DHCP snooping = bouncer at the club. Trusted ports (uplinks to real DHCP server) get in. Untrusted ports (access ports) can ASK for DHCP but cannot ANSWER DHCP. Rogue server plugged in? Its DHCPOFFERs get dropped at the first switch.",
+          practice: "Lab: ip dhcp snooping, ip dhcp snooping vlan 10. Trust the uplink. Plug in a rogue DHCP server on another access port and verify clients never receive its offers. Check 'show ip dhcp snooping binding' to see the legitimate binding table.",
+          effort: "medium",
+          meta: "Jeremy's IT Lab Day 53. Wendell Odom OCG Chapter 30. Exam pair: rogue DHCP → DHCP snooping. Know that snooping is the prerequisite for DAI and IP Source Guard — it builds the binding table that those features consult."
+        }
+      },
+      {
+        id: "5.1.d.5",
+        term: "Phishing → user awareness training",
+        weight: "high",
+        info: "<p><strong>User awareness training</strong> is the primary mitigation for phishing and all other social-engineering attacks. Technology alone cannot stop a well-crafted phishing email, because the attack exploits human trust rather than a software flaw. The human is both the target and the last line of defense.</p><p><strong>Why training beats tech alone:</strong></p><ul><li>Email filters catch generic phishing but miss targeted spear-phishing crafted for your org.</li><li>URL reputation services lag behind attacker domain rotation (new domains bypass blocklists).</li><li>MFA blocks credential reuse but not session-hijacking proxies (evilginx-style).</li><li>EDR catches malware execution but not credential theft via legitimate-looking login pages.</li></ul><p>Trained users recognize red flags — urgency, unexpected attachments, mismatched sender domains, strange URLs — and report instead of clicking. They become <strong>security sensors</strong>, which is why reporting culture matters as much as recognition skill.</p><p><strong>Effective training programs include:</strong></p><ol><li><strong>Baseline training</strong> — annual mandatory, covering AUP, phishing indicators, password hygiene, data handling.</li><li><strong>Simulated phishing campaigns</strong> — send fake phishes monthly; measure click rate and report rate. Proofpoint, KnowBe4, Cofense are common vendors.</li><li><strong>Just-in-time training</strong> — users who click get immediate, non-punitive remediation content.</li><li><strong>Reporting simplicity</strong> — one-click 'Report Phish' button in the mail client, confirmed via auto-reply.</li><li><strong>Metrics</strong> — track click rate (should decrease), report rate (should increase), time-to-report (should decrease).</li></ol><p><strong>Technology supplements — not replaces — training:</strong> email gateway filtering, URL rewriting/sandboxing, DMARC/DKIM/SPF to block spoofing, MFA everywhere, and rapid credential-reset workflows for confirmed phishes.</p><p><strong>Exam pattern:</strong> if the question is 'best defense against phishing/social engineering,' the answer is always <em>user awareness training</em> — never a firewall, IPS, or ACL.</p>",
+        visual: { type: "hierarchy", params: { root: "Phishing defense", children: [{ name: "Training (primary)", children: [{ name: "Simulations" }, { name: "Reporting culture" }] }, { name: "Tech (supplements)", children: [{ name: "Email filter" }, { name: "MFA" }, { name: "DMARC" }] }] } },
+        hack: {
+          memory: "Phishing bypasses technology — it targets people. So the PRIMARY mitigation is training people. Tech (filters, MFA, DMARC) helps but cannot fully stop a convincing phish. On the exam, 'best defense against social engineering' = awareness training. Always.",
+          practice: "Take Google's phishing quiz at phishingquiz.withgoogle.com. Note the red flags: mismatched sender, urgency, suspicious URLs. Then note the structural defenses: MFA, DMARC, reporting. Rank them — training first, tech second.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 51. Wendell Odom OCG Chapter 27. 100% guaranteed exam question. 'Which is the primary mitigation for phishing?' = training. Do not choose firewall, IPS, or encryption — those are secondary."
+        }
+      }
     ]
   },
 
@@ -90,10 +270,58 @@ window.subtopicContentD56 = {
       meta: "Jeremy's IT Lab Day 51. Wendell Odom OCG Chapter 27. If the exam asks 'what is the best defense against phishing?' the answer is ALWAYS user awareness training — not a firewall, not an IPS.",
     },
     micro: [
-      { id: "5.1.e.1", term: "Social engineering",           def: "Manipulating humans to reveal credentials or bypass security. Bypasses technical controls entirely.", weight: "high" },
-      { id: "5.1.e.2", term: "Phishing",                     def: "Email deception attack. Fake login pages, malicious attachments, urgency tactics.", weight: "high" },
-      { id: "5.1.e.3", term: "Spear phishing",               def: "Targeted phishing aimed at specific individual/org. More research, more convincing than bulk phishing.", weight: "med" },
-      { id: "5.1.e.4", term: "User awareness training",      def: "Primary defense against social engineering. Technology alone cannot stop it.", weight: "high" }
+      {
+        id: "5.1.e.1",
+        term: "Social engineering",
+        weight: "high",
+        info: "<p><strong>Social engineering</strong> is the family of attacks that manipulate human psychology — trust, fear, urgency, curiosity, authority, helpfulness — to bypass security controls. Instead of breaking technology, the attacker gets a person to hand over credentials, click a malicious link, or perform an unauthorized action willingly.</p><p><strong>Why it works:</strong> humans are cognitively wired to help, obey authority, and reciprocate favors. Social engineers exploit these defaults. A firewall cannot stop an employee who voluntarily types their password into a fake Microsoft 365 login page.</p><p><strong>Primary attack variants the CCNA tests:</strong></p><ul><li><strong>Phishing</strong> — mass email impersonating a trusted entity.</li><li><strong>Spear phishing</strong> — targeted phishing aimed at a specific individual or small group.</li><li><strong>Whaling</strong> — spear phishing targeted at executives or high-value roles (CEO, CFO).</li><li><strong>Vishing</strong> — voice phishing via phone.</li><li><strong>Smishing</strong> — SMS / text-message phishing.</li><li><strong>Pretexting</strong> — fabricated scenario to manipulate the target (\"I'm from IT, I need to verify your password\").</li><li><strong>Baiting</strong> — leaving infected USB drives in the parking lot, offering free downloads.</li><li><strong>Tailgating / piggybacking</strong> — following an authorized person through a badge-controlled door.</li></ul><p><strong>Psychological levers</strong> Cialdini identified: reciprocity, commitment/consistency, social proof, authority, liking, scarcity. Attackers use them deliberately. An email that says \"URGENT: CEO needs you to wire funds in the next hour\" stacks authority + scarcity + urgency.</p><p><strong>Primary mitigation is always user awareness training.</strong> Supporting controls: MFA (credential theft doesn't unlock accounts), email filters, DMARC, simulated phishing programs, strict wire-transfer/approval processes, visible reporting channels.</p>",
+        visual: { type: "shield", params: { items: ["Phishing", "Vishing", "Smishing", "Pretexting", "Tailgating"], color: "#f59e0b" } },
+        hack: {
+          memory: "Social engineering = hacking humans, not machines. Works because people help, obey, and rush. Firewall can't fix it. Answer on exam = TRAINING. Technology supplements (MFA, filters, DMARC), but the human is both target and defense.",
+          practice: "Watch one DEFCON social-engineering village talk on YouTube. Notice how the attacker uses authority + urgency to get call-center agents to reset credentials. Then map which policy controls (verification callbacks, secret passphrases) would have stopped them.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 51. Wendell Odom OCG Chapter 27. Exam staple. Social engineering + training is the canonical attack-mitigation pair. Know all 8 variants above — the exam can cite any of them."
+        }
+      },
+      {
+        id: "5.1.e.2",
+        term: "Phishing",
+        weight: "high",
+        info: "<p><strong>Phishing</strong> is mass-scale email deception. The attacker sends a message impersonating a trusted entity (bank, cloud provider, IT department) with a call to action that leads to credential theft, malware installation, or financial fraud. Phishing accounts for the majority of initial-access breaches globally.</p><p><strong>Anatomy of a phishing email:</strong></p><ol><li><strong>Spoofed sender</strong> — display name looks legitimate; domain is slightly off (<code>micros0ft.com</code>, <code>amaz0n-support.com</code>) or compromised.</li><li><strong>Urgency or fear trigger</strong> — \"your account will be suspended,\" \"unauthorized login detected,\" \"invoice overdue.\"</li><li><strong>Legitimate-looking branding</strong> — logos, formatting, copied footers.</li><li><strong>Malicious payload</strong> — a link to a credential-harvesting page, an attachment with malware (Office macro, HTML smuggling), or a QR code (quishing) that evades URL filters.</li><li><strong>Call to action</strong> — \"click here to verify,\" \"download attached statement,\" \"reply with your password.\"</li></ol><p><strong>Phishing variants by payload:</strong></p><ul><li><strong>Credential phishing</strong> — fake login page steals username/password.</li><li><strong>Malware phishing</strong> — attachment or link installs RAT, infostealer, or ransomware loader.</li><li><strong>Business Email Compromise (BEC)</strong> — no malware, pure social engineering to divert wire transfers.</li><li><strong>Clone phishing</strong> — reply to a real prior thread with a malicious link inserted.</li></ul><p><strong>Technical defenses:</strong> email gateway filtering (Proofpoint, Mimecast, Microsoft Defender for O365), SPF/DKIM/DMARC to block spoofing, URL rewriting/sandboxing, attachment detonation, MFA on all accounts (limits credential-theft impact), EDR on endpoints.</p><p><strong>Human defenses:</strong> awareness training, simulated phishing, one-click report button, no-blame culture that encourages reporting over hiding clicks.</p>",
+        visual: { type: "packet-flow", params: { nodes: ["Attacker sends email", "Spoofed sender + urgency", "User clicks link", "Fake login page", "Credentials exfiltrated"], color: "#ef4444" } },
+        hack: {
+          memory: "Phishing = fishing for passwords with bulk email. Five parts: spoofed sender, urgency, branding, payload, call-to-action. Defense = filter (tech) + MFA (limits damage) + training (primary). Never blame users for clicking — blame the lack of training.",
+          practice: "Forward 3 real phishes (if any arrive) to your security team's reporting address. Note the headers — Received chain, Return-Path vs From, DKIM results. Seeing real examples builds pattern recognition better than any slide deck.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 51. Wendell Odom OCG Chapter 27. Exam staple. Know phishing anatomy and primary defense (training). If 'best defense' is the question, training wins over any tech answer."
+        }
+      },
+      {
+        id: "5.1.e.3",
+        term: "Spear phishing / Whaling",
+        weight: "med",
+        info: "<p><strong>Spear phishing</strong> is targeted phishing aimed at a specific individual, role, or small group. The attacker researches the target (LinkedIn, company website, social media) and crafts a personalized message that references real projects, colleagues, or organizational context. This dramatically increases click rates — typical bulk phishing gets 3% clicks, spear phishing can exceed 40%.</p><p><strong>Whaling</strong> is spear phishing aimed specifically at <em>executives or high-value roles</em> — CEO, CFO, legal counsel, board members. The 'whales' have authority to authorize wire transfers, sign contracts, and access sensitive data, so compromising one produces large returns.</p><p><strong>Reconnaissance sources:</strong></p><ul><li>LinkedIn — job titles, reporting structures, coworker names.</li><li>Company website — leadership bios, press releases, project announcements.</li><li>Conference talks, podcasts, interviews — communication style, current initiatives.</li><li>Breach data — prior credential leaks, org charts, email formats.</li><li>Social media — personal interests, travel plans, family names.</li></ul><p><strong>Typical spear-phishing scenario:</strong> an attacker targets a finance analyst. They find the CFO's name on LinkedIn, replicate the CFO's email signature, and send the analyst: \"Jane, I need a wire transfer to vendor X processed today for $48K. I'm in a meeting, confirm when done. — Bob, CFO.\" This is Business Email Compromise (BEC) — no malware, just authority-backed manipulation.</p><p><strong>Mitigations specific to spear phishing / whaling:</strong></p><ul><li><strong>Out-of-band verification</strong> — phone call to confirm unusual wire requests.</li><li><strong>Dual approval</strong> — two people must authorize wires above a threshold.</li><li><strong>DMARC enforcement</strong> — blocks domain spoofing.</li><li><strong>Executive-specific training</strong> — executives are targeted more and often have weaker habits.</li><li><strong>Limited public exposure</strong> — minimize unnecessary executive contact details online.</li></ul>",
+        visual: { type: "hierarchy", params: { root: "Targeted phishing", children: [{ name: "Spear phishing (individual)" }, { name: "Whaling (executive)" }, { name: "BEC (wire fraud)" }] } },
+        hack: {
+          memory: "Spear = aimed at ONE fish. Whaling = aimed at the BIG fish (execs). The more targeted, the more convincing. Mitigation = out-of-band verification for any unusual money/data request. Never trust a single email channel for wire transfers — always call back.",
+          practice: "Study a real BEC case (FBI IC3 publishes annual reports). Common pattern: compromised or spoofed exec email + urgency + vendor wire. Note the verification control that would have stopped it: callback to a known phone number, not the one in the email.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 51. Wendell Odom OCG Chapter 27. Know the terminology: spear phishing vs whaling vs BEC. All mitigated by training + out-of-band verification + dual approval for high-value actions."
+        }
+      },
+      {
+        id: "5.1.e.4",
+        term: "User awareness training (primary defense)",
+        weight: "high",
+        info: "<p>The CCNA exam consistently positions <strong>user awareness training</strong> as the primary defense against social engineering. This is because the attack targets human decision-making, and no firewall, IPS, or encryption protocol intercepts trust.</p><p>A strong awareness program has five components:</p><ol><li><strong>Policy grounding</strong> — users know the acceptable use policy (AUP), password rules, data handling, BYOD limits, reporting expectations.</li><li><strong>Red-flag recognition</strong> — urgency, unexpected attachments, sender-domain mismatches, unusual requests, hovering-over-links vs displayed URLs.</li><li><strong>Simulated phishing</strong> — quarterly (or monthly) campaigns measure click rate, report rate, time-to-report. Metrics drive improvement.</li><li><strong>Just-in-time remediation</strong> — users who fail simulations get immediate, non-punitive training. Punishment discourages future reporting — <em>don't</em> punish first-time clicks.</li><li><strong>Reporting culture</strong> — one-click report button, acknowledgment reply, visible metrics (\"this month, 143 suspicious emails reported, 12 were real phishes blocked from others\"). Users must feel rewarded for reporting, not blamed.</li></ol><p><strong>What good metrics look like:</strong> click rate dropping from 30% to <5% over 12 months, report rate rising from 2% to >50%, mean time-to-report dropping from hours to minutes. These are leading indicators of reduced breach risk.</p><p><strong>Regulatory drivers:</strong> PCI-DSS, HIPAA, ISO 27001, SOC 2, and most industry frameworks require documented security awareness programs. Cyber insurance underwriters now require evidence of simulated phishing and training in most policies.</p><p><strong>Limits of training:</strong> no program prevents 100% of clicks. Training must be combined with MFA (blocks credential replay), EDR (catches post-click malware), and rapid IR (limits blast radius). Layered defense is mandatory.</p>",
+        visual: { type: "gauge", params: { level: 90, label: "Awareness = primary mitigation", color: "#10b981" } },
+        hack: {
+          memory: "Users = weakest link AND first line of defense. Training turns users from liabilities into SENSORS. Measure click rate (should drop) + report rate (should rise). Never punish first-time clicks — it kills the reporting culture you're trying to build.",
+          practice: "If your org uses KnowBe4 or Proofpoint, check your personal click/report history. Note the red flags you missed. Then teach one coworker the 5 red flags: urgency, mismatched domain, unexpected attachment, generic greeting, bad grammar.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 51. Wendell Odom OCG Chapter 27. The exam will explicitly favor 'user awareness training' over any technical answer for phishing/social-engineering questions. Lock this in."
+        }
+      }
     ]
   },
 
@@ -107,10 +335,58 @@ window.subtopicContentD56 = {
       meta: "Jeremy's IT Lab Day 51. Wendell Odom OCG Chapter 27. Know DoS vs DDoS (single vs distributed), SYN flood mechanics, and that DDoS requires distributed mitigation (scrubbing centers, not just ACLs).",
     },
     micro: [
-      { id: "5.1.f.1", term: "DoS",                          def: "Denial of Service. Overwhelms target from a single source. Blockable by ACL or firewall rule.", weight: "high" },
-      { id: "5.1.f.2", term: "DDoS",                         def: "Distributed DoS. Many sources (botnet) attack simultaneously. Needs scrubbing centers/CDN defense.", weight: "high" },
-      { id: "5.1.f.3", term: "SYN flood",                    def: "Flood TCP SYNs without completing handshake. Target's half-open connection queue exhausts.", weight: "high" },
-      { id: "5.1.f.4", term: "Reflection/amplification",     def: "Attacker spoofs victim's IP in queries to open servers. Servers reply to victim with large responses.", weight: "med" }
+      {
+        id: "5.1.f.1",
+        term: "DoS (Denial of Service)",
+        weight: "high",
+        info: "<p>A <strong>Denial of Service (DoS)</strong> attack overwhelms a target until it can no longer serve legitimate users. The target may be a specific service (web server), a network link (the ISP uplink), or a device resource (TCP connection table, CPU, memory, session state). The goal is not theft or persistence — it is <strong>unavailability</strong>, which attacks the 'A' in the CIA triad.</p><p><strong>Single-source DoS characteristics:</strong></p><ul><li>Attack originates from one IP (or a small handful).</li><li>Easy to block with an ACL or firewall rule once identified.</li><li>Limited by the attacker's own bandwidth and resources.</li><li>Rarely effective against well-provisioned modern services — you need many sources (see DDoS).</li></ul><p><strong>Common DoS techniques (many also used in DDoS):</strong></p><ul><li><strong>SYN flood</strong> — send TCP SYN packets without completing the 3-way handshake. Target allocates state for each half-open connection until its backlog queue is exhausted and legitimate SYNs are dropped.</li><li><strong>UDP flood</strong> — send UDP packets to random ports. Target replies with ICMP Port Unreachable for each one, consuming bandwidth and CPU.</li><li><strong>ICMP flood / ping flood</strong> — bandwidth consumption via ICMP Echo Request.</li><li><strong>Slowloris</strong> — open many HTTP connections and send headers very slowly, tying up server worker threads.</li><li><strong>Teardrop</strong> — fragmented packets with malformed offsets, crashes vulnerable reassembly code.</li><li><strong>Ping of Death</strong> — oversized ICMP packet, historical (mostly patched by 1998).</li></ul><p><strong>Mitigations:</strong> ingress ACLs, rate limiting (<code>ip tcp intercept</code>, CAR), stateful firewall connection limits, SYN cookies, IPS signatures for known attack patterns, disabling directed broadcast (<code>no ip directed-broadcast</code>) to prevent smurf amplification.</p>",
+        visual: { type: "packet-flow", params: { nodes: ["Attacker", "Flood traffic (1 source)", "Target resource exhausted", "Legit users blocked"], color: "#ef4444" } },
+        hack: {
+          memory: "DoS = ONE person blocking ONE doorway. Attacks availability (the A in CIA). Easy to block with an ACL — just filter the source. Real-world DoS is almost always DDoS now (many sources). Classic techniques: SYN flood, UDP flood, Slowloris.",
+          practice: "In Packet Tracer: configure 'ip tcp intercept' on a router to mitigate SYN floods. Also practice 'no ip directed-broadcast' to prevent smurf. These are actual exam-testable Cisco mitigations.",
+          effort: "medium",
+          meta: "Jeremy's IT Lab Day 51. Wendell Odom OCG Chapter 27. Exam distinguishes DoS (single source, ACL-blockable) from DDoS (distributed, needs scrubbing/CDN). Know SYN flood as the canonical DoS technique."
+        }
+      },
+      {
+        id: "5.1.f.2",
+        term: "DDoS (Distributed Denial of Service)",
+        weight: "high",
+        info: "<p><strong>Distributed Denial of Service (DDoS)</strong> attacks use <strong>many compromised sources</strong> — typically a botnet of thousands or millions of infected devices — to generate overwhelming traffic simultaneously. Because traffic originates from many legitimate-looking IPs, you cannot block with a simple source ACL.</p><p><strong>DDoS categories by volume and technique:</strong></p><ul><li><strong>Volumetric attacks</strong> — pure bandwidth exhaustion. Goal: saturate the target's upstream pipe. Measured in Gbps or Tbps. Recent records exceed 5 Tbps.</li><li><strong>Protocol attacks</strong> — exhaust state tables on firewalls/load balancers. SYN floods, fragmented packet floods, Ping of Death variants. Measured in packets per second (Mpps).</li><li><strong>Application-layer attacks (L7)</strong> — mimic legitimate traffic but consume expensive server resources. HTTP GET floods, Slowloris, login-form floods. Low volume but hard to distinguish from real users.</li></ul><p><strong>Botnet sources:</strong></p><ul><li>Compromised IoT devices (Mirai — 600K cameras/DVRs, 2016).</li><li>Hijacked servers (compromised Linux boxes).</li><li>Residential routers with default credentials.</li><li>Proxy services and stresser-for-hire (booter) services that rent DDoS capacity.</li></ul><p><strong>Mitigations:</strong></p><ul><li><strong>Scrubbing centers / DDoS mitigation services</strong> — Cloudflare, Akamai Prolexic, AWS Shield, Azure DDoS Protection. Traffic is routed through their cloud, filtered, and clean traffic forwarded to origin.</li><li><strong>BGP blackhole / RTBH (Remotely Triggered Black Hole)</strong> — ISP-level null-routing of the attack destination to protect the rest of the network.</li><li><strong>Anycast + CDN</strong> — distributes load across many geographic points of presence, absorbing volume.</li><li><strong>Rate limiting + WAF</strong> — for L7 attacks.</li><li><strong>Ingress filtering (BCP38 / RFC 2827)</strong> — ISPs drop spoofed source IPs, reducing reflection/amplification.</li></ul><p><strong>Key exam distinction:</strong> DDoS cannot be mitigated with host-level controls alone — you need network/cloud-scale defenses.</p>",
+        visual: { type: "packet-flow", params: { nodes: ["Botnet (1000s of bots)", "Flood traffic (many sources)", "Target overwhelmed", "CDN/scrubbing filters"], color: "#ef4444" } },
+        hack: {
+          memory: "DDoS = FLASH MOB blocking every door. The D = DISTRIBUTED — many zombies (botnet) at once. Cannot block with a source ACL (too many sources). Needs scrubbing centers (Cloudflare, Akamai), CDNs, BGP blackhole. Mirai (IoT) was the landmark botnet.",
+          practice: "Read Cloudflare's 2023 DDoS report. Notice the trends: volumetric attacks exceed 2 Tbps, L7 attacks are harder to detect, HTTP/2 Rapid Reset (CVE-2023-44487) broke records. Understand why CDN-scale defense is now mandatory.",
+          effort: "medium",
+          meta: "Jeremy's IT Lab Day 51. Wendell Odom OCG Chapter 27. Exam tests DoS vs DDoS and specifically that DDoS requires distributed mitigation (scrubbing/CDN), not just ACLs. Know Mirai as the canonical IoT botnet example."
+        }
+      },
+      {
+        id: "5.1.f.3",
+        term: "SYN flood",
+        weight: "high",
+        info: "<p>A <strong>SYN flood</strong> is the most tested DoS technique on the CCNA. It exploits the TCP 3-way handshake: the attacker sends a flood of SYN packets but never completes the handshake by sending the final ACK. The target allocates connection state for every half-open connection until its backlog queue fills, at which point legitimate SYNs are dropped.</p><p><strong>The attack step by step:</strong></p><ol><li>Attacker sends SYN with spoofed source IP to target port (e.g., 80 or 443).</li><li>Target replies with SYN-ACK to the spoofed source and allocates TCB (Transmission Control Block) in its half-open queue.</li><li>The spoofed source either doesn't exist or ignores the SYN-ACK — no ACK ever arrives.</li><li>Target times out each half-open connection after 30+ seconds. During that time, the TCB consumes memory.</li><li>Repeat at thousands of SYNs per second. Half-open queue fills. Legitimate SYNs are dropped.</li></ol><p><strong>Why it was devastating historically:</strong> early TCP stacks had small backlog queues (default 128 or smaller). Dropping a few hundred SYN-ACKs per second could DoS a web server.</p><p><strong>Modern mitigations:</strong></p><ul><li><strong>SYN cookies</strong> — server doesn't allocate state until the final ACK arrives. It encodes enough info in the SYN-ACK sequence number to validate the returning ACK without needing to remember the original SYN. Built into Linux, most modern stacks.</li><li><strong>TCP intercept</strong> — Cisco feature where the router (or IPS) terminates the SYN on behalf of the server, completes the handshake, and only forwards connections that look real.</li><li><strong>Rate limiting</strong> — drop SYNs above a threshold.</li><li><strong>Ingress filtering (BCP38)</strong> — ISPs block packets with spoofed source IPs at network edges, reducing the reflection/spoofing available to attackers.</li></ul><p><strong>Exam pattern:</strong> 'what does a SYN flood exhaust?' = the target's half-open connection queue / TCB resources. 'What mitigates?' = SYN cookies, TCP intercept, rate limiting.</p>",
+        visual: { type: "handshake", params: { leftLabel: "Attacker", rightLabel: "Target", steps: ["SYN (spoofed src) ->", "<- SYN-ACK (unanswered)", "(no ACK, state leaks)", "Repeat 1000s/sec"] } },
+        hack: {
+          memory: "SYN flood = half-dial a million phones and never speak. Target holds the lines open waiting for you. Real callers get busy signals. Mitigation = SYN cookies (don't allocate until ACK) or TCP intercept (router terminates SYN first).",
+          practice: "On a Linux box, run 'sysctl net.ipv4.tcp_syncookies' — should be 1 (enabled). In Packet Tracer: 'ip tcp intercept list 100' on a router with an ACL defining protected destinations. Test with a synthetic SYN source.",
+          effort: "medium",
+          meta: "Jeremy's IT Lab Day 51. Wendell Odom OCG Chapter 27. Highly exam-testable. Know the mechanism (half-open TCB exhaustion) and two mitigations: SYN cookies (endpoint) and TCP intercept (network)."
+        }
+      },
+      {
+        id: "5.1.f.4",
+        term: "Reflection / amplification attacks",
+        weight: "med",
+        info: "<p><strong>Reflection attacks</strong> abuse protocols where an attacker can send a small query with a spoofed source IP (the victim's IP), and a third-party server responds to the victim with a much larger reply. The attacker reflects traffic off innocent intermediate servers, hiding their origin and amplifying the attack volume.</p><p><strong>Amplification factor</strong> = size of response / size of request. Protocols with high amplification factors are prime reflection targets. Common ones:</p><ul><li><strong>DNS reflection</strong> — small query (<code>ANY</code> or <code>DNSKEY</code>), large response. Amplification 28-54x. Targets open recursive resolvers.</li><li><strong>NTP monlist</strong> — tiny NTP monlist query, huge response with last 600 clients. Amplification up to 556x (one of the highest).</li><li><strong>memcached reflection</strong> — 2018 record-breaking. 15-byte request, up to 51,000x amplification. 1.7 Tbps attacks.</li><li><strong>SSDP / UPnP reflection</strong> — amplification 30-75x.</li><li><strong>SNMP, CharGen, QOTD</strong> — various legacy UDP protocols.</li></ul><p><strong>Attack flow:</strong></p><ol><li>Attacker scans the internet for misconfigured reflectors (open DNS resolvers, exposed memcached, NTP servers with monlist enabled).</li><li>Attacker sends forged packets: source IP = victim, destination = reflector, payload = small query.</li><li>Reflector sends large response to the victim.</li><li>Multiply by thousands of reflectors. Victim is DDoS'd with traffic that appears to come from many legitimate servers.</li></ol><p><strong>Mitigations:</strong></p><ul><li><strong>Ingress filtering (BCP38 / RFC 2827)</strong> — the root cure. ISPs drop packets with spoofed source IPs. Widely underdeployed, which is why reflection still works.</li><li><strong>Response rate limiting</strong> on DNS servers (dampens abuse).</li><li><strong>Disable monlist on NTP servers</strong>, require authentication on memcached, close open recursive resolvers.</li><li><strong>Victim-side</strong>: DDoS scrubbing services, blackhole/anycast.</li></ul>",
+        visual: { type: "packet-flow", params: { nodes: ["Attacker spoofs victim IP", "Sends small query to reflector", "Reflector sends LARGE reply", "To the victim (amplified)"], color: "#ef4444" } },
+        hack: {
+          memory: "Reflection = bouncing attack traffic off third parties. Amplification = small query → huge reply. memcached = worst-ever, 51,000x amplification. Root cure = BCP38 (ISPs stop spoofed packets). Until then, victims need scrubbing centers.",
+          practice: "Read the 2018 GitHub memcached DDoS postmortem (1.35 Tbps, then 1.7 Tbps against another target days later). Note how GitHub absorbed it with Akamai Prolexic. Then ask: which two config changes on memcached would have prevented the reflection?",
+          effort: "medium",
+          meta: "Jeremy's IT Lab Day 51. Wendell Odom OCG Chapter 27. Exam may ask about reflection/amplification conceptually. Know: it requires spoofed source IP + a protocol with amplification. Mitigated by BCP38 ingress filtering at ISPs."
+        }
+      }
     ]
   },
 
@@ -124,10 +400,58 @@ window.subtopicContentD56 = {
       meta: "Jeremy's IT Lab Day 51 + Day 53 (DHCP Snooping/DAI). Wendell Odom OCG Chapter 27 + Chapter 30. ARP spoofing and DHCP spoofing are THE two MITM examples Cisco tests. Study mitigations (DAI, DHCP snooping) in section 5.7.",
     },
     micro: [
-      { id: "5.1.g.1", term: "Man-in-the-Middle (MITM)",     def: "Attacker inserts between two communicating parties, intercepting and/or modifying traffic.", weight: "high" },
-      { id: "5.1.g.2", term: "ARP spoofing",                 def: "Attacker sends forged ARP replies. Hosts ARP-cache the attacker's MAC for other IPs. Traffic flows through attacker.", weight: "high" },
-      { id: "5.1.g.3", term: "DHCP spoofing",                def: "Rogue DHCP server gives victims attacker's IP as gateway/DNS. Attacker becomes MITM for all outbound traffic.", weight: "high" },
-      { id: "5.1.g.4", term: "MITM mitigations",             def: "DAI (stops ARP spoof), DHCP snooping (stops rogue DHCP), HTTPS/VPN (encrypts even if intercepted).", weight: "high" }
+      {
+        id: "5.1.g.1",
+        term: "Man-in-the-Middle (MITM)",
+        weight: "high",
+        info: "<p>A <strong>Man-in-the-Middle (MITM)</strong> attack inserts the attacker into the communication path between two parties. The attacker can passively <strong>eavesdrop</strong> (read confidential data), actively <strong>modify</strong> traffic (change data in flight), or <strong>impersonate</strong> one of the parties. Because both endpoints still think they're talking to each other directly, the attack is often invisible without specific detection.</p><p><strong>Attack vectors by layer:</strong></p><ul><li><strong>Layer 2 (LAN):</strong> ARP spoofing, MAC flooding (CAM table overflow forces switch to flood), DHCP spoofing, STP manipulation.</li><li><strong>Layer 3:</strong> rogue routing advertisements (BGP hijacking, rogue OSPF neighbor), ICMP redirects.</li><li><strong>Layer 4-7:</strong> DNS spoofing/cache poisoning, SSL stripping (downgrade HTTPS→HTTP), session hijacking, rogue certificates.</li><li><strong>Wireless:</strong> rogue AP / evil twin, KRACK (WPA2 key reinstallation attack), deauthentication + rejoin to attacker AP.</li></ul><p><strong>What the attacker gains:</strong></p><ul><li>Credentials captured from cleartext protocols (HTTP, FTP, Telnet, SMTP without STARTTLS).</li><li>Session cookies → account takeover.</li><li>Modified responses (injected malware, rewritten bank account numbers for wire transfers).</li><li>Intelligence on organizational communication.</li></ul><p><strong>Mitigations (general):</strong></p><ul><li><strong>Encryption end-to-end</strong> — HTTPS, SSH, IPsec VPN, WPA3. Even if intercepted, ciphertext cannot be read or modified without detection.</li><li><strong>Certificate pinning</strong> — apps validate server cert against a known-good pin, blocking rogue CAs.</li><li><strong>Mutual TLS</strong> — both ends authenticate with certs.</li><li><strong>Protocol-specific defenses</strong> (covered in next micro cards): DAI for ARP spoofing, DHCP snooping for rogue DHCP, DNSSEC for DNS, HSTS for SSL stripping.</li></ul>",
+        visual: { type: "handshake", params: { leftLabel: "Client", rightLabel: "Server", steps: ["Request ->", "<- ATTACKER intercepts ->", "Reads/modifies ->", "<- Forwards to Server"] } },
+        hack: {
+          memory: "MITM = the postal worker who opens your mail, reads it, maybe rewrites it, reseals it, delivers it. Both sender and recipient think everything is normal. Universal defense = ENCRYPTION. Layer-specific defenses (DAI, DHCP snooping, DNSSEC, HSTS) plug specific attack paths.",
+          practice: "In a lab VM: run Ettercap or mitmproxy to perform ARP spoofing between two test hosts. Observe captured HTTP traffic. Then enable HTTPS and watch what changes — the handshake is visible but content is opaque. This cements why encryption matters.",
+          effort: "high",
+          meta: "Jeremy's IT Lab Day 51. Wendell Odom OCG Chapter 27. MITM is heavily tested. Know the two L2 examples Cisco cares about: ARP spoofing (→ DAI) and DHCP spoofing (→ DHCP snooping). Covered deeper in 5.7."
+        }
+      },
+      {
+        id: "5.1.g.2",
+        term: "ARP spoofing (ARP poisoning)",
+        weight: "high",
+        info: "<p><strong>ARP spoofing</strong> (also called <strong>ARP poisoning</strong>) is the layer-2 MITM attack the CCNA tests most. The attacker sends forged ARP replies on the local LAN, tricking other hosts into associating the attacker's MAC with a victim IP (typically the default gateway). Victim traffic destined for the gateway flows through the attacker instead.</p><p><strong>Why ARP is exploitable:</strong> ARP has no authentication. Any host on the LAN can send a <strong>gratuitous ARP</strong> (unsolicited reply) claiming any IP-to-MAC mapping, and other hosts will update their ARP caches without verification. This design is from 1982 and predates modern threat models.</p><p><strong>The attack step by step:</strong></p><ol><li>Attacker identifies the default gateway IP (e.g., 10.0.0.1) and the victim (10.0.0.50).</li><li>Attacker sends gratuitous ARP to victim: \"10.0.0.1 is at <code>aa:bb:cc:dd:ee:ff</code>\" (attacker's MAC).</li><li>Attacker sends gratuitous ARP to gateway: \"10.0.0.50 is at <code>aa:bb:cc:dd:ee:ff</code>\" (attacker's MAC).</li><li>Both sides now send frames destined for the other to the attacker.</li><li>Attacker enables IP forwarding and relays traffic, inspecting and optionally modifying as it passes.</li><li>Attacker periodically re-sends gratuitous ARPs to counter legitimate ARP refreshes (poison must be maintained).</li></ol><p><strong>Impact:</strong> credential theft from cleartext protocols, session cookie capture, SSL stripping on non-HSTS sites, malware injection into responses. Combined with DNS spoofing, the attacker can redirect victims to phishing pages.</p><p><strong>Mitigation:</strong> <strong>Dynamic ARP Inspection (DAI)</strong> on Cisco switches. DAI consults the DHCP snooping binding table and drops ARP packets whose sender MAC/IP doesn't match a known-good binding. For statically assigned IPs, supplement with ARP ACLs.</p><p><strong>Endpoint-level supplements:</strong> static ARP entries for the gateway on critical hosts (prevents cache updates), host IDS tools like arpwatch that detect ARP anomalies.</p>",
+        visual: { type: "packet-flow", params: { nodes: ["Attacker", "Gratuitous ARP (I am GW)", "Victim poisons cache", "Traffic flows through attacker", "Attacker relays to real GW"], color: "#ef4444" } },
+        hack: {
+          memory: "ARP spoofing = LYING about your MAC address on the LAN. ARP has no authentication — any host can claim any IP. Fix = DAI, which uses DHCP snooping's binding table to validate. Trusted ports (uplinks) bypass inspection. Covered deep in 5.7.",
+          practice: "In Packet Tracer: enable ip dhcp snooping, ip arp inspection vlan 10. Mark server port as trusted. Try to send a fake ARP from a client — dropped. View 'show ip arp inspection statistics' to confirm drops.",
+          effort: "medium",
+          meta: "Jeremy's IT Lab Day 53. Wendell Odom OCG Chapter 30. Exam pair: ARP spoofing → DAI. Also know DAI requires DHCP snooping first. Covered thoroughly in 5.7 config."
+        }
+      },
+      {
+        id: "5.1.g.3",
+        term: "DHCP spoofing (rogue DHCP server)",
+        weight: "high",
+        info: "<p><strong>DHCP spoofing</strong> is the layer-2 MITM attack where an attacker runs a rogue DHCP server on the LAN. When clients broadcast DHCPDISCOVER, the rogue server responds faster than the legitimate server (or responds at all, if the legitimate server is busy), offering the client an IP with the <strong>attacker's IP as the default gateway or DNS</strong>.</p><p><strong>What the attacker gets:</strong> every packet the victim sends outside its subnet goes through the attacker (gateway poisoning) or every DNS lookup resolves through the attacker (DNS poisoning). This creates a clean MITM position without touching ARP.</p><p><strong>The attack step by step:</strong></p><ol><li>Attacker starts a DHCP server (dhcpd, dnsmasq, or a tool like Yersinia) on their host.</li><li>Attacker configures the scope to offer IPs in the victim's subnet with gateway = attacker IP, DNS = attacker IP.</li><li>Victim boots or renews DHCP lease. Sends DHCPDISCOVER broadcast.</li><li>Both servers respond with DHCPOFFER. Client typically accepts the first one, or the one with the preferred parameters. Attacker can tune timing or use DHCP starvation (below) to force client to its offer.</li><li>Client's routing table now sends all non-local traffic to the attacker.</li></ol><p><strong>Related attack — DHCP starvation:</strong> attacker exhausts the legitimate DHCP pool by requesting leases with many spoofed MAC addresses. Legitimate server runs out of IPs, cannot respond to real clients. Rogue server picks up the traffic.</p><p><strong>Mitigation:</strong> <strong>DHCP snooping</strong>. Configure trusted ports (toward legitimate DHCP server) and untrusted ports (everything else). Switch drops DHCPOFFER / DHCPACK / DHCPNAK on untrusted ports. Rogue server's responses are dropped at the first switch.</p><p><strong>Rate limiting:</strong> <code>ip dhcp snooping limit rate N</code> on untrusted ports prevents DHCP starvation.</p>",
+        visual: { type: "handshake", params: { leftLabel: "Victim", rightLabel: "Network", steps: ["DHCP DISCOVER ->", "<- ROGUE OFFER (attacker's IP as GW)", "DHCP REQUEST ->", "<- ROGUE ACK", "Traffic -> attacker"] } },
+        hack: {
+          memory: "DHCP spoofing = rogue DHCP server giving bad directions (attacker as GW or DNS). Client trusts the first/best offer, no authentication. Fix = DHCP snooping — trust only the uplink to the real server; drop server responses on every other port.",
+          practice: "Lab: plug in a second DHCP server (Packet Tracer has them) on an untrusted port. Enable ip dhcp snooping. Watch the rogue's offers get dropped. Verify client still gets IPs from the legitimate server only.",
+          effort: "medium",
+          meta: "Jeremy's IT Lab Day 53. Wendell Odom OCG Chapter 30. Exam pair: rogue DHCP → DHCP snooping. Know trusted vs untrusted port semantics. Also know snooping is the prerequisite for DAI."
+        }
+      },
+      {
+        id: "5.1.g.4",
+        term: "MITM mitigations summary",
+        weight: "high",
+        info: "<p>MITM mitigations pair by layer. Each attack has a specific best-fit defense, and Cisco tests the pairings repeatedly on the CCNA. Memorize this map.</p><p><strong>Layer 2 (LAN):</strong></p><ul><li><strong>ARP spoofing</strong> → <strong>Dynamic ARP Inspection (DAI)</strong>. Uses DHCP snooping binding table to validate ARP packets on untrusted ports.</li><li><strong>DHCP spoofing / rogue DHCP server</strong> → <strong>DHCP snooping</strong>. Drops server-sourced DHCP messages on untrusted ports.</li><li><strong>DHCP starvation</strong> → <strong>DHCP snooping rate limiting</strong> (<code>ip dhcp snooping limit rate</code>) or <strong>port security</strong> (limit MACs per port).</li><li><strong>MAC flooding (CAM table overflow)</strong> → <strong>port security</strong> (<code>switchport port-security maximum N</code>).</li><li><strong>STP manipulation (rogue root bridge)</strong> → <strong>BPDU Guard</strong> and <strong>Root Guard</strong>.</li><li><strong>IP spoofing on LAN</strong> → <strong>IP Source Guard</strong> (uses DHCP snooping binding table to validate source IPs).</li></ul><p><strong>Layer 3:</strong></p><ul><li><strong>Routing protocol spoofing (rogue OSPF neighbor, BGP hijack)</strong> → protocol authentication (MD5/SHA on OSPF, BGP MD5, TCP-AO).</li><li><strong>ICMP redirect abuse</strong> → disable ICMP redirect acceptance on hosts.</li></ul><p><strong>Layer 4-7:</strong></p><ul><li><strong>DNS spoofing / cache poisoning</strong> → <strong>DNSSEC</strong>, validating resolvers, encrypted DNS (DoH/DoT).</li><li><strong>SSL stripping</strong> → <strong>HSTS</strong> (HTTP Strict Transport Security) preloading, HTTPS-only sites.</li><li><strong>Rogue CA / fake cert</strong> → <strong>certificate pinning</strong>, Certificate Transparency monitoring.</li><li><strong>Session hijacking</strong> → HTTPS + HttpOnly + Secure cookies + short session timeouts.</li></ul><p><strong>Wireless:</strong></p><ul><li><strong>Rogue AP / evil twin</strong> → WLC rogue detection, 802.1X/EAP with certificate-based auth, WPA3 with SAE (blocks offline dictionary attack).</li><li><strong>Deauth flooding</strong> → 802.11w (Management Frame Protection).</li></ul><p><strong>Universal defense:</strong> end-to-end encryption (HTTPS, SSH, IPsec VPN, WPA3). Even if intercepted at any layer, encrypted traffic cannot be read or modified without detection.</p>",
+        visual: { type: "comparison", params: { left: { label: "L2 attacks", items: ["ARP spoof → DAI", "Rogue DHCP → snooping", "MAC flood → port security", "STP → BPDU Guard"] }, right: { label: "Layer 3-7", items: ["DNS spoof → DNSSEC", "SSL strip → HSTS", "Rogue AP → 802.1X", "All layers → encryption"] } } },
+        hack: {
+          memory: "Pair each attack with its fix: ARP spoof → DAI. Rogue DHCP → snooping. MAC flood → port security. STP abuse → BPDU Guard. DNS spoof → DNSSEC. SSL strip → HSTS. Memorize pairs. Universal fix = ENCRYPTION — if traffic is encrypted, MITM is still possible but useless.",
+          practice: "On a whiteboard, list every MITM attack above and write the mitigation next to each. Then reverse it: given a mitigation, name the attack it stops. This pattern-matching is how Cisco scenario questions work.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Days 51-53. Wendell Odom OCG Chapter 27, 30. These pairings are heavily tested in 5.1 (concepts) and 5.7 (config). Learn the mapping once, answer correctly forever."
+        }
+      }
     ]
   },
 
@@ -141,11 +465,71 @@ window.subtopicContentD56 = {
       meta: "Jeremy's IT Lab Day 51. Wendell Odom OCG Chapter 27. The exam loves 'which malware type does X?' questions. The KEY differentiator is propagation: worm = automatic, virus = user action, trojan = deception.",
     },
     micro: [
-      { id: "5.1.h.1", term: "Virus",                        def: "Malware that attaches to legit files. Requires USER ACTION (open file) to spread.", weight: "high" },
-      { id: "5.1.h.2", term: "Worm",                         def: "Self-propagating malware. Spreads AUTOMATICALLY across network without user action. More dangerous than virus.", weight: "high" },
-      { id: "5.1.h.3", term: "Trojan",                       def: "Malware disguised as legitimate software. Relies on DECEPTION. User installs willingly.", weight: "high" },
-      { id: "5.1.h.4", term: "Ransomware",                   def: "Encrypts victim's files, demands payment for decryption key. Major modern threat.", weight: "high" },
-      { id: "5.1.h.5", term: "Spyware / Adware",             def: "Spyware = steals data silently. Adware = pushes unwanted ads. Usually less destructive than ransomware.", weight: "med" }
+      {
+        id: "5.1.h.1",
+        term: "Virus",
+        weight: "high",
+        info: "<p>A <strong>virus</strong> is malware that attaches itself to a legitimate file or program and requires <strong>user action</strong> to execute and spread. It cannot self-propagate across a network — a worm does that. The defining traits are <em>host-file dependency</em> and <em>user activation</em>.</p><p><strong>How a virus spreads:</strong></p><ol><li>Infected file reaches the victim (email attachment, USB drive, file share, pirated software download).</li><li>User opens the file (double-clicks the .exe, opens the Word doc with macros enabled, runs the installer).</li><li>Virus code executes, typically looking for other files to infect — other executables, documents, or system files.</li><li>Infected user distributes files to others (forwards email, shares USB, uploads to a file server), continuing the chain.</li></ol><p><strong>Common virus categories:</strong></p><ul><li><strong>File infector</strong> — attaches to .exe, .com, or other executables.</li><li><strong>Macro virus</strong> — embeds in Office documents (Word, Excel) using VBA macros. Executes when the user enables macros.</li><li><strong>Boot sector virus</strong> — infects the master boot record; loads before the OS.</li><li><strong>Polymorphic virus</strong> — mutates its code each infection to evade signature-based detection.</li><li><strong>Metamorphic virus</strong> — rewrites its entire body each infection (rarer, harder to detect).</li></ul><p><strong>Historical examples:</strong> Melissa (1999, macro virus in Word documents), ILOVEYOU (2000, VBScript attachment), Anna Kournikova (2001).</p><p><strong>Key difference from worms:</strong> viruses need users to execute them. Worms self-propagate. This is the #1 exam distinction.</p><p><strong>Mitigations:</strong> endpoint antivirus/EDR, email attachment filtering, disable macros by default in Office (Protected View), patching, least-privilege user accounts (viruses can't install to system dirs), user awareness training.</p>",
+        visual: { type: "state-machine", params: { states: ["Dormant (attached to file)", "User opens file", "Executes + infects more files", "Spreads via user sharing"], active: 1, transitions: true } },
+        hack: {
+          memory: "VIRUS = Very Infected, Requires User Start. Attaches to files. Needs user action (open, click, run). Cannot self-spread across networks — that's a worm. Macro virus is the classic Office-document example.",
+          practice: "Create a mental chart: Virus | Worm | Trojan | Ransomware. Columns: user action needed?, self-spreads?, primary damage?, delivery. Fill it from memory. Virus = yes user action, no self-spread, variable damage, file attachment.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 51. Wendell Odom OCG Chapter 27. Exam loves 'which malware type requires user action but cannot self-spread?' = virus. Macro virus = classic embedded-in-Office example."
+        }
+      },
+      {
+        id: "5.1.h.2",
+        term: "Worm",
+        weight: "high",
+        info: "<p>A <strong>worm</strong> is self-replicating malware that spreads across networks <strong>without user action</strong>. Worms exploit network-reachable vulnerabilities (SMB, RPC, web services) to propagate automatically — once one host is infected, it scans for other vulnerable hosts and infects them. This autonomous spread is what makes worms uniquely dangerous.</p><p><strong>How worms spread:</strong></p><ol><li>Initial infection — an exposed vulnerable service is exploited, or a user's action plants a seed.</li><li>Worm begins scanning the network (local subnet, random internet IPs, or using address lists) for other vulnerable targets.</li><li>On each discovered target, the worm exploits the vulnerability and copies itself.</li><li>New infections repeat the scan-and-infect cycle. Growth is exponential — thousands to millions of hosts in hours.</li></ol><p><strong>Historical examples (required for exam context):</strong></p><ul><li><strong>Morris worm (1988)</strong> — first internet worm, infected ~6,000 of 60,000 Internet-connected hosts.</li><li><strong>Code Red (2001)</strong> — exploited IIS buffer overflow, defaced websites.</li><li><strong>SQL Slammer (2003)</strong> — exploited SQL Server UDP 1434, infected 75,000 hosts in 10 minutes. The Slammer is the speed benchmark.</li><li><strong>Conficker (2008)</strong> — exploited Windows Server Service, 9-15 million infections at peak.</li><li><strong>WannaCry (2017)</strong> — combined worm + ransomware. Used EternalBlue (SMBv1 exploit) to spread across flat corporate networks. Encrypted files and demanded ransom. Infected 200,000+ machines in 150 countries within days.</li><li><strong>NotPetya (2017)</strong> — wiper disguised as ransomware, also EternalBlue. Caused ~$10B in damage. One of the most destructive cyberattacks ever.</li></ul><p><strong>Mitigations:</strong> patching (worms require exploitable vulnerabilities), network segmentation (limits blast radius), microsegmentation in data centers, IPS signatures for known worms, disabling unused services (SMB, RPC), least-privilege, EDR with network behavior detection.</p><p><strong>Key exam distinction:</strong> worm = automatic/self-spreading. Virus = needs user action.</p>",
+        visual: { type: "packet-flow", params: { nodes: ["Initial infection", "Scan network for vulns", "Exploit + copy self", "Exponential spread"], color: "#ef4444" } },
+        hack: {
+          memory: "WORM = Wriggles On its own (no user needed). Self-propagates. Needs a network-reachable vulnerability. Slammer = speed king (75K hosts in 10 min). WannaCry = worm + ransomware combo. NotPetya = worm + wiper. Patch + segment = primary defense.",
+          practice: "Read the WannaCry postmortem. Note: exploited an SMBv1 CVE (EternalBlue) that Microsoft had patched 2 months earlier (MS17-010). Flat networks + unpatched systems = catastrophic spread. The lesson: patch + segment + disable legacy protocols.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 51. Wendell Odom OCG Chapter 27. Worm vs virus is a GUARANTEED exam question. Worm = self-spreading, no user action. Examples Cisco cares about: Slammer, Conficker, WannaCry."
+        }
+      },
+      {
+        id: "5.1.h.3",
+        term: "Trojan horse",
+        weight: "high",
+        info: "<p>A <strong>Trojan horse</strong> (or just <strong>Trojan</strong>) is malware that disguises itself as legitimate or desirable software to trick users into installing it. Unlike viruses, Trojans do NOT self-replicate. Unlike worms, they do NOT spread automatically. They rely entirely on <strong>deception</strong>.</p><p>The name comes from the Greek wooden-horse story: the victim voluntarily brings the threat inside the walls. Once inside, the hidden payload executes.</p><p><strong>Common Trojan categories:</strong></p><ul><li><strong>Backdoor Trojan</strong> — opens a remote-access channel for the attacker (Remote Access Trojan / RAT). Examples: NetBus (1998), SubSeven (1999), modern tools like Cobalt Strike beacons.</li><li><strong>Downloader / dropper</strong> — small initial payload that downloads and installs additional malware.</li><li><strong>Banking Trojan</strong> — steals financial credentials by injecting code into banking websites or browser sessions (ZeuS, Emotet, TrickBot, QakBot).</li><li><strong>Infostealer</strong> — harvests passwords, cookies, crypto wallets. Often sold as MaaS (RedLine, Vidar, Raccoon).</li><li><strong>Rogue / fake antivirus</strong> — pretends to find infections and demands payment to clean them (scareware).</li><li><strong>DDoS Trojan</strong> — turns the host into a botnet node for launching attacks.</li></ul><p><strong>Delivery methods:</strong> cracked/pirated software, fake installers (\"free Photoshop,\" \"Adobe Flash update\"), malicious ad networks (malvertising), bundled with free tools, phishing attachments, SEO poisoning (malicious sites ranked high for common search terms).</p><p><strong>Mitigations:</strong> only install from trusted sources (official app stores, vendor sites), code-signing verification, endpoint EDR, application whitelisting (AppLocker, WDAC), user awareness training (don't install things just because they're free), UAC / least privilege.</p><p><strong>Exam distinction:</strong> Trojan = disguised, user-installed, no self-replication, no auto-spread. Virus = attaches to files, needs user action, CAN replicate (to other files). Worm = auto-spreads on network, no user needed.</p>",
+        visual: { type: "comparison", params: { left: { label: "Trojan", items: ["Disguised as legit", "User installs willingly", "No self-replication", "Hidden payload"] }, right: { label: "Virus / Worm", items: ["Virus: infects files", "Worm: auto-spreads", "Both replicate", "Trojan doesn't"] } } },
+        hack: {
+          memory: "TROJAN = looks like a GIFT, soldiers hide inside. User willingly installs it. Does NOT replicate or spread on its own. Common forms: RAT (remote access), banker, infostealer, downloader. Mitigation = only install from trusted sources + EDR + awareness.",
+          practice: "List 4 Trojan subtypes and one real example of each: RAT (Cobalt Strike), banker (Emotet), infostealer (RedLine), downloader (IcedID). Note none of these self-spread — they rely on delivery via phishing or pirated software.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 51. Wendell Odom OCG Chapter 27. Exam key: Trojan = deception-based, no self-replication. A RAT is the most-cited Trojan type. Emotet and TrickBot are name-dropped in many security contexts."
+        }
+      },
+      {
+        id: "5.1.h.4",
+        term: "Ransomware",
+        weight: "high",
+        info: "<p><strong>Ransomware</strong> encrypts the victim's files and demands payment — typically in cryptocurrency — for the decryption key. It has become the most financially impactful cybercrime category globally, costing organizations billions annually. The CCNA treats ransomware as a major modern threat category.</p><p><strong>Attack phases:</strong></p><ol><li><strong>Initial access</strong> — phishing, exploited internet-facing service (VPN, RDP), compromised credentials from infostealers, supply-chain compromise.</li><li><strong>Reconnaissance + lateral movement</strong> — attacker maps the network, identifies backups, domain controllers, file servers. May stay dormant for weeks.</li><li><strong>Data exfiltration (modern 'double extortion')</strong> — attacker copies sensitive data out before encrypting. If victim refuses to pay, data is leaked publicly.</li><li><strong>Backup destruction</strong> — attacker deletes or encrypts backups to prevent recovery without paying.</li><li><strong>Mass encryption</strong> — ransomware binary is deployed across the environment simultaneously, encrypting files with a strong cipher (AES + RSA). Often timed for weekends/holidays.</li><li><strong>Ransom demand</strong> — README files left on every infected system, typically directing victim to a Tor .onion site with payment instructions.</li></ol><p><strong>Modern ransomware combines multiple techniques:</strong></p><ul><li>WannaCry (2017) = ransomware + worm (EternalBlue). Hit 200K+ machines.</li><li>Ryuk, Conti, LockBit, BlackCat = ransomware-as-a-service (RaaS). Operators sell access to affiliates.</li><li>MOVEit (2023) = supply-chain exploitation for mass data theft + extortion.</li></ul><p><strong>Mitigations:</strong></p><ul><li><strong>Offline / immutable backups</strong> — if backups are reachable from the domain, ransomware will destroy them. Use air-gapped or immutable (write-once) backups.</li><li><strong>MFA on remote access</strong> (VPN, RDP, VDI) — credential theft is the #1 initial access vector.</li><li><strong>Patching</strong> — most ransomware enters via known CVEs.</li><li><strong>Network segmentation</strong> — limits mass-encryption blast radius.</li><li><strong>EDR</strong> with anti-ransomware behavior detection (mass file encryption patterns).</li><li><strong>Email filtering + user training</strong> — stops initial phishing.</li><li><strong>Incident response playbook</strong> — reduces downtime; cyber insurance often required.</li></ul>",
+        visual: { type: "state-machine", params: { states: ["Initial access", "Recon + lateral", "Exfiltrate data", "Destroy backups", "Encrypt + ransom"], active: 4, transitions: true } },
+        hack: {
+          memory: "RANSOMWARE = your files are kidnapped. Modern double-extortion = exfiltrate first, encrypt second. Best defense = OFFLINE backups (ransomware can't reach them) + MFA + patching + segmentation. Paying ransom does not guarantee recovery.",
+          practice: "Map your own backup strategy mentally. Is it reachable from your domain? If yes, ransomware can kill it. Add an offline or immutable tier. This is the #1 ransomware control.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 51. Wendell Odom OCG Chapter 27. Exam expects you to know ransomware is encryption + extortion, modern variants include data exfiltration, and offline backups are the primary mitigation. WannaCry is the canonical worm+ransomware hybrid."
+        }
+      },
+      {
+        id: "5.1.h.5",
+        term: "Spyware / Adware / Rootkit / Keylogger",
+        weight: "med",
+        info: "<p>Beyond virus/worm/trojan/ransomware, the CCNA expects familiarity with four more malware categories distinguished by <em>behavior after infection</em>.</p><p><strong>1. Spyware</strong> — covertly monitors user activity and exfiltrates data to the attacker. Collects browsing history, form data, credentials, screenshots, microphone/camera feeds. Commercial spyware like Pegasus (NSO Group) targets individuals at nation-state level. Commodity infostealers like RedLine and Vidar target credentials and crypto wallets at scale.</p><p><strong>2. Adware</strong> — displays unwanted advertisements, redirects browsers to affiliate sites, injects ads into visited pages. Mostly annoying rather than destructive, but often a vector for more severe infections (malvertising) and can be a privacy violation (tracking all browsing).</p><p><strong>3. Rootkit</strong> — hides malicious presence at a deep level, making the infection invisible to normal OS tools. Types by depth:</p><ul><li><strong>User-mode rootkit</strong> — hides in user space, hooks API calls to filter results (hide processes, files, network connections from <code>ps</code>, <code>ls</code>, <code>netstat</code>).</li><li><strong>Kernel-mode rootkit</strong> — loads as a kernel driver/module. Full OS-level stealth. Much harder to remove — may require OS reinstall.</li><li><strong>Bootkit</strong> — infects bootloader or UEFI firmware. Survives OS reinstall.</li><li><strong>Hypervisor rootkit</strong> — runs below the OS as a thin hypervisor (BluePill proof of concept).</li></ul><p><strong>4. Keylogger</strong> — records keystrokes to capture passwords, credit card numbers, personal information. Can be software (hook Windows keyboard API) or hardware (USB device inline with keyboard cable). Often bundled into infostealers and banking Trojans.</p><p><strong>Mitigations (all four categories):</strong> EDR with behavioral detection, least-privilege user accounts, code-signing enforcement, Secure Boot + TPM (blocks bootkits), periodic integrity verification, user awareness. Rootkit detection specifically often requires offline scanning (booting from clean media) because an active rootkit can hide from live scanners.</p>",
+        visual: { type: "hierarchy", params: { root: "Malware by behavior", children: [{ name: "Spyware (exfiltrate)" }, { name: "Adware (annoy + redirect)" }, { name: "Rootkit (hide)" }, { name: "Keylogger (capture input)" }] } },
+        hack: {
+          memory: "Spyware = silent steal. Adware = pushy pop-ups. Rootkit = invisibility cloak (hides deep in OS/boot/firmware). Keylogger = records every key. All four often bundle together in modern infostealers. Secure Boot + EDR = strongest defense.",
+          practice: "Rank these four by stealth: rootkit (deepest — kernel/boot/firmware) > keylogger (quiet) > spyware (quiet) > adware (loud). Then rank by damage: ransomware > rootkit > spyware/keylogger > adware. Know both axes for exam scenarios.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 51. Wendell Odom OCG Chapter 27. Exam may ask to match malware type to behavior: 'hides at kernel level' = rootkit. 'Records keystrokes' = keylogger. 'Steals data silently' = spyware. 'Pushes ads' = adware."
+        }
+      }
     ]
   },
 
@@ -161,9 +545,45 @@ window.subtopicContentD56 = {
       meta: "Jeremy's IT Lab Day 51. Wendell Odom OCG Chapter 27. Cisco ALWAYS frames user awareness as the answer for social engineering mitigation. If the question is about phishing defense, think training first, technology second.",
     },
     micro: [
-      { id: "5.2.a.1", term: "User awareness",               def: "General security education for all users. Phishing recognition, password hygiene, acceptable use.", weight: "high" },
-      { id: "5.2.a.2", term: "Awareness beats tech for SE",  def: "Social engineering bypasses technology. Trained users are the primary defense.", weight: "high" },
-      { id: "5.2.a.3", term: "Simulated phishing",           def: "Organizations send fake phishing emails to test users. Those who click get additional training.", weight: "med" }
+      {
+        id: "5.2.a.1",
+        term: "User awareness",
+        weight: "high",
+        info: "<p><strong>User awareness</strong> is the organization-wide program that educates <em>all</em> employees about security threats, policies, and safe behavior. It is the baseline control everyone receives — from the receptionist to the CEO — and it is the primary defense against social engineering.</p><p>Awareness differs from <em>training</em> (covered in 5.2.b). Awareness is broad and for everyone. Training is deeper, role-specific, and for technical staff. Both are required in a mature security program, but they serve different audiences and goals.</p><p><strong>Core awareness topics:</strong></p><ul><li><strong>Phishing recognition</strong> — urgency, sender-domain mismatch, unexpected attachments, hover-to-check URLs.</li><li><strong>Password hygiene</strong> — unique per account, password manager adoption, MFA enrollment, never share passwords.</li><li><strong>Data handling</strong> — classification (public/internal/confidential/restricted), proper sharing channels, clean desk policy.</li><li><strong>Acceptable Use Policy (AUP)</strong> — what employees can/cannot do with company systems, personal devices, social media.</li><li><strong>Incident reporting</strong> — how and where to report suspicious emails, lost devices, policy violations. One-click report button on the mail client.</li><li><strong>Physical security</strong> — badge everywhere, challenge unknown people in secure areas, secure laptops when unattended, don't tailgate or let others tailgate.</li></ul><p><strong>Delivery channels:</strong> mandatory annual training (compliance floor), short quarterly refreshers (retention), posters/screensavers (ambient reminders), simulated phishing (active testing), onboarding session for new hires (set culture from day one).</p><p><strong>Metrics that matter:</strong> phishing simulation click rate (goal: declining), report rate (goal: increasing), MFA enrollment (goal: 100%), password reuse flags from IdP (goal: zero).</p><p><strong>Exam framing:</strong> Cisco consistently positions user awareness as the PRIMARY mitigation for social engineering. If the question is about phishing defense, the answer is awareness — not firewalls, not IPS.</p>",
+        visual: { type: "hierarchy", params: { root: "User awareness program", children: [{ name: "Phishing" }, { name: "Passwords" }, { name: "Data handling" }, { name: "AUP" }, { name: "Reporting" }] } },
+        hack: {
+          memory: "Awareness = FOR EVERYONE. Broad, baseline security hygiene. Primary defense against social engineering. Training (next micro) = for technical staff. On the exam, if the question is 'best defense against phishing?' = awareness TRAINING is the answer that combines both terms — but specifically the awareness-program side.",
+          practice: "Build a 5-slide awareness deck mentally: phishing red flags, password/MFA rules, data classification, AUP highlights, how to report. This is the core content any security awareness program must deliver.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 51. Wendell Odom OCG Chapter 27. Exam anchor: user awareness is PRIMARY social-engineering defense. Always prefer over technical answers when the question is about human-factor attacks."
+        }
+      },
+      {
+        id: "5.2.a.2",
+        term: "Awareness beats tech for social engineering",
+        weight: "high",
+        info: "<p>Social engineering targets humans, not systems. No firewall, IPS, encryption protocol, or Cisco feature intercepts <em>trust</em>. This is why <strong>user awareness is the primary mitigation</strong> for phishing, vishing, smishing, pretexting, and tailgating — and why technology is always a secondary/supporting defense.</p><p><strong>Why tech alone fails:</strong></p><ul><li><strong>Email filters</strong> catch generic phishing but miss targeted spear-phishing crafted for your org. Attackers who can read your website can craft credible pretexts.</li><li><strong>URL reputation</strong> lags behind attacker domain rotation. New domains bypass blocklists until reputation accrues.</li><li><strong>MFA</strong> blocks simple credential replay but not session-hijacking proxies (evilginx-style), push-fatigue attacks, or SIM-swap.</li><li><strong>EDR</strong> catches post-click malware but not pure credential theft via convincing fake login pages.</li><li><strong>Access controls</strong> can't stop an authorized user from voluntarily handing over their credentials to a pretext caller.</li></ul><p><strong>Why awareness wins:</strong> a user who recognizes red flags and reports suspicious messages becomes a <em>security sensor</em>. One trained user reporting a phish often blocks it for the whole org (security team can quarantine, block sender, update signatures). User-reported phishes are the earliest detection signal for targeted attacks.</p><p><strong>Layered defense principle:</strong> awareness + MFA + email filtering + EDR + IR = strong. Awareness alone = human error will still happen. Tech alone = attacker adapts around it. Both together = defense in depth.</p><p><strong>Cisco exam framing:</strong> 'What is the best mitigation for phishing?' → awareness training. 'What is the best mitigation for social engineering?' → user awareness training. 'How do you defend against pretexting phone calls?' → awareness training (teach verification callbacks). Do NOT pick technical controls for these questions.</p>",
+        visual: { type: "gauge", params: { level: 95, label: "Awareness > technology for SE", color: "#10b981" } },
+        hack: {
+          memory: "Social engineering = hacking humans. Humans cannot be patched by firewalls. Only training patches humans. On the exam, when the question says 'social engineering' or 'phishing,' pick the AWARENESS / TRAINING answer every time — even if a firewall answer looks tempting.",
+          practice: "Take any recent major breach (MGM Resorts 2023 — social engineered help desk, Twitter 2020 — social engineered employees). Note: tech controls existed. Human manipulation bypassed them. Only better training + verification procedures would have helped.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 51. Wendell Odom OCG Chapter 27. This is one of the most repeated exam patterns. When SE is the threat, awareness is the answer."
+        }
+      },
+      {
+        id: "5.2.a.3",
+        term: "Simulated phishing campaigns",
+        weight: "med",
+        info: "<p><strong>Simulated phishing campaigns</strong> are controlled tests where the security team sends fake phishing emails to employees and measures behavior. They convert awareness training from a passive one-time event into an ongoing behavioral measurement — and a driver of just-in-time remediation.</p><p><strong>How it works:</strong></p><ol><li>Security team (or vendor — KnowBe4, Proofpoint, Cofense) crafts a fake phishing template that mimics a current real-world attack pattern.</li><li>Email is sent to all employees (or a random subset) from a controlled sender.</li><li>System tracks: opens, link clicks, credential submissions, attachment downloads, and reports.</li><li>Employees who click land on a safe training page explaining what they missed — the 'teachable moment.'</li><li>Employees who report get positive acknowledgment.</li><li>Metrics feed into trending reports — per department, per role, overall.</li></ol><p><strong>Key metrics:</strong></p><ul><li><strong>Click rate</strong> — % who clicked the link. Should decrease over time. Industry average ~15%, mature programs reach <5%.</li><li><strong>Report rate</strong> — % who reported the suspicious email. Should increase. Mature programs reach 50%+.</li><li><strong>Time to first report</strong> — how quickly the org detected the phish. Should decrease toward minutes.</li><li><strong>Repeat clickers</strong> — users who click multiple campaigns. Trigger targeted follow-up training.</li></ul><p><strong>Best practices:</strong></p><ul><li><strong>Monthly or quarterly cadence</strong> — too infrequent misses behavior drift; too frequent creates fatigue.</li><li><strong>Realistic templates</strong> — themes that reflect current attacks (MFA fatigue lures, fake invoices, HR/benefits enrollment, cloud-app login prompts).</li><li><strong>Non-punitive culture</strong> — DO NOT fire or publicly shame users for clicking. Punishment kills the reporting culture that makes the program valuable.</li><li><strong>Executive participation</strong> — leaders must also be tested; whaling is a real threat.</li><li><strong>Regulatory alignment</strong> — PCI-DSS, HIPAA, SOC 2, and most cyber insurance require documented phishing simulation programs.</li></ul>",
+        visual: { type: "state-machine", params: { states: ["Craft template", "Send to users", "Track clicks + reports", "Teachable moment", "Report metrics + trend"], active: 2, transitions: true } },
+        hack: {
+          memory: "Simulated phishing = pop quiz for security awareness. Measure click rate (goal: down) and report rate (goal: up). Never punish first-time clicks — build reporting culture. Monthly or quarterly. Use realistic templates that mirror current threats.",
+          practice: "If your org runs simulations, check your personal history. If you clicked, note WHY — the red flags you missed. If you reported, note the channel. Internal reflection is how awareness becomes behavior change.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 51. Wendell Odom OCG Chapter 27. Know simulated phishing as the operational mechanism that makes awareness measurable. Exam may ask what program validates training effectiveness = simulated phishing."
+        }
+      }
     ]
   },
 
@@ -177,8 +597,32 @@ window.subtopicContentD56 = {
       meta: "Jeremy's IT Lab Day 51. Wendell Odom OCG Chapter 27. The exam distinguishes awareness (general users) from training (technical/role-specific). If the question specifies IT staff or incident response, the answer is training.",
     },
     micro: [
-      { id: "5.2.b.1", term: "Training (role-specific)",     def: "Technical/role-based skill building. IT admins, incident responders. Deeper than awareness.", weight: "high" },
-      { id: "5.2.b.2", term: "Awareness vs training",        def: "Awareness = general users (recognize phishing). Training = IT/technical staff (how to respond to incidents).", weight: "high" }
+      {
+        id: "5.2.b.1",
+        term: "Training (role-specific)",
+        weight: "high",
+        info: "<p><strong>Security training</strong> (as opposed to awareness) is <strong>deeper, role-specific skill building</strong> for technical staff and personnel with elevated access. Awareness teaches everyone not to click phishes; training teaches the incident response team how to <em>respond</em> when someone does click.</p><p><strong>Role-specific training targets:</strong></p><ul><li><strong>Network engineers</strong> — secure device hardening (SSH over Telnet, disabling HTTP, port security, DHCP snooping, DAI, BPDU Guard), ACL design, VPN configuration, AAA.</li><li><strong>Security operations (SOC) analysts</strong> — SIEM query writing, incident triage, alert tuning, threat hunting, playbook execution.</li><li><strong>Incident responders</strong> — forensics, memory acquisition, log analysis, containment tactics, coordination with legal/PR/law enforcement.</li><li><strong>System administrators</strong> — patch management, hardening (CIS Benchmarks), privileged access management (PAM), backup/restore procedures.</li><li><strong>Developers</strong> — secure SDLC, OWASP Top 10, dependency scanning, secrets management, code review.</li><li><strong>Executives</strong> — cyber risk strategy, regulatory obligations, board reporting, crisis communication.</li><li><strong>Help desk</strong> — caller-verification scripts (prevents vishing of password resets — see MGM Resorts 2023), social-engineering red flags, escalation triggers.</li></ul><p><strong>Training formats:</strong> vendor courses (Cisco CCNP Security, SANS), hands-on labs (cyber ranges, CTFs), tabletop exercises (simulate an incident without actual system changes), red team / purple team exercises (live attack simulations).</p><p><strong>Continuous, not one-time:</strong> threats evolve — training must too. Annual refreshers at minimum; monthly or quarterly for high-change areas (cloud security, new attack techniques).</p><p><strong>Exam distinction:</strong> training = specialized/deeper/role-based. Awareness = general/broad/everyone. If the question specifies IT staff, incident response, or technical skill, the answer is <em>training</em>.</p>",
+        visual: { type: "hierarchy", params: { root: "Security training (role-specific)", children: [{ name: "Network engineers" }, { name: "SOC analysts" }, { name: "Incident response" }, { name: "SysAdmins" }, { name: "Developers" }, { name: "Help desk" }] } },
+        hack: {
+          memory: "Training = DEEPER than awareness, and TARGETED to specific roles. Network engineers learn hardening. IR team learns forensics. Help desk learns verification scripts (MGM lesson!). If the exam question names a role, pick 'training.' If it names 'everyone,' pick 'awareness.'",
+          practice: "List your own role's training needs. As a DCT: NetBox workflow, ticket handling, secure cabling, BMC/IPMI security, IB fabric basics. Every role has a security-relevant training track — identify yours.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 51. Wendell Odom OCG Chapter 27. Exam testable: training vs awareness. Training = specialized/IT/technical. Awareness = general/all-users. Both are required, but they answer different questions."
+        }
+      },
+      {
+        id: "5.2.b.2",
+        term: "Awareness vs training",
+        weight: "high",
+        info: "<p>The CCNA exam repeatedly tests the distinction between <strong>awareness</strong> and <strong>training</strong>. Confusing them is a common wrong answer.</p><table><tr><th>Dimension</th><th>Awareness</th><th>Training</th></tr><tr><td>Audience</td><td>Everyone (all employees)</td><td>Specific roles (IT, security, developers, help desk, executives)</td></tr><tr><td>Depth</td><td>Broad, recognition-level</td><td>Deep, skill-level</td></tr><tr><td>Goal</td><td>Recognize threats, follow policy</td><td>Execute procedures, respond to incidents</td></tr><tr><td>Format</td><td>Short modules, posters, simulations</td><td>Hands-on labs, certifications, tabletop exercises</td></tr><tr><td>Frequency</td><td>Annual + ongoing reminders</td><td>Ongoing with major events (new tech, major threats)</td></tr><tr><td>Example topic</td><td>Recognize phishing red flags</td><td>Configure DAI + DHCP snooping; run incident forensics</td></tr><tr><td>Primary mitigation for</td><td>Social engineering</td><td>Technical incidents, misconfig, response</td></tr></table><p><strong>Analogy:</strong> awareness = knowing the stove is hot (everyone). Training = knowing HOW to put out a grease fire (fire department). Both matter. Asking a random user to contain a ransomware outbreak is absurd — that's training territory. Asking the SOC to run phishing awareness for all 2,000 employees is inefficient — that's awareness territory.</p><p><strong>Exam pattern rules:</strong></p><ul><li>Question mentions 'all employees' / 'general workforce' / 'social engineering' / 'phishing recognition' → <strong>awareness</strong>.</li><li>Question mentions 'IT staff' / 'incident response' / 'technical skill' / 'specific role' → <strong>training</strong>.</li><li>Question asks which comes first or is broader → <strong>awareness</strong> (baseline for everyone).</li><li>Question asks which is deeper or more hands-on → <strong>training</strong>.</li></ul>",
+        visual: { type: "comparison", params: { left: { label: "Awareness", items: ["Everyone", "Broad/recognition", "Phishing, passwords, AUP", "Annual + reminders"] }, right: { label: "Training", items: ["Technical roles", "Deep/skill-based", "Hardening, IR, forensics", "Ongoing + event-driven"] } } },
+        hack: {
+          memory: "Awareness = hot stove warning (EVERYONE). Training = how to fight the fire (SPECIALISTS). Look at the question's audience: all employees = awareness. IT/SOC/devs = training. Social engineering = awareness. Technical execution = training.",
+          practice: "Take 5 scenarios and classify each. 'Teach all users to recognize phishing' = awareness. 'Teach SOC analysts to triage SIEM alerts' = training. 'Onboard new hires with AUP' = awareness. 'Certify network engineers on CCNP Security' = training. 'Run quarterly phishing simulations' = awareness.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 51. Wendell Odom OCG Chapter 27. Nearly guaranteed on the exam. The word 'specialized' or 'technical' in the question = training. The word 'all users' or 'general' = awareness."
+        }
+      }
     ]
   },
 
@@ -192,9 +636,45 @@ window.subtopicContentD56 = {
       meta: "Jeremy's IT Lab Day 51. Wendell Odom OCG Chapter 27. Mantrap/security vestibule is a favorite exam question — it specifically prevents tailgating. Know the term 'security vestibule' as Cisco's preferred modern term.",
     },
     micro: [
-      { id: "5.2.c.1", term: "Security vestibule (mantrap)", def: "Two-door airlock. One opens only after the other closes. Prevents tailgating. Cisco's preferred modern term.", weight: "high" },
-      { id: "5.2.c.2", term: "Tailgating",                   def: "Unauthorized person follows authorized person through access-controlled door. Security vestibule stops this.", weight: "high" },
-      { id: "5.2.c.3", term: "Badge access",                 def: "Physical ID cards (prox, smartcard). Common primary physical auth control.", weight: "med" }
+      {
+        id: "5.2.c.1",
+        term: "Security vestibule (mantrap)",
+        weight: "high",
+        info: "<p>A <strong>security vestibule</strong> (Cisco's modern term for what used to be called a <strong>mantrap</strong>) is a small interlocking space between two doors where <strong>only one door can be open at a time</strong>. A person enters door 1 from an unsecured area. Door 1 closes and locks. Authentication happens inside the vestibule (badge + PIN + biometric). Only then does door 2 open into the secured area.</p><p><strong>What the vestibule specifically prevents:</strong> <strong>tailgating / piggybacking</strong> — the social-engineering technique where an unauthorized person follows an authorized person through a single badge-controlled door. With a normal door, the authorized person's badge opens it and anyone can slip through behind. With a vestibule, only one person fits in the airlock at a time — or systems use mats / weight sensors / turnstiles to ensure one-at-a-time passage.</p><p><strong>Typical configuration:</strong></p><ul><li>Small room (phone-booth to closet-sized).</li><li>Two doors, both electronically locked and interlocked (software prevents both from unlocking).</li><li>Authentication inside the vestibule — badge reader, PIN pad, biometric scanner.</li><li>Weight/floor sensors or camera + video analytics to confirm only one person present.</li><li>Emergency override (fire alarm, manual release) for safety.</li></ul><p><strong>Where to deploy:</strong> data center entries, server rooms, high-security labs, SCIFs (Sensitive Compartmented Information Facilities), vaults. Not used at casual office entries — too slow and expensive.</p><p><strong>Alternatives when a full vestibule is impractical:</strong></p><ul><li><strong>Turnstiles</strong> — one-at-a-time passage (common at office lobbies).</li><li><strong>Revolving security doors</strong> — single-occupancy rotating doors.</li><li><strong>Anti-tailgating sensors</strong> — camera + AI detects multiple entries, alarms but does not physically block.</li><li><strong>Guard-monitored entry</strong> — human enforcement of one-at-a-time.</li></ul><p><strong>Cisco exam note:</strong> the modern term is <strong>security vestibule</strong>. The older term <strong>mantrap</strong> is still used but newer exam questions favor 'vestibule.' Know both.</p>",
+        visual: { type: "handshake", params: { leftLabel: "Outside", rightLabel: "Secure area", steps: ["Badge Door 1 ->", "<- Door 1 opens", "Enter; Door 1 closes + locks", "Authenticate inside ->", "<- Door 2 opens"] } },
+        hack: {
+          memory: "SECURITY VESTIBULE (formerly MANTRAP) = airlock with two interlocked doors. One at a time. Defeats TAILGATING. Cisco's preferred modern term is 'vestibule.' Also know 'mantrap' for older exam content.",
+          practice: "Think of secure buildings you've visited — banks, courthouses, data centers. Identify the vestibule design: two doors, authentication inside, one person at a time. If you work at a data center, observe how your facility handles this.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 51. Wendell Odom OCG Chapter 27. Exam favorite. The term 'security vestibule' and the tailgating mitigation pair are nearly guaranteed. Also know: simple turnstiles are a cheaper alternative but provide less assurance."
+        }
+      },
+      {
+        id: "5.2.c.2",
+        term: "Tailgating / Piggybacking",
+        weight: "high",
+        info: "<p><strong>Tailgating</strong> (also called <strong>piggybacking</strong>) is the physical-security social engineering technique where an unauthorized person follows an authorized person through a badge-controlled or lock-controlled entry point. The authorized person's badge opens the door; the tailgater slips through behind them before the door closes.</p><p><strong>Why it works:</strong></p><ul><li>Social norms — holding doors for people is polite; challenging strangers feels rude.</li><li>Assumption of legitimacy — if someone is inside the secure perimeter, most people assume they belong.</li><li>Distraction tactics — the tailgater carries boxes (\"my hands are full\"), wears a plausible uniform (delivery, IT vendor), or pretends to take a phone call.</li><li>Volume — at busy entries (morning rush), no one tracks who came in with whom.</li></ul><p><strong>Why it matters:</strong> once inside the physical perimeter, an attacker can plug into network ports, install rogue devices (evil twin APs, keyloggers, raspberry pi implants), steal laptops/documents, or shoulder-surf credentials. Physical access bypasses most logical controls.</p><p><strong>Mitigations by cost/assurance:</strong></p><ol><li><strong>Security vestibule</strong> — highest assurance. Physical one-at-a-time enforcement.</li><li><strong>Turnstiles</strong> — one-at-a-time rotation. Good for offices.</li><li><strong>Revolving doors (security grade)</strong> — single-occupant rotation.</li><li><strong>Anti-tailgating sensors / cameras</strong> — detect and alarm but don't block.</li><li><strong>Security guards</strong> — challenge unfamiliar faces, verify badges.</li><li><strong>Culture of challenge</strong> — employees trained to badge-in individually and politely ask strangers to badge.</li><li><strong>Visitor management</strong> — all non-employees badge in with escort, wear visible visitor badges.</li></ol><p><strong>Training angle:</strong> awareness programs should explicitly teach: (1) always badge in individually, (2) politely challenge strangers who follow you, (3) report tailgating attempts. The human factor is as important as the physical control — vestibules can be defeated by an employee who holds the door open for a friendly-looking tailgater.</p>",
+        visual: { type: "packet-flow", params: { nodes: ["Authorized badges in", "Door opens", "Unauthorized follows behind", "Door closes with both inside"], color: "#f59e0b" } },
+        hack: {
+          memory: "TAILGATING = following someone through a secured door without badging. Fix = SECURITY VESTIBULE (airlock, one at a time). Also turnstiles, revolving doors, cameras, guards, culture. Classic exam pair: tailgating → security vestibule.",
+          practice: "Next time you enter your office, notice how many people badge individually vs follow each other. Most offices fail this test. A simple 'please badge yourself in' culture would help.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 51. Wendell Odom OCG Chapter 27. Exam staple. The attack → control pair is: tailgating → security vestibule. Memorize."
+        }
+      },
+      {
+        id: "5.2.c.3",
+        term: "Badge access / proximity cards",
+        weight: "med",
+        info: "<p><strong>Badge access</strong> systems authenticate people at physical entry points using proximity cards, smart cards, or mobile credentials. They are the most common primary physical-access control in offices, data centers, and restricted areas.</p><p><strong>Technology tiers:</strong></p><ul><li><strong>Low-frequency 125 kHz prox cards (HID Prox)</strong> — legacy. Reads a fixed card number. No encryption. Easily cloned with a $30 Proxmark or Flipper Zero. Still deployed at huge scale — any org with these is vulnerable.</li><li><strong>13.56 MHz smart cards (HID iCLASS, MIFARE DESFire)</strong> — modern. Cryptographic challenge-response. DESFire EV2/EV3 is considered strong. iCLASS Legacy was broken; iCLASS SE and Seos are the current recommendations.</li><li><strong>Mobile credentials</strong> — phone-based access via Bluetooth or NFC. App manages credentials; phone biometric unlocks use. HID Mobile Access, Apple Wallet keys. Harder to clone than physical cards.</li><li><strong>Multi-factor readers</strong> — badge + PIN, or badge + biometric. Required for high-security zones.</li></ul><p><strong>Operational elements:</strong></p><ul><li><strong>Access control system (ACS)</strong> — central database mapping badges to people and permissions. Onboarding issues a badge; termination revokes it.</li><li><strong>Zone-based permissions</strong> — badge opens specific doors, not all. Data center techs don't need lobby exec-floor access.</li><li><strong>Audit logs</strong> — every badge read is logged with timestamp, door, person, success/fail. Essential for forensics.</li><li><strong>Revocation</strong> — departing employees' badges disabled at exit interview. Lost badges disabled immediately and re-issued.</li><li><strong>Anti-passback</strong> — prevents the same badge from entering twice without exiting. Deters badge-sharing.</li></ul><p><strong>Common attacks:</strong> cloning legacy prox cards, stealing badges (especially from lost laptops/bags), social engineering the help desk to re-issue without verification (MGM Resorts 2023).</p><p><strong>Mitigations:</strong> upgrade legacy prox to cryptographic smart cards or mobile credentials, enforce multi-factor at sensitive areas, combine with cameras + guards for defense in depth, verify badge requests through trusted channels.</p>",
+        visual: { type: "layer-stack", params: { layers: ["Badge presented", "ACS validates", "Door permission check", "Unlock + log"], highlight: 2 } },
+        hack: {
+          memory: "Badge access = physical auth at a door. Legacy 125 kHz prox = easily cloned — upgrade to 13.56 MHz smart cards or mobile credentials. Combine with PIN or biometric for sensitive zones. Audit logs are essential for forensics.",
+          practice: "Check what your office uses. If the reader has 'HID' and a single small LED, it might be legacy prox. If it has multiple fields or requires a tap + PIN, it's probably smart-card based. Know the difference matters for cloning risk.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 51. Wendell Odom OCG Chapter 27. Exam less likely to test card technology specifics but may ask the general role: badge = primary physical authentication. Know it's a preventive control."
+        }
+      }
     ]
   },
 
@@ -208,8 +688,32 @@ window.subtopicContentD56 = {
       meta: "Jeremy's IT Lab Day 51. Wendell Odom OCG Chapter 27. Low exam depth on surveillance specifics, but know that cameras and motion sensors are detective/deterrent controls — they record and discourage but don't physically prevent.",
     },
     micro: [
-      { id: "5.2.d.1", term: "Surveillance cameras",         def: "Detective + deterrent control. Records evidence, discourages casual wrongdoing. Doesn't physically stop anything.", weight: "low" },
-      { id: "5.2.d.2", term: "Motion sensors",               def: "Detective control. Triggers alert/recording when movement detected. Used in secure areas after hours.", weight: "low" }
+      {
+        id: "5.2.d.1",
+        term: "Surveillance cameras (CCTV / IP)",
+        weight: "med",
+        info: "<p><strong>Surveillance cameras</strong> — historically CCTV (Closed-Circuit Television), today mostly IP cameras recording to an NVR (Network Video Recorder) — provide continuous video monitoring of sensitive areas. They serve three security functions simultaneously: <strong>deterrence, detection, and forensics</strong>.</p><p><strong>Function breakdown:</strong></p><ul><li><strong>Deterrent</strong> — visible cameras change behavior. Most people behave better when they know they're being recorded. This is why real cameras are placed prominently, not hidden.</li><li><strong>Detective</strong> — when integrated with analytics or monitored by guards, cameras can catch incidents in progress. Motion detection, loitering detection, abandoned-object detection trigger alarms.</li><li><strong>Forensic</strong> — after an incident, footage is investigative evidence. Who entered the server room at 2 AM? Did the unknown person in the lobby have a backpack? Cameras capture facts that memory cannot.</li></ul><p><strong>Coverage zones:</strong></p><ul><li>All entry/exit points (track who enters/leaves).</li><li>Server rooms and data halls.</li><li>Wiring closets.</li><li>Reception/lobby.</li><li>Parking lots (vehicle plates, late-night activity).</li><li>Emergency exits (detect tailgating out).</li></ul><p><strong>Modern capabilities:</strong></p><ul><li><strong>Video analytics</strong> — AI-powered detection of abnormal behavior: loitering, abandoned objects, tailgating, crowd formation.</li><li><strong>Facial recognition</strong> — identify known persons (employees, persons of interest). Heavily regulated in some jurisdictions (GDPR, IL BIPA).</li><li><strong>License plate readers (LPR)</strong> — vehicle identification at parking entries.</li><li><strong>Integration with ACS</strong> — when badge reads fail, cameras verify identity. When alarms trigger, cameras focus on the zone.</li></ul><p><strong>Critical distinction:</strong> cameras are <strong>detective + deterrent</strong>, NOT preventive. A camera cannot physically stop someone from entering an area. It can only record that they did. Pair with locks/vestibules for prevention.</p><p><strong>Storage & retention:</strong> 30-90 day retention is typical; longer for regulated industries. Tamper-evident storage for forensic admissibility.</p>",
+        visual: { type: "shield", params: { items: ["Deterrence", "Detection", "Forensics", "Analytics", "Integration"], color: "#6366f1" } },
+        hack: {
+          memory: "Cameras = three Ds: DETER (visible), DETECT (spot incidents), DOCUMENT (forensics). DETECTIVE + DETERRENT control. NOT preventive — a camera cannot stop anyone, only record. Pair with locks for prevention.",
+          practice: "Walk your office and identify camera coverage gaps. Emergency exits? Server room? Parking? These are common gaps. Real security audits often find cameras covering the front door but none covering the back of house.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 51. Wendell Odom OCG Chapter 27. Exam may ask the control category of a camera = detective (and deterrent). Know that cameras do NOT prevent anything physically."
+        }
+      },
+      {
+        id: "5.2.d.2",
+        term: "Motion sensors",
+        weight: "low",
+        info: "<p><strong>Motion sensors</strong> (also called <strong>intrusion detection sensors</strong> or <strong>PIR — Passive InfraRed</strong>) detect physical movement in monitored areas and trigger alerts, alarms, or camera recordings. They're especially useful for areas that should have <em>no activity</em> during specific hours (server rooms at night, wiring closets on weekends, unused floors after-hours).</p><p><strong>Technology types:</strong></p><ul><li><strong>PIR (passive infrared)</strong> — detects heat-source movement (humans). Most common, cheap, low false-positive rate. Cannot see through glass.</li><li><strong>Microwave sensors</strong> — emit microwave signals and detect Doppler shift from moving objects. Sees through thin walls; higher false-positive rate.</li><li><strong>Dual-technology sensors</strong> — combine PIR + microwave; both must trigger to alarm. Used where false positives must be minimized.</li><li><strong>Glass-break sensors</strong> — audio frequency detection of breaking glass.</li><li><strong>Door/window contacts</strong> — magnetic switches detect open/closed state.</li><li><strong>Vibration sensors</strong> — detect tampering with walls, safes, enclosures.</li></ul><p><strong>Integration:</strong></p><ul><li>Burglar alarm panels — trigger audible alarm, dispatch central station.</li><li>Access control system — motion in a zone outside permitted hours = alarm.</li><li>Camera systems — motion triggers recording (saves storage vs always-on) and alerts to monitoring staff.</li><li>Lighting — motion-activated lights as a deterrent (and cost savings).</li></ul><p><strong>Operational considerations:</strong></p><ul><li><strong>Arming schedules</strong> — sensors armed during after-hours, disarmed during business hours.</li><li><strong>Pets and small animals</strong> — residential-grade sensors have pet immunity up to ~40 lbs. Commercial sensors tuned per space.</li><li><strong>HVAC airflow</strong> — moving curtains, papers, or banners can false-trigger microwave sensors. PIR is less susceptible.</li></ul><p><strong>Control category:</strong> detective. Like cameras, motion sensors don't prevent anything — they alert to activity. Pair with physical barriers (locks, doors, guards) for prevention.</p>",
+        visual: { type: "state-machine", params: { states: ["Armed (after-hours)", "Motion detected", "Alert + record + alarm", "Respond / investigate"], active: 1, transitions: true } },
+        hack: {
+          memory: "Motion sensors = ALERTS on activity. Detective control (like cameras). PIR for humans/heat. Microwave for through-wall. Dual-tech for low false positives. Armed during after-hours, disarmed during business hours. Does not prevent — only detects.",
+          practice: "Visit a secure area after hours (if allowed) and notice how lighting and cameras respond. Many facilities auto-record and auto-light on motion — that's the sensor integration in action.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 51. Wendell Odom OCG Chapter 27. Low exam weight. Know motion sensors = detective control. Know PIR as the common residential/commercial technology."
+        }
+      }
     ]
   },
 
@@ -223,8 +727,32 @@ window.subtopicContentD56 = {
       meta: "Jeremy's IT Lab Day 51. Wendell Odom OCG Chapter 27. Low exam weight but testable. Cable locks and equipment cages are the most likely to appear. Know they fall under physical/environmental controls, not logical/technical.",
     },
     micro: [
-      { id: "5.2.e.1", term: "Equipment locks / cages",      def: "Physical controls protecting hardware. Rack locks, data hall cages. Physical category (not logical/technical).", weight: "low" },
-      { id: "5.2.e.2", term: "Cable locks",                  def: "Secure laptops/equipment to fixed objects. Low-tech but effective anti-theft.", weight: "low" }
+      {
+        id: "5.2.e.1",
+        term: "Equipment locks and cages",
+        weight: "low",
+        info: "<p><strong>Equipment cages, locked cabinets, and rack locks</strong> restrict physical access to network and server hardware in shared or semi-public environments. They're the <em>inner layer</em> of physical defense — after the building badge and the data center door, the last physical barrier is the cage or the rack door.</p><p><strong>Common forms:</strong></p><ul><li><strong>Rack door locks</strong> — front and rear lockable doors on 42U racks. Standard in enterprise data centers.</li><li><strong>Cage enclosures</strong> — larger wire-mesh cages surrounding multiple racks. Used in colocation facilities to separate customer zones; in enterprises, to isolate high-security gear (HSMs, payment systems).</li><li><strong>Locked cabinets</strong> — for smaller environments: wall-mounted network cabinets with key or combination locks.</li><li><strong>Port blockers / port locks</strong> — physical caps that prevent plugging a USB drive or network cable into unused ports.</li><li><strong>Console port covers</strong> — prevent attaching a rollover cable to a device's console without disassembly.</li></ul><p><strong>Where they matter:</strong></p><ul><li><strong>Colocation facilities</strong> — multiple tenants share the data hall. Each customer gets a cage; only their badges open it.</li><li><strong>Open offices with network closets</strong> — locked cabinets prevent casual access to switches/patch panels.</li><li><strong>Shared buildings (hospitals, schools)</strong> — janitorial and maintenance staff have general access; rack locks prevent them reaching IT gear.</li><li><strong>Remote sites</strong> — branch offices often have no dedicated IT staff; rack locks are the primary physical control.</li></ul><p><strong>Defense in depth layering:</strong> building badge (outer) → data center door (middle) → cage lock (inner) → rack lock (innermost). Each layer adds time and challenge for an attacker.</p><p><strong>Control category:</strong> preventive (physical barriers stop physical access) + deterrent (visible locks discourage casual attempts). Pair with cameras (detective) and alarms (detective) for complete coverage.</p><p><strong>Exam note:</strong> low-weight topic. Know equipment locks/cages are <strong>physical/environmental</strong> controls (not logical/technical), and they're preventive.</p>",
+        visual: { type: "layer-stack", params: { layers: ["Building badge", "Data center door", "Cage lock", "Rack door lock", "Port lock"], highlight: 3 } },
+        hack: {
+          memory: "Equipment locks/cages = PHYSICAL + PREVENTIVE. Last barrier before the gear. Rack locks, cages (colos), locked cabinets (remote sites), port blockers. Layer with building badge + data center door + cameras for defense in depth.",
+          practice: "Tour a data center (if possible) or view photos. Notice the layering: exterior fence, building entry, mantrap, data hall door, cage, rack. Each layer is a physical control with a specific category.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 51. Wendell Odom OCG Chapter 27. Low exam weight. Know physical controls are distinct from logical/technical (ACLs, firewalls) — the exam may ask to classify a control as physical vs logical."
+        }
+      },
+      {
+        id: "5.2.e.2",
+        term: "Cable locks",
+        weight: "low",
+        info: "<p><strong>Cable locks</strong> (Kensington locks, K-slot locks, Noble Wedge) physically tether laptops, monitors, and portable equipment to a desk, rack, or fixed object using a steel cable with a keyed or combination lock. They prevent opportunistic theft — someone grabbing an unattended laptop from a conference room or open desk.</p><p><strong>How they work:</strong></p><ul><li>Most laptops, monitors, and projectors have a small reinforced slot (Kensington Security Slot, K-slot, or Noble Wedge slot).</li><li>A cable lock's head inserts into the slot and locks in place.</li><li>The cable wraps around a fixed object (desk leg, rack rail).</li><li>Only the key or combination releases the lock.</li></ul><p><strong>Realistic limits:</strong></p><ul><li>Cable locks deter <em>opportunistic</em> theft but not determined attackers. A strong bolt cutter or prying tool defeats most consumer cables in 30-60 seconds.</li><li>Laptop security slots themselves can sometimes be broken out of the plastic chassis.</li><li>They're a layer, not a vault. Pair with cameras and supervised environments.</li></ul><p><strong>Where they help:</strong></p><ul><li>Open offices and hot-desking environments — laptops left briefly unattended.</li><li>Conference rooms with visible projectors and displays.</li><li>Libraries, universities, coworking spaces.</li><li>Reception areas with displayed equipment.</li><li>Trade show booths and events with laptops on tables.</li></ul><p><strong>Where they don't replace other controls:</strong></p><ul><li>Data centers — use rack locks, not cable locks.</li><li>Storage rooms — use cabinets and locked doors.</li><li>High-value assets — use locked enclosures with alarms.</li></ul><p><strong>Control category:</strong> preventive (physical barrier to theft) + deterrent (visible).</p><p><strong>Exam note:</strong> low-weight. Know cable locks as a physical/preventive control for portable equipment. Usually appears in answer choices as the \"anti-theft\" pick for laptops.</p>",
+        visual: { type: "comparison", params: { left: { label: "Cable lock stops", items: ["Opportunistic theft", "Casual snatch", "Unattended moments"] }, right: { label: "Cable lock misses", items: ["Bolt cutters", "Determined thief", "Chassis prying"] } } },
+        hack: {
+          memory: "Cable lock = steel cable + K-slot. Tethers laptop/monitor to a desk. Stops OPPORTUNISTIC theft, not determined attackers. Physical + preventive + deterrent control. Cheap, low-tech, still widely used in hot-desk offices.",
+          practice: "Check your laptop for the K-slot (small reinforced rectangular hole on the side). If your org has open desks or conference rooms, a $20 cable lock is worth it for the 30-second defense.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 51. Wendell Odom OCG Chapter 27. Low exam weight. Most likely appears as a distractor in a control-category question — cable lock = physical, not logical."
+        }
+      }
     ]
   },
 
@@ -2010,9 +2538,45 @@ window.subtopicContentD56 = {
       meta: "Jeremy's IT Lab Day 53 (DHCP Snooping). Wendell Odom OCG Chapter 30. DHCP snooping is foundational — DAI and IP Source Guard depend on the binding table. Learn snooping first, then DAI builds on top.",
     },
     micro: [
-      { id: "5.7.a.1", term: "DHCP snooping",                def: "L2 security feature. Blocks rogue DHCP servers. Only trusted ports forward DHCP offers.", weight: "high" },
-      { id: "5.7.a.2", term: "Trusted vs untrusted ports",   def: "Trusted = facing legit DHCP server. Untrusted = user ports, block DHCP server messages (offers).", weight: "high" },
-      { id: "5.7.a.3", term: "DHCP snooping binding table",  def: "IP ↔ MAC ↔ port ↔ VLAN. Built from observed DHCP transactions. Used by DAI and IP Source Guard.", weight: "high" }
+      {
+        id: "5.7.a.1",
+        term: "DHCP snooping",
+        weight: "high",
+        info: "<p><strong>DHCP snooping</strong> is a Layer 2 security feature on Cisco switches that acts as a <strong>mini-firewall for DHCP messages</strong>. It categorizes each switch port as <strong>trusted</strong> or <strong>untrusted</strong>, then inspects every DHCP frame that crosses the switch and drops any message that doesn't belong on that port type.</p><p><strong>The core rule:</strong> DHCP <em>server</em> messages (Offer, ACK, NAK) are only permitted from trusted ports. DHCP <em>client</em> messages (Discover, Request, Release, Decline) are permitted from any port. If an attacker plugs a rogue DHCP server into a user-facing (untrusted) port and that server tries to send an Offer, the switch drops the Offer before it reaches any client.</p><p><strong>Why this matters:</strong> Without DHCP snooping, a rogue DHCP server can hand out false configurations — assigning itself as the default gateway so all victim traffic flows through the attacker (classic man-in-the-middle). The attacker sees every packet, can modify DNS responses, and can inject malicious redirects. DHCP snooping kills this attack at the switch port.</p><p><strong>Secondary benefit — the binding table:</strong> As legitimate DHCP transactions complete, the switch records each (MAC, IP, VLAN, port, lease) tuple in the <code>DHCP snooping binding table</code>. This table is the foundation that <strong>DAI</strong> and <strong>IP Source Guard</strong> build on — both features read the binding table to validate traffic.</p><p><strong>Verification:</strong> <code>show ip dhcp snooping</code> displays the global and per-VLAN state. <code>show ip dhcp snooping binding</code> shows learned client bindings.</p>",
+        visual: { type: "shield", params: { items: ["Blocks rogue DHCP servers", "Trusted ports forward Offer/ACK", "Untrusted ports drop server msgs", "Builds binding table for DAI/IPSG"], color: "#3b82f6" } },
+        hack: {
+          memory: "DHCP snooping = a bouncer at every switch port checking DHCP IDs. USERS can ASK for an address (Discover/Request allowed). USERS cannot HAND OUT addresses (Offer/ACK blocked). Only the real DHCP server (on a TRUSTED port) is allowed to hand out addresses. Bonus: it writes down every lease in a binding table — that table becomes the truth source for DAI and IP Source Guard.",
+          practice: "In Packet Tracer: connect a legitimate DHCP server on Gi0/1 and a rogue DHCP server on Gi0/5. Without snooping, let a client request an address — sometimes the rogue wins the race. Now enable snooping globally and per VLAN, mark Gi0/1 trusted, leave Gi0/5 untrusted. Repeat the test — the rogue's Offer is dropped every time. Then run 'show ip dhcp snooping binding' to see the legit lease recorded.",
+          effort: "high",
+          meta: "Jeremy's IT Lab Day 53 walks through DHCP snooping with a rogue-server scenario. Wendell Odom OCG Chapter 30 covers the full DHCP attack surface. Exam framing: 'Which feature blocks rogue DHCP servers?' = DHCP snooping. 'What feature builds the binding table DAI uses?' = DHCP snooping. Always the foundation — learn it first."
+        }
+      },
+      {
+        id: "5.7.a.2",
+        term: "Trusted vs untrusted ports",
+        weight: "high",
+        info: "<p>Every port on a DHCP-snooping-enabled switch is either <strong>trusted</strong> or <strong>untrusted</strong>. This binary state controls exactly which DHCP message types the switch will forward on that port.</p><p><strong>Trusted port</strong> — faces a legitimate DHCP server or is an uplink/trunk toward a switch that faces a server. ALL DHCP message types pass: Discover, Offer, Request, ACK, NAK, Release, Decline. You manually flag these ports with <code>ip dhcp snooping trust</code> at interface config. Typical trusted ports: the uplink to the DHCP server's switch, trunk ports between access/distribution switches, and ports directly facing the DHCP server itself.</p><p><strong>Untrusted port (default)</strong> — every port becomes untrusted the moment you enable snooping on its VLAN. Only <strong>client</strong> DHCP messages are allowed (Discover, Request, Release, Decline). If a server-side message (Offer, ACK, NAK) appears on an untrusted port, the switch <strong>drops the packet</strong> and usually logs the event. This is what kills rogue-DHCP-server attacks.</p><p><strong>Gotcha:</strong> It's easy to forget to trust the uplink toward the real DHCP server — if you don't, the server's Offer gets dropped along with the rogue's. Symptom: clients can't obtain addresses at all after snooping is enabled. Fix: <code>ip dhcp snooping trust</code> on the uplink facing the legitimate server.</p><p><strong>Verify port trust state:</strong> <code>show ip dhcp snooping</code> lists trusted and untrusted interfaces. Every port that isn't explicitly trusted is untrusted — confirm the uplink side is trusted.</p>",
+        visual: { type: "comparison", params: { left: { label: "Trusted Port", items: ["Manually configured (ip dhcp snooping trust)", "Faces DHCP server or uplink", "Allows ALL DHCP messages", "Offer/ACK/NAK forwarded"] }, right: { label: "Untrusted Port (default)", items: ["Automatic after enabling snooping", "Faces end-user device", "Only client msgs allowed", "Offer/ACK/NAK = DROPPED"] } } },
+        hack: {
+          memory: "Trust = server side. Untrusted = user side. If you forget to TRUST the uplink to the real DHCP server, you just blocked YOUR OWN DHCP — everyone's offline. Classic self-inflicted outage.",
+          practice: "Draw the topology: DHCP server → SwA Gi0/1 → trunk → SwB Gi0/24 → user on SwB Gi0/5. Label which port needs 'ip dhcp snooping trust': SwA Gi0/1 (faces server), SwA trunk port, SwB trunk port. Leave SwB Gi0/5 untrusted. Walk a DHCP Discover and Offer through the topology — verify every hop's trust state allows the message.",
+          effort: "medium",
+          meta: "Jeremy's IT Lab Day 53. Wendell Odom OCG Chapter 30. Most common exam scenario: a snooping config that blocks legit DHCP. You're shown the running-config and asked what's wrong — answer is almost always 'uplink not trusted.'"
+        }
+      },
+      {
+        id: "5.7.a.3",
+        term: "DHCP snooping binding table",
+        weight: "high",
+        info: "<p>The <strong>DHCP snooping binding table</strong> is a list the switch builds automatically by watching successful DHCP transactions on untrusted ports. Every time a client successfully leases an address, the switch records a row.</p><p><strong>Each binding row contains:</strong></p><ul><li><strong>MAC address</strong> — the client's hardware address</li><li><strong>IP address</strong> — what the DHCP server assigned</li><li><strong>VLAN</strong> — the client's access VLAN</li><li><strong>Interface</strong> — the switch port the client is on</li><li><strong>Lease time</strong> — how long the binding is valid (matches the DHCP lease)</li><li><strong>Binding type</strong> — dhcp-snooping (learned) or static (manual)</li></ul><p><strong>Why this table is the most important artifact in L2 security:</strong> <code>DAI</code> reads it to validate every ARP reply. <code>IP Source Guard</code> reads it to validate every source IP on a port. Without this table, neither DAI nor IPSG has any data and both end up dropping legitimate traffic.</p><p><strong>Persistence:</strong> The binding table lives in RAM by default and is lost on reboot. To survive reboots, save it: <code>ip dhcp snooping database tftp://10.0.0.10/bindings.db</code> (or <code>flash:bindings.db</code>). The switch rewrites the file periodically and reloads it on boot.</p><p><strong>Static bindings (for hosts with fixed IPs that don't DHCP):</strong> <code>ip source binding aaaa.bbbb.cccc vlan 10 10.0.0.50 interface Gi0/5</code> — manually adds a row so DAI and IPSG treat the static host as legitimate.</p><p><strong>Verify:</strong> <code>show ip dhcp snooping binding</code>.</p>",
+        visual: { type: "layer-stack", params: { layers: ["MAC: aaaa.bbbb.cccc", "IP: 10.0.0.50", "VLAN: 10", "Interface: Gi0/5", "Lease: 86400 s", "Type: dhcp-snooping"], highlight: 1 } },
+        hack: {
+          memory: "Binding table = the switch's ledger of who-has-which-IP-on-which-port. Every DHCP lease writes one row. DAI reads it to decide 'is this ARP real?' IPSG reads it to decide 'is this source IP allowed on this port?' No table = no DAI, no IPSG. Save with 'ip dhcp snooping database' or it dies on reboot.",
+          practice: "Enable snooping, let three clients DHCP. Run 'show ip dhcp snooping binding' — three rows, one per client. Now manually add a static binding for a printer with a fixed IP: 'ip source binding 1111.2222.3333 vlan 10 10.0.0.200 interface Gi0/8'. Verify the row appears. Configure 'ip dhcp snooping database flash:snoop.db' and reload — verify bindings survive.",
+          effort: "medium",
+          meta: "Jeremy's IT Lab Day 53. Wendell Odom OCG Chapter 30. Exam question set: 'What table does DAI use?' = DHCP snooping binding table. 'How do static-IP hosts get DAI/IPSG?' = static binding or ARP ACL. Expect to see 'show ip dhcp snooping binding' output on the exam."
+        }
+      }
     ]
   },
 
@@ -2026,10 +2590,58 @@ window.subtopicContentD56 = {
       meta: "Jeremy's IT Lab Day 53. Wendell Odom OCG Chapter 30. The exam tests exact commands and that you need BOTH global AND per-VLAN enablement. The Option 82 gotcha is a common lab troubleshooting issue.",
     },
     micro: [
-      { id: "5.7.b.1", term: "ip dhcp snooping (global)",    def: "Enables DHCP snooping globally on switch. Step 1.", weight: "high" },
-      { id: "5.7.b.2", term: "ip dhcp snooping vlan [#]",    def: "Enables snooping per-VLAN. Both global AND per-VLAN required.", weight: "high" },
-      { id: "5.7.b.3", term: "ip dhcp snooping trust",       def: "Interface command on trusted port (uplink toward DHCP server). Default = untrusted.", weight: "high" },
-      { id: "5.7.b.4", term: "Option 82 gotcha",             def: "By default DHCP snooping inserts Option 82. Relay may reject it. Use 'no ip dhcp snooping information option' if needed.", weight: "med" }
+      {
+        id: "5.7.b.1",
+        term: "ip dhcp snooping (global)",
+        weight: "high",
+        info: "<p>The global command <code>ip dhcp snooping</code> (entered in global config) is the <strong>master switch</strong> for the feature. Without this command, no per-VLAN or per-interface snooping configuration does anything — the feature is completely off.</p><p><strong>What it does by itself:</strong> activates the snooping subsystem and prepares the switch to begin building the binding table and enforcing trust rules once you also turn on snooping per VLAN. On its own, this single command changes nothing about traffic forwarding — you still need step 2 (per-VLAN) for enforcement to actually happen.</p><p><strong>Why the two-step design:</strong> Cisco split enable into global + per-VLAN so you can deploy snooping incrementally. You turn it on globally once, then roll it out VLAN by VLAN to catch problems on a small set of users before breaking DHCP network-wide.</p><p><strong>Common mistake:</strong> typing only <code>ip dhcp snooping</code> and expecting protection. With no VLAN enabled, snooping is inert — the feature is loaded but not enforcing anything. Always pair with <code>ip dhcp snooping vlan [list]</code>.</p><p><strong>Verification:</strong> <code>show ip dhcp snooping</code> — the first line states whether snooping is globally enabled (Switch DHCP snooping is <strong>enabled</strong>) and lists the VLANs where operational snooping is active.</p>",
+        visual: { type: "hierarchy", params: { root: "ip dhcp snooping (global)", children: [{ name: "Step 2: ip dhcp snooping vlan 10", children: [{ name: "Step 3: interface trust" }] }] } },
+        hack: {
+          memory: "Global enable = flip the MAIN breaker. Without this command, nothing snooping-related matters — the feature is powered off. But flipping only this breaker still doesn't do anything until you also turn on at least one VLAN.",
+          practice: "On a lab switch, type only 'ip dhcp snooping' and nothing else. Test with a rogue DHCP server — it still works (nothing is being filtered). Now add 'ip dhcp snooping vlan 10' and the rogue is blocked. This proves the global command alone is not protection.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 53. Wendell Odom OCG Chapter 30. Simple recall: this is step 1 of 3. The exam expects you to know all three steps (global, VLAN, trust) in order."
+        }
+      },
+      {
+        id: "5.7.b.2",
+        term: "ip dhcp snooping vlan [#]",
+        weight: "high",
+        info: "<p><code>ip dhcp snooping vlan [vlan-list]</code> activates snooping for specific VLANs. This is the command that actually starts enforcement — without it, no DHCP packets are inspected even if the global enable is on.</p><p><strong>Syntax:</strong></p><pre>Switch(config)# ip dhcp snooping vlan 10,20,30\nSwitch(config)# ip dhcp snooping vlan 100-200</pre><p>You can list individual VLANs, ranges, or comma-separated combinations. Only DHCP packets riding on enabled VLANs are inspected; traffic on other VLANs is forwarded without any snooping logic applied.</p><p><strong>Key behavior:</strong> The moment a VLAN is enabled, every port carrying that VLAN becomes untrusted by default. If you forgot to mark the uplink trusted BEFORE enabling the VLAN, DHCP for that VLAN breaks immediately — the real server's Offer gets dropped along with any rogue. Safe rollout: trust the uplinks first, then enable the VLAN.</p><p><strong>Trunk ports:</strong> On a trunk carrying VLANs 10, 20, 30, snooping only applies to DHCP in the VLANs you've enabled. If 10 and 20 are enabled but not 30, VLAN 30's DHCP is untouched on that trunk.</p><p><strong>Option 82 on trunks:</strong> If snooping adds Option 82 on trunk ingress and your DHCP server or relay drops Option-82-tagged packets, DHCP fails. Either disable Option 82 insertion (<code>no ip dhcp snooping information option</code>) or trust the port (<code>ip dhcp snooping information option allow-untrusted</code> on the relay).</p>",
+        visual: { type: "packet-flow", params: { nodes: ["Global enable", "VLAN 10 enabled", "Trust uplinks", "Enforcement active on VLAN 10"], color: "#3b82f6" } },
+        hack: {
+          memory: "Global enable = power on. VLAN enable = turn on the actual camera in a specific hallway. You can power on the system without watching any hallway (useless). Rule of rollout: TRUST THE UPLINK FIRST, then enable the VLAN — otherwise you just blocked your own DHCP server.",
+          practice: "Set up a lab with two VLANs (10 and 20). Enable snooping globally. Enable only VLAN 10: 'ip dhcp snooping vlan 10'. Plug a rogue into VLAN 10 — blocked. Plug a rogue into VLAN 20 — forwarded (not enforced). Now add VLAN 20 and repeat — both blocked. This cements that the VLAN command is what arms enforcement.",
+          effort: "medium",
+          meta: "Jeremy's IT Lab Day 53. Wendell Odom OCG Chapter 30. Exam traps: (1) missing VLAN enable = feature inactive. (2) VLAN enabled but uplink untrusted = legit DHCP also blocked. (3) Option 82 breaking DHCP when server doesn't expect it."
+        }
+      },
+      {
+        id: "5.7.b.3",
+        term: "ip dhcp snooping trust",
+        weight: "high",
+        info: "<p><code>ip dhcp snooping trust</code> is an <strong>interface-level</strong> command that marks a port as trusted for DHCP snooping. Trusted ports allow every DHCP message type to pass; untrusted ports (the default) drop server-side messages.</p><p><strong>Where to apply trust:</strong></p><ul><li>Port directly facing a <strong>legitimate DHCP server</strong></li><li><strong>Uplinks</strong> (access → distribution, distribution → core) where a DHCP server lives upstream</li><li><strong>Trunks between switches</strong> that carry VLAN traffic toward the DHCP server</li><li>Port facing a <strong>DHCP relay</strong> agent (which forwards Discovers/Requests to a remote server and returns Offers/ACKs)</li></ul><p><strong>Where NOT to apply trust:</strong> end-user access ports, guest ports, conference room ports, printer ports, IoT device ports — anywhere a user could plug in a rogue device.</p><p><strong>Default:</strong> Every port is untrusted once snooping is enabled on its VLAN. You explicitly opt into trust with <code>ip dhcp snooping trust</code>. Unset with <code>no ip dhcp snooping trust</code>.</p><p><strong>Example config:</strong></p><pre>interface GigabitEthernet0/24\n description Uplink to Distribution\n ip dhcp snooping trust</pre><p><strong>Verification:</strong> <code>show ip dhcp snooping</code> lists trusted interfaces in a separate section. Confirm your uplinks appear there before trusting.</p>",
+        visual: { type: "comparison", params: { left: { label: "Trust These", items: ["Uplink to distribution", "Trunk to core switch", "Port facing DHCP server", "Port facing DHCP relay"] }, right: { label: "Never Trust These", items: ["End-user access ports", "Conference room drops", "Guest network ports", "IoT/camera/printer ports"] } } },
+        hack: {
+          memory: "Trust = 'this port is safe, let Offers through.' Apply to uplinks and server-facing ports. Everything else (user ports) stays untrusted. Rule of thumb: if a user could plug in a laptop there, it's UNTRUSTED.",
+          practice: "On a three-switch lab (access-dist-core), identify every trust point: access→dist trunk (trusted on both ends), dist→core trunk (trusted on both ends), core→DHCP server port (trusted). User ports on access switch: untrusted. Write the exact 'ip dhcp snooping trust' commands for every interface that needs it. Deploy and verify with 'show ip dhcp snooping'.",
+          effort: "medium",
+          meta: "Jeremy's IT Lab Day 53. Wendell Odom OCG Chapter 30. The #1 exam scenario: 'DHCP broke after snooping was enabled — why?' Answer: uplink wasn't trusted. Always, always, always trust the server-facing path first."
+        }
+      },
+      {
+        id: "5.7.b.4",
+        term: "Option 82 gotcha",
+        weight: "med",
+        info: "<p><strong>DHCP Option 82</strong> (Relay Agent Information) is a field the switch <em>inserts into DHCP messages</em> when snooping is enabled. It identifies which switch and which port the DHCP request came from, letting a centralized DHCP server apply per-port policies. Cisco switches insert Option 82 by default when snooping runs.</p><p><strong>The problem:</strong> Some DHCP servers (older Microsoft DHCP, third-party appliances) receive a DHCP Discover with Option 82 and <strong>silently drop it</strong> — they don't recognize the option and consider the packet malformed. Symptom: clients suddenly can't get addresses after you enable snooping, but the binding table is empty and no errors appear on the switch.</p><p><strong>Three fixes:</strong></p><ul><li><code>no ip dhcp snooping information option</code> — disables Option 82 insertion entirely. Simplest fix. The downside is you lose the ability to do per-port policy on the DHCP server.</li><li>Tell the relay agent to accept Option 82 from untrusted sources: <code>ip dhcp relay information trust-all</code> (on the relay router).</li><li>Update the DHCP server to understand Option 82 (preferred if the server supports it).</li></ul><p><strong>On modern Cisco DHCP and Windows Server 2016+:</strong> Option 82 is generally handled fine. But in labs with older servers or Packet Tracer DHCP, you usually need to disable Option 82.</p><p><strong>Verify:</strong> <code>show ip dhcp snooping</code> shows whether Option 82 insertion is enabled.</p>",
+        visual: { type: "state-machine", params: { states: ["Snooping inserts Option 82", "DHCP server receives tagged packet", "Server does not understand", "Silently drops — client no IP"], active: 3, transitions: true } },
+        hack: {
+          memory: "Snooping sticks Option 82 on every DHCP packet. Some servers hate it and silently drop — clients get no IP and the binding table stays empty. Fix: 'no ip dhcp snooping information option'. First thing to try in labs when DHCP dies after enabling snooping.",
+          practice: "Enable snooping in Packet Tracer against a generic DHCP server. Watch clients fail to get IPs even though everything looks right. Run 'show ip dhcp snooping' and see Option 82 is enabled. Add 'no ip dhcp snooping information option'. Clients now get IPs. This one test cements the gotcha permanently.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 53 mentions this explicitly. Wendell Odom OCG Chapter 30. Classic lab-troubleshooting scenario. Memorize the command: 'no ip dhcp snooping information option'."
+        }
+      }
     ]
   },
 
@@ -2043,8 +2655,32 @@ window.subtopicContentD56 = {
       meta: "Jeremy's IT Lab Day 53. Wendell Odom OCG Chapter 30. The binding table links DHCP snooping to DAI. Exam question: 'What does DAI use to validate ARP?' Answer: the DHCP snooping binding table.",
     },
     micro: [
-      { id: "5.7.c.1", term: "Binding table = DAI source",   def: "DAI uses the DHCP snooping binding table to validate ARP replies. Without snooping, DAI has no data.", weight: "high" },
-      { id: "5.7.c.2", term: "show ip dhcp snooping binding", def: "View the binding table: IP, MAC, port, VLAN, lease expiration.", weight: "high" }
+      {
+        id: "5.7.c.1",
+        term: "Binding table = DAI source",
+        weight: "high",
+        info: "<p>The DHCP snooping <strong>binding table is the single source of truth</strong> that Dynamic ARP Inspection (DAI) uses to decide whether an ARP packet is legitimate or malicious. Every ARP reply that arrives on an untrusted port is checked against this table.</p><p><strong>The validation check:</strong> When an ARP Reply enters an untrusted port, DAI extracts the <strong>sender MAC</strong> and <strong>sender IP</strong> from the ARP payload. It then looks in the binding table for a matching row. If the (MAC, IP, VLAN, port) tuple matches an existing binding, the ARP is forwarded. If any field doesn't match, the ARP is dropped and a violation is logged.</p><p><strong>Why this stops ARP spoofing:</strong> An attacker sending gratuitous ARPs that claim 'I am 10.0.0.1' (the gateway) with their own MAC will not match any binding in the table — because the real gateway's IP-to-MAC mapping was never learned via DHCP (gateways usually have static IPs, and even if dynamic, the mapping belongs to a different port/MAC). DAI drops the forged ARP and the victim's ARP cache stays clean.</p><p><strong>Hard dependency:</strong> <strong>No DHCP snooping → no binding table → DAI has nothing to compare against.</strong> If DAI is enabled without snooping, DAI will drop every ARP on untrusted ports because no bindings exist. This is why snooping must be turned on and given time to populate the table BEFORE enabling DAI.</p><p><strong>Static exceptions:</strong> Hosts with static IPs (printers, servers) never DHCP, so they have no binding. Use <code>ip source binding</code> statements or <code>arp access-list</code> + <code>ip arp inspection filter</code> to whitelist them.</p>",
+        visual: { type: "handshake", params: { leftLabel: "ARP Reply", rightLabel: "DAI", steps: ["Sender MAC + IP extracted →", "← Lookup in binding table", "Match found → FORWARD", "No match → DROP + log"] } },
+        hack: {
+          memory: "DAI = 'show me your lease papers.' Every ARP reply on an untrusted port has to match a row in the DHCP snooping binding table. No matching row = dropped. That's how DAI stops ARP poisoning: the attacker's forged MAC-IP pair was never in a real DHCP lease.",
+          practice: "Lab: enable snooping, let clients DHCP. View the binding table. Now from an untrusted PC, send a gratuitous ARP claiming to be the gateway (use Scapy: 'sendp(Ether()/ARP(op=2, psrc=\"10.0.0.1\", hwsrc=attacker_mac))'). Before DAI: victims' ARP caches poison. Enable DAI on the VLAN. Send the same ARP — it's dropped. Check 'show ip arp inspection statistics' — the drop counter incremented.",
+          effort: "high",
+          meta: "Jeremy's IT Lab Day 53. Wendell Odom OCG Chapter 30. The exam fingerprint question: 'What must be enabled before DAI can work?' = DHCP snooping. 'What does DAI use to validate ARPs?' = the DHCP snooping binding table. Always these two answers together."
+        }
+      },
+      {
+        id: "5.7.c.2",
+        term: "show ip dhcp snooping binding",
+        weight: "high",
+        info: "<p><code>show ip dhcp snooping binding</code> prints the current contents of the binding table — every DHCP-learned client currently holding a valid lease.</p><p><strong>Example output:</strong></p><pre>MacAddress          IpAddress       Lease(sec)  Type           VLAN  Interface\n------------------  --------------  ----------  -------------  ----  -----------\naa:bb:cc:dd:ee:ff   10.0.0.50       86298       dhcp-snooping  10    Gi0/5\n11:22:33:44:55:66   10.0.0.51       86312       dhcp-snooping  10    Gi0/6\nTotal number of bindings: 2</pre><p><strong>Reading the columns:</strong></p><ul><li><strong>MacAddress</strong> — client's L2 hardware address</li><li><strong>IpAddress</strong> — lease assigned by DHCP server</li><li><strong>Lease(sec)</strong> — seconds remaining on the lease (counts down)</li><li><strong>Type</strong> — <code>dhcp-snooping</code> (learned via DHCP) or <code>static</code> (manually added with <code>ip source binding</code>)</li><li><strong>VLAN</strong> — client's access VLAN</li><li><strong>Interface</strong> — switch port the client is on</li></ul><p><strong>Troubleshooting checklist when the table is empty:</strong> (1) Is snooping globally enabled? (<code>ip dhcp snooping</code>) (2) Is the client's VLAN enabled for snooping? (<code>ip dhcp snooping vlan 10</code>) (3) Is the uplink to the DHCP server trusted? (<code>ip dhcp snooping trust</code>) (4) Is Option 82 breaking DHCP? (<code>no ip dhcp snooping information option</code>) (5) Did the client actually get an IP? (check DHCP server or 'ipconfig /all' on client).</p><p><strong>Related commands:</strong> <code>show ip dhcp snooping</code> (global/VLAN state), <code>show ip dhcp snooping statistics</code> (counters for forwarded/dropped packets), <code>clear ip dhcp snooping binding</code> (wipe the table, usually only for debug).</p>",
+        visual: { type: "layer-stack", params: { layers: ["show ip dhcp snooping (global state)", "show ip dhcp snooping binding (clients)", "show ip dhcp snooping statistics (counters)", "show ip arp inspection (DAI uses binding)"], highlight: 1 } },
+        hack: {
+          memory: "'show ip dhcp snooping binding' = the client roster. Empty table = snooping isn't catching leases (wrong VLAN, untrusted uplink, Option 82). Full table = snooping working and DAI/IPSG will have data to use.",
+          practice: "Lab: enable snooping, let 3 clients DHCP, run the command — 3 rows. Now shut down the trusted uplink so the next client can't reach the DHCP server — client fails to get an IP, table stays at 3. This shows the table only grows when snooping observes a successful DHCP Ack.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 53. Wendell Odom OCG Chapter 30. Exam expects you to read this output and identify clients, VLANs, and ports. If they show you the table in a sim, you need to recognize what each column means."
+        }
+      }
     ]
   },
 
@@ -2058,9 +2694,45 @@ window.subtopicContentD56 = {
       meta: "Jeremy's IT Lab Day 53. Wendell Odom OCG Chapter 30. The exam may ask about DHCP starvation: what is it (MAC spoofing to exhaust the pool) and how to prevent it (DHCP snooping + rate limiting).",
     },
     micro: [
-      { id: "5.7.d.1", term: "DHCP starvation attack",       def: "Attacker requests many DHCP leases using spoofed MACs. Exhausts DHCP pool. Legit clients get denied.", weight: "high" },
-      { id: "5.7.d.2", term: "DHCP starvation mitigation",   def: "DHCP snooping + port security (limit MACs) + rate limiting DHCP messages per port.", weight: "high" },
-      { id: "5.7.d.3", term: "ip dhcp snooping limit rate",  def: "Per-port rate limit for DHCP packets. Prevents starvation and rogue flooding.", weight: "med" }
+      {
+        id: "5.7.d.1",
+        term: "DHCP starvation attack",
+        weight: "high",
+        info: "<p>A <strong>DHCP starvation attack</strong> floods the DHCP server with thousands of DHCP Discover messages, each using a <strong>different spoofed source MAC address</strong>. The DHCP server treats each spoofed MAC as a new client and assigns it an IP from its pool. Within minutes, <strong>the entire DHCP pool is exhausted</strong> — and legitimate clients can no longer get addresses.</p><p><strong>Mechanics:</strong> The attacker's tool (Yersinia, Gobbler, dhcpstarv) generates packets like:</p><pre>DHCP Discover  src-MAC: 00:01:02:03:04:05  xid: 1001\nDHCP Discover  src-MAC: 00:01:02:03:04:06  xid: 1002\nDHCP Discover  src-MAC: 00:01:02:03:04:07  xid: 1003\n... (thousands per second)</pre><p>The DHCP server responds to each with an Offer and then an ACK, consuming one IP per forged MAC. A /24 pool (254 addresses) is exhausted in seconds on modern hardware.</p><p><strong>Why it's dangerous:</strong> Denial of service is just the obvious effect. The attack often pairs with a <strong>rogue DHCP server</strong> — once the real server's pool is exhausted, the attacker's rogue server is the only one answering Discovers. New clients get the attacker as their default gateway, enabling full MITM.</p><p><strong>Defense stack:</strong> (1) <strong>DHCP snooping rate limiting</strong> (<code>ip dhcp snooping limit rate</code>) caps how many DHCP packets per second a port can send — the flood triggers err-disable before the pool drains. (2) <strong>Port security</strong> limits the number of source MACs allowed on the port, preventing the MAC-spoofing loop altogether. (3) <strong>DHCP snooping</strong> validates the chaddr field matches the Ethernet source MAC (<code>ip dhcp snooping verify mac-address</code>).</p>",
+        visual: { type: "packet-flow", params: { nodes: ["Attacker on untrusted port", "Forges 1000s of source MACs", "Each triggers DHCP Discover", "Server exhausts IP pool", "Legit clients get denied"], color: "#ef4444" } },
+        hack: {
+          memory: "DHCP starvation = 1000 fake clients, 1000 spoofed MACs, 1000 Discovers per second. Pool exhausted in seconds. Real clients starve. Often paired with a rogue server that takes over once the real one runs dry.",
+          practice: "In a lab (isolated!), use Yersinia to simulate starvation against a DHCP server. Watch the address pool drain. Then enable port security with max 2 MACs and rate limiting at 10 pps on the attacker's port. Re-run the attack — port goes err-disabled immediately, pool stays intact. Understand the attack before deploying the defenses.",
+          effort: "medium",
+          meta: "Jeremy's IT Lab Day 53. Wendell Odom OCG Chapter 30. The exam wants you to identify the attack by its signature (many Discovers, spoofed MACs, pool exhausted) and know the defenses (rate limiting, port security, MAC verification)."
+        }
+      },
+      {
+        id: "5.7.d.2",
+        term: "DHCP starvation mitigation",
+        weight: "high",
+        info: "<p>Defending against DHCP starvation is a <strong>layered problem</strong> — no single command is enough, because the attack operates on multiple vectors (flood rate, MAC spoofing, pool exhaustion). A proper defense combines three features.</p><p><strong>Layer 1 — DHCP snooping rate limiting:</strong> Cap DHCP packets per second on untrusted ports. Normal clients send 1–4 DHCP packets during a lease lifecycle. Setting the limit to 10–20 pps catches floods without affecting normal traffic.</p><pre>interface Gi0/5\n ip dhcp snooping limit rate 15</pre><p>When the rate is exceeded, the port transitions to <strong>err-disabled</strong> state, halting the flood.</p><p><strong>Layer 2 — Port security MAC limit:</strong> Port security caps the total number of MAC addresses on the port (default 1). Starvation relies on each spoofed packet using a new source MAC — but port security sees each new MAC as a violation after the max is hit.</p><pre>interface Gi0/5\n switchport mode access\n switchport port-security\n switchport port-security maximum 2\n switchport port-security violation shutdown</pre><p><strong>Layer 3 — DHCP chaddr MAC verification:</strong> The attacker may spoof the Ethernet source MAC but reuse a single client-hardware-address (chaddr) in the DHCP payload. Or vice versa. Snooping can cross-check them:</p><pre>ip dhcp snooping verify mac-address</pre><p>Any packet where Ethernet source MAC ≠ chaddr is dropped.</p><p><strong>Combined effect:</strong> Each spoofed Discover is blocked by <em>at least one</em> of: rate limit (flood), port security (MAC count), or MAC verification (MAC mismatch). Even if the attacker bypasses one, the others still catch it.</p>",
+        visual: { type: "shield", params: { items: ["Rate limit: 10-15 pps on untrusted ports", "Port security: max 1-2 MACs", "verify mac-address: chaddr vs Ethernet src", "err-disable stops the flood"], color: "#10b981" } },
+        hack: {
+          memory: "Three walls: (1) rate limit — only a few DHCPs per second. (2) port security — only a few MACs per port. (3) verify mac-address — chaddr must equal Ethernet source. An attacker must defeat ALL THREE to starve the pool. Usually impossible.",
+          practice: "Write all three commands from memory for a single interface. Apply them to a lab port. Run Yersinia against it — port goes err-disabled almost instantly. Now try to tune the attack (lower rate, reuse MACs) and watch how each defense catches a different attack style. This is the clearest way to see defense-in-depth.",
+          effort: "high",
+          meta: "Jeremy's IT Lab Day 53. Wendell Odom OCG Chapter 30. The exam asks for the combination: 'Which features together stop starvation?' — rate limit + port security + MAC verify. Know all three."
+        }
+      },
+      {
+        id: "5.7.d.3",
+        term: "ip dhcp snooping limit rate",
+        weight: "med",
+        info: "<p><code>ip dhcp snooping limit rate [packets-per-second]</code> is an <strong>interface-level</strong> command that caps how many DHCP packets per second a port is allowed to send. Exceed the rate, and the port goes err-disabled.</p><p><strong>Syntax:</strong></p><pre>interface GigabitEthernet0/5\n ip dhcp snooping limit rate 15</pre><p><strong>Typical values:</strong></p><ul><li><strong>Access ports (untrusted):</strong> 10–20 pps — a normal client sends maybe 4 DHCP packets during a lease cycle</li><li><strong>Trunk ports (trusted):</strong> do NOT rate limit, or use a much higher value (100+) — legitimate trunks carry DHCP for many clients</li><li><strong>Server ports:</strong> do not rate limit — the DHCP server itself sends high volumes of Offer/ACK packets</li></ul><p><strong>What happens at the limit:</strong> The port transitions to err-disabled, syslog fires, and all traffic on the port stops. Recovery is manual (<code>shutdown</code> / <code>no shutdown</code>) or automatic via <code>errdisable recovery cause dhcp-rate-limit</code> + <code>errdisable recovery interval 300</code>.</p><p><strong>Implementation detail:</strong> the rate limit uses a token bucket — short bursts above the limit are tolerated briefly. But sustained traffic above the rate triggers err-disable.</p><p><strong>Verify:</strong> <code>show ip dhcp snooping</code> shows rate limits per interface. <code>show interfaces status err-disabled</code> confirms which ports tripped.</p>",
+        visual: { type: "state-machine", params: { states: ["Normal DHCP traffic", "Flood exceeds limit", "Port err-disabled", "Manual or auto recovery"], active: 2, transitions: true } },
+        hack: {
+          memory: "Rate limit = speed bump. Normal client: 4 packets in a full lease lifecycle. Set 15 pps on access ports. Never rate limit a trunk or server port — you'll err-disable legitimate paths. Recovery: 'shut / no shut' or auto via 'errdisable recovery cause dhcp-rate-limit'.",
+          practice: "Apply 'ip dhcp snooping limit rate 10' on a lab access port. Simulate a flood (Yersinia or a script that sends 50 DHCPs/sec). Port immediately goes err-disabled. Recover manually. Then enable 'errdisable recovery cause dhcp-rate-limit' with interval 30 — flood again, watch it recover after 30s. Know both recovery paths.",
+          effort: "medium",
+          meta: "Jeremy's IT Lab Day 53. Wendell Odom OCG Chapter 30. Exam fact: rate limit applies to untrusted ports. Recovery can be manual or automated via errdisable recovery."
+        }
+      }
     ]
   },
 
@@ -2074,10 +2746,58 @@ window.subtopicContentD56 = {
       meta: "Jeremy's IT Lab Day 53. Wendell Odom OCG Chapter 30. DAI depends on DHCP snooping. Exam question: 'What must be enabled before DAI?' = DHCP snooping. 'What does DAI use?' = DHCP snooping binding table.",
     },
     micro: [
-      { id: "5.7.e.1", term: "DAI (Dynamic ARP Inspection)", def: "L2 security. Validates ARP replies against DHCP snooping binding table. Stops ARP spoofing.", weight: "high" },
-      { id: "5.7.e.2", term: "DAI requires DHCP snooping",   def: "DAI uses the binding table that DHCP snooping builds. Enable snooping FIRST.", weight: "high" },
-      { id: "5.7.e.3", term: "ip arp inspection vlan [#]",   def: "Enable DAI per VLAN.", weight: "high" },
-      { id: "5.7.e.4", term: "ip arp inspection trust",      def: "Interface command. Trusted ports (uplinks) bypass ARP inspection. User ports = untrusted (default).", weight: "high" }
+      {
+        id: "5.7.e.1",
+        term: "DAI (Dynamic ARP Inspection)",
+        weight: "high",
+        info: "<p><strong>Dynamic ARP Inspection (DAI)</strong> is a Layer 2 security feature that validates ARP packets against the DHCP snooping binding table and drops any ARP whose claimed MAC-IP pair doesn't match a known binding. It is the primary defense against <strong>ARP spoofing / ARP poisoning</strong>, the most common LAN man-in-the-middle attack.</p><p><strong>The attack it stops:</strong> An attacker on the same VLAN as the gateway sends <strong>gratuitous ARP replies</strong> claiming 'I am 10.0.0.1 (the gateway)' — but with the attacker's own MAC. Every host on the VLAN accepts the unsolicited reply and updates its ARP cache. Now all traffic destined for the gateway flows to the attacker, who silently relays it and reads/modifies everything.</p><p><strong>How DAI blocks it:</strong> When an ARP packet arrives on an untrusted port, DAI extracts the sender MAC and sender IP from the ARP payload and looks them up in the DHCP snooping binding table. If the pair doesn't match any binding (MAC, IP, VLAN, interface), the ARP is dropped and a violation is logged.</p><p><strong>Additional validation (optional):</strong></p><ul><li><code>ip arp inspection validate src-mac</code> — verify Ethernet source MAC equals ARP sender MAC</li><li><code>ip arp inspection validate dst-mac</code> — verify Ethernet destination MAC equals ARP target MAC (for replies)</li><li><code>ip arp inspection validate ip</code> — sanity-check IPs (no 0.0.0.0, no multicast, no broadcast in ARP sender/target)</li></ul><p><strong>Per-VLAN activation:</strong> <code>ip arp inspection vlan 10,20</code>. Trust uplinks with <code>ip arp inspection trust</code>. Verify: <code>show ip arp inspection</code>, <code>show ip arp inspection statistics</code>.</p>",
+        visual: { type: "shield", params: { items: ["Validates every ARP against binding table", "Drops ARPs with mismatched MAC-IP", "Stops ARP spoofing / MITM", "Optional src-mac / dst-mac / ip checks"], color: "#6366f1" } },
+        hack: {
+          memory: "DAI = 'prove your ARP.' Every ARP on an untrusted port is checked against the DHCP snooping binding table. Forged ARPs (attacker claiming to be the gateway) don't match any real lease → dropped. Kills ARP poisoning at the switch port.",
+          practice: "Attack lab: two PCs + gateway on same VLAN. From attacker, run arpspoof or ettercap: 'arpspoof -i eth0 -t victim gateway'. Watch victim's ARP cache update with attacker's MAC for the gateway IP. Now enable DAI on the VLAN (after snooping). Repeat the attack — 'show ip arp inspection statistics' shows drops, victim's ARP cache stays clean.",
+          effort: "high",
+          meta: "Jeremy's IT Lab Day 53. Wendell Odom OCG Chapter 30. Exam flow: DHCP snooping → binding table → DAI. Know the validation checks (src-mac, dst-mac, ip) and the per-VLAN enable command."
+        }
+      },
+      {
+        id: "5.7.e.2",
+        term: "DAI requires DHCP snooping",
+        weight: "high",
+        info: "<p><strong>DAI has no data source of its own.</strong> It depends entirely on the DHCP snooping binding table to decide whether an ARP packet is legitimate. If snooping isn't running or hasn't built any bindings yet, DAI has nothing to validate against — and its default behavior is to <strong>drop</strong>.</p><p><strong>The operational order is mandatory:</strong></p><ol><li>Enable DHCP snooping globally: <code>ip dhcp snooping</code></li><li>Enable DHCP snooping per VLAN: <code>ip dhcp snooping vlan 10</code></li><li>Trust the uplinks: <code>ip dhcp snooping trust</code></li><li>Wait for clients to DHCP (binding table populates)</li><li>Verify bindings exist: <code>show ip dhcp snooping binding</code></li><li>Enable DAI per VLAN: <code>ip arp inspection vlan 10</code></li><li>Trust DAI uplinks: <code>ip arp inspection trust</code></li></ol><p><strong>What happens if you skip snooping:</strong> Every ARP from every client on an untrusted port is dropped (no matching binding). Users lose all connectivity — they can't resolve the gateway's MAC, so they can't send any frames off-subnet.</p><p><strong>Static-IP hosts (printers, servers):</strong> These never DHCP, so they have no binding. Solutions: <code>ip source binding</code> (adds a static row to the snooping binding table) OR <code>arp access-list</code> + <code>ip arp inspection filter</code> (whitelist MAC-IP pairs for DAI specifically). Without one of these, DAI drops the static host's ARPs.</p><p><strong>Trust overlap:</strong> A port trusted for DHCP snooping should usually also be trusted for DAI (both apply to uplinks toward trusted infrastructure).</p>",
+        visual: { type: "hierarchy", params: { root: "DAI dependency chain", children: [{ name: "DHCP snooping enabled", children: [{ name: "Bindings populated", children: [{ name: "DAI reads bindings", children: [{ name: "ARP validation works" }] }] }] }] } },
+        hack: {
+          memory: "DAI = child. DHCP snooping = parent. Kill the parent and the child starves. Order: snooping ON → let clients lease → bindings populate → DAI ON. Skip any step and you'll break connectivity for legit users.",
+          practice: "Deliberately misconfigure: enable DAI on a VLAN BEFORE enabling DHCP snooping. Clients can't ping the gateway. Check 'show ip arp inspection statistics' — massive drop count. Now enable snooping first, wait for leases, verify bindings, re-test — connectivity returns. Feel the dependency.",
+          effort: "medium",
+          meta: "Jeremy's IT Lab Day 53. Wendell Odom OCG Chapter 30. The exam loves this dependency. Question: 'You enabled DAI and users lost connectivity — why?' Answer: DHCP snooping not running, so no bindings exist."
+        }
+      },
+      {
+        id: "5.7.e.3",
+        term: "ip arp inspection vlan [#]",
+        weight: "high",
+        info: "<p><code>ip arp inspection vlan [vlan-list]</code> activates DAI on specific VLANs. Until this command runs, ARP packets pass through the switch untouched, even if snooping is building bindings.</p><p><strong>Syntax examples:</strong></p><pre>Switch(config)# ip arp inspection vlan 10\nSwitch(config)# ip arp inspection vlan 10,20,30\nSwitch(config)# ip arp inspection vlan 100-200</pre><p><strong>Scope:</strong> The command applies DAI only to ARP packets riding on the listed VLANs. Other VLANs are unaffected.</p><p><strong>Per-VLAN validation options:</strong></p><pre>ip arp inspection validate src-mac\nip arp inspection validate dst-mac\nip arp inspection validate ip</pre><p>These are global commands that tighten the checks across all DAI-enabled VLANs.</p><p><strong>Per-VLAN logging tuning:</strong></p><pre>ip arp inspection vlan 10 logging acl-match matchlog\nip arp inspection log-buffer entries 1024\nip arp inspection log-buffer logs 100 interval 10</pre><p>These control how many violation events are buffered and how often they're reported.</p><p><strong>Rate limiting:</strong> DAI rate-limits ARP packets per-port by default (15 pps on untrusted). Exceed the limit → port err-disables. Adjust with <code>ip arp inspection limit rate [pps]</code> per interface.</p><p><strong>Verify:</strong> <code>show ip arp inspection</code> shows enabled VLANs, validation options, and interface trust states. <code>show ip arp inspection statistics</code> displays forwarded/dropped counters.</p>",
+        visual: { type: "packet-flow", params: { nodes: ["ARP enters port", "Check interface trust", "If untrusted → check binding table", "Match → forward / No match → drop + log"], color: "#6366f1" } },
+        hack: {
+          memory: "DAI per-VLAN enable mirrors DHCP snooping's per-VLAN enable. 'ip arp inspection vlan 10' arms enforcement. Don't forget rate limit default is 15 pps — busy environments may need tuning.",
+          practice: "Enable DAI on VLAN 10 only. From a client on VLAN 10, send legit traffic → works. From a client on VLAN 20, send traffic → works (DAI not enabled). Now extend to VLAN 20 with 'ip arp inspection vlan 20'. Test again. This maps the scope of the command clearly.",
+          effort: "medium",
+          meta: "Jeremy's IT Lab Day 53. Wendell Odom OCG Chapter 30. Exam basics: per-VLAN enable command, rate limit default (15 pps), err-disable on overflow."
+        }
+      },
+      {
+        id: "5.7.e.4",
+        term: "ip arp inspection trust",
+        weight: "high",
+        info: "<p><code>ip arp inspection trust</code> is the <strong>interface-level</strong> command that flags a port as trusted for DAI. Trusted ports bypass ARP inspection entirely — every ARP is forwarded without any binding-table check.</p><p><strong>Where to apply:</strong></p><ul><li><strong>Trunk ports between switches</strong> — ARPs transit multiple switches and may not match bindings on the current hop</li><li><strong>Uplinks to distribution/core</strong> — same reason</li><li><strong>Router-facing ports</strong> — routers send ARPs for their own interfaces which may not be DHCP-learned</li><li><strong>Server-facing ports</strong> with static IPs (alternatively use static bindings instead of trust)</li></ul><p><strong>Where NOT to apply:</strong> End-user access ports. Trusting a user port defeats the entire point of DAI.</p><p><strong>Interaction with DHCP snooping trust:</strong> Trust states for snooping and DAI are <strong>independent</strong> — you configure them separately. In practice, a port trusted for snooping is usually also trusted for DAI, but you still need both commands:</p><pre>interface Gi0/24\n ip dhcp snooping trust\n ip arp inspection trust</pre><p><strong>Default:</strong> Every port is untrusted for DAI when DAI is enabled on its VLAN. No explicit trust command = ARP inspection enforced.</p><p><strong>Verify:</strong> <code>show ip arp inspection interfaces</code> lists all interfaces and their trust state, plus the rate limit in effect.</p>",
+        visual: { type: "comparison", params: { left: { label: "Trust for DAI", items: ["Trunk between switches", "Uplink to distribution/core", "Port facing router", "Port facing AAA/DHCP server"] }, right: { label: "Untrusted (default)", items: ["User access ports", "Guest ports", "Conference room drops", "IoT devices"] } } },
+        hack: {
+          memory: "Same trust rule as DHCP snooping: uplinks trusted, user ports untrusted. DAI trust is a SEPARATE command from snooping trust — you type 'ip dhcp snooping trust' AND 'ip arp inspection trust' on the same uplink. Don't forget one.",
+          practice: "On a lab access switch with a trunk to distribution: apply both 'ip dhcp snooping trust' and 'ip arp inspection trust' on the trunk port. Apply neither on user ports. 'show ip arp inspection interfaces' confirms the split. Traffic works. Now remove the DAI trust from the trunk — a flood of ARPs gets dropped (trunk carries ARPs for many hosts that aren't learned on this switch's binding table).",
+          effort: "medium",
+          meta: "Jeremy's IT Lab Day 53. Wendell Odom OCG Chapter 30. The two trust commands are separate. The exam can ask 'which command trusts a port for DAI?' = 'ip arp inspection trust' (NOT 'ip dhcp snooping trust')."
+        }
+      }
     ]
   },
 
@@ -2091,9 +2811,45 @@ window.subtopicContentD56 = {
       meta: "Jeremy's IT Lab Day 53. Wendell Odom OCG Chapter 30. The exam tests the full dependency chain: DHCP snooping → binding table → DAI. Trust the right ports on BOTH features.",
     },
     micro: [
-      { id: "5.7.f.1", term: "Dependency chain",             def: "DHCP snooping → populates binding table → DAI reads binding table → validates ARP.", weight: "high" },
-      { id: "5.7.f.2", term: "Trust same ports on both",     def: "Port connecting to legit DHCP server + ARP source = trusted for both DHCP snooping AND DAI.", weight: "high" },
-      { id: "5.7.f.3", term: "Full L2 security stack",       def: "Port security + DHCP snooping + DAI + IP Source Guard = comprehensive access-layer security.", weight: "med" }
+      {
+        id: "5.7.f.1",
+        term: "Dependency chain",
+        weight: "high",
+        info: "<p>The Layer 2 security features stack in a <strong>strict dependency order</strong>. Each feature's data comes from the one below it:</p><ol><li><strong>DHCP snooping</strong> — observes DHCP transactions, builds the <strong>binding table</strong>, filters server messages on untrusted ports</li><li><strong>DAI</strong> — reads the binding table to validate ARP packets</li><li><strong>IP Source Guard</strong> — reads the binding table to validate source IP (and optionally MAC) on every packet</li></ol><p><strong>Visual of the chain:</strong></p><pre>DHCP client requests IP\n        ↓\nDHCP snooping observes lease\n        ↓\nBinding table row created  ← DATA SOURCE\n   ↓         ↓\n  DAI     IP Source Guard\n (ARPs)   (IP packets)</pre><p><strong>Why order matters:</strong> Enable them in this sequence only:</p><ol><li>DHCP snooping (global + per-VLAN + trust uplinks)</li><li>Wait for bindings to populate (<code>show ip dhcp snooping binding</code>)</li><li>DAI (per-VLAN + trust uplinks)</li><li>IP Source Guard (per-interface, <code>ip verify source</code>)</li></ol><p><strong>If you skip snooping:</strong> DAI drops every ARP. IPSG drops every IP packet. The network appears broken.</p><p><strong>If you enable DAI before bindings exist:</strong> Legit clients can't resolve ARP during the interim and lose connectivity. Always populate first.</p><p><strong>Static exceptions needed at every layer:</strong> Static-IP devices need <code>ip source binding</code> (creates a binding row) or per-feature ACLs (<code>arp access-list</code> for DAI). Missing these causes persistent drops of legitimate traffic from printers, servers, VoIP phones with static configs.</p>",
+        visual: { type: "layer-stack", params: { layers: ["IP Source Guard (source IP check)", "DAI (ARP check)", "Binding table (shared data)", "DHCP snooping (populates table)"], highlight: 2 } },
+        hack: {
+          memory: "Three-layer stack: SNOOPING feeds the binding table → DAI and IPSG both READ that table. Enable in order: snooping, wait, DAI, IPSG. Skip a step and downstream features starve. Static hosts need 'ip source binding' at every layer or they get dropped.",
+          practice: "Build the full chain on a lab switch and enable in correct order. Verify bindings after step 1. Test ARP after step 3 (DAI). Test IP forwarding after step 4 (IPSG). Then tear it down in the WRONG order — remove snooping first — and watch DAI/IPSG break. This mental model is essential.",
+          effort: "high",
+          meta: "Jeremy's IT Lab Day 53. Wendell Odom OCG Chapter 30. Exam keystone: know the chain and enable order. Snooping is the foundation; DAI and IPSG are consumers of its binding table."
+        }
+      },
+      {
+        id: "5.7.f.2",
+        term: "Trust same ports on both",
+        weight: "high",
+        info: "<p>The uplink toward the legitimate DHCP server (and toward the rest of the trusted network) should be <strong>trusted for BOTH DHCP snooping AND DAI</strong>. These are two separate commands on the same interface — forgetting one breaks the feature that's missing trust.</p><p><strong>Correct uplink configuration:</strong></p><pre>interface GigabitEthernet0/24\n description Uplink to Distribution\n switchport mode trunk\n ip dhcp snooping trust\n ip arp inspection trust</pre><p><strong>What breaks when you forget one:</strong></p><ul><li><strong>Missing <code>ip dhcp snooping trust</code>:</strong> DHCP Offer/ACK from the real server is dropped at this switch. Clients never get IPs. Binding table stays empty.</li><li><strong>Missing <code>ip arp inspection trust</code>:</strong> ARPs transiting the trunk get dropped because their MAC-IP bindings were learned on a different switch's binding table. Users lose connectivity to destinations behind the trunk.</li></ul><p><strong>Why they're independent commands:</strong> Cisco kept them separate so you can have asymmetric trust — e.g., trust DHCP but not ARP on a specific port. In practice, this is rare. For uplinks, always configure both.</p><p><strong>IP Source Guard trust:</strong> IPSG doesn't use a 'trust' concept — instead, you simply don't enable <code>ip verify source</code> on ports where you don't want IPSG (typically trunks, uplinks, server ports). IPSG is opt-in per port.</p><p><strong>Verify:</strong> <code>show ip dhcp snooping</code> (trusted ports for snooping) + <code>show ip arp inspection interfaces</code> (trusted ports for DAI). Both should list the same uplinks.</p>",
+        visual: { type: "hierarchy", params: { root: "Uplink port", children: [{ name: "ip dhcp snooping trust", children: [{ name: "Allows Offer/ACK" }] }, { name: "ip arp inspection trust", children: [{ name: "Bypasses ARP check" }] }] } },
+        hack: {
+          memory: "Two features, two trust commands, one physical port. If you trust snooping but not DAI (or vice versa), half the features work and half break. Rule: every uplink gets BOTH trust commands — no exceptions unless you have a specific reason.",
+          practice: "Type both commands from memory on a trunk port. Shut down first, enable them, no-shut. Verify with both show commands. Now REMOVE only 'ip arp inspection trust' from the trunk — note ARP drops start appearing in 'show ip arp inspection statistics'. Add it back and drops stop. Do the same experiment with snooping trust.",
+          effort: "medium",
+          meta: "Jeremy's IT Lab Day 53. Wendell Odom OCG Chapter 30. Exam clarity: snooping trust and DAI trust are separate commands, both needed on uplinks."
+        }
+      },
+      {
+        id: "5.7.f.3",
+        term: "Full L2 security stack",
+        weight: "med",
+        info: "<p>The <strong>comprehensive Layer 2 access-edge security stack</strong> combines four features working in concert. Each addresses a different attack vector, and together they cover the most common LAN threats.</p><p><strong>The four layers:</strong></p><ol><li><strong>Port security</strong> — limits MAC addresses per port, blocks MAC flooding and unauthorized devices</li><li><strong>DHCP snooping</strong> — filters rogue DHCP servers, builds binding table</li><li><strong>DAI</strong> — validates ARPs, blocks ARP spoofing / MITM</li><li><strong>IP Source Guard</strong> — validates source IP, blocks IP spoofing</li></ol><p><strong>Attack → Defense mapping:</strong></p><ul><li><strong>CAM overflow (MAC flood):</strong> Port security</li><li><strong>Rogue DHCP server:</strong> DHCP snooping</li><li><strong>DHCP starvation:</strong> Port security + DHCP snooping rate limit</li><li><strong>ARP spoofing / MITM:</strong> DAI</li><li><strong>IP spoofing:</strong> IP Source Guard</li><li><strong>BPDU injection (rogue switch):</strong> BPDU guard</li><li><strong>Root bridge hijack:</strong> Root guard</li><li><strong>Broadcast/multicast storms:</strong> Storm control</li></ul><p><strong>Deployment template for every access port:</strong></p><pre>interface GigabitEthernet0/5\n switchport mode access\n switchport access vlan 10\n switchport port-security\n switchport port-security maximum 2\n switchport port-security violation shutdown\n switchport port-security mac-address sticky\n spanning-tree portfast\n spanning-tree bpduguard enable\n ip verify source</pre><p>Plus global: DHCP snooping + DAI enabled on VLAN 10, uplinks trusted for both.</p><p><strong>Operational note:</strong> Deploy in order (port security → snooping → DAI → IPSG) and verify each layer before adding the next. Never enable all four at once on production — you will hit unexpected drops from overlooked static hosts.</p>",
+        visual: { type: "shield", params: { items: ["Port security: MAC limits", "DHCP snooping: rogue servers", "DAI: ARP spoofing", "IPSG: IP spoofing", "BPDU guard: rogue switches", "Root guard: STP hijack"], color: "#10b981" } },
+        hack: {
+          memory: "Four-layer access-port security: Port security + DHCP snooping + DAI + IPSG. Each blocks a different attack. Plus STP helpers: BPDU guard (rogue switch), Root guard (STP hijack), Storm control (flood). Complete template = pro-grade access layer.",
+          practice: "On a lab switch, apply the full template to every access port. Then walk through each attack: plug in extra laptop (port security shutdowns), rogue DHCP (snooping drops Offer), ARP spoof (DAI drops), IP spoof (IPSG drops), rogue switch sending BPDU (BPDU guard shutdowns). One stack, five attacks, five defenses working in series. This is the full picture.",
+          effort: "high",
+          meta: "Jeremy's IT Lab Day 53. Wendell Odom OCG Chapter 30. The exam may ask you to match attack → feature. Own this mapping cold: port security=flood, snooping=rogue DHCP, DAI=ARP, IPSG=IP, BPDU guard=rogue switch, root guard=STP."
+        }
+      }
     ]
   },
 
@@ -2107,9 +2863,45 @@ window.subtopicContentD56 = {
       meta: "Jeremy's IT Lab Day 53 (Port Security). Wendell Odom OCG Chapter 30. Port security purpose, config, and violation modes are tested as a group. Study all three together as one unit.",
     },
     micro: [
-      { id: "5.7.g.1", term: "Port security",                def: "L2 feature. Limits which MAC addresses can connect on a port. Prevents rogue device attachment.", weight: "high" },
-      { id: "5.7.g.2", term: "Max MACs per port",            def: "Default 1 when enabled. Configurable with 'switchport port-security maximum [N]'.", weight: "high" },
-      { id: "5.7.g.3", term: "Purpose",                      def: "Stops MAC flooding attacks + enforces 'one-device-per-port' policies. First line of access-layer defense.", weight: "high" }
+      {
+        id: "5.7.g.1",
+        term: "Port security",
+        weight: "high",
+        info: "<p><strong>Port security</strong> is a Layer 2 feature that restricts which and how many <strong>source MAC addresses</strong> a switch port will accept. Once enabled, the switch tracks the MACs seen on the port and takes action if an unauthorized or excess MAC appears.</p><p><strong>What it protects against:</strong></p><ul><li><strong>Unauthorized device attachment</strong> — plug in a laptop at a conference-room port and port security drops it.</li><li><strong>CAM-table overflow (MAC flooding):</strong> An attacker floods random source MACs to fill the switch's CAM table. Once full, the switch falls back to flooding unknown unicast out every port — essentially turning it into a hub. Port security caps MACs per port, preventing the flood.</li><li><strong>Policy enforcement:</strong> One-device-per-port rules; per-port MAC whitelists.</li></ul><p><strong>Constraints:</strong></p><ul><li>Port must be in <strong>access mode</strong> (or explicitly trunk, but CCNA focuses on access). <code>switchport mode access</code> is a prerequisite.</li><li>Does NOT work on dynamic (auto/desirable) ports — you must pin the port mode first.</li><li>Not recommended on uplinks, trunks, or server ports (which legitimately carry many MACs).</li></ul><p><strong>High-level flow:</strong> set access mode → enable port security → set max MACs → set violation mode → optionally specify allowed MACs (static or sticky).</p>",
+        visual: { type: "shield", params: { items: ["Limits MACs per port", "Blocks unauthorized devices", "Stops CAM overflow / MAC flooding", "Enforces 1-device-per-port policy"], color: "#3b82f6" } },
+        hack: {
+          memory: "Port security = bouncer at a single door checking MAC IDs. Too many strangers = door slams shut (err-disable). Kills MAC flooding, unauthorized devices, CAM overflow attacks. Prerequisite: access mode.",
+          practice: "Set up a lab with a CAM-overflow tool (macof). Watch a fresh switch's CAM table fill in seconds. Now enable port security on the attacker's port with max 2. Flood again — port err-disables before the CAM fills. Feel the before/after.",
+          effort: "medium",
+          meta: "Jeremy's IT Lab Day 53. Wendell Odom OCG Chapter 30. Port security + violation modes + sticky MAC are one exam unit. Study them together."
+        }
+      },
+      {
+        id: "5.7.g.2",
+        term: "Max MACs per port",
+        weight: "high",
+        info: "<p>Port security's <strong>maximum MAC count</strong> defines the upper limit of distinct source MAC addresses the port will accept. Exceed the limit → violation fires.</p><p><strong>Configuration:</strong></p><pre>interface Gi0/5\n switchport mode access\n switchport port-security\n switchport port-security maximum 2</pre><p><strong>Defaults:</strong> when port security is enabled without specifying a maximum, the default is <strong>1 MAC</strong>.</p><p><strong>Typical values:</strong></p><ul><li><strong>1</strong> — strict one-device-per-port (most secure, breaks voice/data scenarios)</li><li><strong>2</strong> — a PC daisy-chained behind a VoIP phone (phone + PC both need a MAC) — the most common real-world value</li><li><strong>3–5</strong> — small hub or unmanaged switch connected to the port (not recommended)</li></ul><p><strong>Voice VLAN subtlety:</strong> On a port with an access VLAN for data and a voice VLAN for phones, the voice device adds one more MAC. You usually need max 2 to accommodate phone + PC. Some platforms auto-adjust when <code>switchport voice vlan</code> is set.</p><p><strong>When the max is hit:</strong> The next different source MAC is treated as a violation — action depends on violation mode (protect/restrict/shutdown, default shutdown).</p><p><strong>Verify:</strong> <code>show port-security interface Gi0/5</code> shows max, current count, total violation count, and violation mode. <code>show port-security address</code> lists every learned MAC and its port.</p>",
+        visual: { type: "layer-stack", params: { layers: ["Default max: 1 MAC", "Voice + Data: max 2", "Unmanaged switch (NOT recommended)", "Exceeded → violation fires"], highlight: 1 } },
+        hack: {
+          memory: "Default max = 1. Voice + data port = 2 (phone + PC). Anything higher needs a reason. 'switchport port-security maximum N' sets the cap. Violate the cap and the violation mode decides what happens.",
+          practice: "Configure max 2 on a lab access port. Connect a PC — count=1. Connect a second device via hub — count=2. Connect a third — violation (port err-disables if mode=shutdown). 'show port-security interface' shows the progression.",
+          effort: "medium",
+          meta: "Jeremy's IT Lab Day 53. Wendell Odom OCG Chapter 30. Exam fact: default max = 1. Voice scenarios need max 2. Know the command: 'switchport port-security maximum [N]'."
+        }
+      },
+      {
+        id: "5.7.g.3",
+        term: "Purpose",
+        weight: "high",
+        info: "<p>Port security's <strong>two primary purposes</strong>:</p><ol><li><strong>Prevent MAC flooding / CAM overflow attacks.</strong> Without port security, an attacker can flood a port with thousands of frames using random source MACs. The switch stores each new MAC in its CAM table. When the CAM fills (typically 8k–32k entries), the switch can no longer learn new MACs — it falls back to <strong>unknown-unicast flooding</strong>, sending every frame out every port in the VLAN. The attacker now captures all traffic on the segment.</li><li><strong>Enforce one-device-per-port policy.</strong> Many organizations require each network port to be used by a single authorized device. Port security prevents users from attaching a personal switch or hub to multiply access, and prevents unauthorized laptops from connecting in conference rooms, lobbies, or abandoned cubes.</li></ol><p><strong>Secondary benefits:</strong></p><ul><li>Slows lateral movement during a breach — a compromised endpoint can't easily impersonate other MACs.</li><li>Detects rogue devices early — violations fire syslog/SNMP traps that security teams can alert on.</li><li>Contributes to compliance (PCI-DSS requires access controls at the port level).</li></ul><p><strong>Limitations:</strong> Port security alone is not sufficient. A determined attacker can clone the MAC of an authorized device. Combine with 802.1X for real identity-based access control. Port security is the floor, not the ceiling.</p>",
+        visual: { type: "comparison", params: { left: { label: "Without Port Security", items: ["CAM table can overflow", "Switch floods all traffic", "Any device can plug in", "Attacker sees all frames"] }, right: { label: "With Port Security", items: ["Limited MACs per port", "No CAM overflow", "Rogue devices blocked", "Syslog + SNMP alerts"] } } },
+        hack: {
+          memory: "Two jobs: (1) stop MAC flooding (CAM overflow → hub mode → attacker sniffs all traffic). (2) enforce one-device-per-port (no rogue laptops). Port security is the FLOOR — combine with 802.1X for real security.",
+          practice: "Describe the MAC flooding attack in your own words: attacker generates fake MACs → CAM fills → switch floods all traffic → attacker sees everything. Then describe how max=1 stops this: attacker's second MAC violates the limit before the CAM can fill. Teaching it back locks it in.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 53. Wendell Odom OCG Chapter 30. The exam scenario: 'attacker sends random MACs until the switch floods all traffic. Which feature prevents this?' = Port security."
+        }
+      }
     ]
   },
 
@@ -2123,10 +2915,58 @@ window.subtopicContentD56 = {
       meta: "Jeremy's IT Lab Day 53. Wendell Odom OCG Chapter 30. The exam expects commands in correct order. Most common mistake: enabling port-security on a trunk or dynamic port — it ONLY works on access ports.",
     },
     micro: [
-      { id: "5.7.h.1", term: "Port-security prereq",         def: "Port must be ACCESS mode. 'switchport mode access' first. Fails on trunk or dynamic.", weight: "high" },
-      { id: "5.7.h.2", term: "switchport port-security",     def: "Interface command. Enables port security on the port.", weight: "high" },
-      { id: "5.7.h.3", term: "maximum / mac-address",        def: "'port-security maximum [N]' sets max MACs. 'port-security mac-address [MAC]' statically allows specific MAC.", weight: "high" },
-      { id: "5.7.h.4", term: "Config order",                 def: "(1) mode access, (2) port-security enable, (3) max, (4) mac-address or sticky, (5) violation mode.", weight: "high" }
+      {
+        id: "5.7.h.1",
+        term: "Port-security prereq",
+        weight: "high",
+        info: "<p>Port security has one non-negotiable prerequisite: the port must be set to a <strong>non-dynamic mode</strong>. The command <code>switchport mode access</code> is the standard path on CCNA — it pins the port to access mode so port security can engage.</p><p><strong>Why this matters:</strong> Dynamic ports (dynamic auto / dynamic desirable) negotiate their mode via DTP. Port security needs a deterministic mode to know what traffic pattern is normal. On a dynamic port that just negotiated to trunk, enabling port security will fail or behave unpredictably.</p><p><strong>Correct sequence:</strong></p><pre>interface Gi0/5\n switchport mode access     ← STEP 1: pin the mode\n switchport port-security    ← STEP 2: enable the feature</pre><p><strong>Also valid for specific use cases:</strong> <code>switchport mode trunk</code> + port security on a trunk (uncommon, and not tested on CCNA). The access-mode prerequisite is what the exam expects.</p><p><strong>Common mistake:</strong> Skipping step 1. Typing <code>switchport port-security</code> on a default (dynamic auto) port — the IOS accepts the command but the feature may not activate until the port's mode is resolved. Worse, if DTP later negotiates the port to trunk, port security can behave inconsistently.</p><p><strong>Best practice for every access port:</strong></p><pre>interface Gi0/1 - 48\n switchport mode access\n switchport nonegotiate     ← disables DTP\n switchport port-security</pre><p><strong>Verify:</strong> <code>show interfaces Gi0/5 switchport</code> — look for 'Administrative Mode: static access' before enabling port security.</p>",
+        visual: { type: "state-machine", params: { states: ["Dynamic (DTP negotiating)", "Set to access", "Port security allowed", "Enable port-security"], active: 1, transitions: true } },
+        hack: {
+          memory: "RULE: 'switchport mode access' FIRST, then 'switchport port-security'. Port security hates dynamic ports. Skip the prereq and the feature doesn't engage cleanly.",
+          practice: "On a default port, type 'switchport port-security' without the access-mode line. Check 'show port-security interface' — port may show the config but not be fully enabled. Now add 'switchport mode access' first, re-verify. This teaches the ordering.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 53. Wendell Odom OCG Chapter 30. Exam expects you to configure access mode first. Most sim questions include this step — if you skip it, other port security commands fail."
+        }
+      },
+      {
+        id: "5.7.h.2",
+        term: "switchport port-security",
+        weight: "high",
+        info: "<p><code>switchport port-security</code> (interface-level) is the <strong>master enable</strong> for port security on a specific port. It turns on tracking of source MACs and activates the configured maximum, violation mode, and address-learning method.</p><p><strong>Syntax:</strong></p><pre>interface Gi0/5\n switchport mode access\n switchport port-security</pre><p><strong>What enabling does without any other options:</strong></p><ul><li><strong>Maximum MACs:</strong> 1 (default)</li><li><strong>Violation mode:</strong> shutdown (default) — port err-disables on violation</li><li><strong>Learning mode:</strong> dynamic — first MAC observed is remembered (lost on port bounce or reboot)</li></ul><p>So a bare <code>switchport port-security</code> on an access port = one MAC allowed, shutdown on violation, no persistence. This is usable but not ideal — most deployments tune max and use sticky learning.</p><p><strong>Disable:</strong> <code>no switchport port-security</code> turns off the feature and clears all secured MACs on the port.</p><p><strong>Verification:</strong></p><pre>Switch# show port-security interface Gi0/5\nPort Security              : Enabled\nPort Status                : Secure-up\nViolation Mode             : Shutdown\nAging Time                 : 0 mins\nAging Type                 : Absolute\nSecureStatic Address Aging : Disabled\nMaximum MAC Addresses      : 1\nTotal MAC Addresses        : 1\nConfigured MAC Addresses   : 0\nSticky MAC Addresses       : 0\nLast Source Address:Vlan   : aaaa.bbbb.cccc:10\nSecurity Violation Count   : 0</pre>",
+        visual: { type: "hierarchy", params: { root: "switchport port-security", children: [{ name: "Defaults", children: [{ name: "Max: 1" }, { name: "Violation: shutdown" }, { name: "Learning: dynamic" }] }] } },
+        hack: {
+          memory: "'switchport port-security' (no other args) = master ON. Defaults kick in: max 1, violation shutdown, dynamic learning. To do anything smarter, add more commands.",
+          practice: "Apply just 'switchport mode access' + 'switchport port-security' to a lab port. Connect one device — works. Connect a second — err-disable. Recover with shut/no-shut. Understand what the bare enable does before adding options.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 53. Wendell Odom OCG Chapter 30. The exam wants you to know defaults: max 1, violation shutdown. Memorize both."
+        }
+      },
+      {
+        id: "5.7.h.3",
+        term: "maximum / mac-address",
+        weight: "high",
+        info: "<p>Two interface-level commands tune <em>how many</em> and <em>which</em> MACs are allowed.</p><p><strong>1. Maximum:</strong></p><pre>switchport port-security maximum [N]</pre><p>Sets the cap on distinct MACs the port will learn. Default 1. Range typically 1–132 on most platforms (platform-dependent).</p><p><strong>2. Static MAC:</strong></p><pre>switchport port-security mac-address aaaa.bbbb.cccc</pre><p>Manually whitelists a specific MAC. The MAC is saved in running-config as a permanent static secure entry. Only this MAC (and any others you add) can use the port.</p><p><strong>3. Sticky MAC:</strong></p><pre>switchport port-security mac-address sticky</pre><p>Auto-learns MACs and writes them into running-config as secure entries (marked 'SecureSticky'). Convenient middle ground between manual and dynamic.</p><p><strong>Combining them:</strong></p><pre>interface Gi0/5\n switchport port-security\n switchport port-security maximum 2\n switchport port-security mac-address sticky\n switchport port-security mac-address aaaa.bbbb.cccc     ← static for a known device</pre><p>With maximum 2: one sticky-learned MAC + one static MAC can coexist.</p><p><strong>Interaction with violation:</strong> If you configure a static MAC AND the port sees a different MAC, the different MAC is a violation (regardless of whether the max is hit) — because the static MAC has already been 'claimed.'</p><p><strong>Verify:</strong> <code>show port-security address</code> — lists all secured MACs with type (SecureConfigured / SecureSticky / SecureDynamic) and their associated ports.</p>",
+        visual: { type: "comparison", params: { left: { label: "Static", items: ["Manually typed MAC", "Permanent in running-config", "No auto-learn", "Highest control"] }, right: { label: "Sticky", items: ["Auto-learned", "Saved to running-config", "Survives port bounce", "Lost on reboot without 'copy run start'"] } } },
+        hack: {
+          memory: "Three ways to fill the MAC slots: dynamic (volatile), sticky (learned + saved to running-config), static (typed by admin). Max + mac-address options work together — max 2 + one static MAC = one slot left for a sticky/dynamic learn.",
+          practice: "Configure max 2, add one static MAC, enable sticky. Connect a device with a DIFFERENT MAC — sticky learns it into slot 2. 'show port-security address' shows both rows. Connect a third device — violation. Perfect demo of combining modes.",
+          effort: "medium",
+          meta: "Jeremy's IT Lab Day 53. Wendell Odom OCG Chapter 30. Exam command syntax: 'switchport port-security maximum N' and 'switchport port-security mac-address [H.H.H | sticky]'."
+        }
+      },
+      {
+        id: "5.7.h.4",
+        term: "Config order",
+        weight: "high",
+        info: "<p>The canonical port security configuration order on an access port:</p><ol><li><strong>Pin the mode:</strong> <code>switchport mode access</code> (prerequisite)</li><li><strong>Enable port security:</strong> <code>switchport port-security</code></li><li><strong>Set the max:</strong> <code>switchport port-security maximum [N]</code> (default 1)</li><li><strong>Choose MAC learning:</strong> <code>switchport port-security mac-address sticky</code> OR <code>switchport port-security mac-address [H.H.H]</code> (static)</li><li><strong>Set violation mode:</strong> <code>switchport port-security violation [protect|restrict|shutdown]</code> (default shutdown)</li></ol><p><strong>Full template:</strong></p><pre>interface GigabitEthernet0/5\n description User Access Port\n switchport mode access\n switchport access vlan 10\n switchport port-security\n switchport port-security maximum 2\n switchport port-security mac-address sticky\n switchport port-security violation restrict</pre><p><strong>Order gotchas:</strong></p><ul><li>You can enter commands in almost any order — IOS accepts them — but port security only activates cleanly when mode=access is in place. If you forget step 1 and type port-security commands, some will fail silently or produce inconsistent behavior.</li><li>If a port is already up with traffic and you apply port security, the first MAC seen becomes secured (sticky or dynamic). You may get an unexpected MAC locked in.</li><li>Always <strong>shutdown</strong> the port, configure, then <strong>no shutdown</strong> — cleanest approach.</li></ul><p><strong>Save sticky MACs:</strong> <code>copy running-config startup-config</code>. Sticky MACs live in running-config; without saving, they're lost on reboot and re-learned from scratch.</p>",
+        visual: { type: "layer-stack", params: { layers: ["1. switchport mode access", "2. switchport port-security", "3. maximum N", "4. mac-address sticky or static", "5. violation mode"], highlight: 0 } },
+        hack: {
+          memory: "Five-step recipe: access mode → enable → max → MAC learning → violation. Shortcut mnemonic: 'AM-P-M-M-V' (Access Mode, Port-security, Max, MAC-address, Violation). Save running-config or sticky MACs die on reboot.",
+          practice: "Type the full 5-step template from memory, on a lab port, three times in a row. Test it works. Erase and do it again. Muscle memory is what the exam sim rewards.",
+          effort: "medium",
+          meta: "Jeremy's IT Lab Day 53. Wendell Odom OCG Chapter 30. Expect a simulator question requiring exact port-security config. Know all 5 steps cold."
+        }
+      }
     ]
   },
 
@@ -2140,9 +2980,45 @@ window.subtopicContentD56 = {
       meta: "Jeremy's IT Lab Day 53. Wendell Odom OCG Chapter 30. Exam question: 'How to auto-learn and retain MACs?' = sticky. Critical detail: must SAVE config (<code>copy run start</code>) or sticky MACs are lost on reboot.",
     },
     micro: [
-      { id: "5.7.i.1", term: "switchport port-security mac-address sticky", def: "Auto-learn connected MACs and ADD them to running-config. Convenient — no manual MAC entry.", weight: "high" },
-      { id: "5.7.i.2", term: "Sticky reboot gotcha",         def: "Sticky MACs are in RUNNING-config. Must 'copy run start' or they're lost on reboot (re-learned after).", weight: "high" },
-      { id: "5.7.i.3", term: "Static vs sticky",             def: "Static = manually typed in config. Sticky = auto-learned but saved as static. Both persistent.", weight: "high" }
+      {
+        id: "5.7.i.1",
+        term: "switchport port-security mac-address sticky",
+        weight: "high",
+        info: "<p><code>switchport port-security mac-address sticky</code> tells the switch: <strong>automatically learn MACs on this port AND write them into running-config as static secure entries.</strong> It's the 'set-and-forget' path between fully manual and fully dynamic MAC learning.</p><p><strong>What happens on first connection:</strong> A PC plugs in and sends its first frame. The switch learns the source MAC and immediately writes a line into running-config:</p><pre>interface Gi0/5\n switchport port-security mac-address sticky aaaa.bbbb.cccc</pre><p>That MAC is now a permanent secure entry for as long as it stays in running-config.</p><p><strong>Key behaviors:</strong></p><ul><li><strong>Survives port bounce / link flap</strong> — the MAC is in running-config, so interface down/up doesn't lose it</li><li><strong>Survives <code>clear mac address-table</code></strong> — secure entries aren't touched by that command</li><li><strong>Does NOT survive reboot</strong> unless you save config (<code>copy running-config startup-config</code> or <code>write memory</code>)</li><li><strong>Stops learning when max is reached</strong> — subsequent new MACs trigger violations</li></ul><p><strong>When sticky is wrong:</strong> Shared ports where multiple devices may legitimately connect over time (conference rooms, hot-desks). Sticky locks in whoever plugged in first.</p><p><strong>Remove a sticky MAC:</strong></p><pre>interface Gi0/5\n no switchport port-security mac-address sticky aaaa.bbbb.cccc</pre><p><strong>Convert all sticky MACs on an interface to static:</strong></p><pre>interface Gi0/5\n switchport port-security mac-address sticky</pre><p>(Once learned, sticky entries appear in running-config exactly like static ones.)</p>",
+        visual: { type: "state-machine", params: { states: ["Sticky enabled", "First MAC observed", "MAC written to running-config", "Permanent until removed or max reached"], active: 2, transitions: true } },
+        hack: {
+          memory: "Sticky = 'auto-learn, but save it.' First MAC sticks to running-config forever (until you remove it). Skip manual MAC entry, gain persistence. Must 'copy run start' to survive reboot.",
+          practice: "Enable sticky on a lab port. Connect a device. Run 'show running-config interface Gi0/5' — see the auto-added 'switchport port-security mac-address sticky XXXX.XXXX.XXXX' line. Bounce the port — MAC stays. Reload without saving — MAC gone. Save, reload — MAC survives.",
+          effort: "medium",
+          meta: "Jeremy's IT Lab Day 53. Wendell Odom OCG Chapter 30. Sticky is the most-asked port-security learning mode on the exam. Know: auto-learn → running-config → must save to survive reboot."
+        }
+      },
+      {
+        id: "5.7.i.2",
+        term: "Sticky reboot gotcha",
+        weight: "high",
+        info: "<p><strong>The gotcha:</strong> Sticky MACs live in <strong>running-config</strong>, not startup-config. If the switch reboots before you save, all learned sticky MACs are lost. The port becomes empty of secure entries, and on the next connection, a fresh MAC is learned and stored. This is fine for the same device — but for a replaced device (e.g., refurbished laptop), the new MAC is learned and 'trusted' automatically.</p><p><strong>Reboot scenarios:</strong></p><ol><li><strong>Saved config:</strong> Sticky MACs survive. Port behaves identically after reboot.</li><li><strong>Unsaved config + same device reconnects first:</strong> Same MAC is re-learned into an empty sticky slot. Port behaves identically. No alert.</li><li><strong>Unsaved config + different device connects first:</strong> New MAC is learned into the empty slot. The formerly secure MAC is now rejected if it reconnects. Confusing failures.</li></ol><p><strong>Standard fix:</strong> After any sticky MAC is learned (typically during initial deployment), run <code>copy running-config startup-config</code> or <code>write memory</code>. Better: put this in your port security deployment checklist so it happens automatically.</p><p><strong>Why Cisco didn't make it automatic:</strong> Writing every learned MAC immediately to startup-config would cause excessive NVRAM wear and could slow deployment. Sticky is a compromise between persistence and flash-lifetime.</p><p><strong>Automation trick:</strong> Use EEM or a cron job that periodically runs <code>write memory</code> on switches with lots of sticky learning. Many orgs do this every few hours.</p><p><strong>Verify:</strong> <code>show port-security address</code> shows 'SecureSticky' vs 'SecureConfigured'. Check <code>show running-config</code> vs <code>show startup-config</code> to confirm whether sticky MACs are saved.</p>",
+        visual: { type: "state-machine", params: { states: ["Sticky MAC learned", "In running-config", "Reboot WITHOUT save", "MAC lost — re-learn fresh"], active: 3, transitions: true } },
+        hack: {
+          memory: "Sticky MACs = running-config only. Reboot without 'copy run start' = all sticky MACs gone. The first device to reconnect gets re-learned — which can be the WRONG device. Always save after sticky learning.",
+          practice: "Learn a sticky MAC on a lab port. Verify in 'show run'. Reload without saving — sticky MAC is gone. Connect a DIFFERENT device — its MAC is learned fresh. Now re-plug the original device — violation. This burns the lesson in.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 53. Wendell Odom OCG Chapter 30. Exam fact: sticky is in running-config, NOT startup-config. Must save or lose on reboot. This distinction is tested."
+        }
+      },
+      {
+        id: "5.7.i.3",
+        term: "Static vs sticky",
+        weight: "high",
+        info: "<p>Three learning modes for port security MACs — choose based on environment:</p><table><tr><th>Mode</th><th>How MAC Gets In</th><th>In Running-Config?</th><th>Survives Port Bounce?</th><th>Survives Reboot?</th></tr><tr><td><strong>Dynamic</strong></td><td>Auto-learned</td><td>No</td><td>No</td><td>No</td></tr><tr><td><strong>Sticky</strong></td><td>Auto-learned</td><td>Yes</td><td>Yes</td><td>Only if saved</td></tr><tr><td><strong>Static</strong></td><td>Manually typed</td><td>Yes</td><td>Yes</td><td>Only if saved</td></tr></table><p><strong>When to use each:</strong></p><ul><li><strong>Dynamic</strong> — low-security environments, lab setups, or as a temporary baseline. Rarely used in production because no persistence.</li><li><strong>Sticky</strong> — production workhorse. Admins don't have to track MACs manually; the switch learns each user's device automatically and locks it in. Dominant real-world mode.</li><li><strong>Static</strong> — high-security ports where the allowed MAC is known in advance (e.g., a specific server or printer). Admin explicitly configures the MAC — no auto-learning happens.</li></ul><p><strong>Mixed deployment:</strong> You can combine static + sticky. Example: max 2, one static MAC for a known printer, sticky for whatever user device plugs in.</p><pre>switchport port-security maximum 2\nswitchport port-security mac-address aaaa.bbbb.cccc     ← static printer\nswitchport port-security mac-address sticky              ← learn user device</pre><p><strong>Exam distillation:</strong> Static = manually typed. Sticky = auto-learned + saved to running-config. Dynamic = auto-learned + NOT saved.</p>",
+        visual: { type: "comparison", params: { left: { label: "Sticky", items: ["Auto-learn", "Saved to running-config", "Convenient + persistent", "Most common in production"] }, right: { label: "Static", items: ["Manually typed", "Zero auto-learn", "Highest control", "Best for known-MAC hosts"] } } },
+        hack: {
+          memory: "Dynamic = volatile. Sticky = auto + saved. Static = manual + saved. Sticky is the production default. Static is for known MACs like servers. Dynamic is rare.",
+          practice: "Apply all three modes on three different lab ports. Connect devices to each. 'show port-security address' shows SecureDynamic / SecureSticky / SecureConfigured — three different types. Reboot each — watch which survives. This table snaps into place quickly.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 53. Wendell Odom OCG Chapter 30. Know the three types and their persistence behavior. This is pure recall on the exam."
+        }
+      }
     ]
   },
 
@@ -2156,10 +3032,58 @@ window.subtopicContentD56 = {
       meta: "Jeremy's IT Lab Day 53. Wendell Odom OCG Chapter 30. The exam tests all three modes. Key facts: Protect = NO log. Restrict = log + port stays up. Shutdown = err-disabled (DEFAULT). Know what each does and doesn't do.",
     },
     micro: [
-      { id: "5.7.j.1", term: "Protect mode",                 def: "Drops violating frames silently. NO log, NO SNMP trap. Port stays up. Weakest enforcement.", weight: "high" },
-      { id: "5.7.j.2", term: "Restrict mode",                def: "Drops violating frames + LOGS syslog/SNMP trap + increments counter. Port stays up.", weight: "high" },
-      { id: "5.7.j.3", term: "Shutdown mode (default)",      def: "Port → err-disabled. Requires manual intervention. Logs + increments violation count. DEFAULT.", weight: "high" },
-      { id: "5.7.j.4", term: "switchport port-security violation", def: "Interface command. Takes 'protect', 'restrict', or 'shutdown'. Default is 'shutdown'.", weight: "high" }
+      {
+        id: "5.7.j.1",
+        term: "Protect mode",
+        weight: "high",
+        info: "<p><strong>Protect</strong> is the quietest of the three port security violation modes. When a violation occurs (unauthorized MAC or max exceeded), the switch silently <strong>drops the offending frames</strong> from the unknown MAC. The port stays up, legitimate traffic continues, and <strong>nothing is logged</strong>.</p><p><strong>Behavior summary:</strong></p><ul><li>Drop unauthorized MAC's frames: <strong>YES</strong></li><li>Port stays up: <strong>YES</strong></li><li>Syslog message: <strong>NO</strong></li><li>SNMP trap: <strong>NO</strong></li><li>Violation counter increments: <strong>NO</strong></li></ul><p><strong>Configuration:</strong></p><pre>interface Gi0/5\n switchport port-security violation protect</pre><p><strong>Why use protect:</strong></p><ul><li><strong>Low-disruption enforcement</strong> — users see 'network not working' from their unauthorized device but don't know why. No noisy logs from known-bad scenarios (e.g., conference rooms with frequent device changes).</li><li><strong>Cleanest for automated systems</strong> — no syslog flood to ship/index.</li></ul><p><strong>Downsides:</strong></p><ul><li><strong>No visibility</strong> — security team has no record of violation attempts. Attackers can probe ports silently.</li><li><strong>Hard to troubleshoot</strong> — if a legit user complains their device doesn't work, you have no log to correlate.</li></ul><p><strong>Verification:</strong> <code>show port-security interface</code> shows 'Violation Mode : Protect' and 'Security Violation Count : 0' (always 0 in protect mode, even if violations occurred).</p>",
+        visual: { type: "state-machine", params: { states: ["Violation occurs", "Drop unauthorized MAC frames", "Port stays up", "NO log, NO counter"], active: 3, transitions: true } },
+        hack: {
+          memory: "PROTECT = silent drop. Frames from unauthorized MAC get dropped; port stays up; NOTHING is logged. Weakest enforcement — attacker probes without leaving evidence. Use only when you want invisible enforcement.",
+          practice: "Set protect mode, trigger a violation (second MAC on a max=1 port). Legitimate traffic continues. Run 'show port-security interface' — violation count stays at 0. Check syslog — no message. Compare against restrict mode later.",
+          effort: "medium",
+          meta: "Jeremy's IT Lab Day 53. Wendell Odom OCG Chapter 30. Key exam fact: Protect = NO log, NO counter. This is what distinguishes it from Restrict."
+        }
+      },
+      {
+        id: "5.7.j.2",
+        term: "Restrict mode",
+        weight: "high",
+        info: "<p><strong>Restrict</strong> is the middle ground. Unauthorized MAC frames are <strong>dropped</strong>, but the switch also <strong>logs the violation</strong> (syslog + SNMP trap + counter increment). The port stays up and forwards legitimate traffic from authorized MACs.</p><p><strong>Behavior summary:</strong></p><ul><li>Drop unauthorized MAC's frames: <strong>YES</strong></li><li>Port stays up: <strong>YES</strong></li><li>Syslog message: <strong>YES</strong></li><li>SNMP trap: <strong>YES</strong></li><li>Violation counter increments: <strong>YES</strong></li></ul><p><strong>Configuration:</strong></p><pre>interface Gi0/5\n switchport port-security violation restrict</pre><p><strong>Why use restrict:</strong></p><ul><li><strong>Visibility without disruption</strong> — security team sees every violation attempt in syslog/SIEM, but the port stays operational for legit users. Ideal for environments where err-disable is too aggressive but you need auditing.</li><li><strong>Troubleshooting data</strong> — when a user's device doesn't work, the violation log immediately shows which MAC was rejected.</li></ul><p><strong>Syslog example:</strong></p><pre>%PORT_SECURITY-2-PSECURE_VIOLATION: Security violation occurred, caused by\nMAC address 1111.2222.3333 on port GigabitEthernet0/5.</pre><p><strong>Violation counter:</strong></p><pre>Switch# show port-security interface Gi0/5\n...\nSecurity Violation Count   : 47</pre><p><strong>When restrict isn't enough:</strong> If you need the port to physically stop traffic (HIPAA-sensitive environment, regulatory compliance), use shutdown instead.</p>",
+        visual: { type: "state-machine", params: { states: ["Violation occurs", "Drop unauthorized frames", "Syslog + SNMP trap", "Counter increments", "Port stays up"], active: 2, transitions: true } },
+        hack: {
+          memory: "RESTRICT = drop + REPORT. Unauthorized MAC dropped, but syslog fires, SNMP trap sent, violation counter climbs. Port stays operational for authorized users. Middle of the three modes — visible but non-disruptive.",
+          practice: "Set restrict. Trigger violations. Verify (1) unauthorized traffic drops, (2) authorized traffic flows, (3) 'show port-security interface' violation count increments, (4) syslog has the %PORT_SECURITY-2-PSECURE_VIOLATION message. Compare directly with protect mode (same drop, no log).",
+          effort: "medium",
+          meta: "Jeremy's IT Lab Day 53. Wendell Odom OCG Chapter 30. Exam distinction: Restrict increments the violation counter and logs. Protect does neither. Shutdown does both AND err-disables."
+        }
+      },
+      {
+        id: "5.7.j.3",
+        term: "Shutdown mode (default)",
+        weight: "high",
+        info: "<p><strong>Shutdown</strong> is port security's <strong>default</strong> and most aggressive violation mode. On the first violation, the port is immediately placed in <strong>err-disabled state</strong>, stopping ALL traffic (including from authorized MACs). Syslog logs the event, SNMP fires, and the violation counter increments.</p><p><strong>Behavior summary:</strong></p><ul><li>Drop unauthorized frames: <strong>YES (and all other traffic too)</strong></li><li>Port stays up: <strong>NO — goes err-disabled</strong></li><li>Syslog message: <strong>YES</strong></li><li>SNMP trap: <strong>YES</strong></li><li>Violation counter increments: <strong>YES</strong></li></ul><p><strong>Configuration:</strong></p><pre>interface Gi0/5\n switchport port-security violation shutdown</pre><p>(This is also the default — you get shutdown mode by just enabling port security with no violation command.)</p><p><strong>Err-disable state visual:</strong> <code>show interfaces Gi0/5 status</code> shows 'err-disabled'. Port LED is amber. <code>show port-security interface</code> shows 'Port Status: Secure-shutdown'.</p><p><strong>Recovery options:</strong></p><ul><li><strong>Manual:</strong> <code>interface Gi0/5</code> → <code>shutdown</code> → <code>no shutdown</code> (must do BOTH — no-shutdown alone doesn't recover from err-disable)</li><li><strong>Automatic:</strong> <code>errdisable recovery cause psecure-violation</code> + <code>errdisable recovery interval 300</code> (port auto-recovers after 5 minutes)</li></ul><p><strong>When to use shutdown:</strong> Highest-security environments — financial networks, sensitive research, regulatory compliance. The disruption is the point: unauthorized access means everyone on that port loses service, which gets attention fast.</p><p><strong>Why it's the default:</strong> Cisco chose the most conservative mode as default. Administrators who want less disruption must explicitly opt into protect or restrict.</p>",
+        visual: { type: "shield", params: { items: ["Port → err-disabled", "All traffic stops", "Syslog + SNMP + counter", "Manual or auto recovery", "DEFAULT mode"], color: "#ef4444" } },
+        hack: {
+          memory: "SHUTDOWN = slam the whole port. One unauthorized MAC = port goes err-disabled = NOBODY can use it until you recover. Default mode. Most secure, most disruptive. Recover with 'shut / no shut' or auto via errdisable recovery.",
+          practice: "Leave violation at default (shutdown). Trigger one violation — port goes err-disabled immediately. 'show interfaces status' shows err-disabled. Recover manually (shut / no-shut). Then configure 'errdisable recovery cause psecure-violation' with interval 30 — trigger again, wait 30s, watch auto-recovery.",
+          effort: "medium",
+          meta: "Jeremy's IT Lab Day 53. Wendell Odom OCG Chapter 30. Shutdown = default. Memorize this fact. Also: err-disable recovery syntax ('errdisable recovery cause psecure-violation')."
+        }
+      },
+      {
+        id: "5.7.j.4",
+        term: "switchport port-security violation",
+        weight: "high",
+        info: "<p><code>switchport port-security violation [protect | restrict | shutdown]</code> — interface-level command that selects which action occurs when a port security violation is detected.</p><p><strong>Three options, increasing severity:</strong></p><table><tr><th>Mode</th><th>Drops Frames</th><th>Logs</th><th>Counts</th><th>Shuts Port</th></tr><tr><td><strong>Protect</strong></td><td>Yes</td><td>No</td><td>No</td><td>No</td></tr><tr><td><strong>Restrict</strong></td><td>Yes</td><td>Yes</td><td>Yes</td><td>No</td></tr><tr><td><strong>Shutdown (default)</strong></td><td>Yes</td><td>Yes</td><td>Yes</td><td>Yes (err-disable)</td></tr></table><p><strong>Default:</strong> If you don't specify violation mode, shutdown is used.</p><p><strong>Example:</strong></p><pre>interface Gi0/5\n switchport mode access\n switchport port-security\n switchport port-security maximum 2\n switchport port-security violation restrict</pre><p><strong>Choosing the right mode:</strong></p><ul><li><strong>Protect</strong> — low-risk environments, you want the feature invisible.</li><li><strong>Restrict</strong> — you want visibility without disruption. Good for moderately secure corporate networks.</li><li><strong>Shutdown</strong> — default. Use when disruption on violation is acceptable or desired.</li></ul><p><strong>Exam recall trick:</strong> alphabetical order matches severity: <strong>P</strong>rotect (least) → <strong>R</strong>estrict (middle) → <strong>S</strong>hutdown (most).</p><p><strong>Change mode without losing config:</strong> Just re-issue the violation command with a new mode. No shutdown/no-shutdown needed.</p>",
+        visual: { type: "comparison", params: { left: { label: "Less Severe", items: ["Protect: silent drop", "Restrict: drop + log", "Shutdown: err-disable (DEFAULT)"] }, right: { label: "Tradeoffs", items: ["Protect: no visibility", "Restrict: best of both", "Shutdown: safest, disruptive"] } } },
+        hack: {
+          memory: "P-R-S, alphabetical = severity order. Protect = silent. Restrict = drop + log. Shutdown = err-disable (DEFAULT). The command: 'switchport port-security violation [mode]'. Default is shutdown — you don't have to type it to get it.",
+          practice: "On three lab ports, apply each of the three violation modes. Trigger a violation on each and compare: port 1 (protect) — nothing visible. Port 2 (restrict) — log message + counter. Port 3 (shutdown) — err-disabled. Document the differences.",
+          effort: "medium",
+          meta: "Jeremy's IT Lab Day 53. Wendell Odom OCG Chapter 30. Classic exam question: 'which violation mode drops traffic but keeps the port up and logs?' = Restrict. Know the table cold."
+        }
+      }
     ]
   },
 
@@ -2173,9 +3097,45 @@ window.subtopicContentD56 = {
       meta: "Jeremy's IT Lab Day 53. Wendell Odom OCG Chapter 30. The exam tests both recovery methods. Manual = <code>shut</code> / <code>no shut</code>. Auto = <code>errdisable recovery cause</code> + <code>interval</code>. Know both.",
     },
     micro: [
-      { id: "5.7.k.1", term: "err-disabled recovery manual", def: "'shutdown' then 'no shutdown' on the port. Returns to normal operation.", weight: "high" },
-      { id: "5.7.k.2", term: "errdisable recovery cause",    def: "Global command to auto-recover. E.g., 'errdisable recovery cause psecure-violation' enables auto-recovery from port security.", weight: "high" },
-      { id: "5.7.k.3", term: "errdisable recovery interval", def: "Time (seconds) before auto-recovery attempt. Default 300s.", weight: "med" }
+      {
+        id: "5.7.k.1",
+        term: "err-disabled recovery manual",
+        weight: "high",
+        info: "<p>When a port enters <strong>err-disabled</strong> state (from port security, BPDU guard, DHCP rate limit, etc.), it stops forwarding all traffic. The simplest recovery is <strong>manual</strong>: shutdown and no-shutdown the interface.</p><p><strong>The recovery sequence:</strong></p><pre>Switch# configure terminal\nSwitch(config)# interface GigabitEthernet0/5\nSwitch(config-if)# shutdown\nSwitch(config-if)# no shutdown</pre><p><strong>Why BOTH commands:</strong> <code>no shutdown</code> alone does NOT bring an err-disabled port back up. The port must be administratively shutdown first (cleanly setting its state to admin-down), then re-enabled with no-shutdown. This cycles the state machine back to a clean 'up' state.</p><p><strong>Before recovering — INVESTIGATE:</strong></p><ol><li>Find the cause: <code>show interfaces GigabitEthernet0/5</code> shows 'err-disabled' and often the reason (e.g., 'psecure-violation')</li><li>For port security: <code>show port-security interface Gi0/5</code> shows which MAC triggered the violation</li><li>Address the underlying problem (rogue device, misconfig, cable issue) before recovering — otherwise the port will err-disable again within minutes</li></ol><p><strong>Common mistake:</strong> recovering without investigating. The port comes up, violates again, goes back down. Repeat until someone finally checks the logs.</p><p><strong>Recovery script trick:</strong> For quick recovery during known maintenance:</p><pre>Switch# clear port-security sticky interface Gi0/5\nSwitch# configure terminal\nSwitch(config)# interface Gi0/5\nSwitch(config-if)# shutdown\nSwitch(config-if)# no shutdown</pre><p>(Clearing sticky MACs before recovery lets the port re-learn fresh.)</p><p><strong>Verify recovery:</strong> <code>show interfaces Gi0/5 status</code> should show 'connected' (not err-disabled). 'show port-security interface' should show 'Secure-up'.</p>",
+        visual: { type: "state-machine", params: { states: ["Active (secure-up)", "Violation", "err-disabled", "shutdown", "no shutdown", "Active"], active: 2, transitions: true } },
+        hack: {
+          memory: "Manual recovery = SHUT then NO SHUT. Both commands. No-shut alone doesn't work on err-disabled ports. Before recovering: find the cause, fix it, THEN recover. Otherwise you'll play whack-a-mole.",
+          practice: "Trigger err-disable via port security violation. Try 'no shutdown' alone — port stays err-disabled. Now issue 'shutdown' then 'no shutdown' — port recovers. This teaches the two-command requirement.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 53. Wendell Odom OCG Chapter 30. Exam question: 'How do you recover an err-disabled port?' = shutdown followed by no-shutdown. Both commands needed."
+        }
+      },
+      {
+        id: "5.7.k.2",
+        term: "errdisable recovery cause",
+        weight: "high",
+        info: "<p><code>errdisable recovery cause [reason]</code> is a <strong>global</strong> configuration command that enables automatic recovery from err-disabled state for specific causes. When enabled, the switch waits a timer and then auto-recovers the port — no admin intervention.</p><p><strong>Syntax:</strong></p><pre>Switch(config)# errdisable recovery cause psecure-violation\nSwitch(config)# errdisable recovery cause bpduguard\nSwitch(config)# errdisable recovery cause dhcp-rate-limit\nSwitch(config)# errdisable recovery cause arp-inspection</pre><p><strong>Common causes:</strong></p><ul><li><code>psecure-violation</code> — port security violation</li><li><code>bpduguard</code> — BPDU guard fired</li><li><code>dhcp-rate-limit</code> — DHCP snooping rate limit exceeded</li><li><code>arp-inspection</code> — DAI rate limit or drop</li><li><code>link-flap</code> — excessive port flapping</li><li><code>udld</code> — unidirectional link detection</li><li><code>all</code> — enable auto-recovery for ALL causes (convenient but less targeted)</li></ul><p><strong>Shortcut:</strong> <code>errdisable recovery cause all</code> turns on auto-recovery for everything. Use cautiously — some causes (like root-inconsistent) may warrant permanent shutdown until investigated.</p><p><strong>Companion command:</strong> <code>errdisable recovery interval [seconds]</code> — sets how long the switch waits before attempting recovery. Default 300 (5 minutes).</p><p><strong>Verification:</strong> <code>show errdisable recovery</code> shows which causes have auto-recovery enabled and the current interval. Example output:</p><pre>ErrDisable Reason            Timer Status\n-----------------            -------------\npsecure-violation            Enabled\nbpduguard                    Enabled\narp-inspection               Disabled\n...\nTimer interval: 300 seconds</pre><p><strong>Best practice:</strong> Enable for transient causes (link-flap, rate-limit) but leave manual for intentional-looking causes (BPDU guard on an access port).</p>",
+        visual: { type: "hierarchy", params: { root: "errdisable recovery", children: [{ name: "Per-cause enable", children: [{ name: "psecure-violation" }, { name: "bpduguard" }, { name: "dhcp-rate-limit" }] }, { name: "Or 'cause all'" }] } },
+        hack: {
+          memory: "errdisable recovery cause = auto-parole for err-disabled ports. Pick the cause (psecure-violation, bpduguard, dhcp-rate-limit) or use 'all'. Pair with 'errdisable recovery interval N' for timer. 'show errdisable recovery' to verify.",
+          practice: "Enable auto-recovery for port security: 'errdisable recovery cause psecure-violation' + 'errdisable recovery interval 30'. Trigger a violation — port goes err-disabled. Wait 30 seconds — port auto-recovers. Compare to manual recovery cycle.",
+          effort: "medium",
+          meta: "Jeremy's IT Lab Day 53. Wendell Odom OCG Chapter 30. Know the command syntax: 'errdisable recovery cause [reason]'. Common causes tested: psecure-violation, bpduguard, dhcp-rate-limit."
+        }
+      },
+      {
+        id: "5.7.k.3",
+        term: "errdisable recovery interval",
+        weight: "med",
+        info: "<p><code>errdisable recovery interval [seconds]</code> sets the <strong>timer</strong> that the switch waits before attempting to auto-recover an err-disabled port. Applies to all causes that have auto-recovery enabled.</p><p><strong>Syntax:</strong></p><pre>Switch(config)# errdisable recovery interval 300</pre><p><strong>Range and default:</strong></p><ul><li><strong>Default:</strong> 300 seconds (5 minutes)</li><li><strong>Range:</strong> 30 to 86400 seconds (30 seconds to 24 hours)</li></ul><p><strong>Tuning guidance:</strong></p><ul><li><strong>30–60 seconds:</strong> Lab environments, rapid testing. In production this can cause oscillation if the underlying issue isn't fixed.</li><li><strong>300 seconds (default):</strong> Good general purpose. Long enough to notice in monitoring, short enough for users to come back soon.</li><li><strong>600+ seconds:</strong> Production environments where you want repeated violations to stay down longer (forces admin to investigate).</li></ul><p><strong>Global setting:</strong> The interval applies to ALL enabled causes — you can't have different intervals for psecure-violation vs bpduguard. If you need per-cause timing, it's an operational discipline issue (document which causes should be recovered manually vs auto).</p><p><strong>Verification:</strong> <code>show errdisable recovery</code> — final line shows 'Timer interval: N seconds'.</p><p><strong>When recovery is attempted:</strong> At the interval's end, the switch automatically issues a shutdown / no-shutdown sequence on the err-disabled port. If the underlying condition still exists (e.g., rogue MAC still connected), the port err-disables again and the timer restarts.</p>",
+        visual: { type: "state-machine", params: { states: ["Port err-disabled", "Timer starts (300s)", "Timer expires", "Auto shutdown/no-shutdown", "Port up (or re-err-disables)"], active: 2, transitions: true } },
+        hack: {
+          memory: "Interval = timer between err-disable and auto-recover. Default 300s (5 min). Range 30s to 24 hours. ONE timer applies to all causes. 'errdisable recovery interval N'.",
+          practice: "Set interval to 30, enable auto-recovery for psecure-violation, trigger a violation. Time the recovery — should be ~30 seconds. Now set interval to 3600, repeat — 1 hour wait. Feel the knob work.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 53. Wendell Odom OCG Chapter 30. Exam fact: default interval is 300 seconds. Know the command and the default."
+        }
+      }
     ]
   },
 
@@ -2191,10 +3151,58 @@ window.subtopicContentD56 = {
       meta: "Jeremy's IT Lab Day 50 (AAA). Wendell Odom OCG Chapter 10 + Chapter 27. Distinguish the three A's clearly: Authentication = identity, Authorization = permissions, Accounting = logging. The exam loves 'which AAA function does X?'",
     },
     micro: [
-      { id: "5.8.a.1", term: "Authentication",               def: "Proves WHO you are. Credentials verified (password, certificate, token).", weight: "high" },
-      { id: "5.8.a.2", term: "Authorization",                def: "Defines WHAT you can do. Privilege levels, command restrictions, access scope.", weight: "high" },
-      { id: "5.8.a.3", term: "Accounting",                   def: "Records WHAT you DID. Audit trail of actions for compliance and forensics.", weight: "high" },
-      { id: "5.8.a.4", term: "AAA order",                    def: "Authenticate first → Authorize → Account. Order matters — can't authorize unknown user.", weight: "med" }
+      {
+        id: "5.8.a.1",
+        term: "Authentication",
+        weight: "high",
+        info: "<p><strong>Authentication</strong> is the first A in AAA and answers the fundamental question: <strong>'Who are you?'</strong> It is the process of proving a claimed identity by presenting credentials (something you know, have, or are) and having them verified against a trusted source.</p><p><strong>Credential categories (multi-factor building blocks):</strong></p><ul><li><strong>Something you know</strong> — password, PIN, passphrase</li><li><strong>Something you have</strong> — hardware token (YubiKey, RSA SecurID), smart card, phone (for push/OTP)</li><li><strong>Something you are</strong> — fingerprint, face, iris, voice (biometrics)</li></ul><p><strong>Where authentication happens in networking:</strong></p><ul><li><strong>Device admin</strong> — SSH/console/HTTPS login to a router or switch (credentials checked against local user DB, TACACS+, or RADIUS)</li><li><strong>Network access</strong> — 802.1X supplicant presents credentials to the authenticator (switch/AP), which relays them to a RADIUS server</li><li><strong>VPN</strong> — remote user provides username/password or certificate, checked by AAA</li></ul><p><strong>Why it's step 1:</strong> You cannot authorize actions or account for activity if you don't know who the actor is. Identity is the foundation.</p><p><strong>Common Cisco configuration:</strong></p><pre>aaa new-model\nusername admin privilege 15 secret StrongPass!\naaa authentication login default group tacacs+ local</pre><p>This says: enable AAA, create a local admin user, and authenticate login attempts against TACACS+ first, falling back to local users if TACACS+ is unreachable.</p>",
+        visual: { type: "handshake", params: { leftLabel: "User", rightLabel: "AAA Server", steps: ["Submit username/password →", "← Check credentials in DB", "Match → accept", "← Authentication SUCCESS"] } },
+        hack: {
+          memory: "Authentication = 'WHO are you?' First A. Three credential factors: know (password), have (token), are (biometric). Identity first, permissions next, logging last. You can't skip this step.",
+          practice: "Walk through a VPN login mentally: you type username + password (something you know) + hit a YubiKey (something you have). Two-factor auth. Both credentials verified → you're authenticated. Now the system decides what you can access (authorization).",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 50. Wendell Odom OCG Chapters 10 + 27. Clearly distinguish authentication (identity) from authorization (permissions) — most AAA exam questions test this distinction."
+        }
+      },
+      {
+        id: "5.8.a.2",
+        term: "Authorization",
+        weight: "high",
+        info: "<p><strong>Authorization</strong> is the second A and answers: <strong>'What are you allowed to do?'</strong> After authentication has established WHO the user is, authorization determines which resources, commands, VLANs, ACLs, or network segments they may access.</p><p><strong>Examples of authorization decisions:</strong></p><ul><li>Admin user logs into a router → AAA returns <strong>privilege 15</strong> (full config access)</li><li>Helpdesk user logs in → AAA returns <strong>privilege 5</strong> with specific show commands unlocked, no config access</li><li>Employee's laptop authenticates via 802.1X → RADIUS returns <strong>VLAN 10</strong> (corporate)</li><li>Guest's phone authenticates on the same network → RADIUS returns <strong>VLAN 100</strong> (guest-only, internet access)</li><li>Contractor authenticates → RADIUS pushes a <strong>downloadable ACL</strong> restricting source IPs</li></ul><p><strong>Granularity depends on protocol:</strong></p><ul><li><strong>RADIUS</strong> — returns attribute-value pairs at session start (VLAN, ACL, QoS). Cannot authorize individual CLI commands.</li><li><strong>TACACS+</strong> — supports <strong>per-command authorization</strong>. Every CLI command typed can be checked against policy before execution. This is why TACACS+ dominates device administration.</li></ul><p><strong>Authorization without authentication is meaningless.</strong> Every authorization decision is tied to an identity.</p><p><strong>Cisco configuration:</strong></p><pre>aaa authorization exec default group tacacs+ local\naaa authorization commands 15 default group tacacs+ local</pre><p>These tell the device: when a user tries to enter exec mode or run a privilege-15 command, check TACACS+ first.</p>",
+        visual: { type: "hierarchy", params: { root: "Authenticated User", children: [{ name: "Admin role", children: [{ name: "All commands" }, { name: "All interfaces" }, { name: "All VLANs" }] }, { name: "Helpdesk role", children: [{ name: "show commands only" }, { name: "No config mode" }] }] } },
+        hack: {
+          memory: "Authorization = 'WHAT can you do?' Second A. RADIUS returns attributes (VLAN, ACL). TACACS+ can authorize PER COMMAND. Role-based access = authorization. Without authentication first, authorization is meaningless.",
+          practice: "Map three roles: Admin (priv 15, all commands), NetOps (priv 10, specific commands), Helpdesk (priv 5, show only). Describe what TACACS+ returns for each login. This is the mental model for enterprise authorization.",
+          effort: "medium",
+          meta: "Jeremy's IT Lab Day 50. Wendell Odom OCG Chapters 10 + 27. Per-command authorization is a TACACS+ exclusive — know this fact. RADIUS = network access attributes only."
+        }
+      },
+      {
+        id: "5.8.a.3",
+        term: "Accounting",
+        weight: "high",
+        info: "<p><strong>Accounting</strong> is the third A and answers: <strong>'What did you do?'</strong> It creates an audit trail of every significant action the authenticated user performs — logins, logouts, commands executed, sessions started/stopped, bytes transferred.</p><p><strong>What accounting records include:</strong></p><ul><li><strong>EXEC session events</strong> — start/stop timestamps for each login session</li><li><strong>Commands executed</strong> — every CLI command typed (priv-level granular)</li><li><strong>Connection events</strong> — SSH, console, HTTPS, VPN sessions</li><li><strong>Network usage</strong> — bytes/packets sent and received (for billing, often from NAS/VPN gateways)</li><li><strong>System events</strong> — device reloads, config changes, significant state transitions</li></ul><p><strong>Why it matters — compliance and forensics:</strong></p><ul><li><strong>PCI-DSS</strong> requires audit trails for payment-card environments</li><li><strong>HIPAA</strong> requires access logs for PHI systems</li><li><strong>SOX</strong> requires change control logs for financial reporting systems</li><li><strong>GDPR</strong> requires records of who accessed personal data</li><li><strong>Incident response</strong> — when a breach occurs, accounting data answers 'what did the attacker touch?' — essential for scoping</li></ul><p><strong>Centralization is critical:</strong> Local device logs can be cleared by an attacker who gains admin access. Accounting data sent to a central RADIUS/TACACS+ server (or SIEM) is tamper-resistant because it's off-box.</p><p><strong>Cisco configuration:</strong></p><pre>aaa accounting exec default start-stop group tacacs+\naaa accounting commands 15 default start-stop group tacacs+\naaa accounting network default start-stop group radius</pre><p>Three record types: exec sessions, commands at priv 15, and network sessions (802.1X/VPN).</p>",
+        visual: { type: "layer-stack", params: { layers: ["09:15:02 login admin via SSH", "09:15:30 cmd: show run", "09:17:44 cmd: configure terminal", "09:18:02 cmd: interface Gi0/1", "09:22:11 logout admin"], highlight: 2 } },
+        hack: {
+          memory: "Accounting = 'WHAT did you do?' Third A. The security camera. Records logins, commands, sessions, bytes. Critical for PCI/HIPAA/SOX compliance and incident forensics. Must be sent to a central server — local logs can be wiped.",
+          practice: "Enable accounting on a lab device, run a few commands, check the TACACS+ server logs. See each command recorded with timestamp + user. This is the audit trail your security team lives and dies by during incident response.",
+          effort: "medium",
+          meta: "Jeremy's IT Lab Day 50. Wendell Odom OCG Chapters 10 + 27. Accounting is often dismissed on the exam, but compliance questions surface it: 'which AAA function provides the audit trail?' = Accounting."
+        }
+      },
+      {
+        id: "5.8.a.4",
+        term: "AAA order",
+        weight: "med",
+        info: "<p>AAA always runs in the order <strong>Authentication → Authorization → Accounting</strong>. Each step depends on the one before it.</p><p><strong>Why the order is fixed:</strong></p><ol><li><strong>Authentication</strong> establishes identity. Without identity, no subsequent step makes sense.</li><li><strong>Authorization</strong> decides permissions based on that identity. Anonymous users can't be granted roles.</li><li><strong>Accounting</strong> logs actions under that identity. 'User X ran command Y' requires knowing user X in the first place.</li></ol><p><strong>Practical flow for a Cisco device login:</strong></p><ol><li>User SSHes to the device. Device prompts for username/password.</li><li>Device sends credentials to the AAA server for <strong>authentication</strong>. Server returns accept/reject.</li><li>On accept, device queries AAA for <strong>authorization</strong> — what commands and privilege level this user gets.</li><li>As the user runs commands, device forwards each action to AAA for <strong>accounting</strong> logging.</li><li>User logs out → device sends a final accounting 'stop' record to the server.</li></ol><p><strong>Can you use some AAA features without others?</strong> Yes — each is independently configurable. Common hybrids:</p><ul><li>Local authentication + TACACS+ accounting (simple login but centralized audit)</li><li>TACACS+ authentication + local authorization (cloud-based creds with fixed role)</li><li>RADIUS authentication + RADIUS accounting (common for 802.1X/VPN)</li></ul><p><strong>Method lists:</strong> Cisco's method-list syntax defines the order of sources consulted per step. Example: <code>aaa authentication login default group tacacs+ local</code> = try TACACS+ first, fall back to local if unreachable.</p>",
+        visual: { type: "state-machine", params: { states: ["User connects", "Authentication (who?)", "Authorization (what?)", "Accounting (what did they do?)"], active: 1, transitions: true } },
+        hack: {
+          memory: "Order is LOCKED: Authenticate → Authorize → Account. A-A-A in the order they're named. Each depends on the previous. Can't authorize before you know who. Can't log actions before a session exists.",
+          practice: "Narrate the flow for a helpdesk user SSHing in: step 1 credentials checked (authentication), step 2 priv 5 role returned (authorization), step 3 every 'show' command logged (accounting). Repeat for a wireless 802.1X user: credentials → RADIUS auth → VLAN returned → session bytes logged.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 50. Wendell Odom OCG Chapters 10 + 27. Exam recall: AAA order is fixed and logical. Know that accounting depends on authentication to have a subject to log."
+        }
+      }
     ]
   },
 
@@ -2208,9 +3216,45 @@ window.subtopicContentD56 = {
       meta: "Jeremy's IT Lab Day 50. Wendell Odom OCG Chapter 10 + 27. Authorization = privilege levels and command restrictions. It defines WHAT the user can do AFTER proving WHO they are.",
     },
     micro: [
-      { id: "5.8.b.1", term: "Privilege levels",             def: "0-15. 15 = full access (enable). 1 = user-mode. Custom levels let you authorize specific commands.", weight: "high" },
-      { id: "5.8.b.2", term: "Per-command authorization",    def: "TACACS+ feature. Authorize/deny individual IOS commands per user. RADIUS can't do this.", weight: "high" },
-      { id: "5.8.b.3", term: "privilege exec level",         def: "Assign commands to custom privilege levels. Enables role-based access without full enable rights.", weight: "med" }
+      {
+        id: "5.8.b.1",
+        term: "Privilege levels",
+        weight: "high",
+        info: "<p>Cisco IOS defines <strong>16 privilege levels, numbered 0 through 15</strong>. Each level grants access to a defined set of CLI commands. Privilege levels are the foundation of role-based access control on IOS.</p><p><strong>The three predefined levels:</strong></p><ul><li><strong>Level 0</strong> — extremely minimal. Only <code>disable</code>, <code>enable</code>, <code>exit</code>, <code>help</code>, <code>logout</code>. Rarely used directly.</li><li><strong>Level 1 (user EXEC)</strong> — default after login. Basic show commands, ping, telnet. The prompt is <code>Router&gt;</code>. No configuration access.</li><li><strong>Level 15 (privileged EXEC)</strong> — full admin. All show commands, debug, configure terminal. The prompt is <code>Router#</code>. This is what <code>enable</code> gets you.</li></ul><p><strong>Levels 2–14</strong> are <strong>user-defined</strong> — empty by default, but administrators can move commands to specific levels for custom roles.</p><p><strong>Custom level example (Helpdesk role):</strong></p><pre>privilege exec level 5 show running-config\nprivilege exec level 5 show interfaces\nprivilege exec level 5 ping\nusername helpdesk privilege 5 secret SafePass!</pre><p>When helpdesk logs in, they land at level 5, which has only the show and ping commands unlocked.</p><p><strong>Enable level:</strong> <code>enable 5</code> prompts for the level-5 password and elevates the user to privilege 5. <code>enable</code> alone = privilege 15.</p><p><strong>Limits:</strong> Privilege levels aren't perfect — a command at a higher level can sometimes be accessed by a lower user through indirect paths. For true granular control, use <strong>TACACS+ per-command authorization</strong>.</p><p><strong>Verify:</strong> <code>show privilege</code> reveals your current level.</p>",
+        visual: { type: "layer-stack", params: { layers: ["Level 0: disable/enable/exit/help/logout", "Level 1: user EXEC (show, ping, telnet)", "Level 2-14: custom (admin-defined)", "Level 15: full admin (configure, debug)"], highlight: 3 } },
+        hack: {
+          memory: "16 levels (0-15). 0 = nothing. 1 = user EXEC (look but don't touch). 15 = god mode. Levels 2-14 are empty until admin assigns commands. TACACS+ can authorize per-command for finer control than privilege levels.",
+          practice: "On a lab router, set up 'username helpdesk privilege 5 secret X' and assign 3-4 show commands to priv 5. Login as helpdesk — prompt shows, only those commands work. Login as admin — everything works. Feel role-based access live.",
+          effort: "medium",
+          meta: "Jeremy's IT Lab Day 50. Wendell Odom OCG Chapter 10. Exam recall: 0-15 levels, 1 = user EXEC, 15 = privileged EXEC. Custom levels require 'privilege exec level N command'."
+        }
+      },
+      {
+        id: "5.8.b.2",
+        term: "Per-command authorization",
+        weight: "high",
+        info: "<p><strong>Per-command authorization</strong> is the ability to authorize OR deny <strong>every single CLI command</strong> a user attempts to execute. This granularity is <strong>exclusive to TACACS+</strong> — RADIUS cannot do per-command authorization.</p><p><strong>How it works:</strong></p><ol><li>User types a CLI command (e.g., <code>clear counters</code>)</li><li>Before executing, the device sends a TACACS+ authorization request: 'Is user X allowed to run this command?'</li><li>TACACS+ server checks its policy (per-user or per-group command lists) and replies permit or deny</li><li>Device either executes the command or displays 'Command authorization failed'</li></ol><p><strong>Why TACACS+ can do this but RADIUS cannot:</strong> TACACS+ separates authentication, authorization, and accounting into independent message exchanges. It can initiate a new authorization request for each command. RADIUS bundles authorization with authentication into one exchange at session start — it returns attributes (VLAN, ACL) once and cannot re-authorize mid-session.</p><p><strong>Example policy (on the TACACS+ server):</strong></p><pre>Group: Helpdesk\n  Permit:  show *, ping *, traceroute *\n  Deny:    configure *, reload, clear *, debug *\n\nGroup: NetOps\n  Permit:  everything except 'reload' and 'erase'\n  Deny:    reload, erase</pre><p><strong>Configuration on the network device:</strong></p><pre>aaa authorization commands 15 default group tacacs+ local</pre><p>This authorizes priv-15 commands via TACACS+, falling back to local if the server is unreachable.</p><p><strong>Use case:</strong> Any environment where you need more granular CLI control than privilege levels alone provide — enterprise network ops, managed service providers, compliance-driven environments.</p>",
+        visual: { type: "handshake", params: { leftLabel: "User Types Command", rightLabel: "TACACS+ Server", steps: ["'configure terminal' →", "← Authz check: allowed for user?", "Permit → execute", "Deny → reject + log"] } },
+        hack: {
+          memory: "Per-command authz = TACACS+ only. RADIUS can't do it (single auth/authz exchange at login). Every CLI command the user types gets a round-trip to TACACS+ for a permit/deny decision. Crucial for enterprise device admin.",
+          practice: "Set up TACACS+ with two roles: Helpdesk (permit show/ping, deny everything else) and NetOps (permit all except reload). Login as each, try commands. Helpdesk gets 'Command authorization failed' for 'configure terminal'. NetOps gets it for 'reload'. This demonstrates the feature.",
+          effort: "high",
+          meta: "Jeremy's IT Lab Day 50. Wendell Odom OCG Chapters 10 + 27. Exam slam-dunk: 'which protocol supports per-command authorization?' = TACACS+. Know this fact and the reason (RADIUS bundles auth+authz into one exchange)."
+        }
+      },
+      {
+        id: "5.8.b.3",
+        term: "privilege exec level",
+        weight: "med",
+        info: "<p><code>privilege exec level [N] [command]</code> is a global configuration command that <strong>moves a specific IOS command to a specific privilege level</strong>. Used to build custom roles when you don't want to deploy TACACS+.</p><p><strong>Syntax:</strong></p><pre>privilege exec level 5 show running-config\nprivilege exec level 5 show startup-config\nprivilege exec level 5 ping\nprivilege exec level 5 traceroute</pre><p><strong>What this does:</strong> Commands that normally require privilege 15 are moved down to level 5. A user logged in at level 5 can now execute them.</p><p><strong>Complete role setup:</strong></p><pre>! Create user at level 5\nusername helpdesk privilege 5 secret HelpPass123\n! Move commands to level 5\nprivilege exec level 5 show running-config\nprivilege exec level 5 show interfaces\nprivilege exec level 5 show ip route\nprivilege exec level 5 ping\n! Optional: require password to enter level 5 via 'enable 5'\nenable secret level 5 HelpEnablePass</pre><p><strong>Limitations of native IOS privilege levels vs TACACS+:</strong></p><ul><li><strong>Coarser:</strong> you're moving commands between 16 buckets, not writing fine-grained rules</li><li><strong>Local only:</strong> each device has its own set of privilege-level mappings unless you sync configs</li><li><strong>No central change management:</strong> updating a role means editing every device</li><li><strong>Argument filtering is limited:</strong> 'show running-config' is allowed or denied wholesale — you can't allow 'show run | include interface' but deny 'show run | include password'</li></ul><p>For these reasons, TACACS+ is the preferred enterprise solution. Privilege levels are a fallback for small environments or as a local backup when TACACS+ is unreachable.</p>",
+        visual: { type: "hierarchy", params: { root: "privilege exec level N command", children: [{ name: "Moves command to level N", children: [{ name: "Level 5 user can now run it" }] }] } },
+        hack: {
+          memory: "'privilege exec level N command' = move a CLI command into a custom role bucket. Build a level-5 helpdesk role: move 'show run', 'show int', 'ping' to level 5. Helpdesk user logs in at level 5 — these commands work, nothing else does. Poor-man's TACACS+.",
+          practice: "Configure a level-5 role with 4 commands. Create 'username helpdesk privilege 5 secret X'. Login as helpdesk — only those 4 commands work. Now upgrade to TACACS+ and see the advantages (centralized, per-command, fine-grained). Map the tradeoffs.",
+          effort: "medium",
+          meta: "Jeremy's IT Lab Day 50. Wendell Odom OCG Chapter 10. Privilege exec level is less tested than TACACS+ per-command authz, but still appears on the exam. Know the syntax."
+        }
+      }
     ]
   },
 
@@ -2224,9 +3268,45 @@ window.subtopicContentD56 = {
       meta: "Jeremy's IT Lab Day 50. Wendell Odom OCG Chapter 10 + 27. Authentication = identity. Authorization = permissions. Accounting = logging. Accounting is often the forgotten A, but it's critical for compliance.",
     },
     micro: [
-      { id: "5.8.c.1", term: "Accounting purpose",           def: "Audit trail. Records who logged in, what commands they ran, when they logged out. For compliance and forensics.", weight: "high" },
-      { id: "5.8.c.2", term: "Accounting methods",           def: "Commands, exec (session start/stop), system events. Each can be logged separately.", weight: "med" },
-      { id: "5.8.c.3", term: "Compliance value",             def: "HIPAA, PCI-DSS, SOX require audit trails. Accounting provides the evidence for audits.", weight: "med" }
+      {
+        id: "5.8.c.1",
+        term: "Accounting purpose",
+        weight: "high",
+        info: "<p>Accounting's primary purpose is creating an <strong>immutable, centralized audit trail</strong> that answers three questions after any security incident or compliance inquiry:</p><ol><li><strong>Who did it?</strong> — the authenticated user ID</li><li><strong>What did they do?</strong> — the specific actions (commands, resources accessed)</li><li><strong>When did they do it?</strong> — precise timestamps</li></ol><p><strong>Why this matters:</strong></p><ul><li><strong>Incident response</strong> — after a breach, investigators need to know which systems the attacker touched and what they changed. Without accounting, forensics is blind.</li><li><strong>Compliance</strong> — regulated industries are required to produce audit logs for auditors. PCI-DSS § 10 specifically mandates activity logging.</li><li><strong>Change tracking</strong> — 'who shut down the WAN port at 3am?' becomes answerable, not a mystery.</li><li><strong>Deterrence</strong> — knowing every command is logged discourages careless or malicious actions.</li></ul><p><strong>What accounting records for a single CLI session:</strong></p><pre>Oct 15 09:15:02  user=admin   event=start     method=ssh    src=10.0.0.5\nOct 15 09:15:30  user=admin   cmd='show running-config'\nOct 15 09:17:44  user=admin   cmd='configure terminal'\nOct 15 09:18:02  user=admin   cmd='interface Gi0/1'\nOct 15 09:18:15  user=admin   cmd='shutdown'\nOct 15 09:22:11  user=admin   event=stop      duration=425s</pre><p><strong>Storage location:</strong> Records go to the TACACS+ or RADIUS server — a separate system from the network device. This separation is essential: an attacker who compromises the router can erase local syslog but cannot erase logs already shipped off-box.</p><p><strong>Integration:</strong> TACACS+/RADIUS logs commonly flow into SIEM platforms (Splunk, QRadar, Elastic) for correlation, alerting, and long-term retention.</p>",
+        visual: { type: "shield", params: { items: ["Who, what, when — the audit trail", "Incident response evidence", "Compliance requirement (PCI, HIPAA, SOX)", "Change tracking + deterrence", "Central storage (tamper-resistant)"], color: "#6366f1" } },
+        hack: {
+          memory: "Accounting = the audit trail answering Who/What/When. Central storage is key — local logs can be erased by an attacker, central logs cannot. Required for PCI-DSS, HIPAA, SOX compliance.",
+          practice: "Enable accounting. Run 10 commands. Pull the TACACS+/RADIUS log from the server — every command appears with timestamp and user. Now imagine this for 500 network devices in an enterprise. That's what accounting produces at scale.",
+          effort: "medium",
+          meta: "Jeremy's IT Lab Day 50. Wendell Odom OCG Chapters 10 + 27. Exam framing: 'which AAA function provides the audit trail for compliance?' = Accounting. Often contrasted with authentication and authorization."
+        }
+      },
+      {
+        id: "5.8.c.2",
+        term: "Accounting methods",
+        weight: "med",
+        info: "<p>Cisco IOS supports several <strong>accounting methods</strong> — categories of events that can be logged. You enable them individually to match your audit policy.</p><p><strong>The main categories:</strong></p><ul><li><strong>exec</strong> — logs login/logout events (session start and stop times). Tracks WHO connected to the device and WHEN.</li><li><strong>commands [level]</strong> — logs every CLI command executed at a specified privilege level. Example: <code>aaa accounting commands 15 default start-stop group tacacs+</code> logs all priv-15 commands.</li><li><strong>network</strong> — logs network service events like 802.1X wired authentication, VPN sessions, PPP. Common for RADIUS accounting of user network sessions.</li><li><strong>system</strong> — logs system-level events (reloads, AAA server state changes, major config events).</li><li><strong>connection</strong> — logs outbound connections from the device (e.g., telnet/SSH launched from the router).</li></ul><p><strong>Record types:</strong></p><ul><li><strong>start-stop</strong> — record sent when the event starts AND when it ends. Most common choice. Provides full duration visibility.</li><li><strong>stop-only</strong> — only the end-of-session record. Lighter on server load but you don't know about sessions in progress.</li><li><strong>wait-start</strong> — the device waits for the AAA server to acknowledge the 'start' before allowing the session. Strictest but most disruptive if server is slow.</li><li><strong>none</strong> — disables accounting for that method.</li></ul><p><strong>Cisco configuration examples:</strong></p><pre>aaa accounting exec default start-stop group tacacs+\naaa accounting commands 15 default start-stop group tacacs+\naaa accounting network default start-stop group radius\naaa accounting system default start-stop group tacacs+</pre><p>Each line enables accounting for a different method. They can coexist and target different AAA server groups.</p>",
+        visual: { type: "hierarchy", params: { root: "aaa accounting [method]", children: [{ name: "exec (login/logout)" }, { name: "commands [priv-level]" }, { name: "network (802.1X, VPN)" }, { name: "system (reloads, events)" }] } },
+        hack: {
+          memory: "Methods: exec (login/out), commands (CLI commands), network (802.1X/VPN), system (reloads). Record types: start-stop (default), stop-only, wait-start, none. Mix and match to match your audit policy.",
+          practice: "Configure all four methods on a lab device. Run a login, a config command, trigger a 802.1X auth, and reload. Check the TACACS+/RADIUS logs — all four events appear in their respective record streams.",
+          effort: "medium",
+          meta: "Jeremy's IT Lab Day 50. Wendell Odom OCG Chapter 10. Know at least exec and commands for the exam — these are the two most-tested methods."
+        }
+      },
+      {
+        id: "5.8.c.3",
+        term: "Compliance value",
+        weight: "med",
+        info: "<p>AAA accounting is not optional in regulated industries. Specific frameworks explicitly require audit logging of privileged access:</p><p><strong>PCI-DSS (Payment Card Industry):</strong></p><ul><li>§ 10.2 — implement automated audit trails for all system components</li><li>§ 10.3 — record user ID, type of event, date/time, success/failure, origination, affected data</li><li>§ 10.5 — secure audit trails so they cannot be altered</li></ul><p><strong>HIPAA (Healthcare):</strong></p><ul><li>§ 164.312(b) — audit controls on information systems containing electronic PHI</li><li>Logs must identify the user, the action, and the PHI record accessed</li></ul><p><strong>SOX (Sarbanes-Oxley, Financial):</strong></p><ul><li>Requires change management evidence for systems producing financial reports</li><li>Network device configuration changes must be logged and reviewed</li></ul><p><strong>GDPR (EU Data Privacy):</strong></p><ul><li>Article 30 — records of processing activities</li><li>Accountability principle: organizations must be able to demonstrate compliance</li></ul><p><strong>SOC 2 (SaaS / Cloud):</strong></p><ul><li>Common Criteria CC6.1, CC6.6, CC7.2 — access logging and monitoring</li></ul><p><strong>How AAA accounting satisfies these:</strong> Centralized TACACS+/RADIUS accounting produces timestamped, user-attributed logs of every login, configuration change, and privileged command. When an auditor asks 'show me all config changes made by contractors in Q3,' you query the AAA server and produce the evidence.</p><p><strong>Retention:</strong> Most frameworks require 1–7 years of retention. AAA logs typically flow into a SIEM with long-term storage (S3, Glacier, cold tiers) to meet retention economically.</p><p><strong>Auditor expectation:</strong> Not just that logs exist, but that they are reviewed. Alerts on suspicious patterns (off-hours logins, repeated auth failures, unusual commands) demonstrate active monitoring.</p>",
+        visual: { type: "layer-stack", params: { layers: ["PCI-DSS § 10", "HIPAA § 164.312(b)", "SOX change control", "GDPR Article 30", "SOC 2 CC6.1"], highlight: 0 } },
+        hack: {
+          memory: "AAA accounting is how you pass the audit. PCI, HIPAA, SOX, GDPR, SOC 2 all require user-attributed logs of privileged access. Central TACACS+/RADIUS server + SIEM = evidence the auditor expects. Retention: 1-7 years depending on framework.",
+          practice: "Imagine explaining your AAA logs to a PCI auditor: 'every admin login, every command run on a CDE device, every config change — timestamped, user-attributed, stored centrally in our SIEM with 1-year retention and automated review.' This is the narrative AAA accounting enables.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 50. Wendell Odom OCG Chapters 10 + 27. Compliance context rarely appears on CCNA but understanding it clarifies WHY accounting matters."
+        }
+      }
     ]
   },
 
@@ -2240,8 +3320,32 @@ window.subtopicContentD56 = {
       meta: "Jeremy's IT Lab Day 50. Wendell Odom OCG Chapter 10 + 27. TACACS+ vs RADIUS is one of the most tested AAA topics. Scenario: 'which protocol for device admin?' = TACACS+. 'For 802.1X?' = RADIUS.",
     },
     micro: [
-      { id: "5.8.d.1", term: "Device admin → TACACS+",       def: "Cisco-proprietary. Full packet encryption. Separates AAA. Per-command authorization. Ideal for router/switch mgmt.", weight: "high" },
-      { id: "5.8.d.2", term: "Network access → RADIUS",      def: "Open standard. 802.1X wired/wireless, VPN authentication, WPA2-Enterprise. Multi-vendor.", weight: "high" }
+      {
+        id: "5.8.d.1",
+        term: "Device admin → TACACS+",
+        weight: "high",
+        info: "<p><strong>TACACS+</strong> (Terminal Access Controller Access-Control System Plus) is Cisco's proprietary AAA protocol, designed specifically for <strong>device administration</strong> — controlling who can log in to a router, switch, or firewall and what commands they can execute.</p><p><strong>Protocol specifics:</strong></p><ul><li><strong>Transport:</strong> TCP port 49 (reliable, connection-oriented)</li><li><strong>Encryption:</strong> The <strong>entire packet body</strong> is encrypted using a shared secret. Only the TACACS+ header is cleartext.</li><li><strong>AAA separation:</strong> Authentication, authorization, and accounting are <strong>separate independent exchanges</strong>. You can direct each to a different server or use different method lists.</li><li><strong>Per-command authorization:</strong> Every CLI command can be authorized individually against a server policy.</li><li><strong>Origin:</strong> Developed by Cisco from an older DARPA standard. Proprietary, but many third-party servers support it (Cisco ISE, Tacacs.net, TACACS.net+, shrubbery tac_plus).</li></ul><p><strong>Why TACACS+ dominates device admin:</strong></p><ul><li><strong>Per-command authz</strong> — critical for role-based access (helpdesk, netops, admins all get different command sets)</li><li><strong>Full encryption</strong> — all payload data (including usernames and command strings) is confidential</li><li><strong>Reliability (TCP)</strong> — no lost messages, important when authorizing every keystroke in real time</li><li><strong>Separated AAA</strong> — flexibility to authenticate against one source but authorize/account to another</li></ul><p><strong>Cisco device configuration (basic):</strong></p><pre>aaa new-model\ntacacs server T1\n address ipv4 10.1.1.5\n key MySecretKey\naaa group server tacacs+ TACGRP\n server name T1\naaa authentication login default group TACGRP local\naaa authorization exec default group TACGRP local\naaa authorization commands 15 default group TACGRP local\naaa accounting exec default start-stop group TACGRP\naaa accounting commands 15 default start-stop group TACGRP</pre>",
+        visual: { type: "shield", params: { items: ["TCP port 49", "Full-packet encryption", "Separated AAA (A/A/A independent)", "Per-command authorization", "Cisco proprietary", "Best for: device admin (SSH, console)"], color: "#6366f1" } },
+        hack: {
+          memory: "TACACS+ = Device admin's best friend. TCP 49. Full encryption. Per-command authz. Separate A/A/A. Cisco proprietary. If the question is about managing routers/switches, the answer is TACACS+.",
+          practice: "Type the full TACACS+ config from memory on a lab device: aaa new-model, tacacs server, key, method lists for auth/authz/accounting. Connect to a test server (Cisco ISE eval or tac_plus). Login and verify per-command authorization blocks unauthorized commands.",
+          effort: "high",
+          meta: "Jeremy's IT Lab Day 50. Wendell Odom OCG Chapters 10 + 27. Must know: TCP 49, full encryption, separated AAA, per-command authz, device admin use case. Four facts, all exam-testable."
+        }
+      },
+      {
+        id: "5.8.d.2",
+        term: "Network access → RADIUS",
+        weight: "high",
+        info: "<p><strong>RADIUS</strong> (Remote Authentication Dial-In User Service) is the open-standard AAA protocol used for <strong>network access</strong> — authenticating user devices that connect to the network via 802.1X, wireless WPA2/3-Enterprise, or VPN.</p><p><strong>Protocol specifics:</strong></p><ul><li><strong>Transport:</strong> UDP ports <strong>1812 (auth)</strong> and <strong>1813 (accounting)</strong>. Legacy ports 1645/1646 may also appear on older configs and exam questions.</li><li><strong>Encryption:</strong> Only the <strong>password field</strong> in the Access-Request is encrypted (via MD5 hash with the shared secret). Usernames, accounting data, and attributes are in cleartext.</li><li><strong>AAA combination:</strong> Authentication and authorization are bundled into one exchange. Accounting is a separate protocol (RADIUS accounting) but still UDP-based.</li><li><strong>Open standard:</strong> RFC 2865 (auth) and RFC 2866 (accounting). Supported by nearly every vendor and AAA server.</li><li><strong>Attributes:</strong> Uses standardized <strong>attribute-value pairs (AVPs)</strong> to return authorization info (Tunnel-Type=VLAN, Framed-IP-Address, Filter-Id for ACL, etc.).</li></ul><p><strong>Why RADIUS dominates network access:</strong></p><ul><li><strong>802.1X was designed around RADIUS</strong> — the EAP over RADIUS profile (RFC 3579) is the standard</li><li><strong>Multi-vendor</strong> — any switch, AP, VPN concentrator, or firewall supports RADIUS</li><li><strong>Network AV pairs</strong> — VLAN assignment, downloadable ACLs, QoS policies all ride in RADIUS attributes</li><li><strong>Scale</strong> — UDP plus lightweight design handles thousands of concurrent 802.1X authentications per server</li></ul><p><strong>Cisco switch RADIUS config (basic):</strong></p><pre>aaa new-model\nradius server RAD1\n address ipv4 10.1.1.10 auth-port 1812 acct-port 1813\n key RadSecret\naaa authentication dot1x default group radius\naaa authorization network default group radius\naaa accounting dot1x default start-stop group radius\ndot1x system-auth-control\ninterface Gi0/5\n switchport mode access\n authentication port-control auto\n dot1x pae authenticator</pre>",
+        visual: { type: "shield", params: { items: ["UDP 1812/1813 (legacy 1645/1646)", "Password-only encryption", "Combines auth+authz", "Open standard (IETF)", "Multi-vendor", "Best for: 802.1X, wireless, VPN"], color: "#0ea5e9" } },
+        hack: {
+          memory: "RADIUS = network ACCESS. UDP 1812/1813. Only password encrypted (rest is cleartext). Combines auth+authz. Open standard, multi-vendor. If the question is about 802.1X, wireless, or VPN user login, the answer is RADIUS.",
+          practice: "Configure RADIUS on a lab switch for 802.1X: 'radius server' + 'address ipv4' + 'key' + 'aaa authentication dot1x'. Enable dot1x on a port. Point to a RADIUS server (FreeRADIUS or Cisco ISE eval). Authenticate a Windows laptop with user credentials. Observe VLAN assignment via RADIUS attribute.",
+          effort: "high",
+          meta: "Jeremy's IT Lab Day 50. Wendell Odom OCG Chapters 10 + 27 + 29. Know: UDP 1812/1813, password-only encryption, combined auth+authz, network access use case. Four facts, all exam-testable."
+        }
+      }
     ]
   },
 
@@ -2255,9 +3359,45 @@ window.subtopicContentD56 = {
       meta: "Jeremy's IT Lab Day 50. Wendell Odom OCG Chapter 10 + 27. Key exam facts: RADIUS = UDP, open, password-only encryption, combined auth/authz. TACACS+ = TCP, Cisco, full encryption, separated AAA.",
     },
     micro: [
-      { id: "5.8.e.1", term: "RADIUS recap",                 def: "UDP 1812/1813. Open standard. Only password encrypted. Combines auth+authz. Network ACCESS.", weight: "high" },
-      { id: "5.8.e.2", term: "TACACS+ recap",                def: "TCP 49. Cisco proprietary. FULL packet encryption. Separates AAA. Device ADMIN.", weight: "high" },
-      { id: "5.8.e.3", term: "Protocol/port summary",        def: "RADIUS=UDP 1812/1813. TACACS+=TCP 49. This is tested every exam cycle.", weight: "high" }
+      {
+        id: "5.8.e.1",
+        term: "RADIUS recap",
+        weight: "high",
+        info: "<p>Fast-reference summary of RADIUS facts the CCNA exam tests:</p><table><tr><th>Attribute</th><th>Value</th></tr><tr><td><strong>Full name</strong></td><td>Remote Authentication Dial-In User Service</td></tr><tr><td><strong>Transport</strong></td><td>UDP</td></tr><tr><td><strong>Port (auth)</strong></td><td>1812 (legacy 1645)</td></tr><tr><td><strong>Port (accounting)</strong></td><td>1813 (legacy 1646)</td></tr><tr><td><strong>Encryption</strong></td><td>Password field only</td></tr><tr><td><strong>AAA separation</strong></td><td>Combines auth + authz; separate accounting</td></tr><tr><td><strong>Standard</strong></td><td>Open — RFC 2865 (auth), 2866 (acct)</td></tr><tr><td><strong>Origin</strong></td><td>Livingston Enterprises, standardized by IETF</td></tr><tr><td><strong>Per-command authz</strong></td><td>NO</td></tr><tr><td><strong>Best for</strong></td><td>802.1X, wireless WPA-Enterprise, VPN, dial-up</td></tr></table><p><strong>Packet types:</strong></p><ul><li><strong>Access-Request</strong> — client sends credentials to server</li><li><strong>Access-Accept</strong> — server grants access with authorization attributes</li><li><strong>Access-Reject</strong> — server denies</li><li><strong>Access-Challenge</strong> — server requests more info (used in EAP)</li><li><strong>Accounting-Request / Response</strong> — separate pair for accounting</li></ul><p><strong>Classic attributes (AVPs):</strong></p><ul><li>User-Name, User-Password, NAS-IP-Address, NAS-Port</li><li>Framed-IP-Address (assigned IP)</li><li>Tunnel-Type, Tunnel-Medium-Type, Tunnel-Private-Group-ID (VLAN)</li><li>Filter-Id (named ACL)</li><li>Session-Timeout, Idle-Timeout</li></ul><p><strong>Security caveat:</strong> Because only the password is encrypted in core RADIUS, sensitive attributes (like the username) are visible to anyone with packet capture access. Modern deployments layer RADIUS over IPsec or use RADIUS over TLS (RadSec, RFC 6614) for full-path encryption.</p>",
+        visual: { type: "layer-stack", params: { layers: ["RADIUS = UDP 1812/1813", "Password-only encryption", "Combines auth + authz", "Open IETF standard", "Network access protocol"], highlight: 0 } },
+        hack: {
+          memory: "RADIUS facts the exam demands: UDP 1812/1813. Only password encrypted. Combines auth+authz. Open standard. Network access. Remember by 'R-U-P-C-N': Remote/UDP/Password-only/Combines/Network-access.",
+          practice: "Write the RADIUS summary table from memory. Every time you forget one row, rewrite the entire table. Do this 5 times and it locks in.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 50. Wendell Odom OCG Chapters 10 + 27. Fact-recall exam item. 100% testable. Know the port numbers and encryption scope cold."
+        }
+      },
+      {
+        id: "5.8.e.2",
+        term: "TACACS+ recap",
+        weight: "high",
+        info: "<p>Fast-reference summary of TACACS+ facts:</p><table><tr><th>Attribute</th><th>Value</th></tr><tr><td><strong>Full name</strong></td><td>Terminal Access Controller Access-Control System Plus</td></tr><tr><td><strong>Transport</strong></td><td>TCP</td></tr><tr><td><strong>Port</strong></td><td>49 (single port for all AAA)</td></tr><tr><td><strong>Encryption</strong></td><td>Entire packet body (payload)</td></tr><tr><td><strong>AAA separation</strong></td><td>Authentication, Authorization, Accounting are all INDEPENDENT exchanges</td></tr><tr><td><strong>Standard</strong></td><td>Cisco proprietary (documented in drafts; 'TACACS+' not fully IETF standardized until draft-ietf-opsawg-tacacs, 2020s)</td></tr><tr><td><strong>Per-command authz</strong></td><td>YES</td></tr><tr><td><strong>Best for</strong></td><td>Device administration (SSH, console, HTTPS to routers/switches/firewalls)</td></tr></table><p><strong>Message types:</strong></p><ul><li><strong>START</strong> — client initiates a new session</li><li><strong>REPLY</strong> — server response (ACCEPT, REJECT, GETDATA, GETUSER, GETPASS, ERROR, FOLLOW)</li><li><strong>CONTINUE</strong> — client provides additional info in response to GETUSER/GETPASS</li></ul><p><strong>Why separation matters:</strong> TACACS+'s three independent exchanges let you:</p><ul><li>Authenticate against a Windows AD → authorize via a policy server → account to a SIEM</li><li>Fall back authentication to local if the TACACS+ server is down while still using TACACS+ for accounting when it's back</li><li>Authorize per-command without re-authenticating</li></ul><p><strong>Security advantage:</strong> Full payload encryption means command strings (often sensitive — e.g., <code>password cisco123</code> in config) are not visible to packet captures. With RADIUS, only the user-password field is encrypted; command strings carried in accounting packets are cleartext.</p>",
+        visual: { type: "layer-stack", params: { layers: ["TACACS+ = TCP 49", "Full-packet encryption", "Separated AAA", "Cisco proprietary", "Device admin protocol"], highlight: 0 } },
+        hack: {
+          memory: "TACACS+ facts: TCP 49. Full encryption. Separated AAA (three independent exchanges). Cisco proprietary. Device admin. Remember by 'T-F-S-C-D': TCP/Full-encrypt/Separated/Cisco/Device-admin.",
+          practice: "Write the TACACS+ summary table from memory. Do it alongside the RADIUS table so you can spot the differences at a glance. Repeat 5x.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 50. Wendell Odom OCG Chapters 10 + 27. Always asked alongside RADIUS. Know the contrasts cold."
+        }
+      },
+      {
+        id: "5.8.e.3",
+        term: "Protocol/port summary",
+        weight: "high",
+        info: "<p>The single most important fact to memorize for AAA on the CCNA exam is the <strong>protocol and port numbers</strong>. Expect at least one question directly testing these.</p><p><strong>The table:</strong></p><table><tr><th>Protocol</th><th>Transport</th><th>Port(s)</th><th>Encryption</th></tr><tr><td><strong>RADIUS auth</strong></td><td>UDP</td><td>1812</td><td>Password only</td></tr><tr><td><strong>RADIUS accounting</strong></td><td>UDP</td><td>1813</td><td>Password only</td></tr><tr><td><strong>RADIUS (legacy)</strong></td><td>UDP</td><td>1645 / 1646</td><td>Password only</td></tr><tr><td><strong>TACACS+</strong></td><td>TCP</td><td>49</td><td>Entire packet</td></tr></table><p><strong>Memory aids:</strong></p><ul><li><strong>TACACS = TCP</strong>. Both start with T. 49 is a single number, easy to remember.</li><li><strong>RADIUS = UDP</strong>. R for 'radio' = UDP (wireless-y, connectionless).</li><li><strong>1812</strong> — War of 1812 (authentication = war). <strong>1813</strong> — year after (accounting comes second).</li><li>Legacy 1645/1646 — just +200 from the new ports minus a few digits. Rare but possible on the exam.</li></ul><p><strong>Firewall implications:</strong> When deploying AAA in a network with firewalls between the NAS and AAA server, open:</p><ul><li>RADIUS: UDP 1812 + UDP 1813 (bidirectional)</li><li>TACACS+: TCP 49 (client → server; server responds on established TCP session)</li></ul><p><strong>Exam trap:</strong> 1812 vs 1813 — which is auth? Which is accounting? Answer: 1812 = authentication, 1813 = accounting. The smaller number is authentication (which happens first).</p>",
+        visual: { type: "comparison", params: { left: { label: "RADIUS", items: ["UDP 1812 (auth)", "UDP 1813 (acct)", "Legacy 1645/1646", "Password encryption only"] }, right: { label: "TACACS+", items: ["TCP 49", "Single port for all AAA", "Full-packet encryption", "Separated A/A/A exchanges"] } } },
+        hack: {
+          memory: "MEMORIZE: RADIUS = UDP 1812 auth / 1813 acct. TACACS+ = TCP 49. Smaller number = earlier step (1812 auth comes before 1813 acct). Legacy RADIUS 1645/1646 (rare). Firewall rule: open these ports between NAS and AAA server.",
+          practice: "Flashcard drill: 'RADIUS auth port?' → 1812. 'RADIUS accounting port?' → 1813. 'TACACS+ port?' → 49. 'TACACS+ transport?' → TCP. 'RADIUS transport?' → UDP. Do 20 reps with a timer — under 2 seconds per answer.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 50. Wendell Odom OCG Chapters 10 + 27. Single most-tested AAA fact. Protocol/port questions appear on virtually every CCNA exam."
+        }
+      }
     ]
   },
 
@@ -2271,10 +3411,58 @@ window.subtopicContentD56 = {
       meta: "Jeremy's IT Lab Day 50. Wendell Odom OCG Chapter 10 + 27. Use case determines protocol. Device admin = TACACS+. Network access = RADIUS. The 802.1X trio: Supplicant, Authenticator, Authentication Server.",
     },
     micro: [
-      { id: "5.8.f.1", term: "802.1X Supplicant",            def: "Client device requesting access. Runs 802.1X software. Provides credentials.", weight: "high" },
-      { id: "5.8.f.2", term: "802.1X Authenticator",         def: "Switch/WLC. Intermediate device. Forwards credentials from supplicant to authentication server. Enforces decision.", weight: "high" },
-      { id: "5.8.f.3", term: "802.1X Authentication Server", def: "Typically RADIUS server (Cisco ISE, Microsoft NPS). Validates credentials against user database.", weight: "high" },
-      { id: "5.8.f.4", term: "EAP",                          def: "Extensible Authentication Protocol. Framework 802.1X uses. EAP-TLS, PEAP, EAP-FAST are common methods.", weight: "med" }
+      {
+        id: "5.8.f.1",
+        term: "802.1X Supplicant",
+        weight: "high",
+        info: "<p>The <strong>supplicant</strong> is the <strong>client device</strong> that wants to connect to the network in an 802.1X deployment. It's the entity being authenticated — a laptop, phone, tablet, IP camera, or any device that has an 802.1X-capable software stack.</p><p><strong>What the supplicant does:</strong></p><ul><li>Sends credentials (username/password, certificate, or EAP-method-specific data) to the authenticator when it first connects to a switch port or wireless SSID</li><li>Negotiates an <strong>EAP (Extensible Authentication Protocol)</strong> method with the authenticator and server (EAP-TLS, PEAP, EAP-FAST, etc.)</li><li>Encrypts network traffic using dynamically assigned keys once authenticated (for WPA2/3-Enterprise wireless)</li><li>Re-authenticates periodically as required by the server's session timeout</li></ul><p><strong>Built-in supplicants:</strong></p><ul><li><strong>Windows</strong> — Wired AutoConfig service + Windows native 802.1X client</li><li><strong>macOS</strong> — built into network preferences</li><li><strong>iOS/Android</strong> — native Wi-Fi profiles support 802.1X</li><li><strong>Linux</strong> — wpa_supplicant (for both wired and wireless)</li></ul><p><strong>Non-supplicant devices:</strong> Printers, IP phones without 802.1X support, older IoT — these can't participate. Workarounds:</p><ul><li><strong>MAB (MAC Authentication Bypass)</strong> — the switch sends the device's MAC to the RADIUS server as the credential</li><li><strong>Web authentication (WebAuth)</strong> — unauthenticated users get redirected to a captive portal</li></ul><p><strong>EAP message types the supplicant uses:</strong></p><ul><li>EAPoL-Start — supplicant announces it wants to authenticate</li><li>EAP-Response/Identity — reveals username</li><li>EAP-Response/[method] — provides method-specific credentials (TLS handshake, inner password, etc.)</li></ul><p><strong>Exam recall:</strong> Supplicant = the CLIENT requesting access.</p>",
+        visual: { type: "packet-flow", params: { nodes: ["Supplicant (client)", "Starts EAPoL", "Sends credentials", "Awaits Accept/Reject"], color: "#3b82f6" } },
+        hack: {
+          memory: "Supplicant = SUPPLICATOR = the one BEGGING for access. It's the client laptop/phone/tablet. Runs 802.1X software (built into OS). Presents credentials. Can't join 802.1X? Use MAB (MAC as credential) or WebAuth (captive portal).",
+          practice: "On a Windows laptop, enable the Wired AutoConfig service and configure an 802.1X profile with PEAP. Plug into an 802.1X-enabled switch port. Watch the authentication flow in Windows Event Viewer — you just played the supplicant role.",
+          effort: "medium",
+          meta: "Jeremy's IT Lab Day 50. Wendell Odom OCG Chapters 10 + 27. 802.1X roles are one of the most-asked AAA exam topics. Know supplicant = client."
+        }
+      },
+      {
+        id: "5.8.f.2",
+        term: "802.1X Authenticator",
+        weight: "high",
+        info: "<p>The <strong>authenticator</strong> is the <strong>network device</strong> (switch for wired, access point or WLC for wireless) that sits between the supplicant and the authentication server. It <strong>enforces the authentication decision</strong> but doesn't actually validate credentials itself.</p><p><strong>What the authenticator does:</strong></p><ol><li><strong>Blocks all traffic</strong> on the port except EAPoL when the port is 'unauthorized'</li><li>Relays EAPoL messages from the supplicant into RADIUS Access-Request packets bound for the authentication server</li><li>Relays RADIUS Access-Challenge / Access-Accept / Access-Reject back to the supplicant as EAPoL</li><li>Once it receives <strong>Access-Accept</strong>, it opens the port to all traffic and applies any attributes (VLAN, ACL) returned by the server</li><li>Sends RADIUS accounting Start/Stop records if accounting is configured</li></ol><p><strong>Key point:</strong> The authenticator is a <strong>pass-through</strong>. It doesn't know or care whether the credentials are valid — it just forwards them to the RADIUS server and enforces whatever the server decides.</p><p><strong>Cisco switch configuration as authenticator:</strong></p><pre>aaa new-model\naaa authentication dot1x default group radius\naaa authorization network default group radius\nradius server RAD1\n address ipv4 10.1.1.10 auth-port 1812 acct-port 1813\n key Secret123\ndot1x system-auth-control\ninterface Gi0/5\n switchport mode access\n authentication port-control auto\n dot1x pae authenticator</pre><p><strong>Port states:</strong></p><ul><li><strong>Unauthorized (initial)</strong> — only EAPoL allowed</li><li><strong>Authenticating</strong> — EAPoL exchange in progress</li><li><strong>Authorized</strong> — full traffic allowed; attributes applied</li><li><strong>Re-authenticating</strong> — mid-session re-verification</li></ul><p><strong>Exam recall:</strong> Authenticator = the switch (wired) or AP/WLC (wireless). It's the enforcement point, not the decider.</p>",
+        visual: { type: "state-machine", params: { states: ["Port Unauthorized (EAPoL only)", "Authenticating (EAP exchange)", "Port Authorized (full traffic)", "Periodic re-auth"], active: 2, transitions: true } },
+        hack: {
+          memory: "Authenticator = middleman with authority. Switch/AP/WLC. Blocks non-EAPoL traffic until RADIUS says OK. Doesn't know creds — just relays. Port states: unauthorized → authenticating → authorized.",
+          practice: "Configure a Cisco switch as 802.1X authenticator. Connect a supplicant. Watch 'show dot1x interface Gi0/5' progress through the states: disconnected → connecting → authenticating → authorized. Verify port-control is 'auto' (not force-authorized or force-unauthorized).",
+          effort: "high",
+          meta: "Jeremy's IT Lab Day 50. Wendell Odom OCG Chapters 10 + 27 + 29. Authenticator = switch/AP is a textbook fact. Also know the port states (unauthorized/authorized) and 'authentication port-control auto' command."
+        }
+      },
+      {
+        id: "5.8.f.3",
+        term: "802.1X Authentication Server",
+        weight: "high",
+        info: "<p>The <strong>authentication server</strong> is the <strong>decision maker</strong>. It validates credentials, applies policy, and returns an accept or reject decision (with optional authorization attributes) to the authenticator. In the Cisco/RADIUS world, this is <strong>always a RADIUS server</strong>.</p><p><strong>Common products:</strong></p><ul><li><strong>Cisco ISE (Identity Services Engine)</strong> — the enterprise standard for 802.1X, dot1x, MAB, guest, BYOD</li><li><strong>Microsoft NPS (Network Policy Server)</strong> — built into Windows Server; integrates natively with Active Directory</li><li><strong>FreeRADIUS</strong> — open source, widely used in academic/service-provider networks</li><li><strong>Aruba ClearPass</strong> — enterprise NAC with strong BYOD/guest features</li><li><strong>Cloud-native:</strong> JumpCloud RADIUS, Foxpass</li></ul><p><strong>What the server does:</strong></p><ol><li>Receives RADIUS Access-Request from the authenticator</li><li>Validates credentials against its identity store (local DB, Active Directory, LDAP, SAML, cert authority)</li><li>Applies policy rules (time of day, device health, posture)</li><li>Returns <strong>Access-Accept</strong> with attributes (VLAN, ACL, Session-Timeout, Tunnel-Type=VLAN, Filter-Id) OR <strong>Access-Reject</strong></li><li>Logs accounting records (if configured)</li></ol><p><strong>Identity store integration:</strong></p><ul><li><strong>Active Directory</strong> — most common for corporate environments. User credentials validated against AD, group membership drives policy.</li><li><strong>Internal DB</strong> — local user store on the AAA server (used for lab and small deployments).</li><li><strong>LDAP</strong> — any LDAP directory.</li><li><strong>Certificate Authority</strong> — for EAP-TLS with certificates.</li><li><strong>SAML/OIDC</strong> — modern cloud identity federation (newer deployments).</li></ul><p><strong>Policy examples (Cisco ISE):</strong></p><ul><li>Authenticated as AD group 'Employees' + device health OK → VLAN 10, full ACL</li><li>Authenticated + device health FAILS → VLAN 99 (quarantine), redirect ACL</li><li>Authenticated as 'Contractors' → VLAN 20, restricted ACL, session timeout 4 hours</li></ul><p><strong>Exam recall:</strong> Authentication server = RADIUS server (Cisco ISE, NPS, FreeRADIUS). It's the brain.</p>",
+        visual: { type: "hierarchy", params: { root: "RADIUS Server", children: [{ name: "Identity Store", children: [{ name: "Active Directory" }, { name: "Certificate Authority" }, { name: "Local DB" }] }, { name: "Policy Engine", children: [{ name: "Accept + VLAN/ACL" }, { name: "Reject" }] }] } },
+        hack: {
+          memory: "Auth server = the BRAIN. RADIUS server (Cisco ISE, Microsoft NPS, FreeRADIUS). Validates credentials against AD/LDAP/cert store. Returns Accept (with VLAN/ACL attributes) or Reject. The authenticator enforces whatever the server decides.",
+          practice: "Install FreeRADIUS on a Linux VM. Add a user. Configure a switch as authenticator pointing to FreeRADIUS. Authenticate a supplicant. See the FreeRADIUS log: request received, credentials validated against internal DB, Accept sent with VLAN attribute. You've built the full 802.1X trio.",
+          effort: "high",
+          meta: "Jeremy's IT Lab Day 50. Wendell Odom OCG Chapters 10 + 27 + 29. 'Auth server = RADIUS' is a must-know. Cisco ISE is the flagship product — brand-name recognition helps."
+        }
+      },
+      {
+        id: "5.8.f.4",
+        term: "EAP",
+        weight: "med",
+        info: "<p><strong>EAP (Extensible Authentication Protocol)</strong> is the <strong>framework</strong> that 802.1X uses to carry authentication data between supplicant and server. EAP itself isn't an authentication method — it's a wrapper that allows different methods (TLS, PEAP, MSCHAPv2, etc.) to ride inside the same framework.</p><p><strong>Why a framework:</strong> When 802.1X was designed, multiple authentication methods already existed (certificates, passwords, tokens). Instead of picking one, the IEEE made 802.1X carry EAP, which in turn negotiates a specific EAP method with the server.</p><p><strong>Common EAP methods tested on CCNA:</strong></p><ul><li><strong>EAP-TLS</strong> — mutual certificate authentication. Both supplicant and server present X.509 certificates. Strongest, but requires a PKI to issue and manage certs.</li><li><strong>PEAP (Protected EAP)</strong> — server presents a certificate; client credentials are sent inside a TLS tunnel (typically MSCHAPv2 password). Most common in Windows/AD environments because it doesn't require client certs.</li><li><strong>EAP-FAST</strong> — Cisco's method using a Protected Access Credential (PAC) instead of a server certificate. Faster than PEAP but Cisco-flavored.</li><li><strong>EAP-MSCHAPv2</strong> — Microsoft Challenge Handshake Authentication v2, used inside PEAP. Not a complete method alone (weak by itself).</li><li><strong>EAP-GTC</strong> — Generic Token Card, used for OTP/token authentication.</li></ul><p><strong>EAP layers:</strong></p><pre>Supplicant ↔ Authenticator:  EAPoL (EAP over LAN, Ethertype 0x888E)\nAuthenticator ↔ Auth Server: EAP encapsulated in RADIUS attributes</pre><p>The authenticator doesn't understand the EAP method content — it just passes EAP messages through transparently.</p><p><strong>Security rankings (strongest → weakest):</strong></p><ol><li>EAP-TLS (mutual certs) — strongest</li><li>PEAP w/ MSCHAPv2 (password in TLS tunnel) — solid for corporate AD</li><li>EAP-FAST — Cisco environments only</li><li>LEAP (legacy Cisco) — BROKEN, do not use</li></ol><p><strong>Exam recall:</strong> EAP = framework. EAP-TLS = strongest (certificates). PEAP = most common (password in TLS). Know the three at minimum.</p>",
+        visual: { type: "layer-stack", params: { layers: ["802.1X = transport framework", "EAP = auth framework (runs over 802.1X)", "EAP-TLS / PEAP / EAP-FAST = methods", "Certs / passwords / tokens = credentials"], highlight: 2 } },
+        hack: {
+          memory: "EAP = framework. Not a method itself. Methods ride inside EAP: EAP-TLS (certs, strongest), PEAP (server cert + password inside TLS tunnel), EAP-FAST (Cisco). Rule of thumb: EAP-TLS for security, PEAP for convenience.",
+          practice: "Configure PEAP on Windows: supplicant settings specify PEAP + MSCHAPv2. Server certificate validates the RADIUS server. Username/password sent inside TLS. Login success. Now swap to EAP-TLS with client certificate — no password prompt, cert identifies the user. Feel the difference.",
+          effort: "medium",
+          meta: "Jeremy's IT Lab Day 50. Wendell Odom OCG Chapter 29. EAP is mentioned on CCNA; know EAP-TLS (mutual cert) and PEAP (password in TLS tunnel) at minimum."
+        }
+      }
     ]
   },
 
@@ -3341,10 +4529,58 @@ window.subtopicContentD56 = {
       meta: "Jeremy's IT Lab Day 62 (REST APIs). Wendell Odom OCG Chapter 18. REST principles are heavily tested. Know: stateless, client-server, URI-based resources, HTTP verbs. Exam question: 'what makes an API RESTful?'",
     },
     micro: [
-      { id: "6.5.a.1", term: "REST",                         def: "REpresentational State Transfer. Architecture style for APIs. Uses HTTP methods + URIs + JSON/XML.", weight: "high" },
-      { id: "6.5.a.2", term: "Stateless",                    def: "Each request contains all info needed. Server doesn't store client session between requests.", weight: "high" },
-      { id: "6.5.a.3", term: "Client-server",                def: "Separation of concerns. Client handles UI; server handles data and logic. Independent evolution.", weight: "high" },
-      { id: "6.5.a.4", term: "URI-based resources",          def: "Each resource has a unique URI. /api/v1/devices/42 represents device ID 42. Nouns, not verbs.", weight: "high" }
+      {
+        id: "6.5.a.1",
+        term: "REST",
+        weight: "high",
+        info: "<p><strong>REST (REpresentational State Transfer)</strong> is an <em>architectural style</em> for building web APIs, defined by Roy Fielding in his 2000 doctoral dissertation. It is not a protocol and not a standard — it is a set of constraints that, when followed, produce APIs that are simple, scalable, and loosely coupled. Modern SDN controllers (Cisco DNA Center, Meraki Dashboard, Catalyst SD-WAN vManage) and virtually every cloud platform expose their management plane through REST.</p><p>The six REST constraints are: <strong>client-server</strong> (separate UI from storage), <strong>stateless</strong> (each request carries all context), <strong>cacheable</strong> (responses labeled cacheable or not), <strong>uniform interface</strong> (resources identified by URIs, manipulated through representations), <strong>layered system</strong> (client cannot tell if it is talking to the origin or a proxy), and <strong>code-on-demand</strong> (optional — server can ship executable code to client). On the CCNA you mostly need the first five.</p><p>The practical implementation on the wire is almost always: <strong>HTTP(S) + JSON + URIs + standard HTTP verbs (GET/POST/PUT/PATCH/DELETE) + HTTP status codes</strong>. A RESTful request looks like:</p><pre>GET /api/v1/devices/42 HTTP/1.1\nHost: dnac.example.com\nAuthorization: Bearer eyJhbGciOi...\nAccept: application/json</pre><p>And the response body is JSON describing the resource. The server never needs to remember who you are between calls — every request re-presents the token.</p><p><strong>Why the CCNA cares:</strong> network automation workflows (DNA Center intent APIs, Meraki Dashboard API, vManage API) are REST. Being able to read a URL, verb, and JSON body and say what it does is a guaranteed exam competency.</p>",
+        visual: { type: "handshake", params: { leftLabel: "Client (Python/Postman)", rightLabel: "REST API Server", steps: ["GET /api/v1/devices →", "← 200 OK + JSON array", "POST /api/v1/devices + body →", "← 201 Created + new resource JSON", "DELETE /api/v1/devices/5 →", "← 204 No Content"] } },
+        hack: {
+          memory: "REST = Stateless + URI + HTTP verbs + JSON. Every call is a self-contained postcard: the address (URI) says WHICH thing, the verb says WHAT to do, the body says WITH WHAT DATA, and the token on every postcard proves WHO you are. Server has amnesia between postcards.",
+          practice: "In Postman: hit https://jsonplaceholder.typicode.com/posts/1 with GET. Look at the response — URI identified the resource, GET pulled it, JSON came back. Now DELETE it. Same URI, different verb, different result. This one-minute exercise cements REST.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 62 introduces REST fundamentals. Wendell Odom OCG Chapter 30 (v1.1). Expect at least one 'which of these describes REST?' conceptual question — stateless, client-server, URI-based, uses HTTP methods. Do NOT confuse REST with SOAP (XML + strict envelope) or gRPC (binary + protobuf)."
+        }
+      },
+      {
+        id: "6.5.a.2",
+        term: "Stateless",
+        weight: "high",
+        info: "<p><strong>Stateless</strong> means the server does <em>not</em> store any client context between requests. Every REST request must contain <strong>all the information the server needs to process it</strong> — authentication token, query filters, body payload, the lot. If the connection dropped and a different backend server picked up your next request, it should still work identically.</p><p>Contrast this with a stateful protocol like classic FTP or Telnet, where the server remembers 'you are logged in as admin, currently in /etc/.' REST explicitly forbids that. If you need to say 'GET the third page of devices filtered by site=EVI01,' you must put all of that in the URL or headers of each request:</p><pre>GET /api/v1/devices?site=EVI01&page=3 HTTP/1.1\nAuthorization: Bearer eyJ...</pre><p><strong>Why stateless is a feature, not a bug:</strong> it enables horizontal scaling. Any server in a load-balanced pool can answer any request. It also simplifies failure recovery — if a node dies, another picks up with no session replication needed. And it makes caching easy, because a given URL+method+headers deterministically produces the same response.</p><p><strong>The tradeoff:</strong> requests are bigger (you carry the token every time) and the client has to track its own state (pagination cursor, filters). Modern REST APIs accept this cost because scale matters more than wire efficiency.</p><p><strong>Exam angle:</strong> 'What is a characteristic of a RESTful API?' — stateless is the answer that separates REST from session-based protocols.</p>",
+        visual: { type: "comparison", params: { left: { label: "Stateful (e.g. Telnet/FTP)", items: ["Server remembers login", "Server remembers cwd", "Must stay on same server", "Session cookies required"] }, right: { label: "Stateless (REST)", items: ["Each request re-presents token", "Each request re-specifies filter", "Any backend can answer", "No server-side session needed"] } } },
+        hack: {
+          memory: "Stateless = every request is a Post-it note with EVERYTHING on it. Server reads Post-it, acts, throws it away. Next Post-it must also re-state who you are and what you want. No memory, no context, no shortcuts.",
+          practice: "Try this: make a GET /api/v1/devices request with a bearer token. Then make the next one WITHOUT the token. It fails — the server didn't remember you. In a stateful protocol, one login would authorize all following calls. REST makes you prove yourself every single time.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 62. OCG Chapter 30. Exam test: 'RESTful APIs are stateless' — TRUE. Stateless is the #1 REST property asked about. Second most common trap: thinking 'stateless' means 'no authentication' — wrong, it means 'no stored session.' You still authenticate every call, you just do it fresh each time."
+        }
+      },
+      {
+        id: "6.5.a.3",
+        term: "Client-server",
+        weight: "high",
+        info: "<p><strong>Client-server</strong> is the first REST constraint: the client (app requesting data) and the server (system that stores and processes data) are <em>cleanly separated</em> and communicate only through a well-defined API contract. They can be written in different languages, deployed on different continents, and upgraded on different schedules — as long as the contract holds.</p><p>In networking terms: a Python script on your laptop (client) makes an HTTPS call to Cisco DNA Center (server). The Python script has no idea what database DNA Center uses, what programming language it is written in, or how many microservices answer the request. It only knows the API contract: URIs, verbs, JSON shapes, status codes.</p><p><strong>The separation gives you:</strong></p><ul><li><strong>Independent evolution</strong> — the server team can rewrite the backend from Java to Go without changing any client.</li><li><strong>Multiple clients from one API</strong> — the same REST endpoints serve a web UI, a mobile app, a CLI tool, and a network automation script.</li><li><strong>Clear security boundary</strong> — authentication and authorization happen at the API edge.</li></ul><p>The client-server constraint is the reason the rest of REST is possible. Without a clean split, you cannot enforce statelessness, uniform interface, or caching.</p>",
+        visual: { type: "layer-stack", params: { layers: ["Client: Python/Postman/UI", "HTTPS over the internet", "REST API contract (URIs + verbs + JSON)", "Server: DNA Center / Meraki / vManage", "Backend DB (hidden from client)"], highlight: 2 } },
+        hack: {
+          memory: "Client-server = waiter vs kitchen. You (client) talk to the waiter (API) and never enter the kitchen (database). The kitchen can change chefs, change stoves, change the whole building layout — you still order through the same menu (API contract) at the same table.",
+          practice: "Open any REST API documentation (Meraki, GitHub, OpenWeather). Notice: it tells you URIs, verbs, and response shapes — nothing about the server's database or language. That opacity is the client-server constraint in action.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 62. OCG Chapter 30. Exam angle: 'what is a characteristic of REST?' — client-server separation is one of the listed constraints. Usually pairs with stateless on multi-select questions."
+        }
+      },
+      {
+        id: "6.5.a.4",
+        term: "URI-based resources",
+        weight: "high",
+        info: "<p>In REST, everything the server manages is a <strong>resource</strong>, and every resource is identified by a <strong>URI (Uniform Resource Identifier)</strong>. Resources are <em>nouns</em>, not verbs. <code>/api/v1/devices</code> is the collection of all devices; <code>/api/v1/devices/42</code> is device number 42; <code>/api/v1/devices/42/interfaces</code> is that device's interfaces.</p><p><strong>Good REST URI design:</strong></p><ul><li>Plural nouns for collections: <code>/devices</code>, not <code>/device</code> or <code>/getDevices</code>.</li><li>Hierarchy reflects containment: <code>/sites/sjc01/devices/42/interfaces/Gi0/1</code>.</li><li>Verbs belong in the HTTP method, not the URI. <code>GET /devices/42</code> — not <code>GET /getDevice?id=42</code>.</li><li>Query strings for filters and pagination: <code>/devices?site=EVI01&page=2&limit=50</code>.</li><li>Versioning in the path: <code>/api/v1/...</code> so you can ship <code>/api/v2/...</code> later without breaking clients.</li></ul><p><strong>Real examples from Cisco:</strong></p><pre>GET /dna/intent/api/v1/network-device\nGET /api/v1/organizations/{orgId}/networks\nPOST /dataservice/template/device\nDELETE /api/v1/interfaces/42</pre><p>A URI always answers the question 'WHICH resource?' The HTTP verb answers 'WHAT should I do with it?' Keeping these separate is the core of the uniform-interface constraint.</p><p><strong>Common exam trap:</strong> a URL like <code>/api/deleteDevice/42</code> uses a verb in the path — that is not RESTful. The correct form is <code>DELETE /api/devices/42</code>.</p>",
+        visual: { type: "hierarchy", params: { root: "/api/v1", children: [{ name: "/devices (collection)", children: [{ name: "/devices/42 (single device)", children: [{ name: "/devices/42/interfaces" }, { name: "/devices/42/vlans" }] }] }, { name: "/sites (collection)" }] } },
+        hack: {
+          memory: "URIs are STREET ADDRESSES for resources. /devices/42 = house number 42 on Devices Street. HTTP verb = what you do at that address (knock = GET, drop a package = POST, bulldoze = DELETE). Never put the action in the address.",
+          practice: "Critique these URLs — RESTful or not? (1) GET /getAllDevices (2) POST /devices (3) GET /devices/42/interfaces (4) POST /deleteDevice?id=42 (5) DELETE /devices/42. Answers: 1 bad (verb in path), 2 good, 3 good, 4 bad (verb in path AND wrong method), 5 good. Do 10 of these and URI design clicks.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 62. OCG Chapter 30. Exam will show you a URL+verb and ask what operation it performs, or which of several URLs is RESTful. Rule of thumb: nouns in the path, verbs in the HTTP method."
+        }
+      }
     ]
   },
 
@@ -3358,11 +4594,71 @@ window.subtopicContentD56 = {
       meta: "Jeremy's IT Lab Day 62. Wendell Odom OCG Chapter 18. The CRUD-to-HTTP mapping is GUARANTEED on the exam. Memorize cold: POST=Create, GET=Read, PUT/PATCH=Update, DELETE=Delete.",
     },
     micro: [
-      { id: "6.5.b.1", term: "POST = Create",                def: "Add a new resource. 'POST /devices' creates a device. Server assigns ID.", weight: "high" },
-      { id: "6.5.b.2", term: "GET = Read",                   def: "Retrieve resource(s). 'GET /devices' lists all. 'GET /devices/42' gets one. Read-only, no side effects.", weight: "high" },
-      { id: "6.5.b.3", term: "PUT = Update (full)",          def: "Replace an existing resource entirely. 'PUT /devices/42' overwrites device 42.", weight: "high" },
-      { id: "6.5.b.4", term: "PATCH = Update (partial)",     def: "Modify specific fields. 'PATCH /devices/42' updates only the specified attributes.", weight: "high" },
-      { id: "6.5.b.5", term: "DELETE = Delete",              def: "Remove resource. 'DELETE /devices/42' destroys the device entry.", weight: "high" }
+      {
+        id: "6.5.b.1",
+        term: "POST = Create",
+        weight: "high",
+        info: "<p><strong>POST</strong> is the HTTP verb that creates a new resource on the server. The client sends the resource data in the request body (usually JSON), and the server assigns an ID, stores it, and returns <strong>201 Created</strong> along with the new resource (including its server-assigned ID) in the response body. A <code>Location</code> header in the response points to the new URI.</p><p><strong>Example — create a device:</strong></p><pre>POST /api/v1/devices HTTP/1.1\nHost: dnac.example.com\nAuthorization: Bearer eyJ...\nContent-Type: application/json\n\n{\"hostname\": \"SW5\", \"ip\": \"10.0.0.5\", \"model\": \"C9300\"}</pre><p>Response:</p><pre>HTTP/1.1 201 Created\nLocation: /api/v1/devices/42\nContent-Type: application/json\n\n{\"id\": 42, \"hostname\": \"SW5\", \"ip\": \"10.0.0.5\", \"model\": \"C9300\"}</pre><p><strong>POST is NOT idempotent.</strong> This is the most-tested property. Calling POST twice with the same body creates <em>two</em> resources (device 42 and device 43), not one. If you want 'create or update, but only ever one copy,' use PUT. If you want 'create this exact thing and fail if it already exists,' most APIs expose a unique constraint that returns 409 Conflict on the second call.</p><p><strong>POST is also used for non-CRUD actions</strong> that do not fit GET/PUT/DELETE — for example <code>POST /api/v1/devices/42/actions/reboot</code>. This is a pragmatic exception in real APIs.</p>",
+        visual: { type: "handshake", params: { leftLabel: "Client", rightLabel: "Server", steps: ["POST /api/v1/devices", "+ JSON body: {hostname, ip, model}", "Server validates, assigns id=42", "201 Created", "+ Location: /api/v1/devices/42", "+ JSON response with id"] } },
+        hack: {
+          memory: "POST = 'Please Ordain a Sacred Thing' — the server creates it and blesses it with an ID. Always returns 201 Created. Not idempotent: call twice = two devices. Contrast PUT (idempotent, replaces a specific URI).",
+          practice: "In Postman: POST to https://jsonplaceholder.typicode.com/posts with body {\"title\":\"hi\",\"body\":\"test\",\"userId\":1}. Response: 201 + the object with a new id. POST again — you get another id. That is non-idempotent behavior in action.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 62. OCG Chapter 30. Exam: 'Which HTTP method creates a resource?' = POST. 'Which HTTP method is NOT idempotent?' = POST. Know 201 Created as its signature response code."
+        }
+      },
+      {
+        id: "6.5.b.2",
+        term: "GET = Read",
+        weight: "high",
+        info: "<p><strong>GET</strong> retrieves a representation of a resource without modifying it. It is the most common HTTP verb — every web page load is a GET. In REST APIs, GET is used to list collections, read a single resource, or query with filters.</p><p><strong>Two flavors:</strong></p><ul><li><strong>GET collection</strong>: <code>GET /api/v1/devices</code> — returns a JSON array of all devices (usually paginated).</li><li><strong>GET single</strong>: <code>GET /api/v1/devices/42</code> — returns one JSON object for device 42, or 404 if it does not exist.</li></ul><p><strong>Filters and pagination</strong> go in the query string:</p><pre>GET /api/v1/devices?site=EVI01&status=up&page=2&limit=50 HTTP/1.1</pre><p><strong>Two critical properties:</strong></p><ul><li><strong>Safe</strong> — GET must never cause a side effect on the server. You can call it a million times and nothing changes. Crawlers, prefetchers, and caches rely on this.</li><li><strong>Idempotent</strong> — calling GET once or ten times yields the same server state. (Note: the <em>response</em> body may change if another client updates the resource between calls — idempotent means the server state is not altered by YOUR call, not that the world stands still.)</li></ul><p><strong>GET has no request body.</strong> All parameters go in the URL or headers. Some APIs technically accept GET bodies, but it is non-standard and many proxies will strip them.</p>",
+        visual: { type: "handshake", params: { leftLabel: "Client", rightLabel: "Server", steps: ["GET /api/v1/devices?site=EVI01", "(no body — params in URL)", "Server queries DB", "200 OK", "+ JSON array of matching devices", "+ pagination headers"] } },
+        hack: {
+          memory: "GET = GRAB. Safe (no side effects) + idempotent (repeatable) + no body (params in URL). Two shapes: GET /collection (list) or GET /collection/id (one). Query string = ?filter=value.",
+          practice: "curl -s https://jsonplaceholder.typicode.com/posts | jq length → 100. Now curl https://jsonplaceholder.typicode.com/posts/1 — just one. Now curl https://jsonplaceholder.typicode.com/posts?userId=1 — only posts for user 1. Three variations of GET, all read-only.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 62. OCG Chapter 30. Exam: 'Which HTTP method retrieves data?' = GET. 'Which HTTP method is safe AND idempotent?' = GET. Know it has no body."
+        }
+      },
+      {
+        id: "6.5.b.3",
+        term: "PUT = Update (full)",
+        weight: "high",
+        info: "<p><strong>PUT</strong> replaces an entire resource at a specific URI with the representation sent in the request body. Unlike POST (create new), PUT targets a known ID: you are saying 'the resource at <code>/devices/42</code> should now look exactly like this JSON.'</p><pre>PUT /api/v1/devices/42 HTTP/1.1\nContent-Type: application/json\nAuthorization: Bearer eyJ...\n\n{\"hostname\": \"SW5-new\", \"ip\": \"10.0.0.5\", \"model\": \"C9300\", \"site\": \"EVI01\"}</pre><p>The server replaces all fields of device 42 with the body. Response is usually <strong>200 OK</strong> (with the updated resource) or <strong>204 No Content</strong> (if the server does not return a body).</p><p><strong>PUT is idempotent.</strong> Running the same PUT ten times leaves the resource in exactly the same state as running it once. This is why PUT is preferred for automation retries — if a network blip caused you to retry, you will not create duplicates or accumulate changes.</p><p><strong>Full replace vs partial update — the PUT/PATCH tradeoff:</strong> If the body you PUT omits a field that previously existed, the server is supposed to treat it as 'unset' or default. That surprises engineers used to partial updates. Use PATCH when you want to change only certain fields.</p><p><strong>PUT can create when the URI is known.</strong> Some APIs allow <code>PUT /devices/sw5</code> (where <code>sw5</code> is a client-chosen ID) to create device sw5 if it does not exist, or replace it if it does. That makes PUT idempotent-create, unlike POST.</p>",
+        visual: { type: "comparison", params: { left: { label: "PUT /devices/42 (full)", items: ["Targets known URI", "Body = complete new state", "Missing fields → unset/default", "Idempotent: 10 calls = 1 call", "Used for replace"] }, right: { label: "POST /devices (create)", items: ["Targets collection URI", "Body = new resource data", "Server assigns ID", "NOT idempotent: 10 calls = 10 rows", "Used for create-new"] } } },
+        hack: {
+          memory: "PUT = Place/replace at a specific URI. Idempotent. Whole-object replace: anything you omit gets wiped. Think 'overwrite the file at this path.' PUT 10x = same final state.",
+          practice: "In Postman: PUT https://jsonplaceholder.typicode.com/posts/1 with body {\"id\":1,\"title\":\"new\",\"body\":\"new\",\"userId\":1}. Response replaces the whole post. Run it 5 times — same result every time (idempotent).",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 62. OCG Chapter 30. Exam: 'Which HTTP method replaces a resource?' = PUT. 'Which HTTP methods are idempotent?' = GET, PUT, DELETE (POST is the oddball that is NOT). Memorize that grouping."
+        }
+      },
+      {
+        id: "6.5.b.4",
+        term: "PATCH = Update (partial)",
+        weight: "high",
+        info: "<p><strong>PATCH</strong> modifies specific fields of an existing resource without replacing the entire thing. You send only the fields you want to change; untouched fields are left alone.</p><pre>PATCH /api/v1/devices/42 HTTP/1.1\nContent-Type: application/json\nAuthorization: Bearer eyJ...\n\n{\"hostname\": \"SW5-renamed\"}</pre><p>Device 42's other fields (ip, model, site, interfaces) stay untouched; only <code>hostname</code> is changed. The response is typically <strong>200 OK</strong> with the updated resource.</p><p><strong>PATCH vs PUT — when to use each:</strong></p><ul><li>Use <strong>PUT</strong> when you have the full new object and want 'make it exactly this.'</li><li>Use <strong>PATCH</strong> when you want to change a few fields and do not want to risk clobbering fields you did not touch.</li></ul><p>In practice, PATCH is what network automation uses most — you rarely have the entire device record in hand; you just want to update one interface's description or flip one VLAN membership.</p><p><strong>Idempotency of PATCH is 'it depends.'</strong> <code>PATCH hostname=SW5-renamed</code> is idempotent — run it twice, same final state. But <code>PATCH vlans: {add: 30}</code> that appends to a list is NOT idempotent. The spec says PATCH <em>can</em> be idempotent but is not required to be. On the CCNA, treat PATCH as 'partial update' and move on — the exam rarely drills PATCH idempotency.</p>",
+        visual: { type: "comparison", params: { left: { label: "PUT /devices/42", items: ["Body = full object", "Replaces everything", "Missing fields = wiped", "Always idempotent"] }, right: { label: "PATCH /devices/42", items: ["Body = only changed fields", "Merges with existing", "Untouched fields preserved", "Usually idempotent"] } } },
+        hack: {
+          memory: "PATCH = patch a hole. Send only the diff. Other fields untouched. PUT = paint the whole wall. PATCH = touch up the crack. If you do not know the full object, PATCH is safer.",
+          practice: "Run PUT /posts/1 with a body missing 'userId' — you will see userId disappear in some APIs (PUT is full replace). Now run PATCH /posts/1 with just {\"title\":\"new\"} — only the title changes, userId is preserved. This side-by-side makes the difference permanent.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 62. OCG Chapter 30. Exam: 'Which HTTP method partially updates a resource?' = PATCH. Know that PUT and PATCH are both Update in the CRUD sense, but PUT=full, PATCH=partial."
+        }
+      },
+      {
+        id: "6.5.b.5",
+        term: "DELETE = Delete",
+        weight: "high",
+        info: "<p><strong>DELETE</strong> removes the resource identified by the URI. No request body is required (though some APIs accept one for confirmation or soft-delete metadata).</p><pre>DELETE /api/v1/devices/42 HTTP/1.1\nAuthorization: Bearer eyJ...</pre><p>Typical responses:</p><ul><li><strong>204 No Content</strong> — the most common success. The resource is gone; nothing to return in the body.</li><li><strong>200 OK</strong> + JSON confirming the deleted object — some APIs echo what was deleted as a convenience.</li><li><strong>404 Not Found</strong> — the resource did not exist. Some APIs return 404 on repeat deletes, others return 204 to keep the call idempotent.</li><li><strong>409 Conflict</strong> — the resource cannot be deleted because something depends on it (e.g., a VLAN with active interfaces).</li></ul><p><strong>DELETE is idempotent.</strong> Deleting an already-deleted resource should not cause additional side effects — it is already gone. This is why a second DELETE of the same URI still 'succeeds' in spirit even if it returns 404.</p><p><strong>DELETE is destructive.</strong> In network automation, always review <code>terraform plan</code> or dry-run API calls before issuing DELETEs against production. Many APIs also support <code>?force=true</code> or <code>?cascade=true</code> query parameters that change delete semantics.</p>",
+        visual: { type: "handshake", params: { leftLabel: "Client", rightLabel: "Server", steps: ["DELETE /api/v1/devices/42", "(no body)", "Server removes resource", "204 No Content", "(second DELETE → 404 Not Found)", "still idempotent: already gone"] } },
+        hack: {
+          memory: "DELETE = destroy. Idempotent (gone stays gone). 204 No Content is the signature success code. Second call usually 404 but the effect (resource absent) is identical.",
+          practice: "DELETE /posts/1 on jsonplaceholder — 200 OK (they fake it). Repeat — same response. In a real API, first DELETE is 204, second is 404, but the world is in the same state. That is idempotency.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 62. OCG Chapter 30. Exam: 'Which HTTP method removes a resource?' = DELETE. Know it is idempotent and pairs with 204 No Content."
+        }
+      }
     ]
   },
 
@@ -3376,14 +4672,110 @@ window.subtopicContentD56 = {
       meta: "Jeremy's IT Lab Day 62. Wendell Odom OCG Chapter 18. The exam tests specific codes: 200, 201, 400, 401, 403, 404, 500. Know what each means and whether it's client (4xx) or server (5xx) error.",
     },
     micro: [
-      { id: "6.5.c.1", term: "200 OK",                       def: "Success. GET/PUT/DELETE returned what was expected.", weight: "high" },
-      { id: "6.5.c.2", term: "201 Created",                  def: "POST succeeded. New resource was created. Response often includes location header with new URI.", weight: "high" },
-      { id: "6.5.c.3", term: "400 Bad Request",              def: "Client sent malformed request. Syntax or validation error.", weight: "high" },
-      { id: "6.5.c.4", term: "401 Unauthorized",             def: "Missing or invalid credentials. Authentication required.", weight: "high" },
-      { id: "6.5.c.5", term: "403 Forbidden",                def: "Authenticated but NOT authorized. Valid creds but not allowed to access this resource.", weight: "high" },
-      { id: "6.5.c.6", term: "404 Not Found",                def: "Resource doesn't exist at that URI.", weight: "high" },
-      { id: "6.5.c.7", term: "500 Internal Server Error",    def: "Server-side failure. Not client's fault — server bug or crash.", weight: "high" },
-      { id: "6.5.c.8", term: "4xx vs 5xx",                   def: "4xx = CLIENT error (you sent bad request). 5xx = SERVER error (server failed to handle valid request).", weight: "high" }
+      {
+        id: "6.5.c.1",
+        term: "200 OK",
+        weight: "high",
+        info: "<p><strong>200 OK</strong> is the universal 'request succeeded' status code. The server received, understood, and fulfilled the request, and the response body contains the result. It is the default success for <strong>GET</strong>, <strong>PUT</strong>, and <strong>PATCH</strong>.</p><p>Typical shape:</p><pre>HTTP/1.1 200 OK\nContent-Type: application/json\nContent-Length: 184\n\n{\"id\": 42, \"hostname\": \"SW5\", \"ip\": \"10.0.0.5\", \"status\": \"up\"}</pre><p><strong>200 vs 201 vs 204 — pick the right one:</strong></p><ul><li><strong>200 OK</strong> — request succeeded AND there is content to return. Most GET responses.</li><li><strong>201 Created</strong> — a new resource was created (POST).</li><li><strong>204 No Content</strong> — success but no body to return (DELETE, or PUT without echoing).</li></ul><p>Any 2xx code means success. If you ever see a 2xx you do not recognize (206 Partial Content, 202 Accepted), it is still a success — just a nuanced one. On the CCNA you only need to know 200, 201, 204.</p>",
+        visual: { type: "layer-stack", params: { layers: ["200 OK — success with body", "201 Created — new resource made", "204 No Content — success, no body", "(2xx family = success)"], highlight: 0 } },
+        hack: {
+          memory: "200 = it worked, here is your data. 201 = I made a new one. 204 = done, nothing to say. All 2xx = good news.",
+          practice: "curl -i https://jsonplaceholder.typicode.com/posts/1 — first line shows 'HTTP/1.1 200 OK'. The -i flag reveals the status line. Use this habit to read real API responses.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 62. OCG Chapter 30. Exam: '200 OK means ___' = success with content. '201 Created' typically follows POST, '204 No Content' typically follows DELETE."
+        }
+      },
+      {
+        id: "6.5.c.2",
+        term: "201 Created",
+        weight: "high",
+        info: "<p><strong>201 Created</strong> signals that a new resource was successfully created. It is the canonical response for a successful <strong>POST</strong>.</p><p>Along with the status code, a well-designed REST API returns:</p><ul><li>A <strong>Location header</strong> with the URI of the new resource, so the client knows where to find it.</li><li>A <strong>response body</strong> with the new resource's server-assigned fields (especially its ID).</li></ul><pre>HTTP/1.1 201 Created\nLocation: /api/v1/devices/42\nContent-Type: application/json\n\n{\"id\": 42, \"hostname\": \"SW5\", \"ip\": \"10.0.0.5\"}</pre><p><strong>Why a separate 201 instead of just 200?</strong> Because 'created a new thing' is different from 'returned existing data.' Clients and proxies may treat the two differently for caching, logging, and workflow triggers. A CI pipeline might fire a Slack notification only on 201s, for example.</p><p><strong>PUT can also return 201</strong> if the PUT created the resource (when you supplied the ID yourself and it did not exist). PUT on an existing resource returns 200 or 204.</p>",
+        visual: { type: "handshake", params: { leftLabel: "Client", rightLabel: "Server", steps: ["POST /devices + JSON body", "Server validates & stores", "Assigns id=42", "201 Created", "Location: /devices/42", "+ JSON with id"] } },
+        hack: {
+          memory: "201 Created = a new resource was BORN. Pair with POST. Look for the Location header — it tells you the new URI (birth certificate).",
+          practice: "POST a new item to jsonplaceholder and inspect the response with curl -i. You will see 201 and a body with an id that did not exist before.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 62. OCG Chapter 30. Exam: 'What status code follows a successful POST?' = 201 Created. Easy recall question."
+        }
+      },
+      {
+        id: "6.5.c.3",
+        term: "400 Bad Request",
+        weight: "high",
+        info: "<p><strong>400 Bad Request</strong> means the server could not understand or process the request because the client sent something malformed. It is the generic 'your fault' error.</p><p>Common causes:</p><ul><li>Malformed JSON body (trailing comma, missing brace, bad quotes)</li><li>Missing a required field</li><li>A field has the wrong data type (sent a string where a number is expected)</li><li>A value violates validation rules (IP is not a valid address; VLAN ID is out of range)</li><li>Query parameters are missing or malformed</li></ul><pre>HTTP/1.1 400 Bad Request\nContent-Type: application/json\n\n{\"error\": \"vlan_id must be between 1 and 4094\", \"field\": \"vlan_id\"}</pre><p><strong>400 vs 401 vs 403 vs 404 — the 4xx lineup:</strong></p><ul><li><strong>400</strong> — the request itself is malformed.</li><li><strong>401</strong> — you did not prove who you are (no/bad token).</li><li><strong>403</strong> — you proved who you are, but you are not allowed.</li><li><strong>404</strong> — the resource does not exist.</li></ul><p>Distinguishing these is exam-tested and career-critical. A production incident where you get 403s is a permissions issue; 400s are a payload issue; 404s are a URL/ID issue. Treating them the same wastes hours.</p>",
+        visual: { type: "comparison", params: { left: { label: "400 Bad Request", items: ["Malformed JSON", "Missing required field", "Wrong data type", "Validation failed"] }, right: { label: "vs other 4xx", items: ["401 = no/bad auth", "403 = auth OK, not allowed", "404 = URI does not exist", "429 = rate limited"] } } },
+        hack: {
+          memory: "400 = YOUR payload is garbage. 401 = WHO are you? 403 = you are known, BUT not allowed. 404 = not here. Fix 400 by fixing the JSON body; fix 401 by fixing the token; fix 403 by asking for permission; fix 404 by fixing the URL.",
+          practice: "POST to jsonplaceholder/posts with body '{\"title\": unquoted}' — malformed JSON triggers 400. Now POST to a real API with missing required fields — same 400. Get a feel for which mistakes the server catches.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 62. OCG Chapter 30. Exam: '400 Bad Request means ___' = client sent a malformed or invalid request. Not an auth problem. Not a missing-resource problem."
+        }
+      },
+      {
+        id: "6.5.c.4",
+        term: "401 Unauthorized",
+        weight: "high",
+        info: "<p><strong>401 Unauthorized</strong> is misnamed — it actually means <em>unauthenticated</em>. The server does not know who you are because you did not send credentials, or the ones you sent are invalid/expired.</p><p>Typical causes:</p><ul><li>No <code>Authorization</code> header at all</li><li>Bearer token has expired</li><li>API key is wrong or revoked</li><li>Basic Auth with wrong username/password</li><li>OAuth token is malformed</li></ul><pre>HTTP/1.1 401 Unauthorized\nWWW-Authenticate: Bearer realm=\"api\"\nContent-Type: application/json\n\n{\"error\": \"invalid_token\", \"error_description\": \"Token expired\"}</pre><p>The <code>WWW-Authenticate</code> response header tells the client what authentication scheme the server expects.</p><p><strong>Fix workflow when you hit 401:</strong> (1) verify the token is present on the request, (2) verify it is the right token (often there are separate dev/prod tokens), (3) verify it has not expired, (4) re-run the auth flow to get a fresh token. A 401 is almost never a code bug — it is a credentials problem.</p><p><strong>Common confusion:</strong> 401 vs 403. If you sent no token → 401. If you sent a token that is valid but lacks permission for this resource → 403.</p>",
+        visual: { type: "state-machine", params: { states: ["Request sent", "Token missing/expired?", "401 Unauthorized", "Client refreshes token", "Retry with new token"], active: 2, transitions: true } },
+        hack: {
+          memory: "401 = 'I don't know you.' Not authenticated. First things to check: is the Authorization header on the request? Is the token expired? (Decode the JWT at jwt.io and look at 'exp'.) Do not refactor code before checking these.",
+          practice: "Hit any token-protected API without a token — instant 401. Add an expired token — 401 again. Add a fresh token — 200. Three runs, three auth states, one lesson.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 62. OCG Chapter 30. Exam: '401 Unauthorized means ___' = authentication failed / credentials missing or invalid. Memory tie to MEMORY.md: 'verify API keys/tokens before deep troubleshooting.'"
+        }
+      },
+      {
+        id: "6.5.c.5",
+        term: "403 Forbidden",
+        weight: "high",
+        info: "<p><strong>403 Forbidden</strong> means the server understood the request and knows who you are, but you are <em>not allowed</em> to perform this action on this resource. Authentication succeeded; authorization failed.</p><p>Typical causes:</p><ul><li>Your token is for a read-only role, but you tried to POST/PUT/DELETE</li><li>The resource is in a tenant/organization you do not have access to</li><li>Role-Based Access Control (RBAC) policy denies the action</li><li>The resource is deliberately locked (e.g., a protected admin account)</li></ul><pre>HTTP/1.1 403 Forbidden\nContent-Type: application/json\n\n{\"error\": \"insufficient_scope\", \"required_role\": \"admin\"}</pre><p><strong>Why the distinction from 401 matters:</strong> on a 403, re-authenticating will NOT help — your credentials are fine, they just lack the needed permission. You need an admin to grant additional scope/role, or you need to use a different resource. Retrying the call is useless.</p><p><strong>Exam-classic contrast:</strong> 401 = 'prove who you are again' (re-auth may fix). 403 = 'you have been seen and denied' (re-auth will not fix).</p>",
+        visual: { type: "comparison", params: { left: { label: "401 Unauthorized", items: ["Not authenticated", "Token missing/expired", "Fix: refresh token", "Retry can succeed"] }, right: { label: "403 Forbidden", items: ["Authenticated but not allowed", "RBAC/scope denies", "Fix: get more permission", "Retry will fail identically"] } } },
+        hack: {
+          memory: "401 = 'I don't know you.' 403 = 'I know you, and NO.' 403 is the bouncer who recognizes your face from last time but you are still not on the list. Refreshing your ID won't help — you need to talk to the owner.",
+          practice: "Create a read-only API key and try a POST — you will see 403. Using a full-access key gives 200/201. The same request body, same URL, same verb — just the scope of the key changes.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 62. OCG Chapter 30. Classic exam trap: distinguishing 401 from 403. 401 = auth failed, 403 = authorized-identity-lacks-permission. Memorize the pair."
+        }
+      },
+      {
+        id: "6.5.c.6",
+        term: "404 Not Found",
+        weight: "high",
+        info: "<p><strong>404 Not Found</strong> means the requested URI does not correspond to any resource on this server. Either the resource never existed, was deleted, or you typed the URL wrong.</p><pre>GET /api/v1/devices/999999 HTTP/1.1\n\nHTTP/1.1 404 Not Found\nContent-Type: application/json\n\n{\"error\": \"device 999999 not found\"}</pre><p><strong>Common causes:</strong></p><ul><li>Typo in URL: <code>/devces/42</code> instead of <code>/devices/42</code></li><li>Wrong API version: calling <code>/api/v1/...</code> on a server that only exposes <code>/api/v2/...</code></li><li>Resource ID does not exist (device was deleted, or never existed)</li><li>Case mismatch: some APIs treat <code>/Devices</code> and <code>/devices</code> differently</li></ul><p><strong>404 vs 403 — a subtle security choice:</strong> some APIs return 404 instead of 403 when a resource exists but you lack access, so attackers cannot probe for the existence of sensitive IDs. If you hit a resource you know should exist and you get 404, check whether you have permission.</p><p><strong>A 404 after a DELETE</strong> is normal and harmless — the resource is gone, which is exactly what you wanted. DELETE is idempotent: the second call 404s but the world is in the intended state.</p>",
+        visual: { type: "hierarchy", params: { root: "Got 404?", children: [{ name: "Typo in URI path" }, { name: "Wrong API version (/v1 vs /v2)" }, { name: "Resource does not exist" }, { name: "Hidden-by-permission (stealth 403)" }] } },
+        hack: {
+          memory: "404 = the URL points at nothing. Your fault (wrong path) or the server's history (thing got deleted). Compare with the typo in your URL first. Then check the ID actually exists.",
+          practice: "GET https://jsonplaceholder.typicode.com/posts/999999 — instant 404. GET /postz/1 — also 404. One-minute exercise to feel how 404 manifests.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 62. OCG Chapter 30. Classic exam recall: '404 means ___' = the resource at that URI does not exist."
+        }
+      },
+      {
+        id: "6.5.c.7",
+        term: "500 Internal Server Error",
+        weight: "high",
+        info: "<p><strong>500 Internal Server Error</strong> is the generic 'something broke on OUR side' response. The request was valid, but the server crashed, threw an unhandled exception, or otherwise failed to complete the work.</p><pre>HTTP/1.1 500 Internal Server Error\nContent-Type: application/json\n\n{\"error\": \"internal error\", \"request_id\": \"abc123\"}</pre><p><strong>Causes you cannot fix as a client:</strong></p><ul><li>Unhandled exception in server code</li><li>Database connection dropped</li><li>Dependency service is down</li><li>Bug in the API implementation</li></ul><p><strong>What to do when you hit 500:</strong> (1) capture the <code>request_id</code> if the server returned one, (2) retry with exponential backoff (500s are sometimes transient), (3) if it persists, open a ticket with the API provider and include the request_id. Do not keep hammering — you will be rate-limited or locked out.</p><p><strong>Related 5xx codes:</strong></p><ul><li><strong>502 Bad Gateway</strong> — an upstream server returned an invalid response (often a load balancer issue).</li><li><strong>503 Service Unavailable</strong> — server is temporarily down (maintenance, overload). Usually includes a <code>Retry-After</code> header.</li><li><strong>504 Gateway Timeout</strong> — upstream did not respond in time.</li></ul><p><strong>5xx vs 4xx is the most-tested distinction on the CCNA.</strong> 5xx = server problem, client cannot fix by changing the request. 4xx = client problem, the request itself is wrong.</p>",
+        visual: { type: "comparison", params: { left: { label: "4xx (client fault)", items: ["400 Bad Request", "401 Unauthorized", "403 Forbidden", "404 Not Found", "Fix by changing request"] }, right: { label: "5xx (server fault)", items: ["500 Internal Server Error", "502 Bad Gateway", "503 Service Unavailable", "504 Gateway Timeout", "Client cannot fix; retry or escalate"] } } },
+        hack: {
+          memory: "500 = five-alarm fire on the server. Not your fault. Retry with backoff; if persistent, open a ticket. 4xx = you broke it. 5xx = they broke it.",
+          practice: "Most APIs do not let you trigger 500 on demand, but you can simulate with a local Flask app that raises an exception — curl returns 500. Watch the server log for the stack trace that the client never sees.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 62. OCG Chapter 30. The 4xx-vs-5xx split is the most-tested status-code concept. Know which side the common codes fall on."
+        }
+      },
+      {
+        id: "6.5.c.8",
+        term: "4xx vs 5xx",
+        weight: "high",
+        info: "<p>The single-digit rule of HTTP status codes: the <strong>first digit is the category</strong>. Get this right and you have solved 80% of the exam's status-code questions.</p><ul><li><strong>1xx — Informational</strong> — rare; 100 Continue, 101 Switching Protocols. Not on the CCNA.</li><li><strong>2xx — Success</strong> — 200, 201, 204. The request worked.</li><li><strong>3xx — Redirection</strong> — 301, 302, 304. Try another URL or use your cache.</li><li><strong>4xx — Client Error</strong> — YOUR fault. 400, 401, 403, 404, 405, 409, 429. Fix the request.</li><li><strong>5xx — Server Error</strong> — THEIR fault. 500, 502, 503, 504. Retry or escalate.</li></ul><p><strong>Diagnostic flow when an API call fails:</strong></p><ul><li>First digit is 4? → look at YOUR request (headers, body, URL, token, permissions).</li><li>First digit is 5? → look at the SERVER (retry with backoff, check status page, open ticket).</li><li>First digit is 3? → follow the redirect or update your cached URL.</li></ul><p>This triage saves hours. Engineers who do not internalize 4xx-vs-5xx spend time refactoring client code on server outages, or escalating to vendors on their own payload bugs.</p>",
+        visual: { type: "layer-stack", params: { layers: ["1xx informational (rare)", "2xx success — good", "3xx redirect — follow", "4xx client error — your fault", "5xx server error — their fault"], highlight: 3 } },
+        hack: {
+          memory: "FIRST DIGIT IS THE CATEGORY. 2 = good. 3 = go elsewhere. 4 = FOUR-bidden (your fault). 5 = FIVE-alarm (their fault). One glance at the first digit tells you where to look next.",
+          practice: "Make a list of 10 status codes from API logs. Group them by first digit without looking up meanings. Practice until it is automatic — then look up the specifics only for codes you do not recognize.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 62. OCG Chapter 30. The 4xx-vs-5xx split is the MOST-tested status-code concept on the CCNA. If you learn nothing else about HTTP codes, learn this."
+        }
+      }
     ]
   },
 
@@ -3397,10 +4789,58 @@ window.subtopicContentD56 = {
       meta: "Jeremy's IT Lab Day 62. Wendell Odom OCG Chapter 18. Know what each method is and when to use it. API key = simplest. Bearer token = session-based. OAuth 2.0 = enterprise delegated access.",
     },
     micro: [
-      { id: "6.5.d.1", term: "API key",                      def: "Static secret string sent in header. Simplest auth. Fine for internal or low-sensitivity APIs.", weight: "high" },
-      { id: "6.5.d.2", term: "Bearer token",                 def: "Token obtained after login, sent in 'Authorization: Bearer [token]' header. Session-based.", weight: "high" },
-      { id: "6.5.d.3", term: "OAuth 2.0",                    def: "Delegated access. User grants limited permissions to third-party apps without sharing password.", weight: "high" },
-      { id: "6.5.d.4", term: "Basic Auth",                   def: "Base64-encoded username:password in header. Not encryption — must be combined with HTTPS. Legacy.", weight: "med" }
+      {
+        id: "6.5.d.1",
+        term: "API key",
+        weight: "high",
+        info: "<p>An <strong>API key</strong> is a long random string issued by the server that identifies the calling application. It is the simplest form of REST authentication — no sessions, no tokens to refresh, no OAuth dance. You send the key on every request; the server looks it up and either allows or denies.</p><p>Two common delivery methods:</p><ul><li><strong>Custom HTTP header</strong> (preferred): <code>X-API-Key: abcdef1234567890</code></li><li><strong>Query string parameter</strong> (easier but less safe — keys land in server access logs): <code>?api_key=abcdef1234567890</code></li></ul><pre>GET /api/v1/devices HTTP/1.1\nHost: api.meraki.com\nX-Cisco-Meraki-API-Key: 1a2b3c4d5e6f7890</pre><p><strong>Strengths:</strong></p><ul><li>Dead simple to implement on client and server.</li><li>No expiration unless you rotate — good for server-to-server calls in automation.</li><li>Widely supported by public APIs (GitHub, OpenWeather, Meraki Dashboard).</li></ul><p><strong>Weaknesses:</strong></p><ul><li>Key = password. If it leaks, anyone can use it until you rotate.</li><li>Usually no expiration, no scopes, no per-user identity — the key identifies the <em>app</em>, not the user.</li><li>Must be sent over HTTPS (otherwise a passive sniffer steals it).</li></ul><p><strong>Best practices:</strong> store in environment variables or secret manager (never in code), rotate regularly, scope keys to minimum privilege, and revoke immediately if leaked.</p>",
+        visual: { type: "handshake", params: { leftLabel: "Client", rightLabel: "API Server", steps: ["GET /api/v1/devices", "X-API-Key: abc123...", "Server looks up key", "Key valid & scope OK", "200 OK + JSON"] } },
+        hack: {
+          memory: "API key = library card. One string, no expiration, identifies the app. Treat like a password. Send in header X-API-Key, never in the URL if you can avoid it. Leak = rotate immediately.",
+          practice: "Sign up for Meraki Dashboard API, grab your key, curl https://api.meraki.com/api/v1/organizations with header 'X-Cisco-Meraki-API-Key: <key>'. Two-minute win that makes API keys concrete.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 62. OCG Chapter 30. Exam: 'Simplest REST auth method' = API key. Know it is sent in a header (or query string), identifies the app, and must be kept secret."
+        }
+      },
+      {
+        id: "6.5.d.2",
+        term: "Bearer token",
+        weight: "high",
+        info: "<p>A <strong>Bearer token</strong> is an access credential (often a JWT — JSON Web Token) that the client obtains through an authentication flow and then presents on every subsequent request. 'Bearer' means 'whoever holds this token is granted access' — the server does not require additional proof of identity; possession is authorization.</p><p>Sent in the Authorization header:</p><pre>GET /api/v1/devices HTTP/1.1\nAuthorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IlJvbWVvIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c</pre><p><strong>Typical flow:</strong></p><ul><li>Client POSTs username/password (or client credentials) to <code>/auth/token</code>.</li><li>Server returns a JWT bearer token with an expiry (usually 15 minutes to 1 hour).</li><li>Client includes <code>Authorization: Bearer &lt;token&gt;</code> on every API call.</li><li>When the token expires, the client uses a <strong>refresh token</strong> (long-lived) to get a new access token.</li></ul><p><strong>Why Bearer tokens beat API keys:</strong></p><ul><li>Short-lived — leak window is minutes, not forever.</li><li>Self-contained — JWTs carry user ID, roles, and scopes, so the server does not need to hit a DB for every call.</li><li>Works cleanly with OAuth 2.0 and OIDC flows.</li></ul><p><strong>Exam pattern:</strong> see <code>Authorization: Bearer ...</code> in a header? That is a bearer token. It is the most common auth scheme in modern enterprise REST APIs, including Cisco DNA Center.</p>",
+        visual: { type: "handshake", params: { leftLabel: "Client", rightLabel: "Server", steps: ["POST /auth/token + creds", "200 + access_token + refresh_token", "GET /api/v1/devices", "Authorization: Bearer <token>", "200 OK + JSON", "(token expires)", "POST /auth/refresh + refresh_token"] } },
+        hack: {
+          memory: "Bearer token = security badge with expiration. Whoever has it is in — so do NOT leak it. Header: Authorization: Bearer <long-string>. Refreshable. Short-lived. Most common enterprise REST auth.",
+          practice: "DNA Center always-on sandbox: POST /dna/system/api/v1/auth/token with Basic auth to get a token, then use Authorization: Bearer <token> on /dna/intent/api/v1/network-device. Two-step flow teaches you the whole bearer pattern.",
+          effort: "medium",
+          meta: "Jeremy's IT Lab Day 62. OCG Chapter 30. Exam: 'Authorization: Bearer ...' header = bearer token auth. Know it is more secure than API keys because of expiry, and know it is what DNA Center uses."
+        }
+      },
+      {
+        id: "6.5.d.3",
+        term: "OAuth 2.0",
+        weight: "high",
+        info: "<p><strong>OAuth 2.0</strong> is an authorization framework (RFC 6749) that lets a user grant a third-party application limited access to their resources <em>without sharing their password</em>. It is not an authentication protocol per se — it issues access tokens that API servers then trust.</p><p><strong>The key idea — delegation:</strong> instead of pasting your Google password into a third-party app, the app redirects you to Google's login, you authenticate there, Google asks 'do you allow this app to read your calendar?', and if you click Allow, Google issues a scoped access token that the app uses on your behalf. Your password never touches the third party.</p><p><strong>Core concepts:</strong></p><ul><li><strong>Resource Owner</strong> — the end user who owns the data.</li><li><strong>Client</strong> — the app that wants access.</li><li><strong>Authorization Server</strong> — issues tokens (Google, Okta, Azure AD).</li><li><strong>Resource Server</strong> — the API that holds the data and accepts the tokens.</li><li><strong>Access Token</strong> — short-lived (minutes), used on API calls.</li><li><strong>Refresh Token</strong> — long-lived (days/weeks), used to get new access tokens.</li><li><strong>Scopes</strong> — granular permissions (e.g., <code>read:devices</code>, <code>write:interfaces</code>).</li></ul><p><strong>Grant types (flows):</strong></p><ul><li><strong>Authorization Code</strong> — most common for web apps with a user in the browser.</li><li><strong>Client Credentials</strong> — server-to-server, no user — often used in network automation where a script authenticates as itself.</li><li><strong>Device Code</strong> — CLIs and IoT devices with limited input.</li></ul><p>On the CCNA you do not need to know the grant type details — just know OAuth 2.0 is delegated authorization, uses access + refresh tokens and scopes, and is the gold standard for enterprise APIs.</p>",
+        visual: { type: "state-machine", params: { states: ["Client → Authorization Server", "User logs in + approves scopes", "Auth server issues access + refresh token", "Client → Resource Server with Bearer access token", "Token expires → refresh flow"], active: 3, transitions: true } },
+        hack: {
+          memory: "OAuth 2.0 = company SSO with permission slips. You never give the app your password — you tell Google/Okta 'let this app do X and Y on my behalf.' Scopes = what the app can do. Refresh token = pass for getting new access tokens. Most secure and most complex.",
+          practice: "Sign into any app 'with Google' or 'with GitHub.' That redirect + consent screen + 'logged in' is OAuth 2.0 authorization code flow. You just ran it. Look at the URL during the redirect — you will see client_id, scope, redirect_uri, state — the OAuth vocabulary in the wild.",
+          effort: "medium",
+          meta: "Jeremy's IT Lab Day 62. OCG Chapter 30. Exam: 'OAuth 2.0 enables ___' = delegated authorization / third-party access without sharing password. Know it uses access + refresh tokens and scopes."
+        }
+      },
+      {
+        id: "6.5.d.4",
+        term: "Basic Auth",
+        weight: "med",
+        info: "<p><strong>HTTP Basic Authentication</strong> is the oldest and simplest auth scheme: username and password are base64-encoded and sent in the <code>Authorization</code> header on every request.</p><pre>GET /api/v1/devices HTTP/1.1\nAuthorization: Basic cm9tZW86c3VwZXJzZWNyZXQ=</pre><p>Decode <code>cm9tZW86c3VwZXJzZWNyZXQ=</code> with base64 → <code>romeo:supersecret</code>. That is the entire security — reversible encoding, not encryption.</p><p><strong>Critical safety rule: Basic Auth MUST be used over HTTPS.</strong> Over plain HTTP, anyone sniffing the wire sees your password in seconds. Base64 is not encryption, it is just a text-safe representation of binary.</p><p><strong>Where you still see Basic Auth:</strong></p><ul><li>Cisco DNA Center's initial token-request endpoint (<code>POST /dna/system/api/v1/auth/token</code>) — you Basic-Auth once to get a bearer token, then use the bearer for every call after.</li><li>Legacy enterprise gear.</li><li>Internal tools where simplicity beats token infrastructure.</li></ul><p><strong>Weaknesses vs Bearer/OAuth:</strong></p><ul><li>No expiration — credentials valid until you change the password.</li><li>No scope — full account access or nothing.</li><li>Password on every request — bigger leak blast radius.</li></ul><p>On the CCNA, recognize the pattern <code>Authorization: Basic &lt;base64&gt;</code> and know it must be paired with HTTPS. It is a 'know it exists, do not use it as your primary auth in 2026' item.</p>",
+        visual: { type: "comparison", params: { left: { label: "Basic Auth", items: ["Authorization: Basic <base64>", "username:password encoded", "No expiration", "No scopes", "MUST use HTTPS"] }, right: { label: "Bearer Token", items: ["Authorization: Bearer <token>", "Short-lived JWT", "Refreshable", "Scoped", "Modern default"] } } },
+        hack: {
+          memory: "Basic Auth = base64(user:pass) in the Authorization header. Base64 is NOT encryption — it is reversible encoding. Use HTTPS or your password leaks instantly. DNA Center uses it ONLY to bootstrap the token flow, then switches to Bearer.",
+          practice: "echo -n 'romeo:supersecret' | base64 → cm9tZW86c3VwZXJzZWNyZXQ=. Now echo cm9tZW86c3VwZXJzZWNyZXQ= | base64 -d → romeo:supersecret. That 20-second experiment makes 'base64 is not encryption' unforgettable.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 62. OCG Chapter 30. Exam: 'Authorization: Basic ...' header = Basic Auth. Know it must be over HTTPS and that base64 is encoding, not encryption."
+        }
+      }
     ]
   },
 
@@ -3414,10 +4854,58 @@ window.subtopicContentD56 = {
       meta: "Jeremy's IT Lab Day 62. Wendell Odom OCG Chapter 18. The exam focuses heavily on JSON. Also know: XML = NETCONF, YAML = Ansible. Be able to identify format by sight.",
     },
     micro: [
-      { id: "6.5.e.1", term: "JSON",                         def: "JavaScript Object Notation. Most common REST data format. { } for objects, [ ] for arrays.", weight: "high" },
-      { id: "6.5.e.2", term: "XML",                          def: "Extensible Markup Language. Used by NETCONF. Tag-based: <tag>value</tag>. More verbose than JSON.", weight: "high" },
-      { id: "6.5.e.3", term: "YAML",                         def: "YAML Ain't Markup Language. Human-friendly. Used by Ansible playbooks. Indentation-based.", weight: "high" },
-      { id: "6.5.e.4", term: "Identify by sight",            def: "{ } JSON. < /> XML. --- + indented lines = YAML. Exam may show a snippet and ask format.", weight: "high" }
+      {
+        id: "6.5.e.1",
+        term: "JSON",
+        weight: "high",
+        info: "<p><strong>JSON (JavaScript Object Notation)</strong> is a lightweight, text-based data format derived from JavaScript object literals. It is the default wire format for nearly every modern REST API, SDN controller, and cloud service.</p><p><strong>Why JSON won:</strong></p><ul><li>Human-readable — you can open a JSON response and understand it without tools.</li><li>Compact — less overhead than XML (no closing tags, no schemas required).</li><li>Language-agnostic — every modern language has a built-in JSON parser.</li><li>Maps cleanly to in-memory data structures: objects to dicts/hashes, arrays to lists.</li></ul><p>Minimal structure:</p><pre>{\n  \"hostname\": \"SW1\",\n  \"vlans\": [10, 20, 30],\n  \"managed\": true\n}</pre><p><strong>Two container types:</strong> objects in <code>{ }</code> and arrays in <code>[ ]</code>. Six value types: string, number, boolean, null, object, array. (Topic 6.7 drills into these.)</p><p><strong>Where you will see JSON in networking:</strong></p><ul><li>DNA Center intent API responses.</li><li>Meraki Dashboard API — both requests and responses.</li><li>Catalyst SD-WAN vManage REST API.</li><li>Device telemetry streamed via HTTP/gRPC.</li><li>Almost every cloud management API (AWS, GCP, Azure).</li></ul><p>On the CCNA, JSON is the primary data-format focus. XML and YAML appear as contrast points.</p>",
+        visual: { type: "comparison", params: { left: { label: "JSON", items: ["{ } and [ ]", "Human-readable", "Light on syntax", "Default REST body format"] }, right: { label: "Why not XML/YAML?", items: ["XML verbose, legacy (NETCONF)", "YAML great for configs, rare on wire", "JSON is the REST winner"] } } },
+        hack: {
+          memory: "JSON = JavaScript Object Notation. { } = objects (key:value pairs). [ ] = arrays (ordered lists). The REST wire format. If you see curly braces and quoted keys, it is JSON.",
+          practice: "curl -s https://jsonplaceholder.typicode.com/posts/1 | jq. You will see colored JSON in the terminal. That is the format 95% of modern APIs use.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 62. OCG Chapter 30. Exam: 'Most common REST data format' = JSON. Know its characteristics and that it maps to dicts/lists in code."
+        }
+      },
+      {
+        id: "6.5.e.2",
+        term: "XML",
+        weight: "high",
+        info: "<p><strong>XML (eXtensible Markup Language)</strong> is an older, verbose, tag-based data format. In networking, XML survives in two important places: <strong>NETCONF</strong> (network configuration protocol, RFC 6241) and legacy SOAP APIs.</p><p>Same device data in XML:</p><pre>&lt;device&gt;\n  &lt;hostname&gt;SW1&lt;/hostname&gt;\n  &lt;vlans&gt;\n    &lt;vlan&gt;10&lt;/vlan&gt;\n    &lt;vlan&gt;20&lt;/vlan&gt;\n  &lt;/vlans&gt;\n  &lt;managed&gt;true&lt;/managed&gt;\n&lt;/device&gt;</pre><p>Compare to JSON — XML is 2-3x more bytes and harder to read. But XML has strengths: it supports schemas (XSD) for strict validation, namespaces for federated data models, and the YANG+NETCONF ecosystem uses it for a reason.</p><p><strong>XML visual signature:</strong> angle-bracket tags like HTML. If you see <code>&lt;hostname&gt;SW1&lt;/hostname&gt;</code>, it is XML. Self-closing tags and attributes like <code>&lt;vlan id=\"10\"/&gt;</code> also hint at XML.</p><p><strong>Where you will see XML in networking:</strong></p><ul><li>NETCONF payloads (Cisco IOS-XE, IOS-XR, NX-OS support NETCONF).</li><li>SOAP APIs on older systems.</li><li>Legacy CMDB tools.</li></ul><p>On the CCNA, memorize: <strong>XML = angle brackets, tag-based, used by NETCONF</strong>. You do not need to parse it, just recognize it.</p>",
+        visual: { type: "comparison", params: { left: { label: "XML", items: ["<tag>value</tag>", "Verbose, schema-friendly", "NETCONF + SOAP", "Harder to read than JSON"] }, right: { label: "JSON", items: ["{\"key\":\"value\"}", "Compact, REST default", "Most cloud + SDN APIs", "Easier to read"] } } },
+        hack: {
+          memory: "XML = X-tremely angle-bracket happy. NETCONF = XML over SSH port 830. SOAP = XML over HTTP. Recognize the <tag> pattern instantly. Verbose but strict.",
+          practice: "Open any NETCONF tutorial and look at a <rpc> payload — full of <edit-config>, <target>, <running/> tags. That is the XML world you need to identify but not author.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 62. OCG Chapter 30. Exam: 'Which format uses angle-bracket tags?' = XML. 'Which protocol uses XML?' = NETCONF. Recognition, not authoring."
+        }
+      },
+      {
+        id: "6.5.e.3",
+        term: "YAML",
+        weight: "high",
+        info: "<p><strong>YAML (YAML Ain't Markup Language)</strong> is an indentation-based, human-friendly data format. It is a strict superset of JSON — every valid JSON document is valid YAML — but in practice YAML uses its own cleaner syntax. YAML is everywhere in config-as-code: Ansible playbooks, Docker Compose files, Kubernetes manifests, GitHub Actions workflows.</p><p>Same device data in YAML:</p><pre>hostname: SW1\nvlans:\n  - 10\n  - 20\n  - 30\nmanaged: true</pre><p>Notice: no braces, no quotes on keys, indentation does the grouping. Lists use <code>-</code> prefixes.</p><p><strong>Strengths:</strong></p><ul><li>Most human-readable of the three formats.</li><li>Supports comments with <code>#</code> (JSON does not).</li><li>Trivially diff-able in git — each item on its own line.</li></ul><p><strong>Gotchas:</strong></p><ul><li>Indentation matters — <strong>spaces only, no tabs</strong>. Mixed indentation breaks parsers.</li><li>Certain unquoted values auto-cast surprisingly: <code>no</code> becomes the boolean false, <code>version: 1.10</code> becomes the number 1.1 (trailing zero lost). Quote them if precision matters.</li><li>Parser-dependent edge cases — use <code>yamllint</code> and explicit quoting in production.</li></ul><p><strong>Where you will see YAML in networking:</strong> Ansible playbooks, inventories, and roles; Cisco NSO configs; most modern CI/CD pipelines. On the CCNA: <strong>YAML = indentation-based, used by Ansible</strong>.</p>",
+        visual: { type: "comparison", params: { left: { label: "YAML (Ansible)", items: ["Indentation-based", "# comments allowed", "Lists with - prefix", "Superset of JSON"] }, right: { label: "JSON (REST)", items: ["Braces + brackets", "No comments allowed", "Strict punctuation", "Default REST wire format"] } } },
+        hack: {
+          memory: "YAML = 'whitespace is the syntax.' No braces, no angle brackets. Indent to nest. Dashes for lists. # for comments. If an Ansible playbook's opening line is '---', that is YAML announcing itself.",
+          practice: "Write an Ansible playbook with 3 tasks. Notice: no braces, no semicolons, just indentation. Break indentation on purpose — ansible-playbook errors immediately. Whitespace is the structure.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 62. OCG Chapter 30. Exam: 'Which format is used by Ansible playbooks?' = YAML. 'Which format uses indentation instead of brackets?' = YAML."
+        }
+      },
+      {
+        id: "6.5.e.4",
+        term: "Identify by sight",
+        weight: "high",
+        info: "<p>On the exam you will be shown a code snippet and asked 'what format is this?' The first character usually tells you:</p><ul><li><strong>Starts with <code>{</code> or <code>[</code></strong> — JSON. Quoted keys, colons, commas.</li><li><strong>Starts with <code>&lt;</code></strong> — XML. Angle-bracket tags, sometimes an <code>&lt;?xml version=\"1.0\"?&gt;</code> prolog.</li><li><strong>Starts with <code>---</code> or an unquoted key like <code>hostname:</code></strong> — YAML. Indented structure, no braces.</li></ul><p>Mini drills — identify the format:</p><pre>(1)  {\"hostname\":\"SW1\",\"vlans\":[10,20]}\n(2)  &lt;device&gt;&lt;hostname&gt;SW1&lt;/hostname&gt;&lt;/device&gt;\n(3)  hostname: SW1\n     vlans:\n       - 10\n       - 20</pre><p>Answers: (1) JSON — curly braces, quoted keys. (2) XML — angle-bracket tags. (3) YAML — indentation, dash-prefixed list.</p><p><strong>Format-to-tool mapping (memorize):</strong></p><ul><li>JSON → REST APIs (DNA Center, Meraki, vManage, cloud).</li><li>XML → NETCONF (on IOS-XE, IOS-XR, NX-OS), SOAP.</li><li>YAML → Ansible, Docker Compose, Kubernetes, GitHub Actions.</li></ul><p>You will not be asked to hand-write any of these, but instant format recognition is an easy, guaranteed point on the exam.</p>",
+        visual: { type: "hierarchy", params: { root: "First character?", children: [{ name: "{ or [ → JSON (REST)" }, { name: "< → XML (NETCONF/SOAP)" }, { name: "--- or unquoted key: → YAML (Ansible)" }] } },
+        hack: {
+          memory: "One glance identifies the format. { = JSON. < = XML. Plain words with indentation = YAML. Pair them with tools: JSON→REST, XML→NETCONF, YAML→Ansible. That's the full exam mapping.",
+          practice: "Screenshot 10 snippets from real docs (Meraki JSON, NETCONF XML examples, Ansible playbooks) and flash-card them. Under 2 seconds per snippet. Format ID is a free point.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 62. OCG Chapter 30. The 'identify the format' question appears on nearly every practice exam. Memorize the three signatures and the tool mapping."
+        }
+      }
     ]
   },
 
@@ -3431,8 +4919,32 @@ window.subtopicContentD56 = {
       meta: "Jeremy's IT Lab Day 62. Wendell Odom OCG Chapter 18. The exam shows API calls and asks 'what CRUD operation is this?' or vice versa. Practice translating both directions instantly.",
     },
     micro: [
-      { id: "6.5.f.1", term: "API call format",              def: "HTTP verb + URI + headers + body. Example: 'POST /api/devices' + JSON body = create a device.", weight: "high" },
-      { id: "6.5.f.2", term: "CRUD ↔ HTTP mapping drill",    def: "Given 'PUT /devices/42' → Update. Given 'Create a device' → POST /devices. Practice both directions.", weight: "high" }
+      {
+        id: "6.5.f.1",
+        term: "API call format",
+        weight: "high",
+        info: "<p>Every REST API call has the same four ingredients. If you can identify them in any snippet, you can read any REST API documentation in the world.</p><ol><li><strong>HTTP verb</strong> — what to do: GET, POST, PUT, PATCH, DELETE.</li><li><strong>URI</strong> — which resource: <code>https://dnac.example.com/dna/intent/api/v1/network-device/42</code>.</li><li><strong>Headers</strong> — metadata: <code>Authorization: Bearer ...</code>, <code>Content-Type: application/json</code>, <code>Accept: application/json</code>.</li><li><strong>Body</strong> — payload (POST/PUT/PATCH only): JSON representation of the resource.</li></ol><p><strong>Full example — create a device in DNA Center:</strong></p><pre>POST /dna/intent/api/v1/network-device HTTP/1.1\nHost: dnac.example.com\nAuthorization: Bearer eyJhbGciOi...\nContent-Type: application/json\nAccept: application/json\n\n{\n  \"ipAddress\": [\"10.0.0.5\"],\n  \"snmpVersion\": \"v2\",\n  \"snmpROCommunity\": \"public\",\n  \"cliTransport\": \"ssh\"\n}</pre><p>The response follows the same four-part shape: status line (<code>HTTP/1.1 202 Accepted</code>), headers (<code>Content-Type: application/json</code>, <code>Location: /task/abc123</code>), and body (JSON with a task ID to poll).</p><p><strong>Key headers to remember:</strong></p><ul><li><code>Content-Type: application/json</code> — describes the body you are SENDING.</li><li><code>Accept: application/json</code> — describes the format you WANT BACK.</li><li><code>Authorization: Bearer ...</code> — who you are.</li></ul><p>On the exam you may be handed a snippet and asked to pick out the verb, the URI, or what action the call performs. Practice until you can dissect any REST call in under 5 seconds.</p>",
+        visual: { type: "layer-stack", params: { layers: ["HTTP verb (GET/POST/PUT/PATCH/DELETE)", "URI — which resource", "Headers — Auth, Content-Type, Accept", "Body — JSON payload (write verbs)"], highlight: 0 } },
+        hack: {
+          memory: "Verb + URI + Headers + Body = any REST call. Verb = what. URI = which. Headers = how/who. Body = with-what-data. Four-part recipe, no exceptions.",
+          practice: "Open Postman, hit any public API. Look at the four panes: Method (verb), URL (URI), Headers, Body. That UI mirrors the HTTP request on the wire. Dissect five requests this way and the format is second nature.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 62. OCG Chapter 30. Exam: snippet identification — 'what does this REST call do?' Dissect it: verb + URI + headers + body → CRUD operation."
+        }
+      },
+      {
+        id: "6.5.f.2",
+        term: "CRUD ↔ HTTP mapping drill",
+        weight: "high",
+        info: "<p><strong>CRUD</strong> (Create, Read, Update, Delete) is the vocabulary of databases and OO programming. <strong>REST</strong> uses HTTP verbs to express the same four operations. The exam tests both directions — CRUD to HTTP and HTTP to CRUD.</p><table><thead><tr><th>CRUD</th><th>HTTP</th><th>Example URI</th><th>Success code</th></tr></thead><tbody><tr><td>Create</td><td>POST</td><td>POST /devices</td><td>201 Created</td></tr><tr><td>Read (list)</td><td>GET</td><td>GET /devices</td><td>200 OK</td></tr><tr><td>Read (one)</td><td>GET</td><td>GET /devices/42</td><td>200 OK</td></tr><tr><td>Update (full)</td><td>PUT</td><td>PUT /devices/42</td><td>200 OK</td></tr><tr><td>Update (partial)</td><td>PATCH</td><td>PATCH /devices/42</td><td>200 OK</td></tr><tr><td>Delete</td><td>DELETE</td><td>DELETE /devices/42</td><td>204 No Content</td></tr></tbody></table><p><strong>Both-ways drill — answer in under 3 seconds:</strong></p><ul><li>'Create a new VLAN' → POST /vlans</li><li>'Retrieve the list of interfaces' → GET /interfaces</li><li>'Replace device 42's config entirely' → PUT /devices/42</li><li>'Rename just one interface' → PATCH /interfaces/Gi0-1</li><li>'Remove an ACL' → DELETE /acls/42</li><li>'GET /vlans' → Read all VLANs</li><li>'POST /routes' → Create a route</li><li>'DELETE /vlans/10' → Remove VLAN 10</li></ul><p><strong>Network automation real example:</strong> DNA Center's intent API uses exactly this mapping. <code>POST /network-device</code> adds a device, <code>GET /network-device/{id}</code> reads it, <code>PUT /network-device</code> updates it, <code>DELETE /network-device/{id}</code> decommissions it. Same CRUD-HTTP mapping everywhere.</p>",
+        visual: { type: "comparison", params: { left: { label: "CRUD", items: ["Create", "Read", "Update (full)", "Update (partial)", "Delete"] }, right: { label: "HTTP", items: ["POST + body", "GET", "PUT + full body", "PATCH + partial body", "DELETE"] } } },
+        hack: {
+          memory: "CRUD = Create/Read/Update/Delete. HTTP = POST/GET/PUT/DELETE (+ PATCH for partial). Drill until instant: 'Remove a route' = DELETE. 'Rename a host' = PATCH. 'List all devices' = GET.",
+          practice: "Flash-card drill: 20 CRUD phrases on one side, HTTP verbs + URI patterns on the other. Shuffle. Answer each in under 3 seconds. 3 rounds a day for a week = permanent recall.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 62. OCG Chapter 30. Both directions (CRUD→HTTP and HTTP→CRUD) are exam-tested. This single drill covers 80% of Domain 6.5's points."
+        }
+      }
     ]
   },
 
@@ -3448,10 +4960,58 @@ window.subtopicContentD56 = {
       meta: "Jeremy's IT Lab Day 61-62 (Ansible). Wendell Odom OCG Chapter 19-20. Ansible is THE most tested config management tool. Know: agentless, SSH, YAML, push model, idempotent. Compare against Puppet/Chef (agent-based, pull).",
     },
     micro: [
-      { id: "6.6.a.1", term: "Ansible",                      def: "Config management tool. AGENTLESS (uses SSH). YAML playbooks. PUSH model. Idempotent.", weight: "high" },
-      { id: "6.6.a.2", term: "Agentless",                    def: "No software installed on managed devices. Uses SSH/WinRM. Network-friendly.", weight: "high" },
-      { id: "6.6.a.3", term: "Idempotent",                   def: "Running a playbook multiple times produces the same result. Safe to re-run.", weight: "high" },
-      { id: "6.6.a.4", term: "Ansible vs Puppet/Chef",       def: "Ansible = agentless, push, YAML. Puppet/Chef = agent-based, pull, Ruby DSL.", weight: "high" }
+      {
+        id: "6.6.a.1",
+        term: "Ansible",
+        weight: "high",
+        info: "<p><strong>Ansible</strong> is an open-source IT automation platform originally created by Michael DeHaan in 2012, acquired by Red Hat in 2015. It has become the most widely deployed configuration-management tool in network automation because of four characteristics that suit networking gear: <strong>agentless, SSH-based, YAML-driven, and idempotent</strong>.</p><p><strong>Agentless</strong> — no daemon needs to run on managed devices. Ansible connects over SSH (for Linux/network OS) or WinRM (for Windows) using existing credentials. On a Cisco IOS box, Ansible simply SSHes in and runs CLI commands through network modules. This is a massive win over Puppet/Chef, which require installing and maintaining an agent on every managed node — a non-starter on most routers/switches.</p><p><strong>Push model</strong> — a human (or CI pipeline) invokes <code>ansible-playbook</code> on the control node, and Ansible pushes tasks out to targets in the inventory. There is no polling and no scheduled reconciliation unless you wrap the tool in cron or AWX. The admin decides exactly when changes happen.</p><p><strong>YAML playbooks</strong> — Ansible's configuration language is pure YAML, not a Turing-complete DSL. Network engineers read it without learning Ruby or Python. The learning curve is days, not weeks.</p><p><strong>Idempotent</strong> — each module is written to check state before changing. If the hostname is already <code>SW1</code>, the <code>ios_config</code> module reports 'ok' and makes no change. This means you can safely re-run playbooks; they converge to the desired state without drift or duplicate operations.</p>",
+        visual: { type: "packet-flow", params: { nodes: ["Control Node (ansible-playbook)", "SSH / NETCONF", "Managed Network Devices", "Tasks applied idempotently"], color: "#ef4444" } },
+        hack: {
+          memory: "Ansible = Agentless + SSH + YAML + Push + Idempotent (ASYPI). No agent to install on the router. You push playbooks from a control node. Run twice = same result. Red Hat owns it. THE default config-management tool for networking.",
+          practice: "On the Cisco DevNet Always-On Sandbox (IOS XE), install Ansible on your laptop, write a one-task playbook that runs 'show version' via ios_command, and point it at the sandbox. Two commands: pip install ansible, ansible-playbook -i inventory.yml play.yml. You are doing network automation in under 10 minutes.",
+          effort: "medium",
+          meta: "Jeremy's IT Lab Day 63. OCG Chapter 30. Exam: 'Which automation tool is agentless and uses YAML?' = Ansible. Also know it is push-based and idempotent. Contrast with Puppet/Chef (agent-based, pull)."
+        }
+      },
+      {
+        id: "6.6.a.2",
+        term: "Agentless",
+        weight: "high",
+        info: "<p><strong>Agentless</strong> means the automation tool does not require any special software running permanently on the managed device. Ansible is the canonical agentless tool — it uses protocols that are already present on virtually every device: <strong>SSH</strong> for Linux and network OS, <strong>WinRM</strong> for Windows, <strong>NETCONF/RESTCONF</strong> for modern network gear.</p><p>Compare the deployment stories:</p><ul><li><strong>Agent-based (Puppet/Chef):</strong> install the agent on 10,000 devices → keep it updated → monitor it → handle agent crashes → deal with OS incompatibility. Each device runs a daemon that phones home every 30 minutes.</li><li><strong>Agentless (Ansible):</strong> have SSH access. That is it. Every Cisco switch and Linux server already accepts SSH. Zero install footprint on managed devices.</li></ul><p><strong>Why this matters for networking specifically:</strong> routers and switches run specialized network operating systems (IOS, IOS-XE, NX-OS, Junos). Most do not allow arbitrary agents to be installed on them — the OS is locked down. Agentless is often the <em>only</em> option for managing network gear.</p><p><strong>Cost and overhead trade-off:</strong> agentless tools typically open a fresh SSH session per task (Ansible mitigates this with SSH ControlPersist and connection pipelining). Agent-based tools avoid that reconnect overhead but pay for it with agent-maintenance cost. For networking, the agentless tradeoff is almost always preferred.</p><p><strong>Exam distinction:</strong> agentless ≠ no authentication. You still need SSH credentials, a bearer token, or an API key. Agentless means no background daemon — it does not mean no auth.</p>",
+        visual: { type: "comparison", params: { left: { label: "Agent-based", items: ["Daemon on every device", "Polls master", "Agent OS compatibility required", "Pull model (Puppet/Chef)"] }, right: { label: "Agentless", items: ["Uses SSH/WinRM/NETCONF", "Nothing installed on device", "Works on locked-down gear", "Push model (Ansible)"] } } },
+        hack: {
+          memory: "Agentless = no extra software on the device. Use what is already there (SSH). Agent = permanent daemon running on the device, phones home, must be maintained. Ansible = agentless. Puppet/Chef = agents.",
+          practice: "SSH manually into any device you manage. That TCP/22 connection + login = the exact channel Ansible uses. No agent, no new port, no new protocol — just automation of the SSH session you already run by hand.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 63. OCG Chapter 30. Exam: 'Which tool is agentless?' = Ansible. 'Why is agentless preferred for network automation?' = network OS restricts agents; SSH is universal."
+        }
+      },
+      {
+        id: "6.6.a.3",
+        term: "Idempotent",
+        weight: "high",
+        info: "<p><strong>Idempotent</strong> means an operation produces the same result no matter how many times it is applied. In Ansible, every well-written module checks current state before making changes: if the device is already in the desired state, the module reports 'ok' and does nothing; if it is not, the module makes the minimum change to get it there.</p><p>Imperative scripting (not idempotent):</p><pre># Bash — bad, imperative\necho \"hostname SW1\" | ssh router \"configure\"\n# Re-run this and... you just re-entered config mode and re-typed. Sometimes benign, sometimes not.</pre><p>Ansible (idempotent):</p><pre># playbook.yml\n- name: Set hostname\n  ios_config:\n    lines: hostname SW1\n# Run 1: PLAY RECAP → changed=1\n# Run 2: PLAY RECAP → ok=1 (no change)\n# Run 100: PLAY RECAP → ok=1 (still no change)</pre><p><strong>Why it matters:</strong></p><ul><li><strong>Safe to retry</strong> — network blip? re-run the playbook; nothing breaks.</li><li><strong>Self-healing</strong> — a human manually changed the hostname back? re-run the playbook; it reverts to <code>SW1</code>.</li><li><strong>Safe CI/CD</strong> — your pipeline can run the same playbook on every push; only drifted devices get touched.</li><li><strong>Explicit change tracking</strong> — Ansible tells you exactly how many tasks were <code>changed</code>, <code>ok</code>, <code>failed</code>. You know the delta.</li></ul><p><strong>Idempotency is not magic</strong> — it is a contract the module authors implement. Some third-party modules are NOT idempotent; check docs or <code>--check</code> mode before trusting a module in production.</p>",
+        visual: { type: "state-machine", params: { states: ["Run 1 → changed=1", "Run 2 → ok=0 (no-op)", "Run 3 → ok=0 (no-op)", "Manual drift", "Run 4 → changed=1 (re-convergence)"], active: 1, transitions: true } },
+        hack: {
+          memory: "Idempotent = re-runnable. First run makes the change; subsequent runs are no-ops. Like calling an elevator — pushing the button 100 times still only summons it once. Same final state.",
+          practice: "Write a 1-task Ansible playbook. Run it — output shows changed=1. Run it again — output shows changed=0, ok=1. That difference is idempotency in action. Use --check mode to simulate without making changes.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 63. OCG Chapter 30. Exam: 'Idempotent means ___' = same result no matter how many times applied. Ansible, Puppet, Chef, Terraform — all are designed around idempotency."
+        }
+      },
+      {
+        id: "6.6.a.4",
+        term: "Ansible vs Puppet/Chef",
+        weight: "high",
+        info: "<p>The three big configuration-management tools differ on four axes that the exam tests directly.</p><table><thead><tr><th>Axis</th><th>Ansible</th><th>Puppet</th><th>Chef</th></tr></thead><tbody><tr><td>Agent</td><td>Agentless (SSH)</td><td>Agent required</td><td>Agent required</td></tr><tr><td>Model</td><td>Push (on-demand)</td><td>Pull (every ~30 min)</td><td>Pull (every ~30 min)</td></tr><tr><td>Language</td><td>YAML (declarative-ish)</td><td>Puppet DSL (declarative)</td><td>Ruby recipes (procedural)</td></tr><tr><td>Networking fit</td><td>Excellent</td><td>Limited (agents rare on switches)</td><td>Limited (same)</td></tr></tbody></table><p><strong>Why Ansible dominates networking:</strong> you cannot (or should not) install a Ruby agent on a Cisco switch. Ansible's SSH-and-YAML approach matches exactly how network engineers already interact with devices.</p><p><strong>Why Puppet/Chef still matter</strong> (for context): they excel at server fleets — Linux boxes running apps that need continuous enforcement. The agent keeps the server in the desired state 24/7 without admin intervention. That is a different problem from 'push a config change to 50 switches during a maintenance window.'</p><p><strong>Push vs pull summary:</strong></p><ul><li><strong>Push</strong> (Ansible) — admin triggers changes. Immediate. Good for 'deploy during the change window.'</li><li><strong>Pull</strong> (Puppet/Chef) — agent polls the master. Continuous. Good for 'enforce this forever, auto-correct drift.'</li></ul><p><strong>Exam angle:</strong> any question asking 'which is agentless / push-based / YAML?' = Ansible. Anything 'pull-based / agent-based / Ruby or DSL' = Puppet or Chef.</p>",
+        visual: { type: "comparison", params: { left: { label: "Ansible", items: ["Agentless (SSH)", "Push model", "YAML", "Great for networking"] }, right: { label: "Puppet / Chef", items: ["Agent-based", "Pull model", "DSL / Ruby", "Great for servers"] } } },
+        hack: {
+          memory: "Ansible = Agentless, Push, YAML — Networking friendly. Puppet/Chef = Agent, Pull, DSL/Ruby — Server-focused. If the question mentions routers/switches, Ansible wins. If it mentions enforcing state on Linux fleets, Puppet/Chef.",
+          practice: "Make a 3-column table from memory (Ansible/Puppet/Chef × agent/model/language/fit). Fill it blind. Check. Redo until instant.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 63. OCG Chapter 30. Exam: the three-tool comparison is heavily tested. Know agent-vs-agentless and push-vs-pull cold."
+        }
+      }
     ]
   },
 
@@ -3465,10 +5025,58 @@ window.subtopicContentD56 = {
       meta: "Jeremy's IT Lab Day 61-62. Wendell Odom OCG Chapter 19-20. The exam tests component definitions: inventory = device list, playbook = task sequence, module = action unit, role = reusable bundle.",
     },
     micro: [
-      { id: "6.6.b.1", term: "Inventory",                    def: "List of managed devices. Can be static file or dynamic (cloud API). Groups devices by role/env.", weight: "high" },
-      { id: "6.6.b.2", term: "Playbook",                     def: "YAML file defining a sequence of tasks to run against devices. The 'what to do'.", weight: "high" },
-      { id: "6.6.b.3", term: "Module",                       def: "Individual action (install package, copy file, run command). Playbooks call modules.", weight: "high" },
-      { id: "6.6.b.4", term: "Role",                         def: "Reusable bundle of tasks/files/templates. 'role: webserver' applies all web-related config.", weight: "med" }
+      {
+        id: "6.6.b.1",
+        term: "Inventory",
+        weight: "high",
+        info: "<p>The <strong>inventory</strong> is Ansible's list of managed devices — who the playbooks can target. It is the 'address book' of your network automation. Inventories can be a static file (INI or YAML) or dynamic (Python script that queries AWS, NetBox, or a CMDB at runtime).</p><p><strong>INI-style inventory example:</strong></p><pre>[access_switches]\nsw1 ansible_host=10.0.0.1\nsw2 ansible_host=10.0.0.2\nsw3 ansible_host=10.0.0.3\n\n[core_routers]\nr1 ansible_host=10.0.1.1\nr2 ansible_host=10.0.1.2\n\n[cisco_ios:children]\naccess_switches\ncore_routers\n\n[cisco_ios:vars]\nansible_network_os=ios\nansible_user=admin\nansible_connection=network_cli</pre><p>Concepts in play:</p><ul><li><strong>Hosts</strong> — individual devices, often with per-host variables like <code>ansible_host</code>.</li><li><strong>Groups</strong> — bracketed labels (<code>[access_switches]</code>) that let playbooks target multiple hosts at once.</li><li><strong>Group vars</strong> — variables scoped to a group (user, OS, connection type) so you don't repeat yourself per host.</li><li><strong>Group of groups</strong> — <code>[cisco_ios:children]</code> composes multiple groups into a parent for shared variables.</li></ul><p><strong>Dynamic inventories</strong> are the real win in production — a Python plugin queries NetBox (or similar) at runtime and returns the current device list. When you add a new switch to NetBox, Ansible sees it on the next run with zero manual edits.</p><p>You invoke a playbook with <code>-i inventory.yml</code> and target groups with <code>--limit core_routers</code> or <code>--limit '!production'</code>.</p>",
+        visual: { type: "hierarchy", params: { root: "Inventory", children: [{ name: "Group: access_switches", children: [{ name: "sw1, sw2, sw3" }] }, { name: "Group: core_routers", children: [{ name: "r1, r2" }] }, { name: "Group: cisco_ios (children of above)", children: [{ name: "vars: user, network_os" }] }] } },
+        hack: {
+          memory: "Inventory = who to configure. Hosts + groups. Groups of groups. Vars scoped to host, group, or global. Static file (INI/YAML) or dynamic (Python → NetBox/CMDB). Target with --limit.",
+          practice: "Create an inventory.yml with 4 hosts in 2 groups. Run 'ansible all -i inventory.yml -m ping' and then 'ansible access_switches -i inventory.yml -m ping'. The --limit targeting is how you stop 'run on all 10,000 switches' accidents.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 63. OCG Chapter 30. Exam: 'What is an Ansible inventory?' = a list of managed devices organized into groups. Dynamic inventories (via NetBox, cloud APIs) are common in production."
+        }
+      },
+      {
+        id: "6.6.b.2",
+        term: "Playbook",
+        weight: "high",
+        info: "<p>A <strong>playbook</strong> is a YAML file that defines an ordered sequence of <strong>plays</strong> (targeted task sets) against hosts in the inventory. Playbooks are Ansible's unit of automation — you write them once, check them into git, and re-run them forever.</p><p><strong>Minimal playbook:</strong></p><pre>---\n- name: Configure hostname on access switches\n  hosts: access_switches\n  gather_facts: no\n  connection: network_cli\n  tasks:\n    - name: Set hostname\n      ios_config:\n        lines:\n          - hostname {{ inventory_hostname }}\n\n    - name: Save config\n      ios_command:\n        commands: write memory</pre><p>Structure walkthrough:</p><ul><li><strong>Play</strong> — each <code>- name:</code> item at the top level. Targets a set of hosts with a task list.</li><li><strong>hosts:</strong> — which inventory group to target.</li><li><strong>tasks:</strong> — the ordered list of steps. Each task calls one module with parameters.</li><li><strong>Variables</strong> — <code>{{ inventory_hostname }}</code> is a built-in variable substituted at runtime.</li></ul><p><strong>Run a playbook:</strong> <code>ansible-playbook -i inventory.yml site.yml</code>. Output shows a PLAY RECAP summarizing <code>ok</code>, <code>changed</code>, <code>failed</code> counts per host.</p><p><strong>Playbooks are code</strong> — commit them to git, review changes in pull requests, run them through CI. This is 'Network as Code' in practice.</p>",
+        visual: { type: "layer-stack", params: { layers: ["Playbook (YAML file)", "Play 1 (hosts + tasks)", "Task 1 → calls a module", "Task 2 → calls a module", "Play 2 (different hosts)"], highlight: 0 } },
+        hack: {
+          memory: "Playbook = YAML recipe. Plays target hosts. Tasks invoke modules. Top-down execution. Idempotent by default. Check playbooks into git = 'Network as Code.'",
+          practice: "Write a 2-task playbook: set hostname and configure an interface description. Run on a DevNet sandbox. First run shows changed=2. Second run shows changed=0. You just experienced playbook idempotency.",
+          effort: "medium",
+          meta: "Jeremy's IT Lab Day 63. OCG Chapter 30. Exam: 'What is an Ansible playbook?' = a YAML file of ordered tasks to run against inventory hosts."
+        }
+      },
+      {
+        id: "6.6.b.3",
+        term: "Module",
+        weight: "high",
+        info: "<p>A <strong>module</strong> is a single unit of work that Ansible can execute — the atomic operation called by a task. Modules abstract the complexity of interacting with a specific system, file, device, or API. Ansible ships with <strong>thousands</strong> of modules, organized into collections.</p><p><strong>Networking modules relevant to CCNA:</strong></p><ul><li><code>cisco.ios.ios_config</code> — push configuration lines to Cisco IOS / IOS-XE devices.</li><li><code>cisco.ios.ios_command</code> — run show commands and capture output.</li><li><code>cisco.ios.ios_facts</code> — gather structured device info (version, interfaces, neighbors).</li><li><code>cisco.nxos.nxos_config</code>, <code>cisco.nxos.nxos_command</code> — Nexus equivalents.</li><li><code>cisco.iosxr.iosxr_config</code> — IOS-XR.</li><li><code>arista.eos.eos_config</code> — Arista.</li><li><code>junipernetworks.junos.junos_config</code> — Juniper.</li></ul><p><strong>Example task calling a module:</strong></p><pre>- name: Configure VLAN 20\n  cisco.ios.ios_vlans:\n    config:\n      - vlan_id: 20\n        name: ENG\n        state: active\n    state: merged</pre><p>Each module has documented parameters and returns structured data. When you are stuck: <code>ansible-doc cisco.ios.ios_config</code> prints the full docstring for that module right in your terminal.</p><p><strong>Collections</strong> — modules ship in collections (namespace.collection), e.g., <code>cisco.ios</code>. Install with <code>ansible-galaxy collection install cisco.ios</code>.</p>",
+        visual: { type: "hierarchy", params: { root: "Module categories", children: [{ name: "Network", children: [{ name: "ios_config, ios_command, ios_facts" }] }, { name: "System", children: [{ name: "copy, file, user, service" }] }, { name: "Cloud", children: [{ name: "aws_ec2, azure_rm, gcp_compute" }] }] } },
+        hack: {
+          memory: "Module = the tool that does the actual work. Tasks call modules. Modules are reusable, documented, idempotent. ios_config, ios_command, ios_facts — the 3 you will see most on CCNA-relevant labs.",
+          practice: "Run 'ansible-doc cisco.ios.ios_config' and read the docstring. Then write a 1-task playbook using it. The ansible-doc habit is the single best way to learn any module in under 5 minutes.",
+          effort: "medium",
+          meta: "Jeremy's IT Lab Day 63. OCG Chapter 30. Exam: 'What is an Ansible module?' = an action unit called by a task. Know 2-3 Cisco modules by name (ios_config, ios_command)."
+        }
+      },
+      {
+        id: "6.6.b.4",
+        term: "Role",
+        weight: "med",
+        info: "<p>A <strong>role</strong> is a reusable package of tasks, variables, templates, handlers, and files arranged in a standard directory layout. Roles are how you share Ansible automation across teams and across playbooks — think 'library for network configuration.'</p><p><strong>Standard role layout:</strong></p><pre>roles/\n  base_hardening/\n    tasks/main.yml\n    handlers/main.yml\n    vars/main.yml\n    defaults/main.yml\n    templates/banner.j2\n    files/snmp.conf\n    meta/main.yml</pre><p>A playbook then just says:</p><pre>- hosts: all_switches\n  roles:\n    - base_hardening\n    - ntp_config\n    - syslog_export</pre><p>…and the three roles are applied in order to every switch.</p><p><strong>Ansible Galaxy</strong> (galaxy.ansible.com) is the public repository of community roles and collections. You install with <code>ansible-galaxy install cisco.ios</code> or <code>ansible-galaxy role install bertvv.ntp</code>.</p><p><strong>Benefits of roles:</strong></p><ul><li><strong>Reusability</strong> — one role applied to many playbooks.</li><li><strong>Parameterization</strong> — defaults + vars let one role serve many scenarios.</li><li><strong>Testability</strong> — roles can ship with Molecule tests.</li><li><strong>Teamwork</strong> — split work across engineers by role ownership.</li></ul><p>Roles are the way teams scale Ansible beyond one-shot playbooks.</p>",
+        visual: { type: "hierarchy", params: { root: "Role: base_hardening", children: [{ name: "tasks/main.yml" }, { name: "templates/banner.j2" }, { name: "vars/main.yml" }, { name: "handlers/main.yml" }] } },
+        hack: {
+          memory: "Role = reusable bundle of tasks/templates/vars. Playbook just lists roles by name. Ansible Galaxy = role marketplace. Think 'npm package' or 'pip library' for automation.",
+          practice: "Scan Ansible Galaxy for 'cisco' and look at the README for one of the top collections. Notice the standard directory layout — that same layout works for your own roles.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 63. OCG Chapter 30. Exam: 'What is a role?' = a reusable package of tasks and related files. Lower weight than playbook/module but worth a line of recall."
+        }
+      }
     ]
   },
 
@@ -3482,10 +5090,58 @@ window.subtopicContentD56 = {
       meta: "Jeremy's IT Lab Day 62. Wendell Odom OCG Chapter 19-20. Terraform vs Ansible: Terraform = create/destroy infrastructure (IaC, declarative, state file). Ansible = configure existing devices (agentless, procedural, SSH).",
     },
     micro: [
-      { id: "6.6.c.1", term: "Terraform",                    def: "Infrastructure as Code tool. CREATES/DESTROYS cloud resources. HCL language. Declarative. Maintains state file.", weight: "high" },
-      { id: "6.6.c.2", term: "IaC (Infrastructure as Code)", def: "Define infrastructure in code files. Version-controlled, repeatable, reviewable. Terraform is the canonical IaC tool.", weight: "high" },
-      { id: "6.6.c.3", term: "State file (Terraform)",       def: "Tracks what resources Terraform manages. Required to plan and apply changes correctly.", weight: "med" },
-      { id: "6.6.c.4", term: "Declarative vs procedural",    def: "Declarative (Terraform): describe end state. Procedural (Ansible): describe steps to reach state.", weight: "high" }
+      {
+        id: "6.6.c.1",
+        term: "Terraform",
+        weight: "high",
+        info: "<p><strong>Terraform</strong> is a HashiCorp tool for <strong>Infrastructure as Code (IaC)</strong>. It lets you declare the desired state of your infrastructure — VMs, networks, load balancers, DNS records, even Cisco ACI tenants — in <strong>HCL (HashiCorp Configuration Language)</strong> files, then creates or modifies the real resources to match.</p><p>Core distinction from Ansible: <strong>Ansible CONFIGURES existing devices; Terraform CREATES and DESTROYS infrastructure</strong>. Ansible pushes a VLAN to a switch that already exists. Terraform spins up the switch (or the AWS VPC, or the vSphere VM) in the first place.</p><p><strong>Minimal Terraform file</strong> (<code>main.tf</code>):</p><pre>provider \"aws\" {\n  region = \"us-east-1\"\n}\n\nresource \"aws_instance\" \"web\" {\n  ami           = \"ami-123456\"\n  instance_type = \"t3.micro\"\n  tags = {\n    Name = \"web-server\"\n  }\n}</pre><p>Run <code>terraform init</code>, <code>plan</code>, <code>apply</code> — Terraform talks to the AWS API and creates the instance.</p><p><strong>Key Terraform characteristics:</strong></p><ul><li><strong>Declarative</strong> — you describe the END STATE, not the steps to get there.</li><li><strong>State file</strong> — <code>terraform.tfstate</code> tracks what Terraform has created, enabling drift detection and clean destroys.</li><li><strong>Providers</strong> — plugins that interface with specific platforms (AWS, Azure, GCP, Cisco ACI, Meraki, IOS-XE, Junos, VMware, and hundreds more).</li><li><strong>Idempotent</strong> — re-running converges to the declared state, no duplicates, no drift.</li></ul><p>Terraform has become the default for cloud and virtualized infrastructure provisioning. On Cisco gear, Terraform providers exist for Cisco ACI, Meraki, and IOS-XE.</p>",
+        visual: { type: "state-machine", params: { states: ["Write .tf files (HCL)", "terraform init (download providers)", "terraform plan (preview)", "terraform apply (create/modify)", "terraform destroy (tear down)"], active: 2, transitions: true } },
+        hack: {
+          memory: "Terraform = IaC by HashiCorp. HCL language. State file. Providers. Declarative. Spins up infrastructure (VMs, VPCs, tenants). Contrast Ansible (configures what already exists).",
+          practice: "Sign up for AWS free tier. Write a 10-line Terraform file that creates a t3.micro. Run init → plan → apply. See the EC2 instance appear in the AWS console. Run destroy — it's gone. Hello-world IaC in 5 minutes.",
+          effort: "medium",
+          meta: "Jeremy's IT Lab Day 63. OCG Chapter 30. Exam: 'Which tool is Infrastructure as Code?' = Terraform. 'HCL language + state file' = Terraform."
+        }
+      },
+      {
+        id: "6.6.c.2",
+        term: "IaC (Infrastructure as Code)",
+        weight: "high",
+        info: "<p><strong>Infrastructure as Code (IaC)</strong> is the practice of defining and managing infrastructure (networks, servers, cloud resources) through machine-readable configuration files, instead of manual clicking in a GUI or ad-hoc scripting. Terraform is the canonical IaC tool; CloudFormation (AWS), Bicep (Azure), Pulumi, and Crossplane are alternatives.</p><p><strong>Benefits of IaC:</strong></p><ul><li><strong>Version-controlled</strong> — infrastructure lives in git alongside application code. You can see exactly who changed what and when.</li><li><strong>Repeatable</strong> — spin up identical dev/staging/prod environments from the same codebase.</li><li><strong>Peer-reviewed</strong> — changes go through pull requests, not just 'the senior network engineer clicked Apply.'</li><li><strong>Disaster recovery</strong> — if a site burns down, re-run the code and the infrastructure comes back.</li><li><strong>Documented by design</strong> — the code IS the authoritative description of the environment.</li></ul><p><strong>Declarative vs imperative IaC:</strong></p><ul><li><strong>Declarative</strong> (Terraform, CloudFormation) — 'I want 3 VMs with these specs.' The tool figures out the create/update/destroy steps.</li><li><strong>Imperative</strong> (shell scripts, some SDK code) — 'Step 1: create VM. Step 2: create disk. Step 3: attach disk.' You write the procedure.</li></ul><p>Declarative IaC is strongly preferred because it handles drift, partial failures, and reconciliation for free. Modern IaC is almost always declarative.</p><p><strong>Exam framing:</strong> IaC = infrastructure defined in code, version-controlled, repeatable, declarative. Terraform is the flagship example.</p>",
+        visual: { type: "comparison", params: { left: { label: "Manual (click-ops)", items: ["GUI clicking", "No history", "Hard to reproduce", "Drifts over time"] }, right: { label: "IaC", items: ["Code in git", "Peer-reviewed", "Repeatable", "Self-documenting"] } } },
+        hack: {
+          memory: "IaC = infrastructure described in code files. Git-friendly, peer-reviewable, repeatable. Declarative is the default style. Terraform is the flagship. Without IaC, you are clicking your way to production. With IaC, you are shipping code.",
+          practice: "Take any small piece of infrastructure you manage manually — a VPC, a DNS record, a test VM. Rewrite it as Terraform HCL. Now changing it means editing a file and running 'terraform apply' — no more clicks.",
+          effort: "medium",
+          meta: "Jeremy's IT Lab Day 63. OCG Chapter 30. Exam: 'What does IaC mean?' = Infrastructure as Code. Terraform is the tool most often cited. Declarative > imperative."
+        }
+      },
+      {
+        id: "6.6.c.3",
+        term: "State file (Terraform)",
+        weight: "med",
+        info: "<p>Terraform tracks the resources it manages in a <strong>state file</strong> — <code>terraform.tfstate</code>, a JSON document mapping each resource declared in HCL to the real-world resource's ID, attributes, and metadata. The state file is Terraform's memory.</p><p><strong>Why the state file exists:</strong></p><ul><li>Maps HCL names (<code>aws_instance.web</code>) to real cloud IDs (<code>i-0abc123...</code>).</li><li>Enables <strong>drift detection</strong> — <code>terraform plan</code> compares state to live reality and reports differences.</li><li>Stores computed outputs (IP addresses assigned by AWS, auto-generated passwords).</li><li>Tells <code>terraform destroy</code> exactly which resources to remove.</li></ul><p><strong>State is precious.</strong> Lose the state file and Terraform cannot find its resources — it will think nothing exists and try to recreate everything (creating duplicates). In production you store state in a <strong>remote backend</strong>:</p><ul><li><strong>S3 + DynamoDB</strong> (AWS-native — S3 stores state, DynamoDB provides state locking).</li><li><strong>Terraform Cloud / Terraform Enterprise</strong> — managed backend with UI and RBAC.</li><li><strong>Azure Storage</strong>, <strong>GCS</strong>, <strong>Consul</strong>, <strong>etcd</strong>, etc.</li></ul><p><strong>State locking</strong> — remote backends lock the state during an apply so two engineers cannot clobber each other. This is essential in team environments.</p><p><strong>Never commit terraform.tfstate to git.</strong> It may contain secrets (DB passwords, private keys) in plaintext. Git-ignored, stored remotely, and encrypted at rest — that is the production pattern.</p>",
+        visual: { type: "hierarchy", params: { root: "terraform.tfstate (JSON)", children: [{ name: "Maps HCL names → real resource IDs" }, { name: "Stores current attributes" }, { name: "Enables drift detection" }, { name: "Remote backend (S3/Consul/TFC) in production" }] } },
+        hack: {
+          memory: "State file = Terraform's memory of what it created. Lose it and Terraform is amnesiac. Store remotely (S3 + DynamoDB, TFC) with locking. Never commit to git — contains secrets.",
+          practice: "Run terraform apply locally, then 'cat terraform.tfstate | jq .resources'. You'll see JSON entries mapping each HCL resource to its real cloud ID and attributes. This is the source of truth Terraform consults on every plan.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 63. OCG Chapter 30. Exam: 'What is the Terraform state file?' = a record of the resources Terraform manages. Knowing remote backends is bonus but rarely tested at CCNA level."
+        }
+      },
+      {
+        id: "6.6.c.4",
+        term: "Declarative vs procedural",
+        weight: "high",
+        info: "<p>The biggest conceptual split between automation tools: <strong>declarative</strong> (describe the end state) vs <strong>procedural</strong> (describe the steps to get there).</p><p><strong>Declarative example</strong> (Terraform HCL):</p><pre>resource \"aws_instance\" \"web\" {\n  count         = 3\n  instance_type = \"t3.micro\"\n}</pre><p>Translation: 'I want exactly 3 t3.micro instances named web.' Terraform figures out whether to create, update, or destroy to match. If you change count to 5, Terraform creates 2 more. If you change to 1, Terraform destroys 2.</p><p><strong>Procedural example</strong> (shell script):</p><pre>#!/bin/bash\naws ec2 run-instances --instance-type t3.micro\naws ec2 run-instances --instance-type t3.micro\naws ec2 run-instances --instance-type t3.micro</pre><p>Translation: 'Run these three commands.' If you run the script twice, you get 6 instances. There is no notion of desired state — only steps.</p><p><strong>Declarative wins for infrastructure because:</strong></p><ul><li>Idempotent by design — re-running converges to the declared state.</li><li>Handles drift — state file reveals differences; apply reconciles.</li><li>Clean destroys — the tool knows exactly what it created.</li><li>Self-documenting — the code IS the desired state.</li></ul><p><strong>Ansible sits in a middle ground.</strong> Its task files are procedural (ordered), but each module is designed to be idempotent and declarative ('ensure this state'). That is why Ansible is 'procedural-ish with declarative modules.' Terraform is purely declarative.</p><p><strong>Exam mapping:</strong> Terraform = declarative. Puppet = declarative (DSL). Ansible = ordered tasks of declarative modules (often called declarative for exam purposes, but strictly procedural flow). Chef = procedural (Ruby recipes).</p>",
+        visual: { type: "comparison", params: { left: { label: "Declarative (Terraform)", items: ["Describe end state", "Tool plans the steps", "Re-run = same result", "Drift detection built in"] }, right: { label: "Procedural (shell, Chef)", items: ["Describe each step", "Order matters", "Re-run may double", "Drift detection ad-hoc"] } } },
+        hack: {
+          memory: "Declarative = 'make it like this' (Terraform, Puppet). Procedural = 'do these steps in order' (shell, Chef). Declarative is idempotent by design. Ansible is procedural flow with declarative modules — sits between.",
+          practice: "Write the same goal two ways: (1) Terraform HCL declaring 3 VMs; (2) a bash script creating 3 VMs. Run each twice. Terraform stays at 3 VMs. Bash ends up with 6. That difference is declarative vs procedural.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 63. OCG Chapter 30. Exam: 'Terraform is declarative; Ansible is procedural.' Know this pair. Declarative means describe end state; procedural means describe steps."
+        }
+      }
     ]
   },
 
@@ -3499,10 +5155,58 @@ window.subtopicContentD56 = {
       meta: "Jeremy's IT Lab Day 62. Wendell Odom OCG Chapter 19-20. The four Terraform stages in order: init → plan → apply → destroy. Plan is the safety net — always review before apply.",
     },
     micro: [
-      { id: "6.6.d.1", term: "terraform init",               def: "Initialize working directory. Downloads provider plugins. First command you run.", weight: "high" },
-      { id: "6.6.d.2", term: "terraform plan",               def: "Preview changes. Shows what Terraform WOULD do. Safety net — always review before apply.", weight: "high" },
-      { id: "6.6.d.3", term: "terraform apply",              def: "Execute the plan. Creates/modifies/destroys resources to match config.", weight: "high" },
-      { id: "6.6.d.4", term: "terraform destroy",            def: "Tear down all managed resources. Useful for test environments. Irreversible.", weight: "high" }
+      {
+        id: "6.6.d.1",
+        term: "terraform init",
+        weight: "high",
+        info: "<p><strong><code>terraform init</code></strong> is the first command you run in a new Terraform project (or after adding a new provider). It initializes the working directory — downloads the provider plugins, configures the state backend, and sets up the <code>.terraform/</code> directory.</p><p><strong>What init actually does:</strong></p><ul><li>Reads your <code>terraform</code> block to find required providers (e.g., <code>hashicorp/aws ~&gt; 5.0</code>).</li><li>Downloads the matching provider binaries into <code>.terraform/providers/</code>.</li><li>Initializes the backend (local by default, remote like S3 or Terraform Cloud if configured).</li><li>Creates <code>.terraform.lock.hcl</code> — a dependency lock file pinning exact provider versions for reproducibility.</li></ul><p>Typical output:</p><pre>$ terraform init\nInitializing the backend...\nInitializing provider plugins...\n- Finding hashicorp/aws versions matching \"~> 5.0\"...\n- Installing hashicorp/aws v5.31.0...\n- Installed hashicorp/aws v5.31.0 (signed by HashiCorp)\n\nTerraform has been successfully initialized!</pre><p><strong>When to re-run init:</strong></p><ul><li>After cloning a project from git.</li><li>After adding or removing a provider in your HCL.</li><li>After changing the backend configuration.</li><li>After upgrading provider versions (with <code>-upgrade</code> flag).</li></ul><p><strong>Exam note:</strong> init is step 1 of the Terraform workflow and is the only command that downloads plugins. Without it, <code>plan</code> and <code>apply</code> fail with 'provider plugin not found.'</p>",
+        visual: { type: "state-machine", params: { states: ["terraform init (download providers)", "terraform plan (preview)", "terraform apply (execute)", "terraform destroy (tear down)"], active: 0, transitions: true } },
+        hack: {
+          memory: "terraform init = install the plugins. Run it once per project clone, and again after adding providers. No init, no plan, no apply. Creates .terraform/ and the lock file.",
+          practice: "Clone any Terraform example repo from GitHub. Run 'terraform init' and watch it fetch provider binaries. Look in the .terraform/providers/ directory afterwards — you'll see the downloaded binaries.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 63. OCG Chapter 30. Exam: 'First command in Terraform workflow' = init. 'Downloads providers' = init."
+        }
+      },
+      {
+        id: "6.6.d.2",
+        term: "terraform plan",
+        weight: "high",
+        info: "<p><strong><code>terraform plan</code></strong> is Terraform's dry run — it compares your HCL configuration to the state file (and optionally to live cloud state) and prints exactly what it WOULD do, without making any changes. This preview is Terraform's killer feature.</p><p>Typical output:</p><pre>$ terraform plan\nTerraform will perform the following actions:\n\n  # aws_instance.web will be created\n  + resource \"aws_instance\" \"web\" {\n      + ami           = \"ami-123456\"\n      + instance_type = \"t3.micro\"\n      + id            = (known after apply)\n    }\n\nPlan: 1 to add, 0 to change, 0 to destroy.</pre><p><strong>Reading the plan symbols:</strong></p><ul><li><code>+</code> create a new resource</li><li><code>-</code> destroy an existing resource</li><li><code>~</code> modify in place</li><li><code>-/+</code> destroy then recreate (some attribute changes require this)</li></ul><p><strong>Why plan matters:</strong></p><ul><li>Safety net — catch surprises before they touch production.</li><li>Peer review — the plan output is what reviewers look at in PRs.</li><li>CI/CD gate — many pipelines post the plan as a PR comment and require approval before apply.</li></ul><p><strong>Save a plan to a file:</strong> <code>terraform plan -out=tfplan</code>, then <code>terraform apply tfplan</code> executes exactly that plan, even if HCL has changed since. Critical for production — you approve and apply the EXACT plan, not a re-computed one.</p>",
+        visual: { type: "comparison", params: { left: { label: "terraform plan", items: ["Read-only preview", "No real changes", "Shows +/-/~ actions", "Safe to run anytime"] }, right: { label: "terraform apply", items: ["Executes the plan", "Creates/destroys real resources", "Updates state file", "Commits the change"] } } },
+        hack: {
+          memory: "terraform plan = dry run. Shows + (create), - (destroy), ~ (modify), -/+ (replace). Nothing changes. ALWAYS plan before apply. -out=tfplan saves the plan for apply to consume — best practice in CI/CD.",
+          practice: "Write a small main.tf. terraform plan. Add a second resource. plan again. Remove the first resource. plan again. Watch the +/-/~ indicators shift. This is how you learn to read Terraform plans fluently.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 63. OCG Chapter 30. Exam: 'Which Terraform command previews changes?' = plan. 'Plan before apply' is a best practice worth memorizing."
+        }
+      },
+      {
+        id: "6.6.d.3",
+        term: "terraform apply",
+        weight: "high",
+        info: "<p><strong><code>terraform apply</code></strong> executes the changes — create, modify, or destroy real resources to match the HCL configuration. It updates the state file to reflect the new reality.</p><p>By default, apply re-computes a plan and prompts for confirmation:</p><pre>$ terraform apply\nPlan: 1 to add, 0 to change, 0 to destroy.\n\nDo you want to perform these actions?\n  Enter a value: yes\n\naws_instance.web: Creating...\naws_instance.web: Creation complete after 42s [id=i-0abc123...]\n\nApply complete! Resources: 1 added, 0 changed, 0 destroyed.</pre><p><strong>Flags worth knowing:</strong></p><ul><li><code>-auto-approve</code> — skip the yes/no prompt (use in CI/CD only).</li><li><code>-target=aws_instance.web</code> — apply only a specific resource (useful for surgery, but can cause state drift — use sparingly).</li><li><code>tfplan</code> (positional argument) — apply a saved plan file: <code>terraform apply tfplan</code>. This is the safest production pattern.</li></ul><p><strong>What apply updates:</strong></p><ul><li>Real infrastructure (via provider API calls).</li><li>The state file (new resource IDs, attributes).</li><li>Output values defined in your HCL.</li></ul><p><strong>When apply fails mid-run</strong> (partial failure) — the state file still records what was created successfully. A re-run attempts to complete or roll forward. This is why state integrity is critical — a lost state file after a partial apply is the nightmare scenario.</p>",
+        visual: { type: "handshake", params: { leftLabel: "terraform apply", rightLabel: "Cloud provider API", steps: ["Recompute plan", "Show actions + prompt", "yes → begin", "Create resources via API", "Update state file", "Apply complete"] } },
+        hack: {
+          memory: "terraform apply = execute the plan. Prompts yes/no by default. Updates state file. -auto-approve for CI. Pair with a saved plan file for production: 'plan -out=tfplan' then 'apply tfplan'.",
+          practice: "After a successful apply, check the cloud console — the resource is real. Then check terraform.tfstate — the resource is tracked. Two sources of truth, kept in sync by apply.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 63. OCG Chapter 30. Exam: 'Which Terraform command creates/modifies resources?' = apply. Know it follows plan in the workflow."
+        }
+      },
+      {
+        id: "6.6.d.4",
+        term: "terraform destroy",
+        weight: "high",
+        info: "<p><strong><code>terraform destroy</code></strong> tears down every resource Terraform manages in the current working directory. It is the inverse of <code>apply</code> — instead of reconciling to the HCL-declared state, it drives everything to <em>gone</em>.</p><pre>$ terraform destroy\nPlan: 0 to add, 0 to change, 3 to destroy.\n\nDo you really want to destroy all resources?\n  Enter a value: yes\n\naws_instance.web: Destroying... [id=i-0abc123...]\naws_instance.web: Destruction complete after 1m02s\n\nDestroy complete! Resources: 3 destroyed.</pre><p><strong>Use cases:</strong></p><ul><li>Tearing down a throwaway test environment (save money).</li><li>Decommissioning a project cleanly.</li><li>Rebuilding from scratch during chaos engineering or DR drills.</li></ul><p><strong>Targeted destroy</strong> — <code>terraform destroy -target=aws_instance.web</code> destroys just one resource. The rest remain untouched. Better alternative for surgical removals: remove the resource block from HCL and run <code>apply</code> — Terraform will plan a destroy for that resource only.</p><p><strong>Safety tips:</strong></p><ul><li>Never run destroy in production without peer review.</li><li>Use <code>prevent_destroy = true</code> lifecycle block on critical resources — Terraform refuses to destroy them even if asked.</li><li>In CI/CD, require a separate pipeline job with extra approvals for destroy.</li></ul><p><strong>Irreversible</strong> — destroyed resources are gone. Cloud providers sometimes have soft-delete or snapshot safeguards, but count on the worst case. A mistaken destroy is the top cause of IaC incidents.</p>",
+        visual: { type: "state-machine", params: { states: ["terraform init", "plan", "apply", "terraform destroy → all resources gone"], active: 3, transitions: true } },
+        hack: {
+          memory: "terraform destroy = delete EVERYTHING Terraform manages. Irreversible. Prompt yes/no. Use prevent_destroy on critical resources. For surgical remove, edit HCL and apply instead of destroy.",
+          practice: "In a sandbox, terraform apply → resources exist. terraform destroy → resources gone. Fast feedback loop that makes the workflow click.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 63. OCG Chapter 30. Exam: 'Which Terraform command tears down all resources?' = destroy. Know it is the fourth and final step in the workflow."
+        }
+      }
     ]
   },
 
@@ -3516,8 +5220,32 @@ window.subtopicContentD56 = {
       meta: "Jeremy's IT Lab Day 62. Wendell Odom OCG Chapter 19-20. The exam gives scenarios and asks which tool. Infrastructure creation = Terraform. Device configuration = Ansible. They're complementary, not competing.",
     },
     micro: [
-      { id: "6.6.e.1", term: "Tool selection scenario",      def: "Create VMs, VPCs, cloud infra → Terraform. Configure existing routers/servers → Ansible.", weight: "high" },
-      { id: "6.6.e.2", term: "Complementary use",            def: "Real workflow: Terraform creates VMs → Ansible configures them. Each tool's strength.", weight: "high" }
+      {
+        id: "6.6.e.1",
+        term: "Tool selection scenario",
+        weight: "high",
+        info: "<p>The exam tests your ability to pick the right tool given a job description. The rule is simple: <strong>does the scenario CREATE infrastructure, or CONFIGURE existing infrastructure?</strong></p><ul><li><strong>Create / provision / destroy infrastructure</strong> → <strong>Terraform</strong>. Spin up VMs, build VPCs, allocate load balancers, create Cisco ACI tenants, deploy Meraki networks from scratch.</li><li><strong>Configure existing devices</strong> → <strong>Ansible</strong>. Push hostnames, ACLs, VLANs, routing protocols, NTP, banners. Devices must already be reachable.</li></ul><p><strong>Drill — classify each scenario:</strong></p><ul><li>'Create 50 AWS EC2 instances' → Terraform (provision).</li><li>'Configure OSPF on 50 existing routers' → Ansible (configure).</li><li>'Stand up a new VPC with 3 subnets and an Internet Gateway' → Terraform.</li><li>'Push a standardized banner motd to all switches' → Ansible.</li><li>'Decommission a test environment entirely' → Terraform destroy.</li><li>'Rotate SNMP credentials across 200 devices' → Ansible.</li><li>'Create a DNA Center template and apply it to a site' → both — DNA Center's resource can be Terraformed; device-level config is Ansible.</li><li>'Deploy a brand-new data center's compute fabric' → Terraform (provision infrastructure), then Ansible (configure apps/OS on the provisioned gear).</li></ul><p><strong>Edge case:</strong> both tools can technically do the other's job — Ansible can create cloud VMs, Terraform has a <code>null_resource + remote-exec</code> that runs commands. But the exam (and industry) stick to the natural split: Terraform creates, Ansible configures.</p>",
+        visual: { type: "comparison", params: { left: { label: "Terraform (create/destroy)", items: ["Spin up VMs", "Build VPCs", "Allocate load balancers", "Create tenants"] }, right: { label: "Ansible (configure)", items: ["Push hostnames", "Configure OSPF", "Deploy ACLs", "Rotate credentials"] } } },
+        hack: {
+          memory: "Verb in the scenario tells you: CREATE/DESTROY/PROVISION → Terraform. CONFIGURE/PUSH/UPDATE → Ansible. If the thing doesn't exist yet, Terraform. If it does, Ansible.",
+          practice: "Flash-card 10 scenarios. Under 3 seconds per. 'Create a VPC' = T. 'Set hostname' = A. 'Destroy test env' = T. 'Apply ACL' = A. Get to instant recognition.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 63. OCG Chapter 30. This is THE scenario-picking exam question. Know the verb → tool mapping cold."
+        }
+      },
+      {
+        id: "6.6.e.2",
+        term: "Complementary use",
+        weight: "high",
+        info: "<p>In real enterprise workflows, Terraform and Ansible are <strong>used together, in sequence</strong>. The canonical pattern:</p><ol><li><strong>Terraform</strong> provisions the infrastructure — VPCs, subnets, VMs, load balancers, DNS records.</li><li><strong>Ansible</strong> configures the provisioned resources — installs apps, pushes OS settings, configures network devices, hardens security.</li></ol><p>Why not one tool for both?</p><ul><li>Terraform is poor at post-provisioning config — it has <code>provisioner</code> blocks but HashiCorp explicitly discourages them.</li><li>Ansible is poor at provisioning complex cloud dependencies — it CAN create VMs with <code>amazon.aws</code> collection, but tracking state and destroys across 200 resources is painful.</li><li>Each tool is best at what it was designed for. Stack them.</li></ul><p><strong>Handoff pattern:</strong> Terraform outputs (IP addresses, hostnames, DNS entries) become Ansible inventory. One common approach:</p><ul><li>Terraform apply creates EC2 instances and outputs their IPs.</li><li>A dynamic inventory plugin (or a shell script) turns those outputs into an Ansible inventory.</li><li>Ansible runs playbooks against the new hosts.</li></ul><p><strong>Example real workflow</strong> in a CoreWeave-style data center:</p><ul><li>Terraform provisions a new GPU cluster (compute nodes, storage, network fabric).</li><li>Ansible configures the OS on each node, installs drivers, joins the Kubernetes cluster, applies monitoring agents.</li></ul><p><strong>Exam framing:</strong> 'Terraform and Ansible are often used together.' Terraform CREATES. Ansible CONFIGURES. Not rivals — teammates.</p>",
+        visual: { type: "handshake", params: { leftLabel: "Terraform", rightLabel: "Ansible", steps: ["1. Provision VMs/networks", "2. Output IPs + hostnames", "3. Dynamic inventory picks up outputs", "4. Ansible configures OS/apps", "5. Provisioned + configured stack ready"] } },
+        hack: {
+          memory: "Terraform BUILDS the house. Ansible FURNISHES it. Used together: Terraform creates → Ansible configures. Output of one becomes input of the other. Not rivals — pipeline stages.",
+          practice: "Write a 2-step demo: Terraform creates one AWS EC2 instance and outputs its IP. A shell script reads the output and calls ansible-playbook -i that-ip user=ec2-user install-nginx.yml. You just shipped a mini IaC+config pipeline.",
+          effort: "medium",
+          meta: "Jeremy's IT Lab Day 63. OCG Chapter 30. Exam: 'Can Terraform and Ansible be used together?' = yes. 'Terraform creates infrastructure, Ansible configures it' = canonical answer."
+        }
+      }
     ]
   },
 
@@ -3531,9 +5259,45 @@ window.subtopicContentD56 = {
       meta: "Jeremy's IT Lab Day 61-62. Wendell Odom OCG Chapter 19-20. The exam tests: push vs pull, agent vs agentless. Ansible = agentless push (most popular for networking). Puppet/Chef = agent-based pull (servers).",
     },
     micro: [
-      { id: "6.6.f.1", term: "Push model",                   def: "Server pushes config to managed devices on demand. Ansible uses push. Immediate application.", weight: "high" },
-      { id: "6.6.f.2", term: "Pull model",                   def: "Agent on device periodically pulls config from master. Puppet/Chef use pull. Continuous reconciliation.", weight: "high" },
-      { id: "6.6.f.3", term: "Agent vs agentless",           def: "Agent = software running on device. Agentless = remote connection (SSH/WinRM). Ansible is agentless.", weight: "high" }
+      {
+        id: "6.6.f.1",
+        term: "Push model",
+        weight: "high",
+        info: "<p>In a <strong>push model</strong>, the control node <strong>initiates</strong> connections to managed devices and pushes configurations to them on demand. Ansible is the canonical push-based tool.</p><p><strong>How it works (Ansible example):</strong></p><ul><li>Admin (or CI pipeline) runs <code>ansible-playbook -i inventory.yml site.yml</code> on the control node.</li><li>Ansible reads the inventory, opens SSH connections to each target host.</li><li>For each task, Ansible uploads the module (usually as a small Python script), executes it, collects the result, and closes.</li><li>The target devices do nothing unless and until the admin pushes.</li></ul><p><strong>Strengths of push:</strong></p><ul><li><strong>Immediate</strong> — changes apply the moment you hit Enter.</li><li><strong>Admin-controlled timing</strong> — ideal for planned maintenance windows.</li><li><strong>No agent</strong> — devices need nothing extra installed.</li><li><strong>Auditable</strong> — every run produces a log; you know exactly what ran when.</li></ul><p><strong>Weaknesses of push:</strong></p><ul><li>No continuous drift correction — if someone SSHes in and changes a setting manually, Ansible does not notice until you re-run the playbook.</li><li>Requires reachability from control node to every target.</li><li>Scales less gracefully to tens of thousands of hosts (though AWX/Tower mitigate this).</li></ul><p><strong>Exam framing:</strong> Ansible = push. Admin triggers. Immediate. Contrast with pull (Puppet/Chef).</p>",
+        visual: { type: "packet-flow", params: { nodes: ["Admin runs ansible-playbook", "Control node", "SSH push to targets", "Devices apply changes"], color: "#ef4444" } },
+        hack: {
+          memory: "Push = control node pushes TO devices. Admin-initiated. Immediate. Ansible's model. No agent needed. You decide when.",
+          practice: "Run ansible-playbook and watch the SSH sessions open in your terminal (set ANSIBLE_DEBUG=1). Every task is a push: control node → target. No polling, no background agent.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 63. OCG Chapter 30. Exam: 'Ansible uses which model?' = push. 'Which model has admin initiate the change?' = push."
+        }
+      },
+      {
+        id: "6.6.f.2",
+        term: "Pull model",
+        weight: "high",
+        info: "<p>In a <strong>pull model</strong>, each managed device runs an <strong>agent</strong> that periodically contacts a central server to fetch its desired configuration, then applies any differences locally. Puppet and Chef are canonical pull-based tools.</p><p><strong>How it works (Puppet example):</strong></p><ul><li>A <strong>Puppet agent</strong> is installed on every managed device.</li><li>Every ~30 minutes, the agent connects to the <strong>Puppet Master</strong> (or Puppet Server).</li><li>The agent identifies itself, the server compiles the relevant <strong>catalog</strong> (desired state) for that node.</li><li>The agent applies the catalog locally, correcting drift.</li><li>The agent reports status back to the server.</li></ul><p><strong>Strengths of pull:</strong></p><ul><li><strong>Continuous enforcement</strong> — drift is automatically corrected on each run.</li><li><strong>Scale</strong> — thousands of agents phoning home horizontally to one or more masters scales well.</li><li><strong>Self-healing</strong> — if a human SSHes in and tweaks something, it is reverted on the next pull.</li><li><strong>Works behind NAT / firewalls</strong> — agents initiate outbound connections, no inbound reachability needed.</li></ul><p><strong>Weaknesses of pull:</strong></p><ul><li>Agent must be installed and maintained — not viable on most network gear.</li><li>Change lag — up to 30 minutes before an update applies (unless triggered manually).</li><li>Operational overhead of running a master server and its database.</li></ul><p><strong>Exam framing:</strong> Puppet/Chef = pull. Agent-based. Continuous. Contrast with push (Ansible).</p>",
+        visual: { type: "packet-flow", params: { nodes: ["Agent on device", "Every 30 min: connect to Master", "Master compiles catalog", "Agent applies + reports"], color: "#8b5cf6" } },
+        hack: {
+          memory: "Pull = device pulls FROM master. Agent polls every 30 min. Continuous drift correction. Puppet/Chef model. Requires agent install = rare on network gear.",
+          practice: "Look at a Puppet Master's logs while an agent polls. Every ~30 min you'll see a fact gathering + catalog compile + report entry for each node. That rhythm is the pull model heartbeat.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 63. OCG Chapter 30. Exam: 'Puppet and Chef use which model?' = pull. 'Which model continuously corrects drift?' = pull."
+        }
+      },
+      {
+        id: "6.6.f.3",
+        term: "Agent vs agentless",
+        weight: "high",
+        info: "<p>The other fundamental split in configuration management — whether managed devices need special software installed on them.</p><p><strong>Agent-based (Puppet, Chef):</strong></p><ul><li>A daemon is installed on every managed device (puppet-agent, chef-client).</li><li>The agent runs in the background, consuming some CPU/memory.</li><li>The agent must be kept up to date (version compatibility with master matters).</li><li>Great for Linux server fleets where you control the OS.</li><li>Rarely viable on network gear — IOS/NX-OS do not let you install arbitrary daemons.</li></ul><p><strong>Agentless (Ansible):</strong></p><ul><li>No agent installed on devices.</li><li>Uses existing protocols: SSH for Linux/network OS, WinRM for Windows, NETCONF/RESTCONF for modern network devices, HTTP APIs for cloud.</li><li>Zero install footprint on managed devices.</li><li>Ideal for heterogeneous fleets including network gear, locked-down OS, embedded systems.</li></ul><p><strong>Decision matrix:</strong></p><ul><li>Managing servers you own — either works; Puppet/Chef edge for continuous enforcement.</li><li>Managing network devices — agentless (Ansible) wins by default.</li><li>Managing cloud APIs — agentless (Ansible/Terraform) via API calls, no agent concept.</li><li>Needing continuous drift correction — agent-based (Puppet/Chef) fits better.</li><li>Needing immediate, admin-controlled change — agentless (Ansible).</li></ul><p><strong>Exam recap:</strong> Ansible = agentless. Puppet/Chef = agent-based. Agentless is why Ansible dominates in networking.</p>",
+        visual: { type: "comparison", params: { left: { label: "Agent-based (Puppet/Chef)", items: ["Daemon on each device", "Pulls every ~30 min", "Great on Linux servers", "Rare on network gear"] }, right: { label: "Agentless (Ansible)", items: ["No daemon, just SSH/API", "Push on demand", "Universal (network + cloud)", "Dominant in networking"] } } },
+        hack: {
+          memory: "Agent = permanent daemon on device. Agentless = use existing SSH/API, nothing installed. Puppet/Chef = agent. Ansible = agentless. Agentless wins on network gear because you cannot install daemons on IOS.",
+          practice: "List three environments you would manage (server farm, network switches, cloud VMs) and pick a tool for each. Server farm: Puppet/Chef (continuous). Switches: Ansible (agentless). Cloud: Terraform + Ansible. The decision matrix snaps into focus.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 63. OCG Chapter 30. Exam: 'Agentless' = Ansible. 'Agent-based' = Puppet/Chef. Pair this with push/pull — they usually appear together on the exam."
+        }
+      }
     ]
   },
 
@@ -3549,9 +5313,45 @@ window.subtopicContentD56 = {
       meta: "Jeremy's IT Lab Day 62. Wendell Odom OCG Chapter 18. The exam shows JSON snippets and asks you to identify objects vs arrays or extract specific values. Practice reading JSON until natural.",
     },
     micro: [
-      { id: "6.7.a.1", term: "JSON structure",               def: "Key-value pairs. Keys in quotes. Values: string, number, boolean, null, object, array.", weight: "high" },
-      { id: "6.7.a.2", term: "JSON object",                  def: "{ } braces. Key-value pairs inside. Example: {\"name\": \"R1\", \"type\": \"router\"}.", weight: "high" },
-      { id: "6.7.a.3", term: "JSON array",                   def: "[ ] brackets. Ordered list of values. Example: [\"R1\", \"R2\", \"R3\"].", weight: "high" }
+      {
+        id: "6.7.a.1",
+        term: "JSON structure",
+        weight: "high",
+        info: "<p><strong>JSON (JavaScript Object Notation)</strong> is defined by RFC 8259 as a lightweight data-interchange format. At its core, JSON is built from just two composite types — <strong>objects</strong> and <strong>arrays</strong> — containing four primitive types: <strong>string, number, boolean, null</strong>. Anything more complex is those six types nested inside each other.</p><p><strong>The grammar, at a glance:</strong></p><ul><li>A JSON document is a single value. Usually the top-level value is an object or array.</li><li>An <strong>object</strong> is <code>{ }</code> wrapping comma-separated <code>\"key\": value</code> pairs.</li><li>An <strong>array</strong> is <code>[ ]</code> wrapping comma-separated values.</li><li>A <strong>value</strong> is a string, number, boolean, null, object, or array.</li><li><strong>Keys</strong> are always strings in double quotes.</li><li><strong>Whitespace</strong> (spaces, tabs, newlines) between tokens is ignored.</li></ul><p><strong>Example showing all six types:</strong></p><pre>{\n  \"hostname\": \"SW1\",\n  \"uptime_days\": 42.5,\n  \"managed\": true,\n  \"last_error\": null,\n  \"vlans\": [10, 20, 30],\n  \"location\": {\n    \"site\": \"EVI01\",\n    \"rack\": \"R07\"\n  }\n}</pre><p>The top-level value is an object with six key-value pairs: string, number, boolean, null, array, nested object.</p><p><strong>Why this grammar matters:</strong> every JSON parser in every language implements exactly these rules. Knowing them means you can eyeball any REST API response and mentally map it to Python dicts/lists or JavaScript objects/arrays. On the exam, you will be shown JSON and asked to identify pieces — objects, arrays, data types, or extract a specific value from a path.</p>",
+        visual: { type: "hierarchy", params: { root: "JSON document (one value)", children: [{ name: "Object { }", children: [{ name: "\"key\": value pairs" }] }, { name: "Array [ ]", children: [{ name: "ordered values" }] }, { name: "Primitives", children: [{ name: "string, number, boolean, null" }] }] } },
+        hack: {
+          memory: "JSON = 2 containers ({ } and [ ]) + 4 primitives (string, number, boolean, null). That is the entire grammar. Every API response is a recursive mix of these six types. Nothing else exists in JSON — no dates, no functions, no comments.",
+          practice: "Open jsonlint.com, paste the example above, click validate. Now remove a quote or add a trailing comma and revalidate — instant error. 5-minute exercise that hardcodes the syntax.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 62. OCG Chapter 30. Exam: 'What are the value types in JSON?' = string, number, boolean, null, object, array. Memorize the six."
+        }
+      },
+      {
+        id: "6.7.a.2",
+        term: "JSON object",
+        weight: "high",
+        info: "<p>A <strong>JSON object</strong> is an unordered collection of <strong>key-value pairs</strong> enclosed in <strong>curly braces <code>{ }</code></strong>. It is the most common top-level shape for REST API responses and the direct analog of a Python dict, a JavaScript object, or a Go map.</p><p><strong>Syntax rules (every one is exam-testable):</strong></p><ul><li>Keys MUST be strings in <strong>double quotes</strong>.</li><li>A colon separates key from value: <code>\"name\": \"SW1\"</code>.</li><li>Pairs are separated by commas.</li><li>No trailing comma after the last pair.</li><li>Values may be any of the six JSON types (string, number, boolean, null, object, array).</li><li>Keys are technically unordered — do not rely on order.</li></ul><p><strong>Valid:</strong></p><pre>{\n  \"hostname\": \"SW1\",\n  \"ip\": \"10.0.0.1\",\n  \"model\": \"C9300\",\n  \"vlans\": [10, 20, 30],\n  \"managed\": true\n}</pre><p><strong>Invalid variants:</strong></p><ul><li><code>{ hostname: \"SW1\" }</code> — keys need double quotes.</li><li><code>{ 'hostname': 'SW1' }</code> — single quotes are illegal.</li><li><code>{ \"hostname\": \"SW1\", }</code> — trailing comma.</li><li><code>{ \"hostname\": 'SW1' }</code> — single quotes on the value.</li></ul><p><strong>In Python</strong>, <code>json.loads(s)</code> deserializes a JSON object into a <code>dict</code>. You access values by key: <code>device['hostname']</code> returns <code>'SW1'</code>. In JavaScript, <code>JSON.parse(s).hostname</code> works because the object literal syntax matches.</p>",
+        visual: { type: "encapsulation", params: { layers: [{ label: "{ } outer braces (JSON object)", color: "#f59e0b" }, { label: "\"key\": value pairs, comma-separated", color: "#3b82f6" }, { label: "Keys MUST be double-quoted strings", color: "#10b981" }] } },
+        hack: {
+          memory: "Object = { }. Keys are DOUBLE-QUOTED strings. Colon between key and value. Comma between pairs. NO trailing comma. Values can be any JSON type. Unordered: do not rely on key order.",
+          practice: "Write a JSON object for a network device with 5 fields. Validate at jsonlint.com. Now break it 4 ways (no quotes on key, single quotes, trailing comma, missing colon) and watch each error. You just memorized the rules.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 62. OCG Chapter 30. Exam: 'What is a JSON object?' = { } with key-value pairs. Know the double-quote rule cold."
+        }
+      },
+      {
+        id: "6.7.a.3",
+        term: "JSON array",
+        weight: "high",
+        info: "<p>A <strong>JSON array</strong> is an <strong>ordered</strong> list of values enclosed in <strong>square brackets <code>[ ]</code></strong>. It is the direct analog of a Python list, a JavaScript array, or a Go slice.</p><p><strong>Syntax rules:</strong></p><ul><li>Values inside <code>[ ]</code>, comma-separated.</li><li>Order is significant — first element is at index 0.</li><li>No trailing comma after the last element.</li><li>Elements can be any of the six JSON types, including other arrays or objects.</li><li>Elements do NOT have to be the same type (though in practice, API arrays are usually homogeneous).</li></ul><p><strong>Common patterns in network data:</strong></p><pre>// Simple values:\n\"vlans\": [10, 20, 30, 40]\n\n// Array of objects (classic REST list response):\n\"devices\": [\n  {\"name\": \"SW1\", \"ip\": \"10.0.0.1\"},\n  {\"name\": \"SW2\", \"ip\": \"10.0.0.2\"}\n]\n\n// Nested arrays:\n\"topology_links\": [\n  [\"SW1\", \"SW2\"],\n  [\"R1\", \"SW1\"]\n]</pre><p><strong>Access by index:</strong> in Python, <code>data['devices'][0]['name']</code> returns <code>'SW1'</code>. Index 0 is the first element; index -1 works in Python but not in JSON itself.</p><p><strong>The REST convention:</strong> a <code>GET /api/v1/devices</code> returns an array (the collection). A <code>GET /api/v1/devices/42</code> returns one object. If you see <code>[</code> as the first character of the response, you got a list.</p>",
+        visual: { type: "encapsulation", params: { layers: [{ label: "[ ] outer brackets (JSON array)", color: "#8b5cf6" }, { label: "Ordered list, comma-separated", color: "#3b82f6" }, { label: "Access by numeric index (0-based)", color: "#10b981" }] } },
+        hack: {
+          memory: "Array = [ ]. Ordered. Comma-separated. Zero-indexed. Can nest anything. Most REST list endpoints return an array. First char of the response is the clue: { = object, [ = array.",
+          practice: "curl -s https://jsonplaceholder.typicode.com/users | jq '.[0].name' → \"Leanne Graham\". That query: top-level array, index 0, then .name. Practice 5 path queries like this until it's automatic.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 62. OCG Chapter 30. Exam: 'What is a JSON array?' = [ ] ordered list. 'How do you identify an array?' = starts with [."
+        }
+      }
     ]
   },
 
@@ -3565,9 +5365,45 @@ window.subtopicContentD56 = {
       meta: "Jeremy's IT Lab Day 62. Wendell Odom OCG Chapter 18. Instant ID: { } = object, [ ] = array. If the exam shows curly braces, it's an object. Square brackets = array. Know the visual difference cold.",
     },
     micro: [
-      { id: "6.7.b.1", term: "{ } = object",                 def: "Curly braces. Collection of unordered key-value pairs. Access by key.", weight: "high" },
-      { id: "6.7.b.2", term: "[ ] = array",                  def: "Square brackets. Ordered list. Access by numeric index (0-based).", weight: "high" },
-      { id: "6.7.b.3", term: "Visual identification",        def: "{ → object. [ → array. First character of snippet tells you the type.", weight: "high" }
+      {
+        id: "6.7.b.1",
+        term: "{ } = object",
+        weight: "high",
+        info: "<p>The <strong>first character of any JSON snippet tells you whether the top-level value is an object or an array</strong>. If it is <code>{</code>, you have an object — an unordered collection of named properties.</p><pre>{\n  \"hostname\": \"SW1\",\n  \"ip\": \"10.0.0.1\"\n}</pre><p><strong>Mental model:</strong> an object is a labeled container — 'one thing with named fields.' The labels (keys) let you access values without knowing their position. Think of it like a form: <em>Name:</em> SW1, <em>IP:</em> 10.0.0.1.</p><p><strong>Access by key:</strong></p><ul><li>Python: <code>data['hostname']</code> or <code>data.get('hostname')</code> (safer — returns None if absent)</li><li>JavaScript: <code>data.hostname</code> or <code>data['hostname']</code></li><li>jq: <code>.hostname</code></li></ul><p><strong>Use objects when you have:</strong></p><ul><li>A single resource with named fields (one device, one interface).</li><li>Heterogeneous data — different keys mean different things.</li><li>Something a user might retrieve or update by name.</li></ul><p><strong>Exam hint:</strong> REST APIs that return a single resource use objects. <code>GET /devices/42</code> → object. <code>GET /devices</code> → array of objects.</p>",
+        visual: { type: "hierarchy", params: { root: "{ } object", children: [{ name: "\"key1\": value1" }, { name: "\"key2\": value2" }, { name: "Access by key (unordered)" }] } },
+        hack: {
+          memory: "{ } = object = ONE thing with named fields. Access by key (name). Analogous to a Python dict or JS object. First char { = object.",
+          practice: "Look at 3 REST API responses. When the path is /resource/id, the top-level is usually an object. When the path is /resource (collection), the top-level is usually an array. Identify the shape by the first character.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 62. OCG Chapter 30. Exam: '{ } means ___' = object. 'Access by ___' = key. Pair this with [ ] = array as the foundational distinction."
+        }
+      },
+      {
+        id: "6.7.b.2",
+        term: "[ ] = array",
+        weight: "high",
+        info: "<p>If a JSON snippet starts with <code>[</code>, the top-level value is an array — an ordered list of values, accessed by numeric index starting at 0.</p><pre>[\n  {\"name\": \"SW1\", \"ip\": \"10.0.0.1\"},\n  {\"name\": \"SW2\", \"ip\": \"10.0.0.2\"},\n  {\"name\": \"SW3\", \"ip\": \"10.0.0.3\"}\n]</pre><p><strong>Mental model:</strong> an array is a shelf of items in order. Position matters — index 0 is the first, index 1 is the second, and so on.</p><p><strong>Access by index:</strong></p><ul><li>Python: <code>devices[0]</code>, <code>devices[1]</code>, <code>devices[-1]</code> (last).</li><li>JavaScript: <code>devices[0]</code>, <code>devices.length - 1</code>.</li><li>jq: <code>.[0]</code>, <code>.[1]</code>, or <code>.[]</code> to iterate.</li></ul><p><strong>Use arrays when you have:</strong></p><ul><li>Multiple items of the same type (VLAN list, device list, route list).</li><li>Something where order matters (route preference, routing table).</li><li>A collection returned from a <code>GET /resource</code> endpoint.</li></ul><p><strong>Array of objects</strong> is the most common API list shape — a JSON array whose elements are all objects describing individual resources. The vast majority of 'list' endpoints return this exact structure.</p>",
+        visual: { type: "hierarchy", params: { root: "[ ] array", children: [{ name: "[0] first element" }, { name: "[1] second element" }, { name: "[N-1] last" }, { name: "Access by numeric index" }] } },
+        hack: {
+          memory: "[ ] = array = ordered list. Access by index [0], [1], [2]. Zero-based. First char [ = array. Most 'list' endpoints return an array of objects.",
+          practice: "curl -s https://jsonplaceholder.typicode.com/posts | jq '.[0]' → first post. Then '.[0].title' → its title. Then '.[] | .title' → every post's title. Three patterns to rehearse.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 62. OCG Chapter 30. Exam: '[ ] means ___' = array. 'Access by ___' = numeric index. Pair with { } = object."
+        }
+      },
+      {
+        id: "6.7.b.3",
+        term: "Visual identification",
+        weight: "high",
+        info: "<p>Fast format and shape identification — the cheap point on every automation exam question. Given any JSON snippet, you should be able to answer in under 2 seconds:</p><ol><li><strong>Is it JSON at all?</strong> Starts with <code>{</code> or <code>[</code> (not <code>&lt;</code> — that is XML; not <code>---</code> or indentation — that is YAML).</li><li><strong>Top-level object or array?</strong> First non-whitespace character.</li><li><strong>What fields or elements does it contain?</strong> Scan.</li></ol><p><strong>Drill — identify each:</strong></p><pre>(A) {\"name\": \"SW1\", \"vlans\": [10, 20]}\n(B) [\"SW1\", \"SW2\", \"SW3\"]\n(C) [{\"name\": \"SW1\"}, {\"name\": \"SW2\"}]\n(D) {\"devices\": [{\"name\": \"SW1\"}]}</pre><p><strong>Answers:</strong></p><ul><li>(A) Object at top. Field 'name' (string), field 'vlans' (array of numbers).</li><li>(B) Array of 3 strings at top.</li><li>(C) Array of 2 objects at top — classic list endpoint shape.</li><li>(D) Object with ONE field 'devices' that is an array of objects — common wrapper pattern.</li></ul><p><strong>Why wrapper objects?</strong> Many APIs wrap collections in an object like <code>{\"devices\": [...], \"total\": 42, \"page\": 1}</code> so they can include pagination metadata alongside the list. Know to look past the wrapper to find the actual array.</p><p><strong>Common exam trap:</strong> 'what is at the top level of this JSON?' Look at character 1. If it's <code>{</code>, object. If it's <code>[</code>, array. Do not get confused by what is INSIDE — only the outermost brace/bracket matters for the top-level answer.</p>",
+        visual: { type: "comparison", params: { left: { label: "Starts with {", items: ["Top level is an object", "Access fields by name", "GET /resource/id response"] }, right: { label: "Starts with [", items: ["Top level is an array", "Access elements by index", "GET /resource list response"] } } },
+        hack: {
+          memory: "First non-whitespace char decides it. { = object. [ = array. < = XML. --- or plain key: = YAML. ONE glance, ONE answer. Do not overthink the innards.",
+          practice: "Flash-card 10 JSON snippets. Answer 'object or array?' in under 2 seconds per. Build the automatic reflex — the exam rewards speed here.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 62. OCG Chapter 30. Exam: format identification from a snippet is guaranteed. Do not miss this cheap point."
+        }
+      }
     ]
   },
 
@@ -3581,9 +5417,45 @@ window.subtopicContentD56 = {
       meta: "Jeremy's IT Lab Day 62. Wendell Odom OCG Chapter 18. The exam asks 'which is a valid JSON data type?' Know all six. Traps: no 'date' type, no 'undefined,' capitalized True is invalid.",
     },
     micro: [
-      { id: "6.7.c.1", term: "6 valid JSON types",           def: "string, number, boolean, null, object, array. Memorize all six.", weight: "high" },
-      { id: "6.7.c.2", term: "JSON booleans lowercase",      def: "'true' / 'false' only. 'True' or 'FALSE' = INVALID JSON. Must be lowercase.", weight: "high" },
-      { id: "6.7.c.3", term: "No date/undefined in JSON",    def: "JSON has no 'date' type (use string). No 'undefined' (use null). Common exam traps.", weight: "high" }
+      {
+        id: "6.7.c.1",
+        term: "6 valid JSON types",
+        weight: "high",
+        info: "<p>JSON has exactly <strong>six value types</strong>. Every value in any JSON document is one of these, no exceptions:</p><ol><li><strong>string</strong> — text in <strong>double quotes</strong>: <code>\"hello\"</code>, <code>\"10.0.0.1\"</code>.</li><li><strong>number</strong> — integer or float, no quotes: <code>42</code>, <code>3.14</code>, <code>-7</code>, <code>1.5e10</code>.</li><li><strong>boolean</strong> — <code>true</code> or <code>false</code>, lowercase, no quotes.</li><li><strong>null</strong> — the literal <code>null</code>, lowercase, no quotes. Indicates 'no value.'</li><li><strong>object</strong> — <code>{ }</code> with key-value pairs.</li><li><strong>array</strong> — <code>[ ]</code> with ordered values.</li></ol><p><strong>Example containing all six:</strong></p><pre>{\n  \"hostname\": \"SW1\",\n  \"uptime_hours\": 1000,\n  \"managed\": true,\n  \"last_error\": null,\n  \"location\": {\"site\": \"EVI01\"},\n  \"vlans\": [10, 20, 30]\n}</pre><p><strong>What JSON does NOT have:</strong></p><ul><li>No <strong>date/time</strong> type — dates are stored as strings, e.g., <code>\"2026-06-15T10:30:00Z\"</code> (ISO-8601).</li><li>No <strong>undefined</strong> — that's JavaScript; JSON uses <code>null</code>.</li><li>No <strong>comments</strong> — <code>//</code> and <code>/* */</code> are not permitted.</li><li>No <strong>functions or references</strong> — JSON is data only.</li><li>No <strong>integer vs float distinction</strong> — all numbers are one 'number' type.</li></ul><p><strong>Common exam trap:</strong> 'which of the following is NOT a JSON data type?' — date, timestamp, undefined, function. All of those are traps; the answer is whichever one they list. The six real types are string, number, boolean, null, object, array.</p>",
+        visual: { type: "layer-stack", params: { layers: ["string: \"text\"", "number: 42 or 3.14", "boolean: true / false", "null", "object: { }", "array: [ ]"], highlight: 0 } },
+        hack: {
+          memory: "6 types: String, Number, Boolean, Null, Object, Array. S-N-B-N-O-A. That is the complete list. Everything else (date, timestamp, function, undefined) = NOT JSON.",
+          practice: "Write a 6-field JSON object where each value uses a different type. Validate. Remove one and replace with a 'date' type — validator either accepts it as a string (fine) or errors. Either way, you see the 6-type universe.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 62. OCG Chapter 30. Exam: 'which is a valid JSON data type?' = one of the 6. 'Which is NOT a JSON type?' = date / undefined / function / etc."
+        }
+      },
+      {
+        id: "6.7.c.2",
+        term: "JSON booleans lowercase",
+        weight: "high",
+        info: "<p>JSON booleans are <strong>exactly</strong> <code>true</code> or <code>false</code> — <strong>lowercase</strong>, <strong>no quotes</strong>. Anything else is invalid JSON.</p><p><strong>Valid:</strong></p><pre>{ \"enabled\": true }\n{ \"managed\": false }</pre><p><strong>Invalid variations (all common exam traps):</strong></p><ul><li><code>{ \"enabled\": True }</code> — capital T. That is Python, not JSON.</li><li><code>{ \"enabled\": TRUE }</code> — all caps. Invalid.</li><li><code>{ \"enabled\": \"true\" }</code> — that is a STRING containing the word 'true', not the boolean <code>true</code>. Different type; may break strict parsers.</li><li><code>{ \"enabled\": 1 }</code> — <code>1</code> is a number, not a boolean. JSON does not auto-convert.</li><li><code>{ \"enabled\": yes }</code> — 'yes'/'no' are not JSON. Those are YAML-isms.</li></ul><p><strong>Why this trips people up:</strong> Python uses <code>True</code>/<code>False</code>. C uses <code>1</code>/<code>0</code>. YAML accepts <code>yes</code>/<code>no</code>/<code>True</code>/<code>false</code>. JSON is strict and ONLY accepts lowercase <code>true</code>/<code>false</code>. When hand-writing JSON in a Python context, this is an easy mistake.</p><p><strong>Null is the same story</strong> — <code>null</code> lowercase, not <code>Null</code>, not <code>NULL</code>, not <code>None</code> (that's Python), not <code>nil</code> (that's Ruby/Go).</p>",
+        visual: { type: "comparison", params: { left: { label: "VALID", items: ["true", "false", "null"] }, right: { label: "INVALID", items: ["True / FALSE / Null", "\"true\" (that's a string)", "1 / 0 (numbers)", "yes / no (YAML)"] } } },
+        hack: {
+          memory: "JSON booleans: lowercase true and false. Null: lowercase null. No quotes. No capitals. No aliases like yes/no/1/0. Python capitalizes; JSON does not. When writing JSON from Python, lowercase it.",
+          practice: "In Python: json.dumps({'x': True}) → '{\"x\": true}'. Python's True gets lowercased to JSON's true automatically. Try json.loads('{\"x\": True}') — error. The asymmetry burns in the lesson.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 62. OCG Chapter 30. Exam: spot the invalid JSON snippet. Capitalized True/False is the #1 trap."
+        }
+      },
+      {
+        id: "6.7.c.3",
+        term: "No date/undefined in JSON",
+        weight: "high",
+        info: "<p>JSON deliberately excludes several types that other languages support. The exam loves testing these omissions.</p><p><strong>What JSON does NOT have:</strong></p><ul><li><strong>No date/time type.</strong> Dates are stored as strings — typically ISO-8601: <code>\"2026-06-15T10:30:00Z\"</code>. Parsing back to a date is the client's job.</li><li><strong>No undefined.</strong> JavaScript distinguishes <code>undefined</code> (never assigned) from <code>null</code> (explicitly no value). JSON only has <code>null</code>. Converting JS to JSON drops undefined fields entirely.</li><li><strong>No comments.</strong> <code>//</code> and <code>/* */</code> are illegal. If you need comments, use a non-standard extension like JSON5 or move to YAML.</li><li><strong>No integer vs float.</strong> JSON has one 'number' type. <code>42</code> and <code>42.0</code> are the same type as far as JSON is concerned.</li><li><strong>No function/code.</strong> JSON is pure data. You cannot embed logic.</li><li><strong>No reference/pointer.</strong> If two places in JSON describe the same entity, you duplicate the data. There is no <code>&ref</code>/<code>*ref</code> like YAML anchors.</li><li><strong>No NaN, Infinity, -Infinity.</strong> Strict JSON forbids these. Some parsers accept them as extensions.</li></ul><p><strong>Workarounds used in practice:</strong></p><ul><li>Dates → strings (ISO-8601 preferred).</li><li>Missing value → <code>null</code>.</li><li>Comments → move to YAML, add a <code>\"_comment\"</code> field, or strip comments before parsing.</li><li>Large integers (over 2^53) → often sent as strings to avoid JavaScript float precision issues.</li></ul>",
+        visual: { type: "hierarchy", params: { root: "JSON does NOT have", children: [{ name: "date/time (use string)" }, { name: "undefined (use null)" }, { name: "comments (//or /* */)" }, { name: "NaN, Infinity" }, { name: "references/anchors" }] } },
+        hack: {
+          memory: "JSON is tiny. 6 types, no date, no undefined, no comments, no NaN, no references. If a language has an exotic type, JSON doesn't — you encode it as a string or null.",
+          practice: "Try to jsonlint.com: {\"when\": 2026-06-15} — ERROR. Fix with quotes: {\"when\": \"2026-06-15\"} — OK. Then add // a comment — ERROR. Strip it — OK. 60-second drill that hardcodes the exclusions.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 62. OCG Chapter 30. Exam: 'which of these is NOT a JSON type?' — date, undefined, function are common trap answers. Real JSON = 6 types only."
+        }
+      }
     ]
   },
 
@@ -3597,9 +5469,45 @@ window.subtopicContentD56 = {
       meta: "Jeremy's IT Lab Day 62. Wendell Odom OCG Chapter 18. The exam shows nested JSON and asks for a specific value. Practice tracing paths: object key → array index → nested key → value.",
     },
     micro: [
-      { id: "6.7.d.1", term: "Nested JSON",                  def: "Objects inside objects, arrays inside objects, etc. Exam shows nested structure and asks for a value.", weight: "high" },
-      { id: "6.7.d.2", term: "Access path",                  def: "Dot notation + brackets. data.devices[0].name = first device's name field.", weight: "high" },
-      { id: "6.7.d.3", term: "Tracing strategy",             def: "Read outer keys first → drill down. Object key → array index [N] → nested key → value.", weight: "high" }
+      {
+        id: "6.7.d.1",
+        term: "Nested JSON",
+        weight: "high",
+        info: "<p><strong>JSON supports arbitrary nesting</strong> — objects inside objects, arrays inside objects, objects inside arrays, arrays inside arrays. Real API responses exploit this freely.</p><p><strong>Canonical network example — device with interfaces:</strong></p><pre>{\n  \"hostname\": \"SW1\",\n  \"model\": \"C9300\",\n  \"interfaces\": [\n    {\n      \"name\": \"GigabitEthernet0/1\",\n      \"ip\": \"10.0.0.1\",\n      \"status\": \"up\",\n      \"vlan\": 10\n    },\n    {\n      \"name\": \"GigabitEthernet0/2\",\n      \"ip\": null,\n      \"status\": \"down\",\n      \"vlan\": 20\n    }\n  ],\n  \"location\": {\n    \"site\": \"EVI01\",\n    \"rack\": \"R07\"\n  }\n}</pre><p><strong>What is nested here:</strong></p><ul><li>Top-level object with 4 keys.</li><li><code>interfaces</code> is an array containing 2 objects.</li><li><code>location</code> is a nested object.</li></ul><p><strong>Why APIs nest:</strong></p><ul><li>Represent real-world hierarchies (device contains interfaces contains VLANs).</li><li>Reduce round trips — one call fetches everything related.</li><li>Preserve relationships that would be lost in a flat table.</li></ul><p><strong>Reading nested JSON is a foundational skill.</strong> Slow at first, then instant with practice. The exam will hand you a nested structure and ask 'what is the value of X?' or 'what type is Y?' — you need to trace the path without tools.</p>",
+        visual: { type: "hierarchy", params: { root: "{ device }", children: [{ name: "hostname: \"SW1\"" }, { name: "interfaces: [...]", children: [{ name: "{ name, ip, status, vlan }" }, { name: "{ name, ip, status, vlan }" }] }, { name: "location: { site, rack }" }] } },
+        hack: {
+          memory: "Nesting = objects inside objects inside arrays, any depth. Trace by reading outer→inner. Each { or [ is a layer. Real API responses nest freely — learn to read them at a glance.",
+          practice: "Pull a real DNA Center API response (or use the example above). Describe aloud: 'top level object, key interfaces is an array of 2 objects, each has 4 fields...' The narration practice is what makes nested JSON readable.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 62. OCG Chapter 30. Exam: 'describe the structure of this JSON' — you must trace nesting. Practice on real-world responses."
+        }
+      },
+      {
+        id: "6.7.d.2",
+        term: "Access path",
+        weight: "high",
+        info: "<p>To read a value out of nested JSON, you follow a <strong>path</strong> from the top level down through each nested layer. Most languages express this with dot notation for object keys and brackets for array indices.</p><p><strong>Using the earlier device JSON:</strong></p><pre>device.hostname                          → \"SW1\"\ndevice.location.site                     → \"EVI01\"\ndevice.interfaces                        → entire array\ndevice.interfaces[0]                     → first interface object\ndevice.interfaces[0].name                → \"GigabitEthernet0/1\"\ndevice.interfaces[0].ip                  → \"10.0.0.1\"\ndevice.interfaces[1].status              → \"down\"\ndevice.interfaces[1].vlan                → 20</pre><p><strong>Syntax per language / tool:</strong></p><ul><li><strong>Python</strong> — <code>device['interfaces'][0]['name']</code></li><li><strong>JavaScript</strong> — <code>device.interfaces[0].name</code></li><li><strong>jq</strong> — <code>.interfaces[0].name</code></li><li><strong>JSONPath</strong> — <code>$.interfaces[0].name</code></li></ul><p><strong>General rule:</strong></p><ul><li>Object → step in with a <strong>key</strong> (dot or bracket-quoted).</li><li>Array → step in with a <strong>numeric index</strong> in brackets.</li><li>Primitive (string/number/boolean/null) → you have reached the leaf.</li></ul><p><strong>Exam pattern:</strong> given a nested JSON and a path, compute the value. Or given a value, write the path.</p>",
+        visual: { type: "packet-flow", params: { nodes: ["device", ".interfaces", "[1]", ".status", "→ \"down\""], color: "#10b981" } },
+        hack: {
+          memory: "Object step = KEY (dot or [key]). Array step = INDEX [0], [1], [N-1]. Follow the path left to right, layer by layer. Arrive at a primitive = done.",
+          practice: "For each of these paths on the device example, compute the value: (1) device.interfaces[0].vlan (2) device.location.rack (3) device.interfaces[1].ip. Answers: 10, R07, null. Do 10 such drills until instant.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 62. OCG Chapter 30. Exam: 'extract this value' or 'which path gives you this value?' Must be automatic."
+        }
+      },
+      {
+        id: "6.7.d.3",
+        term: "Tracing strategy",
+        weight: "high",
+        info: "<p>On the exam you will face a nested JSON blob and a question like 'what is the VLAN of the second interface of device 42?' Panic is the wrong response. Use a systematic trace.</p><p><strong>Step-by-step strategy:</strong></p><ol><li><strong>Identify the top-level shape.</strong> First character — <code>{</code> or <code>[</code>.</li><li><strong>Scan for the first key in the path.</strong> If the question is 'interface name of device 42,' look for a <code>devices</code> array or a <code>device</code> object.</li><li><strong>Step in one layer at a time.</strong> Use your finger (literally, on paper) to mark where you are.</li><li><strong>Match array indices carefully.</strong> 'Second interface' = index <strong>1</strong> (zero-based). This is the #1 mistake.</li><li><strong>Extract the leaf value.</strong> Done.</li></ol><p><strong>Worked example</strong> — given:</p><pre>{\n  \"devices\": [\n    {\"id\": 42, \"interfaces\": [\n      {\"name\": \"Gi0/1\", \"vlan\": 10},\n      {\"name\": \"Gi0/2\", \"vlan\": 20}\n    ]}\n  ]\n}</pre><p>Question: 'What is the VLAN of the second interface of the first device?'</p><ol><li>Top-level object with <code>devices</code> key.</li><li><code>devices</code> is an array. 'First device' = index 0.</li><li>Device 0 has <code>interfaces</code> array. 'Second interface' = index 1.</li><li>Interface 1 has <code>vlan: 20</code>. <strong>Answer: 20.</strong></li></ol><p><strong>Common traps:</strong></p><ul><li>'Second' = index 1, not 2. Always subtract 1.</li><li>Wrapper objects — sometimes the array is nested in <code>{\"data\": [...]}</code>. Unwrap first.</li><li>Null values — if the leaf is <code>null</code>, that IS the answer.</li></ul>",
+        visual: { type: "state-machine", params: { states: ["Identify top-level shape", "Find first key in path", "Step one layer in", "Adjust for zero-based indices", "Arrive at leaf value"], active: 3, transitions: true } },
+        hack: {
+          memory: "Trace step by step. Object → key. Array → index (zero-based, so 'second' = [1]). Use a finger or pen to mark the current layer. Do NOT try to read the whole thing at once — follow the path.",
+          practice: "Take any 5-layer nested JSON, pick 10 values, write the path for each. Grade yourself. The combination of reading (path → value) and writing (value → path) makes nested JSON second nature.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 62. OCG Chapter 30. Exam: extract-a-value from nested JSON is a guaranteed question. Zero-based indexing is the top trap."
+        }
+      }
     ]
   },
 
@@ -3613,11 +5521,71 @@ window.subtopicContentD56 = {
       meta: "Jeremy's IT Lab Day 62. Wendell Odom OCG Chapter 18. The exam shows JSON and asks 'which is valid?' Traps: single quotes, trailing commas, comments, capitalized booleans. Know what makes JSON INVALID.",
     },
     micro: [
-      { id: "6.7.e.1", term: "JSON uses double quotes",      def: "Strings + keys MUST use double quotes \" \". Single quotes ' ' are INVALID JSON.", weight: "high" },
-      { id: "6.7.e.2", term: "No trailing commas",           def: "[1, 2, 3,] is INVALID. Final element cannot have trailing comma. JavaScript allows it; JSON does NOT.", weight: "high" },
-      { id: "6.7.e.3", term: "No comments",                  def: "JSON does NOT support // or /* */ comments. Any comment = invalid JSON.", weight: "high" },
-      { id: "6.7.e.4", term: "No single quotes / capitalized booleans", def: "'text' INVALID. True/FALSE INVALID. Must be: \"text\", true, false.", weight: "high" },
-      { id: "6.7.e.5", term: "Exam JSON validation",         def: "Scan for: double quotes only, no trailing commas, no comments, lowercase booleans. Any violation = invalid.", weight: "high" }
+      {
+        id: "6.7.e.1",
+        term: "JSON uses double quotes",
+        weight: "high",
+        info: "<p>The single most-tested JSON rule: <strong>strings and keys use DOUBLE quotes only</strong>. Single quotes are illegal.</p><p><strong>Valid:</strong></p><pre>{ \"hostname\": \"SW1\" }</pre><p><strong>Invalid:</strong></p><pre>{ 'hostname': 'SW1' }   // single quotes → not JSON\n{ hostname: \"SW1\" }     // unquoted key → not JSON\n{ \"hostname\": 'SW1' }   // value in single quotes → not JSON</pre><p><strong>Why this trips people up:</strong> Python, JavaScript, and many other languages accept single quotes for strings. When you type JSON by hand in those environments, muscle memory produces single quotes. Every time. JSON parsers will reject the result immediately.</p><p><strong>Inside a double-quoted string, how do you embed a quote?</strong> Escape it with a backslash: <code>{ \"note\": \"She said \\\"hi\\\".\" }</code>. Other escape sequences: <code>\\n</code> (newline), <code>\\t</code> (tab), <code>\\\\</code> (literal backslash), <code>\\/</code> (optional slash escape).</p><p><strong>Exam fix pattern:</strong> when handed an 'invalid JSON — fix it' question, scan for single quotes first. Replace every <code>'</code> with <code>\"</code>. Most single-quote-only problems get solved by that one change.</p>",
+        visual: { type: "comparison", params: { left: { label: "Valid", items: ["{ \"name\": \"SW1\" }", "Double quotes on key", "Double quotes on string value"] }, right: { label: "Invalid", items: ["{ 'name': 'SW1' }", "{ name: \"SW1\" } (unquoted key)", "{ \"name\": 'SW1' } (mixed)"] } } },
+        hack: {
+          memory: "JSON = double quotes EVERYWHERE for strings and keys. Single quotes = NOT JSON. If it looks like Python dict syntax, it is Python, not JSON. Replace ' with \" as the first fix.",
+          practice: "Take any Python dict: {'name': 'SW1'}. Paste into jsonlint.com — error. Replace ' with \" → valid. 20 seconds. Lesson learned permanently.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 62. OCG Chapter 30. Exam: 'which JSON is valid?' — the one with double quotes wins. Top invalid-JSON trap."
+        }
+      },
+      {
+        id: "6.7.e.2",
+        term: "No trailing commas",
+        weight: "high",
+        info: "<p>A <strong>trailing comma</strong> — a comma after the last element of an object or array — is <strong>invalid JSON</strong>.</p><p><strong>Valid:</strong></p><pre>{\n  \"vlans\": [10, 20, 30],\n  \"managed\": true\n}</pre><p><strong>Invalid:</strong></p><pre>{\n  \"vlans\": [10, 20, 30,],   // trailing comma in array\n  \"managed\": true,           // trailing comma in object\n}</pre><p><strong>Why this trips people up:</strong> JavaScript (since ES2017) and Python both allow trailing commas in their native syntax — in fact, style guides often recommend them for cleaner git diffs. JSON predates those conventions and was locked in as strict. Every JSON parser rejects trailing commas.</p><p><strong>How to detect:</strong> scan the character just before every <code>}</code> or <code>]</code>. If it is <code>,</code>, the JSON is invalid.</p><p><strong>Why the strictness:</strong> Douglas Crockford (who specified JSON) deliberately chose a minimal grammar. Trailing commas create ambiguity with sparse arrays (<code>[1, 2, , 3]</code>) and make the spec more complex. He kept them out.</p><p><strong>Exam fix pattern:</strong> spot the comma-before-close-brace, delete it. Usually only one in a broken snippet.</p>",
+        visual: { type: "comparison", params: { left: { label: "Valid", items: ["[1, 2, 3]", "{\"a\": 1, \"b\": 2}", "No comma before ] or }"] }, right: { label: "Invalid", items: ["[1, 2, 3,] (trailing)", "{\"a\": 1, \"b\": 2,} (trailing)", "Fix: delete trailing comma"] } } },
+        hack: {
+          memory: "Check the character just before every } and ]. If it is a comma, JSON is broken. JS and Python allow trailing commas; JSON does NOT. Delete them.",
+          practice: "Write valid JSON with an array. Add a trailing comma before ]. Paste into jsonlint.com — instant error. Remove — OK. That 15-second drill is enough.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 62. OCG Chapter 30. Exam: 'which of these is invalid JSON?' — the one with a trailing comma is a frequent trap answer."
+        }
+      },
+      {
+        id: "6.7.e.3",
+        term: "No comments",
+        weight: "high",
+        info: "<p>JSON does not support comments of any kind. <code>//</code> line comments and <code>/* */</code> block comments — both standard in JavaScript, C, and most other languages — are illegal in JSON.</p><p><strong>Invalid:</strong></p><pre>{\n  \"hostname\": \"SW1\", // the main switch\n  \"ip\": \"10.0.0.1\"\n  /* legacy config, review needed */\n}</pre><p><strong>Why the exclusion:</strong> Crockford wanted JSON to be a pure data-interchange format. Comments are metadata about the data, not the data itself. They also tempt parsers to strip them, which breaks round-trip fidelity.</p><p><strong>Workarounds when you really need a 'comment':</strong></p><ul><li>Add a <code>_comment</code> or <code>description</code> field: <code>{ \"_comment\": \"legacy — review\", \"hostname\": \"SW1\" }</code>.</li><li>Use a lenient format like JSON5 or JSONC that explicitly allows comments (VS Code uses JSONC for settings).</li><li>Move to YAML, which supports <code>#</code> comments natively.</li><li>Strip comments before parsing (libraries like <code>json5</code> or <code>jsonminify</code>).</li></ul><p><strong>Exam angle:</strong> comments appearing in a JSON snippet = invalid JSON. Easy trap to spot: look for <code>//</code> or <code>/*</code>.</p>",
+        visual: { type: "hierarchy", params: { root: "JSON and comments", children: [{ name: "// not allowed" }, { name: "/* */ not allowed" }, { name: "Workarounds", children: [{ name: "\"_comment\" field" }, { name: "Switch to YAML (#)" }, { name: "JSON5 / JSONC" }] }] } },
+        hack: {
+          memory: "JSON has ZERO comments. Not //. Not /* */. If you see either in a snippet, it is NOT valid JSON. Workaround: add a _comment field, or use YAML (which does allow # comments).",
+          practice: "Add // a comment to a valid JSON blob. jsonlint.com errors. Remove — OK. 15-second drill.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 62. OCG Chapter 30. Exam: 'which is invalid JSON?' — the one with a comment is often a trap answer."
+        }
+      },
+      {
+        id: "6.7.e.4",
+        term: "No single quotes / capitalized booleans",
+        weight: "high",
+        info: "<p>Two of the most common JSON-invalidating mistakes bundled together:</p><p><strong>1. Single quotes are illegal anywhere.</strong></p><ul><li><code>{ 'name': 'SW1' }</code> — keys in single quotes = invalid.</li><li><code>{ \"name\": 'SW1' }</code> — value in single quotes = invalid.</li><li>Fix: replace every <code>'</code> with <code>\"</code>.</li></ul><p><strong>2. Booleans must be exactly <code>true</code> / <code>false</code> lowercase.</strong></p><ul><li><code>True</code> / <code>False</code> — capitalized = invalid (Python style).</li><li><code>TRUE</code> / <code>FALSE</code> — all caps = invalid.</li><li><code>\"true\"</code> / <code>\"false\"</code> — QUOTED are strings, not booleans (technically valid JSON, but wrong TYPE).</li><li>Fix: lowercase and remove quotes.</li></ul><p><strong>Same story for null:</strong></p><ul><li><code>null</code> valid.</li><li><code>Null</code> / <code>NULL</code> / <code>None</code> / <code>nil</code> all invalid.</li></ul><p><strong>Full cheat sheet for JSON validation:</strong></p><ul><li>Double quotes only.</li><li>No trailing commas.</li><li>No comments.</li><li>Lowercase true/false/null.</li><li>No leading zeros in numbers (except <code>0</code> itself).</li><li>Keys MUST be quoted strings.</li></ul><p>Memorize the five-rule scan and you will spot every invalid-JSON exam question in under 10 seconds.</p>",
+        visual: { type: "comparison", params: { left: { label: "Valid JSON", items: ["\"text\"", "true / false / null", "123 / 3.14", "{\"key\": \"val\"}"] }, right: { label: "Invalid", items: ["'text' (single quotes)", "True / False / Null", "01 (leading zero)", "{key: \"val\"} (unquoted key)"] } } },
+        hack: {
+          memory: "Two kills: (1) single quotes ANYWHERE = invalid. (2) Capitalized booleans/null = invalid. Python-style JSON is almost always wrong JSON. Downcase and double-quote everything.",
+          practice: "Write {'name': 'SW1', 'up': True} — Python syntax. Now fix to valid JSON: {\"name\": \"SW1\", \"up\": true}. Two edits (quotes and case). Drill on 5 examples.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 62. OCG Chapter 30. Exam: invalid-JSON traps bundle single quotes, capitalized True, trailing commas, and comments. Know all four."
+        }
+      },
+      {
+        id: "6.7.e.5",
+        term: "Exam JSON validation",
+        weight: "high",
+        info: "<p>On the CCNA, the most common JSON question is: 'which of the following is valid JSON?' or 'which snippet is NOT valid?' Use a fixed 6-point scan to answer in under 10 seconds.</p><p><strong>The 6-point validation scan:</strong></p><ol><li><strong>Double quotes only?</strong> — no <code>'single quotes'</code> anywhere.</li><li><strong>Keys quoted?</strong> — <code>{\"name\"...}</code>, not <code>{name...}</code>.</li><li><strong>No trailing commas?</strong> — character before <code>}</code> or <code>]</code> is not <code>,</code>.</li><li><strong>No comments?</strong> — no <code>//</code> or <code>/* */</code>.</li><li><strong>Booleans lowercase?</strong> — <code>true</code>/<code>false</code>/<code>null</code>, not <code>True</code>/<code>False</code>/<code>Null</code>.</li><li><strong>No leading zeros on numbers?</strong> — <code>01</code> invalid; <code>1</code> or <code>0.1</code> valid.</li></ol><p><strong>Worked example — spot the errors:</strong></p><pre>{\n  'hostname': \"SW1\",\n  \"enabled\": True,\n  \"vlans\": [10, 20, 30,],\n  // production switch\n  \"count\": 01\n}</pre><p>Errors: (1) single quotes on <code>'hostname'</code>, (2) capital <code>True</code>, (3) trailing comma in <code>[10, 20, 30,]</code>, (4) <code>//</code> comment, (5) leading zero <code>01</code>. Five errors, five rules. Fix each and the JSON validates.</p><p><strong>Exam strategy:</strong> run the scan in the same order every time — it becomes automatic and you will never miss a trap. Free points.</p>",
+        visual: { type: "layer-stack", params: { layers: ["1. Double quotes only", "2. Keys quoted", "3. No trailing commas", "4. No comments", "5. Lowercase true/false/null", "6. No leading zeros"], highlight: 0 } },
+        hack: {
+          memory: "6-point scan: double quotes, quoted keys, no trailing comma, no comments, lowercase booleans/null, no leading zeros. Run every time. Under 10 seconds per snippet. Guaranteed exam points.",
+          practice: "Find 5 JSON snippets online (real or crafted). Score each with the 6-point scan. Note which rule each violation hits. Habituate the order. Your validation speed goes from 30 seconds to 5.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 62. OCG Chapter 30. Exam: 'which JSON is valid/invalid?' — a free point if you run the 6-point scan fluently. Do not leave points on the table here."
+        }
+      }
     ]
   }
 
