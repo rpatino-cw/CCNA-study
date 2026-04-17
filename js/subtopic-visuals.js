@@ -817,6 +817,496 @@ window.SubtopicVisuals = (() => {
   }
 
   // ────────────────────────────────────────────────────────────────────
+  // 14. routing-table — show a router's RIB, animated longest-match lookup.
+  // ────────────────────────────────────────────────────────────────────
+  function routingTable(p) {
+    const rows = p.rows || [
+      { code: 'C', dest: '10.1.1.0/24',  ad: 0,   metric: 0,  next: 'directly connected', exit: 'Gi0/0' },
+      { code: 'S', dest: '10.2.2.0/24',  ad: 1,   metric: 0,  next: '192.168.1.2',         exit: 'Gi0/1' },
+      { code: 'O', dest: '172.16.0.0/16', ad: 110, metric: 20, next: '192.168.1.2',         exit: 'Gi0/1' },
+      { code: 'B', dest: '0.0.0.0/0',    ad: 20,  metric: 0,  next: '203.0.113.1',         exit: 'Gi0/2' }
+    ];
+    const lookup = p.lookup || '172.16.5.10';
+    const match = p.match != null ? p.match : 2;
+    const w = 360, h = 36 + rows.length * 24 + 44;
+    const codeColor = { C: COLORS.green, S: COLORS.slate, O: COLORS.blue, B: COLORS.purple, D: COLORS.teal, R: COLORS.amber, L: COLORS.green };
+
+    let svg = `
+      <text x="16" y="16" fill="#57534e" font-size="10" font-weight="700" font-family="'Space Grotesk',sans-serif">show ip route — longest-match lookup</text>
+      <rect x="12" y="22" width="336" height="24" rx="4" fill="#1c1917"/>
+      <text x="22" y="38" fill="#fde68a" font-size="10" font-weight="700" font-family="'JetBrains Mono',monospace">Dest: ${esc(lookup)}</text>
+      <text x="338" y="38" text-anchor="end" fill="#a7f3d0" font-size="10" font-family="'JetBrains Mono',monospace" font-weight="700">→ match row ${match + 1}</text>`;
+
+    rows.forEach((r, i) => {
+      const y = 56 + i * 24;
+      const isMatch = i === match;
+      const bg = isMatch ? '#fef3c7' : (i % 2 ? '#faf8f4' : '#fff');
+      const cCol = codeColor[r.code] || COLORS.slate;
+      svg += `
+        <rect x="12" y="${y}" width="336" height="22" rx="3" fill="${bg}" stroke="${isMatch ? COLORS.amber : '#e7e5e4'}" stroke-width="${isMatch ? 1.5 : 0.8}">
+          ${isMatch ? `<animate attributeName="stroke-width" values="1.2;2.2;1.2" dur="1.8s" repeatCount="indefinite"/>` : ''}
+        </rect>
+        <rect x="16" y="${y + 4}" width="14" height="14" rx="2" fill="${cCol}"/>
+        <text x="23" y="${y + 15}" text-anchor="middle" fill="#fff" font-size="10" font-family="'JetBrains Mono',monospace" font-weight="700">${r.code}</text>
+        <text x="38" y="${y + 15}" fill="#1c1917" font-size="10" font-family="'JetBrains Mono',monospace" font-weight="600">${esc(r.dest)}</text>
+        <text x="168" y="${y + 15}" fill="#57534e" font-size="9" font-family="'JetBrains Mono',monospace">[${r.ad}/${r.metric}]</text>
+        <text x="220" y="${y + 15}" fill="#57534e" font-size="9" font-family="'JetBrains Mono',monospace">${esc(r.next.substring(0, 18))}</text>
+        <text x="344" y="${y + 15}" text-anchor="end" fill="${cCol}" font-size="9" font-family="'JetBrains Mono',monospace" font-weight="600">${esc(r.exit)}</text>`;
+
+      if (isMatch) {
+        svg += `<circle r="3" cy="${y + 11}" fill="${COLORS.amber}">
+          <animate attributeName="cx" values="4;12" dur="1s" repeatCount="indefinite"/>
+          <animate attributeName="opacity" values="0;1;0" dur="1s" repeatCount="indefinite"/>
+        </circle>`;
+      }
+    });
+
+    svg += `<text x="${w/2}" y="${h - 6}" text-anchor="middle" fill="#a8a29e" font-size="8" font-family="'JetBrains Mono',monospace">Longest prefix wins · AD only used if prefix lengths tie</text>`;
+
+    return `<svg viewBox="0 0 ${w} ${h}" class="sv-anim" xmlns="http://www.w3.org/2000/svg">${svg}</svg>`;
+  }
+
+  // ────────────────────────────────────────────────────────────────────
+  // 15. acl-ladder — top-down ACL rule evaluation with stop-at-match.
+  // ────────────────────────────────────────────────────────────────────
+  function aclLadder(p) {
+    const rules = p.rules || [
+      { n: 10, action: 'permit', proto: 'tcp', src: 'host 10.1.1.5',   dst: 'any',         port: 'eq 22' },
+      { n: 20, action: 'deny',   proto: 'tcp', src: '10.1.1.0 0.0.0.255', dst: 'any',      port: 'eq 23' },
+      { n: 30, action: 'permit', proto: 'ip',  src: '10.1.1.0 0.0.0.255', dst: 'any',      port: '' }
+    ];
+    const match = p.match != null ? p.match : 1;
+    const w = 360, h = 36 + rules.length * 26 + 44;
+
+    let svg = `
+      <text x="16" y="16" fill="#57534e" font-size="10" font-weight="700" font-family="'Space Grotesk',sans-serif">ACL evaluation — top-down, first match wins</text>`;
+
+    rules.forEach((r, i) => {
+      const y = 28 + i * 26;
+      const isMatch = i === match;
+      const col = r.action === 'permit' ? COLORS.green : COLORS.red;
+      const bg = isMatch ? (r.action === 'permit' ? '#ecfdf5' : '#fef2f2') : '#fff';
+      svg += `
+        <rect x="12" y="${y}" width="336" height="22" rx="3" fill="${bg}" stroke="${isMatch ? col : '#e7e5e4'}" stroke-width="${isMatch ? 1.8 : 0.8}">
+          ${isMatch ? `<animate attributeName="stroke-width" values="1.4;2.4;1.4" dur="1.8s" repeatCount="indefinite"/>` : ''}
+        </rect>
+        <text x="20" y="${y + 15}" fill="#78716c" font-size="9" font-family="'JetBrains Mono',monospace">${r.n}</text>
+        <rect x="42" y="${y + 4}" width="46" height="14" rx="3" fill="${col}"/>
+        <text x="65" y="${y + 14}" text-anchor="middle" fill="#fff" font-size="9" font-family="'JetBrains Mono',monospace" font-weight="700">${r.action}</text>
+        <text x="96" y="${y + 15}" fill="#57534e" font-size="9" font-family="'JetBrains Mono',monospace" font-weight="600">${esc(r.proto)}</text>
+        <text x="120" y="${y + 15}" fill="#1c1917" font-size="9" font-family="'JetBrains Mono',monospace">${esc(r.src)} → ${esc(r.dst)}</text>
+        <text x="344" y="${y + 15}" text-anchor="end" fill="${col}" font-size="9" font-family="'JetBrains Mono',monospace" font-weight="600">${esc(r.port)}</text>`;
+      if (isMatch) {
+        svg += `<path d="M 2 ${y + 11} L 10 ${y + 11}" stroke="${col}" stroke-width="2" marker-end="url(#acl-arrow-${i})">
+          <animate attributeName="opacity" values="0;1;1;0" dur="1.4s" repeatCount="indefinite"/>
+        </path>
+        <defs><marker id="acl-arrow-${i}" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+          <path d="M 0 1 L 8 5 L 0 9 z" fill="${col}"/>
+        </marker></defs>`;
+      }
+    });
+
+    // Implicit deny
+    const idY = 28 + rules.length * 26;
+    svg += `
+      <rect x="12" y="${idY}" width="336" height="22" rx="3" fill="#fafaf9" stroke="#d4d0c8" stroke-width="0.8" stroke-dasharray="3 3"/>
+      <text x="20" y="${idY + 15}" fill="#a8a29e" font-size="9" font-family="'JetBrains Mono',monospace" font-style="italic">(implicit)</text>
+      <rect x="86" y="${idY + 4}" width="46" height="14" rx="3" fill="#a8a29e"/>
+      <text x="109" y="${idY + 14}" text-anchor="middle" fill="#fff" font-size="9" font-family="'JetBrains Mono',monospace" font-weight="700">deny</text>
+      <text x="140" y="${idY + 15}" fill="#a8a29e" font-size="9" font-family="'JetBrains Mono',monospace">any any — drops everything not explicitly permitted</text>
+      <text x="${w/2}" y="${h - 6}" text-anchor="middle" fill="#a8a29e" font-size="8" font-family="'JetBrains Mono',monospace">Order matters · extended ACL close to source · standard close to destination</text>`;
+
+    return `<svg viewBox="0 0 ${w} ${h}" class="sv-anim" xmlns="http://www.w3.org/2000/svg">${svg}</svg>`;
+  }
+
+  // ────────────────────────────────────────────────────────────────────
+  // 16. stp-tree — root bridge election w/ BID, blocked port marker.
+  // ────────────────────────────────────────────────────────────────────
+  function stpTree(p) {
+    const root = p.root || { id: 'SW1', priority: 4096, mac: 'aaaa.aaaa.0001' };
+    const leaves = p.leaves || [
+      { id: 'SW2', priority: 32768, mac: 'bbbb.bbbb.0002', rootCost: 4 },
+      { id: 'SW3', priority: 32768, mac: 'cccc.cccc.0003', rootCost: 4 }
+    ];
+    const blocked = p.blocked || { id: 'SW3', port: 'Gi0/2' };
+    const w = 360, h = 180;
+
+    let svg = `
+      <text x="${w/2}" y="16" text-anchor="middle" fill="#57534e" font-size="11" font-weight="700" font-family="'Space Grotesk',sans-serif">STP Root Bridge Election</text>
+
+      <!-- Root bridge, crowned -->
+      <g transform="translate(${w/2 - 48}, 28)">
+        <path d="M 18 -4 L 26 4 L 34 -2 L 42 4 L 50 -4 L 78 -4 L 78 -8 L 18 -8 Z" fill="${COLORS.amber}" opacity="0.9"/>
+        <rect x="0" y="0" width="96" height="34" rx="6" fill="${COLORS.amber}"/>
+        <text x="48" y="14" text-anchor="middle" fill="#fff" font-size="11" font-weight="700" font-family="'Space Grotesk',sans-serif">${esc(root.id)} ROOT</text>
+        <text x="48" y="26" text-anchor="middle" fill="#fff" font-size="8" font-family="'JetBrains Mono',monospace" opacity="0.9">BID ${root.priority}.${root.mac.slice(-9)}</text>
+        <rect x="-4" y="-4" width="104" height="42" rx="8" fill="none" stroke="${COLORS.amber}" stroke-width="2" opacity="0.5">
+          <animate attributeName="opacity" values="0.3;0.8;0.3" dur="2.2s" repeatCount="indefinite"/>
+        </rect>
+      </g>`;
+
+    // Two leaf switches below
+    const lx = [w/2 - 110, w/2 + 14];
+    leaves.forEach((leaf, i) => {
+      const x = lx[i];
+      const y = 98;
+      svg += `
+        <line x1="${w/2}" y1="66" x2="${x + 48}" y2="${y}" stroke="${COLORS.blue}" stroke-width="2" opacity="0.65"/>
+        <text x="${(w/2 + x + 48)/2 + 10}" y="${(66 + y)/2}" fill="${COLORS.blue}" font-size="8" font-family="'JetBrains Mono',monospace" font-weight="700">cost ${leaf.rootCost}</text>
+        <rect x="${x}" y="${y}" width="96" height="34" rx="6" fill="#fff" stroke="${COLORS.blue}" stroke-width="1.5"/>
+        <text x="${x + 48}" y="${y + 14}" text-anchor="middle" fill="${COLORS.blue}" font-size="11" font-weight="700" font-family="'Space Grotesk',sans-serif">${esc(leaf.id)}</text>
+        <text x="${x + 48}" y="${y + 26}" text-anchor="middle" fill="#57534e" font-size="8" font-family="'JetBrains Mono',monospace">BID ${leaf.priority}</text>`;
+    });
+
+    // Cross-link between leaves (will be blocked)
+    const y1 = 115;
+    svg += `
+      <line x1="${lx[0] + 96}" y1="${y1}" x2="${lx[1]}" y2="${y1}" stroke="${COLORS.red}" stroke-width="2" stroke-dasharray="4 3" opacity="0.85"/>
+      <circle cx="${(lx[0] + 96 + lx[1])/2}" cy="${y1}" r="11" fill="${COLORS.red}">
+        <animate attributeName="r" values="10;13;10" dur="1.8s" repeatCount="indefinite"/>
+      </circle>
+      <text x="${(lx[0] + 96 + lx[1])/2}" y="${y1 + 3}" text-anchor="middle" fill="#fff" font-size="9" font-weight="700" font-family="'Space Grotesk',sans-serif">BLK</text>
+      <text x="${(lx[0] + 96 + lx[1])/2}" y="${y1 + 26}" text-anchor="middle" fill="${COLORS.red}" font-size="8" font-family="'JetBrains Mono',monospace" font-weight="700">${esc(blocked.id)} ${esc(blocked.port)}</text>
+      <text x="${w/2}" y="${h - 6}" text-anchor="middle" fill="#a8a29e" font-size="8" font-family="'JetBrains Mono',monospace">Lowest BID wins · redundant link → blocked port · break one port, the other unblocks</text>`;
+
+    return `<svg viewBox="0 0 ${w} ${h}" class="sv-anim" xmlns="http://www.w3.org/2000/svg">${svg}</svg>`;
+  }
+
+  // ────────────────────────────────────────────────────────────────────
+  // 17. nat-table — inside-local / inside-global translation, PAT ports.
+  // ────────────────────────────────────────────────────────────────────
+  function natTable(p) {
+    const rows = p.rows || [
+      { il: '10.1.1.5', ig: '203.0.113.2', ilPort: 51200, igPort: 51200, og: '8.8.8.8',   ogPort: 53 },
+      { il: '10.1.1.6', ig: '203.0.113.2', ilPort: 49152, igPort: 49152, og: '1.1.1.1',   ogPort: 443 },
+      { il: '10.1.1.7', ig: '203.0.113.2', ilPort: 62111, igPort: 62111, og: '140.82.121.3', ogPort: 443 }
+    ];
+    const w = 360, h = 64 + rows.length * 28 + 30;
+
+    let svg = `
+      <text x="16" y="16" fill="#57534e" font-size="10" font-weight="700" font-family="'Space Grotesk',sans-serif">show ip nat translations — PAT overload</text>
+      <rect x="12" y="24" width="336" height="20" rx="3" fill="#1c1917"/>
+      <text x="24" y="38" fill="#fde68a" font-size="9" font-family="'JetBrains Mono',monospace" font-weight="700">Inside-Local → Inside-Global → Outside-Global</text>`;
+
+    rows.forEach((r, i) => {
+      const y = 52 + i * 28;
+      svg += `
+        <rect x="12" y="${y}" width="336" height="24" rx="3" fill="${i % 2 ? '#faf8f4' : '#fff'}" stroke="#e7e5e4"/>
+        <!-- Inside-Local -->
+        <rect x="16" y="${y + 4}" width="98" height="16" rx="2" fill="#dbeafe" stroke="${COLORS.blue}" stroke-width="0.8"/>
+        <text x="65" y="${y + 16}" text-anchor="middle" fill="${COLORS.blue}" font-size="9" font-family="'JetBrains Mono',monospace" font-weight="700">${esc(r.il)}:${r.ilPort}</text>
+        <!-- arrow -->
+        <path d="M 118 ${y + 12} L 128 ${y + 12}" stroke="${COLORS.amber}" stroke-width="1.5" marker-end="url(#nat-arr-${i})"/>
+        <!-- Inside-Global -->
+        <rect x="130" y="${y + 4}" width="98" height="16" rx="2" fill="#fef3c7" stroke="${COLORS.amber}" stroke-width="0.8"/>
+        <text x="179" y="${y + 16}" text-anchor="middle" fill="#92400e" font-size="9" font-family="'JetBrains Mono',monospace" font-weight="700">${esc(r.ig)}:${r.igPort}</text>
+        <!-- arrow -->
+        <path d="M 232 ${y + 12} L 242 ${y + 12}" stroke="${COLORS.green}" stroke-width="1.5" marker-end="url(#nat-arr-${i})"/>
+        <!-- Outside-Global -->
+        <rect x="244" y="${y + 4}" width="100" height="16" rx="2" fill="#dcfce7" stroke="${COLORS.green}" stroke-width="0.8"/>
+        <text x="294" y="${y + 16}" text-anchor="middle" fill="#065f46" font-size="9" font-family="'JetBrains Mono',monospace" font-weight="700">${esc(r.og)}:${r.ogPort}</text>
+        <circle r="2" fill="${COLORS.amber}" opacity="0.8">
+          <animate attributeName="cx" values="118;128" dur="1s" begin="${i * 0.4}s" repeatCount="indefinite"/>
+          <animate attributeName="cy" values="${y + 12};${y + 12}" dur="1s" begin="${i * 0.4}s" repeatCount="indefinite"/>
+          <animate attributeName="opacity" values="0;1;0" dur="1s" begin="${i * 0.4}s" repeatCount="indefinite"/>
+        </circle>
+        <defs><marker id="nat-arr-${i}" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="4" markerHeight="4" orient="auto">
+          <path d="M 0 1 L 8 5 L 0 9 z" fill="${COLORS.amber}"/>
+        </marker></defs>`;
+    });
+
+    svg += `<text x="${w/2}" y="${h - 8}" text-anchor="middle" fill="#a8a29e" font-size="8" font-family="'JetBrains Mono',monospace">PAT overload: many inside IPs share one public IP via unique source ports</text>`;
+
+    return `<svg viewBox="0 0 ${w} ${h}" class="sv-anim" xmlns="http://www.w3.org/2000/svg">${svg}</svg>`;
+  }
+
+  // ────────────────────────────────────────────────────────────────────
+  // 18. cam-table — MAC address table with learning animation.
+  // ────────────────────────────────────────────────────────────────────
+  function camTable(p) {
+    const entries = p.entries || [
+      { mac: 'aabb.cc00.0001', vlan: 10, port: 'Gi0/1', type: 'DYNAMIC' },
+      { mac: 'aabb.cc00.0002', vlan: 10, port: 'Gi0/2', type: 'DYNAMIC' },
+      { mac: 'aabb.cc00.0003', vlan: 20, port: 'Gi0/3', type: 'DYNAMIC' },
+      { mac: 'aabb.cc00.00ff', vlan: 10, port: 'Gi0/1', type: 'STATIC'  }
+    ];
+    const w = 360, h = 50 + entries.length * 24 + 32;
+
+    let svg = `
+      <text x="16" y="16" fill="#57534e" font-size="10" font-weight="700" font-family="'Space Grotesk',sans-serif">show mac address-table — learned per-port</text>
+      <rect x="12" y="22" width="336" height="22" rx="3" fill="#1c1917"/>
+      <text x="22" y="37" fill="#fde68a" font-size="9" font-family="'JetBrains Mono',monospace" font-weight="700">VLAN</text>
+      <text x="82" y="37" fill="#fde68a" font-size="9" font-family="'JetBrains Mono',monospace" font-weight="700">MAC Address</text>
+      <text x="230" y="37" fill="#fde68a" font-size="9" font-family="'JetBrains Mono',monospace" font-weight="700">Type</text>
+      <text x="320" y="37" fill="#fde68a" font-size="9" font-family="'JetBrains Mono',monospace" font-weight="700">Port</text>`;
+
+    entries.forEach((e, i) => {
+      const y = 52 + i * 24;
+      const typeCol = e.type === 'STATIC' ? COLORS.purple : COLORS.blue;
+      svg += `
+        <rect x="12" y="${y}" width="336" height="22" rx="3" fill="${i % 2 ? '#faf8f4' : '#fff'}" stroke="#e7e5e4" stroke-width="0.6" opacity="0">
+          <animate attributeName="opacity" values="0;1" dur="0.4s" begin="${i * 0.3}s" fill="freeze"/>
+        </rect>
+        <text x="22" y="${y + 15}" fill="#1c1917" font-size="10" font-family="'JetBrains Mono',monospace" font-weight="600" opacity="0">
+          <animate attributeName="opacity" values="0;1" dur="0.4s" begin="${i * 0.3}s" fill="freeze"/>
+          ${e.vlan}
+        </text>
+        <text x="82" y="${y + 15}" fill="#1c1917" font-size="10" font-family="'JetBrains Mono',monospace" font-weight="600" opacity="0">
+          <animate attributeName="opacity" values="0;1" dur="0.4s" begin="${i * 0.3}s" fill="freeze"/>
+          ${esc(e.mac)}
+        </text>
+        <rect x="224" y="${y + 5}" width="54" height="14" rx="2" fill="${typeCol}" opacity="0">
+          <animate attributeName="opacity" values="0;0.9" dur="0.4s" begin="${i * 0.3}s" fill="freeze"/>
+        </rect>
+        <text x="251" y="${y + 15}" text-anchor="middle" fill="#fff" font-size="8" font-family="'JetBrains Mono',monospace" font-weight="700" opacity="0">
+          <animate attributeName="opacity" values="0;1" dur="0.4s" begin="${i * 0.3}s" fill="freeze"/>
+          ${esc(e.type)}
+        </text>
+        <text x="318" y="${y + 15}" fill="#1c1917" font-size="10" font-family="'JetBrains Mono',monospace" font-weight="600" opacity="0">
+          <animate attributeName="opacity" values="0;1" dur="0.4s" begin="${i * 0.3}s" fill="freeze"/>
+          ${esc(e.port)}
+        </text>`;
+    });
+
+    svg += `<text x="${w/2}" y="${h - 8}" text-anchor="middle" fill="#a8a29e" font-size="8" font-family="'JetBrains Mono',monospace">Dynamic entries age out at 300s · static entries persist</text>`;
+
+    return `<svg viewBox="0 0 ${w} ${h}" class="sv-anim" xmlns="http://www.w3.org/2000/svg">${svg}</svg>`;
+  }
+
+  // ────────────────────────────────────────────────────────────────────
+  // 19. lsa-flood — OSPF LSAs propagating across an area.
+  // ────────────────────────────────────────────────────────────────────
+  function lsaFlood(p) {
+    const nodes = p.nodes || [
+      { id: 'R1', x: 0.20, y: 0.5, origin: true },
+      { id: 'R2', x: 0.45, y: 0.25 },
+      { id: 'R3', x: 0.45, y: 0.75 },
+      { id: 'R4', x: 0.75, y: 0.5 }
+    ];
+    const links = p.links || [ [0,1], [0,2], [1,3], [2,3], [1,2] ];
+    const lsaType = p.lsaType || 'LSA-1 Router';
+    const w = 360, h = 200;
+
+    const xy = nodes.map(n => ({ x: 30 + n.x * (w - 60), y: 30 + n.y * (h - 80) }));
+
+    let svg = `
+      <text x="${w/2}" y="18" text-anchor="middle" fill="#57534e" font-size="11" font-weight="700" font-family="'Space Grotesk',sans-serif">OSPF ${esc(lsaType)} flood — Area 0</text>`;
+
+    links.forEach((l, i) => {
+      const a = xy[l[0]], b = xy[l[1]];
+      svg += `<line x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}" stroke="${COLORS.blue}" stroke-width="1.5" opacity="0.35"/>`;
+    });
+
+    // LSA packets ripple outward from origin
+    const origin = xy[nodes.findIndex(n => n.origin)] || xy[0];
+    links.forEach((l, i) => {
+      const a = xy[l[0]], b = xy[l[1]];
+      const delay = (l[0] === 0 || l[1] === 0) ? 0 : 0.8;
+      svg += `
+        <circle r="4" fill="${COLORS.amber}" opacity="0.85">
+          <animate attributeName="cx" values="${a.x};${b.x}" dur="1s" begin="${delay}s" repeatCount="indefinite"/>
+          <animate attributeName="cy" values="${a.y};${b.y}" dur="1s" begin="${delay}s" repeatCount="indefinite"/>
+          <animate attributeName="opacity" values="0;0.9;0" dur="1s" begin="${delay}s" repeatCount="indefinite"/>
+        </circle>`;
+    });
+
+    // Breathing origin pulse
+    svg += `<circle cx="${origin.x}" cy="${origin.y}" r="18" fill="none" stroke="${COLORS.amber}" stroke-width="2">
+      <animate attributeName="r" values="18;36;18" dur="2s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0.7;0;0.7" dur="2s" repeatCount="indefinite"/>
+    </circle>`;
+
+    nodes.forEach((n, i) => {
+      const pt = xy[i];
+      const isOrigin = n.origin;
+      svg += `
+        <circle cx="${pt.x}" cy="${pt.y}" r="15" fill="${isOrigin ? COLORS.amber : '#fff'}" stroke="${isOrigin ? COLORS.amber : COLORS.blue}" stroke-width="1.8"/>
+        <text x="${pt.x}" y="${pt.y + 4}" text-anchor="middle" fill="${isOrigin ? '#fff' : COLORS.blue}" font-size="10" font-weight="700" font-family="'Space Grotesk',sans-serif">${esc(n.id)}</text>`;
+    });
+
+    svg += `<text x="${w/2}" y="${h - 8}" text-anchor="middle" fill="#a8a29e" font-size="8" font-family="'JetBrains Mono',monospace">LSAs flooded to all ABRs in area · SPF runs on every router in same area</text>`;
+
+    return `<svg viewBox="0 0 ${w} ${h}" class="sv-anim" xmlns="http://www.w3.org/2000/svg">${svg}</svg>`;
+  }
+
+  // ────────────────────────────────────────────────────────────────────
+  // 20. qos-queues — LLQ / CBWFQ / WRED drop visualization.
+  // ────────────────────────────────────────────────────────────────────
+  function qosQueues(p) {
+    const queues = p.queues || [
+      { name: 'LLQ (voice)',   priority: true,  bw: 30, util: 22, color: COLORS.red },
+      { name: 'CBWFQ video',   priority: false, bw: 30, util: 28, color: COLORS.blue },
+      { name: 'CBWFQ signal',  priority: false, bw: 10, util: 6,  color: COLORS.purple },
+      { name: 'BE default',    priority: false, bw: 30, util: 36, color: COLORS.slate, wred: true }
+    ];
+    const w = 360, h = 32 + queues.length * 30 + 24;
+
+    let svg = `<text x="16" y="16" fill="#57534e" font-size="10" font-weight="700" font-family="'Space Grotesk',sans-serif">Output queue scheduler — LLQ first, CBWFQ weighted, WRED on BE</text>`;
+
+    queues.forEach((q, i) => {
+      const y = 28 + i * 30;
+      const barFull = 200;
+      const fillW = barFull * Math.min(q.util, q.bw) / q.bw;
+      const over = q.util > q.bw;
+      svg += `
+        <text x="16" y="${y + 12}" fill="${q.color}" font-size="9" font-weight="700" font-family="'Space Grotesk',sans-serif">${esc(q.name)}</text>
+        ${q.priority ? `<rect x="110" y="${y + 2}" width="24" height="12" rx="2" fill="${COLORS.red}"/>
+          <text x="122" y="${y + 11}" text-anchor="middle" fill="#fff" font-size="8" font-family="'JetBrains Mono',monospace" font-weight="700">PQ</text>` : ''}
+        <rect x="140" y="${y}" width="${barFull}" height="16" rx="3" fill="#f3f0eb" stroke="#e7e5e4"/>
+        <rect x="140" y="${y}" width="0" height="16" rx="3" fill="${q.color}" opacity="0.9">
+          <animate attributeName="width" from="0" to="${fillW}" dur="1s" begin="${i * 0.2}s" fill="freeze" calcMode="spline" keySplines="0.16 1 0.3 1"/>
+        </rect>
+        <text x="344" y="${y + 12}" text-anchor="end" fill="${q.color}" font-size="9" font-family="'JetBrains Mono',monospace" font-weight="700">${q.util}/${q.bw}%</text>
+        ${over || q.wred ? `<circle r="3" fill="${COLORS.red}">
+          <animate attributeName="cx" values="340;358" dur="0.8s" repeatCount="indefinite"/>
+          <animate attributeName="cy" values="${y + 8};${y + 8}" dur="0.8s" repeatCount="indefinite"/>
+          <animate attributeName="opacity" values="1;0" dur="0.8s" repeatCount="indefinite"/>
+        </circle>
+        <text x="110" y="${y + 28}" text-anchor="end" fill="${COLORS.red}" font-size="8" font-family="'JetBrains Mono',monospace" font-weight="700">DROP</text>` : ''}`;
+    });
+
+    svg += `<text x="${w/2}" y="${h - 6}" text-anchor="middle" fill="#a8a29e" font-size="8" font-family="'JetBrains Mono',monospace">LLQ is policed hard · WRED drops random high-DSCP last</text>`;
+
+    return `<svg viewBox="0 0 ${w} ${h}" class="sv-anim" xmlns="http://www.w3.org/2000/svg">${svg}</svg>`;
+  }
+
+  // ────────────────────────────────────────────────────────────────────
+  // 21. trunk-tagging — 802.1Q tag insert/strip across trunk.
+  // ────────────────────────────────────────────────────────────────────
+  function trunkTagging(p) {
+    const leftVlan = p.leftVlan || 10;
+    const rightVlan = p.rightVlan || 10;
+    const native = p.native || 1;
+    const w = 360, h = 160;
+
+    let svg = `
+      <text x="${w/2}" y="16" text-anchor="middle" fill="#57534e" font-size="11" font-weight="700" font-family="'Space Grotesk',sans-serif">802.1Q Trunk — VLAN ${leftVlan} ↔ ${rightVlan}</text>
+
+      <!-- SW1 -->
+      ${switchGlyph(50, 60, COLORS.blue, 'SW1')}
+      <!-- Trunk line -->
+      <rect x="86" y="52" width="188" height="16" rx="2" fill="${COLORS.amber}" opacity="0.12" stroke="${COLORS.amber}" stroke-width="1.5" stroke-dasharray="4 3"/>
+      <text x="180" y="48" text-anchor="middle" fill="${COLORS.amber}" font-size="9" font-family="'JetBrains Mono',monospace" font-weight="700">TRUNK · native ${native} · allowed 10,20,30</text>
+      <!-- SW2 -->
+      ${switchGlyph(310, 60, COLORS.blue, 'SW2')}
+
+      <!-- Access port inputs -->
+      <text x="14" y="100" fill="#57534e" font-size="9" font-family="'JetBrains Mono',monospace">Access Fa0/1</text>
+      <text x="14" y="114" fill="${COLORS.green}" font-size="8" font-family="'JetBrains Mono',monospace">VLAN ${leftVlan}</text>
+      <text x="346" y="100" text-anchor="end" fill="#57534e" font-size="9" font-family="'JetBrains Mono',monospace">Access Fa0/1</text>
+      <text x="346" y="114" text-anchor="end" fill="${COLORS.green}" font-size="8" font-family="'JetBrains Mono',monospace">VLAN ${rightVlan}</text>
+
+      <!-- Untagged frame entering SW1 -->
+      <g>
+        <rect x="4" y="126" width="48" height="18" rx="2" fill="${COLORS.green}" opacity="0.95">
+          <animate attributeName="x" values="4;86" dur="1.5s" repeatCount="indefinite" calcMode="spline" keySplines="0.16 1 0.3 1"/>
+        </rect>
+        <text x="28" y="138" text-anchor="middle" fill="#fff" font-size="8" font-family="'JetBrains Mono',monospace" font-weight="700">
+          <animate attributeName="x" values="28;110" dur="1.5s" repeatCount="indefinite" calcMode="spline" keySplines="0.16 1 0.3 1"/>
+          data
+        </text>
+      </g>
+
+      <!-- Tagged frame across trunk -->
+      <g>
+        <rect x="90" y="126" width="70" height="18" rx="2" fill="${COLORS.amber}" opacity="0.95">
+          <animate attributeName="x" values="90;200" dur="1.5s" begin="0.5s" repeatCount="indefinite" calcMode="spline" keySplines="0.16 1 0.3 1"/>
+        </rect>
+        <text x="110" y="138" fill="#fff" font-size="8" font-family="'JetBrains Mono',monospace" font-weight="700">
+          <animate attributeName="x" values="110;220" dur="1.5s" begin="0.5s" repeatCount="indefinite" calcMode="spline" keySplines="0.16 1 0.3 1"/>
+          [tag:${leftVlan}] data
+        </text>
+      </g>
+
+      <!-- Untagged out -->
+      <g>
+        <rect x="210" y="126" width="48" height="18" rx="2" fill="${COLORS.green}" opacity="0.95">
+          <animate attributeName="x" values="210;304" dur="1.5s" begin="1s" repeatCount="indefinite" calcMode="spline" keySplines="0.16 1 0.3 1"/>
+        </rect>
+        <text x="234" y="138" text-anchor="middle" fill="#fff" font-size="8" font-family="'JetBrains Mono',monospace" font-weight="700">
+          <animate attributeName="x" values="234;328" dur="1.5s" begin="1s" repeatCount="indefinite" calcMode="spline" keySplines="0.16 1 0.3 1"/>
+          data
+        </text>
+      </g>
+
+      <text x="${w/2}" y="${h - 6}" text-anchor="middle" fill="#a8a29e" font-size="8" font-family="'JetBrains Mono',monospace">Tag added entering trunk (4 bytes: TPID+PCP+CFI+VID) · stripped at egress access port</text>`;
+
+    return `<svg viewBox="0 0 ${w} ${h}" class="sv-anim" xmlns="http://www.w3.org/2000/svg">${svg}</svg>`;
+  }
+
+  // ────────────────────────────────────────────────────────────────────
+  // 22. rf-heatmap — AP coverage circles with CCI overlap highlighting.
+  // ────────────────────────────────────────────────────────────────────
+  function rfHeatmap(p) {
+    const aps = p.aps || [
+      { id: 'AP1', x: 0.25, y: 0.50, channel: 1,  color: COLORS.blue },
+      { id: 'AP2', x: 0.55, y: 0.35, channel: 6,  color: COLORS.green },
+      { id: 'AP3', x: 0.80, y: 0.60, channel: 11, color: COLORS.purple }
+    ];
+    const w = 360, h = 200;
+
+    let svg = `<text x="${w/2}" y="14" text-anchor="middle" fill="#57534e" font-size="11" font-weight="700" font-family="'Space Grotesk',sans-serif">2.4 GHz coverage · non-overlapping 1/6/11</text>`;
+
+    aps.forEach((ap, i) => {
+      const cx = 30 + ap.x * (w - 60);
+      const cy = 24 + ap.y * (h - 60);
+      svg += `
+        <circle cx="${cx}" cy="${cy}" r="54" fill="${ap.color}" opacity="0.08"/>
+        <circle cx="${cx}" cy="${cy}" r="54" fill="none" stroke="${ap.color}" stroke-width="1.2" stroke-dasharray="3 3" opacity="0.5">
+          <animate attributeName="r" values="48;58;48" dur="${3 + i * 0.3}s" repeatCount="indefinite"/>
+          <animate attributeName="opacity" values="0.3;0.6;0.3" dur="${3 + i * 0.3}s" repeatCount="indefinite"/>
+        </circle>
+        <circle cx="${cx}" cy="${cy}" r="8" fill="${ap.color}"/>
+        <text x="${cx}" y="${cy + 3}" text-anchor="middle" fill="#fff" font-size="9" font-weight="700" font-family="'JetBrains Mono',monospace">${ap.channel}</text>
+        <text x="${cx}" y="${cy + 22}" text-anchor="middle" fill="${ap.color}" font-size="9" font-family="'Space Grotesk',sans-serif" font-weight="700">${esc(ap.id)}</text>`;
+    });
+
+    svg += `<text x="${w/2}" y="${h - 8}" text-anchor="middle" fill="#a8a29e" font-size="8" font-family="'JetBrains Mono',monospace">Adjacent APs must use non-overlapping channels · 5 GHz has 24+ choices</text>`;
+
+    return `<svg viewBox="0 0 ${w} ${h}" class="sv-anim" xmlns="http://www.w3.org/2000/svg">${svg}</svg>`;
+  }
+
+  // ────────────────────────────────────────────────────────────────────
+  // 23. subnet-divide — /24 splitting into child /26s etc.
+  // ────────────────────────────────────────────────────────────────────
+  function subnetDivide(p) {
+    const parent = p.parent || '192.168.1.0/24';
+    const children = p.children || [
+      { cidr: '192.168.1.0/26',   usable: 62 },
+      { cidr: '192.168.1.64/26',  usable: 62 },
+      { cidr: '192.168.1.128/26', usable: 62 },
+      { cidr: '192.168.1.192/26', usable: 62 }
+    ];
+    const w = 360, h = 140;
+    const rowW = (w - 40) / children.length;
+
+    let svg = `
+      <text x="${w/2}" y="16" text-anchor="middle" fill="#57534e" font-size="11" font-weight="700" font-family="'Space Grotesk',sans-serif">VLSM — ${esc(parent)} divided into ${children.length} subnets</text>
+      <!-- parent -->
+      <rect x="20" y="28" width="${w - 40}" height="24" rx="4" fill="${COLORS.blue}"/>
+      <text x="${w/2}" y="43" text-anchor="middle" fill="#fff" font-size="11" font-weight="700" font-family="'JetBrains Mono',monospace">${esc(parent)}</text>`;
+
+    children.forEach((c, i) => {
+      const x = 20 + i * rowW;
+      const y = 72;
+      // Downward connector line
+      svg += `<line x1="${x + rowW/2}" y1="52" x2="${x + rowW/2}" y2="${y}" stroke="${COLORS.blue}" stroke-width="1.5" opacity="0.4"/>
+        <rect x="${x + 4}" y="${y}" width="${rowW - 8}" height="24" rx="4" fill="#fff" stroke="${COLORS.amber}" stroke-width="1.5"/>
+        <text x="${x + rowW/2}" y="${y + 10}" text-anchor="middle" fill="${COLORS.amber}" font-size="9" font-weight="700" font-family="'JetBrains Mono',monospace">${esc(c.cidr)}</text>
+        <text x="${x + rowW/2}" y="${y + 20}" text-anchor="middle" fill="#78716c" font-size="8" font-family="'JetBrains Mono',monospace">${c.usable} hosts</text>
+        <circle r="2.5" fill="${COLORS.blue}" opacity="0">
+          <animate attributeName="cx" values="${x + rowW/2};${x + rowW/2}" dur="1s" begin="${i * 0.2}s" repeatCount="indefinite"/>
+          <animate attributeName="cy" values="52;${y}" dur="1s" begin="${i * 0.2}s" repeatCount="indefinite"/>
+          <animate attributeName="opacity" values="0;0.9;0" dur="1s" begin="${i * 0.2}s" repeatCount="indefinite"/>
+        </circle>`;
+    });
+
+    svg += `<text x="${w/2}" y="${h - 8}" text-anchor="middle" fill="#a8a29e" font-size="8" font-family="'JetBrains Mono',monospace">Each /26 doubles the subnet count, halves the hosts · magic number 64</text>`;
+
+    return `<svg viewBox="0 0 ${w} ${h}" class="sv-anim" xmlns="http://www.w3.org/2000/svg">${svg}</svg>`;
+  }
+
+  // ────────────────────────────────────────────────────────────────────
   // Renderer dispatch
   // ────────────────────────────────────────────────────────────────────
 
@@ -833,7 +1323,17 @@ window.SubtopicVisuals = (() => {
     'gauge':             gauge,
     'protocol-timeline': protocolTimeline,
     'subnet-ruler':      subnetRuler,
-    'topology-live':     topologyLive
+    'topology-live':     topologyLive,
+    'routing-table':     routingTable,
+    'acl-ladder':        aclLadder,
+    'stp-tree':          stpTree,
+    'nat-table':         natTable,
+    'cam-table':         camTable,
+    'lsa-flood':         lsaFlood,
+    'qos-queues':        qosQueues,
+    'trunk-tagging':     trunkTagging,
+    'rf-heatmap':        rfHeatmap,
+    'subnet-divide':     subnetDivide
   };
 
   // ────────────────────────────────────────────────────────────────────
