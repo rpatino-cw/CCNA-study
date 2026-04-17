@@ -3926,11 +3926,71 @@ window.subtopicContentD34 = {
       meta: "Jeremy's IT Lab Day 41 (Syslog) covers all severity levels. Wendell Odom OCG Chapter 9. The exam tests: (1) the mnemonic/order, (2) lower number = more severe, (3) 'logging trap [level]' captures that level and below. Write the mnemonic on your exam whiteboard as part of your brain dump.",
     },
     micro: [
-      { id: "4.5.a.1", term: "Syslog severity 0-7",          def: "0 Emergency, 1 Alert, 2 Critical, 3 Error, 4 Warning, 5 Notification, 6 Informational, 7 Debug.", weight: "high" },
-      { id: "4.5.a.2", term: "Mnemonic",                     def: "'Every Awesome Cisco Engineer Will Need Ice-cream Daily.' E-A-C-E-W-N-I-D = 0-1-2-3-4-5-6-7.", weight: "high" },
-      { id: "4.5.a.3", term: "Lower number = more severe",   def: "0 = most critical (emergency). 7 = most verbose (debug). Severity INVERSELY related to number.", weight: "high" },
-      { id: "4.5.a.4", term: "logging trap [level]",         def: "Captures that level AND MORE SEVERE (lower). trap 4 = levels 0-4 (emergency through warning).", weight: "high" },
-      { id: "4.5.a.5", term: "Syslog UDP 514",               def: "Destination port for syslog messages. Remember: UDP (not TCP), port 514.", weight: "high" }
+      {
+        id: "4.5.a.1",
+        term: "Syslog severity 0-7",
+        weight: "high",
+        info: "<p>Syslog defines <strong>8 severity levels numbered 0 through 7</strong>, with lower numbers representing MORE severe conditions. This is an inverted scale — counterintuitive but fundamental:</p><ul><li><strong>0 — Emergency:</strong> System unusable</li><li><strong>1 — Alert:</strong> Action must be taken immediately</li><li><strong>2 — Critical:</strong> Critical condition</li><li><strong>3 — Error:</strong> Error condition</li><li><strong>4 — Warning:</strong> Warning condition</li><li><strong>5 — Notification:</strong> Normal but significant</li><li><strong>6 — Informational:</strong> Informational messages</li><li><strong>7 — Debugging:</strong> Debug-level messages</li></ul><p>Levels 0-4 typically represent problems requiring attention; levels 5-7 are normal operational messages. Knowing this scale is mandatory — it appears on nearly every CCNA exam.</p>",
+        visual: { type: "layer-stack", params: { layers: ["0 Emergency", "1 Alert", "2 Critical", "3 Error", "4 Warning", "5 Notification", "6 Informational", "7 Debugging"], highlight: 0 } },
+        hack: {
+          memory: "0 = worst, 7 = most verbose. Lower number = higher severity (inverted).",
+          practice: "Write all 8 levels from memory 5 times. Then quiz backward: 'Level 5?' = Notification.",
+          effort: "low",
+          meta: "Brain-dump this list on the whiteboard at exam start."
+        }
+      },
+      {
+        id: "4.5.a.2",
+        term: "Mnemonic",
+        weight: "high",
+        info: "<p>The classic mnemonic: <strong>'Every Awesome Cisco Engineer Will Need Ice cream Daily'</strong>. Each word's first letter maps to a severity level:</p><ul><li><strong>E</strong>very = Emergency (0)</li><li><strong>A</strong>wesome = Alert (1)</li><li><strong>C</strong>isco = Critical (2)</li><li><strong>E</strong>ngineer = Error (3)</li><li><strong>W</strong>ill = Warning (4)</li><li><strong>N</strong>eed = Notification (5)</li><li><strong>I</strong>ce cream = Informational (6)</li><li><strong>D</strong>aily = Debugging (7)</li></ul><p>This is the single most commonly recommended memory aid in the CCNA community. Write it on your exam whiteboard before even reading the first question.</p>",
+        visual: { type: "encapsulation", params: { layers: [{ label: "E-A-C-E-W-N-I-D", color: "#6366f1" }, { label: "Emergency, Alert, Critical", color: "#ef4444" }, { label: "Error, Warning", color: "#f59e0b" }, { label: "Notification, Info, Debug", color: "#10b981" }] } },
+        hack: {
+          memory: "Every Awesome Cisco Engineer Will Need Ice cream Daily. E-A-C-E-W-N-I-D.",
+          practice: "Recite the mnemonic + number + name pairs until instant: 0-E-Emergency, 1-A-Alert, etc.",
+          effort: "low",
+          meta: "Universal CCNA mnemonic. Write on whiteboard first thing."
+        }
+      },
+      {
+        id: "4.5.a.3",
+        term: "Lower number = more severe",
+        weight: "high",
+        info: "<p>The most counterintuitive syslog fact: <strong>lower numbers mean higher severity</strong>. Level 0 (Emergency) is the most critical; level 7 (Debugging) is the least.</p><p>This inverted scale trips up beginners who expect 'higher = worse.' It comes from UNIX syslog heritage where severity was ranked from most-urgent-first (0) to least-urgent-last (7).</p><p>The practical effect: when filtering logs with commands like <code>logging trap [level]</code>, specifying a higher number captures MORE messages (including everything more severe). <code>logging trap 7</code> captures all 8 levels; <code>logging trap 0</code> captures only emergencies.</p>",
+        visual: { type: "comparison", params: { left: { label: "Low number = severe", items: ["0 = Emergency (worst)", "1 = Alert", "2 = Critical"] }, right: { label: "High number = verbose", items: ["5 = Notification", "6 = Informational", "7 = Debugging (most verbose)"] } } },
+        hack: {
+          memory: "Inverted scale: 0 = worst, 7 = most verbose. Higher number = more messages captured.",
+          practice: "Predict the output of 'logging trap 4' = levels 0, 1, 2, 3, 4.",
+          effort: "low",
+          meta: "Classic exam trap. Know the inversion cold."
+        }
+      },
+      {
+        id: "4.5.a.4",
+        term: "logging trap [level]",
+        weight: "high",
+        info: "<p><code>logging trap [level]</code> configures the severity threshold for messages sent to the <strong>remote syslog server</strong>. The level you specify is a FLOOR — that level AND all more severe levels (lower numbers) are forwarded.</p><ul><li><code>logging trap 4</code> (or <code>logging trap warnings</code>) = sends levels 0-4</li><li><code>logging trap 6</code> (or <code>logging trap informational</code>) = sends levels 0-6</li><li><code>logging trap 7</code> (or <code>logging trap debugging</code>) = sends all 8 levels</li><li><code>logging trap 0</code> (or <code>logging trap emergencies</code>) = sends only level 0</li></ul><p>You can use either the number (0-7) or the name ('warnings', 'informational', etc.) — Cisco IOS accepts both. Default level varies by platform but <strong>informational (6)</strong> is common.</p>",
+        visual: { type: "state-machine", params: { states: ["logging trap 4", "Captures 0,1,2,3,4", "Drops 5,6,7", "Sent to syslog server"], active: 1, transitions: true } },
+        hack: {
+          memory: "'logging trap N' = sends N and all lower numbers. Ceiling is what you type; floor is 0.",
+          practice: "Predict: 'logging trap notifications' = 0-5. 'logging trap debugging' = 0-7 (everything).",
+          effort: "low",
+          meta: "Filter logic is heavily tested. Know the 'includes everything more severe' rule."
+        }
+      },
+      {
+        id: "4.5.a.5",
+        term: "Syslog UDP 514",
+        weight: "high",
+        info: "<p>Syslog sends messages to the remote server on <strong>UDP port 514</strong>. Standard syslog is unreliable (UDP with no ACK) — if a syslog packet is dropped in transit, the server never sees the message.</p><p>For reliable syslog, some implementations use <strong>TCP 6514</strong> (syslog over TLS, defined in RFC 5425). This provides encryption and reliable delivery, but is not universally supported.</p><p>The CCNA exam tests the standard: <strong>syslog = UDP 514</strong>. Compare with SNMP (UDP 161/162) and NTP (UDP 123) — all UDP-based management protocols.</p>",
+        visual: { type: "comparison", params: { left: { label: "Standard syslog", items: ["UDP 514", "Unreliable (no ACK)", "Unencrypted"] }, right: { label: "Syslog over TLS", items: ["TCP 6514", "Reliable delivery", "Encrypted (TLS)"] } } },
+        hack: {
+          memory: "Syslog = UDP 514. Like SNMP, it's UDP-based management.",
+          practice: "'show run | include logging' + 'netstat -an' on the syslog server — verify UDP 514 listener.",
+          effort: "low",
+          meta: "Guaranteed port-number recall. Syslog = UDP 514."
+        }
+      }
     ]
   },
 
@@ -3944,8 +4004,32 @@ window.subtopicContentD34 = {
       meta: "Jeremy's IT Lab Day 41 (Syslog). Wendell Odom OCG Chapter 9. Levels 0-1 are rarely tested individually. The exam focuses on the complete sequence, the mnemonic, and the 'logging trap' filter logic.",
     },
     micro: [
-      { id: "4.5.b.1", term: "0 Emergency",                  def: "System unusable. Device about to crash or panic. Action required immediately.", weight: "med" },
-      { id: "4.5.b.2", term: "1 Alert",                      def: "Immediate action needed. Something critical happened but device may still operate.", weight: "med" }
+      {
+        id: "4.5.b.1",
+        term: "0 Emergency",
+        weight: "med",
+        info: "<p><strong>Level 0 — Emergency</strong> means the system is unusable. Examples: kernel panic, total hardware failure, catastrophic software crash. The device is about to go down or already effectively dead.</p><p>Level 0 messages are rare on well-maintained Cisco equipment. When they occur, immediate hands-on intervention is required — typically a reboot, replacement, or escalation to TAC.</p><p>Mnemonic: <strong>E</strong>very. Memory anchor: '0 = dead.'</p>",
+        visual: { type: "shield", params: { items: ["System unusable", "Rarest level", "Immediate response needed"], color: "#ef4444" } },
+        hack: {
+          memory: "0 = Emergency = dead. The worst. Rare in practice.",
+          practice: "In labs, you rarely trigger a real level-0 event. Recognize it if you see %-0- in a log.",
+          effort: "low",
+          meta: "Know 0 = Emergency. Not tested in depth."
+        }
+      },
+      {
+        id: "4.5.b.2",
+        term: "1 Alert",
+        weight: "med",
+        info: "<p><strong>Level 1 — Alert</strong> means immediate action is required. The system is still operational but a critical condition demands urgent human intervention to prevent escalation to Emergency.</p><p>Examples: critical temperature warnings, redundant PSU failure, failing hardware component with imminent full failure.</p><p>Emergency (0) = system IS dead. Alert (1) = system WILL be dead if you don't act now. Narrow window to prevent escalation.</p>",
+        visual: { type: "shield", params: { items: ["Immediate action needed", "Precedes emergency", "Still operational (barely)"], color: "#ef4444" } },
+        hack: {
+          memory: "1 = Alert = 'act NOW or it becomes 0.' Mnemonic: Awesome.",
+          practice: "In a lab, physically unplug one PSU from a dual-PSU switch — generates a level-1 or level-2 message.",
+          effort: "low",
+          meta: "Rarely tested individually. Know 1 = Alert = Awesome."
+        }
+      }
     ]
   },
 
@@ -3959,8 +4043,32 @@ window.subtopicContentD34 = {
       meta: "Jeremy's IT Lab Day 41 (Syslog). Wendell Odom OCG Chapter 9. Know the syslog message format (%FACILITY-SEVERITY-MNEMONIC) — the exam may show a syslog message and ask 'what is the severity level?' You read the middle number.",
     },
     micro: [
-      { id: "4.5.c.1", term: "2 Critical",                   def: "Critical condition. Serious but device still runs. Example: hardware temperature critical.", weight: "med" },
-      { id: "4.5.c.2", term: "Syslog message format",        def: "%FACILITY-SEVERITY-MNEMONIC: message. Example: %LINK-3-UPDOWN. Middle number = severity.", weight: "high" }
+      {
+        id: "4.5.c.1",
+        term: "2 Critical",
+        weight: "med",
+        info: "<p><strong>Level 2 — Critical</strong> indicates a critical condition has occurred. The device is still running but is in a <strong>degraded state</strong> — redundancy lost, major component failed, or operations impaired.</p><p>Examples: fan failure in multi-fan chassis, disk failure in redundant array, memory exhaustion forcing process restart.</p><p>Critical events typically trigger automated alerts in monitoring systems. The device keeps running, but the safety net is gone — if another failure occurs, total outage follows.</p>",
+        visual: { type: "shield", params: { items: ["Critical condition", "Degraded state", "Redundancy lost"], color: "#f97316" } },
+        hack: {
+          memory: "2 = Critical = 'redundancy lost, fix before next failure.' Mnemonic: Cisco.",
+          practice: "Watch for %FAN-2-FAN_FAILED or similar in 'show logging' — classic level 2.",
+          effort: "low",
+          meta: "Know 2 = Critical = Cisco."
+        }
+      },
+      {
+        id: "4.5.c.2",
+        term: "Syslog message format",
+        weight: "high",
+        info: "<p>Every Cisco syslog message follows a fixed format: <code>*timestamp: %FACILITY-SEVERITY-MNEMONIC: description</code>.</p><p>Example: <code>*Apr 16 22:40:35.123: %SYS-5-CONFIG_I: Configured from console by admin on vty0 (10.1.1.5)</code></p><p>Decoding:</p><ul><li><strong>*Apr 16 22:40:35.123</strong> — timestamp (asterisk means unsynced clock, no asterisk means NTP-synced)</li><li><strong>%SYS</strong> — Facility (the subsystem generating the message: SYS, LINK, OSPF, LINEPROTO, etc.)</li><li><strong>5</strong> — Severity level (0-7)</li><li><strong>CONFIG_I</strong> — Mnemonic (short code identifying the specific event)</li><li><strong>description</strong> — human-readable details</li></ul><p>The severity number in the middle of the format is the fastest way to gauge a message's urgency while scanning logs.</p>",
+        visual: { type: "encapsulation", params: { layers: [{ label: "*Timestamp", color: "#6366f1" }, { label: "%FACILITY", color: "#3b82f6" }, { label: "-SEVERITY-", color: "#ef4444" }, { label: "MNEMONIC", color: "#10b981" }, { label: ": description", color: "#f59e0b" }] } },
+        hack: {
+          memory: "Format: %FACILITY-SEVERITY-MNEMONIC. Middle number IS the severity.",
+          practice: "'show logging' on any Cisco device. Identify severity of each message by the middle digit.",
+          effort: "low",
+          meta: "Exam may show a syslog line and ask 'what is the severity?' — read the middle number."
+        }
+      }
     ]
   },
 
@@ -3974,8 +4082,32 @@ window.subtopicContentD34 = {
       meta: "Jeremy's IT Lab Day 41 (Syslog). Wendell Odom OCG Chapter 9. Level 3 errors are the bread-and-butter of daily troubleshooting. The exam tests severity ordering, not individual error classification.",
     },
     micro: [
-      { id: "4.5.d.1", term: "3 Error",                      def: "Error condition. Something failed but device recovers. Most daily troubleshooting lives here.", weight: "med" },
-      { id: "4.5.d.2", term: "Example level 3 messages",     def: "OSPF neighbor down, interface errors, authentication failures. Common real-world logs.", weight: "low" }
+      {
+        id: "4.5.d.1",
+        term: "3 Error",
+        weight: "med",
+        info: "<p><strong>Level 3 — Error</strong> means an error condition has occurred. A specific operation failed but the device is fully functional overall. Not hardware doom — just something didn't work as expected.</p><p>Common examples: OSPF neighbor adjacency failure, interface error counter threshold, authentication failure, ACL deny log, DHCP pool exhaustion.</p><p>Level 3 messages are the <strong>most common actionable messages</strong> in day-to-day network operations. Most monitoring tools alert on levels 0-3 (or 0-4 depending on verbosity tolerance).</p>",
+        visual: { type: "shield", params: { items: ["Error condition", "Specific op failed", "Device still functional"], color: "#f97316" } },
+        hack: {
+          memory: "3 = Error = 'something FAILED.' Past tense. Mnemonic: Engineer.",
+          practice: "Shut an interface with OSPF on it — watch for level 3 OSPF adjacency down messages.",
+          effort: "low",
+          meta: "Most common actionable severity in real ops."
+        }
+      },
+      {
+        id: "4.5.d.2",
+        term: "Example level 3 messages",
+        weight: "low",
+        info: "<p>Typical level 3 syslog messages on Cisco devices:</p><ul><li><code>%OSPF-3-ADJCHG: OSPF neighbor 2.2.2.2 Down</code> — OSPF adjacency failure</li><li><code>%LINEPROTO-3-UPDOWN: Line protocol on interface Gi0/1 changed state to down</code></li><li><code>%DHCP-3-POOL_EXHAUSTED</code> — DHCP pool out of addresses</li><li><code>%AUTHMGR-3-FAILURE</code> — authentication failure</li></ul><p>The <code>-3-</code> in each message is the severity indicator. Seeing this in production means 'investigate now, but the network isn't down yet.'</p>",
+        visual: { type: "layer-stack", params: { layers: ["%OSPF-3-ADJCHG", "%LINEPROTO-3-UPDOWN", "%DHCP-3-POOL_EXHAUSTED", "%AUTHMGR-3-FAILURE"], highlight: 0 } },
+        hack: {
+          memory: "The '-3-' is the giveaway. Error-level, something failed.",
+          practice: "Grep 'show logging' for '-3-' to find all error-level events.",
+          effort: "low",
+          meta: "Not deeply tested; know the pattern of the format."
+        }
+      }
     ]
   },
 
@@ -3989,8 +4121,32 @@ window.subtopicContentD34 = {
       meta: "Jeremy's IT Lab Day 41 (Syslog). Wendell Odom OCG Chapter 9. The 'logging trap' filter logic is a key exam concept. Know that specifying a level captures that level AND all more severe (lower numbers). 'logging trap 4' means Emergency through Warning.",
     },
     micro: [
-      { id: "4.5.e.1", term: "4 Warning",                    def: "Warning condition. Potentially problematic but not yet an error. Example: config changed.", weight: "med" },
-      { id: "4.5.e.2", term: "logging trap 4",               def: "Sends levels 0-4 (Emergency through Warning) to syslog server. Common production setting.", weight: "high" }
+      {
+        id: "4.5.e.1",
+        term: "4 Warning",
+        weight: "med",
+        info: "<p><strong>Level 4 — Warning</strong> means a warning condition exists. Not a failure yet, but an indicator that something could become a problem. Proactive alerts for administrators who want to prevent issues before they escalate.</p><p>Examples: CPU nearing threshold, certificate nearing expiration, config inconsistency detected, interface error rate increasing.</p><p>Level 4 marks the boundary between <strong>problems (0-4)</strong> and <strong>normal operations (5-7)</strong>. Many organizations alert on 0-4 and log-but-don't-alert on 5-7.</p>",
+        visual: { type: "shield", params: { items: ["Warning condition", "Not yet failing", "Could escalate if ignored"], color: "#f59e0b" } },
+        hack: {
+          memory: "4 = Warning = yellow light. Future tense: might fail soon. Mnemonic: Will.",
+          practice: "Set a very low CPU threshold to trigger a warning-level message.",
+          effort: "low",
+          meta: "4/5 boundary = problems end, normal events begin."
+        }
+      },
+      {
+        id: "4.5.e.2",
+        term: "logging trap 4",
+        weight: "high",
+        info: "<p><code>logging trap 4</code> (equivalent to <code>logging trap warnings</code>) sends levels 0-4 to the remote syslog server. This is a common <strong>production-balanced</strong> setting — captures problems (emergencies through warnings) without the noise of routine notifications and debug output.</p><p>Remember the filter logic: the number is a floor that INCLUDES all lower numbers. <code>logging trap 4</code> = 0, 1, 2, 3, 4. Levels 5-7 are NOT sent to the server.</p>",
+        visual: { type: "state-machine", params: { states: ["logging trap 4", "Captures: 0,1,2,3,4", "Drops: 5,6,7", "Forwarded to server"], active: 1, transitions: true } },
+        hack: {
+          memory: "'logging trap 4' = emergencies through warnings. Problems only. Common prod setting.",
+          practice: "Configure 'logging trap 4' and generate both a warning and an informational event — verify only warning reaches server.",
+          effort: "low",
+          meta: "Filter logic is THE most tested syslog concept."
+        }
+      }
     ]
   },
 
@@ -4004,8 +4160,32 @@ window.subtopicContentD34 = {
       meta: "Jeremy's IT Lab Day 41 (Syslog). Wendell Odom OCG Chapter 9. Level 5 is tested as part of the full sequence. Know that many common Cisco state-change messages (OSPF neighbor up, interface up/down) are level 5.",
     },
     micro: [
-      { id: "4.5.f.1", term: "5 Notification",               def: "Normal but significant event. OSPF adjacency up/down, interface state change, config save.", weight: "med" },
-      { id: "4.5.f.2", term: "Common level 5 events",        def: "%LINK-5-CHANGED (interface state), %OSPF-5-ADJCHG (OSPF neighbor state).", weight: "low" }
+      {
+        id: "4.5.f.1",
+        term: "5 Notification",
+        weight: "med",
+        info: "<p><strong>Level 5 — Notification</strong> represents normal but significant events — NOT errors. These are expected, healthy behaviors worth noting: OSPF neighbor up, interface state change, config saved, user login.</p><p>Many Cisco state-change messages live at level 5 (<code>%LINK-5-CHANGED</code>, <code>%OSPF-5-ADJCHG</code>). The 4/5 boundary separates 'problems' from 'normal events worth logging.'</p>",
+        visual: { type: "shield", params: { items: ["Normal but significant", "State changes logged here", "Not a problem"], color: "#10b981" } },
+        hack: {
+          memory: "5 = Notification = 'FYI, this happened.' Mnemonic: Need.",
+          practice: "'no shutdown' an interface — watch %LINK-5-CHANGED appear.",
+          effort: "low",
+          meta: "Know 5 = Notification (not Notice, not Info)."
+        }
+      },
+      {
+        id: "4.5.f.2",
+        term: "Common level 5 events",
+        weight: "low",
+        info: "<p>Cisco events commonly classified as level 5:</p><ul><li><code>%LINK-5-CHANGED</code> — interface administratively up/down</li><li><code>%LINEPROTO-5-UPDOWN</code> — line protocol up/down</li><li><code>%OSPF-5-ADJCHG</code> — OSPF neighbor state change (up or down)</li><li><code>%SYS-5-CONFIG_I</code> — configuration change from console/VTY</li></ul><p>Seeing these in a log means 'something changed' — which is often intentional (admin action) but worth a quick verification.</p>",
+        visual: { type: "layer-stack", params: { layers: ["%LINK-5-CHANGED", "%LINEPROTO-5-UPDOWN", "%OSPF-5-ADJCHG", "%SYS-5-CONFIG_I"], highlight: 2 } },
+        hack: {
+          memory: "Level 5 = state changes and config events. Pattern: -5- in the message.",
+          practice: "Every 'shut/no shut' generates multiple level-5 messages. Recognize the pattern.",
+          effort: "low",
+          meta: "Low priority exam material."
+        }
+      }
     ]
   },
 
@@ -4019,8 +4199,32 @@ window.subtopicContentD34 = {
       meta: "Jeremy's IT Lab Day 41 (Syslog). Wendell Odom OCG Chapter 9. The exam trick: Notification = 5, Informational = 6. Students mix these up. Memorize the mnemonic and the exact number-to-name pairing.",
     },
     micro: [
-      { id: "4.5.g.1", term: "6 Informational",              def: "Informational message. Routine events. Classic trap: Notification=5, Informational=6. Don't swap them.", weight: "med" },
-      { id: "4.5.g.2", term: "5 vs 6 mix-up",                def: "Notification (5) is more significant than Informational (6). Mnemonic has N before I.", weight: "med" }
+      {
+        id: "4.5.g.1",
+        term: "6 Informational",
+        weight: "med",
+        info: "<p><strong>Level 6 — Informational</strong> is general operational messaging confirming normal device behavior. Successful logins, commands executed, routine stats, ACL match logs.</p><p>Level 6 is the <strong>default logging level</strong> on most Cisco devices for console and buffered logging. It captures everything above (levels 0-6) while excluding the verbose level 7 debug output.</p><p><strong>Classic exam trap:</strong> don't confuse Notification (5) with Informational (6). Notification = something changed. Informational = routine operation confirmed. Memorize: N comes before I in the mnemonic.</p>",
+        visual: { type: "comparison", params: { left: { label: "Level 5 Notification", items: ["Something CHANGED", "State transition", "Worth noting"] }, right: { label: "Level 6 Informational", items: ["Routine CONFIRMED", "Normal operation", "Default log level"] } } },
+        hack: {
+          memory: "6 = Informational = routine. 5 ≠ 6. N (5) comes before I (6) in the mnemonic.",
+          practice: "Log in via SSH — you'll see informational (6) messages about the session.",
+          effort: "low",
+          meta: "5 vs 6 mix-up is an intentional exam trap."
+        }
+      },
+      {
+        id: "4.5.g.2",
+        term: "5 vs 6 mix-up",
+        weight: "med",
+        info: "<p>Notification (5) and Informational (6) are the most commonly swapped syslog levels. Keep them straight with this rule:</p><ul><li><strong>Notification (5):</strong> something significant CHANGED — state transition.</li><li><strong>Informational (6):</strong> routine operation CONFIRMED — normal logging.</li></ul><p>Mnemonic anchor: Every Awesome Cisco Engineer Will <strong>Need</strong> (5) <strong>Ice cream</strong> (6). N = 5, I = 6. N comes before I.</p>",
+        visual: { type: "comparison", params: { left: { label: "5 - Notification", items: ["N = Need (mnemonic)", "Significant event", "State change"] }, right: { label: "6 - Informational", items: ["I = Ice cream", "Routine info", "Default level"] } } },
+        hack: {
+          memory: "N=5, I=6. Need before Ice cream.",
+          practice: "Quiz yourself: 'Which level is Notification?' = 5. 'Which is Informational?' = 6.",
+          effort: "low",
+          meta: "Almost guaranteed to appear — swap question or fill-in."
+        }
+      }
     ]
   },
 
@@ -4034,8 +4238,32 @@ window.subtopicContentD34 = {
       meta: "Jeremy's IT Lab Day 41 (Syslog). Wendell Odom OCG Chapter 9. Level 7 questions are guaranteed: 'Which level should NOT be left on production?' (7/debugging). 'Which is least severe?' (7). 'Which is most verbose?' (7). All the same answer.",
     },
     micro: [
-      { id: "4.5.h.1", term: "7 Debug",                      def: "Least severe, MOST verbose. Enable only for troubleshooting. Never leave on in production — floods logs.", weight: "high" },
-      { id: "4.5.h.2", term: "debug commands",               def: "'debug ...' at privileged exec. Generates level 7 messages. Turn off with 'no debug all' or 'undebug all'.", weight: "med" }
+      {
+        id: "4.5.h.1",
+        term: "7 Debug",
+        weight: "high",
+        info: "<p><strong>Level 7 — Debugging</strong> is the most verbose syslog level, generated by <code>debug</code> commands. It shows granular, real-time protocol behavior — every packet, every timer, every state change.</p><p><strong>CRITICAL:</strong> Debug output should NEVER be left enabled on production devices. Debug commands can flood the CPU, consume memory, and potentially crash the device. Always use <code>undebug all</code> (shortcut: <code>u all</code>) immediately after finishing troubleshooting.</p><p>Highest number = least severe = most verbose. Counterintuitive but central to syslog.</p>",
+        visual: { type: "shield", params: { items: ["Most verbose", "Least severe (highest number)", "NEVER leave on in prod", "undebug all to disable"], color: "#6b7280" } },
+        hack: {
+          memory: "7 = Debug = firehose. Never in prod. 'undebug all' saves lives.",
+          practice: "In a lab: 'debug ip icmp', ping something, watch the flood. Then 'undebug all' immediately.",
+          effort: "low",
+          meta: "Guaranteed exam question: least severe level = 7 = debugging."
+        }
+      },
+      {
+        id: "4.5.h.2",
+        term: "debug commands",
+        weight: "med",
+        info: "<p>Cisco <code>debug</code> commands generate level 7 syslog messages. They are enabled at <strong>privileged EXEC mode</strong>, not config mode.</p><p>Common debug commands:</p><ul><li><code>debug ip icmp</code> — ICMP packet tracing (ping troubleshooting)</li><li><code>debug ip ospf events</code> — OSPF neighbor events</li><li><code>debug ip nat</code> — NAT translation events</li><li><code>debug ip rip</code> — RIP updates</li></ul><p>Disable commands:</p><ul><li><code>no debug [command]</code> — disable one debug</li><li><code>no debug all</code> or <code>undebug all</code> or <code>u all</code> — disable EVERYTHING (use this)</li></ul><p>Always end a debug session with <code>u all</code> — even if you think you remembered to disable each one.</p>",
+        visual: { type: "packet-flow", params: { nodes: ["debug ip icmp (enabled)", "Ping event", "Level 7 messages flood", "undebug all (disable)"], color: "#6b7280" } },
+        hack: {
+          memory: "'debug' = level 7 generator. 'u all' = kill switch. Always use u all.",
+          practice: "Run a debug, then 'show debug' to see what's active. Then 'u all' to stop everything.",
+          effort: "low",
+          meta: "'undebug all' = the production-safe habit."
+        }
+      }
     ]
   },
 
@@ -4049,8 +4277,32 @@ window.subtopicContentD34 = {
       meta: "Jeremy's IT Lab Day 41 (Syslog). Wendell Odom OCG Chapter 9. This mnemonic is the #1 community recommendation. Boson and Pearson practice exams test syslog levels in multiple questions per exam. Brain dump this mnemonic onto the whiteboard along with your AD values and subnet chart.",
     },
     micro: [
-      { id: "4.5.i.1", term: "'Every Awesome Cisco Engineer Will Need Ice-cream Daily'", def: "Mnemonic for 0-7: Emergency, Alert, Critical, Error, Warning, Notification, Informational, Debug.", weight: "high" },
-      { id: "4.5.i.2", term: "Brain dump on whiteboard",     def: "Write syslog severities + AD values + subnet chart FIRST at exam start. Frees mental space for questions.", weight: "high" }
+      {
+        id: "4.5.i.1",
+        term: "'Every Awesome Cisco Engineer Will Need Ice-cream Daily'",
+        weight: "high",
+        info: "<p>The universal CCNA mnemonic for syslog severity levels 0-7:</p><ul><li><strong>E</strong>very = Emergency (0)</li><li><strong>A</strong>wesome = Alert (1)</li><li><strong>C</strong>isco = Critical (2)</li><li><strong>E</strong>ngineer = Error (3)</li><li><strong>W</strong>ill = Warning (4)</li><li><strong>N</strong>eed = Notification (5)</li><li><strong>I</strong>ce-cream = Informational (6)</li><li><strong>D</strong>aily = Debugging (7)</li></ul><p>Recommended by Jeremy's IT Lab, Wendell Odom, Reddit r/ccna, Boson forums — this is THE mnemonic. Memorize it perfectly.</p>",
+        visual: { type: "layer-stack", params: { layers: ["0 Every / Emergency", "1 Awesome / Alert", "2 Cisco / Critical", "3 Engineer / Error", "4 Will / Warning", "5 Need / Notification", "6 Ice cream / Informational", "7 Daily / Debugging"], highlight: 0 } },
+        hack: {
+          memory: "EACEWNID. 8 letters, 8 levels, 0-indexed.",
+          practice: "Recite aloud daily until exam. Write on every whiteboard practice session.",
+          effort: "low",
+          meta: "The #1 syslog mnemonic in the CCNA community."
+        }
+      },
+      {
+        id: "4.5.i.2",
+        term: "Brain dump on whiteboard",
+        weight: "high",
+        info: "<p>At the start of the CCNA exam, you get a tutorial period with access to a whiteboard (physical or virtual). Use this time to do a <strong>brain dump</strong> of high-recall facts BEFORE reading any questions:</p><ul><li>Syslog severity levels 0-7 with the EACEWNID mnemonic</li><li>Administrative Distance values (Connected 0, Static 1, eBGP 20, EIGRP 90, OSPF 110, RIP 120, iBGP 200)</li><li>Subnet chart (CIDR, subnet mask, number of hosts)</li><li>Well-known port numbers (SSH 22, DNS 53, DHCP 67/68, TFTP 69, HTTP 80, SNMP 161/162, HTTPS 443, Syslog 514)</li></ul><p>This frees up working memory during the exam — instead of recalculating, you glance at the whiteboard.</p>",
+        visual: { type: "encapsulation", params: { layers: [{ label: "Syslog 0-7 + mnemonic", color: "#6366f1" }, { label: "AD values", color: "#3b82f6" }, { label: "Subnet chart", color: "#10b981" }, { label: "Port numbers", color: "#f59e0b" }] } },
+        hack: {
+          memory: "Brain dump first. Never recalculate during questions.",
+          practice: "Time yourself: complete a full brain dump in under 3 minutes. Refine until automatic.",
+          effort: "low",
+          meta: "Universal CCNA exam strategy. Start with the dump."
+        }
+      }
     ]
   },
 
@@ -4064,11 +4316,71 @@ window.subtopicContentD34 = {
       meta: "Jeremy's IT Lab Day 41 (Syslog). Wendell Odom OCG Chapter 9. The exam asks: 'Which logging destination survives a reboot?' (syslog server — not buffer, which is RAM). 'Which command shows buffered logs?' ('show logging'). 'What port does syslog use?' (UDP 514). Know all four destinations and their characteristics.",
     },
     micro: [
-      { id: "4.5.j.1", term: "Four logging destinations",    def: "Console, VTY terminal, buffer (RAM), syslog server. Each has its own severity filter.", weight: "high" },
-      { id: "4.5.j.2", term: "Console logging",              def: "'logging console [level]'. Default enabled at level 7. Seen on direct console connection.", weight: "high" },
-      { id: "4.5.j.3", term: "Terminal (VTY) logging",       def: "'logging monitor [level]' + 'terminal monitor' per session. Seen over SSH/Telnet.", weight: "med" },
-      { id: "4.5.j.4", term: "Buffer logging",               def: "'logging buffered [level]'. Stored in RAM. View with 'show logging'. Lost on reboot.", weight: "high" },
-      { id: "4.5.j.5", term: "Syslog server logging",        def: "'logging [server-ip]' + 'logging trap [level]'. Survives reboot. UDP 514. Best for production.", weight: "high" }
+      {
+        id: "4.5.j.1",
+        term: "Four logging destinations",
+        weight: "high",
+        info: "<p>Syslog messages can be sent to four destinations, each independently configurable with its own severity threshold:</p><ol><li><strong>Console</strong> — real-time display on the physical console port. <code>logging console [level]</code></li><li><strong>Monitor (VTY)</strong> — display on remote terminal sessions (SSH/Telnet) after <code>terminal monitor</code> is issued. <code>logging monitor [level]</code></li><li><strong>Buffer (RAM)</strong> — stored in device memory, viewed with <code>show logging</code>. Lost on reboot. <code>logging buffered [size] [level]</code></li><li><strong>Syslog server</strong> — remote centralized log server, UDP 514. Survives reboot. <code>logging host [ip]</code> + <code>logging trap [level]</code></li></ol><p>Each destination can have a different level filter — you might have verbose debug on console, informational in buffer, and warnings only sent to the remote server.</p>",
+        visual: { type: "comparison", params: { left: { label: "Local (device)", items: ["Console (real-time)", "Monitor (VTY)", "Buffer (RAM)"] }, right: { label: "Remote", items: ["Syslog server (UDP 514)", "Survives reboot", "Centralized"] } } },
+        hack: {
+          memory: "Four destinations: Console, Monitor, Buffer, Server. Each has its own level.",
+          practice: "Configure all four on a single router with different levels and verify each is independent.",
+          effort: "medium",
+          meta: "Know all four destinations and that only the syslog server survives reboot."
+        }
+      },
+      {
+        id: "4.5.j.2",
+        term: "Console logging",
+        weight: "high",
+        info: "<p><code>logging console [level]</code> controls what appears on the <strong>physical console port</strong>. Default is enabled at <strong>level 7 (debugging)</strong> — the console shows everything.</p><p>If console messages are flooding during troubleshooting, you can mute them: <code>no logging console</code>. Re-enable with <code>logging console</code>.</p><p>Console logs are ephemeral — they appear as they happen and scroll away; there's no persistent storage. To review past messages, use the buffer or remote server.</p>",
+        visual: { type: "shield", params: { items: ["Physical console port", "Default: level 7 (all)", "'no logging console' to mute", "Ephemeral"], color: "#6366f1" } },
+        hack: {
+          memory: "logging console = what shows on the console. Default = debugging (everything).",
+          practice: "Plug into a router's console cable, 'debug ip icmp', ping. Watch the flood. 'no logging console' to stop it.",
+          effort: "low",
+          meta: "Console default = debug. Common troubleshooting knowledge."
+        }
+      },
+      {
+        id: "4.5.j.3",
+        term: "Terminal (VTY) logging",
+        weight: "med",
+        info: "<p><code>logging monitor [level]</code> controls what appears on remote terminal sessions (SSH/Telnet). However, it does NOT automatically display — each VTY session must activate it with <code>terminal monitor</code> (sometimes shortened to <code>term mon</code>).</p><p>Turn off with <code>terminal no monitor</code>. Without this command, your SSH session won't show syslog messages even if <code>logging monitor</code> is configured.</p><p>This two-step design prevents every SSH session from being flooded with log noise by default.</p>",
+        visual: { type: "packet-flow", params: { nodes: ["logging monitor [level]", "Per-session: 'terminal monitor'", "Messages now visible in SSH", "'terminal no monitor' to stop"], color: "#3b82f6" } },
+        hack: {
+          memory: "Monitor = VTY sessions. Needs BOTH 'logging monitor' config AND 'terminal monitor' per session.",
+          practice: "SSH in, run a debug — see nothing. Run 'term mon'. Now see messages.",
+          effort: "low",
+          meta: "'terminal monitor' gotcha is common — users wonder why no output appears."
+        }
+      },
+      {
+        id: "4.5.j.4",
+        term: "Buffer logging",
+        weight: "high",
+        info: "<p><code>logging buffered [size] [level]</code> stores syslog messages in the device's RAM. Size is in bytes (common: 16384, 32768, 65536). The buffer is <strong>circular</strong> — when full, oldest messages are overwritten.</p><p>View with <code>show logging</code>. Clear with <code>clear logging</code>. <strong>Lost on reboot</strong> because it's RAM.</p><p>The buffer is your best on-device record for recent events without a remote syslog server. Always configure a reasonable buffer size (32KB+) on production devices.</p><pre>Router(config)# logging buffered 32768 informational\nRouter# show logging</pre>",
+        visual: { type: "state-machine", params: { states: ["Message generated", "Written to RAM buffer", "Buffer full -> overwrite oldest", "show logging to view"], active: 1, transitions: true } },
+        hack: {
+          memory: "Buffer = RAM. Circular. 'show logging' to view. LOST on reboot.",
+          practice: "'logging buffered 32768 informational' then 'show logging' — see all recent events.",
+          effort: "low",
+          meta: "Know that buffer is RAM and doesn't survive reboot."
+        }
+      },
+      {
+        id: "4.5.j.5",
+        term: "Syslog server logging",
+        weight: "high",
+        info: "<p><code>logging host [ip]</code> (or the older <code>logging [ip]</code>) enables remote syslog — the device sends messages over the network to a centralized log server on <strong>UDP 514</strong>. Pair it with <code>logging trap [level]</code> to set the severity filter.</p><p>The remote server is the <strong>only destination that survives a device reboot</strong>. Buffer is volatile; console is ephemeral. If you want a permanent record, you need a syslog server.</p><p>Multiple servers can be configured (<code>logging host 10.1.1.100</code> then <code>logging host 10.1.1.101</code>) for redundancy.</p><pre>Router(config)# logging host 10.1.1.100\nRouter(config)# logging trap informational</pre>",
+        visual: { type: "packet-flow", params: { nodes: ["Device generates message", "Forward via UDP 514", "Remote syslog server", "Stored permanently"], color: "#10b981" } },
+        hack: {
+          memory: "Syslog server = UDP 514 = only persistent destination. 'logging host [ip]' + 'logging trap [level]'.",
+          practice: "Set up a free syslog server (Kiwi, rsyslog) and send logs from a router. Verify UDP 514 on the server.",
+          effort: "medium",
+          meta: "Syslog server is the production answer. Survives reboot. UDP 514."
+        }
+      }
     ]
   },
 
@@ -4082,10 +4394,58 @@ window.subtopicContentD34 = {
       meta: "Jeremy's IT Lab Day 41 (Syslog). Wendell Odom OCG Chapter 9. The exam heavily tests 'logging trap': 'If logging trap is set to 4, which messages are sent to the server?' (0-4). Always remember: the trap level = floor, includes that level + all more severe. 'service timestamps' is a best practice tested in lab sims.",
     },
     micro: [
-      { id: "4.5.k.1", term: "logging host / logging [ip]",  def: "Set syslog server destination. Required first step for server logging.", weight: "high" },
-      { id: "4.5.k.2", term: "logging trap [level]",         def: "Filter messages sent to syslog server. Captures that level + all more severe (lower numbers).", weight: "high" },
-      { id: "4.5.k.3", term: "service timestamps log datetime", def: "Best practice. Adds date/time to every log message. Critical for correlation.", weight: "high" },
-      { id: "4.5.k.4", term: "service sequence-numbers",     def: "Adds sequence numbers to log messages. Helps detect dropped messages.", weight: "low" }
+      {
+        id: "4.5.k.1",
+        term: "logging host / logging [ip]",
+        weight: "high",
+        info: "<p><code>logging host [ip]</code> sets the destination IP for remote syslog. This is the first step in configuring remote logging — the device won't send messages to any server until this command is issued.</p><p>Older syntax: <code>logging [ip]</code> (without the <code>host</code> keyword) is also accepted on most Cisco IOS versions. Modern best practice is <code>logging host</code>.</p><p>You can configure multiple hosts for redundancy. Combine with <code>logging trap [level]</code> to define what severity gets sent.</p><pre>Router(config)# logging host 10.1.1.100\nRouter(config)# logging host 10.1.1.101\nRouter(config)# logging trap informational</pre>",
+        visual: { type: "packet-flow", params: { nodes: ["logging host 10.1.1.100", "Device knows destination", "Apply logging trap filter", "UDP 514 -> server"], color: "#10b981" } },
+        hack: {
+          memory: "'logging host [ip]' = tell device where the server lives. Required first.",
+          practice: "Configure without 'logging trap' — see that default level (informational, usually) applies.",
+          effort: "low",
+          meta: "Exam command recall. 'logging host' is the modern syntax."
+        }
+      },
+      {
+        id: "4.5.k.2",
+        term: "logging trap [level]",
+        weight: "high",
+        info: "<p><code>logging trap [level]</code> filters which severity levels are sent to the remote syslog server. The level is a <strong>floor</strong> — it and all more severe (lower) levels are forwarded.</p><ul><li><code>logging trap warnings</code> (or <code>4</code>) = sends levels 0-4</li><li><code>logging trap informational</code> (or <code>6</code>) = sends levels 0-6</li><li><code>logging trap debugging</code> (or <code>7</code>) = sends ALL levels</li></ul><p>You can use either the number or the name — Cisco IOS accepts both. The default trap level varies but is often informational (6).</p><p>'trap' here refers to the syslog concept of capturing messages, not SNMP traps — unrelated protocols.</p>",
+        visual: { type: "state-machine", params: { states: ["logging trap informational (6)", "Capture levels 0-6", "Drop level 7 (debug)", "Forward to syslog host"], active: 1, transitions: true } },
+        hack: {
+          memory: "'logging trap [level]' = server filter. Includes level + all MORE severe (lower).",
+          practice: "Set 'logging trap warnings' — generate an informational event — verify it does NOT reach server.",
+          effort: "low",
+          meta: "Filter logic = #1 syslog exam topic."
+        }
+      },
+      {
+        id: "4.5.k.3",
+        term: "service timestamps log datetime",
+        weight: "high",
+        info: "<p><code>service timestamps log datetime msec</code> adds human-readable date/time with millisecond precision to every syslog message. <strong>Critical for log correlation</strong> across devices.</p><p>Without this command, syslog messages only show uptime (e.g., <code>00:05:12</code>) which is useless when comparing events between devices.</p><p>For accurate timestamps, the device should also be synced to NTP — otherwise you get <code>*</code> prepended to timestamps indicating unsynced clock.</p><pre>Router(config)# service timestamps log datetime msec\nRouter(config)# service timestamps debug datetime msec\n\n*Apr 16 22:40:35.123: %SYS-5-CONFIG_I: Configured from console</pre>",
+        visual: { type: "comparison", params: { left: { label: "Without timestamps", items: ["00:05:12: %SYS-5-CONFIG_I", "Uses uptime only", "Can't correlate devices"] }, right: { label: "With timestamps", items: ["*Apr 16 22:40:35.123: %SYS-5-CONFIG_I", "Human-readable", "Correlates across devices"] } } },
+        hack: {
+          memory: "'service timestamps log datetime msec' + NTP = correlatable logs. Always configure.",
+          practice: "Configure with and without — compare 'show logging' output.",
+          effort: "low",
+          meta: "Best-practice command. Often tested in lab sims."
+        }
+      },
+      {
+        id: "4.5.k.4",
+        term: "service sequence-numbers",
+        weight: "low",
+        info: "<p><code>service sequence-numbers</code> prepends a sequence number to each syslog message. Helps detect dropped or reordered messages when reviewing logs.</p><pre>Router(config)# service sequence-numbers\n\n000047: *Apr 16 22:40:35.123: %SYS-5-CONFIG_I: Configured from console</pre><p>Lightly used — most troubleshooters rely on timestamps instead. Know it exists for exam recognition.</p>",
+        visual: { type: "encapsulation", params: { layers: [{ label: "Seq: 000047", color: "#6366f1" }, { label: "Timestamp", color: "#3b82f6" }, { label: "%FACILITY-SEVERITY-MNEMONIC", color: "#10b981" }, { label: "Description", color: "#f59e0b" }] } },
+        hack: {
+          memory: "service sequence-numbers = adds seq prefix. Rarely used but exam knows it.",
+          practice: "Enable it and view 'show logging' — see sequence prefix on every message.",
+          effort: "low",
+          meta: "Low-weight recall. Know the command name."
+        }
+      }
     ]
   },
 
