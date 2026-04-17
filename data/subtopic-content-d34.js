@@ -3613,8 +3613,32 @@ window.subtopicContentD34 = {
       meta: "Jeremy's IT Lab Day 43 (SSH) covers the complete 6-step process. Wendell Odom OCG Chapter 6. SSH configuration is a GUARANTEED lab sim on the CCNA. The 6-step sequence must be memorized cold. Missing any single step = SSH fails = lost points.",
     },
     micro: [
-      { id: "4.8.a.1", term: "SSH 6-step recipe",            def: "1) hostname, 2) domain-name, 3) RSA key, 4) user, 5) VTY config, 6) version 2.", weight: "high" },
-      { id: "4.8.a.2", term: "All 6 steps required",         def: "Miss any one → SSH fails. Exam lab sim = memorize sequence cold.", weight: "high" }
+      {
+        id: "4.8.a.1",
+        term: "SSH 6-step recipe",
+        weight: "high",
+        info: "<p>The <strong>SSH 6-step recipe</strong> is the canonical sequence for enabling Secure Shell on a Cisco IOS device. It is a <strong>near-guaranteed lab simulation</strong> on the CCNA 200-301 exam and must be memorized in exact order because each step depends on the previous one.</p><p><strong>The six steps in strict order:</strong></p><ul><li><strong>(1) hostname R1</strong> — gives the device a non-default name. RSA key generation uses <code>hostname.domain-name</code> as the key label. The default 'Router' or 'Switch' may cause key generation to fail.</li><li><strong>(2) ip domain-name example.com</strong> — required so the device can construct a fully qualified domain name (FQDN) for the RSA key.</li><li><strong>(3) crypto key generate rsa modulus 2048</strong> — generates the asymmetric key pair used for SSH session encryption. 2048 is the recommended modulus.</li><li><strong>(4) ip ssh version 2</strong> — forces SSHv2 only. Without this, the device runs the hybrid '1.99' which still accepts insecure SSHv1.</li><li><strong>(5) username admin privilege 15 secret MySecret</strong> — creates the local user database entry. <code>secret</code> (hashed) is mandatory, not <code>password</code> (plaintext).</li><li><strong>(6) line vty 0 15</strong> → <code>transport input ssh</code> → <code>login local</code> — exposes SSH on the 16 virtual terminal lines and ties them to the local user database.</li></ul><p><strong>Why the order matters:</strong> Steps 1 and 2 are prerequisites for step 3 (RSA gen needs the FQDN). Steps 3 and 4 are prerequisites for step 6 (VTY SSH transport needs a key and a version). Step 5 is a prerequisite for <code>login local</code> in step 6. Reordering breaks the chain — the exam sim will fail silently if you skip ahead.</p><p><strong>Verification commands after the recipe:</strong> <code>show ip ssh</code> (server state, version, timeout, retries), <code>show ssh</code> (active sessions), and a test SSH connection from another device: <code>ssh -l admin 10.1.1.1</code>.</p>",
+        visual: { type: "state-machine", params: { states: ["1. hostname", "2. ip domain-name", "3. crypto key rsa 2048", "4. ip ssh version 2", "5. username secret", "6. line vty + ssh + local"], active: 0, transitions: true } },
+        hack: {
+          memory: "HD-RVUL: Hostname, Domain, RSA, Version, User, Line. Chant it: 'Hot Dogs Really Very Underrated Lately.' Each letter = one step. Forget one = SSH dies. Muscle-memory the whole sequence — type it in Packet Tracer 5 times in a row until your fingers remember it without thinking.",
+          practice: "Open Packet Tracer, drop a 2911 router, and run the full 6-step recipe from scratch three times. After each run, wipe with 'write erase' + reload and do it again. Time yourself — target under 90 seconds. When you can execute the recipe blindfolded, you are exam-ready for this specific sim.",
+          effort: "medium",
+          meta: "Jeremy's IT Lab Day 43 walks through every step with a lab. Wendell Odom OCG Chapter 6 (Configuring IPv4 Addresses and Static Routes and Device Management) has the full recipe. CCNA exam places at least one SSH sim — and missing any step equals full-credit loss on the question."
+        }
+      },
+      {
+        id: "4.8.a.2",
+        term: "All 6 steps required",
+        weight: "high",
+        info: "<p><strong>Every step in the SSH recipe is mandatory.</strong> Skipping even one produces a silent or misleading failure that wastes lab-sim time on the exam. Knowing which step maps to which failure mode is the difference between fixing the sim in 30 seconds and running out the clock.</p><p><strong>Failure map — step skipped → observed symptom:</strong></p><ul><li><strong>Skip hostname (1):</strong> RSA key generates with label <code>Router.domain</code>. Some IOS versions refuse to generate; others generate but SSH behaves inconsistently.</li><li><strong>Skip domain-name (2):</strong> <code>crypto key generate rsa</code> returns '% Please define a domain-name first.' Complete blocker.</li><li><strong>Skip RSA key (3):</strong> <code>show ip ssh</code> reports 'SSH Disabled - version 1.99.' No encryption = no SSH.</li><li><strong>Skip ip ssh version 2 (4):</strong> Device falls back to hybrid 1.99, still accepts insecure SSHv1. Security weakness — often tested conceptually.</li><li><strong>Skip username secret (5):</strong> <code>login local</code> has no database to check. All SSH logins get 'Password required, but none set.'</li><li><strong>Skip line vty config (6):</strong> Default VTY may accept Telnet only (or nothing). SSH client sees 'Connection refused.'</li></ul><p><strong>Debug sequence when SSH fails:</strong> Run <code>show running-config | include hostname|domain|ssh|username|vty</code> and compare each line against the 6-step checklist. The missing line is the missing step.</p><p><strong>Exam mindset:</strong> The sim grader checks specific running-config lines. A missed line = a missed point. Treat the recipe as a binary checklist — all green or you lose the sim.</p>",
+        visual: { type: "comparison", params: { left: { label: "Missing Step", items: ["No hostname", "No domain-name", "No RSA key", "No ip ssh version 2", "No username secret", "No transport input ssh"] }, right: { label: "Observed Failure", items: ["Weak key name", "% Define domain first", "SSH Disabled", "Version 1.99 hybrid", "Login rejected", "Connection refused"] } } },
+        hack: {
+          memory: "Each step is a link in a chain. Break one link = whole chain broken. Think 'all-or-nothing.' When SSH fails on the exam sim, run 'show run | i hostname|domain|ssh|username|vty' — the missing line IS the bug. Fix that one line and move on.",
+          practice: "In Packet Tracer, configure SSH but deliberately skip step 3 (no RSA key). Then try to SSH in. Read the error. Wipe, repeat skipping step 5 (no username). Read the error. Do this for all 6 steps. Memorize which failure matches which missed step — this is invaluable on the exam sim.",
+          effort: "medium",
+          meta: "Jeremy's IT Lab Day 43. Wendell Odom OCG Chapter 6. The CCNA sim auto-grader checks for specific lines in running-config. Partial credit is rare — either all 6 steps are present or you lose the question. Debugging speed matters when the sim timer is ticking."
+        }
+      }
     ]
   },
 
@@ -3628,8 +3652,32 @@ window.subtopicContentD34 = {
       meta: "Jeremy's IT Lab Day 43 (SSH). Wendell Odom OCG Chapter 6. Students forget this step more than any other. In the exam lab sim, if RSA key generation fails, check hostname AND domain name. Both are prerequisites for Step 3.",
     },
     micro: [
-      { id: "4.8.b.1", term: "hostname + domain-name",       def: "Both required BEFORE RSA key generation. RSA key name = hostname.domain-name.", weight: "high" },
-      { id: "4.8.b.2", term: "Default 'Router' hostname issue", def: "If hostname is still 'Router' (default), key generation fails or produces weak key. Change hostname first.", weight: "high" }
+      {
+        id: "4.8.b.1",
+        term: "hostname + domain-name",
+        weight: "high",
+        info: "<p>The <strong>hostname</strong> and <strong>ip domain-name</strong> commands together form the <strong>fully qualified domain name (FQDN)</strong> that the RSA key generator needs to label the key pair. Both must be configured <strong>before</strong> running <code>crypto key generate rsa</code> — otherwise key generation fails or produces an unusable key.</p><p><strong>How the FQDN is built:</strong> If <code>hostname R1</code> and <code>ip domain-name example.com</code> are configured, the RSA key is labeled <code>R1.example.com</code>. You can verify this with <code>show crypto key mypubkey rsa</code> — the 'Key name' field shows the FQDN.</p><p><strong>Commands:</strong></p><pre>Router(config)# hostname R1\nR1(config)# ip domain-name example.com\nR1(config)# crypto key generate rsa modulus 2048</pre><p><strong>Common failure signature:</strong> Running <code>crypto key generate rsa</code> with no domain-name returns <code>% Please define a domain-name first.</code> This is the most common SSH lab error because students jump to the RSA step.</p><p><strong>Why Cisco built it this way:</strong> Certificate and key infrastructure on enterprise networks rely on FQDNs (R1.example.com) rather than bare names (R1). Using the FQDN for the key label makes keys globally unique within the administrative domain, avoiding collisions when keys are exported, shared, or used in certificate requests.</p><p><strong>No DNS server is required.</strong> The domain name is a local string used only for labeling — the router does not need to resolve it. Any valid-looking string works: <code>lab.local</code>, <code>ccna.study</code>, <code>example.com</code>.</p>",
+        visual: { type: "hierarchy", params: { root: "FQDN = hostname + domain", children: [{ name: "hostname R1", children: [{ name: "R1" }] }, { name: "ip domain-name example.com", children: [{ name: "example.com" }] }, { name: "RSA key label", children: [{ name: "R1.example.com" }] }] } },
+        hack: {
+          memory: "Hostname = first name. Domain-name = last name. Together = full name on the RSA key's birth certificate. You cannot be born without a full name — RSA refuses. Mnemonic: 'No FQDN, no RSA.' First step every SSH lab: set hostname AND domain-name before touching crypto.",
+          practice: "In Packet Tracer, try running 'crypto key generate rsa modulus 2048' with ONLY a hostname set — watch it fail with '% Please define a domain-name first.' Now add 'ip domain-name lab.local' and retry. Key generates. Run 'show crypto key mypubkey rsa' to see the key name 'R1.lab.local' confirmed.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 43. Wendell Odom OCG Chapter 6. The exam often embeds this as a troubleshooting question: 'The administrator runs crypto key generate rsa and receives an error. What command is missing?' Answer: ip domain-name."
+        }
+      },
+      {
+        id: "4.8.b.2",
+        term: "Default 'Router' hostname issue",
+        weight: "high",
+        info: "<p>If the hostname is left as the default <strong>Router</strong> or <strong>Switch</strong>, the RSA key will still generate on most IOS versions, but with the generic label <code>Router.example.com</code> — and on <strong>some IOS trains the generator refuses outright</strong> with an error. Either way, leaving the default hostname is a red flag in a production (or exam) configuration.</p><p><strong>Why the default is a problem:</strong></p><ul><li><strong>Key label collisions:</strong> Every out-of-the-box Cisco device has hostname 'Router.' If two untouched routers are joined in the same administrative domain, both RSA keys have the same label — a collision that breaks key-based workflows.</li><li><strong>Operator confusion:</strong> When you SSH in, the prompt reads <code>Router#</code> — giving no clue which device you're on. In a lab with 5 routers all named 'Router,' this is a disaster.</li><li><strong>Exam grading:</strong> CCNA lab sims check for a renamed device. Leaving the default hostname loses points even if SSH technically works.</li></ul><p><strong>Correct sequence:</strong> Always rename <strong>first</strong>:</p><pre>Router(config)# hostname R1\nR1(config)# ip domain-name example.com\nR1(config)# crypto key generate rsa modulus 2048</pre><p><strong>What if you already generated the key with the default hostname?</strong> Delete and regenerate:</p><pre>R1(config)# crypto key zeroize rsa\nR1(config)# crypto key generate rsa modulus 2048</pre><p>The new key picks up the new hostname automatically. Any existing SSH sessions survive until they disconnect; future connections use the new key.</p>",
+        visual: { type: "comparison", params: { left: { label: "Default hostname (bad)", items: ["Router.example.com", "Key collision risk", "Prompt shows Router#", "Lab sim = 0 points"] }, right: { label: "Renamed (good)", items: ["R1.example.com", "Unique key label", "Prompt shows R1#", "Lab sim = full credit"] } } },
+        hack: {
+          memory: "Default 'Router' hostname = generic ID badge. Change it first, every time. Mnemonic: 'Rename before RSA.' If you generated the key with the default and need to fix it: 'crypto key zeroize rsa' wipes the key, then regenerate after renaming. Simple and non-destructive to config.",
+          practice: "In Packet Tracer, leave hostname as 'Router' and run the full SSH recipe. Then SSH in — prompt reads 'Router#.' Now 'crypto key zeroize rsa', 'hostname R1', regenerate key. SSH back in — prompt reads 'R1#.' This makes the hostname-vs-key relationship click.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 43. Wendell Odom OCG Chapter 6. The exam tests this as a 'why did SSH fail?' question — answer: hostname was still 'Router' or there was no hostname set before key generation."
+        }
+      }
     ]
   },
 
@@ -3643,8 +3691,32 @@ window.subtopicContentD34 = {
       meta: "Jeremy's IT Lab Day 43 (SSH). Wendell Odom OCG Chapter 6. The exam expects modulus 2048. If given a choice between 1024 and 2048, pick 2048. SSHv2 requires at least 768-bit minimum, but 2048 is the correct answer.",
     },
     micro: [
-      { id: "4.8.c.1", term: "crypto key generate rsa modulus 2048", def: "Generates 2048-bit RSA key. Size 2048 is exam answer (vs. weaker 1024 or 768).", weight: "high" },
-      { id: "4.8.c.2", term: "SSHv2 minimum 768 bits",       def: "Technical minimum. But exam/production answer is 2048 bits for security.", weight: "med" }
+      {
+        id: "4.8.c.1",
+        term: "crypto key generate rsa modulus 2048",
+        weight: "high",
+        info: "<p><code>crypto key generate rsa modulus 2048</code> creates the <strong>RSA public/private key pair</strong> that powers SSH's encryption and server authentication. This is step 3 of the 6-step recipe and the step that actually <strong>enables SSH</strong> — before this, <code>show ip ssh</code> reports 'SSH Disabled.'</p><p><strong>What the modulus means:</strong> The modulus is the bit length of the RSA key. Larger = stronger but slower. Cisco IOS supports 360-4096 bits. The exam answer is <strong>2048</strong> — it is the modern minimum for production and what all Cisco documentation recommends.</p><ul><li><strong>768</strong> — legacy minimum for SSHv2 enablement. Too weak for real use.</li><li><strong>1024</strong> — deprecated. Attackable with modern compute.</li><li><strong>2048</strong> — <strong>exam and production answer.</strong> Good balance of security and performance.</li><li><strong>4096</strong> — stronger but noticeably slower on low-end IOS devices. Overkill for CCNA.</li></ul><p><strong>Interactive vs one-liner form:</strong> If you type <code>crypto key generate rsa</code> without a modulus, IOS prompts interactively: 'How many bits in the modulus [512]:'. The one-liner <code>crypto key generate rsa modulus 2048</code> is non-interactive and safer to script.</p><p><strong>Key label:</strong> Defaults to <code>hostname.domain-name</code>. You can also use named keys with <code>label [name]</code> and <code>modulus [size]</code> parameters, but for CCNA stick with the default.</p><p><strong>Regenerating:</strong> To replace an existing key, zeroize first:</p><pre>R1(config)# crypto key zeroize rsa\nR1(config)# crypto key generate rsa modulus 2048</pre><p><strong>Verification:</strong> <code>show crypto key mypubkey rsa</code> shows the key label, usage (General Purpose / Signing / Encryption), and key data. Absence of output = no key generated.</p>",
+        visual: { type: "shield", params: { items: ["crypto key generate rsa modulus 2048", "Enables SSH server", "Exam answer = 2048", "Label = hostname.domain", "Verify: show crypto key mypubkey rsa"], color: "#10b981" } },
+        hack: {
+          memory: "2048 = the CCNA answer, every time. Mnemonic: 'Two thousand forty-eight keeps the hackers away.' If the exam offers 1024 and 2048 — pick 2048. If offered 2048 and 4096 — still pick 2048 (Cisco default recommendation). The number to memorize: 2-0-4-8.",
+          practice: "In Packet Tracer: 'crypto key generate rsa modulus 2048'. Verify with 'show crypto key mypubkey rsa' — note the label and modulus. Zeroize with 'crypto key zeroize rsa' and regenerate with modulus 1024. Compare 'show ip ssh' output before and after — notice the version and enabled state change.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 43. Wendell Odom OCG Chapter 6. CCNA frequently tests: 'Which modulus is recommended for SSHv2?' — answer 2048. Also tests the command syntax verbatim; spelling errors in lab sim lose points."
+        }
+      },
+      {
+        id: "4.8.c.2",
+        term: "SSHv2 minimum 768 bits",
+        weight: "med",
+        info: "<p><strong>768 bits</strong> is the absolute minimum modulus size required to enable <strong>SSHv2</strong> on Cisco IOS. If you generate a smaller key (e.g., 512), IOS will only run SSHv1 — which is insecure and should never be used.</p><p><strong>Key size thresholds:</strong></p><ul><li><strong>&lt; 768 bits:</strong> SSHv2 cannot be enabled. Only SSHv1 is possible.</li><li><strong>= 768 bits:</strong> The minimum bar for SSHv2. Still considered weak.</li><li><strong>&ge; 1024 bits:</strong> Working SSHv2 level but deprecated by modern crypto guidance.</li><li><strong>&ge; 2048 bits:</strong> The recommended minimum for real deployments and the CCNA exam.</li></ul><p><strong>Exam distinction:</strong> The exam sometimes asks 'What is the minimum modulus for SSHv2?' (answer: 768) and separately asks 'What modulus should you configure?' (answer: 2048). These are two different questions with two different answers — do not conflate them.</p><p><strong>Why 768 matters historically:</strong> Early IOS required at least 768 bits because RSA keys below that could not safely accommodate SSHv2's larger message payloads and key exchange structures. Modern IOS still respects this floor — it is hard-coded into the SSHv2 state machine.</p><p><strong>Practical rule:</strong> Never choose 768 or 1024 in a real configuration. The only reason to know 768 is to answer the trivia question on the exam.</p>",
+        visual: { type: "layer-stack", params: { layers: ["< 768 bits: SSHv1 only", "768 bits: SSHv2 minimum", "1024 bits: deprecated", "2048 bits: recommended", "4096 bits: strongest"], highlight: 3 } },
+        hack: {
+          memory: "Two numbers, two questions. 'Minimum for SSHv2?' = 768. 'What should I configure?' = 2048. Never mix them up. Trick: 768 is the floor, 2048 is the target. 'Set the floor at 768, live at 2048.'",
+          practice: "In Packet Tracer try generating a 512-bit key and see if SSHv2 can be enabled — it cannot. Then generate a 768-bit key — SSHv2 can be enabled but is weak. Then regenerate at 2048 for production. This exercise reinforces the two-number split.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 43 mentions the 768 threshold briefly. Wendell Odom OCG Chapter 6. The exam occasionally offers both 768 and 2048 as choices; picking correctly requires knowing which question is being asked — minimum vs recommended."
+        }
+      }
     ]
   },
 
@@ -3658,8 +3730,32 @@ window.subtopicContentD34 = {
       meta: "Jeremy's IT Lab Day 43 (SSH). Wendell Odom OCG Chapter 6. Exam question: 'Which command restricts SSH to version 2?' Answer: 'ip ssh version 2.' Students sometimes forget this in lab sims — always include it.",
     },
     micro: [
-      { id: "4.8.d.1", term: "ip ssh version 2",             def: "Global command. Forces SSHv2 only. Rejects insecure SSHv1.", weight: "high" },
-      { id: "4.8.d.2", term: "Why enforce v2",               def: "SSHv1 has known vulnerabilities. V2 uses stronger crypto and is the standard today.", weight: "med" }
+      {
+        id: "4.8.d.1",
+        term: "ip ssh version 2",
+        weight: "high",
+        info: "<p><code>ip ssh version 2</code> is a global configuration command that <strong>forces the SSH server to accept only SSHv2</strong> connections. Without this command, the device runs in <strong>'1.99' compatibility mode</strong> — which accepts both insecure SSHv1 and secure SSHv2 clients. Running compatibility mode is a security weakness because an attacker can force a protocol downgrade.</p><p><strong>Command:</strong></p><pre>R1(config)# ip ssh version 2</pre><p><strong>What changes:</strong> Before the command, <code>show ip ssh</code> shows 'SSH Enabled - version 1.99.' After the command, it shows 'SSH Enabled - version 2.0.' The '1.99' is not a typo — it is the RFC 4253 identifier for a server that supports both v1 and v2.</p><p><strong>Why v1 is forbidden:</strong></p><ul><li><strong>Integrity attacks:</strong> SSHv1 uses CRC-32 for integrity, which is vulnerable to targeted bit-flip attacks.</li><li><strong>Weaker key exchange:</strong> SSHv1 uses a simpler RSA-based exchange without Diffie-Hellman forward secrecy.</li><li><strong>Single MAC:</strong> SSHv1 supports only one message authentication algorithm; SSHv2 negotiates from a suite.</li><li><strong>Deprecated:</strong> IETF deprecated SSHv1 in 2006. Modern clients (OpenSSH 7.6+) removed SSHv1 support entirely.</li></ul><p><strong>Verification:</strong> <code>show ip ssh</code> reports the version. Also, attempting SSHv1 from a compatible client will be rejected after this command is applied.</p>",
+        visual: { type: "handshake", params: { leftLabel: "SSH Client", rightLabel: "R1 (SSH Server v2 only)", steps: ["SSH-2.0-Client ->", "<- SSH-2.0-Cisco (accept)", "DH key exchange", "User auth", "Encrypted session OK", "SSH-1.5 clients rejected"] } },
+        hack: {
+          memory: "'ip ssh version 2' = lock the door against v1 attackers. Without it, device advertises '1.99' = 'I accept v1 AND v2' — a weakness. With it, device says '2.0 only.' Type this command every time after crypto key generation. No exceptions.",
+          practice: "In Packet Tracer: complete steps 1-3, skip step 4, then run 'show ip ssh.' Note version 1.99. Add 'ip ssh version 2.' Run 'show ip ssh' again. Version changes to 2.0. Practice this toggle until you can spot the 1.99/2.0 difference instantly.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 43. Wendell Odom OCG Chapter 6. The exam tests this as both a fill-in sim (type 'ip ssh version 2') and a conceptual question ('Which command forces SSHv2 only?')."
+        }
+      },
+      {
+        id: "4.8.d.2",
+        term: "Why enforce v2",
+        weight: "med",
+        info: "<p>Enforcing SSHv2 is a <strong>security hardening step</strong>, not a functional one — SSHv1 would technically work, but it exposes the device to well-known protocol-level attacks. Modern compliance frameworks (PCI DSS, HIPAA, CIS Cisco Benchmarks) explicitly require SSHv2-only.</p><p><strong>SSHv1 specific vulnerabilities:</strong></p><ul><li><strong>Insertion attacks (CVE-2001-0572):</strong> Allows a man-in-the-middle to inject arbitrary data into the stream.</li><li><strong>Weak integrity (CRC-32 compensation attack):</strong> An attacker can modify ciphertext and predictably alter plaintext on decryption.</li><li><strong>No forward secrecy:</strong> If the RSA key is compromised later, all past sessions can be decrypted retroactively.</li><li><strong>Single session key:</strong> The entire session uses one key; rotation mid-session is not supported.</li></ul><p><strong>SSHv2 improvements:</strong></p><ul><li>Diffie-Hellman key exchange with forward secrecy (ephemeral keys per session).</li><li>Strong MAC algorithms (HMAC-SHA256, HMAC-SHA512).</li><li>Separate encryption and integrity keys.</li><li>Negotiable cipher suites for future upgrades.</li><li>Support for public-key authentication in addition to passwords.</li></ul><p><strong>Exam mindset:</strong> You will not configure ciphers or MACs on CCNA. You just need to remember: 'v1 is broken, v2 is mandatory.' Any question asking 'why v2 instead of v1?' answers 'stronger encryption and integrity.'</p><p><strong>'1.99' compatibility mode trap:</strong> The exam loves this. If a config has no <code>ip ssh version 2</code>, the device runs 1.99 and accepts v1. The fix is always 'add ip ssh version 2' — not 'upgrade the IOS,' not 'regenerate the key.'</p>",
+        visual: { type: "shield", params: { items: ["v1: CRC-32 weak integrity", "v1: no forward secrecy", "v2: DH ephemeral keys", "v2: HMAC-SHA integrity", "v2: negotiable ciphers"], color: "#8b5cf6" } },
+        hack: {
+          memory: "v1 = broken crypto from the 1990s. v2 = modern crypto. If an exam question asks 'why v2?' — the answer is always 'stronger encryption and key exchange.' If it asks about '1.99' — that is the dangerous hybrid mode. Kill it with 'ip ssh version 2.'",
+          practice: "Read the RFC 4253 abstract (5 minutes) to see how SSHv2 is structured differently from v1. Even a skim helps. Then in Packet Tracer, inspect 'show ip ssh' output — note the version field and understand '1.99' means 'I still accept v1, the dangerous one.'",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 43 briefly mentions why v2 matters. Wendell Odom OCG Chapter 6. CCNA 200-301 tests this as a recognition question — you need to be able to say 'SSHv1 is insecure, v2 is required' on command."
+        }
+      }
     ]
   },
 
@@ -3673,8 +3769,32 @@ window.subtopicContentD34 = {
       meta: "Jeremy's IT Lab Day 43 (SSH). Wendell Odom OCG Chapter 6. The 'secret' vs 'password' distinction is tested in both lab sims and conceptual questions. Using 'password' in a lab sim = lost points. Always use 'secret.'",
     },
     micro: [
-      { id: "4.8.e.1", term: "username [name] secret [pass]", def: "Creates local user with HASHED password (MD5/SCRYPT). Use THIS, not 'password'.", weight: "high" },
-      { id: "4.8.e.2", term: "secret vs password",           def: "'secret' = hashed (secure). 'password' = Type 7 reversible encoding (weak). Always use 'secret' on exam.", weight: "high" }
+      {
+        id: "4.8.e.1",
+        term: "username [name] secret [pass]",
+        weight: "high",
+        info: "<p><code>username admin secret MySecret</code> creates a <strong>local user account</strong> in the router's running configuration. The <strong>secret</strong> keyword stores the password as a <strong>one-way hash</strong> (type 5 MD5 on older IOS, type 9 scrypt on newer IOS, type 8 PBKDF2-SHA256 in between). This is the only correct way to create a local user for SSH on the CCNA.</p><p><strong>Full syntax variations:</strong></p><ul><li><code>username admin secret MySecret</code> — basic local user with hashed password.</li><li><code>username admin privilege 15 secret MySecret</code> — user starts at privilege level 15 (full enable) on login. No separate <code>enable</code> command needed.</li><li><code>username admin algorithm-type scrypt secret MySecret</code> — force type 9 scrypt hashing (strongest).</li></ul><p><strong>What appears in running-config:</strong></p><pre>username admin privilege 15 secret 9 $9$Nb8iEj7Yz2U...</pre><p>The '9' is the hash type. The string after is the salted hash. It is <strong>not reversible</strong> — not even Cisco can recover the original password from this hash.</p><p><strong>Why privilege 15?</strong> Cisco IOS privilege levels run 0-15. Level 1 is EXEC mode (limited). Level 15 is privileged EXEC (everything). Setting <code>privilege 15</code> in the username command drops the user straight into <code>R1#</code> on login. Without it, the user lands in <code>R1&gt;</code> and must type <code>enable</code> — which requires a separate enable secret.</p><p><strong>Hook to step 6:</strong> The local user database is useless without <code>login local</code> on the VTY lines. That command tells VTY authentication to look up the local database. Without both halves, SSH has no way to authenticate.</p>",
+        visual: { type: "shield", params: { items: ["username admin privilege 15 secret ...", "Type 5 (MD5) or Type 9 (scrypt)", "One-way hash, irreversible", "privilege 15 = full enable", "Paired with login local"], color: "#8b5cf6" } },
+        hack: {
+          memory: "'secret' not 'password' — every time. Mnemonic: 'Shh! secret!' One-way hash that even Cisco cannot reverse. Add 'privilege 15' so the user drops straight into enable mode on SSH login. Full command: 'username admin privilege 15 secret MySecret.'",
+          practice: "In Packet Tracer: create 'username admin privilege 15 secret MyPass123.' Run 'show run | include username' — observe the '$9$...' hash. Try to read the password from it (you cannot). Now create 'username baduser password BadPass' — observe the plaintext in the config. Delete baduser. This contrast cements 'secret' as mandatory.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 43 and Day 4 (device management). Wendell Odom OCG Chapter 6. CCNA sims check for the 'secret' keyword specifically. Using 'password' loses the point even if the rest is correct."
+        }
+      },
+      {
+        id: "4.8.e.2",
+        term: "secret vs password",
+        weight: "high",
+        info: "<p>The difference between <code>secret</code> and <code>password</code> in the <code>username</code> command is a <strong>security-critical exam trap</strong>. They look similar but produce dramatically different results in the running-config.</p><p><strong>secret keyword:</strong></p><ul><li>Stores password as a <strong>one-way hash</strong> (type 5 MD5, type 8 PBKDF2, or type 9 scrypt).</li><li>Cannot be reversed — even with the running-config, the original password is not recoverable.</li><li><strong>Always use this</strong> for CCNA, production, and any security-conscious config.</li></ul><p><strong>password keyword:</strong></p><ul><li>Stores password as <strong>type 0 (plaintext)</strong> by default.</li><li>With <code>service password-encryption</code> enabled, becomes <strong>type 7</strong> — Cisco's proprietary obfuscation, trivially reversible with any online decoder.</li><li><strong>Never use this</strong> for CCNA exam lab sims or production.</li></ul><p><strong>Side-by-side in running-config:</strong></p><pre>username alice secret 9 $9$Nb8iEj7Yz2U...(unreadable)\nusername bob password 0 MyPlainPass123       (visible)\nusername carol password 7 070C285F4D06       (trivially decoded)</pre><p><strong>Type 7 is not encryption.</strong> The Cisco 'type 7' scheme is a simple XOR cipher with a known key. Any online 'Cisco type 7 decoder' reveals the password in milliseconds. Treat type 7 as plaintext.</p><p><strong>Exam mindset:</strong> Any config on the exam that uses <code>username ... password ...</code> is either a troubleshooting target ('what is wrong?') or a trap in a multiple choice. The right answer is always <code>secret</code>.</p>",
+        visual: { type: "comparison", params: { left: { label: "secret (use this)", items: ["Type 5 / 8 / 9 hash", "One-way", "Cannot be decoded", "Cisco-approved", "CCNA exam answer"] }, right: { label: "password (avoid)", items: ["Type 0 plaintext", "Or Type 7 obfuscation", "Decodes in seconds", "Never use", "CCNA = lost points"] } } },
+        hack: {
+          memory: "secret = Secure (hash). password = Plaintext (or trivially reversed). 'S for Strong, P for Problem.' On the exam, if a config has 'username X password Y' — flag it as insecure. The fix is always to change 'password' to 'secret.'",
+          practice: "In Packet Tracer: configure both 'username alice secret Hello' and 'username bob password Hello' with 'service password-encryption' on. Copy the running-config into a text file. Find 'alice' (hash is opaque). Find 'bob' (type 7 string). Paste bob's string into an online type-7 decoder — you'll see 'Hello.' This makes the vulnerability visceral.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 43 and Day 4. Wendell Odom OCG Chapter 6. CCNA 200-301 regularly tests secret-vs-password. Know that type 7 is not secure — it is just obfuscation. Only type 5/8/9 (via secret) is true hashing."
+        }
+      }
     ]
   },
 
@@ -3688,9 +3808,45 @@ window.subtopicContentD34 = {
       meta: "Jeremy's IT Lab Day 43 (SSH). Wendell Odom OCG Chapter 6. In lab sims: configure ALL VTY lines (0 15, not just 0 4). Use 'transport input ssh' AND 'login local' together. Missing either one = lost points. Test by SSHing in AND testing that Telnet is refused.",
     },
     micro: [
-      { id: "4.8.f.1", term: "line vty 0 15",                def: "Enters config for ALL 16 VTY lines. Modern best practice (was 'line vty 0 4' on older IOS).", weight: "high" },
-      { id: "4.8.f.2", term: "transport input ssh",          def: "Restricts VTY to SSH only. Rejects Telnet. Critical for security.", weight: "high" },
-      { id: "4.8.f.3", term: "login local",                  def: "Uses local username/secret database. Alternative: 'login authentication default' for AAA.", weight: "high" }
+      {
+        id: "4.8.f.1",
+        term: "line vty 0 15",
+        weight: "high",
+        info: "<p><code>line vty 0 15</code> enters configuration mode for all <strong>16 Virtual Teletype (VTY) lines</strong> simultaneously. VTY lines are the inbound telnet/SSH sessions — each concurrent remote login uses one VTY line. A command issued under <code>line vty 0 15</code> applies uniformly to all 16 lines.</p><p><strong>Why 0 through 15?</strong> Older IOS versions had only 5 VTY lines (0-4). Modern IOS increased to 16 lines (0-15) to support more concurrent administrative sessions. Configuring all 16 is best practice — if you configure only 0-4 and a 6th admin tries to SSH in, they hit line 5 with default (unsecured) config and either get a silent rejection or worse, a fallback login path.</p><p><strong>Standard block of commands under line vty:</strong></p><pre>R1(config)# line vty 0 15\nR1(config-line)# transport input ssh\nR1(config-line)# login local\nR1(config-line)# exec-timeout 5 0\nR1(config-line)# logging synchronous</pre><p><strong>Order matters for exam sims:</strong> Always configure transport and login on the full 0-15 range. Some exam sims only check lines 0-4, but some check 5-15 too — covering all 16 is guaranteed safe.</p><p><strong>Per-line override:</strong> You can also enter a single line's config with <code>line vty 5</code>, but the 0-15 form is preferred for consistency.</p><p><strong>Verification:</strong> <code>show running-config | section line vty</code> shows the applied config for each line block. <code>show users</code> shows which VTY lines are currently occupied by which users.</p>",
+        visual: { type: "layer-stack", params: { layers: ["line vty 0 (SSH session 1)", "line vty 1 (SSH session 2)", "line vty 2", "...", "line vty 15 (SSH session 16)"], highlight: 0 } },
+        hack: {
+          memory: "'line vty 0 15' = sixteen inbound remote-login slots. Always configure ALL 16. Older IOS had 0-4, modern IOS has 0-15. Mnemonic: 'Sixteen seats at the SSH bar — make every seat safe.' Never configure just 0-4 on modern gear.",
+          practice: "In Packet Tracer: configure only 'line vty 0 4' with transport and login. Run 'show run | section line vty' — note lines 5-15 are default (unsecured). Extend to 'line vty 0 15' and reconfigure. Now all 16 lines match. This exercise shows why the 0-15 range matters.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 43. Wendell Odom OCG Chapter 6. CCNA sims have been known to check both the 0-4 and 5-15 ranges separately. 'line vty 0 15' is the safe, exam-correct answer."
+        }
+      },
+      {
+        id: "4.8.f.2",
+        term: "transport input ssh",
+        weight: "high",
+        info: "<p><code>transport input ssh</code> under a <code>line vty</code> block restricts inbound remote-access connections to <strong>SSH only</strong>. Any Telnet connection attempt is refused with 'Connection refused' or 'Connection closed by remote host.'</p><p><strong>Variations of transport input:</strong></p><ul><li><code>transport input none</code> — blocks all remote access (console only).</li><li><code>transport input telnet</code> — Telnet only (<strong>never use</strong>).</li><li><code>transport input ssh</code> — <strong>SSH only — the exam answer.</strong></li><li><code>transport input telnet ssh</code> or <code>transport input all</code> — both Telnet and SSH. Insecure and not recommended.</li></ul><p><strong>Why not 'transport input all'?</strong> Default behavior on many IOS versions is <code>transport input all</code> (or <code>none</code> in some trains). 'all' includes Telnet, which transmits everything — including passwords — in cleartext. A packet capture of a Telnet session reveals everything the admin typed, character by character.</p><p><strong>Testing after config:</strong></p><pre>Remote# ssh -l admin 10.1.1.1      (should succeed)\nRemote# telnet 10.1.1.1             (should be refused)</pre><p><strong>Pairing with ACLs:</strong> Production configurations also restrict WHICH source IPs can SSH in, using a VTY ACL: <code>access-class 10 in</code> under the line vty block. This is discussed in 4.8.g and 4.8.h context. For the 6-step recipe, <code>transport input ssh</code> is the bare minimum security.</p><p><strong>Exam mindset:</strong> If a running-config shows <code>transport input all</code> or <code>transport input telnet</code>, the exam is asking you to fix it with <code>transport input ssh</code>.</p>",
+        visual: { type: "comparison", params: { left: { label: "transport input ssh (good)", items: ["SSH accepted", "Telnet refused", "Encrypted sessions only", "CCNA exam answer"] }, right: { label: "transport input all (bad)", items: ["SSH accepted", "Telnet accepted", "Plaintext passwords possible", "Security hole"] } } },
+        hack: {
+          memory: "'transport input ssh' = SSH only, no Telnet ever. Think of it as locking the Telnet door permanently. If a config has 'transport input all' or 'transport input telnet ssh' — it is broken and needs fixing to 'transport input ssh.' One-liner fix, one-liner answer.",
+          practice: "In Packet Tracer: complete SSH setup with 'transport input telnet ssh.' SSH in from a PC — works. Telnet in — also works. Open Wireshark on the Telnet session and watch the password appear in cleartext. Now change to 'transport input ssh.' SSH still works; Telnet refused. The security difference is dramatic and visible.",
+          effort: "medium",
+          meta: "Jeremy's IT Lab Day 43. Wendell Odom OCG Chapter 6. CCNA exam directly asks: 'Which command blocks Telnet and allows SSH on VTY lines?' Answer: 'transport input ssh.' Guaranteed question type."
+        }
+      },
+      {
+        id: "4.8.f.3",
+        term: "login local",
+        weight: "high",
+        info: "<p><code>login local</code> under a <code>line vty</code> block tells the device to <strong>authenticate inbound SSH/Telnet sessions against the local username database</strong>. Without it, SSH connections either reject the user with 'password required but none set' or fall back to line-password mode.</p><p><strong>Three login modes on VTY:</strong></p><ul><li><code>login</code> (default) — checks the <code>password</code> configured directly on the line (legacy, single shared password).</li><li><code>login local</code> — checks the local <code>username ... secret ...</code> database. <strong>Exam answer.</strong></li><li><code>login authentication default</code> — delegates to AAA (TACACS+ / RADIUS). Advanced, not on CCNA sims.</li></ul><p><strong>How it pairs with step 5:</strong> <code>login local</code> only works if local usernames exist. The pairing is:</p><pre>R1(config)# username admin privilege 15 secret MySecret   (Step 5)\nR1(config)# line vty 0 15\nR1(config-line)# login local                                (Step 6)</pre><p><strong>Common failure mode:</strong> If you configure <code>login local</code> but forget <code>username ... secret ...</code>, every SSH login attempt is rejected because the database is empty.</p><p><strong>What the user sees:</strong></p><pre>Remote$ ssh -l admin 10.1.1.1\nadmin@10.1.1.1's password: [type MySecret]\nR1#</pre><p>With <code>privilege 15</code> on the username, the login drops straight to <code>R1#</code>. Without it, the login lands on <code>R1&gt;</code> and requires a separate <code>enable</code>.</p><p><strong>Verification:</strong> <code>show running-config | section line vty</code> shows the login method. <code>show users</code> shows the authenticated username on each active VTY session.</p>",
+        visual: { type: "state-machine", params: { states: ["SSH client arrives", "VTY line accepts", "login local triggered", "Check username db", "Match? Grant EXEC", "No match? Reject"], active: 2, transitions: true } },
+        hack: {
+          memory: "'login local' = use the local username database. Three modes: 'login' (line password, legacy), 'login local' (local usernames, exam), 'login authentication default' (AAA, advanced). Always pair with 'username X secret Y' — one without the other = SSH broken.",
+          practice: "In Packet Tracer: set up SSH with 'login local' but no local usernames. Try SSH — fails. Add 'username admin secret Pass1' — SSH now works. Remove username — SSH fails again. This shows the hard dependency between step 5 and step 6.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 43. Wendell Odom OCG Chapter 6. CCNA sims require 'login local' specifically. 'login' (legacy line password) will lose points because it requires a separate 'password' on the line and does not use the username database."
+        }
+      }
     ]
   },
 
@@ -3704,8 +3860,32 @@ window.subtopicContentD34 = {
       meta: "Jeremy's IT Lab Day 43 (SSH). Wendell Odom OCG Chapter 6. Exam question: 'Which command prevents Telnet access to VTY lines?' Answer: 'transport input ssh.' Also know: Telnet = port 23 (plaintext), SSH = port 22 (encrypted). Telnet in cleartext is a guaranteed security concept question.",
     },
     micro: [
-      { id: "4.8.g.1", term: "transport input all vs ssh",   def: "'all' allows Telnet AND SSH. 'ssh' rejects Telnet. Always use 'transport input ssh' in secure configs.", weight: "high" },
-      { id: "4.8.g.2", term: "Telnet plaintext risk",        def: "Telnet transmits credentials IN CLEARTEXT. Anyone sniffing sees passwords. Never use in production.", weight: "high" }
+      {
+        id: "4.8.g.1",
+        term: "transport input all vs ssh",
+        weight: "high",
+        info: "<p>The <strong>transport input</strong> command controls which remote-access protocols the VTY lines will accept. The difference between <code>transport input all</code> and <code>transport input ssh</code> is the difference between a secure device and a compromised one.</p><p><strong>Full option set:</strong></p><ul><li><code>transport input all</code> — accepts SSH <strong>and</strong> Telnet (and historically LAT, rlogin, v.120, etc.). Default on many IOS versions — <strong>insecure.</strong></li><li><code>transport input none</code> — accepts nothing. Only console access possible.</li><li><code>transport input telnet</code> — Telnet only. Plaintext. Never use.</li><li><code>transport input ssh</code> — SSH only. Encrypted. <strong>Exam and production answer.</strong></li><li><code>transport input telnet ssh</code> — both, same as 'all' for CCNA purposes. Avoid.</li></ul><p><strong>Attack surface comparison:</strong> With <code>transport input all</code>, an attacker can force a Telnet session, capture the password via packet sniffing, and log in with full credentials. With <code>transport input ssh</code>, all traffic is encrypted end-to-end — even if sniffed, the packets are meaningless ciphertext.</p><p><strong>Default-check trap:</strong> Different IOS versions have different defaults. Some default to <code>transport input none</code>, some to <code>transport input all</code>. Never rely on the default — always configure <code>transport input ssh</code> explicitly. On the exam, if a config lacks an explicit transport input line, assume 'all' and flag it as a bug.</p><p><strong>Hardening checklist for VTY:</strong></p><ol><li><code>transport input ssh</code> — SSH only.</li><li><code>login local</code> — local user auth.</li><li><code>exec-timeout 5 0</code> — disconnect idle sessions.</li><li><code>access-class 10 in</code> — ACL to restrict source IPs.</li></ol>",
+        visual: { type: "comparison", params: { left: { label: "transport input all", items: ["SSH accepted", "Telnet accepted", "Plaintext possible", "Password sniffable", "DO NOT USE"] }, right: { label: "transport input ssh", items: ["SSH only", "Telnet refused", "All traffic encrypted", "Password safe on wire", "CCNA + production answer"] } } },
+        hack: {
+          memory: "'all' = dangerous (includes Telnet). 'ssh' = safe (SSH only). If a config has 'transport input all,' treat it as a security bug on sight. Fix = 'transport input ssh.' Never leave the default — always be explicit.",
+          practice: "In Packet Tracer: set 'transport input all' on VTY 0 15. From one PC, Telnet to the router — works. From another PC, SSH to the router — also works. Change to 'transport input ssh.' Retry both — only SSH works. Verify with 'show users' that Telnet never lands a session.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 43. Wendell Odom OCG Chapter 6. The exam contrasts 'all' vs 'ssh' directly. Know: 'all' is the vulnerable default to avoid; 'ssh' is the secure explicit answer."
+        }
+      },
+      {
+        id: "4.8.g.2",
+        term: "Telnet plaintext risk",
+        weight: "high",
+        info: "<p><strong>Telnet transmits every byte of the session — including usernames and passwords — in cleartext.</strong> Anyone with access to any network segment between the client and server can capture the entire session with a tool as simple as Wireshark or tcpdump, and replay the credentials to log in themselves.</p><p><strong>What is exposed in a Telnet capture:</strong></p><ul><li>The username, typed character by character (each key press is its own packet).</li><li>The password, also character by character, in plaintext.</li><li>Every command the admin types.</li><li>Every byte of output the router sends back (including running-config, enable secrets displayed from <code>show run</code>, ACL contents, route tables).</li></ul><p><strong>Why this matters in real networks:</strong> Management networks are frequently 'trusted,' but that trust is often misplaced. Misconfigured switches, rogue devices, compromised jump hosts, or even a coffee-shop Wi-Fi are all places where Telnet traffic can be captured. Telnet is on the OWASP 'forbidden protocols' list and is explicitly banned by PCI DSS, HIPAA, and NIST 800-53 guidelines.</p><p><strong>SSH by contrast:</strong> Every byte is inside an AES-encrypted tunnel. Even if the attacker captures every packet, they see only ciphertext — and without the session keys (which are ephemeral and negotiated fresh each connection), the data is unusable.</p><p><strong>Port numbers to memorize:</strong></p><ul><li><strong>Telnet:</strong> TCP <strong>23</strong> — insecure, plaintext, disable everywhere.</li><li><strong>SSH:</strong> TCP <strong>22</strong> — secure, encrypted, the modern standard.</li></ul><p><strong>Exam scenarios:</strong> 'An attacker is sniffing traffic between an admin and a router. Which protocol exposes the password?' Answer: Telnet. 'Which port is used by SSH?' Answer: TCP 22. These are pure recall questions.</p>",
+        visual: { type: "packet-flow", params: { nodes: ["Admin types 'MySecret'", "Telnet port 23", "Wireshark capture", "'M' 'y' 'S' 'e' 'c' 'r' 'e' 't' visible", "Attacker reuses password"], color: "#ef4444" } },
+        hack: {
+          memory: "Telnet = megaphone (port 23, everyone hears). SSH = encrypted tunnel (port 22, nobody hears). Port mnemonic: 'SSH is 22, Telnet is 23 — pick the lower number, it is safer.' On the exam, Telnet is always the wrong protocol to suggest.",
+          practice: "If you have access to a home lab: enable Telnet on a router, run Wireshark on the client, Telnet in with a password. Stop the capture. Follow the TCP stream — the password is there in plaintext. Now repeat with SSH — the stream is ciphertext. This one lab makes plaintext risk unforgettable.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 43. Wendell Odom OCG Chapter 6. CCNA tests plaintext risk directly: 'Why should Telnet be disabled?' Answer: transmits credentials in cleartext. Also tests Telnet port (23) vs SSH port (22) as memorization trivia."
+        }
+      }
     ]
   },
 
@@ -3719,8 +3899,32 @@ window.subtopicContentD34 = {
       meta: "Jeremy's IT Lab Day 43 (SSH). Wendell Odom OCG Chapter 6. The exam shows 'show ip ssh' output and asks: 'What SSH version is configured?' (read from output) or 'What is the authentication timeout?' (read from output). Practice reading these outputs until familiar.",
     },
     micro: [
-      { id: "4.8.h.1", term: "show ip ssh",                  def: "Shows SSH version, auth timeout, retry count. Verifies SSH is enabled and configured.", weight: "high" },
-      { id: "4.8.h.2", term: "show ssh",                     def: "Shows currently active SSH connections: who is connected, version, encryption.", weight: "med" }
+      {
+        id: "4.8.h.1",
+        term: "show ip ssh",
+        weight: "high",
+        info: "<p><code>show ip ssh</code> is the primary verification command for the <strong>SSH server state</strong> on a Cisco device. It answers two critical questions: 'Is SSH enabled?' and 'What version is running?' plus a handful of timer/retry parameters.</p><p><strong>Typical output:</strong></p><pre>R1# show ip ssh\nSSH Enabled - version 2.0\nAuthentication timeout: 120 secs; Authentication retries: 3\nMinimum expected Diffie Hellman key size: 1024 bits\nIOS Keys in SECSH format(ssh-rsa, base64 encoded):\nssh-rsa AAAAB3NzaC1yc2EAAAAD...</pre><p><strong>Fields to recognize on the exam:</strong></p><ul><li><strong>SSH Enabled / Disabled</strong> — if 'Disabled,' the RSA key has not been generated (step 3 missing).</li><li><strong>version 2.0</strong> vs <strong>1.99</strong> — '2.0' means <code>ip ssh version 2</code> is in effect. '1.99' means compatibility mode (accepts v1 + v2).</li><li><strong>Authentication timeout</strong> — how long the client has to finish authenticating before the server disconnects. Default 120 seconds. Configure with <code>ip ssh time-out [seconds]</code>.</li><li><strong>Authentication retries</strong> — failed login attempts before disconnect. Default 3. Configure with <code>ip ssh authentication-retries [count]</code>.</li></ul><p><strong>Common troubleshooting flow:</strong></p><ol><li>SSH client reports 'Connection refused.' Run <code>show ip ssh</code>.</li><li>If 'SSH Disabled' — generate RSA key (<code>crypto key generate rsa modulus 2048</code>).</li><li>If 'version 1.99' — run <code>ip ssh version 2</code>.</li><li>If both look correct — move on to VTY line checks (<code>show run | section line vty</code>).</li></ol><p><strong>Hardening knobs:</strong> <code>ip ssh time-out 60</code> (tighter timeout), <code>ip ssh authentication-retries 2</code> (fewer retries), and <code>login block-for 600 attempts 5 within 60</code> (lock out brute-force attackers for 10 minutes after 5 failed logins in 60 seconds).</p>",
+        visual: { type: "comparison", params: { left: { label: "show ip ssh shows", items: ["SSH Enabled/Disabled", "Version (2.0 or 1.99)", "Auth timeout (default 120)", "Auth retries (default 3)", "DH minimum key size"] }, right: { label: "Quick checks", items: ["Disabled? Generate RSA", "1.99? Add ip ssh version 2", "Timeout too long? ip ssh time-out", "Too many retries? ip ssh auth-retries"] } } },
+        hack: {
+          memory: "'show ip ssh' = 'Is the SSH server up, and how is it tuned?' Four key numbers to spot: Enabled/Disabled, version 2.0/1.99, timeout 120, retries 3. On the exam, read the output top-down and match each line to its meaning.",
+          practice: "In Packet Tracer after SSH setup: run 'show ip ssh.' Read each line. Then run 'ip ssh time-out 60' and 'ip ssh authentication-retries 2.' Re-run 'show ip ssh' — observe the field changes. Finally run 'crypto key zeroize rsa' and 'show ip ssh' — observe 'SSH Disabled.' Each change teaches one field.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 43. Wendell Odom OCG Chapter 6. CCNA presents 'show ip ssh' output in multiple choice: 'What version is configured?' or 'What is the authentication timeout?' Read the field directly — no computation needed."
+        }
+      },
+      {
+        id: "4.8.h.2",
+        term: "show ssh",
+        weight: "med",
+        info: "<p><code>show ssh</code> (note: <strong>not</strong> <code>show ip ssh</code>) lists the <strong>currently active inbound SSH sessions</strong> on the device. It is the live-session monitor, whereas <code>show ip ssh</code> is the server-config monitor.</p><p><strong>Typical output:</strong></p><pre>R1# show ssh\nConnection Version Mode Encryption  Hmac         State          Username\n0          2.0     IN   aes256-cbc  hmac-sha1    Session started  admin\n0          2.0     OUT  aes256-cbc  hmac-sha1    Session started  admin</pre><p><strong>What each column means:</strong></p><ul><li><strong>Connection</strong> — session ID (tied to a VTY line number).</li><li><strong>Version</strong> — SSH protocol version in use (always 2.0 if <code>ip ssh version 2</code> is set).</li><li><strong>Mode</strong> — IN (traffic from client to server) and OUT (server to client). Each session shows both directions.</li><li><strong>Encryption</strong> — the negotiated cipher (aes128-cbc, aes256-cbc, aes256-ctr, etc.).</li><li><strong>Hmac</strong> — the message authentication algorithm (hmac-sha1, hmac-sha256, etc.).</li><li><strong>State</strong> — 'Session started' means the session is fully authenticated and active.</li><li><strong>Username</strong> — the authenticated user.</li></ul><p><strong>Companion commands:</strong></p><ul><li><code>show users</code> — lists all active sessions (console + VTY) with line numbers and source IPs. Often more useful than <code>show ssh</code> for spotting unauthorized access.</li><li><code>clear line vty [number]</code> — forcibly disconnects an active SSH session. Useful if someone left a session hung or you suspect a compromise.</li></ul><p><strong>When you run into an empty output:</strong> If <code>show ssh</code> returns nothing, there are no active SSH sessions. This does not mean SSH is broken — it just means nobody is currently connected. Use <code>show ip ssh</code> to verify the server is actually enabled.</p>",
+        visual: { type: "state-machine", params: { states: ["Client SSH in", "VTY line assigned", "show ssh lists session", "Session active", "User logs out OR clear line vty N"], active: 2, transitions: true } },
+        hack: {
+          memory: "Two show commands, two purposes. 'show ip ssh' = server config (static). 'show ssh' = active sessions (live). Mnemonic: 'ip' is the static server IP-level config, plain 'show ssh' is the live session table. Use 'show users' as the comprehensive 'who is logged in right now?' view.",
+          practice: "In Packet Tracer: SSH in from a PC. On the router, run 'show ssh' — see the active session. Run 'show users' — see the VTY line with source IP. From a second PC, SSH in with a second account. Run both commands again — two sessions. Then 'clear line vty 0' — watch the first session drop.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 43. Wendell Odom OCG Chapter 6. CCNA does not heavily test 'show ssh' vs 'show ip ssh' in recent exams, but knowing the difference is valuable for troubleshooting scenarios. 'show users' is often more useful and equally tested."
+        }
+      }
     ]
   },
 
@@ -3736,9 +3940,45 @@ window.subtopicContentD34 = {
       meta: "Jeremy's IT Lab Day 42 (FTP/TFTP). Wendell Odom OCG Chapter 9. The exam tests: TFTP = UDP 69, no auth. FTP = TCP 20/21, has auth. SCP = TCP 22, encrypted. Know the port numbers and security characteristics of each.",
     },
     micro: [
-      { id: "4.9.a.1", term: "TFTP",                         def: "Trivial FTP. UDP 69. NO authentication. Simple. Used for IOS images and config transfer.", weight: "high" },
-      { id: "4.9.a.2", term: "FTP",                          def: "File Transfer Protocol. TCP 20 (data) + 21 (control). HAS authentication (username/password). Cleartext credentials.", weight: "high" },
-      { id: "4.9.a.3", term: "SCP",                          def: "Secure Copy. TCP 22 (uses SSH). Encrypted transfer WITH authentication. Most secure file transfer.", weight: "high" }
+      {
+        id: "4.9.a.1",
+        term: "TFTP",
+        weight: "high",
+        info: "<p><strong>TFTP (Trivial File Transfer Protocol)</strong> is a minimalist file transfer protocol running over <strong>UDP port 69</strong>. It is deliberately stripped down: no authentication, no encryption, no directory browsing, no file metadata operations — just raw read and write of files by known filename.</p><p><strong>Characteristics:</strong></p><ul><li><strong>Transport:</strong> UDP 69. Connectionless. TFTP implements its own simple stop-and-wait ACK on top of UDP to handle packet loss.</li><li><strong>Authentication:</strong> <strong>None.</strong> Anyone who can reach the server on UDP 69 can read or write. Server-side access control is done via file permissions or IP ACLs, not protocol auth.</li><li><strong>Encryption:</strong> <strong>None.</strong> Payload travels in the clear.</li><li><strong>Operations:</strong> GET (read a file) and PUT (write a file) — nothing else.</li><li><strong>Block size:</strong> 512 bytes by default (negotiable up to 65,464 with RFC 2348).</li></ul><p><strong>Primary network-engineering use cases:</strong></p><ul><li>Backing up and restoring Cisco IOS config files (<code>copy running-config tftp:</code>).</li><li>Transferring new IOS images to flash during upgrades (<code>copy tftp: flash:</code>).</li><li>PXE boot servers for server and workstation provisioning.</li><li>Cisco IP phone firmware and config distribution.</li></ul><p><strong>When to choose TFTP:</strong> Small files, a trusted management VLAN, no authentication required, and operational simplicity matters more than security. The classic example: a flat-network lab where the admin's laptop runs TFTP server software and pushes configs to test routers.</p><p><strong>When NOT to use TFTP:</strong> Across untrusted links, over the internet, in any environment where confidentiality or integrity matters. Use SCP instead.</p>",
+        visual: { type: "shield", params: { items: ["UDP port 69", "No authentication", "No encryption", "Read/Write only", "Trusted networks only"], color: "#f59e0b" } },
+        hack: {
+          memory: "TFTP = 'Trivially Fast, Totally Plain.' UDP 69. No auth, no crypto, no frills. Used for Cisco IOS images, config backups, and IP phone firmware — always on a trusted management VLAN. Port 69 mnemonic: '69 = the lazy protocol' (easy to remember and easy to abuse if exposed).",
+          practice: "Install tftpd-hpa (Linux) or TftpD32 (Windows) on your laptop. Point a Packet Tracer router at it with 'copy running-config tftp:'. Watch the file appear in your TFTP root directory. This hands-on exercise makes the use case concrete.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 42. Wendell Odom OCG Chapter 9 (Device Management Protocols). CCNA exam tests TFTP port (UDP 69), auth (none), and use case (IOS backup/restore) directly. Memorize the three facts cold."
+        }
+      },
+      {
+        id: "4.9.a.2",
+        term: "FTP",
+        weight: "high",
+        info: "<p><strong>FTP (File Transfer Protocol)</strong> is a full-featured file transfer protocol running over <strong>two TCP ports: 21 (control) and 20 (data)</strong>. Unlike TFTP, FTP has proper authentication (username/password) and a rich command set (list directory, rename, delete, resume, etc.). But credentials and data both travel in <strong>cleartext</strong> — FTP is not encrypted.</p><p><strong>Two-channel design:</strong></p><ul><li><strong>Control channel — TCP 21:</strong> The client opens this first. Login, commands (<code>LS</code>, <code>CD</code>, <code>GET</code>, <code>PUT</code>, <code>DEL</code>), and responses flow here. Stays open for the entire session.</li><li><strong>Data channel — TCP 20 (active mode) or negotiated port (passive mode):</strong> A separate TCP connection opens for each file transfer or directory listing, then closes when done.</li></ul><p><strong>Active vs Passive:</strong></p><ul><li><strong>Active mode:</strong> Server initiates data connection from its port 20 to the client's ephemeral port. Breaks through client-side firewalls because the server is 'calling back.'</li><li><strong>Passive mode (PASV):</strong> Client initiates both the control and data connections. Server listens on a high ephemeral port for data. <strong>Firewall-friendly</strong> — this is the default on modern FTP clients.</li></ul><p><strong>Security characteristics:</strong></p><ul><li>Authentication: <strong>Yes</strong> (username + password).</li><li>Encryption: <strong>No.</strong> Credentials and data are in cleartext.</li><li>Reliable: <strong>Yes</strong> (TCP handles retransmission).</li></ul><p><strong>Use cases:</strong> Large file transfers where reliability matters, user-level authentication is required, and the network is trusted. For secure alternatives: SFTP (SSH-based) or FTPS (TLS-wrapped).</p>",
+        visual: { type: "handshake", params: { leftLabel: "Client", rightLabel: "FTP Server", steps: ["TCP 21 control open ->", "<- 220 service ready", "USER/PASS ->", "<- 230 login OK", "TCP 20/ephemeral data ->", "<- file data", "QUIT"] } },
+        hack: {
+          memory: "FTP = two TCP ports (20 data + 21 control). Auth yes, encryption no. Mnemonic: 'twenty-one gives orders, twenty does the work.' Active mode = server calls back. Passive mode = client initiates both (firewall-friendly).",
+          practice: "Use a local FTP server (FileZilla Server, vsftpd) and a client. Run Wireshark. Watch the USER/PASS commands appear in plaintext on port 21. Transfer a file and watch it on port 20. Now switch to passive mode and observe the negotiated ephemeral port. This lab makes FTP's two-channel design vivid.",
+          effort: "medium",
+          meta: "Jeremy's IT Lab Day 42. Wendell Odom OCG Chapter 9. CCNA tests: FTP control = TCP 21, FTP data = TCP 20, auth = yes, encryption = no. Also tests active vs passive mode conceptually."
+        }
+      },
+      {
+        id: "4.9.a.3",
+        term: "SCP",
+        weight: "high",
+        info: "<p><strong>SCP (Secure Copy Protocol)</strong> is a file transfer mechanism that <strong>runs over SSH</strong>, reusing SSH's TCP port 22, authentication, and encryption. It is the <strong>most secure</strong> file transfer option on Cisco devices and the exam answer to 'which protocol provides secure file transfer?'</p><p><strong>How SCP works:</strong> An SSH session is established as usual (RSA key exchange, user auth, encrypted tunnel). SCP then piggybacks the file transfer inside that tunnel using the <code>rcp</code>-style protocol semantics. No new ports, no new authentication, no new encryption — it inherits everything from SSH.</p><p><strong>Characteristics:</strong></p><ul><li><strong>Transport:</strong> TCP <strong>22</strong> (same as SSH).</li><li><strong>Authentication:</strong> Same as SSH — username/password or public-key auth.</li><li><strong>Encryption:</strong> Full SSH encryption (AES, ChaCha20, etc. depending on negotiation).</li><li><strong>Prerequisite on Cisco:</strong> The full 6-step SSH configuration must be in place. Plus: <code>ip scp server enable</code> in global config to allow inbound SCP.</li></ul><p><strong>Cisco IOS SCP commands:</strong></p><pre>R1(config)# ip scp server enable\nR1# copy scp: flash:      (pull file from remote SCP server to flash)\nR1# copy flash: scp:      (push file from flash to remote SCP server)</pre><p><strong>SFTP vs SCP:</strong> Both use SSH (TCP 22). SFTP is a richer file-management protocol (list, rename, delete, chmod, resume). SCP is simpler — just copy. Cisco IOS supports SCP natively; SFTP support is less common on older IOS versions.</p><p><strong>Security hierarchy summary:</strong></p><ul><li><strong>TFTP:</strong> no auth, no encryption. Trusted networks only.</li><li><strong>FTP:</strong> auth, no encryption. Cleartext credentials.</li><li><strong>SCP:</strong> auth + encryption. The secure choice.</li></ul>",
+        visual: { type: "shield", params: { items: ["SCP = file copy over SSH", "TCP port 22", "Full encryption", "Requires SSH configured", "ip scp server enable"], color: "#10b981" } },
+        hack: {
+          memory: "SCP = SSH + copy. Same port (22), same auth, same encryption. Most secure file transfer on Cisco = SCP. Prerequisite chain: 6-step SSH first, then 'ip scp server enable.' Security hierarchy cheat: TFTP < FTP < SCP (none < some < full).",
+          practice: "In Packet Tracer (or a real lab): complete SSH setup. Add 'ip scp server enable.' From a Linux client: 'scp myfile.txt admin@10.1.1.1:flash:/myfile.txt'. Verify with 'show flash:' on the router. Run Wireshark — all traffic on port 22 is encrypted ciphertext.",
+          effort: "medium",
+          meta: "Jeremy's IT Lab Day 42 and Day 43 together. Wendell Odom OCG Chapter 9. CCNA exam tests: 'Most secure file transfer?' = SCP. 'Port?' = TCP 22. 'Prerequisite?' = SSH configured. Three one-word answers."
+        }
+      }
     ]
   },
 
@@ -3752,9 +3992,45 @@ window.subtopicContentD34 = {
       meta: "Jeremy's IT Lab Day 42 (FTP/TFTP). Wendell Odom OCG Chapter 9. FTP port numbers are a guaranteed question: 20 = data, 21 = control. Also know: FTP has auth but no encryption, credentials in cleartext.",
     },
     micro: [
-      { id: "4.9.b.1", term: "FTP TCP 21 (control)",         def: "Control channel — login, commands (ls, get, put). Session stays open throughout.", weight: "high" },
-      { id: "4.9.b.2", term: "FTP TCP 20 (data)",            def: "Data channel in ACTIVE mode. Server connects back to client on this port to transfer files.", weight: "high" },
-      { id: "4.9.b.3", term: "FTP credentials cleartext",    def: "FTP has auth but no encryption. Username/password visible on wire. Use SFTP/SCP in production.", weight: "high" }
+      {
+        id: "4.9.b.1",
+        term: "FTP TCP 21 (control)",
+        weight: "high",
+        info: "<p>FTP uses <strong>TCP port 21 as the control channel</strong> — the connection that carries login credentials, commands, and server responses. The control channel is opened by the client at the start of the session and stays open until the client sends <code>QUIT</code> or the session times out.</p><p><strong>What flows on port 21:</strong></p><ul><li><strong>Login:</strong> <code>USER admin</code> and <code>PASS MyPassword</code> — in plaintext.</li><li><strong>Directory navigation:</strong> <code>CWD /configs</code>, <code>PWD</code>, <code>LIST</code>, <code>NLST</code>.</li><li><strong>File management:</strong> <code>DELE oldfile.cfg</code>, <code>RNFR / RNTO</code> (rename), <code>MKD / RMD</code> (make/remove directory).</li><li><strong>Transfer initiation:</strong> <code>RETR filename</code> (get) or <code>STOR filename</code> (put) — these trigger the data channel opening on port 20 (active) or a negotiated port (passive).</li><li><strong>Session end:</strong> <code>QUIT</code> closes the control channel.</li></ul><p><strong>Server responses:</strong> The server replies on the same control channel with 3-digit status codes: <code>220</code> (service ready), <code>230</code> (login OK), <code>331</code> (user OK, need password), <code>530</code> (login failed), <code>550</code> (file not found), etc.</p><p><strong>Cleartext risk on port 21:</strong> Because login and commands travel unencrypted, a packet sniffer on any intermediate segment sees the entire administrative session. This is why FTP is unacceptable across untrusted networks — use SFTP/SCP/FTPS instead.</p><p><strong>Firewall rule for FTP:</strong> Always allow TCP 21 inbound for control. Data channel is negotiated separately — modern firewalls use FTP ALGs (Application Layer Gateways) to track the control channel and dynamically open the data channel.</p>",
+        visual: { type: "packet-flow", params: { nodes: ["Client TCP 21 open", "USER admin", "PASS password (plaintext!)", "LIST / CWD / RETR", "QUIT"], color: "#3b82f6" } },
+        hack: {
+          memory: "Port 21 = the orders channel. Login, list, cd, get, put commands all flow here. Mnemonic: '21 gives orders.' Passwords are in cleartext — anyone sniffing TCP 21 reads everything.",
+          practice: "Run Wireshark against a local FTP session. Filter on 'tcp.port == 21.' Follow the TCP stream. You will see USER, PASS, LIST, RETR commands in plain English. This is the single most visceral way to understand why FTP is not safe on untrusted networks.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 42. Wendell Odom OCG Chapter 9. CCNA port-number recall question: 'FTP control port?' = TCP 21. Guaranteed on exam."
+        }
+      },
+      {
+        id: "4.9.b.2",
+        term: "FTP TCP 20 (data)",
+        weight: "high",
+        info: "<p>FTP uses <strong>TCP port 20 as the data channel in active mode</strong> — the connection that carries actual file contents and directory listings. Unlike the control channel (which stays open), the data channel is opened <strong>fresh for each transfer</strong> and closed when the transfer completes.</p><p><strong>Active mode sequence:</strong></p><ol><li>Client opens control connection to server on TCP 21.</li><li>Client sends <code>PORT</code> command telling the server which ephemeral port (e.g., 55123) the client will listen on.</li><li>Server initiates the data connection <strong>from its port 20</strong> to the client's announced port (55123).</li><li>Data flows. When done, server closes the data connection.</li><li>Control channel remains open for the next command.</li></ol><p><strong>Active mode firewall problem:</strong> The server calls back to the client on an ephemeral port. Client-side firewalls typically block unsolicited inbound connections — so active FTP fails through most firewalls. This is why passive mode was invented.</p><p><strong>Passive mode sequence (contrast):</strong></p><ol><li>Client opens control connection to server on TCP 21.</li><li>Client sends <code>PASV</code>.</li><li>Server replies with a high ephemeral port (e.g., 51234) that IT will listen on for data.</li><li>Client opens the data connection from its ephemeral port to the server's 51234.</li><li>Both connections are client-initiated — firewall-friendly.</li></ol><p><strong>Port 20 only applies in active mode.</strong> In passive mode, the data connection uses a negotiated server-side ephemeral port, <strong>not</strong> 20. On the exam, 'FTP data = TCP 20' refers specifically to active mode.</p>",
+        visual: { type: "comparison", params: { left: { label: "Active mode (TCP 20)", items: ["Server initiates data", "Data from port 20", "Breaks client firewalls", "Legacy default"] }, right: { label: "Passive mode (PASV)", items: ["Client initiates both", "Server picks high port", "Firewall-friendly", "Modern default"] } } },
+        hack: {
+          memory: "Port 20 = data in active mode only. Mnemonic: '20 does the work, 21 gives orders.' Active mode = server calls the client (firewall breaks). Passive mode = client calls the server (firewall OK). Modern clients default to passive.",
+          practice: "In Packet Tracer or a real lab: run an FTP transfer in active mode, then the same in passive. Watch the port numbers change. Active = server's port 20 to client ephemeral. Passive = client ephemeral to server ephemeral. This clarifies when port 20 actually appears on the wire.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 42. Wendell Odom OCG Chapter 9. CCNA port-number recall: 'FTP data port?' = TCP 20 (active). Also: 'which mode is firewall-friendly?' = passive."
+        }
+      },
+      {
+        id: "4.9.b.3",
+        term: "FTP credentials cleartext",
+        weight: "high",
+        info: "<p><strong>FTP transmits usernames and passwords in cleartext</strong> on the TCP 21 control channel. Any attacker with access to any segment between the client and server can capture the <code>USER</code> and <code>PASS</code> commands verbatim. This is FTP's fundamental security failure and why it is being phased out of production environments.</p><p><strong>What a capture looks like:</strong></p><pre>Client → Server (TCP 21): USER admin\nServer → Client (TCP 21): 331 Password required for admin.\nClient → Server (TCP 21): PASS MySecretP@ss\nServer → Client (TCP 21): 230 User admin logged in.</pre><p>The password <code>MySecretP@ss</code> is visible in the capture — no decoding, no decryption, just plain ASCII.</p><p><strong>Secure alternatives:</strong></p><ul><li><strong>SFTP (SSH File Transfer Protocol):</strong> Runs over SSH on TCP 22. Full file-management operations (list, rename, chmod). Credentials and data encrypted end-to-end.</li><li><strong>SCP (Secure Copy Protocol):</strong> Also over SSH on TCP 22. Simpler — copy only. Cisco-preferred.</li><li><strong>FTPS (FTP over TLS):</strong> FTP wrapped in TLS. Two flavors: <strong>implicit</strong> (TCP 990, TLS starts immediately) and <strong>explicit</strong> (TCP 21, <code>AUTH TLS</code> command negotiates TLS mid-session).</li></ul><p><strong>Exam mindset:</strong> If a question asks 'how to secure FTP credentials in transit,' the answer is one of: SFTP, SCP, or FTPS. If it asks 'which Cisco-native protocol is secure,' the answer is SCP.</p><p><strong>Why this matters beyond the exam:</strong> Compliance frameworks (PCI DSS, HIPAA, NIST) explicitly prohibit cleartext credential transmission. A production FTP deployment is usually a finding in any audit.</p>",
+        visual: { type: "shield", params: { items: ["FTP: passwords in cleartext", "Alternative: SFTP (SSH)", "Alternative: SCP (SSH)", "Alternative: FTPS (TLS)", "Compliance: no plain FTP"], color: "#ef4444" } },
+        hack: {
+          memory: "FTP = auth YES, encryption NO. Passwords in plaintext on TCP 21. Secure replacements: SFTP, SCP, FTPS. On Cisco, use SCP. Mnemonic: 'S is for Secure — SFTP, SCP, FTPS all start with S because they are Safer.'",
+          practice: "Wireshark capture an FTP login session. Follow the TCP stream for port 21. Find the USER and PASS lines in plain English. Save that screenshot — it is the single most powerful visual for convincing anyone (including yourself) that plain FTP is unacceptable.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 42. Wendell Odom OCG Chapter 9. CCNA: 'Why is FTP insecure?' = cleartext credentials. 'Secure alternatives?' = SFTP, SCP, FTPS. 'Cisco-native secure?' = SCP."
+        }
+      }
     ]
   },
 
@@ -3768,8 +4044,32 @@ window.subtopicContentD34 = {
       meta: "Jeremy's IT Lab Day 42 (FTP/TFTP). Wendell Odom OCG Chapter 9. The 'copy' command is tested in lab sims. Know the pattern: 'copy [source] [destination]'. The colons are required.",
     },
     micro: [
-      { id: "4.9.c.1", term: "copy command syntax",          def: "'copy [source]: [destination]:'. Colons required. Examples: 'copy tftp: flash:', 'copy running-config startup-config'.", weight: "high" },
-      { id: "4.9.c.2", term: "Source/dest keywords",         def: "tftp:, ftp:, scp:, flash:, running-config, startup-config, nvram:. Standard IOS file system locations.", weight: "high" }
+      {
+        id: "4.9.c.1",
+        term: "copy command syntax",
+        weight: "high",
+        info: "<p>Cisco IOS uses a single unified <code>copy</code> command for <strong>all file transfer operations</strong> — between local locations (flash, NVRAM) and remote locations (TFTP, FTP, SCP servers). The syntax is always:</p><pre>copy [source]: [destination]:</pre><p><strong>Critical rules:</strong></p><ul><li><strong>Colons are required</strong> after each keyword. <code>copy tftp flash</code> is a syntax error. <code>copy tftp: flash:</code> is correct.</li><li><strong>Source comes first, destination second.</strong> <code>copy flash: tftp:</code> copies FROM flash TO the TFTP server (backup). <code>copy tftp: flash:</code> copies FROM the TFTP server TO flash (upgrade).</li><li><strong>Interactive prompts follow.</strong> After the command, IOS asks for the source filename, destination IP (if remote), and destination filename. Accept defaults with Enter when they are correct.</li></ul><p><strong>Common copy patterns:</strong></p><pre>copy running-config startup-config    (save config to NVRAM, same as 'write memory')\ncopy running-config tftp:             (backup active config to TFTP server)\ncopy tftp: running-config             (MERGE config from TFTP into active — additive)\ncopy tftp: startup-config             (REPLACE startup-config from TFTP)\ncopy tftp: flash:                     (download IOS image)\ncopy flash: tftp:                     (backup IOS image)\ncopy scp: flash:                      (secure IOS download over SSH)</pre><p><strong>The merge-vs-replace trap:</strong> <code>copy tftp: running-config</code> <strong>merges</strong> — new commands are added, existing commands are not removed. <code>copy tftp: startup-config</code> <strong>replaces</strong> — the entire startup-config is overwritten. This behavior difference is a guaranteed CCNA question.</p><p><strong>Typical interactive flow:</strong></p><pre>R1# copy running-config tftp:\nAddress or name of remote host []? 192.168.1.100\nDestination filename [r1-confg]? r1-backup-2026-04-16.cfg\n!!\n1523 bytes copied in 2.45 secs (621 bytes/sec)</pre>",
+        visual: { type: "packet-flow", params: { nodes: ["copy [source]: [dest]:", "Interactive prompts", "Transfer", "Verify with show flash / show run"], color: "#8b5cf6" } },
+        hack: {
+          memory: "'copy FROM TO' — always source first, destination second. Colons required. Mnemonic: 'copy FROM colon TO colon.' Exam trap: 'copy tftp: running-config' MERGES, 'copy tftp: startup-config' REPLACES.",
+          practice: "In Packet Tracer: drill 5 copy commands in a row — 'copy run start,' 'copy run tftp:,' 'copy tftp: run,' 'copy tftp: start,' 'copy tftp: flash:.' After each, check the result with 'show flash:,' 'show run,' or 'show start.' Muscle-memory the syntax until you never forget the colons.",
+          effort: "medium",
+          meta: "Jeremy's IT Lab Day 42. Wendell Odom OCG Chapter 9. CCNA tests the copy syntax in lab sims — missing colons, wrong order, or confusing merge/replace all lose points."
+        }
+      },
+      {
+        id: "4.9.c.2",
+        term: "Source/dest keywords",
+        weight: "high",
+        info: "<p>The <code>copy</code> command accepts a specific vocabulary of <strong>source and destination keywords</strong> that map to protocols and local file system locations. Knowing this vocabulary cold lets you assemble any copy command on the exam.</p><p><strong>Remote protocol keywords (followed by <code>:</code>):</strong></p><ul><li><code>tftp:</code> — TFTP server (UDP 69).</li><li><code>ftp:</code> — FTP server (TCP 20/21). Requires <code>ip ftp username</code> and <code>ip ftp password</code>.</li><li><code>scp:</code> — SCP over SSH (TCP 22). Requires SSH configured and <code>ip scp server enable</code>.</li><li><code>http:</code> / <code>https:</code> — HTTP(S) file server. Less common on routers.</li></ul><p><strong>Local file system keywords:</strong></p><ul><li><code>flash:</code> — onboard flash storage. Primary location for IOS images.</li><li><code>nvram:</code> — non-volatile RAM. Stores startup-config.</li><li><code>system:</code> — virtual file system including running-config.</li><li><code>running-config</code> — active config in RAM (shortcut for <code>system:running-config</code>).</li><li><code>startup-config</code> — saved config in NVRAM (shortcut for <code>nvram:startup-config</code>).</li><li><code>usbflash0:</code> / <code>usbflash1:</code> — USB drives on supported routers.</li><li><code>bootflash:</code> — separate boot flash on some platforms.</li></ul><p><strong>Exam-favorite combinations:</strong></p><pre>copy running-config startup-config     (save config — most common)\ncopy tftp: flash:                       (IOS upgrade)\ncopy flash: tftp:                       (IOS backup)\ncopy running-config tftp:               (config backup)\ncopy tftp: startup-config               (config restore, REPLACE)</pre><p><strong>Filename tab-completion:</strong> IOS supports tab-completion inside <code>copy</code>. After typing <code>copy flash:</code>, press Tab to see available files. This is useful in lab sims where you do not remember the exact IOS filename.</p>",
+        visual: { type: "comparison", params: { left: { label: "Remote (need colon)", items: ["tftp:", "ftp:", "scp:", "http: / https:"] }, right: { label: "Local (colon or shortcut)", items: ["flash:", "nvram:", "system:", "running-config", "startup-config"] } } },
+        hack: {
+          memory: "Remote = 'protocol colon' (tftp:, ftp:, scp:). Local = 'device colon' (flash:, nvram:) OR 'shortcut' (running-config, startup-config). Memorize 5 remote + 5 local and you can build any copy command.",
+          practice: "In Packet Tracer: practice every combo. 'copy run start,' 'copy run tftp:,' 'copy flash: tftp:,' 'copy tftp: flash:,' 'copy scp: flash:.' Verify each with a show command. Build the mental map of which keyword means which location.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 42. Wendell Odom OCG Chapter 9. CCNA sims test the vocabulary — 'copy ___ ___' fill-in-the-blank style. Know both remote protocols and local locations."
+        }
+      }
     ]
   },
 
@@ -3783,9 +4083,45 @@ window.subtopicContentD34 = {
       meta: "Jeremy's IT Lab Day 42 (FTP/TFTP). Wendell Odom OCG Chapter 9. The exam mostly tests TFTP for IOS operations, with FTP and SCP as comparison options. 'Most secure?' = SCP. Know port numbers and security characteristics.",
     },
     micro: [
-      { id: "4.9.d.1", term: "TFTP for IOS images",          def: "Classic use case. 'copy tftp: flash:' transfers new IOS. TFTP chosen for simplicity (no auth needed).", weight: "high" },
-      { id: "4.9.d.2", term: "Most secure = SCP",            def: "Exam answer to 'most secure file transfer'. Uses SSH for auth + encryption.", weight: "high" },
-      { id: "4.9.d.3", term: "File transfer comparison",     def: "TFTP (UDP 69, no auth) → FTP (TCP 21/20, plain auth) → SCP (TCP 22, encrypted + auth).", weight: "high" }
+      {
+        id: "4.9.d.1",
+        term: "TFTP for IOS images",
+        weight: "high",
+        info: "<p><strong>TFTP is the classic method for transferring Cisco IOS images</strong> to and from routers and switches. Despite being decades old, TFTP remains the default tool for IOS backups, upgrades, and recovery — its simplicity and near-zero resource overhead make it perfect for the job.</p><p><strong>IOS upgrade workflow with TFTP:</strong></p><ol><li><strong>Stage the image</strong> on the TFTP server (e.g., copy <code>c2900-universalk9-mz.SPA.157-3.M5.bin</code> into the TFTP server's root directory).</li><li><strong>Verify flash space</strong> on the router: <code>show flash:</code>. New IOS images are often 50-200 MB — make sure free space exists. If not, delete older images with <code>delete flash:oldimage.bin</code> and <code>squeeze flash:</code>.</li><li><strong>Backup the current IOS:</strong> <code>copy flash: tftp:</code> — always do this before upgrading, in case the new image fails.</li><li><strong>Download the new image:</strong> <code>copy tftp: flash:</code>. Enter the TFTP server IP and the filename.</li><li><strong>Verify the image:</strong> <code>show flash:</code> confirms the file is present and its size matches what the vendor published. For strict integrity, check the MD5 hash with <code>verify /md5 flash:newimage.bin</code>.</li><li><strong>Configure boot system:</strong> <code>boot system flash:c2900-universalk9-mz.SPA.157-3.M5.bin</code> tells IOS which image to load on next reboot.</li><li><strong>Save config:</strong> <code>write memory</code> (or <code>copy run start</code>).</li><li><strong>Reload:</strong> <code>reload</code>. Router reboots into the new IOS.</li><li><strong>Verify post-reload:</strong> <code>show version</code> confirms the new IOS is running.</li></ol><p><strong>Why TFTP instead of FTP or SCP for IOS?</strong></p><ul><li>Simplicity — no auth config on the router. Just point and copy.</li><li>Speed on LAN — UDP has less overhead than TCP for trusted local transfers.</li><li>Every Cisco engineer has TFTP in their toolkit — it is the lowest-friction option.</li></ul><p><strong>When to use something else:</strong> Upgrading across untrusted links (use SCP), upgrading a large fleet with ACLs blocking UDP (use FTP or SCP), or when compliance demands authenticated transfers (SCP).</p>",
+        visual: { type: "state-machine", params: { states: ["1. show flash:", "2. copy flash: tftp: (backup)", "3. copy tftp: flash: (new IOS)", "4. verify /md5", "5. boot system flash:new", "6. write mem + reload"], active: 2, transitions: true } },
+        hack: {
+          memory: "IOS upgrade = 6 steps: check flash, backup old, download new, verify MD5, boot system, reload. TFTP is the default because it is simple and fast on trusted LANs. Mnemonic: 'Backup, Transfer, Boot, Reload' = BTBR = 'Before Touching Boot, Reload.'",
+          practice: "In Packet Tracer: set up a TFTP server with a fake IOS image. On a router, practice the full upgrade workflow: show flash, copy flash: tftp:, copy tftp: flash:, boot system, write mem, reload. Verify with show version. Do it three times end-to-end until the sequence is automatic.",
+          effort: "medium",
+          meta: "Jeremy's IT Lab Day 42. Wendell Odom OCG Chapter 9. CCNA lab sim: IOS upgrade via TFTP. Know the copy command, boot system command, and the order of operations."
+        }
+      },
+      {
+        id: "4.9.d.2",
+        term: "Most secure = SCP",
+        weight: "high",
+        info: "<p><strong>SCP is the most secure file transfer protocol</strong> available on Cisco IOS. It is the exam answer to any question of the form 'which file transfer method should be used in a production environment?' or 'which protocol provides confidentiality and authentication for file transfers?'</p><p><strong>Why SCP wins the security comparison:</strong></p><ul><li><strong>Authentication:</strong> Uses SSH's user authentication — usernames in the local database (or AAA), passwords hashed with <code>secret</code>, optional public-key auth.</li><li><strong>Encryption:</strong> Full SSH encryption (AES-128, AES-256, ChaCha20 depending on negotiation). Every byte of credential and data is ciphertext on the wire.</li><li><strong>Integrity:</strong> HMAC-SHA1 or HMAC-SHA256 on every packet — any tampering is detected and the connection is dropped.</li><li><strong>Replay protection:</strong> SSH sequence numbers prevent replay attacks.</li></ul><p><strong>SCP requirements on Cisco IOS:</strong></p><ol><li>SSH fully configured (all 6 steps from topic 4.8).</li><li><code>ip scp server enable</code> in global config.</li><li>A local user with sufficient privilege level (typically 15) to read/write flash.</li></ol><p><strong>Usage from a Linux/Mac client:</strong></p><pre>$ scp admin@10.1.1.1:flash:/config.txt ./backup.txt\nadmin@10.1.1.1's password:\nconfig.txt  100%  1234  1.2KB/s  00:00</pre><p><strong>From a router (as SCP client):</strong></p><pre>R1# copy scp: flash:\nAddress or name of remote host []? 192.168.1.50\nSource username [admin]? admin\nSource filename []? newimage.bin\nDestination filename [newimage.bin]?\nPassword:\n!!!!!!!!!!!!!!!!!!!!!!!</pre><p><strong>Comparison summary:</strong></p><ul><li><strong>TFTP:</strong> UDP 69. No auth. No crypto. Never secure.</li><li><strong>FTP:</strong> TCP 20/21. Auth yes. Crypto no.</li><li><strong>SCP:</strong> TCP 22. Auth yes. Crypto yes. <strong>Secure.</strong></li></ul>",
+        visual: { type: "shield", params: { items: ["SCP over SSH", "TCP 22", "Auth + encryption", "Integrity + replay protection", "Cisco production standard"], color: "#10b981" } },
+        hack: {
+          memory: "Most secure = SCP. Every time. TCP 22. Over SSH. Full encryption + auth. If the exam asks 'which is secure?' — answer SCP. If it asks 'which port?' — answer 22. If it asks 'prerequisite?' — answer SSH configured plus 'ip scp server enable.'",
+          practice: "Set up a real SCP transfer: from your laptop to a Packet Tracer router (or real Cisco gear). Use 'scp myfile admin@10.1.1.1:flash:/.' Run Wireshark and confirm port 22 traffic is ciphertext. Compare to an FTP capture — night and day.",
+          effort: "medium",
+          meta: "Jeremy's IT Lab Day 42 and Day 43. Wendell Odom OCG Chapter 9. CCNA guaranteed question: 'Most secure file transfer?' = SCP. Snap answer, no hesitation."
+        }
+      },
+      {
+        id: "4.9.d.3",
+        term: "File transfer comparison",
+        weight: "high",
+        info: "<p>The three file transfer protocols on the CCNA — <strong>TFTP, FTP, SCP</strong> — form a clear progression of features and security. Knowing this comparison table cold is worth multiple exam points.</p><p><strong>The comparison table:</strong></p><table style=\"width:100%;border-collapse:collapse\"><tr style=\"background:#f3f4f6\"><th style=\"text-align:left;padding:4px\">Feature</th><th style=\"text-align:left;padding:4px\">TFTP</th><th style=\"text-align:left;padding:4px\">FTP</th><th style=\"text-align:left;padding:4px\">SCP</th></tr><tr><td style=\"padding:4px\">Transport</td><td style=\"padding:4px\">UDP</td><td style=\"padding:4px\">TCP</td><td style=\"padding:4px\">TCP</td></tr><tr><td style=\"padding:4px\">Port(s)</td><td style=\"padding:4px\">69</td><td style=\"padding:4px\">20 (data) + 21 (control)</td><td style=\"padding:4px\">22</td></tr><tr><td style=\"padding:4px\">Authentication</td><td style=\"padding:4px\">No</td><td style=\"padding:4px\">Yes (cleartext)</td><td style=\"padding:4px\">Yes (SSH)</td></tr><tr><td style=\"padding:4px\">Encryption</td><td style=\"padding:4px\">No</td><td style=\"padding:4px\">No</td><td style=\"padding:4px\">Yes (SSH)</td></tr><tr><td style=\"padding:4px\">Reliability</td><td style=\"padding:4px\">Own ACK (UDP)</td><td style=\"padding:4px\">TCP</td><td style=\"padding:4px\">TCP</td></tr><tr><td style=\"padding:4px\">Use case</td><td style=\"padding:4px\">IOS on trusted LAN</td><td style=\"padding:4px\">Large files, auth needed</td><td style=\"padding:4px\">Production, secure</td></tr></table><p><strong>Security ladder (memorize top-to-bottom):</strong></p><ul><li>TFTP — nothing (UDP 69, open).</li><li>FTP — auth only (TCP 20/21, cleartext creds).</li><li>SCP — auth + encryption (TCP 22, full SSH).</li></ul><p><strong>Variants to recognize on the exam:</strong></p><ul><li><strong>SFTP (SSH FTP):</strong> richer file ops than SCP, same SSH transport (TCP 22).</li><li><strong>FTPS (FTP over TLS):</strong> TCP 990 (implicit) or TCP 21 + AUTH TLS (explicit). Not on Cisco's core copy command set but commonly mentioned.</li></ul><p><strong>Typical exam framings:</strong> 'Which protocol is connectionless?' = TFTP. 'Which protocol uses two channels?' = FTP. 'Which encrypts everything?' = SCP. 'Which is most secure?' = SCP. 'Which is least secure?' = TFTP.</p>",
+        visual: { type: "layer-stack", params: { layers: ["TFTP: UDP 69 — no auth, no crypto", "FTP: TCP 20/21 — auth, no crypto", "FTPS: TCP 990/21 — auth + TLS", "SFTP: TCP 22 — SSH file ops", "SCP: TCP 22 — SSH copy, Cisco-native"], highlight: 4 } },
+        hack: {
+          memory: "Ladder from least to most secure: TFTP → FTP → SCP. Ports: 69 → 20/21 → 22. Auth: no → yes → yes. Crypto: no → no → yes. Write this table on your whiteboard at exam start. Three protocols, six facts, infinite exam points.",
+          practice: "Make a physical flashcard with the comparison table. Drill until you can fill in every cell from memory in under 30 seconds. Then drill the reverse: given a feature (e.g., 'UDP'), name the protocol (TFTP). This two-way drill cements it.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 42. Wendell Odom OCG Chapter 9. CCNA tests this comparison in every form — multiple choice, fill-in-the-blank, 'match the feature to the protocol.' Master the table and you own this topic."
+        }
+      }
     ]
   },
 
@@ -3799,9 +4135,45 @@ window.subtopicContentD34 = {
       meta: "Jeremy's IT Lab Day 42 (FTP/TFTP). Wendell Odom OCG Chapter 9. The merge vs replace trap is tested: 'copy tftp: running-config' MERGES. 'copy tftp: startup-config' REPLACES. Know 'show flash:' to verify IOS images.",
     },
     micro: [
-      { id: "4.9.e.1", term: "copy to running-config = MERGE", def: "'copy tftp: running-config' MERGES incoming config with current. Doesn't delete existing commands.", weight: "high" },
-      { id: "4.9.e.2", term: "copy to startup-config = REPLACE", def: "'copy tftp: startup-config' REPLACES startup-config entirely. Changes apply after reboot.", weight: "high" },
-      { id: "4.9.e.3", term: "show flash:",                  def: "Lists contents of flash memory. Used to verify IOS image after 'copy tftp: flash:'.", weight: "high" }
+      {
+        id: "4.9.e.1",
+        term: "copy to running-config = MERGE",
+        weight: "high",
+        info: "<p><code>copy tftp: running-config</code> (or <code>copy scp:/ftp: running-config</code>) <strong>merges</strong> the incoming config file with the currently active running-config. It does NOT replace or wipe existing commands. New commands are added. Commands already present are left alone. Commands that exist in running but are absent from the incoming file <strong>are NOT removed</strong>.</p><p><strong>Concrete example:</strong></p><pre>Current running-config:                Incoming config file (from TFTP):\nhostname R1                            hostname R1\ninterface Gi0/0                        interface Gi0/1\n ip address 10.1.1.1 255.255.255.0      ip address 10.2.2.1 255.255.255.0\n no shutdown                            no shutdown\nno ip domain-lookup                    router ospf 1\n                                        network 10.2.2.0 0.0.0.255 area 0</pre><p><strong>Result after <code>copy tftp: running-config</code>:</strong></p><pre>hostname R1\ninterface Gi0/0\n ip address 10.1.1.1 255.255.255.0\n no shutdown\ninterface Gi0/1                           ← ADDED\n ip address 10.2.2.1 255.255.255.0         ← ADDED\n no shutdown                               ← ADDED\nno ip domain-lookup                         ← KEPT\nrouter ospf 1                             ← ADDED\n network 10.2.2.0 0.0.0.255 area 0         ← ADDED</pre><p><strong>Why merge instead of replace?</strong> Running-config is LIVE — the device is actively passing traffic. A wholesale replace would require tearing down every interface, stopping every protocol, and rebuilding — disruptive and dangerous. Merging lets you layer in changes without killing traffic.</p><p><strong>The gotcha:</strong> If the incoming config has contradictory commands (e.g., different IP on the same interface), the incoming command overrides — but commands not mentioned at all are left as they were. This means <strong>you cannot 'clean' a config via merge</strong>. To get a truly fresh state, use <code>copy tftp: startup-config</code> + <code>reload</code>.</p>",
+        visual: { type: "comparison", params: { left: { label: "Before MERGE", items: ["hostname R1", "int Gi0/0 IP 10.1.1.1", "no ip domain-lookup"] }, right: { label: "After MERGE", items: ["hostname R1 (kept)", "int Gi0/0 IP 10.1.1.1 (kept)", "int Gi0/1 IP 10.2.2.1 (added)", "router ospf 1 (added)", "no ip domain-lookup (kept)"] } } },
+        hack: {
+          memory: "'copy tftp: running-config' = MERGE (additive). Think 'paste on top, nothing erased.' If you need to wipe, use 'copy tftp: startup-config' + reload, NOT merge. Mnemonic: 'Running is Running — too busy to Replace.'",
+          practice: "In Packet Tracer: configure running-config with 3 unique commands. Prepare a TFTP file with 3 DIFFERENT commands. Run 'copy tftp: running-config' and compare. You will see all 6 commands present. This makes merge behavior unforgettable.",
+          effort: "medium",
+          meta: "Jeremy's IT Lab Day 42. Wendell Odom OCG Chapter 9. CCNA merge-vs-replace trap is a near-guaranteed question. Know: running = MERGE, startup = REPLACE."
+        }
+      },
+      {
+        id: "4.9.e.2",
+        term: "copy to startup-config = REPLACE",
+        weight: "high",
+        info: "<p><code>copy tftp: startup-config</code> (or from SCP/FTP) <strong>replaces the entire startup-config</strong> in NVRAM with the incoming file. Every command in the old startup-config is wiped. The new config takes effect only after the next reload — the running-config in RAM is unaffected until then.</p><p><strong>Why replace (not merge)?</strong> Startup-config is STATIC — it is not actively driving traffic. Replacing it is safe because nothing is running against it. The new config only becomes active after <code>reload</code>, giving the admin a clean rebuild from the new config.</p><p><strong>Standard workflow for a full config refresh:</strong></p><ol><li><code>copy running-config tftp:</code> — backup the current running-config, in case you need to roll back.</li><li><code>copy tftp: startup-config</code> — pull the new config into NVRAM, replacing the old startup.</li><li>Verify with <code>show startup-config</code> — confirm the new file is in place.</li><li><code>reload</code> — device reboots, loads new startup-config as the running-config.</li><li>Verify post-reload with <code>show running-config</code> — should match what was pulled from TFTP.</li></ol><p><strong>DO NOT confuse with running-config behavior:</strong></p><ul><li><code>copy tftp: running-config</code> — MERGE (additive, immediate, disruption depends on deltas).</li><li><code>copy tftp: startup-config</code> — REPLACE (wipes startup, takes effect at reload).</li></ul><p><strong>When to pick which:</strong> Use MERGE (running-config) for incremental changes on a live device. Use REPLACE (startup-config + reload) for major rebuilds, RMA (return-materials-authorization), swapouts, or when you want a guaranteed clean state.</p><p><strong>Classic exam trap:</strong> A question shows a config copied to startup-config and asks 'why does traffic still follow the old config?' Answer: the device has not been reloaded yet. Running-config in RAM is still the old version.</p>",
+        visual: { type: "state-machine", params: { states: ["copy tftp: startup-config", "Old startup wiped", "New startup in NVRAM", "reload", "New config becomes running"], active: 2, transitions: true } },
+        hack: {
+          memory: "'copy tftp: startup-config' = REPLACE (wholesale). Effect at RELOAD, not immediately. Running-config still the old one until reboot. Mnemonic: 'Startup is Sleeping — safe to Swap.'",
+          practice: "In Packet Tracer: backup the running-config to TFTP, modify running-config with 3 new commands, then 'copy tftp: startup-config' (using the old backup). Check 'show running-config' — still has 3 new commands. Reload. Check again — 3 new commands gone, startup-config has taken over. This makes the delayed effect obvious.",
+          effort: "medium",
+          meta: "Jeremy's IT Lab Day 42. Wendell Odom OCG Chapter 9. CCNA favorite question: 'You copied config to startup-config but nothing changed — why?' = need to reload. Also: 'which copy wipes existing config?' = startup-config."
+        }
+      },
+      {
+        id: "4.9.e.3",
+        term: "show flash:",
+        weight: "high",
+        info: "<p><code>show flash:</code> lists the <strong>contents of the router's flash storage</strong> — the location where IOS images, backup configs, and occasionally other files are kept. It is the go-to command for verifying IOS image presence before and after an upgrade.</p><p><strong>Typical output:</strong></p><pre>R1# show flash:\n-#- --length-- -----date/time------ path\n1   104623616  Apr 16 2026 10:20:45  c2900-universalk9-mz.SPA.157-3.M5.bin\n2   2181       Apr 15 2026 14:03:12  config.text.backup\n3   3904       Apr 14 2026 09:11:28  vlan.dat\n\n  262144000 bytes available (104627800 bytes used)</pre><p><strong>Fields to understand:</strong></p><ul><li><strong>Length:</strong> file size in bytes. IOS images are typically 50-200 MB.</li><li><strong>Date/time:</strong> when the file was written. Useful for identifying recent changes.</li><li><strong>Path:</strong> filename. IOS image filenames encode model, feature set, and version (e.g., <code>c2900-universalk9-mz.SPA.157-3.M5.bin</code>).</li><li><strong>Bytes available:</strong> free flash space. Check this before downloading a new IOS.</li></ul><p><strong>Pre-upgrade check:</strong> Always run <code>show flash:</code> before <code>copy tftp: flash:</code>. If free space is less than the new IOS size, the copy will fail mid-transfer. Make room by deleting old images: <code>delete flash:oldimage.bin</code>, then <code>squeeze flash:</code> on some older platforms to reclaim space.</p><p><strong>Post-upgrade verification:</strong> After <code>copy tftp: flash:</code>, rerun <code>show flash:</code> to confirm the new file is present and the size matches the vendor-published size. For strict integrity, compute the MD5: <code>verify /md5 flash:newimage.bin [expected-md5]</code>.</p><p><strong>Related commands:</strong></p><ul><li><code>dir flash:</code> — similar output, often used interchangeably.</li><li><code>show file systems</code> — lists all file systems (flash, nvram, system, usbflash0, etc.) and their sizes.</li><li><code>show boot</code> — shows which IOS image the router is configured to boot next.</li></ul>",
+        visual: { type: "layer-stack", params: { layers: ["show flash: (list files)", "Verify free space", "delete flash:oldimage (if needed)", "copy tftp: flash: (download)", "show flash: (confirm new file)"], highlight: 4 } },
+        hack: {
+          memory: "'show flash:' = what is in flash right now. Use it BEFORE copying (check space) and AFTER (verify image landed). Mnemonic: 'Show flash before and after — like a before/after photo for IOS.' Always verify size matches vendor.",
+          practice: "In Packet Tracer: run 'show flash:' on a fresh router. Note the IOS file and free space. Copy a dummy file via TFTP. Rerun 'show flash:' — see the new file and reduced free space. Delete it with 'delete flash:dummy.' Rerun — file gone, space reclaimed.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 42. Wendell Odom OCG Chapter 9. CCNA tests 'show flash:' output interpretation — identifying the IOS file, reading free space, spotting the current image."
+        }
+      }
     ]
   },
 
@@ -3815,9 +4187,45 @@ window.subtopicContentD34 = {
       meta: "Jeremy's IT Lab Day 42 (FTP/TFTP) and Day 43 (SSH) together cover SCP. Wendell Odom OCG Chapter 9. 'Most secure file transfer?' = SCP. 'Which port?' = TCP 22. This is a 2-second recall question.",
     },
     micro: [
-      { id: "4.9.f.1", term: "SCP (Secure Copy)",            def: "Uses SSH for auth + encryption. Most secure file transfer. TCP 22 (same as SSH).", weight: "high" },
-      { id: "4.9.f.2", term: "SFTP vs SCP",                  def: "Both use SSH. SFTP = file management protocol (rich operations). SCP = simple copy only.", weight: "med" },
-      { id: "4.9.f.3", term: "ip scp server enable",         def: "Cisco router command to enable SCP server mode. Allows clients to push config/images via SCP.", weight: "low" }
+      {
+        id: "4.9.f.1",
+        term: "SCP (Secure Copy)",
+        weight: "high",
+        info: "<p><strong>SCP (Secure Copy Protocol)</strong> is the Cisco-preferred secure file transfer mechanism. It rides entirely on top of SSH — same TCP port (<strong>22</strong>), same authentication mechanism (local users or AAA), same encryption (AES-128/256, ChaCha20 depending on negotiation), same integrity (HMAC-SHA1/256). There is no separate SCP daemon or separate port.</p><p><strong>Why SCP instead of FTP or TFTP?</strong></p><ul><li><strong>Confidentiality:</strong> Every byte encrypted. No credential or data leakage.</li><li><strong>Authentication:</strong> Reuses SSH's strong auth — username/secret or public-key.</li><li><strong>Integrity:</strong> SSH's MAC detects tampering.</li><li><strong>Single port:</strong> TCP 22, which is already open for SSH admin access. No extra firewall rules.</li></ul><p><strong>Cisco IOS configuration to enable SCP server:</strong></p><pre>R1(config)# ip scp server enable</pre><p>That single command, combined with a working SSH setup, turns the router into an SCP target — any authorized SSH user can now push or pull files.</p><p><strong>Usage from an external client (Linux/Mac/Windows with OpenSSH):</strong></p><pre>$ scp admin@10.1.1.1:flash:/backup.cfg ./local-backup.cfg\nadmin@10.1.1.1's password:\nbackup.cfg  100%  1234  12.3KB/s  00:00</pre><p><strong>Usage from the router as an SCP client:</strong></p><pre>R1# copy scp: flash:\nAddress or name of remote host []? 192.168.1.50\nSource username [admin]? admin\nSource filename []? newimage.bin\nDestination filename [newimage.bin]?\nPassword:\n!!!!!!!!!!</pre><p><strong>Privilege level matters:</strong> The SSH user needs privilege level 15 (or sufficient role-based access) to read/write flash. Level 1 users get 'permission denied.'</p>",
+        visual: { type: "shield", params: { items: ["TCP 22 (SSH)", "Full encryption", "SSH authentication", "ip scp server enable", "Most secure on Cisco"], color: "#10b981" } },
+        hack: {
+          memory: "SCP = SSH + file copy. Port 22. Prerequisite: working SSH + 'ip scp server enable.' User needs privilege 15. Mnemonic: 'SCP is SSH's little brother — inherits everything, adds file transfer.'",
+          practice: "From a Linux laptop: 'scp admin@10.1.1.1:flash:/running-config ./backup.cfg.' Capture with Wireshark — verify TCP 22 traffic is ciphertext. From router: 'copy scp: flash:' and pull a file from your laptop (running a simple SSH server). Two-way SCP mastered.",
+          effort: "medium",
+          meta: "Jeremy's IT Lab Day 42 and Day 43. Wendell Odom OCG Chapter 9. CCNA: 'Most secure file transfer?' = SCP. 'Port?' = 22. 'Requires?' = SSH configured + ip scp server enable."
+        }
+      },
+      {
+        id: "4.9.f.2",
+        term: "SFTP vs SCP",
+        weight: "med",
+        info: "<p><strong>SFTP</strong> (SSH File Transfer Protocol) and <strong>SCP</strong> (Secure Copy Protocol) both run over SSH on TCP 22 and provide identical security guarantees. The difference is the <strong>richness of file operations</strong> each supports.</p><p><strong>SCP (Secure Copy):</strong></p><ul><li>Simple copy only — get file, put file.</li><li>No directory listing, no renaming, no deletion, no resume.</li><li>Lightweight — fewer messages on the wire.</li><li>Cisco IOS supports SCP natively (and has for a long time).</li></ul><p><strong>SFTP (SSH File Transfer):</strong></p><ul><li>Full file-management protocol: list, rename, delete, chmod, chown, mkdir, rmdir, resume interrupted transfers, query file attributes.</li><li>Modeled after a filesystem API over SSH.</li><li>Clients like FileZilla, WinSCP, and <code>sftp</code> CLI treat the remote filesystem like a mounted share.</li><li>Cisco IOS SFTP support is limited and version-dependent. SCP is the Cisco default.</li></ul><p><strong>Protocol positioning (all use TCP 22 / SSH):</strong></p><ul><li><strong>SCP</strong> — the 'rcp over SSH' replacement. Simple, fast.</li><li><strong>SFTP</strong> — the 'FTP over SSH' replacement. Rich file operations.</li></ul><p><strong>Easy confusion to avoid:</strong> SFTP is <strong>not</strong> FTPS. SFTP uses SSH (port 22). FTPS uses FTP + TLS (ports 990 or 21). Different protocols, different history. Exam may probe this distinction.</p><p><strong>When to use which on Cisco:</strong> Almost always SCP, because it is what IOS supports best. SFTP is available on some newer platforms but not universally.</p>",
+        visual: { type: "comparison", params: { left: { label: "SCP", items: ["Simple copy only", "No dir ops", "Lightweight", "Cisco native", "TCP 22"] }, right: { label: "SFTP", items: ["Full file ops", "list/rename/delete", "Filesystem-like", "Limited Cisco support", "TCP 22"] } } },
+        hack: {
+          memory: "Both over SSH, both TCP 22. SCP = simple copy. SFTP = full file management. On Cisco: SCP is default. SFTP = SSH-based, NOT the same as FTPS (which is FTP + TLS). Mnemonic: 'SCP for Cisco, SFTP for servers.'",
+          practice: "On a Linux box with OpenSSH server: use both 'scp file host:/path' and 'sftp host' (interactive). In sftp, try 'ls,' 'put,' 'get,' 'rename,' 'rm.' SCP cannot do most of these. This lab clarifies the feature gap.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 42 mentions SFTP briefly. Wendell Odom OCG Chapter 9. CCNA tests SCP primarily; SFTP appears as a comparison option. Know that both run over SSH on TCP 22 and both are secure."
+        }
+      },
+      {
+        id: "4.9.f.3",
+        term: "ip scp server enable",
+        weight: "low",
+        info: "<p><code>ip scp server enable</code> is the single global-config command that <strong>enables Cisco IOS to act as an SCP server</strong>, allowing external clients to push or pull files via SCP.</p><p><strong>Exact command:</strong></p><pre>R1(config)# ip scp server enable</pre><p><strong>Prerequisites (must be in place first):</strong></p><ol><li>Full SSH configuration (the 6-step recipe from topic 4.8).</li><li>At least one local user with privilege level 15 (or AAA configured for elevated access).</li><li>VTY lines configured for SSH transport and login local.</li></ol><p><strong>What it does:</strong> Before this command, SCP attempts against the router fail with 'connection refused for SCP' even if SSH works for interactive login. After this command, the router listens for SCP subsystem requests inside SSH sessions and responds appropriately.</p><p><strong>Permission behavior:</strong></p><ul><li>The SSH user's privilege level determines what they can do via SCP.</li><li>Privilege 15 = full read/write across the file system (flash, nvram, system).</li><li>Lower privilege = permission denied for most file operations.</li></ul><p><strong>Verification:</strong></p><ul><li><code>show running-config | include scp</code> — confirms the command is in the config.</li><li>Test from a client: <code>scp admin@10.1.1.1:flash:/running-config ./backup</code>. If the file transfers, SCP is working.</li></ul><p><strong>Why disabled by default:</strong> Security. SCP allows authenticated users to read or write the device's file system remotely — including overwriting IOS images. Requiring an explicit opt-in prevents accidental exposure.</p><p><strong>To disable:</strong> <code>no ip scp server enable</code>. SCP attempts will resume being refused while SSH interactive login continues to work.</p>",
+        visual: { type: "state-machine", params: { states: ["SSH configured (6 steps)", "ip scp server enable", "User priv 15 ready", "SCP client connects", "File transfer over SSH"], active: 1, transitions: true } },
+        hack: {
+          memory: "'ip scp server enable' = one-liner to turn on SCP on Cisco. Prerequisite: SSH working + local user priv 15. Default: DISABLED (security opt-in). Mnemonic: 'SSH builds the tunnel, ip scp server enable opens the file-copy door.'",
+          practice: "In Packet Tracer: complete SSH setup. Try SCP from a Linux client — fails (SCP not enabled). Add 'ip scp server enable.' Retry — success. Remove with 'no ip scp server enable.' Retry — fails again. Clear cause-and-effect.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 42 and Day 43. Wendell Odom OCG Chapter 9. CCNA command-recall: 'Which command enables SCP server on Cisco?' = 'ip scp server enable.' Low weight but exactly worded on some exams."
+        }
+      }
     ]
   }
 

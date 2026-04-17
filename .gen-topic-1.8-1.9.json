@@ -331,5 +331,338 @@
         "meta": "Classic exam question. Jeremy IT Lab Day 33. Wendell Odom OCG Chapter 23. Know all four A/M/O combinations."
       }
     }
+  ],
+  "1.8.e": [
+    {
+      "id": "1.8.e.1",
+      "term": "Stateless DHCPv6",
+      "weight": "high",
+      "info": "<p><strong>Stateless DHCPv6</strong> is a hybrid addressing model where SLAAC handles address generation and DHCPv6 provides only supplementary configuration (DNS server, domain name, NTP, etc.). The DHCPv6 server does <strong>not</strong> assign or track addresses — it just answers information requests. That is why it is called stateless: no binding table, no leases, no address pool.</p><p><strong>Triggered by:</strong> RA flags <strong>A=1, O=1, M=0</strong>. A=1 tells hosts to use SLAAC for addressing. O=1 tells hosts other configuration is available via DHCPv6 (meaning: go query a DHCPv6 server for DNS etc.). M=0 tells hosts <strong>not</strong> to use DHCPv6 for addressing.</p><p><strong>Flow:</strong></p><ol><li>Host sends RS to FF02::2.</li><li>Router replies with RA: prefix, A=1, O=1, M=0.</li><li>Host self-generates address via SLAAC.</li><li>Host sends DHCPv6 <strong>Information-Request</strong> to FF02::1:2 (all DHCPv6 servers/relays).</li><li>DHCPv6 server replies with DNS server addresses, domain name, any configured options — but no address.</li></ol><p><strong>Why it exists:</strong> original SLAAC had no way to deliver DNS server info. Stateless DHCPv6 filled that gap without reintroducing the complexity of per-host binding tables. RFC 8106 (RDNSS option in RAs) is a newer alternative that lets the RA carry DNS info directly, but stateless DHCPv6 is still common because many networks separate router and DNS management.</p><p><strong>Server configuration on Cisco:</strong></p><pre>ipv6 dhcp pool STATELESS-POOL\n dns-server 2001:DB8::53\n domain-name example.com\n!\ninterface Gi0/0\n ipv6 nd other-config-flag\n ipv6 dhcp server STATELESS-POOL</pre><p>The <code>ipv6 nd other-config-flag</code> sets O=1 in outgoing RAs.</p>",
+      "visual": { "type": "handshake", "params": { "leftLabel": "Host", "rightLabel": "Router + DHCPv6", "steps": ["RS → FF02::2", "← RA (prefix, A=1, O=1, M=0)", "SLAAC builds address", "Information-Request → FF02::1:2", "← Reply (DNS, domain)"] } },
+      "hack": {
+        "memory": "Stateless DHCPv6 = SLAAC for the address, DHCPv6 for the extras (DNS/domain/NTP). O-flag only. Server does NOT track addresses. Flags: A=1, O=1, M=0.",
+        "practice": "Draw the A/O/M truth table for stateless DHCPv6. Configure an ipv6 dhcp pool with dns-server and domain-name, apply it with ipv6 dhcp server, and set ipv6 nd other-config-flag. Verify with show ipv6 interface.",
+        "effort": "medium",
+        "meta": "Guaranteed exam topic. Jeremy IT Lab Day 33. Wendell Odom OCG Chapter 23. Know: O=1 triggers stateless DHCPv6."
+      }
+    },
+    {
+      "id": "1.8.e.2",
+      "term": "O-flag",
+      "weight": "high",
+      "info": "<p>The <strong>O-flag (Other Configuration)</strong> is a single bit in the RA that tells hosts: 'There is more configuration available from a DHCPv6 server — go ask.' When <strong>O=1</strong>, hosts send a DHCPv6 Information-Request to retrieve options like DNS, domain name, SIP server, NTP, and vendor-specific data.</p><p><strong>O-flag alone does NOT affect addressing.</strong> If A=1 and O=1 and M=0, hosts still get their address from SLAAC. O only signals 'other config is available.' This is the defining characteristic of <strong>stateless DHCPv6</strong>.</p><p><strong>Combinations to memorize:</strong></p><ul><li><strong>O=0, M=0 (A=1):</strong> Pure SLAAC. No DHCPv6 interaction at all. DNS must come from RA's RDNSS option or be manually configured.</li><li><strong>O=1, M=0 (A=1):</strong> Stateless DHCPv6. SLAAC for address, DHCPv6 for DNS/other.</li><li><strong>O=0, M=1:</strong> Stateful DHCPv6. DHCPv6 provides address AND everything else.</li><li><strong>O=1, M=1:</strong> Redundant — if M=1, DHCPv6 already provides everything; O is implied. Uncommon.</li></ul><p><strong>Cisco command:</strong> <code>ipv6 nd other-config-flag</code> under the interface. This sets O=1 in outgoing RAs. Remove with <code>no ipv6 nd other-config-flag</code>.</p><p><strong>Verification:</strong> <code>show ipv6 interface Gi0/0</code> shows the current O-flag setting. Look for lines like 'ND advertised other config flag is TRUE.'</p>",
+      "visual": { "type": "comparison", "params": { "left": { "label": "O-flag OFF (default)", "items": ["A=1 → SLAAC", "No DHCPv6 query", "DNS via RDNSS or manual"] }, "right": { "label": "O-flag ON", "items": ["A=1 → SLAAC (same)", "Host sends DHCPv6 Info-Request", "DNS/domain from DHCPv6"] } } },
+      "hack": {
+        "memory": "O = Other configuration. O=1 triggers a DHCPv6 query for DNS/domain. Does NOT affect addressing. Cisco command: ipv6 nd other-config-flag.",
+        "practice": "Configure ipv6 nd other-config-flag on a router interface. Run show ipv6 interface and confirm 'other config flag is TRUE.' Remove it and verify it flips back.",
+        "effort": "low",
+        "meta": "Common exam distinction. Jeremy IT Lab Day 33. Wendell Odom OCG Chapter 23. O=1 → stateless DHCPv6."
+      }
+    },
+    {
+      "id": "1.8.e.3",
+      "term": "FF02::1:2",
+      "weight": "med",
+      "info": "<p><strong><code>FF02::1:2</code> is the well-known multicast address for all DHCPv6 servers and relay agents on the local link</strong>. DHCPv6 clients send Solicit, Request, and Information-Request messages to this group; servers and relays listen on it.</p><p><strong>Address breakdown:</strong></p><ul><li><code>FF02</code>: multicast with link-local scope (scope=2)</li><li><code>::1:2</code>: the group ID assigned to DHCPv6 servers/relays</li></ul><p><strong>Clients use this address for:</strong></p><ul><li><strong>Solicit</strong> (stateful DHCPv6, client asks for address)</li><li><strong>Information-Request</strong> (stateless DHCPv6, client asks for DNS/other info)</li><li><strong>Initial discovery</strong> of a DHCPv6 server when no unicast address is known</li></ul><p><strong>Servers and relays listen on:</strong> FF02::1:2 (link-scope) and <code>FF05::1:3</code> (site-scope, for cross-subnet relay).</p><p><strong>Why a multicast instead of broadcast?</strong> IPv6 has no broadcast. Multicast restricts traffic to devices that joined the DHCPv6 server/relay group. Normal hosts on the link do not receive these packets.</p><p><strong>Contrast with IPv4 DHCP:</strong> IPv4 clients broadcast DHCPDISCOVER to 255.255.255.255. IPv6 clients multicast DHCPv6 Solicit to FF02::1:2. More efficient, same purpose.</p>",
+      "visual": { "type": "hierarchy", "params": { "root": "FF02::1:2 — DHCPv6 servers/relays (link-local)", "children": [{ "name": "Solicit (stateful, request address)" }, { "name": "Information-Request (stateless, DNS only)" }, { "name": "Source of client queries" }] } },
+      "hack": {
+        "memory": "FF02::1:2 = DHCPv6 server multicast. Link-local scope (FF02). All DHCPv6 servers and relays listen. Clients send Solicit and Information-Request here.",
+        "practice": "Flashcard: FF02::1:2 is for what? → DHCPv6 servers and relays. Confirm you can recognize it alongside FF02::1 (all nodes), FF02::2 (all routers), FF02::5 (OSPF).",
+        "effort": "low",
+        "meta": "Occasional exam fact. Jeremy IT Lab Day 33. Wendell Odom OCG Chapter 23. Memorize along with other well-known FF02:: addresses."
+      }
+    },
+    {
+      "id": "1.8.e.4",
+      "term": "RDNSS option (RFC 8106)",
+      "weight": "low",
+      "info": "<p><strong>RDNSS (Recursive DNS Server option, RFC 8106)</strong> is an option in the RA that lets a router directly tell hosts which DNS servers to use. It eliminates the need for stateless DHCPv6 in the common case where the only thing DHCPv6 was providing was DNS.</p><p><strong>Why it was added:</strong> original SLAAC had no way to deliver DNS info. Networks had to deploy stateless DHCPv6 just to hand out a DNS server address. This added server infrastructure, configuration, and a second protocol to run. RDNSS folds the DNS info into the RA that hosts already receive.</p><p><strong>Cisco configuration:</strong></p><pre>interface Gi0/0\n ipv6 nd ra dns server 2001:DB8::53 86400</pre><p>The router advertises 2001:DB8::53 as a DNS server with lifetime 86400 seconds (24 hours).</p><p><strong>Host support:</strong></p><ul><li><strong>Linux (modern):</strong> NetworkManager/systemd-networkd reads RDNSS natively.</li><li><strong>macOS, iOS:</strong> native support since macOS 10.7 / iOS 10.</li><li><strong>Windows:</strong> RDNSS support added in Windows 10 Creators Update (2017). Earlier Windows versions ignored RDNSS and required DHCPv6 or manual DNS.</li><li><strong>Android:</strong> native support since 4.x.</li></ul><p><strong>Comparison to stateless DHCPv6:</strong> RDNSS is simpler — one less protocol. Stateless DHCPv6 is more feature-rich (domain search, NTP, SIP servers) and better tooled. Many networks use both: RDNSS for DNS and DHCPv6 for richer options.</p><p><strong>CCNA context:</strong> know that RDNSS exists as the modern alternative. The exam focuses on SLAAC / stateless DHCPv6 / stateful DHCPv6 more than RDNSS.</p>",
+      "visual": { "type": "comparison", "params": { "left": { "label": "Stateless DHCPv6 for DNS", "items": ["Extra server/protocol", "Widely deployed", "Richer options"] }, "right": { "label": "RDNSS option in RA", "items": ["One protocol (NDP)", "Simpler ops", "RFC 8106, 2017+"] } } },
+      "hack": {
+        "memory": "RDNSS = DNS via RA. Skips DHCPv6 entirely for DNS. RFC 8106. Configure with ipv6 nd ra dns server <addr> <lifetime>.",
+        "practice": "Low priority — just flashcard: RFC 8106, DNS in RA, modern alternative to stateless DHCPv6.",
+        "effort": "low",
+        "meta": "Background knowledge. Jeremy IT Lab Day 33. Exam rarely drills on RDNSS specifically, but know it exists."
+      }
+    },
+    {
+      "id": "1.8.e.5",
+      "term": "Cisco O-flag command",
+      "weight": "med",
+      "info": "<p><strong><code>ipv6 nd other-config-flag</code></strong> is the Cisco interface command that sets O=1 in outgoing Router Advertisements. This is how you trigger <strong>stateless DHCPv6</strong> on a given LAN — hosts receiving these RAs will query DHCPv6 for DNS and other config while still using SLAAC for addressing.</p><p><strong>Full config sequence:</strong></p><pre>ipv6 dhcp pool STATELESS\n dns-server 2001:DB8::53\n dns-server 2001:DB8::54\n domain-name corp.example.com\n!\ninterface GigabitEthernet0/0\n ipv6 address 2001:DB8:1::1/64\n ipv6 nd other-config-flag\n ipv6 dhcp server STATELESS\n no shutdown</pre><p>Three pieces: (1) a DHCPv6 pool with DNS/domain; (2) O-flag set on the interface so hosts know to ask; (3) DHCPv6 server enabled on the interface so it responds to Information-Requests.</p><p><strong>Default behavior without the command:</strong> O=0. Hosts use pure SLAAC and have no way to learn DNS (unless RDNSS is also configured).</p><p><strong>Related commands:</strong></p><ul><li><code>ipv6 nd managed-config-flag</code> — sets M=1 for stateful DHCPv6</li><li><code>ipv6 nd ra dns server</code> — adds RDNSS DNS to RA directly</li><li><code>ipv6 nd prefix ... no-autoconfig</code> — clears A-flag for a specific prefix</li></ul><p><strong>Verification:</strong> <code>show ipv6 interface Gi0/0</code> — look for 'ND advertised other config flag is TRUE.'</p>",
+      "visual": { "type": "packet-flow", "params": { "nodes": ["ipv6 dhcp pool", "ipv6 nd other-config-flag", "ipv6 dhcp server", "RA carries O=1 → hosts query DHCPv6"], "color": "#8b5cf6" } },
+      "hack": {
+        "memory": "ipv6 nd other-config-flag = set O=1 in RA = trigger stateless DHCPv6. Companion: ipv6 nd managed-config-flag for M=1 (stateful). Verify with show ipv6 interface.",
+        "practice": "Build a lab with an ipv6 dhcp pool providing DNS. Apply ipv6 nd other-config-flag on the LAN interface. Connect a PC and confirm it gets address from SLAAC and DNS from DHCPv6.",
+        "effort": "medium",
+        "meta": "Config-focused exam question. Jeremy IT Lab Day 33. Wendell Odom OCG Chapter 23."
+      }
+    }
+  ],
+  "1.8.f": [
+    {
+      "id": "1.8.f.1",
+      "term": "Stateful DHCPv6",
+      "weight": "high",
+      "info": "<p><strong>Stateful DHCPv6</strong> is full, centralized IPv6 address assignment — functionally identical to DHCPv4 for IPv4. The DHCPv6 server allocates addresses from a pool, tracks which client has which address in a <strong>binding table</strong>, manages leases with timers, and provides DNS, domain, and other options. Stateful means: the server maintains state about every client.</p><p><strong>Triggered by RA flag M=1:</strong> when a host receives an RA with M=1 (Managed Address Configuration), it sends a DHCPv6 Solicit to FF02::1:2 and negotiates its address via the SARR four-step exchange.</p><p><strong>Why use stateful instead of SLAAC?</strong></p><ul><li><strong>Tight control</strong> over which addresses exist and who has them — important for security policies, audit logs, and compliance.</li><li><strong>Reservations</strong> — bind a specific DUID to a specific address, like DHCPv4 reservations.</li><li><strong>Short leases</strong> to reclaim addresses from devices that leave the network.</li><li><strong>Predictable addresses</strong> — you can guarantee a device always gets the same address.</li></ul><p><strong>Cisco configuration:</strong></p><pre>ipv6 dhcp pool STATEFUL\n address prefix 2001:DB8:1::/64 lifetime infinite infinite\n dns-server 2001:DB8::53\n domain-name corp.example.com\n!\ninterface Gi0/0\n ipv6 address 2001:DB8:1::1/64\n ipv6 nd managed-config-flag\n ipv6 nd prefix 2001:DB8:1::/64 no-autoconfig\n ipv6 dhcp server STATEFUL</pre><p>Note: <code>no-autoconfig</code> on the prefix clears the A-flag so hosts do NOT run SLAAC alongside. This forces pure stateful DHCPv6.</p><p><strong>Binding table:</strong> <code>show ipv6 dhcp binding</code> displays current leases — client DUID, address assigned, lease remaining.</p>",
+      "visual": { "type": "handshake", "params": { "leftLabel": "Host", "rightLabel": "DHCPv6 Server", "steps": ["Solicit → FF02::1:2", "← Advertise (offered address)", "Request → FF02::1:2", "← Reply (address, DNS, domain, lease)"] } },
+      "hack": {
+        "memory": "Stateful DHCPv6 = full DHCP for IPv6. Like DHCPv4 but with IPv6 addresses. M-flag triggers it. Server tracks binding: DUID → address → lease.",
+        "practice": "Configure a stateful DHCPv6 pool. Apply ipv6 nd managed-config-flag and ipv6 nd prefix ... no-autoconfig. Verify binding with show ipv6 dhcp binding after a host connects.",
+        "effort": "medium",
+        "meta": "Common exam topic. Jeremy IT Lab Day 33. Wendell Odom OCG Chapter 23. Know: M=1 triggers stateful, server maintains binding table."
+      }
+    },
+    {
+      "id": "1.8.f.2",
+      "term": "M-flag",
+      "weight": "high",
+      "info": "<p>The <strong>M-flag (Managed Address Configuration)</strong> is a bit in the RA that tells hosts: 'Use DHCPv6 to obtain your IPv6 address.' <strong>M=1 triggers stateful DHCPv6</strong>. M=0 (default) means hosts should not query DHCPv6 for an address (they use SLAAC or the address is manually configured).</p><p><strong>Behavior by M/O combination:</strong></p><ul><li><strong>M=0, O=0:</strong> Pure SLAAC. No DHCPv6.</li><li><strong>M=0, O=1:</strong> Stateless DHCPv6 (SLAAC for address, DHCPv6 for DNS).</li><li><strong>M=1, O=0:</strong> Stateful DHCPv6 for address, but no explicit O — O is typically implied when M=1, though some implementations still require O=1 for DNS.</li><li><strong>M=1, O=1:</strong> Fully stateful DHCPv6 with O explicit for clarity. Most common stateful config.</li></ul><p><strong>Cisco command:</strong> <code>ipv6 nd managed-config-flag</code> under the interface. Remove with <code>no ipv6 nd managed-config-flag</code>.</p><p><strong>Important pairing:</strong> when M=1, you typically also want <strong>A=0 for the prefix</strong> so hosts do not simultaneously run SLAAC. This is done with <code>ipv6 nd prefix &lt;prefix&gt; no-autoconfig</code>. Without it, hosts will end up with both a SLAAC and a DHCPv6-assigned address — not always desired.</p><p><strong>Verification:</strong> <code>show ipv6 interface Gi0/0</code> shows 'ND advertised managed config flag is TRUE' when M=1.</p><p><strong>Exam phrasing:</strong> 'Which RA flag causes a host to use DHCPv6 for addressing?' → M-flag. 'What command sets M=1 on a Cisco router?' → ipv6 nd managed-config-flag.</p>",
+      "visual": { "type": "comparison", "params": { "left": { "label": "M-flag OFF", "items": ["Hosts use SLAAC", "No stateful DHCPv6", "Default Cisco behavior"] }, "right": { "label": "M-flag ON", "items": ["Hosts query DHCPv6 for address", "Server maintains binding", "Pair with A=0 to disable SLAAC"] } } },
+      "hack": {
+        "memory": "M = Managed (full DHCPv6 control). M=1 triggers stateful DHCPv6 for addressing. Command: ipv6 nd managed-config-flag. Pair with A=0 via no-autoconfig to disable SLAAC.",
+        "practice": "Draw the M-flag truth table. Configure ipv6 nd managed-config-flag and verify via show ipv6 interface. Combine with no-autoconfig and observe host behavior in Packet Tracer.",
+        "effort": "medium",
+        "meta": "Classic exam question. Jeremy IT Lab Day 33. Wendell Odom OCG Chapter 23."
+      }
+    },
+    {
+      "id": "1.8.f.3",
+      "term": "SARR process",
+      "weight": "high",
+      "info": "<p><strong>SARR (Solicit, Advertise, Request, Reply)</strong> is the four-step DHCPv6 exchange for stateful address assignment. It is the IPv6 analogue of DHCPv4's <strong>DORA</strong> (Discover, Offer, Request, Ack) — same idea, different message names.</p><p><strong>The four steps:</strong></p><ol><li><strong>Solicit</strong> — client multicasts to FF02::1:2 asking for an address. Source is the client's link-local; destination is the DHCPv6 server multicast group.</li><li><strong>Advertise</strong> — DHCPv6 server replies with an address offer and configuration options. Contains the server's DUID and the offered address.</li><li><strong>Request</strong> — client formally asks for the offered address (necessary because multiple servers might have Advertised, and the client picks one).</li><li><strong>Reply</strong> — chosen server confirms the assignment. Client now has the address with a valid lease.</li></ol><p><strong>Compared to DHCPv4 DORA:</strong></p><ul><li>DHCPv4: Discover (broadcast) → Offer → Request (broadcast) → Ack</li><li>DHCPv6: Solicit (multicast FF02::1:2) → Advertise → Request (multicast) → Reply</li></ul><p>Same 4-step handshake, different transport (multicast vs broadcast) and naming.</p><p><strong>Optional rapid-commit:</strong> DHCPv6 supports a 2-step exchange (Solicit + Reply) if the client requests rapid commit in the Solicit and the server supports it. This cuts latency but skips the multi-server comparison.</p><p><strong>Renewal:</strong> after initial assignment, clients renew with unicast <strong>Renew</strong> (to server) → <strong>Reply</strong>. Rebind is used if renewal fails.</p>",
+      "visual": { "type": "handshake", "params": { "leftLabel": "Client", "rightLabel": "DHCPv6 Server", "steps": ["1. Solicit → FF02::1:2", "2. ← Advertise (offer)", "3. Request → FF02::1:2", "4. ← Reply (address + DNS + lease)"] } },
+      "hack": {
+        "memory": "SARR = Solicit, Advertise, Request, Reply. IPv6 version of DORA. Four steps, same as DHCPv4 conceptually. Use FF02::1:2 for client → server multicasts.",
+        "practice": "Flashcard SARR steps. Compare side by side with DORA. In Wireshark, capture a DHCPv6 exchange and identify all four messages.",
+        "effort": "medium",
+        "meta": "Common exam fact. Jeremy IT Lab Day 33. Wendell Odom OCG Chapter 23. Memorize SARR order."
+      }
+    },
+    {
+      "id": "1.8.f.4",
+      "term": "Gateway STILL from RA",
+      "weight": "high",
+      "info": "<p><strong>Even with stateful DHCPv6, the default gateway still comes from the Router Advertisement — NOT from DHCPv6.</strong> This is a critical difference from IPv4 DHCP, which includes the default gateway in its DHCP Offer. DHCPv6 has no equivalent option; gateway learning is always an NDP function.</p><p><strong>How the gateway is learned:</strong> the host receives an RA from a router. The RA's source address (the router's <strong>link-local</strong>) is installed as the default gateway. Even if DHCPv6 assigns the host's global address, the gateway does not come from the DHCPv6 Reply.</p><p><strong>Implication:</strong> if you use stateful DHCPv6 but block or filter RAs (e.g., RA Guard misconfigured), hosts get an address but no gateway — they can talk locally but cannot reach other subnets. Classic troubleshooting scenario.</p><p><strong>Why IPv6 chose this design:</strong> the RA is already essential for IPv6 (carries on-link prefix, MTU, and required for NDP functionality). Centralizing gateway info in the RA keeps NDP as the one source of truth. DHCPv6 focuses on address + optional config, not topology discovery.</p><p><strong>Exam trap:</strong> question like 'A host uses stateful DHCPv6. Where does it learn its default gateway?' The correct answer is 'from the RA,' not 'from the DHCPv6 server.' Many students miss this because they extrapolate from DHCPv4 behavior.</p><p><strong>Verification on a Windows host:</strong> <code>ipconfig /all</code> shows both the DHCPv6-assigned address and the default gateway (which came from the RA). On Linux: <code>ip -6 route</code> shows the default route with the router's link-local as next-hop.</p>",
+      "visual": { "type": "hierarchy", "params": { "root": "IPv6 Host Configuration Sources", "children": [{ "name": "Address — SLAAC or DHCPv6 (depending on flags)" }, { "name": "Default Gateway — ALWAYS from RA (router's FE80::)" }, { "name": "DNS — SLAAC+DHCPv6 / DHCPv6 / RDNSS" }] } },
+      "hack": {
+        "memory": "Gateway comes from the RA, NOT DHCPv6. Even in stateful DHCPv6 mode. Address might come from DHCPv6, but the gateway is the RA source (router's link-local). Classic exam gotcha.",
+        "practice": "Troubleshoot scenario: stateful DHCPv6 works, hosts get addresses, but cannot reach other subnets. Check: are RAs being received? If blocked, hosts have no gateway.",
+        "effort": "low",
+        "meta": "Very common exam question. Jeremy IT Lab Day 33. Wendell Odom OCG Chapter 23. Memorize: gateway = RA, always."
+      }
+    },
+    {
+      "id": "1.8.f.5",
+      "term": "Link-local always auto",
+      "weight": "high",
+      "info": "<p><strong>Every IPv6-enabled interface automatically generates a link-local address (FE80::/10) regardless of which addressing method is used for the global address.</strong> Link-local is always there — SLAAC, stateful DHCPv6, static configuration, or pure manual assignment all coexist with the automatic link-local.</p><p><strong>How link-local is generated:</strong> the host takes <code>FE80::/64</code> as the prefix and derives the interface ID via EUI-64 (older) or RFC 7217 (modern). The result is something like <code>FE80::21A:2BFF:FE3C:4D5E</code>. DAD runs on this address before it is claimed.</p><p><strong>Why link-local is required:</strong></p><ul><li>NDP messages (RS, RA, NS, NA) require link-local source addresses.</li><li>Routing protocols (OSPFv3, EIGRP for IPv6) form adjacencies using link-local addresses.</li><li>Default gateway on hosts is the router's link-local, not global.</li><li>DHCPv6 client exchanges use link-local as source.</li></ul><p><strong>Coexistence example:</strong> a host with stateful DHCPv6 will have:</p><ul><li><strong>FE80::21A:2BFF:FE3C:4D5E/64</strong> — auto-generated link-local</li><li><strong>2001:DB8:1::100/128</strong> — DHCPv6-assigned global</li></ul><p>Both exist simultaneously. The link-local is used for NDP and the gateway's link-local; the global is used for internet communication.</p><p><strong>Manual override:</strong> you can override the auto-generated link-local with <code>ipv6 address FE80::1 link-local</code> — useful on routers to make the link-local memorable (FE80::1 instead of a long EUI-64 derived value).</p>",
+      "visual": { "type": "layer-stack", "params": { "layers": ["Global: 2001:DB8:1::100 (DHCPv6 or SLAAC)", "Link-local: FE80::21A:2BFF:FE3C:4D5E (always auto)", "Loopback: ::1/128 (always available)"], "highlight": 1 } },
+      "hack": {
+        "memory": "Link-local = always auto. Every IPv6 interface gets a FE80:: address, regardless of SLAAC/DHCPv6/static. Required for NDP, routing protocols, and gateway discovery.",
+        "practice": "Run show ipv6 interface on any IPv6-enabled router interface. You will see both the link-local (FE80::) and the global/configured address. Prove to yourself the link-local is independent.",
+        "effort": "low",
+        "meta": "Fundamental IPv6 fact. Jeremy IT Lab Day 32. Wendell Odom OCG Chapter 23. Know: link-local is always auto-generated, always required."
+      }
+    },
+    {
+      "id": "1.8.f.6",
+      "term": "Cisco M-flag command",
+      "weight": "med",
+      "info": "<p><strong><code>ipv6 nd managed-config-flag</code></strong> is the Cisco interface command that sets <strong>M=1</strong> in outgoing RAs, signaling hosts to use stateful DHCPv6 for address assignment.</p><p><strong>Full stateful DHCPv6 config sequence:</strong></p><pre>ipv6 dhcp pool STATEFUL\n address prefix 2001:DB8:1::/64 lifetime infinite infinite\n dns-server 2001:DB8::53\n domain-name example.com\n!\ninterface GigabitEthernet0/0\n ipv6 address 2001:DB8:1::1/64\n ipv6 nd managed-config-flag\n ipv6 nd prefix 2001:DB8:1::/64 no-autoconfig\n ipv6 dhcp server STATEFUL\n no shutdown</pre><p>Four critical pieces:</p><ol><li><strong>Pool</strong> — defines address range, DNS, domain</li><li><strong>M-flag set</strong> via <code>ipv6 nd managed-config-flag</code></li><li><strong>A-flag cleared</strong> via <code>ipv6 nd prefix ... no-autoconfig</code> — prevents hosts from running SLAAC alongside</li><li><strong>Server enabled</strong> via <code>ipv6 dhcp server</code> — applies the pool to the interface</li></ol><p><strong>If you skip the no-autoconfig:</strong> hosts run both SLAAC AND stateful DHCPv6, ending up with two global addresses. Usually not desired.</p><p><strong>Verification:</strong></p><ul><li><code>show ipv6 interface Gi0/0</code> — confirms 'ND advertised managed config flag is TRUE'</li><li><code>show ipv6 dhcp binding</code> — shows clients' leases</li><li><code>show ipv6 dhcp pool</code> — pool status and utilization</li></ul><p><strong>Common mistakes:</strong> forgetting no-autoconfig (dual addresses), forgetting ipv6 dhcp server (interface does not serve the pool), forgetting ipv6 unicast-routing globally (router does not forward).</p>",
+      "visual": { "type": "packet-flow", "params": { "nodes": ["ipv6 dhcp pool", "ipv6 nd managed-config-flag (M=1)", "ipv6 nd prefix ... no-autoconfig (A=0)", "ipv6 dhcp server", "RA triggers client SARR"], "color": "#f59e0b" } },
+      "hack": {
+        "memory": "ipv6 nd managed-config-flag = M=1. Pair with no-autoconfig on the prefix to clear A-flag and avoid dual addresses. Then ipv6 dhcp server to apply the pool.",
+        "practice": "Build a stateful DHCPv6 lab. Verify show ipv6 interface shows M=TRUE. Check show ipv6 dhcp binding after a PC connects.",
+        "effort": "medium",
+        "meta": "Configuration exam topic. Jeremy IT Lab Day 33. Wendell Odom OCG Chapter 23."
+      }
+    }
+  ],
+  "1.8.g": [
+    {
+      "id": "1.8.g.1",
+      "term": "NDP",
+      "weight": "high",
+      "info": "<p><strong>NDP (Neighbor Discovery Protocol, RFC 4861)</strong> is the IPv6 protocol that replaces multiple IPv4 functions: <strong>ARP</strong> (address resolution), <strong>ICMP Router Discovery</strong> (finding default gateways), and <strong>ICMP Redirect</strong> (routing hints). NDP uses ICMPv6 messages, not a separate layer-2 protocol.</p><p><strong>Five NDP message types:</strong></p><ul><li><strong>RS (Router Solicitation)</strong> — Type 133. Host asks routers to send an RA.</li><li><strong>RA (Router Advertisement)</strong> — Type 134. Router announces prefix, gateway, flags.</li><li><strong>NS (Neighbor Solicitation)</strong> — Type 135. Resolves IPv6 → MAC, also used for DAD.</li><li><strong>NA (Neighbor Advertisement)</strong> — Type 136. Reply to NS, carries MAC.</li><li><strong>Redirect</strong> — Type 137. Router informs host of a better next-hop.</li></ul><p><strong>Compared to IPv4 equivalents:</strong></p><ul><li>ARP Request/Reply → NS/NA (Neighbor Solicitation/Advertisement)</li><li>ICMP Router Advertisement (rarely used in IPv4) → RS/RA (core to IPv6)</li><li>ICMP Redirect → Redirect (same concept)</li></ul><p><strong>Key advantages over ARP:</strong></p><ul><li><strong>Multicast instead of broadcast</strong> — NS goes to solicited-node multicast (FF02::1:FFxx:xxxx), not all-ports flood.</li><li><strong>Integrated with router discovery</strong> — one protocol family handles both layer-3 neighbors and gateway learning.</li><li><strong>DAD built in</strong> — every address validates uniqueness before use.</li><li><strong>Extensible</strong> — new options can be added to RA/NS/NA without protocol changes.</li></ul><p><strong>Neighbor cache:</strong> the IPv6 equivalent of the ARP table. View with <code>show ipv6 neighbors</code>. Entries have states: INCMP (incomplete), REACH (reachable), STALE, DELAY, PROBE.</p>",
+      "visual": { "type": "layer-stack", "params": { "layers": ["RS (133) — host asks for router", "RA (134) — router advertises", "NS (135) — neighbor lookup / DAD", "NA (136) — neighbor reply", "Redirect (137) — better next-hop"], "highlight": 0 } },
+      "hack": {
+        "memory": "NDP = ARP + Router Discovery + Redirect, all in one ICMPv6 protocol. Five messages: RS/RA for routers, NS/NA for neighbors, Redirect for hints. Uses multicast, not broadcast. More efficient than ARP.",
+        "practice": "Flashcard all 5 messages with their ICMPv6 type numbers. Capture NDP traffic in Wireshark to see them in action. Run show ipv6 neighbors on a router.",
+        "effort": "medium",
+        "meta": "Core IPv6 topic. Jeremy IT Lab Day 32. Wendell Odom OCG Chapter 23. Must know all five message types."
+      }
+    },
+    {
+      "id": "1.8.g.2",
+      "term": "RS (Type 133)",
+      "weight": "high",
+      "info": "<p><strong>Router Solicitation (RS) is ICMPv6 Type 133</strong> — sent by a host to ask any routers on the link to send an RA. This jumpstarts the autoconfiguration process instead of waiting for the next periodic RA.</p><p><strong>Packet characteristics:</strong></p><ul><li><strong>Type:</strong> 133</li><li><strong>Code:</strong> 0</li><li><strong>Destination:</strong> <code>FF02::2</code> (all-routers multicast, link-local scope)</li><li><strong>Source:</strong> host's link-local address, or <code>::</code> if not yet generated</li><li><strong>Payload:</strong> optional source link-layer address option (the host's MAC)</li></ul><p><strong>When sent:</strong></p><ul><li>Interface comes up (boot, reconnect, wake from sleep)</li><li>Host actively needs configuration refresh</li></ul><p><strong>Rate-limited:</strong> a host sends at most 3 RS messages (default) 4 seconds apart to avoid flooding. After that, it waits for unsolicited RAs.</p><p><strong>Router response:</strong> each router on the link replies with its own RA. Responses may be unicast to the soliciting host or multicast to FF02::1, depending on the router's policy.</p><p><strong>Contrast with IPv4:</strong> IPv4 has no equivalent. Gateway discovery in IPv4 relies on DHCP (which provides the default gateway option) or static configuration. IPv6's RS/RA mechanism is more protocol-native.</p>",
+      "visual": { "type": "packet-flow", "params": { "nodes": ["Host boots", "ICMPv6 RS (Type 133)", "Dest FF02::2", "Router responds with RA"], "color": "#3b82f6" } },
+      "hack": {
+        "memory": "RS = Type 133 = 'Routers, anyone?' Sent to FF02::2 (all routers). Response triggers RA. Rate-limited: max 3 per boot cycle.",
+        "practice": "Flashcard: RS=133, destination=FF02::2. Wireshark a Linux boot — the first NDP packet from the host should be an RS.",
+        "effort": "low",
+        "meta": "Required memorization. Jeremy IT Lab Day 32. Wendell Odom OCG Chapter 23. RS=133, FF02::2."
+      }
+    },
+    {
+      "id": "1.8.g.3",
+      "term": "RA (Type 134)",
+      "weight": "high",
+      "info": "<p><strong>Router Advertisement (RA) is ICMPv6 Type 134</strong> — sent by routers to announce their presence, advertise prefixes, and convey autoconfiguration flags. RAs are the heart of IPv6 host configuration.</p><p><strong>Packet characteristics:</strong></p><ul><li><strong>Type:</strong> 134</li><li><strong>Code:</strong> 0</li><li><strong>Destination:</strong> <code>FF02::1</code> (all-nodes multicast) for periodic RAs; unicast to the requester for RS responses</li><li><strong>Source:</strong> router's link-local address (FE80::) — this is what hosts install as the default gateway</li></ul><p><strong>Payload fields:</strong></p><ul><li><strong>Cur Hop Limit</strong> — default TTL hosts should use</li><li><strong>M-flag, O-flag</strong> — managed/other config flags</li><li><strong>Router Lifetime</strong> — how long this router is a valid default gateway (seconds)</li><li><strong>Reachable Time</strong> — NDP reachability timer</li><li><strong>Retrans Timer</strong> — retransmit interval for NS</li><li><strong>Options:</strong> Source Link-Layer Address, MTU, Prefix Information (prefix, prefix length, A/L flags, valid/preferred lifetimes), RDNSS</li></ul><p><strong>Timing:</strong> Cisco default periodic interval is random between ~200 sec (max) and 0.5× (min). Tunable with <code>ipv6 nd ra interval [max] [min]</code>.</p><p><strong>Disabling RAs:</strong> on a host-facing interface where you do not want SLAAC, use <code>ipv6 nd ra suppress</code>. On infrastructure links (router-to-router), you often suppress RAs.</p>",
+      "visual": { "type": "packet-flow", "params": { "nodes": ["Router periodic timer or RS received", "RA (Type 134) from FE80::router", "Dest FF02::1 (periodic) or unicast", "Hosts consume prefix, flags, gateway"], "color": "#8b5cf6" } },
+      "hack": {
+        "memory": "RA = Type 134 = router announcement. Sent to FF02::1 periodically or to host in response to RS. Default gateway = RA source (router's FE80::). Carries prefix, flags (A/M/O), lifetimes.",
+        "practice": "show ipv6 interface on a Cisco router displays RA interval, lifetime, prefix advertised. Capture RAs in Wireshark and inspect all fields.",
+        "effort": "medium",
+        "meta": "Core NDP message. Jeremy IT Lab Day 32. Wendell Odom OCG Chapter 23. Know type=134, destination=FF02::1, source=router's FE80::."
+      }
+    },
+    {
+      "id": "1.8.g.4",
+      "term": "NS (Type 135)",
+      "weight": "high",
+      "info": "<p><strong>Neighbor Solicitation (NS) is ICMPv6 Type 135</strong>. NS serves two distinct purposes: <strong>address resolution</strong> (IPv6 → MAC, replacing ARP Request) and <strong>Duplicate Address Detection (DAD)</strong>.</p><p><strong>For address resolution:</strong></p><ul><li><strong>Destination:</strong> <strong>solicited-node multicast</strong> of the target (<code>FF02::1:FFxx:xxxx</code>, where xx:xxxx = last 24 bits of target's unicast address)</li><li><strong>Source:</strong> querier's link-local or global unicast</li><li><strong>Target Address option:</strong> the IPv6 address being resolved</li><li><strong>Source Link-Layer Address option:</strong> the querier's MAC (so target can reply directly)</li></ul><p>Target replies with NA (Type 136) containing its MAC. Requester stores the mapping in the neighbor cache.</p><p><strong>For DAD:</strong></p><ul><li><strong>Destination:</strong> solicited-node multicast of the tentative address</li><li><strong>Source:</strong> <code>::</code> (unspecified — host has not claimed any address yet)</li><li><strong>Target Address:</strong> the tentative address being tested</li><li>No Source Link-Layer Address option (because source is ::)</li></ul><p>If any node responds with NA, the tentative address is a duplicate and must be abandoned. No response = unique = safe to use.</p><p><strong>Why multicast instead of broadcast?</strong> NS goes only to the solicited-node group (derived from the target's last 24 bits). Typically, only the target (and rare collisions) are in that group. Compare to ARP's broadcast, which forces every NIC on the subnet to process the frame up to L2.</p><p><strong>Exam-critical packet details:</strong> NS for address resolution has a real source address; NS for DAD has :: as source. Destination is always the solicited-node multicast.</p>",
+      "visual": { "type": "handshake", "params": { "leftLabel": "Requester", "rightLabel": "Target", "steps": ["NS (Type 135, dst=FF02::1:FFxx:xxxx)", "← NA (Type 136, carries MAC)", "Neighbor cache updated"] } },
+      "hack": {
+        "memory": "NS = Type 135 = Neighbor Solicit = 'who has this address?' (like ARP Request). Dest = solicited-node multicast. Also used for DAD with source ::. NS + NA replace ARP Request + Reply.",
+        "practice": "Flashcard NS fields. In Wireshark, capture a ping between two IPv6 hosts — the first exchange should be NS/NA. Note the solicited-node destination.",
+        "effort": "medium",
+        "meta": "Core exam fact. Jeremy IT Lab Day 32. Wendell Odom OCG Chapter 23."
+      }
+    },
+    {
+      "id": "1.8.g.5",
+      "term": "NA (Type 136)",
+      "weight": "high",
+      "info": "<p><strong>Neighbor Advertisement (NA) is ICMPv6 Type 136</strong>, the reply to an NS. It carries the target's <strong>link-layer address (MAC)</strong> back to the requester, completing the IPv6 → MAC resolution — the replacement for ARP Reply.</p><p><strong>Packet characteristics:</strong></p><ul><li><strong>Type:</strong> 136</li><li><strong>Destination:</strong> typically the requester's unicast address (learned from the NS source)</li><li><strong>Source:</strong> the target's own unicast address</li><li><strong>Target Address option:</strong> the address being advertised</li><li><strong>Target Link-Layer Address option:</strong> the target's MAC</li><li><strong>Flags (R, S, O):</strong><ul><li>R = Router (sender is a router)</li><li>S = Solicited (this NA is a response to an NS, not unsolicited)</li><li>O = Override (update existing neighbor cache entry)</li></ul></li></ul><p><strong>Unsolicited NA:</strong> sent without a prior NS when a host's MAC changes (e.g., VRRP failover, NIC replacement). Destination is typically <code>FF02::1</code> (all-nodes) with O=1 to tell everyone to overwrite their neighbor cache.</p><p><strong>For DAD:</strong> if a host responds to a DAD NS with an NA, it signals to the tentative host that the address is already in use. The tentative host abandons the address.</p><p><strong>Exam key points:</strong></p><ul><li>NA = Type 136</li><li>Replaces ARP Reply</li><li>Flags: R, S, O</li><li>Unsolicited NA to FF02::1 announces a MAC change</li></ul>",
+      "visual": { "type": "packet-flow", "params": { "nodes": ["Target receives NS", "Builds NA (Type 136)", "Dest = requester's unicast", "Requester updates neighbor cache"], "color": "#10b981" } },
+      "hack": {
+        "memory": "NA = Type 136 = Neighbor Advertisement = 'I'm here, here's my MAC' (like ARP Reply). Flags R/S/O: Router, Solicited, Override. Unsolicited NA announces MAC changes.",
+        "practice": "Flashcard NA fields and flags. In Wireshark, inspect an NA and identify the Target Address and Target Link-Layer Address options.",
+        "effort": "low",
+        "meta": "Routine exam fact. Jeremy IT Lab Day 32. Wendell Odom OCG Chapter 23. NA=136, replaces ARP Reply."
+      }
+    },
+    {
+      "id": "1.8.g.6",
+      "term": "Solicited-node multicast",
+      "weight": "high",
+      "info": "<p>The <strong>solicited-node multicast address</strong> is a per-unicast-address multicast group that optimizes NDP's neighbor discovery. It is formed as <code>FF02::1:FF</code> + <strong>last 24 bits</strong> of the unicast address. Every IPv6 interface automatically joins the solicited-node groups for each of its unicast addresses.</p><p><strong>Construction:</strong></p><ol><li>Take the unicast address, e.g. <code>2001:DB8::1234:5678</code>.</li><li>Extract the last 24 bits (6 hex digits): <code>34:5678</code>.</li><li>Prefix with <code>FF02::1:FF</code>: <code>FF02::1:FF34:5678</code>.</li></ol><p><strong>More examples:</strong></p><ul><li><code>2001:DB8::1</code> → <code>FF02::1:FF00:0001</code> = <code>FF02::1:FF00:1</code></li><li><code>FE80::21A:2BFF:FE3C:4D5E</code> → <code>FF02::1:FF3C:4D5E</code></li><li><code>2001:DB8:CAFE:1:ABCD:EF12:3456:789A</code> → <code>FF02::1:FF56:789A</code></li></ul><p><strong>Why this design?</strong> Instead of flooding neighbor solicitations to every device (like ARP), NS messages target a small, specific group. Typically only one device on the link is in any given solicited-node group — the owner of that address. Unrelated devices never process the frame above L2.</p><p><strong>When a host joins:</strong> as soon as a host configures a unicast address (link-local, SLAAC global, static), it joins that address's solicited-node group and informs its local switch via MLD (Multicast Listener Discovery).</p><p><strong>Used by:</strong> NS for address resolution, NS for DAD. Both send to the solicited-node group of the target address.</p><p><strong>Prefix:</strong> <code>FF02::1:FF00:0/104</code> — the first 104 bits are fixed; the last 24 bits vary.</p>",
+      "visual": { "type": "hierarchy", "params": { "root": "Solicited-node multicast FF02::1:FFxx:xxxx", "children": [{ "name": "xx:xxxx = last 24 bits of unicast" }, { "name": "Auto-joined when unicast configured" }, { "name": "Used by NS for lookup + DAD" }] } },
+      "hack": {
+        "memory": "Solicited-node = FF02::1:FF + last 24 bits of the unicast address. Every host auto-joins for each of its addresses. Used by NS. Dramatically more efficient than ARP broadcast.",
+        "practice": "Compute solicited-node for 5 random unicast addresses. Practice: 2001:DB8::1 → FF02::1:FF00:1. FE80::ABCD:1234 → FF02::1:FFCD:1234.",
+        "effort": "medium",
+        "meta": "Common exam calculation. Jeremy IT Lab Day 32. Wendell Odom OCG Chapter 23. Practice until automatic."
+      }
+    },
+    {
+      "id": "1.8.g.7",
+      "term": "show ipv6 neighbors",
+      "weight": "high",
+      "info": "<p><strong><code>show ipv6 neighbors</code></strong> displays the router's <strong>neighbor cache</strong> — the IPv6 equivalent of <code>show arp</code>. Each entry maps an IPv6 address to a MAC and interface, with a state showing how fresh the entry is.</p><p><strong>Example output:</strong></p><pre>Router# show ipv6 neighbors\nIPv6 Address                              Age Link-layer Addr State Interface\nFE80::21A:2BFF:FE3C:4D5E                    5 001a.2b3c.4d5e  REACH Gi0/0\n2001:DB8:1::100                             2 001a.2b3c.4d5e  REACH Gi0/0\nFE80::C8E0:FFFF:FE12:3456                  30 c8e0.ff12.3456  STALE Gi0/1</pre><p><strong>Fields:</strong></p><ul><li><strong>IPv6 Address</strong> — neighbor's address</li><li><strong>Age</strong> — time since last update (seconds or minutes)</li><li><strong>Link-layer Addr</strong> — neighbor's MAC</li><li><strong>State</strong> — INCMP (incomplete, no reply yet), REACH (reachable, recently confirmed), STALE (not confirmed recently, may be gone), DELAY (between STALE and PROBE), PROBE (actively sending NS to verify)</li><li><strong>Interface</strong> — outgoing interface to reach the neighbor</li></ul><p><strong>Neighbor cache states (simplified):</strong></p><ul><li><strong>INCOMPLETE</strong> — NS sent, awaiting NA</li><li><strong>REACHABLE</strong> — confirmed reachable within Reachable Time (default 30 sec)</li><li><strong>STALE</strong> — timer expired, use if still working but verify on next transaction</li><li><strong>DELAY</strong> — waiting a few seconds before probing</li><li><strong>PROBE</strong> — sending NS to verify; if no reply, entry is removed</li></ul><p><strong>Related commands:</strong></p><ul><li><code>clear ipv6 neighbors</code> — flush the cache (rarely needed)</li><li><code>ipv6 neighbor 2001:DB8::5 Gi0/0 0011.2233.4455</code> — add a static entry</li></ul>",
+      "visual": { "type": "comparison", "params": { "left": { "label": "IPv4", "items": ["show arp", "ARP table: IP → MAC → interface", "Aging timer (300 sec default)"] }, "right": { "label": "IPv6", "items": ["show ipv6 neighbors", "Neighbor cache: IPv6 → MAC → interface", "State machine: REACH/STALE/PROBE"] } } },
+      "hack": {
+        "memory": "show ipv6 neighbors = show arp for IPv6. Displays neighbor cache with state machine (REACH, STALE, PROBE). IPv6 tracks reachability more actively than IPv4 ARP.",
+        "practice": "On a Cisco router, run show ipv6 neighbors. Identify the state column. Clear the cache and watch entries rebuild. Compare output with show arp.",
+        "effort": "low",
+        "meta": "Verification command. Jeremy IT Lab Day 32. Wendell Odom OCG Chapter 23. Equivalent of show arp for IPv6."
+      }
+    }
+  ],
+  "1.8.h": [
+    {
+      "id": "1.8.h.1",
+      "term": "'ipv6 unicast-routing'",
+      "weight": "high",
+      "info": "<p><strong><code>ipv6 unicast-routing</code></strong> is the global configuration command that enables the router to <strong>forward IPv6 packets</strong> between interfaces and <strong>send Router Advertisements</strong>. Without it, the router behaves like a host for IPv6 — it can receive and originate IPv6 traffic on its own interfaces, but it will not route between them and will not advertise prefixes to hosts. This is the single most forgotten command in IPv6 labs.</p><p><strong>Behavior without the command:</strong></p><ul><li>Router interfaces can have IPv6 addresses assigned.</li><li>Router can ping its own IPv6 interfaces.</li><li>Router does NOT route IPv6 between interfaces.</li><li>Router does NOT send RAs.</li><li>Hosts on LANs do NOT autoconfigure via SLAAC.</li></ul><p><strong>Behavior with the command enabled:</strong></p><ul><li>Router forwards IPv6 unicast packets per the IPv6 routing table.</li><li>Router sends periodic RAs on IPv6-enabled interfaces (default every ~200 sec).</li><li>Interfaces join all-routers multicast (FF02::2).</li><li>Routing protocols (OSPFv3, EIGRP for IPv6) can form neighbor relationships.</li></ul><p><strong>Configuration:</strong></p><pre>Router(config)# ipv6 unicast-routing</pre><p>That is the entire command. Global mode, one line, done.</p><p><strong>Verification:</strong></p><ul><li><code>show running-config | include ipv6 unicast-routing</code> — confirms it is enabled</li><li><code>show ipv6 interface Gi0/0</code> — if the router is forwarding, the output shows RA settings; if not, RAs are not being sent</li></ul><p><strong>Exam trap:</strong> troubleshooting question — 'IPv6 is configured on all interfaces, hosts have addresses, but cannot reach other subnets.' First check: <code>ipv6 unicast-routing</code>. It is almost always the missing command.</p>",
+      "visual": { "type": "state-machine", "params": { "states": ["ipv6 unicast-routing OFF: router acts as host", "ipv6 unicast-routing ON: router forwards + sends RAs", "IPv6 interfaces: up/up", "RAs advertise prefix, M/O/A flags", "Hosts autoconfigure via SLAAC"], "active": 1, "transitions": true } },
+      "hack": {
+        "memory": "ipv6 unicast-routing = master switch for IPv6 routing. Without it, router does NOT forward IPv6 or send RAs. #1 forgotten command in IPv6 labs. When IPv6 'is not working,' check this first.",
+        "practice": "In Packet Tracer, configure IPv6 on two interfaces WITHOUT ipv6 unicast-routing. Try to ping from one LAN to the other — fails. Add ipv6 unicast-routing and retry — works. This 30-second lab cements the lesson.",
+        "effort": "low",
+        "meta": "Guaranteed exam question. Jeremy IT Lab Day 31. Wendell Odom OCG Chapter 24."
+      }
+    },
+    {
+      "id": "1.8.h.2",
+      "term": "'ipv6 address ... /64'",
+      "weight": "high",
+      "info": "<p><strong><code>ipv6 address 2001:DB8:1::1/64</code></strong> is the interface command that assigns a global unicast IPv6 address. Unlike IPv4, this one command does two things:</p><ol><li><strong>Assigns the global address</strong> — 2001:DB8:1::1 with /64 prefix.</li><li><strong>Auto-enables IPv6 on the interface</strong> — triggers link-local generation if one does not exist.</li></ol><p><strong>Full example:</strong></p><pre>interface GigabitEthernet0/0\n ipv6 address 2001:DB8:1::1/64\n no shutdown</pre><p>After this, <code>show ipv6 interface brief</code> shows:</p><pre>GigabitEthernet0/0   [up/up]\n    FE80::21A:2BFF:FE3C:4D5E      (auto link-local)\n    2001:DB8:1::1                  (configured)</pre><p>Both addresses are active. The link-local is auto-generated via EUI-64 unless overridden.</p><p><strong>Variants:</strong></p><ul><li><code>ipv6 address 2001:DB8:1::/64 eui-64</code> — assigns a global address using the prefix + EUI-64 interface ID (for labs where you want to demonstrate EUI-64)</li><li><code>ipv6 address 2001:DB8:1::1/64 anycast</code> — marks the address as anycast (same address on multiple devices)</li><li><code>ipv6 address autoconfig</code> — lets the router itself use SLAAC (rare; typically used on stub routers)</li></ul><p><strong>Routing table effect:</strong> assigning an address produces two routes in <code>show ipv6 route</code>:</p><ul><li><code>C 2001:DB8:1::/64</code> — connected network route</li><li><code>L 2001:DB8:1::1/128</code> — local host route (for the router itself)</li></ul>",
+      "visual": { "type": "packet-flow", "params": { "nodes": ["interface Gi0/0", "ipv6 address 2001:DB8:1::1/64", "Auto link-local generated", "no shutdown → C + L routes"], "color": "#10b981" } },
+      "hack": {
+        "memory": "ipv6 address ... /64 assigns the global AND auto-enables IPv6 on the interface. Link-local is created automatically. Produces C + L routes, just like IPv4.",
+        "practice": "Configure ipv6 address 2001:DB8:1::1/64 on a router interface. Run show ipv6 interface brief — verify both global and link-local addresses show. Check show ipv6 route for C and L entries.",
+        "effort": "low",
+        "meta": "Routine configuration. Jeremy IT Lab Day 31. Wendell Odom OCG Chapter 24."
+      }
+    },
+    {
+      "id": "1.8.h.3",
+      "term": "'ipv6 enable'",
+      "weight": "med",
+      "info": "<p><strong><code>ipv6 enable</code></strong> enables IPv6 on an interface <strong>without</strong> assigning a global address. It triggers automatic link-local generation (FE80::) and lets the interface participate in IPv6 at the link scope only. Use it when the interface needs IPv6 connectivity for local-only purposes (routing protocol adjacency, NDP) but no global address.</p><p><strong>When to use:</strong></p><ul><li>Router-to-router links where both sides use link-local only (rare, but possible)</li><li>Management interfaces that talk to local-link NMS</li><li>Lab scenarios testing pure link-local communication</li><li>Before assigning a global address (as a placeholder to verify link-local works)</li></ul><p><strong>Example:</strong></p><pre>interface GigabitEthernet0/1\n ipv6 enable\n no shutdown</pre><p>After this, <code>show ipv6 interface brief</code> shows only the link-local:</p><pre>GigabitEthernet0/1  [up/up]\n    FE80::21A:2BFF:FE3C:4D5F</pre><p><strong>Difference from <code>ipv6 address</code>:</strong></p><ul><li><code>ipv6 address &lt;global&gt; /&lt;prefix&gt;</code> — assigns a global and auto-generates link-local</li><li><code>ipv6 enable</code> — no global, only link-local</li></ul><p><strong>Not needed when you already configured a global address:</strong> any <code>ipv6 address</code> command implicitly enables IPv6 on the interface. <code>ipv6 enable</code> is redundant in that case.</p><p><strong>Common use in routing protocols:</strong> OSPFv3 and EIGRP for IPv6 form neighbors using link-local addresses. On pure infrastructure links without global addresses, <code>ipv6 enable</code> suffices for routing protocols to work.</p>",
+      "visual": { "type": "comparison", "params": { "left": { "label": "ipv6 address", "items": ["Global + auto link-local", "For LAN gateways, connectivity", "Produces C + L routes"] }, "right": { "label": "ipv6 enable", "items": ["Only link-local (FE80::)", "For local-only comms", "No C/L global route"] } } },
+      "hack": {
+        "memory": "ipv6 enable = 'turn on IPv6 with link-local only, no global.' Useful for router-to-router links or when you only need NDP/routing protocols.",
+        "practice": "Configure ipv6 enable on a router interface. Verify show ipv6 interface brief shows only link-local. Note that no global appears.",
+        "effort": "low",
+        "meta": "Less common but tested. Jeremy IT Lab Day 31. Wendell Odom OCG Chapter 24."
+      }
+    },
+    {
+      "id": "1.8.h.4",
+      "term": "'ipv6 address FE80::1 link-local'",
+      "weight": "med",
+      "info": "<p><strong><code>ipv6 address FE80::1 link-local</code></strong> manually overrides the auto-generated link-local address with a memorable value. Instead of the EUI-64-derived <code>FE80::21A:2BFF:FE3C:4D5E</code>, you can set a clean <code>FE80::1</code> that is easy to type and reference.</p><p><strong>Why override link-local?</strong></p><ul><li><strong>Memorable gateway addresses</strong> — hosts on the LAN will learn the router's link-local as their default gateway. <code>FE80::1</code> is vastly easier to remember and troubleshoot than a 16-character EUI-64 value.</li><li><strong>Router ID consistency</strong> — in OSPFv3 labs, identical link-local addresses across routers simplify adjacency debugging.</li><li><strong>Documentation</strong> — a network diagram showing all router link-locals as FE80::1 is much cleaner.</li></ul><p><strong>Example:</strong></p><pre>interface GigabitEthernet0/0\n ipv6 address FE80::1 link-local\n ipv6 address 2001:DB8:1::1/64\n no shutdown</pre><p>After this, <code>show ipv6 interface Gi0/0</code> shows link-local as <code>FE80::1</code> (not the auto value).</p><p><strong>Caveats:</strong></p><ul><li>Link-local addresses must start with <code>FE80::/10</code> — the first 10 bits are fixed.</li><li>Each interface must have a unique link-local address. You cannot set FE80::1 on two interfaces of the same router simultaneously (they would collide during DAD).</li><li>DAD still runs — if another host on the link is using FE80::1, the address will be rejected.</li></ul><p><strong>Best practice:</strong> use different memorable values per router (R1 = FE80::1, R2 = FE80::2, etc.) to avoid confusion.</p>",
+      "visual": { "type": "comparison", "params": { "left": { "label": "Auto link-local", "items": ["FE80::21A:2BFF:FE3C:4D5E", "Derived from MAC via EUI-64", "Hard to type / remember"] }, "right": { "label": "Manual link-local", "items": ["FE80::1", "Memorable", "Easy host gateway reference"] } } },
+      "hack": {
+        "memory": "ipv6 address FE80::1 link-local = override the ugly EUI-64 link-local with something memorable. Good practice for router gateway addresses.",
+        "practice": "Configure FE80::1 as link-local on R1. Then set FE80::2 on R2 with the same command. Verify on connected PCs that the default gateway is FE80::1 — much easier to read than the auto value.",
+        "effort": "low",
+        "meta": "Common lab practice. Jeremy IT Lab Day 31-32. Wendell Odom OCG Chapter 24."
+      }
+    },
+    {
+      "id": "1.8.h.5",
+      "term": "show ipv6 interface brief",
+      "weight": "high",
+      "info": "<p><strong><code>show ipv6 interface brief</code></strong> is the IPv6 equivalent of <code>show ip interface brief</code> — a quick overview of every interface, its IPv6 addresses, and its operational status.</p><p><strong>Example output:</strong></p><pre>Router# show ipv6 interface brief\nGigabitEthernet0/0     [up/up]\n    FE80::1\n    2001:DB8:1::1\nGigabitEthernet0/1     [up/up]\n    FE80::21A:2BFF:FE3C:4D5F\n    2001:DB8:2::1\nGigabitEthernet0/2     [administratively down/down]\n    unassigned\nLoopback0              [up/up]\n    FE80::1:1\n    2001:DB8:0:0::1</pre><p><strong>Fields:</strong></p><ul><li><strong>Interface name</strong></li><li><strong>[Line protocol/Admin status]</strong> — [up/up], [down/down], [administratively down/down]</li><li><strong>IPv6 addresses</strong> — all addresses assigned (link-local + global + any anycast)</li></ul><p><strong>What to look for:</strong></p><ul><li>Both a link-local (FE80::) AND a global/configured address per active interface</li><li>Status should be <strong>[up/up]</strong> for a working interface</li><li>'unassigned' means no IPv6 addresses — either interface is not configured for IPv6, or only ipv6 enable is applied with link-local pending</li></ul><p><strong>Use cases:</strong></p><ul><li>Quick verification after configuration — did my IPv6 address apply?</li><li>Troubleshooting — is the interface up? Does it have both link-local and global?</li><li>Inventory — what IPv6 addresses are assigned across the router?</li></ul><p><strong>Related commands:</strong></p><ul><li><code>show ipv6 interface Gi0/0</code> — detailed view of one interface (RA settings, flags, multicast groups joined, MTU)</li><li><code>show ipv6 route</code> — the routing table</li></ul>",
+      "visual": { "type": "comparison", "params": { "left": { "label": "show ip interface brief", "items": ["IPv4 addresses", "Status", "Method (DHCP/manual)"] }, "right": { "label": "show ipv6 interface brief", "items": ["IPv6 link-local + global", "Status", "All IPv6 addresses listed"] } } },
+      "hack": {
+        "memory": "show ipv6 interface brief = quick IPv6 inventory. Every interface, every IPv6 address, up/up status. Expect to see both link-local (FE80::) and global per active interface.",
+        "practice": "Run show ipv6 interface brief on any Cisco router with IPv6 configured. Confirm you see link-local AND global addresses. Shut an interface and re-run — watch address disappear.",
+        "effort": "low",
+        "meta": "Standard verification command. Jeremy IT Lab Day 31. Wendell Odom OCG Chapter 24."
+      }
+    },
+    {
+      "id": "1.8.h.6",
+      "term": "show ipv6 route",
+      "weight": "high",
+      "info": "<p><strong><code>show ipv6 route</code></strong> displays the IPv6 routing table. Structure is identical to <code>show ip route</code> — a list of known destination networks with source code, prefix, administrative distance, metric, next-hop, and exit interface.</p><p><strong>Example output:</strong></p><pre>Router# show ipv6 route\nIPv6 Routing Table - default - 5 entries\nCodes: C - Connected, L - Local, S - Static, U - Per-user Static route\n       B - BGP, R - RIP, I1 - ISIS L1, I2 - ISIS L2\n       IA - ISIS interarea, IS - ISIS summary, D - EIGRP\n       EX - EIGRP external, O - OSPF Intra, OI - OSPF Inter\n       OE1 - OSPF ext 1, OE2 - OSPF ext 2, ON1 - OSPF NSSA ext 1\n       ON2 - OSPF NSSA ext 2\nC   2001:DB8:1::/64 [0/0]\n     via GigabitEthernet0/0, directly connected\nL   2001:DB8:1::1/128 [0/0]\n     via GigabitEthernet0/0, receive\nS   2001:DB8:2::/64 [1/0]\n     via 2001:DB8:1::2\nO   2001:DB8:3::/64 [110/20]\n     via FE80::2, GigabitEthernet0/0\nL   FF00::/8 [0/0]\n     via Null0, receive</pre><p><strong>Key codes:</strong></p><ul><li><strong>C</strong> — Connected (auto-installed when interface comes up with an IPv6 address)</li><li><strong>L</strong> — Local (a /128 for the router's own interface address)</li><li><strong>S</strong> — Static (manually configured with <code>ipv6 route</code>)</li><li><strong>O</strong> — OSPF intra-area (OSPFv3)</li><li><strong>OI</strong> — OSPF inter-area</li><li><strong>D</strong> — EIGRP for IPv6</li><li><strong>B</strong> — BGP</li></ul><p><strong>Next-hop via link-local:</strong> OSPFv3 and EIGRP for IPv6 use the neighbor's <strong>link-local address</strong> (FE80::) as the next-hop, not a global address. Static routes may use either.</p><p><strong>Useful filters:</strong></p><ul><li><code>show ipv6 route connected</code></li><li><code>show ipv6 route static</code></li><li><code>show ipv6 route ospf</code></li><li><code>show ipv6 route 2001:DB8:3::</code> — best match for a specific destination</li></ul>",
+      "visual": { "type": "comparison", "params": { "left": { "label": "show ip route (IPv4)", "items": ["Codes: C, L, S, O, D, B, R", "Next-hop: unicast IPv4"] }, "right": { "label": "show ipv6 route", "items": ["Same codes plus OSPFv3 sub-codes", "Next-hop often link-local (FE80::)"] } } },
+      "hack": {
+        "memory": "show ipv6 route = IPv6 routing table. Same codes as IPv4 (C, L, S, O, D). OSPFv3 next-hops use link-local addresses (FE80::) — expect to see that in the via column.",
+        "practice": "Build a 2-router IPv6 lab with OSPFv3. Run show ipv6 route — verify O routes with FE80:: next-hops. Compare with static route next-hops (global).",
+        "effort": "medium",
+        "meta": "Routine verification. Jeremy IT Lab Day 31-34. Wendell Odom OCG Chapter 24."
+      }
+    },
+    {
+      "id": "1.8.h.7",
+      "term": "ping ipv6-address",
+      "weight": "high",
+      "info": "<p><strong><code>ping ipv6-address</code></strong> tests IPv6 reachability the same way <code>ping</code> tests IPv4. Cisco IOS auto-detects IPv6 addresses. On hosts, the command is typically <code>ping</code> (modern OSes) or <code>ping6</code> (older Linux).</p><p><strong>Examples:</strong></p><pre>Router# ping 2001:DB8:2::1\nType escape sequence to abort.\nSending 5, 100-byte ICMP Echos to 2001:DB8:2::1, timeout is 2 seconds:\n!!!!!\nSuccess rate is 100 percent (5/5), round-trip min/avg/max = 1/1/4 ms</pre><p><strong>Pinging link-local addresses:</strong> since link-local is only valid per link, you must specify the interface:</p><pre>Router# ping FE80::1\nOutput Interface: GigabitEthernet0/0</pre><p>Or on Linux: <code>ping FE80::1%eth0</code> (the <code>%eth0</code> is the zone identifier).</p><p><strong>Extended ping:</strong> <code>ping ipv6</code> (no address) enters interactive mode — specify target, source, repeat count, datagram size, timeout.</p><p><strong>Exit codes and symbols:</strong></p><ul><li><strong>!</strong> — reply received (success)</li><li><strong>.</strong> — timeout (no reply within 2 sec)</li><li><strong>U</strong> — destination unreachable (ICMPv6 Type 1)</li><li><strong>H</strong> — host unreachable</li><li><strong>T</strong> — TTL exceeded</li></ul><p><strong>Common troubleshooting flow:</strong></p><ol><li>Ping loopback (::1) — verifies IPv6 stack works locally.</li><li>Ping own interface address — verifies interface is up/up.</li><li>Ping link-local of directly connected router — verifies L2 connectivity.</li><li>Ping a remote address — tests full routing path.</li></ol>",
+      "visual": { "type": "packet-flow", "params": { "nodes": ["ping ::1 (local stack)", "ping own interface", "ping neighbor link-local", "ping remote global"], "color": "#3b82f6" } },
+      "hack": {
+        "memory": "ping <v6 address> = test IPv6 reachability. For link-local, specify interface (interactive mode or %eth0). Standard Cisco escalation: ::1 → own IP → neighbor → remote.",
+        "practice": "Ping ::1 on a router — should succeed. Ping a directly connected neighbor's link-local — requires interface. Ping a remote global — requires full routing.",
+        "effort": "low",
+        "meta": "Basic verification. Jeremy IT Lab Day 31. Wendell Odom OCG Chapter 24."
+      }
+    }
   ]
 }
