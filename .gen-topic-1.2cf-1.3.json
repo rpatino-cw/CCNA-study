@@ -1,0 +1,638 @@
+{
+  "1.2.c": [
+    {
+      "id": "1.2.c.1",
+      "term": "Spine-leaf fabric",
+      "weight": "high",
+      "info": "<p>The <strong>spine-leaf fabric</strong> is the modern two-tier data center design that replaced the traditional three-tier (core/distribution/access) hierarchy. Every <strong>leaf</strong> connects to every <strong>spine</strong>, and nothing else connects. Leaves never connect to other leaves. Spines never connect to other spines. Servers never connect to spines. This strict rule is what makes the fabric predictable.</p><p><strong>Why the rule matters:</strong> because every leaf touches every spine, the path between any two servers on different leaves is always exactly <strong>leaf &rarr; spine &rarr; leaf</strong> &mdash; two hops, consistent latency, equal cost. There is no 'closer' or 'farther' leaf. The fabric is mathematically symmetric, which is what lets <strong>ECMP</strong> (Equal-Cost Multi-Path) load-balance across every spine simultaneously.</p><p><strong>Scaling model:</strong> you add <strong>leaves</strong> to get more server ports; you add <strong>spines</strong> to get more aggregate bandwidth between leaves. The two dimensions scale independently. This is why hyperscale data centers can grow to thousands of racks without re-architecting &mdash; they simply add more of whichever dimension ran out.</p><p><strong>Cisco context:</strong> Cisco's <strong>Nexus 9000</strong> switches implement spine-leaf either in standalone mode (NX-OS with BGP EVPN) or in ACI mode (fabric controlled by APIC). CCNA-level questions test the <em>topology rule</em>, not the configuration &mdash; know that every leaf touches every spine, and nothing else touches anything.</p>",
+      "visual": { "type": "hierarchy", "params": { "root": "Spine-Leaf Fabric", "children": [{ "name": "Spine 1", "children": [{ "name": "Leaf A" }, { "name": "Leaf B" }, { "name": "Leaf C" }] }, { "name": "Spine 2", "children": [{ "name": "Leaf A" }, { "name": "Leaf B" }, { "name": "Leaf C" }] }] } },
+      "hack": {
+        "memory": "Spine-leaf = rib cage. Spine = backbone. Leaves = ribs. Every rib touches the backbone. No rib touches another rib. No backbone touches another backbone. Two hops, always.",
+        "practice": "Draw 2 spines and 4 leaves on paper. Connect every leaf to every spine (8 links). Pick any two servers on different leaves and trace the path aloud: 'leaf, spine, leaf.' Do this five times with different leaf pairs. Notice the path length never changes.",
+        "effort": "low",
+        "meta": "Wendell Odom OCG Chapter 11 covers DC architectures. Jeremy's IT Lab Day 24 mentions spine-leaf. Exam tests the topology rule, not config. If you see 'every leaf connects to every spine, leaves do not connect to each other,' that's spine-leaf."
+      }
+    },
+    {
+      "id": "1.2.c.2",
+      "term": "Leaf switch (ToR)",
+      "weight": "high",
+      "info": "<p>A <strong>leaf switch</strong> (also called <strong>ToR &mdash; Top of Rack</strong>) sits at the access layer of a spine-leaf fabric. It is the only switch in the fabric that servers, storage arrays, and firewalls connect to. Every device in the data center plugs into a leaf.</p><p><strong>Physical placement:</strong> leaf switches live at the top of each server rack (hence 'Top of Rack'). Servers in the rack connect to the ToR via short copper or DAC (Direct Attach Copper) cables. The ToR then uplinks to every spine via fiber. A typical leaf has 48 server-facing ports (10G/25G) and 4-8 spine-facing uplinks (40G/100G).</p><p><strong>Connection rules:</strong> a leaf connects <em>down</em> to servers and <em>up</em> to every spine. A leaf does NOT connect sideways to other leaves. This prevents the shortcut paths that would break ECMP's equal-cost assumption and re-introduce Spanning Tree complexity.</p><p><strong>Leaf responsibilities:</strong> the leaf is where VLAN tagging, VXLAN encapsulation (in EVPN fabrics), access control lists, and the Layer 2/Layer 3 boundary typically live. Spines stay dumb &mdash; they just forward IP packets between leaves. Smart behavior lives at the leaf edge.</p>",
+      "visual": { "type": "layer-stack", "params": { "layers": ["Servers / Storage", "Leaf (ToR) switch", "Uplinks to every spine", "Spine switches"], "highlight": 1 } },
+      "hack": {
+        "memory": "Leaf = ToR = 'the switch on top of the rack that all my servers plug into.' Leaves do NOT talk to other leaves. They uplink to every spine. That is the entire rule.",
+        "practice": "In a lab or on paper, draw one rack with 4 servers and a leaf above them. Run uplinks from the leaf to 2 spines. Then try drawing a link between two leaves &mdash; and cross it out. That is the forbidden connection.",
+        "effort": "low",
+        "meta": "OCG Ch 11. The exam will phrase it as 'top of rack' or 'access layer of the spine-leaf fabric.' Same thing."
+      }
+    },
+    {
+      "id": "1.2.c.3",
+      "term": "Spine switch",
+      "weight": "high",
+      "info": "<p>The <strong>spine switch</strong> is the backbone of the fabric. Its only job is to forward IP packets between leaves as fast and predictably as possible. Spines are dumb on purpose &mdash; they do not terminate VLANs, do not hold VXLAN endpoints, do not run ACLs on tenant traffic. That simplicity is what lets them scale.</p><p><strong>Connection rules:</strong> a spine connects ONLY to leaves. It does not connect to servers. It does not connect to other spines. If you ever see a spine-to-spine link on an exam diagram, that is wrong by definition.</p><p><strong>Bandwidth math:</strong> every leaf has one link to every spine. Adding a spine gives every leaf another equal-cost path to every other leaf &mdash; so bandwidth scales with spine count. If each leaf has four 100G uplinks (one per spine), the fabric provides 400G of bisection bandwidth per leaf. Add a fifth spine and it becomes 500G.</p><p><strong>Typical hardware:</strong> Cisco Nexus 9500 chassis or large Nexus 9300 fixed switches (e.g., 9364C with 64x 100G ports). High port counts of identical-speed ports, minimal feature footprint, maximum forwarding throughput.</p>",
+      "visual": { "type": "hierarchy", "params": { "root": "Spines (backbone)", "children": [{ "name": "Spine 1 \u2192 every leaf" }, { "name": "Spine 2 \u2192 every leaf" }, { "name": "Spine N \u2192 every leaf" }] } },
+      "hack": {
+        "memory": "Spine = dumb fast pipe. Connects only to leaves. Add a spine = more bandwidth. Never touches another spine. Never touches a server.",
+        "practice": "List the three forbidden spine connections out loud: 'spine to server &mdash; no. spine to spine &mdash; no. spine to itself &mdash; no.' Then list the one allowed: 'spine to every leaf &mdash; yes.'",
+        "effort": "low",
+        "meta": "Expect a 'which device only connects to leaves?' question. Answer: spine."
+      }
+    },
+    {
+      "id": "1.2.c.4",
+      "term": "East-west traffic",
+      "weight": "high",
+      "info": "<p><strong>East-west traffic</strong> is the term for traffic that flows <em>between servers inside the data center</em>, as opposed to traffic flowing in and out of the DC. On a whiteboard diagram with the internet at the top and servers at the bottom, server-to-server traffic moves horizontally &mdash; east to west &mdash; hence the name.</p><p><strong>Why it dominates modern workloads:</strong> a single user request to a modern application often triggers dozens of internal calls. A web front end queries a cache, which talks to a database, which replicates to a standby, which writes to distributed storage, which backs up to another cluster. Every one of those hops is east-west. Virtualization, containers, microservices, and distributed databases all multiply east-west traffic by 10x or more compared to the one-and-done client-server model of the 1990s.</p><p><strong>Why spine-leaf is designed for it:</strong> every east-west flow crosses exactly two hops (leaf &rarr; spine &rarr; leaf) with equal-cost paths across all spines. Traditional three-tier designs force east-west traffic up through distribution and sometimes core, adding hops and creating chokepoints.</p><p><strong>Exam tell:</strong> if a question describes 'heavy server-to-server traffic,' 'microservices,' 'VM-to-VM communication,' or 'distributed storage,' the answer is spine-leaf optimized for east-west.</p>",
+      "visual": { "type": "comparison", "params": { "left": { "label": "East-West", "items": ["Server to server", "Inside the DC", "Microservices, DB replication, VM migration", "Dominates modern workloads"] }, "right": { "label": "North-South", "items": ["Client to server", "In/out of the DC", "Web, email, internet access", "Dominates legacy workloads"] } } },
+      "hack": {
+        "memory": "East-west = sideways between servers. North-south = up/down to the internet. Modern apps = mostly east-west. Spine-leaf = built for east-west.",
+        "practice": "Draw a DC with internet at the top. Arrow going up/down = north-south. Arrow between two servers = east-west. Count which type your own apps generate most of (for almost any modern app, the answer is east-west).",
+        "effort": "low",
+        "meta": "The phrase 'east-west' almost always points to spine-leaf as the answer on the exam."
+      }
+    },
+    {
+      "id": "1.2.c.5",
+      "term": "North-south traffic",
+      "weight": "med",
+      "info": "<p><strong>North-south traffic</strong> flows vertically &mdash; between clients outside the data center and servers inside. A user loading a website, an email hitting the mail server, a mobile app hitting an API &mdash; those are all north-south flows. The 'north' is the internet-facing edge; the 'south' is the server rack.</p><p><strong>Where it happens in a design:</strong> north-south traffic enters through edge routers / firewalls, passes through a distribution or core layer, then reaches the access layer where the server lives. In a traditional three-tier campus, this is the primary flow pattern the topology was designed to handle.</p><p><strong>Why it matters less in modern DCs:</strong> even though every user request starts as north-south, one external request typically triggers many internal (east-west) calls. So while north-south is still critical, it is usually a small fraction of total data center packets.</p><p><strong>Design implication:</strong> north-south is well served by the traditional three-tier model (core/distribution/access). East-west is where three-tier struggles and where spine-leaf wins.</p>",
+      "visual": { "type": "layer-stack", "params": { "layers": ["Internet / clients (north)", "Edge / firewall", "Core / distribution", "Access / servers (south)"], "highlight": 0 } },
+      "hack": {
+        "memory": "North-south = client-to-server, up and down the stack. Think 'north = cloud up there, south = servers down here.' Three-tier was built for this.",
+        "practice": "Label a network diagram: everything above the firewall = north, everything below = south. Every arrow crossing the firewall is a north-south flow.",
+        "effort": "low",
+        "meta": "Exam usually contrasts north-south with east-west. If the question says 'users accessing a web server,' that is north-south."
+      }
+    },
+    {
+      "id": "1.2.c.6",
+      "term": "ECMP (Equal-Cost Multi-Path)",
+      "weight": "high",
+      "info": "<p><strong>ECMP</strong> stands for <strong>Equal-Cost Multi-Path</strong>. It is the Layer 3 routing feature that lets a leaf use <em>every</em> uplink to <em>every</em> spine simultaneously, instead of picking one 'best' path and blocking the rest.</p><p><strong>How it works:</strong> because the spine-leaf fabric is symmetric (every leaf is equidistant from every other leaf), the routing protocol &mdash; usually OSPF or BGP in the underlay &mdash; computes multiple paths with the exact same cost. When multiple equal-cost paths exist, the router installs all of them in the FIB and load-balances flows across them using a hash of packet headers (typically 5-tuple: src IP, dst IP, src port, dst port, protocol).</p><p><strong>Why it matters:</strong> traditional Layer 2 designs used <strong>Spanning Tree Protocol (STP)</strong> to prevent loops, which meant blocking redundant links. In a spine-leaf with 4 spines, STP would block 3 of every leaf's 4 uplinks &mdash; wasting 75% of the fabric bandwidth. ECMP uses all 4 at once. No blocked links, no wasted capacity.</p><p><strong>Flow-based balancing:</strong> ECMP hashes per flow, not per packet. All packets in one TCP connection follow the same path (to avoid reordering), but different flows land on different paths. With enough concurrent flows, bandwidth fills up evenly across spines.</p>",
+      "visual": { "type": "packet-flow", "params": { "nodes": ["Leaf A", "Hash flow", "Spine 1 / 2 / 3 / 4", "Leaf B"], "color": "#3b82f6" } },
+      "hack": {
+        "memory": "ECMP = all lanes of the highway open. STP = three lanes closed, one lane open. Spine-leaf uses ECMP. Every uplink active, always.",
+        "practice": "On a spine-leaf drawing with 4 spines, write '100G' on every leaf uplink. With STP: only 100G usable. With ECMP: 400G usable. That 4x multiplier is the whole point.",
+        "effort": "low",
+        "meta": "Exam contrast: 'ECMP replaces STP in spine-leaf designs.' Memorize that sentence."
+      }
+    },
+    {
+      "id": "1.2.c.7",
+      "term": "Predictable 2-hop latency",
+      "weight": "high",
+      "info": "<p><strong>Predictable 2-hop latency</strong> is the defining behavioral property of a spine-leaf fabric. Any packet between two servers on different leaves always crosses exactly <strong>leaf &rarr; spine &rarr; leaf</strong> &mdash; two switching hops, no more, no less.</p><p><strong>Why this is a big deal:</strong> in a traditional three-tier network, the number of hops between two servers depends on where they sit. Same access switch = 0 hops. Same distribution pod = 2 hops. Different distribution pod = 4 hops. Different building = 6 hops. Latency varies wildly, which breaks latency-sensitive workloads.</p><p><strong>Workloads that require this:</strong> distributed databases (Cassandra, Elasticsearch), real-time analytics, VM migration (vMotion), storage replication (SAN, Ceph), GPU cluster fabrics (RDMA/RoCE). These all assume roughly constant latency between any two nodes. Spine-leaf guarantees it.</p><p><strong>Same-leaf case:</strong> if two servers happen to sit on the same leaf, it is 1 hop (leaf only) &mdash; even faster. The 2-hop guarantee is the <em>worst case</em> between any two servers in the fabric, which is what matters for capacity planning.</p>",
+      "visual": { "type": "packet-flow", "params": { "nodes": ["Server A", "Leaf A", "Spine", "Leaf B", "Server B"], "color": "#10b981" } },
+      "hack": {
+        "memory": "Any two servers on different leaves = 2 hops. Same leaf = 1 hop. Never more than 2. That is the whole promise.",
+        "practice": "Pick any two leaves on your diagram. Trace the path. Count the hops. It is always 2. Do it 10 times until you stop counting and just know.",
+        "effort": "low",
+        "meta": "Classic exam question: 'In a spine-leaf fabric, how many hops between any two servers on different leaves?' Answer: 2."
+      }
+    },
+    {
+      "id": "1.2.c.8",
+      "term": "VXLAN overlay",
+      "weight": "med",
+      "info": "<p><strong>VXLAN (Virtual Extensible LAN)</strong> is the overlay protocol that lets a Layer 3 routed spine-leaf fabric carry Layer 2 traffic. It solves the problem: 'I need my VM to keep its MAC and IP when it moves to a different rack, but the underlay between those racks is routed, not bridged.'</p><p><strong>How it works:</strong> VXLAN wraps the original Ethernet frame inside a <strong>UDP/IP packet</strong>, using UDP destination port <strong>4789</strong>. A 24-bit <strong>VNI (VXLAN Network Identifier)</strong> replaces the 12-bit VLAN tag, raising the segment count from 4,094 to over 16 million. The underlay routes the UDP packet between VTEPs (VXLAN Tunnel End Points, usually leaf switches) using normal IP routing with ECMP.</p><p><strong>Control plane &mdash; EVPN:</strong> modern VXLAN deployments use <strong>BGP EVPN</strong> as the control plane. EVPN distributes MAC and IP reachability information between VTEPs via BGP, so leaves know which VTEP to tunnel to without flood-and-learn behavior.</p><p><strong>Why it matters:</strong> VXLAN + EVPN is how you get 'Layer 2 anywhere' on top of a scalable Layer 3 fabric. A VM can live in rack 1 today, migrate to rack 50 tomorrow, and keep its IP. This is what Cisco ACI, standalone Nexus VXLAN, and nearly every cloud provider's virtual networking runs on.</p>",
+      "visual": { "type": "encapsulation", "params": { "layers": ["Original Ethernet frame (VM traffic)", "VXLAN header (VNI)", "UDP (port 4789)", "Outer IP (leaf-to-leaf)", "Outer Ethernet"] } },
+      "hack": {
+        "memory": "VXLAN = put the Layer 2 frame inside a UDP envelope so it can travel over a Layer 3 fabric. UDP port 4789. VNI = VLAN ID on steroids (16M segments instead of 4K).",
+        "practice": "Draw the VXLAN encapsulation stack: original frame inside VXLAN inside UDP inside outer IP inside outer Ethernet. Five layers deep. That is tunneling.",
+        "effort": "medium",
+        "meta": "CCNA tests the concept (overlay on top of L3 fabric, 16M segments). Deeper encapsulation math shows up in CCNP DC."
+      }
+    }
+  ],
+  "1.2.d": [
+    {
+      "id": "1.2.d.1",
+      "term": "WAN",
+      "weight": "high",
+      "info": "<p>A <strong>WAN (Wide Area Network)</strong> connects geographically separated sites over infrastructure you do not own &mdash; a service provider, an ISP, or a telco. WAN links cross distances that LANs cannot: city-to-city, country-to-country, continent-to-continent. The defining trait is that someone else owns the transport in between.</p><p><strong>Key WAN characteristics compared to LAN:</strong></p><ul><li><strong>Slower</strong> &mdash; WAN links are measured in Mbps or low Gbps; LANs in 1-400 Gbps.</li><li><strong>Higher latency</strong> &mdash; geographic distance adds propagation delay (~5 &micro;s per km of fiber).</li><li><strong>More expensive per bit</strong> &mdash; you pay recurring service fees forever.</li><li><strong>Provider-managed</strong> &mdash; part of the path is outside your administrative control.</li></ul><p><strong>WAN vs LAN demarcation:</strong> the boundary between your network and the provider's is called the <strong>demarcation point</strong> (demarc). Everything on your side is CPE (Customer Premises Equipment). Everything on the provider's side is the WAN.</p><p><strong>Why the category matters on the exam:</strong> CCNA asks you to pick the right WAN technology for a business scenario. Guaranteed bandwidth and SLA &rarr; MPLS. Cheap internet with smart routing &rarr; SD-WAN. Simple metro connection &rarr; Metro Ethernet. Knowing the category is step one.</p>",
+      "visual": { "type": "comparison", "params": { "left": { "label": "LAN", "items": ["You own the cables", "1-400 Gbps", "Microsecond latency", "Flat cost"] }, "right": { "label": "WAN", "items": ["Provider owns transport", "Mbps to low Gbps", "Milliseconds of latency", "Recurring fees"] } } },
+      "hack": {
+        "memory": "LAN = your house. WAN = the phone company between your house and the next city. You pay rent forever to use someone else's pipes.",
+        "practice": "Draw your home, a friend's home across town, and the ISP cloud between. The ISP cloud is the WAN. Your Wi-Fi at home is the LAN.",
+        "effort": "low",
+        "meta": "Jeremy's IT Lab Day 53 covers WAN architectures. Wendell Odom OCG Ch 14."
+      }
+    },
+    {
+      "id": "1.2.d.2",
+      "term": "MPLS",
+      "weight": "high",
+      "info": "<p><strong>MPLS (Multiprotocol Label Switching)</strong> is a provider-managed private WAN service. Instead of routing each packet by its destination IP hop-by-hop, MPLS routers (called LSRs &mdash; Label Switching Routers) forward packets based on a short <strong>label</strong> prepended to the packet. The label identifies a pre-established path (LSP &mdash; Label Switched Path) across the provider network.</p><p><strong>Why providers love it:</strong> label lookups are faster than IP lookups, and labels can encode traffic engineering decisions (which path to take, which class of service, which customer VPN). It lets the provider run multiple customer VPNs over one physical backbone with strict isolation.</p><p><strong>Two common MPLS services:</strong></p><ul><li><strong>L3 VPN (MPLS VPN)</strong> &mdash; the provider participates in your routing. You peer with the provider's PE (Provider Edge) router using BGP or another IGP. The provider routes between your sites.</li><li><strong>L2 VPN (VPLS, EoMPLS)</strong> &mdash; the provider carries your Layer 2 frames transparently. Your routers at each site peer with each other as if on the same LAN.</li></ul><p><strong>Key selling points:</strong> <strong>guaranteed SLAs</strong> (bandwidth, latency, jitter, packet loss), <strong>QoS support</strong> (the provider honors your DSCP markings), and <strong>any-to-any connectivity</strong> (each site is one hop to every other site in the VPN). The trade-off is cost &mdash; MPLS is significantly more expensive than internet circuits.</p>",
+      "visual": { "type": "packet-flow", "params": { "nodes": ["Site A CE", "Provider PE (push label)", "Provider LSR (swap)", "Provider PE (pop label)", "Site B CE"], "color": "#8b5cf6" } },
+      "hack": {
+        "memory": "MPLS = provider-built toll road with a guaranteed lane for you. Labels = express-lane transponders. Expensive but reliable.",
+        "practice": "Compare MPLS and internet VPN on paper. MPLS: provider SLA, QoS honored, expensive. Internet VPN: no SLA, best effort, cheap. That comparison shows up on the exam repeatedly.",
+        "effort": "medium",
+        "meta": "CCNA tests MPLS at the concept level only: provider-managed, private, SLA-backed, label-switched. No configuration required."
+      }
+    },
+    {
+      "id": "1.2.d.3",
+      "term": "Metro Ethernet",
+      "weight": "med",
+      "info": "<p><strong>Metro Ethernet</strong> is a WAN service that extends plain Ethernet across a metropolitan area. The customer plugs a standard Ethernet cable into the provider's handoff, and the provider transports Ethernet frames to the customer's other sites in the same metro. From the customer's perspective, it looks like a very long LAN link.</p><p><strong>Three MEF service types (memorize the names):</strong></p><ul><li><strong>E-Line</strong> &mdash; point-to-point. Two sites connected by a single virtual Ethernet link. Simplest service.</li><li><strong>E-LAN</strong> &mdash; multipoint-to-multipoint. Three or more sites all reach each other as if on the same LAN. Any-to-any.</li><li><strong>E-Tree</strong> &mdash; rooted multipoint (hub-and-spoke). One or more root sites talk to all leaf sites; leaves cannot talk to each other. Useful for retail/branch designs.</li></ul><p><strong>Strengths:</strong> familiar (just Ethernet), high bandwidth (often 1-10 Gbps), simpler than MPLS, typically cheaper within a metro area. <strong>Limits:</strong> usually metro-scoped (not long-haul), SLAs vary by provider.</p>",
+      "visual": { "type": "comparison", "params": { "left": { "label": "E-Line (P2P)", "items": ["Two sites", "One virtual link", "Like a long crossover"] }, "right": { "label": "E-LAN / E-Tree", "items": ["Many sites", "E-LAN = any to any", "E-Tree = hub and spoke"] } } },
+      "hack": {
+        "memory": "E-Line = Line = 2 sites. E-LAN = LAN = many sites, any-to-any. E-Tree = Tree = root + leaves (hub-and-spoke). Match the letter to the shape.",
+        "practice": "Draw all three topologies on one page with labels. E-Line as a single line. E-LAN as a mesh. E-Tree as a star with a root at the center.",
+        "effort": "low",
+        "meta": "Exam tests E-Line/E-LAN/E-Tree by name. The word after the hyphen tells you the shape."
+      }
+    },
+    {
+      "id": "1.2.d.4",
+      "term": "Broadband (DSL/Cable/Fiber)",
+      "weight": "med",
+      "info": "<p><strong>Broadband</strong> is the catch-all term for consumer and small-business internet access circuits. Three dominant flavors:</p><ul><li><strong>DSL (Digital Subscriber Line)</strong> &mdash; runs over copper telephone lines. ADSL (asymmetric) gives higher download than upload speeds. Distance-sensitive: the farther from the DSLAM, the slower. Typical: 10-100 Mbps down.</li><li><strong>Cable (DOCSIS)</strong> &mdash; runs over coaxial TV cable plant. Shared medium within a neighborhood node. Typical: 100 Mbps to 1 Gbps down.</li><li><strong>Fiber (FTTH / FTTP)</strong> &mdash; fiber directly to the home or premises. Highest speeds, lowest latency, fewest distance limits. Typical: 1-10 Gbps symmetric.</li></ul><p><strong>Business characteristics:</strong> cheap per Mbps, widely available, but <strong>no SLA guarantees</strong>. The provider will generally not commit to bandwidth, latency, or uptime numbers you can take to court. Speeds are 'up to' figures, not floors.</p><p><strong>How modern WAN uses broadband:</strong> as the <em>underlay</em> for SD-WAN. Two cheap broadband circuits from different ISPs, combined with SD-WAN's intelligent path selection, often match or beat the reliability of a single MPLS circuit at a fraction of the cost.</p>",
+      "visual": { "type": "layer-stack", "params": { "layers": ["Fiber (fastest, FTTH)", "Cable (DOCSIS)", "DSL (phone line)"], "highlight": 0 } },
+      "hack": {
+        "memory": "DSL = phone wire (slow, old). Cable = TV coax (shared with neighbors). Fiber = glass to your door (fastest). No SLA on any of them.",
+        "practice": "Check what your own house uses. Log into the modem and identify whether it is DSL, DOCSIS, or fiber. Real hardware makes this stick.",
+        "effort": "low",
+        "meta": "Exam distinguishes broadband from MPLS mainly on SLA and cost. Broadband = no SLA, cheap."
+      }
+    },
+    {
+      "id": "1.2.d.5",
+      "term": "Leased line (T1/T3, E1/E3)",
+      "weight": "med",
+      "info": "<p>A <strong>leased line</strong> is a dedicated point-to-point circuit from the provider. You pay for the full bandwidth 24/7, whether or not you use it, and the circuit is not shared with any other customer.</p><p><strong>North American TDM speeds:</strong></p><ul><li><strong>T1</strong> = 1.544 Mbps (24 DS0 channels &times; 64 kbps + framing)</li><li><strong>T3</strong> = 44.736 Mbps (28 T1s bundled)</li></ul><p><strong>European equivalents:</strong></p><ul><li><strong>E1</strong> = 2.048 Mbps (32 channels)</li><li><strong>E3</strong> = 34.368 Mbps</li></ul><p><strong>Why they are legacy:</strong> T1 and T3 are TDM-based technologies from the 1960s-80s telephone network. They are expensive per bit, capped at very low speeds by modern standards, and being aggressively phased out by telcos in favor of Metro Ethernet, MPLS, and fiber broadband. You will still see leased lines in remote locations, branch offices of conservative industries, and some legacy voice circuits.</p><p><strong>Exam takeaway:</strong> memorize T1 = 1.544 Mbps and T3 = 44.736 Mbps. Know that leased lines are dedicated point-to-point, TDM-based, and legacy.</p>",
+      "visual": { "type": "comparison", "params": { "left": { "label": "T1", "items": ["1.544 Mbps", "24 DS0 channels", "North America"] }, "right": { "label": "T3", "items": ["44.736 Mbps", "~28 T1s", "North America"] } } },
+      "hack": {
+        "memory": "T1 = 1.544 Mbps. T3 = 44.736 Mbps. T-one, T-three. T1 is slow by modern standards but it was THE business circuit for 30 years.",
+        "practice": "Write the four numbers on a flashcard: T1/E1/T3/E3 with their speeds. Drill until instant.",
+        "effort": "low",
+        "meta": "Exam rarely goes deeper than 'T1 = 1.544 Mbps.' Know that number."
+      }
+    },
+    {
+      "id": "1.2.d.6",
+      "term": "SD-WAN",
+      "weight": "high",
+      "info": "<p><strong>SD-WAN (Software-Defined WAN)</strong> is the modern replacement for traditional MPLS-only WAN architectures. Instead of buying expensive provider circuits for every site, SD-WAN treats <em>any</em> IP transport &mdash; MPLS, broadband cable, fiber, 4G/5G LTE &mdash; as a usable underlay, then builds an encrypted overlay of tunnels on top of all of them.</p><p><strong>Three defining characteristics:</strong></p><ul><li><strong>Transport-agnostic overlay</strong> &mdash; IPsec tunnels ride on top of whatever you have. A branch can have one MPLS link and one broadband link; SD-WAN uses both.</li><li><strong>Centralized controller</strong> &mdash; a single pane of glass (e.g., Cisco vManage) pushes policy to every edge device. No more logging into each router.</li><li><strong>Application-aware path selection</strong> &mdash; real-time link quality measurements (loss, latency, jitter) steer traffic per-application. Voice and video go over the low-latency link; backups go over the cheap bulk link.</li></ul><p><strong>Why it wins:</strong> cost (broadband is cheap), flexibility (add a site with any internet connection), visibility (centralized telemetry), and resilience (automatic failover between transports). Cisco's product is <strong>Viptela</strong> (vManage controller, vEdge/cEdge routers).</p><p><strong>Strategic direction:</strong> enterprise networks are steadily replacing MPLS-only designs with hybrid SD-WAN. On the exam, if the question describes 'application-aware routing across multiple transports with centralized management,' the answer is SD-WAN.</p>",
+      "visual": { "type": "layer-stack", "params": { "layers": ["Application-aware policy", "Encrypted overlay (IPsec)", "MPLS / Broadband / LTE (underlay)", "Centralized controller (vManage)"], "highlight": 0 } },
+      "hack": {
+        "memory": "SD-WAN = smart GPS for WAN traffic. It watches every road (MPLS, broadband, LTE) and sends each app down the best one in real time. Managed from one console.",
+        "practice": "Draw a branch with two WAN circuits (MPLS + cable). Label voice traffic going over MPLS, backup traffic going over cable. That is SD-WAN path selection in one picture.",
+        "effort": "medium",
+        "meta": "Cisco strategic direction. Expect at least one SD-WAN concept question on the CCNA."
+      }
+    },
+    {
+      "id": "1.2.d.7",
+      "term": "CPE",
+      "weight": "med",
+      "info": "<p><strong>CPE (Customer Premises Equipment)</strong> is any network device that lives at the customer site and connects to the provider. Typically this is the edge router, but it can also be a modem, an SD-WAN appliance, a firewall, or even a managed switch, depending on the service.</p><p><strong>Who owns it:</strong> ownership varies. Sometimes the customer buys and owns the CPE outright. Sometimes the provider owns it and leases/manages it as part of a managed service. In 'managed MPLS' deals, the provider often ships, configures, and monitors the CPE on your behalf.</p><p><strong>Why the term matters:</strong> the CPE sits at the <strong>demarcation point</strong> between customer-owned infrastructure and provider-owned transport. When a link is broken, the first question is 'which side of the demarc is the problem on?' CPE is on the customer side. Everything upstream of the demarc is the provider's problem.</p>",
+      "visual": { "type": "packet-flow", "params": { "nodes": ["Customer LAN", "CPE (customer edge)", "Demarc", "Provider WAN"], "color": "#3b82f6" } },
+      "hack": {
+        "memory": "CPE = 'the box at my site that touches the provider.' Usually a router. Sits right at the demarc.",
+        "practice": "Find the CPE in your own house or office (the ISP modem/router). That is CPE. Literally.",
+        "effort": "low",
+        "meta": "Simple vocab question. Expect one multiple-choice on CPE definition."
+      }
+    },
+    {
+      "id": "1.2.d.8",
+      "term": "Demarcation point (demarc)",
+      "weight": "med",
+      "info": "<p>The <strong>demarcation point</strong>, or <strong>demarc</strong>, is the physical and administrative boundary between the provider's network and the customer's network. On one side of the demarc, the provider owns, operates, and is responsible for the circuit. On the other side, the customer is on their own.</p><p><strong>Physical form:</strong> in a typical business building, the demarc is a junction box or small rack in a telecom closet where the provider's circuit terminates. The customer's CPE plugs into this box. Sometimes there is a <strong>NIU (Network Interface Unit)</strong> or <strong>smartjack</strong> that the provider uses to run loopback tests from their end.</p><p><strong>Why it matters operationally:</strong> when a WAN link fails, the first troubleshooting step is to determine which side of the demarc the fault lives on. If the provider's loopback test passes from their side to the smartjack, the provider has done their job and the problem is on the customer side. If the loopback fails, the provider has to fix it.</p><p><strong>Billing:</strong> the demarc also marks where provider billing responsibility ends. The customer pays for the circuit up to the demarc; everything past it is their own equipment and cabling.</p>",
+      "visual": { "type": "shield", "params": { "label": "Demarc", "left": "Customer side (CPE, LAN)", "right": "Provider side (WAN transport)" } },
+      "hack": {
+        "memory": "Demarc = property line. Provider owns one side, you own the other. When something breaks, the first question is 'which side of the line?'",
+        "practice": "In your next troubleshooting scenario, name the demarc explicitly. 'Link is down &mdash; is the fault on the customer side of the demarc or the provider side?' That question alone saves hours.",
+        "effort": "low",
+        "meta": "Memorize the word. Expect it as a vocabulary question."
+      }
+    },
+    {
+      "id": "1.2.d.9",
+      "term": "MPLS vs SD-WAN",
+      "weight": "high",
+      "info": "<p>The <strong>MPLS vs SD-WAN</strong> comparison is the single most common WAN question on the CCNA. Know it cold.</p><p><strong>MPLS:</strong></p><ul><li>Provider-managed private WAN</li><li><strong>Guaranteed SLA</strong> (bandwidth, latency, jitter, loss)</li><li>QoS honored end-to-end</li><li>Single transport (the MPLS circuit itself)</li><li>Expensive per Mbps</li><li>Provisioning takes weeks to months</li></ul><p><strong>SD-WAN:</strong></p><ul><li>Customer-managed encrypted overlay</li><li>Transport-agnostic (MPLS, broadband, LTE all at once)</li><li>Application-aware path selection</li><li>Centralized controller for policy and telemetry</li><li>Cheap per Mbps (uses commodity internet)</li><li>New sites come up in days via zero-touch provisioning</li></ul><p><strong>The modern answer is usually hybrid:</strong> keep MPLS for the handful of mission-critical sites that truly need SLA, use SD-WAN over broadband for everything else. Even the mission-critical sites often add a broadband circuit as a backup managed by SD-WAN.</p><p><strong>Exam tells:</strong> 'guaranteed SLA' &rarr; MPLS. 'Multiple transports with centralized management' &rarr; SD-WAN. 'Lower WAN cost by using internet links' &rarr; SD-WAN. 'Provider-routed VPN' &rarr; MPLS.</p>",
+      "visual": { "type": "comparison", "params": { "left": { "label": "MPLS", "items": ["Provider-managed", "Guaranteed SLA", "One transport", "Expensive", "Slow to provision"] }, "right": { "label": "SD-WAN", "items": ["Customer overlay", "Multiple transports", "App-aware paths", "Cheaper", "Fast to deploy"] } } },
+      "hack": {
+        "memory": "MPLS = expensive private toll road with a contract. SD-WAN = smart overlay that uses whatever roads are available. Hybrid = both.",
+        "practice": "Make the two-column table by memory. Close the book, write MPLS on the left and SD-WAN on the right, and list 5 rows of trade-offs. Check against the text.",
+        "effort": "medium",
+        "meta": "Nearly guaranteed exam question. The keywords 'SLA,' 'transport-agnostic,' and 'centralized controller' each map to exactly one answer."
+      }
+    }
+  ],
+  "1.2.e": [
+    {
+      "id": "1.2.e.1",
+      "term": "SOHO network",
+      "weight": "high",
+      "info": "<p><strong>SOHO</strong> stands for <strong>Small Office / Home Office</strong>. It describes the simplest end of the network design spectrum: 1-10 users, a single flat subnet, and one physical device doing the work of every layer. Think of a typical home Wi-Fi setup or a small storefront with a handful of point-of-sale devices &mdash; that is SOHO.</p><p><strong>Defining traits:</strong></p><ul><li>Very small user count (1-10, sometimes up to ~25)</li><li>One all-in-one device doing routing, switching, Wi-Fi, firewall, DHCP, and NAT</li><li>Single subnet, single broadcast domain, no VLANs</li><li>Single ISP connection with one public IP (shared via PAT)</li><li>No redundancy &mdash; if the one box dies, the network is down</li></ul><p><strong>Why it is a recognized category:</strong> SOHO is what most small businesses and every home actually runs. Cisco and the CCNA blueprint call it out specifically because it is the simplest case and the natural counterpoint to enterprise and data center designs. The exam expects you to recognize it by description.</p>",
+      "visual": { "type": "hierarchy", "params": { "root": "ISP (Internet)", "children": [{ "name": "SOHO all-in-one", "children": [{ "name": "PC" }, { "name": "Phone" }, { "name": "Printer" }, { "name": "Smart TV" }] }] } },
+      "hack": {
+        "memory": "SOHO = your house. One box, one subnet, a handful of devices. That is the whole design.",
+        "practice": "Look at your own home network right now. Count the devices (probably 5-15). Identify the one router/AP. Note that everything is on 192.168.x.x. Congratulations, you live inside a SOHO.",
+        "effort": "low",
+        "meta": "Free-point exam question. If it says 'small flat network with one device doing everything,' it is SOHO."
+      }
+    },
+    {
+      "id": "1.2.e.2",
+      "term": "All-in-one device",
+      "weight": "high",
+      "info": "<p>The <strong>all-in-one device</strong> (often just called a 'wireless router' or 'home gateway') is the single box that makes SOHO possible. It collapses the entire network stack into one SKU. Inside one plastic shell, you get:</p><ul><li><strong>Router</strong> &mdash; routes between the LAN and the WAN (ISP)</li><li><strong>Switch</strong> &mdash; usually 4-8 wired Ethernet ports</li><li><strong>Wireless Access Point</strong> &mdash; 802.11ac/ax Wi-Fi radios</li><li><strong>Firewall</strong> &mdash; basic stateful packet filtering</li><li><strong>DHCP server</strong> &mdash; hands out IPs to LAN clients automatically</li><li><strong>NAT / PAT gateway</strong> &mdash; shares one public IP across all internal devices</li><li>Sometimes: DNS forwarder, VPN endpoint, parental controls, QoS knobs</li></ul><p><strong>Why it works at this scale:</strong> with fewer than 10 users, a $100-200 device has more than enough CPU and RAM to handle every role adequately. At enterprise scale, each of those roles gets its own dedicated appliance for performance and reliability.</p><p><strong>Single point of failure:</strong> because one device does everything, if it dies, the whole network dies. SOHO accepts that trade for the simplicity and cost savings.</p>",
+      "visual": { "type": "layer-stack", "params": { "layers": ["Router", "Switch", "Access Point", "Firewall", "DHCP", "NAT / PAT"], "highlight": 0 } },
+      "hack": {
+        "memory": "All-in-one = Swiss Army knife. Router + Switch + AP + Firewall + DHCP + NAT all in one plastic box. Kill it and the network is gone.",
+        "practice": "Open the admin UI of your home router. Count how many tabs/roles it exposes (Wi-Fi, DHCP, NAT, firewall, port forwarding...). Each tab is a separate device at enterprise scale.",
+        "effort": "low",
+        "meta": "Exam phrasing: 'a single device providing routing, switching, wireless, and firewall.' That is the all-in-one."
+      }
+    },
+    {
+      "id": "1.2.e.3",
+      "term": "Flat network",
+      "weight": "med",
+      "info": "<p>A <strong>flat network</strong> has exactly one subnet and exactly one broadcast domain. Every device &mdash; PC, phone, printer, smart TV, IoT bulb &mdash; lives in the same IP range and sees every other device's ARP requests and broadcasts.</p><p><strong>Why SOHO is flat:</strong> with a handful of devices, there is no benefit to dividing traffic into VLANs. The broadcast volume is negligible, security zones are unnecessary, and the all-in-one device usually does not support more than one LAN segment anyway.</p><p><strong>When flat breaks down:</strong> beyond ~50 devices, broadcast chatter (ARP, DHCP discovers, mDNS, SSDP, NetBIOS) starts consuming measurable bandwidth and CPU. Security policy also becomes hard to enforce &mdash; if everyone is on the same L2 segment, your smart fridge can talk directly to your file server. That is when VLANs and L3 segmentation become necessary.</p><p><strong>Contrast with enterprise:</strong> even a small enterprise network typically has at least 3-4 VLANs (users, VoIP, guests, servers) with inter-VLAN routing. SOHO has zero.</p>",
+      "visual": { "type": "comparison", "params": { "left": { "label": "SOHO flat", "items": ["1 subnet", "1 broadcast domain", "No VLANs", "Everyone sees everyone"] }, "right": { "label": "Enterprise segmented", "items": ["Many subnets", "Many broadcast domains", "Users / Voice / Guest / Servers", "Inter-VLAN routing enforced"] } } },
+      "hack": {
+        "memory": "Flat = one room where everyone can hear everyone. No walls. Fine for a household. Terrible for a company.",
+        "practice": "Run 'ipconfig' or 'ifconfig' on 3 devices in your home. All three will be on the same /24 subnet. That is flat.",
+        "effort": "low",
+        "meta": "Exam tell: 'single subnet, single broadcast domain' = flat = SOHO."
+      }
+    },
+    {
+      "id": "1.2.e.4",
+      "term": "PAT (Port Address Translation)",
+      "weight": "high",
+      "info": "<p><strong>PAT</strong> stands for <strong>Port Address Translation</strong>, also called <strong>NAT overload</strong>. It is the form of NAT every SOHO router runs by default. PAT lets many internal devices share a <em>single</em> public IP address by using TCP/UDP port numbers to keep each session distinct.</p><p><strong>How a session gets translated:</strong> when 192.168.1.10 opens a TCP connection to 93.184.216.34:443, the SOHO router rewrites the packet before it leaves the WAN interface. The source IP becomes the router's public IP, and the source port becomes a new unique ephemeral port (say 52341). The router writes that mapping &mdash; <code>192.168.1.10:48123 &harr; 198.51.100.7:52341</code> &mdash; into its NAT translation table. Reply packets come back to 198.51.100.7:52341, and the router reverses the translation.</p><p><strong>Why it is needed:</strong> IPv4 public addresses are scarce. ISPs give SOHO customers exactly one public IP. Without PAT, only one internal device could reach the internet at a time. With PAT, thousands of simultaneous sessions share that single IP.</p><p><strong>Verification on Cisco IOS:</strong> <code>show ip nat translations</code> shows the active mappings. <code>show ip nat statistics</code> shows hit counts. The exam tests PAT conceptually &mdash; know that PAT = many-to-one using port numbers.</p>",
+      "visual": { "type": "packet-flow", "params": { "nodes": ["192.168.1.10:48123", "PAT rewrite", "198.51.100.7:52341", "Internet"], "color": "#10b981" } },
+      "hack": {
+        "memory": "PAT = many private IPs sharing one public IP, distinguished by port number. Like an apartment building with one street address but many apartment numbers.",
+        "practice": "On your home router, find the NAT translation table (often under 'advanced' or 'diagnostics'). You will see dozens of active mappings from one public IP to many private:port pairs. That is PAT live.",
+        "effort": "medium",
+        "meta": "Guaranteed exam question. Know that PAT = NAT overload = many-to-one using ports."
+      }
+    },
+    {
+      "id": "1.2.e.5",
+      "term": "SOHO private ranges",
+      "weight": "med",
+      "info": "<p>SOHO networks almost always use addresses from the <strong>RFC 1918 private IP space</strong>. Three of those ranges are common; SOHO gear picks from them by convention.</p><p><strong>The three RFC 1918 ranges:</strong></p><ul><li><code>10.0.0.0/8</code> &mdash; 10.0.0.0 through 10.255.255.255 (~16 million addresses)</li><li><code>172.16.0.0/12</code> &mdash; 172.16.0.0 through 172.31.255.255 (~1 million addresses)</li><li><code>192.168.0.0/16</code> &mdash; 192.168.0.0 through 192.168.255.255 (~65,000 addresses)</li></ul><p><strong>Most common SOHO defaults:</strong></p><ul><li><code>192.168.0.0/24</code> &mdash; Linksys, Netgear, D-Link defaults often start here</li><li><code>192.168.1.0/24</code> &mdash; Cisco, TP-Link, ASUS, and most ISPs default here</li><li><code>10.0.0.0/24</code> &mdash; Apple AirPort / Time Capsule historical default</li></ul><p><strong>Why private ranges:</strong> these addresses are not routable on the public internet &mdash; ISPs drop them at the edge. PAT translates them to the SOHO's one public IP before traffic leaves. This is the whole reason we still have any IPv4 addresses left.</p>",
+      "visual": { "type": "layer-stack", "params": { "layers": ["10.0.0.0/8 (16M addresses)", "172.16.0.0/12 (1M addresses)", "192.168.0.0/16 (65K addresses)"], "highlight": 2 } },
+      "hack": {
+        "memory": "10 / 172.16 / 192.168 &mdash; the three RFC 1918 ranges. SOHOs usually pick 192.168.1.0/24 or 192.168.0.0/24.",
+        "practice": "Check the IP of every device in your home. All of them will start with 192.168 or 10. That is RFC 1918 at work.",
+        "effort": "low",
+        "meta": "Memorize all three ranges with prefix lengths. Shows up on multiple exam questions across NAT, DHCP, and addressing."
+      }
+    },
+    {
+      "id": "1.2.e.6",
+      "term": "SOHO vs Enterprise",
+      "weight": "med",
+      "info": "<p>The <strong>SOHO vs Enterprise</strong> contrast is how the CCNA frames network scale. Know both ends.</p><p><strong>SOHO:</strong></p><ul><li>1-10 users (up to maybe 25)</li><li>One all-in-one device</li><li>Flat single subnet</li><li>No redundancy</li><li>No VLANs, no QoS policies, no centralized management</li><li>Cheap &mdash; total hardware cost often under $200</li></ul><p><strong>Enterprise:</strong></p><ul><li>Hundreds to tens of thousands of users</li><li>Tiered design (access / distribution / core, or spine-leaf)</li><li>Many VLANs with inter-VLAN routing</li><li>Redundant links, redundant devices, failover protocols (HSRP/VRRP)</li><li>Routing protocols (OSPF, EIGRP, BGP), centralized management (DNA Center, Prime)</li><li>Expensive &mdash; single core switches cost six figures</li></ul><p><strong>Middle ground: Medium Business / Branch.</strong> Not on the CCNA blueprint by name, but real networks often sit between the two extremes &mdash; a dozen or two VLANs, one tier of distribution, one redundant uplink, minimal routing.</p><p><strong>Exam framing:</strong> if the question describes a small flat network with no redundancy, it is SOHO. If it describes tiered, VLAN-segmented, redundant, centrally managed &mdash; it is enterprise.</p>",
+      "visual": { "type": "comparison", "params": { "left": { "label": "SOHO", "items": ["1-10 users", "One device", "Flat subnet", "No redundancy", "Cheap"] }, "right": { "label": "Enterprise", "items": ["100s-10000s of users", "Tiered fabric", "Many VLANs", "Redundant everything", "Expensive"] } } },
+      "hack": {
+        "memory": "SOHO = bicycle. Enterprise = fleet of trucks. Both move cargo; they solve very different problems.",
+        "practice": "Draw a SOHO on the left half of a page and an enterprise on the right. The visual contrast &mdash; one box vs a tiered hierarchy &mdash; locks in the difference.",
+        "effort": "low",
+        "meta": "Exam loves contrast questions. Know both ends."
+      }
+    }
+  ],
+  "1.2.f": [
+    {
+      "id": "1.2.f.1",
+      "term": "On-premises (on-prem)",
+      "weight": "high",
+      "info": "<p><strong>On-premises (on-prem)</strong> infrastructure means the organization owns and operates all its network, compute, and storage in its own physical facilities. Servers live in your data center. Switches live in your wiring closets. Firewalls live in your rack. You buy them, rack them, patch them, and replace them when they die.</p><p><strong>Financial model &mdash; CapEx:</strong> on-prem is a <strong>Capital Expenditure</strong> business. You make large upfront purchases of hardware, depreciate them over 3-5 years, and then buy replacements. Budgets are lumpy &mdash; huge spending in refresh years, minimal between.</p><p><strong>What you control:</strong></p><ul><li>Hardware selection (which vendor, which chipset, which ports)</li><li>Software versions (upgrade on your schedule)</li><li>Physical access (badge your own data center)</li><li>Data sovereignty (the bits never leave your building)</li><li>Security posture (end-to-end)</li></ul><p><strong>What it costs you:</strong> in-house staff to run it (sysadmins, network engineers, DC techs), facility costs (power, cooling, floor space), slow scaling (new capacity takes weeks or months to provision), and the risk of under- or over-provisioning.</p><p><strong>When it wins:</strong> strict compliance (defense, finance, healthcare), predictable steady-state load, existing capital investment, regulatory data residency requirements.</p>",
+      "visual": { "type": "shield", "params": { "label": "On-Prem Boundary", "left": "You own everything inside", "right": "ISP / internet outside" } },
+      "hack": {
+        "memory": "On-prem = owning a house. Big down payment (CapEx), you fix your own plumbing, total control, slow to move.",
+        "practice": "List three things your company controls that it could not control in the cloud. Physical access to the rack. Exact hardware SKU. Data never leaving the building. Those are the on-prem wins.",
+        "effort": "low",
+        "meta": "Exam tests CapEx vs OpEx and the control-vs-flexibility trade. Know the trade-offs cold."
+      }
+    },
+    {
+      "id": "1.2.f.2",
+      "term": "Cloud",
+      "weight": "high",
+      "info": "<p><strong>Cloud</strong> infrastructure is compute, storage, and networking hosted and operated by a third-party provider. The big three hyperscalers are <strong>AWS (Amazon Web Services)</strong>, <strong>Microsoft Azure</strong>, and <strong>Google Cloud Platform (GCP)</strong>. Smaller providers include Oracle Cloud, IBM Cloud, Alibaba Cloud, and for GPU-heavy workloads, specialized providers like CoreWeave.</p><p><strong>Financial model &mdash; OpEx:</strong> cloud is <strong>Operational Expenditure</strong>. You pay by the hour, by the gigabyte, by the API call. No upfront hardware purchase. Budgets are smooth &mdash; proportional to usage.</p><p><strong>Defining characteristics (NIST cloud model):</strong></p><ul><li><strong>On-demand self-service</strong> &mdash; spin up a VM through a web console or API in minutes</li><li><strong>Broad network access</strong> &mdash; reachable from anywhere over the internet (or private links)</li><li><strong>Resource pooling</strong> &mdash; underlying hardware is shared across tenants (multi-tenancy)</li><li><strong>Rapid elasticity</strong> &mdash; scale up or down in seconds without a purchase order</li><li><strong>Measured service</strong> &mdash; metered billing down to the second / byte / request</li></ul><p><strong>Trade-offs:</strong> you gain speed and elasticity; you give up some control, and you take on <strong>shared responsibility</strong> for security. Also, cloud is not automatically cheaper &mdash; at steady-state high utilization, on-prem can win the math. Cloud wins on variable and unpredictable workloads.</p>",
+      "visual": { "type": "comparison", "params": { "left": { "label": "On-Prem", "items": ["You own hardware", "CapEx", "Fixed capacity", "Full control"] }, "right": { "label": "Cloud", "items": ["Provider owns hardware", "OpEx", "Elastic capacity", "Shared control"] } } },
+      "hack": {
+        "memory": "Cloud = renting an apartment. Monthly rent (OpEx), landlord fixes the roof, upgrade to a bigger unit any time.",
+        "practice": "Log into AWS or Azure free tier. Spin up a t2.micro VM. Notice it took 60 seconds and cost cents. That is elasticity + OpEx in one experience.",
+        "effort": "low",
+        "meta": "CCNA tests the general concept. Know AWS, Azure, GCP by name."
+      }
+    },
+    {
+      "id": "1.2.f.3",
+      "term": "CapEx vs OpEx",
+      "weight": "high",
+      "info": "<p><strong>CapEx</strong> = <strong>Capital Expenditure</strong>. Money spent to acquire or upgrade physical assets with multi-year useful life. In networking: servers, switches, routers, firewalls, data center buildouts. On the balance sheet, CapEx is capitalized and depreciated over the asset's useful life (often 3-5 years).</p><p><strong>OpEx</strong> = <strong>Operational Expenditure</strong>. Money spent on ongoing operations. In networking: cloud subscriptions, MPLS circuit monthly fees, SaaS licenses, support contracts. On the income statement, OpEx is expensed in the period it is incurred.</p><p><strong>Why the distinction matters:</strong> CFOs and CIOs make buying decisions partly based on which bucket a cost falls into. CapEx hits the balance sheet and requires board-level approval for big numbers. OpEx flows through the P&amp;L and can be expanded or trimmed quickly. In rapidly changing businesses, OpEx flexibility is a feature.</p><p><strong>Mapping to infrastructure:</strong></p><ul><li><strong>On-prem = CapEx-heavy.</strong> Buy the hardware up front. Depreciate over years.</li><li><strong>Cloud = OpEx-heavy.</strong> Pay monthly as you use. No depreciation.</li><li><strong>Hybrid = both.</strong> Some capitalized hardware + some cloud subscriptions.</li></ul><p><strong>Exam framing:</strong> if the question says 'avoid large upfront hardware purchases,' the answer is cloud (OpEx). If it says 'full ownership and control of physical assets,' the answer is on-prem (CapEx).</p>",
+      "visual": { "type": "comparison", "params": { "left": { "label": "CapEx", "items": ["Upfront purchase", "Depreciated over years", "On-prem hardware", "Balance sheet"] }, "right": { "label": "OpEx", "items": ["Pay as you go", "Expensed monthly", "Cloud subscriptions", "Income statement"] } } },
+      "hack": {
+        "memory": "CapEx = buy. OpEx = rent. On-prem = buy. Cloud = rent.",
+        "practice": "Look at your own budget. Rent / subscriptions / groceries = OpEx. House purchase / car purchase = CapEx. Same model scales to corporate IT.",
+        "effort": "low",
+        "meta": "Almost guaranteed exam question. Two words &mdash; memorize which is upfront and which is ongoing."
+      }
+    },
+    {
+      "id": "1.2.f.4",
+      "term": "IaaS",
+      "weight": "high",
+      "info": "<p><strong>IaaS (Infrastructure as a Service)</strong> is the cloud service model where the provider rents you raw virtualized infrastructure &mdash; virtual machines, virtual disks, virtual networks &mdash; and you do everything else.</p><p><strong>Responsibility split:</strong></p><ul><li><strong>Provider manages:</strong> physical hardware, data center facilities, the hypervisor, the provider network fabric.</li><li><strong>You manage:</strong> the operating system, patches, middleware, runtimes, applications, and data.</li></ul><p><strong>Canonical examples:</strong> AWS EC2 (virtual machines), Azure Virtual Machines, GCP Compute Engine, AWS VPC (virtual network), AWS EBS (virtual disk).</p><p><strong>When to use it:</strong> you want cloud flexibility but need to run your own OS and software stack. Lift-and-shift of existing apps. Workloads with unusual dependencies. Licensing models that require specific OS images. Most flexibility of the three service models, most management burden.</p><p><strong>Security:</strong> you patch the OS, configure the firewall rules, manage access keys, and encrypt data at rest. The provider does not. That is your half of the <em>shared responsibility model</em>.</p>",
+      "visual": { "type": "layer-stack", "params": { "layers": ["Applications (you)", "Data (you)", "Runtime (you)", "OS (you)", "Virtualization (provider)", "Hardware (provider)"], "highlight": 0 } },
+      "hack": {
+        "memory": "IaaS = 'give me a VM and leave me alone.' Provider gives you the computer. You install Linux. You run everything else.",
+        "practice": "Spin up an EC2 t2.micro in AWS free tier. SSH in. You are now managing OS + apps. Provider gave you the VM, that is it. That is IaaS.",
+        "effort": "medium",
+        "meta": "Most-tested cloud model. Memorize: provider handles HW + virtualization, you handle everything above the OS line."
+      }
+    },
+    {
+      "id": "1.2.f.5",
+      "term": "PaaS",
+      "weight": "high",
+      "info": "<p><strong>PaaS (Platform as a Service)</strong> is the cloud service model where the provider runs the operating system and runtime for you. You deliver application code; the provider deploys, scales, and keeps the platform patched.</p><p><strong>Responsibility split:</strong></p><ul><li><strong>Provider manages:</strong> hardware, virtualization, OS, middleware, language runtimes, autoscaling.</li><li><strong>You manage:</strong> your application code and your data.</li></ul><p><strong>Canonical examples:</strong> AWS Elastic Beanstalk, Azure App Service, Google App Engine, Heroku, AWS Lambda (serverless is arguably a form of PaaS).</p><p><strong>When to use it:</strong> greenfield application development where you want to focus on code rather than OS plumbing. Developer productivity is the selling point. Trade-off: less flexibility &mdash; you are constrained to the runtimes, versions, and deployment models the platform supports.</p><p><strong>Security:</strong> the provider handles OS patching. You still handle application-level auth, input validation, data encryption keys, and access control. Less work than IaaS, more work than SaaS.</p>",
+      "visual": { "type": "layer-stack", "params": { "layers": ["Application (you)", "Data (you)", "Runtime (provider)", "OS (provider)", "Virtualization (provider)", "Hardware (provider)"], "highlight": 0 } },
+      "hack": {
+        "memory": "PaaS = 'here is my code, you handle the rest.' Provider runs the OS and runtime. You ship app code.",
+        "practice": "Deploy a simple Node app to Heroku or AWS Beanstalk. You uploaded code; you never touched an OS. That is PaaS.",
+        "effort": "medium",
+        "meta": "Middle of the service-model ladder. Memorize: you manage app + data, provider manages everything else."
+      }
+    },
+    {
+      "id": "1.2.f.6",
+      "term": "SaaS",
+      "weight": "high",
+      "info": "<p><strong>SaaS (Software as a Service)</strong> is the cloud service model where the provider runs the entire application stack. You are a <em>user</em> of the application, not an operator. Log in, use the software, log out.</p><p><strong>Responsibility split:</strong></p><ul><li><strong>Provider manages:</strong> hardware, virtualization, OS, runtime, the application itself, and most of the data plumbing.</li><li><strong>You manage:</strong> your accounts, your data inputs, your configuration choices, and your access policies.</li></ul><p><strong>Canonical examples:</strong> Microsoft 365 (Outlook, Word, Excel, Teams in the browser), Google Workspace (Gmail, Docs), Salesforce, Slack, Dropbox, Zoom.</p><p><strong>When to use it:</strong> any time you need a commodity capability that someone has already built well. Email, CRM, chat, collaborative docs &mdash; there is almost always a SaaS that beats rolling your own. You trade customization depth for zero operational burden.</p><p><strong>Security:</strong> you configure SSO, MFA, access policies, retention settings, and DLP rules. The provider runs the app, patches it, and protects the infrastructure. Your data is still yours &mdash; the shared responsibility model still applies.</p>",
+      "visual": { "type": "layer-stack", "params": { "layers": ["Application (provider)", "Data (provider mostly, you own records)", "Runtime (provider)", "OS (provider)", "Virtualization (provider)", "Hardware (provider)"], "highlight": 0 } },
+      "hack": {
+        "memory": "SaaS = 'just let me use the software.' Provider runs everything. You log in.",
+        "practice": "Open Gmail in your browser. You just used SaaS. You did not install anything. You did not patch anything. You opened an app and used it.",
+        "effort": "low",
+        "meta": "Easiest of the three to recognize. Memorize: provider manages everything, you just consume."
+      }
+    },
+    {
+      "id": "1.2.f.7",
+      "term": "Shared responsibility model",
+      "weight": "high",
+      "info": "<p>The <strong>shared responsibility model</strong> is the contract that spells out who secures what between the customer and the cloud provider. Every hyperscaler publishes its own version (AWS, Azure, GCP), and they all say essentially the same thing.</p><p><strong>Provider responsibilities (security OF the cloud):</strong></p><ul><li>Physical data center security (guards, fences, biometrics)</li><li>Hardware integrity (servers, storage, network gear)</li><li>Hypervisor isolation between tenants</li><li>Provider network fabric and edge DDoS protection</li><li>In SaaS and PaaS, also the OS and app runtime</li></ul><p><strong>Customer responsibilities (security IN the cloud):</strong></p><ul><li>Identity and access management (IAM users, roles, policies)</li><li>Data encryption (keys you control)</li><li>Network configuration (security groups, NACLs, firewall rules)</li><li>OS patching (in IaaS) and app-level security</li><li>Logging, monitoring, incident response</li></ul><p><strong>The split changes with the service model:</strong></p><ul><li><strong>IaaS</strong> &mdash; customer owns OS and up.</li><li><strong>PaaS</strong> &mdash; customer owns app and data only.</li><li><strong>SaaS</strong> &mdash; customer owns data and access control only.</li></ul><p><strong>Why it matters:</strong> most cloud breaches come from customer-side misconfigurations (open S3 buckets, leaked access keys, over-permissive IAM), not provider failures. The provider locking the front door does not help if the customer leaves a window open.</p>",
+      "visual": { "type": "shield", "params": { "label": "Shared Responsibility", "left": "Provider: infra, hypervisor, facility", "right": "Customer: data, IAM, config, OS (in IaaS)" } },
+      "hack": {
+        "memory": "Provider = security OF the cloud. Customer = security IN the cloud. Split slides left as you move from IaaS to SaaS &mdash; more to the provider each step.",
+        "practice": "Pick any cloud breach from the news. Was it provider failure or customer misconfig? Almost always misconfig (open bucket, leaked key, bad IAM). That is the shared responsibility model in action.",
+        "effort": "medium",
+        "meta": "Common exam question. Know both halves and know the split changes with service model."
+      }
+    },
+    {
+      "id": "1.2.f.8",
+      "term": "Hybrid cloud",
+      "weight": "med",
+      "info": "<p><strong>Hybrid cloud</strong> combines on-prem and cloud infrastructure into a single logical environment. Sensitive or steady-state workloads stay on-prem; elastic or bursty workloads live in the cloud. Traffic crosses between them over a VPN or dedicated link.</p><p><strong>Why enterprises go hybrid:</strong></p><ul><li><strong>Compliance</strong> &mdash; some data (PII, health, defense) is legally required to stay on-prem or in a specific region.</li><li><strong>Existing investment</strong> &mdash; already-purchased on-prem hardware has years of depreciation left.</li><li><strong>Latency</strong> &mdash; factory or lab equipment needs sub-millisecond paths that cloud cannot deliver.</li><li><strong>Cloud bursting</strong> &mdash; steady load on-prem, spikes overflow into the cloud.</li></ul><p><strong>How the two halves connect:</strong> site-to-site VPN over the public internet for simple cases, or dedicated private circuits (AWS Direct Connect, Azure ExpressRoute, GCP Cloud Interconnect) for high-bandwidth / low-latency / compliance cases.</p><p><strong>Operational complexity:</strong> hybrid is the hardest model to run. You need consistent identity, networking, security, and observability across two very different environments. That is why tools like Cisco Hybrid Cloud Platform, Azure Arc, and AWS Outposts exist &mdash; they extend one control plane across both.</p>",
+      "visual": { "type": "comparison", "params": { "left": { "label": "On-Prem half", "items": ["Sensitive data", "Steady-state workloads", "Existing hardware"] }, "right": { "label": "Cloud half", "items": ["Elastic workloads", "Burst capacity", "New services (ML, analytics)"] } } },
+      "hack": {
+        "memory": "Hybrid = own a house (on-prem) AND rent a storage unit (cloud) for overflow. Use each for what it does best.",
+        "practice": "Pick 3 workloads from a sample enterprise (HR database, email, e-commerce web tier). Place each on-prem, cloud, or either. Defend your choice with compliance/cost/elasticity reasoning.",
+        "effort": "medium",
+        "meta": "Exam tests the definition and the use cases. Know that hybrid = mix + connects via VPN or dedicated link."
+      }
+    },
+    {
+      "id": "1.2.f.9",
+      "term": "Direct cloud connections",
+      "weight": "med",
+      "info": "<p><strong>Direct cloud connections</strong> are dedicated private links between your on-prem network and a cloud provider that bypass the public internet entirely. Traffic rides on a private circuit from your data center to a provider edge point of presence (PoP), then enters the cloud provider's backbone.</p><p><strong>The three hyperscaler offerings (memorize these names):</strong></p><ul><li><strong>AWS Direct Connect</strong> &mdash; connects to AWS regions via Direct Connect locations</li><li><strong>Azure ExpressRoute</strong> &mdash; connects to Azure regions via ExpressRoute peering locations</li><li><strong>GCP Cloud Interconnect</strong> &mdash; dedicated or partner interconnect to GCP</li></ul><p><strong>Why pay for a direct connection:</strong></p><ul><li><strong>Lower latency</strong> &mdash; deterministic path, no internet jitter</li><li><strong>Higher bandwidth</strong> &mdash; 1, 10, 100 Gbps circuits available</li><li><strong>Better security</strong> &mdash; traffic never touches the public internet</li><li><strong>Compliance</strong> &mdash; required by some regulatory frameworks</li><li><strong>Lower data-egress costs</strong> &mdash; providers usually discount egress over direct connections</li></ul><p><strong>Architecture:</strong> the customer orders a circuit from a carrier (or extends their WAN) to a Direct Connect / ExpressRoute location. BGP peers with the cloud provider at that location. Internal VPCs / VNets become reachable as if on the private WAN.</p>",
+      "visual": { "type": "packet-flow", "params": { "nodes": ["On-prem DC", "Carrier circuit", "Direct Connect / ExpressRoute PoP", "Cloud provider backbone", "VPC / VNet"], "color": "#8b5cf6" } },
+      "hack": {
+        "memory": "AWS Direct Connect, Azure ExpressRoute, GCP Cloud Interconnect. Memorize all three names &mdash; the exam uses them by name.",
+        "practice": "Match the cloud provider to the product name: AWS &rarr; Direct Connect, Azure &rarr; ExpressRoute, GCP &rarr; Cloud Interconnect. Flashcard until instant.",
+        "effort": "low",
+        "meta": "Straight-memorization question. Know the three product names."
+      }
+    }
+  ],
+  "1.3.a": [
+    {
+      "id": "1.3.a.1",
+      "term": "Single-Mode Fiber (SMF)",
+      "weight": "high",
+      "info": "<p><strong>Single-Mode Fiber (SMF)</strong> carries light through a very narrow glass core &mdash; about <strong>8 to 10 microns</strong> wide, roughly the diameter of a human hair. The core is so small that only one ray (mode) of light can propagate through it. The transmitter is a focused <strong>laser</strong>, not an LED.</p><p><strong>Because only one mode travels the fiber:</strong> there is no modal dispersion. The light arrives cleanly, bit timing stays tight, and distance is limited mainly by attenuation and chromatic dispersion, not by mode interference. That is why SMF reaches <strong>100+ km</strong> on single spans, and with amplifiers, thousands of kilometers across oceans.</p><p><strong>Physical identification:</strong> SMF cables almost always have a <strong>yellow outer jacket</strong>. The glass itself is clear; the yellow is the protective jacket color that the industry standardized on.</p><p><strong>Connectors:</strong> SMF uses the same physical connector types as MMF &mdash; most commonly <strong>LC</strong> (small form-factor, the dominant modern connector) and <strong>SC</strong> (square, push-pull, still common on older gear). The connector itself is mode-agnostic; what matters is matching SMF cable to SMF optics.</p><p><strong>Where it is used:</strong> long-haul WAN links, metropolitan backbones, campus building-to-building runs, submarine cables, anywhere distance exceeds what multimode can reach.</p>",
+      "visual": { "type": "comparison", "params": { "left": { "label": "SMF specs", "items": ["8-10 \u00b5m core", "Laser transmitter", "Single mode", "100+ km"] }, "right": { "label": "SMF identifiers", "items": ["Yellow jacket", "LC or SC connectors", "More expensive optics", "Long-haul WAN / backbone"] } } },
+      "hack": {
+        "memory": "Single-mode = sniper rifle. One focused laser beam. Long range. Yellow jacket (think gold = expensive = long reach).",
+        "practice": "Next time you see a fiber patch cable, check the jacket color. Yellow = SMF. Orange or aqua = MMF. No decoding needed.",
+        "effort": "low",
+        "meta": "Nearly guaranteed cabling question. Memorize core size, color, and distance."
+      }
+    },
+    {
+      "id": "1.3.a.2",
+      "term": "Multimode Fiber (MMF)",
+      "weight": "high",
+      "info": "<p><strong>Multimode Fiber (MMF)</strong> uses a much wider glass core &mdash; <strong>50 &micro;m</strong> or the legacy <strong>62.5 &micro;m</strong>. The wider core allows many rays (modes) of light to bounce through simultaneously, each taking a slightly different path length down the fiber.</p><p><strong>Trade-off: modal dispersion.</strong> Because different modes arrive at slightly different times, the light pulse spreads out. At short distances this is fine; past a few hundred meters at high speeds, the spreading smears bits together and timing breaks down.</p><p><strong>MMF distance by grade (at 10G):</strong></p><ul><li><strong>OM1</strong> (62.5 &micro;m, orange) &mdash; ~33 m at 10G. Legacy, not recommended for new builds.</li><li><strong>OM2</strong> (50 &micro;m, orange) &mdash; ~82 m at 10G. Also legacy.</li><li><strong>OM3</strong> (50 &micro;m, aqua) &mdash; ~300 m at 10G, laser-optimized.</li><li><strong>OM4</strong> (50 &micro;m, aqua) &mdash; ~400 m at 10G, up to ~550 m in some specs.</li><li><strong>OM5</strong> (50 &micro;m, lime green) &mdash; SWDM-optimized for higher speeds.</li></ul><p><strong>Transmitters:</strong> MMF uses cheaper light sources &mdash; <strong>LEDs</strong> (legacy, slow) or more commonly <strong>VCSELs (Vertical-Cavity Surface-Emitting Lasers)</strong> which are lasers fabricated on chips and cost a fraction of SMF-class long-distance lasers.</p><p><strong>Where it is used:</strong> inside data centers, between floors of a building, campus runs under a few hundred meters. Cheaper optics, short reach &mdash; ideal when you have lots of short connections.</p>",
+      "visual": { "type": "layer-stack", "params": { "layers": ["OM1 62.5um orange - ~33m @ 10G", "OM2 50um orange - ~82m @ 10G", "OM3 50um aqua - ~300m @ 10G", "OM4 50um aqua - ~400m @ 10G"], "highlight": 3 } },
+      "hack": {
+        "memory": "Multimode = shotgun. Many light modes bouncing, short range, cheap. Orange = old (OM1/OM2). Aqua = modern (OM3/OM4).",
+        "practice": "Build a flashcard: OM3 &asymp; 300m at 10G. OM4 &asymp; 400m at 10G. Modern DC cabling = OM4 aqua.",
+        "effort": "medium",
+        "meta": "Exam tests core size and modern OM3/OM4 distances. Legacy OM1/OM2 details rarely tested."
+      }
+    },
+    {
+      "id": "1.3.a.3",
+      "term": "Modal dispersion",
+      "weight": "med",
+      "info": "<p><strong>Modal dispersion</strong> is the physical phenomenon that limits how far multimode fiber can run at high bit rates. When multiple light rays (modes) bounce down a wide fiber core, they each take a slightly different path &mdash; some travel nearly straight down the middle, others zigzag off the cladding many times. Those paths are not the same length.</p><p><strong>Consequence:</strong> all the modes enter the fiber at the same moment, but they arrive at the far end spread out in time. What started as a sharp pulse ends up as a blur. At short distances the blur is small and the receiver still decodes each bit cleanly. As distance grows, the blur widens until bits start overlapping and the receiver cannot tell them apart.</p><p><strong>Math intuition:</strong> the faster you send bits (higher Gbps), the tighter the time budget per bit. Modal dispersion eats the same amount of time whether you are running at 1G or 10G, but it consumes a larger fraction of the bit period at higher speeds. That is why 10G over MMF is much more distance-limited than 1G over the same fiber.</p><p><strong>Why SMF does not have this problem:</strong> the SMF core is so narrow that only one mode can propagate. One mode &rarr; one path length &rarr; no modal dispersion. Distance is limited by attenuation (signal getting weaker) and chromatic dispersion (wavelength-based spreading), both of which are smaller effects.</p>",
+      "visual": { "type": "packet-flow", "params": { "nodes": ["Pulse in (sharp)", "Modes bounce different paths", "Modes arrive at different times", "Pulse out (smeared)"], "color": "#ef4444" } },
+      "hack": {
+        "memory": "Modal dispersion = different light paths = different arrival times = smeared bits. SMF has one path so no dispersion. MMF has many paths so distance is limited.",
+        "practice": "Draw a thick fiber with 3 light rays bouncing at different angles. Mark that each ray's zigzag total length is different. That is why they arrive at different times.",
+        "effort": "medium",
+        "meta": "Explains WHY MMF is distance-limited. Conceptual question territory."
+      }
+    },
+    {
+      "id": "1.3.a.4",
+      "term": "Fiber connectors",
+      "weight": "med",
+      "info": "<p>Fiber terminates in standardized physical connectors that mate to transceivers (SFP / QSFP modules) on switches, routers, and NICs. You will see a handful of connector families in CCNA-level gear.</p><p><strong>The two connectors to know cold:</strong></p><ul><li><strong>LC (Lucent Connector)</strong> &mdash; small form-factor connector, latch release, duplex (two fibers in one clip). Dominant modern connector; nearly every SFP+ / QSFP module uses LC.</li><li><strong>SC (Subscriber Connector)</strong> &mdash; square, push-pull, larger than LC. Common on older gear, media converters, and some WAN handoffs. Still widely seen but being displaced by LC.</li></ul><p><strong>Other connectors you might encounter:</strong></p><ul><li><strong>ST (Straight Tip)</strong> &mdash; bayonet-style twist lock. Legacy, mostly pre-2010 installations.</li><li><strong>MPO / MTP</strong> &mdash; multi-fiber connector with 12 or 24 fibers in one body. Used for 40G/100G breakout cables and high-density data center trunks.</li></ul><p><strong>Mode-agnostic:</strong> a connector does not care if the fiber is SMF or MMF &mdash; the connector is just the mechanical coupling. What matters is matching the <em>cable type</em> to the <em>optic type</em>. An LC connector on SMF fiber with an SMF-spec SFP works; an LC connector on MMF fiber with the same SMF SFP does not.</p>",
+      "visual": { "type": "comparison", "params": { "left": { "label": "LC", "items": ["Small form-factor", "Latch release", "Duplex pair in one clip", "Modern default"] }, "right": { "label": "SC", "items": ["Square body", "Push-pull", "Larger than LC", "Older / WAN handoffs"] } } },
+      "hack": {
+        "memory": "LC = Little Connector = modern default. SC = Square Connector = older, push-pull. ST = Straight Tip = ancient twist lock. MPO = Many-fibers.",
+        "practice": "Look at any SFP or QSFP module online. The fiber port almost always has an LC socket. That is why LC dominates.",
+        "effort": "low",
+        "meta": "Know LC and SC by name. MPO/MTP occasionally mentioned for 40G/100G breakouts."
+      }
+    },
+    {
+      "id": "1.3.a.5",
+      "term": "Cat5e",
+      "weight": "high",
+      "info": "<p><strong>Cat5e (Category 5 enhanced)</strong> is the minimum UTP copper cable standard for modern Ethernet networks. It supersedes the older Cat5 (which was only rated for 100 Mbps) with tighter twist rates and better crosstalk performance.</p><p><strong>Speed and distance:</strong></p><ul><li>Supports <strong>1000BASE-T (1 Gbps)</strong> at the full <strong>100 meter</strong> maximum UTP run.</li><li>Bandwidth rated to 100 MHz.</li><li>Will sometimes run 2.5GBASE-T in short cable plants but not guaranteed.</li></ul><p><strong>Construction:</strong> four twisted pairs inside a single jacket, unshielded, 24 AWG solid conductors for structured cabling, stranded for patch cords. Terminated with RJ-45 connectors using T568A or T568B pinouts.</p><p><strong>Where it fits:</strong> Cat5e is still the floor for new network cabling &mdash; anything newly installed should be at least Cat5e. You will find it connecting access-layer switches to desktops, VoIP phones, printers, Wi-Fi APs, and other endpoints that need 1 Gbps.</p><p><strong>Exam number to lock in:</strong> <strong>1 Gbps at 100 m</strong>. That is the one speed/distance combination you must remember for Cat5e.</p>",
+      "visual": { "type": "comparison", "params": { "left": { "label": "Cat5e spec", "items": ["1 Gbps", "100 m max", "100 MHz bandwidth", "4 twisted pairs"] }, "right": { "label": "Cat5e use cases", "items": ["Access-layer desktops", "VoIP phones", "Printers", "Minimum for new builds"] } } },
+      "hack": {
+        "memory": "Cat5e = 1 Gbps at 100 m. Minimum for any modern network. If someone is installing Cat5, stop them &mdash; go Cat5e.",
+        "practice": "Check the cable plugged into your desk PC. If it says Cat5e on the jacket, it is rated for 1 Gbps at 100 m. That is the expected case.",
+        "effort": "low",
+        "meta": "Memorize '1 Gbps at 100 m' for Cat5e."
+      }
+    },
+    {
+      "id": "1.3.a.6",
+      "term": "Cat6",
+      "weight": "high",
+      "info": "<p><strong>Cat6 (Category 6)</strong> improves on Cat5e with tighter twists, higher bandwidth (250 MHz), and often an internal plastic spline that keeps the four pairs physically separated to reduce crosstalk.</p><p><strong>Speed and distance &mdash; two cases:</strong></p><ul><li><strong>1 Gbps</strong> at the full <strong>100 m</strong> maximum (same as Cat5e).</li><li><strong>10 Gbps</strong> at a reduced <strong>55 m</strong> maximum &mdash; <em>not</em> the full 100 m.</li></ul><p><strong>Why the 55 m limit at 10G:</strong> alien crosstalk (interference from adjacent cables in a bundle) becomes significant at 10 Gbps speeds. Cat6's construction cannot fully suppress it over 100 m. That is why Cat6a exists.</p><p><strong>Where it fits:</strong> Cat6 is a common choice for new desktop runs where 1 Gbps is the target. For planned 10G rollouts to the desk, skip Cat6 and go straight to Cat6a to avoid re-cabling later. In data centers, short Cat6 runs between adjacent racks can handle 10G since they fall within the 55 m window.</p><p><strong>Exam gotcha:</strong> the two-number table for Cat6 is the most testable fact. 1 Gbps at 100 m, 10 Gbps at 55 m. If the question says 10 Gbps over 100 m on copper, Cat6 is wrong &mdash; the answer is Cat6a.</p>",
+      "visual": { "type": "comparison", "params": { "left": { "label": "Cat6 at 1 Gbps", "items": ["Full 100 m", "250 MHz bandwidth", "Drop-in replacement for Cat5e"] }, "right": { "label": "Cat6 at 10 Gbps", "items": ["Only 55 m", "Alien crosstalk limit", "Short DC runs only"] } } },
+      "hack": {
+        "memory": "Cat6 = 1 Gbps at 100 m OR 10 Gbps at 55 m. Two numbers. Memorize both. 55 is the trap on the exam.",
+        "practice": "Drill: '10 Gbps over 80 m of copper, what cable?' Answer: Cat6a. Cat6 only goes 55 m at 10G. That 10G/100m case belongs to Cat6a.",
+        "effort": "medium",
+        "meta": "Classic exam trap. Cat6 does NOT do 10G at full 100 m. Memorize the asterisk."
+      }
+    },
+    {
+      "id": "1.3.a.7",
+      "term": "Cat6a",
+      "weight": "high",
+      "info": "<p><strong>Cat6a (Category 6 augmented)</strong> is the copper cable grade engineered specifically for <strong>10GBASE-T at the full 100 m UTP maximum</strong>. It uses thicker conductors, heavier shielding or improved pair separation, and a larger outside diameter than Cat6.</p><p><strong>Speed and distance:</strong></p><ul><li><strong>10 Gbps</strong> at the full <strong>100 m</strong> run.</li><li>Bandwidth rated to 500 MHz.</li><li>Also runs 1G, 2.5G, 5G comfortably &mdash; anything slower than 10G is easy.</li></ul><p><strong>Trade-offs:</strong> Cat6a cables are noticeably thicker and stiffer than Cat5e/Cat6 (often 8 mm vs 5-6 mm). Cable trays fill faster. Bend radii are larger. Termination is slightly more finicky. None of that is a showstopper &mdash; it just needs planning.</p><p><strong>Where it fits:</strong> any modern installation that needs 10G over copper to the desk or server. Shielded variants (F/UTP or S/FTP Cat6a) are common in high-density or noisy environments.</p><p><strong>Exam takeaway:</strong> Cat6a = 10 Gbps at 100 m. When the question gives you 10G copper over the full UTP distance, the answer is always Cat6a, not Cat6.</p>",
+      "visual": { "type": "layer-stack", "params": { "layers": ["Cat5e: 1G / 100m", "Cat6: 1G / 100m OR 10G / 55m", "Cat6a: 10G / 100m"], "highlight": 2 } },
+      "hack": {
+        "memory": "Cat6a = 10G at full 100 m. Thicker, heavier, pricier. The 'a' (augmented) means 'actually does 10G at 100m.'",
+        "practice": "Flashcard: Cat5e / Cat6 / Cat6a side by side. Write the speed AND the distance for each. Cat6's two-row answer is the trap.",
+        "effort": "low",
+        "meta": "One of the most frequently asked cabling questions. Know Cat5e/Cat6/Cat6a speed+distance cold."
+      }
+    },
+    {
+      "id": "1.3.a.8",
+      "term": "UTP 100m limit",
+      "weight": "high",
+      "info": "<p>The <strong>100-meter (328-foot) UTP cable length limit</strong> is the hard rule of copper Ethernet. It applies to every category &mdash; Cat5e, Cat6, Cat6a &mdash; regardless of speed. Exceed 100 m and the physics of signal propagation and CSMA/CD timing no longer work reliably.</p><p><strong>Where the 100 m breaks down internally:</strong></p><ul><li><strong>90 m</strong> of horizontal structured cabling (wall to wall)</li><li><strong>5 m</strong> of patch cord from the workstation to the wall jack</li><li><strong>5 m</strong> of patch cord from the patch panel to the switch</li></ul><p>Total: 100 m. This is the TIA/EIA structured cabling model. Exceeding any segment eats into the overall budget.</p><p><strong>What happens past 100 m:</strong> electrical signal attenuation grows past the receiver's threshold, timing margins narrow, bit errors rise, and at Gigabit speeds, links may fail to come up or flap. Switches will often report CRC errors or excessive late collisions.</p><p><strong>How to cover longer distances:</strong> use fiber. MMF gets you 300-400 m at 10G. SMF gets you 10, 40, 80+ km. Or insert another switch as a repeater (every switch resets the 100 m budget). Never try to 'just run it a little longer' &mdash; the link will be unreliable.</p><p><strong>Exam framing:</strong> the question will ask what cable reaches a distance. If the answer is more than 100 m, it is always fiber.</p>",
+      "visual": { "type": "comparison", "params": { "left": { "label": "Structured run", "items": ["5 m patch (PC)", "90 m horizontal", "5 m patch (switch)", "= 100 m total"] }, "right": { "label": "Beyond 100 m", "items": ["Use MMF or SMF", "Or add a switch as repeater", "Never exceed UTP limit"] } } },
+      "hack": {
+        "memory": "100 meters. 328 feet. Every UTP category. Zero exceptions. Past 100 m = fiber.",
+        "practice": "Flashcard: 'distance > 100 m on copper' &rarr; 'wrong, use fiber.' Drill until automatic.",
+        "effort": "low",
+        "meta": "Guaranteed exam question. 100 m is the number."
+      }
+    },
+    {
+      "id": "1.3.a.9",
+      "term": "SFP / SFP+ / QSFP+ / QSFP28",
+      "weight": "high",
+      "info": "<p>An <strong>SFP</strong> (Small Form-factor Pluggable) is a hot-swappable transceiver that slots into a switch, router, or NIC port. The port provides electrical power and a data bus; the SFP converts that into the right physical media &mdash; SMF, MMF, or copper &mdash; at the right speed. Pulling the SFP and replacing it with a different one changes what kind of cable the port accepts.</p><p><strong>The four you need to memorize:</strong></p><ul><li><strong>SFP</strong> &mdash; up to 1 Gbps. Used for 1GBASE-T copper, 1000BASE-SX (MMF), 1000BASE-LX (SMF).</li><li><strong>SFP+</strong> &mdash; up to 10 Gbps. Used for 10GBASE-SR (MMF), 10GBASE-LR (SMF), and 10G copper DACs (Direct Attach Copper).</li><li><strong>QSFP+</strong> &mdash; 40 Gbps. 'Q' = quad, meaning four 10G lanes inside one module. Used for 40GBASE-SR4 (MMF), LR4 (SMF), and 40G DAC.</li><li><strong>QSFP28</strong> &mdash; 100 Gbps. Four 25G lanes inside one module. Used for 100GBASE-SR4, LR4, and 100G DAC.</li></ul><p><strong>Why it matters:</strong> modern switches ship with physical cages but no optics. You buy the optics you need for each connection. A 48-port switch with 4x SFP+ cages can mix copper DAC, SR fiber, and LR fiber across the four uplinks simply by picking different SFP+ modules.</p><p><strong>Exam takeaway:</strong> memorize the speed of each form factor. SFP = 1G, SFP+ = 10G, QSFP+ = 40G, QSFP28 = 100G. That four-row table shows up in every cabling practice exam.</p>",
+      "visual": { "type": "layer-stack", "params": { "layers": ["SFP - 1 Gbps", "SFP+ - 10 Gbps", "QSFP+ - 40 Gbps (4x10G)", "QSFP28 - 100 Gbps (4x25G)"], "highlight": 3 } },
+      "hack": {
+        "memory": "SFP = 1G. SFP+ = 10G. QSFP+ = 40G (four tens). QSFP28 = 100G (four twenty-fives). The '+' multiplies by 10; 'Q' multiplies by 4.",
+        "practice": "Make a flashcard with the four modules and their speeds. Quiz until instant. This is pure memorization and appears on almost every practice exam.",
+        "effort": "low",
+        "meta": "Memorize SFP / SFP+ / QSFP+ / QSFP28 speeds. Free points."
+      }
+    }
+  ],
+  "1.3.b": [
+    {
+      "id": "1.3.b.1",
+      "term": "Shared media Ethernet",
+      "weight": "high",
+      "info": "<p><strong>Shared media Ethernet</strong> refers to the original form of Ethernet where every device on a segment shares one physical transmission medium. Two historical flavors:</p><ul><li><strong>10BASE5 (Thicknet)</strong> and <strong>10BASE2 (Thinnet)</strong> &mdash; coaxial cable running in a long bus with devices tapped directly onto it. 1980s / early 1990s.</li><li><strong>Hub-based Ethernet</strong> &mdash; 10BASE-T or 100BASE-TX with a Layer 1 hub at the center. Mid-1990s to early 2000s.</li></ul><p><strong>One collision domain for all devices:</strong> because everyone shares the wire, only one device can transmit at a time. If two devices talk simultaneously, their signals collide and both frames corrupt. This is what makes CSMA/CD necessary.</p><p><strong>Half-duplex only:</strong> shared media cannot support simultaneous send and receive on the same wire. Devices alternate &mdash; transmit when the wire is idle, listen the rest of the time.</p><p><strong>Why it died:</strong> as networks scaled, contention on the shared wire became unbearable. 10 devices sharing 10 Mbps effectively got ~1 Mbps each (worse under load). Modern switching replaced it entirely. You will basically never see shared media in a new deployment; it is tested as a historical contrast to point-to-point switched Ethernet.</p>",
+      "visual": { "type": "comparison", "params": { "left": { "label": "Shared media", "items": ["One collision domain", "Half-duplex", "CSMA/CD required", "Legacy coax or hub"] }, "right": { "label": "Effect at scale", "items": ["Collisions rise with devices", "Throughput falls", "Unacceptable past 8-10 devices"] } } },
+      "hack": {
+        "memory": "Shared media = walkie-talkie channel. One person talks at a time. Everyone else listens. Collisions when two talk. Obsolete in 2026.",
+        "practice": "Picture a hub with 8 PCs. Every frame from every PC goes out every other port. One collision domain, one broadcast domain. That is shared media.",
+        "effort": "low",
+        "meta": "Historical, but the contrast with switched point-to-point is heavily tested."
+      }
+    },
+    {
+      "id": "1.3.b.2",
+      "term": "Hub",
+      "weight": "high",
+      "info": "<p>A <strong>hub</strong> is a Layer 1 device that simply repeats every incoming electrical signal out every other port. It has no MAC address table, no forwarding decisions, no intelligence. It is electrically equivalent to a long piece of wire with branches.</p><p><strong>Behavior:</strong></p><ul><li>Frame arrives on port 1 &rarr; hub repeats it on ports 2, 3, 4, 5, 6, 7, 8.</li><li>Every connected device sees every frame.</li><li>Two devices transmitting at once cause a collision everyone else also sees.</li></ul><p><strong>Consequences:</strong></p><ul><li><strong>One collision domain</strong> for the entire hub.</li><li><strong>One broadcast domain</strong> for the entire hub.</li><li><strong>Half-duplex only</strong> &mdash; cannot transmit and receive simultaneously.</li><li>Shared bandwidth &mdash; all devices split the nominal speed.</li></ul><p><strong>Status in 2026:</strong> hubs are <strong>obsolete</strong>. Vendors stopped making them in the mid-2000s. If you find one in a closet, it is museum material. Switches cost the same or less and are strictly better in every dimension.</p><p><strong>Why the exam still tests them:</strong> the CCNA uses hubs as the conceptual contrast to switches. Knowing what a hub does makes it obvious what a switch does differently.</p>",
+      "visual": { "type": "packet-flow", "params": { "nodes": ["Frame in on port 1", "Repeated to all other ports", "All devices see it", "All devices share collision domain"], "color": "#ef4444" } },
+      "hack": {
+        "memory": "Hub = dumb repeater. L1 device. No MAC table. Every frame goes everywhere. One collision domain total.",
+        "practice": "Count collision domains: hub with 24 ports = 1. Switch with 24 ports = 24. That single contrast is the whole point.",
+        "effort": "low",
+        "meta": "Exam loves: 'a 12-port hub has how many collision domains?' Answer: 1."
+      }
+    },
+    {
+      "id": "1.3.b.3",
+      "term": "Point-to-point Ethernet",
+      "weight": "high",
+      "info": "<p><strong>Point-to-point Ethernet</strong> is the modern form of Ethernet where each device has its own dedicated physical link to a switch port. Every cable connects exactly two endpoints &mdash; one device and one switch port &mdash; with no other devices sharing the wire.</p><p><strong>Why it is transformative:</strong></p><ul><li>Each link is its own <strong>collision domain</strong>. No collisions possible on a single dedicated link where only two endpoints exist.</li><li>Each link runs <strong>full-duplex</strong>. The device can transmit and receive simultaneously because each direction uses a dedicated pair.</li><li>Bandwidth is dedicated, not shared. A 1 Gbps link really is 1 Gbps for that device.</li><li><strong>CSMA/CD is disabled</strong> in full-duplex mode &mdash; there is no reason to listen before transmitting when collisions cannot happen.</li></ul><p><strong>How the switch makes it possible:</strong> the switch reads MAC addresses, builds a MAC address table, and forwards each frame only out the port(s) that need it. Unicast frames go to one port. Broadcast and unknown-unicast frames flood to all ports in the VLAN. Every port is independent.</p><p><strong>Modern reality:</strong> every enterprise Ethernet LAN today is point-to-point. Hubs are gone. Shared media is gone. Point-to-point is simply how Ethernet works now.</p>",
+      "visual": { "type": "comparison", "params": { "left": { "label": "Shared media (hub)", "items": ["1 collision domain", "Half-duplex", "CSMA/CD on"] }, "right": { "label": "Point-to-point (switch)", "items": ["1 collision domain per port", "Full-duplex", "CSMA/CD off"] } } },
+      "hack": {
+        "memory": "Point-to-point = private phone line between each device and the switch. No sharing, no collisions, full-duplex both directions.",
+        "practice": "On your desk, your PC cable goes to exactly one switch port. Just the two of you on that wire. Zero collisions possible. That is point-to-point.",
+        "effort": "low",
+        "meta": "Contrast with shared media. Memorize: switched = point-to-point = full-duplex = no CSMA/CD."
+      }
+    },
+    {
+      "id": "1.3.b.4",
+      "term": "Collision domain",
+      "weight": "high",
+      "info": "<p>A <strong>collision domain</strong> is a region of an Ethernet network where simultaneous transmissions by two devices cause a collision. If two devices can step on each other's frames, they are in the same collision domain.</p><p><strong>Device-by-device collision domain rules:</strong></p><ul><li><strong>Hub</strong> &mdash; the entire device is ONE collision domain. All ports share it. 24-port hub = 1 collision domain.</li><li><strong>Bridge</strong> &mdash; each port is its own collision domain. Bridges were early switches.</li><li><strong>Switch</strong> &mdash; each port is its own collision domain. 24-port switch = 24 collision domains.</li><li><strong>Router</strong> &mdash; each interface is its own collision domain (and also its own broadcast domain).</li></ul><p><strong>Full-duplex collapses the problem:</strong> a point-to-point link running full-duplex effectively has no collisions because each direction uses its own wires. The 'collision domain' concept still exists on paper for that port, but it does not produce real collisions in operation.</p><p><strong>Why it matters:</strong> in half-duplex shared media, collision domain size directly limits performance. More devices sharing one domain = more collisions = lower throughput. Switches dissolve the problem by giving every port its own collision domain.</p>",
+      "visual": { "type": "comparison", "params": { "left": { "label": "Hub (1 big domain)", "items": ["All 24 ports share one", "Collisions affect everyone", "Half-duplex"] }, "right": { "label": "Switch (N domains)", "items": ["Each port is its own", "Collisions isolated", "Full-duplex"] } } },
+      "hack": {
+        "memory": "Collision domain = 'who can collide with whom.' Hub = everyone. Switch = just the two endpoints of a port (and in full-duplex, nobody).",
+        "practice": "Drill the counts: 24-port hub = 1 collision domain. 24-port switch = 24. 24-port switch in a single VLAN = 1 broadcast domain, 24 collision domains.",
+        "effort": "medium",
+        "meta": "Classic exam pair: count collision domains AND broadcast domains for a given topology."
+      }
+    },
+    {
+      "id": "1.3.b.5",
+      "term": "CSMA/CD",
+      "weight": "high",
+      "info": "<p><strong>CSMA/CD</strong> stands for <strong>Carrier Sense Multiple Access with Collision Detection</strong>. It is the arbitration mechanism that made classic shared-media Ethernet workable. Every device follows the same algorithm before and during transmission:</p><ol><li><strong>Carrier Sense</strong> &mdash; listen first. If the wire is busy, wait.</li><li><strong>Multiple Access</strong> &mdash; when the wire goes idle, any device may try to transmit.</li><li><strong>Collision Detection</strong> &mdash; while transmitting, keep listening. If a collision is detected, stop immediately.</li><li><strong>Jam signal</strong> &mdash; send a 32-bit jam pattern to ensure every other device also sees the collision.</li><li><strong>Binary exponential backoff</strong> &mdash; wait a random slot count, doubling the window after each repeat collision, up to 10 tries.</li></ol><p><strong>Slot time:</strong> the 64-byte window during which a transmitting device is still expected to detect any collision. This is why the minimum Ethernet frame is 64 bytes &mdash; a shorter frame could finish transmitting before its own collision signal returned.</p><p><strong>When CSMA/CD runs:</strong> only in <strong>half-duplex</strong> shared media. In <strong>full-duplex</strong> point-to-point links, CSMA/CD is disabled &mdash; collisions cannot happen, so arbitration is unnecessary.</p><p><strong>Exam takeaway:</strong> CSMA/CD is a <em>half-duplex</em> feature. Modern full-duplex switched networks do not use it.</p>",
+      "visual": { "type": "state-machine", "params": { "states": ["Listen (carrier sense)", "Transmit", "Collision?", "Send jam", "Backoff + retry"] } },
+      "hack": {
+        "memory": "CSMA/CD = listen, transmit, collide, jam, backoff. Half-duplex only. Full-duplex does not need it.",
+        "practice": "Walk through the five steps out loud. Then answer: 'Does a full-duplex switched port run CSMA/CD?' No.",
+        "effort": "medium",
+        "meta": "Core exam concept. Memorize the steps and the fact that it is half-duplex only."
+      }
+    },
+    {
+      "id": "1.3.b.6",
+      "term": "Half-duplex vs full-duplex",
+      "weight": "high",
+      "info": "<p><strong>Half-duplex</strong> means transmission can only happen in one direction at a time on a given link. A device either transmits or receives, never both. Think of a walkie-talkie: press to talk, release to listen.</p><p><strong>Full-duplex</strong> means transmission can happen in both directions simultaneously. Think of a phone call: both parties can talk and hear at the same time.</p><p><strong>Mapping to Ethernet hardware:</strong></p><ul><li><strong>Hub / shared media</strong> = half-duplex only. No choice. CSMA/CD required. Effective throughput well under the nominal link speed.</li><li><strong>Switch port on a dedicated link</strong> = full-duplex by default. TX and RX pairs operate independently. CSMA/CD disabled. Effective throughput equals the nominal speed in each direction.</li></ul><p><strong>Duplex auto-negotiation:</strong> modern switches and NICs negotiate speed and duplex at link-up time. If negotiation succeeds, both sides agree (typically on full-duplex / highest common speed). If one side is hardcoded to half-duplex and the other defaults to full-duplex, you get a <strong>duplex mismatch</strong>.</p><p><strong>Duplex mismatch symptoms:</strong> late collisions on the half-duplex side, CRC errors and runts on the full-duplex side, slow throughput that gets worse under load. Exam question tell: 'late collisions appearing on an interface' &rarr; answer is duplex mismatch.</p>",
+      "visual": { "type": "comparison", "params": { "left": { "label": "Half-duplex", "items": ["One direction at a time", "CSMA/CD required", "Shared media / hub", "Walkie-talkie"] }, "right": { "label": "Full-duplex", "items": ["Both directions simultaneously", "No CSMA/CD", "Switched point-to-point", "Phone call"] } } },
+      "hack": {
+        "memory": "Half-duplex = walkie-talkie. Full-duplex = phone call. Modern switched = always full-duplex.",
+        "practice": "'show interfaces' on a Cisco switch prints duplex. Healthy modern port = 'Full-duplex.' If it says 'Half-duplex' on something new, investigate &mdash; probably a mismatch.",
+        "effort": "low",
+        "meta": "Expect a duplex mismatch question. Late collisions = duplex mismatch. Memorize that link."
+      }
+    },
+    {
+      "id": "1.3.b.7",
+      "term": "Micro-segmentation",
+      "weight": "high",
+      "info": "<p><strong>Micro-segmentation</strong>, in the classic Ethernet sense, means giving <em>each switch port its own collision domain</em>. Every port is a private segment between the switch and exactly one endpoint. No other devices share that segment.</p><p><strong>Why it is the switch's superpower:</strong></p><ul><li>No shared medium &mdash; no collisions on any individual port.</li><li>Full-duplex everywhere &mdash; every link can send and receive simultaneously.</li><li>Dedicated bandwidth &mdash; each port gets the full nominal speed.</li><li>CSMA/CD is unnecessary and disabled.</li></ul><p><strong>Contrast with a hub:</strong> a 24-port hub has 1 collision domain shared by 24 devices. A 24-port switch has 24 separate collision domains, one per port. Identical physical topology; dramatically different performance.</p><p><strong>Important nuance &mdash; broadcast domains are not affected:</strong> micro-segmentation isolates collision domains, NOT broadcast domains. A 24-port switch with all ports in the same VLAN still has ONE broadcast domain. To segment broadcasts, you need VLANs.</p><p><strong>Modern security-context meaning:</strong> in cloud and data center parlance, 'micro-segmentation' has evolved to mean fine-grained firewall policies between individual workloads (think: zero-trust east-west controls). That usage is beyond CCNA &mdash; but when the CCNA exam says 'micro-segmentation,' it means 'one collision domain per switch port.'</p>",
+      "visual": { "type": "hierarchy", "params": { "root": "Switch (N collision domains)", "children": [{ "name": "Port 1 - its own CD" }, { "name": "Port 2 - its own CD" }, { "name": "Port 3 - its own CD" }, { "name": "Port N - its own CD" }] } },
+      "hack": {
+        "memory": "Micro-segmentation = one collision domain per switch port. Broadcasts still flood the VLAN &mdash; micro-segmentation does NOT shrink broadcast domains.",
+        "practice": "Count: 24-port switch, one VLAN. Collision domains = 24. Broadcast domains = 1. Then add 3 VLANs across those 24 ports: broadcast domains = 3, collision domains still = 24.",
+        "effort": "medium",
+        "meta": "Favorite exam combo: 'how many collision domains AND how many broadcast domains in this topology?' Know both."
+      }
+    }
+  ]
+}
