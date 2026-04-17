@@ -2209,14 +2209,110 @@ window.subtopicContentD12 = {
       meta: "Jeremy's IT Lab Day 23 (TCP and UDP) is the essential video for this topic. Wendell Odom OCG Chapter 4 (TCP/IP Transport Layer) covers TCP in depth. The exam tests TCP vs UDP characteristics heavily -- expect 3-5 questions. Know the TCP header fields (especially sequence number, ACK number, flags, window size) and the reliability mechanisms. The comparison table you memorize will answer most questions directly."
     },
     micro: [
-      { id: "1.5.a.1", term: "TCP",                          def: "Transmission Control Protocol. L4, connection-oriented, reliable, ordered delivery.", weight: "high" },
-      { id: "1.5.a.2", term: "TCP sequence numbers",         def: "Every byte of data has a sequence number. Enables ordered reassembly and duplicate detection.", weight: "high" },
-      { id: "1.5.a.3", term: "TCP acknowledgments (ACK)",    def: "Receiver confirms received bytes. Missing ACK triggers retransmission at sender.", weight: "high" },
-      { id: "1.5.a.4", term: "TCP retransmission",           def: "Sender resends unacknowledged data after timeout. Core reliability mechanism.", weight: "high" },
-      { id: "1.5.a.5", term: "TCP flow control (windowing)", def: "Receiver advertises window size — how much unACK'd data sender may transmit.", weight: "high" },
-      { id: "1.5.a.6", term: "TCP congestion control",       def: "Slow start, congestion avoidance, fast retransmit/recovery. Adjusts send rate to avoid loss.", weight: "med" },
-      { id: "1.5.a.7", term: "TCP header size",              def: "20 bytes minimum, 60 bytes maximum (with options). Larger than UDP.", weight: "high" },
-      { id: "1.5.a.8", term: "TCP flags",                    def: "SYN (synchronize), ACK (acknowledge), FIN (finish), RST (reset), PSH (push), URG (urgent).", weight: "high" }
+      {
+        id: "1.5.a.1",
+        term: "TCP",
+        weight: "high",
+        info: "<p><strong>TCP (Transmission Control Protocol)</strong> is the <strong>connection-oriented Layer 4 protocol</strong> defined in <strong>RFC 793</strong>. It sits on top of IP and carries <strong>IP protocol number 6</strong> in the IP header. Before a single byte of application data is sent, TCP performs a <strong>three-way handshake</strong> to establish a logical session — this is what 'connection-oriented' means. After the session is open, TCP guarantees that every byte arrives, arrives in order, and arrives uncorrupted.</p><p>TCP provides four core services that UDP does not: <strong>reliability</strong> (via sequence numbers, acknowledgments, and retransmission), <strong>ordered delivery</strong> (sequence numbers reassemble segments), <strong>flow control</strong> (the receiver's advertised window size throttles the sender), and <strong>congestion control</strong> (slow start, congestion avoidance, and fast recovery react to packet loss). These features make TCP the correct choice for applications where every byte matters: <code>HTTP/HTTPS</code>, <code>SSH</code>, <code>SMTP</code>, <code>FTP</code>, <code>BGP</code>.</p><p>The trade-off is <strong>overhead and latency</strong>. The TCP header is <strong>20 bytes minimum</strong> (up to 60 with options) compared to UDP's flat 8 bytes, every new connection costs a 1.5 RTT handshake before data flows, and the ACK/retransmission machinery consumes CPU and memory on both ends. TCP is the certified mail of L4: slower and more expensive, but you get a delivery receipt.</p><ul><li><strong>IP protocol number:</strong> 6</li><li><strong>RFC:</strong> 793 (with many updates — 5681, 7323, 9293)</li><li><strong>Header:</strong> 20 bytes minimum, up to 60 with options</li><li><strong>Connection state:</strong> maintained on both endpoints (LISTEN → ESTABLISHED → CLOSED)</li></ul>",
+        visual: { type: "layer-stack", params: { layers: ["L7 Application (HTTP, SSH, SMTP)", "L4 TCP — connection-oriented, reliable, ordered", "L3 IP (protocol number 6)", "L2 Data Link", "L1 Physical"], highlight: 1 } },
+        hack: {
+          memory: "TCP = certified mail. You sign for it (ACK), it's numbered (sequence #), lost pieces are resent (retransmit), and the post office throttles you if you send too much (flow control). IP protocol number 6. Header 20–60 bytes. RFC 793.",
+          practice: "In Wireshark, capture traffic while loading https://cisco.com. Filter for 'tcp' and identify: (1) the handshake SYN/SYN-ACK/ACK, (2) data segments with PSH+ACK, (3) the FIN teardown. Then filter for 'ip.proto == 6' to confirm TCP uses IP protocol 6.",
+          effort: "medium",
+          meta: "Jeremy's IT Lab Day 23 (TCP and UDP). Wendell Odom OCG Chapter 4 (TCP/IP Transport). The exam's single most tested L4 fact: TCP = connection-oriented, reliable, ordered. Know IP protocol number 6 — it's asked directly."
+        }
+      },
+      {
+        id: "1.5.a.2",
+        term: "TCP sequence numbers",
+        weight: "high",
+        info: "<p>A <strong>TCP sequence number</strong> is a <strong>32-bit field</strong> in the TCP header that identifies the first byte of payload in the segment. TCP does not number segments — it numbers <strong>bytes in the byte stream</strong>. If the current sequence number is 1000 and a segment carries 500 bytes of payload, the next segment's sequence number will be 1500.</p><p>Each side of a TCP connection picks its own <strong>Initial Sequence Number (ISN)</strong> during the three-way handshake. The ISN is chosen pseudo-randomly (originally a clock-based counter, now a hash per RFC 6528) to defend against <strong>TCP sequence prediction attacks</strong> — if the ISN were predictable, an attacker could spoof segments into an existing connection.</p><p>Sequence numbers enable three core behaviors:</p><ul><li><strong>Ordered reassembly</strong> — segments arriving out of order are placed back in sequence based on their byte offsets.</li><li><strong>Duplicate detection</strong> — a segment with a sequence number already seen is discarded.</li><li><strong>Gap detection</strong> — missing bytes in the expected sequence trigger retransmission.</li></ul><p>Because the field is 32 bits, the sequence space is 2^32 = ~4.3 billion bytes. On very high-speed links, this can wrap within the Maximum Segment Lifetime, which is why the <strong>PAWS (Protection Against Wrapped Sequences)</strong> mechanism and TCP timestamps option exist.</p>",
+        visual: { type: "binary-breakdown", params: { bits: "Seq = 32 bits | ISN random | byte-numbered, not segment-numbered", groups: [{ label: "ISN", value: "chosen at handshake" }, { label: "Seq increments", value: "by bytes sent" }, { label: "Wrap", value: "2^32 = 4.29 GB" }] } },
+        hack: {
+          memory: "Sequence numbers label BYTES, not segments. Each side picks its own random ISN. Jobs: order, detect dupes, detect gaps. 32 bits = ~4.3 billion byte range before wrap.",
+          practice: "Capture a TCP stream in Wireshark and right-click → 'Follow TCP Stream'. Watch the 'Seq' column increase by exactly the payload length of the previous segment. Confirm the ISN is random by capturing two different connections from the same host.",
+          effort: "medium",
+          meta: "Jeremy's IT Lab Day 23. OCG Chapter 4. Exam-relevant fact: 'TCP sequences BYTES, not packets' and 'sequence numbers enable ordering AND retransmission detection'."
+        }
+      },
+      {
+        id: "1.5.a.3",
+        term: "TCP acknowledgments (ACK)",
+        weight: "high",
+        info: "<p>A <strong>TCP acknowledgment</strong> is a 32-bit field in the TCP header that tells the sender <em>'I have received every byte up to but not including this number — send me this number next.'</em> This is called a <strong>cumulative ACK</strong>: ACK=5001 means 'bytes 1–5000 are confirmed, start transmitting at byte 5001.'</p><p>The ACK field is only meaningful when the <strong>ACK flag</strong> is set in the flags byte. After the three-way handshake completes, the ACK flag is set on essentially every segment — including data segments, FIN segments, and window updates. Pure acknowledgments (ACK flag set, zero payload) are common when the receiver has no data to send back but needs to confirm received bytes.</p><p>A critical enhancement is <strong>Selective ACK (SACK)</strong>, negotiated as a TCP option during the handshake. Cumulative ACKs can only say 'I have everything up to N.' SACK lets the receiver additionally say 'I also have bytes 7000–8000, but I'm missing 5001–6999.' This dramatically improves recovery when multiple segments are lost — the sender retransmits only the missing ranges instead of everything after the first gap.</p><p>If the sender doesn't receive an expected ACK within the <strong>Retransmission Timeout (RTO)</strong>, it retransmits. If the sender sees <strong>three duplicate ACKs</strong> for the same sequence number, it assumes a segment was lost and triggers <strong>fast retransmit</strong> without waiting for the RTO timer.</p>",
+        visual: { type: "handshake", params: { leftLabel: "Sender", rightLabel: "Receiver", steps: ["Data seq=1, 500B →", "← ACK=501 (got through 500, send 501 next)", "Data seq=501, 500B →", "← ACK=1001 (cumulative)"] } },
+        hack: {
+          memory: "ACK means 'I got everything up to (ACK-1), send ACK next.' Cumulative by default. SACK = selective, fills in gaps. 3 duplicate ACKs = fast retransmit trigger.",
+          practice: "In Wireshark, enable 'tcp.analysis.flags' filter to see retransmissions and duplicate ACKs. Pull a large file over HTTPS and watch the ACK numbers climb by exactly the byte count of each data segment.",
+          effort: "medium",
+          meta: "Jeremy's IT Lab Day 23. OCG Chapter 4. Exam tip: an ACK number is 'the NEXT byte I want', not 'the last byte I got'. Off-by-one is the classic trap."
+        }
+      },
+      {
+        id: "1.5.a.4",
+        term: "TCP retransmission",
+        weight: "high",
+        info: "<p><strong>TCP retransmission</strong> is the core reliability mechanism: when the sender doesn't get confirmation that data arrived, it sends it again. TCP uses two complementary triggers for retransmission — a timer-based <strong>RTO (Retransmission Timeout)</strong> and a duplicate-ACK-based <strong>Fast Retransmit</strong>.</p><p><strong>RTO-based retransmission:</strong> When a segment is sent, TCP starts a timer. If an ACK for that segment's bytes isn't received before the timer expires, the segment is retransmitted. The RTO value is computed dynamically from <strong>RTT (Round Trip Time)</strong> measurements using Jacobson's algorithm — smoothed RTT plus 4× RTT variance. On a LAN, RTO might be a few milliseconds; over a satellite link, hundreds of milliseconds. After each retransmission, the RTO <strong>doubles</strong> (exponential backoff) to avoid flooding a congested network.</p><p><strong>Fast Retransmit:</strong> If the sender receives <strong>three duplicate ACKs</strong> (e.g., ACK=5001 four times in a row), it assumes segment 5001 was lost and retransmits it immediately without waiting for the RTO timer. This saves hundreds of milliseconds on a WAN link.</p><p>When retransmission occurs, TCP typically also shrinks the <strong>congestion window (cwnd)</strong> and enters <strong>fast recovery</strong> (Reno) or the more modern <strong>CUBIC</strong> state machine. The idea: packet loss is a signal of congestion, so slow down.</p><ul><li><strong>RTO formula:</strong> SRTT + max(G, 4 × RTTVAR), G = clock granularity (RFC 6298)</li><li><strong>Exponential backoff:</strong> each retry doubles the RTO</li><li><strong>Fast retransmit trigger:</strong> 3 duplicate ACKs</li></ul>",
+        visual: { type: "state-machine", params: { states: ["Send seg", "Wait for ACK", "RTO expires → retransmit + double RTO", "3 dup ACKs → fast retransmit", "ACK received → advance window"] } },
+        hack: {
+          memory: "Two triggers: (1) RTO timer expires (slow — WAN latency), (2) 3 duplicate ACKs (fast — skips the timer). Each retransmit DOUBLES the RTO. Loss = congestion signal → shrink the window.",
+          practice: "Simulate loss with Linux: 'sudo tc qdisc add dev eth0 root netem loss 5%'. Then pull a file over TCP and watch Wireshark for 'TCP Retransmission' and 'TCP Dup ACK' events. Remove with 'sudo tc qdisc del dev eth0 root'.",
+          effort: "medium",
+          meta: "Jeremy's IT Lab Day 23 touches retransmission briefly. OCG Chapter 4 goes deeper. You won't need to calculate RTO on the exam, but know: 3 dup ACKs = fast retransmit, timer expiry = slow retransmit."
+        }
+      },
+      {
+        id: "1.5.a.5",
+        term: "TCP flow control (windowing)",
+        weight: "high",
+        info: "<p><strong>TCP flow control</strong> prevents a fast sender from overwhelming a slow receiver. It is implemented via the <strong>16-bit window size field</strong> in the TCP header, which the receiver uses to tell the sender: <em>'Here is how many more bytes of unacknowledged data you may send right now.'</em> This is called the <strong>Receive Window (RWIN)</strong>.</p><p>The window advertised equals the free space in the receiver's socket buffer. As the application drains bytes from the buffer, the receiver advertises a larger window in subsequent ACKs. If the buffer fills up, the receiver advertises <strong>window = 0</strong>, which is a hard stop — the sender cannot transmit another data byte until a window update arrives. To detect a lost window update, senders periodically send <strong>zero-window probes</strong>.</p><p><strong>Window scaling (RFC 7323):</strong> A 16-bit field caps at 65,535 bytes — far too small for modern gigabit links. The TCP <strong>Window Scale option</strong>, negotiated in the handshake, multiplies the advertised window by 2^N (N ≤ 14), extending the effective window up to <strong>2^30 bytes (~1 GB)</strong>. Without window scaling, high-latency/high-bandwidth links (long fat networks) can't fill the pipe.</p><p><strong>Flow control vs congestion control</strong> — often confused:</p><ul><li><strong>Flow control</strong> protects the receiver (window is advertised by the receiver based on buffer space).</li><li><strong>Congestion control</strong> protects the network (cwnd is internal to the sender, shrinks on packet loss).</li><li>The effective sending rate = <code>min(RWIN, cwnd)</code>.</li></ul>",
+        visual: { type: "handshake", params: { leftLabel: "Sender", rightLabel: "Receiver", steps: ["→ 4KB data", "← ACK, Window=8192 (free space growing)", "→ 8KB data", "← ACK, Window=0 (buffer full, STOP)", "→ zero-window probe", "← ACK, Window=4096 (resumed)"] } },
+        hack: {
+          memory: "Window size = free buffer space on the receiver. Window = 0 means 'stop now'. Flow control (receiver window) ≠ congestion control (sender cwnd). Actual rate = min of both.",
+          practice: "In Wireshark, open Statistics → TCP Stream Graphs → Window Scaling. Watch the advertised window grow and shrink across a transfer. Check Options in the SYN packet to see if Window Scale was negotiated.",
+          effort: "medium",
+          meta: "Jeremy's IT Lab Day 23. OCG Chapter 4. Classic exam question: 'What TCP mechanism provides flow control?' = windowing. 'What does window=0 mean?' = stop sending."
+        }
+      },
+      {
+        id: "1.5.a.6",
+        term: "TCP congestion control",
+        weight: "med",
+        info: "<p><strong>TCP congestion control</strong> protects the <em>network</em> (not the receiver) from being overwhelmed. Where flow control uses a receiver-advertised window, congestion control uses a sender-internal <strong>congestion window (cwnd)</strong> that shrinks on loss and grows on success. Modern TCP follows the four-phase state machine from <strong>RFC 5681</strong>.</p><ul><li><strong>Slow Start</strong> — cwnd begins at ~10 MSS (the <em>Initial Window</em>, RFC 6928). For every ACK received, cwnd increases by 1 MSS, producing <strong>exponential growth per RTT</strong>. Slow Start continues until cwnd reaches <strong>ssthresh (slow start threshold)</strong>.</li><li><strong>Congestion Avoidance</strong> — after ssthresh, cwnd grows linearly (+1 MSS per RTT, 'additive increase'). This probes for more capacity without immediately overshooting.</li><li><strong>Fast Retransmit</strong> — 3 duplicate ACKs trigger immediate retransmission of the missing segment (without waiting for RTO).</li><li><strong>Fast Recovery</strong> — after fast retransmit, cwnd is halved (<strong>multiplicative decrease</strong>), ssthresh is set to the new cwnd, and the sender returns to Congestion Avoidance instead of restarting in Slow Start.</li></ul><p>Variants you may see referenced: <strong>TCP Tahoe</strong> (restart slow start on any loss — legacy), <strong>TCP Reno</strong> (adds fast recovery), <strong>TCP NewReno</strong>, <strong>CUBIC</strong> (Linux default — cubic function of time since last loss), <strong>BBR</strong> (Google — models bandwidth and RTT instead of reacting to loss).</p><p>The CCNA doesn't require calculating cwnd, but you should know the names of the phases and the core phrase <em>'AIMD — Additive Increase, Multiplicative Decrease'</em>.</p>",
+        visual: { type: "state-machine", params: { states: ["Slow Start (exp growth)", "→ reach ssthresh", "Congestion Avoidance (linear +1 MSS/RTT)", "3 dup ACKs → Fast Retransmit", "Fast Recovery (cwnd /2) → back to Cong Avoid"] } },
+        hack: {
+          memory: "AIMD — Additive Increase, Multiplicative Decrease. Grow slowly, shrink in half on loss. Phases: Slow Start → Cong Avoid → Fast Retrans → Fast Recovery. Linux default = CUBIC.",
+          practice: "On Linux: 'ss -ti' shows live cwnd and ssthresh for each connection. Pull a large file while running this and watch cwnd climb. Change the algorithm with 'sysctl net.ipv4.tcp_congestion_control=bbr'.",
+          effort: "low",
+          meta: "Jeremy's IT Lab mentions briefly. OCG Chapter 4. Exam tip: know the NAMES of the phases (Slow Start, Cong Avoid, Fast Retransmit/Recovery). No math required."
+        }
+      },
+      {
+        id: "1.5.a.7",
+        term: "TCP header size",
+        weight: "high",
+        info: "<p>The <strong>TCP header is 20 bytes minimum</strong> — a non-negotiable baseline — and can grow up to <strong>60 bytes</strong> with options. The <strong>Data Offset</strong> field (4 bits) encodes the header length in 32-bit words: a value of 5 means 5×4 = 20 bytes (no options), and the maximum value of 15 means 15×4 = 60 bytes.</p><p>The fixed 20-byte TCP header contains 10 fields:</p><ul><li><strong>Source port</strong> — 2 bytes (16 bits)</li><li><strong>Destination port</strong> — 2 bytes</li><li><strong>Sequence number</strong> — 4 bytes</li><li><strong>Acknowledgment number</strong> — 4 bytes</li><li><strong>Data Offset + Reserved + Flags</strong> — 2 bytes (4 + 6 + 6)</li><li><strong>Window size</strong> — 2 bytes</li><li><strong>Checksum</strong> — 2 bytes</li><li><strong>Urgent pointer</strong> — 2 bytes</li></ul><p>Subtotal: 2+2+4+4+2+2+2+2 = <strong>20 bytes</strong>. Everything beyond this is <em>Options</em>, which provide features like:</p><ul><li><strong>MSS (kind=2)</strong> — exchange Maximum Segment Size in the handshake</li><li><strong>Window Scale (kind=3)</strong> — scale the 16-bit window to 2^30</li><li><strong>SACK-Permitted (kind=4)</strong> — enable selective ACK</li><li><strong>Timestamps (kind=8)</strong> — improve RTT measurement and PAWS</li></ul><p>Compare to <strong>UDP's fixed 8-byte header</strong>: TCP's overhead is <strong>2.5× larger minimum</strong>. That extra 12+ bytes pays for reliability, ordering, and flow control. Pair with the 20-byte IPv4 header and you get <strong>40 bytes total L3+L4 overhead</strong> — which is why the default <strong>TCP MSS on Ethernet is 1460</strong> (1500 MTU − 20 IP − 20 TCP).</p>",
+        visual: { type: "binary-breakdown", params: { bits: "Source Port(2) | Dst Port(2) | Seq(4) | Ack(4) | Offset+Flags(2) | Window(2) | Checksum(2) | Urgent(2) | [Options 0-40]", groups: [{ label: "Minimum", value: "20 bytes" }, { label: "Maximum", value: "60 bytes" }, { label: "Options", value: "0-40 bytes" }] } },
+        hack: {
+          memory: "TCP = 20 min, 60 max. UDP = 8 flat. Data Offset × 4 = header length. On Ethernet: MSS = MTU(1500) - IP(20) - TCP(20) = 1460. That's exam gold.",
+          practice: "In Wireshark, expand a TCP segment, check the 'Header length' value. Confirm a SYN packet is usually 32 bytes (20 + 12 bytes of options: MSS, SACK, WS, TS).",
+          effort: "medium",
+          meta: "Jeremy's IT Lab Day 23. OCG Chapter 4. Expect direct questions: 'How many bytes is the TCP header?' 20 minimum, 60 max. Also: 'What is default MSS on Ethernet?' 1460."
+        }
+      },
+      {
+        id: "1.5.a.8",
+        term: "TCP flags",
+        weight: "high",
+        info: "<p>The TCP <strong>flags (control bits)</strong> sit in a 6-bit field in the TCP header and control connection state. Each flag is a single bit — set (1) or clear (0) — and multiple flags can be combined in a single segment (e.g., SYN+ACK, FIN+ACK, PSH+ACK).</p><p>The six CCNA-relevant flags:</p><ul><li><strong>SYN (Synchronize)</strong> — 'I want to open a connection and synchronize sequence numbers.' Used in steps 1 and 2 of the three-way handshake.</li><li><strong>ACK (Acknowledge)</strong> — 'The Acknowledgment Number field is valid.' Set on essentially every segment after the handshake.</li><li><strong>FIN (Finish)</strong> — 'I have no more data to send; I'm closing my half of the connection.' Graceful shutdown.</li><li><strong>RST (Reset)</strong> — 'Abort this connection immediately.' Used for refused connections, crashes, firewall drops, or segments received for non-existent connections.</li><li><strong>PSH (Push)</strong> — 'Deliver this segment's data to the receiving application immediately; don't buffer.' Commonly set on the last segment of an HTTP request.</li><li><strong>URG (Urgent)</strong> — 'The Urgent Pointer field is valid; there is urgent data in this segment.' Rarely used in practice today.</li></ul><p>Beyond the classic six, RFC 3168 added <strong>ECE</strong> and <strong>CWR</strong> for Explicit Congestion Notification, and the oldest 'Reserved' bit was repurposed as <strong>NS (Nonce Sum)</strong>. None of these are CCNA-required.</p><p><strong>Exam-critical combinations:</strong></p><ul><li><code>SYN</code> — handshake step 1</li><li><code>SYN + ACK</code> — handshake step 2</li><li><code>ACK</code> — handshake step 3 and all data segments</li><li><code>FIN + ACK</code> — graceful close initiation</li><li><code>RST</code> (or <code>RST + ACK</code>) — abrupt tear-down</li></ul>",
+        visual: { type: "binary-breakdown", params: { bits: "URG | ACK | PSH | RST | SYN | FIN", groups: [{ label: "Handshake", value: "SYN, SYN-ACK, ACK" }, { label: "Teardown", value: "FIN-ACK (graceful), RST (abrupt)" }, { label: "Data", value: "ACK always set; PSH on last" }] } },
+        hack: {
+          memory: "Six flags: U-A-P-R-S-F (URG, ACK, PSH, RST, SYN, FIN). Handshake = SYN → SYN-ACK → ACK. Close = FIN → ACK → FIN → ACK. Kill = RST. PSH = 'flush to app'. URG = almost never seen.",
+          practice: "In Wireshark, add the 'tcp.flags' column. Filter for 'tcp.flags.syn == 1 and tcp.flags.ack == 0' to find only SYN (handshake step 1). Then try 'tcp.flags.reset == 1' on a failed connection attempt to see RSTs.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 23. OCG Chapter 4. Flags are heavy exam territory. Memorize the six names and which combine during handshake/teardown."
+        }
+      }
     ]
   },
 
@@ -2237,13 +2333,97 @@ window.subtopicContentD12 = {
       meta: "Jeremy's IT Lab Day 23 (TCP and UDP) covers the three-way handshake with clear diagrams. Wendell Odom OCG Chapter 4. This is nearly guaranteed on the exam -- it is one of the most classic networking exam questions across all certifications. Draw the handshake from memory until you can do it in under 10 seconds. Know the exact flag sequence: SYN → SYN-ACK → ACK. Know that both sides exchange initial sequence numbers during this process."
     },
     micro: [
-      { id: "1.5.b.1", term: "Three-way handshake sequence", def: "SYN → SYN-ACK → ACK. Establishes TCP connection and synchronizes sequence numbers.", weight: "high" },
-      { id: "1.5.b.2", term: "SYN (step 1)",                 def: "Client sends SYN flag with its Initial Sequence Number (ISN). Enters SYN-SENT state.", weight: "high" },
-      { id: "1.5.b.3", term: "SYN-ACK (step 2)",             def: "Server responds with SYN + ACK. Carries server's ISN and ACKs client's SYN (ack = client ISN + 1).", weight: "high" },
-      { id: "1.5.b.4", term: "ACK (step 3)",                 def: "Client ACKs server's SYN (ack = server ISN + 1). Both sides enter ESTABLISHED.", weight: "high" },
-      { id: "1.5.b.5", term: "Initial Sequence Number (ISN)", def: "Random 32-bit starting sequence number each side chooses. Exchanged during handshake.", weight: "med" },
-      { id: "1.5.b.6", term: "MSS (Maximum Segment Size)",   def: "Largest TCP payload each side will accept. Negotiated in the handshake options.", weight: "med" },
-      { id: "1.5.b.7", term: "ESTABLISHED state",            def: "Both sides completed handshake; ready for application data transfer.", weight: "high" }
+      {
+        id: "1.5.b.1",
+        term: "Three-way handshake sequence",
+        weight: "high",
+        info: "<p>The <strong>TCP three-way handshake</strong> is the deterministic sequence that opens every TCP connection: <strong>SYN → SYN-ACK → ACK</strong>. Three exchanges. Two endpoints. One connection established. The pattern is so exam-relevant that you should be able to draw it from memory in under 10 seconds.</p><p>The handshake accomplishes three things at once:</p><ul><li><strong>Reachability</strong> — both sides confirm they can send and receive from each other.</li><li><strong>Sequence number synchronization</strong> — each side exchanges its <strong>Initial Sequence Number (ISN)</strong> so byte-level tracking can begin.</li><li><strong>Option negotiation</strong> — MSS, Window Scale, SACK-permitted, and Timestamps are exchanged now or never (options can only appear in SYN segments).</li></ul><p>The total latency cost of the handshake is <strong>1.5 RTT</strong> before the first data byte can flow (actually 1 RTT for the client, since the client can piggyback data on step 3). For a typical cross-country TCP connection of ~60 ms RTT, that's about <strong>90 ms of setup overhead</strong> per connection. This is why modern protocols like <strong>HTTP/2 multiplexing</strong> reuse a single TCP connection and why <strong>HTTP/3 (QUIC over UDP)</strong> eliminates the handshake entirely.</p><p>During the handshake, the two sides move through these state transitions:</p><ul><li><strong>Client:</strong> CLOSED → SYN-SENT → ESTABLISHED</li><li><strong>Server:</strong> LISTEN → SYN-RECEIVED → ESTABLISHED</li></ul>",
+        visual: { type: "handshake", params: { leftLabel: "Client (CLOSED → SYN-SENT → ESTABLISHED)", rightLabel: "Server (LISTEN → SYN-RCVD → ESTABLISHED)", steps: ["1) SYN, seq=X →", "2) ← SYN+ACK, seq=Y, ack=X+1", "3) ACK, ack=Y+1 →", "--- ESTABLISHED, data may flow ---"] } },
+        hack: {
+          memory: "SSA: SYN → SYN-ACK → ACK. Three messages. Two states. One connection. Cost: 1.5 RTT before data. Mnemonic: 'Shake Shake Agreed'.",
+          practice: "Load any HTTPS site with Wireshark running. Filter 'tcp.flags.syn == 1'. You'll see exactly 2 packets per connection — the SYN and the SYN-ACK. The 3rd (pure ACK) appears on a separate filter 'tcp.flags.ack == 1 and tcp.seq == 1 and tcp.ack == 1'.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 23. OCG Chapter 4. Among the top 3 most-asked CCNA transport questions. Know the exact three-flag sequence cold."
+        }
+      },
+      {
+        id: "1.5.b.2",
+        term: "SYN (step 1)",
+        weight: "high",
+        info: "<p><strong>Step 1 of the handshake</strong> is a TCP segment with the <strong>SYN flag set</strong>, sent from the initiating host (typically the client) to the target host (server). The segment carries the client's <strong>Initial Sequence Number (ISN)</strong> in the Sequence Number field — say <code>seq=1000</code>. The ACK flag is cleared because there is nothing yet to acknowledge.</p><p>What the SYN actually contains:</p><ul><li><strong>Source port</strong> — a client-side ephemeral port (49152–65535)</li><li><strong>Destination port</strong> — the service port on the server (80, 443, 22, etc.)</li><li><strong>Sequence = ISN</strong> — random 32-bit starting byte number</li><li><strong>ACK = 0</strong> (flag clear)</li><li><strong>Flags: SYN = 1, all others = 0</strong></li><li><strong>Options</strong> — MSS, SACK-permitted, Window Scale, Timestamps (options can ONLY be negotiated in SYN segments)</li></ul><p>After sending, the client enters the <strong>SYN-SENT</strong> state and starts a timer. If no SYN-ACK arrives, the client retransmits the SYN — this is why a firewall silently dropping SYNs causes the dreaded 'connection timeout' after several seconds.</p><p>A SYN arriving at a port with no listening service triggers a <strong>RST</strong> back ('connection refused'). A SYN arriving at a port behind a firewall that silently drops traffic produces no response at all, forcing the client to time out.</p>",
+        visual: { type: "packet-flow", params: { nodes: ["Client (SYN-SENT)", "SYN seq=1000 →", "Server (LISTEN)"], color: "#22c55e" } },
+        hack: {
+          memory: "SYN = 'Can we talk?' Client → Server. Carries ISN (random 32-bit). Only SYN flag set. Options like MSS/WS/SACK live HERE — they can't appear mid-connection.",
+          practice: "Use 'nmap -sS -p 22,80,443 target' on a test host. -sS is a SYN scan — it sends only SYN and reads the response (SYN-ACK = open, RST = closed, timeout = filtered).",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 23. OCG Chapter 4. Know: step 1, SYN only, carries ISN, options negotiated here."
+        }
+      },
+      {
+        id: "1.5.b.3",
+        term: "SYN-ACK (step 2)",
+        weight: "high",
+        info: "<p><strong>Step 2</strong> is the server's response: a TCP segment with <strong>both SYN and ACK flags set</strong>. This single segment does two jobs at once — it acknowledges the client's SYN and proposes the server's own ISN.</p><ul><li><strong>SYN = 1</strong> — the server is also synchronizing its sequence numbers.</li><li><strong>ACK = 1</strong> — the Acknowledgment Number field is valid.</li><li><strong>Sequence = server's ISN</strong> — a fresh random 32-bit number (e.g., <code>seq=5000</code>).</li><li><strong>Acknowledgment = client's ISN + 1</strong> — e.g., <code>ack=1001</code>, meaning 'I received your SYN with seq=1000; send me 1001 next.' The +1 is important: even though the SYN had zero payload, the SYN flag itself consumes one sequence number.</li><li><strong>Options</strong> — the server echoes MSS, agrees (or not) to Window Scale, SACK-Permitted, and Timestamps.</li></ul><p>After sending, the server enters the <strong>SYN-RECEIVED</strong> state and allocates a half-open connection entry in its TCP control block. This is the state that <strong>SYN flood</strong> attacks abuse — an attacker sends many SYNs without completing the handshake, filling the server's half-open queue. <strong>SYN cookies</strong> defend against this by encoding state into the ISN itself, eliminating the need to remember half-open connections.</p><p>The client, upon receiving SYN-ACK, moves from SYN-SENT to ESTABLISHED (the client considers the connection usable as soon as step 2 arrives — it can piggyback data with step 3).</p>",
+        visual: { type: "packet-flow", params: { nodes: ["Client (SYN-SENT)", "← SYN+ACK seq=5000, ack=1001", "Server (SYN-RCVD)"], color: "#3b82f6" } },
+        hack: {
+          memory: "SYN-ACK = 'Yes, and here's my ISN too.' Both flags. Server's seq=ISN_server, ack=ISN_client+1. Server enters SYN-RECEIVED — this is what SYN floods abuse.",
+          practice: "Filter Wireshark for 'tcp.flags.syn == 1 and tcp.flags.ack == 1'. Every SYN-ACK is the exact response to a SYN, with ack = (SYN's seq) + 1. Verify this by matching packets.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 23. OCG Chapter 4. Step 2 is the BOTH flag segment — SYN and ACK together. Also note: +1 on ACK because SYN consumes a sequence number."
+        }
+      },
+      {
+        id: "1.5.b.4",
+        term: "ACK (step 3)",
+        weight: "high",
+        info: "<p><strong>Step 3</strong> is the client's final acknowledgment: a TCP segment with <strong>only the ACK flag set</strong> (SYN is not repeated). Its job is to confirm the server's ISN and formally complete the handshake.</p><ul><li><strong>SYN = 0</strong> (no new sequence synchronization needed)</li><li><strong>ACK = 1</strong> — flag set</li><li><strong>Sequence = client's ISN + 1</strong> — e.g., <code>seq=1001</code> (because the client's SYN consumed byte 1000)</li><li><strong>Acknowledgment = server's ISN + 1</strong> — e.g., <code>ack=5001</code></li><li><strong>Payload</strong> — optionally zero-length (pure ACK) OR the client can piggyback data immediately (TCP Fast Open uses this)</li></ul><p>Once step 3 is sent, the client is in the <strong>ESTABLISHED</strong> state. When the server receives step 3, it also transitions to ESTABLISHED. The connection is now fully open — both sides can send and receive data in any order until one side initiates a FIN.</p><p>Many client stacks are aggressive and piggyback HTTP requests onto this step 3 ACK — so the first packet carrying actual application data is often the same packet as the handshake-completing ACK. This is normal and efficient.</p>",
+        visual: { type: "packet-flow", params: { nodes: ["Client (ESTABLISHED)", "ACK seq=1001, ack=5001 →", "Server (ESTABLISHED)"], color: "#22c55e" } },
+        hack: {
+          memory: "Step 3 = pure ACK, no SYN. seq=client ISN+1, ack=server ISN+1. Often piggybacks the first data byte. Both sides now ESTABLISHED.",
+          practice: "In Wireshark on a handshake capture, look at packet 3. Its seq should equal packet 1's seq + 1. Its ack should equal packet 2's seq + 1. If you see PSH+ACK instead of plain ACK, the client piggybacked data.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 23. OCG Chapter 4. Know: step 3 is ONLY ACK flag (not SYN+ACK — that's step 2). Seq and ack numbers each +1 from the opposing ISN."
+        }
+      },
+      {
+        id: "1.5.b.5",
+        term: "Initial Sequence Number (ISN)",
+        weight: "med",
+        info: "<p>The <strong>Initial Sequence Number (ISN)</strong> is the 32-bit starting sequence number each side picks at the beginning of a TCP connection. <strong>Each side chooses its own ISN independently</strong> — they are not related. The ISNs are exchanged during steps 1 and 2 of the three-way handshake.</p><p>Historically (RFC 793, 1981), ISNs were derived from a 4-microsecond counter that wrapped every ~4.5 hours. This was guessable, allowing <strong>TCP sequence prediction attacks</strong> where an attacker could spoof segments into an existing connection. <strong>RFC 6528 (2012)</strong> replaced this with:</p><pre>ISN = M + F(local_IP, local_port, remote_IP, remote_port, secret_key)</pre><p>Where M is a monotonic timer and F is a cryptographic hash (typically MD5 or SHA). This makes ISN prediction computationally infeasible.</p><p>Why ISNs aren't just zero: if the same 5-tuple (source IP, source port, dest IP, dest port, protocol) reopens a connection right after closing, old delayed segments from the previous connection could arrive and be mistaken for new data. Random ISNs combined with the <strong>TIME-WAIT</strong> state ensure old segments are rejected.</p><p>For the CCNA, you don't need to compute ISNs. You need to know:</p><ul><li>Each side picks its ISN independently.</li><li>They are exchanged during the handshake (SYN carries client ISN, SYN-ACK carries server ISN).</li><li>The ACK field = opposite side's ISN + 1 (because the SYN flag consumes one sequence number).</li></ul>",
+        visual: { type: "handshake", params: { leftLabel: "Client ISN=X (random)", rightLabel: "Server ISN=Y (random)", steps: ["SYN, seq=X →", "← SYN-ACK, seq=Y, ack=X+1", "ACK, seq=X+1, ack=Y+1 →"] } },
+        hack: {
+          memory: "ISN = random 32-bit starting number. Each side picks its own. ACK field always = other side's ISN + 1 (the SYN flag eats 1 seq#).",
+          practice: "Capture 5 separate TCP handshakes. Compare ISNs across them — they should all be completely different and scattered across the 2^32 space (not sequential).",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 23. OCG Chapter 4. CCNA rarely asks computation — just 'both sides exchange ISNs during handshake' and the +1 math."
+        }
+      },
+      {
+        id: "1.5.b.6",
+        term: "MSS (Maximum Segment Size)",
+        weight: "med",
+        info: "<p>The <strong>Maximum Segment Size (MSS)</strong> is the largest TCP <em>payload</em> (just the data, not including headers) that one side is willing to receive in a single segment. It is negotiated during the three-way handshake via the TCP <strong>MSS option (kind=2)</strong> in the SYN and SYN-ACK packets. Each side advertises its own MSS; the effective MSS for the connection is the <strong>minimum of the two</strong>.</p><p>The standard MSS calculation on <strong>Ethernet</strong>:</p><pre>MSS = MTU − IP header − TCP header\n    = 1500 − 20 − 20\n    = 1460 bytes</pre><p>On PPPoE links (DSL), MTU is typically 1492 and MSS becomes 1452. On tunneled interfaces (GRE, IPsec, VXLAN), you subtract additional encapsulation overhead. This is why mismatched MTU/MSS across a VPN is a classic 'pages load partially but hang' symptom.</p><p><strong>MSS vs MTU</strong> — often confused:</p><ul><li><strong>MTU (Maximum Transmission Unit)</strong> = the largest L2 frame payload. Ethernet default = 1500 bytes. Measured at L2/L3.</li><li><strong>MSS</strong> = the largest TCP payload. Measured at L4. Always MSS = MTU − IP − TCP.</li></ul><p><strong>Path MTU Discovery (PMTUD)</strong> uses ICMP Fragmentation Needed messages (Type 3, Code 4) to detect the smallest MTU on the path. If a firewall blocks ICMP Type 3 Code 4, PMTUD breaks — 'ICMP black hole' — and large segments get silently dropped. The fix is either to allow the ICMP messages through or to use <strong>MSS clamping</strong> on the router (e.g., <code>ip tcp adjust-mss 1400</code>) which rewrites the MSS option in SYN packets.</p>",
+        visual: { type: "binary-breakdown", params: { bits: "Ethernet frame 1500 = [IP hdr 20][TCP hdr 20][Payload = MSS 1460]", groups: [{ label: "MTU (L2)", value: "1500 bytes" }, { label: "IP header", value: "20 bytes" }, { label: "TCP header", value: "20 bytes" }, { label: "MSS (L4 payload)", value: "1460 bytes" }] } },
+        hack: {
+          memory: "MSS = MTU − 40 on Ethernet. 1500 − 20 − 20 = 1460. Each side advertises in SYN/SYN-ACK; connection uses the LOWER of the two. MSS ≠ MTU — MSS is the DATA only.",
+          practice: "On Linux: 'ip tcp_metrics' shows learned MSS/RTT per destination. In Wireshark, expand a SYN packet → TCP → Options → Maximum Segment Size to see the advertised value.",
+          effort: "medium",
+          meta: "Jeremy's IT Lab Day 23. OCG Chapter 4. Classic calc: 1500 - 20 - 20 = 1460. Also know MSS is ADVERTISED in SYN/SYN-ACK, negotiated as lower of the two."
+        }
+      },
+      {
+        id: "1.5.b.7",
+        term: "ESTABLISHED state",
+        weight: "high",
+        info: "<p><strong>ESTABLISHED</strong> is the TCP state in which data transfer actually happens. Both sides enter ESTABLISHED after the handshake completes — the client upon receiving the SYN-ACK, the server upon receiving the final ACK. A connection remains in ESTABLISHED until one side sends a FIN to begin graceful close, or until a RST abruptly destroys it.</p><p>In ESTABLISHED, the connection is <strong>full-duplex</strong>: both sides can send data independently. Every data segment has the ACK flag set (the 'A' stays on forever once the handshake finishes) and carries cumulative ACKs for whatever the receiver has gotten so far. Sequence numbers on each side advance by the number of payload bytes sent. Window sizes shrink and grow dynamically for flow control.</p><p>On Linux, you can observe live TCP states:</p><pre>$ ss -tan\nState        Recv-Q  Send-Q  Local Address  Peer Address\nESTAB        0       0       10.1.1.5:53412 142.250.80.46:443\nLISTEN       0       128     0.0.0.0:22     0.0.0.0:*\nTIME-WAIT    0       0       10.1.1.5:49288 172.217.3.110:443</pre><p>The full TCP state machine (RFC 793) has 11 states. For CCNA, the ones worth knowing:</p><ul><li><strong>LISTEN</strong> — server waiting for incoming SYNs</li><li><strong>SYN-SENT</strong> — client has sent SYN, waiting for SYN-ACK</li><li><strong>SYN-RECEIVED</strong> — server has sent SYN-ACK, waiting for final ACK</li><li><strong>ESTABLISHED</strong> — data transfer</li><li><strong>FIN-WAIT-1/2, CLOSE-WAIT, LAST-ACK, TIME-WAIT</strong> — teardown states</li><li><strong>CLOSED</strong> — no connection</li></ul>",
+        visual: { type: "state-machine", params: { states: ["CLOSED", "LISTEN (server)", "SYN-SENT (client)", "SYN-RCVD", "ESTABLISHED", "FIN-WAIT-1 / CLOSE-WAIT", "TIME-WAIT / LAST-ACK", "CLOSED"] } },
+        hack: {
+          memory: "ESTABLISHED = data flows. Both sides full-duplex. Stay here until FIN (graceful) or RST (abrupt). Linux check: 'ss -tan'.",
+          practice: "Run 'ss -tan' or 'netstat -an' on your machine while browsing. Count ESTABLISHED vs TIME-WAIT connections. TIME-WAIT tends to outnumber ESTABLISHED on busy servers.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 23. OCG Chapter 4. You don't need to memorize all 11 states, but ESTABLISHED, LISTEN, SYN-SENT, TIME-WAIT are fair game."
+        }
+      }
     ]
   },
 
@@ -2264,12 +2444,84 @@ window.subtopicContentD12 = {
       meta: "Jeremy's IT Lab Day 23 covers the teardown. Wendell Odom OCG Chapter 4. The teardown is less frequently tested than the handshake but still appears. The key exam question: 'What TCP flag gracefully terminates a connection?' Answer: FIN. 'What TCP flag abruptly terminates a connection?' Answer: RST. Know FIN-ACK-FIN-ACK as the graceful sequence."
     },
     micro: [
-      { id: "1.5.c.1", term: "Four-way teardown sequence",   def: "FIN → ACK → FIN → ACK. Each direction of the full-duplex connection closes independently.", weight: "high" },
-      { id: "1.5.c.2", term: "FIN flag",                     def: "'I have no more data to send.' Initiates graceful close of one direction.", weight: "high" },
-      { id: "1.5.c.3", term: "Half-close",                   def: "After one side FINs, it can still receive. That direction closes, other stays open until its own FIN.", weight: "med" },
-      { id: "1.5.c.4", term: "TIME-WAIT state",              def: "After final ACK, client waits 2× MSL (max segment lifetime, ~60-120s) to catch delayed segments.", weight: "med" },
-      { id: "1.5.c.5", term: "RST flag",                     def: "Abrupt connection termination. No FIN/ACK exchange. Used for refused connections, crashes, or firewall denies.", weight: "high" },
-      { id: "1.5.c.6", term: "Graceful vs abrupt close",     def: "FIN = graceful (hang-up after goodbye). RST = abrupt (slam phone down).", weight: "high" }
+      {
+        id: "1.5.c.1",
+        term: "Four-way teardown sequence",
+        weight: "high",
+        info: "<p>The <strong>TCP four-way teardown</strong> (also called four-way close or graceful close) is the mirror of the handshake but takes <strong>four messages instead of three</strong>. The sequence is <strong>FIN → ACK → FIN → ACK</strong>. Either endpoint can initiate — there's no 'client vs server' role in teardown.</p><p>Why four steps and not three? Because TCP connections are <strong>full-duplex</strong> and the two directions close independently. When side A sends FIN, it's saying 'I have no more data <em>to send</em>' — but A can still <em>receive</em>. Side B might still have data to send, so B acknowledges A's FIN immediately, keeps transmitting its remaining data, and only later sends its own FIN when B is also done. Then A acknowledges B's FIN and the connection is fully closed.</p><ol><li><strong>FIN</strong> — A sends FIN+ACK. A enters <strong>FIN-WAIT-1</strong>.</li><li><strong>ACK</strong> — B acks A's FIN. B enters <strong>CLOSE-WAIT</strong> (B may still be sending data). A enters <strong>FIN-WAIT-2</strong>.</li><li><strong>FIN</strong> — B finishes sending, then sends its own FIN+ACK. B enters <strong>LAST-ACK</strong>.</li><li><strong>ACK</strong> — A acks B's FIN. A enters <strong>TIME-WAIT</strong> (holds for 2×MSL). B enters <strong>CLOSED</strong> upon receiving the ACK.</li></ol><p>An important optimization: if B has no data to send when it receives A's FIN, it can <strong>combine steps 2 and 3</strong> into a single FIN+ACK segment. In that case the teardown looks like just three messages — but it's still called the four-way teardown because logically four transitions occurred.</p>",
+        visual: { type: "handshake", params: { leftLabel: "Side A (FIN-WAIT-1 → FIN-WAIT-2 → TIME-WAIT)", rightLabel: "Side B (ESTAB → CLOSE-WAIT → LAST-ACK → CLOSED)", steps: ["1) FIN →", "2) ← ACK", "3) ← FIN (when B is done sending)", "4) ACK →", "--- CLOSED ---"] } },
+        hack: {
+          memory: "Four steps: FIN → ACK → FIN → ACK. Two because full-duplex closes separately per direction. Can collapse to 3 if B has no data buffered. Either side can initiate.",
+          practice: "Close a browser tab with a long-lived connection (e.g., HTTPS to a chat site). In Wireshark, filter 'tcp.flags.fin == 1' and count the FINs — you'll see two, one from each side.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 23. OCG Chapter 4. Flag sequence FIN-ACK-FIN-ACK shows up on CCNA. The 'why four and not three' explanation is also fair game."
+        }
+      },
+      {
+        id: "1.5.c.2",
+        term: "FIN flag",
+        weight: "high",
+        info: "<p>The <strong>FIN (Finish) flag</strong> is the TCP flag that initiates a graceful close of one direction of a full-duplex connection. A segment with FIN=1 means <em>'I have sent all the data I'm going to send; my half of this connection is finished.'</em></p><p>Key properties of a FIN segment:</p><ul><li>Always sent with <strong>ACK=1</strong> as well (FIN+ACK combo), because the connection is already in ESTABLISHED where ACK stays on.</li><li>The FIN flag <strong>consumes one sequence number</strong>, just like SYN. So if the last data byte had seq=5000, the FIN has seq=5001, and the response ACK will be 5002.</li><li>After sending FIN, the sender can still <em>receive</em> data — only the sending direction is closed. This is called a <strong>half-close</strong>.</li><li>FIN must be acknowledged; if the ACK is lost, the FIN is retransmitted per normal TCP rules.</li></ul><p>Graceful close via FIN is what allows applications to ensure all buffered data is delivered before the connection dies. Compare this to <strong>RST</strong>, which destroys the connection instantly and discards any in-flight data. Application-level protocols like HTTP rely on FIN to signal end-of-response body when Content-Length isn't set (HTTP/1.0 connection-close responses).</p><p>In Linux, calling <code>close()</code> on a socket sends a FIN for both directions (full close). Calling <code>shutdown(SHUT_WR)</code> sends only one FIN, closing the write direction but keeping read open — this is how a client signals end-of-request while still reading the response.</p>",
+        visual: { type: "packet-flow", params: { nodes: ["Side A ESTABLISHED", "FIN+ACK →", "Side B ESTABLISHED (can still send)"], color: "#ef4444" } },
+        hack: {
+          memory: "FIN = 'I'm done sending'. Always rides with ACK. Consumes 1 seq#. Only closes your send direction — you can still receive. Graceful ≠ RST.",
+          practice: "Write a tiny Python script: open a TCP socket, send 'hello', then call sock.shutdown(socket.SHUT_WR). Capture in Wireshark — you'll see a single FIN from the client but the server can still send back data.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 23. OCG Chapter 4. Exam: FIN = graceful, RST = abrupt. FIN consumes 1 sequence number (like SYN)."
+        }
+      },
+      {
+        id: "1.5.c.3",
+        term: "Half-close",
+        weight: "med",
+        info: "<p><strong>Half-close</strong> is the state where one direction of a full-duplex TCP connection has been closed while the other remains open. This is a direct consequence of TCP being bidirectional — each side owns its own sending stream and closes it independently via FIN.</p><p>After side A sends FIN and side B acks it:</p><ul><li><strong>A's state:</strong> FIN-WAIT-2 — A cannot send more data, but A can still receive.</li><li><strong>B's state:</strong> CLOSE-WAIT — B can still send data, but B's receive buffer has hit end-of-stream (the application reading from B will get EOF / read returns 0).</li></ul><p>B might sit in CLOSE-WAIT for seconds, minutes, or forever — depending on how quickly B's application calls <code>close()</code>. A long CLOSE-WAIT dwell on a server is almost always a sign of a <strong>buggy application not closing sockets</strong> properly. On busy servers, run <code>ss -tan state close-wait</code> to find leaked connections.</p><p>Half-close is explicitly useful for request/response protocols. A client can:</p><ol><li>Send the entire request</li><li>Call <code>shutdown(SHUT_WR)</code> to send FIN — signaling end-of-request</li><li>Keep reading the response until server sends its own FIN</li></ol><p>This pattern is used by tools like <code>nc</code> (netcat) when piping stdin: <code>cat req.txt | nc host 80</code> — once stdin EOFs, nc sends FIN but keeps reading the response.</p>",
+        visual: { type: "comparison", params: { left: { label: "Side A after FIN", items: ["Cannot send", "Can still receive", "State: FIN-WAIT-2"] }, right: { label: "Side B after ACKing", items: ["Can still send", "Reads return EOF", "State: CLOSE-WAIT"] } } },
+        hack: {
+          memory: "Half-close = one direction dead, other alive. A: FIN-WAIT-2 (can't send). B: CLOSE-WAIT (can still send). Long CLOSE-WAIT = app not calling close().",
+          practice: "Trigger half-close with: 'echo -e \"GET / HTTP/1.0\\r\\n\\r\\n\" | nc example.com 80'. The nc process closes stdin (sends FIN), but keeps reading the response. Capture to see FIN + continued data.",
+          effort: "low",
+          meta: "Jeremy's IT Lab briefly. OCG Chapter 4. Half-close and CLOSE-WAIT are operator knowledge — CCNA won't dig in deep but the concept is fair game."
+        }
+      },
+      {
+        id: "1.5.c.4",
+        term: "TIME-WAIT state",
+        weight: "med",
+        info: "<p><strong>TIME-WAIT</strong> is a terminal TCP state entered by the side that sends the <em>last</em> ACK in the teardown sequence (the side that received the opposing FIN last). It holds there for <strong>2 × MSL (Maximum Segment Lifetime)</strong> — traditionally 4 minutes, though Linux defaults to <strong>60 seconds</strong>. During TIME-WAIT, the 4-tuple (local IP:port, remote IP:port) is reserved and cannot be reused.</p><p>TIME-WAIT exists for two reasons:</p><ol><li><strong>Catch delayed segments.</strong> If a duplicate or delayed segment from the old connection arrives after close, TIME-WAIT ensures the 4-tuple is still 'owned' so the late segment can be dropped rather than misinterpreted as data for a new connection.</li><li><strong>Ensure the final ACK reaches the peer.</strong> If the ACK is lost, the peer retransmits its FIN. Keeping the connection in TIME-WAIT lets the local side re-ACK it. If we closed immediately, the peer would get RST and think something went wrong.</li></ol><p><strong>Operational impact:</strong> on a busy server that initiates closes (e.g., HTTP/1.0 where server closes after each response), many thousands of TIME-WAIT entries can accumulate, consuming memory and blocking ephemeral port reuse. Kernels cap the count (<code>net.ipv4.tcp_max_tw_buckets</code>) and allow <strong>SO_REUSEADDR</strong> to bind sockets over TIME-WAIT entries.</p><p>MSL values:</p><ul><li><strong>RFC 793 suggestion:</strong> 2 minutes, so TIME-WAIT = 4 minutes</li><li><strong>Linux default:</strong> 60 seconds (tcp_fin_timeout)</li><li><strong>BSD default:</strong> 30 seconds</li></ul>",
+        visual: { type: "state-machine", params: { states: ["FIN sent", "Final ACK sent", "TIME-WAIT (hold 2× MSL)", "60s-4min timer", "CLOSED — 4-tuple reusable"] } },
+        hack: {
+          memory: "TIME-WAIT = the side that sends the last ACK holds for 2× MSL (typically 60s Linux). Why? Catch delayed segments + allow FIN retransmit. Pain on busy servers.",
+          practice: "After closing many connections, run 'ss -tan state time-wait | wc -l' to count TIME-WAITs. Try 'sysctl net.ipv4.tcp_fin_timeout' to see the configured value.",
+          effort: "low",
+          meta: "Jeremy's IT Lab briefly. OCG Chapter 4. TIME-WAIT is an operator topic — CCNA won't ask timer values, but 'what state holds briefly after final ACK?' is fair."
+        }
+      },
+      {
+        id: "1.5.c.5",
+        term: "RST flag",
+        weight: "high",
+        info: "<p>The <strong>RST (Reset) flag</strong> is TCP's eject button. When a host sends a segment with RST=1, the receiver <strong>immediately destroys the connection</strong> with no FIN, no ACK exchange, no data flush, no TIME-WAIT wait. It is the protocol-level equivalent of slamming down the phone.</p><p>RST is generated in these scenarios:</p><ul><li><strong>Connection refused</strong> — a SYN arrives at a port with no listening service. The kernel responds with RST.</li><li><strong>Application crash</strong> — if the process holding a socket dies, the kernel typically issues RST to any in-flight data that arrives afterward.</li><li><strong>Firewall reject</strong> — firewalls can be configured to REJECT (send RST back) vs DROP (silent). REJECT is faster-failing because the client doesn't have to wait for SYN retransmission timeout.</li><li><strong>Out-of-state segment</strong> — a segment arrives for a 4-tuple the local TCP stack has no knowledge of (e.g., after a reboot). The local side sends RST to tell the peer 'this connection doesn't exist anymore'.</li><li><strong>Deliberate abort</strong> — an application calls <code>SO_LINGER</code> with timeout 0 to force RST instead of FIN.</li></ul><p><strong>Contrast with FIN:</strong></p><ul><li><strong>FIN</strong> = 'I'm done sending; flush data gracefully; wait for your FIN.'</li><li><strong>RST</strong> = 'Destroy the connection now; drop anything in buffers; no further exchange.'</li></ul><p>RST is also the signature of <strong>TCP RST injection attacks</strong>, where a man-in-the-middle (or the Great Firewall of China) forges RST segments to tear down specific connections. IDS/IPS tools can do the same defensively to block disallowed flows.</p>",
+        visual: { type: "packet-flow", params: { nodes: ["Host A", "RST → (bang)", "Host B: connection destroyed"], color: "#dc2626" } },
+        hack: {
+          memory: "RST = slam phone down. No handshake out, no ACK wait, no TIME-WAIT. Common causes: no service listening, app crash, firewall REJECT, out-of-state segment. Opposite of FIN.",
+          practice: "Run 'nc -v localhost 9999' on a port nothing is listening on. The kernel returns RST → nc prints 'Connection refused' instantly. Capture in Wireshark and confirm 'tcp.flags.reset == 1'.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 23. OCG Chapter 4. 'What flag abruptly terminates a connection?' RST. Also know: connection refused = RST, connection timeout = no response (SYN dropped silently)."
+        }
+      },
+      {
+        id: "1.5.c.6",
+        term: "Graceful vs abrupt close",
+        weight: "high",
+        info: "<p>TCP provides two ways to end a connection, and the distinction shows up constantly in troubleshooting and the exam.</p><p><strong>Graceful close (FIN / 'four-way teardown'):</strong></p><ul><li>Initiated by FIN, acked, counter-FIN, acked.</li><li>All in-flight data is flushed and delivered.</li><li>Application on each side eventually sees EOF on reads.</li><li>TIME-WAIT ensures the 4-tuple stays reserved for 2× MSL.</li><li>Analogy: hanging up the phone after saying goodbye.</li></ul><p><strong>Abrupt close (RST):</strong></p><ul><li>Single segment with RST=1.</li><li>All buffers dumped; in-flight data lost.</li><li>Peer's <code>read()</code>/<code>recv()</code> returns <strong>Connection reset by peer</strong> (errno <code>ECONNRESET</code>) instead of EOF.</li><li>No TIME-WAIT on either side.</li><li>Analogy: slamming the phone down mid-sentence.</li></ul><p>When do you see which? HTTPS browser sessions close gracefully. SSH sessions usually close gracefully. A crashed server or killed process produces RSTs. A firewall configured to REJECT (not DROP) returns RST on disallowed traffic. <code>iptables -j REJECT --reject-with tcp-reset</code> explicitly sends RST.</p><p>From an application perspective:</p><ul><li>EOF on read → graceful, peer sent FIN.</li><li><code>ECONNRESET</code> → abrupt, peer sent RST.</li></ul><p>Network operators often prefer RST on firewalls for internal traffic (fail-fast for users) and silent DROP for edge/internet-facing traffic (no feedback to attackers scanning).</p>",
+        visual: { type: "comparison", params: { left: { label: "Graceful Close (FIN)", items: ["4-way teardown", "Data flushed", "TIME-WAIT 2× MSL", "Read returns EOF", "Hang up after goodbye"] }, right: { label: "Abrupt Close (RST)", items: ["1 segment", "Data discarded", "No TIME-WAIT", "Read returns ECONNRESET", "Slam phone down"] } } },
+        hack: {
+          memory: "Graceful = FIN, flushes data, TIME-WAIT holds. Abrupt = RST, drops data, instant. App sees EOF (FIN) vs 'connection reset' (RST).",
+          practice: "In Wireshark, filter 'tcp.flags.fin == 1 or tcp.flags.reset == 1'. On normal browsing you'll see FIN-ACK pairs at the end of every connection. Then force-kill a TCP server and reconnect to see RSTs.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 23. OCG Chapter 4. Core exam fact: FIN = graceful (4 messages), RST = abrupt (1 message). App sees EOF vs 'connection reset by peer'."
+        }
+      }
     ]
   },
 
@@ -2290,12 +2542,84 @@ window.subtopicContentD12 = {
       meta: "Jeremy's IT Lab Day 23 covers windowing conceptually. Wendell Odom OCG Chapter 4 goes deeper into TCP flow control and congestion control. The CCNA tests conceptual understanding only -- you will NOT calculate window sizes. Key exam answers: 'Which TCP feature provides flow control?' = windowing. 'What happens when window size = 0?' = sender stops transmitting. 'How does TCP ensure ordered delivery?' = sequence numbers."
     },
     micro: [
-      { id: "1.5.d.1", term: "TCP window size",              def: "Bytes the sender can transmit before waiting for an ACK. Dynamically advertised by receiver.", weight: "high" },
-      { id: "1.5.d.2", term: "Window size 0",                def: "Receiver buffer full. Tells sender to stop transmitting until an update.", weight: "high" },
-      { id: "1.5.d.3", term: "Slow start",                   def: "Connection begins with small window; doubles on each RTT (exponential) until ssthresh.", weight: "med" },
-      { id: "1.5.d.4", term: "Congestion avoidance",         def: "After ssthresh, window grows linearly (additive increase) to avoid overshooting capacity.", weight: "med" },
-      { id: "1.5.d.5", term: "Fast retransmit",              def: "3 duplicate ACKs → retransmit missing segment immediately without waiting for timeout.", weight: "med" },
-      { id: "1.5.d.6", term: "Sequence number uses",         def: "Ordering (reassembly), duplicate detection, and ACK reporting ('send me byte N next').", weight: "high" }
+      {
+        id: "1.5.d.1",
+        term: "TCP window size",
+        weight: "high",
+        info: "<p>The <strong>TCP window size</strong> is the receiver's advertised buffer space, measured in bytes, that the sender may transmit before requiring an acknowledgment. It lives in the <strong>16-bit Window field</strong> of the TCP header and rides in <em>every ACK</em>. Each ACK the receiver sends effectively says: 'I got bytes up to N — and I have room for this many more.'</p><p>The raw 16-bit field maxes out at <strong>65,535 bytes</strong>. On modern high-bandwidth long-distance links this is laughably small — at 1 Gbps and 100 ms RTT, the pipe holds ~12.5 MB, so a 64 KB window would leave the pipe 99.5% empty. That's why the <strong>Window Scale option</strong> (RFC 7323, kind=3) was added — it multiplies the advertised value by 2^N (N up to 14), extending the effective window to <strong>2^30 ≈ 1 GB</strong>. Window scaling is negotiated during the handshake; if either side doesn't propose it, both sides use the raw 16-bit window.</p><p>Window size is <strong>dynamic</strong>. It changes every RTT depending on how fast the receiving application drains the socket buffer. If the app is fast, the window stays large. If the app stalls (e.g., writing to slow disk), the buffer fills up and the advertised window shrinks.</p><p>The actual amount of unacked data a sender can have in flight is <strong>min(receive window, congestion window)</strong>. The receive window caps what the receiver can tolerate; the congestion window caps what the network is believed to tolerate. Whichever is smaller wins.</p>",
+        visual: { type: "handshake", params: { leftLabel: "Sender", rightLabel: "Receiver (buffer shrinking)", steps: ["→ 4KB data", "← ACK, Window = 16384 (healthy)", "→ 8KB data", "← ACK, Window = 8192 (app is slow)", "→ 4KB data", "← ACK, Window = 1024 (nearly full)"] } },
+        hack: {
+          memory: "Window = free receive buffer, in bytes, advertised in every ACK. 16-bit field = 64KB max RAW. Window Scale option extends to 1 GB. Changes every RTT.",
+          practice: "In Wireshark, add the 'TCP Window Size' column. Pull a large file over a slow link and watch the window rise and fall as the receiver's app drains the buffer.",
+          effort: "medium",
+          meta: "Jeremy's IT Lab Day 23. OCG Chapter 4. Exam: 'What field in the TCP header implements flow control?' Window Size. 'How big is the field?' 16 bits, up to 2^30 with Window Scale."
+        }
+      },
+      {
+        id: "1.5.d.2",
+        term: "Window size 0",
+        weight: "high",
+        info: "<p>When a receiver advertises <strong>Window = 0</strong>, it is telling the sender: <em>'Stop. My buffer is full. Do not send another data byte until I explicitly tell you otherwise.'</em> The sender must honor this — it is a hard stop. Sending data anyway would either be discarded by the receiver or considered a protocol violation.</p><p>After a Window=0 is advertised, the connection enters a <strong>persist state</strong>. To protect against the case where the eventual window-update ACK is lost (which would leave both sides stuck forever), the sender starts a <strong>persist timer</strong> and periodically sends a <strong>zero-window probe</strong>: a tiny 1-byte segment testing whether the receiver has room yet. The receiver replies with an ACK either advertising the updated (non-zero) window or repeating Window=0. This probing continues indefinitely until the window opens.</p><p>Common reasons for Window=0:</p><ul><li>Receiving application is too slow to drain the socket (e.g., blocked on disk I/O)</li><li>Receiving process is paused (stopped with SIGSTOP, debugger breakpoint)</li><li>Receiver is genuinely out of memory</li><li>Deliberate rate limiting at the application layer</li></ul><p>In Wireshark, zero-window is flagged in the 'Info' column as <strong>[TCP ZeroWindow]</strong> and the recovery probes as <strong>[TCP ZeroWindowProbe]</strong>. Seeing these in a capture is a strong hint that the <em>receiver</em> is the bottleneck — not the network.</p>",
+        visual: { type: "handshake", params: { leftLabel: "Sender", rightLabel: "Receiver", steps: ["→ Data", "← ACK, Window = 0 (STOP)", "-- sender pauses --", "→ ZeroWindowProbe (1 byte)", "← ACK, Window = 0 (still full)", "-- wait --", "→ ZeroWindowProbe", "← ACK, Window = 4096 (opened!)"] } },
+        hack: {
+          memory: "Window=0 = hard stop. Sender must pause. Zero-window probes (1 byte) poll for recovery. [TCP ZeroWindow] in Wireshark = receiver is the bottleneck.",
+          practice: "Write a Python server that does: recv(1024), then sleep(30). Connect a client sending 1MB rapidly. Capture in Wireshark — you'll see the window shrink to 0 and the ZeroWindowProbes fire.",
+          effort: "medium",
+          meta: "Jeremy's IT Lab Day 23. OCG Chapter 4. 'What happens when Window = 0?' Sender stops; probes with small segments until receiver opens the window again."
+        }
+      },
+      {
+        id: "1.5.d.3",
+        term: "Slow start",
+        weight: "med",
+        info: "<p><strong>Slow Start</strong> is the first phase of TCP congestion control. Its name is historical and somewhat misleading — it actually grows the sending rate <strong>exponentially</strong>, doubling the congestion window (cwnd) every RTT. 'Slow' refers to the <em>starting size</em>, not the growth rate.</p><p>How it works: at the start of a connection, cwnd is initialized to the <strong>Initial Window (IW)</strong> — traditionally 1 MSS, but modern Linux (RFC 6928) uses <strong>IW=10 MSS</strong> (~14.6 KB on Ethernet). For every ACK the sender receives, cwnd increases by 1 MSS. Because roughly all unacked segments get acked per RTT, this doubles cwnd each RTT: 10 → 20 → 40 → 80 → ...</p><p>Slow start continues until one of three things happens:</p><ul><li>cwnd reaches <strong>ssthresh (Slow Start Threshold)</strong> — then transitions to Congestion Avoidance</li><li><strong>Packet loss detected</strong> (RTO or 3 dup ACKs) — ssthresh is halved, cwnd resets (Tahoe) or halves (Reno), and recovery begins</li><li>Application stops sending — connection idles</li></ul><p>Why start small? Because TCP has no idea what bandwidth the path can handle on connection open. Blasting 1 MB upfront would almost certainly overrun a queue somewhere. Exponential ramp probes for the path's capacity quickly without drowning it.</p><p>Modern variants: <strong>CUBIC</strong> (Linux default) and <strong>BBR</strong> (Google) still use slow start on connection open but replace the later phases with different congestion-window formulas.</p>",
+        visual: { type: "state-machine", params: { states: ["Start: cwnd = 10 MSS", "ACK received → cwnd += 1 MSS", "RTT 1: cwnd = 20", "RTT 2: cwnd = 40", "RTT 3: cwnd = 80", "→ hit ssthresh → Cong Avoidance"] } },
+        hack: {
+          memory: "Slow start = small START but FAST growth. cwnd starts at ~10 MSS (RFC 6928), doubles per RTT. Stops at ssthresh (→ Cong Avoidance) or on loss. Name is misleading.",
+          practice: "Run 'ss -ti dst <some-host>' while starting a download. Watch the cwnd value quickly rise (10 → 20 → 40 ...) during the first few RTTs.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 23 lightly touches this. OCG Chapter 4. CCNA asks for the name, not the math. Know: 'Slow start grows exponentially until ssthresh.'"
+        }
+      },
+      {
+        id: "1.5.d.4",
+        term: "Congestion avoidance",
+        weight: "med",
+        info: "<p><strong>Congestion Avoidance</strong> is the second phase of TCP congestion control. Once slow start's exponential ramp has pushed cwnd up to <strong>ssthresh</strong>, the sender switches to this gentler, linear growth mode — <strong>Additive Increase</strong> — adding roughly 1 MSS per RTT instead of doubling.</p><p>The formula: for every ACK received in congestion avoidance, cwnd grows by <code>MSS²/cwnd</code> bytes. Summed over an RTT (when all segments get acked), this adds up to +1 MSS. So if you're at cwnd = 80 MSS and your RTT is 50 ms, you'll add roughly 1 MSS every 50 ms — a cautious, probing climb.</p><p>Why switch from exponential to linear? Because you are now near (or above) the known good operating point for this path. Continuing to double would blast past capacity and cause loss. Additive increase is a slow, polite question: 'How about a little more?'</p><p>The matching half of AIMD is <strong>Multiplicative Decrease</strong>: when loss is detected in Congestion Avoidance, the sender cuts cwnd in half (halves ssthresh, too) and continues. This is the steady-state behavior you see on a long-running transfer: slow climb, sudden drop on loss, slow climb, sudden drop, slow climb — the classic 'sawtooth' cwnd graph.</p><p><strong>AIMD</strong> = Additive Increase, Multiplicative Decrease. It provides <em>fairness</em>: multiple TCP flows sharing a bottleneck converge toward equal shares even without coordination.</p>",
+        visual: { type: "state-machine", params: { states: ["Reach ssthresh → enter CA", "Every RTT: cwnd += 1 MSS (linear)", "Loss detected → cwnd /= 2", "Resume linear growth", "Sawtooth pattern emerges"] } },
+        hack: {
+          memory: "Congestion Avoidance = linear growth (+1 MSS/RTT). On loss, cut cwnd in half (multiplicative decrease). AIMD = Additive Increase, Multiplicative Decrease → classic sawtooth.",
+          practice: "In a long-running file transfer, graph cwnd over time (ss -ti repeated, or ebpf tools). You should see the sawtooth pattern — slow linear climb, instant drop on loss, climb again.",
+          effort: "low",
+          meta: "Jeremy's IT Lab briefly. OCG Chapter 4. CCNA asks for the phase names and the AIMD principle. No math required."
+        }
+      },
+      {
+        id: "1.5.d.5",
+        term: "Fast retransmit",
+        weight: "med",
+        info: "<p><strong>Fast Retransmit</strong> is the performance shortcut that lets TCP recover from isolated packet loss without waiting for the full Retransmission Timeout (RTO). The trigger is simple: when the sender receives <strong>three duplicate ACKs</strong> in a row, it immediately retransmits the missing segment.</p><p>Why three? When the receiver gets a segment out of order, it sends back an ACK with the next expected sequence number — the number it's still waiting for. If segments 5, 6, 7 arrive but segment 4 is missing, each of 5, 6, 7 produces an ACK saying 'send 4 next'. That's three ACKs carrying the same acknowledgment number — the 'triple dup ACK' signature. One or two duplicates might be harmless reordering; three is the convention that strongly implies loss.</p><p>Without fast retransmit, the sender would wait until the RTO timer expires before retransmitting. On a WAN with 100 ms RTT and RTO = 200 ms or more, that's a huge pause. Fast retransmit eliminates the wait — the retransmit happens within about 1 RTT of the loss.</p><p>Fast retransmit pairs with <strong>Fast Recovery</strong> (RFC 5681). After retransmitting, instead of dropping cwnd all the way to 1 MSS and restarting slow start (Tahoe behavior), Reno-style stacks halve cwnd, set ssthresh to the new cwnd, and continue in congestion avoidance. The connection's sending rate takes a hit but doesn't crash.</p>",
+        visual: { type: "handshake", params: { leftLabel: "Sender", rightLabel: "Receiver", steps: ["→ seg 4 (lost)", "→ seg 5, 6, 7 (arrive)", "← ACK=4 (dup 1)", "← ACK=4 (dup 2)", "← ACK=4 (dup 3) → FAST RETRANSMIT", "→ seg 4 retransmitted", "← ACK=8 (all caught up)"] } },
+        hack: {
+          memory: "3 duplicate ACKs = fast retransmit trigger. Skip the RTO timer. Pair with Fast Recovery (halve cwnd, stay in CA). Isolated loss → minimal penalty.",
+          practice: "Induce light loss with 'tc qdisc add dev eth0 root netem loss 2%' and pull a file. Wireshark will flag 'TCP Dup ACK' events and the corresponding 'TCP Fast Retransmission'.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 23. OCG Chapter 4. Know the magic number: 3 dup ACKs = fast retransmit."
+        }
+      },
+      {
+        id: "1.5.d.6",
+        term: "Sequence number uses",
+        weight: "high",
+        info: "<p>TCP's 32-bit sequence number is a single field doing multiple heavy-lifting jobs. Every byte in the TCP byte stream has an implicit sequence number, and that numbering enables three distinct capabilities — each essential to reliability.</p><p><strong>1. Ordering / reassembly.</strong> IP networks can deliver packets out of order (parallel paths, routing changes). When segments arrive out of order, the receiver uses the sequence number to place each segment's bytes at the correct offset in the receive buffer. The application reads bytes in the original send order, even though the network delivered them in a different order.</p><p><strong>2. Duplicate detection.</strong> Retransmissions (from RTO or fast retransmit) can produce duplicate segments — the original and the retransmission both arrive. The receiver checks the sequence number; if the bytes in that range are already in the buffer, the duplicate is silently discarded.</p><p><strong>3. ACK reporting / gap detection.</strong> The receiver's cumulative ACK number tells the sender the highest continuous byte received. If there's a gap (e.g., received 1–1000 and 2001–3000, missing 1001–2000), the ACK number stays stuck at 1001 — which is exactly what triggers duplicate ACKs and fast retransmit. With SACK option, the receiver can also explicitly name non-contiguous ranges it does have.</p><p><strong>Byte-level, not packet-level:</strong> TCP does not number segments. It numbers the bytes inside them. If a segment carries 500 bytes of payload starting at seq=1000, it occupies sequence space 1000–1499, and the next segment will have seq=1500. This byte-granular numbering is why the ACK field can acknowledge partial segments if needed.</p>",
+        visual: { type: "comparison", params: { left: { label: "Three jobs of sequence #", items: ["Ordering (reassembly)", "Duplicate detection (dedupe)", "Gap detection / ACK reporting"] }, right: { label: "Not what you think", items: ["Not segment-numbered", "Byte-numbered in stream", "32-bit field, wraps at 4 GB"] } } },
+        hack: {
+          memory: "Sequence numbers do THREE jobs: order, dedupe, gap-detect. Byte-granular, not segment-granular. 32-bit field wraps every 4 GB (that's why PAWS/timestamps exist).",
+          practice: "In a Wireshark capture, right-click a TCP packet → Follow → TCP Stream. You'll see both sides' data in original order regardless of actual packet arrival order — because Wireshark reassembles using sequence numbers.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 23. OCG Chapter 4. Expect: 'Which TCP field enables ordered delivery?' Sequence number. 'Which field enables duplicate detection?' Also sequence number."
+        }
+      }
     ]
   },
 
@@ -2312,12 +2636,84 @@ window.subtopicContentD12 = {
       meta: "Jeremy's IT Lab Day 23 covers UDP characteristics. Wendell Odom OCG Chapter 4. If the exam asks 'which protocol has lower overhead?' = UDP. 'Which is used for real-time voice/video?' = UDP. 'Which provides no guarantees of delivery?' = UDP. 'Which protocol's header is 8 bytes?' = UDP. These are easy points if you memorize the characteristics and common applications."
     },
     micro: [
-      { id: "1.5.e.1", term: "UDP",                          def: "User Datagram Protocol. L4, connectionless, best-effort, no reliability, low overhead.", weight: "high" },
-      { id: "1.5.e.2", term: "UDP header size",              def: "8 bytes only. Four fields: source port, destination port, length, checksum.", weight: "high" },
-      { id: "1.5.e.3", term: "Connectionless",               def: "No handshake, no connection state. Sender just sends datagrams.", weight: "high" },
-      { id: "1.5.e.4", term: "Best-effort delivery",         def: "No ACKs, no retransmission. Lost datagrams stay lost unless app implements its own reliability.", weight: "high" },
-      { id: "1.5.e.5", term: "No ordering",                  def: "Datagrams can arrive out of order; no sequence numbers to reassemble.", weight: "high" },
-      { id: "1.5.e.6", term: "UDP use cases",                def: "VoIP, video streaming/conferencing, online gaming, DNS queries, DHCP, SNMP, Syslog, NTP, TFTP.", weight: "high" }
+      {
+        id: "1.5.e.1",
+        term: "UDP",
+        weight: "high",
+        info: "<p><strong>UDP (User Datagram Protocol)</strong> is the <strong>connectionless</strong> Layer 4 protocol defined in <strong>RFC 768</strong>, carrying <strong>IP protocol number 17</strong> in the IP header. Unlike TCP, UDP has no handshake, no connection state, no acknowledgments, no retransmission, no ordering, no flow control, and no congestion control. You send a datagram; it either arrives or it doesn't. The network forgets it existed.</p><p>This minimalism is UDP's feature, not a bug. By doing almost nothing, UDP introduces almost no latency. There's no 1.5 RTT handshake. There's no waiting for ACKs. There's no retransmission pause. If you have a single small message to send — 'What's the IP for google.com?' — UDP delivers it in one packet, one round trip. TCP would need three packets just to open the session before the first query goes out.</p><p>The trade-off: <strong>best-effort delivery</strong>. If the datagram is lost, corrupted, duplicated, or reordered by the network, UDP will not fix it. The application either tolerates the loss (voice/video — drop the bad frame, keep playing), implements its own reliability (QUIC, DNS retry logic), or simply lives with the fact that some data never arrives.</p><p>UDP's home turf:</p><ul><li><strong>Real-time media</strong> — VoIP, video conferencing, live streaming (late data is useless)</li><li><strong>Query/response DNS, DHCP, NTP</strong> — tiny, stateless, 'retry on timeout' is fine</li><li><strong>Gaming</strong> — position updates; missing one is invisible, waiting for retransmission creates lag</li><li><strong>Multicast/broadcast</strong> — TCP can't do one-to-many; UDP can</li></ul>",
+        visual: { type: "layer-stack", params: { layers: ["L7 Application (DNS, VoIP, DHCP, NTP)", "L4 UDP — connectionless, best-effort, low overhead", "L3 IP (protocol number 17)", "L2 Data Link", "L1 Physical"], highlight: 1 } },
+        hack: {
+          memory: "UDP = shout into the crowd. No handshake, no ACK, no retransmit, no order. IP protocol 17 (TCP is 6). RFC 768. For when speed > reliability.",
+          practice: "Use 'dig @8.8.8.8 google.com' while capturing in Wireshark. Filter 'udp'. You'll see exactly 2 packets — query and response. No handshake, no teardown. Compare with 'curl https://google.com' which shows 10+ TCP packets.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 23. OCG Chapter 4. Know: IP protocol = 17. RFC 768. Connectionless. Contrast with TCP directly."
+        }
+      },
+      {
+        id: "1.5.e.2",
+        term: "UDP header size",
+        weight: "high",
+        info: "<p>The <strong>UDP header is exactly 8 bytes — fixed, no options, no variations</strong>. This is one of the most cited UDP facts on the CCNA, and you should know it reflexively. Four 16-bit fields stacked top-to-bottom:</p><ul><li><strong>Source Port</strong> — 2 bytes. Identifies the sending application (optional; may be 0 if sender doesn't care about replies)</li><li><strong>Destination Port</strong> — 2 bytes. Identifies the receiving service</li><li><strong>Length</strong> — 2 bytes. Total datagram length in bytes (header + data). Minimum value is 8 (header only, zero payload). Maximum is 65,535.</li><li><strong>Checksum</strong> — 2 bytes. Computed over a pseudo-header (IPs, protocol, length) + UDP header + data. Optional in IPv4 (zero means 'no checksum'); mandatory in IPv6.</li></ul><p>Compare to TCP:</p><pre>UDP: 8 bytes fixed (4 fields)\nTCP: 20 bytes min, 60 max (10+ fields)</pre><p>That's a <strong>12-byte savings per segment</strong> — plus the absence of connection state, handshake traffic, and ACK overhead. For a DNS query/response exchange (~50–200 bytes each), the proportional savings are significant; for a 10 GB file transfer, reliability is worth the 40 bytes of L3+L4 overhead.</p><p>Because the header is fixed, UDP is also trivial to implement in hardware — ASICs in network cards and programmable switches can process UDP at line rate with almost no logic. That's one reason streaming and gaming protocols favor UDP: the data path is lean top to bottom.</p>",
+        visual: { type: "binary-breakdown", params: { bits: "Src Port (2B) | Dst Port (2B) | Length (2B) | Checksum (2B)", groups: [{ label: "Total", value: "8 bytes flat" }, { label: "Fields", value: "4 fields, 16 bits each" }, { label: "vs TCP", value: "12 bytes less" }] } },
+        hack: {
+          memory: "UDP = 8 bytes. Four 2-byte fields: src port, dst port, length, checksum. No flags, no seq#, no ack#, no window. 12 bytes less than minimum TCP.",
+          practice: "In Wireshark, expand a UDP packet — you'll see exactly the 4 fields and 8 bytes total. Also check that DNS queries are typically 32-80 bytes total (8 UDP + 20 IP + DNS payload).",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 23. OCG Chapter 4. Near-guaranteed exam question: 'What is the size of a UDP header?' 8 bytes. Know the 4 fields."
+        }
+      },
+      {
+        id: "1.5.e.3",
+        term: "Connectionless",
+        weight: "high",
+        info: "<p><strong>Connectionless</strong> means UDP treats every datagram as independent — no state, no setup, no teardown. The sender just fires packets at a destination IP:port. The receiver listens on its port and takes whatever comes in. Neither side allocates per-connection memory, tracks sequence numbers, or maintains timers.</p><p>The consequences ripple through everything:</p><ul><li><strong>No handshake</strong> — no SYN/SYN-ACK/ACK overhead. First packet is application data.</li><li><strong>No state table</strong> — a server can receive from millions of unique clients without exhausting RAM for connection state. Compare this to a busy TCP server that tracks tens of thousands of sockets.</li><li><strong>No ordering guarantee</strong> — datagrams can arrive in any order; UDP does not reassemble them. The application must tolerate this or implement its own ordering.</li><li><strong>No delivery guarantee</strong> — no ACKs mean no way to know if a datagram was received. Lost datagrams stay lost unless the application retries.</li><li><strong>No congestion feedback</strong> — UDP happily sends at wire speed even if the network is dropping 50% of packets. 'UDP flood' DoS attacks exploit this.</li></ul><p>Importantly, 'connectionless' is about the protocol — the <em>application</em> can still have a concept of a session. DNS resolvers remember which query ID matches which pending response. VoIP apps track call state in RTP/RTCP. TFTP numbers its own blocks. The state exists in the application, not in UDP.</p><p>Contrast: TCP's per-connection state is what lets it provide reliability — and also what makes TCP-based servers hit resource limits that UDP-based servers never encounter.</p>",
+        visual: { type: "comparison", params: { left: { label: "Connectionless (UDP)", items: ["Fire and forget", "No state per client", "No ordering", "No delivery proof", "Scales to huge fan-out"] }, right: { label: "Connection-oriented (TCP)", items: ["Handshake required", "State per connection", "Ordered bytes", "ACK on receive", "RAM-bound at scale"] } } },
+        hack: {
+          memory: "Connectionless = no state, no setup, no teardown. Just fire datagrams. Each one independent. Scales massively (no state per client) — but 'reliability' is the app's problem.",
+          practice: "Write a 3-line Python UDP server that listens on port 9999. Send packets from 10 different machines simultaneously using 'nc -u server 9999'. The server sees all of them — no handshake, no limits.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 23. OCG Chapter 4. 'Connectionless' is the one-word definition of UDP. Opposite of TCP's 'connection-oriented'."
+        }
+      },
+      {
+        id: "1.5.e.4",
+        term: "Best-effort delivery",
+        weight: "high",
+        info: "<p><strong>Best-effort delivery</strong> means UDP makes no promises about what happens to a datagram once it leaves the sending host. If the network can deliver it, great. If a router's queue is full, it drops the datagram. If a link flips a bit, the checksum catches it and the datagram is discarded. If the receiver's buffer is full, it drops. In all these cases, UDP does nothing to recover — no retransmission, no notification back to the sender, nothing.</p><p>The phrase 'best effort' is actually an IP-layer term (IP itself is best-effort). UDP simply does not add anything on top. It is a thin shim that exposes IP's delivery semantics directly to applications with the addition of ports for multiplexing and an optional checksum.</p><p>Three categories of UDP-using apps, classified by how they handle unreliability:</p><ul><li><strong>Tolerate loss.</strong> Voice codecs, video streams, game position updates. A lost packet becomes a brief dropout — retransmitting it later would be worse than the gap itself. Modern codecs have forward error correction and interpolation for this.</li><li><strong>Retry at app layer.</strong> DNS, NTP, SNMP queries. The protocol uses a single request/response. If no response arrives in N seconds, the client retries. Simple and stateless.</li><li><strong>Build reliability on top of UDP.</strong> QUIC (HTTP/3), TFTP, DTLS, WireGuard. These add ACKs, retransmission, and ordering — but at the application layer where they can be tuned to the use case (e.g., QUIC allows per-stream flow control, which TCP can't).</li></ul><p>The fundamental insight: <strong>reliability is not free</strong>. TCP's guarantees cost latency and CPU. For many workloads, the cost exceeds the benefit. UDP's minimalism gives application designers the choice.</p>",
+        visual: { type: "comparison", params: { left: { label: "Lost UDP datagram", items: ["Silent drop", "Sender doesn't know", "No retransmit", "App decides response"] }, right: { label: "Lost TCP segment", items: ["RTO fires OR 3 dup ACK", "Sender retransmits", "Receiver reassembles", "App sees nothing"] } } },
+        hack: {
+          memory: "Best-effort = 'we'll try'. UDP adds ZERO on top of IP's best-effort. Lost = silent drop. App's job: tolerate loss (media), retry (DNS), or build reliability on top (QUIC).",
+          practice: "Run 'iperf3 -u -c bouncer -b 1G' to blast 1 Gbps of UDP. Server output shows packet loss percentage — pure loss, no recovery. Compare with TCP iperf where throughput adjusts to avoid loss.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 23. OCG Chapter 4. 'Best-effort' is a canonical phrase. Know UDP has it, TCP adds reliability on top."
+        }
+      },
+      {
+        id: "1.5.e.5",
+        term: "No ordering",
+        weight: "high",
+        info: "<p><strong>UDP provides no ordering guarantees.</strong> If the sender transmits datagrams 1, 2, 3, the receiver might see them in any order — 2, 1, 3 or 3, 1, 2 or even just 1, 3 (with 2 dropped entirely). UDP has no sequence number field; there is no protocol-level mechanism to detect or correct reorder.</p><p>Why does reorder happen? IP networks routinely take different paths for packets in the same flow:</p><ul><li><strong>Equal-Cost Multi-Path (ECMP)</strong> routing hashes packets across multiple equal-cost next hops. On a per-packet hash (rare now), packets in the same flow take different paths with different latencies.</li><li><strong>Link aggregation (LACP)</strong> distributes packets across member links in a bundle, again potentially with different queueing.</li><li><strong>Queue reordering</strong> inside switches under heavy load.</li><li><strong>TCP segmentation offload / GSO</strong> can batch and reorder on a single NIC.</li></ul><p>Applications using UDP that care about order must add their own sequence numbers. <strong>RTP</strong> (Real-time Transport Protocol for voice/video) has a 16-bit sequence number in its header precisely for this reason — the receiver uses it to reorder jitter buffer contents. <strong>DNS</strong> uses query IDs, not sequences, because each query/response is standalone. <strong>QUIC</strong> carries packet numbers analogous to TCP sequence numbers.</p><p>Compare this to TCP, which hides reordering completely from the application — the application sees a perfectly ordered byte stream regardless of the underlying network's shenanigans.</p>",
+        visual: { type: "packet-flow", params: { nodes: ["Send: 1, 2, 3, 4", "Network reorders", "Receive: 3, 1, 4, 2 (UDP delivers as-is)"], color: "#f59e0b" } },
+        hack: {
+          memory: "No ordering. UDP has no sequence number field. Send 1,2,3 → may receive 2,1,3 or even just 1,3. Apps that care (RTP, QUIC) add their own ordering.",
+          practice: "Blast many UDP datagrams across a multi-path network. Add your own sequence numbers in the payload and log the order seen at the receiver — you'll see reorder spikes under load.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 23. OCG Chapter 4. 'UDP provides no ordering' and 'no retransmission' are the two most-cited negatives. Know both."
+        }
+      },
+      {
+        id: "1.5.e.6",
+        term: "UDP use cases",
+        weight: "high",
+        info: "<p>UDP is the right choice whenever <strong>any of these</strong> is true: (1) messages are small enough to fit in one packet, (2) latency matters more than completeness, (3) reliability is implemented at the application layer already, or (4) one-to-many delivery is needed.</p><p><strong>Concrete UDP applications you must know for the CCNA:</strong></p><ul><li><strong>DNS — port 53</strong> — name queries. Single query, single response, under 512 bytes typically. (Falls back to TCP for zone transfers and oversized responses.)</li><li><strong>DHCP — ports 67 (server) / 68 (client)</strong> — IP address assignment. Uses broadcast (can't do handshake to a server you don't know yet).</li><li><strong>TFTP — port 69</strong> — simple file transfer for device configs and IOS images. No authentication, no directory listing.</li><li><strong>NTP — port 123</strong> — clock synchronization. Small packets, periodic exchange.</li><li><strong>SNMP — ports 161 (queries) / 162 (traps)</strong> — network management.</li><li><strong>Syslog — port 514</strong> — log shipping.</li><li><strong>RIP — port 520</strong> — routing protocol updates.</li></ul><p><strong>Real-time media / QUIC:</strong></p><ul><li><strong>VoIP / RTP</strong> — usually UDP ports 16384–32767.</li><li><strong>Video streaming</strong> over RTP/RTCP.</li><li><strong>Online gaming</strong> — custom protocols over UDP.</li><li><strong>QUIC / HTTP/3</strong> — port 443 UDP. Google/Meta/Cloudflare serve most of their traffic over QUIC now.</li><li><strong>WireGuard VPN</strong> — port 51820 UDP.</li></ul><p>The exam rarely asks 'why UDP' but may ask 'which protocol uses UDP?' for any of the above. Memorize the ports (1.5.g covers these explicitly).</p>",
+        visual: { type: "comparison", params: { left: { label: "Network Services (UDP)", items: ["DNS — 53", "DHCP — 67/68", "TFTP — 69", "NTP — 123"] }, right: { label: "Management & Media (UDP)", items: ["SNMP — 161/162", "Syslog — 514", "RTP — voice/video", "QUIC — HTTP/3 on 443"] } } },
+        hack: {
+          memory: "UDP is home for: small query/response (DNS, NTP, SNMP), bootstrap (DHCP), simple file (TFTP), log shipping (Syslog), real-time media (RTP, VoIP, gaming), modern web (QUIC/HTTP3).",
+          practice: "Capture 2 minutes of normal traffic with Wireshark. Filter 'udp' and categorize every UDP flow you see — DNS queries, QUIC sessions to Google, DHCP if connected to a new network, mDNS (port 5353) for service discovery.",
+          effort: "medium",
+          meta: "Jeremy's IT Lab Day 23, Days 38-42 for specific services. OCG Chapter 4. Direct exam questions: 'Which protocol uses UDP?' → know DNS/DHCP/TFTP/NTP/SNMP/Syslog/RIP."
+        }
+      }
     ]
   },
 
@@ -2337,16 +2733,136 @@ window.subtopicContentD12 = {
       meta: "Jeremy's IT Lab covers ports across multiple days (Day 23, 38-42). Wendell Odom OCG Chapter 4. Port numbers appear in 5-10 CCNA questions -- this is one of the most heavily tested topics. The r/ccna subreddit universally recommends Anki spaced repetition for port memorization. Two weeks of daily drills is the standard recommendation. Do not skip this -- it's pure memorization but worth significant exam points."
     },
     micro: [
-      { id: "1.5.f.1",  term: "FTP Data — TCP 20",           def: "FTP data channel (active mode). Carries the actual file bytes.", weight: "high" },
-      { id: "1.5.f.2",  term: "FTP Control — TCP 21",        def: "FTP command channel. Maintains the session (login, ls, get, put).", weight: "high" },
-      { id: "1.5.f.3",  term: "SSH — TCP 22",                def: "Secure Shell. Encrypted remote CLI access. Replaced Telnet. Always use this.", weight: "high" },
-      { id: "1.5.f.4",  term: "Telnet — TCP 23",             def: "Unencrypted remote CLI. Passwords in plaintext. Never use in production.", weight: "high" },
-      { id: "1.5.f.5",  term: "SMTP — TCP 25",               def: "Simple Mail Transfer Protocol. Server-to-server mail relay. Port 587 used for authenticated submission.", weight: "high" },
-      { id: "1.5.f.6",  term: "HTTP — TCP 80",               def: "Unencrypted web. Session cookies and credentials exposed.", weight: "high" },
-      { id: "1.5.f.7",  term: "POP3 — TCP 110",              def: "Post Office Protocol v3. Retrieves email; typically deletes from server.", weight: "high" },
-      { id: "1.5.f.8",  term: "IMAP — TCP 143",              def: "Internet Message Access Protocol. Access email kept on server. Multi-device sync.", weight: "high" },
-      { id: "1.5.f.9",  term: "HTTPS — TCP 443",             def: "HTTP over TLS. Encrypted web. Standard for all modern sites.", weight: "high" },
-      { id: "1.5.f.10", term: "Port ranges",                 def: "0-1023 well-known (servers). 1024-49151 registered. 49152-65535 ephemeral (client-side).", weight: "high" }
+      {
+        id: "1.5.f.1",
+        term: "FTP Data — TCP 20",
+        weight: "high",
+        info: "<p><strong>FTP Data — TCP port 20</strong> carries the actual file bytes during an FTP transfer, separate from the command channel on port 21. FTP is unusual among CCNA-tested protocols because it uses <strong>two TCP connections per session</strong>.</p><p>FTP has two operating modes:</p><ul><li><strong>Active mode (PORT command):</strong> The client tells the server what port it will listen on (via the PORT command), and the <em>server</em> initiates the data connection from its port 20 to the client's specified port. This is what TCP 20 is for — the server's outbound data connection in active mode.</li><li><strong>Passive mode (PASV command):</strong> The client asks the server for a port (via PASV), and the <em>client</em> initiates the data connection to the server's specified port. Passive mode is required with modern NAT and firewalls because active mode's server-initiated connection is typically blocked inbound to the client. In passive mode, the server-side data port is NOT 20 — it is a high-numbered ephemeral port chosen by the server.</li></ul><p>Each file transfer (upload, download, directory listing) opens and closes a separate data connection. The control connection (port 21) remains open throughout the session to exchange commands like <code>LIST</code>, <code>RETR</code>, <code>STOR</code>, <code>PASV</code>, <code>PORT</code>, and <code>QUIT</code>.</p><p><strong>Security warning:</strong> FTP sends everything — commands, credentials, and file data — in plaintext. Use <strong>SFTP (SSH-tunneled, port 22)</strong> or <strong>FTPS (FTP over TLS, port 990)</strong> in production. FTP itself is a retired protocol, but it remains on the CCNA because the port numbers and two-channel design are classic exam content.</p>",
+        visual: { type: "packet-flow", params: { nodes: ["Client port 21 ↔ Server port 21 (commands)", "Client port X ↔ Server port 20 (active data)", "Client port X ↔ Server port Y (passive data)"], color: "#0ea5e9" } },
+        hack: {
+          memory: "FTP data = TCP 20 (active mode). Commands = TCP 21. Active: server pushes from 20 to client. Passive: client pulls from server's ephemeral port. Port 20 is active-mode-only.",
+          practice: "In Packet Tracer or GNS3, configure an FTP server and transfer a file. Capture and identify the port 21 control traffic and the separate port 20 (active) or ephemeral (passive) data traffic.",
+          effort: "medium",
+          meta: "Jeremy's IT Lab Day 42 covers FTP. OCG Chapter 13. Exam nearly always asks 'which TCP port is FTP data?' (20) and 'what is different about FTP vs other protocols?' (two ports / two connections)."
+        }
+      },
+      {
+        id: "1.5.f.2",
+        term: "FTP Control — TCP 21",
+        weight: "high",
+        info: "<p><strong>FTP Control — TCP port 21</strong> is the command channel of an FTP session. This is the connection that the client opens first, maintains for the entire session, and uses to exchange commands and responses with the server. The control connection stays alive even while file transfers come and go on separate data connections.</p><p>Typical command flow on the control channel:</p><pre>Client → Server:\nUSER romeo       (send username)\nPASS mypass123   (send password — PLAINTEXT!)\nPWD              (print working directory)\nCWD /data        (change directory)\nLIST             (request directory listing — triggers data conn)\nRETR file.txt    (retrieve file — triggers data conn)\nSTOR upload.txt  (store file — triggers data conn)\nPASV             (switch to passive mode)\nQUIT             (close session)</pre><p>Each command the client sends gets a numeric status response from the server:</p><ul><li><strong>1xx</strong> — positive preliminary (e.g., 150 Opening data connection)</li><li><strong>2xx</strong> — positive completion (e.g., 220 Ready, 230 Login OK)</li><li><strong>3xx</strong> — positive intermediate (e.g., 331 Password required)</li><li><strong>4xx</strong> — transient failure (retry later)</li><li><strong>5xx</strong> — permanent failure (e.g., 530 Not logged in, 550 File not found)</li></ul><p>The control connection is the only connection in an FTP session that is always open between the same two ports (client ephemeral ↔ server 21). Data connections come and go dynamically.</p>",
+        visual: { type: "comparison", params: { left: { label: "Port 21 — Control", items: ["Opens first", "Stays open full session", "Commands + responses", "USER/PASS/LIST/RETR/STOR"] }, right: { label: "Port 20 / Ephemeral — Data", items: ["New conn per transfer", "Closes after transfer", "Only file bytes", "No commands"] } } },
+        hack: {
+          memory: "FTP control = TCP 21 (always on). Carries commands: USER/PASS/LIST/RETR/STOR/PASV/QUIT. Responses are 3-digit codes (1xx-5xx like HTTP). Credentials in PLAINTEXT — hence SFTP/FTPS.",
+          practice: "Run 'ftp ftp.gnu.org' from the command line and step through USER, PASS, LIST, RETR. In another terminal, 'netstat -an | grep 21' to confirm the control connection stays open, and watch ephemeral data connections come and go.",
+          effort: "medium",
+          meta: "Jeremy's IT Lab Day 42. OCG Chapter 13. Direct exam: 'FTP control port' → 21. Know the difference between 20 (data) and 21 (control)."
+        }
+      },
+      {
+        id: "1.5.f.3",
+        term: "SSH — TCP 22",
+        weight: "high",
+        info: "<p><strong>SSH (Secure Shell) — TCP port 22</strong> provides <strong>encrypted remote CLI access</strong> to network devices, servers, and workstations. It is the modern replacement for Telnet and rlogin, and it is the only remote-management protocol you should ever configure on a production Cisco device.</p><p>SSH does four things Telnet does not:</p><ul><li><strong>Encryption</strong> — all traffic (commands, output, credentials) is encrypted with a symmetric cipher (AES, ChaCha20). An attacker capturing the session sees only ciphertext.</li><li><strong>Authentication</strong> — supports username/password AND public-key authentication. Keys are far stronger than passwords and resist brute force.</li><li><strong>Integrity</strong> — MACs (HMAC-SHA2) detect tampering in transit.</li><li><strong>Server verification</strong> — clients verify the server's host key on first connect, preventing man-in-the-middle attacks.</li></ul><p>SSH versions: <strong>SSH v1</strong> is legacy and insecure. <strong>SSH v2</strong> is the standard since ~2006 and is required on modern networks. Cisco IOS defaults to v2 when you enable SSH properly.</p><p><strong>Minimum Cisco SSH config</strong> (put on your exam-ready mental checklist):</p><pre>hostname R1\nip domain-name example.com\ncrypto key generate rsa modulus 2048\nip ssh version 2\nusername admin privilege 15 secret <strong-pass>\nline vty 0 15\n  login local\n  transport input ssh</pre><p>SSH also carries more than interactive shells — SFTP (file transfer), SCP (copy), and port forwarding all ride on port 22. From a CCNA lens, know the port, know it replaces Telnet, and know the basic config.</p>",
+        visual: { type: "shield", params: { features: ["Encryption (AES/ChaCha20)", "Authentication (password OR key)", "Integrity (HMAC-SHA2)", "Host key verification"], label: "SSH on TCP 22" } },
+        hack: {
+          memory: "SSH = Secure Shell on TCP 22. Encrypts everything. Always v2 (never v1). Config: hostname + domain + RSA keys + 'ip ssh version 2' + 'transport input ssh'. Replaces Telnet, period.",
+          practice: "In Packet Tracer, enable SSH on a router (steps above) and connect from a PC: 'ssh -l admin 10.1.1.1'. Capture with Wireshark — the payload is encrypted blob, unlike Telnet which shows 'username' and 'password' in plaintext.",
+          effort: "medium",
+          meta: "Jeremy's IT Lab Day 20 (Telnet/SSH) and Day 47 (security). OCG Chapter 6. Port 22 is asked directly. Also: 'SSH replaces Telnet' is a heavy theme — expect security scenario questions."
+        }
+      },
+      {
+        id: "1.5.f.4",
+        term: "Telnet — TCP 23",
+        weight: "high",
+        info: "<p><strong>Telnet — TCP port 23</strong> is the legacy unencrypted remote CLI protocol. It provides terminal access over TCP and has been around since 1973 (RFC 854). It predates all modern security concerns, and it transmits <strong>everything — including your username and password — in plaintext</strong>.</p><p>That's not hyperbole. If you run a Telnet session across a shared network and someone is packet-capturing, they literally read your password one keystroke at a time. In Wireshark, <code>Follow TCP Stream</code> on a Telnet session shows the full terminal interaction in clear text.</p><p>Why does Telnet still exist? Two reasons:</p><ul><li><strong>Lab/legacy equipment</strong> — some older switches, routers, and serial-to-Ethernet adapters only support Telnet.</li><li><strong>Console server loopback</strong> — inside a secure lab, Telnet from a console server to a device is common.</li></ul><p>Anywhere else, Telnet is a security violation. CCNA exam loves to test this with scenario questions like 'which protocol should you use to manage a switch remotely?' The correct answer is always SSH (22), never Telnet (23).</p><p>How to disable Telnet on a Cisco device (in favor of SSH):</p><pre>line vty 0 15\n  transport input ssh   <em>(explicitly allows only SSH, blocks Telnet)</em></pre><p>Or more permissively:</p><pre>  transport input ssh telnet  <em>(allows both — not recommended)</em></pre>",
+        visual: { type: "comparison", params: { left: { label: "Telnet TCP 23 (BAD)", items: ["Plaintext everything", "Password visible in Wireshark", "Legacy only", "1973 design"] }, right: { label: "SSH TCP 22 (GOOD)", items: ["Encrypted", "MITM resistant", "Modern standard", "Supports keys"] } } },
+        hack: {
+          memory: "Telnet = TCP 23 = legacy = plaintext = banned. Exam answer: use SSH (22) instead. Only acceptable use: isolated lab networks.",
+          practice: "In Packet Tracer, enable Telnet on a router ('transport input telnet'). Connect from a PC, log in, run 'show run'. Capture in Wireshark → Follow TCP Stream — you'll see username, password, and all output in clear text. Then enable SSH and repeat — encrypted gibberish.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 20. OCG Chapter 6. 'Telnet sends data in plaintext' is the most reliable fact — the exam uses this as the wrong-answer trap for security questions."
+        }
+      },
+      {
+        id: "1.5.f.5",
+        term: "SMTP — TCP 25",
+        weight: "high",
+        info: "<p><strong>SMTP (Simple Mail Transfer Protocol) — TCP port 25</strong> is the protocol that sends email. Defined in RFC 5321 (originally RFC 821, 1982), SMTP is a plaintext, text-command-driven protocol that moves mail from clients to servers and between mail servers.</p><p>Three SMTP-related ports worth knowing:</p><ul><li><strong>TCP 25</strong> — classic SMTP, server-to-server mail relay. Many ISPs block outbound 25 from residential IPs to prevent spam.</li><li><strong>TCP 587</strong> — SMTP submission with authentication. This is the port your email client uses to submit outgoing mail to your provider. Typically requires STARTTLS to upgrade to encryption.</li><li><strong>TCP 465</strong> — SMTPS (SMTP over implicit TLS). Older/deprecated but still seen. Encrypted from the first byte.</li></ul><p>A raw SMTP session looks like:</p><pre>C: HELO client.example.com\nS: 250 Hello client.example.com\nC: MAIL FROM:&lt;romeo@example.com&gt;\nS: 250 OK\nC: RCPT TO:&lt;esbeida@example.com&gt;\nS: 250 OK\nC: DATA\nS: 354 Start mail input\nC: Subject: Hi\nC: Dinner at 7?\nC: .\nS: 250 Message accepted\nC: QUIT</pre><p>SMTP is a <strong>send-only</strong> protocol — it pushes mail into the recipient's server. Retrieving mail uses <strong>POP3 (TCP 110)</strong> or <strong>IMAP (TCP 143)</strong>. On the CCNA: know 25 for SMTP, know 587 exists for authenticated submission, and know SMTP is for sending while POP3/IMAP are for receiving.</p>",
+        visual: { type: "packet-flow", params: { nodes: ["Email client", "→ Port 587 authenticated submission →", "Your SMTP server", "→ Port 25 relay →", "Recipient's SMTP server"], color: "#a855f7" } },
+        hack: {
+          memory: "SMTP = send mail on TCP 25 (server-to-server). Port 587 = authenticated submission from your client. Port 465 = SMTPS (implicit TLS). POP3/IMAP RECEIVE, SMTP SENDS.",
+          practice: "Telnet to a mail server on port 25 and walk through HELO/MAIL FROM/RCPT TO/DATA. Many servers reject today (spam prevention), but some open relays still accept — you'll at least see the greeting banner.",
+          effort: "medium",
+          meta: "Jeremy's IT Lab Day 41 (email). OCG Chapter 13. Port 25 is direct. Differentiating SMTP (send) from POP3/IMAP (receive) is an exam trap."
+        }
+      },
+      {
+        id: "1.5.f.6",
+        term: "HTTP — TCP 80",
+        weight: "high",
+        info: "<p><strong>HTTP (HyperText Transfer Protocol) — TCP port 80</strong> is the unencrypted web protocol. Defined originally in RFC 1945 (HTTP/1.0) and extended through RFC 9110 (current), HTTP is a request/response protocol where the client sends a method + URI and the server responds with a status + body.</p><p>A raw HTTP/1.1 request:</p><pre>GET / HTTP/1.1\nHost: example.com\nUser-Agent: curl/8.4\nAccept: */*\n\n  (blank line ends request)</pre><p>A raw HTTP/1.1 response:</p><pre>HTTP/1.1 200 OK\nContent-Type: text/html\nContent-Length: 1256\n\n&lt;!DOCTYPE html&gt;...</pre><p><strong>Status codes:</strong></p><ul><li><strong>1xx</strong> — informational (100 Continue)</li><li><strong>2xx</strong> — success (200 OK, 201 Created)</li><li><strong>3xx</strong> — redirect (301 Moved Permanently, 302 Found)</li><li><strong>4xx</strong> — client error (404 Not Found, 403 Forbidden)</li><li><strong>5xx</strong> — server error (500, 502 Bad Gateway)</li></ul><p><strong>Why not just use HTTP today?</strong> Everything is in plaintext — the URL path, cookies (including session cookies), form data, response body. Anyone on the network between client and server can read and modify it. Modern browsers flag HTTP-only sites as 'Not Secure', and search engines deprioritize them.</p><p>The answer is <strong>HTTPS on TCP 443</strong> — HTTP wrapped in TLS. Today, over 95% of web traffic is HTTPS. HTTP still appears in the exam because CCNA tests the port mapping and the unencrypted-vs-encrypted distinction.</p>",
+        visual: { type: "comparison", params: { left: { label: "HTTP TCP 80 (insecure)", items: ["Plaintext", "Cookies exposed", "Man-in-the-middle trivial", "Deprecated for public sites"] }, right: { label: "HTTPS TCP 443 (secure)", items: ["TLS-encrypted", "Cert verifies server", "Modern standard", "~95% of web"] } } },
+        hack: {
+          memory: "HTTP = TCP 80 = plaintext. Request methods GET/POST/PUT/DELETE. Status codes 1xx/2xx/3xx/4xx/5xx. Everything visible to anyone on the wire. Replaced by HTTPS (443) in production.",
+          practice: "Use 'curl -v http://example.com' — the -v flag shows full request/response headers. Try 'curl -v https://example.com' and compare. Then Wireshark both to see HTTP plaintext vs TLS-encrypted HTTPS.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 41. OCG Chapter 13. 'HTTP port?' 80. 'HTTPS port?' 443. Know unencrypted vs encrypted — this is tested directly."
+        }
+      },
+      {
+        id: "1.5.f.7",
+        term: "POP3 — TCP 110",
+        weight: "high",
+        info: "<p><strong>POP3 (Post Office Protocol version 3) — TCP port 110</strong> retrieves email from a server to a client. RFC 1939. POP3 is the simple, old-school email retrieval model: connect, download all messages, typically delete them from the server, disconnect. The mail lives on the client after that.</p><p>POP3 has three operating states:</p><ul><li><strong>Authorization</strong> — USER/PASS commands to authenticate.</li><li><strong>Transaction</strong> — LIST (see messages), RETR (retrieve), DELE (mark for deletion), etc.</li><li><strong>Update</strong> — server commits deletions and closes the connection.</li></ul><p>A session looks like:</p><pre>C: USER romeo\nS: +OK send your password\nC: PASS secretpass\nS: +OK 5 messages\nC: LIST\nS: +OK 5 messages (12345 octets)\nC: RETR 1\nS: +OK 2345 octets\n   [message 1 content]\nC: DELE 1\nS: +OK message deleted\nC: QUIT</pre><p><strong>POP3 vs IMAP — the big decision</strong></p><ul><li><strong>POP3 (port 110)</strong> — single device, messages downloaded and removed. No folders. Simple and local.</li><li><strong>IMAP (port 143)</strong> — multi-device sync, messages stay on server, folders supported. Modern standard.</li></ul><p>Secure variants use <strong>POP3S on TCP 995</strong> (POP3 over TLS) and <strong>IMAPS on TCP 993</strong>. For the CCNA, the exam wants the cleartext port numbers (110 and 143) and the conceptual difference (POP3 downloads + deletes, IMAP syncs + keeps).</p>",
+        visual: { type: "comparison", params: { left: { label: "POP3 (TCP 110)", items: ["Download + delete model", "Single-device", "No folders", "Older"] }, right: { label: "IMAP (TCP 143)", items: ["Server-resident", "Multi-device sync", "Folders supported", "Modern standard"] } } },
+        hack: {
+          memory: "POP3 = TCP 110. Download to client, delete from server. Single-device. Older. IMAP = TCP 143 for modern multi-device. POP3S = 995 encrypted.",
+          practice: "If you have a Gmail-compatible client, try configuring both POP3 and IMAP for the same account on different devices. IMAP keeps mail in sync; POP3 pulls messages once (and optionally deletes).",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 41. OCG Chapter 13. 'POP3 port?' 110. Classic paired question: 'which protocol downloads email and deletes it from the server?' POP3."
+        }
+      },
+      {
+        id: "1.5.f.8",
+        term: "IMAP — TCP 143",
+        weight: "high",
+        info: "<p><strong>IMAP (Internet Message Access Protocol) — TCP port 143</strong> is the modern email retrieval protocol. RFC 3501 (and successors). IMAP keeps email on the server and presents clients with a live, syncable view of the mailbox — including folders, flags (read/unread), search, and partial message fetches.</p><p>What IMAP does that POP3 can't:</p><ul><li><strong>Multi-device consistency</strong> — read an email on your phone, it's marked read on your laptop. Move to a folder, both clients see the move. POP3 can't do this.</li><li><strong>Server-side folders</strong> — create, rename, delete folders; messages organized on the server.</li><li><strong>Search</strong> — server-side search by sender, date, subject, etc.</li><li><strong>Partial fetch</strong> — download just headers, or just the first N bytes, or attachments only. POP3 requires full-message download.</li><li><strong>IDLE command</strong> — long-poll for new messages in real time instead of periodic re-fetch.</li></ul><p>A sample IMAP exchange:</p><pre>C: A001 LOGIN romeo secretpass\nS: A001 OK Logged in\nC: A002 SELECT INBOX\nS: * 5 EXISTS\n   A002 OK [READ-WRITE]\nC: A003 FETCH 1 BODY[HEADER]\nS: ... (headers)\n   A003 OK FETCH completed\nC: A004 LOGOUT</pre><p>Secure variant: <strong>IMAPS on TCP 993</strong> (IMAP over TLS). Virtually all mail providers require IMAPS now — cleartext IMAP on port 143 is disabled or blocked at the edge.</p>",
+        visual: { type: "comparison", params: { left: { label: "IMAP Capabilities", items: ["Multi-device sync", "Folders on server", "Search-on-server", "Partial fetch", "IDLE for push"] }, right: { label: "Ports", items: ["TCP 143 — plaintext", "TCP 993 — IMAPS (TLS)", "Default on mobile apps"] } } },
+        hack: {
+          memory: "IMAP = TCP 143. Server-resident, multi-device sync, folders, search, partial fetch, push via IDLE. IMAPS = 993 encrypted. Use this, not POP3.",
+          practice: "Configure an email client with both POP3 and IMAP to the same account. Send yourself mail. On POP3, download on phone = gone from server. On IMAP, read on phone = read flag syncs everywhere.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 41. OCG Chapter 13. 'IMAP port?' 143. Paired question: 'which protocol keeps mail on the server and supports multi-device?' IMAP."
+        }
+      },
+      {
+        id: "1.5.f.9",
+        term: "HTTPS — TCP 443",
+        weight: "high",
+        info: "<p><strong>HTTPS (HTTP over TLS) — TCP port 443</strong> is HTTP encrypted and authenticated by TLS (Transport Layer Security, the successor to SSL). RFC 2818 originally, now generally RFC 9110 + current TLS RFCs. HTTPS is the default for every modern website — browsers flag HTTP-only sites as 'Not Secure' and search engines penalize them.</p><p>HTTPS provides three security properties on top of HTTP:</p><ul><li><strong>Confidentiality</strong> — traffic is encrypted (AES, ChaCha20) so eavesdroppers see only ciphertext.</li><li><strong>Integrity</strong> — HMAC or AEAD ensures the data cannot be modified in transit without detection.</li><li><strong>Authenticity</strong> — the server presents a certificate signed by a trusted CA, cryptographically proving it is who it claims to be.</li></ul><p>How a typical HTTPS connection is built:</p><ol><li><strong>TCP three-way handshake</strong> on port 443</li><li><strong>TLS handshake</strong> — client hello, server hello, certificate, key exchange, finished (1 RTT in TLS 1.3, 2 RTT in TLS 1.2)</li><li><strong>HTTP request/response</strong> over the encrypted tunnel</li></ol><p>HTTPS adds latency (extra RTTs for TLS setup) and CPU (crypto operations), but modern stacks make this negligible. <strong>HTTP/3 (QUIC over UDP 443)</strong> eliminates the TCP handshake entirely and completes TLS 1.3 in 1 RTT — a major performance improvement for high-latency mobile networks.</p><p>For the CCNA: port 443 is TCP HTTPS, but be aware that port 443 is increasingly used for UDP QUIC/HTTP3 as well.</p>",
+        visual: { type: "shield", params: { features: ["Encryption (TLS)", "Server certificate verification", "Integrity (HMAC/AEAD)", "Forward secrecy (ECDHE)"], label: "HTTPS on TCP 443" } },
+        hack: {
+          memory: "HTTPS = HTTP + TLS on TCP 443. Encrypted, authenticated (via cert), integrity-checked. TLS 1.3 = 1 RTT handshake. HTTP/3 / QUIC uses UDP 443 (not TCP) — same port number, different protocol.",
+          practice: "Use 'openssl s_client -connect example.com:443' to see the certificate chain and TLS version. In Wireshark, filter 'tls' on an HTTPS session — you'll see ClientHello / ServerHello / Certificate / ApplicationData.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 41 (HTTP/HTTPS). OCG Chapter 13. 'HTTPS port?' 443. Know it is HTTP + TLS. Know it replaces HTTP for all production web traffic."
+        }
+      },
+      {
+        id: "1.5.f.10",
+        term: "Port ranges",
+        weight: "high",
+        info: "<p>IANA divides the 16-bit port space (0–65535) into three ranges, and you need to know all three cold:</p><ul><li><strong>Well-known ports: 0–1023</strong> — assigned by IANA to specific services. Every 'classic' service (HTTP, HTTPS, SSH, Telnet, DNS, SMTP, etc.) lives here. On Unix systems, only root can bind to these ports, which provides an OS-level security control.</li><li><strong>Registered ports: 1024–49151</strong> — assigned to specific applications by IANA on request, but not privileged. Examples: MySQL (3306), PostgreSQL (5432), RDP (3389), Microsoft SQL Server (1433), WireGuard (51820 — oops, that's above 49151, but still listed here in many references).</li><li><strong>Dynamic / Ephemeral / Private ports: 49152–65535</strong> — not reserved for any service. Operating systems assign these to client-side sockets for outbound connections. When you open google.com in a browser, your OS picks an unused port in this range as the source port.</li></ul><p><strong>The 5-tuple:</strong> every TCP or UDP flow is uniquely identified by <code>(source IP, source port, destination IP, destination port, protocol)</code>. That's how your browser can have multiple simultaneous TCP connections to the same server — each connection uses a different source port from the ephemeral range.</p><p>Linux defaults the ephemeral range to <code>net.ipv4.ip_local_port_range = 32768 61000</code> (a subset of the IANA-defined dynamic range). Windows uses 49152–65535 by default.</p><p><strong>Exam-critical numbers:</strong></p><ul><li>Well-known: 0–<strong>1023</strong> (inclusive)</li><li>Registered: <strong>1024</strong>–49151</li><li>Ephemeral: <strong>49152</strong>–65535</li></ul>",
+        visual: { type: "comparison", params: { left: { label: "Port Range", items: ["0–1023 Well-Known", "1024–49151 Registered", "49152–65535 Ephemeral"] }, right: { label: "Used By", items: ["Server services (root only)", "Registered apps", "Client-side outbound"] } } },
+        hack: {
+          memory: "Three ranges: 0-1023 well-known (servers, root-only), 1024-49151 registered, 49152-65535 ephemeral (client source ports). 5-tuple = src IP + src port + dst IP + dst port + proto.",
+          practice: "Run 'ss -tan' and read the 'Local Address' column. Listening services are on well-known ports (22, 80, 443). Outbound connections show local ephemeral ports (e.g., 54321, 60123).",
+          effort: "medium",
+          meta: "Jeremy's IT Lab Day 23. OCG Chapter 4. Exam frequently tests the range boundaries. Memorize: 0-1023, 1024-49151, 49152-65535."
+        }
+      }
     ]
   },
 
@@ -2366,15 +2882,123 @@ window.subtopicContentD12 = {
       meta: "Jeremy's IT Lab Day 38 (DHCP), Day 39 (DNS), Day 40 (NTP/Syslog/SNMP), Day 42 (FTP/TFTP). Wendell Odom OCG Chapter 4 and Chapter 13. Same strategy as TCP ports: Anki daily for 2+ weeks. Key gotcha on the exam: DHCP uses TWO ports and the exam asks 'which port does the DHCP server listen on?' (67) vs 'which port does the DHCP client listen on?' (68). Also know that DNS uses BOTH UDP and TCP on port 53 (covered in 1.5.h)."
     },
     micro: [
-      { id: "1.5.g.1", term: "DNS — UDP 53",                 def: "Standard name resolution queries. Small, stateless, fast. >99% of DNS uses UDP.", weight: "high" },
-      { id: "1.5.g.2", term: "DHCP Server — UDP 67",         def: "Server listens on 67. Receives Discover/Request from clients.", weight: "high" },
-      { id: "1.5.g.3", term: "DHCP Client — UDP 68",         def: "Client listens on 68. Receives Offer/Acknowledge from server.", weight: "high" },
-      { id: "1.5.g.4", term: "TFTP — UDP 69",                def: "Trivial FTP. No authentication, no directory listing. Used for router/switch config and IOS transfer.", weight: "high" },
-      { id: "1.5.g.5", term: "NTP — UDP 123",                def: "Network Time Protocol. Clock sync across devices. Critical for log correlation and cert validation.", weight: "high" },
-      { id: "1.5.g.6", term: "SNMP query — UDP 161",         def: "Management station sends GET/SET to device on 161.", weight: "high" },
-      { id: "1.5.g.7", term: "SNMP trap — UDP 162",          def: "Device sends unsolicited alert to management station on 162.", weight: "high" },
-      { id: "1.5.g.8", term: "Syslog — UDP 514",             def: "Centralized logging destination port. Severity levels 0-7.", weight: "high" },
-      { id: "1.5.g.9", term: "Syslog severity levels",       def: "0 Emergency, 1 Alert, 2 Critical, 3 Error, 4 Warning, 5 Notification, 6 Informational, 7 Debug. Lower = more severe.", weight: "high" }
+      {
+        id: "1.5.g.1",
+        term: "DNS — UDP 53",
+        weight: "high",
+        info: "<p><strong>DNS (Domain Name System) — UDP port 53</strong> is the primary transport for standard DNS queries: short, stateless name-to-IP lookups. A client asks 'what is the A record for google.com?' and the server responds with an IP. Both messages fit in a single UDP packet (under 512 bytes historically, up to ~4096 with EDNS0).</p><p>Why UDP? Three reasons:</p><ul><li><strong>Low latency</strong> — no TCP handshake. Query and response fit in 2 packets total, one RTT.</li><li><strong>Stateless server</strong> — a DNS resolver can handle millions of queries/sec because it doesn't hold per-client connection state.</li><li><strong>Trivial retry</strong> — if a query is lost, the client times out and resends. No complex recovery.</li></ul><p>A DNS query/response exchange in Wireshark looks like exactly 2 UDP packets on port 53 — no handshake, no teardown. Over 99% of all DNS traffic is UDP.</p><p><strong>When DNS falls back to TCP 53:</strong></p><ul><li><strong>Truncated response</strong> — if the response exceeds the maximum UDP size (traditionally 512 bytes, expanded by EDNS0). The server sets the <strong>TC flag</strong> in the header, and the client retries over TCP. DNSSEC responses are frequently oversized and trigger this.</li><li><strong>Zone transfers</strong> — AXFR (full) and IXFR (incremental) between DNS servers. Must be reliable and ordered; TCP is used by design.</li></ul><p>DNS message structure includes: transaction ID, flags, question section, answer section, authority section, additional section. Each query gets a unique transaction ID so the client can match responses to queries (important because UDP replies can arrive out of order).</p>",
+        visual: { type: "packet-flow", params: { nodes: ["Client", "Query: A google.com → (UDP 53)", "Resolver", "← Answer: 142.250.80.46", "Client"], color: "#22c55e" } },
+        hack: {
+          memory: "DNS = UDP 53 for ~99% of queries. Stateless, 2 packets, sub-ms latency. TCP 53 only for zone transfers or truncated UDP responses (TC flag).",
+          practice: "Run 'dig @8.8.8.8 google.com' while capturing in Wireshark. Filter 'udp.port == 53' → see exactly 2 packets. Compare with 'dig @8.8.8.8 google.com +tcp' which forces TCP — you'll see the handshake + query + response + teardown = ~9 packets.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 39 (DNS). OCG Chapter 13. Direct exam: 'DNS port?' 53. 'TCP or UDP?' Both — UDP for queries, TCP for zone transfers and truncated."
+        }
+      },
+      {
+        id: "1.5.g.2",
+        term: "DHCP Server — UDP 67",
+        weight: "high",
+        info: "<p><strong>DHCP Server — UDP port 67</strong> is the port the DHCP server listens on to receive messages from clients. DHCP (Dynamic Host Configuration Protocol, RFC 2131) automates IP address assignment and network configuration for hosts that join a network.</p><p>The DHCP exchange is the famous <strong>DORA</strong> process:</p><ul><li><strong>D — DISCOVER</strong> — client broadcasts 'I need an IP' from 0.0.0.0:68 → 255.255.255.255:67. Arrives at any DHCP server on the segment.</li><li><strong>O — OFFER</strong> — server unicasts (or broadcasts) 'here's an address you can have' from its IP:67 → client's MAC on port 68.</li><li><strong>R — REQUEST</strong> — client broadcasts 'I accept this offer' (so other servers withdraw their offers).</li><li><strong>A — ACKNOWLEDGE</strong> — server confirms the lease.</li></ul><p>Because the client has no IP during Discover, it cannot do unicast — the exchange uses <strong>L2 broadcast (ff:ff:ff:ff:ff:ff)</strong> and <strong>IP broadcast (255.255.255.255)</strong> until the client has an address.</p><p><strong>DHCP relay / ip helper-address:</strong> DHCP broadcasts don't cross routers by default. To let clients on one VLAN get addresses from a DHCP server elsewhere, configure <code>ip helper-address &lt;server-ip&gt;</code> on the router interface. The router converts the broadcast Discover into a unicast to the server's address on UDP 67.</p><p>Port 67 and 68 are easy to remember: <strong>67 = server (the lower, the elder)</strong>, 68 = client.</p>",
+        visual: { type: "handshake", params: { leftLabel: "Client (port 68)", rightLabel: "Server (port 67)", steps: ["1) DISCOVER (broadcast)", "2) ← OFFER", "3) REQUEST (broadcast)", "4) ← ACK", "--- IP leased ---"] } },
+        hack: {
+          memory: "DHCP server = UDP 67 (remember: 6 before 7, server before client). DORA = Discover, Offer, Request, Ack. Uses broadcast because client has no IP yet. Cross routers with 'ip helper-address'.",
+          practice: "On a Packet Tracer router: 'ip dhcp pool LAB / network 192.168.1.0 /24 / default-router 192.168.1.1 / dns-server 8.8.8.8'. Connect a PC → enable DHCP → capture and identify all 4 DORA packets on ports 67/68.",
+          effort: "medium",
+          meta: "Jeremy's IT Lab Day 38 (DHCP). OCG Chapter 13. Expect direct port question AND DORA sequence question. Also: 'how does DHCP cross a router?' ip helper-address."
+        }
+      },
+      {
+        id: "1.5.g.3",
+        term: "DHCP Client — UDP 68",
+        weight: "high",
+        info: "<p><strong>DHCP Client — UDP port 68</strong> is the port DHCP clients listen on for messages from the DHCP server. The asymmetric client/server port assignment is unusual in IP protocols — most use one well-known port and ephemeral client ports, but DHCP uses two fixed ports because the client has no IP yet and the server must be able to target it predictably.</p><p>When a DHCP server sends an OFFER or ACK to a client:</p><ul><li>If the client has no IP yet → server unicasts (or broadcasts, RFC 2131 §4.1) to <strong>port 68</strong> with the client's MAC address as the L2 destination.</li><li>If the client is renewing and already has an IP → normal unicast to client's IP:68.</li></ul><p>Packet capture detail: when the client sends Discover/Request from 0.0.0.0:68 → 255.255.255.255:67, the L2 destination is the broadcast MAC ff:ff:ff:ff:ff:ff. When the server replies, it typically unicasts to the client's MAC (sourced from the client's DHCP header field <code>chaddr</code>) but with IP destination 255.255.255.255 if the broadcast bit is set. This avoids requiring ARP for a host that doesn't yet own the IP being assigned.</p><p><strong>Mnemonic:</strong> 67 server, 68 client — server is the lower/older number. Both are <strong>well-known ports in the 0-1023 range</strong>.</p>",
+        visual: { type: "comparison", params: { left: { label: "UDP 67 — Server listens", items: ["Receives DISCOVER", "Receives REQUEST", "L3 broadcast (255.255.255.255)"] }, right: { label: "UDP 68 — Client listens", items: ["Receives OFFER", "Receives ACK", "L2 destination = client MAC"] } } },
+        hack: {
+          memory: "DHCP client = UDP 68. Server listens on 67, client listens on 68. 67 before 68 = server before client = 'boss first, helper second'. Two fixed ports because client has no IP → server needs predictable target.",
+          practice: "'sudo tcpdump -i eth0 -n port 67 or port 68' on a machine getting a new DHCP lease (easiest: disconnect/reconnect wifi). You'll see the full DORA exchange with exact ports.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 38. OCG Chapter 13. Expect: 'DHCP client port?' 68. Most common trap: swapping 67 and 68. 67 server / 68 client."
+        }
+      },
+      {
+        id: "1.5.g.4",
+        term: "TFTP — UDP 69",
+        weight: "high",
+        info: "<p><strong>TFTP (Trivial File Transfer Protocol) — UDP port 69</strong> is a dramatically simplified file transfer protocol. RFC 1350. No authentication, no directory listing, no file permissions, no encryption. It exists to move files with minimal overhead — typically router/switch IOS images and configuration files between network devices.</p><p>The entire TFTP protocol fits in 5 message types:</p><ul><li><strong>RRQ (Read Request, opcode 1)</strong> — 'give me this file'</li><li><strong>WRQ (Write Request, opcode 2)</strong> — 'I want to send you this file'</li><li><strong>DATA (opcode 3)</strong> — 512-byte block + block number</li><li><strong>ACK (opcode 4)</strong> — acknowledgment of a block number</li><li><strong>ERROR (opcode 5)</strong> — error with message</li></ul><p>TFTP implements its own reliability on top of UDP via <strong>stop-and-wait ACK per 512-byte block</strong>. Each block must be acked before the next is sent. Not efficient over high-latency links, but it works.</p><p>Classic Cisco TFTP use cases:</p><pre>copy running-config tftp:     <em>(backup config to server)</em>\ncopy tftp: running-config     <em>(restore config from server)</em>\ncopy tftp: flash:             <em>(download new IOS image)</em></pre><p>Because TFTP has no authentication, production networks firewall port 69 to only allow specific management hosts. In homelab and CCNA scenarios, TFTP is often your go-to for moving configs and IOS images because it's built into every Cisco device.</p>",
+        visual: { type: "handshake", params: { leftLabel: "Client", rightLabel: "TFTP Server (UDP 69)", steps: ["1) RRQ 'startup.cfg' →", "2) ← DATA block 1 (512B)", "3) ACK block 1 →", "4) ← DATA block 2", "5) ACK block 2 → ... until block < 512B = done"] } },
+        hack: {
+          memory: "TFTP = UDP 69. Trivial = no auth, no encryption, no dir list. Stop-and-wait ACK per 512-byte block. Cisco uses it for config and IOS transfer. Opcodes: RRQ, WRQ, DATA, ACK, ERROR.",
+          practice: "Set up a TFTP server (tftpd-hpa on Linux). From a Cisco router: 'copy running-config tftp:' and point at your server IP. Capture in Wireshark — filter 'tftp' and walk through RRQ/DATA/ACK blocks.",
+          effort: "medium",
+          meta: "Jeremy's IT Lab Day 42 (FTP/TFTP). OCG Chapter 13. 'TFTP port?' 69. 'TFTP transport?' UDP. Distinguish from FTP (TCP 20/21). TFTP = simpler but not secure."
+        }
+      },
+      {
+        id: "1.5.g.5",
+        term: "NTP — UDP 123",
+        weight: "high",
+        info: "<p><strong>NTP (Network Time Protocol) — UDP port 123</strong> synchronizes clocks across network devices with millisecond accuracy over WAN links and microsecond accuracy on LAN. RFC 5905. Accurate time is critical for: log correlation (matching events across devices), Kerberos authentication (tickets have tight validity windows), TLS certificate validation (expiration/NotBefore checks), and forensic investigations.</p><p>NTP uses a <strong>stratum hierarchy</strong>:</p><ul><li><strong>Stratum 0</strong> — reference clocks (atomic, GPS, radio). Not network-reachable.</li><li><strong>Stratum 1</strong> — servers directly connected to stratum-0 references. Authoritative public time servers.</li><li><strong>Stratum 2</strong> — servers that sync from stratum 1. Most organizational/ISP servers live here.</li><li><strong>Stratum 3-15</strong> — deeper in the tree. Stratum 16 means 'unsynchronized'.</li></ul><p>NTP on Cisco:</p><pre>R1(config)# ntp server 132.163.96.1        <em>(NIST time server)</em>\nR1(config)# ntp server pool.ntp.org\nR1# show ntp status\nR1# show ntp associations</pre><p>NTP packets are small (48 bytes for NTPv4, plus UDP and IP overhead). They carry multiple timestamps: T1 (client transmit), T2 (server receive), T3 (server transmit), T4 (client receive) — used to compute offset and round-trip delay.</p><p><strong>SNTP (Simple NTP)</strong> is a lower-accuracy subset, same port, same packet format.</p>",
+        visual: { type: "hierarchy", params: { root: "Stratum 0 (atomic/GPS)", children: ["Stratum 1 (public NTP)", "Stratum 2 (org NTP)", "Stratum 3 (your router)", "Stratum N (clients)"] } },
+        hack: {
+          memory: "NTP = UDP 123 ('time is as easy as 1-2-3'). Stratum 0 (reference) → 1 → 2 → ... → 15 (deepest); 16 = unsynchronized. Config: 'ntp server <ip>'. Critical for log timestamps, certs, Kerberos.",
+          practice: "'ntpq -p' on Linux shows current NTP associations and stratums. On Cisco: 'show ntp associations' and 'show ntp status' — check 'clock is synchronized' and the stratum number.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 40 (NTP, Syslog, SNMP). OCG Chapter 13. 'NTP port?' 123. 'NTP transport?' UDP. Stratum hierarchy may appear in scenario questions."
+        }
+      },
+      {
+        id: "1.5.g.6",
+        term: "SNMP query — UDP 161",
+        weight: "high",
+        info: "<p><strong>SNMP (Simple Network Management Protocol) queries — UDP port 161</strong>. SNMP is the foundational protocol for monitoring network devices. An <strong>NMS (Network Management Station)</strong> sends GET/SET/GETNEXT/GETBULK requests to managed devices' <strong>SNMP agents</strong>, which respond with data pulled from the device's <strong>MIB (Management Information Base)</strong>.</p><p><strong>MIB</strong> is a hierarchical tree of numeric <strong>OIDs (Object Identifiers)</strong>. Example: <code>1.3.6.1.2.1.2.2.1.10</code> is ifInOctets (bytes received on an interface). The NMS polls these OIDs periodically to graph metrics in tools like LibreNMS, Zabbix, PRTG, or SolarWinds.</p><p><strong>SNMP operations:</strong></p><ul><li><strong>GET</strong> — retrieve a single OID's value</li><li><strong>GETNEXT</strong> — walk to the next OID (used for table traversal)</li><li><strong>GETBULK</strong> — efficient bulk retrieval (v2c+)</li><li><strong>SET</strong> — modify an OID (rarely used — write access is risky)</li></ul><p><strong>Versions:</strong></p><ul><li><strong>v1</strong> — original, community strings (plaintext passwords), insecure. Do not use.</li><li><strong>v2c</strong> — adds GETBULK and improved error codes, still community-string-authenticated and plaintext.</li><li><strong>v3</strong> — adds authentication (HMAC) and encryption (AES/DES). Required for any production or regulated network.</li></ul><p>Cisco config:</p><pre>snmp-server community public RO          <em>(v2c read-only, INSECURE)</em>\nsnmp-server group GRP1 v3 priv\nsnmp-server user USR1 GRP1 v3 auth sha &lt;authpass&gt; priv aes 128 &lt;privpass&gt;</pre>",
+        visual: { type: "packet-flow", params: { nodes: ["NMS", "→ GET/SET (UDP 161) →", "Device SNMP agent", "← Response"], color: "#3b82f6" } },
+        hack: {
+          memory: "SNMP query = UDP 161. NMS polls device with GET/GETNEXT/GETBULK/SET. OIDs in a MIB tree. v1/v2c = plaintext community string (bad), v3 = auth + encryption (good).",
+          practice: "'snmpwalk -v2c -c public <router-ip>' returns the entire MIB tree. Try 'snmpget -v2c -c public <ip> 1.3.6.1.2.1.1.5.0' for just the sysName.0 OID — the device hostname.",
+          effort: "medium",
+          meta: "Jeremy's IT Lab Day 40. OCG Chapter 13. 'SNMP query port?' 161. Know 161 = queries from NMS, 162 = traps from device. Don't confuse them."
+        }
+      },
+      {
+        id: "1.5.g.7",
+        term: "SNMP trap — UDP 162",
+        weight: "high",
+        info: "<p><strong>SNMP traps — UDP port 162</strong> are unsolicited notifications a managed device sends to the NMS when something noteworthy happens — interface up/down, CPU threshold crossed, OSPF adjacency change, power supply failure, etc. The NMS receives traps on port 162 and logs, alerts, or escalates as configured.</p><p><strong>Traps vs polling:</strong></p><ul><li><strong>Polling (port 161)</strong> — NMS asks the device for data at fixed intervals. Misses events that happen between polls.</li><li><strong>Traps (port 162)</strong> — device tells the NMS the instant something happens. Event-driven, near-real-time.</li></ul><p>Traps are <strong>unreliable by default</strong> — they ride UDP and have no ACK. If the trap is lost, the NMS never knows the event happened. <strong>SNMP informs</strong> (introduced in v2c) fix this: informs use port 162 but require the NMS to send an acknowledgment; the device retransmits if no ack arrives.</p><p>Cisco config:</p><pre>snmp-server host 10.1.1.100 version 2c MYCOMM\nsnmp-server enable traps snmp linkdown linkup coldstart\nsnmp-server enable traps bgp\nsnmp-server enable traps ospf</pre><p>The <code>enable traps</code> lines are à la carte — you pick which event families to send. Send too few and you miss events; send too many and the NMS drowns. Common starting set: snmp (link up/down, cold start), ospf, bgp, cpu, memory, environment.</p>",
+        visual: { type: "packet-flow", params: { nodes: ["Device (agent)", "→ TRAP (UDP 162) →", "NMS", "(inform: + ACK back)"], color: "#f59e0b" } },
+        hack: {
+          memory: "SNMP trap = UDP 162. Device → NMS, unsolicited, event-driven. Fire-and-forget (lossy). INFORMS add ACK for reliability. 161 (poll) vs 162 (push) — don't swap them.",
+          practice: "On Linux: 'snmptrapd -f -Lo -c /etc/snmp/snmptrapd.conf' to listen for traps on port 162. On a Cisco router: 'snmp-server enable traps' + shutdown/no shutdown an interface. Watch the linkdown/linkup traps arrive.",
+          effort: "medium",
+          meta: "Jeremy's IT Lab Day 40. OCG Chapter 13. 161 = poll, 162 = trap — easy exam trap. Informs (with ACK) is a worthwhile bonus fact."
+        }
+      },
+      {
+        id: "1.5.g.8",
+        term: "Syslog — UDP 514",
+        weight: "high",
+        info: "<p><strong>Syslog — UDP port 514</strong> is the standard for centralized logging in network operations. Defined originally in RFC 3164, updated by RFC 5424. Network devices (routers, switches, firewalls, servers) send log messages to a central syslog server, where they're aggregated, searched, alerted on, and archived.</p><p>Syslog is classic send-and-forget over UDP — no handshake, no ACK, no retransmission. Lost messages are lost. Modern deployments often switch to <strong>RFC 5424 syslog over TCP (port 6514 with TLS, or 514 TCP)</strong> for reliability, but classic UDP 514 is the CCNA answer.</p><p>A syslog message has two important dimensions:</p><ul><li><strong>Facility</strong> (0–23) — what produced the message: kernel, mail, auth, cron, user, daemon, etc.</li><li><strong>Severity</strong> (0–7) — how bad it is: 0 Emergency to 7 Debug.</li></ul><p>Cisco config:</p><pre>logging host 10.1.1.50              <em>(syslog server IP)</em>\nlogging trap informational          <em>(send severity 6 and more severe)</em>\nservice timestamps log datetime msec\nlogging buffered 16384</pre><p>Severity mnemonic: <strong>Every Awesome Cisco Engineer Will Need Ice-cream Daily</strong> — Emergency, Alert, Critical, Error, Warning, Notice, Informational, Debug. <strong>Lower number = more severe</strong> (0 is the end of the world; 7 is chatter).</p>",
+        visual: { type: "comparison", params: { left: { label: "Severity 0-3 (Acute)", items: ["0 Emergency (system down)", "1 Alert (immediate action)", "2 Critical", "3 Error"] }, right: { label: "Severity 4-7 (Routine)", items: ["4 Warning", "5 Notice", "6 Informational", "7 Debug (chatty)"] } } },
+        hack: {
+          memory: "Syslog = UDP 514. 'log me at 5-1-4'. Severity 0-7, lower = worse. EACEWNID: Every Awesome Cisco Engineer Will Need Ice-cream Daily. Cisco: 'logging host' + 'logging trap informational'.",
+          practice: "On Linux 'rsyslog' or 'syslog-ng' listens on 514. From a Cisco router: 'logging host <ip>', then shut/no shut an interface → watch '%LINK-3-UPDOWN' show up in /var/log/syslog on the server.",
+          effort: "medium",
+          meta: "Jeremy's IT Lab Day 40. OCG Chapter 13. 'Syslog port?' 514. 'UDP or TCP?' UDP (classic). Severity 0-7 memorized — exam frequently asks the level numbers."
+        }
+      },
+      {
+        id: "1.5.g.9",
+        term: "Syslog severity levels",
+        weight: "high",
+        info: "<p>Syslog severity is an 8-level scale (0–7) indicating the urgency of a log message. Lower numbers mean more severe. Configuring <code>logging trap <em>level</em></code> on Cisco devices sends that level and every more-severe level to the syslog server.</p><ul><li><strong>0 — Emergency</strong> — system is unusable. Rarely seen outside hardware failure.</li><li><strong>1 — Alert</strong> — immediate action required. E.g., primary route lost, BGP peer flapping.</li><li><strong>2 — Critical</strong> — critical conditions. E.g., hardware component failing.</li><li><strong>3 — Error</strong> — error conditions. E.g., interface errors, ACL violations that matter.</li><li><strong>4 — Warning</strong> — warning conditions. E.g., high CPU, queue drops.</li><li><strong>5 — Notice</strong> (aka Notification) — normal but significant. E.g., config change, route recalculation.</li><li><strong>6 — Informational</strong> — general info. E.g., interface state changes (up/down on L3).</li><li><strong>7 — Debug</strong> — low-level diagnostic. Can be extremely chatty. Never enable in production without plan.</li></ul><p><strong>Classic mnemonic:</strong> <em>'Every Awesome Cisco Engineer Will Need Ice-cream Daily'</em> — <strong>E</strong>mergency, <strong>A</strong>lert, <strong>C</strong>ritical, <strong>E</strong>rror, <strong>W</strong>arning, <strong>N</strong>otice, <strong>I</strong>nformational, <strong>D</strong>ebug.</p><p>Default Cisco logging is typically informational (6), which captures most useful events without debug flood. The <code>logging trap</code> command controls what goes to the syslog server; <code>logging console</code>, <code>logging monitor</code>, and <code>logging buffered</code> control console, terminal sessions, and internal buffer.</p><p>On the exam, you may see '%LINK-3-UPDOWN' — the '3' is the severity (Error). '%LINEPROTO-5-UPDOWN' is severity 5 (Notice). Knowing the number-to-name mapping lets you decode Cisco log messages at a glance.</p>",
+        visual: { type: "hierarchy", params: { root: "Severity (lower = worse)", children: ["0 Emergency", "1 Alert", "2 Critical", "3 Error", "4 Warning", "5 Notice", "6 Info", "7 Debug"] } },
+        hack: {
+          memory: "EACEWNID = Every Awesome Cisco Engineer Will Need Ice-cream Daily. 0-7. Lower = more severe. '%LINK-3-UPDOWN' means severity 3 (Error).",
+          practice: "Memorize the 8 levels with the mnemonic. Write them out with numbers 10 times. Then look at real Cisco log messages ('show logging') and identify the severity number in each '%FACILITY-SEV-MNEMONIC' string.",
+          effort: "medium",
+          meta: "Jeremy's IT Lab Day 40. OCG Chapter 13. Severity is tested directly: 'what is severity 3?' Error. 'What does logging trap warning include?' Levels 0-4."
+        }
+      }
     ]
   },
 
@@ -2394,12 +3018,84 @@ window.subtopicContentD12 = {
       meta: "Jeremy's IT Lab Day 39 (DNS) covers this. Wendell Odom OCG Chapter 13. This is a classic tricky exam question -- many students memorize 'DNS = UDP 53' and forget that TCP is also used. The exam asks: 'Which protocol does DNS use for zone transfers?' Answer: TCP. 'Which protocol does DNS use for standard queries?' Answer: UDP. 'On what port?' Answer: 53 for both. This is one of those questions where knowing the exception (TCP) scores you the point.",
     },
     micro: [
-      { id: "1.5.h.1", term: "DNS over UDP 53",              def: "Default for standard name queries. Small, fast. Used for ~99% of DNS traffic.", weight: "high" },
-      { id: "1.5.h.2", term: "DNS over TCP 53",              def: "Used for (1) zone transfers and (2) truncated UDP responses. Same port as UDP.", weight: "high" },
-      { id: "1.5.h.3", term: "TC (Truncation) flag",         def: "Set in UDP DNS response when it's too big. Tells client to retry over TCP.", weight: "high" },
-      { id: "1.5.h.4", term: "AXFR",                         def: "Full zone transfer from primary DNS server to secondary. Uses TCP 53.", weight: "med" },
-      { id: "1.5.h.5", term: "IXFR",                         def: "Incremental zone transfer — only changes since last transfer. Uses TCP 53.", weight: "med" },
-      { id: "1.5.h.6", term: "Dual-protocol port (DNS)",     def: "DNS is the canonical example — one port (53) serving both TCP and UDP with different roles.", weight: "high" }
+      {
+        id: "1.5.h.1",
+        term: "DNS over UDP 53",
+        weight: "high",
+        info: "<p><strong>DNS over UDP 53</strong> is how more than 99% of DNS traffic flows. Standard name resolution queries — A, AAAA, CNAME, MX, TXT, PTR, SRV, NS records — travel as a single UDP datagram in each direction. Client-to-resolver and resolver-to-client both use UDP 53.</p><p>Why UDP is a perfect fit here:</p><ul><li><strong>Tiny messages</strong> — a typical query is 40–80 bytes; a typical response under 512 bytes.</li><li><strong>Stateless</strong> — no connection overhead. A resolver can handle millions of QPS with trivial RAM.</li><li><strong>Idempotent retries</strong> — if the client times out, it simply retries. DNS message IDs (16-bit) match response to query.</li><li><strong>One RTT total</strong> — no 1.5 RTT handshake like TCP. Fastest possible lookup.</li></ul><p>The client resolver algorithm:</p><ol><li>Build a query with a unique transaction ID, encode QNAME + QTYPE</li><li>Send UDP packet to resolver's IP:53</li><li>Start a timer (typically 5 seconds)</li><li>If response arrives: match transaction ID, parse, return to app</li><li>If timeout: retry (usually a few times before failing)</li></ol><p>The 512-byte historical limit on UDP DNS responses comes from RFC 1035. Modern DNS uses <strong>EDNS0 (RFC 6891)</strong> to negotiate larger UDP sizes (up to 4096 bytes). If a response still exceeds the negotiated limit, the server sets the <strong>TC (Truncation) flag</strong> and the client retries over TCP.</p>",
+        visual: { type: "packet-flow", params: { nodes: ["Client", "UDP 53 query (ID=0xA2B4) →", "Resolver", "← UDP 53 response (ID=0xA2B4)"], color: "#22c55e" } },
+        hack: {
+          memory: "DNS over UDP 53 = 99%+ of DNS. 2 packets total, stateless, sub-ms RTT. 16-bit transaction ID matches req/resp. EDNS0 extends UDP size to 4096. TC flag = go TCP.",
+          practice: "'dig +short A google.com' uses UDP by default. 'dig +tcp +short A google.com' forces TCP. Compare packet counts in Wireshark: 2 for UDP, 9+ for TCP (due to handshake/teardown).",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 39. OCG Chapter 13. DNS is the canonical dual-protocol service. 'When does DNS use UDP vs TCP?' is a direct exam question."
+        }
+      },
+      {
+        id: "1.5.h.2",
+        term: "DNS over TCP 53",
+        weight: "high",
+        info: "<p><strong>DNS over TCP port 53</strong> is used in two specific scenarios — and only two. Both involve responses that UDP cannot handle safely.</p><p><strong>Scenario 1: Zone transfers (AXFR / IXFR).</strong> When a secondary DNS server synchronizes its zone database from a primary, the data set can be massive — thousands or millions of records. TCP provides the reliable, ordered, byte-stream delivery this requires. Zone transfers NEVER use UDP.</p><ul><li><strong>AXFR</strong> — full zone transfer. Server sends every record in the zone.</li><li><strong>IXFR</strong> — incremental zone transfer. Only changes since the last known serial are sent.</li></ul><p><strong>Scenario 2: Truncated UDP responses.</strong> When a query's response would exceed the negotiated UDP size (512 bytes classic, up to 4096 with EDNS0), the server sets the <strong>TC (Truncation) flag</strong> in the response header and returns whatever fits. The client sees the TC flag and re-queries <em>the same question</em> over TCP 53 to get the full answer. This happens frequently with:</p><ul><li><strong>DNSSEC</strong> responses (cryptographic signatures make answers fat)</li><li>Large RRsets (e.g., many A records for a load-balanced name)</li><li>Combined ANY queries returning mixed record types</li></ul><p>Modern deployments also use <strong>DoT (DNS over TLS, port 853)</strong> and <strong>DoH (DNS over HTTPS, port 443)</strong> to encrypt queries — these are separate from classic UDP/TCP 53 and are not on the CCNA, but worth recognizing.</p>",
+        visual: { type: "comparison", params: { left: { label: "TCP 53 Scenario 1", items: ["Zone transfer (AXFR/IXFR)", "Server-to-server", "Full or incremental", "Reliable, ordered"] }, right: { label: "TCP 53 Scenario 2", items: ["Truncated UDP response", "TC flag set in UDP", "Client retries on TCP", "DNSSEC often triggers this"] } } },
+        hack: {
+          memory: "DNS over TCP 53 = zone transfers OR truncated UDP fallback. Same port number (53), reliable transport. Trigger #1: AXFR/IXFR between servers. Trigger #2: TC flag → client re-queries TCP.",
+          practice: "Force a TCP query: 'dig +tcp @8.8.8.8 google.com'. Capture and confirm the TCP 3-way handshake on port 53 before the query. For AXFR (usually blocked on public servers): 'dig axfr @ns1.example.com example.com'.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 39. OCG Chapter 13. Classic trick question: 'DNS uses UDP. When does it use TCP?' Two answers: zone transfers, truncated responses. Memorize both triggers."
+        }
+      },
+      {
+        id: "1.5.h.3",
+        term: "TC (Truncation) flag",
+        weight: "high",
+        info: "<p>The <strong>TC (Truncation) flag</strong> is a single bit in the DNS message header (not the TCP header — this is a DNS-layer flag). When a DNS server generates a response that exceeds the client's willing UDP buffer size, it sets TC=1 and truncates the answer to fit. The client, seeing the TC flag, knows the response is incomplete and must retry the <em>same query</em> over TCP 53 to get the full answer.</p><p>Classic limit: <strong>512 bytes</strong> (RFC 1035). Modern DNS negotiates larger UDP sizes via <strong>EDNS0 OPT records</strong>, where the client advertises (e.g.) 'I can receive up to 4096 bytes UDP'. If the response still won't fit, TC is set.</p><p>Where does the DNS header live? Inside the UDP payload. The structure is:</p><pre>UDP header (8B): srcPort | dstPort | length | checksum\n\nDNS header (12B):\n  Transaction ID (16)\n  Flags (16)  ← TC is bit 9 here\n  QDCOUNT (16)\n  ANCOUNT (16)\n  NSCOUNT (16)\n  ARCOUNT (16)\n\nthen: Question + Answer + Authority + Additional sections</pre><p>The flags byte layout: QR (query/response), Opcode (4 bits), AA (authoritative answer), <strong>TC</strong>, RD (recursion desired), RA (recursion available), Z (reserved), AD (authentic data), CD (checking disabled), RCODE (4 bits).</p><p>Why does this matter operationally? If a firewall between client and server allows UDP 53 but BLOCKS TCP 53, then any truncated response is a black hole — the client can't fetch the full answer and DNS fails. This is a classic 'everything works except some domains' troubleshooting scenario.</p>",
+        visual: { type: "binary-breakdown", params: { bits: "DNS flags: QR | Opcode(4) | AA | TC | RD | RA | Z | AD | CD | RCODE(4)", groups: [{ label: "TC position", value: "bit 9 of flags" }, { label: "TC=1 meaning", value: "response truncated; retry over TCP" }, { label: "Trigger", value: "response > UDP buffer (default 512, EDNS0 up to 4096)" }] } },
+        hack: {
+          memory: "TC flag = 'response was cut off, retry via TCP'. Lives in the DNS header (not TCP). Set when response > UDP buffer (512 classic, 4096 EDNS0). Firewall blocking TCP 53 = DNS black hole for big answers.",
+          practice: "Query a large DNS record: 'dig @8.8.8.8 ANY google.com'. In Wireshark, expand DNS → Flags → check 'Truncated'. Confirm the client issues a follow-up TCP 53 query.",
+          effort: "medium",
+          meta: "Jeremy's IT Lab Day 39. OCG Chapter 13. TC flag is a solid exam distinguisher: 'How does a DNS client know to use TCP?' TC flag set in the UDP response."
+        }
+      },
+      {
+        id: "1.5.h.4",
+        term: "AXFR",
+        weight: "med",
+        info: "<p><strong>AXFR (All-zone Transfer)</strong> is a DNS operation that copies an <em>entire zone</em> from a primary (master) DNS server to a secondary (slave). It uses <strong>TCP port 53</strong> because zone databases can contain thousands of records and require reliable, ordered byte-stream delivery.</p><p>The AXFR workflow:</p><ol><li>Primary server's SOA (Start of Authority) record serial number increments when the zone is modified.</li><li>Secondary periodically polls the primary's SOA record over UDP 53 (the 'refresh' timer in the SOA record).</li><li>If the secondary sees a higher serial, it initiates an AXFR over TCP 53.</li><li>Primary streams every record in the zone; secondary replaces its copy.</li><li>Secondary updates its internal serial to match.</li></ol><p>AXFR is a privileged operation — primaries typically restrict AXFR to known secondary server IPs. An attacker with unrestricted AXFR access can enumerate every subdomain and record in a zone, which is a reconnaissance goldmine. BIND config: <code>allow-transfer { 10.0.0.5; 10.0.0.6; };</code>. PowerDNS and others have similar lockdowns.</p><p>AXFR's successor is <strong>IXFR (Incremental Zone Transfer, RFC 1995)</strong> which ships only the changed records since the secondary's last serial — much more efficient for large zones. Both use TCP 53.</p><p>For the CCNA: know AXFR = full zone transfer = TCP 53. This is the canonical example of DNS using TCP.</p>",
+        visual: { type: "packet-flow", params: { nodes: ["Secondary DNS", "→ SOA query over UDP 53", "Primary DNS", "← SOA response (serial=N+1)", "→ TCP 53 AXFR request", "← stream of all records"], color: "#8b5cf6" } },
+        hack: {
+          memory: "AXFR = All-zone (full) transfer over TCP 53. Secondary polls SOA serial; if bumped, initiates AXFR. Blocks of records. Lock down with 'allow-transfer' to prevent recon.",
+          practice: "Try 'dig axfr @ns1.example.com example.com'. Public servers will refuse ('Transfer failed'). In a homelab with BIND, allow-transfer from your client and retry — you'll see every record dump.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 39 (light). OCG Chapter 13. 'AXFR uses which protocol?' TCP. 'What port?' 53. Paired with IXFR."
+        }
+      },
+      {
+        id: "1.5.h.5",
+        term: "IXFR",
+        weight: "med",
+        info: "<p><strong>IXFR (Incremental Zone Transfer)</strong> — defined in RFC 1995 — is the bandwidth-efficient evolution of AXFR. Instead of transferring the entire zone, IXFR ships only the changes (deltas) between the secondary's current serial and the primary's current serial. Uses <strong>TCP 53</strong> like AXFR.</p><p>The IXFR workflow:</p><ol><li>Primary is modified, serial increments, say 2026040101 → 2026040102.</li><li>Secondary polls SOA, sees new serial.</li><li>Secondary sends IXFR query including its current serial.</li><li>Primary computes the delta (records added, records removed) since that serial.</li><li>Delta is streamed over TCP 53.</li><li>Secondary applies changes locally and bumps its serial.</li></ol><p>Advantages:</p><ul><li><strong>Bandwidth savings</strong> — a 10 MB zone with a single record change transfers tens of bytes instead of 10 MB.</li><li><strong>Faster propagation</strong> — less data to send and apply.</li><li><strong>Lower server load</strong> — fewer CPU cycles per update.</li></ul><p>If the primary has aged out its change history and can't compute a delta for the secondary's stale serial, it automatically <strong>falls back to AXFR</strong> and ships the full zone. So IXFR is best-effort optimization on top of AXFR.</p><p>For the CCNA: know IXFR = incremental transfer = TCP 53. Less commonly asked than AXFR but pairs with it.</p>",
+        visual: { type: "comparison", params: { left: { label: "AXFR (full)", items: ["Every record", "TCP 53", "Simple, expensive"] }, right: { label: "IXFR (incremental)", items: ["Only changes since serial N", "TCP 53", "Bandwidth-efficient", "Falls back to AXFR if history lost"] } } },
+        hack: {
+          memory: "IXFR = Incremental zone transfer. Only changes since last serial. TCP 53 like AXFR. Falls back to AXFR if server can't compute delta. Saves bandwidth on large zones.",
+          practice: "In BIND, enable IXFR with 'provide-ixfr yes; request-ixfr yes;'. Make a single zone change on the primary and watch with 'tail -f named.log' — you should see IXFR requests from secondaries with byte counts far smaller than the zone file size.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 39 briefly. OCG Chapter 13. 'IXFR' sometimes appears as a multiple-choice option. Know it is incremental, TCP 53, falls back to AXFR."
+        }
+      },
+      {
+        id: "1.5.h.6",
+        term: "Dual-protocol port (DNS)",
+        weight: "high",
+        info: "<p>DNS is the <strong>canonical example of a service using both TCP and UDP on the same port number (53)</strong>. IANA registers both <code>53/udp</code> and <code>53/tcp</code> as 'Domain Name Server', and DNS servers implement handlers for both transports simultaneously.</p><p>This dual-protocol design is unusual — most services pick one. HTTP uses only TCP 80. SSH uses only TCP 22. NTP uses only UDP 123. DNS's split lets it enjoy UDP's low latency for the common case (queries) while retaining TCP's reliability for the edge cases (zone transfers, oversized responses).</p><p>Operationally, this means:</p><ul><li><strong>Firewall rules must allow BOTH</strong> if you want DNS to fully function. A policy of 'allow UDP 53 in, deny TCP 53' will work 99% of the time and then mysteriously fail on large responses or DNSSEC.</li><li><strong>DNS servers bind to both sockets</strong> at startup. You can <code>netstat -lntu | grep :53</code> and see both a tcp and a udp listener.</li><li><strong>Packet captures must include both</strong> when troubleshooting. <code>tcpdump -n 'port 53'</code> catches both transports.</li></ul><p>A few other dual-protocol services exist but are rarer:</p><ul><li><strong>RDP</strong> — TCP 3389 for primary; UDP 3389 for enhanced multimedia transport in newer versions.</li><li><strong>QUIC-enabled HTTPS</strong> — TCP 443 (classic TLS) and UDP 443 (HTTP/3 QUIC) share the same port number.</li></ul><p>For the CCNA, the one you must know is DNS on 53.</p>",
+        visual: { type: "comparison", params: { left: { label: "UDP 53 (default)", items: ["Standard queries", "99% of DNS", "Low latency", "Stateless"] }, right: { label: "TCP 53 (special)", items: ["Zone transfers (AXFR/IXFR)", "Truncated responses (TC)", "Reliable, ordered", "Same port as UDP"] } } },
+        hack: {
+          memory: "DNS is bilingual on port 53 — speaks BOTH UDP and TCP. Firewall must allow both or DNSSEC/large responses break silently. Canonical dual-protocol CCNA example.",
+          practice: "'sudo netstat -lntu | grep :53' on a DNS server: you'll see both 'udp 0.0.0.0:53' and 'tcp 0.0.0.0:53' listeners. Confirm both protocols work: 'dig +short google.com' (UDP) then 'dig +tcp +short google.com' (TCP).",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 39. OCG Chapter 13. Classic CCNA gotcha: 'DNS uses which transport?' Answer must include BOTH. One-protocol answer is wrong."
+        }
+      }
     ]
   },
 
