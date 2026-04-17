@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>60-Day Study Plan — CCNA 200-301</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,400;0,500;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="css/shared.css">
+<style>
+  body { padding-bottom: 60px; }
+  .wrap { max-width: 1000px; margin: 0 auto; padding: 30px 20px; }
+  h1 { font-family: var(--font-display); font-size: 1.8rem; margin: 0 0 4px; }
+  .sub { color: var(--ink-muted); margin-bottom: 24px; font-size: 0.9rem; }
+
+  .overview { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 28px; }
+  .stat-card { background: var(--bg-surface); border-radius: var(--radius); padding: 14px 16px; border: 1px solid var(--border); }
+  .stat-card .label { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-muted); }
+  .stat-card .value { font-size: 1.6rem; font-weight: 700; color: var(--ink-primary); margin-top: 4px; }
+  .stat-card.today { border-color: var(--accent); background: rgba(220, 95, 45, 0.05); }
+
+  .progress-bar { height: 10px; background: var(--bg-surface); border-radius: 5px; overflow: hidden; margin-bottom: 28px; border: 1px solid var(--border); }
+  .progress-bar .fill { height: 100%; background: var(--accent); transition: width 0.3s; }
+
+  .day-card { background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 18px; margin-bottom: 10px; display: grid; grid-template-columns: 90px 1fr auto; gap: 16px; align-items: start; }
+  .day-card.today { border-color: var(--accent); background: rgba(220, 95, 45, 0.04); border-left: 4px solid var(--accent); }
+  .day-card.past  { opacity: 0.6; }
+  .day-card.rest  { background: var(--bg-recessed); }
+  .day-card.exam  { background: rgba(22, 163, 74, 0.06); border-color: #16a34a; border-left: 4px solid #16a34a; }
+
+  .day-meta { font-family: var(--font-mono, monospace); font-size: 0.75rem; color: var(--ink-muted); }
+  .day-meta .day-num { font-size: 1.2rem; font-weight: 700; color: var(--ink-primary); font-family: var(--font-display); }
+  .day-meta .date { margin-top: 2px; }
+  .day-meta .dow { margin-top: 2px; font-weight: 600; }
+  .day-meta .type { margin-top: 4px; padding: 2px 6px; border-radius: 4px; font-size: 0.65rem; font-weight: 700; text-transform: uppercase; background: var(--bg-base); display: inline-block; }
+  .day-card.today .day-meta .day-num { color: var(--accent); }
+
+  .day-focus { font-weight: 600; font-size: 1rem; margin-bottom: 6px; color: var(--ink-primary); }
+  .day-jitl { font-size: 0.78rem; color: var(--ink-muted); margin-bottom: 8px; font-family: var(--font-mono, monospace); }
+  .task-list { list-style: none; padding: 0; margin: 6px 0 0; display: flex; flex-direction: column; gap: 4px; }
+  .task-list li { font-size: 0.86rem; line-height: 1.5; display: flex; gap: 8px; align-items: flex-start; }
+  .task-list label { cursor: pointer; flex: 1; display: flex; gap: 8px; align-items: flex-start; }
+  .task-list input[type="checkbox"] { margin-top: 3px; cursor: pointer; accent-color: var(--accent); }
+  .task-list label.done { text-decoration: line-through; opacity: 0.55; }
+
+  .day-right { text-align: right; font-size: 0.75rem; color: var(--ink-muted); }
+  .progress-mini { height: 4px; width: 60px; background: var(--bg-base); border-radius: 2px; overflow: hidden; margin-top: 6px; }
+  .progress-mini .fill { height: 100%; background: var(--accent); transition: width 0.25s; }
+
+  .filter-bar { display: flex; gap: 10px; margin-bottom: 14px; font-size: 0.85rem; }
+  .filter-bar button { padding: 6px 12px; border: 1px solid var(--border); background: var(--bg-base); border-radius: 6px; cursor: pointer; font: inherit; color: var(--ink-primary); }
+  .filter-bar button.active { background: var(--accent); color: white; border-color: var(--accent); }
+</style>
+</head>
+<body>
+<div id="nav-placeholder"></div>
+<script defer src="js/nav.js"></script>
+
+<main class="wrap">
+  <h1>60-Day Study Plan</h1>
+  <p class="sub">CCNA 200-301. Calendar from today → exam day. Check off tasks as you complete them. Progress saved locally.</p>
+
+  <div class="overview">
+    <div class="stat-card"><div class="label">Exam date</div><div class="value" id="stat-exam">—</div></div>
+    <div class="stat-card today"><div class="label">Today is day</div><div class="value" id="stat-today">—</div></div>
+    <div class="stat-card"><div class="label">Days remaining</div><div class="value" id="stat-remaining">—</div></div>
+    <div class="stat-card"><div class="label">Tasks done</div><div class="value" id="stat-tasks">0%</div></div>
+  </div>
+
+  <div class="progress-bar"><div class="fill" id="progress-fill" style="width: 0"></div></div>
+
+  <div class="filter-bar">
+    <button class="active" data-view="all">All days</button>
+    <button data-view="today">Today only</button>
+    <button data-view="upcoming">Upcoming (next 7)</button>
+    <button data-view="incomplete">Incomplete</button>
+  </div>
+
+  <div id="plan-container"></div>
+</main>
+
+<script>
+  const TODAY = new Date();
+  TODAY.setHours(0, 0, 0, 0);
+
+  let plan = null;
+  let view = 'all';
+
+  async function loadPlan() {
+    const res = await fetch('data/study-plan.json');
+    plan = await res.json();
+    render();
+  }
+
+  function getTaskKey(dayNum, taskIdx) {
+    return `studyPlan.day${dayNum}.task${taskIdx}`;
+  }
+
+  function isTaskDone(dayNum, taskIdx) {
+    return localStorage.getItem(getTaskKey(dayNum, taskIdx)) === '1';
+  }
+
+  function setTaskDone(dayNum, taskIdx, done) {
+    if (done) localStorage.setItem(getTaskKey(dayNum, taskIdx), '1');
+    else localStorage.removeItem(getTaskKey(dayNum, taskIdx));
+  }
+
+  function isToday(dateStr) {
+    return dateStr === TODAY.toISOString().slice(0, 10);
+  }
+
+  function isPast(dateStr) {
+    return new Date(dateStr + 'T00:00:00') < TODAY;
+  }
+
+  function render() {
+    if (!plan) return;
+
+    // Stats
+    document.getElementById('stat-exam').textContent = plan.examDate;
+    const todayEntry = plan.plan.find(d => isToday(d.date));
+    document.getElementById('stat-today').textContent = todayEntry ? todayEntry.day : '—';
+    const remaining = Math.max(0, (new Date(plan.examDate + 'T00:00:00') - TODAY) / (1000 * 60 * 60 * 24));
+    document.getElementById('stat-remaining').textContent = Math.round(remaining);
+
+    // Progress: % of all tasks completed
+    let total = 0, done = 0;
+    for (const d of plan.plan) {
+      if (!d.tasks) continue;
+      total += d.tasks.length;
+      d.tasks.forEach((_, i) => { if (isTaskDone(d.day, i)) done++; });
+    }
+    const pct = total ? Math.round(100 * done / total) : 0;
+    document.getElementById('stat-tasks').textContent = pct + '%';
+    document.getElementById('progress-fill').style.width = pct + '%';
+
+    // Day cards
+    let days = plan.plan;
+    if (view === 'today' && todayEntry) days = [todayEntry];
+    else if (view === 'upcoming') {
+      const todayIdx = plan.plan.findIndex(d => isToday(d.date));
+      const start = todayIdx >= 0 ? todayIdx : 0;
+      days = plan.plan.slice(start, start + 7);
+    } else if (view === 'incomplete') {
+      days = plan.plan.filter(d => {
+        if (!d.tasks || !d.tasks.length) return false;
+        return d.tasks.some((_, i) => !isTaskDone(d.day, i));
+      });
+    }
+
+    const html = days.map(d => {
+      const classes = ['day-card'];
+      if (isToday(d.date)) classes.push('today');
+      else if (isPast(d.date)) classes.push('past');
+      if (d.type === 'rest') classes.push('rest');
+      if (d.type === 'exam') classes.push('exam');
+
+      const doneCount = (d.tasks || []).filter((_, i) => isTaskDone(d.day, i)).length;
+      const dayPct = d.tasks && d.tasks.length ? Math.round(100 * doneCount / d.tasks.length) : 0;
+
+      const taskItems = (d.tasks || []).map((t, i) => {
+        const checked = isTaskDone(d.day, i);
+        return `<li>
+          <label class="${checked ? 'done' : ''}">
+            <input type="checkbox" data-day="${d.day}" data-task="${i}" ${checked ? 'checked' : ''}>
+            <span>${escapeHtml(t)}</span>
+          </label>
+        </li>`;
+      }).join('');
+
+      return `
+        <div class="${classes.join(' ')}">
+          <div class="day-meta">
+            <div class="day-num">Day ${d.day}</div>
+            <div class="date">${d.date}</div>
+            <div class="dow">${d.dow}</div>
+            <div class="type">${d.type}</div>
+          </div>
+          <div>
+            <div class="day-focus">${escapeHtml(d.focus)}</div>
+            ${d.jitl ? `<div class="day-jitl">${escapeHtml(d.jitl)}${d.topics && d.topics.length ? ' · topics ' + d.topics.join(', ') : ''}</div>` : ''}
+            <ul class="task-list">${taskItems}</ul>
+          </div>
+          <div class="day-right">
+            ${d.tasks && d.tasks.length ? `${doneCount}/${d.tasks.length}<div class="progress-mini"><div class="fill" style="width: ${dayPct}%"></div></div>` : ''}
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    document.getElementById('plan-container').innerHTML = html || '<p class="sub" style="text-align:center;padding:40px 0">Nothing matches this filter.</p>';
+
+    // Bind checkbox handlers
+    document.querySelectorAll('input[type="checkbox"][data-day]').forEach(cb => {
+      cb.addEventListener('change', (e) => {
+        setTaskDone(parseInt(cb.dataset.day, 10), parseInt(cb.dataset.task, 10), cb.checked);
+        render();
+      });
+    });
+  }
+
+  function escapeHtml(s) {
+    return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  document.querySelectorAll('.filter-bar button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.filter-bar button').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      view = btn.dataset.view;
+      render();
+    });
+  });
+
+  loadPlan();
+</script>
+</body>
+</html>
