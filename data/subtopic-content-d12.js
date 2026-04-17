@@ -2032,8 +2032,17 @@ window.subtopicContentD12 = {
       memory: "Access port = 'one-lane road, one neighborhood (VLAN).' The three-command recipe: (1) <code>switchport mode access</code>, (2) <code>switchport access vlan 10</code>, (3) <code>switchport voice vlan 20</code> (only if phone is connected). Voice VLAN mental model: the IP phone is a mini-switch — it tags voice packets with VLAN 20, passes PC data untagged on VLAN 10. The phone learns its VLAN from CDP. Key fact: if you don't set mode access, DTP might negotiate a trunk — always set it explicitly.",
       practice: "Packet Tracer lab (Jeremy's IT Lab Days 16-17): Create VLANs 10 (Sales) and 20 (Engineering) on a switch: <code>vlan 10</code>, <code>name Sales</code>, <code>vlan 20</code>, <code>name Engineering</code>. Assign ports: Gi0/1 to VLAN 10 (<code>switchport mode access</code>, <code>switchport access vlan 10</code>), Gi0/2 to VLAN 20. Connect PCs and verify with <code>show vlan brief</code> — PCs should only ping within their VLAN. Then add a voice VLAN: on Gi0/1, add <code>switchport voice vlan 30</code>. Verify with <code>show interfaces Gi0/1 switchport</code> — you should see both Access VLAN 10 and Voice VLAN 30. This is a high-priority lab for exam simlets.",
       effort: "high",
-      meta: "Jeremy's IT Lab Days 16-17 (VLANs) are the definitive resource. Wendell Odom OCG Chapter 8 covers VLAN configuration in detail. The exam tests VLAN configuration in simlets — expect to configure access ports, assign VLANs, and optionally add voice VLANs. Know the three commands cold. Also know that <code>show vlan brief</code> only shows access port VLAN assignments — trunk ports do NOT appear in this output (a common exam trick)."
-    }
+      meta: "Jeremy's IT Lab Days 16-17 (VLANs) are the definitive resource. Wendell Odom OCG Chapter 8 covers VLAN configuration in detail. The exam tests VLAN configuration in simlets — expect to configure access ports, assign VLANs, and optionally add voice VLANs. Know the three commands cold. Also know that <code>show vlan brief</code> only shows access port VLAN assignments — trunk ports do NOT appear in this output (a common exam trick).",
+    },
+    micro: [
+      { id: "2.1.a.1", term: "Access port",                  def: "Switch port carrying traffic for a SINGLE VLAN. Strips tag on egress, tags on ingress internally.", weight: "high" },
+      { id: "2.1.a.2", term: "switchport mode access",       def: "Explicitly set port to access mode. Prevents DTP trunk negotiation.", weight: "high" },
+      { id: "2.1.a.3", term: "switchport access vlan [id]",  def: "Assigns the access port to a specific VLAN. Auto-creates the VLAN if it doesn't exist.", weight: "high" },
+      { id: "2.1.a.4", term: "Voice VLAN",                   def: "Second VLAN on access port for IP phone (tagged). Data VLAN stays untagged for PC. Command: switchport voice vlan [id].", weight: "high" },
+      { id: "2.1.a.5", term: "VLAN range",                   def: "1-4094 (12-bit). VLANs 1002-1005 reserved for Token Ring/FDDI legacy.", weight: "high" },
+      { id: "2.1.a.6", term: "show vlan brief",              def: "Shows VLANs and their access ports. IMPORTANT: trunk ports do NOT appear in this output.", weight: "high" },
+      { id: "2.1.a.7", term: "show interfaces switchport",   def: "Per-port details: access VLAN, voice VLAN, mode, trunk settings.", weight: "high" }
+    ]
   },
 
   "2.1.b": {
@@ -2049,8 +2058,16 @@ window.subtopicContentD12 = {
       memory: "VLAN 1 = 'the default apartment everyone's assigned to — noisy with management traffic.' Four best practices: (1) Move users OUT of VLAN 1. (2) Change native VLAN on trunks AWAY from 1 (prevents double-tagging). (3) Create a separate management VLAN (e.g., 99). (4) Put unused ports in a dead VLAN (e.g., 999, no routing). Mnemonic: 'VLAN 1 Cannot Be Deleted' — it is permanent, hardcoded for CDP/VTP/STP. Exam mantra: 'Never use VLAN 1 for production; never leave unused ports in VLAN 1.'",
       practice: "Packet Tracer lab (Jeremy's IT Lab Days 16-17): Start with a fresh switch. Run <code>show vlan brief</code> — all ports are in VLAN 1. Create VLANs 10, 20, and 99 (management). Move user ports to VLANs 10 and 20. Create SVI for management: <code>interface vlan 99</code>, <code>ip address 10.0.99.1 255.255.255.0</code>. Shut down all unused ports and assign them to VLAN 999 (parking lot). Verify with <code>show vlan brief</code> — VLAN 1 should have no user ports. Then try <code>no vlan 1</code> — observe the error. This lab teaches VLAN 1 hardening, which is a key exam and real-world skill.",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 16-17 covers VLAN 1 best practices. Wendell Odom OCG Chapter 8 discusses default VLAN behavior and security implications. The exam asks: 'which VLAN cannot be deleted?' (1), 'what is the default native VLAN?' (1), 'which VLAN should NOT be used for user traffic?' (1). Also expect a scenario question about VLAN hopping — the mitigation is to change the native VLAN on trunks. Know these cold."
-    }
+      meta: "Jeremy's IT Lab Day 16-17 covers VLAN 1 best practices. Wendell Odom OCG Chapter 8 discusses default VLAN behavior and security implications. The exam asks: 'which VLAN cannot be deleted?' (1), 'what is the default native VLAN?' (1), 'which VLAN should NOT be used for user traffic?' (1). Also expect a scenario question about VLAN hopping — the mitigation is to change the native VLAN on trunks. Know these cold.",
+    },
+    micro: [
+      { id: "2.1.b.1", term: "VLAN 1 default",               def: "All ports start in VLAN 1 out of the box. VLAN 1 is also the default native VLAN on trunks.", weight: "high" },
+      { id: "2.1.b.2", term: "VLAN 1 cannot be deleted",     def: "Hardcoded for CDP, VTP, STP, PAgP. 'no vlan 1' produces an error.", weight: "high" },
+      { id: "2.1.b.3", term: "Management VLAN",              def: "Dedicated VLAN for switch SVI and remote management. Best practice: separate from user VLANs (e.g., VLAN 99).", weight: "high" },
+      { id: "2.1.b.4", term: "Parking-lot VLAN",             def: "Unused VLAN (e.g., 999) with no routing. Unused ports get assigned here — plug-in = no access.", weight: "med" },
+      { id: "2.1.b.5", term: "Shut down unused ports",       def: "Best practice. Prevents rogue devices from getting connectivity. Pair with parking-lot VLAN.", weight: "high" },
+      { id: "2.1.b.6", term: "ip default-gateway",           def: "On L2 switches only. Sets gateway IP for out-of-box management traffic from the switch itself.", weight: "med" }
+    ]
   },
 
   "2.1.c": {
@@ -2070,8 +2087,16 @@ window.subtopicContentD12 = {
       memory: "Three methods ranked by exam importance: (1) ROAS = Router-On-A-Stick (trunk + subinterfaces + <code>encapsulation dot1q</code>). (2) L3 Switch = SVIs + <code>ip routing</code>. (3) Physical = one port per VLAN (obsolete). Mnemonic for ROAS config: 'SENA' = Subinterface → Encapsulation dot1q → No shutdown (parent) → Address (IP on subinterface). For L3 Switch: 'VIA' = VLAN interface → IP address → (globally enable) <code>ip routing</code>. Remember: ROAS uses a TRUNK to the switch. L3 switch uses ACCESS ports to hosts + internal SVIs.",
       practice: "Packet Tracer lab (Jeremy's IT Lab Days 17-18 — lab this MULTIPLE times): <strong>ROAS Lab:</strong> Create VLANs 10 and 20 on an L2 switch. Configure a trunk to a router. On the router: <code>interface Gi0/0.10</code>, <code>encapsulation dot1q 10</code>, <code>ip address 10.0.10.1 255.255.255.0</code>. Repeat for Gi0/0.20 with VLAN 20 subnet. Set PCs' default gateways to their VLAN's subinterface IP. Ping across VLANs. <strong>L3 Switch Lab:</strong> On a 3560/3650: create VLANs 10 and 20, assign access ports, create SVIs (<code>interface vlan 10</code>, <code>ip address 10.0.10.1 255.255.255.0</code>), enable <code>ip routing</code>. Ping across VLANs. Verify both with <code>show ip route</code> — you should see connected routes for each VLAN subnet.",
       effort: "high",
-      meta: "Jeremy's IT Lab Days 17-18 (VLANs and Inter-VLAN Routing) are essential viewing. Wendell Odom OCG Chapters 8-9 cover VLAN routing methods. Inter-VLAN routing is one of the <strong>most heavily tested topics</strong> on the CCNA — expect at least one simlet requiring ROAS or SVI configuration. Lab both methods until you can configure them from memory without referencing notes. Know the <code>encapsulation dot1q</code> command and that <code>ip routing</code> is required on L3 switches."
-    }
+      meta: "Jeremy's IT Lab Days 17-18 (VLANs and Inter-VLAN Routing) are essential viewing. Wendell Odom OCG Chapters 8-9 cover VLAN routing methods. Inter-VLAN routing is one of the <strong>most heavily tested topics</strong> on the CCNA — expect at least one simlet requiring ROAS or SVI configuration. Lab both methods until you can configure them from memory without referencing notes. Know the <code>encapsulation dot1q</code> command and that <code>ip routing</code> is required on L3 switches.",
+    },
+    micro: [
+      { id: "2.1.c.1", term: "Inter-VLAN routing (IVR)",     def: "L3 forwarding between VLANs. VLANs are L2 broadcast domains; must be routed at L3 to cross.", weight: "high" },
+      { id: "2.1.c.2", term: "Router-on-a-Stick (ROAS)",     def: "One router interface + trunk to switch + subinterfaces per VLAN. Each subif has 'encapsulation dot1q [vlan]'.", weight: "high" },
+      { id: "2.1.c.3", term: "encapsulation dot1q [vlan]",   def: "Required on router subinterface for ROAS. Tags traffic with the VLAN ID.", weight: "high" },
+      { id: "2.1.c.4", term: "L3 switch SVI method",         def: "SVIs (interface vlan [id]) + 'ip routing' globally. Hardware ASIC routing = wire speed. Preferred for campus.", weight: "high" },
+      { id: "2.1.c.5", term: "'ip routing' command",         def: "GLOBAL command. Required on L3 switch to actually route between SVIs. Forgotten = no inter-VLAN connectivity.", weight: "high" },
+      { id: "2.1.c.6", term: "ROAS vs L3 switch",            def: "ROAS = router CPU, any router + L2 switch works, slower. L3 switch = ASIC-accelerated, requires L3-capable switch, faster.", weight: "high" }
+    ]
   },
 
   /* ══════════════════════════════════════════════════════════════
@@ -2085,8 +2110,17 @@ window.subtopicContentD12 = {
       memory: "Trunk = 'highway with VLAN lane markers (802.1Q tags).' Access port = 'single-lane residential road.' Config recipe: 'MNA' = Mode trunk, Nonegotiate, Allowed vlan list. DTP is dangerous — always disable with <code>switchport nonegotiate</code>. DTP modes: desirable = 'I want a trunk,' auto = 'only if you ask,' trunk = 'forced but still talks DTP,' nonegotiate = 'silent trunk.' Key trap: <code>show vlan brief</code> does NOT show trunk ports — use <code>show interfaces trunk</code> instead.",
       practice: "Packet Tracer lab (Jeremy's IT Lab Day 17): Connect two switches with a trunk link. On both sides: <code>switchport mode trunk</code>, <code>switchport nonegotiate</code>, <code>switchport trunk allowed vlan 10,20,30</code>. Create VLANs 10, 20, 30 on both switches. Assign access ports to each VLAN. Connect PCs and verify they can ping within their VLAN across switches. Verify with <code>show interfaces trunk</code> — check the 'Vlans allowed' and 'Vlans allowed and active' columns. Then intentionally forget to create VLAN 20 on one switch and observe that VLAN 20 traffic fails (VLAN must exist on both ends). Also try the DTP trap: set both sides to 'dynamic auto' — observe that NO trunk forms (auto-auto = access mode).",
       effort: "high",
-      meta: "Jeremy's IT Lab Day 17 covers trunk configuration and DTP. Wendell Odom OCG Chapter 8-9 details trunk operation and best practices. Trunk configuration appears in exam simlets — expect to configure mode, allowed VLANs, and native VLAN. Know <code>show interfaces trunk</code> inside out. The DTP nonegotiate best practice is tested: 'how do you prevent unauthorized trunk formation?' = <code>switchport mode access</code> on user ports + <code>switchport nonegotiate</code> on trunk ports."
-    }
+      meta: "Jeremy's IT Lab Day 17 covers trunk configuration and DTP. Wendell Odom OCG Chapter 8-9 details trunk operation and best practices. Trunk configuration appears in exam simlets — expect to configure mode, allowed VLANs, and native VLAN. Know <code>show interfaces trunk</code> inside out. The DTP nonegotiate best practice is tested: 'how do you prevent unauthorized trunk formation?' = <code>switchport mode access</code> on user ports + <code>switchport nonegotiate</code> on trunk ports.",
+    },
+    micro: [
+      { id: "2.2.a.1", term: "Trunk port",                   def: "Switch port carrying multiple VLANs. Uses 802.1Q tagging to distinguish. Used between switches, to routers (ROAS), to WLCs.", weight: "high" },
+      { id: "2.2.a.2", term: "switchport mode trunk",        def: "Force port into trunk mode. Pair with 'switchport nonegotiate' for security.", weight: "high" },
+      { id: "2.2.a.3", term: "switchport trunk allowed vlan", def: "Restrict which VLANs cross the trunk. Best practice: only allow needed VLANs. Add/remove keywords support incremental changes.", weight: "high" },
+      { id: "2.2.a.4", term: "DTP (Dynamic Trunking Protocol)", def: "Cisco proprietary. Auto-negotiates trunks. Security risk — disable with 'switchport nonegotiate'.", weight: "high" },
+      { id: "2.2.a.5", term: "DTP modes",                    def: "dynamic desirable (actively tries), dynamic auto (waits), trunk (forced but still talks DTP), nonegotiate (silent).", weight: "high" },
+      { id: "2.2.a.6", term: "DTP auto-auto = access",       def: "If BOTH sides are 'dynamic auto', no trunk forms. Both remain access. Classic exam trap.", weight: "high" },
+      { id: "2.2.a.7", term: "show interfaces trunk",        def: "Shows all trunk ports: mode, encapsulation, native VLAN, allowed/active VLANs. Trunks don't appear in 'show vlan brief'.", weight: "high" }
+    ]
   },
 
   "2.2.b": {
@@ -2105,8 +2139,16 @@ window.subtopicContentD12 = {
       memory: "802.1Q = 'the VLAN sticker' inserted into every frame on a trunk. Key numbers: <strong>4 bytes</strong> (tag size), <strong>12 bits</strong> (VLAN ID field), <strong>4094</strong> usable VLANs. The tag goes between Source MAC and EtherType — mnemonic: 'Source MAC → Sticker → EtherType' (the sticker is in the middle). 802.1Q makes frames <strong>1522 bytes max</strong> (1518 + 4-byte tag) — this is NOT a giant frame on a trunk. PCP field: 3 bits for QoS priority (0-7). ISL = dead, forget it.",
       practice: "Packet Tracer lab (Jeremy's IT Lab Day 17): After configuring trunks, draw the 802.1Q frame format from memory: Dest MAC (6B) → Src MAC (6B) → 802.1Q Tag (4B: TPID + PCP + DEI + VID) → EtherType (2B) → Payload (46-1500B) → FCS (4B). Label each field. Create a flashcard with the key numbers: 4-byte tag, 12-bit VID, 4094 VLANs, 3-bit PCP, 1522-byte max tagged frame. This is pure memorization — drill the numbers until automatic. Also know: <code>encapsulation dot1q [vlan-id]</code> is the command used on router subinterfaces for ROAS.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 17 covers 802.1Q tagging. Wendell Odom OCG Chapter 8 details the tag format. The exam tests exact numbers: 'how many VLANs does 802.1Q support?' (4094), 'how many bytes does the tag add?' (4), 'what is the maximum frame size with an 802.1Q tag?' (1522). Also know: 'which field in the 802.1Q tag is used for QoS?' (PCP/CoS — 3 bits). These are quick-win memorization points."
-    }
+      meta: "Jeremy's IT Lab Day 17 covers 802.1Q tagging. Wendell Odom OCG Chapter 8 details the tag format. The exam tests exact numbers: 'how many VLANs does 802.1Q support?' (4094), 'how many bytes does the tag add?' (4), 'what is the maximum frame size with an 802.1Q tag?' (1522). Also know: 'which field in the 802.1Q tag is used for QoS?' (PCP/CoS — 3 bits). These are quick-win memorization points.",
+    },
+    micro: [
+      { id: "2.2.b.1", term: "802.1Q (dot1q)",               def: "IEEE standard for VLAN tagging on trunks. Open standard. Only trunking encap on modern Cisco switches.", weight: "high" },
+      { id: "2.2.b.2", term: "802.1Q tag size",              def: "4 bytes inserted between Source MAC and EtherType fields.", weight: "high" },
+      { id: "2.2.b.3", term: "VLAN ID field size",           def: "12 bits. Range 0-4095, usable 1-4094 (0 and 4095 reserved). Hence 4094 possible VLANs.", weight: "high" },
+      { id: "2.2.b.4", term: "Max frame with tag",           def: "1522 bytes (1518 standard + 4-byte tag). NOT a giant on a trunk port.", weight: "high" },
+      { id: "2.2.b.5", term: "PCP / CoS",                    def: "Priority Code Point. 3 bits in the tag for QoS class. Values 0-7.", weight: "med" },
+      { id: "2.2.b.6", term: "ISL",                          def: "Cisco proprietary external encap. Obsolete. 802.1Q universally replaces it. Not on modern exam.", weight: "low" }
+    ]
   },
 
   "2.2.c": {
@@ -2123,8 +2165,16 @@ window.subtopicContentD12 = {
       memory: "Native VLAN = 'the no-sticker VLAN' — frames in this VLAN travel without a tag. Default = VLAN 1. Three rules: (1) Both trunk sides MUST match. (2) Change it away from VLAN 1 (prevents double-tagging attack). (3) Use an unused VLAN (e.g., 999) with no hosts. Double-tagging attack explained simply: attacker puts two stickers on a letter — the first switch peels off the outer sticker (native VLAN, expected), reveals the inner sticker (target VLAN), and delivers it to the wrong mailbox. Fix: change native VLAN + enable <code>vlan dot1q tag native</code>.",
       practice: "Packet Tracer lab (Jeremy's IT Lab Day 17): Configure a trunk between two switches. Set Switch A's native VLAN to 99 and Switch B's to VLAN 1 (mismatch). Observe the CDP warning: <code>%CDP-4-NATIVE_VLAN_MISMATCH</code>. Try pinging between hosts — traffic may reach the wrong VLAN. Then fix the mismatch: set both sides to native VLAN 999. Verify with <code>show interfaces trunk</code>. For extra security, enable <code>vlan dot1q tag native</code> in global config. Create a flashcard: 'Native VLAN default = 1, best practice = change to unused VLAN, mismatch = CDP warning + VLAN leakage, double-tagging = change native + tag native.'",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 17 covers native VLAN configuration and mismatch detection. Wendell Odom OCG Chapter 8-9 covers native VLAN security in depth. Native VLAN mismatch is a <strong>classic exam scenario</strong> — expect a topology where traffic is reaching the wrong VLAN and you must identify the native VLAN mismatch. The double-tagging attack concept is also tested: 'how does an attacker hop VLANs?' and 'how do you mitigate it?' (change native VLAN + tag native). Know the CDP warning message format."
-    }
+      meta: "Jeremy's IT Lab Day 17 covers native VLAN configuration and mismatch detection. Wendell Odom OCG Chapter 8-9 covers native VLAN security in depth. Native VLAN mismatch is a <strong>classic exam scenario</strong> — expect a topology where traffic is reaching the wrong VLAN and you must identify the native VLAN mismatch. The double-tagging attack concept is also tested: 'how does an attacker hop VLANs?' and 'how do you mitigate it?' (change native VLAN + tag native). Know the CDP warning message format.",
+    },
+    micro: [
+      { id: "2.2.c.1", term: "Native VLAN",                  def: "VLAN whose traffic is sent UNTAGGED across the trunk. Default: VLAN 1.", weight: "high" },
+      { id: "2.2.c.2", term: "Native VLAN must match",       def: "Both ends of a trunk must agree on native VLAN. Mismatch → traffic leaks between VLANs.", weight: "high" },
+      { id: "2.2.c.3", term: "switchport trunk native vlan", def: "Command to change the native VLAN on a trunk. Best practice: unused VLAN (e.g., 999).", weight: "high" },
+      { id: "2.2.c.4", term: "CDP native VLAN mismatch",     def: "CDP detects mismatch and logs '%CDP-4-NATIVE_VLAN_MISMATCH'. Common troubleshooting clue.", weight: "high" },
+      { id: "2.2.c.5", term: "Double-tagging VLAN hop",      def: "Attack: attacker sends frame with two 802.1Q tags. First switch strips outer (matches native), second switch forwards to inner-tagged VLAN.", weight: "high" },
+      { id: "2.2.c.6", term: "vlan dot1q tag native",        def: "Global command. Tags ALL frames including native VLAN. Mitigates double-tagging.", weight: "med" }
+    ]
   },
 
   /* ══════════════════════════════════════════════════════════════
@@ -2141,8 +2191,17 @@ window.subtopicContentD12 = {
       memory: "CDP = 'Cisco Devices Phoning home.' Three key facts: (1) Cisco-only (proprietary). (2) ON by default (unlike LLDP). (3) Timers: 60s send, 180s holdtime (3x rule). Information shared: 'DIP-PC-N-D-V' = Device ID, IP address, Platform, Capabilities, Native VLAN, Duplex, VTP domain. Security: disable on external-facing ports with <code>no cdp enable</code>. CDP is Layer 2 — works without IP.",
       practice: "Packet Tracer lab (Jeremy's IT Lab Day 34): Connect a router, switch, and another switch in a chain. Run <code>show cdp neighbors</code> on the middle switch — you should see both neighbors. Note: Device ID = hostname, Local Intrfce = your port, Port ID = their port. Then run <code>show cdp neighbors detail</code> — note the additional IP address and IOS version fields. Disable CDP on one interface (<code>no cdp enable</code>) and verify it disappears from the neighbor table after 180 seconds. Then re-enable it. Practice reading the CDP table output until you can extract any field instantly — the exam shows this output in simlets.",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 34 covers CDP and LLDP. Wendell Odom OCG Chapter 11 details Layer 2 discovery protocols. CDP is tested in troubleshooting simlets — the exam shows <code>show cdp neighbors</code> output and asks: 'what is the IP of the connected device?' (need detail command), 'what is the hostname of the neighbor?' (Device ID column), 'what is the remote port?' (Port ID column). Know timer values (60/180) and the security risk on external interfaces."
-    }
+      meta: "Jeremy's IT Lab Day 34 covers CDP and LLDP. Wendell Odom OCG Chapter 11 details Layer 2 discovery protocols. CDP is tested in troubleshooting simlets — the exam shows <code>show cdp neighbors</code> output and asks: 'what is the IP of the connected device?' (need detail command), 'what is the hostname of the neighbor?' (Device ID column), 'what is the remote port?' (Port ID column). Know timer values (60/180) and the security risk on external interfaces.",
+    },
+    micro: [
+      { id: "2.3.a.1", term: "CDP",                          def: "Cisco Discovery Protocol. L2, Cisco-proprietary. Learns directly-connected Cisco neighbors.", weight: "high" },
+      { id: "2.3.a.2", term: "CDP enabled by default",       def: "Default ON on all Cisco routers, switches, firewalls, phones, APs. Unlike LLDP which is OFF.", weight: "high" },
+      { id: "2.3.a.3", term: "CDP timers",                   def: "Advertisement every 60s. Holdtime 180s (3×). Memorize: 60/180.", weight: "high" },
+      { id: "2.3.a.4", term: "CDP info carried",             def: "Device ID (hostname), IP, platform, capabilities, local interface, port ID, native VLAN, duplex, VTP domain.", weight: "high" },
+      { id: "2.3.a.5", term: "CDP one-hop only",             def: "Only discovers DIRECTLY connected neighbors. Unidirectional — each device sends its own info.", weight: "high" },
+      { id: "2.3.a.6", term: "Disable CDP per interface",    def: "'no cdp enable' under interface. Best practice on untrusted/internet-facing interfaces.", weight: "high" },
+      { id: "2.3.a.7", term: "show cdp neighbors [detail]",  def: "Lists neighbors. 'detail' adds IP address and IOS version.", weight: "high" }
+    ]
   },
 
   "2.3.b": {
@@ -2158,8 +2217,15 @@ window.subtopicContentD12 = {
       memory: "'show cdp neighbors' = quick glance (hostname, ports, platform). 'show cdp neighbors detail' = deep dive (adds IP address, IOS version, VTP domain, native VLAN). The golden rule: <strong>IP address is ONLY in the detail command</strong>. If the exam asks 'how do you find the IP of a neighbor?' the answer is always <code>show cdp neighbors detail</code>. Capability codes: 'R-S' = Router-Switch (most common), 'I' = IGMP, 'H' = Host.",
       practice: "Packet Tracer lab (Jeremy's IT Lab Day 34): Build a topology with 3 devices (Router-Switch-Switch). Run <code>show cdp neighbors</code> on the switch — identify each column. Then run <code>show cdp neighbors detail</code> — find the IP address field for each neighbor. Write down: which fields appear only in detail? (IP, IOS version, VTP domain, native VLAN). Then run <code>show cdp interface</code> to see per-port CDP status. Create a flashcard: basic command columns (6) vs detail command additions (5+). The exam will show you this output — practice parsing it.",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 34 has a lab focused on reading CDP output. Wendell Odom OCG Chapter 11 covers both commands with sample output. The exam presents CDP output in 2-3 questions: 'what is the hostname of the neighbor?' (Device ID in basic), 'what is the IP of the neighbor?' (only in detail), 'what port is the neighbor connected on?' (Port ID in basic). Practice until you can answer in under 10 seconds."
-    }
+      meta: "Jeremy's IT Lab Day 34 has a lab focused on reading CDP output. Wendell Odom OCG Chapter 11 covers both commands with sample output. The exam presents CDP output in 2-3 questions: 'what is the hostname of the neighbor?' (Device ID in basic), 'what is the IP of the neighbor?' (only in detail), 'what port is the neighbor connected on?' (Port ID in basic). Practice until you can answer in under 10 seconds.",
+    },
+    micro: [
+      { id: "2.3.b.1", term: "show cdp neighbors columns",   def: "Device ID, Local Intrfce, Holdtme, Capability, Platform, Port ID.", weight: "high" },
+      { id: "2.3.b.2", term: "Capability codes",             def: "R=Router, S=Switch, T=Trans Bridge, B=Source Route Bridge, H=Host, I=IGMP, r=Repeater.", weight: "high" },
+      { id: "2.3.b.3", term: "show cdp neighbors detail",    def: "Adds: management IP, IOS version, VTP domain, native VLAN, duplex. 'detail' = IP address.", weight: "high" },
+      { id: "2.3.b.4", term: "show cdp interface",           def: "Per-interface CDP status and timers. Use when checking if CDP is enabled on a specific port.", weight: "med" },
+      { id: "2.3.b.5", term: "show cdp entry [device-id]",   def: "Detail for a single named neighbor. Useful in large tables.", weight: "low" }
+    ]
   },
 
   "2.3.c": {
@@ -2175,8 +2241,15 @@ window.subtopicContentD12 = {
       memory: "CDP command mnemonic: 'Run is global, Enable is local.' <code>cdp run</code> = turns CDP on for the whole device (global config). <code>cdp enable</code> = turns CDP on for one port (interface config). The 'no' versions disable: <code>no cdp run</code> kills CDP everywhere, <code>no cdp enable</code> kills it on one port. Security rule: 'internal ports = CDP on, external/guest ports = CDP off.' Timers: 60s (send), 180s (hold) = 3x rule.",
       practice: "Packet Tracer lab (Jeremy's IT Lab Day 34): Start with CDP enabled (default). Run <code>show cdp interface</code> to confirm all ports are sending CDP. Then disable CDP on one interface: <code>interface Gi0/1</code>, <code>no cdp enable</code>. Run <code>show cdp interface</code> again — Gi0/1 should no longer appear. Wait for the holdtime to expire on the neighbor (or 180 seconds) and verify the neighbor's CDP table no longer lists this port. Then re-enable with <code>cdp enable</code>. Also test global disable: <code>no cdp run</code> — all neighbors disappear. Re-enable with <code>cdp run</code>. Create a flashcard: global (run/no run) vs interface (enable/no enable), timer defaults (60/180), security practice (disable on external ports).",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 34 covers CDP configuration and security. Wendell Odom OCG Chapter 11 details global vs per-interface control. The exam asks: 'how do you disable CDP on a specific port?' (<code>no cdp enable</code> in interface config), 'when should CDP be disabled?' (untrusted/external-facing interfaces), 'what information does CDP reveal that makes it a security risk?' (hostname, IP, platform, IOS version). These are quick recall questions."
-    }
+      meta: "Jeremy's IT Lab Day 34 covers CDP configuration and security. Wendell Odom OCG Chapter 11 details global vs per-interface control. The exam asks: 'how do you disable CDP on a specific port?' (<code>no cdp enable</code> in interface config), 'when should CDP be disabled?' (untrusted/external-facing interfaces), 'what information does CDP reveal that makes it a security risk?' (hostname, IP, platform, IOS version). These are quick recall questions.",
+    },
+    micro: [
+      { id: "2.3.c.1", term: "cdp run",                      def: "GLOBAL command. Enable CDP device-wide. Default state. 'no cdp run' disables globally.", weight: "high" },
+      { id: "2.3.c.2", term: "cdp enable",                   def: "INTERFACE command. Enable CDP on a specific port. 'no cdp enable' disables on that port only.", weight: "high" },
+      { id: "2.3.c.3", term: "cdp timer [seconds]",          def: "Global. Adjust advertisement interval. Default 60s.", weight: "med" },
+      { id: "2.3.c.4", term: "cdp holdtime [seconds]",       def: "Global. Adjust how long entries remain valid. Default 180s.", weight: "med" },
+      { id: "2.3.c.5", term: "CDP security leaks",           def: "Hostname, IP, platform, IOS version. Attacker can identify vulnerabilities from 60s of passive listening.", weight: "high" }
+    ]
   },
 
   "2.3.d": {
@@ -2189,8 +2262,15 @@ window.subtopicContentD12 = {
       memory: "LLDP vs CDP — 'LLDP = Loves aLL Devices Possible' (vendor-neutral, open standard). CDP = 'Cisco Devices Protocol' (Cisco-only). Three critical differences: (1) Default state: CDP=ON, LLDP=OFF. (2) Timers: CDP=60/180, LLDP=30/120. (3) Interface control: CDP=single toggle, LLDP=separate TX/RX. LLDP uses TLVs (Type-Length-Value) — a flexible data format. Remember: multi-vendor network = LLDP, all-Cisco network = CDP works fine.",
       practice: "Packet Tracer lab (Jeremy's IT Lab Day 34): Enable LLDP globally: <code>lldp run</code>. Connect Cisco devices and run <code>show lldp neighbors</code> — compare the output to <code>show cdp neighbors</code>. Note the differences in column names and capability codes. Then disable LLDP transmit on one interface: <code>no lldp transmit</code> — the port still receives neighbor info but does not announce itself. Verify with <code>show lldp interface</code>. Create a side-by-side comparison flashcard: CDP (Cisco, ON default, 60/180 timers, run/enable commands) vs LLDP (IEEE, OFF default, 30/120 timers, run/transmit/receive commands).",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 34 covers both CDP and LLDP with a comparison. Wendell Odom OCG Chapter 11 details LLDP configuration and TLV structure. The exam presents a CDP vs LLDP comparison question in nearly every test form: 'which protocol is vendor-neutral?' (LLDP), 'which is enabled by default on Cisco?' (CDP), 'which uses separate transmit and receive controls?' (LLDP). Memorize the comparison table and you will answer correctly."
-    }
+      meta: "Jeremy's IT Lab Day 34 covers both CDP and LLDP with a comparison. Wendell Odom OCG Chapter 11 details LLDP configuration and TLV structure. The exam presents a CDP vs LLDP comparison question in nearly every test form: 'which protocol is vendor-neutral?' (LLDP), 'which is enabled by default on Cisco?' (CDP), 'which uses separate transmit and receive controls?' (LLDP). Memorize the comparison table and you will answer correctly.",
+    },
+    micro: [
+      { id: "2.3.d.1", term: "LLDP",                         def: "Link Layer Discovery Protocol. IEEE 802.1AB. Open-standard, vendor-neutral equivalent of CDP.", weight: "high" },
+      { id: "2.3.d.2", term: "LLDP disabled by default",     def: "OPPOSITE of CDP. Must run 'lldp run' globally to enable.", weight: "high" },
+      { id: "2.3.d.3", term: "LLDP timers",                  def: "30s advertisement, 120s holdtime. Faster than CDP's 60/180.", weight: "high" },
+      { id: "2.3.d.4", term: "LLDP TLVs",                    def: "Type-Length-Value fields. Extensible format. Includes System Name, Management Address, Port ID, Capabilities, TTL.", weight: "med" },
+      { id: "2.3.d.5", term: "Separate TX/RX per port",      def: "LLDP unique: 'lldp transmit' and 'lldp receive' independent. CDP has single toggle.", weight: "high" }
+    ]
   },
 
   "2.3.e": {
@@ -2206,8 +2286,14 @@ window.subtopicContentD12 = {
       memory: "LLDP show commands mirror CDP exactly — swap 'cdp' for 'lldp': <code>show lldp neighbors</code> = summary (like CDP basic), <code>show lldp neighbors detail</code> = full info + IP address (like CDP detail). Key: IP address is in the DETAIL command for BOTH protocols. LLDP capability codes differ: B=Bridge (CDP uses S=Switch), T=Telephone, R=Router, W=WLAN AP.",
       practice: "Packet Tracer lab (Jeremy's IT Lab Day 34): With LLDP enabled (<code>lldp run</code>), run <code>show lldp neighbors</code> and <code>show lldp neighbors detail</code> side by side with the CDP equivalents. Create a mapping flashcard: CDP column names → LLDP column names. Note which fields are identical and which differ. Practice extracting the management IP from both CDP and LLDP detail output. The exam may show either protocol's output — you should be comfortable reading both.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 34 covers both protocols' show commands. Wendell Odom OCG Chapter 11 includes sample LLDP output. If you know CDP commands, LLDP commands are almost identical. The exam tests both — expect one CDP question and one LLDP question, or a comparison question. The answer structure is the same: basic = summary, detail = IP address + version info."
-    }
+      meta: "Jeremy's IT Lab Day 34 covers both protocols' show commands. Wendell Odom OCG Chapter 11 includes sample LLDP output. If you know CDP commands, LLDP commands are almost identical. The exam tests both — expect one CDP question and one LLDP question, or a comparison question. The answer structure is the same: basic = summary, detail = IP address + version info.",
+    },
+    micro: [
+      { id: "2.3.e.1", term: "show lldp neighbors",          def: "Summary of LLDP neighbors. Columns: Device ID, Local Intf, Hold-time, Capability, Port ID.", weight: "high" },
+      { id: "2.3.e.2", term: "show lldp neighbors detail",   def: "Adds Management Address (IP), System Description, Enabled Capabilities, Port Description.", weight: "high" },
+      { id: "2.3.e.3", term: "LLDP capability codes",        def: "B=Bridge, R=Router, W=WLAN AP, T=Telephone, D=DOCSIS, S=Station, O=Other. B differs from CDP's S.", weight: "med" },
+      { id: "2.3.e.4", term: "show lldp interface",          def: "Per-port LLDP status showing independent transmit/receive state.", weight: "med" }
+    ]
   },
 
   "2.3.f": {
@@ -2223,8 +2309,15 @@ window.subtopicContentD12 = {
       memory: "LLDP interface control = 'mouth and ears separately.' <code>lldp transmit</code> = mouth (announces your info). <code>lldp receive</code> = ears (listens for neighbors). You can talk without listening, listen without talking, or do both. CDP only has one switch (<code>cdp enable</code>) — mouth and ears together. This is the #1 tested difference between LLDP and CDP interface configuration. Default timers: LLDP = 30/120, CDP = 60/180.",
       practice: "Packet Tracer lab (Jeremy's IT Lab Day 34): Enable LLDP globally (<code>lldp run</code>). Verify all interfaces are transmitting and receiving: <code>show lldp interface</code>. Then on one interface, disable only transmit: <code>no lldp transmit</code>. Run <code>show lldp interface</code> again — that port should show 'Tx: disabled, Rx: enabled.' The switch can still learn about the neighbor, but the neighbor can no longer learn about the switch through that port. Re-enable transmit. Then disable only receive: <code>no lldp receive</code>. Verify the state changes. This lab demonstrates LLDP's unique granularity.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 34 demonstrates LLDP transmit/receive independence. Wendell Odom OCG Chapter 11 covers the configuration. The exam tests this distinction: 'which protocol allows enabling only receive on an interface?' (LLDP). 'CDP uses which per-interface command?' (<code>cdp enable</code> — single toggle). This is a guaranteed comparison point on the exam."
-    }
+      meta: "Jeremy's IT Lab Day 34 demonstrates LLDP transmit/receive independence. Wendell Odom OCG Chapter 11 covers the configuration. The exam tests this distinction: 'which protocol allows enabling only receive on an interface?' (LLDP). 'CDP uses which per-interface command?' (<code>cdp enable</code> — single toggle). This is a guaranteed comparison point on the exam.",
+    },
+    micro: [
+      { id: "2.3.f.1", term: "lldp run",                     def: "GLOBAL command. Enable LLDP device-wide. Required because default is OFF.", weight: "high" },
+      { id: "2.3.f.2", term: "lldp transmit",                def: "INTERFACE command. Send LLDP advertisements from this port. Independent from receive.", weight: "high" },
+      { id: "2.3.f.3", term: "lldp receive",                 def: "INTERFACE command. Process incoming LLDP frames. Independent from transmit.", weight: "high" },
+      { id: "2.3.f.4", term: "Receive-only port",            def: "'no lldp transmit' + 'lldp receive'. Discover neighbors without revealing your own info. Good for monitor ports.", weight: "med" },
+      { id: "2.3.f.5", term: "LLDP timer / holdtime / reinit", def: "Defaults: 30s / 120s / 2s. Global config commands.", weight: "med" }
+    ]
   },
 
   "2.3.g": {
@@ -2240,8 +2333,15 @@ window.subtopicContentD12 = {
       memory: "CDP vs LLDP master mnemonic: 'CDP = Cisco Default Protocol' (proprietary, ON by default, 60/180 timers, single interface toggle). 'LLDP = Loves aLL Devices Protocol' (IEEE open standard, OFF by default, 30/120 timers, separate TX/RX control). Both can run simultaneously. Both are Layer 2. Both discover one-hop neighbors only. The 5 comparison points to memorize: Standard (Cisco vs IEEE), Default (ON vs OFF), Timers (60/180 vs 30/120), Interface control (enable vs transmit+receive), Vendor compatibility (Cisco-only vs multi-vendor).",
       practice: "Create the definitive CDP vs LLDP comparison table from memory (Jeremy's IT Lab Day 34). Columns: CDP | LLDP. Rows: Standard, Default state, Timer, Holdtime, Global command, Interface command, Vendor support, Use case. Fill in all values without looking. Then verify. Drill this table until you can write it from memory in under 30 seconds. This single flashcard covers 2-3 exam questions. Also practice: 'can both run simultaneously?' = YES.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 34 presents the complete CDP vs LLDP comparison. Wendell Odom OCG Chapter 11 includes a comparison table. This comparison is a <strong>near-guaranteed exam question</strong> — it appears in almost every CCNA test form. The timer values (60/180 vs 30/120) are the most commonly tested numerical facts. Know all five comparison points cold. This is one of the highest-yield flashcards you can create."
-    }
+      meta: "Jeremy's IT Lab Day 34 presents the complete CDP vs LLDP comparison. Wendell Odom OCG Chapter 11 includes a comparison table. This comparison is a <strong>near-guaranteed exam question</strong> — it appears in almost every CCNA test form. The timer values (60/180 vs 30/120) are the most commonly tested numerical facts. Know all five comparison points cold. This is one of the highest-yield flashcards you can create.",
+    },
+    micro: [
+      { id: "2.3.g.1", term: "Standard: CDP vs LLDP",        def: "CDP = Cisco proprietary. LLDP = IEEE 802.1AB open standard. Only LLDP interoperates with non-Cisco.", weight: "high" },
+      { id: "2.3.g.2", term: "Default state",                def: "CDP = ENABLED by default. LLDP = DISABLED by default. Opposite defaults.", weight: "high" },
+      { id: "2.3.g.3", term: "Timer comparison",             def: "CDP: 60s/180s. LLDP: 30s/120s. LLDP faster.", weight: "high" },
+      { id: "2.3.g.4", term: "Interface control",            def: "CDP = single 'cdp enable'. LLDP = separate 'lldp transmit' + 'lldp receive'.", weight: "high" },
+      { id: "2.3.g.5", term: "Both can run together",        def: "CDP and LLDP can be simultaneously enabled on the same device. Common in mixed-vendor DCs.", weight: "high" }
+    ]
   },
 
   /* ══════════════════════════════════════════════════════════════
@@ -2255,8 +2355,16 @@ window.subtopicContentD12 = {
       memory: "EtherChannel = 'braiding ropes together.' One rope = one link's bandwidth. Four braided = 4x bandwidth + if one breaks, three hold. Without EtherChannel, STP blocks all but one rope. With EtherChannel, STP sees ONE thick rope and lets all through. Key numbers: 2-8 physical links per channel. Three protocols: LACP (IEEE, recommended), PAgP (Cisco), static (no negotiation, risky). All member ports must match: speed, duplex, VLAN, trunk config.",
       practice: "Packet Tracer lab (Jeremy's IT Lab Day 23): Connect two switches with 4 links (Gi0/1-4). Configure LACP EtherChannel: <code>interface range Gi0/1 - 4</code>, <code>channel-group 1 mode active</code>. On the other switch, same config. Then configure the port-channel as a trunk: <code>interface Port-channel 1</code>, <code>switchport mode trunk</code>. Verify with <code>show etherchannel summary</code> — look for 'SU' (Layer 2, in use) and all ports showing 'P' (bundled). Shut down one member link (<code>shutdown</code> on Gi0/1) — verify the channel stays up with reduced bandwidth. Bring it back up. Then misconfigure one member port's VLAN and observe it getting suspended (s flag).",
       effort: "high",
-      meta: "Jeremy's IT Lab Day 23 (EtherChannel) is the essential resource. Wendell Odom OCG Chapter 10 covers EtherChannel configuration and troubleshooting. EtherChannel appears in exam simlets — you will configure it, verify it, and troubleshoot it. Lab it with all three protocols (LACP, PAgP, static) at least twice each. Know the <code>show etherchannel summary</code> flags cold."
-    }
+      meta: "Jeremy's IT Lab Day 23 (EtherChannel) is the essential resource. Wendell Odom OCG Chapter 10 covers EtherChannel configuration and troubleshooting. EtherChannel appears in exam simlets — you will configure it, verify it, and troubleshoot it. Lab it with all three protocols (LACP, PAgP, static) at least twice each. Know the <code>show etherchannel summary</code> flags cold.",
+    },
+    micro: [
+      { id: "2.4.a.1", term: "EtherChannel / Port-Channel",  def: "Bundle of 2-8 physical links between switches into one logical link. Aggregates bandwidth + provides redundancy.", weight: "high" },
+      { id: "2.4.a.2", term: "STP + EtherChannel",           def: "STP treats port-channel as ONE link. All member links forward simultaneously — none blocked.", weight: "high" },
+      { id: "2.4.a.3", term: "Member port matching",         def: "All member ports MUST have identical speed, duplex, VLAN, trunk config, STP. Mismatch = port suspended.", weight: "high" },
+      { id: "2.4.a.4", term: "Load balancing",               def: "Per-flow, not per-packet. src-dst-ip recommended for L3. Configured with 'port-channel load-balance [method]'.", weight: "med" },
+      { id: "2.4.a.5", term: "Three EtherChannel protocols", def: "LACP (IEEE 802.3ad, recommended), PAgP (Cisco), static 'on' (no negotiation, risky).", weight: "high" },
+      { id: "2.4.a.6", term: "interface Port-channel N",     def: "Logical interface created after 'channel-group'. Configure VLANs/trunk settings HERE, pushed to members.", weight: "high" }
+    ]
   },
 
   "2.4.b": {
@@ -2273,8 +2381,17 @@ window.subtopicContentD12 = {
       memory: "LACP modes: <strong>Active</strong> = 'I want to dance!' (initiates). <strong>Passive</strong> = 'I'll dance only if you ask' (responds). Active+Active = both want to dance = YES. Active+Passive = one asks, one accepts = YES. Passive+Passive = two wallflowers = NO. Key rule: 'at least one Active.' LACP = IEEE 802.3ad = open standard = multi-vendor. PAgP modes map: Active=Desirable, Passive=Auto.",
       practice: "Packet Tracer lab (Jeremy's IT Lab Day 23): Test all three LACP combinations: (1) Both sides <code>mode active</code> — verify channel forms (<code>show etherchannel summary</code> shows SU/P). (2) One side <code>mode active</code>, other side <code>mode passive</code> — verify it still forms. (3) Both sides <code>mode passive</code> — verify it does NOT form (ports stay standalone 'I'). This proves the 'at least one active' rule. Document the results for your flashcard. Also note: the channel-group number can be different on each side (it's locally significant).",
       effort: "high",
-      meta: "Jeremy's IT Lab Day 23 covers LACP configuration extensively. Wendell Odom OCG Chapter 10 details LACP modes and the negotiation process. LACP is the <strong>primary EtherChannel protocol on the exam</strong>. Expect: 'which combination forms a channel?' (active+active or active+passive), 'which combination does NOT form a channel?' (passive+passive), 'what is the IEEE standard for LACP?' (802.3ad). Lab all three combinations until the results are automatic."
-    }
+      meta: "Jeremy's IT Lab Day 23 covers LACP configuration extensively. Wendell Odom OCG Chapter 10 details LACP modes and the negotiation process. LACP is the <strong>primary EtherChannel protocol on the exam</strong>. Expect: 'which combination forms a channel?' (active+active or active+passive), 'which combination does NOT form a channel?' (passive+passive), 'what is the IEEE standard for LACP?' (802.3ad). Lab all three combinations until the results are automatic.",
+    },
+    micro: [
+      { id: "2.4.b.1", term: "LACP (IEEE 802.3ad)",          def: "Link Aggregation Control Protocol. Open standard. Recommended over PAgP. Works multi-vendor.", weight: "high" },
+      { id: "2.4.b.2", term: "LACP active mode",             def: "Actively sends LACPDUs to initiate channel. Command: 'channel-group N mode active'.", weight: "high" },
+      { id: "2.4.b.3", term: "LACP passive mode",            def: "Only responds to received LACP frames. Command: 'channel-group N mode passive'.", weight: "high" },
+      { id: "2.4.b.4", term: "Active + Active = YES",        def: "Both sides initiate. Channel forms.", weight: "high" },
+      { id: "2.4.b.5", term: "Active + Passive = YES",       def: "One initiates, one responds. Channel forms.", weight: "high" },
+      { id: "2.4.b.6", term: "Passive + Passive = NO",       def: "Neither initiates — both wait forever. Channel does NOT form. Exam trap.", weight: "high" },
+      { id: "2.4.b.7", term: "LACP max active ports",        def: "Up to 16 configured, max 8 active. Extras go to hot-standby until a member fails.", weight: "med" }
+    ]
   },
 
   "2.4.c": {
@@ -2291,8 +2408,16 @@ window.subtopicContentD12 = {
       memory: "PAgP-to-LACP mode mapping: 'DA = PA' — <strong>D</strong>esirable = <strong>A</strong>ctive (both initiate), <strong>A</strong>uto = <strong>P</strong>assive (both respond). PAgP = Cisco-only. LACP = everyone. Same rules apply: at least one initiator needed, two responders = no channel. Mnemonic: 'Desirable people take Action, Auto people are Passive.' If connecting to a non-Cisco switch, PAgP is impossible — must use LACP.",
       practice: "Packet Tracer lab (Jeremy's IT Lab Day 23): Test PAgP combinations: (1) Both <code>mode desirable</code> — verify channel forms. (2) One <code>desirable</code>, one <code>auto</code> — verify it forms. (3) Both <code>auto</code> — verify it does NOT form. Compare results side-by-side with your LACP lab results — the behavior is identical, only the mode names differ. Then try mixing PAgP and LACP (one side active, other side desirable) — observe that the channel does NOT form. This proves protocols cannot be mixed.",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 23 covers PAgP alongside LACP. Wendell Odom OCG Chapter 10 includes PAgP details. PAgP is tested less heavily than LACP but still appears — typically as a 'which mode combination forms a channel?' question or a 'PAgP is Cisco proprietary, LACP is IEEE' comparison. Know the mode mapping (desirable=active, auto=passive) and the Cisco-only limitation."
-    }
+      meta: "Jeremy's IT Lab Day 23 covers PAgP alongside LACP. Wendell Odom OCG Chapter 10 includes PAgP details. PAgP is tested less heavily than LACP but still appears — typically as a 'which mode combination forms a channel?' question or a 'PAgP is Cisco proprietary, LACP is IEEE' comparison. Know the mode mapping (desirable=active, auto=passive) and the Cisco-only limitation.",
+    },
+    micro: [
+      { id: "2.4.c.1", term: "PAgP",                         def: "Port Aggregation Protocol. Cisco proprietary. Works only between Cisco devices.", weight: "high" },
+      { id: "2.4.c.2", term: "PAgP desirable mode",          def: "Actively initiates PAgP. Equivalent to LACP active.", weight: "high" },
+      { id: "2.4.c.3", term: "PAgP auto mode",               def: "Only responds to PAgP. Equivalent to LACP passive.", weight: "high" },
+      { id: "2.4.c.4", term: "Desirable + Desirable / Auto = YES", def: "Channel forms. At least one side must be desirable.", weight: "high" },
+      { id: "2.4.c.5", term: "Auto + Auto = NO",             def: "Neither initiates. Channel never forms. Exam trap paralleling passive+passive.", weight: "high" },
+      { id: "2.4.c.6", term: "Mode mapping LACP ↔ PAgP",     def: "active=desirable, passive=auto. Protocols CANNOT be mixed (LACP with PAgP = no channel).", weight: "high" }
+    ]
   },
 
   "2.4.d": {
@@ -2308,8 +2433,14 @@ window.subtopicContentD12 = {
       memory: "Mode on = 'duct tape EtherChannel' — holds things together but verifies nothing. No LACP, no PAgP, no error detection. If misconfigured = potential loops. Cannot mix with any negotiation mode: on + active = NO, on + passive = NO, on + desirable = NO, on + auto = NO. Only on + on = YES. Best practice: always use LACP. Mnemonic: 'On is alone — it only works with itself.'",
       practice: "Packet Tracer lab (Jeremy's IT Lab Day 23): Configure static EtherChannel: both sides <code>channel-group 1 mode on</code>. Verify with <code>show etherchannel summary</code>. Then intentionally break it: change one side to <code>mode active</code> while the other stays <code>mode on</code> — observe that the channel does NOT form and ports may go to standalone (I) or cause a loop. This demonstrates why negotiation protocols are safer. Then reconfigure both to <code>mode active</code> (LACP) — observe the clean formation with proper error detection.",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 23 covers mode on alongside LACP and PAgP. Wendell Odom OCG Chapter 10 discusses the risks of static EtherChannel. The exam asks: 'which EtherChannel mode does not use a negotiation protocol?' (on), 'can mode on be mixed with mode active?' (NO), 'which mode is recommended?' (LACP active). Know the incompatibility rules — mode on is isolated from all negotiation modes."
-    }
+      meta: "Jeremy's IT Lab Day 23 covers mode on alongside LACP and PAgP. Wendell Odom OCG Chapter 10 discusses the risks of static EtherChannel. The exam asks: 'which EtherChannel mode does not use a negotiation protocol?' (on), 'can mode on be mixed with mode active?' (NO), 'which mode is recommended?' (LACP active). Know the incompatibility rules — mode on is isolated from all negotiation modes.",
+    },
+    micro: [
+      { id: "2.4.d.1", term: "Static EtherChannel (mode on)", def: "No negotiation. Channel forms based purely on local config. No error detection.", weight: "high" },
+      { id: "2.4.d.2", term: "Mode on risk",                 def: "Can cause L2 loops if misconfigured. Best practice: use LACP instead.", weight: "high" },
+      { id: "2.4.d.3", term: "Mode on incompatibility",      def: "Cannot pair with active/passive/desirable/auto. ONLY on+on works.", weight: "high" },
+      { id: "2.4.d.4", term: "When to use on",               def: "Almost never. Only for devices that don't support LACP or PAgP at all.", weight: "low" }
+    ]
   },
 
   "2.4.e": {
@@ -2325,8 +2456,14 @@ window.subtopicContentD12 = {
       memory: "The EtherChannel negotiation matrix — memorize this grid: LACP: A+A=YES, A+P=YES, P+P=NO. PAgP: D+D=YES, D+Au=YES, Au+Au=NO. Static: on+on=YES. Cross-protocol: NEVER (on+active=NO, on+desirable=NO, LACP+PAgP=NO). Rule: 'at least one initiator per protocol, never mix protocols.' Think of it as a dance: active/desirable = leads, passive/auto = follows, on = dances alone, different dance styles (protocols) cannot partner.",
       practice: "Packet Tracer lab (Jeremy's IT Lab Day 23): Draw the complete negotiation matrix on paper before labbing. Then verify every combination in Packet Tracer: active+active (YES), active+passive (YES), passive+passive (NO), desirable+desirable (YES), desirable+auto (YES), auto+auto (NO), on+on (YES), on+active (NO), active+desirable (NO — different protocols). Use <code>show etherchannel summary</code> to verify each result. This is tedious but ensures you have the matrix memorized through hands-on proof.",
       effort: "high",
-      meta: "Jeremy's IT Lab Day 23 includes the complete negotiation matrix. Wendell Odom OCG Chapter 10 presents the matrix in table form. This is a <strong>guaranteed exam topic</strong> — the exam will present a mode combination and ask 'will the channel form?' You must know the matrix from memory. The most commonly tested combos: passive+passive (NO), auto+auto (NO), on+active (NO). Make it a game: someone says two modes, you say YES or NO instantly."
-    }
+      meta: "Jeremy's IT Lab Day 23 includes the complete negotiation matrix. Wendell Odom OCG Chapter 10 presents the matrix in table form. This is a <strong>guaranteed exam topic</strong> — the exam will present a mode combination and ask 'will the channel form?' You must know the matrix from memory. The most commonly tested combos: passive+passive (NO), auto+auto (NO), on+active (NO). Make it a game: someone says two modes, you say YES or NO instantly.",
+    },
+    micro: [
+      { id: "2.4.e.1", term: "Negotiation matrix — YES",     def: "active+active, active+passive, desirable+desirable, desirable+auto, on+on.", weight: "high" },
+      { id: "2.4.e.2", term: "Negotiation matrix — NO",      def: "passive+passive, auto+auto, on+active/passive/desirable/auto, any LACP+PAgP combo.", weight: "high" },
+      { id: "2.4.e.3", term: "At-least-one-initiator rule",  def: "Each protocol needs an initiator (active or desirable). Two responders wait forever.", weight: "high" },
+      { id: "2.4.e.4", term: "Never mix protocols",          def: "LACP cannot pair with PAgP. Both sides must use the same protocol family.", weight: "high" }
+    ]
   },
 
   "2.4.f": {
@@ -2345,8 +2482,15 @@ window.subtopicContentD12 = {
       memory: "L2 EtherChannel = 'uniform dress code for link teams.' All members must match: same speed, duplex, VLAN, trunk mode, allowed VLANs, native VLAN, STP settings. Configure trunk/VLAN settings on the <strong>port-channel interface</strong>, not individual member ports — the port-channel pushes config down to members. If one member deviates = suspended (s flag in summary).",
       practice: "Packet Tracer lab (Jeremy's IT Lab Day 23): Create an L2 trunk EtherChannel. Configure the port-channel interface as trunk: <code>interface Port-channel 1</code>, <code>switchport mode trunk</code>, <code>switchport trunk allowed vlan 10,20,30</code>. Verify members inherit the trunk config: <code>show interfaces trunk</code> (all members should show under the trunk). Verify with <code>show etherchannel summary</code> (SU = L2 in use, P = bundled). Then intentionally change one member's VLAN and observe suspension.",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 23 covers L2 EtherChannel trunk configuration. Wendell Odom OCG Chapter 10. Key exam point: configure the <strong>port-channel interface</strong> for trunk/VLAN settings — the port-channel distributes config to members. If the exam shows a suspended port, check for config mismatches between members."
-    }
+      meta: "Jeremy's IT Lab Day 23 covers L2 EtherChannel trunk configuration. Wendell Odom OCG Chapter 10. Key exam point: configure the <strong>port-channel interface</strong> for trunk/VLAN settings — the port-channel distributes config to members. If the exam shows a suspended port, check for config mismatches between members.",
+    },
+    micro: [
+      { id: "2.4.f.1", term: "Layer 2 EtherChannel",         def: "Bundles switchport-configured interfaces (access or trunk). Port-channel inherits VLAN/trunk config.", weight: "high" },
+      { id: "2.4.f.2", term: "Configure on port-channel",    def: "After creation, set trunk/VLAN on 'interface Port-channel N'. Config pushes to members automatically.", weight: "high" },
+      { id: "2.4.f.3", term: "show etherchannel summary",    def: "Overall port-channel status. Healthy L2: SU (L2, in Use). Ports show P (bundled).", weight: "high" },
+      { id: "2.4.f.4", term: "Flag 's' (suspended)",         def: "Member port config does not match others. Check VLAN/trunk settings for the mismatch.", weight: "high" },
+      { id: "2.4.f.5", term: "Flag 'I' (standalone)",        def: "Port isolated — negotiation failed. Check for mode mismatch or negotiation protocol issue.", weight: "med" }
+    ]
   },
 
   "2.4.g": {
@@ -2365,8 +2509,14 @@ window.subtopicContentD12 = {
       memory: "L3 EtherChannel = 'one phone number (IP) for the team.' Config recipe: (1) <code>no switchport</code> on each member port (makes them routed ports), (2) <code>channel-group 1 mode active</code>, (3) <code>interface Port-channel 1</code> + <code>ip address</code>. Key distinction: L2 = switchport + VLANs (SU flag), L3 = no switchport + IP address (RU flag). The IP goes on the port-channel, NOT on individual members.",
       practice: "Packet Tracer lab (Jeremy's IT Lab Day 23): Configure L3 EtherChannel between two L3 switches: <code>interface range Gi0/1 - 2</code>, <code>no switchport</code>, <code>channel-group 1 mode active</code>. Then: <code>interface Port-channel 1</code>, <code>ip address 10.0.0.1 255.255.255.252</code>. Verify with <code>show etherchannel summary</code> — look for 'RU' (Routed, in Use) instead of 'SU'. Verify with <code>show ip interface brief</code> — the port-channel should have the IP address, members should show 'up/up' without IPs.",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 23 covers both L2 and L3 EtherChannel. Wendell Odom OCG Chapter 10. The exam tests L3 EtherChannel less frequently than L2, but it does appear. Know the <code>no switchport</code> prerequisite and the RU flag in the summary output. The key exam question: 'where does the IP address go?' — on the port-channel interface, never on individual member ports."
-    }
+      meta: "Jeremy's IT Lab Day 23 covers both L2 and L3 EtherChannel. Wendell Odom OCG Chapter 10. The exam tests L3 EtherChannel less frequently than L2, but it does appear. Know the <code>no switchport</code> prerequisite and the RU flag in the summary output. The key exam question: 'where does the IP address go?' — on the port-channel interface, never on individual member ports.",
+    },
+    micro: [
+      { id: "2.4.g.1", term: "Layer 3 EtherChannel",         def: "Port-channel acts as routed interface with its own IP. Used for router↔L3 switch or L3↔L3 switch links.", weight: "high" },
+      { id: "2.4.g.2", term: "'no switchport' prereq",       def: "Required on each member port to convert to routed port before channel-group assignment.", weight: "high" },
+      { id: "2.4.g.3", term: "IP on port-channel",           def: "Assign IP address on 'interface Port-channel N'. NEVER on individual member ports.", weight: "high" },
+      { id: "2.4.g.4", term: "RU flag",                      def: "'Routed, in Use' in show etherchannel summary. Indicates healthy L3 port-channel.", weight: "high" }
+    ]
   },
 
   "2.4.h": {
@@ -2382,8 +2532,13 @@ window.subtopicContentD12 = {
       memory: "EtherChannel port requirements = 'SDVTS' = Speed, Duplex, VLAN, Trunk config, STP settings. ALL must match across all member ports. Mismatch on ANY setting = that port gets <strong>suspended</strong> (s flag in summary). Think: 'S-D-V-T-S — the five uniforms that must match.' Troubleshooting flow: port suspended → check SDVTS on that port vs other members → fix the mismatch → port rebundles automatically.",
       practice: "Packet Tracer lab (Jeremy's IT Lab Day 23): Configure a working EtherChannel with 4 member ports. Verify all show 'P' (bundled) in <code>show etherchannel summary</code>. Then break it: (1) Change one member's speed — observe suspension. (2) Change one member's access VLAN — observe suspension. (3) Change one member's trunk allowed VLANs — observe suspension. Each time, fix the mismatch and verify the port re-bundles. This builds the troubleshooting instinct for EtherChannel issues.",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 23 includes EtherChannel troubleshooting scenarios. Wendell Odom OCG Chapter 10 details the matching requirements. This is a <strong>classic exam troubleshooting scenario</strong>: the exam shows <code>show etherchannel summary</code> output with a suspended port and asks you to identify why. The answer is always a configuration mismatch between member ports. Know the SDVTS requirements and the 's' flag meaning."
-    }
+      meta: "Jeremy's IT Lab Day 23 includes EtherChannel troubleshooting scenarios. Wendell Odom OCG Chapter 10 details the matching requirements. This is a <strong>classic exam troubleshooting scenario</strong>: the exam shows <code>show etherchannel summary</code> output with a suspended port and asks you to identify why. The answer is always a configuration mismatch between member ports. Know the SDVTS requirements and the 's' flag meaning.",
+    },
+    micro: [
+      { id: "2.4.h.1", term: "SDVTS (member match rules)",   def: "All members identical: Speed, Duplex, VLAN, Trunk config, STP settings. Any mismatch = suspended.", weight: "high" },
+      { id: "2.4.h.2", term: "Port suspension recovery",     def: "Fix the mismatch (align config with other members). Port re-bundles automatically. No shut/no-shut needed.", weight: "high" },
+      { id: "2.4.h.3", term: "Best-practice config order",   def: "Configure port-channel interface first, then add members. Port-channel pushes config down.", weight: "med" }
+    ]
   },
 
   "2.4.i": {
@@ -2399,8 +2554,16 @@ window.subtopicContentD12 = {
       memory: "EtherChannel summary flags — memorize these cold: Channel flags: <strong>SU</strong> = Switch (L2) + Up (healthy), <strong>RU</strong> = Routed (L3) + Up (healthy), <strong>SD</strong> = Switch + Down (broken), <strong>RD</strong> = Routed + Down. Port flags: <strong>P</strong> = bundled in Port-channel (good), <strong>s</strong> = suspended (config mismatch), <strong>I</strong> = standalone/Individual (not bundled), <strong>D</strong> = Down. Healthy output = channel shows SU or RU, all ports show P. Any deviation = problem.",
       practice: "Packet Tracer lab (Jeremy's IT Lab Day 23): Run <code>show etherchannel summary</code> after every EtherChannel configuration change. Create a reference card: (1) Healthy L2 channel = 'Po1(SU), Gi0/1(P), Gi0/2(P).' (2) Healthy L3 channel = 'Po1(RU), Gi0/1(P), Gi0/2(P).' (3) Suspended port = 'Gi0/2(s)' = config mismatch. (4) Down channel = 'Po1(SD)' = all links down. (5) Standalone = 'Gi0/1(I)' = port not bundled (wrong mode). Create intentional problems and diagnose from flags only — this builds the skill the exam tests.",
       effort: "high",
-      meta: "Jeremy's IT Lab Day 23 uses <code>show etherchannel summary</code> extensively. Wendell Odom OCG Chapter 10 includes sample output with all flag types. This command <strong>appears in exam simlets</strong>. You will be shown the output and asked to identify the problem. Practice until you can read the flags instantly: SU=good L2, RU=good L3, P=bundled, s=mismatch, I=standalone, D=down. This is worth 1-2 exam questions."
-    }
+      meta: "Jeremy's IT Lab Day 23 uses <code>show etherchannel summary</code> extensively. Wendell Odom OCG Chapter 10 includes sample output with all flag types. This command <strong>appears in exam simlets</strong>. You will be shown the output and asked to identify the problem. Practice until you can read the flags instantly: SU=good L2, RU=good L3, P=bundled, s=mismatch, I=standalone, D=down. This is worth 1-2 exam questions.",
+    },
+    micro: [
+      { id: "2.4.i.1", term: "Channel flags SU / RU",         def: "SU = L2 (Switch) in Use. RU = L3 (Routed) in Use. Both = healthy.", weight: "high" },
+      { id: "2.4.i.2", term: "Channel flags SD / RD",         def: "SD/RD = Down. Channel itself is not operational. Check physical links and negotiation.", weight: "med" },
+      { id: "2.4.i.3", term: "Port flag P (bundled)",         def: "Member port actively bundled and forwarding. The healthy per-port state.", weight: "high" },
+      { id: "2.4.i.4", term: "Port flag s (suspended)",       def: "Config mismatch with other members. Fix mismatch to re-bundle.", weight: "high" },
+      { id: "2.4.i.5", term: "Port flag I (standalone)",      def: "Individual — port not bundled. Mode incompatibility (e.g., passive+passive, or on+active).", weight: "high" },
+      { id: "2.4.i.6", term: "Port flag H (hot-standby)",     def: "LACP standby port. Activates automatically when an active member fails.", weight: "med" }
+    ]
   },
 
   /* ══════════════════════════════════════════════════════════════
@@ -2423,8 +2586,16 @@ window.subtopicContentD12 = {
       memory: "STP port roles mnemonic — 'RDA' = Root, Designated, Alternate. <strong>Root Port</strong> = the port on each non-root switch with the lowest cost path TO the root bridge (exactly ONE per non-root switch). <strong>Designated Port</strong> = the port on each network segment that forwards traffic TOWARD the root (one per segment — all ports on the root bridge are designated). <strong>Alternate Port</strong> = backup root port, blocked, provides rapid failover in RSTP. The root bridge has NO root ports (it IS the root) — all its ports are designated.",
       practice: "Packet Tracer lab (Jeremy's IT Lab Days 20-22): Build a triangle topology with three 2960 switches. Before checking, predict: which switch is root? (lowest Bridge ID = lowest priority, then lowest MAC). Then <code>show spanning-tree</code> on each — identify root bridge, root ports, designated ports, and alternate (blocked) ports. Draw the topology on paper and label every port with its role. Then change the root bridge by lowering a different switch's priority: <code>spanning-tree vlan 1 priority 4096</code>. Observe all port roles recalculate. Repeat with different topologies (4 switches, different link speeds) until port role identification is automatic.",
       effort: "high",
-      meta: "Jeremy's IT Lab Days 20-22 (STP) are essential viewing — STP is one of the hardest CCNA topics. Wendell Odom OCG Chapters 9-10 cover STP in depth. The exam shows a topology diagram and asks you to identify port roles — you must calculate which switch is root and trace the lowest-cost paths. Practice on paper with at least 5 different topologies. This is worth 3-5 exam questions."
-    }
+      meta: "Jeremy's IT Lab Days 20-22 (STP) are essential viewing — STP is one of the hardest CCNA topics. Wendell Odom OCG Chapters 9-10 cover STP in depth. The exam shows a topology diagram and asks you to identify port roles — you must calculate which switch is root and trace the lowest-cost paths. Practice on paper with at least 5 different topologies. This is worth 3-5 exam questions.",
+    },
+    micro: [
+      { id: "2.5.a.1", term: "Root Bridge",                  def: "Switch with the lowest Bridge ID. Reference point for the entire STP topology.", weight: "high" },
+      { id: "2.5.a.2", term: "Root Port (RP)",               def: "One per non-root switch. Port with the lowest-cost path to the root bridge. Always forwarding.", weight: "high" },
+      { id: "2.5.a.3", term: "Designated Port (DP)",         def: "One per network segment. Best path toward root for that segment. All ports on root bridge = designated.", weight: "high" },
+      { id: "2.5.a.4", term: "Alternate Port (RSTP)",        def: "Backup root port. Blocked/discarding. Rapidly transitions to forwarding if root port fails.", weight: "high" },
+      { id: "2.5.a.5", term: "Backup Port (RSTP)",           def: "Backup designated port on same switch. Rare. Only when switch has two links to same segment.", weight: "med" },
+      { id: "2.5.a.6", term: "Root bridge has no RP",        def: "All root-bridge ports are designated. The root doesn't need to reach itself.", weight: "high" }
+    ]
   },
 
   "2.5.b": {
@@ -2441,8 +2612,17 @@ window.subtopicContentD12 = {
       memory: "RSTP = 3 states only: <strong>Discarding → Learning → Forwarding</strong>. Classic STP had 5: Disabled, Blocking, Listening, Learning, Forwarding. RSTP merged the first three into 'Discarding.' Mnemonic: 'DLF' = Discarding (no forward, no learn), Learning (no forward, YES learn), Forwarding (forward + learn). RSTP converges in <strong>seconds</strong> (vs STP's 30-50 seconds) using proposal/agreement mechanism instead of waiting for timer-based state transitions.",
       practice: "Packet Tracer lab (Jeremy's IT Lab Days 20-22): Build a triangle topology with Rapid PVST+ enabled (default on most modern switches). Shut down a link and observe how quickly the alternate port transitions to forwarding (should be nearly instant in RSTP). Compare to classic STP (if you can configure it): the 30-second delay is painful. Create a comparison flashcard: Classic STP (5 states, 30-50s convergence, timer-based) vs RSTP (3 states, seconds convergence, proposal/agreement). Also note: Cisco's Rapid PVST+ runs a separate RSTP instance per VLAN (hence 'Per-VLAN').",
       effort: "medium",
-      meta: "Jeremy's IT Lab Days 20-22 cover both classic STP and RSTP/Rapid PVST+. Wendell Odom OCG Chapters 9-10 go into detail on port state transitions. The CCNA specifically tests <strong>Rapid PVST+</strong> — know the three states (Discarding/Learning/Forwarding), not the classic five. The convergence speed improvement is a key exam point: 'why is RSTP preferred over classic STP?' = faster convergence using proposal/agreement."
-    }
+      meta: "Jeremy's IT Lab Days 20-22 cover both classic STP and RSTP/Rapid PVST+. Wendell Odom OCG Chapters 9-10 go into detail on port state transitions. The CCNA specifically tests <strong>Rapid PVST+</strong> — know the three states (Discarding/Learning/Forwarding), not the classic five. The convergence speed improvement is a key exam point: 'why is RSTP preferred over classic STP?' = faster convergence using proposal/agreement.",
+    },
+    micro: [
+      { id: "2.5.b.1", term: "RSTP (802.1w)",                def: "Rapid Spanning Tree. Converges in seconds using proposal/agreement. Three port states.", weight: "high" },
+      { id: "2.5.b.2", term: "Discarding state",             def: "Not forwarding, not learning. Replaces classic STP's Disabled, Blocking, and Listening states.", weight: "high" },
+      { id: "2.5.b.3", term: "Learning state",               def: "Populating MAC table but not yet forwarding data frames.", weight: "high" },
+      { id: "2.5.b.4", term: "Forwarding state",             def: "Full operation: forwards frames AND learns MACs. Target state for RP and DP.", weight: "high" },
+      { id: "2.5.b.5", term: "Proposal/agreement",           def: "RSTP fast-convergence mechanism. Replaces fixed timers of classic STP.", weight: "med" },
+      { id: "2.5.b.6", term: "Rapid PVST+",                  def: "Cisco default. Runs a separate RSTP instance per VLAN. Combines RSTP speed with per-VLAN flexibility.", weight: "high" },
+      { id: "2.5.b.7", term: "RSTP vs classic STP timing",   def: "RSTP = seconds to converge. Classic STP = 30-50 seconds (15s listening + 15s learning + max age 20s).", weight: "high" }
+    ]
   },
 
   "2.5.c": {
@@ -2459,8 +2639,15 @@ window.subtopicContentD12 = {
       memory: "PortFast = 'VIP pass to forwarding' — skips the 30-second STP wait. <strong>ACCESS PORTS ONLY</strong> (PCs, printers, phones). NEVER on switch-to-switch links (creates instant loops). Config: per-interface = <code>spanning-tree portfast</code>, global for all access ports = <code>spanning-tree portfast default</code>. Always pair with BPDU Guard: <code>spanning-tree bpduguard enable</code>. If a BPDU is received = port goes err-disabled (someone plugged in a switch). Recovery: <code>shutdown</code> → <code>no shutdown</code>.",
       practice: "Packet Tracer lab (Jeremy's IT Lab Days 20-22): Configure PortFast on an access port connected to a PC: <code>spanning-tree portfast</code>. Boot the PC — observe immediate connectivity (no 30-second delay). Then add BPDU Guard: <code>spanning-tree bpduguard enable</code>. Connect a switch to that port — observe the port go err-disabled when it receives BPDUs. Recover with <code>shutdown</code> + <code>no shutdown</code>. Also test global PortFast: <code>spanning-tree portfast default</code> — all access ports get PortFast automatically. This PortFast + BPDU Guard combination is the standard production configuration.",
       effort: "medium",
-      meta: "Jeremy's IT Lab Days 20-22 cover PortFast and BPDU Guard extensively. Wendell Odom OCG Chapter 10 details STP protection features. The exam tests PortFast + BPDU Guard as a pair — 'what feature skips STP delay on access ports?' (PortFast), 'what protects a PortFast port from loops?' (BPDU Guard), 'what happens when a BPDU is received on a BPDU Guard port?' (err-disabled). This is a guaranteed 1-2 question topic."
-    }
+      meta: "Jeremy's IT Lab Days 20-22 cover PortFast and BPDU Guard extensively. Wendell Odom OCG Chapter 10 details STP protection features. The exam tests PortFast + BPDU Guard as a pair — 'what feature skips STP delay on access ports?' (PortFast), 'what protects a PortFast port from loops?' (BPDU Guard), 'what happens when a BPDU is received on a BPDU Guard port?' (err-disabled). This is a guaranteed 1-2 question topic.",
+    },
+    micro: [
+      { id: "2.5.c.1", term: "PortFast",                     def: "Port transitions immediately from discarding to forwarding. ACCESS PORTS to endpoints only.", weight: "high" },
+      { id: "2.5.c.2", term: "spanning-tree portfast",       def: "Interface command. 'spanning-tree portfast default' = global for all access ports.", weight: "high" },
+      { id: "2.5.c.3", term: "Never PortFast switch-to-switch", def: "Creates instant L2 loop before STP can block. Only endpoints (PCs, printers, phones).", weight: "high" },
+      { id: "2.5.c.4", term: "BPDU Guard",                   def: "Pairs with PortFast. If ANY BPDU arrives → port err-disabled. Command: 'spanning-tree bpduguard enable'.", weight: "high" },
+      { id: "2.5.c.5", term: "err-disabled recovery",        def: "Manual: shut/no-shut. Automatic: 'errdisable recovery cause bpduguard' + timer.", weight: "high" }
+    ]
   },
 
   "2.5.d": {
@@ -2476,8 +2663,15 @@ window.subtopicContentD12 = {
       memory: "Two STP guards with different jobs: <strong>BPDU Guard</strong> = 'bouncer at the access port' — if ANY BPDU arrives, port goes err-disabled. Used on PortFast/access ports to prevent rogue switches. <strong>Root Guard</strong> = 'bodyguard for the root bridge' — if a SUPERIOR BPDU arrives (someone trying to become root), port goes root-inconsistent (blocked). Used on designated ports facing the network edge. Key difference: BPDU Guard = reacts to ANY BPDU (total lockdown). Root Guard = reacts only to SUPERIOR BPDUs (protects root election).",
       practice: "Packet Tracer lab (Jeremy's IT Lab Days 20-22): Test BPDU Guard: enable PortFast + BPDU Guard on an access port, connect a switch, observe err-disabled state. Recover with <code>shutdown</code> + <code>no shutdown</code>. Test Root Guard: on a designated port, enable <code>spanning-tree guard root</code>, then connect a switch with a lower Bridge ID (lower priority) — observe the port enter root-inconsistent state instead of becoming the root port. Remove the offending switch — the port recovers automatically. Create a flashcard: BPDU Guard (any BPDU → err-disabled, used with PortFast, manual recovery) vs Root Guard (superior BPDU → root-inconsistent, used on designated ports, auto-recovery).",
       effort: "medium",
-      meta: "Jeremy's IT Lab Days 20-22 cover STP security features. Wendell Odom OCG Chapter 10 details Root Guard and BPDU Guard behavior. The exam tests both: 'what happens when a BPDU Guard port receives a BPDU?' (err-disabled), 'what feature prevents a new root bridge from being elected through a port?' (Root Guard), 'how do you recover from err-disabled?' (shutdown + no shutdown, or configure errdisable recovery). Know both guards and their recovery mechanisms."
-    }
+      meta: "Jeremy's IT Lab Days 20-22 cover STP security features. Wendell Odom OCG Chapter 10 details Root Guard and BPDU Guard behavior. The exam tests both: 'what happens when a BPDU Guard port receives a BPDU?' (err-disabled), 'what feature prevents a new root bridge from being elected through a port?' (Root Guard), 'how do you recover from err-disabled?' (shutdown + no shutdown, or configure errdisable recovery). Know both guards and their recovery mechanisms.",
+    },
+    micro: [
+      { id: "2.5.d.1", term: "Root Guard",                   def: "Prevents port from becoming a root port. Superior BPDU received → root-inconsistent (blocked).", weight: "high" },
+      { id: "2.5.d.2", term: "Root Guard recovery",          def: "Automatic — when superior BPDUs stop, port returns to normal.", weight: "med" },
+      { id: "2.5.d.3", term: "spanning-tree guard root",     def: "Interface command. Applies to designated ports facing parts of network where no authorized root should be.", weight: "med" },
+      { id: "2.5.d.4", term: "Root Guard vs BPDU Guard",     def: "Root Guard = superior BPDU only → blocked (auto-recover). BPDU Guard = ANY BPDU → err-disabled (manual recover).", weight: "high" },
+      { id: "2.5.d.5", term: "Root-inconsistent state",      def: "Root Guard's block state. Port does not forward data. Different from err-disabled.", weight: "med" }
+    ]
   },
 
   "2.5.e": {
@@ -2493,8 +2687,16 @@ window.subtopicContentD12 = {
       memory: "Root bridge election = 'lowest Bridge ID wins.' Bridge ID = Priority (4 bits, multiples of 4096) + Extended System ID (VLAN number, 12 bits) + MAC address (48 bits). Default priority = <strong>32768</strong>. Comparison order: priority FIRST → if tied, MAC address (lower wins). To force root: <code>spanning-tree vlan 1 root primary</code> (sets priority to 24576) or <code>spanning-tree vlan 1 priority 4096</code>. Root secondary sets 28672. Mnemonic: '32768 is the default — halve it to become root (not exactly, but 24576 is close).' Priority must be a multiple of 4096.",
       practice: "Packet Tracer lab (Jeremy's IT Lab Days 20-22): Build a 3-switch triangle. Run <code>show spanning-tree</code> on all three — find the root bridge (look for 'This bridge is the root'). Note the Bridge ID (priority + MAC). Then change the root: on a different switch, run <code>spanning-tree vlan 1 priority 4096</code>. Re-check <code>show spanning-tree</code> on all switches — the root should have changed. Observe how all port roles recalculate. Then practice on paper: given three switches with priorities 32768 and different MACs, determine which is root. Change one to 24576 — who is root now?",
       effort: "high",
-      meta: "Jeremy's IT Lab Days 20-22 cover root bridge election in depth. Wendell Odom OCG Chapter 9 formalizes the election process. Root bridge election is <strong>fundamental STP</strong> and heavily tested. Know: default priority (32768), how to change it (<code>priority [value]</code> or <code>root primary</code>), that MAC is the tiebreaker, and that priority must be a multiple of 4096. Practice calculating the winner on paper — this is a guaranteed exam skill."
-    }
+      meta: "Jeremy's IT Lab Days 20-22 cover root bridge election in depth. Wendell Odom OCG Chapter 9 formalizes the election process. Root bridge election is <strong>fundamental STP</strong> and heavily tested. Know: default priority (32768), how to change it (<code>priority [value]</code> or <code>root primary</code>), that MAC is the tiebreaker, and that priority must be a multiple of 4096. Practice calculating the winner on paper — this is a guaranteed exam skill.",
+    },
+    micro: [
+      { id: "2.5.e.1", term: "Bridge ID",                    def: "8 bytes: 4-bit priority + 12-bit Extended System ID (VLAN) + 48-bit MAC. Determines root election.", weight: "high" },
+      { id: "2.5.e.2", term: "Default priority",             def: "32768. Applies per-VLAN (actual value = 32768 + VLAN ID due to Extended System ID).", weight: "high" },
+      { id: "2.5.e.3", term: "Priority must be multiple of 4096", def: "Valid: 0, 4096, 8192, 12288, ..., 61440. Extended System ID uses the other 12 bits.", weight: "high" },
+      { id: "2.5.e.4", term: "Election: lowest priority wins", def: "Tiebreaker is lowest MAC. Priority compared first.", weight: "high" },
+      { id: "2.5.e.5", term: "root primary / root secondary", def: "Macros. 'primary' = 24576 (or 4096 below current root). 'secondary' = 28672.", weight: "high" },
+      { id: "2.5.e.6", term: "Change root command",          def: "'spanning-tree vlan [id] priority [value]' OR 'spanning-tree vlan [id] root primary'.", weight: "high" }
+    ]
   },
 
   "2.5.f": {
@@ -2510,8 +2712,14 @@ window.subtopicContentD12 = {
       memory: "STP cost table — memorize '2-4-19-100': <strong>10G=2, 1G=4, 100M=19, 10M=100</strong>. Faster link = lower cost (inversely proportional). Total path cost = sum of all link costs to reach the root bridge. Root port = the port with the <strong>lowest total cost</strong> to root. Tiebreakers if cost is equal: (1) lowest neighbor Bridge ID, (2) lowest neighbor port priority (default 128), (3) lowest neighbor port number. Say '2-4-19-100' out loud 10 times right now.",
       practice: "Packet Tracer lab (Jeremy's IT Lab Days 20-22): Build a topology with mixed-speed links (some 1G, some 100M). Calculate the STP cost for each path to the root bridge on paper FIRST, then verify with <code>show spanning-tree</code> — check the 'Cost' column for each port. Example: Switch A connects to root via a 1G link (cost 4) and also via Switch B with two 100M hops (cost 19+19=38). Switch A's root port is the 1G link (cost 4 < 38). Practice this calculation with at least 3 different topologies.",
       effort: "high",
-      meta: "Jeremy's IT Lab Days 20-22 include cost calculation exercises. Wendell Odom OCG Chapter 9 has the cost table and worked examples. The exam gives you a topology with link speeds and asks: 'which port is the root port?' You must calculate total cost for each path. Memorize 2-4-19-100 and practice the calculation. Also know the tiebreakers — if two paths have equal cost, the switch compares neighbor Bridge IDs, then port priorities, then port numbers."
-    }
+      meta: "Jeremy's IT Lab Days 20-22 include cost calculation exercises. Wendell Odom OCG Chapter 9 has the cost table and worked examples. The exam gives you a topology with link speeds and asks: 'which port is the root port?' You must calculate total cost for each path. Memorize 2-4-19-100 and practice the calculation. Also know the tiebreakers — if two paths have equal cost, the switch compares neighbor Bridge IDs, then port priorities, then port numbers.",
+    },
+    micro: [
+      { id: "2.5.f.1", term: "STP cost table (short)",       def: "10G = 2. 1G = 4. 100M = 19. 10M = 100. Memorize '2-4-19-100'.", weight: "high" },
+      { id: "2.5.f.2", term: "Total path cost",              def: "Sum of STP costs along the path to the root bridge. Lowest total wins as root port.", weight: "high" },
+      { id: "2.5.f.3", term: "Root port selection tiebreakers", def: "(1) lowest neighbor Bridge ID, (2) lowest neighbor port priority (default 128), (3) lowest neighbor port number.", weight: "high" },
+      { id: "2.5.f.4", term: "spanning-tree cost [value]",   def: "Interface command to manually set port STP cost. Use to influence root port selection.", weight: "med" }
+    ]
   },
 
   "2.5.g": {
@@ -2527,8 +2735,16 @@ window.subtopicContentD12 = {
       memory: "<code>show spanning-tree</code> = 'the STP X-ray' — shows everything about the spanning-tree topology. Key fields to extract instantly: (1) 'This bridge is the root' = you are on the root switch. (2) Root ID section = root bridge's priority + MAC. (3) Bridge ID section = THIS switch's priority + MAC. (4) Port table: Role (Root/Desg/Altn), Sts (FWD/LRN/BLK), Cost (path cost to root), Prio.Nbr (port priority.port number). Use <code>show spanning-tree vlan [id]</code> for a specific VLAN.",
       practice: "Packet Tracer lab (Jeremy's IT Lab Days 20-22): Build a 4-switch topology with at least one redundant link. Run <code>show spanning-tree</code> on EVERY switch. For each, extract: (1) Is this the root? (2) What is my root port? (3) Which ports are designated? (4) Which are alternate/blocked? (5) What is the cost to root? Draw the complete topology on paper from ONLY the <code>show spanning-tree</code> output — do not look at the physical topology diagram. This is the ultimate STP exercise. Then verify by comparing your drawing to the actual Packet Tracer topology.",
       effort: "high",
-      meta: "Jeremy's IT Lab Days 20-22 spend significant time reading <code>show spanning-tree</code> output. Wendell Odom OCG Chapters 9-10 include extensive sample output. Reading this output is <strong>guaranteed on the exam</strong> — you will see the output and be asked to identify the root bridge, a specific port's role, or the cost to root. Practice until you can extract any field in under 5 seconds. This single command is worth 3-5 exam questions."
-    }
+      meta: "Jeremy's IT Lab Days 20-22 spend significant time reading <code>show spanning-tree</code> output. Wendell Odom OCG Chapters 9-10 include extensive sample output. Reading this output is <strong>guaranteed on the exam</strong> — you will see the output and be asked to identify the root bridge, a specific port's role, or the cost to root. Practice until you can extract any field in under 5 seconds. This single command is worth 3-5 exam questions.",
+    },
+    micro: [
+      { id: "2.5.g.1", term: "show spanning-tree",           def: "Primary STP verification command. Shows root bridge info, this switch's Bridge ID, and per-port roles and states.", weight: "high" },
+      { id: "2.5.g.2", term: "'This bridge is the root'",    def: "Text that appears in output when the switch you're on is the root bridge.", weight: "high" },
+      { id: "2.5.g.3", term: "Port role abbreviations",      def: "Root (RP), Desg (DP), Altn (alternate/blocked), Back (backup).", weight: "high" },
+      { id: "2.5.g.4", term: "Port state abbreviations",     def: "FWD = Forwarding, LRN = Learning, BLK = Blocking/Discarding.", weight: "high" },
+      { id: "2.5.g.5", term: "Type column",                  def: "P2p = point-to-point full-duplex. Shr = shared half-duplex. Edge = PortFast-enabled.", weight: "med" },
+      { id: "2.5.g.6", term: "show spanning-tree summary",   def: "Quick per-VLAN overview. Fastest way to see which switch is root for each VLAN.", weight: "med" }
+    ]
   },
 
   /* ══════════════════════════════════════════════════════════════
@@ -2552,8 +2768,14 @@ window.subtopicContentD12 = {
       memory: "Autonomous AP = 'solo freelancer with their own IOS.' Each AP is independently configured — change the SSID on 50 APs = touch 50 devices. Connects to switch via TRUNK (needs to carry multiple VLANs locally). Does NOT use CAPWAP. Does NOT use a WLC. Good for 1-3 APs, terrible beyond that. Key distinction from lightweight: autonomous = all functions LOCAL, lightweight = split between AP and WLC.",
       practice: "Create a comparison flashcard (Jeremy's IT Lab Days 56-57): Autonomous AP (standalone, own IOS, trunk to switch, all functions local, no WLC, no CAPWAP, doesn't scale) vs Lightweight AP (WLC-managed, split-MAC, access port to switch usually, CAPWAP tunnels, scales to thousands). No lab needed — this is concept recall. Know: 'when would you use autonomous APs?' = very small deployment (1-3 APs, no WLC budget).",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 56 (Wireless Architectures) covers autonomous vs lightweight. Wendell Odom OCG Chapter 25 details both architectures. The exam asks: 'which AP type operates independently without a controller?' (autonomous), 'which requires a trunk connection to the switch?' (autonomous — because it handles VLANs locally). This is a 1-2 question topic focused on the architectural distinction."
-    }
+      meta: "Jeremy's IT Lab Day 56 (Wireless Architectures) covers autonomous vs lightweight. Wendell Odom OCG Chapter 25 details both architectures. The exam asks: 'which AP type operates independently without a controller?' (autonomous), 'which requires a trunk connection to the switch?' (autonomous — because it handles VLANs locally). This is a 1-2 question topic focused on the architectural distinction.",
+    },
+    micro: [
+      { id: "2.6.a.1", term: "Autonomous AP",                def: "Standalone AP running its own IOS. All wireless functions handled locally. Configured per-device.", weight: "high" },
+      { id: "2.6.a.2", term: "Autonomous trunk required",    def: "Switch port must be a trunk — AP handles multiple VLANs locally (one per SSID).", weight: "high" },
+      { id: "2.6.a.3", term: "Autonomous scale limit",       def: "Unmanageable beyond ~3 APs. 50 APs = 50 separate config sessions. Use lightweight for anything larger.", weight: "high" },
+      { id: "2.6.a.4", term: "No WLC / no CAPWAP",           def: "Autonomous APs operate without a controller. No CAPWAP tunnels. All intelligence local.", weight: "high" }
+    ]
   },
 
   "2.6.b": {
@@ -2570,8 +2792,16 @@ window.subtopicContentD12 = {
       memory: "Lightweight AP = 'corporate employee following HQ (WLC) orders.' CAPWAP = the phone line to HQ, two tunnels: <strong>UDP 5246</strong> = control (always DTLS-encrypted, carries config/management), <strong>UDP 5247</strong> = data (optionally encrypted, carries client traffic). Mnemonic: '5246 = controls, 5247 = data (6 before 7, control before data).' The AP handles real-time RF; the WLC handles everything else.",
       practice: "Packet Tracer lab (Jeremy's IT Lab Days 56-57): Add a WLC (3504 or vWLC) and a lightweight AP to a topology. Connect the AP to a switch on the same VLAN as the WLC management interface. Watch the AP discover and join the WLC via CAPWAP (in simulation mode, you can see the CAPWAP packets). Create a WLAN on the WLC, assign it to a VLAN, and connect a wireless client. Verify the client associates. This lab demonstrates the split-MAC architecture in action. Key flashcard: CAPWAP ports = 5246 (control, encrypted) + 5247 (data, optional encryption).",
       effort: "high",
-      meta: "Jeremy's IT Lab Days 56-57 cover lightweight APs and CAPWAP in detail. Wendell Odom OCG Chapter 25 covers the split-MAC architecture. The exam tests: 'what protocol do lightweight APs use to communicate with the WLC?' (CAPWAP), 'what are the CAPWAP ports?' (5246/5247), 'which tunnel is always encrypted?' (control, 5246), 'which functions stay on the AP vs WLC?' (real-time RF on AP, management on WLC). Know CAPWAP ports cold — they are a guaranteed test point."
-    }
+      meta: "Jeremy's IT Lab Days 56-57 cover lightweight APs and CAPWAP in detail. Wendell Odom OCG Chapter 25 covers the split-MAC architecture. The exam tests: 'what protocol do lightweight APs use to communicate with the WLC?' (CAPWAP), 'what are the CAPWAP ports?' (5246/5247), 'which tunnel is always encrypted?' (control, 5246), 'which functions stay on the AP vs WLC?' (real-time RF on AP, management on WLC). Know CAPWAP ports cold — they are a guaranteed test point.",
+    },
+    micro: [
+      { id: "2.6.b.1", term: "Lightweight AP",               def: "Thin AP managed by WLC via CAPWAP. Only handles real-time RF. All policy and management on WLC.", weight: "high" },
+      { id: "2.6.b.2", term: "CAPWAP",                       def: "Control And Provisioning of Wireless Access Points (RFC 5415). Tunnels management + data between AP and WLC.", weight: "high" },
+      { id: "2.6.b.3", term: "CAPWAP control UDP 5246",      def: "Management tunnel. ALWAYS DTLS-encrypted. Carries config, firmware, client auth.", weight: "high" },
+      { id: "2.6.b.4", term: "CAPWAP data UDP 5247",         def: "Client data tunnel. Optionally DTLS-encrypted. Carries user traffic.", weight: "high" },
+      { id: "2.6.b.5", term: "WLC discovery methods",        def: "DHCP option 43, DNS (CISCO-CAPWAP-CONTROLLER), broadcast on local subnet, or static WLC IP.", weight: "med" },
+      { id: "2.6.b.6", term: "Lightweight access port",      def: "Switch port to lightweight AP is usually an access port — all traffic tunneled via CAPWAP to WLC.", weight: "med" }
+    ]
   },
 
   "2.6.c": {
@@ -2587,8 +2817,14 @@ window.subtopicContentD12 = {
       memory: "Split-MAC = 'body (AP) and brain (WLC).' AP handles time-critical functions: RF transmit/receive, frame encryption/decryption, beacons, probe responses, frame ACKs, frame queuing. WLC handles management functions: client authentication, security policies, SSID/WLAN creation, RF management (channel/power via RRM), roaming decisions, QoS, firmware updates. Rule of thumb: 'if it must happen in microseconds = AP, if it can wait milliseconds = WLC.'",
       practice: "Create a two-column flashcard (Jeremy's IT Lab Days 56-57): Left column 'AP (Real-time)' = RF transmit/receive, encryption, beacons, probes, ACKs. Right column 'WLC (Management)' = authentication, security policies, SSID config, RF management, roaming, QoS, firmware. The exam presents a specific function and asks 'AP or WLC?' — drill this table until you can answer any function instantly.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 56 covers the split-MAC function division. Wendell Odom OCG Chapter 25 lists AP vs WLC functions in a table. The exam asks: 'in a split-MAC architecture, which device handles client authentication?' (WLC), 'which handles frame encryption?' (AP), 'which manages channel assignment?' (WLC). This is pure memorization — one well-drilled flashcard covers the topic."
-    }
+      meta: "Jeremy's IT Lab Day 56 covers the split-MAC function division. Wendell Odom OCG Chapter 25 lists AP vs WLC functions in a table. The exam asks: 'in a split-MAC architecture, which device handles client authentication?' (WLC), 'which handles frame encryption?' (AP), 'which manages channel assignment?' (WLC). This is pure memorization — one well-drilled flashcard covers the topic.",
+    },
+    micro: [
+      { id: "2.6.c.1", term: "Split-MAC architecture",       def: "802.11 MAC functions split between AP (real-time RF) and WLC (management/policy).", weight: "high" },
+      { id: "2.6.c.2", term: "AP functions",                 def: "RF TX/RX, encryption/decryption, beacons, probes, ACKs, frame queuing. Latency-sensitive.", weight: "high" },
+      { id: "2.6.c.3", term: "WLC functions",                def: "Authentication, security policy, SSID/WLAN config, RF management (RRM), roaming, QoS, firmware.", weight: "high" },
+      { id: "2.6.c.4", term: "Why split-MAC",                def: "Centralized management at scale. Change policy once on WLC → propagates instantly to all APs.", weight: "med" }
+    ]
   },
 
   "2.6.d": {
@@ -2604,8 +2840,15 @@ window.subtopicContentD12 = {
       memory: "FlexConnect = 'flexible AP for branch offices.' Two modes: <strong>Connected</strong> = WAN to WLC is up, acts like a normal lightweight AP (centrally switched). <strong>Standalone</strong> = WAN to WLC is down, AP switches traffic locally and uses cached credentials for authentication. Mnemonic: 'FlexConnect Flexes between central and local switching.' Key scenario: 'branch office loses WAN — what happens?' Without FlexConnect = AP goes down. With FlexConnect = AP keeps working using local switching + cached creds.",
       practice: "No Packet Tracer lab for FlexConnect (it's a concept topic). Create a scenario flashcard (Jeremy's IT Lab Days 56-57): 'A company has 10 branch offices connected to HQ via WAN links. Each branch has 2-3 APs and no local WLC. What AP mode provides wireless service even when the WAN fails?' Answer: FlexConnect. Also know: 'in FlexConnect standalone mode, can new users authenticate?' Only if their credentials are cached. New users who have never connected before cannot authenticate without the WLC.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 57 covers FlexConnect as part of wireless architectures. Wendell Odom OCG Chapter 25 details FlexConnect modes. The exam tests FlexConnect as a concept: 'which mode allows an AP to continue operating when the WLC is unreachable?' (FlexConnect), 'what does an AP in FlexConnect standalone mode use for authentication?' (cached credentials). This is a 1-question topic — know the two modes and the branch office use case."
-    }
+      meta: "Jeremy's IT Lab Day 57 covers FlexConnect as part of wireless architectures. Wendell Odom OCG Chapter 25 details FlexConnect modes. The exam tests FlexConnect as a concept: 'which mode allows an AP to continue operating when the WLC is unreachable?' (FlexConnect), 'what does an AP in FlexConnect standalone mode use for authentication?' (cached credentials). This is a 1-question topic — know the two modes and the branch office use case.",
+    },
+    micro: [
+      { id: "2.6.d.1", term: "FlexConnect",                  def: "Lightweight AP mode for branches. Can survive WAN failure to WLC. Supports local switching.", weight: "high" },
+      { id: "2.6.d.2", term: "Connected mode",               def: "WAN up. Normal operation. Data can be central- or locally-switched (per WLAN config).", weight: "med" },
+      { id: "2.6.d.3", term: "Standalone mode",              def: "WAN down. Uses cached config and credentials. New users who never connected before CAN'T authenticate.", weight: "high" },
+      { id: "2.6.d.4", term: "Local switching",              def: "AP switches traffic locally at branch, bypassing WLC tunnel. Saves WAN bandwidth.", weight: "high" },
+      { id: "2.6.d.5", term: "FlexConnect use case",         def: "Multiple branch offices sharing one central WLC. Avoids deploying local WLC per branch.", weight: "med" }
+    ]
   },
 
   "2.6.e": {
@@ -2615,8 +2858,15 @@ window.subtopicContentD12 = {
       memory: "Meraki = 'Netflix for networking' — everything in the cloud, accessed via browser, subscription-based licensing. No on-prem WLC needed. APs connect to Meraki cloud via HTTPS. If cloud goes down, APs keep forwarding with last-known config (cached). Zero-touch provisioning = plug in AP, it auto-configures from the cloud. Key distinction: Meraki = cloud-managed (no on-prem controller). WLC = on-prem controller. DNA Center = on-prem management platform (broader than just wireless).",
       practice: "Create a three-way comparison flashcard (Jeremy's IT Lab Days 56-57): Autonomous (standalone, no controller, doesn't scale) vs WLC/Lightweight (on-prem controller, CAPWAP, enterprise standard) vs Meraki (cloud controller, HTTPS, subscription, simplest). The exam may ask: 'which architecture requires a subscription license?' (Meraki), 'which works without any on-premises controller?' (Meraki — the controller is in the cloud), 'what happens if the Meraki cloud is unreachable?' (APs continue with cached config).",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 57 mentions Meraki as part of the wireless architecture overview. Wendell Odom OCG Chapter 25 covers cloud-managed architectures. The exam tests Meraki as a concept only — no configuration. Know: cloud-managed, subscription, zero-touch, cached config for offline resilience. One flashcard is sufficient."
-    }
+      meta: "Jeremy's IT Lab Day 57 mentions Meraki as part of the wireless architecture overview. Wendell Odom OCG Chapter 25 covers cloud-managed architectures. The exam tests Meraki as a concept only — no configuration. Know: cloud-managed, subscription, zero-touch, cached config for offline resilience. One flashcard is sufficient.",
+    },
+    micro: [
+      { id: "2.6.e.1", term: "Cisco Meraki",                 def: "Cloud-managed wireless/networking. Dashboard in the Meraki cloud. No on-prem WLC required.", weight: "high" },
+      { id: "2.6.e.2", term: "Cloud mgmt via HTTPS",         def: "APs connect to Meraki cloud over HTTPS for config and monitoring. Data traffic stays local.", weight: "med" },
+      { id: "2.6.e.3", term: "Zero-touch provisioning",      def: "Plug in AP → gets internet → auto-downloads config from cloud. No manual setup per device.", weight: "high" },
+      { id: "2.6.e.4", term: "Subscription licensing",       def: "Meraki requires active per-device license. Expired license = loss of management access.", weight: "med" },
+      { id: "2.6.e.5", term: "Cloud outage resilience",      def: "If cloud is unreachable, APs keep forwarding traffic using cached config. Cannot make changes until cloud returns.", weight: "med" }
+    ]
   },
 
   "2.6.f": {
@@ -2637,8 +2887,15 @@ window.subtopicContentD12 = {
       memory: "DNA Center (now Catalyst Center) = 'the CEO of your entire network.' Four pillars: <strong>DPPA</strong> = Design (network hierarchy), Policy (SD-Access, group-based access), Provision (plug-and-play onboarding, image management), Assurance (AI analytics, health scoring). Key distinctions: WLC = manages wireless only. DNA Center = manages EVERYTHING (wired + wireless + WAN). Meraki = cloud-managed. DNA Center = on-prem management platform. IBN (Intent-Based Networking) = you state the 'what' (intent), DNA Center handles the 'how' (configuration).",
       practice: "Create a hierarchy flashcard (Jeremy's IT Lab Days 57-58): DNA Center (top — manages all infrastructure, intent-based policy) → WLC (middle — manages APs, wireless-specific) → APs (bottom — serves clients, RF functions). Know the four pillars: Design, Policy, Provision, Assurance. Also know SD-Access (SDA) = Cisco's campus fabric using VXLAN overlay and LISP for endpoint mobility. No lab needed — this is pure concept. Exam question: 'what Cisco platform provides intent-based networking?' = DNA Center / Catalyst Center.",
       effort: "low",
-      meta: "Jeremy's IT Lab Days 60-61 (Network Automation) cover DNA Center / Catalyst Center. Wendell Odom OCG Chapter 29 discusses IBN and DNA Center. The exam tests DNA Center as a concept: 'what is intent-based networking?' (declare desired state, controller implements it), 'what are the four DNA Center functions?' (Design, Policy, Provision, Assurance), 'what is the scope of DNA Center vs WLC?' (DNA Center = entire network, WLC = wireless only). Memorize DPPA and you are covered."
-    }
+      meta: "Jeremy's IT Lab Days 60-61 (Network Automation) cover DNA Center / Catalyst Center. Wendell Odom OCG Chapter 29 discusses IBN and DNA Center. The exam tests DNA Center as a concept: 'what is intent-based networking?' (declare desired state, controller implements it), 'what are the four DNA Center functions?' (Design, Policy, Provision, Assurance), 'what is the scope of DNA Center vs WLC?' (DNA Center = entire network, WLC = wireless only). Memorize DPPA and you are covered.",
+    },
+    micro: [
+      { id: "2.6.f.1", term: "Cisco DNA Center / Catalyst Center", def: "On-prem network-wide management platform. Core of Intent-Based Networking.", weight: "high" },
+      { id: "2.6.f.2", term: "Intent-Based Networking (IBN)", def: "Declare desired business outcome. Platform translates intent into device configs automatically.", weight: "high" },
+      { id: "2.6.f.3", term: "DPPA four pillars",            def: "Design, Policy, Provision, Assurance. Memorize the acronym.", weight: "high" },
+      { id: "2.6.f.4", term: "SD-Access (SDA)",              def: "DNA Center's campus fabric. VXLAN data plane + LISP control plane. Automated segmentation.", weight: "high" },
+      { id: "2.6.f.5", term: "DNA Center vs WLC scope",      def: "DNA Center = entire network (wired + wireless). WLC = wireless only.", weight: "high" }
+    ]
   },
 
   /* ══════════════════════════════════════════════════════════════
@@ -2652,8 +2909,15 @@ window.subtopicContentD12 = {
       memory: "AP-to-switch connection rule: <strong>Autonomous AP → trunk port</strong> (handles multiple VLANs locally, needs tagged traffic). <strong>Lightweight AP → access port</strong> (everything tunneled via CAPWAP to WLC, switch only sees one VLAN of CAPWAP traffic). Exception: if the lightweight AP is in FlexConnect mode with local switching, it may need a trunk. Both AP types receive <strong>PoE power</strong> through the same Ethernet cable — one cable = data + power.",
       practice: "Create a quick flashcard (Jeremy's IT Lab Days 56-57): Autonomous AP → trunk port (carries multiple VLANs). Lightweight AP → access port (CAPWAP tunnel to WLC). Both → PoE from switch. Also note: the switch port connecting to a lightweight AP should be in the same VLAN as the WLC management interface (for CAPWAP communication). No complex lab needed — this is a one-flashcard concept.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 56 covers AP connection types. Wendell Odom OCG Chapter 25. The exam asks: 'what type of switch port connects to a lightweight AP?' (access, in the AP management VLAN), 'what type connects to an autonomous AP?' (trunk, carrying all WLAN VLANs). Quick recall — know the rule and the reasoning."
-    }
+      meta: "Jeremy's IT Lab Day 56 covers AP connection types. Wendell Odom OCG Chapter 25. The exam asks: 'what type of switch port connects to a lightweight AP?' (access, in the AP management VLAN), 'what type connects to an autonomous AP?' (trunk, carrying all WLAN VLANs). Quick recall — know the rule and the reasoning.",
+    },
+    micro: [
+      { id: "2.7.a.1", term: "Autonomous AP → trunk port",   def: "Autonomous APs handle multiple VLANs locally, so switch port must be a trunk carrying all the VLANs.", weight: "high" },
+      { id: "2.7.a.2", term: "Lightweight AP → access port", def: "Client traffic tunneled via CAPWAP to WLC. Switch only sees management VLAN. Access port works.", weight: "high" },
+      { id: "2.7.a.3", term: "FlexConnect exception",        def: "If lightweight AP is FlexConnect with local switching, it may need a trunk for local VLANs.", weight: "med" },
+      { id: "2.7.a.4", term: "PoE for APs",                  def: "APs typically powered via PoE over the same Ethernet cable. Switch must support appropriate PoE standard (af/at/bt).", weight: "high" },
+      { id: "2.7.a.5", term: "AP management VLAN",           def: "Lightweight AP switch port must reach WLC management interface (same VLAN or L3-reachable).", weight: "med" }
+    ]
   },
 
   "2.7.b": {
@@ -2663,8 +2927,14 @@ window.subtopicContentD12 = {
       memory: "WLC → trunk port. Always. The WLC terminates CAPWAP tunnels from all APs and places client traffic onto the correct VLANs. The trunk carries: management VLAN (WLC management interface) + all WLAN-mapped VLANs (Corporate VLAN 10, Guest VLAN 20, IoT VLAN 30, etc.). Think: 'WLC is the VLAN traffic cop for all wireless traffic — it needs access to every VLAN.'",
       practice: "Packet Tracer lab (Jeremy's IT Lab Days 57-58): Connect a WLC to a distribution switch via a trunk port. Allow VLANs 10, 20, 30, and 99 (management) on the trunk. Create dynamic interfaces on the WLC mapped to each VLAN. Create WLANs mapped to those interfaces. Connect a wireless client to each SSID and verify they receive IPs from the correct DHCP scope (different subnet per VLAN). The trunk from WLC to switch is the critical physical connection enabling all of this.",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 57-58 covers WLC physical connections. Wendell Odom OCG Chapter 25. The exam tests: 'how does the WLC connect to the network?' (trunk port to switch), 'what VLANs must be allowed on the trunk?' (management + all WLAN VLANs). If the exam describes a WLC failing to place clients in the correct VLAN, check the trunk allowed VLAN list."
-    }
+      meta: "Jeremy's IT Lab Day 57-58 covers WLC physical connections. Wendell Odom OCG Chapter 25. The exam tests: 'how does the WLC connect to the network?' (trunk port to switch), 'what VLANs must be allowed on the trunk?' (management + all WLAN VLANs). If the exam describes a WLC failing to place clients in the correct VLAN, check the trunk allowed VLAN list.",
+    },
+    micro: [
+      { id: "2.7.b.1", term: "WLC → trunk port",             def: "WLC connects to switch via trunk. Must carry management VLAN + all dynamic interface VLANs mapped to WLANs.", weight: "high" },
+      { id: "2.7.b.2", term: "WLC management interface",     def: "Primary in-band interface. AP CAPWAP traffic, admin access, RADIUS. Critical interface.", weight: "high" },
+      { id: "2.7.b.3", term: "WLC dynamic interface VLANs",  def: "Each dynamic interface maps a WLAN to a VLAN. Trunk to WLC must allow all these VLANs.", weight: "high" },
+      { id: "2.7.b.4", term: "WLC troubleshoot",             def: "Clients getting wrong IPs or no access often = trunk allowed-vlan misconfiguration on the switch.", weight: "med" }
+    ]
   },
 
   "2.7.c": {
@@ -2674,8 +2944,13 @@ window.subtopicContentD12 = {
       memory: "LAG (Link Aggregation Group) on WLC = EtherChannel on switches. Same concept, different name. Bundles multiple WLC Ethernet ports into one logical connection for bandwidth + redundancy. If one physical link fails, traffic redistributes across remaining links. The switch side configures a regular port-channel. Mnemonic: 'WLC speaks LAG, switches speak EtherChannel — same language, different dialect.'",
       practice: "No specific lab needed (concept topic). Create a flashcard: LAG = WLC link bundling = same as EtherChannel on switch side. The switch side needs a port-channel configured with LACP to match the WLC LAG. If the exam asks 'how does a WLC achieve redundant uplinks to the switch?' the answer is LAG.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 57 mentions WLC LAG. Wendell Odom OCG Chapter 25. Simple concept: LAG on WLC = EtherChannel on switch. One flashcard covers this topic. The exam may ask about WLC redundancy — LAG is the answer for physical link redundancy."
-    }
+      meta: "Jeremy's IT Lab Day 57 mentions WLC LAG. Wendell Odom OCG Chapter 25. Simple concept: LAG on WLC = EtherChannel on switch. One flashcard covers this topic. The exam may ask about WLC redundancy — LAG is the answer for physical link redundancy.",
+    },
+    micro: [
+      { id: "2.7.c.1", term: "LAG (Link Aggregation)",       def: "WLC equivalent of EtherChannel. Bundles multiple WLC ports into one logical interface for bandwidth + redundancy.", weight: "med" },
+      { id: "2.7.c.2", term: "LAG on both sides",            def: "Enable LAG on WLC AND configure matching EtherChannel on the switch side. Same port-channel concept.", weight: "med" },
+      { id: "2.7.c.3", term: "WLC redundancy",               def: "LAG provides physical link redundancy. WLC HA pairs provide platform redundancy. Both complementary.", weight: "low" }
+    ]
   },
 
   "2.7.d": {
@@ -2688,8 +2963,13 @@ window.subtopicContentD12 = {
       memory: "PoE for APs = 'one cable for data AND power — no electrician needed at the ceiling.' Standard APs need 802.3af (15.4W) or 802.3at/PoE+ (30W). High-performance APs (Wi-Fi 6, multiple radios, external antennas) may need PoE++ (802.3bt, 60-90W). If an AP won't power on: check (1) the switch supports PoE, (2) the switch has remaining PoE budget, (3) the PoE standard matches the AP's requirements. Power budget = total watts the switch can deliver across all PoE ports.",
       practice: "Cross-reference with topic 1.1.h (PoE standards). Create a flashcard: AP PoE requirements = most standard APs need 802.3af (15.4W) or 802.3at (30W). Check switch PoE budget with <code>show power inline</code> — this shows per-port power allocation and remaining budget. If an AP is 'powered down,' the switch may have exhausted its PoE budget. Troubleshooting: <code>show power inline [interface]</code> shows if the port is delivering power.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 56 connects AP deployment to PoE requirements. Wendell Odom OCG Chapter 25. The exam ties PoE to AP deployment: 'what standard provides power to a standard AP?' (802.3af or 802.3at), 'what command verifies PoE status?' (<code>show power inline</code>). This cross-references Domain 1.1.h. If you already know the PoE standards, this is a quick recall topic."
-    }
+      meta: "Jeremy's IT Lab Day 56 connects AP deployment to PoE requirements. Wendell Odom OCG Chapter 25. The exam ties PoE to AP deployment: 'what standard provides power to a standard AP?' (802.3af or 802.3at), 'what command verifies PoE status?' (<code>show power inline</code>). This cross-references Domain 1.1.h. If you already know the PoE standards, this is a quick recall topic.",
+    },
+    micro: [
+      { id: "2.7.d.1", term: "AP PoE requirements",          def: "Basic APs: 802.3af (15.4W). Modern Wi-Fi 6 APs: 802.3at (30W). High-end with multiple radios: 802.3bt (60-90W).", weight: "high" },
+      { id: "2.7.d.2", term: "show power inline",            def: "Verify PoE status per port: allocated watts, consumed, device class. Use when deploying APs.", weight: "high" },
+      { id: "2.7.d.3", term: "PoE budget planning",          def: "Sum AP power draws. Confirm switch budget supports it. Use higher-priority ports for critical APs.", weight: "med" }
+    ]
   },
 
   /* ══════════════════════════════════════════════════════════════
@@ -2709,8 +2989,14 @@ window.subtopicContentD12 = {
       memory: "Console = 'umbilical cord' — direct physical connection, works when EVERYTHING is down. Two cable types: RJ-45 rollover cable (blue, legacy) and USB-mini/USB-C (modern). Default serial settings: <strong>9600 baud, 8 data bits, No parity, 1 stop bit, No flow control</strong> = '9600 8-N-1.' Out-of-band = does not use the network. In-band (SSH/Telnet/HTTP) = uses the network. Console line secured with: <code>line console 0</code>, <code>password [pw]</code>, <code>login</code>.",
       practice: "Packet Tracer lab (Jeremy's IT Lab Day 41): Configure console access: <code>line console 0</code>, <code>password cisco</code>, <code>login</code>. Then configure VTY lines for SSH (see 2.8.c). Test: try to Telnet/SSH to a device with no IP — it fails. Connect via console — it works. This demonstrates why console is essential for initial setup. Create a flashcard: Out-of-band (console — physical, no network) vs In-band (SSH/Telnet/HTTP — remote, requires IP).",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 41 (Device Management) covers console and VTY configuration. Wendell Odom OCG Chapter 6 details management access methods. The exam asks: 'how do you access a device with no IP?' (console), 'what are the default console settings?' (9600 8-N-1), 'what is the difference between out-of-band and in-band?' (physical vs network-based). Quick recall questions — know the terms and the default settings."
-    }
+      meta: "Jeremy's IT Lab Day 41 (Device Management) covers console and VTY configuration. Wendell Odom OCG Chapter 6 details management access methods. The exam asks: 'how do you access a device with no IP?' (console), 'what are the default console settings?' (9600 8-N-1), 'what is the difference between out-of-band and in-band?' (physical vs network-based). Quick recall questions — know the terms and the default settings.",
+    },
+    micro: [
+      { id: "2.8.a.1", term: "Console access",               def: "Out-of-band. Physical serial connection (RJ-45 or USB). Works without network/IP.", weight: "high" },
+      { id: "2.8.a.2", term: "Console default settings",     def: "9600 baud, 8 data bits, No parity, 1 stop bit (8-N-1). No flow control.", weight: "high" },
+      { id: "2.8.a.3", term: "VTY lines",                    def: "Virtual TeletYpe. Remote CLI access lines (usually 0-4 or 0-15). Used by Telnet/SSH.", weight: "high" },
+      { id: "2.8.a.4", term: "Out-of-band vs in-band",       def: "Out-of-band = separate network/channel (console, management VLAN). In-band = uses production network.", weight: "high" }
+    ]
   },
 
   "2.8.b": {
@@ -2723,8 +3009,14 @@ window.subtopicContentD12 = {
       memory: "Telnet = 'postcard' — TCP 23, ALL data sent in plaintext (including passwords). Anyone with a packet sniffer can read everything. SSH = 'locked box' — TCP 22, ALL data encrypted. The exam ALWAYS prefers SSH over Telnet. To block Telnet: <code>line vty 0 15</code>, <code>transport input ssh</code> (allows SSH only, blocks Telnet). Insecure pair: Telnet (23) + HTTP (80). Secure pair: SSH (22) + HTTPS (443).",
       practice: "Packet Tracer lab (Jeremy's IT Lab Day 41): Configure VTY lines to allow only SSH: <code>line vty 0 15</code>, <code>transport input ssh</code>, <code>login local</code>. Try to Telnet — it should be refused. SSH in — it should work. Then change to <code>transport input all</code> (allows both) or <code>transport input telnet</code> (Telnet only, insecure). The exam tests the <code>transport input</code> command: 'how do you restrict VTY access to SSH only?' = <code>transport input ssh</code>.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 41 covers Telnet vs SSH configuration. Wendell Odom OCG Chapter 6. The exam treats Telnet as the 'wrong answer' for security questions. Any question asking 'which protocol should be used for remote management?' = SSH. Know TCP port numbers: Telnet=23, SSH=22. Know <code>transport input ssh</code> to restrict VTY lines."
-    }
+      meta: "Jeremy's IT Lab Day 41 covers Telnet vs SSH configuration. Wendell Odom OCG Chapter 6. The exam treats Telnet as the 'wrong answer' for security questions. Any question asking 'which protocol should be used for remote management?' = SSH. Know TCP port numbers: Telnet=23, SSH=22. Know <code>transport input ssh</code> to restrict VTY lines.",
+    },
+    micro: [
+      { id: "2.8.b.1", term: "Telnet",                       def: "TCP 23. Remote CLI access. ENTIRELY plaintext — all data including credentials visible on wire. Never use in production.", weight: "high" },
+      { id: "2.8.b.2", term: "SSH",                          def: "TCP 22. Secure remote CLI. Encrypted. Standard for production device management.", weight: "high" },
+      { id: "2.8.b.3", term: "transport input ssh",          def: "VTY config to restrict to SSH only. 'transport input all' or 'transport input telnet ssh' is insecure.", weight: "high" },
+      { id: "2.8.b.4", term: "SSH version 2",                def: "Command: 'ip ssh version 2'. SSHv1 is insecure. Always enforce v2.", weight: "high" }
+    ]
   },
 
   "2.8.c": {
@@ -2740,8 +3032,16 @@ window.subtopicContentD12 = {
       memory: "SSH config recipe — 'HDKUV' = Hostname, Domain name, Key (RSA), User (local), VTY (transport input ssh). Step by step: (1) <code>hostname R1</code>, (2) <code>ip domain-name example.com</code>, (3) <code>crypto key generate rsa</code> (use 2048 bits), (4) <code>username admin secret Cisco123</code>, (5) <code>line vty 0 15</code>, <code>transport input ssh</code>, <code>login local</code>, (6) <code>ip ssh version 2</code>. All five prerequisites must be met — missing any one causes SSH to fail.",
       practice: "Packet Tracer lab (Jeremy's IT Lab Day 41): Configure SSH on a router from scratch — follow the HDKUV recipe. (1) Set hostname: <code>hostname R1</code>. (2) Set domain: <code>ip domain-name lab.local</code>. (3) Generate RSA key: <code>crypto key generate rsa</code>, choose 2048 bits. (4) Create user: <code>username admin privilege 15 secret Cisco123</code>. (5) Configure VTY: <code>line vty 0 15</code>, <code>transport input ssh</code>, <code>login local</code>. (6) Set SSH version: <code>ip ssh version 2</code>. Test from another device: <code>ssh -l admin [router-IP]</code>. Verify with <code>show ip ssh</code> and <code>show ssh</code>. Practice this sequence until you can do it from memory in under 2 minutes — it appears in exam simlets.",
       effort: "high",
-      meta: "Jeremy's IT Lab Day 41 has a step-by-step SSH lab. Wendell Odom OCG Chapter 6 covers SSH prerequisites and configuration. SSH configuration is a <strong>common exam simlet</strong> — you will configure it from scratch. The exam tests: 'what must be configured before SSH works?' (hostname, domain name, RSA key, local user, VTY transport), 'what RSA key size is recommended?' (2048+), 'which SSH version should be used?' (v2). Practice the HDKUV recipe until automatic."
-    }
+      meta: "Jeremy's IT Lab Day 41 has a step-by-step SSH lab. Wendell Odom OCG Chapter 6 covers SSH prerequisites and configuration. SSH configuration is a <strong>common exam simlet</strong> — you will configure it from scratch. The exam tests: 'what must be configured before SSH works?' (hostname, domain name, RSA key, local user, VTY transport), 'what RSA key size is recommended?' (2048+), 'which SSH version should be used?' (v2). Practice the HDKUV recipe until automatic.",
+    },
+    micro: [
+      { id: "2.8.c.1", term: "SSH prereqs (HDKUV)",          def: "Hostname, Domain name, RSA Key, User (local), VTY config. All five required or SSH won't work.", weight: "high" },
+      { id: "2.8.c.2", term: "crypto key generate rsa",      def: "Generate RSA key pair for SSH. Choose 2048 bits minimum. Requires hostname and domain name first.", weight: "high" },
+      { id: "2.8.c.3", term: "ip domain-name",               def: "Global command. Required before RSA key generation (key name includes host.domain).", weight: "high" },
+      { id: "2.8.c.4", term: "username ... secret",          def: "Local user for SSH login. Use 'secret' (MD5/SHA hashed) not 'password' (weak/plaintext).", weight: "high" },
+      { id: "2.8.c.5", term: "VTY for SSH",                  def: "line vty 0 15 → transport input ssh → login local. Restricts to SSH and uses local credentials.", weight: "high" },
+      { id: "2.8.c.6", term: "ip ssh version 2",             def: "Enforce SSH v2 only. Reject insecure v1.", weight: "high" }
+    ]
   },
 
   "2.8.d": {
@@ -2757,8 +3057,14 @@ window.subtopicContentD12 = {
       memory: "The insecure/secure pairs: <strong>Telnet (23) ↔ SSH (22)</strong> for CLI. <strong>HTTP (80) ↔ HTTPS (443)</strong> for GUI. The 'S' always means Secure/encrypted. WLC management uses HTTPS (browser-based GUI). Cisco IOS devices can enable web GUI with <code>ip http server</code> (HTTP) or <code>ip http secure-server</code> (HTTPS). Best practice: disable HTTP, enable only HTTPS.",
       practice: "Flashcard only (Jeremy's IT Lab Day 41): Insecure protocols = Telnet (23) + HTTP (80). Secure protocols = SSH (22) + HTTPS (443). Commands: <code>ip http server</code> enables HTTP, <code>ip http secure-server</code> enables HTTPS, <code>no ip http server</code> disables HTTP. For WLC management: access via HTTPS to the management interface IP. No hands-on lab needed — this is port number and protocol matching.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 41 covers all management protocols. Wendell Odom OCG Chapter 6. The exam tests: 'which port does HTTPS use?' (443), 'which is more secure, HTTP or HTTPS?' (HTTPS), 'which management protocol encrypts all traffic?' (SSH for CLI, HTTPS for GUI). Quick recall — know the port numbers and the secure/insecure pairs."
-    }
+      meta: "Jeremy's IT Lab Day 41 covers all management protocols. Wendell Odom OCG Chapter 6. The exam tests: 'which port does HTTPS use?' (443), 'which is more secure, HTTP or HTTPS?' (HTTPS), 'which management protocol encrypts all traffic?' (SSH for CLI, HTTPS for GUI). Quick recall — know the port numbers and the secure/insecure pairs.",
+    },
+    micro: [
+      { id: "2.8.d.1", term: "HTTP / HTTPS management",      def: "HTTP=TCP 80, HTTPS=TCP 443. Web GUI access to devices. Best practice: disable HTTP, enable only HTTPS.", weight: "high" },
+      { id: "2.8.d.2", term: "ip http server",               def: "Global command. Enable HTTP web GUI. Insecure — avoid.", weight: "med" },
+      { id: "2.8.d.3", term: "ip http secure-server",        def: "Global command. Enable HTTPS web GUI. Uses TLS and device certificate.", weight: "high" },
+      { id: "2.8.d.4", term: "WLC GUI = HTTPS",              def: "WLCs are primarily managed through HTTPS web GUI. Browser-based config.", weight: "high" }
+    ]
   },
 
   "2.8.e": {
@@ -2774,8 +3080,15 @@ window.subtopicContentD12 = {
       memory: "TACACS+ = 'TAC-tical Control' — <strong>TCP 49</strong>, <strong>full packet encryption</strong>, <strong>separates AAA</strong> (Authentication, Authorization, Accounting are three independent functions), <strong>per-command authorization</strong> (can control which IOS commands each admin can run). Cisco-developed. Best for: <strong>network device management</strong> (controlling admin access to routers/switches). Mnemonic: 'TACACS+ = Total encryption, TCP, Three separate AAA functions.'",
       practice: "Create the definitive TACACS+ vs RADIUS comparison flashcard (Jeremy's IT Lab Day 41): TACACS+ = TCP 49, full encryption, separate AAA, per-command authorization, Cisco-developed, device management. RADIUS = UDP 1812/1813, password-only encryption, combined auth+authz, no per-command, open standard, network access (802.1X/Wi-Fi/VPN). The exam presents a scenario and asks which protocol to use. Network device admin access = TACACS+. User network access control = RADIUS.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 41 covers TACACS+ vs RADIUS. Wendell Odom OCG Chapter 6 compares both in a table. This comparison is a <strong>guaranteed exam topic</strong>. The exam asks: 'which AAA protocol encrypts the entire packet?' (TACACS+), 'which separates authentication and authorization?' (TACACS+), 'which is used for 802.1X?' (RADIUS), 'which uses TCP?' (TACACS+). Memorize the comparison table — 2-3 questions guaranteed."
-    }
+      meta: "Jeremy's IT Lab Day 41 covers TACACS+ vs RADIUS. Wendell Odom OCG Chapter 6 compares both in a table. This comparison is a <strong>guaranteed exam topic</strong>. The exam asks: 'which AAA protocol encrypts the entire packet?' (TACACS+), 'which separates authentication and authorization?' (TACACS+), 'which is used for 802.1X?' (RADIUS), 'which uses TCP?' (TACACS+). Memorize the comparison table — 2-3 questions guaranteed.",
+    },
+    micro: [
+      { id: "2.8.e.1", term: "TACACS+",                      def: "Terminal Access Controller Access-Control System Plus. Cisco-developed AAA. TCP port 49.", weight: "high" },
+      { id: "2.8.e.2", term: "TACACS+ full encryption",      def: "Encrypts ENTIRE packet body (not just password). Unique vs RADIUS.", weight: "high" },
+      { id: "2.8.e.3", term: "TACACS+ separates AAA",        def: "Authentication, Authorization, Accounting are three INDEPENDENT exchanges. Enables granular control.", weight: "high" },
+      { id: "2.8.e.4", term: "Per-command authorization",    def: "TACACS+ can authorize/deny INDIVIDUAL IOS commands per user. Critical for network device mgmt.", weight: "high" },
+      { id: "2.8.e.5", term: "TACACS+ best use case",        def: "Network device administration. Controlling which admins can run which commands.", weight: "high" }
+    ]
   },
 
   "2.8.f": {
@@ -2791,8 +3104,15 @@ window.subtopicContentD12 = {
       memory: "RADIUS = 'Remote Access for User Dial-In Service' — <strong>UDP 1812</strong> (authentication) + <strong>UDP 1813</strong> (accounting). <strong>Password-only encryption</strong> (rest of packet is plaintext). <strong>Combines authentication + authorization</strong> into one exchange (not separate like TACACS+). Open standard (works with all vendors). Best for: <strong>network access control</strong> — 802.1X wired/wireless, VPN authentication, Wi-Fi enterprise. Mnemonic: 'RADIUS = Remote users, UDP, password-only, combined auth+authz.'",
       practice: "Complete the comparison flashcard: When the exam describes 'a company wants to authenticate wireless users against Active Directory' = RADIUS (802.1X/WPA2-Enterprise uses RADIUS). When it describes 'a company wants to control which show commands each network admin can run' = TACACS+ (per-command authorization). Know both use cases and match them to the correct protocol. Scenario practice: 'WPA2-Enterprise uses which AAA protocol?' = RADIUS. 'Granular command authorization on Cisco devices?' = TACACS+.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 41 presents RADIUS alongside TACACS+. Wendell Odom OCG Chapter 6. The exam scenario mapping: user access (802.1X, Wi-Fi, VPN) = RADIUS. Device admin access (router/switch CLI) = TACACS+. Know both sides: 'RADIUS = UDP, password encryption, combined auth/authz' and 'TACACS+ = TCP, full encryption, separate AAA.' This is one of the highest-yield comparison topics for the exam."
-    }
+      meta: "Jeremy's IT Lab Day 41 presents RADIUS alongside TACACS+. Wendell Odom OCG Chapter 6. The exam scenario mapping: user access (802.1X, Wi-Fi, VPN) = RADIUS. Device admin access (router/switch CLI) = TACACS+. Know both sides: 'RADIUS = UDP, password encryption, combined auth/authz' and 'TACACS+ = TCP, full encryption, separate AAA.' This is one of the highest-yield comparison topics for the exam.",
+    },
+    micro: [
+      { id: "2.8.f.1", term: "RADIUS",                       def: "Remote Authentication Dial-In User Service. Open standard AAA. UDP 1812 auth / 1813 accounting.", weight: "high" },
+      { id: "2.8.f.2", term: "RADIUS password-only encryption", def: "Only the password field is encrypted. Rest of packet is plaintext. Weaker than TACACS+.", weight: "high" },
+      { id: "2.8.f.3", term: "RADIUS combines auth+authz",   def: "Access-Accept returns both authentication success AND authorization attributes in one exchange.", weight: "high" },
+      { id: "2.8.f.4", term: "RADIUS best use case",         def: "Network ACCESS control — 802.1X wired/wireless, WPA2-Enterprise Wi-Fi, VPN. Multi-vendor.", weight: "high" },
+      { id: "2.8.f.5", term: "TACACS+ vs RADIUS scenario",   def: "Device admin access → TACACS+. User network access → RADIUS. Both can run on Cisco ISE.", weight: "high" }
+    ]
   },
 
   "2.8.g": {
@@ -2802,8 +3122,15 @@ window.subtopicContentD12 = {
       memory: "Cloud-managed networking = 'manage from anywhere with a browser.' Key characteristics: browser-based dashboard (no CLI for daily ops), <strong>zero-touch provisioning</strong> (device connects to internet, downloads config from cloud automatically), subscription license required, internet-dependent for management (but devices cache config for offline operation). Meraki = fully cloud-managed. DNA Center/Catalyst Center = on-prem but can integrate with cloud. SD-WAN (Viptela/Meraki) = cloud-managed WAN.",
       practice: "Create a management architecture comparison (Jeremy's IT Lab Days 57-58): CLI-based (console/SSH — full control, manual, skill-intensive) vs On-prem controller (WLC/DNA Center — centralized, GUI-based, on-site infrastructure) vs Cloud-managed (Meraki — no on-site infrastructure, browser-based, subscription). The exam asks about benefits and requirements of each approach. Zero-touch is the key cloud advantage.",
       effort: "low",
-      meta: "Jeremy's IT Lab Days 57-58 mention cloud-managed architectures. Wendell Odom OCG Chapter 25/29. Concept-only topic — no configuration tested. Know: 'what is zero-touch provisioning?' (device auto-configures from cloud), 'what is required for cloud management?' (internet + subscription), 'what happens if cloud goes down?' (devices continue with cached config). 1-2 questions maximum."
-    }
+      meta: "Jeremy's IT Lab Days 57-58 mention cloud-managed architectures. Wendell Odom OCG Chapter 25/29. Concept-only topic — no configuration tested. Know: 'what is zero-touch provisioning?' (device auto-configures from cloud), 'what is required for cloud management?' (internet + subscription), 'what happens if cloud goes down?' (devices continue with cached config). 1-2 questions maximum.",
+    },
+    micro: [
+      { id: "2.8.g.1", term: "Cloud-managed networking",     def: "Device mgmt via cloud dashboard (HTTPS). No on-prem controller required. Meraki is the canonical example.", weight: "high" },
+      { id: "2.8.g.2", term: "Zero-touch provisioning",      def: "Device plugs in → internet → downloads config from cloud automatically. Key cloud benefit.", weight: "high" },
+      { id: "2.8.g.3", term: "Cloud mgmt requirements",      def: "Internet connectivity to cloud + active subscription license. Both mandatory.", weight: "med" },
+      { id: "2.8.g.4", term: "Cloud offline behavior",       def: "If cloud unreachable, devices continue forwarding with cached config. Cannot configure until restored.", weight: "med" },
+      { id: "2.8.g.5", term: "Management models comparison", def: "CLI (traditional) vs On-prem controller (WLC/DNA Center) vs Cloud-managed (Meraki). Each has tradeoffs.", weight: "med" }
+    ]
   },
 
   /* ══════════════════════════════════════════════════════════════
@@ -2823,8 +3150,15 @@ window.subtopicContentD12 = {
       memory: "WLAN creation requires three identifiers: <strong>Profile Name</strong> (IT's internal label — e.g., 'Corporate-WiFi'), <strong>SSID</strong> (what users see on their phone — e.g., 'CorpNet'), and <strong>WLAN ID</strong> (numeric, 1-512 — internal reference number). These can be different or identical. After creation, the WLAN must be <strong>explicitly enabled</strong> — it defaults to disabled. Mnemonic: 'PSI-E' = Profile name, SSID, ID, Enable.",
       practice: "Packet Tracer lab (Jeremy's IT Lab Days 57-58): Access the WLC GUI (HTTPS to management IP). Navigate to WLANs → Create New. Set Profile Name = 'Employee-WiFi', SSID = 'CompanyNet', ID = 1. Save. Enable the WLAN (Status = Enabled). Connect a wireless client — verify the SSID 'CompanyNet' appears in the available networks list. Create a second WLAN: Profile = 'Guest-WiFi', SSID = 'GuestNet', ID = 2. Enable it. Verify both SSIDs are visible. The WLC GUI is straightforward — practice navigating it.",
       effort: "medium",
-      meta: "Jeremy's IT Lab Days 57-58 cover WLC WLAN creation. Wendell Odom OCG Chapter 26 details WLC GUI configuration. The exam may show the WLC GUI and ask you to create or identify WLAN settings. Know the three identifiers and that the WLAN must be enabled. Also know: WLANs 1-16 are available by default; additional WLANs require specific WLC models."
-    }
+      meta: "Jeremy's IT Lab Days 57-58 cover WLC WLAN creation. Wendell Odom OCG Chapter 26 details WLC GUI configuration. The exam may show the WLC GUI and ask you to create or identify WLAN settings. Know the three identifiers and that the WLAN must be enabled. Also know: WLANs 1-16 are available by default; additional WLANs require specific WLC models.",
+    },
+    micro: [
+      { id: "2.9.a.1", term: "WLAN Profile Name",            def: "Internal WLC label for admins (e.g., 'Corporate-WiFi'). Not visible to wireless clients.", weight: "high" },
+      { id: "2.9.a.2", term: "WLAN SSID",                    def: "Broadcast network name seen by clients. Visible in beacons (e.g., 'CorpNet'). Can differ from Profile Name.", weight: "high" },
+      { id: "2.9.a.3", term: "WLAN ID (1-512)",              def: "Numeric identifier for the WLAN on the WLC. Range 1-512 (model-dependent).", weight: "med" },
+      { id: "2.9.a.4", term: "WLAN Status: Enabled",         def: "WLAN is disabled by default after creation. Must be explicitly enabled before APs broadcast.", weight: "high" },
+      { id: "2.9.a.5", term: "Multiple WLANs per WLC",       def: "A single WLC supports many WLANs (16 default, up to 512). Each with its own security and VLAN mapping.", weight: "med" }
+    ]
   },
 
   "2.9.b": {
@@ -2840,8 +3174,15 @@ window.subtopicContentD12 = {
       memory: "Two wireless security modes: <strong>PSK (Pre-Shared Key)</strong> = everyone shares one password, simple, no RADIUS server needed, used for home/small office. <strong>802.1X (Enterprise)</strong> = each user has unique credentials, requires RADIUS server, used for corporate networks. Both use <strong>WPA2 + AES (CCMP)</strong> as the encryption standard. Mnemonic: 'PSK = Personal Shared Key (home), 802.1X = eXpert corporate (enterprise).' The WLC security tab lets you choose: Layer 2 Security → WPA+WPA2, then Auth Key Mgmt → PSK or 802.1X.",
       practice: "Packet Tracer lab (Jeremy's IT Lab Days 57-58): On the WLC GUI: (1) Create WLAN 'Employee' — Security tab → WPA+WPA2, AES cipher, Auth Key Mgmt = 802.1X. Configure RADIUS server under Security → AAA → RADIUS. (2) Create WLAN 'Guest' — WPA+WPA2, AES cipher, Auth Key Mgmt = PSK, enter a pre-shared key. Enable both. Connect a client to each and observe the authentication difference: PSK prompts for a password, 802.1X prompts for username+password. Create a comparison flashcard: PSK (shared password, no RADIUS, simple, home/SOHO) vs 802.1X (individual credentials, RADIUS required, enterprise standard).",
       effort: "medium",
-      meta: "Jeremy's IT Lab Days 57-58 cover WLC security configuration. Wendell Odom OCG Chapter 26 details WPA2-Personal vs WPA2-Enterprise. The exam asks: 'which authentication method requires a RADIUS server?' (802.1X), 'which provides per-user credentials?' (802.1X), 'which is appropriate for a small office?' (PSK). Also know: WPA2 + AES is the minimum recommended standard. Never recommend WEP or WPA/TKIP."
-    }
+      meta: "Jeremy's IT Lab Days 57-58 cover WLC security configuration. Wendell Odom OCG Chapter 26 details WPA2-Personal vs WPA2-Enterprise. The exam asks: 'which authentication method requires a RADIUS server?' (802.1X), 'which provides per-user credentials?' (802.1X), 'which is appropriate for a small office?' (PSK). Also know: WPA2 + AES is the minimum recommended standard. Never recommend WEP or WPA/TKIP.",
+    },
+    micro: [
+      { id: "2.9.b.1", term: "WPA2 + AES-CCMP",              def: "Current production standard. Layer 2 Security = WPA+WPA2 + AES cipher. Do NOT enable TKIP.", weight: "high" },
+      { id: "2.9.b.2", term: "WPA2-Personal (PSK)",          def: "Pre-shared key. Auth Key Mgmt = PSK. Everyone shares one password. Home/small office.", weight: "high" },
+      { id: "2.9.b.3", term: "WPA2-Enterprise (802.1X)",     def: "Per-user credentials via RADIUS. Auth Key Mgmt = 802.1X. Corporate standard.", weight: "high" },
+      { id: "2.9.b.4", term: "RADIUS server on WLC",         def: "Configured at Security → AAA → RADIUS → Authentication. WLC acts as NAS forwarding to RADIUS.", weight: "high" },
+      { id: "2.9.b.5", term: "PSK vs 802.1X decision",       def: "Small office, no RADIUS = PSK. Enterprise, per-user auth, audit trail = 802.1X.", weight: "high" }
+    ]
   },
 
   "2.9.c": {
@@ -2861,8 +3202,14 @@ window.subtopicContentD12 = {
       memory: "SSID → Interface → VLAN: each WLAN on the WLC is mapped to a <strong>dynamic interface</strong>, which is assigned to a specific VLAN. Example: Corporate WLAN → dynamic interface 'corporate-intf' → VLAN 10. Guest WLAN → dynamic interface 'guest-intf' → VLAN 20. The WLC's trunk to the switch carries all these VLANs. When a client connects to an SSID, the WLC places their traffic on the mapped VLAN. Mnemonic: 'WLAN → Interface → VLAN' = the wireless segmentation chain.",
       practice: "Packet Tracer lab (Jeremy's IT Lab Days 57-58): On the WLC: (1) Create dynamic interfaces: Controller → Interfaces → New. Name = 'corp-intf', VLAN ID = 10, IP/mask/gateway for the WLC on VLAN 10. Repeat for 'guest-intf' on VLAN 20. (2) Map WLANs to interfaces: WLAN 'Corporate' → General tab → Interface = 'corp-intf'. WLAN 'Guest' → Interface = 'guest-intf'. (3) Ensure the switch trunk to the WLC allows VLANs 10 and 20. (4) Connect wireless clients and verify they receive IPs from the correct DHCP scope (10.0.10.x vs 10.0.20.x). This lab demonstrates the complete SSID-to-VLAN segmentation workflow.",
       effort: "high",
-      meta: "Jeremy's IT Lab Days 57-58 cover WLAN-to-VLAN mapping on the WLC. Wendell Odom OCG Chapter 26 details dynamic interfaces and WLAN configuration. The exam tests: 'how does the WLC assign wireless clients to VLANs?' (WLAN → dynamic interface → VLAN), 'what must exist on the switch for this to work?' (trunk carrying the WLAN VLANs). This concept ties together WLC configuration (Domain 2.9) with VLAN/trunk knowledge (Domain 2.1-2.2)."
-    }
+      meta: "Jeremy's IT Lab Days 57-58 cover WLAN-to-VLAN mapping on the WLC. Wendell Odom OCG Chapter 26 details dynamic interfaces and WLAN configuration. The exam tests: 'how does the WLC assign wireless clients to VLANs?' (WLAN → dynamic interface → VLAN), 'what must exist on the switch for this to work?' (trunk carrying the WLAN VLANs). This concept ties together WLC configuration (Domain 2.9) with VLAN/trunk knowledge (Domain 2.1-2.2).",
+    },
+    micro: [
+      { id: "2.9.c.1", term: "Dynamic interface",            def: "WLC virtual interface tied to a VLAN. Has IP/mask/gateway on that VLAN. Like an SVI on a L3 switch.", weight: "high" },
+      { id: "2.9.c.2", term: "WLAN → Interface → VLAN",      def: "Mapping chain: WLAN's General tab selects interface → interface is tied to VLAN → client traffic flows on that VLAN.", weight: "high" },
+      { id: "2.9.c.3", term: "Switch trunk requirement",     def: "Trunk to the WLC must allow ALL dynamic interface VLANs (plus management).", weight: "high" },
+      { id: "2.9.c.4", term: "Wireless segmentation",        def: "Different SSIDs → different VLANs → different policies (ACLs, DHCP scope, QoS).", weight: "high" }
+    ]
   },
 
   "2.9.d": {
@@ -2879,8 +3226,15 @@ window.subtopicContentD12 = {
       memory: "WLC QoS profiles = precious metals ranking: <strong>Platinum > Gold > Silver > Bronze</strong>. Platinum = Voice (lowest latency, highest priority), Gold = Video (high priority for conferencing), Silver = Best Effort (DEFAULT for data WLANs), Bronze = Background (lowest priority — bulk downloads, updates). Mnemonic: 'Precious metals pay for priority — Platinum pays the most.' VoIP WLAN = always Platinum. Default data = Silver.",
       practice: "Create a QoS mapping flashcard (Jeremy's IT Lab Days 57-58): Platinum → Voice → DSCP EF (46). Gold → Video → DSCP AF41. Silver → Best Effort → DSCP 0 (default). Bronze → Background → DSCP AF11. On the WLC: each WLAN's QoS tab lets you assign a profile. Assign Platinum to the Voice WLAN, Silver to the Corporate WLAN, Bronze to the Guest WLAN. The exam scenario: 'a company deploys VoIP phones on Wi-Fi — which QoS profile?' = Platinum.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 57-58 mention WLC QoS profiles. Wendell Odom OCG Chapter 26. Simple memorization: Platinum=Voice, Gold=Video, Silver=Default, Bronze=Background. The exam asks one question: 'which profile for VoIP?' = Platinum. Know the order and the default (Silver). One flashcard is sufficient."
-    }
+      meta: "Jeremy's IT Lab Day 57-58 mention WLC QoS profiles. Wendell Odom OCG Chapter 26. Simple memorization: Platinum=Voice, Gold=Video, Silver=Default, Bronze=Background. The exam asks one question: 'which profile for VoIP?' = Platinum. Know the order and the default (Silver). One flashcard is sufficient.",
+    },
+    micro: [
+      { id: "2.9.d.1", term: "Platinum — Voice",             def: "Highest priority. Use for VoIP WLANs. Maps to AC_VO, DSCP EF (46).", weight: "high" },
+      { id: "2.9.d.2", term: "Gold — Video",                 def: "High priority. Video conferencing/streaming. Maps to AC_VI, DSCP AF41.", weight: "high" },
+      { id: "2.9.d.3", term: "Silver — Best Effort",         def: "DEFAULT for data WLANs. Maps to AC_BE, DSCP 0.", weight: "high" },
+      { id: "2.9.d.4", term: "Bronze — Background",          def: "Lowest priority. Guest WLANs, bulk/backup transfers. Maps to AC_BK, DSCP AF11.", weight: "high" },
+      { id: "2.9.d.5", term: "QoS profile assignment scheme", def: "VoIP → Platinum. Corporate data → Silver. Guest → Bronze. Protects voice even under congestion.", weight: "high" }
+    ]
   },
 
   "2.9.e": {
@@ -2896,8 +3250,14 @@ window.subtopicContentD12 = {
       memory: "Three advanced WLAN security features: <strong>Client Exclusion</strong> = 'three strikes, you're out' — after X failed authentication attempts, the client is temporarily blocked (prevents brute-force attacks). <strong>P2P Blocking</strong> = 'no talking between guests' — prevents wireless clients from communicating directly with each other (critical for guest networks where strangers should not see each other's devices). <strong>Session Timeout</strong> = 're-check your ID periodically' — forces clients to re-authenticate after a set time (ensures credentials are still valid, useful for guest access with time limits).",
       practice: "Create a use-case flashcard (Jeremy's IT Lab Days 57-58): Guest WLAN best practices = P2P blocking (client isolation) + session timeout (8-hour limit) + client exclusion (5 attempts). Corporate WLAN = client exclusion (prevent brute-force) + session timeout (optional, longer interval). The exam presents a scenario: 'how do you prevent guest wireless users from accessing each other?' = P2P blocking. 'How do you limit the duration of guest access?' = session timeout.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 58 mentions advanced WLAN settings. Wendell Odom OCG Chapter 26 covers per-WLAN security features. These are concept-level questions — the exam may present one of these features as an answer option in a 'which feature does X?' question. Know: client exclusion = brute-force prevention, P2P blocking = client isolation, session timeout = forced re-authentication. Not heavily tested but appears as wrong/right answer options."
-    }
+      meta: "Jeremy's IT Lab Day 58 mentions advanced WLAN settings. Wendell Odom OCG Chapter 26 covers per-WLAN security features. These are concept-level questions — the exam may present one of these features as an answer option in a 'which feature does X?' question. Know: client exclusion = brute-force prevention, P2P blocking = client isolation, session timeout = forced re-authentication. Not heavily tested but appears as wrong/right answer options.",
+    },
+    micro: [
+      { id: "2.9.e.1", term: "Client Exclusion",             def: "Auto-block client after N failed auth attempts. Prevents brute-force against PSK. Configurable timeout.", weight: "med" },
+      { id: "2.9.e.2", term: "P2P Blocking (client isolation)", def: "Prevents wireless clients on same WLAN from communicating directly. Best practice for guest networks.", weight: "high" },
+      { id: "2.9.e.3", term: "Session Timeout",              def: "Forces client to re-authenticate after a set time (e.g., 8h). Useful for guest day passes and key refresh.", weight: "med" },
+      { id: "2.9.e.4", term: "DTIM Period",                  def: "Delivery Traffic Indication Message interval. Controls multicast/broadcast delivery to sleeping clients.", weight: "low" }
+    ]
   }
 
 };
