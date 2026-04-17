@@ -3193,6 +3193,8 @@ window.SubtopicVisuals = (() => {
       .sv-wrap {
         opacity: 1;
         transform: translateY(0) scale(1);
+        position: relative;
+        cursor: pointer;
         transition: opacity 520ms cubic-bezier(.16, 1, .3, 1),
                     transform 520ms cubic-bezier(.16, 1, .3, 1),
                     box-shadow 220ms cubic-bezier(.16, 1, .3, 1);
@@ -3209,7 +3211,7 @@ window.SubtopicVisuals = (() => {
       .sv-wrap:hover {
         box-shadow: 0 6px 24px rgba(180, 83, 9, 0.08);
       }
-      .sv-wrap:focus-within {
+      .sv-wrap:focus-visible {
         outline: 2px solid var(--accent, #B45309);
         outline-offset: 2px;
       }
@@ -3223,24 +3225,179 @@ window.SubtopicVisuals = (() => {
       .sv-wrap:hover .sv-anim line[stroke] {
         stroke-width: 2;
       }
+
+      /* Play/pause badge — visible on hover only */
+      .sv-badge {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        background: rgba(180, 83, 9, 0.92);
+        color: #fff;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 10px;
+        font-family: 'JetBrains Mono', monospace;
+        opacity: 0;
+        transform: scale(0.8);
+        transition: opacity 200ms cubic-bezier(.16, 1, .3, 1),
+                    transform 200ms cubic-bezier(.16, 1, .3, 1);
+        pointer-events: none;
+        z-index: 3;
+      }
+      .sv-wrap:hover .sv-badge,
+      .sv-wrap:focus-visible .sv-badge,
+      .sv-wrap.sv-paused .sv-badge {
+        opacity: 1;
+        transform: scale(1);
+      }
+      .sv-wrap.sv-paused .sv-badge {
+        background: rgba(17, 24, 39, 0.9);
+      }
+
+      /* Hover caption — renderer type shown at bottom on hover */
+      .sv-caption {
+        position: absolute;
+        left: 12px;
+        right: 12px;
+        bottom: 6px;
+        padding: 6px 10px;
+        background: rgba(28, 25, 23, 0.96);
+        color: #fde68a;
+        font-size: 10px;
+        font-family: 'JetBrains Mono', monospace;
+        font-weight: 600;
+        border-radius: 6px;
+        opacity: 0;
+        transform: translateY(4px);
+        transition: opacity 220ms cubic-bezier(.16, 1, .3, 1),
+                    transform 220ms cubic-bezier(.16, 1, .3, 1);
+        pointer-events: none;
+        z-index: 3;
+        letter-spacing: 0.02em;
+      }
+      .sv-wrap:hover .sv-caption,
+      .sv-wrap:focus-visible .sv-caption {
+        opacity: 1;
+        transform: translateY(0);
+      }
+
       @media (prefers-reduced-motion: reduce) {
         .sv-wrap {
           opacity: 1 !important;
           transform: none !important;
           transition: none !important;
+          cursor: default;
         }
         .sv-anim * { animation: none !important; }
+        .sv-badge, .sv-caption { display: none; }
       }
     `;
     document.head.appendChild(s);
   }
 
+  // Short caption descriptions per renderer type
+  const CAPTIONS = {
+    'packet-flow':       'Packet routing through devices — L2 rewrites per hop, TTL−1',
+    'layer-stack':       'OSI protocol stack — headers added per layer',
+    'comparison':        'Side-by-side comparison',
+    'handshake':         'Message exchange with SEQ/ACK',
+    'hierarchy':         'Tree topology — data flow downward',
+    'encapsulation':     'Frame/packet/segment encapsulation',
+    'state-machine':     'State transitions — active state pulses',
+    'binary-breakdown':  'Binary ↔ decimal translation with mask boundary',
+    'shield':            'Defense-in-depth — threat deflected at perimeter',
+    'gauge':             'Utilization meter with threshold',
+    'protocol-timeline': 'Sequence diagram across time axis',
+    'subnet-ruler':      'Prefix split — network vs host bits',
+    'topology-live':     'Live network topology with traffic flow',
+    'routing-table':     'RIB lookup — longest-prefix match highlighted',
+    'acl-ladder':        'ACL evaluation — top-down, stop at first match',
+    'stp-tree':          'STP root election + blocked port',
+    'nat-table':         'Inside-local/global PAT translation table',
+    'cam-table':         'MAC address table population',
+    'lsa-flood':         'OSPF LSA flooding across area',
+    'qos-queues':        'LLQ/CBWFQ scheduler with WRED drops',
+    'trunk-tagging':     '802.1Q tag insert/strip at trunk boundaries',
+    'rf-heatmap':        '2.4 GHz AP coverage on channels 1/6/11',
+    'subnet-divide':     'VLSM parent → child subnets',
+    'dhcp-dora':         'DHCP DISCOVER · OFFER · REQUEST · ACK',
+    'tcp-window':        'TCP sliding window with loss/retransmit',
+    'etherchannel':      'Link aggregation — 4 physical → 1 logical',
+    'ospf-neighbor':     'OSPF neighbor FSM — Down → Full',
+    'spine-leaf':        'Data center spine-leaf fabric',
+    'hsrp-failover':     'Active/standby router with virtual gateway',
+    'dns-resolution':    'DNS recursive walk — root → TLD → authoritative',
+    'ipsec-tunnel':      'IPsec IKE phases + ESP encrypted tunnel',
+    'syslog-severity':   'Syslog 8 severity levels (0–7)',
+    'traceroute-ladder': 'Per-hop RTT from ICMP TTL exhaustion',
+    'cert-chain':        'X.509 trust chain root → intermediate → leaf',
+    'rstp-states':       'STP port states — Blocking → Forwarding',
+    'wire-packet':       'Wireshark-style packet decode per layer',
+    'arp-resolve':       'ARP broadcast request + unicast reply',
+    'cdp-neighbor':      'CDP neighbor table — Layer 2 discovery',
+    'port-security':     'Port security violation actions',
+    'eigrp-metric':      'EIGRP composite metric formula',
+    'vlan-colors':       'VLAN port assignment — broadcast domains',
+    'aaa-flow':          'AAA — authentication, authorization, accounting',
+    'api-request':       'REST HTTP verbs → CRUD + status codes',
+    'json-tree':         'JSON syntax breakdown with highlights',
+    'ipv6-slaac':        'IPv6 SLAAC — RS/RA + EUI-64',
+    'ospf-dr-bdr':       'OSPF DR/BDR election on broadcast segment',
+    'ntp-stratum':       'NTP stratum hierarchy',
+    'bgp-neighbor':      'BGP FSM — Idle → Established',
+    'ssh-handshake':     'SSH key exchange + authentication',
+    'radius-auth':       '802.1X EAP over RADIUS',
+    'pvst':              'PVST+ — separate root bridge per VLAN',
+    'osi-troubleshoot':  'OSI layer-by-layer probe results',
+    'cloud-stack':       'Cloud shared responsibility — IaaS/PaaS/SaaS',
+    'capwap-tunnel':     'CAPWAP control (5246) + data (5247)',
+    'tcp-flags':         'TCP flags byte decoded',
+    'ad-comparison':     'Administrative distance across protocols',
+    'cli-terminal':      'Cisco IOS CLI config snippet',
+    'ipv6-types':        'IPv6 unicast/multicast/special prefixes',
+    'router-on-stick':   'Inter-VLAN routing via sub-interfaces',
+    'wildcard-mask':     'Wildcard mask — 0=match, 1=any',
+    'mtu-fragmentation': 'Oversized packet fragmented at MTU',
+    'collision-broadcast': 'Collision vs broadcast domain boundaries',
+    'port-magic':        'Subnet magic number trick',
+    'waterfall-vlsm':    'VLSM — largest need first'
+  };
+
+  // Click-to-pause handler. One delegated listener on document.
+  let _clickInstalled = false;
+  function installClickToPause() {
+    if (_clickInstalled || typeof document === 'undefined') return;
+    _clickInstalled = true;
+    document.addEventListener('click', (e) => {
+      const wrap = e.target.closest && e.target.closest('.sv-wrap');
+      if (!wrap) return;
+      const svg = wrap.querySelector('svg.sv-anim');
+      if (!svg) return;
+      if (wrap.classList.contains('sv-paused')) {
+        try { svg.unpauseAnimations(); } catch {}
+        wrap.classList.remove('sv-paused');
+        const b = wrap.querySelector('.sv-badge');
+        if (b) b.textContent = '▶';
+      } else {
+        try { svg.pauseAnimations(); } catch {}
+        wrap.classList.add('sv-paused');
+        const b = wrap.querySelector('.sv-badge');
+        if (b) b.textContent = '⏸';
+      }
+    });
+  }
+
   // Kick off the DOM hooks as soon as the document is ready (non-blocking).
   if (typeof document !== 'undefined') {
+    const boot = () => { injectStyle(); initEntranceObserver(); installClickToPause(); };
     if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', () => { injectStyle(); initEntranceObserver(); });
+      document.addEventListener('DOMContentLoaded', boot);
     } else {
-      injectStyle(); initEntranceObserver();
+      boot();
     }
   }
 
@@ -3250,8 +3407,13 @@ window.SubtopicVisuals = (() => {
     }
     let svg = renderers[visual.type](visual.params || {});
     if (reducedMotion) svg = staticize(svg);
-    return `<div class="sv-wrap" tabindex="0" role="img" aria-label="${esc(visual.type)} diagram">${svg}</div>`;
+    const caption = CAPTIONS[visual.type] || visual.type;
+    return `<div class="sv-wrap" tabindex="0" role="img" aria-label="${esc(visual.type)} diagram · ${esc(caption)}">
+      <div class="sv-badge" aria-hidden="true">▶</div>
+      <div class="sv-caption" aria-hidden="true">${esc(caption)}</div>
+      ${svg}
+    </div>`;
   }
 
-  return { render, renderers, initEntranceObserver, injectStyle };
+  return { render, renderers, initEntranceObserver, injectStyle, CAPTIONS };
 })();
