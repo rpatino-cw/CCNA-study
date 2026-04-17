@@ -1,0 +1,335 @@
+{
+  "1.8.a": [
+    {
+      "id": "1.8.a.1",
+      "term": "IPv6 address length",
+      "weight": "high",
+      "info": "<p>An <strong>IPv6 address is exactly 128 bits long</strong>, four times the size of IPv4's 32 bits. That creates an address space of <strong>2^128 ≈ 340 undecillion (3.4 × 10^38)</strong> unique addresses — enough to assign roughly 6.67 × 10^17 addresses to every square millimeter on Earth's surface. This is not marketing hyperbole; it is why SLAAC can afford to burn half of every address (64 bits) on the interface ID.</p><p><strong>Why 128 bits?</strong> When IPv6 was designed in the 1990s, the IETF chose 128 bits specifically to allow hierarchical allocation with massive waste built in. ISPs get /32s (2^96 addresses — 79 octillion each), enterprises get /48s, LAN segments get /64s. Every level can waste 99.9% of its address space and still never run out. This is the opposite philosophy from IPv4, where every /30 is hoarded.</p><p><strong>Notation:</strong> Because writing 128 bits in binary is unreadable (128 ones and zeros), IPv6 uses <strong>hexadecimal</strong> — each hex digit represents 4 bits, so 128 bits = 32 hex digits grouped into 8 hextets of 4 digits each. Example full form: <code>2001:0DB8:0000:0000:0000:0000:0000:0001</code>. Each colon separates a 16-bit hextet.</p><p><strong>Exam trap:</strong> Students often answer 64 bits because so much emphasis is placed on the /64 LAN prefix. <strong>The full address is always 128 bits</strong> — /64 is just the standard split between network and host, not the total length. If you see a question asking the length of an IPv6 address, the answer is 128.</p>",
+      "visual": { "type": "binary-breakdown", "params": { "bits": "128 bits total = 8 hextets × 16 bits = 32 hex digits", "label": "IPv6 address length", "highlight": [0,1,2,3,4,5,6,7] } },
+      "hack": {
+        "memory": "IPv6 = 128 bits. Four times IPv4. Think: 32 × 4 = 128. 2^128 is so big that every grain of sand on Earth could have a billion addresses. Never confuse /64 (the LAN prefix) with the total length (128).",
+        "practice": "Flashcard: 'IPv6 address length?' → 128 bits → 32 hex characters → 8 hextets. Write out 3 full IPv6 addresses without shortening and count — each should have exactly 32 hex digits.",
+        "effort": "low",
+        "meta": "Guaranteed 1-question topic. Jeremy IT Lab Day 31. Wendell Odom OCG Chapter 22. Common trap: answer choices include 32 (IPv4), 64 (LAN prefix), 128 (correct), 256 (wrong) — pick 128."
+      }
+    },
+    {
+      "id": "1.8.a.2",
+      "term": "Hextet",
+      "weight": "high",
+      "info": "<p>A <strong>hextet</strong> (also called a quartet or 16-bit group) is one of the <strong>eight 16-bit groups</strong> in an IPv6 address, written as up to 4 hexadecimal digits and separated from other hextets by colons. In the address <code>2001:0DB8:0000:0000:0000:0000:0000:0001</code>, each of the 8 colon-separated groups is a hextet.</p><p><strong>Why 4 hex digits = 16 bits:</strong> Each hex digit represents 4 bits (0–F covers 16 values = 2^4). Four hex digits × 4 bits = 16 bits per hextet. Eight hextets × 16 bits = 128 bits total.</p><p><strong>Value range per hextet:</strong> <code>0000</code> to <code>FFFF</code>, which in decimal is 0 to 65,535. This is why the subnet ID field in a /48 organization allocation (bits 49–64) gives exactly 65,536 possible /64 subnets.</p><p><strong>Hextet examples:</strong> <code>2001</code> (first hextet of documentation range), <code>DB8</code> (second hextet when leading zero is dropped from <code>0DB8</code>), <code>FE80</code> (first hextet of link-local), <code>FFFF</code> (maximum value — often seen in EUI-64's <code>FFFE</code> insertion or in IPv4-mapped addresses).</p><p><strong>Terminology note:</strong> Cisco documentation uses hextet; RFCs sometimes say 16-bit group. Both mean the same thing. The exam may use either.</p>",
+      "visual": { "type": "binary-breakdown", "params": { "bits": "2001 : 0DB8 : 0000 : 0000 : 0000 : 0000 : 0000 : 0001", "label": "8 hextets, each 16 bits / 4 hex digits", "highlight": [0] } },
+      "hack": {
+        "memory": "Hextet = HEX group of 4 digits = 16 bits. 8 hextets, 8 colons... wait, only 7 colons separate 8 hextets. A full address has 7 colons (count them: A:B:C:D:E:F:G:H = 7 separators).",
+        "practice": "Count hextets in 5 sample addresses. Confirm each has exactly 8 groups of up to 4 hex digits. Convert one hextet (e.g., DB8) to decimal: D=13, B=11, 8=8 → 13×256 + 11×16 + 8 = 3512.",
+        "effort": "low",
+        "meta": "Vocabulary-level question. Jeremy IT Lab Day 31. Know the synonyms: hextet = quartet = 16-bit group. The exam may say 'how many hextets in an IPv6 address?' → 8."
+      }
+    },
+    {
+      "id": "1.8.a.3",
+      "term": "IPv6 header size",
+      "weight": "high",
+      "info": "<p>The <strong>IPv6 header is a fixed 40 bytes</strong>, dramatically simpler than IPv4's variable 20–60 byte header. This simplification was a deliberate design goal — it makes router forwarding faster because the parser knows exactly where every field lives, with no options to walk past.</p><p><strong>What IPv6 keeps:</strong> Version (4 bits), Traffic Class (8 bits, like IPv4 ToS/DSCP), Flow Label (20 bits, for flow-based QoS), Payload Length (16 bits), Next Header (8 bits, replaces Protocol), Hop Limit (8 bits, replaces TTL), Source Address (128 bits), Destination Address (128 bits). Total: exactly 40 bytes.</p><p><strong>What IPv6 removed:</strong></p><ul><li><strong>Header Checksum</strong> — gone. Layer 2 (Ethernet FCS) and Layer 4 (TCP/UDP checksums) already verify integrity. Routers no longer recompute a checksum on every hop.</li><li><strong>Fragmentation fields</strong> (Identification, Flags, Fragment Offset) — moved to an optional <strong>Fragment extension header</strong>. Only the source can fragment in IPv6; routers never fragment (they send ICMPv6 Packet Too Big instead).</li><li><strong>Options / Padding</strong> — moved to <strong>extension headers</strong> (Hop-by-Hop, Routing, Fragment, Authentication, ESP, Destination Options). This keeps the main header fixed-size.</li><li><strong>IHL (Internet Header Length)</strong> — unnecessary because the header is always 40 bytes.</li></ul><p><strong>Why this matters for routers:</strong> A router's fast path (ASIC or CEF) can parse an IPv6 header in one memory read because every field is at a known offset. IPv4's variable options field forced routers to walk a variable-length region, slowing per-packet processing. IPv6 is faster per packet at the cost of longer addresses.</p>",
+      "visual": { "type": "comparison", "params": { "left": { "label": "IPv4 Header", "items": ["20–60 bytes (variable)", "Has checksum (recomputed per hop)", "Router fragmentation allowed", "Options field (variable length)"] }, "right": { "label": "IPv6 Header", "items": ["Fixed 40 bytes", "No checksum", "Source-only fragmentation", "Extension headers instead of options"] } } },
+      "hack": {
+        "memory": "IPv6 header = fixed 40 bytes, lean and mean. Killed: checksum, options, router fragmentation. Mnemonic: 'Four zero, nothing to know' — 40 bytes and everything's at a predictable offset. TTL became Hop Limit. Protocol became Next Header. Options moved out entirely.",
+        "practice": "Flashcard the 8 IPv6 header fields in order. Compare side by side with the 13 IPv4 fields and mark which were removed or renamed. In Wireshark, capture an IPv6 ping and expand the header — verify you see exactly the 8 fields listed above and count 40 bytes.",
+        "effort": "low",
+        "meta": "Common exam question: 'What size is the IPv6 header?' = 40 bytes fixed. 'What was removed from IPv6 headers?' = checksum, fragmentation fields, options. Jeremy IT Lab Day 31. Wendell Odom OCG Chapter 22."
+      }
+    },
+    {
+      "id": "1.8.a.4",
+      "term": "No broadcast in IPv6",
+      "weight": "high",
+      "info": "<p><strong>IPv6 has no broadcast address.</strong> There is no equivalent of <code>255.255.255.255</code> or subnet directed broadcasts. Instead, IPv6 uses <strong>multicast</strong> (one-to-many, joined groups only) and <strong>anycast</strong> (one-to-nearest) to cover everything broadcast used to handle.</p><p><strong>Why this is an upgrade:</strong> Broadcasts are wasteful — every NIC on a segment must process the frame up to L3, even if the payload is irrelevant. On large flat networks with thousands of hosts, broadcast storms from ARP, DHCP, NetBIOS, and mDNS drown CPUs and saturate bandwidth. IPv6 multicast restricts traffic to devices that explicitly joined a group, dramatically reducing CPU waste on uninterested hosts.</p><p><strong>Replacements for common IPv4 broadcast use cases:</strong></p><ul><li><strong>ARP request (broadcast):</strong> Replaced by <strong>NS (Neighbor Solicitation)</strong> sent to the <strong>solicited-node multicast</strong> address <code>FF02::1:FFxx:xxxx</code> — only the target host (and collisions, rare) listens.</li><li><strong>All-hosts broadcast:</strong> Replaced by <code>FF02::1</code> (all-nodes link-local multicast). Every IPv6 node joins automatically.</li><li><strong>DHCP Discover (broadcast 255.255.255.255):</strong> Replaced by DHCPv6 Solicit to <code>FF02::1:2</code> (all DHCPv6 servers/relays).</li><li><strong>Routing protocol hellos:</strong> OSPFv3 uses <code>FF02::5</code> and <code>FF02::6</code>; EIGRP for IPv6 uses <code>FF02::A</code>.</li></ul><p><strong>Exam impact:</strong> Any answer choice that includes 'IPv6 broadcast' is wrong by definition. Watch for trick questions like 'which address does a host use to reach all nodes on the link?' → <code>FF02::1</code>, not a broadcast.</p>",
+      "visual": { "type": "shield", "params": { "items": ["No FF:FF:FF:FF:FF:FF broadcast", "FF02::1 = all nodes (multicast)", "FF02::2 = all routers (multicast)", "Solicited-node replaces ARP broadcast"], "color": "#8b5cf6" } },
+      "hack": {
+        "memory": "IPv6 = no broadcast, ever. Multicast replaces the yelling-at-everyone model with a subscription model — only devices that joined the group process the frame. Any answer saying 'IPv6 broadcast' is automatically wrong.",
+        "practice": "Make a table: IPv4 broadcast use → IPv6 replacement. ARP → NS to solicited-node. DHCP Discover → Solicit to FF02::1:2. All-hosts → FF02::1. This mapping is the fastest way to retain it.",
+        "effort": "low",
+        "meta": "Guaranteed exam question. Jeremy IT Lab Day 32. Wendell Odom OCG Chapter 23. Phrase cold: 'IPv6 replaces broadcast with multicast.'"
+      }
+    },
+    {
+      "id": "1.8.a.5",
+      "term": "SLAAC support",
+      "weight": "high",
+      "info": "<p><strong>SLAAC (Stateless Address Autoconfiguration)</strong> is a native IPv6 feature that lets a host generate its own valid global IPv6 address <strong>without any DHCP server</strong>. It is arguably the most valuable user-facing improvement over IPv4, where DHCP is mandatory for dynamic addressing.</p><p><strong>High-level process:</strong> The host sends a <strong>Router Solicitation (RS)</strong> to <code>FF02::2</code> asking any router for a prefix. The router replies with a <strong>Router Advertisement (RA)</strong> containing the /64 prefix, default gateway (the router's link-local), and lifetime. The host combines the /64 prefix with a self-generated 64-bit interface ID (via EUI-64 or random/RFC 7217) to form a complete 128-bit address, runs <strong>DAD (Duplicate Address Detection)</strong>, and starts using it.</p><p><strong>Zero DHCP server required</strong> for addressing. Stateless because no server keeps a binding table. Every host on a /64 picks its own interface ID from the 2^64 possible values — collision probability is astronomically small.</p><p><strong>Requirement — /64 prefix:</strong> SLAAC only works on /64 LAN segments because the interface ID must be exactly 64 bits. If a router advertises a /56 or /80, hosts cannot run SLAAC. This is why /64 is the non-negotiable standard LAN size in IPv6.</p><p><strong>DNS gap:</strong> Classic SLAAC provides the address and default gateway but no DNS server. Solutions: <strong>stateless DHCPv6</strong> (O-flag=1, host queries DHCPv6 for DNS only) or the <strong>RDNSS option</strong> in the RA (RFC 8106, newer but widely supported).</p>",
+      "visual": { "type": "handshake", "params": { "leftLabel": "Host", "rightLabel": "Router", "steps": ["RS → FF02::2", "← RA (prefix=2001:DB8:1::/64)", "Host picks interface ID", "DAD, then address is live"] } },
+      "hack": {
+        "memory": "SLAAC = Self-Leased Address Assignment (Claude's mnemonic). Host asks 'who's the router here?' (RS), router answers 'I am, here's the prefix' (RA), host invents its own interface ID, done. No DHCP, no state, no drama. Requires /64.",
+        "practice": "In Packet Tracer, enable ipv6 unicast-routing on R1 and assign 2001:DB8:1::1/64 to a LAN. Connect a PC set to auto-config. Run ipconfig on the PC — note both a link-local and a 2001:DB8:1:: global address generated without any DHCP.",
+        "effort": "medium",
+        "meta": "Core IPv6 concept. Jeremy IT Lab Day 33. Wendell Odom OCG Chapter 23. Know: SLAAC is stateless, requires /64, and does not provide DNS by itself."
+      }
+    },
+    {
+      "id": "1.8.a.6",
+      "term": "64/64 split",
+      "weight": "high",
+      "info": "<p>The <strong>64/64 split</strong> is the universal IPv6 LAN convention: the first 64 bits identify the <strong>network prefix</strong>, and the last 64 bits identify the <strong>interface ID</strong> (the host). This split is hardcoded in SLAAC and baked into nearly every IPv6 deployment guide.</p><p><strong>Why 64 bits for the host?</strong> It lets the interface ID be derived from a 48-bit MAC via EUI-64 (MAC → insert FFFE in middle → flip 7th bit → 64 bits) and gives each LAN 2^64 ≈ 1.8 × 10^19 possible hosts — more than the number of grains of sand on Earth. Collisions between randomly chosen interface IDs are statistically impossible.</p><p><strong>Why 64 bits for the network?</strong> ISPs hand out /32 to /48 blocks; organizations subnet those into /64s. Even a small /48 (standard site allocation) contains 65,536 /64 LANs — more than any enterprise needs.</p><p><strong>Concrete example:</strong> address <code>2001:0DB8:CAFE:0001:021A:2BFF:FE3C:4D5E/64</code>. Network prefix = <code>2001:0DB8:CAFE:0001::/64</code>. Interface ID = <code>021A:2BFF:FE3C:4D5E</code> (EUI-64 generated from MAC 00:1A:2B:3C:4D:5E).</p><p><strong>Exceptions — when /64 is not used:</strong></p><ul><li><strong>/127</strong> on point-to-point router-to-router links (RFC 6164 recommends this — 2 addresses, no waste)</li><li><strong>/128</strong> for loopback interfaces or specific host routes</li><li><strong>/48, /56</strong> at the allocation level (not on individual LAN segments)</li></ul><p>On every end-user LAN, VLAN, or wireless SSID, the prefix is /64. Period.</p>",
+      "visual": { "type": "binary-breakdown", "params": { "bits": "[Network Prefix — 64 bits] [Interface ID — 64 bits]", "label": "Standard /64 LAN split", "highlight": [0,1,2,3] } },
+      "hack": {
+        "memory": "64 up top (network), 64 down below (host). Every LAN is /64. Mnemonic: 'Sixty-four on the floor' — remember it, you'll get every SLAAC/LAN/subnet question right. The 64/64 split also means subnet math on CCNA is easy: you almost never compute it.",
+        "practice": "Given 2001:DB8:CAFE:0001::/64, identify the network (first 64 bits) and the host portion (last 64 bits) of a full address. Practice with 5 random EUI-64 derived addresses.",
+        "effort": "low",
+        "meta": "Foundational concept. Jeremy IT Lab Day 31. Wendell Odom OCG Chapter 22. Know: /64 is required for SLAAC; every LAN uses /64."
+      }
+    },
+    {
+      "id": "1.8.a.7",
+      "term": "Why IPv6",
+      "weight": "med",
+      "info": "<p>IPv6 exists because <strong>IPv4 ran out of public addresses</strong>. IPv4's 32-bit space allows ~4.3 billion addresses (2^32). Designed in 1981 for a research network, it was never planned for a world with 30+ billion connected devices.</p><p><strong>Timeline of exhaustion:</strong></p><ul><li><strong>Feb 2011:</strong> IANA handed out the last five /8 blocks to the RIRs (one per region). This was 'IANA exhaustion.'</li><li><strong>Apr 2011:</strong> APNIC (Asia-Pacific) exhausted its general pool.</li><li><strong>Sep 2012:</strong> RIPE (Europe) exhausted.</li><li><strong>Jun 2014:</strong> LACNIC (Latin America) exhausted.</li><li><strong>Sep 2015:</strong> ARIN (North America) exhausted.</li><li><strong>Nov 2019:</strong> RIPE assigned its final /22 — full exhaustion.</li></ul><p><strong>NAT as a band-aid:</strong> NAT (Network Address Translation) extended IPv4 by letting many private hosts share one public address. This works but <strong>breaks end-to-end connectivity</strong>: peer-to-peer apps, VoIP, gaming, IPsec, and server hosting all require workarounds (STUN, TURN, hole punching, UPnP, port forwarding). CGNAT (carrier-grade NAT) at ISPs adds a second NAT layer, making diagnosis even harder.</p><p><strong>IPv6 fixes the structural issue, not just the count.</strong> 340 undecillion addresses mean every device gets a globally routable public address. NAT becomes optional, end-to-end connectivity returns, and security policies can use actual endpoint addresses instead of rewritten ones. Additional wins: simpler header, no broadcast, built-in SLAAC, required IPsec (in the original spec), and multicast scopes.</p>",
+      "visual": { "type": "state-machine", "params": { "states": ["IPv4 designed 1981 (2^32 addresses)", "Internet booms 1990s–2000s", "NAT extends lifespan", "IANA exhausts 2011", "RIRs exhaust 2011–2019", "IPv6 adoption grows"], "active": 5, "transitions": true } },
+      "hack": {
+        "memory": "IPv4 = 4.3 billion addresses, gone by 2011. IPv6 = 340 undecillion, won't run out. NAT kept IPv4 alive but broke peer-to-peer. IPv6 restores end-to-end connectivity.",
+        "practice": "Quick quiz: when did IANA exhaust? Feb 2011. Why is NAT a workaround rather than a fix? It breaks end-to-end connectivity. What does IPv6 remove the need for? NAT.",
+        "effort": "low",
+        "meta": "Background/context question. Jeremy IT Lab Day 31. The exam may mention IPv4 exhaustion or NAT-traversal pain as the motivation for IPv6."
+      }
+    }
+  ],
+  "1.8.b": [
+    {
+      "id": "1.8.b.1",
+      "term": "Rule 1: Drop leading zeros",
+      "weight": "high",
+      "info": "<p><strong>Rule 1 of IPv6 shortening:</strong> within any hextet, <strong>remove leading zeros</strong> (zeros at the beginning of the group). You must keep at least one digit per hextet, so a group that is all zeros becomes <code>0</code>, not empty. Trailing and embedded zeros stay.</p><p><strong>Per-hextet examples:</strong></p><ul><li><code>0DB8</code> → <code>DB8</code> (drop one leading zero)</li><li><code>0001</code> → <code>1</code> (drop three leading zeros)</li><li><code>0000</code> → <code>0</code> (drop three, keep one — the hextet still exists)</li><li><code>00AB</code> → <code>AB</code> (drop two leading zeros)</li><li><code>DB80</code> → <code>DB80</code> (unchanged — <strong>trailing</strong> zeros are not leading)</li><li><code>0D0E</code> → <code>D0E</code> (drop leading zero; embedded zero stays)</li></ul><p><strong>Full address example:</strong> <code>2001:0DB8:0000:0000:0000:0000:0000:0001</code> after Rule 1 only → <code>2001:DB8:0:0:0:0:0:1</code>. Notice the colons and count of hextets are preserved — Rule 1 shortens within each group but does not merge groups. Merging is Rule 2's job.</p><p><strong>Common mistake:</strong> deleting a trailing zero. <code>DB80</code> is not the same as <code>DB8</code>. The value <code>DB80</code> = 56,192 decimal; <code>DB8</code> = 3,512 decimal. They differ by a factor of 16. Only drop leading zeros.</p><p><strong>Reverse (expanding):</strong> when you see <code>DB8</code>, pad it back to 4 digits with leading zeros → <code>0DB8</code>. Expansion is always exactly 4 hex digits per hextet.</p>",
+      "visual": { "type": "comparison", "params": { "left": { "label": "Full hextet", "items": ["0DB8", "0001", "0000", "00AB", "DB80"] }, "right": { "label": "After Rule 1", "items": ["DB8", "1", "0", "AB", "DB80 (unchanged)"] } } },
+      "hack": {
+        "memory": "Kill leading zeros only. 0DB8→DB8. 0001→1. 0000→0 (never empty). DB80 stays DB80 because those zeros are trailing. Keep at least one digit per hextet — it's still a valid group.",
+        "practice": "Take 10 hextets with leading zeros and shorten each. Then reverse — expand 10 shortened hextets back to 4 digits. The reverse direction is tested just as often.",
+        "effort": "low",
+        "meta": "Guaranteed exam mechanic. Jeremy IT Lab Day 31. Wendell Odom OCG Chapter 22. Common trick: an answer drops trailing zeros — automatically wrong."
+      }
+    },
+    {
+      "id": "1.8.b.2",
+      "term": "Rule 2: Double colon ::",
+      "weight": "high",
+      "info": "<p><strong>Rule 2:</strong> a <strong>single consecutive run of all-zero hextets</strong> can be replaced by <code>::</code> (two colons). The <code>::</code> represents one or more groups of <code>0000</code>. This is the dramatic shortening most people think of when they see IPv6.</p><p><strong>Applying Rule 2 after Rule 1:</strong></p><ul><li><code>2001:DB8:0:0:0:0:0:1</code> → <code>2001:DB8::1</code> (six zeros collapsed)</li><li><code>FE80:0:0:0:20C:29FF:FE12:3456</code> → <code>FE80::20C:29FF:FE12:3456</code> (three zeros collapsed)</li><li><code>0:0:0:0:0:0:0:1</code> → <code>::1</code> (loopback)</li><li><code>0:0:0:0:0:0:0:0</code> → <code>::</code> (unspecified)</li><li><code>FF02:0:0:0:0:0:0:1</code> → <code>FF02::1</code> (all-nodes multicast)</li></ul><p><strong>Must be consecutive and all-zero:</strong> <code>2001:DB8:0:1:0:0:0:1</code> cannot collapse the first <code>0</code> because it is a single zero between non-zeros. Only the run of three zeros in positions 5-7 can collapse → <code>2001:DB8:0:1::1</code>. You cannot break a non-zero hextet with <code>::</code>.</p><p><strong>Pick the longest run:</strong> If an address has two separate runs of zeros, <code>::</code> goes on the <strong>longer</strong> one. If they are equal length, convention says use the leftmost. Example: <code>2001:0:0:1:0:0:0:1</code> has a run of 2 and a run of 3 — use :: on the longer: <code>2001:0:0:1::1</code>.</p><p><strong>Valid address with just <code>::</code>:</strong> by itself, <code>::</code> means all-zeros (the unspecified address). <code>::1</code> is the loopback. Both are legal and common in IPv6.</p>",
+      "visual": { "type": "comparison", "params": { "left": { "label": "Before ::", "items": ["2001:DB8:0:0:0:0:0:1", "FE80:0:0:0:20C:29FF:FE12:3456", "0:0:0:0:0:0:0:1", "FF02:0:0:0:0:0:0:1"] }, "right": { "label": "After ::", "items": ["2001:DB8::1", "FE80::20C:29FF:FE12:3456", "::1", "FF02::1"] } } },
+      "hack": {
+        "memory": ":: = double colon, one run of zeros gone. Only consecutive all-zero groups. Pick the longest run. :: alone = all zeros (unspecified). ::1 = loopback.",
+        "practice": "Shorten 10 full addresses with both rules. Then expand 10 shortened ones. If you see :: applied in the middle of non-zero hextets, reject that answer.",
+        "effort": "medium",
+        "meta": "Tested on every IPv6 exam question. Jeremy IT Lab Day 31. Wendell Odom OCG Chapter 22."
+      }
+    },
+    {
+      "id": "1.8.b.3",
+      "term": ":: only ONCE",
+      "weight": "high",
+      "info": "<p>The double-colon <code>::</code> can appear <strong>only once per address</strong>. This restriction exists because <code>::</code> represents a variable number of zero hextets — if it appeared twice, there would be no way to know how many zeros each instance represents.</p><p><strong>The ambiguity problem:</strong> imagine <code>2001::1::5</code>. The address must total 8 hextets. You have <code>2001</code>, <code>1</code>, and <code>5</code> — 3 visible hextets. The 5 missing zero hextets could be split as 1+4, 2+3, 3+2, or 4+1 between the two <code>::</code> instances. There is no way to choose. So the rule: only one <code>::</code>.</p><p><strong>When an address has two separate runs of zeros, pick the longer:</strong></p><ul><li><code>2001:0:0:1:0:0:0:1</code> → runs of 2 and 3 → use :: on the longer → <code>2001:0:0:1::1</code>, not <code>2001::1:0:0:0:1</code></li><li><code>2001:0:0:1:0:0:1:1</code> → both runs are 2 → by convention use the leftmost → <code>2001::1:0:0:1:1</code></li><li><code>2001:1:0:0:1:0:0:1</code> → both runs of 2 → leftmost → <code>2001:1::1:0:0:1</code></li></ul><p><strong>Expanding addresses with one ::</strong>: count visible hextets, subtract from 8, fill :: with that many <code>0000</code> groups. Example: <code>2001:DB8::1</code> has 3 visible → 8 − 3 = 5 zero groups → <code>2001:0DB8:0000:0000:0000:0000:0000:0001</code>.</p><p><strong>Exam implication:</strong> any answer with two <code>::</code> is wrong by syntax. Always check the syntax validity first before thinking about the value.</p>",
+      "visual": { "type": "comparison", "params": { "left": { "label": "VALID (one ::)", "items": ["2001:DB8::1", "FE80::1", "::1", "FF02::1:FF00:0"] }, "right": { "label": "INVALID (two ::)", "items": ["2001::1::5 (ambiguous)", "::DB8::1 (illegal)"] } } },
+      "hack": {
+        "memory": "Two colons, one time. Two :: = ambiguous = invalid. If you spot two :: in an answer choice, eliminate it immediately.",
+        "practice": "Spot-check 20 candidate IPv6 addresses for syntax. Any with zero :: and fewer than 8 hextets? Invalid. Any with two ::? Invalid. Any with :: and exactly one consecutive run of zeros? Valid.",
+        "effort": "low",
+        "meta": "Classic exam trap. Jeremy IT Lab Day 31. Wendell Odom OCG Chapter 22. 'Which of these IPv6 addresses is valid?' — always eliminate the two-:: option first."
+      }
+    },
+    {
+      "id": "1.8.b.4",
+      "term": "Expanding ::",
+      "weight": "high",
+      "info": "<p>To <strong>expand a shortened IPv6 address</strong> back to its 128-bit form, reverse the two rules in the opposite order: first expand <code>::</code>, then pad leading zeros.</p><p><strong>Algorithm:</strong></p><ol><li>Count the <strong>visible hextets</strong> (groups between colons, ignoring the ::).</li><li>Subtract from 8 to get the number of zero hextets the :: represents.</li><li>Replace :: with that many <code>0000</code> groups, joined by colons.</li><li>Pad every visible hextet with leading zeros until each is 4 hex digits.</li></ol><p><strong>Example 1:</strong> <code>2001:DB8::1</code></p><ul><li>Visible hextets: 2001, DB8, 1 → 3 visible</li><li>Zero hextets needed: 8 − 3 = 5</li><li>After expanding ::: <code>2001:DB8:0000:0000:0000:0000:0000:1</code></li><li>After padding: <code>2001:0DB8:0000:0000:0000:0000:0000:0001</code></li></ul><p><strong>Example 2:</strong> <code>FE80::20C:29FF:FE12:3456</code></p><ul><li>Visible: FE80, 20C, 29FF, FE12, 3456 → 5 visible</li><li>Zero hextets: 8 − 5 = 3</li><li>Expanded: <code>FE80:0000:0000:0000:020C:29FF:FE12:3456</code></li></ul><p><strong>Example 3:</strong> <code>::1</code></p><ul><li>Visible: 1 → 1 visible</li><li>Zero hextets: 8 − 1 = 7</li><li>Expanded: <code>0000:0000:0000:0000:0000:0000:0000:0001</code></li></ul><p><strong>Edge case — :: alone:</strong> <code>::</code> has 0 visible hextets → 8 zero hextets → <code>0000:0000:0000:0000:0000:0000:0000:0000</code>.</p>",
+      "visual": { "type": "packet-flow", "params": { "nodes": ["Count visible hextets", "8 − visible = zeros", "Replace :: with that many 0000", "Pad each hextet to 4 digits"], "color": "#10b981" } },
+      "hack": {
+        "memory": "Expand :: = (8 − visible) zero hextets. 2001:DB8::1 → 3 visible → 5 zeros → 2001:0DB8:0000:0000:0000:0000:0000:0001. Then pad each group to 4 digits.",
+        "practice": "Expand 10 random shortened addresses by hand. Write out the visible count, the 8 − visible subtraction, the replacement, and the final padded form. Verify with an online calculator.",
+        "effort": "medium",
+        "meta": "Routine exam mechanic. Jeremy IT Lab Day 31. Wendell Odom OCG Chapter 22."
+      }
+    },
+    {
+      "id": "1.8.b.5",
+      "term": ":: alone",
+      "weight": "med",
+      "info": "<p><strong><code>::</code> by itself is the IPv6 unspecified address</strong> — all 128 bits are zero. It is the exact analogue of IPv4's <code>0.0.0.0</code> and is used in the same contexts.</p><p><strong>Full form:</strong> <code>0000:0000:0000:0000:0000:0000:0000:0000</code> / 128.</p><p><strong>Where it appears:</strong></p><ul><li><strong>DHCPv6 Solicit source:</strong> a host that does not yet have an address uses :: as its source when sending DHCPv6 messages.</li><li><strong>DAD (Duplicate Address Detection):</strong> the Neighbor Solicitation for DAD uses :: as the source because the host has not yet claimed the address it is testing.</li><li><strong>Static default routes:</strong> <code>ipv6 route ::/0 2001:DB8::1</code> matches any destination, same as <code>ip route 0.0.0.0 0.0.0.0</code> in IPv4.</li><li><strong>Socket bind:</strong> binding a server socket to :: means listen on all interfaces, same as binding to 0.0.0.0 in IPv4.</li></ul><p><strong>What it is NOT:</strong> :: is not loopback. It is not a valid destination on the wire. It cannot be assigned as an interface address. It only appears as a source or as a wildcard.</p><p><strong>Key distinctions:</strong></p><ul><li><code>::</code> = unspecified (0.0.0.0 equivalent, all zeros)</li><li><code>::1</code> = loopback (127.0.0.1 equivalent, last bit set)</li><li><code>::/0</code> = default route (any destination)</li><li><code>::/128</code> = the specific unspecified address as a route</li></ul>",
+      "visual": { "type": "comparison", "params": { "left": { "label": "IPv4", "items": ["0.0.0.0 — unspecified", "0.0.0.0/0 — default route", "Used as DHCP source before address"] }, "right": { "label": "IPv6", "items": [":: — unspecified", "::/0 — default route", "Used as DHCPv6/DAD source"] } } },
+      "hack": {
+        "memory": ":: alone = 0.0.0.0 of IPv6. All zeros. Source-only, never a destination. Used for DHCPv6 Solicit and DAD before a host has claimed an address.",
+        "practice": "Flashcard: :: means what? → unspecified address. When is it used? → as source during DHCPv6 Solicit or DAD. What's the default route in IPv6? → ::/0.",
+        "effort": "low",
+        "meta": "Simple concept but easy to confuse with ::1. Jeremy IT Lab Day 31. Wendell Odom OCG Chapter 22. Remember: :: = unspecified, ::1 = loopback."
+      }
+    },
+    {
+      "id": "1.8.b.6",
+      "term": "::1 (loopback)",
+      "weight": "high",
+      "info": "<p><strong><code>::1</code> is the IPv6 loopback address</strong> — the equivalent of IPv4's <code>127.0.0.1</code>. In expanded form it is <code>0000:0000:0000:0000:0000:0000:0000:0001</code> / 128. Every IPv6 stack has it built in, always reachable on the host itself.</p><p><strong>Use cases:</strong></p><ul><li>Testing the local TCP/IP stack: <code>ping6 ::1</code> (Linux) or <code>ping ::1</code> (modern OSes).</li><li>Binding localhost-only services (databases, admin interfaces) so they are unreachable from the network.</li><li>Application-layer sanity tests that do not require a NIC.</li></ul><p><strong>Characteristics:</strong></p><ul><li>Assigned to the <strong>loopback interface</strong> (<code>lo0</code> on Unix, the loopback pseudo-interface on Windows).</li><li>Prefix: <code>::1/128</code> — a single host address, not a range. IPv4 had an entire <code>127.0.0.0/8</code> block (16 million addresses); IPv6 gives loopback exactly one address.</li><li>Packets sent to ::1 never leave the host. They go down the TCP/IP stack and back up, staying entirely in kernel memory.</li><li>Not routable anywhere — routers must drop packets with source or destination ::1 if they arrive on an external interface.</li></ul><p><strong>Exam trap:</strong> mixing :: (unspecified, all zeros) with ::1 (loopback, last bit set). Read carefully. The question 'which IPv6 address is the loopback?' must be answered with ::1, not ::.</p>",
+      "visual": { "type": "hierarchy", "params": { "root": "IPv6 Loopback", "children": [{ "name": "::1/128 (single address)" }, { "name": "On loopback interface (lo0)" }, { "name": "Used for local stack tests: ping ::1" }, { "name": "IPv4 analogue: 127.0.0.1" }] } },
+      "hack": {
+        "memory": "::1 = loopback = 127.0.0.1 of IPv6. Remember: :: alone = all zeros (unspecified), ::1 = last bit set (loopback). ONE dot in ::1, ONE loopback address.",
+        "practice": "On your Mac or Linux box, run ping6 ::1 — verify reply from ::1. Then try ping :: — it fails (unspecified is not a valid destination). This hands-on confirms the distinction.",
+        "effort": "low",
+        "meta": "Common exam question. Jeremy IT Lab Day 31. Wendell Odom OCG Chapter 22. Know both :: and ::1 cold."
+      }
+    }
+  ],
+  "1.8.c": [
+    {
+      "id": "1.8.c.1",
+      "term": "/64 standard LAN prefix",
+      "weight": "high",
+      "info": "<p><strong>/64 is the universal IPv6 LAN prefix length.</strong> Every Ethernet segment, VLAN, and wireless SSID uses /64. This is not just convention — it is a <strong>requirement for SLAAC</strong>, because the interface ID produced by EUI-64 or RFC 7217 is exactly 64 bits long and must fit into the host portion.</p><p><strong>Size of a /64:</strong> 2^64 ≈ 1.8 × 10^19 addresses per segment. For comparison, the entire IPv4 internet has 2^32 ≈ 4.3 × 10^9 addresses. A single IPv6 /64 LAN contains roughly 4 billion IPv4 internets worth of addresses. Waste is intentional.</p><p><strong>Example usage:</strong></p><pre>interface GigabitEthernet0/0\n ipv6 address 2001:DB8:1:10::1/64\n no shutdown</pre><p>Hosts on that segment get addresses like <code>2001:DB8:1:10::/64</code> with any 64-bit interface ID they invent (EUI-64 or random).</p><p><strong>Why /64 specifically?</strong></p><ul><li>EUI-64 converts a 48-bit MAC to a 64-bit interface ID — no other prefix length fits.</li><li>RFC 4291 mandates /64 for all unicast subnets except ::/128 and ::1/128.</li><li>Uniform subnet size simplifies operations, scripting, and firewall rules.</li><li>Prevents subnet-math errors that plagued IPv4.</li></ul><p><strong>Exam lock:</strong> if asked what LAN prefix length to use for IPv6, answer /64 every time. If a question says SLAAC is configured but hosts are not getting addresses, check the prefix — it must be /64.</p>",
+      "visual": { "type": "binary-breakdown", "params": { "bits": "[Network /64] [Host /64]  — 2^64 hosts per LAN", "label": "Standard LAN prefix", "highlight": [0,1,2,3] } },
+      "hack": {
+        "memory": "/64 = the magic LAN number. Required by SLAAC. Waste half the address (64 host bits) because there are plenty. If the question asks LAN prefix length, answer /64 automatically.",
+        "practice": "Lab in Packet Tracer: try to configure SLAAC with a /80 prefix. The host will not auto-generate a global address. Switch to /64 and it works instantly. This proves the /64 requirement.",
+        "effort": "low",
+        "meta": "Universal IPv6 rule. Jeremy IT Lab Day 31. Wendell Odom OCG Chapter 22. Know: /64 for LANs, required for SLAAC."
+      }
+    },
+    {
+      "id": "1.8.c.2",
+      "term": "/48 site allocation",
+      "weight": "high",
+      "info": "<p>A <strong>/48 is the standard IPv6 block an ISP assigns to an organization or site</strong>. It gives the site 16 bits of internal subnetting space (bits 49–64), producing <strong>2^16 = 65,536 possible /64 LAN subnets</strong>. This is vastly more than any enterprise needs, which is the point — IPv6 deliberately over-allocates so organizations can build deep hierarchies without running out.</p><p><strong>Structure of a /48 → /64 hierarchy:</strong></p><ul><li><strong>First 48 bits</strong> (3 hextets): <strong>Global Routing Prefix</strong> — assigned by the ISP, fixed for the site. Example: <code>2001:0DB8:CAFE::/48</code>.</li><li><strong>Bits 49–64</strong> (4th hextet): <strong>Subnet ID</strong> — the organization controls this. 16 bits → 65,536 subnets.</li><li><strong>Last 64 bits</strong>: <strong>Interface ID</strong> — assigned per host.</li></ul><p><strong>Practical example:</strong> ISP gives Acme Corp <code>2001:DB8:CAFE::/48</code>.</p><ul><li>Engineering LAN: <code>2001:DB8:CAFE:<strong>0001</strong>::/64</code></li><li>Sales LAN: <code>2001:DB8:CAFE:<strong>0002</strong>::/64</code></li><li>Wireless Guest: <code>2001:DB8:CAFE:<strong>0010</strong>::/64</code></li><li>Point-to-point to R2: <code>2001:DB8:CAFE:<strong>FFFE</strong>::/127</code></li><li>Maximum subnet: <code>2001:DB8:CAFE:<strong>FFFF</strong>::/64</code></li></ul><p><strong>RIR policy:</strong> ARIN and RIPE typically allocate <strong>/32 to ISPs</strong>, who then hand out <strong>/48 to end-sites</strong> and <strong>/56 or /60 to residential customers</strong>. Some providers give residential users a full /48. Organizations with multiple geographic locations may get a /44 or /40 to subnet further by site.</p><p><strong>Why 65,536 subnets is more than enough:</strong> most enterprises have dozens to hundreds of VLANs, not thousands. The /48 gives a huge safety margin for growth, mergers, and structured subnet planning (e.g., use the first hex digit of the subnet ID to encode building number).</p>",
+      "visual": { "type": "hierarchy", "params": { "root": "/48 Site Allocation (from ISP)", "children": [{ "name": "Global Routing Prefix 48 bits (fixed)", "children": [{ "name": "Subnet ID 16 bits (org controls) = 65,536 options", "children": [{ "name": "/64 per LAN (interface ID 64 bits)" }] }] }] } },
+      "hack": {
+        "memory": "/48 = site handoff from ISP. 16 bits of subnet space = 65,536 LANs. Mnemonic: '48 at the door (ISP handoff), 64 on the floor (per LAN).' You rarely need more than a /48.",
+        "practice": "Given 2001:DB8:CAFE::/48, write out 5 distinct /64 subnets. Identify which hextet you are varying. Calculate the total number of /64s available (2^16 = 65,536).",
+        "effort": "low",
+        "meta": "Common exam concept. Jeremy IT Lab Day 32. Wendell Odom OCG Chapter 22. Know: /48 is the standard site size, yields 65,536 /64 subnets."
+      }
+    },
+    {
+      "id": "1.8.c.3",
+      "term": "/127 point-to-point",
+      "weight": "high",
+      "info": "<p><strong>/127 is the recommended prefix length for point-to-point links between routers</strong> (RFC 6164). It provides exactly <strong>2 usable addresses</strong>, perfect for a transit link that will only ever have 2 endpoints. This is the IPv6 analogue of IPv4's <code>/30</code>, which also gives 2 usable addresses (4 total minus network and broadcast).</p><p><strong>Why /127 instead of /64 on P2P links?</strong></p><ul><li><strong>No SLAAC needed</strong> on router-to-router links — routers are manually configured, so the /64-for-SLAAC rule does not apply.</li><li><strong>Prevents neighbor discovery exhaustion attack</strong> (RFC 6164 motivation). On a /64 P2P link, an attacker can scan enough addresses to overflow the neighbor cache and cause a denial of service. /127 leaves only 2 addresses, making the attack impossible.</li><li><strong>Cleaner operationally</strong> — 2 addresses instead of 2^64 means no ambiguity about which addresses exist on the link.</li></ul><p><strong>Configuration example:</strong></p><pre>R1:\ninterface GigabitEthernet0/1\n ipv6 address 2001:DB8:0:FFFE::0/127\n\nR2:\ninterface GigabitEthernet0/1\n ipv6 address 2001:DB8:0:FFFE::1/127</pre><p><strong>Difference from IPv4 /30:</strong> IPv4's /30 has 4 addresses (network, host1, host2, broadcast). /127 has only 2 addresses (both usable as hosts) — IPv6 has no broadcast and does not reserve the all-zeros host address. Both endpoints use one address each.</p><p><strong>/126 is occasionally seen</strong> in older deployments (4 addresses, like /30). Modern best practice is /127 for two-router links.</p>",
+      "visual": { "type": "comparison", "params": { "left": { "label": "IPv4 P2P", "items": ["/30 = 4 addresses", "Network + 2 hosts + broadcast"] }, "right": { "label": "IPv6 P2P", "items": ["/127 = 2 addresses (both usable)", "RFC 6164 recommended"] } } },
+      "hack": {
+        "memory": "/127 = IPv6's /30 for router-to-router links. Exactly 2 addresses. RFC 6164. No SLAAC on infrastructure links — so /64 rule does not apply.",
+        "practice": "Configure a /127 between two routers in Packet Tracer. Verify both interfaces come up/up. Use show ipv6 route to confirm the connected /127 and local /128 show up.",
+        "effort": "low",
+        "meta": "Tested at a conceptual level. Jeremy IT Lab Day 32. Wendell Odom OCG Chapter 22. Know: /127 for P2P, /64 for LANs."
+      }
+    },
+    {
+      "id": "1.8.c.4",
+      "term": "/128 host route",
+      "weight": "high",
+      "info": "<p><strong>/128 identifies a single IPv6 host</strong> — a prefix with all 128 bits specified leaves no room for any other addresses. It is the IPv6 equivalent of IPv4's <code>/32</code>.</p><p><strong>Common uses:</strong></p><ul><li><strong>Loopback interfaces on routers</strong> — <code>interface Loopback0</code> with a /128 address gives the router a stable identifier for OSPFv3 router ID, BGP neighbor source, and management.</li><li><strong>Local routes (L entries)</strong> in the routing table — when you configure a /64 on an interface, the router also installs a /128 for its specific address so packets to the router itself are processed locally.</li><li><strong>Static host routes</strong> — pinning traffic for one specific address to a specific next-hop: <code>ipv6 route 2001:DB8::5/128 2001:DB8:1::2</code>.</li><li><strong>Anycast deployments</strong> — the same /128 address is configured on multiple devices; the network routes to the nearest.</li></ul><p><strong>Example — loopback on a router:</strong></p><pre>interface Loopback0\n ipv6 address 2001:DB8:0:0::1/128</pre><p>This appears in <code>show ipv6 route</code> as:</p><pre>L 2001:DB8::1/128 is directly connected, Loopback0</pre><p><strong>Why /128 matters on CCNA:</strong> understanding L routes (local /128s) is critical when reading <code>show ipv6 route</code>. Every time you see an L entry, it is a /128 pointing to the router's own interface address. If your router has 3 IPv6 interfaces configured, you will see 3 L /128 entries plus 3 C /64 (or whatever prefix) entries.</p>",
+      "visual": { "type": "comparison", "params": { "left": { "label": "IPv4", "items": ["/32 = single host", "Loopback: 127.0.0.1/32"] }, "right": { "label": "IPv6", "items": ["/128 = single host", "Loopback: ::1/128", "Router L route: /128 per interface"] } } },
+      "hack": {
+        "memory": "/128 = single host, IPv6's /32. Every router interface generates an L /128 in the routing table. Loopback interfaces also use /128.",
+        "practice": "In Packet Tracer, configure interface Loopback0 with a /128 address. Run show ipv6 route — verify the L /128 entry. Also look at the /128 L entries for physical interfaces.",
+        "effort": "low",
+        "meta": "Routine exam concept. Jeremy IT Lab Day 32. Wendell Odom OCG Chapter 22. /128 = host route, like IPv4 /32."
+      }
+    },
+    {
+      "id": "1.8.c.5",
+      "term": "No subnet math (usually)",
+      "weight": "med",
+      "info": "<p>One of the biggest practical advantages of IPv6 on the CCNA: <strong>you almost never perform subnet math</strong>. The /64 convention eliminates the variable-length subnet problems that dominate IPv4 study.</p><p><strong>What IPv4 required you to master:</strong></p><ul><li>Calculate subnet ranges from variable masks (/25, /26, /27, /28, /29, /30)</li><li>Determine the network, broadcast, and usable host range for each subnet</li><li>Apply VLSM (Variable-Length Subnet Masks) to conserve addresses</li><li>Summarize routes across bit boundaries</li><li>Spot overlapping subnets</li></ul><p><strong>What IPv6 requires:</strong></p><ul><li>Know the universal /64 for LANs</li><li>Identify which hextet varies between adjacent subnets (usually bit 49–64 = 4th hextet in a /48 allocation)</li><li>Recognize /48, /64, /127, /128 by their typical use case</li></ul><p><strong>Why this works:</strong> IPv6 has so many addresses that waste is free. You never need to fit 30 hosts into a /27 to save addresses. Every LAN gets a /64 regardless of size. Point-to-point links get /127. Loopbacks get /128. That is the whole subnetting story.</p><p><strong>When subnet math does appear:</strong></p><ul><li>Identifying the subnet a host belongs to: trim the address to the prefix length. Example: <code>2001:DB8:CAFE:1:1234::/64</code> belongs to <code>2001:DB8:CAFE:1::/64</code>.</li><li>Recognizing solicited-node multicast: <code>FF02::1:FF</code> + last 24 bits of the unicast.</li><li>EUI-64 conversion of a MAC.</li></ul><p><strong>Exam implication:</strong> questions asking you to identify the subnet ID or the number of available subnets are straightforward compared to IPv4. If a question presents 8 overlapping prefixes and asks for the best match, that is longest-prefix-match, not subnet math per se.</p>",
+      "visual": { "type": "comparison", "params": { "left": { "label": "IPv4 subnetting", "items": ["VLSM, /25–/30 LANs", "Calculate network/broadcast/hosts", "Conserve addresses carefully"] }, "right": { "label": "IPv6 subnetting", "items": ["/64 always for LANs", "/127 P2P, /128 host", "No conservation needed"] } } },
+      "hack": {
+        "memory": "IPv6 subnet math = 'just use /64.' No wildcard gymnastics, no VLSM puzzles. Every LAN is /64, P2P is /127, single host is /128. Done.",
+        "practice": "Quiz: LAN prefix? /64. Router-to-router P2P? /127. Loopback? /128. Site from ISP? /48. Confirm you can answer all four in under 5 seconds each.",
+        "effort": "low",
+        "meta": "Relief topic after IPv4 subnetting. Jeremy IT Lab Day 32. Wendell Odom OCG Chapter 22. Remember: IPv6 CCNA rarely asks you to compute subnets."
+      }
+    }
+  ],
+  "1.8.d": [
+    {
+      "id": "1.8.d.1",
+      "term": "SLAAC",
+      "weight": "high",
+      "info": "<p><strong>SLAAC (Stateless Address Autoconfiguration, RFC 4862)</strong> is the IPv6 feature that lets a host create its own globally routable address without any DHCP server. The host combines the /64 prefix learned from a Router Advertisement with a self-chosen 64-bit interface ID (EUI-64 or RFC 7217 random). The result is a complete 128-bit address that is valid for global use.</p><p><strong>Stateless means:</strong> no server keeps track of who got which address. No binding table, no leases, no reservations. Each host is responsible for picking a unique interface ID and running DAD to confirm uniqueness.</p><p><strong>Full SLAAC flow:</strong></p><ol><li><strong>Host boots</strong> and generates a link-local address (FE80::/10 + interface ID) automatically — this always happens, SLAAC or not.</li><li><strong>Host sends RS</strong> (Router Solicitation, ICMPv6 Type 133) to FF02::2.</li><li><strong>Router replies with RA</strong> (Router Advertisement, ICMPv6 Type 134) containing: /64 prefix, default gateway (router's FE80:: address), flags (A=1 for SLAAC, M/O for DHCPv6 hints), MTU, lifetime.</li><li><strong>Host combines</strong> prefix + interface ID = candidate address.</li><li><strong>Host runs DAD</strong> by sending NS for its own tentative address. If no NA reply, address is unique.</li><li><strong>Host claims</strong> the address and adds the default route via the router's link-local.</li></ol><p><strong>When SLAAC is used:</strong> default on most Linux, macOS, Windows, iOS, Android, IoT devices for IPv6 addressing. It is the preferred method unless DHCPv6 is explicitly required by policy.</p><p><strong>Exam keywords:</strong> stateless, no DHCP, RA provides prefix, host generates interface ID, requires /64.</p>",
+      "visual": { "type": "handshake", "params": { "leftLabel": "Host", "rightLabel": "Router", "steps": ["Generate FE80:: link-local", "RS → FF02::2", "← RA (prefix=2001:DB8:1::/64, A=1)", "Combine prefix + interface ID", "DAD → no reply → address live"] } },
+      "hack": {
+        "memory": "SLAAC = Stateless, no server tracking. Router gives the prefix; host picks the interface ID. Requires /64. Default on nearly all modern client OSes.",
+        "practice": "In Packet Tracer, enable ipv6 unicast-routing, assign 2001:DB8:1::1/64 to a LAN, connect a PC set to autoconfig. Run ipconfig on the PC — confirm an auto-generated 2001:DB8:1:: address with no DHCP server present.",
+        "effort": "medium",
+        "meta": "Core IPv6 topic. Jeremy IT Lab Day 33. Wendell Odom OCG Chapter 23. Know: SLAAC = stateless, needs /64, no DHCP."
+      }
+    },
+    {
+      "id": "1.8.d.2",
+      "term": "Router Solicitation (RS)",
+      "weight": "high",
+      "info": "<p>A <strong>Router Solicitation (RS)</strong> is an ICMPv6 <strong>Type 133</strong> message that a host sends when it first connects to a network to ask: 'Are there any routers here? Send me an RA.' It is the trigger for faster network bootstrapping — without RS, the host would have to wait for the next periodic RA (up to 200 seconds by default).</p><p><strong>Destination:</strong> <code>FF02::2</code> — the <strong>all-routers multicast</strong> link-local address. Only routers listen on this group; other hosts ignore the frame. This is more efficient than IPv4's DHCP Discover broadcast, which every device must process.</p><p><strong>Source:</strong> typically the host's link-local address (FE80::). If the host has not yet generated its link-local, it may use :: (unspecified) as the source.</p><p><strong>Payload:</strong> minimal — just an ICMPv6 header plus optional options (source link-layer address, etc.). Size is tiny, a few dozen bytes.</p><p><strong>When RS is sent:</strong></p><ul><li>Host boots or activates the interface (wake from sleep, cable plug-in, Wi-Fi connect).</li><li>Host detects that link-layer connectivity was restored after a loss.</li><li>Host needs to refresh configuration and does not want to wait for the next RA.</li></ul><p><strong>Response:</strong> every router on the link replies with an RA (not multicast-replicated, each router sends its own). Hosts prefer the first valid RA or the one with the longest matching prefix.</p><p><strong>Exam spec:</strong> know the type number (133), the destination (FF02::2), and the purpose (trigger RA).</p>",
+      "visual": { "type": "packet-flow", "params": { "nodes": ["Host boots", "Send RS (Type 133)", "→ FF02::2 (all routers)", "Routers respond with RA"], "color": "#3b82f6" } },
+      "hack": {
+        "memory": "RS = Router Solicit = 'Roll call, routers!' ICMPv6 Type 133. Destination FF02::2 (all routers). Host sends when it wants an immediate RA.",
+        "practice": "Flashcard RS: Type=133, destination=FF02::2, purpose=ask for RA. In Wireshark, capture a Linux boot cycle — you should see exactly one RS before the first RA arrives.",
+        "effort": "low",
+        "meta": "Basic NDP fact. Jeremy IT Lab Day 32. Wendell Odom OCG Chapter 23. Memorize: RS=133, FF02::2."
+      }
+    },
+    {
+      "id": "1.8.d.3",
+      "term": "Router Advertisement (RA)",
+      "weight": "high",
+      "info": "<p>A <strong>Router Advertisement (RA)</strong> is an ICMPv6 <strong>Type 134</strong> message a router sends to inform hosts of network configuration. RAs are the backbone of IPv6 autoconfiguration — they carry everything a host needs to pick an address (via SLAAC) and find the default gateway.</p><p><strong>When RAs are sent:</strong></p><ul><li><strong>In response to an RS</strong> (unicast or multicast depending on the implementation)</li><li><strong>Periodically</strong> as unsolicited announcements. Default interval on Cisco routers: random between 200 seconds (upper bound) and 0.5× that lower. Tunable with <code>ipv6 nd ra interval</code>.</li></ul><p><strong>Destination:</strong> typically <code>FF02::1</code> (all-nodes) for periodic RAs; may be unicast to the soliciting host in response to an RS.</p><p><strong>Source:</strong> the router's <strong>link-local address</strong> (FE80::). Hosts use this as the default gateway — not the router's global address.</p><p><strong>Content of an RA:</strong></p><ul><li><strong>Prefix</strong> and <strong>prefix length</strong> (e.g., 2001:DB8:1::/64)</li><li><strong>Default router lifetime</strong> (0 = not a default router; non-zero = valid as gateway)</li><li><strong>M-flag</strong> (Managed Address Configuration — use DHCPv6 for address)</li><li><strong>O-flag</strong> (Other Configuration — use DHCPv6 for DNS etc.)</li><li><strong>A-flag</strong> (Address Autoconfiguration — use SLAAC with this prefix)</li><li><strong>L-flag</strong> (On-link — prefix is reachable without a router)</li><li><strong>MTU option</strong> and various lifetimes</li><li><strong>Optional RDNSS</strong> (Recursive DNS Server, RFC 8106)</li></ul><p><strong>Key exam fact:</strong> the default gateway is the <strong>router's link-local</strong>, learned from the RA source. Even if the host uses stateful DHCPv6 for addressing, the gateway still comes from the RA.</p>",
+      "visual": { "type": "packet-flow", "params": { "nodes": ["Router periodic timer or RS received", "Send RA (Type 134)", "Destination FF02::1 or unicast", "Hosts read prefix, flags, gateway"], "color": "#8b5cf6" } },
+      "hack": {
+        "memory": "RA = Router Announcement = 'Here's my prefix and I am your gateway.' Type 134. Sent to FF02::1. Default gateway = RA source (router's FE80::). Periodic every ~200 seconds.",
+        "practice": "In Packet Tracer, run show ipv6 interface on a router — notice it lists RA interval, lifetime, and prefix advertised. Change the interval with ipv6 nd ra interval and verify.",
+        "effort": "medium",
+        "meta": "Critical NDP concept. Jeremy IT Lab Day 33. Wendell Odom OCG Chapter 23. Know: RA=134, carries prefix + flags + gateway, default gateway is the router's link-local."
+      }
+    },
+    {
+      "id": "1.8.d.4",
+      "term": "EUI-64 interface ID",
+      "weight": "high",
+      "info": "<p><strong>EUI-64 (Extended Unique Identifier, 64-bit)</strong> is the classic method to derive a <strong>64-bit interface ID</strong> from a <strong>48-bit MAC address</strong>. It was the original SLAAC interface ID scheme and is still tested heavily on the CCNA despite being replaced by RFC 7217 privacy addressing on modern OSes.</p><p><strong>Three-step conversion:</strong></p><ol><li><strong>Split</strong> the 48-bit MAC in half: first 24 bits (OUI — vendor) and last 24 bits (device ID).</li><li><strong>Insert <code>FFFE</code></strong> (16 bits) between the two halves, expanding from 48 to 64 bits.</li><li><strong>Flip the 7th bit</strong> (the Universal/Local bit) of the first byte. XOR with 0x02.</li></ol><p><strong>Worked example:</strong> MAC <code>00:1A:2B:3C:4D:5E</code></p><ul><li>Split: <code>00:1A:2B</code> | <code>3C:4D:5E</code></li><li>Stuff: <code>00:1A:2B:<strong>FF:FE</strong>:3C:4D:5E</code> = <code>001A:2BFF:FE3C:4D5E</code></li><li>Flip 7th bit of 00: <code>00000000</code> → <code>00000010</code> = <code>02</code> hex</li><li>Final: <code>021A:2BFF:FE3C:4D5E</code></li></ul><p>Combined with prefix <code>2001:DB8:1::/64</code>, full address: <code>2001:DB8:1::21A:2BFF:FE3C:4D5E</code>.</p><p><strong>Why the bit flip?</strong> In the EUI-64 spec, bit 7 of byte 1 is the U/L bit: 0 = Locally administered, 1 = Universally administered. MAC addresses reuse this bit with inverted semantics: 0 = Universal (burned-in), 1 = Local. Flipping it converts a burned-in MAC (bit 7 = 0) to the EUI-64 convention (bit 7 = 1).</p><p><strong>Identifying EUI-64 interface IDs:</strong> presence of <code>FF:FE</code> in the middle (bits 25–40 of the interface ID) is a giveaway.</p>",
+      "visual": { "type": "encapsulation", "params": { "layers": [{ "label": "MAC: 00:1A:2B:3C:4D:5E", "color": "#3b82f6" }, { "label": "Split + stuff FFFE: 001A:2BFF:FE3C:4D5E", "color": "#8b5cf6" }, { "label": "Flip 7th bit: 021A:2BFF:FE3C:4D5E", "color": "#10b981" }] } },
+      "hack": {
+        "memory": "EUI-64 = Split, Stuff, Flip. Split MAC in half, stuff FFFE in the middle, flip the 7th bit (XOR first byte with 0x02). 00→02, AA→A8, 1A→18. Look for FFFE in the middle to spot an EUI-64 ID.",
+        "practice": "Do 5 EUI-64 conversions by hand: MAC→interface ID. Verify with an online calculator. Also practice reverse: given 021A:2BFF:FE3C:4D5E, what was the original MAC? Flip first byte back (02→00), remove FFFE → 00:1A:2B:3C:4D:5E.",
+        "effort": "high",
+        "meta": "Guaranteed exam question. Jeremy IT Lab Day 32. Wendell Odom OCG Chapter 23. Master the XOR-with-0x02 shortcut for the 7th-bit flip."
+      }
+    },
+    {
+      "id": "1.8.d.5",
+      "term": "Privacy extensions",
+      "weight": "med",
+      "info": "<p><strong>Privacy extensions (RFC 4941 and RFC 7217)</strong> generate a <strong>randomized interface ID</strong> instead of the MAC-derived EUI-64 value. This prevents an observer from tracking a device across networks by its constant EUI-64 interface ID.</p><p><strong>The privacy problem with EUI-64:</strong> if your laptop's interface ID is always <code>021A:2BFF:FE3C:4D5E</code> (derived from the burned-in MAC), any website or network you visit can correlate sessions by that ID. Connecting to airport Wi-Fi, then home, then office — all three networks see the same interface ID, making you uniquely trackable.</p><p><strong>Two approaches:</strong></p><ul><li><strong>RFC 4941 (Temporary addresses):</strong> host generates random interface IDs that rotate periodically (hours to days). Old addresses remain valid briefly to avoid breaking active connections. Outgoing connections prefer the newest temporary address.</li><li><strong>RFC 7217 (Stable randomized):</strong> host generates a pseudo-random interface ID that is stable for a given (prefix, interface) combination but changes when either changes. Combines privacy (no MAC leak) with stability (same LAN = same address across reboots).</li></ul><p><strong>Default behavior today:</strong></p><ul><li><strong>Windows 10/11:</strong> uses both RFC 4941 (temporary) and RFC 7217 (stable) by default</li><li><strong>macOS, iOS:</strong> RFC 7217 default, RFC 4941 temporary supplement</li><li><strong>Linux (modern):</strong> RFC 7217 default, can enable RFC 4941</li><li><strong>Android:</strong> RFC 7217 default</li></ul><p><strong>CCNA context:</strong> you still need to know EUI-64 conversion for the exam, but understand that real-world SLAAC interfaces rarely show EUI-64 IDs on modern client devices. Routers and servers typically still use EUI-64 or static IDs.</p>",
+      "visual": { "type": "comparison", "params": { "left": { "label": "EUI-64", "items": ["Deterministic from MAC", "Same across networks", "Privacy risk: trackable", "Used on routers/servers"] }, "right": { "label": "Privacy Extensions", "items": ["Random or pseudo-random", "Rotates or stable per prefix", "No MAC leak", "Default on modern clients"] } } },
+      "hack": {
+        "memory": "Privacy extensions = random interface IDs to prevent MAC-based tracking. RFC 4941 rotates, RFC 7217 stable-per-prefix. Modern clients default to these, NOT EUI-64.",
+        "practice": "On your laptop, check ipconfig (Windows) or ifconfig (Linux/macOS) for IPv6 addresses. Look for an address without FFFE in the middle — that is a privacy-extension address. Look also for a temporary suffix.",
+        "effort": "low",
+        "meta": "Modern context. Jeremy IT Lab Day 32. Know privacy extensions exist and why, but exam still tests EUI-64 mechanics."
+      }
+    },
+    {
+      "id": "1.8.d.6",
+      "term": "DAD (Duplicate Address Detection)",
+      "weight": "high",
+      "info": "<p><strong>DAD (Duplicate Address Detection, RFC 4862)</strong> is a mandatory IPv6 mechanism that verifies no other node on the link already uses an address before a host starts using it. Every IPv6 address — link-local, global, SLAAC-generated, DHCPv6-assigned, manually configured — must pass DAD before becoming active.</p><p><strong>Process:</strong></p><ol><li>Host has a <strong>tentative</strong> address it wants to use.</li><li>Host sends an <strong>NS (Neighbor Solicitation, ICMPv6 Type 135)</strong> for its own tentative address.</li><li>Source of the NS is <code>::</code> (unspecified) — the host has not yet claimed any address to send from.</li><li>Destination is the <strong>solicited-node multicast</strong> address derived from the tentative address (<code>FF02::1:FFxx:xxxx</code>).</li><li>If any other node responds with an NA, the address is a duplicate — the host must abandon it and try another.</li><li>If no response arrives within the DAD timer (default 1 second, configurable), the address is unique and moves from <strong>tentative</strong> to <strong>preferred</strong>.</li></ol><p><strong>Timing:</strong> a host typically waits ~1 second for a reply. During this window, the address appears as <code>tentative</code> in <code>show ipv6 interface</code>. Once DAD completes, it shows as <code>[TENTATIVE]</code> removed / <code>[VALID]</code>.</p><p><strong>Duplicate outcome:</strong> if DAD fails (another host responds), the address is abandoned. For manually configured addresses, the interface is placed in a disabled state for that address. For SLAAC addresses, the host typically picks a new random interface ID and retries.</p><p><strong>Exam points:</strong></p><ul><li>DAD uses NS (not NA) with source :: (unspecified).</li><li>DAD runs on every IPv6 address before use.</li><li>DAD destination is the solicited-node multicast (FF02::1:FFxx:xxxx).</li></ul>",
+      "visual": { "type": "handshake", "params": { "leftLabel": "Host (tentative)", "rightLabel": "Link", "steps": ["Tentative addr = 2001:DB8::5", "NS (src=::, dst=FF02::1:FF00:5)", "Wait 1 second", "No reply → address is unique", "Address moves to preferred"] } },
+      "hack": {
+        "memory": "DAD = 'is this address taken?' Host NS for its own address with source ::. No reply = unique. Reply = duplicate, abandon. Runs on every address, every time.",
+        "practice": "Flashcard: DAD uses NS, source ::, destination solicited-node multicast. In Wireshark, capture a host joining an IPv6 network — the first packets from the host should be DAD NS messages.",
+        "effort": "medium",
+        "meta": "Common NDP exam fact. Jeremy IT Lab Day 32. Wendell Odom OCG Chapter 23. Know: DAD = NS with source :: and solicited-node destination."
+      }
+    },
+    {
+      "id": "1.8.d.7",
+      "term": "A-flag",
+      "weight": "high",
+      "info": "<p>The <strong>A-flag (Address Autoconfiguration flag)</strong> is a bit in the RA's Prefix Information Option that tells hosts whether to use SLAAC with the included prefix. <strong>A=1 means use SLAAC</strong>; A=0 means the prefix is informational only (for on-link determination) and SLAAC should not derive an address from it.</p><p><strong>Default value:</strong> A=1 on Cisco routers. You almost never disable it — if the RA is advertising a prefix but A=0, hosts will not form a SLAAC address.</p><p><strong>Combined with M and O flags to determine addressing method:</strong></p><ul><li><strong>A=1, M=0, O=0:</strong> Pure SLAAC. Host builds address from prefix + interface ID. No DHCPv6 interaction.</li><li><strong>A=1, M=0, O=1:</strong> SLAAC for address, <strong>stateless DHCPv6</strong> for DNS/other info.</li><li><strong>A=0, M=1:</strong> Stateful DHCPv6 only. No SLAAC. Host gets address from DHCPv6 server.</li><li><strong>A=1, M=1:</strong> Both SLAAC and stateful DHCPv6 may be used (dual addressing). Common for mixed environments.</li></ul><p><strong>Cisco commands:</strong></p><ul><li>Default: A-flag is ON implicitly when a prefix is advertised.</li><li>Disable SLAAC for a prefix: <code>ipv6 nd prefix 2001:DB8:1::/64 no-autoconfig</code> (clears A-flag).</li><li>No advertise prefix at all: <code>ipv6 nd prefix 2001:DB8:1::/64 no-advertise</code>.</li></ul><p><strong>Exam tip:</strong> memorize the A/M/O flag combinations. Each combination unambiguously dictates which addressing method is in use.</p>",
+      "visual": { "type": "state-machine", "params": { "states": ["A=1, M=0, O=0 → pure SLAAC", "A=1, M=0, O=1 → SLAAC + stateless DHCPv6 DNS", "A=0, M=1 → stateful DHCPv6", "A=1, M=1 → dual"], "active": 0, "transitions": true } },
+      "hack": {
+        "memory": "A = Address via SLAAC. A=1 default. Combine with M (Managed = stateful DHCPv6) and O (Other = stateless DHCPv6 for DNS). Memorize: 000=SLAAC, 001=SLAAC+DNS, 010=stateful.",
+        "practice": "Draw a truth table with A, M, O on one axis and addressing method on the other. Fill in all 4 rows. Commit to memory.",
+        "effort": "medium",
+        "meta": "Classic exam question. Jeremy IT Lab Day 33. Wendell Odom OCG Chapter 23. Know all four A/M/O combinations."
+      }
+    }
+  ]
+}

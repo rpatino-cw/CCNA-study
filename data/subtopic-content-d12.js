@@ -1394,14 +1394,110 @@ window.subtopicContentD12 = {
       meta: "Jeremy's IT Lab Day 24 briefly covers spine-leaf. Wendell Odom OCG Chapter 11 discusses data center architectures. The CCNA exam tests the concept, not configuration. Key phrases to know: 'east-west traffic,' 'predictable latency,' 'ECMP replaces STP,' and '2 hops between any leaf pair.' If a question describes a data center with heavy server-to-server traffic and asks for the best topology, the answer is spine-leaf."
     },
     micro: [
-      { id: "1.2.c.1", term: "Spine-leaf fabric",            def: "Two-tier DC design. Every leaf connects to every spine; leaves never connect to leaves, spines never to spines.", weight: "high" },
-      { id: "1.2.c.2", term: "Leaf switch (ToR)",            def: "Top of Rack. Access layer for servers and storage. Do not cross-connect to other leaves.", weight: "high" },
-      { id: "1.2.c.3", term: "Spine switch",                 def: "Backbone. Only connects to leaves — never to servers or other spines. Provides uniform forwarding capacity.", weight: "high" },
-      { id: "1.2.c.4", term: "East-west traffic",            def: "Server-to-server within the DC. Dominates virtualized and distributed workloads. Spine-leaf optimizes for this.", weight: "high" },
-      { id: "1.2.c.5", term: "North-south traffic",          def: "Client-to-server (in/out of the DC). Three-tier is built for this.", weight: "med" },
-      { id: "1.2.c.6", term: "ECMP (Equal-Cost Multi-Path)", def: "L3 routing load-balances across all leaf-spine paths simultaneously. Replaces STP's link-blocking.", weight: "high" },
-      { id: "1.2.c.7", term: "Predictable 2-hop latency",    def: "Any two servers on different leaves are always exactly 2 hops apart (leaf → spine → leaf).", weight: "high" },
-      { id: "1.2.c.8", term: "VXLAN overlay",                def: "Virtual Extensible LAN. Extends L2 segments across L3 spine-leaf fabric. Paired with EVPN (BGP-based control plane).", weight: "med" }
+      {
+        id: "1.2.c.1",
+        term: "Spine-leaf fabric",
+        weight: "high",
+        info: "<p>A <strong>spine-leaf fabric</strong> is a two-tier data-center topology where every <strong>leaf switch connects to every spine switch</strong>, and nothing else crosses those layers. Leaves never connect to other leaves. Spines never connect to other spines. Servers connect only to leaves; spines never see servers directly.</p><p><strong>Why it exists:</strong> traditional three-tier was built for north-south traffic (user-to-server). Modern DC workloads are dominated by <strong>east-west</strong> traffic — VMs talking to VMs, containers to containers, storage replication, microservices. Three-tier penalizes east-west traffic because it has to traverse multiple unpredictable hops (access → distribution → core → distribution → access). Spine-leaf guarantees <strong>every server-to-server flow is exactly two hops</strong>: leaf → spine → leaf.</p><p><strong>Key properties:</strong></p><ul><li><strong>Full mesh between layers</strong> — if you have 4 spines and 16 leaves, that's 64 links.</li><li><strong>ECMP everywhere</strong> — each leaf has equal-cost paths through every spine. L3 routing (BGP or OSPF in the underlay) load-balances across all of them simultaneously.</li><li><strong>STP is not used</strong> in the fabric — because every link is L3 routed, STP has nothing to block.</li><li><strong>Predictable latency</strong> — 2 hops is 2 hops, regardless of which leaf pair you pick.</li><li><strong>Linear scaling</strong> — more leaves = more server ports, more spines = more bandwidth between leaves.</li></ul><p><strong>Typical platforms:</strong> Cisco Nexus 9000 series (leaf + spine), Arista 7050/7280, Juniper QFX. Often paired with <strong>VXLAN EVPN</strong> to provide L2 extension across the routed fabric, which is essential for VM mobility.</p>",
+        visual: { type: "hierarchy", params: { root: "Spine-Leaf Fabric (full mesh)", children: [{ name: "Spine 1", children: [{ name: "→ Leaf A, B, C, D" }] }, { name: "Spine 2", children: [{ name: "→ Leaf A, B, C, D" }] }] } },
+        hack: {
+          memory: "Spine-leaf = rib cage. Spine = spine (connects only to ribs). Ribs = leaves (connect only to spine + organs = servers). No rib touches another rib. Any two servers are exactly one spine apart.",
+          practice: "Draw a spine-leaf with 2 spines + 4 leaves on paper. Count the links (8). Trace a packet from Server A on Leaf 1 to Server B on Leaf 3 — always 2 hops, always Leaf → Spine → Leaf. Add a third spine and note: no leaves change, but every leaf now has 3 paths to every other leaf.",
+          effort: "medium",
+          meta: "Jeremy's IT Lab Day 24. Wendell Odom OCG Chapter 11. Exam: if the scenario mentions data center + east-west traffic + predictable latency → spine-leaf."
+        }
+      },
+      {
+        id: "1.2.c.2",
+        term: "Leaf switch (ToR)",
+        weight: "high",
+        info: "<p><strong>Leaf switches</strong> — also called <strong>Top-of-Rack (ToR)</strong> switches — sit at the access layer of a spine-leaf fabric. One (or a redundant pair) lives in the top of each server rack and connects downward to the servers in that rack and upward to every spine switch in the fabric.</p><p><strong>Leaf responsibilities:</strong></p><ul><li><strong>Server connectivity</strong> — typical downlink speeds are 10G, 25G, 100G per server port, depending on generation.</li><li><strong>L3 boundary</strong> — each leaf is an L3 switch. The default gateway for a server's VLAN lives on the leaf (anycast gateway in VXLAN EVPN).</li><li><strong>VXLAN VTEP (VXLAN Tunnel Endpoint)</strong> — leaves encapsulate Ethernet frames into VXLAN tunnels to reach remote leaves across the L3 fabric.</li><li><strong>Uplinks to every spine</strong> — typically 40G, 100G, or 400G. Number of uplinks = number of spines.</li><li><strong>Server dual-homing</strong> — critical servers often connect to two leaves in the same rack via MLAG / vPC for redundancy.</li></ul><p><strong>Strict design rule:</strong> leaves do not connect to other leaves. If two leaves need to exchange traffic, it must go through a spine. This sounds wasteful but is what makes latency predictable and scaling linear.</p><p><strong>Typical hardware:</strong> Cisco Nexus 93180YC-FX3 (48x 25G + 6x 100G), Arista 7050X3, Nexus 9336C-FX2. Port density and uplink speed define the leaf's scale.</p>",
+        visual: { type: "hierarchy", params: { root: "Leaf Switch (ToR)", children: [{ name: "Downlinks: 48x 25G → servers in rack" }, { name: "Uplinks: N x 100G → every spine" }, { name: "Role: L3 boundary + VXLAN VTEP" }] } },
+        hack: {
+          memory: "Leaf = apartment lobby. Every tenant (server) goes through the lobby. Every lobby connects to every elevator shaft (spine). Lobbies never connect directly to each other — you go up through an elevator and down through another lobby.",
+          practice: "On paper, label a 2-spine 4-leaf fabric. Count uplinks per leaf = 2 (one to each spine). Count downlinks = however many server ports. Note that leaf-to-leaf links are ILLEGAL in a pure spine-leaf design.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 24. Wendell Odom OCG Chapter 11. Exam: 'What device do servers connect to in a spine-leaf fabric?' = leaf (or ToR)."
+        }
+      },
+      {
+        id: "1.2.c.3",
+        term: "Spine switch",
+        weight: "high",
+        info: "<p><strong>Spine switches</strong> form the backbone of a spine-leaf fabric. They connect <em>only</em> to leaves and never to servers or other spines. Their entire job is high-speed, hardware-forwarded transit between leaves.</p><p><strong>Spine responsibilities:</strong></p><ul><li><strong>Aggregate leaf uplinks</strong> — every leaf has one link to every spine.</li><li><strong>L3 forwarding only</strong> — spine runs the underlay routing protocol (typically eBGP or OSPF) and forwards VXLAN-encapsulated packets from one leaf's VTEP to another.</li><li><strong>ECMP fanout</strong> — since each leaf has equal-cost paths through every spine, traffic load-balances across all spines.</li><li><strong>No policy</strong> — same principle as the core in three-tier. ACLs, NAT, and stateful features don't belong on the spine.</li><li><strong>Port density</strong> — a typical spine might have 32-64 high-speed ports (100G or 400G).</li></ul><p><strong>Scaling the fabric:</strong> add more spines to increase bandwidth between leaves. With 2 spines, each leaf has 2x uplink bandwidth. With 4 spines, 4x. The only limit is how many uplink ports a leaf has.</p><p><strong>Strict design rule:</strong> spines never connect to other spines, and never connect to servers. Violating this creates traffic patterns that break the predictable 2-hop guarantee.</p><p><strong>Typical hardware:</strong> Cisco Nexus 9336C-FX2, 9364D-GX2A, Arista 7280R3, 7800R3. Built for non-blocking, line-rate L3 forwarding at high port speeds.</p>",
+        visual: { type: "shield", params: { items: ["L3 forwarding only", "No ACLs / NAT / policy", "No leaf-to-leaf bypass", "No spine-to-spine links", "Pure ECMP transit"], color: "#3b82f6" } },
+        hack: {
+          memory: "Spine = elevator shafts in a building. Each floor (leaf) has an elevator to every shaft. Shafts don't connect to each other (no tunnel between elevators). Shafts don't go to tenants (no servers on the spine).",
+          practice: "Draw a fabric with 2 spines. Calculate aggregate bandwidth between any leaf pair = 2 × uplink speed. Add a third spine. Note: 3 × uplink speed available. Scaling is linear in spine count.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 24. Wendell Odom OCG Chapter 11. Exam: 'Spine switches connect to ___' = leaves only."
+        }
+      },
+      {
+        id: "1.2.c.4",
+        term: "East-west traffic",
+        weight: "high",
+        info: "<p><strong>East-west traffic</strong> is traffic that flows <em>laterally</em> — server-to-server, VM-to-VM, container-to-container, microservice-to-microservice — <em>within</em> the data center. The name comes from network diagrams where client-to-server (external) traffic is drawn north-south (top-down) and intra-DC traffic flows east-west (side-to-side).</p><p><strong>Why east-west dominates modern data centers:</strong></p><ul><li><strong>Virtualization</strong> — VMs communicate heavily with each other: app server → database server → cache server.</li><li><strong>Microservices</strong> — a single user request can trigger dozens of internal service-to-service calls.</li><li><strong>Distributed storage</strong> — replication between storage nodes, erasure coding, and resync can dwarf north-south traffic.</li><li><strong>AI/ML workloads</strong> — GPU-to-GPU traffic for training jobs (all-reduce operations) is extreme east-west with very tight latency requirements.</li><li><strong>VM mobility</strong> — live migration moves GB-scale VM state between hosts.</li></ul><p><strong>Why three-tier fails at east-west:</strong> two servers on different access switches in different distribution blocks might traverse 6+ hops with highly variable latency. STP blocks redundant links, wasting bandwidth.</p><p><strong>Why spine-leaf excels at east-west:</strong> any leaf-to-leaf path is exactly 2 hops (leaf → spine → leaf), ECMP uses all spine links in parallel, and latency is consistent regardless of which leaves the two servers happen to live on.</p><p><strong>Industry rule of thumb:</strong> in a modern DC, east-west traffic is 70-80%+ of total traffic. That single fact is why spine-leaf replaced three-tier in the data center.</p>",
+        visual: { type: "comparison", params: { left: { label: "East-West (server-to-server)", items: ["VM ↔ VM", "App ↔ DB ↔ Cache", "Storage replication", "GPU all-reduce", "70-80% of modern DC traffic"] }, right: { label: "North-South (user-to-server)", items: ["User → web tier", "Internet ingress/egress", "Campus → DC", "Dominant in older designs"] } } },
+        hack: {
+          memory: "East-west = gossip between coworkers on the same floor. North-south = email from the CEO upstairs. Modern office gossips way more than the CEO emails, which is why you optimize for gossip (east-west) in the DC.",
+          practice: "Sketch a 3-tier web app: user → load balancer → app server → database → cache. Count the east-west hops vs north-south hops. Compare to a monolith (one box). East-west has exploded.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 24. Wendell Odom OCG Chapter 11. Exam: know that spine-leaf is optimized for east-west and that east-west dominates modern DC traffic."
+        }
+      },
+      {
+        id: "1.2.c.5",
+        term: "North-south traffic",
+        weight: "med",
+        info: "<p><strong>North-south traffic</strong> is traffic that flows <em>vertically</em> on a network diagram: into and out of the data center (client → server, user → app), or up and down the campus hierarchy (user → WAN → internet).</p><p><strong>Classic north-south patterns:</strong></p><ul><li>User at home → internet → web server in the data center.</li><li>Branch office user → WAN → HQ data center.</li><li>Campus user → distribution → core → WAN edge router → internet.</li></ul><p><strong>Why three-tier was designed for it:</strong> the hierarchical model was invented when almost all traffic was north-south — clients on desktops pulling data from centralized servers. Traffic entered at the access layer, flowed up through distribution to core, and out to the WAN. Every flow followed a predictable vertical path, which the hierarchy handled cleanly.</p><p><strong>What changed:</strong> virtualization, microservices, big-data pipelines, and distributed storage caused traffic to flip. East-west now dominates, and north-south is the minority in most modern DCs. But north-south is still dominant in the <strong>campus</strong> (users at their desks accessing apps in the DC or cloud).</p><p><strong>Design implication:</strong> three-tier remains the right campus architecture precisely because campus traffic is still mostly north-south. Spine-leaf is the right DC architecture because DC traffic is mostly east-west. The two topologies coexist: campus users hit a three-tier, which hands off to a WAN edge, which eventually reaches a DC built on spine-leaf.</p>",
+        visual: { type: "packet-flow", params: { nodes: ["User (access)", "Distribution", "Core", "WAN edge", "Remote DC / Internet"], color: "#6366f1" } },
+        hack: {
+          memory: "North-south = your commute to work (vertical, up and out). East-west = conversations at your desk with coworkers (lateral). Campus = commuting-heavy. DC = conversation-heavy.",
+          practice: "Pick a single website visit: browser → ISP → server. Mark each hop north-south or east-west. Then the server behind the scenes: app → DB → cache. Mark those. Observe the ratio flip.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 24. Wendell Odom OCG Chapter 11. Exam: N-S dominates campus, E-W dominates DC. Match the architecture to the traffic."
+        }
+      },
+      {
+        id: "1.2.c.6",
+        term: "ECMP (Equal-Cost Multi-Path)",
+        weight: "high",
+        info: "<p><strong>ECMP (Equal-Cost Multi-Path)</strong> is a Layer 3 feature that lets a router load-balance traffic across <em>multiple paths of equal cost</em> to the same destination. In spine-leaf, ECMP is the <em>reason</em> the fabric works — every leaf has N equal-cost paths to every other leaf (one per spine) and uses all of them simultaneously.</p><p><strong>How it works:</strong></p><ul><li>A routing protocol (OSPF, EIGRP, BGP) installs multiple next-hops for the same destination prefix because their costs are identical.</li><li>For each packet (or each flow), the router picks one of the next-hops using a <strong>hash</strong> of packet fields — typically 5-tuple: source IP, destination IP, protocol, source port, destination port.</li><li>Same flow = same hash = same path, so packets in the same flow stay in order.</li><li>Different flows spread across all paths, achieving load balance without reordering.</li></ul><p><strong>Why ECMP replaces STP in spine-leaf:</strong> STP's job was to prevent L2 loops by blocking redundant links. In a spine-leaf fabric, every link is L3 routed — loops are prevented by TTL decrement, not by blocking. Every link can forward simultaneously. In a 4-spine fabric, all 4 uplinks per leaf are active, giving 4x the bandwidth of a single-path design.</p><p><strong>Configuration:</strong> ECMP is usually automatic. OSPF installs up to 4 equal-cost paths by default (tunable with <code>maximum-paths N</code>). BGP requires the <code>maximum-paths</code> knob to enable multipath. The exam-relevant fact: ECMP load-balances across same-cost paths, and it's the mechanism that makes spine-leaf faster than three-tier + STP.</p>",
+        visual: { type: "packet-flow", params: { nodes: ["Flow arrives at leaf", "Hash(5-tuple)", "Pick one of N equal-cost spines", "Forward via chosen spine", "Remote leaf receives"], color: "#10b981" } },
+        hack: {
+          memory: "ECMP = multiple checkout lanes at the grocery store, all equally fast. The manager (hash) assigns customers (flows) to lanes. Each customer stays in their lane (no reordering). All lanes are busy. STP was the old rule of 'only one lane open, close the rest.'",
+          practice: "OSPF lab: build a router with 3 equal-cost paths to a destination. Run 'show ip route' — you'll see the destination with 3 next-hops. Ping with varied source ports and capture: different flows take different paths, same flow stays on one path.",
+          effort: "medium",
+          meta: "Jeremy's IT Lab Days 25-27 (OSPF). Wendell Odom OCG Chapter 20. Exam: know ECMP = multiple equal-cost paths, and it's what lets spine-leaf use all links simultaneously (unlike STP)."
+        }
+      },
+      {
+        id: "1.2.c.7",
+        term: "Predictable 2-hop latency",
+        weight: "high",
+        info: "<p>The <strong>signature guarantee</strong> of spine-leaf: any server-to-server flow between two different leaves traverses <strong>exactly 2 hops</strong> — leaf → spine → leaf. Not 'usually', not 'on average'. <em>Always</em>.</p><p><strong>Why it matters:</strong> modern workloads like distributed databases, AI training, and real-time microservices are extremely sensitive to latency jitter (variance). If one flow takes 5 microseconds and another takes 50, the slowest flow becomes the bottleneck for the entire workload. Predictable latency eliminates this tail-latency problem.</p><p><strong>Contrast with three-tier:</strong></p><ul><li>Server A on Access-1 to Server B on Access-2 in the same distribution block: 4 hops (Access → Dist → Dist → Access).</li><li>Server A to Server B in a different distribution block: 6 hops (Access → Dist → Core → Core → Dist → Access).</li><li>Same-rack: 2 hops, different-rack: 4 hops, different-block: 6 hops. Latency depends on physical placement.</li></ul><p><strong>Spine-leaf comparison:</strong></p><ul><li>Server A and Server B on the <em>same</em> leaf: 1 hop (via the leaf). Rare but possible.</li><li>Server A and Server B on <em>different</em> leaves: <strong>exactly 2 hops</strong> (leaf → spine → leaf). Physical placement doesn't matter.</li></ul><p><strong>Corollary — bandwidth is also predictable.</strong> ECMP uses all spine paths, so the available bandwidth between any two leaves is N × link-speed regardless of which leaves you pick. No hotspots, no slow corners of the fabric.</p>",
+        visual: { type: "hierarchy", params: { root: "Server A → Server B (different leaves)", children: [{ name: "Hop 1: Leaf A → Spine X", children: [{ name: "Hop 2: Spine X → Leaf B", children: [{ name: "Always exactly 2 hops" }] }] }] } },
+        hack: {
+          memory: "Spine-leaf = subway system where every station (leaf) has a direct train to every hub (spine). From any station, one train to a hub, one train back down. Always 2 trains, always predictable.",
+          practice: "Draw 5 leaves + 3 spines. Pick any two leaves. Trace the path — always 2 hops. Pick another pair. Same. Now compare to three-tier: pick pairs at increasing distance and watch hops grow.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 24. Wendell Odom OCG Chapter 11. Exam: if a question mentions 'predictable latency' or 'deterministic performance' in a DC context, the answer is spine-leaf."
+        }
+      },
+      {
+        id: "1.2.c.8",
+        term: "VXLAN overlay",
+        weight: "med",
+        info: "<p><strong>VXLAN (Virtual Extensible LAN)</strong> is the overlay protocol almost always paired with a spine-leaf fabric. It encapsulates Ethernet frames inside UDP packets so Layer 2 segments can extend across a Layer 3 fabric.</p><p><strong>The problem VXLAN solves:</strong> spine-leaf is pure L3 — every link is routed, no STP, no native L2 extension. But applications and VMs often expect L2 adjacency (same subnet, same broadcast domain), especially for VM mobility. Without an overlay, you would have to give every leaf L2 membership in every VLAN, which doesn't scale and defeats the L3 design.</p><p><strong>How VXLAN works:</strong></p><ul><li>Each leaf acts as a <strong>VTEP (VXLAN Tunnel Endpoint)</strong>.</li><li>A VM sends an Ethernet frame destined for another VM.</li><li>The ingress VTEP (local leaf) wraps the frame with a VXLAN header (24-bit VNI — VXLAN Network Identifier) and a UDP/IP header.</li><li>The encapsulated packet is routed across the L3 fabric via ECMP across spines.</li><li>The egress VTEP (remote leaf) strips the encapsulation and delivers the original frame to the destination VM.</li></ul><p><strong>Key numbers:</strong> VXLAN VNI is <strong>24 bits</strong> → 16 million segments (vs 4094 VLANs with 12-bit VLAN IDs). UDP port <strong>4789</strong>. Adds 50 bytes of overhead (so MTU on fabric links should be 1600+ or jumbo).</p><p><strong>Control plane:</strong> modern VXLAN uses <strong>EVPN (Ethernet VPN)</strong> via BGP to distribute MAC/IP reachability between VTEPs. This is called <strong>VXLAN EVPN</strong> and is the standard deployment model. Cisco's ACI is a VXLAN EVPN implementation.</p>",
+        visual: { type: "encapsulation", params: { layers: ["VM sends Ethernet frame", "Ingress VTEP adds VXLAN + UDP + IP", "Routed across spine-leaf fabric (ECMP)", "Egress VTEP strips encap", "Destination VM receives original frame"], highlight: 1 } },
+        hack: {
+          memory: "VXLAN = shipping a letter (Ethernet frame) inside a shipping box (UDP/IP). The L3 fabric sees only the box. When the box arrives at the remote leaf, it opens the box and hands the letter to the VM. 24-bit VNI = 16 million possible boxes.",
+          practice: "Research a simple VXLAN diagram. Identify the inner Ethernet frame, the VXLAN header (VNI), the outer UDP (port 4789), the outer IP (VTEP-to-VTEP). You won't configure VXLAN on CCNA, but know the encapsulation and the acronym VTEP.",
+          effort: "medium",
+          meta: "CCNA exposure is conceptual. Wendell Odom OCG Chapter 11 touches it. Exam: know VXLAN is the overlay used with spine-leaf, VNI is 24-bit, runs over UDP 4789, and EVPN is the control plane."
+        }
+      }
     ]
   },
 
@@ -1415,15 +1511,123 @@ window.subtopicContentD12 = {
       meta: "Jeremy's IT Lab Day 53 (WAN Architectures) covers WAN technologies. Wendell Odom OCG Chapter 14 covers WAN concepts. The CCNA tests concepts, not configuration. Expect questions like 'which WAN technology provides guaranteed SLAs?' (MPLS) or 'which reduces WAN costs by using internet links?' (SD-WAN). Focus on MPLS vs SD-WAN -- this is the most important comparison for the exam. Know that SD-WAN is Cisco's strategic direction."
     },
     micro: [
-      { id: "1.2.d.1", term: "WAN",                          def: "Wide Area Network. Connects geographically separated sites over provider infrastructure. Slower, higher-latency, more expensive than LAN.", weight: "high" },
-      { id: "1.2.d.2", term: "MPLS",                         def: "Multiprotocol Label Switching. Provider-managed private WAN with guaranteed SLAs. L3 VPN (provider routes) or L2 VPN. Expensive, reliable.", weight: "high" },
-      { id: "1.2.d.3", term: "Metro Ethernet",               def: "Ethernet-based WAN within a metro area. Types: E-Line (P2P), E-LAN (any-to-any), E-Tree (hub-and-spoke).", weight: "med" },
-      { id: "1.2.d.4", term: "Broadband (DSL/Cable/Fiber)",  def: "Consumer/business internet access. Cheap, no SLA guarantees. Common as SD-WAN underlay or backup.", weight: "med" },
-      { id: "1.2.d.5", term: "Leased line (T1/T3, E1/E3)",   def: "Dedicated P2P circuit with guaranteed bandwidth. T1=1.544 Mbps, T3=44.736 Mbps. Legacy, being replaced by Metro Ethernet/MPLS.", weight: "med" },
-      { id: "1.2.d.6", term: "SD-WAN",                       def: "Software-Defined WAN. Encrypted overlay across multiple transports (MPLS, broadband, LTE). Central controller, app-aware path selection.", weight: "high" },
-      { id: "1.2.d.7", term: "CPE",                          def: "Customer Premises Equipment. The router at the customer site, typically the demarc boundary for managed services.", weight: "med" },
-      { id: "1.2.d.8", term: "Demarcation point (demarc)",   def: "Boundary between provider-managed and customer-managed infrastructure. Provider owns up to the demarc.", weight: "med" },
-      { id: "1.2.d.9", term: "MPLS vs SD-WAN",               def: "MPLS = guaranteed SLA, expensive, provider-routed. SD-WAN = app-aware, cheaper, uses multiple transports, centrally managed. Strategic direction: SD-WAN.", weight: "high" }
+      {
+        id: "1.2.d.1",
+        term: "WAN",
+        weight: "high",
+        info: "<p>A <strong>WAN (Wide Area Network)</strong> connects networks across geographically separated sites — branch offices, data centers, headquarters, remote workers, cloud providers — over distances that a LAN cannot span. WAN links traverse infrastructure owned by service providers (telcos, ISPs), which introduces cost, latency, and SLAs that LANs don't have.</p><p><strong>LAN vs WAN — the defining differences:</strong></p><ul><li><strong>Distance</strong> — LAN: meters to a few km. WAN: km to continents.</li><li><strong>Ownership</strong> — LAN: you own all the cable and gear. WAN: the provider owns the middle.</li><li><strong>Speed</strong> — LAN: 1G-100G+ within a building. WAN: 1 Mbps–10G+ per link, cost per Mbps is way higher.</li><li><strong>Latency</strong> — LAN: sub-millisecond. WAN: 5-300 ms depending on distance.</li><li><strong>Cost model</strong> — LAN: one-time hardware. WAN: recurring monthly fees.</li><li><strong>Reliability</strong> — LAN: extremely reliable. WAN: provider outages happen; you design around them with backup links.</li></ul><p><strong>Core WAN pieces:</strong></p><ul><li><strong>CPE (Customer Premises Equipment)</strong> — the router you own at each site.</li><li><strong>Demarc (demarcation point)</strong> — where the provider's responsibility ends and yours begins. Usually a wall-mounted fiber termination or a cable modem.</li><li><strong>Provider cloud</strong> — the infrastructure in the middle you don't control.</li></ul><p><strong>Why it's on the exam:</strong> every enterprise network has a WAN. You must know the technology options (MPLS, Metro Ethernet, Broadband, Leased Line, SD-WAN), their tradeoffs, and when to pick each.</p>",
+        visual: { type: "packet-flow", params: { nodes: ["Branch Office", "CPE / Demarc", "Provider WAN cloud", "HQ CPE / Demarc", "HQ Data Center"], color: "#ef4444" } },
+        hack: {
+          memory: "WAN = highway system between cities. LAN = streets inside one city. You own the streets; the state owns the highways. You pay tolls (monthly fees). You obey their rules (SLAs).",
+          practice: "Draw 3 sites (HQ, 2 branches). Label each CPE, the demarcs, and the provider cloud. Compare to drawing a LAN — WAN has way more 'fuzzy cloud' in the middle you don't control.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 53 (WAN Architectures). Wendell Odom OCG Chapter 14. Exam: know LAN vs WAN distinctions and the terms CPE / demarc."
+        }
+      },
+      {
+        id: "1.2.d.2",
+        term: "MPLS",
+        weight: "high",
+        info: "<p><strong>MPLS (Multiprotocol Label Switching)</strong> is a provider-managed, private WAN service that uses short <strong>labels</strong> instead of IP routing to forward packets across the provider's backbone. To the customer, it looks like a private network where every site can reach every other site with guaranteed performance.</p><p><strong>How MPLS forwards:</strong></p><ul><li>At the provider edge (PE router), each incoming packet gets one or more labels pushed onto its header.</li><li>Inside the provider core (P routers), forwarding is done by <strong>label lookup</strong> instead of IP lookup — faster, simpler, and independent of customer IP routes.</li><li>At the egress PE, the label is popped and the original packet is delivered to the destination site.</li></ul><p><strong>Common MPLS service types on CCNA:</strong></p><ul><li><strong>MPLS L3 VPN</strong> — the provider runs a separate routing instance (VRF) per customer and routes between your sites. You peer with the provider via BGP or static routes. Each site looks like a neighbor.</li><li><strong>MPLS L2 VPN / VPLS</strong> — the provider gives you an Ethernet-like L2 service between sites. Your routers see each other as L2 neighbors, even though the provider is actually using MPLS underneath.</li></ul><p><strong>Strengths:</strong></p><ul><li><strong>Guaranteed SLAs</strong> — bandwidth, latency, jitter, packet loss all contractually guaranteed.</li><li><strong>QoS support</strong> — provider honors QoS markings end-to-end.</li><li><strong>Any-to-any connectivity</strong> — no hub-and-spoke limitation.</li><li><strong>Mature and reliable</strong> — 20+ years of enterprise deployment.</li></ul><p><strong>Weaknesses:</strong></p><ul><li><strong>Expensive</strong> — dollars per Mbps is much higher than broadband.</li><li><strong>Slow to provision</strong> — adding a new site can take weeks.</li><li><strong>Being displaced</strong> — SD-WAN is taking enterprise share because it runs over cheap internet.</li></ul>",
+        visual: { type: "packet-flow", params: { nodes: ["CE (customer)", "PE (push label)", "P (label switch)", "PE (pop label)", "CE (customer)"], color: "#8b5cf6" } },
+        hack: {
+          memory: "MPLS = private toll road. You pay for guaranteed lane width (bandwidth), speed limit (latency), and you can haul anything (QoS respected). Provider slaps a colored sticker (label) on your truck at the entrance and routes by sticker color across the backbone, not by the address on the package.",
+          practice: "Draw a customer with HQ + 3 branches connected via MPLS. Each site has a CE router connected to a provider PE. Inside the cloud, packets are label-switched. Compare to internet VPN — MPLS has SLAs, internet doesn't.",
+          effort: "medium",
+          meta: "Jeremy's IT Lab Day 53. Wendell Odom OCG Chapter 14. Exam favorite: 'Which WAN provides guaranteed SLAs?' = MPLS. Know L3VPN vs L2VPN at a high level."
+        }
+      },
+      {
+        id: "1.2.d.3",
+        term: "Metro Ethernet",
+        weight: "med",
+        info: "<p><strong>Metro Ethernet (Metro-E)</strong> is an Ethernet-based WAN service provided within a metropolitan area (a city or region). The provider gives you Ethernet hand-offs at each site (copper or fiber, typical speeds 10 Mbps to 10 Gbps), and under the hood runs whatever technology they like (often MPLS) to deliver an Ethernet experience between your sites.</p><p><strong>Why customers love it:</strong> you connect at the demarc with a standard Ethernet interface. Your router doesn't need special WAN hardware or protocols — it treats the Metro-E circuit as just another Ethernet port, sometimes with a trunk for multiple services.</p><p><strong>MEF (Metro Ethernet Forum) service types:</strong></p><ul><li><strong>E-Line (Ethernet Line)</strong> — point-to-point. One site to one site. Used for data-center to data-center or HQ-to-single-branch links.</li><li><strong>E-LAN (Ethernet LAN)</strong> — multipoint-to-multipoint. Any site can talk to any site as if on the same LAN. Good for a campus spread across the city.</li><li><strong>E-Tree (Ethernet Tree)</strong> — hub-and-spoke. A root site talks to all leaf sites; leaves cannot talk to each other directly. Good for cable/ISP aggregation or security-sensitive branch → HQ designs.</li></ul><p><strong>Strengths:</strong> cheap per Mbps compared to MPLS within a metro, scalable bandwidth upgrades (just change the service tier), familiar Ethernet interface.</p><p><strong>Weaknesses:</strong> geographically limited (within a metro), SLAs vary by provider, often no QoS guarantees.</p>",
+        visual: { type: "comparison", params: { left: { label: "MEF Services", items: ["E-Line = point-to-point", "E-LAN = any-to-any", "E-Tree = hub-and-spoke"] }, right: { label: "Properties", items: ["Ethernet hand-off", "10 Mbps–10 Gbps", "Metro-area scope", "Often MPLS underneath"] } } },
+        hack: {
+          memory: "Metro-E = city bus system. Ethernet everywhere. E-Line = express route (2 stops). E-LAN = downtown loop (every stop). E-Tree = park-and-ride (all roads lead to the central hub).",
+          practice: "Sketch 4 sites in the same city connected by an E-LAN service. Each site router plugs into a metro-E handoff. Logically, they appear on the same L2 segment. Contrast with E-Line (only 2 sites) and E-Tree (everyone to HQ).",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 53. Wendell Odom OCG Chapter 14. Exam: know the three MEF types by name and function."
+        }
+      },
+      {
+        id: "1.2.d.4",
+        term: "Broadband (DSL/Cable/Fiber)",
+        weight: "med",
+        info: "<p><strong>Broadband</strong> is the bucket term for consumer/SMB internet access technologies: DSL, Cable, and Fiber-to-the-Home/Premise. Cheap, widely available, typically no SLA — but often the only practical option for small branches and home offices, and increasingly used as an SD-WAN underlay.</p><p><strong>DSL (Digital Subscriber Line)</strong> — runs over copper telephone lines. Variants: ADSL (asymmetric — faster download, slower upload), VDSL (faster but distance-limited). Speeds: a few Mbps to ~100 Mbps. Distance from the provider's DSLAM matters — performance degrades with distance.</p><p><strong>Cable</strong> — runs over coaxial cable infrastructure originally built for TV. Uses DOCSIS (currently DOCSIS 3.1, with 4.0 rolling out). Speeds: 100 Mbps to ~10 Gbps symmetrical at the top end, though most plans are asymmetrical. Shared medium in the neighborhood — performance can drop at peak hours.</p><p><strong>Fiber (FTTH / FTTP)</strong> — fiber directly to the home or building. Symmetrical gigabit or multi-gigabit speeds. Lowest latency, highest reliability of the broadband tier. Rapidly expanding in residential and SMB markets.</p><p><strong>Common properties:</strong></p><ul><li><strong>No SLA</strong> (or very weak SLAs) — consumer-grade service.</li><li><strong>Cheap per Mbps</strong> — 1/5 to 1/50 the cost of MPLS.</li><li><strong>Best-effort</strong> — no QoS honored beyond the CPE.</li><li><strong>Dynamic public IP</strong> usually (static IP often an upgrade).</li></ul><p><strong>Enterprise use:</strong> broadband is the typical <em>underlay</em> for SD-WAN. SD-WAN builds encrypted tunnels over cheap broadband links and intelligently picks paths, often achieving MPLS-class performance at a fraction of the cost.</p>",
+        visual: { type: "comparison", params: { left: { label: "Broadband Types", items: ["DSL — over phone copper", "Cable — over coax (DOCSIS)", "Fiber — FTTH/FTTP"] }, right: { label: "Properties", items: ["No / weak SLA", "Cheap per Mbps", "Consumer-grade reliability", "Common as SD-WAN underlay"] } } },
+        hack: {
+          memory: "Broadband = public highway. Free-ish, goes everywhere, gets crowded at rush hour. MPLS = toll road. SD-WAN = a GPS that picks the best highway or toll road per trip.",
+          practice: "Compare your home internet (likely cable or fiber) to an enterprise MPLS link — same Mbps, but 10-50x cheaper and no SLA. This is why SD-WAN + broadband is replacing MPLS for branches.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 53. Wendell Odom OCG Chapter 14. Exam: know DSL / Cable / Fiber as broadband technologies. DOCSIS for cable."
+        }
+      },
+      {
+        id: "1.2.d.5",
+        term: "Leased line (T1/T3, E1/E3)",
+        weight: "med",
+        info: "<p><strong>Leased lines</strong> are dedicated, point-to-point circuits with guaranteed bandwidth, rented from a provider. Legacy technology, still tested on the CCNA but largely replaced in production by Metro Ethernet and MPLS.</p><p><strong>North American hierarchy:</strong></p><ul><li><strong>T1</strong> — 1.544 Mbps. 24 DS0 channels (each 64 kbps). Classic enterprise leased line of the 1990s-2000s.</li><li><strong>T3</strong> — 44.736 Mbps. 28 T1s. Used for larger sites or aggregation.</li></ul><p><strong>European / international hierarchy:</strong></p><ul><li><strong>E1</strong> — 2.048 Mbps. 32 DS0 channels.</li><li><strong>E3</strong> — 34.368 Mbps. 16 E1s.</li></ul><p><strong>Properties:</strong></p><ul><li><strong>Dedicated bandwidth</strong> — the full rate is yours, not shared.</li><li><strong>Predictable latency and low jitter</strong>.</li><li><strong>Expensive</strong> — hundreds to thousands per month for modest bandwidth.</li><li><strong>Slow to provision</strong> — telcos can take weeks to install.</li><li><strong>Point-to-point only</strong> — one circuit = two endpoints. Any-to-any requires a mesh of circuits.</li></ul><p><strong>Why they're fading:</strong> Metro Ethernet gives you 100 Mbps for less than a T1's 1.544 Mbps in many markets. MPLS gives you any-to-any without the mesh of circuits. Leased lines persist mostly for specialized use cases (government, military, low-bandwidth legacy sites).</p><p><strong>Exam-worthy trivia:</strong> <strong>T1 = 1.544 Mbps</strong> and <strong>T3 = 44.736 Mbps</strong> — memorize these two numbers, they're commonly tested.</p>",
+        visual: { type: "comparison", params: { left: { label: "North America (T-carrier)", items: ["T1 = 1.544 Mbps", "T3 = 44.736 Mbps", "T3 = 28 T1s"] }, right: { label: "Europe (E-carrier)", items: ["E1 = 2.048 Mbps", "E3 = 34.368 Mbps", "E3 = 16 E1s"] } } },
+        hack: {
+          memory: "Leased line = private road between two buildings. Bulletproof reliability, expensive, one-to-one only. T1 = 1.544 Mbps (say it like a phone number: '1.544'). T3 = 44.736 (harder to memorize — just grind it).",
+          practice: "Flashcard: T1 / T3 / E1 / E3 speeds. Also learn that a T1 has 24 DS0 × 64 kbps = 1.536 Mbps payload, plus framing = 1.544 Mbps total. E1 has 32 DS0 × 64 = 2.048 Mbps.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 53. Wendell Odom OCG Chapter 14. Exam: pure memorization — T1 = 1.544 Mbps, T3 = 44.736 Mbps. Free points if you have them locked in."
+        }
+      },
+      {
+        id: "1.2.d.6",
+        term: "SD-WAN",
+        weight: "high",
+        info: "<p><strong>SD-WAN (Software-Defined WAN)</strong> is the modern approach to enterprise WAN. Instead of one expensive private circuit per branch, SD-WAN builds <strong>encrypted overlay tunnels</strong> across <em>whatever transport is available</em> — MPLS, broadband internet, 4G/5G LTE, satellite — and uses a <strong>centralized controller</strong> to steer traffic intelligently based on application requirements and real-time path quality.</p><p><strong>Core architecture:</strong></p><ul><li><strong>Edge devices</strong> at each site run SD-WAN software and establish encrypted tunnels (typically IPsec) to other sites.</li><li><strong>Controller / orchestrator</strong> — centralized management plane. Pushes policy, monitors tunnel health.</li><li><strong>Underlays</strong> — any IP transport works: MPLS, internet, LTE, etc. Often a mix (active/active).</li><li><strong>Overlay</strong> — the encrypted fabric that connects all sites logically, independent of underlay.</li></ul><p><strong>Key features:</strong></p><ul><li><strong>Application-aware routing</strong> — route Office 365 traffic via the best-performing path in real time; route bulk backup via the cheapest path.</li><li><strong>Transport independence</strong> — swap MPLS for broadband at will; applications don't know the underlay changed.</li><li><strong>Dynamic path selection</strong> — monitor loss/latency/jitter on each path, switch flows automatically when one degrades.</li><li><strong>Zero-touch provisioning</strong> — ship a device to a branch, plug it in, it phones home and auto-configures.</li><li><strong>Centralized policy</strong> — one policy change propagates to all sites.</li></ul><p><strong>Cisco products:</strong> Cisco SD-WAN (acquired from Viptela) is the flagship. Meraki SD-WAN is the lighter-touch option. Both are CCNA-relevant only conceptually.</p><p><strong>Why it's displacing MPLS:</strong> same or better application performance + dramatically lower WAN cost + centralized management. The industry is shifting fast.</p>",
+        visual: { type: "hierarchy", params: { root: "SD-WAN Overlay (encrypted)", children: [{ name: "Underlay: MPLS" }, { name: "Underlay: Broadband internet" }, { name: "Underlay: LTE/5G" }, { name: "Central controller picks best path per app" }] } },
+        hack: {
+          memory: "SD-WAN = smart GPS for your WAN. You have MPLS, cable, and LTE available. SD-WAN tests all three every second and routes Zoom over the one with best latency, Netflix over the cheapest, and backups over whichever is idle. Central controller = the brain; edge devices = the car.",
+          practice: "Sketch 3 branches with two uplinks each (MPLS + broadband). Overlay encrypted tunnels in color between all sites. Imagine the controller measuring loss/latency and moving Zoom flows to whichever tunnel is best at that moment.",
+          effort: "medium",
+          meta: "Jeremy's IT Lab Day 53 covers SD-WAN conceptually. Wendell Odom OCG Chapter 14. Exam: know SD-WAN uses encrypted overlay, central controller, app-aware path selection, and runs over any transport — and that it is replacing MPLS."
+        }
+      },
+      {
+        id: "1.2.d.7",
+        term: "CPE",
+        weight: "med",
+        info: "<p><strong>CPE (Customer Premises Equipment)</strong> is any network hardware owned by the customer at their site — most commonly the edge router (or SD-WAN appliance) that connects the site to the WAN. The term also covers cable modems, firewalls, and any other device the customer manages.</p><p><strong>Why the term matters:</strong> it defines the <strong>responsibility boundary</strong>. The provider is responsible for everything from their backbone up to the demarc. The customer is responsible for the CPE and everything behind it. Troubleshooting and SLA discussions hinge on this boundary.</p><p><strong>Typical CPE examples:</strong></p><ul><li>Cisco ISR 4000 / 1000 router at a branch.</li><li>Cisco Meraki MX security appliance (SD-WAN + firewall).</li><li>ASR 1000 at a larger campus.</li><li>Firewall appliance (Palo Alto, Fortinet) if placed at the edge.</li></ul><p><strong>Managed CPE vs unmanaged CPE:</strong></p><ul><li><strong>Managed</strong> — the provider owns and manages the CPE on your behalf. You pay them a monthly fee and they handle config, upgrades, monitoring.</li><li><strong>Unmanaged</strong> — you own and manage the CPE yourself. Cheaper, more control, more work.</li></ul><p><strong>Exam framing:</strong> 'Which device is the CPE?' = the customer-owned router at the edge of the WAN. CPE is behind the demarc on the customer side.</p>",
+        visual: { type: "hierarchy", params: { root: "Customer Site", children: [{ name: "LAN switches", children: [{ name: "CPE (customer-owned router)", children: [{ name: "Demarc → Provider WAN" }] }] }] } },
+        hack: {
+          memory: "CPE = the last thing you own before the provider takes over. Like the meter box on your house — everything inside is yours, everything outside belongs to the utility.",
+          practice: "At home, identify your CPE: the ISP's modem/router (often provider-owned — 'managed') or your own router behind it. Note the clear demarc — their cable ends, your network begins.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 53. Wendell Odom OCG Chapter 14. Exam: vocabulary question — know CPE = customer-owned edge device."
+        }
+      },
+      {
+        id: "1.2.d.8",
+        term: "Demarcation point (demarc)",
+        weight: "med",
+        info: "<p>The <strong>demarcation point (demarc)</strong> is the physical boundary between the service provider's network and the customer's network. It is usually a labeled termination panel, jack, or fiber patch in a building's telecom room.</p><p><strong>Why it's critical:</strong></p><ul><li><strong>Responsibility line</strong> — everything on the provider's side is the provider's problem. Everything on the customer's side is the customer's problem.</li><li><strong>Troubleshooting anchor</strong> — when a WAN link is broken, the first question is 'does the signal reach the demarc?' If yes → customer side; if no → provider.</li><li><strong>SLA boundary</strong> — providers measure SLA performance at the demarc, not inside the customer's network.</li></ul><p><strong>Physical forms:</strong></p><ul><li>RJ-45 jack on a wall plate (for Ethernet hand-offs).</li><li>Fiber SC/LC termination panel (for fiber hand-offs).</li><li>Smartjack / NIU (Network Interface Unit) for older circuit-based services.</li><li>DSL splitter/modem handoff at a home or SMB.</li></ul><p><strong>CPE vs demarc:</strong> demarc is the <em>point</em>. CPE is the <em>equipment</em> on the customer side of that point. The customer's router connects to the demarc via a jumper cable. From the demarc outward is the provider's loop and backbone.</p><p><strong>Field phrase:</strong> 'smart demarc' or 'managed demarc' means the provider's responsibility extends a bit further into the building (e.g., they own a small NID box mounted on your wall). Regardless, there's always a line that separates 'their problem' from 'your problem.'</p>",
+        visual: { type: "packet-flow", params: { nodes: ["Provider Backbone", "Provider Loop", "Demarc (boundary)", "Jumper to CPE", "Customer LAN"], color: "#f59e0b" } },
+        hack: {
+          memory: "Demarc = the property line of your house on a map. Everything on your side is your yard (your job to mow). Everything on the other side is the city's (their sidewalk, their tree). Fight at the property line when deciding whose outage it is.",
+          practice: "In your home, find where the ISP's cable/fiber enters the house — that's your demarc. Note which side of it the provider is responsible for.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 53. Wendell Odom OCG Chapter 14. Exam: know demarc = provider/customer boundary and that providers measure SLA at the demarc."
+        }
+      },
+      {
+        id: "1.2.d.9",
+        term: "MPLS vs SD-WAN",
+        weight: "high",
+        info: "<p>This comparison is the <strong>single most tested WAN concept on CCNA</strong>. Memorize the tradeoffs; you will almost certainly see at least one question.</p><p><strong>MPLS — strengths:</strong></p><ul><li>Provider-managed, private, predictable — guaranteed SLA on bandwidth/latency/jitter/loss.</li><li>QoS honored end-to-end.</li><li>Mature, reliable, 20+ years of enterprise use.</li><li>Any-to-any connectivity without building a mesh.</li></ul><p><strong>MPLS — weaknesses:</strong></p><ul><li>Expensive — dollars per Mbps far above broadband.</li><li>Slow to provision — weeks to months.</li><li>Single transport — if the MPLS circuit dies, the site is cut off (unless a backup exists).</li><li>Provider-dependent — hard to change providers.</li></ul><p><strong>SD-WAN — strengths:</strong></p><ul><li>Uses <em>any</em> transport — MPLS, broadband, LTE — and often multiple simultaneously.</li><li>Application-aware routing — pick the best path per app in real time.</li><li>Dramatically cheaper per Mbps — broadband underlays slash cost.</li><li>Centralized management — policy pushed from one pane of glass.</li><li>Zero-touch provisioning — branch setup in minutes, not weeks.</li><li>Active/active links — both underlays carry traffic, no wasted bandwidth.</li></ul><p><strong>SD-WAN — weaknesses:</strong></p><ul><li>Depends on underlay quality — if all your underlays are congested, SD-WAN can't create bandwidth.</li><li>Newer technology — less operational maturity in some orgs.</li><li>Controller is a single point of trust (though typically redundant in cloud).</li></ul><p><strong>Exam-winning phrasing:</strong></p><ul><li>'Guaranteed SLA' → MPLS.</li><li>'Lower WAN cost / uses internet links' → SD-WAN.</li><li>'Application-aware path selection' → SD-WAN.</li><li>'Centralized management' → SD-WAN.</li><li>'Strategic direction of modern enterprise WAN' → SD-WAN.</li></ul>",
+        visual: { type: "comparison", params: { left: { label: "MPLS", items: ["Provider-managed", "Guaranteed SLA", "Expensive", "One transport", "Slow to provision"] }, right: { label: "SD-WAN", items: ["Any transport (mix OK)", "App-aware path selection", "Cheap underlays", "Central controller", "Zero-touch deploy"] } } },
+        hack: {
+          memory: "MPLS = private jet (guaranteed arrival, expensive, one route). SD-WAN = Uber + Lyft + subway (apps pick the best ride each trip, way cheaper, uses any road).",
+          practice: "Build a 2-column whiteboard: MPLS pros/cons on left, SD-WAN pros/cons on right. Memorize 3 exam trigger phrases per column. Quiz yourself until instant.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 53. Wendell Odom OCG Chapter 14. 100% guaranteed on the exam. The Cisco exam writers love this comparison."
+        }
+      }
     ]
   },
 
@@ -1445,12 +1649,84 @@ window.subtopicContentD12 = {
       meta: "Jeremy's IT Lab Day 24 briefly mentions SOHO in the context of network architectures. This is a free-point exam topic. If the question describes a small flat network with one device doing everything, the answer is SOHO. Know that SOHO uses NAT/PAT (one public IP shared by all devices) and has no redundancy, VLANs, or advanced features. Wendell Odom OCG Chapter 11 covers SOHO in the campus design chapter."
     },
     micro: [
-      { id: "1.2.e.1", term: "SOHO network",                 def: "Small Office/Home Office. 1–10 users. Simple flat topology with a single all-in-one device.", weight: "high" },
-      { id: "1.2.e.2", term: "All-in-one device",            def: "Combines router, switch (4-8 ports), AP, firewall, DHCP server, and NAT gateway in one box.", weight: "high" },
-      { id: "1.2.e.3", term: "Flat network",                 def: "Single subnet and single broadcast domain. No VLANs, no inter-VLAN routing, no core/distribution layers.", weight: "med" },
-      { id: "1.2.e.4", term: "PAT (Port Address Translation)", def: "Many private IPs → single public IP using port numbers to distinguish sessions. The common form of NAT at a SOHO.", weight: "high" },
-      { id: "1.2.e.5", term: "SOHO private ranges",          def: "Typical: 192.168.0.0/24, 192.168.1.0/24, or 10.0.0.0/24.", weight: "med" },
-      { id: "1.2.e.6", term: "SOHO vs Enterprise",           def: "SOHO: one device, no redundancy, no advanced features. Enterprise: tiered, redundant, centrally managed.", weight: "med" }
+      {
+        id: "1.2.e.1",
+        term: "SOHO network",
+        weight: "high",
+        info: "<p>A <strong>SOHO (Small Office / Home Office)</strong> network serves 1-10 users in a home, apartment, or very small office. It is the simplest possible network topology — typically a single all-in-one device providing router, switch, Wi-Fi, firewall, DHCP, and NAT services, with one flat subnet behind it.</p><p><strong>Defining characteristics:</strong></p><ul><li><strong>One all-in-one device</strong> — the ISP gateway (or separate cable/DSL modem + consumer router combo).</li><li><strong>One subnet</strong> — usually 192.168.0.0/24, 192.168.1.0/24, or 10.0.0.0/24.</li><li><strong>One broadcast domain</strong> — no VLANs.</li><li><strong>One public IP</strong> from the ISP, shared via NAT/PAT.</li><li><strong>Basic features</strong> — stateful firewall (connection tracking), DHCP, Wi-Fi with WPA2/WPA3, maybe UPnP and DDNS.</li><li><strong>No redundancy</strong> — if the device dies or the ISP drops, the whole network is down.</li></ul><p><strong>Why it's different from enterprise:</strong> no tiered architecture, no advanced routing, no centralized management, no redundancy, no segmentation. The tradeoffs are simplicity, low cost ($50-$300 for the device), and minimal ongoing operational effort.</p><p><strong>Typical hardware examples:</strong> ISP-provided gateways (Xfinity xFi, AT&T gateway), consumer Wi-Fi routers (TP-Link Archer, Netgear Nighthawk, Eero/Asus mesh systems), small business all-in-ones (Cisco Meraki MX, Ubiquiti UniFi Dream Machine).</p><p><strong>Exam framing:</strong> if the scenario describes a home, a very small office, 'a single wireless router', or 'few users sharing one internet connection' — it's a SOHO. Expect conceptual questions about the role of the all-in-one device and why NAT/PAT is used.</p>",
+        visual: { type: "hierarchy", params: { root: "ISP (Public Internet)", children: [{ name: "SOHO All-in-One", children: [{ name: "PC" }, { name: "Phone" }, { name: "Printer" }, { name: "Smart TV" }] }] } },
+        hack: {
+          memory: "SOHO = studio apartment. One room does everything — kitchen, bedroom, office, living room. Consumer Wi-Fi router = studio apartment of networking.",
+          practice: "Diagram your own home network. Label the ISP modem, router (might be combined), Wi-Fi SSID, private IP range, the single public IP. That entire sketch IS a SOHO network.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 24 briefly. Wendell Odom OCG Chapter 11. Exam: 1 free point — recognize SOHO from the scenario."
+        }
+      },
+      {
+        id: "1.2.e.2",
+        term: "All-in-one device",
+        weight: "high",
+        info: "<p>The <strong>all-in-one device</strong> (home router / SOHO gateway / wireless router) is the single piece of hardware at the heart of a SOHO network. It collapses multiple enterprise functions into one box so a non-technical user can set up a working network in 10 minutes.</p><p><strong>Functions inside one box:</strong></p><ul><li><strong>Router</strong> — forwards between the LAN (private) and WAN (public ISP) sides.</li><li><strong>Switch</strong> — typically a built-in 4-8 port Ethernet switch for wired devices.</li><li><strong>Wireless access point</strong> — 802.11 Wi-Fi (ac/ax/be depending on generation).</li><li><strong>Firewall</strong> — stateful packet filter that permits outbound traffic and blocks unsolicited inbound.</li><li><strong>DHCP server</strong> — hands out IPs to LAN clients from a pool (e.g., 192.168.1.100-199).</li><li><strong>NAT/PAT</strong> — translates all LAN private IPs to the single WAN public IP on outbound, tracks sessions to demux returning traffic.</li><li><strong>DNS forwarder</strong> — often caches DNS for the LAN.</li></ul><p><strong>Optional niceties:</strong> QoS per app, guest Wi-Fi SSID, parental controls, port forwarding, UPnP, DDNS, VPN server/client, basic IDS/IPS on higher-end units.</p><p><strong>Enterprise parallel:</strong> in an enterprise, each of these functions lives in a dedicated device — a router, a switch, an AP, a firewall, a DHCP server, a NAT device. SOHO crams them all together.</p><p><strong>Exam framing:</strong> 'Which device in a SOHO network performs routing, switching, NAT, DHCP, and wireless?' → the all-in-one / home router. Don't overthink — it's literally one box.",
+        visual: { type: "shield", params: { items: ["Router (WAN/LAN)", "Ethernet switch (4-8 ports)", "Wi-Fi AP (802.11)", "Stateful firewall", "DHCP server", "NAT/PAT", "DNS forwarder"], color: "#10b981" } },
+        hack: {
+          memory: "All-in-one = Swiss Army knife. One tool, many blades. Fine for a picnic (SOHO), not for a commercial kitchen (enterprise).",
+          practice: "Open your home router's admin UI (typically 192.168.1.1). Find the DHCP pool, Wi-Fi SSID config, NAT/port-forwarding section, firewall rules. Every single one of those is a separate device in an enterprise.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 24. Wendell Odom OCG Chapter 11. Exam: recognize the all-in-one device's function list."
+        }
+      },
+      {
+        id: "1.2.e.3",
+        term: "Flat network",
+        weight: "med",
+        info: "<p>A <strong>flat network</strong> is one with a <strong>single subnet and a single broadcast domain</strong> — no VLANs, no inter-VLAN routing, no segmentation. Every device is on the same L2 segment and can reach every other device directly without going through a router.</p><p><strong>Why SOHO uses it:</strong></p><ul><li>Small device count (1-10 hosts) — no scale problem.</li><li>No security compartmentalization needed — everyone behind the router trusts everyone else (in theory).</li><li>Simplest possible config — no VLAN tagging, no inter-VLAN routing, no policies.</li><li>Consumer devices (Chromecast, printer discovery, AirPlay) rely on mDNS/SSDP broadcasts and multicast — flat networks just work with them.</li></ul><p><strong>Why it breaks at scale:</strong></p><ul><li><strong>Broadcast overhead</strong> — at ~200+ hosts, ARP/DHCP/NetBIOS broadcasts saturate CPUs on every device in the domain.</li><li><strong>No security compartmentalization</strong> — one compromised device can talk to every other device.</li><li><strong>No policy granularity</strong> — you can't apply different QoS or ACLs to different user groups because there's only one segment.</li></ul><p><strong>SOHO security gotcha:</strong> guest devices (smart TVs, IoT thermostats, kid's phones) sit on the same segment as your laptop. If one is compromised, lateral movement is trivial. That's why modern home routers added a <strong>'guest network'</strong> feature — it's literally just a second VLAN with isolation rules, making the SOHO slightly less flat.</p><p><strong>Enterprise contrast:</strong> enterprise networks segment aggressively — one VLAN per role (users, servers, VoIP, guests, IoT), with ACLs between them. Any network with more than ~200 hosts <em>must</em> segment to stay manageable.</p>",
+        visual: { type: "hierarchy", params: { root: "SOHO Router (192.168.1.1)", children: [{ name: "Single subnet: 192.168.1.0/24", children: [{ name: "PC" }, { name: "Phone" }, { name: "Smart TV" }, { name: "IoT thermostat" }, { name: "Printer" }] }] } },
+        hack: {
+          memory: "Flat network = one-room schoolhouse. Every student (device) in one room, same teacher (gateway), same air (broadcast domain). Fine for 10 kids. Chaos for 500.",
+          practice: "On your home router admin UI, count how many devices are in the LAN. All of them share one subnet. If one gets malware, the others are reachable directly. That's the flat-network tradeoff.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 24. Wendell Odom OCG Chapter 11. Exam: 'A SOHO network uses a single ___ and a single ___' → subnet / broadcast domain."
+        }
+      },
+      {
+        id: "1.2.e.4",
+        term: "PAT (Port Address Translation)",
+        weight: "high",
+        info: "<p><strong>PAT (Port Address Translation)</strong> — sometimes called <strong>NAT overload</strong> or simply <strong>NAPT</strong> — is the mechanism that lets many private IPs share a single public IP by also translating TCP/UDP port numbers. It's the form of NAT running on essentially every home router on Earth.</p><p><strong>The problem PAT solves:</strong> IPv4 has 4 billion addresses. The internet has tens of billions of devices. Your ISP gives you <em>one</em> public IP. PAT stretches that one public IP across every device in your home.</p><p><strong>How it works (outbound):</strong></p><ul><li>A LAN device (private IP 192.168.1.100) opens a connection to a server (8.8.8.8:443) from source port 51234.</li><li>The SOHO router rewrites the packet: source IP becomes the router's public IP (e.g., 73.10.20.30), source port becomes a unique port chosen by the router (e.g., 45678 — or often kept as 51234 if free).</li><li>Router records the mapping in its <strong>translation table</strong>: (192.168.1.100:51234) ↔ (73.10.20.30:45678).</li><li>Packet leaves toward 8.8.8.8:443.</li></ul><p><strong>How it works (inbound):</strong></p><ul><li>Server replies to 73.10.20.30:45678.</li><li>Router looks up port 45678 in the translation table → finds 192.168.1.100:51234.</li><li>Rewrites destination to 192.168.1.100:51234 and delivers to the LAN device.</li></ul><p><strong>Key fact:</strong> the router can track thousands of simultaneous flows from LAN devices because each one gets a unique source port on the public IP. Theoretical max: ~65,000 ports per protocol per public IP.</p><p><strong>NAT types (know the vocabulary):</strong></p><ul><li><strong>Static NAT</strong> — one-to-one, private ↔ public.</li><li><strong>Dynamic NAT</strong> — pool of public IPs, first-come-first-served.</li><li><strong>PAT / NAT overload</strong> — many-to-one, uses ports to demux. The SOHO default.</li></ul>",
+        visual: { type: "packet-flow", params: { nodes: ["192.168.1.100:51234 → 8.8.8.8:443", "Router rewrites src → 73.10.20.30:45678", "Table: (192.168.1.100:51234) ↔ (73.10.20.30:45678)", "Reply to 73.10.20.30:45678 → lookup → 192.168.1.100:51234", "Delivered to LAN host"], color: "#8b5cf6" } },
+        hack: {
+          memory: "PAT = apartment building with one street address. Every tenant uses the same street address (public IP), but each has a unique apartment number (port). Mail addressed to 'Main St #45678' goes to apt 45678 inside the building.",
+          practice: "On a Cisco router in Packet Tracer, configure PAT: 'ip nat inside source list 1 interface Gi0/1 overload' (where Gi0/1 is the WAN). Ping from a LAN PC to an outside host. Run 'show ip nat translations' — see the mapping table. That's PAT in action.",
+          effort: "medium",
+          meta: "Jeremy's IT Lab Day 45 (NAT). Wendell Odom OCG Chapter 29. Exam: know PAT = many private IPs to one public IP, using port numbers. Also know the Cisco CLI syntax for PAT config — the 'overload' keyword is the giveaway."
+        }
+      },
+      {
+        id: "1.2.e.5",
+        term: "SOHO private ranges",
+        weight: "med",
+        info: "<p>SOHO networks use <strong>RFC 1918 private IP ranges</strong> on the LAN side. These addresses are <em>not routable on the public internet</em>, so they're safe to reuse in every home and office without conflict. Your home and your neighbor's home both use 192.168.1.0/24 without issues because NAT hides them from each other.</p><p><strong>The three RFC 1918 ranges:</strong></p><ul><li><strong>10.0.0.0/8</strong> — 16,777,216 addresses. Typically used by medium/large enterprises.</li><li><strong>172.16.0.0/12</strong> — 1,048,576 addresses (172.16.0.0 through 172.31.255.255). Less common in SOHO, common in enterprises.</li><li><strong>192.168.0.0/16</strong> — 65,536 addresses. Divided into 256 /24 blocks. <strong>This is what SOHO typically uses.</strong></li></ul><p><strong>Typical SOHO subnet choices:</strong></p><ul><li><strong>192.168.0.0/24</strong> — common default on older/consumer routers.</li><li><strong>192.168.1.0/24</strong> — most common default on modern consumer routers.</li><li><strong>10.0.0.0/24</strong> — common on some ISP-provided gateways (Xfinity historically used this).</li></ul><p><strong>Why it matters:</strong> when connecting two networks via VPN, if both use 192.168.1.0/24, routing breaks because the private range overlaps. Enterprise advice: use an unusual /24 like 192.168.137.0/24 to reduce VPN conflict risk.</p><p><strong>Special non-routable ranges you should also know:</strong></p><ul><li><strong>169.254.0.0/16</strong> — APIPA / link-local. Used when DHCP fails.</li><li><strong>127.0.0.0/8</strong> — loopback.</li><li><strong>100.64.0.0/10</strong> — Carrier-Grade NAT (CGN) shared space.</li></ul>",
+        visual: { type: "layer-stack", params: { layers: ["10.0.0.0/8 — enterprise-scale", "172.16.0.0/12 — mid-size", "192.168.0.0/16 — SOHO default"], highlight: 2 } },
+        hack: {
+          memory: "RFC 1918 = three private playgrounds. 10-dot = huge (Class A). 172.16-31 = medium (Class B). 192.168 = small (Class C). SOHO plays in 192.168.",
+          practice: "Memorize the three ranges with their CIDR sizes. Flashcards: '10.0.0.0/?' → /8. '172.16.0.0/?' → /12. '192.168.0.0/?' → /16. Also note the tricky 172 range: 16 through 31, not 16 through 32.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 7 (IPv4 subnetting). Wendell Odom OCG Chapter 12. Exam: 100% guaranteed — know all three RFC 1918 ranges and their prefix lengths."
+        }
+      },
+      {
+        id: "1.2.e.6",
+        term: "SOHO vs Enterprise",
+        weight: "med",
+        info: "<p>The SOHO-vs-enterprise comparison is the quickest way to see why each design choice exists. The CCNA expects you to recognize both and know the high-level tradeoffs.</p><p><strong>Architecture:</strong></p><ul><li>SOHO: one device, flat network, one subnet, one broadcast domain.</li><li>Enterprise: tiered (two-tier or three-tier), VLANs for segmentation, L3 routing between segments.</li></ul><p><strong>Redundancy:</strong></p><ul><li>SOHO: none. One device = single point of failure. ISP outage = offline.</li><li>Enterprise: redundancy at every layer — dual devices, dual uplinks, HSRP/VRRP, dual WAN.</li></ul><p><strong>Security:</strong></p><ul><li>SOHO: basic stateful firewall, Wi-Fi WPA2/3, maybe guest SSID.</li><li>Enterprise: 802.1X, port security, DHCP snooping, DAI, ACLs per VLAN, dedicated firewalls, IDS/IPS, segmentation for compliance.</li></ul><p><strong>Management:</strong></p><ul><li>SOHO: web UI on the router. One admin (usually the homeowner).</li><li>Enterprise: centralized management (DNA Center, Prime, Meraki dashboard), config templates, monitoring, SNMP, Syslog, automation.</li></ul><p><strong>Performance:</strong></p><ul><li>SOHO: consumer gigabit Wi-Fi, one uplink of 100 Mbps-1 Gbps.</li><li>Enterprise: 10G+ inside, 1G-10G+ uplinks, QoS, traffic engineering.</li></ul><p><strong>Cost model:</strong></p><ul><li>SOHO: $50-$300 device + ~$50-$150/mo ISP.</li><li>Enterprise: tens of thousands for gear + licensing + staff + provider contracts.</li></ul><p><strong>Exam framing:</strong> 'Which network design has no redundancy, uses a single device, and is appropriate for 5 users?' → SOHO. 'Which design uses VLANs, HSRP, and dual distribution switches?' → Enterprise (two-tier or three-tier).</p>",
+        visual: { type: "comparison", params: { left: { label: "SOHO", items: ["1 device", "Flat network", "No redundancy", "Basic security", "Consumer gear"] }, right: { label: "Enterprise", items: ["Tiered architecture", "VLANs + L3 routing", "Redundant everywhere", "802.1X / ACLs / DHCP snoop", "Centralized mgmt"] } } },
+        hack: {
+          memory: "SOHO = moped. Enterprise = semi-truck fleet. The moped has one engine, no spare tire, one rider. The fleet has backup trucks, spare parts, a control center.",
+          practice: "Draw a SOHO (1 box, 5 devices) and an enterprise (core + dist + access, VLANs, HSRP, firewalls) side by side. The visual contrast makes the 'why' click instantly.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 24. Wendell Odom OCG Chapter 11. Exam: recognize SOHO scenarios (small, flat, one device) vs enterprise (tiered, redundant, segmented)."
+        }
+      }
     ]
   },
 
@@ -1470,15 +1746,123 @@ window.subtopicContentD12 = {
       meta: "Jeremy's IT Lab Day 53 covers cloud and on-prem concepts. Wendell Odom OCG Chapter 14 discusses WAN and cloud architectures. Expect 1-2 CCNA questions testing: CapEx vs OpEx, IaaS vs PaaS vs SaaS, and the shared responsibility model. Know that 'elastic scaling' is the cloud's biggest advantage, and 'full control' is on-prem's biggest advantage. These are free points if you memorize the trade-offs."
     },
     micro: [
-      { id: "1.2.f.1", term: "On-premises (on-prem)",        def: "Organization owns, operates, hosts all infrastructure. Full control, full responsibility. CapEx-heavy, slow to scale.", weight: "high" },
-      { id: "1.2.f.2", term: "Cloud",                        def: "Third-party-hosted infrastructure (AWS, Azure, GCP). Rented on demand. OpEx model, elastic scaling, shared responsibility.", weight: "high" },
-      { id: "1.2.f.3", term: "CapEx vs OpEx",                def: "CapEx = Capital Expenditure (upfront hardware purchase, on-prem). OpEx = Operational Expenditure (pay-as-you-go, cloud).", weight: "high" },
-      { id: "1.2.f.4", term: "IaaS",                         def: "Infrastructure as a Service. Provider manages HW + virtualization. You manage OS, apps, data. Example: AWS EC2.", weight: "high" },
-      { id: "1.2.f.5", term: "PaaS",                         def: "Platform as a Service. Provider manages HW + OS + runtime. You manage app + data. Example: AWS Elastic Beanstalk.", weight: "high" },
-      { id: "1.2.f.6", term: "SaaS",                         def: "Software as a Service. Provider manages everything. You just use the app. Example: M365, Salesforce.", weight: "high" },
-      { id: "1.2.f.7", term: "Shared responsibility model",  def: "Provider secures infrastructure; customer secures data, access, app config. Split varies by service model.", weight: "high" },
-      { id: "1.2.f.8", term: "Hybrid cloud",                 def: "Mix of on-prem + cloud. Sensitive workloads on-prem, elastic workloads in cloud.", weight: "med" },
-      { id: "1.2.f.9", term: "Direct cloud connections",     def: "Dedicated links to cloud providers. AWS Direct Connect, Azure ExpressRoute, Google Cloud Interconnect. Bypass public internet.", weight: "med" }
+      {
+        id: "1.2.f.1",
+        term: "On-premises (on-prem)",
+        weight: "high",
+        info: "<p><strong>On-premises (on-prem)</strong> means the organization owns and operates all its infrastructure — servers, storage, networking, data — in its own physical facilities (data centers, server rooms, wiring closets). The org has full control over every component and is fully responsible for everything: hardware, software, security, power, cooling, staff.</p><p><strong>Strengths:</strong></p><ul><li><strong>Full control</strong> — you decide hardware, OS, patch cadence, security policy, data location.</li><li><strong>Predictable cost once bought</strong> — after CapEx, ongoing operational costs are lower than cloud for steady workloads.</li><li><strong>Data sovereignty</strong> — sensitive data never leaves your premises. Critical for regulated industries (healthcare, finance, government).</li><li><strong>No vendor lock-in</strong> — you can swap hardware and vendors freely.</li><li><strong>Performance</strong> — no internet between you and your servers.</li></ul><p><strong>Weaknesses:</strong></p><ul><li><strong>High CapEx</strong> — big upfront spend on servers, storage, network, racks, HVAC, UPS, generators.</li><li><strong>Fixed capacity</strong> — scale up requires weeks/months and new hardware purchases.</li><li><strong>Underutilization</strong> — you size for peak, run at 20% most of the time.</li><li><strong>Ops overhead</strong> — in-house staff for everything (network, server, storage, security, facilities).</li><li><strong>DR complexity</strong> — disaster recovery means building (or renting) a second data center.</li></ul><p><strong>When to stay on-prem:</strong> steady, predictable workloads; extreme data-sovereignty requirements; low-latency needs for in-building equipment; where existing hardware is already paid off.</p>",
+        visual: { type: "comparison", params: { left: { label: "On-Prem Strengths", items: ["Full control", "Data sovereignty", "No lock-in", "Predictable steady-state cost", "Local performance"] }, right: { label: "On-Prem Weaknesses", items: ["High CapEx", "Fixed capacity", "Underutilization", "Full ops overhead", "Hard DR"] } } },
+        hack: {
+          memory: "On-prem = owning a house. Full control, full responsibility. You buy the roof, you fix the roof. You pay the mortgage upfront (CapEx). When you need more bedrooms, you have to build an addition.",
+          practice: "List the on-prem components of your employer (or a typical mid-size company): racks of servers, a SAN, network gear, UPS, HVAC, generators, IT staff. Mentally price each — CapEx adds up fast.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 53. Wendell Odom OCG Chapter 14. Exam: know the CapEx characteristic + full-control + slow-to-scale."
+        }
+      },
+      {
+        id: "1.2.f.2",
+        term: "Cloud",
+        weight: "high",
+        info: "<p><strong>Cloud</strong> = computing resources rented on-demand from a third-party provider (AWS, Microsoft Azure, Google Cloud Platform, Oracle Cloud, etc.). Instead of buying servers, you rent virtual machines, databases, storage, and services billed by usage (hours, GB-months, API calls). The provider owns and operates the physical infrastructure; you consume it.</p><p><strong>Core cloud properties (NIST definition, roughly):</strong></p><ul><li><strong>On-demand self-service</strong> — provision resources via API/portal in seconds, no ticket queue.</li><li><strong>Broad network access</strong> — reachable over the internet from anywhere.</li><li><strong>Resource pooling</strong> — provider multiplexes customers on shared physical hardware.</li><li><strong>Rapid elasticity</strong> — scale up and down dynamically, even automatically.</li><li><strong>Measured service</strong> — pay per consumption (instance-hours, GB transferred, requests).</li></ul><p><strong>Deployment models:</strong></p><ul><li><strong>Public cloud</strong> — shared infrastructure, open to all customers (AWS, Azure, GCP).</li><li><strong>Private cloud</strong> — dedicated infrastructure for one org, either hosted on-prem or by a provider.</li><li><strong>Hybrid cloud</strong> — on-prem + public cloud combined with connectivity between them.</li><li><strong>Community cloud</strong> — shared by several orgs with common concerns (e.g., government cloud).</li></ul><p><strong>Strengths:</strong> OpEx model, rapid scaling, no hardware management, geographic reach, built-in services (managed databases, ML, analytics).</p><p><strong>Weaknesses:</strong> ongoing cost can exceed on-prem for steady workloads, vendor lock-in risk, data-sovereignty issues, requires new ops skills (cloud engineering, FinOps), internet dependency.</p>",
+        visual: { type: "hierarchy", params: { root: "Cloud Provider (AWS/Azure/GCP)", children: [{ name: "Compute (VMs, containers, serverless)" }, { name: "Storage (object, block, file)" }, { name: "Networking (VPC, LB, CDN)" }, { name: "Managed services (DB, ML, analytics)" }] } },
+        hack: {
+          memory: "Cloud = renting a fully-serviced apartment. Landlord handles plumbing, trash, security (shared responsibility). You get more space next month with one phone call (elasticity). Monthly rent (OpEx) instead of buying a house.",
+          practice: "Open AWS or Azure's free tier. Spin up a VM in 2 clicks. You just did in 30 seconds what would take 2 weeks on-prem (purchase, install, rack, cable, configure). That speed IS the cloud's advantage.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 53. Wendell Odom OCG Chapter 14. Exam: know the 5 NIST characteristics (self-service, broad network access, pooling, elasticity, measured) and the 3 main providers."
+        }
+      },
+      {
+        id: "1.2.f.3",
+        term: "CapEx vs OpEx",
+        weight: "high",
+        info: "<p>The <strong>CapEx vs OpEx</strong> distinction is at the heart of the on-prem vs cloud decision. It's an accounting/finance concept the CCNA tests because it drives architecture choices.</p><p><strong>CapEx (Capital Expenditure):</strong></p><ul><li>Large upfront purchases — servers, switches, storage arrays, building a data center.</li><li>Depreciated over time (typically 3-7 years).</li><li>Paid once, used for years.</li><li>On the balance sheet as an asset.</li><li>Typical of <strong>on-prem</strong> infrastructure.</li></ul><p><strong>OpEx (Operational Expenditure):</strong></p><ul><li>Ongoing, recurring costs — cloud subscription, SaaS licenses, managed services, utilities.</li><li>Expensed immediately on the income statement.</li><li>Scales with usage — pay more if you use more, less if you use less.</li><li>Typical of <strong>cloud</strong> and <strong>managed services</strong>.</li></ul><p><strong>Why businesses prefer OpEx:</strong></p><ul><li><strong>Lower upfront cost</strong> — no giant capital outlay.</li><li><strong>Easier to start and stop</strong> — pay month-to-month; shut down if the project fails.</li><li><strong>Tax treatment</strong> — OpEx is fully deductible in the year incurred (vs CapEx depreciation over years).</li><li><strong>Alignment with usage</strong> — costs rise and fall with workload.</li></ul><p><strong>When CapEx makes sense:</strong></p><ul><li>Long-term steady workloads — own-it-and-amortize is cheaper than renting forever.</li><li>Regulatory / sovereignty needs that require physical ownership.</li><li>Large organizations with existing DC investment.</li></ul><p><strong>Exam framing:</strong> 'Which cost model is typical of cloud?' → OpEx. 'Which is typical of on-prem?' → CapEx. 'Which allows elastic scaling aligned with consumption?' → OpEx.</p>",
+        visual: { type: "comparison", params: { left: { label: "CapEx (On-Prem)", items: ["Upfront purchase", "Depreciated over years", "Balance sheet asset", "Fixed capacity", "Long commitment"] }, right: { label: "OpEx (Cloud)", items: ["Recurring monthly", "Expensed immediately", "Income statement", "Elastic", "Pay as you go"] } } },
+        hack: {
+          memory: "CapEx = buying a car (big upfront, you own it). OpEx = Uber/Lyft (per-ride, no garage). Both get you there. Choice depends on whether you drive daily (buy) or rarely (rent).",
+          practice: "List 3 recent purchases in your personal life. Label each CapEx or OpEx. Subscription services (Netflix, Spotify) = OpEx. A new laptop = CapEx. Intuition from your own life transfers directly to the exam framing.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 53. Wendell Odom OCG Chapter 14. Exam: 100% guaranteed CapEx vs OpEx question. Pure memorization — cloud = OpEx, on-prem = CapEx."
+        }
+      },
+      {
+        id: "1.2.f.4",
+        term: "IaaS",
+        weight: "high",
+        info: "<p><strong>IaaS (Infrastructure as a Service)</strong> rents you the lowest-level cloud building blocks — virtual machines, block storage, virtual networks — and lets you install and manage everything above that (OS, patches, middleware, apps). It's the cloud layer closest to 'just rack a server' in on-prem terms.</p><p><strong>What the provider manages (you don't):</strong></p><ul><li>Physical data centers, power, cooling.</li><li>Physical hardware — servers, storage arrays, network switches.</li><li>Virtualization layer — hypervisor, software-defined networking.</li></ul><p><strong>What you manage:</strong></p><ul><li>OS — install, patch, secure (Windows Server, Linux, etc.).</li><li>Middleware — runtimes, databases (unless you use managed DB as a separate service).</li><li>Application code and data.</li><li>Configuration — firewalls, users, backups, monitoring.</li></ul><p><strong>Canonical examples:</strong></p><ul><li>AWS EC2 (virtual machines), EBS (block storage), VPC (virtual network).</li><li>Azure Virtual Machines, Managed Disks, Virtual Network.</li><li>Google Compute Engine, Persistent Disk, VPC.</li></ul><p><strong>When to pick IaaS:</strong></p><ul><li>You need deep control over OS and middleware.</li><li>You're lifting-and-shifting existing VMs from on-prem.</li><li>You have specialized software that requires custom OS config.</li><li>You want the closest cloud analog to 'renting a server rack.'</li></ul><p><strong>Most flexibility, most responsibility</strong> — IaaS gives you the most knobs but also puts the most work on you. PaaS and SaaS remove knobs in exchange for removing work.</p>",
+        visual: { type: "layer-stack", params: { layers: ["Applications (YOU)", "Data (YOU)", "Runtime / Middleware (YOU)", "OS (YOU)", "Hypervisor (PROVIDER)", "Servers / Storage / Network (PROVIDER)", "Facility (PROVIDER)"], highlight: 3 } },
+        hack: {
+          memory: "IaaS = renting an empty apartment. Provider gives you walls, plumbing, electricity. You bring furniture, paint, food. Maximum flexibility, maximum effort.",
+          practice: "Spin up an AWS EC2 instance. Notice: AWS gave you a VM but you had to pick the OS, patch it, configure SSH, install your app, set up backups. That full stack of 'you own it' is IaaS.",
+          effort: "medium",
+          meta: "Jeremy's IT Lab Day 53. Wendell Odom OCG Chapter 14. Exam: know IaaS = you manage OS + apps; provider manages hardware + virtualization. EC2 is the canonical example."
+        }
+      },
+      {
+        id: "1.2.f.5",
+        term: "PaaS",
+        weight: "high",
+        info: "<p><strong>PaaS (Platform as a Service)</strong> rents you a fully managed application platform — OS, runtime, language stack, middleware — so you only worry about your application code and data. The provider handles everything below your app.</p><p><strong>What the provider manages:</strong></p><ul><li>Physical hardware and facility.</li><li>Virtualization.</li><li>OS — patched and secured automatically.</li><li>Runtime — Node, Python, .NET, Java, etc.</li><li>Middleware — load balancing, auto-scaling, logging infrastructure.</li></ul><p><strong>What you manage:</strong></p><ul><li>Application code.</li><li>Application configuration (env vars, connection strings).</li><li>Data in databases or storage the platform provides.</li></ul><p><strong>Canonical examples:</strong></p><ul><li>AWS Elastic Beanstalk, AWS Fargate, AWS Lambda (serverless is often categorized as PaaS or FaaS).</li><li>Azure App Service, Azure Functions.</li><li>Google App Engine, Google Cloud Run.</li><li>Heroku — the classic OG PaaS.</li></ul><p><strong>Benefits:</strong></p><ul><li>Deploy code in minutes — push Git, platform builds and runs.</li><li>Auto-scaling built in.</li><li>No OS patching, no runtime upgrades, no infrastructure management.</li><li>Developer-friendly — focus on business logic, not infrastructure.</li></ul><p><strong>Tradeoffs:</strong></p><ul><li>Less flexibility than IaaS — stuck with the platform's supported runtimes and versions.</li><li>Vendor lock-in risk — moving off Elastic Beanstalk or App Engine can be painful.</li><li>Opaque troubleshooting — harder to debug deep infrastructure issues.</li></ul><p><strong>Sweet spot:</strong> web apps, APIs, event-driven workloads where developers want to ship fast without managing infrastructure.</p>",
+        visual: { type: "layer-stack", params: { layers: ["Applications (YOU)", "Data (YOU)", "Runtime / Middleware (PROVIDER)", "OS (PROVIDER)", "Hypervisor (PROVIDER)", "Servers / Network (PROVIDER)", "Facility (PROVIDER)"], highlight: 0 } },
+        hack: {
+          memory: "PaaS = renting a furnished apartment. Walls, furniture, appliances included. You bring clothes and groceries (your app and data). Easier to move in, less control over the furniture.",
+          practice: "Deploy a 'Hello World' app to Heroku or Azure App Service. You wrote 5 lines of code; platform handled OS, runtime, scaling, SSL, logs. That's PaaS.",
+          effort: "medium",
+          meta: "Jeremy's IT Lab Day 53. Wendell Odom OCG Chapter 14. Exam: know PaaS = you manage app + data only; provider handles everything else. Elastic Beanstalk and App Service are canonical."
+        }
+      },
+      {
+        id: "1.2.f.6",
+        term: "SaaS",
+        weight: "high",
+        info: "<p><strong>SaaS (Software as a Service)</strong> is fully managed software delivered over the internet. The provider owns and operates everything — you just log in and use the app. You manage only your data and user accounts inside it.</p><p><strong>What the provider manages:</strong> everything — facility, hardware, virtualization, OS, runtime, middleware, application code, updates, security, availability.</p><p><strong>What you manage:</strong> your users, roles, settings inside the app, and your data.</p><p><strong>Canonical examples (you use several every day):</strong></p><ul><li>Microsoft 365 — Outlook, Word, Excel, Teams in the browser/app.</li><li>Google Workspace — Gmail, Docs, Sheets, Drive.</li><li>Salesforce — CRM.</li><li>Dropbox, Box — file storage.</li><li>Slack, Zoom — collaboration.</li><li>ServiceNow, Workday — IT and HR workflows.</li><li>GitHub, GitLab (as a service) — code hosting.</li></ul><p><strong>Benefits:</strong></p><ul><li>Instant value — sign up, start using.</li><li>No IT infrastructure at all.</li><li>Automatic updates and security patches.</li><li>Access from anywhere.</li></ul><p><strong>Tradeoffs:</strong></p><ul><li>Minimal customization — you live in the vendor's product.</li><li>Data-sovereignty questions — your data is in the vendor's cloud.</li><li>Recurring cost — monthly per user fees add up for large orgs.</li><li>Vendor risk — if the SaaS goes down, your workflow goes down (e.g., M365 outages).</li></ul><p><strong>Exam framing:</strong> 'Which cloud model requires the customer to only manage their data?' → SaaS. 'Microsoft 365 is an example of which service model?' → SaaS.</p>",
+        visual: { type: "layer-stack", params: { layers: ["App experience (YOU just use it)", "Data (YOU)", "Applications (PROVIDER)", "Runtime / Middleware (PROVIDER)", "OS (PROVIDER)", "Infrastructure (PROVIDER)", "Facility (PROVIDER)"], highlight: 1 } },
+        hack: {
+          memory: "SaaS = hotel room. Show up, use it, leave. Staff cleans, maintains, runs everything. You own only your toothbrush (your data).",
+          practice: "List every SaaS you logged into this week: Gmail, Slack, Zoom, Dropbox, Jira. You manage nothing but your account and content. That's SaaS.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 53. Wendell Odom OCG Chapter 14. Exam: 100% guaranteed — IaaS/PaaS/SaaS identification question. Memorize M365 and Salesforce as SaaS examples."
+        }
+      },
+      {
+        id: "1.2.f.7",
+        term: "Shared responsibility model",
+        weight: "high",
+        info: "<p>The <strong>shared responsibility model</strong> defines exactly who is responsible for what in a cloud deployment. The split depends on the service model (IaaS / PaaS / SaaS). Misunderstanding this model is how breaches happen — the classic 'but I thought AWS patched that!' story.</p><p><strong>Provider is always responsible for:</strong></p><ul><li>Physical security of data centers.</li><li>Physical hardware.</li><li>Virtualization / hypervisor.</li><li>The provider's own control plane (APIs, management console security).</li><li>The cloud 'fabric' — core networking, storage, compute.</li></ul><p><strong>Customer is always responsible for:</strong></p><ul><li>Identity and access management (who can log in to what).</li><li>Data classification and protection (encryption keys, backups, retention).</li><li>Workload configuration — S3 bucket permissions, security groups, firewall rules.</li><li>Application code and application security.</li><li>Compliance with regulations that apply to the customer's industry.</li></ul><p><strong>The split shifts with the service model:</strong></p><ul><li><strong>IaaS</strong> — customer responsible for OS, middleware, runtime, app, data. Provider for hardware + hypervisor.</li><li><strong>PaaS</strong> — customer responsible for app + data only. Provider for everything below.</li><li><strong>SaaS</strong> — customer responsible for data, user access, and app configuration. Provider for the entire software stack.</li></ul><p><strong>Cisco phrasing:</strong> 'Security OF the cloud' = provider. 'Security IN the cloud' = customer. This AWS-style split is the clearest mental model.</p><p><strong>Real-world breach patterns</strong> almost always involve the <em>customer's</em> responsibilities: misconfigured S3 buckets, weak IAM policies, stolen API keys, unpatched customer-managed VMs. The provider hardly ever breaches — the customer does.</p>",
+        visual: { type: "comparison", params: { left: { label: "Provider (Security OF the cloud)", items: ["Data centers", "Hardware", "Hypervisor", "Cloud fabric", "Global network"] }, right: { label: "Customer (Security IN the cloud)", items: ["IAM / access", "Data / encryption keys", "App config", "Firewall rules / SGs", "Compliance"] } } },
+        hack: {
+          memory: "Shared responsibility = apartment lease. Landlord fixes the roof, wiring, plumbing (security OF the building). You lock your own door, don't leave windows open, don't give strangers your key (security IN the apartment). Most apartment break-ins happen because the tenant left the door unlocked.",
+          practice: "For each layer — data, app, runtime, OS, hypervisor, hardware — mark who's responsible in IaaS, PaaS, and SaaS. Draw it as three columns. This is the most common CCNA cloud exam format.",
+          effort: "medium",
+          meta: "Jeremy's IT Lab Day 53. Wendell Odom OCG Chapter 14. Exam: very commonly tested — know the split changes with service model and that customer is always responsible for data + access."
+        }
+      },
+      {
+        id: "1.2.f.8",
+        term: "Hybrid cloud",
+        weight: "med",
+        info: "<p><strong>Hybrid cloud</strong> combines on-prem infrastructure with one or more public clouds, with secure connectivity between them. Workloads run wherever they fit best, and data moves between environments as needed.</p><p><strong>Typical patterns:</strong></p><ul><li><strong>Cloud burst</strong> — normal load runs on-prem; when demand spikes, extra capacity spins up in the cloud.</li><li><strong>Sensitive-on-prem, elastic-in-cloud</strong> — regulated data stays local; dev/test/analytics happens in the cloud.</li><li><strong>DR to cloud</strong> — primary site is on-prem; disaster recovery site is a cloud region. Cheaper than a second physical DC.</li><li><strong>Cloud-first, legacy on-prem</strong> — new workloads go cloud-native; older apps live out their life on-prem.</li></ul><p><strong>Connectivity between on-prem and cloud:</strong></p><ul><li><strong>Site-to-site VPN over internet</strong> — cheapest, OK for low-bandwidth/infrequent use.</li><li><strong>Dedicated private connection</strong> — <strong>AWS Direct Connect</strong>, <strong>Azure ExpressRoute</strong>, <strong>GCP Cloud Interconnect</strong>. Private circuits from on-prem to the cloud provider, higher bandwidth, lower latency, SLAs. Bypass the public internet.</li><li><strong>SD-WAN with cloud on-ramps</strong> — SD-WAN tunnels extend into cloud, unifying the architecture.</li></ul><p><strong>Strengths:</strong> best of both models (control + elasticity), supports compliance while taking advantage of cloud scale, natural migration path from on-prem to cloud-first.</p><p><strong>Weaknesses:</strong> operational complexity (two platforms), network latency between environments, security has to be consistent across both, data egress costs from cloud can surprise you.</p>",
+        visual: { type: "hierarchy", params: { root: "Hybrid Cloud", children: [{ name: "On-Prem DC", children: [{ name: "Sensitive / steady workloads" }] }, { name: "Private link (Direct Connect / ExpressRoute)", children: [{ name: "Public Cloud", children: [{ name: "Elastic / bursty / DR workloads" }] }] }] } },
+        hack: {
+          memory: "Hybrid = owning a house + keeping a rental unit for guests. Sensitive stuff at home (on-prem). Overflow and experiments in the rental (cloud). Bridge between them = front door (VPN or private link).",
+          practice: "Sketch a hybrid architecture: on-prem DC with internal apps + a cloud VPC with a scalable web tier. Draw the connection (Direct Connect + VPN backup). Label what workload runs where and why.",
+          effort: "medium",
+          meta: "Jeremy's IT Lab Day 53. Wendell Odom OCG Chapter 14. Exam: know hybrid = mix of on-prem + cloud connected privately; know the 3 private-link products by name."
+        }
+      },
+      {
+        id: "1.2.f.9",
+        term: "Direct cloud connections",
+        weight: "med",
+        info: "<p><strong>Direct cloud connections</strong> are dedicated, private circuits from an on-prem data center (or colocation facility) to a public cloud provider. They bypass the public internet entirely, giving predictable bandwidth, low latency, and SLA guarantees that VPN-over-internet cannot match.</p><p><strong>The three you must know:</strong></p><ul><li><strong>AWS Direct Connect</strong> — AWS's dedicated-link product. 1 Gbps, 10 Gbps, or 100 Gbps circuits to an AWS region via a Direct Connect location (carrier hotel).</li><li><strong>Azure ExpressRoute</strong> — Microsoft's equivalent. 50 Mbps to 100 Gbps. Can connect to Azure, Microsoft 365, and Dynamics.</li><li><strong>Google Cloud Interconnect</strong> — Google's version. 'Dedicated Interconnect' for direct fiber or 'Partner Interconnect' via a service provider.</li></ul><p><strong>Why use them instead of VPN-over-internet:</strong></p><ul><li><strong>Predictable latency and bandwidth</strong> — no internet congestion.</li><li><strong>Higher throughput</strong> — multi-Gbps circuits available.</li><li><strong>SLA</strong> — the provider contractually commits to availability.</li><li><strong>Security</strong> — traffic stays on a private circuit, never touches the public internet.</li><li><strong>Lower data-egress costs</strong> — cloud providers typically charge less for traffic over these private links than over the public internet.</li></ul><p><strong>Typical deployment:</strong> enterprise colocates network gear in a carrier hotel (e.g., Equinix DC) that also hosts a Direct Connect / ExpressRoute point of presence. A cross-connect in the colo links the two. Redundancy: two circuits via two different colos, for full HA.</p><p><strong>When NOT needed:</strong> small workloads, occasional cloud use, anywhere a site-to-site IPsec VPN over the internet is good enough.</p>",
+        visual: { type: "packet-flow", params: { nodes: ["On-Prem DC", "Cross-connect at colo", "AWS Direct Connect / Azure ExpressRoute / GCP Interconnect", "Cloud VPC / vNet", "Cloud workloads"], color: "#22c55e" } },
+        hack: {
+          memory: "Direct Connect / ExpressRoute / Interconnect = private driveway to the cloud. Internet VPN = going through public streets. Both get you there; the private driveway is predictable and avoids traffic.",
+          practice: "Memorize the three product names and their providers: AWS → Direct Connect, Azure → ExpressRoute, GCP → Cloud Interconnect. These are vocabulary exam points.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 53. Wendell Odom OCG Chapter 14. Exam: 'AWS's dedicated private cloud link is called ___' → Direct Connect. Pure memorization."
+        }
+      }
     ]
   },
 
@@ -4709,13 +5093,97 @@ window.subtopicContentD12 = {
       meta: "IPv6 is about 10% of the CCNA exam. Know the format cold before diving into shortening rules. Jeremy IT Lab Day 31 introduces IPv6 addressing. Wendell Odom OCG Chapter 22 (Fundamentals of IPv6) covers the structure and IPv4-to-IPv6 comparison. The simplified header and no-broadcast facts are common exam questions."
     },
     micro: [
-      { id: "1.8.a.1", term: "IPv6 address length",          def: "128 bits. 2^128 ≈ 340 undecillion addresses. 4× larger than IPv4's 32 bits.", weight: "high" },
-      { id: "1.8.a.2", term: "Hextet",                       def: "One of the 8 groups in an IPv6 address. 16 bits = 4 hex digits. Separated by colons.", weight: "high" },
-      { id: "1.8.a.3", term: "IPv6 header size",             def: "Fixed 40 bytes. Simpler than IPv4 — no checksum, no fragmentation fields, options in extension headers.", weight: "high" },
-      { id: "1.8.a.4", term: "No broadcast in IPv6",         def: "IPv6 eliminates broadcast entirely. Replaced by multicast and anycast.", weight: "high" },
-      { id: "1.8.a.5", term: "SLAAC support",                def: "Hosts can generate their own addresses via Stateless Address Autoconfiguration. No DHCP required.", weight: "high" },
-      { id: "1.8.a.6", term: "64/64 split",                  def: "Standard IPv6 LAN: first 64 bits = network prefix, last 64 bits = interface ID.", weight: "high" },
-      { id: "1.8.a.7", term: "Why IPv6",                     def: "IPv4 exhaustion (last /8 allocated 2011). NAT added complexity. IPv6 removes need for NAT.", weight: "med" }
+      {
+        id: "1.8.a.1",
+        term: "IPv6 address length",
+        weight: "high",
+        info: "<p>An <strong>IPv6 address is exactly 128 bits long</strong>, four times the size of IPv4's 32 bits. That creates an address space of <strong>2^128 ≈ 340 undecillion (3.4 × 10^38)</strong> unique addresses — enough to assign roughly 6.67 × 10^17 addresses to every square millimeter on Earth's surface. This is not marketing hyperbole; it is why SLAAC can afford to burn half of every address (64 bits) on the interface ID.</p><p><strong>Why 128 bits?</strong> When IPv6 was designed in the 1990s, the IETF chose 128 bits specifically to allow hierarchical allocation with massive waste built in. ISPs get /32s (2^96 addresses — 79 octillion each), enterprises get /48s, LAN segments get /64s. Every level can waste 99.9% of its address space and still never run out. This is the opposite philosophy from IPv4, where every /30 is hoarded.</p><p><strong>Notation:</strong> Because writing 128 bits in binary is unreadable (128 ones and zeros), IPv6 uses <strong>hexadecimal</strong> — each hex digit represents 4 bits, so 128 bits = 32 hex digits grouped into 8 hextets of 4 digits each. Example full form: <code>2001:0DB8:0000:0000:0000:0000:0000:0001</code>. Each colon separates a 16-bit hextet.</p><p><strong>Exam trap:</strong> Students often answer 64 bits because so much emphasis is placed on the /64 LAN prefix. <strong>The full address is always 128 bits</strong> — /64 is just the standard split between network and host, not the total length. If you see a question asking the length of an IPv6 address, the answer is 128.</p>",
+        visual: { type: "binary-breakdown", params: { bits: "128 bits total = 8 hextets × 16 bits = 32 hex digits", label: "IPv6 address length", highlight: [0, 1, 2, 3, 4, 5, 6, 7] } },
+        hack: {
+          memory: "IPv6 = 128 bits. Four times IPv4. Think: 32 × 4 = 128. 2^128 is so big that every grain of sand on Earth could have a billion addresses. Never confuse /64 (the LAN prefix) with the total length (128).",
+          practice: "Flashcard: 'IPv6 address length?' → 128 bits → 32 hex characters → 8 hextets. Write out 3 full IPv6 addresses without shortening and count — each should have exactly 32 hex digits.",
+          effort: "low",
+          meta: "Guaranteed 1-question topic. Jeremy IT Lab Day 31. Wendell Odom OCG Chapter 22. Common trap: answer choices include 32 (IPv4), 64 (LAN prefix), 128 (correct), 256 (wrong) — pick 128."
+        }
+      },
+      {
+        id: "1.8.a.2",
+        term: "Hextet",
+        weight: "high",
+        info: "<p>A <strong>hextet</strong> (also called a quartet or 16-bit group) is one of the <strong>eight 16-bit groups</strong> in an IPv6 address, written as up to 4 hexadecimal digits and separated from other hextets by colons. In the address <code>2001:0DB8:0000:0000:0000:0000:0000:0001</code>, each of the 8 colon-separated groups is a hextet.</p><p><strong>Why 4 hex digits = 16 bits:</strong> Each hex digit represents 4 bits (0–F covers 16 values = 2^4). Four hex digits × 4 bits = 16 bits per hextet. Eight hextets × 16 bits = 128 bits total.</p><p><strong>Value range per hextet:</strong> <code>0000</code> to <code>FFFF</code>, which in decimal is 0 to 65,535. This is why the subnet ID field in a /48 organization allocation (bits 49–64) gives exactly 65,536 possible /64 subnets.</p><p><strong>Hextet examples:</strong> <code>2001</code> (first hextet of documentation range), <code>DB8</code> (second hextet when leading zero is dropped from <code>0DB8</code>), <code>FE80</code> (first hextet of link-local), <code>FFFF</code> (maximum value — often seen in EUI-64's <code>FFFE</code> insertion or in IPv4-mapped addresses).</p><p><strong>Terminology note:</strong> Cisco documentation uses hextet; RFCs sometimes say 16-bit group. Both mean the same thing. The exam may use either.</p>",
+        visual: { type: "binary-breakdown", params: { bits: "2001 : 0DB8 : 0000 : 0000 : 0000 : 0000 : 0000 : 0001", label: "8 hextets, each 16 bits / 4 hex digits", highlight: [0] } },
+        hack: {
+          memory: "Hextet = HEX group of 4 digits = 16 bits. 8 hextets, 8 colons... wait, only 7 colons separate 8 hextets. A full address has 7 colons (count them: A:B:C:D:E:F:G:H = 7 separators).",
+          practice: "Count hextets in 5 sample addresses. Confirm each has exactly 8 groups of up to 4 hex digits. Convert one hextet (e.g., DB8) to decimal: D=13, B=11, 8=8 → 13×256 + 11×16 + 8 = 3512.",
+          effort: "low",
+          meta: "Vocabulary-level question. Jeremy IT Lab Day 31. Know the synonyms: hextet = quartet = 16-bit group. The exam may say 'how many hextets in an IPv6 address?' → 8."
+        }
+      },
+      {
+        id: "1.8.a.3",
+        term: "IPv6 header size",
+        weight: "high",
+        info: "<p>The <strong>IPv6 header is a fixed 40 bytes</strong>, dramatically simpler than IPv4's variable 20–60 byte header. This simplification was a deliberate design goal — it makes router forwarding faster because the parser knows exactly where every field lives, with no options to walk past.</p><p><strong>What IPv6 keeps:</strong> Version (4 bits), Traffic Class (8 bits, like IPv4 ToS/DSCP), Flow Label (20 bits, for flow-based QoS), Payload Length (16 bits), Next Header (8 bits, replaces Protocol), Hop Limit (8 bits, replaces TTL), Source Address (128 bits), Destination Address (128 bits). Total: exactly 40 bytes.</p><p><strong>What IPv6 removed:</strong></p><ul><li><strong>Header Checksum</strong> — gone. Layer 2 (Ethernet FCS) and Layer 4 (TCP/UDP checksums) already verify integrity. Routers no longer recompute a checksum on every hop.</li><li><strong>Fragmentation fields</strong> (Identification, Flags, Fragment Offset) — moved to an optional <strong>Fragment extension header</strong>. Only the source can fragment in IPv6; routers never fragment (they send ICMPv6 Packet Too Big instead).</li><li><strong>Options / Padding</strong> — moved to <strong>extension headers</strong> (Hop-by-Hop, Routing, Fragment, Authentication, ESP, Destination Options). This keeps the main header fixed-size.</li><li><strong>IHL (Internet Header Length)</strong> — unnecessary because the header is always 40 bytes.</li></ul><p><strong>Why this matters for routers:</strong> A router's fast path (ASIC or CEF) can parse an IPv6 header in one memory read because every field is at a known offset. IPv4's variable options field forced routers to walk a variable-length region, slowing per-packet processing. IPv6 is faster per packet at the cost of longer addresses.</p>",
+        visual: { type: "comparison", params: { left: { label: "IPv4 Header", items: ["20–60 bytes (variable)", "Has checksum (recomputed per hop)", "Router fragmentation allowed", "Options field (variable length)"] }, right: { label: "IPv6 Header", items: ["Fixed 40 bytes", "No checksum", "Source-only fragmentation", "Extension headers instead of options"] } } },
+        hack: {
+          memory: "IPv6 header = fixed 40 bytes, lean and mean. Killed: checksum, options, router fragmentation. Mnemonic: 'Four zero, nothing to know' — 40 bytes and everything's at a predictable offset. TTL became Hop Limit. Protocol became Next Header. Options moved out entirely.",
+          practice: "Flashcard the 8 IPv6 header fields in order. Compare side by side with the 13 IPv4 fields and mark which were removed or renamed. In Wireshark, capture an IPv6 ping and expand the header — verify you see exactly the 8 fields listed above and count 40 bytes.",
+          effort: "low",
+          meta: "Common exam question: 'What size is the IPv6 header?' = 40 bytes fixed. 'What was removed from IPv6 headers?' = checksum, fragmentation fields, options. Jeremy IT Lab Day 31. Wendell Odom OCG Chapter 22."
+        }
+      },
+      {
+        id: "1.8.a.4",
+        term: "No broadcast in IPv6",
+        weight: "high",
+        info: "<p><strong>IPv6 has no broadcast address.</strong> There is no equivalent of <code>255.255.255.255</code> or subnet directed broadcasts. Instead, IPv6 uses <strong>multicast</strong> (one-to-many, joined groups only) and <strong>anycast</strong> (one-to-nearest) to cover everything broadcast used to handle.</p><p><strong>Why this is an upgrade:</strong> Broadcasts are wasteful — every NIC on a segment must process the frame up to L3, even if the payload is irrelevant. On large flat networks with thousands of hosts, broadcast storms from ARP, DHCP, NetBIOS, and mDNS drown CPUs and saturate bandwidth. IPv6 multicast restricts traffic to devices that explicitly joined a group, dramatically reducing CPU waste on uninterested hosts.</p><p><strong>Replacements for common IPv4 broadcast use cases:</strong></p><ul><li><strong>ARP request (broadcast):</strong> Replaced by <strong>NS (Neighbor Solicitation)</strong> sent to the <strong>solicited-node multicast</strong> address <code>FF02::1:FFxx:xxxx</code> — only the target host (and collisions, rare) listens.</li><li><strong>All-hosts broadcast:</strong> Replaced by <code>FF02::1</code> (all-nodes link-local multicast). Every IPv6 node joins automatically.</li><li><strong>DHCP Discover (broadcast 255.255.255.255):</strong> Replaced by DHCPv6 Solicit to <code>FF02::1:2</code> (all DHCPv6 servers/relays).</li><li><strong>Routing protocol hellos:</strong> OSPFv3 uses <code>FF02::5</code> and <code>FF02::6</code>; EIGRP for IPv6 uses <code>FF02::A</code>.</li></ul><p><strong>Exam impact:</strong> Any answer choice that includes 'IPv6 broadcast' is wrong by definition. Watch for trick questions like 'which address does a host use to reach all nodes on the link?' → <code>FF02::1</code>, not a broadcast.</p>",
+        visual: { type: "shield", params: { items: ["No FF:FF:FF:FF:FF:FF broadcast", "FF02::1 = all nodes (multicast)", "FF02::2 = all routers (multicast)", "Solicited-node replaces ARP broadcast"], color: "#8b5cf6" } },
+        hack: {
+          memory: "IPv6 = no broadcast, ever. Multicast replaces the yelling-at-everyone model with a subscription model — only devices that joined the group process the frame. Any answer saying 'IPv6 broadcast' is automatically wrong.",
+          practice: "Make a table: IPv4 broadcast use → IPv6 replacement. ARP → NS to solicited-node. DHCP Discover → Solicit to FF02::1:2. All-hosts → FF02::1. This mapping is the fastest way to retain it.",
+          effort: "low",
+          meta: "Guaranteed exam question. Jeremy IT Lab Day 32. Wendell Odom OCG Chapter 23. Phrase cold: 'IPv6 replaces broadcast with multicast.'"
+        }
+      },
+      {
+        id: "1.8.a.5",
+        term: "SLAAC support",
+        weight: "high",
+        info: "<p><strong>SLAAC (Stateless Address Autoconfiguration)</strong> is a native IPv6 feature that lets a host generate its own valid global IPv6 address <strong>without any DHCP server</strong>. It is arguably the most valuable user-facing improvement over IPv4, where DHCP is mandatory for dynamic addressing.</p><p><strong>High-level process:</strong> The host sends a <strong>Router Solicitation (RS)</strong> to <code>FF02::2</code> asking any router for a prefix. The router replies with a <strong>Router Advertisement (RA)</strong> containing the /64 prefix, default gateway (the router's link-local), and lifetime. The host combines the /64 prefix with a self-generated 64-bit interface ID (via EUI-64 or random/RFC 7217) to form a complete 128-bit address, runs <strong>DAD (Duplicate Address Detection)</strong>, and starts using it.</p><p><strong>Zero DHCP server required</strong> for addressing. Stateless because no server keeps a binding table. Every host on a /64 picks its own interface ID from the 2^64 possible values — collision probability is astronomically small.</p><p><strong>Requirement — /64 prefix:</strong> SLAAC only works on /64 LAN segments because the interface ID must be exactly 64 bits. If a router advertises a /56 or /80, hosts cannot run SLAAC. This is why /64 is the non-negotiable standard LAN size in IPv6.</p><p><strong>DNS gap:</strong> Classic SLAAC provides the address and default gateway but no DNS server. Solutions: <strong>stateless DHCPv6</strong> (O-flag=1, host queries DHCPv6 for DNS only) or the <strong>RDNSS option</strong> in the RA (RFC 8106, newer but widely supported).</p>",
+        visual: { type: "handshake", params: { leftLabel: "Host", rightLabel: "Router", steps: ["RS → FF02::2", "← RA (prefix=2001:DB8:1::/64)", "Host picks interface ID", "DAD, then address is live"] } },
+        hack: {
+          memory: "SLAAC = Self-Leased Address Assignment (Claude's mnemonic). Host asks 'who's the router here?' (RS), router answers 'I am, here's the prefix' (RA), host invents its own interface ID, done. No DHCP, no state, no drama. Requires /64.",
+          practice: "In Packet Tracer, enable ipv6 unicast-routing on R1 and assign 2001:DB8:1::1/64 to a LAN. Connect a PC set to auto-config. Run ipconfig on the PC — note both a link-local and a 2001:DB8:1:: global address generated without any DHCP.",
+          effort: "medium",
+          meta: "Core IPv6 concept. Jeremy IT Lab Day 33. Wendell Odom OCG Chapter 23. Know: SLAAC is stateless, requires /64, and does not provide DNS by itself."
+        }
+      },
+      {
+        id: "1.8.a.6",
+        term: "64/64 split",
+        weight: "high",
+        info: "<p>The <strong>64/64 split</strong> is the universal IPv6 LAN convention: the first 64 bits identify the <strong>network prefix</strong>, and the last 64 bits identify the <strong>interface ID</strong> (the host). This split is hardcoded in SLAAC and baked into nearly every IPv6 deployment guide.</p><p><strong>Why 64 bits for the host?</strong> It lets the interface ID be derived from a 48-bit MAC via EUI-64 (MAC → insert FFFE in middle → flip 7th bit → 64 bits) and gives each LAN 2^64 ≈ 1.8 × 10^19 possible hosts — more than the number of grains of sand on Earth. Collisions between randomly chosen interface IDs are statistically impossible.</p><p><strong>Why 64 bits for the network?</strong> ISPs hand out /32 to /48 blocks; organizations subnet those into /64s. Even a small /48 (standard site allocation) contains 65,536 /64 LANs — more than any enterprise needs.</p><p><strong>Concrete example:</strong> address <code>2001:0DB8:CAFE:0001:021A:2BFF:FE3C:4D5E/64</code>. Network prefix = <code>2001:0DB8:CAFE:0001::/64</code>. Interface ID = <code>021A:2BFF:FE3C:4D5E</code> (EUI-64 generated from MAC 00:1A:2B:3C:4D:5E).</p><p><strong>Exceptions — when /64 is not used:</strong></p><ul><li><strong>/127</strong> on point-to-point router-to-router links (RFC 6164 recommends this — 2 addresses, no waste)</li><li><strong>/128</strong> for loopback interfaces or specific host routes</li><li><strong>/48, /56</strong> at the allocation level (not on individual LAN segments)</li></ul><p>On every end-user LAN, VLAN, or wireless SSID, the prefix is /64. Period.</p>",
+        visual: { type: "binary-breakdown", params: { bits: "[Network Prefix — 64 bits] [Interface ID — 64 bits]", label: "Standard /64 LAN split", highlight: [0, 1, 2, 3] } },
+        hack: {
+          memory: "64 up top (network), 64 down below (host). Every LAN is /64. Mnemonic: 'Sixty-four on the floor' — remember it, you'll get every SLAAC/LAN/subnet question right. The 64/64 split also means subnet math on CCNA is easy: you almost never compute it.",
+          practice: "Given 2001:DB8:CAFE:0001::/64, identify the network (first 64 bits) and the host portion (last 64 bits) of a full address. Practice with 5 random EUI-64 derived addresses.",
+          effort: "low",
+          meta: "Foundational concept. Jeremy IT Lab Day 31. Wendell Odom OCG Chapter 22. Know: /64 is required for SLAAC; every LAN uses /64."
+        }
+      },
+      {
+        id: "1.8.a.7",
+        term: "Why IPv6",
+        weight: "med",
+        info: "<p>IPv6 exists because <strong>IPv4 ran out of public addresses</strong>. IPv4's 32-bit space allows ~4.3 billion addresses (2^32). Designed in 1981 for a research network, it was never planned for a world with 30+ billion connected devices.</p><p><strong>Timeline of exhaustion:</strong></p><ul><li><strong>Feb 2011:</strong> IANA handed out the last five /8 blocks to the RIRs (one per region). This was 'IANA exhaustion.'</li><li><strong>Apr 2011:</strong> APNIC (Asia-Pacific) exhausted its general pool.</li><li><strong>Sep 2012:</strong> RIPE (Europe) exhausted.</li><li><strong>Jun 2014:</strong> LACNIC (Latin America) exhausted.</li><li><strong>Sep 2015:</strong> ARIN (North America) exhausted.</li><li><strong>Nov 2019:</strong> RIPE assigned its final /22 — full exhaustion.</li></ul><p><strong>NAT as a band-aid:</strong> NAT (Network Address Translation) extended IPv4 by letting many private hosts share one public address. This works but <strong>breaks end-to-end connectivity</strong>: peer-to-peer apps, VoIP, gaming, IPsec, and server hosting all require workarounds (STUN, TURN, hole punching, UPnP, port forwarding). CGNAT (carrier-grade NAT) at ISPs adds a second NAT layer, making diagnosis even harder.</p><p><strong>IPv6 fixes the structural issue, not just the count.</strong> 340 undecillion addresses mean every device gets a globally routable public address. NAT becomes optional, end-to-end connectivity returns, and security policies can use actual endpoint addresses instead of rewritten ones. Additional wins: simpler header, no broadcast, built-in SLAAC, required IPsec (in the original spec), and multicast scopes.</p>",
+        visual: { type: "state-machine", params: { states: ["IPv4 designed 1981 (2^32 addresses)", "Internet booms 1990s–2000s", "NAT extends lifespan", "IANA exhausts 2011", "RIRs exhaust 2011–2019", "IPv6 adoption grows"], active: 5, transitions: true } },
+        hack: {
+          memory: "IPv4 = 4.3 billion addresses, gone by 2011. IPv6 = 340 undecillion, won't run out. NAT kept IPv4 alive but broke peer-to-peer. IPv6 restores end-to-end connectivity.",
+          practice: "Quick quiz: when did IANA exhaust? Feb 2011. Why is NAT a workaround rather than a fix? It breaks end-to-end connectivity. What does IPv6 remove the need for? NAT.",
+          effort: "low",
+          meta: "Background/context question. Jeremy IT Lab Day 31. The exam may mention IPv4 exhaustion or NAT-traversal pain as the motivation for IPv6."
+        }
+      }
     ]
   },
 
@@ -4735,12 +5203,84 @@ window.subtopicContentD12 = {
       meta: "The exam will give shortened addresses and ask you to identify the full form, or vice versa. Jeremy IT Lab Day 31 covers shortening rules with examples. Wendell Odom OCG Chapter 22 provides practice problems. The one-time :: rule is the most common trick \u2014 if an answer uses :: twice, it is automatically wrong."
     },
     micro: [
-      { id: "1.8.b.1", term: "Rule 1: Drop leading zeros",   def: "Remove leading zeros in each hextet. 0DB8 → DB8, 0001 → 1, 0000 → 0. Must keep at least one digit.", weight: "high" },
-      { id: "1.8.b.2", term: "Rule 2: Double colon ::",      def: "Replace ONE consecutive run of all-zero hextets with ::. Use for the longest run.", weight: "high" },
-      { id: "1.8.b.3", term: ":: only ONCE",                 def: "Double colon can only appear once per address. Two would be ambiguous.", weight: "high" },
-      { id: "1.8.b.4", term: "Expanding ::",                 def: "Count visible hextets; subtract from 8; fill :: with that many 0000 groups.", weight: "high" },
-      { id: "1.8.b.5", term: ":: alone",                     def: "The unspecified address (all zeros). Equivalent to IPv4 0.0.0.0.", weight: "med" },
-      { id: "1.8.b.6", term: "::1 (loopback)",               def: "IPv6 loopback address. Equivalent to IPv4 127.0.0.1.", weight: "high" }
+      {
+        id: "1.8.b.1",
+        term: "Rule 1: Drop leading zeros",
+        weight: "high",
+        info: "<p><strong>Rule 1 of IPv6 shortening:</strong> within any hextet, <strong>remove leading zeros</strong> (zeros at the beginning of the group). You must keep at least one digit per hextet, so a group that is all zeros becomes <code>0</code>, not empty. Trailing and embedded zeros stay.</p><p><strong>Per-hextet examples:</strong></p><ul><li><code>0DB8</code> → <code>DB8</code> (drop one leading zero)</li><li><code>0001</code> → <code>1</code> (drop three leading zeros)</li><li><code>0000</code> → <code>0</code> (drop three, keep one — the hextet still exists)</li><li><code>00AB</code> → <code>AB</code> (drop two leading zeros)</li><li><code>DB80</code> → <code>DB80</code> (unchanged — <strong>trailing</strong> zeros are not leading)</li><li><code>0D0E</code> → <code>D0E</code> (drop leading zero; embedded zero stays)</li></ul><p><strong>Full address example:</strong> <code>2001:0DB8:0000:0000:0000:0000:0000:0001</code> after Rule 1 only → <code>2001:DB8:0:0:0:0:0:1</code>. Notice the colons and count of hextets are preserved — Rule 1 shortens within each group but does not merge groups. Merging is Rule 2's job.</p><p><strong>Common mistake:</strong> deleting a trailing zero. <code>DB80</code> is not the same as <code>DB8</code>. The value <code>DB80</code> = 56,192 decimal; <code>DB8</code> = 3,512 decimal. They differ by a factor of 16. Only drop leading zeros.</p><p><strong>Reverse (expanding):</strong> when you see <code>DB8</code>, pad it back to 4 digits with leading zeros → <code>0DB8</code>. Expansion is always exactly 4 hex digits per hextet.</p>",
+        visual: { type: "comparison", params: { left: { label: "Full hextet", items: ["0DB8", "0001", "0000", "00AB", "DB80"] }, right: { label: "After Rule 1", items: ["DB8", "1", "0", "AB", "DB80 (unchanged)"] } } },
+        hack: {
+          memory: "Kill leading zeros only. 0DB8→DB8. 0001→1. 0000→0 (never empty). DB80 stays DB80 because those zeros are trailing. Keep at least one digit per hextet — it's still a valid group.",
+          practice: "Take 10 hextets with leading zeros and shorten each. Then reverse — expand 10 shortened hextets back to 4 digits. The reverse direction is tested just as often.",
+          effort: "low",
+          meta: "Guaranteed exam mechanic. Jeremy IT Lab Day 31. Wendell Odom OCG Chapter 22. Common trick: an answer drops trailing zeros — automatically wrong."
+        }
+      },
+      {
+        id: "1.8.b.2",
+        term: "Rule 2: Double colon ::",
+        weight: "high",
+        info: "<p><strong>Rule 2:</strong> a <strong>single consecutive run of all-zero hextets</strong> can be replaced by <code>::</code> (two colons). The <code>::</code> represents one or more groups of <code>0000</code>. This is the dramatic shortening most people think of when they see IPv6.</p><p><strong>Applying Rule 2 after Rule 1:</strong></p><ul><li><code>2001:DB8:0:0:0:0:0:1</code> → <code>2001:DB8::1</code> (six zeros collapsed)</li><li><code>FE80:0:0:0:20C:29FF:FE12:3456</code> → <code>FE80::20C:29FF:FE12:3456</code> (three zeros collapsed)</li><li><code>0:0:0:0:0:0:0:1</code> → <code>::1</code> (loopback)</li><li><code>0:0:0:0:0:0:0:0</code> → <code>::</code> (unspecified)</li><li><code>FF02:0:0:0:0:0:0:1</code> → <code>FF02::1</code> (all-nodes multicast)</li></ul><p><strong>Must be consecutive and all-zero:</strong> <code>2001:DB8:0:1:0:0:0:1</code> cannot collapse the first <code>0</code> because it is a single zero between non-zeros. Only the run of three zeros in positions 5-7 can collapse → <code>2001:DB8:0:1::1</code>. You cannot break a non-zero hextet with <code>::</code>.</p><p><strong>Pick the longest run:</strong> If an address has two separate runs of zeros, <code>::</code> goes on the <strong>longer</strong> one. If they are equal length, convention says use the leftmost. Example: <code>2001:0:0:1:0:0:0:1</code> has a run of 2 and a run of 3 — use :: on the longer: <code>2001:0:0:1::1</code>.</p><p><strong>Valid address with just <code>::</code>:</strong> by itself, <code>::</code> means all-zeros (the unspecified address). <code>::1</code> is the loopback. Both are legal and common in IPv6.</p>",
+        visual: { type: "comparison", params: { left: { label: "Before ::", items: ["2001:DB8:0:0:0:0:0:1", "FE80:0:0:0:20C:29FF:FE12:3456", "0:0:0:0:0:0:0:1", "FF02:0:0:0:0:0:0:1"] }, right: { label: "After ::", items: ["2001:DB8::1", "FE80::20C:29FF:FE12:3456", "::1", "FF02::1"] } } },
+        hack: {
+          memory: ":: = double colon, one run of zeros gone. Only consecutive all-zero groups. Pick the longest run. :: alone = all zeros (unspecified). ::1 = loopback.",
+          practice: "Shorten 10 full addresses with both rules. Then expand 10 shortened ones. If you see :: applied in the middle of non-zero hextets, reject that answer.",
+          effort: "medium",
+          meta: "Tested on every IPv6 exam question. Jeremy IT Lab Day 31. Wendell Odom OCG Chapter 22."
+        }
+      },
+      {
+        id: "1.8.b.3",
+        term: ":: only ONCE",
+        weight: "high",
+        info: "<p>The double-colon <code>::</code> can appear <strong>only once per address</strong>. This restriction exists because <code>::</code> represents a variable number of zero hextets — if it appeared twice, there would be no way to know how many zeros each instance represents.</p><p><strong>The ambiguity problem:</strong> imagine <code>2001::1::5</code>. The address must total 8 hextets. You have <code>2001</code>, <code>1</code>, and <code>5</code> — 3 visible hextets. The 5 missing zero hextets could be split as 1+4, 2+3, 3+2, or 4+1 between the two <code>::</code> instances. There is no way to choose. So the rule: only one <code>::</code>.</p><p><strong>When an address has two separate runs of zeros, pick the longer:</strong></p><ul><li><code>2001:0:0:1:0:0:0:1</code> → runs of 2 and 3 → use :: on the longer → <code>2001:0:0:1::1</code>, not <code>2001::1:0:0:0:1</code></li><li><code>2001:0:0:1:0:0:1:1</code> → both runs are 2 → by convention use the leftmost → <code>2001::1:0:0:1:1</code></li><li><code>2001:1:0:0:1:0:0:1</code> → both runs of 2 → leftmost → <code>2001:1::1:0:0:1</code></li></ul><p><strong>Expanding addresses with one ::</strong>: count visible hextets, subtract from 8, fill :: with that many <code>0000</code> groups. Example: <code>2001:DB8::1</code> has 3 visible → 8 − 3 = 5 zero groups → <code>2001:0DB8:0000:0000:0000:0000:0000:0001</code>.</p><p><strong>Exam implication:</strong> any answer with two <code>::</code> is wrong by syntax. Always check the syntax validity first before thinking about the value.</p>",
+        visual: { type: "comparison", params: { left: { label: "VALID (one ::)", items: ["2001:DB8::1", "FE80::1", "::1", "FF02::1:FF00:0"] }, right: { label: "INVALID (two ::)", items: ["2001::1::5 (ambiguous)", "::DB8::1 (illegal)"] } } },
+        hack: {
+          memory: "Two colons, one time. Two :: = ambiguous = invalid. If you spot two :: in an answer choice, eliminate it immediately.",
+          practice: "Spot-check 20 candidate IPv6 addresses for syntax. Any with zero :: and fewer than 8 hextets? Invalid. Any with two ::? Invalid. Any with :: and exactly one consecutive run of zeros? Valid.",
+          effort: "low",
+          meta: "Classic exam trap. Jeremy IT Lab Day 31. Wendell Odom OCG Chapter 22. 'Which of these IPv6 addresses is valid?' — always eliminate the two-:: option first."
+        }
+      },
+      {
+        id: "1.8.b.4",
+        term: "Expanding ::",
+        weight: "high",
+        info: "<p>To <strong>expand a shortened IPv6 address</strong> back to its 128-bit form, reverse the two rules in the opposite order: first expand <code>::</code>, then pad leading zeros.</p><p><strong>Algorithm:</strong></p><ol><li>Count the <strong>visible hextets</strong> (groups between colons, ignoring the ::).</li><li>Subtract from 8 to get the number of zero hextets the :: represents.</li><li>Replace :: with that many <code>0000</code> groups, joined by colons.</li><li>Pad every visible hextet with leading zeros until each is 4 hex digits.</li></ol><p><strong>Example 1:</strong> <code>2001:DB8::1</code></p><ul><li>Visible hextets: 2001, DB8, 1 → 3 visible</li><li>Zero hextets needed: 8 − 3 = 5</li><li>After expanding ::: <code>2001:DB8:0000:0000:0000:0000:0000:1</code></li><li>After padding: <code>2001:0DB8:0000:0000:0000:0000:0000:0001</code></li></ul><p><strong>Example 2:</strong> <code>FE80::20C:29FF:FE12:3456</code></p><ul><li>Visible: FE80, 20C, 29FF, FE12, 3456 → 5 visible</li><li>Zero hextets: 8 − 5 = 3</li><li>Expanded: <code>FE80:0000:0000:0000:020C:29FF:FE12:3456</code></li></ul><p><strong>Example 3:</strong> <code>::1</code></p><ul><li>Visible: 1 → 1 visible</li><li>Zero hextets: 8 − 1 = 7</li><li>Expanded: <code>0000:0000:0000:0000:0000:0000:0000:0001</code></li></ul><p><strong>Edge case — :: alone:</strong> <code>::</code> has 0 visible hextets → 8 zero hextets → <code>0000:0000:0000:0000:0000:0000:0000:0000</code>.</p>",
+        visual: { type: "packet-flow", params: { nodes: ["Count visible hextets", "8 − visible = zeros", "Replace :: with that many 0000", "Pad each hextet to 4 digits"], color: "#10b981" } },
+        hack: {
+          memory: "Expand :: = (8 − visible) zero hextets. 2001:DB8::1 → 3 visible → 5 zeros → 2001:0DB8:0000:0000:0000:0000:0000:0001. Then pad each group to 4 digits.",
+          practice: "Expand 10 random shortened addresses by hand. Write out the visible count, the 8 − visible subtraction, the replacement, and the final padded form. Verify with an online calculator.",
+          effort: "medium",
+          meta: "Routine exam mechanic. Jeremy IT Lab Day 31. Wendell Odom OCG Chapter 22."
+        }
+      },
+      {
+        id: "1.8.b.5",
+        term: ":: alone",
+        weight: "med",
+        info: "<p><strong><code>::</code> by itself is the IPv6 unspecified address</strong> — all 128 bits are zero. It is the exact analogue of IPv4's <code>0.0.0.0</code> and is used in the same contexts.</p><p><strong>Full form:</strong> <code>0000:0000:0000:0000:0000:0000:0000:0000</code> / 128.</p><p><strong>Where it appears:</strong></p><ul><li><strong>DHCPv6 Solicit source:</strong> a host that does not yet have an address uses :: as its source when sending DHCPv6 messages.</li><li><strong>DAD (Duplicate Address Detection):</strong> the Neighbor Solicitation for DAD uses :: as the source because the host has not yet claimed the address it is testing.</li><li><strong>Static default routes:</strong> <code>ipv6 route ::/0 2001:DB8::1</code> matches any destination, same as <code>ip route 0.0.0.0 0.0.0.0</code> in IPv4.</li><li><strong>Socket bind:</strong> binding a server socket to :: means listen on all interfaces, same as binding to 0.0.0.0 in IPv4.</li></ul><p><strong>What it is NOT:</strong> :: is not loopback. It is not a valid destination on the wire. It cannot be assigned as an interface address. It only appears as a source or as a wildcard.</p><p><strong>Key distinctions:</strong></p><ul><li><code>::</code> = unspecified (0.0.0.0 equivalent, all zeros)</li><li><code>::1</code> = loopback (127.0.0.1 equivalent, last bit set)</li><li><code>::/0</code> = default route (any destination)</li><li><code>::/128</code> = the specific unspecified address as a route</li></ul>",
+        visual: { type: "comparison", params: { left: { label: "IPv4", items: ["0.0.0.0 — unspecified", "0.0.0.0/0 — default route", "Used as DHCP source before address"] }, right: { label: "IPv6", items: [":: — unspecified", "::/0 — default route", "Used as DHCPv6/DAD source"] } } },
+        hack: {
+          memory: ":: alone = 0.0.0.0 of IPv6. All zeros. Source-only, never a destination. Used for DHCPv6 Solicit and DAD before a host has claimed an address.",
+          practice: "Flashcard: :: means what? → unspecified address. When is it used? → as source during DHCPv6 Solicit or DAD. What's the default route in IPv6? → ::/0.",
+          effort: "low",
+          meta: "Simple concept but easy to confuse with ::1. Jeremy IT Lab Day 31. Wendell Odom OCG Chapter 22. Remember: :: = unspecified, ::1 = loopback."
+        }
+      },
+      {
+        id: "1.8.b.6",
+        term: "::1 (loopback)",
+        weight: "high",
+        info: "<p><strong><code>::1</code> is the IPv6 loopback address</strong> — the equivalent of IPv4's <code>127.0.0.1</code>. In expanded form it is <code>0000:0000:0000:0000:0000:0000:0000:0001</code> / 128. Every IPv6 stack has it built in, always reachable on the host itself.</p><p><strong>Use cases:</strong></p><ul><li>Testing the local TCP/IP stack: <code>ping6 ::1</code> (Linux) or <code>ping ::1</code> (modern OSes).</li><li>Binding localhost-only services (databases, admin interfaces) so they are unreachable from the network.</li><li>Application-layer sanity tests that do not require a NIC.</li></ul><p><strong>Characteristics:</strong></p><ul><li>Assigned to the <strong>loopback interface</strong> (<code>lo0</code> on Unix, the loopback pseudo-interface on Windows).</li><li>Prefix: <code>::1/128</code> — a single host address, not a range. IPv4 had an entire <code>127.0.0.0/8</code> block (16 million addresses); IPv6 gives loopback exactly one address.</li><li>Packets sent to ::1 never leave the host. They go down the TCP/IP stack and back up, staying entirely in kernel memory.</li><li>Not routable anywhere — routers must drop packets with source or destination ::1 if they arrive on an external interface.</li></ul><p><strong>Exam trap:</strong> mixing :: (unspecified, all zeros) with ::1 (loopback, last bit set). Read carefully. The question 'which IPv6 address is the loopback?' must be answered with ::1, not ::.</p>",
+        visual: { type: "hierarchy", params: { root: "IPv6 Loopback", children: [{ name: "::1/128 (single address)" }, { name: "On loopback interface (lo0)" }, { name: "Used for local stack tests: ping ::1" }, { name: "IPv4 analogue: 127.0.0.1" }] } },
+        hack: {
+          memory: "::1 = loopback = 127.0.0.1 of IPv6. Remember: :: alone = all zeros (unspecified), ::1 = last bit set (loopback). ONE dot in ::1, ONE loopback address.",
+          practice: "On your Mac or Linux box, run ping6 ::1 — verify reply from ::1. Then try ping :: — it fails (unspecified is not a valid destination). This hands-on confirms the distinction.",
+          effort: "low",
+          meta: "Common exam question. Jeremy IT Lab Day 31. Wendell Odom OCG Chapter 22. Know both :: and ::1 cold."
+        }
+      }
     ]
   },
 
@@ -4761,11 +5301,71 @@ window.subtopicContentD12 = {
       meta: "Knowing /64 for LANs is essential \u2014 the exam will not ask you to subnet IPv6 the way it does IPv4. Jeremy IT Lab Day 31-32 covers prefix lengths. Wendell Odom OCG Chapter 22-23 explains the hierarchy. The key insight: IPv6 subnetting is easy because you always use /64 for LANs and have practically unlimited subnets."
     },
     micro: [
-      { id: "1.8.c.1", term: "/64 standard LAN prefix",      def: "Every individual IPv6 LAN segment. Required for SLAAC (interface ID must be 64 bits).", weight: "high" },
-      { id: "1.8.c.2", term: "/48 site allocation",          def: "Typical block from ISP to organization. 16 bits available for internal subnetting → 65,536 /64 subnets.", weight: "high" },
-      { id: "1.8.c.3", term: "/127 point-to-point",          def: "Recommended for router-to-router P2P links (RFC 6164). 2 addresses, no waste. IPv6 analogue of IPv4 /30.", weight: "high" },
-      { id: "1.8.c.4", term: "/128 host route",              def: "Single address. Used for loopback interfaces and specific host routes.", weight: "high" },
-      { id: "1.8.c.5", term: "No subnet math (usually)",     def: "IPv6 standard LAN is always /64. You don't calculate IPv6 subnets on CCNA the way you do for IPv4.", weight: "med" }
+      {
+        id: "1.8.c.1",
+        term: "/64 standard LAN prefix",
+        weight: "high",
+        info: "<p><strong>/64 is the universal IPv6 LAN prefix length.</strong> Every Ethernet segment, VLAN, and wireless SSID uses /64. This is not just convention — it is a <strong>requirement for SLAAC</strong>, because the interface ID produced by EUI-64 or RFC 7217 is exactly 64 bits long and must fit into the host portion.</p><p><strong>Size of a /64:</strong> 2^64 ≈ 1.8 × 10^19 addresses per segment. For comparison, the entire IPv4 internet has 2^32 ≈ 4.3 × 10^9 addresses. A single IPv6 /64 LAN contains roughly 4 billion IPv4 internets worth of addresses. Waste is intentional.</p><p><strong>Example usage:</strong></p><pre>interface GigabitEthernet0/0\n ipv6 address 2001:DB8:1:10::1/64\n no shutdown</pre><p>Hosts on that segment get addresses like <code>2001:DB8:1:10::/64</code> with any 64-bit interface ID they invent (EUI-64 or random).</p><p><strong>Why /64 specifically?</strong></p><ul><li>EUI-64 converts a 48-bit MAC to a 64-bit interface ID — no other prefix length fits.</li><li>RFC 4291 mandates /64 for all unicast subnets except ::/128 and ::1/128.</li><li>Uniform subnet size simplifies operations, scripting, and firewall rules.</li><li>Prevents subnet-math errors that plagued IPv4.</li></ul><p><strong>Exam lock:</strong> if asked what LAN prefix length to use for IPv6, answer /64 every time. If a question says SLAAC is configured but hosts are not getting addresses, check the prefix — it must be /64.</p>",
+        visual: { type: "binary-breakdown", params: { bits: "[Network /64] [Host /64]  — 2^64 hosts per LAN", label: "Standard LAN prefix", highlight: [0, 1, 2, 3] } },
+        hack: {
+          memory: "/64 = the magic LAN number. Required by SLAAC. Waste half the address (64 host bits) because there are plenty. If the question asks LAN prefix length, answer /64 automatically.",
+          practice: "Lab in Packet Tracer: try to configure SLAAC with a /80 prefix. The host will not auto-generate a global address. Switch to /64 and it works instantly. This proves the /64 requirement.",
+          effort: "low",
+          meta: "Universal IPv6 rule. Jeremy IT Lab Day 31. Wendell Odom OCG Chapter 22. Know: /64 for LANs, required for SLAAC."
+        }
+      },
+      {
+        id: "1.8.c.2",
+        term: "/48 site allocation",
+        weight: "high",
+        info: "<p>A <strong>/48 is the standard IPv6 block an ISP assigns to an organization or site</strong>. It gives the site 16 bits of internal subnetting space (bits 49–64), producing <strong>2^16 = 65,536 possible /64 LAN subnets</strong>. This is vastly more than any enterprise needs, which is the point — IPv6 deliberately over-allocates so organizations can build deep hierarchies without running out.</p><p><strong>Structure of a /48 → /64 hierarchy:</strong></p><ul><li><strong>First 48 bits</strong> (3 hextets): <strong>Global Routing Prefix</strong> — assigned by the ISP, fixed for the site. Example: <code>2001:0DB8:CAFE::/48</code>.</li><li><strong>Bits 49–64</strong> (4th hextet): <strong>Subnet ID</strong> — the organization controls this. 16 bits → 65,536 subnets.</li><li><strong>Last 64 bits</strong>: <strong>Interface ID</strong> — assigned per host.</li></ul><p><strong>Practical example:</strong> ISP gives Acme Corp <code>2001:DB8:CAFE::/48</code>.</p><ul><li>Engineering LAN: <code>2001:DB8:CAFE:<strong>0001</strong>::/64</code></li><li>Sales LAN: <code>2001:DB8:CAFE:<strong>0002</strong>::/64</code></li><li>Wireless Guest: <code>2001:DB8:CAFE:<strong>0010</strong>::/64</code></li><li>Point-to-point to R2: <code>2001:DB8:CAFE:<strong>FFFE</strong>::/127</code></li><li>Maximum subnet: <code>2001:DB8:CAFE:<strong>FFFF</strong>::/64</code></li></ul><p><strong>RIR policy:</strong> ARIN and RIPE typically allocate <strong>/32 to ISPs</strong>, who then hand out <strong>/48 to end-sites</strong> and <strong>/56 or /60 to residential customers</strong>. Some providers give residential users a full /48. Organizations with multiple geographic locations may get a /44 or /40 to subnet further by site.</p><p><strong>Why 65,536 subnets is more than enough:</strong> most enterprises have dozens to hundreds of VLANs, not thousands. The /48 gives a huge safety margin for growth, mergers, and structured subnet planning (e.g., use the first hex digit of the subnet ID to encode building number).</p>",
+        visual: { type: "hierarchy", params: { root: "/48 Site Allocation (from ISP)", children: [{ name: "Global Routing Prefix 48 bits (fixed)", children: [{ name: "Subnet ID 16 bits (org controls) = 65,536 options", children: [{ name: "/64 per LAN (interface ID 64 bits)" }] }] }] } },
+        hack: {
+          memory: "/48 = site handoff from ISP. 16 bits of subnet space = 65,536 LANs. Mnemonic: '48 at the door (ISP handoff), 64 on the floor (per LAN).' You rarely need more than a /48.",
+          practice: "Given 2001:DB8:CAFE::/48, write out 5 distinct /64 subnets. Identify which hextet you are varying. Calculate the total number of /64s available (2^16 = 65,536).",
+          effort: "low",
+          meta: "Common exam concept. Jeremy IT Lab Day 32. Wendell Odom OCG Chapter 22. Know: /48 is the standard site size, yields 65,536 /64 subnets."
+        }
+      },
+      {
+        id: "1.8.c.3",
+        term: "/127 point-to-point",
+        weight: "high",
+        info: "<p><strong>/127 is the recommended prefix length for point-to-point links between routers</strong> (RFC 6164). It provides exactly <strong>2 usable addresses</strong>, perfect for a transit link that will only ever have 2 endpoints. This is the IPv6 analogue of IPv4's <code>/30</code>, which also gives 2 usable addresses (4 total minus network and broadcast).</p><p><strong>Why /127 instead of /64 on P2P links?</strong></p><ul><li><strong>No SLAAC needed</strong> on router-to-router links — routers are manually configured, so the /64-for-SLAAC rule does not apply.</li><li><strong>Prevents neighbor discovery exhaustion attack</strong> (RFC 6164 motivation). On a /64 P2P link, an attacker can scan enough addresses to overflow the neighbor cache and cause a denial of service. /127 leaves only 2 addresses, making the attack impossible.</li><li><strong>Cleaner operationally</strong> — 2 addresses instead of 2^64 means no ambiguity about which addresses exist on the link.</li></ul><p><strong>Configuration example:</strong></p><pre>R1:\ninterface GigabitEthernet0/1\n ipv6 address 2001:DB8:0:FFFE::0/127\n\nR2:\ninterface GigabitEthernet0/1\n ipv6 address 2001:DB8:0:FFFE::1/127</pre><p><strong>Difference from IPv4 /30:</strong> IPv4's /30 has 4 addresses (network, host1, host2, broadcast). /127 has only 2 addresses (both usable as hosts) — IPv6 has no broadcast and does not reserve the all-zeros host address. Both endpoints use one address each.</p><p><strong>/126 is occasionally seen</strong> in older deployments (4 addresses, like /30). Modern best practice is /127 for two-router links.</p>",
+        visual: { type: "comparison", params: { left: { label: "IPv4 P2P", items: ["/30 = 4 addresses", "Network + 2 hosts + broadcast"] }, right: { label: "IPv6 P2P", items: ["/127 = 2 addresses (both usable)", "RFC 6164 recommended"] } } },
+        hack: {
+          memory: "/127 = IPv6's /30 for router-to-router links. Exactly 2 addresses. RFC 6164. No SLAAC on infrastructure links — so /64 rule does not apply.",
+          practice: "Configure a /127 between two routers in Packet Tracer. Verify both interfaces come up/up. Use show ipv6 route to confirm the connected /127 and local /128 show up.",
+          effort: "low",
+          meta: "Tested at a conceptual level. Jeremy IT Lab Day 32. Wendell Odom OCG Chapter 22. Know: /127 for P2P, /64 for LANs."
+        }
+      },
+      {
+        id: "1.8.c.4",
+        term: "/128 host route",
+        weight: "high",
+        info: "<p><strong>/128 identifies a single IPv6 host</strong> — a prefix with all 128 bits specified leaves no room for any other addresses. It is the IPv6 equivalent of IPv4's <code>/32</code>.</p><p><strong>Common uses:</strong></p><ul><li><strong>Loopback interfaces on routers</strong> — <code>interface Loopback0</code> with a /128 address gives the router a stable identifier for OSPFv3 router ID, BGP neighbor source, and management.</li><li><strong>Local routes (L entries)</strong> in the routing table — when you configure a /64 on an interface, the router also installs a /128 for its specific address so packets to the router itself are processed locally.</li><li><strong>Static host routes</strong> — pinning traffic for one specific address to a specific next-hop: <code>ipv6 route 2001:DB8::5/128 2001:DB8:1::2</code>.</li><li><strong>Anycast deployments</strong> — the same /128 address is configured on multiple devices; the network routes to the nearest.</li></ul><p><strong>Example — loopback on a router:</strong></p><pre>interface Loopback0\n ipv6 address 2001:DB8:0:0::1/128</pre><p>This appears in <code>show ipv6 route</code> as:</p><pre>L 2001:DB8::1/128 is directly connected, Loopback0</pre><p><strong>Why /128 matters on CCNA:</strong> understanding L routes (local /128s) is critical when reading <code>show ipv6 route</code>. Every time you see an L entry, it is a /128 pointing to the router's own interface address. If your router has 3 IPv6 interfaces configured, you will see 3 L /128 entries plus 3 C /64 (or whatever prefix) entries.</p>",
+        visual: { type: "comparison", params: { left: { label: "IPv4", items: ["/32 = single host", "Loopback: 127.0.0.1/32"] }, right: { label: "IPv6", items: ["/128 = single host", "Loopback: ::1/128", "Router L route: /128 per interface"] } } },
+        hack: {
+          memory: "/128 = single host, IPv6's /32. Every router interface generates an L /128 in the routing table. Loopback interfaces also use /128.",
+          practice: "In Packet Tracer, configure interface Loopback0 with a /128 address. Run show ipv6 route — verify the L /128 entry. Also look at the /128 L entries for physical interfaces.",
+          effort: "low",
+          meta: "Routine exam concept. Jeremy IT Lab Day 32. Wendell Odom OCG Chapter 22. /128 = host route, like IPv4 /32."
+        }
+      },
+      {
+        id: "1.8.c.5",
+        term: "No subnet math (usually)",
+        weight: "med",
+        info: "<p>One of the biggest practical advantages of IPv6 on the CCNA: <strong>you almost never perform subnet math</strong>. The /64 convention eliminates the variable-length subnet problems that dominate IPv4 study.</p><p><strong>What IPv4 required you to master:</strong></p><ul><li>Calculate subnet ranges from variable masks (/25, /26, /27, /28, /29, /30)</li><li>Determine the network, broadcast, and usable host range for each subnet</li><li>Apply VLSM (Variable-Length Subnet Masks) to conserve addresses</li><li>Summarize routes across bit boundaries</li><li>Spot overlapping subnets</li></ul><p><strong>What IPv6 requires:</strong></p><ul><li>Know the universal /64 for LANs</li><li>Identify which hextet varies between adjacent subnets (usually bit 49–64 = 4th hextet in a /48 allocation)</li><li>Recognize /48, /64, /127, /128 by their typical use case</li></ul><p><strong>Why this works:</strong> IPv6 has so many addresses that waste is free. You never need to fit 30 hosts into a /27 to save addresses. Every LAN gets a /64 regardless of size. Point-to-point links get /127. Loopbacks get /128. That is the whole subnetting story.</p><p><strong>When subnet math does appear:</strong></p><ul><li>Identifying the subnet a host belongs to: trim the address to the prefix length. Example: <code>2001:DB8:CAFE:1:1234::/64</code> belongs to <code>2001:DB8:CAFE:1::/64</code>.</li><li>Recognizing solicited-node multicast: <code>FF02::1:FF</code> + last 24 bits of the unicast.</li><li>EUI-64 conversion of a MAC.</li></ul><p><strong>Exam implication:</strong> questions asking you to identify the subnet ID or the number of available subnets are straightforward compared to IPv4. If a question presents 8 overlapping prefixes and asks for the best match, that is longest-prefix-match, not subnet math per se.</p>",
+        visual: { type: "comparison", params: { left: { label: "IPv4 subnetting", items: ["VLSM, /25–/30 LANs", "Calculate network/broadcast/hosts", "Conserve addresses carefully"] }, right: { label: "IPv6 subnetting", items: ["/64 always for LANs", "/127 P2P, /128 host", "No conservation needed"] } } },
+        hack: {
+          memory: "IPv6 subnet math = 'just use /64.' No wildcard gymnastics, no VLSM puzzles. Every LAN is /64, P2P is /127, single host is /128. Done.",
+          practice: "Quiz: LAN prefix? /64. Router-to-router P2P? /127. Loopback? /128. Site from ISP? /48. Confirm you can answer all four in under 5 seconds each.",
+          effort: "low",
+          meta: "Relief topic after IPv4 subnetting. Jeremy IT Lab Day 32. Wendell Odom OCG Chapter 22. Remember: IPv6 CCNA rarely asks you to compute subnets."
+        }
+      }
     ]
   },
 
@@ -4786,13 +5386,97 @@ window.subtopicContentD12 = {
       meta: "Know SLAAC vs Stateless DHCPv6 vs Stateful DHCPv6. The exam tests when each is used. Jeremy IT Lab Day 33 covers all three methods. Wendell Odom OCG Chapter 23 (SLAAC and DHCPv6) is the reference. Key: SLAAC = address from RA, no DHCP for addressing. The A/O/M flags determine which method is in use."
     },
     micro: [
-      { id: "1.8.d.1", term: "SLAAC",                        def: "Stateless Address Autoconfiguration. Host self-generates IPv6 address from RA prefix + interface ID. No DHCP required.", weight: "high" },
-      { id: "1.8.d.2", term: "Router Solicitation (RS)",     def: "ICMPv6 Type 133. Host sends to FF02::2 asking for network config.", weight: "high" },
-      { id: "1.8.d.3", term: "Router Advertisement (RA)",    def: "ICMPv6 Type 134. Router responds with prefix, default gateway (its link-local), and A/O/M flags.", weight: "high" },
-      { id: "1.8.d.4", term: "EUI-64 interface ID",          def: "Generated from MAC by inserting FFFE in middle and flipping 7th bit. 64 bits.", weight: "high" },
-      { id: "1.8.d.5", term: "Privacy extensions",           def: "RFC 7217. Random interface ID instead of EUI-64 to prevent MAC tracking. Default on modern OSes.", weight: "med" },
-      { id: "1.8.d.6", term: "DAD (Duplicate Address Detection)", def: "Host sends NS for its own address before claiming it. No reply = address is unique.", weight: "high" },
-      { id: "1.8.d.7", term: "A-flag",                       def: "Address Autoconfiguration flag in RA. A=1 tells host to use SLAAC for addressing.", weight: "high" }
+      {
+        id: "1.8.d.1",
+        term: "SLAAC",
+        weight: "high",
+        info: "<p><strong>SLAAC (Stateless Address Autoconfiguration, RFC 4862)</strong> is the IPv6 feature that lets a host create its own globally routable address without any DHCP server. The host combines the /64 prefix learned from a Router Advertisement with a self-chosen 64-bit interface ID (EUI-64 or RFC 7217 random). The result is a complete 128-bit address that is valid for global use.</p><p><strong>Stateless means:</strong> no server keeps track of who got which address. No binding table, no leases, no reservations. Each host is responsible for picking a unique interface ID and running DAD to confirm uniqueness.</p><p><strong>Full SLAAC flow:</strong></p><ol><li><strong>Host boots</strong> and generates a link-local address (FE80::/10 + interface ID) automatically — this always happens, SLAAC or not.</li><li><strong>Host sends RS</strong> (Router Solicitation, ICMPv6 Type 133) to FF02::2.</li><li><strong>Router replies with RA</strong> (Router Advertisement, ICMPv6 Type 134) containing: /64 prefix, default gateway (router's FE80:: address), flags (A=1 for SLAAC, M/O for DHCPv6 hints), MTU, lifetime.</li><li><strong>Host combines</strong> prefix + interface ID = candidate address.</li><li><strong>Host runs DAD</strong> by sending NS for its own tentative address. If no NA reply, address is unique.</li><li><strong>Host claims</strong> the address and adds the default route via the router's link-local.</li></ol><p><strong>When SLAAC is used:</strong> default on most Linux, macOS, Windows, iOS, Android, IoT devices for IPv6 addressing. It is the preferred method unless DHCPv6 is explicitly required by policy.</p><p><strong>Exam keywords:</strong> stateless, no DHCP, RA provides prefix, host generates interface ID, requires /64.</p>",
+        visual: { type: "handshake", params: { leftLabel: "Host", rightLabel: "Router", steps: ["Generate FE80:: link-local", "RS → FF02::2", "← RA (prefix=2001:DB8:1::/64, A=1)", "Combine prefix + interface ID", "DAD → no reply → address live"] } },
+        hack: {
+          memory: "SLAAC = Stateless, no server tracking. Router gives the prefix; host picks the interface ID. Requires /64. Default on nearly all modern client OSes.",
+          practice: "In Packet Tracer, enable ipv6 unicast-routing, assign 2001:DB8:1::1/64 to a LAN, connect a PC set to autoconfig. Run ipconfig on the PC — confirm an auto-generated 2001:DB8:1:: address with no DHCP server present.",
+          effort: "medium",
+          meta: "Core IPv6 topic. Jeremy IT Lab Day 33. Wendell Odom OCG Chapter 23. Know: SLAAC = stateless, needs /64, no DHCP."
+        }
+      },
+      {
+        id: "1.8.d.2",
+        term: "Router Solicitation (RS)",
+        weight: "high",
+        info: "<p>A <strong>Router Solicitation (RS)</strong> is an ICMPv6 <strong>Type 133</strong> message that a host sends when it first connects to a network to ask: 'Are there any routers here? Send me an RA.' It is the trigger for faster network bootstrapping — without RS, the host would have to wait for the next periodic RA (up to 200 seconds by default).</p><p><strong>Destination:</strong> <code>FF02::2</code> — the <strong>all-routers multicast</strong> link-local address. Only routers listen on this group; other hosts ignore the frame. This is more efficient than IPv4's DHCP Discover broadcast, which every device must process.</p><p><strong>Source:</strong> typically the host's link-local address (FE80::). If the host has not yet generated its link-local, it may use :: (unspecified) as the source.</p><p><strong>Payload:</strong> minimal — just an ICMPv6 header plus optional options (source link-layer address, etc.). Size is tiny, a few dozen bytes.</p><p><strong>When RS is sent:</strong></p><ul><li>Host boots or activates the interface (wake from sleep, cable plug-in, Wi-Fi connect).</li><li>Host detects that link-layer connectivity was restored after a loss.</li><li>Host needs to refresh configuration and does not want to wait for the next RA.</li></ul><p><strong>Response:</strong> every router on the link replies with an RA (not multicast-replicated, each router sends its own). Hosts prefer the first valid RA or the one with the longest matching prefix.</p><p><strong>Exam spec:</strong> know the type number (133), the destination (FF02::2), and the purpose (trigger RA).</p>",
+        visual: { type: "packet-flow", params: { nodes: ["Host boots", "Send RS (Type 133)", "→ FF02::2 (all routers)", "Routers respond with RA"], color: "#3b82f6" } },
+        hack: {
+          memory: "RS = Router Solicit = 'Roll call, routers!' ICMPv6 Type 133. Destination FF02::2 (all routers). Host sends when it wants an immediate RA.",
+          practice: "Flashcard RS: Type=133, destination=FF02::2, purpose=ask for RA. In Wireshark, capture a Linux boot cycle — you should see exactly one RS before the first RA arrives.",
+          effort: "low",
+          meta: "Basic NDP fact. Jeremy IT Lab Day 32. Wendell Odom OCG Chapter 23. Memorize: RS=133, FF02::2."
+        }
+      },
+      {
+        id: "1.8.d.3",
+        term: "Router Advertisement (RA)",
+        weight: "high",
+        info: "<p>A <strong>Router Advertisement (RA)</strong> is an ICMPv6 <strong>Type 134</strong> message a router sends to inform hosts of network configuration. RAs are the backbone of IPv6 autoconfiguration — they carry everything a host needs to pick an address (via SLAAC) and find the default gateway.</p><p><strong>When RAs are sent:</strong></p><ul><li><strong>In response to an RS</strong> (unicast or multicast depending on the implementation)</li><li><strong>Periodically</strong> as unsolicited announcements. Default interval on Cisco routers: random between 200 seconds (upper bound) and 0.5× that lower. Tunable with <code>ipv6 nd ra interval</code>.</li></ul><p><strong>Destination:</strong> typically <code>FF02::1</code> (all-nodes) for periodic RAs; may be unicast to the soliciting host in response to an RS.</p><p><strong>Source:</strong> the router's <strong>link-local address</strong> (FE80::). Hosts use this as the default gateway — not the router's global address.</p><p><strong>Content of an RA:</strong></p><ul><li><strong>Prefix</strong> and <strong>prefix length</strong> (e.g., 2001:DB8:1::/64)</li><li><strong>Default router lifetime</strong> (0 = not a default router; non-zero = valid as gateway)</li><li><strong>M-flag</strong> (Managed Address Configuration — use DHCPv6 for address)</li><li><strong>O-flag</strong> (Other Configuration — use DHCPv6 for DNS etc.)</li><li><strong>A-flag</strong> (Address Autoconfiguration — use SLAAC with this prefix)</li><li><strong>L-flag</strong> (On-link — prefix is reachable without a router)</li><li><strong>MTU option</strong> and various lifetimes</li><li><strong>Optional RDNSS</strong> (Recursive DNS Server, RFC 8106)</li></ul><p><strong>Key exam fact:</strong> the default gateway is the <strong>router's link-local</strong>, learned from the RA source. Even if the host uses stateful DHCPv6 for addressing, the gateway still comes from the RA.</p>",
+        visual: { type: "packet-flow", params: { nodes: ["Router periodic timer or RS received", "Send RA (Type 134)", "Destination FF02::1 or unicast", "Hosts read prefix, flags, gateway"], color: "#8b5cf6" } },
+        hack: {
+          memory: "RA = Router Announcement = 'Here's my prefix and I am your gateway.' Type 134. Sent to FF02::1. Default gateway = RA source (router's FE80::). Periodic every ~200 seconds.",
+          practice: "In Packet Tracer, run show ipv6 interface on a router — notice it lists RA interval, lifetime, and prefix advertised. Change the interval with ipv6 nd ra interval and verify.",
+          effort: "medium",
+          meta: "Critical NDP concept. Jeremy IT Lab Day 33. Wendell Odom OCG Chapter 23. Know: RA=134, carries prefix + flags + gateway, default gateway is the router's link-local."
+        }
+      },
+      {
+        id: "1.8.d.4",
+        term: "EUI-64 interface ID",
+        weight: "high",
+        info: "<p><strong>EUI-64 (Extended Unique Identifier, 64-bit)</strong> is the classic method to derive a <strong>64-bit interface ID</strong> from a <strong>48-bit MAC address</strong>. It was the original SLAAC interface ID scheme and is still tested heavily on the CCNA despite being replaced by RFC 7217 privacy addressing on modern OSes.</p><p><strong>Three-step conversion:</strong></p><ol><li><strong>Split</strong> the 48-bit MAC in half: first 24 bits (OUI — vendor) and last 24 bits (device ID).</li><li><strong>Insert <code>FFFE</code></strong> (16 bits) between the two halves, expanding from 48 to 64 bits.</li><li><strong>Flip the 7th bit</strong> (the Universal/Local bit) of the first byte. XOR with 0x02.</li></ol><p><strong>Worked example:</strong> MAC <code>00:1A:2B:3C:4D:5E</code></p><ul><li>Split: <code>00:1A:2B</code> | <code>3C:4D:5E</code></li><li>Stuff: <code>00:1A:2B:<strong>FF:FE</strong>:3C:4D:5E</code> = <code>001A:2BFF:FE3C:4D5E</code></li><li>Flip 7th bit of 00: <code>00000000</code> → <code>00000010</code> = <code>02</code> hex</li><li>Final: <code>021A:2BFF:FE3C:4D5E</code></li></ul><p>Combined with prefix <code>2001:DB8:1::/64</code>, full address: <code>2001:DB8:1::21A:2BFF:FE3C:4D5E</code>.</p><p><strong>Why the bit flip?</strong> In the EUI-64 spec, bit 7 of byte 1 is the U/L bit: 0 = Locally administered, 1 = Universally administered. MAC addresses reuse this bit with inverted semantics: 0 = Universal (burned-in), 1 = Local. Flipping it converts a burned-in MAC (bit 7 = 0) to the EUI-64 convention (bit 7 = 1).</p><p><strong>Identifying EUI-64 interface IDs:</strong> presence of <code>FF:FE</code> in the middle (bits 25–40 of the interface ID) is a giveaway.</p>",
+        visual: { type: "encapsulation", params: { layers: [{ label: "MAC: 00:1A:2B:3C:4D:5E", color: "#3b82f6" }, { label: "Split + stuff FFFE: 001A:2BFF:FE3C:4D5E", color: "#8b5cf6" }, { label: "Flip 7th bit: 021A:2BFF:FE3C:4D5E", color: "#10b981" }] } },
+        hack: {
+          memory: "EUI-64 = Split, Stuff, Flip. Split MAC in half, stuff FFFE in the middle, flip the 7th bit (XOR first byte with 0x02). 00→02, AA→A8, 1A→18. Look for FFFE in the middle to spot an EUI-64 ID.",
+          practice: "Do 5 EUI-64 conversions by hand: MAC→interface ID. Verify with an online calculator. Also practice reverse: given 021A:2BFF:FE3C:4D5E, what was the original MAC? Flip first byte back (02→00), remove FFFE → 00:1A:2B:3C:4D:5E.",
+          effort: "high",
+          meta: "Guaranteed exam question. Jeremy IT Lab Day 32. Wendell Odom OCG Chapter 23. Master the XOR-with-0x02 shortcut for the 7th-bit flip."
+        }
+      },
+      {
+        id: "1.8.d.5",
+        term: "Privacy extensions",
+        weight: "med",
+        info: "<p><strong>Privacy extensions (RFC 4941 and RFC 7217)</strong> generate a <strong>randomized interface ID</strong> instead of the MAC-derived EUI-64 value. This prevents an observer from tracking a device across networks by its constant EUI-64 interface ID.</p><p><strong>The privacy problem with EUI-64:</strong> if your laptop's interface ID is always <code>021A:2BFF:FE3C:4D5E</code> (derived from the burned-in MAC), any website or network you visit can correlate sessions by that ID. Connecting to airport Wi-Fi, then home, then office — all three networks see the same interface ID, making you uniquely trackable.</p><p><strong>Two approaches:</strong></p><ul><li><strong>RFC 4941 (Temporary addresses):</strong> host generates random interface IDs that rotate periodically (hours to days). Old addresses remain valid briefly to avoid breaking active connections. Outgoing connections prefer the newest temporary address.</li><li><strong>RFC 7217 (Stable randomized):</strong> host generates a pseudo-random interface ID that is stable for a given (prefix, interface) combination but changes when either changes. Combines privacy (no MAC leak) with stability (same LAN = same address across reboots).</li></ul><p><strong>Default behavior today:</strong></p><ul><li><strong>Windows 10/11:</strong> uses both RFC 4941 (temporary) and RFC 7217 (stable) by default</li><li><strong>macOS, iOS:</strong> RFC 7217 default, RFC 4941 temporary supplement</li><li><strong>Linux (modern):</strong> RFC 7217 default, can enable RFC 4941</li><li><strong>Android:</strong> RFC 7217 default</li></ul><p><strong>CCNA context:</strong> you still need to know EUI-64 conversion for the exam, but understand that real-world SLAAC interfaces rarely show EUI-64 IDs on modern client devices. Routers and servers typically still use EUI-64 or static IDs.</p>",
+        visual: { type: "comparison", params: { left: { label: "EUI-64", items: ["Deterministic from MAC", "Same across networks", "Privacy risk: trackable", "Used on routers/servers"] }, right: { label: "Privacy Extensions", items: ["Random or pseudo-random", "Rotates or stable per prefix", "No MAC leak", "Default on modern clients"] } } },
+        hack: {
+          memory: "Privacy extensions = random interface IDs to prevent MAC-based tracking. RFC 4941 rotates, RFC 7217 stable-per-prefix. Modern clients default to these, NOT EUI-64.",
+          practice: "On your laptop, check ipconfig (Windows) or ifconfig (Linux/macOS) for IPv6 addresses. Look for an address without FFFE in the middle — that is a privacy-extension address. Look also for a temporary suffix.",
+          effort: "low",
+          meta: "Modern context. Jeremy IT Lab Day 32. Know privacy extensions exist and why, but exam still tests EUI-64 mechanics."
+        }
+      },
+      {
+        id: "1.8.d.6",
+        term: "DAD (Duplicate Address Detection)",
+        weight: "high",
+        info: "<p><strong>DAD (Duplicate Address Detection, RFC 4862)</strong> is a mandatory IPv6 mechanism that verifies no other node on the link already uses an address before a host starts using it. Every IPv6 address — link-local, global, SLAAC-generated, DHCPv6-assigned, manually configured — must pass DAD before becoming active.</p><p><strong>Process:</strong></p><ol><li>Host has a <strong>tentative</strong> address it wants to use.</li><li>Host sends an <strong>NS (Neighbor Solicitation, ICMPv6 Type 135)</strong> for its own tentative address.</li><li>Source of the NS is <code>::</code> (unspecified) — the host has not yet claimed any address to send from.</li><li>Destination is the <strong>solicited-node multicast</strong> address derived from the tentative address (<code>FF02::1:FFxx:xxxx</code>).</li><li>If any other node responds with an NA, the address is a duplicate — the host must abandon it and try another.</li><li>If no response arrives within the DAD timer (default 1 second, configurable), the address is unique and moves from <strong>tentative</strong> to <strong>preferred</strong>.</li></ol><p><strong>Timing:</strong> a host typically waits ~1 second for a reply. During this window, the address appears as <code>tentative</code> in <code>show ipv6 interface</code>. Once DAD completes, it shows as <code>[TENTATIVE]</code> removed / <code>[VALID]</code>.</p><p><strong>Duplicate outcome:</strong> if DAD fails (another host responds), the address is abandoned. For manually configured addresses, the interface is placed in a disabled state for that address. For SLAAC addresses, the host typically picks a new random interface ID and retries.</p><p><strong>Exam points:</strong></p><ul><li>DAD uses NS (not NA) with source :: (unspecified).</li><li>DAD runs on every IPv6 address before use.</li><li>DAD destination is the solicited-node multicast (FF02::1:FFxx:xxxx).</li></ul>",
+        visual: { type: "handshake", params: { leftLabel: "Host (tentative)", rightLabel: "Link", steps: ["Tentative addr = 2001:DB8::5", "NS (src=::, dst=FF02::1:FF00:5)", "Wait 1 second", "No reply → address is unique", "Address moves to preferred"] } },
+        hack: {
+          memory: "DAD = 'is this address taken?' Host NS for its own address with source ::. No reply = unique. Reply = duplicate, abandon. Runs on every address, every time.",
+          practice: "Flashcard: DAD uses NS, source ::, destination solicited-node multicast. In Wireshark, capture a host joining an IPv6 network — the first packets from the host should be DAD NS messages.",
+          effort: "medium",
+          meta: "Common NDP exam fact. Jeremy IT Lab Day 32. Wendell Odom OCG Chapter 23. Know: DAD = NS with source :: and solicited-node destination."
+        }
+      },
+      {
+        id: "1.8.d.7",
+        term: "A-flag",
+        weight: "high",
+        info: "<p>The <strong>A-flag (Address Autoconfiguration flag)</strong> is a bit in the RA's Prefix Information Option that tells hosts whether to use SLAAC with the included prefix. <strong>A=1 means use SLAAC</strong>; A=0 means the prefix is informational only (for on-link determination) and SLAAC should not derive an address from it.</p><p><strong>Default value:</strong> A=1 on Cisco routers. You almost never disable it — if the RA is advertising a prefix but A=0, hosts will not form a SLAAC address.</p><p><strong>Combined with M and O flags to determine addressing method:</strong></p><ul><li><strong>A=1, M=0, O=0:</strong> Pure SLAAC. Host builds address from prefix + interface ID. No DHCPv6 interaction.</li><li><strong>A=1, M=0, O=1:</strong> SLAAC for address, <strong>stateless DHCPv6</strong> for DNS/other info.</li><li><strong>A=0, M=1:</strong> Stateful DHCPv6 only. No SLAAC. Host gets address from DHCPv6 server.</li><li><strong>A=1, M=1:</strong> Both SLAAC and stateful DHCPv6 may be used (dual addressing). Common for mixed environments.</li></ul><p><strong>Cisco commands:</strong></p><ul><li>Default: A-flag is ON implicitly when a prefix is advertised.</li><li>Disable SLAAC for a prefix: <code>ipv6 nd prefix 2001:DB8:1::/64 no-autoconfig</code> (clears A-flag).</li><li>No advertise prefix at all: <code>ipv6 nd prefix 2001:DB8:1::/64 no-advertise</code>.</li></ul><p><strong>Exam tip:</strong> memorize the A/M/O flag combinations. Each combination unambiguously dictates which addressing method is in use.</p>",
+        visual: { type: "state-machine", params: { states: ["A=1, M=0, O=0 → pure SLAAC", "A=1, M=0, O=1 → SLAAC + stateless DHCPv6 DNS", "A=0, M=1 → stateful DHCPv6", "A=1, M=1 → dual"], active: 0, transitions: true } },
+        hack: {
+          memory: "A = Address via SLAAC. A=1 default. Combine with M (Managed = stateful DHCPv6) and O (Other = stateless DHCPv6 for DNS). Memorize: 000=SLAAC, 001=SLAAC+DNS, 010=stateful.",
+          practice: "Draw a truth table with A, M, O on one axis and addressing method on the other. Fill in all 4 rows. Commit to memory.",
+          effort: "medium",
+          meta: "Classic exam question. Jeremy IT Lab Day 33. Wendell Odom OCG Chapter 23. Know all four A/M/O combinations."
+        }
+      }
     ]
   },
 
