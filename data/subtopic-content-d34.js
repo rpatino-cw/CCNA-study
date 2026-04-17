@@ -651,8 +651,15 @@ window.subtopicContentD34 = {
       memory: "Inside Local = the host's REAL private IP (what IT configured). Inside Global = the host's PUBLIC disguise (what the internet sees). Outside Local = how you see the external host (usually same as global). Outside Global = the external host's REAL public IP. Focus on the inside pair: Local = private, Global = public. 'Local' always means 'the real address on that side.'",
       practice: "Draw a NAT diagram with inside zone (192.168.1.0/24) and outside zone (internet). Trace a packet from host 192.168.1.10 to 8.8.8.8: label all four address types at each stage. Then verify with 'show ip nat translations' in Packet Tracer and match each column to your diagram. Do this for static NAT, dynamic NAT, and PAT to see how the addresses differ.",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 44 (NAT) explains all four address types with diagrams. Wendell Odom OCG Chapters 10-11 cover NAT addressing in depth. The four NAT addresses are tested as drag-and-drop or matching questions. Focus on Inside Local (private) vs Inside Global (public) — that covers 90% of NAT exam questions."
-    }
+      meta: "Jeremy's IT Lab Day 44 (NAT) explains all four address types with diagrams. Wendell Odom OCG Chapters 10-11 cover NAT addressing in depth. The four NAT addresses are tested as drag-and-drop or matching questions. Focus on Inside Local (private) vs Inside Global (public) — that covers 90% of NAT exam questions.",
+    },
+    micro: [
+      { id: "4.1.a.1", term: "Inside Local",                 def: "Private IP of host on the inside network. The REAL internal IP. Example: 192.168.1.10.", weight: "high" },
+      { id: "4.1.a.2", term: "Inside Global",                def: "Public IP representing the inside host to the outside. The translated address seen by external hosts.", weight: "high" },
+      { id: "4.1.a.3", term: "Outside Local",                def: "How external host appears to inside network. Usually same as Outside Global.", weight: "med" },
+      { id: "4.1.a.4", term: "Outside Global",               def: "Real public IP of the external host. Example: 8.8.8.8.", weight: "med" },
+      { id: "4.1.a.5", term: "Memory trick",                 def: "'Inside' = where the private host lives. 'Local' = the real address. 'Global' = what the internet sees.", weight: "high" }
+    ]
   },
 
   "4.1.b": {
@@ -662,8 +669,14 @@ window.subtopicContentD34 = {
       memory: "Static NAT = assigned parking spot. One car (private IP), one reserved spot (public IP). 24/7, permanent, even when the car isn't there. Bidirectional — people can find your car by going to the assigned spot. Use for servers that need to be reachable from outside. One public IP consumed per server.",
       practice: "In Packet Tracer: (1) Configure 'ip nat inside source static 192.168.1.10 203.0.113.5'. (2) Set 'ip nat inside' on Gi0/1 and 'ip nat outside' on Gi0/0. (3) Run 'show ip nat translations' — the mapping should exist even before traffic flows. (4) Ping from the inside host to an external IP and verify the translation. (5) Ping from an external host to 203.0.113.5 and verify it reaches 192.168.1.10.",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 44 (NAT) covers static NAT configuration. Wendell Odom OCG Chapters 10-11. Static NAT is the simplest NAT type — configure, designate interfaces, verify. The exam tests the command syntax and the fact that static mappings are permanent and bidirectional."
-    }
+      meta: "Jeremy's IT Lab Day 44 (NAT) covers static NAT configuration. Wendell Odom OCG Chapters 10-11. Static NAT is the simplest NAT type — configure, designate interfaces, verify. The exam tests the command syntax and the fact that static mappings are permanent and bidirectional.",
+    },
+    micro: [
+      { id: "4.1.b.1", term: "Static NAT",                   def: "Permanent one-to-one mapping. Inside Local ↔ Inside Global. Bidirectional. Best for servers.", weight: "high" },
+      { id: "4.1.b.2", term: "Static NAT command",           def: "'ip nat inside source static [inside-local] [inside-global]'. Creates the permanent mapping.", weight: "high" },
+      { id: "4.1.b.3", term: "Bidirectional translation",    def: "External traffic TO the public IP is translated to the private IP. Enables externally-initiated connections.", weight: "high" },
+      { id: "4.1.b.4", term: "One public IP per server",     def: "Each static mapping consumes a public IP. Expensive for many servers.", weight: "med" }
+    ]
   },
 
   "4.1.c": {
@@ -673,8 +686,15 @@ window.subtopicContentD34 = {
       memory: "Dynamic NAT = hotel check-in. Guests (hosts) get assigned rooms (pool IPs) when they arrive. No empty rooms? You're turned away (packet dropped). Rooms free up after checkout (timeout). One guest per room = one-to-one, but temporary. In practice, PAT replaced this entirely — dynamic NAT is tested for concept, not real-world use.",
       practice: "In Packet Tracer: (1) Create a pool of 3 public IPs. (2) Create an ACL matching your inside subnet. (3) Configure 'ip nat inside source list 1 pool MYPOOL'. (4) Generate traffic from 4+ inside hosts. (5) Verify the first 3 get translations in 'show ip nat translations'. (6) Verify the 4th host's traffic is dropped (pool exhausted). (7) Check 'show ip nat statistics' for miss count.",
       effort: "high",
-      meta: "Jeremy's IT Lab Day 44 (NAT) covers dynamic NAT. Wendell Odom OCG Chapters 10-11. The exam tests: (1) pool exhaustion behavior (connections dropped, not queued), (2) difference between dynamic NAT and PAT (one-to-one vs many-to-one), (3) the keyword 'overload' is what makes it PAT — without it, it's dynamic NAT."
-    }
+      meta: "Jeremy's IT Lab Day 44 (NAT) covers dynamic NAT. Wendell Odom OCG Chapters 10-11. The exam tests: (1) pool exhaustion behavior (connections dropped, not queued), (2) difference between dynamic NAT and PAT (one-to-one vs many-to-one), (3) the keyword 'overload' is what makes it PAT — without it, it's dynamic NAT.",
+    },
+    micro: [
+      { id: "4.1.c.1", term: "Dynamic NAT",                  def: "Pool-based one-to-one mapping. Temporary. Public IP returns to pool after timeout.", weight: "high" },
+      { id: "4.1.c.2", term: "Pool config",                  def: "'ip nat pool NAME [start-ip] [end-ip] netmask [mask]'. Defines available public IPs.", weight: "high" },
+      { id: "4.1.c.3", term: "Pool exhaustion = DROP",       def: "When all pool IPs are in use, new connections are DROPPED (not queued).", weight: "high" },
+      { id: "4.1.c.4", term: "Dynamic NAT vs PAT",           def: "Dynamic = one-to-one temporary. PAT = many-to-one using ports. Difference is the 'overload' keyword.", weight: "high" },
+      { id: "4.1.c.5", term: "Rarely used today",            def: "PAT has largely replaced dynamic NAT. Exam still tests dynamic NAT for concept understanding.", weight: "med" }
+    ]
   },
 
   "4.1.d": {
@@ -684,8 +704,16 @@ window.subtopicContentD34 = {
       memory: "PAT = apartment building. Everyone shares one street address (public IP) but has different apartment numbers (port numbers). The mailroom (NAT table) uses the apartment number to deliver return mail to the right tenant. The magic keyword is 'overload' — without it, you get dynamic NAT (one-to-one). With it, you get PAT (many-to-one).",
       practice: "In Packet Tracer: (1) Configure ACL 1 to permit your inside subnet. (2) Configure 'ip nat inside source list 1 interface Gi0/0 overload'. (3) Designate inside/outside interfaces. (4) Generate traffic from 5+ inside hosts to an outside destination. (5) Run 'show ip nat translations' and note each host has the SAME inside global IP but DIFFERENT port numbers. Compare this to dynamic NAT output where each host would have a different public IP.",
       effort: "high",
-      meta: "Jeremy's IT Lab Day 44 (NAT) covers PAT configuration in detail. Wendell Odom OCG Chapters 10-11. PAT is the most tested NAT type. The exam tests: (1) the 'overload' keyword, (2) how port numbers differentiate hosts, (3) the command syntax using an interface vs a pool. 'Which NAT type allows multiple hosts to share one public IP?' = PAT/NAT overload."
-    }
+      meta: "Jeremy's IT Lab Day 44 (NAT) covers PAT configuration in detail. Wendell Odom OCG Chapters 10-11. PAT is the most tested NAT type. The exam tests: (1) the 'overload' keyword, (2) how port numbers differentiate hosts, (3) the command syntax using an interface vs a pool. 'Which NAT type allows multiple hosts to share one public IP?' = PAT/NAT overload.",
+    },
+    micro: [
+      { id: "4.1.d.1", term: "PAT / NAT Overload",           def: "Many-to-one translation. All inside hosts share ONE public IP. Differentiated by source ports.", weight: "high" },
+      { id: "4.1.d.2", term: "'overload' keyword",           def: "CRITICAL. Transforms dynamic NAT into PAT. Without it = dynamic NAT (one-to-one).", weight: "high" },
+      { id: "4.1.d.3", term: "PAT using interface",          def: "'ip nat inside source list [acl] interface [outside-if] overload'. Uses outside interface's IP as public IP.", weight: "high" },
+      { id: "4.1.d.4", term: "PAT using pool",               def: "'ip nat inside source list [acl] pool [name] overload'. Uses pool IPs with overload.", weight: "high" },
+      { id: "4.1.d.5", term: "Port uniqueness",              def: "Each internal host gets unique source port on shared public IP. ~65,000 sessions per public IP.", weight: "high" },
+      { id: "4.1.d.6", term: "Home router = PAT",            def: "Every consumer router does PAT. All home devices share one ISP-assigned public IP.", weight: "high" }
+    ]
   },
 
   "4.1.e": {
@@ -695,8 +723,14 @@ window.subtopicContentD34 = {
       memory: "Inside = faces your private network. Outside = faces the internet/public. Forgetting these = NAT is configured but does NOTHING. Like installing a translator in a room but not telling them which language to translate FROM and TO. This is the #1 NAT mistake — always check interface designations first when troubleshooting.",
       practice: "In Packet Tracer: (1) Configure complete PAT (ACL, overload, the works) but DO NOT designate interfaces. (2) Test with ping — it won't work. (3) Check 'show ip nat statistics' — inside/outside interfaces will be empty. (4) Add 'ip nat inside' and 'ip nat outside' on the correct interfaces. (5) Test again — now it works. (6) This exercise burns the troubleshooting step into memory.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 44 (NAT) emphasizes interface designations. Wendell Odom OCG Chapters 10-11. Missing interface designations is the #1 NAT troubleshooting scenario on the CCNA. Every NAT troubleshooting question should start here. Verify with 'show ip nat statistics' — if inside/outside interfaces are not listed, that's your problem."
-    }
+      meta: "Jeremy's IT Lab Day 44 (NAT) emphasizes interface designations. Wendell Odom OCG Chapters 10-11. Missing interface designations is the #1 NAT troubleshooting scenario on the CCNA. Every NAT troubleshooting question should start here. Verify with 'show ip nat statistics' — if inside/outside interfaces are not listed, that's your problem.",
+    },
+    micro: [
+      { id: "4.1.e.1", term: "ip nat inside",                def: "Interface command. Designates interface facing private/internal network.", weight: "high" },
+      { id: "4.1.e.2", term: "ip nat outside",               def: "Interface command. Designates interface facing public/external network.", weight: "high" },
+      { id: "4.1.e.3", term: "Missing designations = no NAT", def: "#1 NAT troubleshooting issue. NAT rules are ignored if interfaces aren't designated.", weight: "high" },
+      { id: "4.1.e.4", term: "show ip nat statistics",       def: "Reveals interface designations under 'Inside/Outside interfaces'. Primary verification tool.", weight: "high" }
+    ]
   },
 
   "4.1.f": {
@@ -706,8 +740,14 @@ window.subtopicContentD34 = {
       memory: "The NAT ACL = the guest list at the translation party. Hosts on the list (permit) get translated. Hosts NOT on the list are NOT blocked — they just pass through untranslated. This is different from an interface ACL where deny = drop. In NAT, deny = skip translation. Standard ACL is typically used: 'access-list 1 permit [network] [wildcard].'",
       practice: "In Packet Tracer: (1) Create ACL 1 that permits only 192.168.1.0/24 (not 192.168.2.0/24). (2) Configure PAT with this ACL. (3) Test from a host in 192.168.1.0/24 — traffic should be translated. (4) Test from a host in 192.168.2.0/24 — traffic should NOT be translated (but also not blocked). (5) Verify with 'show ip nat translations' — only 192.168.1.x hosts appear.",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 44 (NAT) covers ACLs for NAT. Wendell Odom OCG Chapters 10-11. The exam tests: (1) permit in NAT ACL = translate, not 'allow traffic.' (2) Standard ACLs match source only. (3) Wildcard masks must be correct. A NAT ACL that permits the wrong subnet = some hosts can't reach the internet."
-    }
+      meta: "Jeremy's IT Lab Day 44 (NAT) covers ACLs for NAT. Wendell Odom OCG Chapters 10-11. The exam tests: (1) permit in NAT ACL = translate, not 'allow traffic.' (2) Standard ACLs match source only. (3) Wildcard masks must be correct. A NAT ACL that permits the wrong subnet = some hosts can't reach the internet.",
+    },
+    micro: [
+      { id: "4.1.f.1", term: "NAT ACL purpose",              def: "Selects which inside hosts get translated. Not a traffic filter — selection filter.", weight: "high" },
+      { id: "4.1.f.2", term: "Permit in NAT ACL",            def: "Permit = translate this traffic. Different meaning from interface ACLs.", weight: "high" },
+      { id: "4.1.f.3", term: "Deny in NAT ACL",              def: "Deny = DO NOT translate (but traffic is NOT blocked). Passes through untranslated.", weight: "high" },
+      { id: "4.1.f.4", term: "Standard ACL sufficient",      def: "NAT source matching only needs source IP. Standard ACL works: 'access-list 1 permit [net] [wildcard]'.", weight: "high" }
+    ]
   },
 
   "4.1.g": {
@@ -717,8 +757,15 @@ window.subtopicContentD34 = {
       memory: "'show ip nat translations' = WHO is translated right now (the roster of active mappings). 'show ip nat statistics' = HOW is NAT performing (the scoreboard — hits, misses, pool usage, interface designations). Translations shows individual entries; Statistics shows the big picture. Both are needed for complete verification.",
       practice: "After configuring any NAT type in Packet Tracer: (1) Run 'show ip nat translations' and identify each column (Inside Local, Inside Global, Outside Local, Outside Global). (2) For PAT, note how port numbers differentiate hosts sharing one public IP. (3) Run 'show ip nat statistics' and verify inside/outside interfaces are listed. (4) Check hit count to confirm translations are occurring. If misses are high, diagnose pool exhaustion or ACL issues.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 44 (NAT) demonstrates both verification commands. Wendell Odom OCG Chapters 10-11. The exam shows 'show ip nat translations' output and asks: 'What is the inside local address?' or 'What is the inside global address?' Practice reading this output until you can identify all four address types instantly."
-    }
+      meta: "Jeremy's IT Lab Day 44 (NAT) demonstrates both verification commands. Wendell Odom OCG Chapters 10-11. The exam shows 'show ip nat translations' output and asks: 'What is the inside local address?' or 'What is the inside global address?' Practice reading this output until you can identify all four address types instantly.",
+    },
+    micro: [
+      { id: "4.1.g.1", term: "show ip nat translations",     def: "View active NAT entries. Columns: Inside Local, Inside Global, Outside Local, Outside Global, Protocol.", weight: "high" },
+      { id: "4.1.g.2", term: "show ip nat statistics",       def: "Overall metrics: totals, hits, misses, pool usage, inside/outside interfaces.", weight: "high" },
+      { id: "4.1.g.3", term: "High misses count",            def: "Indicates pool exhaustion (dynamic NAT) or ACL mismatch. Check both.", weight: "med" },
+      { id: "4.1.g.4", term: "PAT entries show ports",       def: "PAT translations include source port in output. Same public IP, different ports per host.", weight: "high" },
+      { id: "4.1.g.5", term: "clear ip nat translation *",   def: "Flush all dynamic NAT entries. Static entries unaffected. Useful for troubleshooting.", weight: "med" }
+    ]
   },
 
   "4.1.h": {
@@ -728,8 +775,14 @@ window.subtopicContentD34 = {
       memory: "NAT troubleshooting order: IAPC — Interfaces designated? ACL correct? Pool available? Command syntax right? Always start with interfaces — it's the #1 problem. 'show ip nat statistics' reveals interface designations AND pool exhaustion in one command. 'debug ip nat' is the nuclear option — shows every translation in real time.",
       practice: "In Packet Tracer, intentionally break NAT in four different ways, one at a time: (1) Remove 'ip nat inside' — diagnose and fix. (2) Change the ACL to deny the source — diagnose and fix. (3) For dynamic NAT, exhaust the pool — diagnose and fix. (4) Remove the 'overload' keyword from a PAT config — diagnose and fix. For each scenario, use 'show ip nat statistics', 'show ip nat translations', and 'show access-lists' to identify the problem before fixing it.",
       effort: "high",
-      meta: "Jeremy's IT Lab Day 44 (NAT) covers troubleshooting. Wendell Odom OCG Chapters 10-11. The exam's NAT troubleshooting questions are predictable: (1) Missing interface designations, (2) Wrong ACL, (3) Pool exhaustion, (4) Missing 'overload.' Practice identifying each issue from show command output — the exam presents output and asks 'why is NAT not working?'"
-    }
+      meta: "Jeremy's IT Lab Day 44 (NAT) covers troubleshooting. Wendell Odom OCG Chapters 10-11. The exam's NAT troubleshooting questions are predictable: (1) Missing interface designations, (2) Wrong ACL, (3) Pool exhaustion, (4) Missing 'overload.' Practice identifying each issue from show command output — the exam presents output and asks 'why is NAT not working?'",
+    },
+    micro: [
+      { id: "4.1.h.1", term: "NAT troubleshoot order (IAPC)", def: "(1) Interfaces designated? (2) ACL correct? (3) Pool exhausted? (4) Command syntax right (overload)?", weight: "high" },
+      { id: "4.1.h.2", term: "#1 issue: missing interfaces", def: "Most common NAT failure. Check 'show ip nat statistics' for 'Inside interfaces' and 'Outside interfaces'.", weight: "high" },
+      { id: "4.1.h.3", term: "Missing 'overload'",           def: "Configured PAT but forgot overload = got dynamic NAT. Only works for N hosts where N = pool size.", weight: "high" },
+      { id: "4.1.h.4", term: "debug ip nat",                 def: "Shows real-time NAT events per packet. High CPU impact — use cautiously.", weight: "med" }
+    ]
   },
 
   // ── 4.2  Configure and verify NTP ──────────────────────────
@@ -741,8 +794,14 @@ window.subtopicContentD34 = {
       memory: "NTP = 'Network Time Police.' Everyone must agree on what time it is. Without NTP, your 2:00 PM log and another device's 2:05 PM log look like different events during incident response. UDP port 123. Key uses: logs, certs, Kerberos auth, compliance. NTP slews (gradually adjusts) rather than jumping the clock.",
       practice: "In Packet Tracer: Build a 3-device chain (NTP server -> router -> switch). Configure NTP on each. Verify all clocks match with 'show clock'. Then change the clock on one device manually and watch NTP gradually correct it. This demonstrates why NTP matters — without it, every device drifts independently.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 37 (NTP) covers purpose and configuration. Wendell Odom OCG Chapter 9 covers NTP fundamentals. The exam tests WHY NTP matters (logs, auth, certs) and basic configuration. Know UDP port 123 and that NTP uses a stratum hierarchy."
-    }
+      meta: "Jeremy's IT Lab Day 37 (NTP) covers purpose and configuration. Wendell Odom OCG Chapter 9 covers NTP fundamentals. The exam tests WHY NTP matters (logs, auth, certs) and basic configuration. Know UDP port 123 and that NTP uses a stratum hierarchy.",
+    },
+    micro: [
+      { id: "4.2.a.1", term: "NTP",                          def: "Network Time Protocol. Synchronizes device clocks. UDP port 123. Millisecond accuracy over LAN.", weight: "high" },
+      { id: "4.2.a.2", term: "Why time matters",             def: "Log correlation, certificate validation, Kerberos (within 5 min), compliance audit trails.", weight: "high" },
+      { id: "4.2.a.3", term: "Client-server hierarchy",      def: "Time flows from authoritative source (atomic clock) down through stratum levels.", weight: "high" },
+      { id: "4.2.a.4", term: "NTP slewing",                  def: "Gradual clock adjustment (speeds up or slows down) rather than sudden jumps. Avoids disruption.", weight: "med" }
+    ]
   },
 
   "4.2.b": {
@@ -752,8 +811,15 @@ window.subtopicContentD34 = {
       memory: "Stratum = how many handshakes from the atomic clock. Stratum 0 = the clock itself (hardware, not on network). Stratum 1 = directly connected to the clock. Each hop adds 1. Valid: 1-15. Invalid/unsync: 16. Lower = more accurate. Exam question: 'What stratum indicates unsynchronized?' Answer: 16.",
       practice: "In Packet Tracer: Configure 'ntp master 3' on a router (making it a stratum 3 source). Point another device at it with 'ntp server [IP]'. Run 'show ntp status' on the client — it should show stratum 4 (one higher than the server). Point a third device at the second — it becomes stratum 5. Trace the stratum chain to understand the hierarchy.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 37 (NTP) covers stratum hierarchy. Wendell Odom OCG Chapter 9. Memorize: stratum 0 = hardware clock, 1-15 = valid network sources, 16 = unsynchronized/invalid. The exam asks 'what stratum indicates an unsynchronized device?' (16) and 'which stratum is closest to the reference?' (1)."
-    }
+      meta: "Jeremy's IT Lab Day 37 (NTP) covers stratum hierarchy. Wendell Odom OCG Chapter 9. Memorize: stratum 0 = hardware clock, 1-15 = valid network sources, 16 = unsynchronized/invalid. The exam asks 'what stratum indicates an unsynchronized device?' (16) and 'which stratum is closest to the reference?' (1).",
+    },
+    micro: [
+      { id: "4.2.b.1", term: "Stratum 0",                    def: "Reference clock itself (atomic, GPS, radio). Hardware. Not directly reachable over NTP.", weight: "high" },
+      { id: "4.2.b.2", term: "Stratum 1",                    def: "Directly connected to stratum 0. Most accurate NTP source on the network.", weight: "high" },
+      { id: "4.2.b.3", term: "Stratum 2-15",                 def: "Each hop increments stratum by 1. All are valid, usable sources. Lower = more accurate.", weight: "high" },
+      { id: "4.2.b.4", term: "Stratum 16",                   def: "UNSYNCHRONIZED. Device has no valid time source. Others refuse to sync from it.", weight: "high" },
+      { id: "4.2.b.5", term: "Lower stratum wins",           def: "Multiple sources? Client picks lowest stratum (closest to reference clock).", weight: "high" }
+    ]
   },
 
   "4.2.c": {
@@ -763,8 +829,15 @@ window.subtopicContentD34 = {
       memory: "One command: 'ntp server [IP].' The device asks the server 'what time is it?' and adjusts its clock. Configure multiple servers for redundancy. The device selects the best one (lowest stratum, best reachability). Verify: 'show ntp associations' — * = selected source, reach 377 = perfect reachability.",
       practice: "In Packet Tracer: (1) Configure 'ntp server 10.1.1.1' and 'ntp server 10.1.1.2' on a switch. (2) Run 'show ntp associations' and identify which server has the * (selected). (3) Run 'show ntp status' to verify 'Clock is synchronized' and check the stratum. (4) Run 'show clock' to verify the time matches the server.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 37 (NTP) covers client configuration. Wendell Odom OCG Chapter 9. The exam expects you to configure 'ntp server' and verify with 'show ntp associations.' Know that * = selected source, + = candidate. The 'reach' value of 377 (octal) means all 8 recent polls succeeded."
-    }
+      meta: "Jeremy's IT Lab Day 37 (NTP) covers client configuration. Wendell Odom OCG Chapter 9. The exam expects you to configure 'ntp server' and verify with 'show ntp associations.' Know that * = selected source, + = candidate. The 'reach' value of 377 (octal) means all 8 recent polls succeeded.",
+    },
+    micro: [
+      { id: "4.2.c.1", term: "ntp server [ip]",              def: "Client command. Sync the local clock to the specified NTP server. Can specify multiple.", weight: "high" },
+      { id: "4.2.c.2", term: "Multiple NTP servers",         def: "Configure 2+ for redundancy. Device selects the best source based on stratum, delay, jitter.", weight: "med" },
+      { id: "4.2.c.3", term: "show ntp associations",        def: "Lists configured sources. '*' = selected. '+' = candidate. 'reach 377' = all 8 recent polls succeeded.", weight: "high" },
+      { id: "4.2.c.4", term: "show ntp status",              def: "Shows 'Clock is synchronized/unsynchronized', stratum, and reference clock ID.", weight: "high" },
+      { id: "4.2.c.5", term: "ntp server vs ntp peer",       def: "server = client-only. peer = symmetric (both give and receive time). Use server for CCNA scenarios.", weight: "med" }
+    ]
   },
 
   "4.2.d": {
@@ -774,8 +847,14 @@ window.subtopicContentD34 = {
       memory: "'ntp master [stratum]' = 'I am the clock now.' The router becomes the time authority. Downstream clients become [stratum + 1]. Don't set stratum too low or it outranks real NTP servers. Common values: 5-8. The exam tests: 'ntp server' = I ask for time (client), 'ntp master' = I provide time (server). Both can exist on the same device.",
       practice: "In Packet Tracer: (1) Make R1 an NTP master: 'ntp master 5'. (2) On R2: 'ntp server [R1-IP]'. (3) On SW1: 'ntp server [R2-IP]'. (4) Verify the stratum chain: R1=5, R2=6, SW1=7 using 'show ntp status' on each device. (5) This demonstrates how stratum increments with each hop in the hierarchy.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 37 (NTP) covers 'ntp master.' Wendell Odom OCG Chapter 9. The exam tests the relationship between 'ntp server' (client command) and 'ntp master' (server command). Know that clients always have stratum = server's stratum + 1."
-    }
+      meta: "Jeremy's IT Lab Day 37 (NTP) covers 'ntp master.' Wendell Odom OCG Chapter 9. The exam tests the relationship between 'ntp server' (client command) and 'ntp master' (server command). Know that clients always have stratum = server's stratum + 1.",
+    },
+    micro: [
+      { id: "4.2.d.1", term: "ntp master [stratum]",         def: "Router becomes NTP server using its own clock as reference. Advertises given stratum value.", weight: "high" },
+      { id: "4.2.d.2", term: "ntp master vs ntp server",     def: "master = I PROVIDE time. server = I RECEIVE time. A router can be both simultaneously.", weight: "high" },
+      { id: "4.2.d.3", term: "Clients become stratum N+1",   def: "If master advertises stratum 5, clients syncing to it become stratum 6. Each hop adds 1.", weight: "high" },
+      { id: "4.2.d.4", term: "Don't set stratum too low",    def: "Router's local clock is not atomic-accurate. Use stratum 5-8 to avoid outranking real NTP servers.", weight: "med" }
+    ]
   },
 
   "4.2.e": {
@@ -785,8 +864,15 @@ window.subtopicContentD34 = {
       memory: "NTP auth = secret handshake before syncing clocks. Four steps: (1) Enable auth: 'ntp authenticate'. (2) Define the key: 'ntp authentication-key 1 md5 [pass]'. (3) Trust the key: 'ntp trusted-key 1'. (4) On client: 'ntp server [IP] key 1'. Both sides must have matching key number AND password. Mismatch = no sync.",
       practice: "In Packet Tracer: (1) Configure NTP authentication on both a server and client using matching key 1. (2) Verify synchronization with 'show ntp associations' and 'show ntp status'. (3) Change the password on one side only — verify sync breaks. (4) Fix it and verify sync resumes. This demonstrates why matching keys are critical.",
       effort: "medium",
-      meta: "Jeremy's IT Lab Day 37 (NTP) covers authentication. Wendell Odom OCG Chapter 9. NTP auth is less commonly tested than basic NTP, but it does appear. Know the four commands, that MD5 is the hash algorithm, and that key numbers and passwords must match on both sides."
-    }
+      meta: "Jeremy's IT Lab Day 37 (NTP) covers authentication. Wendell Odom OCG Chapter 9. NTP auth is less commonly tested than basic NTP, but it does appear. Know the four commands, that MD5 is the hash algorithm, and that key numbers and passwords must match on both sides.",
+    },
+    micro: [
+      { id: "4.2.e.1", term: "NTP authentication",           def: "Prevents rogue NTP server attacks. Client only trusts servers with matching auth key.", weight: "med" },
+      { id: "4.2.e.2", term: "ntp authenticate",             def: "Global command. Enables NTP authentication on the device.", weight: "med" },
+      { id: "4.2.e.3", term: "ntp authentication-key N md5 [pass]", def: "Defines an auth key with MD5 hash. Key number + password must match on both sides.", weight: "med" },
+      { id: "4.2.e.4", term: "ntp trusted-key N",            def: "Marks a key as trusted. Client only syncs from servers using trusted keys.", weight: "med" },
+      { id: "4.2.e.5", term: "ntp server [ip] key N",        def: "Client command. Associates a specific key with a specific NTP server.", weight: "med" }
+    ]
   },
 
   "4.2.f": {
@@ -796,8 +882,14 @@ window.subtopicContentD34 = {
       memory: "'show ntp status' = Am I synced? What stratum am I? Who's my source? 'show ntp associations' = List all my NTP sources, which one is selected (*), and how's the connection (reach). 'show clock' = What time do I think it is? If status says 'unsynchronized,' start troubleshooting. If associations shows reach = 0, the server is unreachable.",
       practice: "After every NTP configuration in Packet Tracer: (1) Run 'show ntp status' — verify 'Clock is synchronized' and check stratum. (2) Run 'show ntp associations' — identify the * (selected source) and verify reach is 377. (3) Run 'show clock' — verify the time looks correct. Practice reading all three outputs until you can diagnose NTP issues in under 30 seconds.",
       effort: "low",
-      meta: "Jeremy's IT Lab Day 37 (NTP) demonstrates all verification commands. Wendell Odom OCG Chapter 9. The exam shows 'show ntp associations' output and asks: 'which server is selected?' Look for the * symbol. 'What does reach 377 mean?' All 8 polls succeeded. 'What does stratum 16 mean in show ntp status?' Unsynchronized — NTP is broken."
-    }
+      meta: "Jeremy's IT Lab Day 37 (NTP) demonstrates all verification commands. Wendell Odom OCG Chapter 9. The exam shows 'show ntp associations' output and asks: 'which server is selected?' Look for the * symbol. 'What does reach 377 mean?' All 8 polls succeeded. 'What does stratum 16 mean in show ntp status?' Unsynchronized — NTP is broken.",
+    },
+    micro: [
+      { id: "4.2.f.1", term: "show ntp associations",        def: "List of configured NTP sources, their stratums, and reach. '*' = selected, '+' = candidate.", weight: "high" },
+      { id: "4.2.f.2", term: "show ntp status",              def: "Shows sync state: 'Clock is synchronized' or 'unsynchronized'. Stratum, reference ID.", weight: "high" },
+      { id: "4.2.f.3", term: "reach 377 (octal)",            def: "All 8 recent polls succeeded. Binary 11111111 = perfect reachability.", weight: "med" },
+      { id: "4.2.f.4", term: "Stratum 16 = broken",          def: "If show ntp status shows stratum 16, device is NOT synced. Troubleshoot immediately.", weight: "high" }
+    ]
   },
 
   // ── 4.3  Explain DHCP and DNS ──────────────────────────────
