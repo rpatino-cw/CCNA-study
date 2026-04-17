@@ -3327,12 +3327,84 @@ window.subtopicContentD12 = {
       meta: "Jeremy's IT Lab Day 53 (Virtualization) covers Type 1 vs Type 2. Wendell Odom OCG Chapter 29 (Network Architecture) touches on virtualization concepts. The exam asks definition questions: 'which hypervisor type runs directly on hardware?' (Type 1), 'which is used in production?' (Type 1), 'name an example of a Type 1 hypervisor' (ESXi). Memorize the examples and the bare-metal concept — 2-3 questions maximum.",
     },
     micro: [
-      { id: "1.12.a.1", term: "Type 1 hypervisor",           def: "Bare-metal hypervisor. Runs directly on hardware — no underlying OS. Production standard.", weight: "high" },
-      { id: "1.12.a.2", term: "VMware ESXi",                 def: "Industry-leader Type 1 hypervisor. Managed by vCenter Server.", weight: "high" },
-      { id: "1.12.a.3", term: "Microsoft Hyper-V",           def: "Microsoft Type 1 hypervisor. Server role on Windows or free Hyper-V Server.", weight: "high" },
-      { id: "1.12.a.4", term: "KVM",                         def: "Kernel-based Virtual Machine. Built into the Linux kernel. Used by OpenStack and major cloud providers.", weight: "high" },
-      { id: "1.12.a.5", term: "Hardware virtualization",     def: "Intel VT-x / AMD-V. CPU extensions allowing near-native VM execution.", weight: "med" },
-      { id: "1.12.a.6", term: "Virtual switch (vSwitch)",    def: "Software switch inside the hypervisor. Connects VMs to physical NICs. Supports VLANs, mirroring, QoS.", weight: "med" }
+      {
+        id: "1.12.a.1",
+        term: "Type 1 hypervisor",
+        weight: "high",
+        info: "<p>A <strong>Type 1 hypervisor</strong> (also called a <strong>bare-metal hypervisor</strong>) installs directly on the physical hardware of a server — there is no general-purpose operating system sitting between the hypervisor and the CPU, RAM, NICs, or disks. The hypervisor IS the operating system from the hardware's perspective, and its only job is to partition hardware resources and hand them to virtual machines.</p><p>Because the hypervisor talks to the hardware directly, Type 1 delivers the <strong>lowest latency, highest throughput, and least overhead</strong> of any virtualization model. This is why Type 1 is the production standard for data centers, clouds, and enterprise virtualization. Every major hyperscaler (AWS, Azure, GCP) and every mature on-prem private cloud runs Type 1 hypervisors under the hood.</p><p>Type 1 gives each VM <strong>hardware-level isolation</strong> — separate memory spaces, separate virtual devices, enforced by CPU hardware extensions (Intel VT-x, AMD-V). A runaway process or exploit in one VM cannot directly read or corrupt memory in another VM on the same host.</p><p>Classic Type 1 products: <strong>VMware ESXi</strong> (the market leader, managed via vCenter), <strong>Microsoft Hyper-V</strong> (as a Windows Server role it behaves as Type 1 with Windows becoming a 'parent partition'), and <strong>Linux KVM</strong> (built into the Linux kernel, the engine behind OpenStack and most public cloud providers). For the CCNA, simply be able to name them and identify 'runs directly on hardware' as the defining trait.</p>",
+        visual: { type: "layer-stack", params: { layers: ["VM 1 | VM 2 | VM 3", "Type 1 Hypervisor (ESXi / Hyper-V / KVM)", "Physical Hardware (CPU, RAM, NIC, Disk)"], highlight: 1 } },
+        hack: {
+          memory: "Type 1 = '#1 sits on the metal.' The hypervisor is the OS — nothing else touches the hardware. Mnemonic for the examples: 'EHK' = ESXi, Hyper-V, KVM.",
+          practice: "Flashcard: 'Which hypervisor type runs directly on hardware with no host OS?' → Type 1. 'Name three examples.' → ESXi, Hyper-V, KVM.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 53 (Virtualization). Wendell Odom OCG Ch. 29. Exam: 1 definition question, 1 example question."
+        }
+      },
+      {
+        id: "1.12.a.2",
+        term: "VMware ESXi",
+        weight: "high",
+        info: "<p><strong>VMware ESXi</strong> is the industry-dominant Type 1 hypervisor. It is a purpose-built, stripped-down OS whose only function is to run virtual machines. Admins install it from a bootable ISO onto dedicated server hardware, and the server is then dedicated to hosting VMs — you do not run other workloads on it.</p><p>ESXi hosts are almost always managed together as a cluster through <strong>vCenter Server</strong>, which provides centralized management, high availability (HA), dynamic resource scheduling (DRS), and live migration (<strong>vMotion</strong>). A small shop might run 2-4 ESXi hosts managed by a single vCenter; a large enterprise can run thousands.</p><p>ESXi creates <strong>vSphere virtual switches</strong> (standard vSwitch or distributed vSwitch) inside the hypervisor to connect VMs to the physical network. These vSwitches support VLAN tagging (802.1Q), port groups (equivalent to access-port configurations), link aggregation, and traffic shaping — effectively mirroring physical switch features in software.</p><p>For CCNA purposes you do not need to configure ESXi; you need to recognize the name, know it is Type 1, and know that VMs connect to the physical network through vSwitches inside the hypervisor.</p>",
+        visual: { type: "hierarchy", params: { root: "vCenter Server", children: [{ name: "ESXi Host 1", children: [{ name: "VM A" }, { name: "VM B" }] }, { name: "ESXi Host 2", children: [{ name: "VM C" }, { name: "VM D" }] }] } },
+        hack: {
+          memory: "ESXi = 'Enterprise Standard eXtra Important.' The default answer if an exam question says 'enterprise virtualization platform managed by vCenter.'",
+          practice: "Flashcard: 'Which hypervisor is managed by vCenter Server?' → ESXi. Optional hands-on: VMware's free ESXi ISO installs on a spare machine in 15 minutes.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 53 names ESXi. OCG Ch. 29. Likely 1 recognition question."
+        }
+      },
+      {
+        id: "1.12.a.3",
+        term: "Microsoft Hyper-V",
+        weight: "high",
+        info: "<p><strong>Microsoft Hyper-V</strong> is Microsoft's hypervisor. It has a confusing dual identity: when you enable the Hyper-V role on Windows Server (or install the free standalone <strong>Hyper-V Server</strong> SKU), Windows reconfigures itself so Hyper-V actually boots <em>before</em> Windows — the Windows install becomes a privileged 'parent partition' running on top of the hypervisor. Functionally this is a <strong>Type 1 hypervisor</strong>, even though it looks like it is inside Windows.</p><p>Hyper-V is the default virtualization stack for Windows-centric shops and for Azure. Azure's compute plane runs a heavily customized Hyper-V underneath. It integrates tightly with Active Directory, System Center Virtual Machine Manager (SCVMM), and Failover Clustering.</p><p>Networking in Hyper-V uses <strong>Hyper-V Virtual Switch</strong>, which like ESXi's vSwitch supports VLAN tagging, port mirroring, bandwidth limits, and ACLs. Hyper-V also pioneered NIC teaming at the hypervisor level on Windows.</p><p>For the CCNA, remember: Hyper-V is Microsoft's answer to ESXi, it is Type 1 when deployed as a server role, and it is the hypervisor that runs Azure.</p>",
+        visual: { type: "layer-stack", params: { layers: ["Guest VMs", "Windows parent partition", "Hyper-V hypervisor", "Physical Hardware"], highlight: 2 } },
+        hack: {
+          memory: "'Hyper-V = Microsoft's ESXi.' Even though it looks like it is 'in Windows,' it actually sits under Windows at the hardware layer.",
+          practice: "Flashcard: 'Which Type 1 hypervisor runs Azure?' → Hyper-V. Optional lab: enable Hyper-V role on any Windows 10/11 Pro machine.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 53. OCG Ch. 29. Low-frequency exam topic — recognition only."
+        }
+      },
+      {
+        id: "1.12.a.4",
+        term: "KVM",
+        weight: "high",
+        info: "<p><strong>KVM (Kernel-based Virtual Machine)</strong> is a Type 1 hypervisor that is literally built into the Linux kernel as a loadable module (<code>kvm.ko</code>). When you load the KVM module on a Linux host, the kernel itself becomes a hypervisor — Linux simultaneously acts as the host OS and the hypervisor.</p><p>KVM relies on hardware virtualization extensions (Intel VT-x, AMD-V) and is paired with user-space tools such as <strong>QEMU</strong> (device emulation), <strong>libvirt</strong> (management API), and <strong>virt-manager</strong> (GUI). On top of this stack, <strong>OpenStack</strong> builds a full private-cloud control plane.</p><p>KVM is the quiet giant of virtualization: AWS (for most instance types since Nitro), Google Cloud, DigitalOcean, and the vast majority of Linux-based private clouds run KVM. It is free, open-source, and extremely performant because it piggybacks on the mature Linux kernel.</p><p>For the exam, recognize the acronym, know it is Type 1, know it is Linux-based, and know its role as the foundation of OpenStack and major public clouds.</p>",
+        visual: { type: "layer-stack", params: { layers: ["Guest VMs (QEMU)", "KVM module + Linux kernel (acts as hypervisor)", "Physical Hardware"], highlight: 1 } },
+        hack: {
+          memory: "KVM = 'Kernel Virtual Machine' — it IS the Linux kernel in hypervisor mode. If the exam mentions Linux + Type 1, the answer is KVM.",
+          practice: "Flashcard: 'Which Type 1 hypervisor is built into the Linux kernel and used by OpenStack?' → KVM.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 53. OCG Ch. 29. Exam: recognition question."
+        }
+      },
+      {
+        id: "1.12.a.5",
+        term: "Hardware virtualization",
+        weight: "med",
+        info: "<p><strong>Hardware virtualization</strong> refers to CPU extensions — <strong>Intel VT-x</strong> and <strong>AMD-V</strong> — that let a hypervisor run guest-OS instructions directly on the physical CPU at near-native speed instead of emulating them in software. Before these extensions, hypervisors had to use complex binary-translation tricks that were slow and brittle.</p><p>With VT-x / AMD-V, the CPU supports a new 'root mode' for the hypervisor and a 'non-root mode' for guest VMs. Sensitive instructions from the guest (I/O, page tables, interrupts) trap into the hypervisor, which handles them and returns control to the guest. The vast majority of guest instructions execute natively on the silicon — which is why modern VMs are typically within 5-10% of bare-metal performance.</p><p>Related extensions matter too: <strong>EPT/NPT</strong> (nested page tables) virtualize memory translation in hardware, and <strong>VT-d/AMD-Vi</strong> (IOMMU) allow direct device assignment (PCI passthrough) so a VM can own a physical NIC or GPU.</p><p>For the exam, know the names VT-x and AMD-V and understand that Type 1 hypervisors rely on them to achieve production-grade performance. You do not need to configure any of this.</p>",
+        visual: { type: "comparison", params: { left: { label: "Without VT-x / AMD-V", items: ["Software binary translation", "Slow", "Complex", "Not production-ready"] }, right: { label: "With VT-x / AMD-V", items: ["CPU root/non-root modes", "Near-native performance", "Simple hypervisor", "Production standard"] } } },
+        hack: {
+          memory: "'VT-x = Intel, AMD-V = AMD, both mean the CPU can virtualize.' Without them, virtualization is a science project; with them, it is a data center.",
+          practice: "Flashcard: 'What two CPU features enable modern hypervisors to run VMs at near-native speed?' → Intel VT-x and AMD-V.",
+          effort: "low",
+          meta: "OCG Ch. 29 mentions hardware virtualization briefly. Exam: conceptual only."
+        }
+      },
+      {
+        id: "1.12.a.6",
+        term: "Virtual switch (vSwitch)",
+        weight: "med",
+        info: "<p>A <strong>virtual switch (vSwitch)</strong> is a Layer 2 switch implemented in software inside the hypervisor. It connects each VM's <strong>virtual NIC (vNIC)</strong> to the host's physical NIC(s), letting VMs communicate with each other and the outside network. From the physical switch's perspective, the host's uplink is a trunk carrying tagged frames for many VM MAC addresses.</p><p>vSwitches behave like physical switches in most ways: they learn MAC addresses, forward/flood/filter frames, honor VLAN tags (802.1Q), and enforce port-level policy. Enterprise-class vSwitches add features like <strong>port mirroring (SPAN)</strong>, <strong>LACP link aggregation</strong>, <strong>QoS/traffic shaping</strong>, and <strong>private VLANs</strong>. Examples: VMware Standard vSwitch and vSphere Distributed Switch (VDS), Microsoft Hyper-V Virtual Switch, Linux Bridge, and <strong>Open vSwitch (OVS)</strong>.</p><p>Conceptually, a VM's vNIC is a regular Ethernet interface — it has a unique MAC, it sends/receives frames, and the upstream physical switch sees each VM as a distinct station. A physical switchport connected to an ESXi or KVM host is therefore almost always configured as an 802.1Q trunk so multiple VLANs (one per VM port group) can reach the VMs.</p><p>For the CCNA, know that vSwitches exist inside hypervisors, support VLAN tagging, and are the reason modern server switchports are trunks carrying many VM VLANs at once.</p>",
+        visual: { type: "layer-stack", params: { layers: ["VM vNICs", "vSwitch (VLAN-aware)", "Physical NIC (802.1Q trunk)", "Physical Access/Leaf Switch"], highlight: 1 } },
+        hack: {
+          memory: "'vSwitch = real switch, but in software.' It learns MACs, tags VLANs, and trunks to the physical world.",
+          practice: "Flashcard: 'Why is the uplink from an ESXi host typically a trunk?' → Because the vSwitch carries multiple VLANs from many VMs.",
+          effort: "low",
+          meta: "OCG Ch. 29. Exam: 1 conceptual question at most."
+        }
+      }
     ]
   },
 
@@ -3352,11 +3424,71 @@ window.subtopicContentD12 = {
       meta: "Jeremy's IT Lab Day 53 covers both hypervisor types. Wendell Odom OCG Chapter 29 mentions virtualization in the context of network architecture. The exam typically has one question distinguishing Type 1 from Type 2. The answer key: production data center = Type 1, engineer's laptop = Type 2. Know 2-3 examples of each and you are covered.",
     },
     micro: [
-      { id: "1.12.b.1", term: "Type 2 hypervisor",           def: "Hosted hypervisor. Runs on top of a regular OS (Windows/macOS/Linux) as an application. Dev/test use.", weight: "high" },
-      { id: "1.12.b.2", term: "VirtualBox",                  def: "Free Oracle Type 2 hypervisor. Common on dev laptops.", weight: "med" },
-      { id: "1.12.b.3", term: "VMware Workstation / Fusion", def: "Commercial Type 2 hypervisor. Workstation for Windows/Linux, Fusion for macOS.", weight: "med" },
-      { id: "1.12.b.4", term: "Parallels",                   def: "Popular Type 2 hypervisor for macOS. Runs Windows on Apple Silicon or Intel.", weight: "low" },
-      { id: "1.12.b.5", term: "Type 1 vs Type 2 tradeoff",   def: "Type 1 = faster, isolation, production. Type 2 = easier install, runs on any OS, dev/test.", weight: "high" }
+      {
+        id: "1.12.b.1",
+        term: "Type 2 hypervisor",
+        weight: "high",
+        info: "<p>A <strong>Type 2 hypervisor</strong> runs as an <strong>application on top of a general-purpose operating system</strong> (Windows, macOS, or Linux). The host OS owns the hardware; the hypervisor is just another program. VMs created inside a Type 2 hypervisor must reach hardware through two layers: hypervisor → host OS → hardware.</p><p>This extra layer means <strong>higher latency, higher memory overhead</strong> (the host OS itself consumes RAM), and a dependency on the host OS's stability — if Windows crashes on your laptop, every VM in VMware Workstation goes down with it. You also cannot dedicate 100% of hardware to VMs, because the host OS always takes its share.</p><p>The upside is <strong>convenience</strong>. You download an installer, run it, and start making VMs — no dedicated hardware, no repartitioning, no bootable ISO. That convenience makes Type 2 the right tool for <strong>developers, students, and lab environments</strong>. Your CCNA practice VMs (GNS3, EVE-NG running locally, Packet Tracer's built-in labs) all live inside Type 2 hypervisors on your laptop.</p><p>The clean exam distinction: 'production data center' = Type 1, 'engineer's laptop' = Type 2.</p>",
+        visual: { type: "layer-stack", params: { layers: ["VM 1 | VM 2", "Type 2 Hypervisor (VirtualBox / Workstation)", "Host OS (Windows / macOS / Linux)", "Physical Hardware"], highlight: 1 } },
+        hack: {
+          memory: "'Type 2 sits on top of an OS.' If a hypervisor is an icon in your applications folder, it is Type 2.",
+          practice: "Flashcard: 'You install GNS3 on your laptop via VirtualBox — which hypervisor type?' → Type 2.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 53. OCG Ch. 29. Exam: 1 definition question."
+        }
+      },
+      {
+        id: "1.12.b.2",
+        term: "VirtualBox",
+        weight: "med",
+        info: "<p><strong>Oracle VirtualBox</strong> is the most widely used <strong>free, open-source, cross-platform Type 2 hypervisor</strong>. It runs on Windows, macOS, and Linux with essentially the same UI and feature set. Because it is free and covers every OS, it is the default hypervisor for students, open-source projects, and quick lab setups.</p><p>VirtualBox supports common virtualization features: snapshots, cloning, shared folders with the host, USB passthrough, and a headless mode for scripting. It networks VMs through a built-in virtual switch with modes including NAT (VM shares host IP), Bridged (VM appears on the physical LAN with its own IP), Host-only (VM reachable from host only), and Internal (VM-to-VM only).</p><p>VirtualBox is how many CCNA candidates run their first lab: download VirtualBox → import a Cisco IOSv / CSR image in GNS3 → click play. No data-center required.</p><p>For the exam, you only need to recognize VirtualBox as a Type 2 hypervisor example. No config required.</p>",
+        visual: { type: "comparison", params: { left: { label: "VirtualBox network modes", items: ["NAT — share host IP", "Bridged — own IP on LAN", "Host-only — host ↔ VM", "Internal — VM ↔ VM"] }, right: { label: "Use cases", items: ["Quick outbound access", "VM on the real network", "Private sandbox", "Multi-VM lab topologies"] } } },
+        hack: {
+          memory: "'VirtualBox = free Type 2 for everyone.' It is the default answer for 'cross-platform free hypervisor.'",
+          practice: "Flashcard: 'Name a free Type 2 hypervisor that runs on Windows, macOS, and Linux.' → Oracle VirtualBox.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 53 names VirtualBox. Low-weight exam topic."
+        }
+      },
+      {
+        id: "1.12.b.3",
+        term: "VMware Workstation / Fusion",
+        weight: "med",
+        info: "<p><strong>VMware Workstation</strong> (Windows/Linux) and <strong>VMware Fusion</strong> (macOS) are VMware's commercial Type 2 hypervisors. They are feature-rich — better than VirtualBox on performance, graphics (3D acceleration), snapshot management, and tight integration with VMware's enterprise stack (you can open Workstation VMs directly against a corporate vCenter).</p><p>Both are paid products, though VMware historically offered 'Player' editions for free personal use. They are the standard choice for professional developers, network engineers running vendor VM images, and anyone whose job is adjacent to the VMware ecosystem.</p><p>Networking options mirror VirtualBox — NAT, bridged, host-only — plus advanced features like simulated packet loss, latency, and bandwidth shaping for testing network conditions. This is extremely handy for CCNA/CCNP labbing.</p><p>For the exam: recognize the names, know they are Type 2, no config required.</p>",
+        visual: { type: "comparison", params: { left: { label: "VMware Workstation", items: ["Windows / Linux", "Commercial", "Pro engineer use"] }, right: { label: "VMware Fusion", items: ["macOS", "Commercial", "Same engine as Workstation"] } } },
+        hack: {
+          memory: "'Workstation for Windows/Linux, Fusion for macOS.' Same company (VMware), same Type 2 category.",
+          practice: "Flashcard: 'Which VMware product is Type 2 for macOS?' → Fusion.",
+          effort: "low",
+          meta: "OCG Ch. 29. Low-weight recognition."
+        }
+      },
+      {
+        id: "1.12.b.4",
+        term: "Parallels",
+        weight: "low",
+        info: "<p><strong>Parallels Desktop</strong> is a Type 2 hypervisor for <strong>macOS</strong>, popular because it has invested heavily in running <strong>Windows on Apple Silicon (M1/M2/M3/M4)</strong>. On Apple Silicon, Parallels runs Windows ARM64 efficiently, making it the smoothest way to run Windows apps on a modern Mac.</p><p>Feature-wise it is similar to VMware Fusion — snapshots, shared folders, network modes (bridged, NAT, host-only), optional 3D acceleration. It is commercial software, paid yearly.</p><p>For the CCNA, Parallels is low-priority — recognize the name and know it is Type 2 for macOS. You will not see it configured on the exam.</p>",
+        visual: { type: "layer-stack", params: { layers: ["Windows / Linux VMs", "Parallels Desktop (Type 2)", "macOS", "Apple Silicon or Intel Mac"], highlight: 1 } },
+        hack: {
+          memory: "'Parallels = Windows on Mac.' That's the whole job description.",
+          practice: "Flashcard: 'Which Type 2 hypervisor is best known for running Windows on Apple Silicon Macs?' → Parallels.",
+          effort: "low",
+          meta: "Low-weight; likely not tested."
+        }
+      },
+      {
+        id: "1.12.b.5",
+        term: "Type 1 vs Type 2 tradeoff",
+        weight: "high",
+        info: "<p>The Type 1 vs Type 2 trade-off is one of the <strong>guaranteed CCNA virtualization questions</strong>. Learn the comparison cold.</p><p><strong>Type 1 (bare metal):</strong> runs directly on hardware, no host OS, best performance, strongest isolation, dedicated hardware required, harder to install. Used for <strong>production data centers</strong>. Examples: ESXi, Hyper-V, KVM.</p><p><strong>Type 2 (hosted):</strong> runs as an app on a host OS, more overhead, depends on host OS, uses any machine, trivial to install. Used for <strong>dev, test, labs, learning</strong>. Examples: VirtualBox, VMware Workstation/Fusion, Parallels.</p><p>A single sentence you can always fall back on: <em>'Type 1 is hard to install but fast to run; Type 2 is easy to install but slow to run.'</em> Or: <em>'Data center = Type 1, laptop = Type 2.'</em></p><p>Both types implement the same core mechanism — CPU virtualization extensions, memory isolation, vSwitches — so the difference is purely about where the hypervisor sits in the stack.</p>",
+        visual: { type: "comparison", params: { left: { label: "Type 1 (bare metal)", items: ["No host OS", "Best performance", "Production DC", "ESXi / Hyper-V / KVM"] }, right: { label: "Type 2 (hosted)", items: ["Runs on host OS", "Higher overhead", "Dev / test / lab", "VirtualBox / Workstation / Parallels"] } } },
+        hack: {
+          memory: "Fall-back sentence: 'Data center = Type 1, laptop = Type 2.' If the scenario sounds like production, pick Type 1.",
+          practice: "Draw one flashcard with Type 1 vs Type 2 columns (examples + use case + pros/cons). That single card covers most exam virtualization questions.",
+          effort: "low",
+          meta: "OCG Ch. 29. Exam: 1-2 questions guaranteed."
+        }
+      }
     ]
   },
 
@@ -3376,11 +3508,71 @@ window.subtopicContentD12 = {
       meta: "Jeremy's IT Lab Day 53 covers VMs and containers. Wendell Odom OCG Chapter 29 (Network Architecture) covers virtualization fundamentals. The VM vs container comparison is a guaranteed exam question — typically phrased as 'which technology provides stronger isolation?' (VMs) or 'which is more lightweight and faster to deploy?' (containers). Memorize the comparison table and you will answer correctly every time.",
     },
     micro: [
-      { id: "1.12.c.1", term: "Virtual Machine (VM)",        def: "Emulates a full computer. Has its own OS, virtual CPU, virtual NIC, virtual disk. Hardware-level isolation.", weight: "high" },
-      { id: "1.12.c.2", term: "Server consolidation",        def: "Primary VM driver. Many VMs on one physical host = better utilization, less hardware.", weight: "med" },
-      { id: "1.12.c.3", term: "VM isolation",                def: "Each VM runs in own memory space with own virtual hardware. Crash or compromise stays contained.", weight: "high" },
-      { id: "1.12.c.4", term: "Live migration (vMotion)",    def: "Move a running VM between physical hosts with no downtime. Key DC feature.", weight: "med" },
-      { id: "1.12.c.5", term: "VM vs container tradeoff",    def: "VM = heavier, stronger isolation, own OS. Container = lightweight, shares host kernel, faster start.", weight: "high" }
+      {
+        id: "1.12.c.1",
+        term: "Virtual Machine (VM)",
+        weight: "high",
+        info: "<p>A <strong>virtual machine (VM)</strong> is a complete computer implemented in software. Each VM has its own <strong>guest OS, kernel, drivers, applications, and virtual hardware</strong> — vCPU cores, vRAM, vNIC, and a virtual disk stored as a file (.vmdk, .vhdx, .qcow2) on the host's physical storage.</p><p>From inside the VM, it looks and behaves like a real machine. The guest OS boots, loads drivers for its virtual devices, gets DHCP on its vNIC, and runs any application a physical PC could run. From the hypervisor's perspective, the VM is a managed sandbox whose hardware access is intercepted and scheduled onto the real CPU, memory, and NIC.</p><p>The hypervisor enforces <strong>hardware-level isolation</strong> between VMs using CPU virtualization extensions (VT-x, AMD-V) and memory virtualization (EPT/NPT). A crash or exploit in one VM cannot directly read memory in another VM on the same host. That strong isolation is the reason multi-tenant public clouds can safely run different customers on the same server.</p><p>The cost of a full-OS-per-instance is weight: GBs of RAM, GBs of disk for the OS image, and minutes of boot time. Containers exist precisely to avoid that weight when applications do not need hardware-level isolation.</p>",
+        visual: { type: "layer-stack", params: { layers: ["App | App | App", "Guest OS (per VM)", "Virtual hardware (vCPU, vRAM, vNIC, vDisk)", "Hypervisor", "Physical Hardware"], highlight: 1 } },
+        hack: {
+          memory: "VM = 'a computer inside a computer.' Full OS, full foundation, full isolation — heavy but safe.",
+          practice: "Flashcard: 'What does a VM contain that a container does not?' → Its own full guest OS / kernel.",
+          effort: "low",
+          meta: "OCG Ch. 29. Exam: definition + VM vs container comparison."
+        }
+      },
+      {
+        id: "1.12.c.2",
+        term: "Server consolidation",
+        weight: "med",
+        info: "<p><strong>Server consolidation</strong> is the primary business driver for VMs. Before virtualization, shops ran <strong>one workload per physical server</strong> — a mail server, a file server, a database server, each on its own box — because mixing workloads on one OS was operationally risky. CPU utilization was often 5-15%, power bills were high, and racks were full of underused iron.</p><p>Virtualization flips that. One physical host running a hypervisor can safely run 20-50 VMs, each with its own OS and workload. CPU utilization climbs to 60-80%, a handful of servers replace an entire row, and you save on <strong>hardware, rack space, power, cooling, and licensing</strong>.</p><p>Consolidation is the 'why' behind the first wave of enterprise virtualization (roughly 2005-2015). Today it is assumed — almost every enterprise workload lives in a VM or container. CoreWeave, AWS, Azure, and GCP are consolidation taken to an extreme scale.</p><p>For the exam, recognize 'server consolidation' as the classic benefit sentence: 'Run many workloads on fewer physical servers by putting them in VMs.'</p>",
+        visual: { type: "comparison", params: { left: { label: "Before (physical-only)", items: ["1 workload per server", "5-15% CPU use", "High power + cooling", "Full racks"] }, right: { label: "After (virtualized)", items: ["20-50 VMs per host", "60-80% CPU use", "Fewer hosts, less power", "Consolidated racks"] } } },
+        hack: {
+          memory: "'Many workloads, one box.' That is consolidation in four words.",
+          practice: "Flashcard: 'What is the primary business benefit of virtualization?' → Server consolidation (higher utilization, lower hardware/power cost).",
+          effort: "low",
+          meta: "OCG Ch. 29. Exam: 1 question in scenario form."
+        }
+      },
+      {
+        id: "1.12.c.3",
+        term: "VM isolation",
+        weight: "high",
+        info: "<p><strong>VM isolation</strong> is the property that each VM runs in its own memory address space, with its own virtual CPU state, its own virtual devices, and its own guest OS. The hypervisor enforces these boundaries at the hardware level using CPU extensions (VT-x / AMD-V) and memory extensions (EPT / NPT).</p><p>The practical effect: a <strong>kernel panic, blue screen, malware infection, or runaway process inside one VM cannot directly affect another VM</strong> on the same host. Each VM is as separate from its neighbor as two physical servers would be. This is exactly the property that makes multi-tenant cloud computing safe — AWS can put Customer A and Customer B on the same physical host because the hypervisor guarantees their VMs cannot see each other's memory.</p><p>VM isolation is <strong>stronger than container isolation</strong>, because containers share the host kernel — a kernel vulnerability can cross container boundaries. VMs have their own kernels, so a kernel exploit in one VM is contained to that VM. This is why security-sensitive or regulated workloads (finance, healthcare, government) still prefer VMs over containers.</p><p>Exam phrasing: 'which technology provides the strongest isolation between workloads on a shared host?' → VMs.</p>",
+        visual: { type: "shield", params: { name: "VM isolation", protects: ["Memory address space per VM", "Separate guest kernel per VM", "Crash containment", "Multi-tenant safety"] } },
+        hack: {
+          memory: "'VMs = hardware-level isolation. Containers = process-level isolation.' Hardware beats process.",
+          practice: "Flashcard: 'Which is stronger isolation — VM or container?' → VM.",
+          effort: "low",
+          meta: "OCG Ch. 29. Exam: the isolation comparison shows up nearly every sitting."
+        }
+      },
+      {
+        id: "1.12.c.4",
+        term: "Live migration (vMotion)",
+        weight: "med",
+        info: "<p><strong>Live migration</strong> moves a running VM from one physical host to another with <strong>zero downtime</strong> — the VM's users, TCP connections, and running applications are never disconnected. VMware calls this <strong>vMotion</strong>; Microsoft calls it <strong>Live Migration</strong>; KVM uses libvirt's migrate API.</p><p>The mechanism: the hypervisor copies the VM's memory pages from the source host to the destination host while the VM keeps running. As pages get dirtied, it copies the delta. When the remaining delta is small enough (a few MB), it briefly pauses the VM, copies the last pages, and resumes the VM on the destination. The pause is typically under a second and invisible to applications.</p><p>Live migration requires <strong>shared storage</strong> accessible to both hosts (SAN, NAS, or hyperconverged storage), a fast network between hosts (ideally 10/25/100 Gb dedicated vMotion link), and compatible CPUs on both ends (or an 'Enhanced vMotion Compatibility' mode that masks CPU feature differences).</p><p>The business value: <strong>maintenance without outages</strong>. Before patching or replacing a host, drain it by live-migrating all VMs to other hosts, do the work, then migrate them back. Combined with <strong>Distributed Resource Scheduler (DRS)</strong>, hypervisors can even auto-balance VMs across hosts based on load.</p><p>For the exam, recognize vMotion / live migration as the feature that moves a running VM with no downtime.</p>",
+        visual: { type: "handshake", params: { leftLabel: "Host A (source)", rightLabel: "Host B (destination)", steps: ["Copy memory pages A→B (VM still running)", "Copy dirty deltas iteratively", "Brief pause (<1s), copy last pages", "VM resumes on Host B, no connection loss"] } },
+        hack: {
+          memory: "'vMotion = move a running VM with no downtime.' That's the whole definition.",
+          practice: "Flashcard: 'How do you patch a hypervisor host without taking down its VMs?' → Live-migrate VMs to another host first.",
+          effort: "low",
+          meta: "OCG Ch. 29. Exam: scenario question about maintenance without downtime."
+        }
+      },
+      {
+        id: "1.12.c.5",
+        term: "VM vs container tradeoff",
+        weight: "high",
+        info: "<p>Memorize this table — it is the most-tested virtualization comparison on the CCNA.</p><p><strong>VM:</strong> Size = GBs (full OS image). Boot = minutes. Isolation = hardware-level (own kernel). Density = 20-50 per host. Use case = strong isolation, mixed OSes, legacy workloads, regulated industries.</p><p><strong>Container:</strong> Size = MBs (just app + dependencies). Boot = seconds or sub-second. Isolation = process-level (shared kernel). Density = hundreds per host. Use case = microservices, rapid scaling, CI/CD, cloud-native.</p><p>Neither is strictly better — they serve different problems. Production shops run <strong>both</strong>: VMs for the heavy, stateful, isolated workloads (databases, legacy apps, tenant boundaries) and containers on top for microservices and stateless workloads. In fact most modern Kubernetes clusters run their containers inside VMs, getting the density of containers plus the isolation of VMs.</p><p>The one-line exam phrase: <em>'VM for isolation, container for speed and density.'</em></p>",
+        visual: { type: "comparison", params: { left: { label: "VM", items: ["Size: GBs", "Boot: minutes", "Isolation: hardware", "Density: 20-50 / host", "Own kernel per instance"] }, right: { label: "Container", items: ["Size: MBs", "Boot: seconds", "Isolation: process", "Density: 100s / host", "Shares host kernel"] } } },
+        hack: {
+          memory: "'VM = heavy house, container = apartment.' House has its own foundation; apartment shares the building's.",
+          practice: "Memorize the comparison table. Quiz yourself: boot time? size? isolation? kernel? Get all four right in under 10 seconds.",
+          effort: "low",
+          meta: "OCG Ch. 29. Exam: 1-2 direct comparison questions."
+        }
+      }
     ]
   },
 
@@ -3400,11 +3592,71 @@ window.subtopicContentD12 = {
       meta: "Jeremy's IT Lab Day 53 covers containers alongside VMs. Wendell Odom OCG Chapter 29 mentions containers in the context of modern application deployment. The CCNA exam asks 1-2 container questions, always in comparison to VMs: 'which is faster to deploy?' (container), 'which shares the host kernel?' (container), 'which provides hardware-level isolation?' (VM). Know Docker as the primary container platform and Kubernetes as the orchestration platform.",
     },
     micro: [
-      { id: "1.12.d.1", term: "Container",                   def: "Packaged application + dependencies running as an isolated process. Shares host kernel; no guest OS.", weight: "high" },
-      { id: "1.12.d.2", term: "Docker",                      def: "Most common container runtime. Defines images, runs containers, provides registry.", weight: "high" },
-      { id: "1.12.d.3", term: "Kubernetes (K8s)",            def: "Orchestration platform. Schedules, scales, and manages containers across many hosts.", weight: "high" },
-      { id: "1.12.d.4", term: "Container vs VM",             def: "Container: lightweight, fast start (~seconds), shares kernel. VM: heavy, stronger isolation, own OS.", weight: "high" },
-      { id: "1.12.d.5", term: "Container image",             def: "Immutable snapshot of an app + its libs. Pulled from a registry (Docker Hub, ECR, etc.) and run.", weight: "med" }
+      {
+        id: "1.12.d.1",
+        term: "Container",
+        weight: "high",
+        info: "<p>A <strong>container</strong> is a packaged application plus the libraries and dependencies it needs, running as an <strong>isolated process</strong> on the host OS. Containers do <strong>not</strong> include a guest OS or kernel — they share the host kernel with every other container on the same machine. That's the key architectural difference from a VM.</p><p>Isolation comes from two Linux kernel features: <strong>namespaces</strong> partition what a container can see (its own process tree, network interfaces, mount points, user IDs), and <strong>cgroups</strong> partition what a container can use (CPU shares, memory limits, I/O quotas). Together they create the illusion of a private OS while actually running on a shared kernel.</p><p>The result: containers are <strong>MBs in size, start in seconds or less, and can run hundreds per host</strong>. A Kubernetes worker node routinely runs 50-200 containers. Starting a container is basically 'fork a process in its own namespaces.'</p><p>The trade-off is weaker isolation. Because every container shares the host kernel, a kernel vulnerability is a potential escape path. Containers are not recommended as security boundaries for untrusted code — that is still a VM job.</p>",
+        visual: { type: "layer-stack", params: { layers: ["App A | App B | App C", "Container runtime (Docker / containerd)", "Shared host kernel (Linux)", "Physical or VM Hardware"], highlight: 2 } },
+        hack: {
+          memory: "Container mnemonic: 'FLIP' = Fast, Light, Isolated (process-level), Portable.",
+          practice: "Flashcard: 'Do containers have their own kernel?' → No, they share the host kernel.",
+          effort: "low",
+          meta: "OCG Ch. 29. Exam: 1-2 questions, usually in VM vs container form."
+        }
+      },
+      {
+        id: "1.12.d.2",
+        term: "Docker",
+        weight: "high",
+        info: "<p><strong>Docker</strong> is the dominant container platform and the one most likely to appear on the CCNA. It made containers mainstream by giving developers a simple workflow: write a <strong>Dockerfile</strong> describing the app + dependencies, run <code>docker build</code> to produce a portable <strong>image</strong>, store the image in a <strong>registry</strong> (Docker Hub, ECR, GHCR), and run the image on any machine with Docker installed using <code>docker run</code>.</p><p>A Docker image is <strong>immutable and portable</strong> — the same image runs identically on a developer laptop, a CI runner, and a production cluster. That reproducibility is the core value proposition: 'it works on my machine' becomes 'it works everywhere.'</p><p>Docker provides the runtime (containerd under the hood), a CLI (<code>docker</code>), a packaging format (OCI images), and networking primitives (bridge networks, overlay networks, macvlan) that let containers talk to each other and the outside world. A default Docker bridge network is conceptually a vSwitch.</p><p>For the exam, know Docker as the default container platform and the thing that packages, runs, and registers containers.</p>",
+        visual: { type: "hierarchy", params: { root: "Docker", children: [{ name: "Dockerfile → Image" }, { name: "Registry (Docker Hub / ECR)" }, { name: "docker run → Container" }, { name: "Networks (bridge / overlay)" }] } },
+        hack: {
+          memory: "'Docker = build once, run anywhere.' Image = template, container = running instance.",
+          practice: "Flashcard: 'What command runs a container from an image?' → docker run. Even without install, memorize the verb.",
+          effort: "low",
+          meta: "OCG Ch. 29. Exam: recognition question."
+        }
+      },
+      {
+        id: "1.12.d.3",
+        term: "Kubernetes (K8s)",
+        weight: "high",
+        info: "<p><strong>Kubernetes (K8s)</strong> is the standard <strong>container orchestration platform</strong> — the thing that runs containers at scale across many hosts. Docker runs a container; Kubernetes runs <em>thousands of containers across dozens of hosts, heals them when they die, scales them when traffic rises, and connects them together</em>.</p><p>Kubernetes concepts you should at least recognize: a <strong>cluster</strong> has a control plane and worker nodes; workloads are deployed as <strong>pods</strong> (one or more containers that share a network namespace); pods are scheduled onto nodes by the scheduler; a <strong>Deployment</strong> ensures a desired number of pod replicas exist; a <strong>Service</strong> provides a stable virtual IP/DNS name in front of pods; an <strong>Ingress</strong> exposes services to the outside world.</p><p>Kubernetes is the platform behind essentially all modern cloud-native infrastructure — GKE, EKS, AKS, OpenShift, and CoreWeave's own Kubernetes-based AI cloud all trace back to it.</p><p>For the CCNA, you do not need to configure Kubernetes. Know that it orchestrates containers across clusters, and that it is the reason container networking (CNI, overlay networks, Kube-proxy) exists.</p>",
+        visual: { type: "hierarchy", params: { root: "Kubernetes cluster", children: [{ name: "Control plane", children: [{ name: "API server" }, { name: "Scheduler" }, { name: "etcd" }] }, { name: "Worker nodes", children: [{ name: "Pods → Containers" }, { name: "kubelet + CNI" }] }] } },
+        hack: {
+          memory: "'Docker runs one container. Kubernetes runs a fleet.' Orchestration = scale + heal + scale back.",
+          practice: "Flashcard: 'What platform orchestrates containers across many hosts?' → Kubernetes.",
+          effort: "low",
+          meta: "OCG Ch. 29. Exam: recognition question."
+        }
+      },
+      {
+        id: "1.12.d.4",
+        term: "Container vs VM",
+        weight: "high",
+        info: "<p>Same comparison as 1.12.c.5, restated from the container side. Know it from either direction.</p><p><strong>Container advantages:</strong> MB-sized, seconds-to-boot, hundreds per host, easy to ship and deploy, ideal for microservices and rapid scaling. Shares host kernel.</p><p><strong>VM advantages:</strong> hardware-level isolation, full OS flexibility (run any kernel or OS), can host workloads that cannot tolerate shared-kernel risk, well-suited to legacy monolithic applications.</p><p>The correct mental model: these are <strong>not competitors</strong>, they are different layers. Kubernetes nodes are usually VMs. Containers run inside those VMs. You get density from containers and isolation from VMs at the same time.</p><p>Exam phrasing to watch: 'which is more lightweight?' → container. 'Which provides stronger isolation?' → VM. 'Which shares the host kernel?' → container. 'Which boots faster?' → container.</p>",
+        visual: { type: "comparison", params: { left: { label: "Container wins at", items: ["Boot speed", "Size", "Density", "Microservices"] }, right: { label: "VM wins at", items: ["Isolation strength", "Mixed OS support", "Legacy workloads", "Regulated workloads"] } } },
+        hack: {
+          memory: "Container = speed + density. VM = isolation + flexibility. Real clusters use BOTH.",
+          practice: "Flashcard: 'Which provides hardware-level isolation?' → VM. 'Which shares the kernel?' → Container.",
+          effort: "low",
+          meta: "OCG Ch. 29. Exam: 1-2 direct questions."
+        }
+      },
+      {
+        id: "1.12.d.5",
+        term: "Container image",
+        weight: "med",
+        info: "<p>A <strong>container image</strong> is an <strong>immutable, layered snapshot</strong> of an application and its runtime dependencies. It contains the filesystem the container will see (binaries, libraries, config files, sometimes a minimal OS userland) but <strong>no kernel</strong>. Images are built from a <strong>Dockerfile</strong> (a recipe) and stored as tarball-like bundles with metadata.</p><p>Images are <strong>layered</strong>: a base layer (e.g., Alpine or Ubuntu userland), then each Dockerfile instruction produces a new read-only layer on top. This makes images small and efficient to distribute — a 500 MB image might share 400 MB of base layers with ten other images, so only the 100 MB delta is pulled.</p><p>Images live in <strong>registries</strong>: public ones like Docker Hub and ghcr.io, or private ones like AWS ECR, GCP Artifact Registry, and internal corporate registries. <code>docker pull</code> downloads an image; <code>docker run</code> creates a container from it. When a container is started, the runtime adds a thin writable layer on top of the image's read-only layers — writes during the container's life go there, and are thrown away when the container stops (unless you mount a volume).</p><p>For the CCNA, know that an image is the template and the container is the running instance.</p>",
+        visual: { type: "layer-stack", params: { layers: ["Writable container layer (ephemeral)", "Image layer N (app code)", "Image layer ... (deps)", "Image layer 0 (base OS userland)"], highlight: 0 } },
+        hack: {
+          memory: "'Image = recipe on disk, container = dish on the table.' Build once, run many.",
+          practice: "Flashcard: 'Where do container images live before being run?' → In a registry (Docker Hub, ECR, etc.).",
+          effort: "low",
+          meta: "OCG Ch. 29. Low-weight recognition."
+        }
+      }
     ]
   },
 
@@ -3424,10 +3676,58 @@ window.subtopicContentD12 = {
       meta: "Jeremy's IT Lab Day 53 covers VRF concepts. Wendell Odom OCG Chapter 29 discusses VRF in the context of network virtualization. The CCNA tests VRF conceptually — 'what technology allows overlapping IP address spaces on one router?' (VRF), 'how does a service provider isolate customer traffic on shared infrastructure?' (VRF). You will not need to configure VRF on the exam, but understand what it does and why it exists.",
     },
     micro: [
-      { id: "1.12.e.1", term: "VRF",                         def: "Virtual Routing and Forwarding. Multiple separate routing tables on one router. Enables overlapping IPs and isolated customer traffic.", weight: "high" },
-      { id: "1.12.e.2", term: "VRF use cases",               def: "Service providers isolating customers on shared MPLS. Enterprises separating departments (HR/Finance/DMZ).", weight: "med" },
-      { id: "1.12.e.3", term: "Overlapping IP space",        def: "VRFs allow two customers to both use 10.0.0.0/8 on the same physical router. Each VRF is a separate namespace.", weight: "med" },
-      { id: "1.12.e.4", term: "VRF vs VLAN (L3 vs L2)",      def: "VLAN = L2 broadcast domain separation. VRF = L3 routing-table separation. Different layers, complementary.", weight: "med" }
+      {
+        id: "1.12.e.1",
+        term: "VRF",
+        weight: "high",
+        info: "<p><strong>VRF (Virtual Routing and Forwarding)</strong> creates <strong>multiple independent routing tables on one physical router</strong>. Each VRF is a completely separate routing domain with its own routing table, its own interface assignments, and its own forwarding decisions. Traffic in VRF-A cannot reach traffic in VRF-B unless you explicitly 'leak' routes between them — they behave as if running on separate physical routers.</p><p>Because each VRF has its own routing table, different VRFs can <strong>reuse the same IP prefixes without conflict</strong>. VRF-A can use 10.1.1.0/24 for Customer A, and VRF-B can use the same 10.1.1.0/24 for Customer B, on the exact same router. A regular (non-VRF) router could never do this because a single routing table cannot contain two different 'best' routes for 10.1.1.0/24.</p><p>Basic config on Cisco IOS: create the VRF with <code>vrf definition CUSTOMER-A</code>, define an address family (<code>address-family ipv4</code>), then bind an interface with <code>vrf forwarding CUSTOMER-A</code> (this removes the interface's existing IP — you must re-add it). Verify with <code>show vrf</code>, <code>show ip route vrf CUSTOMER-A</code>, <code>show ip interface brief vrf CUSTOMER-A</code>.</p><p>Every router has an implicit <strong>global routing table</strong>, which is the 'default VRF.' Interfaces are in the global VRF unless explicitly assigned to another one.</p>",
+        visual: { type: "comparison", params: { left: { label: "VRF-A (Customer 1)", items: ["Own routing table", "Interfaces: Gi0/0, Gi0/1", "10.1.0.0/24"] }, right: { label: "VRF-B (Customer 2)", items: ["Own routing table", "Interfaces: Gi0/2, Gi0/3", "10.1.0.0/24 (no conflict!)"] } } },
+        hack: {
+          memory: "'VRF = Very Real Fences.' Separate filing cabinets inside one router. Same IPs in different cabinets are fine.",
+          practice: "Flashcard: 'What technology lets two customers use overlapping IP ranges on the same router?' → VRF.",
+          effort: "medium",
+          meta: "OCG Ch. 29. Exam: conceptual questions only, no config."
+        }
+      },
+      {
+        id: "1.12.e.2",
+        term: "VRF use cases",
+        weight: "med",
+        info: "<p>Classic VRF use cases to recognize on the exam:</p><p><strong>Service provider MPLS VPNs:</strong> the original driver. An ISP sells 'private WAN' service to Customer A and Customer B over the same shared MPLS backbone. Each customer gets its own VRF on the provider edge (PE) routers; MPLS labels carry their traffic through the core in isolation. Overlapping customer IPs are fine because each customer lives in its own VRF.</p><p><strong>Enterprise management / data separation:</strong> keep the out-of-band management network in a separate VRF from production data. If the data plane is attacked or saturated, the management VRF remains reachable so engineers can still log in and fix things.</p><p><strong>Guest / corporate / IoT segmentation:</strong> on a shared campus router, put Guest Wi-Fi, corporate users, and IoT devices in different VRFs. Each has its own default route and routing policies. You cannot accidentally route from Guest to Corporate because the routing tables do not share routes.</p><p><strong>Compliance zones:</strong> PCI-DSS card-holder data or HIPAA-regulated traffic isolated from general traffic on shared infrastructure. Auditors love it because the separation is enforced at the routing layer, not just firewall rules.</p>",
+        visual: { type: "hierarchy", params: { root: "Use cases", children: [{ name: "SP MPLS VPN (customers)" }, { name: "Management VRF" }, { name: "Guest / Corp / IoT" }, { name: "PCI / HIPAA zones" }] } },
+        hack: {
+          memory: "'VRF = tenant isolation on shared kit.' Whenever one router must serve multiple customers or compliance zones, think VRF.",
+          practice: "Flashcard: 'Name two use cases for VRF.' → MPLS L3VPN service providers, enterprise management/data plane separation.",
+          effort: "low",
+          meta: "OCG Ch. 29. Exam: scenario question."
+        }
+      },
+      {
+        id: "1.12.e.3",
+        term: "Overlapping IP space",
+        weight: "med",
+        info: "<p><strong>Overlapping IP space</strong> is the headline feature of VRF — and the feature that pure VLANs cannot provide. Without VRF, a single router has a single IP routing table, and it is impossible for 10.1.1.0/24 to legitimately point in two different directions at the same time. With VRF, each VRF has its own routing table, so each can have its own 10.1.1.0/24 entry.</p><p>This matters when service providers onboard customers. Most enterprises number their networks from RFC 1918 space (10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16), and a lot of them independently picked 10.0.0.0/24 or 10.1.1.0/24. A provider cannot tell Customer B 'please renumber your LAN so we can serve you' — that is a non-starter. VRFs let the provider accept both as-is.</p><p>The same dynamic appears in mergers and acquisitions. Company A buys Company B, they both use 10.0.0.0/8 internally, and the merged network cannot just smoosh them together. Interim solution: put the two companies in separate VRFs, NAT between them at a controlled boundary, and renumber slowly over years.</p><p>For the CCNA, just recognize: 'overlapping IPs on one router' = VRF is the answer.</p>",
+        visual: { type: "comparison", params: { left: { label: "No VRF", items: ["Single routing table", "Cannot have two 10.1.1.0/24", "Must renumber one customer"] }, right: { label: "With VRF", items: ["One table per VRF", "Each VRF can own 10.1.1.0/24", "No renumbering required"] } } },
+        hack: {
+          memory: "'Overlapping IPs = VRF.' That is a pure trigger phrase for the exam.",
+          practice: "Flashcard: 'How does VRF allow overlapping IP ranges?' → Each VRF has its own routing table; one prefix per VRF.",
+          effort: "low",
+          meta: "OCG Ch. 29. Exam: 1 conceptual question."
+        }
+      },
+      {
+        id: "1.12.e.4",
+        term: "VRF vs VLAN (L3 vs L2)",
+        weight: "med",
+        info: "<p>A common trap: students confuse VRF and VLAN. They solve related problems at different layers.</p><p><strong>VLAN (Layer 2):</strong> partitions a switch's broadcast domains. Two VLANs on the same switch are separate L2 segments — broadcast in one is not seen in the other. VLANs do not have routing tables; a router or SVI is what routes between VLANs. VLANs are the tool for isolating <strong>broadcast domains</strong>.</p><p><strong>VRF (Layer 3):</strong> partitions a router's routing tables. Two VRFs on the same router are separate L3 domains — routes in one are not visible in the other. VRFs do not affect switching; they only affect routing decisions. VRFs are the tool for isolating <strong>routing tables</strong>.</p><p>The two are complementary. A typical enterprise deployment uses <strong>both</strong>: VLANs isolate L2 traffic on switches, VRFs isolate L3 traffic on routers, and a trunk or subinterface between them maps each VLAN to a VRF. Example: VLAN 10 (Corp) → subinterface Gi0/0.10 → VRF Corp. VLAN 20 (Guest) → subinterface Gi0/0.20 → VRF Guest.</p><p>Exam memorable phrase: <em>'VLAN splits broadcast domains; VRF splits routing tables.'</em></p>",
+        visual: { type: "comparison", params: { left: { label: "VLAN (L2)", items: ["Switch feature", "Splits broadcast domains", "Frames stay within VLAN", "Needs a router to cross"] }, right: { label: "VRF (L3)", items: ["Router feature", "Splits routing tables", "Routes stay within VRF", "Needs leaking to cross"] } } },
+        hack: {
+          memory: "'VLAN = L2 fence, VRF = L3 fence.' Two different layers, two different fences.",
+          practice: "Flashcard: 'What is the main difference between VLANs and VRFs?' → VLAN = L2 broadcast domain, VRF = L3 routing table.",
+          effort: "low",
+          meta: "OCG Ch. 29. Exam: 1 question."
+        }
+      }
     ]
   },
 
@@ -3451,9 +3751,45 @@ window.subtopicContentD12 = {
       meta: "Jeremy's IT Lab Day 53 mentions VRF-Lite. Wendell Odom OCG Chapter 29 distinguishes VRF from VRF-Lite. The CCNA may have one question: 'what is VRF-Lite?' — answer: VRF without MPLS, used for traffic segmentation in campus networks. One flashcard covering the distinction is sufficient. This is a low-weight exam topic.",
     },
     micro: [
-      { id: "1.12.f.1", term: "VRF-Lite",                    def: "VRF without MPLS. Provides traffic segmentation in campus/enterprise networks without a provider core.", weight: "med" },
-      { id: "1.12.f.2", term: "VRF-Lite vs full VRF",        def: "Full VRF = with MPLS (service-provider backbone). VRF-Lite = hop-by-hop VRF on non-MPLS links.", weight: "low" },
-      { id: "1.12.f.3", term: "VRF-Lite use case",           def: "Campus department segmentation without deploying MPLS. Works over standard L3 links.", weight: "low" }
+      {
+        id: "1.12.f.1",
+        term: "VRF-Lite",
+        weight: "med",
+        info: "<p><strong>VRF-Lite</strong> is VRF <strong>without MPLS</strong>. You get all the benefits of multiple routing tables on one router — isolation, overlapping IPs, per-tenant policies — but traffic between VRF-aware routers travels over plain IP with 802.1Q VLAN tagging instead of MPLS labels.</p><p>Deployment pattern: every router in the path must be VRF-aware and must hold a routing table per VRF. Links between routers are usually <strong>802.1Q trunks</strong> with one subinterface per VRF, each subinterface tagged to a different VLAN. On each router, the subinterface for VLAN 10 maps to VRF Corp, VLAN 20 to VRF Guest, and so on. The VLAN is purely a transport identifier between VRF hops.</p><p>Typical use case: a campus or medium enterprise with a handful of L3 switches / routers that wants to separate Management, Production, and Guest without buying MPLS hardware, MPLS licensing, or training staff on MPLS. VRF-Lite is dramatically simpler — you only need to know standard IP routing plus the VRF commands.</p><p>The limitation: <strong>does not scale to SP-sized networks</strong>. Every hop must carry every VRF's routing table, and every link needs one VLAN per VRF. Full VRF + MPLS solves this by confining VRF awareness to the provider edge (PE) routers and pushing traffic through P (provider core) routers that only switch labels.</p>",
+        visual: { type: "layer-stack", params: { layers: ["Per-VRF routing tables", "802.1Q subinterfaces per VRF", "Standard IP routing (no MPLS)", "Physical trunk links"], highlight: 2 } },
+        hack: {
+          memory: "'VRF-Lite = VRF minus the MPLS tax.' Campus-grade multi-tenancy, no label switching required.",
+          practice: "Flashcard: 'What is VRF-Lite?' → VRF without MPLS; uses standard IP + VLANs between VRF-aware routers.",
+          effort: "low",
+          meta: "OCG Ch. 29. Exam: 1 recognition question."
+        }
+      },
+      {
+        id: "1.12.f.2",
+        term: "VRF-Lite vs full VRF",
+        weight: "low",
+        info: "<p>Know the two-sentence contrast:</p><p><strong>Full VRF (MPLS L3VPN):</strong> VRFs live on provider edge routers. The provider core (P routers) is VRF-unaware — it just label-switches. Scales to hundreds/thousands of routers because P routers do not need per-VRF state. This is how every service-provider L3VPN works.</p><p><strong>VRF-Lite:</strong> every router in the path must be VRF-aware and hold per-VRF routing tables. Inter-router transport is plain IP with 802.1Q VLAN tags, no MPLS. Works great for campus / small enterprise deployments (2-10 routers). Does not scale to SP backbones.</p><p>The performance and feature isolation is essentially the same at the edge — a VRF feels like its own router either way. The difference is purely about scalability and operational complexity of the transport network between VRF endpoints.</p><p>For the exam, you only need the distinction. You will not be asked to configure either.</p>",
+        visual: { type: "comparison", params: { left: { label: "Full VRF + MPLS", items: ["PE routers are VRF-aware", "P routers label-switch only", "Scales to SP backbones", "More complex"] }, right: { label: "VRF-Lite", items: ["Every hop is VRF-aware", "Transport = IP + 802.1Q", "Scales to campus / SMB", "Simpler"] } } },
+        hack: {
+          memory: "'Full VRF needs MPLS; Lite does not.' That's the only distinction the exam cares about.",
+          practice: "Flashcard: 'What is the key difference between VRF-Lite and full VRF?' → Full VRF rides MPLS; VRF-Lite rides plain IP + VLANs.",
+          effort: "low",
+          meta: "OCG Ch. 29. Very low exam weight."
+        }
+      },
+      {
+        id: "1.12.f.3",
+        term: "VRF-Lite use case",
+        weight: "low",
+        info: "<p>Typical VRF-Lite deployment: a campus with a core L3 switch or router and a few distribution L3 switches. The business needs three isolated routing domains — <strong>Management, Production, Guest</strong> — but does not want to buy MPLS.</p><p>The engineer creates three VRFs (MGMT, PROD, GUEST) on every VRF-aware device. Trunks between devices carry three tagged VLANs (e.g., VLAN 10, 20, 30), with subinterfaces on each router mapped to the matching VRF. Each VRF has its own default route and its own routing policy — GUEST might point only at an internet edge firewall, PROD at internal data center prefixes, MGMT at an out-of-band jump host.</p><p>User traffic never crosses between VRFs on the VRF-aware devices. If inter-VRF traffic is required (e.g., shared DNS or shared internet egress), it goes through a <strong>shared services VRF</strong> or through controlled <strong>route leaking</strong>, often enforced by a firewall.</p><p>You will almost certainly not configure this on the exam, but recognize the scenario: 'separate traffic types on shared routers without MPLS' → VRF-Lite.</p>",
+        visual: { type: "hierarchy", params: { root: "Campus core router", children: [{ name: "VRF-Lite MGMT", children: [{ name: "Mgmt VLAN" }] }, { name: "VRF-Lite PROD", children: [{ name: "Prod VLAN" }] }, { name: "VRF-Lite GUEST", children: [{ name: "Guest VLAN" }] }] } },
+        hack: {
+          memory: "'Three VRFs on a campus router = VRF-Lite.' No MPLS means it is Lite.",
+          practice: "Flashcard: 'Name a typical VRF-Lite deployment.' → Campus segmentation (Mgmt / Prod / Guest) without MPLS.",
+          effort: "low",
+          meta: "OCG Ch. 29. Exam: unlikely, at most 1 recognition question."
+        }
+      }
     ]
   },
 
@@ -3478,11 +3814,71 @@ window.subtopicContentD12 = {
       meta: "Jeremy's IT Lab Day 6 (Ethernet LAN Switching) is the primary resource for MAC learning. Wendell Odom OCG Chapters 5-7 cover switching fundamentals in detail. The exam tests the learning process directly: 'when does a switch learn a MAC?' (when a frame arrives — from the source MAC), 'what happens when a device moves?' (the entry is updated to the new port). Also know the MAC flooding attack concept — it is why port security limits MACs per port.",
     },
     micro: [
-      { id: "1.13.a.1", term: "MAC learning (source MAC)",   def: "Switch learns from the SOURCE MAC of arriving frames — NEVER the destination. Maps MAC → ingress port.", weight: "high" },
-      { id: "1.13.a.2", term: "Dynamic entry",               def: "Learned automatically. Default aging time 300s (5 min). Timer resets on each frame from that MAC.", weight: "high" },
-      { id: "1.13.a.3", term: "Device moves ports",          def: "Switch updates the MAC table entry to the new port on the next frame from that MAC.", weight: "high" },
-      { id: "1.13.a.4", term: "show mac address-table",      def: "View the MAC address table. Columns: Vlan, Mac Address, Type (DYNAMIC/STATIC), Ports.", weight: "high" },
-      { id: "1.13.a.5", term: "MAC flooding attack",         def: "Attacker fills MAC table. Switch defaults to flooding everything → attacker sniffs all traffic.", weight: "med" }
+      {
+        id: "1.13.a.1",
+        term: "MAC learning (source MAC)",
+        weight: "high",
+        info: "<p>A Layer 2 switch learns MAC addresses by examining the <strong>source MAC of every frame that arrives</strong> on an ingress port. It never learns from the destination MAC. This is the first rule to burn into memory: <em>learn from source, forward by destination.</em></p><p>When a frame enters port Gi0/1 with source MAC AAAA.AAAA.AAAA in VLAN 10, the switch records the triplet <code>(VLAN 10, AAAA.AAAA.AAAA, Gi0/1)</code> in the <strong>MAC address table (CAM table)</strong> and stamps it with the current time. If the same MAC later arrives on Gi0/1 again, the switch just resets its aging timer. If that MAC arrives on a different port (say Gi0/4) — the device moved — the switch updates the entry to Gi0/4 on the next frame.</p><p>Learning is a <strong>purely passive, automatic process</strong>. No configuration is required; the switch just watches traffic. This is also why a brand-new switch initially floods everything — it has an empty CAM table and has to learn the topology frame by frame.</p><p>The same rule applies per-VLAN. VLAN 10 and VLAN 20 are treated as separate switching domains; a MAC learned on one VLAN is not visible to the other. The CAM table key is <code>(VLAN, MAC)</code>, not just MAC.</p>",
+        visual: { type: "handshake", params: { leftLabel: "PC-A (AAAA)", rightLabel: "Switch", steps: ["Frame arrives Gi0/1, SRC=AAAA", "Switch records: VLAN+AAAA → Gi0/1", "Later frame arrives Gi0/1, SRC=AAAA", "Switch just resets aging timer"] } },
+        hack: {
+          memory: "'Learn from SOURCE, forward by DESTINATION.' If you get this one rule wrong, the whole L2 chapter falls apart.",
+          practice: "Packet Tracer: start with empty CAM table, ping PC-A → PC-B, immediately run <code>show mac address-table</code> and prove you can predict which MACs appear.",
+          effort: "medium",
+          meta: "Jeremy's IT Lab Day 6. OCG Ch. 5-7. Exam: guaranteed question."
+        }
+      },
+      {
+        id: "1.13.a.2",
+        term: "Dynamic entry",
+        weight: "high",
+        info: "<p>A <strong>dynamic</strong> MAC address-table entry is one the switch <strong>learned automatically</strong> from an arriving frame's source MAC. It lives in the table under the <strong>dynamic</strong> type. Dynamic entries are the overwhelming majority of what you see in real switch output.</p><p>Dynamic entries <strong>age out</strong>. The default <strong>aging time on Cisco switches is 300 seconds (5 minutes)</strong>. If the switch does not see any new frame with that source MAC for 300 seconds, the entry is removed. As soon as a new frame from that MAC arrives again, the timer <strong>resets back to 300 seconds</strong>. You can inspect the current aging time with <code>show mac address-table aging-time</code> and change it globally with <code>mac address-table aging-time [seconds]</code> (or per-VLAN with the vlan keyword).</p><p>Aging is the reason the CAM table stays clean when laptops move, unplug, or go to sleep. Without aging, the table would fill with stale entries forever.</p><p>Dynamic entries also <strong>disappear on <code>clear mac address-table dynamic</code></strong>, which is a common troubleshooting command — it forces the switch to relearn everything and is safe to run in production (the first frame after clearing just triggers a brief flood-then-learn cycle).</p>",
+        visual: { type: "state-machine", params: { states: ["Empty", "Learned (300s)", "Refreshed (300s)", "Aged out"], transitions: ["frame arrives", "another frame (timer reset)", "no frames for 300s"] } },
+        hack: {
+          memory: "'300 seconds = 5 minutes = silence = gone.' Pure memorization — this is an exam gimme.",
+          practice: "Flashcard: 'Default MAC aging time on Cisco switches?' → 300 seconds. Verify with <code>show mac address-table aging-time</code>.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 6. OCG Ch. 5-6. Exam: 300s is a direct fact question."
+        }
+      },
+      {
+        id: "1.13.a.3",
+        term: "Device moves ports",
+        weight: "high",
+        info: "<p>When a device <strong>moves from one port to another</strong> (user unplugs laptop and plugs into a different conference room jack, VM migrates to a different host, etc.), the switch learns about the move on the <strong>next frame</strong> that device sends.</p><p>Sequence: MAC AAAA is known on Gi0/1. The laptop unplugs and plugs into Gi0/5. The switch has no idea anything changed yet — its CAM entry still says AAAA → Gi0/1. The moment the laptop sends any frame from Gi0/5 (DHCP, ARP, TCP, anything), the switch sees source MAC AAAA on ingress port Gi0/5. It <strong>updates the entry</strong> from Gi0/1 to Gi0/5 and resets the timer.</p><p>Until that first frame arrives on Gi0/5, traffic for AAAA will continue to be forwarded toward Gi0/1 — where it goes nowhere useful. That is normally a tiny convergence blip (milliseconds) because devices almost always send something immediately on connect.</p><p>This is also how <strong>vMotion / live migration</strong> works at Layer 2: the destination host sends a <strong>reverse ARP or gratuitous ARP</strong> after migration, the physical switches see the moved VM's MAC on the new uplink, and their CAM tables update instantly.</p><p>Exam gotcha: the switch does not 'delete then re-learn' — it <strong>overwrites</strong> the existing entry with the new port. One atomic update.</p>",
+        visual: { type: "handshake", params: { leftLabel: "Laptop (AAAA)", rightLabel: "Switch CAM", steps: ["Old: AAAA → Gi0/1", "Laptop replugs into Gi0/5", "Frame arrives Gi0/5 SRC=AAAA", "CAM updated: AAAA → Gi0/5"] } },
+        hack: {
+          memory: "'Switch updates on the next frame.' It never deletes first — it just overwrites.",
+          practice: "Packet Tracer: move a PC from Gi0/1 to Gi0/5, then send a ping. Run <code>show mac address-table</code> and watch the port column flip.",
+          effort: "medium",
+          meta: "Jeremy's IT Lab Day 6. Exam: 1 scenario question about moving devices."
+        }
+      },
+      {
+        id: "1.13.a.4",
+        term: "show mac address-table",
+        weight: "high",
+        info: "<p><code>show mac address-table</code> is the flagship verification command for Layer 2 switching. Memorize the output columns and what they mean — the exam <strong>absolutely</strong> presents simlets where you must read this output and answer questions like 'which port is PC-A connected to?' or 'is this entry dynamic or static?'</p><p>Typical output columns: <strong>VLAN</strong>, <strong>MAC Address</strong> (Cisco format AAAA.BBBB.CCCC), <strong>Type</strong> (DYNAMIC, STATIC, or protocol-owned like CPU for entries used by the switch itself), and <strong>Ports</strong> (the egress interface for that MAC).</p><p>Useful variants: <code>show mac address-table dynamic</code> (only learned entries, hide static/CPU noise), <code>show mac address-table static</code> (only manually configured), <code>show mac address-table vlan 10</code> (filter by VLAN), <code>show mac address-table address AAAA.BBBB.CCCC</code> (find a specific MAC), <code>show mac address-table interface Gi0/1</code> (find all MACs behind a port), <code>show mac address-table count</code> (total entries, used for detecting CAM overflow attacks), <code>show mac address-table aging-time</code> (aging config).</p><p>Also handy: <code>clear mac address-table dynamic</code> flushes dynamic entries — safe in production, occasionally useful for troubleshooting unicast flooding caused by asymmetric routing.</p>",
+        visual: { type: "comparison", params: { left: { label: "Columns", items: ["Vlan", "Mac Address", "Type (DYNAMIC/STATIC)", "Ports"] }, right: { label: "Useful variants", items: ["dynamic", "static", "vlan <id>", "address <mac>", "interface <int>", "count", "aging-time"] } } },
+        hack: {
+          memory: "'Four columns: V-MAC-T-P.' Vlan, MAC, Type, Port. If you can name them, you can read any simlet.",
+          practice: "Run <code>show mac address-table</code> in Packet Tracer ten times across different labs until the output is second nature.",
+          effort: "medium",
+          meta: "Jeremy's IT Lab Day 6. OCG Ch. 5. Exam: nearly guaranteed simlet."
+        }
+      },
+      {
+        id: "1.13.a.5",
+        term: "MAC flooding attack",
+        weight: "med",
+        info: "<p>A <strong>MAC flooding attack</strong> (also called <strong>CAM overflow</strong>) exploits the finite size of the MAC address table. The attacker connects a rogue host and generates frames with <strong>thousands of different fake source MACs</strong> as fast as possible — tools like <code>macof</code> can send tens of thousands per second.</p><p>The switch dutifully learns each fake MAC and installs it into the CAM table. Once the table is full, new legitimate MACs cannot be learned. The switch then has no choice but to <strong>flood frames with unknown destination MACs out every port in the VLAN</strong> — turning the switch into a hub. The attacker, sitting on any port in that VLAN, now receives a copy of traffic destined for anyone else. Unencrypted protocols (HTTP, Telnet, FTP, old POP3/IMAP) are fully exposed.</p><p>The primary mitigation is <strong>port security</strong>, which limits the number of MAC addresses a switch will learn on an access port. If the limit is exceeded, port security can <strong>protect</strong> (silently drop excess MACs), <strong>restrict</strong> (drop + log + increment counter), or <strong>shutdown</strong> (err-disable the port entirely). Other layered defenses include DHCP snooping, Dynamic ARP Inspection, and private VLANs.</p><p>For the exam, know the attack name, the mechanism (overflow → unicast flooding), and the mitigation (port security).</p>",
+        visual: { type: "shield", params: { name: "Port security (mitigation)", protects: ["CAM table from overflow", "Against macof / cam-overflow", "Unknown-unicast sniffing", "Limits MACs per port"] } },
+        hack: {
+          memory: "'Fill the table → switch becomes a hub → attacker sniffs everything. Port security stops it.'",
+          practice: "Flashcard: 'What attack fills the MAC address table to force unicast flooding?' → MAC flooding / CAM overflow. 'Mitigation?' → Port security.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 6. Exam: 1 security-flavored question."
+        }
+      }
     ]
   },
 
@@ -3496,11 +3892,71 @@ window.subtopicContentD12 = {
       meta: "Jeremy's IT Lab Day 6 covers frame forwarding methods. Wendell Odom OCG Chapter 5-6 goes into depth on store-and-forward vs cut-through. The exam asks: 'which method checks for errors before forwarding?' (store-and-forward), 'which has the lowest latency?' (cut-through), 'what is the default on Cisco Catalyst switches?' (store-and-forward). Also know the three actions (forward/flood/filter) — a classic exam question is 'what does a switch do when it receives a frame with a known destination MAC?'",
     },
     micro: [
-      { id: "1.13.b.1", term: "Three switching actions (FFF)", def: "Forward (known unicast → send out specific port), Flood (unknown → all ports except source), Filter (same source and dest port → drop).", weight: "high" },
-      { id: "1.13.b.2", term: "Store-and-Forward",           def: "Receive entire frame, CRC check, then forward. Default on modern Catalyst. Drops corrupted frames.", weight: "high" },
-      { id: "1.13.b.3", term: "Cut-Through",                 def: "Read first 6 bytes (dest MAC) then forward immediately. Lowest latency. No CRC check.", weight: "high" },
-      { id: "1.13.b.4", term: "Fragment-Free",               def: "Read first 64 bytes then forward. Catches collision fragments. Middle ground between store-and-forward and cut-through.", weight: "med" },
-      { id: "1.13.b.5", term: "Known unicast forwarding",    def: "Destination MAC IS in the table → send frame ONLY out that one egress port. Most efficient case.", weight: "high" }
+      {
+        id: "1.13.b.1",
+        term: "Three switching actions (FFF)",
+        weight: "high",
+        info: "<p>Every frame a switch receives leads to <strong>exactly one of three actions</strong>: <strong>Forward, Flood, or Filter</strong>. The CCNA loves testing this. Burn it in.</p><p><strong>Forward:</strong> destination MAC is known AND on a <strong>different</strong> port than the ingress. Send the frame out only that one egress port. This is the efficient, happy-path case.</p><p><strong>Flood:</strong> destination MAC is <strong>unknown</strong> (unknown unicast), OR destination is broadcast (FFFF.FFFF.FFFF), OR destination is multicast (unless IGMP snooping filters it). Send the frame out <strong>every port in the same VLAN except the ingress port</strong>. Floods never leave the VLAN.</p><p><strong>Filter:</strong> destination MAC is known AND on the <strong>same</strong> port as ingress. The sender and receiver are on the same segment; the switch does not need to forward the frame back out the port it came from. <strong>Drop it</strong>. This is mostly relevant on hub-extended ports or shared media — on a full-duplex switched port the situation is rare but still a defined behavior.</p><p>Mnemonic: <strong>FFF</strong> = Forward, Flood, Filter. Every frame gets exactly one F.</p>",
+        visual: { type: "state-machine", params: { states: ["Frame arrives", "Known + different port → FORWARD", "Unknown/broadcast/multicast → FLOOD", "Known + same port → FILTER"], transitions: ["look up dest MAC", "lookup hit, diff port", "lookup miss or BUM", "lookup hit, same port"] } },
+        hack: {
+          memory: "'FFF = Forward / Flood / Filter.' Three and only three outcomes.",
+          practice: "For each kind of frame you can think of (unicast to PC-B, broadcast, unknown unicast, same-port dest), say the action out loud before you answer any exam question about switching.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 6. OCG Ch. 5. Exam: 1-2 direct questions."
+        }
+      },
+      {
+        id: "1.13.b.2",
+        term: "Store-and-Forward",
+        weight: "high",
+        info: "<p><strong>Store-and-Forward</strong> is the <strong>default</strong> switching method on modern Cisco Catalyst platforms. The switch receives the <strong>entire frame</strong> into a buffer, runs a <strong>CRC check on the Frame Check Sequence (FCS)</strong> field at the tail of the frame, and <strong>only forwards the frame if CRC passes</strong>. Corrupted frames are dropped on the spot.</p><p>Pro: the network never carries corrupted frames — upstream devices don't waste cycles on garbage. Con: higher latency than cut-through, because the switch must wait for the last bit of the frame before forwarding. At gigabit speeds this latency is microseconds, which is invisible to virtually every workload.</p><p>For almost every modern use case, store-and-forward is the right answer. The only times cut-through matters are ultra-low-latency environments (high-frequency trading, HPC InfiniBand-adjacent fabrics, a few specialized data-center Nexus platforms). Access-layer campus switches are always store-and-forward.</p><p>Exam triggers: 'performs CRC check' → store-and-forward. 'Default on Cisco Catalyst' → store-and-forward. 'Most reliable' → store-and-forward.</p>",
+        visual: { type: "packet-flow", params: { nodes: ["Ingress port", "Full frame buffered", "CRC checked", "Egress port (only if CRC OK)"], color: "#3b82f6" } },
+        hack: {
+          memory: "'Store-and-Forward = full frame + CRC check.' If the question says 'reliable' or 'default Catalyst,' pick this.",
+          practice: "Flashcard: 'Default switching method on Cisco Catalyst?' → Store-and-Forward.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 6. OCG Ch. 5. Exam: guaranteed 1 question."
+        }
+      },
+      {
+        id: "1.13.b.3",
+        term: "Cut-Through",
+        weight: "high",
+        info: "<p><strong>Cut-Through</strong> switching begins forwarding the frame as soon as the switch has read the <strong>first 6 bytes after the preamble — the destination MAC address</strong>. The rest of the frame is still being received while the beginning is already streaming out the egress port. This is the <strong>lowest-latency</strong> switching method possible.</p><p>The trade-off: the switch never sees the FCS before committing to forward, so it <strong>cannot detect CRC errors</strong>. Corrupted frames are forwarded exactly like clean ones, wasting upstream bandwidth and CPU. Runt frames (shorter than 64 bytes, caused by collisions) can also be forwarded. Some implementations add minimal safeguards (e.g., tracking CRC error rates and falling back to store-and-forward temporarily if errors spike — known as 'adaptive' cut-through), but classic cut-through has no error check.</p><p>Cut-through shines in <strong>ultra-low-latency environments</strong> — high-frequency trading exchanges, specialized HPC fabrics, and low-latency data-center switches (e.g., Cisco Nexus 3548). It is not the default on Catalyst campus switches and is not typical in enterprise access layers.</p><p>Exam triggers: 'lowest latency' → cut-through. 'Reads only the destination MAC' → cut-through. 'No error checking' → cut-through.</p>",
+        visual: { type: "packet-flow", params: { nodes: ["Ingress port", "Read 6 bytes (dest MAC)", "Egress port starts streaming", "Rest of frame passes through"], color: "#10b981" } },
+        hack: {
+          memory: "'Cut-Through cuts corners: reads 6 bytes, skips CRC, lowest latency.'",
+          practice: "Flashcard: 'Which switching method has the lowest latency?' → Cut-Through. 'Does it check for errors?' → No.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 6. OCG Ch. 5. Exam: comparison question."
+        }
+      },
+      {
+        id: "1.13.b.4",
+        term: "Fragment-Free",
+        weight: "med",
+        info: "<p><strong>Fragment-Free</strong> is a compromise between store-and-forward and cut-through. The switch reads the <strong>first 64 bytes</strong> of the frame before forwarding. Why 64? Because in half-duplex Ethernet, collisions corrupt only the first 64 bytes of a frame — any frame shorter than that is called a <strong>runt</strong> and is treated as garbage. Reading 64 bytes lets the switch detect and drop collision fragments while still being faster than waiting for the whole frame.</p><p>It adds no protection against CRC errors in the body or tail of the frame, so a frame that was corrupted in byte 200 would still be forwarded. For that reason it is strictly between cut-through (no checks) and store-and-forward (full CRC check) on the safety spectrum.</p><p>Fragment-Free is <strong>less common today</strong>. Modern switched networks are full-duplex, which eliminates collisions entirely, so the 'runt fragment' class of errors essentially disappears. You will still see fragment-free referenced in exam questions as the middle option between the other two.</p><p>Exam triggers: 'reads first 64 bytes' → fragment-free. 'Catches collision fragments' → fragment-free. 'Middle ground' → fragment-free.</p>",
+        visual: { type: "comparison", params: { left: { label: "Reads how much?", items: ["Store-and-Forward: whole frame", "Fragment-Free: first 64 bytes", "Cut-Through: first 6 bytes"] }, right: { label: "Error check?", items: ["Store-and-Forward: full CRC", "Fragment-Free: collision fragments only", "Cut-Through: none"] } } },
+        hack: {
+          memory: "'Fragment-Free reads 64.' 64 bytes = collision fragment threshold.",
+          practice: "Flashcard: 'Which switching method reads the first 64 bytes?' → Fragment-Free.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 6. OCG Ch. 5. Exam: 1 recognition question."
+        }
+      },
+      {
+        id: "1.13.b.5",
+        term: "Known unicast forwarding",
+        weight: "high",
+        info: "<p><strong>Known unicast forwarding</strong> is the efficient happy path of Layer 2 switching. A frame arrives, the switch looks up the destination MAC in its CAM table, finds <strong>exactly one entry</strong> in the matching VLAN pointing to a specific egress port, and forwards the frame <strong>only out that port</strong>. No other ports see the traffic. Bandwidth on all other ports is untouched.</p><p>This behavior is what makes a switch dramatically different from a hub. A hub repeats every bit out every port (pure flooding, always). A switch only floods when it has to — unknown unicast, broadcast, multicast — and forwards everything else point-to-point. In a well-learned network with stable hosts, the overwhelming majority of frames are known-unicast forwarding.</p><p>The first frame between any two hosts after a CAM flush (or after 300s of silence) will <strong>flood</strong> because the destination MAC is not yet known. The reply teaches the switch, and from then on subsequent frames are cleanly forwarded.</p><p>Exam triggers: 'destination MAC is in the CAM table' → forward. 'Send only out the specific port' → forward. The opposite of flooding.</p>",
+        visual: { type: "packet-flow", params: { nodes: ["PC-A (Gi0/1)", "Switch — MAC hit in CAM", "PC-B (Gi0/3 only)"], color: "#3b82f6" } },
+        hack: {
+          memory: "'Known = send to one. Unknown = flood to many.' Simple binary.",
+          practice: "Packet Tracer: after MACs are learned, ping PC-A → PC-B in simulation mode. Watch the frame go only to Gi0/3, not the other ports.",
+          effort: "medium",
+          meta: "Jeremy's IT Lab Day 6. OCG Ch. 5. Exam: 1 direct question."
+        }
+      }
     ]
   },
 
@@ -3514,11 +3970,71 @@ window.subtopicContentD12 = {
       meta: "Jeremy's IT Lab Day 6 demonstrates flooding vs forwarding in Packet Tracer simulation mode. Wendell Odom OCG Chapter 5 covers the flooding/forwarding/filtering trio. The exam loves asking 'what happens when a switch receives a frame with an unknown destination MAC?' — answer: flood to all ports in the VLAN except the ingress port. Also know: 'why do VLANs exist?' — to limit broadcast/flood domains. These concepts tie directly into VLAN design (Domain 2.1).",
     },
     micro: [
-      { id: "1.13.c.1", term: "Three flood triggers (UBM)",  def: "Unknown unicast, Broadcast, Multicast. These three frame types are flooded by default.", weight: "high" },
-      { id: "1.13.c.2", term: "Unknown unicast flooding",    def: "Destination MAC NOT in table → flood to all ports in VLAN except source. Resolves once MAC is learned.", weight: "high" },
-      { id: "1.13.c.3", term: "Broadcast (FFFF.FFFF.FFFF)",  def: "Always flooded to all ports in VLAN. ARP requests, DHCP Discover, NetBIOS.", weight: "high" },
-      { id: "1.13.c.4", term: "Multicast flooding",          def: "By default flooded like broadcast. IGMP snooping lets switch forward only to interested ports.", weight: "high" },
-      { id: "1.13.c.5", term: "VLAN = flood boundary",       def: "Floods never cross VLAN boundaries without a router. Primary reason VLANs exist.", weight: "high" }
+      {
+        id: "1.13.c.1",
+        term: "Three flood triggers (UBM)",
+        weight: "high",
+        info: "<p>A switch floods a frame (sends it out every port in the VLAN except the ingress port) in <strong>exactly three situations</strong>, remembered as <strong>UBM</strong>:</p><p><strong>U — Unknown unicast:</strong> destination MAC is not in the CAM table. The switch has no idea which port the destination is on, so it floods as a last resort.</p><p><strong>B — Broadcast:</strong> destination MAC is FFFF.FFFF.FFFF. By definition, the frame is for every device in the broadcast domain, so flooding is the correct behavior. ARP requests and DHCP Discover are the classic examples.</p><p><strong>M — Multicast:</strong> destination MAC starts with 01:00:5E for IPv4 multicast (or 33:33 for IPv6 multicast). By default switches treat these like broadcasts and flood them. With <strong>IGMP snooping</strong> enabled, the switch learns which ports have joined each multicast group and forwards multicast only to those ports.</p><p>Collectively these three frame types are called <strong>BUM traffic</strong> (Broadcast, Unknown unicast, Multicast) in network design lingo. BUM traffic is the reason VLANs and broadcast-domain segmentation exist — containing BUM is half of Layer 2 design.</p>",
+        visual: { type: "hierarchy", params: { root: "Flood triggers", children: [{ name: "Unknown unicast", children: [{ name: "Resolves once MAC learned" }] }, { name: "Broadcast (FFFF)", children: [{ name: "ARP, DHCP Discover" }] }, { name: "Multicast (01:00:5E)", children: [{ name: "IGMP snooping can filter" }] }] } },
+        hack: {
+          memory: "'UBM / BUM = Unknown, Broadcast, Multicast.' Only three things flood. Everything else forwards or filters.",
+          practice: "Flashcard: 'Name the three flood triggers.' → Unknown unicast, Broadcast, Multicast.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 6. Exam: 1 guaranteed question."
+        }
+      },
+      {
+        id: "1.13.c.2",
+        term: "Unknown unicast flooding",
+        weight: "high",
+        info: "<p><strong>Unknown unicast flooding</strong> happens when a frame arrives with a destination MAC that is <strong>not in the CAM table</strong>. The switch has no way to know which port to send it out, so it sends the frame out <strong>every port in the VLAN except the ingress port</strong>. Whichever device actually owns that MAC will reply, and the switch will learn the location from the reply's source MAC.</p><p>Unknown unicast flooding is <strong>transient</strong>. As soon as the destination responds, the CAM table learns the entry, and subsequent frames are cleanly forwarded (not flooded). In a healthy switched network, unknown unicast flooding should be rare — mostly just the first frame of a new conversation or after an aging-out or CAM flush.</p><p>Sustained unknown unicast flooding is a <strong>design red flag</strong>. Common causes: <strong>asymmetric routing</strong> (return traffic goes a different path so the switch never learns the server's MAC), <strong>CAM aging shorter than ARP aging</strong> on a router (MAC ages out but the router keeps sending frames at the stale MAC), or a <strong>MAC flooding attack</strong> overflowing the CAM table.</p><p>Troubleshooting step: <code>show mac address-table address [MAC]</code> — if the destination MAC is missing, you've confirmed unknown unicast is the cause of the flooding.</p>",
+        visual: { type: "packet-flow", params: { nodes: ["Ingress Gi0/1", "CAM miss (unknown dest)", "Flood Gi0/2, Gi0/3, Gi0/4 (all VLAN ports)"], color: "#ef4444" } },
+        hack: {
+          memory: "'No CAM entry = flood. Reply teaches the switch. Next frame = forward.'",
+          practice: "Packet Tracer: <code>clear mac address-table dynamic</code>, then ping PC-A → PC-B in simulation mode. First frame floods; second frame is cleanly forwarded.",
+          effort: "medium",
+          meta: "Jeremy's IT Lab Day 6. Exam: scenario question."
+        }
+      },
+      {
+        id: "1.13.c.3",
+        term: "Broadcast (FFFF.FFFF.FFFF)",
+        weight: "high",
+        info: "<p>A <strong>broadcast frame</strong> has a destination MAC of <strong>FFFF.FFFF.FFFF</strong> (all ones, 48 bits). It is addressed to every device in the broadcast domain, so the switch <strong>always floods</strong> it out every port in the ingress VLAN except the ingress port. No CAM lookup, no learning exception — just flood.</p><p>Canonical broadcast protocols: <strong>ARP requests</strong> ('who has 10.0.0.1? Tell 10.0.0.5'), <strong>DHCP Discover</strong> and <strong>DHCP Request</strong>, <strong>NetBIOS name resolution</strong>, <strong>Wake-on-LAN magic packets</strong>. These are all fundamental to LAN operation — you cannot eliminate broadcasts, only contain them.</p><p>The containment tool is the <strong>VLAN</strong>. A broadcast stops at the VLAN boundary. To talk to another VLAN, you need a router / SVI. This is a primary reason VLANs exist: <strong>limit the broadcast domain</strong>. A rule of thumb for legacy campus design was ~250-500 hosts per VLAN; modern designs with fewer broadcast-heavy protocols allow more.</p><p>Excessive broadcast traffic (a <strong>broadcast storm</strong>, often caused by a Layer 2 loop without STP) is one of the most disruptive failure modes on a LAN — every host ends up processing every broadcast frame and CPUs hit 100%. STP exists to prevent this.</p>",
+        visual: { type: "binary-breakdown", params: { value: "FF FF FF FF FF FF", parts: ["All 48 bits set to 1", "Destination = every station in the broadcast domain", "Switch floods in VLAN", "Stops at the VLAN boundary"] } },
+        hack: {
+          memory: "'FFFF.FFFF.FFFF = shout everywhere in this VLAN.' Broadcast stops only at a router.",
+          practice: "Flashcard: 'What MAC address indicates a broadcast frame?' → FFFF.FFFF.FFFF. 'How does a switch handle it?' → Flood to all ports in VLAN except ingress.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 6. OCG Ch. 5. Exam: guaranteed 1 question."
+        }
+      },
+      {
+        id: "1.13.c.4",
+        term: "Multicast flooding",
+        weight: "high",
+        info: "<p>By default a switch treats <strong>multicast frames</strong> almost exactly like broadcasts — it floods them out every port in the VLAN. IPv4 multicast MAC addresses start with <strong>01:00:5E</strong>, IPv6 multicast starts with <strong>33:33</strong>. Out of the box, a switch has no idea which hosts actually want that multicast group, so it sprays.</p><p><strong>IGMP snooping</strong> is the standard optimization. The switch listens to (snoops) IGMP messages between hosts and the multicast router. It learns which ports have joined which multicast groups and builds a per-group forwarding table. After IGMP snooping is enabled, multicast frames are delivered <strong>only</strong> to the ports with receivers — no more blanket flooding. On modern Cisco switches, IGMP snooping is <strong>enabled by default</strong>.</p><p>This matters in bandwidth-heavy multicast apps: IPTV, video surveillance, stock market feeds, cluster multicast (e.g., some Windows server clusters). Without IGMP snooping, a 100 Mbps multicast feed reaches every access port in the VLAN, burying workstations that never asked for it. With snooping, it only goes to the subscribers.</p><p>Exam triggers: 'default multicast behavior' → flood. 'Optimize multicast delivery' → IGMP snooping.</p>",
+        visual: { type: "comparison", params: { left: { label: "Without IGMP snooping", items: ["Multicast floods to all VLAN ports", "Waste bandwidth", "Receivers AND non-receivers see it"] }, right: { label: "With IGMP snooping", items: ["Snoops IGMP joins/leaves", "Forwards only to subscribed ports", "Non-subscribers see nothing"] } } },
+        hack: {
+          memory: "'Default multicast = flood. IGMP snooping = only to joiners.'",
+          practice: "Flashcard: 'How does a switch forward multicast by default?' → Flood. 'What feature targets multicast to only interested ports?' → IGMP snooping.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 6. OCG Ch. 5. Exam: 1 question."
+        }
+      },
+      {
+        id: "1.13.c.5",
+        term: "VLAN = flood boundary",
+        weight: "high",
+        info: "<p>The single most important consequence of all this flooding behavior: <strong>a VLAN is a broadcast domain, and floods never cross VLAN boundaries without a router</strong>. Switches treat each VLAN as a completely separate Layer 2 network. Broadcasts in VLAN 10 are only flooded to VLAN 10 ports. Unknown unicast in VLAN 20 is only flooded inside VLAN 20. Two devices in different VLANs cannot talk to each other at Layer 2 at all — they need a Layer 3 device (router, L3 switch with SVIs, firewall) to route between them.</p><p>This is exactly why VLANs were invented. Without VLANs, every switch port would be in one giant broadcast domain, and broadcasts from 10,000 hosts would cripple the network. By subdividing the switched network into VLANs, you shrink broadcast domains to manageable sizes (typically a few hundred hosts), confine BUM traffic, and create Layer 2 security boundaries.</p><p>Two linked concepts the exam pairs with this: the <strong>collision domain</strong> (every switch port is its own collision domain in full-duplex — totally separate concept) and the <strong>broadcast domain</strong> (= the VLAN, the topic here). Don't confuse them.</p><p>Exam phrasings: 'which technology limits the size of a broadcast domain?' → VLAN. 'What happens to a broadcast at a VLAN boundary?' → It stops (unless a router routes the corresponding Layer 3 traffic, but the broadcast frame itself does not cross).</p>",
+        visual: { type: "hierarchy", params: { root: "Switch (one physical device)", children: [{ name: "VLAN 10 = broadcast domain 1", children: [{ name: "BUM flooded inside VLAN 10 only" }] }, { name: "VLAN 20 = broadcast domain 2", children: [{ name: "BUM flooded inside VLAN 20 only" }] }] } },
+        hack: {
+          memory: "'VLAN = broadcast domain = flood boundary.' Three names for the same idea.",
+          practice: "Flashcard: 'Why do VLANs exist?' → To limit broadcast / flood domains. 'Do floods cross VLANs?' → No, not without a router (and routers don't forward Layer 2 broadcasts).",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 6 + Day 11 (VLANs). OCG Ch. 5 + 8. Exam: 1-2 questions tying this to VLAN design."
+        }
+      }
     ]
   },
 
@@ -3538,12 +4054,84 @@ window.subtopicContentD12 = {
       meta: "Jeremy's IT Lab Day 6 covers the MAC address table in depth. Wendell Odom OCG Chapter 5-6 details CAM table operations. The exam shows <code>show mac address-table</code> output in simlets and asks you to interpret it — 'which port is device X connected to?', 'how many devices are in VLAN 10?', 'is this entry static or dynamic?'. Know the default aging time (300 seconds) — it is a guaranteed test point. Also know that <code>clear mac address-table dynamic</code> is used during troubleshooting to force re-learning.",
     },
     micro: [
-      { id: "1.13.d.1", term: "MAC address table / CAM table", def: "Maps MAC → VLAN → port. Core data structure for L2 forwarding. CAM = Content Addressable Memory (hardware-fast lookup).", weight: "high" },
-      { id: "1.13.d.2", term: "Entry fields",                def: "VLAN ID, MAC Address, Type (DYNAMIC/STATIC), Port. MAC is VLAN-scoped.", weight: "high" },
-      { id: "1.13.d.3", term: "Default aging time",          def: "300 seconds (5 min). Dynamic entries expire if no frame from that MAC within the window.", weight: "high" },
-      { id: "1.13.d.4", term: "Static MAC entry",            def: "Manually configured. NEVER ages out. Command: 'mac address-table static [MAC] vlan [id] interface [port]'.", weight: "med" },
-      { id: "1.13.d.5", term: "clear mac address-table dynamic", def: "Flush all learned entries. Forces re-learning. Common troubleshooting step.", weight: "med" },
-      { id: "1.13.d.6", term: "show mac address-table count", def: "Displays number of entries vs table capacity. Useful for detecting MAC flood attacks.", weight: "low" }
+      {
+        id: "1.13.d.1",
+        term: "MAC address table / CAM table",
+        weight: "high",
+        info: "<p>The <strong>MAC address table</strong> (also called the <strong>CAM table</strong> for <strong>Content Addressable Memory</strong>) is the Layer 2 forwarding database inside every switch. It maps <strong>(VLAN, MAC address) → switch port</strong>. Every forwarding decision a switch makes starts with a lookup in this table.</p><p>The 'CAM' name refers to the specialized hardware that backs the table. A normal RAM lookup is 'give me address X, return value Y.' CAM is the opposite — 'give me value Y, return the address where it lives.' This lets the switch find the egress port for a given destination MAC in a <strong>single hardware cycle</strong> regardless of table size. That O(1) hardware lookup is why switches can forward at wire speed even with tens of thousands of MAC entries.</p><p>Without the CAM table, a switch would have to flood everything — it would be a fancy, slow hub. The CAM table is what <em>makes</em> a switch a switch.</p><p>Table size varies by platform: a Catalyst 2960 holds around 8,000 entries; a Catalyst 9300 holds 32k-64k; data-center platforms can hold hundreds of thousands. When full, new entries overwrite the oldest — which is the opening that the MAC flooding attack exploits.</p>",
+        visual: { type: "layer-stack", params: { layers: ["Forwarding decision (which port?)", "CAM table lookup: (VLAN, MAC) → Port", "Hardware ASIC (O(1) lookup)", "Frame ingress / egress"], highlight: 1 } },
+        hack: {
+          memory: "'CAM = Content Addressable Memory = hardware that turns a MAC into a port in one clock cycle.'",
+          practice: "Flashcard: 'What is the CAM table's lookup key?' → (VLAN, MAC). 'What does it return?' → Switch port.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 6. OCG Ch. 5-6. Exam: 1 recognition question."
+        }
+      },
+      {
+        id: "1.13.d.2",
+        term: "Entry fields",
+        weight: "high",
+        info: "<p>A MAC address-table entry has <strong>four visible fields</strong>:</p><p><strong>VLAN:</strong> the VLAN in which this MAC was learned. The same MAC seen in two different VLANs would produce two separate entries — MAC entries are scoped per-VLAN, not per-switch.</p><p><strong>MAC Address:</strong> the 48-bit MAC, shown in Cisco format as three groups of four hex digits (<code>AAAA.BBBB.CCCC</code>). Other vendors use other delimiters — IEEE standard is <code>aa:bb:cc:dd:ee:ff</code> — but be comfortable with the Cisco dotted format.</p><p><strong>Type:</strong> how the entry was populated. <strong>DYNAMIC</strong> = learned automatically from traffic, ages out at 300s. <strong>STATIC</strong> = manually configured, never ages out. You may also see internal types like <strong>CPU</strong> or <strong>self</strong> for the switch's own addresses.</p><p><strong>Ports:</strong> the egress interface(s) associated with the MAC. Typically a single interface, but trunks and EtherChannels show the logical port (Po1, etc.).</p><p>The <code>show mac address-table</code> output presents these as four columns. Being able to read this output cold is mandatory — simlets on the exam will test it.</p>",
+        visual: { type: "comparison", params: { left: { label: "Field", items: ["Vlan", "Mac Address", "Type", "Ports"] }, right: { label: "Meaning", items: ["VLAN where learned", "48-bit MAC (AAAA.BBBB.CCCC)", "DYNAMIC / STATIC / CPU", "Egress interface"] } } },
+        hack: {
+          memory: "'VLAN, MAC, Type, Port.' Read every show command from left to right in that order.",
+          practice: "In Packet Tracer, read 5 different <code>show mac address-table</code> outputs and name every column before the answer key is revealed.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 6. Exam: simlet certainty."
+        }
+      },
+      {
+        id: "1.13.d.3",
+        term: "Default aging time",
+        weight: "high",
+        info: "<p>The default <strong>aging time for dynamic MAC entries on Cisco switches is 300 seconds (5 minutes)</strong>. This is one of the most <strong>guaranteed exam facts</strong> in the entire CCNA blueprint — you will see it asked in some form almost every sitting.</p><p>Behavior: when the switch learns a MAC, it starts a 300-second countdown. Every new frame with that source MAC resets the countdown back to 300. If 300 seconds pass with no frame from that MAC, the entry is removed from the CAM table. The next frame destined for that MAC will be flooded as unknown unicast, and whichever device replies will re-teach the switch.</p><p>You can change the aging time globally:</p><pre><code>mac address-table aging-time 600</code></pre><p>…or per VLAN:</p><pre><code>mac address-table aging-time 600 vlan 10</code></pre><p>Valid range is typically 10-1,000,000 seconds, with <code>0</code> meaning 'never age' (dangerous — entries become permanent). Verify with <code>show mac address-table aging-time</code>.</p><p>Why 300s? It balances two competing needs: long enough to avoid thrashing for normal talkers, short enough to clean up departing devices quickly. It also meshes well with common ARP cache timers (which are typically in the same range on Cisco IOS), so CAM and ARP entries tend to age out together rather than creating the asymmetric flooding problem.</p>",
+        visual: { type: "state-machine", params: { states: ["Learned (timer = 300s)", "Refreshed (timer = 300s)", "Countdown ticking", "Removed at 0"], transitions: ["first frame", "each new frame (reset)", "no frames", "timer expires"] } },
+        hack: {
+          memory: "'300 seconds = 5 minutes = default MAC aging.' Memorize. Exam will reward you.",
+          practice: "Flashcard: 'Default MAC aging time on Cisco switches?' → 300 seconds. 'Command to change it to 600?' → <code>mac address-table aging-time 600</code>.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 6. OCG Ch. 5-6. Exam: nearly guaranteed."
+        }
+      },
+      {
+        id: "1.13.d.4",
+        term: "Static MAC entry",
+        weight: "med",
+        info: "<p>A <strong>static MAC entry</strong> is manually configured and <strong>never ages out</strong>. Command:</p><pre><code>mac address-table static AAAA.BBBB.CCCC vlan 10 interface Gi0/1</code></pre><p>Static entries take <strong>precedence over dynamic entries</strong>. If you statically bind MAC AAAA to Gi0/1, then the same MAC shows up on Gi0/5, the dynamic learning is ignored — traffic for AAAA continues to be forwarded out Gi0/1. This can be used for security (pin a critical server's MAC to a specific port), or to block a MAC by pointing it at a null interface / unused port.</p><p>Static entries survive reboots when saved to <code>running-config</code> → <code>startup-config</code> with <code>write memory</code> / <code>copy running-config startup-config</code>. They show up in <code>show mac address-table static</code> with Type = STATIC.</p><p>Static entries are a niche tool. The dominant use in real networks is <strong>port security</strong>, which can learn MACs dynamically and then 'stick' them into the config as static entries. For the exam, just know the concept, the command, and that static entries do not age.</p>",
+        visual: { type: "comparison", params: { left: { label: "Dynamic entry", items: ["Learned automatically", "Ages at 300s", "Overwritten by moves"] }, right: { label: "Static entry", items: ["Manually configured", "Never ages", "Takes precedence"] } } },
+        hack: {
+          memory: "'Static = sticky. Dynamic = disappears.' Static wins any conflict.",
+          practice: "Flashcard: 'Command to add a static MAC entry?' → <code>mac address-table static AAAA.BBBB.CCCC vlan 10 interface Gi0/1</code>.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 6. OCG Ch. 5-6. Exam: 1 config-recognition question."
+        }
+      },
+      {
+        id: "1.13.d.5",
+        term: "clear mac address-table dynamic",
+        weight: "med",
+        info: "<p><code>clear mac address-table dynamic</code> is the troubleshooting command that <strong>flushes all dynamic entries</strong> from the CAM table. Static entries are untouched. After clearing, the switch immediately starts relearning from the next frames that arrive — so the first frame for any destination floods briefly until the CAM is re-populated.</p><p>When to use it: debugging unicast flooding, verifying that a moved device is being re-learned, or confirming MAC table behavior in a lab. It is <strong>safe in production</strong> — the brief flooding burst lasts only until the first round of traffic re-teaches the switch, typically well under a second.</p><p>Useful variants:</p><ul><li><code>clear mac address-table dynamic</code> — all dynamic entries.</li><li><code>clear mac address-table dynamic vlan 10</code> — only VLAN 10 entries.</li><li><code>clear mac address-table dynamic interface Gi0/1</code> — only entries behind Gi0/1.</li><li><code>clear mac address-table dynamic address AAAA.BBBB.CCCC</code> — a specific MAC.</li></ul><p>You may encounter this command in lab-style exam questions where the scenario says 'after issuing <code>clear mac address-table dynamic</code>, what happens to the next frame?' → it gets flooded as unknown unicast.</p>",
+        visual: { type: "packet-flow", params: { nodes: ["clear mac address-table dynamic", "CAM empty (dynamic only)", "Next frame = unknown unicast", "Flood, then relearn"], color: "#f59e0b" } },
+        hack: {
+          memory: "'Clear wipes the whiteboard — first frame afterward floods and teaches.'",
+          practice: "Packet Tracer: after building a learned CAM, run <code>clear mac address-table dynamic</code> and watch a fresh ping flood-then-forward in simulation mode.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 6. Exam: 1 lab-style question."
+        }
+      },
+      {
+        id: "1.13.d.6",
+        term: "show mac address-table count",
+        weight: "low",
+        info: "<p><code>show mac address-table count</code> reports <strong>how many MAC entries are currently in the table</strong>, broken down by type (dynamic, static, total) and often per VLAN. It also shows the <strong>maximum capacity</strong> of the hardware on that platform.</p><p>Practical uses: (1) capacity planning — is your 8k-entry 2960 starting to fill up? (2) detecting <strong>MAC flooding attacks</strong> — a sudden spike to thousands of dynamic entries on a single port indicates someone running <code>macof</code>. (3) sanity check after a topology change — did the number of learned MACs return to what you expect?</p><p>Sample (conceptual) output:</p><pre><code>Total Mac Addresses for this criterion: 142\nDynamic Mac Addresses: 138\nStatic  Mac Addresses:   4</code></pre><p>Combined with <code>show mac address-table interface</code>, you can quickly identify which port is adding the most entries, which is exactly how you pinpoint a CAM overflow attacker.</p><p>Low exam weight — this is more a 'work skill' than an exam fact — but worth recognizing on simlets.</p>",
+        visual: { type: "comparison", params: { left: { label: "What it shows", items: ["Total MACs", "Dynamic count", "Static count", "Platform capacity"] }, right: { label: "Use cases", items: ["Capacity planning", "Detect CAM overflow", "Post-change sanity check"] } } },
+        hack: {
+          memory: "'count = how full is the CAM?' Spike = attack.",
+          practice: "Flashcard: 'Which show command gives the total number of MAC entries in the CAM table?' → <code>show mac address-table count</code>.",
+          effort: "low",
+          meta: "Jeremy's IT Lab Day 6. Exam: rare, but possible on a simlet."
+        }
+      }
     ]
   },
 
