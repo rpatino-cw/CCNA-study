@@ -13,7 +13,7 @@ const path = require('path');
 const ROOT = path.resolve(__dirname, '..');
 const PORT = 9847;
 
-const PAGES = [
+const STATIC_PAGES = [
   'packet-journey.html',
   'packet-race.html',
   'devices.html',
@@ -21,18 +21,15 @@ const PAGES = [
   'core.html',
   'quiz.html',
   'exam-sim.html',
-  'labs/index.html',
-  'labs/lab-pt0-getting-started.html',
-  'labs/lab-pt1-vlan.html',
-  'labs/lab-pt2-stp-etherchannel.html',
-  'labs/lab-pt3-inter-vlan-routing.html',
-  'labs/lab-pt4-ospf.html',
-  'labs/lab-pt5-ospf-break-fix.html',
-  'labs/lab-pt6-nat-dhcp.html',
-  'labs/lab-pt7-acl-portsec.html',
-  'labs/lab-pt8-json-api.html',
-  'labs/lab-pt9-capstone.html',
 ];
+
+// Auto-discover all lab HTML files so new labs get coverage automatically.
+const LAB_PAGES = fs.readdirSync(path.join(ROOT, 'labs'))
+  .filter((f) => f.endsWith('.html'))
+  .sort()
+  .map((f) => `labs/${f}`);
+
+const PAGES = [...STATIC_PAGES, ...LAB_PAGES];
 
 const MIME = {
   '.html': 'text/html', '.js': 'application/javascript', '.mjs': 'application/javascript',
