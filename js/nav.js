@@ -19,6 +19,7 @@
     { text: 'Roadmap', href: 'roadmap.html' },
     { text: 'Guide', href: 'guide.html' },
     { text: 'Learn', children: [
+      { text: 'Learn Hub', href: 'learn-hub.html' },
       { text: 'Learning Path', href: 'learning-path.html' },
       { text: 'Learn Visually', href: 'learn-visually.html' },
       { text: 'Packet Journey 3D', href: 'packet-journey.html' },
