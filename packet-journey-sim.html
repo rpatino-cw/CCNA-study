@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#0a0a0f">
+<link rel="icon" type="image/svg+xml" href="/CCNA-study/favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="css/shared.css">
+<title>Packet Journey Simulator — CCNA 200-301</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0a0f!important;color:#e2e8f0;font-family:'Space Grotesk','Segoe UI',system-ui,sans-serif;min-height:100vh}
+.beta-badge,.beta-badge *,#guidePill{display:none!important}
+.container,.container-wide{max-width:none;padding:0}
+.top-nav{position:fixed;top:0;left:0;right:0;z-index:200;background:rgba(10,10,15,.85)!important;backdrop-filter:blur(10px);border-bottom:1px solid rgba(255,255,255,.06)!important}
+.top-nav,.top-nav a,.top-nav button,.top-nav span{color:#9ca3b8!important}
+.top-nav a:hover,.top-nav button:hover{color:#fff!important}
+.nav-dropdown{background:rgba(10,10,15,.95)!important;border:1px solid rgba(255,255,255,.08)!important}
+.nav-dropdown a{color:#9ca3b8!important}
+.nav-dropdown a:hover{color:#fff!important;background:rgba(255,255,255,.06)!important}
+
+.page{max-width:1400px;margin:0 auto;padding:80px 24px 48px}
+.hero{text-align:center;margin-bottom:28px}
+.hero h1{font-size:1.9rem;font-weight:700;letter-spacing:-.02em;background:linear-gradient(135deg,#60a5fa,#a78bfa);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.hero p{color:#94a3b8;font-size:.92rem;max-width:720px;margin:8px auto 0}
+
+.glass{background:rgba(15,17,25,.7);border:1px solid rgba(255,255,255,.08);border-radius:14px}
+
+.controls{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:12px;padding:16px;margin-bottom:20px;align-items:end}
+.controls label{display:block;font-size:.7rem;color:#94a3b8;text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px;font-weight:600}
+.proto-row{display:flex;gap:6px;flex-wrap:wrap}
+.proto-btn{padding:8px 14px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);color:#cbd5e1;border-radius:8px;font-size:.78rem;font-weight:600;cursor:pointer;transition:all .15s;font-family:inherit}
+.proto-btn:hover{border-color:#60a5fa;color:#fff}
+.proto-btn.active{background:linear-gradient(135deg,rgba(96,165,250,.22),rgba(167,139,250,.22));border-color:#60a5fa;color:#fff;box-shadow:0 0 0 3px rgba(96,165,250,.12)}
+.slider{width:100%;accent-color:#60a5fa}
+.slider-val{font-family:'JetBrains Mono',monospace;font-size:.82rem;color:#fff;margin-top:2px}
+.btn{padding:10px 18px;border:none;border-radius:8px;font-size:.8rem;font-weight:700;cursor:pointer;font-family:inherit;letter-spacing:.03em;transition:all .15s}
+.btn-primary{background:linear-gradient(135deg,#60a5fa,#a78bfa);color:#fff}
+.btn-primary:hover{transform:translateY(-1px);box-shadow:0 4px 18px rgba(96,165,250,.3)}
+.btn-primary:disabled{opacity:.5;cursor:default;transform:none;box-shadow:none}
+.btn-ghost{background:rgba(255,255,255,.05);color:#cbd5e1;border:1px solid rgba(255,255,255,.1)}
+.btn-ghost:hover{color:#fff;border-color:#cbd5e1}
+
+.grid{display:grid;grid-template-columns:260px 1fr 320px;gap:16px}
+@media (max-width:1100px){.grid{grid-template-columns:1fr}.controls{grid-template-columns:1fr 1fr}}
+
+.layers{padding:16px}
+.layers h3{font-size:.72rem;text-transform:uppercase;letter-spacing:.1em;color:#94a3b8;margin-bottom:10px;font-weight:700}
+.layer{padding:10px 12px;margin-bottom:6px;border:1px solid rgba(255,255,255,.06);border-radius:8px;background:rgba(255,255,255,.02);transition:all .25s}
+.layer.tx{border-color:#60a5fa;background:linear-gradient(90deg,rgba(96,165,250,.18),rgba(96,165,250,.04));box-shadow:0 0 20px rgba(96,165,250,.15)}
+.layer.rx{border-color:#34d399;background:linear-gradient(90deg,rgba(52,211,153,.18),rgba(52,211,153,.04));box-shadow:0 0 20px rgba(52,211,153,.15)}
+.layer-num{font-family:'JetBrains Mono',monospace;font-size:.68rem;color:#64748b;margin-right:6px}
+.layer-name{font-size:.84rem;font-weight:600}
+.layer-pdu{font-family:'JetBrains Mono',monospace;font-size:.66rem;color:#94a3b8;margin-top:3px}
+
+.stage{padding:16px;min-height:460px;position:relative;overflow:hidden}
+.stage-title{font-size:.72rem;text-transform:uppercase;letter-spacing:.1em;color:#94a3b8;margin-bottom:10px;font-weight:700}
+.topology{position:relative;height:360px;margin:8px 0}
+.node{position:absolute;width:72px;text-align:center;transform:translate(-50%,-50%)}
+.node-icon{width:52px;height:52px;margin:0 auto;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.4rem;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.03);transition:box-shadow .2s}
+.node.active .node-icon{box-shadow:0 0 0 2px #fbbf24,0 0 24px rgba(251,191,36,.5)}
+.node-label{font-size:.68rem;color:#cbd5e1;margin-top:4px;font-weight:600}
+.node-sub{font-family:'JetBrains Mono',monospace;font-size:.58rem;color:#64748b}
+
+.link{position:absolute;height:2px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.2),transparent);transform-origin:left center;pointer-events:none}
+
+.packet{position:absolute;width:26px;height:16px;border-radius:4px;background:linear-gradient(135deg,#fbbf24,#f59e0b);box-shadow:0 0 12px rgba(251,191,36,.6);display:flex;align-items:center;justify-content:center;color:#000;font-size:.52rem;font-weight:800;font-family:'JetBrains Mono',monospace;transform:translate(-50%,-50%);opacity:0;pointer-events:none;transition:left .35s linear,top .35s linear,opacity .2s}
+.packet.visible{opacity:1}
+.packet.syn{background:linear-gradient(135deg,#60a5fa,#3b82f6);color:#fff}
+.packet.ack{background:linear-gradient(135deg,#34d399,#10b981);color:#fff}
+.packet.tls{background:linear-gradient(135deg,#a78bfa,#8b5cf6);color:#fff}
+.packet.dns{background:linear-gradient(135deg,#f472b6,#ec4899);color:#fff}
+.packet.dropped{background:#ef4444;color:#fff}
+
+.status-hud{padding:16px}
+.status-hud h3{font-size:.72rem;text-transform:uppercase;letter-spacing:.1em;color:#94a3b8;margin-bottom:10px;font-weight:700}
+.stat{display:flex;justify-content:space-between;padding:8px 10px;background:rgba(255,255,255,.03);border-radius:6px;margin-bottom:6px;font-size:.78rem}
+.stat-label{color:#94a3b8}
+.stat-val{font-family:'JetBrains Mono',monospace;color:#fff;font-weight:600}
+
+.log{padding:16px;margin-top:16px;max-height:220px;overflow-y:auto}
+.log h3{font-size:.72rem;text-transform:uppercase;letter-spacing:.1em;color:#94a3b8;margin-bottom:10px;font-weight:700}
+.log-entry{font-family:'JetBrains Mono',monospace;font-size:.72rem;line-height:1.45;padding:3px 0;color:#cbd5e1;border-left:2px solid transparent;padding-left:8px}
+.log-entry.evt{border-left-color:#60a5fa}
+.log-entry.warn{border-left-color:#f87171;color:#fca5a5}
+.log-entry.ok{border-left-color:#34d399;color:#6ee7b7}
+.log-ts{color:#64748b}
+
+.ed-note{padding:14px 16px;margin-top:16px;font-size:.82rem;color:#cbd5e1;line-height:1.55}
+.ed-note strong{color:#fbbf24}
+.ed-note code{font-family:'JetBrains Mono',monospace;font-size:.78rem;background:rgba(255,255,255,.05);padding:1px 6px;border-radius:4px;color:#fef3c7}
+
+.back{position:fixed;top:68px;left:16px;z-index:50}
+.back a{color:#94a3b8;text-decoration:none;font-size:.78rem;opacity:.8}
+.back a:hover{opacity:1;color:#e2e8f0}
+</style>
+</head>
+<body>
+<nav class="top-nav"></nav>
+<div class="back"><a href="core.html">&larr; Back to CORE</a></div>
+
+<div class="page">
+  <div class="hero">
+    <h1>Packet Journey Simulator</h1>
+    <p>Watch a packet encapsulate down the OSI stack, traverse routers and firewalls, and decapsulate on the other side. Pick a protocol, set the latency, press Play.</p>
+  </div>
+
+  <div class="glass controls">
+    <div>
+      <label>Protocol</label>
+      <div class="proto-row" id="protoRow"></div>
+    </div>
+    <div>
+      <label>Latency <span id="latVal" class="slider-val">80ms</span></label>
+      <input type="range" id="latency" class="slider" min="10" max="500" step="10" value="80">
+    </div>
+    <div>
+      <label>Speed <span id="spdVal" class="slider-val">1.0×</span></label>
+      <input type="range" id="speed" class="slider" min="5" max="30" step="1" value="10">
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn btn-primary" id="playBtn">Play</button>
+      <button class="btn btn-ghost" id="resetBtn">Reset</button>
+    </div>
+  </div>
+
+  <div class="grid">
+    <div>
+      <div class="glass layers" id="layers">
+        <h3>OSI Stack (Source)</h3>
+      </div>
+      <div class="glass layers" id="layersRx" style="margin-top:12px">
+        <h3>OSI Stack (Destination)</h3>
+      </div>
+    </div>
+
+    <div class="glass stage">
+      <div class="stage-title">Network Path</div>
+      <div class="topology" id="topo"></div>
+      <div class="ed-note" id="edNote">Select a protocol to see what it teaches.</div>
+    </div>
+
+    <div>
+      <div class="glass status-hud">
+        <h3>Live Stats</h3>
+        <div class="stat"><span class="stat-label">Protocol</span><span class="stat-val" id="sProto">—</span></div>
+        <div class="stat"><span class="stat-label">Packets sent</span><span class="stat-val" id="sSent">0</span></div>
+        <div class="stat"><span class="stat-label">Packets received</span><span class="stat-val" id="sRecv">0</span></div>
+        <div class="stat"><span class="stat-label">Dropped</span><span class="stat-val" id="sDrop">0</span></div>
+        <div class="stat"><span class="stat-label">Round-trip time</span><span class="stat-val" id="sRtt">— ms</span></div>
+        <div class="stat"><span class="stat-label">Throughput (est)</span><span class="stat-val" id="sTput">— kbps</span></div>
+      </div>
+      <div class="glass log" id="log">
+        <h3>Event Log</h3>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script defer src="js/nav.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+
+const LAYERS = [
+  {n:7, name:'Application',  pdu:'Data',    keys:['HTTP','HTTPS','DNS','UDP','TCP-HS']},
+  {n:6, name:'Presentation', pdu:'Data',    keys:['HTTPS','TLS']},
+  {n:5, name:'Session',      pdu:'Data',    keys:['HTTPS','TCP-HS']},
+  {n:4, name:'Transport',    pdu:'Segment (TCP) / Datagram (UDP)', keys:['ALL']},
+  {n:3, name:'Network',      pdu:'Packet — IP header',  keys:['ALL']},
+  {n:2, name:'Data Link',    pdu:'Frame — Ethernet header/trailer', keys:['ALL']},
+  {n:1, name:'Physical',     pdu:'Bits on the wire', keys:['ALL']}
+];
+
+const PROTOCOLS = {
+  'HTTP':   {label:'HTTP (plain)',   cls:'', teaches:'3-way handshake, request/response, no encryption. Full encapsulation at every layer.'},
+  'HTTPS':  {label:'HTTPS + TLS',    cls:'tls',teaches:'TCP handshake + TLS 1.3 key exchange before any HTTP data is sent. Presentation layer does the encryption.'},
+  'DNS':    {label:'DNS resolve',    cls:'dns',teaches:'Recursive lookup: client → resolver → root → TLD → authoritative. UDP/53 by default, short and stateless.'},
+  'TCP-HS': {label:'TCP handshake',  cls:'syn',teaches:'SYN → SYN-ACK → ACK. Each device updates its TCB. Lost ACK? Retransmit with exponential backoff.'},
+  'UDP':    {label:'UDP best-effort',cls:'',   teaches:'No handshake, no retransmit. If the network drops it, the app has to notice. Great for DNS, VoIP, gaming.'}
+};
+
+const NODES = [
+  {id:'src',  x:8,  y:50, icon:'💻', label:'Client',   sub:'10.0.0.10'},
+  {id:'r1',   x:28, y:28, icon:'🔷', label:'R1',       sub:'ISP edge'},
+  {id:'fw',   x:50, y:50, icon:'🛡️', label:'Firewall', sub:'stateful'},
+  {id:'r2',   x:72, y:28, icon:'🔷', label:'R2',       sub:'transit'},
+  {id:'dst',  x:92, y:50, icon:'🖥️', label:'Server',   sub:'93.184.216.34'}
+];
+const PATH = ['src','r1','fw','r2','dst'];
+
+let current = 'HTTP';
+let latency = 80;
+let speed = 1.0;
+let running = false;
+let stats = {sent:0,recv:0,drop:0,rtt:null,tput:null,startT:0,bytes:0};
+let anim = {timers:[], packetEl:null, seq:0};
+
+const $ = id => document.getElementById(id);
+
+// Build protocol buttons
+const protoRow = $('protoRow');
+Object.keys(PROTOCOLS).forEach(function(k){
+  const b = document.createElement('button');
+  b.className = 'proto-btn' + (k===current?' active':'');
+  b.textContent = PROTOCOLS[k].label;
+  b.dataset.proto = k;
+  b.addEventListener('click', function(){ selectProto(k); });
+  protoRow.appendChild(b);
+});
+
+// Build OSI stacks
+function renderLayers(containerId, mode){
+  const c = $(containerId);
+  LAYERS.forEach(function(L){
+    const d = document.createElement('div');
+    d.className = 'layer';
+    d.dataset.layer = mode + '-' + L.n;
+    d.innerHTML = '<span class="layer-num">L'+L.n+'</span><span class="layer-name">'+L.name+'</span><div class="layer-pdu">'+L.pdu+'</div>';
+    c.appendChild(d);
+  });
+}
+renderLayers('layers','tx');
+renderLayers('layersRx','rx');
+
+// Build topology
+const topo = $('topo');
+function renderTopo(){
+  topo.innerHTML = '';
+  // Links
+  for (let i=0; i<PATH.length-1; i++){
+    const a = NODES.find(n=>n.id===PATH[i]);
+    const b = NODES.find(n=>n.id===PATH[i+1]);
+    const link = document.createElement('div');
+    link.className = 'link';
+    const rect = topo.getBoundingClientRect();
+    const ax = a.x/100*rect.width, ay = a.y/100*rect.height;
+    const bx = b.x/100*rect.width, by = b.y/100*rect.height;
+    const dx=bx-ax, dy=by-ay;
+    const len = Math.hypot(dx,dy);
+    const ang = Math.atan2(dy,dx)*180/Math.PI;
+    link.style.left = ax+'px';
+    link.style.top = ay+'px';
+    link.style.width = len+'px';
+    link.style.transform = 'rotate('+ang+'deg)';
+    topo.appendChild(link);
+  }
+  // Nodes
+  NODES.forEach(function(n){
+    const el = document.createElement('div');
+    el.className = 'node';
+    el.id = 'n-'+n.id;
+    el.style.left = n.x+'%';
+    el.style.top = n.y+'%';
+    el.innerHTML = '<div class="node-icon">'+n.icon+'</div><div class="node-label">'+n.label+'</div><div class="node-sub">'+n.sub+'</div>';
+    topo.appendChild(el);
+  });
+  // Packet element (reused)
+  anim.packetEl = document.createElement('div');
+  anim.packetEl.className = 'packet';
+  topo.appendChild(anim.packetEl);
+}
+renderTopo();
+window.addEventListener('resize', renderTopo);
+
+// Controls
+$('latency').addEventListener('input', function(e){ latency=+e.target.value; $('latVal').textContent=latency+'ms'; });
+$('speed').addEventListener('input', function(e){ speed = +e.target.value/10; $('spdVal').textContent=speed.toFixed(1)+'×'; });
+$('playBtn').addEventListener('click', function(){ if(!running) play(); });
+$('resetBtn').addEventListener('click', reset);
+
+function selectProto(k){
+  if(running) return;
+  current = k;
+  document.querySelectorAll('.proto-btn').forEach(function(b){
+    b.classList.toggle('active', b.dataset.proto===k);
+  });
+  $('sProto').textContent = PROTOCOLS[k].label;
+  $('edNote').innerHTML = '<strong>'+PROTOCOLS[k].label+':</strong> '+PROTOCOLS[k].teaches;
+  reset();
+}
+
+function log(msg, kind){
+  const row = document.createElement('div');
+  row.className = 'log-entry ' + (kind||'evt');
+  const t = ((performance.now()-anim.t0)/1000).toFixed(2);
+  row.innerHTML = '<span class="log-ts">['+t+'s]</span> '+msg;
+  $('log').appendChild(row);
+  $('log').scrollTop = $('log').scrollHeight;
+}
+
+function setLayer(mode, n, on){
+  const d = document.querySelector('[data-layer="'+mode+'-'+n+'"]');
+  if(!d) return;
+  d.classList.toggle(mode, !!on);
+}
+
+function clearAllLayers(){
+  document.querySelectorAll('.layer').forEach(function(d){ d.classList.remove('tx','rx'); });
+}
+
+function wait(ms){
+  return new Promise(function(resolve){
+    const t = setTimeout(resolve, ms/speed);
+    anim.timers.push(t);
+  });
+}
+
+function hopDelayMs(){
+  // Each hop adds a fraction of configured latency
+  return Math.max(20, latency/2);
+}
+
+async function encap(mode){
+  // 7 → 1
+  for (let i=0; i<LAYERS.length; i++){
+    const L = LAYERS[i];
+    if (!applies(L, current)) continue;
+    setLayer(mode, L.n, true);
+    log((mode==='tx'?'↓ encapsulate':'↑ decapsulate')+' L'+L.n+' — '+L.name+' ('+L.pdu+')');
+    await wait(120);
+  }
+}
+
+async function decap(mode){
+  // 1 → 7
+  for (let i=LAYERS.length-1; i>=0; i--){
+    const L = LAYERS[i];
+    if (!applies(L, current)) continue;
+    setLayer(mode, L.n, true);
+    log('↑ decapsulate L'+L.n+' — '+L.name+' ('+L.pdu+')');
+    await wait(120);
+  }
+}
+
+function applies(L, proto){
+  return L.keys.indexOf('ALL')>=0 || L.keys.indexOf(proto)>=0;
+}
+
+async function sendHop(fromId, toId, flavor, label){
+  const from = NODES.find(n=>n.id===fromId);
+  const to = NODES.find(n=>n.id===toId);
+  const rect = topo.getBoundingClientRect();
+  const p = anim.packetEl;
+  p.className = 'packet ' + (flavor||'') + ' visible';
+  p.textContent = label || 'PKT';
+  p.style.left = from.x+'%';
+  p.style.top = from.y+'%';
+  // Force reflow
+  void p.offsetWidth;
+  p.style.left = to.x+'%';
+  p.style.top = to.y+'%';
+  document.getElementById('n-'+fromId).classList.add('active');
+  await wait(hopDelayMs());
+  document.getElementById('n-'+fromId).classList.remove('active');
+  document.getElementById('n-'+toId).classList.add('active');
+}
+
+async function traversePath(flavor, label, reverse){
+  const path = reverse ? PATH.slice().reverse() : PATH.slice();
+  for (let i=0; i<path.length-1; i++){
+    await sendHop(path[i], path[i+1], flavor, label);
+  }
+  anim.packetEl.classList.remove('visible');
+  document.querySelectorAll('.node').forEach(function(n){ n.classList.remove('active'); });
+}
+
+async function runHTTP(){
+  log('Starting HTTP GET /', 'evt');
+  await encap('tx');
+  await traversePath('', 'GET', false);
+  stats.sent++; updStats();
+  await decap('rx');
+  await wait(80);
+  clearAllLayers();
+  log('Server processes request → 200 OK', 'ok');
+  await encap('tx');
+  await traversePath('ack', '200', true);
+  stats.recv++; stats.bytes += 1500; updStats();
+  await decap('rx');
+  finalize();
+}
+
+async function runHTTPS(){
+  log('TCP 3-way handshake first', 'evt');
+  await tcpHandshake();
+  log('Begin TLS 1.3 handshake', 'evt');
+  // ClientHello
+  await traversePath('tls','CH',false); stats.sent++;
+  // ServerHello + cert + finished
+  await traversePath('tls','SH',true);  stats.recv++;
+  // Client Finished
+  await traversePath('tls','FIN',false);stats.sent++;
+  log('TLS session established, keys derived', 'ok');
+  updStats();
+  log('Send encrypted GET /', 'evt');
+  await encap('tx');
+  await traversePath('tls','GET',false); stats.sent++;
+  await decap('rx');
+  await wait(60);
+  clearAllLayers();
+  await encap('tx');
+  await traversePath('tls','200',true); stats.recv++; stats.bytes+=1500;
+  await decap('rx');
+  updStats();
+  finalize();
+}
+
+async function runDNS(){
+  log('dig example.com — UDP/53', 'evt');
+  await encap('tx');
+  await traversePath('dns','Q',false); stats.sent++;
+  log('Query hits recursive resolver → root → TLD → authoritative (collapsed)', 'evt');
+  await wait(200);
+  await traversePath('dns','A',true); stats.recv++; stats.bytes+=64;
+  await decap('rx');
+  log('Answer: A 93.184.216.34', 'ok');
+  updStats();
+  finalize();
+}
+
+async function tcpHandshake(){
+  await sendHop('src','r1','syn','SYN'); await sendHop('r1','fw','syn','SYN');
+  await sendHop('fw','r2','syn','SYN'); await sendHop('r2','dst','syn','SYN');
+  stats.sent++; updStats();
+  log('SYN delivered', 'evt');
+  await sendHop('dst','r2','syn','S/A'); await sendHop('r2','fw','syn','S/A');
+  await sendHop('fw','r1','syn','S/A'); await sendHop('r1','src','syn','S/A');
+  stats.recv++; updStats();
+  log('SYN-ACK received', 'evt');
+  await traversePath('ack','ACK',false); stats.sent++; updStats();
+  log('Handshake complete — socket ESTABLISHED', 'ok');
+  anim.packetEl.classList.remove('visible');
+}
+
+async function runTCPHS(){
+  await encap('tx');
+  await tcpHandshake();
+  await decap('rx');
+  finalize();
+}
+
+async function runUDP(){
+  log('UDP datagram — no handshake', 'evt');
+  await encap('tx');
+  const lossRoll = Math.random();
+  const lose = lossRoll < 0.18; // ~18% drop to demonstrate
+  if (lose){
+    log('Firewall drops datagram (demo packet loss)', 'warn');
+    await sendHop('src','r1','','UDP'); await sendHop('r1','fw','','UDP');
+    anim.packetEl.className='packet dropped visible';
+    await wait(200);
+    anim.packetEl.classList.remove('visible');
+    stats.sent++; stats.drop++; updStats();
+    log('No retransmit — app must handle it', 'warn');
+  } else {
+    await traversePath('','UDP',false); stats.sent++; stats.bytes+=512;
+    await decap('rx');
+    log('Delivered, no ACK will be sent', 'ok');
+    updStats();
+  }
+  finalize();
+}
+
+function updStats(){
+  $('sSent').textContent = stats.sent;
+  $('sRecv').textContent = stats.recv;
+  $('sDrop').textContent = stats.drop;
+  if (stats.startT && stats.recv>0){
+    const elapsed = (performance.now()-stats.startT)/1000;
+    stats.rtt = Math.round(elapsed*1000/Math.max(1,stats.recv));
+    $('sRtt').textContent = stats.rtt+' ms';
+    if (stats.bytes>0){
+      stats.tput = Math.round((stats.bytes*8/1000)/Math.max(0.01,elapsed));
+      $('sTput').textContent = stats.tput+' kbps';
+    }
+  }
+}
+
+function finalize(){
+  running = false;
+  $('playBtn').disabled = false;
+  $('playBtn').textContent = 'Play again';
+  log('— run complete —', 'ok');
+}
+
+function reset(){
+  anim.timers.forEach(clearTimeout);
+  anim.timers = [];
+  anim.seq = 0;
+  stats = {sent:0,recv:0,drop:0,rtt:null,tput:null,startT:0,bytes:0};
+  clearAllLayers();
+  $('log').innerHTML = '<h3>Event Log</h3>';
+  $('sSent').textContent = 0; $('sRecv').textContent=0; $('sDrop').textContent=0;
+  $('sRtt').textContent = '— ms'; $('sTput').textContent='— kbps';
+  $('sProto').textContent = PROTOCOLS[current].label;
+  $('playBtn').disabled = false;
+  $('playBtn').textContent = 'Play';
+  running = false;
+  anim.packetEl.classList.remove('visible');
+}
+
+function play(){
+  reset();
+  running = true;
+  anim.t0 = performance.now();
+  stats.startT = performance.now();
+  $('playBtn').disabled = true;
+  $('playBtn').textContent = 'Running…';
+  $('sProto').textContent = PROTOCOLS[current].label;
+  const runner = {
+    'HTTP':runHTTP, 'HTTPS':runHTTPS, 'DNS':runDNS, 'TCP-HS':runTCPHS, 'UDP':runUDP
+  }[current];
+  runner().catch(function(e){ console.error(e); finalize(); });
+}
+
+// Init
+selectProto('HTTP');
+
+});
+</script>
+</body>
+</html>

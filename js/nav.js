@@ -34,6 +34,9 @@
       { text: 'OSPF Mastery', href: 'ospf-mastery.html' },
       { text: 'Path Selection', href: 'path-selection.html' },
       { text: 'Packet Theater', href: 'packet-theater.html' },
+      { text: 'Packet Journey Sim', href: 'packet-journey-sim.html' },
+      { text: 'Packet Switching Sim', href: 'packet-switching-sim.html' },
+      { text: 'ARP Explainer', href: 'arp-explainer.html' },
       { text: 'Wireshark', href: 'wireshark.html' },
     ]},
     { text: 'Practice', children: [
@@ -246,7 +249,7 @@
   // Beta badge + bug report
   var beta = document.createElement('div');
   beta.className = 'beta-badge';
-  beta.innerHTML = '<a href="' + fixHref('changelog.html') + '" class="beta-tag" style="text-decoration:none">ALPHA v4.48.3</a><a href="' + fixHref('bug-report.html') + '" class="beta-bug">Report Bug</a>';
+  beta.innerHTML = '<a href="' + fixHref('changelog.html') + '" class="beta-tag" style="text-decoration:none">ALPHA v4.50.0</a><a href="' + fixHref('bug-report.html') + '" class="beta-bug">Report Bug</a>';
   document.body.appendChild(beta);
 
   // Auto-load backup script on every page
