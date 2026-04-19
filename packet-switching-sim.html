@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#0a0a0f">
+<link rel="icon" type="image/svg+xml" href="/CCNA-study/favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="css/shared.css">
+<title>Packet Switching Simulator — CCNA 200-301</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0a0f!important;color:#e2e8f0;font-family:'Space Grotesk','Segoe UI',system-ui,sans-serif;min-height:100vh}
+.beta-badge,.beta-badge *,#guidePill{display:none!important}
+.container,.container-wide{max-width:none;padding:0}
+.top-nav{position:fixed;top:0;left:0;right:0;z-index:200;background:rgba(10,10,15,.85)!important;backdrop-filter:blur(10px);border-bottom:1px solid rgba(255,255,255,.06)!important}
+.top-nav,.top-nav a,.top-nav button,.top-nav span{color:#9ca3b8!important}
+.top-nav a:hover,.top-nav button:hover{color:#fff!important}
+.nav-dropdown{background:rgba(10,10,15,.95)!important;border:1px solid rgba(255,255,255,.08)!important}
+.nav-dropdown a{color:#9ca3b8!important}
+.nav-dropdown a:hover{color:#fff!important;background:rgba(255,255,255,.06)!important}
+
+.page{max-width:1400px;margin:0 auto;padding:80px 24px 48px}
+.hero{text-align:center;margin-bottom:24px}
+.hero h1{font-size:1.9rem;font-weight:700;letter-spacing:-.02em;background:linear-gradient(135deg,#34d399,#60a5fa);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.hero p{color:#94a3b8;font-size:.92rem;max-width:760px;margin:8px auto 0}
+.back{position:fixed;top:68px;left:16px;z-index:50}
+.back a{color:#94a3b8;text-decoration:none;font-size:.78rem;opacity:.8}
+.back a:hover{opacity:1;color:#e2e8f0}
+
+.glass{background:rgba(15,17,25,.7);border:1px solid rgba(255,255,255,.08);border-radius:14px}
+
+.mode-tabs{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}
+.mode-tab{flex:1;min-width:180px;padding:14px 16px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:12px;cursor:pointer;transition:all .15s;text-align:left}
+.mode-tab:hover{border-color:rgba(96,165,250,.4)}
+.mode-tab.active{border-color:#34d399;background:linear-gradient(135deg,rgba(52,211,153,.14),rgba(96,165,250,.08));box-shadow:0 0 0 3px rgba(52,211,153,.1)}
+.mode-tab h4{font-size:.95rem;font-weight:700;color:#fff;margin-bottom:4px}
+.mode-tab p{font-size:.72rem;color:#94a3b8;line-height:1.4}
+
+.controls{display:grid;grid-template-columns:repeat(5,1fr) auto;gap:14px;padding:16px;margin-bottom:20px;align-items:end}
+@media (max-width:1100px){.controls{grid-template-columns:1fr 1fr 1fr}}
+.controls label{display:block;font-size:.68rem;color:#94a3b8;text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px;font-weight:600}
+.slider{width:100%;accent-color:#34d399}
+.slider-val{font-family:'JetBrains Mono',monospace;font-size:.78rem;color:#fff}
+select{width:100%;padding:7px 10px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);color:#e2e8f0;border-radius:8px;font-family:inherit;font-size:.82rem}
+.btn{padding:10px 20px;border:none;border-radius:8px;font-size:.8rem;font-weight:700;cursor:pointer;font-family:inherit;letter-spacing:.03em;transition:all .15s;white-space:nowrap}
+.btn-primary{background:linear-gradient(135deg,#34d399,#10b981);color:#fff}
+.btn-primary:hover{transform:translateY(-1px);box-shadow:0 4px 18px rgba(52,211,153,.3)}
+.btn-primary:disabled{opacity:.5;cursor:default;transform:none;box-shadow:none}
+.btn-ghost{background:rgba(255,255,255,.05);color:#cbd5e1;border:1px solid rgba(255,255,255,.1)}
+.btn-ghost:hover{color:#fff;border-color:#cbd5e1}
+
+.grid{display:grid;grid-template-columns:1fr 340px;gap:16px}
+@media (max-width:1100px){.grid{grid-template-columns:1fr}}
+
+.stage{padding:18px;min-height:500px;position:relative;overflow:hidden}
+.stage-title{font-size:.72rem;text-transform:uppercase;letter-spacing:.1em;color:#94a3b8;margin-bottom:10px;font-weight:700}
+.topo{position:relative;height:440px}
+
+.router{position:absolute;width:88px;text-align:center;transform:translate(-50%,-50%)}
+.router-box{width:64px;height:64px;margin:0 auto;border-radius:12px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);display:flex;align-items:center;justify-content:center;font-size:1.5rem;position:relative;transition:box-shadow .2s}
+.router.src .router-box{border-color:#60a5fa;box-shadow:0 0 0 2px rgba(96,165,250,.4)}
+.router.dst .router-box{border-color:#fbbf24;box-shadow:0 0 0 2px rgba(251,191,36,.4)}
+.router.congested .router-box{border-color:#f87171;box-shadow:0 0 16px rgba(248,113,113,.4)}
+.router-label{font-size:.74rem;font-weight:700;color:#cbd5e1;margin-top:4px}
+.queue{display:flex;gap:2px;justify-content:center;margin-top:3px;height:10px}
+.q-slot{width:6px;height:10px;border-radius:1px;background:rgba(255,255,255,.08);transition:background .15s}
+.q-slot.filled{background:#34d399}
+.q-slot.hot{background:#f87171}
+
+.link{position:absolute;height:4px;transform-origin:left center;border-radius:2px;pointer-events:none;background:rgba(255,255,255,.08)}
+.link-util{position:absolute;left:0;top:0;height:100%;border-radius:2px;background:linear-gradient(90deg,#34d399,#facc15,#f87171);width:0%;transition:width .25s}
+.link.reserved{box-shadow:0 0 8px rgba(96,165,250,.5);background:rgba(96,165,250,.25)}
+
+.packet{position:absolute;width:22px;height:14px;border-radius:3px;background:linear-gradient(135deg,#fbbf24,#f59e0b);box-shadow:0 0 8px rgba(251,191,36,.5);display:flex;align-items:center;justify-content:center;color:#000;font-size:.5rem;font-weight:800;font-family:'JetBrains Mono',monospace;transform:translate(-50%,-50%);pointer-events:none;transition:left .25s linear,top .25s linear}
+.packet.lost{background:#ef4444;color:#fff}
+.packet.msg{background:linear-gradient(135deg,#a78bfa,#8b5cf6);color:#fff;width:30px;height:18px}
+.packet.circuit{background:linear-gradient(135deg,#60a5fa,#3b82f6);color:#fff}
+
+.side{display:flex;flex-direction:column;gap:14px}
+.panel{padding:16px}
+.panel h3{font-size:.72rem;text-transform:uppercase;letter-spacing:.1em;color:#94a3b8;margin-bottom:10px;font-weight:700}
+.metric{display:flex;justify-content:space-between;padding:7px 10px;background:rgba(255,255,255,.03);border-radius:6px;margin-bottom:5px;font-size:.78rem}
+.metric-l{color:#94a3b8}
+.metric-v{font-family:'JetBrains Mono',monospace;color:#fff;font-weight:600}
+
+.ed{padding:14px 16px;font-size:.84rem;line-height:1.55;color:#cbd5e1}
+.ed strong{color:#fbbf24}
+.ed code{font-family:'JetBrains Mono',monospace;font-size:.78rem;background:rgba(255,255,255,.05);padding:1px 6px;border-radius:4px;color:#fef3c7}
+.ed ul{padding-left:18px;margin-top:8px}
+.ed li{margin-bottom:4px}
+
+.log{max-height:160px;overflow-y:auto}
+.log-entry{font-family:'JetBrains Mono',monospace;font-size:.7rem;line-height:1.4;padding:2px 0 2px 8px;color:#cbd5e1;border-left:2px solid rgba(255,255,255,.08)}
+.log-entry.ok{border-left-color:#34d399;color:#6ee7b7}
+.log-entry.warn{border-left-color:#f87171;color:#fca5a5}
+.log-entry.info{border-left-color:#60a5fa}
+.log-ts{color:#64748b;margin-right:6px}
+</style>
+</head>
+<body>
+<nav class="top-nav"></nav>
+<div class="back"><a href="core.html">&larr; Back to CORE</a></div>
+
+<div class="page">
+  <div class="hero">
+    <h1>Packet Switching Simulator</h1>
+    <p>Compare circuit, packet, and message switching on the same topology. Watch queues fill, links congest, and routing algorithms pick paths. Queueing delay usually wins.</p>
+  </div>
+
+  <div class="mode-tabs" id="modeTabs">
+    <div class="mode-tab active" data-mode="packet">
+      <h4>Packet Switching</h4>
+      <p>Each packet routed independently. Internet's default.</p>
+    </div>
+    <div class="mode-tab" data-mode="circuit">
+      <h4>Circuit Switching</h4>
+      <p>Dedicated path reserved end-to-end (PSTN, legacy WAN).</p>
+    </div>
+    <div class="mode-tab" data-mode="message">
+      <h4>Message Switching</h4>
+      <p>Store-and-forward entire message at each hop (telegraph, email MTA).</p>
+    </div>
+  </div>
+
+  <div class="glass controls">
+    <div>
+      <label>Routing algorithm</label>
+      <select id="algo">
+        <option value="shortest">Shortest Path (Dijkstra)</option>
+        <option value="flooding">Flooding</option>
+        <option value="distance">Distance Vector</option>
+      </select>
+    </div>
+    <div>
+      <label>Bandwidth <span id="bwVal" class="slider-val">100 Mbps</span></label>
+      <input type="range" id="bw" class="slider" min="10" max="1000" step="10" value="100">
+    </div>
+    <div>
+      <label>Packet count <span id="nVal" class="slider-val">8</span></label>
+      <input type="range" id="n" class="slider" min="1" max="20" step="1" value="8">
+    </div>
+    <div>
+      <label>Loss rate <span id="lossVal" class="slider-val">2%</span></label>
+      <input type="range" id="loss" class="slider" min="0" max="30" step="1" value="2">
+    </div>
+    <div>
+      <label>Speed <span id="spdVal" class="slider-val">1.0×</span></label>
+      <input type="range" id="spd" class="slider" min="5" max="30" step="1" value="10">
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-primary" id="playBtn">Send</button>
+      <button class="btn btn-ghost" id="resetBtn">Reset</button>
+    </div>
+  </div>
+
+  <div class="grid">
+    <div class="glass stage">
+      <div class="stage-title">Topology — Source: A · Destination: F</div>
+      <div class="topo" id="topo"></div>
+    </div>
+    <div class="side">
+      <div class="glass panel">
+        <h3>Metrics</h3>
+        <div class="metric"><span class="metric-l">Mode</span><span class="metric-v" id="mMode">Packet</span></div>
+        <div class="metric"><span class="metric-l">Sent</span><span class="metric-v" id="mSent">0</span></div>
+        <div class="metric"><span class="metric-l">Delivered</span><span class="metric-v" id="mDeliv">0</span></div>
+        <div class="metric"><span class="metric-l">Dropped</span><span class="metric-v" id="mDrop">0</span></div>
+        <div class="metric"><span class="metric-l">Avg latency</span><span class="metric-v" id="mLat">— ms</span></div>
+        <div class="metric"><span class="metric-l">Throughput</span><span class="metric-v" id="mTput">— Mbps</span></div>
+        <div class="metric"><span class="metric-l">Path used</span><span class="metric-v" id="mPath">—</span></div>
+      </div>
+      <div class="glass panel ed" id="ed"></div>
+      <div class="glass panel">
+        <h3>Event Log</h3>
+        <div class="log" id="log"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script defer src="js/nav.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+
+// Nodes in a 2-row layout (percentages)
+const NODES = {
+  A: {x:8,  y:50, label:'A', role:'src'},
+  B: {x:30, y:22, label:'B'},
+  C: {x:52, y:22, label:'C'},
+  D: {x:30, y:78, label:'D'},
+  E: {x:52, y:78, label:'E'},
+  F: {x:74, y:50, label:'F', role:'dst'},
+  G: {x:92, y:22, label:'G'}
+};
+const LINKS = [
+  ['A','B'],['A','D'],['B','C'],['B','E'],['C','E'],['C','F'],['C','G'],['D','E'],['E','F'],['F','G']
+];
+
+const MODE_INFO = {
+  packet: {
+    title: 'Packet Switching',
+    body: `<strong>How it works:</strong> the message is broken into packets. Each packet has its own header with src/dst IP and is routed independently.
+    <ul>
+      <li>Packets may take <code>different paths</code> or arrive out of order.</li>
+      <li>Routers use a <code>forwarding table</code> to pick the next hop per packet.</li>
+      <li>Graceful under load — queue instead of block.</li>
+      <li>Used by: the entire <strong>Internet</strong>, MPLS, SD-WAN overlays.</li>
+    </ul>`
+  },
+  circuit: {
+    title: 'Circuit Switching',
+    body: `<strong>How it works:</strong> a dedicated physical path is reserved end-to-end <em>before</em> any data flows. Bandwidth is guaranteed.
+    <ul>
+      <li>Setup phase signals through every hop to allocate a channel.</li>
+      <li>No queueing delay once path is built — but wasted capacity if idle.</li>
+      <li>If any link fails, the whole call drops.</li>
+      <li>Used by: legacy PSTN, ISDN, some SONET/optical transport.</li>
+    </ul>`
+  },
+  message: {
+    title: 'Message Switching',
+    body: `<strong>How it works:</strong> the entire message is stored at each hop, then forwarded once a link is free. No packets, no parallelism.
+    <ul>
+      <li>Each router needs enough storage for the full message.</li>
+      <li>Latency = sum of store + forward at every hop (high).</li>
+      <li>No live connection — asynchronous delivery.</li>
+      <li>Used by: <strong>email MTAs (SMTP)</strong>, old telegram relays.</li>
+    </ul>`
+  }
+};
+
+let mode = 'packet';
+let algo = 'shortest';
+let speed = 1.0;
+let running = false;
+const state = {
+  queues: {},   // routerId → current queue depth
+  linkUtil: {}, // "A-B" → 0..1
+  sent:0, delivered:0, dropped:0, lat:[], startT:0, totalBytes:0
+};
+Object.keys(NODES).forEach(function(k){ state.queues[k]=0; });
+LINKS.forEach(function(l){ state.linkUtil[l[0]+'-'+l[1]]=0; });
+
+const $ = id => document.getElementById(id);
+const topo = $('topo');
+
+function linkKey(a,b){ return (a<b ? a+'-'+b : b+'-'+a); }
+
+function renderTopo(){
+  topo.innerHTML = '';
+  const rect = topo.getBoundingClientRect();
+  // Links
+  LINKS.forEach(function(l){
+    const a = NODES[l[0]], b = NODES[l[1]];
+    const ax = a.x/100*rect.width, ay = a.y/100*rect.height;
+    const bx = b.x/100*rect.width, by = b.y/100*rect.height;
+    const dx=bx-ax, dy=by-ay;
+    const len = Math.hypot(dx,dy);
+    const ang = Math.atan2(dy,dx)*180/Math.PI;
+    const link = document.createElement('div');
+    link.className = 'link';
+    link.id = 'lk-' + linkKey(l[0],l[1]);
+    link.style.left = ax+'px'; link.style.top = ay+'px';
+    link.style.width = len+'px'; link.style.transform = 'rotate('+ang+'deg)';
+    const util = document.createElement('div');
+    util.className = 'link-util';
+    link.appendChild(util);
+    topo.appendChild(link);
+  });
+  // Routers
+  Object.keys(NODES).forEach(function(id){
+    const n = NODES[id];
+    const el = document.createElement('div');
+    el.className = 'router' + (n.role==='src'?' src':n.role==='dst'?' dst':'');
+    el.id = 'r-'+id;
+    el.style.left = n.x+'%'; el.style.top = n.y+'%';
+    let qHtml = '<div class="queue">';
+    for (let i=0;i<6;i++) qHtml += '<div class="q-slot" id="q-'+id+'-'+i+'"></div>';
+    qHtml += '</div>';
+    el.innerHTML =
+      '<div class="router-box">🔷</div>'+
+      '<div class="router-label">'+n.label+'</div>'+
+      qHtml;
+    topo.appendChild(el);
+  });
+}
+renderTopo();
+window.addEventListener('resize', renderTopo);
+
+// Adjacency list
+function neighbors(id){
+  return LINKS.filter(l => l[0]===id||l[1]===id).map(l => l[0]===id?l[1]:l[0]);
+}
+
+// BFS shortest path
+function shortestPath(src, dst){
+  const prev = {src:null}; prev[src]=null;
+  const q=[src];
+  while(q.length){
+    const cur = q.shift();
+    if (cur===dst) break;
+    neighbors(cur).forEach(function(n){
+      if (prev[n]===undefined){ prev[n]=cur; q.push(n); }
+    });
+  }
+  if (prev[dst]===undefined) return null;
+  const path=[dst]; let c=dst;
+  while (prev[c]){ path.unshift(prev[c]); c=prev[c]; }
+  return path;
+}
+
+// Controls
+function selectMode(m){
+  mode = m;
+  document.querySelectorAll('.mode-tab').forEach(function(t){
+    t.classList.toggle('active', t.dataset.mode===m);
+  });
+  $('mMode').textContent = MODE_INFO[m].title.replace(' Switching','');
+  $('ed').innerHTML = '<h3>'+MODE_INFO[m].title+'</h3>'+MODE_INFO[m].body;
+  reset();
+}
+document.querySelectorAll('.mode-tab').forEach(function(t){
+  t.addEventListener('click', function(){ if(!running) selectMode(t.dataset.mode); });
+});
+
+$('algo').addEventListener('change', function(e){ algo = e.target.value; });
+$('bw').addEventListener('input', function(e){ $('bwVal').textContent = e.target.value+' Mbps'; });
+$('n').addEventListener('input', function(e){ $('nVal').textContent = e.target.value; });
+$('loss').addEventListener('input', function(e){ $('lossVal').textContent = e.target.value+'%'; });
+$('spd').addEventListener('input', function(e){ speed = +e.target.value/10; $('spdVal').textContent = speed.toFixed(1)+'×'; });
+$('playBtn').addEventListener('click', function(){ if(!running) play(); });
+$('resetBtn').addEventListener('click', reset);
+
+function log(msg, kind){
+  const row = document.createElement('div');
+  row.className = 'log-entry ' + (kind||'info');
+  const t = ((performance.now()-state.startT)/1000).toFixed(2);
+  row.innerHTML = '<span class="log-ts">['+t+'s]</span>'+msg;
+  $('log').appendChild(row); $('log').scrollTop = $('log').scrollHeight;
+}
+
+function wait(ms){ return new Promise(r => setTimeout(r, ms/speed)); }
+
+function pushQueue(id){
+  state.queues[id] = Math.min(6, state.queues[id]+1);
+  updQueue(id);
+  if (state.queues[id]>=5) $('r-'+id).classList.add('congested');
+}
+function popQueue(id){
+  state.queues[id] = Math.max(0, state.queues[id]-1);
+  updQueue(id);
+  if (state.queues[id]<5) $('r-'+id).classList.remove('congested');
+}
+function updQueue(id){
+  for (let i=0;i<6;i++){
+    const s = $('q-'+id+'-'+i);
+    if (!s) continue;
+    s.classList.remove('filled','hot');
+    if (i < state.queues[id]) s.classList.add(state.queues[id]>=5?'hot':'filled');
+  }
+}
+
+function setUtil(a,b,u){
+  state.linkUtil[linkKey(a,b)] = u;
+  const lk = document.querySelector('#lk-'+linkKey(a,b)+' .link-util');
+  if (lk) lk.style.width = Math.round(u*100)+'%';
+}
+
+async function animatePacket(path, flavor, label){
+  const p = document.createElement('div');
+  p.className = 'packet ' + (flavor||'');
+  p.textContent = label || 'P';
+  topo.appendChild(p);
+  const first = NODES[path[0]];
+  p.style.left = first.x+'%'; p.style.top = first.y+'%';
+  void p.offsetWidth;
+  const hopMs = Math.max(80, 900/speed/Math.max(1, +$('bw').value/100));
+  for (let i=1; i<path.length; i++){
+    const n = NODES[path[i]];
+    p.style.left = n.x+'%'; p.style.top = n.y+'%';
+    // briefly light up the link
+    setUtil(path[i-1], path[i], Math.min(1, (state.linkUtil[linkKey(path[i-1],path[i])]||0)+0.25));
+    await wait(hopMs);
+    pushQueue(path[i]);
+    await wait(60);
+    popQueue(path[i]);
+    setUtil(path[i-1], path[i], Math.max(0, (state.linkUtil[linkKey(path[i-1],path[i])]||0)-0.15));
+  }
+  topo.removeChild(p);
+}
+
+async function animateLost(path, dropAt){
+  const p = document.createElement('div');
+  p.className = 'packet';
+  p.textContent = 'X';
+  topo.appendChild(p);
+  const first = NODES[path[0]];
+  p.style.left = first.x+'%'; p.style.top = first.y+'%';
+  void p.offsetWidth;
+  for (let i=1; i<=dropAt; i++){
+    const n = NODES[path[i]];
+    p.style.left = n.x+'%'; p.style.top = n.y+'%';
+    setUtil(path[i-1], path[i], Math.min(1, (state.linkUtil[linkKey(path[i-1],path[i])]||0)+0.25));
+    await wait(200);
+  }
+  p.classList.add('lost');
+  await wait(180);
+  topo.removeChild(p);
+}
+
+async function runPacket(){
+  const N = +$('n').value;
+  const lossPct = +$('loss').value;
+  const path = shortestPath('A','F');
+  $('mPath').textContent = path.join('→');
+  log('Packet switching — each packet routed to '+path.join('→'), 'info');
+
+  // Fire packets overlapped
+  const jobs = [];
+  for (let i=0;i<N;i++){
+    const delay = i*120/speed;
+    jobs.push((async function(idx){
+      await wait(delay);
+      state.sent++; updMetrics();
+      // Packet switching can pick alternate paths under congestion
+      let thisPath = path;
+      if (algo==='flooding'){ thisPath = path; /* simplified */ }
+      else if (algo==='distance' && idx>N/2){
+        // distance vector "learns" and tries alt path
+        const alt = ['A','B','C','F'];
+        thisPath = alt;
+        if (idx===Math.floor(N/2)+1) log('Distance Vector updated — alt path '+alt.join('→'), 'ok');
+      }
+      if (Math.random()*100 < lossPct){
+        const dropAt = 1+Math.floor(Math.random()*(thisPath.length-1));
+        log('Packet '+(idx+1)+' dropped at '+thisPath[dropAt]+' (link loss)', 'warn');
+        await animateLost(thisPath, dropAt);
+        state.dropped++; updMetrics();
+      } else {
+        const t0 = performance.now();
+        await animatePacket(thisPath, '', 'P'+(idx+1));
+        state.delivered++;
+        state.lat.push(performance.now()-t0);
+        state.totalBytes += 1500;
+        updMetrics();
+      }
+    })(i));
+  }
+  await Promise.all(jobs);
+}
+
+async function runCircuit(){
+  const N = +$('n').value;
+  const path = shortestPath('A','F');
+  $('mPath').textContent = path.join('→');
+  log('Circuit setup — reserving '+path.join('-'), 'info');
+  // Reserve links visually
+  for (let i=1;i<path.length;i++){
+    document.getElementById('lk-'+linkKey(path[i-1],path[i])).classList.add('reserved');
+    await wait(140);
+  }
+  log('Path reserved — dedicated bandwidth established', 'ok');
+  for (let i=0;i<N;i++){
+    state.sent++; updMetrics();
+    const t0 = performance.now();
+    await animatePacket(path, 'circuit', 'C'+(i+1));
+    state.delivered++;
+    state.lat.push(performance.now()-t0);
+    state.totalBytes += 1500;
+    updMetrics();
+  }
+  // Tear down
+  for (let i=1;i<path.length;i++){
+    document.getElementById('lk-'+linkKey(path[i-1],path[i])).classList.remove('reserved');
+  }
+  log('Circuit torn down', 'info');
+}
+
+async function runMessage(){
+  const path = shortestPath('A','F');
+  $('mPath').textContent = path.join('→');
+  log('Message switching — entire message stored at each hop', 'info');
+  state.sent++;
+  const t0 = performance.now();
+  // For message switching, show one big blob walking the path, but pausing at each router
+  const p = document.createElement('div');
+  p.className = 'packet msg';
+  p.textContent = 'MSG';
+  topo.appendChild(p);
+  const first = NODES[path[0]];
+  p.style.left = first.x+'%'; p.style.top = first.y+'%';
+  void p.offsetWidth;
+  for (let i=1;i<path.length;i++){
+    const n = NODES[path[i]];
+    p.style.left = n.x+'%'; p.style.top = n.y+'%';
+    setUtil(path[i-1], path[i], 1);
+    await wait(350);
+    // Store at router
+    pushQueue(path[i]);
+    log('Stored at '+path[i]+' · waiting for next link', 'info');
+    await wait(500);
+    popQueue(path[i]);
+    setUtil(path[i-1], path[i], 0);
+  }
+  topo.removeChild(p);
+  state.delivered++;
+  state.lat.push(performance.now()-t0);
+  state.totalBytes += 32000; // big message
+  log('Message delivered at '+path[path.length-1], 'ok');
+  updMetrics();
+}
+
+function updMetrics(){
+  $('mSent').textContent = state.sent;
+  $('mDeliv').textContent = state.delivered;
+  $('mDrop').textContent = state.dropped;
+  if (state.lat.length){
+    const avg = state.lat.reduce((a,b)=>a+b,0)/state.lat.length;
+    $('mLat').textContent = Math.round(avg)+' ms';
+  }
+  if (state.totalBytes && state.startT){
+    const el = (performance.now()-state.startT)/1000;
+    const mbps = (state.totalBytes*8/1e6)/Math.max(0.01,el);
+    $('mTput').textContent = mbps.toFixed(2)+' Mbps';
+  }
+}
+
+function reset(){
+  Object.keys(NODES).forEach(function(k){ state.queues[k]=0; updQueue(k); $('r-'+k).classList.remove('congested'); });
+  LINKS.forEach(function(l){ setUtil(l[0],l[1],0); document.getElementById('lk-'+linkKey(l[0],l[1])).classList.remove('reserved'); });
+  topo.querySelectorAll('.packet').forEach(function(p){ p.remove(); });
+  state.sent=state.delivered=state.dropped=0; state.lat=[]; state.totalBytes=0;
+  $('mSent').textContent=0; $('mDeliv').textContent=0; $('mDrop').textContent=0;
+  $('mLat').textContent='— ms'; $('mTput').textContent='— Mbps';
+  $('log').innerHTML = '';
+  $('playBtn').disabled=false; $('playBtn').textContent='Send';
+  running=false;
+}
+
+async function play(){
+  reset();
+  running = true;
+  state.startT = performance.now();
+  $('playBtn').disabled = true;
+  $('playBtn').textContent = 'Sending…';
+  const fn = {packet:runPacket, circuit:runCircuit, message:runMessage}[mode];
+  try { await fn(); } catch(e){ console.error(e); }
+  running = false;
+  $('playBtn').disabled = false;
+  $('playBtn').textContent = 'Send again';
+  log('— run complete —', 'ok');
+}
+
+// Init
+selectMode('packet');
+
+});
+</script>
+</body>
+</html>

@@ -34,6 +34,9 @@
       { text: 'OSPF Mastery', href: 'ospf-mastery.html' },
       { text: 'Path Selection', href: 'path-selection.html' },
       { text: 'Packet Theater', href: 'packet-theater.html' },
+      { text: 'Packet Journey Sim', href: 'packet-journey-sim.html' },
+      { text: 'Packet Switching Sim', href: 'packet-switching-sim.html' },
+      { text: 'ARP Explainer', href: 'arp-explainer.html' },
       { text: 'Wireshark', href: 'wireshark.html' },
     ]},
     { text: 'Practice', children: [
