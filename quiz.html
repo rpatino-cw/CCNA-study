@@ -646,8 +646,38 @@
       overflow: hidden;
       transition: max-height 0.35s var(--ease-out);
     }
-    #state-lesson .subtopic-card.open .subtopic-body {
+    /* Direct-child only, so opening an outer subtopic doesn't
+       cascade-open every nested micro-lesson body. */
+    #state-lesson .subtopic-card.open > .subtopic-body {
       max-height: 40000px;
+    }
+
+    /* Collapse button at the bottom of each expanded body so users
+       don't have to scroll back to the top to close. */
+    #state-lesson .st-actions {
+      margin-top: 18px;
+      padding-top: 14px;
+      border-top: 1px dashed var(--border);
+      display: flex;
+      justify-content: flex-end;
+    }
+    #state-lesson .st-collapse-btn {
+      font-family: var(--font-display);
+      font-size: 0.7rem;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      padding: 7px 14px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--bg-surface);
+      color: var(--ink-muted);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    #state-lesson .st-collapse-btn:hover {
+      border-color: var(--accent);
+      color: var(--ink);
+      background: var(--accent-dim);
     }
     #state-lesson .subtopic-inner {
       padding: 0 4px 20px 48px;
@@ -2582,6 +2612,7 @@
                     </div>
                   </div>`;
                 }
+                microInner += `<div class="st-actions"><button type="button" class="st-collapse-btn" data-collapse-target="${escHtml(m.id)}">▴ Close ${escHtml(m.term)}</button></div>`;
                 return `
                   <div class="subtopic-card micro-lesson" data-sub="${escHtml(m.id)}">
                     <button class="subtopic-toggle" aria-expanded="false">
@@ -2622,6 +2653,8 @@
           inner += buildSubtopicGlossary(sc, subId, subName);
           // Per-subtopic deep flashcard practice
           inner += buildSubtopicFlashcards(sc, subId, subName);
+          // Collapse action at the bottom of the subtopic body
+          inner += `<div class="st-actions"><button type="button" class="st-collapse-btn" data-collapse-target="${escHtml(subId)}">▴ Close ${escHtml(subName)}</button></div>`;
         } else {
           inner = `<p class="st-info" style="color:var(--text-muted);font-style:italic">Detailed content coming soon for ${escHtml(subId)}.</p>`;
         }
@@ -2676,6 +2709,28 @@
       // Per-subtopic glossary + flashcards
       bindSubtopicGlossaryBlocks();
       bindSubtopicFlashcardBlocks();
+      // Bottom "Close" buttons inside each open card
+      bindSubtopicCollapseButtons();
+    }
+
+    // ── Bind Collapse Buttons ───────────────────────────────────
+    function bindSubtopicCollapseButtons() {
+      document.querySelectorAll('#lesson-viewer-content .st-collapse-btn').forEach(btn => {
+        if (btn.dataset.bound) return;
+        btn.dataset.bound = '1';
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const id = btn.dataset.collapseTarget;
+          const card = btn.closest('.subtopic-card');
+          if (!card) return;
+          card.classList.remove('open');
+          const toggle = card.querySelector(':scope > .subtopic-toggle');
+          if (toggle) {
+            toggle.setAttribute('aria-expanded', 'false');
+            toggle.scrollIntoView({ block: 'start', behavior: 'smooth' });
+          }
+        });
+      });
     }
 
     // ── Bind Per-Subtopic Glossary Blocks ────────────────────────
