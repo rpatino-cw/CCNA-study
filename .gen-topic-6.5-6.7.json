@@ -5,7 +5,21 @@
       "term": "REST",
       "weight": "high",
       "info": "<p><strong>REST (REpresentational State Transfer)</strong> is an <em>architectural style</em> for building web APIs, defined by Roy Fielding in his 2000 doctoral dissertation. It is not a protocol and not a standard — it is a set of constraints that, when followed, produce APIs that are simple, scalable, and loosely coupled. Modern SDN controllers (Cisco DNA Center, Meraki Dashboard, Catalyst SD-WAN vManage) and virtually every cloud platform expose their management plane through REST.</p><p>The six REST constraints are: <strong>client-server</strong> (separate UI from storage), <strong>stateless</strong> (each request carries all context), <strong>cacheable</strong> (responses labeled cacheable or not), <strong>uniform interface</strong> (resources identified by URIs, manipulated through representations), <strong>layered system</strong> (client cannot tell if it is talking to the origin or a proxy), and <strong>code-on-demand</strong> (optional — server can ship executable code to client). On the CCNA you mostly need the first five.</p><p>The practical implementation on the wire is almost always: <strong>HTTP(S) + JSON + URIs + standard HTTP verbs (GET/POST/PUT/PATCH/DELETE) + HTTP status codes</strong>. A RESTful request looks like:</p><pre>GET /api/v1/devices/42 HTTP/1.1\nHost: dnac.example.com\nAuthorization: Bearer eyJhbGciOi...\nAccept: application/json</pre><p>And the response body is JSON describing the resource. The server never needs to remember who you are between calls — every request re-presents the token.</p><p><strong>Why the CCNA cares:</strong> network automation workflows (DNA Center intent APIs, Meraki Dashboard API, vManage API) are REST. Being able to read a URL, verb, and JSON body and say what it does is a guaranteed exam competency.</p>",
-      "visual": { "type": "handshake", "params": { "leftLabel": "Client (Python/Postman)", "rightLabel": "REST API Server", "steps": ["GET /api/v1/devices →", "← 200 OK + JSON array", "POST /api/v1/devices + body →", "← 201 Created + new resource JSON", "DELETE /api/v1/devices/5 →", "← 204 No Content"] } },
+      "visual": {
+        "type": "handshake",
+        "params": {
+          "leftLabel": "Client (Python/Postman)",
+          "rightLabel": "REST API Server",
+          "steps": [
+            "GET /api/v1/devices →",
+            "← 200 OK + JSON array",
+            "POST /api/v1/devices + body →",
+            "← 201 Created + new resource JSON",
+            "DELETE /api/v1/devices/5 →",
+            "← 204 No Content"
+          ]
+        }
+      },
       "hack": {
         "memory": "REST = Stateless + URI + HTTP verbs + JSON. Every call is a self-contained postcard: the address (URI) says WHICH thing, the verb says WHAT to do, the body says WITH WHAT DATA, and the token on every postcard proves WHO you are. Server has amnesia between postcards.",
         "practice": "In Postman: hit https://jsonplaceholder.typicode.com/posts/1 with GET. Look at the response — URI identified the resource, GET pulled it, JSON came back. Now DELETE it. Same URI, different verb, different result. This one-minute exercise cements REST.",
@@ -18,7 +32,29 @@
       "term": "Stateless",
       "weight": "high",
       "info": "<p><strong>Stateless</strong> means the server does <em>not</em> store any client context between requests. Every REST request must contain <strong>all the information the server needs to process it</strong> — authentication token, query filters, body payload, the lot. If the connection dropped and a different backend server picked up your next request, it should still work identically.</p><p>Contrast this with a stateful protocol like classic FTP or Telnet, where the server remembers 'you are logged in as admin, currently in /etc/.' REST explicitly forbids that. If you need to say 'GET the third page of devices filtered by site=EVI01,' you must put all of that in the URL or headers of each request:</p><pre>GET /api/v1/devices?site=EVI01&page=3 HTTP/1.1\nAuthorization: Bearer eyJ...</pre><p><strong>Why stateless is a feature, not a bug:</strong> it enables horizontal scaling. Any server in a load-balanced pool can answer any request. It also simplifies failure recovery — if a node dies, another picks up with no session replication needed. And it makes caching easy, because a given URL+method+headers deterministically produces the same response.</p><p><strong>The tradeoff:</strong> requests are bigger (you carry the token every time) and the client has to track its own state (pagination cursor, filters). Modern REST APIs accept this cost because scale matters more than wire efficiency.</p><p><strong>Exam angle:</strong> 'What is a characteristic of a RESTful API?' — stateless is the answer that separates REST from session-based protocols.</p>",
-      "visual": { "type": "comparison", "params": { "left": { "label": "Stateful (e.g. Telnet/FTP)", "items": ["Server remembers login", "Server remembers cwd", "Must stay on same server", "Session cookies required"] }, "right": { "label": "Stateless (REST)", "items": ["Each request re-presents token", "Each request re-specifies filter", "Any backend can answer", "No server-side session needed"] } } },
+      "visual": {
+        "type": "comparison",
+        "params": {
+          "left": {
+            "label": "Stateful (e.g. Telnet/FTP)",
+            "items": [
+              "Server remembers login",
+              "Server remembers cwd",
+              "Must stay on same server",
+              "Session cookies required"
+            ]
+          },
+          "right": {
+            "label": "Stateless (REST)",
+            "items": [
+              "Each request re-presents token",
+              "Each request re-specifies filter",
+              "Any backend can answer",
+              "No server-side session needed"
+            ]
+          }
+        }
+      },
       "hack": {
         "memory": "Stateless = every request is a Post-it note with EVERYTHING on it. Server reads Post-it, acts, throws it away. Next Post-it must also re-state who you are and what you want. No memory, no context, no shortcuts.",
         "practice": "Try this: make a GET /api/v1/devices request with a bearer token. Then make the next one WITHOUT the token. It fails — the server didn't remember you. In a stateful protocol, one login would authorize all following calls. REST makes you prove yourself every single time.",
@@ -31,7 +67,19 @@
       "term": "Client-server",
       "weight": "high",
       "info": "<p><strong>Client-server</strong> is the first REST constraint: the client (app requesting data) and the server (system that stores and processes data) are <em>cleanly separated</em> and communicate only through a well-defined API contract. They can be written in different languages, deployed on different continents, and upgraded on different schedules — as long as the contract holds.</p><p>In networking terms: a Python script on your laptop (client) makes an HTTPS call to Cisco DNA Center (server). The Python script has no idea what database DNA Center uses, what programming language it is written in, or how many microservices answer the request. It only knows the API contract: URIs, verbs, JSON shapes, status codes.</p><p><strong>The separation gives you:</strong></p><ul><li><strong>Independent evolution</strong> — the server team can rewrite the backend from Java to Go without changing any client.</li><li><strong>Multiple clients from one API</strong> — the same REST endpoints serve a web UI, a mobile app, a CLI tool, and a network automation script.</li><li><strong>Clear security boundary</strong> — authentication and authorization happen at the API edge.</li></ul><p>The client-server constraint is the reason the rest of REST is possible. Without a clean split, you cannot enforce statelessness, uniform interface, or caching.</p>",
-      "visual": { "type": "layer-stack", "params": { "layers": ["Client: Python/Postman/UI", "HTTPS over the internet", "REST API contract (URIs + verbs + JSON)", "Server: DNA Center / Meraki / vManage", "Backend DB (hidden from client)"], "highlight": 2 } },
+      "visual": {
+        "type": "layer-stack",
+        "params": {
+          "layers": [
+            "Client: Python/Postman/UI",
+            "HTTPS over the internet",
+            "REST API contract (URIs + verbs + JSON)",
+            "Server: DNA Center / Meraki / vManage",
+            "Backend DB (hidden from client)"
+          ],
+          "highlight": 2
+        }
+      },
       "hack": {
         "memory": "Client-server = waiter vs kitchen. You (client) talk to the waiter (API) and never enter the kitchen (database). The kitchen can change chefs, change stoves, change the whole building layout — you still order through the same menu (API contract) at the same table.",
         "practice": "Open any REST API documentation (Meraki, GitHub, OpenWeather). Notice: it tells you URIs, verbs, and response shapes — nothing about the server's database or language. That opacity is the client-server constraint in action.",
@@ -44,7 +92,33 @@
       "term": "URI-based resources",
       "weight": "high",
       "info": "<p>In REST, everything the server manages is a <strong>resource</strong>, and every resource is identified by a <strong>URI (Uniform Resource Identifier)</strong>. Resources are <em>nouns</em>, not verbs. <code>/api/v1/devices</code> is the collection of all devices; <code>/api/v1/devices/42</code> is device number 42; <code>/api/v1/devices/42/interfaces</code> is that device's interfaces.</p><p><strong>Good REST URI design:</strong></p><ul><li>Plural nouns for collections: <code>/devices</code>, not <code>/device</code> or <code>/getDevices</code>.</li><li>Hierarchy reflects containment: <code>/sites/sjc01/devices/42/interfaces/Gi0/1</code>.</li><li>Verbs belong in the HTTP method, not the URI. <code>GET /devices/42</code> — not <code>GET /getDevice?id=42</code>.</li><li>Query strings for filters and pagination: <code>/devices?site=EVI01&page=2&limit=50</code>.</li><li>Versioning in the path: <code>/api/v1/...</code> so you can ship <code>/api/v2/...</code> later without breaking clients.</li></ul><p><strong>Real examples from Cisco:</strong></p><pre>GET /dna/intent/api/v1/network-device\nGET /api/v1/organizations/{orgId}/networks\nPOST /dataservice/template/device\nDELETE /api/v1/interfaces/42</pre><p>A URI always answers the question 'WHICH resource?' The HTTP verb answers 'WHAT should I do with it?' Keeping these separate is the core of the uniform-interface constraint.</p><p><strong>Common exam trap:</strong> a URL like <code>/api/deleteDevice/42</code> uses a verb in the path — that is not RESTful. The correct form is <code>DELETE /api/devices/42</code>.</p>",
-      "visual": { "type": "hierarchy", "params": { "root": "/api/v1", "children": [{ "name": "/devices (collection)", "children": [{ "name": "/devices/42 (single device)", "children": [{ "name": "/devices/42/interfaces" }, { "name": "/devices/42/vlans" }] }] }, { "name": "/sites (collection)" }] } },
+      "visual": {
+        "type": "hierarchy",
+        "params": {
+          "root": "/api/v1",
+          "children": [
+            {
+              "name": "/devices (collection)",
+              "children": [
+                {
+                  "name": "/devices/42 (single device)",
+                  "children": [
+                    {
+                      "name": "/devices/42/interfaces"
+                    },
+                    {
+                      "name": "/devices/42/vlans"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "name": "/sites (collection)"
+            }
+          ]
+        }
+      },
       "hack": {
         "memory": "URIs are STREET ADDRESSES for resources. /devices/42 = house number 42 on Devices Street. HTTP verb = what you do at that address (knock = GET, drop a package = POST, bulldoze = DELETE). Never put the action in the address.",
         "practice": "Critique these URLs — RESTful or not? (1) GET /getAllDevices (2) POST /devices (3) GET /devices/42/interfaces (4) POST /deleteDevice?id=42 (5) DELETE /devices/42. Answers: 1 bad (verb in path), 2 good, 3 good, 4 bad (verb in path AND wrong method), 5 good. Do 10 of these and URI design clicks.",
@@ -59,7 +133,21 @@
       "term": "POST = Create",
       "weight": "high",
       "info": "<p><strong>POST</strong> is the HTTP verb that creates a new resource on the server. The client sends the resource data in the request body (usually JSON), and the server assigns an ID, stores it, and returns <strong>201 Created</strong> along with the new resource (including its server-assigned ID) in the response body. A <code>Location</code> header in the response points to the new URI.</p><p><strong>Example — create a device:</strong></p><pre>POST /api/v1/devices HTTP/1.1\nHost: dnac.example.com\nAuthorization: Bearer eyJ...\nContent-Type: application/json\n\n{\"hostname\": \"SW5\", \"ip\": \"10.0.0.5\", \"model\": \"C9300\"}</pre><p>Response:</p><pre>HTTP/1.1 201 Created\nLocation: /api/v1/devices/42\nContent-Type: application/json\n\n{\"id\": 42, \"hostname\": \"SW5\", \"ip\": \"10.0.0.5\", \"model\": \"C9300\"}</pre><p><strong>POST is NOT idempotent.</strong> This is the most-tested property. Calling POST twice with the same body creates <em>two</em> resources (device 42 and device 43), not one. If you want 'create or update, but only ever one copy,' use PUT. If you want 'create this exact thing and fail if it already exists,' most APIs expose a unique constraint that returns 409 Conflict on the second call.</p><p><strong>POST is also used for non-CRUD actions</strong> that do not fit GET/PUT/DELETE — for example <code>POST /api/v1/devices/42/actions/reboot</code>. This is a pragmatic exception in real APIs.</p>",
-      "visual": { "type": "handshake", "params": { "leftLabel": "Client", "rightLabel": "Server", "steps": ["POST /api/v1/devices", "+ JSON body: {hostname, ip, model}", "Server validates, assigns id=42", "201 Created", "+ Location: /api/v1/devices/42", "+ JSON response with id"] } },
+      "visual": {
+        "type": "handshake",
+        "params": {
+          "leftLabel": "Client",
+          "rightLabel": "Server",
+          "steps": [
+            "POST /api/v1/devices",
+            "+ JSON body: {hostname, ip, model}",
+            "Server validates, assigns id=42",
+            "201 Created",
+            "+ Location: /api/v1/devices/42",
+            "+ JSON response with id"
+          ]
+        }
+      },
       "hack": {
         "memory": "POST = 'Please Ordain a Sacred Thing' — the server creates it and blesses it with an ID. Always returns 201 Created. Not idempotent: call twice = two devices. Contrast PUT (idempotent, replaces a specific URI).",
         "practice": "In Postman: POST to https://jsonplaceholder.typicode.com/posts with body {\"title\":\"hi\",\"body\":\"test\",\"userId\":1}. Response: 201 + the object with a new id. POST again — you get another id. That is non-idempotent behavior in action.",
@@ -72,7 +160,21 @@
       "term": "GET = Read",
       "weight": "high",
       "info": "<p><strong>GET</strong> retrieves a representation of a resource without modifying it. It is the most common HTTP verb — every web page load is a GET. In REST APIs, GET is used to list collections, read a single resource, or query with filters.</p><p><strong>Two flavors:</strong></p><ul><li><strong>GET collection</strong>: <code>GET /api/v1/devices</code> — returns a JSON array of all devices (usually paginated).</li><li><strong>GET single</strong>: <code>GET /api/v1/devices/42</code> — returns one JSON object for device 42, or 404 if it does not exist.</li></ul><p><strong>Filters and pagination</strong> go in the query string:</p><pre>GET /api/v1/devices?site=EVI01&status=up&page=2&limit=50 HTTP/1.1</pre><p><strong>Two critical properties:</strong></p><ul><li><strong>Safe</strong> — GET must never cause a side effect on the server. You can call it a million times and nothing changes. Crawlers, prefetchers, and caches rely on this.</li><li><strong>Idempotent</strong> — calling GET once or ten times yields the same server state. (Note: the <em>response</em> body may change if another client updates the resource between calls — idempotent means the server state is not altered by YOUR call, not that the world stands still.)</li></ul><p><strong>GET has no request body.</strong> All parameters go in the URL or headers. Some APIs technically accept GET bodies, but it is non-standard and many proxies will strip them.</p>",
-      "visual": { "type": "handshake", "params": { "leftLabel": "Client", "rightLabel": "Server", "steps": ["GET /api/v1/devices?site=EVI01", "(no body — params in URL)", "Server queries DB", "200 OK", "+ JSON array of matching devices", "+ pagination headers"] } },
+      "visual": {
+        "type": "handshake",
+        "params": {
+          "leftLabel": "Client",
+          "rightLabel": "Server",
+          "steps": [
+            "GET /api/v1/devices?site=EVI01",
+            "(no body — params in URL)",
+            "Server queries DB",
+            "200 OK",
+            "+ JSON array of matching devices",
+            "+ pagination headers"
+          ]
+        }
+      },
       "hack": {
         "memory": "GET = GRAB. Safe (no side effects) + idempotent (repeatable) + no body (params in URL). Two shapes: GET /collection (list) or GET /collection/id (one). Query string = ?filter=value.",
         "practice": "curl -s https://jsonplaceholder.typicode.com/posts | jq length → 100. Now curl https://jsonplaceholder.typicode.com/posts/1 — just one. Now curl https://jsonplaceholder.typicode.com/posts?userId=1 — only posts for user 1. Three variations of GET, all read-only.",
@@ -85,7 +187,31 @@
       "term": "PUT = Update (full)",
       "weight": "high",
       "info": "<p><strong>PUT</strong> replaces an entire resource at a specific URI with the representation sent in the request body. Unlike POST (create new), PUT targets a known ID: you are saying 'the resource at <code>/devices/42</code> should now look exactly like this JSON.'</p><pre>PUT /api/v1/devices/42 HTTP/1.1\nContent-Type: application/json\nAuthorization: Bearer eyJ...\n\n{\"hostname\": \"SW5-new\", \"ip\": \"10.0.0.5\", \"model\": \"C9300\", \"site\": \"EVI01\"}</pre><p>The server replaces all fields of device 42 with the body. Response is usually <strong>200 OK</strong> (with the updated resource) or <strong>204 No Content</strong> (if the server does not return a body).</p><p><strong>PUT is idempotent.</strong> Running the same PUT ten times leaves the resource in exactly the same state as running it once. This is why PUT is preferred for automation retries — if a network blip caused you to retry, you will not create duplicates or accumulate changes.</p><p><strong>Full replace vs partial update — the PUT/PATCH tradeoff:</strong> If the body you PUT omits a field that previously existed, the server is supposed to treat it as 'unset' or default. That surprises engineers used to partial updates. Use PATCH when you want to change only certain fields.</p><p><strong>PUT can create when the URI is known.</strong> Some APIs allow <code>PUT /devices/sw5</code> (where <code>sw5</code> is a client-chosen ID) to create device sw5 if it does not exist, or replace it if it does. That makes PUT idempotent-create, unlike POST.</p>",
-      "visual": { "type": "comparison", "params": { "left": { "label": "PUT /devices/42 (full)", "items": ["Targets known URI", "Body = complete new state", "Missing fields → unset/default", "Idempotent: 10 calls = 1 call", "Used for replace"] }, "right": { "label": "POST /devices (create)", "items": ["Targets collection URI", "Body = new resource data", "Server assigns ID", "NOT idempotent: 10 calls = 10 rows", "Used for create-new"] } } },
+      "visual": {
+        "type": "comparison",
+        "params": {
+          "left": {
+            "label": "PUT /devices/42 (full)",
+            "items": [
+              "Targets known URI",
+              "Body = complete new state",
+              "Missing fields → unset/default",
+              "Idempotent: 10 calls = 1 call",
+              "Used for replace"
+            ]
+          },
+          "right": {
+            "label": "POST /devices (create)",
+            "items": [
+              "Targets collection URI",
+              "Body = new resource data",
+              "Server assigns ID",
+              "NOT idempotent: 10 calls = 10 rows",
+              "Used for create-new"
+            ]
+          }
+        }
+      },
       "hack": {
         "memory": "PUT = Place/replace at a specific URI. Idempotent. Whole-object replace: anything you omit gets wiped. Think 'overwrite the file at this path.' PUT 10x = same final state.",
         "practice": "In Postman: PUT https://jsonplaceholder.typicode.com/posts/1 with body {\"id\":1,\"title\":\"new\",\"body\":\"new\",\"userId\":1}. Response replaces the whole post. Run it 5 times — same result every time (idempotent).",
@@ -98,7 +224,29 @@
       "term": "PATCH = Update (partial)",
       "weight": "high",
       "info": "<p><strong>PATCH</strong> modifies specific fields of an existing resource without replacing the entire thing. You send only the fields you want to change; untouched fields are left alone.</p><pre>PATCH /api/v1/devices/42 HTTP/1.1\nContent-Type: application/json\nAuthorization: Bearer eyJ...\n\n{\"hostname\": \"SW5-renamed\"}</pre><p>Device 42's other fields (ip, model, site, interfaces) stay untouched; only <code>hostname</code> is changed. The response is typically <strong>200 OK</strong> with the updated resource.</p><p><strong>PATCH vs PUT — when to use each:</strong></p><ul><li>Use <strong>PUT</strong> when you have the full new object and want 'make it exactly this.'</li><li>Use <strong>PATCH</strong> when you want to change a few fields and do not want to risk clobbering fields you did not touch.</li></ul><p>In practice, PATCH is what network automation uses most — you rarely have the entire device record in hand; you just want to update one interface's description or flip one VLAN membership.</p><p><strong>Idempotency of PATCH is 'it depends.'</strong> <code>PATCH hostname=SW5-renamed</code> is idempotent — run it twice, same final state. But <code>PATCH vlans: {add: 30}</code> that appends to a list is NOT idempotent. The spec says PATCH <em>can</em> be idempotent but is not required to be. On the CCNA, treat PATCH as 'partial update' and move on — the exam rarely drills PATCH idempotency.</p>",
-      "visual": { "type": "comparison", "params": { "left": { "label": "PUT /devices/42", "items": ["Body = full object", "Replaces everything", "Missing fields = wiped", "Always idempotent"] }, "right": { "label": "PATCH /devices/42", "items": ["Body = only changed fields", "Merges with existing", "Untouched fields preserved", "Usually idempotent"] } } },
+      "visual": {
+        "type": "comparison",
+        "params": {
+          "left": {
+            "label": "PUT /devices/42",
+            "items": [
+              "Body = full object",
+              "Replaces everything",
+              "Missing fields = wiped",
+              "Always idempotent"
+            ]
+          },
+          "right": {
+            "label": "PATCH /devices/42",
+            "items": [
+              "Body = only changed fields",
+              "Merges with existing",
+              "Untouched fields preserved",
+              "Usually idempotent"
+            ]
+          }
+        }
+      },
       "hack": {
         "memory": "PATCH = patch a hole. Send only the diff. Other fields untouched. PUT = paint the whole wall. PATCH = touch up the crack. If you do not know the full object, PATCH is safer.",
         "practice": "Run PUT /posts/1 with a body missing 'userId' — you will see userId disappear in some APIs (PUT is full replace). Now run PATCH /posts/1 with just {\"title\":\"new\"} — only the title changes, userId is preserved. This side-by-side makes the difference permanent.",
@@ -111,7 +259,21 @@
       "term": "DELETE = Delete",
       "weight": "high",
       "info": "<p><strong>DELETE</strong> removes the resource identified by the URI. No request body is required (though some APIs accept one for confirmation or soft-delete metadata).</p><pre>DELETE /api/v1/devices/42 HTTP/1.1\nAuthorization: Bearer eyJ...</pre><p>Typical responses:</p><ul><li><strong>204 No Content</strong> — the most common success. The resource is gone; nothing to return in the body.</li><li><strong>200 OK</strong> + JSON confirming the deleted object — some APIs echo what was deleted as a convenience.</li><li><strong>404 Not Found</strong> — the resource did not exist. Some APIs return 404 on repeat deletes, others return 204 to keep the call idempotent.</li><li><strong>409 Conflict</strong> — the resource cannot be deleted because something depends on it (e.g., a VLAN with active interfaces).</li></ul><p><strong>DELETE is idempotent.</strong> Deleting an already-deleted resource should not cause additional side effects — it is already gone. This is why a second DELETE of the same URI still 'succeeds' in spirit even if it returns 404.</p><p><strong>DELETE is destructive.</strong> In network automation, always review <code>terraform plan</code> or dry-run API calls before issuing DELETEs against production. Many APIs also support <code>?force=true</code> or <code>?cascade=true</code> query parameters that change delete semantics.</p>",
-      "visual": { "type": "handshake", "params": { "leftLabel": "Client", "rightLabel": "Server", "steps": ["DELETE /api/v1/devices/42", "(no body)", "Server removes resource", "204 No Content", "(second DELETE → 404 Not Found)", "still idempotent: already gone"] } },
+      "visual": {
+        "type": "handshake",
+        "params": {
+          "leftLabel": "Client",
+          "rightLabel": "Server",
+          "steps": [
+            "DELETE /api/v1/devices/42",
+            "(no body)",
+            "Server removes resource",
+            "204 No Content",
+            "(second DELETE → 404 Not Found)",
+            "still idempotent: already gone"
+          ]
+        }
+      },
       "hack": {
         "memory": "DELETE = destroy. Idempotent (gone stays gone). 204 No Content is the signature success code. Second call usually 404 but the effect (resource absent) is identical.",
         "practice": "DELETE /posts/1 on jsonplaceholder — 200 OK (they fake it). Repeat — same response. In a real API, first DELETE is 204, second is 404, but the world is in the same state. That is idempotency.",
@@ -126,7 +288,18 @@
       "term": "200 OK",
       "weight": "high",
       "info": "<p><strong>200 OK</strong> is the universal 'request succeeded' status code. The server received, understood, and fulfilled the request, and the response body contains the result. It is the default success for <strong>GET</strong>, <strong>PUT</strong>, and <strong>PATCH</strong>.</p><p>Typical shape:</p><pre>HTTP/1.1 200 OK\nContent-Type: application/json\nContent-Length: 184\n\n{\"id\": 42, \"hostname\": \"SW5\", \"ip\": \"10.0.0.5\", \"status\": \"up\"}</pre><p><strong>200 vs 201 vs 204 — pick the right one:</strong></p><ul><li><strong>200 OK</strong> — request succeeded AND there is content to return. Most GET responses.</li><li><strong>201 Created</strong> — a new resource was created (POST).</li><li><strong>204 No Content</strong> — success but no body to return (DELETE, or PUT without echoing).</li></ul><p>Any 2xx code means success. If you ever see a 2xx you do not recognize (206 Partial Content, 202 Accepted), it is still a success — just a nuanced one. On the CCNA you only need to know 200, 201, 204.</p>",
-      "visual": { "type": "layer-stack", "params": { "layers": ["200 OK — success with body", "201 Created — new resource made", "204 No Content — success, no body", "(2xx family = success)"], "highlight": 0 } },
+      "visual": {
+        "type": "layer-stack",
+        "params": {
+          "layers": [
+            "200 OK — success with body",
+            "201 Created — new resource made",
+            "204 No Content — success, no body",
+            "(2xx family = success)"
+          ],
+          "highlight": 0
+        }
+      },
       "hack": {
         "memory": "200 = it worked, here is your data. 201 = I made a new one. 204 = done, nothing to say. All 2xx = good news.",
         "practice": "curl -i https://jsonplaceholder.typicode.com/posts/1 — first line shows 'HTTP/1.1 200 OK'. The -i flag reveals the status line. Use this habit to read real API responses.",
@@ -139,7 +312,21 @@
       "term": "201 Created",
       "weight": "high",
       "info": "<p><strong>201 Created</strong> signals that a new resource was successfully created. It is the canonical response for a successful <strong>POST</strong>.</p><p>Along with the status code, a well-designed REST API returns:</p><ul><li>A <strong>Location header</strong> with the URI of the new resource, so the client knows where to find it.</li><li>A <strong>response body</strong> with the new resource's server-assigned fields (especially its ID).</li></ul><pre>HTTP/1.1 201 Created\nLocation: /api/v1/devices/42\nContent-Type: application/json\n\n{\"id\": 42, \"hostname\": \"SW5\", \"ip\": \"10.0.0.5\"}</pre><p><strong>Why a separate 201 instead of just 200?</strong> Because 'created a new thing' is different from 'returned existing data.' Clients and proxies may treat the two differently for caching, logging, and workflow triggers. A CI pipeline might fire a Slack notification only on 201s, for example.</p><p><strong>PUT can also return 201</strong> if the PUT created the resource (when you supplied the ID yourself and it did not exist). PUT on an existing resource returns 200 or 204.</p>",
-      "visual": { "type": "handshake", "params": { "leftLabel": "Client", "rightLabel": "Server", "steps": ["POST /devices + JSON body", "Server validates & stores", "Assigns id=42", "201 Created", "Location: /devices/42", "+ JSON with id"] } },
+      "visual": {
+        "type": "handshake",
+        "params": {
+          "leftLabel": "Client",
+          "rightLabel": "Server",
+          "steps": [
+            "POST /devices + JSON body",
+            "Server validates & stores",
+            "Assigns id=42",
+            "201 Created",
+            "Location: /devices/42",
+            "+ JSON with id"
+          ]
+        }
+      },
       "hack": {
         "memory": "201 Created = a new resource was BORN. Pair with POST. Look for the Location header — it tells you the new URI (birth certificate).",
         "practice": "POST a new item to jsonplaceholder and inspect the response with curl -i. You will see 201 and a body with an id that did not exist before.",
@@ -152,7 +339,29 @@
       "term": "400 Bad Request",
       "weight": "high",
       "info": "<p><strong>400 Bad Request</strong> means the server could not understand or process the request because the client sent something malformed. It is the generic 'your fault' error.</p><p>Common causes:</p><ul><li>Malformed JSON body (trailing comma, missing brace, bad quotes)</li><li>Missing a required field</li><li>A field has the wrong data type (sent a string where a number is expected)</li><li>A value violates validation rules (IP is not a valid address; VLAN ID is out of range)</li><li>Query parameters are missing or malformed</li></ul><pre>HTTP/1.1 400 Bad Request\nContent-Type: application/json\n\n{\"error\": \"vlan_id must be between 1 and 4094\", \"field\": \"vlan_id\"}</pre><p><strong>400 vs 401 vs 403 vs 404 — the 4xx lineup:</strong></p><ul><li><strong>400</strong> — the request itself is malformed.</li><li><strong>401</strong> — you did not prove who you are (no/bad token).</li><li><strong>403</strong> — you proved who you are, but you are not allowed.</li><li><strong>404</strong> — the resource does not exist.</li></ul><p>Distinguishing these is exam-tested and career-critical. A production incident where you get 403s is a permissions issue; 400s are a payload issue; 404s are a URL/ID issue. Treating them the same wastes hours.</p>",
-      "visual": { "type": "comparison", "params": { "left": { "label": "400 Bad Request", "items": ["Malformed JSON", "Missing required field", "Wrong data type", "Validation failed"] }, "right": { "label": "vs other 4xx", "items": ["401 = no/bad auth", "403 = auth OK, not allowed", "404 = URI does not exist", "429 = rate limited"] } } },
+      "visual": {
+        "type": "comparison",
+        "params": {
+          "left": {
+            "label": "400 Bad Request",
+            "items": [
+              "Malformed JSON",
+              "Missing required field",
+              "Wrong data type",
+              "Validation failed"
+            ]
+          },
+          "right": {
+            "label": "vs other 4xx",
+            "items": [
+              "401 = no/bad auth",
+              "403 = auth OK, not allowed",
+              "404 = URI does not exist",
+              "429 = rate limited"
+            ]
+          }
+        }
+      },
       "hack": {
         "memory": "400 = YOUR payload is garbage. 401 = WHO are you? 403 = you are known, BUT not allowed. 404 = not here. Fix 400 by fixing the JSON body; fix 401 by fixing the token; fix 403 by asking for permission; fix 404 by fixing the URL.",
         "practice": "POST to jsonplaceholder/posts with body '{\"title\": unquoted}' — malformed JSON triggers 400. Now POST to a real API with missing required fields — same 400. Get a feel for which mistakes the server catches.",
@@ -165,7 +374,20 @@
       "term": "401 Unauthorized",
       "weight": "high",
       "info": "<p><strong>401 Unauthorized</strong> is misnamed — it actually means <em>unauthenticated</em>. The server does not know who you are because you did not send credentials, or the ones you sent are invalid/expired.</p><p>Typical causes:</p><ul><li>No <code>Authorization</code> header at all</li><li>Bearer token has expired</li><li>API key is wrong or revoked</li><li>Basic Auth with wrong username/password</li><li>OAuth token is malformed</li></ul><pre>HTTP/1.1 401 Unauthorized\nWWW-Authenticate: Bearer realm=\"api\"\nContent-Type: application/json\n\n{\"error\": \"invalid_token\", \"error_description\": \"Token expired\"}</pre><p>The <code>WWW-Authenticate</code> response header tells the client what authentication scheme the server expects.</p><p><strong>Fix workflow when you hit 401:</strong> (1) verify the token is present on the request, (2) verify it is the right token (often there are separate dev/prod tokens), (3) verify it has not expired, (4) re-run the auth flow to get a fresh token. A 401 is almost never a code bug — it is a credentials problem.</p><p><strong>Common confusion:</strong> 401 vs 403. If you sent no token → 401. If you sent a token that is valid but lacks permission for this resource → 403.</p>",
-      "visual": { "type": "state-machine", "params": { "states": ["Request sent", "Token missing/expired?", "401 Unauthorized", "Client refreshes token", "Retry with new token"], "active": 2, "transitions": true } },
+      "visual": {
+        "type": "state-machine",
+        "params": {
+          "states": [
+            "Request sent",
+            "Token missing/expired?",
+            "401 Unauthorized",
+            "Client refreshes token",
+            "Retry with new token"
+          ],
+          "active": 2,
+          "transitions": true
+        }
+      },
       "hack": {
         "memory": "401 = 'I don't know you.' Not authenticated. First things to check: is the Authorization header on the request? Is the token expired? (Decode the JWT at jwt.io and look at 'exp'.) Do not refactor code before checking these.",
         "practice": "Hit any token-protected API without a token — instant 401. Add an expired token — 401 again. Add a fresh token — 200. Three runs, three auth states, one lesson.",
@@ -178,7 +400,29 @@
       "term": "403 Forbidden",
       "weight": "high",
       "info": "<p><strong>403 Forbidden</strong> means the server understood the request and knows who you are, but you are <em>not allowed</em> to perform this action on this resource. Authentication succeeded; authorization failed.</p><p>Typical causes:</p><ul><li>Your token is for a read-only role, but you tried to POST/PUT/DELETE</li><li>The resource is in a tenant/organization you do not have access to</li><li>Role-Based Access Control (RBAC) policy denies the action</li><li>The resource is deliberately locked (e.g., a protected admin account)</li></ul><pre>HTTP/1.1 403 Forbidden\nContent-Type: application/json\n\n{\"error\": \"insufficient_scope\", \"required_role\": \"admin\"}</pre><p><strong>Why the distinction from 401 matters:</strong> on a 403, re-authenticating will NOT help — your credentials are fine, they just lack the needed permission. You need an admin to grant additional scope/role, or you need to use a different resource. Retrying the call is useless.</p><p><strong>Exam-classic contrast:</strong> 401 = 'prove who you are again' (re-auth may fix). 403 = 'you have been seen and denied' (re-auth will not fix).</p>",
-      "visual": { "type": "comparison", "params": { "left": { "label": "401 Unauthorized", "items": ["Not authenticated", "Token missing/expired", "Fix: refresh token", "Retry can succeed"] }, "right": { "label": "403 Forbidden", "items": ["Authenticated but not allowed", "RBAC/scope denies", "Fix: get more permission", "Retry will fail identically"] } } },
+      "visual": {
+        "type": "comparison",
+        "params": {
+          "left": {
+            "label": "401 Unauthorized",
+            "items": [
+              "Not authenticated",
+              "Token missing/expired",
+              "Fix: refresh token",
+              "Retry can succeed"
+            ]
+          },
+          "right": {
+            "label": "403 Forbidden",
+            "items": [
+              "Authenticated but not allowed",
+              "RBAC/scope denies",
+              "Fix: get more permission",
+              "Retry will fail identically"
+            ]
+          }
+        }
+      },
       "hack": {
         "memory": "401 = 'I don't know you.' 403 = 'I know you, and NO.' 403 is the bouncer who recognizes your face from last time but you are still not on the list. Refreshing your ID won't help — you need to talk to the owner.",
         "practice": "Create a read-only API key and try a POST — you will see 403. Using a full-access key gives 200/201. The same request body, same URL, same verb — just the scope of the key changes.",
@@ -191,7 +435,26 @@
       "term": "404 Not Found",
       "weight": "high",
       "info": "<p><strong>404 Not Found</strong> means the requested URI does not correspond to any resource on this server. Either the resource never existed, was deleted, or you typed the URL wrong.</p><pre>GET /api/v1/devices/999999 HTTP/1.1\n\nHTTP/1.1 404 Not Found\nContent-Type: application/json\n\n{\"error\": \"device 999999 not found\"}</pre><p><strong>Common causes:</strong></p><ul><li>Typo in URL: <code>/devces/42</code> instead of <code>/devices/42</code></li><li>Wrong API version: calling <code>/api/v1/...</code> on a server that only exposes <code>/api/v2/...</code></li><li>Resource ID does not exist (device was deleted, or never existed)</li><li>Case mismatch: some APIs treat <code>/Devices</code> and <code>/devices</code> differently</li></ul><p><strong>404 vs 403 — a subtle security choice:</strong> some APIs return 404 instead of 403 when a resource exists but you lack access, so attackers cannot probe for the existence of sensitive IDs. If you hit a resource you know should exist and you get 404, check whether you have permission.</p><p><strong>A 404 after a DELETE</strong> is normal and harmless — the resource is gone, which is exactly what you wanted. DELETE is idempotent: the second call 404s but the world is in the intended state.</p>",
-      "visual": { "type": "hierarchy", "params": { "root": "Got 404?", "children": [{ "name": "Typo in URI path" }, { "name": "Wrong API version (/v1 vs /v2)" }, { "name": "Resource does not exist" }, { "name": "Hidden-by-permission (stealth 403)" }] } },
+      "visual": {
+        "type": "hierarchy",
+        "params": {
+          "root": "Got 404?",
+          "children": [
+            {
+              "name": "Typo in URI path"
+            },
+            {
+              "name": "Wrong API version (/v1 vs /v2)"
+            },
+            {
+              "name": "Resource does not exist"
+            },
+            {
+              "name": "Hidden-by-permission (stealth 403)"
+            }
+          ]
+        }
+      },
       "hack": {
         "memory": "404 = the URL points at nothing. Your fault (wrong path) or the server's history (thing got deleted). Compare with the typo in your URL first. Then check the ID actually exists.",
         "practice": "GET https://jsonplaceholder.typicode.com/posts/999999 — instant 404. GET /postz/1 — also 404. One-minute exercise to feel how 404 manifests.",
@@ -204,7 +467,31 @@
       "term": "500 Internal Server Error",
       "weight": "high",
       "info": "<p><strong>500 Internal Server Error</strong> is the generic 'something broke on OUR side' response. The request was valid, but the server crashed, threw an unhandled exception, or otherwise failed to complete the work.</p><pre>HTTP/1.1 500 Internal Server Error\nContent-Type: application/json\n\n{\"error\": \"internal error\", \"request_id\": \"abc123\"}</pre><p><strong>Causes you cannot fix as a client:</strong></p><ul><li>Unhandled exception in server code</li><li>Database connection dropped</li><li>Dependency service is down</li><li>Bug in the API implementation</li></ul><p><strong>What to do when you hit 500:</strong> (1) capture the <code>request_id</code> if the server returned one, (2) retry with exponential backoff (500s are sometimes transient), (3) if it persists, open a ticket with the API provider and include the request_id. Do not keep hammering — you will be rate-limited or locked out.</p><p><strong>Related 5xx codes:</strong></p><ul><li><strong>502 Bad Gateway</strong> — an upstream server returned an invalid response (often a load balancer issue).</li><li><strong>503 Service Unavailable</strong> — server is temporarily down (maintenance, overload). Usually includes a <code>Retry-After</code> header.</li><li><strong>504 Gateway Timeout</strong> — upstream did not respond in time.</li></ul><p><strong>5xx vs 4xx is the most-tested distinction on the CCNA.</strong> 5xx = server problem, client cannot fix by changing the request. 4xx = client problem, the request itself is wrong.</p>",
-      "visual": { "type": "comparison", "params": { "left": { "label": "4xx (client fault)", "items": ["400 Bad Request", "401 Unauthorized", "403 Forbidden", "404 Not Found", "Fix by changing request"] }, "right": { "label": "5xx (server fault)", "items": ["500 Internal Server Error", "502 Bad Gateway", "503 Service Unavailable", "504 Gateway Timeout", "Client cannot fix; retry or escalate"] } } },
+      "visual": {
+        "type": "comparison",
+        "params": {
+          "left": {
+            "label": "4xx (client fault)",
+            "items": [
+              "400 Bad Request",
+              "401 Unauthorized",
+              "403 Forbidden",
+              "404 Not Found",
+              "Fix by changing request"
+            ]
+          },
+          "right": {
+            "label": "5xx (server fault)",
+            "items": [
+              "500 Internal Server Error",
+              "502 Bad Gateway",
+              "503 Service Unavailable",
+              "504 Gateway Timeout",
+              "Client cannot fix; retry or escalate"
+            ]
+          }
+        }
+      },
       "hack": {
         "memory": "500 = five-alarm fire on the server. Not your fault. Retry with backoff; if persistent, open a ticket. 4xx = you broke it. 5xx = they broke it.",
         "practice": "Most APIs do not let you trigger 500 on demand, but you can simulate with a local Flask app that raises an exception — curl returns 500. Watch the server log for the stack trace that the client never sees.",
@@ -217,7 +504,19 @@
       "term": "4xx vs 5xx",
       "weight": "high",
       "info": "<p>The single-digit rule of HTTP status codes: the <strong>first digit is the category</strong>. Get this right and you have solved 80% of the exam's status-code questions.</p><ul><li><strong>1xx — Informational</strong> — rare; 100 Continue, 101 Switching Protocols. Not on the CCNA.</li><li><strong>2xx — Success</strong> — 200, 201, 204. The request worked.</li><li><strong>3xx — Redirection</strong> — 301, 302, 304. Try another URL or use your cache.</li><li><strong>4xx — Client Error</strong> — YOUR fault. 400, 401, 403, 404, 405, 409, 429. Fix the request.</li><li><strong>5xx — Server Error</strong> — THEIR fault. 500, 502, 503, 504. Retry or escalate.</li></ul><p><strong>Diagnostic flow when an API call fails:</strong></p><ul><li>First digit is 4? → look at YOUR request (headers, body, URL, token, permissions).</li><li>First digit is 5? → look at the SERVER (retry with backoff, check status page, open ticket).</li><li>First digit is 3? → follow the redirect or update your cached URL.</li></ul><p>This triage saves hours. Engineers who do not internalize 4xx-vs-5xx spend time refactoring client code on server outages, or escalating to vendors on their own payload bugs.</p>",
-      "visual": { "type": "layer-stack", "params": { "layers": ["1xx informational (rare)", "2xx success — good", "3xx redirect — follow", "4xx client error — your fault", "5xx server error — their fault"], "highlight": 3 } },
+      "visual": {
+        "type": "layer-stack",
+        "params": {
+          "layers": [
+            "1xx informational (rare)",
+            "2xx success — good",
+            "3xx redirect — follow",
+            "4xx client error — your fault",
+            "5xx server error — their fault"
+          ],
+          "highlight": 3
+        }
+      },
       "hack": {
         "memory": "FIRST DIGIT IS THE CATEGORY. 2 = good. 3 = go elsewhere. 4 = FOUR-bidden (your fault). 5 = FIVE-alarm (their fault). One glance at the first digit tells you where to look next.",
         "practice": "Make a list of 10 status codes from API logs. Group them by first digit without looking up meanings. Practice until it is automatic — then look up the specifics only for codes you do not recognize.",
@@ -232,7 +531,20 @@
       "term": "API key",
       "weight": "high",
       "info": "<p>An <strong>API key</strong> is a long random string issued by the server that identifies the calling application. It is the simplest form of REST authentication — no sessions, no tokens to refresh, no OAuth dance. You send the key on every request; the server looks it up and either allows or denies.</p><p>Two common delivery methods:</p><ul><li><strong>Custom HTTP header</strong> (preferred): <code>X-API-Key: abcdef1234567890</code></li><li><strong>Query string parameter</strong> (easier but less safe — keys land in server access logs): <code>?api_key=abcdef1234567890</code></li></ul><pre>GET /api/v1/devices HTTP/1.1\nHost: api.meraki.com\nX-Cisco-Meraki-API-Key: 1a2b3c4d5e6f7890</pre><p><strong>Strengths:</strong></p><ul><li>Dead simple to implement on client and server.</li><li>No expiration unless you rotate — good for server-to-server calls in automation.</li><li>Widely supported by public APIs (GitHub, OpenWeather, Meraki Dashboard).</li></ul><p><strong>Weaknesses:</strong></p><ul><li>Key = password. If it leaks, anyone can use it until you rotate.</li><li>Usually no expiration, no scopes, no per-user identity — the key identifies the <em>app</em>, not the user.</li><li>Must be sent over HTTPS (otherwise a passive sniffer steals it).</li></ul><p><strong>Best practices:</strong> store in environment variables or secret manager (never in code), rotate regularly, scope keys to minimum privilege, and revoke immediately if leaked.</p>",
-      "visual": { "type": "handshake", "params": { "leftLabel": "Client", "rightLabel": "API Server", "steps": ["GET /api/v1/devices", "X-API-Key: abc123...", "Server looks up key", "Key valid & scope OK", "200 OK + JSON"] } },
+      "visual": {
+        "type": "handshake",
+        "params": {
+          "leftLabel": "Client",
+          "rightLabel": "API Server",
+          "steps": [
+            "GET /api/v1/devices",
+            "X-API-Key: abc123...",
+            "Server looks up key",
+            "Key valid & scope OK",
+            "200 OK + JSON"
+          ]
+        }
+      },
       "hack": {
         "memory": "API key = library card. One string, no expiration, identifies the app. Treat like a password. Send in header X-API-Key, never in the URL if you can avoid it. Leak = rotate immediately.",
         "practice": "Sign up for Meraki Dashboard API, grab your key, curl https://api.meraki.com/api/v1/organizations with header 'X-Cisco-Meraki-API-Key: <key>'. Two-minute win that makes API keys concrete.",
@@ -245,7 +557,22 @@
       "term": "Bearer token",
       "weight": "high",
       "info": "<p>A <strong>Bearer token</strong> is an access credential (often a JWT — JSON Web Token) that the client obtains through an authentication flow and then presents on every subsequent request. 'Bearer' means 'whoever holds this token is granted access' — the server does not require additional proof of identity; possession is authorization.</p><p>Sent in the Authorization header:</p><pre>GET /api/v1/devices HTTP/1.1\nAuthorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IlJvbWVvIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c</pre><p><strong>Typical flow:</strong></p><ul><li>Client POSTs username/password (or client credentials) to <code>/auth/token</code>.</li><li>Server returns a JWT bearer token with an expiry (usually 15 minutes to 1 hour).</li><li>Client includes <code>Authorization: Bearer &lt;token&gt;</code> on every API call.</li><li>When the token expires, the client uses a <strong>refresh token</strong> (long-lived) to get a new access token.</li></ul><p><strong>Why Bearer tokens beat API keys:</strong></p><ul><li>Short-lived — leak window is minutes, not forever.</li><li>Self-contained — JWTs carry user ID, roles, and scopes, so the server does not need to hit a DB for every call.</li><li>Works cleanly with OAuth 2.0 and OIDC flows.</li></ul><p><strong>Exam pattern:</strong> see <code>Authorization: Bearer ...</code> in a header? That is a bearer token. It is the most common auth scheme in modern enterprise REST APIs, including Cisco DNA Center.</p>",
-      "visual": { "type": "handshake", "params": { "leftLabel": "Client", "rightLabel": "Server", "steps": ["POST /auth/token + creds", "200 + access_token + refresh_token", "GET /api/v1/devices", "Authorization: Bearer <token>", "200 OK + JSON", "(token expires)", "POST /auth/refresh + refresh_token"] } },
+      "visual": {
+        "type": "handshake",
+        "params": {
+          "leftLabel": "Client",
+          "rightLabel": "Server",
+          "steps": [
+            "POST /auth/token + creds",
+            "200 + access_token + refresh_token",
+            "GET /api/v1/devices",
+            "Authorization: Bearer <token>",
+            "200 OK + JSON",
+            "(token expires)",
+            "POST /auth/refresh + refresh_token"
+          ]
+        }
+      },
       "hack": {
         "memory": "Bearer token = security badge with expiration. Whoever has it is in — so do NOT leak it. Header: Authorization: Bearer <long-string>. Refreshable. Short-lived. Most common enterprise REST auth.",
         "practice": "DNA Center always-on sandbox: POST /dna/system/api/v1/auth/token with Basic auth to get a token, then use Authorization: Bearer <token> on /dna/intent/api/v1/network-device. Two-step flow teaches you the whole bearer pattern.",
@@ -258,7 +585,20 @@
       "term": "OAuth 2.0",
       "weight": "high",
       "info": "<p><strong>OAuth 2.0</strong> is an authorization framework (RFC 6749) that lets a user grant a third-party application limited access to their resources <em>without sharing their password</em>. It is not an authentication protocol per se — it issues access tokens that API servers then trust.</p><p><strong>The key idea — delegation:</strong> instead of pasting your Google password into a third-party app, the app redirects you to Google's login, you authenticate there, Google asks 'do you allow this app to read your calendar?', and if you click Allow, Google issues a scoped access token that the app uses on your behalf. Your password never touches the third party.</p><p><strong>Core concepts:</strong></p><ul><li><strong>Resource Owner</strong> — the end user who owns the data.</li><li><strong>Client</strong> — the app that wants access.</li><li><strong>Authorization Server</strong> — issues tokens (Google, Okta, Azure AD).</li><li><strong>Resource Server</strong> — the API that holds the data and accepts the tokens.</li><li><strong>Access Token</strong> — short-lived (minutes), used on API calls.</li><li><strong>Refresh Token</strong> — long-lived (days/weeks), used to get new access tokens.</li><li><strong>Scopes</strong> — granular permissions (e.g., <code>read:devices</code>, <code>write:interfaces</code>).</li></ul><p><strong>Grant types (flows):</strong></p><ul><li><strong>Authorization Code</strong> — most common for web apps with a user in the browser.</li><li><strong>Client Credentials</strong> — server-to-server, no user — often used in network automation where a script authenticates as itself.</li><li><strong>Device Code</strong> — CLIs and IoT devices with limited input.</li></ul><p>On the CCNA you do not need to know the grant type details — just know OAuth 2.0 is delegated authorization, uses access + refresh tokens and scopes, and is the gold standard for enterprise APIs.</p>",
-      "visual": { "type": "state-machine", "params": { "states": ["Client → Authorization Server", "User logs in + approves scopes", "Auth server issues access + refresh token", "Client → Resource Server with Bearer access token", "Token expires → refresh flow"], "active": 3, "transitions": true } },
+      "visual": {
+        "type": "state-machine",
+        "params": {
+          "states": [
+            "Client → Authorization Server",
+            "User logs in + approves scopes",
+            "Auth server issues access + refresh token",
+            "Client → Resource Server with Bearer access token",
+            "Token expires → refresh flow"
+          ],
+          "active": 3,
+          "transitions": true
+        }
+      },
       "hack": {
         "memory": "OAuth 2.0 = company SSO with permission slips. You never give the app your password — you tell Google/Okta 'let this app do X and Y on my behalf.' Scopes = what the app can do. Refresh token = pass for getting new access tokens. Most secure and most complex.",
         "practice": "Sign into any app 'with Google' or 'with GitHub.' That redirect + consent screen + 'logged in' is OAuth 2.0 authorization code flow. You just ran it. Look at the URL during the redirect — you will see client_id, scope, redirect_uri, state — the OAuth vocabulary in the wild.",
@@ -271,7 +611,31 @@
       "term": "Basic Auth",
       "weight": "med",
       "info": "<p><strong>HTTP Basic Authentication</strong> is the oldest and simplest auth scheme: username and password are base64-encoded and sent in the <code>Authorization</code> header on every request.</p><pre>GET /api/v1/devices HTTP/1.1\nAuthorization: Basic cm9tZW86c3VwZXJzZWNyZXQ=</pre><p>Decode <code>cm9tZW86c3VwZXJzZWNyZXQ=</code> with base64 → <code>romeo:supersecret</code>. That is the entire security — reversible encoding, not encryption.</p><p><strong>Critical safety rule: Basic Auth MUST be used over HTTPS.</strong> Over plain HTTP, anyone sniffing the wire sees your password in seconds. Base64 is not encryption, it is just a text-safe representation of binary.</p><p><strong>Where you still see Basic Auth:</strong></p><ul><li>Cisco DNA Center's initial token-request endpoint (<code>POST /dna/system/api/v1/auth/token</code>) — you Basic-Auth once to get a bearer token, then use the bearer for every call after.</li><li>Legacy enterprise gear.</li><li>Internal tools where simplicity beats token infrastructure.</li></ul><p><strong>Weaknesses vs Bearer/OAuth:</strong></p><ul><li>No expiration — credentials valid until you change the password.</li><li>No scope — full account access or nothing.</li><li>Password on every request — bigger leak blast radius.</li></ul><p>On the CCNA, recognize the pattern <code>Authorization: Basic &lt;base64&gt;</code> and know it must be paired with HTTPS. It is a 'know it exists, do not use it as your primary auth in 2026' item.</p>",
-      "visual": { "type": "comparison", "params": { "left": { "label": "Basic Auth", "items": ["Authorization: Basic <base64>", "username:password encoded", "No expiration", "No scopes", "MUST use HTTPS"] }, "right": { "label": "Bearer Token", "items": ["Authorization: Bearer <token>", "Short-lived JWT", "Refreshable", "Scoped", "Modern default"] } } },
+      "visual": {
+        "type": "comparison",
+        "params": {
+          "left": {
+            "label": "Basic Auth",
+            "items": [
+              "Authorization: Basic <base64>",
+              "username:password encoded",
+              "No expiration",
+              "No scopes",
+              "MUST use HTTPS"
+            ]
+          },
+          "right": {
+            "label": "Bearer Token",
+            "items": [
+              "Authorization: Bearer <token>",
+              "Short-lived JWT",
+              "Refreshable",
+              "Scoped",
+              "Modern default"
+            ]
+          }
+        }
+      },
       "hack": {
         "memory": "Basic Auth = base64(user:pass) in the Authorization header. Base64 is NOT encryption — it is reversible encoding. Use HTTPS or your password leaks instantly. DNA Center uses it ONLY to bootstrap the token flow, then switches to Bearer.",
         "practice": "echo -n 'romeo:supersecret' | base64 → cm9tZW86c3VwZXJzZWNyZXQ=. Now echo cm9tZW86c3VwZXJzZWNyZXQ= | base64 -d → romeo:supersecret. That 20-second experiment makes 'base64 is not encryption' unforgettable.",
@@ -286,7 +650,28 @@
       "term": "JSON",
       "weight": "high",
       "info": "<p><strong>JSON (JavaScript Object Notation)</strong> is a lightweight, text-based data format derived from JavaScript object literals. It is the default wire format for nearly every modern REST API, SDN controller, and cloud service.</p><p><strong>Why JSON won:</strong></p><ul><li>Human-readable — you can open a JSON response and understand it without tools.</li><li>Compact — less overhead than XML (no closing tags, no schemas required).</li><li>Language-agnostic — every modern language has a built-in JSON parser.</li><li>Maps cleanly to in-memory data structures: objects to dicts/hashes, arrays to lists.</li></ul><p>Minimal structure:</p><pre>{\n  \"hostname\": \"SW1\",\n  \"vlans\": [10, 20, 30],\n  \"managed\": true\n}</pre><p><strong>Two container types:</strong> objects in <code>{ }</code> and arrays in <code>[ ]</code>. Six value types: string, number, boolean, null, object, array. (Topic 6.7 drills into these.)</p><p><strong>Where you will see JSON in networking:</strong></p><ul><li>DNA Center intent API responses.</li><li>Meraki Dashboard API — both requests and responses.</li><li>Catalyst SD-WAN vManage REST API.</li><li>Device telemetry streamed via HTTP/gRPC.</li><li>Almost every cloud management API (AWS, GCP, Azure).</li></ul><p>On the CCNA, JSON is the primary data-format focus. XML and YAML appear as contrast points.</p>",
-      "visual": { "type": "comparison", "params": { "left": { "label": "JSON", "items": ["{ } and [ ]", "Human-readable", "Light on syntax", "Default REST body format"] }, "right": { "label": "Why not XML/YAML?", "items": ["XML verbose, legacy (NETCONF)", "YAML great for configs, rare on wire", "JSON is the REST winner"] } } },
+      "visual": {
+        "type": "comparison",
+        "params": {
+          "left": {
+            "label": "JSON",
+            "items": [
+              "{ } and [ ]",
+              "Human-readable",
+              "Light on syntax",
+              "Default REST body format"
+            ]
+          },
+          "right": {
+            "label": "Why not XML/YAML?",
+            "items": [
+              "XML verbose, legacy (NETCONF)",
+              "YAML great for configs, rare on wire",
+              "JSON is the REST winner"
+            ]
+          }
+        }
+      },
       "hack": {
         "memory": "JSON = JavaScript Object Notation. { } = objects (key:value pairs). [ ] = arrays (ordered lists). The REST wire format. If you see curly braces and quoted keys, it is JSON.",
         "practice": "curl -s https://jsonplaceholder.typicode.com/posts/1 | jq. You will see colored JSON in the terminal. That is the format 95% of modern APIs use.",
@@ -299,7 +684,29 @@
       "term": "XML",
       "weight": "high",
       "info": "<p><strong>XML (eXtensible Markup Language)</strong> is an older, verbose, tag-based data format. In networking, XML survives in two important places: <strong>NETCONF</strong> (network configuration protocol, RFC 6241) and legacy SOAP APIs.</p><p>Same device data in XML:</p><pre>&lt;device&gt;\n  &lt;hostname&gt;SW1&lt;/hostname&gt;\n  &lt;vlans&gt;\n    &lt;vlan&gt;10&lt;/vlan&gt;\n    &lt;vlan&gt;20&lt;/vlan&gt;\n  &lt;/vlans&gt;\n  &lt;managed&gt;true&lt;/managed&gt;\n&lt;/device&gt;</pre><p>Compare to JSON — XML is 2-3x more bytes and harder to read. But XML has strengths: it supports schemas (XSD) for strict validation, namespaces for federated data models, and the YANG+NETCONF ecosystem uses it for a reason.</p><p><strong>XML visual signature:</strong> angle-bracket tags like HTML. If you see <code>&lt;hostname&gt;SW1&lt;/hostname&gt;</code>, it is XML. Self-closing tags and attributes like <code>&lt;vlan id=\"10\"/&gt;</code> also hint at XML.</p><p><strong>Where you will see XML in networking:</strong></p><ul><li>NETCONF payloads (Cisco IOS-XE, IOS-XR, NX-OS support NETCONF).</li><li>SOAP APIs on older systems.</li><li>Legacy CMDB tools.</li></ul><p>On the CCNA, memorize: <strong>XML = angle brackets, tag-based, used by NETCONF</strong>. You do not need to parse it, just recognize it.</p>",
-      "visual": { "type": "comparison", "params": { "left": { "label": "XML", "items": ["<tag>value</tag>", "Verbose, schema-friendly", "NETCONF + SOAP", "Harder to read than JSON"] }, "right": { "label": "JSON", "items": ["{\"key\":\"value\"}", "Compact, REST default", "Most cloud + SDN APIs", "Easier to read"] } } },
+      "visual": {
+        "type": "comparison",
+        "params": {
+          "left": {
+            "label": "XML",
+            "items": [
+              "<tag>value</tag>",
+              "Verbose, schema-friendly",
+              "NETCONF + SOAP",
+              "Harder to read than JSON"
+            ]
+          },
+          "right": {
+            "label": "JSON",
+            "items": [
+              "{\"key\":\"value\"}",
+              "Compact, REST default",
+              "Most cloud + SDN APIs",
+              "Easier to read"
+            ]
+          }
+        }
+      },
       "hack": {
         "memory": "XML = X-tremely angle-bracket happy. NETCONF = XML over SSH port 830. SOAP = XML over HTTP. Recognize the <tag> pattern instantly. Verbose but strict.",
         "practice": "Open any NETCONF tutorial and look at a <rpc> payload — full of <edit-config>, <target>, <running/> tags. That is the XML world you need to identify but not author.",
@@ -312,7 +719,29 @@
       "term": "YAML",
       "weight": "high",
       "info": "<p><strong>YAML (YAML Ain't Markup Language)</strong> is an indentation-based, human-friendly data format. It is a strict superset of JSON — every valid JSON document is valid YAML — but in practice YAML uses its own cleaner syntax. YAML is everywhere in config-as-code: Ansible playbooks, Docker Compose files, Kubernetes manifests, GitHub Actions workflows.</p><p>Same device data in YAML:</p><pre>hostname: SW1\nvlans:\n  - 10\n  - 20\n  - 30\nmanaged: true</pre><p>Notice: no braces, no quotes on keys, indentation does the grouping. Lists use <code>-</code> prefixes.</p><p><strong>Strengths:</strong></p><ul><li>Most human-readable of the three formats.</li><li>Supports comments with <code>#</code> (JSON does not).</li><li>Trivially diff-able in git — each item on its own line.</li></ul><p><strong>Gotchas:</strong></p><ul><li>Indentation matters — <strong>spaces only, no tabs</strong>. Mixed indentation breaks parsers.</li><li>Certain unquoted values auto-cast surprisingly: <code>no</code> becomes the boolean false, <code>version: 1.10</code> becomes the number 1.1 (trailing zero lost). Quote them if precision matters.</li><li>Parser-dependent edge cases — use <code>yamllint</code> and explicit quoting in production.</li></ul><p><strong>Where you will see YAML in networking:</strong> Ansible playbooks, inventories, and roles; Cisco NSO configs; most modern CI/CD pipelines. On the CCNA: <strong>YAML = indentation-based, used by Ansible</strong>.</p>",
-      "visual": { "type": "comparison", "params": { "left": { "label": "YAML (Ansible)", "items": ["Indentation-based", "# comments allowed", "Lists with - prefix", "Superset of JSON"] }, "right": { "label": "JSON (REST)", "items": ["Braces + brackets", "No comments allowed", "Strict punctuation", "Default REST wire format"] } } },
+      "visual": {
+        "type": "comparison",
+        "params": {
+          "left": {
+            "label": "YAML (Ansible)",
+            "items": [
+              "Indentation-based",
+              "# comments allowed",
+              "Lists with - prefix",
+              "Superset of JSON"
+            ]
+          },
+          "right": {
+            "label": "JSON (REST)",
+            "items": [
+              "Braces + brackets",
+              "No comments allowed",
+              "Strict punctuation",
+              "Default REST wire format"
+            ]
+          }
+        }
+      },
       "hack": {
         "memory": "YAML = 'whitespace is the syntax.' No braces, no angle brackets. Indent to nest. Dashes for lists. # for comments. If an Ansible playbook's opening line is '---', that is YAML announcing itself.",
         "practice": "Write an Ansible playbook with 3 tasks. Notice: no braces, no semicolons, just indentation. Break indentation on purpose — ansible-playbook errors immediately. Whitespace is the structure.",
@@ -325,7 +754,23 @@
       "term": "Identify by sight",
       "weight": "high",
       "info": "<p>On the exam you will be shown a code snippet and asked 'what format is this?' The first character usually tells you:</p><ul><li><strong>Starts with <code>{</code> or <code>[</code></strong> — JSON. Quoted keys, colons, commas.</li><li><strong>Starts with <code>&lt;</code></strong> — XML. Angle-bracket tags, sometimes an <code>&lt;?xml version=\"1.0\"?&gt;</code> prolog.</li><li><strong>Starts with <code>---</code> or an unquoted key like <code>hostname:</code></strong> — YAML. Indented structure, no braces.</li></ul><p>Mini drills — identify the format:</p><pre>(1)  {\"hostname\":\"SW1\",\"vlans\":[10,20]}\n(2)  &lt;device&gt;&lt;hostname&gt;SW1&lt;/hostname&gt;&lt;/device&gt;\n(3)  hostname: SW1\n     vlans:\n       - 10\n       - 20</pre><p>Answers: (1) JSON — curly braces, quoted keys. (2) XML — angle-bracket tags. (3) YAML — indentation, dash-prefixed list.</p><p><strong>Format-to-tool mapping (memorize):</strong></p><ul><li>JSON → REST APIs (DNA Center, Meraki, vManage, cloud).</li><li>XML → NETCONF (on IOS-XE, IOS-XR, NX-OS), SOAP.</li><li>YAML → Ansible, Docker Compose, Kubernetes, GitHub Actions.</li></ul><p>You will not be asked to hand-write any of these, but instant format recognition is an easy, guaranteed point on the exam.</p>",
-      "visual": { "type": "hierarchy", "params": { "root": "First character?", "children": [{ "name": "{ or [ → JSON (REST)" }, { "name": "< → XML (NETCONF/SOAP)" }, { "name": "--- or unquoted key: → YAML (Ansible)" }] } },
+      "visual": {
+        "type": "hierarchy",
+        "params": {
+          "root": "First character?",
+          "children": [
+            {
+              "name": "{ or [ → JSON (REST)"
+            },
+            {
+              "name": "< → XML (NETCONF/SOAP)"
+            },
+            {
+              "name": "--- or unquoted key: → YAML (Ansible)"
+            }
+          ]
+        }
+      },
       "hack": {
         "memory": "One glance identifies the format. { = JSON. < = XML. Plain words with indentation = YAML. Pair them with tools: JSON→REST, XML→NETCONF, YAML→Ansible. That's the full exam mapping.",
         "practice": "Screenshot 10 snippets from real docs (Meraki JSON, NETCONF XML examples, Ansible playbooks) and flash-card them. Under 2 seconds per snippet. Format ID is a free point.",
@@ -340,7 +785,18 @@
       "term": "API call format",
       "weight": "high",
       "info": "<p>Every REST API call has the same four ingredients. If you can identify them in any snippet, you can read any REST API documentation in the world.</p><ol><li><strong>HTTP verb</strong> — what to do: GET, POST, PUT, PATCH, DELETE.</li><li><strong>URI</strong> — which resource: <code>https://dnac.example.com/dna/intent/api/v1/network-device/42</code>.</li><li><strong>Headers</strong> — metadata: <code>Authorization: Bearer ...</code>, <code>Content-Type: application/json</code>, <code>Accept: application/json</code>.</li><li><strong>Body</strong> — payload (POST/PUT/PATCH only): JSON representation of the resource.</li></ol><p><strong>Full example — create a device in DNA Center:</strong></p><pre>POST /dna/intent/api/v1/network-device HTTP/1.1\nHost: dnac.example.com\nAuthorization: Bearer eyJhbGciOi...\nContent-Type: application/json\nAccept: application/json\n\n{\n  \"ipAddress\": [\"10.0.0.5\"],\n  \"snmpVersion\": \"v2\",\n  \"snmpROCommunity\": \"public\",\n  \"cliTransport\": \"ssh\"\n}</pre><p>The response follows the same four-part shape: status line (<code>HTTP/1.1 202 Accepted</code>), headers (<code>Content-Type: application/json</code>, <code>Location: /task/abc123</code>), and body (JSON with a task ID to poll).</p><p><strong>Key headers to remember:</strong></p><ul><li><code>Content-Type: application/json</code> — describes the body you are SENDING.</li><li><code>Accept: application/json</code> — describes the format you WANT BACK.</li><li><code>Authorization: Bearer ...</code> — who you are.</li></ul><p>On the exam you may be handed a snippet and asked to pick out the verb, the URI, or what action the call performs. Practice until you can dissect any REST call in under 5 seconds.</p>",
-      "visual": { "type": "layer-stack", "params": { "layers": ["HTTP verb (GET/POST/PUT/PATCH/DELETE)", "URI — which resource", "Headers — Auth, Content-Type, Accept", "Body — JSON payload (write verbs)"], "highlight": 0 } },
+      "visual": {
+        "type": "layer-stack",
+        "params": {
+          "layers": [
+            "HTTP verb (GET/POST/PUT/PATCH/DELETE)",
+            "URI — which resource",
+            "Headers — Auth, Content-Type, Accept",
+            "Body — JSON payload (write verbs)"
+          ],
+          "highlight": 0
+        }
+      },
       "hack": {
         "memory": "Verb + URI + Headers + Body = any REST call. Verb = what. URI = which. Headers = how/who. Body = with-what-data. Four-part recipe, no exceptions.",
         "practice": "Open Postman, hit any public API. Look at the four panes: Method (verb), URL (URI), Headers, Body. That UI mirrors the HTTP request on the wire. Dissect five requests this way and the format is second nature.",
@@ -353,12 +809,1257 @@
       "term": "CRUD ↔ HTTP mapping drill",
       "weight": "high",
       "info": "<p><strong>CRUD</strong> (Create, Read, Update, Delete) is the vocabulary of databases and OO programming. <strong>REST</strong> uses HTTP verbs to express the same four operations. The exam tests both directions — CRUD to HTTP and HTTP to CRUD.</p><table><thead><tr><th>CRUD</th><th>HTTP</th><th>Example URI</th><th>Success code</th></tr></thead><tbody><tr><td>Create</td><td>POST</td><td>POST /devices</td><td>201 Created</td></tr><tr><td>Read (list)</td><td>GET</td><td>GET /devices</td><td>200 OK</td></tr><tr><td>Read (one)</td><td>GET</td><td>GET /devices/42</td><td>200 OK</td></tr><tr><td>Update (full)</td><td>PUT</td><td>PUT /devices/42</td><td>200 OK</td></tr><tr><td>Update (partial)</td><td>PATCH</td><td>PATCH /devices/42</td><td>200 OK</td></tr><tr><td>Delete</td><td>DELETE</td><td>DELETE /devices/42</td><td>204 No Content</td></tr></tbody></table><p><strong>Both-ways drill — answer in under 3 seconds:</strong></p><ul><li>'Create a new VLAN' → POST /vlans</li><li>'Retrieve the list of interfaces' → GET /interfaces</li><li>'Replace device 42's config entirely' → PUT /devices/42</li><li>'Rename just one interface' → PATCH /interfaces/Gi0-1</li><li>'Remove an ACL' → DELETE /acls/42</li><li>'GET /vlans' → Read all VLANs</li><li>'POST /routes' → Create a route</li><li>'DELETE /vlans/10' → Remove VLAN 10</li></ul><p><strong>Network automation real example:</strong> DNA Center's intent API uses exactly this mapping. <code>POST /network-device</code> adds a device, <code>GET /network-device/{id}</code> reads it, <code>PUT /network-device</code> updates it, <code>DELETE /network-device/{id}</code> decommissions it. Same CRUD-HTTP mapping everywhere.</p>",
-      "visual": { "type": "comparison", "params": { "left": { "label": "CRUD", "items": ["Create", "Read", "Update (full)", "Update (partial)", "Delete"] }, "right": { "label": "HTTP", "items": ["POST + body", "GET", "PUT + full body", "PATCH + partial body", "DELETE"] } } },
+      "visual": {
+        "type": "comparison",
+        "params": {
+          "left": {
+            "label": "CRUD",
+            "items": [
+              "Create",
+              "Read",
+              "Update (full)",
+              "Update (partial)",
+              "Delete"
+            ]
+          },
+          "right": {
+            "label": "HTTP",
+            "items": [
+              "POST + body",
+              "GET",
+              "PUT + full body",
+              "PATCH + partial body",
+              "DELETE"
+            ]
+          }
+        }
+      },
       "hack": {
         "memory": "CRUD = Create/Read/Update/Delete. HTTP = POST/GET/PUT/DELETE (+ PATCH for partial). Drill until instant: 'Remove a route' = DELETE. 'Rename a host' = PATCH. 'List all devices' = GET.",
         "practice": "Flash-card drill: 20 CRUD phrases on one side, HTTP verbs + URI patterns on the other. Shuffle. Answer each in under 3 seconds. 3 rounds a day for a week = permanent recall.",
         "effort": "low",
         "meta": "Jeremy's IT Lab Day 62. OCG Chapter 30. Both directions (CRUD→HTTP and HTTP→CRUD) are exam-tested. This single drill covers 80% of Domain 6.5's points."
+      }
+    }
+  ],
+  "6.6.a": [
+    {
+      "id": "6.6.a.1",
+      "term": "Ansible",
+      "weight": "high",
+      "info": "<p><strong>Ansible</strong> is an open-source IT automation platform originally created by Michael DeHaan in 2012, acquired by Red Hat in 2015. It has become the most widely deployed configuration-management tool in network automation because of four characteristics that suit networking gear: <strong>agentless, SSH-based, YAML-driven, and idempotent</strong>.</p><p><strong>Agentless</strong> — no daemon needs to run on managed devices. Ansible connects over SSH (for Linux/network OS) or WinRM (for Windows) using existing credentials. On a Cisco IOS box, Ansible simply SSHes in and runs CLI commands through network modules. This is a massive win over Puppet/Chef, which require installing and maintaining an agent on every managed node — a non-starter on most routers/switches.</p><p><strong>Push model</strong> — a human (or CI pipeline) invokes <code>ansible-playbook</code> on the control node, and Ansible pushes tasks out to targets in the inventory. There is no polling and no scheduled reconciliation unless you wrap the tool in cron or AWX. The admin decides exactly when changes happen.</p><p><strong>YAML playbooks</strong> — Ansible's configuration language is pure YAML, not a Turing-complete DSL. Network engineers read it without learning Ruby or Python. The learning curve is days, not weeks.</p><p><strong>Idempotent</strong> — each module is written to check state before changing. If the hostname is already <code>SW1</code>, the <code>ios_config</code> module reports 'ok' and makes no change. This means you can safely re-run playbooks; they converge to the desired state without drift or duplicate operations.</p>",
+      "visual": {
+        "type": "packet-flow",
+        "params": {
+          "nodes": [
+            "Control Node (ansible-playbook)",
+            "SSH / NETCONF",
+            "Managed Network Devices",
+            "Tasks applied idempotently"
+          ],
+          "color": "#ef4444"
+        }
+      },
+      "hack": {
+        "memory": "Ansible = Agentless + SSH + YAML + Push + Idempotent (ASYPI). No agent to install on the router. You push playbooks from a control node. Run twice = same result. Red Hat owns it. THE default config-management tool for networking.",
+        "practice": "On the Cisco DevNet Always-On Sandbox (IOS XE), install Ansible on your laptop, write a one-task playbook that runs 'show version' via ios_command, and point it at the sandbox. Two commands: pip install ansible, ansible-playbook -i inventory.yml play.yml. You are doing network automation in under 10 minutes.",
+        "effort": "medium",
+        "meta": "Jeremy's IT Lab Day 63. OCG Chapter 30. Exam: 'Which automation tool is agentless and uses YAML?' = Ansible. Also know it is push-based and idempotent. Contrast with Puppet/Chef (agent-based, pull)."
+      }
+    },
+    {
+      "id": "6.6.a.2",
+      "term": "Agentless",
+      "weight": "high",
+      "info": "<p><strong>Agentless</strong> means the automation tool does not require any special software running permanently on the managed device. Ansible is the canonical agentless tool — it uses protocols that are already present on virtually every device: <strong>SSH</strong> for Linux and network OS, <strong>WinRM</strong> for Windows, <strong>NETCONF/RESTCONF</strong> for modern network gear.</p><p>Compare the deployment stories:</p><ul><li><strong>Agent-based (Puppet/Chef):</strong> install the agent on 10,000 devices → keep it updated → monitor it → handle agent crashes → deal with OS incompatibility. Each device runs a daemon that phones home every 30 minutes.</li><li><strong>Agentless (Ansible):</strong> have SSH access. That is it. Every Cisco switch and Linux server already accepts SSH. Zero install footprint on managed devices.</li></ul><p><strong>Why this matters for networking specifically:</strong> routers and switches run specialized network operating systems (IOS, IOS-XE, NX-OS, Junos). Most do not allow arbitrary agents to be installed on them — the OS is locked down. Agentless is often the <em>only</em> option for managing network gear.</p><p><strong>Cost and overhead trade-off:</strong> agentless tools typically open a fresh SSH session per task (Ansible mitigates this with SSH ControlPersist and connection pipelining). Agent-based tools avoid that reconnect overhead but pay for it with agent-maintenance cost. For networking, the agentless tradeoff is almost always preferred.</p><p><strong>Exam distinction:</strong> agentless ≠ no authentication. You still need SSH credentials, a bearer token, or an API key. Agentless means no background daemon — it does not mean no auth.</p>",
+      "visual": {
+        "type": "comparison",
+        "params": {
+          "left": {
+            "label": "Agent-based",
+            "items": [
+              "Daemon on every device",
+              "Polls master",
+              "Agent OS compatibility required",
+              "Pull model (Puppet/Chef)"
+            ]
+          },
+          "right": {
+            "label": "Agentless",
+            "items": [
+              "Uses SSH/WinRM/NETCONF",
+              "Nothing installed on device",
+              "Works on locked-down gear",
+              "Push model (Ansible)"
+            ]
+          }
+        }
+      },
+      "hack": {
+        "memory": "Agentless = no extra software on the device. Use what is already there (SSH). Agent = permanent daemon running on the device, phones home, must be maintained. Ansible = agentless. Puppet/Chef = agents.",
+        "practice": "SSH manually into any device you manage. That TCP/22 connection + login = the exact channel Ansible uses. No agent, no new port, no new protocol — just automation of the SSH session you already run by hand.",
+        "effort": "low",
+        "meta": "Jeremy's IT Lab Day 63. OCG Chapter 30. Exam: 'Which tool is agentless?' = Ansible. 'Why is agentless preferred for network automation?' = network OS restricts agents; SSH is universal."
+      }
+    },
+    {
+      "id": "6.6.a.3",
+      "term": "Idempotent",
+      "weight": "high",
+      "info": "<p><strong>Idempotent</strong> means an operation produces the same result no matter how many times it is applied. In Ansible, every well-written module checks current state before making changes: if the device is already in the desired state, the module reports 'ok' and does nothing; if it is not, the module makes the minimum change to get it there.</p><p>Imperative scripting (not idempotent):</p><pre># Bash — bad, imperative\necho \"hostname SW1\" | ssh router \"configure\"\n# Re-run this and... you just re-entered config mode and re-typed. Sometimes benign, sometimes not.</pre><p>Ansible (idempotent):</p><pre># playbook.yml\n- name: Set hostname\n  ios_config:\n    lines: hostname SW1\n# Run 1: PLAY RECAP → changed=1\n# Run 2: PLAY RECAP → ok=1 (no change)\n# Run 100: PLAY RECAP → ok=1 (still no change)</pre><p><strong>Why it matters:</strong></p><ul><li><strong>Safe to retry</strong> — network blip? re-run the playbook; nothing breaks.</li><li><strong>Self-healing</strong> — a human manually changed the hostname back? re-run the playbook; it reverts to <code>SW1</code>.</li><li><strong>Safe CI/CD</strong> — your pipeline can run the same playbook on every push; only drifted devices get touched.</li><li><strong>Explicit change tracking</strong> — Ansible tells you exactly how many tasks were <code>changed</code>, <code>ok</code>, <code>failed</code>. You know the delta.</li></ul><p><strong>Idempotency is not magic</strong> — it is a contract the module authors implement. Some third-party modules are NOT idempotent; check docs or <code>--check</code> mode before trusting a module in production.</p>",
+      "visual": {
+        "type": "state-machine",
+        "params": {
+          "states": [
+            "Run 1 → changed=1",
+            "Run 2 → ok=0 (no-op)",
+            "Run 3 → ok=0 (no-op)",
+            "Manual drift",
+            "Run 4 → changed=1 (re-convergence)"
+          ],
+          "active": 1,
+          "transitions": true
+        }
+      },
+      "hack": {
+        "memory": "Idempotent = re-runnable. First run makes the change; subsequent runs are no-ops. Like calling an elevator — pushing the button 100 times still only summons it once. Same final state.",
+        "practice": "Write a 1-task Ansible playbook. Run it — output shows changed=1. Run it again — output shows changed=0, ok=1. That difference is idempotency in action. Use --check mode to simulate without making changes.",
+        "effort": "low",
+        "meta": "Jeremy's IT Lab Day 63. OCG Chapter 30. Exam: 'Idempotent means ___' = same result no matter how many times applied. Ansible, Puppet, Chef, Terraform — all are designed around idempotency."
+      }
+    },
+    {
+      "id": "6.6.a.4",
+      "term": "Ansible vs Puppet/Chef",
+      "weight": "high",
+      "info": "<p>The three big configuration-management tools differ on four axes that the exam tests directly.</p><table><thead><tr><th>Axis</th><th>Ansible</th><th>Puppet</th><th>Chef</th></tr></thead><tbody><tr><td>Agent</td><td>Agentless (SSH)</td><td>Agent required</td><td>Agent required</td></tr><tr><td>Model</td><td>Push (on-demand)</td><td>Pull (every ~30 min)</td><td>Pull (every ~30 min)</td></tr><tr><td>Language</td><td>YAML (declarative-ish)</td><td>Puppet DSL (declarative)</td><td>Ruby recipes (procedural)</td></tr><tr><td>Networking fit</td><td>Excellent</td><td>Limited (agents rare on switches)</td><td>Limited (same)</td></tr></tbody></table><p><strong>Why Ansible dominates networking:</strong> you cannot (or should not) install a Ruby agent on a Cisco switch. Ansible's SSH-and-YAML approach matches exactly how network engineers already interact with devices.</p><p><strong>Why Puppet/Chef still matter</strong> (for context): they excel at server fleets — Linux boxes running apps that need continuous enforcement. The agent keeps the server in the desired state 24/7 without admin intervention. That is a different problem from 'push a config change to 50 switches during a maintenance window.'</p><p><strong>Push vs pull summary:</strong></p><ul><li><strong>Push</strong> (Ansible) — admin triggers changes. Immediate. Good for 'deploy during the change window.'</li><li><strong>Pull</strong> (Puppet/Chef) — agent polls the master. Continuous. Good for 'enforce this forever, auto-correct drift.'</li></ul><p><strong>Exam angle:</strong> any question asking 'which is agentless / push-based / YAML?' = Ansible. Anything 'pull-based / agent-based / Ruby or DSL' = Puppet or Chef.</p>",
+      "visual": {
+        "type": "comparison",
+        "params": {
+          "left": {
+            "label": "Ansible",
+            "items": [
+              "Agentless (SSH)",
+              "Push model",
+              "YAML",
+              "Great for networking"
+            ]
+          },
+          "right": {
+            "label": "Puppet / Chef",
+            "items": [
+              "Agent-based",
+              "Pull model",
+              "DSL / Ruby",
+              "Great for servers"
+            ]
+          }
+        }
+      },
+      "hack": {
+        "memory": "Ansible = Agentless, Push, YAML — Networking friendly. Puppet/Chef = Agent, Pull, DSL/Ruby — Server-focused. If the question mentions routers/switches, Ansible wins. If it mentions enforcing state on Linux fleets, Puppet/Chef.",
+        "practice": "Make a 3-column table from memory (Ansible/Puppet/Chef × agent/model/language/fit). Fill it blind. Check. Redo until instant.",
+        "effort": "low",
+        "meta": "Jeremy's IT Lab Day 63. OCG Chapter 30. Exam: the three-tool comparison is heavily tested. Know agent-vs-agentless and push-vs-pull cold."
+      }
+    }
+  ],
+  "6.6.b": [
+    {
+      "id": "6.6.b.1",
+      "term": "Inventory",
+      "weight": "high",
+      "info": "<p>The <strong>inventory</strong> is Ansible's list of managed devices — who the playbooks can target. It is the 'address book' of your network automation. Inventories can be a static file (INI or YAML) or dynamic (Python script that queries AWS, NetBox, or a CMDB at runtime).</p><p><strong>INI-style inventory example:</strong></p><pre>[access_switches]\nsw1 ansible_host=10.0.0.1\nsw2 ansible_host=10.0.0.2\nsw3 ansible_host=10.0.0.3\n\n[core_routers]\nr1 ansible_host=10.0.1.1\nr2 ansible_host=10.0.1.2\n\n[cisco_ios:children]\naccess_switches\ncore_routers\n\n[cisco_ios:vars]\nansible_network_os=ios\nansible_user=admin\nansible_connection=network_cli</pre><p>Concepts in play:</p><ul><li><strong>Hosts</strong> — individual devices, often with per-host variables like <code>ansible_host</code>.</li><li><strong>Groups</strong> — bracketed labels (<code>[access_switches]</code>) that let playbooks target multiple hosts at once.</li><li><strong>Group vars</strong> — variables scoped to a group (user, OS, connection type) so you don't repeat yourself per host.</li><li><strong>Group of groups</strong> — <code>[cisco_ios:children]</code> composes multiple groups into a parent for shared variables.</li></ul><p><strong>Dynamic inventories</strong> are the real win in production — a Python plugin queries NetBox (or similar) at runtime and returns the current device list. When you add a new switch to NetBox, Ansible sees it on the next run with zero manual edits.</p><p>You invoke a playbook with <code>-i inventory.yml</code> and target groups with <code>--limit core_routers</code> or <code>--limit '!production'</code>.</p>",
+      "visual": {
+        "type": "hierarchy",
+        "params": {
+          "root": "Inventory",
+          "children": [
+            {
+              "name": "Group: access_switches",
+              "children": [
+                {
+                  "name": "sw1, sw2, sw3"
+                }
+              ]
+            },
+            {
+              "name": "Group: core_routers",
+              "children": [
+                {
+                  "name": "r1, r2"
+                }
+              ]
+            },
+            {
+              "name": "Group: cisco_ios (children of above)",
+              "children": [
+                {
+                  "name": "vars: user, network_os"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "hack": {
+        "memory": "Inventory = who to configure. Hosts + groups. Groups of groups. Vars scoped to host, group, or global. Static file (INI/YAML) or dynamic (Python → NetBox/CMDB). Target with --limit.",
+        "practice": "Create an inventory.yml with 4 hosts in 2 groups. Run 'ansible all -i inventory.yml -m ping' and then 'ansible access_switches -i inventory.yml -m ping'. The --limit targeting is how you stop 'run on all 10,000 switches' accidents.",
+        "effort": "low",
+        "meta": "Jeremy's IT Lab Day 63. OCG Chapter 30. Exam: 'What is an Ansible inventory?' = a list of managed devices organized into groups. Dynamic inventories (via NetBox, cloud APIs) are common in production."
+      }
+    },
+    {
+      "id": "6.6.b.2",
+      "term": "Playbook",
+      "weight": "high",
+      "info": "<p>A <strong>playbook</strong> is a YAML file that defines an ordered sequence of <strong>plays</strong> (targeted task sets) against hosts in the inventory. Playbooks are Ansible's unit of automation — you write them once, check them into git, and re-run them forever.</p><p><strong>Minimal playbook:</strong></p><pre>---\n- name: Configure hostname on access switches\n  hosts: access_switches\n  gather_facts: no\n  connection: network_cli\n  tasks:\n    - name: Set hostname\n      ios_config:\n        lines:\n          - hostname {{ inventory_hostname }}\n\n    - name: Save config\n      ios_command:\n        commands: write memory</pre><p>Structure walkthrough:</p><ul><li><strong>Play</strong> — each <code>- name:</code> item at the top level. Targets a set of hosts with a task list.</li><li><strong>hosts:</strong> — which inventory group to target.</li><li><strong>tasks:</strong> — the ordered list of steps. Each task calls one module with parameters.</li><li><strong>Variables</strong> — <code>{{ inventory_hostname }}</code> is a built-in variable substituted at runtime.</li></ul><p><strong>Run a playbook:</strong> <code>ansible-playbook -i inventory.yml site.yml</code>. Output shows a PLAY RECAP summarizing <code>ok</code>, <code>changed</code>, <code>failed</code> counts per host.</p><p><strong>Playbooks are code</strong> — commit them to git, review changes in pull requests, run them through CI. This is 'Network as Code' in practice.</p>",
+      "visual": {
+        "type": "layer-stack",
+        "params": {
+          "layers": [
+            "Playbook (YAML file)",
+            "Play 1 (hosts + tasks)",
+            "Task 1 → calls a module",
+            "Task 2 → calls a module",
+            "Play 2 (different hosts)"
+          ],
+          "highlight": 0
+        }
+      },
+      "hack": {
+        "memory": "Playbook = YAML recipe. Plays target hosts. Tasks invoke modules. Top-down execution. Idempotent by default. Check playbooks into git = 'Network as Code.'",
+        "practice": "Write a 2-task playbook: set hostname and configure an interface description. Run on a DevNet sandbox. First run shows changed=2. Second run shows changed=0. You just experienced playbook idempotency.",
+        "effort": "medium",
+        "meta": "Jeremy's IT Lab Day 63. OCG Chapter 30. Exam: 'What is an Ansible playbook?' = a YAML file of ordered tasks to run against inventory hosts."
+      }
+    },
+    {
+      "id": "6.6.b.3",
+      "term": "Module",
+      "weight": "high",
+      "info": "<p>A <strong>module</strong> is a single unit of work that Ansible can execute — the atomic operation called by a task. Modules abstract the complexity of interacting with a specific system, file, device, or API. Ansible ships with <strong>thousands</strong> of modules, organized into collections.</p><p><strong>Networking modules relevant to CCNA:</strong></p><ul><li><code>cisco.ios.ios_config</code> — push configuration lines to Cisco IOS / IOS-XE devices.</li><li><code>cisco.ios.ios_command</code> — run show commands and capture output.</li><li><code>cisco.ios.ios_facts</code> — gather structured device info (version, interfaces, neighbors).</li><li><code>cisco.nxos.nxos_config</code>, <code>cisco.nxos.nxos_command</code> — Nexus equivalents.</li><li><code>cisco.iosxr.iosxr_config</code> — IOS-XR.</li><li><code>arista.eos.eos_config</code> — Arista.</li><li><code>junipernetworks.junos.junos_config</code> — Juniper.</li></ul><p><strong>Example task calling a module:</strong></p><pre>- name: Configure VLAN 20\n  cisco.ios.ios_vlans:\n    config:\n      - vlan_id: 20\n        name: ENG\n        state: active\n    state: merged</pre><p>Each module has documented parameters and returns structured data. When you are stuck: <code>ansible-doc cisco.ios.ios_config</code> prints the full docstring for that module right in your terminal.</p><p><strong>Collections</strong> — modules ship in collections (namespace.collection), e.g., <code>cisco.ios</code>. Install with <code>ansible-galaxy collection install cisco.ios</code>.</p>",
+      "visual": {
+        "type": "hierarchy",
+        "params": {
+          "root": "Module categories",
+          "children": [
+            {
+              "name": "Network",
+              "children": [
+                {
+                  "name": "ios_config, ios_command, ios_facts"
+                }
+              ]
+            },
+            {
+              "name": "System",
+              "children": [
+                {
+                  "name": "copy, file, user, service"
+                }
+              ]
+            },
+            {
+              "name": "Cloud",
+              "children": [
+                {
+                  "name": "aws_ec2, azure_rm, gcp_compute"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "hack": {
+        "memory": "Module = the tool that does the actual work. Tasks call modules. Modules are reusable, documented, idempotent. ios_config, ios_command, ios_facts — the 3 you will see most on CCNA-relevant labs.",
+        "practice": "Run 'ansible-doc cisco.ios.ios_config' and read the docstring. Then write a 1-task playbook using it. The ansible-doc habit is the single best way to learn any module in under 5 minutes.",
+        "effort": "medium",
+        "meta": "Jeremy's IT Lab Day 63. OCG Chapter 30. Exam: 'What is an Ansible module?' = an action unit called by a task. Know 2-3 Cisco modules by name (ios_config, ios_command)."
+      }
+    },
+    {
+      "id": "6.6.b.4",
+      "term": "Role",
+      "weight": "med",
+      "info": "<p>A <strong>role</strong> is a reusable package of tasks, variables, templates, handlers, and files arranged in a standard directory layout. Roles are how you share Ansible automation across teams and across playbooks — think 'library for network configuration.'</p><p><strong>Standard role layout:</strong></p><pre>roles/\n  base_hardening/\n    tasks/main.yml\n    handlers/main.yml\n    vars/main.yml\n    defaults/main.yml\n    templates/banner.j2\n    files/snmp.conf\n    meta/main.yml</pre><p>A playbook then just says:</p><pre>- hosts: all_switches\n  roles:\n    - base_hardening\n    - ntp_config\n    - syslog_export</pre><p>…and the three roles are applied in order to every switch.</p><p><strong>Ansible Galaxy</strong> (galaxy.ansible.com) is the public repository of community roles and collections. You install with <code>ansible-galaxy install cisco.ios</code> or <code>ansible-galaxy role install bertvv.ntp</code>.</p><p><strong>Benefits of roles:</strong></p><ul><li><strong>Reusability</strong> — one role applied to many playbooks.</li><li><strong>Parameterization</strong> — defaults + vars let one role serve many scenarios.</li><li><strong>Testability</strong> — roles can ship with Molecule tests.</li><li><strong>Teamwork</strong> — split work across engineers by role ownership.</li></ul><p>Roles are the way teams scale Ansible beyond one-shot playbooks.</p>",
+      "visual": {
+        "type": "hierarchy",
+        "params": {
+          "root": "Role: base_hardening",
+          "children": [
+            {
+              "name": "tasks/main.yml"
+            },
+            {
+              "name": "templates/banner.j2"
+            },
+            {
+              "name": "vars/main.yml"
+            },
+            {
+              "name": "handlers/main.yml"
+            }
+          ]
+        }
+      },
+      "hack": {
+        "memory": "Role = reusable bundle of tasks/templates/vars. Playbook just lists roles by name. Ansible Galaxy = role marketplace. Think 'npm package' or 'pip library' for automation.",
+        "practice": "Scan Ansible Galaxy for 'cisco' and look at the README for one of the top collections. Notice the standard directory layout — that same layout works for your own roles.",
+        "effort": "low",
+        "meta": "Jeremy's IT Lab Day 63. OCG Chapter 30. Exam: 'What is a role?' = a reusable package of tasks and related files. Lower weight than playbook/module but worth a line of recall."
+      }
+    }
+  ],
+  "6.6.c": [
+    {
+      "id": "6.6.c.1",
+      "term": "Terraform",
+      "weight": "high",
+      "info": "<p><strong>Terraform</strong> is a HashiCorp tool for <strong>Infrastructure as Code (IaC)</strong>. It lets you declare the desired state of your infrastructure — VMs, networks, load balancers, DNS records, even Cisco ACI tenants — in <strong>HCL (HashiCorp Configuration Language)</strong> files, then creates or modifies the real resources to match.</p><p>Core distinction from Ansible: <strong>Ansible CONFIGURES existing devices; Terraform CREATES and DESTROYS infrastructure</strong>. Ansible pushes a VLAN to a switch that already exists. Terraform spins up the switch (or the AWS VPC, or the vSphere VM) in the first place.</p><p><strong>Minimal Terraform file</strong> (<code>main.tf</code>):</p><pre>provider \"aws\" {\n  region = \"us-east-1\"\n}\n\nresource \"aws_instance\" \"web\" {\n  ami           = \"ami-123456\"\n  instance_type = \"t3.micro\"\n  tags = {\n    Name = \"web-server\"\n  }\n}</pre><p>Run <code>terraform init</code>, <code>plan</code>, <code>apply</code> — Terraform talks to the AWS API and creates the instance.</p><p><strong>Key Terraform characteristics:</strong></p><ul><li><strong>Declarative</strong> — you describe the END STATE, not the steps to get there.</li><li><strong>State file</strong> — <code>terraform.tfstate</code> tracks what Terraform has created, enabling drift detection and clean destroys.</li><li><strong>Providers</strong> — plugins that interface with specific platforms (AWS, Azure, GCP, Cisco ACI, Meraki, IOS-XE, Junos, VMware, and hundreds more).</li><li><strong>Idempotent</strong> — re-running converges to the declared state, no duplicates, no drift.</li></ul><p>Terraform has become the default for cloud and virtualized infrastructure provisioning. On Cisco gear, Terraform providers exist for Cisco ACI, Meraki, and IOS-XE.</p>",
+      "visual": {
+        "type": "state-machine",
+        "params": {
+          "states": [
+            "Write .tf files (HCL)",
+            "terraform init (download providers)",
+            "terraform plan (preview)",
+            "terraform apply (create/modify)",
+            "terraform destroy (tear down)"
+          ],
+          "active": 2,
+          "transitions": true
+        }
+      },
+      "hack": {
+        "memory": "Terraform = IaC by HashiCorp. HCL language. State file. Providers. Declarative. Spins up infrastructure (VMs, VPCs, tenants). Contrast Ansible (configures what already exists).",
+        "practice": "Sign up for AWS free tier. Write a 10-line Terraform file that creates a t3.micro. Run init → plan → apply. See the EC2 instance appear in the AWS console. Run destroy — it's gone. Hello-world IaC in 5 minutes.",
+        "effort": "medium",
+        "meta": "Jeremy's IT Lab Day 63. OCG Chapter 30. Exam: 'Which tool is Infrastructure as Code?' = Terraform. 'HCL language + state file' = Terraform."
+      }
+    },
+    {
+      "id": "6.6.c.2",
+      "term": "IaC (Infrastructure as Code)",
+      "weight": "high",
+      "info": "<p><strong>Infrastructure as Code (IaC)</strong> is the practice of defining and managing infrastructure (networks, servers, cloud resources) through machine-readable configuration files, instead of manual clicking in a GUI or ad-hoc scripting. Terraform is the canonical IaC tool; CloudFormation (AWS), Bicep (Azure), Pulumi, and Crossplane are alternatives.</p><p><strong>Benefits of IaC:</strong></p><ul><li><strong>Version-controlled</strong> — infrastructure lives in git alongside application code. You can see exactly who changed what and when.</li><li><strong>Repeatable</strong> — spin up identical dev/staging/prod environments from the same codebase.</li><li><strong>Peer-reviewed</strong> — changes go through pull requests, not just 'the senior network engineer clicked Apply.'</li><li><strong>Disaster recovery</strong> — if a site burns down, re-run the code and the infrastructure comes back.</li><li><strong>Documented by design</strong> — the code IS the authoritative description of the environment.</li></ul><p><strong>Declarative vs imperative IaC:</strong></p><ul><li><strong>Declarative</strong> (Terraform, CloudFormation) — 'I want 3 VMs with these specs.' The tool figures out the create/update/destroy steps.</li><li><strong>Imperative</strong> (shell scripts, some SDK code) — 'Step 1: create VM. Step 2: create disk. Step 3: attach disk.' You write the procedure.</li></ul><p>Declarative IaC is strongly preferred because it handles drift, partial failures, and reconciliation for free. Modern IaC is almost always declarative.</p><p><strong>Exam framing:</strong> IaC = infrastructure defined in code, version-controlled, repeatable, declarative. Terraform is the flagship example.</p>",
+      "visual": {
+        "type": "comparison",
+        "params": {
+          "left": {
+            "label": "Manual (click-ops)",
+            "items": [
+              "GUI clicking",
+              "No history",
+              "Hard to reproduce",
+              "Drifts over time"
+            ]
+          },
+          "right": {
+            "label": "IaC",
+            "items": [
+              "Code in git",
+              "Peer-reviewed",
+              "Repeatable",
+              "Self-documenting"
+            ]
+          }
+        }
+      },
+      "hack": {
+        "memory": "IaC = infrastructure described in code files. Git-friendly, peer-reviewable, repeatable. Declarative is the default style. Terraform is the flagship. Without IaC, you are clicking your way to production. With IaC, you are shipping code.",
+        "practice": "Take any small piece of infrastructure you manage manually — a VPC, a DNS record, a test VM. Rewrite it as Terraform HCL. Now changing it means editing a file and running 'terraform apply' — no more clicks.",
+        "effort": "medium",
+        "meta": "Jeremy's IT Lab Day 63. OCG Chapter 30. Exam: 'What does IaC mean?' = Infrastructure as Code. Terraform is the tool most often cited. Declarative > imperative."
+      }
+    },
+    {
+      "id": "6.6.c.3",
+      "term": "State file (Terraform)",
+      "weight": "med",
+      "info": "<p>Terraform tracks the resources it manages in a <strong>state file</strong> — <code>terraform.tfstate</code>, a JSON document mapping each resource declared in HCL to the real-world resource's ID, attributes, and metadata. The state file is Terraform's memory.</p><p><strong>Why the state file exists:</strong></p><ul><li>Maps HCL names (<code>aws_instance.web</code>) to real cloud IDs (<code>i-0abc123...</code>).</li><li>Enables <strong>drift detection</strong> — <code>terraform plan</code> compares state to live reality and reports differences.</li><li>Stores computed outputs (IP addresses assigned by AWS, auto-generated passwords).</li><li>Tells <code>terraform destroy</code> exactly which resources to remove.</li></ul><p><strong>State is precious.</strong> Lose the state file and Terraform cannot find its resources — it will think nothing exists and try to recreate everything (creating duplicates). In production you store state in a <strong>remote backend</strong>:</p><ul><li><strong>S3 + DynamoDB</strong> (AWS-native — S3 stores state, DynamoDB provides state locking).</li><li><strong>Terraform Cloud / Terraform Enterprise</strong> — managed backend with UI and RBAC.</li><li><strong>Azure Storage</strong>, <strong>GCS</strong>, <strong>Consul</strong>, <strong>etcd</strong>, etc.</li></ul><p><strong>State locking</strong> — remote backends lock the state during an apply so two engineers cannot clobber each other. This is essential in team environments.</p><p><strong>Never commit terraform.tfstate to git.</strong> It may contain secrets (DB passwords, private keys) in plaintext. Git-ignored, stored remotely, and encrypted at rest — that is the production pattern.</p>",
+      "visual": {
+        "type": "hierarchy",
+        "params": {
+          "root": "terraform.tfstate (JSON)",
+          "children": [
+            {
+              "name": "Maps HCL names → real resource IDs"
+            },
+            {
+              "name": "Stores current attributes"
+            },
+            {
+              "name": "Enables drift detection"
+            },
+            {
+              "name": "Remote backend (S3/Consul/TFC) in production"
+            }
+          ]
+        }
+      },
+      "hack": {
+        "memory": "State file = Terraform's memory of what it created. Lose it and Terraform is amnesiac. Store remotely (S3 + DynamoDB, TFC) with locking. Never commit to git — contains secrets.",
+        "practice": "Run terraform apply locally, then 'cat terraform.tfstate | jq .resources'. You'll see JSON entries mapping each HCL resource to its real cloud ID and attributes. This is the source of truth Terraform consults on every plan.",
+        "effort": "low",
+        "meta": "Jeremy's IT Lab Day 63. OCG Chapter 30. Exam: 'What is the Terraform state file?' = a record of the resources Terraform manages. Knowing remote backends is bonus but rarely tested at CCNA level."
+      }
+    },
+    {
+      "id": "6.6.c.4",
+      "term": "Declarative vs procedural",
+      "weight": "high",
+      "info": "<p>The biggest conceptual split between automation tools: <strong>declarative</strong> (describe the end state) vs <strong>procedural</strong> (describe the steps to get there).</p><p><strong>Declarative example</strong> (Terraform HCL):</p><pre>resource \"aws_instance\" \"web\" {\n  count         = 3\n  instance_type = \"t3.micro\"\n}</pre><p>Translation: 'I want exactly 3 t3.micro instances named web.' Terraform figures out whether to create, update, or destroy to match. If you change count to 5, Terraform creates 2 more. If you change to 1, Terraform destroys 2.</p><p><strong>Procedural example</strong> (shell script):</p><pre>#!/bin/bash\naws ec2 run-instances --instance-type t3.micro\naws ec2 run-instances --instance-type t3.micro\naws ec2 run-instances --instance-type t3.micro</pre><p>Translation: 'Run these three commands.' If you run the script twice, you get 6 instances. There is no notion of desired state — only steps.</p><p><strong>Declarative wins for infrastructure because:</strong></p><ul><li>Idempotent by design — re-running converges to the declared state.</li><li>Handles drift — state file reveals differences; apply reconciles.</li><li>Clean destroys — the tool knows exactly what it created.</li><li>Self-documenting — the code IS the desired state.</li></ul><p><strong>Ansible sits in a middle ground.</strong> Its task files are procedural (ordered), but each module is designed to be idempotent and declarative ('ensure this state'). That is why Ansible is 'procedural-ish with declarative modules.' Terraform is purely declarative.</p><p><strong>Exam mapping:</strong> Terraform = declarative. Puppet = declarative (DSL). Ansible = ordered tasks of declarative modules (often called declarative for exam purposes, but strictly procedural flow). Chef = procedural (Ruby recipes).</p>",
+      "visual": {
+        "type": "comparison",
+        "params": {
+          "left": {
+            "label": "Declarative (Terraform)",
+            "items": [
+              "Describe end state",
+              "Tool plans the steps",
+              "Re-run = same result",
+              "Drift detection built in"
+            ]
+          },
+          "right": {
+            "label": "Procedural (shell, Chef)",
+            "items": [
+              "Describe each step",
+              "Order matters",
+              "Re-run may double",
+              "Drift detection ad-hoc"
+            ]
+          }
+        }
+      },
+      "hack": {
+        "memory": "Declarative = 'make it like this' (Terraform, Puppet). Procedural = 'do these steps in order' (shell, Chef). Declarative is idempotent by design. Ansible is procedural flow with declarative modules — sits between.",
+        "practice": "Write the same goal two ways: (1) Terraform HCL declaring 3 VMs; (2) a bash script creating 3 VMs. Run each twice. Terraform stays at 3 VMs. Bash ends up with 6. That difference is declarative vs procedural.",
+        "effort": "low",
+        "meta": "Jeremy's IT Lab Day 63. OCG Chapter 30. Exam: 'Terraform is declarative; Ansible is procedural.' Know this pair. Declarative means describe end state; procedural means describe steps."
+      }
+    }
+  ],
+  "6.6.d": [
+    {
+      "id": "6.6.d.1",
+      "term": "terraform init",
+      "weight": "high",
+      "info": "<p><strong><code>terraform init</code></strong> is the first command you run in a new Terraform project (or after adding a new provider). It initializes the working directory — downloads the provider plugins, configures the state backend, and sets up the <code>.terraform/</code> directory.</p><p><strong>What init actually does:</strong></p><ul><li>Reads your <code>terraform</code> block to find required providers (e.g., <code>hashicorp/aws ~&gt; 5.0</code>).</li><li>Downloads the matching provider binaries into <code>.terraform/providers/</code>.</li><li>Initializes the backend (local by default, remote like S3 or Terraform Cloud if configured).</li><li>Creates <code>.terraform.lock.hcl</code> — a dependency lock file pinning exact provider versions for reproducibility.</li></ul><p>Typical output:</p><pre>$ terraform init\nInitializing the backend...\nInitializing provider plugins...\n- Finding hashicorp/aws versions matching \"~> 5.0\"...\n- Installing hashicorp/aws v5.31.0...\n- Installed hashicorp/aws v5.31.0 (signed by HashiCorp)\n\nTerraform has been successfully initialized!</pre><p><strong>When to re-run init:</strong></p><ul><li>After cloning a project from git.</li><li>After adding or removing a provider in your HCL.</li><li>After changing the backend configuration.</li><li>After upgrading provider versions (with <code>-upgrade</code> flag).</li></ul><p><strong>Exam note:</strong> init is step 1 of the Terraform workflow and is the only command that downloads plugins. Without it, <code>plan</code> and <code>apply</code> fail with 'provider plugin not found.'</p>",
+      "visual": {
+        "type": "state-machine",
+        "params": {
+          "states": [
+            "terraform init (download providers)",
+            "terraform plan (preview)",
+            "terraform apply (execute)",
+            "terraform destroy (tear down)"
+          ],
+          "active": 0,
+          "transitions": true
+        }
+      },
+      "hack": {
+        "memory": "terraform init = install the plugins. Run it once per project clone, and again after adding providers. No init, no plan, no apply. Creates .terraform/ and the lock file.",
+        "practice": "Clone any Terraform example repo from GitHub. Run 'terraform init' and watch it fetch provider binaries. Look in the .terraform/providers/ directory afterwards — you'll see the downloaded binaries.",
+        "effort": "low",
+        "meta": "Jeremy's IT Lab Day 63. OCG Chapter 30. Exam: 'First command in Terraform workflow' = init. 'Downloads providers' = init."
+      }
+    },
+    {
+      "id": "6.6.d.2",
+      "term": "terraform plan",
+      "weight": "high",
+      "info": "<p><strong><code>terraform plan</code></strong> is Terraform's dry run — it compares your HCL configuration to the state file (and optionally to live cloud state) and prints exactly what it WOULD do, without making any changes. This preview is Terraform's killer feature.</p><p>Typical output:</p><pre>$ terraform plan\nTerraform will perform the following actions:\n\n  # aws_instance.web will be created\n  + resource \"aws_instance\" \"web\" {\n      + ami           = \"ami-123456\"\n      + instance_type = \"t3.micro\"\n      + id            = (known after apply)\n    }\n\nPlan: 1 to add, 0 to change, 0 to destroy.</pre><p><strong>Reading the plan symbols:</strong></p><ul><li><code>+</code> create a new resource</li><li><code>-</code> destroy an existing resource</li><li><code>~</code> modify in place</li><li><code>-/+</code> destroy then recreate (some attribute changes require this)</li></ul><p><strong>Why plan matters:</strong></p><ul><li>Safety net — catch surprises before they touch production.</li><li>Peer review — the plan output is what reviewers look at in PRs.</li><li>CI/CD gate — many pipelines post the plan as a PR comment and require approval before apply.</li></ul><p><strong>Save a plan to a file:</strong> <code>terraform plan -out=tfplan</code>, then <code>terraform apply tfplan</code> executes exactly that plan, even if HCL has changed since. Critical for production — you approve and apply the EXACT plan, not a re-computed one.</p>",
+      "visual": {
+        "type": "comparison",
+        "params": {
+          "left": {
+            "label": "terraform plan",
+            "items": [
+              "Read-only preview",
+              "No real changes",
+              "Shows +/-/~ actions",
+              "Safe to run anytime"
+            ]
+          },
+          "right": {
+            "label": "terraform apply",
+            "items": [
+              "Executes the plan",
+              "Creates/destroys real resources",
+              "Updates state file",
+              "Commits the change"
+            ]
+          }
+        }
+      },
+      "hack": {
+        "memory": "terraform plan = dry run. Shows + (create), - (destroy), ~ (modify), -/+ (replace). Nothing changes. ALWAYS plan before apply. -out=tfplan saves the plan for apply to consume — best practice in CI/CD.",
+        "practice": "Write a small main.tf. terraform plan. Add a second resource. plan again. Remove the first resource. plan again. Watch the +/-/~ indicators shift. This is how you learn to read Terraform plans fluently.",
+        "effort": "low",
+        "meta": "Jeremy's IT Lab Day 63. OCG Chapter 30. Exam: 'Which Terraform command previews changes?' = plan. 'Plan before apply' is a best practice worth memorizing."
+      }
+    },
+    {
+      "id": "6.6.d.3",
+      "term": "terraform apply",
+      "weight": "high",
+      "info": "<p><strong><code>terraform apply</code></strong> executes the changes — create, modify, or destroy real resources to match the HCL configuration. It updates the state file to reflect the new reality.</p><p>By default, apply re-computes a plan and prompts for confirmation:</p><pre>$ terraform apply\nPlan: 1 to add, 0 to change, 0 to destroy.\n\nDo you want to perform these actions?\n  Enter a value: yes\n\naws_instance.web: Creating...\naws_instance.web: Creation complete after 42s [id=i-0abc123...]\n\nApply complete! Resources: 1 added, 0 changed, 0 destroyed.</pre><p><strong>Flags worth knowing:</strong></p><ul><li><code>-auto-approve</code> — skip the yes/no prompt (use in CI/CD only).</li><li><code>-target=aws_instance.web</code> — apply only a specific resource (useful for surgery, but can cause state drift — use sparingly).</li><li><code>tfplan</code> (positional argument) — apply a saved plan file: <code>terraform apply tfplan</code>. This is the safest production pattern.</li></ul><p><strong>What apply updates:</strong></p><ul><li>Real infrastructure (via provider API calls).</li><li>The state file (new resource IDs, attributes).</li><li>Output values defined in your HCL.</li></ul><p><strong>When apply fails mid-run</strong> (partial failure) — the state file still records what was created successfully. A re-run attempts to complete or roll forward. This is why state integrity is critical — a lost state file after a partial apply is the nightmare scenario.</p>",
+      "visual": {
+        "type": "handshake",
+        "params": {
+          "leftLabel": "terraform apply",
+          "rightLabel": "Cloud provider API",
+          "steps": [
+            "Recompute plan",
+            "Show actions + prompt",
+            "yes → begin",
+            "Create resources via API",
+            "Update state file",
+            "Apply complete"
+          ]
+        }
+      },
+      "hack": {
+        "memory": "terraform apply = execute the plan. Prompts yes/no by default. Updates state file. -auto-approve for CI. Pair with a saved plan file for production: 'plan -out=tfplan' then 'apply tfplan'.",
+        "practice": "After a successful apply, check the cloud console — the resource is real. Then check terraform.tfstate — the resource is tracked. Two sources of truth, kept in sync by apply.",
+        "effort": "low",
+        "meta": "Jeremy's IT Lab Day 63. OCG Chapter 30. Exam: 'Which Terraform command creates/modifies resources?' = apply. Know it follows plan in the workflow."
+      }
+    },
+    {
+      "id": "6.6.d.4",
+      "term": "terraform destroy",
+      "weight": "high",
+      "info": "<p><strong><code>terraform destroy</code></strong> tears down every resource Terraform manages in the current working directory. It is the inverse of <code>apply</code> — instead of reconciling to the HCL-declared state, it drives everything to <em>gone</em>.</p><pre>$ terraform destroy\nPlan: 0 to add, 0 to change, 3 to destroy.\n\nDo you really want to destroy all resources?\n  Enter a value: yes\n\naws_instance.web: Destroying... [id=i-0abc123...]\naws_instance.web: Destruction complete after 1m02s\n\nDestroy complete! Resources: 3 destroyed.</pre><p><strong>Use cases:</strong></p><ul><li>Tearing down a throwaway test environment (save money).</li><li>Decommissioning a project cleanly.</li><li>Rebuilding from scratch during chaos engineering or DR drills.</li></ul><p><strong>Targeted destroy</strong> — <code>terraform destroy -target=aws_instance.web</code> destroys just one resource. The rest remain untouched. Better alternative for surgical removals: remove the resource block from HCL and run <code>apply</code> — Terraform will plan a destroy for that resource only.</p><p><strong>Safety tips:</strong></p><ul><li>Never run destroy in production without peer review.</li><li>Use <code>prevent_destroy = true</code> lifecycle block on critical resources — Terraform refuses to destroy them even if asked.</li><li>In CI/CD, require a separate pipeline job with extra approvals for destroy.</li></ul><p><strong>Irreversible</strong> — destroyed resources are gone. Cloud providers sometimes have soft-delete or snapshot safeguards, but count on the worst case. A mistaken destroy is the top cause of IaC incidents.</p>",
+      "visual": {
+        "type": "state-machine",
+        "params": {
+          "states": [
+            "terraform init",
+            "plan",
+            "apply",
+            "terraform destroy → all resources gone"
+          ],
+          "active": 3,
+          "transitions": true
+        }
+      },
+      "hack": {
+        "memory": "terraform destroy = delete EVERYTHING Terraform manages. Irreversible. Prompt yes/no. Use prevent_destroy on critical resources. For surgical remove, edit HCL and apply instead of destroy.",
+        "practice": "In a sandbox, terraform apply → resources exist. terraform destroy → resources gone. Fast feedback loop that makes the workflow click.",
+        "effort": "low",
+        "meta": "Jeremy's IT Lab Day 63. OCG Chapter 30. Exam: 'Which Terraform command tears down all resources?' = destroy. Know it is the fourth and final step in the workflow."
+      }
+    }
+  ],
+  "6.6.e": [
+    {
+      "id": "6.6.e.1",
+      "term": "Tool selection scenario",
+      "weight": "high",
+      "info": "<p>The exam tests your ability to pick the right tool given a job description. The rule is simple: <strong>does the scenario CREATE infrastructure, or CONFIGURE existing infrastructure?</strong></p><ul><li><strong>Create / provision / destroy infrastructure</strong> → <strong>Terraform</strong>. Spin up VMs, build VPCs, allocate load balancers, create Cisco ACI tenants, deploy Meraki networks from scratch.</li><li><strong>Configure existing devices</strong> → <strong>Ansible</strong>. Push hostnames, ACLs, VLANs, routing protocols, NTP, banners. Devices must already be reachable.</li></ul><p><strong>Drill — classify each scenario:</strong></p><ul><li>'Create 50 AWS EC2 instances' → Terraform (provision).</li><li>'Configure OSPF on 50 existing routers' → Ansible (configure).</li><li>'Stand up a new VPC with 3 subnets and an Internet Gateway' → Terraform.</li><li>'Push a standardized banner motd to all switches' → Ansible.</li><li>'Decommission a test environment entirely' → Terraform destroy.</li><li>'Rotate SNMP credentials across 200 devices' → Ansible.</li><li>'Create a DNA Center template and apply it to a site' → both — DNA Center's resource can be Terraformed; device-level config is Ansible.</li><li>'Deploy a brand-new data center's compute fabric' → Terraform (provision infrastructure), then Ansible (configure apps/OS on the provisioned gear).</li></ul><p><strong>Edge case:</strong> both tools can technically do the other's job — Ansible can create cloud VMs, Terraform has a <code>null_resource + remote-exec</code> that runs commands. But the exam (and industry) stick to the natural split: Terraform creates, Ansible configures.</p>",
+      "visual": {
+        "type": "comparison",
+        "params": {
+          "left": {
+            "label": "Terraform (create/destroy)",
+            "items": [
+              "Spin up VMs",
+              "Build VPCs",
+              "Allocate load balancers",
+              "Create tenants"
+            ]
+          },
+          "right": {
+            "label": "Ansible (configure)",
+            "items": [
+              "Push hostnames",
+              "Configure OSPF",
+              "Deploy ACLs",
+              "Rotate credentials"
+            ]
+          }
+        }
+      },
+      "hack": {
+        "memory": "Verb in the scenario tells you: CREATE/DESTROY/PROVISION → Terraform. CONFIGURE/PUSH/UPDATE → Ansible. If the thing doesn't exist yet, Terraform. If it does, Ansible.",
+        "practice": "Flash-card 10 scenarios. Under 3 seconds per. 'Create a VPC' = T. 'Set hostname' = A. 'Destroy test env' = T. 'Apply ACL' = A. Get to instant recognition.",
+        "effort": "low",
+        "meta": "Jeremy's IT Lab Day 63. OCG Chapter 30. This is THE scenario-picking exam question. Know the verb → tool mapping cold."
+      }
+    },
+    {
+      "id": "6.6.e.2",
+      "term": "Complementary use",
+      "weight": "high",
+      "info": "<p>In real enterprise workflows, Terraform and Ansible are <strong>used together, in sequence</strong>. The canonical pattern:</p><ol><li><strong>Terraform</strong> provisions the infrastructure — VPCs, subnets, VMs, load balancers, DNS records.</li><li><strong>Ansible</strong> configures the provisioned resources — installs apps, pushes OS settings, configures network devices, hardens security.</li></ol><p>Why not one tool for both?</p><ul><li>Terraform is poor at post-provisioning config — it has <code>provisioner</code> blocks but HashiCorp explicitly discourages them.</li><li>Ansible is poor at provisioning complex cloud dependencies — it CAN create VMs with <code>amazon.aws</code> collection, but tracking state and destroys across 200 resources is painful.</li><li>Each tool is best at what it was designed for. Stack them.</li></ul><p><strong>Handoff pattern:</strong> Terraform outputs (IP addresses, hostnames, DNS entries) become Ansible inventory. One common approach:</p><ul><li>Terraform apply creates EC2 instances and outputs their IPs.</li><li>A dynamic inventory plugin (or a shell script) turns those outputs into an Ansible inventory.</li><li>Ansible runs playbooks against the new hosts.</li></ul><p><strong>Example real workflow</strong> in a CoreWeave-style data center:</p><ul><li>Terraform provisions a new GPU cluster (compute nodes, storage, network fabric).</li><li>Ansible configures the OS on each node, installs drivers, joins the Kubernetes cluster, applies monitoring agents.</li></ul><p><strong>Exam framing:</strong> 'Terraform and Ansible are often used together.' Terraform CREATES. Ansible CONFIGURES. Not rivals — teammates.</p>",
+      "visual": {
+        "type": "handshake",
+        "params": {
+          "leftLabel": "Terraform",
+          "rightLabel": "Ansible",
+          "steps": [
+            "1. Provision VMs/networks",
+            "2. Output IPs + hostnames",
+            "3. Dynamic inventory picks up outputs",
+            "4. Ansible configures OS/apps",
+            "5. Provisioned + configured stack ready"
+          ]
+        }
+      },
+      "hack": {
+        "memory": "Terraform BUILDS the house. Ansible FURNISHES it. Used together: Terraform creates → Ansible configures. Output of one becomes input of the other. Not rivals — pipeline stages.",
+        "practice": "Write a 2-step demo: Terraform creates one AWS EC2 instance and outputs its IP. A shell script reads the output and calls ansible-playbook -i that-ip user=ec2-user install-nginx.yml. You just shipped a mini IaC+config pipeline.",
+        "effort": "medium",
+        "meta": "Jeremy's IT Lab Day 63. OCG Chapter 30. Exam: 'Can Terraform and Ansible be used together?' = yes. 'Terraform creates infrastructure, Ansible configures it' = canonical answer."
+      }
+    }
+  ],
+  "6.6.f": [
+    {
+      "id": "6.6.f.1",
+      "term": "Push model",
+      "weight": "high",
+      "info": "<p>In a <strong>push model</strong>, the control node <strong>initiates</strong> connections to managed devices and pushes configurations to them on demand. Ansible is the canonical push-based tool.</p><p><strong>How it works (Ansible example):</strong></p><ul><li>Admin (or CI pipeline) runs <code>ansible-playbook -i inventory.yml site.yml</code> on the control node.</li><li>Ansible reads the inventory, opens SSH connections to each target host.</li><li>For each task, Ansible uploads the module (usually as a small Python script), executes it, collects the result, and closes.</li><li>The target devices do nothing unless and until the admin pushes.</li></ul><p><strong>Strengths of push:</strong></p><ul><li><strong>Immediate</strong> — changes apply the moment you hit Enter.</li><li><strong>Admin-controlled timing</strong> — ideal for planned maintenance windows.</li><li><strong>No agent</strong> — devices need nothing extra installed.</li><li><strong>Auditable</strong> — every run produces a log; you know exactly what ran when.</li></ul><p><strong>Weaknesses of push:</strong></p><ul><li>No continuous drift correction — if someone SSHes in and changes a setting manually, Ansible does not notice until you re-run the playbook.</li><li>Requires reachability from control node to every target.</li><li>Scales less gracefully to tens of thousands of hosts (though AWX/Tower mitigate this).</li></ul><p><strong>Exam framing:</strong> Ansible = push. Admin triggers. Immediate. Contrast with pull (Puppet/Chef).</p>",
+      "visual": {
+        "type": "packet-flow",
+        "params": {
+          "nodes": [
+            "Admin runs ansible-playbook",
+            "Control node",
+            "SSH push to targets",
+            "Devices apply changes"
+          ],
+          "color": "#ef4444"
+        }
+      },
+      "hack": {
+        "memory": "Push = control node pushes TO devices. Admin-initiated. Immediate. Ansible's model. No agent needed. You decide when.",
+        "practice": "Run ansible-playbook and watch the SSH sessions open in your terminal (set ANSIBLE_DEBUG=1). Every task is a push: control node → target. No polling, no background agent.",
+        "effort": "low",
+        "meta": "Jeremy's IT Lab Day 63. OCG Chapter 30. Exam: 'Ansible uses which model?' = push. 'Which model has admin initiate the change?' = push."
+      }
+    },
+    {
+      "id": "6.6.f.2",
+      "term": "Pull model",
+      "weight": "high",
+      "info": "<p>In a <strong>pull model</strong>, each managed device runs an <strong>agent</strong> that periodically contacts a central server to fetch its desired configuration, then applies any differences locally. Puppet and Chef are canonical pull-based tools.</p><p><strong>How it works (Puppet example):</strong></p><ul><li>A <strong>Puppet agent</strong> is installed on every managed device.</li><li>Every ~30 minutes, the agent connects to the <strong>Puppet Master</strong> (or Puppet Server).</li><li>The agent identifies itself, the server compiles the relevant <strong>catalog</strong> (desired state) for that node.</li><li>The agent applies the catalog locally, correcting drift.</li><li>The agent reports status back to the server.</li></ul><p><strong>Strengths of pull:</strong></p><ul><li><strong>Continuous enforcement</strong> — drift is automatically corrected on each run.</li><li><strong>Scale</strong> — thousands of agents phoning home horizontally to one or more masters scales well.</li><li><strong>Self-healing</strong> — if a human SSHes in and tweaks something, it is reverted on the next pull.</li><li><strong>Works behind NAT / firewalls</strong> — agents initiate outbound connections, no inbound reachability needed.</li></ul><p><strong>Weaknesses of pull:</strong></p><ul><li>Agent must be installed and maintained — not viable on most network gear.</li><li>Change lag — up to 30 minutes before an update applies (unless triggered manually).</li><li>Operational overhead of running a master server and its database.</li></ul><p><strong>Exam framing:</strong> Puppet/Chef = pull. Agent-based. Continuous. Contrast with push (Ansible).</p>",
+      "visual": {
+        "type": "packet-flow",
+        "params": {
+          "nodes": [
+            "Agent on device",
+            "Every 30 min: connect to Master",
+            "Master compiles catalog",
+            "Agent applies + reports"
+          ],
+          "color": "#8b5cf6"
+        }
+      },
+      "hack": {
+        "memory": "Pull = device pulls FROM master. Agent polls every 30 min. Continuous drift correction. Puppet/Chef model. Requires agent install = rare on network gear.",
+        "practice": "Look at a Puppet Master's logs while an agent polls. Every ~30 min you'll see a fact gathering + catalog compile + report entry for each node. That rhythm is the pull model heartbeat.",
+        "effort": "low",
+        "meta": "Jeremy's IT Lab Day 63. OCG Chapter 30. Exam: 'Puppet and Chef use which model?' = pull. 'Which model continuously corrects drift?' = pull."
+      }
+    },
+    {
+      "id": "6.6.f.3",
+      "term": "Agent vs agentless",
+      "weight": "high",
+      "info": "<p>The other fundamental split in configuration management — whether managed devices need special software installed on them.</p><p><strong>Agent-based (Puppet, Chef):</strong></p><ul><li>A daemon is installed on every managed device (puppet-agent, chef-client).</li><li>The agent runs in the background, consuming some CPU/memory.</li><li>The agent must be kept up to date (version compatibility with master matters).</li><li>Great for Linux server fleets where you control the OS.</li><li>Rarely viable on network gear — IOS/NX-OS do not let you install arbitrary daemons.</li></ul><p><strong>Agentless (Ansible):</strong></p><ul><li>No agent installed on devices.</li><li>Uses existing protocols: SSH for Linux/network OS, WinRM for Windows, NETCONF/RESTCONF for modern network devices, HTTP APIs for cloud.</li><li>Zero install footprint on managed devices.</li><li>Ideal for heterogeneous fleets including network gear, locked-down OS, embedded systems.</li></ul><p><strong>Decision matrix:</strong></p><ul><li>Managing servers you own — either works; Puppet/Chef edge for continuous enforcement.</li><li>Managing network devices — agentless (Ansible) wins by default.</li><li>Managing cloud APIs — agentless (Ansible/Terraform) via API calls, no agent concept.</li><li>Needing continuous drift correction — agent-based (Puppet/Chef) fits better.</li><li>Needing immediate, admin-controlled change — agentless (Ansible).</li></ul><p><strong>Exam recap:</strong> Ansible = agentless. Puppet/Chef = agent-based. Agentless is why Ansible dominates in networking.</p>",
+      "visual": {
+        "type": "comparison",
+        "params": {
+          "left": {
+            "label": "Agent-based (Puppet/Chef)",
+            "items": [
+              "Daemon on each device",
+              "Pulls every ~30 min",
+              "Great on Linux servers",
+              "Rare on network gear"
+            ]
+          },
+          "right": {
+            "label": "Agentless (Ansible)",
+            "items": [
+              "No daemon, just SSH/API",
+              "Push on demand",
+              "Universal (network + cloud)",
+              "Dominant in networking"
+            ]
+          }
+        }
+      },
+      "hack": {
+        "memory": "Agent = permanent daemon on device. Agentless = use existing SSH/API, nothing installed. Puppet/Chef = agent. Ansible = agentless. Agentless wins on network gear because you cannot install daemons on IOS.",
+        "practice": "List three environments you would manage (server farm, network switches, cloud VMs) and pick a tool for each. Server farm: Puppet/Chef (continuous). Switches: Ansible (agentless). Cloud: Terraform + Ansible. The decision matrix snaps into focus.",
+        "effort": "low",
+        "meta": "Jeremy's IT Lab Day 63. OCG Chapter 30. Exam: 'Agentless' = Ansible. 'Agent-based' = Puppet/Chef. Pair this with push/pull — they usually appear together on the exam."
+      }
+    }
+  ],
+  "6.7.a": [
+    {
+      "id": "6.7.a.1",
+      "term": "JSON structure",
+      "weight": "high",
+      "info": "<p><strong>JSON (JavaScript Object Notation)</strong> is defined by RFC 8259 as a lightweight data-interchange format. At its core, JSON is built from just two composite types — <strong>objects</strong> and <strong>arrays</strong> — containing four primitive types: <strong>string, number, boolean, null</strong>. Anything more complex is those six types nested inside each other.</p><p><strong>The grammar, at a glance:</strong></p><ul><li>A JSON document is a single value. Usually the top-level value is an object or array.</li><li>An <strong>object</strong> is <code>{ }</code> wrapping comma-separated <code>\"key\": value</code> pairs.</li><li>An <strong>array</strong> is <code>[ ]</code> wrapping comma-separated values.</li><li>A <strong>value</strong> is a string, number, boolean, null, object, or array.</li><li><strong>Keys</strong> are always strings in double quotes.</li><li><strong>Whitespace</strong> (spaces, tabs, newlines) between tokens is ignored.</li></ul><p><strong>Example showing all six types:</strong></p><pre>{\n  \"hostname\": \"SW1\",\n  \"uptime_days\": 42.5,\n  \"managed\": true,\n  \"last_error\": null,\n  \"vlans\": [10, 20, 30],\n  \"location\": {\n    \"site\": \"EVI01\",\n    \"rack\": \"R07\"\n  }\n}</pre><p>The top-level value is an object with six key-value pairs: string, number, boolean, null, array, nested object.</p><p><strong>Why this grammar matters:</strong> every JSON parser in every language implements exactly these rules. Knowing them means you can eyeball any REST API response and mentally map it to Python dicts/lists or JavaScript objects/arrays. On the exam, you will be shown JSON and asked to identify pieces — objects, arrays, data types, or extract a specific value from a path.</p>",
+      "visual": {
+        "type": "hierarchy",
+        "params": {
+          "root": "JSON document (one value)",
+          "children": [
+            {
+              "name": "Object { }",
+              "children": [
+                {
+                  "name": "\"key\": value pairs"
+                }
+              ]
+            },
+            {
+              "name": "Array [ ]",
+              "children": [
+                {
+                  "name": "ordered values"
+                }
+              ]
+            },
+            {
+              "name": "Primitives",
+              "children": [
+                {
+                  "name": "string, number, boolean, null"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "hack": {
+        "memory": "JSON = 2 containers ({ } and [ ]) + 4 primitives (string, number, boolean, null). That is the entire grammar. Every API response is a recursive mix of these six types. Nothing else exists in JSON — no dates, no functions, no comments.",
+        "practice": "Open jsonlint.com, paste the example above, click validate. Now remove a quote or add a trailing comma and revalidate — instant error. 5-minute exercise that hardcodes the syntax.",
+        "effort": "low",
+        "meta": "Jeremy's IT Lab Day 62. OCG Chapter 30. Exam: 'What are the value types in JSON?' = string, number, boolean, null, object, array. Memorize the six."
+      }
+    },
+    {
+      "id": "6.7.a.2",
+      "term": "JSON object",
+      "weight": "high",
+      "info": "<p>A <strong>JSON object</strong> is an unordered collection of <strong>key-value pairs</strong> enclosed in <strong>curly braces <code>{ }</code></strong>. It is the most common top-level shape for REST API responses and the direct analog of a Python dict, a JavaScript object, or a Go map.</p><p><strong>Syntax rules (every one is exam-testable):</strong></p><ul><li>Keys MUST be strings in <strong>double quotes</strong>.</li><li>A colon separates key from value: <code>\"name\": \"SW1\"</code>.</li><li>Pairs are separated by commas.</li><li>No trailing comma after the last pair.</li><li>Values may be any of the six JSON types (string, number, boolean, null, object, array).</li><li>Keys are technically unordered — do not rely on order.</li></ul><p><strong>Valid:</strong></p><pre>{\n  \"hostname\": \"SW1\",\n  \"ip\": \"10.0.0.1\",\n  \"model\": \"C9300\",\n  \"vlans\": [10, 20, 30],\n  \"managed\": true\n}</pre><p><strong>Invalid variants:</strong></p><ul><li><code>{ hostname: \"SW1\" }</code> — keys need double quotes.</li><li><code>{ 'hostname': 'SW1' }</code> — single quotes are illegal.</li><li><code>{ \"hostname\": \"SW1\", }</code> — trailing comma.</li><li><code>{ \"hostname\": 'SW1' }</code> — single quotes on the value.</li></ul><p><strong>In Python</strong>, <code>json.loads(s)</code> deserializes a JSON object into a <code>dict</code>. You access values by key: <code>device['hostname']</code> returns <code>'SW1'</code>. In JavaScript, <code>JSON.parse(s).hostname</code> works because the object literal syntax matches.</p>",
+      "visual": {
+        "type": "encapsulation",
+        "params": {
+          "layers": [
+            {
+              "label": "{ } outer braces (JSON object)",
+              "color": "#f59e0b"
+            },
+            {
+              "label": "\"key\": value pairs, comma-separated",
+              "color": "#3b82f6"
+            },
+            {
+              "label": "Keys MUST be double-quoted strings",
+              "color": "#10b981"
+            }
+          ]
+        }
+      },
+      "hack": {
+        "memory": "Object = { }. Keys are DOUBLE-QUOTED strings. Colon between key and value. Comma between pairs. NO trailing comma. Values can be any JSON type. Unordered: do not rely on key order.",
+        "practice": "Write a JSON object for a network device with 5 fields. Validate at jsonlint.com. Now break it 4 ways (no quotes on key, single quotes, trailing comma, missing colon) and watch each error. You just memorized the rules.",
+        "effort": "low",
+        "meta": "Jeremy's IT Lab Day 62. OCG Chapter 30. Exam: 'What is a JSON object?' = { } with key-value pairs. Know the double-quote rule cold."
+      }
+    },
+    {
+      "id": "6.7.a.3",
+      "term": "JSON array",
+      "weight": "high",
+      "info": "<p>A <strong>JSON array</strong> is an <strong>ordered</strong> list of values enclosed in <strong>square brackets <code>[ ]</code></strong>. It is the direct analog of a Python list, a JavaScript array, or a Go slice.</p><p><strong>Syntax rules:</strong></p><ul><li>Values inside <code>[ ]</code>, comma-separated.</li><li>Order is significant — first element is at index 0.</li><li>No trailing comma after the last element.</li><li>Elements can be any of the six JSON types, including other arrays or objects.</li><li>Elements do NOT have to be the same type (though in practice, API arrays are usually homogeneous).</li></ul><p><strong>Common patterns in network data:</strong></p><pre>// Simple values:\n\"vlans\": [10, 20, 30, 40]\n\n// Array of objects (classic REST list response):\n\"devices\": [\n  {\"name\": \"SW1\", \"ip\": \"10.0.0.1\"},\n  {\"name\": \"SW2\", \"ip\": \"10.0.0.2\"}\n]\n\n// Nested arrays:\n\"topology_links\": [\n  [\"SW1\", \"SW2\"],\n  [\"R1\", \"SW1\"]\n]</pre><p><strong>Access by index:</strong> in Python, <code>data['devices'][0]['name']</code> returns <code>'SW1'</code>. Index 0 is the first element; index -1 works in Python but not in JSON itself.</p><p><strong>The REST convention:</strong> a <code>GET /api/v1/devices</code> returns an array (the collection). A <code>GET /api/v1/devices/42</code> returns one object. If you see <code>[</code> as the first character of the response, you got a list.</p>",
+      "visual": {
+        "type": "encapsulation",
+        "params": {
+          "layers": [
+            {
+              "label": "[ ] outer brackets (JSON array)",
+              "color": "#8b5cf6"
+            },
+            {
+              "label": "Ordered list, comma-separated",
+              "color": "#3b82f6"
+            },
+            {
+              "label": "Access by numeric index (0-based)",
+              "color": "#10b981"
+            }
+          ]
+        }
+      },
+      "hack": {
+        "memory": "Array = [ ]. Ordered. Comma-separated. Zero-indexed. Can nest anything. Most REST list endpoints return an array. First char of the response is the clue: { = object, [ = array.",
+        "practice": "curl -s https://jsonplaceholder.typicode.com/users | jq '.[0].name' → \"Leanne Graham\". That query: top-level array, index 0, then .name. Practice 5 path queries like this until it's automatic.",
+        "effort": "low",
+        "meta": "Jeremy's IT Lab Day 62. OCG Chapter 30. Exam: 'What is a JSON array?' = [ ] ordered list. 'How do you identify an array?' = starts with [."
+      }
+    }
+  ],
+  "6.7.b": [
+    {
+      "id": "6.7.b.1",
+      "term": "{ } = object",
+      "weight": "high",
+      "info": "<p>The <strong>first character of any JSON snippet tells you whether the top-level value is an object or an array</strong>. If it is <code>{</code>, you have an object — an unordered collection of named properties.</p><pre>{\n  \"hostname\": \"SW1\",\n  \"ip\": \"10.0.0.1\"\n}</pre><p><strong>Mental model:</strong> an object is a labeled container — 'one thing with named fields.' The labels (keys) let you access values without knowing their position. Think of it like a form: <em>Name:</em> SW1, <em>IP:</em> 10.0.0.1.</p><p><strong>Access by key:</strong></p><ul><li>Python: <code>data['hostname']</code> or <code>data.get('hostname')</code> (safer — returns None if absent)</li><li>JavaScript: <code>data.hostname</code> or <code>data['hostname']</code></li><li>jq: <code>.hostname</code></li></ul><p><strong>Use objects when you have:</strong></p><ul><li>A single resource with named fields (one device, one interface).</li><li>Heterogeneous data — different keys mean different things.</li><li>Something a user might retrieve or update by name.</li></ul><p><strong>Exam hint:</strong> REST APIs that return a single resource use objects. <code>GET /devices/42</code> → object. <code>GET /devices</code> → array of objects.</p>",
+      "visual": {
+        "type": "hierarchy",
+        "params": {
+          "root": "{ } object",
+          "children": [
+            {
+              "name": "\"key1\": value1"
+            },
+            {
+              "name": "\"key2\": value2"
+            },
+            {
+              "name": "Access by key (unordered)"
+            }
+          ]
+        }
+      },
+      "hack": {
+        "memory": "{ } = object = ONE thing with named fields. Access by key (name). Analogous to a Python dict or JS object. First char { = object.",
+        "practice": "Look at 3 REST API responses. When the path is /resource/id, the top-level is usually an object. When the path is /resource (collection), the top-level is usually an array. Identify the shape by the first character.",
+        "effort": "low",
+        "meta": "Jeremy's IT Lab Day 62. OCG Chapter 30. Exam: '{ } means ___' = object. 'Access by ___' = key. Pair this with [ ] = array as the foundational distinction."
+      }
+    },
+    {
+      "id": "6.7.b.2",
+      "term": "[ ] = array",
+      "weight": "high",
+      "info": "<p>If a JSON snippet starts with <code>[</code>, the top-level value is an array — an ordered list of values, accessed by numeric index starting at 0.</p><pre>[\n  {\"name\": \"SW1\", \"ip\": \"10.0.0.1\"},\n  {\"name\": \"SW2\", \"ip\": \"10.0.0.2\"},\n  {\"name\": \"SW3\", \"ip\": \"10.0.0.3\"}\n]</pre><p><strong>Mental model:</strong> an array is a shelf of items in order. Position matters — index 0 is the first, index 1 is the second, and so on.</p><p><strong>Access by index:</strong></p><ul><li>Python: <code>devices[0]</code>, <code>devices[1]</code>, <code>devices[-1]</code> (last).</li><li>JavaScript: <code>devices[0]</code>, <code>devices.length - 1</code>.</li><li>jq: <code>.[0]</code>, <code>.[1]</code>, or <code>.[]</code> to iterate.</li></ul><p><strong>Use arrays when you have:</strong></p><ul><li>Multiple items of the same type (VLAN list, device list, route list).</li><li>Something where order matters (route preference, routing table).</li><li>A collection returned from a <code>GET /resource</code> endpoint.</li></ul><p><strong>Array of objects</strong> is the most common API list shape — a JSON array whose elements are all objects describing individual resources. The vast majority of 'list' endpoints return this exact structure.</p>",
+      "visual": {
+        "type": "hierarchy",
+        "params": {
+          "root": "[ ] array",
+          "children": [
+            {
+              "name": "[0] first element"
+            },
+            {
+              "name": "[1] second element"
+            },
+            {
+              "name": "[N-1] last"
+            },
+            {
+              "name": "Access by numeric index"
+            }
+          ]
+        }
+      },
+      "hack": {
+        "memory": "[ ] = array = ordered list. Access by index [0], [1], [2]. Zero-based. First char [ = array. Most 'list' endpoints return an array of objects.",
+        "practice": "curl -s https://jsonplaceholder.typicode.com/posts | jq '.[0]' → first post. Then '.[0].title' → its title. Then '.[] | .title' → every post's title. Three patterns to rehearse.",
+        "effort": "low",
+        "meta": "Jeremy's IT Lab Day 62. OCG Chapter 30. Exam: '[ ] means ___' = array. 'Access by ___' = numeric index. Pair with { } = object."
+      }
+    },
+    {
+      "id": "6.7.b.3",
+      "term": "Visual identification",
+      "weight": "high",
+      "info": "<p>Fast format and shape identification — the cheap point on every automation exam question. Given any JSON snippet, you should be able to answer in under 2 seconds:</p><ol><li><strong>Is it JSON at all?</strong> Starts with <code>{</code> or <code>[</code> (not <code>&lt;</code> — that is XML; not <code>---</code> or indentation — that is YAML).</li><li><strong>Top-level object or array?</strong> First non-whitespace character.</li><li><strong>What fields or elements does it contain?</strong> Scan.</li></ol><p><strong>Drill — identify each:</strong></p><pre>(A) {\"name\": \"SW1\", \"vlans\": [10, 20]}\n(B) [\"SW1\", \"SW2\", \"SW3\"]\n(C) [{\"name\": \"SW1\"}, {\"name\": \"SW2\"}]\n(D) {\"devices\": [{\"name\": \"SW1\"}]}</pre><p><strong>Answers:</strong></p><ul><li>(A) Object at top. Field 'name' (string), field 'vlans' (array of numbers).</li><li>(B) Array of 3 strings at top.</li><li>(C) Array of 2 objects at top — classic list endpoint shape.</li><li>(D) Object with ONE field 'devices' that is an array of objects — common wrapper pattern.</li></ul><p><strong>Why wrapper objects?</strong> Many APIs wrap collections in an object like <code>{\"devices\": [...], \"total\": 42, \"page\": 1}</code> so they can include pagination metadata alongside the list. Know to look past the wrapper to find the actual array.</p><p><strong>Common exam trap:</strong> 'what is at the top level of this JSON?' Look at character 1. If it's <code>{</code>, object. If it's <code>[</code>, array. Do not get confused by what is INSIDE — only the outermost brace/bracket matters for the top-level answer.</p>",
+      "visual": {
+        "type": "comparison",
+        "params": {
+          "left": {
+            "label": "Starts with {",
+            "items": [
+              "Top level is an object",
+              "Access fields by name",
+              "GET /resource/id response"
+            ]
+          },
+          "right": {
+            "label": "Starts with [",
+            "items": [
+              "Top level is an array",
+              "Access elements by index",
+              "GET /resource list response"
+            ]
+          }
+        }
+      },
+      "hack": {
+        "memory": "First non-whitespace char decides it. { = object. [ = array. < = XML. --- or plain key: = YAML. ONE glance, ONE answer. Do not overthink the innards.",
+        "practice": "Flash-card 10 JSON snippets. Answer 'object or array?' in under 2 seconds per. Build the automatic reflex — the exam rewards speed here.",
+        "effort": "low",
+        "meta": "Jeremy's IT Lab Day 62. OCG Chapter 30. Exam: format identification from a snippet is guaranteed. Do not miss this cheap point."
+      }
+    }
+  ],
+  "6.7.c": [
+    {
+      "id": "6.7.c.1",
+      "term": "6 valid JSON types",
+      "weight": "high",
+      "info": "<p>JSON has exactly <strong>six value types</strong>. Every value in any JSON document is one of these, no exceptions:</p><ol><li><strong>string</strong> — text in <strong>double quotes</strong>: <code>\"hello\"</code>, <code>\"10.0.0.1\"</code>.</li><li><strong>number</strong> — integer or float, no quotes: <code>42</code>, <code>3.14</code>, <code>-7</code>, <code>1.5e10</code>.</li><li><strong>boolean</strong> — <code>true</code> or <code>false</code>, lowercase, no quotes.</li><li><strong>null</strong> — the literal <code>null</code>, lowercase, no quotes. Indicates 'no value.'</li><li><strong>object</strong> — <code>{ }</code> with key-value pairs.</li><li><strong>array</strong> — <code>[ ]</code> with ordered values.</li></ol><p><strong>Example containing all six:</strong></p><pre>{\n  \"hostname\": \"SW1\",\n  \"uptime_hours\": 1000,\n  \"managed\": true,\n  \"last_error\": null,\n  \"location\": {\"site\": \"EVI01\"},\n  \"vlans\": [10, 20, 30]\n}</pre><p><strong>What JSON does NOT have:</strong></p><ul><li>No <strong>date/time</strong> type — dates are stored as strings, e.g., <code>\"2026-06-15T10:30:00Z\"</code> (ISO-8601).</li><li>No <strong>undefined</strong> — that's JavaScript; JSON uses <code>null</code>.</li><li>No <strong>comments</strong> — <code>//</code> and <code>/* */</code> are not permitted.</li><li>No <strong>functions or references</strong> — JSON is data only.</li><li>No <strong>integer vs float distinction</strong> — all numbers are one 'number' type.</li></ul><p><strong>Common exam trap:</strong> 'which of the following is NOT a JSON data type?' — date, timestamp, undefined, function. All of those are traps; the answer is whichever one they list. The six real types are string, number, boolean, null, object, array.</p>",
+      "visual": {
+        "type": "layer-stack",
+        "params": {
+          "layers": [
+            "string: \"text\"",
+            "number: 42 or 3.14",
+            "boolean: true / false",
+            "null",
+            "object: { }",
+            "array: [ ]"
+          ],
+          "highlight": 0
+        }
+      },
+      "hack": {
+        "memory": "6 types: String, Number, Boolean, Null, Object, Array. S-N-B-N-O-A. That is the complete list. Everything else (date, timestamp, function, undefined) = NOT JSON.",
+        "practice": "Write a 6-field JSON object where each value uses a different type. Validate. Remove one and replace with a 'date' type — validator either accepts it as a string (fine) or errors. Either way, you see the 6-type universe.",
+        "effort": "low",
+        "meta": "Jeremy's IT Lab Day 62. OCG Chapter 30. Exam: 'which is a valid JSON data type?' = one of the 6. 'Which is NOT a JSON type?' = date / undefined / function / etc."
+      }
+    },
+    {
+      "id": "6.7.c.2",
+      "term": "JSON booleans lowercase",
+      "weight": "high",
+      "info": "<p>JSON booleans are <strong>exactly</strong> <code>true</code> or <code>false</code> — <strong>lowercase</strong>, <strong>no quotes</strong>. Anything else is invalid JSON.</p><p><strong>Valid:</strong></p><pre>{ \"enabled\": true }\n{ \"managed\": false }</pre><p><strong>Invalid variations (all common exam traps):</strong></p><ul><li><code>{ \"enabled\": True }</code> — capital T. That is Python, not JSON.</li><li><code>{ \"enabled\": TRUE }</code> — all caps. Invalid.</li><li><code>{ \"enabled\": \"true\" }</code> — that is a STRING containing the word 'true', not the boolean <code>true</code>. Different type; may break strict parsers.</li><li><code>{ \"enabled\": 1 }</code> — <code>1</code> is a number, not a boolean. JSON does not auto-convert.</li><li><code>{ \"enabled\": yes }</code> — 'yes'/'no' are not JSON. Those are YAML-isms.</li></ul><p><strong>Why this trips people up:</strong> Python uses <code>True</code>/<code>False</code>. C uses <code>1</code>/<code>0</code>. YAML accepts <code>yes</code>/<code>no</code>/<code>True</code>/<code>false</code>. JSON is strict and ONLY accepts lowercase <code>true</code>/<code>false</code>. When hand-writing JSON in a Python context, this is an easy mistake.</p><p><strong>Null is the same story</strong> — <code>null</code> lowercase, not <code>Null</code>, not <code>NULL</code>, not <code>None</code> (that's Python), not <code>nil</code> (that's Ruby/Go).</p>",
+      "visual": {
+        "type": "comparison",
+        "params": {
+          "left": {
+            "label": "VALID",
+            "items": [
+              "true",
+              "false",
+              "null"
+            ]
+          },
+          "right": {
+            "label": "INVALID",
+            "items": [
+              "True / FALSE / Null",
+              "\"true\" (that's a string)",
+              "1 / 0 (numbers)",
+              "yes / no (YAML)"
+            ]
+          }
+        }
+      },
+      "hack": {
+        "memory": "JSON booleans: lowercase true and false. Null: lowercase null. No quotes. No capitals. No aliases like yes/no/1/0. Python capitalizes; JSON does not. When writing JSON from Python, lowercase it.",
+        "practice": "In Python: json.dumps({'x': True}) → '{\"x\": true}'. Python's True gets lowercased to JSON's true automatically. Try json.loads('{\"x\": True}') — error. The asymmetry burns in the lesson.",
+        "effort": "low",
+        "meta": "Jeremy's IT Lab Day 62. OCG Chapter 30. Exam: spot the invalid JSON snippet. Capitalized True/False is the #1 trap."
+      }
+    },
+    {
+      "id": "6.7.c.3",
+      "term": "No date/undefined in JSON",
+      "weight": "high",
+      "info": "<p>JSON deliberately excludes several types that other languages support. The exam loves testing these omissions.</p><p><strong>What JSON does NOT have:</strong></p><ul><li><strong>No date/time type.</strong> Dates are stored as strings — typically ISO-8601: <code>\"2026-06-15T10:30:00Z\"</code>. Parsing back to a date is the client's job.</li><li><strong>No undefined.</strong> JavaScript distinguishes <code>undefined</code> (never assigned) from <code>null</code> (explicitly no value). JSON only has <code>null</code>. Converting JS to JSON drops undefined fields entirely.</li><li><strong>No comments.</strong> <code>//</code> and <code>/* */</code> are illegal. If you need comments, use a non-standard extension like JSON5 or move to YAML.</li><li><strong>No integer vs float.</strong> JSON has one 'number' type. <code>42</code> and <code>42.0</code> are the same type as far as JSON is concerned.</li><li><strong>No function/code.</strong> JSON is pure data. You cannot embed logic.</li><li><strong>No reference/pointer.</strong> If two places in JSON describe the same entity, you duplicate the data. There is no <code>&ref</code>/<code>*ref</code> like YAML anchors.</li><li><strong>No NaN, Infinity, -Infinity.</strong> Strict JSON forbids these. Some parsers accept them as extensions.</li></ul><p><strong>Workarounds used in practice:</strong></p><ul><li>Dates → strings (ISO-8601 preferred).</li><li>Missing value → <code>null</code>.</li><li>Comments → move to YAML, add a <code>\"_comment\"</code> field, or strip comments before parsing.</li><li>Large integers (over 2^53) → often sent as strings to avoid JavaScript float precision issues.</li></ul>",
+      "visual": {
+        "type": "hierarchy",
+        "params": {
+          "root": "JSON does NOT have",
+          "children": [
+            {
+              "name": "date/time (use string)"
+            },
+            {
+              "name": "undefined (use null)"
+            },
+            {
+              "name": "comments (//or /* */)"
+            },
+            {
+              "name": "NaN, Infinity"
+            },
+            {
+              "name": "references/anchors"
+            }
+          ]
+        }
+      },
+      "hack": {
+        "memory": "JSON is tiny. 6 types, no date, no undefined, no comments, no NaN, no references. If a language has an exotic type, JSON doesn't — you encode it as a string or null.",
+        "practice": "Try to jsonlint.com: {\"when\": 2026-06-15} — ERROR. Fix with quotes: {\"when\": \"2026-06-15\"} — OK. Then add // a comment — ERROR. Strip it — OK. 60-second drill that hardcodes the exclusions.",
+        "effort": "low",
+        "meta": "Jeremy's IT Lab Day 62. OCG Chapter 30. Exam: 'which of these is NOT a JSON type?' — date, undefined, function are common trap answers. Real JSON = 6 types only."
+      }
+    }
+  ],
+  "6.7.d": [
+    {
+      "id": "6.7.d.1",
+      "term": "Nested JSON",
+      "weight": "high",
+      "info": "<p><strong>JSON supports arbitrary nesting</strong> — objects inside objects, arrays inside objects, objects inside arrays, arrays inside arrays. Real API responses exploit this freely.</p><p><strong>Canonical network example — device with interfaces:</strong></p><pre>{\n  \"hostname\": \"SW1\",\n  \"model\": \"C9300\",\n  \"interfaces\": [\n    {\n      \"name\": \"GigabitEthernet0/1\",\n      \"ip\": \"10.0.0.1\",\n      \"status\": \"up\",\n      \"vlan\": 10\n    },\n    {\n      \"name\": \"GigabitEthernet0/2\",\n      \"ip\": null,\n      \"status\": \"down\",\n      \"vlan\": 20\n    }\n  ],\n  \"location\": {\n    \"site\": \"EVI01\",\n    \"rack\": \"R07\"\n  }\n}</pre><p><strong>What is nested here:</strong></p><ul><li>Top-level object with 4 keys.</li><li><code>interfaces</code> is an array containing 2 objects.</li><li><code>location</code> is a nested object.</li></ul><p><strong>Why APIs nest:</strong></p><ul><li>Represent real-world hierarchies (device contains interfaces contains VLANs).</li><li>Reduce round trips — one call fetches everything related.</li><li>Preserve relationships that would be lost in a flat table.</li></ul><p><strong>Reading nested JSON is a foundational skill.</strong> Slow at first, then instant with practice. The exam will hand you a nested structure and ask 'what is the value of X?' or 'what type is Y?' — you need to trace the path without tools.</p>",
+      "visual": {
+        "type": "hierarchy",
+        "params": {
+          "root": "{ device }",
+          "children": [
+            {
+              "name": "hostname: \"SW1\""
+            },
+            {
+              "name": "interfaces: [...]",
+              "children": [
+                {
+                  "name": "{ name, ip, status, vlan }"
+                },
+                {
+                  "name": "{ name, ip, status, vlan }"
+                }
+              ]
+            },
+            {
+              "name": "location: { site, rack }"
+            }
+          ]
+        }
+      },
+      "hack": {
+        "memory": "Nesting = objects inside objects inside arrays, any depth. Trace by reading outer→inner. Each { or [ is a layer. Real API responses nest freely — learn to read them at a glance.",
+        "practice": "Pull a real DNA Center API response (or use the example above). Describe aloud: 'top level object, key interfaces is an array of 2 objects, each has 4 fields...' The narration practice is what makes nested JSON readable.",
+        "effort": "low",
+        "meta": "Jeremy's IT Lab Day 62. OCG Chapter 30. Exam: 'describe the structure of this JSON' — you must trace nesting. Practice on real-world responses."
+      }
+    },
+    {
+      "id": "6.7.d.2",
+      "term": "Access path",
+      "weight": "high",
+      "info": "<p>To read a value out of nested JSON, you follow a <strong>path</strong> from the top level down through each nested layer. Most languages express this with dot notation for object keys and brackets for array indices.</p><p><strong>Using the earlier device JSON:</strong></p><pre>device.hostname                          → \"SW1\"\ndevice.location.site                     → \"EVI01\"\ndevice.interfaces                        → entire array\ndevice.interfaces[0]                     → first interface object\ndevice.interfaces[0].name                → \"GigabitEthernet0/1\"\ndevice.interfaces[0].ip                  → \"10.0.0.1\"\ndevice.interfaces[1].status              → \"down\"\ndevice.interfaces[1].vlan                → 20</pre><p><strong>Syntax per language / tool:</strong></p><ul><li><strong>Python</strong> — <code>device['interfaces'][0]['name']</code></li><li><strong>JavaScript</strong> — <code>device.interfaces[0].name</code></li><li><strong>jq</strong> — <code>.interfaces[0].name</code></li><li><strong>JSONPath</strong> — <code>$.interfaces[0].name</code></li></ul><p><strong>General rule:</strong></p><ul><li>Object → step in with a <strong>key</strong> (dot or bracket-quoted).</li><li>Array → step in with a <strong>numeric index</strong> in brackets.</li><li>Primitive (string/number/boolean/null) → you have reached the leaf.</li></ul><p><strong>Exam pattern:</strong> given a nested JSON and a path, compute the value. Or given a value, write the path.</p>",
+      "visual": {
+        "type": "packet-flow",
+        "params": {
+          "nodes": [
+            "device",
+            ".interfaces",
+            "[1]",
+            ".status",
+            "→ \"down\""
+          ],
+          "color": "#10b981"
+        }
+      },
+      "hack": {
+        "memory": "Object step = KEY (dot or [key]). Array step = INDEX [0], [1], [N-1]. Follow the path left to right, layer by layer. Arrive at a primitive = done.",
+        "practice": "For each of these paths on the device example, compute the value: (1) device.interfaces[0].vlan (2) device.location.rack (3) device.interfaces[1].ip. Answers: 10, R07, null. Do 10 such drills until instant.",
+        "effort": "low",
+        "meta": "Jeremy's IT Lab Day 62. OCG Chapter 30. Exam: 'extract this value' or 'which path gives you this value?' Must be automatic."
+      }
+    },
+    {
+      "id": "6.7.d.3",
+      "term": "Tracing strategy",
+      "weight": "high",
+      "info": "<p>On the exam you will face a nested JSON blob and a question like 'what is the VLAN of the second interface of device 42?' Panic is the wrong response. Use a systematic trace.</p><p><strong>Step-by-step strategy:</strong></p><ol><li><strong>Identify the top-level shape.</strong> First character — <code>{</code> or <code>[</code>.</li><li><strong>Scan for the first key in the path.</strong> If the question is 'interface name of device 42,' look for a <code>devices</code> array or a <code>device</code> object.</li><li><strong>Step in one layer at a time.</strong> Use your finger (literally, on paper) to mark where you are.</li><li><strong>Match array indices carefully.</strong> 'Second interface' = index <strong>1</strong> (zero-based). This is the #1 mistake.</li><li><strong>Extract the leaf value.</strong> Done.</li></ol><p><strong>Worked example</strong> — given:</p><pre>{\n  \"devices\": [\n    {\"id\": 42, \"interfaces\": [\n      {\"name\": \"Gi0/1\", \"vlan\": 10},\n      {\"name\": \"Gi0/2\", \"vlan\": 20}\n    ]}\n  ]\n}</pre><p>Question: 'What is the VLAN of the second interface of the first device?'</p><ol><li>Top-level object with <code>devices</code> key.</li><li><code>devices</code> is an array. 'First device' = index 0.</li><li>Device 0 has <code>interfaces</code> array. 'Second interface' = index 1.</li><li>Interface 1 has <code>vlan: 20</code>. <strong>Answer: 20.</strong></li></ol><p><strong>Common traps:</strong></p><ul><li>'Second' = index 1, not 2. Always subtract 1.</li><li>Wrapper objects — sometimes the array is nested in <code>{\"data\": [...]}</code>. Unwrap first.</li><li>Null values — if the leaf is <code>null</code>, that IS the answer.</li></ul>",
+      "visual": {
+        "type": "state-machine",
+        "params": {
+          "states": [
+            "Identify top-level shape",
+            "Find first key in path",
+            "Step one layer in",
+            "Adjust for zero-based indices",
+            "Arrive at leaf value"
+          ],
+          "active": 3,
+          "transitions": true
+        }
+      },
+      "hack": {
+        "memory": "Trace step by step. Object → key. Array → index (zero-based, so 'second' = [1]). Use a finger or pen to mark the current layer. Do NOT try to read the whole thing at once — follow the path.",
+        "practice": "Take any 5-layer nested JSON, pick 10 values, write the path for each. Grade yourself. The combination of reading (path → value) and writing (value → path) makes nested JSON second nature.",
+        "effort": "low",
+        "meta": "Jeremy's IT Lab Day 62. OCG Chapter 30. Exam: extract-a-value from nested JSON is a guaranteed question. Zero-based indexing is the top trap."
+      }
+    }
+  ],
+  "6.7.e": [
+    {
+      "id": "6.7.e.1",
+      "term": "JSON uses double quotes",
+      "weight": "high",
+      "info": "<p>The single most-tested JSON rule: <strong>strings and keys use DOUBLE quotes only</strong>. Single quotes are illegal.</p><p><strong>Valid:</strong></p><pre>{ \"hostname\": \"SW1\" }</pre><p><strong>Invalid:</strong></p><pre>{ 'hostname': 'SW1' }   // single quotes → not JSON\n{ hostname: \"SW1\" }     // unquoted key → not JSON\n{ \"hostname\": 'SW1' }   // value in single quotes → not JSON</pre><p><strong>Why this trips people up:</strong> Python, JavaScript, and many other languages accept single quotes for strings. When you type JSON by hand in those environments, muscle memory produces single quotes. Every time. JSON parsers will reject the result immediately.</p><p><strong>Inside a double-quoted string, how do you embed a quote?</strong> Escape it with a backslash: <code>{ \"note\": \"She said \\\"hi\\\".\" }</code>. Other escape sequences: <code>\\n</code> (newline), <code>\\t</code> (tab), <code>\\\\</code> (literal backslash), <code>\\/</code> (optional slash escape).</p><p><strong>Exam fix pattern:</strong> when handed an 'invalid JSON — fix it' question, scan for single quotes first. Replace every <code>'</code> with <code>\"</code>. Most single-quote-only problems get solved by that one change.</p>",
+      "visual": {
+        "type": "comparison",
+        "params": {
+          "left": {
+            "label": "Valid",
+            "items": [
+              "{ \"name\": \"SW1\" }",
+              "Double quotes on key",
+              "Double quotes on string value"
+            ]
+          },
+          "right": {
+            "label": "Invalid",
+            "items": [
+              "{ 'name': 'SW1' }",
+              "{ name: \"SW1\" } (unquoted key)",
+              "{ \"name\": 'SW1' } (mixed)"
+            ]
+          }
+        }
+      },
+      "hack": {
+        "memory": "JSON = double quotes EVERYWHERE for strings and keys. Single quotes = NOT JSON. If it looks like Python dict syntax, it is Python, not JSON. Replace ' with \" as the first fix.",
+        "practice": "Take any Python dict: {'name': 'SW1'}. Paste into jsonlint.com — error. Replace ' with \" → valid. 20 seconds. Lesson learned permanently.",
+        "effort": "low",
+        "meta": "Jeremy's IT Lab Day 62. OCG Chapter 30. Exam: 'which JSON is valid?' — the one with double quotes wins. Top invalid-JSON trap."
+      }
+    },
+    {
+      "id": "6.7.e.2",
+      "term": "No trailing commas",
+      "weight": "high",
+      "info": "<p>A <strong>trailing comma</strong> — a comma after the last element of an object or array — is <strong>invalid JSON</strong>.</p><p><strong>Valid:</strong></p><pre>{\n  \"vlans\": [10, 20, 30],\n  \"managed\": true\n}</pre><p><strong>Invalid:</strong></p><pre>{\n  \"vlans\": [10, 20, 30,],   // trailing comma in array\n  \"managed\": true,           // trailing comma in object\n}</pre><p><strong>Why this trips people up:</strong> JavaScript (since ES2017) and Python both allow trailing commas in their native syntax — in fact, style guides often recommend them for cleaner git diffs. JSON predates those conventions and was locked in as strict. Every JSON parser rejects trailing commas.</p><p><strong>How to detect:</strong> scan the character just before every <code>}</code> or <code>]</code>. If it is <code>,</code>, the JSON is invalid.</p><p><strong>Why the strictness:</strong> Douglas Crockford (who specified JSON) deliberately chose a minimal grammar. Trailing commas create ambiguity with sparse arrays (<code>[1, 2, , 3]</code>) and make the spec more complex. He kept them out.</p><p><strong>Exam fix pattern:</strong> spot the comma-before-close-brace, delete it. Usually only one in a broken snippet.</p>",
+      "visual": {
+        "type": "comparison",
+        "params": {
+          "left": {
+            "label": "Valid",
+            "items": [
+              "[1, 2, 3]",
+              "{\"a\": 1, \"b\": 2}",
+              "No comma before ] or }"
+            ]
+          },
+          "right": {
+            "label": "Invalid",
+            "items": [
+              "[1, 2, 3,] (trailing)",
+              "{\"a\": 1, \"b\": 2,} (trailing)",
+              "Fix: delete trailing comma"
+            ]
+          }
+        }
+      },
+      "hack": {
+        "memory": "Check the character just before every } and ]. If it is a comma, JSON is broken. JS and Python allow trailing commas; JSON does NOT. Delete them.",
+        "practice": "Write valid JSON with an array. Add a trailing comma before ]. Paste into jsonlint.com — instant error. Remove — OK. That 15-second drill is enough.",
+        "effort": "low",
+        "meta": "Jeremy's IT Lab Day 62. OCG Chapter 30. Exam: 'which of these is invalid JSON?' — the one with a trailing comma is a frequent trap answer."
+      }
+    },
+    {
+      "id": "6.7.e.3",
+      "term": "No comments",
+      "weight": "high",
+      "info": "<p>JSON does not support comments of any kind. <code>//</code> line comments and <code>/* */</code> block comments — both standard in JavaScript, C, and most other languages — are illegal in JSON.</p><p><strong>Invalid:</strong></p><pre>{\n  \"hostname\": \"SW1\", // the main switch\n  \"ip\": \"10.0.0.1\"\n  /* legacy config, review needed */\n}</pre><p><strong>Why the exclusion:</strong> Crockford wanted JSON to be a pure data-interchange format. Comments are metadata about the data, not the data itself. They also tempt parsers to strip them, which breaks round-trip fidelity.</p><p><strong>Workarounds when you really need a 'comment':</strong></p><ul><li>Add a <code>_comment</code> or <code>description</code> field: <code>{ \"_comment\": \"legacy — review\", \"hostname\": \"SW1\" }</code>.</li><li>Use a lenient format like JSON5 or JSONC that explicitly allows comments (VS Code uses JSONC for settings).</li><li>Move to YAML, which supports <code>#</code> comments natively.</li><li>Strip comments before parsing (libraries like <code>json5</code> or <code>jsonminify</code>).</li></ul><p><strong>Exam angle:</strong> comments appearing in a JSON snippet = invalid JSON. Easy trap to spot: look for <code>//</code> or <code>/*</code>.</p>",
+      "visual": {
+        "type": "hierarchy",
+        "params": {
+          "root": "JSON and comments",
+          "children": [
+            {
+              "name": "// not allowed"
+            },
+            {
+              "name": "/* */ not allowed"
+            },
+            {
+              "name": "Workarounds",
+              "children": [
+                {
+                  "name": "\"_comment\" field"
+                },
+                {
+                  "name": "Switch to YAML (#)"
+                },
+                {
+                  "name": "JSON5 / JSONC"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "hack": {
+        "memory": "JSON has ZERO comments. Not //. Not /* */. If you see either in a snippet, it is NOT valid JSON. Workaround: add a _comment field, or use YAML (which does allow # comments).",
+        "practice": "Add // a comment to a valid JSON blob. jsonlint.com errors. Remove — OK. 15-second drill.",
+        "effort": "low",
+        "meta": "Jeremy's IT Lab Day 62. OCG Chapter 30. Exam: 'which is invalid JSON?' — the one with a comment is often a trap answer."
+      }
+    },
+    {
+      "id": "6.7.e.4",
+      "term": "No single quotes / capitalized booleans",
+      "weight": "high",
+      "info": "<p>Two of the most common JSON-invalidating mistakes bundled together:</p><p><strong>1. Single quotes are illegal anywhere.</strong></p><ul><li><code>{ 'name': 'SW1' }</code> — keys in single quotes = invalid.</li><li><code>{ \"name\": 'SW1' }</code> — value in single quotes = invalid.</li><li>Fix: replace every <code>'</code> with <code>\"</code>.</li></ul><p><strong>2. Booleans must be exactly <code>true</code> / <code>false</code> lowercase.</strong></p><ul><li><code>True</code> / <code>False</code> — capitalized = invalid (Python style).</li><li><code>TRUE</code> / <code>FALSE</code> — all caps = invalid.</li><li><code>\"true\"</code> / <code>\"false\"</code> — QUOTED are strings, not booleans (technically valid JSON, but wrong TYPE).</li><li>Fix: lowercase and remove quotes.</li></ul><p><strong>Same story for null:</strong></p><ul><li><code>null</code> valid.</li><li><code>Null</code> / <code>NULL</code> / <code>None</code> / <code>nil</code> all invalid.</li></ul><p><strong>Full cheat sheet for JSON validation:</strong></p><ul><li>Double quotes only.</li><li>No trailing commas.</li><li>No comments.</li><li>Lowercase true/false/null.</li><li>No leading zeros in numbers (except <code>0</code> itself).</li><li>Keys MUST be quoted strings.</li></ul><p>Memorize the five-rule scan and you will spot every invalid-JSON exam question in under 10 seconds.</p>",
+      "visual": {
+        "type": "comparison",
+        "params": {
+          "left": {
+            "label": "Valid JSON",
+            "items": [
+              "\"text\"",
+              "true / false / null",
+              "123 / 3.14",
+              "{\"key\": \"val\"}"
+            ]
+          },
+          "right": {
+            "label": "Invalid",
+            "items": [
+              "'text' (single quotes)",
+              "True / False / Null",
+              "01 (leading zero)",
+              "{key: \"val\"} (unquoted key)"
+            ]
+          }
+        }
+      },
+      "hack": {
+        "memory": "Two kills: (1) single quotes ANYWHERE = invalid. (2) Capitalized booleans/null = invalid. Python-style JSON is almost always wrong JSON. Downcase and double-quote everything.",
+        "practice": "Write {'name': 'SW1', 'up': True} — Python syntax. Now fix to valid JSON: {\"name\": \"SW1\", \"up\": true}. Two edits (quotes and case). Drill on 5 examples.",
+        "effort": "low",
+        "meta": "Jeremy's IT Lab Day 62. OCG Chapter 30. Exam: invalid-JSON traps bundle single quotes, capitalized True, trailing commas, and comments. Know all four."
+      }
+    },
+    {
+      "id": "6.7.e.5",
+      "term": "Exam JSON validation",
+      "weight": "high",
+      "info": "<p>On the CCNA, the most common JSON question is: 'which of the following is valid JSON?' or 'which snippet is NOT valid?' Use a fixed 6-point scan to answer in under 10 seconds.</p><p><strong>The 6-point validation scan:</strong></p><ol><li><strong>Double quotes only?</strong> — no <code>'single quotes'</code> anywhere.</li><li><strong>Keys quoted?</strong> — <code>{\"name\"...}</code>, not <code>{name...}</code>.</li><li><strong>No trailing commas?</strong> — character before <code>}</code> or <code>]</code> is not <code>,</code>.</li><li><strong>No comments?</strong> — no <code>//</code> or <code>/* */</code>.</li><li><strong>Booleans lowercase?</strong> — <code>true</code>/<code>false</code>/<code>null</code>, not <code>True</code>/<code>False</code>/<code>Null</code>.</li><li><strong>No leading zeros on numbers?</strong> — <code>01</code> invalid; <code>1</code> or <code>0.1</code> valid.</li></ol><p><strong>Worked example — spot the errors:</strong></p><pre>{\n  'hostname': \"SW1\",\n  \"enabled\": True,\n  \"vlans\": [10, 20, 30,],\n  // production switch\n  \"count\": 01\n}</pre><p>Errors: (1) single quotes on <code>'hostname'</code>, (2) capital <code>True</code>, (3) trailing comma in <code>[10, 20, 30,]</code>, (4) <code>//</code> comment, (5) leading zero <code>01</code>. Five errors, five rules. Fix each and the JSON validates.</p><p><strong>Exam strategy:</strong> run the scan in the same order every time — it becomes automatic and you will never miss a trap. Free points.</p>",
+      "visual": {
+        "type": "layer-stack",
+        "params": {
+          "layers": [
+            "1. Double quotes only",
+            "2. Keys quoted",
+            "3. No trailing commas",
+            "4. No comments",
+            "5. Lowercase true/false/null",
+            "6. No leading zeros"
+          ],
+          "highlight": 0
+        }
+      },
+      "hack": {
+        "memory": "6-point scan: double quotes, quoted keys, no trailing comma, no comments, lowercase booleans/null, no leading zeros. Run every time. Under 10 seconds per snippet. Guaranteed exam points.",
+        "practice": "Find 5 JSON snippets online (real or crafted). Score each with the 6-point scan. Note which rule each violation hits. Habituate the order. Your validation speed goes from 30 seconds to 5.",
+        "effort": "low",
+        "meta": "Jeremy's IT Lab Day 62. OCG Chapter 30. Exam: 'which JSON is valid/invalid?' — a free point if you run the 6-point scan fluently. Do not leave points on the table here."
       }
     }
   ]

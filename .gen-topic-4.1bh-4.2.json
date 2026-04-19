@@ -5,7 +5,19 @@
       "term": "Static NAT",
       "weight": "high",
       "info": "<p><strong>Static NAT</strong> is a permanent, one-to-one mapping between an Inside Local address (a private IP inside your network) and an Inside Global address (a public IP seen by the outside world). The mapping sits in the NAT table 24/7 — it exists before any traffic flows and persists even when the host is off.</p><p>Because the mapping is bidirectional, external clients can initiate connections <strong>to</strong> the Inside Global IP and the router will translate the destination back to the Inside Local IP. This is exactly what you need for servers that must be reachable from the internet — a web server, a mail server, a DNS server. Dynamic NAT and PAT cannot do this reliably because their mappings only exist while traffic is flowing outbound.</p><p><strong>Tradeoff:</strong> each static NAT entry consumes one public IP. Ten servers = ten public IPs. Public IPv4 space is expensive, so static NAT is only used where bidirectional reachability is truly required. Everything else uses PAT.</p><ul><li>Entry appears in <code>show ip nat translations</code> even with zero traffic.</li><li>AD-like priority: static entries are never aged out.</li><li>Works at L3 — doesn't care about ports.</li></ul>",
-      "visual": { "type": "packet-flow", "params": { "nodes": ["Inside host 10.1.1.5", "ip nat inside", "Router (static map)", "ip nat outside", "Internet sees 203.0.113.5"], "color": "#10b981" } },
+      "visual": {
+        "type": "packet-flow",
+        "params": {
+          "nodes": [
+            "Inside host 10.1.1.5",
+            "ip nat inside",
+            "Router (static map)",
+            "ip nat outside",
+            "Internet sees 203.0.113.5"
+          ],
+          "color": "#10b981"
+        }
+      },
       "hack": {
         "memory": "Static NAT = assigned parking spot. One car, one reserved space, permanent. The spot is yours whether or not you're parked. Outside traffic knows exactly where to find you because the mapping never changes.",
         "practice": "Lab: 'ip nat inside source static 10.1.1.5 203.0.113.5'. Mark Gi0/1 'ip nat inside', Gi0/0 'ip nat outside'. Run 'show ip nat translations' BEFORE sending any traffic — the entry is already there. Ping from outside to 203.0.113.5 and confirm it reaches 10.1.1.5.",
@@ -18,7 +30,26 @@
       "term": "Static NAT command",
       "weight": "high",
       "info": "<p>The configuration command for static NAT is a single line in global config:</p><pre>ip nat inside source static [inside-local] [inside-global]</pre><p><strong>Example:</strong> <code>ip nat inside source static 10.1.1.5 203.0.113.5</code> — translates outbound packets from 10.1.1.5 to appear as 203.0.113.5, and inbound packets to 203.0.113.5 back to 10.1.1.5.</p><p><strong>Required companion commands</strong> (NAT will silently do nothing without them):</p><ul><li>On the LAN interface: <code>ip nat inside</code></li><li>On the WAN interface: <code>ip nat outside</code></li></ul><p><strong>Keyword breakdown:</strong> 'inside source' = translate the source IP of packets entering an inside interface. 'static' = permanent mapping, no ACL or pool needed. You can also configure <code>ip nat outside source static</code> for the rare case of translating the source IP of packets from the outside network, but CCNA focuses on inside source.</p><p><strong>Port-based static NAT (port forwarding):</strong> <code>ip nat inside source static tcp 10.1.1.5 80 203.0.113.5 80</code> maps only TCP/80 so multiple internal servers can share one public IP on different ports. Useful knowledge but not heavily tested.</p>",
-      "visual": { "type": "comparison", "params": { "left": { "label": "Global command", "items": ["ip nat inside source static", "[inside-local]", "[inside-global]"] }, "right": { "label": "Interface commands", "items": ["int Gi0/1 → ip nat inside", "int Gi0/0 → ip nat outside"] } } },
+      "visual": {
+        "type": "comparison",
+        "params": {
+          "left": {
+            "label": "Global command",
+            "items": [
+              "ip nat inside source static",
+              "[inside-local]",
+              "[inside-global]"
+            ]
+          },
+          "right": {
+            "label": "Interface commands",
+            "items": [
+              "int Gi0/1 → ip nat inside",
+              "int Gi0/0 → ip nat outside"
+            ]
+          }
+        }
+      },
       "hack": {
         "memory": "Command reads left-to-right like the packet flow: 'inside source' (where the packet is FROM) gets translated 'static' (permanently) from [local] to [global]. LAN side = inside, WAN side = outside — like labeling doors on a room for the translator.",
         "practice": "Type the command from memory five times. Then lab it: configure a static mapping, shut the inside interface, and confirm the entry is still in 'show ip nat translations' — static entries don't care about interface state.",
@@ -31,7 +62,17 @@
       "term": "Bidirectional translation",
       "weight": "high",
       "info": "<p>Static NAT is the only NAT type that is truly <strong>bidirectional by default</strong>. The single static mapping handles both directions of translation:</p><ul><li><strong>Outbound:</strong> Inside host 10.1.1.5 sends a packet. Router sees inside interface → outside interface, translates source 10.1.1.5 → 203.0.113.5.</li><li><strong>Inbound:</strong> Outside host sends a packet to 203.0.113.5. Router sees outside interface → inside interface, translates destination 203.0.113.5 → 10.1.1.5.</li></ul><p>This means external hosts can <strong>initiate</strong> connections to the internal server. Dynamic NAT mappings are only created by outbound traffic, so if no one inside has sent anything out yet, there's no entry and inbound traffic is dropped. PAT has the same limitation unless you configure explicit port forwarding.</p><p><strong>Real-world implication:</strong> hosting a public web server on an RFC 1918 address requires either static NAT, static PAT (port forwarding), or a cloud load balancer with a real public IP. For most enterprise servers, the convention is: servers get static NAT, clients get PAT.</p>",
-      "visual": { "type": "packet-flow", "params": { "nodes": ["Outbound: 10.1.1.5 → 203.0.113.5", "Mapping in NAT table", "Inbound: 203.0.113.5 → 10.1.1.5"], "color": "#3b82f6" } },
+      "visual": {
+        "type": "packet-flow",
+        "params": {
+          "nodes": [
+            "Outbound: 10.1.1.5 → 203.0.113.5",
+            "Mapping in NAT table",
+            "Inbound: 203.0.113.5 → 10.1.1.5"
+          ],
+          "color": "#3b82f6"
+        }
+      },
       "hack": {
         "memory": "Bidirectional = the mapping works both ways without being re-created. Outbound translates source, inbound translates destination — same row in the NAT table, two directions of use.",
         "practice": "Lab: configure static NAT. From outside, Telnet/SSH/ping to the public IP. Watch it reach the inside server. Then delete the static mapping — the inbound traffic now fails because no NAT entry exists to translate the destination.",
@@ -44,7 +85,27 @@
       "term": "One public IP per server",
       "weight": "med",
       "info": "<p>Every static NAT entry consumes exactly one Inside Global (public) address for one Inside Local (private) address. Ten public-facing servers = ten public IPv4 addresses, even if some are idle 99% of the time.</p><p>Because public IPv4 space is exhausted and expensive (ISPs charge per block, /29 is minimum for most connections), this scaling cost is the main reason organizations use:</p><ul><li><strong>Static PAT / port forwarding</strong> — share one public IP across many servers using different ports (203.0.113.5:80 → server A, 203.0.113.5:443 → server B).</li><li><strong>Reverse proxies</strong> — a single public IP fronts many backend servers using SNI or Host header.</li><li><strong>IPv6</strong> — eliminates the scarcity problem entirely; every host can have a globally unique address.</li></ul><p>For CCNA scope, just know: static NAT doesn't scale for hundreds of servers. It's a surgical tool for a handful of public-facing services.</p>",
-      "visual": { "type": "comparison", "params": { "left": { "label": "Static NAT cost", "items": ["1 server = 1 public IP", "10 servers = 10 public IPs", "Costs scale linearly"] }, "right": { "label": "Alternatives", "items": ["Static PAT (port forwarding)", "Reverse proxy (Nginx, F5)", "IPv6 public addresses"] } } },
+      "visual": {
+        "type": "comparison",
+        "params": {
+          "left": {
+            "label": "Static NAT cost",
+            "items": [
+              "1 server = 1 public IP",
+              "10 servers = 10 public IPs",
+              "Costs scale linearly"
+            ]
+          },
+          "right": {
+            "label": "Alternatives",
+            "items": [
+              "Static PAT (port forwarding)",
+              "Reverse proxy (Nginx, F5)",
+              "IPv6 public addresses"
+            ]
+          }
+        }
+      },
       "hack": {
         "memory": "Static NAT = one-bedroom apartment per tenant. Doesn't scale. For shared housing, use PAT (apartment building, shared address, unique apartment numbers).",
         "practice": "No lab — conceptual. On the exam, if you see '200 public-facing servers' the answer is not static NAT. It's PAT with port forwarding or a load balancer.",
@@ -59,7 +120,20 @@
       "term": "Dynamic NAT",
       "weight": "high",
       "info": "<p><strong>Dynamic NAT</strong> assigns an Inside Global (public) address from a configured <strong>pool</strong> the first time an inside host sends outbound traffic. The mapping is one-to-one (one private IP gets one public IP) but <strong>temporary</strong> — when the entry times out, the public IP returns to the pool for someone else to use.</p><p>Unlike static NAT, dynamic NAT requires three pieces of configuration to work together:</p><ol><li>An <strong>ACL</strong> that selects which inside hosts are eligible.</li><li>A <strong>pool</strong> of public IPs the router can hand out.</li><li>A NAT statement that binds the ACL to the pool.</li></ol><p><strong>Key property:</strong> dynamic NAT is still one-to-one. If your pool has 5 addresses, only 5 inside hosts can be translated simultaneously. The 6th host's traffic is dropped (not queued, not retried — dropped). This scaling limit is why PAT almost entirely replaced dynamic NAT in production.</p><p>Dynamic NAT is rarely deployed today but appears on the CCNA exam as a conceptual stepping stone to PAT. Knowing dynamic NAT first makes the leap to PAT obvious: PAT is dynamic NAT plus the 'overload' keyword.</p>",
-      "visual": { "type": "state-machine", "params": { "states": ["Inside host sends traffic", "ACL permit match?", "Pool has free IP?", "Mapping created (1:1)", "Timeout → IP returns to pool"], "active": 3, "transitions": true } },
+      "visual": {
+        "type": "state-machine",
+        "params": {
+          "states": [
+            "Inside host sends traffic",
+            "ACL permit match?",
+            "Pool has free IP?",
+            "Mapping created (1:1)",
+            "Timeout → IP returns to pool"
+          ],
+          "active": 3,
+          "transitions": true
+        }
+      },
       "hack": {
         "memory": "Dynamic NAT = hotel check-in. Guests (hosts) get assigned rooms (public IPs) on arrival. No empty rooms = you're turned away (drop). Rooms free up at checkout (timeout). Still one guest per room = one-to-one, just temporary.",
         "practice": "Lab: pool of 2 IPs, 3 inside hosts. Send traffic from all 3. 'show ip nat translations' shows 2 entries. The 3rd host's ping fails. Wait for the timeout, retry — now it works because an entry expired.",
@@ -72,7 +146,18 @@
       "term": "Pool config",
       "weight": "high",
       "info": "<p>The pool defines the range of public IPs the router is allowed to hand out. Syntax:</p><pre>ip nat pool [NAME] [start-ip] [end-ip] netmask [subnet-mask]</pre><p><strong>Example:</strong></p><pre>ip nat pool PUBPOOL 203.0.113.10 203.0.113.20 netmask 255.255.255.0</pre><p>This creates a pool named PUBPOOL containing 11 addresses (203.0.113.10 through .20). The <strong>netmask</strong> argument tells the router the subnet these addresses belong to — it's not a prefix for the pool itself, it's the subnet mask of the containing network. You can also use <code>prefix-length 24</code> instead of <code>netmask</code>.</p><p><strong>Pool sizing:</strong></p><ul><li>Dynamic NAT (no overload) — pool size = max simultaneous inside hosts. Plan for peak.</li><li>Dynamic NAT with overload (pool-based PAT) — each pool IP supports ~65,000 sessions, so a small pool goes a long way.</li></ul><p><strong>Linking the pool to the ACL:</strong> <code>ip nat inside source list 1 pool PUBPOOL</code>. For PAT, append <code>overload</code>.</p>",
-      "visual": { "type": "packet-flow", "params": { "nodes": ["ip nat pool PUBPOOL", "203.0.113.10 203.0.113.20", "netmask 255.255.255.0", "ip nat inside source list 1 pool PUBPOOL"], "color": "#8b5cf6" } },
+      "visual": {
+        "type": "packet-flow",
+        "params": {
+          "nodes": [
+            "ip nat pool PUBPOOL",
+            "203.0.113.10 203.0.113.20",
+            "netmask 255.255.255.0",
+            "ip nat inside source list 1 pool PUBPOOL"
+          ],
+          "color": "#8b5cf6"
+        }
+      },
       "hack": {
         "memory": "Pool = a pre-reserved block of public IPs the router can draw from. Syntax reads like a sentence: 'ip nat pool NAME [first] [last] netmask [mask].' The netmask is the SUBNET these IPs live in, not the size of the pool.",
         "practice": "Type three pools from memory, each a different size. Verify with 'show ip nat pool' (on supported platforms) or 'show running-config | include ip nat pool'.",
@@ -85,7 +170,20 @@
       "term": "Pool exhaustion = DROP",
       "weight": "high",
       "info": "<p>When every address in a dynamic NAT pool is in use and a new inside host tries to communicate outbound, the router <strong>drops the packet</strong>. It does not queue, it does not buffer, it does not retry. The host's connection simply fails and increments the NAT 'misses' counter.</p><p>You can see this on <code>show ip nat statistics</code>:</p><pre>Hits: 14523 Misses: 47\nExpired translations: 12\nDynamic mappings:\n -- Inside Source\n  [Id: 1] access-list 1 pool PUBPOOL refcount 5\n   pool PUBPOOL: netmask 255.255.255.0\n        start 203.0.113.10 end 203.0.113.20\n        type generic, total addresses 11, allocated 11 (100%), misses 47</pre><p>The <strong>allocated 11 (100%)</strong> line is the smoking gun — the pool is full. Mitigation options:</p><ul><li>Expand the pool.</li><li>Shorten the NAT timeout: <code>ip nat translation timeout 300</code> (seconds).</li><li>Switch to PAT by adding <code>overload</code> — instantly scales from N to ~65,000 per IP.</li></ul><p>This exhaustion behavior is why dynamic NAT is almost never deployed alone; it's always paired with <code>overload</code> to become PAT.</p>",
-      "visual": { "type": "state-machine", "params": { "states": ["Host needs translation", "Check pool", "All IPs allocated", "DROP packet", "Increment miss counter"], "active": 3, "transitions": true } },
+      "visual": {
+        "type": "state-machine",
+        "params": {
+          "states": [
+            "Host needs translation",
+            "Check pool",
+            "All IPs allocated",
+            "DROP packet",
+            "Increment miss counter"
+          ],
+          "active": 3,
+          "transitions": true
+        }
+      },
       "hack": {
         "memory": "Pool exhaustion = 'no vacancy' sign. Router doesn't wait, doesn't queue, doesn't retry. Drops the packet, increments misses. The fix: more IPs, shorter timeouts, or add 'overload' to become PAT.",
         "practice": "Lab: pool of 1 IP, 2 inside hosts. Send outbound from host A — works. Send from host B — dropped. Check 'show ip nat statistics' — misses increments, allocated = 100%. Add 'overload' to the NAT statement, clear translations, retry — now both work.",
@@ -98,7 +196,29 @@
       "term": "Dynamic NAT vs PAT",
       "weight": "high",
       "info": "<p>The ONLY syntactic difference between dynamic NAT and PAT is the <strong>overload</strong> keyword at the end of the NAT statement.</p><p><strong>Dynamic NAT (one-to-one, temporary):</strong></p><pre>ip nat inside source list 1 pool PUBPOOL</pre><p><strong>PAT (many-to-one, using ports):</strong></p><pre>ip nat inside source list 1 pool PUBPOOL overload\nip nat inside source list 1 interface Gi0/0 overload</pre><p><strong>Behavioral differences:</strong></p><ul><li>Dynamic NAT: N inside hosts require N public IPs. 6th host = dropped.</li><li>PAT: N inside hosts share M public IPs using unique source ports. ~65,000 sessions per IP.</li></ul><p><strong>Exam trap:</strong> a question shows a NAT config without the 'overload' keyword and describes 500 inside hosts. The config is dynamic NAT, so only pool-size hosts will be translated at any moment. The rest will be dropped. If the question asks what's wrong, the answer is 'missing overload keyword.'</p>",
-      "visual": { "type": "comparison", "params": { "left": { "label": "Dynamic NAT", "items": ["No 'overload'", "1 private : 1 public", "Limited to pool size", "Rare in production"] }, "right": { "label": "PAT (Overload)", "items": ["'overload' keyword", "Many private : 1 public", "~65K sessions per IP", "Used everywhere"] } } },
+      "visual": {
+        "type": "comparison",
+        "params": {
+          "left": {
+            "label": "Dynamic NAT",
+            "items": [
+              "No 'overload'",
+              "1 private : 1 public",
+              "Limited to pool size",
+              "Rare in production"
+            ]
+          },
+          "right": {
+            "label": "PAT (Overload)",
+            "items": [
+              "'overload' keyword",
+              "Many private : 1 public",
+              "~65K sessions per IP",
+              "Used everywhere"
+            ]
+          }
+        }
+      },
       "hack": {
         "memory": "One word = huge difference. Without 'overload' = dynamic NAT, one-to-one, drops at pool exhaustion. With 'overload' = PAT, many-to-one, scales effortlessly. Exam asks: 'What does overload do?' = enables PAT.",
         "practice": "Configure both back-to-back on the same router. Note that removing the overload keyword is a one-command change that completely alters behavior.",
@@ -111,7 +231,17 @@
       "term": "Rarely used today",
       "weight": "med",
       "info": "<p>Dynamic NAT without overload is almost extinct in production networks. The reason is simple: public IPv4 is too expensive to waste on one-to-one temporary mappings when PAT can pack ~65,000 sessions onto a single address.</p><p>Where you might still see dynamic NAT:</p><ul><li><strong>Legacy networks</strong> that pre-date widespread PAT adoption and haven't been refactored.</li><li><strong>Compliance scenarios</strong> where logging traceability requires a 1:1 mapping (rare; modern practice uses PAT + flow logs).</li><li><strong>Tests and labs</strong> for teaching the difference vs PAT.</li></ul><p>CCNA still covers dynamic NAT because the exam blueprint calls it out and because understanding it makes PAT obvious. But when you build a real network, you'll configure PAT every time.</p>",
-      "visual": { "type": "layer-stack", "params": { "layers": ["Static NAT — servers only", "Dynamic NAT — rarely used", "PAT (Overload) — everywhere"], "highlight": 2 } },
+      "visual": {
+        "type": "layer-stack",
+        "params": {
+          "layers": [
+            "Static NAT — servers only",
+            "Dynamic NAT — rarely used",
+            "PAT (Overload) — everywhere"
+          ],
+          "highlight": 2
+        }
+      },
       "hack": {
         "memory": "Dynamic NAT = a concept bridge, not a production tool. Learn it to understand PAT. In real life: PAT or static, never plain dynamic.",
         "practice": "None required beyond conceptual.",
@@ -126,7 +256,25 @@
       "term": "PAT / NAT Overload",
       "weight": "high",
       "info": "<p><strong>PAT (Port Address Translation)</strong> — also called <strong>NAT Overload</strong> — is the NAT type used by virtually every internet-connected network in the world. It maps many inside private addresses to a single (or small pool of) public address(es) by using unique <strong>TCP/UDP source port numbers</strong> to keep each flow distinct.</p><p>When host A (10.1.1.5:51234) and host B (10.1.1.6:51234) both open connections to the same external server, the router translates them to:</p><ul><li>A: 203.0.113.1:51234 → 8.8.8.8:443</li><li>B: 203.0.113.1:51235 → 8.8.8.8:443 (router picked a new source port to avoid collision)</li></ul><p>Return packets arrive addressed to 203.0.113.1:51234 and :51235, and the router uses the destination port to look up which inside host each belongs to.</p><p><strong>Why this is the default:</strong> a single public IP supports ~65,000 simultaneous sessions (the range of ephemeral ports), so a household of 20 devices or an office of 500 can all share one public address. Public IPv4 conservation is why PAT exists.</p>",
-      "visual": { "type": "encapsulation", "params": { "layers": [{ "label": "10.1.1.5:51234 → 203.0.113.1:51234", "color": "#3b82f6" }, { "label": "10.1.1.6:51234 → 203.0.113.1:51235", "color": "#8b5cf6" }, { "label": "10.1.1.7:44200 → 203.0.113.1:51236", "color": "#10b981" }] } },
+      "visual": {
+        "type": "encapsulation",
+        "params": {
+          "layers": [
+            {
+              "label": "10.1.1.5:51234 → 203.0.113.1:51234",
+              "color": "#3b82f6"
+            },
+            {
+              "label": "10.1.1.6:51234 → 203.0.113.1:51235",
+              "color": "#8b5cf6"
+            },
+            {
+              "label": "10.1.1.7:44200 → 203.0.113.1:51236",
+              "color": "#10b981"
+            }
+          ]
+        }
+      },
       "hack": {
         "memory": "PAT = apartment building. One street address (public IP), many apartment numbers (ports). Mail comes to the building addressed to apt 504, the mailroom (NAT table) hands it to the right tenant. If two tenants happen to use the same apt number, the mailroom renumbers one.",
         "practice": "Lab: PAT using the outside interface. Generate traffic from 5 hosts. 'show ip nat translations' shows 5 entries, all with the SAME Inside Global IP, each with a DIFFERENT Inside Global port. Compare to dynamic NAT where each host would have a different IP.",
@@ -139,7 +287,27 @@
       "term": "'overload' keyword",
       "weight": "high",
       "info": "<p>The single word <strong>overload</strong> is what transforms a dynamic NAT statement into PAT. It tells the router: 'don't just pick a free public IP and give this host an exclusive one — reuse the same public IP for multiple hosts by multiplexing on port numbers.'</p><p>Comparison:</p><pre>! Dynamic NAT — 1:1, limited to pool size\nip nat inside source list 1 pool PUBPOOL\n\n! PAT — many:1, ~65K sessions per IP\nip nat inside source list 1 pool PUBPOOL overload\nip nat inside source list 1 interface Gi0/0 overload</pre><p><strong>Memorize this</strong>: the exam will show you a NAT config missing 'overload' and ask why hundreds of inside hosts can't get to the internet. The answer is always 'missing overload.'</p><p>The keyword must come at the very end of the command. Without it, the router silently configures dynamic NAT and most questions get this subtly wrong.</p>",
-      "visual": { "type": "comparison", "params": { "left": { "label": "WITHOUT overload", "items": ["Dynamic NAT", "1:1 mapping", "Drop at pool limit"] }, "right": { "label": "WITH overload", "items": ["PAT", "Many:1 mapping", "~65K sessions/IP"] } } },
+      "visual": {
+        "type": "comparison",
+        "params": {
+          "left": {
+            "label": "WITHOUT overload",
+            "items": [
+              "Dynamic NAT",
+              "1:1 mapping",
+              "Drop at pool limit"
+            ]
+          },
+          "right": {
+            "label": "WITH overload",
+            "items": [
+              "PAT",
+              "Many:1 mapping",
+              "~65K sessions/IP"
+            ]
+          }
+        }
+      },
       "hack": {
         "memory": "'overload' = the magic word. Say it out loud every time you type a PAT command. Without overload, the router helpfully builds dynamic NAT and your network quietly breaks at scale.",
         "practice": "Configure PAT, then remove 'overload' with 'no ip nat inside source list 1 interface Gi0/0 overload' and re-add it WITHOUT overload. Watch behavior degrade as you scale inside hosts.",
@@ -152,7 +320,18 @@
       "term": "PAT using interface",
       "weight": "high",
       "info": "<p>The most common PAT configuration uses the outside interface's IP as the public address. This is exactly how a home router works — it translates all LAN devices to share the single WAN IP the ISP assigned.</p><p><strong>Configuration:</strong></p><pre>access-list 1 permit 10.1.1.0 0.0.0.255\ninterface GigabitEthernet0/0\n ip address dhcp     ! or a fixed public IP\n ip nat outside\ninterface GigabitEthernet0/1\n ip address 10.1.1.1 255.255.255.0\n ip nat inside\nip nat inside source list 1 interface GigabitEthernet0/0 overload</pre><p>The key line is <code>ip nat inside source list 1 interface Gi0/0 overload</code>. This tells the router: 'for every inside host that matches ACL 1, use whatever IP is currently on Gi0/0 as the Inside Global address, and use ports to distinguish flows.'</p><p><strong>Why this form is popular:</strong></p><ul><li>Works when the WAN IP is dynamic (DHCP from ISP) — no pool to update.</li><li>No wasted IPs in a pool.</li><li>Minimal configuration.</li></ul>",
-      "visual": { "type": "packet-flow", "params": { "nodes": ["ACL 1: 10.1.1.0/24", "int Gi0/1 → ip nat inside", "int Gi0/0 → ip nat outside", "ip nat inside source list 1 interface Gi0/0 overload"], "color": "#f59e0b" } },
+      "visual": {
+        "type": "packet-flow",
+        "params": {
+          "nodes": [
+            "ACL 1: 10.1.1.0/24",
+            "int Gi0/1 → ip nat inside",
+            "int Gi0/0 → ip nat outside",
+            "ip nat inside source list 1 interface Gi0/0 overload"
+          ],
+          "color": "#f59e0b"
+        }
+      },
       "hack": {
         "memory": "Interface-based PAT = 'use whatever IP my WAN interface has right now.' Perfect for DHCP-assigned public IPs. One-liner command after the ACL and interface designations.",
         "practice": "Build this exact config in Packet Tracer. Change the outside IP via 'ip address' and confirm PAT adapts immediately — the new IP becomes the Inside Global without reconfiguring NAT.",
@@ -165,7 +344,25 @@
       "term": "PAT using pool",
       "weight": "high",
       "info": "<p>Pool-based PAT combines a pool of public IPs with the overload keyword. The router rotates through the pool IPs as it hands out translations, and each pool IP can independently support ~65,000 sessions.</p><p><strong>Configuration:</strong></p><pre>access-list 1 permit 10.1.1.0 0.0.0.255\nip nat pool PUBPOOL 203.0.113.10 203.0.113.20 netmask 255.255.255.0\nip nat inside source list 1 pool PUBPOOL overload</pre><p><strong>When to use pool-based PAT over interface-based:</strong></p><ul><li>You have more than one public IP and want to use all of them.</li><li>You're running extremely high session counts and want headroom beyond 65K (a pool of 11 IPs supports ~700K sessions).</li><li>Service provider deployments where customers share a pool.</li></ul><p>In typical enterprise and home deployments, interface-based PAT wins because it's simpler. Pool-based PAT shines for ISPs and very large enterprises.</p>",
-      "visual": { "type": "hierarchy", "params": { "root": "Pool-based PAT", "children": [{ "name": "ip nat pool PUBPOOL ...", "children": [{ "name": "203.0.113.10 - .20" }] }, { "name": "inside source list 1 pool PUBPOOL overload" }] } },
+      "visual": {
+        "type": "hierarchy",
+        "params": {
+          "root": "Pool-based PAT",
+          "children": [
+            {
+              "name": "ip nat pool PUBPOOL ...",
+              "children": [
+                {
+                  "name": "203.0.113.10 - .20"
+                }
+              ]
+            },
+            {
+              "name": "inside source list 1 pool PUBPOOL overload"
+            }
+          ]
+        }
+      },
       "hack": {
         "memory": "Pool + overload = many public IPs, each overloaded with many ports. Scales to hundreds of thousands of sessions. Use for big networks and ISPs.",
         "practice": "Configure pool-based PAT with a pool of 2 IPs. Generate heavy traffic from 10 hosts. Watch 'show ip nat translations' — both pool IPs get used, each with many port entries.",
@@ -178,7 +375,19 @@
       "term": "Port uniqueness",
       "weight": "high",
       "info": "<p>PAT's whole trick is making source ports unique per flow on the shared public IP. The router tracks:</p><pre>Inside Local         Inside Global       Outside Global       Outside Local\n10.1.1.5:51234       203.0.113.1:51234   8.8.8.8:443          8.8.8.8:443\n10.1.1.6:51234       203.0.113.1:51235   8.8.8.8:443          8.8.8.8:443</pre><p>If two inside hosts happen to pick the same source port (port 51234 in this example), the router simply assigns a different Inside Global port (51235) to the second host. The inside host never knows — return packets to 51235 get mapped back to the original 51234 before being delivered.</p><p><strong>Capacity:</strong></p><ul><li>TCP and UDP each have 65,535 port numbers.</li><li>Cisco reserves a small range, so practical capacity is ~60,000 sessions per protocol per public IP.</li><li>A single PAT session is identified by the 5-tuple: protocol, inside global IP, inside global port, outside IP, outside port. So even if port 51234 is 'in use,' it can be reused for a different destination IP without collision.</li></ul>",
-      "visual": { "type": "binary-breakdown", "params": { "bits": ["Protocol", "Inside Global IP", "Inside Global Port", "Outside IP", "Outside Port"], "label": "5-tuple NAT flow identifier" } },
+      "visual": {
+        "type": "binary-breakdown",
+        "params": {
+          "bits": [
+            "Protocol",
+            "Inside Global IP",
+            "Inside Global Port",
+            "Outside IP",
+            "Outside Port"
+          ],
+          "label": "5-tuple NAT flow identifier"
+        }
+      },
       "hack": {
         "memory": "Port uniqueness = PAT's magic. If two inside hosts want the same source port, the router just picks a different one for the second. Return traffic uses the DESTINATION port to find the right inside host in the NAT table.",
         "practice": "Force a port collision: use curl with --local-port to pin the source port on two hosts. Watch the NAT table rewrite one of them.",
@@ -191,7 +400,26 @@
       "term": "Home router = PAT",
       "weight": "high",
       "info": "<p>Every consumer home router (Linksys, Netgear, ASUS, ISP-provided) implements PAT by default. Your laptop, phone, tablet, smart TV, Ring doorbell, and IoT junk all share the single public IPv4 address your ISP assigned. The router's NAT table tracks thousands of simultaneous sessions and multiplexes them on one public IP.</p><p>Implications you should internalize:</p><ul><li><strong>Inbound connections are blocked by default.</strong> Without a port-forward rule (static PAT), no external host can reach a device inside your home. This is a security side-effect of PAT, not a designed firewall.</li><li><strong>Port forwarding</strong> = static PAT. A home router's 'port forward port 80 to 192.168.1.100' is literally <code>ip nat inside source static tcp 192.168.1.100 80 [WAN-IP] 80</code>.</li><li><strong>NAT traversal protocols</strong> (STUN, TURN, UPnP, NAT-PMP) exist to work around PAT's blocking behavior for P2P apps like VoIP and gaming.</li><li><strong>IPv6 bypasses PAT entirely.</strong> Every device gets a real public IP.</li></ul>",
-      "visual": { "type": "hierarchy", "params": { "root": "Home WAN: 203.0.113.5", "children": [{ "name": "Laptop 192.168.1.10" }, { "name": "Phone 192.168.1.11" }, { "name": "TV 192.168.1.12" }, { "name": "IoT 192.168.1.50" }] } },
+      "visual": {
+        "type": "hierarchy",
+        "params": {
+          "root": "Home WAN: 203.0.113.5",
+          "children": [
+            {
+              "name": "Laptop 192.168.1.10"
+            },
+            {
+              "name": "Phone 192.168.1.11"
+            },
+            {
+              "name": "TV 192.168.1.12"
+            },
+            {
+              "name": "IoT 192.168.1.50"
+            }
+          ]
+        }
+      },
       "hack": {
         "memory": "Your home router is doing PAT right now. Every tab in your browser, every app on your phone = one more port in the NAT table. The router is juggling thousands of entries and you never notice.",
         "practice": "On a home router admin page, find the NAT translation table (may be called 'connections' or 'sessions'). Count entries — typically hundreds to thousands on a normal household.",
@@ -206,7 +434,19 @@
       "term": "ip nat inside",
       "weight": "high",
       "info": "<p><code>ip nat inside</code> is an interface-level command that marks an interface as facing the <strong>private/internal</strong> portion of the network. NAT uses this designation to know which direction a packet is traveling and therefore which translation to apply.</p><p><strong>Configuration:</strong></p><pre>interface GigabitEthernet0/1\n ip address 10.1.1.1 255.255.255.0\n ip nat inside</pre><p>A router can have <strong>multiple inside interfaces</strong>. For example, two LAN segments (Gi0/1 and Gi0/2) both marked 'ip nat inside' can share the same outside interface and the same NAT pool.</p><p><strong>What 'inside' actually triggers:</strong> when a packet enters an 'ip nat inside' interface and is routed toward an 'ip nat outside' interface, the router translates the SOURCE IP (inside local → inside global). For return packets arriving on the outside interface, the router translates the DESTINATION IP back.</p><p>Without this designation on AT LEAST one interface, NAT has no anchor for the 'inside' direction and performs no translation.</p>",
-      "visual": { "type": "packet-flow", "params": { "nodes": ["LAN 10.1.1.0/24", "Gi0/1 ip nat inside", "Router", "Gi0/0 ip nat outside", "Internet"], "color": "#10b981" } },
+      "visual": {
+        "type": "packet-flow",
+        "params": {
+          "nodes": [
+            "LAN 10.1.1.0/24",
+            "Gi0/1 ip nat inside",
+            "Router",
+            "Gi0/0 ip nat outside",
+            "Internet"
+          ],
+          "color": "#10b981"
+        }
+      },
       "hack": {
         "memory": "'ip nat inside' = 'this door faces the private side.' Without it, NAT doesn't know which way is in. Put this on every LAN-side interface.",
         "practice": "In lab: configure all NAT rules (static/pool/overload) correctly, but leave off 'ip nat inside'. Ping out — nothing translates. Add it — instantly works.",
@@ -219,7 +459,19 @@
       "term": "ip nat outside",
       "weight": "high",
       "info": "<p><code>ip nat outside</code> marks an interface as facing the <strong>public/external</strong> network — typically the WAN link to the ISP or to the core of the enterprise. A router usually has exactly one outside interface.</p><p><strong>Configuration:</strong></p><pre>interface GigabitEthernet0/0\n ip address 203.0.113.1 255.255.255.252\n ip nat outside</pre><p><strong>What happens under the hood:</strong> when a packet exits an 'ip nat outside' interface heading toward the internet, the router has already translated the source IP (done on ingress to the inside interface, actually). When a return packet arrives on the 'ip nat outside' interface, the router checks the NAT table and translates the destination back to the inside local address before routing it toward the inside interface.</p><p><strong>Both sides are required.</strong> If only 'ip nat inside' is configured without 'ip nat outside' on the WAN interface, NAT does nothing. This is the #1 NAT bug.</p>",
-      "visual": { "type": "packet-flow", "params": { "nodes": ["Inside host", "ip nat inside", "Router (translates)", "ip nat outside", "ISP / Internet"], "color": "#f59e0b" } },
+      "visual": {
+        "type": "packet-flow",
+        "params": {
+          "nodes": [
+            "Inside host",
+            "ip nat inside",
+            "Router (translates)",
+            "ip nat outside",
+            "ISP / Internet"
+          ],
+          "color": "#f59e0b"
+        }
+      },
       "hack": {
         "memory": "'ip nat outside' = 'this door faces the public side.' Pair it with 'ip nat inside' on the LAN side. Both required, always.",
         "practice": "Mark only 'ip nat outside' on the WAN interface and leave 'ip nat inside' off the LAN. Traffic outbound fails silently. Add 'ip nat inside' — works.",
@@ -232,7 +484,20 @@
       "term": "Missing designations = no NAT",
       "weight": "high",
       "info": "<p>This is the single most common NAT bug in labs and production. The student types the static mapping, the pool, the ACL, and the overload keyword perfectly — but forgets to tag the interfaces. The router silently does <strong>nothing</strong>.</p><p><strong>Why silent:</strong> NAT has no syntax error for missing interface designations. The config looks fine in <code>show running-config</code>. Only the behavior (no translations ever created, ping failures) reveals the problem.</p><p><strong>Diagnosis:</strong></p><pre>Router# show ip nat statistics\nTotal active translations: 0\n...\nOutside interfaces:\n  [NONE]\nInside interfaces:\n  [NONE]</pre><p>When you see <strong>[NONE]</strong> or an empty list under Inside/Outside interfaces, you've found the bug. Add 'ip nat inside' and 'ip nat outside' on the correct interfaces, and translation starts immediately.</p><p><strong>Rule of thumb:</strong> before debugging any NAT issue, run <code>show ip nat statistics</code> FIRST. If the interface lists are empty, stop everything and fix that. Don't waste time on ACLs or pools.</p>",
-      "visual": { "type": "state-machine", "params": { "states": ["NAT not working", "show ip nat statistics", "Inside/Outside interfaces empty?", "YES → add designations", "NAT works"], "active": 2, "transitions": true } },
+      "visual": {
+        "type": "state-machine",
+        "params": {
+          "states": [
+            "NAT not working",
+            "show ip nat statistics",
+            "Inside/Outside interfaces empty?",
+            "YES → add designations",
+            "NAT works"
+          ],
+          "active": 2,
+          "transitions": true
+        }
+      },
       "hack": {
         "memory": "#1 NAT bug. Always. Check interface designations BEFORE checking anything else. 'show ip nat statistics' reveals the truth in one command.",
         "practice": "Deliberately break NAT by removing 'ip nat inside' from an interface. Note how the config LOOKS fine. Diagnose from 'show ip nat statistics' alone.",
@@ -245,7 +510,29 @@
       "term": "show ip nat statistics",
       "weight": "high",
       "info": "<p><code>show ip nat statistics</code> is the single most valuable NAT verification command. It reveals interface designations, pool usage, translation counts, and hit/miss ratios in one output.</p><p><strong>Example output:</strong></p><pre>Router# show ip nat statistics\nTotal active translations: 47 (2 static, 45 dynamic; 45 extended)\nPeak translations: 812\nOutside interfaces:\n  GigabitEthernet0/0\nInside interfaces:\n  GigabitEthernet0/1, GigabitEthernet0/2\nHits: 14523  Misses: 47\nCEF Translated packets: 14570, CEF Punted packets: 0\nExpired translations: 12\nDynamic mappings:\n -- Inside Source\n [Id: 1] access-list 1 pool PUBPOOL refcount 45\n  pool PUBPOOL: netmask 255.255.255.0\n       start 203.0.113.10 end 203.0.113.20\n       type generic, total addresses 11, allocated 11 (100%), misses 47</pre><p><strong>Key fields to read:</strong></p><ul><li><strong>Inside interfaces / Outside interfaces</strong> — if empty, NAT is silently broken.</li><li><strong>Hits</strong> — successful translations. Should be much greater than misses.</li><li><strong>Misses</strong> — failed translations. High values = pool exhaustion or ACL mismatch.</li><li><strong>allocated X (Y%)</strong> — how much of the pool is in use. 100% = exhausted.</li></ul>",
-      "visual": { "type": "comparison", "params": { "left": { "label": "What to check first", "items": ["Inside interfaces list", "Outside interfaces list", "Hits vs Misses ratio", "Pool allocated %"] }, "right": { "label": "Red flags", "items": ["Inside/Outside [NONE]", "High misses", "Pool 100% allocated", "0 active translations with traffic"] } } },
+      "visual": {
+        "type": "comparison",
+        "params": {
+          "left": {
+            "label": "What to check first",
+            "items": [
+              "Inside interfaces list",
+              "Outside interfaces list",
+              "Hits vs Misses ratio",
+              "Pool allocated %"
+            ]
+          },
+          "right": {
+            "label": "Red flags",
+            "items": [
+              "Inside/Outside [NONE]",
+              "High misses",
+              "Pool 100% allocated",
+              "0 active translations with traffic"
+            ]
+          }
+        }
+      },
       "hack": {
         "memory": "ONE command to read NAT health: 'show ip nat statistics.' Interface designations + pool status + hit/miss counts. Always run this first when troubleshooting.",
         "practice": "Run this on every NAT lab. Memorize what 'healthy' output looks like vs 'broken' — the contrast is obvious once you've seen both.",
@@ -260,7 +547,19 @@
       "term": "NAT ACL purpose",
       "weight": "high",
       "info": "<p>Dynamic NAT and PAT both use an ACL to decide <strong>which inside hosts get translated</strong>. The ACL is not a firewall — it does not drop or permit traffic. It's a SELECTION filter for NAT only.</p><p><strong>How it works:</strong> when a packet enters an 'ip nat inside' interface, the router checks the source IP against the NAT ACL.</p><ul><li>If source matches a <strong>permit</strong> entry → translate this packet.</li><li>If source matches a <strong>deny</strong> entry (or no entry = implicit deny) → do NOT translate. The packet is forwarded untranslated.</li></ul><p><strong>Why use an ACL at all?</strong> In most networks, not every inside subnet should be translated. For example, an inside subnet used for management may route natively to a private WAN, while only user subnets should hit the internet through PAT. The ACL gives you that selector.</p><p><strong>Common example:</strong></p><pre>access-list 1 permit 10.1.1.0 0.0.0.255\naccess-list 1 permit 10.1.2.0 0.0.0.255\nip nat inside source list 1 interface Gi0/0 overload</pre>",
-      "visual": { "type": "state-machine", "params": { "states": ["Packet arrives inside iface", "Check source against ACL", "Permit → translate", "Deny → pass through untranslated"], "active": 2, "transitions": true } },
+      "visual": {
+        "type": "state-machine",
+        "params": {
+          "states": [
+            "Packet arrives inside iface",
+            "Check source against ACL",
+            "Permit → translate",
+            "Deny → pass through untranslated"
+          ],
+          "active": 2,
+          "transitions": true
+        }
+      },
       "hack": {
         "memory": "NAT ACL = guest list for the translation party. On the list (permit) = you get translated. Not on the list (deny) = you pass through untranslated, NOT dropped.",
         "practice": "Configure PAT with ACL permitting only 10.1.1.0/24. Send traffic from 10.1.1.5 (translated) and 10.1.2.5 (not translated). Check 'show ip nat translations' — only 10.1.1.5 appears.",
@@ -273,7 +572,27 @@
       "term": "Permit in NAT ACL",
       "weight": "high",
       "info": "<p>When an ACL is referenced by a NAT statement, the meaning of <strong>permit</strong> changes from 'allow traffic' (the meaning in an interface ACL via <code>ip access-group</code>) to '<strong>translate this traffic</strong>.'</p><p>This overloading of the word 'permit' is what trips students up. The ACL syntax is identical, but the action that permit triggers depends entirely on how the ACL is being used.</p><p><strong>Interface ACL:</strong></p><pre>interface Gi0/0\n ip access-group 101 in</pre><p>Permit 101 = let this traffic through. Deny = drop.</p><p><strong>NAT ACL:</strong></p><pre>ip nat inside source list 101 interface Gi0/0 overload</pre><p>Permit 101 = translate this traffic. Deny = don't translate (but still forward).</p><p>Same ACL, two different semantic interpretations depending on the consumer. When reading config, always look at what command references the ACL to know what permit/deny mean.</p>",
-      "visual": { "type": "comparison", "params": { "left": { "label": "Interface ACL", "items": ["permit = allow", "deny = DROP", "Filters traffic"] }, "right": { "label": "NAT ACL", "items": ["permit = translate", "deny = don't translate (forward anyway)", "Selects traffic"] } } },
+      "visual": {
+        "type": "comparison",
+        "params": {
+          "left": {
+            "label": "Interface ACL",
+            "items": [
+              "permit = allow",
+              "deny = DROP",
+              "Filters traffic"
+            ]
+          },
+          "right": {
+            "label": "NAT ACL",
+            "items": [
+              "permit = translate",
+              "deny = don't translate (forward anyway)",
+              "Selects traffic"
+            ]
+          }
+        }
+      },
       "hack": {
         "memory": "Same ACL, different meaning based on consumer. Interface ACL: permit = allow. NAT ACL: permit = translate. Context determines action.",
         "practice": "Write one ACL. Apply it as an interface ACL on one interface and as a NAT ACL in the NAT statement. Watch the two different behaviors.",
@@ -286,7 +605,20 @@
       "term": "Deny in NAT ACL",
       "weight": "high",
       "info": "<p>In a NAT ACL, <strong>deny means 'do not translate this traffic'</strong> — it does NOT mean 'drop this traffic.' Denied traffic continues to be routed by the router normally, just without NAT.</p><p><strong>When this matters:</strong></p><ul><li>A management subnet (10.99.99.0/24) has a dedicated MPLS circuit to corporate HQ and should route natively. User subnets (10.1.1.0/24) should PAT to the internet.</li><li>Put 'permit 10.1.1.0 0.0.0.255' in the NAT ACL. The management subnet is implicitly denied, so it routes untranslated.</li></ul><p><strong>The implicit deny at the end of every ACL</strong> applies here too. If your NAT ACL is just <code>access-list 1 permit 10.1.1.0 0.0.0.255</code>, everything else is implicitly denied and therefore not translated.</p><p><strong>Exam trap:</strong> a question shows a subnet that can't reach the internet. Students blame routing. Check the NAT ACL — if the subnet isn't permitted, it won't translate and the ISP will drop the packet because the source IP is RFC 1918.</p>",
-      "visual": { "type": "state-machine", "params": { "states": ["Packet enters inside iface", "NAT ACL check", "Deny match or implicit deny", "Packet forwarded WITHOUT translation", "ISP drops (RFC1918 source)"], "active": 3, "transitions": true } },
+      "visual": {
+        "type": "state-machine",
+        "params": {
+          "states": [
+            "Packet enters inside iface",
+            "NAT ACL check",
+            "Deny match or implicit deny",
+            "Packet forwarded WITHOUT translation",
+            "ISP drops (RFC1918 source)"
+          ],
+          "active": 3,
+          "transitions": true
+        }
+      },
       "hack": {
         "memory": "NAT ACL deny = pass through untranslated. The router won't drop it, but the ISP will once it sees RFC 1918 leaving the WAN. End result looks like NAT is broken.",
         "practice": "Configure NAT ACL that only permits 10.1.1.0/24. Send traffic from 10.1.2.5 — watch it fail at the ISP, not at the router. The router forwards happily; the ISP drops.",
@@ -299,7 +631,27 @@
       "term": "Standard ACL sufficient",
       "weight": "high",
       "info": "<p>For NAT source translation, a standard ACL is typically sufficient because NAT only needs to match the <strong>source IP</strong>. Standard ACLs match source only, which is exactly what NAT needs.</p><p><strong>Standard ACL (numbered 1-99 or 1300-1999):</strong></p><pre>access-list 1 permit 10.1.1.0 0.0.0.255\naccess-list 1 permit 10.1.2.0 0.0.0.255</pre><p><strong>Extended ACL (numbered 100-199 or 2000-2699):</strong> overkill for basic NAT, but useful for advanced scenarios:</p><pre>access-list 101 permit tcp 10.1.1.0 0.0.0.255 any eq 80\naccess-list 101 permit tcp 10.1.1.0 0.0.0.255 any eq 443</pre><p>An extended ACL lets you translate only specific protocols/ports (e.g., only web traffic) while leaving other traffic untranslated. This is beyond typical CCNA scope but may appear in scenario questions.</p><p><strong>Wildcard mask gotcha:</strong> the wildcard mask must correctly match the intended subnet. A wrong wildcard (e.g., 0.0.0.0 instead of 0.0.0.255) means only one host gets translated — the rest of the subnet fails silently.</p>",
-      "visual": { "type": "comparison", "params": { "left": { "label": "Standard ACL (1-99)", "items": ["Source IP only", "Sufficient for basic NAT", "access-list 1 permit 10.1.1.0 0.0.0.255"] }, "right": { "label": "Extended ACL (100-199)", "items": ["Source + dest + protocol + port", "Selective NAT (only HTTP, etc.)", "access-list 101 permit tcp ... eq 80"] } } },
+      "visual": {
+        "type": "comparison",
+        "params": {
+          "left": {
+            "label": "Standard ACL (1-99)",
+            "items": [
+              "Source IP only",
+              "Sufficient for basic NAT",
+              "access-list 1 permit 10.1.1.0 0.0.0.255"
+            ]
+          },
+          "right": {
+            "label": "Extended ACL (100-199)",
+            "items": [
+              "Source + dest + protocol + port",
+              "Selective NAT (only HTTP, etc.)",
+              "access-list 101 permit tcp ... eq 80"
+            ]
+          }
+        }
+      },
       "hack": {
         "memory": "Standard ACL = source only. NAT only needs source. Match made. Use numbers 1-99 for NAT ACLs unless you need protocol filtering.",
         "practice": "Write three NAT ACLs with three different wildcard masks. Verify in 'show access-lists' that they match what you intended. Wildcard mistakes are the #2 NAT bug after missing interface designations.",
@@ -314,7 +666,29 @@
       "term": "show ip nat translations",
       "weight": "high",
       "info": "<p><code>show ip nat translations</code> is the roster of currently active NAT mappings. Each row represents one translation and includes protocol, Inside Local, Inside Global, Outside Local, and Outside Global addresses plus ports where applicable.</p><p><strong>Example output:</strong></p><pre>Router# show ip nat translations\nPro  Inside global         Inside local          Outside local         Outside global\ntcp  203.0.113.1:51234     10.1.1.5:51234        8.8.8.8:443           8.8.8.8:443\ntcp  203.0.113.1:51235     10.1.1.6:51234        8.8.8.8:443           8.8.8.8:443\n---  203.0.113.5           10.1.1.100            ---                   ---</pre><p><strong>Reading the four address columns:</strong></p><ul><li><strong>Inside local</strong> — private IP as seen by the inside host.</li><li><strong>Inside global</strong> — public IP that represents that host to the outside world.</li><li><strong>Outside local</strong> — outside host's IP as seen from the inside (usually same as outside global).</li><li><strong>Outside global</strong> — outside host's real public IP.</li></ul><p><strong>Identifying NAT types from output:</strong></p><ul><li>Port numbers present = PAT entry.</li><li>No ports, rows present before any traffic = static NAT.</li><li>No ports, rows appear only with traffic = dynamic NAT.</li></ul>",
-      "visual": { "type": "comparison", "params": { "left": { "label": "Column order", "items": ["Pro (protocol)", "Inside global", "Inside local", "Outside local", "Outside global"] }, "right": { "label": "Identify by output", "items": ["Ports = PAT", "Permanent rows = Static", "Temporary rows = Dynamic"] } } },
+      "visual": {
+        "type": "comparison",
+        "params": {
+          "left": {
+            "label": "Column order",
+            "items": [
+              "Pro (protocol)",
+              "Inside global",
+              "Inside local",
+              "Outside local",
+              "Outside global"
+            ]
+          },
+          "right": {
+            "label": "Identify by output",
+            "items": [
+              "Ports = PAT",
+              "Permanent rows = Static",
+              "Temporary rows = Dynamic"
+            ]
+          }
+        }
+      },
       "hack": {
         "memory": "Four address types: Inside/Outside × Local/Global. Inside = your hosts. Outside = internet hosts. Local = as seen from inside. Global = as seen from outside. Memorize the quadrant.",
         "practice": "Run this command after every NAT lab. Identify each entry's type by looking at whether ports are present and whether the entry survives no-traffic periods.",
@@ -327,7 +701,26 @@
       "term": "show ip nat statistics",
       "weight": "high",
       "info": "<p>Covered in depth under 4.1.e.4, but worth repeating here as a verification tool. <code>show ip nat statistics</code> gives you:</p><ul><li><strong>Total active translations</strong> — how many entries are live right now.</li><li><strong>Peak translations</strong> — high-water mark since last reload or clear.</li><li><strong>Inside/Outside interfaces</strong> — the designated interfaces (empty = bug).</li><li><strong>Hits / Misses</strong> — successful vs failed translations.</li><li><strong>Pool allocation %</strong> — how much of each pool is in use.</li><li><strong>Dynamic mappings</strong> — the ACL/pool bindings that drive dynamic NAT.</li></ul><p><strong>Why run it before show ip nat translations:</strong> statistics tells you if NAT is configured correctly (interfaces designated). If it's not, the translations output will always be empty and you'll chase phantom bugs.</p><p><strong>Useful derived commands:</strong></p><ul><li><code>clear ip nat statistics</code> — reset the hit/miss counters to start a clean measurement.</li><li><code>show ip nat translations verbose</code> — adds create/use timestamps and timeouts.</li></ul>",
-      "visual": { "type": "hierarchy", "params": { "root": "show ip nat statistics", "children": [{ "name": "Counts: active, peak, hits, misses" }, { "name": "Interfaces: inside list, outside list" }, { "name": "Dynamic mappings: ACL + pool refs" }, { "name": "Pool status: allocated %" }] } },
+      "visual": {
+        "type": "hierarchy",
+        "params": {
+          "root": "show ip nat statistics",
+          "children": [
+            {
+              "name": "Counts: active, peak, hits, misses"
+            },
+            {
+              "name": "Interfaces: inside list, outside list"
+            },
+            {
+              "name": "Dynamic mappings: ACL + pool refs"
+            },
+            {
+              "name": "Pool status: allocated %"
+            }
+          ]
+        }
+      },
       "hack": {
         "memory": "Stats = health dashboard. Translations = roster of specific entries. Run stats FIRST to verify config; run translations to inspect specific flows.",
         "practice": "Every NAT lab: stats first, then translations. Learn the layout so you can spot broken interfaces in one glance.",
@@ -340,7 +733,20 @@
       "term": "High misses count",
       "weight": "med",
       "info": "<p>A high <strong>Misses</strong> count in <code>show ip nat statistics</code> means the router is being asked to translate packets but can't. Two common causes:</p><ol><li><strong>Pool exhaustion (dynamic NAT).</strong> Every pool IP is in use. The router has no free address to assign. Look at the 'allocated' line under the pool — if it's at 100%, this is your issue.</li><li><strong>ACL mismatch.</strong> The NAT ACL doesn't match the source IP of the traffic trying to be translated. Less obvious because misses increment even though the config 'looks right.'</li></ol><p><strong>Diagnosis flow:</strong></p><pre>1. show ip nat statistics          → check misses and pool %\n2. show access-lists               → verify ACL matches the intended source\n3. show ip nat translations        → see what's currently mapped\n4. debug ip nat                    → (last resort) watch translation events live</pre><p><strong>Fixes:</strong></p><ul><li>Pool exhaustion → expand pool, shorten timeouts, or add <code>overload</code> to become PAT.</li><li>ACL mismatch → fix the wildcard or the permitted network.</li></ul>",
-      "visual": { "type": "state-machine", "params": { "states": ["High misses counter", "Check pool % allocated", "100% → expand or overload", "Check ACL match", "Fix wildcard or permit statement"], "active": 1, "transitions": true } },
+      "visual": {
+        "type": "state-machine",
+        "params": {
+          "states": [
+            "High misses counter",
+            "Check pool % allocated",
+            "100% → expand or overload",
+            "Check ACL match",
+            "Fix wildcard or permit statement"
+          ],
+          "active": 1,
+          "transitions": true
+        }
+      },
       "hack": {
         "memory": "Misses = translations that wanted to happen but couldn't. Two causes: pool full, or ACL didn't match. Check pool % first, ACL second.",
         "practice": "Force pool exhaustion (tiny pool, many hosts). Watch misses climb. Add overload — misses stop climbing immediately.",
@@ -353,7 +759,29 @@
       "term": "PAT entries show ports",
       "weight": "high",
       "info": "<p>PAT entries in <code>show ip nat translations</code> always include TCP/UDP port numbers. Static NAT and plain dynamic NAT entries (without overload) do not.</p><p><strong>PAT output example:</strong></p><pre>Pro  Inside global         Inside local          Outside local         Outside global\ntcp  203.0.113.1:51234     10.1.1.5:51234        8.8.8.8:443           8.8.8.8:443\ntcp  203.0.113.1:51235     10.1.1.6:51234        8.8.8.8:443           8.8.8.8:443\nudp  203.0.113.1:5000      10.1.1.5:5000         1.1.1.1:53            1.1.1.1:53</pre><p>Note the same Inside Global IP (203.0.113.1) repeated across multiple entries, each with a different port. That's the visual fingerprint of PAT.</p><p><strong>Static NAT output example (no ports):</strong></p><pre>Pro  Inside global         Inside local          Outside local         Outside global\n---  203.0.113.5           10.1.1.100            ---                   ---</pre><p>Dashes in the protocol and outside columns indicate a static mapping that has no active traffic flowing.</p>",
-      "visual": { "type": "comparison", "params": { "left": { "label": "PAT entry", "items": ["Protocol: tcp/udp/icmp", "Ports shown", "Same global IP repeats", "Many rows"] }, "right": { "label": "Static NAT entry", "items": ["Protocol: ---", "No ports", "Unique global IP per entry", "Permanent row"] } } },
+      "visual": {
+        "type": "comparison",
+        "params": {
+          "left": {
+            "label": "PAT entry",
+            "items": [
+              "Protocol: tcp/udp/icmp",
+              "Ports shown",
+              "Same global IP repeats",
+              "Many rows"
+            ]
+          },
+          "right": {
+            "label": "Static NAT entry",
+            "items": [
+              "Protocol: ---",
+              "No ports",
+              "Unique global IP per entry",
+              "Permanent row"
+            ]
+          }
+        }
+      },
       "hack": {
         "memory": "See ports in the output = PAT. See dashes + no ports = static NAT. See a mix with no ports and temporary rows = dynamic NAT (rare).",
         "practice": "Compare outputs side by side in one lab: configure static NAT for one host and PAT for a whole subnet. Generate traffic. 'show ip nat translations' shows both styles simultaneously.",
@@ -366,7 +794,18 @@
       "term": "clear ip nat translation *",
       "weight": "med",
       "info": "<p><code>clear ip nat translation *</code> flushes <strong>all dynamic NAT and PAT entries</strong> from the translation table. Static entries are not affected — they are permanent by design.</p><p><strong>When to use it:</strong></p><ul><li>Troubleshooting — a stuck translation is interfering with a retry. Clearing forces fresh mappings.</li><li>Testing — you want to see a fresh NAT table without stopping all traffic first.</li><li>After changing NAT config — clearing ensures old entries don't confuse the new rules.</li></ul><p><strong>Variants:</strong></p><ul><li><code>clear ip nat translation inside [inside-global] [inside-local]</code> — clear a specific entry.</li><li><code>clear ip nat translation udp inside ... outside ...</code> — clear a specific protocol flow.</li></ul><p><strong>Warning:</strong> clearing dynamic entries kills all active flows using them. Users will see a momentary connection hiccup as new translations build. Not destructive, but not invisible either.</p>",
-      "visual": { "type": "packet-flow", "params": { "nodes": ["clear ip nat translation *", "Dynamic + PAT entries: GONE", "Static entries: preserved", "New flows create new entries"], "color": "#ef4444" } },
+      "visual": {
+        "type": "packet-flow",
+        "params": {
+          "nodes": [
+            "clear ip nat translation *",
+            "Dynamic + PAT entries: GONE",
+            "Static entries: preserved",
+            "New flows create new entries"
+          ],
+          "color": "#ef4444"
+        }
+      },
       "hack": {
         "memory": "'clear ip nat translation *' = nuke the dynamic table. Static entries survive. Use when stuck entries are in the way, not for routine maintenance.",
         "practice": "Run 'show ip nat translations,' note an entry, clear it, run again — gone. The static entries remain.",
@@ -381,7 +820,20 @@
       "term": "NAT troubleshoot order (IAPC)",
       "weight": "high",
       "info": "<p>A systematic NAT troubleshooting flow saves hours. Memorize the order: <strong>I-A-P-C</strong>.</p><ol><li><strong>I — Interfaces designated?</strong> Run <code>show ip nat statistics</code>. Inside/Outside interfaces populated? If [NONE], fix first.</li><li><strong>A — ACL correct?</strong> Run <code>show access-lists</code>. Does the ACL permit the actual source IPs? Wildcard mask right?</li><li><strong>P — Pool available?</strong> For dynamic NAT, is the pool exhausted (100% allocated)? For PAT, is the outside interface IP valid?</li><li><strong>C — Command syntax?</strong> For PAT specifically, is <code>overload</code> present? Is the NAT statement linking the right ACL to the right pool/interface?</li></ol><p><strong>Why this order:</strong> interfaces are the most common failure and the easiest to check. ACLs are the second most common. Pool exhaustion is relatively rare (only with dynamic NAT). Missing 'overload' is the subtle bug that affects PAT specifically.</p><p><strong>Budget 60 seconds per step.</strong> If a step doesn't reveal the problem, move on. Never skip interfaces.</p>",
-      "visual": { "type": "state-machine", "params": { "states": ["I - Interfaces designated?", "A - ACL correct?", "P - Pool available?", "C - Command syntax (overload)?", "debug ip nat (last resort)"], "active": 0, "transitions": true } },
+      "visual": {
+        "type": "state-machine",
+        "params": {
+          "states": [
+            "I - Interfaces designated?",
+            "A - ACL correct?",
+            "P - Pool available?",
+            "C - Command syntax (overload)?",
+            "debug ip nat (last resort)"
+          ],
+          "active": 0,
+          "transitions": true
+        }
+      },
       "hack": {
         "memory": "IAPC — 'I Ate Pizza, Crust-first.' Interfaces, ACL, Pool, Command. In that order. Always. Don't jump ahead.",
         "practice": "Break NAT four different ways, one at a time. Diagnose each using the IAPC order. Stopwatch yourself — under 2 minutes per scenario after a week of practice.",
@@ -394,7 +846,18 @@
       "term": "#1 issue: missing interfaces",
       "weight": "high",
       "info": "<p>Missing <code>ip nat inside</code> or <code>ip nat outside</code> designations is the most common NAT bug in labs AND production. The config looks correct in <code>show running-config</code> and there's no syntax error, but NAT simply doesn't translate.</p><p><strong>Diagnosis:</strong></p><pre>Router# show ip nat statistics\nTotal active translations: 0\nOutside interfaces:\n  [NONE]\nInside interfaces:\n  [NONE]</pre><p>Empty interface lists = broken NAT, guaranteed.</p><p><strong>Fix:</strong></p><pre>interface GigabitEthernet0/1\n ip nat inside\ninterface GigabitEthernet0/0\n ip nat outside</pre><p>The moment both are set, NAT starts translating immediately — no reload or clear needed.</p><p><strong>Why it's so common:</strong> the designations feel disconnected from the 'real' NAT config (the ACL, pool, and inside source statement). Students focus on the global-config NAT commands and forget to revisit the interfaces.</p>",
-      "visual": { "type": "shield", "params": { "items": ["Step 1: show ip nat statistics", "Step 2: Check Inside/Outside lists", "Step 3: Add ip nat inside/outside", "Step 4: NAT works immediately"], "color": "#f59e0b" } },
+      "visual": {
+        "type": "shield",
+        "params": {
+          "items": [
+            "Step 1: show ip nat statistics",
+            "Step 2: Check Inside/Outside lists",
+            "Step 3: Add ip nat inside/outside",
+            "Step 4: NAT works immediately"
+          ],
+          "color": "#f59e0b"
+        }
+      },
       "hack": {
         "memory": "Always. Always. Always. Check interface designations FIRST. It's the most common bug and the easiest to fix.",
         "practice": "Train yourself: any NAT question, think 'interfaces' before anything else. Muscle memory.",
@@ -407,7 +870,27 @@
       "term": "Missing 'overload'",
       "weight": "high",
       "info": "<p>Forgetting the <code>overload</code> keyword is the PAT-specific bug. The intent was PAT (many inside hosts sharing one public IP), but without 'overload' the router silently configures dynamic NAT (one-to-one from a pool).</p><p><strong>Symptom:</strong> the first few inside hosts can reach the internet. Additional hosts get dropped as the pool fills up. With a pool of one address, only ONE host can be on the internet at a time.</p><p><strong>Diagnosis:</strong></p><pre>Router# show ip nat statistics\n...\nDynamic mappings:\n -- Inside Source\n [Id: 1] access-list 1 pool PUBPOOL refcount 1\n  pool PUBPOOL: netmask 255.255.255.0\n       start 203.0.113.10 end 203.0.113.10\n       type generic, total addresses 1, allocated 1 (100%), misses 47</pre><p>Pool size = 1, allocated 100%, misses climbing = missing overload.</p><p><strong>Fix:</strong></p><pre>no ip nat inside source list 1 pool PUBPOOL\nip nat inside source list 1 pool PUBPOOL overload</pre><p>All subsequent hosts can now share the single pool address via PAT.</p>",
-      "visual": { "type": "comparison", "params": { "left": { "label": "Without overload", "items": ["Dynamic NAT", "1:1 from pool", "Dropped after pool exhaustion"] }, "right": { "label": "With overload", "items": ["PAT", "Many:1 via ports", "~65K sessions per pool IP"] } } },
+      "visual": {
+        "type": "comparison",
+        "params": {
+          "left": {
+            "label": "Without overload",
+            "items": [
+              "Dynamic NAT",
+              "1:1 from pool",
+              "Dropped after pool exhaustion"
+            ]
+          },
+          "right": {
+            "label": "With overload",
+            "items": [
+              "PAT",
+              "Many:1 via ports",
+              "~65K sessions per pool IP"
+            ]
+          }
+        }
+      },
       "hack": {
         "memory": "Missing 'overload' = dynamic NAT when you wanted PAT. Symptom: only pool-size hosts work, rest get dropped. Fix: retype the command with 'overload' at the end.",
         "practice": "Configure PAT without overload. Watch the 2nd host fail. Add overload, clear translations, retry — all hosts work.",
@@ -420,7 +903,18 @@
       "term": "debug ip nat",
       "weight": "med",
       "info": "<p><code>debug ip nat</code> prints a line to the console (or buffer) for every NAT translation event. It's the nuclear option for troubleshooting — it shows exactly what the router is doing per packet.</p><p><strong>Example output:</strong></p><pre>Router# debug ip nat\nIP NAT debugging is on\n*Apr 16 14:30:15.123: NAT*: s=10.1.1.5->203.0.113.1, d=8.8.8.8 [1234]\n*Apr 16 14:30:15.456: NAT*: s=8.8.8.8, d=203.0.113.1->10.1.1.5 [1234]</pre><p>Each line shows source/destination IPs, the translation, and a packet ID. Very useful for confirming that a specific flow is being translated as expected.</p><p><strong>Warning — high CPU impact:</strong> on a busy router, debug output can flood the console and starve the CPU. Rules:</p><ul><li>Never run on production without a plan to turn it off quickly.</li><li>Pair with <code>terminal monitor</code> if SSH'd in, or redirect to buffer with <code>logging buffered</code>.</li><li>Always end with <code>no debug ip nat</code> or <code>undebug all</code> to turn it off.</li></ul><p><strong>Less risky alternatives:</strong></p><ul><li><code>debug ip nat detailed</code> — more info but even higher CPU cost.</li><li>Conditional debugging with ACLs (<code>debug ip nat 1</code>) — only debug traffic matching ACL 1.</li></ul>",
-      "visual": { "type": "shield", "params": { "items": ["debug ip nat (on)", "Review output", "Fix issue", "undebug all (off!)"], "color": "#ef4444" } },
+      "visual": {
+        "type": "shield",
+        "params": {
+          "items": [
+            "debug ip nat (on)",
+            "Review output",
+            "Fix issue",
+            "undebug all (off!)"
+          ],
+          "color": "#ef4444"
+        }
+      },
       "hack": {
         "memory": "debug = nuclear option. Shows every translation in real time. Kills CPU. Always remember to turn it off with 'undebug all.'",
         "practice": "Lab only — never production. Enable, send a ping, see the translation lines, immediately disable.",
@@ -435,7 +929,19 @@
       "term": "NTP",
       "weight": "high",
       "info": "<p><strong>NTP (Network Time Protocol)</strong> synchronizes clocks across network devices so they all agree on the same time. Runs over <strong>UDP port 123</strong>. Achieves millisecond-level accuracy over a LAN and tens-of-milliseconds accuracy over the internet.</p><p><strong>Why UDP and not TCP:</strong> NTP cares about timing, not delivery guarantees. TCP's retransmission and ordering would add latency and jitter that defeat the purpose of accurate time. Lost NTP packets are simply ignored; the client polls again.</p><p><strong>Default poll interval:</strong> starts at 64 seconds, adapts based on stability. Well-synchronized links can extend the interval to 1024 seconds to reduce network load.</p><p><strong>How NTP stays accurate:</strong></p><ul><li>Symmetric round-trip timing — NTP accounts for network delay in both directions.</li><li>Clock discipline algorithm — gradually adjusts the local clock instead of stepping it.</li><li>Multiple servers — a client picks the best source based on stratum, delay, and jitter.</li></ul><p>NTP is the de facto standard for time sync on the internet. SNTP (Simple NTP) is a stripped-down variant used by embedded devices that don't need full NTP's precision.</p>",
-      "visual": { "type": "packet-flow", "params": { "nodes": ["Client sends NTP request", "UDP port 123", "Server replies with timestamps", "Client calculates offset + delay", "Local clock adjusted"], "color": "#3b82f6" } },
+      "visual": {
+        "type": "packet-flow",
+        "params": {
+          "nodes": [
+            "Client sends NTP request",
+            "UDP port 123",
+            "Server replies with timestamps",
+            "Client calculates offset + delay",
+            "Local clock adjusted"
+          ],
+          "color": "#3b82f6"
+        }
+      },
       "hack": {
         "memory": "NTP = Network Time Protocol. UDP/123. All devices agree on what time it is, or nothing works. Slews (gradually adjusts) instead of jumping.",
         "practice": "Set a router's clock to a wrong time manually. Point it at an NTP server. Watch 'show clock' update gradually over minutes — not instantly.",
@@ -448,7 +954,32 @@
       "term": "Why time matters",
       "weight": "high",
       "info": "<p>Accurate, synchronized time is a non-optional operational requirement for any serious network. The reasons:</p><ul><li><strong>Log correlation.</strong> When debugging an outage, you correlate syslog entries from routers, switches, firewalls, servers, and applications. If each device's clock is off by even 30 seconds, you can't establish causality. 'Did the firewall drop traffic before or after the switch port flapped?' becomes impossible to answer.</li><li><strong>Certificate validation.</strong> TLS certificates have 'notBefore' and 'notAfter' timestamps. A clock more than a few minutes off can make valid certs appear expired or not-yet-valid, breaking HTTPS, VPN tunnels, and 802.1X authentication.</li><li><strong>Kerberos authentication.</strong> Active Directory's Kerberos protocol requires clocks within <strong>5 minutes</strong> (default skew tolerance). Domain-joined devices with skewed time can't authenticate.</li><li><strong>Compliance and forensics.</strong> Regulated industries (finance, healthcare, defense) require accurate timestamps on logs for audit trails. Clock skew can invalidate evidence.</li><li><strong>Protocol timing.</strong> BGP MD5 peering uses timestamps to detect replay attacks. Drastic clock skew can break peering.</li><li><strong>VoIP CDRs.</strong> Call Detail Records depend on accurate timestamps for billing and analytics.</li></ul>",
-      "visual": { "type": "hierarchy", "params": { "root": "Why NTP matters", "children": [{ "name": "Log correlation" }, { "name": "Certificate validity" }, { "name": "Kerberos (5-min skew)" }, { "name": "Compliance audits" }, { "name": "BGP MD5 timing" }, { "name": "VoIP CDRs" }] } },
+      "visual": {
+        "type": "hierarchy",
+        "params": {
+          "root": "Why NTP matters",
+          "children": [
+            {
+              "name": "Log correlation"
+            },
+            {
+              "name": "Certificate validity"
+            },
+            {
+              "name": "Kerberos (5-min skew)"
+            },
+            {
+              "name": "Compliance audits"
+            },
+            {
+              "name": "BGP MD5 timing"
+            },
+            {
+              "name": "VoIP CDRs"
+            }
+          ]
+        }
+      },
       "hack": {
         "memory": "No NTP = no forensics, no auth, no TLS, no compliance. Time is the silent dependency of everything.",
         "practice": "Intentionally skew a lab device by 10 minutes. Try to join an AD domain (if available) or verify an HTTPS cert. Both fail. Re-sync and both work.",
@@ -461,7 +992,32 @@
       "term": "Client-server hierarchy",
       "weight": "high",
       "info": "<p>NTP uses a hierarchical, tree-like model. At the top is an authoritative time source (atomic clock, GPS). Below it are NTP servers at descending stratum levels, each synchronizing from the level above and providing time to the level below.</p><pre>Stratum 0: atomic clock / GPS (hardware, not on network)\n      |\nStratum 1: NTP server directly attached to stratum 0\n      |\nStratum 2: NTP server syncing to a stratum 1 (e.g., a core router)\n      |\nStratum 3: NTP client syncing to a stratum 2 (e.g., distribution switch)\n      |\nStratum 4: End device syncing to stratum 3</pre><p><strong>Design principles:</strong></p><ul><li>Point a small number of core devices to external stratum 1-2 sources (e.g., pool.ntp.org or vendor-operated servers).</li><li>Have all other internal devices sync from those core devices — don't let every switch in the network hit public NTP servers directly (bad practice, overloads public infra).</li><li>Configure at least two NTP sources for redundancy.</li></ul><p>Most enterprises have 2-4 stratum-2 internal NTP servers (their own or their core routers) and all other devices sync from those.</p>",
-      "visual": { "type": "hierarchy", "params": { "root": "Stratum 0 (hardware clock)", "children": [{ "name": "Stratum 1 (primary)", "children": [{ "name": "Stratum 2 (enterprise core)", "children": [{ "name": "Stratum 3 (distribution)", "children": [{ "name": "Stratum 4 (access)" }] }] }] }] } },
+      "visual": {
+        "type": "hierarchy",
+        "params": {
+          "root": "Stratum 0 (hardware clock)",
+          "children": [
+            {
+              "name": "Stratum 1 (primary)",
+              "children": [
+                {
+                  "name": "Stratum 2 (enterprise core)",
+                  "children": [
+                    {
+                      "name": "Stratum 3 (distribution)",
+                      "children": [
+                        {
+                          "name": "Stratum 4 (access)"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      },
       "hack": {
         "memory": "NTP is a tree. Atomic clock at the top (stratum 0). Each hop down the tree increments the stratum. Core devices sync from external; everyone else syncs from core.",
         "practice": "Build a 4-device chain in Packet Tracer: R1 (ntp master 2) → R2 → SW1 → PC. Verify stratum at each level: 2, 3, 4, 5.",
@@ -474,7 +1030,29 @@
       "term": "NTP slewing",
       "weight": "med",
       "info": "<p><strong>Slewing</strong> is NTP's gradual clock adjustment technique. Instead of stepping the clock instantly (which could cause timestamps to jump backward, confuse applications, and break logs), NTP speeds up or slows down the local clock slightly until it catches up or falls back to match the server.</p><p><strong>Rule of thumb:</strong></p><ul><li>Offset &lt; 128 ms → slew (gradual adjustment, invisible to applications).</li><li>Offset &gt; 128 ms at startup → step (immediate jump). Only happens on boot or re-sync after long downtime.</li><li>Offset &gt; 1000 seconds → panic (ntpd refuses to sync; requires manual clock set with <code>ntp -g</code> or equivalent).</li></ul><p><strong>Why slewing matters:</strong></p><ul><li>Applications and log files expect monotonically increasing time. A step backward can break file systems, databases, and scheduled tasks.</li><li>Slewing is imperceptible — typical rate is ~500 parts per million (0.5 ms per second of drift correction).</li></ul><p><strong>The drift file</strong> (on Linux ntpd) stores the local clock's typical drift rate so NTP can pre-compensate across reboots.</p>",
-      "visual": { "type": "comparison", "params": { "left": { "label": "Slew", "items": ["Gradual adjustment", "Invisible to apps", "Small offsets (< 128ms)", "Default for running NTP"] }, "right": { "label": "Step", "items": ["Immediate jump", "Can break apps", "Large offsets (> 128ms)", "Boot-time only"] } } },
+      "visual": {
+        "type": "comparison",
+        "params": {
+          "left": {
+            "label": "Slew",
+            "items": [
+              "Gradual adjustment",
+              "Invisible to apps",
+              "Small offsets (< 128ms)",
+              "Default for running NTP"
+            ]
+          },
+          "right": {
+            "label": "Step",
+            "items": [
+              "Immediate jump",
+              "Can break apps",
+              "Large offsets (> 128ms)",
+              "Boot-time only"
+            ]
+          }
+        }
+      },
       "hack": {
         "memory": "Slew = speed up or slow down the clock slightly. Step = jump the clock. Slew is preferred; step is startup-only. Never step running systems — breaks logs and DBs.",
         "practice": "Linux: 'timedatectl status' shows if the clock is being slewed or stepped. Windows: 'w32tm /query /status' shows similar info.",
@@ -489,7 +1067,23 @@
       "term": "Stratum 0",
       "weight": "high",
       "info": "<p><strong>Stratum 0</strong> is the reference clock itself — the physical hardware that generates authoritative time. Examples:</p><ul><li><strong>Atomic clocks</strong> (cesium, rubidium) — official time sources for NIST (USA) and national metrology labs.</li><li><strong>GPS receivers</strong> — derive time from satellite signals, which are themselves synchronized to atomic clocks.</li><li><strong>Radio clocks</strong> — receive time signals from dedicated radio broadcasts (WWV in the USA, DCF77 in Europe).</li></ul><p><strong>Important fact:</strong> stratum 0 devices are NOT directly reachable over the network. They're hardware attached to an NTP server (stratum 1) via serial, GPIO, or specialized interfaces. You cannot <code>ntp server [atomic-clock-IP]</code> — there's no such thing.</p><p>When you configure <code>ntp server pool.ntp.org</code>, you're actually syncing to a stratum 1 or 2 server that itself gets time from a hardware stratum 0 source.</p>",
-      "visual": { "type": "hierarchy", "params": { "root": "Stratum 0 (hardware)", "children": [{ "name": "Atomic clock (NIST)" }, { "name": "GPS receiver" }, { "name": "Radio clock (WWV, DCF77)" }] } },
+      "visual": {
+        "type": "hierarchy",
+        "params": {
+          "root": "Stratum 0 (hardware)",
+          "children": [
+            {
+              "name": "Atomic clock (NIST)"
+            },
+            {
+              "name": "GPS receiver"
+            },
+            {
+              "name": "Radio clock (WWV, DCF77)"
+            }
+          ]
+        }
+      },
       "hack": {
         "memory": "Stratum 0 = the physical clock. Not on the network. You can't 'ntp server' it. It connects to a stratum 1 server via hardware.",
         "practice": "None. Conceptual.",
@@ -502,7 +1096,18 @@
       "term": "Stratum 1",
       "weight": "high",
       "info": "<p><strong>Stratum 1</strong> NTP servers are directly attached to a stratum 0 reference clock via hardware (not over the network). They are the most accurate NTP sources available on the network.</p><p><strong>Public stratum 1 servers:</strong></p><ul><li>time.nist.gov (NIST, USA)</li><li>time.google.com (Google, globally distributed)</li><li>time.cloudflare.com (Cloudflare)</li><li>pool.ntp.org (a pool of volunteer servers at various strata — stratum 1 and 2 are common)</li></ul><p><strong>Don't pound public stratum 1 directly from every enterprise device.</strong> Good practice:</p><ul><li>Have 2-4 of your own NTP servers (or core routers) sync to public stratum 1 or 2.</li><li>Have all internal devices sync from your own internal servers.</li><li>Reduces load on public NTP infrastructure and gives you control over internal time.</li></ul><p>A Cisco router can act as a stratum 1 server if it has a directly attached GPS receiver or similar hardware. In most enterprise deployments, your internal 'primary' NTP servers are stratum 2 or 3, syncing from external public sources.</p>",
-      "visual": { "type": "layer-stack", "params": { "layers": ["Stratum 0 — hardware clock", "Stratum 1 — directly attached NTP server", "Stratum 2 — next hop", "Stratum N — further out"], "highlight": 1 } },
+      "visual": {
+        "type": "layer-stack",
+        "params": {
+          "layers": [
+            "Stratum 0 — hardware clock",
+            "Stratum 1 — directly attached NTP server",
+            "Stratum 2 — next hop",
+            "Stratum N — further out"
+          ],
+          "highlight": 1
+        }
+      },
       "hack": {
         "memory": "Stratum 1 = server directly attached to a stratum 0 clock. Most accurate network-accessible source. Don't overload public stratum 1 — sync your own core from it, then everyone else syncs from core.",
         "practice": "Point 'ntp server time.nist.gov' on a router and check 'show ntp associations' — you'll see stratum 1 (assuming direct reach).",
@@ -515,7 +1120,19 @@
       "term": "Stratum 2-15",
       "weight": "high",
       "info": "<p>Stratum levels 2 through 15 are all <strong>valid, usable</strong> NTP sources. Each level is one network hop further from the reference clock. A device that syncs to a stratum N server becomes stratum N+1.</p><p><strong>Example chain:</strong></p><pre>Stratum 1: time.nist.gov\n    ↓\nStratum 2: internal-ntp-01.company.com (synced to NIST)\n    ↓\nStratum 3: core-rtr-01 (synced to internal-ntp-01)\n    ↓\nStratum 4: dist-sw-01 (synced to core-rtr-01)\n    ↓\nStratum 5: access-sw-01 (synced to dist-sw-01)</pre><p><strong>Accuracy vs stratum:</strong> lower stratum = closer to reference = more accurate, BUT the difference between stratum 2 and stratum 5 on a well-designed LAN is often sub-millisecond. Stratum alone doesn't tell the whole story — network delay, jitter, and clock stability matter too.</p><p><strong>Selecting between multiple sources:</strong> when a client has multiple NTP sources, it considers stratum FIRST (prefer lower), then delay, jitter, and reachability. You can see the selection in <code>show ntp associations</code> — the <code>*</code> marks the selected source.</p>",
-      "visual": { "type": "packet-flow", "params": { "nodes": ["Stratum 2", "Stratum 3", "Stratum 4", "Stratum 5", "... up to 15"], "color": "#8b5cf6" } },
+      "visual": {
+        "type": "packet-flow",
+        "params": {
+          "nodes": [
+            "Stratum 2",
+            "Stratum 3",
+            "Stratum 4",
+            "Stratum 5",
+            "... up to 15"
+          ],
+          "color": "#8b5cf6"
+        }
+      },
       "hack": {
         "memory": "Stratum 2-15 = valid sources, each +1 hop from reference. Sync to a stratum N = you become N+1. Lower is better but diminishing returns past stratum 4-5.",
         "practice": "Build a 5-device chain in lab. Verify each device's stratum with 'show ntp status' — each is one higher than its server.",
@@ -528,7 +1145,20 @@
       "term": "Stratum 16",
       "weight": "high",
       "info": "<p><strong>Stratum 16</strong> is the special value meaning <strong>unsynchronized</strong>. A device reporting stratum 16 has no valid time source. It cannot be trusted, and other NTP devices will refuse to sync from it.</p><p><strong>When you see stratum 16:</strong></p><ul><li>Device just booted, NTP hasn't synced yet (wait a few minutes).</li><li>Configured NTP server is unreachable (network issue, ACL blocking UDP/123, wrong IP).</li><li>Authentication mismatch (wrong key or password).</li><li>No 'ntp server' command at all.</li></ul><p><strong>How it appears:</strong></p><pre>Router# show ntp status\nClock is unsynchronized, stratum 16, no reference clock\n...</pre><p>The word <strong>'unsynchronized'</strong> paired with <strong>stratum 16</strong> is the clear signal that NTP is broken.</p><p><strong>Fix:</strong> check server reachability (<code>ping [server-ip]</code>), check ACLs for UDP/123, re-verify 'ntp server' command, check authentication config. Expect 5-10 minutes for initial sync even after the fix.</p>",
-      "visual": { "type": "state-machine", "params": { "states": ["Stratum 16 = broken NTP", "Check ping to server", "Check ACL UDP/123", "Verify ntp server cmd", "Wait 5-10 min for sync"], "active": 0, "transitions": true } },
+      "visual": {
+        "type": "state-machine",
+        "params": {
+          "states": [
+            "Stratum 16 = broken NTP",
+            "Check ping to server",
+            "Check ACL UDP/123",
+            "Verify ntp server cmd",
+            "Wait 5-10 min for sync"
+          ],
+          "active": 0,
+          "transitions": true
+        }
+      },
       "hack": {
         "memory": "Stratum 16 = 'I have no idea what time it is.' Other devices refuse to sync from me. If you see 16, NTP is broken — troubleshoot now.",
         "practice": "Configure 'ntp server [wrong-IP]' on a router. Check 'show ntp status' — stratum 16. Fix the IP — wait — stratum drops to correct value.",
@@ -541,12 +1171,561 @@
       "term": "Lower stratum wins",
       "weight": "high",
       "info": "<p>When a client has multiple NTP sources configured, it selects the one with the <strong>lowest stratum</strong> as its active source (the one marked <code>*</code> in <code>show ntp associations</code>). Other sources become candidates (<code>+</code>) or fall out of selection (<code>-</code> or no symbol).</p><p><strong>Why:</strong> lower stratum = fewer hops from the reference clock = more accurate time. The client prefers the most authoritative source it can reach.</p><p><strong>Tiebreakers when stratum is equal:</strong></p><ol><li>Network delay (lower = better)</li><li>Jitter / dispersion (lower = better)</li><li>Reachability (reach value, 377 = perfect)</li><li>Explicitly preferred source (<code>ntp server [ip] prefer</code>)</li></ol><p><strong>Design implication:</strong> don't configure a bunch of stratum-5 NTP sources and expect fast convergence. If you have one stratum-2 and four stratum-5 sources, the client will pick the stratum-2 and (mostly) ignore the others unless it goes unreachable.</p><p><strong>See it in action:</strong></p><pre>Router# show ntp associations\n  address       ref clock       st  when  poll  reach   delay  offset  disp\n*~10.1.1.1      .GPS.            1    23    64   377   0.500   0.100  0.200\n+~10.1.1.2      .GPS.            1    45    64   377   0.800   0.150  0.300</pre><p>The <code>*</code> source (10.1.1.1) was selected because it has lower delay. Both are stratum 1.</p>",
-      "visual": { "type": "comparison", "params": { "left": { "label": "Selection priority", "items": ["1. Lowest stratum", "2. Lowest delay", "3. Lowest jitter", "4. Reach = 377", "5. prefer keyword"] }, "right": { "label": "Association symbols", "items": ["* selected (active)", "+ candidate", "- outlier/rejected", "(blank) unreachable"] } } },
+      "visual": {
+        "type": "comparison",
+        "params": {
+          "left": {
+            "label": "Selection priority",
+            "items": [
+              "1. Lowest stratum",
+              "2. Lowest delay",
+              "3. Lowest jitter",
+              "4. Reach = 377",
+              "5. prefer keyword"
+            ]
+          },
+          "right": {
+            "label": "Association symbols",
+            "items": [
+              "* selected (active)",
+              "+ candidate",
+              "- outlier/rejected",
+              "(blank) unreachable"
+            ]
+          }
+        }
+      },
       "hack": {
         "memory": "Lower stratum wins. Tiebreakers: delay, jitter, reach, 'prefer' keyword. The * symbol in 'show ntp associations' marks the winner.",
         "practice": "Configure two NTP servers at different strata. Verify the lower-stratum one is selected. Then force the lower one to fail (ACL block). Watch the * jump to the other source.",
         "effort": "medium",
         "meta": "Exam asks 'which NTP source will the client use?' — answer is always lowest stratum, then delay."
+      }
+    }
+  ],
+  "4.2.c": [
+    {
+      "id": "4.2.c.1",
+      "term": "ntp server [ip]",
+      "weight": "high",
+      "info": "<p>The single command that makes a Cisco device an NTP client: <code>ntp server [ip-address]</code>. This tells the device to send NTP queries to the specified server and discipline its local clock to match.</p><p><strong>Configuration examples:</strong></p><pre>ntp server 10.1.1.1\nntp server 10.1.1.2\nntp server time.google.com   ! if DNS is configured\nntp server 10.1.1.1 prefer   ! mark this as preferred\nntp server 10.1.1.1 source Loopback0   ! use Lo0 IP as NTP source</pre><p><strong>What happens after configuration:</strong></p><ol><li>Device starts sending NTPv4 (default) queries to the server on UDP port 123.</li><li>Initial poll interval is 64 seconds.</li><li>Device evaluates the server over several polls before declaring it selected.</li><li>Once synchronized, the device's stratum = server's stratum + 1.</li><li>Device continues polling; interval may extend to 1024 seconds if sync is stable.</li></ol><p><strong>Redundancy:</strong> configure <strong>at least two</strong> NTP servers. The client will select the best one and use the other as a backup.</p>",
+      "visual": {
+        "type": "packet-flow",
+        "params": {
+          "nodes": [
+            "ntp server 10.1.1.1",
+            "UDP/123 query",
+            "Server response",
+            "Clock adjusted",
+            "Stratum = server + 1"
+          ],
+          "color": "#3b82f6"
+        }
+      },
+      "hack": {
+        "memory": "One command: 'ntp server [IP].' Configure two for redundancy. Optional 'prefer' keyword marks one as the default pick if strata tie.",
+        "practice": "Configure 'ntp server 10.1.1.1'. Wait 5 min. Run 'show ntp status' — should say synchronized, stratum = server's + 1.",
+        "effort": "low",
+        "meta": "Must-know command. Syntax question every exam."
+      }
+    },
+    {
+      "id": "4.2.c.2",
+      "term": "Multiple NTP servers",
+      "weight": "med",
+      "info": "<p>Configuring multiple NTP servers provides redundancy and lets the client pick the best source. Best practice is to configure <strong>at least 2, ideally 3-4</strong> NTP servers.</p><pre>ntp server 10.1.1.1 prefer\nntp server 10.1.1.2\nntp server 10.1.1.3</pre><p><strong>How the client chooses:</strong></p><ol><li>Lowest stratum wins.</li><li>If strata tie: lowest round-trip delay.</li><li>If delays tie: lowest jitter/dispersion.</li><li>If all tied: the one marked <code>prefer</code>.</li></ol><p><strong>What happens if one server fails:</strong> the client continues polling all configured servers. When the selected source becomes unreachable (reach drops toward 0), the client switches to the next-best candidate. Switchover is graceful — takes a few poll intervals to confirm failure.</p><p><strong>Don't overdo it:</strong> more than 4-5 servers adds noise without benefit. Each additional server is more NTP traffic and more CPU on the client's clock discipline algorithm.</p>",
+      "visual": {
+        "type": "hierarchy",
+        "params": {
+          "root": "Client",
+          "children": [
+            {
+              "name": "ntp server 10.1.1.1 (selected)"
+            },
+            {
+              "name": "ntp server 10.1.1.2 (candidate)"
+            },
+            {
+              "name": "ntp server 10.1.1.3 (backup)"
+            }
+          ]
+        }
+      },
+      "hack": {
+        "memory": "2-4 NTP servers = good redundancy. 'prefer' keyword breaks ties. Don't configure 10 servers — diminishing returns and noise.",
+        "practice": "Configure 3 servers. Verify one is selected (*). Shut the interface to the selected one — watch the * migrate to the next candidate.",
+        "effort": "medium",
+        "meta": "Mid-weight. Know to configure multiple servers and how selection works."
+      }
+    },
+    {
+      "id": "4.2.c.3",
+      "term": "show ntp associations",
+      "weight": "high",
+      "info": "<p><code>show ntp associations</code> lists every configured NTP source (servers and peers) along with its current state. This is the primary verification command for NTP clients.</p><p><strong>Example output:</strong></p><pre>Router# show ntp associations\n  address         ref clock       st   when   poll  reach  delay  offset    disp\n*~10.1.1.1        .GPS.            1     23     64    377  0.500   0.100   0.200\n+~10.1.1.2        10.1.1.1         2     45     64    377  0.800   0.150   0.300\n -~10.1.1.3       .INIT.          16     --     64      0  0.000   0.000  15937.</pre><p><strong>Column reading:</strong></p><ul><li><strong>Prefix symbol:</strong> <code>*</code> = selected (active source), <code>+</code> = candidate, <code>-</code> = outlier/rejected, no symbol = unreachable or unconfigured.</li><li><strong>address</strong> — NTP server IP.</li><li><strong>ref clock</strong> — what the server itself syncs to (GPS, another IP, .INIT. = no sync yet).</li><li><strong>st</strong> — stratum of that server.</li><li><strong>when</strong> — seconds since last successful poll.</li><li><strong>poll</strong> — current poll interval in seconds.</li><li><strong>reach</strong> — octal bitmap of last 8 polls. 377 = 11111111 = all 8 succeeded.</li><li><strong>delay</strong> — round-trip time in ms.</li><li><strong>offset</strong> — local clock offset from server's clock in ms.</li><li><strong>disp</strong> — dispersion (jitter) in ms.</li></ul>",
+      "visual": {
+        "type": "comparison",
+        "params": {
+          "left": {
+            "label": "Symbols",
+            "items": [
+              "* = selected",
+              "+ = candidate",
+              "- = rejected",
+              "(blank) = unreachable"
+            ]
+          },
+          "right": {
+            "label": "Key fields",
+            "items": [
+              "st (stratum)",
+              "reach (377 = perfect)",
+              "delay + offset (ms)",
+              "disp (jitter)"
+            ]
+          }
+        }
+      },
+      "hack": {
+        "memory": "'show ntp associations' = roster of all NTP sources. Find the * for the active one. reach 377 = perfect. st 16 = that source is broken.",
+        "practice": "Run after every NTP config. Learn to spot the * quickly — it's your sync anchor.",
+        "effort": "medium",
+        "meta": "Primary exam verification output. Know the symbols and reach 377."
+      }
+    },
+    {
+      "id": "4.2.c.4",
+      "term": "show ntp status",
+      "weight": "high",
+      "info": "<p><code>show ntp status</code> shows whether THIS device is synchronized and which server it's using. Run this FIRST to answer 'is my NTP working?'</p><p><strong>Healthy output:</strong></p><pre>Router# show ntp status\nClock is synchronized, stratum 3, reference is 10.1.1.1\nnominal freq is 250.0000 Hz, actual freq is 249.9990 Hz, precision is 2**18\nreference time is E1A2B3C4.12345678 (14:30:00.071 UTC Tue Apr 16 2026)\nclock offset is 0.1234 msec, root delay is 5.23 msec\nroot dispersion is 12.45 msec, peer dispersion is 3.21 msec</pre><p><strong>Key lines:</strong></p><ul><li><strong>Clock is synchronized / unsynchronized</strong> — the #1 thing to check.</li><li><strong>stratum N</strong> — this device's stratum (server's stratum + 1).</li><li><strong>reference is [IP]</strong> — the server this device is syncing to.</li><li><strong>clock offset</strong> — how far off this clock is from the server (smaller = better).</li><li><strong>root delay</strong> — total round-trip delay to the reference clock.</li></ul><p><strong>Unhealthy output:</strong></p><pre>Clock is unsynchronized, stratum 16, no reference clock\n...</pre><p>Stratum 16 + unsynchronized = NTP is broken. Troubleshoot by checking reachability to server, ACLs, auth, and waiting 5-10 min for initial sync.</p>",
+      "visual": {
+        "type": "state-machine",
+        "params": {
+          "states": [
+            "show ntp status",
+            "Synchronized?",
+            "YES → note stratum + reference",
+            "NO → troubleshoot (stratum 16)"
+          ],
+          "active": 1,
+          "transitions": true
+        }
+      },
+      "hack": {
+        "memory": "'show ntp status' = am I synced? Stratum 16 + unsynchronized = broken. Synchronized + reference IP = working. Run this first.",
+        "practice": "Before and after every NTP change, run this command. Watch the transition from stratum 16 → actual stratum as sync completes.",
+        "effort": "low",
+        "meta": "Must-know verification. Exam asks 'how do you verify NTP sync status?' = show ntp status."
+      }
+    },
+    {
+      "id": "4.2.c.5",
+      "term": "ntp server vs ntp peer",
+      "weight": "med",
+      "info": "<p>Cisco supports two NTP relationship types:</p><ul><li><strong><code>ntp server [ip]</code></strong> — asymmetric client-server relationship. This device RECEIVES time from the server. The server does not receive time from this client. Most common; use this for CCNA.</li><li><strong><code>ntp peer [ip]</code></strong> — symmetric peer relationship. Both devices can give and receive time from each other. Used when two devices of roughly equal stratum want to share time mutually as a backup to their external sources.</li></ul><p><strong>When to use peer:</strong></p><ul><li>Two core routers, both configured with external NTP servers, also peered with each other. If the external source fails for one router, it can still get time from its peer.</li><li>Rare in typical enterprise designs — most setups use clear server-client hierarchies.</li></ul><p><strong>CCNA focus:</strong> know <code>ntp server</code> cold. Know <code>ntp peer</code> exists and provides mutual time sharing. The exam almost always uses 'server' in its scenarios.</p>",
+      "visual": {
+        "type": "comparison",
+        "params": {
+          "left": {
+            "label": "ntp server",
+            "items": [
+              "Asymmetric: I receive only",
+              "Server doesn't learn from me",
+              "Standard client-server",
+              "Used 99% of the time"
+            ]
+          },
+          "right": {
+            "label": "ntp peer",
+            "items": [
+              "Symmetric: both directions",
+              "Mutual time sharing",
+              "Used between peers at same stratum",
+              "Rare"
+            ]
+          }
+        }
+      },
+      "hack": {
+        "memory": "'server' = I receive (one-way). 'peer' = we share (two-way). CCNA uses 'server' almost exclusively. Know 'peer' exists.",
+        "practice": "Configure two routers with 'ntp peer' to each other. Verify 'show ntp associations' shows the peer relationship. Contrast with 'ntp server' setup.",
+        "effort": "medium",
+        "meta": "Mid-weight. Know the distinction."
+      }
+    }
+  ],
+  "4.2.d": [
+    {
+      "id": "4.2.d.1",
+      "term": "ntp master [stratum]",
+      "weight": "high",
+      "info": "<p><code>ntp master [stratum]</code> turns a Cisco router into an authoritative NTP server using its own internal clock as the reference. Other devices that point to this router via <code>ntp server</code> will synchronize to it.</p><p><strong>Configuration:</strong></p><pre>ntp master 5</pre><p>This router advertises itself as a stratum 5 NTP server. Clients that sync to it become stratum 6.</p><p><strong>If you omit the stratum value:</strong> <code>ntp master</code> (no number) defaults to stratum 8.</p><p><strong>When to use 'ntp master':</strong></p><ul><li><strong>Isolated networks</strong> with no internet access to reach public NTP servers.</li><li><strong>Lab environments</strong> where external NTP is unavailable.</li><li><strong>Fallback time source</strong> — the router is primarily configured to sync to an external server, but also runs 'ntp master' as a backup. If the external server becomes unreachable, the router falls back to its own clock and continues providing time to downstream clients.</li></ul><p><strong>Warning:</strong> the router's internal clock is a basic crystal oscillator, not an atomic clock. It drifts. In a truly isolated network, expect the time to slowly drift over weeks — all devices in the network will stay synchronized to each other, but they will drift relative to real-world UTC.</p>",
+      "visual": {
+        "type": "hierarchy",
+        "params": {
+          "root": "ntp master 5 (R1)",
+          "children": [
+            {
+              "name": "R2 (stratum 6)",
+              "children": [
+                {
+                  "name": "SW1 (stratum 7)"
+                }
+              ]
+            },
+            {
+              "name": "R3 (stratum 6)"
+            }
+          ]
+        }
+      },
+      "hack": {
+        "memory": "'ntp master [stratum]' = 'I am the clock now.' Sets this router as an NTP server using its own clock. Clients become [stratum + 1]. Default stratum = 8 if omitted.",
+        "practice": "Configure 'ntp master 3' on R1. Point R2 at R1 with 'ntp server [R1-IP]'. Verify R2 reaches stratum 4 after sync.",
+        "effort": "low",
+        "meta": "Syntax + concept. Exam asks 'how do you make a router act as an NTP server?' = ntp master."
+      }
+    },
+    {
+      "id": "4.2.d.2",
+      "term": "ntp master vs ntp server",
+      "weight": "high",
+      "info": "<p>These two commands are often confused. They do opposite things:</p><ul><li><strong><code>ntp server [ip]</code></strong> — 'I am a CLIENT. Fetch time from [ip].' Configures this device to receive time.</li><li><strong><code>ntp master [stratum]</code></strong> — 'I am a SERVER. Provide time to others using my own clock.' Configures this device to give time.</li></ul><p><strong>A single router can be both simultaneously:</strong></p><pre>ntp server 10.1.1.1          ! receive time from this external server\nntp master 5                  ! also act as a stratum 5 server to clients</pre><p>This is the standard 'core router' design:</p><ul><li>Primary: syncs to an external stratum-1/2 source (ntp server).</li><li>Fallback: if external source fails, falls back to own clock (ntp master).</li><li>Downstream: provides time to all internal devices.</li></ul><p>When synced to an external server, the router's advertised stratum is the external stratum + 1 (e.g., stratum 3). When sync to external is lost, it falls back to the ntp master stratum (e.g., 5). Downstream clients see the stratum change and may re-evaluate their source selection.</p>",
+      "visual": {
+        "type": "comparison",
+        "params": {
+          "left": {
+            "label": "ntp server",
+            "items": [
+              "Client role",
+              "Receives time",
+              "Device becomes stratum+1",
+              "Command: ntp server [ip]"
+            ]
+          },
+          "right": {
+            "label": "ntp master",
+            "items": [
+              "Server role",
+              "Provides time",
+              "Uses own clock as reference",
+              "Command: ntp master [stratum]"
+            ]
+          }
+        }
+      },
+      "hack": {
+        "memory": "server = I GET time. master = I GIVE time. One router can do both. Reads 'ntp server ...' = client. Reads 'ntp master ...' = server.",
+        "practice": "On a single router, configure BOTH 'ntp server' and 'ntp master'. Verify it acts as a client (syncs to external) and as a server (downstream clients sync to it).",
+        "effort": "low",
+        "meta": "Exam distinction question. Know both commands and that they can coexist."
+      }
+    },
+    {
+      "id": "4.2.d.3",
+      "term": "Clients become stratum N+1",
+      "weight": "high",
+      "info": "<p>Every hop in the NTP hierarchy increments the stratum by 1. If a server advertises stratum N, its clients become stratum N+1. This cascades down the tree.</p><p><strong>Example chain:</strong></p><pre>R1: ntp master 3        → R1 is stratum 3\nR2: ntp server [R1-IP]  → R2 becomes stratum 4 after sync\nR3: ntp server [R2-IP]  → R3 becomes stratum 5 after sync\nSW1: ntp server [R3-IP] → SW1 becomes stratum 6 after sync</pre><p><strong>Verification:</strong> run <code>show ntp status</code> on each device and note the stratum. Each should be exactly 1 higher than its upstream server.</p><p><strong>Design implications:</strong></p><ul><li>Keep the tree shallow. Each hop adds potential jitter and delay.</li><li>Avoid long chains (stratum 10+) unless necessary. Most enterprise networks don't exceed stratum 5-6.</li><li>If you see an unexpected stratum (e.g., stratum 8 when you expected 4), something in the chain is broken or using a different source than you think.</li></ul>",
+      "visual": {
+        "type": "layer-stack",
+        "params": {
+          "layers": [
+            "R1 stratum 3 (ntp master 3)",
+            "R2 stratum 4",
+            "R3 stratum 5",
+            "SW1 stratum 6"
+          ],
+          "highlight": 0
+        }
+      },
+      "hack": {
+        "memory": "Every hop = +1 stratum. Server N → client N+1. Keep the tree shallow. If you see unexpected stratum, something's not syncing to what you think.",
+        "practice": "Build a 4-device chain. Verify each hop adds 1 to the stratum by running 'show ntp status' on each device.",
+        "effort": "low",
+        "meta": "Guaranteed exam concept. Know the increment rule."
+      }
+    },
+    {
+      "id": "4.2.d.4",
+      "term": "Don't set stratum too low",
+      "weight": "med",
+      "info": "<p>Choose the stratum value for <code>ntp master</code> carefully. Setting it too low can cause your router to outrank legitimate external NTP servers.</p><p><strong>Example of the trap:</strong></p><pre>! BAD: router's internal clock advertises as stratum 1\nntp master 1\n\n! Router ALSO configured with external source\nntp server time.nist.gov    ! this is actually stratum 1</pre><p>Now when downstream clients evaluate their NTP sources, they see a stratum 1 server (the router's own clock via 'ntp master 1'). The real external stratum-1 source is also stratum 1, but via multiple hops has higher delay. Clients may prefer the local router's fake stratum 1, which is actually a drifting crystal oscillator.</p><p><strong>Recommended values:</strong></p><ul><li><strong>Stratum 5-8</strong> — safe range for internal NTP masters. Lower than a typical multi-hop external path but not pretending to be better than real stratum-1 sources.</li><li><strong>Default (no number) = stratum 8</strong> — a sensible default.</li></ul><p><strong>Rule of thumb:</strong> ntp master stratum should be HIGHER than your external sources' effective stratum in your topology, so external sources win when available and the master acts as a backup.</p>",
+      "visual": {
+        "type": "comparison",
+        "params": {
+          "left": {
+            "label": "Too low (BAD)",
+            "items": [
+              "ntp master 1",
+              "Outranks real sources",
+              "Clients prefer drifting clock"
+            ]
+          },
+          "right": {
+            "label": "Reasonable",
+            "items": [
+              "ntp master 5-8",
+              "Acts as fallback only",
+              "External sources still preferred"
+            ]
+          }
+        }
+      },
+      "hack": {
+        "memory": "Don't set stratum too low. A router's crystal oscillator is not atomic-accurate. Use stratum 5-8 so real NTP sources still win when reachable.",
+        "practice": "Configure 'ntp master 1' on a router with an external server. Check which source wins. Then change to 'ntp master 8' — external source wins.",
+        "effort": "low",
+        "meta": "Design question, lightly tested but important real-world knowledge."
+      }
+    }
+  ],
+  "4.2.e": [
+    {
+      "id": "4.2.e.1",
+      "term": "NTP authentication",
+      "weight": "med",
+      "info": "<p><strong>NTP authentication</strong> cryptographically validates that NTP responses come from the intended server, not from an attacker injecting false time. Without auth, any device on the network that speaks NTP could potentially become a client's time source — and an attacker who controls your time controls your certificate validation, Kerberos auth, and log timestamps.</p><p><strong>How it works:</strong></p><ol><li>Server and client share a pre-configured key (a number + password hash).</li><li>Client sends NTP request with an authenticator field containing a hash of the packet + key.</li><li>Server validates the hash against its own key. If match, server responds with its own authenticated reply.</li><li>Client validates the server's response hash. If match, accept the time. If not, reject.</li></ol><p><strong>Supported algorithms:</strong> Cisco IOS supports MD5 (classic) and SHA (newer). MD5 is still commonly used despite cryptographic weaknesses because NTP's threat model is relatively mild — impersonation prevention, not confidentiality.</p><p><strong>Attacks NTP auth prevents:</strong></p><ul><li>Rogue NTP server on the LAN impersonating a legitimate source.</li><li>Man-in-the-middle injecting fake time.</li><li>Off-path time shift attacks.</li></ul>",
+      "visual": {
+        "type": "shield",
+        "params": {
+          "items": [
+            "Client hashes packet + key",
+            "Sends with authenticator",
+            "Server validates hash",
+            "Server responds with its own hash",
+            "Client validates response"
+          ],
+          "color": "#10b981"
+        }
+      },
+      "hack": {
+        "memory": "NTP auth = shared secret between client and server. Blocks rogue time servers. MD5 or SHA. Used in security-sensitive environments.",
+        "practice": "Configure auth on two routers. Force a key mismatch on one side — sync breaks. Fix — sync resumes.",
+        "effort": "medium",
+        "meta": "Mid-weight on CCNA. Know the purpose (prevent rogue time sources) and the four-command config."
+      }
+    },
+    {
+      "id": "4.2.e.2",
+      "term": "ntp authenticate",
+      "weight": "med",
+      "info": "<p><code>ntp authenticate</code> is the global command that enables NTP authentication on the device. Without this command, all other NTP auth configuration (keys, trusted-keys, server key references) is ignored.</p><p><strong>Configuration:</strong></p><pre>ntp authenticate</pre><p>That's the whole command. No arguments. Just turns NTP auth on.</p><p><strong>Order of commands matters:</strong></p><pre>ntp authenticate                                ! 1. Enable auth\nntp authentication-key 1 md5 MySecretPass123    ! 2. Define key\nntp trusted-key 1                               ! 3. Mark key as trusted\nntp server 10.1.1.1 key 1                       ! 4. Associate key with server</pre><p>If you skip step 1, the rest is inert. The exam favorites this as a troubleshooting scenario: 'All the auth commands are there but NTP isn't syncing. What's missing?' = <code>ntp authenticate</code>.</p>",
+      "visual": {
+        "type": "packet-flow",
+        "params": {
+          "nodes": [
+            "ntp authenticate (on)",
+            "ntp authentication-key",
+            "ntp trusted-key",
+            "ntp server ... key"
+          ],
+          "color": "#f59e0b"
+        }
+      },
+      "hack": {
+        "memory": "'ntp authenticate' = the ON switch for NTP auth. Without it, every other auth command is ignored. Always configure FIRST.",
+        "practice": "Configure all four NTP auth commands EXCEPT 'ntp authenticate'. Sync fails silently. Add it — sync works.",
+        "effort": "low",
+        "meta": "Common trick question. 'What enables NTP authentication?' = ntp authenticate."
+      }
+    },
+    {
+      "id": "4.2.e.3",
+      "term": "ntp authentication-key N md5 [pass]",
+      "weight": "med",
+      "info": "<p><code>ntp authentication-key [key-number] md5 [password]</code> defines a cryptographic key used for NTP authentication. The key-number and password must match <strong>exactly</strong> on both client and server.</p><p><strong>Configuration:</strong></p><pre>ntp authentication-key 1 md5 MySecretKey</pre><p>Creates key 1 with MD5 hash of 'MySecretKey'.</p><p><strong>Key numbers:</strong> arbitrary integers (1-4294967295 on modern IOS). You can define multiple keys and use different keys for different servers. A common pattern: all internal servers use key 1, external servers use key 2.</p><p><strong>Algorithm options:</strong></p><ul><li><code>md5</code> — classic, widely supported, cryptographically weak but adequate for NTP's threat model.</li><li><code>sha1</code> / <code>sha256</code> — stronger, supported on newer IOS versions. Use if available.</li></ul><p><strong>Password rules:</strong></p><ul><li>Up to 32 characters.</li><li>Case-sensitive.</li><li>Stored encrypted in the config if <code>service password-encryption</code> is enabled.</li><li>Must be IDENTICAL on both sides. Any typo = authentication failure.</li></ul>",
+      "visual": {
+        "type": "hierarchy",
+        "params": {
+          "root": "ntp authentication-key 1 md5 ...",
+          "children": [
+            {
+              "name": "Key number (1-4294967295)"
+            },
+            {
+              "name": "Algorithm (md5 or sha)"
+            },
+            {
+              "name": "Password (up to 32 chars)"
+            }
+          ]
+        }
+      },
+      "hack": {
+        "memory": "'ntp authentication-key N md5 [pass]' = the actual key. N and password MUST match on both client and server. One typo = no sync.",
+        "practice": "Configure the same key on two routers. Verify sync. Change one character of the password on the client — sync breaks immediately.",
+        "effort": "medium",
+        "meta": "Part of the four-command NTP auth sequence. Know the syntax."
+      }
+    },
+    {
+      "id": "4.2.e.4",
+      "term": "ntp trusted-key N",
+      "weight": "med",
+      "info": "<p><code>ntp trusted-key [key-number]</code> marks a key as trusted for NTP synchronization. Only NTP sources using a trusted key are accepted for time sync. Keys defined but not marked trusted are inert.</p><p><strong>Configuration:</strong></p><pre>ntp authentication-key 1 md5 MySecretKey\nntp trusted-key 1</pre><p><strong>Why a separate 'trusted' step?</strong> It lets you define many keys (for archival, migration, or different trust tiers) but only activate specific ones for NTP. An admin can pre-stage keys and activate them with a single command change.</p><p><strong>Multiple trusted keys:</strong></p><pre>ntp authentication-key 1 md5 key-for-core\nntp authentication-key 2 md5 key-for-branch\nntp authentication-key 3 md5 key-for-lab\nntp trusted-key 1\nntp trusted-key 2\n! key 3 is DEFINED but NOT trusted — inert until marked</pre><p><strong>Common bug:</strong> admin defines <code>ntp authentication-key 1 md5 xxx</code> and uses <code>ntp server ... key 1</code> but forgets <code>ntp trusted-key 1</code>. Auth fails, sync breaks.</p>",
+      "visual": {
+        "type": "state-machine",
+        "params": {
+          "states": [
+            "Key defined (authentication-key)",
+            "Is key trusted (trusted-key)?",
+            "Yes → usable for sync",
+            "No → inert, sync fails"
+          ],
+          "active": 1,
+          "transitions": true
+        }
+      },
+      "hack": {
+        "memory": "'trusted-key' = activate this key. Defined-but-not-trusted keys are inert. Common bug: forgetting this line.",
+        "practice": "Configure 'authentication-key' and 'ntp server ... key N' but omit 'trusted-key'. Sync fails. Add 'trusted-key' — sync works.",
+        "effort": "medium",
+        "meta": "Part of the four-command sequence. Common troubleshooting question."
+      }
+    },
+    {
+      "id": "4.2.e.5",
+      "term": "ntp server [ip] key N",
+      "weight": "med",
+      "info": "<p><code>ntp server [ip-address] key [key-number]</code> tells the client which specific key to use when authenticating with a specific server. This is a client-side command that binds an NTP source to a key.</p><p><strong>Configuration:</strong></p><pre>ntp server 10.1.1.1 key 1\nntp server 10.1.1.2 key 2    ! different server, different key</pre><p>The key-number referenced here MUST match a key defined via <code>ntp authentication-key</code> AND marked trusted via <code>ntp trusted-key</code>. If either is missing, authentication fails.</p><p><strong>Full client-side NTP auth config:</strong></p><pre>ntp authenticate\nntp authentication-key 1 md5 MySecretKey\nntp trusted-key 1\nntp server 10.1.1.1 key 1</pre><p><strong>On the server side (router acting as NTP master):</strong></p><pre>ntp authenticate\nntp authentication-key 1 md5 MySecretKey   ! same key number, same password!\nntp trusted-key 1\nntp master 5</pre><p>The key number and password must be identical on both sides.</p>",
+      "visual": {
+        "type": "hierarchy",
+        "params": {
+          "root": "ntp server 10.1.1.1 key 1",
+          "children": [
+            {
+              "name": "Requires: authentication-key 1 defined"
+            },
+            {
+              "name": "Requires: trusted-key 1 set"
+            },
+            {
+              "name": "Requires: 'ntp authenticate' enabled"
+            }
+          ]
+        }
+      },
+      "hack": {
+        "memory": "'ntp server [IP] key N' = use key N when talking to this server. The key number must be defined AND trusted. Same on both sides.",
+        "practice": "Configure both sides with matching auth. Test. Change password on one side — sync breaks. Match them again — works.",
+        "effort": "medium",
+        "meta": "Completes the NTP auth four-command sequence. Know all four commands cold."
+      }
+    }
+  ],
+  "4.2.f": [
+    {
+      "id": "4.2.f.1",
+      "term": "show ntp associations",
+      "weight": "high",
+      "info": "<p><code>show ntp associations</code> lists every configured NTP source and its current state. This is your primary verification command for the NTP client side — it shows what servers you've configured, which one is selected, and how well each is working.</p><p><strong>Output recap (example):</strong></p><pre>Router# show ntp associations\n  address         ref clock       st   when   poll  reach  delay  offset    disp\n*~10.1.1.1        .GPS.            1     23     64    377  0.500   0.100   0.200\n+~10.1.1.2        10.1.1.1         2     45     64    377  0.800   0.150   0.300</pre><p><strong>Prefix symbols:</strong></p><ul><li><code>*</code> — currently selected (active) time source. You want to see exactly ONE of these.</li><li><code>+</code> — candidate, considered good enough to use as backup.</li><li><code>-</code> — outlier, rejected by the selection algorithm.</li><li><code>(blank)</code> — unreachable or not yet evaluated.</li></ul><p><strong>Troubleshooting:</strong></p><ul><li>No <code>*</code> anywhere = no source is selected = device is unsynchronized.</li><li><code>reach = 0</code> = server is unreachable. Check connectivity, ACLs, auth.</li><li>All sources at <code>st 16</code> = upstream servers are themselves broken.</li></ul>",
+      "visual": {
+        "type": "comparison",
+        "params": {
+          "left": {
+            "label": "Symbol meanings",
+            "items": [
+              "* selected",
+              "+ candidate",
+              "- outlier",
+              "(blank) unreachable"
+            ]
+          },
+          "right": {
+            "label": "Health indicators",
+            "items": [
+              "reach 377 = perfect",
+              "reach 0 = dead",
+              "st 16 = upstream broken",
+              "delay low = LAN sync"
+            ]
+          }
+        }
+      },
+      "hack": {
+        "memory": "'show ntp associations' = roster view. Exactly one * for the active source. reach 377 = perfect. No * = unsynchronized.",
+        "practice": "Run after every NTP config. Memorize the column layout so you can spot issues in 5 seconds.",
+        "effort": "low",
+        "meta": "Most-tested NTP verification command. Know the symbols."
+      }
+    },
+    {
+      "id": "4.2.f.2",
+      "term": "show ntp status",
+      "weight": "high",
+      "info": "<p><code>show ntp status</code> summarizes the local device's NTP state: synced or not, current stratum, reference clock, offset, and dispersion. Run this FIRST to answer 'is my NTP working?'</p><p><strong>Synchronized output:</strong></p><pre>Router# show ntp status\nClock is synchronized, stratum 3, reference is 10.1.1.1\nnominal freq is 250.0000 Hz, actual freq is 249.9990 Hz, precision is 2**18\nreference time is E1A2B3C4.12345678 (14:30:00.071 UTC Tue Apr 16 2026)\nclock offset is 0.1234 msec, root delay is 5.23 msec\nroot dispersion is 12.45 msec, peer dispersion is 3.21 msec</pre><p><strong>Unsynchronized output:</strong></p><pre>Clock is unsynchronized, stratum 16, no reference clock\nnominal freq is 250.0000 Hz, actual freq is 250.0000 Hz, precision is 2**18\nreference time is 00000000.00000000 (00:00:00.000 UTC Mon Jan 1 1900)\nclock offset is 0.0000 msec, root delay is 0.00 msec</pre><p>Note the reference time of year 1900 — a classic signal that NTP has never synced. If you see this, troubleshoot server reachability, ACLs, auth, and wait 5-10 min for initial sync.</p>",
+      "visual": {
+        "type": "state-machine",
+        "params": {
+          "states": [
+            "show ntp status",
+            "Clock synced?",
+            "Yes → note stratum + reference",
+            "No (stratum 16) → troubleshoot"
+          ],
+          "active": 1,
+          "transitions": true
+        }
+      },
+      "hack": {
+        "memory": "'show ntp status' = health card. Synchronized or not? What stratum? Which server? If you see stratum 16 or year 1900, NTP is broken.",
+        "practice": "Before NTP config: stratum 16. After correct config and 5-min wait: proper stratum, real timestamp. Watch the transition.",
+        "effort": "low",
+        "meta": "Must-know. Primary sync check command."
+      }
+    },
+    {
+      "id": "4.2.f.3",
+      "term": "reach 377 (octal)",
+      "weight": "med",
+      "info": "<p>The <strong>reach</strong> field in <code>show ntp associations</code> is an 8-bit shift register displayed in <strong>octal</strong>. It tracks the success/failure of the last 8 NTP polls to that server.</p><p><strong>How it works:</strong> each poll either succeeds (1) or fails (0). The result shifts into the register from the right. After 8 polls, reach = 377 (octal) = 11111111 (binary) = 255 (decimal). The octal display is a Cisco convention.</p><p><strong>Reading reach values:</strong></p><ul><li><strong>377</strong> (octal) = 11111111 (binary) = all 8 recent polls succeeded. Perfect reachability.</li><li><strong>377 → 376 → 374 → 370 → 360 → 340 → 300 → 200 → 0</strong> = progressive failures, each right-shift drops a bit.</li><li><strong>0</strong> = no polls succeeded (server unreachable or broken).</li><li><strong>1</strong> = only the most recent poll succeeded (possibly just came back after being unreachable).</li></ul><p><strong>Initial sync:</strong> when NTP starts, reach is 0. After the first successful poll, it becomes 1. After eight, 377. Full reach usually takes 8 × 64 seconds = about 8 minutes.</p>",
+      "visual": {
+        "type": "binary-breakdown",
+        "params": {
+          "bits": [
+            "Poll 8",
+            "Poll 7",
+            "Poll 6",
+            "Poll 5",
+            "Poll 4",
+            "Poll 3",
+            "Poll 2",
+            "Poll 1"
+          ],
+          "label": "reach 377 (octal) = 11111111 (binary)"
+        }
+      },
+      "hack": {
+        "memory": "reach 377 (octal) = 11111111 (binary) = all 8 recent polls worked. It's an 8-bit register of last 8 polls. 0 = dead. Anything less than 377 = packet loss.",
+        "practice": "Watch reach climb from 0 to 1 to 3 to 7 to 17 to 37 to 77 to 177 to 377 over 8 minutes on a freshly configured client.",
+        "effort": "medium",
+        "meta": "Cisco-specific trivia but lightly tested. Know 377 = all good, 0 = dead."
+      }
+    },
+    {
+      "id": "4.2.f.4",
+      "term": "Stratum 16 = broken",
+      "weight": "high",
+      "info": "<p>If <code>show ntp status</code> reports <strong>stratum 16</strong>, NTP is not working on this device. Stratum 16 is the special value reserved for 'unsynchronized' — the device has no valid time source.</p><p><strong>When you see stratum 16, check in order:</strong></p><ol><li><strong>Server reachability.</strong> <code>ping [server-ip]</code>. If ping fails, fix the underlying network before worrying about NTP.</li><li><strong>ACLs on UDP/123.</strong> Is any ACL blocking NTP? Check with <code>show access-lists</code> and look for denies on UDP 123.</li><li><strong>NTP server command.</strong> Is <code>ntp server [ip]</code> actually configured? Check <code>show running-config | include ntp</code>.</li><li><strong>Authentication.</strong> If auth is configured, is the key matching on both sides? Is <code>ntp authenticate</code> enabled? Is the key marked trusted?</li><li><strong>Time for initial sync.</strong> After any NTP change, allow 5-10 minutes before declaring it broken. NTP evaluates servers over multiple polls before declaring sync.</li><li><strong>Upstream server health.</strong> Is the server itself synchronized? If the server shows stratum 16, it can't give time to clients.</li></ol><p><strong>In show ntp associations:</strong> if every configured source shows <code>st 16</code>, the problem is upstream. If just this device shows stratum 16 but the server looks healthy, the problem is this device's config or network path to the server.</p>",
+      "visual": {
+        "type": "shield",
+        "params": {
+          "items": [
+            "1. Ping server",
+            "2. Check ACLs (UDP/123)",
+            "3. Verify ntp server cmd",
+            "4. Check auth (key + trusted + authenticate)",
+            "5. Wait 5-10 min for initial sync",
+            "6. Check upstream server health"
+          ],
+          "color": "#ef4444"
+        }
+      },
+      "hack": {
+        "memory": "Stratum 16 = broken. Six-step troubleshoot: ping, ACL, ntp-server cmd, auth, wait, upstream. In that order.",
+        "practice": "Lab: configure 'ntp server [wrong-ip]'. Watch stratum stay at 16. Fix the IP, wait, watch it sync. Repeat with ACL blocking UDP/123.",
+        "effort": "medium",
+        "meta": "High-weight troubleshooting scenario. Know the six-step flow."
       }
     }
   ]
