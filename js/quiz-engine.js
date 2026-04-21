@@ -112,6 +112,20 @@
     });
     store.updateStreak();
     if (minutes > 0) store.logStudyTime(minutes);
+
+    // Per-topic attempt log — feeds the "Repeat Quiz Pass" mastery gate.
+    // Only topics with a meaningful sample in this session count (anti-gaming).
+    if (typeof store.recordTopicStudy === 'function') {
+      const M = window.MASTERY || { quizPct: 0.90, minQuestionsPerTopic: 5 };
+      const minQ = M.minQuestionsPerTopic || 5;
+      const threshold = (M.quizPct || 0.90) * 100;
+      const acc = getTopicAccuracy(session.questions);
+      for (const topicId of Object.keys(acc)) {
+        const { total, pct } = acc[topicId];
+        if (total < minQ) continue;
+        store.recordTopicStudy(topicId, pct >= threshold, pct);
+      }
+    }
   }
 
   function getTopicAccuracy(sessionQuestions) {
