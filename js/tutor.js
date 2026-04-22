@@ -19,6 +19,7 @@
       display: flex; align-items: center; justify-content: center;
       transition: transform 0.2s, box-shadow 0.2s;
       font-size: 22px; line-height: 1;
+      will-change: transform; contain: layout paint;
     }
     .tutor-fab:hover { transform: scale(1.08); box-shadow: 0 6px 20px rgba(0,0,0,0.25); }
     .tutor-fab.open { transform: scale(0); pointer-events: none; }
@@ -33,6 +34,7 @@
       transition: opacity 0.25s, transform 0.25s;
       pointer-events: none; overflow: hidden;
       font-family: 'Source Serif 4', Georgia, serif;
+      will-change: transform, opacity; contain: layout paint;
     }
     .tutor-panel.open { opacity: 1; transform: translateY(0) scale(1); pointer-events: auto; }
 

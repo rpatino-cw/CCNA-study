@@ -17,7 +17,7 @@
   // ── Inject CSS ──────────────────────────────────────────────
   var css=document.createElement('style');
   css.textContent=`
-    .gc-bar{position:fixed;right:0;top:50%;transform:translateY(-50%);z-index:9000;display:flex;flex-direction:column;align-items:center;gap:6px;padding:8px 6px;background:rgba(250,247,242,.92);border:1px solid #E2DFD9;border-right:none;border-radius:10px 0 0 10px;box-shadow:-2px 2px 12px rgba(0,0,0,.08);backdrop-filter:blur(8px);transition:opacity .2s}
+    .gc-bar{position:fixed;right:0;top:50%;transform:translateY(-50%);z-index:9000;display:flex;flex-direction:column;align-items:center;gap:6px;padding:8px 6px;background:rgba(250,247,242,.92);border:1px solid #E2DFD9;border-right:none;border-radius:10px 0 0 10px;box-shadow:-2px 2px 12px rgba(0,0,0,.08);backdrop-filter:blur(8px);transition:opacity .2s;will-change:transform;contain:layout paint}
     .gc-bar.hidden{opacity:0;pointer-events:none}
     .gc-dot{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Space Grotesk',system-ui,sans-serif;font-size:.65rem;font-weight:700;color:#fff;cursor:pointer;position:relative;transition:transform .15s}
     .gc-dot:hover{transform:scale(1.15)}
@@ -31,7 +31,7 @@
     .gc-toast.show{opacity:1;transform:translateY(0)}
     .gc-toggle{width:32px;height:32px;border-radius:50%;border:1px solid #E2DFD9;background:#1C1917;color:#FAF7F2;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:14px;margin-top:4px;transition:transform .15s}
     .gc-toggle:hover{transform:scale(1.1)}
-    .gc-panel{position:fixed;right:80px;top:50%;transform:translateY(-50%);z-index:8999;width:300px;max-height:420px;border-radius:12px;background:rgba(250,247,242,.95);border:1px solid #E2DFD9;box-shadow:-4px 4px 24px rgba(0,0,0,.12);backdrop-filter:blur(12px);display:flex;flex-direction:column;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s}
+    .gc-panel{position:fixed;right:80px;top:50%;transform:translateY(-50%);z-index:8999;width:300px;max-height:420px;border-radius:12px;background:rgba(250,247,242,.95);border:1px solid #E2DFD9;box-shadow:-4px 4px 24px rgba(0,0,0,.12);backdrop-filter:blur(12px);display:flex;flex-direction:column;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;will-change:transform,opacity;contain:layout paint}
     .gc-panel.open{opacity:1;pointer-events:auto}
     .gc-panel-head{padding:10px 14px;border-bottom:1px solid #E2DFD9;font-family:'Space Grotesk',system-ui,sans-serif;font-size:.78rem;font-weight:700;color:#1C1917;display:flex;justify-content:space-between;align-items:center}
     .gc-panel-head .gc-close{background:none;border:none;cursor:pointer;font-size:16px;color:#A8A29E;padding:0}
@@ -51,6 +51,12 @@
     .gc-back:hover{color:#1C1917}
     .gc-dm-label{font-size:.65rem;font-weight:400;color:#57534E;margin-left:4px}
     .gc-dot.ring{box-shadow:0 0 0 2px #FAF7F2,0 0 0 4px #B45309}
+    .gc-hide{width:20px;height:20px;border-radius:50%;border:1px solid #E2DFD9;background:rgba(250,247,242,.9);color:#78716C;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:11px;line-height:1;padding:0;margin-bottom:2px;transition:color .15s,border-color .15s}
+    .gc-hide:hover{color:#1C1917;border-color:#1C1917}
+    .gc-bar.collapsed{display:none}
+    .gc-show{position:fixed;right:0;top:50%;transform:translateY(-50%);z-index:9000;width:14px;height:44px;border:1px solid #E2DFD9;border-right:none;border-radius:6px 0 0 6px;background:rgba(250,247,242,.92);color:#78716C;cursor:pointer;font-size:12px;display:none;align-items:center;justify-content:center;padding:0;backdrop-filter:blur(8px)}
+    .gc-show.visible{display:flex}
+    .gc-show:hover{color:#1C1917}
     @media(max-width:600px){.gc-panel{right:8px;width:calc(100vw - 64px);max-height:50vh}.gc-bar{padding:6px 4px}.gc-dot{width:26px;height:26px;font-size:.55rem}}
   `;
   document.head.appendChild(css);
@@ -59,8 +65,27 @@
   var bar=document.createElement('div');
   bar.className='gc-bar';
   bar.id='gcBar';
-  bar.innerHTML='<div class="gc-toggle" id="gcToggle" title="Group Chat">&#9993;</div>';
+  bar.innerHTML='<button class="gc-hide" id="gcHide" title="Hide study group">&#8250;</button><div class="gc-toggle" id="gcToggle" title="Group Chat">&#9993;</div>';
   document.body.appendChild(bar);
+
+  var showPill=document.createElement('button');
+  showPill.className='gc-show';
+  showPill.id='gcShow';
+  showPill.title='Show study group';
+  showPill.innerHTML='&#8249;';
+  document.body.appendChild(showPill);
+
+  function setHidden(hidden){
+    bar.classList.toggle('collapsed',hidden);
+    showPill.classList.toggle('visible',hidden);
+    try{localStorage.setItem('ccna_gc_hidden',hidden?'1':'0');}catch(e){}
+    if(hidden&&isOpen){isOpen=false;panel.classList.remove('open');stopPoll();}
+  }
+  if(localStorage.getItem('ccna_gc_hidden')==='1'){setHidden(true);}
+  document.addEventListener('click',function(e){
+    if(e.target.closest('#gcHide'))setHidden(true);
+    else if(e.target.closest('#gcShow'))setHidden(false);
+  });
 
   var panel=document.createElement('div');
   panel.className='gc-panel';
@@ -208,8 +233,9 @@
         initial+'<span class="gc-status '+(isOnline?'online':'offline')+'"></span></div>'+
         '<div class="gc-name" style="color:'+(isOnline?'#1C1917':'#A8A29E')+'">'+escHtml(m.name||'?')+'</div></div>';
     });
+    var hideBtn='<button class="gc-hide" id="gcHide" title="Hide study group">&#8250;</button>';
     var toggle=document.getElementById('gcToggle').outerHTML;
-    bar.innerHTML=dotsHtml+toggle;
+    bar.innerHTML=hideBtn+dotsHtml+toggle;
     // Re-attach toggle listener
     document.getElementById('gcToggle').addEventListener('click',function(){
       isOpen=!isOpen;dmTarget=null;updatePanelHeader();

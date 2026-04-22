@@ -41,13 +41,13 @@
     '@keyframes xpFloat{0%{opacity:0;transform:translateY(10px) scale(0.8)}15%{opacity:1;transform:translateY(0) scale(1)}85%{opacity:1;transform:translateY(-20px)}100%{opacity:0;transform:translateY(-40px) scale(0.9)}}' +
     '@keyframes levelUp{0%{opacity:0;transform:translate(-50%,-50%) scale(0.5)}20%{opacity:1;transform:translate(-50%,-50%) scale(1.1)}40%{transform:translate(-50%,-50%) scale(1)}100%{opacity:0;transform:translate(-50%,-50%) scale(0.8)}}' +
     '@keyframes xpShine{0%{box-shadow:0 0 0 0 rgba(180,83,9,.4)}50%{box-shadow:0 0 20px 4px rgba(180,83,9,.2)}100%{box-shadow:0 0 0 0 rgba(180,83,9,0)}}' +
-    '.xp-toast{position:fixed;z-index:9600;font-family:"Space Grotesk",system-ui,sans-serif;pointer-events:auto;animation:xpFloat 2.5s ease forwards}' +
+    '.xp-toast{position:fixed;z-index:9600;font-family:"Space Grotesk",system-ui,sans-serif;pointer-events:auto;animation:xpFloat 2.5s ease forwards;will-change:transform,opacity;contain:layout paint}' +
     '.xp-toast-inner{display:flex;align-items:center;gap:8px;padding:8px 16px;background:#1C1917;color:#FAF7F2;border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,.2);animation:xpShine 1s ease}' +
     '.xp-toast .xp-val{font-family:"JetBrains Mono",monospace;font-size:1rem;font-weight:800;color:#FDE68A}' +
     '.xp-toast .xp-label{font-size:.72rem;color:#A8A29E}' +
     '.xp-toast .xp-undo{font-size:.65rem;color:#94A3B8;cursor:pointer;text-decoration:underline;text-underline-offset:2px;margin-left:4px}' +
     '.xp-toast .xp-undo:hover{color:#FDE68A}' +
-    '.xp-levelup{position:fixed;top:50%;left:50%;z-index:9700;animation:levelUp 3s ease forwards;pointer-events:none}' +
+    '.xp-levelup{position:fixed;top:50%;left:50%;z-index:9700;animation:levelUp 3s ease forwards;pointer-events:none;will-change:transform,opacity;contain:layout paint}' +
     '.xp-levelup-inner{background:#1C1917;color:#FAF7F2;padding:20px 32px;border-radius:14px;text-align:center;box-shadow:0 8px 32px rgba(0,0,0,.3)}' +
     '.xp-levelup .lu-title{font-size:.72rem;color:#A8A29E;text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px}' +
     '.xp-levelup .lu-level{font-size:1.4rem;font-weight:900;margin-bottom:4px}' +
