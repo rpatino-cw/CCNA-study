@@ -1,0 +1,828 @@
+WEBVTT
+Kind: captions
+Language: en
+
+00:00:05.560 --> 00:00:11.160
+Hello and welcome to Jeremy’s IT Lab. In this&nbsp;
+video, we’re continuing with the STP toolkit&nbsp;&nbsp;
+
+00:00:11.160 --> 00:00:17.880
+section of our CCNA course. We’re going to focus&nbsp;
+on BPDU Guard and BPDU Filter, two features that&nbsp;&nbsp;
+
+00:00:17.880 --> 00:00:23.120
+are often used in combination with PortFast, which&nbsp;
+we covered in the previous video. These features&nbsp;&nbsp;
+
+00:00:23.120 --> 00:00:29.440
+determine how a port reacts when receiving BPDUs&nbsp;
+and, in the case of BPDU Filter, whether it sends&nbsp;&nbsp;
+
+00:00:29.440 --> 00:00:35.880
+BPDUs, helping to protect and manage your&nbsp;
+network's STP behavior. Let’s get started.
+
+00:00:35.880 --> 00:00:42.160
+Here’s what we’ll cover. We’re continuing with the&nbsp;
+STP toolkit. The previous video covered PortFast,&nbsp;&nbsp;
+
+00:00:42.160 --> 00:00:46.440
+a feature that you should enable on switch&nbsp;
+ports connected to end hosts, allowing them&nbsp;&nbsp;
+
+00:00:46.440 --> 00:00:52.240
+to communicate over the network right away after&nbsp;
+connecting. In this video, we’ll cover two more.&nbsp;&nbsp;
+
+00:00:52.240 --> 00:00:59.080
+BPDU Guard, which automatically disables a switch&nbsp;
+port if it receives a BPDU, and BPDU Filter, which&nbsp;&nbsp;
+
+00:00:59.080 --> 00:01:05.880
+stops a port from sending BPDUs or processing&nbsp;
+received BPDUs. As I said before, these features&nbsp;&nbsp;
+
+00:01:05.880 --> 00:01:12.000
+are often used in combination with PortFast, on&nbsp;
+ports connected to end hosts. Cisco also expects&nbsp;&nbsp;
+
+00:01:12.000 --> 00:01:18.480
+you to know Root Guard and Loop Guard for the&nbsp;
+CCNA, and we’ll cover them in the next video.
+
+00:01:18.480 --> 00:01:26.120
+Before introducing BPDU Guard and Filter, let’s&nbsp;
+see how a PortFast-enabled port handles STP BPDUs.&nbsp;&nbsp;
+
+00:01:26.120 --> 00:01:31.000
+PortFast makes a port start in the Forwarding&nbsp;
+state when it is connected, but it doesn’t disable&nbsp;&nbsp;
+
+00:01:31.000 --> 00:01:38.480
+STP on the port. So, this switch’s G0/1 port has&nbsp;
+PortFast activated, and it sends BPDUs every 2&nbsp;&nbsp;
+
+00:01:38.480 --> 00:01:46.760
+seconds, like a regular STP port. The PC, which&nbsp;
+doesn’t run STP, ignores the BPDUs, but G0/1 keeps&nbsp;&nbsp;
+
+00:01:46.760 --> 00:01:53.680
+sending them. I used SHOW SPANNING-TREE INTERFACE&nbsp;
+G0/1 DETAIL, the same command I showed a few times&nbsp;&nbsp;
+
+00:01:53.680 --> 00:02:02.040
+in the previous video. As highlighted, PortFast is&nbsp;
+enabled on G0/1, and it has sent 77 BPDUs so far,&nbsp;&nbsp;
+
+00:02:02.040 --> 00:02:08.720
+but received 0 from the PC. Because&nbsp;
+end hosts don’t run STP and send BPDUs,&nbsp;&nbsp;
+
+00:02:08.720 --> 00:02:15.560
+a PortFast-enabled port shouldn’t receive BPDUs.&nbsp;
+But here’s the question. What if it does? Maybe&nbsp;&nbsp;
+
+00:02:15.560 --> 00:02:21.600
+a user brings their own switch to work, and&nbsp;
+connects it to the network. What happens then?
+
+00:02:21.600 --> 00:02:29.320
+Let’s see. Instead of a PC, SW1’s G0/1 is now&nbsp;
+connected to another switch, SW2. As you know,&nbsp;&nbsp;
+
+00:02:29.320 --> 00:02:35.360
+when a switch comes online it assumes it is&nbsp;
+the root bridge and sends its own BPDUs. So,&nbsp;&nbsp;
+
+00:02:35.360 --> 00:02:43.600
+what does SW1 do upon receiving a BPDU from SW2?&nbsp;
+If a PortFast-enabled port receives an STP BPDU,&nbsp;&nbsp;
+
+00:02:43.600 --> 00:02:50.200
+it will revert to acting like a regular STP&nbsp;
+port, without PortFast. Let’s say SW1’s priority&nbsp;&nbsp;
+
+00:02:50.200 --> 00:03:00.200
+is 32768. And SW2’s is 4096. Because SW2 has a&nbsp;
+lower priority, and therefore a lower bridge ID,&nbsp;&nbsp;
+
+00:03:00.200 --> 00:03:07.880
+SW2 becomes the root bridge, and SW1 G0/1&nbsp;
+becomes a root port. So, what’s the problem here?
+
+00:03:07.880 --> 00:03:13.800
+Let’s rewind a bit. Here’s a simple LAN&nbsp;
+of three switches. SW1 is the root bridge,&nbsp;&nbsp;
+
+00:03:13.800 --> 00:03:19.800
+with all designated ports. SW2 and SW3&nbsp;
+each have one root port leading toward SW1,&nbsp;&nbsp;
+
+00:03:20.600 --> 00:03:27.880
+and the link between SW2 and SW3 is blocked. Bob&nbsp;
+from accounting is a user in the office. Now,&nbsp;&nbsp;
+
+00:03:27.880 --> 00:03:33.840
+usually users don’t connect directly to a switch.&nbsp;
+Instead, there is a wall jack near the user,&nbsp;&nbsp;
+
+00:03:33.840 --> 00:03:38.880
+such as on the wall of their office, if they have&nbsp;
+their own office. The switch connects to the wall&nbsp;&nbsp;
+
+00:03:38.880 --> 00:03:45.120
+jack, and the user’s device does too. This is&nbsp;
+a pretty standard setup. But let’s say Bob is&nbsp;&nbsp;
+
+00:03:45.120 --> 00:03:50.440
+tired of walking to the printer and decides&nbsp;
+to bring his own printer to work. And maybe&nbsp;&nbsp;
+
+00:03:50.440 --> 00:03:54.960
+the Wi-Fi is slow, so he wants to connect&nbsp;
+his laptop to the wired network instead of&nbsp;&nbsp;
+
+00:03:54.960 --> 00:04:01.640
+Wi-Fi. But the wall jack in his office&nbsp;
+only has one port. So, what does he do?
+
+00:04:01.640 --> 00:04:06.600
+Instead of following procedure and creating&nbsp;
+a support ticket with the IT department,&nbsp;&nbsp;
+
+00:04:06.600 --> 00:04:11.040
+Bob takes things into his own hands. He&nbsp;
+brings an old switch he had at home to&nbsp;&nbsp;
+
+00:04:11.040 --> 00:04:16.920
+work and connects it to the network. Then,&nbsp;
+he connects his devices to his switch,&nbsp;&nbsp;
+
+00:04:16.920 --> 00:04:21.920
+and they can all access the LAN. Problem&nbsp;
+solved, right? Well, maybe Bob’s problem&nbsp;&nbsp;
+
+00:04:21.920 --> 00:04:27.600
+has been solved, but his switch and SW3&nbsp;
+start exchanging spanning tree BPDUs,&nbsp;&nbsp;
+
+00:04:27.600 --> 00:04:34.640
+and this could impact the network. For example,&nbsp;
+what if Bob’s switch becomes the root bridge?
+
+00:04:34.640 --> 00:04:39.040
+If Bob’s switch has a lower STP bridge&nbsp;
+ID and becomes the root bridge, that can&nbsp;&nbsp;
+
+00:04:39.040 --> 00:04:44.680
+affect the rest of the STP topology. Now each&nbsp;
+switch’s root port points toward Bob’s switch,&nbsp;&nbsp;
+
+00:04:44.680 --> 00:04:50.640
+and the SW1-SW2 link is blocked. This is a problem&nbsp;
+– we don’t want a user’s switch affecting the&nbsp;&nbsp;
+
+00:04:50.640 --> 00:04:57.680
+STP topology. For example, maybe SW1 was the root&nbsp;
+bridge because it’s connected to the LAN’s router.&nbsp;&nbsp;
+
+00:04:57.680 --> 00:05:02.680
+By making SW1 the root bridge, we ensure that each&nbsp;
+other switch has an efficient path to reach SW1,&nbsp;&nbsp;
+
+00:05:03.320 --> 00:05:09.280
+and therefore the router. But now, SW2’s most&nbsp;
+efficient path is blocked, and frames from hosts&nbsp;&nbsp;
+
+00:05:09.280 --> 00:05:15.920
+connected to SW2 have to take the less efficient&nbsp;
+path through SW3 instead. This isn’t a disaster,&nbsp;&nbsp;
+
+00:05:15.920 --> 00:05:22.040
+but in any case, we don’t want unauthorized user&nbsp;
+devices negatively impacting the network. Let’s&nbsp;&nbsp;
+
+00:05:22.040 --> 00:05:28.520
+summarize and then see how BPDU Guard solves this&nbsp;
+problem. PortFast should only be enabled on ports&nbsp;&nbsp;
+
+00:05:28.520 --> 00:05:36.360
+connected to non-switch devices, like end hosts&nbsp;
+or routers. And these devices don’t send BPDUs.&nbsp;&nbsp;
+
+00:05:36.360 --> 00:05:42.000
+However a PortFast-enabled port still sends&nbsp;
+BPDUs and will operate like a regular STP port&nbsp;&nbsp;
+
+00:05:42.000 --> 00:05:47.520
+if it receives BPDUs from a neighbor. So, if an&nbsp;
+end user carelessly connects a switch to a port&nbsp;&nbsp;
+
+00:05:47.520 --> 00:05:53.800
+meant for end hosts, like Bob from Accounting,&nbsp;
+it could affect the STP topology. Shame on you,&nbsp;&nbsp;
+
+00:05:53.800 --> 00:05:59.640
+Bob. Do better. But fortunately, BPDU Guard&nbsp;
+acts as a safeguard against such a situation.
+
+00:06:02.320 --> 00:06:06.840
+Let’s see how BPDU Guard works.&nbsp;
+BPDU Guard protects the network&nbsp;&nbsp;
+
+00:06:06.840 --> 00:06:11.920
+from unauthorized switches being connected&nbsp;
+to ports intended for end hosts, such as&nbsp;&nbsp;
+
+00:06:11.920 --> 00:06:18.560
+SW3’s G0/1 port in this example. BPDU Guard&nbsp;
+can be configured separately from PortFast,&nbsp;&nbsp;
+
+00:06:18.560 --> 00:06:23.880
+but both features are usually used together,&nbsp;
+because they both enhance STP’s functionality on&nbsp;&nbsp;
+
+00:06:23.880 --> 00:06:31.280
+ports intended for end hosts. So, what exactly&nbsp;
+does BPDU Guard do? A BPDU Guard-enabled port&nbsp;&nbsp;
+
+00:06:31.280 --> 00:06:38.520
+continues to send BPDUs, but if it receives a&nbsp;
+BPDU it enters the error-disabled state. So,&nbsp;&nbsp;
+
+00:06:38.520 --> 00:06:44.880
+if Bob connects his switch to the wall jack and&nbsp;
+it sends a BPDU to SW3, SW3 will error-disable&nbsp;&nbsp;
+
+00:06:44.880 --> 00:06:52.840
+its G0/1 port. In effect, this disables the port.&nbsp;
+It can no longer send or receive data or BPDUs.&nbsp;&nbsp;
+
+00:06:52.840 --> 00:06:57.800
+This prevents Bob’s switch from affecting the&nbsp;
+STP topology, and Bob’s gonna be thinking “the&nbsp;&nbsp;
+
+00:06:57.800 --> 00:07:04.200
+internet doesn’t work” and come complaining&nbsp;
+to the IT department. Mission accomplished.
+
+00:07:04.200 --> 00:07:10.840
+Let’s see how to configure BPDU Guard. Like&nbsp;
+PortFast, it can be configured in two ways. First,&nbsp;&nbsp;
+
+00:07:10.840 --> 00:07:16.400
+it can be configured per-port in interface config&nbsp;
+mode. The command to do that is SPANNING-TREE&nbsp;&nbsp;
+
+00:07:16.400 --> 00:07:24.000
+BPDUGUARD ENABLE. And here’s the output of SHOWING&nbsp;
+SPANNING-TREE INTERFACE DETAIL for G0/1. As I’ve&nbsp;&nbsp;
+
+00:07:24.000 --> 00:07:30.800
+highlighted, BPDU Guard is enabled. Okay, so you&nbsp;
+can configure BPDU Guard on each individual port,&nbsp;&nbsp;
+
+00:07:30.800 --> 00:07:36.440
+or you can enable it by default from global config&nbsp;
+mode. The command to do that is SPANNING-TREE&nbsp;&nbsp;
+
+00:07:36.440 --> 00:07:43.400
+PORTFAST BPDUGUARD DEFAULT. And note that, in&nbsp;
+modern Cisco IOS, you can optionally add the&nbsp;&nbsp;
+
+00:07:43.400 --> 00:07:48.240
+EDGE keyword when configuring it. Either way,&nbsp;
+the device will automatically add the keyword&nbsp;&nbsp;
+
+00:07:48.240 --> 00:07:53.720
+to the configuration, like we covered in the&nbsp;
+PortFast video. Here’s that same SHOW command,&nbsp;&nbsp;
+
+00:07:53.720 --> 00:07:59.680
+showing that BPDU Guard is enabled by default.&nbsp;
+Now, when you enable PortFast by default&nbsp;&nbsp;
+
+00:07:59.680 --> 00:08:05.920
+it’s activated on all access ports. But BPDU&nbsp;
+Guard works a bit differently. When you enable&nbsp;&nbsp;
+
+00:08:05.920 --> 00:08:12.200
+BPDU Guard by default, it is activated on all&nbsp;
+PortFast-enabled ports. Not necessarily all access&nbsp;&nbsp;
+
+00:08:12.200 --> 00:08:18.960
+ports. Remember that difference – points like&nbsp;
+this can definitely be tested on the CCNA exam.&nbsp;&nbsp;
+
+00:08:18.960 --> 00:08:24.840
+But just like PortFast, after enabling BPDU Guard&nbsp;
+by default you can then disable it on specific&nbsp;&nbsp;
+
+00:08:24.840 --> 00:08:32.640
+ports if you want: the command is SPANNING-TREE&nbsp;
+BPDUGUARD DISABLE in interface config mode. Okay,&nbsp;&nbsp;
+
+00:08:32.640 --> 00:08:38.080
+that’s how you configure BPDU Guard. Use whichever&nbsp;
+method suits you, but make sure you don’t enable&nbsp;&nbsp;
+
+00:08:38.080 --> 00:08:45.040
+it on a port that is supposed to be connected to&nbsp;
+another switch, as that will disable the port.
+
+00:08:45.040 --> 00:08:50.600
+Continuing on the topic of disabling the&nbsp;
+port, let’s look at how that works. SW3’s BPDU&nbsp;&nbsp;
+
+00:08:50.600 --> 00:08:58.120
+Guard-enabled port has received a BPDU from Bob’s&nbsp;
+switch, so it is error-disabled. In SW3’s CLI,&nbsp;&nbsp;
+
+00:08:58.120 --> 00:09:04.520
+you’ll see this message appear. “Received BPDU&nbsp;
+on port GigabitEthernet0/1 with BPDU Guard&nbsp;&nbsp;
+
+00:09:04.520 --> 00:09:12.080
+enabled. Disabling port.” And another similar&nbsp;
+message. “bpduguard error detected on G0/1,&nbsp;&nbsp;
+
+00:09:12.080 --> 00:09:18.080
+putting G0/1 in err-disable state”. And then&nbsp;
+these two messages saying the interface status has&nbsp;&nbsp;
+
+00:09:18.080 --> 00:09:25.240
+changed to down and down. In the output of SHOW&nbsp;
+INTERFACES G0/1, you can see that the interface&nbsp;&nbsp;
+
+00:09:25.240 --> 00:09:31.680
+has been err-disabled. ErrDisable is a Cisco&nbsp;
+switch feature that disables a port under certain&nbsp;&nbsp;
+
+00:09:31.680 --> 00:09:38.560
+conditions, such as a BPDU Guard violation.&nbsp;
+If a BPDU Guard-enabled port receives a BPDU,&nbsp;&nbsp;
+
+00:09:38.560 --> 00:09:45.480
+that’s a violation, and the port is disabled. You&nbsp;
+will learn a few other examples for the CCNA exam,&nbsp;&nbsp;
+
+00:09:45.480 --> 00:09:51.200
+such as power policing violations,&nbsp;
+Port Security violations, and DAI,&nbsp;&nbsp;
+
+00:09:51.200 --> 00:09:58.000
+dynamic ARP inspection violations. But&nbsp;
+those are topics for later in the course.
+
+00:09:58.000 --> 00:10:04.280
+Let’s see BPDU Guard in action on a Cisco switch.&nbsp;
+I’ve configured PortFast and BPDU Guard on port&nbsp;&nbsp;
+
+00:10:04.280 --> 00:10:11.120
+1 on the left of the top switch. Below it is&nbsp;
+another Cisco switch, so let’s connect them.&nbsp;&nbsp;
+
+00:10:11.120 --> 00:10:16.480
+Notice that the link light turns solid amber right&nbsp;
+after connecting it. That means the port has been&nbsp;&nbsp;
+
+00:10:16.480 --> 00:10:23.440
+err-disabled due to BPDU Guard. It can’t send&nbsp;
+or receive data. Even if I disconnect the cable,&nbsp;&nbsp;
+
+00:10:23.440 --> 00:10:28.920
+the solid amber link light remains on. Normally,&nbsp;
+the link light turns off when you disconnect the&nbsp;&nbsp;
+
+00:10:28.920 --> 00:10:34.960
+cable, but in this case it stays on to&nbsp;
+indicate that the port is err-disabled.
+
+00:10:34.960 --> 00:10:39.360
+As we just saw, disconnecting the cable from&nbsp;
+the switch doesn’t solve an err-disabled&nbsp;&nbsp;
+
+00:10:39.360 --> 00:10:45.040
+port. So let’s see how to re-enable it so&nbsp;
+the port can be used again. First of all,&nbsp;&nbsp;
+
+00:10:45.040 --> 00:10:50.680
+to re-enable an err-disabled port, you should&nbsp;
+first solve the underlying issue. This is key,&nbsp;&nbsp;
+
+00:10:50.680 --> 00:10:56.640
+because if you re-enable the port without fixing&nbsp;
+the issue, it will just be err-disabled again. In&nbsp;&nbsp;
+
+00:10:56.640 --> 00:11:03.640
+this example, if I re-enable SW3’s G0/1 port, it&nbsp;
+will just receive another BPDU from Bob’s switch&nbsp;&nbsp;
+
+00:11:03.640 --> 00:11:10.080
+and be disabled again right away. So, let’s&nbsp;
+disconnect Bob’s switch from the wall jack.
+
+00:11:10.080 --> 00:11:16.640
+And then re-connect Bob’s PC. Now let’s see&nbsp;
+how to re-enable the err-disabled port. There&nbsp;&nbsp;
+
+00:11:16.640 --> 00:11:21.520
+are two ways to re-enable a port that has&nbsp;
+been err-disabled: The first is manual,&nbsp;&nbsp;
+
+00:11:21.520 --> 00:11:27.680
+using the SHUTDOWN and NO SHUTDOWN commands to&nbsp;
+reset the disabled port. The second is automatic,&nbsp;&nbsp;
+
+00:11:27.680 --> 00:11:33.080
+using a feature called ErrDisable&nbsp;
+Recovery. Let’s see how it works.
+
+00:11:33.080 --> 00:11:37.640
+ErrDisable Recovery is a feature that&nbsp;
+automatically re-enables err-disabled ports&nbsp;&nbsp;
+
+00:11:37.640 --> 00:11:43.840
+after a certain period of time. To view the status&nbsp;
+of ErrDisable Recovery on the switch, use SHOW&nbsp;&nbsp;
+
+00:11:43.840 --> 00:11:50.440
+ERRDISABLE RECOVERY. Here’s the output. At the top&nbsp;
+there’s a list of ‘errdisable reasons’ and their&nbsp;&nbsp;
+
+00:11:50.440 --> 00:11:57.000
+status. The list is quite long, so I’ve omitted&nbsp;
+most of it, but as I’ve highlighted, BPDU Guard&nbsp;&nbsp;
+
+00:11:57.000 --> 00:12:04.280
+is second on the list. And as it says, ErrDisable&nbsp;
+Recovery is disabled by default. So, that means&nbsp;&nbsp;
+
+00:12:04.280 --> 00:12:09.480
+that err-disabled ports won’t automatically&nbsp;
+recover by default, you have to enable ErrDisable&nbsp;&nbsp;
+
+00:12:09.480 --> 00:12:15.880
+Recovery if you want it. As I’ve highlighted in&nbsp;
+pink, the default recovery timer is 300 seconds,&nbsp;&nbsp;
+
+00:12:15.880 --> 00:12:22.360
+or 5 minutes. This means that err-disabled ports&nbsp;
+will be automatically re-enabled after 5 minutes&nbsp;&nbsp;
+
+00:12:22.360 --> 00:12:28.720
+if you enable errdisable recovery. You can modify&nbsp;
+this interval if you want with ERRDISABLE RECOVERY&nbsp;&nbsp;
+
+00:12:28.720 --> 00:12:34.400
+INTERVAL, and then the interval in seconds. But&nbsp;
+even if you modify the interval, you still need&nbsp;&nbsp;
+
+00:12:34.400 --> 00:12:41.680
+to enable ErrDisable Recovery for it to work,&nbsp;
+so let’s do that. Use ERRDISABLE RECOVERY CAUSE,&nbsp;&nbsp;
+
+00:12:41.680 --> 00:12:46.880
+and then the cause, to enable it for ports&nbsp;
+disabled by the specific cause. The ‘cause’&nbsp;&nbsp;
+
+00:12:46.880 --> 00:12:52.240
+is the feature that disabled the ports. For&nbsp;
+this video we’re talking about BPDU Guard,&nbsp;&nbsp;
+
+00:12:52.240 --> 00:12:57.880
+but as I said before we’ll cover a few other&nbsp;
+causes later in the course. For example, if you&nbsp;&nbsp;
+
+00:12:57.880 --> 00:13:03.560
+look at the top of the “ErrDisable Reason” list in&nbsp;
+the output above, the top one is “arp-inspection”,&nbsp;&nbsp;
+
+00:13:03.560 --> 00:13:11.200
+referring to DAI, Dynamic ARP Inspection,&nbsp;
+another CCNA topic. To enable it for BPDU Guard,&nbsp;&nbsp;
+
+00:13:11.200 --> 00:13:19.000
+use ERRDISABLE RECOVERY CAUSE BPDUGUARD, as I&nbsp;
+did here. This time, SHOW ERRDISABLE RECOVERY&nbsp;&nbsp;
+
+00:13:19.000 --> 00:13:25.480
+shows that it is enabled for BPDU Guard. And&nbsp;
+G0/1 is listed at the bottom of the output,&nbsp;&nbsp;
+
+00:13:25.480 --> 00:13:31.400
+meaning that it will be automatically re-enabled&nbsp;
+after 296 seconds. When this timer counts down to&nbsp;&nbsp;
+
+00:13:31.400 --> 00:13:38.080
+0, the interface will be re-enabled. One final&nbsp;
+point: even if you use ErrDisable Recovery to&nbsp;&nbsp;
+
+00:13:38.080 --> 00:13:42.760
+automatically re-enable disabled ports, you&nbsp;
+still have to solve the underlying problem&nbsp;&nbsp;
+
+00:13:42.760 --> 00:13:49.160
+like I said before. In our scenario, if Bob’s&nbsp;
+switch is still connected to G0/1, right after&nbsp;&nbsp;
+
+00:13:49.160 --> 00:13:57.000
+ErrDisable Recovery re-enables the port, it will&nbsp;
+just be disabled again after receiving a BPDU.
+
+00:13:57.000 --> 00:14:03.320
+Okay, we’ve covered BPDU Guard, now let’s move on&nbsp;
+to BPDU Filter. Before we look at how it works,&nbsp;&nbsp;
+
+00:14:03.320 --> 00:14:09.200
+let’s see the problem it solves. A switch port&nbsp;
+connected to an end host continues sending BPDUs&nbsp;&nbsp;
+
+00:14:09.200 --> 00:14:16.080
+every 2 seconds. And it does this regardless of&nbsp;
+whether PortFast and BPDU Guard are enabled. So,&nbsp;&nbsp;
+
+00:14:16.080 --> 00:14:21.800
+even though Bob’s PC doesn’t run spanning&nbsp;
+tree and simply ignores any BPDUs,&nbsp;&nbsp;
+
+00:14:21.800 --> 00:14:28.560
+SW3 keeps sending BPDUs to Bob’s PC, once every 2&nbsp;
+seconds. If the port doesn’t connect to a switch,&nbsp;&nbsp;
+
+00:14:28.560 --> 00:14:34.960
+sending BPDUs is both unnecessary and also&nbsp;
+undesirable, for a couple of reasons. First&nbsp;&nbsp;
+
+00:14:34.960 --> 00:14:40.240
+is that sending BDPUs uses some bandwidth and&nbsp;
+processing power on the switch, although it’s&nbsp;&nbsp;
+
+00:14:40.240 --> 00:14:47.200
+minimal. Not a big deal, but still unnecessary.&nbsp;
+Second is that BPDUs contain information about&nbsp;&nbsp;
+
+00:14:47.200 --> 00:14:53.320
+the LAN’s STP topology. And if maximum security&nbsp;
+is a concern, you should avoid sending this info&nbsp;&nbsp;
+
+00:14:53.320 --> 00:14:59.040
+to user devices. BPDU Filter solves this&nbsp;
+by preventing a port from sending BPDUs.
+
+00:15:00.720 --> 00:15:07.880
+Let’s explore how BPDU Filter works. As I just&nbsp;
+mentioned it stops a port from sending BPDUs. So,&nbsp;&nbsp;
+
+00:15:07.880 --> 00:15:15.640
+if you enable it on SW3 G0/1, it won’t send any&nbsp;
+more BPDUs to Bob’s PC. But unlike BPDU Guard,&nbsp;&nbsp;
+
+00:15:15.640 --> 00:15:21.800
+BPDU Filter doesn’t disable the port if it&nbsp;
+receives a BPDU. How the switch reacts when it&nbsp;&nbsp;
+
+00:15:21.800 --> 00:15:29.200
+receives a BPDU depends on how you configure BPDU&nbsp;
+Filter, so let’s see how to do that. BPDU Filter&nbsp;&nbsp;
+
+00:15:29.200 --> 00:15:35.000
+can be enabled in two ways, just like PortFast&nbsp;
+and BPDU Guard: it can be configured per-port&nbsp;&nbsp;
+
+00:15:35.000 --> 00:15:40.800
+in interface config mode, or by default in&nbsp;
+global config mode. However, unlike PortFast&nbsp;&nbsp;
+
+00:15:40.800 --> 00:15:47.240
+and BPDU Guard, BPDU Filter functions differently&nbsp;
+depending on how you configure it. To configure it&nbsp;&nbsp;
+
+00:15:47.240 --> 00:15:54.640
+on a specific port, use SPANNING-TREE BPDUFILTER&nbsp;
+ENABLE in interface config mode. With BPDU Filter&nbsp;&nbsp;
+
+00:15:54.640 --> 00:16:02.200
+enabled, the port will not send BPDUs. On top of&nbsp;
+that, the port will ignore any BPDUs it receives.&nbsp;&nbsp;
+
+00:16:02.200 --> 00:16:07.520
+Basically, this disables STP on the port, and&nbsp;
+for that reason you should use it with caution,&nbsp;&nbsp;
+
+00:16:07.520 --> 00:16:14.880
+in bold red letters. PortFast enabled on the wrong&nbsp;
+port can cause temporary layer-2 loops. But BPDU&nbsp;&nbsp;
+
+00:16:14.880 --> 00:16:19.400
+Filter enabled on the wrong port can cause&nbsp;
+permanent layer-2 loops, and is a great way&nbsp;&nbsp;
+
+00:16:19.400 --> 00:16:25.400
+to cause a broadcast storm and bring down the&nbsp;
+network. STP is a key protocol for preventing&nbsp;&nbsp;
+
+00:16:25.400 --> 00:16:32.360
+loops, so disabling it on a port can be very&nbsp;
+risky. A better choice is to enable BPDU Filter&nbsp;&nbsp;
+
+00:16:32.360 --> 00:16:39.800
+by default in global config mode. The command is&nbsp;
+SPANNING-TREE PORTFAST BPDUFILTER DEFAULT. And&nbsp;&nbsp;
+
+00:16:39.800 --> 00:16:45.600
+again, you can optionally use the EDGE keyword&nbsp;
+after PortFast. Just like when enabling BPDU&nbsp;&nbsp;
+
+00:16:45.600 --> 00:16:52.160
+Guard by default, BPDU Filter will be activated&nbsp;
+on all PortFast-enabled ports. And then you can&nbsp;&nbsp;
+
+00:16:52.160 --> 00:16:59.960
+use SPANNING-TREE BPDUFILTER DISABLE to disable it&nbsp;
+on specific ports if necessary. When BPDU Filter&nbsp;&nbsp;
+
+00:16:59.960 --> 00:17:06.360
+is activated on a port by default, the port will&nbsp;
+not send BPDUs, just like above. But here’s the&nbsp;&nbsp;
+
+00:17:06.360 --> 00:17:13.320
+difference. If the port receives a BPDU, PortFast&nbsp;
+and BPDU Filter are disabled, and it operates as a&nbsp;&nbsp;
+
+00:17:13.320 --> 00:17:19.880
+normal STP port. This is the best of both worlds.&nbsp;
+Under normal circumstances the port doesn’t send&nbsp;&nbsp;
+
+00:17:19.880 --> 00:17:28.280
+BPDUs, but if it receives BPDUs it is able to&nbsp;
+react appropriately – it doesn’t just ignore them.
+
+00:17:28.280 --> 00:17:32.440
+Before we finish up, let me give you my&nbsp;
+recommendation and one final note about&nbsp;&nbsp;
+
+00:17:32.440 --> 00:17:39.560
+BPDU Guard and BPDU Filter. You can enable&nbsp;
+PortFast and BPDU Guard however you prefer,&nbsp;&nbsp;
+
+00:17:39.560 --> 00:17:45.520
+either per-port or by default. It doesn’t affect&nbsp;
+how they operate. However you configure them,&nbsp;&nbsp;
+
+00:17:45.520 --> 00:17:50.680
+just make sure you enable them on the correct&nbsp;
+interfaces. But I recommend that you only enable&nbsp;&nbsp;
+
+00:17:50.680 --> 00:17:55.520
+BPDU Filter by default, in global config&nbsp;
+mode. Unless you have a very good reason&nbsp;&nbsp;
+
+00:17:55.520 --> 00:18:02.800
+to enable it per-port. Disabling STP on a port&nbsp;
+is risky business. Okay, one final note about&nbsp;&nbsp;
+
+00:18:02.800 --> 00:18:09.440
+BPDU Guard and BPDU Filter: they can be enabled&nbsp;
+on the same port at the same time, but the end&nbsp;&nbsp;
+
+00:18:09.440 --> 00:18:16.320
+result depends on how you configured BPDU Filter.&nbsp;
+If BPDU Filter is enabled in global config mode,&nbsp;&nbsp;
+
+00:18:16.320 --> 00:18:22.320
+so it’s enabled by default, and the port&nbsp;
+receives a BPDU, BPDU Filter will be disabled,&nbsp;&nbsp;
+
+00:18:22.320 --> 00:18:27.920
+and BPDU Guard will be triggered, meaning it&nbsp;
+will err-disable the interface. But what about&nbsp;&nbsp;
+
+00:18:27.920 --> 00:18:33.360
+if BPDU Filter is enabled in interface config&nbsp;
+mode, enabled per-port, and the port receives&nbsp;&nbsp;
+
+00:18:33.360 --> 00:18:41.680
+a BPDU? In that case, the BPDU will be ignored,&nbsp;
+and BPDU Guard will not be triggered. Basically,&nbsp;&nbsp;
+
+00:18:41.680 --> 00:18:46.480
+BPDU Guard doesn’t have any effect in this&nbsp;
+case. So once again, I think it’s better&nbsp;&nbsp;
+
+00:18:46.480 --> 00:18:52.520
+to activate BPDU Filter in global config&nbsp;
+mode, rather than interface config mode.
+
+00:18:52.520 --> 00:18:58.120
+Okay, here’s a one-slide summary of this video.&nbsp;
+PortFast should only be enabled on ports connected&nbsp;&nbsp;
+
+00:18:58.120 --> 00:19:03.640
+to non-switch devices that don’t send BPDUs.&nbsp;
+Usually you enable it on all ports connected&nbsp;&nbsp;
+
+00:19:03.640 --> 00:19:10.800
+to end hosts like PCs, and maybe routers. The port&nbsp;
+still sends BPDUs and will operate like a regular&nbsp;&nbsp;
+
+00:19:10.800 --> 00:19:16.720
+STP port if it receives BPDUs from a neighbor.&nbsp;
+This means that if an end user carelessly&nbsp;&nbsp;
+
+00:19:16.720 --> 00:19:22.160
+connects a switch to a port meant for end hosts,&nbsp;
+like Bob from Accounting did in our example,&nbsp;&nbsp;
+
+00:19:22.160 --> 00:19:29.760
+it could affect the STP topology. To prevent this,&nbsp;
+you should use BPDU Guard. BPDU Guard protects the&nbsp;&nbsp;
+
+00:19:29.760 --> 00:19:35.880
+network from unauthorized switches being connected&nbsp;
+to ports intended for end hosts. If a port with&nbsp;&nbsp;
+
+00:19:35.880 --> 00:19:41.800
+BPDU Guard receives a BPDU, the port enters the&nbsp;
+err-disabled state; it can no longer send or&nbsp;&nbsp;
+
+00:19:41.800 --> 00:19:49.600
+receive data. You can enable BPDU Guard per-port&nbsp;
+with SPANNING-TREE BPDUGUARD ENABLE, or by default&nbsp;&nbsp;
+
+00:19:49.600 --> 00:19:56.360
+with SPANNING-TREE PORTFAST BPDUGUARD DEFAULT. The&nbsp;
+default option enables it on all PortFast-enabled&nbsp;&nbsp;
+
+00:19:56.360 --> 00:20:02.640
+ports. You can then use SPANNING-TREE BPDUGUARD&nbsp;
+DISABLE to disable it on specific ports,&nbsp;&nbsp;
+
+00:20:02.640 --> 00:20:10.200
+if necessary. Now, if a port has been err-disabled&nbsp;
+by BPDU Guard, how can you re-enable it? There are&nbsp;&nbsp;
+
+00:20:10.200 --> 00:20:18.480
+two ways to do so. Manual with SHUTDOWN and NO&nbsp;
+SHUTDOWN, or automatic with ErrDisable Recovery,&nbsp;&nbsp;
+
+00:20:18.480 --> 00:20:23.000
+which automatically re-enables the port&nbsp;
+after a certain period of time, 5 minutes&nbsp;&nbsp;
+
+00:20:23.000 --> 00:20:30.480
+by default. To enable ErrDisable Recovery&nbsp;
+for BPDU Guard, use ERRDISABLE RECOVERY CAUSE&nbsp;&nbsp;
+
+00:20:30.480 --> 00:20:37.160
+BPDUGUARD. But whether you want to re-enable&nbsp;
+ports manually or with ErrDisable Recovery,&nbsp;&nbsp;
+
+00:20:37.160 --> 00:20:42.080
+make sure you fix the underlying problem that&nbsp;
+caused the port to be err-disabled. Otherwise,&nbsp;&nbsp;
+
+00:20:42.080 --> 00:20:48.400
+it will just be disabled again. Okay, finally we&nbsp;
+covered BPDU Filter, which prevents a port from&nbsp;&nbsp;
+
+00:20:48.400 --> 00:20:56.440
+sending BPDUs. But unlike BPDU Guard, it doesn’t&nbsp;
+disable the port if it receives a BPDU. How the&nbsp;&nbsp;
+
+00:20:56.440 --> 00:21:03.240
+port reacts upon receiving a BPDU depends on&nbsp;
+how you configured BPDU Filter. Like BPDU Guard,&nbsp;&nbsp;
+
+00:21:03.240 --> 00:21:10.320
+there are two ways to configure it. You can enable&nbsp;
+it per-port with SPANNING-TREE BPDUFILTER ENABLE.&nbsp;&nbsp;
+
+00:21:10.320 --> 00:21:16.360
+In this case, the port will ignore any BPDUs it&nbsp;
+receives. So use it with caution! This basically&nbsp;&nbsp;
+
+00:21:16.360 --> 00:21:22.360
+disables STP on the port, so if you enable it on a&nbsp;
+port connected to another switch, it could cause a&nbsp;&nbsp;
+
+00:21:22.360 --> 00:21:30.480
+loop. You can also enable BPDU Filter by default&nbsp;
+with SPANNING-TREE PORTFAST BPDUFILTER DEFAULT,&nbsp;&nbsp;
+
+00:21:30.480 --> 00:21:36.880
+which enables it on all PortFast-enabled ports.&nbsp;
+In this case, if the port receives a BPDU,&nbsp;&nbsp;
+
+00:21:36.880 --> 00:21:43.520
+PortFast and BPDU Filter are disabled, and the&nbsp;
+port operates as a normal STP port. And you can&nbsp;&nbsp;
+
+00:21:43.520 --> 00:21:50.480
+use SPANNING-TREE BPDUFILTER DISABLE to disable&nbsp;
+it on specific ports if necessary. Okay, that’s&nbsp;&nbsp;
+
+00:21:50.480 --> 00:21:56.680
+all for this video on BPDU Guard and Filter.&nbsp;
+I hope it was helpful. Thanks for watching.
+
