@@ -126,7 +126,19 @@
       <button class="qt-btn active" id="qt-def" onclick="setQuizType('def')">Definition → Term</button>
       <button class="qt-btn" id="qt-term" onclick="setQuizType('term')">Term → Definition</button>
     </div>
-    <div class="quiz-score" id="quizScore">0 / 0</div>
+    <div class="quiz-toggle" id="quizDomainFilter" style="flex-wrap:wrap">
+      <button class="qt-btn active" data-qd="all" onclick="setQuizDomain('all')">All Domains</button>
+      <button class="qt-btn" data-qd="1" onclick="setQuizDomain('1')">D1</button>
+      <button class="qt-btn" data-qd="2" onclick="setQuizDomain('2')">D2</button>
+      <button class="qt-btn" data-qd="3" onclick="setQuizDomain('3')">D3</button>
+      <button class="qt-btn" data-qd="4" onclick="setQuizDomain('4')">D4</button>
+      <button class="qt-btn" data-qd="5" onclick="setQuizDomain('5')">D5</button>
+      <button class="qt-btn" data-qd="6" onclick="setQuizDomain('6')">D6</button>
+    </div>
+    <div class="quiz-toggle">
+      <button class="qt-btn" id="qt-weakfirst" onclick="toggleWeakFirst()">Weak-first: off</button>
+    </div>
+    <div class="quiz-score" id="quizScore">Session 0 / 0 · Lifetime 0/0 terms at 80%+</div>
     <div class="quiz-card" id="quizCard">
       <div class="quiz-prompt-label" id="quizLabel">What term matches this definition?</div>
       <div class="quiz-prompt" id="quizPrompt"></div>
@@ -549,7 +561,15 @@ document.getElementById('domainPills').addEventListener('click', e => {
 
 // ── QUIZ MODE ─────────────────────────────────────────────────
 let quizType = 'def'; // 'def' = show definition, pick term. 'term' = show term, pick definition.
+let quizDomain = 'all';
+let weakFirst = false;
 let qCorrect = 0, qTotal = 0, qLocked = false;
+
+function updateScoreLine() {
+  const summary = (window.store && store.getGlossarySummary) ? store.getGlossarySummary(TERMS) : { total: TERMS.length, strong: 0 };
+  document.getElementById('quizScore').textContent =
+    `Session ${qCorrect} / ${qTotal} · Lifetime ${summary.strong}/${summary.total} terms at 80%+`;
+}
 
 function setMode(mode) {
   document.getElementById('tab-browse').classList.toggle('active', mode === 'browse');
@@ -566,15 +586,59 @@ function setQuizType(type) {
   qCorrect = 0; qTotal = 0; nextQuizQ();
 }
 
+function setQuizDomain(d) {
+  quizDomain = d;
+  document.querySelectorAll('#quizDomainFilter .qt-btn').forEach(b =>
+    b.classList.toggle('active', b.dataset.qd === d));
+  qCorrect = 0; qTotal = 0; nextQuizQ();
+}
+
+function toggleWeakFirst() {
+  weakFirst = !weakFirst;
+  const btn = document.getElementById('qt-weakfirst');
+  btn.textContent = 'Weak-first: ' + (weakFirst ? 'on' : 'off');
+  btn.classList.toggle('active', weakFirst);
+}
+
+function buildQuizPool() {
+  let pool = isNetPlus ? TERMS.filter(t => !CCNA_ONLY.has(t.t)) : TERMS.slice();
+  if (quizDomain !== 'all') {
+    pool = pool.filter(t => Array.isArray(t.domains) && t.domains.indexOf(quizDomain) !== -1);
+  }
+  return pool;
+}
+
+function pickWeakFirst(pool) {
+  const stats = (window.store && store.getGlossaryStats) ? store.getGlossaryStats() : {};
+  // Score each: unseen = 0 (highest priority), low-accuracy next, mastered last.
+  const scored = pool.map(term => {
+    const s = stats[term.t];
+    if (!s || s.total === 0) return { term, score: 0 };
+    return { term, score: s.correct / s.total };
+  });
+  // 70% chance: draw from the weakest third. 30% chance: draw random (prevents loops on same 3 terms).
+  scored.sort((a, b) => a.score - b.score);
+  if (Math.random() < 0.7 && scored.length > 3) {
+    const thirdSize = Math.max(3, Math.floor(scored.length / 3));
+    const weak = scored.slice(0, thirdSize);
+    return weak[Math.floor(Math.random() * weak.length)].term;
+  }
+  return pool[Math.floor(Math.random() * pool.length)];
+}
+
 function nextQuizQ() {
   qLocked = false;
   document.getElementById('quizNext').classList.remove('show');
-  document.getElementById('quizScore').textContent = `${qCorrect} / ${qTotal}`;
+  updateScoreLine();
 
-  // Pick a random term (filter for Net+ if applicable)
-  const pool = isNetPlus ? TERMS.filter(t => !CCNA_ONLY.has(t.t)) : TERMS;
-  const correct = pool[Math.floor(Math.random() * pool.length)];
-  // Pick 3 wrong options
+  const pool = buildQuizPool();
+  if (pool.length < 4) {
+    document.getElementById('quizPrompt').textContent = 'Not enough terms in this domain for a quiz (need at least 4).';
+    document.getElementById('quizOpts').innerHTML = '';
+    return;
+  }
+  const correct = weakFirst ? pickWeakFirst(pool) : pool[Math.floor(Math.random() * pool.length)];
+  // Pick 3 wrong options from the full pool (not filtered by weak-first, so distractors vary)
   const wrongs = [];
   while (wrongs.length < 3) {
     const r = pool[Math.floor(Math.random() * pool.length)];
@@ -611,27 +675,26 @@ function pickAnswer(btn, correctTerm) {
     o.classList.add('locked');
     if (o.dataset.answer === '1') o.classList.add('correct');
   });
-  document.getElementById('quizScore').textContent = `${qCorrect} / ${qTotal}`;
   document.getElementById('quizNext').classList.add('show');
 
-  // Update knowledge map — find the term and update proficiency for its domains
-  if (window.store && window.topicsData) {
-    const term = TERMS.find(t => t.t === correctTerm);
-    if (term && term.domains) {
-      const allTopics = window.topicsData.domains.flatMap(d => d.topics);
-      term.domains.forEach(dId => {
-        const domainTopics = allTopics.filter(t => t.id.startsWith(dId + '.'));
-        if (domainTopics.length > 0) {
-          const pick = domainTopics[Math.floor(Math.random() * domainTopics.length)];
-          store.updateProficiency(pick.id, isCorrect);
-        }
-      });
-    }
+  // Persist per-term glossary stats (separate from topic mastery — vocab is its own signal).
+  if (window.store && store.recordGlossaryAnswer) {
+    store.recordGlossaryAnswer(correctTerm, isCorrect);
   }
+  updateScoreLine();
+
 }
 
 // ── INIT ──────────────────────────────────────────────────────
 renderTerms();
+
+// Deep-link: ?mode=quiz opens straight into quiz mode (e.g. from core.html header)
+try {
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('mode') === 'quiz') setMode('quiz');
+  const dp = params.get('domain');
+  if (dp && /^[1-6]$/.test(dp)) setQuizDomain(dp);
+} catch(e) { /* non-fatal */ }
 
 });</script>
 <script defer src="js/tutor.js"></script>

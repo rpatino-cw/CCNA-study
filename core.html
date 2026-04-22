@@ -82,6 +82,24 @@
   .obj-bar{flex:1;height:2px;background:var(--bg-recessed);border-radius:1px;overflow:hidden}
   .obj-fill{height:100%;border-radius:1px;width:100%;transform-origin:left;transition:transform .4s var(--ease-out)}
   .obj-pct{font-family:var(--font-mono);font-size:.65rem;font-weight:400;min-width:28px;text-align:right;color:var(--ink-faint)}
+  .obj-passes{font-family:var(--font-mono);font-size:.6rem;font-weight:500;letter-spacing:.02em;min-width:26px;text-align:right;color:var(--prof-weak, #b91c1c)}
+  .obj-passes[data-met="1"]{color:var(--ink-faint);font-weight:400}
+  .obj-passes[title]{cursor:help}
+  .obj-covered{font-family:var(--font-mono);font-size:.6rem;font-weight:500;min-width:30px;text-align:right;color:var(--ink-faint)}
+  .obj-covered[data-met="1"]{color:var(--prof-strong, #15803d)}
+  .obj-covered[title]{cursor:help}
+
+  /* ── Subtopic coverage checkboxes ──────────────────────────── */
+  .obj-subs{list-style:none;padding:0;margin:0 0 10px;border-left:2px solid var(--border);padding-left:12px}
+  .obj-subs li{display:flex;align-items:flex-start;gap:8px;padding:4px 0;font-size:.8rem;color:var(--ink-secondary);line-height:1.4}
+  .sub-check{appearance:none;-webkit-appearance:none;width:14px;height:14px;flex-shrink:0;margin-top:2px;border:1.5px solid var(--ink-faint);border-radius:3px;cursor:pointer;background:transparent;position:relative;transition:all .15s}
+  .sub-check:hover{border-color:var(--ink-secondary)}
+  .sub-check:checked{background:var(--prof-strong, #15803d);border-color:var(--prof-strong, #15803d)}
+  .sub-check:checked::after{content:"";position:absolute;left:3px;top:0px;width:4px;height:8px;border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg)}
+  .sub-check:checked + .sub-id,
+  .sub-check:checked + .sub-id + .sub-name{color:var(--ink-faint);text-decoration:line-through;text-decoration-color:var(--border)}
+  .sub-id{font-family:var(--font-mono);font-size:.7rem;color:var(--ink-faint);flex-shrink:0;min-width:38px}
+  .sub-name{flex:1}
 
   /* ── Expanded body ──────────────────────────────────────── */
   .obj-body{display:grid;grid-template-rows:0fr;transition:grid-template-rows .4s var(--ease-out)}
@@ -146,6 +164,7 @@
     <div class="core-meta">
       <span>Study Dashboard</span>
       <span id="progressStat" class="progress-stat"></span>
+      <span id="glossaryStat" class="progress-stat"><a href="glossary.html?mode=quiz" style="color:inherit;text-decoration:none;border-bottom:1px dashed var(--ink-muted)">Glossary Quiz</a></span>
       <span id="examTarget" style="cursor:pointer;border-bottom:1px dashed var(--ink-muted)" onclick="document.getElementById('examDatePicker').showPicker()">Exam target: set date</span>
       <input type="date" id="examDatePicker" style="position:absolute;opacity:0;width:0;height:0;pointer-events:none;">
       <span class="countdown" id="countdown"></span>
@@ -158,6 +177,7 @@
 
 <script defer src="data/topics-data.js"></script>
 <script defer src="data/study-content.js"></script>
+<script defer src="data/glossary-data.js"></script>
 <script defer src="js/store.js"></script>
 <script>window.masteryConfig={labKey:'ccna_minilab_scores',studyKey:'ccna_topic_study',quizBase:'quiz.html?learn=',labBase:'mini-lab.html?topic=',accent:'var(--accent)'};</script>
 <script defer src="js/mastery-config.js"></script>
@@ -1029,6 +1049,15 @@ window.render=function(){
   // Progress stat in header
   document.getElementById('progressStat').textContent=totalMastered+'/'+totalTopics+' mastered';
 
+  // Glossary stat — lifetime strong terms
+  try {
+    if (window.glossaryTerms && store.getGlossarySummary) {
+      const gs = store.getGlossarySummary(window.glossaryTerms);
+      const a = document.querySelector('#glossaryStat a');
+      if (a) a.textContent = 'Glossary Quiz · ' + gs.strong + '/' + gs.total;
+    }
+  } catch (e) { /* non-fatal */ }
+
   // Status bar — guide banner for new users, next-up bar for returning
   var hasAnyProf=Object.keys(prof).some(function(k){return prof[k]>0;});
   var statusEl=document.getElementById('statusBar');
@@ -1053,6 +1082,9 @@ window.render=function(){
   }
 
   // Domain sections
+  const MIN_PASSES_REQ=(window.MASTERY&&window.MASTERY.minPasses)||2;
+  const topicStudy=(typeof store.getTopicStudy==='function')?store.getTopicStudy():{};
+  const subStudy=(typeof store.getSubtopicStudy==='function')?store.getSubtopicStudy():{};
   document.getElementById('domainSections').innerHTML=domains.map(d=>{
     let sum=0;d.topics.forEach(t=>sum+=(prof[t.id]||0));
     const avg=Math.round(sum/d.topics.length*100);
@@ -1063,7 +1095,17 @@ window.render=function(){
       const r=RES[t.id]||{};
       const isMastered=!!mastered[t.id];
       const isCCNAOnly=isNetPlus&&!NP_SET.has(t.id);
-      const subs=t.subtopics?'<ul class="obj-subs">'+t.subtopics.map(s=>'<li>'+esc(typeof s==='object'?s.name:s)+'</li>').join('')+'</ul>':'';
+      const passCount=(topicStudy[t.id]&&topicStudy[t.id].passCount)||0;
+      const passesMet=passCount>=MIN_PASSES_REQ?1:0;
+      const passesTitle='Repeat Quiz Pass (earned) — '+passCount+' of '+MIN_PASSES_REQ+' needed for mastery. Only completed quiz sessions with 90%+ on this topic count.';
+      const passesBadge='<span class="obj-passes" data-met="'+passesMet+'" title="'+passesTitle+'">'+passCount+'/'+MIN_PASSES_REQ+'</span>';
+      const subArr=Array.isArray(t.subtopics)?t.subtopics:[];
+      let subCovered=0;
+      subArr.forEach(function(s){var sid=(typeof s==='object')?s.id:s;if(subStudy[sid]&&subStudy[sid].covered)subCovered++;});
+      const subTotal=subArr.length;
+      const coveredMet=(subTotal>0&&subCovered>=subTotal)?1:0;
+      const coveredBadge=subTotal>0?'<span class="obj-covered" data-met="'+coveredMet+'" title="Subtopic Coverage (self-report) — '+subCovered+' of '+subTotal+' sub-objectives marked studied. Coverage is explicit; it does not grant mastery.">'+subCovered+'/'+subTotal+'</span>':'';
+      const subs=subArr.length?('<ul class="obj-subs">'+subArr.map(function(s){var isObj=typeof s==='object';var sid=isObj?s.id:'';var sname=isObj?s.name:s;var checked=(subStudy[sid]&&subStudy[sid].covered)?' checked':'';var cbId='sub-'+sid.replace(/\./g,'-');return '<li><input type="checkbox" class="sub-check" id="'+cbId+'" data-subid="'+esc(sid)+'" data-topicid="'+t.id+'"'+checked+' onclick="event.stopPropagation();window.toggleSubtopic(this)"><span class="sub-id">'+esc(sid)+'</span><span class="sub-name">'+esc(sname)+'</span></li>';}).join('')+'</ul>'):'';
 
       let resHtml='';
 
@@ -1135,6 +1177,8 @@ window.render=function(){
           '<span class="obj-id">'+t.id+'</span>'+
           '<span class="obj-name">'+esc(t.name)+'</span>'+
           '<div class="obj-prof"><div class="obj-bar"><div class="obj-fill" style="transform:scaleX('+(p/100)+');background:'+profColor(p/100)+'"></div></div><span class="obj-pct" style="color:'+profColor(p/100)+'">'+p+'%</span></div>'+
+          passesBadge+
+          coveredBadge+
         '</div>'+
         '<div class="obj-body" id="objbody-'+t.id+'"><div class="obj-body-inner">'+
           subs+
@@ -1194,6 +1238,23 @@ window.toggleMastered=function(id){
   if(m[id])delete m[id];else{m[id]=true;store.updateProficiency(id,true);}
   localStorage.setItem('ccna_core_mastered',JSON.stringify(m));
   render();
+};
+
+window.toggleSubtopic=function(el){
+  var sid=el.dataset.subid;
+  var tid=el.dataset.topicid;
+  if(!sid||typeof store.setSubtopicCovered!=='function')return;
+  store.setSubtopicCovered(sid, el.checked);
+  // Update just the covered badge on the topic row, no full re-render
+  var topic=null;
+  (window.topicsData.domains||[]).forEach(function(d){(d.topics||[]).forEach(function(t){if(t.id===tid)topic=t;});});
+  if(!topic)return;
+  var cov=store.getTopicCoverage(topic);
+  var row=document.querySelector('#obj-'+CSS.escape(tid)+' .obj-covered');
+  if(row){
+    row.textContent=cov.covered+'/'+cov.total;
+    row.setAttribute('data-met', (cov.total>0&&cov.covered>=cov.total)?'1':'0');
+  }
 };
 
 function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}

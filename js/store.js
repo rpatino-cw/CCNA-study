@@ -261,6 +261,68 @@
     set(KEYS.PROFICIENCY, {});
   }
 
+  // ── Subtopic Coverage (self-report) ────────────────────────────
+  // Tracks per-subtopic: { covered: bool, coveredAt: YYYY-MM-DD }
+  // Separate storage from topic mastery — this is coverage, not earned proficiency.
+
+  function getSubtopicStudy() { return get('subtopic_study') || {}; }
+
+  function setSubtopicCovered(subtopicId, covered) {
+    const all = get('subtopic_study') || {};
+    if (covered) {
+      all[subtopicId] = { covered: true, coveredAt: todayStr() };
+    } else {
+      delete all[subtopicId];
+    }
+    set('subtopic_study', all);
+    return all[subtopicId] || null;
+  }
+
+  function getTopicCoverage(topic) {
+    const all = get('subtopic_study') || {};
+    if (!topic || !Array.isArray(topic.subtopics) || topic.subtopics.length === 0) {
+      return { covered: 0, total: 0 };
+    }
+    let covered = 0;
+    for (const s of topic.subtopics) {
+      const id = (typeof s === 'object') ? s.id : s;
+      if (all[id] && all[id].covered) covered++;
+    }
+    return { covered, total: topic.subtopics.length };
+  }
+
+  // ── Glossary Quiz Stats ────────────────────────────────────────
+  // Per-term: { correct, total, lastSeen: YYYY-MM-DD, lastCorrect: bool }
+  // Separate from topic mastery — vocab accuracy is its own signal.
+
+  function getGlossaryStats() { return get('glossary_stats') || {}; }
+
+  function recordGlossaryAnswer(term, wasCorrect) {
+    const all = get('glossary_stats') || {};
+    const existing = all[term] || { correct: 0, total: 0 };
+    all[term] = {
+      correct: existing.correct + (wasCorrect ? 1 : 0),
+      total: existing.total + 1,
+      lastSeen: todayStr(),
+      lastCorrect: !!wasCorrect,
+    };
+    set('glossary_stats', all);
+    return all[term];
+  }
+
+  function getGlossarySummary(terms) {
+    const stats = get('glossary_stats') || {};
+    const total = Array.isArray(terms) ? terms.length : 0;
+    let seen = 0, strong = 0;
+    for (const t of (terms || [])) {
+      const s = stats[t.t];
+      if (!s || s.total === 0) continue;
+      seen++;
+      if (s.correct / s.total >= 0.8) strong++;
+    }
+    return { total, seen, strong };
+  }
+
   window.store = {
     get, set, getProficiency, updateProficiency, updateProficiencyDiagnostic, getAllProficiency, initProficiency,
     recordMicroWeakness, getMicroWeaknesses,
@@ -269,5 +331,7 @@
     getReadinessScore, exportAll, importAll, clearAll,
     getTopicStudy, getTopicStudyEntry, recordTopicStudy,
     getUnstudiedTopics, getTopicsStudiedToday, getDueForReview,
+    getSubtopicStudy, setSubtopicCovered, getTopicCoverage,
+    getGlossaryStats, recordGlossaryAnswer, getGlossarySummary,
   };
 })();
