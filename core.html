@@ -113,15 +113,29 @@
   .nxt-crumb .nc-done{color:#16A34A;font-weight:700}
 
   /* ── Resources ──────────────────────────────────────────── */
-  .res-section{margin-bottom:8px}
-  .res-row{display:flex;align-items:center;gap:8px;padding:4px 0;font-size:.82rem}
-  .res-row a{color:var(--ink-muted);text-decoration:none;font-family:var(--font-body)}
-  .res-row a:hover{color:var(--accent)}
-  .res-tag{font-family:var(--font-mono);font-size:.55rem;padding:1px 5px;border-radius:2px;font-weight:500;flex-shrink:0;color:var(--ink-faint);text-transform:uppercase;letter-spacing:.04em}
-  .res-more{font-family:var(--font-display);font-size:.72rem;color:var(--ink-faint);cursor:pointer;padding:4px 0;display:flex;align-items:center;gap:4px;background:none;border:none}
-  .res-more:hover{color:var(--ink-muted)}
-  .res-extra{display:none}
+  .res-section{margin-top:14px}
+  .res-more{font-family:var(--font-display);font-size:.76rem;font-weight:600;color:var(--ink-secondary);cursor:pointer;padding:8px 12px;display:flex;align-items:center;gap:6px;background:var(--bg-recessed);border:1px solid var(--border);border-radius:var(--radius);width:100%;text-align:left;transition:background var(--transition);margin-top:8px}
+  .res-more:hover{background:var(--bg-hover);color:var(--ink)}
+  .res-more .res-count{margin-left:auto;font-family:var(--font-mono);font-size:.68rem;color:var(--ink-muted);font-weight:500}
+  .res-extra{display:none;margin-top:10px;padding:12px 14px;background:var(--bg-recessed);border:1px solid var(--border);border-radius:var(--radius-lg)}
   .res-extra.open{display:block}
+  .res-group{margin-bottom:14px}
+  .res-group:last-child{margin-bottom:0}
+  .res-group-head{display:flex;align-items:center;gap:8px;font-family:var(--font-mono);font-size:.64rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-muted);padding-bottom:6px;margin-bottom:4px;border-bottom:1px solid var(--border)}
+  .res-group-head .res-group-count{font-family:var(--font-mono);color:var(--ink-faint);font-weight:500}
+  .res-row{display:flex;align-items:center;gap:10px;padding:6px 2px;font-size:.84rem;font-family:var(--font-body);border-radius:var(--radius)}
+  .res-row a{color:var(--ink-secondary);text-decoration:none;flex:1;line-height:1.4}
+  .res-row:hover a{color:var(--ink)}
+  .res-row::before{content:"";width:4px;height:4px;border-radius:50%;background:var(--ink-faint);flex-shrink:0}
+  .res-row:hover::before{background:var(--accent)}
+
+  /* Color-coded group accents */
+  .res-group.book .res-group-head{color:#B45309}
+  .res-group.read .res-group-head{color:#1D4ED8}
+  .res-group.lab  .res-group-head{color:#15803D}
+  .res-group.video .res-group-head{color:#7E22CE}
+  .res-group.drill .res-group-head{color:#BE185D}
+  .res-group.cisco .res-group-head{color:#0E7490}
   .study-day-row{padding:4px 0;font-family:var(--font-display);font-size:.78rem;color:var(--ink-muted);font-weight:500}
   .study-day-row a{color:var(--accent);text-decoration:none;font-weight:600}
   .study-day-row a:hover{text-decoration:underline}
@@ -1137,49 +1151,41 @@ window.render=function(){
 
       // Books — support both single book string and books array
       const bks=r.books||[];
-      bks.forEach(bk=>{
+      // Collect resources into kind-buckets so we can render as grouped sections
+      var buckets={book:[],read:[],lab:[],video:[],drill:[],cisco:[]};
+      bks.forEach(function(bk){
         if(!bk||!bk.t)return;
         var bookLink='book.html?book='+(bk.id||'odom-vol2');
         if(bk.p)bookLink+='&page='+bk.p;
         if(bk.ch)bookLink+='#ch-'+bk.ch;
-        resHtml+='<div class="res-row"><span class="res-tag book">BOOK</span><a href="'+bookLink+'">'+esc(bk.t)+'</a></div>';
+        buckets.book.push({href:bookLink,text:bk.t,ext:false});
       });
-
-      // Videos — skip first (already in Quick Path), show extras only
       if(r.videos&&r.videos.length>1){
         r.videos.slice(1).forEach(function(v){
-          resHtml+='<div class="res-row"><span class="res-tag video">VIDEO</span><a href="'+(v.u||'#')+'" target="_blank">'+esc(v.ch)+' — '+esc(v.t)+'</a></div>';
+          buckets.video.push({href:v.u||'#',text:esc(v.ch)+' — '+esc(v.t),ext:true,rawHtml:true});
         });
       }
+      if(r.articles)r.articles.forEach(function(a){buckets.read.push({href:a.u,text:a.t,ext:true});});
+      if(r.labs)r.labs.forEach(function(l){var href=l.u||l.h||'#';buckets.lab.push({href:href,text:l.t,ext:!!l.u});});
+      if(r.drills)r.drills.forEach(function(d){
+        var href=d.u||d.h||'#';
+        if(typeof href==='string'&&href.indexOf('learn=')!==-1)return;
+        buckets.drill.push({href:href,text:d.t,ext:!!d.u});
+      });
+      if(r.cisco)r.cisco.forEach(function(c){buckets.cisco.push({href:c.u,text:c.t,ext:true});});
 
-      // Articles (may include merged extra_articles)
-      if(r.articles)r.articles.forEach(a=>{resHtml+='<div class="res-row"><span class="res-tag article">READ</span><a href="'+a.u+'" target="_blank">'+esc(a.t)+'</a></div>';});
-
-      // Labs (enriched only)
-      if(r.labs&&r.labs.length){
-        r.labs.forEach(function(l){
-          var href=l.u||l.h||'#';
-          var ext=!!l.u;
-          resHtml+='<div class="res-row"><span class="res-tag lab">LAB</span><a href="'+href+'"'+(ext?' target="_blank"':'')+'>'+esc(l.t)+'</a></div>';
-        });
-      }
-
-      // Drills — skip quiz.html?learn= (already in Quick Path)
-      if(r.drills&&r.drills.length){
-        r.drills.forEach(function(d){
-          var href=d.u||d.h||'#';
-          if(typeof href==='string'&&href.indexOf('learn=')!==-1)return;
-          var ext=!!d.u;
-          resHtml+='<div class="res-row"><span class="res-tag drill">DRILL</span><a href="'+href+'"'+(ext?' target="_blank"':'')+'>'+esc(d.t)+'</a></div>';
-        });
-      }
-
-      // Cisco official docs (enriched only)
-      if(r.cisco&&r.cisco.length){
-        r.cisco.forEach(function(c){
-          resHtml+='<div class="res-row"><span class="res-tag cisco">CISCO</span><a href="'+c.u+'" target="_blank">'+esc(c.t)+'</a></div>';
-        });
-      }
+      var GROUP_META={book:'Books',read:'Articles',lab:'Labs',video:'Videos',drill:'Drills',cisco:'Cisco Docs'};
+      var GROUP_ORDER=['book','read','lab','video','drill','cisco'];
+      GROUP_ORDER.forEach(function(kind){
+        var items=buckets[kind];
+        if(!items.length)return;
+        var rows=items.map(function(it){
+          var ext=it.ext?' target="_blank" rel="noopener"':'';
+          var text=it.rawHtml?it.text:esc(it.text);
+          return '<div class="res-row"><a href="'+it.href+'"'+ext+'>'+text+'</a></div>';
+        }).join('');
+        resHtml+='<div class="res-group '+kind+'"><div class="res-group-head"><span>'+GROUP_META[kind]+'</span><span class="res-group-count">'+items.length+'</span></div>'+rows+'</div>';
+      });
 
       // Deep-linked shortcuts — quiz filters to this topic, domain quiz filters to domain
       var domainNum=t.id.split('.')[0];
@@ -1196,7 +1202,7 @@ window.render=function(){
       if(r.labs)resCount+=r.labs.length;
       if(r.drills)resCount+=r.drills.length;
       if(r.cisco)resCount+=r.cisco.length;
-      var resToggle=resCount>0?'<button class="res-more" onclick="this.nextElementSibling.classList.toggle(\'open\');this.textContent=this.nextElementSibling.classList.contains(\'open\')?\'\u25B4 Hide resources\':\'\u25BE \'+'+resCount+'+\' more resources\'">&#9662; '+resCount+' more resources</button><div class="res-extra">'+resHtml+'</div>':'';
+      var resToggle=resCount>0?'<button class="res-more" onclick="var x=this.nextElementSibling;x.classList.toggle(\'open\');this.querySelector(\'.res-caret\').textContent=x.classList.contains(\'open\')?\'\u25B4\':\'\u25BE\'"><span class="res-caret">▾</span><span>More study materials</span><span class="res-count">'+resCount+'</span></button><div class="res-extra">'+resHtml+'</div>':'';
 
       var glossPass=getGlossaryPass(t.id);
       var skipBadge=glossPass?'<span class="skip-badge" title="Passed glossary quiz '+glossPass.pct+'% — you can skip Jeremy\'s videos">✓ SKIP '+glossPass.pct+'%</span>':'';
@@ -1213,7 +1219,6 @@ window.render=function(){
           buildJeremyDeepDive(t.id)+
           buildQuickPath(t,prof)+
           '<div class="res-section">'+siteHtml+
-            (r.jday?'<div class="study-day-row" style="margin-top:10px"><a href="jeremy-labs.html" style="text-decoration:none;color:inherit">Jeremy\'s IT Lab Day '+esc(r.jday)+'</a></div>':'')+
             resToggle+
           '</div>'+
         '</div></div></div>';
