@@ -74,8 +74,43 @@
   .obj-body.open .obj-body-inner{padding:4px 14px 24px 64px}
 
   /* ── Subtopics ──────────────────────────────────────────── */
-  .obj-subs{font-family:var(--font-body);font-size:.85rem;color:var(--ink-muted);line-height:1.75;margin-bottom:16px;padding-left:16px}
+  .obj-subs{font-family:var(--font-body);font-size:.85rem;color:var(--ink);font-weight:600;line-height:1.75;margin-bottom:16px;padding-left:16px}
   .obj-subs li{margin-bottom:4px}
+  .obj-subs li::marker{color:var(--accent)}
+
+  /* ── Jeremy Deep Dive ───────────────────────────────────────── */
+  .jdd{margin:16px 0;padding:12px 14px;background:var(--bg-recessed);border:1px solid var(--border);border-radius:var(--radius-lg)}
+  .jdd-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
+  .jdd-title{font-family:var(--font-display);font-size:.8rem;font-weight:700;color:var(--ink);letter-spacing:.03em;text-transform:uppercase}
+  .jdd-cta{font-family:var(--font-display);font-size:.75rem;font-weight:600;padding:6px 12px;border-radius:var(--radius);background:var(--ink);color:var(--bg);text-decoration:none;border:1px solid var(--ink);transition:opacity var(--transition);white-space:nowrap}
+  .jdd-cta:hover{opacity:.85}
+  .jdd-cta.passed{background:#16A34A;border-color:#16A34A}
+  .jdd-videos{display:flex;flex-direction:column;gap:4px}
+  .jdd-vid{display:grid;grid-template-columns:58px 1fr auto;align-items:center;gap:10px;padding:6px 8px;border-radius:var(--radius);font-family:var(--font-body);font-size:.82rem;color:var(--ink);text-decoration:none;transition:background var(--transition)}
+  .jdd-vid:hover{background:var(--bg-hover)}
+  .jdd-vid-day{font-family:var(--font-mono);font-size:.7rem;color:var(--ink-muted);font-weight:600}
+  .jdd-vid-title{color:var(--ink-secondary)}
+  .jdd-vid:hover .jdd-vid-title{color:var(--ink)}
+  .jdd-vid-kind{font-family:var(--font-mono);font-size:.62rem;font-weight:700;letter-spacing:.04em;padding:2px 7px;border-radius:10px;text-transform:uppercase}
+  .jdd-vid-kind.theory{background:var(--accent-dim);color:var(--accent)}
+  .jdd-vid-kind.lab{background:#DBEAFE;color:#1D4ED8}
+  .jdd-vid-kind.flashcards{background:#F3E8FF;color:#7E22CE}
+  .jdd.skipped .jdd-videos{opacity:.5}
+
+  /* ── Skip Eligible badge ────────────────────────────────────── */
+  .skip-badge{font-family:var(--font-mono);font-size:.62rem;font-weight:700;letter-spacing:.04em;padding:2px 8px;border-radius:10px;background:#DCFCE7;color:#166534;border:1px solid #86EFAC;margin-left:8px;white-space:nowrap}
+
+  /* ── Next Step (single-button playbook) ─────────────────────── */
+  .nxt{margin:14px 0;padding:14px 16px;background:var(--accent-dim);border:1px solid var(--accent-light);border-left:3px solid var(--accent);border-radius:var(--radius-lg)}
+  .nxt-row{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+  .nxt-label{font-family:var(--font-display);font-size:.92rem;font-weight:700;color:var(--ink);line-height:1.35}
+  .nxt-label small{display:block;font-weight:400;color:var(--ink-secondary);font-size:.78rem;margin-top:3px}
+  .nxt-btn{font-family:var(--font-display);font-size:.85rem;font-weight:700;padding:10px 20px;border-radius:var(--radius);border:none;background:var(--accent);color:#fff;text-decoration:none;white-space:nowrap;transition:opacity var(--transition);cursor:pointer}
+  .nxt-btn:hover{opacity:.88}
+  .nxt.done{background:#F0FDF4;border-color:#86EFAC;border-left-color:#16A34A}
+  .nxt.done .nxt-label{color:#166534}
+  .nxt-crumb{font-family:var(--font-mono);font-size:.68rem;color:var(--ink-muted);margin-top:8px;letter-spacing:.03em}
+  .nxt-crumb .nc-done{color:#16A34A;font-weight:700}
 
   /* ── Resources ──────────────────────────────────────────── */
   .res-section{margin-bottom:8px}
@@ -989,6 +1024,55 @@ function buildQuickPath(t,prof){
 
 const NP_SET=new Set(['1.1','1.2','1.3','1.4','1.5','1.6','1.7','1.8','1.9','1.10','1.11','1.12','1.13','2.1','2.2','2.5','2.6','2.7','2.8','3.1','3.2','3.3','3.5','4.2','4.3','4.4','4.5','4.6','4.7','4.8','4.9','5.1','5.2','5.3','5.4','5.5','5.6','5.7','5.8','5.9']);
 
+// Jeremy Deep Dive — full per-subobjective video map (loaded once, cached)
+window.JEREMY_DEEP_DIVE=null;
+fetch('data/jeremy-deep-dive.json').then(function(r){return r.json();}).then(function(d){window.JEREMY_DEEP_DIVE=d;if(window.render)window.render();}).catch(function(e){console.warn('jeremy-deep-dive.json not loaded:',e.message);});
+
+function getGlossaryPass(subId){
+  try{var raw=localStorage.getItem('ccna_gloss_'+subId);if(!raw)return null;var r=JSON.parse(raw);return (r&&r.pct>=90)?r:null;}catch(e){return null;}
+}
+
+function buildNextStep(subId, isMastered){
+  var glossPass=getGlossaryPass(subId);
+  var probeCheck=glossPass?'<span class="nc-done">Probe ✓</span>':'Probe';
+  var proveCheck=isMastered?'<span class="nc-done">Prove ✓</span>':'Prove';
+  var crumb='<div class="nxt-crumb">'+probeCheck+' · Study (optional) · '+proveCheck+'</div>';
+
+  if(isMastered){
+    return '<div class="nxt done"><div class="nxt-row"><div class="nxt-label">✓ Mastered<small>Revisit anything below for review</small></div></div>'+crumb+'</div>';
+  }
+  if(glossPass){
+    return '<div class="nxt"><div class="nxt-row">'+
+      '<div class="nxt-label">Next step<small>Prove it on the mastery quiz — 90%+ on 2 separate passes</small></div>'+
+      '<a class="nxt-btn" href="quiz.html?learn='+subId+'">Mastery Quiz →</a>'+
+      '</div>'+crumb+'</div>';
+  }
+  return '<div class="nxt"><div class="nxt-row">'+
+    '<div class="nxt-label">Start here<small>Take the glossary quiz cold — 5 min, finds what you don\'t know</small></div>'+
+    '<a class="nxt-btn" href="glossary-quiz.html?sub='+subId+'">Glossary Quiz →</a>'+
+    '</div>'+crumb+'</div>';
+}
+
+function buildJeremyDeepDive(subId){
+  var d=window.JEREMY_DEEP_DIVE;
+  if(!d||!d.subobjectives||!d.subobjectives[subId])return '';
+  var entry=d.subobjectives[subId];
+  if(!entry.videos||!entry.videos.length)return '';
+  var pass=getGlossaryPass(subId);
+  var cta='<a class="jdd-cta'+(pass?' passed':'')+'" href="glossary-quiz.html?sub='+subId+'">'+(pass?'✓ Retake quiz':'Glossary quiz →')+'</a>';
+  var vids=entry.videos.map(function(v){
+    return '<a class="jdd-vid" href="'+v.url+'" target="_blank" rel="noopener">'+
+      '<span class="jdd-vid-day">Day '+esc(v.day)+'</span>'+
+      '<span class="jdd-vid-title">'+esc(v.title)+'</span>'+
+      '<span class="jdd-vid-kind '+v.kind+'">'+v.kind+'</span>'+
+    '</a>';
+  }).join('');
+  return '<div class="jdd'+(pass?' skipped':'')+'">'+
+    '<div class="jdd-head"><div class="jdd-title">Jeremy Deep Dive · '+entry.videos.length+' video'+(entry.videos.length===1?'':'s')+(pass?' · skip eligible':'')+'</div>'+cta+'</div>'+
+    '<div class="jdd-videos">'+vids+'</div>'+
+  '</div>';
+}
+
 window.render=function(){
   store.initProficiency(window.topicsData);
   const prof=store.getAllProficiency();
@@ -1114,14 +1198,19 @@ window.render=function(){
       if(r.cisco)resCount+=r.cisco.length;
       var resToggle=resCount>0?'<button class="res-more" onclick="this.nextElementSibling.classList.toggle(\'open\');this.textContent=this.nextElementSibling.classList.contains(\'open\')?\'\u25B4 Hide resources\':\'\u25BE \'+'+resCount+'+\' more resources\'">&#9662; '+resCount+' more resources</button><div class="res-extra">'+resHtml+'</div>':'';
 
+      var glossPass=getGlossaryPass(t.id);
+      var skipBadge=glossPass?'<span class="skip-badge" title="Passed glossary quiz '+glossPass.pct+'% — you can skip Jeremy\'s videos">✓ SKIP '+glossPass.pct+'%</span>':'';
+
       return'<div class="obj-card'+(isMastered?' mastered':'')+'" id="obj-'+t.id+'">'+
         '<div class="obj-head" onclick="toggleObj(\''+t.id+'\')">'+
           '<span class="obj-id">'+t.id+'</span>'+
-          '<span class="obj-name">'+esc(t.name)+'</span>'+
+          '<span class="obj-name">'+esc(t.name)+skipBadge+'</span>'+
           '<div class="obj-prof"><div class="obj-bar"><div class="obj-fill" style="transform:scaleX('+(p/100)+');background:'+profColor(p/100)+'"></div></div><span class="obj-pct" style="color:'+profColor(p/100)+'">'+p+'%</span></div>'+
         '</div>'+
         '<div class="obj-body" id="objbody-'+t.id+'"><div class="obj-body-inner">'+
           subs+
+          buildNextStep(t.id, isMastered)+
+          buildJeremyDeepDive(t.id)+
           buildQuickPath(t,prof)+
           '<div class="res-section">'+siteHtml+
             (r.jday?'<div class="study-day-row" style="margin-top:10px"><a href="jeremy-labs.html" style="text-decoration:none;color:inherit">Jeremy\'s IT Lab Day '+esc(r.jday)+'</a></div>':'')+
