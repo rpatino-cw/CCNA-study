@@ -11,7 +11,17 @@
     STUDY_TIME: 'study_time',
     DIAGNOSTIC: 'diagnostic',
     TOPIC_STUDY: 'topic_study',
+    MASTERY_STATE: 'mastery_state',
+    LEARNING_MODE: 'learning_mode',
   };
+  const MASTERY_STATES = {
+    NOT_STARTED: 'NOT_STARTED',
+    PROBED: 'PROBED',
+    PRACTICING: 'PRACTICING',
+    PROFICIENT: 'PROFICIENT',
+    MASTERED: 'MASTERED',
+  };
+  const CHALLENGE_COOLDOWN_MS = 24 * 60 * 60 * 1000;
   const RATING_MAP = { green: 0.75, yellow: 0.5, red: 0.2, none: 0 };
   const EMA_ALPHA = 0.3;
 
@@ -250,6 +260,137 @@
     return due;
   }
 
+  // ── Learning Mode ─────────────────────────────────────────────
+  // 'free' (default) = current behavior; 'mastery' = Sophia/Khan/FSRS path.
+  // Read-only mirror on window.LEARNING_MODE for render paths that can't
+  // await store.
+
+  function getLearningMode() {
+    var m = get(KEYS.LEARNING_MODE);
+    return m === 'mastery' ? 'mastery' : 'free';
+  }
+
+  function setLearningMode(mode) {
+    var m = mode === 'mastery' ? 'mastery' : 'free';
+    set(KEYS.LEARNING_MODE, m);
+    if (typeof window !== 'undefined') window.LEARNING_MODE = m;
+    return m;
+  }
+
+  // ── Mastery State Machine (only used when learning_mode === 'mastery') ──
+  // Per-subobjective shape:
+  //   { state, lastSeen, lastPassed, passes:[ts,...], stability, difficulty,
+  //     reps, lapses, lastReview, due, lab, touchstone }
+
+  function getAllMasteryState() {
+    return get(KEYS.MASTERY_STATE) || {};
+  }
+
+  function getMasteryState(subId) {
+    var all = getAllMasteryState();
+    return all[subId] || { state: MASTERY_STATES.NOT_STARTED, passes: [] };
+  }
+
+  function setMasteryState(subId, patch) {
+    var all = getAllMasteryState();
+    var existing = all[subId] || { state: MASTERY_STATES.NOT_STARTED, passes: [] };
+    all[subId] = Object.assign({}, existing, patch, { lastSeen: Date.now() });
+    set(KEYS.MASTERY_STATE, all);
+    return all[subId];
+  }
+
+  // Promote state forward only (never rewind via this helper; decay uses
+  // its own path). Returns the resulting record.
+  function promoteMasteryState(subId, targetState) {
+    var order = ['NOT_STARTED','PROBED','PRACTICING','PROFICIENT','MASTERED'];
+    var cur = getMasteryState(subId);
+    if (order.indexOf(targetState) > order.indexOf(cur.state)) {
+      return setMasteryState(subId, { state: targetState });
+    }
+    return setMasteryState(subId, {}); // touch lastSeen only
+  }
+
+  // Called by quiz.html after a Challenge attempt. `pct` is 0..1.
+  // Records the pass, updates FSRS card, may promote to PROFICIENT or MASTERED
+  // once 2 passes ≥24h apart + lab are present.
+  function recordChallengePass(subId, pct) {
+    var existing = getMasteryState(subId);
+    var passes = Array.isArray(existing.passes) ? existing.passes.slice() : [];
+    var now = Date.now();
+    var passed = pct >= 0.80;
+    var patch = { lastSeen: now };
+
+    // FSRS update (only when the FSRS module is loaded)
+    if (window.fsrs) {
+      var rating = window.fsrs.ratingFromPct(pct);
+      var card = existing.lastReview
+        ? window.fsrs.next(existing, rating, now)
+        : window.fsrs.init(rating, now);
+      patch.stability = card.stability;
+      patch.difficulty = card.difficulty;
+      patch.reps = card.reps;
+      patch.lapses = card.lapses;
+      patch.lastReview = card.lastReview;
+      patch.due = card.due;
+    }
+
+    if (passed) {
+      var last = passes.length ? passes[passes.length - 1] : 0;
+      var cooldownMet = now - last >= CHALLENGE_COOLDOWN_MS;
+      // Only count this pass if the cooldown since the last pass has
+      // elapsed, OR this is the first pass.
+      if (!passes.length || cooldownMet) {
+        passes.push(now);
+        patch.passes = passes;
+        patch.lastPassed = now;
+      } else {
+        patch.passes = passes;
+      }
+      // State promotion
+      if (passes.length >= 2 && existing.lab) {
+        patch.state = MASTERY_STATES.MASTERED;
+      } else if (passes.length >= 1) {
+        patch.state = MASTERY_STATES.PROFICIENT;
+      }
+    } else {
+      // Failed: drop back to PRACTICING if currently higher
+      if (existing.state === MASTERY_STATES.MASTERED
+          || existing.state === MASTERY_STATES.PROFICIENT) {
+        patch.state = MASTERY_STATES.PRACTICING;
+      }
+    }
+
+    return setMasteryState(subId, patch);
+  }
+
+  // Called when mini-lab is passed in mastery mode.
+  function recordLabPass(subId) {
+    var existing = getMasteryState(subId);
+    var patch = { lab: true };
+    // If we already have 2 Challenge passes, labbing promotes to MASTERED.
+    if (Array.isArray(existing.passes) && existing.passes.length >= 2) {
+      patch.state = MASTERY_STATES.MASTERED;
+    }
+    return setMasteryState(subId, patch);
+  }
+
+  // Returns due reviews (FSRS-scheduled) sorted soonest-due first.
+  // Only items that have a `due` field and state is at least PROFICIENT.
+  function getMasteryDueReviews(now) {
+    now = now || Date.now();
+    var all = getAllMasteryState();
+    var due = [];
+    for (var id in all) {
+      if (!Object.prototype.hasOwnProperty.call(all, id)) continue;
+      var m = all[id];
+      if (!m || !m.due) continue;
+      if (m.state !== MASTERY_STATES.PROFICIENT && m.state !== MASTERY_STATES.MASTERED) continue;
+      if (m.due <= now) due.push({ id: id, due: m.due, state: m.state });
+    }
+    due.sort(function (a, b) { return a.due - b.due; });
+    return due;
+  }
+
   function clearAll() {
     const keys = [];
     for (let i = 0; i < localStorage.length; i++) {
@@ -269,5 +410,12 @@
     getReadinessScore, exportAll, importAll, clearAll,
     getTopicStudy, getTopicStudyEntry, recordTopicStudy,
     getUnstudiedTopics, getTopicsStudiedToday, getDueForReview,
+    // Learning mode + mastery state machine
+    getLearningMode, setLearningMode,
+    getAllMasteryState, getMasteryState, setMasteryState, promoteMasteryState,
+    recordChallengePass, recordLabPass, getMasteryDueReviews,
+    MASTERY_STATES,
   };
+  // Eagerly mirror mode onto window so render paths can branch synchronously.
+  if (typeof window !== 'undefined') window.LEARNING_MODE = getLearningMode();
 })();

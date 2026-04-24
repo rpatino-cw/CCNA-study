@@ -41,7 +41,7 @@
   .gq-actions{display:flex;justify-content:flex-end;gap:var(--s-sm);margin-top:var(--s-lg)}
   .gq-btn{font-family:var(--font-display);font-size:.85rem;font-weight:600;padding:10px 20px;border-radius:var(--radius);border:1px solid var(--ink);background:var(--ink);color:var(--bg);cursor:pointer;transition:opacity var(--transition)}
   .gq-btn:hover{opacity:.85}
-  .gq-btn:disabled{opacity:.3;cursor:not-allowed}
+  .gq-btn:disabled{opacity:.55;cursor:not-allowed}
   .gq-btn.ghost{background:transparent;color:var(--ink);border-color:var(--border)}
 
   .gq-result{text-align:center;padding:var(--s-2xl) var(--s-xl)}
@@ -87,6 +87,8 @@
 </div>
 
 <script defer src="js/nav.js?v=4.55"></script>
+<script defer src="js/fsrs.js"></script>
+<script defer src="js/store.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded',function(){
   'use strict';
@@ -114,6 +116,11 @@ document.addEventListener('DOMContentLoaded',function(){
   function esc(s){var d=document.createElement('div');d.textContent=s;return d.innerHTML;}
 
   var sub=qs('sub');
+  // ?check=N — shortened "Check" variant (Mastery mode, 3-Q after a video)
+  var checkCountRaw=qs('check');
+  var checkCount=checkCountRaw?parseInt(checkCountRaw,10):0;
+  var isCheck=checkCount>0;
+  if(isCheck){ PASS_THRESHOLD=2/checkCount; } // 2/3 pass for a 3-Q check
   if(!sub){
     $('gq-main').innerHTML='<div class="gq-error">Missing <code>?sub=X.Y</code> parameter. Try <a href="glossary-quiz.html?sub=1.1">glossary-quiz.html?sub=1.1</a>.</div>';
     return;
@@ -121,7 +128,7 @@ document.addEventListener('DOMContentLoaded',function(){
 
   var domain=sub.split('.')[0];
   $('gq-subId').textContent=sub+' · '+(SUBTITLES[sub]||'Sub-objective');
-  $('gq-title').textContent='Glossary Quiz';
+  $('gq-title').textContent=isCheck?('Quick Check · '+checkCount+' questions'):'Glossary Quiz';
   $('gq-domainName').textContent='Domain '+domain+' — '+(DOMAIN_NAMES[domain]||'');
 
   var state={questions:[],idx:0,score:0,answered:{},missed:[]};
@@ -131,7 +138,9 @@ document.addEventListener('DOMContentLoaded',function(){
     .then(function(data){
       var qs=(data&&data.questions)||[];
       if(!qs.length)throw new Error('Empty question set.');
-      state.questions=shuffle(qs).map(function(q){return Object.assign({},q,{_shuf:shuffleIndices(q.options.length)});});
+      var pool=shuffle(qs);
+      if(isCheck&&pool.length>checkCount) pool=pool.slice(0,checkCount);
+      state.questions=pool.map(function(q){return Object.assign({},q,{_shuf:shuffleIndices(q.options.length)});});
       render();
     })
     .catch(function(e){
@@ -202,7 +211,18 @@ document.addEventListener('DOMContentLoaded',function(){
     if(pass){
       var key='ccna_gloss_'+sub;
       var record={pct:pctDisp,score:state.score,total:total,passedAt:Date.now()};
-      try{localStorage.setItem(key,JSON.stringify(record));}catch(e){}
+      // Don't overwrite a real Glossary pass record with a short Check pass.
+      try{
+        if(!isCheck) localStorage.setItem(key,JSON.stringify(record));
+      }catch(e){}
+      // Mastery-mode hook: Glossary pass → PROBED, Check pass → PRACTICING.
+      try{
+        if(window.store&&window.store.getLearningMode&&window.store.getLearningMode()==='mastery'
+           &&window.store.promoteMasteryState&&window.store.MASTERY_STATES){
+          var target=isCheck?window.store.MASTERY_STATES.PRACTICING:window.store.MASTERY_STATES.PROBED;
+          window.store.promoteMasteryState(sub,target);
+        }
+      }catch(e){console.warn('mastery promote failed:',e);}
     }
 
     var missedHtml='';
