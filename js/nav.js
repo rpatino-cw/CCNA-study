@@ -25,6 +25,7 @@
       { text: 'Strategy', href: 'strategy.html' },
       { text: 'Exam Details', href: 'exam-details.html' },
       { text: 'Exam Tricks', href: 'exam-tricks.html' },
+      { text: 'Settings', href: 'settings.html' },
     ]},
     { text: 'Study Group', href: 'peers.html' },
   ];

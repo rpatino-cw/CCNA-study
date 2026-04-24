@@ -2084,6 +2084,7 @@
   <script defer src="./data/topics-data.js"></script>
   <script defer src="./data/questions-data.js"></script>
   <script defer src="./js/subtopic-visuals.js"></script>
+  <script defer src="./js/fsrs.js"></script>
   <script defer src="./js/store.js"></script>
   <script defer src="./js/quiz-engine.js"></script>
   <!-- Deferred data (1.5MB) lazy-loaded after init — see lazyLoadData() -->
@@ -3405,6 +3406,20 @@
 
       // Finalize session
       quizEngine.finalizeSession(session);
+
+      // Mastery-mode hook: if this quiz was launched against a specific
+      // subobjective (?learn=<id>) AND the user is in mastery mode, record
+      // the result as a Challenge attempt. Safe no-op in free mode.
+      try {
+        if (window.store && window.store.getLearningMode && window.store.getLearningMode() === 'mastery') {
+          var params = new URLSearchParams(location.search);
+          var learnId = params.get('learn');
+          if (learnId && session && session.total > 0) {
+            var pct = session.score / session.total;
+            window.store.recordChallengePass(learnId, pct);
+          }
+        }
+      } catch (e) { console.warn('mastery challenge record failed:', e); }
 
       // Show summary
       showSummary();
