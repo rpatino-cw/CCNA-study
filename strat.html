@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<!--
+  CCNA Strat — Per-objective drill page (static mockup checkpoint)
+  =================================================================
+  Visual + IxD reference for the strat page. Phase 1 build (Gemini
+  quiz · state · drawer · keyboard nav) layers on top of this scaffold.
+
+  Demo state shown:
+    - "What is this page?" panel open — toggles in live app
+    - First-visit coach hint visible — dismissable in live app
+    - Footnote onboarding popover visible on first transcript link
+    - Section ③ active (spotlight + "do this now" pinned action)
+    - Quiz ② shows 5-mode picker with all 5 passed (3 of 5 unlocks eval)
+
+  Inline CSS — Phase 1 refactors to css/shared.css tokens.
+-->
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>CCNA Strat · Objective drill</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#FAF7F2;--bg-surface:#FFFFFF;--bg-recessed:#F3F0EB;--bg-hover:#F0EDE7;
+    --bg-active:#FEF7EC;
+    --border:#E2DFD9;--border-strong:#C7C3BC;--rule:#D4D0C8;
+    --ink:#1C1917;--ink-secondary:#57534E;--ink-muted:#A8A29E;--ink-faint:#D6D3D1;
+    --accent:#B45309;--accent-soft:#D97706;--accent-light:#FEF3C7;--accent-dim:#FFFBEB;
+    --prof-strong:#16A34A;--prof-strong-bg:#F0FDF4;
+    --prof-mid:#CA8A04;--prof-weak:#DC2626;
+    --correct:#16A34A;--correct-bg:#F0FDF4;
+    --font-display:'Space Grotesk',system-ui,sans-serif;
+    --font-body:'Source Serif 4',Georgia,serif;
+    --font-mono:'JetBrains Mono',monospace;
+    --s-sm:8px;--s-md:16px;--s-lg:24px;--s-xl:40px;--s-2xl:64px;
+    --radius:4px;--radius-lg:8px;
+    --transition:.15s ease;
+    --ease-out:cubic-bezier(.16,1,.3,1);
+  }
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  html{font-size:17px;-webkit-font-smoothing:antialiased;scroll-behavior:smooth}
+  body{font-family:var(--font-body);background:var(--bg);color:var(--ink);line-height:1.65;min-height:100vh}
+
+  /* Layout: side rail + main column */
+  .page{max-width:920px;margin:0 auto;padding:var(--s-lg) var(--s-lg) var(--s-2xl);display:grid;grid-template-columns:48px 1fr;gap:var(--s-lg)}
+  @media (max-width:720px){.page{grid-template-columns:1fr;padding:var(--s-md)}.side-rail{display:none}}
+
+  /* SIDE RAIL — 4 dots, sticky, indicates progress + clickable jump */
+  .side-rail{position:sticky;top:var(--s-lg);height:max-content;display:flex;flex-direction:column;align-items:center;gap:var(--s-lg);padding-top:140px}
+  .side-rail .dot{width:11px;height:11px;border-radius:50%;border:2px solid var(--ink-faint);background:transparent;cursor:pointer;transition:transform var(--transition),border-color var(--transition);position:relative}
+  .side-rail .dot:hover{transform:scale(1.25);border-color:var(--accent)}
+  .side-rail .dot::after{content:attr(data-label);position:absolute;left:18px;top:50%;transform:translateY(-50%);font-family:var(--font-display);font-size:.7rem;letter-spacing:.06em;color:var(--ink-muted);white-space:nowrap;opacity:0;pointer-events:none;transition:opacity var(--transition)}
+  .side-rail .dot:hover::after{opacity:1}
+  .side-rail .dot.done{background:var(--prof-strong);border-color:var(--prof-strong)}
+  .side-rail .dot.active{background:var(--accent);border-color:var(--accent);width:13px;height:13px;box-shadow:0 0 0 4px rgba(180,83,9,.18);animation:pulse 2s ease-in-out infinite}
+  .side-rail .rail-line{width:1px;background:var(--rule);flex:1;min-height:40px}
+  @keyframes pulse{0%,100%{box-shadow:0 0 0 4px rgba(180,83,9,.18)}50%{box-shadow:0 0 0 7px rgba(180,83,9,.08)}}
+
+  /* Typography */
+  h1,h2,h3{font-family:var(--font-display);font-weight:600;line-height:1.2;letter-spacing:-.02em;color:var(--ink)}
+  h1{font-size:2.2rem;font-weight:700;letter-spacing:-.03em;margin-bottom:4px}
+  h2.section-title{font-size:1.4rem;font-weight:600;margin:0;border:0;padding:0;display:inline}
+  h3{font-size:1.05rem;font-weight:600;margin-bottom:6px}
+  p{max-width:64ch;margin-bottom:var(--s-md)}
+  small,.small{font-size:.82rem}
+
+  /* MASTHEAD */
+  .masthead{padding:var(--s-md) 0;margin-bottom:var(--s-lg);border-bottom:2px solid var(--ink);display:grid;grid-template-columns:1fr auto;gap:var(--s-lg);align-items:end}
+  .eyebrow{font-family:var(--font-display);font-size:.7rem;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-muted);font-weight:600;margin-bottom:6px;display:flex;align-items:center;gap:var(--s-sm)}
+  .eyebrow .what-link{color:var(--accent);text-decoration:underline;text-underline-offset:3px;text-decoration-color:var(--accent-light);cursor:pointer;font-weight:600}
+  .eyebrow .what-link:hover{text-decoration-color:var(--accent)}
+  .subtitle{font-family:var(--font-body);font-style:italic;color:var(--ink-secondary);font-size:.98rem;margin-top:6px;max-width:60ch}
+  .today-line{font-family:var(--font-display);font-size:.85rem;color:var(--ink);margin-top:var(--s-sm);font-weight:500}
+  .today-line .label{font-size:.66rem;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-muted);font-weight:600;margin-right:var(--s-sm)}
+  .today-line .task{color:var(--accent)}
+  .clock{font-family:var(--font-mono);font-size:.95rem;color:var(--ink-secondary);text-align:right;line-height:1.3}
+  .clock b{display:block;font-size:1.15rem;color:var(--ink);font-weight:500}
+  .clock .lbl{font-family:var(--font-display);font-size:.62rem;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-muted)}
+  .clock .nudge{font-family:var(--font-body);font-style:italic;color:var(--accent);font-size:.78rem;margin-top:6px;max-width:180px;line-height:1.4}
+
+  /* "What is this?" inline expand */
+  .what-panel{background:var(--bg-recessed);border-left:3px solid var(--accent);padding:var(--s-md) var(--s-lg);margin:var(--s-md) 0;font-size:.92rem;border-radius:0 var(--radius) var(--radius) 0;display:none}
+  .what-panel.show{display:block;animation:fade .3s var(--ease-out)}
+  .what-panel h3{font-size:.85rem;font-weight:600;margin-bottom:6px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-secondary)}
+  .what-panel ol{margin-left:18px;color:var(--ink-secondary)}
+  .what-panel ol li{margin-bottom:4px;line-height:1.5}
+  .what-panel .close{float:right;cursor:pointer;color:var(--ink-muted);font-family:var(--font-mono);font-size:.9rem}
+  .what-panel .close:hover{color:var(--ink)}
+  @keyframes fade{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+
+  /* MASTERY LINE — character-cell mono bar */
+  .mastery-line{font-family:var(--font-mono);font-size:.95rem;color:var(--ink-secondary);margin-bottom:var(--s-md);letter-spacing:.04em}
+  .mastery-line .filled{color:var(--accent)}
+  .mastery-line .empty{color:var(--ink-faint)}
+  .mastery-line .num{color:var(--accent);font-weight:500}
+  .mastery-line .label{font-family:var(--font-display);font-size:.7rem;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-muted);font-weight:600;margin-right:var(--s-sm)}
+
+  /* CRUMB — clickable nav */
+  .crumb{font-family:var(--font-mono);font-size:.92rem;line-height:1.7;padding:var(--s-sm) 0 var(--s-md);border-bottom:1px solid var(--rule);color:var(--ink-secondary);letter-spacing:.02em}
+  .crumb .step{padding:0 4px;cursor:pointer;transition:color var(--transition),background var(--transition);text-decoration:none;display:inline-block}
+  .crumb .step:hover{background:var(--bg-hover);color:var(--accent);border-radius:3px}
+  .crumb .step.done{color:var(--prof-strong)}
+  .crumb .step.active{color:var(--accent);font-weight:500;border-bottom:2px solid var(--accent);padding-bottom:1px}
+  .crumb .step.locked{color:var(--ink-muted);cursor:not-allowed}
+  .crumb .step.locked:hover{background:transparent;color:var(--ink-muted)}
+  .crumb .arrow{color:var(--ink-faint);margin:0 6px}
+  .crumb .skip{float:right;font-family:var(--font-display);font-size:.78rem;color:var(--ink-secondary);text-decoration:underline;text-underline-offset:3px;text-decoration-color:var(--ink-faint);cursor:pointer;letter-spacing:0;padding:2px 8px;border-radius:99px;border:1px solid var(--border);background:var(--bg-surface)}
+  .crumb .skip:hover{color:var(--accent);border-color:var(--accent);text-decoration-color:var(--accent)}
+
+  /* COACH HINT — first-visit affordance */
+  .coach{font-family:var(--font-body);font-style:italic;color:var(--ink-muted);font-size:.85rem;padding:var(--s-sm) 0;margin-bottom:var(--s-xl);display:flex;justify-content:space-between;align-items:center;gap:var(--s-md);max-width:64ch}
+  .coach .x{cursor:pointer;color:var(--ink-muted);font-family:var(--font-mono);font-size:.95rem;flex-shrink:0;padding:0 6px}
+  .coach .x:hover{color:var(--ink)}
+  .coach kbd{font-family:var(--font-mono);font-size:.78rem;background:var(--bg-surface);border:1px solid var(--border);border-bottom-width:2px;padding:1px 5px;border-radius:3px;color:var(--ink-secondary)}
+
+  /* SECTIONS — flow with active spotlight */
+  section.flow{margin:0 -16px var(--s-xl) -16px;padding:var(--s-md) 16px;position:relative;border-radius:var(--radius-lg);transition:background var(--transition)}
+  section.flow + section.flow{margin-top:var(--s-xl);border-top:1px solid var(--rule);padding-top:var(--s-xl)}
+  section.flow .num{
+    font-family:var(--font-display);font-weight:700;font-size:3.6rem;line-height:1;letter-spacing:-.04em;
+    color:var(--ink-faint);float:left;margin:-6px var(--s-md) 0 0;
+  }
+  section.flow.done .num{color:var(--prof-strong);opacity:.55}
+  section.flow.locked .num{color:var(--ink-faint);opacity:.5}
+
+  /* ACTIVE SECTION SPOTLIGHT */
+  section.flow.active{background:var(--bg-active);border-left:4px solid var(--accent);padding-left:24px;margin-left:-20px}
+  section.flow.active + section.flow{border-top:1px solid transparent}
+  section.flow.active .num{color:var(--accent);font-size:4.4rem;margin-top:-10px;text-shadow:0 1px 0 rgba(180,83,9,.08)}
+
+  section.flow .head{display:flex;align-items:baseline;justify-content:space-between;gap:var(--s-md);margin-bottom:var(--s-sm);overflow:hidden}
+  section.flow .head .title{flex:1}
+  section.flow .head .status{font-family:var(--font-mono);font-size:.78rem;color:var(--ink-muted);font-weight:500;white-space:nowrap;letter-spacing:.02em}
+  section.flow.done .head .status{color:var(--prof-strong)}
+  section.flow.active .head .status{color:var(--accent);font-weight:600}
+  section.flow.locked .head .status{color:var(--ink-muted)}
+  section.flow .meta{font-family:var(--font-display);font-size:.78rem;color:var(--ink-muted);margin-bottom:var(--s-md);font-style:italic}
+  section.flow.locked{opacity:.55}
+
+  /* DO THIS NOW — pinned action line on active section */
+  .action-line{
+    background:var(--ink);color:var(--bg);padding:var(--s-md) var(--s-lg);border-radius:var(--radius-lg);
+    display:flex;align-items:center;justify-content:space-between;gap:var(--s-md);margin-bottom:var(--s-lg);
+    flex-wrap:wrap;
+  }
+  .action-line .lhs{flex:1;min-width:200px}
+  .action-line .label{font-family:var(--font-display);font-size:.66rem;letter-spacing:.18em;text-transform:uppercase;color:var(--accent-light);font-weight:600;margin-bottom:2px;display:block}
+  .action-line .task{font-family:var(--font-display);font-size:1.05rem;font-weight:600;color:#fff}
+  .action-line .task code{font-family:var(--font-mono);font-size:.92rem;background:rgba(255,255,255,.1);padding:1px 6px;border-radius:3px;color:var(--accent-light)}
+  .action-line .task .qual{font-family:var(--font-body);font-style:italic;font-weight:400;color:var(--ink-faint);font-size:.92rem}
+  .action-line .btn-go{display:inline-flex;align-items:center;gap:6px;background:var(--accent);color:#fff;padding:10px 22px;border-radius:var(--radius);font-family:var(--font-display);font-size:.88rem;font-weight:600;letter-spacing:.02em;border:none;cursor:pointer;transition:background var(--transition)}
+  .action-line .btn-go:hover{background:var(--accent-soft)}
+
+  /* Pull-block (transcript / book quote) */
+  .pull{font-family:var(--font-body);font-size:1.05rem;line-height:1.75;border-left:3px solid var(--accent);padding:var(--s-sm) var(--s-md) var(--s-sm) var(--s-lg);margin:var(--s-md) 0;color:var(--ink)}
+  .pull code{font-family:var(--font-mono);font-size:.88rem;background:var(--accent-dim);padding:1px 6px;border-radius:3px;color:var(--accent)}
+  .pull .mono{font-family:var(--font-mono);font-size:.88rem;display:block;margin:8px 0;color:var(--ink-secondary)}
+  .pull .more{color:var(--ink-muted);font-style:italic}
+
+  /* FOOTNOTE refs — better discoverability */
+  .footnote{font-family:var(--font-body);font-style:italic;color:var(--ink-secondary);font-size:.92rem;margin-top:var(--s-md);max-width:60ch;line-height:1.6;position:relative}
+  .footnote a{color:var(--ink-secondary);text-decoration:underline;text-underline-offset:3px;text-decoration-color:var(--ink-muted);cursor:pointer;font-weight:500}
+  .footnote a:hover{color:var(--accent);text-decoration-color:var(--accent)}
+  .footnote .sep{margin:0 6px;color:var(--ink-faint)}
+
+  /* First-hover footnote popover (demo'd as visible on first link) */
+  .footnote-onboard{
+    position:absolute;top:-44px;left:0;
+    background:var(--ink);color:var(--bg);padding:8px 14px;border-radius:var(--radius);
+    font-family:var(--font-display);font-size:.78rem;letter-spacing:.01em;font-weight:500;font-style:normal;
+    white-space:nowrap;
+    box-shadow:0 4px 12px rgba(0,0,0,.18);
+  }
+  .footnote-onboard::after{content:"";position:absolute;bottom:-5px;left:14px;width:10px;height:10px;background:var(--ink);transform:rotate(45deg)}
+  .footnote-onboard kbd{font-family:var(--font-mono);font-size:.7rem;background:rgba(255,255,255,.16);padding:1px 5px;border-radius:3px;margin:0 2px}
+
+  /* Card chrome — input nests only */
+  .nest{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:var(--s-lg);margin-top:var(--s-md)}
+
+  /* Quiz mode picker — multi-mode drill, all scoped to 1.1 */
+  .quiz-modes{display:flex;flex-wrap:wrap;gap:8px;margin:var(--s-md) 0 var(--s-md)}
+  .mode-pill{display:inline-flex;align-items:center;gap:7px;padding:7px 14px;border:1px solid var(--border);background:var(--bg-surface);border-radius:99px;font-family:var(--font-display);font-size:.78rem;cursor:pointer;transition:border-color var(--transition),background var(--transition);font-weight:600;color:var(--ink-secondary)}
+  .mode-pill:hover{border-color:var(--ink);background:var(--bg-recessed);color:var(--ink)}
+  .mode-pill.done{border-color:#bfe5c5;background:var(--prof-strong-bg);color:var(--prof-strong)}
+  .mode-pill.active{border-color:var(--accent);background:var(--accent-dim);color:var(--accent);box-shadow:0 0 0 3px rgba(180,83,9,.08)}
+  .mode-pill.locked{opacity:.5;cursor:not-allowed;color:var(--ink-muted)}
+  .mode-pill .g{font-size:.85rem;line-height:1}
+  .mode-pill .s{font-family:var(--font-mono);font-size:.7rem;font-weight:400;opacity:.85;letter-spacing:.02em}
+  .scope-note{font-family:var(--font-body);font-style:italic;font-size:.85rem;color:var(--ink-muted);margin-top:6px;display:flex;align-items:center;gap:6px}
+  .scope-note::before{content:"";display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--accent);flex-shrink:0}
+
+  /* Quiz options — copied from shared.css */
+  .quiz-option{display:flex;align-items:flex-start;width:100%;text-align:left;padding:14px 18px;background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);color:var(--ink);font-family:var(--font-body);font-size:.95rem;cursor:pointer;line-height:1.5;margin-bottom:8px;transition:background var(--transition),border-color var(--transition)}
+  .quiz-option:hover{border-color:var(--ink);background:var(--bg-recessed)}
+  .quiz-option.correct{border-color:var(--correct);background:var(--correct-bg)}
+  .quiz-option .option-letter{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;background:var(--bg-recessed);font-family:var(--font-display);font-weight:700;font-size:.75rem;margin-right:12px;flex-shrink:0;color:var(--ink-secondary)}
+  .qmeta{display:flex;justify-content:space-between;font-family:var(--font-display);font-size:.7rem;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-muted);font-weight:600;margin-bottom:8px}
+  .qprompt{font-family:var(--font-body);font-size:1.02rem;font-weight:600;margin-bottom:var(--s-md);max-width:60ch}
+
+  /* LAB recs — text-rich, not card-y */
+  .lab{padding:var(--s-md) 0;border-bottom:1px dotted var(--rule);display:grid;grid-template-columns:1fr auto;gap:var(--s-md);align-items:center}
+  .lab:last-child{border-bottom:none}
+  .lab h3{margin:0;font-size:1rem;font-weight:600;display:inline}
+  .lab .pill{display:inline-block;font-family:var(--font-display);font-size:.66rem;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);font-weight:600;margin-right:var(--s-sm);margin-bottom:4px}
+  .lab .pill.outside{color:var(--ink-muted)}
+  .lab .meta{font-family:var(--font-mono);font-size:.78rem;color:var(--ink-muted);margin-top:2px}
+  .lab .open{font-family:var(--font-display);font-size:.84rem;color:var(--accent);text-decoration:none;font-weight:600;border:1px solid var(--accent);padding:6px 14px;border-radius:99px;white-space:nowrap;transition:background var(--transition),color var(--transition)}
+  .lab .open:hover{background:var(--accent);color:#fff}
+  .lab .open.outside{color:var(--ink-secondary);border-color:var(--border-strong)}
+  .lab .open.outside:hover{background:var(--ink);color:#fff;border-color:var(--ink)}
+
+  .eval-desc{font-family:var(--font-body);font-style:italic;color:var(--ink-secondary);max-width:60ch}
+
+  /* Buttons (used sparingly) */
+  .btn{display:inline-flex;align-items:center;gap:6px;font-family:var(--font-display);font-size:.82rem;font-weight:600;padding:8px 16px;min-height:36px;border-radius:var(--radius);cursor:pointer;border:1px solid transparent;text-decoration:none;letter-spacing:.01em;transition:background var(--transition),color var(--transition),border-color var(--transition)}
+  .btn-primary{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+  .btn-primary:hover{background:#292524}
+  .btn-ghost{background:transparent;color:var(--ink-secondary);border-color:var(--border-strong)}
+  .btn-ghost:hover{color:var(--ink);background:var(--bg-hover)}
+  .row{display:flex;gap:var(--s-sm);flex-wrap:wrap;margin-top:var(--s-md)}
+
+  @media (prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;transition-duration:.01ms!important}.side-rail .dot.active{animation:none}}
+  @media (max-width:600px){h1{font-size:1.7rem}section.flow .num{font-size:2.6rem;margin-right:var(--s-sm)}section.flow.active .num{font-size:3.2rem}.action-line{flex-direction:column;align-items:flex-start}.lab{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<div class="page">
+
+  <!-- SIDE RAIL — sticky progress + click-to-jump -->
+  <aside class="side-rail" aria-label="Section progress">
+    <div class="dot done" data-label="① done"></div>
+    <div class="rail-line"></div>
+    <div class="dot done" data-label="② done"></div>
+    <div class="rail-line"></div>
+    <div class="dot active" data-label="③ active"></div>
+    <div class="rail-line"></div>
+    <div class="dot" data-label="⑦ locked"></div>
+  </aside>
+
+  <main>
+
+    <!-- MASTHEAD -->
+    <header class="masthead">
+      <div>
+        <div class="eyebrow">
+          <span>CCNA Strat — 200-301</span>
+          <span style="color:var(--ink-faint)">·</span>
+          <a class="what-link">What is this page?</a>
+        </div>
+        <h1>Objective 1.1 — Routers</h1>
+        <p class="subtitle">Read Jeremy's transcript, drill a randomized quiz, run a lab, then a one-on-one with the examiner. Pass the eval, the objective is done.</p>
+        <p class="today-line"><span class="label">Today</span><span class="task">open the lab — about 15 minutes</span></p>
+      </div>
+      <div class="clock">
+        <b>24:13</b>
+        <span class="lbl">left in this rep</span>
+        <p class="nudge" style="display:none">5 min left — pick the smallest action you can finish</p>
+      </div>
+    </header>
+
+    <!-- "What is this?" inline expand (shown for demo) -->
+    <div class="what-panel show">
+      <span class="close">✕</span>
+      <h3>How this page works</h3>
+      <ol>
+        <li>Each objective gets one of these pages — work top to bottom.</li>
+        <li>The <strong>active section</strong> is highlighted with a left bar and a "do this now" prompt.</li>
+        <li>References (books, community tips, concept explainers) hide in italic <em>see also</em> lines — click to open the side drawer.</li>
+        <li>Pass the quiz at 80%+ to unlock the eval. The eval is the gate.</li>
+        <li>Already know the topic? Use <kbd>skip — go to eval</kbd> on the right.</li>
+      </ol>
+    </div>
+
+    <!-- MASTERY -->
+    <div class="mastery-line">
+      <span class="label">Mastery</span><span class="filled">███████</span><span class="empty">░░░</span> &nbsp; <span class="num">70 / 100</span>
+    </div>
+
+    <!-- BREADCRUMB -->
+    <nav class="crumb" aria-label="Step navigation">
+      <a class="step done">① ✓ transcript</a>
+      <span class="arrow">→</span>
+      <a class="step done">② ✓ quiz 90%</a>
+      <span class="arrow">→</span>
+      <a class="step active">● ③ lab</a>
+      <span class="arrow">→</span>
+      <span class="step locked">○ ⑦ eval</span>
+      <a class="skip">⤴ skip — go to eval</a>
+    </nav>
+
+    <!-- COACH HINT — first visit -->
+    <div class="coach">
+      <span><em>First time here?</em> Click any step in the line above to jump · the highlighted section is what to work on now · press <kbd>?</kbd> for keyboard shortcuts.</span>
+      <span class="x" title="Dismiss forever">✕</span>
+    </div>
+
+    <!-- ① TRANSCRIPT — done -->
+    <section class="flow done">
+      <div class="head">
+        <div class="title">
+          <span class="num">①</span>
+          <h2 class="section-title">Jeremy on routing — Day 12</h2>
+        </div>
+        <span class="status">✓ read · 2,247 words</span>
+      </div>
+      <p class="meta">Covers blueprint 1.1 in full · 1.2 in passing · about 6 min reading.</p>
+      <div class="pull">
+        Welcome back to the course. Today we're talking about routers and how they make forwarding decisions. A router is a Layer-3 device…
+        <br><br>
+        The most important command you'll learn today is <code>show ip route</code>. When you run it, you'll see entries like this:
+        <span class="mono">O    192.168.1.0/24 [110/2] via 10.0.0.1, 00:00:23, Gi0/0
+S*   0.0.0.0/0      [1/0]   via 10.0.0.254</span>
+        The letter on the left tells you the source — 'O' is OSPF, 'S' is Static…
+        <br><br>
+        <span class="more">[ … 2,000 more words below … ]</span>
+      </div>
+      <p class="footnote">
+        <span class="footnote-onboard">References open in the side drawer · <kbd>esc</kbd> to close</span>
+        <em>see also:</em>
+        <a>OCG Vol 1, p. 83 ↗</a><span class="sep">·</span>
+        <a>9 community tips ↗</a><span class="sep">·</span>
+        <a>open original on YouTube ↗</a>
+      </p>
+    </section>
+
+    <!-- ② QUIZ — done · 5 modes all passed -->
+    <section class="flow done">
+      <div class="head">
+        <div class="title">
+          <span class="num">②</span>
+          <h2 class="section-title">Quiz · 5 modes</h2>
+        </div>
+        <span class="status">✓ all 5 modes passed</span>
+      </div>
+      <p class="meta">Five drill modes, each randomized · seed 8a3f-c91b · never the same twice.</p>
+      <p class="scope-note">Strictly scoped to objective 1.1 — never drifts into other topics.</p>
+
+      <!-- Mode picker — click to swap active drill -->
+      <div class="quiz-modes" role="tablist" aria-label="Quiz modes for 1.1">
+        <button class="mode-pill done"><span class="g">✓</span><span>Terminology</span><span class="s">9/10</span></button>
+        <button class="mode-pill done"><span class="g">✓</span><span>Glossary</span><span class="s">8/10</span></button>
+        <button class="mode-pill active"><span class="g">●</span><span>Scenario</span><span class="s">9/10 · sample below</span></button>
+        <button class="mode-pill done"><span class="g">✓</span><span>Command Recall</span><span class="s">8/10</span></button>
+        <button class="mode-pill done"><span class="g">✓</span><span>Read the Table</span><span class="s">10/10</span></button>
+      </div>
+
+      <p class="meta" style="margin-top:0">Pass any <strong style="color:var(--accent);font-style:normal">3 of 5</strong> modes at 80%+ to unlock the eval · all 5 = full mastery. Showing a sample from <strong style="color:var(--accent);font-style:normal">Scenario</strong> below — click any pill above to drill that mode again.</p>
+
+      <div class="nest">
+        <div class="qmeta"><span>Scenario · Q3/10 · <span style="color:var(--accent)">● scope: 1.1 only</span></span><span>30%</span></div>
+        <p class="qprompt">A router receives a packet for 192.168.5.7. Its route table has two matches: 192.168.0.0/16 and 192.168.5.0/24. Which entry is used?</p>
+        <button class="quiz-option"><span class="option-letter">a</span>192.168.0.0/16 (first match)</button>
+        <button class="quiz-option correct"><span class="option-letter">b</span>192.168.5.0/24 (longest prefix match)</button>
+        <button class="quiz-option"><span class="option-letter">c</span>Whichever has the lowest metric</button>
+        <button class="quiz-option"><span class="option-letter">d</span>Drops packet — ambiguous lookup</button>
+      </div>
+
+      <p class="footnote">
+        <em>see also:</em>
+        <a>explain longest-prefix match visually ↗</a><span class="sep">·</span>
+        <a>OCG Vol 1, p. 89 ↗</a><span class="sep">·</span>
+        <a>retake all 5 modes with a new seed ↗</a>
+      </p>
+    </section>
+
+    <!-- ③ LAB — ACTIVE — full spotlight -->
+    <section class="flow active">
+      <div class="head">
+        <div class="title">
+          <span class="num">③</span>
+          <h2 class="section-title">Lab — pick one</h2>
+        </div>
+        <span class="status">● mid-rep</span>
+      </div>
+
+      <div class="action-line">
+        <div class="lhs">
+          <span class="label">Do this now</span>
+          <span class="task">Open <code>lab-pt3 — Static Routing</code> <span class="qual">· about 15 min · already on your machine</span></span>
+        </div>
+        <button class="btn-go">▶ Open lab</button>
+      </div>
+
+      <p class="meta">First-pick is the in-app lab. Outside is the single best free option Reddit's been pushing for this objective in the last 30 days.</p>
+
+      <div class="lab">
+        <div>
+          <span class="pill">First-pick</span>
+          <h3>lab-pt3 — Static Routing & <code style="font-family:var(--font-mono);font-size:.88rem;color:var(--accent)">show ip route</code></h3>
+          <div class="meta">15 min · ●●○○○ · already on your machine</div>
+        </div>
+        <a class="open">▶ Open</a>
+      </div>
+      <div class="lab">
+        <div>
+          <span class="pill outside">Outside · trending</span>
+          <h3>Practical Networking — Routing Decisions Walkthrough</h3>
+          <div class="meta">YouTube · ↑2.1k upvotes in 30d · last verified 4/15</div>
+        </div>
+        <a class="open outside">Open ↗</a>
+      </div>
+
+      <p class="footnote">
+        <em>more if you need it:</em>
+        <a>OCG Vol 1, p. 87 ↗</a><span class="sep">·</span>
+        <a>5 trending tips on routing labs ↗</a>
+      </p>
+    </section>
+
+    <!-- ⑦ EVAL — locked -->
+    <section class="flow locked">
+      <div class="head">
+        <div class="title">
+          <span class="num">⑦</span>
+          <h2 class="section-title">Eval — the conversation</h2>
+        </div>
+        <span class="status">○ pass quiz to unlock</span>
+      </div>
+      <p class="eval-desc">When this opens it's a one-on-one with a Cisco-certified examiner — eight exchanges max, scored each turn, scope held to what's actually on the 200-301. If you stumble, the verdict points back to the exact paragraph in the transcript or the lab where you'll fix it. This is the gate. Pass this and the objective is done.</p>
+    </section>
+
+  </main>
+</div>
+
+</body>
+</html>
