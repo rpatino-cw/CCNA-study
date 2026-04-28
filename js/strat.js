@@ -175,13 +175,27 @@
     if (status) status.textContent = `✓ read · ${wordCount.toLocaleString()} words`;
     const meta = sec.querySelector('.meta');
     if (meta) meta.textContent = `Day ${entry.transcriptDay} · ${entry.transcriptTitle} · ~${Math.ceil(wordCount / 220)} min reading.`;
-    // Pull-block: keep the existing demo content but truncate body to first
-    // anchored paragraph from the live transcript.
+    // Pull-block: render all anchored sections collapsibly. First section open,
+    // rest collapsed. Falls back to first paragraph if no anchors found.
     const pull = sec.querySelector('.pull');
     if (pull) {
-      const firstAnchor = transcript.match(/\[router-as-l3-device\]\s*([\s\S]*?)\n\s*\n/);
-      if (firstAnchor) {
-        pull.textContent = firstAnchor[1].trim();
+      const anchorRe = /\[([a-z0-9-]+)\]\s*([\s\S]*?)(?=\n\s*\[[a-z0-9-]+\]|\Z)/g;
+      const anchors = [];
+      let m;
+      while ((m = anchorRe.exec(transcript)) !== null) {
+        anchors.push({ slug: m[1], body: m[2].trim() });
+      }
+      if (anchors.length) {
+        const html = anchors.map((a, i) => {
+          const title = a.slug.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+          const open = i === 0 ? ' open' : '';
+          const safeBody = a.body.replace(/&/g, '&amp;').replace(/</g, '&lt;');
+          return `<details class="transcript-section"${open} data-anchor="${a.slug}"><summary style="cursor:pointer;font-weight:600;padding:6px 0;border-bottom:1px solid var(--ink-faint,#ddd)">${title}</summary><div style="padding:10px 0;white-space:pre-wrap;line-height:1.6">${safeBody}</div></details>`;
+        }).join('');
+        pull.innerHTML = html;
+      } else {
+        const firstPara = transcript.split(/\n\s*\n/).find(p => p.trim().length > 50);
+        if (firstPara) pull.textContent = firstPara.trim();
       }
     }
     paintFootnoteRefs(sec, entry, 'transcript');

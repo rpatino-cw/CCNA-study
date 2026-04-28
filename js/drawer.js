@@ -233,7 +233,31 @@
   }
 
   function renderExplain() {
-    els.body.innerHTML = `<div class="drawer-empty">Explainer coming soon — Phase 1D wires <code style="font-family:var(--font-mono,monospace);font-size:.85rem">window.explainer</code> here.</div>`;
+    els.body.innerHTML = `
+      <div class="drawer-explain">
+        <p style="margin:0 0 12px;font-size:.9rem;color:var(--ink-muted,#666)">Type any CCNA concept. Gemini renders animated SVG, Mermaid flow, or comparison table.</p>
+        <div style="display:flex;gap:8px;margin-bottom:14px">
+          <input id="drawer-explain-input" type="text" placeholder='e.g. "longest prefix match"' style="flex:1;padding:8px 10px;border:1px solid var(--ink,#000);background:var(--bg,#fff);font:inherit">
+          <button id="drawer-explain-go" type="button" style="padding:8px 14px;border:1px solid var(--ink,#000);background:var(--ink,#000);color:var(--bg,#fff);cursor:pointer;font:inherit">Explain</button>
+        </div>
+        <div id="drawer-explain-render" aria-live="polite"></div>
+      </div>`;
+    const input = els.body.querySelector('#drawer-explain-input');
+    const go = els.body.querySelector('#drawer-explain-go');
+    const target = els.body.querySelector('#drawer-explain-render');
+    if (!input || !go || !target) return;
+    if (window.explainer && typeof window.explainer.setTarget === 'function') {
+      window.explainer.setTarget(target);
+    }
+    function fire() {
+      if (!window.explainer || typeof window.explainer.render !== 'function') {
+        target.innerHTML = '<p class="explainer-empty">Explainer not loaded.</p>';
+        return;
+      }
+      window.explainer.render(input.value);
+    }
+    go.addEventListener('click', fire);
+    input.addEventListener('keydown', function(e){ if (e.key === 'Enter') fire(); });
   }
 
   async function render() {

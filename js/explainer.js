@@ -180,7 +180,7 @@
 
     target.innerHTML = '<p class="explainer-loading">Generating…</p>';
 
-    if (!window.gemini || typeof window.gemini.generate !== 'function') {
+    if (!window.gemini || typeof window.gemini.generateText !== 'function') {
       target.innerHTML = '<p class="explainer-empty">Gemini key required. Open the strat page to set up.</p>';
       return;
     }
@@ -199,8 +199,7 @@
       attempts++;
       const noSvg = attempts >= 2;
       try {
-        const resp = await window.gemini.generate(buildPrompt(concept, { noSvg: noSvg }));
-        const text = typeof resp === 'string' ? resp : (resp && resp.text) || '';
+        const text = await window.gemini.generateText(null, buildPrompt(concept, { noSvg: noSvg }));
         const candidate = extractBlock(text);
         if (!candidate) continue;
         if (candidate.format === 'svg' && (!looksLikeSvg(candidate.payload) || tooLong(candidate.payload))) continue;
