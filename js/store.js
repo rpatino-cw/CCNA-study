@@ -402,6 +402,24 @@
     set(KEYS.PROFICIENCY, {});
   }
 
+  // ── Strat (per-objective drill page) ───────────────────────────
+  // Pass-through helpers to the strat-state.js module. Lives outside
+  // the ccna_ prefix because the strat page state has its own schema
+  // versioned on the "strat" localStorage key. Read store.getStrat()
+  // anywhere a high-level snapshot is useful (e.g. core.html progress
+  // summary). For the strat page itself, use window.stratState directly.
+  function getStrat() {
+    try { return JSON.parse(localStorage.getItem('strat') || '{}'); }
+    catch (_) { return {}; }
+  }
+  function getStratObj(objId) {
+    return getStrat()[objId] || null;
+  }
+  function getStratComposite(objId) {
+    const s = getStratObj(objId);
+    return s && typeof s.masteryComposite === 'number' ? s.masteryComposite : 0;
+  }
+
   window.store = {
     get, set, getProficiency, updateProficiency, updateProficiencyDiagnostic, getAllProficiency, initProficiency,
     recordMicroWeakness, getMicroWeaknesses,
@@ -415,6 +433,8 @@
     getAllMasteryState, getMasteryState, setMasteryState, promoteMasteryState,
     recordChallengePass, recordLabPass, getMasteryDueReviews,
     MASTERY_STATES,
+    // Strat per-objective drill page (read-only mirrors)
+    getStrat, getStratObj, getStratComposite,
   };
   // Eagerly mirror mode onto window so render paths can branch synchronously.
   if (typeof window !== 'undefined') window.LEARNING_MODE = getLearningMode();
