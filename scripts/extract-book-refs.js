@@ -12,7 +12,7 @@
 // Usage:
 //   node scripts/extract-book-refs.js [--pdf <path>] [--out <path>]
 //                                     [--max-chapters N] [--dry-run]
-//                                     [--gemini-model gemini-1.5-flash]
+//                                     [--gemini-model gemini-2.5-flash]
 //                                     [--vol1-only|--vol2-only]
 //
 // Requires: pdftotext (poppler), GEMINI_API_KEY in ~/.config/keys/global.env.
@@ -36,7 +36,7 @@ const OUT_PATH = arg('--out', path.join(__dirname, '..', 'data', 'book-refs', 'o
 const KEYS_ENV = path.join(os.homedir(), '.config', 'keys', 'global.env');
 const MAX_CHAPTERS = Number(arg('--max-chapters', '0')) || Infinity;
 const DRY_RUN = flag('--dry-run');
-const GEMINI_MODEL = arg('--gemini-model', 'gemini-1.5-flash');
+const GEMINI_MODEL = arg('--gemini-model', 'gemini-2.5-flash');
 const VOL_FILTER = flag('--vol1-only') ? 1 : flag('--vol2-only') ? 2 : null;
 
 // ----- helpers -----
