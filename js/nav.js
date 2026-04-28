@@ -23,6 +23,7 @@
     { text: 'Plan', children: [
       { text: 'Sprint', href: 'sprint.html' },
       { text: 'Strategy', href: 'strategy.html' },
+      { text: 'Strat (drill)', href: 'strat.html' },
       { text: 'Exam Details', href: 'exam-details.html' },
       { text: 'Exam Tricks', href: 'exam-tricks.html' },
       { text: 'Settings', href: 'settings.html' },
@@ -213,7 +214,7 @@
   // Beta badge + bug report
   var beta = document.createElement('div');
   beta.className = 'beta-badge';
-  beta.innerHTML = '<a href="' + fixHref('changelog.html') + '" class="beta-tag" style="text-decoration:none">ALPHA v4.59.2</a><a href="' + fixHref('bug-report.html') + '" class="beta-bug">Report Bug</a>';
+  beta.innerHTML = '<a href="' + fixHref('changelog.html') + '" class="beta-tag" style="text-decoration:none">ALPHA v4.59.3</a><a href="' + fixHref('bug-report.html') + '" class="beta-bug">Report Bug</a>';
   document.body.appendChild(beta);
 
   // Auto-load backup script on every page
