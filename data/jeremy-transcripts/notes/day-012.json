@@ -1,0 +1,136 @@
+{
+  "_doc": "Study notes derived from Jeremy's IT Lab Day 12 — Routers + Forwarding (CCNA objective 1.1). Bold key terms, bullets, key takeaways. NOT raw transcript.",
+  "objectiveId": "1.1",
+  "transcriptDay": 12,
+  "transcriptTitle": "The Life of a Packet — Routers and Forwarding",
+  "sections": [
+    {
+      "anchor": "router-as-l3-device",
+      "title": "Router = Layer-3 Device",
+      "bullets": [
+        "Routers operate at **Layer 3** of the OSI model. They forward **packets** based on the **destination IP address** inside the packet header.",
+        "Each router interface terminates **its own subnet** and **its own broadcast domain**. Packets crossing subnets must be routed.",
+        "Router does three jobs on every packet: **decapsulate** the incoming frame, **look up** the destination IP in the routing table, **rewrite** the frame for the next hop and forward.",
+        "**Switches** are Layer 2 (forward by MAC inside one broadcast domain). **Hubs** are Layer 1 repeaters. Routers are the only devices that move packets *between* subnets."
+      ],
+      "keyTakeaway": "If destination IP is on a different subnet, you need a router. Routers break broadcast domains; switches do not."
+    },
+    {
+      "anchor": "show-ip-route",
+      "title": "Reading `show ip route`",
+      "bullets": [
+        "Output format: `<code>  <prefix> [<AD>/<metric>] via <next-hop>, <uptime>, <interface>`",
+        "Source codes (memorize these):",
+        "  • **C** = directly **C**onnected subnet (AD 0)",
+        "  • **L** = **L**ocal /32 host route for the router's own interface IP",
+        "  • **S** = **S**tatic route (manually configured) — AD 1",
+        "  • **S\\*** = **S**tatic **default** route (gateway of last resort)",
+        "  • **O** = learned via **O**SPF — AD 110",
+        "  • **D** = learned via EIGRP (D for **D**iffusing Update Algorithm) — AD 90",
+        "  • **R** = learned via **R**IP — AD 120",
+        "  • **B** = learned via **B**GP — AD 20 (eBGP) or 200 (iBGP)",
+        "  • **i** = IS-IS",
+        "Bracket field `[AD/metric]` — first number is **administrative distance**, second is the protocol's **metric** (cost)."
+      ],
+      "keyTakeaway": "Reading the routing table fluently = exam superpower. The single letter on the left tells you how the route got there and the trust level."
+    },
+    {
+      "anchor": "longest-prefix-match",
+      "title": "Longest Prefix Match — The #1 Rule",
+      "bullets": [
+        "When a packet arrives, the router compares the destination IP against **every** route in the table simultaneously.",
+        "**Most specific (longest) prefix wins** — always. A /30 beats a /24, a /24 beats a /16.",
+        "Example: destination `192.168.5.7`, routing table has `192.168.0.0/16` and `192.168.5.0/24`. Router picks **192.168.5.0/24** because /24 > /16.",
+        "Administrative distance and metric are **NOT** consulted unless two routes have **identical prefix length** AND come from different sources.",
+        "The longest-prefix-match algorithm is implemented in hardware (TCAM on real Cisco gear) — it's effectively O(1)."
+      ],
+      "keyTakeaway": "More specific = always wins. AD and metric are tiebreakers, not primary deciders."
+    },
+    {
+      "anchor": "administrative-distance",
+      "title": "Administrative Distance (AD)",
+      "bullets": [
+        "AD is the **trust score** for a route's source. Lower AD = more trusted = preferred.",
+        "Standard values (memorize):",
+        "  • **0** — Directly Connected (C)",
+        "  • **1** — Static route (S)",
+        "  • **20** — eBGP",
+        "  • **90** — EIGRP (internal)",
+        "  • **110** — OSPF",
+        "  • **120** — RIP",
+        "  • **200** — iBGP",
+        "  • **255** — Unknown / unreachable (route is **unusable**)",
+        "When the **same prefix** is learned from **two protocols** at the same time (e.g., OSPF + RIP both advertise 10.1.1.0/24), the router installs the route with the **lower AD** into the routing table.",
+        "The losing route is **not deleted** — it stays in the protocol's local database and gets promoted if the winner disappears."
+      ],
+      "keyTakeaway": "AD only matters when the prefix lengths are equal. Otherwise longest-prefix-match has already decided."
+    },
+    {
+      "anchor": "metric",
+      "title": "Metric — Within-Protocol Tiebreaker",
+      "bullets": [
+        "Metric breaks ties when **multiple routes from the SAME source** exist for the same prefix (e.g., two OSPF paths to 10.1.1.0/24).",
+        "Each protocol calculates metric differently:",
+        "  • **OSPF** — total path cost (sum of interface costs along the path; reference bandwidth / interface bandwidth)",
+        "  • **EIGRP** — composite of bandwidth, delay, load, reliability, MTU (default uses bandwidth + delay only)",
+        "  • **RIP** — hop count (max 15 hops; 16 = unreachable)",
+        "  • **Static** — administrator can set metric manually (default 0; higher value = floating static route used as backup)"
+      ],
+      "keyTakeaway": "AD picks between protocols. Metric picks within a protocol. Both only after longest-prefix-match."
+    },
+    {
+      "anchor": "default-route",
+      "title": "Default Route — `0.0.0.0/0`",
+      "bullets": [
+        "The **default route** matches every destination IP not covered by a more specific entry. Prefix is `0.0.0.0/0` — zero bits long, so longest-prefix-match always rejects it first if anything else matches.",
+        "Configured statically: `ip route 0.0.0.0 0.0.0.0 <next-hop>` — appears in `show ip route` as **S\\***.",
+        "Can also be learned dynamically via OSPF (`default-information originate`), EIGRP, or BGP — appears with that protocol's code prefixed with `*`.",
+        "**Gateway of last resort** is the device the default route points to. `show ip route` shows this on its own line near the top.",
+        "If no default route exists AND no specific match is found, the router **drops the packet** and may send back an **ICMP Destination Unreachable**."
+      ],
+      "keyTakeaway": "S\\* is your most-used static. Without it, the router silently drops packets to unknown destinations."
+    },
+    {
+      "anchor": "directly-connected-and-local",
+      "title": "Connected (C) and Local (L) Routes",
+      "bullets": [
+        "**C** routes appear automatically when an interface is **up/up** and has an IP address. The route covers the **subnet** the interface is on.",
+        "**L** routes are **/32 host routes** for the **router's own interface IP**. They tell the CPU 'this packet is for me — punt to the control plane'.",
+        "Example: configure GigabitEthernet0/1 with `10.0.0.1/30`. Two routes appear:",
+        "  • `C   10.0.0.0/30 is directly connected, GigabitEthernet0/1`",
+        "  • `L   10.0.0.1/32 is directly connected, GigabitEthernet0/1`",
+        "When you `shutdown` the interface, **both** entries disappear from the routing table.",
+        "Connected routes have **AD 0** — they always win."
+      ],
+      "keyTakeaway": "C = subnet, L = router's own IP /32. The L routes are why the router knows packets are addressed to itself."
+    },
+    {
+      "anchor": "arp-and-frame-rewrite",
+      "title": "ARP + Frame Rewrite at Each Hop",
+      "bullets": [
+        "When a router forwards a packet out an interface, it must build a **new Ethernet frame** with the correct **destination MAC**.",
+        "Router uses **ARP** to resolve the **next-hop IP** (from the routing table) to a MAC address. The result is cached in the **ARP table** (`show ip arp`).",
+        "The packet's **source MAC** becomes the router's **exit interface MAC**. The **destination MAC** becomes the next-hop's MAC (or the destination host's MAC if it's the final hop on the local subnet).",
+        "**Layer 2 changes at every hop** (MACs rewritten). **Layer 3 does NOT change** (source IP and destination IP stay the same end-to-end, except in NAT scenarios).",
+        "TTL (Time-To-Live) is decremented by 1 at each hop. TTL=0 → router drops + sends **ICMP Time Exceeded** back to source. Traceroute exploits this."
+      ],
+      "keyTakeaway": "L2 mutates per hop, L3 stays the same. ARP is how routers learn next-hop MACs. TTL prevents routing loops."
+    },
+    {
+      "anchor": "forwarding-recap",
+      "title": "The Full Forwarding Decision (Recap)",
+      "bullets": [
+        "**1. Packet arrives** on an interface. Frame is decapsulated, IP header is read.",
+        "**2. Destination IP** is compared against the routing table using **longest-prefix-match**.",
+        "**3.** If no match AND no default route → **drop + ICMP Unreachable**.",
+        "**4.** If multiple routes have equal prefix length → use **lowest AD** to pick the source.",
+        "**5.** If still tied (same source, same prefix) → use **lowest metric**.",
+        "**6.** Look up the **next-hop IP** in the ARP table. If absent, send **ARP request**.",
+        "**7. Decrement TTL**. If TTL=0 → drop + ICMP Time Exceeded.",
+        "**8.** Build new Ethernet frame: source MAC = exit interface, destination MAC = next-hop MAC.",
+        "**9. Forward** the frame out the chosen interface."
+      ],
+      "keyTakeaway": "Memorize this 9-step sequence. Half of CCNA routing questions are 'what does the router do at step N?'"
+    }
+  ]
+}
