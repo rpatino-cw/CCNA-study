@@ -1,0 +1,35 @@
+Day 12 — The Life of a Packet (Routers and Forwarding)
+Source: Jeremy's IT Lab, Free CCNA 200-301 v1.1
+Maps to CCNA blueprint objective 1.1 (role and function of routers) and 3.2 (forwarding decision).
+
+[router-as-l3-device]
+Welcome back to the course. Today we're talking about routers and how they make forwarding decisions. A router is a Layer-3 device. Its single most important job is to look at the destination IP address inside an incoming packet, decide where that packet should go next, and forward it out the correct interface. Routers separate broadcast domains. Each router interface lives on its own subnet, and packets cross subnets only by being routed.
+
+[show-ip-route]
+The most important command you will learn today is show ip route. When you run it on a Cisco router you will see entries that look like this:
+    O    192.168.1.0/24 [110/2] via 10.0.0.1, 00:00:23, GigabitEthernet0/0
+    S*   0.0.0.0/0      [1/0]   via 10.0.0.254
+    C    10.0.0.0/30    is directly connected, GigabitEthernet0/1
+    L    10.0.0.1/32    is directly connected, GigabitEthernet0/1
+The single letter on the left tells you the source of the route. C means a directly connected subnet. L is a local host route for the router's own interface address. S is a static route that you typed in by hand. S* is a static default route. O is a route learned from a dynamic routing protocol — in this example OSPF. D would be EIGRP. R would be RIP. The router builds this table at boot time and updates it every time an interface goes up or down or a routing protocol learns a new prefix.
+
+[longest-prefix-match]
+When a packet arrives, the router does longest prefix match against the routing table. If the destination 192.168.5.7 has two possible matches — say 192.168.0.0/16 and 192.168.5.0/24 — the router picks 192.168.5.0/24 because /24 is longer than /16. More specific wins. Administrative distance and metric are only consulted when two routes have the exact same prefix length and come from different sources.
+
+[administrative-distance]
+Administrative distance is the trust score for a route's source. Lower is better. Directly connected is 0. Static is 1. EIGRP is 90. OSPF is 110. RIP is 120. If the same prefix is learned from two protocols at once, the router installs the one with the lower administrative distance into the routing table. The other is held in the protocol database but is not used for forwarding.
+
+[metric]
+Metric is the cost inside one routing protocol. OSPF uses cumulative interface cost based on bandwidth. EIGRP uses a composite metric of bandwidth and delay. RIP uses hop count. Metric only breaks ties between routes from the same protocol with the same prefix length — it never overrides administrative distance.
+
+[default-route]
+A default route is written 0.0.0.0/0. It is the route of last resort. If no more specific entry matches the destination, the router uses the default route. Without a default route a packet for an unknown destination is dropped, and the router would normally send back an ICMP destination unreachable message.
+
+[directly-connected-and-local]
+Two route source codes always exist on every working router interface. C — directly connected — appears as soon as you assign an IP address to an interface and bring it up with no shutdown. L — local — is the router's own address as a /32 host route. The router needs L so it knows packets for its own IP belong to itself and not to a downstream subnet.
+
+[arp-and-frame-rewrite]
+Routing happens at Layer 3, but the actual handoff to the next hop happens at Layer 2. Once the router decides the next-hop IP, it does an ARP lookup to learn the MAC address of that next hop. Then it strips off the incoming Layer 2 frame, builds a brand new frame with its own MAC as the source and the next-hop MAC as the destination, and sends it out the egress interface. The IP packet inside is preserved unchanged except for the time-to-live field, which decrements by one on every router hop. If TTL reaches zero the packet is dropped and an ICMP time exceeded message is returned.
+
+[forwarding-recap]
+To recap a forwarding decision in order: receive packet on ingress interface, check destination IP, do longest prefix match in the routing table, pick the entry with the longest matching prefix, break ties by administrative distance, then by metric, then ARP for the next hop, rewrite the Layer 2 frame, decrement TTL, send the packet out the egress interface. That is the life of a packet through a router.

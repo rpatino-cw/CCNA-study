@@ -23,6 +23,7 @@
     { text: 'Plan', children: [
       { text: 'Sprint', href: 'sprint.html' },
       { text: 'Strategy', href: 'strategy.html' },
+      { text: 'Strat (drill)', href: 'strat.html' },
       { text: 'Exam Details', href: 'exam-details.html' },
       { text: 'Exam Tricks', href: 'exam-tricks.html' },
       { text: 'Settings', href: 'settings.html' },
