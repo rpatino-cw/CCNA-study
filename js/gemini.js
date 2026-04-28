@@ -15,7 +15,7 @@
 (function () {
   const KEY_STORAGE = 'ccna_strat_gemini_key';
   const ENDPOINT_BASE = 'https://generativelanguage.googleapis.com/v1beta/models';
-  const DEFAULT_MODEL = 'gemini-2.0-flash';
+  const DEFAULT_MODEL = 'gemini-2.5-flash';
 
   function hasKey() {
     return Boolean(localStorage.getItem(KEY_STORAGE));
