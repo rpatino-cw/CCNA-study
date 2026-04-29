@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>3.5 Sim — FHRP (HSRP / VRRP / GLBP)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#FAF7F2;--bg-surface:#FFFFFF;--bg-recessed:#F3F0EB;
+    --border:#E2DFD9;--border-strong:#C7C3BC;
+    --ink:#1C1917;--ink-secondary:#57534E;--ink-muted:#A8A29E;
+    --accent:#B45309;--accent-soft:#D97706;--accent-light:#FEF3C7;
+    --correct:#16A34A;--correct-bg:#F0FDF4;
+    --wrong:#DC2626;--wrong-bg:#FEF2F2;
+    --info:#2563EB;--info-bg:#EFF6FF;
+    --font-display:'Space Grotesk',system-ui,sans-serif;
+    --font-body:'Source Serif 4',Georgia,serif;
+    --font-mono:'JetBrains Mono',monospace;
+    --radius:6px;--radius-lg:10px;
+  }
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  html{font-size:16px;-webkit-font-smoothing:antialiased}
+  body{font-family:var(--font-body);background:var(--bg);color:var(--ink);line-height:1.55;padding:24px;max-width:980px;margin:0 auto}
+  .head{margin-bottom:20px;padding-bottom:14px;border-bottom:1px solid var(--border)}
+  .head .crumb{font-family:var(--font-mono);font-size:.74rem;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px}
+  .head .crumb a{color:var(--accent);text-decoration:none}
+  .head h1{font-family:var(--font-display);font-size:1.5rem;font-weight:700;margin-bottom:6px}
+  .head .desc{font-size:.95rem;color:var(--ink-secondary)}
+  .why{background:var(--accent-light);border-left:3px solid var(--accent);padding:14px 16px;border-radius:var(--radius);margin-bottom:18px;font-size:.95rem}
+  .why strong{font-family:var(--font-display);text-transform:uppercase;letter-spacing:.05em;font-size:.78rem;color:var(--accent);display:block;margin-bottom:4px}
+  .panel{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;margin-bottom:18px}
+  .panel h2{font-family:var(--font-display);font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-secondary);margin-bottom:12px}
+  svg.topo{width:100%;height:280px;background:var(--bg-recessed);border-radius:var(--radius);border:1px solid var(--border)}
+  .router-g{transition:opacity .35s}
+  .router-g.dead{opacity:.25}
+  .router-g.dead text.role{fill:var(--wrong)}
+  .router-g circle.body{stroke:var(--ink);stroke-width:2;fill:#FAF7F2;transition:fill .25s,stroke .25s}
+  .router-g.active circle.body{fill:var(--correct);stroke:var(--correct)}
+  .router-g.standby circle.body{fill:var(--info);stroke:var(--info)}
+  .router-g.active text.role,.router-g.standby text.role{fill:#fff}
+  .vip-line{stroke-dasharray:3 3;stroke:var(--accent);stroke-width:2;opacity:.6}
+  .controls{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
+  .btn{font-family:var(--font-display);font-size:.84rem;font-weight:600;padding:8px 16px;background:var(--ink);color:#FAF7F2;border:none;border-radius:var(--radius);cursor:pointer}
+  .btn:hover{background:var(--ink-secondary)}
+  .btn.ghost{background:var(--bg-recessed);color:var(--ink)}
+  .btn.danger{background:var(--wrong);color:#fff}
+  .btn.accent{background:var(--accent)}
+  .state-row{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+  .state-pill{font-family:var(--font-mono);font-size:.76rem;font-weight:700;padding:5px 10px;border-radius:99px;background:var(--bg-recessed);border:1px solid var(--border);color:var(--ink-muted);transition:all .25s}
+  .state-pill.active{background:var(--accent);color:#fff;border-color:var(--accent);transform:scale(1.04)}
+  .state-pill.done{background:var(--correct);color:#fff;border-color:var(--correct)}
+  .compare-table{width:100%;border-collapse:collapse;font-family:var(--font-mono);font-size:.84rem;margin-top:14px}
+  .compare-table th,.compare-table td{padding:8px 12px;border-bottom:1px solid var(--border);text-align:left;vertical-align:top}
+  .compare-table th{background:var(--bg-recessed);font-family:var(--font-display);font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-secondary);font-weight:700}
+  .compare-table tr:hover td{background:var(--bg-recessed)}
+  .verdict{margin-top:14px;padding:12px 16px;border-radius:var(--radius);font-family:var(--font-display);font-size:.94rem;font-weight:600;display:none}
+  .verdict.show{display:block;animation:fadeIn .25s}
+  .verdict.win{background:var(--correct-bg);color:var(--correct);border:1px solid var(--correct)}
+  .verdict.miss{background:var(--wrong-bg);color:var(--wrong);border:1px solid var(--wrong)}
+  .verdict.info{background:var(--info-bg);color:var(--info);border:1px solid var(--info)}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
+  .config-block{font-family:var(--font-mono);font-size:.86rem;background:#1C1917;color:#FAF7F2;padding:12px 14px;border-radius:var(--radius);line-height:1.55;white-space:pre;margin-top:14px}
+  .config-block .cmt{color:#A8A29E}
+  .quiz .stem{font-family:var(--font-display);font-size:1.02rem;font-weight:600;margin-bottom:12px;padding:14px;background:var(--accent-light);border-left:3px solid var(--accent);border-radius:var(--radius)}
+  .quiz .opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px}
+  .opt{background:var(--bg-recessed);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;font-family:var(--font-mono);font-size:.92rem;cursor:pointer;text-align:left;transition:all .15s}
+  .opt:hover{border-color:var(--border-strong);background:var(--bg-surface)}
+  .opt.correct{background:var(--correct-bg);border-color:var(--correct);color:var(--correct);font-weight:700}
+  .opt.wrong{background:var(--wrong-bg);border-color:var(--wrong);color:var(--wrong)}
+  .scoreline{font-family:var(--font-mono);font-size:.84rem;color:var(--ink-muted);margin-top:10px;display:flex;gap:18px;align-items:center;flex-wrap:wrap}
+  .scoreline strong{font-weight:700;color:var(--ink)}
+  .footer{margin-top:24px;padding-top:14px;border-top:1px solid var(--border);font-family:var(--font-mono);font-size:.82rem}
+  .footer a{color:var(--accent);text-decoration:none}
+</style>
+</head>
+<body>
+
+<div class="head">
+  <div class="crumb"><a href="blueprint-drill.html?obj=3.5">← back to 3.5 leaves</a> · 3.5 · IP Connectivity · FHRP</div>
+  <h1>FHRP Sim — HSRP / VRRP / GLBP</h1>
+  <div class="desc">Two routers share a virtual IP as the default gateway. Step through HSRP states. Trigger active failure → watch standby promote in &lt;1s. Compare HSRP vs VRRP vs GLBP MACs and behavior.</div>
+</div>
+
+<div class="why">
+  <strong>WHY this matters</strong>
+  Every host on a subnet has one default gateway IP burned in. If that gateway dies, every host loses internet. FHRPs let two (or more) routers <em>share</em> a virtual IP — and a virtual MAC — so hosts never know which physical box answered. HSRP, VRRP, and GLBP all solve this; they differ in vendor, election rules, and load-sharing behavior. This is the only protocol family where sub-second failover is the entire product.
+</div>
+
+<div class="panel">
+  <h2>Topology — two routers, one virtual gateway</h2>
+  <svg class="topo" viewBox="0 0 800 280">
+    <line class="vip-line" x1="400" y1="40" x2="400" y2="220"/>
+    <text x="400" y="32" text-anchor="middle" font-family="Space Grotesk" font-size="13" font-weight="700" fill="#B45309">VIP 10.0.0.1 / vMAC</text>
+
+    <g class="router-g standby" id="r1" transform="translate(200,140)">
+      <circle class="body" r="42"/>
+      <text class="role" text-anchor="middle" dy="-4" font-family="Space Grotesk" font-weight="700" font-size="14">R1</text>
+      <text class="role" text-anchor="middle" dy="14" font-family="JetBrains Mono" font-size="10" id="r1-state">Active</text>
+      <text text-anchor="middle" dy="64" font-family="JetBrains Mono" font-size="10" fill="#57534E">10.0.0.2 — prio 110</text>
+    </g>
+    <g class="router-g standby" id="r2" transform="translate(600,140)">
+      <circle class="body" r="42"/>
+      <text class="role" text-anchor="middle" dy="-4" font-family="Space Grotesk" font-weight="700" font-size="14">R2</text>
+      <text class="role" text-anchor="middle" dy="14" font-family="JetBrains Mono" font-size="10" id="r2-state">Standby</text>
+      <text text-anchor="middle" dy="64" font-family="JetBrains Mono" font-size="10" fill="#57534E">10.0.0.3 — prio 100</text>
+    </g>
+
+    <line stroke="#C7C3BC" stroke-width="2" x1="240" y1="160" x2="380" y2="220"/>
+    <line stroke="#C7C3BC" stroke-width="2" x1="560" y1="160" x2="420" y2="220"/>
+    <rect x="350" y="220" width="100" height="40" fill="#FAF7F2" stroke="#1C1917" stroke-width="2"/>
+    <text x="400" y="245" text-anchor="middle" font-family="Space Grotesk" font-weight="600" font-size="12">SW1</text>
+    <text x="400" y="275" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#57534E">hosts default-gw → 10.0.0.1</text>
+  </svg>
+
+  <div class="controls">
+    <button class="btn accent" id="advance">Advance HSRP state ↻</button>
+    <button class="btn danger" id="kill">Kill active (R1)</button>
+    <button class="btn ghost" id="resetBtn">Reset</button>
+    <button class="btn" id="proto-hsrp" style="background:var(--correct)">Show HSRP</button>
+    <button class="btn ghost" id="proto-vrrp">Show VRRP</button>
+    <button class="btn ghost" id="proto-glbp">Show GLBP</button>
+  </div>
+  <div class="state-row" id="stateRow"></div>
+
+  <div class="config-block" id="configBlock"></div>
+  <div class="verdict" id="verdict"></div>
+
+  <table class="compare-table" style="margin-top:18px">
+    <thead><tr><th>Feature</th><th>HSRP</th><th>VRRP</th><th>GLBP</th></tr></thead>
+    <tbody>
+      <tr><td>Origin</td><td>Cisco proprietary</td><td>RFC 5798 (open)</td><td>Cisco proprietary</td></tr>
+      <tr><td>States</td><td>Initial → Listen → Speak → Standby → Active</td><td>Initialize → Backup → Master</td><td>Listen → Speak → Standby → Active (per AVF)</td></tr>
+      <tr><td>Roles</td><td>Active + Standby</td><td>Master + Backup(s)</td><td>AVG + AVFs (multiple actives)</td></tr>
+      <tr><td>Election</td><td>Highest priority (default 100); RID tiebreak; preempt OFF by default</td><td>Highest priority (default 100); preempt ON by default</td><td>Highest priority for AVG; AVG hands out vMACs to AVFs</td></tr>
+      <tr><td>Virtual MAC</td><td>0000.0c07.ac<strong>XX</strong> (HSRPv1, XX = group)</td><td>0000.5e00.01<strong>XX</strong> (XX = VRID)</td><td>0007.b400.<strong>XXYY</strong> (XX=group, YY=AVF)</td></tr>
+      <tr><td>Multicast</td><td>v1: 224.0.0.2 / v2: 224.0.0.102</td><td>224.0.0.18</td><td>224.0.0.102</td></tr>
+      <tr><td>Hello / hold</td><td>3 s / 10 s</td><td>1 s / ~3 s</td><td>3 s / 10 s</td></tr>
+      <tr><td>Load balancing</td><td>No (per-group active)</td><td>No (per-group master)</td><td>Yes — per-host across AVFs</td></tr>
+      <tr><td>Failover time</td><td>~10 s default; sub-second with timers</td><td>~3 s default; faster than HSRP defaults</td><td>~10 s default; sub-second tunable</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="panel quiz">
+  <h2>Quiz mode <span style="color:var(--accent);text-transform:none;letter-spacing:0;font-weight:700">— predict before peeking</span></h2>
+  <div class="stem" id="quizStem">Loading…</div>
+  <div class="opts" id="quizOpts"></div>
+  <div class="scoreline">
+    <span><strong id="qCorrect">0</strong> correct</span>
+    <span><strong id="qWrong">0</strong> wrong</span>
+    <span><strong id="qStreak">0</strong> streak</span>
+    <span><strong id="qNum">1</strong>/<strong id="qTot">15</strong></span>
+    <span style="margin-left:auto"><button class="btn ghost" id="newQ">Next ↻</button></span>
+  </div>
+</div>
+
+<div class="footer"><a href="blueprint-drill.html?obj=3.5">← back to 3.5 leaves</a></div>
+
+<script>
+(function(){
+  var HSRP_STATES = [
+    {n:'Initial',  desc:'Interface coming up. No HSRP traffic yet.'},
+    {n:'Listen',   desc:'Knows VIP, listening for Hellos. Not actively contesting.'},
+    {n:'Speak',    desc:'Sending Hellos, participating in election.'},
+    {n:'Standby',  desc:'Lost election. Will take over if active dies.'},
+    {n:'Active',   desc:'Owns the virtual IP/MAC. ARPs respond with vMAC.'}
+  ];
+
+  var stateIdx = 0;
+  var killed = false;
+
+  function renderStates(){
+    var box = document.getElementById('stateRow'); box.innerHTML='';
+    HSRP_STATES.forEach(function(s,i){
+      var p=document.createElement('span');
+      p.className='state-pill'+(i===stateIdx?' active':'')+(i<stateIdx?' done':'');
+      p.textContent=s.n;
+      box.appendChild(p);
+    });
+  }
+
+  function advance(){
+    if (stateIdx<HSRP_STATES.length-1) stateIdx++;
+    renderStates();
+    var s = HSRP_STATES[stateIdx];
+    var v=document.getElementById('verdict');
+    v.className='verdict info show';
+    v.innerHTML='<strong>'+s.n+'</strong> — '+s.desc;
+  }
+
+  function kill(){
+    if (killed) return;
+    killed = true;
+    document.getElementById('r1').classList.remove('active','standby');
+    document.getElementById('r1').classList.add('dead');
+    document.getElementById('r1-state').textContent='DOWN';
+    setTimeout(function(){
+      document.getElementById('r2').classList.remove('standby');
+      document.getElementById('r2').classList.add('active');
+      document.getElementById('r2-state').textContent='Active';
+      var v=document.getElementById('verdict');
+      v.className='verdict win show';
+      v.innerHTML='✓ R1 missed 3 Hellos (~10s default; sub-second with `standby 1 timers msec 200 msec 750`). R2 promotes to Active. Hosts notice nothing — same VIP, same vMAC. Existing TCP sessions survive.';
+    },650);
+  }
+
+  function reset(){
+    stateIdx=0; killed=false;
+    document.getElementById('r1').classList.remove('dead','active','standby');
+    document.getElementById('r1').classList.add('active');
+    document.getElementById('r1-state').textContent='Active';
+    document.getElementById('r2').classList.remove('active','standby','dead');
+    document.getElementById('r2').classList.add('standby');
+    document.getElementById('r2-state').textContent='Standby';
+    document.getElementById('verdict').className='verdict';
+    renderStates();
+  }
+
+  // Initial state
+  document.getElementById('r1').classList.remove('standby'); document.getElementById('r1').classList.add('active');
+
+  document.getElementById('advance').addEventListener('click',advance);
+  document.getElementById('kill').addEventListener('click',kill);
+  document.getElementById('resetBtn').addEventListener('click',reset);
+
+  var CONFIGS = {
+    hsrp:'R1(config)# interface gi0/0\nR1(config-if)# ip address 10.0.0.2 255.255.255.0\nR1(config-if)# standby 1 ip 10.0.0.1\nR1(config-if)# standby 1 priority 110\nR1(config-if)# standby 1 preempt           <span class="cmt">! retake when restored</span>\nR1(config-if)# standby 1 timers msec 200 msec 750  <span class="cmt">! sub-second</span>\nR1(config-if)# standby 1 authentication md5 key-string SECRET',
+    vrrp:'R1(config)# interface gi0/0\nR1(config-if)# ip address 10.0.0.2 255.255.255.0\nR1(config-if)# vrrp 1 ip 10.0.0.1\nR1(config-if)# vrrp 1 priority 110\nR1(config-if)# vrrp 1 timers advertise 1   <span class="cmt">! 1s advertise</span>\n<span class="cmt">! preempt ON by default — opposite of HSRP</span>',
+    glbp:'R1(config)# interface gi0/0\nR1(config-if)# ip address 10.0.0.2 255.255.255.0\nR1(config-if)# glbp 1 ip 10.0.0.1\nR1(config-if)# glbp 1 priority 110         <span class="cmt">! AVG election</span>\nR1(config-if)# glbp 1 load-balancing round-robin  <span class="cmt">! per-host distribution</span>\nR1(config-if)# glbp 1 preempt'
+  };
+
+  function showProto(p){
+    document.getElementById('configBlock').innerHTML = CONFIGS[p];
+    Array.prototype.forEach.call(document.querySelectorAll('[id^=proto-]'),function(b){b.classList.remove('accent');b.classList.add('ghost');b.style.background='';});
+    var btn=document.getElementById('proto-'+p);
+    btn.classList.remove('ghost'); btn.style.background='var(--correct)'; btn.style.color='#fff';
+  }
+  document.getElementById('proto-hsrp').addEventListener('click',function(){showProto('hsrp');});
+  document.getElementById('proto-vrrp').addEventListener('click',function(){showProto('vrrp');});
+  document.getElementById('proto-glbp').addEventListener('click',function(){showProto('glbp');});
+  showProto('hsrp');
+  reset();
+
+  var QUIZ = [
+    {q:'HSRP active state succession order:',a:'Initial → Listen → Speak → Standby → Active', opts:['Init → 2-Way → Standby → Active','Initial → Listen → Speak → Standby → Active','Down → Listen → Active → Standby','Init → Loading → Active']},
+    {q:'HSRPv1 virtual MAC format?',a:'0000.0c07.acXX (XX = group)', opts:['0000.5e00.01XX','0000.0c07.acXX (XX = group)','0007.b400.XXYY','aabb.cc00.XX']},
+    {q:'VRRP virtual MAC format?',a:'0000.5e00.01XX (XX = VRID)', opts:['0000.0c07.acXX','0000.5e00.01XX (XX = VRID)','0007.b400.XXYY','ffff.ffff.ffff']},
+    {q:'Which FHRP load-balances by default?',a:'GLBP — multiple AVFs share traffic', opts:['HSRP','VRRP','GLBP — multiple AVFs share traffic','None of the above']},
+    {q:'HSRP preempt default?',a:'OFF — must be enabled', opts:['ON','OFF — must be enabled','Cannot be configured','Hidden setting']},
+    {q:'VRRP preempt default?',a:'ON', opts:['ON','OFF','Cannot be configured','Vendor-specific']},
+    {q:'HSRP election tiebreak (priorities tied)?',a:'Highest IP address wins', opts:['Lowest IP wins','Highest IP address wins','Random','First boot wins']},
+    {q:'VRRP RFC?',a:'RFC 5798 (current); RFC 3768 (older)', opts:['RFC 826','RFC 5798 (current); RFC 3768 (older)','RFC 4271','RFC 1918']},
+    {q:'Default HSRP priority?',a:'100', opts:['1','100','110','255']},
+    {q:'GLBP role names?',a:'AVG (one) and AVFs (multiple)', opts:['Master + Backup','Active + Standby','AVG (one) and AVFs (multiple)','Primary + Secondary']},
+    {q:'A host\'s default gateway is 10.0.0.1 — the VIP. Active R1 dies. ARP entry for 10.0.0.1 on the host:',a:'Stays valid — vMAC is shared, R2 takes over with the same MAC', opts:['Goes invalid, host re-ARPs','Stays valid — vMAC is shared, R2 takes over with the same MAC','Host must reboot','Switch flushes the entry']},
+    {q:'Why does FHRP use a virtual MAC, not the active router\'s real MAC?',a:'So the standby can take over instantly without hosts re-ARPing', opts:['Security','So the standby can take over instantly without hosts re-ARPing','To save MAC table space','Required by 802.1Q']},
+    {q:'HSRPv2 multicast address?',a:'224.0.0.102', opts:['224.0.0.2','224.0.0.18','224.0.0.102','239.0.0.2']},
+    {q:'VRRP multicast address?',a:'224.0.0.18', opts:['224.0.0.2','224.0.0.18','224.0.0.102','239.255.255.250']},
+    {q:'Which FHRP is multi-vendor capable?',a:'VRRP — open standard', opts:['HSRP','VRRP — open standard','GLBP','None']}
+  ];
+  var qIdx=0,qC=0,qW=0,qS=0;
+  document.getElementById('qTot').textContent=QUIZ.length;
+  function renderQ(){
+    var q=QUIZ[qIdx];
+    document.getElementById('quizStem').innerHTML=q.q;
+    document.getElementById('qNum').textContent=qIdx+1;
+    var box=document.getElementById('quizOpts'); box.innerHTML='';
+    var opts=q.opts.slice().sort(function(){return Math.random()-.5;});
+    opts.forEach(function(o){
+      var b=document.createElement('button'); b.className='opt'; b.textContent=o;
+      b.addEventListener('click',function(){
+        if (b.classList.contains('correct')||b.classList.contains('wrong')) return;
+        if (o===q.a){b.classList.add('correct');qC++;qS++;}
+        else{b.classList.add('wrong');qW++;qS=0;
+          Array.prototype.forEach.call(box.children,function(c){if(c.textContent===q.a)c.classList.add('correct');});
+        }
+        document.getElementById('qCorrect').textContent=qC;
+        document.getElementById('qWrong').textContent=qW;
+        document.getElementById('qStreak').textContent=qS;
+      });
+      box.appendChild(b);
+    });
+  }
+  document.getElementById('newQ').addEventListener('click',function(){qIdx=(qIdx+1)%QUIZ.length;renderQ();});
+  renderQ();
+})();
+</script>
+</body>
+</html>

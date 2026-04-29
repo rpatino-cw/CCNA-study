@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>1.9.d Sim — Modified EUI-64</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#FAF7F2;--bg-surface:#FFFFFF;--bg-recessed:#F3F0EB;
+    --border:#E2DFD9;--border-strong:#C7C3BC;
+    --ink:#1C1917;--ink-secondary:#57534E;--ink-muted:#A8A29E;
+    --accent:#B45309;--accent-soft:#D97706;--accent-light:#FEF3C7;
+    --correct:#16A34A;--correct-bg:#F0FDF4;
+    --wrong:#DC2626;--wrong-bg:#FEF2F2;
+    --info:#2563EB;--info-bg:#EFF6FF;
+    --font-display:'Space Grotesk',system-ui,sans-serif;
+    --font-body:'Source Serif 4',Georgia,serif;
+    --font-mono:'JetBrains Mono',monospace;
+    --radius:6px;--radius-lg:10px;
+  }
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:var(--font-body);background:var(--bg);color:var(--ink);line-height:1.55;padding:24px;max-width:920px;margin:0 auto}
+  .head{margin-bottom:20px;padding-bottom:14px;border-bottom:1px solid var(--border)}
+  .head .crumb{font-family:var(--font-mono);font-size:.74rem;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px}
+  .head .crumb a{color:var(--accent);text-decoration:none}
+  .head h1{font-family:var(--font-display);font-size:1.5rem;font-weight:700;margin-bottom:6px}
+  .head .desc{font-size:.95rem;color:var(--ink-secondary)}
+  .panel{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;margin-bottom:18px}
+  .panel h2{font-family:var(--font-display);font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-secondary);margin-bottom:12px}
+  .why{background:var(--accent-light);border-left:3px solid var(--accent);padding:14px;border-radius:var(--radius);font-size:.96rem;color:var(--ink);margin-bottom:14px}
+  .input-row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
+  input[type=text]{font-family:var(--font-mono);font-size:1rem;padding:8px 12px;border:1px solid var(--border-strong);border-radius:var(--radius);width:200px;font-weight:500}
+  input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-light)}
+  .btn{font-family:var(--font-display);font-size:.84rem;font-weight:600;padding:8px 16px;background:var(--ink);color:#FAF7F2;border:none;border-radius:var(--radius);cursor:pointer}
+  .btn.accent{background:var(--accent)}
+  .btn.ghost{background:var(--bg-recessed);color:var(--ink)}
+  .step{padding:14px;background:var(--bg-recessed);border-left:3px solid var(--info);border-radius:var(--radius);margin-bottom:8px;font-family:var(--font-mono);font-size:.92rem;opacity:0;transform:translateX(-8px);transition:opacity .35s,transform .35s}
+  .step.show{opacity:1;transform:translateX(0)}
+  .step .num{display:inline-block;background:var(--info);color:#fff;font-weight:700;width:22px;height:22px;border-radius:50%;text-align:center;line-height:22px;font-size:.78rem;margin-right:8px;font-family:var(--font-display)}
+  .step .label{font-family:var(--font-display);font-weight:700;color:var(--info);font-size:.84rem;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
+  .step .label .num{margin-right:6px}
+  .mac-render{font-family:var(--font-mono);font-size:1.1rem;letter-spacing:.04em}
+  .mac-render .seg{display:inline-block;padding:2px 4px;border-radius:3px;margin:0 1px}
+  .mac-render .oui{background:var(--info-bg);color:var(--info);font-weight:700}
+  .mac-render .nic{background:var(--accent-light);color:var(--accent);font-weight:700}
+  .mac-render .inserted{background:var(--correct-bg);color:var(--correct);font-weight:700;animation:pop .35s ease}
+  .mac-render .flipped{background:var(--wrong-bg);color:var(--wrong);font-weight:700}
+  @keyframes pop{0%{transform:scale(.7)}50%{transform:scale(1.15)}100%{transform:scale(1)}}
+  .examples{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+  .ex-pill{font-family:var(--font-mono);font-size:.78rem;background:var(--bg-recessed);padding:4px 10px;border-radius:99px;cursor:pointer;border:1px solid var(--border);color:var(--ink-secondary)}
+  .ex-pill:hover{background:var(--bg-surface);border-color:var(--border-strong);color:var(--ink)}
+  .verdict{margin-top:14px;padding:14px;border-radius:var(--radius);font-family:var(--font-display);font-size:.96rem;font-weight:600;display:none}
+  .verdict.show{display:block}
+  .verdict.win{background:var(--correct-bg);color:var(--correct);border:1px solid var(--correct)}
+  .verdict.invalid{background:var(--wrong-bg);color:var(--wrong);border:1px solid var(--wrong)}
+  .quiz .stem{font-family:var(--font-display);font-size:1.02rem;font-weight:600;margin-bottom:12px;padding:14px;background:var(--accent-light);border-left:3px solid var(--accent);border-radius:var(--radius)}
+  .quiz .opts{display:grid;grid-template-columns:1fr;gap:8px}
+  .opt{background:var(--bg-recessed);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;font-family:var(--font-mono);font-size:.86rem;cursor:pointer;text-align:left;word-break:break-all}
+  .opt:hover{border-color:var(--border-strong);background:var(--bg-surface)}
+  .opt.correct{background:var(--correct-bg);border-color:var(--correct);color:var(--correct);font-weight:700}
+  .opt.wrong{background:var(--wrong-bg);border-color:var(--wrong);color:var(--wrong)}
+  .scoreline{font-family:var(--font-mono);font-size:.84rem;color:var(--ink-muted);margin-top:10px;display:flex;gap:18px;align-items:center;flex-wrap:wrap}
+  .scoreline strong{font-weight:700;color:var(--ink)}
+  .footer{font-family:var(--font-mono);font-size:.78rem;color:var(--ink-muted);margin-top:24px;text-align:center}
+  .footer a{color:var(--accent);text-decoration:none}
+</style>
+</head>
+<body>
+
+<div class="head">
+  <div class="crumb"><a href="blueprint-drill.html?obj=1.9">← back to 1.9 leaves</a> · 1.9.d · Modified EUI-64</div>
+  <h1>Modified EUI-64 Calculator</h1>
+  <div class="desc">Generate a 64-bit IPv6 interface ID from a 48-bit MAC. Insert <code>fffe</code> in the middle. Flip the universal/local bit (bit 7 of byte 1). Done.</div>
+</div>
+
+<div class="panel">
+  <div class="why"><strong>WHY this exists.</strong> SLAAC (stateless address autoconfiguration) lets a host self-generate an IPv6 address. The router advertises the /64 prefix; the host needs a 64-bit interface ID. EUI-64 derives that ID from the MAC: split MAC in half, insert fffe, flip bit 7 (universal/local) so a globally-unique MAC becomes locally-unique IID. Modern OSes mostly use random IIDs for privacy, but EUI-64 still appears on routers, IoT, and exam questions.</div>
+
+  <div class="input-row">
+    <input id="macInput" type="text" value="00:1a:2b:3c:4d:5e">
+    <button class="btn accent" id="convertBtn">Convert</button>
+    <button class="btn ghost" id="clearBtn">Clear</button>
+  </div>
+  <div class="examples">
+    <span class="ex-pill" data-mac="00:1a:2b:3c:4d:5e">00:1a:2b:3c:4d:5e</span>
+    <span class="ex-pill" data-mac="aa:bb:cc:dd:ee:ff">aa:bb:cc:dd:ee:ff</span>
+    <span class="ex-pill" data-mac="02:00:00:00:00:01">02:00:00:00:00:01</span>
+    <span class="ex-pill" data-mac="40:b0:34:12:34:56">40:b0:34:12:34:56</span>
+    <span class="ex-pill" data-mac="ff:ff:ff:ff:ff:ff">ff:ff:ff:ff:ff:ff</span>
+  </div>
+
+  <div id="steps"></div>
+  <div class="verdict" id="verdict"></div>
+</div>
+
+<div class="panel quiz">
+  <h2>Quiz mode <span style="color:var(--accent);text-transform:none;letter-spacing:0;font-weight:700">— derive interface ID</span></h2>
+  <div class="stem" id="quizStem">Loading…</div>
+  <div class="opts" id="quizOpts"></div>
+  <div class="scoreline">
+    <span><strong id="qC">0</strong> correct</span>
+    <span><strong id="qW">0</strong> wrong</span>
+    <span><strong id="qS">0</strong> streak</span>
+    <span style="margin-left:auto"><button class="btn ghost" id="newQ">Next ↻</button></span>
+  </div>
+</div>
+
+<div class="footer"><a href="blueprint-drill.html?obj=1.9">← back to 1.9 leaves</a></div>
+
+<script>
+(function(){
+  function parseMac(s){
+    var clean = s.replace(/[\s:.\-]/g, '').toLowerCase();
+    if (!/^[0-9a-f]{12}$/.test(clean)) return null;
+    var bytes = [];
+    for (var i=0;i<12;i+=2) bytes.push(clean.substring(i,i+2));
+    return bytes;
+  }
+  function flipBit7(byteHex){
+    var n = parseInt(byteHex, 16);
+    n = n ^ 0x02; // flip bit 1 from the right (bit 7 from the left when 8 bits — universal/local)
+    return ('0'+n.toString(16)).slice(-2);
+  }
+
+  function convert(macStr){
+    var bytes = parseMac(macStr);
+    if (!bytes) return null;
+    var oui = bytes.slice(0,3);
+    var nic = bytes.slice(3,6);
+    var flipped = flipBit7(oui[0]);
+    var iidBytes = [flipped, oui[1], oui[2], 'ff', 'fe', nic[0], nic[1], nic[2]];
+    var iid = iidBytes[0]+iidBytes[1]+':'+iidBytes[2]+iidBytes[3]+':'+iidBytes[4]+iidBytes[5]+':'+iidBytes[6]+iidBytes[7];
+    return {
+      original: bytes,
+      oui: oui,
+      nic: nic,
+      flipped: flipped,
+      iid: iid,
+      bit7Was: (parseInt(oui[0],16) & 0x02) ? 1 : 0,
+      bit7Now: (parseInt(flipped,16) & 0x02) ? 1 : 0
+    };
+  }
+
+  function renderSteps(macStr){
+    var r = convert(macStr);
+    var stepsEl = document.getElementById('steps');
+    var v = document.getElementById('verdict');
+    if (!r){
+      stepsEl.innerHTML='';
+      v.className='verdict invalid show';
+      v.textContent='✗ Invalid MAC. Use 12 hex digits separated by : - . or no separator.';
+      return;
+    }
+    v.className='verdict';v.textContent='';
+
+    var orig = r.original.join(':');
+    var splitFmt = '<span class="seg oui">'+r.oui.join('')+'</span><span class="seg nic">'+r.nic.join('')+'</span>';
+    var insertFmt = '<span class="seg oui">'+r.oui.join('')+'</span><span class="seg inserted">fffe</span><span class="seg nic">'+r.nic.join('')+'</span>';
+    var flipFmt = '<span class="seg flipped">'+r.flipped+'</span><span class="seg oui">'+r.oui.slice(1).join('')+'</span><span class="seg inserted">fffe</span><span class="seg nic">'+r.nic.join('')+'</span>';
+
+    stepsEl.innerHTML =
+      '<div class="step show"><div class="label"><span class="num">1</span>Start with MAC</div><div class="mac-render">'+orig+'</div></div>'+
+      '<div class="step"><div class="label"><span class="num">2</span>Split into OUI (first 3 bytes) and NIC (last 3 bytes)</div><div class="mac-render">'+splitFmt+'</div></div>'+
+      '<div class="step"><div class="label"><span class="num">3</span>Insert fffe between OUI and NIC</div><div class="mac-render">'+insertFmt+'</div></div>'+
+      '<div class="step"><div class="label"><span class="num">4</span>Flip bit 7 of byte 1 (U/L bit): '+r.oui[0]+' → '+r.flipped+' (was '+r.bit7Was+', now '+r.bit7Now+')</div><div class="mac-render">'+flipFmt+'</div></div>'+
+      '<div class="step"><div class="label"><span class="num">5</span>Final 64-bit Interface ID</div><div class="mac-render" style="color:var(--correct);font-weight:700">'+r.iid+'</div></div>';
+
+    var stepEls = stepsEl.querySelectorAll('.step');
+    Array.prototype.forEach.call(stepEls, function(s,i){
+      setTimeout(function(){ s.classList.add('show'); }, i*250);
+    });
+    setTimeout(function(){
+      v.className='verdict win show';
+      v.innerHTML = '✓ Interface ID = <code style="font-family:var(--font-mono)">'+r.iid+'</code> · full IPv6 example: 2001:db8::'+r.iid;
+    }, stepEls.length*250 + 100);
+  }
+  document.getElementById('convertBtn').addEventListener('click', function(){
+    renderSteps(document.getElementById('macInput').value);
+  });
+  document.getElementById('macInput').addEventListener('keydown', function(e){if (e.key==='Enter') document.getElementById('convertBtn').click();});
+  document.getElementById('clearBtn').addEventListener('click', function(){
+    document.getElementById('macInput').value='';
+    document.getElementById('steps').innerHTML='';
+    document.getElementById('verdict').className='verdict';
+  });
+  document.querySelectorAll('.ex-pill').forEach(function(e){
+    e.addEventListener('click', function(){
+      document.getElementById('macInput').value = e.dataset.mac;
+      renderSteps(e.dataset.mac);
+    });
+  });
+  renderSteps('00:1a:2b:3c:4d:5e');
+
+  // Quiz
+  var qC=0, qW=0, qS=0;
+  function genQ(){
+    var macs = [
+      '00:1a:2b:3c:4d:5e',
+      'aa:bb:cc:dd:ee:ff',
+      '02:00:00:00:00:01',
+      '40:b0:34:12:34:56',
+      '00:0c:29:ab:cd:ef',
+      '5c:f9:38:11:22:33',
+      'fc:99:47:de:ad:be',
+      'b8:27:eb:01:23:45'
+    ];
+    var mac = macs[Math.floor(Math.random()*macs.length)];
+    var r = convert(mac);
+    var ans = r.iid;
+    // Distractors
+    var noFlip = r.oui[0]+r.oui[1]+':'+r.oui[2]+'ff:fe'+r.nic[0]+':'+r.nic[1]+r.nic[2];
+    var noFffe = r.flipped+r.oui[1]+':'+r.oui[2]+r.nic[0]+':'+r.nic[1]+r.nic[2];
+    var wrongInsert = r.flipped+r.oui[1]+':'+r.oui[2]+'fefe:'+r.nic[0]+r.nic[1]+':'+r.nic[2];
+    var opts = [ans, noFlip, noFffe, wrongInsert].filter(function(v,i,a){return a.indexOf(v)===i;}).sort(function(){return Math.random()-.5;});
+    document.getElementById('quizStem').innerHTML = 'EUI-64 interface ID for MAC <code style="font-family:var(--font-mono);background:#fff;padding:2px 8px;border-radius:4px;font-weight:700">'+mac+'</code>?';
+    var box = document.getElementById('quizOpts'); box.innerHTML='';
+    opts.forEach(function(o){
+      var b=document.createElement('button'); b.className='opt'; b.textContent=o;
+      b.addEventListener('click', function(){
+        if (b.classList.contains('correct')||b.classList.contains('wrong')) return;
+        if (o===ans){ b.classList.add('correct'); qC++; qS++; }
+        else { b.classList.add('wrong'); qW++; qS=0;
+          Array.prototype.forEach.call(box.children, function(c){ if (c.textContent===ans) c.classList.add('correct'); });
+        }
+        document.getElementById('qC').textContent=qC;
+        document.getElementById('qW').textContent=qW;
+        document.getElementById('qS').textContent=qS;
+        document.getElementById('macInput').value=mac; renderSteps(mac);
+      });
+      box.appendChild(b);
+    });
+  }
+  document.getElementById('newQ').addEventListener('click', genQ);
+  genQ();
+})();
+</script>
+</body>
+</html>

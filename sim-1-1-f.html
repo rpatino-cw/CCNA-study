@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>1.1.f Sim — Endpoints vs Network Devices</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#FAF7F2;--bg-surface:#FFFFFF;--bg-recessed:#F3F0EB;
+    --border:#E2DFD9;--border-strong:#C7C3BC;
+    --ink:#1C1917;--ink-secondary:#57534E;--ink-muted:#A8A29E;
+    --accent:#B45309;--accent-soft:#D97706;--accent-light:#FEF3C7;
+    --correct:#16A34A;--correct-bg:#F0FDF4;
+    --wrong:#DC2626;--wrong-bg:#FEF2F2;
+    --info:#2563EB;--info-bg:#EFF6FF;
+    --font-display:'Space Grotesk',system-ui,sans-serif;
+    --font-body:'Source Serif 4',Georgia,serif;
+    --font-mono:'JetBrains Mono',monospace;
+    --radius:6px;--radius-lg:10px;
+  }
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  html{font-size:16px;-webkit-font-smoothing:antialiased}
+  body{font-family:var(--font-body);background:var(--bg);color:var(--ink);line-height:1.55;padding:24px;max-width:920px;margin:0 auto}
+  .head{margin-bottom:20px;padding-bottom:14px;border-bottom:1px solid var(--border)}
+  .head .crumb{font-family:var(--font-mono);font-size:.74rem;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px}
+  .head .crumb a{color:var(--accent);text-decoration:none}
+  .head h1{font-family:var(--font-display);font-size:1.5rem;font-weight:700;margin-bottom:6px}
+  .head .desc{font-size:.95rem;color:var(--ink-secondary)}
+  .panel{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;margin-bottom:18px}
+  .panel h2{font-family:var(--font-display);font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-secondary);margin-bottom:12px}
+  .badge{display:inline-block;font-family:var(--font-display);font-size:.7rem;font-weight:700;padding:2px 8px;border-radius:99px;background:var(--accent-light);color:var(--accent);text-transform:uppercase;letter-spacing:.04em;margin-left:8px}
+  .btn{font-family:var(--font-display);font-size:.84rem;font-weight:600;padding:8px 16px;background:var(--ink);color:#FAF7F2;border:none;border-radius:var(--radius);cursor:pointer}
+  .btn.ghost{background:var(--bg-recessed);color:var(--ink)}
+  .pool{display:flex;gap:8px;flex-wrap:wrap;padding:14px;background:var(--bg-recessed);border-radius:var(--radius);margin-bottom:14px;min-height:64px}
+  .item{padding:10px 14px;background:var(--bg-surface);border:1px solid var(--border-strong);border-radius:var(--radius);font-family:var(--font-mono);font-size:.86rem;cursor:grab;user-select:none;transition:transform .15s, box-shadow .15s}
+  .item:hover{box-shadow:0 2px 8px rgba(0,0,0,.06)}
+  .item.dragging{opacity:.4;cursor:grabbing}
+  .item.placed-correct{background:var(--correct-bg);border-color:var(--correct);color:var(--correct);font-weight:700}
+  .item.placed-wrong{background:var(--wrong-bg);border-color:var(--wrong);color:var(--wrong);animation:shake .35s}
+  @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
+  .buckets{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .bucket{padding:14px;border-radius:var(--radius-lg);border:2px dashed var(--border-strong);min-height:170px;background:var(--bg-surface)}
+  .bucket h3{font-family:var(--font-display);font-size:.92rem;font-weight:700;color:var(--ink);margin-bottom:6px}
+  .bucket .hint{font-family:var(--font-mono);font-size:.74rem;color:var(--ink-muted);margin-bottom:10px}
+  .bucket.over{background:var(--accent-light);border-color:var(--accent)}
+  .bucket .drop{display:flex;flex-wrap:wrap;gap:8px}
+  .verdict{margin-top:14px;padding:12px 16px;border-radius:var(--radius);font-family:var(--font-display);font-size:.94rem;font-weight:600;display:none}
+  .verdict.show{display:block}
+  .verdict.win{background:var(--correct-bg);color:var(--correct);border:1px solid var(--correct)}
+  .verdict.miss{background:var(--wrong-bg);color:var(--wrong);border:1px solid var(--wrong)}
+  .verdict.info{background:var(--info-bg);color:var(--info);border:1px solid var(--info)}
+  .progress{display:flex;align-items:center;gap:10px;margin-top:12px;font-family:var(--font-mono);font-size:.84rem;color:var(--ink-secondary)}
+  .progress-bar{flex:1;height:8px;background:var(--bg-recessed);border-radius:99px;overflow:hidden}
+  .progress-bar > div{height:100%;background:var(--accent);width:0;transition:width .3s}
+  .quiz{margin-top:22px}
+  .quiz .stem{font-family:var(--font-display);font-size:1.02rem;font-weight:600;margin-bottom:12px;padding:14px;background:var(--accent-light);border-left:3px solid var(--accent);border-radius:var(--radius)}
+  .quiz .opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px}
+  .opt{background:var(--bg-recessed);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;font-family:var(--font-mono);font-size:.9rem;cursor:pointer;text-align:left}
+  .opt:hover{border-color:var(--border-strong);background:var(--bg-surface)}
+  .opt.correct{background:var(--correct-bg);border-color:var(--correct);color:var(--correct);font-weight:700}
+  .opt.wrong{background:var(--wrong-bg);border-color:var(--wrong);color:var(--wrong)}
+  .scoreline{font-family:var(--font-mono);font-size:.84rem;color:var(--ink-muted);margin-top:10px;display:flex;gap:18px;align-items:center}
+  .scoreline strong{font-weight:700;color:var(--ink)}
+  .footer-link{font-family:var(--font-mono);font-size:.78rem;color:var(--accent);text-decoration:none}
+</style>
+</head>
+<body>
+
+<div class="head">
+  <div class="crumb"><a href="blueprint-drill.html?obj=1.1">← 1.1 Mini Sims</a> · 1.1.f · Endpoints vs Network Devices</div>
+  <h1>Edge vs Middle<span class="badge">drill</span></h1>
+  <div class="desc">Endpoints get connected. Network devices do the connecting. A laptop, an IP camera, a printer — these are at the EDGE. They produce or consume traffic. A switch, router, AP, firewall — these sit in the MIDDLE and move traffic. The trap: an AP looks like an endpoint (it's a small box on the wall) but it's actually network gear — it forwards client frames. A server is just a computer, but it's also an endpoint (the role it plays in a flow doesn't change its type — see 1.1.g for that twist). Drag each item into the right bucket.</div>
+</div>
+
+<div class="panel">
+  <h2>Pool — drag each item into a bucket</h2>
+  <div class="pool" id="pool"></div>
+  <div class="buckets">
+    <div class="bucket" id="bEnd" data-bucket="end">
+      <h3>Endpoint</h3>
+      <div class="hint">edge of the network · produces or consumes traffic</div>
+      <div class="drop"></div>
+    </div>
+    <div class="bucket" id="bNet" data-bucket="net">
+      <h3>Network device</h3>
+      <div class="hint">middle of the network · forwards or filters traffic</div>
+      <div class="drop"></div>
+    </div>
+  </div>
+  <div class="progress"><span>Progress</span><div class="progress-bar"><div id="bar"></div></div><span id="prog">0/0</span></div>
+  <div id="verdict" class="verdict"></div>
+</div>
+
+<div class="panel quiz" id="quizPanel">
+  <h2>Quiz mode</h2>
+  <div class="stem" id="quizStem">Loading…</div>
+  <div class="opts" id="quizOpts"></div>
+  <div class="scoreline">
+    <span><strong id="qCorrect">0</strong> correct</span>
+    <span><strong id="qWrong">0</strong> wrong</span>
+    <span><strong id="qStreak">0</strong> streak</span>
+    <span style="margin-left:auto"><button class="btn ghost" id="newQ">Next ↻</button></span>
+  </div>
+</div>
+
+<div style="text-align:center;margin-top:18px"><a class="footer-link" href="blueprint-drill.html?obj=1.1">← Back to 1.1 leaves</a></div>
+
+<script>
+(function(){
+  var items = [
+    { id:'laptop', label:'Laptop', cat:'end' },
+    { id:'switch', label:'L2 Switch', cat:'net' },
+    { id:'cam',    label:'IP Camera', cat:'end' },
+    { id:'router', label:'Router', cat:'net' },
+    { id:'printer',label:'Network printer', cat:'end' },
+    { id:'ap',     label:'Wireless AP', cat:'net' },
+    { id:'server', label:'Linux server', cat:'end' },
+    { id:'ngfw',   label:'NGFW', cat:'net' },
+    { id:'phone',  label:'IP phone', cat:'end' },
+    { id:'wlc',    label:'WLC', cat:'net' }
+  ];
+  var pool = document.getElementById('pool');
+  var placed = 0, correct = 0;
+  var total = items.length;
+
+  function makeItem(it){
+    var d = document.createElement('div');
+    d.className = 'item';
+    d.draggable = true;
+    d.textContent = it.label;
+    d.dataset.cat = it.cat;
+    d.dataset.id = it.id;
+    d.addEventListener('dragstart', function(e){
+      d.classList.add('dragging');
+      e.dataTransfer.setData('text/plain', it.id);
+      e.dataTransfer.effectAllowed = 'move';
+    });
+    d.addEventListener('dragend', function(){ d.classList.remove('dragging'); });
+    return d;
+  }
+
+  items.forEach(function(it){ pool.appendChild(makeItem(it)); });
+
+  function updateProgress(){
+    document.getElementById('prog').textContent = placed + '/' + total;
+    document.getElementById('bar').style.width = (100*placed/total) + '%';
+    if (placed === total) {
+      var v = document.getElementById('verdict');
+      var pct = Math.round(100*correct/total);
+      if (correct === total) { v.className = 'verdict win show'; v.textContent = '✓ Perfect — ' + correct + '/' + total + '. Edge vs middle is now intuitive.'; }
+      else { v.className = 'verdict info show'; v.textContent = '↳ Done. ' + correct + '/' + total + ' correct (' + pct + '%). Watch the AP/WLC trap.'; }
+    }
+  }
+
+  document.querySelectorAll('.bucket').forEach(function(b){
+    b.addEventListener('dragover', function(e){ e.preventDefault(); b.classList.add('over'); });
+    b.addEventListener('dragleave', function(){ b.classList.remove('over'); });
+    b.addEventListener('drop', function(e){
+      e.preventDefault();
+      b.classList.remove('over');
+      var id = e.dataTransfer.getData('text/plain');
+      var src = pool.querySelector('[data-id="'+id+'"]');
+      if (!src) return;
+      var ok = src.dataset.cat === b.dataset.bucket;
+      var clone = src.cloneNode(true);
+      clone.draggable = false;
+      clone.classList.remove('dragging');
+      clone.classList.add(ok ? 'placed-correct' : 'placed-wrong');
+      b.querySelector('.drop').appendChild(clone);
+      src.remove();
+      placed++;
+      if (ok) correct++;
+      var v = document.getElementById('verdict');
+      v.className = 'verdict ' + (ok?'win':'miss') + ' show';
+      v.textContent = ok
+        ? ('✓ ' + clone.textContent + ' is a ' + (b.dataset.bucket==='end'?'endpoint':'network device') + '. ' + explain(id, true))
+        : ('✗ ' + clone.textContent + ' is NOT a ' + (b.dataset.bucket==='end'?'endpoint':'network device') + '. ' + explain(id, false));
+      updateProgress();
+    });
+  });
+
+  function explain(id, ok){
+    var why = {
+      laptop:'Laptops produce/consume traffic — pure endpoint.',
+      switch:'Switches forward frames between ports — pure network device.',
+      cam:'IP cameras stream traffic — endpoint that happens to live on the network.',
+      router:'Routers forward packets between networks — middle of the network.',
+      printer:'Network printers receive print jobs — endpoint with an Ethernet port.',
+      ap:'AP forwards client frames between wireless and wired sides — network device. The trap.',
+      server:'Servers serve traffic but are still endpoints — they sit at the edge of the path, not in the middle.',
+      ngfw:'NGFW inspects + forwards traffic — network device.',
+      phone:'IP phones produce voice traffic — endpoint (even if PoE-powered through a switch).',
+      wlc:'WLC controls APs and terminates CAPWAP — network device, not an endpoint.'
+    };
+    return why[id] || '';
+  }
+
+  // Quiz
+  var qCorrect=0,qWrong=0,qStreak=0;
+  var pool2 = [
+    { stem:'Endpoints sit at the ___ of the network.', ans:'edge', opts:['edge','core','middle','backbone'], why:'Edge = where users/devices live. Core = backbone routers/switches.' },
+    { stem:'Which is NOT an endpoint?', ans:'Wireless AP', opts:['Laptop','Wireless AP','IP phone','Server'], why:'APs are network devices — they forward client traffic. They look like endpoints physically but are functionally infrastructure.' },
+    { stem:'Which is NOT a network device?', ans:'Network printer', opts:['Switch','Router','Network printer','NGFW'], why:'A printer consumes a port — it doesn\'t forward other people\'s traffic.' },
+    { stem:'A WLC sits where?', ans:'Middle — it controls network devices', opts:['Edge — it\'s an endpoint','Middle — it controls network devices','Off-network','Cloud only'], why:'WLC is infrastructure — it manages APs.' },
+    { stem:'IP camera that streams to a NVR. What is it?', ans:'Endpoint', opts:['Endpoint','Network device','Hub','Router'], why:'It produces traffic — pure endpoint.' },
+    { stem:'A server hosts a website. What is it?', ans:'Endpoint', opts:['Endpoint','Network device','Switch','Router'], why:'Servers are endpoints (their role in a transaction can vary — see 1.1.g — but their type doesn\'t).' },
+    { stem:'What\'s the simplest "endpoints don\'t connect, they get connected" test?', ans:'Does it forward other devices\' traffic? If no, it\'s an endpoint.', opts:['Does it have a power cord?','Does it forward other devices\' traffic? If no, it\'s an endpoint.','Is it portable?','Does it have a screen?'], why:'Forwarding test = endpoint vs network device.' },
+    { stem:'A router and a switch are both:', ans:'Network devices', opts:['Endpoints','Network devices','Servers','Clients'], why:'Both forward traffic. Different layer (L3 vs L2), but same category.' },
+    { stem:'NGFW is an endpoint or network device?', ans:'Network device', opts:['Endpoint','Network device','Both','Neither'], why:'It inspects + forwards traffic between zones — middle of the network.' },
+    { stem:'A network printer with an Ethernet port — endpoint or network device?', ans:'Endpoint', opts:['Endpoint','Network device','Server','Hub'], why:'Printer consumes a port; doesn\'t forward.' }
+  ];
+  function pickQ(){
+    var q = pool2[Math.floor(Math.random()*pool2.length)];
+    var opts = q.opts.slice().sort(function(){return Math.random()-.5;});
+    document.getElementById('quizStem').textContent = q.stem;
+    var box = document.getElementById('quizOpts'); box.innerHTML='';
+    opts.forEach(function(o){
+      var b = document.createElement('button'); b.className='opt'; b.textContent=o;
+      b.addEventListener('click', function(){
+        if (b.classList.contains('correct')||b.classList.contains('wrong')) return;
+        if (o===q.ans){ b.classList.add('correct'); qCorrect++; qStreak++; }
+        else { b.classList.add('wrong'); qWrong++; qStreak=0;
+          Array.prototype.forEach.call(box.children, function(c){ if (c.textContent===q.ans) c.classList.add('correct'); }); }
+        document.getElementById('qCorrect').textContent=qCorrect;
+        document.getElementById('qWrong').textContent=qWrong;
+        document.getElementById('qStreak').textContent=qStreak;
+      });
+      box.appendChild(b);
+    });
+  }
+  document.getElementById('newQ').addEventListener('click', pickQ);
+  pickQ();
+  updateProgress();
+})();
+</script>
+</body>
+</html>

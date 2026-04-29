@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>5.3 Sim — Password Policies + MFA</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{--bg:#FAF7F2;--bg-surface:#FFFFFF;--bg-recessed:#F3F0EB;--border:#E2DFD9;--border-strong:#C7C3BC;--ink:#1C1917;--ink-secondary:#57534E;--ink-muted:#A8A29E;--accent:#B45309;--accent-soft:#D97706;--accent-light:#FEF3C7;--correct:#16A34A;--correct-bg:#F0FDF4;--wrong:#DC2626;--wrong-bg:#FEF2F2;--info:#2563EB;--info-bg:#EFF6FF;--font-display:'Space Grotesk',system-ui,sans-serif;--font-body:'Source Serif 4',Georgia,serif;--font-mono:'JetBrains Mono',monospace;--radius:6px;--radius-lg:10px}
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:var(--font-body);background:var(--bg);color:var(--ink);line-height:1.55;padding:24px;max-width:920px;margin:0 auto}
+  .head{margin-bottom:20px;padding-bottom:14px;border-bottom:1px solid var(--border)}
+  .head .crumb{font-family:var(--font-mono);font-size:.74rem;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px}
+  .head h1{font-family:var(--font-display);font-size:1.5rem;font-weight:700;margin-bottom:6px}
+  .head .desc{font-size:.95rem;color:var(--ink-secondary)}
+  .panel{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;margin-bottom:18px}
+  .panel h2{font-family:var(--font-display);font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-secondary);margin-bottom:12px}
+  .intro{font-size:.96rem;color:var(--ink-secondary);margin-bottom:14px}
+  .intro strong{color:var(--ink)}
+  .btn{font-family:var(--font-display);font-size:.84rem;font-weight:600;padding:8px 16px;background:var(--ink);color:#FAF7F2;border:none;border-radius:var(--radius);cursor:pointer}
+  .btn.ghost{background:var(--bg-recessed);color:var(--ink)}
+  input[type=text]{font-family:var(--font-mono);font-size:1.04rem;padding:10px 14px;border:1px solid var(--border-strong);border-radius:var(--radius);background:var(--bg-surface);width:100%;font-weight:500}
+  input[type=text]:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-light)}
+  .meter{height:14px;background:var(--bg-recessed);border-radius:99px;overflow:hidden;margin-top:12px;border:1px solid var(--border)}
+  .meter-fill{height:100%;width:0;transition:width .35s cubic-bezier(.16,1,.3,1),background .35s}
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-top:14px;font-family:var(--font-mono);font-size:.86rem}
+  .stat{padding:10px 12px;background:var(--bg-recessed);border-radius:var(--radius);border:1px solid var(--border)}
+  .stat .lbl{font-family:var(--font-display);font-size:.7rem;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-muted);display:block;margin-bottom:4px}
+  .stat .val{font-weight:700;color:var(--ink)}
+  .checks{margin-top:12px;display:grid;grid-template-columns:repeat(2,1fr);gap:8px;font-family:var(--font-mono);font-size:.84rem}
+  .check{padding:8px 12px;background:var(--bg-recessed);border-radius:var(--radius);border:1px solid var(--border)}
+  .check.pass{background:var(--correct-bg);color:var(--correct);border-color:var(--correct)}
+  .check.fail{background:var(--wrong-bg);color:var(--wrong);border-color:var(--wrong)}
+  .factors{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:14px}
+  .factor{padding:14px;border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-recessed);text-align:center;cursor:pointer;transition:all .2s}
+  .factor.picked{border-color:var(--accent);background:var(--accent-light)}
+  .factor h3{font-family:var(--font-display);font-size:.94rem;margin-bottom:4px}
+  .factor .ex{font-family:var(--font-mono);font-size:.78rem;color:var(--ink-muted)}
+  .verdict{margin-top:14px;padding:12px 16px;border-radius:var(--radius);font-family:var(--font-display);font-size:.94rem;font-weight:600;display:none}
+  .verdict.show{display:block;animation:fadeIn .25s ease}
+  .verdict.win{background:var(--correct-bg);color:var(--correct);border:1px solid var(--correct)}
+  .verdict.miss{background:var(--wrong-bg);color:var(--wrong);border:1px solid var(--wrong)}
+  .verdict.info{background:var(--info-bg);color:var(--info);border:1px solid var(--info)}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
+  .quiz{margin-top:22px}
+  .quiz .stem{font-family:var(--font-display);font-size:1.02rem;font-weight:600;margin-bottom:12px;padding:14px;background:var(--accent-light);border-left:3px solid var(--accent);border-radius:var(--radius)}
+  .quiz .opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px}
+  .opt{background:var(--bg-recessed);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;font-family:var(--font-mono);font-size:.92rem;cursor:pointer;text-align:left}
+  .opt:hover{border-color:var(--border-strong);background:var(--bg-surface)}
+  .opt.correct{background:var(--correct-bg);border-color:var(--correct);color:var(--correct);font-weight:700}
+  .opt.wrong{background:var(--wrong-bg);border-color:var(--wrong);color:var(--wrong)}
+  .scoreline{font-family:var(--font-mono);font-size:.84rem;color:var(--ink-muted);margin-top:10px;display:flex;gap:18px;align-items:center}
+  .scoreline strong{font-weight:700;color:var(--ink)}
+  .footnote{font-family:var(--font-mono);font-size:.78rem;color:var(--ink-muted);margin-top:12px;line-height:1.5}
+  .badge{display:inline-block;font-family:var(--font-display);font-size:.7rem;font-weight:700;padding:2px 8px;border-radius:99px;background:var(--accent-light);color:var(--accent);text-transform:uppercase;letter-spacing:.04em;margin-left:8px}
+  .footer-link{margin-top:24px;padding-top:14px;border-top:1px solid var(--border);font-family:var(--font-mono);font-size:.82rem}
+  .footer-link a{color:var(--accent);text-decoration:none}
+</style>
+</head>
+<body>
+
+<div class="head">
+  <div class="crumb"><a href="blueprint-drill.html?obj=5.3" style="color:var(--accent);text-decoration:none">← 5.3 Mini Sims</a> · 5.3 · Security · Passwords + MFA</div>
+  <h1>Password Strength + MFA Sim<span class="badge">drill</span></h1>
+  <div class="desc">Password length matters more than complexity — adding 2 characters often beats adding symbols. <strong>Type a password</strong>, watch entropy + brute-force time live. Then build MFA: pick 2+ factors from <strong>different categories</strong> (knowledge / possession / inherence).</div>
+</div>
+
+<div class="panel">
+  <h2>Password Lab</h2>
+  <p class="intro">Entropy = bits of unpredictability = log2(charset^length). 60 bits = casually strong. 80 = strong. 100+ = nation-state-resistant. Length crushes complexity at scale.</p>
+  <input type="text" id="pw" placeholder="Type a password…" value="Tr0ub4dor&3">
+  <div class="meter"><div class="meter-fill" id="meter"></div></div>
+  <div class="stats">
+    <div class="stat"><span class="lbl">Length</span><span class="val" id="sLen">0</span></div>
+    <div class="stat"><span class="lbl">Charset</span><span class="val" id="sChar">0</span></div>
+    <div class="stat"><span class="lbl">Entropy</span><span class="val" id="sEnt">0 bits</span></div>
+    <div class="stat"><span class="lbl">Brute @ 1B/s</span><span class="val" id="sTime">—</span></div>
+  </div>
+  <div class="checks" id="checks"></div>
+</div>
+
+<div class="panel">
+  <h2>Build MFA — pick 2+ factors from different categories</h2>
+  <p class="intro"><strong>Knowledge</strong> = something you know. <strong>Possession</strong> = something you have. <strong>Inherence</strong> = something you are. Two from the same bucket isn't multi-factor — it's just multi-step.</p>
+  <div class="factors" id="factors">
+    <div class="factor" data-cat="knowledge"><h3>Password</h3><div class="ex">Knowledge</div></div>
+    <div class="factor" data-cat="knowledge"><h3>PIN</h3><div class="ex">Knowledge</div></div>
+    <div class="factor" data-cat="knowledge"><h3>Security Q</h3><div class="ex">Knowledge</div></div>
+    <div class="factor" data-cat="possession"><h3>SMS code</h3><div class="ex">Possession (weak)</div></div>
+    <div class="factor" data-cat="possession"><h3>TOTP app</h3><div class="ex">Possession</div></div>
+    <div class="factor" data-cat="possession"><h3>Hardware key</h3><div class="ex">Possession (best)</div></div>
+    <div class="factor" data-cat="inherence"><h3>Fingerprint</h3><div class="ex">Inherence</div></div>
+    <div class="factor" data-cat="inherence"><h3>Face ID</h3><div class="ex">Inherence</div></div>
+    <div class="factor" data-cat="inherence"><h3>Voice</h3><div class="ex">Inherence</div></div>
+  </div>
+  <div id="mfaVerdict" class="verdict"></div>
+</div>
+
+<div class="panel quiz" id="quizPanel">
+  <h2>Quiz mode</h2>
+  <div class="stem" id="quizStem">Loading…</div>
+  <div class="opts" id="quizOpts"></div>
+  <div class="scoreline">
+    <span><strong id="qCorrect">0</strong> correct</span>
+    <span><strong id="qWrong">0</strong> wrong</span>
+    <span><strong id="qStreak">0</strong> streak</span>
+    <span style="margin-left:auto"><button class="btn ghost" id="newQ">Next ↻</button></span>
+  </div>
+</div>
+
+<div class="footer-link"><a href="blueprint-drill.html?obj=5.3">← back to 5.3 leaves</a></div>
+
+<script>
+(function(){
+  var commonPw = ['password','123456','qwerty','letmein','admin','welcome','monkey','dragon'];
+  function score(pw){
+    var len = pw.length;
+    var charset = 0;
+    if (/[a-z]/.test(pw)) charset += 26;
+    if (/[A-Z]/.test(pw)) charset += 26;
+    if (/[0-9]/.test(pw)) charset += 10;
+    if (/[^a-zA-Z0-9]/.test(pw)) charset += 32;
+    var ent = len ? Math.log2(Math.max(charset,1)) * len : 0;
+    return { len:len, charset:charset, ent:ent };
+  }
+  function fmtTime(s){
+    if (s<1) return 'instant';
+    if (s<60) return s.toFixed(0)+' s';
+    if (s<3600) return (s/60).toFixed(1)+' min';
+    if (s<86400) return (s/3600).toFixed(1)+' hr';
+    if (s<31536000) return (s/86400).toFixed(1)+' days';
+    if (s<31536000*1000) return (s/31536000).toFixed(1)+' yrs';
+    return (s/31536000/1e6).toFixed(1)+' M-yrs';
+  }
+  function update(){
+    var pw = document.getElementById('pw').value;
+    var s = score(pw);
+    document.getElementById('sLen').textContent = s.len;
+    document.getElementById('sChar').textContent = s.charset;
+    document.getElementById('sEnt').textContent = s.ent.toFixed(1)+' bits';
+    var brute = Math.pow(2, s.ent) / 1e9 / 2;
+    document.getElementById('sTime').textContent = fmtTime(brute);
+    var pct = Math.min(100, s.ent / 100 * 100);
+    var m = document.getElementById('meter');
+    m.style.width = pct+'%';
+    m.style.background = pct<25 ? 'var(--wrong)' : pct<50 ? 'var(--accent)' : pct<75 ? 'var(--accent-soft)' : 'var(--correct)';
+
+    var checks = [
+      { lbl:'≥ 12 chars', pass: s.len>=12 },
+      { lbl:'Mixed case', pass: /[a-z]/.test(pw)&&/[A-Z]/.test(pw) },
+      { lbl:'Has number', pass: /[0-9]/.test(pw) },
+      { lbl:'Has symbol', pass: /[^a-zA-Z0-9]/.test(pw) },
+      { lbl:'Not common', pass: !commonPw.some(function(c){return pw.toLowerCase().indexOf(c)!==-1;}) },
+      { lbl:'Not all repeats', pass: pw.length>0 && new Set(pw).size > pw.length/3 }
+    ];
+    var cb = document.getElementById('checks'); cb.innerHTML='';
+    checks.forEach(function(c){
+      var d = document.createElement('div');
+      d.className = 'check ' + (c.pass?'pass':'fail');
+      d.textContent = (c.pass?'✓ ':'✗ ') + c.lbl;
+      cb.appendChild(d);
+    });
+  }
+  document.getElementById('pw').addEventListener('input', update);
+  update();
+
+  var picks = new Set();
+  Array.prototype.forEach.call(document.querySelectorAll('.factor'), function(el){
+    el.addEventListener('click', function(){
+      var key = el.querySelector('h3').textContent;
+      if (picks.has(key)) { picks.delete(key); el.classList.remove('picked'); }
+      else { picks.add(key); el.classList.add('picked'); }
+      var cats = new Set();
+      Array.prototype.forEach.call(document.querySelectorAll('.factor.picked'), function(p){ cats.add(p.dataset.cat); });
+      var v = document.getElementById('mfaVerdict');
+      if (picks.size === 0) { v.className='verdict'; return; }
+      if (cats.size >= 2 && picks.size >= 2) {
+        v.className='verdict win show';
+        v.textContent = '✓ True MFA — '+picks.size+' factors across '+cats.size+' categories.';
+      } else if (picks.size >= 2 && cats.size === 1) {
+        v.className='verdict miss show';
+        v.textContent = '✗ Multi-step, not multi-factor. All your picks are in the same category ('+Array.from(cats)[0]+').';
+      } else {
+        v.className='verdict info show';
+        v.textContent = picks.size+' factor selected. Pick from a 2nd category to qualify as MFA.';
+      }
+    });
+  });
+
+  var qCorrect=0, qWrong=0, qStreak=0;
+  var pool = [
+    { stem:'Which is the strongest password (no breach)?', opts:['P@ssw0rd!','correct horse battery staple','Tr0ub4dor&3','12345678!'], ans:'correct horse battery staple', why:'Length wins — 4 random words ≈ 50+ bits entropy.' },
+    { stem:'Password + SMS code = MFA?', opts:['Yes — knowledge + possession','No — both knowledge','No — both possession','Only with biometric'], ans:'Yes — knowledge + possession', why:'SMS is weak possession but counts. TOTP/hardware key better.' },
+    { stem:'Password + PIN = MFA?', opts:['Yes','No — both knowledge','Only if different lengths','Only with biometric'], ans:'No — both knowledge', why:'Same category. Multi-step, not multi-factor.' },
+    { stem:'Best MFA factor for high-security?', opts:['SMS','TOTP app','FIDO2 hardware key','Security questions'], ans:'FIDO2 hardware key', why:'Phishing-resistant, public-key crypto, no shared secret.' },
+    { stem:'Fingerprint is which factor type?', opts:['Knowledge','Possession','Inherence','Location'], ans:'Inherence', why:'Something you ARE = inherence (biometric).' },
+    { stem:'Which adds MORE entropy: 8→12 chars same charset, or adding symbols to 8-char?', opts:['Adding 4 chars','Adding symbols','Same','Depends on charset'], ans:'Adding 4 chars', why:'Length scales exponentially. 4 more chars ≈ 24 bits added.' },
+    { stem:'NIST SP 800-63B says password rotation should be:', opts:['Every 30 days','Every 90 days','Annually','Only on suspected compromise'], ans:'Only on suspected compromise', why:'Forced rotation = weaker passwords. Modern guidance: long passphrase, rotate on breach.' },
+    { stem:'Why is SMS the weakest possession factor?', opts:['Too slow','SIM-swap + SS7 attacks','Costs money','Requires phone'], ans:'SIM-swap + SS7 attacks', why:'Telecom protocol can be hijacked; attackers port the number.' },
+    { stem:'12-char random alphanumeric ≈ how much entropy?', opts:['~30 bits','~50 bits','~71 bits','~120 bits'], ans:'~71 bits', why:'log2(62)*12 ≈ 5.95*12 ≈ 71.4 bits.' },
+    { stem:'Which password policy is BEST per modern standards?', opts:['8-char min, change every 30 days','15-char min passphrase, no rotation, breach-check','Complex symbols required','Random by IT — never user-set'], ans:'15-char min passphrase, no rotation, breach-check', why:'Length + breach-list check + no forced rotation = best UX/security balance.' }
+  ];
+  function pickQ(){
+    var q = pool[Math.floor(Math.random()*pool.length)];
+    var opts = q.opts.slice().sort(function(){return Math.random()-.5;});
+    document.getElementById('quizStem').textContent = q.stem;
+    var bx = document.getElementById('quizOpts'); bx.innerHTML='';
+    opts.forEach(function(o){
+      var btn = document.createElement('button');
+      btn.className='opt'; btn.textContent=o;
+      btn.addEventListener('click', function(){
+        if (btn.classList.contains('correct')||btn.classList.contains('wrong')) return;
+        if (o===q.ans){ btn.classList.add('correct'); qCorrect++; qStreak++; }
+        else { btn.classList.add('wrong'); qWrong++; qStreak=0;
+          Array.prototype.forEach.call(bx.children, function(c){ if (c.textContent===q.ans) c.classList.add('correct'); }); }
+        document.getElementById('qCorrect').textContent=qCorrect;
+        document.getElementById('qWrong').textContent=qWrong;
+        document.getElementById('qStreak').textContent=qStreak;
+      });
+      bx.appendChild(btn);
+    });
+  }
+  document.getElementById('newQ').addEventListener('click', pickQ);
+  pickQ();
+})();
+</script>
+</body>
+</html>

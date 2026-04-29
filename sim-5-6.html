@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>5.6 Sim — L2 Security (DHCP Snooping, DAI, Port-Security)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{--bg:#FAF7F2;--bg-surface:#FFFFFF;--bg-recessed:#F3F0EB;--border:#E2DFD9;--border-strong:#C7C3BC;--ink:#1C1917;--ink-secondary:#57534E;--ink-muted:#A8A29E;--accent:#B45309;--accent-soft:#D97706;--accent-light:#FEF3C7;--correct:#16A34A;--correct-bg:#F0FDF4;--wrong:#DC2626;--wrong-bg:#FEF2F2;--info:#2563EB;--info-bg:#EFF6FF;--font-display:'Space Grotesk',system-ui,sans-serif;--font-body:'Source Serif 4',Georgia,serif;--font-mono:'JetBrains Mono',monospace;--radius:6px;--radius-lg:10px}
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:var(--font-body);background:var(--bg);color:var(--ink);line-height:1.55;padding:24px;max-width:920px;margin:0 auto}
+  .head{margin-bottom:20px;padding-bottom:14px;border-bottom:1px solid var(--border)}
+  .head .crumb{font-family:var(--font-mono);font-size:.74rem;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px}
+  .head h1{font-family:var(--font-display);font-size:1.5rem;font-weight:700;margin-bottom:6px}
+  .head .desc{font-size:.95rem;color:var(--ink-secondary)}
+  .panel{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;margin-bottom:18px}
+  .panel h2{font-family:var(--font-display);font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-secondary);margin-bottom:12px}
+  .intro{font-size:.96rem;color:var(--ink-secondary);margin-bottom:14px}
+  .intro strong{color:var(--ink)}
+  .btn{font-family:var(--font-display);font-size:.84rem;font-weight:600;padding:8px 16px;background:var(--ink);color:#FAF7F2;border:none;border-radius:var(--radius);cursor:pointer}
+  .btn.ghost{background:var(--bg-recessed);color:var(--ink)}
+  .btn.accent{background:var(--accent)}
+  .tabs{display:flex;gap:4px;margin-bottom:14px;flex-wrap:wrap}
+  .tab{padding:8px 14px;background:var(--bg-recessed);border:1px solid var(--border);border-radius:var(--radius);cursor:pointer;font-family:var(--font-display);font-size:.84rem;font-weight:600}
+  .tab.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+  .scene{background:var(--bg-recessed);border:1px solid var(--border);border-radius:var(--radius);padding:20px;min-height:220px;position:relative;overflow:hidden}
+  .node{position:absolute;text-align:center;font-family:var(--font-mono);font-size:.78rem}
+  .node .icon{width:60px;height:46px;background:var(--bg-surface);border:2px solid var(--ink);border-radius:6px;display:flex;align-items:center;justify-content:center;font-weight:700;margin:0 auto 4px}
+  .node.rogue .icon{border-color:var(--wrong);background:var(--wrong-bg);color:var(--wrong)}
+  .node.trusted .icon{border-color:var(--correct);background:var(--correct-bg);color:var(--correct)}
+  .pkt{position:absolute;padding:3px 8px;background:var(--accent);color:#fff;border-radius:3px;font-family:var(--font-mono);font-size:.7rem;font-weight:700;transition:all 1.4s linear,opacity .3s}
+  .pkt.blocked{background:var(--wrong)}
+  .scene-text{margin-top:12px;font-family:var(--font-mono);font-size:.84rem;color:var(--ink-secondary);min-height:40px;line-height:1.5}
+  .toggles{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+  .toggle{padding:6px 12px;background:var(--bg-recessed);border:1px solid var(--border);border-radius:99px;cursor:pointer;font-family:var(--font-mono);font-size:.8rem}
+  .toggle.on{background:var(--correct);color:#fff;border-color:var(--correct)}
+  .map{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin-top:14px;font-family:var(--font-mono);font-size:.84rem}
+  .map .row{padding:10px 12px;background:var(--bg-recessed);border:1px solid var(--border);border-radius:var(--radius)}
+  .map h3{font-family:var(--font-display);font-size:.78rem;color:var(--accent);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
+  .quiz{margin-top:22px}
+  .quiz .stem{font-family:var(--font-display);font-size:1.02rem;font-weight:600;margin-bottom:12px;padding:14px;background:var(--accent-light);border-left:3px solid var(--accent);border-radius:var(--radius)}
+  .quiz .opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px}
+  .opt{background:var(--bg-recessed);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;font-family:var(--font-mono);font-size:.92rem;cursor:pointer;text-align:left}
+  .opt:hover{border-color:var(--border-strong);background:var(--bg-surface)}
+  .opt.correct{background:var(--correct-bg);border-color:var(--correct);color:var(--correct);font-weight:700}
+  .opt.wrong{background:var(--wrong-bg);border-color:var(--wrong);color:var(--wrong)}
+  .scoreline{font-family:var(--font-mono);font-size:.84rem;color:var(--ink-muted);margin-top:10px;display:flex;gap:18px;align-items:center}
+  .scoreline strong{font-weight:700;color:var(--ink)}
+  .badge{display:inline-block;font-family:var(--font-display);font-size:.7rem;font-weight:700;padding:2px 8px;border-radius:99px;background:var(--accent-light);color:var(--accent);text-transform:uppercase;letter-spacing:.04em;margin-left:8px}
+  .footer-link{margin-top:24px;padding-top:14px;border-top:1px solid var(--border);font-family:var(--font-mono);font-size:.82rem}
+  .footer-link a{color:var(--accent);text-decoration:none}
+</style>
+</head>
+<body>
+
+<div class="head">
+  <div class="crumb"><a href="blueprint-drill.html?obj=5.6" style="color:var(--accent);text-decoration:none">← 5.6 Mini Sims</a> · 5.6 · Security · L2 Defenses</div>
+  <h1>L2 Security Sim<span class="badge">drill</span></h1>
+  <div class="desc">L2 attacks ride below routing — they trick the switch, not the router. <strong>DHCP snooping</strong> kills rogue DHCP servers. <strong>DAI</strong> (Dynamic ARP Inspection) builds on snooping to kill ARP-poisoning. <strong>Port-security</strong> caps MAC addresses per port.</p>
+</div>
+
+<div class="panel">
+  <h2>Pick an attack scenario</h2>
+  <div class="tabs">
+    <button class="tab active" data-id="dhcp">Rogue DHCP</button>
+    <button class="tab" data-id="dai">ARP Poisoning</button>
+    <button class="tab" data-id="port">MAC Flood / Port-Sec</button>
+  </div>
+
+  <div class="scene" id="scene"></div>
+  <div class="scene-text" id="sceneText"></div>
+  <div class="toggles">
+    <span class="toggle" id="defOn" data-on="false">Defense: OFF</span>
+    <button class="btn accent" id="run">Run scenario →</button>
+  </div>
+</div>
+
+<div class="panel">
+  <h2>How they layer</h2>
+  <p class="intro">DHCP snooping logs every legit IP→MAC binding. DAI <strong>uses</strong> that table to verify ARPs are honest. Port-security caps MAC count to stop CAM-table flood. They compose.</p>
+  <div class="map">
+    <div class="row"><h3>DHCP Snooping</h3>Trust uplink port (where real DHCP server is). All other ports = untrusted. Block DHCP server replies (OFFER/ACK) from untrusted ports. Build IP→MAC binding table.</div>
+    <div class="row"><h3>DAI</h3>Inspects ARP packets. Cross-checks against DHCP snooping binding table. Drops ARPs that lie about IP→MAC.</div>
+    <div class="row"><h3>Port-Security</h3>Caps max MACs per port (e.g. 1-3). Sticky learn = remember & burn into config. Violation modes: <strong>protect</strong> (silent drop), <strong>restrict</strong> (drop + log), <strong>shutdown</strong> (err-disable port).</div>
+  </div>
+</div>
+
+<div class="panel quiz" id="quizPanel">
+  <h2>Quiz mode</h2>
+  <div class="stem" id="quizStem">Loading…</div>
+  <div class="opts" id="quizOpts"></div>
+  <div class="scoreline">
+    <span><strong id="qCorrect">0</strong> correct</span>
+    <span><strong id="qWrong">0</strong> wrong</span>
+    <span><strong id="qStreak">0</strong> streak</span>
+    <span style="margin-left:auto"><button class="btn ghost" id="newQ">Next ↻</button></span>
+  </div>
+</div>
+
+<div class="footer-link"><a href="blueprint-drill.html?obj=5.6">← back to 5.6 leaves</a></div>
+
+<script>
+(function(){
+  var current = 'dhcp';
+  var defOn = false;
+  var scenes = {
+    dhcp: {
+      html: '<div class="node" style="left:8%;top:30%"><div class="icon">PC</div>Client</div>'
+          + '<div class="node trusted" style="left:45%;top:10%"><div class="icon">SW</div>Switch</div>'
+          + '<div class="node trusted" style="right:8%;top:10%"><div class="icon">DHCP</div>Real server</div>'
+          + '<div class="node rogue" style="right:8%;top:60%"><div class="icon">!!!</div>Rogue DHCP</div>',
+      offText: 'OFF: Both servers offer IPs. Rogue wins the race, sets default gateway = itself. Client traffic now flows through attacker. MITM achieved.',
+      onText:  'ON: Switch port to rogue is UNTRUSTED. Switch drops DHCPOFFER from rogue. Real DHCP wins. Client gets honest IP + gateway.'
+    },
+    dai: {
+      html: '<div class="node" style="left:8%;top:30%"><div class="icon">A</div>Host A<br>10.1.1.10</div>'
+          + '<div class="node" style="right:8%;top:30%"><div class="icon">B</div>Host B<br>10.1.1.20</div>'
+          + '<div class="node rogue" style="left:45%;top:65%"><div class="icon">M</div>Attacker<br>(claims both)</div>'
+          + '<div class="node trusted" style="left:45%;top:8%"><div class="icon">SW</div>Switch+DAI</div>',
+      offText: 'OFF: Attacker sends gratuitous ARP "I am 10.1.1.20 — at MAC AA:BB:CC". Host A updates ARP cache. Now A→B traffic goes via attacker. MITM.',
+      onText:  'ON: DAI checks each ARP against snooping binding table. Attacker\'s claim doesn\'t match the recorded IP/MAC → ARP packet dropped. Cache stays clean.'
+    },
+    port: {
+      html: '<div class="node" style="left:10%;top:30%"><div class="icon">PC</div>Real PC<br>1 MAC</div>'
+          + '<div class="node trusted" style="left:45%;top:10%"><div class="icon">SW</div>Switch<br>port-sec max=2</div>'
+          + '<div class="node rogue" style="right:10%;top:30%"><div class="icon">!!!</div>Attacker hub<br>flood 100s of MACs</div>',
+      offText: 'OFF: Attacker floods CAM table with bogus MACs. CAM full → switch fails open, floods all frames out every port. Attacker captures everything.',
+      onText:  'ON: Port-security cap=2. 3rd MAC seen → violation. Default = err-disable port. Attacker port goes down. CAM stays sane.'
+    }
+  };
+
+  function render(){
+    var sc = document.getElementById('scene');
+    sc.innerHTML = scenes[current].html;
+  }
+  function updateText(){
+    document.getElementById('sceneText').textContent = defOn ? scenes[current].onText : scenes[current].offText;
+  }
+  Array.prototype.forEach.call(document.querySelectorAll('.tab'), function(t){
+    t.addEventListener('click', function(){
+      Array.prototype.forEach.call(document.querySelectorAll('.tab'), function(x){ x.classList.remove('active'); });
+      t.classList.add('active');
+      current = t.dataset.id; render(); updateText();
+    });
+  });
+  document.getElementById('defOn').addEventListener('click', function(){
+    defOn = !defOn;
+    var el = document.getElementById('defOn');
+    el.textContent = 'Defense: ' + (defOn?'ON':'OFF');
+    el.classList.toggle('on', defOn);
+    updateText();
+  });
+
+  document.getElementById('run').addEventListener('click', function(){
+    var sc = document.getElementById('scene');
+    Array.prototype.forEach.call(sc.querySelectorAll('.pkt'), function(p){ p.remove(); });
+    var pkt = document.createElement('div');
+    pkt.className = 'pkt' + (defOn?' blocked':'');
+    pkt.textContent = current==='dhcp' ? 'OFFER' : current==='dai' ? 'ARP-LIE' : 'FLOOD';
+    pkt.style.left = '50%'; pkt.style.top = '50%';
+    sc.appendChild(pkt);
+    setTimeout(function(){ pkt.style.left = defOn ? '50%' : '15%'; pkt.style.top = '35%'; }, 50);
+    setTimeout(function(){ if (defOn) { pkt.style.opacity='0'; pkt.textContent='✗ DROPPED'; } }, 1500);
+    setTimeout(function(){ if (pkt.parentNode) pkt.remove(); }, 3000);
+    updateText();
+  });
+
+  render(); updateText();
+
+  var qCorrect=0, qWrong=0, qStreak=0;
+  var pool = [
+    { stem:'Rogue DHCP server attack — best mitigation:', opts:['Port-security','DHCP snooping','802.1X','VLAN'], ans:'DHCP snooping' },
+    { stem:'DAI depends on:', opts:['VTP','DHCP snooping binding table','802.1X auth','BPDU guard'], ans:'DHCP snooping binding table' },
+    { stem:'Port-security violation modes:', opts:['protect / restrict / shutdown','allow / deny / log','open / closed','soft / hard / off'], ans:'protect / restrict / shutdown' },
+    { stem:'CAM table overflow attack is mitigated by:', opts:['DAI','Port-security','DHCP snooping','OSPF auth'], ans:'Port-security' },
+    { stem:'In DHCP snooping, the uplink to the real DHCP server is:', opts:['Untrusted','Trusted','Disabled','Quarantined'], ans:'Trusted' },
+    { stem:'ARP poisoning is a — attack:', opts:['L1','L2','L3','L7'], ans:'L2' },
+    { stem:'Default port-security violation action:', opts:['protect','restrict','shutdown (err-disable)','permit'], ans:'shutdown (err-disable)' },
+    { stem:'Sticky MAC means:', opts:['Port stuck on','Switch dynamically learns then saves MAC to running config','MAC permanently in flash','Port can\'t learn new MACs'], ans:'Switch dynamically learns then saves MAC to running config' },
+    { stem:'Without DHCP snooping, rogue DHCP can:', opts:['Only crash the switch','Hand out fake gateway → MITM all traffic','Only affect VLAN 1','Nothing — STP blocks it'], ans:'Hand out fake gateway → MITM all traffic' },
+    { stem:'Best stack of L2 defenses on access port to user PC:', opts:['DHCP snooping + DAI + port-security','Just disable the port','802.1Q only','None needed'], ans:'DHCP snooping + DAI + port-security' }
+  ];
+  function pickQ(){
+    var q = pool[Math.floor(Math.random()*pool.length)];
+    var opts = q.opts.slice().sort(function(){return Math.random()-.5;});
+    document.getElementById('quizStem').textContent = q.stem;
+    var bx = document.getElementById('quizOpts'); bx.innerHTML='';
+    opts.forEach(function(o){
+      var btn = document.createElement('button');
+      btn.className='opt'; btn.textContent=o;
+      btn.addEventListener('click', function(){
+        if (btn.classList.contains('correct')||btn.classList.contains('wrong')) return;
+        if (o===q.ans){ btn.classList.add('correct'); qCorrect++; qStreak++; }
+        else { btn.classList.add('wrong'); qWrong++; qStreak=0;
+          Array.prototype.forEach.call(bx.children, function(c){ if (c.textContent===q.ans) c.classList.add('correct'); }); }
+        document.getElementById('qCorrect').textContent=qCorrect;
+        document.getElementById('qWrong').textContent=qWrong;
+        document.getElementById('qStreak').textContent=qStreak;
+      });
+      bx.appendChild(btn);
+    });
+  }
+  document.getElementById('newQ').addEventListener('click', pickQ);
+  pickQ();
+})();
+</script>
+</body>
+</html>

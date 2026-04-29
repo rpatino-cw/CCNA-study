@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>1.1.a Sim — Longest-Prefix Match</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#FAF7F2;--bg-surface:#FFFFFF;--bg-recessed:#F3F0EB;
+    --border:#E2DFD9;--border-strong:#C7C3BC;
+    --ink:#1C1917;--ink-secondary:#57534E;--ink-muted:#A8A29E;
+    --accent:#B45309;--accent-soft:#D97706;--accent-light:#FEF3C7;
+    --correct:#16A34A;--correct-bg:#F0FDF4;
+    --wrong:#DC2626;--wrong-bg:#FEF2F2;
+    --info:#2563EB;--info-bg:#EFF6FF;
+    --font-display:'Space Grotesk',system-ui,sans-serif;
+    --font-body:'Source Serif 4',Georgia,serif;
+    --font-mono:'JetBrains Mono',monospace;
+    --radius:6px;--radius-lg:10px;
+  }
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  html{font-size:16px;-webkit-font-smoothing:antialiased}
+  body{font-family:var(--font-body);background:var(--bg);color:var(--ink);line-height:1.55;padding:24px;max-width:920px;margin:0 auto}
+  .head{margin-bottom:20px;padding-bottom:14px;border-bottom:1px solid var(--border)}
+  .head .crumb{font-family:var(--font-mono);font-size:.74rem;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px}
+  .head h1{font-family:var(--font-display);font-size:1.5rem;font-weight:700;margin-bottom:6px}
+  .head .desc{font-size:.95rem;color:var(--ink-secondary)}
+  .panel{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;margin-bottom:18px}
+  .panel h2{font-family:var(--font-display);font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-secondary);margin-bottom:12px}
+  .input-row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  .input-row label{font-family:var(--font-display);font-size:.82rem;font-weight:600;color:var(--ink-secondary)}
+  input[type=text]{font-family:var(--font-mono);font-size:1.04rem;padding:8px 12px;border:1px solid var(--border-strong);border-radius:var(--radius);background:var(--bg-surface);width:180px;font-weight:500}
+  input[type=text]:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-light)}
+  .btn{font-family:var(--font-display);font-size:.84rem;font-weight:600;padding:8px 16px;background:var(--ink);color:#FAF7F2;border:none;border-radius:var(--radius);cursor:pointer;transition:background .15s}
+  .btn:hover{background:var(--ink-secondary)}
+  .btn.ghost{background:var(--bg-recessed);color:var(--ink)}
+  .btn.ghost:hover{background:var(--bg-hover,#F0EDE7)}
+  .btn.accent{background:var(--accent)}
+  .btn.accent:hover{background:var(--accent-soft)}
+  .table{width:100%;border-collapse:collapse;margin-top:12px;font-family:var(--font-mono);font-size:.92rem}
+  .table th{text-align:left;padding:10px 14px;background:var(--bg-recessed);font-family:var(--font-display);font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-secondary);border-bottom:1px solid var(--border-strong);font-weight:700}
+  .table td{padding:14px;border-bottom:1px solid var(--border);transition:all .35s cubic-bezier(.16,1,.3,1)}
+  .row-match td{background:var(--info-bg)}
+  .row-win td{background:var(--correct-bg);color:var(--correct);font-weight:700}
+  .row-win td .arrow{display:inline-block;animation:slideIn .4s cubic-bezier(.16,1,.3,1)}
+  @keyframes slideIn{from{transform:translateX(-8px);opacity:0}to{transform:translateX(0);opacity:1}}
+  .row-no td{opacity:.4}
+  .bits{display:flex;flex-wrap:wrap;gap:2px;margin:14px 0;font-family:var(--font-mono)}
+  .bit{width:22px;height:30px;display:flex;align-items:center;justify-content:center;font-size:.78rem;font-weight:700;border-radius:3px;border:1px solid var(--border);background:var(--bg-recessed);color:var(--ink-muted)}
+  .bit.match{background:var(--correct);color:#fff;border-color:var(--correct);transition:background .25s}
+  .bit.miss{background:var(--bg-surface);color:var(--ink-secondary)}
+  .octet-sep{width:8px}
+  .verdict{margin-top:16px;padding:12px 16px;border-radius:var(--radius);font-family:var(--font-display);font-size:.94rem;font-weight:600;display:none}
+  .verdict.show{display:block;animation:fadeIn .25s ease}
+  .verdict.win{background:var(--correct-bg);color:var(--correct);border:1px solid var(--correct)}
+  .verdict.miss{background:var(--wrong-bg);color:var(--wrong);border:1px solid var(--wrong)}
+  .verdict.info{background:var(--info-bg);color:var(--info);border:1px solid var(--info)}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
+  .quiz{margin-top:22px}
+  .quiz .stem{font-family:var(--font-display);font-size:1.02rem;font-weight:600;margin-bottom:12px;padding:14px;background:var(--accent-light);border-left:3px solid var(--accent);border-radius:var(--radius)}
+  .quiz .opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px}
+  .opt{background:var(--bg-recessed);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;font-family:var(--font-mono);font-size:.92rem;cursor:pointer;text-align:left;transition:all .15s}
+  .opt:hover{border-color:var(--border-strong);background:var(--bg-surface)}
+  .opt.correct{background:var(--correct-bg);border-color:var(--correct);color:var(--correct);font-weight:700}
+  .opt.wrong{background:var(--wrong-bg);border-color:var(--wrong);color:var(--wrong)}
+  .scoreline{font-family:var(--font-mono);font-size:.84rem;color:var(--ink-muted);margin-top:10px;display:flex;gap:18px;align-items:center}
+  .scoreline strong{font-weight:700;color:var(--ink)}
+  .examples{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+  .ex{font-family:var(--font-mono);font-size:.78rem;background:var(--bg-recessed);padding:4px 10px;border-radius:99px;cursor:pointer;color:var(--ink-secondary);border:1px solid var(--border)}
+  .ex:hover{background:var(--bg-surface);color:var(--ink);border-color:var(--border-strong)}
+  .footnote{font-family:var(--font-mono);font-size:.78rem;color:var(--ink-muted);margin-top:12px;line-height:1.5}
+  .badge{display:inline-block;font-family:var(--font-display);font-size:.7rem;font-weight:700;padding:2px 8px;border-radius:99px;background:var(--accent-light);color:var(--accent);text-transform:uppercase;letter-spacing:.04em;margin-left:8px}
+</style>
+</head>
+<body>
+
+<div class="head">
+  <div class="crumb"><a href="blueprint-drill.html?obj=1.1" style="color:var(--accent);text-decoration:none">← 1.1 Mini Sims</a> · 1.1.a · Routers · Longest-Prefix Match</div>
+  <h1>Forwarding Lookup Sim<span class="badge">drill</span></h1>
+  <div class="desc">Type any destination IP. The router walks its routing table. The most specific (longest-prefix) match wins. Wrong answer drops the packet — practice until you can predict the winner before clicking <strong>Lookup</strong>.</div>
+</div>
+
+<div class="panel">
+  <h2>Routing Table on R1</h2>
+  <table class="table" id="routeTable">
+    <thead><tr><th>Destination / Mask</th><th>Prefix</th><th>Next Hop</th><th>Egress</th><th>AD/Metric</th></tr></thead>
+    <tbody>
+      <tr data-net="10.0.0.0" data-mask="8"><td>10.0.0.0/8</td><td>/8</td><td>192.168.1.2</td><td>Gi0/1</td><td>[110/2] OSPF</td></tr>
+      <tr data-net="10.1.0.0" data-mask="16"><td>10.1.0.0/16</td><td>/16</td><td>192.168.1.3</td><td>Gi0/2</td><td>[110/3] OSPF</td></tr>
+      <tr data-net="10.1.2.0" data-mask="24"><td>10.1.2.0/24</td><td>/24</td><td>192.168.1.4</td><td>Gi0/3</td><td>[1/0] static</td></tr>
+      <tr data-net="172.16.0.0" data-mask="12"><td>172.16.0.0/12</td><td>/12</td><td>192.168.1.5</td><td>Gi0/4</td><td>[110/4] OSPF</td></tr>
+      <tr data-net="192.168.50.0" data-mask="24"><td>192.168.50.0/24</td><td>/24</td><td>—</td><td>Gi0/5</td><td>[0/0] connected</td></tr>
+      <tr data-net="0.0.0.0" data-mask="0"><td>0.0.0.0/0</td><td>/0</td><td>203.0.113.1</td><td>Gi0/0</td><td>[1/0] default</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="panel">
+  <h2>Lookup</h2>
+  <div class="input-row">
+    <label for="dest">Destination IP:</label>
+    <input id="dest" type="text" placeholder="10.1.2.5" value="10.1.2.5">
+    <button class="btn accent" id="lookup">Lookup</button>
+    <button class="btn ghost" id="reset">Reset</button>
+  </div>
+  <div class="examples">
+    <span class="ex" data-ip="10.1.2.5">10.1.2.5</span>
+    <span class="ex" data-ip="10.1.99.5">10.1.99.5</span>
+    <span class="ex" data-ip="10.99.0.1">10.99.0.1</span>
+    <span class="ex" data-ip="172.16.5.5">172.16.5.5</span>
+    <span class="ex" data-ip="192.168.50.7">192.168.50.7</span>
+    <span class="ex" data-ip="8.8.8.8">8.8.8.8</span>
+    <span class="ex" data-ip="11.0.0.1">11.0.0.1</span>
+  </div>
+
+  <div id="bits" class="bits" style="display:none"></div>
+  <div id="verdict" class="verdict"></div>
+  <div class="footnote" id="explain"></div>
+</div>
+
+<div class="panel quiz" id="quizPanel">
+  <h2>Quiz mode <span style="color:var(--accent);text-transform:none;letter-spacing:0;font-weight:700">— predict before peeking</span></h2>
+  <div class="stem" id="quizStem">Loading…</div>
+  <div class="opts" id="quizOpts"></div>
+  <div class="scoreline">
+    <span><strong id="qCorrect">0</strong> correct</span>
+    <span><strong id="qWrong">0</strong> wrong</span>
+    <span><strong id="qStreak">0</strong> streak</span>
+    <span style="margin-left:auto"><button class="btn ghost" id="newQ">Next ↻</button></span>
+  </div>
+</div>
+
+<script>
+(function(){
+  function ipToInt(ip){
+    var p = ip.split('.').map(Number);
+    if (p.length !== 4 || p.some(function(x){ return isNaN(x) || x < 0 || x > 255; })) return null;
+    return ((p[0]<<24) | (p[1]<<16) | (p[2]<<8) | p[3]) >>> 0;
+  }
+  function intToIp(n){ return [(n>>>24)&255,(n>>>16)&255,(n>>>8)&255,n&255].join('.'); }
+  function ipBits(ip){
+    var n = ipToInt(ip); if (n === null) return null;
+    var bits = '';
+    for (var i = 31; i >= 0; i--) bits += ((n >>> i) & 1);
+    return bits;
+  }
+  function networkOf(ip, mask){
+    var n = ipToInt(ip);
+    var m = mask === 0 ? 0 : (0xFFFFFFFF << (32 - mask)) >>> 0;
+    return (n & m) >>> 0;
+  }
+  function matches(destIp, netIp, mask){
+    return networkOf(destIp, mask) === networkOf(netIp, mask);
+  }
+
+  var routes = Array.prototype.slice.call(document.querySelectorAll('#routeTable tbody tr')).map(function(tr){
+    return { net: tr.dataset.net, mask: parseInt(tr.dataset.mask,10), tr: tr };
+  });
+
+  function clearRows(){
+    routes.forEach(function(r){
+      r.tr.classList.remove('row-match','row-win','row-no');
+      var arrow = r.tr.querySelector('.arrow'); if (arrow) arrow.remove();
+    });
+  }
+
+  function renderBits(destIp, winner){
+    var box = document.getElementById('bits');
+    if (!winner || winner.mask === 0) { box.style.display='none'; return; }
+    box.style.display='flex'; box.innerHTML='';
+    var destBits = ipBits(destIp);
+    var netBits = ipBits(winner.net);
+    for (var i = 0; i < 32; i++) {
+      var b = document.createElement('div');
+      b.className = 'bit ' + (i < winner.mask ? 'match' : 'miss');
+      b.textContent = destBits[i];
+      box.appendChild(b);
+      if (i === 7 || i === 15 || i === 23) {
+        var sep = document.createElement('div'); sep.className='octet-sep'; box.appendChild(sep);
+      }
+    }
+  }
+
+  function lookup(){
+    var dest = document.getElementById('dest').value.trim();
+    var verdict = document.getElementById('verdict');
+    var explain = document.getElementById('explain');
+    clearRows();
+    verdict.className = 'verdict'; verdict.textContent = '';
+    explain.textContent = '';
+    document.getElementById('bits').style.display = 'none';
+
+    if (ipToInt(dest) === null) {
+      verdict.className = 'verdict miss show';
+      verdict.textContent = '⚠ Invalid IP — use dotted-decimal like 10.1.2.5';
+      return;
+    }
+
+    var hits = [];
+    routes.forEach(function(r){
+      if (matches(dest, r.net, r.mask)) hits.push(r);
+      else r.tr.classList.add('row-no');
+    });
+
+    if (hits.length === 0) {
+      verdict.className = 'verdict miss show';
+      verdict.textContent = '✗ No match. ICMP Destination Unreachable. Packet dropped.';
+      explain.innerHTML = 'No route entry — and no default route either. Real router would send ICMP type 3.';
+      return;
+    }
+
+    hits.sort(function(a,b){ return b.mask - a.mask; });
+    var winner = hits[0];
+
+    hits.forEach(function(r){ r.tr.classList.remove('row-no'); r.tr.classList.add('row-match'); });
+    setTimeout(function(){
+      winner.tr.classList.remove('row-match'); winner.tr.classList.add('row-win');
+      var firstCell = winner.tr.querySelector('td');
+      var arrow = document.createElement('span');
+      arrow.className = 'arrow'; arrow.textContent = ' ← WIN';
+      firstCell.appendChild(arrow);
+      renderBits(dest, winner);
+    }, 280);
+
+    if (winner.mask === 0) {
+      verdict.className = 'verdict info show';
+      verdict.textContent = '↳ No specific match. Falls through to default route 0.0.0.0/0 → 203.0.113.1.';
+      explain.innerHTML = 'Default route catches anything not explicitly listed. Without a default, this packet would drop.';
+    } else {
+      verdict.className = 'verdict win show';
+      verdict.textContent = '✓ ' + winner.net + '/' + winner.mask + ' wins. Forward out ' + winner.tr.children[3].textContent + ' via ' + winner.tr.children[2].textContent + '.';
+      explain.innerHTML = hits.length + ' route' + (hits.length===1?'':'s') + ' matched. Longest-prefix wins: <strong>/' + winner.mask + '</strong> beats ' + hits.slice(1).map(function(r){return '/'+r.mask;}).join(', ') + '.';
+    }
+  }
+
+  document.getElementById('lookup').addEventListener('click', lookup);
+  document.getElementById('dest').addEventListener('keydown', function(e){ if (e.key==='Enter') lookup(); });
+  document.getElementById('reset').addEventListener('click', function(){
+    clearRows();
+    document.getElementById('verdict').className = 'verdict';
+    document.getElementById('explain').textContent = '';
+    document.getElementById('bits').style.display = 'none';
+    document.getElementById('dest').value = '';
+    document.getElementById('dest').focus();
+  });
+  document.querySelectorAll('.ex').forEach(function(el){
+    el.addEventListener('click', function(){
+      document.getElementById('dest').value = el.dataset.ip; lookup();
+    });
+  });
+
+  var qCorrect = 0, qWrong = 0, qStreak = 0;
+  function pickQuestion(){
+    var pool = [
+      { ip:'10.1.2.5',   ans:'10.1.2.0/24',   why:'/24 most specific — beats /16 and /8.' },
+      { ip:'10.1.99.5',  ans:'10.1.0.0/16',   why:'/16 most specific — /24 doesn\'t match (host bits differ in 3rd octet).' },
+      { ip:'10.99.0.1',  ans:'10.0.0.0/8',    why:'Only /8 matches — /16 and /24 are too specific.' },
+      { ip:'172.16.5.5', ans:'172.16.0.0/12', why:'Only /12 matches in 172-block.' },
+      { ip:'192.168.50.7',ans:'192.168.50.0/24',why:'Connected route — most specific possible.' },
+      { ip:'8.8.8.8',    ans:'0.0.0.0/0',     why:'No specific match — default route catches all.' },
+      { ip:'11.0.0.1',   ans:'0.0.0.0/0',     why:'11/8 not in table — default route only.' },
+      { ip:'10.0.0.5',   ans:'10.0.0.0/8',    why:'/16 needs 10.1.x.x and /24 needs 10.1.2.x — only /8 matches.' },
+      { ip:'10.1.5.5',   ans:'10.1.0.0/16',   why:'/16 matches; /24 needs third octet = 2.' },
+      { ip:'192.168.50.255',ans:'192.168.50.0/24',why:'Broadcast addr still in /24 network.' }
+    ];
+    var q = pool[Math.floor(Math.random()*pool.length)];
+    var opts = ['10.0.0.0/8','10.1.0.0/16','10.1.2.0/24','172.16.0.0/12','192.168.50.0/24','0.0.0.0/0'];
+    opts = opts.sort(function(){ return Math.random()-.5; });
+
+    document.getElementById('quizStem').innerHTML = 'A packet with destination <code style="font-family:var(--font-mono);background:#fff;padding:2px 8px;border-radius:4px;font-weight:700">' + q.ip + '</code> hits R1. Which routing-table entry wins?';
+    var box = document.getElementById('quizOpts'); box.innerHTML = '';
+    opts.forEach(function(o){
+      var b = document.createElement('button');
+      b.className = 'opt'; b.textContent = o;
+      b.addEventListener('click', function(){
+        if (b.classList.contains('correct') || b.classList.contains('wrong')) return;
+        if (o === q.ans) {
+          b.classList.add('correct'); qCorrect++; qStreak++;
+        } else {
+          b.classList.add('wrong'); qWrong++; qStreak = 0;
+          Array.prototype.forEach.call(box.children, function(c){ if (c.textContent === q.ans) c.classList.add('correct'); });
+        }
+        document.getElementById('qCorrect').textContent = qCorrect;
+        document.getElementById('qWrong').textContent = qWrong;
+        document.getElementById('qStreak').textContent = qStreak;
+
+        document.getElementById('dest').value = q.ip; lookup();
+        var v = document.getElementById('verdict');
+        v.textContent = v.textContent + '  Why: ' + q.why;
+      });
+      box.appendChild(b);
+    });
+  }
+  document.getElementById('newQ').addEventListener('click', pickQuestion);
+  pickQuestion();
+})();
+</script>
+</body>
+</html>

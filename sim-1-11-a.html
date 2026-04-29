@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>1.11.a Sim — NSS + MIMO</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#FAF7F2;--bg-surface:#FFFFFF;--bg-recessed:#F3F0EB;
+    --border:#E2DFD9;--border-strong:#C7C3BC;
+    --ink:#1C1917;--ink-secondary:#57534E;--ink-muted:#A8A29E;
+    --accent:#B45309;--accent-soft:#D97706;--accent-light:#FEF3C7;
+    --correct:#16A34A;--correct-bg:#F0FDF4;
+    --wrong:#DC2626;--wrong-bg:#FEF2F2;
+    --info:#2563EB;--info-bg:#EFF6FF;
+    --font-display:'Space Grotesk',system-ui,sans-serif;
+    --font-body:'Source Serif 4',Georgia,serif;
+    --font-mono:'JetBrains Mono',monospace;
+    --radius:6px;--radius-lg:10px;
+  }
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  html{font-size:16px;-webkit-font-smoothing:antialiased}
+  body{font-family:var(--font-body);background:var(--bg);color:var(--ink);line-height:1.55;padding:24px;max-width:920px;margin:0 auto}
+  .head{margin-bottom:20px;padding-bottom:14px;border-bottom:1px solid var(--border)}
+  .head .crumb{font-family:var(--font-mono);font-size:.74rem;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px}
+  .head h1{font-family:var(--font-display);font-size:1.5rem;font-weight:700;margin-bottom:6px}
+  .head .desc{font-size:.95rem;color:var(--ink-secondary)}
+  .panel{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;margin-bottom:18px}
+  .panel h2{font-family:var(--font-display);font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-secondary);margin-bottom:12px}
+  .btn{font-family:var(--font-display);font-size:.84rem;font-weight:600;padding:8px 16px;background:var(--ink);color:#FAF7F2;border:none;border-radius:var(--radius);cursor:pointer}
+  .btn.ghost{background:var(--bg-recessed);color:var(--ink)}
+  .ctrl{display:grid;grid-template-columns:120px 1fr 60px;gap:14px;align-items:center;margin:10px 0}
+  .ctrl label{font-family:var(--font-display);font-size:.84rem;font-weight:600;color:var(--ink-secondary)}
+  .ctrl input[type=range]{width:100%;accent-color:var(--accent)}
+  .ctrl .val{font-family:var(--font-mono);font-weight:700;text-align:right}
+  .stage{position:relative;height:280px;background:linear-gradient(180deg,#fff,var(--bg-recessed));border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-top:10px}
+  .ant{position:absolute;width:14px;height:34px;background:var(--ink);border-radius:3px}
+  .ant.tx{left:30px}.ant.rx{right:30px}
+  .stream{position:absolute;left:50px;right:50px;height:2px;background:var(--accent);opacity:.85}
+  .stream::after{content:'';position:absolute;left:0;top:-3px;width:8px;height:8px;background:var(--accent);border-radius:50%;animation:flow 1.6s linear infinite}
+  @keyframes flow{from{left:-2%}to{left:102%}}
+  .pill{display:inline-block;font-family:var(--font-mono);font-size:.78rem;background:var(--bg-recessed);padding:3px 10px;border-radius:99px;border:1px solid var(--border);margin-right:6px}
+  .stat{display:flex;gap:18px;flex-wrap:wrap;margin-top:14px;font-family:var(--font-mono);font-size:.92rem}
+  .stat b{color:var(--accent);font-weight:700}
+  .verdict{margin-top:14px;padding:12px 16px;border-radius:var(--radius);font-family:var(--font-display);font-size:.94rem;font-weight:600;background:var(--info-bg);color:var(--info);border:1px solid var(--info)}
+  .quiz{margin-top:22px}
+  .quiz .stem{font-family:var(--font-display);font-size:1.02rem;font-weight:600;margin-bottom:12px;padding:14px;background:var(--accent-light);border-left:3px solid var(--accent);border-radius:var(--radius)}
+  .quiz .opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px}
+  .opt{background:var(--bg-recessed);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;font-family:var(--font-mono);font-size:.92rem;cursor:pointer;text-align:left}
+  .opt:hover{border-color:var(--border-strong);background:var(--bg-surface)}
+  .opt.correct{background:var(--correct-bg);border-color:var(--correct);color:var(--correct);font-weight:700}
+  .opt.wrong{background:var(--wrong-bg);border-color:var(--wrong);color:var(--wrong)}
+  .scoreline{font-family:var(--font-mono);font-size:.84rem;color:var(--ink-muted);margin-top:10px;display:flex;gap:18px;align-items:center}
+  .scoreline strong{color:var(--ink)}
+  .badge{display:inline-block;font-family:var(--font-display);font-size:.7rem;font-weight:700;padding:2px 8px;border-radius:99px;background:var(--accent-light);color:var(--accent);text-transform:uppercase;letter-spacing:.04em;margin-left:8px}
+</style>
+</head>
+<body>
+
+<div class="head">
+  <div class="crumb"><a href="blueprint-drill.html?obj=1.11" style="color:var(--accent);text-decoration:none">← 1.11 Mini Sims</a> · 1.11.a · Wireless · NSS + MIMO</div>
+  <h1>NSS — Spatial Streams<span class="badge">drill</span></h1>
+  <div class="desc">A <strong>spatial stream</strong> is one independent radio signal carrying its own data, riding the same channel by exploiting different physical paths. Add an antenna pair (TX and RX), unlock another stream, multiply throughput. Min(TX,RX) caps NSS — adding a 4th TX with only 2 RX antennas wastes silicon.</div>
+</div>
+
+<div class="panel">
+  <h2>Configure the link</h2>
+  <div class="ctrl"><label>TX antennas</label><input id="tx" type="range" min="1" max="8" value="2"><div class="val" id="vtx">2</div></div>
+  <div class="ctrl"><label>RX antennas</label><input id="rx" type="range" min="1" max="8" value="2"><div class="val" id="vrx">2</div></div>
+  <div class="ctrl"><label>Standard</label>
+    <select id="std" style="font-family:var(--font-mono);padding:6px 10px;border:1px solid var(--border-strong);border-radius:var(--radius)">
+      <option value="n">802.11n (Wi-Fi 4) — max 4 SS, 600 Mbps</option>
+      <option value="ac" selected>802.11ac (Wi-Fi 5) — max 8 SS, 6.9 Gbps</option>
+      <option value="ax">802.11ax (Wi-Fi 6/6E) — max 8 SS, 9.6 Gbps</option>
+      <option value="be">802.11be (Wi-Fi 7) — max 16 SS, 46 Gbps</option>
+    </select>
+    <div></div>
+  </div>
+
+  <div class="stage" id="stage"></div>
+
+  <div class="stat">
+    <span>NSS = min(TX,RX): <b id="nss">2</b></span>
+    <span>Per-stream max: <b id="perStream">433 Mbps</b></span>
+    <span>Link max: <b id="totalRate">866 Mbps</b></span>
+    <span>Standard cap: <b id="capRate">8 SS</b></span>
+  </div>
+  <div class="verdict" id="verdict">Slide TX/RX to watch streams (the orange dots) appear. NSS is min(TX,RX) — never the larger.</div>
+</div>
+
+<div class="panel quiz">
+  <h2>Quiz mode</h2>
+  <div class="stem" id="quizStem">Loading…</div>
+  <div class="opts" id="quizOpts"></div>
+  <div class="scoreline">
+    <span><strong id="qCorrect">0</strong> correct</span>
+    <span><strong id="qWrong">0</strong> wrong</span>
+    <span><strong id="qStreak">0</strong> streak</span>
+    <span style="margin-left:auto"><button class="btn ghost" id="newQ">Next ↻</button></span>
+  </div>
+</div>
+
+<script>
+(function(){
+  var perStream = { n:150, ac:433, ax:600, be:2880 };
+  var maxSS = { n:4, ac:8, ax:8, be:16 };
+
+  function render(){
+    var tx = +document.getElementById('tx').value;
+    var rx = +document.getElementById('rx').value;
+    var std = document.getElementById('std').value;
+    var cap = maxSS[std];
+    var nss = Math.min(tx, rx, cap);
+    document.getElementById('vtx').textContent = tx;
+    document.getElementById('vrx').textContent = rx;
+    document.getElementById('nss').textContent = nss + (Math.min(tx,rx) > cap ? ' (capped by standard)' : '');
+    document.getElementById('perStream').textContent = perStream[std] + ' Mbps';
+    var total = perStream[std] * nss;
+    document.getElementById('totalRate').textContent = total >= 1000 ? (total/1000).toFixed(1)+' Gbps' : total+' Mbps';
+    document.getElementById('capRate').textContent = cap + ' SS';
+
+    var stage = document.getElementById('stage'); stage.innerHTML='';
+    var stageH = 280;
+    function placeAnt(side, count){
+      for (var i=0;i<count;i++){
+        var a = document.createElement('div');
+        a.className = 'ant ' + side;
+        a.style.top = (40 + i*(stageH-100)/Math.max(count-1,1)) + 'px';
+        if (count===1) a.style.top = (stageH/2-17)+'px';
+        stage.appendChild(a);
+      }
+    }
+    placeAnt('tx', tx);
+    placeAnt('rx', rx);
+    for (var i=0;i<nss;i++){
+      var s = document.createElement('div');
+      s.className = 'stream';
+      s.style.top = (50 + i*(stageH-110)/Math.max(nss-1,1)) + 'px';
+      if (nss===1) s.style.top = (stageH/2)+'px';
+      s.style.animationDelay = (i*0.2)+'s';
+      stage.appendChild(s);
+    }
+  }
+  ['tx','rx','std'].forEach(function(id){ document.getElementById(id).addEventListener('input', render); });
+  render();
+
+  var qCorrect=0,qWrong=0,qStreak=0;
+  var pool = [
+    {q:'4x4 MIMO with TX=4, RX=2 — what is NSS?',a:'2',o:['2','4','6','8']},
+    {q:'Max spatial streams in 802.11n?',a:'4',o:['4','8','3','16']},
+    {q:'Max NSS in 802.11ac and 802.11ax?',a:'8',o:['8','4','16','2']},
+    {q:'NSS is determined by:',a:'min(TX,RX) capped by standard',o:['min(TX,RX) capped by standard','TX antennas only','channel width','SNR']},
+    {q:'Adding a 5th TX antenna to a 4×4 link gives:',a:'no extra throughput — RX still 4',o:['no extra throughput — RX still 4','+25% throughput','+1 stream','doubles range']},
+    {q:'Wi-Fi 7 (.be) max NSS?',a:'16',o:['16','8','32','4']},
+    {q:'Per-stream rate doubles roughly when:',a:'channel width or modulation increases',o:['channel width or modulation increases','TX power doubles','antenna count doubles','SNR halves']},
+    {q:'MU-MIMO splits streams across:',a:'multiple clients simultaneously',o:['multiple clients simultaneously','multiple APs','multiple bands','multiple SSIDs']},
+    {q:'A phone advertises "2x2:2" — that means:',a:'2 TX, 2 RX, 2 streams',o:['2 TX, 2 RX, 2 streams','2 antennas, 2 GHz, 2 Gbps','2 bands, 2x speed','2 channels bonded']},
+    {q:'Why does NSS need diverse paths?',a:'so receiver can untangle parallel signals via spatial diff',o:['so receiver can untangle parallel signals via spatial diff','to reduce noise','for encryption','to extend range']}
+  ];
+  function pickQ(){
+    var q = pool[Math.floor(Math.random()*pool.length)];
+    var opts = q.o.slice().sort(function(){return Math.random()-.5;});
+    document.getElementById('quizStem').textContent = q.q;
+    var box=document.getElementById('quizOpts'); box.innerHTML='';
+    opts.forEach(function(o){
+      var b=document.createElement('button'); b.className='opt'; b.textContent=o;
+      b.addEventListener('click', function(){
+        if (b.classList.contains('correct')||b.classList.contains('wrong')) return;
+        if (o===q.a){ b.classList.add('correct'); qCorrect++; qStreak++; }
+        else { b.classList.add('wrong'); qWrong++; qStreak=0;
+          Array.prototype.forEach.call(box.children,function(c){ if(c.textContent===q.a) c.classList.add('correct'); }); }
+        document.getElementById('qCorrect').textContent=qCorrect;
+        document.getElementById('qWrong').textContent=qWrong;
+        document.getElementById('qStreak').textContent=qStreak;
+      });
+      box.appendChild(b);
+    });
+  }
+  document.getElementById('newQ').addEventListener('click', pickQ);
+  pickQ();
+})();
+</script>
+</body>
+</html>

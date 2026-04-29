@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>1.1.e Sim — WLC vs Cisco DNA Center</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#FAF7F2;--bg-surface:#FFFFFF;--bg-recessed:#F3F0EB;
+    --border:#E2DFD9;--border-strong:#C7C3BC;
+    --ink:#1C1917;--ink-secondary:#57534E;--ink-muted:#A8A29E;
+    --accent:#B45309;--accent-soft:#D97706;--accent-light:#FEF3C7;
+    --correct:#16A34A;--correct-bg:#F0FDF4;
+    --wrong:#DC2626;--wrong-bg:#FEF2F2;
+    --info:#2563EB;--info-bg:#EFF6FF;
+    --font-display:'Space Grotesk',system-ui,sans-serif;
+    --font-body:'Source Serif 4',Georgia,serif;
+    --font-mono:'JetBrains Mono',monospace;
+    --radius:6px;--radius-lg:10px;
+  }
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  html{font-size:16px;-webkit-font-smoothing:antialiased}
+  body{font-family:var(--font-body);background:var(--bg);color:var(--ink);line-height:1.55;padding:24px;max-width:920px;margin:0 auto}
+  .head{margin-bottom:20px;padding-bottom:14px;border-bottom:1px solid var(--border)}
+  .head .crumb{font-family:var(--font-mono);font-size:.74rem;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px}
+  .head .crumb a{color:var(--accent);text-decoration:none}
+  .head h1{font-family:var(--font-display);font-size:1.5rem;font-weight:700;margin-bottom:6px}
+  .head .desc{font-size:.95rem;color:var(--ink-secondary)}
+  .panel{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;margin-bottom:18px}
+  .panel h2{font-family:var(--font-display);font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-secondary);margin-bottom:12px}
+  .badge{display:inline-block;font-family:var(--font-display);font-size:.7rem;font-weight:700;padding:2px 8px;border-radius:99px;background:var(--accent-light);color:var(--accent);text-transform:uppercase;letter-spacing:.04em;margin-left:8px}
+  .btn{font-family:var(--font-display);font-size:.84rem;font-weight:600;padding:8px 16px;background:var(--ink);color:#FAF7F2;border:none;border-radius:var(--radius);cursor:pointer}
+  .btn.ghost{background:var(--bg-recessed);color:var(--ink)}
+  .scopes{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+  .scope{position:relative;padding:18px;border-radius:var(--radius-lg);border:2px solid;min-height:230px;cursor:pointer;transition:transform .25s,box-shadow .25s}
+  .scope:hover{transform:translateY(-2px);box-shadow:0 8px 22px rgba(0,0,0,.06)}
+  .scope.wlc{background:var(--info-bg);border-color:var(--info)}
+  .scope.dna{background:var(--accent-light);border-color:var(--accent)}
+  .scope h3{font-family:var(--font-display);font-size:1.1rem;font-weight:700;margin-bottom:6px}
+  .scope.wlc h3{color:var(--info)}
+  .scope.dna h3{color:var(--accent)}
+  .scope p{font-size:.88rem;color:var(--ink-secondary);margin-bottom:8px}
+  .scope ul{font-family:var(--font-mono);font-size:.78rem;color:var(--ink-secondary);list-style:none;line-height:1.65}
+  .scope ul li:before{content:'→ ';color:currentColor;margin-right:4px}
+  .scope.selected{outline:3px solid var(--ink);outline-offset:2px}
+  .stem-box{padding:14px 16px;background:var(--bg-recessed);border-left:3px solid var(--accent);border-radius:var(--radius);font-family:var(--font-display);font-size:1rem;font-weight:600;margin-bottom:12px;min-height:54px}
+  .stem-controls{display:flex;gap:8px;margin-bottom:14px}
+  .verdict{margin-top:14px;padding:12px 16px;border-radius:var(--radius);font-family:var(--font-display);font-size:.94rem;font-weight:600;display:none}
+  .verdict.show{display:block}
+  .verdict.win{background:var(--correct-bg);color:var(--correct);border:1px solid var(--correct)}
+  .verdict.miss{background:var(--wrong-bg);color:var(--wrong);border:1px solid var(--wrong)}
+  .verdict.info{background:var(--info-bg);color:var(--info);border:1px solid var(--info)}
+  .scope-viz{margin-top:18px;height:180px;position:relative}
+  .scope-viz svg{width:100%;height:100%}
+  .quiz{margin-top:22px}
+  .quiz .stem{font-family:var(--font-display);font-size:1.02rem;font-weight:600;margin-bottom:12px;padding:14px;background:var(--accent-light);border-left:3px solid var(--accent);border-radius:var(--radius)}
+  .quiz .opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px}
+  .opt{background:var(--bg-recessed);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;font-family:var(--font-mono);font-size:.9rem;cursor:pointer;text-align:left}
+  .opt:hover{border-color:var(--border-strong);background:var(--bg-surface)}
+  .opt.correct{background:var(--correct-bg);border-color:var(--correct);color:var(--correct);font-weight:700}
+  .opt.wrong{background:var(--wrong-bg);border-color:var(--wrong);color:var(--wrong)}
+  .scoreline{font-family:var(--font-mono);font-size:.84rem;color:var(--ink-muted);margin-top:10px;display:flex;gap:18px;align-items:center}
+  .scoreline strong{font-weight:700;color:var(--ink)}
+  .footer-link{font-family:var(--font-mono);font-size:.78rem;color:var(--accent);text-decoration:none}
+  .scorebar{display:flex;gap:14px;font-family:var(--font-mono);font-size:.84rem;color:var(--ink-secondary);margin-top:8px}
+  .scorebar b{color:var(--ink);font-weight:700}
+  @keyframes pulseBubble{0%,100%{r:60}50%{r:64}}
+</style>
+</head>
+<body>
+
+<div class="head">
+  <div class="crumb"><a href="blueprint-drill.html?obj=1.1">← 1.1 Mini Sims</a> · 1.1.e · WLC · DNA Center</div>
+  <h1>Two Controllers, Two Scopes<span class="badge">drill</span></h1>
+  <div class="desc">Both are "controllers." Both have GUIs. Both manage Cisco gear. But their scopes are completely different. A WLC manages the wireless plane only — every AP and every wireless client, that's it. Cisco DNA Center is a notch above — it manages the entire campus (wired switches, routers, APs, security policy, segmentation) by intent. You don't tell DNA "set this VLAN" — you tell it "Engineering can talk to Engineering." Read each stem, decide which tool fits.</div>
+</div>
+
+<div class="panel">
+  <h2>Scope-to-Tool Matcher — read the stem, click the right controller</h2>
+  <div class="stem-box" id="stemBox">Loading scenario…</div>
+  <div class="scopes" id="scopes">
+    <div class="scope wlc" data-tool="wlc">
+      <h3>WLC — Wireless LAN Controller</h3>
+      <p>Manages APs and wireless clients. The brain inside the wireless plane.</p>
+      <ul>
+        <li>SSID config, RF channel/power, WPA2/3, RADIUS</li>
+        <li>Fast roaming, mobility groups</li>
+        <li>CAPWAP tunnel termination</li>
+        <li>Wireless-only — no switch, no router, no segmentation</li>
+      </ul>
+    </div>
+    <div class="scope dna" data-tool="dna">
+      <h3>Cisco DNA Center</h3>
+      <p>Manages the entire campus by intent. Wired + wireless + security + segmentation.</p>
+      <ul>
+        <li>Intent-based: describe outcome, not config</li>
+        <li>SD-Access fabric, Group-Based Policy, segmentation</li>
+        <li>Discovers + provisions switches, routers, WLCs, APs</li>
+        <li>Assurance, telemetry, automated path-trace</li>
+      </ul>
+    </div>
+  </div>
+  <div class="stem-controls">
+    <button class="btn ghost" id="newStem">Next stem ↻</button>
+  </div>
+  <div id="verdict" class="verdict"></div>
+  <div class="scorebar">
+    <span><b id="sCorrect">0</b> correct</span>
+    <span><b id="sWrong">0</b> wrong</span>
+    <span><b id="sStreak">0</b> streak</span>
+  </div>
+</div>
+
+<div class="panel">
+  <h2>Scope visualization</h2>
+  <div class="scope-viz">
+    <svg viewBox="0 0 800 180" preserveAspectRatio="xMidYMid meet">
+      <circle cx="240" cy="100" r="60" fill="#EFF6FF" stroke="#2563EB" stroke-width="2.5" style="animation:pulseBubble 3s ease-in-out infinite"/>
+      <text x="240" y="92" text-anchor="middle" font-family="Space Grotesk" font-weight="700" font-size="14" fill="#2563EB">WLC scope</text>
+      <text x="240" y="110" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#2563EB">APs + wireless clients</text>
+      <circle cx="540" cy="90" r="84" fill="#FEF3C7" stroke="#B45309" stroke-width="2.5" style="animation:pulseBubble 3s ease-in-out infinite"/>
+      <circle cx="540" cy="90" r="48" fill="none" stroke="#B45309" stroke-width="1" stroke-dasharray="4 4" opacity=".5"/>
+      <text x="540" y="74" text-anchor="middle" font-family="Space Grotesk" font-weight="700" font-size="14" fill="#B45309">DNA Center scope</text>
+      <text x="540" y="92" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#B45309">switches · routers · WLCs · APs</text>
+      <text x="540" y="106" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#B45309">policy · assurance · automation</text>
+      <text x="540" y="160" text-anchor="middle" font-family="Source Serif 4" font-style="italic" font-size="11" fill="#57534E">DNA Center can manage the WLC inside its bigger bubble</text>
+    </svg>
+  </div>
+</div>
+
+<div class="panel quiz" id="quizPanel">
+  <h2>Quiz mode</h2>
+  <div class="stem" id="quizStem">Loading…</div>
+  <div class="opts" id="quizOpts"></div>
+  <div class="scoreline">
+    <span><strong id="qCorrect">0</strong> correct</span>
+    <span><strong id="qWrong">0</strong> wrong</span>
+    <span><strong id="qStreak">0</strong> streak</span>
+    <span style="margin-left:auto"><button class="btn ghost" id="newQ">Next ↻</button></span>
+  </div>
+</div>
+
+<div style="text-align:center;margin-top:18px"><a class="footer-link" href="blueprint-drill.html?obj=1.1">← Back to 1.1 leaves</a></div>
+
+<script>
+(function(){
+  var stems = [
+    { text:'Manage 200 APs from one console.', ans:'wlc', why:'Pure wireless management → WLC is the right tool. DNA could too, but WLC is the direct fit.' },
+    { text:'Push a new SSID + WPA3 password to every AP at HQ.', ans:'wlc', why:'SSID/auth = wireless config = WLC.' },
+    { text:'Manage the entire campus by intent — "Engineering can talk to Engineering, but not Sales."', ans:'dna', why:'Intent-based + segmentation = DNA Center (SD-Access).' },
+    { text:'Discover and provision 60 brand-new Catalyst switches across 4 sites.', ans:'dna', why:'Wired-device automation/PnP at campus scale → DNA.' },
+    { text:'Tune AP transmit power and RRM channel assignment.', ans:'wlc', why:'RF management lives on the WLC.' },
+    { text:'Run a path-trace from a user laptop to a server, across switches and APs.', ans:'dna', why:'End-to-end path assurance is a DNA Center / Assurance feature.' },
+    { text:'Terminate CAPWAP tunnels from 50 LWAPs.', ans:'wlc', why:'CAPWAP terminates on the WLC.' },
+    { text:'Apply Group-Based Access Control (GBAC) policy across wired and wireless.', ans:'dna', why:'GBAC + SGT segmentation is a DNA Center feature.' },
+    { text:'See per-client wireless health (SNR, retries, roam events).', ans:'wlc', why:'Per-client wireless telemetry is on the WLC (DNA also surfaces it through Assurance, but WLC is primary).' },
+    { text:'Use telemetry + ML to flag a switch port that is silently dropping packets.', ans:'dna', why:'DNA Assurance does cross-device anomaly detection.' },
+    { text:'Configure a guest portal SSID with web-auth.', ans:'wlc', why:'Guest portal/web-auth is a wireless feature → WLC.' },
+    { text:'Roll out an SD-Access fabric across the campus.', ans:'dna', why:'SD-Access is DNA Center\'s core wired+wireless fabric.' }
+  ];
+  var idx = 0;
+  var sc=0, sw=0, st=0;
+
+  function shuffle(){ stems.sort(function(){return Math.random()-.5;}); }
+  shuffle();
+
+  function showStem(){
+    document.getElementById('stemBox').textContent = stems[idx].text;
+    document.querySelectorAll('.scope').forEach(function(s){ s.classList.remove('selected'); });
+    document.getElementById('verdict').className='verdict';
+  }
+  showStem();
+
+  document.querySelectorAll('.scope').forEach(function(scope){
+    scope.addEventListener('click', function(){
+      document.querySelectorAll('.scope').forEach(function(s){ s.classList.remove('selected'); });
+      scope.classList.add('selected');
+      var picked = scope.dataset.tool;
+      var q = stems[idx];
+      var v = document.getElementById('verdict');
+      if (picked === q.ans) { v.className='verdict win show'; v.textContent='✓ ' + (q.ans==='wlc'?'WLC':'DNA Center') + ' is right. ' + q.why; sc++; st++; }
+      else { v.className='verdict miss show'; v.textContent='✗ Wrong tool. The right answer is ' + (q.ans==='wlc'?'WLC':'DNA Center') + '. ' + q.why; sw++; st=0; }
+      document.getElementById('sCorrect').textContent=sc;
+      document.getElementById('sWrong').textContent=sw;
+      document.getElementById('sStreak').textContent=st;
+    });
+  });
+
+  document.getElementById('newStem').addEventListener('click', function(){
+    idx = (idx + 1) % stems.length;
+    if (idx === 0) shuffle();
+    showStem();
+  });
+
+  // separate quiz
+  var qCorrect=0,qWrong=0,qStreak=0;
+  var pool = [
+    { stem:'Which controller is intent-based?', ans:'Cisco DNA Center', opts:['WLC','Cisco DNA Center','Hub','Layer-2 switch'], why:'DNA Center is intent-based — describe outcomes, it generates config.' },
+    { stem:'Which controller terminates CAPWAP tunnels from APs?', ans:'WLC', opts:['WLC','DNA Center','PoE switch','RADIUS server'], why:'CAPWAP control + data terminate on the WLC.' },
+    { stem:'You want one tool to manage wired switches, routers, AND APs across a campus. Which?', ans:'Cisco DNA Center', opts:['WLC','Cisco DNA Center','RADIUS','SNMP server'], why:'DNA scope = entire campus. WLC scope = wireless only.' },
+    { stem:'You only have wireless to manage. 80 APs, 1 site. Which is enough?', ans:'WLC', opts:['WLC','Cisco DNA Center','SD-Access fabric','vManage'], why:'WLC alone handles pure wireless. DNA is overkill at one site, wireless-only.' },
+    { stem:'SD-Access fabric is provisioned by which platform?', ans:'Cisco DNA Center', opts:['WLC','Cisco DNA Center','ISE alone','vManage'], why:'SD-Access = DNA Center\'s campus fabric solution.' },
+    { stem:'Which platform shows path-trace from a user device to an application across wired+wireless?', ans:'Cisco DNA Center', opts:['WLC','Cisco DNA Center','SNMP poller','syslog server'], why:'DNA Center Assurance does end-to-end path trace.' },
+    { stem:'Which controller is responsible for radio resource management (RRM)?', ans:'WLC', opts:['WLC','Cisco DNA Center','SD-Access','BGP route reflector'], why:'WLC owns the RF — RRM, channel assignment, TX power.' },
+    { stem:'Group-Based Access Control (GBAC) with SGTs is configured from where?', ans:'Cisco DNA Center', opts:['WLC','Cisco DNA Center','RADIUS console','LDAP'], why:'GBAC + SGT segmentation is a DNA Center / SD-Access feature.' }
+  ];
+  function pickQ(){
+    var q = pool[Math.floor(Math.random()*pool.length)];
+    var opts = q.opts.slice().sort(function(){return Math.random()-.5;});
+    document.getElementById('quizStem').textContent = q.stem;
+    var box = document.getElementById('quizOpts'); box.innerHTML='';
+    opts.forEach(function(o){
+      var b = document.createElement('button'); b.className='opt'; b.textContent=o;
+      b.addEventListener('click', function(){
+        if (b.classList.contains('correct')||b.classList.contains('wrong')) return;
+        if (o===q.ans){ b.classList.add('correct'); qCorrect++; qStreak++; }
+        else { b.classList.add('wrong'); qWrong++; qStreak=0;
+          Array.prototype.forEach.call(box.children, function(c){ if (c.textContent===q.ans) c.classList.add('correct'); }); }
+        document.getElementById('qCorrect').textContent=qCorrect;
+        document.getElementById('qWrong').textContent=qWrong;
+        document.getElementById('qStreak').textContent=qStreak;
+      });
+      box.appendChild(b);
+    });
+  }
+  document.getElementById('newQ').addEventListener('click', pickQ);
+  pickQ();
+})();
+</script>
+</body>
+</html>

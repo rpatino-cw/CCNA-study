@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>5.5 Sim — Access Control Lists (ACLs)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{--bg:#FAF7F2;--bg-surface:#FFFFFF;--bg-recessed:#F3F0EB;--border:#E2DFD9;--border-strong:#C7C3BC;--ink:#1C1917;--ink-secondary:#57534E;--ink-muted:#A8A29E;--accent:#B45309;--accent-soft:#D97706;--accent-light:#FEF3C7;--correct:#16A34A;--correct-bg:#F0FDF4;--wrong:#DC2626;--wrong-bg:#FEF2F2;--info:#2563EB;--info-bg:#EFF6FF;--font-display:'Space Grotesk',system-ui,sans-serif;--font-body:'Source Serif 4',Georgia,serif;--font-mono:'JetBrains Mono',monospace;--radius:6px;--radius-lg:10px}
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:var(--font-body);background:var(--bg);color:var(--ink);line-height:1.55;padding:24px;max-width:920px;margin:0 auto}
+  .head{margin-bottom:20px;padding-bottom:14px;border-bottom:1px solid var(--border)}
+  .head .crumb{font-family:var(--font-mono);font-size:.74rem;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px}
+  .head h1{font-family:var(--font-display);font-size:1.5rem;font-weight:700;margin-bottom:6px}
+  .head .desc{font-size:.95rem;color:var(--ink-secondary)}
+  .panel{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;margin-bottom:18px}
+  .panel h2{font-family:var(--font-display);font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-secondary);margin-bottom:12px}
+  .intro{font-size:.96rem;color:var(--ink-secondary);margin-bottom:14px}
+  .intro strong{color:var(--ink)}
+  .btn{font-family:var(--font-display);font-size:.84rem;font-weight:600;padding:8px 16px;background:var(--ink);color:#FAF7F2;border:none;border-radius:var(--radius);cursor:pointer}
+  .btn.ghost{background:var(--bg-recessed);color:var(--ink)}
+  .btn.accent{background:var(--accent)}
+  .btn.danger{background:var(--wrong)}
+  .acl-build{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:12px}
+  .acl-build label{font-family:var(--font-display);font-size:.78rem;font-weight:600;color:var(--ink-secondary);text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:4px}
+  .acl-build select,.acl-build input{font-family:var(--font-mono);font-size:.92rem;padding:8px 10px;border:1px solid var(--border-strong);border-radius:var(--radius);background:var(--bg-surface);width:100%}
+  .acl-list{font-family:var(--font-mono);font-size:.86rem;background:#1C1917;color:#E7E5E4;padding:14px;border-radius:var(--radius);margin-top:10px;min-height:60px}
+  .acl-list .line{padding:4px 0}
+  .acl-list .line.deny{color:#FCA5A5}
+  .acl-list .line.permit{color:#86EFAC}
+  .acl-list .line.implicit{color:#A8A29E;font-style:italic;border-top:1px dashed #44403C;margin-top:6px;padding-top:6px}
+  .test{margin-top:16px;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  .test input{font-family:var(--font-mono);font-size:.92rem;padding:8px 10px;border:1px solid var(--border-strong);border-radius:var(--radius);background:var(--bg-surface);width:140px}
+  .verdict{margin-top:14px;padding:12px 16px;border-radius:var(--radius);font-family:var(--font-display);font-size:.94rem;font-weight:600;display:none}
+  .verdict.show{display:block;animation:fadeIn .25s ease}
+  .verdict.win{background:var(--correct-bg);color:var(--correct);border:1px solid var(--correct)}
+  .verdict.miss{background:var(--wrong-bg);color:var(--wrong);border:1px solid var(--wrong)}
+  .verdict.info{background:var(--info-bg);color:var(--info);border:1px solid var(--info)}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
+  .compare{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px;font-family:var(--font-mono);font-size:.84rem}
+  .compare div{padding:12px;background:var(--bg-recessed);border-radius:var(--radius);border:1px solid var(--border)}
+  .compare h3{font-family:var(--font-display);font-size:.92rem;color:var(--accent);margin-bottom:6px}
+  .quiz{margin-top:22px}
+  .quiz .stem{font-family:var(--font-display);font-size:1.02rem;font-weight:600;margin-bottom:12px;padding:14px;background:var(--accent-light);border-left:3px solid var(--accent);border-radius:var(--radius)}
+  .quiz .opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px}
+  .opt{background:var(--bg-recessed);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;font-family:var(--font-mono);font-size:.92rem;cursor:pointer;text-align:left}
+  .opt:hover{border-color:var(--border-strong);background:var(--bg-surface)}
+  .opt.correct{background:var(--correct-bg);border-color:var(--correct);color:var(--correct);font-weight:700}
+  .opt.wrong{background:var(--wrong-bg);border-color:var(--wrong);color:var(--wrong)}
+  .scoreline{font-family:var(--font-mono);font-size:.84rem;color:var(--ink-muted);margin-top:10px;display:flex;gap:18px;align-items:center}
+  .scoreline strong{font-weight:700;color:var(--ink)}
+  .footnote{font-family:var(--font-mono);font-size:.78rem;color:var(--ink-muted);margin-top:12px;line-height:1.5}
+  .badge{display:inline-block;font-family:var(--font-display);font-size:.7rem;font-weight:700;padding:2px 8px;border-radius:99px;background:var(--accent-light);color:var(--accent);text-transform:uppercase;letter-spacing:.04em;margin-left:8px}
+  .footer-link{margin-top:24px;padding-top:14px;border-top:1px solid var(--border);font-family:var(--font-mono);font-size:.82rem}
+  .footer-link a{color:var(--accent);text-decoration:none}
+</style>
+</head>
+<body>
+
+<div class="head">
+  <div class="crumb"><a href="blueprint-drill.html?obj=5.5" style="color:var(--accent);text-decoration:none">← 5.5 Mini Sims</a> · 5.5 · Security · ACLs</div>
+  <h1>ACL Builder + Test Harness<span class="badge">drill</span></h1>
+  <div class="desc">An ACL is a <strong>top-down checklist</strong>. Router walks lines until first match. <strong>Implicit deny</strong> at the end catches everything else. Standard = source IP only. Extended = source + dest + protocol + ports. Build, then fire test packets through.</div>
+</div>
+
+<div class="panel">
+  <h2>Standard vs Extended</h2>
+  <div class="compare">
+    <div><h3>Standard ACL (1-99 / 1300-1999)</h3>
+      Source IP only. Place CLOSE TO destination — too generic to filter near source.<br><br>
+      <code>access-list 10 permit 10.1.1.0 0.0.0.255</code>
+    </div>
+    <div><h3>Extended ACL (100-199 / 2000-2699)</h3>
+      Source + dest + protocol + ports. Place CLOSE TO source — drop bad traffic ASAP.<br><br>
+      <code>access-list 110 deny tcp 10.1.1.0 0.0.0.255 any eq 23</code>
+    </div>
+  </div>
+</div>
+
+<div class="panel">
+  <h2>Build an ACL</h2>
+  <div class="acl-build">
+    <div><label>Action</label><select id="aAct"><option>permit</option><option>deny</option></select></div>
+    <div><label>Protocol</label><select id="aProto"><option>ip</option><option>tcp</option><option>udp</option><option>icmp</option></select></div>
+    <div><label>Source</label><input id="aSrc" value="10.1.1.0"></div>
+    <div><label>Wildcard</label><input id="aWc" value="0.0.0.255"></div>
+    <div><label>Dest</label><input id="aDst" value="any"></div>
+    <div><label>Port (eq)</label><input id="aPort" placeholder="23 / 80 / any"></div>
+  </div>
+  <div style="display:flex;gap:8px;margin-top:6px"><button class="btn accent" id="addLine">+ Add line</button><button class="btn ghost" id="clearAcl">Clear</button></div>
+  <div class="acl-list" id="aclList"><span style="color:#A8A29E">! ACL empty — add lines above</span></div>
+
+  <div class="test">
+    <strong style="font-family:var(--font-display);font-size:.86rem">Test packet:</strong>
+    <input id="tSrc" placeholder="src 10.1.1.5" value="10.1.1.5">
+    <input id="tDst" placeholder="dst 10.2.0.1" value="10.2.0.1">
+    <input id="tProto" placeholder="tcp" value="tcp">
+    <input id="tPort" placeholder="port 80" value="23">
+    <button class="btn accent" id="fire">Fire packet →</button>
+  </div>
+  <div id="verdict" class="verdict"></div>
+  <div class="footnote" id="explain"></div>
+</div>
+
+<div class="panel">
+  <h2>Wildcard mask vs Subnet mask</h2>
+  <p class="intro">Subnet mask: 1 = network, 0 = host. Wildcard mask is the <strong>inverse</strong>: 0 = must-match, 1 = don't-care.</p>
+  <div class="compare">
+    <div><h3>/24 subnet</h3>Mask: <strong>255.255.255.0</strong><br>Wildcard: <strong>0.0.0.255</strong></div>
+    <div><h3>/27 subnet</h3>Mask: <strong>255.255.255.224</strong><br>Wildcard: <strong>0.0.0.31</strong></div>
+  </div>
+</div>
+
+<div class="panel quiz" id="quizPanel">
+  <h2>Quiz mode</h2>
+  <div class="stem" id="quizStem">Loading…</div>
+  <div class="opts" id="quizOpts"></div>
+  <div class="scoreline">
+    <span><strong id="qCorrect">0</strong> correct</span>
+    <span><strong id="qWrong">0</strong> wrong</span>
+    <span><strong id="qStreak">0</strong> streak</span>
+    <span style="margin-left:auto"><button class="btn ghost" id="newQ">Next ↻</button></span>
+  </div>
+</div>
+
+<div class="footer-link"><a href="blueprint-drill.html?obj=5.5">← back to 5.5 leaves</a></div>
+
+<script>
+(function(){
+  var acl = [];
+  function ipToInt(ip){
+    var p = ip.split('.').map(Number);
+    if (p.length!==4 || p.some(function(x){return isNaN(x)||x<0||x>255;})) return null;
+    return ((p[0]<<24)|(p[1]<<16)|(p[2]<<8)|p[3])>>>0;
+  }
+  function wcMatch(srcIp, ruleIp, wcMask){
+    if (ruleIp==='any') return true;
+    var s = ipToInt(srcIp), r = ipToInt(ruleIp), w = ipToInt(wcMask);
+    if (s===null||r===null||w===null) return false;
+    var notW = ~w >>> 0;
+    return ((s & notW) >>> 0) === ((r & notW) >>> 0);
+  }
+  function render(){
+    var box = document.getElementById('aclList');
+    if (acl.length===0) { box.innerHTML='<span style="color:#A8A29E">! ACL empty — add lines above</span>'; return; }
+    box.innerHTML='';
+    acl.forEach(function(l, i){
+      var d = document.createElement('div');
+      d.className = 'line ' + l.act;
+      var port = l.port ? ' eq '+l.port : '';
+      d.textContent = (i+1)*10 + ' ' + l.act + ' ' + l.proto + ' ' + l.src + (l.wc==='any'?'':' '+l.wc) + ' ' + l.dst + port;
+      box.appendChild(d);
+    });
+    var imp = document.createElement('div');
+    imp.className='line implicit'; imp.textContent='! implicit deny ip any any (always at end)';
+    box.appendChild(imp);
+  }
+  document.getElementById('addLine').addEventListener('click', function(){
+    acl.push({
+      act: document.getElementById('aAct').value,
+      proto: document.getElementById('aProto').value,
+      src: document.getElementById('aSrc').value,
+      wc: document.getElementById('aWc').value,
+      dst: document.getElementById('aDst').value,
+      port: document.getElementById('aPort').value
+    });
+    render();
+  });
+  document.getElementById('clearAcl').addEventListener('click', function(){ acl=[]; render(); });
+
+  document.getElementById('fire').addEventListener('click', function(){
+    var src = document.getElementById('tSrc').value.trim();
+    var dst = document.getElementById('tDst').value.trim();
+    var proto = document.getElementById('tProto').value.trim();
+    var port = document.getElementById('tPort').value.trim();
+    var v = document.getElementById('verdict'), e = document.getElementById('explain');
+
+    if (acl.length===0) {
+      v.className='verdict miss show';
+      v.textContent='✗ Empty ACL → implicit deny applies → packet DROPPED.';
+      e.textContent = 'Even with no rules, the implicit deny at the end blocks everything.';
+      return;
+    }
+    for (var i=0; i<acl.length; i++) {
+      var l = acl[i];
+      var protoOk = l.proto==='ip' || l.proto===proto;
+      var srcOk = wcMatch(src, l.src, l.wc==='any'?'255.255.255.255':l.wc);
+      var dstOk = l.dst==='any' || dst===l.dst;
+      var portOk = !l.port || l.port==='any' || l.port===port;
+      if (protoOk && srcOk && dstOk && portOk) {
+        if (l.act==='permit') {
+          v.className='verdict win show';
+          v.textContent='✓ Line '+((i+1)*10)+' PERMIT matched. Packet forwarded.';
+        } else {
+          v.className='verdict miss show';
+          v.textContent='✗ Line '+((i+1)*10)+' DENY matched. Packet dropped.';
+        }
+        e.textContent = 'Match on: src='+src+' wildcard='+l.wc+', proto='+l.proto+', dst='+l.dst+(l.port?', port='+l.port:'');
+        return;
+      }
+    }
+    v.className='verdict miss show';
+    v.textContent='✗ No explicit match. Implicit deny → packet DROPPED.';
+    e.textContent = 'No rule matched. Last-resort implicit deny kicked in.';
+  });
+  render();
+
+  var qCorrect=0, qWrong=0, qStreak=0;
+  var pool = [
+    { stem:'Standard ACL number range?', opts:['1-99','100-199','200-299','1300-1999 (extended)'], ans:'1-99' },
+    { stem:'Extended ACL filters on:', opts:['Source IP only','Source + dest + proto + ports','Destination only','MAC only'], ans:'Source + dest + proto + ports' },
+    { stem:'Standard ACL placement best practice:', opts:['Close to source','Close to destination','Anywhere','Both'], ans:'Close to destination' },
+    { stem:'Extended ACL placement best practice:', opts:['Close to source','Close to destination','Anywhere','Both'], ans:'Close to source' },
+    { stem:'What\'s at the end of every ACL?', opts:['Implicit permit','Implicit deny','Random','Nothing'], ans:'Implicit deny' },
+    { stem:'Wildcard mask 0.0.0.255 = which subnet mask?', opts:['255.255.255.0','255.255.0.0','255.255.255.255','0.0.0.0'], ans:'255.255.255.0' },
+    { stem:'`access-list 10 permit host 10.1.1.5` — same as wildcard:', opts:['0.0.0.0','0.0.0.255','255.255.255.255','255.0.0.0'], ans:'0.0.0.0' },
+    { stem:'ACL applied inbound — when does router check?', opts:['Before routing','After routing','At egress','Never'], ans:'Before routing' },
+    { stem:'Order matters in an ACL because:', opts:['It doesn\'t','First match wins — router stops checking','Last match wins','Random selection'], ans:'First match wins — router stops checking' },
+    { stem:'`permit tcp any any eq 80` allows:', opts:['All HTTP traffic','All HTTPS','All SSH','All ICMP'], ans:'All HTTP traffic' }
+  ];
+  function pickQ(){
+    var q = pool[Math.floor(Math.random()*pool.length)];
+    var opts = q.opts.slice().sort(function(){return Math.random()-.5;});
+    document.getElementById('quizStem').textContent = q.stem;
+    var bx = document.getElementById('quizOpts'); bx.innerHTML='';
+    opts.forEach(function(o){
+      var btn = document.createElement('button');
+      btn.className='opt'; btn.textContent=o;
+      btn.addEventListener('click', function(){
+        if (btn.classList.contains('correct')||btn.classList.contains('wrong')) return;
+        if (o===q.ans){ btn.classList.add('correct'); qCorrect++; qStreak++; }
+        else { btn.classList.add('wrong'); qWrong++; qStreak=0;
+          Array.prototype.forEach.call(bx.children, function(c){ if (c.textContent===q.ans) c.classList.add('correct'); }); }
+        document.getElementById('qCorrect').textContent=qCorrect;
+        document.getElementById('qWrong').textContent=qWrong;
+        document.getElementById('qStreak').textContent=qStreak;
+      });
+      bx.appendChild(btn);
+    });
+  }
+  document.getElementById('newQ').addEventListener('click', pickQ);
+  pickQ();
+})();
+</script>
+</body>
+</html>

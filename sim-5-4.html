@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>5.4 Sim — IPsec VPN (Site-to-Site vs Remote-Access)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{--bg:#FAF7F2;--bg-surface:#FFFFFF;--bg-recessed:#F3F0EB;--border:#E2DFD9;--border-strong:#C7C3BC;--ink:#1C1917;--ink-secondary:#57534E;--ink-muted:#A8A29E;--accent:#B45309;--accent-soft:#D97706;--accent-light:#FEF3C7;--correct:#16A34A;--correct-bg:#F0FDF4;--wrong:#DC2626;--wrong-bg:#FEF2F2;--info:#2563EB;--info-bg:#EFF6FF;--font-display:'Space Grotesk',system-ui,sans-serif;--font-body:'Source Serif 4',Georgia,serif;--font-mono:'JetBrains Mono',monospace;--radius:6px;--radius-lg:10px}
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:var(--font-body);background:var(--bg);color:var(--ink);line-height:1.55;padding:24px;max-width:920px;margin:0 auto}
+  .head{margin-bottom:20px;padding-bottom:14px;border-bottom:1px solid var(--border)}
+  .head .crumb{font-family:var(--font-mono);font-size:.74rem;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px}
+  .head h1{font-family:var(--font-display);font-size:1.5rem;font-weight:700;margin-bottom:6px}
+  .head .desc{font-size:.95rem;color:var(--ink-secondary)}
+  .panel{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;margin-bottom:18px}
+  .panel h2{font-family:var(--font-display);font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-secondary);margin-bottom:12px}
+  .intro{font-size:.96rem;color:var(--ink-secondary);margin-bottom:14px}
+  .intro strong{color:var(--ink)}
+  .btn{font-family:var(--font-display);font-size:.84rem;font-weight:600;padding:8px 16px;background:var(--ink);color:#FAF7F2;border:none;border-radius:var(--radius);cursor:pointer}
+  .btn.ghost{background:var(--bg-recessed);color:var(--ink)}
+  .btn.accent{background:var(--accent)}
+  .topo{background:var(--bg-recessed);border:1px solid var(--border);border-radius:var(--radius);padding:16px;height:200px;position:relative;margin-bottom:14px;overflow:hidden}
+  .site{position:absolute;font-family:var(--font-mono);font-size:.84rem;text-align:center}
+  .site-a{left:8%;top:35%}
+  .site-b{right:8%;top:35%}
+  .site .icon{width:60px;height:50px;background:var(--bg-surface);border:2px solid var(--ink);border-radius:6px;display:flex;align-items:center;justify-content:center;font-weight:700;margin:0 auto 6px}
+  .tunnel{position:absolute;left:18%;right:18%;top:50%;height:4px;background:var(--ink-muted);border-radius:99px;transform:translateY(-50%)}
+  .tunnel.up{background:linear-gradient(90deg,var(--correct),var(--accent),var(--correct))}
+  .packet{position:absolute;width:24px;height:16px;background:var(--accent);border-radius:3px;top:50%;transform:translate(-50%,-50%);font-family:var(--font-mono);font-size:.6rem;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;transition:left 1.5s linear,background .3s}
+  .packet.encrypted{background:var(--correct)}
+  .phases{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:8px}
+  .phase{padding:14px;background:var(--bg-recessed);border:1px solid var(--border);border-radius:var(--radius);cursor:pointer;transition:all .25s}
+  .phase.active{border-color:var(--accent);background:var(--accent-light)}
+  .phase h3{font-family:var(--font-display);font-size:.94rem;margin-bottom:6px}
+  .phase ul{list-style:none;font-family:var(--font-mono);font-size:.82rem}
+  .phase li{padding:3px 0}
+  .modes{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px}
+  .mode{padding:14px;background:var(--bg-recessed);border:1px solid var(--border);border-radius:var(--radius)}
+  .mode h3{font-family:var(--font-display);font-size:.94rem;margin-bottom:6px;color:var(--accent)}
+  .mode .pkt{font-family:var(--font-mono);font-size:.78rem;display:flex;gap:2px;margin-top:8px;flex-wrap:wrap}
+  .pkt span{padding:4px 6px;border-radius:3px;border:1px solid var(--border);background:var(--bg-surface)}
+  .pkt .h{background:var(--info-bg);color:var(--info)}
+  .pkt .e{background:var(--correct-bg);color:var(--correct)}
+  .pkt .new{background:var(--accent-light);color:var(--accent);font-weight:700}
+  .verdict{margin-top:14px;padding:12px 16px;border-radius:var(--radius);font-family:var(--font-display);font-size:.94rem;font-weight:600;display:none}
+  .verdict.show{display:block;animation:fadeIn .25s ease}
+  .verdict.win{background:var(--correct-bg);color:var(--correct);border:1px solid var(--correct)}
+  .verdict.info{background:var(--info-bg);color:var(--info);border:1px solid var(--info)}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
+  .quiz{margin-top:22px}
+  .quiz .stem{font-family:var(--font-display);font-size:1.02rem;font-weight:600;margin-bottom:12px;padding:14px;background:var(--accent-light);border-left:3px solid var(--accent);border-radius:var(--radius)}
+  .quiz .opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px}
+  .opt{background:var(--bg-recessed);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;font-family:var(--font-mono);font-size:.92rem;cursor:pointer;text-align:left}
+  .opt:hover{border-color:var(--border-strong);background:var(--bg-surface)}
+  .opt.correct{background:var(--correct-bg);border-color:var(--correct);color:var(--correct);font-weight:700}
+  .opt.wrong{background:var(--wrong-bg);border-color:var(--wrong);color:var(--wrong)}
+  .scoreline{font-family:var(--font-mono);font-size:.84rem;color:var(--ink-muted);margin-top:10px;display:flex;gap:18px;align-items:center}
+  .scoreline strong{font-weight:700;color:var(--ink)}
+  .footnote{font-family:var(--font-mono);font-size:.78rem;color:var(--ink-muted);margin-top:12px;line-height:1.5}
+  .badge{display:inline-block;font-family:var(--font-display);font-size:.7rem;font-weight:700;padding:2px 8px;border-radius:99px;background:var(--accent-light);color:var(--accent);text-transform:uppercase;letter-spacing:.04em;margin-left:8px}
+  .footer-link{margin-top:24px;padding-top:14px;border-top:1px solid var(--border);font-family:var(--font-mono);font-size:.82rem}
+  .footer-link a{color:var(--accent);text-decoration:none}
+</style>
+</head>
+<body>
+
+<div class="head">
+  <div class="crumb"><a href="blueprint-drill.html?obj=5.4" style="color:var(--accent);text-decoration:none">← 5.4 Mini Sims</a> · 5.4 · Security · IPsec VPN</div>
+  <h1>IPsec VPN Sim<span class="badge">drill</span></h1>
+  <div class="desc">IPsec is two phases. <strong>Phase 1 (IKE)</strong> = build a secure tunnel just to negotiate. <strong>Phase 2 (IPsec SA)</strong> = build the actual data tunnel. Different keys, different jobs. Click each phase to see what's happening on the wire.</div>
+</div>
+
+<div class="panel">
+  <h2>Topology</h2>
+  <div class="topo" id="topo">
+    <div class="site site-a"><div class="icon">R1</div>HQ<br>10.0.0.0/24</div>
+    <div class="tunnel" id="tunnel"></div>
+    <div class="site site-b"><div class="icon">R2</div>Branch<br>10.1.0.0/24</div>
+    <div class="packet" id="packet" style="left:18%;display:none">DATA</div>
+  </div>
+  <div style="display:flex;gap:10px"><button class="btn accent" id="negotiate">Run Phase 1 → 2 → Send packet</button><button class="btn ghost" id="resetBtn">Reset</button></div>
+  <div id="verdict" class="verdict"></div>
+</div>
+
+<div class="panel">
+  <h2>The Two Phases</h2>
+  <div class="phases">
+    <div class="phase active" data-id="p1"><h3>Phase 1 — IKE / ISAKMP</h3>
+      <ul>
+        <li>→ Authenticate peers (PSK or certs)</li>
+        <li>→ Diffie-Hellman key exchange</li>
+        <li>→ Negotiate hash + cipher</li>
+        <li>→ Build ISAKMP SA (mgmt tunnel)</li>
+      </ul>
+    </div>
+    <div class="phase" data-id="p2"><h3>Phase 2 — IPsec SA</h3>
+      <ul>
+        <li>→ Inside the Phase 1 tunnel</li>
+        <li>→ Negotiate ESP or AH</li>
+        <li>→ Pick transport vs tunnel mode</li>
+        <li>→ Build IPsec SA (data tunnel)</li>
+      </ul>
+    </div>
+  </div>
+  <div class="footnote" id="phaseDesc">Phase 1 builds the management channel. Phase 2 uses it to set up the actual encrypted data path. Without Phase 1, peers can't trust each other to negotiate Phase 2.</div>
+</div>
+
+<div class="panel">
+  <h2>Transport vs Tunnel mode</h2>
+  <p class="intro"><strong>Transport</strong> = encrypts payload only, original IP header kept. Used host-to-host. <strong>Tunnel</strong> = encrypts entire original packet, wraps in new IP header. Used site-to-site (the original IPs are private — must hide them).</p>
+  <div class="modes">
+    <div class="mode"><h3>Transport mode</h3>
+      <div class="pkt"><span class="h">IP hdr</span><span class="h">ESP hdr</span><span class="e">TCP+data (encrypted)</span><span class="h">ESP trailer</span></div>
+      <div class="footnote" style="margin-top:8px">Original IPs visible. End-to-end between hosts.</div>
+    </div>
+    <div class="mode"><h3>Tunnel mode</h3>
+      <div class="pkt"><span class="new">NEW IP hdr</span><span class="h">ESP hdr</span><span class="e">orig IP+TCP+data (encrypted)</span><span class="h">ESP trailer</span></div>
+      <div class="footnote" style="margin-top:8px">Original IPs hidden inside. Site-to-site default.</div>
+    </div>
+  </div>
+</div>
+
+<div class="panel">
+  <h2>Site-to-site vs Remote-access</h2>
+  <p class="intro"><strong>Site-to-site</strong> = router-to-router, always-on, transparent to users (HQ ↔ Branch). <strong>Remote-access</strong> = client (laptop) to concentrator, on-demand, user-initiated (AnyConnect, OpenVPN). Both can use IPsec; remote-access often uses SSL/TLS instead.</p>
+</div>
+
+<div class="panel quiz" id="quizPanel">
+  <h2>Quiz mode</h2>
+  <div class="stem" id="quizStem">Loading…</div>
+  <div class="opts" id="quizOpts"></div>
+  <div class="scoreline">
+    <span><strong id="qCorrect">0</strong> correct</span>
+    <span><strong id="qWrong">0</strong> wrong</span>
+    <span><strong id="qStreak">0</strong> streak</span>
+    <span style="margin-left:auto"><button class="btn ghost" id="newQ">Next ↻</button></span>
+  </div>
+</div>
+
+<div class="footer-link"><a href="blueprint-drill.html?obj=5.4">← back to 5.4 leaves</a></div>
+
+<script>
+(function(){
+  var tunnel = document.getElementById('tunnel');
+  var pkt = document.getElementById('packet');
+  var v = document.getElementById('verdict');
+
+  function reset(){
+    tunnel.classList.remove('up'); pkt.style.display='none'; pkt.style.left='18%'; pkt.textContent='DATA'; pkt.classList.remove('encrypted');
+    v.className='verdict';
+  }
+  document.getElementById('resetBtn').addEventListener('click', reset);
+
+  document.getElementById('negotiate').addEventListener('click', function(){
+    reset();
+    v.className='verdict info show'; v.textContent='Phase 1: peers authenticate via PSK + DH key exchange…';
+    setTimeout(function(){
+      v.textContent='Phase 1 complete. ISAKMP SA up. Now Phase 2 — negotiating ESP, tunnel mode…';
+    }, 1200);
+    setTimeout(function(){
+      tunnel.classList.add('up');
+      v.textContent='Phase 2 complete. IPsec SA up. Tunnel armed.';
+    }, 2400);
+    setTimeout(function(){
+      pkt.style.display='flex'; pkt.style.left='18%'; pkt.textContent='DATA';
+    }, 3000);
+    setTimeout(function(){
+      pkt.classList.add('encrypted'); pkt.textContent='ESP';
+    }, 3300);
+    setTimeout(function(){
+      pkt.style.left='82%';
+    }, 3500);
+    setTimeout(function(){
+      pkt.classList.remove('encrypted'); pkt.textContent='DATA';
+      v.className='verdict win show'; v.textContent='✓ Packet delivered. Decrypted at R2, original DATA emerges on Branch LAN.';
+    }, 5100);
+  });
+
+  Array.prototype.forEach.call(document.querySelectorAll('.phase'), function(el){
+    el.addEventListener('click', function(){
+      Array.prototype.forEach.call(document.querySelectorAll('.phase'), function(p){ p.classList.remove('active'); });
+      el.classList.add('active');
+      var d = document.getElementById('phaseDesc');
+      d.textContent = el.dataset.id==='p1'
+        ? 'Phase 1 (IKE) builds the management channel. Two main modes: Main Mode (6 messages, identity-protected) or Aggressive Mode (3 messages, faster, identity exposed). Result: bidirectional ISAKMP SA.'
+        : 'Phase 2 (Quick Mode) uses Phase 1 SA to negotiate the data SAs. Two unidirectional IPsec SAs (one each direction). ESP = encryption + auth. AH = auth only, no encryption (rarely used).';
+    });
+  });
+
+  var qCorrect=0, qWrong=0, qStreak=0;
+  var pool = [
+    { stem:'IKE Phase 1 produces what?', opts:['IPsec SA','ISAKMP SA','ESP header','Routing table'], ans:'ISAKMP SA' },
+    { stem:'Site-to-site VPN typically uses which mode?', opts:['Transport','Tunnel','Aggressive','Main only'], ans:'Tunnel' },
+    { stem:'AH provides which IPsec service?', opts:['Encryption only','Authentication only','Both encryption + auth','Compression'], ans:'Authentication only' },
+    { stem:'ESP provides:', opts:['Encryption only','Authentication only','Both encryption + auth','Compression'], ans:'Both encryption + auth' },
+    { stem:'Remote-access VPN client (AnyConnect) typically uses:', opts:['IPsec only','SSL/TLS or IPsec','Plaintext','Telnet'], ans:'SSL/TLS or IPsec' },
+    { stem:'Diffie-Hellman is used in IPsec to:', opts:['Encrypt data','Securely exchange a shared secret over insecure channel','Authenticate users','Compress packets'], ans:'Securely exchange a shared secret over insecure channel' },
+    { stem:'Phase 2 negotiation happens:', opts:['Before Phase 1','In plaintext','Inside the Phase 1 tunnel','Over a separate TCP session'], ans:'Inside the Phase 1 tunnel' },
+    { stem:'Tunnel mode adds which to the original packet?', opts:['ESP trailer only','New outer IP header','Compression','Nothing'], ans:'New outer IP header' },
+    { stem:'Site-to-site VPN is typically:', opts:['Always-on, router-to-router','Per-user, on-demand','TCP-based','UDP 53'], ans:'Always-on, router-to-router' },
+    { stem:'IPsec runs at which OSI layer?', opts:['L2','L3','L4','L7'], ans:'L3' }
+  ];
+  function pickQ(){
+    var q = pool[Math.floor(Math.random()*pool.length)];
+    var opts = q.opts.slice().sort(function(){return Math.random()-.5;});
+    document.getElementById('quizStem').textContent = q.stem;
+    var bx = document.getElementById('quizOpts'); bx.innerHTML='';
+    opts.forEach(function(o){
+      var btn = document.createElement('button');
+      btn.className='opt'; btn.textContent=o;
+      btn.addEventListener('click', function(){
+        if (btn.classList.contains('correct')||btn.classList.contains('wrong')) return;
+        if (o===q.ans){ btn.classList.add('correct'); qCorrect++; qStreak++; }
+        else { btn.classList.add('wrong'); qWrong++; qStreak=0;
+          Array.prototype.forEach.call(bx.children, function(c){ if (c.textContent===q.ans) c.classList.add('correct'); }); }
+        document.getElementById('qCorrect').textContent=qCorrect;
+        document.getElementById('qWrong').textContent=qWrong;
+        document.getElementById('qStreak').textContent=qStreak;
+      });
+      bx.appendChild(btn);
+    });
+  }
+  document.getElementById('newQ').addEventListener('click', pickQ);
+  pickQ();
+})();
+</script>
+</body>
+</html>

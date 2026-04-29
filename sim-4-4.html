@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>4.4 Sim — SNMP Operations & Versions</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#FAF7F2;--bg-surface:#FFFFFF;--bg-recessed:#F3F0EB;
+    --border:#E2DFD9;--border-strong:#C7C3BC;
+    --ink:#1C1917;--ink-secondary:#57534E;--ink-muted:#A8A29E;
+    --accent:#B45309;--accent-soft:#D97706;--accent-light:#FEF3C7;
+    --correct:#16A34A;--correct-bg:#F0FDF4;
+    --wrong:#DC2626;--wrong-bg:#FEF2F2;
+    --info:#2563EB;--info-bg:#EFF6FF;
+    --font-display:'Space Grotesk',system-ui,sans-serif;
+    --font-body:'Source Serif 4',Georgia,serif;
+    --font-mono:'JetBrains Mono',monospace;
+    --radius:6px;--radius-lg:10px;
+  }
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  html{font-size:16px;-webkit-font-smoothing:antialiased}
+  body{font-family:var(--font-body);background:var(--bg);color:var(--ink);line-height:1.55;padding:24px;max-width:920px;margin:0 auto}
+  .head{margin-bottom:20px;padding-bottom:14px;border-bottom:1px solid var(--border)}
+  .head .crumb{font-family:var(--font-mono);font-size:.74rem;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px}
+  .head h1{font-family:var(--font-display);font-size:1.5rem;font-weight:700;margin-bottom:6px}
+  .head .desc{font-size:.95rem;color:var(--ink-secondary)}
+  .panel{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;margin-bottom:18px}
+  .panel h2{font-family:var(--font-display);font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-secondary);margin-bottom:12px}
+  .btn{font-family:var(--font-display);font-size:.84rem;font-weight:600;padding:8px 16px;background:var(--ink);color:#FAF7F2;border:none;border-radius:var(--radius);cursor:pointer}
+  .btn.ghost{background:var(--bg-recessed);color:var(--ink)}
+  .btn.accent{background:var(--accent)}
+  .stage{display:grid;grid-template-columns:1fr 80px 1fr;gap:10px;align-items:center;margin:14px 0}
+  .box{background:var(--bg-recessed);border:1px solid var(--border);border-radius:var(--radius);padding:16px;text-align:center;font-family:var(--font-mono);font-size:.86rem;min-height:90px}
+  .box .lbl{font-family:var(--font-display);font-size:.7rem;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-secondary);margin-bottom:6px}
+  .pkt{font-family:var(--font-mono);font-size:.78rem;background:var(--accent-light);border:1px solid var(--accent);padding:6px;border-radius:var(--radius);margin:4px 0;opacity:0;transition:opacity .4s}
+  .pkt.show{opacity:1}
+  .arrow{text-align:center;font-size:1.4rem;color:var(--ink-muted);font-family:var(--font-mono)}
+  .versions{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:10px}
+  .ver{padding:12px;background:var(--bg-recessed);border:1px solid var(--border);border-radius:var(--radius);font-family:var(--font-mono);font-size:.82rem}
+  .ver h3{font-family:var(--font-display);font-size:.86rem;color:var(--accent);margin-bottom:6px}
+  .mib{font-family:var(--font-mono);font-size:.84rem;background:var(--ink);color:#FAF7F2;padding:14px;border-radius:var(--radius);white-space:pre;overflow-x:auto}
+  .quiz{margin-top:22px}
+  .quiz .stem{font-family:var(--font-display);font-size:1.02rem;font-weight:600;margin-bottom:12px;padding:14px;background:var(--accent-light);border-left:3px solid var(--accent);border-radius:var(--radius)}
+  .quiz .opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px}
+  .opt{background:var(--bg-recessed);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;font-family:var(--font-mono);font-size:.92rem;cursor:pointer;text-align:left}
+  .opt:hover{border-color:var(--border-strong);background:var(--bg-surface)}
+  .opt.correct{background:var(--correct-bg);border-color:var(--correct);color:var(--correct);font-weight:700}
+  .opt.wrong{background:var(--wrong-bg);border-color:var(--wrong);color:var(--wrong)}
+  .scoreline{font-family:var(--font-mono);font-size:.84rem;color:var(--ink-muted);margin-top:10px;display:flex;gap:18px}
+  .scoreline strong{color:var(--ink)}
+</style>
+</head>
+<body>
+
+<div class="head">
+  <div class="crumb"><a href="blueprint-drill.html?obj=4.4" style="color:var(--accent);text-decoration:none">← 4.4 leaves</a> · 4.4 · IP Services · SNMP</div>
+  <h1>SNMP Polling & Traps Sim</h1>
+  <div class="desc">A network with 1000 devices needs visibility. SNMP is the language: NMS asks (Get), agent answers (Response), and agent shouts when bad things happen (Trap). The data lives in a tree (the MIB). v1/v2c send the password in cleartext; v3 finally adds real auth + encryption.</div>
+</div>
+
+<div class="panel">
+  <h2>NMS ⇄ Agent</h2>
+  <div class="stage">
+    <div class="box"><div class="lbl">NMS (manager)</div>SolarWinds / LibreNMS<div id="nmsLog"></div></div>
+    <div class="arrow" id="arrow">⇄</div>
+    <div class="box"><div class="lbl">Agent (router/switch)</div>R1 :161 / trap :162<div id="agentLog"></div></div>
+  </div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap">
+    <button class="btn accent" data-op="get">GetRequest (poll ifInOctets)</button>
+    <button class="btn accent" data-op="walk">GetNextRequest (walk)</button>
+    <button class="btn accent" data-op="set">SetRequest (write)</button>
+    <button class="btn accent" data-op="trap">Trap (link down)</button>
+    <button class="btn accent" data-op="inform">Inform (ack required)</button>
+    <button class="btn ghost" id="reset">Clear</button>
+  </div>
+</div>
+
+<div class="panel">
+  <h2>Versions</h2>
+  <div class="versions">
+    <div class="ver"><h3>v1 (1988)</h3>community string ✗ no auth ✗ no encryption · 32-bit counters · no GetBulk</div>
+    <div class="ver"><h3>v2c (1996)</h3>community string ✗ no auth ✗ no encryption · 64-bit counters · GetBulk + Inform</div>
+    <div class="ver"><h3>v3 (2004)</h3>user-based ✓ auth (HMAC-MD5/SHA) ✓ encryption (DES/AES) · noAuthNoPriv / authNoPriv / authPriv</div>
+  </div>
+</div>
+
+<div class="panel">
+  <h2>MIB Tree</h2>
+  <div class="mib">1 (iso)
+└─ 3 (org)
+   └─ 6 (dod)
+      └─ 1 (internet)
+         ├─ 2 (mgmt)
+         │  └─ 1 (mib-2)
+         │     ├─ 1 (system)        sysDescr, sysUpTime, sysName
+         │     ├─ 2 (interfaces)    ifInOctets, ifOutOctets, ifOperStatus
+         │     ├─ 4 (ip)
+         │     └─ 6 (tcp)
+         └─ 4 (private)
+            └─ 1 (enterprises)
+               └─ 9 (cisco)         cisco-specific OIDs</div>
+  <div style="font-family:var(--font-mono);font-size:.78rem;color:var(--ink-muted);margin-top:8px">Example OID — sysUpTime: 1.3.6.1.2.1.1.3.0</div>
+</div>
+
+<div class="panel quiz">
+  <h2>Quiz</h2>
+  <div class="stem" id="qStem">Loading…</div>
+  <div class="opts" id="qOpts"></div>
+  <div class="scoreline">
+    <span><strong id="qC">0</strong> correct</span>
+    <span><strong id="qW">0</strong> wrong</span>
+    <span style="margin-left:auto"><button class="btn ghost" id="qNext">Next ↻</button></span>
+  </div>
+</div>
+
+<p style="text-align:center;margin-top:20px"><a href="blueprint-drill.html?obj=4.4" style="color:var(--accent);font-family:var(--font-mono);font-size:.84rem">← back to 4.4 leaves</a></p>
+
+<script>
+(function(){
+  function emit(side,text){
+    var p=document.createElement('div'); p.className='pkt'; p.textContent=text;
+    document.getElementById(side==='nms'?'nmsLog':'agentLog').appendChild(p);
+    setTimeout(function(){p.classList.add('show')},20);
+  }
+  function flash(){var a=document.getElementById('arrow'); a.style.color='var(--accent)'; setTimeout(function(){a.style.color='var(--ink-muted)'},300)}
+  document.querySelectorAll('[data-op]').forEach(function(b){
+    b.addEventListener('click',function(){
+      flash();
+      var op=b.dataset.op;
+      if(op==='get'){emit('nms','→ GetRequest OID 1.3.6.1.2.1.2.2.1.10'); setTimeout(function(){emit('agent','← GetResponse value=8421357')},500)}
+      if(op==='walk'){emit('nms','→ GetNextRequest (walk)'); setTimeout(function(){emit('agent','← GetResponse OID.1=value1')},400); setTimeout(function(){emit('agent','← GetResponse OID.2=value2')},800)}
+      if(op==='set'){emit('nms','→ SetRequest sysContact="noc@x.com"'); setTimeout(function(){emit('agent','← Response (ack)')},500)}
+      if(op==='trap'){emit('agent','→ Trap linkDown ifIndex=2 (unsolicited)'); setTimeout(function(){emit('nms','(no ack required)')},400)}
+      if(op==='inform'){emit('agent','→ Inform linkDown'); setTimeout(function(){emit('nms','← Inform-ack')},500)}
+    });
+  });
+  document.getElementById('reset').addEventListener('click',function(){document.getElementById('nmsLog').innerHTML=''; document.getElementById('agentLog').innerHTML=''});
+
+  var qC=0,qW=0;
+  var pool=[
+    {q:'NMS polls agent on which port?',a:'UDP 161',o:['UDP 161','UDP 162','TCP 161','TCP 162']},
+    {q:'Agent sends Trap to NMS on which port?',a:'UDP 162',o:['UDP 161','UDP 162','TCP 161','TCP 162']},
+    {q:'Which SNMP version supports auth + encryption?',a:'v3',o:['v1','v2c','v3','v4']},
+    {q:'Which version uses community strings only?',a:'v1 and v2c',o:['v1 only','v2c only','v1 and v2c','v3']},
+    {q:'Difference between Trap and Inform?',a:'Inform requires acknowledgment',o:['Inform requires acknowledgment','Trap is encrypted','Inform is faster','no difference']},
+    {q:'sysUpTime OID is 1.3.6.1.2.1.1.3.0. What does the leading 1.3.6.1 represent?',a:'iso.org.dod.internet',o:['iso.org.dod.internet','cisco enterprise','private mgmt','interface stats']},
+    {q:'GetBulk was introduced in…',a:'v2c',o:['v1','v2c','v3','all']},
+    {q:'Best v3 security level?',a:'authPriv',o:['noAuthNoPriv','authNoPriv','authPriv','community']},
+    {q:'Which is unsolicited (agent-initiated)?',a:'Trap',o:['Get','GetNext','Set','Trap']},
+    {q:'A community string acts like…',a:'a plaintext password',o:['a plaintext password','an encryption key','a hostname','an MAC address']}
+  ];
+  function pick(){
+    var q=pool[Math.floor(Math.random()*pool.length)];
+    document.getElementById('qStem').textContent=q.q;
+    var box=document.getElementById('qOpts'); box.innerHTML='';
+    q.o.slice().sort(function(){return Math.random()-.5}).forEach(function(o){
+      var b=document.createElement('button'); b.className='opt'; b.textContent=o;
+      b.addEventListener('click',function(){
+        if(b.classList.contains('correct')||b.classList.contains('wrong'))return;
+        if(o===q.a){b.classList.add('correct');qC++} else{b.classList.add('wrong');qW++; Array.prototype.forEach.call(box.children,function(c){if(c.textContent===q.a)c.classList.add('correct')})}
+        document.getElementById('qC').textContent=qC; document.getElementById('qW').textContent=qW;
+      });
+      box.appendChild(b);
+    });
+  }
+  document.getElementById('qNext').addEventListener('click',pick); pick();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>1.1.b Sim — L2 vs L3 Switches</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#FAF7F2;--bg-surface:#FFFFFF;--bg-recessed:#F3F0EB;
+    --border:#E2DFD9;--border-strong:#C7C3BC;
+    --ink:#1C1917;--ink-secondary:#57534E;--ink-muted:#A8A29E;
+    --accent:#B45309;--accent-soft:#D97706;--accent-light:#FEF3C7;
+    --correct:#16A34A;--correct-bg:#F0FDF4;
+    --wrong:#DC2626;--wrong-bg:#FEF2F2;
+    --info:#2563EB;--info-bg:#EFF6FF;
+    --font-display:'Space Grotesk',system-ui,sans-serif;
+    --font-body:'Source Serif 4',Georgia,serif;
+    --font-mono:'JetBrains Mono',monospace;
+    --radius:6px;--radius-lg:10px;
+  }
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  html{font-size:16px;-webkit-font-smoothing:antialiased}
+  body{font-family:var(--font-body);background:var(--bg);color:var(--ink);line-height:1.55;padding:24px;max-width:920px;margin:0 auto}
+  .head{margin-bottom:20px;padding-bottom:14px;border-bottom:1px solid var(--border)}
+  .head .crumb{font-family:var(--font-mono);font-size:.74rem;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px}
+  .head .crumb a{color:var(--accent);text-decoration:none}
+  .head h1{font-family:var(--font-display);font-size:1.5rem;font-weight:700;margin-bottom:6px}
+  .head .desc{font-size:.95rem;color:var(--ink-secondary)}
+  .panel{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;margin-bottom:18px}
+  .panel h2{font-family:var(--font-display);font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-secondary);margin-bottom:12px}
+  .badge{display:inline-block;font-family:var(--font-display);font-size:.7rem;font-weight:700;padding:2px 8px;border-radius:99px;background:var(--accent-light);color:var(--accent);text-transform:uppercase;letter-spacing:.04em;margin-left:8px}
+  .btn{font-family:var(--font-display);font-size:.84rem;font-weight:600;padding:8px 16px;background:var(--ink);color:#FAF7F2;border:none;border-radius:var(--radius);cursor:pointer;transition:background .15s}
+  .btn:hover{background:var(--ink-secondary)}
+  .btn.ghost{background:var(--bg-recessed);color:var(--ink)}
+  .btn.accent{background:var(--accent)}
+  .btn.accent:hover{background:var(--accent-soft)}
+  .stage{position:relative;background:var(--bg-recessed);border:1px solid var(--border);border-radius:var(--radius-lg);height:280px;overflow:hidden}
+  .pc{position:absolute;width:64px;height:64px;display:flex;flex-direction:column;align-items:center;cursor:pointer;user-select:none}
+  .pc .box{width:48px;height:36px;background:var(--bg-surface);border:2px solid var(--ink);border-radius:4px;display:flex;align-items:center;justify-content:center;font-family:var(--font-mono);font-size:.7rem;font-weight:700;transition:all .2s}
+  .pc:hover .box{background:var(--accent-light);border-color:var(--accent)}
+  .pc .lbl{font-family:var(--font-mono);font-size:.66rem;color:var(--ink-secondary);margin-top:3px}
+  .switch{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:160px;height:60px;background:var(--ink);color:#FAF7F2;border-radius:6px;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-size:.86rem;font-weight:700;letter-spacing:.04em}
+  .frame{position:absolute;width:18px;height:12px;background:var(--accent);border-radius:2px;box-shadow:0 0 0 2px var(--accent-light);pointer-events:none;z-index:5;transition:none}
+  .table{width:100%;border-collapse:collapse;margin-top:12px;font-family:var(--font-mono);font-size:.92rem}
+  .table th{text-align:left;padding:10px 14px;background:var(--bg-recessed);font-family:var(--font-display);font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-secondary);border-bottom:1px solid var(--border-strong);font-weight:700}
+  .table td{padding:12px 14px;border-bottom:1px solid var(--border)}
+  .table tr.fresh td{background:var(--correct-bg);animation:flashIn .6s ease}
+  @keyframes flashIn{from{background:var(--accent-light)}to{background:var(--correct-bg)}}
+  .verdict{margin-top:16px;padding:12px 16px;border-radius:var(--radius);font-family:var(--font-display);font-size:.94rem;font-weight:600;display:none}
+  .verdict.show{display:block;animation:fadeIn .25s ease}
+  .verdict.win{background:var(--correct-bg);color:var(--correct);border:1px solid var(--correct)}
+  .verdict.miss{background:var(--wrong-bg);color:var(--wrong);border:1px solid var(--wrong)}
+  .verdict.info{background:var(--info-bg);color:var(--info);border:1px solid var(--info)}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
+  .toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+  .toolbar label{font-family:var(--font-display);font-size:.82rem;font-weight:600;color:var(--ink-secondary)}
+  select{font-family:var(--font-mono);font-size:.9rem;padding:6px 10px;border:1px solid var(--border-strong);border-radius:var(--radius);background:var(--bg-surface)}
+  .domain-overlay{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:12px}
+  .domain{padding:12px 14px;border:1px dashed var(--border-strong);border-radius:var(--radius);font-family:var(--font-mono);font-size:.84rem}
+  .domain b{font-family:var(--font-display);display:block;margin-bottom:4px;color:var(--accent);font-size:.74rem;letter-spacing:.06em;text-transform:uppercase}
+  .quiz{margin-top:22px}
+  .quiz .stem{font-family:var(--font-display);font-size:1.02rem;font-weight:600;margin-bottom:12px;padding:14px;background:var(--accent-light);border-left:3px solid var(--accent);border-radius:var(--radius)}
+  .quiz .opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px}
+  .opt{background:var(--bg-recessed);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;font-family:var(--font-mono);font-size:.9rem;cursor:pointer;text-align:left;transition:all .15s}
+  .opt:hover{border-color:var(--border-strong);background:var(--bg-surface)}
+  .opt.correct{background:var(--correct-bg);border-color:var(--correct);color:var(--correct);font-weight:700}
+  .opt.wrong{background:var(--wrong-bg);border-color:var(--wrong);color:var(--wrong)}
+  .scoreline{font-family:var(--font-mono);font-size:.84rem;color:var(--ink-muted);margin-top:10px;display:flex;gap:18px;align-items:center}
+  .scoreline strong{font-weight:700;color:var(--ink)}
+  .footnote{font-family:var(--font-mono);font-size:.78rem;color:var(--ink-muted);margin-top:12px;line-height:1.5}
+  .footer-link{font-family:var(--font-mono);font-size:.78rem;color:var(--accent);text-decoration:none}
+</style>
+</head>
+<body>
+
+<div class="head">
+  <div class="crumb"><a href="blueprint-drill.html?obj=1.1">← 1.1 Mini Sims</a> · 1.1.b · L2/L3 Switches</div>
+  <h1>Switch Brains: Learning by Watching<span class="badge">drill</span></h1>
+  <div class="desc">A switch is born blank. It has no idea who lives where. Every frame that arrives teaches it one fact: "the device with this source MAC lives behind this port." That's it. Click a PC to send a frame and watch the table fill itself. Once the table is full, switching is fast — but until then, every unknown destination floods to every port.</div>
+</div>
+
+<div class="panel">
+  <h2>Topology — click any PC to send a frame</h2>
+  <div class="toolbar">
+    <label for="dst">Destination:</label>
+    <select id="dst">
+      <option value="aa:bb:cc:00:00:01">PC-A (aa:bb:cc:00:00:01)</option>
+      <option value="aa:bb:cc:00:00:02">PC-B (aa:bb:cc:00:00:02)</option>
+      <option value="aa:bb:cc:00:00:03">PC-C (aa:bb:cc:00:00:03)</option>
+      <option value="aa:bb:cc:00:00:04">PC-D (aa:bb:cc:00:00:04)</option>
+      <option value="ff:ff:ff:ff:ff:ff">Broadcast (ff:ff:ff:ff:ff:ff)</option>
+    </select>
+    <button class="btn ghost" id="reset">Reset switch (forget all MACs)</button>
+  </div>
+  <div class="stage" id="stage">
+    <div class="switch" id="switch">SW1 — L2 Switch</div>
+    <div class="pc" data-pc="A" data-mac="aa:bb:cc:00:00:01" data-port="Gi0/1" style="left:30px;top:20px"><div class="box">PC-A</div><div class="lbl">Gi0/1</div></div>
+    <div class="pc" data-pc="B" data-mac="aa:bb:cc:00:00:02" data-port="Gi0/2" style="right:30px;top:20px"><div class="box">PC-B</div><div class="lbl">Gi0/2</div></div>
+    <div class="pc" data-pc="C" data-mac="aa:bb:cc:00:00:03" data-port="Gi0/3" style="left:30px;bottom:20px"><div class="box">PC-C</div><div class="lbl">Gi0/3</div></div>
+    <div class="pc" data-pc="D" data-mac="aa:bb:cc:00:00:04" data-port="Gi0/4" style="right:30px;bottom:20px"><div class="box">PC-D</div><div class="lbl">Gi0/4</div></div>
+  </div>
+  <div id="verdict" class="verdict"></div>
+  <div class="footnote" id="explain">Tip: send PC-A → PC-B first. Switch learns A. Reply from B → A is unicast (table hit). New frame from PC-D to unknown PC-C floods.</div>
+</div>
+
+<div class="panel">
+  <h2>MAC address table (CAM)</h2>
+  <table class="table" id="camTable">
+    <thead><tr><th>MAC Address</th><th>Port</th><th>VLAN</th><th>Type</th></tr></thead>
+    <tbody><tr><td colspan="4" style="color:var(--ink-muted);text-align:center">empty — switch hasn't learned anything yet</td></tr></tbody>
+  </table>
+  <div class="domain-overlay">
+    <div class="domain"><b>Broadcast Domain</b>1 — every port on SW1 hears a broadcast (unless VLANs split it)</div>
+    <div class="domain"><b>Collision Domains</b>4 — one per switch port (full-duplex link = no collisions)</div>
+  </div>
+</div>
+
+<div class="panel quiz" id="quizPanel">
+  <h2>Quiz mode <span style="color:var(--accent);text-transform:none;letter-spacing:0;font-weight:700">— predict the switch's behavior</span></h2>
+  <div class="stem" id="quizStem">Loading…</div>
+  <div class="opts" id="quizOpts"></div>
+  <div class="scoreline">
+    <span><strong id="qCorrect">0</strong> correct</span>
+    <span><strong id="qWrong">0</strong> wrong</span>
+    <span><strong id="qStreak">0</strong> streak</span>
+    <span style="margin-left:auto"><button class="btn ghost" id="newQ">Next ↻</button></span>
+  </div>
+</div>
+
+<div style="text-align:center;margin-top:18px"><a class="footer-link" href="blueprint-drill.html?obj=1.1">← Back to 1.1 leaves</a></div>
+
+<script>
+(function(){
+  var cam = {}; // mac -> {port, vlan}
+  var pcs = Array.prototype.slice.call(document.querySelectorAll('.pc'));
+  var stage = document.getElementById('stage');
+  var sw = document.getElementById('switch');
+
+  function renderCam(highlightMac){
+    var tbody = document.querySelector('#camTable tbody');
+    var keys = Object.keys(cam);
+    if (keys.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="4" style="color:var(--ink-muted);text-align:center">empty — switch hasn\'t learned anything yet</td></tr>';
+      return;
+    }
+    tbody.innerHTML = '';
+    keys.forEach(function(mac){
+      var tr = document.createElement('tr');
+      if (mac === highlightMac) tr.className = 'fresh';
+      tr.innerHTML = '<td>' + mac + '</td><td>' + cam[mac].port + '</td><td>1</td><td>DYNAMIC</td>';
+      tbody.appendChild(tr);
+    });
+  }
+
+  function pcCenter(el){
+    var r = el.getBoundingClientRect();
+    var sr = stage.getBoundingClientRect();
+    return { x: r.left - sr.left + r.width/2, y: r.top - sr.top + r.height/2 };
+  }
+
+  function flyFrame(from, to, color, cb){
+    var f = document.createElement('div');
+    f.className = 'frame';
+    if (color) f.style.background = color;
+    stage.appendChild(f);
+    f.style.left = (from.x - 9) + 'px';
+    f.style.top = (from.y - 6) + 'px';
+    requestAnimationFrame(function(){
+      f.style.transition = 'left .55s cubic-bezier(.16,1,.3,1), top .55s cubic-bezier(.16,1,.3,1), opacity .25s';
+      f.style.left = (to.x - 9) + 'px';
+      f.style.top = (to.y - 6) + 'px';
+    });
+    setTimeout(function(){ f.style.opacity = '0'; }, 580);
+    setTimeout(function(){ if (f.parentNode) f.parentNode.removeChild(f); if (cb) cb(); }, 760);
+  }
+
+  function send(srcEl){
+    var srcMac = srcEl.dataset.mac;
+    var srcPort = srcEl.dataset.port;
+    var dstMac = document.getElementById('dst').value;
+    var v = document.getElementById('verdict');
+    var explain = document.getElementById('explain');
+
+    cam[srcMac] = { port: srcPort, vlan: 1 };
+    renderCam(srcMac);
+
+    var swCenter = pcCenter(sw);
+    flyFrame(pcCenter(srcEl), swCenter, null, function(){
+      // decide
+      if (dstMac === 'ff:ff:ff:ff:ff:ff') {
+        v.className = 'verdict info show';
+        v.textContent = '↳ Broadcast frame — flood to ALL ports except ingress.';
+        explain.innerHTML = 'Destination ff:ff:ff:ff:ff:ff is the L2 broadcast. Switch always floods. Every PC in this broadcast domain receives a copy.';
+        pcs.forEach(function(p){ if (p !== srcEl) flyFrame(swCenter, pcCenter(p), '#DC2626'); });
+        return;
+      }
+      if (cam[dstMac]) {
+        var outPort = cam[dstMac].port;
+        var dstEl = pcs.filter(function(p){ return p.dataset.port === outPort; })[0];
+        v.className = 'verdict win show';
+        v.textContent = '✓ Table hit — unicast out ' + outPort + '. Only ' + (dstEl?dstEl.dataset.pc:'') + ' sees this frame.';
+        explain.innerHTML = 'Switch learned <strong>' + srcMac + '</strong> on ' + srcPort + ' (source-MAC learning) AND already knew destination <strong>' + dstMac + '</strong> on ' + outPort + '. Pure unicast — no flooding.';
+        if (dstEl) flyFrame(swCenter, pcCenter(dstEl), '#16A34A');
+      } else {
+        v.className = 'verdict miss show';
+        v.textContent = '⚠ Unknown unicast — flood out every port except ingress.';
+        explain.innerHTML = '<strong>' + dstMac + '</strong> isn\'t in the CAM. Switch floods. Whichever PC actually owns this MAC will reply, and the switch will then learn its port from the reply\'s source MAC.';
+        pcs.forEach(function(p){ if (p !== srcEl) flyFrame(swCenter, pcCenter(p), '#DC2626'); });
+      }
+    });
+  }
+
+  pcs.forEach(function(p){ p.addEventListener('click', function(){ send(p); }); });
+  document.getElementById('reset').addEventListener('click', function(){
+    cam = {}; renderCam();
+    var v = document.getElementById('verdict'); v.className='verdict'; v.textContent='';
+  });
+
+  // Quiz
+  var qCorrect=0,qWrong=0,qStreak=0;
+  var pool = [
+    { stem:'A switch receives a frame for an UNKNOWN destination MAC. What does it do?', ans:'Flood out every port except the ingress port', opts:['Drop the frame','Flood out every port except the ingress port','Send back to the source','Forward only to the default gateway'], why:'Unknown unicast = flood. The reply teaches it the destination port.' },
+    { stem:'How does a switch learn which device lives behind which port?', ans:'It records the SOURCE MAC of every incoming frame', opts:['It records the SOURCE MAC of every incoming frame','It pings every port at boot','It reads ARP requests only','Manual config required'], why:'Source-MAC learning. Free, automatic, real-time.' },
+    { stem:'What is the broadcast domain count for a single L2 switch with 24 ports, no VLANs?', ans:'1', opts:['1','24','12','0'], why:'One switch with no VLANs = one broadcast domain. VLANs split it.' },
+    { stem:'Full-duplex link from PC to switch port. How many collision domains on that link?', ans:'1 per port — and no collisions occur', opts:['1 per port — and no collisions occur','24','0 — full-duplex has no domain','Same as broadcast domain'], why:'Each port is its own collision domain; full-duplex means TX/RX separate, so collisions cant happen.' },
+    { stem:'Which device makes forwarding decisions on Layer-3 information (IP)?', ans:'Multilayer switch / L3 switch / router', opts:['L2 switch','Hub','Multilayer switch / L3 switch / router','Bridge'], why:'L2 forwards on MAC. L3 forwards on IP. A multilayer switch does both.' },
+    { stem:'A frame arrives at SW1 from PC-A. SW1 has never seen PC-A before. What does it learn?', ans:'PC-A\'s MAC is reachable via the ingress port', opts:['Nothing — it just forwards','PC-A\'s MAC is reachable via the ingress port','PC-A\'s IP and MAC','Only the destination MAC'], why:'Source-MAC + ingress port → CAM entry. Destination is used to decide forward/flood, not learned.' },
+    { stem:'CAM table fills up completely. New MAC arrives. What typically happens on a Cisco switch?', ans:'Old entries age out; new ones replace them', opts:['Switch crashes','Old entries age out; new ones replace them','New MACs are silently dropped','Switch reboots'], why:'CAM has a default 300s aging timer. Idle entries expire so the table self-cleans.' },
+    { stem:'You replace an L2 switch with an L3 switch. What new capability do you immediately gain?', ans:'Inter-VLAN routing without an external router', opts:['Faster MAC learning','Inter-VLAN routing without an external router','Wireless support','Automatic NAT'], why:'L3 switches do routing in hardware (SVIs). The "router-on-a-stick" hop disappears.' },
+    { stem:'What is the destination MAC of an ARP request?', ans:'ff:ff:ff:ff:ff:ff (broadcast)', opts:['00:00:00:00:00:00','ff:ff:ff:ff:ff:ff (broadcast)','The target\'s MAC','The router\'s MAC'], why:'ARP asks the whole segment "who has this IP?" — broadcast.' },
+    { stem:'A hub vs a switch — what changes about collision domains?', ans:'Switch isolates each port; hub shares one big domain', opts:['No change','Switch isolates each port; hub shares one big domain','Hub has more domains','Both eliminate collisions'], why:'Hubs repeat bits to every port (one collision domain). Switches are per-port (many domains, no collisions in full-duplex).' }
+  ];
+  function pickQ(){
+    var q = pool[Math.floor(Math.random()*pool.length)];
+    var opts = q.opts.slice().sort(function(){return Math.random()-.5;});
+    document.getElementById('quizStem').textContent = q.stem;
+    var box = document.getElementById('quizOpts'); box.innerHTML='';
+    opts.forEach(function(o){
+      var b = document.createElement('button'); b.className='opt'; b.textContent=o;
+      b.addEventListener('click', function(){
+        if (b.classList.contains('correct')||b.classList.contains('wrong')) return;
+        if (o === q.ans){ b.classList.add('correct'); qCorrect++; qStreak++; }
+        else { b.classList.add('wrong'); qWrong++; qStreak=0;
+          Array.prototype.forEach.call(box.children,function(c){ if (c.textContent===q.ans) c.classList.add('correct'); });
+        }
+        document.getElementById('qCorrect').textContent=qCorrect;
+        document.getElementById('qWrong').textContent=qWrong;
+        document.getElementById('qStreak').textContent=qStreak;
+        var v = document.getElementById('verdict'); v.className='verdict info show'; v.textContent='Why: '+q.why;
+      });
+      box.appendChild(b);
+    });
+  }
+  document.getElementById('newQ').addEventListener('click', pickQ);
+  pickQ();
+  renderCam();
+})();
+</script>
+</body>
+</html>

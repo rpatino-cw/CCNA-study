@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>4.7 Sim — QoS Forwarding</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#FAF7F2;--bg-surface:#FFFFFF;--bg-recessed:#F3F0EB;
+    --border:#E2DFD9;--border-strong:#C7C3BC;
+    --ink:#1C1917;--ink-secondary:#57534E;--ink-muted:#A8A29E;
+    --accent:#B45309;--accent-soft:#D97706;--accent-light:#FEF3C7;
+    --correct:#16A34A;--correct-bg:#F0FDF4;
+    --wrong:#DC2626;--wrong-bg:#FEF2F2;
+    --info:#2563EB;--info-bg:#EFF6FF;
+    --font-display:'Space Grotesk',system-ui,sans-serif;
+    --font-body:'Source Serif 4',Georgia,serif;
+    --font-mono:'JetBrains Mono',monospace;
+    --radius:6px;--radius-lg:10px;
+  }
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  html{font-size:16px;-webkit-font-smoothing:antialiased}
+  body{font-family:var(--font-body);background:var(--bg);color:var(--ink);line-height:1.55;padding:24px;max-width:920px;margin:0 auto}
+  .head{margin-bottom:20px;padding-bottom:14px;border-bottom:1px solid var(--border)}
+  .head .crumb{font-family:var(--font-mono);font-size:.74rem;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px}
+  .head h1{font-family:var(--font-display);font-size:1.5rem;font-weight:700;margin-bottom:6px}
+  .head .desc{font-size:.95rem;color:var(--ink-secondary)}
+  .panel{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;margin-bottom:18px}
+  .panel h2{font-family:var(--font-display);font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-secondary);margin-bottom:12px}
+  .btn{font-family:var(--font-display);font-size:.84rem;font-weight:600;padding:8px 16px;background:var(--ink);color:#FAF7F2;border:none;border-radius:var(--radius);cursor:pointer}
+  .btn.ghost{background:var(--bg-recessed);color:var(--ink)}
+  .btn.accent{background:var(--accent)}
+  .pipe{position:relative;height:80px;background:var(--bg-recessed);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin:14px 0}
+  .pipe .pkt{position:absolute;top:50%;transform:translateY(-50%);width:30px;height:18px;border-radius:3px;font-family:var(--font-mono);font-size:.6rem;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;animation:flow 4s linear forwards}
+  .pkt.voice{background:#dc2626}
+  .pkt.video{background:#2563eb}
+  .pkt.data{background:#6b7280}
+  .pkt.dropped{animation:drop .8s forwards}
+  @keyframes flow{from{left:-40px}to{left:100%}}
+  @keyframes drop{from{left:50%;opacity:1}to{top:140%;opacity:0}}
+  .verdict{margin-top:10px;padding:10px 14px;border-radius:var(--radius);font-family:var(--font-display);font-weight:600;font-size:.9rem}
+  .verdict.win{background:var(--correct-bg);color:var(--correct);border:1px solid var(--correct)}
+  .verdict.miss{background:var(--wrong-bg);color:var(--wrong);border:1px solid var(--wrong)}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:14px}
+  .grid h3{font-family:var(--font-display);font-size:.84rem;color:var(--accent);margin-bottom:6px;text-transform:uppercase;letter-spacing:.06em}
+  .table{width:100%;border-collapse:collapse;font-family:var(--font-mono);font-size:.82rem;margin-top:8px}
+  .table th{text-align:left;padding:6px 8px;background:var(--bg-recessed);font-family:var(--font-display);font-size:.7rem;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-secondary);border-bottom:1px solid var(--border-strong)}
+  .table td{padding:6px 8px;border-bottom:1px solid var(--border)}
+  .quiz{margin-top:22px}
+  .quiz .stem{font-family:var(--font-display);font-size:1.02rem;font-weight:600;margin-bottom:12px;padding:14px;background:var(--accent-light);border-left:3px solid var(--accent);border-radius:var(--radius)}
+  .quiz .opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px}
+  .opt{background:var(--bg-recessed);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;font-family:var(--font-mono);font-size:.92rem;cursor:pointer;text-align:left}
+  .opt:hover{border-color:var(--border-strong);background:var(--bg-surface)}
+  .opt.correct{background:var(--correct-bg);border-color:var(--correct);color:var(--correct);font-weight:700}
+  .opt.wrong{background:var(--wrong-bg);border-color:var(--wrong);color:var(--wrong)}
+  .scoreline{font-family:var(--font-mono);font-size:.84rem;color:var(--ink-muted);margin-top:10px;display:flex;gap:18px}
+  .scoreline strong{color:var(--ink)}
+</style>
+</head>
+<body>
+
+<div class="head">
+  <div class="crumb"><a href="blueprint-drill.html?obj=4.7" style="color:var(--accent);text-decoration:none">← 4.7 leaves</a> · 4.7 · IP Services · QoS</div>
+  <h1>QoS Forwarding Sim</h1>
+  <div class="desc">All packets are not equal. A 200ms-late voice packet is useless — the call already gapped. A 200ms-late file download is fine. QoS is the system that knows which is which: classify, mark, queue, drop selectively. Without it, a backup job kills your call. With it, voice always finds 60ms of silence.</div>
+</div>
+
+<div class="panel">
+  <h2>Without QoS — congested link</h2>
+  <div class="pipe" id="p1"></div>
+  <div class="verdict miss">✗ Bursty data fills the queue tail-drop. Voice and video sit behind it. Call quality drops. Packets out of order = jitter.</div>
+</div>
+
+<div class="panel">
+  <h2>With QoS — classify, mark, queue, drop</h2>
+  <div class="pipe" id="p2"></div>
+  <div class="verdict win">✓ Voice goes to the Low-Latency Queue (LLQ — strict priority). Video gets bandwidth guarantee (CBWFQ). Data uses what's left + WRED randomly drops at high fill so TCP backs off gracefully.</div>
+  <div style="display:flex;gap:8px;margin-top:10px">
+    <button class="btn accent" id="run">Run both pipes</button>
+    <button class="btn ghost" id="stop">Stop</button>
+  </div>
+</div>
+
+<div class="panel">
+  <h2>The Four Steps</h2>
+  <div class="grid">
+    <div>
+      <h3>1. Classify</h3>
+      <div style="font-family:var(--font-mono);font-size:.84rem">Match traffic on ACL, NBAR, source port, DSCP. Decide who is who.</div>
+      <h3 style="margin-top:10px">2. Mark</h3>
+      <div style="font-family:var(--font-mono);font-size:.84rem">Stamp DSCP (L3, 6 bits in IP ToS) or CoS (L2, 3 bits in 802.1Q). Trust boundary — usually access switch.</div>
+    </div>
+    <div>
+      <h3>3. Queue</h3>
+      <div style="font-family:var(--font-mono);font-size:.84rem">LLQ for voice (strict priority, served first). CBWFQ for video/critical data (bandwidth guarantee). FIFO for default.</div>
+      <h3 style="margin-top:10px">4. Drop / Shape</h3>
+      <div style="font-family:var(--font-mono);font-size:.84rem">WRED drops randomly before queue fills. Policer enforces rate ceiling. Shaper buffers + smooths.</div>
+    </div>
+  </div>
+
+  <h2 style="margin-top:18px">DSCP Code Points (memorize)</h2>
+  <table class="table">
+    <thead><tr><th>Name</th><th>DSCP</th><th>Decimal</th><th>Use</th></tr></thead>
+    <tbody>
+      <tr><td>EF (Expedited Forwarding)</td><td>101110</td><td>46</td><td>Voice — LLQ</td></tr>
+      <tr><td>AF41</td><td>100010</td><td>34</td><td>Interactive video</td></tr>
+      <tr><td>AF31</td><td>011010</td><td>26</td><td>Mission-critical data / signaling</td></tr>
+      <tr><td>CS6</td><td>110000</td><td>48</td><td>Routing protocols</td></tr>
+      <tr><td>Default</td><td>000000</td><td>0</td><td>Best-effort</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="panel quiz">
+  <h2>Quiz</h2>
+  <div class="stem" id="qStem">Loading…</div>
+  <div class="opts" id="qOpts"></div>
+  <div class="scoreline">
+    <span><strong id="qC">0</strong> correct</span>
+    <span><strong id="qW">0</strong> wrong</span>
+    <span style="margin-left:auto"><button class="btn ghost" id="qNext">Next ↻</button></span>
+  </div>
+</div>
+
+<p style="text-align:center;margin-top:20px"><a href="blueprint-drill.html?obj=4.7" style="color:var(--accent);font-family:var(--font-mono);font-size:.84rem">← back to 4.7 leaves</a></p>
+
+<script>
+(function(){
+  var timers=[];
+  function spawn(pipe,kind,withQos){
+    var p=document.createElement('div'); p.className='pkt '+kind;
+    p.textContent=kind[0].toUpperCase();
+    if(!withQos && kind!=='data' && Math.random()<.4){p.classList.add('dropped')}
+    document.getElementById(pipe).appendChild(p);
+    setTimeout(function(){p.remove()},4500);
+  }
+  function run(){
+    stop();
+    timers.push(setInterval(function(){spawn('p1','voice',false)},900));
+    timers.push(setInterval(function(){spawn('p1','video',false)},700));
+    timers.push(setInterval(function(){spawn('p1','data',false)},220));
+    timers.push(setInterval(function(){spawn('p2','voice',true)},900));
+    timers.push(setInterval(function(){spawn('p2','video',true)},700));
+    timers.push(setInterval(function(){spawn('p2','data',true)},220));
+  }
+  function stop(){timers.forEach(clearInterval); timers=[]}
+  document.getElementById('run').addEventListener('click',run);
+  document.getElementById('stop').addEventListener('click',stop);
+  run();
+
+  var qC=0,qW=0;
+  var pool=[
+    {q:'DSCP value for voice (Expedited Forwarding)?',a:'46 (EF)',o:['46 (EF)','34 (AF41)','26 (AF31)','0 (default)']},
+    {q:'Voice traffic should be placed in which queue type?',a:'LLQ (priority queue)',o:['LLQ (priority queue)','FIFO','Class-default','WRED']},
+    {q:'DSCP marks live in which header field?',a:'IP ToS (6 bits)',o:['IP ToS (6 bits)','TCP options','Ethernet 802.1Q','UDP length']},
+    {q:'CoS (L2) is how many bits and lives where?',a:'3 bits, 802.1Q tag',o:['3 bits, 802.1Q tag','6 bits, IP header','8 bits, MAC header','3 bits, MPLS label']},
+    {q:'WRED helps with what problem?',a:'TCP global synchronization at queue tail-drop',o:['VoIP encryption','TCP global synchronization at queue tail-drop','OSPF convergence','Layer-2 loops']},
+    {q:'A "trust boundary" is where…',a:'switch starts trusting markings from endpoints',o:['firewall ends','switch starts trusting markings from endpoints','VLANs change','BGP peers']},
+    {q:'Which of these is most jitter-sensitive?',a:'voice',o:['voice','bulk file copy','email','backup']},
+    {q:'CBWFQ provides…',a:'bandwidth guarantee per class',o:['bandwidth guarantee per class','strict priority always','drop based on RED','VLAN tagging']},
+    {q:'Policer vs Shaper — shaper does what?',a:'buffers excess and smooths bursts',o:['drops excess immediately','buffers excess and smooths bursts','encrypts payload','rewrites DSCP']},
+    {q:'AF41 (DSCP 34) is typically used for…',a:'interactive video',o:['routing protocols','interactive video','best-effort web','voice signaling']}
+  ];
+  function pick(){
+    var q=pool[Math.floor(Math.random()*pool.length)];
+    document.getElementById('qStem').textContent=q.q;
+    var box=document.getElementById('qOpts'); box.innerHTML='';
+    q.o.slice().sort(function(){return Math.random()-.5}).forEach(function(o){
+      var b=document.createElement('button'); b.className='opt'; b.textContent=o;
+      b.addEventListener('click',function(){
+        if(b.classList.contains('correct')||b.classList.contains('wrong'))return;
+        if(o===q.a){b.classList.add('correct');qC++} else{b.classList.add('wrong');qW++; Array.prototype.forEach.call(box.children,function(c){if(c.textContent===q.a)c.classList.add('correct')})}
+        document.getElementById('qC').textContent=qC; document.getElementById('qW').textContent=qW;
+      });
+      box.appendChild(b);
+    });
+  }
+  document.getElementById('qNext').addEventListener('click',pick); pick();
+})();
+</script>
+</body>
+</html>

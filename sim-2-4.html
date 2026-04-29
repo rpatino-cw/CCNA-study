@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>2.4 Sim — STP (Spanning Tree)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#FAF7F2;--bg-surface:#FFFFFF;--bg-recessed:#F3F0EB;
+    --border:#E2DFD9;--border-strong:#C7C3BC;
+    --ink:#1C1917;--ink-secondary:#57534E;--ink-muted:#A8A29E;
+    --accent:#B45309;--accent-soft:#D97706;--accent-light:#FEF3C7;
+    --correct:#16A34A;--correct-bg:#F0FDF4;
+    --wrong:#DC2626;--wrong-bg:#FEF2F2;
+    --info:#2563EB;--info-bg:#EFF6FF;
+    --font-display:'Space Grotesk',system-ui,sans-serif;
+    --font-body:'Source Serif 4',Georgia,serif;
+    --font-mono:'JetBrains Mono',monospace;
+    --radius:6px;--radius-lg:10px;
+  }
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  html{font-size:16px;-webkit-font-smoothing:antialiased}
+  body{font-family:var(--font-body);background:var(--bg);color:var(--ink);line-height:1.55;padding:24px;max-width:980px;margin:0 auto}
+  .head{margin-bottom:20px;padding-bottom:14px;border-bottom:1px solid var(--border)}
+  .head .crumb{font-family:var(--font-mono);font-size:.74rem;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px}
+  .head .crumb a{color:var(--accent);text-decoration:none}
+  .head h1{font-family:var(--font-display);font-size:1.5rem;font-weight:700;margin-bottom:6px}
+  .head .desc{font-size:.95rem;color:var(--ink-secondary)}
+  .panel{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;margin-bottom:18px}
+  .panel h2{font-family:var(--font-display);font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-secondary);margin-bottom:12px}
+  .intuition{background:var(--accent-light);border-left:3px solid var(--accent);padding:14px 16px;border-radius:var(--radius);font-size:.96rem}
+  svg{width:100%;height:340px;background:var(--bg-recessed);border-radius:var(--radius);border:1px solid var(--border)}
+  .sw-conf{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:12px}
+  .sw-card{background:var(--bg-recessed);border:1px solid var(--border-strong);border-radius:var(--radius);padding:10px;font-family:var(--font-mono);font-size:.82rem}
+  .sw-card h4{font-family:var(--font-display);font-size:.86rem;margin-bottom:6px}
+  .sw-card label{display:block;font-size:.74rem;color:var(--ink-secondary);margin:4px 0 2px}
+  .sw-card input{width:100%;font-family:var(--font-mono);font-size:.82rem;padding:4px;border:1px solid var(--border-strong);border-radius:4px}
+  .sw-card .role{margin-top:6px;font-weight:700}
+  .legend{display:flex;gap:14px;margin-top:10px;flex-wrap:wrap;font-family:var(--font-mono);font-size:.78rem}
+  .legend span{display:flex;align-items:center;gap:6px}
+  .dot{width:12px;height:12px;border-radius:50%;display:inline-block}
+  .dot.r{background:#16A34A}.dot.d{background:#2563EB}.dot.b{background:#DC2626}
+  .btn{font-family:var(--font-display);font-size:.84rem;font-weight:600;padding:8px 16px;background:var(--ink);color:#FAF7F2;border:none;border-radius:var(--radius);cursor:pointer}
+  .btn.ghost{background:var(--bg-recessed);color:var(--ink)}
+  .btn.accent{background:var(--accent)}
+  .btn.danger{background:var(--wrong);color:#fff}
+  .verdict{margin-top:14px;padding:12px 16px;border-radius:var(--radius);font-family:var(--font-display);font-size:.94rem;font-weight:600;display:none}
+  .verdict.show{display:block}
+  .verdict.win{background:var(--correct-bg);color:var(--correct);border:1px solid var(--correct)}
+  .verdict.miss{background:var(--wrong-bg);color:var(--wrong);border:1px solid var(--wrong)}
+  .quiz .stem{font-family:var(--font-display);font-size:1.02rem;font-weight:600;margin-bottom:12px;padding:14px;background:var(--accent-light);border-left:3px solid var(--accent);border-radius:var(--radius)}
+  .opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px}
+  .opt{background:var(--bg-recessed);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;font-family:var(--font-mono);font-size:.88rem;cursor:pointer;text-align:left}
+  .opt:hover{border-color:var(--border-strong);background:var(--bg-surface)}
+  .opt.correct{background:var(--correct-bg);border-color:var(--correct);color:var(--correct);font-weight:700}
+  .opt.wrong{background:var(--wrong-bg);border-color:var(--wrong);color:var(--wrong)}
+  .scoreline{font-family:var(--font-mono);font-size:.84rem;color:var(--ink-muted);margin-top:10px;display:flex;gap:18px;align-items:center;flex-wrap:wrap}
+  .scoreline strong{color:var(--ink)}
+  .why{font-family:var(--font-mono);font-size:.8rem;color:var(--ink-secondary);margin-top:8px;padding:8px 10px;background:var(--bg-recessed);border-radius:4px;display:none}
+  .why.show{display:block}
+  .footer{font-family:var(--font-mono);font-size:.82rem;color:var(--ink-muted);text-align:center;margin-top:20px;padding-top:14px;border-top:1px solid var(--border)}
+  .footer a{color:var(--accent);text-decoration:none}
+</style>
+</head>
+<body>
+
+<div class="head">
+  <div class="crumb"><a href="blueprint-drill.html?obj=2.4">← back to 2.4 leaves</a> · 2.4 · STP · Loops, Root, Convergence</div>
+  <h1>Spanning Tree Sim</h1>
+  <div class="desc">Three switches in a triangle = a Layer 2 loop. Without STP, broadcasts multiply forever and the network melts. STP elects a root, declares which port wins on each segment, and blocks the rest. Watch the storm, then enable STP and watch the tree emerge.</div>
+</div>
+
+<div class="panel">
+  <h2>Why STP exists</h2>
+  <div class="intuition">
+    Ethernet has no TTL. A broadcast frame in a loop circles forever and gets duplicated at every junction — bandwidth saturates in seconds, MAC tables flap, switches lock up. <strong>STP (802.1D)</strong> prevents this by computing a spanning tree across all switches: one root, one path from every switch to the root, all redundant links blocked. <strong>RSTP (802.1w)</strong> is the modern default — same idea, sub-second convergence. <strong>Root election</strong>: lowest Bridge ID wins, where BID = (priority, MAC). Default priority is 32768 — the tiebreaker is usually MAC, which is why the oldest switch often wins by accident.
+  </div>
+</div>
+
+<div class="panel">
+  <h2>Topology — 3 switches, full triangle</h2>
+  <svg id="diag" viewBox="0 0 600 320">
+    <!-- links -->
+    <line id="lAB" x1="150" y1="80" x2="450" y2="80" stroke="#1C1917" stroke-width="3"/>
+    <line id="lAC" x1="150" y1="80" x2="300" y2="260" stroke="#1C1917" stroke-width="3"/>
+    <line id="lBC" x1="450" y1="80" x2="300" y2="260" stroke="#1C1917" stroke-width="3"/>
+    <text x="300" y="70" text-anchor="middle" font-family="JetBrains Mono" font-size="11" fill="#57534E">cost 4</text>
+    <text x="200" y="190" text-anchor="middle" font-family="JetBrains Mono" font-size="11" fill="#57534E">cost 4</text>
+    <text x="400" y="190" text-anchor="middle" font-family="JetBrains Mono" font-size="11" fill="#57534E">cost 4</text>
+    <!-- switches -->
+    <g id="gA"><circle cx="150" cy="80" r="40" fill="#FFFFFF" stroke="#C7C3BC" stroke-width="2"/><text x="150" y="78" text-anchor="middle" font-family="Space Grotesk" font-size="14" font-weight="700">SW-A</text><text x="150" y="94" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#57534E" id="bidA">32768.aaaa</text></g>
+    <g id="gB"><circle cx="450" cy="80" r="40" fill="#FFFFFF" stroke="#C7C3BC" stroke-width="2"/><text x="450" y="78" text-anchor="middle" font-family="Space Grotesk" font-size="14" font-weight="700">SW-B</text><text x="450" y="94" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#57534E" id="bidB">32768.bbbb</text></g>
+    <g id="gC"><circle cx="300" cy="260" r="40" fill="#FFFFFF" stroke="#C7C3BC" stroke-width="2"/><text x="300" y="258" text-anchor="middle" font-family="Space Grotesk" font-size="14" font-weight="700">SW-C</text><text x="300" y="274" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#57534E" id="bidC">32768.cccc</text></g>
+    <!-- port markers -->
+    <circle id="pA-AB" cx="190" cy="80" r="6" fill="#A8A29E"/><circle id="pB-AB" cx="410" cy="80" r="6" fill="#A8A29E"/>
+    <circle id="pA-AC" cx="180" cy="120" r="6" fill="#A8A29E"/><circle id="pC-AC" cx="270" cy="220" r="6" fill="#A8A29E"/>
+    <circle id="pB-BC" cx="420" cy="120" r="6" fill="#A8A29E"/><circle id="pC-BC" cx="330" cy="220" r="6" fill="#A8A29E"/>
+    <!-- broadcast frames (storm mode) -->
+    <g id="storm" style="display:none"></g>
+  </svg>
+  <div class="legend"><span><span class="dot r"></span> Root port (best path to root)</span><span><span class="dot d"></span> Designated (forwarding on segment)</span><span><span class="dot b"></span> Blocking</span></div>
+
+  <div class="sw-conf">
+    <div class="sw-card"><h4>SW-A</h4><label>Priority</label><input type="number" id="prA" value="32768" step="4096"><label>MAC suffix</label><input type="text" id="mA" value="aaaa"><div class="role" id="rA">—</div></div>
+    <div class="sw-card"><h4>SW-B</h4><label>Priority</label><input type="number" id="prB" value="32768" step="4096"><label>MAC suffix</label><input type="text" id="mB" value="bbbb"><div class="role" id="rB">—</div></div>
+    <div class="sw-card"><h4>SW-C</h4><label>Priority</label><input type="number" id="prC" value="32768" step="4096"><label>MAC suffix</label><input type="text" id="mC" value="cccc"><div class="role" id="rC">—</div></div>
+  </div>
+
+  <div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap">
+    <button class="btn danger" id="storm">Disable STP — broadcast storm</button>
+    <button class="btn accent" id="elect">Run STP — elect root, set roles</button>
+    <button class="btn ghost" id="conv">Animate convergence (RSTP)</button>
+  </div>
+  <div class="verdict" id="verdict"></div>
+</div>
+
+<div class="panel quiz">
+  <h2>Quiz mode</h2>
+  <div class="stem" id="quizStem">Loading…</div>
+  <div class="opts" id="quizOpts"></div>
+  <div class="why" id="quizWhy"></div>
+  <div class="scoreline">
+    <span><strong id="qC">0</strong> correct</span><span><strong id="qW">0</strong> wrong</span><span><strong id="qS">0</strong> streak</span>
+    <span style="margin-left:auto"><button class="btn ghost" id="newQ">Next ↻</button></span>
+  </div>
+</div>
+
+<div class="footer"><a href="blueprint-drill.html?obj=2.4">← back to 2.4 leaves</a></div>
+
+<script>
+document.addEventListener('DOMContentLoaded',function(){
+  function bid(id){
+    var pr=parseInt(document.getElementById('pr'+id).value,10);
+    var m=document.getElementById('m'+id).value.toLowerCase();
+    document.getElementById('bid'+id).textContent=pr+'.'+m;
+    return {pr:pr,m:m,id:id};
+  }
+  function cmp(a,b){return a.pr!==b.pr?a.pr-b.pr:a.m<b.m?-1:a.m>b.m?1:0}
+
+  function setPort(id,color){document.getElementById(id).setAttribute('fill',color)}
+  function setLink(id,style){
+    var l=document.getElementById(id);
+    if(style==='block'){l.setAttribute('stroke','#DC2626');l.setAttribute('stroke-dasharray','6 4')}
+    else{l.setAttribute('stroke','#1C1917');l.removeAttribute('stroke-dasharray')}
+  }
+
+  function elect(){
+    var sw=[bid('A'),bid('B'),bid('C')].sort(cmp);
+    var root=sw[0].id;
+    // Reset
+    ['pA-AB','pB-AB','pA-AC','pC-AC','pB-BC','pC-BC'].forEach(function(p){setPort(p,'#A8A29E')});
+    setLink('lAB','ok');setLink('lAC','ok');setLink('lBC','ok');
+    document.getElementById('rA').textContent='—';document.getElementById('rB').textContent='—';document.getElementById('rC').textContent='—';
+    document.getElementById('r'+root).textContent='ROOT BRIDGE';
+    document.getElementById('r'+root).style.color='var(--accent)';
+    // Non-root: each picks root port (lowest cost path to root). All cost 4 here, tiebreak by sender BID.
+    var nonRoot=sw.slice(1);
+    // Each non-root has 2 ports, both cost 4 to root. Tie → port toward lower-BID neighbor wins as root port.
+    // Designated on each segment: closer-to-root side. Blocking: the loser of the C-side segment.
+    // Hardcode the 3 root scenarios:
+    function paint(rootId){
+      var pmap={
+        A:{rA:'ROOT',rB:'designated→ AB-root, blocking on BC',rC:'designated→ AC-root, blocking on BC',
+           color:{lAB:'ok',lAC:'ok',lBC:'block'},
+           ports:{'pA-AB':'#2563EB','pB-AB':'#16A34A','pA-AC':'#2563EB','pC-AC':'#16A34A','pB-BC':'#DC2626','pC-BC':'#DC2626'}},
+        B:{color:{lAB:'ok',lBC:'ok',lAC:'block'},
+           ports:{'pB-AB':'#2563EB','pA-AB':'#16A34A','pB-BC':'#2563EB','pC-BC':'#16A34A','pA-AC':'#DC2626','pC-AC':'#DC2626'}},
+        C:{color:{lAC:'ok',lBC:'ok',lAB:'block'},
+           ports:{'pC-AC':'#2563EB','pA-AC':'#16A34A','pC-BC':'#2563EB','pB-BC':'#16A34A','pA-AB':'#DC2626','pB-AB':'#DC2626'}}
+      };
+      var p=pmap[rootId];
+      Object.keys(p.color).forEach(function(k){setLink(k,p.color[k])});
+      Object.keys(p.ports).forEach(function(k){setPort(k,p.ports[k])});
+      var nonR=['A','B','C'].filter(function(x){return x!==rootId});
+      nonR.forEach(function(x){
+        // find which port is root vs which is blocked
+        var blocked=Object.keys(p.color).find(function(k){return p.color[k]==='block'});
+        var blockedPair=blocked.replace('l','');
+        if(blockedPair.indexOf(x)>=0){document.getElementById('r'+x).textContent='1 root port + 1 blocking port';}
+        else{document.getElementById('r'+x).textContent='1 root port + 1 designated port';}
+      });
+    }
+    paint(root);
+    var v=document.getElementById('verdict');v.className='verdict win show';
+    v.innerHTML='✓ Root: <strong>SW-'+root+'</strong> (lowest BID = '+sw[0].pr+'.'+sw[0].m+'). One link blocks to break the loop. Try changing priorities to force a different root.';
+  }
+
+  document.getElementById('elect').addEventListener('click',elect);
+  ['prA','prB','prC','mA','mB','mC'].forEach(function(i){document.getElementById(i).addEventListener('change',elect)});
+
+  var stormGroup=document.getElementById('storm');
+  document.getElementById('storm').addEventListener('click',function(){
+    document.querySelectorAll('line').forEach(function(l){l.setAttribute('stroke','#DC2626');l.setAttribute('stroke-width','4')});
+    stormGroup.style.display='block';stormGroup.innerHTML='';
+    var n=12;
+    for(var i=0;i<n;i++){
+      var c=document.createElementNS('http://www.w3.org/2000/svg','circle');
+      c.setAttribute('r','6');c.setAttribute('fill','#DC2626');
+      c.setAttribute('cx',150+Math.random()*300);c.setAttribute('cy',80+Math.random()*180);
+      var a=document.createElementNS('http://www.w3.org/2000/svg','animate');
+      a.setAttribute('attributeName','cx');a.setAttribute('values','150;450;300;150');a.setAttribute('dur',(1+Math.random())+'s');a.setAttribute('repeatCount','indefinite');
+      var a2=document.createElementNS('http://www.w3.org/2000/svg','animate');
+      a2.setAttribute('attributeName','cy');a2.setAttribute('values','80;80;260;80');a2.setAttribute('dur',(1+Math.random())+'s');a2.setAttribute('repeatCount','indefinite');
+      c.appendChild(a);c.appendChild(a2);stormGroup.appendChild(c);
+    }
+    var v=document.getElementById('verdict');v.className='verdict miss show';
+    v.textContent='✗ Loop with no STP. Broadcast frames replicate at every switch and circle forever. CPU pegged. MAC table thrashes. Network down.';
+    setTimeout(function(){
+      var v=document.getElementById('verdict');v.className='verdict miss show';
+      v.innerHTML='✗ Storm raging. Click <strong>Run STP</strong> to recover.';
+    },2000);
+  });
+
+  document.getElementById('conv').addEventListener('click',function(){
+    stormGroup.style.display='none';stormGroup.innerHTML='';
+    document.querySelectorAll('line').forEach(function(l){l.setAttribute('stroke-width','3')});
+    var v=document.getElementById('verdict');v.className='verdict info show';v.style.background='var(--info-bg)';v.style.color='var(--info)';v.style.borderColor='var(--info)';
+    var states=['Listening (15s) — exchanging BPDUs, electing root','Learning (15s) — building MAC table, no forwarding yet','Forwarding — converged. RSTP skips the timers and converges in <1s with proposal/agreement.'];
+    var i=0;function step(){if(i>=states.length){elect();return}v.textContent='⟲ '+states[i];i++;setTimeout(step,1200)}
+    step();
+  });
+
+  elect();
+
+  var pool=[
+    {q:'Lowest Bridge ID wins root election. BID = ?',o:['MAC only','priority + MAC','VLAN + priority','priority + uptime'],a:1,why:'BID = (priority, MAC). Priority is the tunable knob. MAC is the tiebreaker.'},
+    {q:'Default STP priority on Cisco:',o:['0','4096','32768','65535'],a:2,why:'32768. Adjustable in 4096 steps (priority must be a multiple of 4096).'},
+    {q:'STP port states in order:',o:['blocking → forwarding','listening → learning → forwarding','disabled → up → forwarding','init → ready → live'],a:1,why:'Blocking → listening (15s) → learning (15s) → forwarding. RSTP collapses these.'},
+    {q:'Why RSTP over classic STP?',o:['Lower cost','Sub-second convergence','VLAN-aware','Encryption'],a:1,why:'RSTP (802.1w) uses proposal/agreement to converge in <1s instead of ~50s.'},
+    {q:'Root port selection criteria (in order):',o:['Lowest cost to root, then sender BID, then sender port ID','Highest bandwidth','Lowest MAC','VLAN priority'],a:0,why:'Lowest path cost to root → lowest sender BID → lowest sender port ID → lowest local port ID.'},
+    {q:'Designated port:',o:['Best port toward root','Best port on a segment (advertises best BPDU)','Always blocked','Goes to a host'],a:1,why:'Each segment has exactly one designated port — the one closest to the root.'},
+    {q:'PortFast purpose:',o:['Faster cabling','Skip listening/learning on edge ports (host-only)','Encrypt BPDUs','Trunk negotiation'],a:1,why:'PortFast lets a host port go straight to forwarding. Pair with BPDU Guard or you re-create loops.'},
+    {q:'BPDU Guard does:',o:['Encrypts BPDUs','Disables a port that receives a BPDU when it shouldn\'t (PortFast edge port)','Speeds up convergence','Filters MACs'],a:1,why:'Edge port should never see a BPDU. If it does, an attacker or rogue switch is on it. Err-disable.'},
+    {q:'STP cost for a 1 Gbps link (IEEE long path-cost):',o:['1','4','19','100'],a:1,why:'Long: 1G=4, 100M=19. Short (legacy): 1G=4, 10G=2.'},
+    {q:'Force SW-A as root regardless of MAC:',o:['Lower its priority below others','Reboot it last','Use root guard','Increase its MAC'],a:0,why:'`spanning-tree vlan X root primary` or set priority to 4096. Lowest priority = root.'},
+    {q:'Symptoms of a broadcast storm:',o:['CPU low, traffic normal','100% link utilization, MAC flapping, CPU pegged','SSH faster','VLAN tags missing'],a:1,why:'Frames multiply each hop. Switch CPUs lock up. Host loses ARP. Telltale flap-storm signature.'}
+  ];
+  var qC=0,qW=0,qS=0,cur=null;
+  function ask(){
+    cur=pool[Math.floor(Math.random()*pool.length)];
+    document.getElementById('quizStem').textContent=cur.q;
+    var box=document.getElementById('quizOpts');box.innerHTML='';
+    document.getElementById('quizWhy').classList.remove('show');
+    cur.o.forEach(function(o,i){
+      var b=document.createElement('button');b.className='opt';b.textContent=o;
+      b.addEventListener('click',function(){
+        if(b.classList.contains('correct')||b.classList.contains('wrong'))return;
+        if(i===cur.a){b.classList.add('correct');qC++;qS++}
+        else{b.classList.add('wrong');qW++;qS=0;Array.prototype.forEach.call(box.children,function(c,j){if(j===cur.a)c.classList.add('correct')})}
+        document.getElementById('qC').textContent=qC;document.getElementById('qW').textContent=qW;document.getElementById('qS').textContent=qS;
+        var w=document.getElementById('quizWhy');w.textContent='Why: '+cur.why;w.classList.add('show');
+      });
+      box.appendChild(b);
+    });
+  }
+  document.getElementById('newQ').addEventListener('click',ask);ask();
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>1.11.b Sim — RF: 2.4 vs 5 GHz</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#FAF7F2;--bg-surface:#FFFFFF;--bg-recessed:#F3F0EB;
+    --border:#E2DFD9;--border-strong:#C7C3BC;
+    --ink:#1C1917;--ink-secondary:#57534E;--ink-muted:#A8A29E;
+    --accent:#B45309;--accent-soft:#D97706;--accent-light:#FEF3C7;
+    --correct:#16A34A;--correct-bg:#F0FDF4;
+    --wrong:#DC2626;--wrong-bg:#FEF2F2;
+    --info:#2563EB;--info-bg:#EFF6FF;
+    --font-display:'Space Grotesk',system-ui,sans-serif;
+    --font-body:'Source Serif 4',Georgia,serif;
+    --font-mono:'JetBrains Mono',monospace;
+    --radius:6px;--radius-lg:10px;
+  }
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  html{font-size:16px;-webkit-font-smoothing:antialiased}
+  body{font-family:var(--font-body);background:var(--bg);color:var(--ink);line-height:1.55;padding:24px;max-width:920px;margin:0 auto}
+  .head{margin-bottom:20px;padding-bottom:14px;border-bottom:1px solid var(--border)}
+  .head .crumb{font-family:var(--font-mono);font-size:.74rem;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px}
+  .head h1{font-family:var(--font-display);font-size:1.5rem;font-weight:700;margin-bottom:6px}
+  .head .desc{font-size:.95rem;color:var(--ink-secondary)}
+  .panel{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;margin-bottom:18px}
+  .panel h2{font-family:var(--font-display);font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-secondary);margin-bottom:12px}
+  .btn{font-family:var(--font-display);font-size:.84rem;font-weight:600;padding:8px 16px;background:var(--ink);color:#FAF7F2;border:none;border-radius:var(--radius);cursor:pointer}
+  .btn.ghost{background:var(--bg-recessed);color:var(--ink)}
+  .ctrl{display:grid;grid-template-columns:140px 1fr 60px;gap:14px;align-items:center;margin:10px 0}
+  .ctrl label{font-family:var(--font-display);font-size:.84rem;font-weight:600;color:var(--ink-secondary)}
+  .ctrl input[type=range]{width:100%;accent-color:var(--accent)}
+  .ctrl .val{font-family:var(--font-mono);font-weight:700;text-align:right}
+  .stage{position:relative;height:280px;background:#FAFAF9;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-top:10px}
+  .ap{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:18px;height:18px;background:var(--ink);border-radius:50%;z-index:5}
+  .ring{position:absolute;left:50%;top:50%;border-radius:50%;transform:translate(-50%,-50%);border-style:solid;border-width:2px}
+  .ring.b24{border-color:rgba(180,83,9,.55)}
+  .ring.b5 {border-color:rgba(37,99,235,.55)}
+  .label{position:absolute;font-family:var(--font-mono);font-size:.74rem;color:var(--ink-secondary);background:#fff;padding:1px 6px;border-radius:99px;border:1px solid var(--border)}
+  .wall{position:absolute;background:#78716C;border-radius:2px;height:6px;width:60px}
+  .compare{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px}
+  .card{padding:14px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--font-mono);font-size:.86rem}
+  .card h3{font-family:var(--font-display);font-size:.92rem;margin-bottom:8px}
+  .card.b24{background:#FFFBEB;border-color:#FCD34D}
+  .card.b5 {background:#EFF6FF;border-color:#93C5FD}
+  .stat{display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px dotted var(--border)}
+  .stat:last-child{border-bottom:0}
+  .verdict{margin-top:14px;padding:12px 16px;border-radius:var(--radius);font-family:var(--font-display);font-size:.94rem;font-weight:600;background:var(--info-bg);color:var(--info);border:1px solid var(--info)}
+  .quiz{margin-top:22px}
+  .quiz .stem{font-family:var(--font-display);font-size:1.02rem;font-weight:600;margin-bottom:12px;padding:14px;background:var(--accent-light);border-left:3px solid var(--accent);border-radius:var(--radius)}
+  .quiz .opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px}
+  .opt{background:var(--bg-recessed);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;font-family:var(--font-mono);font-size:.92rem;cursor:pointer;text-align:left}
+  .opt:hover{border-color:var(--border-strong);background:var(--bg-surface)}
+  .opt.correct{background:var(--correct-bg);border-color:var(--correct);color:var(--correct);font-weight:700}
+  .opt.wrong{background:var(--wrong-bg);border-color:var(--wrong);color:var(--wrong)}
+  .scoreline{font-family:var(--font-mono);font-size:.84rem;color:var(--ink-muted);margin-top:10px;display:flex;gap:18px;align-items:center}
+  .scoreline strong{color:var(--ink)}
+  .badge{display:inline-block;font-family:var(--font-display);font-size:.7rem;font-weight:700;padding:2px 8px;border-radius:99px;background:var(--accent-light);color:var(--accent);text-transform:uppercase;letter-spacing:.04em;margin-left:8px}
+</style>
+</head>
+<body>
+
+<div class="head">
+  <div class="crumb"><a href="blueprint-drill.html?obj=1.11" style="color:var(--accent);text-decoration:none">← 1.11 Mini Sims</a> · 1.11.b · Wireless · RF Bands</div>
+  <h1>2.4 vs 5 GHz — The Tradeoff<span class="badge">drill</span></h1>
+  <div class="desc">Lower frequency travels farther through walls but is crowded (only 3 non-overlapping channels) and slow. Higher frequency carries more bits but can't punch through brick. Real-world planning is choosing which loss you can accept — coverage holes or interference holes.</div>
+</div>
+
+<div class="panel">
+  <h2>Coverage simulator</h2>
+  <div class="ctrl"><label>TX power (dBm)</label><input id="pwr" type="range" min="10" max="23" value="20"><div class="val" id="vpwr">20</div></div>
+  <div class="ctrl"><label>Walls between</label><input id="walls" type="range" min="0" max="4" value="1"><div class="val" id="vwalls">1</div></div>
+  <div class="ctrl"><label>Interference</label><input id="intf" type="range" min="0" max="3" value="1"><div class="val" id="vintf">1</div></div>
+
+  <div class="stage" id="stage">
+    <div class="ap"></div>
+    <div class="ring b24" id="ring24"></div>
+    <div class="ring b5"  id="ring5"></div>
+    <div class="label" style="left:50%;top:60%;transform:translateX(-50%)" id="apLabel">AP</div>
+  </div>
+
+  <div class="compare">
+    <div class="card b24">
+      <h3>2.4 GHz</h3>
+      <div class="stat"><span>Range</span><b id="r24">~46 m</b></div>
+      <div class="stat"><span>Wall pen.</span><b>good</b></div>
+      <div class="stat"><span>Channels (NA)</span><b>1, 6, 11</b></div>
+      <div class="stat"><span>Max rate</span><b>~600 Mbps</b></div>
+      <div class="stat"><span>Crowding</span><b id="c24">high</b></div>
+    </div>
+    <div class="card b5">
+      <h3>5 GHz</h3>
+      <div class="stat"><span>Range</span><b id="r5">~15 m</b></div>
+      <div class="stat"><span>Wall pen.</span><b>poor</b></div>
+      <div class="stat"><span>Channels (NA)</span><b>~25 (incl. DFS)</b></div>
+      <div class="stat"><span>Max rate</span><b>~9.6 Gbps</b></div>
+      <div class="stat"><span>Crowding</span><b id="c5">low</b></div>
+    </div>
+  </div>
+  <div class="verdict" id="verdict">Add walls — 5 GHz ring shrinks fast. Bump interference — 2.4 GHz effectively shrinks even though physical signal is strong.</div>
+</div>
+
+<div class="panel quiz">
+  <h2>Quiz mode</h2>
+  <div class="stem" id="quizStem">Loading…</div>
+  <div class="opts" id="quizOpts"></div>
+  <div class="scoreline">
+    <span><strong id="qCorrect">0</strong> correct</span>
+    <span><strong id="qWrong">0</strong> wrong</span>
+    <span><strong id="qStreak">0</strong> streak</span>
+    <span style="margin-left:auto"><button class="btn ghost" id="newQ">Next ↻</button></span>
+  </div>
+</div>
+
+<script>
+(function(){
+  function render(){
+    var pwr = +document.getElementById('pwr').value;
+    var walls = +document.getElementById('walls').value;
+    var intf = +document.getElementById('intf').value;
+    document.getElementById('vpwr').textContent = pwr;
+    document.getElementById('vwalls').textContent = walls;
+    document.getElementById('vintf').textContent = intf;
+
+    var base24 = (pwr-10)*4 + 50;
+    var base5  = (pwr-10)*2 + 30;
+    var r24 = Math.max(20, base24 - walls*8 - intf*6);
+    var r5  = Math.max(15, base5  - walls*16 - intf*2);
+    document.getElementById('ring24').style.width = (r24*2)+'px';
+    document.getElementById('ring24').style.height = (r24*2)+'px';
+    document.getElementById('ring5').style.width = (r5*2)+'px';
+    document.getElementById('ring5').style.height = (r5*2)+'px';
+    document.getElementById('r24').textContent = '~'+Math.round(r24*0.5)+' m';
+    document.getElementById('r5').textContent  = '~'+Math.round(r5*0.5)+' m';
+    document.getElementById('c24').textContent = ['none','low','medium','high'][intf] || 'high';
+    document.getElementById('c5').textContent  = intf>=2 ? 'medium' : 'low';
+  }
+  ['pwr','walls','intf'].forEach(function(id){ document.getElementById(id).addEventListener('input', render); });
+  render();
+
+  var qCorrect=0,qWrong=0,qStreak=0;
+  var pool = [
+    {q:'Which band penetrates walls better?',a:'2.4 GHz',o:['2.4 GHz','5 GHz','6 GHz','60 GHz']},
+    {q:'How many non-overlapping 2.4 GHz channels in NA?',a:'3 (1, 6, 11)',o:['3 (1, 6, 11)','11','13','25']},
+    {q:'Why is 5 GHz preferred for high-density offices?',a:'more channels = less co-channel interference',o:['more channels = less co-channel interference','better wall penetration','required by Wi-Fi 6','lower cost']},
+    {q:'Microwave ovens, BT, and old cordless phones all crowd which band?',a:'2.4 GHz',o:['2.4 GHz','5 GHz','6 GHz','UNII-3 only']},
+    {q:'DFS channels live in:',a:'5 GHz (must yield to radar)',o:['5 GHz (must yield to radar)','2.4 GHz','6 GHz only','none of the above']},
+    {q:'A warehouse 50m long needs the most coverage. Pick a band:',a:'2.4 GHz (range > speed)',o:['2.4 GHz (range > speed)','5 GHz UNII-1','5 GHz UNII-3','60 GHz']},
+    {q:'Bandwidth/speed at equal SNR is higher on:',a:'5 GHz (wider channels available)',o:['5 GHz (wider channels available)','2.4 GHz','identical','depends on country']},
+    {q:'2.4 GHz channel widths used today:',a:'20 MHz (40 deprecated in dense)',o:['20 MHz (40 deprecated in dense)','40 MHz','80 MHz','160 MHz']},
+    {q:'5 GHz typical channel widths:',a:'20/40/80/160 MHz',o:['20/40/80/160 MHz','22 MHz only','5 MHz','3.5 GHz']},
+    {q:'Free-space path loss roughly doubles when frequency:',a:'doubles (+6 dB)',o:['doubles (+6 dB)','halves','quadruples','stays the same']}
+  ];
+  function pickQ(){
+    var q = pool[Math.floor(Math.random()*pool.length)];
+    var opts = q.o.slice().sort(function(){return Math.random()-.5;});
+    document.getElementById('quizStem').textContent = q.q;
+    var box=document.getElementById('quizOpts'); box.innerHTML='';
+    opts.forEach(function(o){
+      var b=document.createElement('button'); b.className='opt'; b.textContent=o;
+      b.addEventListener('click', function(){
+        if (b.classList.contains('correct')||b.classList.contains('wrong')) return;
+        if (o===q.a){ b.classList.add('correct'); qCorrect++; qStreak++; }
+        else { b.classList.add('wrong'); qWrong++; qStreak=0;
+          Array.prototype.forEach.call(box.children,function(c){ if(c.textContent===q.a) c.classList.add('correct'); }); }
+        document.getElementById('qCorrect').textContent=qCorrect;
+        document.getElementById('qWrong').textContent=qWrong;
+        document.getElementById('qStreak').textContent=qStreak;
+      });
+      box.appendChild(b);
+    });
+  }
+  document.getElementById('newQ').addEventListener('click', pickQ);
+  pickQ();
+})();
+</script>
+</body>
+</html>

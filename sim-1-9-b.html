@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>1.9.b Sim — IPv6 Anycast</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#FAF7F2;--bg-surface:#FFFFFF;--bg-recessed:#F3F0EB;
+    --border:#E2DFD9;--border-strong:#C7C3BC;
+    --ink:#1C1917;--ink-secondary:#57534E;--ink-muted:#A8A29E;
+    --accent:#B45309;--accent-soft:#D97706;--accent-light:#FEF3C7;
+    --correct:#16A34A;--correct-bg:#F0FDF4;
+    --wrong:#DC2626;--wrong-bg:#FEF2F2;
+    --info:#2563EB;--info-bg:#EFF6FF;
+    --font-display:'Space Grotesk',system-ui,sans-serif;
+    --font-body:'Source Serif 4',Georgia,serif;
+    --font-mono:'JetBrains Mono',monospace;
+    --radius:6px;--radius-lg:10px;
+  }
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:var(--font-body);background:var(--bg);color:var(--ink);line-height:1.55;padding:24px;max-width:920px;margin:0 auto}
+  .head{margin-bottom:20px;padding-bottom:14px;border-bottom:1px solid var(--border)}
+  .head .crumb{font-family:var(--font-mono);font-size:.74rem;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px}
+  .head .crumb a{color:var(--accent);text-decoration:none}
+  .head h1{font-family:var(--font-display);font-size:1.5rem;font-weight:700;margin-bottom:6px}
+  .head .desc{font-size:.95rem;color:var(--ink-secondary)}
+  .panel{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;margin-bottom:18px}
+  .panel h2{font-family:var(--font-display);font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-secondary);margin-bottom:12px}
+  .why{background:var(--accent-light);border-left:3px solid var(--accent);padding:14px;border-radius:var(--radius);font-size:.96rem;color:var(--ink);margin-bottom:14px}
+  .stage{position:relative;background:var(--bg-recessed);border:1px solid var(--border);border-radius:var(--radius-lg);height:380px;overflow:hidden;cursor:crosshair}
+  .stage-label{position:absolute;top:10px;left:14px;font-family:var(--font-mono);font-size:.78rem;color:var(--ink-muted);pointer-events:none}
+  .server{position:absolute;width:60px;height:60px;background:var(--info);border-radius:var(--radius);display:flex;align-items:center;justify-content:center;color:#fff;font-family:var(--font-mono);font-size:.7rem;font-weight:700;box-shadow:0 4px 12px rgba(0,0,0,.15);transform:translate(-50%,-50%)}
+  .server.winner{background:var(--correct);box-shadow:0 0 0 4px var(--correct-bg),0 4px 12px rgba(0,0,0,.2)}
+  .client{position:absolute;width:36px;height:36px;background:var(--accent);border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:1rem;cursor:grab;box-shadow:0 4px 12px rgba(0,0,0,.2);transform:translate(-50%,-50%);z-index:10;user-select:none}
+  .client:active{cursor:grabbing}
+  .pkt{position:absolute;width:14px;height:14px;background:var(--accent);border-radius:50%;transform:translate(-50%,-50%);transition:left .8s cubic-bezier(.16,1,.3,1),top .8s cubic-bezier(.16,1,.3,1);z-index:9}
+  svg.lines{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none}
+  .ctl-row{display:flex;gap:10px;margin-top:14px;align-items:center}
+  .btn{font-family:var(--font-display);font-size:.84rem;font-weight:600;padding:8px 16px;background:var(--ink);color:#FAF7F2;border:none;border-radius:var(--radius);cursor:pointer}
+  .btn.accent{background:var(--accent)}
+  .btn.ghost{background:var(--bg-recessed);color:var(--ink)}
+  .verdict{margin-top:12px;padding:14px;border-radius:var(--radius);font-family:var(--font-display);font-size:.96rem;font-weight:600;display:none}
+  .verdict.show{display:block}
+  .verdict.win{background:var(--correct-bg);color:var(--correct);border:1px solid var(--correct)}
+  .use-cases{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin-top:10px}
+  .uc{background:var(--bg-recessed);border:1px solid var(--border);border-radius:var(--radius);padding:12px}
+  .uc .name{font-family:var(--font-display);font-size:.86rem;font-weight:700;margin-bottom:4px}
+  .uc .det{font-family:var(--font-body);font-size:.84rem;color:var(--ink-secondary)}
+  .quiz .stem{font-family:var(--font-display);font-size:1.02rem;font-weight:600;margin-bottom:12px;padding:14px;background:var(--accent-light);border-left:3px solid var(--accent);border-radius:var(--radius)}
+  .quiz .opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px}
+  .opt{background:var(--bg-recessed);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;font-family:var(--font-mono);font-size:.92rem;cursor:pointer;text-align:left}
+  .opt:hover{border-color:var(--border-strong);background:var(--bg-surface)}
+  .opt.correct{background:var(--correct-bg);border-color:var(--correct);color:var(--correct);font-weight:700}
+  .opt.wrong{background:var(--wrong-bg);border-color:var(--wrong);color:var(--wrong)}
+  .scoreline{font-family:var(--font-mono);font-size:.84rem;color:var(--ink-muted);margin-top:10px;display:flex;gap:18px;align-items:center;flex-wrap:wrap}
+  .scoreline strong{font-weight:700;color:var(--ink)}
+  .footer{font-family:var(--font-mono);font-size:.78rem;color:var(--ink-muted);margin-top:24px;text-align:center}
+  .footer a{color:var(--accent);text-decoration:none}
+</style>
+</head>
+<body>
+
+<div class="head">
+  <div class="crumb"><a href="blueprint-drill.html?obj=1.9">← back to 1.9 leaves</a> · 1.9.b · IPv6 Anycast</div>
+  <h1>IPv6 Anycast Routing Sim</h1>
+  <div class="desc">Four servers all share <code>2001:db8::dead:beef</code>. Send a packet — routing picks the nearest one. Drag the client around to see routing change in real time.</div>
+</div>
+
+<div class="panel">
+  <div class="why"><strong>WHY this exists.</strong> Anycast lets multiple servers advertise the same address. Routing protocols pick whichever instance has the lowest cost path. Same address = automatic load distribution + failover. DNS root servers, Cloudflare 1.1.1.1, Google 8.8.8.8 — all anycast. From the client's view, there's one IP. From the network's view, the closest server wins.</div>
+  <div class="stage" id="stage">
+    <div class="stage-label">all 4 servers advertise 2001:db8::dead:beef · drag client (orange) to move</div>
+    <svg class="lines" id="lines"></svg>
+    <div class="server" data-id="A" style="left:18%;top:25%">SRV-A</div>
+    <div class="server" data-id="B" style="left:78%;top:25%">SRV-B</div>
+    <div class="server" data-id="C" style="left:18%;top:75%">SRV-C</div>
+    <div class="server" data-id="D" style="left:78%;top:75%">SRV-D</div>
+    <div class="client" id="client" style="left:50%;top:50%">→</div>
+  </div>
+  <div class="ctl-row">
+    <button class="btn accent" id="sendBtn">Send packet</button>
+    <button class="btn ghost" id="resetBtn">Reset</button>
+    <span style="font-family:var(--font-mono);font-size:.78rem;color:var(--ink-muted);margin-left:auto">drag the orange client</span>
+  </div>
+  <div class="verdict" id="verdict"></div>
+</div>
+
+<div class="panel">
+  <h2>Real-world anycast use cases</h2>
+  <div class="use-cases">
+    <div class="uc"><div class="name">DNS root servers</div><div class="det">13 root server addresses, hundreds of physical servers worldwide. Anycast routes you to the closest.</div></div>
+    <div class="uc"><div class="name">Public DNS resolvers</div><div class="det">Cloudflare 1.1.1.1, Google 8.8.8.8 — single IP, hundreds of locations.</div></div>
+    <div class="uc"><div class="name">CDN edge</div><div class="det">Akamai, Cloudflare, Fastly — anycast directs to nearest POP.</div></div>
+    <div class="uc"><div class="name">DHCPv6 relay</div><div class="det">Subnet router anycast — routers reachable via the all-zero IID in their subnet.</div></div>
+    <div class="uc"><div class="name">6to4 relay</div><div class="det">2002::/16 relay address — anycasted on 192.88.99.1.</div></div>
+  </div>
+</div>
+
+<div class="panel quiz">
+  <h2>Quiz mode <span style="color:var(--accent);text-transform:none;letter-spacing:0;font-weight:700">— anycast use cases</span></h2>
+  <div class="stem" id="quizStem">Loading…</div>
+  <div class="opts" id="quizOpts"></div>
+  <div class="scoreline">
+    <span><strong id="qC">0</strong> correct</span>
+    <span><strong id="qW">0</strong> wrong</span>
+    <span><strong id="qS">0</strong> streak</span>
+    <span style="margin-left:auto"><button class="btn ghost" id="newQ">Next ↻</button></span>
+  </div>
+</div>
+
+<div class="footer"><a href="blueprint-drill.html?obj=1.9">← back to 1.9 leaves</a></div>
+
+<script>
+(function(){
+  var stage = document.getElementById('stage');
+  var client = document.getElementById('client');
+  var lines = document.getElementById('lines');
+  var verdict = document.getElementById('verdict');
+  var dragging = false;
+
+  function getStageRect(){ return stage.getBoundingClientRect(); }
+  function setClientFromEvent(e){
+    var r = getStageRect();
+    var x = (e.clientX - r.left) / r.width * 100;
+    var y = (e.clientY - r.top) / r.height * 100;
+    x = Math.max(4, Math.min(96, x));
+    y = Math.max(8, Math.min(92, y));
+    client.style.left = x+'%';
+    client.style.top = y+'%';
+    drawLines();
+  }
+  client.addEventListener('mousedown', function(e){ dragging = true; e.preventDefault(); });
+  document.addEventListener('mouseup', function(){ dragging = false; });
+  document.addEventListener('mousemove', function(e){ if (dragging) setClientFromEvent(e); });
+
+  function getServers(){
+    return Array.prototype.map.call(stage.querySelectorAll('.server'), function(s){
+      var r = s.getBoundingClientRect();
+      var sr = getStageRect();
+      return { id: s.dataset.id, el: s, x: r.left+r.width/2-sr.left, y: r.top+r.height/2-sr.top };
+    });
+  }
+  function getClient(){
+    var r = client.getBoundingClientRect();
+    var sr = getStageRect();
+    return { x: r.left+r.width/2-sr.left, y: r.top+r.height/2-sr.top };
+  }
+  function nearest(){
+    var c = getClient();
+    var srvs = getServers();
+    var best = srvs[0], bestD = Infinity;
+    srvs.forEach(function(s){
+      var d = Math.hypot(s.x-c.x, s.y-c.y);
+      if (d<bestD){ best=s; bestD=d; }
+    });
+    return {srv:best, dist:bestD};
+  }
+  function drawLines(){
+    var c = getClient();
+    var srvs = getServers();
+    var n = nearest().srv;
+    var html = '';
+    srvs.forEach(function(s){
+      var winner = s.id===n.id;
+      html += '<line x1="'+c.x+'" y1="'+c.y+'" x2="'+s.x+'" y2="'+s.y+'" stroke="'+(winner?'#16A34A':'#C7C3BC')+'" stroke-width="'+(winner?'3':'1')+'" stroke-dasharray="'+(winner?'':'4,4')+'" opacity="'+(winner?'0.9':'0.4')+'"/>';
+    });
+    lines.innerHTML = html;
+    Array.prototype.forEach.call(stage.querySelectorAll('.server'), function(s){
+      s.classList.toggle('winner', s.dataset.id===n.id);
+    });
+  }
+  drawLines();
+  window.addEventListener('resize', drawLines);
+
+  document.getElementById('sendBtn').addEventListener('click', function(){
+    var c = getClient();
+    var n = nearest();
+    var pkt = document.createElement('div');
+    pkt.className='pkt';
+    pkt.style.left = c.x+'px';
+    pkt.style.top = c.y+'px';
+    stage.appendChild(pkt);
+    requestAnimationFrame(function(){
+      pkt.style.left = n.srv.x+'px';
+      pkt.style.top = n.srv.y+'px';
+    });
+    setTimeout(function(){
+      pkt.remove();
+      verdict.className='verdict win show';
+      verdict.textContent = '✓ Routed to SRV-'+n.srv.id+' — nearest of 4 anycast servers (distance ~'+Math.round(n.dist)+'px). Same destination IP, different physical server.';
+    }, 850);
+  });
+  document.getElementById('resetBtn').addEventListener('click', function(){
+    client.style.left='50%'; client.style.top='50%';
+    drawLines();
+    verdict.className='verdict';
+  });
+
+  // Quiz
+  var qC=0, qW=0, qS=0;
+  var pool = [
+    {q:'A user types 1.1.1.1 from anywhere on Earth. Why is it fast?', a:'Anycast — routes to nearest Cloudflare POP', distractors:['Magic CDN','Multicast','It uses TCP fast-open']},
+    {q:'A DNS root server like F-root has 200+ instances worldwide. How?', a:'Anycast — all share the same IPv6/IPv4 address', distractors:['DNS round-robin','Multicast','Manual GeoDNS']},
+    {q:'You configure 4 servers with the same anycast address. A new server joins. What happens?', a:'Routing converges — clients near new server start using it', distractors:['DHCP must rebroadcast','All clients must reconfigure','Anycast breaks until restart']},
+    {q:'One of 4 anycast servers fails. What happens to clients?', a:'Routing reconverges — clients shift to next-nearest', distractors:['All clients must restart','Half the clients lose service permanently','TCP sessions all reset']},
+    {q:'How is anycast different from multicast?', a:'Anycast = nearest single receiver. Multicast = all subscribed receivers', distractors:['No difference','Multicast is IPv6-only','Anycast uses ff00::/8']},
+    {q:'How is anycast different from unicast?', a:'Same address shared by multiple servers; unicast = one address, one server', distractors:['Anycast uses TCP only','Anycast packets duplicate to all servers','Unicast is IPv6-only']},
+    {q:'What advertises an anycast address into the routing fabric?', a:'BGP / IGP — same prefix announced from multiple locations', distractors:['DHCPv6','SLAAC','ICMPv6 router advertisements']},
+    {q:'Subnet-router anycast address — what is it?', a:'All-zero interface ID in a subnet — reaches any router on the subnet', distractors:['fe80::1','ff02::1','::1']}
+  ];
+  function genQ(){
+    var q = pool[Math.floor(Math.random()*pool.length)];
+    document.getElementById('quizStem').textContent = q.q;
+    var opts = [q.a].concat(q.distractors).sort(function(){return Math.random()-.5;});
+    var box = document.getElementById('quizOpts'); box.innerHTML='';
+    opts.forEach(function(o){
+      var b=document.createElement('button'); b.className='opt'; b.textContent=o;
+      b.addEventListener('click', function(){
+        if (b.classList.contains('correct')||b.classList.contains('wrong')) return;
+        if (o===q.a){ b.classList.add('correct'); qC++; qS++; }
+        else { b.classList.add('wrong'); qW++; qS=0;
+          Array.prototype.forEach.call(box.children, function(c){ if (c.textContent===q.a) c.classList.add('correct'); });
+        }
+        document.getElementById('qC').textContent=qC;
+        document.getElementById('qW').textContent=qW;
+        document.getElementById('qS').textContent=qS;
+      });
+      box.appendChild(b);
+    });
+  }
+  document.getElementById('newQ').addEventListener('click', genQ);
+  genQ();
+})();
+</script>
+</body>
+</html>

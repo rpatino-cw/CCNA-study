@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>3.1 Sim — Routing Table Components</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#FAF7F2;--bg-surface:#FFFFFF;--bg-recessed:#F3F0EB;
+    --border:#E2DFD9;--border-strong:#C7C3BC;
+    --ink:#1C1917;--ink-secondary:#57534E;--ink-muted:#A8A29E;
+    --accent:#B45309;--accent-soft:#D97706;--accent-light:#FEF3C7;
+    --correct:#16A34A;--correct-bg:#F0FDF4;
+    --wrong:#DC2626;--wrong-bg:#FEF2F2;
+    --info:#2563EB;--info-bg:#EFF6FF;
+    --font-display:'Space Grotesk',system-ui,sans-serif;
+    --font-body:'Source Serif 4',Georgia,serif;
+    --font-mono:'JetBrains Mono',monospace;
+    --radius:6px;--radius-lg:10px;
+  }
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  html{font-size:16px;-webkit-font-smoothing:antialiased}
+  body{font-family:var(--font-body);background:var(--bg);color:var(--ink);line-height:1.55;padding:24px;max-width:960px;margin:0 auto}
+  .head{margin-bottom:20px;padding-bottom:14px;border-bottom:1px solid var(--border)}
+  .head .crumb{font-family:var(--font-mono);font-size:.74rem;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px}
+  .head .crumb a{color:var(--accent);text-decoration:none}
+  .head h1{font-family:var(--font-display);font-size:1.5rem;font-weight:700;margin-bottom:6px}
+  .head .desc{font-size:.95rem;color:var(--ink-secondary)}
+  .why{background:var(--accent-light);border-left:3px solid var(--accent);padding:14px 16px;border-radius:var(--radius);margin-bottom:18px;font-size:.95rem}
+  .why strong{font-family:var(--font-display);text-transform:uppercase;letter-spacing:.05em;font-size:.78rem;color:var(--accent);display:block;margin-bottom:4px}
+  .panel{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;margin-bottom:18px}
+  .panel h2{font-family:var(--font-display);font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-secondary);margin-bottom:12px}
+  .codebar{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px}
+  .code-chip{font-family:var(--font-mono);font-size:.86rem;font-weight:700;padding:6px 12px;border-radius:var(--radius);border:1px solid var(--border-strong);background:var(--bg-recessed);cursor:pointer;color:var(--ink);transition:all .15s;min-width:42px;text-align:center}
+  .code-chip:hover{border-color:var(--accent);background:var(--accent-light)}
+  .code-chip.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+  .show-output{font-family:var(--font-mono);font-size:.86rem;background:#1C1917;color:#FAF7F2;padding:16px;border-radius:var(--radius);overflow-x:auto;line-height:1.65;white-space:pre}
+  .show-output .ln{display:block;padding:2px 4px;border-radius:3px;transition:background .25s}
+  .show-output .ln.hl{background:rgba(217,119,6,.32);color:#FEF3C7}
+  .show-output .ln .ad{cursor:pointer;border-bottom:1px dashed #D97706}
+  .show-output .ln .ad:hover{background:rgba(217,119,6,.5)}
+  .legend{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px;margin-top:14px;font-family:var(--font-mono);font-size:.86rem}
+  .legend .item{padding:8px 12px;background:var(--bg-recessed);border-radius:var(--radius);border:1px solid var(--border)}
+  .legend .item .k{font-weight:700;color:var(--accent);margin-right:6px}
+  .ad-box{margin-top:14px;padding:14px;background:var(--info-bg);border:1px solid var(--info);border-radius:var(--radius);font-size:.92rem;display:none}
+  .ad-box.show{display:block;animation:fadeIn .25s}
+  .ad-box .label{font-family:var(--font-display);text-transform:uppercase;letter-spacing:.05em;font-size:.74rem;font-weight:700;color:var(--info);display:block;margin-bottom:4px}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
+  .scenario{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+  .btn{font-family:var(--font-display);font-size:.84rem;font-weight:600;padding:8px 16px;background:var(--ink);color:#FAF7F2;border:none;border-radius:var(--radius);cursor:pointer;transition:background .15s}
+  .btn:hover{background:var(--ink-secondary)}
+  .btn.ghost{background:var(--bg-recessed);color:var(--ink)}
+  .btn.ghost:hover{background:var(--bg-surface)}
+  .btn.accent{background:var(--accent)}
+  .btn.accent:hover{background:var(--accent-soft)}
+  .ad-table{width:100%;border-collapse:collapse;margin-top:10px;font-family:var(--font-mono);font-size:.88rem}
+  .ad-table th,.ad-table td{padding:8px 12px;border-bottom:1px solid var(--border);text-align:left}
+  .ad-table th{background:var(--bg-recessed);font-family:var(--font-display);font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-secondary)}
+  .ad-table tr.win td{background:var(--correct-bg);color:var(--correct);font-weight:700}
+  .verdict{margin-top:14px;padding:12px 16px;border-radius:var(--radius);font-family:var(--font-display);font-size:.94rem;font-weight:600;display:none}
+  .verdict.show{display:block;animation:fadeIn .25s}
+  .verdict.win{background:var(--correct-bg);color:var(--correct);border:1px solid var(--correct)}
+  .verdict.info{background:var(--info-bg);color:var(--info);border:1px solid var(--info)}
+  .quiz .stem{font-family:var(--font-display);font-size:1.02rem;font-weight:600;margin-bottom:12px;padding:14px;background:var(--accent-light);border-left:3px solid var(--accent);border-radius:var(--radius)}
+  .quiz .opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px}
+  .opt{background:var(--bg-recessed);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;font-family:var(--font-mono);font-size:.92rem;cursor:pointer;text-align:left;transition:all .15s}
+  .opt:hover{border-color:var(--border-strong);background:var(--bg-surface)}
+  .opt.correct{background:var(--correct-bg);border-color:var(--correct);color:var(--correct);font-weight:700}
+  .opt.wrong{background:var(--wrong-bg);border-color:var(--wrong);color:var(--wrong)}
+  .scoreline{font-family:var(--font-mono);font-size:.84rem;color:var(--ink-muted);margin-top:10px;display:flex;gap:18px;align-items:center;flex-wrap:wrap}
+  .scoreline strong{font-weight:700;color:var(--ink)}
+  .footer{margin-top:24px;padding-top:14px;border-top:1px solid var(--border);font-family:var(--font-mono);font-size:.82rem}
+  .footer a{color:var(--accent);text-decoration:none}
+</style>
+</head>
+<body>
+
+<div class="head">
+  <div class="crumb"><a href="blueprint-drill.html?obj=3.1">← back to 3.1 leaves</a> · 3.1 · IP Connectivity · Routing Table</div>
+  <h1>Routing Table Components Sim</h1>
+  <div class="desc">Click any code letter (C, L, S, O, D, B, i, *) to highlight matching entries. Click an <code>[AD/metric]</code> bracket to learn what those numbers mean. Toggle two-protocol scenarios to see how AD picks a winner.</div>
+</div>
+
+<div class="why">
+  <strong>WHY this matters</strong>
+  Every router has one job: pick the next-hop for a packet. The routing table is the answer key. Each row tells you <em>where it learned the route</em> (code), <em>how much it trusts the source</em> (AD), and <em>how far it is</em> (metric). If two protocols know the same destination, AD breaks the tie — not metric, not preference, AD. Memorize this surface and OSPF, EIGRP, BGP, and static all collapse into one decision.
+</div>
+
+<div class="panel">
+  <h2>Filter by code — click any letter</h2>
+  <div class="codebar" id="codebar"></div>
+  <div class="show-output" id="showout"></div>
+  <div class="ad-box" id="adbox">
+    <span class="label" id="adlabel">[AD/Metric]</span>
+    <div id="adbody"></div>
+  </div>
+  <div class="legend">
+    <div class="item"><span class="k">C</span>connected — interface is up + has IP</div>
+    <div class="item"><span class="k">L</span>local — /32 of router's own IP</div>
+    <div class="item"><span class="k">S</span>static — manually configured</div>
+    <div class="item"><span class="k">O</span>OSPF intra-area</div>
+    <div class="item"><span class="k">D</span>EIGRP</div>
+    <div class="item"><span class="k">B</span>BGP</div>
+    <div class="item"><span class="k">i</span>IS-IS</div>
+    <div class="item"><span class="k">*</span>candidate default route</div>
+  </div>
+</div>
+
+<div class="panel">
+  <h2>Two-protocol race — same destination, different source</h2>
+  <div class="scenario">
+    <button class="btn accent" data-sc="ospf-eigrp">OSPF (AD 110) vs EIGRP (AD 90) → 10.5.0.0/16</button>
+    <button class="btn accent" data-sc="static-ospf">Static (AD 1) vs OSPF (AD 110) → 10.6.0.0/16</button>
+    <button class="btn accent" data-sc="ebgp-ospf">eBGP (AD 20) vs OSPF (AD 110) → 10.7.0.0/16</button>
+    <button class="btn ghost" id="scReset">Reset</button>
+  </div>
+  <table class="ad-table" id="raceTable">
+    <thead><tr><th>Source</th><th>AD</th><th>Metric</th><th>Trust</th></tr></thead>
+    <tbody></tbody>
+  </table>
+  <div class="verdict" id="raceVerdict"></div>
+</div>
+
+<div class="panel">
+  <h2>AD reference — the number the router trusts before metric</h2>
+  <table class="ad-table">
+    <thead><tr><th>Source</th><th>Default AD</th><th>Note</th></tr></thead>
+    <tbody>
+      <tr><td>Connected</td><td>0</td><td>Cannot be overridden</td></tr>
+      <tr><td>Static</td><td>1</td><td>Operator promise — beats most protocols</td></tr>
+      <tr><td>eBGP</td><td>20</td><td>External BGP only</td></tr>
+      <tr><td>EIGRP (internal)</td><td>90</td><td>Cisco proprietary; replaced by EIGRP open</td></tr>
+      <tr><td>OSPF</td><td>110</td><td>Same for intra-area, inter-area, external</td></tr>
+      <tr><td>IS-IS</td><td>115</td><td>Common in service provider cores</td></tr>
+      <tr><td>RIP</td><td>120</td><td>Legacy — hop-count metric capped at 15</td></tr>
+      <tr><td>EIGRP (external)</td><td>170</td><td>Routes redistributed into EIGRP</td></tr>
+      <tr><td>iBGP</td><td>200</td><td>Internal BGP — least trusted by default</td></tr>
+      <tr><td>Floating static</td><td>&gt;protocol AD</td><td>Backup only — installs when primary dies</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="panel quiz">
+  <h2>Quiz mode <span style="color:var(--accent);text-transform:none;letter-spacing:0;font-weight:700">— predict before peeking</span></h2>
+  <div class="stem" id="quizStem">Loading…</div>
+  <div class="opts" id="quizOpts"></div>
+  <div class="scoreline">
+    <span><strong id="qCorrect">0</strong> correct</span>
+    <span><strong id="qWrong">0</strong> wrong</span>
+    <span><strong id="qStreak">0</strong> streak</span>
+    <span><strong id="qNum">1</strong>/<strong id="qTot">12</strong></span>
+    <span style="margin-left:auto"><button class="btn ghost" id="newQ">Next ↻</button></span>
+  </div>
+</div>
+
+<div class="footer"><a href="blueprint-drill.html?obj=3.1">← back to 3.1 leaves</a></div>
+
+<script>
+(function(){
+  var ROUTES = [
+    {code:'C', dest:'10.0.0.0/24',  rest:'is directly connected, GigabitEthernet0/0', ad:'0/0',     desc:'Connected — Gi0/0 is up + has 10.0.0.1/24 configured.'},
+    {code:'L', dest:'10.0.0.1/32',  rest:'is directly connected, GigabitEthernet0/0', ad:'0/0',     desc:'Local — /32 host route for the router\'s own IP. Lets the router catch packets sent to itself.'},
+    {code:'C', dest:'192.168.1.0/24', rest:'is directly connected, GigabitEthernet0/1', ad:'0/0',  desc:'Connected — second LAN segment.'},
+    {code:'L', dest:'192.168.1.1/32', rest:'is directly connected, GigabitEthernet0/1', ad:'0/0',  desc:'Local — router\'s IP on Gi0/1.'},
+    {code:'S', dest:'10.2.2.0/24',  rest:'[1/0] via 192.168.1.2',                    ad:'1/0',     desc:'Static — operator typed `ip route 10.2.2.0 255.255.255.0 192.168.1.2`. AD 1.'},
+    {code:'S*',dest:'0.0.0.0/0',    rest:'[1/0] via 203.0.113.1',                    ad:'1/0',     desc:'Static default — the * means candidate default. Catches anything not in the table.'},
+    {code:'O', dest:'10.3.3.0/24',  rest:'[110/2] via 192.168.1.5, 00:14:22, Gi0/1', ad:'110/2',   desc:'OSPF intra-area. AD 110, cost 2 = sum of outgoing interface costs.'},
+    {code:'O', dest:'10.4.0.0/16',  rest:'[110/3] via 192.168.1.5, 00:14:22, Gi0/1', ad:'110/3',   desc:'OSPF intra-area, longer path (cost 3).'},
+    {code:'D', dest:'10.5.5.0/24',  rest:'[90/2195456] via 192.168.1.6, 00:08:11, Gi0/2', ad:'90/2195456', desc:'EIGRP internal. AD 90 — more trusted than OSPF. Composite metric is bandwidth + delay scaled.'},
+    {code:'B', dest:'10.6.0.0/16',  rest:'[20/0] via 203.0.113.5, 00:01:33',          ad:'20/0',   desc:'eBGP. AD 20. Metric 0 = MED. Used between autonomous systems.'},
+    {code:'i', dest:'10.7.7.0/24',  rest:'[115/20] via 192.168.1.7, 00:22:01, Gi0/3', ad:'115/20', desc:'IS-IS. AD 115. Common in SP cores; rare in enterprise.'},
+    {code:'O', dest:'10.8.0.0/16',  rest:'[110/4] via 192.168.1.5, 00:14:22, Gi0/1', ad:'110/4',   desc:'OSPF intra-area, farther reach.'}
+  ];
+
+  function renderShow(filter){
+    var box = document.getElementById('showout');
+    var html = '<span class="ln" style="color:#A8A29E">R1# show ip route</span>\n';
+    html += '<span class="ln" style="color:#A8A29E">Codes: C - connected, L - local, S - static, O - OSPF, D - EIGRP, B - BGP, i - IS-IS, * - candidate default</span>\n';
+    html += '<span class="ln" style="color:#A8A29E">Gateway of last resort is 203.0.113.1 to network 0.0.0.0</span>\n\n';
+    ROUTES.forEach(function(r){
+      var hl = '';
+      if (filter) {
+        if (filter === '*' && r.code.indexOf('*') > -1) hl = 'hl';
+        else if (filter !== '*' && r.code.charAt(0) === filter) hl = 'hl';
+      }
+      var line = r.code.padEnd(3,' ') + r.dest.padEnd(20,' ') + r.rest;
+      var withAd = line.replace(/\[(\d+\/\d+)\]/g, function(m, g){ return '<span class="ad" data-ad="'+g+'" data-desc="'+r.desc.replace(/"/g,'&quot;')+'">['+g+']</span>'; });
+      html += '<span class="ln '+hl+'">'+withAd+'</span>\n';
+    });
+    box.innerHTML = html;
+    Array.prototype.forEach.call(box.querySelectorAll('.ad'), function(el){
+      el.addEventListener('click', function(e){
+        e.stopPropagation();
+        var ad = el.dataset.ad.split('/');
+        document.getElementById('adlabel').textContent = '[AD/Metric] = ['+el.dataset.ad+']';
+        document.getElementById('adbody').innerHTML = 'AD <strong>'+ad[0]+'</strong> — administrative distance — how much the router <em>trusts</em> the source. Lower = better. Metric <strong>'+ad[1]+'</strong> — distance/cost within that protocol. Compared only after AD ties.<br><br>'+el.dataset.desc;
+        document.getElementById('adbox').classList.add('show');
+      });
+    });
+  }
+
+  var codes = ['C','L','S','O','D','B','i','*'];
+  var bar = document.getElementById('codebar');
+  codes.forEach(function(c){
+    var b = document.createElement('button');
+    b.className='code-chip'; b.textContent=c;
+    b.addEventListener('click', function(){
+      Array.prototype.forEach.call(bar.children,function(x){x.classList.remove('active')});
+      b.classList.add('active'); renderShow(c);
+    });
+    bar.appendChild(b);
+  });
+  renderShow(null);
+
+  var SC = {
+    'ospf-eigrp':{rows:[{src:'OSPF',ad:110,m:2,trust:'less'},{src:'EIGRP',ad:90,m:2195456,trust:'more — installed'}],winner:'EIGRP', why:'EIGRP AD 90 < OSPF AD 110. EIGRP wins regardless of metric values.'},
+    'static-ospf':{rows:[{src:'Static',ad:1,m:0,trust:'more — installed'},{src:'OSPF',ad:110,m:2,trust:'less'}],winner:'Static', why:'Static AD 1 beats OSPF AD 110. Operator intent > learned route.'},
+    'ebgp-ospf':{rows:[{src:'eBGP',ad:20,m:0,trust:'more — installed'},{src:'OSPF',ad:110,m:2,trust:'less'}],winner:'eBGP', why:'eBGP AD 20 < OSPF AD 110. eBGP wins. (Only true for eBGP — iBGP AD 200 would lose.)'}
+  };
+  function renderRace(key){
+    var v = document.getElementById('raceVerdict');
+    var tb = document.querySelector('#raceTable tbody'); tb.innerHTML='';
+    if (!key) { v.className='verdict'; return; }
+    var sc = SC[key];
+    sc.rows.forEach(function(r){
+      var tr = document.createElement('tr');
+      if (r.src === sc.winner) tr.className='win';
+      tr.innerHTML='<td>'+r.src+'</td><td>'+r.ad+'</td><td>'+r.m+'</td><td>'+r.trust+'</td>';
+      tb.appendChild(tr);
+    });
+    v.className='verdict win show';
+    v.textContent='✓ '+sc.winner+' wins. '+sc.why;
+  }
+  Array.prototype.forEach.call(document.querySelectorAll('[data-sc]'),function(b){
+    b.addEventListener('click',function(){renderRace(b.dataset.sc);});
+  });
+  document.getElementById('scReset').addEventListener('click',function(){renderRace(null);});
+
+  var QUIZ = [
+    {q:'A route shows <code>O 10.3.3.0/24 [110/2]</code>. What does the 110 mean?', a:'Administrative Distance — how trusted the source is', opts:['Hop count','Metric / cost','Administrative Distance — how trusted the source is','Number of equal-cost paths']},
+    {q:'Same destination learned via OSPF (AD 110) and EIGRP (AD 90). Which installs in the routing table?', a:'EIGRP — lower AD wins', opts:['OSPF — higher AD wins','EIGRP — lower AD wins','Both load-balance','Whichever arrived first']},
+    {q:'What is the AD of a connected route?', a:'0', opts:['0','1','5','110']},
+    {q:'What does the L code mean in show ip route?', a:'Local — /32 of the router\'s own interface IP', opts:['Loopback','Learned via LSA','Local — /32 of the router\'s own interface IP','Last-hop']},
+    {q:'A floating static route is configured with AD 200. When does it install?', a:'Only when the primary route disappears', opts:['Always — it overrides protocols','Only when the primary route disappears','Never — AD too high','Only on weekends']},
+    {q:'What is the default AD of a static route?', a:'1', opts:['0','1','20','110']},
+    {q:'Which is more trusted: eBGP or iBGP?', a:'eBGP (AD 20) is more trusted than iBGP (AD 200)', opts:['iBGP — internal is safer','eBGP (AD 20) is more trusted than iBGP (AD 200)','They are equal','Depends on metric']},
+    {q:'A route shows <code>S* 0.0.0.0/0 [1/0]</code>. What does the * mean?', a:'Candidate default route', opts:['Wildcard match','Candidate default route','Stale entry','Summary route']},
+    {q:'EIGRP internal AD is 90. What is EIGRP external AD?', a:'170', opts:['90','110','170','200']},
+    {q:'Two OSPF routes to the same destination — one cost 2, one cost 3. Which installs?', a:'Cost 2 — same AD, lower metric wins', opts:['Cost 3','Cost 2 — same AD, lower metric wins','Both load-balance equally','Neither — drops']},
+    {q:'What is the IS-IS code in show ip route?', a:'i', opts:['I','i','IS','S']},
+    {q:'Why does a connected route\'s AD of 0 matter?', a:'Nothing can override it — physical layer truth wins', opts:['It hides the route','Nothing can override it — physical layer truth wins','It blocks all other protocols','Cisco accidentally set it']}
+  ];
+  var qIdx=0,qC=0,qW=0,qS=0;
+  document.getElementById('qTot').textContent=QUIZ.length;
+  function renderQ(){
+    var q=QUIZ[qIdx];
+    document.getElementById('quizStem').innerHTML=q.q;
+    document.getElementById('qNum').textContent=qIdx+1;
+    var box=document.getElementById('quizOpts'); box.innerHTML='';
+    var opts=q.opts.slice().sort(function(){return Math.random()-.5;});
+    opts.forEach(function(o){
+      var b=document.createElement('button'); b.className='opt'; b.textContent=o;
+      b.addEventListener('click',function(){
+        if (b.classList.contains('correct')||b.classList.contains('wrong')) return;
+        if (o===q.a){b.classList.add('correct');qC++;qS++;}
+        else{b.classList.add('wrong');qW++;qS=0;
+          Array.prototype.forEach.call(box.children,function(c){if(c.textContent===q.a)c.classList.add('correct');});
+        }
+        document.getElementById('qCorrect').textContent=qC;
+        document.getElementById('qWrong').textContent=qW;
+        document.getElementById('qStreak').textContent=qS;
+      });
+      box.appendChild(b);
+    });
+  }
+  document.getElementById('newQ').addEventListener('click',function(){qIdx=(qIdx+1)%QUIZ.length;renderQ();});
+  renderQ();
+})();
+</script>
+</body>
+</html>

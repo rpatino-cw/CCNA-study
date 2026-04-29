@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>1.1.c Sim — NGFW, IPS, IDS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#FAF7F2;--bg-surface:#FFFFFF;--bg-recessed:#F3F0EB;
+    --border:#E2DFD9;--border-strong:#C7C3BC;
+    --ink:#1C1917;--ink-secondary:#57534E;--ink-muted:#A8A29E;
+    --accent:#B45309;--accent-soft:#D97706;--accent-light:#FEF3C7;
+    --correct:#16A34A;--correct-bg:#F0FDF4;
+    --wrong:#DC2626;--wrong-bg:#FEF2F2;
+    --info:#2563EB;--info-bg:#EFF6FF;
+    --font-display:'Space Grotesk',system-ui,sans-serif;
+    --font-body:'Source Serif 4',Georgia,serif;
+    --font-mono:'JetBrains Mono',monospace;
+    --radius:6px;--radius-lg:10px;
+  }
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  html{font-size:16px;-webkit-font-smoothing:antialiased}
+  body{font-family:var(--font-body);background:var(--bg);color:var(--ink);line-height:1.55;padding:24px;max-width:920px;margin:0 auto}
+  .head{margin-bottom:20px;padding-bottom:14px;border-bottom:1px solid var(--border)}
+  .head .crumb{font-family:var(--font-mono);font-size:.74rem;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px}
+  .head .crumb a{color:var(--accent);text-decoration:none}
+  .head h1{font-family:var(--font-display);font-size:1.5rem;font-weight:700;margin-bottom:6px}
+  .head .desc{font-size:.95rem;color:var(--ink-secondary)}
+  .panel{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;margin-bottom:18px}
+  .panel h2{font-family:var(--font-display);font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-secondary);margin-bottom:12px}
+  .badge{display:inline-block;font-family:var(--font-display);font-size:.7rem;font-weight:700;padding:2px 8px;border-radius:99px;background:var(--accent-light);color:var(--accent);text-transform:uppercase;letter-spacing:.04em;margin-left:8px}
+  .btn{font-family:var(--font-display);font-size:.84rem;font-weight:600;padding:8px 16px;background:var(--ink);color:#FAF7F2;border:none;border-radius:var(--radius);cursor:pointer}
+  .btn.ghost{background:var(--bg-recessed);color:var(--ink)}
+  .btn.accent{background:var(--accent)}
+  .modes{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;margin-bottom:14px}
+  .mode-btn{padding:10px 12px;border:1px solid var(--border-strong);border-radius:var(--radius);background:var(--bg-recessed);font-family:var(--font-display);font-size:.84rem;font-weight:600;cursor:pointer;text-align:left;line-height:1.3}
+  .mode-btn small{display:block;font-family:var(--font-mono);font-size:.7rem;color:var(--ink-muted);font-weight:400;margin-top:2px}
+  .mode-btn.active{background:var(--accent);color:#FAF7F2;border-color:var(--accent)}
+  .mode-btn.active small{color:rgba(255,255,255,.85)}
+  .stage{position:relative;background:var(--bg-recessed);border:1px solid var(--border);border-radius:var(--radius-lg);height:240px;overflow:hidden;margin-bottom:12px}
+  .node{position:absolute;top:50%;transform:translateY(-50%);width:100px;height:80px;background:var(--bg-surface);border:2px solid var(--ink);border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:var(--font-display);font-size:.78rem;font-weight:700;text-align:center;line-height:1.2}
+  .node small{font-family:var(--font-mono);font-size:.66rem;font-weight:400;color:var(--ink-secondary);margin-top:2px}
+  #internet{left:30px}
+  #fw{left:50%;transform:translate(-50%,-50%);background:var(--accent-light);border-color:var(--accent)}
+  #lan{right:30px}
+  #ids-tap{position:absolute;left:50%;transform:translateX(-50%);top:14px;width:120px;height:40px;background:var(--info-bg);border:1.5px dashed var(--info);border-radius:6px;display:none;align-items:center;justify-content:center;font-family:var(--font-display);font-size:.74rem;color:var(--info);font-weight:700}
+  #ids-tap.show{display:flex}
+  .pkt{position:absolute;top:50%;left:140px;width:50px;height:30px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-family:var(--font-mono);font-size:.7rem;font-weight:700;color:#fff;transform:translateY(-50%);transition:left .9s cubic-bezier(.16,1,.3,1),opacity .3s,top .3s}
+  .pkt.benign{background:var(--correct)}
+  .pkt.app{background:var(--accent-soft)}
+  .pkt.malware{background:var(--wrong)}
+  .picker{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;margin-bottom:8px}
+  .pkt-card{padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-recessed);font-family:var(--font-mono);font-size:.84rem;cursor:pointer;text-align:left}
+  .pkt-card:hover{border-color:var(--border-strong);background:var(--bg-surface)}
+  .pkt-card b{font-family:var(--font-display);font-size:.74rem;letter-spacing:.04em;text-transform:uppercase;display:block;margin-bottom:2px}
+  .pkt-card.benign b{color:var(--correct)}
+  .pkt-card.app b{color:var(--accent)}
+  .pkt-card.malware b{color:var(--wrong)}
+  .verdict{margin-top:14px;padding:12px 16px;border-radius:var(--radius);font-family:var(--font-display);font-size:.94rem;font-weight:600;display:none}
+  .verdict.show{display:block;animation:fadeIn .25s}
+  .verdict.win{background:var(--correct-bg);color:var(--correct);border:1px solid var(--correct)}
+  .verdict.miss{background:var(--wrong-bg);color:var(--wrong);border:1px solid var(--wrong)}
+  .verdict.info{background:var(--info-bg);color:var(--info);border:1px solid var(--info)}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
+  .quiz{margin-top:22px}
+  .quiz .stem{font-family:var(--font-display);font-size:1.02rem;font-weight:600;margin-bottom:12px;padding:14px;background:var(--accent-light);border-left:3px solid var(--accent);border-radius:var(--radius)}
+  .quiz .opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px}
+  .opt{background:var(--bg-recessed);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;font-family:var(--font-mono);font-size:.9rem;cursor:pointer;text-align:left}
+  .opt:hover{border-color:var(--border-strong);background:var(--bg-surface)}
+  .opt.correct{background:var(--correct-bg);border-color:var(--correct);color:var(--correct);font-weight:700}
+  .opt.wrong{background:var(--wrong-bg);border-color:var(--wrong);color:var(--wrong)}
+  .scoreline{font-family:var(--font-mono);font-size:.84rem;color:var(--ink-muted);margin-top:10px;display:flex;gap:18px;align-items:center}
+  .scoreline strong{font-weight:700;color:var(--ink)}
+  .footnote{font-family:var(--font-mono);font-size:.78rem;color:var(--ink-muted);margin-top:12px;line-height:1.5}
+  .footer-link{font-family:var(--font-mono);font-size:.78rem;color:var(--accent);text-decoration:none}
+</style>
+</head>
+<body>
+
+<div class="head">
+  <div class="crumb"><a href="blueprint-drill.html?obj=1.1">← 1.1 Mini Sims</a> · 1.1.c · NGFW · IPS · IDS</div>
+  <h1>The Same Packet, Four Different Fates<span class="badge">drill</span></h1>
+  <div class="desc">A traditional firewall sees a port number and shrugs — "443 is allowed, pass." A next-gen firewall sees an application — "this is Facebook on 443, blocked." An IPS sits inline and drops anything matching a signature. An IDS sits off to the side, watches a copy, and tells someone later. Same packet. Four different stories. Pick a packet, pick a security mode, watch what happens.</div>
+</div>
+
+<div class="panel">
+  <h2>Pick a security device mode</h2>
+  <div class="modes">
+    <button class="mode-btn active" data-mode="trad">Traditional FW<small>port-based ACL</small></button>
+    <button class="mode-btn" data-mode="ngfw">NGFW<small>app-aware (L7)</small></button>
+    <button class="mode-btn" data-mode="ips">IPS (inline)<small>drops on signature</small></button>
+    <button class="mode-btn" data-mode="ids">IDS (out-of-band)<small>alerts only — no drop</small></button>
+  </div>
+  <div class="stage" id="stage">
+    <div class="node" id="internet">Internet<small>untrusted</small></div>
+    <div class="node" id="fw" style="left:50%">Security<small id="modeLbl">Traditional FW</small></div>
+    <div class="node" id="lan">LAN<small>trusted</small></div>
+    <div id="ids-tap">IDS tap (mirror port)</div>
+  </div>
+  <h2>Pick a packet</h2>
+  <div class="picker">
+    <div class="pkt-card benign" data-pkt="https"><b>HTTPS to bank</b>tcp/443 · benign</div>
+    <div class="pkt-card app" data-pkt="fb"><b>Facebook</b>tcp/443 · social-media app</div>
+    <div class="pkt-card malware" data-pkt="exploit"><b>SMB exploit (EternalBlue)</b>tcp/445 · signature match</div>
+    <div class="pkt-card malware" data-pkt="malsig"><b>Malware C2 beacon</b>tcp/443 · signature match in payload</div>
+    <div class="pkt-card benign" data-pkt="ssh"><b>SSH from admin</b>tcp/22 · benign</div>
+    <div class="pkt-card app" data-pkt="bittorrent"><b>BitTorrent on 443</b>tcp/443 · P2P app on web port</div>
+  </div>
+  <div id="verdict" class="verdict"></div>
+  <div class="footnote" id="explain">Tip: send the same Facebook packet through Traditional FW → passes (port 443). Through NGFW → blocked (app=Facebook).</div>
+</div>
+
+<div class="panel quiz" id="quizPanel">
+  <h2>Quiz mode <span style="color:var(--accent);text-transform:none;letter-spacing:0;font-weight:700">— same packet, different fate</span></h2>
+  <div class="stem" id="quizStem">Loading…</div>
+  <div class="opts" id="quizOpts"></div>
+  <div class="scoreline">
+    <span><strong id="qCorrect">0</strong> correct</span>
+    <span><strong id="qWrong">0</strong> wrong</span>
+    <span><strong id="qStreak">0</strong> streak</span>
+    <span style="margin-left:auto"><button class="btn ghost" id="newQ">Next ↻</button></span>
+  </div>
+</div>
+
+<div style="text-align:center;margin-top:18px"><a class="footer-link" href="blueprint-drill.html?obj=1.1">← Back to 1.1 leaves</a></div>
+
+<script>
+(function(){
+  var mode = 'trad';
+  var modeLabel = { trad:'Traditional FW', ngfw:'NGFW (app-aware)', ips:'IPS (inline)', ids:'IDS (off-band)' };
+  document.querySelectorAll('.mode-btn').forEach(function(b){
+    b.addEventListener('click', function(){
+      document.querySelectorAll('.mode-btn').forEach(function(x){ x.classList.remove('active'); });
+      b.classList.add('active');
+      mode = b.dataset.mode;
+      document.getElementById('modeLbl').textContent = modeLabel[mode];
+      document.getElementById('ids-tap').classList.toggle('show', mode === 'ids');
+    });
+  });
+
+  var pkts = {
+    https:    { cls:'benign',  txt:'443', desc:'HTTPS to bank.com (tcp/443, benign)' },
+    fb:       { cls:'app',     txt:'443', desc:'Facebook over TLS (tcp/443, app=facebook)' },
+    exploit:  { cls:'malware', txt:'445', desc:'EternalBlue SMB exploit (tcp/445, IDS sig 1234)' },
+    malsig:   { cls:'malware', txt:'443', desc:'Malware C2 beacon (tcp/443, payload sig hit)' },
+    ssh:      { cls:'benign',  txt:'22',  desc:'SSH from admin (tcp/22, benign)' },
+    bittorrent:{cls:'app',     txt:'443', desc:'BitTorrent disguised on 443 (app=bittorrent)' }
+  };
+
+  function decide(id){
+    var p = pkts[id];
+    // outcome: pass | block | alert
+    if (mode === 'trad') {
+      // port-based: blocks 445, allows 22, 443 (everything web)
+      if (p.txt === '445') return { fate:'block', why:'ACL blocks tcp/445 inbound. Port-based rule fires — payload never inspected.' };
+      return { fate:'pass', why:'tcp/' + p.txt + ' is permitted by ACL. Traditional firewall does NOT inspect payload — Facebook, BitTorrent, or C2 on 443 all look identical to it.' };
+    }
+    if (mode === 'ngfw') {
+      if (p.txt === '445') return { fate:'block', why:'NGFW also blocks 445 by policy.' };
+      if (id === 'fb' || id === 'bittorrent') return { fate:'block', why:'NGFW deep-inspects TLS (or uses app fingerprints). App = ' + (id==='fb'?'Facebook':'BitTorrent') + ' → policy blocks even though port 443 is "allowed".' };
+      if (id === 'malsig') return { fate:'block', why:'NGFW with threat-prevention recognizes the C2 beacon pattern and drops.' };
+      return { fate:'pass', why:'App identified as legitimate web traffic — allowed.' };
+    }
+    if (mode === 'ips') {
+      if (p.cls === 'malware') return { fate:'block', why:'IPS is INLINE — every packet must pass through it. Signature match on this exploit/payload → packet dropped before it reaches the LAN.' };
+      return { fate:'pass', why:'No signature hit — IPS forwards in-line. Latency cost ~ low ms.' };
+    }
+    if (mode === 'ids') {
+      if (p.cls === 'malware') return { fate:'alert', why:'IDS is on a SPAN/tap — sees a copy. Signature hit fires an alert to SIEM. The original packet still reaches the LAN. IDS = detect, not prevent.' };
+      return { fate:'pass', why:'No signature hit. IDS stays quiet. Original packet reaches LAN normally.' };
+    }
+    return { fate:'pass', why:'' };
+  }
+
+  function play(id){
+    var p = pkts[id];
+    var stage = document.getElementById('stage');
+    var existing = stage.querySelector('.pkt'); if (existing) existing.remove();
+
+    var el = document.createElement('div');
+    el.className = 'pkt ' + p.cls;
+    el.textContent = ':' + p.txt;
+    el.style.left = '140px';
+    stage.appendChild(el);
+
+    var d = decide(id);
+    var v = document.getElementById('verdict');
+    var explain = document.getElementById('explain');
+
+    requestAnimationFrame(function(){
+      // step 1: travel to firewall
+      el.style.left = 'calc(50% - 25px)';
+    });
+
+    setTimeout(function(){
+      if (d.fate === 'block') {
+        el.style.opacity = '0';
+        el.style.top = 'calc(50% + 60px)';
+        v.className = 'verdict miss show';
+        v.textContent = '✗ BLOCKED — ' + p.desc;
+        explain.textContent = d.why;
+      } else if (d.fate === 'alert') {
+        // packet continues, but a copy goes to IDS tap
+        var copy = document.createElement('div');
+        copy.className = 'pkt ' + p.cls;
+        copy.textContent = ':' + p.txt;
+        copy.style.cssText = 'position:absolute;left:calc(50% - 25px);top:50%;transform:translateY(-50%);transition:top .7s,left .7s,opacity .4s';
+        stage.appendChild(copy);
+        requestAnimationFrame(function(){ copy.style.top = '34px'; copy.style.left = 'calc(50% - 25px)'; });
+        setTimeout(function(){ copy.style.opacity='0'; }, 720);
+        setTimeout(function(){ if (copy.parentNode) copy.remove(); }, 1100);
+        el.style.left = 'calc(100% - 180px)';
+        v.className = 'verdict info show';
+        v.textContent = '⚠ ALERT — packet PASSED but IDS logged it';
+        explain.textContent = d.why;
+      } else {
+        el.style.left = 'calc(100% - 180px)';
+        v.className = 'verdict win show';
+        v.textContent = '✓ ALLOWED — ' + p.desc;
+        explain.textContent = d.why;
+      }
+    }, 920);
+
+    setTimeout(function(){ if (el.parentNode){ el.style.opacity='0'; setTimeout(function(){ if (el.parentNode) el.remove(); }, 400); } }, 1900);
+  }
+
+  document.querySelectorAll('.pkt-card').forEach(function(c){
+    c.addEventListener('click', function(){ play(c.dataset.pkt); });
+  });
+
+  var qCorrect=0,qWrong=0,qStreak=0;
+  var pool = [
+    { stem:'A traditional firewall has tcp/443 ALLOW. A user opens Facebook on 443. What happens?', ans:'Allowed — traditional FW only sees the port, not the app', opts:['Blocked because Facebook is bad','Allowed — traditional FW only sees the port, not the app','Alerted but not blocked','Logged and dropped'], why:'Port-based firewalls are app-blind. NGFW is what you need to block apps on common ports.' },
+    { stem:'Same Facebook traffic hits an NGFW with "Block social-media" policy. What happens?', ans:'Blocked — NGFW identifies the app and applies app policy', opts:['Allowed — port 443 is open','Blocked — NGFW identifies the app and applies app policy','IDS alert only','Quarantined for 5 minutes'], why:'NGFW = app-ID + user-ID + content-ID. Port is just one signal.' },
+    { stem:'A malware payload matches an IPS signature. The IPS is inline. What happens?', ans:'Packet dropped before it reaches the destination', opts:['Packet dropped before it reaches the destination','Packet logged but delivered','Sent to sandbox','Forwarded with a warning header'], why:'IPS = Intrusion Prevention. Inline means it can drop in real-time.' },
+    { stem:'Same malware passes through an IDS on a SPAN port. What happens?', ans:'Packet still reaches destination; IDS raises an alert', opts:['Packet dropped','Packet still reaches destination; IDS raises an alert','Packet rerouted','IDS forwards to firewall to drop'], why:'IDS sees a copy, not the original. It can detect and alert, but cannot stop in real-time. Detection != prevention.' },
+    { stem:'Where does an IPS typically sit?', ans:'Inline — every packet flows through it', opts:['On a SPAN port','Inline — every packet flows through it','On the endpoint only','Inside the cloud'], why:'Inline placement is what gives IPS the ability to drop. SPAN = IDS.' },
+    { stem:'Which device is best at blocking BitTorrent running on tcp/443?', ans:'NGFW with app-ID', opts:['Traditional FW','NGFW with app-ID','Hub','Layer-2 switch'], why:'Traditional FW sees port 443 = web. NGFW sees the actual application.' },
+    { stem:'IDS sits on a SPAN port. Network admin wants real-time blocking. What should they upgrade to?', ans:'IPS in inline mode', opts:['Faster IDS','IPS in inline mode','More SPAN ports','Add a hub'], why:'Real-time blocking requires inline placement → IPS.' },
+    { stem:'A "next-generation" firewall typically adds which capability over a stateful firewall?', ans:'Application identification + IPS + user-ID', opts:['Faster MAC learning','Application identification + IPS + user-ID','Wireless support','VLAN routing'], why:'NGFW = stateful FW + L7 visibility + integrated IPS + user-aware policy.' },
+    { stem:'You see EternalBlue exploit traffic on tcp/445. Traditional FW has 445 BLOCKED. Outcome?', ans:'Blocked — port-based rule still wins', opts:['Allowed because no signature','Blocked — port-based rule still wins','IDS alerts only','Sandboxed'], why:'You don\'t need NGFW or IPS if a simple port-block already covers it. Layered defense.' },
+    { stem:'Which security device CANNOT prevent an attack in real-time?', ans:'IDS', opts:['IPS','NGFW','IDS','Stateful firewall'], why:'IDS detects, alerts, logs. It does not block. That\'s the IPS\'s job.' }
+  ];
+  function pickQ(){
+    var q = pool[Math.floor(Math.random()*pool.length)];
+    var opts = q.opts.slice().sort(function(){return Math.random()-.5;});
+    document.getElementById('quizStem').textContent = q.stem;
+    var box = document.getElementById('quizOpts'); box.innerHTML='';
+    opts.forEach(function(o){
+      var b = document.createElement('button'); b.className='opt'; b.textContent=o;
+      b.addEventListener('click', function(){
+        if (b.classList.contains('correct')||b.classList.contains('wrong')) return;
+        if (o===q.ans){ b.classList.add('correct'); qCorrect++; qStreak++; }
+        else { b.classList.add('wrong'); qWrong++; qStreak=0;
+          Array.prototype.forEach.call(box.children, function(c){ if (c.textContent===q.ans) c.classList.add('correct'); }); }
+        document.getElementById('qCorrect').textContent=qCorrect;
+        document.getElementById('qWrong').textContent=qWrong;
+        document.getElementById('qStreak').textContent=qStreak;
+        var v = document.getElementById('verdict'); v.className='verdict info show'; v.textContent='Why: '+q.why;
+      });
+      box.appendChild(b);
+    });
+  }
+  document.getElementById('newQ').addEventListener('click', pickQ);
+  pickQ();
+})();
+</script>
+</body>
+</html>

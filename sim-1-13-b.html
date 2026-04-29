@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>1.13.b Sim — MAC Address Table Dynamics</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#FAF7F2;--bg-surface:#FFFFFF;--bg-recessed:#F3F0EB;
+    --border:#E2DFD9;--border-strong:#C7C3BC;
+    --ink:#1C1917;--ink-secondary:#57534E;--ink-muted:#A8A29E;
+    --accent:#B45309;--accent-soft:#D97706;--accent-light:#FEF3C7;
+    --correct:#16A34A;--correct-bg:#F0FDF4;
+    --wrong:#DC2626;--wrong-bg:#FEF2F2;
+    --info:#2563EB;--info-bg:#EFF6FF;
+    --font-display:'Space Grotesk',system-ui,sans-serif;
+    --font-body:'Source Serif 4',Georgia,serif;
+    --font-mono:'JetBrains Mono',monospace;
+    --radius:6px;--radius-lg:10px;
+  }
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  html{font-size:16px;-webkit-font-smoothing:antialiased}
+  body{font-family:var(--font-body);background:var(--bg);color:var(--ink);line-height:1.55;padding:24px;max-width:920px;margin:0 auto}
+  .head{margin-bottom:20px;padding-bottom:14px;border-bottom:1px solid var(--border)}
+  .head .crumb{font-family:var(--font-mono);font-size:.74rem;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px}
+  .head h1{font-family:var(--font-display);font-size:1.5rem;font-weight:700;margin-bottom:6px}
+  .head .desc{font-size:.95rem;color:var(--ink-secondary)}
+  .panel{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;margin-bottom:18px}
+  .panel h2{font-family:var(--font-display);font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-secondary);margin-bottom:12px}
+  .btn{font-family:var(--font-display);font-size:.84rem;font-weight:600;padding:8px 16px;background:var(--ink);color:#FAF7F2;border:none;border-radius:var(--radius);cursor:pointer}
+  .btn.ghost{background:var(--bg-recessed);color:var(--ink)}
+  .btn.accent{background:var(--accent)}
+  .ctrl{display:flex;gap:14px;align-items:center;margin-top:8px;flex-wrap:wrap}
+  .ctrl label{font-family:var(--font-display);font-size:.84rem;font-weight:600;color:var(--ink-secondary)}
+  .ctrl input[type=range]{accent-color:var(--accent)}
+  .table{width:100%;border-collapse:collapse;margin-top:10px;font-family:var(--font-mono);font-size:.86rem}
+  .table th{text-align:left;padding:8px 12px;background:var(--bg-recessed);font-family:var(--font-display);font-size:.72rem;text-transform:uppercase;letter-spacing:.08em}
+  .table td{padding:8px 12px;border-bottom:1px solid var(--border);transition:opacity .3s,background .3s}
+  .row-fresh td{background:var(--correct-bg);animation:freshBlink .5s ease}
+  @keyframes freshBlink{0%{background:var(--accent-light)}100%{background:var(--correct-bg)}}
+  .age-bar{display:inline-block;height:6px;width:80px;background:var(--bg-recessed);border-radius:3px;overflow:hidden;vertical-align:middle;margin-left:6px}
+  .age-bar > div{height:100%;background:var(--accent);transition:width .25s linear}
+  .row-stale td{opacity:.5}
+  .row-stale .age-bar > div{background:var(--wrong)}
+  .verdict{margin-top:14px;padding:12px 16px;border-radius:var(--radius);font-family:var(--font-display);font-size:.94rem;font-weight:600;background:var(--info-bg);color:var(--info);border:1px solid var(--info)}
+  .stat-row{display:flex;gap:18px;font-family:var(--font-mono);font-size:.86rem;margin-top:10px}
+  .stat-row b{color:var(--accent)}
+  .quiz{margin-top:22px}
+  .quiz .stem{font-family:var(--font-display);font-size:1.02rem;font-weight:600;margin-bottom:12px;padding:14px;background:var(--accent-light);border-left:3px solid var(--accent);border-radius:var(--radius)}
+  .quiz .opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px}
+  .opt{background:var(--bg-recessed);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;font-family:var(--font-mono);font-size:.88rem;cursor:pointer;text-align:left}
+  .opt:hover{border-color:var(--border-strong);background:var(--bg-surface)}
+  .opt.correct{background:var(--correct-bg);border-color:var(--correct);color:var(--correct);font-weight:700}
+  .opt.wrong{background:var(--wrong-bg);border-color:var(--wrong);color:var(--wrong)}
+  .scoreline{font-family:var(--font-mono);font-size:.84rem;color:var(--ink-muted);margin-top:10px;display:flex;gap:18px;align-items:center}
+  .scoreline strong{color:var(--ink)}
+  .badge{display:inline-block;font-family:var(--font-display);font-size:.7rem;font-weight:700;padding:2px 8px;border-radius:99px;background:var(--accent-light);color:var(--accent);text-transform:uppercase;letter-spacing:.04em;margin-left:8px}
+</style>
+</head>
+<body>
+
+<div class="head">
+  <div class="crumb"><a href="blueprint-drill.html?obj=1.13" style="color:var(--accent);text-decoration:none">← 1.13 Mini Sims</a> · 1.13.b · L2 · MAC Aging</div>
+  <h1>MAC Table Lifecycle<span class="badge">drill</span></h1>
+  <div class="desc">A switch can't keep MAC entries forever — devices move ports, cards swap, leases die. The <strong>aging timer</strong> (Cisco default 300 s) deletes any entry that hasn't been refreshed by a new frame in that window. Watch the table breathe in real time.</div>
+</div>
+
+<div class="panel">
+  <h2>Live capture</h2>
+  <div class="ctrl">
+    <label>Aging timer</label>
+    <input id="agingT" type="range" min="3" max="30" step="1" value="10">
+    <span id="agingV" style="font-family:var(--font-mono);font-weight:700">10s</span>
+    <label>Traffic rate</label>
+    <input id="rate" type="range" min="200" max="3000" step="100" value="800">
+    <span id="rateV" style="font-family:var(--font-mono);font-weight:700">800ms</span>
+    <button class="btn accent" id="run">Start ▶</button>
+    <button class="btn ghost" id="clear">Clear</button>
+  </div>
+  <table class="table">
+    <thead><tr><th>MAC</th><th>Port</th><th>Age</th></tr></thead>
+    <tbody id="macTbl"><tr><td colspan="3" style="color:var(--ink-muted)">empty</td></tr></tbody>
+  </table>
+  <div class="stat-row">
+    <span>Frames seen: <b id="seen">0</b></span>
+    <span>Entries: <b id="ents">0</b></span>
+    <span>Aged out: <b id="aged">0</b></span>
+    <span>Re-learned: <b id="relearn">0</b></span>
+  </div>
+  <div class="verdict" id="verdict">Hit Start. PCs send random frames. Each new source MAC → new row. Untouched rows fade and drop at age = aging timer.</div>
+</div>
+
+<div class="panel quiz">
+  <h2>Quiz mode</h2>
+  <div class="stem" id="quizStem">Loading…</div>
+  <div class="opts" id="quizOpts"></div>
+  <div class="scoreline">
+    <span><strong id="qCorrect">0</strong> correct</span>
+    <span><strong id="qWrong">0</strong> wrong</span>
+    <span><strong id="qStreak">0</strong> streak</span>
+    <span style="margin-left:auto"><button class="btn ghost" id="newQ">Next ↻</button></span>
+  </div>
+</div>
+
+<script>
+(function(){
+  var pcs = [
+    {mac:'aa:01:11', port:1},{mac:'aa:02:22', port:2},
+    {mac:'aa:03:33', port:3},{mac:'aa:04:44', port:4},
+    {mac:'aa:05:55', port:5}
+  ];
+  var table = {};
+  var seen=0, aged=0, relearn=0;
+  var trafficTimer=null, ageTimer=null, running=false;
+
+  function aging(){ return +document.getElementById('agingT').value; }
+  function rate(){ return +document.getElementById('rate').value; }
+
+  function render(){
+    var tbody = document.getElementById('macTbl'); tbody.innerHTML='';
+    var keys = Object.keys(table);
+    if (!keys.length){ tbody.innerHTML='<tr><td colspan="3" style="color:var(--ink-muted)">empty</td></tr>'; }
+    else {
+      keys.forEach(function(k){
+        var e = table[k];
+        var pct = Math.min(100, (e.age/aging())*100);
+        var cls = e.fresh ? 'row-fresh' : (pct>70?'row-stale':'');
+        var tr = document.createElement('tr'); tr.className=cls;
+        tr.innerHTML = '<td>'+k+'</td><td>Port '+e.port+'</td><td>'+e.age.toFixed(1)+'s<span class="age-bar"><div style="width:'+pct+'%"></div></span></td>';
+        tbody.appendChild(tr);
+        e.fresh = false;
+      });
+    }
+    document.getElementById('seen').textContent = seen;
+    document.getElementById('ents').textContent = keys.length;
+    document.getElementById('aged').textContent = aged;
+    document.getElementById('relearn').textContent = relearn;
+    document.getElementById('agingV').textContent = aging()+'s';
+    document.getElementById('rateV').textContent = rate()+'ms';
+  }
+
+  function tick(){
+    var step = 0.1;
+    Object.keys(table).forEach(function(k){
+      table[k].age += step;
+      if (table[k].age >= aging()){ delete table[k]; aged++; }
+    });
+    render();
+  }
+  function frame(){
+    var pc = pcs[Math.floor(Math.random()*pcs.length)];
+    seen++;
+    if (table[pc.mac]) { if (table[pc.mac].age > aging()*0.5) relearn++; }
+    table[pc.mac] = { port: pc.port, age:0, fresh:true };
+    render();
+  }
+  function start(){
+    if (running) return;
+    running = true;
+    document.getElementById('run').textContent='Stop ⏸';
+    ageTimer = setInterval(tick, 100);
+    trafficTimer = setInterval(frame, rate());
+  }
+  function stop(){
+    running=false;
+    document.getElementById('run').textContent='Start ▶';
+    clearInterval(ageTimer); clearInterval(trafficTimer);
+  }
+  document.getElementById('run').addEventListener('click', function(){ if (running) stop(); else start(); });
+  document.getElementById('clear').addEventListener('click', function(){ table={}; seen=0; aged=0; relearn=0; render(); });
+  document.getElementById('rate').addEventListener('input', function(){ if (running){ stop(); start(); } else render(); });
+  document.getElementById('agingT').addEventListener('input', render);
+  render();
+
+  var qCorrect=0,qWrong=0,qStreak=0;
+  var pool = [
+    {q:'Default Cisco MAC aging time?',a:'300 seconds',o:['300 seconds','30 seconds','3600 seconds','infinite']},
+    {q:'A MAC entry is refreshed when:',a:'a new frame with that source MAC arrives',o:['a new frame with that source MAC arrives','any broadcast hits','the port reboots','ARP for it']},
+    {q:'Static MAC entries:',a:'never age out',o:['never age out','age in 60s','age in 30 min','age in 1 hour']},
+    {q:'A device unplugs and stays gone. Its entry will:',a:'age out at default 300s',o:['age out at default 300s','stay forever','vanish immediately','flood the port']},
+    {q:'Why does the table eventually flood traffic again?',a:'aged entries → unknown unicast → flood',o:['aged entries → unknown unicast → flood','table memory full','VLAN reset','STP rebuilt']},
+    {q:'Typical MAC table size on a small switch:',a:'8K-16K entries',o:['8K-16K entries','64 entries','1M+ entries','depends on port count only']},
+    {q:'Two switches in a topology change — fast convergence requires:',a:'shorter aging or TCN flush',o:['shorter aging or TCN flush','longer aging','no aging','reboot']},
+    {q:'A flapping cable causes the same MAC to bounce between ports. Symptom:',a:'MAC moving warnings, possible drops',o:['MAC moving warnings, possible drops','table overflow','VLAN leak','no impact']},
+    {q:'Aging refreshes when a frame is RX. What about TX-only MACs?',a:'won\'t refresh — only RX source-MAC learning counts',o:['won\'t refresh — only RX source-MAC learning counts','also refresh','need ARP','always static']},
+    {q:'`show mac address-table` shows entry as VLAN+MAC because:',a:'each VLAN has its own L2 forwarding domain',o:['each VLAN has its own L2 forwarding domain','MACs are VLAN-scoped in IEEE','prefix length','ACL']}
+  ];
+  function pickQ(){
+    var q = pool[Math.floor(Math.random()*pool.length)];
+    var opts = q.o.slice().sort(function(){return Math.random()-.5;});
+    document.getElementById('quizStem').textContent = q.q;
+    var box=document.getElementById('quizOpts'); box.innerHTML='';
+    opts.forEach(function(o){
+      var b=document.createElement('button'); b.className='opt'; b.textContent=o;
+      b.addEventListener('click', function(){
+        if (b.classList.contains('correct')||b.classList.contains('wrong')) return;
+        if (o===q.a){ b.classList.add('correct'); qCorrect++; qStreak++; }
+        else { b.classList.add('wrong'); qWrong++; qStreak=0;
+          Array.prototype.forEach.call(box.children,function(c){ if(c.textContent===q.a) c.classList.add('correct'); }); }
+        document.getElementById('qCorrect').textContent=qCorrect;
+        document.getElementById('qWrong').textContent=qWrong;
+        document.getElementById('qStreak').textContent=qStreak;
+      });
+      box.appendChild(b);
+    });
+  }
+  document.getElementById('newQ').addEventListener('click', pickQ);
+  pickQ();
+})();
+</script>
+</body>
+</html>

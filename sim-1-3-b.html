@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>1.3.b Sim — Hub vs Switch</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#FAF7F2;--bg-surface:#FFFFFF;--bg-recessed:#F3F0EB;
+    --border:#E2DFD9;--border-strong:#C7C3BC;
+    --ink:#1C1917;--ink-secondary:#57534E;--ink-muted:#A8A29E;
+    --accent:#B45309;--accent-soft:#D97706;--accent-light:#FEF3C7;
+    --correct:#16A34A;--correct-bg:#F0FDF4;
+    --wrong:#DC2626;--wrong-bg:#FEF2F2;
+    --info:#2563EB;--info-bg:#EFF6FF;
+    --font-display:'Space Grotesk',system-ui,sans-serif;
+    --font-body:'Source Serif 4',Georgia,serif;
+    --font-mono:'JetBrains Mono',monospace;
+    --radius:6px;--radius-lg:10px;
+  }
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  html{font-size:16px;-webkit-font-smoothing:antialiased}
+  body{font-family:var(--font-body);background:var(--bg);color:var(--ink);line-height:1.55;padding:24px;max-width:920px;margin:0 auto}
+  .head{margin-bottom:20px;padding-bottom:14px;border-bottom:1px solid var(--border)}
+  .head .crumb{font-family:var(--font-mono);font-size:.74rem;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px}
+  .head .crumb a{color:var(--accent);text-decoration:none}
+  .head h1{font-family:var(--font-display);font-size:1.5rem;font-weight:700;margin-bottom:6px}
+  .head .desc{font-size:.95rem;color:var(--ink-secondary)}
+  .panel{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;margin-bottom:18px}
+  .panel h2{font-family:var(--font-display);font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-secondary);margin-bottom:12px}
+  .btn{font-family:var(--font-display);font-size:.84rem;font-weight:600;padding:8px 16px;background:var(--ink);color:#FAF7F2;border:none;border-radius:var(--radius);cursor:pointer;transition:background .15s}
+  .btn.ghost{background:var(--bg-recessed);color:var(--ink)}
+  .btn.accent{background:var(--accent)}
+  .seg{display:inline-flex;border:1px solid var(--border-strong);border-radius:var(--radius);overflow:hidden}
+  .seg button{font-family:var(--font-display);font-size:.84rem;font-weight:600;padding:8px 14px;background:#fff;color:var(--ink);border:none;cursor:pointer;border-right:1px solid var(--border)}
+  .seg button:last-child{border-right:none}
+  .seg button.on{background:var(--accent);color:#fff}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px}
+  @media(max-width:740px){.grid2{grid-template-columns:1fr}}
+  .stat{background:var(--bg-recessed);padding:10px 12px;border-radius:var(--radius);border:1px solid var(--border);font-family:var(--font-mono);font-size:.84rem}
+  .stat .lbl{color:var(--ink-muted);font-size:.7rem;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;font-family:var(--font-display)}
+  .stat .v{font-weight:700;color:var(--ink);font-size:1.1rem}
+  svg.stage{width:100%;height:300px;background:var(--bg-recessed);border-radius:var(--radius);border:1px solid var(--border-strong);margin-top:14px}
+  .verdict{margin-top:16px;padding:12px 16px;border-radius:var(--radius);font-family:var(--font-display);font-size:.94rem;font-weight:600;display:none}
+  .verdict.show{display:block;animation:fadeIn .25s ease}
+  .verdict.win{background:var(--correct-bg);color:var(--correct);border:1px solid var(--correct)}
+  .verdict.miss{background:var(--wrong-bg);color:var(--wrong);border:1px solid var(--wrong)}
+  .verdict.info{background:var(--info-bg);color:var(--info);border:1px solid var(--info)}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
+  .quiz{margin-top:22px}
+  .quiz .stem{font-family:var(--font-display);font-size:1.02rem;font-weight:600;margin-bottom:12px;padding:14px;background:var(--accent-light);border-left:3px solid var(--accent);border-radius:var(--radius)}
+  .quiz .opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px}
+  .opt{background:var(--bg-recessed);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;font-family:var(--font-mono);font-size:.88rem;cursor:pointer;text-align:left;transition:all .15s}
+  .opt:hover{border-color:var(--border-strong);background:var(--bg-surface)}
+  .opt.correct{background:var(--correct-bg);border-color:var(--correct);color:var(--correct);font-weight:700}
+  .opt.wrong{background:var(--wrong-bg);border-color:var(--wrong);color:var(--wrong)}
+  .scoreline{font-family:var(--font-mono);font-size:.84rem;color:var(--ink-muted);margin-top:10px;display:flex;gap:18px;align-items:center}
+  .scoreline strong{color:var(--ink)}
+  .badge{display:inline-block;font-family:var(--font-display);font-size:.7rem;font-weight:700;padding:2px 8px;border-radius:99px;background:var(--accent-light);color:var(--accent);text-transform:uppercase;letter-spacing:.04em;margin-left:8px}
+  .footer{margin-top:30px;padding-top:14px;border-top:1px solid var(--border);font-family:var(--font-mono);font-size:.78rem}
+  .footer a{color:var(--accent);text-decoration:none}
+  .controls{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px;align-items:center}
+  .footnote{font-family:var(--font-mono);font-size:.78rem;color:var(--ink-muted);margin-top:12px;line-height:1.5}
+</style>
+</head>
+<body>
+
+<div class="head">
+  <div class="crumb"><a href="blueprint-drill.html?obj=1.3">← 1.3 Physical Interfaces &amp; Cabling</a> · 1.3.b · Hub vs Switch</div>
+  <h1>Hub vs Switch — Shared vs Point-to-Point<span class="badge">collide it</span></h1>
+  <div class="desc">A <strong>hub</strong> is a dumb repeater: every frame goes to every port, half-duplex, all PCs share one collision domain. Two PCs talking at once = collision = CSMA/CD backoff. A <strong>switch</strong> learns MAC addresses and forwards each frame only out the right port, full-duplex, every port is its own collision domain. Click "send 4 PCs at once" on each side and watch the difference.</div>
+</div>
+
+<div class="panel">
+  <h2>4 PCs trying to talk at the same time</h2>
+  <div class="seg" id="seg">
+    <button data-t="hub" class="on">HUB (shared)</button>
+    <button data-t="sw">SWITCH (point-to-point)</button>
+  </div>
+  <div class="grid2">
+    <div class="stat"><div class="lbl">Mode</div><div class="v" id="mode">Half-duplex</div></div>
+    <div class="stat"><div class="lbl">Collision domains</div><div class="v" id="cdoms">1</div></div>
+    <div class="stat"><div class="lbl">Broadcast domains</div><div class="v" id="bdoms">1</div></div>
+    <div class="stat"><div class="lbl">Frames delivered</div><div class="v" id="delivered">0 / 0</div></div>
+  </div>
+  <svg class="stage" id="svg" viewBox="0 0 600 300" preserveAspectRatio="xMidYMid meet"></svg>
+  <div class="controls">
+    <button class="btn accent" id="send">Send 4 frames simultaneously</button>
+    <button class="btn ghost" id="reset">Reset</button>
+  </div>
+  <div id="verdict" class="verdict"></div>
+  <div class="footnote" id="explain"></div>
+</div>
+
+<div class="panel quiz" id="quizPanel">
+  <h2>Quiz mode <span style="color:var(--accent);text-transform:none;letter-spacing:0;font-weight:700">— domains &amp; duplex</span></h2>
+  <div class="stem" id="quizStem">Loading…</div>
+  <div class="opts" id="quizOpts"></div>
+  <div class="scoreline">
+    <span><strong id="qCorrect">0</strong> correct</span>
+    <span><strong id="qWrong">0</strong> wrong</span>
+    <span><strong id="qStreak">0</strong> streak</span>
+    <span style="margin-left:auto"><button class="btn ghost" id="newQ">Next ↻</button></span>
+  </div>
+</div>
+
+<div class="footer"><a href="blueprint-drill.html?obj=1.3">← back to 1.3 leaves</a></div>
+
+<script>
+(function(){
+  function $(id){ return document.getElementById(id); }
+  var mode = 'hub';
+  var svg = document.getElementById('svg');
+  function svgEl(t,a,txt){ var e=document.createElementNS('http://www.w3.org/2000/svg',t); for (var k in a) e.setAttribute(k,a[k]); if (txt) e.textContent=txt; return e; }
+
+  function build(){
+    while(svg.firstChild) svg.removeChild(svg.firstChild);
+    var pcs = [{x:80,y:60},{x:520,y:60},{x:80,y:240},{x:520,y:240}];
+    var center = {x:300, y:150};
+    pcs.forEach(function(p,i){
+      svg.appendChild(svgEl('rect',{x:p.x-30,y:p.y-22,width:60,height:34,rx:4,fill:'#fff',stroke:'#C7C3BC'}));
+      svg.appendChild(svgEl('text',{x:p.x,y:p.y+5,'text-anchor':'middle','font-family':'JetBrains Mono','font-size':12,'font-weight':700},'PC'+(i+1)));
+      svg.appendChild(svgEl('line',{x1:p.x,y1:p.y,x2:center.x,y2:center.y,stroke:'#C7C3BC','stroke-width':1.4}));
+    });
+    var color = mode==='hub' ? '#DC2626' : '#16A34A';
+    svg.appendChild(svgEl('rect',{x:center.x-60,y:center.y-22,width:120,height:44,rx:6,fill:color,stroke:color}));
+    svg.appendChild(svgEl('text',{x:center.x,y:center.y+5,'text-anchor':'middle','font-family':'Space Grotesk','font-size':14,'font-weight':700,fill:'#fff'}, mode==='hub'?'HUB (L1)':'SWITCH (L2)'));
+    $('mode').textContent = mode==='hub'?'Half-duplex':'Full-duplex';
+    $('cdoms').textContent = mode==='hub'?'1':'4';
+    $('bdoms').textContent = '1';
+    $('delivered').textContent = '0 / 0';
+  }
+
+  function send(){
+    [].forEach.call(svg.querySelectorAll('.flying'), function(n){ n.remove(); });
+    var pcs = [{x:80,y:60,id:1},{x:520,y:60,id:2},{x:80,y:240,id:3},{x:520,y:240,id:4}];
+    var center = {x:300, y:150};
+    var pairs = [[0,1],[2,3]]; // PC1->PC2, PC3->PC4
+    var v = $('verdict'), ex = $('explain');
+    if (mode==='hub'){
+      // Animate frames to hub, collide, backoff, retry
+      var collided = 0, attempts = 0, delivered = 0;
+      pairs.forEach(function(pair, idx){
+        var src = pcs[pair[0]], dst = pcs[pair[1]];
+        var pkt = svgEl('circle',{r:6,fill:'#DC2626','class':'flying'});
+        pkt.setAttribute('cx',src.x); pkt.setAttribute('cy',src.y);
+        svg.appendChild(pkt);
+        attempts++;
+        pkt.animate([{cx:src.x,cy:src.y},{cx:center.x,cy:center.y}],{duration:600,fill:'forwards'}).onfinish = function(){
+          // collision
+          var burst = svgEl('text',{x:center.x,y:center.y-30,'text-anchor':'middle','font-family':'Space Grotesk','font-size':13,'font-weight':700,fill:'#DC2626','class':'flying'},'✗ COLLISION');
+          svg.appendChild(burst); collided++;
+          setTimeout(function(){ burst.remove(); }, 800);
+          // backoff = random delay then retry on staggered timing
+          setTimeout(function(){
+            pkt.animate([{cx:center.x,cy:center.y},{cx:dst.x,cy:dst.y}],{duration:600,fill:'forwards'}).onfinish = function(){
+              pkt.remove(); delivered++;
+              $('delivered').textContent = delivered+' / '+attempts;
+              if (delivered === attempts){
+                v.className='verdict miss show';
+                v.textContent='✗ '+collided+' collisions detected. CSMA/CD: each PC backed off a random time, then retried. Throughput tanked.';
+                ex.textContent='Hub = one big collision domain. The more PCs, the more collisions. That is why hubs are extinct in modern networks.';
+              }
+            };
+          }, 600 + idx*900);
+        };
+      });
+    } else {
+      // Switch: parallel delivery, no collisions
+      var delivered2 = 0;
+      pairs.forEach(function(pair){
+        var src = pcs[pair[0]], dst = pcs[pair[1]];
+        var pkt = svgEl('circle',{r:6,fill:'#16A34A','class':'flying'});
+        pkt.setAttribute('cx',src.x); pkt.setAttribute('cy',src.y);
+        svg.appendChild(pkt);
+        var path = [{x:src.x,y:src.y},{x:center.x,y:center.y},{x:dst.x,y:dst.y}];
+        var step=0;
+        function next(){
+          if (step >= path.length-1){
+            pkt.remove(); delivered2++;
+            $('delivered').textContent = delivered2+' / 2';
+            if (delivered2===2){
+              v.className='verdict win show'; v.textContent='✓ 2 of 2 frames delivered in parallel. No collisions. Each port is its own collision domain.';
+              ex.textContent='Switches read the destination MAC and forward frames only out the matching port. Multiple flows can run at once; full-duplex means TX/RX never collide.';
+            }
+            return;
+          }
+          var a=path[step], b=path[step+1];
+          pkt.animate([{cx:a.x,cy:a.y},{cx:b.x,cy:b.y}],{duration:500,fill:'forwards'}).onfinish=function(){
+            pkt.setAttribute('cx',b.x); pkt.setAttribute('cy',b.y); step++; next();
+          };
+        }
+        next();
+      });
+    }
+  }
+
+  [].forEach.call(document.getElementById('seg').children, function(b){
+    b.addEventListener('click', function(){
+      [].forEach.call(document.getElementById('seg').children, function(c){ c.classList.remove('on'); });
+      b.classList.add('on'); mode = b.dataset.t; build();
+      $('verdict').className='verdict'; $('explain').textContent='';
+    });
+  });
+  $('send').addEventListener('click', send);
+  $('reset').addEventListener('click', build);
+  build();
+
+  var qC=0,qW=0,qS=0;
+  var pool = [
+    { q:'How many collision domains on an 8-port hub with 8 PCs?', a:'1', d:['8','4','2'], why:'Hub = one shared bus. All ports = one collision domain.' },
+    { q:'How many collision domains on an 8-port switch with 8 PCs?', a:'8', d:['1','4','16'], why:'Each switch port is its own collision domain.' },
+    { q:'How many broadcast domains on a single switch with no VLANs?', a:'1', d:['8','4','0'], why:'Switch floods broadcasts to all ports → one broadcast domain.' },
+    { q:'Hub forces what duplex mode?', a:'Half-duplex', d:['Full-duplex','Auto-MDIX','None — duplex is L3'], why:'Shared media must be half-duplex (CSMA/CD).' },
+    { q:'CSMA/CD is needed when?', a:'Half-duplex Ethernet (hubs, legacy)', d:['Full-duplex always','Wi-Fi only','Fiber only'], why:'Full-duplex switched links don\'t collide; CSMA/CD is disabled.' },
+    { q:'Wireless equivalent of CSMA/CD?', a:'CSMA/CA (collision avoidance)', d:['CSMA/CD also','TDMA only','None'], why:'Wi-Fi can\'t detect collisions, so it tries to avoid them with backoff + RTS/CTS.' },
+    { q:'Add a router between two switches. What changes?', a:'Adds a broadcast domain boundary', d:['Adds a collision domain only','Disables MAC learning','Forces hub mode'], why:'Routers split broadcast domains; switches do not (without VLANs).' },
+    { q:'Late collisions on a switch port indicate…', a:'Duplex mismatch (one side full, one side half)', d:['Bad cable only','MTU mismatch','Wrong VLAN'], why:'Late collisions = >64 bytes in = classic duplex-mismatch fingerprint.' }
+  ];
+  function pick(){
+    var p = pool[Math.floor(Math.random()*pool.length)];
+    var opts = [p.a].concat(p.d).sort(function(){return Math.random()-.5;});
+    document.getElementById('quizStem').textContent = p.q;
+    var box = document.getElementById('quizOpts'); box.innerHTML='';
+    opts.forEach(function(o){
+      var b=document.createElement('button'); b.className='opt'; b.textContent=o;
+      b.addEventListener('click', function(){
+        if (b.classList.contains('correct')||b.classList.contains('wrong')) return;
+        if (o===p.a){ b.classList.add('correct'); qC++; qS++; }
+        else { b.classList.add('wrong'); qW++; qS=0;
+          [].forEach.call(box.children,function(c){ if (c.textContent===p.a) c.classList.add('correct'); }); }
+        document.getElementById('qCorrect').textContent=qC;
+        document.getElementById('qWrong').textContent=qW;
+        document.getElementById('qStreak').textContent=qS;
+        var v=document.getElementById('verdict'); v.className='verdict info show'; v.textContent='Why: '+p.why;
+      });
+      box.appendChild(b);
+    });
+  }
+  document.getElementById('newQ').addEventListener('click', pick);
+  pick();
+})();
+</script>
+</body>
+</html>

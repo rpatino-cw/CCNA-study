@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>1.2.c Sim — Spine-Leaf Data Center</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#FAF7F2;--bg-surface:#FFFFFF;--bg-recessed:#F3F0EB;
+    --border:#E2DFD9;--border-strong:#C7C3BC;
+    --ink:#1C1917;--ink-secondary:#57534E;--ink-muted:#A8A29E;
+    --accent:#B45309;--accent-soft:#D97706;--accent-light:#FEF3C7;
+    --correct:#16A34A;--correct-bg:#F0FDF4;
+    --wrong:#DC2626;--wrong-bg:#FEF2F2;
+    --info:#2563EB;--info-bg:#EFF6FF;
+    --font-display:'Space Grotesk',system-ui,sans-serif;
+    --font-body:'Source Serif 4',Georgia,serif;
+    --font-mono:'JetBrains Mono',monospace;
+    --radius:6px;--radius-lg:10px;
+  }
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  html{font-size:16px;-webkit-font-smoothing:antialiased}
+  body{font-family:var(--font-body);background:var(--bg);color:var(--ink);line-height:1.55;padding:24px;max-width:920px;margin:0 auto}
+  .head{margin-bottom:20px;padding-bottom:14px;border-bottom:1px solid var(--border)}
+  .head .crumb{font-family:var(--font-mono);font-size:.74rem;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px}
+  .head .crumb a{color:var(--accent);text-decoration:none}
+  .head h1{font-family:var(--font-display);font-size:1.5rem;font-weight:700;margin-bottom:6px}
+  .head .desc{font-size:.95rem;color:var(--ink-secondary)}
+  .panel{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;margin-bottom:18px}
+  .panel h2{font-family:var(--font-display);font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-secondary);margin-bottom:12px}
+  .btn{font-family:var(--font-display);font-size:.84rem;font-weight:600;padding:8px 16px;background:var(--ink);color:#FAF7F2;border:none;border-radius:var(--radius);cursor:pointer;transition:background .15s}
+  .btn:hover{background:var(--ink-secondary)}
+  .btn.ghost{background:var(--bg-recessed);color:var(--ink)}
+  .btn.accent{background:var(--accent)}
+  .btn.accent:hover{background:var(--accent-soft)}
+  .stage{position:relative;width:100%;height:380px;background:var(--bg-recessed);border-radius:var(--radius);overflow:hidden;border:1px solid var(--border-strong)}
+  .stage svg{position:absolute;inset:0;width:100%;height:100%}
+  .lane-label{position:absolute;font-family:var(--font-mono);font-size:.7rem;color:var(--ink-muted);left:8px;text-transform:uppercase;letter-spacing:.08em}
+  .controls{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px;align-items:center}
+  .verdict{margin-top:16px;padding:12px 16px;border-radius:var(--radius);font-family:var(--font-display);font-size:.94rem;font-weight:600;display:none}
+  .verdict.show{display:block;animation:fadeIn .25s ease}
+  .verdict.win{background:var(--correct-bg);color:var(--correct);border:1px solid var(--correct)}
+  .verdict.miss{background:var(--wrong-bg);color:var(--wrong);border:1px solid var(--wrong)}
+  .verdict.info{background:var(--info-bg);color:var(--info);border:1px solid var(--info)}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
+  .quiz{margin-top:22px}
+  .quiz .stem{font-family:var(--font-display);font-size:1.02rem;font-weight:600;margin-bottom:12px;padding:14px;background:var(--accent-light);border-left:3px solid var(--accent);border-radius:var(--radius)}
+  .quiz .opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px}
+  .opt{background:var(--bg-recessed);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;font-family:var(--font-mono);font-size:.88rem;cursor:pointer;text-align:left;transition:all .15s}
+  .opt:hover{border-color:var(--border-strong);background:var(--bg-surface)}
+  .opt.correct{background:var(--correct-bg);border-color:var(--correct);color:var(--correct);font-weight:700}
+  .opt.wrong{background:var(--wrong-bg);border-color:var(--wrong);color:var(--wrong)}
+  .scoreline{font-family:var(--font-mono);font-size:.84rem;color:var(--ink-muted);margin-top:10px;display:flex;gap:18px;align-items:center}
+  .scoreline strong{color:var(--ink)}
+  .footnote{font-family:var(--font-mono);font-size:.78rem;color:var(--ink-muted);margin-top:12px;line-height:1.5}
+  .badge{display:inline-block;font-family:var(--font-display);font-size:.7rem;font-weight:700;padding:2px 8px;border-radius:99px;background:var(--accent-light);color:var(--accent);text-transform:uppercase;letter-spacing:.04em;margin-left:8px}
+  .footer{margin-top:30px;padding-top:14px;border-top:1px solid var(--border);font-family:var(--font-mono);font-size:.78rem}
+  .footer a{color:var(--accent);text-decoration:none}
+  .leaf-rect{fill:#F0FDF4;stroke:var(--correct);stroke-width:1.4;cursor:pointer;transition:fill .2s}
+  .leaf-rect:hover{fill:#DCFCE7}
+  .leaf-rect.src{fill:var(--accent);stroke:var(--accent)}
+  .leaf-rect.dst{fill:var(--correct);stroke:var(--correct)}
+  .spine-rect{fill:var(--accent-light);stroke:var(--accent);stroke-width:1.4}
+  .lbl{font-family:var(--font-mono);font-size:11px;font-weight:700;pointer-events:none}
+  .lbl.spine{fill:var(--accent)}
+  .lbl.leaf{fill:var(--correct)}
+  .lbl.leaf-src{fill:#fff}
+  .link-line{stroke:var(--border-strong);stroke-width:1.2;fill:none;opacity:.55}
+  .link-line.active{stroke:var(--accent);stroke-width:2.6;opacity:1;animation:dash .8s linear infinite}
+  @keyframes dash{from{stroke-dashoffset:0}to{stroke-dashoffset:-16}}
+</style>
+</head>
+<body>
+
+<div class="head">
+  <div class="crumb"><a href="blueprint-drill.html?obj=1.2">← 1.2 Network Topology Architectures</a> · 1.2.c · Spine-Leaf</div>
+  <h1>Spine-Leaf — The Data Center Fabric<span class="badge">click to flow</span></h1>
+  <div class="desc">Modern apps are chatty between servers (east-west) — micro-services, distributed databases, GPU training. Three-tier was built for north-south user traffic and gives unpredictable latency between racks. <strong>Spine-leaf</strong> guarantees every leaf is exactly two hops from every other leaf: leaf → spine → leaf. Always. ECMP load-balances across all spines. Click any leaf as source, then a different leaf as destination.</div>
+</div>
+
+<div class="panel">
+  <h2>4 spines × 8 leaves — click leaves to send a flow</h2>
+  <div class="stage" id="stage">
+    <div class="lane-label" style="top:8px">SPINE</div>
+    <div class="lane-label" style="top:200px">LEAF</div>
+    <svg id="svg" viewBox="0 0 880 360" preserveAspectRatio="xMidYMid meet"></svg>
+  </div>
+  <div class="controls">
+    <button class="btn ghost" id="reset">Reset selection</button>
+    <button class="btn accent" id="ecmp">Show ECMP across all 4 spines</button>
+    <span style="font-family:var(--font-mono);font-size:.78rem;color:var(--ink-muted)">Click 2 leaves: src then dst.</span>
+  </div>
+  <div id="verdict" class="verdict"></div>
+  <div class="footnote" id="explain"></div>
+</div>
+
+<div class="panel quiz" id="quizPanel">
+  <h2>Quiz mode <span style="color:var(--accent);text-transform:none;letter-spacing:0;font-weight:700">— east-west thinking</span></h2>
+  <div class="stem" id="quizStem">Loading…</div>
+  <div class="opts" id="quizOpts"></div>
+  <div class="scoreline">
+    <span><strong id="qCorrect">0</strong> correct</span>
+    <span><strong id="qWrong">0</strong> wrong</span>
+    <span><strong id="qStreak">0</strong> streak</span>
+    <span style="margin-left:auto"><button class="btn ghost" id="newQ">Next ↻</button></span>
+  </div>
+</div>
+
+<div class="footer"><a href="blueprint-drill.html?obj=1.2">← back to 1.2 leaves</a></div>
+
+<script>
+(function(){
+  var svg = document.getElementById('svg');
+  var SPINES = 4, LEAVES = 8;
+  var spinePos = [], leafPos = [];
+  var src = null, dst = null;
+
+  function build(){
+    while(svg.firstChild) svg.removeChild(svg.firstChild);
+    spinePos = []; leafPos = [];
+    var sw = 100, sh = 30;
+    var lw = 70, lh = 30;
+    for (var i=0;i<SPINES;i++){
+      var x = 80 + i*(sw+50), y = 40;
+      spinePos.push({x:x+sw/2, y:y+sh/2});
+      var r = svgEl('rect',{x:x,y:y,width:sw,height:sh,rx:4,'class':'spine-rect'});
+      svg.appendChild(r);
+      svg.appendChild(svgEl('text',{x:x+sw/2,y:y+sh/2+4,'text-anchor':'middle','class':'lbl spine'},'SPINE-'+(i+1)));
+    }
+    for (var j=0;j<LEAVES;j++){
+      var x2 = 30 + j*(lw+30), y2 = 240;
+      leafPos.push({x:x2+lw/2, y:y2+lh/2, idx:j});
+      var lr = svgEl('rect',{x:x2,y:y2,width:lw,height:lh,rx:4,'class':'leaf-rect','data-leaf':j});
+      lr.addEventListener('click', onLeafClick);
+      svg.appendChild(lr);
+      svg.appendChild(svgEl('text',{x:x2+lw/2,y:y2+lh/2+4,'text-anchor':'middle','class':'lbl leaf','data-text':'L-'+(j+1)},'L-'+(j+1)));
+    }
+    // full mesh leaf↔spine
+    for (var s=0; s<SPINES; s++){
+      for (var l=0; l<LEAVES; l++){
+        var line = svgEl('line',{x1:spinePos[s].x,y1:spinePos[s].y+15,x2:leafPos[l].x,y2:leafPos[l].y-15,'class':'link-line','data-link':s+'-'+l});
+        svg.appendChild(line);
+      }
+    }
+  }
+  function svgEl(tag, attrs, text){
+    var e = document.createElementNS('http://www.w3.org/2000/svg', tag);
+    for (var k in attrs) e.setAttribute(k, attrs[k]);
+    if (text) e.textContent = text;
+    return e;
+  }
+
+  function clearActive(){
+    [].forEach.call(svg.querySelectorAll('.link-line'), function(l){ l.classList.remove('active'); });
+    [].forEach.call(svg.querySelectorAll('.leaf-rect'), function(l){ l.classList.remove('src','dst'); });
+    [].forEach.call(svg.querySelectorAll('text.leaf-src'), function(t){ t.setAttribute('class','lbl leaf'); t.textContent = t.dataset.text; });
+    [].forEach.call(svg.querySelectorAll('circle.pkt'), function(c){ c.remove(); });
+  }
+
+  function refreshLabels(){
+    [].forEach.call(svg.querySelectorAll('rect.leaf-rect'), function(r,i){
+      var t = svg.querySelectorAll('text')[SPINES + i];
+      if (r.classList.contains('src') || r.classList.contains('dst')){
+        t.setAttribute('class','lbl leaf-src'); t.setAttribute('fill','#fff');
+      } else { t.setAttribute('class','lbl leaf'); t.removeAttribute('fill'); }
+    });
+  }
+
+  function onLeafClick(e){
+    var idx = parseInt(e.target.getAttribute('data-leaf'),10);
+    if (src === null){ src = idx; e.target.classList.add('src'); refreshLabels(); document.getElementById('verdict').className='verdict info show'; document.getElementById('verdict').textContent='Source = L-'+(idx+1)+'. Now click destination leaf.'; return; }
+    if (idx === src){ document.getElementById('verdict').className='verdict miss show'; document.getElementById('verdict').textContent='Same leaf — pick a different destination.'; return; }
+    dst = idx; e.target.classList.add('dst'); refreshLabels();
+    animateFlow();
+  }
+
+  function animateFlow(){
+    var spine = Math.floor(Math.random()*SPINES);
+    var l1 = svg.querySelector('[data-link="'+spine+'-'+src+'"]');
+    var l2 = svg.querySelector('[data-link="'+spine+'-'+dst+'"]');
+    l1.classList.add('active'); l2.classList.add('active');
+    var pkt = svgEl('circle',{r:6,fill:'#B45309','class':'pkt'});
+    var sp = leafPos[src];
+    pkt.setAttribute('cx',sp.x); pkt.setAttribute('cy',sp.y-15);
+    svg.appendChild(pkt);
+    var spP = spinePos[spine];
+    pkt.animate([{cx:sp.x,cy:sp.y-15},{cx:spP.x,cy:spP.y+15}],{duration:550,fill:'forwards'}).onfinish = function(){
+      var dp = leafPos[dst];
+      pkt.animate([{cx:spP.x,cy:spP.y+15},{cx:dp.x,cy:dp.y-15}],{duration:550,fill:'forwards'}).onfinish = function(){
+        pkt.remove();
+        var v = document.getElementById('verdict');
+        v.className='verdict win show';
+        v.textContent='✓ L-'+(src+1)+' → SPINE-'+(spine+1)+' → L-'+(dst+1)+'. Two hops. Always.';
+        document.getElementById('explain').innerHTML = 'Whichever spine ECMP picks, latency is identical. No leaf-to-leaf direct link exists — that\'s the design. East-west predictability is the whole point.';
+      };
+    };
+  }
+
+  function ecmpAll(){
+    clearActive();
+    if (src === null){ src = 0; svg.querySelector('[data-leaf="0"]').classList.add('src'); }
+    if (dst === null){ dst = 5; svg.querySelector('[data-leaf="5"]').classList.add('dst'); }
+    refreshLabels();
+    for (var s=0; s<SPINES; s++){
+      svg.querySelector('[data-link="'+s+'-'+src+'"]').classList.add('active');
+      svg.querySelector('[data-link="'+s+'-'+dst+'"]').classList.add('active');
+      var pkt = svgEl('circle',{r:5,fill:'#B45309','class':'pkt','opacity':0.85});
+      var sp = leafPos[src], spP = spinePos[s], dp = leafPos[dst];
+      pkt.setAttribute('cx',sp.x); pkt.setAttribute('cy',sp.y-15);
+      svg.appendChild(pkt);
+      (function(p,a,b,c){
+        setTimeout(function(){
+          p.animate([{cx:a.x,cy:a.y-15},{cx:b.x,cy:b.y+15}],{duration:600,fill:'forwards'}).onfinish=function(){
+            p.animate([{cx:b.x,cy:b.y+15},{cx:c.x,cy:c.y-15}],{duration:600,fill:'forwards'}).onfinish=function(){ p.remove(); };
+          };
+        }, s*120);
+      })(pkt, sp, spP, dp);
+    }
+    var v = document.getElementById('verdict');
+    v.className='verdict win show';
+    v.textContent='✓ ECMP — flow is hashed across all 4 spines. 4× the bandwidth, predictable latency.';
+    document.getElementById('explain').textContent='Each TCP flow picks one spine via 5-tuple hash. With 4 spines and equal-cost routes, 4 simultaneous flows fan out evenly — that\'s how DC fabrics scale.';
+  }
+
+  document.getElementById('reset').addEventListener('click', function(){ src=null; dst=null; clearActive(); document.getElementById('verdict').className='verdict'; });
+  document.getElementById('ecmp').addEventListener('click', ecmpAll);
+  build();
+
+  var qC=0,qW=0,qS=0;
+  var pool = [
+    { q:'How many switch hops between any two leaves in a spine-leaf fabric?', a:'2 (leaf → spine → leaf)', d:['1','3','Variable, depends on placement'], why:'Always 2. That\'s the whole guarantee.' },
+    { q:'Why is east-west traffic the dominant pattern in modern data centers?', a:'Distributed apps, microservices, replication, GPU jobs talk server-to-server', d:['Users browse a lot','MPLS WANs require it','IPv6 mandates it'], why:'Apps are split across servers; the chatty path is server↔server.' },
+    { q:'What balances flows across multiple spines?', a:'ECMP (Equal-Cost Multi-Path) routing', d:['Spanning Tree','HSRP','LACP only'], why:'ECMP at L3 fans flows across equal-cost spines.' },
+    { q:'Spines connect to…', a:'Every leaf, never to other spines', d:['Each other in a ring','Just adjacent spines','Only the core router'], why:'No spine-to-spine links. No leaf-to-leaf links.' },
+    { q:'Want to add capacity between racks. Spine-leaf scaling move?', a:'Add another spine, mesh it to all leaves', d:['Add a core layer','Move to 3-tier','Buy bigger leaves'], why:'Horizontal — drop in another spine.' },
+    { q:'Why is STP avoided in spine-leaf fabrics?', a:'L3 routing is used between leaves and spines — no L2 loops', d:'STP is required by EVPN','STP runs on spines','STP is faster than ECMP'.split(',') ? ['STP is required by EVPN','STP runs on spines','STP is faster than ECMP'] : [], why:'Spine-leaf is routed at L3 between tiers; ECMP replaces STP load distribution.' },
+    { q:'Best fit: GPU training cluster with all-to-all server traffic?', a:'Spine-leaf fabric', d:['2-tier collapsed core','Hub-and-spoke WAN','Single-switch flat network'], why:'All-to-all = east-west = spine-leaf.' },
+    { q:'Spine-leaf vs 3-tier: which gives more PREDICTABLE latency between racks?', a:'Spine-leaf — every path is the same length', d:['3-tier — closer servers go through fewer hops','Both equal','Depends on STP'], why:'3-tier latency varies based on which dist block you traverse.' },
+    { q:'In a 4-spine 8-leaf fabric, a flow from L1 to L5 has how many possible paths?', a:'4 (one per spine)', d:['1','8','12'], why:'4 spines = 4 equal-cost L1→spine→L5 paths.' },
+    { q:'Adding the 9th leaf — what wiring change?', a:'Plug it into all 4 spines (one uplink per spine)', d:['Re-cable existing leaves','Add another spine','Switch to 3-tier'], why:'Each new leaf attaches to every spine — that\'s the rule.' }
+  ];
+  // fix the malformed pool entry
+  pool[5].d = ['STP is required by EVPN','STP runs on spines','STP is faster than ECMP'];
+  function pick(){
+    var p = pool[Math.floor(Math.random()*pool.length)];
+    var opts = [p.a].concat(p.d).sort(function(){return Math.random()-.5;});
+    document.getElementById('quizStem').textContent = p.q;
+    var box = document.getElementById('quizOpts'); box.innerHTML='';
+    opts.forEach(function(o){
+      var b=document.createElement('button'); b.className='opt'; b.textContent=o;
+      b.addEventListener('click', function(){
+        if (b.classList.contains('correct')||b.classList.contains('wrong')) return;
+        if (o===p.a){ b.classList.add('correct'); qC++; qS++; }
+        else { b.classList.add('wrong'); qW++; qS=0;
+          [].forEach.call(box.children,function(c){ if (c.textContent===p.a) c.classList.add('correct'); }); }
+        document.getElementById('qCorrect').textContent=qC;
+        document.getElementById('qWrong').textContent=qW;
+        document.getElementById('qStreak').textContent=qS;
+        var v=document.getElementById('verdict'); v.className='verdict info show'; v.textContent='Why: '+p.why;
+      });
+      box.appendChild(b);
+    });
+  }
+  document.getElementById('newQ').addEventListener('click', pick);
+  pick();
+})();
+</script>
+</body>
+</html>

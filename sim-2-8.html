@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>2.8 Sim — WLAN GUI Config</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#FAF7F2;--bg-surface:#FFFFFF;--bg-recessed:#F3F0EB;
+    --border:#E2DFD9;--border-strong:#C7C3BC;
+    --ink:#1C1917;--ink-secondary:#57534E;--ink-muted:#A8A29E;
+    --accent:#B45309;--accent-soft:#D97706;--accent-light:#FEF3C7;
+    --correct:#16A34A;--correct-bg:#F0FDF4;
+    --wrong:#DC2626;--wrong-bg:#FEF2F2;
+    --info:#2563EB;--info-bg:#EFF6FF;
+    --font-display:'Space Grotesk',system-ui,sans-serif;
+    --font-body:'Source Serif 4',Georgia,serif;
+    --font-mono:'JetBrains Mono',monospace;
+    --radius:6px;--radius-lg:10px;
+  }
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  html{font-size:16px;-webkit-font-smoothing:antialiased}
+  body{font-family:var(--font-body);background:var(--bg);color:var(--ink);line-height:1.55;padding:24px;max-width:980px;margin:0 auto}
+  .head{margin-bottom:20px;padding-bottom:14px;border-bottom:1px solid var(--border)}
+  .head .crumb{font-family:var(--font-mono);font-size:.74rem;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px}
+  .head .crumb a{color:var(--accent);text-decoration:none}
+  .head h1{font-family:var(--font-display);font-size:1.5rem;font-weight:700;margin-bottom:6px}
+  .head .desc{font-size:.95rem;color:var(--ink-secondary)}
+  .panel{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;margin-bottom:18px}
+  .panel h2{font-family:var(--font-display);font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-secondary);margin-bottom:12px}
+  .intuition{background:var(--accent-light);border-left:3px solid var(--accent);padding:14px 16px;border-radius:var(--radius);font-size:.96rem}
+  .gui-frame{background:#1f2937;border:2px solid #111827;border-radius:var(--radius-lg);padding:0;overflow:hidden;margin-top:8px}
+  .gui-bar{background:#111827;color:#FCD34D;padding:8px 14px;font-family:var(--font-display);font-size:.78rem;letter-spacing:.06em;text-transform:uppercase;display:flex;justify-content:space-between;align-items:center}
+  .gui-tabs{background:#374151;display:flex;font-family:var(--font-mono);font-size:.8rem}
+  .gui-tab{padding:10px 16px;color:#D1D5DB;cursor:pointer;border-bottom:2px solid transparent}
+  .gui-tab.active{color:#FCD34D;border-bottom-color:#FCD34D;background:#1f2937}
+  .gui-body{background:#FFFFFF;padding:18px}
+  .form-row{display:grid;grid-template-columns:160px 1fr;gap:12px;margin-bottom:12px;align-items:center}
+  .form-row label{font-family:var(--font-display);font-size:.84rem;font-weight:600;color:var(--ink-secondary)}
+  .form-row input,.form-row select{font-family:var(--font-mono);font-size:.88rem;padding:6px 10px;border:1px solid var(--border-strong);border-radius:var(--radius);width:100%;background:#fff}
+  .form-row input:focus,.form-row select:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-light)}
+  .form-row .help{font-family:var(--font-mono);font-size:.74rem;color:var(--ink-muted);margin-top:2px;grid-column:2}
+  .qos-row{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:6px}
+  .qos-tier{background:var(--bg-recessed);border:2px solid var(--border-strong);border-radius:var(--radius);padding:10px;cursor:pointer;text-align:center;font-family:var(--font-mono);font-size:.84rem;transition:all .2s}
+  .qos-tier:hover{border-color:var(--accent-soft)}
+  .qos-tier.active{border-color:var(--accent);background:var(--accent-light)}
+  .qos-tier .tier{font-family:var(--font-display);font-weight:700;font-size:.9rem}
+  .qos-tier .use{font-size:.72rem;color:var(--ink-secondary);margin-top:4px}
+  .qos-tier.platinum{background:linear-gradient(180deg,#E5E7EB,#9CA3AF)}
+  .qos-tier.platinum .tier{color:#1F2937}
+  .qos-tier.gold{background:linear-gradient(180deg,#FEF3C7,#F59E0B)}
+  .qos-tier.gold .tier{color:#78350F}
+  .qos-tier.silver{background:linear-gradient(180deg,#F3F4F6,#D1D5DB)}
+  .qos-tier.silver .tier{color:#374151}
+  .qos-tier.bronze{background:linear-gradient(180deg,#FEE2D5,#C2410C)}
+  .qos-tier.bronze .tier{color:#7C2D12}
+  .ssid-broadcast{margin-top:14px;padding:14px;background:var(--bg-recessed);border-radius:var(--radius);text-align:center;display:none}
+  .ssid-broadcast.show{display:block;animation:fadeIn .3s ease}
+  @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+  .ssid-broadcast .pill{display:inline-block;background:var(--accent);color:#fff;padding:6px 16px;border-radius:99px;font-family:var(--font-mono);font-weight:700;margin:4px}
+  .btn{font-family:var(--font-display);font-size:.84rem;font-weight:600;padding:8px 16px;background:var(--ink);color:#FAF7F2;border:none;border-radius:var(--radius);cursor:pointer}
+  .btn.ghost{background:var(--bg-recessed);color:var(--ink)}
+  .btn.accent{background:var(--accent)}.btn.accent:hover{background:var(--accent-soft)}
+  .quiz .stem{font-family:var(--font-display);font-size:1.02rem;font-weight:600;margin-bottom:12px;padding:14px;background:var(--accent-light);border-left:3px solid var(--accent);border-radius:var(--radius)}
+  .opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px}
+  .opt{background:var(--bg-recessed);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;font-family:var(--font-mono);font-size:.88rem;cursor:pointer;text-align:left}
+  .opt:hover{border-color:var(--border-strong);background:var(--bg-surface)}
+  .opt.correct{background:var(--correct-bg);border-color:var(--correct);color:var(--correct);font-weight:700}
+  .opt.wrong{background:var(--wrong-bg);border-color:var(--wrong);color:var(--wrong)}
+  .scoreline{font-family:var(--font-mono);font-size:.84rem;color:var(--ink-muted);margin-top:10px;display:flex;gap:18px;align-items:center;flex-wrap:wrap}
+  .scoreline strong{color:var(--ink)}
+  .why{font-family:var(--font-mono);font-size:.8rem;color:var(--ink-secondary);margin-top:8px;padding:8px 10px;background:var(--bg-recessed);border-radius:4px;display:none}
+  .why.show{display:block}
+  .footer{font-family:var(--font-mono);font-size:.82rem;color:var(--ink-muted);text-align:center;margin-top:20px;padding-top:14px;border-top:1px solid var(--border)}
+  .footer a{color:var(--accent);text-decoration:none}
+  .tab-pane{display:none}
+  .tab-pane.active{display:block}
+</style>
+</head>
+<body>
+
+<div class="head">
+  <div class="crumb"><a href="blueprint-drill.html?obj=2.8">← back to 2.8 leaves</a> · 2.8 · WLC · WLAN Configuration</div>
+  <h1>WLAN GUI Configuration</h1>
+  <div class="desc">A virtual WLC dialog. Pick SSID, security mode, QoS profile, and advanced options. Hit Apply and the SSID goes on the air. The point: each setting maps to a real-world need — voice gets platinum, guest gets bronze, corp gets WPA2-Enterprise.</div>
+</div>
+
+<div class="panel">
+  <h2>Why each knob exists</h2>
+  <div class="intuition">
+    Wi-Fi has three knobs that matter: <strong>who can join</strong> (security), <strong>who gets airtime first</strong> (QoS), and <strong>how the radio behaves</strong> (band, roaming). On a WLC GUI those map directly: General tab (SSID + VLAN + state), Security tab (PSK / Enterprise / WPA3 / Open), QoS tab (Platinum=voice, Gold=video, Silver=data, Bronze=guest), Advanced tab (band-select, fast-roam 802.11r, client-load-balance). Pick wrong and you either lock people out or let everyone in — both are bad.
+  </div>
+</div>
+
+<div class="panel">
+  <h2>Virtual WLC — Add WLAN</h2>
+  <div class="gui-frame">
+    <div class="gui-bar"><span>Cisco WLC 9800 · WLAN Configuration</span><span style="font-family:JetBrains Mono;font-size:.7rem;color:#9CA3AF">Profile: new-wlan-1</span></div>
+    <div class="gui-tabs">
+      <div class="gui-tab active" data-tab="general">General</div>
+      <div class="gui-tab" data-tab="security">Security</div>
+      <div class="gui-tab" data-tab="qos">QoS</div>
+      <div class="gui-tab" data-tab="advanced">Advanced</div>
+    </div>
+    <div class="gui-body">
+      <div class="tab-pane active" data-pane="general">
+        <div class="form-row"><label>SSID</label><input type="text" id="ssid" value="Corp-Wifi" maxlength="32"></div>
+        <div class="form-row"><label>Profile Name</label><input type="text" id="profile" value="corp-wlan-profile"></div>
+        <div class="form-row"><label>Status</label><select id="status"><option>Enabled</option><option>Disabled</option></select></div>
+        <div class="form-row"><label>Broadcast SSID</label><select id="bcast"><option>Yes (visible)</option><option>No (hidden)</option></select><div class="help">Hidden SSIDs add zero security — every client probes for them anyway.</div></div>
+        <div class="form-row"><label>VLAN (Dynamic Iface)</label><select id="vlan"><option>vlan-20-corp</option><option>vlan-50-guest</option><option>vlan-100-voice</option></select></div>
+      </div>
+      <div class="tab-pane" data-pane="security">
+        <div class="form-row"><label>Layer 2 Security</label><select id="sec">
+          <option value="open">Open (no encryption)</option>
+          <option value="wpa2-psk" selected>WPA2-PSK</option>
+          <option value="wpa2-ent">WPA2-Enterprise (802.1X)</option>
+          <option value="wpa3-sae">WPA3-SAE (Personal)</option>
+          <option value="wpa3-ent">WPA3-Enterprise</option>
+        </select></div>
+        <div class="form-row" id="psk-row"><label>Pre-Shared Key</label><input type="password" id="psk" value="changeme123"><div class="help">Min 8 chars. Anyone who knows the PSK can decrypt others\' traffic if they capture the 4-way handshake.</div></div>
+        <div class="form-row" id="rad-row" style="display:none"><label>RADIUS Server</label><input type="text" id="radius" value="10.0.0.50" placeholder="ip"><div class="help">Enterprise mode hands auth off to RADIUS — per-user creds, certs, MFA. Real choice for corporate.</div></div>
+        <div class="form-row"><label>PMF (Mgmt Frame Protection)</label><select id="pmf"><option>Disabled</option><option>Optional</option><option>Required</option></select><div class="help">WPA3 requires PMF. Stops deauth-flood attacks.</div></div>
+      </div>
+      <div class="tab-pane" data-pane="qos">
+        <div style="font-family:var(--font-mono);font-size:.86rem;color:var(--ink-secondary);margin-bottom:8px">Pick a QoS profile — drives airtime priority and DSCP marking.</div>
+        <div class="qos-row" id="qos">
+          <div class="qos-tier platinum" data-q="plat"><div class="tier">Platinum</div><div class="use">Voice<br>(VoIP, 802.11e AC_VO)</div></div>
+          <div class="qos-tier gold active" data-q="gold"><div class="tier">Gold</div><div class="use">Video<br>(streaming, calls)</div></div>
+          <div class="qos-tier silver" data-q="silver"><div class="tier">Silver</div><div class="use">Best Effort<br>(default data)</div></div>
+          <div class="qos-tier bronze" data-q="bronze"><div class="tier">Bronze</div><div class="use">Background<br>(guest, IoT)</div></div>
+        </div>
+      </div>
+      <div class="tab-pane" data-pane="advanced">
+        <div class="form-row"><label>Band Select</label><select id="band"><option>Disabled</option><option>Enabled (push to 5 GHz)</option></select><div class="help">Holds initial probe-responses on 2.4 GHz, encouraging dual-band clients onto less-crowded 5 GHz.</div></div>
+        <div class="form-row"><label>Fast Transition (802.11r)</label><select id="ft"><option>Disabled</option><option>Adaptive</option><option>Enabled</option></select><div class="help">Pre-auths client to neighbor APs — sub-50ms roaming. Required for voice quality.</div></div>
+        <div class="form-row"><label>Client Load Balance</label><select id="lb"><option>Disabled</option><option>Enabled</option></select></div>
+        <div class="form-row"><label>Max Clients per AP</label><input type="number" value="200" min="0" max="500"></div>
+      </div>
+    </div>
+  </div>
+  <div style="margin-top:14px;display:flex;gap:8px">
+    <button class="btn accent" id="apply">Apply</button>
+    <button class="btn ghost" id="resetBtn">Reset</button>
+  </div>
+  <div class="ssid-broadcast" id="bcastBox"></div>
+</div>
+
+<div class="panel quiz">
+  <h2>Quiz mode</h2>
+  <div class="stem" id="quizStem">Loading…</div>
+  <div class="opts" id="quizOpts"></div>
+  <div class="why" id="quizWhy"></div>
+  <div class="scoreline">
+    <span><strong id="qC">0</strong> correct</span><span><strong id="qW">0</strong> wrong</span><span><strong id="qS">0</strong> streak</span>
+    <span style="margin-left:auto"><button class="btn ghost" id="newQ">Next ↻</button></span>
+  </div>
+</div>
+
+<div class="footer"><a href="blueprint-drill.html?obj=2.8">← back to 2.8 leaves</a></div>
+
+<script>
+document.addEventListener('DOMContentLoaded',function(){
+  document.querySelectorAll('.gui-tab').forEach(function(t){
+    t.addEventListener('click',function(){
+      document.querySelectorAll('.gui-tab').forEach(function(x){x.classList.remove('active')});
+      document.querySelectorAll('.tab-pane').forEach(function(x){x.classList.remove('active')});
+      t.classList.add('active');
+      document.querySelector('.tab-pane[data-pane="'+t.dataset.tab+'"]').classList.add('active');
+    });
+  });
+  document.getElementById('sec').addEventListener('change',function(){
+    var v=this.value,enterprise=v==='wpa2-ent'||v==='wpa3-ent';
+    document.getElementById('psk-row').style.display=(v==='wpa2-psk'||v==='wpa3-sae')?'grid':'none';
+    document.getElementById('rad-row').style.display=enterprise?'grid':'none';
+  });
+  var qos='gold';
+  document.querySelectorAll('.qos-tier').forEach(function(q){
+    q.addEventListener('click',function(){
+      document.querySelectorAll('.qos-tier').forEach(function(x){x.classList.remove('active')});
+      q.classList.add('active');qos=q.dataset.q;
+    });
+  });
+  document.getElementById('apply').addEventListener('click',function(){
+    var ssid=document.getElementById('ssid').value;
+    var sec=document.getElementById('sec').value;
+    var vlan=document.getElementById('vlan').value;
+    var box=document.getElementById('bcastBox');box.classList.add('show');
+    var secLabel={open:'Open',['wpa2-psk']:'WPA2-PSK',['wpa2-ent']:'WPA2-Enterprise',['wpa3-sae']:'WPA3-SAE',['wpa3-ent']:'WPA3-Enterprise'}[sec];
+    var qosLabel={plat:'Platinum / Voice',gold:'Gold / Video',silver:'Silver / Data',bronze:'Bronze / Guest'}[qos];
+    box.innerHTML='<div style="font-family:var(--font-display);font-weight:700;margin-bottom:6px">✓ WLAN active — broadcasting</div>'+
+      '<span class="pill">SSID: '+ssid+'</span>'+
+      '<span class="pill">Sec: '+secLabel+'</span>'+
+      '<span class="pill">VLAN: '+vlan+'</span>'+
+      '<span class="pill">QoS: '+qosLabel+'</span>'+
+      '<div style="font-family:var(--font-mono);font-size:.76rem;color:var(--ink-secondary);margin-top:8px">Clients in range now see this SSID. Authentication uses the security mode above. Frames tagged into the chosen VLAN at egress.</div>';
+  });
+  document.getElementById('resetBtn').addEventListener('click',function(){document.getElementById('bcastBox').classList.remove('show')});
+
+  var pool=[
+    {q:'WLAN profile for VoIP phones — which QoS tier?',o:['Platinum','Gold','Silver','Bronze'],a:0,why:'Platinum = voice. Lowest latency / highest priority airtime.'},
+    {q:'Guest Wi-Fi captive portal traffic — which QoS tier?',o:['Platinum','Gold','Silver','Bronze'],a:3,why:'Bronze = background/guest. Don\'t let guests starve corp users.'},
+    {q:'Corporate Wi-Fi with per-user RADIUS auth and certs:',o:['WPA2-PSK','WPA2-Enterprise','Open + portal','WEP'],a:1,why:'Enterprise = 802.1X to RADIUS. Per-user credentials, MFA possible.'},
+    {q:'Coffee shop wants simple Wi-Fi password — single shared phrase. Mode?',o:['WPA2-Enterprise','WPA2-PSK','Open','WPA3-Enterprise'],a:1,why:'PSK = pre-shared key. Easy for small sites; loses if PSK leaks.'},
+    {q:'Strongest exam-favored security available:',o:['WEP','WPA2-PSK','WPA3-Enterprise','Open'],a:2,why:'WPA3-Enterprise. WPA3 also forces PMF and SAE handshake which fixes WPA2 KRACK class of attacks.'},
+    {q:'You enable Band Select. Effect:',o:['Speeds up 2.4 GHz','Pushes dual-band clients to 5 GHz','Disables 5 GHz','Mesh feature'],a:1,why:'Suppresses 2.4 GHz probe responses briefly so dual-band clients pick 5 GHz first.'},
+    {q:'Voice clients drop calls when roaming between APs. Enable:',o:['Band Select','802.11r Fast Transition','PMF Required','Bronze QoS'],a:1,why:'802.11r pre-auths client to neighbor APs — handoff <50 ms.'},
+    {q:'"Hidden SSID" (broadcast off) provides:',o:['Strong security','Mild obscurity, no real security','WPA3 by default','Faster roaming'],a:1,why:'Clients still probe for the SSID by name — easily captured. Security theater.'},
+    {q:'Streaming video over Wi-Fi — recommended QoS tier:',o:['Platinum','Gold','Silver','Bronze'],a:1,why:'Gold = video. High priority but below voice.'},
+    {q:'PMF (Protected Management Frames) is REQUIRED in:',o:['WEP','WPA','WPA2-PSK only','WPA3'],a:3,why:'WPA3 mandates PMF. Stops deauth-flood DoS.'},
+    {q:'WLAN bound to dynamic interface "vlan-100-voice". Client traffic exits the WLC into:',o:['VLAN 1','VLAN 100','Native VLAN','Service VLAN'],a:1,why:'WLAN→dynamic interface→client VLAN. Bound to VLAN 100 = voice VLAN.'},
+    {q:'Open SSID best paired with:',o:['WPA3-PSK','Captive portal + restricted VLAN + Bronze QoS','802.1X','Disabled'],a:1,why:'No encryption is fine for guest if you trap them in a guest VLAN, force portal accept, and rate-limit.'}
+  ];
+  var qC=0,qW=0,qS=0,cur=null;
+  function ask(){
+    cur=pool[Math.floor(Math.random()*pool.length)];
+    document.getElementById('quizStem').textContent=cur.q;
+    var box=document.getElementById('quizOpts');box.innerHTML='';
+    document.getElementById('quizWhy').classList.remove('show');
+    cur.o.forEach(function(o,i){
+      var b=document.createElement('button');b.className='opt';b.textContent=o;
+      b.addEventListener('click',function(){
+        if(b.classList.contains('correct')||b.classList.contains('wrong'))return;
+        if(i===cur.a){b.classList.add('correct');qC++;qS++}
+        else{b.classList.add('wrong');qW++;qS=0;Array.prototype.forEach.call(box.children,function(c,j){if(j===cur.a)c.classList.add('correct')})}
+        document.getElementById('qC').textContent=qC;document.getElementById('qW').textContent=qW;document.getElementById('qS').textContent=qS;
+        var w=document.getElementById('quizWhy');w.textContent='Why: '+cur.why;w.classList.add('show');
+      });
+      box.appendChild(b);
+    });
+  }
+  document.getElementById('newQ').addEventListener('click',ask);ask();
+});
+</script>
+</body>
+</html>

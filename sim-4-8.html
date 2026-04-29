@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>4.8 Sim — SSH vs Telnet</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#FAF7F2;--bg-surface:#FFFFFF;--bg-recessed:#F3F0EB;
+    --border:#E2DFD9;--border-strong:#C7C3BC;
+    --ink:#1C1917;--ink-secondary:#57534E;--ink-muted:#A8A29E;
+    --accent:#B45309;--accent-soft:#D97706;--accent-light:#FEF3C7;
+    --correct:#16A34A;--correct-bg:#F0FDF4;
+    --wrong:#DC2626;--wrong-bg:#FEF2F2;
+    --info:#2563EB;--info-bg:#EFF6FF;
+    --font-display:'Space Grotesk',system-ui,sans-serif;
+    --font-body:'Source Serif 4',Georgia,serif;
+    --font-mono:'JetBrains Mono',monospace;
+    --radius:6px;--radius-lg:10px;
+  }
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  html{font-size:16px;-webkit-font-smoothing:antialiased}
+  body{font-family:var(--font-body);background:var(--bg);color:var(--ink);line-height:1.55;padding:24px;max-width:920px;margin:0 auto}
+  .head{margin-bottom:20px;padding-bottom:14px;border-bottom:1px solid var(--border)}
+  .head .crumb{font-family:var(--font-mono);font-size:.74rem;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px}
+  .head h1{font-family:var(--font-display);font-size:1.5rem;font-weight:700;margin-bottom:6px}
+  .head .desc{font-size:.95rem;color:var(--ink-secondary)}
+  .panel{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;margin-bottom:18px}
+  .panel h2{font-family:var(--font-display);font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-secondary);margin-bottom:12px}
+  .btn{font-family:var(--font-display);font-size:.84rem;font-weight:600;padding:8px 16px;background:var(--ink);color:#FAF7F2;border:none;border-radius:var(--radius);cursor:pointer}
+  .btn.ghost{background:var(--bg-recessed);color:var(--ink)}
+  .btn.accent{background:var(--accent)}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .col{background:var(--bg-recessed);border:1px solid var(--border);border-radius:var(--radius);padding:14px}
+  .col h3{font-family:var(--font-display);font-size:.9rem;margin-bottom:8px}
+  .col.tel h3{color:var(--wrong)}
+  .col.ssh h3{color:var(--correct)}
+  .cap{font-family:var(--font-mono);font-size:.78rem;background:var(--ink);color:#FAF7F2;padding:10px;border-radius:var(--radius);max-height:200px;overflow-y:auto;white-space:pre}
+  .col.tel .cap .leak{color:#fca5a5;font-weight:700}
+  .col.ssh .cap{color:#86efac}
+  .flow{display:flex;flex-direction:column;gap:6px;margin:14px 0}
+  .step{padding:8px 12px;border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-recessed);font-family:var(--font-mono);font-size:.84rem;opacity:.4;transition:all .35s}
+  .step.live{opacity:1;background:var(--accent-light);border-color:var(--accent);transform:translateX(8px)}
+  .step.done{opacity:.85;background:var(--correct-bg);border-color:var(--correct);color:var(--correct)}
+  .step b{color:var(--accent)}
+  .step.done b{color:var(--correct)}
+  .cfg{font-family:var(--font-mono);font-size:.86rem;background:var(--ink);color:#FAF7F2;padding:14px;border-radius:var(--radius);white-space:pre-wrap;margin-top:10px}
+  .quiz{margin-top:22px}
+  .quiz .stem{font-family:var(--font-display);font-size:1.02rem;font-weight:600;margin-bottom:12px;padding:14px;background:var(--accent-light);border-left:3px solid var(--accent);border-radius:var(--radius)}
+  .quiz .opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px}
+  .opt{background:var(--bg-recessed);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;font-family:var(--font-mono);font-size:.92rem;cursor:pointer;text-align:left}
+  .opt:hover{border-color:var(--border-strong);background:var(--bg-surface)}
+  .opt.correct{background:var(--correct-bg);border-color:var(--correct);color:var(--correct);font-weight:700}
+  .opt.wrong{background:var(--wrong-bg);border-color:var(--wrong);color:var(--wrong)}
+  .scoreline{font-family:var(--font-mono);font-size:.84rem;color:var(--ink-muted);margin-top:10px;display:flex;gap:18px}
+  .scoreline strong{color:var(--ink)}
+</style>
+</head>
+<body>
+
+<div class="head">
+  <div class="crumb"><a href="blueprint-drill.html?obj=4.8" style="color:var(--accent);text-decoration:none">← 4.8 leaves</a> · 4.8 · IP Services · SSH</div>
+  <h1>SSH Setup vs Telnet Sim</h1>
+  <div class="desc">Telnet was fine in 1973 — when the only people on the wire were trusted. Today, every byte you type into Telnet is plaintext on every router between you and the device, including your password. SSH wraps the same shell in a Diffie-Hellman key exchange and a symmetric cipher. Same prompt, but eavesdroppers see encrypted noise.</div>
+</div>
+
+<div class="panel">
+  <h2>SSH Setup Sequence</h2>
+  <div class="flow" id="ssh">
+    <div class="step" data-i="0"><b>1. TCP 3-way handshake</b> client SYN → server SYN+ACK → client ACK on port 22</div>
+    <div class="step" data-i="1"><b>2. Version exchange</b> "SSH-2.0-OpenSSH_9.0" advertised both ways</div>
+    <div class="step" data-i="2"><b>3. Algorithm negotiation</b> kex=curve25519, cipher=aes256-gcm, mac=hmac-sha2-256, host-key=rsa</div>
+    <div class="step" data-i="3"><b>4. Key exchange</b> Diffie-Hellman — both sides derive a shared secret without sending it</div>
+    <div class="step" data-i="4"><b>5. Host key auth</b> server signs the DH hash with its RSA key. Client checks fingerprint against ~/.ssh/known_hosts</div>
+    <div class="step" data-i="5"><b>6. User auth</b> password OR public key (id_rsa.pub already in authorized_keys)</div>
+    <div class="step" data-i="6"><b>7. Encrypted channel</b> all subsequent traffic AES-encrypted with the DH-derived session key</div>
+  </div>
+  <button class="btn accent" id="run">Run handshake</button>
+  <button class="btn ghost" id="reset">Reset</button>
+</div>
+
+<div class="panel">
+  <h2>Wireshark side-by-side</h2>
+  <div class="grid">
+    <div class="col tel">
+      <h3>Telnet (TCP 23) — what an attacker sees</h3>
+      <div class="cap">> User Access Verification
+> Username: <span class="leak">admin</span>
+> Password: <span class="leak">Cisco123!</span>
+> R1> enable
+> Password: <span class="leak">enable_secret_xyz</span>
+> R1# show running-config
+> ! every keystroke visible</div>
+    </div>
+    <div class="col ssh">
+      <h3>SSH (TCP 22) — same session</h3>
+      <div class="cap">> 4f a3 91 8c 22 7d 5e 6b
+> 91 88 bb 14 e0 33 7c 02
+> 5a 1c 9f de 47 b9 22 a1
+> ee 38 04 11 8c 7d e1 0a
+> aa 99 22 4d 56 7c 91 ff
+> ! AES-256-GCM ciphertext
+> ! useless without the key</div>
+    </div>
+  </div>
+</div>
+
+<div class="panel">
+  <h2>Cisco Config</h2>
+  <div class="cfg">R1(config)# hostname R1
+R1(config)# ip domain-name lab.local
+R1(config)# crypto key generate rsa modulus 2048
+R1(config)# username admin privilege 15 secret StrongPass!
+R1(config)# ip ssh version 2
+R1(config)# ip ssh time-out 60
+R1(config)# ip ssh authentication-retries 3
+R1(config)# line vty 0 4
+R1(config-line)# transport input ssh
+R1(config-line)# login local
+R1(config-line)# exec-timeout 5 0
+R1(config-line)# end
+
+! Why each command:
+!   hostname + domain-name → required for RSA key generation
+!   crypto key generate rsa modulus 2048 → real entropy, ≥1024 for SSHv2
+!   ip ssh version 2 → reject SSHv1 (vulnerable)
+!   transport input ssh → DISABLES Telnet on the vty lines
+!   login local → use local username/password DB</div>
+</div>
+
+<div class="panel quiz">
+  <h2>Quiz</h2>
+  <div class="stem" id="qStem">Loading…</div>
+  <div class="opts" id="qOpts"></div>
+  <div class="scoreline">
+    <span><strong id="qC">0</strong> correct</span>
+    <span><strong id="qW">0</strong> wrong</span>
+    <span style="margin-left:auto"><button class="btn ghost" id="qNext">Next ↻</button></span>
+  </div>
+</div>
+
+<p style="text-align:center;margin-top:20px"><a href="blueprint-drill.html?obj=4.8" style="color:var(--accent);font-family:var(--font-mono);font-size:.84rem">← back to 4.8 leaves</a></p>
+
+<script>
+(function(){
+  function play(){
+    var steps=document.querySelectorAll('#ssh .step');
+    steps.forEach(function(s){s.classList.remove('live','done')});
+    var i=0;
+    var t=setInterval(function(){
+      if(i>0)steps[i-1].classList.replace('live','done');
+      if(i>=steps.length){clearInterval(t); return}
+      steps[i].classList.add('live'); i++;
+    },650);
+  }
+  document.getElementById('run').addEventListener('click',play);
+  document.getElementById('reset').addEventListener('click',function(){document.querySelectorAll('#ssh .step').forEach(function(s){s.classList.remove('live','done')})});
+
+  var qC=0,qW=0;
+  var pool=[
+    {q:'SSH uses which port?',a:'TCP 22',o:['TCP 22','TCP 23','UDP 22','TCP 443']},
+    {q:'Telnet uses which port?',a:'TCP 23',o:['TCP 22','TCP 23','UDP 23','TCP 25']},
+    {q:'Which SSH algorithm derives the shared secret?',a:'Diffie-Hellman',o:['Diffie-Hellman','RSA','AES','SHA-256']},
+    {q:'Why is Telnet dangerous?',a:'all traffic including passwords is plaintext',o:['it uses UDP','no congestion control','all traffic including passwords is plaintext','only IPv4']},
+    {q:'Which command generates the RSA keys needed for SSH?',a:'crypto key generate rsa modulus 2048',o:['ssh keygen','ip ssh enable','crypto key generate rsa modulus 2048','enable ssh']},
+    {q:'Required before generating RSA keys on Cisco?',a:'hostname + ip domain-name',o:['enable secret','hostname + ip domain-name','no shutdown on vty','VLAN 1 active']},
+    {q:'`transport input ssh` on vty lines does what?',a:'allows only SSH, disables Telnet',o:['allows both Telnet and SSH','disables SSH','enables console only','sets timeout']},
+    {q:'Recommended SSH version on modern devices?',a:'SSHv2',o:['SSHv1','SSHv2','SSHv3','either']},
+    {q:'Public-key auth in SSH means…',a:'client proves identity with private key, server checks public key',o:['both use the same key','password is hashed','no authentication','client proves identity with private key, server checks public key']},
+    {q:'`ip ssh time-out 60` — what does 60 mean?',a:'seconds to complete authentication',o:['seconds idle before logout','seconds to complete authentication','retries before lockout','minutes per session']}
+  ];
+  function pick(){
+    var q=pool[Math.floor(Math.random()*pool.length)];
+    document.getElementById('qStem').textContent=q.q;
+    var box=document.getElementById('qOpts'); box.innerHTML='';
+    q.o.slice().sort(function(){return Math.random()-.5}).forEach(function(o){
+      var b=document.createElement('button'); b.className='opt'; b.textContent=o;
+      b.addEventListener('click',function(){
+        if(b.classList.contains('correct')||b.classList.contains('wrong'))return;
+        if(o===q.a){b.classList.add('correct');qC++} else{b.classList.add('wrong');qW++; Array.prototype.forEach.call(box.children,function(c){if(c.textContent===q.a)c.classList.add('correct')})}
+        document.getElementById('qC').textContent=qC; document.getElementById('qW').textContent=qW;
+      });
+      box.appendChild(b);
+    });
+  }
+  document.getElementById('qNext').addEventListener('click',pick); pick();
+})();
+</script>
+</body>
+</html>

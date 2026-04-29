@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>2.6 Sim — AP Modes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#FAF7F2;--bg-surface:#FFFFFF;--bg-recessed:#F3F0EB;
+    --border:#E2DFD9;--border-strong:#C7C3BC;
+    --ink:#1C1917;--ink-secondary:#57534E;--ink-muted:#A8A29E;
+    --accent:#B45309;--accent-soft:#D97706;--accent-light:#FEF3C7;
+    --correct:#16A34A;--correct-bg:#F0FDF4;
+    --wrong:#DC2626;--wrong-bg:#FEF2F2;
+    --info:#2563EB;--info-bg:#EFF6FF;
+    --font-display:'Space Grotesk',system-ui,sans-serif;
+    --font-body:'Source Serif 4',Georgia,serif;
+    --font-mono:'JetBrains Mono',monospace;
+    --radius:6px;--radius-lg:10px;
+  }
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  html{font-size:16px;-webkit-font-smoothing:antialiased}
+  body{font-family:var(--font-body);background:var(--bg);color:var(--ink);line-height:1.55;padding:24px;max-width:960px;margin:0 auto}
+  .head{margin-bottom:20px;padding-bottom:14px;border-bottom:1px solid var(--border)}
+  .head .crumb{font-family:var(--font-mono);font-size:.74rem;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px}
+  .head .crumb a{color:var(--accent);text-decoration:none}
+  .head h1{font-family:var(--font-display);font-size:1.5rem;font-weight:700;margin-bottom:6px}
+  .head .desc{font-size:.95rem;color:var(--ink-secondary)}
+  .panel{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;margin-bottom:18px}
+  .panel h2{font-family:var(--font-display);font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-secondary);margin-bottom:12px}
+  .intuition{background:var(--accent-light);border-left:3px solid var(--accent);padding:14px 16px;border-radius:var(--radius);font-size:.96rem}
+  .modes{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;margin-top:10px}
+  .mode{background:var(--bg-recessed);border:1px solid var(--border-strong);border-radius:var(--radius);padding:10px 12px;cursor:pointer;font-family:var(--font-mono);font-size:.84rem;text-align:center;transition:all .2s}
+  .mode:hover{border-color:var(--accent-soft)}
+  .mode.active{background:var(--accent-light);border-color:var(--accent);color:var(--accent);font-weight:700}
+  .canvas{margin-top:14px;background:var(--bg-recessed);border-radius:var(--radius);padding:14px;min-height:200px}
+  svg{width:100%;height:200px}
+  .desc-box{margin-top:10px;font-family:var(--font-mono);font-size:.86rem;color:var(--ink);line-height:1.6}
+  .desc-box h4{font-family:var(--font-display);font-size:.84rem;color:var(--accent);margin-bottom:6px}
+  .ssid-pill{display:inline-block;background:var(--accent);color:#fff;padding:2px 10px;border-radius:99px;font-size:.74rem;font-weight:700}
+  .btn{font-family:var(--font-display);font-size:.84rem;font-weight:600;padding:8px 16px;background:var(--ink);color:#FAF7F2;border:none;border-radius:var(--radius);cursor:pointer}
+  .btn.ghost{background:var(--bg-recessed);color:var(--ink)}
+  .quiz .stem{font-family:var(--font-display);font-size:1.02rem;font-weight:600;margin-bottom:12px;padding:14px;background:var(--accent-light);border-left:3px solid var(--accent);border-radius:var(--radius)}
+  .opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px}
+  .opt{background:var(--bg-recessed);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;font-family:var(--font-mono);font-size:.88rem;cursor:pointer;text-align:left}
+  .opt:hover{border-color:var(--border-strong);background:var(--bg-surface)}
+  .opt.correct{background:var(--correct-bg);border-color:var(--correct);color:var(--correct);font-weight:700}
+  .opt.wrong{background:var(--wrong-bg);border-color:var(--wrong);color:var(--wrong)}
+  .scoreline{font-family:var(--font-mono);font-size:.84rem;color:var(--ink-muted);margin-top:10px;display:flex;gap:18px;align-items:center;flex-wrap:wrap}
+  .scoreline strong{color:var(--ink)}
+  .why{font-family:var(--font-mono);font-size:.8rem;color:var(--ink-secondary);margin-top:8px;padding:8px 10px;background:var(--bg-recessed);border-radius:4px;display:none}
+  .why.show{display:block}
+  .footer{font-family:var(--font-mono);font-size:.82rem;color:var(--ink-muted);text-align:center;margin-top:20px;padding-top:14px;border-top:1px solid var(--border)}
+  .footer a{color:var(--accent);text-decoration:none}
+  .pulse{animation:pulse 1.5s ease-in-out infinite}
+  @keyframes pulse{0%,100%{opacity:.4}50%{opacity:1}}
+</style>
+</head>
+<body>
+
+<div class="head">
+  <div class="crumb"><a href="blueprint-drill.html?obj=2.6">← back to 2.6 leaves</a> · 2.6 · Wireless · AP Modes</div>
+  <h1>AP Modes — What the Radio Actually Does</h1>
+  <div class="desc">Same hardware. Seven different jobs. Pick a mode and watch how the AP behaves: serving clients, sniffing for attackers, surviving a controller outage, or going totally silent.</div>
+</div>
+
+<div class="panel">
+  <h2>Why modes matter</h2>
+  <div class="intuition">
+    A Cisco lightweight AP isn't just "an access point." It's a configurable radio whose job changes per assignment. <strong>Local</strong> = the default, serves clients normally. <strong>FlexConnect</strong> = serves clients but switches traffic locally even if the WLC dies (branch offices love this). <strong>Sniffer / Monitor</strong> = no clients at all, the AP is now your security tool. Knowing which mode fits a stem is half the wireless exam.
+  </div>
+</div>
+
+<div class="panel">
+  <h2>Pick a mode</h2>
+  <div class="modes" id="modes">
+    <div class="mode active" data-id="local">Local</div>
+    <div class="mode" data-id="flex">FlexConnect</div>
+    <div class="mode" data-id="sniffer">Sniffer</div>
+    <div class="mode" data-id="monitor">Monitor</div>
+    <div class="mode" data-id="rogue">Rogue Detector</div>
+    <div class="mode" data-id="bridge">Bridge</div>
+    <div class="mode" data-id="seconnect">SE-Connect</div>
+  </div>
+  <div class="canvas">
+    <svg id="diag" viewBox="0 0 600 200"></svg>
+    <div class="desc-box" id="text"></div>
+  </div>
+</div>
+
+<div class="panel quiz">
+  <h2>Quiz mode</h2>
+  <div class="stem" id="quizStem">Loading…</div>
+  <div class="opts" id="quizOpts"></div>
+  <div class="why" id="quizWhy"></div>
+  <div class="scoreline">
+    <span><strong id="qC">0</strong> correct</span><span><strong id="qW">0</strong> wrong</span><span><strong id="qS">0</strong> streak</span>
+    <span style="margin-left:auto"><button class="btn ghost" id="newQ">Next ↻</button></span>
+  </div>
+</div>
+
+<div class="footer"><a href="blueprint-drill.html?obj=2.6">← back to 2.6 leaves</a></div>
+
+<script>
+document.addEventListener('DOMContentLoaded',function(){
+  function apSvg(opts){
+    var ssids=opts.ssid?'<g><circle cx="120" cy="100" r="50" fill="none" stroke="#B45309" stroke-width="2" stroke-dasharray="4 3" class="pulse"/><circle cx="120" cy="100" r="30" fill="none" stroke="#B45309" stroke-width="2" stroke-dasharray="4 3" class="pulse"/></g>':'';
+    var clients=opts.clients?'<g><circle cx="60" cy="70" r="6" fill="#2563EB"/><circle cx="50" cy="130" r="6" fill="#2563EB"/><circle cx="180" cy="60" r="6" fill="#2563EB"/></g>':'';
+    var wlc=opts.wlc?'<rect x="430" y="80" width="100" height="40" rx="4" fill="#FEF3C7" stroke="#B45309"/><text x="480" y="104" text-anchor="middle" font-family="Space Grotesk" font-size="11" font-weight="700" fill="#B45309">WLC</text>'+
+      '<line x1="170" y1="100" x2="430" y2="100" stroke="'+(opts.tunnel||'#B45309')+'" stroke-width="2" stroke-dasharray="'+(opts.tunnelStyle||'4 3')+'"/>'+
+      '<text x="290" y="92" font-family="JetBrains Mono" font-size="9" fill="'+(opts.tunnel||'#B45309')+'">'+(opts.tunnelLabel||'CAPWAP')+'</text>':'';
+    var ap='<rect x="120" y="80" width="60" height="40" rx="4" fill="#FFFFFF" stroke="#1C1917" stroke-width="2"/><text x="150" y="104" text-anchor="middle" font-family="Space Grotesk" font-size="11" font-weight="700">AP</text>';
+    return ssids+clients+ap+wlc+(opts.extra||'');
+  }
+  var modes={
+    local:{
+      svg:apSvg({ssid:true,clients:true,wlc:true,tunnelLabel:'CAPWAP control + data'}),
+      text:'<h4>Local mode (default)</h4>Normal client-serving AP. Beacons SSIDs, accepts associations, encrypts, and tunnels <strong>both</strong> control and client data through CAPWAP back to the WLC. Loss of WLC = clients drop.<br><br><strong>Use when:</strong> standard campus AP, WLC reachable.'
+    },
+    flex:{
+      svg:apSvg({ssid:true,clients:true,wlc:true,tunnel:'#16A34A',tunnelLabel:'CAPWAP control only',extra:'<line x1="150" y1="120" x2="150" y2="170" stroke="#16A34A" stroke-width="2"/><text x="155" y="160" font-family="JetBrains Mono" font-size="9" fill="#16A34A">data → local LAN</text>'}),
+      text:'<h4>FlexConnect</h4>Like Local, but client data is <strong>switched locally</strong> at the AP. Control still rides CAPWAP to WLC. If WLC dies → AP keeps serving previously authenticated clients (Standalone state).<br><br><strong>Use when:</strong> branch office over WAN, WLC at HQ. Don\'t pay the data round-trip; survive WAN outages.'
+    },
+    sniffer:{
+      svg:apSvg({wlc:true,tunnelLabel:'frames → WLC → Wireshark',extra:'<text x="150" y="160" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#DC2626">no SSID · no clients</text>'}),
+      text:'<h4>Sniffer</h4>AP becomes a passive RF capture tool. <strong>Does NOT serve clients.</strong> Captures every 802.11 frame on a chosen channel and forwards them to a remote machine running Wireshark (decoded with AiroPeek/Omnipeek format).<br><br><strong>Use when:</strong> troubleshooting an intermittent client connectivity bug — you need raw frames.'
+    },
+    monitor:{
+      svg:apSvg({wlc:true,extra:'<g><circle cx="60" cy="70" r="6" fill="#A8A29E"/><circle cx="50" cy="130" r="6" fill="#A8A29E"/><circle cx="180" cy="60" r="6" fill="#A8A29E"/></g><text x="150" y="160" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#57534E">listens, doesn\'t serve</text>'}),
+      text:'<h4>Monitor</h4>AP listens to all channels, scans for rogues, runs IDS signatures, and feeds telemetry to the WLC. <strong>Does NOT serve clients.</strong> A dedicated security/RRM probe.<br><br><strong>Use when:</strong> dense deployments where you can dedicate every Nth AP to monitoring duty for full RF visibility.'
+    },
+    rogue:{
+      svg:apSvg({wlc:true,extra:'<text x="150" y="160" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#57534E">listens on the wired side</text><circle cx="60" cy="60" r="6" fill="#DC2626"/><text x="60" y="48" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#DC2626">rogue MAC</text>'}),
+      text:'<h4>Rogue Detector</h4>AP\'s <strong>radios are off</strong>. It listens on the wired ethernet side, watching for ARP/MAC entries that match suspected rogue APs. Confirms a rogue is plugged into your real LAN (not just nearby in the air).<br><br><strong>Use when:</strong> you need to prove "is this rogue actually on my network or just in the parking lot?"'
+    },
+    bridge:{
+      svg:apSvg({extra:'<rect x="380" y="80" width="60" height="40" rx="4" fill="#FFFFFF" stroke="#1C1917" stroke-width="2"/><text x="410" y="104" text-anchor="middle" font-family="Space Grotesk" font-size="11" font-weight="700">AP</text><line x1="180" y1="100" x2="380" y2="100" stroke="#B45309" stroke-width="3" stroke-dasharray="6 4"/><text x="280" y="92" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#B45309">point-to-point bridge</text>'}),
+      text:'<h4>Bridge / Mesh</h4>AP forms a wireless backhaul to another AP (point-to-point) or joins a mesh tree. Used to extend connectivity where running cable is impossible.<br><br><strong>Use when:</strong> linking two buildings without fiber, parking-lot coverage, or outdoor mesh.'
+    },
+    seconnect:{
+      svg:apSvg({wlc:true,extra:'<text x="150" y="160" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#57534E">spectrum analyzer mode</text>'}),
+      text:'<h4>SE-Connect (Spectrum Expert)</h4>AP becomes a remote spectrum sensor for Cisco Spectrum Expert software. Sees non-802.11 RF (microwaves, Bluetooth interference, jammers).<br><br><strong>Use when:</strong> hunting non-Wi-Fi RF interference. AP no longer serves clients.'
+    }
+  };
+
+  function show(id){
+    document.querySelectorAll('.mode').forEach(function(m){m.classList.toggle('active',m.dataset.id===id)});
+    document.getElementById('diag').innerHTML=modes[id].svg;
+    document.getElementById('text').innerHTML=modes[id].text;
+  }
+  document.querySelectorAll('.mode').forEach(function(m){m.addEventListener('click',function(){show(m.dataset.id)})});
+  show('local');
+
+  var pool=[
+    {q:'Branch office over flaky WAN. Need APs that keep serving clients if HQ WLC drops. Mode?',o:['Local','FlexConnect','Monitor','Sniffer'],a:1,why:'FlexConnect switches data locally and survives WLC loss in Standalone state.'},
+    {q:'You suspect a rogue AP is plugged into your wired network. Confirm it. Mode?',o:['Sniffer','Monitor','Rogue Detector','Bridge'],a:2,why:'Rogue Detector listens on the wired side for the rogue\'s MAC.'},
+    {q:'Default mode for a new lightweight AP joining a WLC:',o:['Local','FlexConnect','Bridge','Sniffer'],a:0,why:'Local is the default. Tunnel control + data to WLC.'},
+    {q:'You need to capture every 802.11 frame on channel 36 for a client troubleshoot. Mode?',o:['Local','Sniffer','Monitor','SE-Connect'],a:1,why:'Sniffer dedicates the radio to capture and ships frames to Wireshark.'},
+    {q:'Microwave is killing 2.4 GHz Wi-Fi every lunch hour. Tool/mode?',o:['Sniffer','SE-Connect','Bridge','Local'],a:1,why:'SE-Connect = spectrum analyzer for non-Wi-Fi RF.'},
+    {q:'Mode where the AP does NOT serve clients (pick all): Sniffer / Monitor / Rogue Detector / Local',o:['Local only','All except Local','Only Sniffer','None'],a:1,why:'Sniffer, Monitor, Rogue Detector, SE-Connect = no client service. Local + FlexConnect serve clients.'},
+    {q:'Two warehouse buildings, no fiber, need to extend Wi-Fi LAN across the gap. Mode?',o:['Local','Bridge / Mesh','Sniffer','Monitor'],a:1,why:'Bridge mode creates a wireless backhaul between APs.'},
+    {q:'FlexConnect Standalone state means:',o:['AP rebooting','WLC unreachable, AP serves cached config','AP is bridging','AP joined wrong WLC'],a:1,why:'Standalone = lost CAPWAP to WLC. Existing clients keep working with cached policy.'},
+    {q:'Monitor mode AP scans:',o:['Only one channel','All channels — feeds RRM/IDS','Wired only','Bluetooth only'],a:1,why:'Monitor cycles through channels to give RRM/wIPS visibility.'},
+    {q:'In FlexConnect locally-switched mode, where does client data go?',o:['Through WLC always','Out the AP\'s wired port to local LAN','Via SE-Connect','Through Sniffer'],a:1,why:'Locally-switched = client traffic exits the AP onto the local switch port, not back to WLC.'}
+  ];
+  var qC=0,qW=0,qS=0,cur=null;
+  function ask(){
+    cur=pool[Math.floor(Math.random()*pool.length)];
+    document.getElementById('quizStem').textContent=cur.q;
+    var box=document.getElementById('quizOpts');box.innerHTML='';
+    document.getElementById('quizWhy').classList.remove('show');
+    cur.o.forEach(function(o,i){
+      var b=document.createElement('button');b.className='opt';b.textContent=o;
+      b.addEventListener('click',function(){
+        if(b.classList.contains('correct')||b.classList.contains('wrong'))return;
+        if(i===cur.a){b.classList.add('correct');qC++;qS++}
+        else{b.classList.add('wrong');qW++;qS=0;Array.prototype.forEach.call(box.children,function(c,j){if(j===cur.a)c.classList.add('correct')})}
+        document.getElementById('qC').textContent=qC;document.getElementById('qW').textContent=qW;document.getElementById('qS').textContent=qS;
+        var w=document.getElementById('quizWhy');w.textContent='Why: '+cur.why;w.classList.add('show');
+      });
+      box.appendChild(b);
+    });
+  }
+  document.getElementById('newQ').addEventListener('click',ask);ask();
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>5.1 Sim — Security Concepts (CIA, Threat-Vuln-Exploit-Mitigation)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#FAF7F2;--bg-surface:#FFFFFF;--bg-recessed:#F3F0EB;
+    --border:#E2DFD9;--border-strong:#C7C3BC;
+    --ink:#1C1917;--ink-secondary:#57534E;--ink-muted:#A8A29E;
+    --accent:#B45309;--accent-soft:#D97706;--accent-light:#FEF3C7;
+    --correct:#16A34A;--correct-bg:#F0FDF4;
+    --wrong:#DC2626;--wrong-bg:#FEF2F2;
+    --info:#2563EB;--info-bg:#EFF6FF;
+    --font-display:'Space Grotesk',system-ui,sans-serif;
+    --font-body:'Source Serif 4',Georgia,serif;
+    --font-mono:'JetBrains Mono',monospace;
+    --radius:6px;--radius-lg:10px;
+  }
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  html{font-size:16px;-webkit-font-smoothing:antialiased}
+  body{font-family:var(--font-body);background:var(--bg);color:var(--ink);line-height:1.55;padding:24px;max-width:920px;margin:0 auto}
+  .head{margin-bottom:20px;padding-bottom:14px;border-bottom:1px solid var(--border)}
+  .head .crumb{font-family:var(--font-mono);font-size:.74rem;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px}
+  .head h1{font-family:var(--font-display);font-size:1.5rem;font-weight:700;margin-bottom:6px}
+  .head .desc{font-size:.95rem;color:var(--ink-secondary)}
+  .panel{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;margin-bottom:18px}
+  .panel h2{font-family:var(--font-display);font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-secondary);margin-bottom:12px}
+  .intro{font-size:.96rem;color:var(--ink-secondary);margin-bottom:14px}
+  .intro strong{color:var(--ink)}
+  .btn{font-family:var(--font-display);font-size:.84rem;font-weight:600;padding:8px 16px;background:var(--ink);color:#FAF7F2;border:none;border-radius:var(--radius);cursor:pointer;transition:background .15s}
+  .btn:hover{background:var(--ink-secondary)}
+  .btn.ghost{background:var(--bg-recessed);color:var(--ink)}
+  .btn.accent{background:var(--accent)}
+  .btn.accent:hover{background:var(--accent-soft)}
+  .scenarios{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:10px;margin-top:8px}
+  .scenario{padding:14px;border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-recessed);cursor:pointer;transition:all .2s}
+  .scenario.active{border-color:var(--accent);background:var(--accent-light)}
+  .scenario h3{font-family:var(--font-display);font-size:.92rem;margin-bottom:4px}
+  .scenario p{font-size:.84rem;color:var(--ink-secondary)}
+  .ranker{margin-top:16px;display:flex;flex-direction:column;gap:8px}
+  .rank-item{display:flex;align-items:center;gap:10px;padding:12px 14px;background:var(--bg-recessed);border:1px solid var(--border);border-radius:var(--radius);cursor:grab;transition:all .25s cubic-bezier(.16,1,.3,1)}
+  .rank-item:active{cursor:grabbing}
+  .rank-item.dragging{opacity:.5}
+  .rank-num{font-family:var(--font-mono);font-size:.78rem;font-weight:700;background:var(--ink);color:#FAF7F2;width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center}
+  .rank-letter{font-family:var(--font-display);font-weight:700;font-size:1rem;color:var(--accent)}
+  .verdict{margin-top:16px;padding:12px 16px;border-radius:var(--radius);font-family:var(--font-display);font-size:.94rem;font-weight:600;display:none}
+  .verdict.show{display:block;animation:fadeIn .25s ease}
+  .verdict.win{background:var(--correct-bg);color:var(--correct);border:1px solid var(--correct)}
+  .verdict.miss{background:var(--wrong-bg);color:var(--wrong);border:1px solid var(--wrong)}
+  .verdict.info{background:var(--info-bg);color:var(--info);border:1px solid var(--info)}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
+  .chain{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:12px}
+  .chain-step{padding:14px 10px;background:var(--bg-recessed);border:1px solid var(--border);border-radius:var(--radius);text-align:center;font-family:var(--font-mono);font-size:.82rem;position:relative;transition:all .35s cubic-bezier(.16,1,.3,1)}
+  .chain-step.lit{background:var(--accent-light);border-color:var(--accent);color:var(--accent);font-weight:700}
+  .chain-step .lbl{font-family:var(--font-display);font-size:.7rem;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-muted);display:block;margin-bottom:6px}
+  .chain-step.lit .lbl{color:var(--accent)}
+  .chain-step::after{content:'→';position:absolute;right:-12px;top:50%;transform:translateY(-50%);color:var(--ink-muted);font-weight:700}
+  .chain-step:last-child::after{display:none}
+  .quiz{margin-top:22px}
+  .quiz .stem{font-family:var(--font-display);font-size:1.02rem;font-weight:600;margin-bottom:12px;padding:14px;background:var(--accent-light);border-left:3px solid var(--accent);border-radius:var(--radius)}
+  .quiz .opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px}
+  .opt{background:var(--bg-recessed);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;font-family:var(--font-mono);font-size:.92rem;cursor:pointer;text-align:left;transition:all .15s}
+  .opt:hover{border-color:var(--border-strong);background:var(--bg-surface)}
+  .opt.correct{background:var(--correct-bg);border-color:var(--correct);color:var(--correct);font-weight:700}
+  .opt.wrong{background:var(--wrong-bg);border-color:var(--wrong);color:var(--wrong)}
+  .scoreline{font-family:var(--font-mono);font-size:.84rem;color:var(--ink-muted);margin-top:10px;display:flex;gap:18px;align-items:center}
+  .scoreline strong{font-weight:700;color:var(--ink)}
+  .footnote{font-family:var(--font-mono);font-size:.78rem;color:var(--ink-muted);margin-top:12px;line-height:1.5}
+  .badge{display:inline-block;font-family:var(--font-display);font-size:.7rem;font-weight:700;padding:2px 8px;border-radius:99px;background:var(--accent-light);color:var(--accent);text-transform:uppercase;letter-spacing:.04em;margin-left:8px}
+  .footer-link{margin-top:24px;padding-top:14px;border-top:1px solid var(--border);font-family:var(--font-mono);font-size:.82rem}
+  .footer-link a{color:var(--accent);text-decoration:none}
+</style>
+</head>
+<body>
+
+<div class="head">
+  <div class="crumb"><a href="blueprint-drill.html?obj=5.1" style="color:var(--accent);text-decoration:none">← 5.1 Mini Sims</a> · 5.1 · Security · CIA + Threat Chain</div>
+  <h1>Security Foundations Sim<span class="badge">drill</span></h1>
+  <div class="desc">Every defender ranks <strong>Confidentiality, Integrity, Availability</strong> by context — wrong rank = wrong control. Then trace the kill-chain: <strong>threat → vulnerability → exploit → mitigation</strong>. Same four words, every breach.</div>
+</div>
+
+<div class="panel">
+  <h2>Why CIA priority changes</h2>
+  <p class="intro">A bank cares <strong>integrity first</strong> — if balances flip, money vanishes even if site stays up. Streaming cares <strong>availability</strong> — buffering kills brand. Health records care <strong>confidentiality</strong> — leak is felony. Pick a scenario, rank C/I/A from most to least critical, then check.</p>
+  <div class="scenarios" id="scn"></div>
+  <div class="ranker" id="rank"></div>
+  <div style="margin-top:14px;display:flex;gap:10px"><button class="btn accent" id="checkRank">Check ranking</button><button class="btn ghost" id="shuffleRank">Shuffle</button></div>
+  <div id="rankVerdict" class="verdict"></div>
+</div>
+
+<div class="panel">
+  <h2>Threat → Vuln → Exploit → Mitigation</h2>
+  <p class="intro"><strong>Threat</strong> = the actor or thing that could harm. <strong>Vulnerability</strong> = the weakness it could ride in on. <strong>Exploit</strong> = the actual technique used. <strong>Mitigation</strong> = the control you bolt on. SQL injection example below — click each step.</p>
+  <div class="chain" id="chain">
+    <div class="chain-step" data-step="0"><span class="lbl">Threat</span>External attacker</div>
+    <div class="chain-step" data-step="1"><span class="lbl">Vulnerability</span>Unsanitized input</div>
+    <div class="chain-step" data-step="2"><span class="lbl">Exploit</span>SQL injection</div>
+    <div class="chain-step" data-step="3"><span class="lbl">Mitigation</span>Parameterized query</div>
+  </div>
+  <div id="chainText" class="footnote" style="margin-top:14px;min-height:40px"></div>
+</div>
+
+<div class="panel quiz" id="quizPanel">
+  <h2>Quiz mode <span style="color:var(--accent);text-transform:none;letter-spacing:0;font-weight:700">— predict before peeking</span></h2>
+  <div class="stem" id="quizStem">Loading…</div>
+  <div class="opts" id="quizOpts"></div>
+  <div class="scoreline">
+    <span><strong id="qCorrect">0</strong> correct</span>
+    <span><strong id="qWrong">0</strong> wrong</span>
+    <span><strong id="qStreak">0</strong> streak</span>
+    <span style="margin-left:auto"><button class="btn ghost" id="newQ">Next ↻</button></span>
+  </div>
+</div>
+
+<div class="footer-link"><a href="blueprint-drill.html?obj=5.1">← back to 5.1 leaves</a></div>
+
+<script>
+(function(){
+  var scenarios = [
+    { id:'bank',   title:'Online banking',     desc:'Customer accounts, transfers, balances',     correct:['I','C','A'] },
+    { id:'stream', title:'Streaming service',  desc:'Live video, millions of viewers',           correct:['A','I','C'] },
+    { id:'health', title:'Hospital records',    desc:'PHI, HIPAA, lab results',                   correct:['C','I','A'] },
+    { id:'mil',    title:'Military intel',      desc:'Classified location data',                  correct:['C','I','A'] },
+    { id:'911',    title:'911 dispatch',        desc:'Emergency call routing',                    correct:['A','I','C'] }
+  ];
+  var current = scenarios[0];
+  var scnBox = document.getElementById('scn');
+  scenarios.forEach(function(s){
+    var d = document.createElement('div');
+    d.className = 'scenario' + (s.id===current.id?' active':'');
+    d.dataset.id = s.id;
+    d.innerHTML = '<h3>'+s.title+'</h3><p>'+s.desc+'</p>';
+    d.addEventListener('click', function(){
+      current = s;
+      Array.prototype.forEach.call(scnBox.children, function(c){ c.classList.toggle('active', c.dataset.id===s.id); });
+      renderRank(); document.getElementById('rankVerdict').className='verdict';
+    });
+    scnBox.appendChild(d);
+  });
+
+  var rankOrder = ['C','I','A'];
+  var letters = { C:{name:'Confidentiality',hint:'keeping secrets secret'}, I:{name:'Integrity',hint:'data is real, untampered'}, A:{name:'Availability',hint:'system is up when needed'} };
+  function renderRank(){
+    var box = document.getElementById('rank'); box.innerHTML='';
+    rankOrder.forEach(function(L,i){
+      var d = document.createElement('div');
+      d.className='rank-item'; d.draggable=true; d.dataset.letter=L;
+      d.innerHTML = '<span class="rank-num">'+(i+1)+'</span><span class="rank-letter">'+L+'</span><span style="font-family:var(--font-display);font-weight:600">'+letters[L].name+'</span><span style="color:var(--ink-muted);font-size:.84rem;margin-left:auto">'+letters[L].hint+'</span>';
+      box.appendChild(d);
+    });
+    wireDrag();
+  }
+  function wireDrag(){
+    var dragSrc=null;
+    Array.prototype.forEach.call(document.querySelectorAll('.rank-item'), function(el){
+      el.addEventListener('dragstart', function(e){ dragSrc=el; el.classList.add('dragging'); e.dataTransfer.effectAllowed='move'; });
+      el.addEventListener('dragend', function(){ el.classList.remove('dragging'); });
+      el.addEventListener('dragover', function(e){ e.preventDefault(); });
+      el.addEventListener('drop', function(e){
+        e.preventDefault();
+        if (!dragSrc || dragSrc===el) return;
+        var a = dragSrc.dataset.letter, b = el.dataset.letter;
+        var ai = rankOrder.indexOf(a), bi = rankOrder.indexOf(b);
+        rankOrder[ai]=b; rankOrder[bi]=a;
+        renderRank();
+      });
+    });
+  }
+  renderRank();
+
+  document.getElementById('checkRank').addEventListener('click', function(){
+    var v = document.getElementById('rankVerdict');
+    var correct = current.correct.join('') === rankOrder.join('');
+    if (correct) {
+      v.className='verdict win show';
+      v.textContent = '✓ Correct — '+current.title+' prioritizes '+current.correct.map(function(L){return letters[L].name;}).join(' > ')+'.';
+    } else {
+      v.className='verdict miss show';
+      v.textContent = '✗ Not quite. Right order: '+current.correct.join(' > ')+'. You had: '+rankOrder.join(' > ')+'.';
+    }
+  });
+  document.getElementById('shuffleRank').addEventListener('click', function(){
+    rankOrder.sort(function(){ return Math.random()-.5; }); renderRank();
+    document.getElementById('rankVerdict').className='verdict';
+  });
+
+  var chainTexts = [
+    'Threat: a motivated outsider — could be a kid with sqlmap, could be a state actor. Identity matters less than capability.',
+    'Vulnerability: the app concatenates user input directly into a SQL string. The flaw exists whether anyone exploits it or not.',
+    'Exploit: attacker sends `\\\' OR 1=1 --` in the username field. The query becomes always-true, dumps the whole users table.',
+    'Mitigation: parameterized queries (prepared statements) treat input as data, never as code. WAF + input validation = defense in depth.'
+  ];
+  var chainEls = document.querySelectorAll('.chain-step');
+  Array.prototype.forEach.call(chainEls, function(el){
+    el.addEventListener('click', function(){
+      Array.prototype.forEach.call(chainEls, function(c){ c.classList.remove('lit'); });
+      el.classList.add('lit');
+      document.getElementById('chainText').textContent = chainTexts[parseInt(el.dataset.step,10)];
+    });
+  });
+  chainEls[0].click();
+
+  var qCorrect=0, qWrong=0, qStreak=0;
+  var pool = [
+    { stem:'A hospital EHR system. What ranks #1 in CIA?', opts:['Confidentiality','Integrity','Availability','None — all equal'], ans:'Confidentiality', why:'PHI leak = HIPAA violation, lawsuit, license loss.' },
+    { stem:'Stock trading platform mid-trading-day. What ranks #1?', opts:['Confidentiality','Integrity','Availability','Authentication'], ans:'Availability', why:'Outage during market hours = millions/min lost; encrypt-as-you-can.' },
+    { stem:'In threat-chain language, "unsanitized SQL input" is a:', opts:['Threat','Vulnerability','Exploit','Mitigation'], ans:'Vulnerability', why:'Vuln = the weakness. Threat = who. Exploit = how. Mitigation = fix.' },
+    { stem:'Phishing email is what part of the chain?', opts:['Threat','Vulnerability','Exploit','Mitigation'], ans:'Exploit', why:'Exploit = technique. Threat = the attacker behind it. User-trust gap = vuln.' },
+    { stem:'Disabling unused ports is what part of the chain?', opts:['Threat','Vulnerability','Exploit','Mitigation'], ans:'Mitigation', why:'A control that reduces attack surface — classic mitigation.' },
+    { stem:'Ransomware encrypting your files attacks which CIA pillar most directly?', opts:['Confidentiality','Integrity','Availability','All three'], ans:'All three', why:'Files encrypted (avail), maybe exfil (conf), data altered (integ). Why ransomware is so brutal.' },
+    { stem:'A MITM attack that silently changes wire-transfer amounts targets:', opts:['Confidentiality','Integrity','Availability','Authentication'], ans:'Integrity', why:'Data altered in flight — integrity broken. Detect with HMAC/TLS.' },
+    { stem:'Which is a threat actor?', opts:['Open SSH port','Script kiddie','Buffer overflow','MFA'], ans:'Script kiddie', why:'Threat actor = entity that could harm. Open port = vuln.' },
+    { stem:'Which is the BEST mitigation for a known SQLi vulnerability?', opts:['Hide the URL','Parameterized queries','Block all traffic','Hope nobody finds it'], ans:'Parameterized queries', why:'Root-cause fix. WAF helps but is compensating control.' },
+    { stem:'A DDoS attack primarily damages which CIA pillar?', opts:['Confidentiality','Integrity','Availability','None'], ans:'Availability', why:'Volumetric flood = service down. Conf and integ untouched.' }
+  ];
+  function pickQ(){
+    var q = pool[Math.floor(Math.random()*pool.length)];
+    var opts = q.opts.slice().sort(function(){return Math.random()-.5;});
+    document.getElementById('quizStem').textContent = q.stem;
+    var box = document.getElementById('quizOpts'); box.innerHTML='';
+    opts.forEach(function(o){
+      var b = document.createElement('button');
+      b.className='opt'; b.textContent=o;
+      b.addEventListener('click', function(){
+        if (b.classList.contains('correct')||b.classList.contains('wrong')) return;
+        if (o===q.ans){ b.classList.add('correct'); qCorrect++; qStreak++; }
+        else { b.classList.add('wrong'); qWrong++; qStreak=0;
+          Array.prototype.forEach.call(box.children, function(c){ if (c.textContent===q.ans) c.classList.add('correct'); }); }
+        document.getElementById('qCorrect').textContent=qCorrect;
+        document.getElementById('qWrong').textContent=qWrong;
+        document.getElementById('qStreak').textContent=qStreak;
+        var hint = document.createElement('div');
+        hint.className='footnote'; hint.style.marginTop='8px';
+        hint.innerHTML = 'Why: '+q.why;
+        box.parentNode.insertBefore(hint, box.nextSibling);
+        setTimeout(function(){ if (hint.parentNode) hint.parentNode.removeChild(hint); }, 6000);
+      });
+      box.appendChild(b);
+    });
+  }
+  document.getElementById('newQ').addEventListener('click', pickQ);
+  pickQ();
+})();
+</script>
+</body>
+</html>

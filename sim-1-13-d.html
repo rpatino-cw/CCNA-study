@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>1.13.d Sim — ARP Request / Reply</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#FAF7F2;--bg-surface:#FFFFFF;--bg-recessed:#F3F0EB;
+    --border:#E2DFD9;--border-strong:#C7C3BC;
+    --ink:#1C1917;--ink-secondary:#57534E;--ink-muted:#A8A29E;
+    --accent:#B45309;--accent-soft:#D97706;--accent-light:#FEF3C7;
+    --correct:#16A34A;--correct-bg:#F0FDF4;
+    --wrong:#DC2626;--wrong-bg:#FEF2F2;
+    --info:#2563EB;--info-bg:#EFF6FF;
+    --font-display:'Space Grotesk',system-ui,sans-serif;
+    --font-body:'Source Serif 4',Georgia,serif;
+    --font-mono:'JetBrains Mono',monospace;
+    --radius:6px;--radius-lg:10px;
+  }
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  html{font-size:16px;-webkit-font-smoothing:antialiased}
+  body{font-family:var(--font-body);background:var(--bg);color:var(--ink);line-height:1.55;padding:24px;max-width:920px;margin:0 auto}
+  .head{margin-bottom:20px;padding-bottom:14px;border-bottom:1px solid var(--border)}
+  .head .crumb{font-family:var(--font-mono);font-size:.74rem;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px}
+  .head h1{font-family:var(--font-display);font-size:1.5rem;font-weight:700;margin-bottom:6px}
+  .head .desc{font-size:.95rem;color:var(--ink-secondary)}
+  .panel{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;margin-bottom:18px}
+  .panel h2{font-family:var(--font-display);font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-secondary);margin-bottom:12px}
+  .btn{font-family:var(--font-display);font-size:.84rem;font-weight:600;padding:8px 16px;background:var(--ink);color:#FAF7F2;border:none;border-radius:var(--radius);cursor:pointer}
+  .btn.ghost{background:var(--bg-recessed);color:var(--ink)}
+  .btn.accent{background:var(--accent)}
+  .stage{position:relative;height:300px;background:#FAFAF9;border:1px solid var(--border);border-radius:var(--radius);margin-top:10px;overflow:hidden}
+  .switch{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:160px;height:60px;background:var(--ink);color:#fff;border-radius:6px;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:700}
+  .pc{position:absolute;width:100px;text-align:center;font-family:var(--font-mono);font-size:.74rem;cursor:default}
+  .pc .icon{width:46px;height:34px;margin:0 auto 4px;background:var(--bg-surface);border:2px solid var(--ink);border-radius:6px;display:flex;align-items:center;justify-content:center;font-weight:700}
+  .pc.src .icon{border-color:var(--accent);background:var(--accent-light)}
+  .pc.dst .icon{border-color:var(--correct);background:var(--correct-bg)}
+  .pc.heard .icon{animation:pulse .5s ease}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(180,83,9,.6)}100%{box-shadow:0 0 0 14px rgba(180,83,9,0)}}
+  .ip{font-family:var(--font-mono);font-size:.66rem;color:var(--ink-secondary)}
+  .pkt{position:absolute;padding:4px 8px;border-radius:6px;font-family:var(--font-mono);font-size:.7rem;color:#fff;font-weight:700;z-index:5;transition:left .55s cubic-bezier(.16,1,.3,1), top .55s cubic-bezier(.16,1,.3,1), opacity .3s}
+  .pkt.req{background:var(--info)}
+  .pkt.rep{background:var(--correct)}
+  .step-list{margin-top:10px;font-family:var(--font-mono);font-size:.86rem}
+  .step-list li{padding:6px 0;border-bottom:1px dotted var(--border);opacity:.4;transition:opacity .3s, color .3s}
+  .step-list li.active{opacity:1;color:var(--accent);font-weight:700}
+  .step-list li.done{opacity:1;color:var(--correct)}
+  .table{width:100%;border-collapse:collapse;margin-top:10px;font-family:var(--font-mono);font-size:.84rem}
+  .table th{text-align:left;padding:6px 12px;background:var(--bg-recessed);font-family:var(--font-display);font-size:.7rem;text-transform:uppercase}
+  .table td{padding:6px 12px;border-bottom:1px solid var(--border)}
+  .ctrl{display:flex;gap:10px;margin-top:10px;flex-wrap:wrap;align-items:center}
+  .ctrl select,.ctrl input{font-family:var(--font-mono);font-size:.86rem;padding:6px 10px;border:1px solid var(--border-strong);border-radius:var(--radius);background:#fff}
+  .verdict{margin-top:14px;padding:12px 16px;border-radius:var(--radius);font-family:var(--font-display);font-size:.94rem;font-weight:600;background:var(--info-bg);color:var(--info);border:1px solid var(--info)}
+  .verdict.win{background:var(--correct-bg);color:var(--correct);border-color:var(--correct)}
+  .quiz{margin-top:22px}
+  .quiz .stem{font-family:var(--font-display);font-size:1.02rem;font-weight:600;margin-bottom:12px;padding:14px;background:var(--accent-light);border-left:3px solid var(--accent);border-radius:var(--radius)}
+  .quiz .opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px}
+  .opt{background:var(--bg-recessed);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;font-family:var(--font-mono);font-size:.88rem;cursor:pointer;text-align:left}
+  .opt:hover{border-color:var(--border-strong);background:var(--bg-surface)}
+  .opt.correct{background:var(--correct-bg);border-color:var(--correct);color:var(--correct);font-weight:700}
+  .opt.wrong{background:var(--wrong-bg);border-color:var(--wrong);color:var(--wrong)}
+  .scoreline{font-family:var(--font-mono);font-size:.84rem;color:var(--ink-muted);margin-top:10px;display:flex;gap:18px;align-items:center}
+  .scoreline strong{color:var(--ink)}
+  .badge{display:inline-block;font-family:var(--font-display);font-size:.7rem;font-weight:700;padding:2px 8px;border-radius:99px;background:var(--accent-light);color:var(--accent);text-transform:uppercase;letter-spacing:.04em;margin-left:8px}
+</style>
+</head>
+<body>
+
+<div class="head">
+  <div class="crumb"><a href="blueprint-drill.html?obj=1.13" style="color:var(--accent);text-decoration:none">← 1.13 Mini Sims</a> · 1.13.d · L2/L3 · ARP</div>
+  <h1>ARP — Turning IPs Into MACs<span class="badge">drill</span></h1>
+  <div class="desc">A host has a destination IP but L2 needs the dest MAC to build a frame. <strong>ARP</strong> is the question "who has 10.1.1.5? Tell 10.1.1.3" sent as a broadcast. Only the owner replies (unicast) with its MAC. Both ends cache the result. Without ARP, no LAN packet leaves a host.</div>
+</div>
+
+<div class="panel">
+  <h2>4-host LAN</h2>
+  <div class="stage" id="stage">
+    <div class="switch">SWITCH</div>
+    <div class="pc" id="pcA" style="left:30px;top:30px"><div class="icon">A</div>10.1.1.3<div class="ip">aa:01</div></div>
+    <div class="pc" id="pcB" style="right:30px;top:30px"><div class="icon">B</div>10.1.1.5<div class="ip">aa:02</div></div>
+    <div class="pc" id="pcC" style="left:30px;bottom:30px"><div class="icon">C</div>10.1.1.7<div class="ip">aa:03</div></div>
+    <div class="pc" id="pcD" style="right:30px;bottom:30px"><div class="icon">D</div>10.1.1.9<div class="ip">aa:04</div></div>
+  </div>
+  <div class="ctrl">
+    <span style="font-family:var(--font-display);font-weight:600">Source</span>
+    <select id="src"><option>A</option><option>C</option><option>D</option></select>
+    <span style="font-family:var(--font-display);font-weight:600">Target IP</span>
+    <select id="dst"><option>10.1.1.5 (B)</option><option>10.1.1.7 (C)</option><option>10.1.1.9 (D)</option><option>10.1.1.99 (no host)</option></select>
+    <button class="btn accent" id="go">▶ Resolve ARP</button>
+    <button class="btn ghost" id="clearC">Clear caches</button>
+    <label style="margin-left:10px"><input id="garp" type="checkbox"> Send Gratuitous ARP from source first</label>
+  </div>
+
+  <ol class="step-list" id="steps">
+    <li>1. Source checks its ARP cache — miss.</li>
+    <li>2. Source builds ARP REQUEST (target IP=X). Broadcasts to ff:ff:ff:ff:ff:ff.</li>
+    <li>3. Switch floods request out every other port.</li>
+    <li>4. Each host inspects: is this MY IP? All ignore except the owner.</li>
+    <li>5. Owner sends ARP REPLY as unicast back to source MAC, includes its MAC.</li>
+    <li>6. Source caches IP→MAC. Now it can build the data frame.</li>
+  </ol>
+  <div class="verdict" id="verdict">Hit Resolve. Watch the broadcast hit every host (only the target replies). Cache populates on both ends.</div>
+</div>
+
+<div class="panel">
+  <h2>ARP Caches</h2>
+  <table class="table"><thead><tr><th>Host</th><th>Cache (IP → MAC)</th></tr></thead>
+    <tbody id="caches">
+      <tr><td>A (10.1.1.3)</td><td id="cA" style="color:var(--ink-muted)">empty</td></tr>
+      <tr><td>B (10.1.1.5)</td><td id="cB" style="color:var(--ink-muted)">empty</td></tr>
+      <tr><td>C (10.1.1.7)</td><td id="cC" style="color:var(--ink-muted)">empty</td></tr>
+      <tr><td>D (10.1.1.9)</td><td id="cD" style="color:var(--ink-muted)">empty</td></tr>
+    </tbody></table>
+</div>
+
+<div class="panel quiz">
+  <h2>Quiz mode</h2>
+  <div class="stem" id="quizStem">Loading…</div>
+  <div class="opts" id="quizOpts"></div>
+  <div class="scoreline">
+    <span><strong id="qCorrect">0</strong> correct</span>
+    <span><strong id="qWrong">0</strong> wrong</span>
+    <span><strong id="qStreak">0</strong> streak</span>
+    <span style="margin-left:auto"><button class="btn ghost" id="newQ">Next ↻</button></span>
+  </div>
+</div>
+
+<script>
+(function(){
+  var hosts = {
+    'A':{ip:'10.1.1.3',mac:'aa:01',sel:'#pcA'},
+    'B':{ip:'10.1.1.5',mac:'aa:02',sel:'#pcB'},
+    'C':{ip:'10.1.1.7',mac:'aa:03',sel:'#pcC'},
+    'D':{ip:'10.1.1.9',mac:'aa:04',sel:'#pcD'}
+  };
+  var caches = {A:{},B:{},C:{},D:{}};
+
+  function center(sel){
+    var el = document.querySelector(sel);
+    var stage = document.getElementById('stage');
+    var er = el.getBoundingClientRect();
+    var sr = stage.getBoundingClientRect();
+    return { x: er.left - sr.left + er.width/2 - 30, y: er.top - sr.top + er.height/2 - 12 };
+  }
+  function stageMid(){
+    var stage = document.getElementById('stage');
+    return { x: stage.clientWidth/2 - 30, y: stage.clientHeight/2 - 12 };
+  }
+
+  function step(n){
+    var items = document.querySelectorAll('#steps li');
+    items.forEach(function(li,i){
+      li.classList.remove('active','done');
+      if (i<n) li.classList.add('done');
+      if (i===n) li.classList.add('active');
+    });
+  }
+
+  function refreshCaches(){
+    Object.keys(caches).forEach(function(h){
+      var td = document.getElementById('c'+h);
+      var keys = Object.keys(caches[h]);
+      if (!keys.length){ td.textContent='empty'; td.style.color='var(--ink-muted)'; return; }
+      td.style.color='var(--ink)';
+      td.textContent = keys.map(function(k){ return k+' → '+caches[h][k]; }).join('; ');
+    });
+  }
+
+  function clearActive(){
+    document.querySelectorAll('.pc').forEach(function(p){ p.classList.remove('src','dst','heard'); });
+  }
+
+  function spawnPkt(cls, txt, fromSel, toSel, cb){
+    var stage = document.getElementById('stage');
+    var pkt = document.createElement('div');
+    pkt.className='pkt '+cls; pkt.textContent=txt;
+    var fc = center(fromSel);
+    pkt.style.left = fc.x+'px'; pkt.style.top = fc.y+'px';
+    stage.appendChild(pkt);
+    var to = (toSel==='mid') ? stageMid() : center(toSel);
+    requestAnimationFrame(function(){
+      pkt.style.left = to.x+'px'; pkt.style.top = to.y+'px';
+    });
+    setTimeout(function(){ pkt.style.opacity='0'; setTimeout(function(){ pkt.remove(); cb && cb(); }, 200); }, 600);
+  }
+
+  function go(){
+    clearActive();
+    var src = document.getElementById('src').value;
+    var dstStr = document.getElementById('dst').value;
+    var targetIp = dstStr.split(' ')[0];
+    var srcSel = hosts[src].sel;
+    document.querySelector(srcSel).classList.add('src');
+    var v = document.getElementById('verdict');
+
+    var doGarp = document.getElementById('garp').checked;
+    function startResolve(){
+      step(0);
+      setTimeout(function(){ step(1);
+        spawnPkt('req','REQ→FF','src '+srcSel, 'mid', function(){
+          step(2);
+          var others = Object.keys(hosts).filter(function(h){ return h!==src; });
+          others.forEach(function(h, i){
+            setTimeout(function(){
+              spawnPkt('req','who has '+targetIp+'?', 'mid'==='mid'?srcSel:'mid', hosts[h].sel, function(){
+                document.querySelector(hosts[h].sel).classList.add('heard');
+                if (i===others.length-1){
+                  step(3);
+                  var owner = Object.keys(hosts).find(function(h2){ return hosts[h2].ip===targetIp; });
+                  if (!owner){
+                    v.className='verdict'; v.textContent='No host with '+targetIp+' replied. ARP times out, packet dropped.';
+                    return;
+                  }
+                  document.querySelector(hosts[owner].sel).classList.add('dst');
+                  setTimeout(function(){ step(4);
+                    spawnPkt('rep','REPLY '+targetIp+'→'+hosts[owner].mac, hosts[owner].sel, srcSel, function(){
+                      step(5);
+                      caches[src][targetIp] = hosts[owner].mac;
+                      caches[owner][hosts[src].ip] = hosts[src].mac;
+                      refreshCaches();
+                      v.className='verdict win';
+                      v.textContent='✓ '+src+' learned '+targetIp+' = '+hosts[owner].mac+'. '+owner+' learned '+hosts[src].ip+' = '+hosts[src].mac+' (caches both ends).';
+                    });
+                  }, 300);
+                }
+              });
+            }, i*120);
+          });
+        });
+      },300);
+    }
+
+    if (doGarp){
+      v.textContent='Source sends Gratuitous ARP first — broadcasts its OWN IP→MAC. All neighbors update caches without being asked.';
+      Object.keys(hosts).filter(function(h){return h!==src;}).forEach(function(h){
+        caches[h][hosts[src].ip] = hosts[src].mac;
+      });
+      refreshCaches();
+      setTimeout(startResolve, 700);
+    } else {
+      startResolve();
+    }
+  }
+  document.getElementById('go').addEventListener('click', go);
+  document.getElementById('clearC').addEventListener('click', function(){ caches={A:{},B:{},C:{},D:{}}; refreshCaches(); clearActive(); document.getElementById('verdict').textContent='Caches cleared. Next resolve will broadcast again.'; });
+  refreshCaches();
+
+  var qCorrect=0,qWrong=0,qStreak=0;
+  var pool = [
+    {q:'ARP request is sent as:',a:'Layer-2 broadcast (ff:ff:ff:ff:ff:ff)',o:['Layer-2 broadcast (ff:ff:ff:ff:ff:ff)','unicast to gateway','multicast 224.0.0.1','TCP to DNS']},
+    {q:'ARP reply is sent as:',a:'unicast to requester',o:['unicast to requester','broadcast','multicast','TCP ack']},
+    {q:'ARP operates between:',a:'L2 (MAC) and L3 (IP)',o:['L2 (MAC) and L3 (IP)','L3 and L4','L1 and L2','L7 only']},
+    {q:'Gratuitous ARP is used to:',a:'announce own IP/MAC and update neighbors',o:['announce own IP/MAC and update neighbors','request a default gateway','start DHCP','renew lease']},
+    {q:'Default Cisco ARP cache timeout:',a:'4 hours',o:['4 hours','5 minutes','24 hours','60 seconds']},
+    {q:'Proxy ARP is used when:',a:'a router replies on behalf of another host',o:['a router replies on behalf of another host','a switch caches MACs','DHCP relay needed','VLANs are tagged']},
+    {q:'ARP spoofing attacks rely on:',a:'forged ARP replies poisoning caches',o:['forged ARP replies poisoning caches','MAC table overflow','VLAN hopping','TCP RST']},
+    {q:'When a host has a target IP not on its subnet, ARP is for:',a:'the default gateway, not the destination',o:['the default gateway, not the destination','the destination directly','DNS server','no ARP needed']},
+    {q:'A switch floods an ARP request because:',a:'destination MAC is broadcast',o:['destination MAC is broadcast','it learns ARP','VLAN mismatch','source unknown']},
+    {q:'Static ARP entries:',a:'never expire automatically',o:['never expire automatically','expire faster','prevent ARP requests','only on switches']}
+  ];
+  function pickQ(){
+    var q = pool[Math.floor(Math.random()*pool.length)];
+    var opts = q.o.slice().sort(function(){return Math.random()-.5;});
+    document.getElementById('quizStem').textContent = q.q;
+    var box=document.getElementById('quizOpts'); box.innerHTML='';
+    opts.forEach(function(o){
+      var b=document.createElement('button'); b.className='opt'; b.textContent=o;
+      b.addEventListener('click', function(){
+        if (b.classList.contains('correct')||b.classList.contains('wrong')) return;
+        if (o===q.a){ b.classList.add('correct'); qCorrect++; qStreak++; }
+        else { b.classList.add('wrong'); qWrong++; qStreak=0;
+          Array.prototype.forEach.call(box.children,function(c){ if(c.textContent===q.a) c.classList.add('correct'); }); }
+        document.getElementById('qCorrect').textContent=qCorrect;
+        document.getElementById('qWrong').textContent=qWrong;
+        document.getElementById('qStreak').textContent=qStreak;
+      });
+      box.appendChild(b);
+    });
+  }
+  document.getElementById('newQ').addEventListener('click', pickQ);
+  pickQ();
+})();
+</script>
+</body>
+</html>

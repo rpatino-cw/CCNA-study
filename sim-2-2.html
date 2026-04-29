@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>2.2 Sim — 802.1Q Tag Inspector</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#FAF7F2;--bg-surface:#FFFFFF;--bg-recessed:#F3F0EB;
+    --border:#E2DFD9;--border-strong:#C7C3BC;
+    --ink:#1C1917;--ink-secondary:#57534E;--ink-muted:#A8A29E;
+    --accent:#B45309;--accent-soft:#D97706;--accent-light:#FEF3C7;
+    --correct:#16A34A;--correct-bg:#F0FDF4;
+    --wrong:#DC2626;--wrong-bg:#FEF2F2;
+    --info:#2563EB;--info-bg:#EFF6FF;
+    --font-display:'Space Grotesk',system-ui,sans-serif;
+    --font-body:'Source Serif 4',Georgia,serif;
+    --font-mono:'JetBrains Mono',monospace;
+    --radius:6px;--radius-lg:10px;
+  }
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  html{font-size:16px;-webkit-font-smoothing:antialiased}
+  body{font-family:var(--font-body);background:var(--bg);color:var(--ink);line-height:1.55;padding:24px;max-width:960px;margin:0 auto}
+  .head{margin-bottom:20px;padding-bottom:14px;border-bottom:1px solid var(--border)}
+  .head .crumb{font-family:var(--font-mono);font-size:.74rem;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px}
+  .head .crumb a{color:var(--accent);text-decoration:none}
+  .head h1{font-family:var(--font-display);font-size:1.5rem;font-weight:700;margin-bottom:6px}
+  .head .desc{font-size:.95rem;color:var(--ink-secondary)}
+  .panel{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;margin-bottom:18px}
+  .panel h2{font-family:var(--font-display);font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-secondary);margin-bottom:12px}
+  .intuition{background:var(--accent-light);border-left:3px solid var(--accent);padding:14px 16px;border-radius:var(--radius);font-size:.96rem}
+  .frame{display:flex;gap:0;flex-wrap:nowrap;font-family:var(--font-mono);font-size:.78rem;margin-top:12px;overflow-x:auto;padding-bottom:6px}
+  .field{padding:10px 8px;border-right:1px solid #fff;cursor:pointer;transition:transform .2s;text-align:center;flex-shrink:0;min-width:80px}
+  .field:hover{transform:translateY(-3px);box-shadow:0 4px 8px rgba(0,0,0,.1)}
+  .field.dst{background:#FEE2E2;color:#991B1B}
+  .field.src{background:#DBEAFE;color:#1E40AF}
+  .field.tpid{background:var(--accent);color:#fff;font-weight:700}
+  .field.tci{background:var(--accent-soft);color:#fff;font-weight:700}
+  .field.etype{background:#E0E7FF;color:#3730A3}
+  .field.payload{background:var(--bg-recessed);color:var(--ink-secondary)}
+  .field.fcs{background:#F3E8FF;color:#6B21A8}
+  .field-label{font-weight:700;font-size:.78rem;display:block}
+  .field-bytes{font-size:.7rem;opacity:.85;display:block;margin-top:2px}
+  .detail{margin-top:14px;padding:14px;background:var(--bg-recessed);border-radius:var(--radius);min-height:80px;font-family:var(--font-mono);font-size:.86rem}
+  .tci-bits{display:flex;gap:2px;margin-top:10px;flex-wrap:wrap}
+  .bit-group{display:flex;flex-direction:column;align-items:center;border:1px solid var(--border-strong);border-radius:4px;padding:6px 10px;background:var(--bg-surface)}
+  .bit-group .lbl{font-family:var(--font-display);font-size:.68rem;color:var(--ink-secondary);text-transform:uppercase;letter-spacing:.05em}
+  .bit-group .val{font-family:var(--font-mono);font-size:1rem;font-weight:700;color:var(--accent);margin-top:2px}
+  .dtp-modes{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+  .dtp{padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-recessed);cursor:pointer;font-family:var(--font-mono);font-size:.84rem}
+  .dtp:hover{border-color:var(--border-strong)}
+  .dtp.active{background:var(--accent-light);border-color:var(--accent)}
+  .dtp-result{margin-top:10px;padding:10px;border-radius:var(--radius);font-family:var(--font-mono);font-size:.82rem;display:none}
+  .dtp-result.show{display:block}
+  .dtp-result.win{background:var(--correct-bg);color:var(--correct)}
+  .dtp-result.miss{background:var(--wrong-bg);color:var(--wrong)}
+  .btn{font-family:var(--font-display);font-size:.84rem;font-weight:600;padding:8px 16px;background:var(--ink);color:#FAF7F2;border:none;border-radius:var(--radius);cursor:pointer}
+  .btn.ghost{background:var(--bg-recessed);color:var(--ink)}
+  .quiz .stem{font-family:var(--font-display);font-size:1.02rem;font-weight:600;margin-bottom:12px;padding:14px;background:var(--accent-light);border-left:3px solid var(--accent);border-radius:var(--radius)}
+  .opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px}
+  .opt{background:var(--bg-recessed);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;font-family:var(--font-mono);font-size:.88rem;cursor:pointer;text-align:left}
+  .opt:hover{border-color:var(--border-strong);background:var(--bg-surface)}
+  .opt.correct{background:var(--correct-bg);border-color:var(--correct);color:var(--correct);font-weight:700}
+  .opt.wrong{background:var(--wrong-bg);border-color:var(--wrong);color:var(--wrong)}
+  .scoreline{font-family:var(--font-mono);font-size:.84rem;color:var(--ink-muted);margin-top:10px;display:flex;gap:18px;align-items:center;flex-wrap:wrap}
+  .scoreline strong{color:var(--ink)}
+  .why{font-family:var(--font-mono);font-size:.8rem;color:var(--ink-secondary);margin-top:8px;padding:8px 10px;background:var(--bg-recessed);border-radius:4px;display:none}
+  .why.show{display:block}
+  .footer{font-family:var(--font-mono);font-size:.82rem;color:var(--ink-muted);text-align:center;margin-top:20px;padding-top:14px;border-top:1px solid var(--border)}
+  .footer a{color:var(--accent);text-decoration:none}
+</style>
+</head>
+<body>
+
+<div class="head">
+  <div class="crumb"><a href="blueprint-drill.html?obj=2.2">← back to 2.2 leaves</a> · 2.2 · Trunking · 802.1Q Tag</div>
+  <h1>802.1Q Bit-Level Inspector</h1>
+  <div class="desc">Click each field of a tagged frame to see the bytes. Then walk through DTP modes — including the auto/auto trap that hands attackers a free trunk. The 4-byte tag is small but it's what makes inter-switch VLANs possible.</div>
+</div>
+
+<div class="panel">
+  <h2>Why the tag exists</h2>
+  <div class="intuition">
+    Two switches connected by one cable need to carry frames for many VLANs and tell them apart. <strong>802.1Q solves it with 4 bytes inserted between SRC MAC and EtherType.</strong> The receiver sees the tag, learns the VLAN, and either forwards within that VLAN or strips the tag at an access egress. ISL was Cisco's older proprietary version — dead. 802.1Q is IEEE-standard, open, and what every modern switch speaks.
+  </div>
+</div>
+
+<div class="panel">
+  <h2>Tagged Ethernet frame (click each field)</h2>
+  <div class="frame" id="frame">
+    <div class="field dst" data-k="dst"><span class="field-label">DST MAC</span><span class="field-bytes">6 bytes</span></div>
+    <div class="field src" data-k="src"><span class="field-label">SRC MAC</span><span class="field-bytes">6 bytes</span></div>
+    <div class="field tpid" data-k="tpid"><span class="field-label">TPID</span><span class="field-bytes">0x8100</span></div>
+    <div class="field tci" data-k="tci"><span class="field-label">TCI</span><span class="field-bytes">2 bytes</span></div>
+    <div class="field etype" data-k="etype"><span class="field-label">EtherType</span><span class="field-bytes">0x0800</span></div>
+    <div class="field payload" data-k="payload"><span class="field-label">Payload</span><span class="field-bytes">46–1500</span></div>
+    <div class="field fcs" data-k="fcs"><span class="field-label">FCS</span><span class="field-bytes">4 bytes</span></div>
+  </div>
+  <div class="detail" id="detail">Click a field above to inspect it.</div>
+</div>
+
+<div class="panel">
+  <h2>DTP — Dynamic Trunking Protocol</h2>
+  <div style="font-size:.92rem;color:var(--ink-secondary);margin-bottom:8px">Pick a mode for each switch port. The result tells you whether a trunk forms — and whether you just opened a security hole.</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+    <div>
+      <div style="font-family:var(--font-display);font-size:.84rem;font-weight:600;margin-bottom:6px">SW1 port</div>
+      <div class="dtp-modes" id="dtp1">
+        <div class="dtp active" data-side="1" data-mode="dynamic-auto">dynamic auto</div>
+        <div class="dtp" data-side="1" data-mode="dynamic-desirable">dynamic desirable</div>
+        <div class="dtp" data-side="1" data-mode="trunk">trunk (on)</div>
+        <div class="dtp" data-side="1" data-mode="access">access (off)</div>
+      </div>
+    </div>
+    <div>
+      <div style="font-family:var(--font-display);font-size:.84rem;font-weight:600;margin-bottom:6px">SW2 port</div>
+      <div class="dtp-modes" id="dtp2">
+        <div class="dtp active" data-side="2" data-mode="dynamic-auto">dynamic auto</div>
+        <div class="dtp" data-side="2" data-mode="dynamic-desirable">dynamic desirable</div>
+        <div class="dtp" data-side="2" data-mode="trunk">trunk (on)</div>
+        <div class="dtp" data-side="2" data-mode="access">access (off)</div>
+      </div>
+    </div>
+  </div>
+  <div class="dtp-result" id="dtpResult"></div>
+</div>
+
+<div class="panel quiz">
+  <h2>Quiz mode</h2>
+  <div class="stem" id="quizStem">Loading…</div>
+  <div class="opts" id="quizOpts"></div>
+  <div class="why" id="quizWhy"></div>
+  <div class="scoreline">
+    <span><strong id="qC">0</strong> correct</span>
+    <span><strong id="qW">0</strong> wrong</span>
+    <span><strong id="qS">0</strong> streak</span>
+    <span style="margin-left:auto"><button class="btn ghost" id="newQ">Next ↻</button></span>
+  </div>
+</div>
+
+<div class="footer"><a href="blueprint-drill.html?obj=2.2">← back to 2.2 leaves</a></div>
+
+<script>
+document.addEventListener('DOMContentLoaded',function(){
+  var details={
+    dst:'<strong>Destination MAC</strong> (6 bytes) — where the frame is going. Same as untagged Ethernet.',
+    src:'<strong>Source MAC</strong> (6 bytes) — sender. Same as untagged Ethernet.',
+    tpid:'<strong>TPID — Tag Protocol Identifier</strong> (2 bytes, fixed <code>0x8100</code>). This is the flag that says "I am a 802.1Q-tagged frame." Without it the receiver would parse the next 2 bytes as EtherType.',
+    tci:'<strong>TCI — Tag Control Information</strong> (2 bytes = 16 bits) splits into:<div class="tci-bits"><div class="bit-group"><span class="lbl">PCP</span><span class="val">3 bits</span></div><div class="bit-group"><span class="lbl">DEI</span><span class="val">1 bit</span></div><div class="bit-group"><span class="lbl">VID</span><span class="val">12 bits</span></div></div><div style="margin-top:8px"><strong>PCP</strong> = priority 0–7 (CoS, used by QoS). <strong>DEI</strong> = drop-eligible flag (rarely used). <strong>VID</strong> = VLAN ID, 12 bits → 4096 values, 0 and 4095 reserved → <strong>4094 usable</strong>.</div>',
+    etype:'<strong>EtherType</strong> (2 bytes) — what\'s in the payload. <code>0x0800</code> = IPv4, <code>0x86DD</code> = IPv6, <code>0x0806</code> = ARP. In a tagged frame this comes <em>after</em> TCI, not after SRC MAC.',
+    payload:'<strong>Payload</strong> (46–1500 bytes) — the actual data (IP packet, ARP, etc.). Tag does not change payload size.',
+    fcs:'<strong>FCS — Frame Check Sequence</strong> (4 bytes) — CRC over everything. Recomputed when tag is added or stripped.'
+  };
+  document.querySelectorAll('.field').forEach(function(f){
+    f.addEventListener('click',function(){document.getElementById('detail').innerHTML=details[f.dataset.k]});
+  });
+
+  var dtpState={1:'dynamic-auto',2:'dynamic-auto'};
+  function dtpResult(){
+    var a=dtpState[1],b=dtpState[2],r=document.getElementById('dtpResult');
+    var trunk=false,reason='';
+    if(a==='trunk'&&b==='trunk'){trunk=true;reason='Both sides forced to trunk. Clean.'}
+    else if(a==='access'||b==='access'){trunk=false;reason='One side hard access — trunk impossible.'}
+    else if(a==='trunk'&&b==='access'){reason='One side trunk, other access. Mismatch.'}
+    else if((a==='dynamic-desirable'&&b==='dynamic-desirable')||(a==='dynamic-desirable'&&b==='dynamic-auto')||(a==='dynamic-auto'&&b==='dynamic-desirable')){trunk=true;reason='Desirable actively negotiates. Trunk forms.'}
+    else if(a==='dynamic-auto'&&b==='dynamic-auto'){trunk=false;reason='Auto+auto = both wait, neither initiates. Stays access. Common gotcha.'}
+    else if(a==='trunk'&&(b==='dynamic-auto'||b==='dynamic-desirable')){trunk=true;reason='Trunk side forces; dynamic side accepts.'}
+    else if(b==='trunk'&&(a==='dynamic-auto'||a==='dynamic-desirable')){trunk=true;reason='Trunk side forces; dynamic side accepts.'}
+    r.className='dtp-result show '+(trunk?'win':'miss');
+    r.innerHTML=(trunk?'✓ Trunk forms.':'✗ No trunk — stays access.')+' '+reason+(trunk&&(a.indexOf('dynamic')===0||b.indexOf('dynamic')===0)?' <strong>Security note: a rogue laptop running yersinia can speak DTP and force a trunk. Best practice: switchport mode access + switchport nonegotiate on user ports.</strong>':'');
+  }
+  document.querySelectorAll('.dtp').forEach(function(d){
+    d.addEventListener('click',function(){
+      var s=d.dataset.side;
+      document.querySelectorAll('#dtp'+s+' .dtp').forEach(function(x){x.classList.remove('active')});
+      d.classList.add('active');
+      dtpState[s]=d.dataset.mode;
+      dtpResult();
+    });
+  });
+  dtpResult();
+
+  var pool=[
+    {q:'TPID value that marks an 802.1Q-tagged frame:',o:['0x0800','0x8100','0x86DD','0x0806'],a:1,why:'0x8100 is the 802.1Q sentinel. 0x0800 is IPv4 EtherType.'},
+    {q:'Number of bits used for VLAN ID inside the TCI:',o:['8','10','12','16'],a:2,why:'12 bits → 4096 raw, minus reserved 0 and 4095 = 4094 usable VLANs.'},
+    {q:'PCP field is used for:',o:['Encryption','QoS class of service','VLAN ID','Native VLAN flag'],a:1,why:'3-bit PCP carries priority 0–7. QoS hardware reads this to queue frames.'},
+    {q:'DTP modes that will form a trunk together:',o:['auto + auto','auto + desirable','access + desirable','access + trunk'],a:1,why:'auto waits, desirable initiates. Auto+auto stays access — common silent failure.'},
+    {q:'A user-facing port set to "dynamic auto" is risky because:',o:['It runs slower','An attacker can use yersinia to force a trunk','It blocks STP','It uses ISL'],a:1,why:'Yersinia speaks DTP. Pin user ports to access + nonegotiate.'},
+    {q:'Where in the frame is the 802.1Q tag inserted?',o:['Before DST MAC','Between SRC MAC and EtherType','After payload','Inside FCS'],a:1,why:'Tag sits between SRC MAC and the original EtherType. Original EtherType moves after TCI.'},
+    {q:'Total bytes added by 802.1Q tagging:',o:['2','4','6','8'],a:1,why:'2 bytes TPID + 2 bytes TCI = 4 bytes. Pushes max frame to 1522.'},
+    {q:'ISL vs 802.1Q:',o:['ISL is open standard','802.1Q is open standard, ISL is Cisco-only and deprecated','Both are Cisco','Both are deprecated'],a:1,why:'ISL encapsulated the whole frame, was 30 bytes overhead, Cisco-only. 802.1Q won.'},
+    {q:'Frame leaves an access port (VLAN 20) toward a trunk. The switch:',o:['Strips a tag','Adds a tag VID=20','Drops it','Sends it native'],a:1,why:'Access ingress = receive untagged. Egress on a trunk = add tag.'},
+    {q:'How does an attacker do "double-tagging" VLAN hopping?',o:['Two MAC addresses','Two stacked 802.1Q tags — outer matches native, inner is target VLAN','VTP injection','CDP flood'],a:1,why:'First switch strips outer (native), forwards untagged frame still carrying inner tag. Second switch reads inner. Defense: don\'t use native VLAN.'}
+  ];
+  var qC=0,qW=0,qS=0,cur=null;
+  function ask(){
+    cur=pool[Math.floor(Math.random()*pool.length)];
+    document.getElementById('quizStem').textContent=cur.q;
+    var box=document.getElementById('quizOpts');box.innerHTML='';
+    document.getElementById('quizWhy').classList.remove('show');
+    cur.o.forEach(function(o,i){
+      var b=document.createElement('button');b.className='opt';b.textContent=o;
+      b.addEventListener('click',function(){
+        if(b.classList.contains('correct')||b.classList.contains('wrong'))return;
+        if(i===cur.a){b.classList.add('correct');qC++;qS++}
+        else{b.classList.add('wrong');qW++;qS=0;Array.prototype.forEach.call(box.children,function(c,j){if(j===cur.a)c.classList.add('correct')})}
+        document.getElementById('qC').textContent=qC;document.getElementById('qW').textContent=qW;document.getElementById('qS').textContent=qS;
+        var w=document.getElementById('quizWhy');w.textContent='Why: '+cur.why;w.classList.add('show');
+      });
+      box.appendChild(b);
+    });
+  }
+  document.getElementById('newQ').addEventListener('click',ask);ask();
+});
+</script>
+</body>
+</html>

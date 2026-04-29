@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>1.12 Sim — Virtualization (VMs / Containers / VRFs)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#FAF7F2;--bg-surface:#FFFFFF;--bg-recessed:#F3F0EB;
+    --border:#E2DFD9;--border-strong:#C7C3BC;
+    --ink:#1C1917;--ink-secondary:#57534E;--ink-muted:#A8A29E;
+    --accent:#B45309;--accent-soft:#D97706;--accent-light:#FEF3C7;
+    --correct:#16A34A;--correct-bg:#F0FDF4;
+    --wrong:#DC2626;--wrong-bg:#FEF2F2;
+    --info:#2563EB;--info-bg:#EFF6FF;
+    --font-display:'Space Grotesk',system-ui,sans-serif;
+    --font-body:'Source Serif 4',Georgia,serif;
+    --font-mono:'JetBrains Mono',monospace;
+    --radius:6px;--radius-lg:10px;
+  }
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  html{font-size:16px;-webkit-font-smoothing:antialiased}
+  body{font-family:var(--font-body);background:var(--bg);color:var(--ink);line-height:1.55;padding:24px;max-width:920px;margin:0 auto}
+  .head{margin-bottom:20px;padding-bottom:14px;border-bottom:1px solid var(--border)}
+  .head .crumb{font-family:var(--font-mono);font-size:.74rem;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px}
+  .head h1{font-family:var(--font-display);font-size:1.5rem;font-weight:700;margin-bottom:6px}
+  .head .desc{font-size:.95rem;color:var(--ink-secondary)}
+  .panel{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;margin-bottom:18px}
+  .panel h2{font-family:var(--font-display);font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-secondary);margin-bottom:12px}
+  .btn{font-family:var(--font-display);font-size:.84rem;font-weight:600;padding:8px 16px;background:var(--ink);color:#FAF7F2;border:none;border-radius:var(--radius);cursor:pointer}
+  .btn.ghost{background:var(--bg-recessed);color:var(--ink)}
+  .mode-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+  .mode-tab{font-family:var(--font-display);font-size:.82rem;font-weight:600;padding:8px 14px;background:var(--bg-recessed);border:1px solid var(--border);border-radius:var(--radius);cursor:pointer;color:var(--ink-secondary)}
+  .mode-tab.active{background:var(--ink);color:#FAF7F2;border-color:var(--ink)}
+  .stack{display:flex;flex-direction:column;gap:6px;margin-top:10px}
+  .layer{padding:8px 14px;border-radius:var(--radius);font-family:var(--font-mono);font-size:.86rem;border:1px solid var(--border)}
+  .layer.hw{background:#1C1917;color:#FAF7F2;border-color:#1C1917}
+  .layer.kern{background:#78350F;color:#fff;border-color:#78350F}
+  .layer.hyp{background:#B45309;color:#fff;border-color:#B45309}
+  .layer.eng{background:#0E7490;color:#fff;border-color:#0E7490}
+  .layer.os{background:var(--bg-recessed)}
+  .layer.app{background:var(--correct-bg);border-color:var(--correct)}
+  .row{display:grid;gap:6px;margin-top:6px}
+  .row.r3{grid-template-columns:repeat(3,1fr)}
+  .row.r4{grid-template-columns:repeat(4,1fr)}
+  .row.r8{grid-template-columns:repeat(8,1fr)}
+  .pill{padding:6px 10px;font-size:.78rem;text-align:center;border-radius:var(--radius);border:1px solid var(--border);background:#fff;font-family:var(--font-mono)}
+  .res{margin-top:14px;display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+  .meter{padding:10px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--font-mono);font-size:.82rem}
+  .bar{height:10px;background:var(--bg-recessed);border-radius:99px;overflow:hidden;margin-top:4px}
+  .bar > div{height:100%;background:var(--accent);transition:width .3s ease}
+  .vrf-tables{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;margin-top:10px}
+  .vrf{padding:10px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--font-mono);font-size:.82rem}
+  .vrf h4{font-family:var(--font-display);font-size:.86rem;color:var(--accent);margin-bottom:6px}
+  .vrf table{width:100%;border-collapse:collapse}
+  .vrf td{padding:3px 0;border-bottom:1px dotted var(--border)}
+  .verdict{margin-top:14px;padding:12px 16px;border-radius:var(--radius);font-family:var(--font-display);font-size:.94rem;font-weight:600;background:var(--info-bg);color:var(--info);border:1px solid var(--info)}
+  .quiz{margin-top:22px}
+  .quiz .stem{font-family:var(--font-display);font-size:1.02rem;font-weight:600;margin-bottom:12px;padding:14px;background:var(--accent-light);border-left:3px solid var(--accent);border-radius:var(--radius)}
+  .quiz .opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px}
+  .opt{background:var(--bg-recessed);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;font-family:var(--font-mono);font-size:.88rem;cursor:pointer;text-align:left}
+  .opt:hover{border-color:var(--border-strong);background:var(--bg-surface)}
+  .opt.correct{background:var(--correct-bg);border-color:var(--correct);color:var(--correct);font-weight:700}
+  .opt.wrong{background:var(--wrong-bg);border-color:var(--wrong);color:var(--wrong)}
+  .scoreline{font-family:var(--font-mono);font-size:.84rem;color:var(--ink-muted);margin-top:10px;display:flex;gap:18px;align-items:center}
+  .scoreline strong{color:var(--ink)}
+  .badge{display:inline-block;font-family:var(--font-display);font-size:.7rem;font-weight:700;padding:2px 8px;border-radius:99px;background:var(--accent-light);color:var(--accent);text-transform:uppercase;letter-spacing:.04em;margin-left:8px}
+</style>
+</head>
+<body>
+
+<div class="head">
+  <div class="crumb"><a href="blueprint-drill.html?obj=1.12" style="color:var(--accent);text-decoration:none">← 1.12 Mini Sims</a> · 1.12 · Virtualization · VMs / Containers / VRFs</div>
+  <h1>One Box, Many Worlds<span class="badge">drill</span></h1>
+  <div class="desc">Virtualization splits one physical resource into many isolated logical ones — reducing cost, simplifying provisioning, and increasing density. <strong>VMs</strong> virtualize the whole machine. <strong>Containers</strong> virtualize the user space. <strong>VRFs</strong> virtualize a router's routing table.</div>
+</div>
+
+<div class="panel">
+  <h2>Server modes</h2>
+  <div class="mode-tabs">
+    <button class="mode-tab active" data-mode="bare">Bare metal</button>
+    <button class="mode-tab" data-mode="vm">Hypervisor + 4 VMs</button>
+    <button class="mode-tab" data-mode="ctr">Containers (8)</button>
+  </div>
+  <div class="stack" id="stack"></div>
+  <div class="res">
+    <div class="meter">CPU overhead<div class="bar"><div id="cpu" style="width:8%"></div></div><div id="cpuT">8%</div></div>
+    <div class="meter">RAM overhead<div class="bar"><div id="ram" style="width:5%"></div></div><div id="ramT">5%</div></div>
+    <div class="meter">Boot time<div class="bar"><div id="boot" style="width:90%"></div></div><div id="bootT">~30 s</div></div>
+  </div>
+  <div class="verdict" id="verdict">Bare metal = one OS owns the hardware. Hypervisor = each VM has its OWN kernel (heavy). Containers = SHARE the host kernel (light, fast).</div>
+</div>
+
+<div class="panel">
+  <h2>VRF — Virtualized routing table</h2>
+  <div class="mode-tabs">
+    <button class="mode-tab active" data-vrf="g">Global only</button>
+    <button class="mode-tab" data-vrf="multi">Global + 2 VRFs</button>
+  </div>
+  <div class="vrf-tables" id="vrfBox"></div>
+  <div class="verdict">VRFs let one router host overlapping IP ranges (10.0.0.0/8 in two tenants) without leaking traffic between them. Each interface lives in exactly one VRF.</div>
+</div>
+
+<div class="panel quiz">
+  <h2>Quiz mode</h2>
+  <div class="stem" id="quizStem">Loading…</div>
+  <div class="opts" id="quizOpts"></div>
+  <div class="scoreline">
+    <span><strong id="qCorrect">0</strong> correct</span>
+    <span><strong id="qWrong">0</strong> wrong</span>
+    <span><strong id="qStreak">0</strong> streak</span>
+    <span style="margin-left:auto"><button class="btn ghost" id="newQ">Next ↻</button></span>
+  </div>
+</div>
+
+<script>
+(function(){
+  function L(cls,txt){ var d=document.createElement('div'); d.className='layer '+cls; d.textContent=txt; return d; }
+  function rowOf(arr,cls){
+    var r=document.createElement('div'); r.className='row r'+arr.length;
+    arr.forEach(function(t){ var p=document.createElement('div'); p.className='layer '+cls; p.style.fontSize='.74rem'; p.style.padding='6px 8px'; p.style.textAlign='center'; p.textContent=t; r.appendChild(p); });
+    return r;
+  }
+  function setMode(mode){
+    document.querySelectorAll('.mode-tab[data-mode]').forEach(function(t){ t.classList.toggle('active', t.dataset.mode===mode); });
+    var s = document.getElementById('stack'); s.innerHTML='';
+    s.appendChild(L('hw','Hardware (CPU / RAM / NIC / Disk)'));
+    if (mode==='bare'){
+      s.appendChild(L('kern','Linux kernel'));
+      s.appendChild(L('os','OS userspace'));
+      s.appendChild(L('app','app'));
+      setRes(8,5,'~30 s',90);
+    } else if (mode==='vm'){
+      s.appendChild(L('hyp','Hypervisor (KVM / ESXi / Hyper-V)'));
+      s.appendChild(rowOf(['Linux','Linux','Windows','BSD'],'kern'));
+      s.appendChild(rowOf(['userspace','userspace','userspace','userspace'],'os'));
+      s.appendChild(rowOf(['app1','app2','app3','app4'],'app'));
+      setRes(35,40,'~25 s/VM',75);
+    } else {
+      s.appendChild(L('kern','Linux kernel (shared)'));
+      s.appendChild(L('eng','Container engine (Docker / containerd)'));
+      var apps = ['nginx','api','db','cache','jobs','log','metrics','proxy'];
+      s.appendChild(rowOf(apps,'app'));
+      setRes(15,10,'~1 s',12);
+    }
+  }
+  function setRes(cpu,ram,bootT,bootW){
+    document.getElementById('cpu').style.width = cpu+'%'; document.getElementById('cpuT').textContent = cpu+'%';
+    document.getElementById('ram').style.width = ram+'%'; document.getElementById('ramT').textContent = ram+'%';
+    document.getElementById('boot').style.width = bootW+'%'; document.getElementById('bootT').textContent = bootT;
+  }
+  document.querySelectorAll('.mode-tab[data-mode]').forEach(function(t){ t.addEventListener('click', function(){ setMode(t.dataset.mode); }); });
+  setMode('bare');
+
+  function setVrf(mode){
+    document.querySelectorAll('.mode-tab[data-vrf]').forEach(function(t){ t.classList.toggle('active', t.dataset.vrf===mode); });
+    var box = document.getElementById('vrfBox'); box.innerHTML='';
+    function table(name, rows){
+      var d=document.createElement('div'); d.className='vrf';
+      var h='<h4>'+name+'</h4><table><tr><td><b>Network</b></td><td><b>Iface</b></td></tr>';
+      rows.forEach(function(r){ h += '<tr><td>'+r[0]+'</td><td>'+r[1]+'</td></tr>'; });
+      d.innerHTML = h+'</table>'; return d;
+    }
+    box.appendChild(table('global', [['10.0.0.0/24','Gi0/0'],['172.16.0.0/24','Gi0/1'],['0.0.0.0/0','Gi0/0 -> ISP']]));
+    if (mode==='multi'){
+      box.appendChild(table('VRF tenant_A', [['10.0.0.0/8','Gi0/2.10'],['192.168.10.0/24','Gi0/3']]));
+      box.appendChild(table('VRF tenant_B', [['10.0.0.0/8','Gi0/2.20'],['192.168.20.0/24','Gi0/4']]));
+    }
+  }
+  document.querySelectorAll('.mode-tab[data-vrf]').forEach(function(t){ t.addEventListener('click', function(){ setVrf(t.dataset.vrf); }); });
+  setVrf('g');
+
+  var qCorrect=0,qWrong=0,qStreak=0;
+  var pool = [
+    {q:'Containers differ from VMs because they:',a:'share the host OS kernel',o:['share the host OS kernel','run on bare metal only','have their own hypervisor','virtualize hardware']},
+    {q:'Type-1 hypervisor example:',a:'ESXi',o:['ESXi','VirtualBox','Docker','VMware Workstation']},
+    {q:'Type-2 hypervisor example:',a:'VirtualBox',o:['VirtualBox','ESXi','Hyper-V Server','Xen']},
+    {q:'A VRF lets a single router:',a:'maintain multiple isolated routing tables',o:['maintain multiple isolated routing tables','run multiple OSes','virtualize CPU','span multiple chassis']},
+    {q:'Two tenants both use 10.0.0.0/8 on the same router. The fix:',a:'put each in its own VRF',o:['put each in its own VRF','NAT both','renumber one','add a second router']},
+    {q:'A container starts in roughly:',a:'~1 second',o:['~1 second','30 seconds','5 minutes','same as VM']},
+    {q:'Best fit for "100 microservices on one host":',a:'containers',o:['containers','VMs','bare metal','VRFs']},
+    {q:'Best fit for "run Windows + Linux on the same physical box":',a:'Type-1 hypervisor',o:['Type-1 hypervisor','containers','VRFs','dual boot']},
+    {q:'Layer-3 device equivalent of VRF in Layer-2:',a:'VLAN',o:['VLAN','SSID','VPC','VTI']},
+    {q:'Why does Docker need fewer resources than KVM?',a:'no guest kernel — shares host kernel',o:['no guest kernel — shares host kernel','smaller binary','no networking','no security']}
+  ];
+  function pickQ(){
+    var q = pool[Math.floor(Math.random()*pool.length)];
+    var opts = q.o.slice().sort(function(){return Math.random()-.5;});
+    document.getElementById('quizStem').textContent = q.q;
+    var box=document.getElementById('quizOpts'); box.innerHTML='';
+    opts.forEach(function(o){
+      var b=document.createElement('button'); b.className='opt'; b.textContent=o;
+      b.addEventListener('click', function(){
+        if (b.classList.contains('correct')||b.classList.contains('wrong')) return;
+        if (o===q.a){ b.classList.add('correct'); qCorrect++; qStreak++; }
+        else { b.classList.add('wrong'); qWrong++; qStreak=0;
+          Array.prototype.forEach.call(box.children,function(c){ if(c.textContent===q.a) c.classList.add('correct'); }); }
+        document.getElementById('qCorrect').textContent=qCorrect;
+        document.getElementById('qWrong').textContent=qWrong;
+        document.getElementById('qStreak').textContent=qStreak;
+      });
+      box.appendChild(b);
+    });
+  }
+  document.getElementById('newQ').addEventListener('click', pickQ);
+  pickQ();
+})();
+</script>
+</body>
+</html>

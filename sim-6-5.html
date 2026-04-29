@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>6.5 Sim — Configuration Management (Ansible / Terraform / Puppet / Chef)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{--bg:#FAF7F2;--bg-surface:#FFFFFF;--bg-recessed:#F3F0EB;--border:#E2DFD9;--border-strong:#C7C3BC;--ink:#1C1917;--ink-secondary:#57534E;--ink-muted:#A8A29E;--accent:#B45309;--accent-soft:#D97706;--accent-light:#FEF3C7;--correct:#16A34A;--correct-bg:#F0FDF4;--wrong:#DC2626;--wrong-bg:#FEF2F2;--info:#2563EB;--info-bg:#EFF6FF;--font-display:'Space Grotesk',system-ui,sans-serif;--font-body:'Source Serif 4',Georgia,serif;--font-mono:'JetBrains Mono',monospace;--radius:6px;--radius-lg:10px}
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:var(--font-body);background:var(--bg);color:var(--ink);line-height:1.55;padding:24px;max-width:920px;margin:0 auto}
+  .head{margin-bottom:20px;padding-bottom:14px;border-bottom:1px solid var(--border)}
+  .head .crumb{font-family:var(--font-mono);font-size:.74rem;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px}
+  .head h1{font-family:var(--font-display);font-size:1.5rem;font-weight:700;margin-bottom:6px}
+  .head .desc{font-size:.95rem;color:var(--ink-secondary)}
+  .panel{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;margin-bottom:18px}
+  .panel h2{font-family:var(--font-display);font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-secondary);margin-bottom:12px}
+  .intro{font-size:.96rem;color:var(--ink-secondary);margin-bottom:14px}
+  .intro strong{color:var(--ink)}
+  .btn{font-family:var(--font-display);font-size:.84rem;font-weight:600;padding:8px 16px;background:var(--ink);color:#FAF7F2;border:none;border-radius:var(--radius);cursor:pointer}
+  .btn.ghost{background:var(--bg-recessed);color:var(--ink)}
+  .btn.accent{background:var(--accent)}
+  .tools{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:14px}
+  .tool{padding:14px;background:var(--bg-recessed);border:1px solid var(--border);border-radius:var(--radius);cursor:pointer;transition:all .2s}
+  .tool.active{border-color:var(--accent);background:var(--accent-light)}
+  .tool h3{font-family:var(--font-display);font-size:1.04rem;color:var(--accent);margin-bottom:6px}
+  .tool .tags{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px}
+  .tag{font-family:var(--font-mono);font-size:.7rem;padding:2px 8px;border-radius:99px;background:var(--bg-surface);border:1px solid var(--border)}
+  .tag.push{background:#DBEAFE;color:var(--info)}
+  .tag.pull{background:#FED7AA;color:var(--accent)}
+  .tag.dec{background:var(--correct-bg);color:var(--correct)}
+  .tag.proc{background:var(--wrong-bg);color:var(--wrong)}
+  .tool p{font-size:.84rem;color:var(--ink-secondary)}
+  .code-pane{padding:14px;background:#1C1917;color:#E7E5E4;border-radius:var(--radius);font-family:var(--font-mono);font-size:.84rem;white-space:pre;overflow-x:auto;margin-top:10px;line-height:1.6}
+  .code-pane .kw{color:#FBBF24}
+  .code-pane .str{color:#86EFAC}
+  .anim{margin-top:14px;padding:14px;background:var(--bg-recessed);border-radius:var(--radius);min-height:60px;font-family:var(--font-mono);font-size:.84rem}
+  .anim .step{padding:6px 0;opacity:.3;transition:opacity .35s}
+  .anim .step.lit{opacity:1;color:var(--correct);font-weight:700}
+  .matrix{width:100%;border-collapse:collapse;margin-top:14px;font-family:var(--font-mono);font-size:.82rem}
+  .matrix th,.matrix td{padding:8px 10px;border-bottom:1px solid var(--border);text-align:left}
+  .matrix th{background:var(--bg-recessed);font-family:var(--font-display);font-size:.74rem;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-secondary)}
+  .quiz{margin-top:22px}
+  .quiz .stem{font-family:var(--font-display);font-size:1.02rem;font-weight:600;margin-bottom:12px;padding:14px;background:var(--accent-light);border-left:3px solid var(--accent);border-radius:var(--radius)}
+  .quiz .opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px}
+  .opt{background:var(--bg-recessed);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;font-family:var(--font-mono);font-size:.92rem;cursor:pointer;text-align:left}
+  .opt:hover{border-color:var(--border-strong);background:var(--bg-surface)}
+  .opt.correct{background:var(--correct-bg);border-color:var(--correct);color:var(--correct);font-weight:700}
+  .opt.wrong{background:var(--wrong-bg);border-color:var(--wrong);color:var(--wrong)}
+  .scoreline{font-family:var(--font-mono);font-size:.84rem;color:var(--ink-muted);margin-top:10px;display:flex;gap:18px;align-items:center}
+  .scoreline strong{font-weight:700;color:var(--ink)}
+  .badge{display:inline-block;font-family:var(--font-display);font-size:.7rem;font-weight:700;padding:2px 8px;border-radius:99px;background:var(--accent-light);color:var(--accent);text-transform:uppercase;letter-spacing:.04em;margin-left:8px}
+  .footer-link{margin-top:24px;padding-top:14px;border-top:1px solid var(--border);font-family:var(--font-mono);font-size:.82rem}
+  .footer-link a{color:var(--accent);text-decoration:none}
+</style>
+</head>
+<body>
+
+<div class="head">
+  <div class="crumb"><a href="blueprint-drill.html?obj=6.5" style="color:var(--accent);text-decoration:none">← 6.5 Mini Sims</a> · 6.5 · Automation · Config Management</div>
+  <h1>Config Management Tools Sim<span class="badge">drill</span></h1>
+  <div class="desc">Push or pull. Declarative or procedural. Agent or agentless. Each tool picks 3 of these dials. Click a tool to see its dial-positions, sample code, and how it would push <strong>VLAN config to 100 routers</strong>.</div>
+</div>
+
+<div class="panel">
+  <h2>Pick a tool</h2>
+  <div class="tools">
+    <div class="tool active" data-id="ansible"><h3>Ansible</h3><div class="tags"><span class="tag push">push</span><span class="tag dec">declarative*</span><span class="tag">agentless (SSH)</span></div><p>YAML playbooks. *Procedural by default but tasks are mostly idempotent. Network admin favorite.</p></div>
+    <div class="tool" data-id="terraform"><h3>Terraform</h3><div class="tags"><span class="tag push">push</span><span class="tag dec">declarative</span><span class="tag">state file</span></div><p>HCL. Cloud IaC king. Plans diff before apply. Infra creation/destruction.</p></div>
+    <div class="tool" data-id="puppet"><h3>Puppet</h3><div class="tags"><span class="tag pull">pull</span><span class="tag dec">declarative</span><span class="tag">agent on each node</span></div><p>Ruby DSL. Long-lived agents pull config from master every 30 min by default.</p></div>
+    <div class="tool" data-id="chef"><h3>Chef</h3><div class="tags"><span class="tag pull">pull</span><span class="tag proc">procedural</span><span class="tag">agent on each node</span></div><p>Ruby cookbooks/recipes. Imperative — write what to do, in order.</p></div>
+  </div>
+
+  <div id="codePane" class="code-pane"></div>
+  <div style="margin-top:10px"><button class="btn accent" id="play">▶ Apply VLAN config to 100 routers</button></div>
+  <div class="anim" id="anim"></div>
+</div>
+
+<div class="panel">
+  <h2>Comparison matrix</h2>
+  <table class="matrix">
+    <thead><tr><th>Tool</th><th>Push/Pull</th><th>Paradigm</th><th>Agent?</th><th>Lang</th></tr></thead>
+    <tbody>
+      <tr><td>Ansible</td><td>Push</td><td>Declarative-ish</td><td>Agentless (SSH)</td><td>YAML</td></tr>
+      <tr><td>Terraform</td><td>Push</td><td>Declarative</td><td>None (state file)</td><td>HCL</td></tr>
+      <tr><td>Puppet</td><td>Pull</td><td>Declarative</td><td>Agent</td><td>Puppet DSL</td></tr>
+      <tr><td>Chef</td><td>Pull</td><td>Procedural</td><td>Agent</td><td>Ruby</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="panel quiz" id="quizPanel">
+  <h2>Quiz mode</h2>
+  <div class="stem" id="quizStem">Loading…</div>
+  <div class="opts" id="quizOpts"></div>
+  <div class="scoreline">
+    <span><strong id="qCorrect">0</strong> correct</span>
+    <span><strong id="qWrong">0</strong> wrong</span>
+    <span><strong id="qStreak">0</strong> streak</span>
+    <span style="margin-left:auto"><button class="btn ghost" id="newQ">Next ↻</button></span>
+  </div>
+</div>
+
+<div class="footer-link"><a href="blueprint-drill.html?obj=6.5">← back to 6.5 leaves</a></div>
+
+<script>
+(function(){
+  var samples = {
+    ansible: '<span class="kw">- name:</span> <span class="str">"Configure VLAN 10"</span>\n  <span class="kw">cisco.ios.ios_vlan:</span>\n    <span class="kw">vlan_id:</span> 10\n    <span class="kw">name:</span> <span class="str">"users"</span>\n    <span class="kw">state:</span> present',
+    terraform: '<span class="kw">resource</span> <span class="str">"cisco_iosxe_vlan"</span> <span class="str">"users"</span> {\n  <span class="kw">vlan_id</span> = 10\n  <span class="kw">name</span>    = <span class="str">"users"</span>\n}',
+    puppet: '<span class="kw">cisco_vlan</span> { <span class="str">"10"</span>:\n  <span class="kw">ensure</span> => present,\n  <span class="kw">vlan_name</span> => <span class="str">"users"</span>,\n}',
+    chef: '<span class="kw">cisco_vlan</span> <span class="str">"10"</span> <span class="kw">do</span>\n  vlan_name <span class="str">"users"</span>\n  action <span class="str">:create</span>\n<span class="kw">end</span>'
+  };
+  function show(id){
+    document.getElementById('codePane').innerHTML = samples[id];
+  }
+  show('ansible');
+  Array.prototype.forEach.call(document.querySelectorAll('.tool'), function(t){
+    t.addEventListener('click', function(){
+      Array.prototype.forEach.call(document.querySelectorAll('.tool'), function(x){ x.classList.remove('active'); });
+      t.classList.add('active'); show(t.dataset.id);
+    });
+  });
+
+  document.getElementById('play').addEventListener('click', function(){
+    var active = document.querySelector('.tool.active').dataset.id;
+    var steps = {
+      ansible: ['Inventory: 100 routers loaded','Open SSH to all in parallel','Push playbook tasks','✓ All 100 in compliance — exit 0'],
+      terraform: ['terraform plan: 100 changes detected','User reviews diff, types "yes"','terraform apply: state file updated','✓ Provider syncs all 100, drift = 0'],
+      puppet: ['Master compiles 100 catalogs','Each agent polls every 30 min','Agent applies its catalog locally','✓ Reports back to master — converged'],
+      chef: ['Server holds cookbook','Each chef-client runs recipes in order','Procedural steps execute on node','✓ Node reports converged']
+    };
+    var s = steps[active];
+    var box = document.getElementById('anim'); box.innerHTML='';
+    s.forEach(function(line, i){
+      var d = document.createElement('div');
+      d.className='step'; d.textContent = line;
+      box.appendChild(d);
+      setTimeout(function(){ d.classList.add('lit'); }, i*600+300);
+    });
+  });
+
+  var qCorrect=0, qWrong=0, qStreak=0;
+  var pool = [
+    { stem:'Which tool is push-based + agentless?', opts:['Ansible','Puppet','Chef','Salt'], ans:'Ansible' },
+    { stem:'Which is procedural (write steps in order)?', opts:['Ansible','Terraform','Puppet','Chef'], ans:'Chef' },
+    { stem:'Terraform is best known for:', opts:['Cloud IaC + declarative','Linux package install','SSH-based push','Replacing Bash'], ans:'Cloud IaC + declarative' },
+    { stem:'Pull-based agent model is which pair?', opts:['Ansible/Terraform','Puppet/Chef','Terraform/Chef','Ansible/Puppet'], ans:'Puppet/Chef' },
+    { stem:'Declarative vs procedural — declarative says:', opts:['Do these steps','Achieve this end state','Run only on Tuesday','Crash on error'], ans:'Achieve this end state' },
+    { stem:'Ansible config language:', opts:['Ruby','YAML','HCL','Python only'], ans:'YAML' },
+    { stem:'Terraform language:', opts:['YAML','HCL','Ruby','XML'], ans:'HCL' },
+    { stem:'Best for ad-hoc \"run this on 100 routers right now\":', opts:['Ansible','Puppet','Chef','Terraform'], ans:'Ansible' },
+    { stem:'Tool with state file tracking infra:', opts:['Ansible','Terraform','Puppet','Chef'], ans:'Terraform' },
+    { stem:'Push vs pull — pull means:', opts:['Master shoves config out','Each node fetches its config from master','Faster than push','Same as push'], ans:'Each node fetches its config from master' }
+  ];
+  function pickQ(){
+    var q = pool[Math.floor(Math.random()*pool.length)];
+    var opts = q.opts.slice().sort(function(){return Math.random()-.5;});
+    document.getElementById('quizStem').textContent = q.stem;
+    var bx = document.getElementById('quizOpts'); bx.innerHTML='';
+    opts.forEach(function(o){
+      var btn = document.createElement('button');
+      btn.className='opt'; btn.textContent=o;
+      btn.addEventListener('click', function(){
+        if (btn.classList.contains('correct')||btn.classList.contains('wrong')) return;
+        if (o===q.ans){ btn.classList.add('correct'); qCorrect++; qStreak++; }
+        else { btn.classList.add('wrong'); qWrong++; qStreak=0;
+          Array.prototype.forEach.call(bx.children, function(c){ if (c.textContent===q.ans) c.classList.add('correct'); }); }
+        document.getElementById('qCorrect').textContent=qCorrect;
+        document.getElementById('qWrong').textContent=qWrong;
+        document.getElementById('qStreak').textContent=qStreak;
+      });
+      bx.appendChild(btn);
+    });
+  }
+  document.getElementById('newQ').addEventListener('click', pickQ);
+  pickQ();
+})();
+</script>
+</body>
+</html>

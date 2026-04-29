@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>2.3.a Sim — CDP vs LLDP</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#FAF7F2;--bg-surface:#FFFFFF;--bg-recessed:#F3F0EB;
+    --border:#E2DFD9;--border-strong:#C7C3BC;
+    --ink:#1C1917;--ink-secondary:#57534E;--ink-muted:#A8A29E;
+    --accent:#B45309;--accent-soft:#D97706;--accent-light:#FEF3C7;
+    --correct:#16A34A;--correct-bg:#F0FDF4;
+    --wrong:#DC2626;--wrong-bg:#FEF2F2;
+    --info:#2563EB;--info-bg:#EFF6FF;
+    --font-display:'Space Grotesk',system-ui,sans-serif;
+    --font-body:'Source Serif 4',Georgia,serif;
+    --font-mono:'JetBrains Mono',monospace;
+    --radius:6px;--radius-lg:10px;
+  }
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  html{font-size:16px;-webkit-font-smoothing:antialiased}
+  body{font-family:var(--font-body);background:var(--bg);color:var(--ink);line-height:1.55;padding:24px;max-width:960px;margin:0 auto}
+  .head{margin-bottom:20px;padding-bottom:14px;border-bottom:1px solid var(--border)}
+  .head .crumb{font-family:var(--font-mono);font-size:.74rem;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px}
+  .head .crumb a{color:var(--accent);text-decoration:none}
+  .head h1{font-family:var(--font-display);font-size:1.5rem;font-weight:700;margin-bottom:6px}
+  .head .desc{font-size:.95rem;color:var(--ink-secondary)}
+  .panel{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;margin-bottom:18px}
+  .panel h2{font-family:var(--font-display);font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-secondary);margin-bottom:12px}
+  .intuition{background:var(--accent-light);border-left:3px solid var(--accent);padding:14px 16px;border-radius:var(--radius);font-size:.96rem}
+  .lab{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:8px}
+  .dev{background:var(--bg-recessed);border:1px solid var(--border-strong);border-radius:var(--radius-lg);padding:14px;text-align:center}
+  .dev h3{font-family:var(--font-display);font-size:.94rem;margin-bottom:4px}
+  .dev .vendor{font-family:var(--font-mono);font-size:.74rem;color:var(--ink-muted);margin-bottom:10px}
+  .toggle-row{display:flex;gap:6px;justify-content:center;margin-top:8px;flex-wrap:wrap}
+  .toggle{font-family:var(--font-mono);font-size:.72rem;padding:4px 10px;border:1px solid var(--border-strong);border-radius:99px;cursor:pointer;background:var(--bg-surface)}
+  .toggle.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+  .table{width:100%;border-collapse:collapse;margin-top:12px;font-family:var(--font-mono);font-size:.86rem}
+  .table th{text-align:left;padding:10px 12px;background:var(--bg-recessed);font-family:var(--font-display);font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-secondary);border-bottom:1px solid var(--border-strong)}
+  .table td{padding:10px 12px;border-bottom:1px solid var(--border)}
+  .table tr.empty td{color:var(--ink-muted);font-style:italic;text-align:center}
+  .protocol-pick{display:flex;gap:10px;align-items:center;margin-bottom:8px}
+  .protocol-pick label{font-family:var(--font-display);font-size:.84rem;font-weight:600}
+  .pick{font-family:var(--font-mono);font-size:.84rem;padding:6px 14px;border:1px solid var(--border-strong);border-radius:var(--radius);cursor:pointer;background:var(--bg-surface)}
+  .pick.on{background:var(--ink);color:#FAF7F2;border-color:var(--ink)}
+  .compare{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:12px}
+  .col{padding:12px;background:var(--bg-recessed);border-radius:var(--radius);font-family:var(--font-mono);font-size:.84rem}
+  .col h4{font-family:var(--font-display);font-size:.84rem;margin-bottom:8px;color:var(--accent)}
+  .btn{font-family:var(--font-display);font-size:.84rem;font-weight:600;padding:8px 16px;background:var(--ink);color:#FAF7F2;border:none;border-radius:var(--radius);cursor:pointer}
+  .btn.ghost{background:var(--bg-recessed);color:var(--ink)}
+  .quiz .stem{font-family:var(--font-display);font-size:1.02rem;font-weight:600;margin-bottom:12px;padding:14px;background:var(--accent-light);border-left:3px solid var(--accent);border-radius:var(--radius)}
+  .opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px}
+  .opt{background:var(--bg-recessed);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;font-family:var(--font-mono);font-size:.88rem;cursor:pointer;text-align:left}
+  .opt:hover{border-color:var(--border-strong);background:var(--bg-surface)}
+  .opt.correct{background:var(--correct-bg);border-color:var(--correct);color:var(--correct);font-weight:700}
+  .opt.wrong{background:var(--wrong-bg);border-color:var(--wrong);color:var(--wrong)}
+  .scoreline{font-family:var(--font-mono);font-size:.84rem;color:var(--ink-muted);margin-top:10px;display:flex;gap:18px;align-items:center;flex-wrap:wrap}
+  .scoreline strong{color:var(--ink)}
+  .why{font-family:var(--font-mono);font-size:.8rem;color:var(--ink-secondary);margin-top:8px;padding:8px 10px;background:var(--bg-recessed);border-radius:4px;display:none}
+  .why.show{display:block}
+  .footer{font-family:var(--font-mono);font-size:.82rem;color:var(--ink-muted);text-align:center;margin-top:20px;padding-top:14px;border-top:1px solid var(--border)}
+  .footer a{color:var(--accent);text-decoration:none}
+</style>
+</head>
+<body>
+
+<div class="head">
+  <div class="crumb"><a href="blueprint-drill.html?obj=2.3">← back to 2.3 leaves</a> · 2.3.a · Discovery · CDP vs LLDP</div>
+  <h1>Neighbor Discovery Sim</h1>
+  <div class="desc">Cisco devices speak CDP. Everyone speaks LLDP. Toggle protocols per device, then look at the resulting neighbor table — the table tells you which neighbors a device knows about, and gaps in it usually mean someone's running the wrong protocol.</div>
+</div>
+
+<div class="panel">
+  <h2>Why this matters</h2>
+  <div class="intuition">
+    Neighbor discovery is how a switch announces "I'm here, this is my port, this is my model." When you walk into a rack and need to know what's plugged into Gi1/0/24, you don't trace the cable — you ask the switch via <code>show cdp neighbor</code> or <code>show lldp neighbor</code>. <strong>CDP is Cisco-only</strong> (multicast 01:00:0C:CC:CC:CC). <strong>LLDP is IEEE 802.1AB, vendor-neutral.</strong> Mixed environments? Run LLDP everywhere. Cisco-only environment? Either works, but LLDP is the safer default going forward.
+  </div>
+</div>
+
+<div class="panel">
+  <h2>Lab — 3 devices, all directly connected</h2>
+  <div class="protocol-pick">
+    <label>Inspect from:</label>
+    <button class="pick on" data-from="A">SW-A (Cisco)</button>
+    <button class="pick" data-from="B">SW-B (Cisco)</button>
+    <button class="pick" data-from="C">SW-C (Aruba)</button>
+  </div>
+  <div class="lab">
+    <div class="dev">
+      <h3>SW-A</h3><div class="vendor">Cisco Catalyst 9300</div>
+      <div style="font-family:var(--font-mono);font-size:.78rem;color:var(--ink-secondary)">Gi1/0/1 ↔ SW-B<br>Gi1/0/2 ↔ SW-C</div>
+      <div class="toggle-row">
+        <span class="toggle on" data-dev="A" data-proto="cdp">CDP</span>
+        <span class="toggle on" data-dev="A" data-proto="lldp">LLDP</span>
+      </div>
+    </div>
+    <div class="dev">
+      <h3>SW-B</h3><div class="vendor">Cisco Catalyst 9300</div>
+      <div style="font-family:var(--font-mono);font-size:.78rem;color:var(--ink-secondary)">Gi1/0/1 ↔ SW-A<br>Gi1/0/3 ↔ SW-C</div>
+      <div class="toggle-row">
+        <span class="toggle on" data-dev="B" data-proto="cdp">CDP</span>
+        <span class="toggle on" data-dev="B" data-proto="lldp">LLDP</span>
+      </div>
+    </div>
+    <div class="dev">
+      <h3>SW-C</h3><div class="vendor">Aruba 6300 (non-Cisco)</div>
+      <div style="font-family:var(--font-mono);font-size:.78rem;color:var(--ink-secondary)">eth1 ↔ SW-A<br>eth2 ↔ SW-B</div>
+      <div class="toggle-row">
+        <span class="toggle" data-dev="C" data-proto="cdp" style="opacity:.4;cursor:not-allowed">CDP n/a</span>
+        <span class="toggle on" data-dev="C" data-proto="lldp">LLDP</span>
+      </div>
+    </div>
+  </div>
+  <div style="margin-top:14px">
+    <table class="table" id="ntable">
+      <thead><tr><th>Protocol</th><th>Local Port</th><th>Neighbor Device</th><th>Neighbor Port</th><th>Platform</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+  <div class="compare">
+    <div class="col"><h4>CDP (Cisco-only)</h4>Multicast 01:00:0C:CC:CC:CC · Layer 2 frame · advertises every 60s · holdtime 180s · TLV format · cdp run / no cdp run</div>
+    <div class="col"><h4>LLDP (IEEE 802.1AB)</h4>Multicast 01:80:C2:00:00:0E · Layer 2 frame · advertises every 30s · holdtime 120s · TLV format · lldp run / no lldp run</div>
+  </div>
+</div>
+
+<div class="panel quiz">
+  <h2>Quiz mode</h2>
+  <div class="stem" id="quizStem">Loading…</div>
+  <div class="opts" id="quizOpts"></div>
+  <div class="why" id="quizWhy"></div>
+  <div class="scoreline">
+    <span><strong id="qC">0</strong> correct</span><span><strong id="qW">0</strong> wrong</span><span><strong id="qS">0</strong> streak</span>
+    <span style="margin-left:auto"><button class="btn ghost" id="newQ">Next ↻</button></span>
+  </div>
+</div>
+
+<div class="footer"><a href="blueprint-drill.html?obj=2.3">← back to 2.3 leaves</a></div>
+
+<script>
+document.addEventListener('DOMContentLoaded',function(){
+  var state={A:{cdp:true,lldp:true,cisco:true,plat:'WS-C9300-48',ports:{B:'Gi1/0/1',C:'Gi1/0/2'}},
+             B:{cdp:true,lldp:true,cisco:true,plat:'WS-C9300-48',ports:{A:'Gi1/0/1',C:'Gi1/0/3'}},
+             C:{cdp:false,lldp:true,cisco:false,plat:'Aruba-6300',ports:{A:'eth1',B:'eth2'}}};
+  var inspect='A';
+
+  function render(){
+    var me=state[inspect],others=Object.keys(state).filter(function(k){return k!==inspect});
+    var tb=document.querySelector('#ntable tbody');tb.innerHTML='';
+    var rows=[];
+    others.forEach(function(o){
+      var n=state[o];
+      // CDP: both must speak CDP AND be Cisco
+      if(me.cdp&&n.cdp&&me.cisco&&n.cisco){rows.push({p:'CDP',lp:me.ports[o],nd:'SW-'+o,np:n.ports[inspect],plat:n.plat})}
+      // LLDP: both must speak LLDP
+      if(me.lldp&&n.lldp){rows.push({p:'LLDP',lp:me.ports[o],nd:'SW-'+o,np:n.ports[inspect],plat:n.plat})}
+    });
+    if(rows.length===0){tb.innerHTML='<tr class="empty"><td colspan="5">No neighbors visible. Check protocol toggles.</td></tr>';return}
+    rows.forEach(function(r){
+      var tr=document.createElement('tr');
+      tr.innerHTML='<td>'+r.p+'</td><td>'+r.lp+'</td><td>'+r.nd+'</td><td>'+r.np+'</td><td>'+r.plat+'</td>';
+      tb.appendChild(tr);
+    });
+  }
+
+  document.querySelectorAll('.toggle').forEach(function(t){
+    if(t.style.cursor==='not-allowed')return;
+    t.addEventListener('click',function(){
+      t.classList.toggle('on');
+      state[t.dataset.dev][t.dataset.proto]=t.classList.contains('on');
+      render();
+    });
+  });
+  document.querySelectorAll('.pick').forEach(function(p){
+    p.addEventListener('click',function(){
+      document.querySelectorAll('.pick').forEach(function(x){x.classList.remove('on')});
+      p.classList.add('on');inspect=p.dataset.from;render();
+    });
+  });
+  render();
+
+  var pool=[
+    {q:'CDP runs at which OSI layer?',o:['1','2','3','4'],a:1,why:'CDP is a Layer 2 protocol — frames, no IP. Same for LLDP.'},
+    {q:'Vendor-neutral neighbor discovery protocol:',o:['CDP','LLDP','VTP','DTP'],a:1,why:'LLDP = IEEE 802.1AB. Works across vendors. CDP is Cisco-only.'},
+    {q:'CDP multicast destination MAC:',o:['01:00:0C:CC:CC:CC','01:80:C2:00:00:0E','FF:FF:FF:FF:FF:FF','01:00:5E:00:00:01'],a:0,why:'Memorize: CDP = 01:00:0C:CC:CC:CC. LLDP = 01:80:C2:00:00:0E.'},
+    {q:'Default CDP advertisement interval:',o:['10s','30s','60s','120s'],a:2,why:'CDP every 60s, holdtime 180s. LLDP every 30s, holdtime 120s.'},
+    {q:'In a Cisco + Aruba mixed lab, which protocol must you run for full visibility?',o:['CDP','LLDP','Both','Neither'],a:1,why:'Aruba does not speak CDP. LLDP is the only common ground.'},
+    {q:'Disable CDP globally on a Cisco IOS device:',o:['no cdp enable','no cdp run','cdp shutdown','disable cdp'],a:1,why:'Global = `no cdp run`. Per-interface = `no cdp enable`. Common exam trap.'},
+    {q:'Why disable CDP on edge ports facing untrusted users?',o:['Saves CPU','CDP leaks model + IOS version to attackers','CDP is deprecated','Causes loops'],a:1,why:'CDP packets reveal device model, IOS version, IP. Free recon for attackers.'},
+    {q:'`show cdp neighbor detail` shows but `show lldp neighbor` is empty. Likely cause:',o:['LLDP disabled','Cable bad','VLAN mismatch','STP blocking'],a:0,why:'LLDP must be turned on explicitly on Cisco IOS — `lldp run` globally and `lldp transmit/receive` per port.'},
+    {q:'CDP and LLDP both encode info as:',o:['JSON','XML','TLVs (Type-Length-Value)','Plain ASCII'],a:2,why:'Both use TLV format — extensible, vendor-neutral structure.'},
+    {q:'Best practice for an unused user-facing access port:',o:['Leave CDP on for monitoring','Disable CDP and LLDP, shut the port','Run both protocols','Trunk it'],a:1,why:'Edge port + admin down + no discovery = smallest attack surface.'}
+  ];
+  var qC=0,qW=0,qS=0,cur=null;
+  function ask(){
+    cur=pool[Math.floor(Math.random()*pool.length)];
+    document.getElementById('quizStem').textContent=cur.q;
+    var box=document.getElementById('quizOpts');box.innerHTML='';
+    document.getElementById('quizWhy').classList.remove('show');
+    cur.o.forEach(function(o,i){
+      var b=document.createElement('button');b.className='opt';b.textContent=o;
+      b.addEventListener('click',function(){
+        if(b.classList.contains('correct')||b.classList.contains('wrong'))return;
+        if(i===cur.a){b.classList.add('correct');qC++;qS++}
+        else{b.classList.add('wrong');qW++;qS=0;Array.prototype.forEach.call(box.children,function(c,j){if(j===cur.a)c.classList.add('correct')})}
+        document.getElementById('qC').textContent=qC;document.getElementById('qW').textContent=qW;document.getElementById('qS').textContent=qS;
+        var w=document.getElementById('quizWhy');w.textContent='Why: '+cur.why;w.classList.add('show');
+      });
+      box.appendChild(b);
+    });
+  }
+  document.getElementById('newQ').addEventListener('click',ask);ask();
+});
+</script>
+</body>
+</html>

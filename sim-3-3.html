@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>3.3 Sim — Static Routing</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#FAF7F2;--bg-surface:#FFFFFF;--bg-recessed:#F3F0EB;
+    --border:#E2DFD9;--border-strong:#C7C3BC;
+    --ink:#1C1917;--ink-secondary:#57534E;--ink-muted:#A8A29E;
+    --accent:#B45309;--accent-soft:#D97706;--accent-light:#FEF3C7;
+    --correct:#16A34A;--correct-bg:#F0FDF4;
+    --wrong:#DC2626;--wrong-bg:#FEF2F2;
+    --info:#2563EB;--info-bg:#EFF6FF;
+    --font-display:'Space Grotesk',system-ui,sans-serif;
+    --font-body:'Source Serif 4',Georgia,serif;
+    --font-mono:'JetBrains Mono',monospace;
+    --radius:6px;--radius-lg:10px;
+  }
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  html{font-size:16px;-webkit-font-smoothing:antialiased}
+  body{font-family:var(--font-body);background:var(--bg);color:var(--ink);line-height:1.55;padding:24px;max-width:960px;margin:0 auto}
+  .head{margin-bottom:20px;padding-bottom:14px;border-bottom:1px solid var(--border)}
+  .head .crumb{font-family:var(--font-mono);font-size:.74rem;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px}
+  .head .crumb a{color:var(--accent);text-decoration:none}
+  .head h1{font-family:var(--font-display);font-size:1.5rem;font-weight:700;margin-bottom:6px}
+  .head .desc{font-size:.95rem;color:var(--ink-secondary)}
+  .why{background:var(--accent-light);border-left:3px solid var(--accent);padding:14px 16px;border-radius:var(--radius);margin-bottom:18px;font-size:.95rem}
+  .why strong{font-family:var(--font-display);text-transform:uppercase;letter-spacing:.05em;font-size:.78rem;color:var(--accent);display:block;margin-bottom:4px}
+  .panel{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;margin-bottom:18px}
+  .panel h2{font-family:var(--font-display);font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-secondary);margin-bottom:12px}
+  .cli{font-family:var(--font-mono);background:#1C1917;color:#FAF7F2;padding:14px 16px;border-radius:var(--radius);font-size:.92rem}
+  .cli .prompt{color:#D97706}
+  .cli input{font-family:var(--font-mono);font-size:.92rem;background:transparent;color:#FAF7F2;border:none;outline:none;width:75%}
+  .quick-cmds{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+  .qc{font-family:var(--font-mono);font-size:.82rem;background:var(--bg-recessed);padding:5px 11px;border-radius:99px;cursor:pointer;border:1px solid var(--border);color:var(--ink-secondary)}
+  .qc:hover{background:var(--bg-surface);color:var(--ink);border-color:var(--border-strong)}
+  .table{width:100%;border-collapse:collapse;margin-top:12px;font-family:var(--font-mono);font-size:.88rem}
+  .table th,.table td{padding:10px 12px;border-bottom:1px solid var(--border);text-align:left}
+  .table th{background:var(--bg-recessed);font-family:var(--font-display);font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-secondary)}
+  .table tr.new td{background:var(--correct-bg);color:var(--correct);font-weight:700;animation:slideIn .4s cubic-bezier(.16,1,.3,1)}
+  .table tr.dim td{opacity:.4}
+  .table tr.float td{background:var(--info-bg);color:var(--info)}
+  .table tr.dead td{text-decoration:line-through;color:var(--wrong);opacity:.7}
+  @keyframes slideIn{from{transform:translateX(-8px);opacity:0}to{transform:translateX(0);opacity:1}}
+  .verdict{margin-top:14px;padding:12px 16px;border-radius:var(--radius);font-family:var(--font-display);font-size:.94rem;font-weight:600;display:none}
+  .verdict.show{display:block;animation:fadeIn .25s}
+  .verdict.win{background:var(--correct-bg);color:var(--correct);border:1px solid var(--correct)}
+  .verdict.miss{background:var(--wrong-bg);color:var(--wrong);border:1px solid var(--wrong)}
+  .verdict.info{background:var(--info-bg);color:var(--info);border:1px solid var(--info)}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
+  .controls{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+  .btn{font-family:var(--font-display);font-size:.84rem;font-weight:600;padding:8px 16px;background:var(--ink);color:#FAF7F2;border:none;border-radius:var(--radius);cursor:pointer;transition:background .15s}
+  .btn:hover{background:var(--ink-secondary)}
+  .btn.ghost{background:var(--bg-recessed);color:var(--ink)}
+  .btn.danger{background:var(--wrong);color:#fff}
+  .btn.accent{background:var(--accent)}
+  .quiz .stem{font-family:var(--font-display);font-size:1.02rem;font-weight:600;margin-bottom:12px;padding:14px;background:var(--accent-light);border-left:3px solid var(--accent);border-radius:var(--radius)}
+  .quiz .opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px}
+  .opt{background:var(--bg-recessed);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;font-family:var(--font-mono);font-size:.92rem;cursor:pointer;text-align:left;transition:all .15s}
+  .opt:hover{border-color:var(--border-strong);background:var(--bg-surface)}
+  .opt.correct{background:var(--correct-bg);border-color:var(--correct);color:var(--correct);font-weight:700}
+  .opt.wrong{background:var(--wrong-bg);border-color:var(--wrong);color:var(--wrong)}
+  .scoreline{font-family:var(--font-mono);font-size:.84rem;color:var(--ink-muted);margin-top:10px;display:flex;gap:18px;align-items:center;flex-wrap:wrap}
+  .scoreline strong{font-weight:700;color:var(--ink)}
+  .footer{margin-top:24px;padding-top:14px;border-top:1px solid var(--border);font-family:var(--font-mono);font-size:.82rem}
+  .footer a{color:var(--accent);text-decoration:none}
+</style>
+</head>
+<body>
+
+<div class="head">
+  <div class="crumb"><a href="blueprint-drill.html?obj=3.3">← back to 3.3 leaves</a> · 3.3 · IP Connectivity · Static Routing</div>
+  <h1>Static Routing Sim</h1>
+  <div class="desc">Type real Cisco syntax. Watch the routing table update. Add a default. Add a floating backup. Then kill the primary link and watch the floating take over.</div>
+</div>
+
+<div class="why">
+  <strong>WHY this matters</strong>
+  Static routes are the operator's promise to the router: "If you see this destination, send it here." No protocol, no neighbors, no convergence — just a hardcoded entry. The interesting variants: <em>default</em> route catches all unknowns; <em>host</em> route (/32) targets one IP; <em>floating</em> static sits dormant with a high AD until the primary disappears, then activates. Static is the only way to guarantee a path that doesn't move under your feet.
+</div>
+
+<div class="panel">
+  <h2>Configure routes</h2>
+  <div class="cli">
+    <div><span class="prompt">R1(config)#</span> <input id="cmd" type="text" placeholder="ip route 10.2.2.0 255.255.255.0 192.168.1.2" autocomplete="off" autofocus></div>
+  </div>
+  <div class="quick-cmds">
+    <span class="qc" data-cmd="ip route 10.2.2.0 255.255.255.0 192.168.1.2">network /24</span>
+    <span class="qc" data-cmd="ip route 10.5.5.5 255.255.255.255 192.168.1.2">host /32</span>
+    <span class="qc" data-cmd="ip route 0.0.0.0 0.0.0.0 203.0.113.1">default</span>
+    <span class="qc" data-cmd="ip route 10.2.2.0 255.255.255.0 192.168.2.2 200">floating (AD 200)</span>
+    <span class="qc" data-cmd="ip route 172.16.0.0 255.255.0.0 GigabitEthernet0/2">interface-only</span>
+    <span class="qc" data-cmd="no ip route 10.2.2.0 255.255.255.0 192.168.1.2">remove primary</span>
+    <span class="qc" data-cmd="shutdown gi0/1">simulate Gi0/1 down</span>
+  </div>
+  <div class="controls">
+    <button class="btn accent" id="apply">Apply</button>
+    <button class="btn ghost" id="resetTable">Reset table</button>
+  </div>
+
+  <table class="table" id="rtTable">
+    <thead><tr><th>Code</th><th>Network</th><th>AD/Metric</th><th>Next-hop / Egress</th></tr></thead>
+    <tbody></tbody>
+  </table>
+  <div class="verdict" id="verdict"></div>
+</div>
+
+<div class="panel quiz">
+  <h2>Quiz mode <span style="color:var(--accent);text-transform:none;letter-spacing:0;font-weight:700">— predict before peeking</span></h2>
+  <div class="stem" id="quizStem">Loading…</div>
+  <div class="opts" id="quizOpts"></div>
+  <div class="scoreline">
+    <span><strong id="qCorrect">0</strong> correct</span>
+    <span><strong id="qWrong">0</strong> wrong</span>
+    <span><strong id="qStreak">0</strong> streak</span>
+    <span><strong id="qNum">1</strong>/<strong id="qTot">12</strong></span>
+    <span style="margin-left:auto"><button class="btn ghost" id="newQ">Next ↻</button></span>
+  </div>
+</div>
+
+<div class="footer"><a href="blueprint-drill.html?obj=3.3">← back to 3.3 leaves</a></div>
+
+<script>
+(function(){
+  function maskToPrefix(m){
+    if (m.indexOf('/')===0) return parseInt(m.slice(1),10);
+    var oct=m.split('.').map(Number);
+    if (oct.length!==4||oct.some(function(x){return isNaN(x);})) return null;
+    var bin=oct.map(function(x){return x.toString(2).padStart(8,'0');}).join('');
+    var i=bin.indexOf('0');
+    return i===-1?32:i;
+  }
+
+  var TABLE = [
+    {code:'C', net:'192.168.1.0/24', adm:'0/0', nh:'Gi0/1 connected', primary:false, key:'c1', live:true},
+    {code:'C', net:'192.168.2.0/24', adm:'0/0', nh:'Gi0/2 connected', primary:false, key:'c2', live:true}
+  ];
+
+  function render(highlight){
+    var tbody = document.querySelector('#rtTable tbody'); tbody.innerHTML='';
+    // bucket by network — pick lowest live AD per net
+    var buckets = {};
+    TABLE.forEach(function(r){
+      if (!buckets[r.net]) buckets[r.net]=[];
+      buckets[r.net].push(r);
+    });
+    Object.keys(buckets).forEach(function(net){
+      var arr = buckets[net];
+      var live = arr.filter(function(r){return r.live;});
+      if (live.length===0){
+        // all dead — render greyed
+        arr.forEach(function(r){
+          var tr=document.createElement('tr'); tr.className='dead';
+          tr.innerHTML='<td>'+r.code+'</td><td>'+r.net+'</td><td>['+r.adm+']</td><td>'+r.nh+' (down)</td>';
+          tbody.appendChild(tr);
+        });
+        return;
+      }
+      live.sort(function(a,b){return parseInt(a.adm)-parseInt(b.adm);});
+      var winner=live[0];
+      live.forEach(function(r){
+        var tr=document.createElement('tr');
+        if (r===winner && highlight && r.key===highlight) tr.className='new';
+        else if (r!==winner) tr.className='float dim';
+        tr.innerHTML='<td>'+r.code+'</td><td>'+r.net+'</td><td>['+r.adm+']</td><td>'+r.nh+(r!==winner?' (floating)':'')+'</td>';
+        tbody.appendChild(tr);
+      });
+    });
+  }
+
+  function v(cls,html){
+    var el=document.getElementById('verdict');
+    el.className='verdict '+cls+' show';
+    el.innerHTML=html;
+  }
+
+  function apply(raw){
+    var cmd=raw.trim();
+    if (!cmd){return;}
+    // shutdown
+    var sh=cmd.match(/^shutdown\s+gi0\/(\d)$/i);
+    if (sh){
+      var ifname='Gi0/'+sh[1];
+      TABLE.forEach(function(r){
+        if (r.nh.indexOf(ifname)>=0) r.live=false;
+      });
+      // also kill statics whose next-hop is on a now-dead connected subnet
+      var connectedNet = '192.168.'+sh[1]+'.';
+      TABLE.forEach(function(r){
+        if (r.code==='S' && r.nh.indexOf(connectedNet)>=0) r.live=false;
+      });
+      v('info','✗ '+ifname+' down. Routes via this interface removed. Floating backups (if any) take over.');
+      render(); return;
+    }
+    // no ip route
+    var no=cmd.match(/^no\s+ip\s+route\s+(\S+)\s+(\S+)\s+(\S+)/i);
+    if (no){
+      var net=no[1], mask=no[2], nh=no[3];
+      var prefix=maskToPrefix(mask);
+      var netStr=net+'/'+prefix;
+      var before=TABLE.length;
+      TABLE = TABLE.filter(function(r){return !(r.code==='S' && r.net===netStr && r.nh.indexOf(nh)>=0);});
+      if (TABLE.length<before) v('info','Removed static route to '+netStr+' via '+nh+'. Floating backup (if any) becomes active.');
+      else v('miss','✗ No matching static found.');
+      render(); return;
+    }
+    // ip route
+    var ir=cmd.match(/^ip\s+route\s+(\S+)\s+(\S+)\s+(\S+)(?:\s+(\d+))?$/i);
+    if (!ir){
+      v('miss','✗ Syntax error. Try: <code>ip route NETWORK MASK NEXT-HOP [AD]</code>');
+      return;
+    }
+    var net=ir[1], mask=ir[2], nh=ir[3], ad=ir[4]?parseInt(ir[4],10):1;
+    var prefix=maskToPrefix(mask);
+    if (prefix===null){v('miss','✗ Invalid mask.');return;}
+    var netStr=net+'/'+prefix;
+    var code='S';
+    if (net==='0.0.0.0' && mask==='0.0.0.0') code='S*';
+    var key='s-'+netStr+'-'+nh+'-'+ad+'-'+Date.now();
+    var note='';
+    if (code==='S*') note='gateway of last resort';
+    else if (prefix===32) note='host route — exact /32 match';
+    else if (ad>=100) note='floating (AD '+ad+') — backup only, dormant unless primary fails';
+    else note='AD '+ad+' static';
+    TABLE.push({code:code, net:netStr, adm:ad+'/0', nh:nh, key:key, live:true});
+    v('win','✓ Installed '+netStr+' via '+nh+' — '+note);
+    render(key);
+  }
+
+  document.getElementById('apply').addEventListener('click',function(){
+    apply(document.getElementById('cmd').value);
+    document.getElementById('cmd').value='';
+    document.getElementById('cmd').focus();
+  });
+  document.getElementById('cmd').addEventListener('keydown',function(e){if (e.key==='Enter') document.getElementById('apply').click();});
+  Array.prototype.forEach.call(document.querySelectorAll('.qc'),function(el){
+    el.addEventListener('click',function(){document.getElementById('cmd').value=el.dataset.cmd;document.getElementById('cmd').focus();});
+  });
+  document.getElementById('resetTable').addEventListener('click',function(){
+    TABLE=[
+      {code:'C', net:'192.168.1.0/24', adm:'0/0', nh:'Gi0/1 connected', key:'c1', live:true},
+      {code:'C', net:'192.168.2.0/24', adm:'0/0', nh:'Gi0/2 connected', key:'c2', live:true}
+    ];
+    document.getElementById('verdict').className='verdict';
+    render();
+  });
+  render();
+
+  var QUIZ = [
+    {q:'Default-route syntax — pick the valid command:',a:'ip route 0.0.0.0 0.0.0.0 NEXT-HOP', opts:['ip default-route NEXT-HOP','ip route 0.0.0.0 0.0.0.0 NEXT-HOP','ip route default NEXT-HOP','ip gateway NEXT-HOP']},
+    {q:'A floating static is configured with AD 200. The primary route is OSPF (AD 110). When does floating activate?',a:'Only when OSPF route is removed (link/neighbor down)', opts:['Always — admin override','Only when OSPF route is removed (link/neighbor down)','Never — AD too high','At reboot only']},
+    {q:'Default AD of a static route?',a:'1', opts:['0','1','5','110']},
+    {q:'A host route uses what mask?',a:'255.255.255.255 (/32)', opts:['255.255.255.0 (/24)','255.255.255.255 (/32)','255.255.0.0 (/16)','0.0.0.0 (/0)']},
+    {q:'<code>ip route 10.0.0.0 255.0.0.0 Gi0/1</code> uses interface-only syntax. On a multi-access link this can:',a:'Cause the router to ARP for every destination — bad on Ethernet', opts:['Improve convergence','Cause the router to ARP for every destination — bad on Ethernet','Block all traffic','Force OSPF off']},
+    {q:'Two static routes to 10.5.0.0/24 — one AD 1, one AD 200. Which is in the table?',a:'AD 1 (primary). The AD 200 is dormant.', opts:['AD 1 (primary). The AD 200 is dormant.','Both — load-balance','AD 200 — newer wins','Neither — conflict']},
+    {q:'Primary fails (link down). Floating with AD 200 takes over because:',a:'Lowest live AD wins — AD 200 is now the lowest available', opts:['Floating overrides on demand','Lowest live AD wins — AD 200 is now the lowest available','Cisco IOS auto-promotes','It joins OSPF']},
+    {q:'<code>ip route 10.5.5.5 255.255.255.255 …</code> creates a:',a:'Host route — matches exactly 10.5.5.5', opts:['Default route','Network route','Host route — matches exactly 10.5.5.5','Floating route']},
+    {q:'<code>S*</code> in show ip route means:',a:'Static + candidate default', opts:['Static + secondary','Static + candidate default','Static + summary','Stale']},
+    {q:'You add <code>ip route 10.0.0.0 255.0.0.0 192.168.1.2 5</code>. The 5 is:',a:'Administrative Distance', opts:['Hop count','Cost','Administrative Distance','Number of paths']},
+    {q:'A floating static\'s AD must be:',a:'Higher than the primary source\'s AD', opts:['Lower than primary','Higher than the primary source\'s AD','Always 200','Always 1']},
+    {q:'After the primary recovers, the floating route:',a:'Steps back into dormant state', opts:['Stays active forever','Steps back into dormant state','Causes a routing loop','Resets all routes']}
+  ];
+  var qIdx=0,qC=0,qW=0,qS=0;
+  document.getElementById('qTot').textContent=QUIZ.length;
+  function renderQ(){
+    var q=QUIZ[qIdx];
+    document.getElementById('quizStem').innerHTML=q.q;
+    document.getElementById('qNum').textContent=qIdx+1;
+    var box=document.getElementById('quizOpts'); box.innerHTML='';
+    var opts=q.opts.slice().sort(function(){return Math.random()-.5;});
+    opts.forEach(function(o){
+      var b=document.createElement('button'); b.className='opt'; b.textContent=o;
+      b.addEventListener('click',function(){
+        if (b.classList.contains('correct')||b.classList.contains('wrong')) return;
+        if (o===q.a){b.classList.add('correct');qC++;qS++;}
+        else{b.classList.add('wrong');qW++;qS=0;
+          Array.prototype.forEach.call(box.children,function(c){if(c.textContent===q.a)c.classList.add('correct');});
+        }
+        document.getElementById('qCorrect').textContent=qC;
+        document.getElementById('qWrong').textContent=qW;
+        document.getElementById('qStreak').textContent=qS;
+      });
+      box.appendChild(b);
+    });
+  }
+  document.getElementById('newQ').addEventListener('click',function(){qIdx=(qIdx+1)%QUIZ.length;renderQ();});
+  renderQ();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Mini Sims · Blueprint Drill</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#FAF7F2;--bg-surface:#FFFFFF;--bg-recessed:#F3F0EB;--bg-hover:#F0EDE7;
+    --border:#E2DFD9;--border-strong:#C7C3BC;
+    --ink:#1C1917;--ink-secondary:#57534E;--ink-muted:#A8A29E;
+    --accent:#B45309;--accent-soft:#D97706;--accent-light:#FEF3C7;--accent-dim:#FFFBEB;
+    --correct:#16A34A;--correct-bg:#F0FDF4;
+    --font-display:'Space Grotesk',system-ui,sans-serif;
+    --font-body:'Source Serif 4',Georgia,serif;
+    --font-mono:'JetBrains Mono',monospace;
+    --radius:6px;--radius-lg:10px;
+  }
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  html{font-size:16px;-webkit-font-smoothing:antialiased}
+  body{font-family:var(--font-body);background:var(--bg);color:var(--ink);line-height:1.55;padding:24px;max-width:1100px;margin:0 auto}
+  .head{margin-bottom:24px;padding-bottom:14px;border-bottom:1px solid var(--border)}
+  .crumb{font-family:var(--font-mono);font-size:.74rem;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px}
+  .head h1{font-family:var(--font-display);font-size:1.6rem;font-weight:700;margin-bottom:6px}
+  .head .sub{font-size:.95rem;color:var(--ink-secondary);max-width:680px}
+  .objs{display:flex;gap:6px;flex-wrap:wrap;margin:14px 0}
+  .obj-pill{font-family:var(--font-mono);font-size:.8rem;padding:5px 12px;border-radius:99px;background:var(--bg-recessed);color:var(--ink-secondary);cursor:pointer;border:1px solid var(--border);text-decoration:none;transition:all .15s}
+  .obj-pill:hover{background:var(--bg-surface);color:var(--ink);border-color:var(--border-strong)}
+  .obj-pill.active{background:var(--accent);color:#fff;border-color:var(--accent);font-weight:600}
+  .leaf-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;margin-top:18px}
+  .leaf{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:18px 20px;display:flex;flex-direction:column;gap:8px;text-decoration:none;color:var(--ink);transition:all .15s;position:relative;cursor:pointer}
+  .leaf:hover{border-color:var(--accent);background:var(--accent-dim);transform:translateY(-2px);box-shadow:0 4px 12px rgba(180,83,9,.08)}
+  .leaf .id{font-family:var(--font-mono);font-size:.78rem;font-weight:700;color:var(--accent);letter-spacing:.04em}
+  .leaf .title{font-family:var(--font-display);font-size:1.04rem;font-weight:700;color:var(--ink)}
+  .leaf .desc{font-family:var(--font-body);font-size:.9rem;color:var(--ink-secondary);line-height:1.45}
+  .leaf .arrow{position:absolute;top:18px;right:18px;font-family:var(--font-mono);color:var(--ink-muted);transition:all .15s}
+  .leaf:hover .arrow{color:var(--accent);transform:translateX(3px)}
+  .empty{padding:60px 20px;text-align:center;color:var(--ink-muted);font-family:var(--font-display);font-size:.92rem}
+  .footer{margin-top:32px;padding-top:14px;border-top:1px solid var(--border);font-family:var(--font-mono);font-size:.78rem;color:var(--ink-muted);text-align:center}
+  .footer a{color:var(--accent);text-decoration:none}
+</style>
+</head>
+<body>
+
+<div class="head">
+  <div class="crumb">CCNA · Mini Simulators</div>
+  <h1 id="objTitle">Choose an objective</h1>
+  <div class="sub" id="objSub">Each leaf below is a real interactive training piece — type, click, drag, or watch animations that drill the concept until it's reflex.</div>
+  <div class="objs" id="objPills"></div>
+</div>
+
+<div class="leaf-grid" id="leafGrid"></div>
+
+<div class="footer">
+  Built from atomic blueprint at <code>~/Documents/Obsidian Vault/study/ccna/blueprint/</code> · <a href="strat.html">Open in Strat ↗</a>
+</div>
+
+<script>
+(function(){
+  var CATALOG = {
+    '1.1': { title:'Network Components', desc:'The 8 things every network is built out of — routers, switches, firewalls, APs, controllers, endpoints, servers, PoE.', leaves:[
+      {id:'1.1.a', title:'Routers', desc:'L3 boundary device. Longest-prefix match. ARP. TTL. The Internet runs on these.'},
+      {id:'1.1.b', title:'L2 / L3 Switches', desc:'L2 forwards by MAC; L3 adds inter-VLAN routing at wire speed. MAC tables, flooding, broadcast domains.'},
+      {id:'1.1.c', title:'NGFW + IPS', desc:'NGFW = stateful + app-aware. IPS = inline drop. IDS = out-of-band alert.'},
+      {id:'1.1.d', title:'Access Points', desc:'Bridge wireless ↔ wired. Autonomous vs Lightweight. CAPWAP UDP 5246/5247.'},
+      {id:'1.1.e', title:'Controllers (WLC + DNA)', desc:'WLC = wireless-only fleet manager. DNA Center = whole-campus intent-based.'},
+      {id:'1.1.f', title:'Endpoints', desc:'Source / destination of traffic. Lives at the edge. Endpoint ≠ network device.'},
+      {id:'1.1.g', title:'Servers', desc:'A role, not hardware. The responder side of any client-server transaction.'},
+      {id:'1.1.h', title:'PoE', desc:'Power + data on one cable. PSE → PD. af 15W / at 30W / bt 60-100W. Budget is per-switch.'}
+    ]},
+    '1.2': { title:'Network Topology Architectures', desc:'How devices arrange themselves at scale.', leaves:[
+      {id:'1.2.a', title:'2-Tier (Collapsed Core)', desc:'Small networks. Core+distribution merged. Access switches connect directly.'},
+      {id:'1.2.b', title:'3-Tier (Core/Dist/Access)', desc:'Classic campus. Each layer has a job. Aggregation reduces flood domain.'},
+      {id:'1.2.c', title:'Spine-Leaf', desc:'Data center pattern. Every leaf is one hop from every other leaf via spine. ECMP scales east-west.'},
+      {id:'1.2.d', title:'WAN', desc:'Hub-spoke vs full mesh vs partial mesh. Cost vs reliability tradeoff.'},
+      {id:'1.2.e', title:'SOHO', desc:'One box does it all — DHCP, NAT, AP, switch, firewall.'},
+      {id:'1.2.f', title:'On-Prem vs Cloud', desc:'CAPEX vs OPEX. Responsibility shift. IaaS / PaaS / SaaS divisions.'}
+    ]},
+    '1.3': { title:'Physical Interfaces and Cabling', desc:'Layer 1 — what actually carries the bits.', leaves:[
+      {id:'1.3.a', title:'Fiber & Copper', desc:'Single-mode (long), multimode (short), copper (~100m). Modal dispersion. Connector types.'},
+      {id:'1.3.b', title:'Shared vs Point-to-Point', desc:'Hub = collisions. Switch = parallel forwarding. Half- vs full-duplex.'}
+    ]},
+    '1.4': { title:'Interface and Cable Issues', desc:'Real-world troubleshooting from `show interfaces` output.', leaves:[
+      {id:'1.4', title:'Troubleshoot interface errors', desc:'Collisions, runts, giants, CRCs, late collisions. Match symptom → root cause.'}
+    ]},
+    '1.5': { title:'TCP vs UDP', desc:'Two transport layers. One careful, one fast.', leaves:[
+      {id:'1.5', title:'Compare TCP & UDP', desc:'TCP: handshake, retransmit, ordered. UDP: fire-and-forget. Port mapping by use case.'}
+    ]},
+    '1.6': { title:'IPv4 Addressing & Subnetting', desc:'The single most-tested CCNA skill.', leaves:[
+      {id:'1.6', title:'Subnet calculator + drill', desc:'Calc network/broadcast/usable. Subnet a /24 into N. Drill until reflex.'}
+    ]},
+    '1.7': { title:'Private IPv4', desc:'RFC1918 + special-use ranges.', leaves:[
+      {id:'1.7', title:'Private vs public classifier', desc:'10/8, 172.16/12, 192.168/16. Plus link-local (169.254/16) and loopback (127/8).'}
+    ]},
+    '1.8': { title:'IPv6 Addressing & Prefix', desc:'128 bits. Compression rules.', leaves:[
+      {id:'1.8', title:'Compress / expand IPv6', desc:'Drop leading zeros. :: for longest run of zeros. Prefix-length viewer.'}
+    ]},
+    '1.9': { title:'IPv6 Address Types', desc:'Same protocol, four very different scopes.', leaves:[
+      {id:'1.9.a', title:'Unicast (global / ULA / link-local)', desc:'2000::/3 global, fc00::/7 ULA, fe80::/10 link-local. Each has a job.'},
+      {id:'1.9.b', title:'Anycast', desc:'Same address shared by many servers. Routed to nearest. DNS root, CDN, DHCPv6.'},
+      {id:'1.9.c', title:'Multicast (ff00::/8)', desc:'Scoped delivery. ff02::1 all-nodes, ff02::2 all-routers, ff02::5 OSPF, ff02::a EIGRP.'},
+      {id:'1.9.d', title:'Modified EUI-64', desc:'Auto-build host portion from MAC. Insert fffe in middle. Flip U/L bit.'}
+    ]},
+    '1.10': { title:'Verify IP on Client OS', desc:'Same job, three command syntaxes.', leaves:[
+      {id:'1.10', title:'ipconfig / ifconfig / ip a', desc:'Win, Mac, Linux. What each output line means.'}
+    ]},
+    '1.11': { title:'Wireless Principles', desc:'Why Wi-Fi behaves like Wi-Fi.', leaves:[
+      {id:'1.11.a', title:'NSS + MIMO', desc:'Spatial streams = parallel data paths. Antennas needed. Throughput jump.'},
+      {id:'1.11.b', title:'RF basics', desc:'2.4 vs 5 GHz tradeoffs. Range, interference, throughput.'},
+      {id:'1.11.c', title:'Wireless devices + antennas', desc:'AP, WLC, antenna types — omni, patch, Yagi. Pattern shapes.'},
+      {id:'1.11.d', title:'Channels (non-overlap)', desc:'2.4 GHz: only 1, 6, 11 don\'t overlap. 5 GHz: many. Channel planning.'}
+    ]},
+    '1.12': { title:'Virtualization', desc:'One physical → many logical.', leaves:[
+      {id:'1.12', title:'VMs / Containers / VRFs', desc:'Hypervisor + full-OS VMs vs shared-kernel containers vs separate routing tables.'}
+    ]},
+    '1.13': { title:'Switching Concepts', desc:'How a switch decides what to do with each frame.', leaves:[
+      {id:'1.13.a', title:'Forwarding logic', desc:'Read dest MAC → look in table → forward (or flood if unknown).'},
+      {id:'1.13.b', title:'MAC table dynamics', desc:'Learn source MAC. Age out (default 300s). Refresh on activity.'},
+      {id:'1.13.c', title:'Cut-through vs Store-and-Forward', desc:'Speed vs error-checking tradeoff. Fragment-free as middle.'},
+      {id:'1.13.d', title:'ARP', desc:'Map IP → MAC via broadcast. Cache. GARP. Proxy ARP. Spoofing risk.'}
+    ]},
+    '2.1': { title:'VLANs', desc:'Logical separation on a shared switch.', leaves:[
+      {id:'2.1', title:'Access vs Trunk + 802.1Q', desc:'Tag insertion at trunks. Native VLAN traps. VLAN-to-port mapping.'}
+    ]},
+    '2.2': { title:'Interswitch Connectivity', desc:'Tagged frames between switches.', leaves:[
+      {id:'2.2', title:'Trunking + DTP', desc:'802.1Q tag bit-level. DTP modes (auto, desirable, on). Native VLAN gotcha.'}
+    ]},
+    '2.3': { title:'L2 Discovery + Aggregation', desc:'Neighbor info + bandwidth bundling.', leaves:[
+      {id:'2.3.a', title:'CDP vs LLDP', desc:'CDP = Cisco-only. LLDP = open IEEE 802.1AB. Multi-vendor.'},
+      {id:'2.3.b', title:'EtherChannel (LACP/PAgP)', desc:'Bundle 2-8 links. LACP active/passive. Mode compatibility matrix.'}
+    ]},
+    '2.4': { title:'Spanning Tree Protocol', desc:'Why your network doesn\'t loop forever.', leaves:[
+      {id:'2.4', title:'STP root election + port states', desc:'Lowest BID = root. Designated/root/blocking. Convergence timers.'}
+    ]},
+    '2.5': { title:'Cisco Wireless Architectures', desc:'Three ways to deploy Wi-Fi at scale.', leaves:[
+      {id:'2.5', title:'Autonomous / Split-MAC / Cloud', desc:'Each AP standalone vs WLC-managed vs Meraki-style.'}
+    ]},
+    '2.6': { title:'AP Modes', desc:'What an AP does depends on its mode.', leaves:[
+      {id:'2.6', title:'Local / FlexConnect / Sniffer / Monitor', desc:'Pick mode by use case. Each does something different with the radio.'}
+    ]},
+    '2.7': { title:'WLC Management Access', desc:'Five interface types, five purposes.', leaves:[
+      {id:'2.7', title:'WLC interfaces (mgmt, AP-mgr, virtual, dynamic, service)', desc:'Where to plug in for first-time config.'}
+    ]},
+    '2.8': { title:'WLAN Config (GUI)', desc:'Configure security + QoS + clients on the WLC.', leaves:[
+      {id:'2.8', title:'WLAN GUI walkthrough', desc:'SSID, security, QoS tier (platinum/gold/silver/bronze), advanced options.'}
+    ]},
+    '3.1': { title:'Routing Table Components', desc:'Reading `show ip route` like a native.', leaves:[
+      {id:'3.1', title:'Codes / AD / Metric', desc:'C, L, S, O, D, B. AD picks between protocols. Metric picks within.'}
+    ]},
+    '3.2': { title:'Forwarding Decision', desc:'The full pipeline a router runs per packet.', leaves:[
+      {id:'3.2', title:'Next-hop, recursive, ARP, TTL', desc:'Decap → lookup → next-hop → ARP → re-encap → decrement TTL → forward.'}
+    ]},
+    '3.3': { title:'Static Routing', desc:'Manual routing entries.', leaves:[
+      {id:'3.3', title:'Default / network / host / floating', desc:'AD-based primary/backup. Floating = AD higher than dynamic protocol.'}
+    ]},
+    '3.4': { title:'OSPFv2', desc:'The link-state protocol Cisco loves to test.', leaves:[
+      {id:'3.4', title:'Neighbor states + DR/BDR + cost', desc:'Down → Init → 2-Way → ExStart → Exchange → Loading → Full. Cost = ref-bw / iface-bw.'}
+    ]},
+    '3.5': { title:'FHRP (HSRP/VRRP/GLBP)', desc:'Virtual default gateway for fault tolerance.', leaves:[
+      {id:'3.5', title:'HSRP states + comparisons', desc:'Init → Listen → Speak → Standby → Active. Compare HSRP/VRRP/GLBP.'}
+    ]},
+    '4.1': { title:'NAT', desc:'Hide private addresses behind public ones.', leaves:[
+      {id:'4.1', title:'Static / Dynamic / PAT', desc:'1:1 vs pool vs port-multiplex. Inside-local/global terminology.'}
+    ]},
+    '4.2': { title:'NTP', desc:'Time sync across the network.', leaves:[
+      {id:'4.2', title:'Stratum hierarchy', desc:'Stratum 0 atomic clock → 1 server → 2 client. Drift correction. UDP 123.'}
+    ]},
+    '4.3': { title:'DHCP + DNS Roles', desc:'Two services every client uses on boot.', leaves:[
+      {id:'4.3', title:'DORA + DNS resolution', desc:'Discover/Offer/Request/Ack. Recursive resolver → root → TLD → authoritative.'}
+    ]},
+    '4.4': { title:'SNMP', desc:'Polling + traps for device monitoring.', leaves:[
+      {id:'4.4', title:'v1/v2c/v3 + MIB tree', desc:'Get/Set/Trap/Inform. v3 adds auth+priv. MIB OID tree.'}
+    ]},
+    '4.5': { title:'Syslog', desc:'8 severity levels. The mnemonic is mandatory.', leaves:[
+      {id:'4.5', title:'Severity 0-7 dial', desc:'Emergency / Alert / Critical / Error / Warning / Notice / Info / Debug.'}
+    ]},
+    '4.6': { title:'DHCP Client + Relay', desc:'How DHCP crosses subnet boundaries.', leaves:[
+      {id:'4.6', title:'ip helper-address', desc:'Router forwards client broadcast as unicast to server in another subnet.'}
+    ]},
+    '4.7': { title:'QoS Forwarding', desc:'Voice / video / data don\'t share fairly without help.', leaves:[
+      {id:'4.7', title:'Classify / mark / queue', desc:'DSCP/CoS. LLQ for voice. WRED for congestion. Without QoS: voice drops.'}
+    ]},
+    '4.8': { title:'SSH', desc:'Why telnet is dangerous.', leaves:[
+      {id:'4.8', title:'SSH key exchange + config', desc:'TCP 22. DH key exchange. Host key auth. crypto key generate rsa.'}
+    ]},
+    '4.9': { title:'TFTP / FTP', desc:'Two file-transfer protocols, two threat models.', leaves:[
+      {id:'4.9', title:'TFTP vs FTP', desc:'TFTP: UDP 69, no auth. FTP: TCP 20/21, control + data, auth.'}
+    ]},
+    '5.1': { title:'Key Security Concepts', desc:'CIA triad and the threat → mitigation chain.', leaves:[
+      {id:'5.1', title:'CIA + threat / vuln / exploit', desc:'Confidentiality / integrity / availability tradeoffs by domain.'}
+    ]},
+    '5.2': { title:'Security Program', desc:'Policy, training, awareness — the people side.', leaves:[
+      {id:'5.2', title:'Roles + accountability', desc:'CISO / sysadmin / end-user. Phishing scenarios.'}
+    ]},
+    '5.3': { title:'Password Policies + MFA', desc:'Length wins. Factors should be different categories.', leaves:[
+      {id:'5.3', title:'Strength meter + MFA factors', desc:'Knowledge / possession / inherence. Brute-force time vs length.'}
+    ]},
+    '5.4': { title:'IPsec VPN', desc:'Encrypted tunnel between sites or for remote users.', leaves:[
+      {id:'5.4', title:'Phase 1 + Phase 2 + modes', desc:'IKE → IPsec SA. Tunnel vs transport. Site-to-site vs remote-access.'}
+    ]},
+    '5.5': { title:'Access Control', desc:'ACLs filter traffic at L3/L4.', leaves:[
+      {id:'5.5', title:'Standard vs Extended ACLs', desc:'1-99 src-only vs 100-199 src+dst+proto+port. Wildcard masks.'}
+    ]},
+    '5.6': { title:'L2 Security Features', desc:'DHCP snooping, DAI, port-security.', leaves:[
+      {id:'5.6', title:'Defend the access edge', desc:'Rogue DHCP, ARP spoof, MAC flooding — and the matching protections.'}
+    ]},
+    '5.7': { title:'WLAN Authentication', desc:'PSK vs 802.1X. Different deployment scales.', leaves:[
+      {id:'5.7', title:'PSK + 802.1X / EAP', desc:'Shared password vs per-user creds via RADIUS. 4-way handshake.'}
+    ]},
+    '5.8': { title:'WLAN Encryption', desc:'WEP → WPA → WPA2 → WPA3 timeline.', leaves:[
+      {id:'5.8', title:'Cipher era timeline', desc:'RC4 (broken) → TKIP → AES-CCMP → SAE. Why each got replaced.'}
+    ]},
+    '6.1': { title:'Traditional vs Controller', desc:'CLI per device vs single source of truth.', leaves:[
+      {id:'6.1', title:'Plane separation', desc:'Data / control / management planes. Why SDN exists.'}
+    ]},
+    '6.2': { title:'Network Management Approaches', desc:'Pick the right tool for the scale.', leaves:[
+      {id:'6.2', title:'CLI / NMS / Controller', desc:'Tradeoff matrix by deployment size.'}
+    ]},
+    '6.3': { title:'Cisco AI Features', desc:'Where AI augments the human admin.', leaves:[
+      {id:'6.3', title:'Anomaly / RCA / capacity / triage', desc:'Patterns, not products.'}
+    ]},
+    '6.4': { title:'REST APIs', desc:'How modern infrastructure is talked to.', leaves:[
+      {id:'6.4', title:'Verbs + status codes + idempotency', desc:'GET/POST/PUT/DELETE. 200/201/204/4xx/5xx. JSON.'}
+    ]},
+    '6.5': { title:'Configuration Management', desc:'Push policy, not commands.', leaves:[
+      {id:'6.5', title:'Ansible / Terraform / Puppet / Chef', desc:'Push vs pull. Declarative vs procedural. Agentless vs agent.'}
+    ]},
+    '6.6': { title:'Generative AI Fundamentals', desc:'LLMs, prompts, hallucination, RAG.', leaves:[
+      {id:'6.6', title:'Prompt + RAG basics', desc:'How prompt structure changes output. Retrieval-augmented generation.'}
+    ]},
+    '6.7': { title:'Data Formats', desc:'JSON / YAML / XML — same data, three skins.', leaves:[
+      {id:'6.7', title:'Side-by-side translator', desc:'Edit one → others update. Use-case fit.'}
+    ]}
+  };
+
+  function slug(id){ return 'sim-' + id.replace(/\./g,'-') + '.html'; }
+
+  function renderPills(currentObj){
+    var pills = document.getElementById('objPills');
+    pills.innerHTML = '';
+    Object.keys(CATALOG).forEach(function(o){
+      var a = document.createElement('a');
+      a.className = 'obj-pill' + (o === currentObj ? ' active' : '');
+      a.href = 'blueprint-drill.html?obj=' + o;
+      a.textContent = o;
+      pills.appendChild(a);
+    });
+  }
+
+  function render(){
+    var p = new URLSearchParams(location.search);
+    var obj = p.get('obj') || '1.1';
+    var entry = CATALOG[obj];
+    renderPills(obj);
+    var grid = document.getElementById('leafGrid');
+    if (!entry) {
+      document.getElementById('objTitle').textContent = 'Objective ' + obj + ' — not catalogued';
+      document.getElementById('objSub').textContent = 'Pick another objective above.';
+      grid.innerHTML = '<div class="empty">No leaves catalogued for ' + obj + '.</div>';
+      return;
+    }
+    document.getElementById('objTitle').textContent = obj + ' — ' + entry.title;
+    document.getElementById('objSub').textContent = entry.desc;
+    grid.innerHTML = '';
+    entry.leaves.forEach(function(leaf){
+      var a = document.createElement('a');
+      a.className = 'leaf';
+      a.href = slug(leaf.id);
+      a.innerHTML = '<div class="id">' + leaf.id + '</div>' +
+        '<div class="title">' + leaf.title + '</div>' +
+        '<div class="desc">' + leaf.desc + '</div>' +
+        '<div class="arrow">→</div>';
+      grid.appendChild(a);
+    });
+  }
+
+  render();
+})();
+</script>
+</body>
+</html>

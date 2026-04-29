@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>2.1 Sim — VLANs (Access vs Trunk)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#FAF7F2;--bg-surface:#FFFFFF;--bg-recessed:#F3F0EB;
+    --border:#E2DFD9;--border-strong:#C7C3BC;
+    --ink:#1C1917;--ink-secondary:#57534E;--ink-muted:#A8A29E;
+    --accent:#B45309;--accent-soft:#D97706;--accent-light:#FEF3C7;
+    --correct:#16A34A;--correct-bg:#F0FDF4;
+    --wrong:#DC2626;--wrong-bg:#FEF2F2;
+    --info:#2563EB;--info-bg:#EFF6FF;
+    --font-display:'Space Grotesk',system-ui,sans-serif;
+    --font-body:'Source Serif 4',Georgia,serif;
+    --font-mono:'JetBrains Mono',monospace;
+    --radius:6px;--radius-lg:10px;
+  }
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  html{font-size:16px;-webkit-font-smoothing:antialiased}
+  body{font-family:var(--font-body);background:var(--bg);color:var(--ink);line-height:1.55;padding:24px;max-width:960px;margin:0 auto}
+  .head{margin-bottom:20px;padding-bottom:14px;border-bottom:1px solid var(--border)}
+  .head .crumb{font-family:var(--font-mono);font-size:.74rem;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px}
+  .head .crumb a{color:var(--accent);text-decoration:none}
+  .head h1{font-family:var(--font-display);font-size:1.5rem;font-weight:700;margin-bottom:6px}
+  .head .desc{font-size:.95rem;color:var(--ink-secondary)}
+  .panel{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;margin-bottom:18px}
+  .panel h2{font-family:var(--font-display);font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-secondary);margin-bottom:12px}
+  .intuition{background:var(--accent-light);border-left:3px solid var(--accent);padding:14px 16px;border-radius:var(--radius);font-size:.96rem;color:var(--ink)}
+  .intuition strong{font-family:var(--font-display)}
+  .btn{font-family:var(--font-display);font-size:.84rem;font-weight:600;padding:8px 16px;background:var(--ink);color:#FAF7F2;border:none;border-radius:var(--radius);cursor:pointer;transition:background .15s}
+  .btn:hover{background:var(--ink-secondary)}
+  .btn.ghost{background:var(--bg-recessed);color:var(--ink)}
+  .btn.accent{background:var(--accent)}.btn.accent:hover{background:var(--accent-soft)}
+  .topo{display:grid;grid-template-columns:1fr 90px 1fr;gap:14px;align-items:center;margin-top:8px}
+  .sw{background:var(--bg-recessed);border:1px solid var(--border-strong);border-radius:var(--radius-lg);padding:14px}
+  .sw h3{font-family:var(--font-display);font-size:.92rem;margin-bottom:10px}
+  .ports{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .port{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius);padding:8px;font-family:var(--font-mono);font-size:.78rem}
+  .port .pname{font-weight:700;color:var(--ink)}
+  .port select{width:100%;font-family:var(--font-mono);font-size:.74rem;border:1px solid var(--border);border-radius:4px;padding:3px;margin-top:4px;background:var(--bg-surface)}
+  .port .vlan-tag{display:inline-block;background:var(--accent);color:#fff;padding:1px 6px;border-radius:99px;font-size:.7rem;font-weight:700;margin-top:3px}
+  .trunk-line{position:relative;height:4px;background:var(--ink);border-radius:2px;margin:0 4px}
+  .trunk-label{font-family:var(--font-mono);font-size:.7rem;color:var(--ink-secondary);text-align:center;margin-top:6px}
+  .frame-anim{margin-top:18px;background:var(--bg-recessed);border-radius:var(--radius);padding:14px;font-family:var(--font-mono);font-size:.84rem;min-height:60px;position:relative;overflow:hidden}
+  .frame-step{display:none;animation:fadeIn .3s ease}
+  .frame-step.show{display:block}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
+  .frame-bytes{display:flex;gap:4px;flex-wrap:wrap;margin-top:8px}
+  .field{padding:6px 10px;border-radius:4px;font-size:.78rem;font-weight:700}
+  .field.dst{background:#FEE2E2;color:#991B1B}.field.src{background:#DBEAFE;color:#1E40AF}
+  .field.tag{background:var(--accent);color:#fff}.field.type{background:#E0E7FF;color:#3730A3}
+  .field.payload{background:var(--bg-surface);color:var(--ink-secondary);border:1px solid var(--border)}
+  .verdict{margin-top:14px;padding:12px 16px;border-radius:var(--radius);font-family:var(--font-display);font-size:.94rem;font-weight:600;display:none}
+  .verdict.show{display:block}
+  .verdict.win{background:var(--correct-bg);color:var(--correct);border:1px solid var(--correct)}
+  .verdict.miss{background:var(--wrong-bg);color:var(--wrong);border:1px solid var(--wrong)}
+  .verdict.info{background:var(--info-bg);color:var(--info);border:1px solid var(--info)}
+  .quiz .stem{font-family:var(--font-display);font-size:1.02rem;font-weight:600;margin-bottom:12px;padding:14px;background:var(--accent-light);border-left:3px solid var(--accent);border-radius:var(--radius)}
+  .opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px}
+  .opt{background:var(--bg-recessed);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;font-family:var(--font-mono);font-size:.88rem;cursor:pointer;text-align:left;transition:all .15s}
+  .opt:hover{border-color:var(--border-strong);background:var(--bg-surface)}
+  .opt.correct{background:var(--correct-bg);border-color:var(--correct);color:var(--correct);font-weight:700}
+  .opt.wrong{background:var(--wrong-bg);border-color:var(--wrong);color:var(--wrong)}
+  .scoreline{font-family:var(--font-mono);font-size:.84rem;color:var(--ink-muted);margin-top:10px;display:flex;gap:18px;align-items:center;flex-wrap:wrap}
+  .scoreline strong{font-weight:700;color:var(--ink)}
+  .why{font-family:var(--font-mono);font-size:.8rem;color:var(--ink-secondary);margin-top:8px;padding:8px 10px;background:var(--bg-recessed);border-radius:4px;display:none}
+  .why.show{display:block}
+  .footer{font-family:var(--font-mono);font-size:.82rem;color:var(--ink-muted);text-align:center;margin-top:20px;padding-top:14px;border-top:1px solid var(--border)}
+  .footer a{color:var(--accent);text-decoration:none}
+</style>
+</head>
+<body>
+
+<div class="head">
+  <div class="crumb"><a href="blueprint-drill.html?obj=2.1">← back to 2.1 leaves</a> · 2.1 · VLANs · Access vs Trunk</div>
+  <h1>VLAN Tagging Sim</h1>
+  <div class="desc">Configure ports as access (one VLAN) or trunk (carries many, tagged). Send a frame and watch the 802.1Q tag get added at the trunk and stripped at the far access port. The point: VLANs only stay separate because tags travel with the frame.</div>
+</div>
+
+<div class="panel">
+  <h2>Why VLANs exist</h2>
+  <div class="intuition">
+    A switch by default flattens everything into one broadcast domain. <strong>VLANs cut a switch into virtual switches.</strong> Two ports in VLAN 10 talk; a port in VLAN 10 cannot reach a port in VLAN 20 — they're different LANs sharing the same metal. Across switches you need a <strong>trunk</strong>: one wire that carries every VLAN, with each frame stamped (tagged) so the far switch knows which VLAN it belongs to. The native VLAN is the one exception — it travels untagged. Mismatch the native VLAN on each end and you create a security bypass (VLAN hopping).
+  </div>
+</div>
+
+<div class="panel">
+  <h2>Topology</h2>
+  <div class="topo">
+    <div class="sw">
+      <h3>SW1</h3>
+      <div class="ports">
+        <div class="port"><div class="pname">Fa0/1</div><select data-sw="1" data-port="1"><option value="a10">access VLAN 10</option><option value="a20">access VLAN 20</option><option value="trunk">trunk</option></select><div class="vlan-tag" id="t1-1">VLAN 10</div></div>
+        <div class="port"><div class="pname">Fa0/2</div><select data-sw="1" data-port="2"><option value="a10">access VLAN 10</option><option value="a20" selected>access VLAN 20</option><option value="trunk">trunk</option></select><div class="vlan-tag" id="t1-2">VLAN 20</div></div>
+        <div class="port"><div class="pname">Fa0/3</div><select data-sw="1" data-port="3"><option value="a10">access VLAN 10</option><option value="a20">access VLAN 20</option><option value="trunk">trunk</option></select><div class="vlan-tag" id="t1-3">VLAN 10</div></div>
+        <div class="port"><div class="pname">Gi0/1</div><select data-sw="1" data-port="4"><option value="a10">access VLAN 10</option><option value="a20">access VLAN 20</option><option value="trunk" selected>trunk</option></select><div class="vlan-tag" id="t1-4">trunk</div></div>
+      </div>
+    </div>
+    <div>
+      <div class="trunk-line"></div>
+      <div class="trunk-label">802.1Q<br>trunk<br>native: VLAN 1</div>
+    </div>
+    <div class="sw">
+      <h3>SW2</h3>
+      <div class="ports">
+        <div class="port"><div class="pname">Gi0/1</div><select data-sw="2" data-port="1"><option value="a10">access VLAN 10</option><option value="a20">access VLAN 20</option><option value="trunk" selected>trunk</option></select><div class="vlan-tag" id="t2-1">trunk</div></div>
+        <div class="port"><div class="pname">Fa0/1</div><select data-sw="2" data-port="2"><option value="a10" selected>access VLAN 10</option><option value="a20">access VLAN 20</option><option value="trunk">trunk</option></select><div class="vlan-tag" id="t2-2">VLAN 10</div></div>
+        <div class="port"><div class="pname">Fa0/2</div><select data-sw="2" data-port="3"><option value="a10">access VLAN 10</option><option value="a20" selected>access VLAN 20</option><option value="trunk">trunk</option></select><div class="vlan-tag" id="t2-3">VLAN 20</div></div>
+        <div class="port"><div class="pname">Fa0/3</div><select data-sw="2" data-port="4"><option value="a10">access VLAN 10</option><option value="a20">access VLAN 20</option><option value="trunk">trunk</option></select><div class="vlan-tag" id="t2-4">VLAN 10</div></div>
+      </div>
+    </div>
+  </div>
+  <div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+    <span style="font-family:var(--font-display);font-size:.84rem;color:var(--ink-secondary);font-weight:600">Send frame:</span>
+    <button class="btn accent" data-from="1-1" data-to="2-2">SW1 Fa0/1 (V10) → SW2 Fa0/1 (V10)</button>
+    <button class="btn accent" data-from="1-2" data-to="2-3">SW1 Fa0/2 (V20) → SW2 Fa0/2 (V20)</button>
+    <button class="btn ghost" data-from="1-1" data-to="2-3">SW1 Fa0/1 (V10) → SW2 Fa0/2 (V20) — trap</button>
+  </div>
+  <div class="frame-anim" id="anim"><div style="color:var(--ink-muted);font-style:italic">Click a frame button to walk the trip…</div></div>
+  <div class="verdict" id="verdict"></div>
+</div>
+
+<div class="panel quiz">
+  <h2>Quiz mode <span style="color:var(--accent);text-transform:none;letter-spacing:0;font-weight:700">— predict before peeking</span></h2>
+  <div class="stem" id="quizStem">Loading…</div>
+  <div class="opts" id="quizOpts"></div>
+  <div class="why" id="quizWhy"></div>
+  <div class="scoreline">
+    <span><strong id="qC">0</strong> correct</span>
+    <span><strong id="qW">0</strong> wrong</span>
+    <span><strong id="qS">0</strong> streak</span>
+    <span style="margin-left:auto"><button class="btn ghost" id="newQ">Next ↻</button></span>
+  </div>
+</div>
+
+<div class="footer"><a href="blueprint-drill.html?obj=2.1">← back to 2.1 leaves</a></div>
+
+<script>
+document.addEventListener('DOMContentLoaded',function(){
+  function modeFor(sw,port){
+    var sel=document.querySelector('select[data-sw="'+sw+'"][data-port="'+port+'"]');
+    return sel?sel.value:'a10';
+  }
+  function refreshLabels(){
+    document.querySelectorAll('select').forEach(function(s){
+      var tag=document.getElementById('t'+s.dataset.sw+'-'+s.dataset.port);
+      if(!tag)return;
+      tag.textContent=s.value==='a10'?'VLAN 10':s.value==='a20'?'VLAN 20':'trunk';
+      tag.style.background=s.value==='trunk'?'var(--ink)':'var(--accent)';
+    });
+  }
+  document.querySelectorAll('select').forEach(function(s){s.addEventListener('change',refreshLabels)});
+  refreshLabels();
+
+  function sendFrame(from,to){
+    var fp=from.split('-'),tp=to.split('-');
+    var srcMode=modeFor(fp[0],fp[1]),dstMode=modeFor(tp[0],tp[1]);
+    var srcVlan=srcMode==='a10'?10:srcMode==='a20'?20:null;
+    var dstVlan=dstMode==='a10'?10:dstMode==='a20'?20:null;
+    var trunk1=modeFor('1','4'),trunk2=modeFor('2','1');
+    var anim=document.getElementById('anim'),v=document.getElementById('verdict');
+    v.className='verdict';
+    if(srcMode==='trunk'||dstMode==='trunk'){anim.innerHTML='<em style="color:var(--wrong)">Endpoints can\'t sit on trunks. Pick access ports.</em>';return}
+    if(trunk1!=='trunk'||trunk2!=='trunk'){anim.innerHTML='<em style="color:var(--wrong)">Inter-switch link isn\'t a trunk. Set Gi0/1 on both to trunk.</em>';return}
+
+    var steps=[
+      {t:'Step 1 · Frame leaves source PC',html:'<div>PC sends raw Ethernet frame in. SW1 ingress on Fa0/'+fp[1]+' (access VLAN '+srcVlan+').</div><div class="frame-bytes"><span class="field dst">DST MAC</span><span class="field src">SRC MAC</span><span class="field type">EtherType 0x0800</span><span class="field payload">IP payload</span></div>'},
+      {t:'Step 2 · SW1 tags it for the trunk',html:'<div>SW1 forwards out Gi0/1 (trunk). Frame gets a 4-byte 802.1Q tag inserted: <strong>VID = '+srcVlan+'</strong>.</div><div class="frame-bytes"><span class="field dst">DST MAC</span><span class="field src">SRC MAC</span><span class="field tag">802.1Q VID '+srcVlan+'</span><span class="field type">EtherType 0x0800</span><span class="field payload">IP payload</span></div>'},
+      {t:'Step 3 · SW2 reads tag, strips it',html:'<div>SW2 ingress on Gi0/1 reads VID '+srcVlan+'. Looks up egress port for VLAN '+srcVlan+' → Fa0/'+tp[1]+' (access VLAN '+dstVlan+'). '+(srcVlan===dstVlan?'Match — strip tag, deliver.':'<strong style="color:var(--wrong)">Mismatch — VLAN '+srcVlan+' has no path to VLAN '+dstVlan+'. Frame dropped.</strong>')+'</div>'+(srcVlan===dstVlan?'<div class="frame-bytes"><span class="field dst">DST MAC</span><span class="field src">SRC MAC</span><span class="field type">EtherType 0x0800</span><span class="field payload">IP payload</span></div>':'')}
+    ];
+    anim.innerHTML='';
+    steps.forEach(function(s,i){
+      var d=document.createElement('div');d.className='frame-step';d.innerHTML='<strong style="font-family:var(--font-display)">'+s.t+'</strong>'+s.html;
+      anim.appendChild(d);
+      setTimeout(function(){d.classList.add('show')},i*900);
+    });
+    setTimeout(function(){
+      if(srcVlan===dstVlan){v.className='verdict win show';v.textContent='✓ Frame delivered. Tag added at trunk, stripped at egress access port.';}
+      else{v.className='verdict miss show';v.textContent='✗ Dropped. VLAN '+srcVlan+' frame can\'t exit a VLAN '+dstVlan+' port. Different broadcast domains.';}
+    },steps.length*900);
+  }
+  document.querySelectorAll('button[data-from]').forEach(function(b){b.addEventListener('click',function(){sendFrame(b.dataset.from,b.dataset.to)})});
+
+  var pool=[
+    {q:'A frame leaves an access port in VLAN 30 and exits a trunk. What does the switch do?',o:['Send it untagged','Insert 802.1Q tag VID=30','Drop it','Convert to ISL'],a:1,why:'Trunks tag every VLAN except the native. VID=30 is added before EtherType.'},
+    {q:'Native VLAN on SW1 trunk is 1. Native on SW2 trunk is 99. What happens to an untagged frame from SW1?',o:['Dropped','Lands in VLAN 99 on SW2','Lands in VLAN 1 on SW2','Tagged as VLAN 1'],a:1,why:'Receiver assumes untagged = its own native. Mismatch = VLAN hopping risk.'},
+    {q:'Access port carries:',o:['All VLANs','One VLAN, untagged','One VLAN, tagged','Native VLAN only'],a:1,why:'Endpoint devices don\'t speak 802.1Q. Access port = one VLAN, untagged.'},
+    {q:'How many VLANs can a single trunk carry?',o:['1','255','4094','64'],a:2,why:'12-bit VID = 4096 values. 0 and 4095 reserved → 4094 usable.'},
+    {q:'PC in VLAN 10 pings PC in VLAN 20 (no router). Result?',a:2,o:['Works — same switch','Works — broadcast finds it','Fails — different broadcast domains','Fails — MAC mismatch'],why:'VLANs are separate L2 domains. You need a router or L3 switch to cross.'},
+    {q:'802.1Q tag size:',o:['2 bytes','4 bytes','8 bytes','12 bits'],a:1,why:'TPID(2) + TCI(2) = 4 bytes inserted between SRC MAC and EtherType.'},
+    {q:'Trunk\'s native VLAN is 1, you carry voice as VLAN 100. Phone sends untagged. What VLAN does the switch put it in?',o:['100','1','Drops','Asks DTP'],a:1,why:'Untagged on a trunk = native VLAN, period. That\'s why voice gets a tagged voice-VLAN config.'},
+    {q:'Best defense against VLAN hopping via native VLAN?',o:['Disable trunking','Set native VLAN to an unused VLAN ID and tag all on the trunk','Use VLAN 1 everywhere','Run CDP'],a:1,why:'Move native to a dead VLAN + `vlan dot1q tag native` removes the untagged loophole.'},
+    {q:'You see "switchport mode access" + "switchport access vlan 50". The port:',o:['Carries VLAN 50 tagged','Carries VLAN 50 untagged','Carries all VLANs','Negotiates DTP'],a:1,why:'Access mode = one VLAN, no tag. Endpoint-facing.'},
+    {q:'Why does the trunk add a tag at all?',o:['Encryption','So the receiving switch knows which VLAN this frame belongs to','Speed','To bypass STP'],a:1,why:'Tag = label. Without it, every VLAN looks the same on the wire.'}
+  ];
+  var qC=0,qW=0,qS=0,cur=null;
+  function ask(){
+    cur=pool[Math.floor(Math.random()*pool.length)];
+    document.getElementById('quizStem').textContent=cur.q;
+    var box=document.getElementById('quizOpts');box.innerHTML='';
+    document.getElementById('quizWhy').classList.remove('show');
+    cur.o.forEach(function(o,i){
+      var b=document.createElement('button');b.className='opt';b.textContent=o;
+      b.addEventListener('click',function(){
+        if(b.classList.contains('correct')||b.classList.contains('wrong'))return;
+        if(i===cur.a){b.classList.add('correct');qC++;qS++}
+        else{b.classList.add('wrong');qW++;qS=0;Array.prototype.forEach.call(box.children,function(c,j){if(j===cur.a)c.classList.add('correct')})}
+        document.getElementById('qC').textContent=qC;
+        document.getElementById('qW').textContent=qW;
+        document.getElementById('qS').textContent=qS;
+        var w=document.getElementById('quizWhy');w.textContent='Why: '+cur.why;w.classList.add('show');
+      });
+      box.appendChild(b);
+    });
+  }
+  document.getElementById('newQ').addEventListener('click',ask);
+  ask();
+});
+</script>
+</body>
+</html>

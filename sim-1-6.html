@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>1.6 Sim — IPv4 Subnetting</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#FAF7F2;--bg-surface:#FFFFFF;--bg-recessed:#F3F0EB;
+    --border:#E2DFD9;--border-strong:#C7C3BC;
+    --ink:#1C1917;--ink-secondary:#57534E;--ink-muted:#A8A29E;
+    --accent:#B45309;--accent-soft:#D97706;--accent-light:#FEF3C7;
+    --correct:#16A34A;--correct-bg:#F0FDF4;
+    --wrong:#DC2626;--wrong-bg:#FEF2F2;
+    --info:#2563EB;--info-bg:#EFF6FF;
+    --font-display:'Space Grotesk',system-ui,sans-serif;
+    --font-body:'Source Serif 4',Georgia,serif;
+    --font-mono:'JetBrains Mono',monospace;
+    --radius:6px;--radius-lg:10px;
+  }
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:var(--font-body);background:var(--bg);color:var(--ink);line-height:1.55;padding:24px;max-width:920px;margin:0 auto}
+  .head{margin-bottom:20px;padding-bottom:14px;border-bottom:1px solid var(--border)}
+  .head .crumb{font-family:var(--font-mono);font-size:.74rem;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px}
+  .head .crumb a{color:var(--accent);text-decoration:none}
+  .head h1{font-family:var(--font-display);font-size:1.5rem;font-weight:700;margin-bottom:6px}
+  .head .desc{font-size:.95rem;color:var(--ink-secondary)}
+  .panel{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;margin-bottom:18px}
+  .panel h2{font-family:var(--font-display);font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-secondary);margin-bottom:12px}
+  .why{background:var(--accent-light);border-left:3px solid var(--accent);padding:14px;border-radius:var(--radius);font-size:.96rem;color:var(--ink);margin-bottom:14px}
+  .input-row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
+  .input-row label{font-family:var(--font-display);font-size:.82rem;font-weight:600;color:var(--ink-secondary)}
+  input[type=text],input[type=number]{font-family:var(--font-mono);font-size:1rem;padding:8px 12px;border:1px solid var(--border-strong);border-radius:var(--radius);background:var(--bg-surface);font-weight:500}
+  input[type=text]{width:160px}
+  input[type=number]{width:80px}
+  input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-light)}
+  .btn{font-family:var(--font-display);font-size:.84rem;font-weight:600;padding:8px 16px;background:var(--ink);color:#FAF7F2;border:none;border-radius:var(--radius);cursor:pointer}
+  .btn.ghost{background:var(--bg-recessed);color:var(--ink)}
+  .btn.accent{background:var(--accent)}
+  .modes{display:flex;gap:8px;margin-bottom:14px}
+  .mode-btn{font-family:var(--font-display);font-size:.78rem;font-weight:600;padding:6px 14px;border:1px solid var(--border-strong);background:var(--bg-recessed);border-radius:99px;cursor:pointer;color:var(--ink-secondary)}
+  .mode-btn.active{background:var(--ink);color:#FAF7F2;border-color:var(--ink)}
+  .bits{display:flex;flex-wrap:wrap;gap:2px;margin:14px 0;font-family:var(--font-mono)}
+  .bit{width:22px;height:30px;display:flex;align-items:center;justify-content:center;font-size:.78rem;font-weight:700;border-radius:3px;border:1px solid var(--border)}
+  .bit.net{background:var(--accent);color:#fff;border-color:var(--accent)}
+  .bit.host{background:var(--bg-recessed);color:var(--ink-muted)}
+  .octet-sep{width:8px}
+  .results{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;margin-top:12px}
+  .result-card{background:var(--bg-recessed);border:1px solid var(--border);border-radius:var(--radius);padding:10px 14px}
+  .result-card .lbl{font-family:var(--font-display);font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-muted)}
+  .result-card .val{font-family:var(--font-mono);font-size:1rem;font-weight:600;color:var(--ink);margin-top:2px}
+  .subnet-list{margin-top:14px;font-family:var(--font-mono);font-size:.86rem}
+  .subnet-row{padding:8px 12px;background:var(--bg-recessed);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:4px;display:grid;grid-template-columns:60px 1fr 1fr 1fr;gap:8px}
+  .subnet-row .sn{font-weight:700;color:var(--accent)}
+  .quiz .stem{font-family:var(--font-display);font-size:1.02rem;font-weight:600;margin-bottom:12px;padding:14px;background:var(--accent-light);border-left:3px solid var(--accent);border-radius:var(--radius)}
+  .quiz .opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px}
+  .opt{background:var(--bg-recessed);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;font-family:var(--font-mono);font-size:.92rem;cursor:pointer;text-align:left}
+  .opt:hover{border-color:var(--border-strong);background:var(--bg-surface)}
+  .opt.correct{background:var(--correct-bg);border-color:var(--correct);color:var(--correct);font-weight:700}
+  .opt.wrong{background:var(--wrong-bg);border-color:var(--wrong);color:var(--wrong)}
+  .scoreline{font-family:var(--font-mono);font-size:.84rem;color:var(--ink-muted);margin-top:10px;display:flex;gap:18px;align-items:center;flex-wrap:wrap}
+  .scoreline strong{font-weight:700;color:var(--ink)}
+  .verdict{margin-top:14px;padding:12px 16px;border-radius:var(--radius);font-family:var(--font-display);font-size:.92rem;font-weight:600;display:none}
+  .verdict.show{display:block}
+  .verdict.info{background:var(--info-bg);color:var(--info);border:1px solid var(--info)}
+  .footer{font-family:var(--font-mono);font-size:.78rem;color:var(--ink-muted);margin-top:24px;text-align:center}
+  .footer a{color:var(--accent);text-decoration:none}
+</style>
+</head>
+<body>
+
+<div class="head">
+  <div class="crumb"><a href="blueprint-drill.html?obj=1.6">← back to 1.6 leaves</a> · 1.6 · IPv4 Subnetting</div>
+  <h1>IPv4 Subnetting Calculator</h1>
+  <div class="desc">Type an IP and CIDR. The 32 bits split into network (amber) and host (gray). Network address, broadcast, usable hosts, dotted-decimal mask — all updated live.</div>
+</div>
+
+<div class="panel">
+  <div class="why"><strong>WHY this exists.</strong> A subnet mask divides 32 bits into two parts. Network bits identify which network the IP belongs to. Host bits identify which device on that network. Routers route on network bits. ANDing the IP with the mask gives the network address. Subtracting from broadcast gives usable hosts. Once you can see the bits, the math becomes obvious.</div>
+  <div class="modes">
+    <button class="mode-btn active" data-mode="calc">Calculator</button>
+    <button class="mode-btn" data-mode="split">Split a /24</button>
+  </div>
+
+  <div id="calcMode">
+    <div class="input-row">
+      <label>IP:</label>
+      <input id="ip" type="text" value="192.168.1.50">
+      <label>/</label>
+      <input id="cidr" type="number" min="0" max="32" value="26">
+    </div>
+    <div class="bits" id="bits"></div>
+    <div class="results" id="results"></div>
+  </div>
+
+  <div id="splitMode" style="display:none">
+    <div class="input-row">
+      <label>Base /24:</label>
+      <input id="baseNet" type="text" value="192.168.10.0">
+      <label>Split into:</label>
+      <input id="numSubs" type="number" min="2" max="64" value="4">
+      <button class="btn accent" id="splitBtn">Split</button>
+    </div>
+    <div id="splitOut"></div>
+  </div>
+</div>
+
+<div class="panel quiz">
+  <h2>Quiz mode <span style="color:var(--accent);text-transform:none;letter-spacing:0;font-weight:700">— subnet drills</span></h2>
+  <div class="stem" id="quizStem">Loading…</div>
+  <div class="opts" id="quizOpts"></div>
+  <div class="scoreline">
+    <span><strong id="qC">0</strong> correct</span>
+    <span><strong id="qW">0</strong> wrong</span>
+    <span><strong id="qS">0</strong> streak</span>
+    <span style="margin-left:auto"><button class="btn ghost" id="newQ">Next ↻</button></span>
+  </div>
+  <div class="verdict" id="qVerdict"></div>
+</div>
+
+<div class="footer"><a href="blueprint-drill.html?obj=1.6">← back to 1.6 leaves</a></div>
+
+<script>
+(function(){
+  function ipToInt(ip){
+    var p = ip.split('.').map(Number);
+    if (p.length!==4||p.some(function(x){return isNaN(x)||x<0||x>255;})) return null;
+    return ((p[0]<<24)|(p[1]<<16)|(p[2]<<8)|p[3])>>>0;
+  }
+  function intToIp(n){return [(n>>>24)&255,(n>>>16)&255,(n>>>8)&255,n&255].join('.');}
+  function maskFromCidr(c){return c===0?0:(0xFFFFFFFF<<(32-c))>>>0;}
+  function ipBits(n){var s='';for(var i=31;i>=0;i--)s+=((n>>>i)&1);return s;}
+
+  function compute(){
+    var ip = document.getElementById('ip').value.trim();
+    var cidr = parseInt(document.getElementById('cidr').value, 10);
+    var n = ipToInt(ip);
+    if (n===null||isNaN(cidr)||cidr<0||cidr>32){
+      document.getElementById('results').innerHTML='<div class="result-card"><div class="lbl">Error</div><div class="val">Invalid input</div></div>';
+      return;
+    }
+    var mask = maskFromCidr(cidr);
+    var net = (n & mask)>>>0;
+    var bcast = (net | (~mask>>>0))>>>0;
+    var hosts = cidr>=31 ? (cidr===32?1:2) : Math.pow(2,32-cidr)-2;
+    var first = cidr>=31?net:net+1;
+    var last = cidr>=31?bcast:bcast-1;
+
+    var bits = ipBits(n);
+    var box = document.getElementById('bits'); box.innerHTML='';
+    for (var i=0;i<32;i++){
+      var b = document.createElement('div');
+      b.className = 'bit ' + (i<cidr?'net':'host');
+      b.textContent = bits[i];
+      box.appendChild(b);
+      if (i===7||i===15||i===23){var s=document.createElement('div');s.className='octet-sep';box.appendChild(s);}
+    }
+
+    var rows = [
+      ['Network address', intToIp(net)+'/'+cidr],
+      ['Broadcast', intToIp(bcast)],
+      ['First usable', intToIp(first)],
+      ['Last usable', intToIp(last)],
+      ['Mask (dotted)', intToIp(mask)],
+      ['Usable hosts', hosts.toLocaleString()]
+    ];
+    document.getElementById('results').innerHTML = rows.map(function(r){
+      return '<div class="result-card"><div class="lbl">'+r[0]+'</div><div class="val">'+r[1]+'</div></div>';
+    }).join('');
+  }
+  document.getElementById('ip').addEventListener('input', compute);
+  document.getElementById('cidr').addEventListener('input', compute);
+  compute();
+
+  function doSplit(){
+    var base = document.getElementById('baseNet').value.trim();
+    var num = parseInt(document.getElementById('numSubs').value, 10);
+    var n = ipToInt(base);
+    if (n===null) return;
+    var bitsAdd = Math.ceil(Math.log2(num));
+    if (bitsAdd<1) bitsAdd=1;
+    var newCidr = 24 + bitsAdd;
+    if (newCidr>30){ document.getElementById('splitOut').innerHTML='<div class="verdict info show">Too many subnets — would leave fewer than 2 hosts each.</div>'; return; }
+    var blockSize = Math.pow(2,32-newCidr);
+    var html = '<div class="subnet-list"><div class="subnet-row" style="font-weight:700;background:var(--accent-light)"><div>#</div><div>Subnet</div><div>Range</div><div>Hosts</div></div>';
+    for (var i=0;i<num;i++){
+      var sn = (n + i*blockSize)>>>0;
+      var bc = (sn | (~maskFromCidr(newCidr)>>>0))>>>0;
+      var first = sn+1, last = bc-1;
+      html += '<div class="subnet-row"><div class="sn">'+(i+1)+'</div><div>'+intToIp(sn)+'/'+newCidr+'</div><div>'+intToIp(first)+' – '+intToIp(last)+'</div><div>'+(blockSize-2)+'</div></div>';
+    }
+    html += '</div>';
+    document.getElementById('splitOut').innerHTML = html;
+  }
+  document.getElementById('splitBtn').addEventListener('click', doSplit);
+
+  document.querySelectorAll('.mode-btn').forEach(function(b){
+    b.addEventListener('click', function(){
+      document.querySelectorAll('.mode-btn').forEach(function(x){ x.classList.remove('active'); });
+      b.classList.add('active');
+      var mode = b.dataset.mode;
+      document.getElementById('calcMode').style.display = mode==='calc'?'block':'none';
+      document.getElementById('splitMode').style.display = mode==='split'?'block':'none';
+    });
+  });
+
+  // Quiz
+  var qC=0, qW=0, qS=0;
+  function genQ(){
+    var qType = Math.floor(Math.random()*5);
+    var ip, cidr, n, mask, net, bcast, hosts, q, ans, opts;
+    var cidrs = [16,20,22,24,25,26,27,28,29,30];
+    cidr = cidrs[Math.floor(Math.random()*cidrs.length)];
+    var b1 = (Math.random()<0.5?10:Math.random()<0.5?172:192);
+    var b2 = b1===172 ? 16+Math.floor(Math.random()*16) : (b1===192?168:Math.floor(Math.random()*256));
+    var b3 = Math.floor(Math.random()*256);
+    var b4 = Math.floor(Math.random()*254)+1;
+    ip = b1+'.'+b2+'.'+b3+'.'+b4;
+    n = ipToInt(ip); mask = maskFromCidr(cidr);
+    net = (n & mask)>>>0; bcast = (net | (~mask>>>0))>>>0;
+    hosts = cidr>=31?0:Math.pow(2,32-cidr)-2;
+
+    if (qType===0){
+      q = 'What is the network address of '+ip+'/'+cidr+'?';
+      ans = intToIp(net);
+      opts = [ans, intToIp(bcast), intToIp(net+1), intToIp(n)];
+    } else if (qType===1){
+      q = 'What is the broadcast address of '+ip+'/'+cidr+'?';
+      ans = intToIp(bcast);
+      opts = [ans, intToIp(net), intToIp(bcast-1), intToIp(bcast+1)];
+    } else if (qType===2){
+      q = 'How many usable hosts in /'+cidr+'?';
+      ans = hosts.toLocaleString();
+      opts = [ans, (hosts+2).toLocaleString(), (hosts*2).toLocaleString(), Math.floor(hosts/2).toLocaleString()];
+    } else if (qType===3){
+      q = 'What is the dotted-decimal mask for /'+cidr+'?';
+      ans = intToIp(mask);
+      opts = [ans, intToIp(maskFromCidr(cidr-1)), intToIp(maskFromCidr(cidr+1)), intToIp(maskFromCidr(24))];
+    } else {
+      q = 'What is the first usable host in '+ip+'/'+cidr+'?';
+      ans = intToIp(net+1);
+      opts = [ans, intToIp(net), intToIp(bcast), intToIp(bcast-1)];
+    }
+    opts = opts.filter(function(v,i,a){return a.indexOf(v)===i;}).sort(function(){return Math.random()-.5;});
+    document.getElementById('quizStem').textContent = q;
+    var box = document.getElementById('quizOpts'); box.innerHTML='';
+    var v = document.getElementById('qVerdict'); v.className='verdict'; v.textContent='';
+    opts.forEach(function(o){
+      var btn = document.createElement('button'); btn.className='opt'; btn.textContent=o;
+      btn.addEventListener('click', function(){
+        if (btn.classList.contains('correct')||btn.classList.contains('wrong')) return;
+        if (o===ans){ btn.classList.add('correct'); qC++; qS++; }
+        else { btn.classList.add('wrong'); qW++; qS=0;
+          Array.prototype.forEach.call(box.children, function(c){ if (c.textContent===ans) c.classList.add('correct'); });
+        }
+        document.getElementById('qC').textContent=qC;
+        document.getElementById('qW').textContent=qW;
+        document.getElementById('qS').textContent=qS;
+        document.getElementById('ip').value=ip; document.getElementById('cidr').value=cidr; compute();
+      });
+      box.appendChild(btn);
+    });
+  }
+  document.getElementById('newQ').addEventListener('click', genQ);
+  genQ();
+})();
+</script>
+</body>
+</html>

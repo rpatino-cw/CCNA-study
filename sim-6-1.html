@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>6.1 Sim — Traditional vs Controller-Based Networking</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{--bg:#FAF7F2;--bg-surface:#FFFFFF;--bg-recessed:#F3F0EB;--border:#E2DFD9;--border-strong:#C7C3BC;--ink:#1C1917;--ink-secondary:#57534E;--ink-muted:#A8A29E;--accent:#B45309;--accent-soft:#D97706;--accent-light:#FEF3C7;--correct:#16A34A;--correct-bg:#F0FDF4;--wrong:#DC2626;--wrong-bg:#FEF2F2;--info:#2563EB;--info-bg:#EFF6FF;--font-display:'Space Grotesk',system-ui,sans-serif;--font-body:'Source Serif 4',Georgia,serif;--font-mono:'JetBrains Mono',monospace;--radius:6px;--radius-lg:10px}
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:var(--font-body);background:var(--bg);color:var(--ink);line-height:1.55;padding:24px;max-width:920px;margin:0 auto}
+  .head{margin-bottom:20px;padding-bottom:14px;border-bottom:1px solid var(--border)}
+  .head .crumb{font-family:var(--font-mono);font-size:.74rem;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px}
+  .head h1{font-family:var(--font-display);font-size:1.5rem;font-weight:700;margin-bottom:6px}
+  .head .desc{font-size:.95rem;color:var(--ink-secondary)}
+  .panel{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;margin-bottom:18px}
+  .panel h2{font-family:var(--font-display);font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-secondary);margin-bottom:12px}
+  .intro{font-size:.96rem;color:var(--ink-secondary);margin-bottom:14px}
+  .intro strong{color:var(--ink)}
+  .btn{font-family:var(--font-display);font-size:.84rem;font-weight:600;padding:8px 16px;background:var(--ink);color:#FAF7F2;border:none;border-radius:var(--radius);cursor:pointer}
+  .btn.ghost{background:var(--bg-recessed);color:var(--ink)}
+  .btn.accent{background:var(--accent)}
+  .compare{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:8px}
+  .col{padding:16px;background:var(--bg-recessed);border:1px solid var(--border);border-radius:var(--radius);position:relative;min-height:260px}
+  .col h3{font-family:var(--font-display);font-size:1.04rem;color:var(--accent);margin-bottom:8px}
+  .topo{position:relative;height:160px;margin-top:10px}
+  .ctrl{position:absolute;left:50%;top:0;transform:translateX(-50%);padding:6px 12px;background:var(--accent);color:#fff;border-radius:var(--radius);font-family:var(--font-mono);font-size:.78rem;font-weight:700}
+  .rtr{position:absolute;width:38px;height:30px;background:var(--bg-surface);border:2px solid var(--ink);border-radius:4px;display:flex;align-items:center;justify-content:center;font-family:var(--font-mono);font-size:.74rem;font-weight:700;transition:all .35s}
+  .rtr.drift{border-color:var(--wrong);background:var(--wrong-bg);color:var(--wrong)}
+  .rtr.aligned{border-color:var(--correct);background:var(--correct-bg);color:var(--correct)}
+  .planes{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:14px}
+  .plane{padding:12px;background:var(--bg-recessed);border:1px solid var(--border);border-radius:var(--radius);font-family:var(--font-mono);font-size:.84rem}
+  .plane h4{font-family:var(--font-display);font-size:.84rem;color:var(--accent);margin-bottom:6px}
+  .verdict{margin-top:14px;padding:12px 16px;border-radius:var(--radius);font-family:var(--font-display);font-size:.94rem;font-weight:600;display:none}
+  .verdict.show{display:block;animation:fadeIn .25s ease}
+  .verdict.win{background:var(--correct-bg);color:var(--correct);border:1px solid var(--correct)}
+  .verdict.miss{background:var(--wrong-bg);color:var(--wrong);border:1px solid var(--wrong)}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
+  .quiz{margin-top:22px}
+  .quiz .stem{font-family:var(--font-display);font-size:1.02rem;font-weight:600;margin-bottom:12px;padding:14px;background:var(--accent-light);border-left:3px solid var(--accent);border-radius:var(--radius)}
+  .quiz .opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px}
+  .opt{background:var(--bg-recessed);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;font-family:var(--font-mono);font-size:.92rem;cursor:pointer;text-align:left}
+  .opt:hover{border-color:var(--border-strong);background:var(--bg-surface)}
+  .opt.correct{background:var(--correct-bg);border-color:var(--correct);color:var(--correct);font-weight:700}
+  .opt.wrong{background:var(--wrong-bg);border-color:var(--wrong);color:var(--wrong)}
+  .scoreline{font-family:var(--font-mono);font-size:.84rem;color:var(--ink-muted);margin-top:10px;display:flex;gap:18px;align-items:center}
+  .scoreline strong{font-weight:700;color:var(--ink)}
+  .badge{display:inline-block;font-family:var(--font-display);font-size:.7rem;font-weight:700;padding:2px 8px;border-radius:99px;background:var(--accent-light);color:var(--accent);text-transform:uppercase;letter-spacing:.04em;margin-left:8px}
+  .footer-link{margin-top:24px;padding-top:14px;border-top:1px solid var(--border);font-family:var(--font-mono);font-size:.82rem}
+  .footer-link a{color:var(--accent);text-decoration:none}
+</style>
+</head>
+<body>
+
+<div class="head">
+  <div class="crumb"><a href="blueprint-drill.html?obj=6.1" style="color:var(--accent);text-decoration:none">← 6.1 Mini Sims</a> · 6.1 · Automation · Traditional vs Controller</div>
+  <h1>Traditional vs Controller-Based Sim<span class="badge">drill</span></h1>
+  <div class="desc">Traditional networking = <strong>each device is its own brain</strong> — config it by hand, hope it stays in sync. SDN puts the brain in <strong>one controller</strong> — push policy once, every device obeys. Click "Cause drift" to see traditional fail, then "Apply policy" to see controller fix it.</div>
+</div>
+
+<div class="panel">
+  <h2>Side-by-side</h2>
+  <div class="compare">
+    <div class="col"><h3>Traditional (per-device CLI)</h3>
+      <div class="topo">
+        <div class="rtr" id="t1" style="left:8%;top:30%">R1</div>
+        <div class="rtr" id="t2" style="left:38%;top:30%">R2</div>
+        <div class="rtr" id="t3" style="left:68%;top:30%">R3</div>
+        <div class="rtr" id="t4" style="left:38%;top:75%">R4</div>
+      </div>
+      <button class="btn ghost" id="drift">Cause drift →</button>
+    </div>
+    <div class="col"><h3>Controller-based (SDN)</h3>
+      <div class="topo">
+        <div class="ctrl">Controller — single policy</div>
+        <div class="rtr" id="c1" style="left:8%;top:55%">R1</div>
+        <div class="rtr" id="c2" style="left:38%;top:55%">R2</div>
+        <div class="rtr" id="c3" style="left:68%;top:55%">R3</div>
+        <div class="rtr" id="c4" style="left:38%;top:95%">R4</div>
+      </div>
+      <button class="btn accent" id="apply">Push policy →</button>
+    </div>
+  </div>
+  <div id="verdict" class="verdict"></div>
+</div>
+
+<div class="panel">
+  <h2>Three planes</h2>
+  <p class="intro">Networking has three "planes" of operation. SDN's whole trick: <strong>separate the control plane from the data plane</strong>, centralize the control plane.</p>
+  <div class="planes">
+    <div class="plane"><h4>Data plane</h4>The forwarding muscles. Looks at packets, makes per-packet drop/forward decisions. Lives on every device. Stays distributed in SDN.</div>
+    <div class="plane"><h4>Control plane</h4>The brain. Builds routing/forwarding tables, runs OSPF/BGP, decides paths. Distributed in traditional, <strong>centralized</strong> in SDN.</div>
+    <div class="plane"><h4>Management plane</h4>Config + monitoring (SSH, SNMP, NETCONF). Can also be centralized — APIs, dashboards, telemetry.</div>
+  </div>
+</div>
+
+<div class="panel quiz" id="quizPanel">
+  <h2>Quiz mode</h2>
+  <div class="stem" id="quizStem">Loading…</div>
+  <div class="opts" id="quizOpts"></div>
+  <div class="scoreline">
+    <span><strong id="qCorrect">0</strong> correct</span>
+    <span><strong id="qWrong">0</strong> wrong</span>
+    <span><strong id="qStreak">0</strong> streak</span>
+    <span style="margin-left:auto"><button class="btn ghost" id="newQ">Next ↻</button></span>
+  </div>
+</div>
+
+<div class="footer-link"><a href="blueprint-drill.html?obj=6.1">← back to 6.1 leaves</a></div>
+
+<script>
+(function(){
+  document.getElementById('drift').addEventListener('click', function(){
+    var ids = ['t1','t2','t3','t4'];
+    ids.forEach(function(id, i){
+      setTimeout(function(){
+        document.getElementById(id).classList.add('drift');
+      }, i*300);
+    });
+    setTimeout(function(){
+      var v = document.getElementById('verdict');
+      v.className='verdict miss show';
+      v.textContent = '✗ Config drift. Each router was touched separately by different engineers, different days. R2 has wrong VLAN, R3 missing ACL, R4 different MTU. Hours to debug.';
+    }, 1300);
+  });
+  document.getElementById('apply').addEventListener('click', function(){
+    var ids = ['c1','c2','c3','c4'];
+    ids.forEach(function(id, i){
+      setTimeout(function(){
+        var el = document.getElementById(id);
+        el.classList.remove('drift'); el.classList.add('aligned');
+      }, i*200);
+    });
+    var tids = ['t1','t2','t3','t4'];
+    tids.forEach(function(id){ document.getElementById(id).classList.remove('drift','aligned'); });
+    setTimeout(function(){
+      var v = document.getElementById('verdict');
+      v.className='verdict win show';
+      v.textContent = '✓ Single policy pushed. All 4 routers identical state. Add a 5th — it gets the same policy automatically.';
+    }, 900);
+  });
+
+  var qCorrect=0, qWrong=0, qStreak=0;
+  var pool = [
+    { stem:'In SDN, the control plane is:', opts:['Distributed across each device','Centralized in a controller','Removed entirely','On the data plane'], ans:'Centralized in a controller' },
+    { stem:'Per-packet forwarding decisions live on the:', opts:['Data plane','Control plane','Management plane','Application plane'], ans:'Data plane' },
+    { stem:'Traditional networking biggest pain point:', opts:['Cost','Config drift across devices','Speed','Power'], ans:'Config drift across devices' },
+    { stem:'Which plane handles SSH/SNMP/NETCONF?', opts:['Data','Control','Management','Forwarding'], ans:'Management' },
+    { stem:'OSPF runs on which plane?', opts:['Data','Control','Management','Application'], ans:'Control' },
+    { stem:'SDN separates control plane FROM:', opts:['Power','Data plane','Hardware','Cables'], ans:'Data plane' },
+    { stem:'Benefit of centralized control plane?', opts:['Faster cables','Single source of truth, push policy once','More devices','Cheaper hardware'], ans:'Single source of truth, push policy once' },
+    { stem:'Per-device CLI scales poorly because:', opts:['CLI is slow','Each change is N×operator-hours','Routers reject CLI','It\'s deprecated'], ans:'Each change is N×operator-hours' },
+    { stem:'Cisco DNA Center is an example of:', opts:['Traditional CLI','SDN controller','Routing protocol','Switch OS'], ans:'SDN controller' },
+    { stem:'In SDN, data plane usually stays:', opts:['Centralized','Distributed on each device','Removed','In the cloud'], ans:'Distributed on each device' }
+  ];
+  function pickQ(){
+    var q = pool[Math.floor(Math.random()*pool.length)];
+    var opts = q.opts.slice().sort(function(){return Math.random()-.5;});
+    document.getElementById('quizStem').textContent = q.stem;
+    var bx = document.getElementById('quizOpts'); bx.innerHTML='';
+    opts.forEach(function(o){
+      var btn = document.createElement('button');
+      btn.className='opt'; btn.textContent=o;
+      btn.addEventListener('click', function(){
+        if (btn.classList.contains('correct')||btn.classList.contains('wrong')) return;
+        if (o===q.ans){ btn.classList.add('correct'); qCorrect++; qStreak++; }
+        else { btn.classList.add('wrong'); qWrong++; qStreak=0;
+          Array.prototype.forEach.call(bx.children, function(c){ if (c.textContent===q.ans) c.classList.add('correct'); }); }
+        document.getElementById('qCorrect').textContent=qCorrect;
+        document.getElementById('qWrong').textContent=qWrong;
+        document.getElementById('qStreak').textContent=qStreak;
+      });
+      bx.appendChild(btn);
+    });
+  }
+  document.getElementById('newQ').addEventListener('click', pickQ);
+  pickQ();
+})();
+</script>
+</body>
+</html>

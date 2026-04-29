@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>1.9.c Sim — IPv6 Multicast</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#FAF7F2;--bg-surface:#FFFFFF;--bg-recessed:#F3F0EB;
+    --border:#E2DFD9;--border-strong:#C7C3BC;
+    --ink:#1C1917;--ink-secondary:#57534E;--ink-muted:#A8A29E;
+    --accent:#B45309;--accent-soft:#D97706;--accent-light:#FEF3C7;
+    --correct:#16A34A;--correct-bg:#F0FDF4;
+    --wrong:#DC2626;--wrong-bg:#FEF2F2;
+    --info:#2563EB;--info-bg:#EFF6FF;
+    --font-display:'Space Grotesk',system-ui,sans-serif;
+    --font-body:'Source Serif 4',Georgia,serif;
+    --font-mono:'JetBrains Mono',monospace;
+    --radius:6px;--radius-lg:10px;
+  }
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:var(--font-body);background:var(--bg);color:var(--ink);line-height:1.55;padding:24px;max-width:920px;margin:0 auto}
+  .head{margin-bottom:20px;padding-bottom:14px;border-bottom:1px solid var(--border)}
+  .head .crumb{font-family:var(--font-mono);font-size:.74rem;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px}
+  .head .crumb a{color:var(--accent);text-decoration:none}
+  .head h1{font-family:var(--font-display);font-size:1.5rem;font-weight:700;margin-bottom:6px}
+  .head .desc{font-size:.95rem;color:var(--ink-secondary)}
+  .panel{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;margin-bottom:18px}
+  .panel h2{font-family:var(--font-display);font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-secondary);margin-bottom:12px}
+  .why{background:var(--accent-light);border-left:3px solid var(--accent);padding:14px;border-radius:var(--radius);font-size:.96rem;color:var(--ink);margin-bottom:14px}
+  .scope-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+  .scope-btn{font-family:var(--font-display);font-size:.84rem;font-weight:600;padding:8px 14px;border:1px solid var(--border-strong);background:var(--bg-recessed);border-radius:var(--radius);cursor:pointer;color:var(--ink-secondary)}
+  .scope-btn.active{background:var(--ink);color:#FAF7F2;border-color:var(--ink)}
+  .scope-btn .pfx{font-family:var(--font-mono);font-size:.76rem;display:block;color:inherit}
+  .stage{position:relative;background:var(--bg-recessed);border:1px solid var(--border);border-radius:var(--radius-lg);height:380px;overflow:hidden}
+  .ring{position:absolute;border-radius:50%;border:2px dashed var(--border-strong);transform:translate(-50%,-50%);transition:all .4s cubic-bezier(.16,1,.3,1)}
+  .ring-label{position:absolute;font-family:var(--font-mono);font-size:.74rem;color:var(--ink-muted);transform:translate(-50%,0);pointer-events:none}
+  .source{position:absolute;left:50%;top:50%;width:48px;height:48px;background:var(--accent);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--font-mono);font-size:.72rem;font-weight:700;transform:translate(-50%,-50%);z-index:5;box-shadow:0 4px 12px rgba(0,0,0,.2)}
+  .pulse{position:absolute;left:50%;top:50%;border-radius:50%;background:rgba(180,83,9,.3);transform:translate(-50%,-50%);pointer-events:none}
+  @keyframes mpulse{0%{width:0;height:0;opacity:.7}100%{width:var(--maxR);height:var(--maxR);opacity:0}}
+  .pulse.go{animation:mpulse 2s cubic-bezier(.16,1,.3,1) forwards}
+  .verdict{margin-top:14px;padding:14px;border-radius:var(--radius);font-family:var(--font-display);font-size:.96rem;font-weight:600;display:none}
+  .verdict.show{display:block}
+  .verdict.info{background:var(--info-bg);color:var(--info);border:1px solid var(--info)}
+  .groups{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px;margin-top:10px}
+  .grp{background:var(--bg-recessed);border:1px solid var(--border);border-radius:var(--radius);padding:10px 12px;font-family:var(--font-mono);font-size:.82rem}
+  .grp .addr{font-weight:700;color:var(--accent)}
+  .grp .role{font-family:var(--font-body);font-size:.86rem;color:var(--ink-secondary);margin-top:2px}
+  .btn{font-family:var(--font-display);font-size:.84rem;font-weight:600;padding:8px 16px;background:var(--ink);color:#FAF7F2;border:none;border-radius:var(--radius);cursor:pointer}
+  .btn.accent{background:var(--accent)}
+  .btn.ghost{background:var(--bg-recessed);color:var(--ink)}
+  .quiz .stem{font-family:var(--font-display);font-size:1.02rem;font-weight:600;margin-bottom:12px;padding:14px;background:var(--accent-light);border-left:3px solid var(--accent);border-radius:var(--radius)}
+  .quiz .opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px}
+  .opt{background:var(--bg-recessed);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;font-family:var(--font-mono);font-size:.86rem;cursor:pointer;text-align:left}
+  .opt:hover{border-color:var(--border-strong);background:var(--bg-surface)}
+  .opt.correct{background:var(--correct-bg);border-color:var(--correct);color:var(--correct);font-weight:700}
+  .opt.wrong{background:var(--wrong-bg);border-color:var(--wrong);color:var(--wrong)}
+  .scoreline{font-family:var(--font-mono);font-size:.84rem;color:var(--ink-muted);margin-top:10px;display:flex;gap:18px;align-items:center;flex-wrap:wrap}
+  .scoreline strong{font-weight:700;color:var(--ink)}
+  .footer{font-family:var(--font-mono);font-size:.78rem;color:var(--ink-muted);margin-top:24px;text-align:center}
+  .footer a{color:var(--accent);text-decoration:none}
+</style>
+</head>
+<body>
+
+<div class="head">
+  <div class="crumb"><a href="blueprint-drill.html?obj=1.9">← back to 1.9 leaves</a> · 1.9.c · IPv6 Multicast</div>
+  <h1>IPv6 Multicast Scope & Groups</h1>
+  <div class="desc">All multicast addresses start with <code>ff</code>. The 4th hex digit (T-flag/scope) defines how far the packet propagates — interface, link, site, or global.</div>
+</div>
+
+<div class="panel">
+  <div class="why"><strong>WHY this exists.</strong> Multicast lets one sender reach many receivers without sending the same packet repeatedly. The scope field stops packets from leaking. Routing protocols use well-known groups: OSPFv3 talks to ff02::5, EIGRP to ff02::a. ND replaces ARP via solicited-node multicast. Pick the scope wrong and your packet either dies on the wire or floods globally. Pick the group right and protocols just work.</div>
+
+  <div class="scope-row">
+    <button class="scope-btn active" data-scope="1" data-radius="60" data-name="interface-local"><strong>ff01::</strong><span class="pfx">interface</span></button>
+    <button class="scope-btn" data-scope="2" data-radius="120" data-name="link-local"><strong>ff02::</strong><span class="pfx">link</span></button>
+    <button class="scope-btn" data-scope="5" data-radius="200" data-name="site-local"><strong>ff05::</strong><span class="pfx">site</span></button>
+    <button class="scope-btn" data-scope="8" data-radius="280" data-name="organization"><strong>ff08::</strong><span class="pfx">org</span></button>
+    <button class="scope-btn" data-scope="e" data-radius="380" data-name="global"><strong>ff0e::</strong><span class="pfx">global</span></button>
+  </div>
+
+  <div class="stage" id="stage">
+    <div class="source">SRC</div>
+    <div class="ring" id="ring1" style="left:50%;top:50%;width:120px;height:120px"></div>
+    <div class="ring-label" style="left:50%;top:calc(50% + 70px)">interface</div>
+  </div>
+  <button class="btn accent" id="fireBtn" style="margin-top:12px">Fire packet</button>
+  <div class="verdict" id="verdict"></div>
+</div>
+
+<div class="panel">
+  <h2>Common multicast groups</h2>
+  <div class="groups">
+    <div class="grp"><div class="addr">ff02::1</div><div class="role">All-nodes — every IPv6 host on the link</div></div>
+    <div class="grp"><div class="addr">ff02::2</div><div class="role">All-routers — every IPv6 router on the link</div></div>
+    <div class="grp"><div class="addr">ff02::5</div><div class="role">OSPFv3 AllSPFRouters</div></div>
+    <div class="grp"><div class="addr">ff02::6</div><div class="role">OSPFv3 AllDRouters</div></div>
+    <div class="grp"><div class="addr">ff02::9</div><div class="role">RIPng routers</div></div>
+    <div class="grp"><div class="addr">ff02::a</div><div class="role">EIGRP routers</div></div>
+    <div class="grp"><div class="addr">ff02::d</div><div class="role">PIM routers</div></div>
+    <div class="grp"><div class="addr">ff02::1:2</div><div class="role">All DHCPv6 servers/relays on the link</div></div>
+    <div class="grp"><div class="addr">ff02::1:ff__:____</div><div class="role">Solicited-node — ND/DAD replaces ARP</div></div>
+  </div>
+</div>
+
+<div class="panel quiz">
+  <h2>Quiz mode <span style="color:var(--accent);text-transform:none;letter-spacing:0;font-weight:700">— group → role</span></h2>
+  <div class="stem" id="quizStem">Loading…</div>
+  <div class="opts" id="quizOpts"></div>
+  <div class="scoreline">
+    <span><strong id="qC">0</strong> correct</span>
+    <span><strong id="qW">0</strong> wrong</span>
+    <span><strong id="qS">0</strong> streak</span>
+    <span style="margin-left:auto"><button class="btn ghost" id="newQ">Next ↻</button></span>
+  </div>
+</div>
+
+<div class="footer"><a href="blueprint-drill.html?obj=1.9">← back to 1.9 leaves</a></div>
+
+<script>
+(function(){
+  var stage = document.getElementById('stage');
+  var verdict = document.getElementById('verdict');
+  var current = {scope:'1', radius:120, name:'interface-local'};
+
+  document.querySelectorAll('.scope-btn').forEach(function(b){
+    b.addEventListener('click', function(){
+      document.querySelectorAll('.scope-btn').forEach(function(x){x.classList.remove('active');});
+      b.classList.add('active');
+      current = { scope:b.dataset.scope, radius:parseInt(b.dataset.radius,10), name:b.dataset.name };
+    });
+  });
+
+  document.getElementById('fireBtn').addEventListener('click', function(){
+    Array.prototype.forEach.call(stage.querySelectorAll('.pulse'), function(p){p.remove();});
+    var p = document.createElement('div');
+    p.className='pulse';
+    p.style.setProperty('--maxR', current.radius*2+'px');
+    stage.appendChild(p);
+    requestAnimationFrame(function(){ p.classList.add('go'); });
+    setTimeout(function(){p.remove();}, 2100);
+    var addr = 'ff0'+current.scope+'::1';
+    verdict.className='verdict info show';
+    verdict.innerHTML = '<strong>→ '+addr+'</strong> reached '+current.name+' scope. Packet will not propagate beyond this boundary.';
+  });
+
+  // Quiz
+  var qC=0, qW=0, qS=0;
+  var pool = [
+    {q:'ff02::1', a:'all-nodes on link'},
+    {q:'ff02::2', a:'all-routers on link'},
+    {q:'ff02::5', a:'OSPFv3 AllSPFRouters'},
+    {q:'ff02::6', a:'OSPFv3 AllDRouters'},
+    {q:'ff02::9', a:'RIPng routers'},
+    {q:'ff02::a', a:'EIGRP routers'},
+    {q:'ff02::d', a:'PIM routers'},
+    {q:'ff02::1:2', a:'DHCPv6 servers/relays'},
+    {q:'ff05::1:3', a:'site-scope DHCPv6 servers'},
+    {q:'ff01::1', a:'interface-local all-nodes'},
+    {q:'Scope nibble for global', a:'e'},
+    {q:'Scope nibble for link-local', a:'2'}
+  ];
+  var allAnswers = pool.map(function(p){return p.a;});
+  function genQ(){
+    var q = pool[Math.floor(Math.random()*pool.length)];
+    document.getElementById('quizStem').innerHTML = 'What is <code style="font-family:var(--font-mono);background:#fff;padding:2px 8px;border-radius:4px;font-weight:700">'+q.q+'</code>?';
+    var distractors = allAnswers.filter(function(a){return a!==q.a;}).sort(function(){return Math.random()-.5;}).slice(0,3);
+    var opts = [q.a].concat(distractors).sort(function(){return Math.random()-.5;});
+    var box = document.getElementById('quizOpts'); box.innerHTML='';
+    opts.forEach(function(o){
+      var b=document.createElement('button'); b.className='opt'; b.textContent=o;
+      b.addEventListener('click', function(){
+        if (b.classList.contains('correct')||b.classList.contains('wrong')) return;
+        if (o===q.a){ b.classList.add('correct'); qC++; qS++; }
+        else { b.classList.add('wrong'); qW++; qS=0;
+          Array.prototype.forEach.call(box.children, function(c){ if (c.textContent===q.a) c.classList.add('correct'); });
+        }
+        document.getElementById('qC').textContent=qC;
+        document.getElementById('qW').textContent=qW;
+        document.getElementById('qS').textContent=qS;
+      });
+      box.appendChild(b);
+    });
+  }
+  document.getElementById('newQ').addEventListener('click', genQ);
+  genQ();
+})();
+</script>
+</body>
+</html>

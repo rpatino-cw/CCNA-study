@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>1.9.a Sim — IPv6 Unicast Types</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#FAF7F2;--bg-surface:#FFFFFF;--bg-recessed:#F3F0EB;
+    --border:#E2DFD9;--border-strong:#C7C3BC;
+    --ink:#1C1917;--ink-secondary:#57534E;--ink-muted:#A8A29E;
+    --accent:#B45309;--accent-soft:#D97706;--accent-light:#FEF3C7;
+    --correct:#16A34A;--correct-bg:#F0FDF4;
+    --wrong:#DC2626;--wrong-bg:#FEF2F2;
+    --info:#2563EB;--info-bg:#EFF6FF;
+    --c-global:#16A34A;--c-ula:#7c3aed;--c-link:#0891b2;--c-loop:#6b7280;--c-uns:#a8a29e;
+    --font-display:'Space Grotesk',system-ui,sans-serif;
+    --font-body:'Source Serif 4',Georgia,serif;
+    --font-mono:'JetBrains Mono',monospace;
+    --radius:6px;--radius-lg:10px;
+  }
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:var(--font-body);background:var(--bg);color:var(--ink);line-height:1.55;padding:24px;max-width:920px;margin:0 auto}
+  .head{margin-bottom:20px;padding-bottom:14px;border-bottom:1px solid var(--border)}
+  .head .crumb{font-family:var(--font-mono);font-size:.74rem;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px}
+  .head .crumb a{color:var(--accent);text-decoration:none}
+  .head h1{font-family:var(--font-display);font-size:1.5rem;font-weight:700;margin-bottom:6px}
+  .head .desc{font-size:.95rem;color:var(--ink-secondary)}
+  .panel{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;margin-bottom:18px}
+  .panel h2{font-family:var(--font-display);font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-secondary);margin-bottom:12px}
+  .why{background:var(--accent-light);border-left:3px solid var(--accent);padding:14px;border-radius:var(--radius);font-size:.96rem;color:var(--ink);margin-bottom:14px}
+  .input-row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:10px}
+  input[type=text]{font-family:var(--font-mono);font-size:1rem;padding:8px 12px;border:1px solid var(--border-strong);border-radius:var(--radius);width:340px;font-weight:500}
+  input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-light)}
+  .btn{font-family:var(--font-display);font-size:.84rem;font-weight:600;padding:8px 16px;background:var(--ink);color:#FAF7F2;border:none;border-radius:var(--radius);cursor:pointer}
+  .btn.accent{background:var(--accent)}
+  .btn.ghost{background:var(--bg-recessed);color:var(--ink)}
+  .types{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:10px;margin-top:14px}
+  .type{padding:14px;border-radius:var(--radius);border:1px solid var(--border);background:var(--bg-recessed);transition:all .25s}
+  .type.match{box-shadow:0 0 0 2px currentColor;background:var(--bg-surface);transform:translateY(-2px)}
+  .type.global{color:var(--c-global)}.type.global.match{border-color:var(--c-global)}
+  .type.ula{color:var(--c-ula)}.type.ula.match{border-color:var(--c-ula)}
+  .type.link{color:var(--c-link)}.type.link.match{border-color:var(--c-link)}
+  .type.loop{color:var(--c-loop)}.type.loop.match{border-color:var(--c-loop)}
+  .type.uns{color:var(--c-uns)}.type.uns.match{border-color:var(--c-uns)}
+  .type .pfx{font-family:var(--font-mono);font-weight:700;font-size:1.1rem;margin-bottom:4px}
+  .type .name{font-family:var(--font-display);font-weight:600;color:var(--ink);font-size:.92rem;margin-bottom:6px}
+  .type .ex{font-family:var(--font-mono);font-size:.78rem;color:var(--ink-secondary)}
+  .verdict{margin-top:14px;padding:14px;border-radius:var(--radius);font-family:var(--font-display);font-size:.96rem;font-weight:600;display:none}
+  .verdict.show{display:block}
+  .verdict.win{background:var(--correct-bg);color:var(--correct);border:1px solid var(--correct)}
+  .verdict.invalid{background:var(--wrong-bg);color:var(--wrong);border:1px solid var(--wrong)}
+  .examples{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+  .ex-pill{font-family:var(--font-mono);font-size:.78rem;background:var(--bg-recessed);padding:4px 10px;border-radius:99px;cursor:pointer;border:1px solid var(--border);color:var(--ink-secondary)}
+  .ex-pill:hover{background:var(--bg-surface);border-color:var(--border-strong);color:var(--ink)}
+  .quiz .stem{font-family:var(--font-display);font-size:1.02rem;font-weight:600;margin-bottom:12px;padding:14px;background:var(--accent-light);border-left:3px solid var(--accent);border-radius:var(--radius)}
+  .quiz .opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px}
+  .opt{background:var(--bg-recessed);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;font-family:var(--font-mono);font-size:.92rem;cursor:pointer;text-align:left}
+  .opt:hover{border-color:var(--border-strong);background:var(--bg-surface)}
+  .opt.correct{background:var(--correct-bg);border-color:var(--correct);color:var(--correct);font-weight:700}
+  .opt.wrong{background:var(--wrong-bg);border-color:var(--wrong);color:var(--wrong)}
+  .scoreline{font-family:var(--font-mono);font-size:.84rem;color:var(--ink-muted);margin-top:10px;display:flex;gap:18px;align-items:center;flex-wrap:wrap}
+  .scoreline strong{font-weight:700;color:var(--ink)}
+  .footer{font-family:var(--font-mono);font-size:.78rem;color:var(--ink-muted);margin-top:24px;text-align:center}
+  .footer a{color:var(--accent);text-decoration:none}
+</style>
+</head>
+<body>
+
+<div class="head">
+  <div class="crumb"><a href="blueprint-drill.html?obj=1.9">← back to 1.9 leaves</a> · 1.9.a · IPv6 Unicast Types</div>
+  <h1>IPv6 Unicast Address Classifier</h1>
+  <div class="desc">IPv6 unicast addresses come in five flavors. The first few hex characters tell you which one. Type any IPv6 — the matching range lights up.</div>
+</div>
+
+<div class="panel">
+  <div class="why"><strong>WHY this exists.</strong> Every IPv6 interface has a link-local (fe80::/10) address automatically. Most also get a global unicast (2000::/3, internet-routable). Unique-local (fc00::/7) is the IPv6 version of RFC 1918 — site-private. Loopback (::1) is localhost. Unspecified (::) means "no address yet" — used during DHCPv6 startup. Recognize the prefix, know the scope.</div>
+
+  <div class="input-row">
+    <input id="ipInput" type="text" value="2001:db8::1">
+    <button class="btn accent" id="checkBtn">Classify</button>
+  </div>
+  <div class="examples">
+    <span class="ex-pill" data-ip="2001:db8::1">2001:db8::1</span>
+    <span class="ex-pill" data-ip="fe80::1">fe80::1</span>
+    <span class="ex-pill" data-ip="fc00::1">fc00::1</span>
+    <span class="ex-pill" data-ip="fd00:1234::abcd">fd00:1234::abcd</span>
+    <span class="ex-pill" data-ip="::1">::1</span>
+    <span class="ex-pill" data-ip="::">::</span>
+    <span class="ex-pill" data-ip="2607:f8b0:4004::200e">2607:f8b0:4004::200e</span>
+    <span class="ex-pill" data-ip="3fff::1">3fff::1</span>
+  </div>
+
+  <div class="types" id="types">
+    <div class="type global" data-kind="global">
+      <div class="pfx">2000::/3</div>
+      <div class="name">Global unicast</div>
+      <div class="ex">Internet-routable. First 3 bits = 001 (2___ or 3___).</div>
+    </div>
+    <div class="type ula" data-kind="ula">
+      <div class="pfx">fc00::/7</div>
+      <div class="name">Unique local (ULA)</div>
+      <div class="ex">Private/site-internal. fc00::/8 reserved, fd00::/8 active.</div>
+    </div>
+    <div class="type link" data-kind="link">
+      <div class="pfx">fe80::/10</div>
+      <div class="name">Link-local</div>
+      <div class="ex">Auto-assigned per interface. Stays on the link.</div>
+    </div>
+    <div class="type loop" data-kind="loop">
+      <div class="pfx">::1/128</div>
+      <div class="name">Loopback</div>
+      <div class="ex">Localhost. Never on the wire.</div>
+    </div>
+    <div class="type uns" data-kind="uns">
+      <div class="pfx">::/128</div>
+      <div class="name">Unspecified</div>
+      <div class="ex">"No address" — used as source during DHCPv6/DAD startup.</div>
+    </div>
+  </div>
+
+  <div class="verdict" id="verdict"></div>
+</div>
+
+<div class="panel quiz">
+  <h2>Quiz mode <span style="color:var(--accent);text-transform:none;letter-spacing:0;font-weight:700">— classify these addresses</span></h2>
+  <div class="stem" id="quizStem">Loading…</div>
+  <div class="opts" id="quizOpts"></div>
+  <div class="scoreline">
+    <span><strong id="qC">0</strong> correct</span>
+    <span><strong id="qW">0</strong> wrong</span>
+    <span><strong id="qS">0</strong> streak</span>
+    <span style="margin-left:auto"><button class="btn ghost" id="newQ">Next ↻</button></span>
+  </div>
+</div>
+
+<div class="footer"><a href="blueprint-drill.html?obj=1.9">← back to 1.9 leaves</a></div>
+
+<script>
+(function(){
+  function expand(addr){
+    if (!addr || addr.indexOf(':')<0) return null;
+    var parts;
+    if (addr.indexOf('::')>=0){
+      var sides = addr.split('::');
+      if (sides.length!==2) return null;
+      var L = sides[0]?sides[0].split(':'):[];
+      var R = sides[1]?sides[1].split(':'):[];
+      var fill = 8 - L.length - R.length;
+      if (fill<0) return null;
+      var Z=[]; for(var i=0;i<fill;i++) Z.push('0');
+      parts = L.concat(Z).concat(R);
+    } else parts = addr.split(':');
+    if (parts.length!==8) return null;
+    return parts.map(function(g){
+      if (!/^[0-9a-fA-F]{1,4}$/.test(g)) return null;
+      return ('0000'+g.toLowerCase()).slice(-4);
+    });
+  }
+  function classify(addr){
+    var parts = expand(addr);
+    if (!parts || parts.some(function(p){return p===null;})) return {kind:'invalid'};
+    var first = parts[0];
+    if (parts.every(function(p){return p==='0000';})) return {kind:'uns', why:'all zeros — unspecified address (::), used during DHCPv6 init.'};
+    if (parts.slice(0,7).every(function(p){return p==='0000';}) && parts[7]==='0001') return {kind:'loop', why:'::1 — loopback. Never leaves the host.'};
+    var firstNib = parseInt(first.charAt(0), 16);
+    if (firstNib===0x2 || firstNib===0x3) return {kind:'global', why:'first 3 bits = 001 (starts with 2 or 3) — global unicast (2000::/3), internet-routable.'};
+    if (first.startsWith('fc') || first.startsWith('fd')) return {kind:'ula', why:'starts with fc or fd — unique-local address (fc00::/7), site-private.'};
+    var first10 = parseInt(first.substring(0,2), 16) >> 0;
+    var first10bits = parseInt(first, 16) >>> 6;
+    if ((parseInt(first.substring(0,3), 16) & 0xFFC) === 0xFE8) return {kind:'link', why:'first 10 bits = 1111111010 (fe80–febf) — link-local, scope = local segment.'};
+    return {kind:'invalid', why:'not a recognized unicast type. Multicast (ff00::/8) is not unicast.'};
+  }
+  function highlight(kind){
+    document.querySelectorAll('.type').forEach(function(t){
+      t.classList.toggle('match', t.dataset.kind===kind);
+    });
+  }
+  function check(){
+    var ip = document.getElementById('ipInput').value.trim();
+    var c = classify(ip);
+    var v = document.getElementById('verdict');
+    if (c.kind==='invalid'){
+      v.className='verdict invalid show';
+      v.textContent = '✗ '+(c.why||'Invalid IPv6 address.');
+      highlight(null);
+    } else {
+      var labels = {global:'Global Unicast',ula:'Unique-Local',link:'Link-Local',loop:'Loopback',uns:'Unspecified'};
+      v.className='verdict win show';
+      v.innerHTML = '<strong>✓ '+labels[c.kind]+'</strong><div style="font-family:var(--font-body);font-weight:400;font-size:.9rem;margin-top:4px;color:var(--ink-secondary)">'+c.why+'</div>';
+      highlight(c.kind);
+    }
+  }
+  document.getElementById('checkBtn').addEventListener('click', check);
+  document.getElementById('ipInput').addEventListener('keydown', function(e){if (e.key==='Enter') check();});
+  document.querySelectorAll('.ex-pill').forEach(function(e){
+    e.addEventListener('click', function(){ document.getElementById('ipInput').value = e.dataset.ip; check(); });
+  });
+  check();
+
+  // Quiz
+  var qC=0, qW=0, qS=0;
+  var pool = [
+    {ip:'2001:db8::1', a:'global'},
+    {ip:'2607:f8b0:4004::200e', a:'global'},
+    {ip:'3fff:abcd::1', a:'global'},
+    {ip:'fc00::1', a:'ula'},
+    {ip:'fd12:3456:789a::1', a:'ula'},
+    {ip:'fe80::1', a:'link'},
+    {ip:'fe80::a00:27ff:fe4e:66a1', a:'link'},
+    {ip:'feb0::1', a:'link'},
+    {ip:'::1', a:'loop'},
+    {ip:'::', a:'uns'},
+    {ip:'fdab:cdef:1234:5678::1', a:'ula'},
+    {ip:'2400:cb00::1', a:'global'}
+  ];
+  var labels = {global:'Global unicast',ula:'Unique-local',link:'Link-local',loop:'Loopback',uns:'Unspecified'};
+  function genQ(){
+    var q = pool[Math.floor(Math.random()*pool.length)];
+    document.getElementById('quizStem').innerHTML = 'Classify <code style="font-family:var(--font-mono);background:#fff;padding:2px 8px;border-radius:4px;font-weight:700">'+q.ip+'</code>';
+    var opts = ['global','ula','link','loop','uns'].sort(function(){return Math.random()-.5;});
+    var box = document.getElementById('quizOpts'); box.innerHTML='';
+    opts.forEach(function(o){
+      var b=document.createElement('button'); b.className='opt'; b.textContent=labels[o];
+      b.dataset.kind=o;
+      b.addEventListener('click', function(){
+        if (b.classList.contains('correct')||b.classList.contains('wrong')) return;
+        if (o===q.a){ b.classList.add('correct'); qC++; qS++; }
+        else { b.classList.add('wrong'); qW++; qS=0;
+          Array.prototype.forEach.call(box.children, function(c){ if (c.dataset.kind===q.a) c.classList.add('correct'); });
+        }
+        document.getElementById('qC').textContent=qC;
+        document.getElementById('qW').textContent=qW;
+        document.getElementById('qS').textContent=qS;
+        document.getElementById('ipInput').value=q.ip; check();
+      });
+      box.appendChild(b);
+    });
+  }
+  document.getElementById('newQ').addEventListener('click', genQ);
+  genQ();
+})();
+</script>
+</body>
+</html>

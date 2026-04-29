@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>1.2.f Sim — On-Prem vs Cloud</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#FAF7F2;--bg-surface:#FFFFFF;--bg-recessed:#F3F0EB;
+    --border:#E2DFD9;--border-strong:#C7C3BC;
+    --ink:#1C1917;--ink-secondary:#57534E;--ink-muted:#A8A29E;
+    --accent:#B45309;--accent-soft:#D97706;--accent-light:#FEF3C7;
+    --correct:#16A34A;--correct-bg:#F0FDF4;
+    --wrong:#DC2626;--wrong-bg:#FEF2F2;
+    --info:#2563EB;--info-bg:#EFF6FF;
+    --font-display:'Space Grotesk',system-ui,sans-serif;
+    --font-body:'Source Serif 4',Georgia,serif;
+    --font-mono:'JetBrains Mono',monospace;
+    --radius:6px;--radius-lg:10px;
+  }
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  html{font-size:16px;-webkit-font-smoothing:antialiased}
+  body{font-family:var(--font-body);background:var(--bg);color:var(--ink);line-height:1.55;padding:24px;max-width:920px;margin:0 auto}
+  .head{margin-bottom:20px;padding-bottom:14px;border-bottom:1px solid var(--border)}
+  .head .crumb{font-family:var(--font-mono);font-size:.74rem;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px}
+  .head .crumb a{color:var(--accent);text-decoration:none}
+  .head h1{font-family:var(--font-display);font-size:1.5rem;font-weight:700;margin-bottom:6px}
+  .head .desc{font-size:.95rem;color:var(--ink-secondary)}
+  .panel{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;margin-bottom:18px}
+  .panel h2{font-family:var(--font-display);font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-secondary);margin-bottom:12px}
+  .btn{font-family:var(--font-display);font-size:.84rem;font-weight:600;padding:8px 16px;background:var(--ink);color:#FAF7F2;border:none;border-radius:var(--radius);cursor:pointer;transition:background .15s}
+  .btn:hover{background:var(--ink-secondary)}
+  .btn.ghost{background:var(--bg-recessed);color:var(--ink)}
+  .btn.accent{background:var(--accent)}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+  @media(max-width:740px){.grid{grid-template-columns:1fr}}
+  .calc{background:var(--bg-recessed);padding:14px;border-radius:var(--radius);border:1px solid var(--border)}
+  .calc h3{font-family:var(--font-display);font-size:.74rem;color:var(--accent);text-transform:uppercase;margin-bottom:10px;letter-spacing:.08em}
+  .row{margin-bottom:12px}
+  .row label{display:block;font-family:var(--font-display);font-size:.84rem;color:var(--ink-secondary);font-weight:600;margin-bottom:4px}
+  .row input[type=range]{width:100%}
+  .row .v{font-family:var(--font-mono);font-size:.84rem;color:var(--ink);font-weight:700}
+  .row select{font-family:var(--font-mono);font-size:.86rem;padding:5px 9px;border:1px solid var(--border-strong);border-radius:4px;background:#fff;width:100%}
+  .verdict{margin-top:16px;padding:12px 16px;border-radius:var(--radius);font-family:var(--font-display);font-size:.94rem;font-weight:600;display:none}
+  .verdict.show{display:block;animation:fadeIn .25s ease}
+  .verdict.win{background:var(--correct-bg);color:var(--correct);border:1px solid var(--correct)}
+  .verdict.miss{background:var(--wrong-bg);color:var(--wrong);border:1px solid var(--wrong)}
+  .verdict.info{background:var(--info-bg);color:var(--info);border:1px solid var(--info)}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
+  .quiz{margin-top:22px}
+  .quiz .stem{font-family:var(--font-display);font-size:1.02rem;font-weight:600;margin-bottom:12px;padding:14px;background:var(--accent-light);border-left:3px solid var(--accent);border-radius:var(--radius)}
+  .quiz .opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px}
+  .opt{background:var(--bg-recessed);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;font-family:var(--font-mono);font-size:.88rem;cursor:pointer;text-align:left;transition:all .15s}
+  .opt:hover{border-color:var(--border-strong);background:var(--bg-surface)}
+  .opt.correct{background:var(--correct-bg);border-color:var(--correct);color:var(--correct);font-weight:700}
+  .opt.wrong{background:var(--wrong-bg);border-color:var(--wrong);color:var(--wrong)}
+  .scoreline{font-family:var(--font-mono);font-size:.84rem;color:var(--ink-muted);margin-top:10px;display:flex;gap:18px;align-items:center}
+  .scoreline strong{color:var(--ink)}
+  .footnote{font-family:var(--font-mono);font-size:.78rem;color:var(--ink-muted);margin-top:12px;line-height:1.5}
+  .badge{display:inline-block;font-family:var(--font-display);font-size:.7rem;font-weight:700;padding:2px 8px;border-radius:99px;background:var(--accent-light);color:var(--accent);text-transform:uppercase;letter-spacing:.04em;margin-left:8px}
+  .footer{margin-top:30px;padding-top:14px;border-top:1px solid var(--border);font-family:var(--font-mono);font-size:.78rem}
+  .footer a{color:var(--accent);text-decoration:none}
+  .stack{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:12px}
+  .stack .col{background:#fff;border:1px solid var(--border);border-radius:var(--radius);padding:6px}
+  .stack .col h4{font-family:var(--font-display);font-size:.7rem;text-transform:uppercase;letter-spacing:.06em;color:var(--accent);margin-bottom:6px;text-align:center}
+  .layer{font-family:var(--font-mono);font-size:.7rem;padding:4px 6px;border-radius:3px;margin-bottom:3px;text-align:center}
+  .layer.you{background:var(--accent);color:#fff;font-weight:700}
+  .layer.them{background:var(--bg-recessed);color:var(--ink-muted)}
+  svg.chart{width:100%;height:200px;background:#fff;border-radius:var(--radius);border:1px solid var(--border)}
+</style>
+</head>
+<body>
+
+<div class="head">
+  <div class="crumb"><a href="blueprint-drill.html?obj=1.2">← 1.2 Network Topology Architectures</a> · 1.2.f · On-Prem vs Cloud</div>
+  <h1>On-Prem vs Cloud — CAPEX vs OPEX<span class="badge">slide it</span></h1>
+  <div class="desc">On-prem is buying the building (CAPEX up front, then maintenance). Cloud is renting (OPEX every month, no servers to own). Small/short workloads almost always win in cloud. Big steady workloads at long enough timelines tip back to on-prem. Slide workload size and duration — watch the crossover. Then look at the <strong>responsibility stack</strong>: each step up (IaaS → PaaS → SaaS) hands more layers to the provider.</div>
+</div>
+
+<div class="panel">
+  <h2>Cost calculator</h2>
+  <div class="grid">
+    <div class="calc">
+      <h3>Inputs</h3>
+      <div class="row">
+        <label>Workload size <span class="v" id="sizeV">medium</span></label>
+        <input type="range" id="size" min="0" max="2" value="1">
+      </div>
+      <div class="row">
+        <label>Duration (months) <span class="v" id="durV">24</span></label>
+        <input type="range" id="dur" min="3" max="60" value="24">
+      </div>
+      <div class="row">
+        <label>Service model</label>
+        <select id="model">
+          <option value="iaas">IaaS — you manage OS up</option>
+          <option value="paas">PaaS — you manage app + data</option>
+          <option value="saas">SaaS — you just use it</option>
+        </select>
+      </div>
+      <div id="readout" style="font-family:var(--font-mono);font-size:.86rem;color:var(--ink);background:#fff;padding:10px;border-radius:4px;border:1px solid var(--border);margin-top:6px"></div>
+    </div>
+    <div>
+      <svg class="chart" viewBox="0 0 380 200" id="chart"></svg>
+      <div class="stack" id="stack">
+        <div class="col"><h4>On-Prem</h4></div>
+        <div class="col"><h4 id="cloud-label">IaaS</h4></div>
+        <div class="col"><h4>SaaS</h4></div>
+      </div>
+    </div>
+  </div>
+  <div id="verdict" class="verdict"></div>
+  <div class="footnote" id="explain"></div>
+</div>
+
+<div class="panel quiz" id="quizPanel">
+  <h2>Quiz mode <span style="color:var(--accent);text-transform:none;letter-spacing:0;font-weight:700">— IaaS / PaaS / SaaS</span></h2>
+  <div class="stem" id="quizStem">Loading…</div>
+  <div class="opts" id="quizOpts"></div>
+  <div class="scoreline">
+    <span><strong id="qCorrect">0</strong> correct</span>
+    <span><strong id="qWrong">0</strong> wrong</span>
+    <span><strong id="qStreak">0</strong> streak</span>
+    <span style="margin-left:auto"><button class="btn ghost" id="newQ">Next ↻</button></span>
+  </div>
+</div>
+
+<div class="footer"><a href="blueprint-drill.html?obj=1.2">← back to 1.2 leaves</a></div>
+
+<script>
+(function(){
+  function $(id){ return document.getElementById(id); }
+  var SIZE = ['small','medium','large'];
+  var ONPREM_CAPEX = [25000, 80000, 250000];
+  var ONPREM_MO_OPS = [400, 1200, 4500];
+  var CLOUD_MO = { iaas:[400,1500,5500], paas:[600,2200,8500], saas:[900,3200,12000] };
+  var STACK = {
+    onprem:['Application','Data','Runtime','OS','Hypervisor','Servers','Storage','Network','Datacenter'],
+    iaas:  ['Application','Data','Runtime','OS'],
+    paas:  ['Application','Data'],
+    saas:  []
+  };
+  var STACK_FULL = ['Application','Data','Runtime','OS','Hypervisor','Servers','Storage','Network','Datacenter'];
+
+  function render(){
+    var s = parseInt($('size').value,10);
+    var d = parseInt($('dur').value,10);
+    var m = $('model').value;
+    $('sizeV').textContent = SIZE[s];
+    $('durV').textContent = d;
+    $('cloud-label').textContent = m.toUpperCase();
+    var capex = ONPREM_CAPEX[s];
+    var onMo = ONPREM_MO_OPS[s];
+    var clMo = CLOUD_MO[m][s];
+    var onTotal = capex + onMo*d;
+    var clTotal = clMo * d;
+    var crossover = capex / Math.max(1, clMo - onMo);
+    var winner = onTotal < clTotal ? 'on-prem' : 'cloud';
+    $('readout').innerHTML = 'On-Prem total: <strong>$'+fmt(onTotal)+'</strong>  ·  Cloud total: <strong>$'+fmt(clTotal)+'</strong>  ·  Break-even ≈ <strong>'+(crossover>0&&crossover<200?Math.round(crossover):'—')+' months</strong>';
+    drawChart(capex, onMo, clMo, d);
+    drawStack(m);
+    var v = $('verdict');
+    v.className='verdict '+(winner==='on-prem'?'info':'win')+' show';
+    v.textContent = (winner==='on-prem' ? '↳ ' : '✓ ') + 'At '+SIZE[s]+' workload over '+d+' months, '+winner.toUpperCase()+' is cheaper by $'+fmt(Math.abs(onTotal-clTotal))+'.';
+    $('explain').innerHTML = winner==='on-prem' ? 'CAPEX amortizes: the longer you run, the more on-prem wins per month. Watch out for refresh cycles (5-7yr) and unused capacity.' : 'Cloud OPEX scales with use. No servers to depreciate — but you pay forever and the meter never stops.';
+  }
+  function fmt(n){ return Math.round(n).toLocaleString(); }
+  function drawChart(capex, onMo, clMo, dMax){
+    var svg = $('chart');
+    while(svg.firstChild) svg.removeChild(svg.firstChild);
+    var W=380,H=200, padL=40, padR=10, padT=12, padB=24;
+    var maxY = Math.max(capex + onMo*dMax, clMo*dMax)*1.05;
+    function X(t){ return padL + (W-padL-padR) * (t/dMax); }
+    function Y(v){ return H-padB - (H-padT-padB) * (v/maxY); }
+    // axes
+    line(svg,padL,padT,padL,H-padB,'#C7C3BC');
+    line(svg,padL,H-padB,W-padR,H-padB,'#C7C3BC');
+    txt(svg, padL-4, H-padB+14, '0', 10, 'end');
+    txt(svg, W-padR, H-padB+14, dMax+' mo', 10, 'end');
+    txt(svg, padL-4, padT+8, '$'+fmt(maxY), 10, 'end');
+    // on-prem line
+    var pts1 = []; for (var t=0;t<=dMax;t++){ pts1.push(X(t)+','+Y(capex + onMo*t)); }
+    poly(svg, pts1.join(' '), '#B45309', 2.4);
+    // cloud line
+    var pts2=[]; for (var t2=0;t2<=dMax;t2++){ pts2.push(X(t2)+','+Y(clMo*t2)); }
+    poly(svg, pts2.join(' '), '#2563EB', 2.4);
+    txt(svg, W-padR, padT+12, 'On-Prem', 10, 'end', '#B45309');
+    txt(svg, W-padR, padT+26, 'Cloud',  10, 'end', '#2563EB');
+  }
+  function line(svg,x1,y1,x2,y2,c){ var l=document.createElementNS('http://www.w3.org/2000/svg','line'); l.setAttribute('x1',x1); l.setAttribute('y1',y1); l.setAttribute('x2',x2); l.setAttribute('y2',y2); l.setAttribute('stroke',c); svg.appendChild(l); }
+  function poly(svg, pts, color, w){ var p=document.createElementNS('http://www.w3.org/2000/svg','polyline'); p.setAttribute('points',pts); p.setAttribute('fill','none'); p.setAttribute('stroke',color); p.setAttribute('stroke-width',w); svg.appendChild(p); }
+  function txt(svg,x,y,s,sz,anc,c){ var t=document.createElementNS('http://www.w3.org/2000/svg','text'); t.setAttribute('x',x); t.setAttribute('y',y); t.setAttribute('font-size',sz); t.setAttribute('font-family','JetBrains Mono'); if(anc) t.setAttribute('text-anchor',anc); if(c) t.setAttribute('fill',c); t.textContent=s; svg.appendChild(t); }
+
+  function drawStack(m){
+    var cols = $('stack').children;
+    [].forEach.call(cols, function(c, i){ while(c.children.length>1) c.removeChild(c.lastChild); });
+    function fill(col, youList){
+      STACK_FULL.forEach(function(layer){
+        var d = document.createElement('div');
+        d.className = 'layer ' + (youList.indexOf(layer)>=0 ? 'you' : 'them');
+        d.textContent = layer;
+        col.appendChild(d);
+      });
+    }
+    fill(cols[0], STACK_FULL); // on-prem you manage everything
+    fill(cols[1], STACK[m]);   // cloud per model
+    fill(cols[2], []);          // SaaS = manage nothing
+  }
+
+  ['size','dur','model'].forEach(function(id){ $(id).addEventListener('input', render); });
+  render();
+
+  var qC=0,qW=0,qS=0;
+  var pool = [
+    { q:'In IaaS, who manages the OS?', a:'You', d:['Provider','Shared','Nobody — IaaS is OS-less'], why:'IaaS hands you a VM. You patch and run the OS up.' },
+    { q:'PaaS hands the customer responsibility for…', a:'Application + Data', d:['OS + runtime','Hardware','Datacenter'], why:'PaaS abstracts OS/runtime — you bring your code and data.' },
+    { q:'SaaS — what does the customer manage?', a:'Just configure / use it', d:['OS','Database','VM image'], why:'SaaS = finished product (Salesforce, Gmail).' },
+    { q:'On-prem CAPEX shows up where on the cost line?', a:'A big jump at month 0, then linear OPEX', d:['Linear from month 0','Spike every month','None — it\'s OPEX'], why:'CAPEX is the upfront purchase; ops costs accrue monthly.' },
+    { q:'Cloud win condition (cost-wise)?', a:'Short duration, variable load, small steady-state', d:['Long duration, steady load','Regulatory data residency','Air-gapped systems'], why:'Cloud loses on long, predictable, big workloads — that\'s on-prem territory.' },
+    { q:'Which is cheaper for an unpredictable 3-month spike?', a:'Cloud (pay only when used)', d:['On-prem (buy peak capacity)','Hybrid','Doesn\'t matter'], why:'Spikes punish CAPEX — cloud OPEX wins.' },
+    { q:'Customer responsibility shrinks in this order:', a:'On-prem → IaaS → PaaS → SaaS', d:['IaaS → On-prem → PaaS','SaaS → On-prem','PaaS → IaaS'], why:'Each step up hands more layers to the provider.' },
+    { q:'Which model still requires you to patch the OS?', a:'IaaS', d:['PaaS','SaaS','None — provider always patches'], why:'IaaS = VM. You own the OS layer.' },
+    { q:'Heroku, AWS Elastic Beanstalk, Azure App Service are…', a:'PaaS', d:['IaaS','SaaS','On-prem'], why:'Code-in / app-out — that\'s PaaS.' },
+    { q:'Office 365, Salesforce, Workday are…', a:'SaaS', d:['IaaS','PaaS','On-prem'], why:'You log in and use the app — finished product.' }
+  ];
+  function pick(){
+    var p = pool[Math.floor(Math.random()*pool.length)];
+    var opts = [p.a].concat(p.d).sort(function(){return Math.random()-.5;});
+    document.getElementById('quizStem').textContent = p.q;
+    var box = document.getElementById('quizOpts'); box.innerHTML='';
+    opts.forEach(function(o){
+      var b=document.createElement('button'); b.className='opt'; b.textContent=o;
+      b.addEventListener('click', function(){
+        if (b.classList.contains('correct')||b.classList.contains('wrong')) return;
+        if (o===p.a){ b.classList.add('correct'); qC++; qS++; }
+        else { b.classList.add('wrong'); qW++; qS=0;
+          [].forEach.call(box.children,function(c){ if (c.textContent===p.a) c.classList.add('correct'); }); }
+        document.getElementById('qCorrect').textContent=qC;
+        document.getElementById('qWrong').textContent=qW;
+        document.getElementById('qStreak').textContent=qS;
+        var v=document.getElementById('verdict'); v.className='verdict info show'; v.textContent='Why: '+p.why;
+      });
+      box.appendChild(b);
+    });
+  }
+  document.getElementById('newQ').addEventListener('click', pick);
+  pick();
+})();
+</script>
+</body>
+</html>

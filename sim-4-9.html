@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>4.9 Sim — TFTP vs FTP</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#FAF7F2;--bg-surface:#FFFFFF;--bg-recessed:#F3F0EB;
+    --border:#E2DFD9;--border-strong:#C7C3BC;
+    --ink:#1C1917;--ink-secondary:#57534E;--ink-muted:#A8A29E;
+    --accent:#B45309;--accent-soft:#D97706;--accent-light:#FEF3C7;
+    --correct:#16A34A;--correct-bg:#F0FDF4;
+    --wrong:#DC2626;--wrong-bg:#FEF2F2;
+    --info:#2563EB;--info-bg:#EFF6FF;
+    --font-display:'Space Grotesk',system-ui,sans-serif;
+    --font-body:'Source Serif 4',Georgia,serif;
+    --font-mono:'JetBrains Mono',monospace;
+    --radius:6px;--radius-lg:10px;
+  }
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  html{font-size:16px;-webkit-font-smoothing:antialiased}
+  body{font-family:var(--font-body);background:var(--bg);color:var(--ink);line-height:1.55;padding:24px;max-width:920px;margin:0 auto}
+  .head{margin-bottom:20px;padding-bottom:14px;border-bottom:1px solid var(--border)}
+  .head .crumb{font-family:var(--font-mono);font-size:.74rem;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px}
+  .head h1{font-family:var(--font-display);font-size:1.5rem;font-weight:700;margin-bottom:6px}
+  .head .desc{font-size:.95rem;color:var(--ink-secondary)}
+  .panel{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;margin-bottom:18px}
+  .panel h2{font-family:var(--font-display);font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-secondary);margin-bottom:12px}
+  .btn{font-family:var(--font-display);font-size:.84rem;font-weight:600;padding:8px 16px;background:var(--ink);color:#FAF7F2;border:none;border-radius:var(--radius);cursor:pointer}
+  .btn.ghost{background:var(--bg-recessed);color:var(--ink)}
+  .btn.accent{background:var(--accent)}
+  .race{display:grid;grid-template-columns:120px 1fr 80px;gap:10px;align-items:center;margin:8px 0}
+  .race .label{font-family:var(--font-display);font-size:.86rem;font-weight:600}
+  .track{height:24px;background:var(--bg-recessed);border:1px solid var(--border);border-radius:99px;overflow:hidden;position:relative}
+  .track .fill{height:100%;width:0;background:var(--accent);border-radius:99px;transition:width .15s linear}
+  .track.tftp .fill{background:var(--correct)}
+  .track.ftp .fill{background:var(--info)}
+  .race .pct{font-family:var(--font-mono);font-size:.84rem;text-align:right}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px}
+  .col{background:var(--bg-recessed);border:1px solid var(--border);border-radius:var(--radius);padding:14px;font-family:var(--font-mono);font-size:.84rem}
+  .col h3{font-family:var(--font-display);font-size:.94rem;margin-bottom:8px}
+  .col.tftp h3{color:var(--correct)}
+  .col.ftp h3{color:var(--info)}
+  .col ul{list-style:none}
+  .col li{padding:3px 0}
+  .col li::before{content:'• ';color:var(--accent)}
+  .verdict{margin-top:14px;padding:12px 16px;border-radius:var(--radius);font-family:var(--font-display);font-weight:600}
+  .verdict.info{background:var(--info-bg);color:var(--info);border:1px solid var(--info)}
+  .verdict.win{background:var(--correct-bg);color:var(--correct);border:1px solid var(--correct)}
+  .verdict.miss{background:var(--wrong-bg);color:var(--wrong);border:1px solid var(--wrong)}
+  .quiz{margin-top:22px}
+  .quiz .stem{font-family:var(--font-display);font-size:1.02rem;font-weight:600;margin-bottom:12px;padding:14px;background:var(--accent-light);border-left:3px solid var(--accent);border-radius:var(--radius)}
+  .quiz .opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px}
+  .opt{background:var(--bg-recessed);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;font-family:var(--font-mono);font-size:.92rem;cursor:pointer;text-align:left}
+  .opt:hover{border-color:var(--border-strong);background:var(--bg-surface)}
+  .opt.correct{background:var(--correct-bg);border-color:var(--correct);color:var(--correct);font-weight:700}
+  .opt.wrong{background:var(--wrong-bg);border-color:var(--wrong);color:var(--wrong)}
+  .scoreline{font-family:var(--font-mono);font-size:.84rem;color:var(--ink-muted);margin-top:10px;display:flex;gap:18px}
+  .scoreline strong{color:var(--ink)}
+  .cfg{font-family:var(--font-mono);font-size:.86rem;background:var(--ink);color:#FAF7F2;padding:14px;border-radius:var(--radius);white-space:pre-wrap;margin-top:10px}
+</style>
+</head>
+<body>
+
+<div class="head">
+  <div class="crumb"><a href="blueprint-drill.html?obj=4.9" style="color:var(--accent);text-decoration:none">← 4.9 leaves</a> · 4.9 · IP Services · TFTP & FTP</div>
+  <h1>TFTP vs FTP File Transfer Sim</h1>
+  <div class="desc">Two file-transfer protocols, both decades old, both still in production. TFTP is dumb and fast — UDP, no auth, ~256-byte blocks, perfect for booting a switch off the network or shoving an IOS image onto a router. FTP is heavyweight — two TCP channels, login, full directory ops. Use TFTP behind locked doors. Use FTP everywhere else (or SFTP/SCP if you can).</div>
+</div>
+
+<div class="panel">
+  <h2>Transfer Race</h2>
+  <div class="race">
+    <div class="label">TFTP (UDP 69)</div>
+    <div class="track tftp"><div class="fill" id="t1"></div></div>
+    <div class="pct" id="p1">0%</div>
+  </div>
+  <div class="race">
+    <div class="label">FTP (TCP 20/21)</div>
+    <div class="track ftp"><div class="fill" id="t2"></div></div>
+    <div class="pct" id="p2">0%</div>
+  </div>
+  <div style="display:flex;gap:8px;margin-top:10px">
+    <button class="btn accent" id="run">Race 50MB IOS image</button>
+    <button class="btn ghost" id="reset">Reset</button>
+  </div>
+  <div id="verdict" class="verdict info" style="display:none"></div>
+</div>
+
+<div class="panel">
+  <h2>Side-by-side</h2>
+  <div class="grid">
+    <div class="col tftp"><h3>TFTP</h3>
+      <ul>
+        <li>Transport: UDP port 69 (request) + ephemeral data ports</li>
+        <li>Auth: none</li>
+        <li>Encryption: none</li>
+        <li>Block size: 512 bytes (or up to 65464 with options)</li>
+        <li>Stop-and-wait ACK per block</li>
+        <li>Use case: IOS image upload, ROMmon recovery, IP phone firmware, PXE boot</li>
+        <li>Verdict: simple, fast, dangerous on the open internet</li>
+      </ul>
+    </div>
+    <div class="col ftp"><h3>FTP</h3>
+      <ul>
+        <li>Transport: TCP — control on 21, data on 20 (active) or ephemeral (passive)</li>
+        <li>Auth: username + password (plaintext — sniffable)</li>
+        <li>Encryption: none (use FTPS or SFTP for that)</li>
+        <li>Two channels: control sends commands, data sends bytes</li>
+        <li>Active mode: server connects back from port 20 — breaks behind NAT</li>
+        <li>Passive mode: client opens both connections — NAT-friendly, default modern</li>
+        <li>Use case: legacy file servers, large transfers needing resume, scripted directory ops</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="cfg">! Cisco IOS upgrade via TFTP
+R1# copy tftp: flash:
+Address or name of remote host []? 192.168.1.50
+Source filename []? c2900-universalk9-mz.SPA.157-3.M5.bin
+Destination filename [c2900-universalk9-mz.SPA.157-3.M5.bin]?
+Accessing tftp://192.168.1.50/c2900-...
+Loading c2900-...!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+[OK - 89478453 bytes]
+
+! FTP equivalent (when you need auth)
+R1# copy ftp: flash:
+Address or name of remote host []? 192.168.1.50
+User name [anonymous]? admin
+Password: ********
+
+! Modern replacement: SCP (over SSH)
+R1# copy scp: flash:</div>
+</div>
+
+<div class="panel quiz">
+  <h2>Quiz</h2>
+  <div class="stem" id="qStem">Loading…</div>
+  <div class="opts" id="qOpts"></div>
+  <div class="scoreline">
+    <span><strong id="qC">0</strong> correct</span>
+    <span><strong id="qW">0</strong> wrong</span>
+    <span style="margin-left:auto"><button class="btn ghost" id="qNext">Next ↻</button></span>
+  </div>
+</div>
+
+<p style="text-align:center;margin-top:20px"><a href="blueprint-drill.html?obj=4.9" style="color:var(--accent);font-family:var(--font-mono);font-size:.84rem">← back to 4.9 leaves</a></p>
+
+<script>
+(function(){
+  var timer1=null,timer2=null;
+  function reset(){
+    clearInterval(timer1); clearInterval(timer2);
+    document.getElementById('t1').style.width='0%'; document.getElementById('t2').style.width='0%';
+    document.getElementById('p1').textContent='0%'; document.getElementById('p2').textContent='0%';
+    document.getElementById('verdict').style.display='none';
+  }
+  function run(){
+    reset();
+    var a=0,b=0;
+    timer1=setInterval(function(){
+      a+=Math.random()*4+1;
+      if(a>=100){a=100; clearInterval(timer1); checkDone()}
+      document.getElementById('t1').style.width=a+'%';
+      document.getElementById('p1').textContent=Math.floor(a)+'%';
+    },80);
+    timer2=setInterval(function(){
+      b+=Math.random()*2+.6;
+      if(b>=100){b=100; clearInterval(timer2); checkDone()}
+      document.getElementById('t2').style.width=b+'%';
+      document.getElementById('p2').textContent=Math.floor(b)+'%';
+    },80);
+  }
+  function checkDone(){
+    var a=parseFloat(document.getElementById('t1').style.width),
+        b=parseFloat(document.getElementById('t2').style.width);
+    if(a>=100&&b>=100){
+      var v=document.getElementById('verdict');
+      v.style.display='block'; v.className='verdict info';
+      v.textContent='✓ TFTP finishes faster on a clean LAN: no TCP overhead, no login, no two channels. But: zero auth, zero integrity, no resume. Trusted networks only.';
+    }
+  }
+  document.getElementById('run').addEventListener('click',run);
+  document.getElementById('reset').addEventListener('click',reset);
+
+  var qC=0,qW=0;
+  var pool=[
+    {q:'TFTP uses which transport and port?',a:'UDP 69',o:['UDP 69','TCP 69','TCP 20','TCP 21']},
+    {q:'FTP control channel uses which port?',a:'TCP 21',o:['TCP 20','TCP 21','TCP 22','UDP 21']},
+    {q:'FTP active-mode data channel uses which port?',a:'TCP 20',o:['TCP 20','TCP 21','TCP 22','UDP 20']},
+    {q:'TFTP authentication?',a:'none',o:['none','username/password','RSA key','Kerberos']},
+    {q:'Best use case for TFTP?',a:'IOS image upload on trusted LAN',o:['public file sharing','IOS image upload on trusted LAN','encrypted backup','SSH replacement']},
+    {q:'FTP passive mode is required when…',a:'client is behind NAT',o:['client is behind NAT','server is behind NAT','using IPv6 only','transferring binary']},
+    {q:'TFTP block size (default)?',a:'512 bytes',o:['64 bytes','128 bytes','512 bytes','1500 bytes']},
+    {q:'Why is FTP login considered insecure?',a:'username and password are plaintext',o:['username and password are plaintext','only IPv4 supported','UDP cannot be encrypted','requires Kerberos']},
+    {q:'Modern secure replacement for FTP?',a:'SFTP or FTPS',o:['SFTP or FTPS','TFTP','HTTP','SMB']},
+    {q:'TFTP error recovery?',a:'stop-and-wait ACK per block',o:['stop-and-wait ACK per block','TCP retransmit','none','sliding window']}
+  ];
+  function pick(){
+    var q=pool[Math.floor(Math.random()*pool.length)];
+    document.getElementById('qStem').textContent=q.q;
+    var box=document.getElementById('qOpts'); box.innerHTML='';
+    q.o.slice().sort(function(){return Math.random()-.5}).forEach(function(o){
+      var b=document.createElement('button'); b.className='opt'; b.textContent=o;
+      b.addEventListener('click',function(){
+        if(b.classList.contains('correct')||b.classList.contains('wrong'))return;
+        if(o===q.a){b.classList.add('correct');qC++} else{b.classList.add('wrong');qW++; Array.prototype.forEach.call(box.children,function(c){if(c.textContent===q.a)c.classList.add('correct')})}
+        document.getElementById('qC').textContent=qC; document.getElementById('qW').textContent=qW;
+      });
+      box.appendChild(b);
+    });
+  }
+  document.getElementById('qNext').addEventListener('click',pick); pick();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>1.2.b Sim — Three-Tier Campus</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#FAF7F2;--bg-surface:#FFFFFF;--bg-recessed:#F3F0EB;
+    --border:#E2DFD9;--border-strong:#C7C3BC;
+    --ink:#1C1917;--ink-secondary:#57534E;--ink-muted:#A8A29E;
+    --accent:#B45309;--accent-soft:#D97706;--accent-light:#FEF3C7;
+    --correct:#16A34A;--correct-bg:#F0FDF4;
+    --wrong:#DC2626;--wrong-bg:#FEF2F2;
+    --info:#2563EB;--info-bg:#EFF6FF;
+    --font-display:'Space Grotesk',system-ui,sans-serif;
+    --font-body:'Source Serif 4',Georgia,serif;
+    --font-mono:'JetBrains Mono',monospace;
+    --radius:6px;--radius-lg:10px;
+  }
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  html{font-size:16px;-webkit-font-smoothing:antialiased}
+  body{font-family:var(--font-body);background:var(--bg);color:var(--ink);line-height:1.55;padding:24px;max-width:920px;margin:0 auto}
+  .head{margin-bottom:20px;padding-bottom:14px;border-bottom:1px solid var(--border)}
+  .head .crumb{font-family:var(--font-mono);font-size:.74rem;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px}
+  .head .crumb a{color:var(--accent);text-decoration:none}
+  .head h1{font-family:var(--font-display);font-size:1.5rem;font-weight:700;margin-bottom:6px}
+  .head .desc{font-size:.95rem;color:var(--ink-secondary)}
+  .panel{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;margin-bottom:18px}
+  .panel h2{font-family:var(--font-display);font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-secondary);margin-bottom:12px}
+  .btn{font-family:var(--font-display);font-size:.84rem;font-weight:600;padding:8px 16px;background:var(--ink);color:#FAF7F2;border:none;border-radius:var(--radius);cursor:pointer;transition:background .15s}
+  .btn:hover{background:var(--ink-secondary)}
+  .btn.ghost{background:var(--bg-recessed);color:var(--ink)}
+  .btn.accent{background:var(--accent)}
+  .btn.accent:hover{background:var(--accent-soft)}
+  .stage{position:relative;width:100%;height:380px;background:var(--bg-recessed);border-radius:var(--radius);overflow:hidden;border:1px solid var(--border-strong)}
+  .lane{position:absolute;left:0;right:0;height:100px;border-bottom:1px dashed var(--border-strong);font-family:var(--font-mono);font-size:.72rem;color:var(--ink-muted);padding:6px 10px;text-transform:uppercase;letter-spacing:.08em}
+  .lane.core{top:0;background:linear-gradient(0deg,transparent,rgba(180,83,9,.04))}
+  .lane.dist{top:100px;background:linear-gradient(0deg,transparent,rgba(37,99,235,.04))}
+  .lane.access{top:200px;background:linear-gradient(0deg,transparent,rgba(22,163,74,.04))}
+  .lane.pcs{top:300px;height:80px;border-bottom:none}
+  .node{position:absolute;border-radius:6px;border:1px solid var(--border-strong);background:var(--bg-surface);display:flex;align-items:center;justify-content:center;font-family:var(--font-mono);font-size:.74rem;font-weight:700;user-select:none;transition:opacity .25s}
+  .node.core{background:var(--accent);color:#fff;border-color:var(--accent);width:90px;height:42px}
+  .node.dist{background:#EFF6FF;color:var(--info);border-color:var(--info);width:74px;height:38px}
+  .node.acc{background:#F0FDF4;color:var(--correct);border-color:var(--correct);width:60px;height:34px;font-size:.68rem}
+  .node.pc{background:#fff;border-color:var(--border-strong);color:var(--ink-secondary);width:42px;height:28px;font-size:.62rem}
+  .node.removed{opacity:.15;filter:grayscale(1)}
+  .stage svg{position:absolute;inset:0;pointer-events:none;width:100%;height:100%}
+  .link{stroke:var(--border-strong);stroke-width:1.6;fill:none}
+  .link.broken{stroke:var(--wrong);stroke-width:1.6;stroke-dasharray:4 3;opacity:.5}
+  .link.active{stroke:var(--accent);stroke-width:3}
+  .pkt{fill:var(--accent)}
+  .controls{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px;align-items:center}
+  .verdict{margin-top:16px;padding:12px 16px;border-radius:var(--radius);font-family:var(--font-display);font-size:.94rem;font-weight:600;display:none}
+  .verdict.show{display:block;animation:fadeIn .25s ease}
+  .verdict.win{background:var(--correct-bg);color:var(--correct);border:1px solid var(--correct)}
+  .verdict.miss{background:var(--wrong-bg);color:var(--wrong);border:1px solid var(--wrong)}
+  .verdict.info{background:var(--info-bg);color:var(--info);border:1px solid var(--info)}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
+  .quiz{margin-top:22px}
+  .quiz .stem{font-family:var(--font-display);font-size:1.02rem;font-weight:600;margin-bottom:12px;padding:14px;background:var(--accent-light);border-left:3px solid var(--accent);border-radius:var(--radius)}
+  .quiz .opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px}
+  .opt{background:var(--bg-recessed);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;font-family:var(--font-mono);font-size:.88rem;cursor:pointer;text-align:left;transition:all .15s}
+  .opt:hover{border-color:var(--border-strong);background:var(--bg-surface)}
+  .opt.correct{background:var(--correct-bg);border-color:var(--correct);color:var(--correct);font-weight:700}
+  .opt.wrong{background:var(--wrong-bg);border-color:var(--wrong);color:var(--wrong)}
+  .scoreline{font-family:var(--font-mono);font-size:.84rem;color:var(--ink-muted);margin-top:10px;display:flex;gap:18px;align-items:center}
+  .scoreline strong{color:var(--ink)}
+  .footnote{font-family:var(--font-mono);font-size:.78rem;color:var(--ink-muted);margin-top:12px;line-height:1.5}
+  .badge{display:inline-block;font-family:var(--font-display);font-size:.7rem;font-weight:700;padding:2px 8px;border-radius:99px;background:var(--accent-light);color:var(--accent);text-transform:uppercase;letter-spacing:.04em;margin-left:8px}
+  .footer{margin-top:30px;padding-top:14px;border-top:1px solid var(--border);font-family:var(--font-mono);font-size:.78rem}
+  .footer a{color:var(--accent);text-decoration:none}
+  label.toggle{display:inline-flex;align-items:center;gap:6px;font-family:var(--font-display);font-size:.84rem}
+  select{font-family:var(--font-mono);padding:6px 10px;border-radius:var(--radius);border:1px solid var(--border-strong);background:#fff}
+</style>
+</head>
+<body>
+
+<div class="head">
+  <div class="crumb"><a href="blueprint-drill.html?obj=1.2">← 1.2 Network Topology Architectures</a> · 1.2.b · Three-Tier Campus</div>
+  <h1>Three-Tier — Core / Distribution / Access<span class="badge">build it</span></h1>
+  <div class="desc">Big campuses have many wiring closets. You can't sanely connect every access switch to every other. The <strong>distribution</strong> layer aggregates closets and runs Layer-3 to the core. The <strong>core</strong> just forwards as fast as possible. Each layer has one job. Add access switches to feel the aggregation, then toggle "remove distribution" to watch the design break.</div>
+</div>
+
+<div class="panel">
+  <h2>Campus topology</h2>
+  <div class="stage" id="stage">
+    <div class="lane core">CORE</div>
+    <div class="lane dist">DISTRIBUTION</div>
+    <div class="lane access">ACCESS</div>
+    <div class="lane pcs">END HOSTS</div>
+    <svg id="links"></svg>
+  </div>
+  <div class="controls">
+    <label class="toggle">Access count
+      <select id="count">
+        <option value="4">4</option>
+        <option value="6" selected>6</option>
+        <option value="8">8</option>
+      </select>
+    </label>
+    <label class="toggle"><input type="checkbox" id="kill"> remove distribution layer</label>
+    <button class="btn accent" id="flow">Send PC-edge → PC-far</button>
+    <button class="btn ghost" id="reset">Reset</button>
+  </div>
+  <div id="verdict" class="verdict"></div>
+  <div class="footnote" id="explain"></div>
+</div>
+
+<div class="panel quiz" id="quizPanel">
+  <h2>Quiz mode <span style="color:var(--accent);text-transform:none;letter-spacing:0;font-weight:700">— layer responsibilities</span></h2>
+  <div class="stem" id="quizStem">Loading…</div>
+  <div class="opts" id="quizOpts"></div>
+  <div class="scoreline">
+    <span><strong id="qCorrect">0</strong> correct</span>
+    <span><strong id="qWrong">0</strong> wrong</span>
+    <span><strong id="qStreak">0</strong> streak</span>
+    <span style="margin-left:auto"><button class="btn ghost" id="newQ">Next ↻</button></span>
+  </div>
+</div>
+
+<div class="footer"><a href="blueprint-drill.html?obj=1.2">← back to 1.2 leaves</a></div>
+
+<script>
+(function(){
+  var stage = document.getElementById('stage');
+  var svg = document.getElementById('links');
+  var W = function(){ return stage.clientWidth; };
+
+  function build(){
+    [].forEach.call(stage.querySelectorAll('.node'), function(n){ n.remove(); });
+    var w = W();
+    var c1 = el('node core','C1', w*.4-45, 30);
+    var c2 = el('node core','C2', w*.6-45, 30);
+    var d1 = el('node dist','D1', w*.3-37, 130);
+    var d2 = el('node dist','D2', w*.7-37, 130);
+    var n = parseInt(document.getElementById('count').value,10);
+    var accs = [], pcs=[];
+    for (var i=0;i<n;i++){
+      var x = (w/(n+1))*(i+1) - 30;
+      var a = el('node acc','A'+(i+1), x, 230);
+      a.dataset.dist = (i < n/2) ? 'D1' : 'D2';
+      a.dataset.id = 'A'+(i+1);
+      accs.push(a);
+      var p = el('node pc','PC'+(i+1), x+10, 320);
+      p.dataset.parent = 'A'+(i+1); pcs.push(p);
+    }
+    if (document.getElementById('kill').checked){
+      d1.classList.add('removed'); d2.classList.add('removed');
+    }
+    drawLinks();
+  }
+  function el(cls, label, x, y){
+    var d = document.createElement('div');
+    d.className = cls; d.textContent = label;
+    d.style.left = x+'px'; d.style.top = y+'px';
+    stage.appendChild(d); return d;
+  }
+  function center(n){ return { x: parseFloat(n.style.left)+n.offsetWidth/2, y: parseFloat(n.style.top)+n.offsetHeight/2 }; }
+
+  function drawLinks(activeIds){
+    while(svg.firstChild) svg.removeChild(svg.firstChild);
+    var killed = document.getElementById('kill').checked;
+    var cores = stage.querySelectorAll('.core');
+    var dists = stage.querySelectorAll('.dist');
+    var accs = stage.querySelectorAll('.acc');
+    var pcs = stage.querySelectorAll('.pc');
+    function line(a,b,extra){
+      var l = document.createElementNS('http://www.w3.org/2000/svg','line');
+      var p1 = center(a), p2 = center(b);
+      l.setAttribute('x1',p1.x); l.setAttribute('y1',p1.y);
+      l.setAttribute('x2',p2.x); l.setAttribute('y2',p2.y);
+      l.setAttribute('class','link'+(extra?' '+extra:''));
+      svg.appendChild(l);
+    }
+    // core <-> core
+    if (cores.length===2) line(cores[0],cores[1]);
+    // core <-> dist (or broken if removed)
+    dists.forEach(function(d){
+      cores.forEach(function(c){ line(c,d, killed ? 'broken' : ''); });
+    });
+    // dist <-> dist
+    if (dists.length===2) line(dists[0],dists[1], killed?'broken':'');
+    // access -> dist (broken if removed) / fallback chaos to core (broken) when removed
+    accs.forEach(function(a){
+      var dn = stage.querySelector('.dist'+(a.dataset.dist==='D1'?':nth-of-type(1)':':nth-of-type(2)'));
+      // simpler: get all dist
+      var dArr = stage.querySelectorAll('.dist');
+      var d = a.dataset.dist === 'D1' ? dArr[0] : dArr[1];
+      line(a, d, killed?'broken':'');
+      if (killed){
+        // show that without dist, every access has to reach every core directly = mesh explosion
+        cores.forEach(function(c){ line(a,c,'broken'); });
+      }
+    });
+    // access -> pc
+    pcs.forEach(function(p){
+      var par = [].filter.call(accs,function(a){ return a.textContent === p.dataset.parent; })[0];
+      if (par) line(par,p);
+    });
+  }
+
+  function flow(){
+    var v = document.getElementById('verdict');
+    var ex = document.getElementById('explain');
+    if (document.getElementById('kill').checked){
+      v.className='verdict miss show';
+      v.textContent='✗ Distribution removed. Every access switch now needs a direct uplink to every core — N×M mesh, doesn\'t scale.';
+      ex.textContent='Without the distribution layer, you lose: (1) Layer-3 boundary close to access, (2) port aggregation, (3) policy/QoS choke point. The core would have to learn every access VLAN.';
+      return;
+    }
+    var pcs = stage.querySelectorAll('.pc');
+    var src = pcs[0], dst = pcs[pcs.length-1];
+    var srcAcc = stage.querySelector('[class*="acc"]'); // first acc
+    var accs = stage.querySelectorAll('.acc');
+    var srcA = accs[0], dstA = accs[accs.length-1];
+    var dArr = stage.querySelectorAll('.dist');
+    var cArr = stage.querySelectorAll('.core');
+    var path = [center(src), center(srcA), center(dArr[0]), center(cArr[0]), center(dArr[1]), center(dstA), center(dst)];
+    var pkt = document.createElementNS('http://www.w3.org/2000/svg','circle');
+    pkt.setAttribute('r','7'); pkt.setAttribute('class','pkt');
+    pkt.setAttribute('cx',path[0].x); pkt.setAttribute('cy',path[0].y);
+    svg.appendChild(pkt);
+    var step=0;
+    function next(){
+      if (step >= path.length-1){ pkt.remove(); v.className='verdict win show'; v.textContent='✓ Frame: PC → ACCESS → DIST → CORE → DIST → ACCESS → PC. Each layer has one job.'; ex.textContent='Access = host connectivity + PoE + port security. Distribution = Layer-3 boundary, route summarization, policy. Core = fast forwarding only — no ACLs, no policy, just bandwidth.'; return; }
+      var a=path[step], b=path[step+1];
+      pkt.animate([{cx:a.x,cy:a.y},{cx:b.x,cy:b.y}],{duration:380,fill:'forwards'}).onfinish=function(){
+        pkt.setAttribute('cx',b.x); pkt.setAttribute('cy',b.y); step++; next();
+      };
+    }
+    next();
+  }
+
+  document.getElementById('count').addEventListener('change', build);
+  document.getElementById('kill').addEventListener('change', function(){ build(); });
+  document.getElementById('flow').addEventListener('click', flow);
+  document.getElementById('reset').addEventListener('click', function(){
+    document.getElementById('kill').checked=false;
+    document.getElementById('count').value='6';
+    document.getElementById('verdict').className='verdict';
+    document.getElementById('explain').textContent='';
+    build();
+  });
+  window.addEventListener('resize', build);
+  build();
+
+  var qC=0,qW=0,qS=0;
+  var pool = [
+    { q:'Which layer is the Layer-3 boundary in a classic 3-tier campus?', a:'Distribution', d:['Access','Core','WAN edge'], why:'Distribution is where access VLANs terminate and routing begins.' },
+    { q:'Job of the CORE layer?', a:'Fast forwarding between distribution blocks; minimal policy', d:['Terminate user VLANs','PoE for APs','NAT to ISP'], why:'Core = high-speed transit. Keep policy off it.' },
+    { q:'Job of the ACCESS layer?', a:'Connect end hosts, PoE, port security, host VLAN assignment', d:['Inter-VLAN routing','BGP peering','MPLS label switching'], why:'Access touches users — that\'s where security and PoE live.' },
+    { q:'You add 12 new access switches across 4 IDFs. Where do you summarize routes?', a:'Distribution', d:['Access','Core','Internet edge'], why:'Summarize at the distribution layer so core doesn\'t see access subnets.' },
+    { q:'Why NOT collapse to two-tier in a 1500-user campus?', a:'Single core handles too many access uplinks; no clean L3 boundary', d:['Two-tier doesn\'t support PoE','Two-tier is illegal under IEEE','Two-tier blocks IPv6'], why:'Three-tier scales by adding distribution blocks; two-tier hits port/blast-radius limits.' },
+    { q:'Which traffic dominates 3-tier campuses (vs spine-leaf data centers)?', a:'North-south (user → server → internet)', d:['East-west (server-to-server)','Multicast only','Storage replication'], why:'Campus = users reaching out. DC = servers talking to each other.' },
+    { q:'Distribution layer is removed in lab. What breaks first?', a:'Route summarization + access port aggregation', d:['DNS','DHCP','802.1X'], why:'Aggregation is exactly what distribution provides.' },
+    { q:'Which device usually runs HSRP/VRRP for the gateway?', a:'A pair of distribution switches', d:['Access switch','Core switch','Edge router'], why:'FHRP lives where the gateway lives — distribution.' },
+    { q:'Best layer to apply ACLs filtering inter-VLAN traffic?', a:'Distribution', d:['Access','Core','ISP edge'], why:'Filter at the L3 boundary — distribution.' },
+    { q:'Adding a 7th building means…', a:'Add another distribution block + uplinks to core', d:['Replace the core','Reflash all access','Switch to spine-leaf'], why:'Three-tier scales by stamping out distribution blocks.' }
+  ];
+  function pick(){
+    var p = pool[Math.floor(Math.random()*pool.length)];
+    var opts = [p.a].concat(p.d).sort(function(){return Math.random()-.5;});
+    document.getElementById('quizStem').textContent = p.q;
+    var box = document.getElementById('quizOpts'); box.innerHTML='';
+    opts.forEach(function(o){
+      var b=document.createElement('button'); b.className='opt'; b.textContent=o;
+      b.addEventListener('click', function(){
+        if (b.classList.contains('correct')||b.classList.contains('wrong')) return;
+        if (o===p.a){ b.classList.add('correct'); qC++; qS++; }
+        else { b.classList.add('wrong'); qW++; qS=0;
+          [].forEach.call(box.children,function(c){ if (c.textContent===p.a) c.classList.add('correct'); }); }
+        document.getElementById('qCorrect').textContent=qC;
+        document.getElementById('qWrong').textContent=qW;
+        document.getElementById('qStreak').textContent=qS;
+        var v=document.getElementById('verdict'); v.className='verdict info show'; v.textContent='Why: '+p.why;
+      });
+      box.appendChild(b);
+    });
+  }
+  document.getElementById('newQ').addEventListener('click', pick);
+  pick();
+})();
+</script>
+</body>
+</html>

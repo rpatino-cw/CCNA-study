@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>1.2.a Sim — 2-Tier Collapsed Core</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#FAF7F2;--bg-surface:#FFFFFF;--bg-recessed:#F3F0EB;
+    --border:#E2DFD9;--border-strong:#C7C3BC;
+    --ink:#1C1917;--ink-secondary:#57534E;--ink-muted:#A8A29E;
+    --accent:#B45309;--accent-soft:#D97706;--accent-light:#FEF3C7;
+    --correct:#16A34A;--correct-bg:#F0FDF4;
+    --wrong:#DC2626;--wrong-bg:#FEF2F2;
+    --info:#2563EB;--info-bg:#EFF6FF;
+    --font-display:'Space Grotesk',system-ui,sans-serif;
+    --font-body:'Source Serif 4',Georgia,serif;
+    --font-mono:'JetBrains Mono',monospace;
+    --radius:6px;--radius-lg:10px;
+  }
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  html{font-size:16px;-webkit-font-smoothing:antialiased}
+  body{font-family:var(--font-body);background:var(--bg);color:var(--ink);line-height:1.55;padding:24px;max-width:920px;margin:0 auto}
+  .head{margin-bottom:20px;padding-bottom:14px;border-bottom:1px solid var(--border)}
+  .head .crumb{font-family:var(--font-mono);font-size:.74rem;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px}
+  .head .crumb a{color:var(--accent);text-decoration:none}
+  .head h1{font-family:var(--font-display);font-size:1.5rem;font-weight:700;margin-bottom:6px}
+  .head .desc{font-size:.95rem;color:var(--ink-secondary)}
+  .panel{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;margin-bottom:18px}
+  .panel h2{font-family:var(--font-display);font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-secondary);margin-bottom:12px}
+  .btn{font-family:var(--font-display);font-size:.84rem;font-weight:600;padding:8px 16px;background:var(--ink);color:#FAF7F2;border:none;border-radius:var(--radius);cursor:pointer;transition:background .15s}
+  .btn:hover{background:var(--ink-secondary)}
+  .btn.ghost{background:var(--bg-recessed);color:var(--ink)}
+  .btn.accent{background:var(--accent)}
+  .btn.accent:hover{background:var(--accent-soft)}
+  .stage{position:relative;width:100%;height:340px;background:var(--bg-recessed);border-radius:var(--radius);overflow:hidden;border:1px dashed var(--border-strong)}
+  .node{position:absolute;width:88px;height:46px;border-radius:6px;border:1px solid var(--border-strong);background:var(--bg-surface);display:flex;align-items:center;justify-content:center;font-family:var(--font-mono);font-size:.78rem;font-weight:700;cursor:grab;user-select:none;transition:box-shadow .15s, border-color .15s}
+  .node.core{background:var(--accent);color:#fff;border-color:var(--accent);width:120px;height:54px;cursor:default}
+  .node.access{background:var(--info-bg);color:var(--info);border-color:var(--info)}
+  .node.pc{background:#fff;border-color:var(--border-strong);color:var(--ink-secondary);width:60px;height:36px;font-size:.7rem;cursor:default}
+  .node.dragging{opacity:.7;box-shadow:0 8px 24px rgba(0,0,0,.18)}
+  .node.snapped{border-color:var(--correct);box-shadow:0 0 0 3px var(--correct-bg)}
+  .stage svg{position:absolute;inset:0;pointer-events:none;width:100%;height:100%}
+  .link{stroke:var(--border-strong);stroke-width:2;fill:none}
+  .link.active{stroke:var(--accent);stroke-width:3;animation:pulse .6s ease-in-out infinite alternate}
+  @keyframes pulse{from{opacity:.6}to{opacity:1}}
+  .pkt{fill:var(--accent)}
+  .controls{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px;align-items:center}
+  .verdict{margin-top:16px;padding:12px 16px;border-radius:var(--radius);font-family:var(--font-display);font-size:.94rem;font-weight:600;display:none}
+  .verdict.show{display:block;animation:fadeIn .25s ease}
+  .verdict.win{background:var(--correct-bg);color:var(--correct);border:1px solid var(--correct)}
+  .verdict.miss{background:var(--wrong-bg);color:var(--wrong);border:1px solid var(--wrong)}
+  .verdict.info{background:var(--info-bg);color:var(--info);border:1px solid var(--info)}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
+  .quiz{margin-top:22px}
+  .quiz .stem{font-family:var(--font-display);font-size:1.02rem;font-weight:600;margin-bottom:12px;padding:14px;background:var(--accent-light);border-left:3px solid var(--accent);border-radius:var(--radius)}
+  .quiz .opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px}
+  .opt{background:var(--bg-recessed);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;font-family:var(--font-mono);font-size:.88rem;cursor:pointer;text-align:left;transition:all .15s}
+  .opt:hover{border-color:var(--border-strong);background:var(--bg-surface)}
+  .opt.correct{background:var(--correct-bg);border-color:var(--correct);color:var(--correct);font-weight:700}
+  .opt.wrong{background:var(--wrong-bg);border-color:var(--wrong);color:var(--wrong)}
+  .scoreline{font-family:var(--font-mono);font-size:.84rem;color:var(--ink-muted);margin-top:10px;display:flex;gap:18px;align-items:center}
+  .scoreline strong{color:var(--ink)}
+  .footnote{font-family:var(--font-mono);font-size:.78rem;color:var(--ink-muted);margin-top:12px;line-height:1.5}
+  .badge{display:inline-block;font-family:var(--font-display);font-size:.7rem;font-weight:700;padding:2px 8px;border-radius:99px;background:var(--accent-light);color:var(--accent);text-transform:uppercase;letter-spacing:.04em;margin-left:8px}
+  .footer{margin-top:30px;padding-top:14px;border-top:1px solid var(--border);font-family:var(--font-mono);font-size:.78rem}
+  .footer a{color:var(--accent);text-decoration:none}
+</style>
+</head>
+<body>
+
+<div class="head">
+  <div class="crumb"><a href="blueprint-drill.html?obj=1.2">← 1.2 Network Topology Architectures</a> · 1.2.a · Two-Tier (Collapsed Core)</div>
+  <h1>Two-Tier Network — Collapsed Core<span class="badge">build it</span></h1>
+  <div class="desc">Small offices don't need a separate core layer. The distribution and core <em>collapse</em> into one switch (or HA pair). Access switches plug straight into it. Cheaper, simpler, fine until you outgrow it. Drag the access switches under the collapsed core to wire the network, then click any PC to watch traffic flow.</div>
+</div>
+
+<div class="panel">
+  <h2>Build the office network — drag access switches under the collapsed core</h2>
+  <div class="stage" id="stage">
+    <svg id="links"></svg>
+    <div class="node core" style="left:50%;top:30px;transform:translateX(-50%)">CORE</div>
+    <div class="node access" data-id="a1" style="left:30px;top:200px">ACC-1</div>
+    <div class="node access" data-id="a2" style="left:140px;top:200px">ACC-2</div>
+    <div class="node pc" data-parent="a1" style="left:20px;top:280px">PC-1</div>
+    <div class="node pc" data-parent="a2" style="left:160px;top:280px">PC-2</div>
+  </div>
+  <div class="controls">
+    <button class="btn accent" id="flow">Send PC-1 → PC-2</button>
+    <button class="btn ghost" id="reset">Reset positions</button>
+    <span style="font-family:var(--font-mono);font-size:.78rem;color:var(--ink-muted)">Drop access switches inside the dotted snap zone (140-340 px Y) to wire them.</span>
+  </div>
+  <div id="verdict" class="verdict"></div>
+  <div class="footnote" id="explain"></div>
+</div>
+
+<div class="panel quiz" id="quizPanel">
+  <h2>Quiz mode <span style="color:var(--accent);text-transform:none;letter-spacing:0;font-weight:700">— when does 2-tier fit?</span></h2>
+  <div class="stem" id="quizStem">Loading…</div>
+  <div class="opts" id="quizOpts"></div>
+  <div class="scoreline">
+    <span><strong id="qCorrect">0</strong> correct</span>
+    <span><strong id="qWrong">0</strong> wrong</span>
+    <span><strong id="qStreak">0</strong> streak</span>
+    <span style="margin-left:auto"><button class="btn ghost" id="newQ">Next ↻</button></span>
+  </div>
+</div>
+
+<div class="footer">
+  <a href="blueprint-drill.html?obj=1.2">← back to 1.2 leaves</a>
+</div>
+
+<script>
+(function(){
+  var stage = document.getElementById('stage');
+  var svg = document.getElementById('links');
+  var nodes = stage.querySelectorAll('.node');
+  var dragging = null, offX=0, offY=0;
+
+  function snapZone(y){ return y >= 140 && y <= 240; }
+
+  nodes.forEach(function(n){
+    if (n.classList.contains('core') || n.classList.contains('pc')) return;
+    n.addEventListener('mousedown', function(e){
+      dragging = n; n.classList.add('dragging');
+      var r = n.getBoundingClientRect(), s = stage.getBoundingClientRect();
+      offX = e.clientX - r.left; offY = e.clientY - r.top;
+      e.preventDefault();
+    });
+  });
+  document.addEventListener('mousemove', function(e){
+    if (!dragging) return;
+    var s = stage.getBoundingClientRect();
+    var x = e.clientX - s.left - offX, y = e.clientY - s.top - offY;
+    x = Math.max(0, Math.min(s.width-88, x));
+    y = Math.max(0, Math.min(s.height-46, y));
+    dragging.style.left = x+'px'; dragging.style.top = y+'px';
+    drawLinks();
+  });
+  document.addEventListener('mouseup', function(){
+    if (!dragging) return;
+    var y = parseInt(dragging.style.top,10);
+    if (snapZone(y)) dragging.classList.add('snapped'); else dragging.classList.remove('snapped');
+    var id = dragging.dataset.id;
+    stage.querySelectorAll('.node.pc[data-parent="'+id+'"]').forEach(function(pc){
+      var x = parseInt(dragging.style.left,10);
+      pc.style.left = (x + (id==='a1'?-10:20))+'px';
+      pc.style.top = (parseInt(dragging.style.top,10) + 80)+'px';
+    });
+    dragging.classList.remove('dragging'); dragging = null; drawLinks();
+  });
+
+  function center(n){
+    var x = parseFloat(n.style.left || n.offsetLeft);
+    var y = parseFloat(n.style.top || n.offsetTop);
+    if (n.classList.contains('core')) return { x: stage.offsetWidth/2, y: y + 27 };
+    return { x: x + n.offsetWidth/2, y: y + n.offsetHeight/2 };
+  }
+
+  function drawLinks(activePath){
+    while(svg.firstChild) svg.removeChild(svg.firstChild);
+    var core = stage.querySelector('.core');
+    stage.querySelectorAll('.access').forEach(function(a){
+      var c1 = center(core), c2 = center(a);
+      var line = document.createElementNS('http://www.w3.org/2000/svg','line');
+      line.setAttribute('x1',c1.x); line.setAttribute('y1',c1.y);
+      line.setAttribute('x2',c2.x); line.setAttribute('y2',c2.y);
+      line.setAttribute('class','link' + (activePath && activePath.indexOf(a.dataset.id)>=0 ? ' active':''));
+      svg.appendChild(line);
+    });
+    stage.querySelectorAll('.pc').forEach(function(pc){
+      var par = stage.querySelector('.access[data-id="'+pc.dataset.parent+'"]');
+      if (!par) return;
+      var c1 = center(par), c2 = center(pc);
+      var line = document.createElementNS('http://www.w3.org/2000/svg','line');
+      line.setAttribute('x1',c1.x); line.setAttribute('y1',c1.y);
+      line.setAttribute('x2',c2.x); line.setAttribute('y2',c2.y);
+      line.setAttribute('class','link' + (activePath && activePath.indexOf(pc.dataset.parent)>=0 ? ' active':''));
+      svg.appendChild(line);
+    });
+  }
+
+  function flow(){
+    var verdict = document.getElementById('verdict');
+    var explain = document.getElementById('explain');
+    var snapped = stage.querySelectorAll('.access.snapped').length;
+    if (snapped < 2){
+      verdict.className='verdict miss show';
+      verdict.textContent='✗ Wire the access switches first — drag both ACC-1 and ACC-2 into the snap zone under CORE.';
+      return;
+    }
+    drawLinks(['a1','a2']);
+    var pc1 = stage.querySelector('.pc[data-parent="a1"]');
+    var pc2 = stage.querySelector('.pc[data-parent="a2"]');
+    var path = [center(pc1), center(stage.querySelector('.access[data-id="a1"]')), center(stage.querySelector('.core')), center(stage.querySelector('.access[data-id="a2"]')), center(pc2)];
+    var pkt = document.createElementNS('http://www.w3.org/2000/svg','circle');
+    pkt.setAttribute('r','7'); pkt.setAttribute('class','pkt');
+    pkt.setAttribute('cx',path[0].x); pkt.setAttribute('cy',path[0].y);
+    svg.appendChild(pkt);
+    var step = 0;
+    function next(){
+      if (step >= path.length-1){ pkt.remove(); drawLinks(); verdict.className='verdict win show'; verdict.textContent='✓ Frame went PC-1 → ACC-1 → CORE → ACC-2 → PC-2. Three switching hops, one collapsed-core device handling the aggregation.'; explain.textContent='In a 3-tier design this would have added a distribution layer between access and core. With ≤ ~50 users and one wiring closet, you don\'t need that — the core does both jobs.'; return; }
+      var a = path[step], b = path[step+1];
+      pkt.animate([{cx:a.x,cy:a.y},{cx:b.x,cy:b.y}],{duration:500, fill:'forwards'}).onfinish = function(){
+        pkt.setAttribute('cx',b.x); pkt.setAttribute('cy',b.y); step++; next();
+      };
+    }
+    next();
+  }
+
+  document.getElementById('flow').addEventListener('click', flow);
+  document.getElementById('reset').addEventListener('click', function(){
+    var a1 = stage.querySelector('[data-id="a1"]');
+    var a2 = stage.querySelector('[data-id="a2"]');
+    a1.style.left='30px'; a1.style.top='200px'; a1.classList.remove('snapped');
+    a2.style.left='140px'; a2.style.top='200px'; a2.classList.remove('snapped');
+    stage.querySelector('.pc[data-parent="a1"]').style.left='20px';
+    stage.querySelector('.pc[data-parent="a1"]').style.top='280px';
+    stage.querySelector('.pc[data-parent="a2"]').style.left='160px';
+    stage.querySelector('.pc[data-parent="a2"]').style.top='280px';
+    document.getElementById('verdict').className='verdict';
+    drawLinks();
+  });
+  // initial snap state since they start in the snap zone
+  stage.querySelectorAll('.access').forEach(function(a){ if (snapZone(parseInt(a.style.top,10))) a.classList.add('snapped'); });
+  drawLinks();
+
+  var qC=0,qW=0,qS=0;
+  var pool = [
+    { q:'A 25-person law office has one wiring closet and ~50 Mbps internet. Best fit?', a:'Two-tier collapsed core (one core switch + 2 access switches)', d:['Three-tier core/dist/access','Spine-leaf','Full-mesh WAN'], why:'Small site, single closet — collapsed core is the textbook fit.' },
+    { q:'In a collapsed core design, which two roles does the core switch play?', a:'Aggregation (distribution) + inter-VLAN routing (core)', d:['Access port + AP','NAT + DHCP','Spine + leaf'], why:'"Collapsed" = distribution and core merged into one device.' },
+    { q:'When should you OUTGROW two-tier into three-tier?', a:'Many wiring closets / multiple buildings / high east-west traffic', d:['When you add Wi-Fi','When MTU changes','When IPv6 is enabled'], why:'Three-tier shines when you have many access switches that need their own distribution layer.' },
+    { q:'Two-tier disadvantage vs three-tier?', a:'Single core failure has wider blast radius; harder to scale ports', d:['Higher latency always','No VLAN support','Cannot route'], why:'Fewer layers = fewer redundancy points; one core is a SPOF unless HA-paired.' },
+    { q:'What does "collapsed" refer to in collapsed-core?', a:'Distribution and core layers merged into one device', d:['Access and distribution merged','Core and WAN merged','VLAN and trunk merged'], why:'Distribution + core → one box. Access stays separate.' },
+    { q:'How many switching hops PC-to-PC across two access switches in 2-tier?', a:'3 (access → core → access)', d:['1','5','7'], why:'PC1→ACC1→CORE→ACC2→PC2 = 3 switch hops between the PCs.' },
+    { q:'Best stem match: "branch office, 30 users, one IDF"?', a:'Two-tier collapsed core', d:['Spine-leaf 4×8','Three-tier campus','Hub-and-spoke WAN'], why:'Branch + single IDF = collapsed core every time.' },
+    { q:'Cost driver that pushes a small site to two-tier instead of three-tier?', a:'Fewer switches and licenses to buy / manage', d:['Cheaper cabling per port','Required by IEEE','Better PoE'], why:'Two-tier saves the distribution-layer hardware/licenses.' }
+  ];
+  function pick(){
+    var p = pool[Math.floor(Math.random()*pool.length)];
+    var opts = [p.a].concat(p.d).sort(function(){return Math.random()-.5;});
+    document.getElementById('quizStem').textContent = p.q;
+    var box = document.getElementById('quizOpts'); box.innerHTML='';
+    opts.forEach(function(o){
+      var b=document.createElement('button'); b.className='opt'; b.textContent=o;
+      b.addEventListener('click', function(){
+        if (b.classList.contains('correct')||b.classList.contains('wrong')) return;
+        if (o===p.a){ b.classList.add('correct'); qC++; qS++; }
+        else { b.classList.add('wrong'); qW++; qS=0;
+          [].forEach.call(box.children,function(c){ if (c.textContent===p.a) c.classList.add('correct'); }); }
+        document.getElementById('qCorrect').textContent=qC;
+        document.getElementById('qWrong').textContent=qW;
+        document.getElementById('qStreak').textContent=qS;
+        var v=document.getElementById('verdict'); v.className='verdict info show'; v.textContent='Why: '+p.why;
+      });
+      box.appendChild(b);
+    });
+  }
+  document.getElementById('newQ').addEventListener('click', pick);
+  pick();
+})();
+</script>
+</body>
+</html>

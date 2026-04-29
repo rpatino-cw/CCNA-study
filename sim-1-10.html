@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>1.10 Sim — Client OS IP Verification</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#FAF7F2;--bg-surface:#FFFFFF;--bg-recessed:#F3F0EB;
+    --border:#E2DFD9;--border-strong:#C7C3BC;
+    --ink:#1C1917;--ink-secondary:#57534E;--ink-muted:#A8A29E;
+    --accent:#B45309;--accent-soft:#D97706;--accent-light:#FEF3C7;
+    --correct:#16A34A;--correct-bg:#F0FDF4;
+    --wrong:#DC2626;--wrong-bg:#FEF2F2;
+    --info:#2563EB;--info-bg:#EFF6FF;
+    --font-display:'Space Grotesk',system-ui,sans-serif;
+    --font-body:'Source Serif 4',Georgia,serif;
+    --font-mono:'JetBrains Mono',monospace;
+    --radius:6px;--radius-lg:10px;
+  }
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  html{font-size:16px;-webkit-font-smoothing:antialiased}
+  body{font-family:var(--font-body);background:var(--bg);color:var(--ink);line-height:1.55;padding:24px;max-width:920px;margin:0 auto}
+  .head{margin-bottom:20px;padding-bottom:14px;border-bottom:1px solid var(--border)}
+  .head .crumb{font-family:var(--font-mono);font-size:.74rem;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px}
+  .head h1{font-family:var(--font-display);font-size:1.5rem;font-weight:700;margin-bottom:6px}
+  .head .desc{font-size:.95rem;color:var(--ink-secondary)}
+  .panel{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;margin-bottom:18px}
+  .panel h2{font-family:var(--font-display);font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-secondary);margin-bottom:12px}
+  .btn{font-family:var(--font-display);font-size:.84rem;font-weight:600;padding:8px 16px;background:var(--ink);color:#FAF7F2;border:none;border-radius:var(--radius);cursor:pointer;transition:background .15s}
+  .btn:hover{background:var(--ink-secondary)}
+  .btn.ghost{background:var(--bg-recessed);color:var(--ink)}
+  .btn.accent{background:var(--accent)}
+  .os-tabs{display:flex;gap:6px;margin-bottom:12px}
+  .os-tab{font-family:var(--font-display);font-size:.82rem;font-weight:600;padding:8px 14px;background:var(--bg-recessed);border:1px solid var(--border);border-radius:var(--radius);cursor:pointer;color:var(--ink-secondary)}
+  .os-tab.active{background:var(--ink);color:#FAF7F2;border-color:var(--ink)}
+  .term{background:#1C1917;color:#E7E5E4;font-family:var(--font-mono);font-size:.86rem;padding:14px;border-radius:var(--radius);min-height:280px;white-space:pre;overflow-x:auto;line-height:1.5}
+  .term .prompt{color:#A8A29E}
+  .term .cmd{color:#FCD34D}
+  .term .hl{background:#78350F;color:#FFF;padding:0 3px;border-radius:2px}
+  .term .ok{color:#86EFAC}
+  .term .dim{color:#78716C}
+  .input-row{display:flex;gap:10px;margin-top:10px}
+  .input-row input{flex:1;font-family:var(--font-mono);font-size:.92rem;padding:8px 12px;border:1px solid var(--border-strong);border-radius:var(--radius);background:var(--bg-surface)}
+  .input-row input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-light)}
+  .examples{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+  .ex{font-family:var(--font-mono);font-size:.78rem;background:var(--bg-recessed);padding:4px 10px;border-radius:99px;cursor:pointer;color:var(--ink-secondary);border:1px solid var(--border)}
+  .ex:hover{background:var(--bg-surface);color:var(--ink);border-color:var(--border-strong)}
+  .verdict{margin-top:14px;padding:12px 16px;border-radius:var(--radius);font-family:var(--font-display);font-size:.94rem;font-weight:600;display:none}
+  .verdict.show{display:block;animation:fadeIn .25s ease}
+  .verdict.win{background:var(--correct-bg);color:var(--correct);border:1px solid var(--correct)}
+  .verdict.miss{background:var(--wrong-bg);color:var(--wrong);border:1px solid var(--wrong)}
+  .verdict.info{background:var(--info-bg);color:var(--info);border:1px solid var(--info)}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
+  .quiz{margin-top:22px}
+  .quiz .stem{font-family:var(--font-display);font-size:1.02rem;font-weight:600;margin-bottom:12px;padding:14px;background:var(--accent-light);border-left:3px solid var(--accent);border-radius:var(--radius)}
+  .quiz .opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px}
+  .opt{background:var(--bg-recessed);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;font-family:var(--font-mono);font-size:.92rem;cursor:pointer;text-align:left;transition:all .15s}
+  .opt:hover{border-color:var(--border-strong);background:var(--bg-surface)}
+  .opt.correct{background:var(--correct-bg);border-color:var(--correct);color:var(--correct);font-weight:700}
+  .opt.wrong{background:var(--wrong-bg);border-color:var(--wrong);color:var(--wrong)}
+  .scoreline{font-family:var(--font-mono);font-size:.84rem;color:var(--ink-muted);margin-top:10px;display:flex;gap:18px;align-items:center}
+  .scoreline strong{font-weight:700;color:var(--ink)}
+  .badge{display:inline-block;font-family:var(--font-display);font-size:.7rem;font-weight:700;padding:2px 8px;border-radius:99px;background:var(--accent-light);color:var(--accent);text-transform:uppercase;letter-spacing:.04em;margin-left:8px}
+  .footnote{font-family:var(--font-mono);font-size:.78rem;color:var(--ink-muted);margin-top:12px}
+</style>
+</head>
+<body>
+
+<div class="head">
+  <div class="crumb"><a href="blueprint-drill.html?obj=1.10" style="color:var(--accent);text-decoration:none">← 1.10 Mini Sims</a> · 1.10 · Endpoints · Client OS IP Verification</div>
+  <h1>Verify Host IP — Win / Mac / Linux<span class="badge">drill</span></h1>
+  <div class="desc">Every troubleshoot starts here: <em>does this host have a sane IP?</em> Each OS uses a different command but reveals the same five facts — IPv4, mask, gateway, MAC, DNS. Switch tabs, type the command, watch which lines you'd actually read.</div>
+</div>
+
+<div class="panel">
+  <h2>Terminal</h2>
+  <div class="os-tabs">
+    <button class="os-tab active" data-os="win">Windows</button>
+    <button class="os-tab" data-os="mac">macOS</button>
+    <button class="os-tab" data-os="linux">Linux</button>
+  </div>
+  <div class="term" id="term"></div>
+  <div class="input-row">
+    <input id="cmd" type="text" placeholder="Type a command and press Enter">
+    <button class="btn accent" id="run">Run</button>
+    <button class="btn ghost" id="clear">Clear</button>
+  </div>
+  <div class="examples" id="examples"></div>
+  <div id="verdict" class="verdict"></div>
+  <div class="footnote">Highlight: yellow box = the line a tech actually reads. Type <code>ping 8.8.8.8</code> on any OS for a reachability check.</div>
+</div>
+
+<div class="panel quiz">
+  <h2>Quiz mode <span style="color:var(--accent);text-transform:none;letter-spacing:0;font-weight:700">— command-to-OS mapping</span></h2>
+  <div class="stem" id="quizStem">Loading…</div>
+  <div class="opts" id="quizOpts"></div>
+  <div class="scoreline">
+    <span><strong id="qCorrect">0</strong> correct</span>
+    <span><strong id="qWrong">0</strong> wrong</span>
+    <span><strong id="qStreak">0</strong> streak</span>
+    <span style="margin-left:auto"><button class="btn ghost" id="newQ">Next ↻</button></span>
+  </div>
+</div>
+
+<script>
+(function(){
+  var os = 'win';
+  var examples = {
+    win: ['ipconfig','ipconfig /all','ping 8.8.8.8','arp -a'],
+    mac: ['ifconfig en0','ifconfig','ping 8.8.8.8','networksetup -getdnsservers Wi-Fi'],
+    linux: ['ip a','ifconfig','ping 8.8.8.8','ip route']
+  };
+
+  var output = {
+    'win:ipconfig':
+      '<span class="prompt">C:\\Users\\romeo&gt;</span> <span class="cmd">ipconfig</span>\n\n'+
+      'Windows IP Configuration\n\n'+
+      'Ethernet adapter Ethernet:\n'+
+      '   Connection-specific DNS Suffix . : home.lan\n'+
+      '   <span class="hl">IPv4 Address. . . . . . . . . . . : 192.168.1.42</span>\n'+
+      '   Subnet Mask . . . . . . . . . . . : 255.255.255.0\n'+
+      '   <span class="hl">Default Gateway . . . . . . . . . : 192.168.1.1</span>\n',
+    'win:ipconfig /all':
+      '<span class="prompt">C:\\Users\\romeo&gt;</span> <span class="cmd">ipconfig /all</span>\n\n'+
+      'Ethernet adapter Ethernet:\n'+
+      '   Description . . . . . . . . . . . : Intel I219-V\n'+
+      '   <span class="hl">Physical Address. . . . . . . . . : A4-83-E7-1B-2C-9D</span>\n'+
+      '   DHCP Enabled. . . . . . . . . . . : Yes\n'+
+      '   <span class="hl">IPv4 Address. . . . . . . . . . . : 192.168.1.42(Preferred)</span>\n'+
+      '   Subnet Mask . . . . . . . . . . . : 255.255.255.0\n'+
+      '   <span class="hl">IPv6 Address. . . . . . . . . . . : 2601:240:abcd::42</span>\n'+
+      '   Default Gateway . . . . . . . . . : 192.168.1.1\n'+
+      '   <span class="hl">DNS Servers . . . . . . . . . . . : 1.1.1.1, 8.8.8.8</span>\n',
+    'win:ping 8.8.8.8':
+      '<span class="prompt">C:\\Users\\romeo&gt;</span> <span class="cmd">ping 8.8.8.8</span>\n\n'+
+      'Pinging 8.8.8.8 with 32 bytes of data:\n'+
+      '<span class="ok">Reply from 8.8.8.8: bytes=32 time=12ms TTL=117</span>\n'+
+      '<span class="ok">Reply from 8.8.8.8: bytes=32 time=11ms TTL=117</span>\n'+
+      '<span class="ok">Reply from 8.8.8.8: bytes=32 time=13ms TTL=117</span>\n'+
+      '<span class="ok">Reply from 8.8.8.8: bytes=32 time=12ms TTL=117</span>\n\n'+
+      'Packets: Sent = 4, Received = 4, Lost = 0 (0% loss)\n',
+    'win:arp -a':
+      '<span class="prompt">C:\\Users\\romeo&gt;</span> <span class="cmd">arp -a</span>\n\n'+
+      'Interface: 192.168.1.42 --- 0xb\n'+
+      '  Internet Address      Physical Address      Type\n'+
+      '  192.168.1.1           <span class="hl">d8-3a-dd-11-22-33</span>     dynamic\n'+
+      '  192.168.1.255         ff-ff-ff-ff-ff-ff     static\n',
+    'mac:ifconfig en0':
+      '<span class="prompt">romeo@mac ~ %</span> <span class="cmd">ifconfig en0</span>\n\n'+
+      'en0: flags=8863&lt;UP,BROADCAST,SMART,RUNNING&gt; mtu 1500\n'+
+      '   <span class="hl">ether a4:83:e7:1b:2c:9d</span>\n'+
+      '   inet6 fe80::1cab:fffe:dead/64 scopeid 0xb\n'+
+      '   <span class="hl">inet 192.168.1.55 netmask 0xffffff00 broadcast 192.168.1.255</span>\n'+
+      '   <span class="hl">inet6 2601:240:abcd::55 prefixlen 64 autoconf</span>\n'+
+      '   nd6 options=201&lt;PERFORMNUD,DAD&gt;\n'+
+      '   media: autoselect\n'+
+      '   status: <span class="ok">active</span>\n',
+    'mac:ifconfig':
+      '<span class="prompt">romeo@mac ~ %</span> <span class="cmd">ifconfig</span>\n\n'+
+      'lo0: flags=8049 mtu 16384\n'+
+      '   inet 127.0.0.1 netmask 0xff000000\n'+
+      'en0: flags=8863 mtu 1500\n'+
+      '   <span class="hl">ether a4:83:e7:1b:2c:9d</span>\n'+
+      '   <span class="hl">inet 192.168.1.55 netmask 0xffffff00</span>\n'+
+      '   status: active\n',
+    'mac:ping 8.8.8.8':
+      '<span class="prompt">romeo@mac ~ %</span> <span class="cmd">ping 8.8.8.8</span>\n\n'+
+      'PING 8.8.8.8 (8.8.8.8): 56 data bytes\n'+
+      '<span class="ok">64 bytes from 8.8.8.8: icmp_seq=0 ttl=117 time=11.4 ms</span>\n'+
+      '<span class="ok">64 bytes from 8.8.8.8: icmp_seq=1 ttl=117 time=10.9 ms</span>\n'+
+      '<span class="ok">64 bytes from 8.8.8.8: icmp_seq=2 ttl=117 time=12.1 ms</span>\n'+
+      '<span class="dim">^C  --- 3 packets transmitted, 3 received, 0% loss ---</span>\n',
+    'mac:networksetup -getdnsservers Wi-Fi':
+      '<span class="prompt">romeo@mac ~ %</span> <span class="cmd">networksetup -getdnsservers Wi-Fi</span>\n\n'+
+      '<span class="hl">1.1.1.1</span>\n<span class="hl">8.8.8.8</span>\n',
+    'linux:ip a':
+      '<span class="prompt">romeo@linux:~$</span> <span class="cmd">ip a</span>\n\n'+
+      '1: lo: &lt;LOOPBACK,UP,LOWER_UP&gt; mtu 65536\n'+
+      '    inet 127.0.0.1/8 scope host lo\n'+
+      '2: enp3s0: &lt;BROADCAST,MULTICAST,UP,LOWER_UP&gt; mtu 1500\n'+
+      '    <span class="hl">link/ether a4:83:e7:1b:2c:9d</span> brd ff:ff:ff:ff:ff:ff\n'+
+      '    <span class="hl">inet 192.168.1.77/24</span> brd 192.168.1.255 scope global enp3s0\n'+
+      '    <span class="hl">inet6 2601:240:abcd::77/64</span> scope global dynamic mngtmpaddr\n'+
+      '    inet6 fe80::a683:e7ff:fe1b:2c9d/64 scope link\n',
+    'linux:ifconfig':
+      '<span class="prompt">romeo@linux:~$</span> <span class="cmd">ifconfig</span>\n\n'+
+      'enp3s0: flags=4163&lt;UP,BROADCAST,RUNNING,MULTICAST&gt; mtu 1500\n'+
+      '   <span class="hl">inet 192.168.1.77 netmask 255.255.255.0 broadcast 192.168.1.255</span>\n'+
+      '   <span class="hl">ether a4:83:e7:1b:2c:9d</span> txqueuelen 1000  (Ethernet)\n'+
+      '   RX packets 8842  bytes 6.4 MB\n'+
+      '   TX packets 5219  bytes 1.1 MB\n',
+    'linux:ping 8.8.8.8':
+      '<span class="prompt">romeo@linux:~$</span> <span class="cmd">ping 8.8.8.8</span>\n\n'+
+      'PING 8.8.8.8 (8.8.8.8) 56(84) bytes of data.\n'+
+      '<span class="ok">64 bytes from 8.8.8.8: icmp_seq=1 ttl=117 time=11.2 ms</span>\n'+
+      '<span class="ok">64 bytes from 8.8.8.8: icmp_seq=2 ttl=117 time=10.7 ms</span>\n'+
+      '<span class="ok">64 bytes from 8.8.8.8: icmp_seq=3 ttl=117 time=12.0 ms</span>\n'+
+      '<span class="dim">^C  --- 3 packets transmitted, 3 received, 0% loss ---</span>\n',
+    'linux:ip route':
+      '<span class="prompt">romeo@linux:~$</span> <span class="cmd">ip route</span>\n\n'+
+      '<span class="hl">default via 192.168.1.1 dev enp3s0</span>\n'+
+      '192.168.1.0/24 dev enp3s0 proto kernel scope link src 192.168.1.77\n'
+  };
+
+  var wrongCmds = {
+    win: { 'ifconfig':'ifconfig is Linux/macOS — try ipconfig.', 'ip a':'ip a is Linux — try ipconfig /all on Windows.' },
+    mac: { 'ipconfig':'ipconfig is Windows — try ifconfig en0 on macOS.', 'ip a':'ip a is Linux — macOS uses ifconfig.' },
+    linux:{ 'ipconfig':'ipconfig is Windows — try ip a or ifconfig.' }
+  };
+
+  function setOS(newOS){
+    os = newOS;
+    document.querySelectorAll('.os-tab').forEach(function(t){ t.classList.toggle('active', t.dataset.os===newOS); });
+    var welcome = { win:'C:\\Users\\romeo&gt; _', mac:'romeo@mac ~ % _', linux:'romeo@linux:~$ _' };
+    document.getElementById('term').innerHTML = '<span class="dim">'+welcome[newOS]+'</span>';
+    var ex = document.getElementById('examples'); ex.innerHTML = '';
+    examples[newOS].forEach(function(c){
+      var b = document.createElement('span'); b.className='ex'; b.textContent=c;
+      b.addEventListener('click', function(){ document.getElementById('cmd').value=c; run(); });
+      ex.appendChild(b);
+    });
+    document.getElementById('verdict').className='verdict';
+  }
+
+  function run(){
+    var cmd = document.getElementById('cmd').value.trim();
+    if (!cmd) return;
+    var key = os+':'+cmd;
+    var verdict = document.getElementById('verdict');
+    if (output[key]) {
+      document.getElementById('term').innerHTML = output[key];
+      verdict.className='verdict win show';
+      verdict.textContent='✓ '+cmd+' — yellow lines are what you read first.';
+    } else if (wrongCmds[os] && wrongCmds[os][cmd]) {
+      document.getElementById('term').innerHTML = '<span class="prompt">$</span> <span class="cmd">'+cmd+'</span>\n\n<span style="color:#FCA5A5">'+cmd+': command not found</span>\n';
+      verdict.className='verdict miss show';
+      verdict.textContent='✗ '+wrongCmds[os][cmd];
+    } else {
+      verdict.className='verdict info show';
+      verdict.textContent='Try: '+examples[os].join(' · ');
+    }
+    document.getElementById('cmd').value='';
+  }
+
+  document.querySelectorAll('.os-tab').forEach(function(t){ t.addEventListener('click', function(){ setOS(t.dataset.os); }); });
+  document.getElementById('run').addEventListener('click', run);
+  document.getElementById('cmd').addEventListener('keydown', function(e){ if (e.key==='Enter') run(); });
+  document.getElementById('clear').addEventListener('click', function(){ setOS(os); });
+  setOS('win');
+
+  var qCorrect=0,qWrong=0,qStreak=0;
+  var pool = [
+    {q:'Which command shows IPv4, MAC, gateway, DNS on Windows?',a:'ipconfig /all',o:['ipconfig /all','ifconfig','ip a','netstat -rn']},
+    {q:'macOS — display config for the Wi-Fi/Ethernet interface en0?',a:'ifconfig en0',o:['ifconfig en0','ipconfig en0','ip a en0','show interface en0']},
+    {q:'Modern Linux — preferred way to dump all interface IPs?',a:'ip a',o:['ip a','ipconfig','show ip int br','arp -a']},
+    {q:'Test reachability to a public IP on any OS?',a:'ping 8.8.8.8',o:['ping 8.8.8.8','traceroute 8.8.8.8','ipconfig 8.8.8.8','show route 8.8.8.8']},
+    {q:'See learned MAC-to-IP mappings on Windows?',a:'arp -a',o:['arp -a','ipconfig /arp','ip neigh','show mac']},
+    {q:'View default gateway on Linux?',a:'ip route',o:['ip route','ipconfig','arp -a','netstat -i']},
+    {q:'Which OS does NOT have ifconfig by default in 2025?',a:'Modern Windows',o:['Modern Windows','macOS','Ubuntu','Fedora']},
+    {q:'On Win, what field shows the MAC address?',a:'Physical Address',o:['Physical Address','Hardware ID','Link Layer','Ether Addr']},
+    {q:'On macOS, what field shows MAC?',a:'ether',o:['ether','HWaddr','Physical Address','link/mac']},
+    {q:'Linux ip a — what tag shows MAC?',a:'link/ether',o:['link/ether','HWaddr','Physical','ether']},
+    {q:'Which command shows DNS servers configured on macOS Wi-Fi?',a:'networksetup -getdnsservers Wi-Fi',o:['networksetup -getdnsservers Wi-Fi','ipconfig /dns','cat /etc/resolv.conf','dnscmd']},
+    {q:'Ping reply with TTL=117 means roughly?',a:'~11 hops away (256-117 wraps; common Win=128 default)',o:['~11 hops away (256-117 wraps; common Win=128 default)','117ms latency','117 packets sent','117 retries']}
+  ];
+  function pickQ(){
+    var q = pool[Math.floor(Math.random()*pool.length)];
+    var opts = q.o.slice().sort(function(){return Math.random()-.5;});
+    document.getElementById('quizStem').textContent = q.q;
+    var box=document.getElementById('quizOpts'); box.innerHTML='';
+    opts.forEach(function(o){
+      var b=document.createElement('button'); b.className='opt'; b.textContent=o;
+      b.addEventListener('click', function(){
+        if (b.classList.contains('correct')||b.classList.contains('wrong')) return;
+        if (o===q.a){ b.classList.add('correct'); qCorrect++; qStreak++; }
+        else { b.classList.add('wrong'); qWrong++; qStreak=0;
+          Array.prototype.forEach.call(box.children,function(c){ if(c.textContent===q.a) c.classList.add('correct'); }); }
+        document.getElementById('qCorrect').textContent=qCorrect;
+        document.getElementById('qWrong').textContent=qWrong;
+        document.getElementById('qStreak').textContent=qStreak;
+      });
+      box.appendChild(b);
+    });
+  }
+  document.getElementById('newQ').addEventListener('click', pickQ);
+  pickQ();
+})();
+</script>
+</body>
+</html>

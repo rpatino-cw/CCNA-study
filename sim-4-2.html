@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>4.2 Sim — NTP & Stratum Hierarchy</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#FAF7F2;--bg-surface:#FFFFFF;--bg-recessed:#F3F0EB;
+    --border:#E2DFD9;--border-strong:#C7C3BC;
+    --ink:#1C1917;--ink-secondary:#57534E;--ink-muted:#A8A29E;
+    --accent:#B45309;--accent-soft:#D97706;--accent-light:#FEF3C7;
+    --correct:#16A34A;--correct-bg:#F0FDF4;
+    --wrong:#DC2626;--wrong-bg:#FEF2F2;
+    --info:#2563EB;--info-bg:#EFF6FF;
+    --font-display:'Space Grotesk',system-ui,sans-serif;
+    --font-body:'Source Serif 4',Georgia,serif;
+    --font-mono:'JetBrains Mono',monospace;
+    --radius:6px;--radius-lg:10px;
+  }
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  html{font-size:16px;-webkit-font-smoothing:antialiased}
+  body{font-family:var(--font-body);background:var(--bg);color:var(--ink);line-height:1.55;padding:24px;max-width:920px;margin:0 auto}
+  .head{margin-bottom:20px;padding-bottom:14px;border-bottom:1px solid var(--border)}
+  .head .crumb{font-family:var(--font-mono);font-size:.74rem;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px}
+  .head h1{font-family:var(--font-display);font-size:1.5rem;font-weight:700;margin-bottom:6px}
+  .head .desc{font-size:.95rem;color:var(--ink-secondary)}
+  .panel{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;margin-bottom:18px}
+  .panel h2{font-family:var(--font-display);font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-secondary);margin-bottom:12px}
+  .btn{font-family:var(--font-display);font-size:.84rem;font-weight:600;padding:8px 16px;background:var(--ink);color:#FAF7F2;border:none;border-radius:var(--radius);cursor:pointer}
+  .btn.ghost{background:var(--bg-recessed);color:var(--ink)}
+  .btn.accent{background:var(--accent)}
+  .strata{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin:14px 0}
+  .stratum{background:var(--bg-recessed);border:1px solid var(--border);border-radius:var(--radius);padding:14px;text-align:center;cursor:pointer;transition:all .25s}
+  .stratum:hover{border-color:var(--accent)}
+  .stratum.selected{background:var(--accent-light);border-color:var(--accent)}
+  .stratum .num{font-family:var(--font-display);font-size:1.6rem;font-weight:700;color:var(--accent)}
+  .stratum .lbl{font-family:var(--font-mono);font-size:.78rem;color:var(--ink-secondary);margin-top:4px}
+  .clock{font-family:var(--font-mono);font-size:2rem;font-weight:700;text-align:center;padding:20px;background:var(--bg-recessed);border-radius:var(--radius);margin:14px 0}
+  .clock.drift{color:var(--wrong)}
+  .clock.synced{color:var(--correct)}
+  .verdict{margin-top:14px;padding:12px 16px;border-radius:var(--radius);font-family:var(--font-display);font-weight:600}
+  .verdict.win{background:var(--correct-bg);color:var(--correct);border:1px solid var(--correct)}
+  .verdict.info{background:var(--info-bg);color:var(--info);border:1px solid var(--info)}
+  .cfg{font-family:var(--font-mono);font-size:.88rem;background:var(--ink);color:#FAF7F2;padding:14px;border-radius:var(--radius);margin-top:10px;white-space:pre-wrap}
+  .quiz{margin-top:22px}
+  .quiz .stem{font-family:var(--font-display);font-size:1.02rem;font-weight:600;margin-bottom:12px;padding:14px;background:var(--accent-light);border-left:3px solid var(--accent);border-radius:var(--radius)}
+  .quiz .opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px}
+  .opt{background:var(--bg-recessed);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;font-family:var(--font-mono);font-size:.92rem;cursor:pointer;text-align:left}
+  .opt:hover{border-color:var(--border-strong);background:var(--bg-surface)}
+  .opt.correct{background:var(--correct-bg);border-color:var(--correct);color:var(--correct);font-weight:700}
+  .opt.wrong{background:var(--wrong-bg);border-color:var(--wrong);color:var(--wrong)}
+  .scoreline{font-family:var(--font-mono);font-size:.84rem;color:var(--ink-muted);margin-top:10px;display:flex;gap:18px}
+  .scoreline strong{color:var(--ink)}
+</style>
+</head>
+<body>
+
+<div class="head">
+  <div class="crumb"><a href="blueprint-drill.html?obj=4.2" style="color:var(--accent);text-decoration:none">← 4.2 leaves</a> · 4.2 · IP Services · NTP</div>
+  <h1>NTP Stratum Sim</h1>
+  <div class="desc">Why NTP exists: every log line, certificate, Kerberos ticket, and DHCP lease is timestamped. Clocks drift seconds per day. Without sync, log correlation is impossible and TLS handshakes fail. NTP organizes the world into a tree — atomic clock at the root, each hop down adds one stratum and a tiny error margin.</div>
+</div>
+
+<div class="panel">
+  <h2>Stratum Tree (lower number = closer to truth)</h2>
+  <div class="strata">
+    <div class="stratum" data-s="0"><div class="num">0</div><div class="lbl">atomic / GPS</div></div>
+    <div class="stratum" data-s="1"><div class="num">1</div><div class="lbl">primary server</div></div>
+    <div class="stratum" data-s="2"><div class="num">2</div><div class="lbl">secondary</div></div>
+    <div class="stratum" data-s="3"><div class="num">3</div><div class="lbl">tertiary</div></div>
+    <div class="stratum" data-s="16"><div class="num">16</div><div class="lbl">unsynced</div></div>
+  </div>
+  <div id="strInfo" style="font-family:var(--font-mono);font-size:.86rem;color:var(--ink-secondary);text-align:center">Click a stratum.</div>
+</div>
+
+<div class="panel">
+  <h2>Client Clock Sim</h2>
+  <div class="clock drift" id="clock">14:23:08</div>
+  <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
+    <button class="btn ghost" id="drift">Let it drift</button>
+    <button class="btn accent" id="sync">ntp server 10.0.0.1 — sync</button>
+    <button class="btn ghost" id="stop">Stop</button>
+  </div>
+  <div id="verdict" class="verdict info" style="display:none;margin-top:12px"></div>
+
+  <div class="cfg">R1(config)# ntp server 10.0.0.1
+R1(config)# ntp server 192.5.41.41 prefer
+R1# show ntp status
+Clock is synchronized, stratum 3, reference is 10.0.0.1
+R1# show ntp associations
+  address         ref clock     stratum  when  poll  reach
+*~10.0.0.1       .GPS.            2     43    64    377</div>
+  <div style="font-family:var(--font-mono);font-size:.78rem;color:var(--ink-muted);margin-top:8px">UDP port 123. Authentication via ntp authentication-key + ntp trusted-key. Stratum 16 = unreachable.</div>
+</div>
+
+<div class="panel quiz">
+  <h2>Quiz</h2>
+  <div class="stem" id="qStem">Loading…</div>
+  <div class="opts" id="qOpts"></div>
+  <div class="scoreline">
+    <span><strong id="qC">0</strong> correct</span>
+    <span><strong id="qW">0</strong> wrong</span>
+    <span style="margin-left:auto"><button class="btn ghost" id="qNext">Next ↻</button></span>
+  </div>
+</div>
+
+<p style="text-align:center;margin-top:20px"><a href="blueprint-drill.html?obj=4.2" style="color:var(--accent);font-family:var(--font-mono);font-size:.84rem">← back to 4.2 leaves</a></p>
+
+<script>
+(function(){
+  var infos={
+    '0':'Stratum 0: atomic clock, GPS receiver, radio. Not on the network — feeds stratum-1 directly.',
+    '1':'Stratum 1: server with stratum-0 attached. Authoritative for the network.',
+    '2':'Stratum 2: syncs to stratum 1. Most enterprise NTP servers.',
+    '3':'Stratum 3: syncs to stratum 2. Typical edge router.',
+    '16':'Stratum 16: clock unreachable / unsynchronized. Marker, not real value.'
+  };
+  document.querySelectorAll('.stratum').forEach(function(el){
+    el.addEventListener('click',function(){
+      document.querySelectorAll('.stratum').forEach(function(x){x.classList.remove('selected')});
+      el.classList.add('selected');
+      document.getElementById('strInfo').textContent=infos[el.dataset.s];
+    });
+  });
+
+  var t=new Date(2026,3,29,14,23,8),timer=null,driftRate=0;
+  function tick(){
+    t=new Date(t.getTime()+1000+driftRate*1000);
+    var c=document.getElementById('clock');
+    c.textContent=String(t.getHours()).padStart(2,'0')+':'+String(t.getMinutes()).padStart(2,'0')+':'+String(t.getSeconds()).padStart(2,'0');
+  }
+  document.getElementById('drift').addEventListener('click',function(){
+    clearInterval(timer); driftRate=8; document.getElementById('clock').className='clock drift';
+    document.getElementById('verdict').style.display='block'; document.getElementById('verdict').className='verdict'; document.getElementById('verdict').style.background='var(--wrong-bg)'; document.getElementById('verdict').style.color='var(--wrong)';
+    document.getElementById('verdict').textContent='✗ Drifting 8s per tick. Logs across devices won\'t correlate. TLS will reject on +5min skew.';
+    timer=setInterval(tick,200);
+  });
+  document.getElementById('sync').addEventListener('click',function(){
+    clearInterval(timer); driftRate=0; t=new Date();
+    var c=document.getElementById('clock'); c.className='clock synced';
+    c.textContent=String(t.getHours()).padStart(2,'0')+':'+String(t.getMinutes()).padStart(2,'0')+':'+String(t.getSeconds()).padStart(2,'0');
+    var v=document.getElementById('verdict'); v.style.display='block'; v.className='verdict win';
+    v.textContent='✓ Snapped to NTP server. Stratum 3. UDP/123 used. Drift rate now zero.';
+    timer=setInterval(tick,1000);
+  });
+  document.getElementById('stop').addEventListener('click',function(){clearInterval(timer)});
+
+  var qC=0,qW=0;
+  var pool=[
+    {q:'NTP uses which transport and port?',a:'UDP 123',o:['UDP 123','TCP 123','UDP 53','TCP 22']},
+    {q:'Stratum 0 represents…',a:'atomic/GPS reference clock',o:['atomic/GPS reference clock','primary NTP server','client device','unsynced device']},
+    {q:'A device shows stratum 16. Meaning?',a:'Unsynchronized',o:['Most accurate','Unsynchronized','Authoritative','Lost packets']},
+    {q:'R1 syncs to a stratum-2 server. What is R1\'s stratum?',a:'3',o:['1','2','3','16']},
+    {q:'Maximum useful stratum value before "unreachable"?',a:'15',o:['7','15','16','127']},
+    {q:'Which command points R1 at an NTP server?',a:'ntp server 10.0.0.1',o:['ntp server 10.0.0.1','ntp 10.0.0.1','clock source 10.0.0.1','ip ntp 10.0.0.1']},
+    {q:'NTP authentication uses…',a:'symmetric key (MD5/SHA)',o:['symmetric key (MD5/SHA)','RSA cert','no auth available','OAuth token']},
+    {q:'Why does NTP matter for security logs?',a:'correlation across devices needs synced timestamps',o:['it encrypts logs','correlation across devices needs synced timestamps','it compresses logs','syslog requires it']},
+    {q:'`prefer` keyword on ntp server line does what?',a:'marks it as the preferred peer when multiple are configured',o:['authenticates the peer','marks it as the preferred peer when multiple are configured','enables symmetric mode','rejects others']}
+  ];
+  function pick(){
+    var q=pool[Math.floor(Math.random()*pool.length)];
+    document.getElementById('qStem').textContent=q.q;
+    var box=document.getElementById('qOpts'); box.innerHTML='';
+    q.o.slice().sort(function(){return Math.random()-.5}).forEach(function(o){
+      var b=document.createElement('button'); b.className='opt'; b.textContent=o;
+      b.addEventListener('click',function(){
+        if(b.classList.contains('correct')||b.classList.contains('wrong'))return;
+        if(o===q.a){b.classList.add('correct');qC++} else{b.classList.add('wrong');qW++; Array.prototype.forEach.call(box.children,function(c){if(c.textContent===q.a)c.classList.add('correct')})}
+        document.getElementById('qC').textContent=qC; document.getElementById('qW').textContent=qW;
+      });
+      box.appendChild(b);
+    });
+  }
+  document.getElementById('qNext').addEventListener('click',pick); pick();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>1.3.a Sim — Fiber & Copper</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#FAF7F2;--bg-surface:#FFFFFF;--bg-recessed:#F3F0EB;
+    --border:#E2DFD9;--border-strong:#C7C3BC;
+    --ink:#1C1917;--ink-secondary:#57534E;--ink-muted:#A8A29E;
+    --accent:#B45309;--accent-soft:#D97706;--accent-light:#FEF3C7;
+    --correct:#16A34A;--correct-bg:#F0FDF4;
+    --wrong:#DC2626;--wrong-bg:#FEF2F2;
+    --info:#2563EB;--info-bg:#EFF6FF;
+    --font-display:'Space Grotesk',system-ui,sans-serif;
+    --font-body:'Source Serif 4',Georgia,serif;
+    --font-mono:'JetBrains Mono',monospace;
+    --radius:6px;--radius-lg:10px;
+  }
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  html{font-size:16px;-webkit-font-smoothing:antialiased}
+  body{font-family:var(--font-body);background:var(--bg);color:var(--ink);line-height:1.55;padding:24px;max-width:920px;margin:0 auto}
+  .head{margin-bottom:20px;padding-bottom:14px;border-bottom:1px solid var(--border)}
+  .head .crumb{font-family:var(--font-mono);font-size:.74rem;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px}
+  .head .crumb a{color:var(--accent);text-decoration:none}
+  .head h1{font-family:var(--font-display);font-size:1.5rem;font-weight:700;margin-bottom:6px}
+  .head .desc{font-size:.95rem;color:var(--ink-secondary)}
+  .panel{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;margin-bottom:18px}
+  .panel h2{font-family:var(--font-display);font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-secondary);margin-bottom:12px}
+  .btn{font-family:var(--font-display);font-size:.84rem;font-weight:600;padding:8px 16px;background:var(--ink);color:#FAF7F2;border:none;border-radius:var(--radius);cursor:pointer;transition:background .15s}
+  .btn.ghost{background:var(--bg-recessed);color:var(--ink)}
+  .row{margin-bottom:14px}
+  .row label{display:block;font-family:var(--font-display);font-size:.86rem;font-weight:600;color:var(--ink-secondary);margin-bottom:4px}
+  .row .v{font-family:var(--font-mono);font-size:.86rem;color:var(--ink);font-weight:700}
+  input[type=range]{width:100%}
+  .matrix{margin-top:16px;display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+  .media{padding:10px;border-radius:var(--radius);border:1px solid var(--border);background:#fff;font-family:var(--font-mono);font-size:.84rem}
+  .media h4{font-family:var(--font-display);font-size:.78rem;color:var(--accent);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
+  .media.ok{border-color:var(--correct);background:var(--correct-bg)}
+  .media.fail{border-color:var(--wrong);background:var(--wrong-bg);opacity:.7}
+  .media .verdict-mini{font-weight:700;margin-top:4px}
+  .media.ok .verdict-mini{color:var(--correct)}
+  .media.fail .verdict-mini{color:var(--wrong)}
+  svg.fiber{width:100%;height:160px;background:#0c0a09;border-radius:var(--radius);margin-top:14px}
+  .verdict{margin-top:16px;padding:12px 16px;border-radius:var(--radius);font-family:var(--font-display);font-size:.94rem;font-weight:600;display:none}
+  .verdict.show{display:block;animation:fadeIn .25s ease}
+  .verdict.info{background:var(--info-bg);color:var(--info);border:1px solid var(--info)}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
+  .quiz{margin-top:22px}
+  .quiz .stem{font-family:var(--font-display);font-size:1.02rem;font-weight:600;margin-bottom:12px;padding:14px;background:var(--accent-light);border-left:3px solid var(--accent);border-radius:var(--radius)}
+  .quiz .opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px}
+  .opt{background:var(--bg-recessed);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;font-family:var(--font-mono);font-size:.88rem;cursor:pointer;text-align:left;transition:all .15s}
+  .opt:hover{border-color:var(--border-strong);background:var(--bg-surface)}
+  .opt.correct{background:var(--correct-bg);border-color:var(--correct);color:var(--correct);font-weight:700}
+  .opt.wrong{background:var(--wrong-bg);border-color:var(--wrong);color:var(--wrong)}
+  .scoreline{font-family:var(--font-mono);font-size:.84rem;color:var(--ink-muted);margin-top:10px;display:flex;gap:18px;align-items:center}
+  .scoreline strong{color:var(--ink)}
+  .badge{display:inline-block;font-family:var(--font-display);font-size:.7rem;font-weight:700;padding:2px 8px;border-radius:99px;background:var(--accent-light);color:var(--accent);text-transform:uppercase;letter-spacing:.04em;margin-left:8px}
+  .footer{margin-top:30px;padding-top:14px;border-top:1px solid var(--border);font-family:var(--font-mono);font-size:.78rem}
+  .footer a{color:var(--accent);text-decoration:none}
+  .ray{stroke-width:1.6;fill:none;opacity:.85}
+</style>
+</head>
+<body>
+
+<div class="head">
+  <div class="crumb"><a href="blueprint-drill.html?obj=1.3">← 1.3 Physical Interfaces &amp; Cabling</a> · 1.3.a · Fiber &amp; Copper</div>
+  <h1>Single-mode vs Multimode vs Copper<span class="badge">slide it</span></h1>
+  <div class="desc">Copper UTP is cheap and easy but runs out of room around 100 m at 1G/10G. <strong>Multimode fiber</strong> uses an LED light source and a fat core — light bounces along multiple paths (modes), which causes <em>modal dispersion</em> and limits distance. <strong>Single-mode</strong> uses a laser and a tiny core — one path, one mode, runs 10+ km. Slide distance and bandwidth and watch each medium fail (or hold).</div>
+</div>
+
+<div class="panel">
+  <h2>Distance &amp; bandwidth</h2>
+  <div class="row"><label>Distance <span class="v" id="distV">100 m</span></label><input id="dist" type="range" min="1" max="40000" value="100"></div>
+  <div class="row"><label>Bandwidth target <span class="v" id="bwV">10 G</span></label><input id="bw" type="range" min="0" max="3" value="2"></div>
+
+  <div class="matrix" id="matrix">
+    <div class="media" data-m="copper"><h4>UTP Copper</h4>Cat6a, RJ45<br>Limit ~100 m<div class="verdict-mini" id="v-copper">—</div></div>
+    <div class="media" data-m="mmf"><h4>Multimode Fiber</h4>OM3 LC/SC, LED→VCSEL<br>~300-400 m @ 10G<div class="verdict-mini" id="v-mmf">—</div></div>
+    <div class="media" data-m="smf"><h4>Single-Mode Fiber</h4>OS2 LC/SC, laser<br>10–80 km<div class="verdict-mini" id="v-smf">—</div></div>
+  </div>
+
+  <svg class="fiber" id="fib" viewBox="0 0 600 160" preserveAspectRatio="none">
+    <text x="10" y="20" font-family="JetBrains Mono" font-size="11" fill="#fff" id="fib-label">Multimode (multiple paths)</text>
+    <line x1="40" y1="80" x2="560" y2="80" stroke="#444" stroke-width="40" stroke-linecap="round"/>
+    <line x1="40" y1="80" x2="560" y2="80" stroke="#1a1a1a" stroke-width="34" stroke-linecap="round"/>
+    <g id="rays"></g>
+  </svg>
+
+  <div id="verdict" class="verdict"></div>
+  <div style="font-family:var(--font-mono);font-size:.78rem;color:var(--ink-muted);margin-top:12px">Connectors: <strong>LC</strong> (small, today\'s standard), <strong>SC</strong> (square push-pull), <strong>ST</strong> (bayonet, legacy), <strong>MTP/MPO</strong> (12-fiber ribbon, 40/100G breakout). Color codes: yellow=SMF, aqua=OM3, magenta/erika=OM4.</div>
+</div>
+
+<div class="panel quiz" id="quizPanel">
+  <h2>Quiz mode <span style="color:var(--accent);text-transform:none;letter-spacing:0;font-weight:700">— pick the right medium</span></h2>
+  <div class="stem" id="quizStem">Loading…</div>
+  <div class="opts" id="quizOpts"></div>
+  <div class="scoreline">
+    <span><strong id="qCorrect">0</strong> correct</span>
+    <span><strong id="qWrong">0</strong> wrong</span>
+    <span><strong id="qStreak">0</strong> streak</span>
+    <span style="margin-left:auto"><button class="btn ghost" id="newQ">Next ↻</button></span>
+  </div>
+</div>
+
+<div class="footer"><a href="blueprint-drill.html?obj=1.3">← back to 1.3 leaves</a></div>
+
+<script>
+(function(){
+  function $(id){ return document.getElementById(id); }
+  var BW=['1 G','2.5 G','10 G','40 G'];
+  var BWnum=[1,2.5,10,40];
+  // Limits in meters
+  function copperLimit(bw){ return bw <= 1 ? 100 : (bw <= 10 ? 100 : 0); } // copper drops off above 10G
+  function mmfLimit(bw){ if (bw<=1) return 1000; if (bw<=10) return 400; if (bw<=40) return 150; return 100; }
+  function smfLimit(bw){ if (bw<=10) return 40000; if (bw<=40) return 10000; return 10000; }
+
+  function update(){
+    var d = parseInt($('dist').value,10);
+    var bwI = parseInt($('bw').value,10);
+    var bw = BWnum[bwI];
+    $('distV').textContent = d > 1000 ? (d/1000).toFixed(1)+' km' : d+' m';
+    $('bwV').textContent = BW[bwI];
+    var copper = copperLimit(bw), mmf=mmfLimit(bw), smf=smfLimit(bw);
+    setMedia('copper', d <= copper, copper);
+    setMedia('mmf', d <= mmf, mmf);
+    setMedia('smf', d <= smf, smf);
+    drawRays(d);
+    var v = $('verdict');
+    var rec = (d <= copper) ? 'Copper UTP fits — cheapest, easiest.' : (d <= mmf) ? 'Multimode fiber — cheaper optics than SMF, fits up to a few hundred meters.' : (d <= smf) ? 'Single-mode fiber — only choice over ~500 m.' : 'No medium reaches that distance at that speed — repeater / DWDM territory.';
+    v.className='verdict info show'; v.textContent='Recommended: '+rec;
+  }
+  function setMedia(id, ok, limit){
+    var box = document.querySelector('[data-m="'+id+'"]');
+    box.className = 'media ' + (ok?'ok':'fail');
+    var lbl = limit > 1000 ? (limit/1000).toFixed(0)+' km' : limit+' m';
+    $('v-'+id).textContent = ok ? '✓ within '+lbl+' limit' : '✗ exceeds '+lbl+' limit';
+  }
+  function drawRays(d){
+    var rays = $('rays');
+    while(rays.firstChild) rays.removeChild(rays.firstChild);
+    // single-mode if d > 1000m, otherwise multimode pattern
+    var single = d > 1000;
+    $('fib-label').textContent = single ? 'Single-mode (one direct path — laser)' : 'Multimode (multiple paths — modal dispersion)';
+    if (single){
+      var l = document.createElementNS('http://www.w3.org/2000/svg','line');
+      l.setAttribute('x1',40); l.setAttribute('y1',80); l.setAttribute('x2',560); l.setAttribute('y2',80);
+      l.setAttribute('stroke','#FBBF24'); l.setAttribute('class','ray');
+      l.setAttribute('stroke-width',2.4);
+      rays.appendChild(l);
+      var p = document.createElementNS('http://www.w3.org/2000/svg','circle');
+      p.setAttribute('r',4); p.setAttribute('fill','#FBBF24');
+      rays.appendChild(p);
+      var anim = p.animate([{cx:40,cy:80},{cx:560,cy:80}],{duration:1400,iterations:Infinity});
+    } else {
+      // 3 bouncing paths
+      [[68,90],[60,72],[72,86]].forEach(function(amp,i){
+        var pts=[];
+        for (var x=40;x<=560;x+=12){
+          var y = 80 + Math.sin((x-40)/amp[0]*Math.PI)*amp[1];
+          y = Math.max(64, Math.min(96, y));
+          pts.push(x+','+y);
+        }
+        var poly = document.createElementNS('http://www.w3.org/2000/svg','polyline');
+        poly.setAttribute('points',pts.join(' '));
+        poly.setAttribute('class','ray');
+        poly.setAttribute('stroke', i===0?'#60A5FA':(i===1?'#A78BFA':'#34D399'));
+        poly.setAttribute('fill','none');
+        rays.appendChild(poly);
+      });
+    }
+  }
+  ['dist','bw'].forEach(function(id){ $(id).addEventListener('input', update); });
+  update();
+
+  var qC=0,qW=0,qS=0;
+  var pool = [
+    { q:'You need 10 Gbps over 80 m between two switches in the same MDF. Cheapest fit?', a:'Cat6a UTP copper', d:['Single-mode fiber','OM3 multimode','MTP/MPO ribbon'], why:'10G/80m is comfortably within Cat6a — no fiber needed.' },
+    { q:'10 Gbps between buildings, 600 m apart. Best fit?', a:'OM3/OM4 multimode fiber', d:['Cat6a copper','Single-mode (overkill but works)','Coax'], why:'Copper caps ~100 m; SMF works but MMF is cheaper at this range.' },
+    { q:'40 Gbps, 8 km between data centers. Best fit?', a:'Single-mode fiber', d:['Multimode','Cat8 copper','Cat6'], why:'Only SMF reaches kilometers at 40G.' },
+    { q:'Why does multimode fiber suffer modal dispersion?', a:'Multiple light paths arrive at slightly different times', d:['It uses radio waves','Copper grounding issues','Laser noise'], why:'Several modes = several arrival times, which limits bandwidth × distance.' },
+    { q:'Which connector is the small modern duplex fiber connector?', a:'LC', d:['ST (bayonet)','SC (square push-pull)','RJ45'], why:'LC is the dominant SFP-era connector.' },
+    { q:'12-fiber breakout cable for 40G/100G typically uses what?', a:'MTP / MPO', d:['LC','ST','RJ45'], why:'MTP is the ribbon connector for parallel optics.' },
+    { q:'Light source for single-mode fiber?', a:'Laser', d:['LED','VCSEL only','Halogen'], why:'SMF needs the coherent narrow beam of a laser.' },
+    { q:'Outer jacket color: yellow fiber typically means…', a:'Single-mode (OS1/OS2)', d:['OM3 multimode','Cat6 patch','Coax'], why:'TIA color code: yellow = SMF.' },
+    { q:'OM3 jacket color?', a:'Aqua', d:['Yellow','Orange','Black'], why:'Aqua = OM3. Erika violet = OM4.' },
+    { q:'You need to push 100G across 5 km. Pick the medium.', a:'Single-mode fiber (LR/ER optics)', d:['Multimode OM4','Cat8 copper','OM5 only'], why:'5 km @ 100G is single-mode territory — LR/ER optics.' }
+  ];
+  function pick(){
+    var p = pool[Math.floor(Math.random()*pool.length)];
+    var opts = [p.a].concat(p.d).sort(function(){return Math.random()-.5;});
+    document.getElementById('quizStem').textContent = p.q;
+    var box = document.getElementById('quizOpts'); box.innerHTML='';
+    opts.forEach(function(o){
+      var b=document.createElement('button'); b.className='opt'; b.textContent=o;
+      b.addEventListener('click', function(){
+        if (b.classList.contains('correct')||b.classList.contains('wrong')) return;
+        if (o===p.a){ b.classList.add('correct'); qC++; qS++; }
+        else { b.classList.add('wrong'); qW++; qS=0;
+          [].forEach.call(box.children,function(c){ if (c.textContent===p.a) c.classList.add('correct'); }); }
+        document.getElementById('qCorrect').textContent=qC;
+        document.getElementById('qWrong').textContent=qW;
+        document.getElementById('qStreak').textContent=qS;
+        var v=document.getElementById('verdict'); v.className='verdict info show'; v.textContent='Why: '+p.why;
+      });
+      box.appendChild(b);
+    });
+  }
+  document.getElementById('newQ').addEventListener('click', pick);
+  pick();
+})();
+</script>
+</body>
+</html>

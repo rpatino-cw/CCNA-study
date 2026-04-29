@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>4.1 Sim — NAT (Static, Dynamic, PAT)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#FAF7F2;--bg-surface:#FFFFFF;--bg-recessed:#F3F0EB;
+    --border:#E2DFD9;--border-strong:#C7C3BC;
+    --ink:#1C1917;--ink-secondary:#57534E;--ink-muted:#A8A29E;
+    --accent:#B45309;--accent-soft:#D97706;--accent-light:#FEF3C7;
+    --correct:#16A34A;--correct-bg:#F0FDF4;
+    --wrong:#DC2626;--wrong-bg:#FEF2F2;
+    --info:#2563EB;--info-bg:#EFF6FF;
+    --font-display:'Space Grotesk',system-ui,sans-serif;
+    --font-body:'Source Serif 4',Georgia,serif;
+    --font-mono:'JetBrains Mono',monospace;
+    --radius:6px;--radius-lg:10px;
+  }
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  html{font-size:16px;-webkit-font-smoothing:antialiased}
+  body{font-family:var(--font-body);background:var(--bg);color:var(--ink);line-height:1.55;padding:24px;max-width:920px;margin:0 auto}
+  .head{margin-bottom:20px;padding-bottom:14px;border-bottom:1px solid var(--border)}
+  .head .crumb{font-family:var(--font-mono);font-size:.74rem;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px}
+  .head h1{font-family:var(--font-display);font-size:1.5rem;font-weight:700;margin-bottom:6px}
+  .head .desc{font-size:.95rem;color:var(--ink-secondary)}
+  .panel{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;margin-bottom:18px}
+  .panel h2{font-family:var(--font-display);font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-secondary);margin-bottom:12px}
+  .btn{font-family:var(--font-display);font-size:.84rem;font-weight:600;padding:8px 16px;background:var(--ink);color:#FAF7F2;border:none;border-radius:var(--radius);cursor:pointer;transition:background .15s}
+  .btn:hover{background:var(--ink-secondary)}
+  .btn.ghost{background:var(--bg-recessed);color:var(--ink)}
+  .btn.accent{background:var(--accent)}
+  .btn.accent:hover{background:var(--accent-soft)}
+  .modes{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap}
+  .mode{padding:8px 14px;border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-recessed);font-family:var(--font-display);font-size:.84rem;font-weight:600;cursor:pointer;color:var(--ink-secondary)}
+  .mode.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+  .stage{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;align-items:center;margin:18px 0}
+  .zone{background:var(--bg-recessed);border:1px solid var(--border);border-radius:var(--radius);padding:14px;text-align:center;font-family:var(--font-mono);font-size:.84rem;min-height:140px;position:relative}
+  .zone .zlabel{font-family:var(--font-display);font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-secondary);margin-bottom:8px}
+  .host{background:var(--bg-surface);border:1px solid var(--border-strong);border-radius:var(--radius);padding:6px 8px;margin:4px 2px;font-size:.8rem;display:inline-block}
+  .host.active{background:var(--info-bg);border-color:var(--info);color:var(--info);font-weight:700}
+  .arrow{font-family:var(--font-mono);font-size:1.6rem;color:var(--ink-muted);text-align:center}
+  .pkt{background:var(--accent-light);border:1px solid var(--accent);border-radius:var(--radius);padding:6px 8px;font-size:.78rem;margin:4px 0;font-family:var(--font-mono)}
+  .pkt.drop{background:var(--wrong-bg);border-color:var(--wrong);color:var(--wrong);text-decoration:line-through}
+  .table{width:100%;border-collapse:collapse;margin-top:12px;font-family:var(--font-mono);font-size:.86rem}
+  .table th{text-align:left;padding:8px 10px;background:var(--bg-recessed);font-family:var(--font-display);font-size:.7rem;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-secondary);border-bottom:1px solid var(--border-strong)}
+  .table td{padding:8px 10px;border-bottom:1px solid var(--border)}
+  .table tr.new td{animation:flash .8s ease}
+  @keyframes flash{0%{background:var(--accent-light)}100%{background:transparent}}
+  .verdict{margin-top:14px;padding:12px 16px;border-radius:var(--radius);font-family:var(--font-display);font-size:.94rem;font-weight:600}
+  .verdict.win{background:var(--correct-bg);color:var(--correct);border:1px solid var(--correct)}
+  .verdict.miss{background:var(--wrong-bg);color:var(--wrong);border:1px solid var(--wrong)}
+  .verdict.info{background:var(--info-bg);color:var(--info);border:1px solid var(--info)}
+  .terms{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;margin-top:10px;font-family:var(--font-mono);font-size:.82rem}
+  .term{padding:8px 10px;background:var(--bg-recessed);border-radius:var(--radius);border:1px solid var(--border)}
+  .term b{color:var(--accent)}
+  .quiz{margin-top:22px}
+  .quiz .stem{font-family:var(--font-display);font-size:1.02rem;font-weight:600;margin-bottom:12px;padding:14px;background:var(--accent-light);border-left:3px solid var(--accent);border-radius:var(--radius)}
+  .quiz .opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px}
+  .opt{background:var(--bg-recessed);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;font-family:var(--font-mono);font-size:.92rem;cursor:pointer;text-align:left}
+  .opt:hover{border-color:var(--border-strong);background:var(--bg-surface)}
+  .opt.correct{background:var(--correct-bg);border-color:var(--correct);color:var(--correct);font-weight:700}
+  .opt.wrong{background:var(--wrong-bg);border-color:var(--wrong);color:var(--wrong)}
+  .scoreline{font-family:var(--font-mono);font-size:.84rem;color:var(--ink-muted);margin-top:10px;display:flex;gap:18px}
+  .scoreline strong{color:var(--ink)}
+  .footnote{font-family:var(--font-mono);font-size:.78rem;color:var(--ink-muted);margin-top:10px}
+</style>
+</head>
+<body>
+
+<div class="head">
+  <div class="crumb"><a href="blueprint-drill.html?obj=4.1" style="color:var(--accent);text-decoration:none">← 4.1 leaves</a> · 4.1 · IP Services · NAT</div>
+  <h1>NAT Modes Sim</h1>
+  <div class="desc">Why NAT exists: IPv4 is exhausted. Private RFC1918 hosts (10/8, 172.16/12, 192.168/16) can't be routed on the public internet. NAT rewrites packet headers at the border so many private hosts share one or a few public addresses. Three flavors. Pick one and send packets.</div>
+</div>
+
+<div class="panel">
+  <h2>Mode</h2>
+  <div class="modes">
+    <button class="mode active" data-mode="static">Static NAT (1:1)</button>
+    <button class="mode" data-mode="dynamic">Dynamic NAT (pool)</button>
+    <button class="mode" data-mode="pat">PAT / Overload</button>
+  </div>
+  <div class="footnote" id="modeDesc"></div>
+
+  <div class="stage">
+    <div class="zone"><div class="zlabel">Inside (private)</div>
+      <div class="host" data-h="A">PC-A 10.0.0.10</div>
+      <div class="host" data-h="B">PC-B 10.0.0.11</div>
+      <div class="host" data-h="C">PC-C 10.0.0.12</div>
+    </div>
+    <div class="arrow">→ R1 →</div>
+    <div class="zone"><div class="zlabel">Outside (public)</div>
+      <div class="host">8.8.8.8</div>
+    </div>
+  </div>
+
+  <div style="display:flex;gap:8px;flex-wrap:wrap">
+    <button class="btn accent" data-send="A">Send from PC-A</button>
+    <button class="btn accent" data-send="B">Send from PC-B</button>
+    <button class="btn accent" data-send="C">Send from PC-C</button>
+    <button class="btn ghost" id="reset">Reset</button>
+  </div>
+
+  <h2 style="margin-top:18px">Translation table</h2>
+  <table class="table"><thead><tr><th>Inside-local</th><th>Inside-global</th><th>Proto</th><th>State</th></tr></thead><tbody id="natTable"></tbody></table>
+
+  <div id="verdict" class="verdict info" style="display:none"></div>
+</div>
+
+<div class="panel">
+  <h2>Terminology</h2>
+  <div class="terms">
+    <div class="term"><b>Inside-local</b> private IP of inside host (10.0.0.10)</div>
+    <div class="term"><b>Inside-global</b> public IP that represents the host outside (203.0.113.5)</div>
+    <div class="term"><b>Outside-global</b> real public IP of remote host (8.8.8.8)</div>
+    <div class="term"><b>Outside-local</b> how outside appears inside (rare — usually = outside-global)</div>
+  </div>
+</div>
+
+<div class="panel quiz">
+  <h2>Quiz</h2>
+  <div class="stem" id="qStem">Loading…</div>
+  <div class="opts" id="qOpts"></div>
+  <div class="scoreline">
+    <span><strong id="qC">0</strong> correct</span>
+    <span><strong id="qW">0</strong> wrong</span>
+    <span style="margin-left:auto"><button class="btn ghost" id="qNext">Next ↻</button></span>
+  </div>
+</div>
+
+<p style="text-align:center;margin-top:20px"><a href="blueprint-drill.html?obj=4.1" style="color:var(--accent);font-family:var(--font-mono);font-size:.84rem">← back to 4.1 leaves</a></p>
+
+<script>
+(function(){
+  var mode='static',pool=['203.0.113.5','203.0.113.6'],pat='203.0.113.5',port=49152;
+  var staticMap={A:'203.0.113.10',B:'203.0.113.11',C:'203.0.113.12'};
+  var entries=[];
+  var modeDescs={
+    static:'Static NAT: one inside-local mapped permanently to one inside-global. Used for servers that need a stable public IP.',
+    dynamic:'Dynamic NAT: pool of public IPs. Inside hosts get one when needed, return it when idle. Pool of 2 here — 3rd host gets dropped.',
+    pat:'PAT (NAT overload): one public IP, many ports. Router uses source port to demultiplex. Scales to thousands of hosts.'
+  };
+  function setMode(m){
+    mode=m; entries=[]; pool=['203.0.113.5','203.0.113.6']; port=49152;
+    document.querySelectorAll('.mode').forEach(function(b){b.classList.toggle('active',b.dataset.mode===m)});
+    document.getElementById('modeDesc').textContent=modeDescs[m];
+    render(); document.getElementById('verdict').style.display='none';
+  }
+  function render(){
+    var tb=document.getElementById('natTable'); tb.innerHTML='';
+    if(!entries.length){tb.innerHTML='<tr><td colspan=4 style="color:var(--ink-muted);text-align:center">no translations yet</td></tr>';return}
+    entries.forEach(function(e,i){
+      var tr=document.createElement('tr'); if(i===entries.length-1)tr.className='new';
+      tr.innerHTML='<td>'+e.local+'</td><td>'+e.global+'</td><td>'+e.proto+'</td><td>'+e.state+'</td>';
+      tb.appendChild(tr);
+    });
+  }
+  function send(host){
+    var local='10.0.0.'+(host==='A'?10:host==='B'?11:12);
+    var v=document.getElementById('verdict'); v.style.display='block';
+    if(mode==='static'){
+      var g=staticMap[host];
+      if(!entries.find(function(e){return e.local===local}))entries.push({local:local,global:g,proto:'---',state:'static'});
+      v.className='verdict win'; v.textContent='✓ '+local+' → '+g+' (1:1 static map). Header rewritten, packet forwarded.';
+    } else if(mode==='dynamic'){
+      var existing=entries.find(function(e){return e.local===local});
+      if(existing){v.className='verdict info'; v.textContent='↳ Reusing existing dynamic binding: '+local+' → '+existing.global;return}
+      if(!pool.length){v.className='verdict miss'; v.textContent='✗ Pool exhausted. Packet dropped. Real router logs %NAT-3-ADDR_ALLOC_FAILURE.'; return}
+      var g2=pool.shift(); entries.push({local:local,global:g2,proto:'tcp',state:'dynamic'});
+      v.className='verdict win'; v.textContent='✓ Allocated '+g2+' from pool. '+pool.length+' addresses remain.';
+    } else {
+      var p=port++; entries.push({local:local+':5000',global:pat+':'+p,proto:'tcp',state:'overload'});
+      v.className='verdict win'; v.textContent='✓ All hosts share '+pat+'. Source port '+p+' uniquely identifies this flow.';
+    }
+    render();
+  }
+  document.querySelectorAll('.mode').forEach(function(b){b.addEventListener('click',function(){setMode(b.dataset.mode)})});
+  document.querySelectorAll('[data-send]').forEach(function(b){b.addEventListener('click',function(){send(b.dataset.send)})});
+  document.getElementById('reset').addEventListener('click',function(){setMode(mode)});
+  setMode('static');
+
+  var qC=0,qW=0;
+  var pool2=[
+    {q:'PC-A is 10.0.0.10. R1 translates to 203.0.113.5. What is 10.0.0.10 called?',a:'inside-local',o:['inside-local','inside-global','outside-local','outside-global']},
+    {q:'Same scenario. What is 203.0.113.5 called?',a:'inside-global',o:['inside-local','inside-global','outside-local','outside-global']},
+    {q:'PC-A talks to 8.8.8.8. From R1\'s view, 8.8.8.8 is the…',a:'outside-global',o:['inside-local','inside-global','outside-local','outside-global']},
+    {q:'You have 200 internal users and one public IP. Which NAT mode?',a:'PAT (overload)',o:['Static NAT','Dynamic NAT','PAT (overload)','No NAT']},
+    {q:'A web server must always be reachable at 203.0.113.50. Which mode?',a:'Static NAT',o:['Static NAT','Dynamic NAT','PAT','DHCP reservation']},
+    {q:'Dynamic NAT pool of 5 IPs, 6th host requests. What happens?',a:'Packet dropped',o:['Packet dropped','Falls back to PAT','Overwrites oldest','Routes without NAT']},
+    {q:'PAT uniquely identifies flows using…',a:'source port',o:['source port','MAC address','TTL','VLAN ID']},
+    {q:'Which command enables NAT overload on Cisco?',a:'ip nat inside source list 1 interface g0/0 overload',o:['ip nat inside source list 1 interface g0/0 overload','ip nat outside','ip nat pool overload','nat enable']},
+    {q:'NAT primarily solves which problem?',a:'IPv4 address exhaustion',o:['IPv4 address exhaustion','Routing loops','DNS poisoning','Slow ARP']},
+    {q:'Which range is NOT RFC1918 private?',a:'169.254.0.0/16',o:['10.0.0.0/8','172.16.0.0/12','192.168.0.0/16','169.254.0.0/16']}
+  ];
+  function pick(){
+    var q=pool2[Math.floor(Math.random()*pool2.length)];
+    document.getElementById('qStem').textContent=q.q;
+    var box=document.getElementById('qOpts'); box.innerHTML='';
+    q.o.slice().sort(function(){return Math.random()-.5}).forEach(function(o){
+      var b=document.createElement('button'); b.className='opt'; b.textContent=o;
+      b.addEventListener('click',function(){
+        if(b.classList.contains('correct')||b.classList.contains('wrong'))return;
+        if(o===q.a){b.classList.add('correct');qC++}
+        else{b.classList.add('wrong');qW++; Array.prototype.forEach.call(box.children,function(c){if(c.textContent===q.a)c.classList.add('correct')})}
+        document.getElementById('qC').textContent=qC; document.getElementById('qW').textContent=qW;
+      });
+      box.appendChild(b);
+    });
+  }
+  document.getElementById('qNext').addEventListener('click',pick); pick();
+})();
+</script>
+</body>
+</html>

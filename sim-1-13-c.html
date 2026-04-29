@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>1.13.c Sim — Cut-Through vs Store-and-Forward</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#FAF7F2;--bg-surface:#FFFFFF;--bg-recessed:#F3F0EB;
+    --border:#E2DFD9;--border-strong:#C7C3BC;
+    --ink:#1C1917;--ink-secondary:#57534E;--ink-muted:#A8A29E;
+    --accent:#B45309;--accent-soft:#D97706;--accent-light:#FEF3C7;
+    --correct:#16A34A;--correct-bg:#F0FDF4;
+    --wrong:#DC2626;--wrong-bg:#FEF2F2;
+    --info:#2563EB;--info-bg:#EFF6FF;
+    --font-display:'Space Grotesk',system-ui,sans-serif;
+    --font-body:'Source Serif 4',Georgia,serif;
+    --font-mono:'JetBrains Mono',monospace;
+    --radius:6px;--radius-lg:10px;
+  }
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  html{font-size:16px;-webkit-font-smoothing:antialiased}
+  body{font-family:var(--font-body);background:var(--bg);color:var(--ink);line-height:1.55;padding:24px;max-width:920px;margin:0 auto}
+  .head{margin-bottom:20px;padding-bottom:14px;border-bottom:1px solid var(--border)}
+  .head .crumb{font-family:var(--font-mono);font-size:.74rem;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px}
+  .head h1{font-family:var(--font-display);font-size:1.5rem;font-weight:700;margin-bottom:6px}
+  .head .desc{font-size:.95rem;color:var(--ink-secondary)}
+  .panel{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;margin-bottom:18px}
+  .panel h2{font-family:var(--font-display);font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-secondary);margin-bottom:12px}
+  .btn{font-family:var(--font-display);font-size:.84rem;font-weight:600;padding:8px 16px;background:var(--ink);color:#FAF7F2;border:none;border-radius:var(--radius);cursor:pointer}
+  .btn.ghost{background:var(--bg-recessed);color:var(--ink)}
+  .btn.accent{background:var(--accent)}
+  .mode-tabs{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}
+  .mode-tab{font-family:var(--font-display);font-size:.82rem;font-weight:600;padding:8px 14px;background:var(--bg-recessed);border:1px solid var(--border);border-radius:var(--radius);cursor:pointer;color:var(--ink-secondary)}
+  .mode-tab.active{background:var(--ink);color:#FAF7F2;border-color:var(--ink)}
+  .lane{position:relative;height:60px;margin:14px 0;background:var(--bg-recessed);border-radius:var(--radius);border:1px solid var(--border);overflow:hidden}
+  .lane .label{position:absolute;left:8px;top:6px;font-family:var(--font-mono);font-size:.74rem;color:var(--ink-secondary);z-index:5}
+  .lane .marker{position:absolute;top:0;bottom:0;width:1px;background:var(--border-strong);font-family:var(--font-mono);font-size:.66rem;color:var(--ink-muted)}
+  .frame{position:absolute;top:22px;height:30px;display:flex;font-family:var(--font-mono);font-size:.7rem;color:#fff}
+  .seg{height:100%;display:flex;align-items:center;justify-content:center;border-right:1px solid rgba(255,255,255,.4)}
+  .seg.dest{background:#0E7490;width:40px}
+  .seg.src {background:#1E40AF;width:40px}
+  .seg.type{background:#7C3AED;width:30px}
+  .seg.pay {background:var(--accent);width:120px}
+  .seg.fcs {background:var(--ink);width:30px}
+  .seg.bad{background:repeating-linear-gradient(45deg,#DC2626,#DC2626 6px,#7F1D1D 6px,#7F1D1D 12px)}
+  .gate{position:absolute;top:14px;height:46px;width:2px;background:var(--correct);box-shadow:0 0 0 3px rgba(22,163,74,.18)}
+  .out-frame{position:absolute;top:22px;height:30px;display:flex;font-family:var(--font-mono);font-size:.7rem;color:#fff}
+  .stat{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:14px;font-family:var(--font-mono);font-size:.86rem}
+  .stat .card{padding:10px;border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-recessed)}
+  .stat b{color:var(--accent)}
+  .ctrl{display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-top:8px}
+  .ctrl label{font-family:var(--font-display);font-size:.84rem;font-weight:600}
+  .verdict{margin-top:14px;padding:12px 16px;border-radius:var(--radius);font-family:var(--font-display);font-size:.94rem;font-weight:600;background:var(--info-bg);color:var(--info);border:1px solid var(--info)}
+  .verdict.win{background:var(--correct-bg);color:var(--correct);border-color:var(--correct)}
+  .verdict.miss{background:var(--wrong-bg);color:var(--wrong);border-color:var(--wrong)}
+  .quiz{margin-top:22px}
+  .quiz .stem{font-family:var(--font-display);font-size:1.02rem;font-weight:600;margin-bottom:12px;padding:14px;background:var(--accent-light);border-left:3px solid var(--accent);border-radius:var(--radius)}
+  .quiz .opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px}
+  .opt{background:var(--bg-recessed);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;font-family:var(--font-mono);font-size:.88rem;cursor:pointer;text-align:left}
+  .opt:hover{border-color:var(--border-strong);background:var(--bg-surface)}
+  .opt.correct{background:var(--correct-bg);border-color:var(--correct);color:var(--correct);font-weight:700}
+  .opt.wrong{background:var(--wrong-bg);border-color:var(--wrong);color:var(--wrong)}
+  .scoreline{font-family:var(--font-mono);font-size:.84rem;color:var(--ink-muted);margin-top:10px;display:flex;gap:18px;align-items:center}
+  .scoreline strong{color:var(--ink)}
+  .badge{display:inline-block;font-family:var(--font-display);font-size:.7rem;font-weight:700;padding:2px 8px;border-radius:99px;background:var(--accent-light);color:var(--accent);text-transform:uppercase;letter-spacing:.04em;margin-left:8px}
+</style>
+</head>
+<body>
+
+<div class="head">
+  <div class="crumb"><a href="blueprint-drill.html?obj=1.13" style="color:var(--accent);text-decoration:none">← 1.13 Mini Sims</a> · 1.13.c · L2 · Switching Modes</div>
+  <h1>Cut-Through vs Store-and-Forward<span class="badge">drill</span></h1>
+  <div class="desc">A switch can decide where to send a frame as soon as it sees the destination MAC (first 6 bytes) — <strong>cut-through</strong>, ultra-fast but blind to errors. Or it can buffer the entire frame, run FCS, then forward — <strong>store-and-forward</strong>, slightly slower but drops bad frames. <strong>Fragment-free</strong> reads the first 64 bytes (catches collision-era runts) as a middle ground.</div>
+</div>
+
+<div class="panel">
+  <h2>Send one frame</h2>
+  <div class="mode-tabs">
+    <button class="mode-tab active" data-mode="cut">Cut-through</button>
+    <button class="mode-tab" data-mode="frag">Fragment-free (64B)</button>
+    <button class="mode-tab" data-mode="saf">Store-and-forward</button>
+  </div>
+  <div class="ctrl">
+    <label><input id="bad" type="checkbox"> Inject corruption mid-frame (FCS will fail)</label>
+    <button class="btn accent" id="go">▶ Send frame</button>
+    <button class="btn ghost" id="reset">Reset</button>
+  </div>
+
+  <div class="lane">
+    <div class="label">Ingress (port 1)</div>
+    <div class="frame" id="ingress" style="display:none">
+      <div class="seg dest">DST</div><div class="seg src">SRC</div><div class="seg type">TYP</div><div class="seg pay" id="payload">payload</div><div class="seg fcs">FCS</div>
+    </div>
+    <div class="gate" id="gate" style="display:none"></div>
+  </div>
+  <div class="lane">
+    <div class="label">Egress (port 2)</div>
+    <div class="out-frame" id="egress" style="display:none"></div>
+  </div>
+
+  <div class="stat">
+    <div class="card">Switching latency: <b id="lat">—</b></div>
+    <div class="card">Bad-frame action: <b id="badAct">—</b></div>
+    <div class="card">Best for: <b id="bestFor">—</b></div>
+  </div>
+  <div class="verdict" id="verdict">Pick a mode, then Send. Try with corruption ON for cut-through — bad frame still forwards. Switch to store-and-forward — bad frame dropped.</div>
+</div>
+
+<div class="panel quiz">
+  <h2>Quiz mode</h2>
+  <div class="stem" id="quizStem">Loading…</div>
+  <div class="opts" id="quizOpts"></div>
+  <div class="scoreline">
+    <span><strong id="qCorrect">0</strong> correct</span>
+    <span><strong id="qWrong">0</strong> wrong</span>
+    <span><strong id="qStreak">0</strong> streak</span>
+    <span style="margin-left:auto"><button class="btn ghost" id="newQ">Next ↻</button></span>
+  </div>
+</div>
+
+<script>
+(function(){
+  var mode = 'cut';
+  document.querySelectorAll('.mode-tab').forEach(function(t){
+    t.addEventListener('click', function(){
+      document.querySelectorAll('.mode-tab').forEach(function(x){ x.classList.remove('active'); });
+      t.classList.add('active'); mode = t.dataset.mode; updateMeta(); reset();
+    });
+  });
+  function updateMeta(){
+    var meta = {
+      cut:  {lat:'~10 µs (forwards after DST)', bad:'forwards garbage', best:'low-latency trading, HFT'},
+      frag: {lat:'~60 µs (after first 64 B)',   bad:'catches runt collisions', best:'legacy collision-prone segments'},
+      saf:  {lat:'~50–250 µs (full frame)',     bad:'drops via FCS check',     best:'mixed-speed, error-prone, default modern'}
+    };
+    document.getElementById('lat').textContent = meta[mode].lat;
+    document.getElementById('badAct').textContent = meta[mode].bad;
+    document.getElementById('bestFor').textContent = meta[mode].best;
+  }
+  updateMeta();
+
+  function reset(){
+    document.getElementById('ingress').style.display='none';
+    document.getElementById('egress').style.display='none';
+    document.getElementById('gate').style.display='none';
+    document.getElementById('payload').classList.remove('bad');
+    document.getElementById('payload').textContent='payload';
+  }
+  document.getElementById('reset').addEventListener('click', reset);
+
+  function send(){
+    reset();
+    var bad = document.getElementById('bad').checked;
+    var ingress = document.getElementById('ingress');
+    var egress  = document.getElementById('egress');
+    var gate    = document.getElementById('gate');
+
+    ingress.style.display='flex';
+    ingress.style.left='-260px';
+    ingress.style.transition='left 2.4s linear';
+    requestAnimationFrame(function(){ ingress.style.left='100%'; });
+
+    if (bad){
+      setTimeout(function(){
+        document.getElementById('payload').classList.add('bad');
+        document.getElementById('payload').textContent='!! corrupt !!';
+      }, 1100);
+    }
+
+    var gatePos, gateAt, action;
+    if (mode==='cut'){ gatePos='40px'; gateAt=400; }
+    else if (mode==='frag'){ gatePos='110px'; gateAt=850; }
+    else { gatePos='100%'; gateAt=2400; }
+
+    setTimeout(function(){
+      gate.style.display='block'; gate.style.left=gatePos;
+    }, gateAt - 80);
+
+    setTimeout(function(){
+      var v = document.getElementById('verdict');
+      var corruptCaught = (mode==='saf' && bad);
+      if (corruptCaught){
+        v.className='verdict win';
+        v.textContent='✓ FCS check failed — frame DROPPED before egress. Network protected.';
+        return;
+      }
+      if (bad && mode!=='saf'){
+        v.className='verdict miss';
+        v.textContent='✗ Bad frame already on the wire (mode forwarded before FCS check).';
+      } else {
+        v.className='verdict win';
+        v.textContent='✓ Clean frame forwarded.';
+      }
+      egress.style.display='flex';
+      egress.style.left='-260px';
+      egress.innerHTML = bad && mode!=='saf'
+        ? '<div class="seg dest">DST</div><div class="seg src">SRC</div><div class="seg type">TYP</div><div class="seg pay bad">!! corrupt !!</div><div class="seg fcs">FCS</div>'
+        : '<div class="seg dest">DST</div><div class="seg src">SRC</div><div class="seg type">TYP</div><div class="seg pay">payload</div><div class="seg fcs">FCS</div>';
+      egress.style.transition='left 1.6s linear';
+      requestAnimationFrame(function(){ egress.style.left='100%'; });
+    }, gateAt + 100);
+  }
+  document.getElementById('go').addEventListener('click', send);
+
+  var qCorrect=0,qWrong=0,qStreak=0;
+  var pool = [
+    {q:'Cut-through forwards after reading:',a:'first 6 bytes (dest MAC)',o:['first 6 bytes (dest MAC)','first 64 bytes','full frame','FCS only']},
+    {q:'Store-and-forward verifies what before forwarding?',a:'FCS (Frame Check Sequence)',o:['FCS (Frame Check Sequence)','source MAC','VLAN tag','TTL']},
+    {q:'Fragment-free reads how many bytes?',a:'64 (catches Ethernet runts)',o:['64 (catches Ethernet runts)','6','128','1518']},
+    {q:'Lowest latency switching mode:',a:'Cut-through',o:['Cut-through','Fragment-free','Store-and-forward','Adaptive']},
+    {q:'Cisco default on modern Catalyst switches:',a:'Store-and-forward',o:['Store-and-forward','Cut-through','Fragment-free','None']},
+    {q:'Cut-through cannot detect:',a:'CRC errors mid-frame',o:['CRC errors mid-frame','dest MAC','VLAN tag','EtherType']},
+    {q:'Best mode when ingress and egress speeds differ (1G→10G):',a:'Store-and-forward (must buffer)',o:['Store-and-forward (must buffer)','Cut-through','Fragment-free','Any']},
+    {q:'Bad frames in cut-through propagate to:',a:'next switch (and may be dropped there)',o:['next switch (and may be dropped there)','black hole immediately','original sender','VLAN 1']},
+    {q:'Fragment-free targets which historical issue?',a:'collisions in early Ethernet (<64B runts)',o:['collisions in early Ethernet (<64B runts)','jumbo frame errors','VLAN leaks','MAC flapping']},
+    {q:'Why low-latency trading often picks cut-through?',a:'every microsecond matters; tolerate bad frames',o:['every microsecond matters; tolerate bad frames','lower CPU','required by FIX protocol','encrypted faster']}
+  ];
+  function pickQ(){
+    var q = pool[Math.floor(Math.random()*pool.length)];
+    var opts = q.o.slice().sort(function(){return Math.random()-.5;});
+    document.getElementById('quizStem').textContent = q.q;
+    var box=document.getElementById('quizOpts'); box.innerHTML='';
+    opts.forEach(function(o){
+      var b=document.createElement('button'); b.className='opt'; b.textContent=o;
+      b.addEventListener('click', function(){
+        if (b.classList.contains('correct')||b.classList.contains('wrong')) return;
+        if (o===q.a){ b.classList.add('correct'); qCorrect++; qStreak++; }
+        else { b.classList.add('wrong'); qWrong++; qStreak=0;
+          Array.prototype.forEach.call(box.children,function(c){ if(c.textContent===q.a) c.classList.add('correct'); }); }
+        document.getElementById('qCorrect').textContent=qCorrect;
+        document.getElementById('qWrong').textContent=qWrong;
+        document.getElementById('qStreak').textContent=qStreak;
+      });
+      box.appendChild(b);
+    });
+  }
+  document.getElementById('newQ').addEventListener('click', pickQ);
+  pickQ();
+})();
+</script>
+</body>
+</html>

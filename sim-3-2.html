@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>3.2 Sim — Forwarding Decision Pipeline</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#FAF7F2;--bg-surface:#FFFFFF;--bg-recessed:#F3F0EB;
+    --border:#E2DFD9;--border-strong:#C7C3BC;
+    --ink:#1C1917;--ink-secondary:#57534E;--ink-muted:#A8A29E;
+    --accent:#B45309;--accent-soft:#D97706;--accent-light:#FEF3C7;
+    --correct:#16A34A;--correct-bg:#F0FDF4;
+    --wrong:#DC2626;--wrong-bg:#FEF2F2;
+    --info:#2563EB;--info-bg:#EFF6FF;
+    --font-display:'Space Grotesk',system-ui,sans-serif;
+    --font-body:'Source Serif 4',Georgia,serif;
+    --font-mono:'JetBrains Mono',monospace;
+    --radius:6px;--radius-lg:10px;
+  }
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  html{font-size:16px;-webkit-font-smoothing:antialiased}
+  body{font-family:var(--font-body);background:var(--bg);color:var(--ink);line-height:1.55;padding:24px;max-width:960px;margin:0 auto}
+  .head{margin-bottom:20px;padding-bottom:14px;border-bottom:1px solid var(--border)}
+  .head .crumb{font-family:var(--font-mono);font-size:.74rem;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px}
+  .head .crumb a{color:var(--accent);text-decoration:none}
+  .head h1{font-family:var(--font-display);font-size:1.5rem;font-weight:700;margin-bottom:6px}
+  .head .desc{font-size:.95rem;color:var(--ink-secondary)}
+  .why{background:var(--accent-light);border-left:3px solid var(--accent);padding:14px 16px;border-radius:var(--radius);margin-bottom:18px;font-size:.95rem}
+  .why strong{font-family:var(--font-display);text-transform:uppercase;letter-spacing:.05em;font-size:.78rem;color:var(--accent);display:block;margin-bottom:4px}
+  .panel{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;margin-bottom:18px}
+  .panel h2{font-family:var(--font-display);font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-secondary);margin-bottom:12px}
+  .controls{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+  .btn{font-family:var(--font-display);font-size:.84rem;font-weight:600;padding:8px 16px;background:var(--ink);color:#FAF7F2;border:none;border-radius:var(--radius);cursor:pointer;transition:background .15s}
+  .btn:hover{background:var(--ink-secondary)}
+  .btn.ghost{background:var(--bg-recessed);color:var(--ink)}
+  .btn.accent{background:var(--accent)}
+  .btn.accent:hover{background:var(--accent-soft)}
+  .btn[disabled]{opacity:.4;cursor:not-allowed}
+  .stage{display:grid;grid-template-columns:240px 1fr;gap:14px;align-items:start}
+  @media(max-width:760px){.stage{grid-template-columns:1fr}}
+  .pkt-card{background:var(--bg-recessed);border:1px solid var(--border);border-radius:var(--radius);padding:14px;font-family:var(--font-mono);font-size:.84rem}
+  .pkt-card .lbl{font-family:var(--font-display);font-size:.7rem;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-secondary);margin-top:8px;display:block}
+  .pkt-card .lbl:first-child{margin-top:0}
+  .pkt-card .val{font-weight:700;color:var(--ink)}
+  .pkt-card .ttl{font-size:1.1rem;color:var(--accent);transition:color .3s}
+  .pkt-card .ttl.flash{color:var(--correct)}
+  .pkt-card .l2{padding:6px 8px;background:var(--bg-surface);border:1px dashed var(--border-strong);border-radius:4px;margin-top:4px;font-size:.78rem;opacity:.4}
+  .pkt-card .l2.have{opacity:1;border-style:solid;border-color:var(--correct)}
+  .steps{display:flex;flex-direction:column;gap:8px}
+  .step{display:grid;grid-template-columns:32px 1fr;gap:10px;padding:10px 12px;background:var(--bg-recessed);border:1px solid var(--border);border-radius:var(--radius);transition:all .35s cubic-bezier(.16,1,.3,1);opacity:.45}
+  .step.active{opacity:1;background:var(--info-bg);border-color:var(--info);box-shadow:0 0 0 3px rgba(37,99,235,.1)}
+  .step.done{opacity:1;border-color:var(--correct)}
+  .step.fail{opacity:1;background:var(--wrong-bg);border-color:var(--wrong)}
+  .step .num{font-family:var(--font-display);font-weight:700;color:var(--ink-secondary);font-size:.86rem;text-align:center}
+  .step.active .num,.step.done .num{color:var(--info)}
+  .step.fail .num{color:var(--wrong)}
+  .step .ttl{font-family:var(--font-display);font-size:.94rem;font-weight:600;margin-bottom:2px}
+  .step .body{font-family:var(--font-mono);font-size:.84rem;color:var(--ink-secondary)}
+  .step.active .body,.step.done .body{color:var(--ink)}
+  .tables{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px}
+  @media(max-width:760px){.tables{grid-template-columns:1fr}}
+  .lookup-table{font-family:var(--font-mono);font-size:.82rem}
+  .lookup-table h3{font-family:var(--font-display);font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-secondary);margin-bottom:6px}
+  .lookup-table table{width:100%;border-collapse:collapse}
+  .lookup-table td,.lookup-table th{padding:6px 10px;border-bottom:1px solid var(--border);text-align:left}
+  .lookup-table tr.glow td{background:var(--accent-light);font-weight:700;animation:fadeIn .3s}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(-2px)}to{opacity:1;transform:translateY(0)}}
+  .verdict{margin-top:14px;padding:12px 16px;border-radius:var(--radius);font-family:var(--font-display);font-size:.94rem;font-weight:600;display:none}
+  .verdict.show{display:block;animation:fadeIn .25s}
+  .verdict.win{background:var(--correct-bg);color:var(--correct);border:1px solid var(--correct)}
+  .verdict.miss{background:var(--wrong-bg);color:var(--wrong);border:1px solid var(--wrong)}
+  .quiz .stem{font-family:var(--font-display);font-size:1.02rem;font-weight:600;margin-bottom:12px;padding:14px;background:var(--accent-light);border-left:3px solid var(--accent);border-radius:var(--radius)}
+  .quiz .opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px}
+  .opt{background:var(--bg-recessed);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;font-family:var(--font-mono);font-size:.92rem;cursor:pointer;text-align:left;transition:all .15s}
+  .opt:hover{border-color:var(--border-strong);background:var(--bg-surface)}
+  .opt.correct{background:var(--correct-bg);border-color:var(--correct);color:var(--correct);font-weight:700}
+  .opt.wrong{background:var(--wrong-bg);border-color:var(--wrong);color:var(--wrong)}
+  .scoreline{font-family:var(--font-mono);font-size:.84rem;color:var(--ink-muted);margin-top:10px;display:flex;gap:18px;align-items:center;flex-wrap:wrap}
+  .scoreline strong{font-weight:700;color:var(--ink)}
+  .footer{margin-top:24px;padding-top:14px;border-top:1px solid var(--border);font-family:var(--font-mono);font-size:.82rem}
+  .footer a{color:var(--accent);text-decoration:none}
+</style>
+</head>
+<body>
+
+<div class="head">
+  <div class="crumb"><a href="blueprint-drill.html?obj=3.2">← back to 3.2 leaves</a> · 3.2 · IP Connectivity · Forwarding Decision</div>
+  <h1>Forwarding Decision Sim</h1>
+  <div class="desc">Step through what a router actually does when a packet arrives. Six stages: dest lookup → next-hop → recursive lookup → ARP → encap → TTL. Toggle "next-hop unreachable" to see ICMP fire.</div>
+</div>
+
+<div class="why">
+  <strong>WHY this matters</strong>
+  Routing-table lookup picks <em>where</em> to send the packet — but the router still has to wrap it in a Layer-2 frame to actually transmit. The destination MAC has to come from <em>somewhere</em>: ARP. The next-hop IP from the route table is rarely on a directly-connected segment, so the router does a <em>recursive lookup</em> to find the egress interface. Get this six-step pipeline and you'll never wonder again why ARP timeouts cause packet loss.
+</div>
+
+<div class="panel">
+  <h2>Scenario</h2>
+  <div class="controls">
+    <button class="btn accent" id="scenA">Normal — ping 10.5.5.5</button>
+    <button class="btn" id="scenB">Failure — next-hop unreachable</button>
+    <button class="btn ghost" id="resetBtn">Reset</button>
+    <button class="btn" id="stepBtn" disabled>Step ↻</button>
+    <button class="btn ghost" id="autoBtn" disabled>Auto-play</button>
+  </div>
+
+  <div class="stage">
+    <div class="pkt-card" id="pktCard">
+      <span class="lbl">L3 packet</span>
+      <div>src: <span class="val">10.0.0.5</span></div>
+      <div>dst: <span class="val" id="pktDst">10.5.5.5</span></div>
+      <div>TTL: <span class="ttl" id="pktTtl">64</span></div>
+      <span class="lbl">L2 frame</span>
+      <div class="l2" id="pktL2">dst MAC: ?<br>src MAC: ?</div>
+    </div>
+    <div class="steps" id="steps"></div>
+  </div>
+
+  <div class="tables">
+    <div class="lookup-table">
+      <h3>R1 routing table</h3>
+      <table id="rtTable">
+        <thead><tr><th>Network</th><th>Next-hop</th><th>Egress</th></tr></thead>
+        <tbody>
+          <tr data-key="rt-default"><td>10.5.0.0/16</td><td>192.168.1.2</td><td>—</td></tr>
+          <tr data-key="rt-conn"><td>192.168.1.0/24</td><td>connected</td><td>Gi0/1</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="lookup-table">
+      <h3>R1 ARP cache</h3>
+      <table id="arpTable">
+        <thead><tr><th>IP</th><th>MAC</th><th>Iface</th></tr></thead>
+        <tbody id="arpBody">
+          <tr data-key="arp-1"><td>192.168.1.2</td><td id="arpMac">a4:b1:c2:00:00:01</td><td>Gi0/1</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <div class="verdict" id="verdict"></div>
+</div>
+
+<div class="panel quiz">
+  <h2>Quiz mode <span style="color:var(--accent);text-transform:none;letter-spacing:0;font-weight:700">— predict before peeking</span></h2>
+  <div class="stem" id="quizStem">Loading…</div>
+  <div class="opts" id="quizOpts"></div>
+  <div class="scoreline">
+    <span><strong id="qCorrect">0</strong> correct</span>
+    <span><strong id="qWrong">0</strong> wrong</span>
+    <span><strong id="qStreak">0</strong> streak</span>
+    <span><strong id="qNum">1</strong>/<strong id="qTot">12</strong></span>
+    <span style="margin-left:auto"><button class="btn ghost" id="newQ">Next ↻</button></span>
+  </div>
+</div>
+
+<div class="footer"><a href="blueprint-drill.html?obj=3.2">← back to 3.2 leaves</a></div>
+
+<script>
+(function(){
+  var STEPS = [
+    {ttl:'1. Destination lookup', body:'Search RIB for longest match on dst 10.5.5.5. Match: 10.5.0.0/16 → next-hop 192.168.1.2.', glow:'rt-default'},
+    {ttl:'2. Identify next-hop', body:'Next-hop = 192.168.1.2. This is an IP, not a MAC and not an interface yet.', glow:null},
+    {ttl:'3. Recursive lookup', body:'Search RIB again — this time for 192.168.1.2. Match: 192.168.1.0/24 connected via Gi0/1. Egress is Gi0/1.', glow:'rt-conn'},
+    {ttl:'4. ARP for next-hop', body:'Need dst MAC for 192.168.1.2. Check ARP cache. Hit: a4:b1:c2:00:00:01.', glow:'arp-1'},
+    {ttl:'5. Encapsulate L2', body:'Build Ethernet frame: dst MAC = a4:b1:c2:00:00:01, src MAC = R1 Gi0/1 MAC.', glow:null, l2:true},
+    {ttl:'6. Decrement TTL + forward', body:'TTL 64 → 63. Recompute IP checksum. Frame leaves Gi0/1.', glow:null, ttlDec:true}
+  ];
+
+  var FAIL_AT = 4; // ARP fails when scenario B
+  var mode = 'A', stepIdx = 0, autoTimer = null;
+
+  function renderSteps(){
+    var box = document.getElementById('steps'); box.innerHTML='';
+    STEPS.forEach(function(s,i){
+      var el = document.createElement('div');
+      el.className='step'+(i<stepIdx?' done':'')+(i===stepIdx?' active':'');
+      if (mode==='B' && i===FAIL_AT-1 && stepIdx>i) el.className='step fail';
+      el.innerHTML = '<div class="num">'+(i+1)+'</div><div><div class="ttl">'+s.ttl+'</div><div class="body">'+s.body+'</div></div>';
+      box.appendChild(el);
+    });
+  }
+
+  function clearGlow(){
+    Array.prototype.forEach.call(document.querySelectorAll('tr.glow'),function(tr){tr.classList.remove('glow');});
+  }
+
+  function applyStep(){
+    var s = STEPS[stepIdx-1];
+    if (!s) return;
+    clearGlow();
+    if (s.glow){ var tr=document.querySelector('tr[data-key="'+s.glow+'"]'); if (tr) tr.classList.add('glow'); }
+    if (mode==='B' && stepIdx===FAIL_AT){
+      // ARP miss — change ARP cache to show empty
+      var arp = document.getElementById('arpMac');
+      arp.innerHTML='<span style="color:var(--wrong)">— miss —</span>';
+      var v = document.getElementById('verdict');
+      v.className='verdict miss show';
+      v.innerHTML='✗ ARP for 192.168.1.2 returned no reply. Router cannot build L2 frame. Packet dropped. R1 sends ICMP Destination Unreachable (Code 1: Host Unreachable) back to 10.0.0.5.';
+      document.getElementById('stepBtn').disabled=true;
+      document.getElementById('autoBtn').disabled=true;
+      if (autoTimer){clearInterval(autoTimer);autoTimer=null;}
+      return;
+    }
+    if (s.l2){
+      var l2 = document.getElementById('pktL2');
+      l2.classList.add('have');
+      l2.innerHTML='dst MAC: a4:b1:c2:00:00:01<br>src MAC: 5c:fb:3a:00:00:01';
+    }
+    if (s.ttlDec){
+      var t = document.getElementById('pktTtl');
+      t.textContent='63'; t.classList.add('flash');
+    }
+    if (stepIdx >= STEPS.length){
+      var v = document.getElementById('verdict');
+      v.className='verdict win show';
+      v.innerHTML='✓ Packet forwarded out Gi0/1 toward 192.168.1.2 with TTL=63. Six-stage pipeline complete: dst lookup → next-hop → recursive lookup → ARP → encap → TTL decrement.';
+      document.getElementById('stepBtn').disabled=true;
+      if (autoTimer){clearInterval(autoTimer);autoTimer=null;}
+    }
+  }
+
+  function reset(){
+    stepIdx=0; clearGlow();
+    document.getElementById('pktTtl').textContent='64';
+    document.getElementById('pktTtl').classList.remove('flash');
+    document.getElementById('pktL2').classList.remove('have');
+    document.getElementById('pktL2').innerHTML='dst MAC: ?<br>src MAC: ?';
+    document.getElementById('arpMac').textContent='a4:b1:c2:00:00:01';
+    document.getElementById('verdict').className='verdict';
+    if (autoTimer){clearInterval(autoTimer);autoTimer=null;}
+    renderSteps();
+  }
+
+  document.getElementById('scenA').addEventListener('click',function(){mode='A';reset();document.getElementById('stepBtn').disabled=false;document.getElementById('autoBtn').disabled=false;});
+  document.getElementById('scenB').addEventListener('click',function(){mode='B';reset();document.getElementById('stepBtn').disabled=false;document.getElementById('autoBtn').disabled=false;});
+  document.getElementById('resetBtn').addEventListener('click',function(){reset();document.getElementById('stepBtn').disabled=true;document.getElementById('autoBtn').disabled=true;});
+  document.getElementById('stepBtn').addEventListener('click',function(){
+    stepIdx++; renderSteps(); applyStep();
+  });
+  document.getElementById('autoBtn').addEventListener('click',function(){
+    if (autoTimer){clearInterval(autoTimer);autoTimer=null;return;}
+    autoTimer=setInterval(function(){
+      stepIdx++; renderSteps(); applyStep();
+      if (stepIdx>=STEPS.length || (mode==='B' && stepIdx>=FAIL_AT)){clearInterval(autoTimer);autoTimer=null;}
+    },900);
+  });
+
+  reset();
+
+  var QUIZ = [
+    {q:'A packet arrives. The router\'s FIRST step is to:',a:'Look up the destination IP in the routing table',opts:['ARP for the destination','Decrement the TTL','Look up the destination IP in the routing table','Build a new L2 frame']},
+    {q:'A route says "via 192.168.1.2". This IP is not directly connected. The router does what next?',a:'Recursive lookup — search RIB for 192.168.1.2 to find egress',opts:['Drop the packet','Recursive lookup — search RIB for 192.168.1.2 to find egress','ARP for the original destination','Send ICMP redirect']},
+    {q:'What protocol resolves the next-hop IP to a MAC?',a:'ARP', opts:['DNS','ARP','DHCP','ICMP']},
+    {q:'TTL on every router hop is:',a:'Decremented by 1', opts:['Decremented by 1','Reset to 64','Incremented by 1','Left unchanged']},
+    {q:'TTL hits 0 — what happens?',a:'Packet dropped, ICMP Time Exceeded sent to source', opts:['Packet looped','Packet dropped, ICMP Time Exceeded sent to source','Packet flooded','TTL resets and forwards']},
+    {q:'When ARP for the next-hop fails, the router sends:',a:'ICMP Destination Unreachable (Code 1: Host Unreachable)', opts:['ICMP Time Exceeded','ICMP Destination Unreachable (Code 1: Host Unreachable)','BGP withdraw','Nothing — silently drops']},
+    {q:'The L2 destination MAC of the forwarded frame is:',a:'The next-hop\'s MAC, not the final destination\'s MAC', opts:['The final destination\'s MAC','The next-hop\'s MAC, not the final destination\'s MAC','Broadcast','The router\'s own MAC']},
+    {q:'When a packet crosses three routers, how many times is the L2 frame rewritten?',a:'Three — once per hop', opts:['Once at the source','Three — once per hop','Never — same frame end-to-end','Twice']},
+    {q:'The IP source/destination addresses across hops are:',a:'Unchanged end-to-end (no NAT)', opts:['Rewritten at every hop','Unchanged end-to-end (no NAT)','Only the destination changes','Encrypted at every hop']},
+    {q:'Recursive lookup is needed because:',a:'The next-hop IP from the route table is rarely directly connected', opts:['Routers cannot read the routing table directly','The next-hop IP from the route table is rarely directly connected','ARP cache is too slow','TTL must be checked first']},
+    {q:'After encapsulation but before transmit, the router updates:',a:'TTL — and recomputes the IP header checksum', opts:['Source IP','Destination IP','TTL — and recomputes the IP header checksum','Both source and destination MACs again']},
+    {q:'A "ping" succeeds — which six pieces had to work?',a:'Dest lookup, next-hop, recursive, ARP, encap, TTL decrement', opts:['DNS, ARP, ICMP, route, encap, send','Dest lookup, next-hop, recursive, ARP, encap, TTL decrement','DHCP, gateway, MAC, route, frame, transmit','OSPF, BGP, ARP, encap, TTL, ICMP']}
+  ];
+  var qIdx=0,qC=0,qW=0,qS=0;
+  document.getElementById('qTot').textContent=QUIZ.length;
+  function renderQ(){
+    var q=QUIZ[qIdx];
+    document.getElementById('quizStem').innerHTML=q.q;
+    document.getElementById('qNum').textContent=qIdx+1;
+    var box=document.getElementById('quizOpts'); box.innerHTML='';
+    var opts=q.opts.slice().sort(function(){return Math.random()-.5;});
+    opts.forEach(function(o){
+      var b=document.createElement('button'); b.className='opt'; b.textContent=o;
+      b.addEventListener('click',function(){
+        if (b.classList.contains('correct')||b.classList.contains('wrong')) return;
+        if (o===q.a){b.classList.add('correct');qC++;qS++;}
+        else{b.classList.add('wrong');qW++;qS=0;
+          Array.prototype.forEach.call(box.children,function(c){if(c.textContent===q.a)c.classList.add('correct');});
+        }
+        document.getElementById('qCorrect').textContent=qC;
+        document.getElementById('qWrong').textContent=qW;
+        document.getElementById('qStreak').textContent=qS;
+      });
+      box.appendChild(b);
+    });
+  }
+  document.getElementById('newQ').addEventListener('click',function(){qIdx=(qIdx+1)%QUIZ.length;renderQ();});
+  renderQ();
+})();
+</script>
+</body>
+</html>

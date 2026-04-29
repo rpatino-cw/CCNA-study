@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>1.1.h Sim — PoE Budget Calculator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#FAF7F2;--bg-surface:#FFFFFF;--bg-recessed:#F3F0EB;
+    --border:#E2DFD9;--border-strong:#C7C3BC;
+    --ink:#1C1917;--ink-secondary:#57534E;--ink-muted:#A8A29E;
+    --accent:#B45309;--accent-soft:#D97706;--accent-light:#FEF3C7;
+    --correct:#16A34A;--correct-bg:#F0FDF4;
+    --wrong:#DC2626;--wrong-bg:#FEF2F2;
+    --info:#2563EB;--info-bg:#EFF6FF;
+    --font-display:'Space Grotesk',system-ui,sans-serif;
+    --font-body:'Source Serif 4',Georgia,serif;
+    --font-mono:'JetBrains Mono',monospace;
+    --radius:6px;--radius-lg:10px;
+  }
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  html{font-size:16px;-webkit-font-smoothing:antialiased}
+  body{font-family:var(--font-body);background:var(--bg);color:var(--ink);line-height:1.55;padding:24px;max-width:920px;margin:0 auto}
+  .head{margin-bottom:20px;padding-bottom:14px;border-bottom:1px solid var(--border)}
+  .head .crumb{font-family:var(--font-mono);font-size:.74rem;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px}
+  .head .crumb a{color:var(--accent);text-decoration:none}
+  .head h1{font-family:var(--font-display);font-size:1.5rem;font-weight:700;margin-bottom:6px}
+  .head .desc{font-size:.95rem;color:var(--ink-secondary)}
+  .panel{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;margin-bottom:18px}
+  .panel h2{font-family:var(--font-display);font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-secondary);margin-bottom:12px}
+  .badge{display:inline-block;font-family:var(--font-display);font-size:.7rem;font-weight:700;padding:2px 8px;border-radius:99px;background:var(--accent-light);color:var(--accent);text-transform:uppercase;letter-spacing:.04em;margin-left:8px}
+  .btn{font-family:var(--font-display);font-size:.84rem;font-weight:600;padding:8px 16px;background:var(--ink);color:#FAF7F2;border:none;border-radius:var(--radius);cursor:pointer}
+  .btn.ghost{background:var(--bg-recessed);color:var(--ink)}
+  .btn.accent{background:var(--accent)}
+  .form{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:14px}
+  .field{display:flex;flex-direction:column;gap:4px}
+  .field label{font-family:var(--font-display);font-size:.74rem;font-weight:600;color:var(--ink-secondary);text-transform:uppercase;letter-spacing:.06em}
+  .field input,.field select{font-family:var(--font-mono);font-size:.94rem;padding:8px 10px;border:1px solid var(--border-strong);border-radius:var(--radius);background:var(--bg-surface)}
+  .field input:focus,.field select:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-light)}
+  .results{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:12px}
+  .stat{padding:14px;border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-recessed)}
+  .stat .lbl{font-family:var(--font-display);font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-secondary);margin-bottom:4px}
+  .stat .val{font-family:var(--font-mono);font-size:1.3rem;font-weight:700;color:var(--ink)}
+  .stat.win{background:var(--correct-bg);border-color:var(--correct)}
+  .stat.win .val{color:var(--correct)}
+  .stat.miss{background:var(--wrong-bg);border-color:var(--wrong)}
+  .stat.miss .val{color:var(--wrong)}
+  .verdict{margin-top:10px;padding:12px 16px;border-radius:var(--radius);font-family:var(--font-display);font-size:.94rem;font-weight:600;display:none}
+  .verdict.show{display:block}
+  .verdict.win{background:var(--correct-bg);color:var(--correct);border:1px solid var(--correct)}
+  .verdict.miss{background:var(--wrong-bg);color:var(--wrong);border:1px solid var(--wrong)}
+  .verdict.info{background:var(--info-bg);color:var(--info);border:1px solid var(--info)}
+  .table{width:100%;border-collapse:collapse;margin-top:6px;font-family:var(--font-mono);font-size:.86rem}
+  .table th{text-align:left;padding:10px 12px;background:var(--bg-recessed);font-family:var(--font-display);font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-secondary);border-bottom:1px solid var(--border-strong);font-weight:700}
+  .table td{padding:10px 12px;border-bottom:1px solid var(--border)}
+  .modes-svg{width:100%;height:170px;background:var(--bg-recessed);border-radius:var(--radius);margin-top:10px}
+  .quiz{margin-top:22px}
+  .quiz .stem{font-family:var(--font-display);font-size:1.02rem;font-weight:600;margin-bottom:12px;padding:14px;background:var(--accent-light);border-left:3px solid var(--accent);border-radius:var(--radius)}
+  .quiz .opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px}
+  .opt{background:var(--bg-recessed);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;font-family:var(--font-mono);font-size:.9rem;cursor:pointer;text-align:left}
+  .opt:hover{border-color:var(--border-strong);background:var(--bg-surface)}
+  .opt.correct{background:var(--correct-bg);border-color:var(--correct);color:var(--correct);font-weight:700}
+  .opt.wrong{background:var(--wrong-bg);border-color:var(--wrong);color:var(--wrong)}
+  .scoreline{font-family:var(--font-mono);font-size:.84rem;color:var(--ink-muted);margin-top:10px;display:flex;gap:18px;align-items:center}
+  .scoreline strong{font-weight:700;color:var(--ink)}
+  .footer-link{font-family:var(--font-mono);font-size:.78rem;color:var(--accent);text-decoration:none}
+  .footnote{font-family:var(--font-mono);font-size:.78rem;color:var(--ink-muted);margin-top:10px;line-height:1.55}
+  @keyframes flowA{0%{stroke-dashoffset:50}100%{stroke-dashoffset:0}}
+  @keyframes flowB{0%{stroke-dashoffset:50}100%{stroke-dashoffset:0}}
+</style>
+</head>
+<body>
+
+<div class="head">
+  <div class="crumb"><a href="blueprint-drill.html?obj=1.1">← 1.1 Mini Sims</a> · 1.1.h · PoE Budget</div>
+  <h1>PoE Budget Math<span class="badge">drill</span></h1>
+  <div class="desc">Power over Ethernet sounds magical until you realize the switch has a finite power supply. Each PoE class — af, at, bt T3, bt T4 — caps watts per port AND defines how much power the device on the other end actually receives (cable loss eats some). The rule: total PD demand × number-of-ports must NOT exceed the switch PSE budget. Pick a switch class, plug in your devices, see if it fits. The classic exam trap: 24 phones at 25.5W = 612W on a 370W switch — does NOT fit.</div>
+</div>
+
+<div class="panel">
+  <h2>PoE Calculator</h2>
+  <div class="form">
+    <div class="field">
+      <label for="sw">Switch model</label>
+      <select id="sw">
+        <option value="af-24-180">24-port af · 180W budget</option>
+        <option value="at-24-370" selected>24-port at (PoE+) · 370W budget</option>
+        <option value="bt-24-740">24-port bt T3 · 740W budget</option>
+        <option value="bt-48-1440">48-port bt T4 · 1440W budget</option>
+      </select>
+    </div>
+    <div class="field">
+      <label for="cls">Device PoE class</label>
+      <select id="cls">
+        <option value="af">802.3af · PSE 15.4W · PD 12.95W</option>
+        <option value="at" selected>802.3at PoE+ · PSE 30W · PD 25.5W</option>
+        <option value="bt3">802.3bt T3 · PSE 60W · PD 51W</option>
+        <option value="bt4">802.3bt T4 · PSE 100W · PD 71W</option>
+      </select>
+    </div>
+    <div class="field">
+      <label for="cnt">Number of devices</label>
+      <input id="cnt" type="number" min="0" max="48" value="24">
+    </div>
+    <div class="field">
+      <label for="watt">Watts per device (PSE side)</label>
+      <input id="watt" type="number" step="0.1" min="0" value="25.5">
+    </div>
+  </div>
+  <div class="results">
+    <div class="stat" id="stDemand"><div class="lbl">Total demand</div><div class="val">— W</div></div>
+    <div class="stat" id="stBudget"><div class="lbl">Switch budget</div><div class="val">— W</div></div>
+    <div class="stat" id="stHead"><div class="lbl">Headroom</div><div class="val">— W</div></div>
+    <div class="stat" id="stStatus"><div class="lbl">Verdict</div><div class="val">—</div></div>
+  </div>
+  <div id="verdict" class="verdict"></div>
+</div>
+
+<div class="panel">
+  <h2>Reference table — IEEE 802.3 PoE classes</h2>
+  <table class="table">
+    <thead><tr><th>Standard</th><th>Common name</th><th>Max PSE / port</th><th>Min PD receives</th><th>Pairs used</th></tr></thead>
+    <tbody>
+      <tr><td>802.3af (2003)</td><td>PoE</td><td>15.4 W</td><td>12.95 W</td><td>2 pairs (Mode A or B)</td></tr>
+      <tr><td>802.3at (2009)</td><td>PoE+</td><td>30 W</td><td>25.5 W</td><td>2 pairs (Mode A or B)</td></tr>
+      <tr><td>802.3bt Type 3 (2018)</td><td>PoE++ / 4PPoE</td><td>60 W</td><td>51 W</td><td>4 pairs</td></tr>
+      <tr><td>802.3bt Type 4 (2018)</td><td>PoE++ / Hi-PoE</td><td>100 W</td><td>71 W</td><td>4 pairs</td></tr>
+    </tbody>
+  </table>
+  <div class="footnote">PSE = Power Sourcing Equipment (the switch). PD = Powered Device (phone, AP, camera). Cable losses explain why PD always receives less than PSE delivers — Cat 5/6 wire isn't lossless.</div>
+</div>
+
+<div class="panel">
+  <h2>Mode A vs Mode B — which pairs carry power?</h2>
+  <svg class="modes-svg" viewBox="0 0 800 170">
+    <text x="60" y="22" font-family="Space Grotesk" font-weight="700" font-size="13" fill="#1C1917">Mode A — power on data pairs (1/2, 3/6)</text>
+    <line x1="60" y1="40" x2="760" y2="40" stroke="#B45309" stroke-width="3" stroke-dasharray="6 6" style="animation:flowA 1.2s linear infinite"/>
+    <text x="410" y="56" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#B45309">DC superimposed on data signal</text>
+
+    <text x="60" y="98" font-family="Space Grotesk" font-weight="700" font-size="13" fill="#1C1917">Mode B — power on spare pairs (4/5, 7/8)</text>
+    <line x1="60" y1="116" x2="760" y2="116" stroke="#16A34A" stroke-width="3" stroke-dasharray="6 6" style="animation:flowB 1.2s linear infinite"/>
+    <text x="410" y="132" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#16A34A">DC on the previously unused pairs</text>
+
+    <text x="60" y="160" font-family="Source Serif 4" font-style="italic" font-size="11" fill="#57534E">af/at use 2 pairs (Mode A OR B). bt uses ALL FOUR pairs together — that\'s how it gets to 60–100W.</text>
+  </svg>
+</div>
+
+<div class="panel quiz" id="quizPanel">
+  <h2>Quiz mode</h2>
+  <div class="stem" id="quizStem">Loading…</div>
+  <div class="opts" id="quizOpts"></div>
+  <div class="scoreline">
+    <span><strong id="qCorrect">0</strong> correct</span>
+    <span><strong id="qWrong">0</strong> wrong</span>
+    <span><strong id="qStreak">0</strong> streak</span>
+    <span style="margin-left:auto"><button class="btn ghost" id="newQ">Next ↻</button></span>
+  </div>
+</div>
+
+<div style="text-align:center;margin-top:18px"><a class="footer-link" href="blueprint-drill.html?obj=1.1">← Back to 1.1 leaves</a></div>
+
+<script>
+(function(){
+  var swMap = {
+    'af-24-180':  { ports:24, budget:180,  cls:'af',  pse:15.4 },
+    'at-24-370':  { ports:24, budget:370,  cls:'at',  pse:30 },
+    'bt-24-740':  { ports:24, budget:740,  cls:'bt3', pse:60 },
+    'bt-48-1440': { ports:48, budget:1440, cls:'bt4', pse:100 }
+  };
+  var classDefaultPse = { af:15.4, at:25.5, bt3:51, bt4:71 };
+
+  function recalc(){
+    var sw = swMap[document.getElementById('sw').value];
+    var cnt = parseInt(document.getElementById('cnt').value, 10) || 0;
+    var watt = parseFloat(document.getElementById('watt').value) || 0;
+    var demand = cnt * watt;
+    var head = sw.budget - demand;
+    var v = document.getElementById('verdict');
+
+    document.getElementById('stDemand').querySelector('.val').textContent = demand.toFixed(1) + ' W';
+    document.getElementById('stBudget').querySelector('.val').textContent = sw.budget + ' W';
+    document.getElementById('stHead').querySelector('.val').textContent   = head.toFixed(1) + ' W';
+
+    var status = document.getElementById('stStatus');
+    var statusVal = status.querySelector('.val');
+    status.classList.remove('win','miss');
+
+    var portWarn = '';
+    if (cnt > sw.ports) portWarn = ' Also: only ' + sw.ports + ' ports on this switch.';
+
+    if (cnt === 0 || watt === 0) {
+      statusVal.textContent = '—';
+      v.className = 'verdict';
+      return;
+    }
+
+    if (head >= 0 && cnt <= sw.ports) {
+      statusVal.textContent = '✓ FIT';
+      status.classList.add('win');
+      v.className = 'verdict win show';
+      v.textContent = '✓ Demand ' + demand.toFixed(1) + 'W ≤ Budget ' + sw.budget + 'W. ' + head.toFixed(1) + 'W headroom — design fits.';
+    } else {
+      statusVal.textContent = '✗ FAIL';
+      status.classList.add('miss');
+      v.className = 'verdict miss show';
+      var over = demand - sw.budget;
+      var msg = '✗ ';
+      if (head < 0) msg += 'Demand ' + demand.toFixed(1) + 'W exceeds budget by ' + over.toFixed(1) + 'W.';
+      msg += portWarn;
+      msg += ' Options: bigger PoE budget switch, drop wattage, fewer devices, or split across two switches.';
+      v.textContent = msg;
+    }
+  }
+
+  document.getElementById('cls').addEventListener('change', function(e){
+    var c = e.target.value;
+    document.getElementById('watt').value = classDefaultPse[c];
+    recalc();
+  });
+  ['sw','cnt','watt'].forEach(function(id){ document.getElementById(id).addEventListener('input', recalc); });
+  recalc();
+
+  // Quiz
+  var qCorrect=0,qWrong=0,qStreak=0;
+  var pool = [
+    { stem:'24-port PoE+ switch with 370W budget. Can it run 24 phones at 25.5W each?', ans:'No — 612W needed, only 370W available', opts:['Yes — 24 × 25.5 = 612W','No — 612W needed, only 370W available','Yes — phones throttle','No — only 12 will work, others get half power'], why:'24 × 25.5 = 612W. Switch budget is 370W. Need bigger PoE budget, fewer phones, or split across switches.' },
+    { stem:'How much does a PoE+ (802.3at) PD actually receive at minimum?', ans:'25.5 W', opts:['12.95 W','25.5 W','30 W','51 W'], why:'PSE 30W → PD 25.5W. Cable loss accounts for the 4.5W gap.' },
+    { stem:'How much does an 802.3af PD receive at minimum?', ans:'12.95 W', opts:['12.95 W','15.4 W','25.5 W','30 W'], why:'PSE 15.4W → PD 12.95W.' },
+    { stem:'Which PoE standard delivers up to 100W per port?', ans:'802.3bt Type 4', opts:['802.3af','802.3at (PoE+)','802.3bt Type 3','802.3bt Type 4'], why:'bt T4 = 100W PSE / 71W PD using all 4 pairs.' },
+    { stem:'Mode A places DC power on which pairs?', ans:'Data pairs (1/2 and 3/6)', opts:['Spare pairs (4/5 and 7/8)','Data pairs (1/2 and 3/6)','All four pairs','Pair 4/5 only'], why:'Mode A superimposes DC on data pairs.' },
+    { stem:'Mode B places DC power on which pairs?', ans:'Spare pairs (4/5 and 7/8)', opts:['Data pairs','Spare pairs (4/5 and 7/8)','All four pairs','Pair 1/2 only'], why:'Mode B uses the previously unused pairs.' },
+    { stem:'802.3bt uses how many wire pairs to carry power?', ans:'All 4 pairs', opts:['1 pair','2 pairs','3 pairs','All 4 pairs'], why:'bt = 4-pair PoE (4PPoE). That\'s how it doubles+ the wattage vs at.' },
+    { stem:'PSE means:', ans:'Power Sourcing Equipment (the switch/injector)', opts:['Powered Source Equipment','Power Sourcing Equipment (the switch/injector)','Pre-Switched Element','Port Saturation Estimate'], why:'PSE = the side that supplies power. PD = the side that consumes.' },
+    { stem:'You need to power 12 wireless APs that draw 30W each. Which switch budget is the minimum that fits?', ans:'≥ 360W', opts:['180W (af 24-port)','≥ 360W','100W','24W'], why:'12 × 30 = 360W. PoE+ 370W switch is the minimum standard that fits.' },
+    { stem:'A PoE+ switch advertises "30W per port". Why does the spec say PD only gets 25.5W?', ans:'Cable resistance dissipates ~4.5W as heat over 100m', opts:['Marketing','Cable resistance dissipates ~4.5W as heat over 100m','PoE always reserves 15%','VoIP overhead'], why:'PSE delivers 30W; the spec guarantees the PD will receive at least 25.5W after worst-case cable loss.' },
+    { stem:'Can you put a 25.5W PoE+ phone on a switch port that only supports 802.3af (15.4W max)?', ans:'No — the phone won\'t come up at full power; LLDP/CDP negotiation will fail', opts:['Yes, no problem','No — the phone won\'t come up at full power; LLDP/CDP negotiation will fail','Yes, but throttled to 5W','Only with a special cable'], why:'PD requests 25.5W; PSE can\'t supply it. PoE negotiation prevents power-up.' }
+  ];
+  function pickQ(){
+    var q = pool[Math.floor(Math.random()*pool.length)];
+    var opts = q.opts.slice().sort(function(){return Math.random()-.5;});
+    document.getElementById('quizStem').textContent = q.stem;
+    var box = document.getElementById('quizOpts'); box.innerHTML='';
+    opts.forEach(function(o){
+      var b = document.createElement('button'); b.className='opt'; b.textContent=o;
+      b.addEventListener('click', function(){
+        if (b.classList.contains('correct')||b.classList.contains('wrong')) return;
+        if (o===q.ans){ b.classList.add('correct'); qCorrect++; qStreak++; }
+        else { b.classList.add('wrong'); qWrong++; qStreak=0;
+          Array.prototype.forEach.call(box.children, function(c){ if (c.textContent===q.ans) c.classList.add('correct'); }); }
+        document.getElementById('qCorrect').textContent=qCorrect;
+        document.getElementById('qWrong').textContent=qWrong;
+        document.getElementById('qStreak').textContent=qStreak;
+      });
+      box.appendChild(b);
+    });
+  }
+  document.getElementById('newQ').addEventListener('click', pickQ);
+  pickQ();
+})();
+</script>
+</body>
+</html>

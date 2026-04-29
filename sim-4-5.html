@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>4.5 Sim — Syslog Severity Dial</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#FAF7F2;--bg-surface:#FFFFFF;--bg-recessed:#F3F0EB;
+    --border:#E2DFD9;--border-strong:#C7C3BC;
+    --ink:#1C1917;--ink-secondary:#57534E;--ink-muted:#A8A29E;
+    --accent:#B45309;--accent-soft:#D97706;--accent-light:#FEF3C7;
+    --correct:#16A34A;--correct-bg:#F0FDF4;
+    --wrong:#DC2626;--wrong-bg:#FEF2F2;
+    --info:#2563EB;--info-bg:#EFF6FF;
+    --font-display:'Space Grotesk',system-ui,sans-serif;
+    --font-body:'Source Serif 4',Georgia,serif;
+    --font-mono:'JetBrains Mono',monospace;
+    --radius:6px;--radius-lg:10px;
+  }
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  html{font-size:16px;-webkit-font-smoothing:antialiased}
+  body{font-family:var(--font-body);background:var(--bg);color:var(--ink);line-height:1.55;padding:24px;max-width:920px;margin:0 auto}
+  .head{margin-bottom:20px;padding-bottom:14px;border-bottom:1px solid var(--border)}
+  .head .crumb{font-family:var(--font-mono);font-size:.74rem;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px}
+  .head h1{font-family:var(--font-display);font-size:1.5rem;font-weight:700;margin-bottom:6px}
+  .head .desc{font-size:.95rem;color:var(--ink-secondary)}
+  .panel{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;margin-bottom:18px}
+  .panel h2{font-family:var(--font-display);font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-secondary);margin-bottom:12px}
+  .btn{font-family:var(--font-display);font-size:.84rem;font-weight:600;padding:8px 16px;background:var(--ink);color:#FAF7F2;border:none;border-radius:var(--radius);cursor:pointer}
+  .btn.ghost{background:var(--bg-recessed);color:var(--ink)}
+  .btn.accent{background:var(--accent)}
+  .dial{display:grid;grid-template-columns:repeat(8,1fr);gap:6px;margin:14px 0}
+  .lvl{padding:14px 8px;border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-recessed);text-align:center;cursor:pointer;font-family:var(--font-display);transition:all .2s}
+  .lvl:hover{border-color:var(--accent)}
+  .lvl.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+  .lvl .num{font-size:1.4rem;font-weight:700}
+  .lvl .name{font-size:.7rem;text-transform:uppercase;letter-spacing:.04em;margin-top:2px}
+  .lvl[data-l="0"]{background:#7f1d1d;color:#fff;border-color:#7f1d1d}
+  .lvl[data-l="1"]{background:#dc2626;color:#fff;border-color:#dc2626}
+  .lvl[data-l="2"]{background:#ea580c;color:#fff;border-color:#ea580c}
+  .lvl[data-l="3"]{background:#d97706;color:#fff;border-color:#d97706}
+  .lvl[data-l="4"]{background:#ca8a04;color:#fff;border-color:#ca8a04}
+  .lvl[data-l="5"]{background:#65a30d;color:#fff;border-color:#65a30d}
+  .lvl[data-l="6"]{background:#0891b2;color:#fff;border-color:#0891b2}
+  .lvl[data-l="7"]{background:#6b7280;color:#fff;border-color:#6b7280}
+  .mnem{padding:12px 14px;background:var(--accent-light);border-left:3px solid var(--accent);border-radius:var(--radius);font-family:var(--font-display);font-weight:600;margin:14px 0;font-size:1rem}
+  .mnem b{color:var(--accent)}
+  .log{font-family:var(--font-mono);font-size:.82rem;background:var(--ink);color:#FAF7F2;padding:14px;border-radius:var(--radius);max-height:280px;overflow-y:auto;margin-top:10px}
+  .log .row{padding:3px 0}
+  .log .row.shown{color:#FAF7F2}
+  .log .row.hidden{opacity:.25;text-decoration:line-through}
+  .log .sev0{color:#fca5a5}.log .sev1{color:#fdba74}.log .sev2{color:#fcd34d}.log .sev3{color:#fde68a}
+  .log .sev4{color:#bef264}.log .sev5{color:#86efac}.log .sev6{color:#7dd3fc}.log .sev7{color:#9ca3af}
+  .quiz{margin-top:22px}
+  .quiz .stem{font-family:var(--font-display);font-size:1.02rem;font-weight:600;margin-bottom:12px;padding:14px;background:var(--accent-light);border-left:3px solid var(--accent);border-radius:var(--radius)}
+  .quiz .opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px}
+  .opt{background:var(--bg-recessed);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;font-family:var(--font-mono);font-size:.92rem;cursor:pointer;text-align:left}
+  .opt:hover{border-color:var(--border-strong);background:var(--bg-surface)}
+  .opt.correct{background:var(--correct-bg);border-color:var(--correct);color:var(--correct);font-weight:700}
+  .opt.wrong{background:var(--wrong-bg);border-color:var(--wrong);color:var(--wrong)}
+  .scoreline{font-family:var(--font-mono);font-size:.84rem;color:var(--ink-muted);margin-top:10px;display:flex;gap:18px}
+  .scoreline strong{color:var(--ink)}
+</style>
+</head>
+<body>
+
+<div class="head">
+  <div class="crumb"><a href="blueprint-drill.html?obj=4.5" style="color:var(--accent);text-decoration:none">← 4.5 leaves</a> · 4.5 · IP Services · Syslog</div>
+  <h1>Syslog Severity Sim</h1>
+  <div class="desc">Every device produces messages. Some say "the building is on fire" (severity 0). Others say "I considered doing a thing" (severity 7). Eight levels, lower = worse. The router only sends events at-or-below the configured trap level — set it to 4 and you see 0–4, never 5–7.</div>
+</div>
+
+<div class="panel">
+  <h2>Severity Dial — click to set logging trap level</h2>
+  <div class="dial">
+    <div class="lvl" data-l="0"><div class="num">0</div><div class="name">Emerg</div></div>
+    <div class="lvl" data-l="1"><div class="num">1</div><div class="name">Alert</div></div>
+    <div class="lvl" data-l="2"><div class="num">2</div><div class="name">Crit</div></div>
+    <div class="lvl" data-l="3"><div class="num">3</div><div class="name">Error</div></div>
+    <div class="lvl" data-l="4"><div class="num">4</div><div class="name">Warn</div></div>
+    <div class="lvl" data-l="5"><div class="num">5</div><div class="name">Notice</div></div>
+    <div class="lvl" data-l="6"><div class="num">6</div><div class="name">Info</div></div>
+    <div class="lvl" data-l="7"><div class="num">7</div><div class="name">Debug</div></div>
+  </div>
+  <div class="mnem"><b>Mnemonic:</b> <span style="font-family:var(--font-mono)">E</span>very <span style="font-family:var(--font-mono)">A</span>wesome <span style="font-family:var(--font-mono)">C</span>isco <span style="font-family:var(--font-mono)">E</span>ngineer <span style="font-family:var(--font-mono)">W</span>ill <span style="font-family:var(--font-mono)">N</span>eed <span style="font-family:var(--font-mono)">I</span>ce-cream <span style="font-family:var(--font-mono)">D</span>aily — Emergency, Alert, Critical, Error, Warning, Notice, Informational, Debug</div>
+  <div style="font-family:var(--font-mono);font-size:.84rem;color:var(--ink-secondary)">Current config: <code id="cfg" style="background:var(--ink);color:#FAF7F2;padding:2px 8px;border-radius:4px">logging trap 4</code> — sends levels 0–4 to syslog server (UDP 514)</div>
+
+  <div class="log" id="log"></div>
+  <div style="margin-top:10px;display:flex;gap:8px">
+    <button class="btn accent" id="fire">Fire sample messages</button>
+    <button class="btn ghost" id="clear">Clear</button>
+  </div>
+</div>
+
+<div class="panel quiz">
+  <h2>Quiz</h2>
+  <div class="stem" id="qStem">Loading…</div>
+  <div class="opts" id="qOpts"></div>
+  <div class="scoreline">
+    <span><strong id="qC">0</strong> correct</span>
+    <span><strong id="qW">0</strong> wrong</span>
+    <span style="margin-left:auto"><button class="btn ghost" id="qNext">Next ↻</button></span>
+  </div>
+</div>
+
+<p style="text-align:center;margin-top:20px"><a href="blueprint-drill.html?obj=4.5" style="color:var(--accent);font-family:var(--font-mono);font-size:.84rem">← back to 4.5 leaves</a></p>
+
+<script>
+(function(){
+  var trap=4;
+  var samples=[
+    {l:0,m:'%PLATFORM_THERMAL-0-EMERG: System overtemp - shutting down'},
+    {l:1,m:'%LINK-1-ALERT: Stack member power supply failed'},
+    {l:2,m:'%CRITICAL-2-CRIT: BGP neighbor 10.1.1.1 reset, hold time expired'},
+    {l:3,m:'%LINEPROTO-3-ERROR: Line protocol on Gi0/1 changed state to down'},
+    {l:4,m:'%SEC-4-WARNING: Login failure for user admin from 203.0.113.7'},
+    {l:5,m:'%LINK-5-NOTICE: Interface Gi0/2 changed state to up'},
+    {l:6,m:'%SYS-6-INFO: Configured from console by admin'},
+    {l:7,m:'%DEBUG-7-DEBUG: ARP packet src=10.0.0.5 dst=10.0.0.1'}
+  ];
+  function setLevel(n){
+    trap=n;
+    document.querySelectorAll('.lvl').forEach(function(el){el.classList.toggle('active',parseInt(el.dataset.l)===n)});
+    document.getElementById('cfg').textContent='logging trap '+n;
+    fire();
+  }
+  function fire(){
+    var box=document.getElementById('log'); box.innerHTML='';
+    samples.forEach(function(s,i){
+      setTimeout(function(){
+        var r=document.createElement('div');
+        r.className='row sev'+s.l+' '+(s.l<=trap?'shown':'hidden');
+        r.textContent=(s.l<=trap?'✓ SENT  ':'✗ DROP  ')+'Apr 29 '+String(14+Math.floor(i/4)).padStart(2,'0')+':'+String(20+i*7%60).padStart(2,'0')+':00 '+s.m;
+        box.appendChild(r); box.scrollTop=box.scrollHeight;
+      },i*120);
+    });
+  }
+  document.querySelectorAll('.lvl').forEach(function(el){el.addEventListener('click',function(){setLevel(parseInt(el.dataset.l))})});
+  document.getElementById('fire').addEventListener('click',fire);
+  document.getElementById('clear').addEventListener('click',function(){document.getElementById('log').innerHTML=''});
+  setLevel(4);
+
+  var qC=0,qW=0;
+  var pool=[
+    {q:'Severity 0 means…',a:'Emergency — system unusable',o:['Emergency — system unusable','Debug','Notice','Information']},
+    {q:'Severity 7 means…',a:'Debug — verbose troubleshooting',o:['Critical','Debug — verbose troubleshooting','Emergency','Warning']},
+    {q:'`logging trap 4` will send which levels?',a:'0 through 4',o:['only level 4','0 through 4','4 through 7','all levels']},
+    {q:'Which level is "Error"?',a:'3',o:['2','3','4','5']},
+    {q:'Which level is "Warning"?',a:'4',o:['3','4','5','6']},
+    {q:'Which level is "Critical"?',a:'2',o:['1','2','3','4']},
+    {q:'Default Cisco syslog port?',a:'UDP 514',o:['UDP 514','TCP 514','UDP 161','TCP 22']},
+    {q:'`debugging` keyword maps to which numeric level?',a:'7',o:['0','3','5','7']},
+    {q:'Of these, which is more severe?',a:'Critical (2)',o:['Notice (5)','Warning (4)','Critical (2)','Debug (7)']},
+    {q:'You set `logging trap notifications`. Which level number is that?',a:'5',o:['3','4','5','6']},
+    {q:'Mnemonic: "Every Awesome Cisco Engineer Will Need Ice-cream Daily" — what is the third word\'s level?',a:'Critical (2)',o:['Emergency (0)','Alert (1)','Critical (2)','Error (3)']},
+    {q:'Higher numeric severity means…',a:'less urgent',o:['more urgent','less urgent','encrypted','authenticated']}
+  ];
+  function pick(){
+    var q=pool[Math.floor(Math.random()*pool.length)];
+    document.getElementById('qStem').textContent=q.q;
+    var box=document.getElementById('qOpts'); box.innerHTML='';
+    q.o.slice().sort(function(){return Math.random()-.5}).forEach(function(o){
+      var b=document.createElement('button'); b.className='opt'; b.textContent=o;
+      b.addEventListener('click',function(){
+        if(b.classList.contains('correct')||b.classList.contains('wrong'))return;
+        if(o===q.a){b.classList.add('correct');qC++} else{b.classList.add('wrong');qW++; Array.prototype.forEach.call(box.children,function(c){if(c.textContent===q.a)c.classList.add('correct')})}
+        document.getElementById('qC').textContent=qC; document.getElementById('qW').textContent=qW;
+      });
+      box.appendChild(b);
+    });
+  }
+  document.getElementById('qNext').addEventListener('click',pick); pick();
+})();
+</script>
+</body>
+</html>

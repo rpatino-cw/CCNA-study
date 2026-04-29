@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>4.3 Sim — DHCP DORA + DNS Resolution</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#FAF7F2;--bg-surface:#FFFFFF;--bg-recessed:#F3F0EB;
+    --border:#E2DFD9;--border-strong:#C7C3BC;
+    --ink:#1C1917;--ink-secondary:#57534E;--ink-muted:#A8A29E;
+    --accent:#B45309;--accent-soft:#D97706;--accent-light:#FEF3C7;
+    --correct:#16A34A;--correct-bg:#F0FDF4;
+    --wrong:#DC2626;--wrong-bg:#FEF2F2;
+    --info:#2563EB;--info-bg:#EFF6FF;
+    --font-display:'Space Grotesk',system-ui,sans-serif;
+    --font-body:'Source Serif 4',Georgia,serif;
+    --font-mono:'JetBrains Mono',monospace;
+    --radius:6px;--radius-lg:10px;
+  }
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  html{font-size:16px;-webkit-font-smoothing:antialiased}
+  body{font-family:var(--font-body);background:var(--bg);color:var(--ink);line-height:1.55;padding:24px;max-width:920px;margin:0 auto}
+  .head{margin-bottom:20px;padding-bottom:14px;border-bottom:1px solid var(--border)}
+  .head .crumb{font-family:var(--font-mono);font-size:.74rem;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px}
+  .head h1{font-family:var(--font-display);font-size:1.5rem;font-weight:700;margin-bottom:6px}
+  .head .desc{font-size:.95rem;color:var(--ink-secondary)}
+  .panel{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;margin-bottom:18px}
+  .panel h2{font-family:var(--font-display);font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-secondary);margin-bottom:12px}
+  .btn{font-family:var(--font-display);font-size:.84rem;font-weight:600;padding:8px 16px;background:var(--ink);color:#FAF7F2;border:none;border-radius:var(--radius);cursor:pointer}
+  .btn.ghost{background:var(--bg-recessed);color:var(--ink)}
+  .btn.accent{background:var(--accent)}
+  .flow{display:flex;flex-direction:column;gap:8px;margin:14px 0}
+  .step{padding:10px 14px;border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-recessed);font-family:var(--font-mono);font-size:.86rem;opacity:.3;transition:all .35s}
+  .step.live{opacity:1;background:var(--accent-light);border-color:var(--accent);transform:translateX(8px)}
+  .step.done{opacity:.85;background:var(--correct-bg);border-color:var(--correct);color:var(--correct)}
+  .step b{color:var(--accent)}
+  .step.done b{color:var(--correct)}
+  .records{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;margin-top:10px}
+  .rec{padding:10px;background:var(--bg-recessed);border:1px solid var(--border);border-radius:var(--radius);font-family:var(--font-mono);font-size:.82rem}
+  .rec b{color:var(--accent)}
+  .quiz{margin-top:22px}
+  .quiz .stem{font-family:var(--font-display);font-size:1.02rem;font-weight:600;margin-bottom:12px;padding:14px;background:var(--accent-light);border-left:3px solid var(--accent);border-radius:var(--radius)}
+  .quiz .opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px}
+  .opt{background:var(--bg-recessed);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;font-family:var(--font-mono);font-size:.92rem;cursor:pointer;text-align:left}
+  .opt:hover{border-color:var(--border-strong);background:var(--bg-surface)}
+  .opt.correct{background:var(--correct-bg);border-color:var(--correct);color:var(--correct);font-weight:700}
+  .opt.wrong{background:var(--wrong-bg);border-color:var(--wrong);color:var(--wrong)}
+  .scoreline{font-family:var(--font-mono);font-size:.84rem;color:var(--ink-muted);margin-top:10px;display:flex;gap:18px}
+  .scoreline strong{color:var(--ink)}
+</style>
+</head>
+<body>
+
+<div class="head">
+  <div class="crumb"><a href="blueprint-drill.html?obj=4.3" style="color:var(--accent);text-decoration:none">← 4.3 leaves</a> · 4.3 · IP Services · DHCP & DNS</div>
+  <h1>DHCP DORA + DNS Lookup Sim</h1>
+  <div class="desc">A fresh client knows nothing — no IP, no gateway, no DNS. DHCP gives it identity. Then it wants `www.example.com` but the network only routes IPs. DNS turns names into addresses. Two protocols, both critical, both touched on every reboot.</div>
+</div>
+
+<div class="panel">
+  <h2>DHCP — DORA Handshake (UDP 67/68)</h2>
+  <div class="flow" id="dora">
+    <div class="step" data-i="0"><b>1. Discover</b> Client broadcasts to 255.255.255.255 src=0.0.0.0 dst=255.255.255.255 — "anyone home?"</div>
+    <div class="step" data-i="1"><b>2. Offer</b> Server replies with proposed IP, mask, gateway, DNS, lease time</div>
+    <div class="step" data-i="2"><b>3. Request</b> Client broadcasts back: "I want the offer from server X" (so other servers know)</div>
+    <div class="step" data-i="3"><b>4. Acknowledge</b> Server confirms. Client now has 192.168.1.50/24, GW 192.168.1.1, DNS 8.8.8.8, lease 24h.</div>
+  </div>
+  <button class="btn accent" id="runDora">Boot client — run DORA</button>
+  <button class="btn ghost" id="resetDora">Reset</button>
+</div>
+
+<div class="panel">
+  <h2>DNS Resolution (UDP/TCP 53)</h2>
+  <div class="flow" id="dns">
+    <div class="step" data-i="0"><b>1. Stub resolver</b> Client OS asks configured resolver (8.8.8.8): "A record for www.example.com?"</div>
+    <div class="step" data-i="1"><b>2. Recursive → root</b> Resolver hits a root server: "who handles .com?"</div>
+    <div class="step" data-i="2"><b>3. Root → TLD</b> Root replies: "go ask the .com TLD nameservers"</div>
+    <div class="step" data-i="3"><b>4. TLD → Authoritative</b> .com replies: "ns1.example.com is authoritative for example.com"</div>
+    <div class="step" data-i="4"><b>5. Authoritative → answer</b> ns1.example.com replies: A = 93.184.216.34</div>
+    <div class="step" data-i="5"><b>6. Cached return</b> Resolver caches per TTL, returns to client. Client opens TCP to 93.184.216.34:443.</div>
+  </div>
+  <button class="btn accent" id="runDns">Resolve www.example.com</button>
+  <button class="btn ghost" id="resetDns">Reset</button>
+
+  <h2 style="margin-top:18px">DNS Record Types</h2>
+  <div class="records">
+    <div class="rec"><b>A</b> hostname → IPv4. www → 93.184.216.34</div>
+    <div class="rec"><b>AAAA</b> hostname → IPv6. www → 2606:2800::</div>
+    <div class="rec"><b>CNAME</b> alias → another name. blog → www.example.com</div>
+    <div class="rec"><b>MX</b> mail server. example.com → mail.example.com pri 10</div>
+    <div class="rec"><b>NS</b> nameserver authority for the zone</div>
+    <div class="rec"><b>PTR</b> reverse: IP → hostname (in-addr.arpa)</div>
+    <div class="rec"><b>TXT</b> arbitrary text — SPF, DKIM, domain verification</div>
+    <div class="rec"><b>SOA</b> zone metadata — primary NS, serial, TTLs</div>
+  </div>
+</div>
+
+<div class="panel quiz">
+  <h2>Quiz</h2>
+  <div class="stem" id="qStem">Loading…</div>
+  <div class="opts" id="qOpts"></div>
+  <div class="scoreline">
+    <span><strong id="qC">0</strong> correct</span>
+    <span><strong id="qW">0</strong> wrong</span>
+    <span style="margin-left:auto"><button class="btn ghost" id="qNext">Next ↻</button></span>
+  </div>
+</div>
+
+<p style="text-align:center;margin-top:20px"><a href="blueprint-drill.html?obj=4.3" style="color:var(--accent);font-family:var(--font-mono);font-size:.84rem">← back to 4.3 leaves</a></p>
+
+<script>
+(function(){
+  function play(sel,n,done){
+    var steps=document.querySelectorAll(sel+' .step');
+    steps.forEach(function(s){s.classList.remove('live','done')});
+    var i=0;
+    var t=setInterval(function(){
+      if(i>0)steps[i-1].classList.replace('live','done');
+      if(i>=n){clearInterval(t); if(done)done(); return}
+      steps[i].classList.add('live'); i++;
+    },700);
+  }
+  document.getElementById('runDora').addEventListener('click',function(){play('#dora',4)});
+  document.getElementById('runDns').addEventListener('click',function(){play('#dns',6)});
+  document.getElementById('resetDora').addEventListener('click',function(){document.querySelectorAll('#dora .step').forEach(function(s){s.classList.remove('live','done')})});
+  document.getElementById('resetDns').addEventListener('click',function(){document.querySelectorAll('#dns .step').forEach(function(s){s.classList.remove('live','done')})});
+
+  var qC=0,qW=0;
+  var pool=[
+    {q:'DHCP DORA stands for…',a:'Discover, Offer, Request, Ack',o:['Discover, Offer, Request, Ack','Detect, Offer, Resolve, Acknowledge','Discover, Open, Reply, Accept','Demand, Offer, Receive, Acknowledge']},
+    {q:'DHCP client → server uses which port?',a:'UDP 67',o:['UDP 67','UDP 68','TCP 67','TCP 68']},
+    {q:'DHCP server → client uses which port?',a:'UDP 68',o:['UDP 67','UDP 68','TCP 67','TCP 68']},
+    {q:'Why is Discover broadcast?',a:'client has no IP and no known server',o:['client has no IP and no known server','servers refuse unicast','it is faster','required by ARP']},
+    {q:'Which DHCP option carries default gateway?',a:'Option 3',o:['Option 1','Option 3','Option 6','Option 51']},
+    {q:'Which DHCP option carries DNS server list?',a:'Option 6',o:['Option 1','Option 3','Option 6','Option 51']},
+    {q:'DNS uses which port for typical queries?',a:'UDP 53',o:['UDP 53','TCP 53','UDP 25','TCP 80']},
+    {q:'DNS uses TCP 53 when…',a:'response > 512 bytes or zone transfers',o:['always','only at startup','response > 512 bytes or zone transfers','never']},
+    {q:'Which record maps hostname → IPv6?',a:'AAAA',o:['A','AAAA','CNAME','MX']},
+    {q:'Which record specifies the mail server for a domain?',a:'MX',o:['A','MX','TXT','SOA']},
+    {q:'CNAME does what?',a:'aliases one name to another',o:['aliases one name to another','maps to IPv4','maps to mail server','signs the zone']},
+    {q:'After Discover, the server sends…',a:'Offer',o:['Ack','Offer','Request','Release']}
+  ];
+  function pick(){
+    var q=pool[Math.floor(Math.random()*pool.length)];
+    document.getElementById('qStem').textContent=q.q;
+    var box=document.getElementById('qOpts'); box.innerHTML='';
+    q.o.slice().sort(function(){return Math.random()-.5}).forEach(function(o){
+      var b=document.createElement('button'); b.className='opt'; b.textContent=o;
+      b.addEventListener('click',function(){
+        if(b.classList.contains('correct')||b.classList.contains('wrong'))return;
+        if(o===q.a){b.classList.add('correct');qC++} else{b.classList.add('wrong');qW++; Array.prototype.forEach.call(box.children,function(c){if(c.textContent===q.a)c.classList.add('correct')})}
+        document.getElementById('qC').textContent=qC; document.getElementById('qW').textContent=qW;
+      });
+      box.appendChild(b);
+    });
+  }
+  document.getElementById('qNext').addEventListener('click',pick); pick();
+})();
+</script>
+</body>
+</html>

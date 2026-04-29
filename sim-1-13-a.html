@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>1.13.a Sim — Switch Forwarding Logic</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#FAF7F2;--bg-surface:#FFFFFF;--bg-recessed:#F3F0EB;
+    --border:#E2DFD9;--border-strong:#C7C3BC;
+    --ink:#1C1917;--ink-secondary:#57534E;--ink-muted:#A8A29E;
+    --accent:#B45309;--accent-soft:#D97706;--accent-light:#FEF3C7;
+    --correct:#16A34A;--correct-bg:#F0FDF4;
+    --wrong:#DC2626;--wrong-bg:#FEF2F2;
+    --info:#2563EB;--info-bg:#EFF6FF;
+    --font-display:'Space Grotesk',system-ui,sans-serif;
+    --font-body:'Source Serif 4',Georgia,serif;
+    --font-mono:'JetBrains Mono',monospace;
+    --radius:6px;--radius-lg:10px;
+  }
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  html{font-size:16px;-webkit-font-smoothing:antialiased}
+  body{font-family:var(--font-body);background:var(--bg);color:var(--ink);line-height:1.55;padding:24px;max-width:920px;margin:0 auto}
+  .head{margin-bottom:20px;padding-bottom:14px;border-bottom:1px solid var(--border)}
+  .head .crumb{font-family:var(--font-mono);font-size:.74rem;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px}
+  .head h1{font-family:var(--font-display);font-size:1.5rem;font-weight:700;margin-bottom:6px}
+  .head .desc{font-size:.95rem;color:var(--ink-secondary)}
+  .panel{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;margin-bottom:18px}
+  .panel h2{font-family:var(--font-display);font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-secondary);margin-bottom:12px}
+  .btn{font-family:var(--font-display);font-size:.84rem;font-weight:600;padding:8px 16px;background:var(--ink);color:#FAF7F2;border:none;border-radius:var(--radius);cursor:pointer}
+  .btn.ghost{background:var(--bg-recessed);color:var(--ink)}
+  .btn.accent{background:var(--accent)}
+  .stage{position:relative;height:340px;background:#FAFAF9;border:1px solid var(--border);border-radius:var(--radius);margin-top:10px;overflow:hidden}
+  .switch{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:200px;height:80px;background:var(--ink);color:#fff;border-radius:8px;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:700;letter-spacing:.04em}
+  .port{position:absolute;width:14px;height:14px;background:var(--accent);border-radius:2px}
+  .pc{position:absolute;width:80px;text-align:center;font-family:var(--font-mono);font-size:.78rem;cursor:pointer}
+  .pc .icon{width:46px;height:34px;background:var(--bg-surface);border:2px solid var(--ink);border-radius:6px;margin:0 auto 4px}
+  .pc.active .icon{border-color:var(--accent);background:var(--accent-light)}
+  .pc.dest .icon{border-color:var(--correct);background:var(--correct-bg)}
+  .pc.flooded .icon{border-color:var(--info);background:var(--info-bg)}
+  .pkt{position:absolute;width:18px;height:14px;background:var(--accent);border-radius:3px;color:#fff;font-family:var(--font-mono);font-size:.66rem;display:flex;align-items:center;justify-content:center;font-weight:700;z-index:5;transition:left .55s cubic-bezier(.16,1,.3,1), top .55s cubic-bezier(.16,1,.3,1)}
+  .table{width:100%;border-collapse:collapse;margin-top:10px;font-family:var(--font-mono);font-size:.86rem}
+  .table th{text-align:left;padding:8px 12px;background:var(--bg-recessed);font-family:var(--font-display);font-size:.72rem;text-transform:uppercase;letter-spacing:.08em}
+  .table td{padding:8px 12px;border-bottom:1px solid var(--border)}
+  .ctrl{display:flex;gap:10px;margin-top:10px;align-items:center;flex-wrap:wrap}
+  .ctrl select,.ctrl input{font-family:var(--font-mono);font-size:.86rem;padding:6px 10px;border:1px solid var(--border-strong);border-radius:var(--radius)}
+  .verdict{margin-top:14px;padding:12px 16px;border-radius:var(--radius);font-family:var(--font-display);font-size:.94rem;font-weight:600;background:var(--info-bg);color:var(--info);border:1px solid var(--info)}
+  .verdict.win{background:var(--correct-bg);color:var(--correct);border-color:var(--correct)}
+  .verdict.miss{background:var(--wrong-bg);color:var(--wrong);border-color:var(--wrong)}
+  .quiz{margin-top:22px}
+  .quiz .stem{font-family:var(--font-display);font-size:1.02rem;font-weight:600;margin-bottom:12px;padding:14px;background:var(--accent-light);border-left:3px solid var(--accent);border-radius:var(--radius)}
+  .quiz .opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px}
+  .opt{background:var(--bg-recessed);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;font-family:var(--font-mono);font-size:.88rem;cursor:pointer;text-align:left}
+  .opt:hover{border-color:var(--border-strong);background:var(--bg-surface)}
+  .opt.correct{background:var(--correct-bg);border-color:var(--correct);color:var(--correct);font-weight:700}
+  .opt.wrong{background:var(--wrong-bg);border-color:var(--wrong);color:var(--wrong)}
+  .scoreline{font-family:var(--font-mono);font-size:.84rem;color:var(--ink-muted);margin-top:10px;display:flex;gap:18px;align-items:center}
+  .scoreline strong{color:var(--ink)}
+  .badge{display:inline-block;font-family:var(--font-display);font-size:.7rem;font-weight:700;padding:2px 8px;border-radius:99px;background:var(--accent-light);color:var(--accent);text-transform:uppercase;letter-spacing:.04em;margin-left:8px}
+</style>
+</head>
+<body>
+
+<div class="head">
+  <div class="crumb"><a href="blueprint-drill.html?obj=1.13" style="color:var(--accent);text-decoration:none">← 1.13 Mini Sims</a> · 1.13.a · L2 · Switch Forwarding</div>
+  <h1>How a Switch Decides Where to Send a Frame<span class="badge">drill</span></h1>
+  <div class="desc">A switch's whole job: receive a frame, look up the destination MAC in its table, and forward out the matching port. If the dest MAC is not in the table, <strong>flood</strong> out every port except the one the frame arrived on. This single rule explains 80% of L2 behavior.</div>
+</div>
+
+<div class="panel">
+  <h2>4-port switch, 4 PCs</h2>
+  <div class="stage" id="stage">
+    <div class="switch">SWITCH</div>
+    <div class="port" id="p1" style="left:50%;top:35%;transform:translate(-50%,-50%) translate(-90px,0)"></div>
+    <div class="port" id="p2" style="left:50%;top:35%;transform:translate(-50%,-50%) translate(80px,0)"></div>
+    <div class="port" id="p3" style="left:50%;top:65%;transform:translate(-50%,-50%) translate(-90px,0)"></div>
+    <div class="port" id="p4" style="left:50%;top:65%;transform:translate(-50%,-50%) translate(80px,0)"></div>
+    <div class="pc" id="pc1" data-port="1" style="left:60px;top:30px"><div class="icon"></div>PC-A · aa:01</div>
+    <div class="pc" id="pc2" data-port="2" style="right:60px;top:30px"><div class="icon"></div>PC-B · aa:02</div>
+    <div class="pc" id="pc3" data-port="3" style="left:60px;bottom:30px"><div class="icon"></div>PC-C · aa:03</div>
+    <div class="pc" id="pc4" data-port="4" style="right:60px;bottom:30px"><div class="icon"></div>PC-D · aa:04</div>
+    <div class="pkt" id="pkt" style="display:none">F</div>
+  </div>
+
+  <div class="ctrl">
+    <span style="font-family:var(--font-display);font-weight:600">From</span>
+    <select id="src"><option>aa:01</option><option>aa:02</option><option>aa:03</option><option>aa:04</option></select>
+    <span style="font-family:var(--font-display);font-weight:600">To</span>
+    <select id="dst"><option>aa:02</option><option>aa:01</option><option>aa:03</option><option>aa:04</option><option>ff:ff (broadcast)</option><option>cc:99 (unknown)</option></select>
+    <button class="btn accent" id="send">Send Frame</button>
+    <button class="btn ghost" id="clearTab">Clear MAC table</button>
+  </div>
+
+  <h2 style="margin-top:18px">MAC Address Table</h2>
+  <table class="table"><thead><tr><th>MAC</th><th>Port</th><th>Type</th></tr></thead><tbody id="macTbl"><tr><td colspan="3" style="color:var(--ink-muted)">empty</td></tr></tbody></table>
+  <div class="verdict" id="verdict">Send aa:01 → aa:02. First time, table is empty for aa:02 → flood. Switch learns aa:01 lives on Port 1.</div>
+</div>
+
+<div class="panel quiz">
+  <h2>Quiz mode</h2>
+  <div class="stem" id="quizStem">Loading…</div>
+  <div class="opts" id="quizOpts"></div>
+  <div class="scoreline">
+    <span><strong id="qCorrect">0</strong> correct</span>
+    <span><strong id="qWrong">0</strong> wrong</span>
+    <span><strong id="qStreak">0</strong> streak</span>
+    <span style="margin-left:auto"><button class="btn ghost" id="newQ">Next ↻</button></span>
+  </div>
+</div>
+
+<script>
+(function(){
+  var portByMac = { 'aa:01':1,'aa:02':2,'aa:03':3,'aa:04':4 };
+  var pcCoords = {
+    1:{x:100,y:55}, 2:{x:740,y:55}, 3:{x:100,y:295}, 4:{x:740,y:295}
+  };
+  var stage = document.getElementById('stage');
+  var macTable = {};
+
+  function renderTable(){
+    var tbody = document.getElementById('macTbl'); tbody.innerHTML='';
+    var keys = Object.keys(macTable);
+    if (!keys.length){ tbody.innerHTML='<tr><td colspan="3" style="color:var(--ink-muted)">empty</td></tr>'; return; }
+    keys.forEach(function(k){
+      var tr = document.createElement('tr');
+      tr.innerHTML = '<td>'+k+'</td><td>Port '+macTable[k]+'</td><td>dynamic</td>';
+      tbody.appendChild(tr);
+    });
+  }
+
+  function clearActive(){
+    document.querySelectorAll('.pc').forEach(function(p){ p.classList.remove('active','dest','flooded'); });
+  }
+
+  function flyTo(x,y,cb){
+    var pkt = document.getElementById('pkt');
+    var rect = stage.getBoundingClientRect();
+    pkt.style.left = (x - 9) + 'px';
+    pkt.style.top  = (y - 7) + 'px';
+    setTimeout(cb, 580);
+  }
+
+  function send(){
+    var src = document.getElementById('src').value;
+    var dst = document.getElementById('dst').value;
+    if (dst.indexOf(' ')>0) dst = dst.split(' ')[0];
+    clearActive();
+    var srcPort = portByMac[src];
+    document.getElementById('pc'+srcPort).classList.add('active');
+
+    macTable[src] = srcPort; renderTable();
+
+    var pkt = document.getElementById('pkt');
+    pkt.style.display='block';
+    pkt.style.left = (pcCoords[srcPort].x-9)+'px';
+    pkt.style.top  = (pcCoords[srcPort].y-7)+'px';
+
+    setTimeout(function(){
+      flyTo(stage.clientWidth/2, stage.clientHeight/2, function(){
+        var v = document.getElementById('verdict');
+        if (dst === 'ff:ff'){
+          v.className='verdict miss'; v.textContent='Broadcast frame — flood out all ports except '+srcPort+'.';
+          floodTo(srcPort);
+        } else if (macTable[dst]){
+          var dp = macTable[dst];
+          v.className='verdict win'; v.textContent='✓ '+dst+' is on Port '+dp+'. Forward out only Port '+dp+'.';
+          flyTo(pcCoords[dp].x, pcCoords[dp].y, function(){
+            document.getElementById('pc'+dp).classList.add('dest');
+            pkt.style.display='none';
+          });
+        } else {
+          v.className='verdict miss'; v.textContent='✗ '+dst+' unknown — flood out every port except '+srcPort+'.';
+          floodTo(srcPort);
+        }
+      });
+    }, 50);
+  }
+
+  function floodTo(srcPort){
+    var pkt = document.getElementById('pkt');
+    var ports = [1,2,3,4].filter(function(p){ return p!==srcPort; });
+    var i=0;
+    function step(){
+      if (i>=ports.length){ pkt.style.display='none'; return; }
+      var p = ports[i++];
+      flyTo(pcCoords[p].x, pcCoords[p].y, function(){
+        document.getElementById('pc'+p).classList.add('flooded');
+        flyTo(stage.clientWidth/2, stage.clientHeight/2, step);
+      });
+    }
+    step();
+  }
+
+  document.getElementById('send').addEventListener('click', send);
+  document.getElementById('clearTab').addEventListener('click', function(){ macTable={}; renderTable(); clearActive(); document.getElementById('verdict').textContent='MAC table cleared. Next frame to a known dest will flood again until table re-learns.'; });
+  renderTable();
+
+  var qCorrect=0,qWrong=0,qStreak=0;
+  var pool = [
+    {q:'Switch receives frame from MAC aa:01 (port 2), dest MAC bb:99 unknown — what happens?',a:'Flood out all ports except 2',o:['Flood out all ports except 2','Drop frame','Send back out port 2','ARP for bb:99']},
+    {q:'A switch learns the source MAC of every received frame. This is called:',a:'MAC learning',o:['MAC learning','ARP','CAM bridging','Forwarding']},
+    {q:'A frame with dest MAC ff:ff:ff:ff:ff:ff is:',a:'broadcast — flood',o:['broadcast — flood','unicast — forward','multicast — IGMP','dropped']},
+    {q:'When a unicast frame matches an entry, the switch:',a:'forwards out only that port',o:['forwards out only that port','floods','drops','copies to all VLANs']},
+    {q:'Switches operate primarily at OSI layer:',a:'2 (Data Link)',o:['2 (Data Link)','3 (Network)','1 (Physical)','4 (Transport)']},
+    {q:'Switch never forwards a frame back out:',a:'the port it arrived on',o:['the port it arrived on','the lowest port','any trunk','VLAN 1']},
+    {q:'Multicast frame with no IGMP snooping is treated as:',a:'broadcast (flooded)',o:['broadcast (flooded)','unicast','dropped','encapsulated']},
+    {q:'A new MAC entry is learned from:',a:'frame source MAC + ingress port',o:['frame source MAC + ingress port','frame dest MAC','ARP request','LLDP']},
+    {q:'Two PCs on Port 3 (hub behind switch). Switch learns:',a:'both MACs map to port 3',o:['both MACs map to port 3','only first MAC','frames dropped','VLAN error']},
+    {q:'When MAC table is full, a new unknown destination causes:',a:'flooding (until aging)',o:['flooding (until aging)','drop','reboot','redirect']}
+  ];
+  function pickQ(){
+    var q = pool[Math.floor(Math.random()*pool.length)];
+    var opts = q.o.slice().sort(function(){return Math.random()-.5;});
+    document.getElementById('quizStem').textContent = q.q;
+    var box=document.getElementById('quizOpts'); box.innerHTML='';
+    opts.forEach(function(o){
+      var b=document.createElement('button'); b.className='opt'; b.textContent=o;
+      b.addEventListener('click', function(){
+        if (b.classList.contains('correct')||b.classList.contains('wrong')) return;
+        if (o===q.a){ b.classList.add('correct'); qCorrect++; qStreak++; }
+        else { b.classList.add('wrong'); qWrong++; qStreak=0;
+          Array.prototype.forEach.call(box.children,function(c){ if(c.textContent===q.a) c.classList.add('correct'); }); }
+        document.getElementById('qCorrect').textContent=qCorrect;
+        document.getElementById('qWrong').textContent=qWrong;
+        document.getElementById('qStreak').textContent=qStreak;
+      });
+      box.appendChild(b);
+    });
+  }
+  document.getElementById('newQ').addEventListener('click', pickQ);
+  pickQ();
+})();
+</script>
+</body>
+</html>

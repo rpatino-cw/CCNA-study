@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>1.8 Sim — IPv6 Addressing & Prefix</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#FAF7F2;--bg-surface:#FFFFFF;--bg-recessed:#F3F0EB;
+    --border:#E2DFD9;--border-strong:#C7C3BC;
+    --ink:#1C1917;--ink-secondary:#57534E;--ink-muted:#A8A29E;
+    --accent:#B45309;--accent-soft:#D97706;--accent-light:#FEF3C7;
+    --correct:#16A34A;--correct-bg:#F0FDF4;
+    --wrong:#DC2626;--wrong-bg:#FEF2F2;
+    --info:#2563EB;--info-bg:#EFF6FF;
+    --font-display:'Space Grotesk',system-ui,sans-serif;
+    --font-body:'Source Serif 4',Georgia,serif;
+    --font-mono:'JetBrains Mono',monospace;
+    --radius:6px;--radius-lg:10px;
+  }
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:var(--font-body);background:var(--bg);color:var(--ink);line-height:1.55;padding:24px;max-width:920px;margin:0 auto}
+  .head{margin-bottom:20px;padding-bottom:14px;border-bottom:1px solid var(--border)}
+  .head .crumb{font-family:var(--font-mono);font-size:.74rem;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px}
+  .head .crumb a{color:var(--accent);text-decoration:none}
+  .head h1{font-family:var(--font-display);font-size:1.5rem;font-weight:700;margin-bottom:6px}
+  .head .desc{font-size:.95rem;color:var(--ink-secondary)}
+  .panel{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;margin-bottom:18px}
+  .panel h2{font-family:var(--font-display);font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-secondary);margin-bottom:12px}
+  .why{background:var(--accent-light);border-left:3px solid var(--accent);padding:14px;border-radius:var(--radius);font-size:.96rem;color:var(--ink);margin-bottom:14px}
+  .input-row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:10px}
+  input[type=text]{font-family:var(--font-mono);font-size:1rem;padding:8px 12px;border:1px solid var(--border-strong);border-radius:var(--radius);width:320px;font-weight:500}
+  input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-light)}
+  .btn{font-family:var(--font-display);font-size:.84rem;font-weight:600;padding:8px 16px;background:var(--ink);color:#FAF7F2;border:none;border-radius:var(--radius);cursor:pointer}
+  .btn.accent{background:var(--accent)}
+  .btn.ghost{background:var(--bg-recessed);color:var(--ink)}
+  .modes{display:flex;gap:8px;margin-bottom:14px}
+  .mode-btn{font-family:var(--font-display);font-size:.78rem;font-weight:600;padding:6px 14px;border:1px solid var(--border-strong);background:var(--bg-recessed);border-radius:99px;cursor:pointer;color:var(--ink-secondary)}
+  .mode-btn.active{background:var(--ink);color:#FAF7F2;border-color:var(--ink)}
+  .result-box{font-family:var(--font-mono);font-size:1.1rem;background:var(--bg-recessed);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-top:10px;word-break:break-all}
+  .result-box .zero{color:var(--ink-muted)}
+  .result-box .compressed{color:var(--accent);font-weight:700}
+  .result-box .removed{text-decoration:line-through;color:var(--ink-muted)}
+  .steps{margin-top:14px;font-family:var(--font-mono);font-size:.86rem}
+  .step{padding:8px 12px;background:var(--bg-recessed);border-left:3px solid var(--info);margin-bottom:6px;border-radius:var(--radius)}
+  .step .num{color:var(--info);font-weight:700;margin-right:8px}
+  .prefix-vis{display:flex;flex-direction:column;gap:8px;margin-top:14px}
+  .prefix-bar{height:32px;border-radius:var(--radius);overflow:hidden;display:flex;border:1px solid var(--border)}
+  .prefix-bar .net{background:var(--accent);height:100%}
+  .prefix-bar .iid{background:var(--bg-recessed);height:100%;flex:1}
+  .slider-row{display:flex;align-items:center;gap:14px}
+  input[type=range]{flex:1;accent-color:var(--accent)}
+  .slider-val{font-family:var(--font-mono);font-weight:700;font-size:1.1rem;color:var(--accent);min-width:50px}
+  .quiz .stem{font-family:var(--font-display);font-size:1.02rem;font-weight:600;margin-bottom:12px;padding:14px;background:var(--accent-light);border-left:3px solid var(--accent);border-radius:var(--radius)}
+  .quiz .opts{display:grid;grid-template-columns:1fr;gap:8px}
+  .opt{background:var(--bg-recessed);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;font-family:var(--font-mono);font-size:.86rem;cursor:pointer;text-align:left;word-break:break-all}
+  .opt:hover{border-color:var(--border-strong);background:var(--bg-surface)}
+  .opt.correct{background:var(--correct-bg);border-color:var(--correct);color:var(--correct);font-weight:700}
+  .opt.wrong{background:var(--wrong-bg);border-color:var(--wrong);color:var(--wrong)}
+  .scoreline{font-family:var(--font-mono);font-size:.84rem;color:var(--ink-muted);margin-top:10px;display:flex;gap:18px;align-items:center;flex-wrap:wrap}
+  .scoreline strong{font-weight:700;color:var(--ink)}
+  .footer{font-family:var(--font-mono);font-size:.78rem;color:var(--ink-muted);margin-top:24px;text-align:center}
+  .footer a{color:var(--accent);text-decoration:none}
+</style>
+</head>
+<body>
+
+<div class="head">
+  <div class="crumb"><a href="blueprint-drill.html?obj=1.8">← back to 1.8 leaves</a> · 1.8 · IPv6 Addressing</div>
+  <h1>IPv6 Compression & Prefix</h1>
+  <div class="desc">128 bits, 8 groups of 4 hex digits. Two compression rules: drop leading zeros in each group, and replace the longest run of all-zero groups with <code>::</code> (only once).</div>
+</div>
+
+<div class="panel">
+  <div class="why"><strong>WHY this exists.</strong> Full IPv6 addresses are unreadable: 2001:0db8:0000:0000:0000:ff00:0042:8329. Compression makes them tractable: 2001:db8::ff00:42:8329. The rules are strict — only one <code>::</code>, longest zero run gets it. Get this wrong and your config doesn't parse, your route mismatches, or you mis-read a packet capture.</div>
+
+  <div class="modes">
+    <button class="mode-btn active" data-mode="compress">Compress (full → short)</button>
+    <button class="mode-btn" data-mode="expand">Expand (short → full)</button>
+    <button class="mode-btn" data-mode="prefix">Prefix length</button>
+  </div>
+
+  <div id="compressMode">
+    <div class="input-row">
+      <input id="fullIp" type="text" value="2001:0db8:0000:0000:0000:ff00:0042:8329">
+      <button class="btn accent" id="compressBtn">Compress</button>
+    </div>
+    <div class="result-box" id="compressResult">—</div>
+    <div class="steps" id="compressSteps"></div>
+  </div>
+
+  <div id="expandMode" style="display:none">
+    <div class="input-row">
+      <input id="shortIp" type="text" value="2001:db8::ff00:42:8329">
+      <button class="btn accent" id="expandBtn">Expand</button>
+    </div>
+    <div class="result-box" id="expandResult">—</div>
+    <div class="steps" id="expandSteps"></div>
+  </div>
+
+  <div id="prefixMode" style="display:none">
+    <h2>Prefix length — split network from host</h2>
+    <div class="result-box" style="font-size:.96rem">
+      <div id="prefixAddr" style="margin-bottom:10px">2001:db8:abcd:0001:0000:0000:0000:0001</div>
+      <div class="prefix-vis">
+        <div class="prefix-bar"><div class="net" id="prefixNet" style="width:50%"></div><div class="iid"></div></div>
+      </div>
+      <div class="slider-row" style="margin-top:14px">
+        <span style="font-family:var(--font-mono);font-size:.78rem">/</span>
+        <input id="prefixSlider" type="range" min="0" max="128" value="64">
+        <span class="slider-val" id="prefixVal">64</span>
+      </div>
+      <div style="font-family:var(--font-body);font-size:.88rem;color:var(--ink-secondary);margin-top:10px" id="prefixHint">/64 — standard subnet prefix. 64 bits identify the subnet, 64 bits identify the host (interface ID).</div>
+    </div>
+  </div>
+</div>
+
+<div class="panel quiz">
+  <h2>Quiz mode <span style="color:var(--accent);text-transform:none;letter-spacing:0;font-weight:700">— compress, expand, prefix</span></h2>
+  <div class="stem" id="quizStem">Loading…</div>
+  <div class="opts" id="quizOpts"></div>
+  <div class="scoreline">
+    <span><strong id="qC">0</strong> correct</span>
+    <span><strong id="qW">0</strong> wrong</span>
+    <span><strong id="qS">0</strong> streak</span>
+    <span style="margin-left:auto"><button class="btn ghost" id="newQ">Next ↻</button></span>
+  </div>
+</div>
+
+<div class="footer"><a href="blueprint-drill.html?obj=1.8">← back to 1.8 leaves</a></div>
+
+<script>
+(function(){
+  function expand(addr){
+    if (!addr || addr.indexOf(':')<0) return null;
+    var parts;
+    if (addr.indexOf('::')>=0){
+      var sides = addr.split('::');
+      if (sides.length!==2) return null;
+      var L = sides[0]?sides[0].split(':'):[];
+      var R = sides[1]?sides[1].split(':'):[];
+      var fill = 8 - L.length - R.length;
+      if (fill<0) return null;
+      var Z = []; for (var i=0;i<fill;i++) Z.push('0');
+      parts = L.concat(Z).concat(R);
+    } else {
+      parts = addr.split(':');
+    }
+    if (parts.length!==8) return null;
+    return parts.map(function(g){
+      if (!/^[0-9a-fA-F]{1,4}$/.test(g)) return null;
+      return ('0000'+g.toLowerCase()).slice(-4);
+    });
+  }
+  function compress(parts){
+    if (!parts || parts.some(function(p){return p===null;})) return null;
+    var trimmed = parts.map(function(g){ return g.replace(/^0+/,'') || '0'; });
+    var bestStart=-1, bestLen=0, curStart=-1, curLen=0;
+    for (var i=0;i<trimmed.length;i++){
+      if (trimmed[i]==='0'){
+        if (curStart<0) curStart=i;
+        curLen++;
+        if (curLen>bestLen){ bestLen=curLen; bestStart=curStart; }
+      } else { curStart=-1; curLen=0; }
+    }
+    if (bestLen<2) return trimmed.join(':');
+    var before = trimmed.slice(0, bestStart).join(':');
+    var after = trimmed.slice(bestStart+bestLen).join(':');
+    return before + '::' + after;
+  }
+
+  function doCompress(){
+    var inp = document.getElementById('fullIp').value.trim();
+    var parts = expand(inp);
+    if (!parts){ document.getElementById('compressResult').textContent='Invalid IPv6'; return; }
+    var step1 = parts.map(function(g){return g.replace(/^0+/,'')||'0';}).join(':');
+    var result = compress(parts);
+    document.getElementById('compressResult').innerHTML = '<span class="compressed">'+result+'</span>';
+    document.getElementById('compressSteps').innerHTML =
+      '<div class="step"><span class="num">1.</span>Drop leading zeros: <code>'+step1+'</code></div>'+
+      '<div class="step"><span class="num">2.</span>Replace longest zero run with ::: <code>'+result+'</code></div>';
+  }
+  function doExpand(){
+    var inp = document.getElementById('shortIp').value.trim();
+    var parts = expand(inp);
+    if (!parts){ document.getElementById('expandResult').textContent='Invalid IPv6'; return; }
+    document.getElementById('expandResult').textContent = parts.join(':');
+    document.getElementById('expandSteps').innerHTML =
+      '<div class="step"><span class="num">1.</span>Replace :: with enough zero groups to make 8 total</div>'+
+      '<div class="step"><span class="num">2.</span>Pad each group to 4 hex digits with leading zeros</div>';
+  }
+  document.getElementById('compressBtn').addEventListener('click', doCompress);
+  document.getElementById('expandBtn').addEventListener('click', doExpand);
+  doCompress();
+  doExpand();
+
+  document.querySelectorAll('.mode-btn').forEach(function(b){
+    b.addEventListener('click', function(){
+      document.querySelectorAll('.mode-btn').forEach(function(x){x.classList.remove('active');});
+      b.classList.add('active');
+      ['compress','expand','prefix'].forEach(function(m){
+        document.getElementById(m+'Mode').style.display = b.dataset.mode===m?'block':'none';
+      });
+    });
+  });
+
+  // Prefix slider
+  var slider = document.getElementById('prefixSlider');
+  function updatePrefix(){
+    var v = parseInt(slider.value, 10);
+    document.getElementById('prefixVal').textContent = v;
+    document.getElementById('prefixNet').style.width = (v/128*100)+'%';
+    var hint;
+    if (v===0) hint='/0 — entire IPv6 space (default route).';
+    else if (v<=16) hint='/'+v+' — RIR-level allocation (huge).';
+    else if (v<=32) hint='/'+v+' — ISP allocation, very large.';
+    else if (v<=48) hint='/'+v+' — site/customer allocation, typical.';
+    else if (v===64) hint='/64 — standard subnet prefix. 64-bit prefix + 64-bit interface ID. Standard for SLAAC.';
+    else if (v<=126) hint='/'+v+' — within-subnet split, unusual.';
+    else if (v===127) hint='/127 — point-to-point link (RFC 6164).';
+    else hint='/128 — single host route (one specific address).';
+    document.getElementById('prefixHint').textContent = hint;
+  }
+  slider.addEventListener('input', updatePrefix);
+  updatePrefix();
+
+  // Quiz
+  var qC=0, qW=0, qS=0;
+  var pool = [
+    {q:'Compress 2001:0db8:0000:0000:0000:ff00:0042:8329', a:'2001:db8::ff00:42:8329', distractors:['2001:db8:0:0:0:ff00:42:8329','2001:0db8::ff00:0042:8329','2001::db8:ff00:42:8329']},
+    {q:'Compress fe80:0000:0000:0000:0000:0000:0000:0001', a:'fe80::1', distractors:['fe80:0:0:0:0:0:0:1','fe80::0:1','fe::80:1']},
+    {q:'Compress 0000:0000:0000:0000:0000:0000:0000:0001', a:'::1', distractors:['0::1','::0:1','0:0:0:0:0:0:0:1']},
+    {q:'Compress 2001:db8:0:0:1:0:0:1', a:'2001:db8::1:0:0:1', distractors:['2001:db8:0:0:1::1','2001:db8::1:0:0:1:1','2001:db8:0::1:0:0:1']},
+    {q:'Expand 2001:db8::1', a:'2001:0db8:0000:0000:0000:0000:0000:0001', distractors:['2001:db8:0:0:0:0:0:1','2001:0db8::0001','2001:db8:0000:0000:0000:0000:0000:0001']},
+    {q:'Expand ::', a:'0000:0000:0000:0000:0000:0000:0000:0000', distractors:['0:0:0:0:0:0:0:0','::0','0000::0000']},
+    {q:'How many bits in a standard subnet prefix?', a:'/64', distractors:['/48','/32','/128']},
+    {q:'Why can :: only appear once in an address?', a:'It would be ambiguous otherwise — can\'t tell how many zeros each :: represents', distractors:['It\'s allowed twice','RFC limit','Performance reason']},
+    {q:'Compress 2001:db8:abcd:0:0:0:0:1', a:'2001:db8:abcd::1', distractors:['2001:db8:abcd:0::1','2001:db8::abcd:1','2001:0db8:abcd::1']},
+    {q:'How many hex digits per group?', a:'1 to 4 (4 in expanded form)', distractors:['Always 4','Always 2','1 to 8']},
+    {q:'What does fe80::/10 represent?', a:'Link-local prefix', distractors:['Loopback','Global unicast','Multicast']},
+    {q:'Compress fc00:0000:0000:0000:0000:0000:0000:0000', a:'fc00::', distractors:['fc::','fc00:0::','::fc00']}
+  ];
+  function genQ(){
+    var q = pool[Math.floor(Math.random()*pool.length)];
+    document.getElementById('quizStem').textContent = q.q;
+    var opts = [q.a].concat(q.distractors).sort(function(){return Math.random()-.5;});
+    var box = document.getElementById('quizOpts'); box.innerHTML='';
+    opts.forEach(function(o){
+      var b=document.createElement('button'); b.className='opt'; b.textContent=o;
+      b.addEventListener('click', function(){
+        if (b.classList.contains('correct')||b.classList.contains('wrong')) return;
+        if (o===q.a){ b.classList.add('correct'); qC++; qS++; }
+        else { b.classList.add('wrong'); qW++; qS=0;
+          Array.prototype.forEach.call(box.children, function(c){ if (c.textContent===q.a) c.classList.add('correct'); });
+        }
+        document.getElementById('qC').textContent=qC;
+        document.getElementById('qW').textContent=qW;
+        document.getElementById('qS').textContent=qS;
+      });
+      box.appendChild(b);
+    });
+  }
+  document.getElementById('newQ').addEventListener('click', genQ);
+  genQ();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>2.3.b Sim — EtherChannel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#FAF7F2;--bg-surface:#FFFFFF;--bg-recessed:#F3F0EB;
+    --border:#E2DFD9;--border-strong:#C7C3BC;
+    --ink:#1C1917;--ink-secondary:#57534E;--ink-muted:#A8A29E;
+    --accent:#B45309;--accent-soft:#D97706;--accent-light:#FEF3C7;
+    --correct:#16A34A;--correct-bg:#F0FDF4;
+    --wrong:#DC2626;--wrong-bg:#FEF2F2;
+    --info:#2563EB;--info-bg:#EFF6FF;
+    --font-display:'Space Grotesk',system-ui,sans-serif;
+    --font-body:'Source Serif 4',Georgia,serif;
+    --font-mono:'JetBrains Mono',monospace;
+    --radius:6px;--radius-lg:10px;
+  }
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  html{font-size:16px;-webkit-font-smoothing:antialiased}
+  body{font-family:var(--font-body);background:var(--bg);color:var(--ink);line-height:1.55;padding:24px;max-width:980px;margin:0 auto}
+  .head{margin-bottom:20px;padding-bottom:14px;border-bottom:1px solid var(--border)}
+  .head .crumb{font-family:var(--font-mono);font-size:.74rem;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px}
+  .head .crumb a{color:var(--accent);text-decoration:none}
+  .head h1{font-family:var(--font-display);font-size:1.5rem;font-weight:700;margin-bottom:6px}
+  .head .desc{font-size:.95rem;color:var(--ink-secondary)}
+  .panel{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;margin-bottom:18px}
+  .panel h2{font-family:var(--font-display);font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-secondary);margin-bottom:12px}
+  .intuition{background:var(--accent-light);border-left:3px solid var(--accent);padding:14px 16px;border-radius:var(--radius);font-size:.96rem}
+  .lacp{display:grid;grid-template-columns:1fr auto 1fr;gap:14px;align-items:center}
+  .side{background:var(--bg-recessed);border:1px solid var(--border-strong);border-radius:var(--radius-lg);padding:14px;text-align:center}
+  .side h3{font-family:var(--font-display);font-size:.94rem;margin-bottom:10px}
+  .side select{width:100%;font-family:var(--font-mono);font-size:.88rem;padding:6px 8px;border:1px solid var(--border-strong);border-radius:var(--radius);background:var(--bg-surface)}
+  .links{display:flex;flex-direction:column;gap:8px;justify-content:center;align-items:center}
+  .link{width:100%;height:6px;background:var(--ink);border-radius:3px;position:relative;transition:all .3s}
+  .link.down{background:var(--wrong);opacity:.4}
+  .link .pkt{position:absolute;width:14px;height:14px;background:var(--accent);border-radius:50%;top:-4px;left:0}
+  .link.live .pkt{animation:zip 1.4s linear infinite}
+  @keyframes zip{from{left:-14px}to{left:100%}}
+  .matrix{margin-top:14px;font-family:var(--font-mono);font-size:.84rem}
+  .matrix table{width:100%;border-collapse:collapse}
+  .matrix th{padding:8px;background:var(--bg-recessed);font-family:var(--font-display);font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-secondary);border:1px solid var(--border)}
+  .matrix td{padding:8px;text-align:center;border:1px solid var(--border)}
+  .matrix td.yes{background:var(--correct-bg);color:var(--correct);font-weight:700}
+  .matrix td.no{background:var(--wrong-bg);color:var(--wrong);font-weight:700}
+  .verdict{margin-top:14px;padding:12px 16px;border-radius:var(--radius);font-family:var(--font-display);font-size:.94rem;font-weight:600}
+  .verdict.win{background:var(--correct-bg);color:var(--correct);border:1px solid var(--correct)}
+  .verdict.miss{background:var(--wrong-bg);color:var(--wrong);border:1px solid var(--wrong)}
+  .btn{font-family:var(--font-display);font-size:.84rem;font-weight:600;padding:8px 16px;background:var(--ink);color:#FAF7F2;border:none;border-radius:var(--radius);cursor:pointer}
+  .btn.ghost{background:var(--bg-recessed);color:var(--ink)}
+  .btn.accent{background:var(--accent)}
+  .quiz .stem{font-family:var(--font-display);font-size:1.02rem;font-weight:600;margin-bottom:12px;padding:14px;background:var(--accent-light);border-left:3px solid var(--accent);border-radius:var(--radius)}
+  .opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px}
+  .opt{background:var(--bg-recessed);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;font-family:var(--font-mono);font-size:.88rem;cursor:pointer;text-align:left}
+  .opt:hover{border-color:var(--border-strong);background:var(--bg-surface)}
+  .opt.correct{background:var(--correct-bg);border-color:var(--correct);color:var(--correct);font-weight:700}
+  .opt.wrong{background:var(--wrong-bg);border-color:var(--wrong);color:var(--wrong)}
+  .scoreline{font-family:var(--font-mono);font-size:.84rem;color:var(--ink-muted);margin-top:10px;display:flex;gap:18px;align-items:center;flex-wrap:wrap}
+  .scoreline strong{color:var(--ink)}
+  .why{font-family:var(--font-mono);font-size:.8rem;color:var(--ink-secondary);margin-top:8px;padding:8px 10px;background:var(--bg-recessed);border-radius:4px;display:none}
+  .why.show{display:block}
+  .footer{font-family:var(--font-mono);font-size:.82rem;color:var(--ink-muted);text-align:center;margin-top:20px;padding-top:14px;border-top:1px solid var(--border)}
+  .footer a{color:var(--accent);text-decoration:none}
+</style>
+</head>
+<body>
+
+<div class="head">
+  <div class="crumb"><a href="blueprint-drill.html?obj=2.3">← back to 2.3 leaves</a> · 2.3.b · EtherChannel · LACP / PAgP / Static</div>
+  <h1>EtherChannel Bundle Sim</h1>
+  <div class="desc">Pick a mode for each side of a 4-link bundle. The matrix shows what bundles and what doesn't. Then break a link and watch traffic stay up. EtherChannel = N cables look like one fast cable to STP.</div>
+</div>
+
+<div class="panel">
+  <h2>Why EtherChannel</h2>
+  <div class="intuition">
+    Two switches with 4 cables between them: STP would block 3 of them — wasteful. EtherChannel <strong>bundles them into one logical link</strong> so STP sees one port. Bandwidth multiplies, and a single link failure stays invisible to upper layers. The protocol that negotiates the bundle is either <strong>LACP (IEEE 802.3ad, vendor-neutral, active/passive)</strong>, <strong>PAgP (Cisco-only, auto/desirable)</strong>, or <strong>static "on"</strong> (no negotiation — both sides must be configured the same or you get a spanning-tree loop). Default in real life: LACP active/active.
+  </div>
+</div>
+
+<div class="panel">
+  <h2>Configure the bundle</h2>
+  <div class="lacp">
+    <div class="side">
+      <h3>SW1 mode</h3>
+      <select id="m1">
+        <option value="lacp-active">LACP active</option>
+        <option value="lacp-passive">LACP passive</option>
+        <option value="pagp-desirable">PAgP desirable</option>
+        <option value="pagp-auto">PAgP auto</option>
+        <option value="on">static on</option>
+        <option value="off">off / access</option>
+      </select>
+    </div>
+    <div class="links" style="min-width:160px">
+      <div class="link" id="L1"><div class="pkt"></div></div>
+      <div class="link" id="L2"><div class="pkt"></div></div>
+      <div class="link" id="L3"><div class="pkt"></div></div>
+      <div class="link" id="L4"><div class="pkt"></div></div>
+    </div>
+    <div class="side">
+      <h3>SW2 mode</h3>
+      <select id="m2">
+        <option value="lacp-active">LACP active</option>
+        <option value="lacp-passive">LACP passive</option>
+        <option value="pagp-desirable">PAgP desirable</option>
+        <option value="pagp-auto">PAgP auto</option>
+        <option value="on">static on</option>
+        <option value="off">off / access</option>
+      </select>
+    </div>
+  </div>
+  <div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap">
+    <button class="btn accent" id="check">Check bundle</button>
+    <button class="btn ghost" id="break">Break link 2</button>
+    <button class="btn ghost" id="reset">Reset</button>
+  </div>
+  <div class="verdict" id="verdict" style="display:none"></div>
+  <div class="matrix">
+    <h3 style="font-family:var(--font-display);font-size:.84rem;margin:14px 0 6px;color:var(--ink-secondary);text-transform:uppercase;letter-spacing:.08em">Compatibility matrix</h3>
+    <table>
+      <thead><tr><th>SW1 ↓ / SW2 →</th><th>LACP active</th><th>LACP passive</th><th>PAgP desirable</th><th>PAgP auto</th><th>on</th></tr></thead>
+      <tbody>
+        <tr><th>LACP active</th><td class="yes">✓</td><td class="yes">✓</td><td class="no">✗</td><td class="no">✗</td><td class="no">✗</td></tr>
+        <tr><th>LACP passive</th><td class="yes">✓</td><td class="no">✗</td><td class="no">✗</td><td class="no">✗</td><td class="no">✗</td></tr>
+        <tr><th>PAgP desirable</th><td class="no">✗</td><td class="no">✗</td><td class="yes">✓</td><td class="yes">✓</td><td class="no">✗</td></tr>
+        <tr><th>PAgP auto</th><td class="no">✗</td><td class="no">✗</td><td class="yes">✓</td><td class="no">✗</td><td class="no">✗</td></tr>
+        <tr><th>on</th><td class="no">✗</td><td class="no">✗</td><td class="no">✗</td><td class="no">✗</td><td class="yes">✓</td></tr>
+      </tbody>
+    </table>
+    <div style="font-family:var(--font-mono);font-size:.78rem;color:var(--ink-muted);margin-top:8px">passive+passive = both wait. auto+auto = both wait. on+anything-else = mismatch → STP loop.</div>
+  </div>
+  <div style="margin-top:12px;font-family:var(--font-mono);font-size:.82rem;color:var(--ink-secondary)">
+    <strong>Load-balance methods:</strong> src-mac · dst-mac · src-dst-mac · src-ip · dst-ip · src-dst-ip · src-dst-port (L4). Default varies. The hash assigns a flow to one physical link — a single flow does NOT split across links.
+  </div>
+</div>
+
+<div class="panel quiz">
+  <h2>Quiz mode</h2>
+  <div class="stem" id="quizStem">Loading…</div>
+  <div class="opts" id="quizOpts"></div>
+  <div class="why" id="quizWhy"></div>
+  <div class="scoreline">
+    <span><strong id="qC">0</strong> correct</span><span><strong id="qW">0</strong> wrong</span><span><strong id="qS">0</strong> streak</span>
+    <span style="margin-left:auto"><button class="btn ghost" id="newQ">Next ↻</button></span>
+  </div>
+</div>
+
+<div class="footer"><a href="blueprint-drill.html?obj=2.3">← back to 2.3 leaves</a></div>
+
+<script>
+document.addEventListener('DOMContentLoaded',function(){
+  function bundles(a,b){
+    if(a==='off'||b==='off')return false;
+    if(a==='on'&&b==='on')return true;
+    if(a==='on'||b==='on')return false;
+    if(a==='lacp-active'&&(b==='lacp-active'||b==='lacp-passive'))return true;
+    if(a==='lacp-passive'&&b==='lacp-active')return true;
+    if(a==='lacp-passive'&&b==='lacp-passive')return false;
+    if(a==='pagp-desirable'&&(b==='pagp-desirable'||b==='pagp-auto'))return true;
+    if(a==='pagp-auto'&&b==='pagp-desirable')return true;
+    if(a==='pagp-auto'&&b==='pagp-auto')return false;
+    return false;
+  }
+  function check(){
+    var a=document.getElementById('m1').value,b=document.getElementById('m2').value;
+    var ok=bundles(a,b),v=document.getElementById('verdict');
+    v.style.display='block';
+    document.querySelectorAll('.link').forEach(function(l){l.classList.toggle('live',ok);l.classList.toggle('down',!ok)});
+    if(ok){v.className='verdict win';v.textContent='✓ Bundle forms. 4 links → 1 logical Po1 (Port-Channel). STP sees one port, full bandwidth, traffic load-balances by hash.';}
+    else{v.className='verdict miss';
+      var why=a===b&&(a==='lacp-passive'||a==='pagp-auto')?'Both passive — neither initiates. Set at least one side to active/desirable.':
+        (a==='on')!==(b==='on')?'on + dynamic = mismatch. on means "no negotiation" — both ends must be on, or you get an STP loop.':
+        a.indexOf('lacp')===0&&b.indexOf('pagp')===0||a.indexOf('pagp')===0&&b.indexOf('lacp')===0?'LACP and PAgP do not interoperate. Pick one family.':
+        'No bundle. Check the compatibility matrix.';
+      v.textContent='✗ '+why;}
+  }
+  document.getElementById('check').addEventListener('click',check);
+  document.getElementById('break').addEventListener('click',function(){
+    var L=document.getElementById('L2');L.classList.toggle('down');L.classList.toggle('live',!L.classList.contains('down'));
+    var v=document.getElementById('verdict');v.style.display='block';v.className='verdict win';
+    v.textContent='✓ Link 2 down. 3 links still carry traffic — flows on the dead link rehash to survivors. No outage at L3.';
+  });
+  document.getElementById('reset').addEventListener('click',function(){
+    document.querySelectorAll('.link').forEach(function(l){l.className='link'});
+    document.getElementById('verdict').style.display='none';
+  });
+  check();
+
+  var pool=[
+    {q:'LACP modes that form a bundle:',o:['active+active','active+passive','passive+passive','both A and B'],a:3,why:'Active initiates; passive responds. Two passives = silence.'},
+    {q:'PAgP "auto + auto" result:',o:['Bundle forms','No bundle','Loop','Negotiates LACP'],a:1,why:'Both wait, neither speaks first. Same trap as DTP auto+auto.'},
+    {q:'EtherChannel mode that does no negotiation:',o:['LACP active','PAgP desirable','on (static)','passive'],a:2,why:'Mode "on" forces — if the other side is dynamic, you get a loop.'},
+    {q:'Standard for LACP:',o:['Cisco proprietary','IEEE 802.3ad','IEEE 802.1Q','IETF RFC 4271'],a:1,why:'LACP = open standard 802.3ad. PAgP = Cisco-only.'},
+    {q:'A single TCP flow over a 4-link EtherChannel uses:',o:['All 4 links round-robin','One link chosen by hash','2 links active/standby','Random per packet'],a:1,why:'Hash pins a flow to one link to keep packets in order. Multi-flow = parallelism.'},
+    {q:'Best practice load-balance method for a busy server farm:',o:['src-mac','dst-mac','src-dst-ip','none'],a:2,why:'Many clients to many servers — src-dst-ip spreads flows widely.'},
+    {q:'STP sees an EtherChannel as:',o:['Multiple ports','One logical port','Blocked ports','Trunk only'],a:1,why:'That\'s the whole point — STP no longer blocks the spare links.'},
+    {q:'4-port LACP bundle, one cable cut. Behavior:',o:['Bundle drops','3 links keep forwarding, flows rehash','Failover takes 30s','STP recomputes'],a:1,why:'LACP is sub-second. Failed link drops out, surviving links absorb hashes.'},
+    {q:'Mismatched modes (on + LACP active) typical symptom:',o:['Bundle works','STP error-disable / loop','Slower throughput','MTU drop'],a:1,why:'on side bundles unilaterally, other side runs LACP — STP sees redundant links and loops or err-disables.'},
+    {q:'Max physical links per EtherChannel bundle (Cisco common):',o:['4','8','16','24'],a:1,why:'8 active is the typical max. Some platforms allow 8 active + 8 standby (LACP).'}
+  ];
+  var qC=0,qW=0,qS=0,cur=null;
+  function ask(){
+    cur=pool[Math.floor(Math.random()*pool.length)];
+    document.getElementById('quizStem').textContent=cur.q;
+    var box=document.getElementById('quizOpts');box.innerHTML='';
+    document.getElementById('quizWhy').classList.remove('show');
+    cur.o.forEach(function(o,i){
+      var b=document.createElement('button');b.className='opt';b.textContent=o;
+      b.addEventListener('click',function(){
+        if(b.classList.contains('correct')||b.classList.contains('wrong'))return;
+        if(i===cur.a){b.classList.add('correct');qC++;qS++}
+        else{b.classList.add('wrong');qW++;qS=0;Array.prototype.forEach.call(box.children,function(c,j){if(j===cur.a)c.classList.add('correct')})}
+        document.getElementById('qC').textContent=qC;document.getElementById('qW').textContent=qW;document.getElementById('qS').textContent=qS;
+        var w=document.getElementById('quizWhy');w.textContent='Why: '+cur.why;w.classList.add('show');
+      });
+      box.appendChild(b);
+    });
+  }
+  document.getElementById('newQ').addEventListener('click',ask);ask();
+});
+</script>
+</body>
+</html>
