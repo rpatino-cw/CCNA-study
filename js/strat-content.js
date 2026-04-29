@@ -176,7 +176,8 @@
     }
   }
 
-  function populateAnki(flashcards, theoryVideos, obj) {
+  function populateAnki(ankiEntries, obj) {
+    // ankiEntries = [{file, day, title}] from data/anki-index.json
     // Find or create the Anki section
     var ankiSec = document.querySelector('section.flow.anki-flow');
     if (!ankiSec) {
@@ -186,30 +187,99 @@
       ankiSec = document.createElement('section');
       ankiSec.className = 'flow anki-flow';
       ankiSec.innerHTML = '<div class="head"><div class="title"><span class="num">★</span><h2 class="section-title">Anki Flashcards</h2></div><span class="status">○ optional spaced repetition</span></div>' +
-        '<p class="meta">Per-day flashcard decks. Build one master CCNA deck and import each day\'s cards.</p>' +
+        '<p class="meta">Per-day flashcard decks. Click to download the .apkg, then import into Anki.</p>' +
         '<div class="anki-list" style="margin-top:var(--s-sm)"></div>' +
         '<p class="footnote"><a href="https://apps.ankiweb.net/" target="_blank" rel="noopener">Get Anki ↗</a><span class="sep">·</span><a href="https://www.youtube.com/watch?v=6Atw8oMtVTA" target="_blank" rel="noopener">Jeremy\'s Anki tutorial (Day 1 Extra) ▶</a></p>';
       quizSec.parentNode.insertBefore(ankiSec, quizSec.nextSibling);
     }
     var list = ankiSec.querySelector('.anki-list');
     list.innerHTML = '';
-    if (flashcards.length === 0 && theoryVideos.length === 0) {
-      list.innerHTML = '<p class="meta">No Anki cards specifically tagged for ' + escapeHtml(obj) + '. Use Jeremy\'s master deck.</p>';
+    if (!ankiEntries || ankiEntries.length === 0) {
+      list.innerHTML = '<p class="meta">No Anki deck mapped to ' + escapeHtml(obj) + ' yet.</p>';
       return;
     }
-    // Each theory video has Anki cards in its YouTube description.
-    var entries = theoryVideos.concat(flashcards);
-    entries.forEach(function (v) {
+    ankiEntries.forEach(function (e) {
       var div = document.createElement('div');
       div.className = 'lab';
       div.innerHTML = '<div>' +
-        '<span class="pill">Day ' + escapeHtml(v.day) + '</span>' +
-        '<h3>' + escapeHtml(v.title) + ' — Anki deck</h3>' +
-        '<div class="meta">Cards linked in the video description</div>' +
+        '<span class="pill">Day ' + escapeHtml(e.day) + '</span>' +
+        '<h3>' + escapeHtml(e.title) + '</h3>' +
+        '<div class="meta">Anki deck · .apkg</div>' +
         '</div>' +
-        '<a class="open" href="' + ytEmbed(v.ytid) + '" target="_blank" rel="noopener">▶ Get cards</a>';
+        '<a class="open" href="data/anki/' + encodeURIComponent(e.file) + '" download>↓ Download</a>';
       list.appendChild(div);
     });
+  }
+
+  function populateLabsFromIndex(labEntries, jeremyLabVideos) {
+    // labEntries = [{file, day, title}] from data/labs-index.json (PT files)
+    // jeremyLabVideos = list of lab kind videos from deep-dive (YouTube walkthroughs)
+    var labSec = Array.from(document.querySelectorAll('section.flow')).find(function (s) {
+      return s.querySelector('.lab') || s.querySelector('.section-title') && /Lab/i.test(s.querySelector('.section-title').textContent || '');
+    });
+    if (!labSec) return;
+    var headTitle = labSec.querySelector('.section-title');
+    if (headTitle) headTitle.textContent = 'Packet Tracer Labs';
+    labSec.querySelectorAll('.lab').forEach(function (el) { el.remove(); });
+    var actionLine = labSec.querySelector('.action-line');
+    var insertAfter = actionLine || (headTitle && headTitle.parentNode);
+
+    if (actionLine) {
+      var task = actionLine.querySelector('.task');
+      if (task) {
+        if (labEntries && labEntries.length) {
+          task.innerHTML = 'Open <code>' + escapeHtml(labEntries[0].title) + '</code>';
+        } else if (jeremyLabVideos.length) {
+          task.innerHTML = 'Watch <code>Day ' + escapeHtml(jeremyLabVideos[0].day) + ' — ' + escapeHtml(jeremyLabVideos[0].title) + '</code>';
+        } else {
+          task.innerHTML = 'No lab mapped to this objective';
+        }
+      }
+      var btn = actionLine.querySelector('.btn-go');
+      if (btn) {
+        if (labEntries && labEntries.length) {
+          btn.textContent = '↓ Download .pkt';
+          btn.onclick = function () { window.location.href = 'data/labs/' + encodeURIComponent(labEntries[0].file); };
+        } else if (jeremyLabVideos.length) {
+          btn.textContent = '▶ Watch';
+          btn.onclick = function () { window.open(ytEmbed(jeremyLabVideos[0].ytid), '_blank'); };
+        } else {
+          btn.style.display = 'none';
+        }
+      }
+    }
+    // Render PT lab download tiles
+    (labEntries || []).forEach(function (lab) {
+      var div = document.createElement('div');
+      div.className = 'lab';
+      div.innerHTML = '<div>' +
+        '<span class="pill">Day ' + escapeHtml(lab.day) + '</span>' +
+        '<h3>' + escapeHtml(lab.title) + '</h3>' +
+        '<div class="meta">Packet Tracer file (.pkt)</div>' +
+        '</div>' +
+        '<a class="open" href="data/labs/' + encodeURIComponent(lab.file) + '" download>↓ Download</a>';
+      insertAfter.parentNode.insertBefore(div, insertAfter.nextSibling);
+      insertAfter = div;
+    });
+    // Render YouTube lab walkthroughs (outside)
+    jeremyLabVideos.forEach(function (v) {
+      var div = document.createElement('div');
+      div.className = 'lab';
+      div.innerHTML = '<div>' +
+        '<span class="pill outside">Walkthrough</span>' +
+        '<h3>' + escapeHtml(v.title) + '</h3>' +
+        '<div class="meta">Day ' + escapeHtml(v.day) + ' · YouTube</div>' +
+        '</div>' +
+        '<a class="open outside" href="' + ytEmbed(v.ytid) + '" target="_blank" rel="noopener">▶ Watch</a>';
+      insertAfter.parentNode.insertBefore(div, insertAfter.nextSibling);
+      insertAfter = div;
+    });
+    if ((!labEntries || !labEntries.length) && !jeremyLabVideos.length) {
+      var none = document.createElement('p');
+      none.className = 'meta';
+      none.textContent = 'No Packet Tracer lab is associated with this objective.';
+      labSec.appendChild(none);
+    }
   }
 
   function buildPrevNext(obj, allKeys) {
@@ -234,11 +304,15 @@
     Promise.all([
       fetch('data/jeremy-deep-dive.json').then(function (r) { return r.json(); }),
       fetch('data/cheat-sheets-index.json').then(function (r) { return r.json(); }),
-      fetch('data/objective-fallback.json').then(function (r) { return r.ok ? r.json() : {}; }).catch(function () { return {}; })
+      fetch('data/objective-fallback.json').then(function (r) { return r.ok ? r.json() : {}; }).catch(function () { return {}; }),
+      fetch('data/anki-index.json').then(function (r) { return r.ok ? r.json() : {}; }).catch(function () { return {}; }),
+      fetch('data/labs-index.json').then(function (r) { return r.ok ? r.json() : {}; }).catch(function () { return {}; })
     ]).then(function (data) {
       var dd = data[0];
       var mapping = data[1];
       var fallback = data[2] || {};
+      var ankiByObj = data[3] || {};
+      var labsByObj = data[4] || {};
       var sub = dd.subobjectives && dd.subobjectives[obj];
       if (!sub) {
         var pull = document.querySelector('.flow .pull');
@@ -246,15 +320,14 @@
         return;
       }
       var theory = (sub.videos || []).filter(function (v) { return v.kind === 'theory'; });
-      var labs = (sub.videos || []).filter(function (v) { return v.kind === 'lab'; });
-      var fc = (sub.videos || []).filter(function (v) { return v.kind === 'flashcards'; });
+      var labVideos = (sub.videos || []).filter(function (v) { return v.kind === 'lab'; });
       // Apply fallback if no theory video for this objective
       if (theory.length === 0 && fallback[obj]) {
         theory = fallback[obj].map(function (f) { return Object.assign({ kind: 'theory', _fallback: true }, f); });
       }
       populateHeader(obj, sub);
-      populateLabs(labs);
-      populateAnki(fc, theory, obj);
+      populateLabsFromIndex(labsByObj[obj] || [], labVideos);
+      populateAnki(ankiByObj[obj] || [], obj);
       // Init mermaid before rendering
       if (window.mermaid) {
         window.mermaid.initialize({ startOnLoad: false, theme: 'default', securityLevel: 'loose', flowchart: { useMaxWidth: true, htmlLabels: true } });

@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Data Flow — CCNA Explainer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500&family=JetBrains+Mono:wght@400;500&display=swap">
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<style>
+:root{--bg:#FAF7F2;--surface:#fff;--border:#E2DFD9;--ink:#1C1917;--ink-2:#57534E;--ink-3:#A8A29E;--accent:#B45309;--accent-light:#FEF3C7;--green:#16A34A;--gold:#CA8A04;--blue:#1D4ED8;--red:#DC2626;--display:'Space Grotesk',system-ui,sans-serif;--body:'Source Serif 4',Georgia,serif;--mono:'JetBrains Mono',monospace}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);line-height:1.6;padding:48px 24px;max-width:1200px;margin:0 auto}
+.crumb{font-family:var(--mono);font-size:12px;color:var(--ink-3);margin-bottom:24px}
+.crumb a{color:var(--accent);text-decoration:none}
+h1{font-family:var(--display);font-size:42px;font-weight:600;letter-spacing:-.02em;margin-bottom:12px}
+h2{font-family:var(--display);font-size:24px;margin:48px 0 16px;letter-spacing:-.01em;border-bottom:1px solid var(--border);padding-bottom:8px}
+h3{font-family:var(--display);font-size:17px;margin:24px 0 8px;color:var(--accent)}
+p{margin-bottom:16px;color:var(--ink-2)}
+code{font-family:var(--mono);font-size:.9em;background:#F3F0EB;padding:1px 6px;border-radius:4px;color:var(--ink)}
+.lede{font-size:18px;color:var(--ink-2);max-width:720px;margin-bottom:32px}
+.diagram{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:32px;margin:24px 0}
+.note{background:var(--accent-light);border-left:4px solid var(--accent);padding:14px 18px;border-radius:0 8px 8px 0;margin:16px 0;font-size:14px;color:#7c2d0a}
+.formula{background:#F3F0EB;border:1px solid var(--border);border-radius:10px;padding:18px;font-family:var(--mono);font-size:14px;margin:16px 0;color:var(--ink);overflow-x:auto}
+
+/* Animated quiz pipeline */
+.pipeline{position:relative;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:24px;margin:24px 0;overflow:hidden}
+.pipeline svg{width:100%;height:auto;display:block}
+
+/* Stages */
+.stage-box{stroke-width:2;rx:10}
+.stage-1{fill:#FEF3C7;stroke:#B45309}
+.stage-2{fill:#EFF6FF;stroke:#1D4ED8}
+.stage-3{fill:#F0FDF4;stroke:#16A34A}
+.stage-4{fill:#FEF2F2;stroke:#DC2626}
+.stage-5{fill:#FEFCE8;stroke:#CA8A04}
+.stage-label{font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:600;text-anchor:middle;fill:#1C1917}
+.stage-sub{font-family:'JetBrains Mono',monospace;font-size:10px;text-anchor:middle;fill:#57534E}
+
+.flow-arrow{stroke:#A8A29E;stroke-width:2;fill:none;marker-end:url(#arrowhead)}
+.packet{r:6}
+
+table{width:100%;border-collapse:collapse;margin:16px 0;background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+th{background:#F3F0EB;text-align:left;padding:12px 16px;font-family:var(--display);font-size:13px;font-weight:600;border-bottom:1px solid var(--border)}
+td{padding:12px 16px;border-bottom:1px solid var(--border);font-size:14px;vertical-align:top}
+tr:last-child td{border-bottom:none}
+.kv{font-family:var(--mono);font-size:13px}
+
+/* EMA bar animation */
+.ema-demo{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:24px;margin:16px 0}
+.ema-row{display:flex;align-items:center;gap:16px;margin:10px 0;font-family:var(--mono);font-size:13px}
+.ema-bar{flex:1;height:18px;background:#F3F0EB;border-radius:99px;overflow:hidden;position:relative}
+.ema-fill{height:100%;background:linear-gradient(90deg,#DC2626,#CA8A04,#16A34A);border-radius:99px;transition:width 1.6s cubic-bezier(.16,1,.3,1)}
+.ema-label{min-width:140px;color:var(--ink-2)}
+.ema-pct{min-width:60px;text-align:right;color:var(--ink);font-weight:600}
+button.run{font-family:var(--mono);font-size:12px;background:var(--accent);color:#fff;border:none;padding:8px 16px;border-radius:8px;cursor:pointer;margin-top:12px}
+button.run:hover{background:#92400E}
+
+/* State machine animated */
+.sm-wrap{display:flex;justify-content:center;align-items:center;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:32px;margin:24px 0;min-height:300px;position:relative}
+.sm-states{display:flex;gap:16px;align-items:center}
+.sm-state{padding:14px 18px;border-radius:99px;font-family:var(--mono);font-size:11px;font-weight:600;border:2px solid var(--border);background:#fff;color:var(--ink-2);transition:all .4s;text-transform:uppercase;letter-spacing:.05em}
+.sm-state.active{border-color:var(--accent);background:var(--accent-light);color:#7c2d0a;transform:scale(1.12);box-shadow:0 6px 16px rgba(180,83,9,.2)}
+.sm-arrow{color:var(--ink-3);font-size:18px}
+</style>
+</head>
+<body>
+
+<div class="crumb"><a href="index.html">← Explainer Hub</a> / Data Flow</div>
+<h1>Data Flow</h1>
+<p class="lede">What happens between "user clicks Start Quiz" and "next question appears." The full round-trip in 5 stages.</p>
+
+<h2>The quiz round-trip</h2>
+<div class="pipeline">
+  <svg viewBox="0 0 1100 360" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="arrowhead" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+        <path d="M0,0 L10,5 L0,10 Z" fill="#A8A29E"/>
+      </marker>
+      <path id="p1" d="M 220 80 L 360 80"/>
+      <path id="p2" d="M 540 80 L 680 80"/>
+      <path id="p3" d="M 860 80 C 860 180, 860 180, 750 180"/>
+      <path id="p4" d="M 540 200 L 360 200"/>
+      <path id="p5" d="M 240 200 C 240 280, 240 280, 360 280"/>
+      <path id="p6" d="M 540 280 L 680 280"/>
+    </defs>
+
+    <!-- Stage 1: User -->
+    <rect class="stage-box stage-1" x="40" y="40" width="180" height="80"/>
+    <text class="stage-label" x="130" y="78">1. USER ANSWERS</text>
+    <text class="stage-sub" x="130" y="98">click choice / type</text>
+
+    <!-- Stage 2: quiz-engine -->
+    <rect class="stage-box stage-2" x="360" y="40" width="180" height="80"/>
+    <text class="stage-label" x="450" y="72">2. quiz-engine.js</text>
+    <text class="stage-sub" x="450" y="90">grade answer</text>
+    <text class="stage-sub" x="450" y="106">isCorrect ? ✓ : ✗</text>
+
+    <!-- Stage 3: store.update -->
+    <rect class="stage-box stage-3" x="680" y="40" width="180" height="80"/>
+    <text class="stage-label" x="770" y="72">3. store.update*</text>
+    <text class="stage-sub" x="770" y="90">EMA proficiency</text>
+    <text class="stage-sub" x="770" y="106">+ micro-weakness</text>
+
+    <!-- Stage 4: localStorage -->
+    <rect class="stage-box stage-4" x="680" y="160" width="180" height="80"/>
+    <text class="stage-label" x="770" y="195">4. localStorage</text>
+    <text class="stage-sub" x="770" y="213">ccna_proficiency</text>
+    <text class="stage-sub" x="770" y="229">ccna_quiz_history</text>
+
+    <!-- Stage 5: mastery-tracker -->
+    <rect class="stage-box stage-5" x="360" y="160" width="180" height="80"/>
+    <text class="stage-label" x="450" y="192">5. mastery-tracker</text>
+    <text class="stage-sub" x="450" y="210">re-evaluate state</text>
+    <text class="stage-sub" x="450" y="226">PROBED → MASTERED</text>
+
+    <!-- Stage 6: pick next -->
+    <rect class="stage-box stage-2" x="40" y="160" width="180" height="80"/>
+    <text class="stage-label" x="130" y="192">6. pick next Q</text>
+    <text class="stage-sub" x="130" y="210">weak-first filter</text>
+    <text class="stage-sub" x="130" y="226">exclude recent</text>
+
+    <!-- Stage 7: render -->
+    <rect class="stage-box stage-1" x="360" y="240" width="180" height="80"/>
+    <text class="stage-label" x="450" y="278">7. render UI</text>
+    <text class="stage-sub" x="450" y="296">DOM update</text>
+    <text class="stage-sub" x="450" y="312">+ XP toast</text>
+
+    <!-- Stage 8: explainer (optional) -->
+    <rect class="stage-box stage-2" x="680" y="240" width="180" height="80"/>
+    <text class="stage-label" x="770" y="278">8. tutor.js (opt)</text>
+    <text class="stage-sub" x="770" y="296">Gemini "why?"</text>
+    <text class="stage-sub" x="770" y="312">stream tokens</text>
+
+    <!-- arrows -->
+    <use href="#p1" class="flow-arrow" marker-end="url(#arrowhead)"/>
+    <use href="#p2" class="flow-arrow" marker-end="url(#arrowhead)"/>
+    <use href="#p3" class="flow-arrow" marker-end="url(#arrowhead)"/>
+    <use href="#p4" class="flow-arrow" marker-end="url(#arrowhead)"/>
+    <use href="#p5" class="flow-arrow" marker-end="url(#arrowhead)"/>
+    <use href="#p6" class="flow-arrow" marker-end="url(#arrowhead)"/>
+
+    <!-- packets -->
+    <circle class="packet" fill="#B45309"><animateMotion dur="3s" repeatCount="indefinite"><mpath href="#p1"/></animateMotion></circle>
+    <circle class="packet" fill="#1D4ED8"><animateMotion dur="3s" repeatCount="indefinite" begin="0.5s"><mpath href="#p2"/></animateMotion></circle>
+    <circle class="packet" fill="#16A34A"><animateMotion dur="3s" repeatCount="indefinite" begin="1s"><mpath href="#p3"/></animateMotion></circle>
+    <circle class="packet" fill="#DC2626"><animateMotion dur="3s" repeatCount="indefinite" begin="1.5s"><mpath href="#p4"/></animateMotion></circle>
+    <circle class="packet" fill="#CA8A04"><animateMotion dur="3s" repeatCount="indefinite" begin="2s"><mpath href="#p5"/></animateMotion></circle>
+    <circle class="packet" fill="#B45309"><animateMotion dur="3s" repeatCount="indefinite" begin="2.5s"><mpath href="#p6"/></animateMotion></circle>
+  </svg>
+</div>
+
+<h2>Proficiency math (EMA)</h2>
+<p>Proficiency is an exponential moving average over correctness. Recent answers weigh more than old ones. From <code>js/store.js</code>:</p>
+<div class="formula">EMA_ALPHA = 0.3
+new_prof = round( (1 - 0.3) × old_prof + 0.3 × (correct ? 1 : 0), 3 )</div>
+<p>So 1 correct answer at proficiency 0 takes you to <code>0.3</code>. Two more correct → <code>0.51</code>, then <code>0.66</code>. It takes ~5 correct answers to cross the <code>0.7</code> "weak threshold."</p>
+
+<div class="ema-demo">
+  <h3>Live EMA demo</h3>
+  <div id="ema-rows">
+    <div class="ema-row"><div class="ema-label">Topic 1.1</div><div class="ema-bar"><div class="ema-fill" id="b1" style="width:0%"></div></div><div class="ema-pct" id="p1pct">0%</div></div>
+    <div class="ema-row"><div class="ema-label">Topic 1.2</div><div class="ema-bar"><div class="ema-fill" id="b2" style="width:0%"></div></div><div class="ema-pct" id="p2pct">0%</div></div>
+    <div class="ema-row"><div class="ema-label">Topic 2.1</div><div class="ema-bar"><div class="ema-fill" id="b3" style="width:0%"></div></div><div class="ema-pct" id="p3pct">0%</div></div>
+  </div>
+  <button class="run" onclick="runDemo()">▶ Simulate 8 correct answers each</button>
+</div>
+
+<div class="note"><strong>Diagnostic mode caps proficiency at 50%.</strong> A perfect diagnostic on a topic = 0.5, not 1.0. Forces users to also drill via quiz/lab to reach mastery. See <code>store.updateProficiencyDiagnostic()</code>.</div>
+
+<h2>Mastery state machine</h2>
+<p>Mastery isn't a number — it's a 5-state finite machine. Click a state to see what triggers the transition:</p>
+<div class="sm-wrap">
+  <div class="sm-states" id="sm">
+    <div class="sm-state" data-i="0">NOT_STARTED</div>
+    <span class="sm-arrow">→</span>
+    <div class="sm-state" data-i="1">PROBED</div>
+    <span class="sm-arrow">→</span>
+    <div class="sm-state" data-i="2">PRACTICING</div>
+    <span class="sm-arrow">→</span>
+    <div class="sm-state" data-i="3">PROFICIENT</div>
+    <span class="sm-arrow">→</span>
+    <div class="sm-state" data-i="4">MASTERED</div>
+  </div>
+</div>
+
+<table>
+<thead><tr><th>State</th><th>Trigger to enter</th><th>UI signal</th></tr></thead>
+<tbody>
+<tr><td class="kv">NOT_STARTED</td><td>Default. No quiz/lab attempts on this topic.</td><td>Grey badge</td></tr>
+<tr><td class="kv">PROBED</td><td>First diagnostic question seen.</td><td>Faint yellow ring</td></tr>
+<tr><td class="kv">PRACTICING</td><td>≥1 quiz attempt (any outcome).</td><td>Yellow progress bar</td></tr>
+<tr><td class="kv">PROFICIENT</td><td>Proficiency ≥ 0.70 sustained over 3+ recent quizzes.</td><td>Green check, half-filled star</td></tr>
+<tr><td class="kv">MASTERED</td><td>Proficiency ≥ 0.85 + lab completion (if topic has lab) + FSRS interval ≥ 7 days.</td><td>Gold star, "MASTERED" pill</td></tr>
+</tbody>
+</table>
+
+<h2>FSRS (spaced repetition)</h2>
+<p><code>fsrs.js</code> implements the Free Spaced Repetition Scheduler. After every flashcard review, the card gets:</p>
+<div class="formula">stability  ← f(prev_stability, rating, retrievability)
+difficulty ← f(prev_difficulty, rating)
+next_due   ← today + stability days</div>
+<p>Ratings: <code>green</code> (1.0), <code>yellow</code> (0.5), <code>red</code> (0.2), <code>none</code> (0). Result: cards you nail re-appear in 7+ days; cards you miss re-appear tomorrow.</p>
+
+<h2>Cross-tab sync</h2>
+<div class="diagram">
+<pre class="mermaid">
+sequenceDiagram
+  participant T1 as Tab 1 (quiz)
+  participant BC as BroadcastChannel
+  participant T2 as Tab 2 (dashboard)
+  T1->>T1: user answers correctly
+  T1->>T1: store.updateProficiency()
+  T1->>BC: postMessage({type:'profUpdate',topic:'1.1',val:0.66})
+  BC->>T2: onmessage event
+  T2->>T2: re-render proficiency bar
+  Note over T2: no reload needed
+</pre>
+</div>
+<p><code>js/sync.js</code> opens a <code>BroadcastChannel('ccna-sync')</code>. Any store mutation publishes; every other tab listens and updates UI live.</p>
+
+<h2>Auto-backup</h2>
+<p><code>js/auto-backup.js</code> snapshots all <code>ccna_*</code> keys every 5 minutes into <code>ccna_backup_history</code> (last 10 kept). Settings page has <strong>Restore</strong> dropdown to roll back if state corrupts.</p>
+
+<script>
+mermaid.initialize({startOnLoad:true,theme:'base',themeVariables:{
+  fontFamily:'JetBrains Mono, monospace',
+  primaryColor:'#FEF3C7',primaryTextColor:'#1C1917',primaryBorderColor:'#B45309',
+  lineColor:'#A8A29E',secondaryColor:'#F0FDF4',tertiaryColor:'#EFF6FF'
+}});
+
+// EMA demo
+function ema(old){return Math.round((0.7*old + 0.3*1)*1000)/1000}
+function runDemo(){
+  ['b1','b2','b3'].forEach((id,idx)=>{
+    let v=0;
+    const pct=document.getElementById('p'+(idx+1)+'pct');
+    const bar=document.getElementById(id);
+    let i=0;
+    const t=setInterval(()=>{
+      v=ema(v);
+      bar.style.width=(v*100)+'%';
+      pct.textContent=Math.round(v*100)+'%';
+      if(++i>=8)clearInterval(t);
+    },idx*60+220);
+  });
+}
+
+// State machine cycle
+const states=document.querySelectorAll('.sm-state');
+let active=0;
+setInterval(()=>{
+  states.forEach(s=>s.classList.remove('active'));
+  states[active].classList.add('active');
+  active=(active+1)%states.length;
+},1400);
+</script>
+</body>
+</html>
