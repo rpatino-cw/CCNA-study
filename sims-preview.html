@@ -1,0 +1,2303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>CCNA Mini-Simulators — Preview</title>
+<style>
+:root{
+  --bg:#FAF7F2;--bg-surface:#FFFFFF;--bg-recessed:#F3F0EB;--bg-hover:#F0EDE7;
+  --border:#E2DFD9;--border-strong:#C7C3BC;
+  --ink:#1C1917;--ink-secondary:#57534E;--ink-muted:#A8A29E;
+  --accent:#B45309;--accent-light:#FEF3C7;--accent-dim:#FFFBEB;
+  --good:#16A34A;--good-bg:#F0FDF4;
+  --warn:#CA8A04;--warn-bg:#FEFCE8;
+  --bad:#DC2626;--bad-bg:#FEF2F2;
+  --info:#2563EB;--info-bg:#EFF6FF;
+  --font-display:'Space Grotesk',system-ui,sans-serif;
+  --font-body:'Source Serif 4',Georgia,serif;
+  --font-mono:'JetBrains Mono','SF Mono',monospace;
+  --radius:4px;--radius-lg:8px;
+  --ease:cubic-bezier(0.16,1,0.3,1);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:15px;line-height:1.5}
+.layout{display:grid;grid-template-columns:240px 1fr;min-height:100vh}
+nav.side{position:sticky;top:0;height:100vh;overflow-y:auto;background:var(--bg-recessed);border-right:1px solid var(--border);padding:24px 16px}
+nav h1{font-family:var(--font-display);font-size:.78rem;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-secondary);margin-bottom:8px}
+nav .sub{font-family:var(--font-display);font-size:.68rem;color:var(--ink-muted);margin-bottom:20px}
+nav .dom{font-family:var(--font-display);font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin:18px 0 6px;font-weight:700}
+nav a{display:block;font-family:var(--font-display);font-size:.84rem;color:var(--ink-secondary);text-decoration:none;padding:6px 8px;border-radius:var(--radius);transition:all .15s}
+nav a:hover{background:var(--bg-surface);color:var(--ink)}
+nav a .id{font-family:var(--font-mono);font-size:.72rem;color:var(--ink-muted);margin-right:6px}
+
+main{padding:48px 56px;max-width:1100px}
+.hdr{margin-bottom:48px;padding-bottom:24px;border-bottom:1px solid var(--border)}
+.hdr h2{font-family:var(--font-display);font-size:2.2rem;font-weight:700;letter-spacing:-.02em;margin-bottom:8px}
+.hdr p{font-family:var(--font-body);color:var(--ink-secondary);font-size:1.02rem;max-width:640px}
+
+.sim{margin-bottom:64px;background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden}
+.sim-head{padding:20px 28px;border-bottom:1px solid var(--border);display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:8px}
+.sim-head .l h3{font-family:var(--font-display);font-size:1.18rem;font-weight:700;margin-bottom:4px}
+.sim-head .l .meta{font-family:var(--font-mono);font-size:.74rem;color:var(--ink-muted)}
+.sim-head .r{display:flex;gap:6px}
+.tag{font-family:var(--font-display);font-size:.68rem;font-weight:700;padding:4px 10px;border-radius:99px;background:var(--accent-light);color:var(--accent);letter-spacing:.04em;text-transform:uppercase}
+.tag.t{background:var(--info-bg);color:var(--info)}
+.sim-body{padding:32px 28px}
+.teach{margin-top:20px;padding:14px 18px;background:var(--accent-dim);border-left:3px solid var(--accent);border-radius:var(--radius);font-family:var(--font-body);font-size:.92rem;color:var(--ink-secondary);font-style:italic}
+.teach b{color:var(--ink);font-style:normal;font-family:var(--font-display);font-weight:700;font-size:.74rem;letter-spacing:.08em;text-transform:uppercase;display:block;margin-bottom:4px}
+
+button.btn{font-family:var(--font-display);font-size:.84rem;font-weight:600;padding:8px 18px;background:var(--ink);color:#FAF7F2;border:none;border-radius:var(--radius);cursor:pointer;transition:background .15s}
+button.btn:hover{background:var(--ink-secondary)}
+button.btn.ghost{background:var(--bg-recessed);color:var(--ink)}
+button.btn.ghost:hover{background:var(--bg-hover)}
+button.btn:disabled{opacity:.4;cursor:not-allowed}
+
+.row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+.controls{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px;align-items:center}
+.label{font-family:var(--font-display);font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-secondary)}
+input[type=range]{accent-color:var(--accent)}
+input[type=text],input[type=number]{font-family:var(--font-mono);font-size:.92rem;padding:6px 10px;border:1px solid var(--border-strong);border-radius:var(--radius);background:var(--bg-surface)}
+
+/* ─── 1.5 TCP handshake ────────────────────────── */
+#tcp svg{width:100%;max-width:600px;display:block;margin:0 auto}
+.tcp-host rect{fill:var(--bg-recessed);stroke:var(--border-strong);stroke-width:2}
+.tcp-host text{font-family:var(--font-display);font-weight:700;fill:var(--ink);font-size:14px}
+.tcp-pkt{fill:var(--accent);opacity:0;transition:opacity .3s}
+.tcp-pkt.show{opacity:1}
+.tcp-flag{font-family:var(--font-mono);font-size:11px;fill:var(--ink);font-weight:700}
+.tcp-step{font-family:var(--font-display);font-size:.84rem;color:var(--ink-secondary);min-height:1.5em}
+
+/* ─── 1.6 Subnet calc ──────────────────────────── */
+.bits{display:flex;gap:2px;margin:18px 0;flex-wrap:wrap}
+.bit{width:22px;height:32px;display:flex;align-items:center;justify-content:center;font-family:var(--font-mono);font-weight:700;border-radius:var(--radius);border:1px solid var(--border);background:var(--bg-recessed);color:var(--ink-muted);font-size:.84rem;transition:all .25s var(--ease)}
+.bit.net{background:var(--accent);color:#fff;border-color:var(--accent)}
+.bit.host{background:var(--bg-surface);color:var(--ink-secondary);border-color:var(--border-strong)}
+.octet-sep{width:8px}
+.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:16px}
+.metric{padding:14px;background:var(--bg-recessed);border-radius:var(--radius);border:1px solid var(--border)}
+.metric .v{font-family:var(--font-mono);font-size:1.3rem;font-weight:700;color:var(--ink)}
+.metric .k{font-family:var(--font-display);font-size:.7rem;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-muted);margin-bottom:4px}
+
+/* ─── 1.8 EUI-64 ──────────────────────────────── */
+.eui-row{display:flex;gap:6px;margin:12px 0;flex-wrap:wrap;font-family:var(--font-mono)}
+.eui-byte{padding:8px 10px;background:var(--bg-recessed);border:1px solid var(--border);border-radius:var(--radius);font-weight:700;transition:all .35s var(--ease)}
+.eui-byte.flip{background:var(--bad-bg);border-color:var(--bad);color:var(--bad);transform:scale(1.08)}
+.eui-byte.insert{background:var(--good-bg);border-color:var(--good);color:var(--good)}
+.eui-arrow{font-family:var(--font-display);font-size:1.3rem;color:var(--accent);text-align:center;margin:8px 0}
+
+/* ─── 1.11 Wi-Fi ──────────────────────────────── */
+.wifi-grid{display:flex;align-items:flex-end;gap:2px;height:120px;margin:18px 0;padding-bottom:24px;border-bottom:2px solid var(--border-strong);position:relative}
+.wifi-ch{flex:1;background:var(--bg-recessed);border-radius:4px 4px 0 0;cursor:pointer;position:relative;transition:all .3s var(--ease);border:1px solid var(--border)}
+.wifi-ch::after{content:attr(data-ch);position:absolute;bottom:-22px;left:50%;transform:translateX(-50%);font-family:var(--font-mono);font-size:.74rem;color:var(--ink-muted)}
+.wifi-ch.active{background:var(--good);border-color:var(--good)}
+.wifi-ch.overlap{background:var(--bad);border-color:var(--bad);opacity:.5}
+.wifi-msg{font-family:var(--font-body);font-size:.92rem;color:var(--ink-secondary);min-height:2em}
+
+/* ─── 2.1 VLAN tag ────────────────────────────── */
+.frame{display:flex;border:2px solid var(--ink);border-radius:var(--radius);overflow:hidden;font-family:var(--font-mono);font-size:.78rem;margin:18px 0;height:70px}
+.frame > div{display:flex;align-items:center;justify-content:center;padding:8px;text-align:center;font-weight:700;flex-direction:column}
+.f-mac{background:var(--bg-recessed);flex:1.5}
+.f-tag{background:var(--accent);color:#fff;flex:1;animation:none}
+.f-tag.pop{animation:pop .5s var(--ease)}
+.f-type{background:var(--info-bg);color:var(--info);flex:1}
+.f-data{background:var(--bg-surface);flex:3}
+.f-fcs{background:var(--bg-recessed);flex:.6}
+@keyframes pop{0%{transform:scaleX(0);opacity:0}100%{transform:scaleX(1);opacity:1}}
+.frame .lab{font-size:.62rem;font-weight:400;opacity:.7;margin-top:2px}
+
+/* ─── 2.5 STP ─────────────────────────────────── */
+.stp-net{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;max-width:560px;margin:18px auto}
+.stp-sw{padding:16px;background:var(--bg-recessed);border:2px solid var(--border-strong);border-radius:var(--radius-lg);text-align:center;cursor:pointer;transition:all .3s var(--ease);position:relative}
+.stp-sw:hover{background:var(--bg-hover)}
+.stp-sw.root{background:var(--good-bg);border-color:var(--good);box-shadow:0 0 0 4px rgba(22,163,74,.15)}
+.stp-sw .name{font-family:var(--font-display);font-weight:700;font-size:.92rem}
+.stp-sw .pri{font-family:var(--font-mono);font-size:.74rem;color:var(--ink-muted);margin-top:2px}
+.stp-sw .crown{position:absolute;top:-12px;right:-8px;font-size:1.4rem;opacity:0;transition:opacity .3s}
+.stp-sw.root .crown{opacity:1}
+.stp-sw input{width:80px;font-family:var(--font-mono);text-align:center;margin-top:6px;font-size:.84rem}
+
+/* ─── 3.1 AD race ─────────────────────────────── */
+.race{margin:18px 0}
+.race-row{display:flex;align-items:center;gap:12px;margin-bottom:8px;padding:10px;border-radius:var(--radius);transition:all .3s var(--ease)}
+.race-row.win{background:var(--good-bg);border-left:4px solid var(--good)}
+.race-row.lose{opacity:.4}
+.race-name{font-family:var(--font-display);font-weight:700;width:80px;font-size:.88rem}
+.race-track{flex:1;height:18px;background:var(--bg-recessed);border-radius:99px;overflow:hidden;border:1px solid var(--border)}
+.race-fill{height:100%;background:var(--accent);width:0;transition:width 1.5s var(--ease);border-radius:99px}
+.race-fill.win{background:var(--good)}
+.race-ad{font-family:var(--font-mono);font-size:.84rem;font-weight:700;color:var(--ink-secondary);width:50px;text-align:right}
+
+/* ─── 3.4 OSPF FSM ────────────────────────────── */
+.fsm{display:flex;justify-content:space-between;align-items:center;margin:18px 0;flex-wrap:wrap;gap:6px}
+.fsm-state{flex:1;min-width:80px;padding:14px 8px;background:var(--bg-recessed);border:2px solid var(--border);border-radius:var(--radius-lg);text-align:center;font-family:var(--font-display);font-weight:700;font-size:.78rem;transition:all .35s var(--ease);position:relative}
+.fsm-state.done{background:var(--good-bg);border-color:var(--good);color:var(--good)}
+.fsm-state.current{background:var(--accent);border-color:var(--accent);color:#fff;transform:scale(1.08);box-shadow:0 4px 16px rgba(180,83,9,.3)}
+.fsm-arrow{color:var(--ink-muted);font-size:1.2rem}
+.fsm-desc{margin-top:14px;padding:14px;background:var(--bg-recessed);border-radius:var(--radius);font-family:var(--font-body);min-height:3em;font-size:.92rem;color:var(--ink-secondary)}
+
+/* ─── 3.5 HSRP ────────────────────────────────── */
+.hsrp{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin:18px 0}
+.hsrp-r{padding:18px;border:2px solid var(--border-strong);border-radius:var(--radius-lg);text-align:center;background:var(--bg-recessed);transition:all .4s var(--ease)}
+.hsrp-r.active{border-color:var(--good);background:var(--good-bg);box-shadow:0 0 0 3px rgba(22,163,74,.2)}
+.hsrp-r.standby{border-color:var(--warn);background:var(--warn-bg)}
+.hsrp-r.dead{opacity:.3;text-decoration:line-through}
+.hsrp-r .role{font-family:var(--font-display);font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px}
+.hsrp-r .nm{font-family:var(--font-display);font-size:1.1rem;font-weight:700}
+.hsrp-r .pri{font-family:var(--font-mono);font-size:.8rem;color:var(--ink-secondary);margin-top:4px}
+.hsrp-vip{text-align:center;margin:14px 0;padding:14px;background:var(--accent-dim);border:1px dashed var(--accent);border-radius:var(--radius);font-family:var(--font-mono);font-weight:700;color:var(--accent)}
+
+/* ─── 4.1 NAT ─────────────────────────────────── */
+.nat-stage{display:grid;grid-template-columns:1fr auto 1fr;gap:18px;align-items:center;margin:18px 0;min-height:80px}
+.nat-side{padding:14px;background:var(--bg-recessed);border-radius:var(--radius);text-align:center}
+.nat-side .lab{font-family:var(--font-display);font-size:.7rem;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-muted)}
+.nat-side .ip{font-family:var(--font-mono);font-weight:700;color:var(--ink);margin-top:4px}
+.nat-router{font-size:1.5rem;text-align:center}
+.nat-pkt{display:inline-block;padding:6px 12px;background:var(--info);color:#fff;font-family:var(--font-mono);font-size:.78rem;border-radius:var(--radius);margin:4px 2px;animation:slideIn .5s var(--ease)}
+@keyframes slideIn{from{opacity:0;transform:translateX(-20px)}to{opacity:1;transform:translateX(0)}}
+.nat-table{width:100%;border-collapse:collapse;margin-top:14px;font-family:var(--font-mono);font-size:.82rem}
+.nat-table th,.nat-table td{padding:8px;border-bottom:1px solid var(--border);text-align:left}
+.nat-table th{background:var(--bg-recessed);font-family:var(--font-display);font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-secondary)}
+.nat-table tr.new{animation:rowFade .8s var(--ease)}
+@keyframes rowFade{from{background:var(--accent-light)}to{background:transparent}}
+
+/* ─── 4.5 Syslog dial ─────────────────────────── */
+.syslog-wrap{display:flex;gap:32px;align-items:center;margin:18px 0;flex-wrap:wrap}
+.dial{width:200px;height:200px;position:relative;flex-shrink:0}
+.dial svg{transform:rotate(-90deg);overflow:visible}
+.dial-needle{transform-origin:100px 100px;transition:transform .6s var(--ease)}
+.dial-text{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
+.dial-text .num{font-family:var(--font-mono);font-size:3rem;font-weight:700;line-height:1}
+.dial-text .lvl{font-family:var(--font-display);font-size:.84rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-top:4px}
+.syslog-info{flex:1;min-width:200px}
+.syslog-info .desc{font-family:var(--font-body);font-size:.95rem;margin-bottom:8px;color:var(--ink)}
+.syslog-info .mnemonic{font-family:var(--font-mono);font-size:.82rem;padding:10px;background:var(--accent-dim);border-radius:var(--radius);color:var(--ink-secondary)}
+.syslog-info .mnemonic b{color:var(--accent)}
+
+/* ─── 5.6 ACL flow ────────────────────────────── */
+.acl-pkt{padding:10px 14px;background:var(--info);color:#fff;font-family:var(--font-mono);font-size:.84rem;border-radius:var(--radius);text-align:center;margin-bottom:14px;font-weight:700}
+.acl-rule{padding:10px 14px;border:1px solid var(--border);border-radius:var(--radius);margin-bottom:6px;font-family:var(--font-mono);font-size:.82rem;display:flex;justify-content:space-between;align-items:center;background:var(--bg-surface);transition:all .35s var(--ease)}
+.acl-rule.checking{background:var(--warn-bg);border-color:var(--warn);transform:translateX(8px)}
+.acl-rule.matched{background:var(--good-bg);border-color:var(--good)}
+.acl-rule.matched-deny{background:var(--bad-bg);border-color:var(--bad)}
+.acl-rule.skipped{opacity:.4}
+.acl-rule .verdict{font-family:var(--font-display);font-weight:700;font-size:.74rem;text-transform:uppercase;letter-spacing:.06em}
+
+/* ─── 6.5 REST verbs ──────────────────────────── */
+.verbs{display:flex;gap:8px;flex-wrap:wrap;margin:18px 0}
+.verb{padding:10px 18px;font-family:var(--font-mono);font-weight:700;border-radius:var(--radius);cursor:pointer;border:2px solid var(--border-strong);background:var(--bg-recessed);transition:all .25s}
+.verb:hover{background:var(--bg-hover)}
+.verb.active{transform:scale(1.05)}
+.verb.GET.active,.verb.GET:hover{background:var(--info-bg);color:var(--info);border-color:var(--info)}
+.verb.POST.active,.verb.POST:hover{background:var(--good-bg);color:var(--good);border-color:var(--good)}
+.verb.PUT.active,.verb.PUT:hover{background:var(--warn-bg);color:var(--warn);border-color:var(--warn)}
+.verb.PATCH.active,.verb.PATCH:hover{background:var(--accent-dim);color:var(--accent);border-color:var(--accent)}
+.verb.DELETE.active,.verb.DELETE:hover{background:var(--bad-bg);color:var(--bad);border-color:var(--bad)}
+.rest-out{margin-top:12px;padding:14px;background:var(--ink);color:#FAF7F2;border-radius:var(--radius);font-family:var(--font-mono);font-size:.84rem;white-space:pre-wrap;min-height:100px}
+.rest-out .status-line{color:var(--accent-light);font-weight:700;display:block;margin-bottom:6px}
+
+/* ─── shared generic patterns ──────────────────── */
+.picker-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin:14px 0}
+.pick{padding:14px;background:var(--bg-recessed);border:2px solid var(--border);border-radius:var(--radius);cursor:pointer;transition:all .2s;text-align:center;font-family:var(--font-display)}
+.pick:hover{background:var(--bg-hover);border-color:var(--border-strong)}
+.pick.active{background:var(--accent-dim);border-color:var(--accent);color:var(--accent)}
+.pick.good{background:var(--good-bg);border-color:var(--good);color:var(--good)}
+.pick.bad{background:var(--bad-bg);border-color:var(--bad);color:var(--bad)}
+.pick .pn{font-weight:700;font-size:.92rem}
+.pick .ps{font-size:.74rem;color:var(--ink-muted);margin-top:4px;font-family:var(--font-body)}
+
+.matrix{width:100%;border-collapse:collapse;margin:14px 0;font-family:var(--font-mono);font-size:.84rem}
+.matrix th,.matrix td{padding:10px 12px;border:1px solid var(--border);text-align:center}
+.matrix th{background:var(--bg-recessed);font-family:var(--font-display);font-size:.74rem;text-transform:uppercase;letter-spacing:.06em}
+.matrix td.y{background:var(--good-bg);color:var(--good);font-weight:700}
+.matrix td.n{background:var(--bad-bg);color:var(--bad);font-weight:700}
+.matrix td.q{background:var(--warn-bg);color:var(--warn);font-weight:700}
+
+.compare{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin:14px 0}
+.compare .col{padding:18px;background:var(--bg-recessed);border:1px solid var(--border);border-radius:var(--radius-lg)}
+.compare .col h4{font-family:var(--font-display);font-weight:700;margin-bottom:10px;font-size:1rem}
+.compare .col ul{list-style:none}
+.compare .col li{padding:6px 0;font-family:var(--font-body);font-size:.92rem;border-bottom:1px solid var(--border)}
+.compare .col li:last-child{border-bottom:none}
+.compare .col li b{font-family:var(--font-mono);color:var(--accent)}
+
+.cmd-out{padding:14px;background:var(--ink);color:#FAF7F2;border-radius:var(--radius);font-family:var(--font-mono);font-size:.84rem;white-space:pre-wrap;min-height:80px;margin-top:10px}
+.cmd-out .prompt{color:var(--accent-light)}
+
+.tag-good{background:var(--good-bg);color:var(--good);padding:2px 8px;border-radius:99px;font-family:var(--font-display);font-size:.7rem;font-weight:700}
+.tag-bad{background:var(--bad-bg);color:var(--bad);padding:2px 8px;border-radius:99px;font-family:var(--font-display);font-size:.7rem;font-weight:700}
+.tag-warn{background:var(--warn-bg);color:var(--warn);padding:2px 8px;border-radius:99px;font-family:var(--font-display);font-size:.7rem;font-weight:700}
+
+.flow-box{display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;margin:14px 0}
+.flow-node{padding:14px 18px;background:var(--bg-recessed);border:2px solid var(--border);border-radius:var(--radius);font-family:var(--font-display);font-weight:700;font-size:.88rem;transition:all .35s var(--ease);text-align:center;min-width:100px}
+.flow-node.on{background:var(--accent);color:#fff;border-color:var(--accent);transform:scale(1.05)}
+.flow-arr{color:var(--ink-muted);font-size:1.4rem}
+
+.svg-diagram{width:100%;max-width:560px;margin:14px auto;display:block}
+.svg-diagram .device{fill:var(--bg-recessed);stroke:var(--border-strong);stroke-width:2}
+.svg-diagram .device.on{fill:var(--accent);stroke:var(--accent)}
+.svg-diagram .lbl{font-family:var(--font-display);font-size:12px;font-weight:700;fill:var(--ink);text-anchor:middle}
+.svg-diagram .lbl.inv{fill:#fff}
+.svg-diagram .conn{stroke:var(--border-strong);stroke-width:2;fill:none}
+.svg-diagram .conn.live{stroke:var(--accent);stroke-width:3}
+.svg-diagram .conn.dead{stroke:var(--bad);stroke-dasharray:6 4}
+
+.layered{display:flex;flex-direction:column;gap:6px;margin:14px 0}
+.layer{padding:14px;border-radius:var(--radius);font-family:var(--font-display);font-weight:700;text-align:center;border:1px solid var(--border)}
+.layer.l-app{background:#FEF3C7;color:#78350F}
+.layer.l-os{background:#DBEAFE;color:#1E40AF}
+.layer.l-vm{background:#E9D5FF;color:#6B21A8}
+.layer.l-hw{background:var(--bg-recessed);color:var(--ink)}
+.layer.l-net{background:#D1FAE5;color:#065F46}
+
+.input-line{display:flex;gap:8px;align-items:center;margin:10px 0;flex-wrap:wrap}
+.result{padding:12px 14px;border-radius:var(--radius);font-family:var(--font-mono);font-size:.92rem;margin-top:8px;background:var(--bg-recessed);border-left:3px solid var(--accent)}
+.result.good{border-left-color:var(--good);background:var(--good-bg);color:var(--good)}
+.result.bad{border-left-color:var(--bad);background:var(--bad-bg);color:var(--bad)}
+.result.info{border-left-color:var(--info);background:var(--info-bg);color:var(--info)}
+
+.strength-bar{height:10px;background:var(--bg-recessed);border-radius:99px;overflow:hidden;margin:8px 0}
+.strength-fill{height:100%;width:0;transition:all .3s var(--ease);border-radius:99px}
+
+.timeline{position:relative;padding-left:30px;margin:14px 0}
+.timeline::before{content:'';position:absolute;left:10px;top:0;bottom:0;width:2px;background:var(--border-strong)}
+.tl-item{position:relative;padding:12px 0 12px 14px;margin-bottom:8px}
+.tl-item::before{content:'';position:absolute;left:-25px;top:18px;width:14px;height:14px;border-radius:50%;background:var(--accent);border:3px solid var(--bg-surface)}
+.tl-item.old::before{background:var(--ink-muted)}
+.tl-item.new::before{background:var(--good)}
+.tl-item h5{font-family:var(--font-display);font-weight:700;font-size:.92rem;margin-bottom:4px}
+.tl-item p{font-family:var(--font-body);font-size:.86rem;color:var(--ink-secondary)}
+
+.json-view{font-family:var(--font-mono);font-size:.86rem;line-height:1.6;padding:14px;background:var(--ink);color:#FAF7F2;border-radius:var(--radius);overflow-x:auto}
+.json-key{color:#7DD3FC}.json-str{color:#86EFAC}.json-num{color:#FCA5A5}.json-bool{color:#FCD34D}.json-punc{color:#A8A29E}
+</style>
+</head>
+<body>
+<script>
+(function(){
+  var p = new URLSearchParams(location.search);
+  var obj = p.get('obj');
+  if (!obj) return;
+  var id = 's' + obj.replace(/\./g, '');
+  document.documentElement.dataset.singleSim = id;
+})();
+</script>
+<style>
+html[data-single-sim] nav.side{display:none}
+html[data-single-sim] .layout{grid-template-columns:1fr}
+html[data-single-sim] main{padding:20px 24px;max-width:none}
+html[data-single-sim] .hdr{display:none}
+html[data-single-sim] .sim{margin-bottom:0;display:none}
+html[data-single-sim] body{background:transparent}
+</style>
+<script>
+document.addEventListener('DOMContentLoaded',function(){
+  var id = document.documentElement.dataset.singleSim;
+  if (!id) return;
+  var target = document.getElementById(id);
+  if (target) target.style.display = '';
+  else {
+    var main = document.querySelector('main');
+    if (main) main.innerHTML = '<p style="font-family:system-ui;padding:20px;color:#999">No sim for objective '+id.slice(1)+'.</p>';
+  }
+});
+</script>
+<div class="layout">
+<nav class="side">
+  <h1>CCNA Sims</h1>
+  <div class="sub">53 cards · all subtopics · Romeo's Strat</div>
+  <div class="dom">D1 Fundamentals (20%)</div>
+  <a href="#s11"><span class="id">1.1</span>Components</a>
+  <a href="#s12"><span class="id">1.2</span>Topologies</a>
+  <a href="#s13"><span class="id">1.3</span>Cabling</a>
+  <a href="#s14"><span class="id">1.4</span>Interface errors</a>
+  <a href="#s15"><span class="id">1.5</span>TCP handshake</a>
+  <a href="#s16"><span class="id">1.6</span>Subnet calc</a>
+  <a href="#s17"><span class="id">1.7</span>Private IPv4</a>
+  <a href="#s18"><span class="id">1.8</span>EUI-64</a>
+  <a href="#s19"><span class="id">1.9</span>IPv6 types</a>
+  <a href="#s110"><span class="id">1.10</span>OS verify</a>
+  <a href="#s111"><span class="id">1.11</span>Wi-Fi channels</a>
+  <a href="#s112"><span class="id">1.12</span>Virtualization</a>
+  <a href="#s113"><span class="id">1.13</span>CAM table</a>
+  <div class="dom">D2 Network Access (20%)</div>
+  <a href="#s21"><span class="id">2.1</span>VLAN tag</a>
+  <a href="#s22"><span class="id">2.2</span>DTP matrix</a>
+  <a href="#s23"><span class="id">2.3</span>CDP vs LLDP</a>
+  <a href="#s24"><span class="id">2.4</span>EtherChannel</a>
+  <a href="#s25"><span class="id">2.5</span>STP root election</a>
+  <a href="#s26"><span class="id">2.6</span>AP modes</a>
+  <a href="#s27"><span class="id">2.7</span>WLAN physical</a>
+  <a href="#s28"><span class="id">2.8</span>Mgmt access</a>
+  <a href="#s29"><span class="id">2.9</span>WLAN GUI</a>
+  <div class="dom">D3 IP Connectivity (25%)</div>
+  <a href="#s31"><span class="id">3.1</span>AD race</a>
+  <a href="#s32"><span class="id">3.2</span>Forwarding decision</a>
+  <a href="#s33"><span class="id">3.3</span>Static routing</a>
+  <a href="#s34"><span class="id">3.4</span>OSPF FSM</a>
+  <a href="#s35"><span class="id">3.5</span>HSRP failover</a>
+  <div class="dom">D4 IP Services (10%)</div>
+  <a href="#s41"><span class="id">4.1</span>NAT translation</a>
+  <a href="#s42"><span class="id">4.2</span>NTP stratum</a>
+  <a href="#s43"><span class="id">4.3</span>DNS resolution</a>
+  <a href="#s44"><span class="id">4.4</span>SNMP versions</a>
+  <a href="#s45"><span class="id">4.5</span>Syslog dial</a>
+  <a href="#s46"><span class="id">4.6</span>DHCP relay</a>
+  <a href="#s47"><span class="id">4.7</span>QoS PHB</a>
+  <a href="#s48"><span class="id">4.8</span>SSH config</a>
+  <a href="#s49"><span class="id">4.9</span>TFTP vs FTP</a>
+  <div class="dom">D5 Security (15%)</div>
+  <a href="#s51"><span class="id">5.1</span>Security concepts</a>
+  <a href="#s52"><span class="id">5.2</span>Security program</a>
+  <a href="#s53"><span class="id">5.3</span>Local passwords</a>
+  <a href="#s54"><span class="id">5.4</span>Password policy</a>
+  <a href="#s55"><span class="id">5.5</span>IPsec VPN</a>
+  <a href="#s56"><span class="id">5.6</span>ACL match flow</a>
+  <a href="#s57"><span class="id">5.7</span>L2 security</a>
+  <a href="#s58"><span class="id">5.8</span>AAA</a>
+  <a href="#s59"><span class="id">5.9</span>Wireless security</a>
+  <a href="#s510"><span class="id">5.10</span>WPA2 PSK config</a>
+  <div class="dom">D6 Automation (10%)</div>
+  <a href="#s61"><span class="id">6.1</span>Automation impact</a>
+  <a href="#s62"><span class="id">6.2</span>Traditional vs controller</a>
+  <a href="#s63"><span class="id">6.3</span>SDN architecture</a>
+  <a href="#s64"><span class="id">6.4</span>AI/ML netops</a>
+  <a href="#s65"><span class="id">6.5</span>REST verbs</a>
+  <a href="#s66"><span class="id">6.6</span>Ansible vs Terraform</a>
+  <a href="#s67"><span class="id">6.7</span>JSON parser</a>
+</nav>
+
+<main>
+  <div class="hdr">
+    <h2>CCNA Mini-Simulators</h2>
+    <p>Tiny interactive drills. One per subtopic. Each teaches one fact-cluster you'd otherwise rote-memorize. Designed to drop into <code>js/strat.js</code> as Romeo's Strat cards.</p>
+  </div>
+
+<!-- ═══════════════════════════════════════════════════════════ 1.1 Components ═ -->
+<section class="sim" id="s11">
+  <div class="sim-head">
+    <div class="l"><h3>Network Component Roles</h3><div class="meta">D1.1 · Role and function of network components</div></div>
+    <div class="r"><span class="tag">picker</span></div>
+  </div>
+  <div class="sim-body">
+    <p style="color:var(--ink-secondary);margin-bottom:8px">Click a device to see its job + which OSI layer it lives at.</p>
+    <div class="picker-grid" id="cmpGrid"></div>
+    <div class="result info" id="cmpOut">Click a device above.</div>
+    <div class="teach"><b>What you learn</b>L2 switches forward by MAC. L3 switches/routers forward by IP. NGFW = stateful + app-aware. WLC controls lightweight APs via CAPWAP. PoE classes: af 15.4W / at 30W / bt 60–100W.</div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ 1.2 Topology ═ -->
+<section class="sim" id="s12">
+  <div class="sim-head">
+    <div class="l"><h3>Topology Architectures</h3><div class="meta">D1.2 · Topology architectures</div></div>
+    <div class="r"><span class="tag">SVG toggle</span></div>
+  </div>
+  <div class="sim-body">
+    <div class="picker-grid" id="topoPicks"></div>
+    <div id="topoSvg" style="margin-top:10px"></div>
+    <div class="result" id="topoDesc">Pick an architecture above.</div>
+    <div class="teach"><b>What you learn</b>2-tier collapses dist+core. 3-tier separates them for scale. Spine-leaf = every leaf reaches every spine in one hop (DC fabric). SOHO = one combo box. WAN = sites linked over carrier.</div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ 1.3 Cabling ═ -->
+<section class="sim" id="s13">
+  <div class="sim-head">
+    <div class="l"><h3>Cable Type Picker</h3><div class="meta">D1.3 · Physical interface and cabling</div></div>
+    <div class="r"><span class="tag">requirements → cable</span></div>
+  </div>
+  <div class="sim-body">
+    <div class="input-line"><span class="label">Distance</span>
+      <input type="range" id="cabDist" min="1" max="10000" value="50" style="flex:1">
+      <span id="cabDistVal" style="font-family:var(--font-mono);min-width:80px;text-align:right">50 m</span></div>
+    <div class="input-line"><span class="label">Speed</span>
+      <select id="cabSpeed" style="font-family:var(--font-mono);padding:6px;border:1px solid var(--border-strong);border-radius:var(--radius)">
+        <option value="100">100 Mbps</option><option value="1000" selected>1 Gbps</option>
+        <option value="10000">10 Gbps</option><option value="40000">40 Gbps</option><option value="100000">100 Gbps</option>
+      </select></div>
+    <div class="result" id="cabOut"></div>
+    <div class="teach"><b>What you learn</b>Copper (Cat5e/6/6a) maxes out at 100 m. MMF (orange/aqua) ≤ 550 m short-haul. SMF (yellow) handles km-scale long-haul. Above 10 Gbps over copper needs Cat6a or fiber.</div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ 1.4 Interface ═ -->
+<section class="sim" id="s14">
+  <div class="sim-head">
+    <div class="l"><h3>Interface Error Decoder</h3><div class="meta">D1.4 · Interface and cable issues</div></div>
+    <div class="r"><span class="tag">diagnoser</span></div>
+  </div>
+  <div class="sim-body">
+    <p style="color:var(--ink-secondary);margin-bottom:8px">Click an error counter from <code>show interfaces</code>. See root cause.</p>
+    <div class="picker-grid" id="errGrid"></div>
+    <div class="result" id="errOut">Click an error type above.</div>
+    <div class="teach"><b>What you learn</b>Late collisions = duplex mismatch. CRC errors = bad cable / EMI. Runts (&lt;64 B) = collisions / bad NIC. Giants (&gt;1518 B) = MTU mismatch. Input drops = oversubscription.</div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════ 1.5 TCP ═══ -->
+<section class="sim" id="s15">
+  <div class="sim-head">
+    <div class="l"><h3>TCP Three-Way Handshake</h3><div class="meta">D1.5 · Compare TCP to UDP</div></div>
+    <div class="r"><span class="tag">animated flow</span><span class="tag t">SVG</span></div>
+  </div>
+  <div class="sim-body">
+    <div class="controls">
+      <button class="btn" id="tcpStep">Next packet →</button>
+      <button class="btn ghost" id="tcpReset">Reset</button>
+    </div>
+    <div id="tcp">
+      <svg viewBox="0 0 600 240">
+        <g class="tcp-host"><rect x="20" y="20" width="100" height="50" rx="6"/><text x="70" y="50" text-anchor="middle">Client</text></g>
+        <g class="tcp-host"><rect x="480" y="20" width="100" height="50" rx="6"/><text x="530" y="50" text-anchor="middle">Server</text></g>
+        <line x1="70" y1="70" x2="70" y2="220" stroke="#C7C3BC" stroke-dasharray="4 4"/>
+        <line x1="530" y1="70" x2="530" y2="220" stroke="#C7C3BC" stroke-dasharray="4 4"/>
+        <g id="pkt1" class="tcp-pkt"><rect x="80" y="90" width="440" height="22" rx="11" fill="#B45309"/><text x="300" y="105" class="tcp-flag" text-anchor="middle" fill="#fff">SYN  seq=x</text></g>
+        <g id="pkt2" class="tcp-pkt"><rect x="80" y="130" width="440" height="22" rx="11" fill="#B45309"/><text x="300" y="145" class="tcp-flag" text-anchor="middle" fill="#fff">SYN-ACK  seq=y, ack=x+1</text></g>
+        <g id="pkt3" class="tcp-pkt"><rect x="80" y="170" width="440" height="22" rx="11" fill="#16A34A"/><text x="300" y="185" class="tcp-flag" text-anchor="middle" fill="#fff">ACK  ack=y+1   ★ ESTABLISHED</text></g>
+      </svg>
+      <p class="tcp-step" id="tcpStepLbl">Click "Next packet" to start the handshake.</p>
+    </div>
+    <div class="teach"><b>What you learn</b>3-step exchange establishes a TCP session: SYN → SYN-ACK → ACK. Server must reply with both SYN+ACK in a single packet. UDP skips this entirely — connectionless.</div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ 1.6 Subnet ═══ -->
+<section class="sim" id="s16">
+  <div class="sim-head">
+    <div class="l"><h3>Subnet Calculator with Binary</h3><div class="meta">D1.6 · IPv4 addressing and subnetting</div></div>
+    <div class="r"><span class="tag">live calc</span><span class="tag t">binary</span></div>
+  </div>
+  <div class="sim-body">
+    <div class="controls">
+      <span class="label">CIDR</span>
+      <input type="range" id="cidr" min="8" max="30" value="24" style="width:240px">
+      <span id="cidrVal" style="font-family:var(--font-mono);font-weight:700;font-size:1.1rem">/24</span>
+    </div>
+    <div class="bits" id="subBits"></div>
+    <div class="metrics">
+      <div class="metric"><div class="k">Subnet mask</div><div class="v" id="subMask">255.255.255.0</div></div>
+      <div class="metric"><div class="k">Wildcard</div><div class="v" id="subWild">0.0.0.255</div></div>
+      <div class="metric"><div class="k">Hosts/subnet</div><div class="v" id="subHosts">254</div></div>
+      <div class="metric"><div class="k">Subnets in /24</div><div class="v" id="subCount">1</div></div>
+    </div>
+    <div class="teach"><b>What you learn</b>Each "1" bit in the mask = network. Hosts = 2^(host bits) − 2. Wildcard = inverse mask. Drag to feel powers-of-2 instantly.</div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ 1.7 Private ═ -->
+<section class="sim" id="s17">
+  <div class="sim-head">
+    <div class="l"><h3>IPv4 Range Classifier</h3><div class="meta">D1.7 · Private IPv4 addressing</div></div>
+    <div class="r"><span class="tag">live classifier</span></div>
+  </div>
+  <div class="sim-body">
+    <div class="input-line">
+      <span class="label">IP</span>
+      <input type="text" id="ipIn" value="172.20.5.1" style="width:160px;font-family:var(--font-mono)">
+      <button class="btn" id="ipGo">Classify</button>
+      <button class="btn ghost" id="ipRand">Random</button>
+    </div>
+    <div class="result" id="ipOut"></div>
+    <table class="matrix" style="margin-top:14px">
+      <thead><tr><th>Range</th><th>Type</th><th>RFC</th></tr></thead>
+      <tbody>
+        <tr><td>10.0.0.0/8</td><td>Private (Class A)</td><td>1918</td></tr>
+        <tr><td>172.16.0.0/12</td><td>Private (Class B)</td><td>1918</td></tr>
+        <tr><td>192.168.0.0/16</td><td>Private (Class C)</td><td>1918</td></tr>
+        <tr><td>169.254.0.0/16</td><td>APIPA / link-local</td><td>3927</td></tr>
+        <tr><td>127.0.0.0/8</td><td>Loopback</td><td>1122</td></tr>
+        <tr><td>224.0.0.0/4</td><td>Multicast (Class D)</td><td>5771</td></tr>
+      </tbody>
+    </table>
+    <div class="teach"><b>What you learn</b>Three private ranges: 10/8, 172.16/12, 192.168/16. Need NAT to reach internet. APIPA = "DHCP failed." 127.0.0.1 = local loopback only.</div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ 1.8 EUI-64 ═══ -->
+<section class="sim" id="s18">
+  <div class="sim-head">
+    <div class="l"><h3>EUI-64 Address Generator</h3><div class="meta">D1.8 · IPv6 addressing and prefix</div></div>
+    <div class="r"><span class="tag">bit-flipper</span><span class="tag t">animated</span></div>
+  </div>
+  <div class="sim-body">
+    <div class="controls">
+      <span class="label">MAC</span>
+      <input type="text" id="euiMac" value="00:1A:2B:3C:4D:5E" style="width:200px">
+      <button class="btn" id="euiGo">Generate →</button>
+    </div>
+    <div>
+      <div class="label" style="margin-bottom:6px">Step 1 — original MAC</div>
+      <div class="eui-row" id="euiOrig"></div>
+      <div class="eui-arrow">↓ flip 7th bit (universal/local)</div>
+      <div class="label" style="margin-bottom:6px">Step 2 — flip bit</div>
+      <div class="eui-row" id="euiFlip"></div>
+      <div class="eui-arrow">↓ insert FF:FE in middle</div>
+      <div class="label" style="margin-bottom:6px">Step 3 — final EUI-64 interface ID</div>
+      <div class="eui-row" id="euiFinal"></div>
+    </div>
+    <div class="teach"><b>What you learn</b>SLAAC builds an IPv6 address from MAC: flip the 7th bit of the first byte, then insert FF:FE between the OUI and NIC halves. 48 bits → 64.</div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ 1.9 IPv6 types ═ -->
+<section class="sim" id="s19">
+  <div class="sim-head">
+    <div class="l"><h3>IPv6 Address Type Identifier</h3><div class="meta">D1.9 · IPv6 address types</div></div>
+    <div class="r"><span class="tag">prefix matcher</span></div>
+  </div>
+  <div class="sim-body">
+    <div class="input-line">
+      <span class="label">IPv6</span>
+      <input type="text" id="v6In" value="fe80::1" style="width:280px;font-family:var(--font-mono)">
+      <button class="btn" id="v6Go">Identify</button>
+    </div>
+    <div class="result" id="v6Out"></div>
+    <div class="picker-grid" style="margin-top:12px">
+      <div class="pick" data-v6="2001:db8::1"><div class="pn">GUA</div><div class="ps">2001:db8::1</div></div>
+      <div class="pick" data-v6="fe80::1"><div class="pn">Link-local</div><div class="ps">fe80::1</div></div>
+      <div class="pick" data-v6="fc00::1"><div class="pn">ULA</div><div class="ps">fc00::1</div></div>
+      <div class="pick" data-v6="ff02::1"><div class="pn">Multicast</div><div class="ps">ff02::1 (link)</div></div>
+      <div class="pick" data-v6="::1"><div class="pn">Loopback</div><div class="ps">::1</div></div>
+      <div class="pick" data-v6="::"><div class="pn">Unspecified</div><div class="ps">::</div></div>
+    </div>
+    <div class="teach"><b>What you learn</b>Prefix → type. <code>2000::/3</code> GUA · <code>fe80::/10</code> link-local · <code>fc00::/7</code> ULA · <code>ff00::/8</code> multicast · <code>::1</code> loopback · <code>::</code> unspecified. Multicast scopes: ff02 link, ff05 site, ff0e global.</div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ 1.10 OS verify ═ -->
+<section class="sim" id="s110">
+  <div class="sim-head">
+    <div class="l"><h3>OS IP-Verify Commands</h3><div class="meta">D1.10 · Verify IP parameters per Client OS</div></div>
+    <div class="r"><span class="tag">command picker</span></div>
+  </div>
+  <div class="sim-body">
+    <div class="picker-grid" style="grid-template-columns:repeat(3,1fr)">
+      <div class="pick active" data-os="win"><div class="pn">Windows</div><div class="ps">cmd / PowerShell</div></div>
+      <div class="pick" data-os="mac"><div class="pn">macOS</div><div class="ps">Terminal</div></div>
+      <div class="pick" data-os="lin"><div class="pn">Linux</div><div class="ps">bash</div></div>
+    </div>
+    <div class="cmd-out" id="osOut"></div>
+    <div class="teach"><b>What you learn</b>Windows: <code>ipconfig /all</code>. macOS: <code>ifconfig</code> still works, <code>ipconfig getifaddr en0</code> for IP. Linux: <code>ip a</code> (modern) replaces deprecated <code>ifconfig</code>. Default-gateway: <code>route print</code> / <code>netstat -nr</code> / <code>ip route</code>.</div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ 1.11 Wi-Fi ═══ -->
+<section class="sim" id="s111">
+  <div class="sim-head">
+    <div class="l"><h3>Wi-Fi 2.4 GHz Channel Picker</h3><div class="meta">D1.11 · Wireless principles</div></div>
+    <div class="r"><span class="tag">overlap</span><span class="tag t">click-to-pick</span></div>
+  </div>
+  <div class="sim-body">
+    <p style="color:var(--ink-secondary);margin-bottom:8px">Click any channel. Watch which others overlap (each channel is 22 MHz wide, only 5 MHz spaced).</p>
+    <div class="wifi-grid" id="wifiGrid"></div>
+    <p class="wifi-msg" id="wifiMsg">Pick a channel above.</p>
+    <div class="teach"><b>What you learn</b>Only channels <b>1, 6, 11</b> are non-overlapping in 2.4 GHz. Anything else clobbers a neighbor. This is why every Wi-Fi survey defaults to those three.</div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ 1.12 Virt ═ -->
+<section class="sim" id="s112">
+  <div class="sim-head">
+    <div class="l"><h3>Virtualization Stacks</h3><div class="meta">D1.12 · Server virtualization, containers, VRFs</div></div>
+    <div class="r"><span class="tag">layered stacks</span></div>
+  </div>
+  <div class="sim-body">
+    <div class="picker-grid" style="grid-template-columns:repeat(3,1fr)">
+      <div class="pick active" data-virt="vm"><div class="pn">VM</div><div class="ps">hypervisor</div></div>
+      <div class="pick" data-virt="container"><div class="pn">Container</div><div class="ps">shared kernel</div></div>
+      <div class="pick" data-virt="vrf"><div class="pn">VRF</div><div class="ps">routing isolation</div></div>
+    </div>
+    <div id="virtStack" class="layered" style="margin-top:14px"></div>
+    <div class="teach"><b>What you learn</b>VMs each have a full guest OS — heavy, slow boot, strong isolation. Containers share the host kernel — light, fast boot, process isolation. VRFs partition routing tables on one router — multiple independent route domains.</div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ 1.13 CAM ═ -->
+<section class="sim" id="s113">
+  <div class="sim-head">
+    <div class="l"><h3>CAM Table Builder</h3><div class="meta">D1.13 · Switching concepts</div></div>
+    <div class="r"><span class="tag">animated</span><span class="tag t">MAC learning</span></div>
+  </div>
+  <div class="sim-body">
+    <div class="controls">
+      <button class="btn" id="camFrame">Send frame →</button>
+      <button class="btn ghost" id="camReset">Clear table</button>
+    </div>
+    <p style="color:var(--ink-secondary);margin-bottom:8px" id="camMsg">Click "Send frame" — switch learns SRC MAC, floods unknown DST.</p>
+    <table class="matrix">
+      <thead><tr><th>Port</th><th>MAC</th><th>Action</th></tr></thead>
+      <tbody id="camRows"></tbody>
+    </table>
+    <div class="teach"><b>What you learn</b>Switch learns source MAC → port mapping on every frame. Unknown destination → flood out all ports except inbound. Known destination → unicast to one port. Each VLAN = own broadcast domain.</div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ 2.1 VLAN ═══ -->
+<section class="sim" id="s21">
+  <div class="sim-head">
+    <div class="l"><h3>802.1Q VLAN Tag Visualizer</h3><div class="meta">D2.1 · VLAN configuration</div></div>
+    <div class="r"><span class="tag">frame builder</span></div>
+  </div>
+  <div class="sim-body">
+    <div class="controls">
+      <button class="btn ghost" data-vlan="access">Access port</button>
+      <button class="btn" data-vlan="trunk">Trunk port</button>
+      <span style="font-family:var(--font-mono);font-size:.92rem;margin-left:auto">VLAN <input type="number" id="vlanId" value="20" min="1" max="4094" style="width:70px"></span>
+    </div>
+    <div class="frame" id="frame">
+      <div class="f-mac">DST MAC<span class="lab">6 B</span></div>
+      <div class="f-mac">SRC MAC<span class="lab">6 B</span></div>
+      <div class="f-tag" id="ftag" style="display:none">802.1Q<br>VLAN <span id="fvid">20</span><span class="lab">4 B</span></div>
+      <div class="f-type">EtherType<span class="lab">2 B</span></div>
+      <div class="f-data">Payload<span class="lab">46–1500 B</span></div>
+      <div class="f-fcs">FCS<span class="lab">4 B</span></div>
+    </div>
+    <p style="font-family:var(--font-body);color:var(--ink-secondary);font-size:.92rem" id="frameMsg">Trunk: 4-byte 802.1Q tag inserted. Access: tag stripped before client sees it.</p>
+    <div class="teach"><b>What you learn</b>The 802.1Q tag (4 B) lives between SRC MAC and EtherType. Native VLAN traffic stays untagged. Access ports forbid tags; trunks require them.</div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ 2.2 DTP ═ -->
+<section class="sim" id="s22">
+  <div class="sim-head">
+    <div class="l"><h3>DTP Mode Negotiation Matrix</h3><div class="meta">D2.2 · Interswitch connectivity</div></div>
+    <div class="r"><span class="tag">matrix</span></div>
+  </div>
+  <div class="sim-body">
+    <p style="color:var(--ink-secondary);margin-bottom:8px">Two ports negotiate. What does the link become?</p>
+    <table class="matrix">
+      <thead><tr><th>Side A ↓ / Side B →</th><th>Access</th><th>Trunk</th><th>Dyn. Auto</th><th>Dyn. Desirable</th></tr></thead>
+      <tbody>
+        <tr><th>Access</th><td class="y">Access</td><td class="n">Mismatch</td><td class="y">Access</td><td class="n">Mismatch</td></tr>
+        <tr><th>Trunk</th><td class="n">Mismatch</td><td class="y">Trunk</td><td class="y">Trunk</td><td class="y">Trunk</td></tr>
+        <tr><th>Dynamic Auto</th><td class="y">Access</td><td class="y">Trunk</td><td class="y">Access</td><td class="y">Trunk</td></tr>
+        <tr><th>Dynamic Desirable</th><td class="n">Mismatch</td><td class="y">Trunk</td><td class="y">Trunk</td><td class="y">Trunk</td></tr>
+      </tbody>
+    </table>
+    <div class="teach"><b>What you learn</b>Two <i>auto</i> ports default to access — neither initiates. <i>Desirable</i> actively asks for trunk. Best practice: hardcode <code>switchport mode trunk</code> + <code>switchport nonegotiate</code> on infrastructure links.</div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ 2.3 CDP/LLDP ═ -->
+<section class="sim" id="s23">
+  <div class="sim-head">
+    <div class="l"><h3>CDP vs LLDP</h3><div class="meta">D2.3 · Layer 2 discovery protocols</div></div>
+    <div class="r"><span class="tag">comparison</span></div>
+  </div>
+  <div class="sim-body">
+    <div class="compare">
+      <div class="col"><h4>CDP</h4>
+        <ul><li>Vendor: <b>Cisco proprietary</b></li>
+        <li>Standard: <b>none</b></li>
+        <li>Multicast: <b>01:00:0c:cc:cc:cc</b></li>
+        <li>Default timer: <b>60 s</b> hello, <b>180 s</b> hold</li>
+        <li>Enable: <code>cdp run</code> (global) · <code>cdp enable</code> (interface)</li>
+        <li>Show: <code>show cdp neighbors detail</code></li></ul></div>
+      <div class="col"><h4>LLDP</h4>
+        <ul><li>Vendor: <b>open / IEEE 802.1AB</b></li>
+        <li>Standard: <b>802.1AB</b></li>
+        <li>Multicast: <b>01:80:c2:00:00:0e</b></li>
+        <li>Default timer: <b>30 s</b> hello, <b>120 s</b> hold</li>
+        <li>Enable: <code>lldp run</code> · <code>lldp transmit/receive</code></li>
+        <li>Show: <code>show lldp neighbors detail</code></li></ul></div>
+    </div>
+    <div class="teach"><b>What you learn</b>CDP = Cisco gear talking to Cisco gear. LLDP = vendor-neutral, required for mixed environments. Both are L2 — frames don't cross routers. Both can leak topology to attackers — disable on edge ports.</div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ 2.4 EtherChannel ═ -->
+<section class="sim" id="s24">
+  <div class="sim-head">
+    <div class="l"><h3>EtherChannel Mode Compatibility</h3><div class="meta">D2.4 · Layer 2/3 EtherChannel (LACP)</div></div>
+    <div class="r"><span class="tag">matrix</span></div>
+  </div>
+  <div class="sim-body">
+    <p style="color:var(--ink-secondary);margin-bottom:8px">Pick mode on each side. Bundle forms only with valid pairings.</p>
+    <table class="matrix">
+      <thead><tr><th>A ↓ / B →</th><th>on</th><th>active (LACP)</th><th>passive (LACP)</th><th>desirable (PAgP)</th><th>auto (PAgP)</th></tr></thead>
+      <tbody>
+        <tr><th>on</th><td class="y">✓</td><td class="n">✗</td><td class="n">✗</td><td class="n">✗</td><td class="n">✗</td></tr>
+        <tr><th>active</th><td class="n">✗</td><td class="y">LACP</td><td class="y">LACP</td><td class="n">✗</td><td class="n">✗</td></tr>
+        <tr><th>passive</th><td class="n">✗</td><td class="y">LACP</td><td class="n">✗</td><td class="n">✗</td><td class="n">✗</td></tr>
+        <tr><th>desirable</th><td class="n">✗</td><td class="n">✗</td><td class="n">✗</td><td class="y">PAgP</td><td class="y">PAgP</td></tr>
+        <tr><th>auto</th><td class="n">✗</td><td class="n">✗</td><td class="n">✗</td><td class="y">PAgP</td><td class="n">✗</td></tr>
+      </tbody>
+    </table>
+    <div class="teach"><b>What you learn</b><b>on</b> = no negotiation, both sides must be on. <b>active/passive</b> = LACP (open). <b>desirable/auto</b> = PAgP (Cisco). Two passive or two auto = no bundle. Never mix LACP with PAgP.</div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ 2.5 STP ═══ -->
+<section class="sim" id="s25">
+  <div class="sim-head">
+    <div class="l"><h3>STP Root Bridge Election</h3><div class="meta">D2.5 · Rapid PVST+ Spanning Tree</div></div>
+    <div class="r"><span class="tag">topology</span><span class="tag t">interactive</span></div>
+  </div>
+  <div class="sim-body">
+    <p style="color:var(--ink-secondary);margin-bottom:6px">Edit any priority. Lowest priority wins. Tie? Lowest MAC. Click "Elect" to crown the root.</p>
+    <div class="stp-net" id="stpNet"></div>
+    <div class="row" style="margin-top:18px;justify-content:center">
+      <button class="btn" id="stpElect">Elect root bridge</button>
+      <button class="btn ghost" id="stpReset">Randomize MACs</button>
+    </div>
+    <p style="font-family:var(--font-mono);font-size:.84rem;color:var(--ink-secondary);margin-top:14px;text-align:center" id="stpMsg">Set priorities then click Elect.</p>
+    <div class="teach"><b>What you learn</b>Root election compares <b>(priority, MAC)</b> — lowest combined wins. Default priority is 32768. Lower it to 4096 to manually pick a root.</div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ 2.6 AP modes ═ -->
+<section class="sim" id="s26">
+  <div class="sim-head">
+    <div class="l"><h3>AP Architecture: Autonomous vs Lightweight</h3><div class="meta">D2.6 · Cisco wireless architectures</div></div>
+    <div class="r"><span class="tag">SVG toggle</span></div>
+  </div>
+  <div class="sim-body">
+    <div class="picker-grid" style="grid-template-columns:1fr 1fr">
+      <div class="pick active" data-ap="auto"><div class="pn">Autonomous</div><div class="ps">standalone, full IOS</div></div>
+      <div class="pick" data-ap="light"><div class="pn">Lightweight</div><div class="ps">CAPWAP to WLC</div></div>
+    </div>
+    <div id="apSvg" style="margin-top:14px"></div>
+    <div class="teach"><b>What you learn</b>Autonomous AP = full brain on each AP, configure each one. Lightweight (LWAP) = AP is dumb radio, all logic at WLC, control via CAPWAP (UDP 5246) + data via CAPWAP (UDP 5247). AP modes: Local, FlexConnect, Monitor, Sniffer, Rogue Detector, Bridge, SE-Connect.</div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ 2.7 WLAN phys ═ -->
+<section class="sim" id="s27">
+  <div class="sim-head">
+    <div class="l"><h3>WLAN Physical Topology</h3><div class="meta">D2.7 · WLAN component connections</div></div>
+    <div class="r"><span class="tag">topology</span></div>
+  </div>
+  <div class="sim-body">
+    <svg class="svg-diagram" viewBox="0 0 560 240">
+      <rect class="device" x="40" y="100" width="80" height="40" rx="6"/><text class="lbl" x="80" y="125">AP</text>
+      <text x="80" y="160" class="lbl" style="font-size:10px;fill:var(--ink-muted)">access port (untagged + LWAPP)</text>
+      <line class="conn live" x1="120" y1="120" x2="220" y2="120"/>
+      <rect class="device" x="220" y="100" width="120" height="40" rx="6"/><text class="lbl" x="280" y="125">Access SW</text>
+      <text x="280" y="160" class="lbl" style="font-size:10px;fill:var(--ink-muted)">trunk to WLC</text>
+      <line class="conn live" x1="340" y1="120" x2="440" y2="120"/>
+      <rect class="device" x="440" y="100" width="80" height="40" rx="6"/><text class="lbl" x="480" y="125">WLC</text>
+      <line class="conn" x1="480" y1="100" x2="480" y2="40" stroke-dasharray="4 3"/>
+      <text x="480" y="30" class="lbl" style="font-size:10px;fill:var(--ink-muted)">LAG (bonded uplinks)</text>
+    </svg>
+    <div class="teach"><b>What you learn</b>AP → access port (untagged native, traffic goes inside CAPWAP tunnel). WLC → trunk (carries every WLAN's VLAN). LAG = LACP-bundled uplinks on the WLC. APs talk to WLC via L3 IP — they discover via DHCP option 43, DNS, or broadcast.</div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ 2.8 Mgmt ═ -->
+<section class="sim" id="s28">
+  <div class="sim-head">
+    <div class="l"><h3>Device Management Access</h3><div class="meta">D2.8 · Network device management</div></div>
+    <div class="r"><span class="tag">secure vs insecure</span></div>
+  </div>
+  <div class="sim-body">
+    <table class="matrix">
+      <thead><tr><th>Method</th><th>Encrypted?</th><th>Port</th><th>Use</th></tr></thead>
+      <tbody>
+        <tr><td>Console</td><td class="y">N/A (local)</td><td>—</td><td>First-time setup, recovery</td></tr>
+        <tr><td>Telnet</td><td class="n">No (plaintext)</td><td>TCP 23</td><td>❌ Avoid in prod</td></tr>
+        <tr><td>SSH</td><td class="y">Yes</td><td>TCP 22</td><td>✓ Standard remote CLI</td></tr>
+        <tr><td>HTTP</td><td class="n">No</td><td>TCP 80</td><td>❌ Avoid</td></tr>
+        <tr><td>HTTPS</td><td class="y">Yes</td><td>TCP 443</td><td>✓ Web GUI</td></tr>
+        <tr><td>RADIUS</td><td class="q">Password only</td><td>UDP 1812/1813</td><td>AAA, esp. wireless 802.1X</td></tr>
+        <tr><td>TACACS+</td><td class="y">Full payload</td><td>TCP 49</td><td>✓ AAA for device admin</td></tr>
+        <tr><td>Cloud-managed</td><td class="y">TLS to controller</td><td>—</td><td>Meraki/DNA-Center/Catalyst Center</td></tr>
+      </tbody>
+    </table>
+    <div class="teach"><b>What you learn</b>Telnet + HTTP = plaintext, never use for management. SSH + HTTPS = encrypted. RADIUS only encrypts the password field; TACACS+ encrypts the entire payload + separates AuthN/AuthZ/Acct.</div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ 2.9 WLAN GUI ═ -->
+<section class="sim" id="s29">
+  <div class="sim-head">
+    <div class="l"><h3>WLAN GUI Configuration</h3><div class="meta">D2.9 · Wireless LAN GUI configuration</div></div>
+    <div class="r"><span class="tag">mock GUI</span></div>
+  </div>
+  <div class="sim-body">
+    <div style="border:1px solid var(--border);border-radius:var(--radius);padding:18px;background:var(--bg-recessed)">
+      <div class="input-line"><span class="label" style="width:100px">SSID</span><input type="text" id="wgSsid" value="CORP-WIFI" style="flex:1"></div>
+      <div class="input-line"><span class="label" style="width:100px">VLAN</span><input type="number" id="wgVlan" value="20" style="width:80px"></div>
+      <div class="input-line"><span class="label" style="width:100px">Security</span>
+        <select id="wgSec" style="font-family:var(--font-mono);padding:6px;border:1px solid var(--border-strong);border-radius:var(--radius)">
+          <option>WPA2 PSK</option><option>WPA2 Enterprise (802.1X)</option><option>WPA3 SAE</option><option>Open (no security)</option>
+        </select></div>
+      <div class="input-line"><span class="label" style="width:100px">QoS</span>
+        <select id="wgQos" style="font-family:var(--font-mono);padding:6px;border:1px solid var(--border-strong);border-radius:var(--radius)">
+          <option>Platinum (voice)</option><option>Gold (video)</option><option selected>Silver (best-effort)</option><option>Bronze (background)</option>
+        </select></div>
+      <div class="input-line"><span class="label" style="width:100px">Broadcast</span>
+        <label style="font-family:var(--font-body);font-size:.92rem"><input type="checkbox" id="wgBcast" checked> Broadcast SSID</label></div>
+    </div>
+    <div class="result info" id="wgOut" style="margin-top:12px"></div>
+    <div class="teach"><b>What you learn</b>WLC GUI fields you'll see on the exam: SSID, VLAN/interface, Security policy (WPA2/3 PSK or Enterprise), QoS profile (Platinum/Gold/Silver/Bronze), broadcast on/off, advanced (band-select, FlexConnect).</div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ 3.1 AD race ═══ -->
+<section class="sim" id="s31">
+  <div class="sim-head">
+    <div class="l"><h3>Administrative Distance Race</h3><div class="meta">D3.1 · Routing table components</div></div>
+    <div class="r"><span class="tag">animated race</span></div>
+  </div>
+  <div class="sim-body">
+    <p style="color:var(--ink-secondary);margin-bottom:8px">Six protocols all advertise the same prefix. Lowest AD wins the spot in the routing table.</p>
+    <button class="btn" id="adGo" style="margin-bottom:14px">Start race</button>
+    <div class="race" id="race"></div>
+    <div class="teach"><b>What you learn</b>AD is the <i>trust ranking</i>: Connected 0 · Static 1 · eBGP 20 · EIGRP 90 · OSPF 110 · RIP 120 · iBGP 200. Lower = trusted more. Knowing this table is exam gold.</div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ 3.2 Forwarding ═ -->
+<section class="sim" id="s32">
+  <div class="sim-head">
+    <div class="l"><h3>Router Forwarding Decision</h3><div class="meta">D3.2 · How a router forwards by default</div></div>
+    <div class="r"><span class="tag">decision tree</span></div>
+  </div>
+  <div class="sim-body">
+    <p style="color:var(--ink-secondary);margin-bottom:8px">Tiebreakers stack in order. Router walks down until one rule decides.</p>
+    <div class="flow-box" style="flex-direction:column;align-items:stretch;max-width:480px;margin:0 auto">
+      <div class="flow-node">1. Longest-prefix match</div>
+      <div class="flow-arr">↓ if multiple match same length</div>
+      <div class="flow-node">2. Lowest Administrative Distance</div>
+      <div class="flow-arr">↓ if tied (same protocol)</div>
+      <div class="flow-node">3. Lowest metric (cost / hops / BW)</div>
+      <div class="flow-arr">↓ if still tied</div>
+      <div class="flow-node">4. Equal-cost load-balance (CEF)</div>
+    </div>
+    <div class="teach"><b>What you learn</b>Routers prefer <i>specific</i> over <i>trusted</i> over <i>fast</i>. A /32 static beats a /24 OSPF route every time, because longest-prefix wins before AD is even checked. Then AD picks protocol; metric breaks ties within one protocol.</div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ 3.3 Static ═ -->
+<section class="sim" id="s33">
+  <div class="sim-head">
+    <div class="l"><h3>Static Route Builder</h3><div class="meta">D3.3 · IPv4 and IPv6 static routing</div></div>
+    <div class="r"><span class="tag">command builder</span></div>
+  </div>
+  <div class="sim-body">
+    <div class="input-line"><span class="label" style="width:100px">Destination</span>
+      <input type="text" id="srDest" value="10.20.0.0" style="font-family:var(--font-mono);width:160px">
+      <span class="label">Mask</span><input type="text" id="srMask" value="255.255.0.0" style="font-family:var(--font-mono);width:160px"></div>
+    <div class="input-line"><span class="label" style="width:100px">Type</span>
+      <select id="srType" style="font-family:var(--font-mono);padding:6px;border:1px solid var(--border-strong);border-radius:var(--radius)">
+        <option value="nh">Next-hop IP</option><option value="ex">Exit interface</option><option value="def">Default route (0.0.0.0/0)</option><option value="float">Floating static (AD 200)</option></select></div>
+    <div class="input-line"><span class="label" style="width:100px">Next-hop / If</span>
+      <input type="text" id="srNh" value="192.168.1.2" style="font-family:var(--font-mono);width:200px"></div>
+    <div class="cmd-out" id="srOut"></div>
+    <div class="teach"><b>What you learn</b>Default static is AD 1. Next-hop variant uses a recursive lookup. Exit-interface form is faster but only valid on point-to-point. Floating static (AD &gt; dynamic) acts as backup. Default route: <code>ip route 0.0.0.0 0.0.0.0 next-hop</code>.</div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ 3.4 OSPF FSM ═══ -->
+<section class="sim" id="s34">
+  <div class="sim-head">
+    <div class="l"><h3>OSPF Neighbor State Machine</h3><div class="meta">D3.4 · Single-area OSPFv2</div></div>
+    <div class="r"><span class="tag">state machine</span></div>
+  </div>
+  <div class="sim-body">
+    <div class="controls">
+      <button class="btn" id="fsmNext">Advance state →</button>
+      <button class="btn ghost" id="fsmReset">Reset</button>
+    </div>
+    <div class="fsm" id="fsm"></div>
+    <div class="fsm-desc" id="fsmDesc">Click "Advance" to step through the 7 OSPF neighbor states.</div>
+    <div class="teach"><b>What you learn</b><b>D</b>own → <b>I</b>nit → <b>2</b>-Way → <b>E</b>xStart → <b>E</b>xchange → <b>L</b>oading → <b>F</b>ull. <i>"Don't Issue 2 ExStart Exchanges Loaded Fully"</i>. Stuck at 2-Way = DROther on broadcast. Stuck at ExStart = MTU mismatch.</div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ 3.5 HSRP ═══ -->
+<section class="sim" id="s35">
+  <div class="sim-head">
+    <div class="l"><h3>HSRP Failover</h3><div class="meta">D3.5 · First Hop Redundancy Protocols</div></div>
+    <div class="r"><span class="tag">topology</span><span class="tag t">animated</span></div>
+  </div>
+  <div class="sim-body">
+    <div class="hsrp">
+      <div class="hsrp-r active" id="rA"><div class="role">Active</div><div class="nm">R1</div><div class="pri">priority 110</div></div>
+      <div class="hsrp-r standby" id="rB"><div class="role">Standby</div><div class="nm">R2</div><div class="pri">priority 100 (default)</div></div>
+    </div>
+    <div class="hsrp-vip">VIP 192.168.1.1  ·  vMAC 0000.0c07.acXX</div>
+    <div class="row" style="justify-content:center;margin-top:14px">
+      <button class="btn" id="hsrpKill">Kill active router</button>
+      <button class="btn ghost" id="hsrpReset">Reset</button>
+    </div>
+    <p style="font-family:var(--font-body);color:var(--ink-secondary);font-size:.92rem;text-align:center;margin-top:10px" id="hsrpMsg">Both up. Hosts default-gateway to the VIP.</p>
+    <div class="teach"><b>What you learn</b>Higher priority = active (default 100). Standby promotes when active misses 3 hellos (~10 s). VIP and virtual MAC stay constant — host never notices.</div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ 4.1 NAT ═══ -->
+<section class="sim" id="s41">
+  <div class="sim-head">
+    <div class="l"><h3>NAT/PAT Translation Table</h3><div class="meta">D4.1 · Inside source NAT</div></div>
+    <div class="r"><span class="tag">animated flow</span></div>
+  </div>
+  <div class="sim-body">
+    <div class="controls">
+      <button class="btn" id="natSend">Send packet →</button>
+      <button class="btn ghost" id="natReset">Clear table</button>
+    </div>
+    <div class="nat-stage">
+      <div class="nat-side">
+        <div class="lab">Inside</div>
+        <div class="ip">10.0.0.10–.40</div>
+        <div id="natIn" style="margin-top:6px;min-height:30px"></div>
+      </div>
+      <div class="nat-router">→ R1 (PAT) →</div>
+      <div class="nat-side">
+        <div class="lab">Outside</div>
+        <div class="ip">203.0.113.5</div>
+        <div id="natOut" style="margin-top:6px;min-height:30px"></div>
+      </div>
+    </div>
+    <table class="nat-table">
+      <thead><tr><th>Inside Local</th><th>Inside Global</th><th>Outside</th></tr></thead>
+      <tbody id="natRows"></tbody>
+    </table>
+    <div class="teach"><b>What you learn</b>PAT (overload) maps many inside IPs onto one outside IP using unique source ports. Each row = one stateful translation. Without PAT you'd need an outside IP per host.</div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ 4.2 NTP ═ -->
+<section class="sim" id="s42">
+  <div class="sim-head">
+    <div class="l"><h3>NTP Stratum Hierarchy</h3><div class="meta">D4.2 · NTP client/server</div></div>
+    <div class="r"><span class="tag">topology</span></div>
+  </div>
+  <div class="sim-body">
+    <svg class="svg-diagram" viewBox="0 0 560 280">
+      <text x="280" y="30" class="lbl" style="font-size:14px">Stratum 0 (atomic / GPS)</text>
+      <rect class="device on" x="240" y="40" width="80" height="40" rx="6"/><text class="lbl inv" x="280" y="65">Atomic clock</text>
+      <line class="conn live" x1="280" y1="80" x2="280" y2="100"/>
+      <text x="280" y="115" class="lbl" style="font-size:14px">Stratum 1 (directly synced)</text>
+      <rect class="device" x="240" y="125" width="80" height="40" rx="6"/><text class="lbl" x="280" y="150">NTP Server</text>
+      <line class="conn live" x1="280" y1="165" x2="160" y2="195"/>
+      <line class="conn live" x1="280" y1="165" x2="400" y2="195"/>
+      <text x="280" y="195" class="lbl" style="font-size:14px">Stratum 2 (your routers)</text>
+      <rect class="device" x="120" y="200" width="80" height="40" rx="6"/><text class="lbl" x="160" y="225">R1 (st 2)</text>
+      <rect class="device" x="360" y="200" width="80" height="40" rx="6"/><text class="lbl" x="400" y="225">R2 (st 2)</text>
+      <line class="conn" x1="160" y1="240" x2="160" y2="265"/>
+      <text x="160" y="278" class="lbl" style="font-size:11px;fill:var(--ink-muted)">Stratum 3 (clients)</text>
+    </svg>
+    <div class="teach"><b>What you learn</b>Stratum 0 = reference clock (GPS, atomic). Each hop adds 1. Max stratum = 15 (16 = unsynced). Config: <code>ntp server &lt;ip&gt;</code> on client, <code>ntp master 2</code> on local server. Verify: <code>show ntp status</code>.</div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ 4.3 DNS ═ -->
+<section class="sim" id="s43">
+  <div class="sim-head">
+    <div class="l"><h3>DNS Recursive Resolution</h3><div class="meta">D4.3 · DHCP and DNS roles</div></div>
+    <div class="r"><span class="tag">animated flow</span></div>
+  </div>
+  <div class="sim-body">
+    <div class="controls">
+      <button class="btn" id="dnsGo">Resolve www.cisco.com →</button>
+      <button class="btn ghost" id="dnsReset">Reset</button>
+    </div>
+    <div class="timeline" id="dnsTl"></div>
+    <div class="teach"><b>What you learn</b>Resolver walks: client → recursive → root (.) → TLD (.com) → authoritative (cisco.com) → answer. A=IPv4, AAAA=IPv6, CNAME=alias, MX=mail, PTR=reverse, NS=name server, SOA=zone start, TXT=arbitrary (SPF/DKIM).</div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ 4.4 SNMP ═ -->
+<section class="sim" id="s44">
+  <div class="sim-head">
+    <div class="l"><h3>SNMP Version Comparison</h3><div class="meta">D4.4 · SNMP function</div></div>
+    <div class="r"><span class="tag">matrix</span></div>
+  </div>
+  <div class="sim-body">
+    <table class="matrix">
+      <thead><tr><th>Feature</th><th>SNMPv1</th><th>SNMPv2c</th><th>SNMPv3</th></tr></thead>
+      <tbody>
+        <tr><td>Auth</td><td class="n">community plaintext</td><td class="n">community plaintext</td><td class="y">user + MD5/SHA</td></tr>
+        <tr><td>Encryption</td><td class="n">none</td><td class="n">none</td><td class="y">DES/3DES/AES</td></tr>
+        <tr><td>GetBulk</td><td class="n">no</td><td class="y">yes</td><td class="y">yes</td></tr>
+        <tr><td>Inform</td><td class="n">no</td><td class="y">yes</td><td class="y">yes</td></tr>
+        <tr><td>64-bit counters</td><td class="n">no</td><td class="y">yes</td><td class="y">yes</td></tr>
+        <tr><td>Security level</td><td class="n">low</td><td class="n">low</td><td class="y">noAuthNoPriv / authNoPriv / authPriv</td></tr>
+      </tbody>
+    </table>
+    <p style="font-family:var(--font-mono);font-size:.84rem;margin-top:10px;color:var(--ink-secondary)">Ports: <b>161</b> agent (poll) · <b>162</b> trap/inform</p>
+    <div class="teach"><b>What you learn</b>Only v3 is secure (auth + encryption). v2c added bulk operations + traps but kept plaintext community strings. Manager polls UDP 161; agent sends asynchronous traps to UDP 162. MIB = tree of OIDs.</div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ 4.5 Syslog ═══ -->
+<section class="sim" id="s45">
+  <div class="sim-head">
+    <div class="l"><h3>Syslog Severity Dial</h3><div class="meta">D4.5 · Syslog facilities and severity</div></div>
+    <div class="r"><span class="tag">dial</span><span class="tag t">mnemonic</span></div>
+  </div>
+  <div class="sim-body">
+    <div class="syslog-wrap">
+      <div class="dial">
+        <svg width="200" height="200" viewBox="0 0 200 200">
+          <circle cx="100" cy="100" r="88" fill="none" stroke="#E2DFD9" stroke-width="14"/>
+          <circle cx="100" cy="100" r="88" fill="none" stroke="#B45309" stroke-width="14"
+                  stroke-dasharray="553" id="dialArc" stroke-dashoffset="553" stroke-linecap="round"/>
+          <g class="dial-needle" id="dialNeedle">
+            <line x1="100" y1="100" x2="100" y2="30" stroke="#1C1917" stroke-width="3" stroke-linecap="round"/>
+            <circle cx="100" cy="100" r="6" fill="#1C1917"/>
+          </g>
+        </svg>
+        <div class="dial-text"><div class="num" id="dialNum">3</div><div class="lvl" id="dialLvl">Error</div></div>
+      </div>
+      <div class="syslog-info">
+        <div class="row" style="margin-bottom:14px">
+          <span class="label">Severity</span>
+          <input type="range" id="dial" min="0" max="7" value="3" style="flex:1">
+        </div>
+        <div class="desc" id="dialDesc"></div>
+        <div class="mnemonic"><b>Every Awesome Cisco Engineer Will Need Ice-cream Daily</b><br>Emerg(0) · Alert(1) · Crit(2) · Err(3) · Warn(4) · Notice(5) · Info(6) · Debug(7)</div>
+      </div>
+    </div>
+    <div class="teach"><b>What you learn</b>Lower number = more severe. Production routers default-log severity 6 (info) and below. Set to 4 (warn) to drop noise; 7 (debug) for troubleshooting.</div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ 4.6 DHCP relay ═ -->
+<section class="sim" id="s46">
+  <div class="sim-head">
+    <div class="l"><h3>DHCP Relay (ip helper-address)</h3><div class="meta">D4.6 · DHCP client and relay</div></div>
+    <div class="r"><span class="tag">topology</span><span class="tag t">animated</span></div>
+  </div>
+  <div class="sim-body">
+    <div class="controls">
+      <button class="btn" id="hlpGo">Send Discover →</button>
+      <button class="btn ghost" id="hlpReset">Reset</button>
+    </div>
+    <svg class="svg-diagram" viewBox="0 0 560 200">
+      <rect class="device" x="20" y="80" width="80" height="40" rx="6"/><text class="lbl" x="60" y="105">Client</text>
+      <text x="60" y="135" class="lbl" style="font-size:10px;fill:var(--ink-muted)">VLAN 10</text>
+      <line class="conn" x1="100" y1="100" x2="220" y2="100"/>
+      <rect class="device" x="220" y="80" width="120" height="40" rx="6"/><text class="lbl" x="280" y="105">Router (helper)</text>
+      <text x="280" y="135" class="lbl" style="font-size:10px;fill:var(--ink-muted)">ip helper-address 10.5.5.5</text>
+      <line class="conn" x1="340" y1="100" x2="460" y2="100"/>
+      <rect class="device" x="460" y="80" width="80" height="40" rx="6"/><text class="lbl" x="500" y="105">DHCP svr</text>
+      <text x="500" y="135" class="lbl" style="font-size:10px;fill:var(--ink-muted)">10.5.5.5</text>
+      <circle id="hlpPkt" cx="60" cy="100" r="9" fill="#B45309" opacity="0"/>
+    </svg>
+    <p id="hlpMsg" style="text-align:center;font-family:var(--font-body);color:var(--ink-secondary)">Click Send Discover.</p>
+    <div class="teach"><b>What you learn</b>DHCP Discover is broadcast — routers don't forward broadcasts. <code>ip helper-address</code> on the client-side interface converts broadcast to <i>unicast</i> aimed at the DHCP server. Server replies via the router's gateway-IP (giaddr) field.</div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ 4.7 QoS ═ -->
+<section class="sim" id="s47">
+  <div class="sim-head">
+    <div class="l"><h3>QoS Per-Hop Behavior</h3><div class="meta">D4.7 · QoS PHB — classification, marking, queuing</div></div>
+    <div class="r"><span class="tag">flowchart</span></div>
+  </div>
+  <div class="sim-body">
+    <div class="flow-box" style="margin:20px 0">
+      <div class="flow-node" id="qos1">Classify</div>
+      <span class="flow-arr">→</span>
+      <div class="flow-node" id="qos2">Mark<br><span style="font-size:.7rem;font-weight:400">DSCP/CoS</span></div>
+      <span class="flow-arr">→</span>
+      <div class="flow-node" id="qos3">Queue</div>
+      <span class="flow-arr">→</span>
+      <div class="flow-node" id="qos4">Police / Shape</div>
+    </div>
+    <div class="picker-grid" style="grid-template-columns:repeat(4,1fr)">
+      <div class="pick" data-q="voice"><div class="pn">Voice</div><div class="ps">DSCP EF (46)</div></div>
+      <div class="pick" data-q="video"><div class="pn">Video</div><div class="ps">DSCP AF41 (34)</div></div>
+      <div class="pick" data-q="data"><div class="pn">Data</div><div class="ps">DSCP AF21 (18)</div></div>
+      <div class="pick" data-q="bulk"><div class="pn">Bulk</div><div class="ps">DSCP CS1 (8)</div></div>
+    </div>
+    <div class="result" id="qosOut" style="margin-top:12px">Pick a traffic type.</div>
+    <div class="teach"><b>What you learn</b>EF (Expedited Forwarding) = strict priority for voice. AF (Assured Forwarding) = 4 classes × 3 drop precedences (AF11–AF43). CS (Class Selector) = backwards-compat with old IP precedence. Police = drop excess, Shape = buffer + delay.</div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ 4.8 SSH ═ -->
+<section class="sim" id="s48">
+  <div class="sim-head">
+    <div class="l"><h3>SSH Configuration Builder</h3><div class="meta">D4.8 · Remote access using SSH</div></div>
+    <div class="r"><span class="tag">command builder</span></div>
+  </div>
+  <div class="sim-body">
+    <div class="input-line"><span class="label" style="width:100px">Hostname</span><input type="text" id="sshHost" value="R1" style="font-family:var(--font-mono);width:140px"></div>
+    <div class="input-line"><span class="label" style="width:100px">Domain</span><input type="text" id="sshDom" value="lab.local" style="font-family:var(--font-mono);width:160px"></div>
+    <div class="input-line"><span class="label" style="width:100px">User</span><input type="text" id="sshUser" value="admin" style="font-family:var(--font-mono);width:140px">
+      <span class="label">Password</span><input type="text" id="sshPw" value="Cisco123" style="font-family:var(--font-mono);width:140px"></div>
+    <div class="input-line"><span class="label" style="width:100px">SSH version</span>
+      <select id="sshVer" style="font-family:var(--font-mono);padding:6px;border:1px solid var(--border-strong);border-radius:var(--radius)">
+        <option value="2" selected>2 (recommended)</option><option value="1.99">1.99 (compat)</option></select></div>
+    <div class="cmd-out" id="sshOut"></div>
+    <div class="teach"><b>What you learn</b>SSH needs: hostname, domain (FQDN required for keygen), RSA key (≥1024 bits, ≥2048 modern), local user with secret, vty <code>transport input ssh</code>, <code>login local</code>. Always disable Telnet — never <code>transport input telnet</code> in prod.</div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ 4.9 TFTP/FTP ═ -->
+<section class="sim" id="s49">
+  <div class="sim-head">
+    <div class="l"><h3>TFTP vs FTP</h3><div class="meta">D4.9 · TFTP/FTP capabilities</div></div>
+    <div class="r"><span class="tag">comparison</span></div>
+  </div>
+  <div class="sim-body">
+    <div class="compare">
+      <div class="col"><h4>TFTP</h4><ul>
+        <li>Transport: <b>UDP 69</b></li><li>Reliability: app-layer retry (lockstep)</li>
+        <li>Auth: <b>none</b></li><li>Encryption: <b>none</b></li>
+        <li>Use: device IOS image push, config backup over LAN</li>
+        <li>Cisco: <code>copy running-config tftp:</code></li></ul></div>
+      <div class="col"><h4>FTP</h4><ul>
+        <li>Transport: <b>TCP 20 (data) / 21 (control)</b></li><li>Reliability: TCP</li>
+        <li>Auth: <b>username/password (plaintext)</b></li><li>Encryption: <b>none</b> (use SFTP/SCP)</li>
+        <li>Use: bulk file transfer, larger size, auth required</li>
+        <li>Cisco: <code>copy ftp: flash:</code></li></ul></div>
+    </div>
+    <div class="teach"><b>What you learn</b>TFTP is fast + simple but unauthenticated and unreliable for big files. FTP supports auth but plaintext. For secure file moves use SCP (TCP 22) or SFTP (TCP 22). Internal lab: TFTP. Anything crossing untrusted networks: SCP.</div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ 5.1 Concepts ═ -->
+<section class="sim" id="s51">
+  <div class="sim-head">
+    <div class="l"><h3>Threat / Vuln / Exploit / Mitigation</h3><div class="meta">D5.1 · Key security concepts</div></div>
+    <div class="r"><span class="tag">vocabulary</span></div>
+  </div>
+  <div class="sim-body">
+    <div class="picker-grid" id="secGrid"></div>
+    <div class="result" id="secOut">Click a term above.</div>
+    <div class="teach"><b>What you learn</b>Threat = the bad actor or event. Vuln = the weakness it could exploit. Exploit = the actual technique used. Mitigation = your control. Distinguishing these is core to every CCNA security question.</div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ 5.2 Program ═ -->
+<section class="sim" id="s52">
+  <div class="sim-head">
+    <div class="l"><h3>Security Program Elements</h3><div class="meta">D5.2 · User awareness, training, physical access</div></div>
+    <div class="r"><span class="tag">three pillars</span></div>
+  </div>
+  <div class="sim-body">
+    <div class="compare" style="grid-template-columns:1fr 1fr 1fr">
+      <div class="col"><h4>User Awareness</h4><ul>
+        <li>Phishing recognition</li><li>Password hygiene</li>
+        <li>Social engineering signs</li><li>Lock screen, clean desk</li></ul></div>
+      <div class="col"><h4>Training</h4><ul>
+        <li>Annual security training</li><li>Role-specific (admin, dev, ops)</li>
+        <li>Tabletop exercises</li><li>Phishing simulations</li></ul></div>
+      <div class="col"><h4>Physical Access</h4><ul>
+        <li>Badge readers, mantrap</li><li>Locked equipment racks</li>
+        <li>Cable locks, tamper seals</li><li>Camera + log review</li></ul></div>
+    </div>
+    <div class="teach"><b>What you learn</b>The "weakest link" defense layer is people. Awareness = recognize. Training = respond. Physical = barrier. CCNA expects you to map a scenario (badge reader vs phishing email vs annual class) to the right pillar.</div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ 5.3 Local pw ═ -->
+<section class="sim" id="s53">
+  <div class="sim-head">
+    <div class="l"><h3>Local Password Configuration</h3><div class="meta">D5.3 · Device access control with local passwords</div></div>
+    <div class="r"><span class="tag">command builder</span></div>
+  </div>
+  <div class="sim-body">
+    <div class="input-line"><span class="label" style="width:120px">Enable secret</span><input type="text" id="lpEn" value="StrongP@ss" style="font-family:var(--font-mono);width:160px"></div>
+    <div class="input-line"><span class="label" style="width:120px">Console pw</span><input type="text" id="lpCon" value="ConsoleP@ss" style="font-family:var(--font-mono);width:160px"></div>
+    <div class="input-line"><span class="label" style="width:120px">VTY pw</span><input type="text" id="lpVty" value="VtyP@ss" style="font-family:var(--font-mono);width:160px"></div>
+    <div class="input-line"><span class="label" style="width:120px">Encrypt all</span>
+      <label style="font-family:var(--font-body)"><input type="checkbox" id="lpEnc" checked> service password-encryption</label></div>
+    <div class="cmd-out" id="lpOut"></div>
+    <div class="teach"><b>What you learn</b>Always <code>enable secret</code> (MD5+) over deprecated <code>enable password</code>. <code>service password-encryption</code> obfuscates type-7 passwords (weak — reversible) but is better than plaintext. Console + VTY each need their own password + <code>login</code>.</div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ 5.4 Pw policy ═ -->
+<section class="sim" id="s54">
+  <div class="sim-head">
+    <div class="l"><h3>Password Strength Meter</h3><div class="meta">D5.4 · Password policy elements</div></div>
+    <div class="r"><span class="tag">live meter</span></div>
+  </div>
+  <div class="sim-body">
+    <div class="input-line"><span class="label" style="width:100px">Password</span>
+      <input type="text" id="pwIn" value="Pa$$w0rd" style="flex:1;font-family:var(--font-mono)"></div>
+    <div class="strength-bar"><div class="strength-fill" id="pwBar"></div></div>
+    <div id="pwLabel" style="font-family:var(--font-display);font-weight:700;text-align:right;font-size:.84rem"></div>
+    <div id="pwCheck" style="margin-top:10px"></div>
+    <div class="teach"><b>What you learn</b>Length &gt; complexity. 12+ chars beats "P@ssw0rd" every time. Modern policy: passphrase + MFA. MFA factors: <i>something you know</i> (password) + <i>have</i> (token, cert) + <i>are</i> (biometric). Certificates beat passwords for device-to-device.</div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ 5.5 IPsec VPN ═ -->
+<section class="sim" id="s55">
+  <div class="sim-head">
+    <div class="l"><h3>IPsec VPN: Site-to-Site vs Remote-Access</h3><div class="meta">D5.5 · IPsec VPN topologies</div></div>
+    <div class="r"><span class="tag">topology toggle</span></div>
+  </div>
+  <div class="sim-body">
+    <div class="picker-grid" style="grid-template-columns:1fr 1fr">
+      <div class="pick active" data-vpn="s2s"><div class="pn">Site-to-Site</div><div class="ps">router ↔ router</div></div>
+      <div class="pick" data-vpn="ra"><div class="pn">Remote-Access</div><div class="ps">client ↔ headend</div></div>
+    </div>
+    <div id="vpnSvg" style="margin-top:14px"></div>
+    <div class="teach"><b>What you learn</b>S2S = always-on tunnel between two networks (HQ ↔ branch), users transparent. Remote-access = on-demand client (AnyConnect), one user at a time. Both use IKE phases 1 (set up secure channel) → 2 (negotiate IPsec SAs).</div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ 5.6 ACL ═══ -->
+<section class="sim" id="s56">
+  <div class="sim-head">
+    <div class="l"><h3>ACL Match Flow</h3><div class="meta">D5.6 · Access control lists</div></div>
+    <div class="r"><span class="tag">decision tree</span></div>
+  </div>
+  <div class="sim-body">
+    <div class="controls">
+      <span class="label">Packet from</span>
+      <select id="aclSrc" style="font-family:var(--font-mono);padding:6px;border:1px solid var(--border-strong);border-radius:var(--radius)">
+        <option>10.1.1.5</option><option>10.1.2.30</option><option>192.168.1.50</option><option>172.16.5.99</option>
+      </select>
+      <button class="btn" id="aclGo">Trace →</button>
+      <button class="btn ghost" id="aclReset">Reset</button>
+    </div>
+    <div class="acl-pkt" id="aclPkt">Packet src=…</div>
+    <div id="aclList"></div>
+    <p id="aclVerdict" style="text-align:center;margin-top:12px;font-family:var(--font-display);font-weight:700;font-size:1.1rem"></p>
+    <div class="teach"><b>What you learn</b>ACLs evaluate top-down. First match wins — rest are skipped. Implicit <b>deny any</b> at the end. Order rules from most-specific to most-general.</div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ 5.7 L2 sec ═ -->
+<section class="sim" id="s57">
+  <div class="sim-head">
+    <div class="l"><h3>Layer 2 Attack → Defense Pairing</h3><div class="meta">D5.7 · DHCP snooping, DAI, port security</div></div>
+    <div class="r"><span class="tag">attack/defense</span></div>
+  </div>
+  <div class="sim-body">
+    <table class="matrix">
+      <thead><tr><th>Attack</th><th>What happens</th><th>Defense</th></tr></thead>
+      <tbody>
+        <tr><td>Rogue DHCP server</td><td>Hands out malicious gateway/DNS</td><td class="y">DHCP snooping (trust uplink only)</td></tr>
+        <tr><td>ARP spoofing / poisoning</td><td>Attacker MITM by faking gateway MAC</td><td class="y">Dynamic ARP Inspection (DAI) — uses snooping binding</td></tr>
+        <tr><td>MAC flooding</td><td>Overflow CAM table → switch floods all frames</td><td class="y">Port security (limit MACs/port)</td></tr>
+        <tr><td>VLAN hopping (DTP)</td><td>Negotiate trunk on access port</td><td class="y">switchport mode access + nonegotiate</td></tr>
+        <tr><td>STP attack</td><td>Inject superior BPDU to become root</td><td class="y">BPDU Guard + Root Guard on edge ports</td></tr>
+      </tbody>
+    </table>
+    <div class="teach"><b>What you learn</b>L2 security is mostly about <i>trusting the right port</i>. Snooping/DAI need a binding table — set <code>ip dhcp snooping trust</code> only on the legit DHCP-server uplink. Port-security violation modes: shutdown / restrict / protect.</div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ 5.8 AAA ═ -->
+<section class="sim" id="s58">
+  <div class="sim-head">
+    <div class="l"><h3>RADIUS vs TACACS+</h3><div class="meta">D5.8 · AAA concepts</div></div>
+    <div class="r"><span class="tag">comparison</span></div>
+  </div>
+  <div class="sim-body">
+    <table class="matrix">
+      <thead><tr><th>Attribute</th><th>RADIUS</th><th>TACACS+</th></tr></thead>
+      <tbody>
+        <tr><td>Vendor</td><td>Open (IETF)</td><td class="q">Cisco</td></tr>
+        <tr><td>Transport</td><td>UDP 1812 (auth) / 1813 (acct)</td><td class="y">TCP 49</td></tr>
+        <tr><td>Encryption</td><td class="n">Password only</td><td class="y">Full payload</td></tr>
+        <tr><td>AAA separation</td><td class="n">Combines AuthN + AuthZ</td><td class="y">Separates A/A/A</td></tr>
+        <tr><td>Granular cmd authz</td><td class="n">Limited</td><td class="y">Yes (per-command)</td></tr>
+        <tr><td>Best for</td><td>Network access (802.1X, VPN)</td><td>Device admin</td></tr>
+      </tbody>
+    </table>
+    <div class="teach"><b>What you learn</b>RADIUS for <i>users hitting the network</i> (Wi-Fi 802.1X, VPN). TACACS+ for <i>admins on the device</i> (router/switch login). Memorize the ports — exam loves them.</div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ 5.9 Wi sec ═ -->
+<section class="sim" id="s59">
+  <div class="sim-head">
+    <div class="l"><h3>Wireless Security Evolution</h3><div class="meta">D5.9 · WPA, WPA2, WPA3</div></div>
+    <div class="r"><span class="tag">timeline</span></div>
+  </div>
+  <div class="sim-body">
+    <div class="timeline">
+      <div class="tl-item old"><h5>WEP (1997) — broken</h5><p>RC4 + 40/104-bit keys. Crackable in minutes. Never use.</p></div>
+      <div class="tl-item old"><h5>WPA (2003) — interim</h5><p>TKIP keying on top of WEP hardware. Patched WEP flaws but still weak.</p></div>
+      <div class="tl-item"><h5>WPA2 (2004) — current baseline</h5><p>AES/CCMP encryption + 4-way handshake. PSK or Enterprise (802.1X). Vulnerable to KRACK (2017, patched).</p></div>
+      <div class="tl-item new"><h5>WPA3 (2018) — modern</h5><p>SAE replaces 4-way handshake (forward secrecy). Mandatory PMF. WPA3-Enterprise: 192-bit suite.</p></div>
+    </div>
+    <div class="teach"><b>What you learn</b>WPA2 = AES/CCMP + 4-way. WPA3 = SAE (Simultaneous Authentication of Equals) — resists offline dictionary attacks. PSK (pre-shared key) for home; Enterprise (802.1X + RADIUS) for corp.</div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ 5.10 PSK ═ -->
+<section class="sim" id="s510">
+  <div class="sim-head">
+    <div class="l"><h3>WLAN WPA2 PSK Setup (GUI mock)</h3><div class="meta">D5.10 · WLAN within GUI using WPA2 PSK</div></div>
+    <div class="r"><span class="tag">GUI mock</span></div>
+  </div>
+  <div class="sim-body">
+    <div style="border:1px solid var(--border);border-radius:var(--radius);padding:18px;background:var(--bg-recessed)">
+      <div class="input-line"><span class="label" style="width:120px">SSID</span><input type="text" id="pkSsid" value="GUEST-WIFI" style="flex:1"></div>
+      <div class="input-line"><span class="label" style="width:120px">L2 Security</span>
+        <select id="pkL2" style="font-family:var(--font-mono);padding:6px;border:1px solid var(--border-strong);border-radius:var(--radius)">
+          <option selected>WPA2 + PSK</option><option>WPA2 + 802.1X</option></select></div>
+      <div class="input-line"><span class="label" style="width:120px">PSK Format</span>
+        <select id="pkFmt" style="font-family:var(--font-mono);padding:6px;border:1px solid var(--border-strong);border-radius:var(--radius)">
+          <option selected>ASCII</option><option>Hex</option></select></div>
+      <div class="input-line"><span class="label" style="width:120px">PSK</span><input type="text" id="pkVal" value="MyStrongPSK!" style="flex:1;font-family:var(--font-mono)"></div>
+      <div class="input-line"><span class="label" style="width:120px">Encryption</span>
+        <select id="pkEnc" style="font-family:var(--font-mono);padding:6px;border:1px solid var(--border-strong);border-radius:var(--radius)">
+          <option selected>AES (CCMP)</option><option>TKIP (legacy)</option></select></div>
+    </div>
+    <div class="result" id="pkOut" style="margin-top:12px"></div>
+    <div class="teach"><b>What you learn</b>WLC GUI path: <i>WLANs → Security → Layer 2 → WPA2 + PSK</i>. ASCII PSK 8–63 chars or 64-char hex. Always pick AES/CCMP — TKIP is deprecated. Same SSID can have multiple WLANs (per-VLAN/per-AP-group).</div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ 6.1 Auto impact ═ -->
+<section class="sim" id="s61">
+  <div class="sim-head">
+    <div class="l"><h3>Manual vs Automated Network Mgmt</h3><div class="meta">D6.1 · Automation impact</div></div>
+    <div class="r"><span class="tag">before/after</span></div>
+  </div>
+  <div class="sim-body">
+    <div class="compare">
+      <div class="col"><h4>Manual</h4><ul>
+        <li>SSH into each device individually</li><li>Copy/paste configs</li>
+        <li>Errors propagate from typos</li><li>No drift detection</li>
+        <li>Slow, doesn't scale past ~50 devices</li><li>Audit trail = paper / memory</li></ul></div>
+      <div class="col"><h4>Automated</h4><ul>
+        <li>Push from source-of-truth (Git)</li><li>Templated configs (Jinja, YAML)</li>
+        <li>Validation in CI before deploy</li><li>Drift detection + auto-remediation</li>
+        <li>Scales to thousands of devices</li><li>Every change logged + reviewable</li></ul></div>
+    </div>
+    <div class="teach"><b>What you learn</b>Automation reduces human-error, enforces standards, and turns "configure" into "deploy." Source of truth lives in Git → CI validates → tool (Ansible/Terraform/IaC) pushes → telemetry confirms. CCNA expects you to recognize the shift, not write code.</div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ 6.2 Trad vs ctrl ═ -->
+<section class="sim" id="s62">
+  <div class="sim-head">
+    <div class="l"><h3>Traditional vs Controller-Based</h3><div class="meta">D6.2 · Compare networking models</div></div>
+    <div class="r"><span class="tag">SVG diagram</span></div>
+  </div>
+  <div class="sim-body">
+    <div class="picker-grid" style="grid-template-columns:1fr 1fr">
+      <div class="pick active" data-net="trad"><div class="pn">Traditional</div><div class="ps">control + data on each device</div></div>
+      <div class="pick" data-net="ctrl"><div class="pn">Controller-based</div><div class="ps">centralized control plane</div></div>
+    </div>
+    <div id="netSvg" style="margin-top:14px"></div>
+    <div class="teach"><b>What you learn</b>Traditional = each switch/router runs its own control plane (CDP, STP, OSPF) and forwards packets locally. Controller-based (SDN) = one brain (controller) computes paths, pushes flow rules to dumb forwarders. Cisco SD-Access uses DNA Center / Catalyst Center.</div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ 6.3 SDN ═ -->
+<section class="sim" id="s63">
+  <div class="sim-head">
+    <div class="l"><h3>SDN Architecture: Overlay / Underlay / Fabric</h3><div class="meta">D6.3 · Software-defined architecture</div></div>
+    <div class="r"><span class="tag">layered</span></div>
+  </div>
+  <div class="sim-body">
+    <div class="layered">
+      <div class="layer l-app">Northbound API (apps, intent — DNA Center)</div>
+      <div class="layer l-os">Controller (control plane — computes paths)</div>
+      <div class="layer l-vm">Overlay (VXLAN tunnels — logical topology)</div>
+      <div class="layer l-net">Underlay (physical IP routing — gives reachability)</div>
+      <div class="layer l-hw">Fabric devices (forward via Southbound — OpenFlow / NETCONF / RESTCONF)</div>
+    </div>
+    <div class="teach"><b>What you learn</b>Underlay = "the wires" (IS-IS or OSPF making everything reachable). Overlay = VXLAN tunnels riding the underlay (logical L2 on top of L3). Fabric = the whole package. Northbound = apps → controller. Southbound = controller → devices.</div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ 6.4 AI/ML ═ -->
+<section class="sim" id="s64">
+  <div class="sim-head">
+    <div class="l"><h3>AI / ML in Network Operations</h3><div class="meta">D6.4 · AI and ML in network operations</div></div>
+    <div class="r"><span class="tag">use cases</span></div>
+  </div>
+  <div class="sim-body">
+    <div class="picker-grid" style="grid-template-columns:repeat(2,1fr)">
+      <div class="pick" data-ai="anomaly"><div class="pn">Anomaly Detection</div><div class="ps">predictive ML</div></div>
+      <div class="pick" data-ai="capacity"><div class="pn">Capacity Forecasting</div><div class="ps">predictive ML</div></div>
+      <div class="pick" data-ai="rca"><div class="pn">Root-Cause Analysis</div><div class="ps">predictive ML</div></div>
+      <div class="pick" data-ai="genconfig"><div class="pn">Config Generation</div><div class="ps">generative AI</div></div>
+      <div class="pick" data-ai="docs"><div class="pn">Doc Search / Q&A</div><div class="ps">generative AI</div></div>
+      <div class="pick" data-ai="chatops"><div class="pn">ChatOps assistant</div><div class="ps">generative AI</div></div>
+    </div>
+    <div class="result" id="aiOut" style="margin-top:12px">Click a use-case.</div>
+    <div class="teach"><b>What you learn</b>Predictive ML = pattern recognition over telemetry (anomaly, capacity, RCA). Generative AI = produce text/configs/explanations (Catalyst Center AI Assistant). Both augment ops, neither replaces fundamentals.</div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ 6.5 REST ═══ -->
+<section class="sim" id="s65">
+  <div class="sim-head">
+    <div class="l"><h3>REST Verb Playground</h3><div class="meta">D6.5 · REST-based APIs</div></div>
+    <div class="r"><span class="tag">CRUD mapping</span></div>
+  </div>
+  <div class="sim-body">
+    <p style="color:var(--ink-secondary);margin-bottom:8px">Click a verb. See the CRUD intent + a typical status code.</p>
+    <div class="verbs">
+      <button class="verb GET active" data-v="GET">GET</button>
+      <button class="verb POST" data-v="POST">POST</button>
+      <button class="verb PUT" data-v="PUT">PUT</button>
+      <button class="verb PATCH" data-v="PATCH">PATCH</button>
+      <button class="verb DELETE" data-v="DELETE">DELETE</button>
+    </div>
+    <div class="rest-out" id="restOut"></div>
+    <div class="teach"><b>What you learn</b>HTTP verbs map to CRUD: GET=Read, POST=Create, PUT=Replace, PATCH=Modify, DELETE=Destroy. 200 OK · 201 Created · 204 No Content · 401 Unauthorized · 404 Not Found · 500 Server Error.</div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ 6.6 Ansible/TF ═ -->
+<section class="sim" id="s66">
+  <div class="sim-head">
+    <div class="l"><h3>Ansible vs Terraform</h3><div class="meta">D6.6 · Configuration management mechanisms</div></div>
+    <div class="r"><span class="tag">comparison</span></div>
+  </div>
+  <div class="sim-body">
+    <table class="matrix">
+      <thead><tr><th>Trait</th><th>Ansible</th><th>Terraform</th><th>Puppet / Chef</th></tr></thead>
+      <tbody>
+        <tr><td>Style</td><td>Procedural (playbooks)</td><td class="y">Declarative (HCL)</td><td>Declarative</td></tr>
+        <tr><td>Mode</td><td class="y">Push (agentless)</td><td class="y">Push (provider APIs)</td><td>Pull (agent on each node)</td></tr>
+        <tr><td>Language</td><td>YAML</td><td>HCL</td><td>Ruby DSL</td></tr>
+        <tr><td>Best for</td><td>Config + orchestration</td><td>Cloud infra provisioning</td><td>Server config drift</td></tr>
+        <tr><td>State</td><td>Stateless</td><td class="y">Stateful (state file)</td><td>Stateful (PuppetDB)</td></tr>
+        <tr><td>Network device</td><td class="y">Yes (network modules)</td><td>Limited</td><td>Limited</td></tr>
+      </tbody>
+    </table>
+    <div class="teach"><b>What you learn</b>Ansible = "do these steps" — push, agentless, YAML, network-friendly. Terraform = "this should exist" — declarative, stateful, cloud-first. Puppet/Chef = "this should always be true" — pull, agent-based, server config.</div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ 6.7 JSON ═ -->
+<section class="sim" id="s67">
+  <div class="sim-head">
+    <div class="l"><h3>JSON Structure Visualizer</h3><div class="meta">D6.7 · JSON-encoded data components</div></div>
+    <div class="r"><span class="tag">syntax highlighter</span></div>
+  </div>
+  <div class="sim-body">
+    <div class="input-line"><span class="label">JSON</span>
+      <textarea id="jsIn" rows="6" style="flex:1;font-family:var(--font-mono);font-size:.86rem;padding:8px;border:1px solid var(--border-strong);border-radius:var(--radius);min-width:300px">{
+  "device": "R1",
+  "interfaces": [
+    {"name": "Gi0/0", "vlan": 10, "up": true},
+    {"name": "Gi0/1", "vlan": 20, "up": false}
+  ],
+  "ospf": {"area": 0, "router_id": "1.1.1.1"}
+}</textarea></div>
+    <button class="btn" id="jsParse">Parse + colorize</button>
+    <pre class="json-view" id="jsOut" style="margin-top:10px">Click parse to colorize.</pre>
+    <div class="teach"><b>What you learn</b>JSON: 6 types — <span class="json-str">"string"</span>, <span class="json-num">number</span>, <span class="json-bool">true/false/null</span>, <span class="json-punc">{ object }</span>, <span class="json-punc">[ array ]</span>. Keys always quoted. Trailing commas illegal. YAML = same data, indentation-based. XML = tags + attributes (verbose).</div>
+  </div>
+</section>
+
+</main>
+</div>
+
+<script>
+// ─── 1.5 TCP ───────────────────────────────────────────────────────
+{
+  const steps=[
+    {id:'pkt1',msg:'1) Client → Server: SYN, seq=x. "Open a session, here\'s my starting sequence number."'},
+    {id:'pkt2',msg:'2) Server → Client: SYN-ACK, seq=y, ack=x+1. "I acknowledge yours, here\'s mine."'},
+    {id:'pkt3',msg:'3) Client → Server: ACK, ack=y+1. ★ Connection ESTABLISHED — data can flow.'}
+  ];
+  let i=0;
+  const lbl=document.getElementById('tcpStepLbl');
+  const next=document.getElementById('tcpStep');
+  const reset=document.getElementById('tcpReset');
+  next.onclick=()=>{
+    if(i>=steps.length){lbl.textContent='Handshake complete. Reset to replay.';return;}
+    document.getElementById(steps[i].id).classList.add('show');
+    lbl.textContent=steps[i].msg;
+    i++;
+  };
+  reset.onclick=()=>{i=0;[1,2,3].forEach(n=>document.getElementById('pkt'+n).classList.remove('show'));lbl.textContent='Click "Next packet" to start the handshake.';};
+}
+
+// ─── 1.6 Subnet ────────────────────────────────────────────────────
+{
+  const cidr=document.getElementById('cidr');
+  const out={
+    val:document.getElementById('cidrVal'),
+    mask:document.getElementById('subMask'),
+    wild:document.getElementById('subWild'),
+    hosts:document.getElementById('subHosts'),
+    count:document.getElementById('subCount'),
+    bits:document.getElementById('subBits')
+  };
+  function render(){
+    const n=+cidr.value;
+    out.val.textContent='/'+n;
+    // bits
+    out.bits.innerHTML='';
+    for(let i=0;i<32;i++){
+      if(i>0 && i%8===0){const sep=document.createElement('div');sep.className='octet-sep';out.bits.appendChild(sep);}
+      const b=document.createElement('div');
+      b.className='bit '+(i<n?'net':'host');
+      b.textContent=i<n?'1':'0';
+      out.bits.appendChild(b);
+    }
+    // mask
+    const maskBits=('1'.repeat(n)+'0'.repeat(32-n));
+    const maskOct=[0,1,2,3].map(i=>parseInt(maskBits.slice(i*8,i*8+8),2)).join('.');
+    out.mask.textContent=maskOct;
+    out.wild.textContent=[0,1,2,3].map(i=>255-parseInt(maskBits.slice(i*8,i*8+8),2)).join('.');
+    const hostBits=32-n;
+    out.hosts.textContent=hostBits>=2?(2**hostBits-2).toLocaleString():(hostBits===1?'0 (p2p /31)':'1 (host /32)');
+    out.count.textContent=(2**Math.max(0,n-24)).toLocaleString();
+  }
+  cidr.oninput=render;render();
+}
+
+// ─── 1.8 EUI-64 ────────────────────────────────────────────────────
+{
+  const inp=document.getElementById('euiMac');
+  const o={a:document.getElementById('euiOrig'),b:document.getElementById('euiFlip'),c:document.getElementById('euiFinal')};
+  function row(target,bytes,marks={}){
+    target.innerHTML='';
+    bytes.forEach((b,i)=>{
+      const d=document.createElement('div');
+      d.className='eui-byte'+(marks.flip===i?' flip':'')+(marks.insert&&marks.insert.includes(i)?' insert':'');
+      d.textContent=b;target.appendChild(d);
+    });
+  }
+  function go(){
+    const raw=inp.value.replace(/[:.\-\s]/g,'').toUpperCase();
+    if(raw.length!==12){alert('MAC must be 12 hex chars');return;}
+    const bytes=raw.match(/.{2}/g);
+    row(o.a,bytes);
+    // flip 7th bit of first byte (U/L bit)
+    const first=parseInt(bytes[0],16);
+    const flipped=(first^0x02).toString(16).toUpperCase().padStart(2,'0');
+    const flippedArr=[flipped,...bytes.slice(1)];
+    setTimeout(()=>row(o.b,flippedArr,{flip:0}),300);
+    // insert FF FE
+    const final=[...flippedArr.slice(0,3),'FF','FE',...flippedArr.slice(3)];
+    setTimeout(()=>row(o.c,final,{insert:[3,4]}),700);
+  }
+  document.getElementById('euiGo').onclick=go;go();
+}
+
+// ─── 1.11 Wi-Fi ────────────────────────────────────────────────────
+{
+  const grid=document.getElementById('wifiGrid');
+  const msg=document.getElementById('wifiMsg');
+  for(let c=1;c<=11;c++){
+    const d=document.createElement('div');
+    d.className='wifi-ch';d.dataset.ch=c;d.style.height='30%';
+    grid.appendChild(d);
+    d.onclick=()=>{
+      [...grid.children].forEach(x=>{x.classList.remove('active','overlap');x.style.height='30%'});
+      d.classList.add('active');d.style.height='100%';
+      // overlap = within ±4 channels (22 MHz wide, 5 MHz spacing)
+      [...grid.children].forEach(x=>{
+        const dist=Math.abs(+x.dataset.ch-c);
+        if(dist>0 && dist<=4){x.classList.add('overlap');x.style.height=(80-dist*15)+'%'}
+      });
+      const isClean=[1,6,11].includes(c);
+      msg.innerHTML=isClean?`<b style="color:var(--good)">Channel ${c}: clean.</b> No overlap with channels 1, 6, or 11 (the trio).`:
+        `<b style="color:var(--bad)">Channel ${c}: bleeds into ${c-4>0?c-4:1}–${c+4<=11?c+4:11}.</b> Stick to 1 / 6 / 11.`;
+    };
+  }
+}
+
+// ─── 2.1 VLAN ──────────────────────────────────────────────────────
+{
+  const tag=document.getElementById('ftag');
+  const vid=document.getElementById('vlanId');
+  const fvid=document.getElementById('fvid');
+  const msg=document.getElementById('frameMsg');
+  document.querySelectorAll('[data-vlan]').forEach(b=>{
+    b.onclick=()=>{
+      document.querySelectorAll('[data-vlan]').forEach(x=>{x.classList.remove('btn');x.classList.add('btn','ghost')});
+      b.classList.remove('ghost');
+      if(b.dataset.vlan==='trunk'){
+        tag.style.display='flex';tag.classList.remove('pop');void tag.offsetWidth;tag.classList.add('pop');
+        msg.textContent='Trunk port: 4-byte 802.1Q tag inserted, carries VLAN '+vid.value+' across the link.';
+      } else {
+        tag.style.display='none';
+        msg.textContent='Access port: tag stripped before client sees it. Client sees a plain Ethernet frame on VLAN '+vid.value+'.';
+      }
+    };
+  });
+  vid.oninput=()=>{fvid.textContent=vid.value};
+}
+
+// ─── 2.5 STP ───────────────────────────────────────────────────────
+{
+  const switches=[
+    {id:'SW1',pri:32768,mac:'00:1A:2B:00:00:01'},
+    {id:'SW2',pri:32768,mac:'00:1A:2B:00:00:02'},
+    {id:'SW3',pri:32768,mac:'00:1A:2B:00:00:03'},
+    {id:'SW4',pri:32768,mac:'00:1A:2B:00:00:04'},
+    {id:'SW5',pri:32768,mac:'00:1A:2B:00:00:05'},
+    {id:'SW6',pri:32768,mac:'00:1A:2B:00:00:06'}
+  ];
+  const net=document.getElementById('stpNet');
+  function render(){
+    net.innerHTML='';
+    switches.forEach((s,i)=>{
+      const d=document.createElement('div');
+      d.className='stp-sw';d.id='sw'+i;
+      d.innerHTML=`<span class="crown">👑</span><div class="name">${s.id}</div><div class="pri">MAC ${s.mac.slice(-5)}</div>
+        <input type="number" value="${s.pri}" min="0" max="61440" step="4096" data-i="${i}">`;
+      net.appendChild(d);
+    });
+    net.querySelectorAll('input').forEach(inp=>{
+      inp.onclick=e=>e.stopPropagation();
+      inp.oninput=()=>switches[+inp.dataset.i].pri=+inp.value;
+    });
+  }
+  function elect(){
+    document.querySelectorAll('.stp-sw').forEach(s=>s.classList.remove('root'));
+    let win=switches[0],wi=0;
+    switches.forEach((s,i)=>{
+      if(s.pri<win.pri || (s.pri===win.pri && s.mac<win.mac)){win=s;wi=i}
+    });
+    document.getElementById('sw'+wi).classList.add('root');
+    document.getElementById('stpMsg').innerHTML=`Root: <b>${win.id}</b> · priority ${win.pri} · MAC ${win.mac}`;
+  }
+  document.getElementById('stpElect').onclick=elect;
+  document.getElementById('stpReset').onclick=()=>{
+    switches.forEach((s,i)=>{s.pri=32768;s.mac='00:1A:2B:00:00:0'+(Math.floor(Math.random()*9)+1)});
+    render();document.getElementById('stpMsg').textContent='Set priorities then click Elect.';
+    document.querySelectorAll('.stp-sw').forEach(s=>s.classList.remove('root'));
+  };
+  render();
+}
+
+// ─── 3.1 AD race ───────────────────────────────────────────────────
+{
+  const protos=[
+    {n:'Connected',ad:0},{n:'Static',ad:1},{n:'eBGP',ad:20},
+    {n:'EIGRP',ad:90},{n:'OSPF',ad:110},{n:'RIP',ad:120}
+  ];
+  const race=document.getElementById('race');
+  function render(){
+    race.innerHTML='';
+    protos.forEach(p=>{
+      const r=document.createElement('div');
+      r.className='race-row';r.dataset.n=p.n;
+      r.innerHTML=`<div class="race-name">${p.n}</div>
+        <div class="race-track"><div class="race-fill" style="width:0"></div></div>
+        <div class="race-ad">AD ${p.ad}</div>`;
+      race.appendChild(r);
+    });
+  }
+  document.getElementById('adGo').onclick=()=>{
+    render();
+    const winner=protos.reduce((a,b)=>a.ad<b.ad?a:b);
+    setTimeout(()=>{
+      protos.forEach(p=>{
+        const row=race.querySelector(`[data-n="${p.n}"]`);
+        const fill=row.querySelector('.race-fill');
+        // higher AD = slower fill (longer animation duration)
+        const speed=p.ad===0?100:Math.min(100,(p.ad/120)*100);
+        fill.style.transitionDuration=(0.8+(p.ad/120)*1.5)+'s';
+        fill.style.width=speed+'%';
+        if(p.ad===winner.ad){fill.classList.add('win');row.classList.add('win')}
+        else row.classList.add('lose');
+      });
+    },50);
+  };
+  render();
+}
+
+// ─── 3.4 OSPF FSM ──────────────────────────────────────────────────
+{
+  const states=[
+    {n:'Down',d:'No hellos received yet. Quiet.'},
+    {n:'Init',d:'Hello received from a neighbor. Not yet bidirectional.'},
+    {n:'2-Way',d:'Both routers see each other in their hello. DR/BDR election happens here.'},
+    {n:'ExStart',d:'Pick master/slave for DBD exchange. Stuck here = MTU mismatch.'},
+    {n:'Exchange',d:'Database Description (DBD) packets exchanged. LSAs summarized.'},
+    {n:'Loading',d:'Request missing LSAs. Wait for LSU/LSAck pairs.'},
+    {n:'Full',d:'Adjacency complete. Routers can forward traffic.'}
+  ];
+  const fsm=document.getElementById('fsm');
+  const desc=document.getElementById('fsmDesc');
+  let i=-1;
+  function render(){
+    fsm.innerHTML='';
+    states.forEach((s,k)=>{
+      const d=document.createElement('div');
+      d.className='fsm-state'+(k<i?' done':k===i?' current':'');
+      d.textContent=s.n;
+      fsm.appendChild(d);
+      if(k<states.length-1){const a=document.createElement('span');a.className='fsm-arrow';a.textContent='→';fsm.appendChild(a)}
+    });
+  }
+  document.getElementById('fsmNext').onclick=()=>{
+    if(i<states.length-1){i++;render();desc.textContent=`${states[i].n}: ${states[i].d}`}
+    else desc.textContent='Adjacency Full. Reset to replay.';
+  };
+  document.getElementById('fsmReset').onclick=()=>{i=-1;render();desc.textContent='Click "Advance" to step through the 7 OSPF neighbor states.'};
+  render();
+}
+
+// ─── 3.5 HSRP ──────────────────────────────────────────────────────
+{
+  const a=document.getElementById('rA'),b=document.getElementById('rB');
+  const msg=document.getElementById('hsrpMsg');
+  document.getElementById('hsrpKill').onclick=()=>{
+    if(a.classList.contains('active')){
+      a.classList.remove('active');a.classList.add('dead');
+      msg.textContent='R1 down. R2 misses 3 hellos (~10s)...';
+      setTimeout(()=>{
+        b.classList.remove('standby');b.classList.add('active');
+        b.querySelector('.role').textContent='Active';
+        msg.innerHTML='<b style="color:var(--good)">R2 promoted to Active.</b> VIP & vMAC unchanged. Hosts saw zero downtime at L3.';
+      },1500);
+    }
+  };
+  document.getElementById('hsrpReset').onclick=()=>{
+    a.className='hsrp-r active';a.querySelector('.role').textContent='Active';
+    b.className='hsrp-r standby';b.querySelector('.role').textContent='Standby';
+    msg.textContent='Both up. Hosts default-gateway to the VIP.';
+  };
+}
+
+// ─── 4.1 NAT ───────────────────────────────────────────────────────
+{
+  const inIPs=['10.0.0.10','10.0.0.20','10.0.0.30','10.0.0.40'];
+  const dest='8.8.8.8:443';
+  const tbody=document.getElementById('natRows');
+  let portCounter=33000;
+  document.getElementById('natSend').onclick=()=>{
+    const src=inIPs[Math.floor(Math.random()*inIPs.length)];
+    const sport=Math.floor(Math.random()*40000)+10000;
+    const gport=portCounter++;
+    document.getElementById('natIn').innerHTML=`<span class="nat-pkt">${src}:${sport}</span>`;
+    setTimeout(()=>{document.getElementById('natOut').innerHTML=`<span class="nat-pkt">203.0.113.5:${gport}</span>`},400);
+    setTimeout(()=>{
+      const tr=document.createElement('tr');tr.className='new';
+      tr.innerHTML=`<td>${src}:${sport}</td><td>203.0.113.5:${gport}</td><td>${dest}</td>`;
+      tbody.prepend(tr);
+    },600);
+  };
+  document.getElementById('natReset').onclick=()=>{tbody.innerHTML='';document.getElementById('natIn').innerHTML='';document.getElementById('natOut').innerHTML='';portCounter=33000};
+}
+
+// ─── 4.5 Syslog dial ───────────────────────────────────────────────
+{
+  const lvls=[
+    {n:'Emergency',d:'System unusable. Reboot territory.',c:'#7c1d1d'},
+    {n:'Alert',d:'Immediate action needed. Pager-fire.',c:'#991b1b'},
+    {n:'Critical',d:'Critical conditions. Hardware faults.',c:'#dc2626'},
+    {n:'Error',d:'Error conditions. Process crash, link down.',c:'#ea580c'},
+    {n:'Warning',d:'Warnings. Threshold exceeded.',c:'#ca8a04'},
+    {n:'Notice',d:'Normal but significant. Config change.',c:'#65a30d'},
+    {n:'Info',d:'Informational. Routine messages. Default level.',c:'#16a34a'},
+    {n:'Debug',d:'Debug-level. Verbose, troubleshooting only.',c:'#2563eb'}
+  ];
+  const dial=document.getElementById('dial');
+  const arc=document.getElementById('dialArc');
+  const needle=document.getElementById('dialNeedle');
+  const num=document.getElementById('dialNum');
+  const lvl=document.getElementById('dialLvl');
+  const desc=document.getElementById('dialDesc');
+  function render(){
+    const v=+dial.value;
+    const pct=v/7;
+    arc.setAttribute('stroke-dashoffset',553-(553*pct));
+    arc.setAttribute('stroke',lvls[v].c);
+    needle.style.transform=`rotate(${pct*270-135}deg)`;
+    num.textContent=v;num.style.color=lvls[v].c;
+    lvl.textContent=lvls[v].n;lvl.style.color=lvls[v].c;
+    desc.innerHTML=`<b style="color:${lvls[v].c}">${lvls[v].n} (${v}):</b> ${lvls[v].d}`;
+  }
+  dial.oninput=render;render();
+}
+
+// ─── 5.6 ACL ───────────────────────────────────────────────────────
+{
+  const rules=[
+    {n:1,test:ip=>ip.startsWith('10.1.1.'),action:'permit',label:'permit 10.1.1.0/24'},
+    {n:2,test:ip=>ip.startsWith('10.1.2.'),action:'deny', label:'deny   10.1.2.0/24'},
+    {n:3,test:ip=>ip.startsWith('192.168.'),action:'permit',label:'permit 192.168.0.0/16'},
+    {n:99,test:()=>true,action:'deny',label:'(implicit) deny any',implicit:true}
+  ];
+  const list=document.getElementById('aclList');
+  function render(){
+    list.innerHTML='';
+    rules.forEach(r=>{
+      const d=document.createElement('div');
+      d.className='acl-rule';d.dataset.n=r.n;
+      d.innerHTML=`<span>${r.n===99?'':'rule '+r.n+' · '}${r.label}</span><span class="verdict">—</span>`;
+      if(r.implicit)d.style.opacity='.7';
+      list.appendChild(d);
+    });
+  }
+  render();
+  document.getElementById('aclGo').onclick=async()=>{
+    render();
+    const ip=document.getElementById('aclSrc').value;
+    document.getElementById('aclPkt').textContent='Packet src='+ip;
+    document.getElementById('aclVerdict').textContent='';
+    let matched=false;
+    for(const r of rules){
+      const el=list.querySelector(`[data-n="${r.n}"]`);
+      el.classList.add('checking');
+      el.querySelector('.verdict').textContent='checking…';
+      await new Promise(r=>setTimeout(r,500));
+      el.classList.remove('checking');
+      if(!matched && r.test(ip)){
+        matched=true;
+        el.classList.add(r.action==='permit'?'matched':'matched-deny');
+        el.querySelector('.verdict').textContent=r.action.toUpperCase();
+        const v=document.getElementById('aclVerdict');
+        v.textContent=r.action==='permit'?`✓ Packet permitted (rule ${r.n})`:`✗ Packet ${r.implicit?'denied by implicit deny':'denied (rule '+r.n+')'}`;
+        v.style.color=r.action==='permit'?'var(--good)':'var(--bad)';
+      } else if(matched){
+        el.classList.add('skipped');
+        el.querySelector('.verdict').textContent='skipped';
+      } else {
+        el.querySelector('.verdict').textContent='no match';
+      }
+    }
+  };
+  document.getElementById('aclReset').onclick=()=>{render();document.getElementById('aclVerdict').textContent='';document.getElementById('aclPkt').textContent='Packet src=…'};
+}
+
+// ─── 6.5 REST ──────────────────────────────────────────────────────
+{
+  const verbs={
+    GET:{crud:'Read',code:'200 OK',body:'{ "id": 42, "name": "router-1", "uptime": 3600 }'},
+    POST:{crud:'Create',code:'201 Created',body:'{ "id": 43, "location": "/api/devices/43" }'},
+    PUT:{crud:'Replace (idempotent)',code:'200 OK',body:'{ "id": 42, "name": "router-1", "model": "9300" }'},
+    PATCH:{crud:'Modify (partial)',code:'200 OK',body:'{ "id": 42, "name": "router-1-renamed" }'},
+    DELETE:{crud:'Destroy',code:'204 No Content',body:''}
+  };
+  const out=document.getElementById('restOut');
+  function show(v){
+    const r=verbs[v];
+    out.innerHTML=`<span class="status-line">→ ${v} /api/devices/42</span>HTTP/1.1 ${r.code}\nIntent: ${r.crud}\n\n${r.body||'(empty body)'}`;
+  }
+  document.querySelectorAll('.verb').forEach(b=>{
+    b.onclick=()=>{
+      document.querySelectorAll('.verb').forEach(x=>x.classList.remove('active'));
+      b.classList.add('active');show(b.dataset.v);
+    };
+  });
+  show('GET');
+}
+
+// ─── 1.1 Components ───────────────────────────────────────────────
+{
+  const cmps=[
+    {n:'Router',l:'L3',d:'Forwards by IP. Connects different L3 networks. Runs routing protocols.'},
+    {n:'L2 Switch',l:'L2',d:'Forwards by MAC. CAM table. One broadcast domain per VLAN.'},
+    {n:'L3 Switch',l:'L2/L3',d:'L2 forwarding + inter-VLAN routing via SVI. Faster than router-on-stick.'},
+    {n:'NGFW',l:'L3–L7',d:'Stateful firewall + IPS + app awareness + URL filter + user-ID.'},
+    {n:'IPS',l:'L3–L7',d:'Inspects traffic for known attacks. Blocks (inline) or alerts (passive).'},
+    {n:'Access Point',l:'L1–L2',d:'Bridges 802.11 wireless to 802.3 Ethernet. PoE-powered (af/at/bt).'},
+    {n:'WLC',l:'L3 mgmt',d:'Centralized control of lightweight APs via CAPWAP. RF, security, SSID.'},
+    {n:'Endpoint',l:'L7',d:'Laptop, phone, IoT. Originates and consumes traffic.'},
+    {n:'Server',l:'L7',d:'Hosts services (DHCP, DNS, web, app). Wired or virtualized.'}
+  ];
+  const grid=document.getElementById('cmpGrid');
+  cmps.forEach((c,i)=>{const d=document.createElement('div');d.className='pick';d.dataset.i=i;
+    d.innerHTML=`<div class="pn">${c.n}</div><div class="ps">${c.l}</div>`;grid.appendChild(d);
+    d.onclick=()=>{grid.querySelectorAll('.pick').forEach(x=>x.classList.remove('active'));d.classList.add('active');
+      document.getElementById('cmpOut').innerHTML=`<b>${c.n}</b> · OSI ${c.l}<br>${c.d}`;};});
+}
+
+// ─── 1.2 Topology ─────────────────────────────────────────────────
+{
+  const tops={
+    '2tier':{n:'Two-Tier (Collapsed Core)',d:'Access + Distribution-Core. Smaller campus.',
+      svg:`<svg class="svg-diagram" viewBox="0 0 500 220"><rect class="device on" x="180" y="20" width="140" height="40" rx="6"/><text class="lbl inv" x="250" y="45">Dist+Core (collapsed)</text><line class="conn live" x1="250" y1="60" x2="100" y2="120"/><line class="conn live" x1="250" y1="60" x2="250" y2="120"/><line class="conn live" x1="250" y1="60" x2="400" y2="120"/><rect class="device" x="60" y="120" width="80" height="40" rx="6"/><text class="lbl" x="100" y="145">Access</text><rect class="device" x="210" y="120" width="80" height="40" rx="6"/><text class="lbl" x="250" y="145">Access</text><rect class="device" x="360" y="120" width="80" height="40" rx="6"/><text class="lbl" x="400" y="145">Access</text></svg>`},
+    '3tier':{n:'Three-Tier',d:'Core + Distribution + Access. Large enterprise / campus.',
+      svg:`<svg class="svg-diagram" viewBox="0 0 500 280"><rect class="device on" x="200" y="10" width="100" height="34" rx="6"/><text class="lbl inv" x="250" y="32">Core</text><line class="conn live" x1="250" y1="44" x2="120" y2="80"/><line class="conn live" x1="250" y1="44" x2="380" y2="80"/><rect class="device" x="80" y="80" width="80" height="34" rx="6"/><text class="lbl" x="120" y="102">Dist</text><rect class="device" x="340" y="80" width="80" height="34" rx="6"/><text class="lbl" x="380" y="102">Dist</text><line class="conn live" x1="120" y1="114" x2="60" y2="170"/><line class="conn live" x1="120" y1="114" x2="180" y2="170"/><line class="conn live" x1="380" y1="114" x2="320" y2="170"/><line class="conn live" x1="380" y1="114" x2="440" y2="170"/><rect class="device" x="20" y="170" width="80" height="34" rx="6"/><text class="lbl" x="60" y="192">Access</text><rect class="device" x="140" y="170" width="80" height="34" rx="6"/><text class="lbl" x="180" y="192">Access</text><rect class="device" x="280" y="170" width="80" height="34" rx="6"/><text class="lbl" x="320" y="192">Access</text><rect class="device" x="400" y="170" width="80" height="34" rx="6"/><text class="lbl" x="440" y="192">Access</text></svg>`},
+    'spineleaf':{n:'Spine-Leaf',d:'Every leaf reaches every spine in 1 hop. DC fabric standard.',
+      svg:`<svg class="svg-diagram" viewBox="0 0 500 220"><rect class="device on" x="60" y="20" width="80" height="34" rx="6"/><text class="lbl inv" x="100" y="42">Spine 1</text><rect class="device on" x="210" y="20" width="80" height="34" rx="6"/><text class="lbl inv" x="250" y="42">Spine 2</text><rect class="device on" x="360" y="20" width="80" height="34" rx="6"/><text class="lbl inv" x="400" y="42">Spine 3</text>${[60,210,360].map(x=>[60,210,360].map(y=>`<line class="conn live" x1="${x+40}" y1="54" x2="${y+40}" y2="140"/>`).join('')).join('')}<rect class="device" x="60" y="140" width="80" height="34" rx="6"/><text class="lbl" x="100" y="162">Leaf 1</text><rect class="device" x="210" y="140" width="80" height="34" rx="6"/><text class="lbl" x="250" y="162">Leaf 2</text><rect class="device" x="360" y="140" width="80" height="34" rx="6"/><text class="lbl" x="400" y="162">Leaf 3</text></svg>`},
+    'wan':{n:'WAN',d:'Sites linked over carrier (MPLS, SD-WAN, VPN).',
+      svg:`<svg class="svg-diagram" viewBox="0 0 500 200"><rect class="device" x="20" y="80" width="100" height="40" rx="6"/><text class="lbl" x="70" y="105">Site A</text><line class="conn live" x1="120" y1="100" x2="180" y2="100"/><ellipse cx="250" cy="100" rx="80" ry="40" fill="#FEF3C7" stroke="#B45309" stroke-width="2"/><text class="lbl" x="250" y="105">Carrier (MPLS / SD-WAN)</text><line class="conn live" x1="320" y1="100" x2="380" y2="100"/><rect class="device" x="380" y="80" width="100" height="40" rx="6"/><text class="lbl" x="430" y="105">Site B</text></svg>`},
+    'soho':{n:'SOHO',d:'One combo box (router + AP + switch). Small office, home.',
+      svg:`<svg class="svg-diagram" viewBox="0 0 500 200"><rect class="device on" x="200" y="60" width="100" height="60" rx="6"/><text class="lbl inv" x="250" y="85">SOHO box</text><text class="lbl inv" x="250" y="105" style="font-size:10px">router+AP+sw</text><line class="conn live" x1="200" y1="90" x2="100" y2="150"/><line class="conn live" x1="300" y1="90" x2="400" y2="150"/><circle cx="100" cy="160" r="20" fill="#F3F0EB" stroke="#C7C3BC"/><text class="lbl" x="100" y="165" style="font-size:10px">PC</text><circle cx="400" cy="160" r="20" fill="#F3F0EB" stroke="#C7C3BC"/><text class="lbl" x="400" y="165" style="font-size:10px">Phone</text></svg>`},
+    'cloud':{n:'On-Prem + Cloud (Hybrid)',d:'On-prem ↔ public cloud over VPN/Direct-Connect.',
+      svg:`<svg class="svg-diagram" viewBox="0 0 500 200"><rect class="device" x="20" y="60" width="120" height="80" rx="6"/><text class="lbl" x="80" y="105">On-prem</text><line class="conn live" x1="140" y1="100" x2="200" y2="100" stroke-dasharray="4 3"/><text class="lbl" x="250" y="90" style="font-size:11px">VPN / Direct Connect</text><path d="M280,80 q-30,20 0,40 q40,0 50,-20 q-10,-30 -50,-20 z" fill="#DBEAFE" stroke="#1E40AF"/><text class="lbl" x="320" y="105">Cloud (AWS/Azure/GCP)</text></svg>`}
+  };
+  const picks=document.getElementById('topoPicks');
+  Object.entries(tops).forEach(([k,t],i)=>{const d=document.createElement('div');d.className='pick'+(i===0?' active':'');d.dataset.k=k;
+    d.innerHTML=`<div class="pn">${t.n}</div>`;picks.appendChild(d);
+    d.onclick=()=>{picks.querySelectorAll('.pick').forEach(x=>x.classList.remove('active'));d.classList.add('active');
+      document.getElementById('topoSvg').innerHTML=t.svg;document.getElementById('topoDesc').textContent=t.d;};});
+  picks.firstChild.click();
+}
+
+// ─── 1.3 Cabling ──────────────────────────────────────────────────
+{
+  const dist=document.getElementById('cabDist');
+  const distLbl=document.getElementById('cabDistVal');
+  const speed=document.getElementById('cabSpeed');
+  const out=document.getElementById('cabOut');
+  function rec(){
+    const d=+dist.value,s=+speed.value;
+    distLbl.textContent=d>=1000?(d/1000).toFixed(1)+' km':d+' m';
+    let cable='',color='good',note='';
+    if(d<=100){
+      if(s<=1000){cable='Cat5e or Cat6 copper';note='Cheap, ubiquitous, RJ45.';}
+      else if(s<=10000){cable='Cat6a copper';note='10GBASE-T up to 100 m.';}
+      else {cable='Fiber (MMF / SMF)';note='Copper can\'t do >10 Gbps in CCNA scope.';color='info';}
+    } else if(d<=550){cable='Multimode fiber (OM3/OM4)';note='Short-reach DC, between buildings.';color='info';}
+    else if(d<=10000){cable='Single-mode fiber (OS2)';note='Long-haul. Pairs with 1310 nm or 1550 nm transceivers.';color='info';}
+    else {cable='Single-mode fiber + amplifiers / DWDM';note='Carrier-class long-haul.';color='warn';}
+    out.className='result '+color;
+    out.innerHTML=`<b>Recommend:</b> ${cable}<br><span style="font-family:var(--font-body);font-size:.92rem">${note}</span>`;
+  }
+  dist.oninput=rec;speed.onchange=rec;rec();
+}
+
+// ─── 1.4 Interface errors ─────────────────────────────────────────
+{
+  const errs=[
+    {n:'Late collisions',d:'Collisions after first 64 bytes. <b>Root cause: duplex mismatch.</b> One side full, other half. Fix: hardcode duplex on both ends.'},
+    {n:'CRC errors',d:'Bad checksum on received frame. <b>Root cause: bad cable, EMI, failing transceiver, MTU mismatch upstream.</b>'},
+    {n:'Runts (&lt; 64 B)',d:'Frames too short. <b>Root cause: collisions or bad NIC.</b> Half-duplex = expected; full-duplex = hardware/cable problem.'},
+    {n:'Giants (&gt; 1518 B)',d:'Frames too long. <b>Root cause: MTU mismatch / jumbo frames not enabled end-to-end.</b>'},
+    {n:'Input errors / drops',d:'Frame couldn\'t be processed. <b>Root cause: oversubscription, buffer exhaustion, malformed.</b>'},
+    {n:'Interface resets',d:'Link bouncing. <b>Root cause: speed/duplex mismatch, flapping cable, SFP failure.</b>'},
+    {n:'up/down (line/proto)',d:'Line up, protocol down. <b>Root cause: encapsulation mismatch (PPP/HDLC), keepalive failure, no IP.</b>'},
+    {n:'admin down',d:'Manually shut. <b>Root cause: <code>shutdown</code> applied. Fix: <code>no shutdown</code>.</b>'}
+  ];
+  const grid=document.getElementById('errGrid');
+  errs.forEach(e=>{const d=document.createElement('div');d.className='pick';
+    d.innerHTML=`<div class="pn">${e.n}</div>`;grid.appendChild(d);
+    d.onclick=()=>{grid.querySelectorAll('.pick').forEach(x=>x.classList.remove('active'));d.classList.add('active');
+      document.getElementById('errOut').innerHTML=e.d;};});
+}
+
+// ─── 1.7 Private IPv4 ─────────────────────────────────────────────
+{
+  function classify(ip){
+    const parts=ip.trim().split('.').map(Number);
+    if(parts.length!==4||parts.some(p=>isNaN(p)||p<0||p>255))return{c:'bad',msg:'Invalid IPv4.'};
+    const [a,b]=parts;
+    if(a===10)return{c:'good',msg:`<b>Private (Class A — 10.0.0.0/8)</b> · RFC 1918`};
+    if(a===172&&b>=16&&b<=31)return{c:'good',msg:`<b>Private (Class B — 172.16.0.0/12)</b> · RFC 1918`};
+    if(a===192&&b===168)return{c:'good',msg:`<b>Private (Class C — 192.168.0.0/16)</b> · RFC 1918`};
+    if(a===169&&b===254)return{c:'',msg:`<b>APIPA / link-local (169.254.0.0/16)</b> · RFC 3927 — DHCP failed.`};
+    if(a===127)return{c:'',msg:`<b>Loopback (127.0.0.0/8)</b> · RFC 1122 — local only.`};
+    if(a>=224&&a<=239)return{c:'',msg:`<b>Multicast (Class D — 224.0.0.0/4)</b> · RFC 5771`};
+    if(a>=240)return{c:'bad',msg:`<b>Reserved / experimental (Class E)</b>`};
+    if(a===0)return{c:'bad',msg:`<b>"This network" (0.0.0.0/8)</b>`};
+    let cl='?';
+    if(a<=126)cl='A (/8 default)';else if(a<=191)cl='B (/16 default)';else if(a<=223)cl='C (/24 default)';
+    return{c:'info',msg:`<b>Public IPv4 — Class ${cl}</b>`};
+  }
+  function go(){const r=classify(document.getElementById('ipIn').value);const o=document.getElementById('ipOut');
+    o.className='result '+(r.c||'info');o.innerHTML=r.msg;}
+  document.getElementById('ipGo').onclick=go;
+  document.getElementById('ipRand').onclick=()=>{
+    const samples=['10.5.50.1','172.18.4.7','192.168.10.1','169.254.5.5','127.0.0.1','8.8.8.8','203.0.113.5','224.0.0.5','45.33.32.156'];
+    document.getElementById('ipIn').value=samples[Math.floor(Math.random()*samples.length)];go();};
+  go();
+}
+
+// ─── 1.9 IPv6 types ───────────────────────────────────────────────
+{
+  function id6(s){
+    s=s.trim().toLowerCase();
+    if(s==='::1')return{c:'good',msg:'<b>Loopback ::1</b> — local only.'};
+    if(s==='::')return{c:'',msg:'<b>Unspecified ::</b> — used as src in DHCPv6 solicit.'};
+    if(s.startsWith('fe80'))return{c:'good',msg:'<b>Link-local (fe80::/10)</b> — required on every IPv6 iface, never routed.'};
+    if(s.startsWith('fc')||s.startsWith('fd'))return{c:'good',msg:'<b>ULA (fc00::/7)</b> — IPv6 equivalent of RFC 1918.'};
+    if(s.startsWith('ff')){
+      const scope=s[3];const sc={'1':'interface-local','2':'link','5':'site','8':'org','e':'global'}[scope]||'?';
+      return{c:'info',msg:`<b>Multicast (ff00::/8)</b> · scope: <b>${sc}</b>`};}
+    if(/^[23]/.test(s))return{c:'good',msg:'<b>Global Unicast (2000::/3)</b> — internet-routable.'};
+    return{c:'bad',msg:'Unrecognized prefix.'};
+  }
+  function go(v){const r=id6(v||document.getElementById('v6In').value);const o=document.getElementById('v6Out');
+    o.className='result '+(r.c||'info');o.innerHTML=r.msg;}
+  document.getElementById('v6Go').onclick=()=>go();
+  document.querySelectorAll('[data-v6]').forEach(p=>p.onclick=()=>{document.getElementById('v6In').value=p.dataset.v6;go(p.dataset.v6);});
+  go();
+}
+
+// ─── 1.10 OS verify ───────────────────────────────────────────────
+{
+  const osCmds={
+    win:`> ipconfig /all\n\nWindows IP Configuration\n   Host Name . . . . . . : Romeo-PC\n\nEthernet adapter Ethernet:\n   IPv4 Address. . . . . : 192.168.1.50\n   Subnet Mask . . . . . : 255.255.255.0\n   Default Gateway . . . : 192.168.1.1\n   DNS Servers . . . . . : 8.8.8.8\n\n> route print\n> ping 8.8.8.8\n> tracert 8.8.8.8\n> nslookup cisco.com`,
+    mac:`$ ifconfig en0\nen0: flags=8863 mtu 1500\n  inet 192.168.1.50 netmask 0xffffff00 broadcast 192.168.1.255\n  ether a0:99:9b:11:22:33\n\n$ ipconfig getifaddr en0\n192.168.1.50\n\n$ netstat -nr | grep default\n$ ping 8.8.8.8\n$ traceroute 8.8.8.8\n$ dig cisco.com`,
+    lin:`$ ip a\n2: eth0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500\n    inet 192.168.1.50/24 brd 192.168.1.255 scope global eth0\n    link/ether a0:99:9b:11:22:33\n\n$ ip route\ndefault via 192.168.1.1 dev eth0\n\n$ ping 8.8.8.8\n$ traceroute 8.8.8.8\n$ dig cisco.com`
+  };
+  document.querySelectorAll('[data-os]').forEach(p=>p.onclick=()=>{
+    document.querySelectorAll('[data-os]').forEach(x=>x.classList.remove('active'));p.classList.add('active');
+    const o=document.getElementById('osOut');o.textContent=osCmds[p.dataset.os];});
+  document.getElementById('osOut').textContent=osCmds.win;
+}
+
+// ─── 1.12 Virtualization ──────────────────────────────────────────
+{
+  const stacks={
+    vm:[{c:'l-app',t:'App A · App B · App C'},{c:'l-os',t:'Guest OS · Guest OS · Guest OS'},{c:'l-vm',t:'Hypervisor (ESXi / KVM / Hyper-V)'},{c:'l-hw',t:'Physical host (CPU, RAM, NIC)'}],
+    container:[{c:'l-app',t:'App A · App B · App C'},{c:'l-vm',t:'Container engine (Docker / containerd)'},{c:'l-os',t:'Shared host OS kernel'},{c:'l-hw',t:'Physical host'}],
+    vrf:[{c:'l-app',t:'VRF Customer-A · VRF Customer-B · VRF Mgmt'},{c:'l-net',t:'Independent routing tables, FIBs'},{c:'l-os',t:'One IOS / one device'},{c:'l-hw',t:'One physical router'}]
+  };
+  function render(k){const el=document.getElementById('virtStack');el.innerHTML=stacks[k].map(l=>`<div class="layer ${l.c}">${l.t}</div>`).join('');}
+  document.querySelectorAll('[data-virt]').forEach(p=>p.onclick=()=>{
+    document.querySelectorAll('[data-virt]').forEach(x=>x.classList.remove('active'));p.classList.add('active');render(p.dataset.virt);});
+  render('vm');
+}
+
+// ─── 1.13 CAM ─────────────────────────────────────────────────────
+{
+  const cam=new Map();const macs=['aa:00:00:00:00:01','aa:00:00:00:00:02','aa:00:00:00:00:03','aa:00:00:00:00:04'];
+  let frameCount=0;
+  document.getElementById('camFrame').onclick=()=>{
+    frameCount++;
+    const sIdx=Math.floor(Math.random()*macs.length);const dIdx=(sIdx+1+Math.floor(Math.random()*(macs.length-1)))%macs.length;
+    const src=macs[sIdx],dst=macs[dIdx];const port='Gi0/'+(sIdx+1);
+    cam.set(src,port);
+    const knownDst=cam.has(dst);
+    const action=knownDst?`unicast → ${cam.get(dst)}`:'<b>FLOOD</b> (dst unknown)';
+    document.getElementById('camMsg').innerHTML=`Frame #${frameCount}: src=<code>${src}</code> dst=<code>${dst}</code> · learned src on ${port} · ${action}`;
+    const tbody=document.getElementById('camRows');tbody.innerHTML='';
+    [...cam.entries()].forEach(([m,p])=>{const tr=document.createElement('tr');tr.innerHTML=`<td>${p}</td><td>${m}</td><td>learned</td>`;tbody.appendChild(tr);});};
+  document.getElementById('camReset').onclick=()=>{cam.clear();frameCount=0;document.getElementById('camRows').innerHTML='';
+    document.getElementById('camMsg').textContent='Click "Send frame" — switch learns SRC MAC, floods unknown DST.';};
+}
+
+// ─── 2.6 AP modes ─────────────────────────────────────────────────
+{
+  const apSvgs={
+    auto:`<svg class="svg-diagram" viewBox="0 0 500 180"><rect class="device on" x="180" y="60" width="140" height="60" rx="6"/><text class="lbl inv" x="250" y="85">Autonomous AP</text><text class="lbl inv" x="250" y="105" style="font-size:10px">full IOS · self-managed</text><line class="conn" x1="180" y1="90" x2="80" y2="90"/><circle cx="60" cy="90" r="20" fill="#F3F0EB" stroke="#C7C3BC"/><text class="lbl" x="60" y="95" style="font-size:10px">Client</text><line class="conn" x1="320" y1="90" x2="420" y2="90"/><rect class="device" x="420" y="70" width="60" height="40" rx="6"/><text class="lbl" x="450" y="95">Switch</text></svg>`,
+    light:`<svg class="svg-diagram" viewBox="0 0 500 220"><rect class="device" x="40" y="100" width="100" height="40" rx="6"/><text class="lbl" x="90" y="125">LWAP</text><text class="lbl" x="90" y="160" style="font-size:10px;fill:var(--ink-muted)">no local config</text><line class="conn" x1="140" y1="120" x2="220" y2="120"/><rect class="device" x="220" y="100" width="80" height="40" rx="6"/><text class="lbl" x="260" y="125">Switch</text><line class="conn live" x1="300" y1="120" x2="380" y2="120" stroke-dasharray="6 3"/><text x="340" y="110" class="lbl" style="font-size:10px;fill:var(--accent)">CAPWAP tunnel</text><rect class="device on" x="380" y="100" width="100" height="40" rx="6"/><text class="lbl inv" x="430" y="125">WLC</text><text class="lbl" x="430" y="160" style="font-size:10px;fill:var(--ink-muted)">central brain</text></svg>`
+  };
+  document.querySelectorAll('[data-ap]').forEach(p=>p.onclick=()=>{
+    document.querySelectorAll('[data-ap]').forEach(x=>x.classList.remove('active'));p.classList.add('active');
+    document.getElementById('apSvg').innerHTML=apSvgs[p.dataset.ap];});
+  document.getElementById('apSvg').innerHTML=apSvgs.auto;
+}
+
+// ─── 2.9 WLAN GUI ─────────────────────────────────────────────────
+{
+  function update(){
+    const ssid=document.getElementById('wgSsid').value,vlan=document.getElementById('wgVlan').value;
+    const sec=document.getElementById('wgSec').value,qos=document.getElementById('wgQos').value;
+    const bcast=document.getElementById('wgBcast').checked;
+    document.getElementById('wgOut').innerHTML=`<b>WLAN preview</b><br>SSID "${ssid}" on VLAN ${vlan}<br>Security: ${sec}<br>QoS: ${qos}<br>Broadcast: ${bcast?'enabled':'<span class="tag-warn">hidden</span> (clients must know SSID)'}`;
+  }
+  ['wgSsid','wgVlan','wgSec','wgQos','wgBcast'].forEach(id=>{const el=document.getElementById(id);el.oninput=update;el.onchange=update;});
+  update();
+}
+
+// ─── 3.3 Static route builder ─────────────────────────────────────
+{
+  function build(){
+    const dest=document.getElementById('srDest').value,mask=document.getElementById('srMask').value;
+    const type=document.getElementById('srType').value,nh=document.getElementById('srNh').value;
+    let cmd='';
+    if(type==='def')cmd=`R1(config)# ip route 0.0.0.0 0.0.0.0 ${nh}\n# default route → AD 1`;
+    else if(type==='float')cmd=`R1(config)# ip route ${dest} ${mask} ${nh} 200\n# floating static → AD 200 (backup to dynamic)`;
+    else if(type==='ex')cmd=`R1(config)# ip route ${dest} ${mask} ${nh}\n# exit-interface form (use only on point-to-point)`;
+    else cmd=`R1(config)# ip route ${dest} ${mask} ${nh}\n# next-hop IP form (recursive lookup)`;
+    cmd+=`\n\nR1# show ip route static\n  S    ${dest}/${mask.split('.').reduce((a,n)=>a+(n>>>0).toString(2).split('1').length-1,0)} [${type==='float'?'200':'1'}/0] via ${nh}`;
+    document.getElementById('srOut').innerHTML=`<span class="prompt">! Static Route</span>\n${cmd}`;
+  }
+  ['srDest','srMask','srType','srNh'].forEach(id=>document.getElementById(id).oninput=build);
+  document.getElementById('srType').onchange=build;build();
+}
+
+// ─── 4.3 DNS ──────────────────────────────────────────────────────
+{
+  const steps=[
+    {h:'1. Client → Recursive resolver',p:'Query: A www.cisco.com (UDP 53)'},
+    {h:'2. Resolver → Root (.)',p:'"Who knows .com?" Root replies with TLD NS records.'},
+    {h:'3. Resolver → TLD (.com)',p:'"Who knows cisco.com?" TLD replies with cisco.com NS.'},
+    {h:'4. Resolver → Authoritative cisco.com',p:'"What\'s www.cisco.com?" Authoritative returns A record.'},
+    {h:'5. Resolver → Client',p:'A 72.163.4.185 — cached for TTL.'}
+  ];
+  const tl=document.getElementById('dnsTl');
+  document.getElementById('dnsGo').onclick=async()=>{tl.innerHTML='';
+    for(const s of steps){const d=document.createElement('div');d.className='tl-item new';
+      d.innerHTML=`<h5>${s.h}</h5><p>${s.p}</p>`;tl.appendChild(d);await new Promise(r=>setTimeout(r,400));}};
+  document.getElementById('dnsReset').onclick=()=>{tl.innerHTML='';};
+}
+
+// ─── 4.6 DHCP relay ───────────────────────────────────────────────
+{
+  const pkt=document.getElementById('hlpPkt');
+  const msg=document.getElementById('hlpMsg');
+  const stages=[
+    {x:60,t:'Client broadcasts DHCP Discover (255.255.255.255).'},
+    {x:280,t:'Router catches broadcast on iface with ip helper-address.'},
+    {x:280,t:'Router rewrites: src=router, dst=10.5.5.5 unicast. Sets giaddr.'},
+    {x:500,t:'Server replies via giaddr — router relays back to client.'}
+  ];
+  let i=0;
+  document.getElementById('hlpGo').onclick=async()=>{
+    if(i>=stages.length){i=0;}
+    pkt.style.opacity='1';
+    pkt.style.transition='cx 0.6s var(--ease)';
+    pkt.setAttribute('cx',stages[i].x);
+    msg.textContent=stages[i].t;i++;};
+  document.getElementById('hlpReset').onclick=()=>{i=0;pkt.style.opacity='0';pkt.setAttribute('cx',60);msg.textContent='Click Send Discover.';};
+}
+
+// ─── 4.7 QoS PHB ──────────────────────────────────────────────────
+{
+  const traffic={
+    voice:{dscp:'EF (46)',q:'priority queue (LLQ)',p:'strict — drops over budget',d:'Voice gets PQ. Latency-sensitive, low jitter, small packets. EF = expedited forwarding.'},
+    video:{dscp:'AF41 (34)',q:'CBWFQ class with bandwidth guarantee',p:'shape to subscribed rate',d:'Interactive video. AF4x = lowest drop precedence in AF class 4.'},
+    data:{dscp:'AF21 (18)',q:'CBWFQ class',p:'no police',d:'Transactional / mission-critical data.'},
+    bulk:{dscp:'CS1 (8)',q:'class-default (best-effort)',p:'first to drop',d:'Backups, archives. Scavenger class.'}
+  };
+  document.querySelectorAll('[data-q]').forEach(p=>p.onclick=()=>{
+    document.querySelectorAll('[data-q]').forEach(x=>x.classList.remove('active'));p.classList.add('active');
+    document.querySelectorAll('.flow-node').forEach(n=>n.classList.remove('on'));
+    [1,2,3,4].forEach((n,i)=>setTimeout(()=>document.getElementById('qos'+n).classList.add('on'),i*250));
+    const t=traffic[p.dataset.q];const o=document.getElementById('qosOut');
+    o.className='result info';
+    o.innerHTML=`<b>Mark:</b> ${t.dscp}<br><b>Queue:</b> ${t.q}<br><b>Police/Shape:</b> ${t.p}<br><i>${t.d}</i>`;});
+}
+
+// ─── 4.8 SSH config ───────────────────────────────────────────────
+{
+  function build(){
+    const h=document.getElementById('sshHost').value,d=document.getElementById('sshDom').value;
+    const u=document.getElementById('sshUser').value,pw=document.getElementById('sshPw').value;
+    const v=document.getElementById('sshVer').value;
+    document.getElementById('sshOut').innerHTML=`<span class="prompt">! SSH setup on ${h}</span>
+${h}(config)# hostname ${h}
+${h}(config)# ip domain-name ${d}
+${h}(config)# crypto key generate rsa modulus 2048
+${h}(config)# ip ssh version ${v}
+${h}(config)# username ${u} privilege 15 secret ${pw}
+${h}(config)# line vty 0 15
+${h}(config-line)#  transport input ssh
+${h}(config-line)#  login local
+${h}(config-line)#  exec-timeout 5 0
+${h}(config-line)# end
+
+! verify
+${h}# show ip ssh
+${h}# show ssh`;
+  }
+  ['sshHost','sshDom','sshUser','sshPw','sshVer'].forEach(id=>{const el=document.getElementById(id);el.oninput=build;el.onchange=build;});build();
+}
+
+// ─── 5.1 Security concepts ────────────────────────────────────────
+{
+  const terms=[
+    {n:'Threat',t:'good',d:'<b>Threat</b> = the agent or event that could cause harm. <i>Examples: ransomware operator, disgruntled insider, natural disaster.</i>'},
+    {n:'Vulnerability',t:'warn',d:'<b>Vulnerability</b> = weakness that could be exploited. <i>Examples: unpatched SSH, default credentials, exposed mgmt port.</i>'},
+    {n:'Exploit',t:'bad',d:'<b>Exploit</b> = the actual technique/code that uses a vuln. <i>Examples: Metasploit module, phishing payload, SQL injection.</i>'},
+    {n:'Mitigation',t:'good',d:'<b>Mitigation</b> = the control that reduces risk. <i>Examples: patch, MFA, network segmentation, IPS signature.</i>'}
+  ];
+  const grid=document.getElementById('secGrid');
+  terms.forEach(t=>{const d=document.createElement('div');d.className='pick';
+    d.innerHTML=`<div class="pn">${t.n}</div>`;grid.appendChild(d);
+    d.onclick=()=>{grid.querySelectorAll('.pick').forEach(x=>x.classList.remove('active'));d.classList.add('active');
+      document.getElementById('secOut').innerHTML=t.d;};});
+}
+
+// ─── 5.3 Local pw config ──────────────────────────────────────────
+{
+  function build(){
+    const en=document.getElementById('lpEn').value,con=document.getElementById('lpCon').value;
+    const vty=document.getElementById('lpVty').value,enc=document.getElementById('lpEnc').checked;
+    document.getElementById('lpOut').innerHTML=`<span class="prompt">! Local password config</span>
+R1(config)# enable secret ${en}
+${enc?'R1(config)# service password-encryption\n':''}R1(config)# line console 0
+R1(config-line)#  password ${con}
+R1(config-line)#  login
+R1(config-line)#  exec-timeout 5 0
+R1(config-line)#  exit
+R1(config)# line vty 0 15
+R1(config-line)#  password ${vty}
+R1(config-line)#  login
+R1(config-line)#  transport input ssh
+R1(config-line)#  exit
+R1(config)# end
+
+! verify
+R1# show running-config | section line`;
+  }
+  ['lpEn','lpCon','lpVty','lpEnc'].forEach(id=>{const el=document.getElementById(id);el.oninput=build;el.onchange=build;});build();
+}
+
+// ─── 5.4 Pw strength ──────────────────────────────────────────────
+{
+  function score(pw){
+    let s=0;const checks=[];
+    if(pw.length>=8){s+=20;checks.push(['len8','✓ ≥ 8 chars',true]);}else checks.push(['len8','✗ at least 8 chars',false]);
+    if(pw.length>=12){s+=20;checks.push(['len12','✓ ≥ 12 chars',true]);}else checks.push(['len12','✗ better: ≥ 12',false]);
+    if(/[A-Z]/.test(pw)){s+=15;checks.push(['up','✓ uppercase',true]);}else checks.push(['up','✗ uppercase',false]);
+    if(/[a-z]/.test(pw)){s+=10;checks.push(['low','✓ lowercase',true]);}else checks.push(['low','✗ lowercase',false]);
+    if(/[0-9]/.test(pw)){s+=15;checks.push(['num','✓ digit',true]);}else checks.push(['num','✗ digit',false]);
+    if(/[^A-Za-z0-9]/.test(pw)){s+=20;checks.push(['sym','✓ symbol',true]);}else checks.push(['sym','✗ symbol',false]);
+    if(/(.)\1{2,}/.test(pw)){s-=10;checks.push(['rep','✗ avoid repeats',false]);}
+    return{s:Math.max(0,Math.min(100,s)),checks};
+  }
+  function lvl(s){if(s<40)return['Weak','#DC2626'];if(s<70)return['Medium','#CA8A04'];if(s<90)return['Strong','#16A34A'];return['Excellent','#2563EB'];}
+  function go(){const pw=document.getElementById('pwIn').value;const{s,checks}=score(pw);const[l,c]=lvl(s);
+    document.getElementById('pwBar').style.width=s+'%';document.getElementById('pwBar').style.background=c;
+    document.getElementById('pwLabel').textContent=l+' ('+s+'/100)';document.getElementById('pwLabel').style.color=c;
+    document.getElementById('pwCheck').innerHTML=checks.map(([,t,ok])=>`<span class="${ok?'tag-good':'tag-bad'}" style="margin:2px">${t}</span>`).join('');}
+  document.getElementById('pwIn').oninput=go;go();
+}
+
+// ─── 5.5 IPsec VPN ────────────────────────────────────────────────
+{
+  const vpns={
+    s2s:`<svg class="svg-diagram" viewBox="0 0 560 180"><rect class="device" x="20" y="60" width="100" height="40" rx="6"/><text class="lbl" x="70" y="85">HQ network</text><line class="conn" x1="120" y1="80" x2="180" y2="80"/><rect class="device on" x="180" y="60" width="80" height="40" rx="6"/><text class="lbl inv" x="220" y="85">HQ R</text><line class="conn live" x1="260" y1="80" x2="340" y2="80" stroke-dasharray="6 3"/><text x="300" y="60" class="lbl" style="font-size:11px;fill:var(--accent)">IPsec tunnel</text><rect class="device on" x="340" y="60" width="80" height="40" rx="6"/><text class="lbl inv" x="380" y="85">Branch R</text><line class="conn" x1="420" y1="80" x2="480" y2="80"/><rect class="device" x="480" y="60" width="80" height="40" rx="6"/><text class="lbl" x="510" y="85">Branch</text><text x="280" y="140" class="lbl">Always-on, transparent to users</text></svg>`,
+    ra:`<svg class="svg-diagram" viewBox="0 0 560 180"><circle cx="60" cy="80" r="22" fill="#F3F0EB" stroke="#C7C3BC"/><text class="lbl" x="60" y="85">Laptop</text><text class="lbl" x="60" y="115" style="font-size:10px;fill:var(--ink-muted)">AnyConnect</text><line class="conn live" x1="82" y1="80" x2="220" y2="80" stroke-dasharray="6 3"/><text x="150" y="65" class="lbl" style="font-size:11px;fill:var(--accent)">SSL/IPsec VPN</text><rect class="device on" x="220" y="60" width="100" height="40" rx="6"/><text class="lbl inv" x="270" y="85">Headend (ASA/FTD)</text><line class="conn" x1="320" y1="80" x2="420" y2="80"/><rect class="device" x="420" y="60" width="120" height="40" rx="6"/><text class="lbl" x="480" y="85">Corp network</text><text x="280" y="140" class="lbl">Per-user, on-demand</text></svg>`
+  };
+  document.querySelectorAll('[data-vpn]').forEach(p=>p.onclick=()=>{
+    document.querySelectorAll('[data-vpn]').forEach(x=>x.classList.remove('active'));p.classList.add('active');
+    document.getElementById('vpnSvg').innerHTML=vpns[p.dataset.vpn];});
+  document.getElementById('vpnSvg').innerHTML=vpns.s2s;
+}
+
+// ─── 5.10 WPA2 PSK ────────────────────────────────────────────────
+{
+  function go(){
+    const ssid=document.getElementById('pkSsid').value,l2=document.getElementById('pkL2').value;
+    const fmt=document.getElementById('pkFmt').value,val=document.getElementById('pkVal').value;
+    const enc=document.getElementById('pkEnc').value;
+    let warn='';
+    if(fmt==='ASCII'&&(val.length<8||val.length>63))warn='<br><span class="tag-bad">PSK must be 8–63 ASCII chars</span>';
+    if(enc.startsWith('TKIP'))warn+='<br><span class="tag-warn">TKIP deprecated — use AES</span>';
+    document.getElementById('pkOut').innerHTML=`<b>Apply WLAN config</b><br>SSID: ${ssid}<br>L2 Security: ${l2}<br>PSK (${fmt}): ${val.replace(/./g,'•')}<br>Encryption: ${enc}${warn}`;}
+  ['pkSsid','pkL2','pkFmt','pkVal','pkEnc'].forEach(id=>{const el=document.getElementById(id);el.oninput=go;el.onchange=go;});go();
+}
+
+// ─── 6.2 Trad vs Ctrl ─────────────────────────────────────────────
+{
+  const nets={
+    trad:`<svg class="svg-diagram" viewBox="0 0 560 220">${[80,210,340,470].map(x=>`<rect class="device" x="${x}" y="100" width="60" height="40" rx="6"/><text class="lbl" x="${x+30}" y="125">SW${(x-80)/130+1}</text><text class="lbl" x="${x+30}" y="160" style="font-size:9px;fill:var(--ink-muted)">own ctrl + data</text>`).join('')}${[140,270,400].map(x=>`<line class="conn live" x1="${x}" y1="120" x2="${x+70}" y2="120"/>`).join('')}<text x="280" y="40" class="lbl" style="font-size:13px">Each device runs STP, OSPF, CDP, etc. — its own brain</text></svg>`,
+    ctrl:`<svg class="svg-diagram" viewBox="0 0 560 240"><rect class="device on" x="200" y="10" width="160" height="44" rx="6"/><text class="lbl inv" x="280" y="35">Controller (DNA Center)</text><text class="lbl inv" x="280" y="50" style="font-size:10px">control plane lives here</text>${[80,210,340,470].map(x=>`<line class="conn live" x1="280" y1="54" x2="${x+30}" y2="120" stroke-dasharray="4 3"/>`).join('')}${[80,210,340,470].map(x=>`<rect class="device" x="${x}" y="120" width="60" height="40" rx="6"/><text class="lbl" x="${x+30}" y="145">SW</text><text class="lbl" x="${x+30}" y="180" style="font-size:9px;fill:var(--ink-muted)">forwarding only</text>`).join('')}${[140,270,400].map(x=>`<line class="conn live" x1="${x}" y1="140" x2="${x+70}" y2="140"/>`).join('')}<text x="280" y="220" class="lbl" style="font-size:11px;fill:var(--accent)">Southbound: NETCONF / RESTCONF / OpenFlow</text></svg>`
+  };
+  document.querySelectorAll('[data-net]').forEach(p=>p.onclick=()=>{
+    document.querySelectorAll('[data-net]').forEach(x=>x.classList.remove('active'));p.classList.add('active');
+    document.getElementById('netSvg').innerHTML=nets[p.dataset.net];});
+  document.getElementById('netSvg').innerHTML=nets.trad;
+}
+
+// ─── 6.4 AI/ML ────────────────────────────────────────────────────
+{
+  const ai={
+    anomaly:{t:'Predictive ML',d:'Streams of telemetry feed an unsupervised model. Sudden interface error spike or weird flow pattern → flagged. Tools: ThousandEyes, Catalyst Center insights.'},
+    capacity:{t:'Predictive ML',d:'Time-series forecast on link utilization → "uplink hits 80% in 14 days, plan upgrade." Saves outage-driven scrambles.'},
+    rca:{t:'Predictive ML',d:'Correlate logs/syslogs/SNMP across devices → suggest a single root cause (e.g. flapping fiber) instead of 12 alerts.'},
+    genconfig:{t:'Generative AI',d:'"Give me an OSPF area 0 config for two routers" → outputs ready CLI. Always review before push.'},
+    docs:{t:'Generative AI',d:'Cisco CLI / config docs → natural language Q&A. Reduces grep through TechZone.'},
+    chatops:{t:'Generative AI',d:'Slack bot: "show me port errors on R5" → assistant runs the show command via API + summarizes.'}};
+  document.querySelectorAll('[data-ai]').forEach(p=>p.onclick=()=>{
+    document.querySelectorAll('[data-ai]').forEach(x=>x.classList.remove('active'));p.classList.add('active');
+    const a=ai[p.dataset.ai];
+    document.getElementById('aiOut').innerHTML=`<b>${a.t}</b><br>${a.d}`;});
+}
+
+// ─── 6.7 JSON ─────────────────────────────────────────────────────
+{
+  function color(j){
+    return j.replace(/("(\\u[a-fA-F0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(\.\d+)?([eE][+-]?\d+)?)/g,m=>{
+      let cls='json-num';
+      if(/^"/.test(m)){cls=/:$/.test(m)?'json-key':'json-str';}
+      else if(/true|false|null/.test(m)){cls='json-bool';}
+      return`<span class="${cls}">${m}</span>`;}).replace(/[{}\[\],]/g,m=>`<span class="json-punc">${m}</span>`);
+  }
+  document.getElementById('jsParse').onclick=()=>{
+    try{const obj=JSON.parse(document.getElementById('jsIn').value);
+      document.getElementById('jsOut').innerHTML=color(JSON.stringify(obj,null,2));}
+    catch(e){document.getElementById('jsOut').innerHTML='<span style="color:#F87171">Parse error: '+e.message+'</span>';}};
+  document.getElementById('jsParse').click();
+}
+</script>
+</body>
+</html>
