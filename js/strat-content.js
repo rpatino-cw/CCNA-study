@@ -290,6 +290,8 @@
 
   function saveSRState(slug, state) {
     try { localStorage.setItem(srKey(slug), JSON.stringify(state)); } catch (_) {}
+    // Trigger debounced sync to cloud if available
+    if (window.ccnaSync && window.ccnaSync.queueSync) window.ccnaSync.queueSync();
   }
 
   function nextSchedule(s, rating) {
