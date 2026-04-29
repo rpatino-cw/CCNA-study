@@ -93,9 +93,51 @@
       '3. TABLE — markdown comparison table. Wrap in ```md ... ```',
       'Pick the format that teaches the concept most clearly: SVG for animatable processes (lookups, packet flow), Mermaid for state machines (STP, OSPF), Table for direct comparisons (TCP vs UDP).',
       'Output ONLY the chosen fenced block. No prose before or after.',
+      '',
+      'STRICT MERMAID RULES (Mermaid v10 only — most failures come from breaking these):',
+      '- First line MUST be exactly: flowchart TD   (or flowchart LR). Nothing else.',
+      '- Node label syntax: ID["Label text here"]   — always quote labels containing punctuation, colons, slashes, parens, or pipes.',
+      '- Edge with label: A -->|Label text| B    — pipes around the label. NEVER use   A --> B : Label   (that is PlantUML, not Mermaid).',
+      '- No colons inside node text without quotes. No   ID[Label]: extra text   — that is invalid.',
+      '- Do NOT mix transition syntaxes. Pick ONE: arrows only, or arrows-with-pipe-labels.',
+      '- subgraph blocks: subgraph Name ... end    — keep titles short, no special chars.',
+      '- No HTML tags inside labels except <br/>.',
+      '',
+      'GOOD example:',
+      '```mermaid',
+      'flowchart TD',
+      '    A["Frame arrives"] --> B{"Dest MAC in CAM table?"}',
+      '    B -->|Yes| C["Forward out matching port"]',
+      '    B -->|No| D["Flood out all ports except source"]',
+      '```',
+      '',
+      'BAD example (do NOT emit anything like this):',
+      '```mermaid',
+      'graph TD',
+      '    A[Start]: some text     <-- colon outside quotes',
+      '    A --> B : label          <-- PlantUML edge label syntax',
+      '    B[Label | with pipe]     <-- pipe inside unquoted label',
+      '```',
+      '',
     ];
     if (opts && opts.noSvg) lines.push('Do NOT use SVG. Use Mermaid or Table only.');
+    if (opts && opts.parseError) {
+      lines.push('Previous attempt failed Mermaid parse with error: ' + opts.parseError);
+      lines.push('Fix the syntax. Re-emit a valid block.');
+    }
     return lines.join('\n');
+  }
+
+  function sanitizeMermaid(payload) {
+    var s = String(payload);
+    s = s.replace(/^\s*graph\s+(TD|LR|TB|BT|RL)\b/i, 'flowchart $1');
+    s = s.replace(/(-->|---)\s*:\s*([^\n|]+?)\s*(?=\n|$|-->)/g, function (m, arrow, label) {
+      return arrow + '|' + label.trim() + '|';
+    });
+    s = s.replace(/^(\s*)([A-Za-z0-9_]+)\[([^"\]\n]*[:\|][^"\]\n]*)\]/gm, function (m, indent, id, label) {
+      return indent + id + '["' + label.replace(/"/g, "'") + '"]';
+    });
+    return s;
   }
 
   function extractBlock(text) {
@@ -121,16 +163,30 @@
   }
 
   async function renderMermaid(target, payload) {
+    const cleaned = sanitizeMermaid(payload);
     const id = 'mmd-' + Date.now();
-    target.innerHTML = '<pre class="mermaid" id="' + id + '">' + escapeHtml(payload) + '</pre>';
+    target.innerHTML = '<pre class="mermaid" id="' + id + '">' + escapeHtml(cleaned) + '</pre>';
     if (window.mermaid && typeof window.mermaid.run === 'function') {
       try {
         await window.mermaid.run({ nodes: [document.getElementById(id)] });
         return true;
-      } catch (e) { /* fall through to raw */ }
+      } catch (e) {
+        target.innerHTML = '<pre class="explainer-fallback">Mermaid parse failed: ' + escapeHtml(e.message || 'unknown') + '\n\n' + escapeHtml(cleaned) + '</pre>';
+        return false;
+      }
     }
-    target.innerHTML = '<pre class="explainer-fallback">' + escapeHtml(payload) + '</pre>';
+    target.innerHTML = '<pre class="explainer-fallback">' + escapeHtml(cleaned) + '</pre>';
     return false;
+  }
+
+  async function validateMermaid(payload) {
+    if (!window.mermaid || typeof window.mermaid.parse !== 'function') return { ok: true };
+    try {
+      await window.mermaid.parse(sanitizeMermaid(payload));
+      return { ok: true };
+    } catch (e) {
+      return { ok: false, error: e.message || 'parse error' };
+    }
   }
 
   function renderMarkdown(target, payload) {
@@ -194,15 +250,21 @@
 
     let block = null;
     let attempts = 0;
+    let lastParseError = null;
 
     while (attempts < 5 && !block) {
       attempts++;
       const noSvg = attempts >= 2;
       try {
-        const text = await window.gemini.generateText(null, buildPrompt(concept, { noSvg: noSvg }));
+        const text = await window.gemini.generateText(null, buildPrompt(concept, { noSvg: noSvg, parseError: lastParseError }));
         const candidate = extractBlock(text);
         if (!candidate) continue;
         if (candidate.format === 'svg' && (!looksLikeSvg(candidate.payload) || tooLong(candidate.payload))) continue;
+        if (candidate.format === 'mermaid') {
+          const v = await validateMermaid(candidate.payload);
+          if (!v.ok) { lastParseError = v.error; continue; }
+          candidate.payload = sanitizeMermaid(candidate.payload);
+        }
         block = candidate;
       } catch (e) {
         target.innerHTML = '<p class="explainer-empty">Couldn\'t reach Gemini: ' + escapeHtml(e.message || 'unknown error') + '</p>';
