@@ -627,6 +627,8 @@
   }
 
   function buildPrevNext(obj, allKeys) {
+    // Remove any existing nav from a previous SPA-nav run before re-appending
+    document.querySelectorAll('.obj-nav').forEach(function (n) { n.remove(); });
     var idx = allKeys.indexOf(obj);
     if (idx < 0) return;
     var nav = document.createElement('div');

@@ -91,10 +91,15 @@
     }
     badge.innerHTML='<div style="font-weight:700;color:var(--ink,#333);font-size:0.72rem;margin-bottom:2px">Group '+code+'</div>'+
       '<div>'+mc+' members | You: '+myR+'% | Avg: '+avgR+'%</div>';
-    // Stack sync-panel above group badge (avoid overlap)
+    // Stack: beta-badge (ALPHA vX.Y.Z) sits at bottom:12px → push group-badge above it,
+    // then push sync-panel above the group-badge.
     requestAnimationFrame(function(){
+      var beta=document.querySelector('.beta-badge');
+      var betaH=beta?beta.offsetHeight:0;
+      var groupBottom=14+(betaH?betaH+8:0);
+      badge.style.bottom=groupBottom+'px';
       var sync=document.getElementById('sync-panel');
-      if(sync){sync.style.bottom=(14+badge.offsetHeight+8)+'px';}
+      if(sync){sync.style.bottom=(groupBottom+badge.offsetHeight+8)+'px';}
     });
   }
 })();
