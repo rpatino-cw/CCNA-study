@@ -63,12 +63,7 @@
         if (anchor) {
           var sliced = sliceMarkdownSection(text, anchor);
           if (sliced) text = sliced;
-          else { // Heading not found — surface a clear note instead of dumping the whole sheet
-            var miss = document.createElement('p');
-            miss.style.color = 'var(--ink-muted)';
-            miss.textContent = '(no sub-section "' + anchor + '" found in ' + file + ' — falling back to full sheet)';
-            container.appendChild(miss);
-          }
+          else return; // Anchor not in this file — leaf content lives in a sibling cheat sheet; skip silently
         }
         // Strip wikilinks (vault refs)
         text = text.replace(/\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g, function (_, p1, p2) {
