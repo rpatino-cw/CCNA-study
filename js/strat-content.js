@@ -233,10 +233,12 @@
     var obj = getObjective();
     Promise.all([
       fetch('data/jeremy-deep-dive.json').then(function (r) { return r.json(); }),
-      fetch('data/cheat-sheets-index.json').then(function (r) { return r.json(); })
+      fetch('data/cheat-sheets-index.json').then(function (r) { return r.json(); }),
+      fetch('data/objective-fallback.json').then(function (r) { return r.ok ? r.json() : {}; }).catch(function () { return {}; })
     ]).then(function (data) {
       var dd = data[0];
       var mapping = data[1];
+      var fallback = data[2] || {};
       var sub = dd.subobjectives && dd.subobjectives[obj];
       if (!sub) {
         var pull = document.querySelector('.flow .pull');
@@ -246,6 +248,10 @@
       var theory = (sub.videos || []).filter(function (v) { return v.kind === 'theory'; });
       var labs = (sub.videos || []).filter(function (v) { return v.kind === 'lab'; });
       var fc = (sub.videos || []).filter(function (v) { return v.kind === 'flashcards'; });
+      // Apply fallback if no theory video for this objective
+      if (theory.length === 0 && fallback[obj]) {
+        theory = fallback[obj].map(function (f) { return Object.assign({ kind: 'theory', _fallback: true }, f); });
+      }
       populateHeader(obj, sub);
       populateLabs(labs);
       populateAnki(fc, theory, obj);
