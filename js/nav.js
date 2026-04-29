@@ -23,6 +23,7 @@
     { text: 'Plan', children: [
       { text: 'Sprint', href: 'sprint.html' },
       { text: 'Strategy', href: 'strategy.html' },
+      { text: 'Strat Overview', href: 'strat-core.html' },
       { text: 'Strat (drill)', href: 'strat.html' },
       { text: 'Exam Details', href: 'exam-details.html' },
       { text: 'Exam Tricks', href: 'exam-tricks.html' },
@@ -186,31 +187,7 @@
     });
   });
 
-  // ── Cert toggle — only on core + study group pages ──────────────
-  var togglePages = ['core.html','netplus.html','peers.html','index.html'];
-  if (togglePages.indexOf(currentFile) !== -1) {
-    var certToggle = document.createElement('div');
-    certToggle.className = 'cert-toggle';
-    certToggle.innerHTML =
-      '<button class="ct-opt' + (!isNetPlus ? ' on' : '') + '" data-c="ccna" title="' + (!isNetPlus ? 'Currently studying CCNA 200-301' : 'Switch to CCNA 200-301') + '">CCNA</button>' +
-      '<button class="ct-opt' + (isNetPlus ? ' on' : '') + '" data-c="net+" title="' + (isNetPlus ? 'Currently studying Network+ N10-009' : 'Switch to CompTIA Network+') + '">NET+</button>';
-    nav.appendChild(certToggle);
-    certToggle.querySelectorAll('.ct-opt').forEach(function(b) {
-      b.addEventListener('click', function() {
-        var c = b.getAttribute('data-c');
-        if (c === certTrack) return;
-        localStorage.setItem('ccna_cert_track', c);
-        // Navigate to the correct landing page for the selected cert
-        var targetMap = { 'ccna': 'core.html', 'net+': 'netplus.html' };
-        var sharedPages = ['peers.html', 'index.html'];
-        if (sharedPages.indexOf(currentFile) !== -1) {
-          location.reload();
-        } else {
-          window.location.href = fixHref(targetMap[c] || 'core.html');
-        }
-      });
-    });
-  }
+  // Cert toggle moved to Settings panel (js/settings.js).
 
   // Beta badge + bug report
   var beta = document.createElement('div');
