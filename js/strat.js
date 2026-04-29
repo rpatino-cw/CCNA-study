@@ -181,6 +181,16 @@
     const meta = sec.querySelector('.meta');
     const pull = sec.querySelector('.pull');
 
+    // Notes mode: cheat-sheet format takes priority (richer schema)
+    if (notes && notes.format === 'cheat-sheet') {
+      const sectionCount = (notes.sections || []).length;
+      if (status) status.textContent = `✓ cheat sheet · ${sectionCount} device sections`;
+      if (meta) meta.textContent = `Day ${entry.transcriptDay} · ${notes.transcriptTitle || entry.transcriptTitle} · cheat-sheet format`;
+      if (pull) pull.innerHTML = renderCheatSheet(notes);
+      paintFootnoteRefs(sec, entry, 'transcript');
+      return;
+    }
+
     // Notes mode: render structured study notes (bullets + bold + key takeaways)
     if (notes && notes.sections && notes.sections.length) {
       if (status) status.textContent = `✓ ${notes.sections.length} sections · study notes`;
@@ -241,6 +251,96 @@
         ${takeaway}
       </details>`;
     }).join('');
+  }
+
+  function renderCheatSheet(notes) {
+    function escapeHtml(s) {
+      return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+    function fmtInline(s) {
+      return escapeHtml(s)
+        .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+        .replace(/`([^`]+)`/g, '<code style="font-family:var(--font-mono,monospace);font-size:.88em;background:var(--bg-recessed,#f3f0eb);padding:1px 5px;border-radius:3px">$1</code>');
+    }
+
+    const parts = [];
+
+    if (notes.coreConcept) {
+      parts.push(`<div class="cs-core-concept">🧠 <strong>Core concept:</strong> ${fmtInline(notes.coreConcept)}</div>`);
+    }
+
+    if (notes.criticalTable && Array.isArray(notes.criticalTable.rows) && notes.criticalTable.rows.length) {
+      const ct = notes.criticalTable;
+      const cols = (ct.columns || ['Device', 'Function']).map(c => `<th>${escapeHtml(c)}</th>`).join('');
+      const rows = ct.rows.map(r => {
+        const cells = r.map(cell => `<td>${fmtInline(cell)}</td>`).join('');
+        return `<tr>${cells}</tr>`;
+      }).join('');
+      const header = ct.header ? `<h3>🔑 ${escapeHtml(ct.header)}</h3>` : '';
+      parts.push(`<div class="cs-critical-table">${header}<table><thead><tr>${cols}</tr></thead><tbody>${rows}</tbody></table></div>`);
+    }
+
+    if (Array.isArray(notes.memoryHack) && notes.memoryHack.length) {
+      const items = notes.memoryHack.map(line => {
+        const m = String(line).split('=');
+        if (m.length >= 2) {
+          const key = m[0].trim();
+          const val = m.slice(1).join('=').trim();
+          return `<li><strong>${escapeHtml(key)}</strong> = ${fmtInline(val)}</li>`;
+        }
+        return `<li>${fmtInline(line)}</li>`;
+      }).join('');
+      parts.push(`<div class="cs-memory-hack"><h3>⚡ MEMORY HACK (SUPER FAST)</h3><ul>${items}</ul></div>`);
+    }
+
+    if (Array.isArray(notes.sections) && notes.sections.length) {
+      const sectionsHtml = notes.sections.map((s, i) => {
+        const open = i === 0 ? ' open' : '';
+        const emoji = s.emoji ? `${s.emoji} ` : '';
+        const bullets = (s.bullets || []).map(b => `<li>${fmtInline(b)}</li>`).join('');
+        const tip = s.tip ? `<div class="cs-tip">💡 ${fmtInline(s.tip)}</div>` : '';
+        const examples = Array.isArray(s.examples) && s.examples.length
+          ? `<ul class="cs-examples">${s.examples.map(e => `<li>${fmtInline(e)}</li>`).join('')}</ul>`
+          : '';
+        const keyLine = s.keyLine ? `<div class="cs-keyline">🧠 ${fmtInline(s.keyLine)}</div>` : '';
+        const anchor = s.anchor ? ` data-anchor="${escapeHtml(s.anchor)}"` : '';
+        return `<details class="cs-section"${open}${anchor}>
+          <summary>${emoji}<strong>${escapeHtml(s.title || '')}</strong></summary>
+          <ul class="cs-bullets">${bullets}</ul>
+          ${tip}
+          ${examples}
+          ${keyLine}
+        </details>`;
+      }).join('');
+      parts.push(`<div class="cs-sections">${sectionsHtml}</div>`);
+    }
+
+    if (notes.examTraps && (Array.isArray(notes.examTraps.wrong) || Array.isArray(notes.examTraps.right))) {
+      const wrong = (notes.examTraps.wrong || []).map(t => `<li>${fmtInline(t)}</li>`).join('');
+      const right = (notes.examTraps.right || []).map(t => `<li>${fmtInline(t)}</li>`).join('');
+      parts.push(`<div class="cs-traps-wrap"><h3>⚠️ COMMON EXAM TRAPS</h3><div class="cs-traps">
+        <div class="wrong"><strong>❌ Wrong</strong><ul>${wrong}</ul></div>
+        <div class="right"><strong>✅ Right</strong><ul>${right}</ul></div>
+      </div></div>`);
+    }
+
+    if (Array.isArray(notes.quickAnswerMap) && notes.quickAnswerMap.length) {
+      const grid = notes.quickAnswerMap.map(([q, a]) =>
+        `<div class="q">${fmtInline(q)}</div><div class="a">→ ${fmtInline(a)}</div>`
+      ).join('');
+      parts.push(`<div class="cs-quick-map-wrap"><h3>🧪 QUICK ANSWER MAP</h3><div class="cs-quick-map">${grid}</div></div>`);
+    }
+
+    if (notes.oneLineSummary) {
+      parts.push(`<div class="cs-master-summary"><div class="cs-master-summary-label">🧠 ONE-LINE MASTER SUMMARY</div>${fmtInline(notes.oneLineSummary)}</div>`);
+    }
+
+    if (notes.sourceUrl) {
+      const label = notes.sourceLabel || 'Source';
+      parts.push(`<a class="cs-source" href="${escapeHtml(notes.sourceUrl)}" target="_blank" rel="noopener noreferrer">Source: ${escapeHtml(label)} ↗</a>`);
+    }
+
+    return parts.join('');
   }
 
   function paintQuizSection(objId, entry, transcript) {
