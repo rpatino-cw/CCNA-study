@@ -75,7 +75,13 @@
         renderError(`Could not load transcript: ${entry.transcriptFile}`);
         return;
       }
-      hydrate(objId, entry, transcript);
+      // Optional notes file (study-note format, preferred over raw transcript)
+      let notes = null;
+      const notesPath = entry.transcriptFile.replace('/clean/', '/notes/').replace(/\.txt$/, '.json');
+      try {
+        notes = await fetchJSON(notesPath);
+      } catch (e) { /* notes optional — fall back to transcript anchors */ }
+      hydrate(objId, entry, transcript, notes);
     }).catch(err => {
       renderError('Bootstrap failed: ' + (err.message || err));
     });
@@ -88,11 +94,11 @@
     document.body.insertBefore(banner, document.body.firstChild);
   }
 
-  function hydrate(objId, entry, transcript) {
+  function hydrate(objId, entry, transcript, notes) {
     paintMasthead(objId, entry);
     paintMastery(objId);
     paintSideRail(objId);
-    paintTranscriptSection(objId, entry, transcript);
+    paintTranscriptSection(objId, entry, transcript, notes);
     paintQuizSection(objId, entry, transcript);
     paintLabSection(objId, entry);
     paintEvalSection(objId, entry, transcript);
@@ -167,17 +173,26 @@
     if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
-  function paintTranscriptSection(objId, entry, transcript) {
+  function paintTranscriptSection(objId, entry, transcript, notes) {
     const sec = $$('section.flow')[0];
     if (!sec) return;
     const wordCount = (transcript.match(/\S+/g) || []).length;
     const status = sec.querySelector('.status');
-    if (status) status.textContent = `✓ read · ${wordCount.toLocaleString()} words`;
     const meta = sec.querySelector('.meta');
-    if (meta) meta.textContent = `Day ${entry.transcriptDay} · ${entry.transcriptTitle} · ~${Math.ceil(wordCount / 220)} min reading.`;
-    // Pull-block: render all anchored sections collapsibly. First section open,
-    // rest collapsed. Falls back to first paragraph if no anchors found.
     const pull = sec.querySelector('.pull');
+
+    // Notes mode: render structured study notes (bullets + bold + key takeaways)
+    if (notes && notes.sections && notes.sections.length) {
+      if (status) status.textContent = `✓ ${notes.sections.length} sections · study notes`;
+      if (meta) meta.textContent = `Day ${entry.transcriptDay} · ${notes.transcriptTitle || entry.transcriptTitle} · key points + takeaways`;
+      if (pull) pull.innerHTML = renderNotes(notes.sections);
+      paintFootnoteRefs(sec, entry, 'transcript');
+      return;
+    }
+
+    // Fallback: raw transcript anchors collapsibly
+    if (status) status.textContent = `✓ read · ${wordCount.toLocaleString()} words`;
+    if (meta) meta.textContent = `Day ${entry.transcriptDay} · ${entry.transcriptTitle} · ~${Math.ceil(wordCount / 220)} min reading.`;
     if (pull) {
       const anchorRe = /\[([a-z0-9-]+)\]\s*([\s\S]*?)(?=\n\s*\[[a-z0-9-]+\]|\Z)/g;
       const anchors = [];
@@ -199,6 +214,33 @@
       }
     }
     paintFootnoteRefs(sec, entry, 'transcript');
+  }
+
+  function renderNotes(sections) {
+    function escapeHtml(s) {
+      return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+    function fmtInline(s) {
+      // Bold **text** and inline `code` from author-written markdown subset
+      return escapeHtml(s)
+        .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+        .replace(/`([^`]+)`/g, '<code style="font-family:var(--font-mono,monospace);font-size:.88em;background:var(--bg-recessed,#f3f0eb);padding:1px 5px;border-radius:3px">$1</code>');
+    }
+    return sections.map((s, i) => {
+      const open = i === 0 ? ' open' : '';
+      const bullets = (s.bullets || []).map(b => {
+        const indent = b.startsWith('  ') ? ' style="margin-left:18px;list-style:none"' : '';
+        return `<li${indent}>${fmtInline(b.replace(/^  /, ''))}</li>`;
+      }).join('');
+      const takeaway = s.keyTakeaway
+        ? `<div class="note-takeaway" style="margin-top:10px;padding:8px 12px;border-left:3px solid var(--accent,#d97706);background:var(--bg-active,#fef7ec);font-style:italic">💡 <strong>Key takeaway:</strong> ${fmtInline(s.keyTakeaway)}</div>`
+        : '';
+      return `<details class="transcript-note"${open} data-anchor="${escapeHtml(s.anchor)}" style="margin-bottom:16px;border:1px solid var(--ink-faint,#e5e0d6);border-radius:6px;padding:12px 16px">
+        <summary style="cursor:pointer;font-weight:700;font-size:1.05rem;padding:4px 0">${escapeHtml(s.title)}</summary>
+        <ul style="margin:12px 0 0;padding-left:20px;line-height:1.65">${bullets}</ul>
+        ${takeaway}
+      </details>`;
+    }).join('');
   }
 
   function paintQuizSection(objId, entry, transcript) {
