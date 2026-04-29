@@ -51,6 +51,7 @@
       { text: 'Quick Quiz', href: 'netplus-quiz.html' },
       { text: 'Port Drill', href: 'netplus-ports.html' },
       { text: 'Subnetting Drill', href: 'netplus-subnetting.html' },
+      { text: 'Prefix Tier Trainer', href: 'prefix-tier-trainer.html' },
       { text: 'Flashcards', href: 'netplus-flashcards.html' },
       { text: 'Diagnostic', href: 'netplus-diagnostic.html' },
       { text: 'Console Labs', href: 'console-labs.html' },

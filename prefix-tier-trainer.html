@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#FAF7F2">
+<title>Prefix Tier Trainer — Subnetting Drill</title>
+<link rel="icon" type="image/svg+xml" href="/CCNA-study/favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;1,8..60,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="css/shared.css?v=4.55">
+<style>
+  .page-header { padding: var(--s-md) 0 var(--s-sm); margin-bottom: var(--s-lg); border-bottom: 2px solid var(--ink); }
+  .page-header h1 { font-family: var(--font-display); font-size: 2.4rem; font-weight: 700; letter-spacing: -0.04em; line-height: 1; margin-bottom: 6px; }
+  .page-header .subtitle { font-family: var(--font-body); color: var(--ink-secondary); font-size: 0.95rem; font-style: italic; max-width: 70ch; }
+
+  .tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--rule); margin-bottom: var(--s-lg); flex-wrap: wrap; }
+  .tab { font-family: var(--font-display); font-size: 0.85rem; font-weight: 600; letter-spacing: 0.02em; padding: 10px 18px; background: transparent; border: none; border-bottom: 3px solid transparent; color: var(--ink-secondary); cursor: pointer; transition: color .2s, border-color .2s; }
+  .tab:hover { color: var(--ink); }
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  /* ── Cheat Sheet ─────────────────────────────────────────────── */
+  .tier-table { width: 100%; border-collapse: collapse; margin-bottom: var(--s-lg); font-family: var(--font-body); }
+  .tier-table th { text-align: left; padding: 10px 14px; font-family: var(--font-display); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink-muted); border-bottom: 2px solid var(--ink); }
+  .tier-table td { padding: 12px 14px; border-bottom: 1px solid var(--rule); vertical-align: top; }
+  .tier-table tr:hover { background: var(--bg-hover); }
+  .tier-prefix { font-family: var(--font-mono); font-weight: 600; color: var(--accent); white-space: nowrap; }
+  .tier-name { font-family: var(--font-display); font-weight: 700; font-size: 0.92rem; }
+  .tier-desc { font-size: 0.88rem; color: var(--ink-secondary); }
+  .tier-eg { font-family: var(--font-mono); font-size: 0.82rem; color: var(--ink-secondary); }
+
+  .reverse-table { width: 100%; border-collapse: collapse; margin-top: var(--s-md); font-family: var(--font-body); }
+  .reverse-table th, .reverse-table td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--rule); font-size: 0.9rem; }
+  .reverse-table th { font-family: var(--font-display); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink-muted); border-bottom: 2px solid var(--ink); }
+  .reverse-table td:last-child { font-family: var(--font-mono); color: var(--accent); font-weight: 600; }
+
+  /* ── Drill ───────────────────────────────────────────────────── */
+  .scenario-card { background: var(--bg-surface); border: 2px solid var(--ink); border-radius: var(--radius-lg); padding: var(--s-lg); margin-bottom: var(--s-md); }
+  .scenario-label { font-family: var(--font-display); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-muted); margin-bottom: 8px; }
+  .scenario-text { font-family: var(--font-body); font-size: 1.15rem; line-height: 1.5; color: var(--ink); }
+  .scenario-counter { font-family: var(--font-mono); font-size: 0.85rem; color: var(--ink-muted); float: right; }
+
+  .prefix-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(70px, 1fr)); gap: 6px; margin-bottom: var(--s-md); }
+  .prefix-btn { font-family: var(--font-mono); font-size: 0.95rem; font-weight: 600; padding: 12px 4px; background: var(--bg-surface); border: 1.5px solid var(--border); border-radius: var(--radius); cursor: pointer; transition: all .15s; color: var(--ink); }
+  .prefix-btn:hover { border-color: var(--accent); background: var(--accent-dim); }
+  .prefix-btn:disabled { cursor: not-allowed; opacity: 0.5; }
+  .prefix-btn.correct { background: #ECFDF5; border-color: #10B981; color: #065F46; }
+  .prefix-btn.wrong { background: #FEF2F2; border-color: #EF4444; color: #991B1B; }
+  .prefix-btn.actual { background: #ECFDF5; border-color: #10B981; box-shadow: 0 0 0 2px #10B981; color: #065F46; }
+
+  .feedback { background: var(--bg-recessed); border-left: 3px solid var(--accent); border-radius: 0 var(--radius) var(--radius) 0; padding: 14px 18px; margin-bottom: var(--s-md); display: none; }
+  .feedback.show { display: block; }
+  .feedback.correct-feedback { border-left-color: #10B981; background: #F0FDF4; }
+  .feedback.wrong-feedback { border-left-color: #EF4444; background: #FEF2F2; }
+  .feedback-result { font-family: var(--font-display); font-weight: 700; font-size: 0.9rem; margin-bottom: 6px; }
+  .feedback-why { font-family: var(--font-body); font-size: 0.95rem; color: var(--ink-secondary); line-height: 1.5; }
+
+  .drill-controls { display: flex; gap: var(--s-sm); justify-content: space-between; align-items: center; flex-wrap: wrap; }
+  .btn { font-family: var(--font-display); font-size: 0.85rem; font-weight: 600; padding: 10px 20px; border-radius: var(--radius); border: 1.5px solid var(--ink); background: var(--bg-surface); color: var(--ink); cursor: pointer; transition: all .15s; }
+  .btn:hover { background: var(--ink); color: var(--bg); }
+  .btn-primary { background: var(--accent); color: white; border-color: var(--accent); }
+  .btn-primary:hover { background: #92400E; border-color: #92400E; color: white; }
+  .btn-ghost { border-color: var(--border); color: var(--ink-secondary); }
+
+  .score-pill { font-family: var(--font-mono); font-size: 0.9rem; padding: 6px 14px; background: var(--ink); color: var(--bg); border-radius: 100px; }
+  .score-streak { color: var(--accent); font-weight: 700; }
+
+  /* ── Stats ───────────────────────────────────────────────────── */
+  .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: var(--s-md); }
+  .stat-card { background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: var(--s-md); }
+  .stat-tier-label { font-family: var(--font-display); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink-muted); margin-bottom: 4px; }
+  .stat-tier-name { font-family: var(--font-display); font-weight: 700; font-size: 1rem; margin-bottom: 8px; }
+  .stat-bar-track { background: var(--bg-recessed); height: 8px; border-radius: 100px; overflow: hidden; margin-bottom: 6px; }
+  .stat-bar-fill { background: var(--accent); height: 100%; transition: width .4s; }
+  .stat-bar-fill.weak { background: #EF4444; }
+  .stat-bar-fill.strong { background: #10B981; }
+  .stat-numbers { font-family: var(--font-mono); font-size: 0.8rem; color: var(--ink-secondary); }
+
+  .mode-toggle { display: flex; gap: 4px; padding: 4px; background: var(--bg-recessed); border-radius: var(--radius); margin-bottom: var(--s-md); width: fit-content; }
+  .mode-toggle button { font-family: var(--font-display); font-size: 0.78rem; font-weight: 600; padding: 6px 12px; border: none; background: transparent; color: var(--ink-secondary); cursor: pointer; border-radius: 3px; }
+  .mode-toggle button.active { background: var(--bg-surface); color: var(--ink); box-shadow: 0 1px 2px rgba(0,0,0,.06); }
+
+  .empty { color: var(--ink-muted); font-style: italic; text-align: center; padding: var(--s-lg); }
+</style>
+</head>
+<body>
+<nav class="top-nav"></nav>
+
+<main class="container" style="max-width: 1100px; padding: var(--s-lg) var(--s-md);">
+
+  <header class="page-header">
+    <h1>Prefix Tier Trainer</h1>
+    <p class="subtitle">Map every CIDR prefix to its real-world tier — from internet backbone to single-host loopbacks. Drill scenario → prefix until it's reflex.</p>
+  </header>
+
+  <div class="tabs" role="tablist">
+    <button class="tab active" data-panel="cheat">Cheat Sheet</button>
+    <button class="tab" data-panel="drill">Drill</button>
+    <button class="tab" data-panel="reverse">Reverse</button>
+    <button class="tab" data-panel="stats">Stats</button>
+  </div>
+
+  <!-- ═════════════════════════ CHEAT SHEET ═════════════════════════ -->
+  <section class="panel active" id="panel-cheat">
+    <table class="tier-table">
+      <thead><tr><th style="width:120px">Prefix</th><th style="width:230px">Tier</th><th>What lives here</th></tr></thead>
+      <tbody id="tier-body"></tbody>
+    </table>
+
+    <h3 style="font-family:var(--font-display);font-size:1.1rem;margin-top:var(--s-xl);margin-bottom:var(--s-sm);">Reverse lookup — use case → prefix</h3>
+    <table class="reverse-table">
+      <thead><tr><th>Use case</th><th style="width:120px">Prefix</th></tr></thead>
+      <tbody id="reverse-body"></tbody>
+    </table>
+  </section>
+
+  <!-- ═════════════════════════ DRILL ═════════════════════════ -->
+  <section class="panel" id="panel-drill">
+    <div class="mode-toggle" id="drill-mode">
+      <button class="active" data-mode="all">All tiers</button>
+      <button data-mode="weak">Weak tiers only</button>
+      <button data-mode="reset">Reset score</button>
+    </div>
+
+    <div class="scenario-card">
+      <div class="scenario-counter" id="drill-counter">Q 1</div>
+      <div class="scenario-label">Scenario</div>
+      <div class="scenario-text" id="drill-text">Loading...</div>
+    </div>
+
+    <div class="prefix-grid" id="drill-grid"></div>
+
+    <div class="feedback" id="drill-feedback">
+      <div class="feedback-result" id="drill-result"></div>
+      <div class="feedback-why" id="drill-why"></div>
+    </div>
+
+    <div class="drill-controls">
+      <span class="score-pill" id="drill-score">Score: 0/0 · streak <span class="score-streak">0</span></span>
+      <button class="btn btn-primary" id="drill-next">Next →</button>
+    </div>
+  </section>
+
+  <!-- ═════════════════════════ REVERSE ═════════════════════════ -->
+  <section class="panel" id="panel-reverse">
+    <p class="subtitle" style="margin-bottom:var(--s-md);">I show you a prefix. You pick the scenario that matches it.</p>
+
+    <div class="scenario-card">
+      <div class="scenario-counter" id="rev-counter">Q 1</div>
+      <div class="scenario-label">Prefix</div>
+      <div class="scenario-text" id="rev-prefix" style="font-family:var(--font-mono);font-size:2rem;color:var(--accent);font-weight:700;">/24</div>
+    </div>
+
+    <div id="rev-options" style="display:flex;flex-direction:column;gap:var(--s-sm);margin-bottom:var(--s-md);"></div>
+
+    <div class="feedback" id="rev-feedback">
+      <div class="feedback-result" id="rev-result"></div>
+      <div class="feedback-why" id="rev-why"></div>
+    </div>
+
+    <div class="drill-controls">
+      <span class="score-pill" id="rev-score">Score: 0/0</span>
+      <button class="btn btn-primary" id="rev-next">Next →</button>
+    </div>
+  </section>
+
+  <!-- ═════════════════════════ STATS ═════════════════════════ -->
+  <section class="panel" id="panel-stats">
+    <p class="subtitle" style="margin-bottom:var(--s-md);">Per-tier accuracy from your drill history. Red = weak, green = strong (≥80%). Use "Weak tiers only" mode to drill the red ones.</p>
+    <div class="stats-grid" id="stats-grid"></div>
+    <p style="margin-top:var(--s-lg);font-size:0.85rem;color:var(--ink-muted);text-align:center;">Stored locally in your browser. <button class="btn btn-ghost" id="stats-reset" style="margin-left:8px;font-size:0.8rem;padding:4px 12px;">Reset all stats</button></p>
+  </section>
+
+</main>
+
+<script defer src="js/nav.js"></script>
+<script>
+// ─────────────────────────────────────────────────────────────────────
+// TIER DATA
+// ─────────────────────────────────────────────────────────────────────
+const TIERS = [
+  { id: 't1', range: '/0 – /7',  name: 'Internet Backbone',        desc: 'Default routes, BGP supernets. You don\'t subnet here, you route here.' },
+  { id: 't2', range: '/8 – /15', name: 'Tier-1 / RIR Allocations', desc: 'Massive blocks owned by countries, ISPs, mega-corps. Old Class A territory.' },
+  { id: 't3', range: '/16 – /20',name: 'Enterprise / Data Center', desc: 'Big private networks. AWS VPCs default to /16. CoreWeave site allocations.' },
+  { id: 't4', range: '/21 – /22',name: 'Internet Floor',           desc: '/22 = smallest BGP-routable globally. Your own AS / multi-homed business.' },
+  { id: 't5', range: '/23 – /24',name: 'Campus / Office / Home',   desc: 'The universal default. Every home router on Earth runs a /24.' },
+  { id: 't6', range: '/25 – /27',name: 'VLAN Territory',           desc: 'Department-sized broadcast domains. Where VLAN design lives. CCNA exam favorite.' },
+  { id: 't7', range: '/28 – /29',name: 'DMZ / ISP Hand-off',       desc: 'Small public IP blocks. /29 is the classic "ISP gives you 6 usable IPs."' },
+  { id: 't8', range: '/30 – /31',name: 'Point-to-Point Links',     desc: 'Router ↔ router only. /30 classic, /31 modern (RFC 3021).' },
+  { id: 't9', range: '/32',      name: 'Single Host',              desc: 'Loopbacks, host routes, OSPF router-IDs, ACL host matches.' },
+];
+
+// Reverse lookup table for cheat sheet
+const REVERSE = [
+  ['Default route','/0'],
+  ['AWS VPC default','/16'],
+  ['Whole campus / large enterprise','/16 – /20'],
+  ['Smallest globally-routable BGP block','/22'],
+  ['Building or large office','/22 – /23'],
+  ['Small office / home / small business','/24'],
+  ['Half a /24 — wired vs wireless','/25'],
+  ['Department VLAN','/26 or /27'],
+  ['Conference room / IoT VLAN','/27 or /28'],
+  ['Small DMZ (10–14 hosts)','/28'],
+  ['ISP hand-off — 6 public IPs','/29'],
+  ['Router-to-router serial link','/30'],
+  ['Modern point-to-point (no waste)','/31'],
+  ['Loopback / OSPF router-ID','/32'],
+  ['Host route','/32'],
+];
+
+// ─────────────────────────────────────────────────────────────────────
+// QUESTION BANK — scenario → accepted prefix(es) + tier + why
+// ─────────────────────────────────────────────────────────────────────
+const QUESTIONS = [
+  // Tier 1 — Internet Backbone
+  { tier:'t1', text:'A "send everything unknown to this gateway" default route on any router.', accept:['/0'], why:'Default route = "match anything" = zero network bits = /0. Written as 0.0.0.0/0.' },
+  { tier:'t1', text:'BGP route summarizing all of two adjacent /8 blocks into one supernet.', accept:['/7'], why:'Combining two /8s = one /7. Pure aggregation territory, only seen in BGP.' },
+  { tier:'t1', text:'A static route on a stub site router pointing all unknown traffic to its ISP.', accept:['/0'], why:'Same as the default-route pattern: ip route 0.0.0.0 0.0.0.0 <ISP-next-hop>. Prefix = /0.' },
+
+  // Tier 2 — RIR / old Class A
+  { tier:'t2', text:'MIT\'s historical IPv4 block allocated in 1977 (before they sold half).', accept:['/8'], why:'Old Class A = /8 = 16.7M addresses. MIT had 18.0.0.0/8 until 2017.' },
+  { tier:'t2', text:'The reserved private block 172.16.0.0 – 172.31.255.255.', accept:['/12'], why:'172.16.0.0/12 covers 172.16 through 172.31. The middle private range.' },
+  { tier:'t2', text:'CoreWeave\'s 10.0.0.0 supernet covering all sites globally.', accept:['/8'], why:'10.0.0.0/8 = entire RFC 1918 Class A private space. Big cloud / hyperscaler default.' },
+  { tier:'t2', text:'A regional ISP\'s aggregate covering 524K addresses.', accept:['/13'], why:'/13 = 2^19 = 524,288 addresses. Mid-tier ISP allocation size.' },
+
+  // Tier 3 — Enterprise / DC
+  { tier:'t3', text:'A new AWS VPC you spin up at default sizing.', accept:['/16'], why:'AWS VPC default = /16 (65,536 addresses). Old Class B size. Cloud convention.' },
+  { tier:'t3', text:'A corporate building-level aggregate with 8,192 addresses.', accept:['/19'], why:'/19 = 8,192 addresses. Common building-level allocation in enterprise design.' },
+  { tier:'t3', text:'ARIN\'s minimum direct allocation to a brand new ISP.', accept:['/20'], why:'/20 = 4,096 addresses = ARIN\'s minimum direct allocation. Smaller, you go via your upstream.' },
+  { tier:'t3', text:'A medium data-center pod aggregate, 32K addresses.', accept:['/17'], why:'/17 = 32,768 addresses. Building/pod-level DC fabric chunk.' },
+
+  // Tier 4 — Internet floor
+  { tier:'t4', text:'The smallest prefix that reliably appears in the global BGP table.', accept:['/22'], why:'/22 = 1,024 addresses. Anything smaller gets filtered by tier-1 ISPs.' },
+  { tier:'t4', text:'A multi-homed business getting its own AS number.', accept:['/21','/22'], why:'/21 (2,048) or /22 (1,024) — the size brackets for "I run my own AS."' },
+
+  // Tier 5 — Home / office / campus
+  { tier:'t5', text:'Your home Wi-Fi network from a default ISP-issued router.', accept:['/24'], why:'Every home router on Earth defaults to 192.168.1.0/24 or similar — 254 usable hosts.' },
+  { tier:'t5', text:'A 50-person small business office on a single flat network.', accept:['/24'], why:'/24 = 254 usable. Plenty for 50 people. The universal "small biz" default.' },
+  { tier:'t5', text:'A full building floor with ~400 wired and wireless devices.', accept:['/23'], why:'/23 = 510 usable hosts. Two /24s glued together. Full floor sizing.' },
+  { tier:'t5', text:'The "Class C" everyone learned in school.', accept:['/24'], why:'Old Class C = /24 = 256 addresses. The most-recognized prefix on Earth.' },
+  { tier:'t5', text:'Your home network mask 255.255.255.0 in CIDR notation.', accept:['/24'], why:'255.255.255.0 = 24 bits of mask = /24.' },
+
+  // Tier 6 — VLAN territory
+  { tier:'t6', text:'A small department VLAN sized for 25 cameras and access points.', accept:['/27','/26'], why:'/27 = 30 usable (tightest fit), /26 = 62 usable (some headroom). Both pass.' },
+  { tier:'t6', text:'A 60-person engineering department VLAN.', accept:['/26'], why:'/26 = 62 usable hosts. Right-sized for a department. ACLs stay manageable.' },
+  { tier:'t6', text:'A conference room VLAN for ~12 devices.', accept:['/28','/27'], why:'/28 = 14 usable (tight). /27 = 30 usable (room to grow). Either acceptable.' },
+  { tier:'t6', text:'Splitting one /24 into two equal halves — wired + wireless.', accept:['/25'], why:'/25 = 128 addresses, 126 usable. Two /25s = one /24.' },
+  { tier:'t6', text:'A management VLAN for ~20 switches and APs.', accept:['/27'], why:'/27 = 30 usable hosts. CCNA exam favorite for management network sizing.' },
+
+  // Tier 7 — DMZ / ISP hand-off
+  { tier:'t7', text:'Your ISP delivers business fiber and gives you 6 usable public IPs.', accept:['/29'], why:'/29 = 8 total → minus network + broadcast = 6 usable. Exactly the classic ISP hand-off.' },
+  { tier:'t7', text:'A small public DMZ holding 10 hosts (web + mail + reverse proxy + spares).', accept:['/28'], why:'/30 (2 usable) and /29 (6 usable) too small. /28 = 14 usable — fits comfortably.' },
+  { tier:'t7', text:'A hosting provider sells you a public block with 14 usable addresses.', accept:['/28'], why:'/28 = 16 total = 14 usable. Standard hosting micro-block.' },
+  { tier:'t7', text:'WAN side of your firewall, ISP gateway + your firewall + 4 NAT pool IPs.', accept:['/29'], why:'1 ISP gateway + 1 firewall + 4 NAT = 6 usable = /29.' },
+
+  // Tier 8 — point-to-point
+  { tier:'t8', text:'Two Cisco routers connected over a leased serial line, nothing else on the wire.', accept:['/30','/31'], why:'Classic /30 (2 usable) or modern /31 (RFC 3021, also 2 usable, no waste).' },
+  { tier:'t8', text:'A modern point-to-point WAN link configured to not waste network/broadcast addresses.', accept:['/31'], why:'/31 (RFC 3021, year 2000) = both addresses usable on p2p links. Saves IPs.' },
+  { tier:'t8', text:'OSPF neighbor adjacency over a back-to-back fiber between two core routers.', accept:['/30','/31'], why:'P2P link, no hosts. /30 traditional, /31 modern. Both fine for OSPF.' },
+  { tier:'t8', text:'An MPLS provider hands off a point-to-point link to your CE router.', accept:['/30','/31'], why:'P2P MPLS hand-offs use /30 most commonly. /31 increasingly common on modern gear.' },
+
+  // Tier 9 — single host
+  { tier:'t9', text:'A loopback interface on a core router used as the OSPF router-ID.', accept:['/32'], why:'Loopback = single address = /32. Lo0 stays up even when interfaces drop.' },
+  { tier:'t9', text:'A host route forcing one specific server\'s traffic through a specific next-hop.', accept:['/32'], why:'Host route = exact-match for one IP = /32 prefix.' },
+  { tier:'t9', text:'An ACL line matching exactly one IP address.', accept:['/32'], why:'`permit ip host 192.168.1.50 any` ≈ 192.168.1.50/32. Single-host match.' },
+  { tier:'t9', text:'A BGP router-ID derived from the highest loopback on a router.', accept:['/32'], why:'Router-IDs come from /32 loopbacks — single, stable, never goes down.' },
+  { tier:'t9', text:'A null-route blackholing one abusive source IP.', accept:['/32'], why:'Blackhole route for one IP = /32 host route pointing to Null0.' },
+];
+
+// ─────────────────────────────────────────────────────────────────────
+// CHEAT SHEET RENDER
+// ─────────────────────────────────────────────────────────────────────
+const tierBody = document.getElementById('tier-body');
+TIERS.forEach(t => {
+  const tr = document.createElement('tr');
+  tr.innerHTML = `<td><span class="tier-prefix">${t.range}</span></td><td><span class="tier-name">${t.name}</span></td><td><span class="tier-desc">${t.desc}</span></td>`;
+  tierBody.appendChild(tr);
+});
+const revBody = document.getElementById('reverse-body');
+REVERSE.forEach(([uc,p]) => {
+  const tr = document.createElement('tr');
+  tr.innerHTML = `<td>${uc}</td><td>${p}</td>`;
+  revBody.appendChild(tr);
+});
+
+// ─────────────────────────────────────────────────────────────────────
+// TAB SWITCHING
+// ─────────────────────────────────────────────────────────────────────
+document.querySelectorAll('.tab').forEach(b => {
+  b.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(x => x.classList.remove('active'));
+    b.classList.add('active');
+    document.getElementById('panel-' + b.dataset.panel).classList.add('active');
+    if (b.dataset.panel === 'stats') renderStats();
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────
+// STATS — localStorage per-tier
+// ─────────────────────────────────────────────────────────────────────
+const STATS_KEY = 'prefix_tier_stats_v1';
+function getStats() {
+  try { return JSON.parse(localStorage.getItem(STATS_KEY)) || {}; }
+  catch(e) { return {}; }
+}
+function saveStat(tier, correct) {
+  const s = getStats();
+  s[tier] = s[tier] || { correct: 0, total: 0 };
+  s[tier].total++;
+  if (correct) s[tier].correct++;
+  localStorage.setItem(STATS_KEY, JSON.stringify(s));
+}
+function resetStats() {
+  localStorage.removeItem(STATS_KEY);
+  renderStats();
+}
+function weakTiers() {
+  const s = getStats();
+  return TIERS.filter(t => {
+    const r = s[t.id];
+    if (!r || r.total < 3) return true;
+    return (r.correct / r.total) < 0.8;
+  }).map(t => t.id);
+}
+function renderStats() {
+  const s = getStats();
+  const grid = document.getElementById('stats-grid');
+  grid.innerHTML = '';
+  let any = false;
+  TIERS.forEach(t => {
+    const r = s[t.id];
+    const card = document.createElement('div');
+    card.className = 'stat-card';
+    if (!r || r.total === 0) {
+      card.innerHTML = `<div class="stat-tier-label">${t.range}</div><div class="stat-tier-name">${t.name}</div><div class="stat-numbers" style="color:var(--ink-muted)">no attempts yet</div>`;
+    } else {
+      any = true;
+      const pct = Math.round((r.correct / r.total) * 100);
+      const cls = pct >= 80 ? 'strong' : pct < 50 ? 'weak' : '';
+      card.innerHTML = `<div class="stat-tier-label">${t.range}</div><div class="stat-tier-name">${t.name}</div><div class="stat-bar-track"><div class="stat-bar-fill ${cls}" style="width:${pct}%"></div></div><div class="stat-numbers">${r.correct}/${r.total} · ${pct}%</div>`;
+    }
+    grid.appendChild(card);
+  });
+}
+document.getElementById('stats-reset').addEventListener('click', () => {
+  if (confirm('Reset all drill stats?')) resetStats();
+});
+
+// ─────────────────────────────────────────────────────────────────────
+// DRILL — scenario → prefix
+// ─────────────────────────────────────────────────────────────────────
+const PREFIXES = ['/0','/7','/8','/12','/13','/16','/17','/19','/20','/21','/22','/23','/24','/25','/26','/27','/28','/29','/30','/31','/32'];
+let drillState = { mode:'all', q:0, score:0, total:0, streak:0, current:null, answered:false };
+
+function drillPool() {
+  if (drillState.mode === 'weak') {
+    const w = weakTiers();
+    return QUESTIONS.filter(q => w.includes(q.tier));
+  }
+  return QUESTIONS;
+}
+function drillNext() {
+  const pool = drillPool();
+  if (pool.length === 0) {
+    document.getElementById('drill-text').textContent = 'No weak tiers — switch to "All tiers" to keep drilling.';
+    document.getElementById('drill-grid').innerHTML = '';
+    return;
+  }
+  const q = pool[Math.floor(Math.random() * pool.length)];
+  drillState.current = q;
+  drillState.answered = false;
+  drillState.q++;
+  document.getElementById('drill-counter').textContent = 'Q ' + drillState.q;
+  document.getElementById('drill-text').textContent = q.text;
+  document.getElementById('drill-feedback').classList.remove('show','correct-feedback','wrong-feedback');
+
+  const grid = document.getElementById('drill-grid');
+  grid.innerHTML = '';
+  PREFIXES.forEach(p => {
+    const b = document.createElement('button');
+    b.className = 'prefix-btn';
+    b.textContent = p;
+    b.addEventListener('click', () => drillAnswer(p, b));
+    grid.appendChild(b);
+  });
+  updateScorePill();
+}
+function drillAnswer(picked, btn) {
+  if (drillState.answered) return;
+  drillState.answered = true;
+  const q = drillState.current;
+  const correct = q.accept.includes(picked);
+  drillState.total++;
+  if (correct) { drillState.score++; drillState.streak++; }
+  else drillState.streak = 0;
+  saveStat(q.tier, correct);
+
+  document.querySelectorAll('#drill-grid .prefix-btn').forEach(b => {
+    b.disabled = true;
+    if (q.accept.includes(b.textContent)) b.classList.add('actual');
+  });
+  if (!correct) btn.classList.add('wrong');
+  else btn.classList.remove('actual'), btn.classList.add('correct');
+
+  const fb = document.getElementById('drill-feedback');
+  fb.classList.add('show', correct ? 'correct-feedback' : 'wrong-feedback');
+  document.getElementById('drill-result').textContent = correct
+    ? '✓ Correct'
+    : `✗ Wrong — answer was ${q.accept.join(' or ')}`;
+  document.getElementById('drill-why').textContent = q.why;
+  updateScorePill();
+}
+function updateScorePill() {
+  document.getElementById('drill-score').innerHTML =
+    `Score: ${drillState.score}/${drillState.total} · streak <span class="score-streak">${drillState.streak}</span>`;
+}
+
+document.getElementById('drill-next').addEventListener('click', drillNext);
+document.getElementById('drill-mode').addEventListener('click', e => {
+  if (e.target.tagName !== 'BUTTON') return;
+  const m = e.target.dataset.mode;
+  if (m === 'reset') {
+    drillState = { mode: drillState.mode, q:0, score:0, total:0, streak:0, current:null, answered:false };
+    drillNext();
+    return;
+  }
+  document.querySelectorAll('#drill-mode button').forEach(x => x.classList.remove('active'));
+  e.target.classList.add('active');
+  drillState.mode = m;
+  drillNext();
+});
+drillNext();
+
+// ─────────────────────────────────────────────────────────────────────
+// REVERSE — prefix → scenario (multiple choice)
+// ─────────────────────────────────────────────────────────────────────
+let revState = { q:0, score:0, total:0, current:null, answered:false };
+function revNext() {
+  // Pick a random question, show its prefix, give 4 scenario choices (1 right + 3 wrong from different tiers)
+  const q = QUESTIONS[Math.floor(Math.random() * QUESTIONS.length)];
+  const others = QUESTIONS.filter(x => x.tier !== q.tier);
+  const distractors = [];
+  while (distractors.length < 3 && others.length) {
+    const idx = Math.floor(Math.random() * others.length);
+    distractors.push(others.splice(idx, 1)[0]);
+  }
+  const pool = [q, ...distractors].sort(() => Math.random() - 0.5);
+
+  revState.current = q;
+  revState.answered = false;
+  revState.q++;
+  document.getElementById('rev-counter').textContent = 'Q ' + revState.q;
+  document.getElementById('rev-prefix').textContent = q.accept[0];
+  document.getElementById('rev-feedback').classList.remove('show','correct-feedback','wrong-feedback');
+
+  const opts = document.getElementById('rev-options');
+  opts.innerHTML = '';
+  pool.forEach(opt => {
+    const b = document.createElement('button');
+    b.className = 'btn';
+    b.style.cssText = 'text-align:left;font-family:var(--font-body);font-weight:400;font-size:0.95rem;padding:14px 18px;line-height:1.4;';
+    b.textContent = opt.text;
+    b.addEventListener('click', () => revAnswer(opt, b, q));
+    opts.appendChild(b);
+  });
+  updateRevPill();
+}
+function revAnswer(picked, btn, correctQ) {
+  if (revState.answered) return;
+  revState.answered = true;
+  revState.total++;
+  const correct = picked === correctQ;
+  if (correct) revState.score++;
+  saveStat(correctQ.tier, correct);
+
+  document.querySelectorAll('#rev-options button').forEach(b => {
+    b.disabled = true;
+    if (b.textContent === correctQ.text) b.style.cssText += ';background:#ECFDF5;border-color:#10B981;color:#065F46;';
+  });
+  if (!correct) btn.style.cssText += ';background:#FEF2F2;border-color:#EF4444;color:#991B1B;';
+
+  const fb = document.getElementById('rev-feedback');
+  fb.classList.add('show', correct ? 'correct-feedback' : 'wrong-feedback');
+  document.getElementById('rev-result').textContent = correct ? '✓ Correct' : '✗ Wrong';
+  document.getElementById('rev-why').textContent = correctQ.why;
+  updateRevPill();
+}
+function updateRevPill() {
+  document.getElementById('rev-score').textContent = `Score: ${revState.score}/${revState.total}`;
+}
+document.getElementById('rev-next').addEventListener('click', revNext);
+revNext();
+
+renderStats();
+</script>
+</body>
+</html>
