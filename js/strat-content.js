@@ -66,8 +66,8 @@
   function populateHeader(obj, sub) {
     var h1 = document.querySelector('.masthead h1');
     var sub_p = document.querySelector('.masthead .subtitle');
-    if (h1) h1.textContent = 'Objective ' + obj + ' — ' + (sub.title || '');
-    if (sub_p) sub_p.textContent = 'Study this objective: read the cheat sheet, drill the quiz, do a lab. Pass eval to mark done.';
+    if (h1) { h1.textContent = 'Objective ' + obj + ' — ' + (sub.title || ''); h1.style.opacity = ''; }
+    if (sub_p) { sub_p.textContent = 'Study this objective: read the cheat sheet, drill the quiz, do a lab. Pass eval to mark done.'; sub_p.style.opacity = ''; }
     // Update scope-note
     var scope = document.querySelector('.scope-note');
     if (scope) scope.textContent = 'scoped to ' + obj + ' only';
@@ -81,9 +81,10 @@
     var heading = sec.querySelector('.section-title');
     if (heading) heading.textContent = 'Cheat Sheet';
     var meta = sec.querySelector('.meta');
-    if (meta) meta.textContent = theoryVideos.length + ' lecture' + (theoryVideos.length !== 1 ? 's' : '') + ' · summarized for fast recall';
+    if (meta) { meta.textContent = theoryVideos.length + ' lecture' + (theoryVideos.length !== 1 ? 's' : '') + ' · summarized for fast recall'; meta.style.opacity = ''; }
     var pull = sec.querySelector('.pull');
     if (!pull) return;
+    pull.style.opacity = '';
     pull.innerHTML = '';
     pull.style.fontFamily = 'inherit';
     pull.style.fontStyle = 'normal';
