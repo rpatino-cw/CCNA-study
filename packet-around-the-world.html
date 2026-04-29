@@ -1,0 +1,1259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#FAF7F2">
+<title>Packet Around the World — CCNA 200-301</title>
+<meta name="color-scheme" content="light">
+<link rel="icon" type="image/svg+xml" href="/CCNA-study/favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;1,8..60,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="css/shared.css?v=4.55">
+<style>
+/* ═══════════════════════════════════════════════════════════════
+   Packet Around the World — slow-learner narrative
+   One packet · nine hops · same three questions every stop
+   ═══════════════════════════════════════════════════════════════ */
+
+:root {
+  --d1: #2563EB;
+  --d1-dim: #EFF6FF;
+  --d1-deep: #1E40AF;
+  --land: #E7E5E0;
+  --water: #F3F4F6;
+}
+
+.page-header .kicker { font-family: var(--font-display); font-size: .72rem; text-transform: uppercase; letter-spacing: .08em; color: var(--d1); margin-bottom: var(--s-xs); }
+.page-header h1 { font-size: 2.4rem; font-weight: 700; letter-spacing: -.03em; margin-bottom: 4px; }
+.page-header .subtitle { font-family: var(--font-body); color: var(--ink-secondary); font-size: 1rem; font-style: italic; }
+
+/* ── Sticky journey map ────────────────────────────────── */
+.journey-sticky {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+  padding: 12px 0 14px;
+  margin: 0 calc(-1 * var(--s-md));
+  padding-left: var(--s-md);
+  padding-right: var(--s-md);
+}
+.journey-sticky .stage-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+.journey-stage-label { font-family: var(--font-mono); font-size: .72rem; color: var(--ink-muted); text-transform: uppercase; letter-spacing: .06em; }
+.journey-stage-label strong { color: var(--d1); font-weight: 700; }
+.journey-controls { display: flex; gap: 6px; align-items: center; }
+.j-btn { font-family: var(--font-display); font-size: .7rem; font-weight: 600; padding: 5px 12px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg-surface); cursor: pointer; color: var(--ink-secondary); transition: all .15s; }
+.j-btn:hover { border-color: var(--d1); color: var(--d1); }
+.j-btn.primary { background: var(--d1); color: #fff; border-color: var(--d1); }
+.j-btn.primary:hover { background: var(--d1-deep); }
+
+.subway-svg { width: 100%; height: 70px; display: block; }
+.world-svg { width: 100%; max-width: 640px; height: 150px; display: block; margin: 6px auto 0; transition: height .25s ease, opacity .25s ease; }
+.journey-sticky.compact .world-svg { height: 0; opacity: 0; margin: 0 auto; pointer-events: none; }
+.journey-sticky.compact .subway-svg { height: 56px; }
+.compact-toggle { font-family: var(--font-mono); font-size: .68rem; color: var(--ink-muted); cursor: pointer; background: none; border: none; padding: 2px 6px; margin-left: 8px; }
+.compact-toggle:hover { color: var(--d1); }
+
+/* World map shapes */
+.land-shape { fill: var(--land); stroke: #C7C3BC; stroke-width: 1; }
+.world-arc { stroke: var(--d1); stroke-width: 2; fill: none; opacity: .35; stroke-dasharray: 4 4; }
+.world-arc.active { opacity: 1; stroke-width: 2.5; stroke-dasharray: none; }
+.world-city { fill: #FFFFFF; stroke: var(--d1-deep); stroke-width: 1.5; }
+.world-city.active { fill: var(--d1); }
+.world-city.passed { fill: var(--d1-deep); }
+.world-label { font-family: var(--font-mono); font-size: 8.5px; fill: var(--ink-secondary); }
+.world-label.active { fill: var(--d1); font-weight: 700; }
+
+/* Subway dots */
+.subway-line { stroke: #C7C3BC; stroke-width: 3; }
+.subway-line.passed { stroke: var(--d1); }
+.subway-dot { fill: #FFFFFF; stroke: #A8A29E; stroke-width: 2; cursor: pointer; transition: all .2s; }
+.subway-dot.active { fill: var(--d1); stroke: var(--d1); r: 11; }
+.subway-dot.passed { fill: var(--d1-deep); stroke: var(--d1-deep); }
+.subway-dot.passed:hover, .subway-dot:hover { stroke-width: 3; }
+.subway-num { font-family: var(--font-mono); font-size: 9px; font-weight: 700; fill: var(--ink); text-anchor: middle; pointer-events: none; }
+.subway-num.active { fill: #fff; }
+.subway-num.passed { fill: #fff; }
+.subway-label { font-family: var(--font-mono); font-size: 9px; fill: var(--ink-muted); text-anchor: middle; pointer-events: none; }
+.subway-label.active { fill: var(--d1); font-weight: 700; }
+
+/* Pulsing packet on subway */
+@keyframes pulseRing {
+  0% { r: 8; opacity: .8; }
+  100% { r: 18; opacity: 0; }
+}
+.pulse-ring { fill: none; stroke: var(--d1); stroke-width: 2; animation: pulseRing 1.6s ease-out infinite; transform-origin: center; }
+
+/* ── Hop section ───────────────────────────────────────── */
+.hop {
+  scroll-margin-top: var(--sticky-h, 320px);
+  padding: var(--s-2xl) 0;
+  border-bottom: 1px solid var(--rule);
+}
+.hop:last-of-type { border-bottom: none; }
+
+.hop-num {
+  font-family: var(--font-mono);
+  font-size: .82rem;
+  color: var(--d1);
+  font-weight: 700;
+  letter-spacing: .04em;
+  margin-bottom: 6px;
+}
+.hop-title {
+  font-family: var(--font-display);
+  font-size: 1.8rem;
+  font-weight: 700;
+  letter-spacing: -.02em;
+  margin-bottom: 8px;
+}
+.hop-from-to {
+  font-family: var(--font-mono);
+  font-size: .85rem;
+  color: var(--ink-secondary);
+  margin-bottom: var(--s-md);
+}
+.hop-from-to .arrow { color: var(--d1); margin: 0 8px; }
+
+.hop-narrative {
+  font-family: var(--font-body);
+  font-size: 1.05rem;
+  line-height: 1.65;
+  color: var(--ink);
+  margin-bottom: var(--s-lg);
+  max-width: 60ch;
+}
+.hop-narrative p { margin-bottom: 12px; }
+
+/* Glossary inline terms */
+.term {
+  border-bottom: 1.5px dotted var(--d1);
+  cursor: help;
+  color: var(--ink);
+  font-weight: 600;
+  position: relative;
+  font-family: inherit;
+}
+.term:hover { background: var(--d1-dim); }
+.term-popover {
+  display: none;
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 0;
+  background: var(--ink);
+  color: #FAF7F2;
+  padding: 10px 14px;
+  border-radius: var(--radius);
+  font-family: var(--font-body);
+  font-size: .85rem;
+  font-weight: 400;
+  line-height: 1.5;
+  width: 280px;
+  z-index: 100;
+  box-shadow: 0 4px 16px rgba(0,0,0,.18);
+}
+.term-popover::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 16px;
+  border: 6px solid transparent;
+  border-top-color: var(--ink);
+}
+.term.open .term-popover { display: block; }
+
+/* Hop diagram */
+.hop-diagram {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  margin-bottom: var(--s-md);
+}
+.hop-diagram svg { width: 100%; height: 180px; display: block; }
+
+/* The 3 questions */
+.three-q {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: var(--s-md);
+}
+@media (max-width: 700px) { .three-q { grid-template-columns: 1fr; } }
+.qa-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--d1);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+}
+.qa-card .q-label {
+  font-family: var(--font-display);
+  font-size: .65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: var(--d1);
+  margin-bottom: 4px;
+}
+.qa-card .q-answer {
+  font-family: var(--font-body);
+  font-size: .9rem;
+  line-height: 1.5;
+  color: var(--ink);
+}
+.qa-card .q-answer code {
+  font-family: var(--font-mono);
+  font-size: .82rem;
+  background: var(--bg-recessed);
+  padding: 1px 5px;
+  border-radius: 3px;
+}
+
+/* Memory hook callout */
+.hook {
+  background: #FFFBEB;
+  border-left: 3px solid #B45309;
+  border-radius: var(--radius);
+  padding: 12px 16px;
+  font-family: var(--font-body);
+  font-size: .9rem;
+  line-height: 1.55;
+  color: #78350F;
+}
+.hook strong {
+  font-family: var(--font-display);
+  font-size: .68rem;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: #B45309;
+  display: block;
+  margin-bottom: 4px;
+}
+
+/* ── Hop diagram pieces ────────────────────────────────── */
+.dev-box { fill: #FFFFFF; stroke: var(--d1-deep); stroke-width: 1.5; }
+.dev-box.warn { stroke: #B45309; }
+.dev-box.green { stroke: #16A34A; }
+.dev-box.red { stroke: #DC2626; }
+.dev-text { font-family: 'Space Grotesk', sans-serif; font-size: 11px; font-weight: 600; fill: var(--ink); text-anchor: middle; }
+.dev-sub { font-family: 'Space Grotesk', sans-serif; font-size: 8.5px; fill: var(--ink-muted); text-anchor: middle; }
+.flow-line { stroke: var(--d1); stroke-width: 2; fill: none; }
+.flow-arrow { fill: var(--d1); }
+
+@keyframes hopPkt {
+  0% { offset-distance: 0%; opacity: 0; }
+  8% { opacity: 1; }
+  92% { opacity: 1; }
+  100% { offset-distance: 100%; opacity: 0; }
+}
+.hop-pkt { fill: var(--d1); animation: hopPkt 3s linear infinite; }
+
+/* ── Replay banner ─────────────────────────────────────── */
+.story-end {
+  background: linear-gradient(180deg, var(--d1-dim) 0%, var(--bg-surface) 100%);
+  border: 1px solid var(--d1);
+  border-radius: var(--radius-lg);
+  padding: 32px 28px;
+  margin-top: var(--s-2xl);
+  text-align: center;
+}
+.story-end h2 {
+  font-family: var(--font-display);
+  font-size: 1.6rem;
+  color: var(--d1-deep);
+  margin-bottom: 8px;
+  border: none;
+}
+.story-end p {
+  font-family: var(--font-body);
+  font-size: 1rem;
+  color: var(--ink);
+  line-height: 1.6;
+  margin-bottom: var(--s-md);
+  max-width: 50ch;
+  margin-left: auto;
+  margin-right: auto;
+}
+.story-end .actions { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-bottom: var(--s-md); }
+.story-end .actions .j-btn { font-size: .85rem; padding: 10px 20px; }
+.story-end .next-up {
+  font-family: var(--font-mono);
+  font-size: .78rem;
+  color: var(--ink-secondary);
+  border-top: 1px solid var(--border);
+  padding-top: var(--s-md);
+  margin-top: var(--s-md);
+}
+.story-end .next-up a { color: var(--d1); margin: 0 6px; text-decoration: none; font-weight: 600; }
+.story-end .next-up a:hover { text-decoration: underline; }
+
+/* Auto-tour highlight */
+.hop.tour-active {
+  background: linear-gradient(90deg, var(--d1-dim) 0%, transparent 100%);
+  border-left: 3px solid var(--d1);
+  padding-left: 18px;
+  margin-left: -18px;
+}
+
+/* ── Reduced motion: comic strip mode ──────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .hop-pkt { animation: none; opacity: 1; offset-distance: 50%; }
+  .pulse-ring { animation: none; opacity: 0; }
+}
+
+/* ── Mobile ────────────────────────────────────────────── */
+@media (max-width: 600px) {
+  .page-header h1 { font-size: 1.85rem; }
+  .hop-title { font-size: 1.4rem; }
+  .hop-narrative { font-size: 1rem; }
+  .subway-svg { height: 90px; }
+  .term-popover { width: 240px; }
+}
+</style>
+</head>
+<body>
+<nav class="top-nav"></nav>
+<div class="container-wide">
+  <div class="back-wrap" style="margin-bottom:var(--s-md)"><a class="back-link" href="learn-hub.html">&larr; Back to Learn Hub</a></div>
+
+  <header class="page-header">
+    <div class="kicker">CCNA Domain 1 · Network Fundamentals · Story Mode</div>
+    <h1>Packet Around the World</h1>
+    <p class="subtitle">One packet. Nine hops. From Romeo's laptop in Algonquin, Illinois to a server in Tokyo. Read at your own pace. Replay until it sticks.</p>
+  </header>
+
+  <!-- ════════════════════════════════════════════════════════════
+       Sticky journey map
+       ════════════════════════════════════════════════════════════ -->
+  <div class="journey-sticky" id="stickyMap">
+
+    <div class="stage-row">
+      <div class="journey-stage-label">Stop <strong id="hopIndex">0</strong> of <strong>9</strong> &nbsp;·&nbsp; <span id="hopLocation">scroll down to begin</span></div>
+      <div class="journey-controls">
+        <button class="j-btn" id="prevBtn" title="Previous hop (←)">&larr; Prev</button>
+        <button class="j-btn" id="nextBtn" title="Next hop (→)">Next &rarr;</button>
+        <button class="j-btn primary" id="tourBtn" title="Auto-advance through every hop">▶ Auto-tour</button>
+        <button class="j-btn" id="replayBtn" title="Reset and scroll to start">↻ Replay</button>
+        <button class="compact-toggle" id="compactBtn" title="Hide world map for more reading room">▴ map</button>
+      </div>
+    </div>
+
+    <!-- Subway-line journey -->
+    <svg class="subway-svg" viewBox="0 0 1000 80" preserveAspectRatio="xMidYMid meet" id="subwaySvg" aria-label="Packet journey timeline">
+      <!-- Lines and dots populated by JS -->
+    </svg>
+
+    <!-- World inset -->
+    <svg class="world-svg" viewBox="0 0 720 220" preserveAspectRatio="xMidYMid meet" id="worldSvg" aria-label="Stylized world map showing packet path">
+      <!-- Stylized continent shapes -->
+      <!-- North America -->
+      <path class="land-shape" d="M 30 70 Q 40 50 90 50 L 160 60 L 170 95 L 155 130 L 110 145 L 65 135 L 35 115 Z"/>
+      <!-- South America -->
+      <path class="land-shape" d="M 130 145 L 155 155 L 160 195 L 140 210 L 125 195 L 120 165 Z"/>
+      <!-- Europe -->
+      <path class="land-shape" d="M 290 60 L 360 60 L 365 95 L 340 110 L 295 100 Z"/>
+      <!-- Africa -->
+      <path class="land-shape" d="M 305 110 L 365 115 L 370 175 L 345 200 L 320 195 L 305 165 Z"/>
+      <!-- Asia -->
+      <path class="land-shape" d="M 365 60 L 540 50 L 600 80 L 595 130 L 540 150 L 460 130 L 410 110 L 370 95 Z"/>
+      <!-- Australia -->
+      <path class="land-shape" d="M 545 170 L 605 170 L 615 200 L 575 210 L 545 195 Z"/>
+      <!-- Japan -->
+      <path class="land-shape" d="M 600 80 L 615 80 L 620 105 L 605 105 Z"/>
+      <!-- UK -->
+      <path class="land-shape" d="M 280 60 L 295 58 L 295 78 L 282 80 Z"/>
+
+      <g id="worldArcs"></g>
+      <g id="worldCities"></g>
+    </svg>
+
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════════
+       Story intro
+       ════════════════════════════════════════════════════════════ -->
+  <section class="hop" id="hop-0" data-hop="0">
+    <div class="hop-num">START</div>
+    <h2 class="hop-title">Romeo opens his laptop.</h2>
+    <p class="hop-from-to">📍 Algonquin, Illinois &nbsp;<span class="arrow">→</span>&nbsp; destination: tokyo-server.example.jp</p>
+
+    <div class="hop-narrative">
+      <p>Your laptop wants to load a webpage hosted in Tokyo. The server is roughly 6,300 miles away. The packet you're about to send will cross at least <strong>6 different networks</strong> owned by <strong>different companies</strong> in <strong>4 countries</strong> — and arrive in about 200 milliseconds.</p>
+
+      <p>Nobody coordinates this. There is no central traffic controller. Each hop just does its small job and hands the packet to the next one. That's the magic.</p>
+
+      <p><span class="term">Encapsulation<span class="term-popover">Wrapping data in headers as it goes down the OSI layers. App data → TCP segment → IP packet → Ethernet frame → bits on the wire.</span></span> happens before the packet leaves your laptop. The OS adds a TCP header (port 443 = HTTPS), an IP header (destination = Tokyo server's IP), and an Ethernet header — but only after asking one question first…</p>
+    </div>
+
+    <div class="hook">
+      <strong>Slow-learner anchor</strong>
+      Picture a letter in an envelope. Your laptop writes the letter (app data), seals it in a TCP envelope (port 443), puts that in an IP envelope (Tokyo address), then asks "where do I drop this in the mail?" — that question is the next hop.
+    </div>
+  </section>
+
+  <!-- ════════════════════════════════════════════════════════════
+       Hop 1
+       ════════════════════════════════════════════════════════════ -->
+  <section class="hop" id="hop-1" data-hop="1">
+    <div class="hop-num">HOP 01</div>
+    <h2 class="hop-title">Laptop → Home Router</h2>
+    <p class="hop-from-to">💻 Romeo's laptop &nbsp;<span class="arrow">→</span>&nbsp; 🏠 Home router (TP-Link in the basement)</p>
+
+    <div class="hop-narrative">
+      <p>The laptop's IP is <code>192.168.1.42</code>. The Tokyo server is on a totally different network. Your laptop's routing table says "if you don't know where to send it, send it to the <span class="term">default gateway<span class="term-popover">The router IP a host uses for any destination outside its own subnet. Configured manually or via DHCP. Usually .1 of the local subnet.</span></span>" — which is your home router at <code>192.168.1.1</code>.</p>
+
+      <p>But the laptop doesn't know the router's <span class="term">MAC address<span class="term-popover">48-bit Layer-2 hardware address burned into every NIC. Used for forwarding inside one LAN. Format: aa:bb:cc:dd:ee:ff.</span></span>. So it shouts on the LAN: "Whoever has 192.168.1.1, tell me your MAC!" That shout is <span class="term">ARP<span class="term-popover">Address Resolution Protocol. Maps an IP address to a MAC address inside one LAN. Broadcast question, unicast answer. Cached for ~4 hours by default.</span></span>. The router replies with its MAC. The laptop caches it and sends the frame.</p>
+    </div>
+
+    <div class="hop-diagram">
+      <svg viewBox="0 0 700 180" preserveAspectRatio="xMidYMid meet">
+        <rect x="40" y="60" width="100" height="60" rx="6" class="dev-box"/>
+        <text x="90" y="85" class="dev-text">Laptop</text>
+        <text x="90" y="100" class="dev-sub">192.168.1.42</text>
+        <text x="90" y="113" class="dev-sub">aa:bb:cc:01:02:03</text>
+
+        <rect x="280" y="60" width="100" height="60" rx="6" class="dev-box"/>
+        <text x="330" y="85" class="dev-text">Switch</text>
+        <text x="330" y="100" class="dev-sub">L2 forwarding</text>
+        <text x="330" y="113" class="dev-sub">MAC table</text>
+
+        <rect x="520" y="60" width="120" height="60" rx="6" class="dev-box"/>
+        <text x="580" y="85" class="dev-text">Home Router</text>
+        <text x="580" y="100" class="dev-sub">192.168.1.1</text>
+        <text x="580" y="113" class="dev-sub">aa:bb:cc:99:99:99</text>
+
+        <path d="M 140 90 L 280 90" class="flow-line" id="hop1path"/>
+        <path d="M 380 90 L 520 90" class="flow-line"/>
+
+        <text x="210" y="80" class="dev-sub" text-anchor="middle">ARP first</text>
+        <text x="450" y="80" class="dev-sub" text-anchor="middle">then frame</text>
+
+        <circle r="5" class="hop-pkt" style="offset-path: path('M 140 90 L 280 90 L 380 90 L 520 90');"/>
+      </svg>
+    </div>
+
+    <div class="three-q">
+      <div class="qa-card">
+        <div class="q-label">What device?</div>
+        <div class="q-answer">Home router (a multi-function box: router + switch + AP + DHCP server)</div>
+      </div>
+      <div class="qa-card">
+        <div class="q-label">What layer?</div>
+        <div class="q-answer">Layer 2 (Ethernet frame to switch) + Layer 3 (IP packet to router)</div>
+      </div>
+      <div class="qa-card">
+        <div class="q-label">What's it doing?</div>
+        <div class="q-answer">Receiving the frame, stripping Ethernet, looking up the destination IP, deciding the next hop</div>
+      </div>
+    </div>
+
+    <div class="hook">
+      <strong>CCNA hook</strong>
+      Inside one LAN = MAC addresses + ARP. Crossing to another LAN = need a router. The default gateway is the door out. Memorize that distinction — it's tested directly.
+    </div>
+  </section>
+
+  <!-- ════════════════════════════════════════════════════════════
+       Hop 2
+       ════════════════════════════════════════════════════════════ -->
+  <section class="hop" id="hop-2" data-hop="2">
+    <div class="hop-num">HOP 02</div>
+    <h2 class="hop-title">Home Router → Cable Modem → Comcast Edge</h2>
+    <p class="hop-from-to">🏠 Home router &nbsp;<span class="arrow">→</span>&nbsp; 📡 Cable modem &nbsp;<span class="arrow">→</span>&nbsp; 🏢 Comcast neighborhood edge</p>
+
+    <div class="hop-narrative">
+      <p>Your home router does one critical thing before the packet leaves the house: <span class="term">NAT<span class="term-popover">Network Address Translation. Rewrites the source IP from your private 192.168.x.x to the public IP your ISP gave you. Without NAT, the Tokyo server couldn't reply — it can't route to a private IP.</span></span>. It rewrites the source IP from <code>192.168.1.42</code> (private) to your <strong>public IP</strong> from Comcast (e.g. <code>73.45.12.88</code>). That single trick is why home networks work at all.</p>
+
+      <p>The packet now travels over coax cable to the <span class="term">cable modem<span class="term-popover">Translates between Ethernet (your home) and DOCSIS (Comcast's coax network). Layer 1/2 device. The modern modem at the demarc point.</span></span>, then to a <span class="term">CMTS<span class="term-popover">Cable Modem Termination System. The aggregation box at the cable company that all neighborhood modems connect to. Where the ISP's network "starts."</span></span> at Comcast's neighborhood node. From there, fiber.</p>
+
+      <p>The boundary between "your stuff" and "Comcast's stuff" is the <span class="term">demarcation point<span class="term-popover">"Demarc." The legal/physical boundary between customer-owned equipment and ISP-owned equipment. On cable: usually the modem. On fiber: the ONT. On business circuits: a NID box.</span></span> — usually the modem itself.</p>
+    </div>
+
+    <div class="hop-diagram">
+      <svg viewBox="0 0 700 180" preserveAspectRatio="xMidYMid meet">
+        <rect x="20" y="60" width="100" height="60" rx="6" class="dev-box"/>
+        <text x="70" y="85" class="dev-text">Home Router</text>
+        <text x="70" y="100" class="dev-sub">+ NAT</text>
+        <text x="70" y="113" class="dev-sub">192.168.1.1</text>
+
+        <rect x="200" y="60" width="100" height="60" rx="6" class="dev-box warn"/>
+        <text x="250" y="80" class="dev-text">Cable Modem</text>
+        <text x="250" y="95" class="dev-sub">demarc</text>
+        <text x="250" y="110" class="dev-sub">Ethernet ↔ DOCSIS</text>
+
+        <rect x="380" y="60" width="100" height="60" rx="6" class="dev-box"/>
+        <text x="430" y="85" class="dev-text">CMTS</text>
+        <text x="430" y="100" class="dev-sub">Comcast neighborhood</text>
+        <text x="430" y="113" class="dev-sub">aggregation</text>
+
+        <rect x="560" y="60" width="120" height="60" rx="6" class="dev-box"/>
+        <text x="620" y="85" class="dev-text">Comcast Edge</text>
+        <text x="620" y="100" class="dev-sub">PE router</text>
+        <text x="620" y="113" class="dev-sub">73.45.0.0/16</text>
+
+        <path d="M 120 90 L 200 90" class="flow-line"/>
+        <path d="M 300 90 L 380 90" class="flow-line"/>
+        <path d="M 480 90 L 560 90" class="flow-line"/>
+
+        <text x="160" y="80" class="dev-sub" text-anchor="middle">Ethernet</text>
+        <text x="340" y="80" class="dev-sub" text-anchor="middle">DOCSIS / coax</text>
+        <text x="520" y="80" class="dev-sub" text-anchor="middle">fiber</text>
+
+        <circle r="5" class="hop-pkt" style="offset-path: path('M 120 90 L 680 90');"/>
+
+        <line x1="170" y1="145" x2="170" y2="160" stroke="#B45309" stroke-dasharray="3 3"/>
+        <text x="170" y="172" class="dev-sub" text-anchor="middle" style="fill:#B45309">demarc line</text>
+      </svg>
+    </div>
+
+    <div class="three-q">
+      <div class="qa-card">
+        <div class="q-label">What device?</div>
+        <div class="q-answer">Cable modem at the demarc + CMTS at the neighborhood node + PE router at Comcast edge</div>
+      </div>
+      <div class="qa-card">
+        <div class="q-label">What layer?</div>
+        <div class="q-answer">L1/L2 at the modem · L3 at the PE router (decides the next provider)</div>
+      </div>
+      <div class="qa-card">
+        <div class="q-label">What's it doing?</div>
+        <div class="q-answer">NAT translates your private IP to public · DOCSIS carries the bits to the ISP · PE router accepts the packet into the Comcast network</div>
+      </div>
+    </div>
+
+    <div class="hook">
+      <strong>CCNA hook</strong>
+      "Where does my private IP become a public IP?" — at NAT, on the home router (or sometimes at the ISP). The Tokyo server will only ever see your public IP, never the 192.168 one. This is also why you can't host a server from home without port forwarding.
+    </div>
+  </section>
+
+  <!-- ════════════════════════════════════════════════════════════
+       Hop 3
+       ════════════════════════════════════════════════════════════ -->
+  <section class="hop" id="hop-3" data-hop="3">
+    <div class="hop-num">HOP 03</div>
+    <h2 class="hop-title">Comcast Edge → Equinix Chicago (IXP)</h2>
+    <p class="hop-from-to">🏢 Comcast Chicago metro &nbsp;<span class="arrow">→</span>&nbsp; 🏛️ Equinix CH1, downtown Chicago</p>
+
+    <div class="hop-narrative">
+      <p>Comcast doesn't own the Internet. To reach a server in Tokyo, Comcast hands the packet to another network. The cheapest place to do that is at an <span class="term">IXP<span class="term-popover">Internet Exchange Point. A neutral building where many ISPs and content providers connect to one big switch and exchange traffic with each other — usually for free. Equinix Chicago, DE-CIX Frankfurt, AMS-IX Amsterdam are major IXPs.</span></span> — a giant building full of network gear where dozens of providers meet on a shared switch.</p>
+
+      <p>Equinix Chicago (CH1, on Cermak Road) is one of the biggest in North America. Inside, Comcast's router has a fiber crossing to a Tier-1 backbone like Lumen or AT&amp;T. They <span class="term">peer<span class="term-popover">Two networks agreeing to exchange traffic directly. Settlement-free peering = neither pays. Paid peering = one pays the other for transit.</span></span> with each other and run <span class="term">BGP<span class="term-popover">Border Gateway Protocol. The routing protocol of the Internet. Every ISP runs BGP with its peers to advertise which IP ranges it can reach. CCNA covers BGP at concept level only.</span></span> to advertise which IPs each one can reach.</p>
+
+      <p>Each network has an <span class="term">AS number<span class="term-popover">Autonomous System number. Globally unique ID for a network on the Internet. Comcast = AS7922, Google = AS15169, CoreWeave = AS396107. BGP routes between AS numbers.</span></span>. Comcast is AS7922. Lumen is AS3356. The packet is about to cross between ASes.</p>
+    </div>
+
+    <div class="hop-diagram">
+      <svg viewBox="0 0 700 180" preserveAspectRatio="xMidYMid meet">
+        <rect x="20" y="60" width="120" height="60" rx="6" class="dev-box"/>
+        <text x="80" y="85" class="dev-text">Comcast PE</text>
+        <text x="80" y="100" class="dev-sub">AS7922</text>
+        <text x="80" y="113" class="dev-sub">Chicago metro</text>
+
+        <ellipse cx="350" cy="90" rx="120" ry="48" fill="#FEF3C7" stroke="#B45309" stroke-width="2"/>
+        <text x="350" y="80" class="dev-text" style="fill:#7C2D12">Equinix CH1 — IXP</text>
+        <text x="350" y="96" class="dev-sub" style="fill:#7C2D12">peering switch fabric</text>
+        <text x="350" y="110" class="dev-sub" style="fill:#7C2D12">100+ networks meet here</text>
+
+        <rect x="560" y="60" width="120" height="60" rx="6" class="dev-box"/>
+        <text x="620" y="85" class="dev-text">Lumen PE</text>
+        <text x="620" y="100" class="dev-sub">AS3356</text>
+        <text x="620" y="113" class="dev-sub">Tier 1 backbone</text>
+
+        <path d="M 140 90 L 230 90" class="flow-line"/>
+        <path d="M 470 90 L 560 90" class="flow-line"/>
+
+        <text x="180" y="80" class="dev-sub" text-anchor="middle">BGP peer</text>
+        <text x="510" y="80" class="dev-sub" text-anchor="middle">BGP peer</text>
+
+        <circle r="5" class="hop-pkt" style="offset-path: path('M 140 90 L 560 90');"/>
+      </svg>
+    </div>
+
+    <div class="three-q">
+      <div class="qa-card">
+        <div class="q-label">What device?</div>
+        <div class="q-answer">High-end edge routers from each ISP, all plugged into a shared switch fabric in the IXP</div>
+      </div>
+      <div class="qa-card">
+        <div class="q-label">What layer?</div>
+        <div class="q-answer">Layer 3 — BGP runs between routers, advertising IP prefixes</div>
+      </div>
+      <div class="qa-card">
+        <div class="q-label">What's it doing?</div>
+        <div class="q-answer">Comcast hands the packet to Lumen at the IXP because Lumen advertised "I can reach Tokyo's IP range" via BGP</div>
+      </div>
+    </div>
+
+    <div class="hook">
+      <strong>CCNA hook</strong>
+      The Internet is networks (AS numbers) connected to other networks via BGP. IXPs are the cheap meeting point. CCNA only tests BGP at concept level: "it's the routing protocol between ASes." Don't memorize attributes.
+    </div>
+  </section>
+
+  <!-- ════════════════════════════════════════════════════════════
+       Hop 4
+       ════════════════════════════════════════════════════════════ -->
+  <section class="hop" id="hop-4" data-hop="4">
+    <div class="hop-num">HOP 04</div>
+    <h2 class="hop-title">Tier 1 Backbone — Chicago to New York</h2>
+    <p class="hop-from-to">🏛️ Equinix Chicago &nbsp;<span class="arrow">→</span>&nbsp; 🌆 Equinix NY4, Secaucus NJ</p>
+
+    <div class="hop-narrative">
+      <p>The packet is now on Lumen's <span class="term">Tier 1 backbone<span class="term-popover">A network that can reach the entire Internet without paying anyone — only via settlement-free peering. There are roughly 16 Tier-1 networks worldwide. Lumen, AT&amp;T, NTT, Telia, Tata, Cogent, Verizon, etc.</span></span>. This is high-capacity fiber — typically <strong>100 Gbps or 400 Gbps</strong> per link — running between major cities.</p>
+
+      <p>Inside the backbone, routers don't do full IP lookups for every packet. They use <span class="term">label-switching<span class="term-popover">MPLS. Each packet entering the backbone gets a small label. Core routers swap labels at line rate without looking at the IP header. Way faster than IP routing. Customer never sees the labels.</span></span> (MPLS) to forward at line rate. The CCNA-level summary: <em>backbone routers don't think hard about each packet, they just swap labels and push them down a pre-built path.</em></p>
+
+      <p>Chicago to NYC is roughly 800 miles. Speed of light through fiber adds about <strong>13 ms</strong> latency. That's the minimum. No technology beats physics.</p>
+    </div>
+
+    <div class="hop-diagram">
+      <svg viewBox="0 0 700 180" preserveAspectRatio="xMidYMid meet">
+        <rect x="20" y="60" width="100" height="60" rx="6" class="dev-box"/>
+        <text x="70" y="85" class="dev-text">Lumen PE</text>
+        <text x="70" y="100" class="dev-sub">Chicago</text>
+        <text x="70" y="113" class="dev-sub">push label</text>
+
+        <circle cx="240" cy="90" r="22" class="dev-box"/>
+        <text x="240" y="93" class="dev-text">P</text>
+
+        <circle cx="350" cy="90" r="22" class="dev-box"/>
+        <text x="350" y="93" class="dev-text">P</text>
+
+        <circle cx="460" cy="90" r="22" class="dev-box"/>
+        <text x="460" y="93" class="dev-text">P</text>
+
+        <rect x="560" y="60" width="120" height="60" rx="6" class="dev-box"/>
+        <text x="620" y="85" class="dev-text">Lumen PE</text>
+        <text x="620" y="100" class="dev-sub">New York</text>
+        <text x="620" y="113" class="dev-sub">pop label</text>
+
+        <path d="M 120 90 L 218 90" class="flow-line"/>
+        <path d="M 262 90 L 328 90" class="flow-line"/>
+        <path d="M 372 90 L 438 90" class="flow-line"/>
+        <path d="M 482 90 L 560 90" class="flow-line"/>
+
+        <text x="350" y="40" class="dev-sub" text-anchor="middle">core P routers · label-switch only · 400 Gbps fiber</text>
+        <text x="350" y="155" class="dev-sub" text-anchor="middle">~800 mi · ~13 ms one-way</text>
+
+        <circle r="5" class="hop-pkt" style="offset-path: path('M 120 90 L 560 90');"/>
+      </svg>
+    </div>
+
+    <div class="three-q">
+      <div class="qa-card">
+        <div class="q-label">What device?</div>
+        <div class="q-answer">PE (Provider Edge) routers at each end · P (Provider Core) routers in the middle</div>
+      </div>
+      <div class="qa-card">
+        <div class="q-label">What layer?</div>
+        <div class="q-answer">Layer 3 / "Layer 2.5" — MPLS sits between L2 and L3</div>
+      </div>
+      <div class="qa-card">
+        <div class="q-label">What's it doing?</div>
+        <div class="q-answer">PE pushes a label · P routers swap labels hop by hop · PE at the far end pops the label and goes back to plain IP</div>
+      </div>
+    </div>
+
+    <div class="hook">
+      <strong>CCNA hook</strong>
+      P routers in the core don't know who you are. They just swap labels. PE routers at the edge are the only ones with customer state. This is why MPLS scales — the "thinking" lives at the edges, not the middle.
+    </div>
+  </section>
+
+  <!-- ════════════════════════════════════════════════════════════
+       Hop 5
+       ════════════════════════════════════════════════════════════ -->
+  <section class="hop" id="hop-5" data-hop="5">
+    <div class="hop-num">HOP 05</div>
+    <h2 class="hop-title">Submarine Cable — New York to London</h2>
+    <p class="hop-from-to">🌆 NY landing station &nbsp;<span class="arrow">→</span>&nbsp; 🌊 transatlantic fiber &nbsp;<span class="arrow">→</span>&nbsp; 🇬🇧 London landing station</p>
+
+    <div class="hop-narrative">
+      <p>The Internet is mostly underwater. <strong>99% of intercontinental traffic</strong> rides on <span class="term">submarine fiber-optic cables<span class="term-popover">Glass fiber bundles laid on the ocean floor, typically the diameter of a garden hose. Powered by repeaters every ~50–80 km. Lifespan ~25 years. There are ~500 active submarine cables worldwide carrying virtually all transcontinental Internet traffic.</span></span> on the ocean floor. Satellites carry less than 1%. The packet you sent is about to cross the Atlantic on one of these cables — possibly MAREA, AEC-1, or a similar transatlantic system.</p>
+
+      <p>From a CCNA perspective, this is just <em>another fiber link</em>. The router doesn't care that the link goes underwater. It's still Ethernet over fiber. The label-switching keeps going. The packet keeps moving.</p>
+
+      <p>Latency: NY → London is about 3,500 miles. Fiber adds ~28 ms minimum. Real-world ping: ~70–80 ms because the path isn't perfectly straight.</p>
+    </div>
+
+    <div class="hop-diagram">
+      <svg viewBox="0 0 700 180" preserveAspectRatio="xMidYMid meet">
+        <rect x="20" y="60" width="120" height="60" rx="6" class="dev-box"/>
+        <text x="80" y="85" class="dev-text">NY Landing</text>
+        <text x="80" y="100" class="dev-sub">Wall, NJ</text>
+        <text x="80" y="113" class="dev-sub">fiber → ocean</text>
+
+        <path d="M 140 90 Q 350 30 560 90" stroke="#0891B2" stroke-width="3" fill="none"/>
+
+        <text x="350" y="42" class="dev-sub" text-anchor="middle" style="fill:#0891B2">submarine cable · ~3,500 mi · powered repeaters every 50 km</text>
+
+        <rect x="560" y="60" width="120" height="60" rx="6" class="dev-box"/>
+        <text x="620" y="85" class="dev-text">London Landing</text>
+        <text x="620" y="100" class="dev-sub">Bude, Cornwall</text>
+        <text x="620" y="113" class="dev-sub">fiber → backbone</text>
+
+        <text x="350" y="160" class="dev-sub" text-anchor="middle">~28 ms one-way (speed of light limit)</text>
+
+        <circle r="6" class="hop-pkt" style="offset-path: path('M 140 90 Q 350 30 560 90');"/>
+      </svg>
+    </div>
+
+    <div class="three-q">
+      <div class="qa-card">
+        <div class="q-label">What device?</div>
+        <div class="q-answer">Cable landing station = a building where the undersea cable terminates and connects to terrestrial fiber. Inside: optical amplifiers + routers.</div>
+      </div>
+      <div class="qa-card">
+        <div class="q-label">What layer?</div>
+        <div class="q-answer">Layer 1 (the physical fiber) carrying Layer 2 frames carrying our Layer 3 packet</div>
+      </div>
+      <div class="qa-card">
+        <div class="q-label">What's it doing?</div>
+        <div class="q-answer">Carrying photons across the ocean floor. The packet doesn't change. Only the medium changes.</div>
+      </div>
+    </div>
+
+    <div class="hook">
+      <strong>Slow-learner anchor</strong>
+      Don't overthink submarine cables. From the packet's view it's the same as any fiber — just very long. CCNA won't quiz cable names. It might quiz "what carries most intercontinental traffic?" Answer: undersea fiber, not satellite.
+    </div>
+  </section>
+
+  <!-- ════════════════════════════════════════════════════════════
+       Hop 6
+       ════════════════════════════════════════════════════════════ -->
+  <section class="hop" id="hop-6" data-hop="6">
+    <div class="hop-num">HOP 06</div>
+    <h2 class="hop-title">London → DE-CIX Frankfurt (IXP)</h2>
+    <p class="hop-from-to">🇬🇧 Lumen London PE &nbsp;<span class="arrow">→</span>&nbsp; 🇩🇪 DE-CIX Frankfurt — biggest IXP in the world</p>
+
+    <div class="hop-narrative">
+      <p>Lumen reaches London but doesn't own much fiber further east. To reach Tokyo, the packet hands off again — to NTT, KDDI, or another Asian-Pacific carrier. The handoff happens at <strong>DE-CIX Frankfurt</strong>, the largest Internet Exchange in the world (handles &gt;15 Tbps at peak).</p>
+
+      <p>Same story as Chicago: BGP, peering, AS-to-AS handoff. Different building, same shape. <strong>The Internet is the same shape everywhere.</strong></p>
+
+      <p>This repetition is the whole CCNA insight: once you understand one hop, you understand all of them. BGP between ASes at every IXP. PE → P → PE on every backbone. NAT at every customer edge. The pattern repeats.</p>
+    </div>
+
+    <div class="hop-diagram">
+      <svg viewBox="0 0 700 180" preserveAspectRatio="xMidYMid meet">
+        <rect x="20" y="60" width="120" height="60" rx="6" class="dev-box"/>
+        <text x="80" y="85" class="dev-text">Lumen PE</text>
+        <text x="80" y="100" class="dev-sub">AS3356</text>
+        <text x="80" y="113" class="dev-sub">London</text>
+
+        <ellipse cx="350" cy="90" rx="130" ry="48" fill="#FEF3C7" stroke="#B45309" stroke-width="2"/>
+        <text x="350" y="80" class="dev-text" style="fill:#7C2D12">DE-CIX Frankfurt</text>
+        <text x="350" y="96" class="dev-sub" style="fill:#7C2D12">2,400+ networks peered</text>
+        <text x="350" y="110" class="dev-sub" style="fill:#7C2D12">&gt;15 Tbps at peak</text>
+
+        <rect x="560" y="60" width="120" height="60" rx="6" class="dev-box"/>
+        <text x="620" y="85" class="dev-text">NTT PE</text>
+        <text x="620" y="100" class="dev-sub">AS2914</text>
+        <text x="620" y="113" class="dev-sub">Asia-Pacific</text>
+
+        <path d="M 140 90 L 220 90" class="flow-line"/>
+        <path d="M 480 90 L 560 90" class="flow-line"/>
+
+        <circle r="5" class="hop-pkt" style="offset-path: path('M 140 90 L 560 90');"/>
+      </svg>
+    </div>
+
+    <div class="three-q">
+      <div class="qa-card">
+        <div class="q-label">What device?</div>
+        <div class="q-answer">PE routers from two different Tier-1 carriers, both in the same IXP building</div>
+      </div>
+      <div class="qa-card">
+        <div class="q-label">What layer?</div>
+        <div class="q-answer">L3 — BGP again. Same protocol, different continent.</div>
+      </div>
+      <div class="qa-card">
+        <div class="q-label">What's it doing?</div>
+        <div class="q-answer">Lumen advertised the destination via BGP and routes the packet onto NTT's backbone — same dance as Chicago, on the other side of the Atlantic</div>
+      </div>
+    </div>
+
+    <div class="hook">
+      <strong>CCNA hook</strong>
+      Pattern recognition wins the exam. If you see "ISP A hands traffic to ISP B," the answer almost always involves BGP and an IXP. Memorize the pattern, not the cities.
+    </div>
+  </section>
+
+  <!-- ════════════════════════════════════════════════════════════
+       Hop 7
+       ════════════════════════════════════════════════════════════ -->
+  <section class="hop" id="hop-7" data-hop="7">
+    <div class="hop-num">HOP 07</div>
+    <h2 class="hop-title">NTT Backbone — Frankfurt to Tokyo</h2>
+    <p class="hop-from-to">🇩🇪 Frankfurt &nbsp;<span class="arrow">→</span>&nbsp; 🌊 Eurasia subsea + terrestrial fiber &nbsp;<span class="arrow">→</span>&nbsp; 🇯🇵 Tokyo</p>
+
+    <div class="hop-narrative">
+      <p>NTT is one of the largest Asian Tier-1 backbones (AS2914 — sometimes called the "global IP network"). Their backbone reaches across Russia / through the Middle East via subsea cables / and lands in Japan.</p>
+
+      <p>The packet rides label-switched fiber across roughly <strong>5,800 miles</strong>. This is the longest leg of the journey. Latency adds another ~70 ms.</p>
+
+      <p>By the time the packet reaches Tokyo, your laptop's TCP connection is still patiently waiting. TCP doesn't care how the packets got there — it just verifies they all arrived in order, and asks for retransmission if any are missing. <span class="term">TCP<span class="term-popover">Transmission Control Protocol. Reliable, connection-oriented Layer 4 protocol. Handles ordering, retransmission, flow control. The packet's IP-layer journey is invisible to TCP — it just sees "data sent, data acknowledged."</span></span> handles retransmits. Your laptop never knows the underlying chaos.</p>
+    </div>
+
+    <div class="hop-diagram">
+      <svg viewBox="0 0 700 180" preserveAspectRatio="xMidYMid meet">
+        <rect x="20" y="60" width="100" height="60" rx="6" class="dev-box"/>
+        <text x="70" y="85" class="dev-text">NTT PE</text>
+        <text x="70" y="100" class="dev-sub">Frankfurt</text>
+        <text x="70" y="113" class="dev-sub">push label</text>
+
+        <circle cx="220" cy="90" r="20" class="dev-box"/>
+        <text x="220" y="93" class="dev-text">P</text>
+        <circle cx="310" cy="90" r="20" class="dev-box"/>
+        <text x="310" y="93" class="dev-text">P</text>
+        <circle cx="400" cy="90" r="20" class="dev-box"/>
+        <text x="400" y="93" class="dev-text">P</text>
+        <circle cx="490" cy="90" r="20" class="dev-box"/>
+        <text x="490" y="93" class="dev-text">P</text>
+
+        <rect x="580" y="60" width="100" height="60" rx="6" class="dev-box"/>
+        <text x="630" y="85" class="dev-text">NTT PE</text>
+        <text x="630" y="100" class="dev-sub">Tokyo</text>
+        <text x="630" y="113" class="dev-sub">pop label</text>
+
+        <path d="M 120 90 L 200 90" class="flow-line"/>
+        <path d="M 240 90 L 290 90" class="flow-line"/>
+        <path d="M 330 90 L 380 90" class="flow-line"/>
+        <path d="M 420 90 L 470 90" class="flow-line"/>
+        <path d="M 510 90 L 580 90" class="flow-line"/>
+
+        <text x="355" y="40" class="dev-sub" text-anchor="middle">~5,800 mi · ~70 ms · subsea + terrestrial fiber</text>
+
+        <circle r="5" class="hop-pkt" style="offset-path: path('M 120 90 L 580 90'); animation-duration: 4s;"/>
+      </svg>
+    </div>
+
+    <div class="three-q">
+      <div class="qa-card">
+        <div class="q-label">What device?</div>
+        <div class="q-answer">NTT's backbone routers — same PE/P architecture as Lumen, different continent</div>
+      </div>
+      <div class="qa-card">
+        <div class="q-label">What layer?</div>
+        <div class="q-answer">L3 + MPLS · TCP at L4 patiently buffering on your laptop</div>
+      </div>
+      <div class="qa-card">
+        <div class="q-label">What's it doing?</div>
+        <div class="q-answer">Forwarding at line rate using MPLS labels. Pure muscle work — no thinking about destinations.</div>
+      </div>
+    </div>
+
+    <div class="hook">
+      <strong>CCNA hook</strong>
+      Notice TCP showing up here. TCP lives at Layer 4 and runs end-to-end (your laptop ↔ Tokyo server). The intermediate routers don't touch TCP. They only look at the IP header. This is why "TCP is end-to-end, IP is hop-by-hop" is a CCNA mantra.
+    </div>
+  </section>
+
+  <!-- ════════════════════════════════════════════════════════════
+       Hop 8
+       ════════════════════════════════════════════════════════════ -->
+  <section class="hop" id="hop-8" data-hop="8">
+    <div class="hop-num">HOP 08</div>
+    <h2 class="hop-title">NTT Tokyo → Tokyo Office ISP → Office Router</h2>
+    <p class="hop-from-to">🏢 NTT Tokyo PE &nbsp;<span class="arrow">→</span>&nbsp; 🏬 Tokyo office's ISP &nbsp;<span class="arrow">→</span>&nbsp; 🖥️ Tokyo office router</p>
+
+    <div class="hop-narrative">
+      <p>Mirror image of hops 2 and 3, in reverse. The packet leaves the Tier-1 backbone, enters a regional Japanese ISP (perhaps via another IXP — JPIX Tokyo, or BBIX), then enters the destination office's circuit. The office likely has <strong>fiber to the building (FTTB)</strong> with an <span class="term">ONT<span class="term-popover">Optical Network Terminal. The fiber-equivalent of a cable modem. Converts light pulses on the fiber to Ethernet frames the customer's router can use. Sits at the demarc point on PON deployments.</span></span> at the demarc.</p>
+
+      <p>Inside the office, traffic crosses an enterprise firewall that inspects the packet (allow port 443? scan for malware?) and finally reaches the office's Layer-3 switch.</p>
+
+      <p>The packet has now traveled through about <strong>6 different companies' networks</strong>. It started in your laptop ~200 ms ago. Almost there.</p>
+    </div>
+
+    <div class="hop-diagram">
+      <svg viewBox="0 0 700 180" preserveAspectRatio="xMidYMid meet">
+        <rect x="20" y="60" width="90" height="60" rx="6" class="dev-box"/>
+        <text x="65" y="85" class="dev-text">NTT PE</text>
+        <text x="65" y="100" class="dev-sub">Tokyo</text>
+        <text x="65" y="113" class="dev-sub">AS2914</text>
+
+        <rect x="150" y="60" width="90" height="60" rx="6" class="dev-box"/>
+        <text x="195" y="85" class="dev-text">JP ISP</text>
+        <text x="195" y="100" class="dev-sub">regional</text>
+        <text x="195" y="113" class="dev-sub">last-mile</text>
+
+        <rect x="280" y="60" width="90" height="60" rx="6" class="dev-box warn"/>
+        <text x="325" y="85" class="dev-text">ONT</text>
+        <text x="325" y="100" class="dev-sub">demarc</text>
+        <text x="325" y="113" class="dev-sub">fiber → eth</text>
+
+        <rect x="410" y="60" width="90" height="60" rx="6" class="dev-box"/>
+        <text x="455" y="85" class="dev-text">Office Router</text>
+        <text x="455" y="100" class="dev-sub">CE</text>
+
+        <rect x="540" y="60" width="90" height="60" rx="6" class="dev-box red"/>
+        <text x="585" y="85" class="dev-text">Firewall</text>
+        <text x="585" y="100" class="dev-sub">L3/L4/L7</text>
+        <text x="585" y="113" class="dev-sub">ACLs</text>
+
+        <path d="M 110 90 L 150 90" class="flow-line"/>
+        <path d="M 240 90 L 280 90" class="flow-line"/>
+        <path d="M 370 90 L 410 90" class="flow-line"/>
+        <path d="M 500 90 L 540 90" class="flow-line"/>
+
+        <text x="325" y="155" class="dev-sub" text-anchor="middle" style="fill:#B45309">customer demarc</text>
+
+        <circle r="5" class="hop-pkt" style="offset-path: path('M 110 90 L 630 90');"/>
+      </svg>
+    </div>
+
+    <div class="three-q">
+      <div class="qa-card">
+        <div class="q-label">What device?</div>
+        <div class="q-answer">ONT (fiber demarc) + CE router + enterprise firewall, all customer-side</div>
+      </div>
+      <div class="qa-card">
+        <div class="q-label">What layer?</div>
+        <div class="q-answer">L1/L2 at ONT · L3 at CE router · L3-L7 at firewall</div>
+      </div>
+      <div class="qa-card">
+        <div class="q-label">What's it doing?</div>
+        <div class="q-answer">Mirror of hop 2: ISP hands packet to customer, demarc converts media, customer router accepts traffic, firewall inspects and permits</div>
+      </div>
+    </div>
+
+    <div class="hook">
+      <strong>CCNA hook</strong>
+      Hop 8 is a mirror of hop 2. Modem (or ONT) at the demarc · CE router · firewall. The architecture repeats on both ends of any Internet conversation. If you understand one side, you understand both.
+    </div>
+  </section>
+
+  <!-- ════════════════════════════════════════════════════════════
+       Hop 9
+       ════════════════════════════════════════════════════════════ -->
+  <section class="hop" id="hop-9" data-hop="9">
+    <div class="hop-num">HOP 09</div>
+    <h2 class="hop-title">Office Router → Server</h2>
+    <p class="hop-from-to">🖥️ Tokyo office router &nbsp;<span class="arrow">→</span>&nbsp; 🗄️ tokyo-server.example.jp at <code>203.0.113.55</code></p>
+
+    <div class="hop-narrative">
+      <p>The office router does the exact same thing your home router did at hop 1 — but in reverse. Strip the WAN encapsulation. Look at the destination IP. Realize <code>203.0.113.55</code> is on the local server VLAN. ARP for the server's MAC address. Encapsulate in a fresh Ethernet frame. Send it out the right port.</p>
+
+      <p>The server's NIC receives the frame. The OS decapsulates: Ethernet → IP → TCP → application. Apache (or Nginx, or whatever) sees the HTTP request. The journey is over.</p>
+
+      <p>Total elapsed time from your keystroke to the server reading your request: <strong>roughly 200 ms</strong>. About one-fifth of a second. For a packet that crossed two oceans and six networks. The Internet is, in fact, a miracle.</p>
+    </div>
+
+    <div class="hop-diagram">
+      <svg viewBox="0 0 700 180" preserveAspectRatio="xMidYMid meet">
+        <rect x="40" y="60" width="120" height="60" rx="6" class="dev-box"/>
+        <text x="100" y="85" class="dev-text">Office Router</text>
+        <text x="100" y="100" class="dev-sub">203.0.113.1</text>
+        <text x="100" y="113" class="dev-sub">L3 gateway</text>
+
+        <rect x="280" y="60" width="120" height="60" rx="6" class="dev-box"/>
+        <text x="340" y="85" class="dev-text">Switch</text>
+        <text x="340" y="100" class="dev-sub">Server VLAN</text>
+        <text x="340" y="113" class="dev-sub">L2 forwarding</text>
+
+        <rect x="520" y="60" width="140" height="60" rx="6" class="dev-box green"/>
+        <text x="590" y="85" class="dev-text">Tokyo Server</text>
+        <text x="590" y="100" class="dev-sub">203.0.113.55</text>
+        <text x="590" y="113" class="dev-sub">listening on :443</text>
+
+        <path d="M 160 90 L 280 90" class="flow-line"/>
+        <path d="M 400 90 L 520 90" class="flow-line"/>
+
+        <text x="220" y="80" class="dev-sub" text-anchor="middle">ARP again</text>
+        <text x="460" y="80" class="dev-sub" text-anchor="middle">final frame</text>
+
+        <circle r="5" class="hop-pkt" style="offset-path: path('M 160 90 L 520 90');"/>
+      </svg>
+    </div>
+
+    <div class="three-q">
+      <div class="qa-card">
+        <div class="q-label">What device?</div>
+        <div class="q-answer">Office L3 router + L2 switch + the server NIC itself</div>
+      </div>
+      <div class="qa-card">
+        <div class="q-label">What layer?</div>
+        <div class="q-answer">All of them. Decapsulation walks the OSI stack from L1 up to L7.</div>
+      </div>
+      <div class="qa-card">
+        <div class="q-label">What's it doing?</div>
+        <div class="q-answer">Last ARP. Last Ethernet frame. NIC receives. OS strips headers. Application gets the request. Done.</div>
+      </div>
+    </div>
+
+    <div class="hook">
+      <strong>The full pattern, one line:</strong> ARP → MAC → IP → label-switch → BGP → label-switch → IP → MAC → ARP. Edges think. Cores forward. TCP holds it all together end-to-end. That's the Internet in nine hops.
+    </div>
+  </section>
+
+  <!-- ════════════════════════════════════════════════════════════
+       The end
+       ════════════════════════════════════════════════════════════ -->
+  <div class="story-end">
+    <h2>Packet delivered.</h2>
+    <p>Two oceans. Six networks. Nine hops. ~200 milliseconds. That's how the world connects — and that's the entire CCNA Domain 1 backbone story in one packet.</p>
+    <div class="actions">
+      <button class="j-btn primary" id="replayBtn2">↻ Replay from the top</button>
+      <button class="j-btn" id="tourBtn2">▶ Auto-tour again</button>
+    </div>
+    <div class="next-up">
+      Reinforce with: <a href="packet-journey-sim.html">Packet Journey Sim</a> · <a href="path-selection.html">Path Selection</a> · <a href="backbone-circuits.html">Backbone &amp; Circuits</a> · <a href="ospf-mastery.html">OSPF Mastery</a>
+    </div>
+  </div>
+
+  <div style="height:var(--s-2xl)"></div>
+
+</div>
+
+<script defer src="js/nav.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+
+// ═════════════════════════════════════════════════════════════
+// STICKY HEIGHT — measure and feed to scroll-margin
+// ═════════════════════════════════════════════════════════════
+const stickyEl = document.getElementById('stickyMap');
+function syncStickyHeight(){
+  const h = stickyEl.offsetHeight;
+  // 24px breathing room above each hop title
+  document.documentElement.style.setProperty('--sticky-h', (h + 24) + 'px');
+}
+syncStickyHeight();
+new ResizeObserver(syncStickyHeight).observe(stickyEl);
+window.addEventListener('resize', syncStickyHeight);
+
+// Compact toggle — hide world map
+const compactBtn = document.getElementById('compactBtn');
+compactBtn.addEventListener('click', () => {
+  stickyEl.classList.toggle('compact');
+  compactBtn.textContent = stickyEl.classList.contains('compact') ? '▾ map' : '▴ map';
+  // ResizeObserver fires after transition; force one immediate sync too
+  setTimeout(syncStickyHeight, 280);
+});
+
+// ═════════════════════════════════════════════════════════════
+// HOPS DATA — labels for sticky map
+// ═════════════════════════════════════════════════════════════
+const HOPS = [
+  { id: 'hop-0', label: 'Algonquin', city: 'Algonquin, IL — start' },
+  { id: 'hop-1', label: 'LAN',       city: 'Hop 1 · Laptop → Home Router' },
+  { id: 'hop-2', label: 'Comcast',   city: 'Hop 2 · Home Router → Comcast Edge' },
+  { id: 'hop-3', label: 'CHI IXP',   city: 'Hop 3 · Equinix Chicago IXP' },
+  { id: 'hop-4', label: 'NY',        city: 'Hop 4 · Backbone — Chicago to NY' },
+  { id: 'hop-5', label: 'Atlantic',  city: 'Hop 5 · Submarine cable — NY to London' },
+  { id: 'hop-6', label: 'FRA IXP',   city: 'Hop 6 · DE-CIX Frankfurt' },
+  { id: 'hop-7', label: 'Eurasia',   city: 'Hop 7 · NTT backbone — Frankfurt to Tokyo' },
+  { id: 'hop-8', label: 'JP ISP',    city: 'Hop 8 · NTT Tokyo → Office ISP → Office Router' },
+  { id: 'hop-9', label: 'Server',    city: 'Hop 9 · Office Router → Server. Done.' }
+];
+
+// World map city positions (matched to SVG 720x220)
+const WORLD_CITIES = [
+  { x: 110, y: 102, label: 'Algonquin' },     // 0
+  { x: 110, y: 102, label: '' },               // 1 (same point — LAN)
+  { x: 110, y: 102, label: '' },               // 2 (same point — Comcast metro)
+  { x: 115, y: 102, label: 'Chicago' },        // 3
+  { x: 175, y: 105, label: 'NY' },             // 4
+  { x: 290, y: 75,  label: 'London' },         // 5
+  { x: 320, y: 80,  label: 'Frankfurt' },      // 6
+  { x: 320, y: 80,  label: '' },               // 7 (start of Eurasia leg)
+  { x: 605, y: 92,  label: 'Tokyo' },          // 8
+  { x: 605, y: 92,  label: '' }                // 9 (server in Tokyo)
+];
+
+let currentHop = 0;
+const hopIndexEl = document.getElementById('hopIndex');
+const hopLocEl = document.getElementById('hopLocation');
+
+// ═════════════════════════════════════════════════════════════
+// SUBWAY MAP RENDER
+// ═════════════════════════════════════════════════════════════
+const subway = document.getElementById('subwaySvg');
+function renderSubway(){
+  const W = 1000, n = HOPS.length, pad = 40;
+  const step = (W - pad * 2) / (n - 1);
+  let html = '';
+  // line segments
+  for (let i = 0; i < n - 1; i++){
+    const x1 = pad + step * i, x2 = pad + step * (i + 1);
+    const passed = currentHop > i ? ' passed' : '';
+    html += `<line class="subway-line${passed}" x1="${x1}" y1="38" x2="${x2}" y2="38"/>`;
+  }
+  // dots + labels
+  for (let i = 0; i < n; i++){
+    const x = pad + step * i;
+    const cls = i === currentHop ? 'active' : (i < currentHop ? 'passed' : '');
+    html += `<circle class="subway-dot ${cls}" cx="${x}" cy="38" r="9" data-hop="${i}"/>`;
+    html += `<text class="subway-num ${cls}" x="${x}" y="42">${i}</text>`;
+    html += `<text class="subway-label ${cls}" x="${x}" y="62">${HOPS[i].label}</text>`;
+    if (i === currentHop){
+      html += `<circle class="pulse-ring" cx="${x}" cy="38" r="9"/>`;
+    }
+  }
+  subway.innerHTML = html;
+  // wire dot clicks
+  subway.querySelectorAll('.subway-dot').forEach(d => {
+    d.addEventListener('click', () => {
+      goToHop(parseInt(d.dataset.hop, 10));
+    });
+  });
+}
+
+// ═════════════════════════════════════════════════════════════
+// WORLD MAP RENDER
+// ═════════════════════════════════════════════════════════════
+const worldArcs = document.getElementById('worldArcs');
+const worldCities = document.getElementById('worldCities');
+function renderWorld(){
+  // arcs between consecutive unique-position cities
+  const seen = new Set();
+  const points = [];
+  WORLD_CITIES.forEach((c, i) => {
+    const key = c.x + ',' + c.y;
+    if (!seen.has(key)){
+      seen.add(key);
+      points.push({ ...c, hopIdx: i });
+    }
+  });
+
+  let arcsHtml = '';
+  for (let i = 0; i < points.length - 1; i++){
+    const a = points[i], b = points[i + 1];
+    const mx = (a.x + b.x) / 2;
+    const my = Math.min(a.y, b.y) - 20;
+    const active = currentHop > a.hopIdx ? ' active' : '';
+    arcsHtml += `<path class="world-arc${active}" d="M ${a.x} ${a.y} Q ${mx} ${my} ${b.x} ${b.y}"/>`;
+  }
+  worldArcs.innerHTML = arcsHtml;
+
+  let citiesHtml = '';
+  points.forEach((p) => {
+    const cls = p.hopIdx === currentHop ? 'active' : (p.hopIdx < currentHop ? 'passed' : '');
+    citiesHtml += `<circle class="world-city ${cls}" cx="${p.x}" cy="${p.y}" r="${cls === 'active' ? 6 : 4}"/>`;
+    if (p.label){
+      const labelCls = p.hopIdx === currentHop ? 'active' : '';
+      citiesHtml += `<text class="world-label ${labelCls}" x="${p.x}" y="${p.y + 16}" text-anchor="middle">${p.label}</text>`;
+    }
+  });
+  worldCities.innerHTML = citiesHtml;
+}
+
+// ═════════════════════════════════════════════════════════════
+// STATE UPDATE
+// ═════════════════════════════════════════════════════════════
+function setHop(i){
+  currentHop = Math.max(0, Math.min(HOPS.length - 1, i));
+  hopIndexEl.textContent = currentHop;
+  hopLocEl.textContent = HOPS[currentHop].city;
+  renderSubway();
+  renderWorld();
+}
+
+function goToHop(i){
+  setHop(i);
+  document.getElementById(HOPS[currentHop].id).scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// ═════════════════════════════════════════════════════════════
+// INTERSECTION OBSERVER — set hop based on what's in view
+// ═════════════════════════════════════════════════════════════
+const sections = HOPS.map(h => document.getElementById(h.id));
+const obs = new IntersectionObserver((entries) => {
+  // Pick the entry whose top is just past the sticky header
+  let best = null;
+  entries.forEach(e => {
+    if (e.isIntersecting){
+      const rect = e.boundingClientRect;
+      const stickyH = stickyEl.offsetHeight;
+      // candidate if section top is between sticky and 60% viewport
+      if (rect.top < window.innerHeight * 0.6 && rect.top + rect.height > stickyH){
+        if (!best || Math.abs(rect.top - stickyH) < Math.abs(best.boundingClientRect.top - stickyH)){
+          best = e;
+        }
+      }
+    }
+  });
+  if (best){
+    const idx = parseInt(best.target.dataset.hop, 10);
+    setHop(idx);
+  }
+}, { threshold: [0, 0.1, 0.5, 1], rootMargin: '0px 0px 0px 0px' });
+sections.forEach(s => obs.observe(s));
+
+// ═════════════════════════════════════════════════════════════
+// CONTROLS
+// ═════════════════════════════════════════════════════════════
+document.getElementById('prevBtn').addEventListener('click', () => goToHop(currentHop - 1));
+document.getElementById('nextBtn').addEventListener('click', () => goToHop(currentHop + 1));
+
+const replay = () => { goToHop(0); window.scrollTo({ top: 0, behavior: 'smooth' }); };
+document.getElementById('replayBtn').addEventListener('click', replay);
+document.getElementById('replayBtn2').addEventListener('click', replay);
+
+// Auto-tour
+let tourTimer = null;
+function startTour(){
+  stopTour();
+  goToHop(0);
+  let i = 0;
+  tourTimer = setInterval(() => {
+    i++;
+    if (i >= HOPS.length){ stopTour(); return; }
+    goToHop(i);
+    sections.forEach(s => s.classList.remove('tour-active'));
+    sections[i].classList.add('tour-active');
+  }, 6500);
+  document.getElementById('tourBtn').textContent = '■ Stop tour';
+  document.getElementById('tourBtn2').textContent = '■ Stop tour';
+}
+function stopTour(){
+  if (tourTimer){ clearInterval(tourTimer); tourTimer = null; }
+  sections.forEach(s => s.classList.remove('tour-active'));
+  document.getElementById('tourBtn').textContent = '▶ Auto-tour';
+  document.getElementById('tourBtn2').textContent = '▶ Auto-tour again';
+}
+document.getElementById('tourBtn').addEventListener('click', () => {
+  tourTimer ? stopTour() : startTour();
+});
+document.getElementById('tourBtn2').addEventListener('click', () => {
+  tourTimer ? stopTour() : startTour();
+});
+
+// Keyboard: arrow keys
+document.addEventListener('keydown', (e) => {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+  if (e.key === 'ArrowRight'){ goToHop(currentHop + 1); e.preventDefault(); }
+  if (e.key === 'ArrowLeft'){ goToHop(currentHop - 1); e.preventDefault(); }
+  if (e.key === 'Home'){ goToHop(0); e.preventDefault(); }
+});
+
+// ═════════════════════════════════════════════════════════════
+// GLOSSARY POPOVERS — click to toggle
+// ═════════════════════════════════════════════════════════════
+document.querySelectorAll('.term').forEach(t => {
+  t.addEventListener('click', (e) => {
+    e.stopPropagation();
+    document.querySelectorAll('.term.open').forEach(o => { if (o !== t) o.classList.remove('open'); });
+    t.classList.toggle('open');
+  });
+});
+document.addEventListener('click', () => {
+  document.querySelectorAll('.term.open').forEach(o => o.classList.remove('open'));
+});
+
+// ═════════════════════════════════════════════════════════════
+// INITIAL RENDER
+// ═════════════════════════════════════════════════════════════
+renderSubway();
+renderWorld();
+
+}); // DOMContentLoaded
+</script>
+</body>
+</html>
