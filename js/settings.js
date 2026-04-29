@@ -299,6 +299,16 @@
       tc('bollywood','\u2728',      'Bollywood',  'Full filmi energy') +
       '</div></div>' +
 
+      /* Cert Track */
+      (function(){
+        var ct = localStorage.getItem('ccna_cert_track') || 'ccna';
+        return '<div class="st-sec"><div class="st-lbl">Cert Track</div>' +
+          '<div style="display:flex;gap:8px">' +
+            '<button class="ct-opt' + (ct==='ccna'?' on':'') + '" data-cert="ccna">CCNA</button>' +
+            '<button class="ct-opt' + (ct==='net+'?' on':'') + '" data-cert="net+">NET+</button>' +
+          '</div></div>';
+      })() +
+
       /* Reset Progress */
       '<div class="st-sec"><div class="st-lbl">Progress</div>' +
       '<button class="st-reset" id="stReset">Reset Progress</button>' +
@@ -343,6 +353,17 @@
     if (szb) {
       S.fontSize = szb.getAttribute('data-sz');
       save(); applyDisplay(); buildPanel(); bindPanelBtns();
+      return;
+    }
+    /* Cert Track */
+    var certBtn = e.target.closest('.ct-opt[data-cert]');
+    if (certBtn) {
+      var c = certBtn.getAttribute('data-cert');
+      var cur = localStorage.getItem('ccna_cert_track') || 'ccna';
+      if (c !== cur) {
+        localStorage.setItem('ccna_cert_track', c);
+        window.location.href = (c === 'net+') ? 'netplus.html' : 'core.html';
+      }
       return;
     }
     /* Close */

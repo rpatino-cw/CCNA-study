@@ -1,0 +1,1036 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#FAF7F2">
+<title>Backbone &amp; Circuits — CCNA 200-301</title>
+<meta name="color-scheme" content="light">
+<link rel="icon" type="image/svg+xml" href="/CCNA-study/favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;1,8..60,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="css/shared.css?v=4.55">
+<style>
+/* ═══════════════════════════════════════════════════════════════
+   Backbone & Circuits — CCNA WAN visual primer
+   Domain 1 accent — blue (#2563EB)
+   ═══════════════════════════════════════════════════════════════ */
+
+:root {
+  --d1: #2563EB;
+  --d1-dim: #EFF6FF;
+  --d1-rgb: 37, 99, 235;
+}
+
+.page-header .kicker { font-family: var(--font-display); font-size: .72rem; text-transform: uppercase; letter-spacing: .08em; color: var(--d1); margin-bottom: var(--s-xs); }
+.page-header h1 { font-size: 2.4rem; font-weight: 700; letter-spacing: -.03em; margin-bottom: 4px; }
+.page-header .subtitle { font-family: var(--font-body); color: var(--ink-secondary); font-size: 1rem; font-style: italic; }
+
+.section-label { font-family: var(--font-display); font-size: .68rem; font-weight: 700; text-transform: uppercase; letter-spacing: .1em; color: var(--d1); margin-bottom: var(--s-sm); }
+.section-title { font-size: 1.35rem; margin-top: 0; margin-bottom: var(--s-md); padding-bottom: var(--s-sm); border-bottom: 1px solid var(--rule); }
+.section-desc { font-family: var(--font-body); font-size: .92rem; color: var(--ink-secondary); line-height: 1.65; margin-bottom: var(--s-lg); max-width: 62ch; }
+
+.viz { background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 18px 20px; margin-bottom: var(--s-2xl); }
+.viz svg { width: 100%; height: auto; display: block; }
+
+.viz-caption { font-family: var(--font-body); font-size: .82rem; color: var(--ink-muted); margin-top: 12px; line-height: 1.5; }
+.viz-caption strong { color: var(--ink); font-family: var(--font-display); font-weight: 600; }
+
+/* ── SVG shared ────────────────────────────────────────── */
+svg text { font-family: 'Space Grotesk', system-ui, sans-serif; }
+svg .label { font-size: 11px; font-weight: 700; fill: var(--ink); }
+svg .sub { font-size: 9px; fill: var(--ink-secondary); }
+svg .small { font-size: 8.5px; fill: var(--ink-muted); }
+svg .pkt { fill: var(--d1); }
+svg .pkt-cp { fill: #16A34A; }
+svg .pkt-dp { fill: #D97706; }
+
+/* Tier hierarchy backbone */
+@keyframes pktFlow1 {
+  0% { offset-distance: 0%; opacity: 0; }
+  6% { opacity: 1; }
+  94% { opacity: 1; }
+  100% { offset-distance: 100%; opacity: 0; }
+}
+.pkt-anim-1 { offset-path: path('M 60 280 L 220 200 L 380 120 L 540 120 L 700 200 L 860 280'); offset-rotate: 0deg; animation: pktFlow1 7s linear infinite; }
+.pkt-anim-1.b { animation-delay: 2.3s; }
+.pkt-anim-1.c { animation-delay: 4.6s; }
+
+/* ── Tier table ────────────────────────────────────────── */
+.tier-table { width: 100%; border-collapse: collapse; margin-top: 14px; font-family: var(--font-body); font-size: .88rem; }
+.tier-table th { text-align: left; font-family: var(--font-display); font-size: .72rem; text-transform: uppercase; letter-spacing: .06em; color: var(--ink-muted); padding: 8px 10px; border-bottom: 1px solid var(--rule); }
+.tier-table td { padding: 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
+.tier-table tr:last-child td { border-bottom: none; }
+.tier-tag { display: inline-block; font-family: var(--font-mono); font-size: .72rem; font-weight: 700; padding: 2px 8px; border-radius: 3px; }
+.tier-tag.t1 { background: #DBEAFE; color: #1E40AF; }
+.tier-tag.t2 { background: #E0E7FF; color: #4338CA; }
+.tier-tag.t3 { background: #F3E8FF; color: #6B21A8; }
+.tier-tag.cust { background: var(--bg-recessed); color: var(--ink-secondary); }
+
+/* ── Devices grid ──────────────────────────────────────── */
+.dev-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
+.dev-card { background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; }
+.dev-card h4 { font-family: var(--font-display); font-size: .92rem; margin-bottom: 4px; }
+.dev-card .role { font-family: var(--font-mono); font-size: .68rem; color: var(--d1); text-transform: uppercase; letter-spacing: .04em; margin-bottom: 8px; }
+.dev-card p { font-family: var(--font-body); font-size: .82rem; color: var(--ink-secondary); line-height: 1.5; }
+.dev-card .layer { font-family: var(--font-mono); font-size: .68rem; color: var(--ink-muted); margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border); }
+
+/* ── Circuit cards ─────────────────────────────────────── */
+.circ-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; }
+.circ-card { background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; }
+.circ-card .top { padding: 14px 16px 8px; }
+.circ-card h4 { font-family: var(--font-display); font-size: 1rem; margin-bottom: 4px; }
+.circ-card .speed { font-family: var(--font-mono); font-size: .72rem; color: var(--d1); }
+.circ-card .body { padding: 8px 16px 14px; font-family: var(--font-body); font-size: .82rem; color: var(--ink-secondary); line-height: 1.5; }
+.circ-card svg.mini { background: var(--bg-recessed); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); height: 70px; }
+
+/* mini-circuit packet */
+@keyframes miniDot { 0% { cx: 16; opacity: 0; } 8% { opacity: 1; } 92% { opacity: 1; } 100% { cx: 244; opacity: 0; } }
+.circ-card .mini circle.dot { animation: miniDot 2.6s linear infinite; }
+
+/* ── WAN topology selector ─────────────────────────────── */
+.topo-tabs { display: flex; gap: 8px; margin-bottom: var(--s-md); flex-wrap: wrap; }
+.topo-tab { font-family: var(--font-display); font-size: .75rem; font-weight: 600; padding: 8px 18px; border: 2px solid var(--border); border-radius: var(--radius); cursor: pointer; background: none; color: var(--ink-secondary); transition: all .15s; }
+.topo-tab:hover { border-color: var(--d1); color: var(--d1); }
+.topo-tab.active { background: var(--d1); color: #fff; border-color: var(--d1); }
+
+.topo-stage { background: var(--bg-recessed); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 0; overflow: hidden; }
+.topo-stage svg { height: 360px; background: var(--bg-surface); }
+.topo-info { padding: 16px 20px; border-top: 1px solid var(--border); display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+@media (max-width: 600px) { .topo-info { grid-template-columns: 1fr; } }
+.topo-info-item strong { display: block; font-family: var(--font-display); font-size: .65rem; text-transform: uppercase; letter-spacing: .06em; color: var(--ink-muted); font-weight: 600; margin-bottom: 4px; }
+.topo-info-item span { font-family: var(--font-body); font-size: .85rem; color: var(--ink); }
+.topo-info-item .links-count { font-family: var(--font-mono); color: var(--d1); font-weight: 600; }
+
+/* ── Control vs Data plane ─────────────────────────────── */
+.plane-split { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+@media (max-width: 700px) { .plane-split { grid-template-columns: 1fr; } }
+.plane-card { background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 16px; }
+.plane-card.control { border-left: 4px solid #16A34A; }
+.plane-card.data { border-left: 4px solid #D97706; }
+.plane-card h4 { font-family: var(--font-display); font-size: 1.05rem; margin-bottom: 6px; }
+.plane-card .badge { font-family: var(--font-mono); font-size: .7rem; padding: 2px 8px; border-radius: 3px; margin-left: 8px; }
+.plane-card.control .badge { background: #F0FDF4; color: #16A34A; }
+.plane-card.data .badge { background: #FFFBEB; color: #D97706; }
+.plane-card svg { height: 130px; margin: 10px 0; background: var(--bg-recessed); border-radius: var(--radius); }
+.plane-card p { font-family: var(--font-body); font-size: .85rem; color: var(--ink-secondary); line-height: 1.55; }
+.plane-card ul { font-family: var(--font-body); font-size: .82rem; color: var(--ink-secondary); margin-top: 8px; padding-left: 18px; line-height: 1.55; }
+
+@keyframes cpAdvert { 0% { offset-distance: 0%; opacity: 0; } 10% { opacity: 1; } 90% { opacity: 1; } 100% { offset-distance: 100%; opacity: 0; } }
+.cp-pkt { offset-path: path('M 30 65 L 270 65'); animation: cpAdvert 4s ease-in-out infinite; }
+.dp-pkt { offset-path: path('M 30 65 L 270 65'); animation: cpAdvert 1.2s linear infinite; }
+.dp-pkt.b { animation-delay: .3s; }
+.dp-pkt.c { animation-delay: .6s; }
+.dp-pkt.d { animation-delay: .9s; }
+
+/* ── Decision flowchart ────────────────────────────────── */
+.decide-wrap { background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 22px; }
+.decide-q { font-family: var(--font-display); font-size: 1rem; font-weight: 600; margin-bottom: 14px; padding-bottom: 10px; border-bottom: 1px solid var(--border); }
+.decide-q .step { font-family: var(--font-mono); font-size: .75rem; color: var(--d1); margin-right: 10px; }
+.decide-opts { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: var(--s-md); }
+@media (max-width: 500px) { .decide-opts { grid-template-columns: 1fr; } }
+.decide-opt { font-family: var(--font-body); font-size: .88rem; padding: 12px 16px; border: 1px solid var(--border); border-radius: var(--radius); cursor: pointer; background: none; text-align: left; transition: all .15s; }
+.decide-opt:hover { border-color: var(--d1); background: var(--d1-dim); }
+.decide-opt.picked { border-color: var(--d1); background: var(--d1-dim); color: var(--d1); font-weight: 600; }
+.decide-trail { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: var(--s-md); font-family: var(--font-mono); font-size: .72rem; }
+.decide-trail span { background: var(--bg-recessed); color: var(--ink-secondary); padding: 4px 10px; border-radius: 12px; }
+.decide-trail span.arrow { background: none; padding: 4px 0; color: var(--ink-muted); }
+.decide-result { padding: 18px; background: var(--d1-dim); border: 1px solid var(--d1); border-radius: var(--radius-lg); }
+.decide-result h4 { font-family: var(--font-display); font-size: 1.1rem; color: var(--d1); margin-bottom: 6px; }
+.decide-result p { font-family: var(--font-body); font-size: .9rem; color: var(--ink); line-height: 1.55; margin-bottom: 8px; }
+.decide-result .why { font-family: var(--font-body); font-size: .82rem; color: var(--ink-secondary); font-style: italic; }
+.decide-reset { font-family: var(--font-display); font-size: .72rem; font-weight: 600; padding: 6px 14px; border: 1px solid var(--border); border-radius: var(--radius); cursor: pointer; background: none; margin-top: 14px; }
+.decide-reset:hover { border-color: var(--d1); color: var(--d1); }
+
+/* ── Mesh growth visualizer ────────────────────────────── */
+.mesh-controls { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; flex-wrap: wrap; }
+.mesh-controls label { font-family: var(--font-display); font-size: .75rem; color: var(--ink-secondary); text-transform: uppercase; letter-spacing: .04em; }
+.mesh-controls input[type=range] { width: 180px; accent-color: var(--d1); }
+.mesh-stat { font-family: var(--font-mono); font-size: .82rem; color: var(--d1); font-weight: 600; }
+.mesh-formula { font-family: var(--font-mono); font-size: .72rem; color: var(--ink-muted); }
+
+/* ── Quiz ──────────────────────────────────────────────── */
+.quiz-wrap { background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 22px; }
+.quiz-progress { font-family: var(--font-mono); font-size: .78rem; color: var(--ink-muted); margin-bottom: var(--s-md); }
+.quiz-progress strong { color: var(--d1); }
+.quiz-q { font-family: var(--font-body); font-size: .95rem; line-height: 1.55; margin-bottom: 14px; }
+.quiz-num { font-family: var(--font-mono); font-size: .72rem; color: var(--d1); font-weight: 700; margin-right: 6px; }
+.quiz-opts { display: flex; flex-direction: column; gap: 6px; }
+.quiz-opt { padding: 10px 14px; border: 1px solid var(--border); border-radius: var(--radius); cursor: pointer; font-family: var(--font-body); font-size: .85rem; transition: all .15s; background: none; text-align: left; }
+.quiz-opt:hover { border-color: var(--d1); background: var(--d1-dim); }
+.quiz-opt.correct { border-color: #16A34A; background: #F0FDF4; color: #16A34A; font-weight: 600; }
+.quiz-opt.wrong { border-color: #DC2626; background: #FEF2F2; color: #DC2626; }
+.quiz-opt.locked { pointer-events: none; }
+.quiz-explain { font-family: var(--font-body); font-size: .85rem; color: var(--ink-secondary); line-height: 1.6; padding: 12px 14px; background: var(--bg-recessed); border-radius: var(--radius); margin-top: 10px; display: none; }
+.quiz-explain.show { display: block; }
+
+/* ── A11y motion ───────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .pkt-anim-1, .cp-pkt, .dp-pkt, .circ-card .mini circle.dot { animation: none; }
+}
+
+/* ── Mobile ────────────────────────────────────────────── */
+@media (max-width: 600px) {
+  .topo-stage svg { height: 280px; }
+  .page-header h1 { font-size: 1.85rem; }
+}
+</style>
+</head>
+<body>
+<nav class="top-nav"></nav>
+<div class="container-wide">
+  <div class="back-wrap" style="margin-bottom:var(--s-md)"><a class="back-link" href="learn-hub.html">&larr; Back to Learn Hub</a></div>
+
+  <header class="page-header">
+    <div class="kicker">CCNA Domain 1 · Network Fundamentals · WAN</div>
+    <h1>Backbone &amp; Circuits</h1>
+    <p class="subtitle">How real networks scale: from your office router up through the ISP backbone, and back down to another business across the country.</p>
+  </header>
+
+  <!-- ════════════════════════════════════════════════════════════
+       SECTION 1 — ISP backbone hierarchy
+       ════════════════════════════════════════════════════════════ -->
+  <div class="section-label">01 · The Big Picture</div>
+  <h2 class="section-title">ISP Backbone Hierarchy</h2>
+  <p class="section-desc">A "backbone" is just the high-capacity core that carries traffic <em>between</em> networks. ISPs are stacked in tiers — your office connects to a small local ISP, that ISP rides on a regional carrier, and the regional rides on a global Tier&nbsp;1. Watch a packet travel up and back down.</p>
+
+  <div class="viz">
+    <svg viewBox="0 0 920 360" xmlns="http://www.w3.org/2000/svg" aria-label="ISP tier hierarchy with packet flow">
+      <!-- backbone curve guide -->
+      <path d="M 60 280 L 220 200 L 380 120 L 540 120 L 700 200 L 860 280" stroke="#E2DFD9" stroke-width="2" fill="none" stroke-dasharray="4 4"/>
+
+      <!-- nodes -->
+      <!-- Customer Site A -->
+      <g>
+        <rect x="20" y="252" width="80" height="56" rx="6" fill="#FFFFFF" stroke="#A8A29E"/>
+        <text x="60" y="272" text-anchor="middle" class="label">Site A</text>
+        <text x="60" y="288" text-anchor="middle" class="small">SMB office</text>
+        <text x="60" y="328" text-anchor="middle" class="sub">Customer</text>
+      </g>
+
+      <!-- Tier 3 ISP A -->
+      <g>
+        <circle cx="220" cy="200" r="32" fill="#F3E8FF" stroke="#6B21A8" stroke-width="2"/>
+        <text x="220" y="198" text-anchor="middle" class="label" style="fill:#6B21A8">Tier 3</text>
+        <text x="220" y="212" text-anchor="middle" class="small">Local ISP</text>
+        <text x="220" y="252" text-anchor="middle" class="sub">Last mile</text>
+      </g>
+
+      <!-- Tier 2 ISP A -->
+      <g>
+        <circle cx="380" cy="120" r="38" fill="#E0E7FF" stroke="#4338CA" stroke-width="2"/>
+        <text x="380" y="118" text-anchor="middle" class="label" style="fill:#4338CA">Tier 2</text>
+        <text x="380" y="132" text-anchor="middle" class="small">Regional</text>
+        <text x="380" y="178" text-anchor="middle" class="sub">Backhaul</text>
+      </g>
+
+      <!-- Tier 1 backbone -->
+      <g>
+        <rect x="430" y="80" width="220" height="80" rx="40" fill="#DBEAFE" stroke="#1E40AF" stroke-width="2"/>
+        <text x="540" y="118" text-anchor="middle" class="label" style="fill:#1E40AF">Tier 1 Backbone</text>
+        <text x="540" y="135" text-anchor="middle" class="small">Global · settlement-free peering</text>
+        <text x="540" y="178" text-anchor="middle" class="sub">Backbone fiber, 100G–400G links</text>
+      </g>
+
+      <!-- Tier 2 ISP B -->
+      <g>
+        <circle cx="700" cy="200" r="38" fill="#E0E7FF" stroke="#4338CA" stroke-width="2"/>
+        <text x="700" y="198" text-anchor="middle" class="label" style="fill:#4338CA">Tier 2</text>
+        <text x="700" y="212" text-anchor="middle" class="small">Regional</text>
+      </g>
+
+      <!-- Tier 3 ISP B -->
+      <g>
+        <circle cx="860" cy="280" r="32" fill="#F3E8FF" stroke="#6B21A8" stroke-width="2"/>
+        <text x="860" y="278" text-anchor="middle" class="label" style="fill:#6B21A8">Tier 3</text>
+        <text x="860" y="292" text-anchor="middle" class="small">Local ISP</text>
+      </g>
+
+      <!-- Site B -->
+      <g>
+        <rect x="828" y="316" width="80" height="36" rx="6" fill="#FFFFFF" stroke="#A8A29E"/>
+        <text x="868" y="338" text-anchor="middle" class="label">Site B</text>
+      </g>
+
+      <!-- backbone solid path -->
+      <path d="M 60 280 L 220 200 L 380 120 L 540 120 L 700 200 L 860 280" stroke="#1E40AF" stroke-width="2" fill="none" opacity="0.3"/>
+
+      <!-- Animated packets -->
+      <circle r="6" class="pkt pkt-anim-1"/>
+      <circle r="6" class="pkt pkt-anim-1 b"/>
+      <circle r="6" class="pkt pkt-anim-1 c"/>
+
+      <!-- Annotation -->
+      <text x="60" y="20" class="sub">CE</text>
+      <text x="220" y="40" class="sub" text-anchor="middle">PE (Provider Edge)</text>
+      <text x="540" y="40" class="sub" text-anchor="middle">P core (label-switching only)</text>
+      <text x="860" y="20" class="sub" text-anchor="middle">CE</text>
+    </svg>
+    <div class="viz-caption"><strong>Read it:</strong> A packet from Site A enters the local ISP (PE = Provider Edge), climbs to a regional Tier 2, traverses the Tier 1 backbone (P routers do label-switching only — they don't know who you are), then descends to Site B. The customer-facing edge is the only place that "knows" the customer.</div>
+  </div>
+
+  <table class="tier-table">
+    <thead>
+      <tr><th>Tier</th><th>Role</th><th>Examples</th><th>Connects via</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><span class="tier-tag t1">Tier 1</span></td><td>Global backbone. Reaches the entire Internet without paying anyone (settlement-free peering).</td><td>Lumen, AT&amp;T, Telia, Tata, NTT</td><td>Fiber, 100G/400G long-haul</td></tr>
+      <tr><td><span class="tier-tag t2">Tier 2</span></td><td>Regional. Pays Tier 1 for some routes, peers with others.</td><td>Cogent, Comcast Business, Hurricane Electric</td><td>Fiber, metro-Ethernet</td></tr>
+      <tr><td><span class="tier-tag t3">Tier 3</span></td><td>Local last-mile ISP. Buys transit only.</td><td>Local fiber/cable/DSL providers</td><td>Cable, DSL, fiber to premises</td></tr>
+      <tr><td><span class="tier-tag cust">Customer</span></td><td>You. The "edge" of the Internet.</td><td>Home, SMB, branch office, data center</td><td>Modem / NID / router</td></tr>
+    </tbody>
+  </table>
+  <div class="viz-caption" style="margin-top:14px"><strong>CCNA note:</strong> You don't need to memorize tier definitions for the exam — just the shape. Cisco wants you to know that the public Internet is hierarchical and your branch traffic flows up through providers, across a backbone, and down to the destination.</div>
+
+  <div style="height:var(--s-2xl)"></div>
+
+  <!-- ════════════════════════════════════════════════════════════
+       SECTION 2 — Devices on the path
+       ════════════════════════════════════════════════════════════ -->
+  <div class="section-label">02 · Hardware on the Path</div>
+  <h2 class="section-title">Devices Between You &amp; the Backbone</h2>
+  <p class="section-desc">Every WAN circuit hands off through a chain of devices. The exam asks you to recognize what each does and which OSI layer it lives at.</p>
+
+  <div class="viz">
+    <svg viewBox="0 0 900 200" xmlns="http://www.w3.org/2000/svg" aria-label="Customer to ISP device chain">
+      <!-- chain background -->
+      <line x1="80" y1="100" x2="820" y2="100" stroke="#E2DFD9" stroke-width="2"/>
+
+      <!-- Switch -->
+      <g>
+        <rect x="60" y="80" width="80" height="40" rx="4" fill="#FFFFFF" stroke="#A8A29E"/>
+        <text x="100" y="105" text-anchor="middle" class="label">Switch</text>
+        <text x="100" y="138" text-anchor="middle" class="sub">L2 · LAN</text>
+      </g>
+
+      <!-- Router -->
+      <g>
+        <circle cx="220" cy="100" r="22" fill="#FFFFFF" stroke="#A8A29E"/>
+        <text x="220" y="104" text-anchor="middle" class="label">Router</text>
+        <text x="220" y="138" text-anchor="middle" class="sub">L3 · CE</text>
+      </g>
+
+      <!-- Firewall -->
+      <g>
+        <rect x="280" y="80" width="80" height="40" rx="4" fill="#FEE2E2" stroke="#DC2626"/>
+        <text x="320" y="105" text-anchor="middle" class="label" style="fill:#7F1D1D">Firewall</text>
+        <text x="320" y="138" text-anchor="middle" class="sub">L3/L4/L7</text>
+      </g>
+
+      <!-- Modem / NID -->
+      <g>
+        <rect x="400" y="76" width="100" height="48" rx="4" fill="#FEF3C7" stroke="#B45309"/>
+        <text x="450" y="98" text-anchor="middle" class="label" style="fill:#7C2D12">Modem / NID</text>
+        <text x="450" y="112" text-anchor="middle" class="small">demarcation</text>
+        <text x="450" y="138" text-anchor="middle" class="sub">L1/L2 · ISP edge</text>
+      </g>
+
+      <!-- ISP Router (PE) -->
+      <g>
+        <circle cx="560" cy="100" r="22" fill="#DBEAFE" stroke="#1E40AF"/>
+        <text x="560" y="104" text-anchor="middle" class="label" style="fill:#1E40AF">PE</text>
+        <text x="560" y="138" text-anchor="middle" class="sub">ISP edge router</text>
+      </g>
+
+      <!-- Backbone -->
+      <g>
+        <rect x="620" y="80" width="180" height="40" rx="20" fill="#DBEAFE" stroke="#1E40AF"/>
+        <text x="710" y="105" text-anchor="middle" class="label" style="fill:#1E40AF">Backbone (P routers)</text>
+        <text x="710" y="138" text-anchor="middle" class="sub">label-switched core</text>
+      </g>
+
+      <!-- packet -->
+      <circle cx="0" cy="100" r="5" class="pkt">
+        <animate attributeName="cx" from="80" to="820" dur="5s" repeatCount="indefinite"/>
+        <animate attributeName="opacity" values="0;1;1;0" keyTimes="0;0.05;0.95;1" dur="5s" repeatCount="indefinite"/>
+      </circle>
+
+      <!-- bracket: customer side / ISP side -->
+      <line x1="60" y1="170" x2="495" y2="170" stroke="#A8A29E" stroke-width="1"/>
+      <text x="277" y="190" text-anchor="middle" class="sub">Customer side (CPE)</text>
+      <line x1="500" y1="170" x2="800" y2="170" stroke="#1E40AF" stroke-width="1"/>
+      <text x="650" y="190" text-anchor="middle" class="sub" style="fill:#1E40AF">ISP side</text>
+    </svg>
+    <div class="viz-caption"><strong>Demarcation point</strong> (often the modem or NID) is the legal boundary. Past it = ISP responsibility. Before it = your responsibility.</div>
+  </div>
+
+  <div class="dev-grid">
+    <div class="dev-card">
+      <h4>Switch</h4>
+      <div class="role">LAN forwarding</div>
+      <p>Forwards Ethernet frames inside a building based on MAC addresses. Trunks carry VLANs. Doesn't talk to the WAN — that's the router's job.</p>
+      <div class="layer">Layer 2</div>
+    </div>
+    <div class="dev-card">
+      <h4>Router</h4>
+      <div class="role">WAN gateway</div>
+      <p>Decides where IP packets go next. The branch router that connects to the ISP is called the <strong>CE</strong> (Customer Edge) router.</p>
+      <div class="layer">Layer 3</div>
+    </div>
+    <div class="dev-card">
+      <h4>Firewall</h4>
+      <div class="role">Security boundary</div>
+      <p>Filters traffic between zones. Modern next-gen firewalls (NGFW) inspect up through Layer 7. Often sits inline between LAN and WAN router.</p>
+      <div class="layer">Layer 3 / 4 / 7</div>
+    </div>
+    <div class="dev-card">
+      <h4>Modem</h4>
+      <div class="role">Media converter</div>
+      <p>Translates between the ISP's medium (cable RF, DSL, fiber) and Ethernet. <strong>Cable modem · DSL modem · ONT</strong> (fiber) are all "modems" in CCNA terms.</p>
+      <div class="layer">Layer 1 / 2</div>
+    </div>
+    <div class="dev-card">
+      <h4>NID</h4>
+      <div class="role">Demarcation</div>
+      <p><strong>Network Interface Device.</strong> Telco-installed box that marks the demarc on metro-Ethernet or leased-line circuits. Smart-NIDs run loopback tests for the carrier.</p>
+      <div class="layer">Layer 1 / 2</div>
+    </div>
+    <div class="dev-card">
+      <h4>CSU/DSU</h4>
+      <div class="role">Legacy serial</div>
+      <p>Channel Service Unit / Data Service Unit. Connects routers to T1/T3 leased lines. Mostly replaced by metro-E and fiber, but still on the CCNA blueprint as legacy reference.</p>
+      <div class="layer">Layer 1</div>
+    </div>
+    <div class="dev-card">
+      <h4>PE Router</h4>
+      <div class="role">Provider Edge</div>
+      <p>The ISP's first router. Pushes MPLS labels, applies QoS, runs BGP with the customer (if needed). Customer never logs into this.</p>
+      <div class="layer">Layer 3</div>
+    </div>
+    <div class="dev-card">
+      <h4>P Router</h4>
+      <div class="role">Provider core</div>
+      <p>Backbone label-switching router. Doesn't know individual customers — only swaps MPLS labels at line rate.</p>
+      <div class="layer">Layer 3 (label-switched)</div>
+    </div>
+    <div class="dev-card">
+      <h4>Wireless AP</h4>
+      <div class="role">LAN edge</div>
+      <p>Bridges Wi-Fi clients onto the wired LAN. In a campus, APs talk to a wireless LAN controller (WLC) over a tunnel.</p>
+      <div class="layer">Layer 1 / 2</div>
+    </div>
+  </div>
+
+  <div style="height:var(--s-2xl)"></div>
+
+  <!-- ════════════════════════════════════════════════════════════
+       SECTION 3 — Circuit types
+       ════════════════════════════════════════════════════════════ -->
+  <div class="section-label">03 · Circuit Types</div>
+  <h2 class="section-title">How Sites Reach the Backbone</h2>
+  <p class="section-desc">A "circuit" is the physical or virtual link a business buys from a carrier. CCNA expects you to recognize each by name, speed range, and use case. Animated dot = packet on the wire.</p>
+
+  <div class="circ-grid">
+
+    <div class="circ-card">
+      <div class="top">
+        <h4>Leased Line (T1 / T3 / E1)</h4>
+        <div class="speed">1.5 Mbps – 45 Mbps · dedicated</div>
+      </div>
+      <svg class="mini" viewBox="0 0 260 70" preserveAspectRatio="none">
+        <line x1="16" y1="35" x2="244" y2="35" stroke="#B45309" stroke-width="3"/>
+        <text x="130" y="55" text-anchor="middle" class="small">point-to-point copper</text>
+        <circle cy="35" r="5" fill="#B45309" class="dot"/>
+      </svg>
+      <div class="body">Old-school dedicated copper. Symmetric, guaranteed bandwidth, expensive. Mostly replaced by Metro-E but still tested.</div>
+    </div>
+
+    <div class="circ-card">
+      <div class="top">
+        <h4>MPLS L3VPN</h4>
+        <div class="speed">10 Mbps – 10 Gbps · private</div>
+      </div>
+      <svg class="mini" viewBox="0 0 260 70" preserveAspectRatio="none">
+        <ellipse cx="130" cy="35" rx="60" ry="18" fill="#DBEAFE" stroke="#1E40AF" stroke-width="2"/>
+        <text x="130" y="40" text-anchor="middle" class="small" style="fill:#1E40AF">MPLS cloud</text>
+        <line x1="16" y1="35" x2="70" y2="35" stroke="#A8A29E" stroke-width="2"/>
+        <line x1="190" y1="35" x2="244" y2="35" stroke="#A8A29E" stroke-width="2"/>
+        <circle cy="35" r="5" fill="#1E40AF" class="dot"/>
+      </svg>
+      <div class="body">Carrier-private network with QoS guarantees. Each site gets a virtual link to every other site. Premium WAN — banks, hospitals, multi-site enterprises.</div>
+    </div>
+
+    <div class="circ-card">
+      <div class="top">
+        <h4>Metro Ethernet</h4>
+        <div class="speed">10 Mbps – 100 Gbps · LAN-feel WAN</div>
+      </div>
+      <svg class="mini" viewBox="0 0 260 70" preserveAspectRatio="none">
+        <line x1="16" y1="35" x2="244" y2="35" stroke="#16A34A" stroke-width="3"/>
+        <text x="130" y="55" text-anchor="middle" class="small">looks like one big switch</text>
+        <circle cy="35" r="5" fill="#16A34A" class="dot"/>
+      </svg>
+      <div class="body">Ethernet-over-fiber inside a metro area. Plug Ethernet into a NID — it's like a giant LAN. Fastest-growing WAN type.</div>
+    </div>
+
+    <div class="circ-card">
+      <div class="top">
+        <h4>Broadband Cable</h4>
+        <div class="speed">100 Mbps – 1 Gbps · shared</div>
+      </div>
+      <svg class="mini" viewBox="0 0 260 70" preserveAspectRatio="none">
+        <path d="M 16 35 Q 70 20 130 35 T 244 35" stroke="#7C3AED" stroke-width="3" fill="none"/>
+        <text x="130" y="55" text-anchor="middle" class="small">DOCSIS · coax + fiber</text>
+        <circle cy="35" r="5" fill="#7C3AED" class="dot"/>
+      </svg>
+      <div class="body">Coax cable + DOCSIS modem. Asymmetric (download &gt;&gt; upload). Shared with the neighborhood — speed varies by load.</div>
+    </div>
+
+    <div class="circ-card">
+      <div class="top">
+        <h4>DSL</h4>
+        <div class="speed">5 Mbps – 100 Mbps · phone line</div>
+      </div>
+      <svg class="mini" viewBox="0 0 260 70" preserveAspectRatio="none">
+        <line x1="16" y1="35" x2="244" y2="35" stroke="#A8A29E" stroke-width="3" stroke-dasharray="6 4"/>
+        <text x="130" y="55" text-anchor="middle" class="small">copper twisted pair</text>
+        <circle cy="35" r="5" fill="#A8A29E" class="dot"/>
+      </svg>
+      <div class="body">Digital Subscriber Line — runs over phone copper. ADSL = asymmetric. Distance from the central office kills speed. Legacy in most markets.</div>
+    </div>
+
+    <div class="circ-card">
+      <div class="top">
+        <h4>Fiber to Premises (FTTP)</h4>
+        <div class="speed">100 Mbps – 10 Gbps · dedicated optical</div>
+      </div>
+      <svg class="mini" viewBox="0 0 260 70" preserveAspectRatio="none">
+        <line x1="16" y1="35" x2="244" y2="35" stroke="#0891B2" stroke-width="3"/>
+        <text x="130" y="55" text-anchor="middle" class="small">PON · ONT at the curb</text>
+        <circle cy="35" r="5" fill="#0891B2" class="dot"/>
+      </svg>
+      <div class="body">Fiber all the way to the building. Symmetric, low latency. Standard for new business installs. Modem here is the <strong>ONT</strong>.</div>
+    </div>
+
+    <div class="circ-card">
+      <div class="top">
+        <h4>Cellular (4G LTE / 5G)</h4>
+        <div class="speed">50 Mbps – 1 Gbps · wireless WAN</div>
+      </div>
+      <svg class="mini" viewBox="0 0 260 70" preserveAspectRatio="none">
+        <path d="M 30 50 Q 70 10 130 35 Q 190 60 230 25" stroke="#D97706" stroke-width="3" fill="none" stroke-dasharray="3 3"/>
+        <text x="130" y="63" text-anchor="middle" class="small">tower → cellular modem</text>
+        <circle cy="35" r="5" fill="#D97706" class="dot"/>
+      </svg>
+      <div class="body">Cellular modem with SIM card. Used for branch backup, IoT, mobile sites. 5G makes this competitive with wired broadband.</div>
+    </div>
+
+    <div class="circ-card">
+      <div class="top">
+        <h4>Internet VPN (IPsec)</h4>
+        <div class="speed">any speed · cheap, encrypted</div>
+      </div>
+      <svg class="mini" viewBox="0 0 260 70" preserveAspectRatio="none">
+        <rect x="16" y="20" width="228" height="30" rx="15" fill="none" stroke="#16A34A" stroke-width="2" stroke-dasharray="4 3"/>
+        <line x1="40" y1="35" x2="220" y2="35" stroke="#A8A29E" stroke-width="2"/>
+        <text x="130" y="64" text-anchor="middle" class="small">tunnel over the public Internet</text>
+        <circle cy="35" r="5" fill="#16A34A" class="dot"/>
+      </svg>
+      <div class="body">Encrypted tunnel between two routers across the public Internet. Site-to-site VPN, DMVPN. Replaces leased lines for budget-conscious branches.</div>
+    </div>
+
+  </div>
+
+  <div style="height:var(--s-2xl)"></div>
+
+  <!-- ════════════════════════════════════════════════════════════
+       SECTION 4 — WAN topologies
+       ════════════════════════════════════════════════════════════ -->
+  <div class="section-label">04 · Topology Shapes</div>
+  <h2 class="section-title">WAN Topologies</h2>
+  <p class="section-desc">Once you have circuits, you arrange them in a shape. Each shape trades cost vs resilience differently. Click each tab to see the topology animate and read the trade-offs.</p>
+
+  <div class="topo-tabs" id="topoTabs">
+    <button class="topo-tab active" data-topo="p2p">Point-to-Point</button>
+    <button class="topo-tab" data-topo="hub">Hub &amp; Spoke</button>
+    <button class="topo-tab" data-topo="full">Full Mesh</button>
+    <button class="topo-tab" data-topo="part">Partial Mesh</button>
+    <button class="topo-tab" data-topo="dual">Dual Hub (redundant)</button>
+  </div>
+
+  <div class="topo-stage">
+    <svg id="topoSvg" viewBox="0 0 700 360" xmlns="http://www.w3.org/2000/svg" aria-label="WAN topology">
+      <g id="topoLinks"></g>
+      <g id="topoNodes"></g>
+      <g id="topoPackets"></g>
+    </svg>
+    <div class="topo-info">
+      <div class="topo-info-item"><strong>Links</strong><span class="links-count" id="topoLinkCount">—</span></div>
+      <div class="topo-info-item"><strong>SPOF (single point of failure)</strong><span id="topoSpof">—</span></div>
+      <div class="topo-info-item"><strong>Best for</strong><span id="topoBest">—</span></div>
+    </div>
+  </div>
+
+  <div class="viz" style="margin-top:var(--s-md)">
+    <div class="section-label" style="margin-bottom:6px">Mesh growth</div>
+    <p class="section-desc" style="margin-bottom:12px">Why most enterprises don't run full mesh — link count grows quadratically.</p>
+    <div class="mesh-controls">
+      <label for="meshN">Sites</label>
+      <input type="range" id="meshN" min="2" max="12" value="4">
+      <span class="mesh-stat" id="meshStat">4 sites · 6 links</span>
+      <span class="mesh-formula">formula: n × (n − 1) / 2</span>
+    </div>
+    <svg id="meshSvg" viewBox="0 0 700 220" xmlns="http://www.w3.org/2000/svg" style="background:var(--bg-recessed); border-radius:var(--radius)"></svg>
+    <div class="viz-caption">12 sites = 66 links to maintain. This is why hub-and-spoke or partial mesh wins in real deployments.</div>
+  </div>
+
+  <div style="height:var(--s-2xl)"></div>
+
+  <!-- ════════════════════════════════════════════════════════════
+       SECTION 5 — Control plane vs Data plane
+       ════════════════════════════════════════════════════════════ -->
+  <div class="section-label">05 · Inside the Router</div>
+  <h2 class="section-title">Control Plane vs Data Plane</h2>
+  <p class="section-desc">Every router (and every backbone, by extension) runs two parallel jobs. The <strong>control plane</strong> figures out where things are. The <strong>data plane</strong> moves packets at line rate. CCNA blueprint section 1.7 — high-yield.</p>
+
+  <div class="plane-split">
+
+    <div class="plane-card control">
+      <h4>Control Plane <span class="badge">slow · rare</span></h4>
+      <svg viewBox="0 0 300 130" preserveAspectRatio="none">
+        <rect x="20" y="48" width="60" height="34" rx="4" fill="#FFFFFF" stroke="#16A34A"/>
+        <text x="50" y="69" text-anchor="middle" class="label">R1</text>
+        <rect x="220" y="48" width="60" height="34" rx="4" fill="#FFFFFF" stroke="#16A34A"/>
+        <text x="250" y="69" text-anchor="middle" class="label">R2</text>
+        <line x1="80" y1="65" x2="220" y2="65" stroke="#16A34A" stroke-width="2" stroke-dasharray="4 4"/>
+        <text x="150" y="38" text-anchor="middle" class="small" style="fill:#16A34A">"I can reach 10.0.0.0/24"</text>
+        <text x="150" y="100" text-anchor="middle" class="small">OSPF · EIGRP · BGP advertisement</text>
+        <circle r="5" class="pkt-cp cp-pkt"/>
+      </svg>
+      <p>Routers <strong>talk to each other</strong> to build a map of the network. Routing protocols run here.</p>
+      <ul>
+        <li><strong>OSPF</strong> — interior, link-state, fast convergence</li>
+        <li><strong>EIGRP</strong> — Cisco interior, distance-vector hybrid</li>
+        <li><strong>BGP</strong> — between ISPs (Internet's routing protocol)</li>
+        <li><strong>STP, ARP, ICMP</strong> — also control-plane traffic</li>
+      </ul>
+    </div>
+
+    <div class="plane-card data">
+      <h4>Data Plane <span class="badge">fast · constant</span></h4>
+      <svg viewBox="0 0 300 130" preserveAspectRatio="none">
+        <rect x="20" y="48" width="60" height="34" rx="4" fill="#FFFFFF" stroke="#D97706"/>
+        <text x="50" y="69" text-anchor="middle" class="label">R1</text>
+        <rect x="220" y="48" width="60" height="34" rx="4" fill="#FFFFFF" stroke="#D97706"/>
+        <text x="250" y="69" text-anchor="middle" class="label">R2</text>
+        <line x1="80" y1="65" x2="220" y2="65" stroke="#D97706" stroke-width="3"/>
+        <text x="150" y="38" text-anchor="middle" class="small" style="fill:#D97706">user packets · video · email · web</text>
+        <text x="150" y="100" text-anchor="middle" class="small">CEF · forwarding table lookup</text>
+        <circle r="5" class="pkt-dp dp-pkt"/>
+        <circle r="5" class="pkt-dp dp-pkt b"/>
+        <circle r="5" class="pkt-dp dp-pkt c"/>
+        <circle r="5" class="pkt-dp dp-pkt d"/>
+      </svg>
+      <p>Routers <strong>forward packets</strong> based on the table the control plane built. Hardware-accelerated on real switches/routers.</p>
+      <ul>
+        <li><strong>FIB</strong> (Forwarding Information Base) — pre-computed lookup table</li>
+        <li><strong>CEF</strong> (Cisco Express Forwarding) — Cisco's hardware-fast forwarding engine</li>
+        <li><strong>ACL match · QoS marking · NAT translation</strong> — also data-plane work</li>
+        <li>If the control plane dies, data plane keeps forwarding (briefly) using its last-known table</li>
+      </ul>
+    </div>
+
+  </div>
+
+  <div class="viz-caption" style="margin-top:14px"><strong>Memory hook:</strong> Control plane = <em>brain</em> (thinks, decides, slow). Data plane = <em>muscle</em> (acts, forwards, fast). SDN (software-defined networking) is the idea of taking the brain off the router entirely and putting it on a central controller.</div>
+
+  <div style="height:var(--s-2xl)"></div>
+
+  <!-- ════════════════════════════════════════════════════════════
+       SECTION 6 — Decision flowchart
+       ════════════════════════════════════════════════════════════ -->
+  <div class="section-label">06 · Pick a WAN</div>
+  <h2 class="section-title">Decision Flowchart — Which WAN Should You Buy?</h2>
+  <p class="section-desc">Real-world picker. Answer 4 questions and the flowchart routes you to a CCNA-blueprint WAN technology. Click any answer to advance.</p>
+
+  <div class="decide-wrap" id="decideWrap">
+    <div class="decide-trail" id="decideTrail"></div>
+    <div id="decideStage"></div>
+    <button class="decide-reset" id="decideReset" style="display:none">Start over</button>
+  </div>
+
+  <div style="height:var(--s-2xl)"></div>
+
+  <!-- ════════════════════════════════════════════════════════════
+       SECTION 7 — Quiz
+       ════════════════════════════════════════════════════════════ -->
+  <div class="section-label">07 · Check Yourself</div>
+  <h2 class="section-title">CCNA-style Quiz</h2>
+  <p class="section-desc">Five blueprint-aligned questions. Click an option to lock in your answer and see the explanation.</p>
+
+  <div class="quiz-wrap">
+    <div class="quiz-progress">Score: <strong id="qScore">0</strong> / <strong id="qTotal">5</strong></div>
+    <div id="quizList"></div>
+  </div>
+
+  <div style="height:var(--s-2xl)"></div>
+
+</div>
+
+<script defer src="js/nav.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+
+// ═════════════════════════════════════════════════════════════
+// SECTION 4 — WAN topology selector
+// ═════════════════════════════════════════════════════════════
+const TOPOS = {
+  p2p: {
+    name: 'Point-to-Point',
+    nodes: [{x:180,y:180,l:'Site A'},{x:520,y:180,l:'Site B'}],
+    links: [[0,1]],
+    spof: 'Yes — single circuit. If it cuts, both sites are dark.',
+    best: 'Two sites. Banks dedicating a private line between HQ and DR.'
+  },
+  hub: {
+    name: 'Hub & Spoke',
+    nodes: [{x:350,y:180,l:'HQ'},{x:120,y:80,l:'Branch 1'},{x:580,y:80,l:'Branch 2'},{x:120,y:280,l:'Branch 3'},{x:580,y:280,l:'Branch 4'}],
+    links: [[0,1],[0,2],[0,3],[0,4]],
+    spof: 'Yes — HQ. If the hub fails, all branches lose connectivity to each other.',
+    best: 'One headquarters, many branches. Cheapest scalable WAN.'
+  },
+  full: {
+    name: 'Full Mesh',
+    nodes: [{x:350,y:60,l:'A'},{x:600,y:180,l:'B'},{x:480,y:300,l:'C'},{x:220,y:300,l:'D'},{x:100,y:180,l:'E'}],
+    links: [[0,1],[0,2],[0,3],[0,4],[1,2],[1,3],[1,4],[2,3],[2,4],[3,4]],
+    spof: 'No — every pair has a direct link. Maximum redundancy.',
+    best: 'Few critical sites. Trading data centers between regions. Expensive — n(n−1)/2 links.'
+  },
+  part: {
+    name: 'Partial Mesh',
+    nodes: [{x:350,y:60,l:'A'},{x:600,y:180,l:'B'},{x:480,y:300,l:'C'},{x:220,y:300,l:'D'},{x:100,y:180,l:'E'}],
+    links: [[0,1],[0,4],[1,2],[2,3],[3,4],[0,2]],
+    spof: 'Mostly no — most sites have 2+ paths. Some leaf sites still have one.',
+    best: 'Most enterprises. Mesh between critical sites, single-homed leaves.'
+  },
+  dual: {
+    name: 'Dual Hub (redundant)',
+    nodes: [{x:250,y:120,l:'HQ-A'},{x:450,y:120,l:'HQ-B'},{x:120,y:280,l:'Branch 1'},{x:350,y:280,l:'Branch 2'},{x:580,y:280,l:'Branch 3'}],
+    links: [[0,1],[0,2],[0,3],[0,4],[1,2],[1,3],[1,4]],
+    spof: 'No — every branch reaches both hubs. Lose one hub, the other carries traffic.',
+    best: 'Multi-site enterprise that needs HA. SD-WAN typically deploys this shape.'
+  }
+};
+
+let currentTopo = 'p2p';
+const linksEl = document.querySelector('#topoSvg #topoLinks');
+const nodesEl = document.querySelector('#topoSvg #topoNodes');
+const pktsEl  = document.querySelector('#topoSvg #topoPackets');
+
+function renderTopo(key){
+  const t = TOPOS[key];
+  linksEl.innerHTML = '';
+  nodesEl.innerHTML = '';
+  pktsEl.innerHTML = '';
+
+  // links
+  t.links.forEach(([a,b]) => {
+    const na = t.nodes[a], nb = t.nodes[b];
+    linksEl.innerHTML += `<line x1="${na.x}" y1="${na.y}" x2="${nb.x}" y2="${nb.y}" stroke="#2563EB" stroke-width="2" opacity="0.55"/>`;
+  });
+
+  // animated packets along each link
+  t.links.forEach(([a,b], i) => {
+    const na = t.nodes[a], nb = t.nodes[b];
+    const dur = 2 + (i % 3) * 0.6;
+    const delay = (i * 0.4) % 2;
+    pktsEl.innerHTML += `<circle r="5" fill="#2563EB">
+      <animate attributeName="cx" from="${na.x}" to="${nb.x}" dur="${dur}s" begin="${delay}s" repeatCount="indefinite"/>
+      <animate attributeName="cy" from="${na.y}" to="${nb.y}" dur="${dur}s" begin="${delay}s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0;1;1;0" keyTimes="0;0.1;0.9;1" dur="${dur}s" begin="${delay}s" repeatCount="indefinite"/>
+    </circle>`;
+  });
+
+  // nodes
+  t.nodes.forEach(n => {
+    nodesEl.innerHTML += `<g>
+      <circle cx="${n.x}" cy="${n.y}" r="28" fill="#FFFFFF" stroke="#1E40AF" stroke-width="2"/>
+      <text x="${n.x}" y="${n.y+4}" text-anchor="middle" class="label" style="fill:#1E40AF">${n.l}</text>
+    </g>`;
+  });
+
+  // info
+  document.getElementById('topoLinkCount').textContent = t.links.length + ' link' + (t.links.length === 1 ? '' : 's');
+  document.getElementById('topoSpof').textContent = t.spof;
+  document.getElementById('topoBest').textContent = t.best;
+}
+
+document.querySelectorAll('#topoTabs .topo-tab').forEach(b => {
+  b.addEventListener('click', () => {
+    document.querySelectorAll('#topoTabs .topo-tab').forEach(x => x.classList.remove('active'));
+    b.classList.add('active');
+    currentTopo = b.dataset.topo;
+    renderTopo(currentTopo);
+  });
+});
+renderTopo(currentTopo);
+
+// ═════════════════════════════════════════════════════════════
+// Mesh growth visualizer
+// ═════════════════════════════════════════════════════════════
+const meshSvg = document.getElementById('meshSvg');
+const meshN = document.getElementById('meshN');
+const meshStat = document.getElementById('meshStat');
+
+function drawMesh(n){
+  const cx = 350, cy = 110, r = 85;
+  const pts = [];
+  for (let i = 0; i < n; i++){
+    const ang = (i / n) * Math.PI * 2 - Math.PI / 2;
+    pts.push({x: cx + Math.cos(ang) * r, y: cy + Math.sin(ang) * r});
+  }
+  let html = '';
+  // links
+  for (let i = 0; i < n; i++){
+    for (let j = i + 1; j < n; j++){
+      html += `<line x1="${pts[i].x}" y1="${pts[i].y}" x2="${pts[j].x}" y2="${pts[j].y}" stroke="#2563EB" stroke-width="1" opacity="0.4"/>`;
+    }
+  }
+  // nodes
+  pts.forEach((p, i) => {
+    html += `<circle cx="${p.x}" cy="${p.y}" r="9" fill="#FFFFFF" stroke="#1E40AF" stroke-width="2"/>`;
+  });
+  meshSvg.innerHTML = html;
+  const links = n * (n - 1) / 2;
+  meshStat.textContent = `${n} sites · ${links} link${links === 1 ? '' : 's'}`;
+}
+meshN.addEventListener('input', () => drawMesh(parseInt(meshN.value, 10)));
+drawMesh(parseInt(meshN.value, 10));
+
+// ═════════════════════════════════════════════════════════════
+// SECTION 6 — Decision flowchart
+// ═════════════════════════════════════════════════════════════
+const FLOW = {
+  q1: {
+    step: 1,
+    q: 'How many sites need to talk to each other?',
+    opts: [
+      {label: 'Just 2', next: 'q2_two'},
+      {label: '3–10', next: 'q2_few'},
+      {label: '10+ branches', next: 'q2_many'}
+    ]
+  },
+  q2_two: {
+    step: 2,
+    q: 'Is the link mission-critical (financial / health / 24×7 ops)?',
+    opts: [
+      {label: 'Yes — must never go down', next: 'q3_dedicated'},
+      {label: 'No — internet-grade is fine', next: 'r_vpn'}
+    ]
+  },
+  q2_few: {
+    step: 2,
+    q: 'Do you need every site to talk to every other site at low latency?',
+    opts: [
+      {label: 'Yes — full mesh required', next: 'q3_mesh'},
+      {label: 'No — most traffic goes to one HQ', next: 'q3_hub'}
+    ]
+  },
+  q2_many: {
+    step: 2,
+    q: 'Mostly traffic to a central HQ, or peer-to-peer between branches?',
+    opts: [
+      {label: 'Centralized (HQ)', next: 'q3_hub'},
+      {label: 'Lots of peer traffic + need agility', next: 'r_sdwan'}
+    ]
+  },
+  q3_dedicated: {
+    step: 3,
+    q: 'Budget?',
+    opts: [
+      {label: 'Generous · symmetric · QoS', next: 'r_mpls_p2p'},
+      {label: 'Tight · OK with internet + encryption', next: 'r_vpn'}
+    ]
+  },
+  q3_mesh: {
+    step: 3,
+    q: 'Are you sensitive to provider QoS / SLAs?',
+    opts: [
+      {label: 'Yes — banks, hospitals, traders', next: 'r_mpls'},
+      {label: 'No — agile + cheap is fine', next: 'r_sdwan'}
+    ]
+  },
+  q3_hub: {
+    step: 3,
+    q: 'Do branches need encryption out of the box?',
+    opts: [
+      {label: 'Yes — compliance / public Internet path', next: 'r_dmvpn'},
+      {label: 'No — all on a private carrier network', next: 'r_mpls_hub'}
+    ]
+  },
+  // Results
+  r_mpls_p2p: {
+    result: true,
+    name: 'MPLS Point-to-Point (or Metro-E E-Line)',
+    why: 'Two sites, dedicated, premium budget = carrier-private virtual leased line. Provider gives you a guaranteed-bandwidth link with QoS. Modern equivalent of the old T1.'
+  },
+  r_vpn: {
+    result: true,
+    name: 'Site-to-Site IPsec VPN over Internet',
+    why: 'Cheapest path. Each site has a normal Internet circuit + a router that builds an encrypted tunnel to the other side. Good enough for most SMBs.'
+  },
+  r_mpls: {
+    result: true,
+    name: 'MPLS L3VPN (full mesh)',
+    why: 'Carrier provides any-to-any private connectivity with QoS. Each site only buys one circuit but reaches every other site. Gold standard for enterprises with strict SLAs.'
+  },
+  r_sdwan: {
+    result: true,
+    name: 'SD-WAN (over multiple Internet/LTE links)',
+    why: 'Software-defined WAN — central controller, branches use cheap broadband + cellular, traffic auto-steers. Replaces MPLS for many enterprises in the last 5 years. CCNA blueprint section 1.2.c.'
+  },
+  r_dmvpn: {
+    step: 3,
+    result: true,
+    name: 'DMVPN (Dynamic Multipoint VPN)',
+    why: 'Cisco hub-and-spoke VPN that builds spoke-to-spoke tunnels on demand over the public Internet. Encryption + scalability. Listed on the CCNA blueprint as a WAN architecture.'
+  },
+  r_mpls_hub: {
+    result: true,
+    name: 'MPLS Hub & Spoke',
+    why: 'Carrier MPLS with all branches homing to HQ. Cheaper than full mesh, no Internet exposure, QoS guaranteed.'
+  }
+};
+
+let trail = [];
+const stage = document.getElementById('decideStage');
+const trailEl = document.getElementById('decideTrail');
+const resetBtn = document.getElementById('decideReset');
+
+function renderFlow(key){
+  const node = FLOW[key];
+  if (!node){ return; }
+
+  if (node.result){
+    stage.innerHTML = `<div class="decide-result">
+      <h4>→ ${node.name}</h4>
+      <p>${node.why}</p>
+      <div class="why">CCNA blueprint reference · Section 1.2 (WAN technologies)</div>
+    </div>`;
+    resetBtn.style.display = 'inline-block';
+    return;
+  }
+
+  const optsHtml = node.opts.map((o, i) =>
+    `<button class="decide-opt" data-next="${o.next}">${o.label}</button>`
+  ).join('');
+
+  stage.innerHTML = `
+    <div class="decide-q"><span class="step">Q${node.step}</span>${node.q}</div>
+    <div class="decide-opts">${optsHtml}</div>
+  `;
+
+  stage.querySelectorAll('.decide-opt').forEach(b => {
+    b.addEventListener('click', () => {
+      const label = b.textContent;
+      trail.push(label);
+      renderTrail();
+      renderFlow(b.dataset.next);
+    });
+  });
+}
+
+function renderTrail(){
+  if (trail.length === 0){ trailEl.innerHTML = ''; return; }
+  trailEl.innerHTML = trail.map((t, i) =>
+    `<span>${t}</span>${i < trail.length - 1 ? '<span class="arrow">→</span>' : ''}`
+  ).join('');
+}
+
+resetBtn.addEventListener('click', () => {
+  trail = [];
+  resetBtn.style.display = 'none';
+  renderTrail();
+  renderFlow('q1');
+});
+
+renderFlow('q1');
+
+// ═════════════════════════════════════════════════════════════
+// SECTION 7 — Quiz
+// ═════════════════════════════════════════════════════════════
+const QUIZ = [
+  {
+    q: 'Which device is at the demarcation point on a metro-Ethernet circuit and lets the carrier run loopback tests?',
+    opts: ['CSU/DSU', 'NID (Network Interface Device)', 'CE router', 'ONT'],
+    correct: 1,
+    explain: 'The NID is the carrier-installed demarc box on metro-E circuits. Smart-NIDs respond to carrier loopback/OAM tests. CSU/DSU is legacy serial; ONT is for fiber PON; CE is the customer router (past the demarc).'
+  },
+  {
+    q: 'A router is running OSPF and forwarding IP packets. Which statement is correct?',
+    opts: [
+      'OSPF runs in the data plane; packet forwarding runs in the control plane',
+      'OSPF runs in the control plane; packet forwarding runs in the data plane',
+      'Both run in the control plane',
+      'Both run in the data plane'
+    ],
+    correct: 1,
+    explain: 'Routing protocols (OSPF, EIGRP, BGP) build the routing table — that is control-plane work. Forwarding actual user packets using that table is data-plane work. CCNA 1.7 explicit.'
+  },
+  {
+    q: 'A retail chain has 80 stores that mostly send POS traffic to a central HQ. Cost matters. Best WAN topology?',
+    opts: ['Full mesh MPLS', 'Hub and spoke', 'Point-to-point leased lines', 'Three Tier-1 ISPs in BGP'],
+    correct: 1,
+    explain: 'Hub and spoke fits centralized traffic patterns and minimizes circuit count. Full mesh would require 80×79/2 = 3,160 links — absurd. Point-to-point can\'t scale to 80 sites.'
+  },
+  {
+    q: 'Which WAN service makes the carrier\'s network look like one big switch to your sites?',
+    opts: ['IPsec VPN', 'Metro Ethernet', 'DSL', 'Cellular LTE'],
+    correct: 1,
+    explain: 'Metro-E presents an Ethernet handoff at every site. From your routers\' perspective, all sites share a Layer-2 (E-LAN) or virtual-circuit (E-Line) topology — like one big switch.'
+  },
+  {
+    q: 'A "P router" inside an MPLS provider backbone:',
+    opts: [
+      'Knows every customer\'s routes',
+      'Only swaps labels at line rate; doesn\'t know individual customer routes',
+      'Runs BGP with customer routers',
+      'Acts as a firewall between customers'
+    ],
+    correct: 1,
+    explain: 'P (Provider) routers do label-switching only. PE (Provider Edge) routers are the ones that know customer routes (held in VRFs). This separation is what lets MPLS scale.'
+  }
+];
+
+let qScore = 0;
+const qScoreEl = document.getElementById('qScore');
+document.getElementById('qTotal').textContent = QUIZ.length;
+const qList = document.getElementById('quizList');
+
+QUIZ.forEach((item, idx) => {
+  const card = document.createElement('div');
+  card.style.marginBottom = '18px';
+  card.innerHTML = `
+    <div class="quiz-q"><span class="quiz-num">Q${idx+1}</span>${item.q}</div>
+    <div class="quiz-opts" data-q="${idx}">
+      ${item.opts.map((o,i) => `<button class="quiz-opt" data-i="${i}">${String.fromCharCode(65+i)}. ${o}</button>`).join('')}
+    </div>
+    <div class="quiz-explain" data-explain="${idx}">${item.explain}</div>
+  `;
+  qList.appendChild(card);
+
+  card.querySelectorAll('.quiz-opt').forEach(b => {
+    b.addEventListener('click', () => {
+      const picked = parseInt(b.dataset.i, 10);
+      const isCorrect = picked === item.correct;
+      const opts = card.querySelectorAll('.quiz-opt');
+      opts.forEach((o, i) => {
+        o.classList.add('locked');
+        if (i === item.correct) o.classList.add('correct');
+        else if (i === picked) o.classList.add('wrong');
+      });
+      card.querySelector(`[data-explain="${idx}"]`).classList.add('show');
+      if (isCorrect && !b.dataset.scored){
+        qScore++;
+        qScoreEl.textContent = qScore;
+        b.dataset.scored = '1';
+      }
+    });
+  });
+});
+
+}); // DOMContentLoaded
+</script>
+</body>
+</html>

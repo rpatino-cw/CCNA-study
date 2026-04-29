@@ -85,7 +85,7 @@
     if(!badge){
       badge=document.createElement('div');
       badge.id='group-mini-badge';
-      badge.style.cssText='position:fixed;bottom:40px;left:12px;z-index:350;background:var(--bg-surface,#fff);border:1px solid var(--border,#e5e5e5);border-radius:8px;padding:8px 12px;font-family:monospace;font-size:0.65rem;color:var(--ink-muted,#888);box-shadow:0 2px 8px rgba(0,0,0,0.06);cursor:pointer;max-width:200px';
+      badge.style.cssText='position:fixed;bottom:14px;left:14px;z-index:350;background:var(--bg-surface,#fff);border:1px solid var(--border,#e5e5e5);border-radius:8px;padding:8px 12px;font-family:monospace;font-size:0.65rem;color:var(--ink-muted,#888);box-shadow:0 2px 8px rgba(0,0,0,0.06);cursor:pointer;max-width:200px';
       badge.onclick=function(){window.location.href=(location.pathname.indexOf('/labs/')>=0?'../':'')+'peers.html';};
       document.body.appendChild(badge);
     }
