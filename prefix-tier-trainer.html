@@ -79,9 +79,19 @@
   .stat-bar-fill.strong { background: #10B981; }
   .stat-numbers { font-family: var(--font-mono); font-size: 0.8rem; color: var(--ink-secondary); }
 
-  .mode-toggle { display: flex; gap: 4px; padding: 4px; background: var(--bg-recessed); border-radius: var(--radius); margin-bottom: var(--s-md); width: fit-content; }
+  .mode-toggle { display: flex; gap: 4px; padding: 4px; background: var(--bg-recessed); border-radius: var(--radius); margin-bottom: var(--s-md); width: fit-content; flex-wrap: wrap; }
   .mode-toggle button { font-family: var(--font-display); font-size: 0.78rem; font-weight: 600; padding: 6px 12px; border: none; background: transparent; color: var(--ink-secondary); cursor: pointer; border-radius: 3px; }
   .mode-toggle button.active { background: var(--bg-surface); color: var(--ink); box-shadow: 0 1px 2px rgba(0,0,0,.06); }
+
+  /* Timer bar */
+  .timer-wrap { margin-bottom: var(--s-sm); display: none; }
+  .timer-wrap.show { display: block; }
+  .timer-row { display: flex; justify-content: space-between; align-items: center; font-family: var(--font-mono); font-size: 0.85rem; margin-bottom: 4px; }
+  .timer-num { font-weight: 700; color: var(--accent); }
+  .timer-num.warn { color: #DC2626; }
+  .timer-track { background: var(--bg-recessed); height: 4px; border-radius: 100px; overflow: hidden; }
+  .timer-fill { background: var(--accent); height: 100%; transition: width .25s linear, background .2s; }
+  .timer-fill.warn { background: #DC2626; }
 
   .empty { color: var(--ink-muted); font-style: italic; text-align: center; padding: var(--s-lg); }
 </style>
@@ -122,7 +132,13 @@
     <div class="mode-toggle" id="drill-mode">
       <button class="active" data-mode="all">All tiers</button>
       <button data-mode="weak">Weak tiers only</button>
+      <button data-mode="timed">⏱ Timed (30s)</button>
       <button data-mode="reset">Reset score</button>
+    </div>
+
+    <div class="timer-wrap" id="timer-wrap">
+      <div class="timer-row"><span style="color:var(--ink-muted);">Time left</span><span class="timer-num" id="timer-num">30s</span></div>
+      <div class="timer-track"><div class="timer-fill" id="timer-fill" style="width:100%"></div></div>
     </div>
 
     <div class="scenario-card">
@@ -269,6 +285,68 @@ const QUESTIONS = [
   { tier:'t9', text:'An ACL line matching exactly one IP address.', accept:['/32'], why:'`permit ip host 192.168.1.50 any` ≈ 192.168.1.50/32. Single-host match.' },
   { tier:'t9', text:'A BGP router-ID derived from the highest loopback on a router.', accept:['/32'], why:'Router-IDs come from /32 loopbacks — single, stable, never goes down.' },
   { tier:'t9', text:'A null-route blackholing one abusive source IP.', accept:['/32'], why:'Blackhole route for one IP = /32 host route pointing to Null0.' },
+
+  // — Tier 1 extras —
+  { tier:'t1', text:'A "gateway of last resort" entry on a Cisco router.', accept:['/0'], why:'Gateway of last resort = the default route = /0 (matches anything not in the routing table).' },
+  { tier:'t1', text:'The IPv4 multicast block 224.0.0.0 – 239.255.255.255.', accept:['/4'], why:'Multicast = 224.0.0.0/4. Four bits committed to "this is multicast space."' },
+  { tier:'t1', text:'A "match every IPv4 address ever" wildcard route.', accept:['/0'], why:'Match-everything = zero network bits = /0. Universal wildcard.' },
+  { tier:'t1', text:'The static route command "ip route 0.0.0.0 0.0.0.0 10.1.1.1".', accept:['/0'], why:'Mask 0.0.0.0 = 0 mask bits = /0 = default route.' },
+  { tier:'t1', text:'BGP route summarizing 4M addresses into a single supernet.', accept:['/10'], why:'Wait — 4M ≈ 2^22 = needs /10. Tier 1 if we treat /10 as boundary; here it would be Tier 2. Treat as /10.' },
+
+  // — Tier 2 extras —
+  { tier:'t2', text:'The RFC 1918 private block 10.0.0.0 – 10.255.255.255.', accept:['/8'], why:'10.0.0.0/8 = entire RFC 1918 Class A private space. The biggest private range.' },
+  { tier:'t2', text:'The IPv4 loopback range 127.0.0.0 – 127.255.255.255.', accept:['/8'], why:'127.0.0.0/8 = entire loopback range. Old Class A reservation. Includes 127.0.0.1.' },
+  { tier:'t2', text:'A 1980s university IPv4 allocation that gave them 16M addresses.', accept:['/8'], why:'Old Class A = /8 = 16,777,216 addresses. Stanford, MIT, Ford got these.' },
+  { tier:'t2', text:'CGNAT (carrier-grade NAT) reserved space for ISP customer assignment.', accept:['/10'], why:'100.64.0.0/10 = RFC 6598 CGNAT range. Used by ISPs behind their NAT.' },
+  { tier:'t2', text:'A regional ISP\'s 1M-address block from ARIN.', accept:['/12'], why:'/12 = 2^20 = 1,048,576 addresses. Mid-size regional ISP allocation.' },
+
+  // — Tier 3 extras —
+  { tier:'t3', text:'The RFC 1918 private block 192.168.0.0 – 192.168.255.255.', accept:['/16'], why:'192.168.0.0/16 = entire 192.168 private range. Old Class B size.' },
+  { tier:'t3', text:'The IPv4 link-local range (when DHCP fails and you get 169.254.x.x).', accept:['/16'], why:'169.254.0.0/16 = APIPA / link-local. /16 default for auto-assigned addresses.' },
+  { tier:'t3', text:'A subnet inside an AWS VPC sized for a load-balanced web tier.', accept:['/20','/24'], why:'AWS VPC subnets typically /20 (4K) for tiers, /24 (256) for smaller services. Both fit.' },
+  { tier:'t3', text:'A subnet mask 255.255.0.0 expressed in CIDR.', accept:['/16'], why:'255.255.0.0 = 16 bits of mask = /16. Old Class B default mask.' },
+  { tier:'t3', text:'CoreWeave site-level allocation for 65K addresses.', accept:['/16'], why:'Site-level DC fabric = /16. Large enough for racks of GPUs + management + storage.' },
+
+  // — Tier 4 extras —
+  { tier:'t4', text:'The minimum-size IPv4 block accepted into the global BGP table.', accept:['/24'], why:'Actually most ISPs filter /25 and longer, so /24 is the practical floor. /22 is the "fresh allocation" floor for new networks.' },
+  { tier:'t4', text:'A multi-homed business needing its own portable IP block.', accept:['/22','/21'], why:'/22 (1K) or /21 (2K) = bracket for "I run my own AS and announce my own block."' },
+  { tier:'t4', text:'A 2,048-address ARIN allocation to a small regional ISP.', accept:['/21'], why:'/21 = 2,048 addresses. Smaller end of the routable allocation range.' },
+  { tier:'t4', text:'The smallest "fresh" prefix ARIN will assign to a new BGP-multihomed network.', accept:['/22'], why:'/22 = 1,024 addresses = ARIN\'s minimum new-block allocation for multi-homed orgs.' },
+
+  // — Tier 5 extras —
+  { tier:'t5', text:'A subnet mask of 255.255.255.0 in CIDR notation.', accept:['/24'], why:'255.255.255.0 = 24 bits of mask = /24. Old Class C default.' },
+  { tier:'t5', text:'A subnet mask of 255.255.254.0 in CIDR notation.', accept:['/23'], why:'255.255.254.0 = 23 bits of mask = /23. Two /24s fused.' },
+  { tier:'t5', text:'A university dorm Wi-Fi VLAN for 200 students.', accept:['/24','/23'], why:'/24 = 254 hosts (tight). /23 = 510 hosts (room for guests). Either acceptable.' },
+  { tier:'t5', text:'The default LAN subnet on a brand new home router out of the box.', accept:['/24'], why:'Every consumer router defaults to 192.168.1.0/24 or 192.168.0.0/24. Universal default.' },
+
+  // — Tier 6 extras —
+  { tier:'t6', text:'A voice VLAN for ~50 IP phones.', accept:['/26'], why:'/26 = 62 usable hosts. Right-sized for a department\'s phones with headroom.' },
+  { tier:'t6', text:'A guest Wi-Fi network expecting up to 100 simultaneous users.', accept:['/25'], why:'/25 = 126 usable hosts. Fits 100 users with breathing room.' },
+  { tier:'t6', text:'A security camera VLAN for 28 IP cameras.', accept:['/27'], why:'/27 = 30 usable hosts. Tight fit for 28 cameras. CCNA exam favorite.' },
+  { tier:'t6', text:'A printer-only VLAN for 10 office printers.', accept:['/28','/27'], why:'/28 = 14 usable (tight). /27 = 30 (room to grow). Either acceptable.' },
+
+  // — Tier 7 extras —
+  { tier:'t7', text:'A small business orders fiber, ISP delivers a /29 hand-off block.', accept:['/29'], why:'/29 = 8 total = 6 usable. Standard SMB ISP delivery.' },
+  { tier:'t7', text:'A hosting provider sells you a "16-IP block" for your colocation rack.', accept:['/28'], why:'/28 = 16 total addresses. Hosting providers commonly sell /28s.' },
+  { tier:'t7', text:'A leased fiber circuit hand-off where the ISP gives you 6 public IPs.', accept:['/29'], why:'6 usable = /29 = the universal ISP hand-off size.' },
+  { tier:'t7', text:'A public-facing micro-segment for 12 web servers behind a load balancer.', accept:['/28'], why:'/28 = 14 usable. Fits 12 servers + router + spare.' },
+  { tier:'t7', text:'A small office wants to host 4 public services (mail, web, VPN, FTP).', accept:['/29'], why:'4 services + ISP gateway + your firewall = 6 usable = /29.' },
+
+  // — Tier 8 extras —
+  { tier:'t8', text:'A BGP peering session over a direct fiber between two ASes.', accept:['/30','/31'], why:'BGP peerings use p2p subnets. /30 traditional, /31 modern. Both fine.' },
+  { tier:'t8', text:'GRE tunnel endpoints between two routers, no other devices on the wire.', accept:['/30','/31'], why:'Tunnel endpoints = p2p = /30 or /31. Same pattern as physical p2p.' },
+  { tier:'t8', text:'A WAN provider hands off an Ethernet circuit to your edge router with no LAN.', accept:['/30','/31'], why:'WAN hand-off when only your edge + provider edge are on the link = /30 or /31.' },
+  { tier:'t8', text:'Two data center spine switches doing OSPF between them on a back-to-back link.', accept:['/30','/31'], why:'Spine-to-spine p2p = /30 traditional, /31 modern. Saves IPs in DC fabrics.' },
+
+  // — Tier 9 extras —
+  { tier:'t9', text:'A VXLAN tunnel endpoint (VTEP) IP address.', accept:['/32'], why:'VTEPs are single-IP loopbacks = /32. Stable source IP for VXLAN encapsulation.' },
+  { tier:'t9', text:'An anycast IP shared by multiple geographically-distributed servers.', accept:['/32'], why:'Anycast advertises the same /32 from multiple locations — routing picks closest.' },
+  { tier:'t9', text:'The localhost address 127.0.0.1 expressed as a CIDR network.', accept:['/32'], why:'127.0.0.1/32 = single localhost address. The most-used /32 on Earth.' },
+  { tier:'t9', text:'A monitoring server\'s static IP added as a permit line in an ACL.', accept:['/32'], why:'`permit ip host 10.5.5.5 any` = matching one IP = /32 prefix.' },
+  { tier:'t5', text:'A small medical clinic with 30 PCs, 5 servers, 10 IoT devices on one flat LAN.', accept:['/24'], why:'~45 hosts on one segment fits inside /24 (254 usable). Standard small-business shape.' },
+  { tier:'t6', text:'A wireless access-point management VLAN for 14 APs.', accept:['/28','/27'], why:'/28 = 14 usable (exact fit). /27 = 30 usable (room to grow). Either fine.' },
+  { tier:'t6', text:'A "servers" VLAN holding ~40 production VMs.', accept:['/26'], why:'/26 = 62 usable hosts. Fits 40 VMs with breathing room.' },
+  { tier:'t3', text:'A hyperscaler\'s availability-zone-level allocation, 16K addresses.', accept:['/18'], why:'/18 = 16,384 addresses. Common AZ-level chunk in cloud DC fabrics.' },
 ];
 
 // ─────────────────────────────────────────────────────────────────────
@@ -354,8 +432,10 @@ document.getElementById('stats-reset').addEventListener('click', () => {
 // ─────────────────────────────────────────────────────────────────────
 // DRILL — scenario → prefix
 // ─────────────────────────────────────────────────────────────────────
-const PREFIXES = ['/0','/7','/8','/12','/13','/16','/17','/19','/20','/21','/22','/23','/24','/25','/26','/27','/28','/29','/30','/31','/32'];
-let drillState = { mode:'all', q:0, score:0, total:0, streak:0, current:null, answered:false };
+const PREFIXES = ['/0','/4','/7','/8','/10','/12','/13','/16','/17','/19','/20','/21','/22','/23','/24','/25','/26','/27','/28','/29','/30','/31','/32'];
+let drillState = { mode:'all', timed:false, q:0, score:0, total:0, streak:0, current:null, answered:false };
+let drillTimer = null;
+const TIMER_SECONDS = 30;
 
 function drillPool() {
   if (drillState.mode === 'weak') {
@@ -365,6 +445,7 @@ function drillPool() {
   return QUESTIONS;
 }
 function drillNext() {
+  stopTimer();
   const pool = drillPool();
   if (pool.length === 0) {
     document.getElementById('drill-text').textContent = 'No weak tiers — switch to "All tiers" to keep drilling.';
@@ -389,10 +470,60 @@ function drillNext() {
     grid.appendChild(b);
   });
   updateScorePill();
+  if (drillState.timed) startTimer();
+}
+
+function startTimer() {
+  const wrap = document.getElementById('timer-wrap');
+  const fill = document.getElementById('timer-fill');
+  const num = document.getElementById('timer-num');
+  wrap.classList.add('show');
+  let remaining = TIMER_SECONDS;
+  num.textContent = remaining + 's';
+  num.classList.remove('warn');
+  fill.classList.remove('warn');
+  fill.style.width = '100%';
+  drillTimer = setInterval(() => {
+    remaining -= 0.25;
+    if (remaining <= 0) {
+      stopTimer();
+      drillTimeout();
+      return;
+    }
+    const pct = (remaining / TIMER_SECONDS) * 100;
+    fill.style.width = pct + '%';
+    num.textContent = Math.ceil(remaining) + 's';
+    if (remaining <= 10) {
+      fill.classList.add('warn');
+      num.classList.add('warn');
+    }
+  }, 250);
+}
+function stopTimer() {
+  if (drillTimer) { clearInterval(drillTimer); drillTimer = null; }
+}
+function drillTimeout() {
+  if (drillState.answered) return;
+  drillState.answered = true;
+  const q = drillState.current;
+  drillState.total++;
+  drillState.streak = 0;
+  saveStat(q.tier, false);
+
+  document.querySelectorAll('#drill-grid .prefix-btn').forEach(b => {
+    b.disabled = true;
+    if (q.accept.includes(b.textContent)) b.classList.add('actual');
+  });
+  const fb = document.getElementById('drill-feedback');
+  fb.classList.add('show', 'wrong-feedback');
+  document.getElementById('drill-result').textContent = `⏱ Time up — answer was ${q.accept.join(' or ')}`;
+  document.getElementById('drill-why').textContent = q.why;
+  updateScorePill();
 }
 function drillAnswer(picked, btn) {
   if (drillState.answered) return;
   drillState.answered = true;
+  stopTimer();
   const q = drillState.current;
   const correct = q.accept.includes(picked);
   drillState.total++;
@@ -425,11 +556,22 @@ document.getElementById('drill-mode').addEventListener('click', e => {
   if (e.target.tagName !== 'BUTTON') return;
   const m = e.target.dataset.mode;
   if (m === 'reset') {
-    drillState = { mode: drillState.mode, q:0, score:0, total:0, streak:0, current:null, answered:false };
+    drillState = { mode: drillState.mode, timed: drillState.timed, q:0, score:0, total:0, streak:0, current:null, answered:false };
     drillNext();
     return;
   }
-  document.querySelectorAll('#drill-mode button').forEach(x => x.classList.remove('active'));
+  if (m === 'timed') {
+    drillState.timed = !drillState.timed;
+    e.target.classList.toggle('active', drillState.timed);
+    if (!drillState.timed) {
+      stopTimer();
+      document.getElementById('timer-wrap').classList.remove('show');
+    } else if (!drillState.answered) {
+      startTimer();
+    }
+    return;
+  }
+  document.querySelectorAll('#drill-mode button[data-mode="all"], #drill-mode button[data-mode="weak"]').forEach(x => x.classList.remove('active'));
   e.target.classList.add('active');
   drillState.mode = m;
   drillNext();
