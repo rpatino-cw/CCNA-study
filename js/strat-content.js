@@ -201,14 +201,148 @@
     ankiEntries.forEach(function (e) {
       var div = document.createElement('div');
       div.className = 'lab';
+      var countLabel = e.card_count ? e.card_count + ' cards' : 'Anki deck';
+      var actions = '<a class="open" href="data/anki/' + encodeURIComponent(e.file) + '" download style="margin-right:6px">↓ .apkg</a>';
+      if (e.cards_slug) {
+        actions = '<button class="open study-cards-btn" data-slug="' + escapeHtml(e.cards_slug) + '" data-title="Day ' + escapeHtml(e.day) + ' — ' + escapeHtml(e.title) + '" style="margin-right:6px;cursor:pointer;background:var(--accent);color:#fff;border-color:var(--accent)">▶ Study in browser</button>' + actions;
+      }
       div.innerHTML = '<div>' +
         '<span class="pill">Day ' + escapeHtml(e.day) + '</span>' +
         '<h3>' + escapeHtml(e.title) + '</h3>' +
-        '<div class="meta">Anki deck · .apkg</div>' +
+        '<div class="meta">' + countLabel + ' · click to study or download .apkg</div>' +
         '</div>' +
-        '<a class="open" href="data/anki/' + encodeURIComponent(e.file) + '" download>↓ Download</a>';
+        '<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">' + actions + '</div>';
       list.appendChild(div);
     });
+    list.querySelectorAll('.study-cards-btn').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        openCardViewer(btn.getAttribute('data-slug'), btn.getAttribute('data-title'));
+      });
+    });
+  }
+
+  // ─── inline flashcard viewer ────────────────────────────────────
+  var viewerState = null;
+
+  function ensureViewerDOM() {
+    var modal = document.getElementById('card-viewer-modal');
+    if (modal) return modal;
+    modal = document.createElement('div');
+    modal.id = 'card-viewer-modal';
+    modal.innerHTML = '' +
+      '<div class="cv-backdrop"></div>' +
+      '<div class="cv-shell">' +
+        '<div class="cv-head">' +
+          '<div class="cv-title"></div>' +
+          '<div class="cv-progress">0 / 0</div>' +
+          '<button class="cv-close" aria-label="Close">×</button>' +
+        '</div>' +
+        '<div class="cv-card">' +
+          '<div class="cv-side cv-front"></div>' +
+          '<div class="cv-side cv-back" style="display:none"></div>' +
+        '</div>' +
+        '<div class="cv-controls">' +
+          '<button class="cv-flip">Flip card</button>' +
+          '<div class="cv-rate" style="display:none">' +
+            '<button class="cv-r r-again">Again</button>' +
+            '<button class="cv-r r-hard">Hard</button>' +
+            '<button class="cv-r r-good">Good</button>' +
+            '<button class="cv-r r-easy">Easy</button>' +
+          '</div>' +
+        '</div>' +
+        '<div class="cv-foot">' +
+          '<button class="cv-nav cv-prev">← Prev</button>' +
+          '<button class="cv-shuffle">⤺ Shuffle</button>' +
+          '<button class="cv-nav cv-next">Next →</button>' +
+        '</div>' +
+        '<div class="cv-hint">Space/Enter to flip · ←/→ to navigate · Esc to close</div>' +
+      '</div>';
+    document.body.appendChild(modal);
+    modal.querySelector('.cv-close').addEventListener('click', closeCardViewer);
+    modal.querySelector('.cv-backdrop').addEventListener('click', closeCardViewer);
+    modal.querySelector('.cv-flip').addEventListener('click', flipCard);
+    modal.querySelector('.cv-prev').addEventListener('click', function () { changeCard(-1); });
+    modal.querySelector('.cv-next').addEventListener('click', function () { changeCard(1); });
+    modal.querySelector('.cv-shuffle').addEventListener('click', shuffleCards);
+    modal.querySelectorAll('.cv-r').forEach(function (b) {
+      b.addEventListener('click', function () { changeCard(1); });
+    });
+    document.addEventListener('keydown', function (e) {
+      if (!viewerState || !modal.classList.contains('open')) return;
+      if (e.key === 'Escape') closeCardViewer();
+      else if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); flipCard(); }
+      else if (e.key === 'ArrowRight') changeCard(1);
+      else if (e.key === 'ArrowLeft') changeCard(-1);
+    });
+    return modal;
+  }
+
+  function openCardViewer(slug, title) {
+    var modal = ensureViewerDOM();
+    modal.querySelector('.cv-title').textContent = title;
+    modal.querySelector('.cv-front').textContent = 'Loading…';
+    modal.querySelector('.cv-back').textContent = '';
+    modal.classList.add('open');
+    document.body.style.overflow = 'hidden';
+    fetch('data/anki-cards/' + encodeURIComponent(slug) + '.json')
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        viewerState = { cards: data.cards, idx: 0, flipped: false, slug: slug };
+        renderCard();
+      })
+      .catch(function (e) {
+        modal.querySelector('.cv-front').textContent = 'Failed to load deck: ' + e.message;
+      });
+  }
+
+  function closeCardViewer() {
+    var modal = document.getElementById('card-viewer-modal');
+    if (modal) modal.classList.remove('open');
+    document.body.style.overflow = '';
+    viewerState = null;
+  }
+
+  function renderCard() {
+    if (!viewerState) return;
+    var modal = document.getElementById('card-viewer-modal');
+    var c = viewerState.cards[viewerState.idx];
+    if (!c) { modal.querySelector('.cv-front').textContent = 'No cards.'; return; }
+    modal.querySelector('.cv-front').innerHTML = c.front || '<em>(no front)</em>';
+    modal.querySelector('.cv-back').innerHTML = c.back || '<em>(no back)</em>';
+    viewerState.flipped = false;
+    modal.querySelector('.cv-front').style.display = '';
+    modal.querySelector('.cv-back').style.display = 'none';
+    modal.querySelector('.cv-flip').style.display = '';
+    modal.querySelector('.cv-rate').style.display = 'none';
+    modal.querySelector('.cv-progress').textContent = (viewerState.idx + 1) + ' / ' + viewerState.cards.length;
+  }
+
+  function flipCard() {
+    if (!viewerState) return;
+    var modal = document.getElementById('card-viewer-modal');
+    viewerState.flipped = !viewerState.flipped;
+    modal.querySelector('.cv-front').style.display = viewerState.flipped ? 'none' : '';
+    modal.querySelector('.cv-back').style.display = viewerState.flipped ? '' : 'none';
+    modal.querySelector('.cv-flip').style.display = viewerState.flipped ? 'none' : '';
+    modal.querySelector('.cv-rate').style.display = viewerState.flipped ? 'flex' : 'none';
+  }
+
+  function changeCard(delta) {
+    if (!viewerState) return;
+    viewerState.idx = (viewerState.idx + delta + viewerState.cards.length) % viewerState.cards.length;
+    renderCard();
+  }
+
+  function shuffleCards() {
+    if (!viewerState) return;
+    for (var i = viewerState.cards.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var tmp = viewerState.cards[i];
+      viewerState.cards[i] = viewerState.cards[j];
+      viewerState.cards[j] = tmp;
+    }
+    viewerState.idx = 0;
+    renderCard();
   }
 
   function populateLabsFromIndex(labEntries, jeremyLabVideos) {
