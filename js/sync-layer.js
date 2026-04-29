@@ -122,7 +122,7 @@
     if (document.getElementById('sync-panel')) return;
     var panel = document.createElement('div');
     panel.id = 'sync-panel';
-    panel.style.cssText = 'position:fixed;bottom:74px;left:14px;z-index:8500;font-family:var(--font-display,system-ui)';
+    panel.style.cssText = 'position:fixed;bottom:130px;left:14px;z-index:8500;font-family:var(--font-display,system-ui)';
     panel.innerHTML =
       '<button id="sync-btn" style="background:var(--bg-surface,#fff);border:1px solid var(--border,#ccc);border-radius:99px;padding:6px 14px;font-size:.74rem;font-weight:600;color:var(--ink-muted,#666);cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.06)" title="Sync key for cross-device progress">⇅ Sync</button>' +
       '<div id="sync-popup" style="display:none;position:absolute;bottom:42px;left:0;background:var(--bg-surface,#fff);border:1px solid var(--border,#ccc);border-radius:8px;padding:14px;width:300px;box-shadow:0 8px 24px rgba(0,0,0,.12);font-size:.82rem;line-height:1.45">' +
@@ -137,6 +137,11 @@
         '<div id="sync-status" style="margin-top:10px;font-size:.72rem;color:var(--ink-muted,#888);text-align:center"></div>' +
       '</div>';
     document.body.appendChild(panel);
+    // Stack above group badge if it already rendered
+    requestAnimationFrame(function(){
+      var g=document.getElementById('group-mini-badge');
+      if(g){panel.style.bottom=(14+g.offsetHeight+8)+'px';}
+    });
 
     var btn = document.getElementById('sync-btn');
     var popup = document.getElementById('sync-popup');

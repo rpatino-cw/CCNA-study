@@ -91,5 +91,10 @@
     }
     badge.innerHTML='<div style="font-weight:700;color:var(--ink,#333);font-size:0.72rem;margin-bottom:2px">Group '+code+'</div>'+
       '<div>'+mc+' members | You: '+myR+'% | Avg: '+avgR+'%</div>';
+    // Stack sync-panel above group badge (avoid overlap)
+    requestAnimationFrame(function(){
+      var sync=document.getElementById('sync-panel');
+      if(sync){sync.style.bottom=(14+badge.offsetHeight+8)+'px';}
+    });
   }
 })();
