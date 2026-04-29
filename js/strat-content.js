@@ -11,8 +11,35 @@
 
   function getObjective() {
     var p = new URLSearchParams(location.search);
-    var obj = p.get('obj') || '1.1';
-    return obj.replace(/[^0-9.a-z]/gi, '');
+    var obj = (p.get('obj') || '1.1').replace(/[^0-9.a-z]/gi, '').toLowerCase();
+    // Canonicalize "1.1a" → "1.1.a"; pass "1.1.a" and "1.1" through unchanged
+    var m = obj.match(/^(\d+\.\d+)([a-z])$/);
+    if (m) obj = m[1] + '.' + m[2];
+    return obj;
+  }
+
+  function isLeaf(obj)   { return /^\d+\.\d+\.[a-z]$/.test(obj); }
+  function parentOf(obj) { return obj.replace(/\.[a-z]$/, ''); }
+  function leafLetter(obj) { var m = obj.match(/\.([a-z])$/); return m ? m[1] : null; }
+
+  // Slice a single sub-section out of a markdown cheat sheet by leading "## <anchor>" heading.
+  function sliceMarkdownSection(text, anchor) {
+    if (!text || !anchor) return null;
+    var lines = text.split('\n');
+    var startIdx = -1;
+    var anchorTrim = anchor.trim();
+    for (var i = 0; i < lines.length; i++) {
+      var ln = lines[i];
+      if (/^##\s/.test(ln) && ln.replace(/^##\s+/, '').trim().indexOf(anchorTrim) === 0) {
+        startIdx = i; break;
+      }
+    }
+    if (startIdx < 0) return null;
+    var endIdx = lines.length;
+    for (var j = startIdx + 1; j < lines.length; j++) {
+      if (/^##\s/.test(lines[j])) { endIdx = j; break; }
+    }
+    return lines.slice(startIdx, endIdx).join('\n');
   }
 
   function ytEmbed(ytid) {
@@ -26,12 +53,23 @@
   }
 
   // Render a single markdown cheat sheet inline; returns Promise that resolves when done.
-  function renderCheatSheet(file, container) {
+  // If `anchor` provided, slice to that ## sub-section only (leaf mode).
+  function renderCheatSheet(file, container, anchor) {
     return fetch('data/cheat-sheets/' + file)
       .then(function (r) { if (!r.ok) throw new Error('not found: ' + file); return r.text(); })
       .then(function (text) {
         // Strip frontmatter
         text = text.replace(/^---\n[\s\S]*?\n---\n+/, '');
+        if (anchor) {
+          var sliced = sliceMarkdownSection(text, anchor);
+          if (sliced) text = sliced;
+          else { // Heading not found — surface a clear note instead of dumping the whole sheet
+            var miss = document.createElement('p');
+            miss.style.color = 'var(--ink-muted)';
+            miss.textContent = '(no sub-section "' + anchor + '" found in ' + file + ' — falling back to full sheet)';
+            container.appendChild(miss);
+          }
+        }
         // Strip wikilinks (vault refs)
         text = text.replace(/\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g, function (_, p1, p2) {
           return p2 || p1.split('/').pop();
@@ -63,18 +101,60 @@
     return '<a href="' + ytEmbed(v.ytid) + '" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:6px;font-family:var(--font-display);font-size:.78rem;color:var(--accent);text-decoration:none;border:1px solid var(--accent);padding:4px 10px;border-radius:99px;margin-right:6px;margin-bottom:6px"><span style="opacity:.6">Day ' + escapeHtml(v.day) + '</span> · ' + escapeHtml(v.title) + ' ▶</a>';
   }
 
-  function populateHeader(obj, sub) {
+  function populateHeader(obj, sub, titleOverride, subtitleOverride) {
     var h1 = document.querySelector('.masthead h1');
     var sub_p = document.querySelector('.masthead .subtitle');
-    if (h1) { h1.textContent = 'Objective ' + obj + ' — ' + (sub.title || ''); h1.style.opacity = ''; }
-    if (sub_p) { sub_p.textContent = 'Study this objective: read the cheat sheet, drill the quiz, do a lab. Pass eval to mark done.'; sub_p.style.opacity = ''; }
-    // Update scope-note
+    var title = titleOverride || (sub && sub.title) || '';
+    if (h1) { h1.textContent = 'Objective ' + obj + ' — ' + title; h1.style.opacity = ''; }
+    if (sub_p) {
+      sub_p.textContent = subtitleOverride || 'Study this objective: read the cheat sheet, drill the quiz, do a lab. Pass eval to mark done.';
+      sub_p.style.opacity = '';
+    }
     var scope = document.querySelector('.scope-note');
     if (scope) scope.textContent = 'scoped to ' + obj + ' only';
     document.title = 'Strat · ' + obj + ' — CCNA Study';
   }
 
-  function populateTranscript(theoryVideos, mapping) {
+  // Parent-with-leaves: replace the cheat-sheet section with a tile grid linking to each leaf,
+  // and hide the quiz / anki / lab sections (parents are index-only when leaves exist).
+  function populateLeafIndex(parentObj, parentSub, leaves) {
+    var sec = document.querySelector('section.flow.done');
+    if (sec) {
+      var heading = sec.querySelector('.section-title');
+      if (heading) heading.textContent = 'Sub-topics';
+      var meta = sec.querySelector('.meta');
+      if (meta) { meta.textContent = leaves.length + ' sub-topic' + (leaves.length !== 1 ? 's' : '') + ' · click into one to study'; meta.style.opacity = ''; }
+      var pull = sec.querySelector('.pull');
+      if (pull) {
+        pull.style.cssText = 'background:transparent;border-left:0;padding:0;font-style:normal;font-family:inherit;color:var(--ink);opacity:1';
+        pull.innerHTML = '';
+        var grid = document.createElement('div');
+        grid.style.cssText = 'display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:var(--s-sm)';
+        leaves.forEach(function (leaf) {
+          var a = document.createElement('a');
+          a.href = 'strat.html?obj=' + encodeURIComponent(leaf.id);
+          a.setAttribute('data-spa-obj', leaf.id);
+          a.style.cssText = 'display:block;padding:var(--s-md);border:1px solid var(--rule);border-radius:var(--radius);text-decoration:none;color:var(--ink);background:var(--bg-recessed);transition:all .2s';
+          a.onmouseover = function () { a.style.borderColor = 'var(--accent)'; a.style.background = 'var(--bg-card,var(--bg-recessed))'; };
+          a.onmouseout  = function () { a.style.borderColor = 'var(--rule)';  a.style.background = 'var(--bg-recessed)'; };
+          a.innerHTML =
+            '<div style="font-family:var(--font-display);font-size:.7rem;text-transform:uppercase;letter-spacing:.08em;color:var(--accent);margin-bottom:6px">' + escapeHtml(leaf.id) + '</div>' +
+            '<div style="font-weight:600;font-size:1rem">' + escapeHtml(leaf.title) + '</div>' +
+            '<div style="margin-top:8px;font-size:.78rem;color:var(--ink-muted)">cheat slice · quiz · sim · lab →</div>';
+          grid.appendChild(a);
+        });
+        pull.appendChild(grid);
+      }
+    }
+    // Hide quiz / anki / lab sections in parent-index mode
+    var allFlow = document.querySelectorAll('section.flow');
+    allFlow.forEach(function (s) {
+      if (s === sec) return;
+      s.style.display = 'none';
+    });
+  }
+
+  function populateTranscript(theoryVideos, mapping, anchor) {
     // Replace ① Transcript section content with stacked cheat sheets
     var sec = document.querySelector('section.flow.done');
     if (!sec) return;
@@ -117,7 +197,7 @@
         pull.appendChild(skip);
         return Promise.resolve();
       }
-      return renderCheatSheet(file, pull);
+      return renderCheatSheet(file, pull, anchor);
     });
 
     return Promise.all(promises).then(function () {
@@ -598,44 +678,96 @@
       fetch('data/cheat-sheets-index.json').then(function (r) { return r.json(); }),
       fetch('data/objective-fallback.json').then(function (r) { return r.ok ? r.json() : {}; }).catch(function () { return {}; }),
       fetch('data/anki-index.json').then(function (r) { return r.ok ? r.json() : {}; }).catch(function () { return {}; }),
-      fetch('data/labs-index.json').then(function (r) { return r.ok ? r.json() : {}; }).catch(function () { return {}; })
+      fetch('data/labs-index.json').then(function (r) { return r.ok ? r.json() : {}; }).catch(function () { return {}; }),
+      fetch('data/blueprint-leaves.json').then(function (r) { return r.ok ? r.json() : { leaves: {} }; }).catch(function () { return { leaves: {} }; })
     ]).then(function (data) { _staticCache = data; return data; });
   }
 
   function run() {
     var obj = getObjective();
+    // Reset visibility — last run may have hidden quiz/lab/anki for parent-index mode
+    document.querySelectorAll('section.flow').forEach(function (s) { s.style.display = ''; });
     loadStatics().then(function (data) {
       var dd = data[0];
       var mapping = data[1];
       var fallback = data[2] || {};
       var ankiByObj = data[3] || {};
       var labsByObj = data[4] || {};
-      var sub = dd.subobjectives && dd.subobjectives[obj];
+      var leavesIndex = (data[5] && data[5].leaves) || {};
+
+      var leaf = isLeaf(obj);
+      var parentId = leaf ? parentOf(obj) : obj;
+      var leafSiblings = leavesIndex[parentId] || [];
+      var leafMeta = leaf ? leafSiblings.find(function (l) { return l.id === obj; }) : null;
+      var sub = dd.subobjectives && dd.subobjectives[parentId];
+
       if (!sub) {
         var pull = document.querySelector('.flow .pull');
-        if (pull) pull.textContent = 'Objective ' + obj + ' not found in deep-dive data.';
+        if (pull) pull.textContent = 'Objective ' + parentId + ' not found in deep-dive data.';
         return;
       }
+
+      // ── PARENT-INDEX MODE: parent obj that has leaves declared → render tile grid
+      if (!leaf && leafSiblings.length) {
+        populateHeader(obj, sub, sub.title, 'This objective has sub-topics — pick one to drill: cheat slice · quiz · sim · lab.');
+        populateLeafIndex(obj, sub, leafSiblings);
+        // Numeric sort across parents only (avoids "1.1 → 1.10" string-sort bug)
+        var parentKeys = Object.keys(dd.subobjectives).sort(function (a, b) {
+          var pa = a.split('.').map(Number), pb = b.split('.').map(Number);
+          return (pa[0] - pb[0]) || (pa[1] - pb[1]);
+        });
+        buildPrevNext(obj, parentKeys);
+        return;
+      }
+
+      // ── LEAF MODE or PARENT-WITHOUT-LEAVES MODE: full drill page
       var theory = (sub.videos || []).filter(function (v) { return v.kind === 'theory'; });
       var labVideos = (sub.videos || []).filter(function (v) { return v.kind === 'lab'; });
-      // Apply fallback if no theory video for this objective
-      if (theory.length === 0 && fallback[obj]) {
-        theory = fallback[obj].map(function (f) { return Object.assign({ kind: 'theory', _fallback: true }, f); });
+      if (theory.length === 0 && fallback[parentId]) {
+        theory = fallback[parentId].map(function (f) { return Object.assign({ kind: 'theory', _fallback: true }, f); });
       }
-      populateHeader(obj, sub);
-      populateLabsFromIndex(labsByObj[obj] || [], labVideos);
-      populateAnki(ankiByObj[obj] || [], obj);
-      // Init mermaid before rendering
+
+      if (leaf && leafMeta) {
+        populateHeader(obj, sub, leafMeta.title, 'Leaf-level drill · cheat slice for ' + obj + ' + quiz scoped to this sub-topic + inherited sim/lab/anki from ' + parentId + '.');
+      } else {
+        populateHeader(obj, sub);
+      }
+
+      // Inherit lab/anki from parent in leaf mode
+      populateLabsFromIndex(labsByObj[parentId] || [], labVideos);
+      populateAnki(ankiByObj[parentId] || [], parentId);
+
       if (window.mermaid) {
         window.mermaid.initialize({ startOnLoad: false, theme: 'default', securityLevel: 'loose', flowchart: { useMaxWidth: true, htmlLabels: true } });
       }
-      populateTranscript(theory, mapping).then(function () {
-        var allKeys = Object.keys(dd.subobjectives).sort();
+
+      var anchor = leaf && leafMeta ? leafMeta.cheat_anchor : null;
+      populateTranscript(theory, mapping, anchor).then(function () {
+        // Sync quiz scope to leaf id so strat-quiz prompts use the leaf, not the parent
+        if (leaf && window.stratState && window.stratState.setCurrentObj) {
+          try { window.stratState.setCurrentObj(obj); } catch (_) {}
+        }
+        var allKeys = buildOrderedKeys(dd.subobjectives, leavesIndex);
         buildPrevNext(obj, allKeys);
       });
     }).catch(function (err) {
       console.error('strat-content', err);
     });
+  }
+
+  // Build the prev/next walk order: each parent expanded into its leaves (if any), else the parent itself.
+  function buildOrderedKeys(subobjectives, leavesIndex) {
+    var parents = Object.keys(subobjectives || {}).sort(function (a, b) {
+      var pa = a.split('.').map(Number), pb = b.split('.').map(Number);
+      return (pa[0] - pb[0]) || (pa[1] - pb[1]);
+    });
+    var out = [];
+    parents.forEach(function (p) {
+      var ls = leavesIndex[p] || [];
+      if (ls.length) ls.forEach(function (l) { out.push(l.id); });
+      else out.push(p);
+    });
+    return out;
   }
 
   // strat.js skips paintTranscriptSection — strat-content owns .pull, no race.
