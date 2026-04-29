@@ -52,7 +52,7 @@
   style.textContent = [
 
     /* ── Gear button ───────────────────────────────────────────── */
-    '#stGear{position:fixed;bottom:80px;right:20px;z-index:950;width:44px;height:44px;border-radius:50%;background:var(--bg-surface);border:1px solid var(--border);cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 12px rgba(0,0,0,.08);transition:transform .35s cubic-bezier(.16,1,.3,1),box-shadow .3s}',
+    '#stGear{position:fixed;bottom:16px;right:16px;z-index:950;width:44px;height:44px;border-radius:50%;background:var(--bg-surface);border:1px solid var(--border);cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 12px rgba(0,0,0,.08);transition:transform .35s cubic-bezier(.16,1,.3,1),box-shadow .3s}',
     '#stGear:hover{transform:rotate(45deg);box-shadow:0 4px 20px rgba(0,0,0,.12)}',
     '#stGear svg{width:20px;height:20px;fill:var(--ink-secondary);transition:fill .2s}',
     '#stGear:hover svg{fill:var(--ink)}',
