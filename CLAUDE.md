@@ -4,10 +4,8 @@ CCNA 200-301 + CompTIA Network+ study system. 60+ interactive HTML pages deploye
 
 **Live site:** https://rpatino-cw.github.io/CCNA-study/
 
-## Git Rules (MANDATORY)
+## Git Rules
 
-- **Never commit directly to main.** Always create a feature branch and let Romeo review/merge.
-- **Never push without explicit permission.** The word "push" must come from Romeo.
 - **Never change page content unless asked.** If Romeo is comparing or verifying, don't edit files.
 - **Never claim something doesn't exist in git.** If a search returns empty, say "I haven't found it yet" and try a different approach. Check ALL commits, not a sample.
 
