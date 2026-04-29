@@ -137,10 +137,19 @@
         '<div id="sync-status" style="margin-top:10px;font-size:.72rem;color:var(--ink-muted,#888);text-align:center"></div>' +
       '</div>';
     document.body.appendChild(panel);
-    // Stack above group badge if it already rendered
+    // Stack above group-badge (which itself stacks above .beta-badge).
+    // Read the group-badge's actual `bottom` rather than assuming 14px,
+    // otherwise sync-panel ends up underneath the group widget.
     requestAnimationFrame(function(){
       var g=document.getElementById('group-mini-badge');
-      if(g){panel.style.bottom=(14+g.offsetHeight+8)+'px';}
+      if(g){
+        var gBot=parseInt(g.style.bottom,10);
+        if(isNaN(gBot)){
+          var r=g.getBoundingClientRect();
+          gBot=Math.max(0, window.innerHeight - r.bottom);
+        }
+        panel.style.bottom=(gBot+g.offsetHeight+8)+'px';
+      }
     });
 
     var btn = document.getElementById('sync-btn');
