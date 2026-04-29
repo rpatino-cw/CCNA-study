@@ -1222,30 +1222,28 @@ window.render=function(){
       }
     }catch(e){}
 
-    var banner='<div class="mastery-banner"><span class="mb-tag">Mastery Mode</span>'+
-      '<span class="mb-body"><strong>Gate progression active</strong> — Probe → Check → Challenge → Lab → Mastered. '+
-      masteredCount+' mastered · '+probedCount+' in progress'+
+    var banner='<div class="mastery-banner"><span class="mb-tag">Romeo\'s Strategy</span>'+
+      '<span class="mb-body">Master each objective through gates: <strong>Probe</strong> → <strong>Challenge</strong> (80%+ on 2 sessions, 24h apart) → <strong>Lab Check</strong> (80%+) → <strong>Mastered</strong>. Slower than the default day-by-day track, but the score sticks. '+
+      '<strong>'+masteredCount+' mastered · '+probedCount+' in progress</strong>'+
       (dueItems.length>0?' · <strong>'+dueItems.length+' due for recall</strong>':'')+
-      '. <a href="settings.html">Switch back to Default</a>. For per-objective drill see <a href="strat.html?obj=1.1">Romeo\'s Strategy →</a></span></div>';
+      '. <a href="settings.html">Switch back to Default</a></span></div>';
 
-    // Spaced Recall widget — always render in mastery mode so users know it exists
-    var recallBody;
-    if(dueItems.length===0){
-      recallBody='<div class="recall-empty">Nothing due for recall yet. Pass a Challenge and items will start showing up here based on the forgetting curve.</div>';
-    }else{
+    // Spaced Recall widget — only render when items are actually due (no empty state)
+    var recallWidget='';
+    if(dueItems.length>0){
       var MS_DAY=86400000,now=Date.now();
-      recallBody='<div class="recall-list">'+dueItems.slice(0,8).map(function(it){
+      var recallBody='<div class="recall-list">'+dueItems.slice(0,8).map(function(it){
         var daysPast=Math.max(0,Math.floor((now-it.due)/MS_DAY));
         return '<a class="recall-item" href="quiz.html?learn='+it.id+'"><span class="ri-id">'+it.id+'</span>'+
           '<span class="ri-days">'+(daysPast===0?'due today':daysPast+'d overdue')+'</span></a>';
       }).join('')+'</div>';
+      var recallCount=dueItems.length+(dueItems.length===1?' item':' items');
+      recallWidget='<div class="recall-widget">'+
+        '<div class="recall-head"><div class="recall-title">Spaced Recall</div>'+
+        '<div class="recall-count">'+recallCount+'</div></div>'+
+        recallBody+
+      '</div>';
     }
-    var recallCount=dueItems.length?dueItems.length+(dueItems.length===1?' item':' items'):'';
-    var recallWidget='<div class="recall-widget">'+
-      '<div class="recall-head"><div class="recall-title">Spaced Recall</div>'+
-      '<div class="recall-count">'+recallCount+'</div></div>'+
-      recallBody+
-    '</div>';
 
     statusEl.innerHTML=banner+recallWidget+statusEl.innerHTML;
   }
@@ -1324,6 +1322,10 @@ window.render=function(){
       var skipBadge=glossPass?'<span class="skip-badge" title="Passed glossary quiz '+glossPass.pct+'% — you can skip Jeremy\'s videos">✓ SKIP '+glossPass.pct+'%</span>':'';
 
       var stateChip=masteryStateChip(t.id);
+      var masteryMode=(window.LEARNING_MODE==='mastery');
+      var bodyInner = masteryMode
+        ? subs+buildNextStep(t.id,isMastered)+'<div class="res-section">'+siteHtml+resToggle+'</div>'
+        : subs+buildNextStep(t.id,isMastered)+buildJeremyDeepDive(t.id)+buildQuickPath(t,prof)+'<div class="res-section">'+siteHtml+resToggle+'</div>';
       return'<div class="obj-card'+(isMastered?' mastered':'')+'" id="obj-'+t.id+'">'+
         '<div class="obj-head" onclick="toggleObj(\''+t.id+'\')">'+
           '<span class="obj-id">'+t.id+'</span>'+
@@ -1331,13 +1333,7 @@ window.render=function(){
           '<div class="obj-prof"><div class="obj-bar"><div class="obj-fill" style="transform:scaleX('+(p/100)+');background:'+profColor(p/100)+'"></div></div><span class="obj-pct" style="color:'+profColor(p/100)+'">'+p+'%</span></div>'+
         '</div>'+
         '<div class="obj-body" id="objbody-'+t.id+'"><div class="obj-body-inner">'+
-          subs+
-          buildNextStep(t.id, isMastered)+
-          buildJeremyDeepDive(t.id)+
-          buildQuickPath(t,prof)+
-          '<div class="res-section">'+siteHtml+
-            resToggle+
-          '</div>'+
+          bodyInner+
         '</div></div></div>';
     }catch(e){return'<div class="obj-card" style="padding:10px;color:var(--prof-weak);font-size:.78rem">Error rendering '+t.id+': '+e.message+'</div>';}
     }).join('');

@@ -136,12 +136,13 @@ ${transcript}
     let idx = 0;
     let correct = 0;
     let answered = false;
+    const currentObjId = (window.stratState && window.stratState.getCurrentObj && window.stratState.getCurrentObj()) || '1.1';
 
     function paint() {
       const q = questions[idx];
       container.innerHTML = `
         <div class="qmeta">
-          <span>${modeMeta.label} · Q${idx + 1}/${questions.length} · <span class="qscope">● scope: 1.1 only</span></span>
+          <span>${modeMeta.label} · Q${idx + 1}/${questions.length} · <span class="qscope">● scope: ${currentObjId} only</span></span>
           <span class="qpct">${Math.round((idx / questions.length) * 100)}%</span>
         </div>
         <p class="qprompt"></p>

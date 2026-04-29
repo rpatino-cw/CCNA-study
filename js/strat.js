@@ -72,8 +72,20 @@
       try {
         transcript = await fetchText(entry.transcriptFile);
       } catch (e) {
-        renderError(`Could not load transcript: ${entry.transcriptFile}`);
-        return;
+        // Legacy transcript missing — try cheat sheet fallback so Quiz/Eval still load
+        try {
+          const csIdx = await fetchJSON('data/cheat-sheets-index.json');
+          const dd = await fetchJSON('data/jeremy-deep-dive.json');
+          const sub = dd.subobjectives && dd.subobjectives[objId];
+          const days = (sub && sub.videos || []).filter(v => v.kind === 'theory').map(v => v.day);
+          const files = days.map(d => csIdx[d]).filter(Boolean);
+          const texts = await Promise.all(files.map(f => fetchText('data/cheat-sheets/' + f).catch(() => '')));
+          transcript = texts.join('\n\n').replace(/^---\n[\s\S]*?\n---\n+/g, '');
+        } catch (_) { /* keep transcript empty — Gemini will use general CCNA knowledge */ }
+        if (!transcript) {
+          renderError(`No transcript or cheat sheet for ${objId}; quiz will use general CCNA knowledge.`);
+          // continue anyway so hydrate() runs and Quiz/Eval render
+        }
       }
       // Optional notes file (study-note format, preferred over raw transcript)
       let notes = null;
@@ -97,7 +109,7 @@
     paintMasthead(objId, entry);
     paintMastery(objId);
     paintSideRail(objId);
-    paintTranscriptSection(objId, entry, transcript, notes);
+    // paintTranscriptSection skipped — strat-content.js owns .pull (cheat-sheet renderer).
     paintQuizSection(objId, entry, transcript);
     paintLabSection(objId, entry);
     paintEvalSection(objId, entry, transcript);
@@ -561,6 +573,7 @@
     }[c]));
   }
 
+  window.stratBootstrap = bootstrap;
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', bootstrap);
   } else {

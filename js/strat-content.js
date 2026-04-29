@@ -291,23 +291,51 @@
     var prev = idx > 0 ? allKeys[idx - 1] : null;
     var next = idx < allKeys.length - 1 ? allKeys[idx + 1] : null;
     nav.innerHTML =
-      (prev ? '<a href="strat.html?obj=' + prev + '" class="open" style="text-decoration:none">← ' + prev + '</a>' : '<span></span>') +
+      (prev ? '<a href="strat.html?obj=' + prev + '" data-spa-obj="' + prev + '" class="open" style="text-decoration:none">← ' + prev + '</a>' : '<span></span>') +
       '<a href="objectives.html" class="open" style="text-decoration:none;color:var(--ink-muted);border-color:var(--border-strong)">All objectives</a>' +
-      (next ? '<a href="strat.html?obj=' + next + '" class="open" style="text-decoration:none">' + next + ' →</a>' : '<span></span>');
+      (next ? '<a href="strat.html?obj=' + next + '" data-spa-obj="' + next + '" class="open" style="text-decoration:none">' + next + ' →</a>' : '<span></span>');
     var main = document.querySelector('.strat-page main');
     if (main) main.appendChild(nav);
   }
 
+  // ─── SPA nav: intercept prev/next clicks, pushState + re-run ────
+  function spaNavTo(obj) {
+    var url = 'strat.html?obj=' + encodeURIComponent(obj);
+    history.pushState({ obj: obj }, '', url);
+    window.scrollTo(0, 0);
+    if (window.stratState && window.stratState.setCurrentObj) window.stratState.setCurrentObj(obj);
+    if (typeof window.stratBootstrap === 'function') window.stratBootstrap();
+    run();
+  }
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest && e.target.closest('a[data-spa-obj]');
+    if (!a) return;
+    if (e.metaKey || e.ctrlKey || e.shiftKey || e.button === 1) return;
+    e.preventDefault();
+    spaNavTo(a.getAttribute('data-spa-obj'));
+  });
+  window.addEventListener('popstate', function () {
+    if (typeof window.stratBootstrap === 'function') window.stratBootstrap();
+    run();
+  });
+
   // ─── boot ───────────────────────────────────────────────────────
-  function run() {
-    var obj = getObjective();
-    Promise.all([
+  // Static JSON indexes — fetched once, reused for every objective switch.
+  var _staticCache = null;
+  function loadStatics() {
+    if (_staticCache) return Promise.resolve(_staticCache);
+    return Promise.all([
       fetch('data/jeremy-deep-dive.json').then(function (r) { return r.json(); }),
       fetch('data/cheat-sheets-index.json').then(function (r) { return r.json(); }),
       fetch('data/objective-fallback.json').then(function (r) { return r.ok ? r.json() : {}; }).catch(function () { return {}; }),
       fetch('data/anki-index.json').then(function (r) { return r.ok ? r.json() : {}; }).catch(function () { return {}; }),
       fetch('data/labs-index.json').then(function (r) { return r.ok ? r.json() : {}; }).catch(function () { return {}; })
-    ]).then(function (data) {
+    ]).then(function (data) { _staticCache = data; return data; });
+  }
+
+  function run() {
+    var obj = getObjective();
+    loadStatics().then(function (data) {
       var dd = data[0];
       var mapping = data[1];
       var fallback = data[2] || {};
@@ -341,12 +369,10 @@
     });
   }
 
-  // Delay run() so we win against strat.js's legacy transcript loader for 1.1
-  // (strat.js fetches data/transcript-objective-map.json and writes to .pull async).
-  // We wait for window.load + 1.2s to guarantee we land last.
-  if (document.readyState === 'complete') {
-    setTimeout(run, 1200);
+  // strat.js skips paintTranscriptSection — strat-content owns .pull, no race.
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', run);
   } else {
-    window.addEventListener('load', function () { setTimeout(run, 1200); });
+    run();
   }
 })();
