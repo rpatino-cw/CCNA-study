@@ -5,6 +5,7 @@
   var memberId=localStorage.getItem('ccna_peer_id');
   var myName=localStorage.getItem('ccna_peer_name')||'You';
   if(!code||!memberId)return;
+  if(localStorage.getItem('ccna_peer_chat_hidden')==='1')return;
 
   var COLORS=['#B45309','#0369A1','#7C3AED','#059669','#DB2777','#D97706','#4338CA','#DC2626','#0D9488','#9333EA'];
   var isOpen=false, pollTimer=null, lastMessages=0;
@@ -31,6 +32,8 @@
     .gc-toast.show{opacity:1;transform:translateY(0)}
     .gc-toggle{width:32px;height:32px;border-radius:50%;border:1px solid #E2DFD9;background:#1C1917;color:#FAF7F2;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:14px;margin-top:4px;transition:transform .15s}
     .gc-toggle:hover{transform:scale(1.1)}
+    .gc-hide{width:18px;height:18px;border-radius:50%;border:1px solid #E2DFD9;background:transparent;color:#A8A29E;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:11px;line-height:1;margin-top:2px;padding:0;transition:color .15s}
+    .gc-hide:hover{color:#1C1917}
     .gc-panel{position:fixed;right:80px;top:50%;transform:translateY(-50%);z-index:8999;width:300px;max-height:420px;border-radius:12px;background:rgba(250,247,242,.95);border:1px solid #E2DFD9;box-shadow:-4px 4px 24px rgba(0,0,0,.12);backdrop-filter:blur(12px);display:flex;flex-direction:column;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s}
     .gc-panel.open{opacity:1;pointer-events:auto}
     .gc-panel-head{padding:10px 14px;border-bottom:1px solid #E2DFD9;font-family:'Space Grotesk',system-ui,sans-serif;font-size:.78rem;font-weight:700;color:#1C1917;display:flex;justify-content:space-between;align-items:center}
@@ -59,7 +62,7 @@
   var bar=document.createElement('div');
   bar.className='gc-bar';
   bar.id='gcBar';
-  bar.innerHTML='<div class="gc-toggle" id="gcToggle" title="Group Chat">&#9993;</div>';
+  bar.innerHTML='<div class="gc-toggle" id="gcToggle" title="Group Chat">&#9993;</div><button class="gc-hide" id="gcHide" title="Hide group panel (re-enable on Study Group page)">&times;</button>';
   document.body.appendChild(bar);
 
   var panel=document.createElement('div');
@@ -82,6 +85,12 @@
   });
   document.getElementById('gcClose').addEventListener('click',function(){
     isOpen=false;panel.classList.remove('open');stopPoll();
+  });
+  document.getElementById('gcHide').addEventListener('click',function(){
+    if(!confirm('Hide group panel on all pages? Re-enable from the Study Group page.'))return;
+    localStorage.setItem('ccna_peer_chat_hidden','1');
+    stopPoll();
+    bar.remove();panel.remove();
   });
 
   // ── DM helpers ───────────────────────────────────────────────
