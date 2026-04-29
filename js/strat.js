@@ -88,10 +88,9 @@
   }
 
   function renderError(msg) {
-    const banner = document.createElement('div');
-    banner.className = 'strat-error';
-    banner.textContent = msg;
-    document.body.insertBefore(banner, document.body.firstChild);
+    // Silent: strat-content.js owns the cheat sheet section now.
+    // Missing legacy transcripts are no longer a user-facing problem.
+    console.warn('[strat.js legacy]', msg);
   }
 
   function hydrate(objId, entry, transcript, notes) {
