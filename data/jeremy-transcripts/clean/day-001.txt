@@ -1,82 +1,273 @@
-Network Devices — Day 1 study notes
-====================================
+Network Devices — Day 1 study notes (expanded CCNA 1.1 coverage)
+================================================================
 
-Author-original summary covering the role and function of the five core
-network components a CCNA candidate is expected to recognize on day one:
-client, server, switch, router, and firewall. NOT a transcript of any
-copyrighted source — this is a hand-written, paraphrased reference scoped
-to objective 1.1 of the CCNA 200-301 blueprint.
+Author-original summary covering the full role-and-function blueprint of
+CCNA 200-301 objective 1.1. Hand-written paraphrased reference — NOT a
+transcript of any copyrighted source. Scoped strictly to 1.1: routers,
+L2/L3 switches, NGFW + IPS, access points, controllers (WLC, Cisco DNA
+Center), endpoints, servers, and PoE. Supporting electrical/duplex/domain
+concepts are included where they change how a 1.1 device behaves.
 
 [client-vs-server]
-A network is two or more devices connected together so they can share
-resources. The simplest pair is a client and a server. The client is the
-device that asks for something — a web page, a file, a video stream. The
-server is the device that has the thing and hands it back. Whether a box
-is acting as a client or as a server is decided by the role it plays in
-that single conversation, not by the hardware. Your laptop is a client
-when you load YouTube. The same laptop becomes a server the moment a
-friend on the same Wi-Fi pulls a file off it. The label is about the
-direction of the request, not the make and model.
+A network is two or more devices connected so they can share resources.
+The minimum pair is a client and a server. The client requests; the
+server responds. Whether a box is "a client" or "a server" is decided by
+the direction of the request in that conversation, not by the hardware.
+A laptop is a client when it loads YouTube and a server the moment a
+peer on the same Wi-Fi pulls a file off it. The label is about role, not
+make and model. Servers commonly host web (HTTP), file (SMB/NFS),
+database, mail, time, and authentication services for many clients at
+once. Clients are usually one user at a time.
 
-[switch-lan]
-A switch connects many devices that all live on the same local network.
-You plug PCs, printers, IP phones, and servers into it. Every switch
-port is a separate connection, and inside one network the switch moves
-frames from one port to another so that any device can reach any other
-device. Switches typically have lots of ports — 24 and 48 are common —
-and they are the device you use when the goal is "connect things that
-sit next to each other." A switch knows how to reach every device in its
-own LAN, but it does not, by itself, know how to reach the wider
-internet. That is somebody else's job.
+[endpoint-definition]
+The CCNA blueprint uses the word "endpoint" for any device that is the
+source or final destination of traffic — laptops, desktops, phones, IP
+cameras, IoT sensors, printers. Endpoints are not "in the middle" of the
+network the way switches and routers are; they sit at the edges and
+either ask for something or get asked for something. A server is an
+endpoint that happens to play the responder role. A NIC (Network
+Interface Card) is the piece of hardware on every endpoint that gives
+it physical access to the network — wired (RJ45 copper, fiber) or
+wireless (radio).
 
-[router-internet]
-A router is the device that connects different networks together. The
-home network behind a router is one network. The internet on the other
-side of the router is another. The router sits on the boundary, looks at
-each packet, and decides which network the packet should be forwarded
-into next. Compared to a switch, a router has fewer ports — often just
-two or three — because it is not trying to connect a room full of
-devices, it is trying to connect a network to one or more other
-networks. If a switch's job is "find the right port on this LAN," the
-router's job is "find the right network among many." Without a router,
-your LAN cannot reach anything outside itself.
+[hub-legacy]
+A hub is a Layer 1 repeater. Any electrical signal that arrives on one
+port is regenerated and pushed out every other port — there is no
+addressing, no learning, no filtering. Because every port hears every
+signal, all hub ports share one collision domain, and the hub forces
+half-duplex operation: only one device can transmit at a time, or the
+signals collide. Hubs are obsolete and not deployed today. The CCNA
+mentions hubs only to contrast against switches: a switch is not a hub
+with more lights.
 
-[firewall-security]
-A firewall is the device that decides which traffic is allowed to cross
-a boundary and which traffic is blocked. It looks at the source, the
-destination, and the type of traffic, and it applies a set of rules:
-permit this, deny that. There are two flavors a CCNA candidate should
-recognize. A network firewall is a dedicated piece of hardware that
-guards an entire network, usually placed next to or in front of a
-router. A host firewall is software that runs on a single computer and
-guards just that one machine. The job is the same in both cases —
-separate "traffic we trust" from "traffic we do not" — but the scope is
-different. A firewall is not how you connect devices. It is how you
-control which devices are allowed to talk in the first place.
+[switch-l2]
+A Layer 2 switch is the device that connects many endpoints inside a
+single LAN. It learns each connected device's MAC address by watching
+the source MAC field of incoming frames, building a MAC address table.
+When a frame comes in, the switch looks up the destination MAC and
+forwards the frame out only the port where that MAC lives — unicast
+forwarding. If the destination MAC is unknown, the switch floods the
+frame out every port except the one it came in on (unknown unicast
+flooding). Each switch port is its own collision domain, and full-duplex
+is the norm — both directions can transmit simultaneously, no
+collisions. By default every port on a switch is in the same broadcast
+domain (one LAN). Switches typically have many interfaces — 24 and 48
+ports are common — because their job is to connect a roomful of devices
+to each other.
+
+[switch-l3]
+A Layer 3 switch is a switch that can also do what a router does:
+forward traffic between different IP subnets. It still has many
+interfaces and still does Layer 2 switching inside a LAN, but it adds a
+routing engine so it can move packets between LANs without sending them
+out to a separate router. In a campus design, a Layer 3 switch is often
+the distribution-layer device that handles inter-VLAN forwarding at
+wire speed. The shorthand: "Layer 2 switch = forwards by MAC inside one
+LAN; Layer 3 switch = forwards by MAC inside one LAN AND by IP between
+LANs."
+
+[router-l3]
+A router is the Layer 3 device whose job is to connect different
+networks to each other. It looks at the destination IP address of every
+packet, consults its routing table, and forwards the packet out the
+interface that leads to the next-hop network. Compared to a switch, a
+router typically has few interfaces — often two to a handful — because
+it is not connecting a room of devices, it is connecting a network to
+one or more other networks. Each router interface is on a different IP
+subnet. Routers separate broadcast domains: a broadcast on one LAN does
+not cross a router. Without a router (or a Layer 3 switch), one LAN
+cannot reach another LAN or the internet.
+
+[switch-vs-router]
+The cleanest way to keep them straight on the exam:
+- Switch: many ports, one LAN, forwards by MAC, one broadcast domain by
+  default, separates collision domains.
+- Router: few ports, multiple LANs, forwards by IP, separates broadcast
+  domains, one router interface per subnet.
+- Layer 3 switch: does both. Used inside a campus to avoid bouncing
+  inter-VLAN traffic out to a dedicated router.
+
+[firewall-traditional]
+A firewall is the device that enforces which traffic is allowed to
+cross a boundary. The traditional model is rule-based packet filtering:
+the firewall inspects source IP, destination IP, source port,
+destination port, and protocol, and applies an ordered list of
+permit/deny rules. Stateful firewalls track the state of each
+connection so return traffic for an allowed outbound flow is permitted
+back in automatically without a mirror rule. A network firewall is a
+dedicated appliance that guards an entire network, usually placed at
+the edge next to or behind the internet-facing router. A host-based
+firewall is software running on a single endpoint (Windows Defender
+Firewall, iptables) that guards only that one machine.
+
+[firewall-ngfw]
+A next-generation firewall (NGFW) does everything a traditional
+firewall does and adds deep inspection capabilities. The two features
+to associate with NGFW on the CCNA: (1) application awareness — the
+NGFW can identify and control traffic by application name (Facebook,
+Dropbox, BitTorrent) instead of just by port number, because modern
+apps tunnel inside HTTPS and port-based rules cannot tell them apart;
+(2) integrated IPS — Intrusion Prevention System functionality that
+inspects packet payloads against a database of known attack signatures
+and drops or alerts on matches. NGFWs also commonly add URL filtering,
+TLS decryption, user-identity awareness, and threat-intelligence feeds.
+Cisco's NGFW product family is Firepower (also seen as "Cisco Secure
+Firewall"); the older non-NGFW line is ASA.
+
+[ips-vs-ids]
+An IPS (Intrusion Prevention System) sits inline in the traffic path
+and can drop malicious packets in real time. An IDS (Intrusion
+Detection System) sits out of band — usually on a SPAN port or tap —
+and can only alert, not block. NGFWs include IPS functionality
+inline. The CCNA cares about the difference: IPS = inline + can block,
+IDS = passive + alert only.
+
+[access-point]
+An access point (AP) is the device that gives wireless clients access
+to a wired network. The AP is the bridge between the radio side
+(802.11 frames over the air) and the wired side (Ethernet frames on a
+switch port). One AP serves all the wireless clients in its coverage
+area, and that radio is a shared medium — only one client can transmit
+at a time on the same channel, so wireless is half-duplex by nature.
+APs are powered by Ethernet (PoE) most of the time so the only cable
+running to the ceiling is the data drop.
+
+[ap-autonomous-vs-lightweight]
+There are two AP architectures on the CCNA:
+- Autonomous AP: a fully self-contained device. It holds its own
+  configuration, does its own authentication, and bridges wireless to
+  wired locally. Each AP must be configured and managed individually.
+  Fine for a coffee shop with one AP, painful for a campus with 200.
+- Lightweight AP (LWAP, sometimes "controller-based AP"): the AP is
+  intentionally dumb. It pairs with a Wireless LAN Controller (WLC)
+  using the CAPWAP tunnel protocol and forwards almost everything to
+  the controller for processing. This is called the split-MAC
+  architecture: time-critical real-time functions (transmit/receive,
+  encryption, beacon transmission) stay on the AP; everything else
+  (association, authentication, key management, QoS policy, roaming
+  decisions, RF management) runs on the WLC.
+The lightweight model is what every modern enterprise uses because one
+WLC manages hundreds or thousands of APs from a single pane of glass.
+
+[wlc-controller]
+The Wireless LAN Controller (WLC) is the device that manages a fleet
+of lightweight APs. Configuration, security policy, SSID definitions,
+RF tuning, client association decisions, and roaming all happen on
+the WLC. Each lightweight AP joins the WLC over a CAPWAP tunnel
+(control plane on UDP 5246, data plane on UDP 5247). When a wireless
+client connects, its association is handled by the WLC; when the
+client roams between APs, the WLC keeps the session continuous. The
+WLC is what makes "I walk across the building and Wi-Fi never drops"
+work. WLCs come as physical appliances (Cisco 9800 series), as virtual
+machines, or embedded in a switch or AP itself.
+
+[cisco-dna-center]
+Cisco DNA Center is the campus-network controller in Cisco's intent-
+based networking model. Where a WLC controls just the wireless side,
+Cisco DNA Center controls the entire campus — wired switches, wireless
+APs, WLCs, and routers — from one place. Administrators describe
+intent (which user groups can talk to which resources, which SLAs
+apply, which security policies are required), and DNA Center
+translates intent into device configuration and pushes it out. It also
+collects telemetry from every device and presents network-wide
+analytics, assurance, and troubleshooting. The CCNA mention of
+"controllers" in 1.1 is specifically the WLC and Cisco DNA Center —
+both are devices that centralize control of many other devices.
+
+[poe]
+Power over Ethernet (PoE) lets the same Ethernet cable that carries
+data also carry electrical power, so devices like APs, IP phones, and
+IP cameras can be installed in the ceiling without a dedicated power
+outlet. The device supplying power is the PSE (Power Sourcing
+Equipment) — usually a switch with PoE-capable ports. The device being
+powered is the PD (Powered Device). Standards to know:
+- 802.3af "PoE"  — up to 15.4 W per port from PSE (≈12.95 W at PD).
+- 802.3at "PoE+" — up to 30 W per port from PSE (≈25.5 W at PD).
+- 802.3bt "PoE++" / 4PPoE — up to 60 W (Type 3) or 100 W (Type 4) per
+  port using all four pairs.
+PSE and PD negotiate during link bring-up so the PSE only delivers
+what the PD requests, and the switch tracks total PoE budget across
+all ports — a switch with a 370 W PoE budget cannot fully power 24
+802.3at devices simultaneously even if every port is PoE+ capable.
+"Mode A" sends power on the data pairs (1/2 and 3/6); "Mode B" sends
+it on the spare pairs (4/5 and 7/8). 802.3bt uses both pairs (4PPoE).
+
+[broadcast-vs-collision-domain]
+Two domain concepts that shape the exam answers for 1.1:
+- Collision domain: the set of devices that share the same
+  electrical/RF medium and therefore can collide with each other.
+  Hub = one big collision domain. Switch = each port is its own
+  collision domain. Wireless cell = one collision domain per channel.
+- Broadcast domain: the set of devices that receive a Layer 2
+  broadcast frame. Switch (one VLAN) = one broadcast domain. Router
+  interface = boundary between broadcast domains. Each router or
+  Layer 3 switch interface is its own broadcast domain.
+The shorthand: switches separate collision domains, routers separate
+broadcast domains.
+
+[duplex]
+Half-duplex means a device can transmit OR receive, not both at the
+same time — it must take turns. Full-duplex means transmit AND
+receive simultaneously on separate pairs. Wired switch ports run
+full-duplex by default. Hubs and wireless are inherently half-duplex.
+A duplex mismatch (one side full, the other half) does not break the
+link but causes late collisions and very poor throughput on the
+half-duplex side under load. On the CCNA, duplex mismatch is one of
+the classic interface-issue answers.
+
+[summary-table]
+| Device           | Layer | Forwards by | Ports     | Separates                     |
+| ---------------- | ----- | ----------- | --------- | ----------------------------- |
+| Hub              | 1     | nothing     | many      | nothing (1 collision domain)  |
+| Layer 2 switch   | 2     | MAC         | many      | collision domains             |
+| Layer 3 switch   | 2+3   | MAC and IP  | many      | collision and broadcast       |
+| Router           | 3     | IP          | few       | broadcast domains             |
+| NGFW             | 3-7   | rules + app | few       | trust zones                   |
+| Access point     | 1-2   | radio↔wired | radio+1+  | nothing on its own            |
+| WLC              | 2-7   | manages APs | uplink    | controls many APs centrally   |
 
 [common-traps]
-The exam-style mistakes to avoid:
-- A router does not exist to connect many PCs to each other. That is a
-  switch. Routers connect networks to other networks.
-- A firewall does not connect anything. It filters traffic. If a
-  question asks which device "joins" or "links" devices, the firewall
-  is wrong.
-- A server is the role a device plays, not a category of network gear.
-  Switches, routers, and firewalls are network devices. Servers are
-  endpoints — the same kind of thing as clients.
-- A switch alone cannot get you to the internet. You need a router for
-  that. A switch that ports lights up does not equal "online."
+- A router does NOT connect a room full of PCs to each other. A switch
+  does. Routers connect networks to networks.
+- A firewall does NOT connect devices. It filters. If the question
+  asks which device "joins" or "links" devices, firewall is wrong.
+- A server is a ROLE, not a category of network gear. Servers are
+  endpoints, same as clients.
+- A Layer 2 switch alone does NOT reach the internet. A router or
+  Layer 3 switch is required to leave the LAN.
+- An autonomous AP is configured per-device. A lightweight AP is
+  meaningless without a WLC.
+- IPS = inline + can block. IDS = out-of-band + alert only. Do not
+  swap them.
+- PoE budget is per-switch, not per-port. A 24-port PoE+ switch may
+  not be able to power all 24 ports at full draw.
+- Half-duplex is forced by hubs and by wireless radios. Wired switch
+  ports default to full-duplex.
+- Cisco DNA Center is a controller for the whole campus; the WLC is
+  a controller for wireless APs only. Both are "controllers" on the
+  blueprint.
 
 [quick-recap]
 - Client = the side that requests.
 - Server = the side that responds.
-- Switch = connects many devices inside one local network.
-- Router = connects different networks to each other.
-- Firewall = enforces which traffic is allowed and which is denied.
+- Endpoint = any source/destination of traffic (clients, servers, IoT).
+- Hub = legacy Layer 1 repeater, half-duplex, one collision domain.
+- Layer 2 switch = many ports, one LAN, forwards by MAC, full-duplex.
+- Layer 3 switch = Layer 2 switch with routing.
+- Router = few ports, many LANs, forwards by IP.
+- Traditional firewall = packet/stateful rule filtering.
+- NGFW = traditional + application awareness + integrated IPS.
+- IPS = inline, blocks. IDS = out-of-band, alerts.
+- Autonomous AP = self-contained.
+- Lightweight AP + WLC = split-MAC, CAPWAP, centralized control.
+- Cisco DNA Center = campus-wide intent-based controller.
+- PoE = power and data on one cable, 802.3af/at/bt, PSE supplies, PD
+  consumes, switch tracks total budget.
 
 One-line master summary:
-Client requests, server responds, switch connects locally, router
-connects networks, firewall protects.
+Endpoints generate traffic; hubs are legacy; switches connect a LAN;
+routers connect LANs; NGFWs filter and inspect; APs bridge wireless;
+WLCs and DNA Center centralize control; PoE powers them all.
 
 Source reference: Jeremy's IT Lab Day 1 — Network Devices
 https://www.youtube.com/watch?v=H8W9oMNSuwo
