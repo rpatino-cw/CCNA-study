@@ -49,6 +49,23 @@ Day 1 of Jeremy's IT Lab introduces 5 of these (a/b/c/f/g). The other three (APs
 
 **Cisco product line:** ISR (Integrated Services Router) — ISR 900/2900/4000.
 
+### 🎯 Atomic Drill — 1.1.a (single-fact recall cards)
+
+| ID | Fact |
+|---|---|
+| 1.1.a.1 | Operates at **Layer 3** (network). |
+| 1.1.a.2 | Forwards by **destination IP address**. |
+| 1.1.a.3 | Lookup uses **longest-prefix match** in the routing table. |
+| 1.1.a.4 | Connects **different networks** (LAN↔LAN, LAN↔Internet). |
+| 1.1.a.5 | **Few** interfaces (2 → handful, vs switches' many). |
+| 1.1.a.6 | **Separates broadcast domains** — one per interface. |
+| 1.1.a.7 | Routing table source codes: **C** (connected), **L** (local), **S** (static), **O** (OSPF), **D** (EIGRP), **B** (BGP), **i** (IS-IS). |
+| 1.1.a.8 | Cisco product line: **ISR** (Integrated Services Router) — 900/2900/4000. |
+
+**Drill rule:** if you can't recall a fact in <3 sec, mark it. Re-drill against the table above + Day 1 video.
+
+**r/ccna gotcha:** reading `show ip route` is a recurring exam stem. Drill letter codes until reflex.
+
 ---
 
 ## 1.1.b — Layer 2 and Layer 3 Switches

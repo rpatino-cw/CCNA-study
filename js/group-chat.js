@@ -218,12 +218,19 @@
         '<div class="gc-name" style="color:'+(isOnline?'#1C1917':'#A8A29E')+'">'+escHtml(m.name||'?')+'</div></div>';
     });
     var toggle=document.getElementById('gcToggle').outerHTML;
-    bar.innerHTML=dotsHtml+toggle;
+    var hideBtn='<button class="gc-hide" id="gcHide" title="Hide group panel (re-enable on Study Group page)">&times;</button>';
+    bar.innerHTML=dotsHtml+toggle+hideBtn;
     // Re-attach toggle listener
     document.getElementById('gcToggle').addEventListener('click',function(){
       isOpen=!isOpen;dmTarget=null;updatePanelHeader();
       panel.classList.toggle('open',isOpen);
       if(isOpen){fetchGroup();startPoll();}else{stopPoll();}
+    });
+    document.getElementById('gcHide').addEventListener('click',function(){
+      if(!confirm('Hide group panel on all pages? Re-enable from the Study Group page.'))return;
+      localStorage.setItem('ccna_peer_chat_hidden','1');
+      stopPoll();
+      bar.remove();panel.remove();
     });
     // Attach DM click handlers to member dots
     bar.querySelectorAll('.gc-dot[data-dm-id]').forEach(function(dot){
