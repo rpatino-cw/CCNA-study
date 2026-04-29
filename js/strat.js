@@ -63,7 +63,12 @@
     Promise.all([
       fetchJSON('data/transcript-objective-map.json'),
     ]).then(async ([map]) => {
-      const entry = map.objectives && map.objectives[objId];
+      const objs = map.objectives || {};
+      // Leaf fallback: 1.1.a → 1.1. Leaf manifest declares leaves but
+      // transcript-objective-map only keys parents — inherit parent entry
+      // so hydrate() (and quiz pills) still run on leaf URLs.
+      const parentId = /^\d+\.\d+\.[a-z]$/.test(objId) ? objId.replace(/\.[a-z]$/, '') : null;
+      const entry = objs[objId] || (parentId && objs[parentId]) || null;
       if (!entry) {
         renderError(`No transcript-objective-map entry for objective ${objId}.`);
         return;
