@@ -264,9 +264,10 @@
     modal.querySelector('.cv-prev').addEventListener('click', function () { changeCard(-1); });
     modal.querySelector('.cv-next').addEventListener('click', function () { changeCard(1); });
     modal.querySelector('.cv-shuffle').addEventListener('click', shuffleCards);
-    modal.querySelectorAll('.cv-r').forEach(function (b) {
-      b.addEventListener('click', function () { changeCard(1); });
-    });
+    modal.querySelector('.r-again').addEventListener('click', function () { rateCard(0); });
+    modal.querySelector('.r-hard').addEventListener('click', function () { rateCard(1); });
+    modal.querySelector('.r-good').addEventListener('click', function () { rateCard(2); });
+    modal.querySelector('.r-easy').addEventListener('click', function () { rateCard(3); });
     document.addEventListener('keydown', function (e) {
       if (!viewerState || !modal.classList.contains('open')) return;
       if (e.key === 'Escape') closeCardViewer();
@@ -275,6 +276,65 @@
       else if (e.key === 'ArrowLeft') changeCard(-1);
     });
     return modal;
+  }
+
+  // ─── Spaced-repetition state (SM-2 lite, localStorage) ─────────
+  var DAY_MS = 86400000;
+
+  function srKey(slug) { return 'ccna_anki_sr_' + slug; }
+
+  function loadSRState(slug) {
+    try { return JSON.parse(localStorage.getItem(srKey(slug)) || '{}'); }
+    catch (_) { return {}; }
+  }
+
+  function saveSRState(slug, state) {
+    try { localStorage.setItem(srKey(slug), JSON.stringify(state)); } catch (_) {}
+  }
+
+  function nextSchedule(s, rating) {
+    s = s || {};
+    s.reps = s.reps || 0;
+    s.ease = s.ease || 2.5;
+    s.interval = s.interval || 0;
+    s.lapses = s.lapses || 0;
+    if (rating === 0) {
+      s.lapses += 1; s.reps = 0;
+      s.ease = Math.max(1.3, s.ease - 0.2);
+      s.interval = 1;
+    } else if (rating === 1) {
+      s.reps += 1;
+      s.ease = Math.max(1.3, s.ease - 0.15);
+      s.interval = Math.max(1, Math.round(s.interval * 1.2));
+    } else if (rating === 2) {
+      s.reps += 1;
+      if (s.reps === 1) s.interval = 1;
+      else if (s.reps === 2) s.interval = 6;
+      else s.interval = Math.round(s.interval * s.ease);
+    } else {
+      s.reps += 1;
+      s.ease = Math.min(3.0, s.ease + 0.15);
+      if (s.reps === 1) s.interval = 4;
+      else s.interval = Math.round(s.interval * s.ease * 1.3);
+    }
+    s.due = Date.now() + s.interval * DAY_MS;
+    s.lastReview = Date.now();
+    return s;
+  }
+
+  function buildQueue(cards, sr, mode) {
+    // mode: 'due' (default) | 'all' | 'new'
+    var now = Date.now();
+    var queue = [];
+    cards.forEach(function (c, i) {
+      var s = sr[i];
+      var isNew = !s || !s.reps;
+      var isDue = s && s.due && s.due <= now;
+      if (mode === 'all') queue.push(i);
+      else if (mode === 'new' && isNew) queue.push(i);
+      else if (isNew || isDue) queue.push(i);
+    });
+    return queue;
   }
 
   function openCardViewer(slug, title) {
@@ -287,12 +347,47 @@
     fetch('data/anki-cards/' + encodeURIComponent(slug) + '.json')
       .then(function (r) { return r.json(); })
       .then(function (data) {
-        viewerState = { cards: data.cards, idx: 0, flipped: false, slug: slug };
-        renderCard();
+        var sr = loadSRState(slug);
+        var queue = buildQueue(data.cards, sr, 'due');
+        viewerState = {
+          cards: data.cards, sr: sr, slug: slug,
+          queue: queue, qIdx: 0, flipped: false,
+          studiedThisSession: 0
+        };
+        if (queue.length === 0) {
+          showAllCaughtUp();
+        } else {
+          renderCard();
+        }
       })
       .catch(function (e) {
         modal.querySelector('.cv-front').textContent = 'Failed to load deck: ' + e.message;
       });
+  }
+
+  function showAllCaughtUp() {
+    var modal = document.getElementById('card-viewer-modal');
+    var s = viewerState;
+    var totalCards = s.cards.length;
+    var studied = Object.keys(s.sr).length;
+    modal.querySelector('.cv-front').innerHTML =
+      '<div style="text-align:center">' +
+      '<div style="font-size:2.4rem;margin-bottom:8px">✓</div>' +
+      '<div style="font-family:var(--font-display);font-weight:700;font-size:1.1rem;margin-bottom:6px">All caught up</div>' +
+      '<div style="color:var(--ink-muted);margin-bottom:14px">No cards due for review right now. ' + studied + '/' + totalCards + ' cards scheduled.</div>' +
+      '<button id="cv-study-all" style="font-family:var(--font-display);font-weight:600;padding:8px 18px;background:var(--accent);color:#fff;border:0;border-radius:99px;cursor:pointer">Review all cards anyway →</button>' +
+      '</div>';
+    modal.querySelector('.cv-back').innerHTML = '';
+    modal.querySelector('.cv-flip').style.display = 'none';
+    modal.querySelector('.cv-rate').style.display = 'none';
+    modal.querySelector('.cv-progress').textContent = studied + ' studied · ' + totalCards + ' total';
+    var btn = document.getElementById('cv-study-all');
+    if (btn) btn.addEventListener('click', function () {
+      viewerState.queue = viewerState.cards.map(function (_, i) { return i; });
+      viewerState.qIdx = 0;
+      viewerState.mode = 'all';
+      renderCard();
+    });
   }
 
   function closeCardViewer() {
@@ -305,7 +400,27 @@
   function renderCard() {
     if (!viewerState) return;
     var modal = document.getElementById('card-viewer-modal');
-    var c = viewerState.cards[viewerState.idx];
+    if (!viewerState.queue || viewerState.queue.length === 0) {
+      showAllCaughtUp();
+      return;
+    }
+    if (viewerState.qIdx >= viewerState.queue.length) {
+      // Session done
+      var modal2 = document.getElementById('card-viewer-modal');
+      modal2.querySelector('.cv-front').innerHTML =
+        '<div style="text-align:center">' +
+        '<div style="font-size:2.4rem;margin-bottom:8px">🎯</div>' +
+        '<div style="font-family:var(--font-display);font-weight:700;font-size:1.1rem;margin-bottom:6px">Session complete</div>' +
+        '<div style="color:var(--ink-muted)">' + viewerState.studiedThisSession + ' cards reviewed.</div>' +
+        '</div>';
+      modal2.querySelector('.cv-back').innerHTML = '';
+      modal2.querySelector('.cv-flip').style.display = 'none';
+      modal2.querySelector('.cv-rate').style.display = 'none';
+      modal2.querySelector('.cv-progress').textContent = 'done';
+      return;
+    }
+    var cardIdx = viewerState.queue[viewerState.qIdx];
+    var c = viewerState.cards[cardIdx];
     if (!c) { modal.querySelector('.cv-front').textContent = 'No cards.'; return; }
     modal.querySelector('.cv-front').innerHTML = c.front || '<em>(no front)</em>';
     modal.querySelector('.cv-back').innerHTML = c.back || '<em>(no back)</em>';
@@ -314,7 +429,25 @@
     modal.querySelector('.cv-back').style.display = 'none';
     modal.querySelector('.cv-flip').style.display = '';
     modal.querySelector('.cv-rate').style.display = 'none';
-    modal.querySelector('.cv-progress').textContent = (viewerState.idx + 1) + ' / ' + viewerState.cards.length;
+    var s = viewerState.sr[cardIdx];
+    var stats = s && s.reps ? ' · ' + s.reps + ' reps · ease ' + (s.ease || 2.5).toFixed(1) : ' · new';
+    modal.querySelector('.cv-progress').textContent = (viewerState.qIdx + 1) + ' / ' + viewerState.queue.length + stats;
+  }
+
+  function rateCard(rating) {
+    if (!viewerState || !viewerState.flipped) return;
+    var cardIdx = viewerState.queue[viewerState.qIdx];
+    var s = viewerState.sr[cardIdx] || {};
+    s = nextSchedule(s, rating);
+    viewerState.sr[cardIdx] = s;
+    saveSRState(viewerState.slug, viewerState.sr);
+    viewerState.studiedThisSession += 1;
+    // If "Again", re-queue this card at end of queue (within session)
+    if (rating === 0) {
+      viewerState.queue.push(cardIdx);
+    }
+    viewerState.qIdx += 1;
+    renderCard();
   }
 
   function flipCard() {
@@ -328,20 +461,20 @@
   }
 
   function changeCard(delta) {
-    if (!viewerState) return;
-    viewerState.idx = (viewerState.idx + delta + viewerState.cards.length) % viewerState.cards.length;
+    if (!viewerState || !viewerState.queue) return;
+    viewerState.qIdx = Math.max(0, Math.min(viewerState.queue.length - 1, viewerState.qIdx + delta));
     renderCard();
   }
 
   function shuffleCards() {
-    if (!viewerState) return;
-    for (var i = viewerState.cards.length - 1; i > 0; i--) {
+    if (!viewerState || !viewerState.queue) return;
+    for (var i = viewerState.queue.length - 1; i > 0; i--) {
       var j = Math.floor(Math.random() * (i + 1));
-      var tmp = viewerState.cards[i];
-      viewerState.cards[i] = viewerState.cards[j];
-      viewerState.cards[j] = tmp;
+      var tmp = viewerState.queue[i];
+      viewerState.queue[i] = viewerState.queue[j];
+      viewerState.queue[j] = tmp;
     }
-    viewerState.idx = 0;
+    viewerState.qIdx = 0;
     renderCard();
   }
 
