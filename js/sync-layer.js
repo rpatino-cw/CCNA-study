@@ -137,10 +137,17 @@
         '<div id="sync-status" style="margin-top:10px;font-size:.72rem;color:var(--ink-muted,#888);text-align:center"></div>' +
       '</div>';
     document.body.appendChild(panel);
-    // Stack above group-badge (which itself stacks above .beta-badge).
-    // Read the group-badge's actual `bottom` rather than assuming 14px,
-    // otherwise sync-panel ends up underneath the group widget.
-    requestAnimationFrame(function(){
+    // Stack flush above .beta-badge (version icon). If group-mini-badge
+    // is also present, stack above it instead.
+    function reposition(){
+      var beta=document.querySelector('.beta-badge');
+      var betaH=beta?beta.offsetHeight:0;
+      var betaBottom=14;
+      if(beta){
+        var bb=parseInt(getComputedStyle(beta).bottom,10);
+        if(!isNaN(bb)) betaBottom=bb;
+      }
+      var anchorTop=betaBottom+betaH+8;
       var g=document.getElementById('group-mini-badge');
       if(g){
         var gBot=parseInt(g.style.bottom,10);
@@ -148,9 +155,13 @@
           var r=g.getBoundingClientRect();
           gBot=Math.max(0, window.innerHeight - r.bottom);
         }
-        panel.style.bottom=(gBot+g.offsetHeight+8)+'px';
+        anchorTop=gBot+g.offsetHeight+8;
       }
-    });
+      panel.style.bottom=anchorTop+'px';
+    }
+    requestAnimationFrame(reposition);
+    // Re-anchor if the group widget appears later (sync.js renders async).
+    setTimeout(reposition, 1500);
 
     var btn = document.getElementById('sync-btn');
     var popup = document.getElementById('sync-popup');
