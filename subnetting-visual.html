@@ -226,6 +226,51 @@
   .extended-btn:hover { border-color: var(--ink); background: var(--ink); color: var(--bg); }
   .extended-content { display: none; }
   .extended-content.open { display: block; }
+
+  /* ── Seven-Second table interactivity ───────────────────── */
+  .subnet-row { cursor: pointer; transition: background 0.15s; }
+  .subnet-row:hover { background: rgba(22,163,74,0.10) !important; }
+  .subnet-row.linked { box-shadow: inset 4px 0 0 var(--accent); }
+  .subnet-tooltip { position: fixed; z-index: 1000; background: #0F172A; color: #FFF; padding: 14px 16px; border-radius: 8px; font-family: var(--font-mono); font-size: 0.78rem; line-height: 1.7; box-shadow: 0 12px 32px rgba(0,0,0,0.30); pointer-events: none; max-width: 360px; opacity: 0; transform: translateY(4px); transition: opacity 0.15s, transform 0.15s; }
+  .subnet-tooltip.visible { opacity: 1; transform: translateY(0); }
+  .subnet-tooltip strong { color: #4ADE80; font-weight: 700; }
+  .subnet-tooltip .tt-binary { letter-spacing: 0.04em; word-break: break-all; color: #FCD34D; }
+
+  /* ── Halving grid ───────────────────────────────────────── */
+  .halving-grid { display: grid; grid-template-columns: repeat(16, 1fr); gap: 1px; max-width: 480px; margin: 0 auto; aspect-ratio: 1; padding: 4px; background: var(--border); border-radius: 6px; }
+  .halving-cell { background: var(--bg-recessed); transition: background 0.45s var(--ease-out); border-radius: 1px; }
+  .halving-controls { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; margin-bottom: 16px; }
+  .halving-pill { font-family: var(--font-mono); font-size: 0.74rem; padding: 6px 14px; border-radius: 14px; border: 1px solid var(--border); background: var(--bg-surface); color: var(--ink-muted); cursor: pointer; transition: all 0.15s; }
+  .halving-pill:hover { border-color: var(--accent); color: var(--accent); }
+  .halving-pill.active { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+  .halving-stats { display: flex; gap: 24px; justify-content: center; margin-top: 18px; font-family: var(--font-mono); font-size: 0.85rem; flex-wrap: wrap; color: var(--ink-secondary); }
+  .halving-stats .stat-num { color: var(--accent); font-weight: 700; font-size: 1.05rem; margin-left: 4px; }
+
+  /* ── Bit-borrowing slider ───────────────────────────────── */
+  .bbslider-wrap { padding: 8px 4px; }
+  .bb-cidr-display { text-align: center; font-family: var(--font-mono); font-size: 1.7rem; font-weight: 700; color: var(--accent); margin: 4px 0 12px; }
+  .bb-bits { display: flex; gap: 0; max-width: 100%; margin: 0 auto 4px; justify-content: center; }
+  .bb-octet { display: grid; grid-template-columns: repeat(8, 1fr); gap: 2px; flex: 1; }
+  .bb-octet + .bb-octet { margin-left: 8px; }
+  .bb-bit { aspect-ratio: 1; background: #FEE2E2; border-radius: 2px; transition: background 0.18s; }
+  .bb-bit.on { background: #2563EB; }
+  .bb-octet-labels { display: flex; gap: 0; font-family: var(--font-mono); font-size: 0.62rem; color: var(--ink-muted); margin-bottom: 10px; }
+  .bb-octet-labels span { flex: 1; text-align: center; }
+  .bb-octet-labels span + span { margin-left: 8px; }
+  .bb-slider { width: 100%; margin: 8px 0 6px; accent-color: var(--accent); }
+  .bb-ticks { display: flex; justify-content: space-between; font-family: var(--font-mono); font-size: 0.6rem; color: var(--ink-muted); margin-bottom: 14px; }
+  .bb-readout { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 12px; }
+  .bb-stat { background: var(--bg-recessed); padding: 10px 12px; border-radius: 6px; text-align: center; }
+  .bb-stat-label { font-family: var(--font-display); font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-muted); margin-bottom: 4px; }
+  .bb-stat-value { font-family: var(--font-mono); font-size: 1.05rem; font-weight: 700; color: var(--ink); transition: color 0.2s; }
+
+  @media (min-width: 700px) {
+    .bb-readout { grid-template-columns: repeat(4, 1fr); }
+  }
+  @media (max-width: 600px) {
+    .halving-grid { max-width: 320px; }
+    .subnet-tooltip { font-size: 0.72rem; padding: 12px 14px; max-width: 280px; }
+  }
 </style>
 </head>
 <body>
@@ -263,8 +308,8 @@
               <th style="padding:10px 8px;font-family:var(--font-display);font-size:.78rem;font-weight:700;letter-spacing:.04em">Addresses</th>
             </tr>
           </thead>
-          <tbody>
-            <tr style="background:rgba(22,163,74,.04)">
+          <tbody id="seven-second-tbody">
+            <tr class="subnet-row" data-cidrs="1,9,17,25" data-mask="128" data-nets="2" data-addrs="128" style="background:rgba(22,163,74,.04)">
               <td style="padding:10px 8px;font-weight:700;color:var(--accent)">/1</td>
               <td style="padding:10px 8px;font-weight:700;color:var(--accent)">/9</td>
               <td style="padding:10px 8px;font-weight:700;color:var(--accent)">/17</td>
@@ -273,7 +318,7 @@
               <td style="padding:10px 8px;font-weight:700">2</td>
               <td style="padding:10px 8px;font-weight:700">128</td>
             </tr>
-            <tr>
+            <tr class="subnet-row" data-cidrs="2,10,18,26" data-mask="192" data-nets="4" data-addrs="64">
               <td style="padding:10px 8px;font-weight:700;color:var(--accent)">/2</td>
               <td style="padding:10px 8px;font-weight:700;color:var(--accent)">/10</td>
               <td style="padding:10px 8px;font-weight:700;color:var(--accent)">/18</td>
@@ -282,7 +327,7 @@
               <td style="padding:10px 8px;font-weight:700">4</td>
               <td style="padding:10px 8px;font-weight:700">64</td>
             </tr>
-            <tr style="background:rgba(22,163,74,.04)">
+            <tr class="subnet-row" data-cidrs="3,11,19,27" data-mask="224" data-nets="8" data-addrs="32" style="background:rgba(22,163,74,.04)">
               <td style="padding:10px 8px;font-weight:700;color:var(--accent)">/3</td>
               <td style="padding:10px 8px;font-weight:700;color:var(--accent)">/11</td>
               <td style="padding:10px 8px;font-weight:700;color:var(--accent)">/19</td>
@@ -291,7 +336,7 @@
               <td style="padding:10px 8px;font-weight:700">8</td>
               <td style="padding:10px 8px;font-weight:700">32</td>
             </tr>
-            <tr>
+            <tr class="subnet-row" data-cidrs="4,12,20,28" data-mask="240" data-nets="16" data-addrs="16">
               <td style="padding:10px 8px;font-weight:700;color:var(--accent)">/4</td>
               <td style="padding:10px 8px;font-weight:700;color:var(--accent)">/12</td>
               <td style="padding:10px 8px;font-weight:700;color:var(--accent)">/20</td>
@@ -300,7 +345,7 @@
               <td style="padding:10px 8px;font-weight:700">16</td>
               <td style="padding:10px 8px;font-weight:700">16</td>
             </tr>
-            <tr style="background:rgba(22,163,74,.04)">
+            <tr class="subnet-row" data-cidrs="5,13,21,29" data-mask="248" data-nets="32" data-addrs="8" style="background:rgba(22,163,74,.04)">
               <td style="padding:10px 8px;font-weight:700;color:var(--accent)">/5</td>
               <td style="padding:10px 8px;font-weight:700;color:var(--accent)">/13</td>
               <td style="padding:10px 8px;font-weight:700;color:var(--accent)">/21</td>
@@ -309,7 +354,7 @@
               <td style="padding:10px 8px;font-weight:700">32</td>
               <td style="padding:10px 8px;font-weight:700">8</td>
             </tr>
-            <tr>
+            <tr class="subnet-row" data-cidrs="6,14,22,30" data-mask="252" data-nets="64" data-addrs="4">
               <td style="padding:10px 8px;font-weight:700;color:var(--accent)">/6</td>
               <td style="padding:10px 8px;font-weight:700;color:var(--accent)">/14</td>
               <td style="padding:10px 8px;font-weight:700;color:var(--accent)">/22</td>
@@ -318,7 +363,7 @@
               <td style="padding:10px 8px;font-weight:700">64</td>
               <td style="padding:10px 8px;font-weight:700">4</td>
             </tr>
-            <tr style="background:rgba(22,163,74,.04)">
+            <tr class="subnet-row" data-cidrs="7,15,23,31" data-mask="254" data-nets="128" data-addrs="2" style="background:rgba(22,163,74,.04)">
               <td style="padding:10px 8px;font-weight:700;color:var(--accent)">/7</td>
               <td style="padding:10px 8px;font-weight:700;color:var(--accent)">/15</td>
               <td style="padding:10px 8px;font-weight:700;color:var(--accent)">/23</td>
@@ -327,7 +372,7 @@
               <td style="padding:10px 8px;font-weight:700">128</td>
               <td style="padding:10px 8px;font-weight:700">2</td>
             </tr>
-            <tr>
+            <tr class="subnet-row" data-cidrs="8,16,24,32" data-mask="255" data-nets="256" data-addrs="1">
               <td style="padding:10px 8px;font-weight:700;color:var(--accent)">/8</td>
               <td style="padding:10px 8px;font-weight:700;color:var(--accent)">/16</td>
               <td style="padding:10px 8px;font-weight:700;color:var(--accent)">/24</td>
@@ -354,6 +399,54 @@
       </div>
     </div>
     <p style="font-family:var(--font-body);font-size:.82rem;color:var(--ink-muted);line-height:1.5">This is the same method from <a href="https://www.youtube.com/results?search_query=professor+messer+seven+second+subnetting" target="_blank" style="color:#16A34A">Professor Messer's Seven Second Subnetting</a>. For Network+, this table answers every subnetting question on the exam. No binary conversion needed.</p>
+    <p style="font-family:var(--font-body);font-size:.82rem;color:var(--ink-muted);line-height:1.5;margin-top:8px"><strong>Tip:</strong> Hover any row above to see binary, magic number, and a worked example. Or scroll down to play with the visual tools.</p>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       PLAYGROUND — Visual intuition for the table
+       ═══════════════════════════════════════════════════════════ -->
+  <div class="section reveal" id="section-playground" style="scroll-margin-top:60px">
+    <h2 class="section-title">Visualize What the Table Means</h2>
+    <p class="section-sub">Two interactive tools that turn the table from numbers into intuition. Use them once each — that's enough for the pattern to click.</p>
+
+    <!-- Tool 1: Halving grid -->
+    <div class="visual-block">
+      <div class="block-label">Halving Grid — Addresses Per Subnet</div>
+      <p style="font-family:var(--font-body);font-size:.85rem;color:var(--ink-secondary);line-height:1.6;margin-bottom:16px">256 squares = one octet of address space. Click any CIDR. The grid splits into colored blocks — one block per subnet. Watch addresses halve as networks double. <strong>Networks × Addresses = 256, always.</strong></p>
+      <div class="halving-controls" id="halvingControls"></div>
+      <div class="halving-grid" id="halvingGrid"></div>
+      <div class="halving-stats">
+        <div>Networks: <span class="stat-num" id="hgNetworks">1</span></div>
+        <div>Addresses each: <span class="stat-num" id="hgAddresses">256</span></div>
+        <div>Product: <span class="stat-num" id="hgProduct">256</span></div>
+      </div>
+    </div>
+
+    <!-- Tool 2: Bit-borrowing slider -->
+    <div class="visual-block">
+      <div class="block-label">Bit-Borrowing Slider — Where the Mask Comes From</div>
+      <p style="font-family:var(--font-body);font-size:.85rem;color:var(--ink-secondary);line-height:1.6;margin-bottom:16px">The mask is just bits flipped on. Drag the slider — each step borrows one more bit for the network. Blue = network bit, pink = host bit. Watch every value in the table derive from the prefix length.</p>
+      <div class="bbslider-wrap">
+        <div class="bb-cidr-display" id="bbCidr">/24</div>
+        <div class="bb-bits">
+          <div class="bb-octet" id="bbOctet0"></div>
+          <div class="bb-octet" id="bbOctet1"></div>
+          <div class="bb-octet" id="bbOctet2"></div>
+          <div class="bb-octet" id="bbOctet3"></div>
+        </div>
+        <div class="bb-octet-labels">
+          <span>Octet 1</span><span>Octet 2</span><span>Octet 3</span><span>Octet 4</span>
+        </div>
+        <input type="range" min="0" max="32" value="24" class="bb-slider" id="bbSlider" aria-label="CIDR prefix length">
+        <div class="bb-ticks"><span>/0</span><span>/8</span><span>/16</span><span>/24</span><span>/32</span></div>
+        <div class="bb-readout">
+          <div class="bb-stat"><div class="bb-stat-label">Mask</div><div class="bb-stat-value" id="bbMask">255.255.255.0</div></div>
+          <div class="bb-stat"><div class="bb-stat-label">Magic #</div><div class="bb-stat-value" id="bbMagic">256</div></div>
+          <div class="bb-stat"><div class="bb-stat-label">Networks</div><div class="bb-stat-value" id="bbNets">1</div></div>
+          <div class="bb-stat"><div class="bb-stat-label">Addresses</div><div class="bb-stat-value" id="bbAddrs">256</div></div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- ═══════════════════════════════════════════════════════════
