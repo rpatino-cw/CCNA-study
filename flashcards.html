@@ -508,6 +508,71 @@
       margin-left: 4px;
     }
 
+    /* ── Objective filter ──────────────────────────────────────── */
+    .fc-objective-bar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: var(--s-sm);
+      margin-bottom: var(--s-md);
+      padding: var(--s-sm) 0;
+      border-bottom: 1px dashed var(--rule);
+    }
+
+    .fc-obj-label {
+      font-family: var(--font-display);
+      font-size: 0.68rem;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--ink-muted);
+      margin-right: 4px;
+    }
+
+    .fc-domain-row { display: flex; flex-wrap: wrap; gap: 4px; }
+
+    .fc-domain-btn {
+      font-family: var(--font-display);
+      font-size: 0.7rem;
+      font-weight: 600;
+      padding: 5px 10px;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      background: var(--bg-surface);
+      color: var(--ink-secondary);
+      cursor: pointer;
+      transition: all var(--transition);
+    }
+
+    .fc-domain-btn:hover { border-color: var(--border-strong); color: var(--ink); }
+
+    .fc-domain-btn.active {
+      background: var(--accent);
+      color: var(--bg);
+      border-color: var(--accent);
+    }
+
+    .fc-domain-btn .dom-count {
+      font-family: var(--font-mono);
+      font-size: 0.62rem;
+      opacity: 0.75;
+      margin-left: 4px;
+    }
+
+    .fc-obj-select {
+      font-family: var(--font-display);
+      font-size: 0.74rem;
+      padding: 5px 10px;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      background: var(--bg-surface);
+      color: var(--ink);
+      cursor: pointer;
+      min-width: 180px;
+    }
+
+    .fc-obj-select:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+
     /* ── ExamTopics card styles ────────────────────────────────── */
     .et-options-list {
       list-style: none;
@@ -635,6 +700,9 @@
 
     <!-- Deck filter -->
     <div class="fc-decks" id="fc-decks"></div>
+
+    <!-- Objective filter -->
+    <div class="fc-objective-bar" id="fc-objective-bar"></div>
 
     <!-- Stats dashboard -->
     <div class="fc-stats" id="fc-stats"></div>
@@ -909,10 +977,131 @@
 
     var currentDeck = 'all'; // session-only, resets on reload
 
-    // ── Filtered card pool (respects current deck) ────────────
+    // ── CCNA 200-301 objective map ────────────────────────────
+    // Each Flackbox section → { domain: 'N', objectives: ['N.M', ...] }
+    var SECTION_OBJECTIVES = {
+      '03': { domain: '1', objectives: ['1.5'] },
+      '04': { domain: '1', objectives: ['1.0'] },
+      '05': { domain: '1', objectives: ['1.5'] },
+      '06': { domain: '1', objectives: ['1.6', '1.7'] },
+      '07': { domain: '1', objectives: ['1.6', '1.7'] },
+      '08': { domain: '1', objectives: ['1.6'] },
+      '09': { domain: '1', objectives: ['1.12'] },
+      '10': { domain: '1', objectives: ['1.3'] },
+      '11': { domain: '1', objectives: ['1.4'] },
+      '12': { domain: '4', objectives: ['4.3', '4.6'] },
+      '13': { domain: '5', objectives: ['5.1'] },
+      '14': { domain: '1', objectives: ['1.4'] },
+      '15': { domain: '1', objectives: ['1.0'] },
+      '16': { domain: '3', objectives: ['3.3'] },
+      '17': { domain: '3', objectives: ['3.1', '3.2'] },
+      '18': { domain: '1', objectives: ['1.10'] },
+      '19': { domain: '3', objectives: ['3.0'] },
+      '20': { domain: '3', objectives: ['3.4'] },
+      '21': { domain: '2', objectives: ['2.1', '2.2'] },
+      '22': { domain: '2', objectives: ['2.2'] },
+      '23': { domain: '4', objectives: ['4.3', '4.6'] },
+      '24': { domain: '3', objectives: ['3.5'] },
+      '25': { domain: '2', objectives: ['2.5'] },
+      '26': { domain: '1', objectives: ['1.2'] },
+      '27': { domain: '5', objectives: ['5.7'] },
+      '28': { domain: '5', objectives: ['5.6'] },
+      '29': { domain: '4', objectives: ['4.1'] },
+      '30': { domain: '1', objectives: ['1.8', '1.9'] },
+      '31': { domain: '5', objectives: ['5.5'] },
+      '32': { domain: '5', objectives: ['5.1'] },
+      '33': { domain: '5', objectives: ['5.9'] },
+      '34': { domain: '4', objectives: ['4.4', '4.5'] },
+      '35': { domain: '4', objectives: ['4.7'] },
+      '36': { domain: '1', objectives: ['1.13'] },
+      '37': { domain: '1', objectives: ['1.11', '2.6', '2.7', '2.8', '2.9', '5.8'] },
+      '38': { domain: '6', objectives: ['6.1', '6.2', '6.3', '6.4', '6.5', '6.6'] }
+    };
+
+    var DOMAIN_NAMES = {
+      '1': 'Network Fundamentals',
+      '2': 'Network Access',
+      '3': 'IP Connectivity',
+      '4': 'IP Services',
+      '5': 'Security',
+      '6': 'Automation'
+    };
+
+    var OBJECTIVE_TITLES = {
+      '1.0': 'Foundations / IOS basics',
+      '1.1': 'Network components',
+      '1.2': 'Topology architectures',
+      '1.3': 'Physical interfaces & cabling',
+      '1.4': 'Interface & cable issues',
+      '1.5': 'TCP vs UDP',
+      '1.6': 'IPv4 addressing & subnetting',
+      '1.7': 'Private IPv4',
+      '1.8': 'IPv6 addressing',
+      '1.9': 'IPv6 address types',
+      '1.10': 'Verify IP parameters',
+      '1.11': 'Wireless principles',
+      '1.12': 'Switching concepts',
+      '1.13': 'Virtualization (VMs / containers / VRF)',
+      '2.1': 'VLANs',
+      '2.2': 'Inter-switch (trunks)',
+      '2.3': 'L2 discovery (CDP/LLDP)',
+      '2.4': 'EtherChannel',
+      '2.5': 'Spanning Tree',
+      '2.6': 'Cisco wireless architectures',
+      '2.7': 'WLAN components',
+      '2.8': 'AP/WLC management',
+      '2.9': 'WLAN config',
+      '3.0': 'Routing (general)',
+      '3.1': 'Routing table',
+      '3.2': 'Forwarding decision',
+      '3.3': 'Static routing',
+      '3.4': 'OSPFv2 single area',
+      '3.5': 'First Hop Redundancy',
+      '4.1': 'NAT',
+      '4.2': 'NTP',
+      '4.3': 'DNS / DHCP role',
+      '4.4': 'SNMP',
+      '4.5': 'Syslog',
+      '4.6': 'DHCP client/relay',
+      '4.7': 'QoS',
+      '4.8': 'SSH',
+      '4.9': 'TFTP / FTP',
+      '5.1': 'Security concepts / threats',
+      '5.5': 'Site-to-site / remote access VPN',
+      '5.6': 'ACLs',
+      '5.7': 'L2 security (port sec, DAI, snooping)',
+      '5.8': 'Wireless security',
+      '5.9': 'AAA (RADIUS/TACACS)',
+      '6.1': 'Automation impact',
+      '6.2': 'Traditional vs controller-based',
+      '6.3': 'Controller / SDN / overlay',
+      '6.4': 'REST API',
+      '6.5': 'Config mgmt (Ansible/Puppet/Chef/Terraform)',
+      '6.6': 'JSON'
+    };
+
+    var currentDomain = 'all';
+    var currentObjective = 'all';
+
+    function sectionMatchesFilter(secId) {
+      if (currentDomain === 'all' && currentObjective === 'all') return true;
+      // ExamTopics sections: untagged. Show only when filters off.
+      if (secId.indexOf('et_') === 0) return currentDomain === 'all' && currentObjective === 'all';
+      var meta = SECTION_OBJECTIVES[secId];
+      if (!meta) return currentDomain === 'all' && currentObjective === 'all';
+      if (currentDomain !== 'all' && meta.domain !== currentDomain) return false;
+      if (currentObjective !== 'all') {
+        var hit = meta.objectives.some(function(o) { return o === currentObjective; });
+        if (!hit) return false;
+      }
+      return true;
+    }
+
+    // ── Filtered card pool (respects deck + domain + objective) ──
     function getFilteredCards() {
-      if (currentDeck === 'all') return masterCards;
-      return masterCards.filter(function(c) { return c.deck === currentDeck; });
+      var pool = (currentDeck === 'all') ? masterCards : masterCards.filter(function(c) { return c.deck === currentDeck; });
+      if (currentDomain === 'all' && currentObjective === 'all') return pool;
+      return pool.filter(function(c) { return sectionMatchesFilter(c.section); });
     }
 
     // ── Build section data for current deck ───────────────────
@@ -1498,6 +1687,6 @@
   })();
   
 });</script>
-<script defer src="js/group-chat.js"></script>
+<script defer src="js/group-chat.js?v=4"></script>
 </body>
 </html>
