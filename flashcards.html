@@ -741,6 +741,7 @@
 
   <script defer src="data/anki-data.js"></script>
   <script defer src="data/examtopics-data.js"></script>
+  <script defer src="data/card-objectives.js"></script>
   <script defer src="js/store.js"></script>
   <script defer src="js/nav.js"></script>
   <script defer src="js/tutor.js"></script>
@@ -1082,26 +1083,45 @@
 
     var currentDomain = 'all';
     var currentObjective = 'all';
+    var currentSubObjective = 'all';
+
+    var CARD_TAGS = (typeof window !== 'undefined' && window.CARD_OBJECTIVES) ? window.CARD_OBJECTIVES : {};
+
+    // Card-level filter using per-card objective tags (preferred) with section fallback.
+    function cardMatchesFilter(card) {
+      if (currentDomain === 'all' && currentObjective === 'all' && currentSubObjective === 'all') return true;
+      var tag = CARD_TAGS[String(card.id)];
+      if (tag && tag.primary) {
+        var p = tag.primary;
+        if (currentSubObjective !== 'all') return p === currentSubObjective;
+        if (currentObjective !== 'all') return p === currentObjective || p.indexOf(currentObjective + '.') === 0;
+        if (currentDomain !== 'all') return p.split('.')[0] === currentDomain;
+        return true;
+      }
+      // Fallback: use section→objective mapping
+      return sectionMatchesFilter(card.section);
+    }
 
     function sectionMatchesFilter(secId) {
-      if (currentDomain === 'all' && currentObjective === 'all') return true;
-      // ExamTopics sections: untagged. Show only when filters off.
-      if (secId.indexOf('et_') === 0) return currentDomain === 'all' && currentObjective === 'all';
+      if (currentDomain === 'all' && currentObjective === 'all' && currentSubObjective === 'all') return true;
+      if (secId.indexOf('et_') === 0) return currentDomain === 'all' && currentObjective === 'all' && currentSubObjective === 'all';
       var meta = SECTION_OBJECTIVES[secId];
-      if (!meta) return currentDomain === 'all' && currentObjective === 'all';
+      if (!meta) return currentDomain === 'all' && currentObjective === 'all' && currentSubObjective === 'all';
       if (currentDomain !== 'all' && meta.domain !== currentDomain) return false;
       if (currentObjective !== 'all') {
         var hit = meta.objectives.some(function(o) { return o === currentObjective; });
         if (!hit) return false;
       }
+      // Sub-objective only valid via per-card tag — section-level can't match a leaf.
+      if (currentSubObjective !== 'all') return false;
       return true;
     }
 
-    // ── Filtered card pool (respects deck + domain + objective) ──
+    // ── Filtered card pool (respects deck + domain + objective + sub-objective) ──
     function getFilteredCards() {
       var pool = (currentDeck === 'all') ? masterCards : masterCards.filter(function(c) { return c.deck === currentDeck; });
-      if (currentDomain === 'all' && currentObjective === 'all') return pool;
-      return pool.filter(function(c) { return sectionMatchesFilter(c.section); });
+      if (currentDomain === 'all' && currentObjective === 'all' && currentSubObjective === 'all') return pool;
+      return pool.filter(cardMatchesFilter);
     }
 
     // ── Build section data for current deck ───────────────────
@@ -1129,8 +1149,13 @@
       } else {
         base = etSectionsByDeck[currentDeck] || [];
       }
-      if (currentDomain === 'all' && currentObjective === 'all') return base;
-      return base.filter(function(s) { return sectionMatchesFilter(s.id); });
+      if (currentDomain === 'all' && currentObjective === 'all' && currentSubObjective === 'all') return base;
+      // Show sections that have at least one matching card under current filters
+      var sectionsWithMatches = {};
+      masterCards.forEach(function(c) {
+        if (cardMatchesFilter(c)) sectionsWithMatches[c.section] = true;
+      });
+      return base.filter(function(s) { return sectionsWithMatches[s.id]; });
     }
 
     // Build section lookup (all sections, always available)
@@ -1280,10 +1305,16 @@
       var el = document.getElementById('fc-objective-bar');
       if (!el) return;
 
-      // Count cards per domain for the current deck
+      // Count cards per domain for the current deck (prefers per-card tag, falls back to section)
       var deckPool = (currentDeck === 'all') ? masterCards : masterCards.filter(function(c) { return c.deck === currentDeck; });
       var domainCounts = { all: deckPool.length, '1': 0, '2': 0, '3': 0, '4': 0, '5': 0, '6': 0 };
       deckPool.forEach(function(c) {
+        var tag = CARD_TAGS[String(c.id)];
+        if (tag && tag.primary) {
+          var d = tag.primary.split('.')[0];
+          domainCounts[d] = (domainCounts[d] || 0) + 1;
+          return;
+        }
         var meta = SECTION_OBJECTIVES[c.section];
         if (meta) domainCounts[meta.domain] = (domainCounts[meta.domain] || 0) + 1;
       });
@@ -1297,7 +1328,7 @@
       });
       html += '</div>';
 
-      // Objective dropdown — populated based on current domain
+      // Objective dropdown — populated based on current domain (uses card tags)
       var availableObjectives = collectAvailableObjectives(deckPool);
       html += '<span class="fc-obj-label" style="margin-left:var(--s-md)">Objective</span>';
       html += '<select class="fc-obj-select" id="fc-obj-select">';
@@ -1309,8 +1340,20 @@
       });
       html += '</select>';
 
+      // Sub-objective dropdown — only shown when an objective is selected
+      var availableSubs = collectAvailableSubObjectives(deckPool);
+      if (availableSubs.length > 0) {
+        html += '<span class="fc-obj-label" style="margin-left:var(--s-md)">Sub</span>';
+        html += '<select class="fc-obj-select" id="fc-sub-select">';
+        html += '<option value="all">All sub-objectives</option>';
+        availableSubs.forEach(function(o) {
+          html += '<option value="' + o + '"' + (currentSubObjective === o ? ' selected' : '') + '>' + o + '</option>';
+        });
+        html += '</select>';
+      }
+
       // Reset link if any filter active
-      if (currentDomain !== 'all' || currentObjective !== 'all') {
+      if (currentDomain !== 'all' || currentObjective !== 'all' || currentSubObjective !== 'all') {
         html += '<button class="fc-domain-btn" id="fc-obj-reset" style="margin-left:auto">Clear filters</button>';
       }
 
@@ -1321,9 +1364,10 @@
           var d = btn.getAttribute('data-domain');
           if (d === currentDomain) return;
           currentDomain = d;
-          // Reset objective if it's no longer valid in the new domain
+          // Reset objective + sub if it's no longer valid in the new domain
           if (currentObjective !== 'all' && currentObjective.indexOf(d + '.') !== 0 && d !== 'all') {
             currentObjective = 'all';
+            currentSubObjective = 'all';
           }
           applyFilterChange();
         });
@@ -1333,10 +1377,28 @@
       if (sel) {
         sel.addEventListener('change', function() {
           currentObjective = sel.value;
+          // Reset sub-objective when objective changes
+          if (currentSubObjective !== 'all' && currentSubObjective.indexOf(currentObjective + '.') !== 0) {
+            currentSubObjective = 'all';
+          }
           // If user picked an objective, sync domain to its parent
           if (currentObjective !== 'all') {
             var dom = currentObjective.split('.')[0];
             if (DOMAIN_NAMES[dom]) currentDomain = dom;
+          }
+          applyFilterChange();
+        });
+      }
+
+      var subSel = document.getElementById('fc-sub-select');
+      if (subSel) {
+        subSel.addEventListener('change', function() {
+          currentSubObjective = subSel.value;
+          // Sync parent + domain
+          if (currentSubObjective !== 'all') {
+            var parts = currentSubObjective.split('.');
+            currentObjective = parts[0] + '.' + parts[1];
+            currentDomain = parts[0];
           }
           applyFilterChange();
         });
@@ -1347,14 +1409,38 @@
         reset.addEventListener('click', function() {
           currentDomain = 'all';
           currentObjective = 'all';
+          currentSubObjective = 'all';
           applyFilterChange();
         });
       }
     }
 
+    function collectAvailableSubObjectives(pool) {
+      // Only meaningful when a parent objective is selected
+      if (currentObjective === 'all') return [];
+      var seen = {};
+      pool.forEach(function(c) {
+        var tag = CARD_TAGS[String(c.id)];
+        if (!tag || !tag.primary) return;
+        if (tag.primary.indexOf(currentObjective + '.') !== 0) return;
+        seen[tag.primary] = true;
+      });
+      return Object.keys(seen).sort();
+    }
+
     function collectAvailableObjectives(pool) {
       var seen = {};
       pool.forEach(function(c) {
+        var tag = CARD_TAGS[String(c.id)];
+        if (tag && tag.primary) {
+          var parts = tag.primary.split('.');
+          if (parts.length >= 2) {
+            var parent = parts[0] + '.' + parts[1];
+            if (currentDomain !== 'all' && parts[0] !== currentDomain) return;
+            seen[parent] = true;
+          }
+          return;
+        }
         var meta = SECTION_OBJECTIVES[c.section];
         if (!meta) return;
         if (currentDomain !== 'all' && meta.domain !== currentDomain) return;
@@ -1389,7 +1475,9 @@
       var cards = getFilteredCards();
       var sections = getActiveSections();
       var filterTag = '';
-      if (currentObjective !== 'all') {
+      if (currentSubObjective !== 'all') {
+        filterTag = ' — filter: ' + currentSubObjective;
+      } else if (currentObjective !== 'all') {
         filterTag = ' — filter: ' + currentObjective + (OBJECTIVE_TITLES[currentObjective] ? ' ' + OBJECTIVE_TITLES[currentObjective] : '');
       } else if (currentDomain !== 'all') {
         filterTag = ' — filter: Domain ' + currentDomain + ' (' + DOMAIN_NAMES[currentDomain] + ')';
