@@ -231,6 +231,21 @@
   .subnet-row { cursor: pointer; transition: background 0.15s; }
   .subnet-row:hover { background: rgba(22,163,74,0.10) !important; }
   .subnet-row.linked { box-shadow: inset 4px 0 0 var(--accent); }
+  .subnet-row td { transition: color 0.45s var(--ease-out), background 0.45s var(--ease-out); }
+  .subnet-row td.col-hidden { color: transparent !important; }
+  .subnet-row td.col-just-revealed { background: #FEF3C7 !important; }
+
+  /* Walkthrough panel */
+  .walk-bar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 12px; }
+  .walk-btn { font-family: var(--font-display); font-size: 0.8rem; font-weight: 700; padding: 9px 18px; border-radius: 6px; border: 2px solid #16A34A; background: #16A34A; color: #FFF; cursor: pointer; transition: all 0.15s; }
+  .walk-btn:hover { background: #15803D; border-color: #15803D; }
+  .walk-btn.secondary { background: var(--bg-surface); color: var(--ink); border-color: var(--border); }
+  .walk-btn.secondary:hover { border-color: var(--ink); background: var(--ink); color: var(--bg); }
+  .walk-stage { background: #FFFBEB; border: 1px solid #FCD34D; border-radius: 8px; padding: 14px 18px; margin-bottom: 14px; font-family: var(--font-body); font-size: 0.88rem; line-height: 1.7; color: var(--ink); }
+  .walk-stage-num { font-family: var(--font-display); font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #B45309; margin-bottom: 6px; }
+  .walk-stage code { background: #FEF3C7; padding: 2px 6px; border-radius: 4px; font-family: var(--font-mono); font-size: 0.85rem; color: #92400E; }
+  .walk-progress { height: 4px; background: #FEF3C7; border-radius: 2px; margin-top: 12px; overflow: hidden; }
+  .walk-progress-bar { height: 100%; background: #F59E0B; transition: width 0.4s var(--ease-out); }
   .subnet-tooltip { position: fixed; z-index: 1000; background: #0F172A; color: #FFF; padding: 14px 16px; border-radius: 8px; font-family: var(--font-mono); font-size: 0.78rem; line-height: 1.7; box-shadow: 0 12px 32px rgba(0,0,0,0.30); pointer-events: none; max-width: 360px; opacity: 0; transform: translateY(4px); transition: opacity 0.15s, transform 0.15s; }
   .subnet-tooltip.visible { opacity: 1; transform: translateY(0); }
   .subnet-tooltip strong { color: #4ADE80; font-weight: 700; }
@@ -296,6 +311,22 @@
   <div class="section reveal" id="section-hack" style="scroll-margin-top:60px">
     <h2 class="section-title" style="color:#16A34A;border-bottom-color:#16A34A">Exam Hack — Seven Second Subnetting</h2>
     <p class="section-sub">The <strong>first thing you do</strong> when the exam starts: write this table on your scratch paper before reading a single question. Every subnetting question becomes a lookup. No binary. No math. <a href="https://www.youtube.com/results?search_query=professor+messer+seven+second+subnetting" target="_blank" style="color:#16A34A;font-weight:600">Watch Professor Messer explain it</a>.</p>
+
+    <div class="walk-bar">
+      <button id="walkStartBtn" class="walk-btn">Show me how to write it</button>
+      <span style="font-family:var(--font-body);font-size:.82rem;color:var(--ink-muted)">Step-by-step reveal — teaches the order to memorize.</span>
+    </div>
+    <div id="walkStage" class="walk-stage" style="display:none">
+      <div class="walk-stage-num" id="walkStageNum">Step 1 of 9</div>
+      <div id="walkStageMsg"></div>
+      <div class="walk-progress"><div class="walk-progress-bar" id="walkProgressBar" style="width:0%"></div></div>
+      <div class="walk-bar" style="margin-top:14px;margin-bottom:0">
+        <button id="walkNextBtn" class="walk-btn">Next →</button>
+        <button id="walkPrevBtn" class="walk-btn secondary">← Back</button>
+        <button id="walkRestartBtn" class="walk-btn secondary">Restart</button>
+        <button id="walkCloseBtn" class="walk-btn secondary">Close</button>
+      </div>
+    </div>
 
     <div style="background:#F0FDF4;border:2px solid #16A34A;border-radius:var(--radius-lg);padding:24px;margin-bottom:var(--s-md)">
       <div style="font-family:var(--font-display);font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#16A34A;margin-bottom:12px">Write this table from memory — covers /1 through /32</div>
@@ -1617,6 +1648,101 @@
     window.toggleBit = toggleBit;
     window.toggleExtended = toggleExtended;
     window.toggleTrap = toggleTrap;
+
+  // ══════════════════════════════════════════════════════════════
+  //  TABLE WALKTHROUGH — teach the build order
+  // ══════════════════════════════════════════════════════════════
+  (function initWalkthrough() {
+    var startBtn = document.getElementById('walkStartBtn');
+    var stage = document.getElementById('walkStage');
+    if (!startBtn || !stage) return;
+
+    var stageNum = document.getElementById('walkStageNum');
+    var stageMsg = document.getElementById('walkStageMsg');
+    var progressBar = document.getElementById('walkProgressBar');
+    var nextBtn = document.getElementById('walkNextBtn');
+    var prevBtn = document.getElementById('walkPrevBtn');
+    var restartBtn = document.getElementById('walkRestartBtn');
+    var closeBtn = document.getElementById('walkCloseBtn');
+
+    var rows = document.querySelectorAll('#seven-second-tbody tr.subnet-row');
+    var colOrder = ['c1', 'c9', 'c17', 'c25', 'mask', 'nets', 'addrs'];
+    rows.forEach(function(row) {
+      Array.from(row.children).forEach(function(td, i) {
+        td.dataset.col = colOrder[i];
+      });
+    });
+
+    var stages = [
+      { msg: 'Start with a blank table. The whole thing builds from <strong>one row of numbers</strong> you memorize. Click Next to see it.', show: [] },
+      { msg: '<strong>Step 1 — Addresses column.</strong> Memorize this row: <code>128, 64, 32, 16, 8, 4, 2, 1</code>. Powers of 2, halving each step. Write it top-to-bottom in the rightmost column.', show: ['addrs'], highlight: ['addrs'] },
+      { msg: '<strong>Step 2 — Networks column.</strong> Same numbers reversed (then double the last one to 256): <code>2, 4, 8, 16, 32, 64, 128, 256</code>. Or shortcut: <em>Networks = 256 ÷ Addresses</em>. Networks × Addresses always = 256.', show: ['addrs', 'nets'], highlight: ['nets'] },
+      { msg: '<strong>Step 3 — Masks column.</strong> Running sum from your memorized row. Start at <code>128</code>. Add the next Address value each step: 128+64=<code>192</code>, +32=<code>224</code>, +16=<code>240</code>, +8=<code>248</code>, +4=<code>252</code>, +2=<code>254</code>, +1=<code>255</code>.', show: ['addrs', 'nets', 'mask'], highlight: ['mask'] },
+      { msg: '<strong>Step 4 — CIDR /1–/8.</strong> Number the rows 1 through 8 in the leftmost column. Covers the first octet.', show: ['addrs', 'nets', 'mask', 'c1'], highlight: ['c1'] },
+      { msg: '<strong>Step 5 — CIDR /9–/16.</strong> Each next column adds 8 to the previous. Same pattern, second octet.', show: ['addrs', 'nets', 'mask', 'c1', 'c9'], highlight: ['c9'] },
+      { msg: '<strong>Step 6 — CIDR /17–/24.</strong> Add 8 again. Third octet.', show: ['addrs', 'nets', 'mask', 'c1', 'c9', 'c17'], highlight: ['c17'] },
+      { msg: '<strong>Step 7 — CIDR /25–/32.</strong> Last column. Fourth octet — most CCNA subnetting questions live here.', show: ['addrs', 'nets', 'mask', 'c1', 'c9', 'c17', 'c25'], highlight: ['c25'] },
+      { msg: '<strong>Done.</strong> That\'s the whole table from one memorized row. Drill it daily — goal: under 90 seconds at exam start. Click Restart to run it again, or Close to play with the table.', show: ['addrs', 'nets', 'mask', 'c1', 'c9', 'c17', 'c25'], highlight: [] }
+  ];
+
+    var current = 0;
+    var allTds = document.querySelectorAll('#seven-second-tbody td');
+
+    function applyStage() {
+      var s = stages[current];
+      var showSet = new Set(s.show);
+      var hlSet = new Set(s.highlight || []);
+      allTds.forEach(function(td) {
+        var col = td.dataset.col;
+        td.classList.toggle('col-hidden', !showSet.has(col));
+        td.classList.toggle('col-just-revealed', hlSet.has(col));
+      });
+      stageNum.textContent = 'Step ' + (current + 1) + ' of ' + stages.length;
+      stageMsg.innerHTML = s.msg;
+      progressBar.style.width = ((current + 1) / stages.length * 100) + '%';
+      prevBtn.style.visibility = current === 0 ? 'hidden' : 'visible';
+      nextBtn.textContent = (current === stages.length - 1) ? 'Restart ↻' : 'Next →';
+    }
+
+    function restoreAll() {
+      allTds.forEach(function(td) {
+        td.classList.remove('col-hidden');
+        td.classList.remove('col-just-revealed');
+      });
+    }
+
+    startBtn.addEventListener('click', function() {
+      stage.style.display = 'block';
+      startBtn.style.display = 'none';
+      current = 0;
+      applyStage();
+      stage.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    });
+
+    nextBtn.addEventListener('click', function() {
+      if (current === stages.length - 1) {
+        current = 0;
+      } else {
+        current++;
+      }
+      applyStage();
+    });
+
+    prevBtn.addEventListener('click', function() {
+      if (current > 0) { current--; applyStage(); }
+    });
+
+    restartBtn.addEventListener('click', function() {
+      current = 0;
+      applyStage();
+    });
+
+    closeBtn.addEventListener('click', function() {
+      stage.style.display = 'none';
+      startBtn.style.display = 'inline-block';
+      restoreAll();
+    });
+  })();
 
   // ══════════════════════════════════════════════════════════════
   //  SEVEN-SECOND TABLE — hover tooltips
