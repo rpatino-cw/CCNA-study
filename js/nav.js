@@ -27,6 +27,7 @@
       { text: 'Strat (drill)', href: 'strat.html' },
       { text: 'Exam Details', href: 'exam-details.html' },
       { text: 'Exam Tricks', href: 'exam-tricks.html' },
+      { text: 'What Is the CCNA?', href: 'what-is-ccna.html' },
       { text: 'Settings', href: 'settings.html' },
     ]},
     { text: 'Study Group', href: 'peers.html' },
