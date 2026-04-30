@@ -214,8 +214,24 @@ section{margin-bottom:var(--s-2xl)}
       <div class="acl-controls">
         <button class="btn" id="addRowBtn">+ Add ACE</button>
         <button class="btn" id="clearBtn">Clear ACL</button>
+        <button class="btn" id="cliToggleBtn">⌨︎ CLI mode</button>
         <button class="btn primary" id="gradeBtn">Grade attempt</button>
       </div>
+
+      <!-- CLI parser panel -->
+      <div id="cliPanel" style="display:none;margin-top:14px;padding:14px;background:var(--bg-recessed);border-radius:var(--radius);border:1px solid var(--border)">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <span style="font-family:var(--font-display);font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-muted)">Paste / type IOS config</span>
+          <span style="font-family:var(--font-mono);font-size:.66rem;color:var(--ink-muted)">numbered · named · vty · ipv6</span>
+        </div>
+        <textarea id="cliInput" rows="8" style="width:100%;font-family:var(--font-mono);font-size:.78rem;padding:8px 10px;border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-input);color:var(--ink);box-sizing:border-box;resize:vertical" placeholder="ip access-list extended BLOCK-HTTPS&#10; deny tcp 192.168.20.0 0.0.0.255 host 8.8.8.8 eq 443&#10; permit ip any any&#10;interface Gi0/0&#10; ip access-group BLOCK-HTTPS in"></textarea>
+        <div style="display:flex;gap:8px;margin-top:10px;align-items:center;flex-wrap:wrap">
+          <button class="btn accent" id="cliBuildBtn">Build table from CLI</button>
+          <button class="btn" id="cliExportBtn">Export current → CLI</button>
+          <span id="cliStatus" style="font-family:var(--font-mono);font-size:.74rem;color:var(--ink-muted);margin-left:auto"></span>
+        </div>
+      </div>
+
       <div class="grade" id="gradePanel" style="display:none"></div>
     </div>
 
@@ -773,6 +789,93 @@ document.addEventListener('DOMContentLoaded', function () {
 
   document.getElementById('modelBtn').onclick = function () {
     document.getElementById('modelAnswer').classList.toggle('visible');
+  };
+
+  // ─── CLI parser mode ───────────────────────────────
+  document.getElementById('cliToggleBtn').onclick = function () {
+    var panel = document.getElementById('cliPanel');
+    panel.style.display = panel.style.display === 'none' ? '' : 'none';
+    if (panel.style.display === '') document.getElementById('cliInput').focus();
+  };
+
+  document.getElementById('cliBuildBtn').onclick = function () {
+    var text = document.getElementById('cliInput').value;
+    var status = document.getElementById('cliStatus');
+    if (!text.trim()) { status.textContent = 'paste IOS config first'; return; }
+    var parsed = ACL.parseCli(text);
+
+    // Switch UI mode to match parsed shape
+    if (parsed.type) setMode({ type: parsed.type, form: parsed.form || 'numbered' });
+    if (parsed.number) {
+      document.getElementById('aclNumber').value = parsed.number;
+      state.placement.aclNumber = parsed.number;
+    }
+    if (parsed.name) {
+      document.getElementById('aclName').value = parsed.name;
+      state.placement.aclName = parsed.name;
+    }
+    // Populate placement
+    if (parsed.placement && parsed.placement.dir) {
+      document.getElementById('dirSelect').value = parsed.placement.dir;
+      state.placement.dir = parsed.placement.dir;
+    }
+    if (parsed.placement && parsed.placement.command) {
+      document.getElementById('bindSelect').value = parsed.placement.command;
+      state.placement.bind = parsed.placement.command;
+      state.placement.command = parsed.placement.command;
+    }
+    if (parsed.placement && parsed.placement.vty) {
+      state.placement.vty = true;
+    }
+
+    // Convert ACEs into rawRows
+    state.rawRows = parsed.aces.map(parsedToRaw);
+    state.hitCounts = {};
+    renderACL();
+
+    // Status report
+    var errCount = parsed.errors.length;
+    var msg = '✓ ' + parsed.aces.length + ' ACE' + (parsed.aces.length === 1 ? '' : 's') + ' loaded';
+    if (parsed.type) msg += ' · ' + parsed.type;
+    if (parsed.form) msg += ' · ' + parsed.form;
+    if (parsed.placement.iface) msg += ' · ' + parsed.placement.iface + ' ' + parsed.placement.dir;
+    if (errCount) msg += ' · ' + errCount + ' parse error' + (errCount === 1 ? '' : 's');
+    status.style.color = errCount ? 'var(--prof-weak)' : 'var(--prof-strong)';
+    status.textContent = msg;
+  };
+
+  document.getElementById('cliExportBtn').onclick = function () {
+    var lines = [];
+    var sc = state.currentScenario;
+    var nameOrNum = state.mode.form === 'named'
+      ? (state.placement.aclName || 'MY-ACL')
+      : (state.placement.aclNumber || 10);
+
+    if (state.mode.form === 'named') {
+      lines.push('ip access-list ' + state.mode.type + ' ' + nameOrNum);
+      state.acl.forEach(function (ace) { lines.push(' ' + ACL.serializeACE(ace)); });
+    } else {
+      state.acl.forEach(function (ace) {
+        lines.push('access-list ' + nameOrNum + ' ' + ACL.serializeACE(ace));
+      });
+    }
+    if (state.placement.iface || state.placement.router) {
+      var iface = state.placement.iface ? state.placement.iface.split('-')[1] : 'Gi0/0';
+      var bindCmd = state.placement.bind || 'access-group';
+      if (bindCmd === 'access-class') {
+        lines.push('line vty 0 4');
+        lines.push(' access-class ' + nameOrNum + ' ' + (state.placement.dir || 'in'));
+      } else if (bindCmd === 'traffic-filter') {
+        lines.push('interface ' + iface);
+        lines.push(' ipv6 traffic-filter ' + nameOrNum + ' ' + (state.placement.dir || 'in'));
+      } else {
+        lines.push('interface ' + iface);
+        lines.push(' ip access-group ' + nameOrNum + ' ' + (state.placement.dir || 'in'));
+      }
+    }
+    document.getElementById('cliInput').value = lines.join('\n');
+    document.getElementById('cliStatus').style.color = 'var(--prof-strong)';
+    document.getElementById('cliStatus').textContent = '✓ exported ' + state.acl.length + ' ACE' + (state.acl.length === 1 ? '' : 's');
   };
 
   // ─── Coverage map ──────────────────────────────────

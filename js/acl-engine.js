@@ -496,6 +496,162 @@
   }
 
   // ──────────────────────────────────────────────────────────
+  // CLI block parser — accepts multi-line IOS config and extracts:
+  //   { type, form, number, name, aces, placement, errors }
+  //
+  // Recognized forms:
+  //   1) Numbered global:
+  //        access-list 1 permit 192.168.1.0 0.0.0.255
+  //        access-list 100 deny tcp host 1.1.1.1 host 2.2.2.2 eq 80
+  //   2) Named mode:
+  //        ip access-list standard NAME
+  //         permit host 1.1.1.1
+  //         deny any
+  //        ip access-list extended NAME
+  //         permit tcp ...
+  //   3) Optional resequence directive (informational):
+  //        ip access-list resequence NAME 10 10
+  //   4) Interface bind (placement only):
+  //        interface GigabitEthernet0/1
+  //         ip access-group NAME in
+  //   5) VTY bind:
+  //        line vty 0 4
+  //         access-class N in
+  // ──────────────────────────────────────────────────────────
+  function parseCli(text) {
+    var lines = String(text || '').split(/\r?\n/);
+    var result = {
+      type: null,         // 'standard' | 'extended'
+      form: null,         // 'numbered' | 'named'
+      number: null,
+      name: null,
+      aces: [],           // array of parsed ACE objects
+      placement: {},      // {iface, dir, vty, command, aclRef}
+      errors: []
+    };
+    var inNamed = false;  // inside `ip access-list standard NAME` block
+    var inIface = false;
+    var inVty = false;
+    var ifaceName = null;
+
+    lines.forEach(function (raw, idx) {
+      var line = raw.replace(/!.*$/, '').trim();
+      if (!line) return;
+
+      // --- Named ACL header ---
+      var mNamed = line.match(/^ip\s+access-list\s+(standard|extended)\s+(\S+)\s*$/i);
+      if (mNamed) {
+        result.type = mNamed[1].toLowerCase();
+        result.form = 'named';
+        result.name = mNamed[2];
+        inNamed = true; inIface = false; inVty = false;
+        return;
+      }
+      var mNamedV6 = line.match(/^ipv6\s+access-list\s+(\S+)\s*$/i);
+      if (mNamedV6) {
+        result.type = 'extended';
+        result.form = 'named';
+        result.name = mNamedV6[1];
+        result.ipv6 = true;
+        inNamed = true; inIface = false; inVty = false;
+        return;
+      }
+
+      // --- Numbered global ACE ---
+      var mNum = line.match(/^access-list\s+(\d+)\s+(.+)$/i);
+      if (mNum) {
+        var n = parseInt(mNum[1], 10);
+        result.form = result.form || 'numbered';
+        result.number = result.number || n;
+        var standardRange = (n >= 1 && n <= 99) || (n >= 1300 && n <= 1999);
+        if (!result.type) result.type = standardRange ? 'standard' : 'extended';
+        var rest = mNum[2].trim();
+        if (/^remark\s/i.test(rest)) return;
+        var ace = parseACE(rest);
+        ace._sourceLine = idx + 1;
+        result.aces.push(ace);
+        inNamed = false; inIface = false; inVty = false;
+        return;
+      }
+
+      // --- Resequence directive ---
+      if (/^ip\s+access-list\s+resequence/i.test(line)) {
+        result.resequenced = true;
+        return;
+      }
+
+      // --- Interface block ---
+      var mIface = line.match(/^interface\s+(\S+)/i);
+      if (mIface) {
+        inIface = true; inNamed = false; inVty = false;
+        ifaceName = mIface[1];
+        return;
+      }
+      if (/^line\s+vty/i.test(line)) {
+        inVty = true; inNamed = false; inIface = false;
+        return;
+      }
+
+      // --- Bind commands ---
+      var mGroup = line.match(/^ip\s+access-group\s+(\S+)\s+(in|out)/i);
+      if (mGroup) {
+        result.placement.iface = ifaceName;
+        result.placement.dir = mGroup[2].toLowerCase();
+        result.placement.command = 'access-group';
+        result.placement.aclRef = mGroup[1];
+        return;
+      }
+      var mClass = line.match(/^access-class\s+(\S+)\s+(in|out)/i);
+      if (mClass) {
+        result.placement.vty = true;
+        result.placement.dir = mClass[2].toLowerCase();
+        result.placement.command = 'access-class';
+        result.placement.aclRef = mClass[1];
+        return;
+      }
+      var mFilter = line.match(/^ipv6\s+traffic-filter\s+(\S+)\s+(in|out)/i);
+      if (mFilter) {
+        result.placement.iface = ifaceName;
+        result.placement.dir = mFilter[2].toLowerCase();
+        result.placement.command = 'traffic-filter';
+        result.placement.aclRef = mFilter[1];
+        return;
+      }
+
+      // --- ACE inside named block ---
+      if (inNamed && /^(permit|deny|\d+\s+(permit|deny))/i.test(line)) {
+        var aceText = line.replace(/^\d+\s+/, ''); // strip leading sequence number
+        var parsedAce = parseACE(aceText);
+        parsedAce._sourceLine = idx + 1;
+        result.aces.push(parsedAce);
+        return;
+      }
+
+      // --- Bare permit/deny outside any block (treat as named-mode body) ---
+      if (/^(permit|deny)\s/i.test(line)) {
+        var bareAce = parseACE(line);
+        bareAce._sourceLine = idx + 1;
+        result.aces.push(bareAce);
+        if (!result.form) result.form = 'numbered';
+        if (!result.type) {
+          // Infer from shape
+          result.type = bareAce._standardShort ? 'standard' : 'extended';
+        }
+        return;
+      }
+
+      // Unrecognized — ignore (could be hostname, !, exit, end, etc.)
+    });
+
+    // Surface parse errors
+    result.aces.forEach(function (a) {
+      if (a.error) result.errors.push({ line: a._sourceLine, error: a.error });
+    });
+
+    return result;
+  }
+
+  // ──────────────────────────────────────────────────────────
   // Console fixtures — call ACL.fixtures() in browser DevTools to verify.
   // ──────────────────────────────────────────────────────────
   function fixtures() {
@@ -555,6 +711,39 @@
     var hits10 = detectTraps(trapAcl10, {}, {});
     eq('M10 fires', hits10.some(function (h) { return h.id === 'M10'; }), true);
 
+    // CLI parser
+    var cli1 = parseCli([
+      'ip access-list extended BLOCK-HTTPS',
+      ' deny tcp 192.168.20.0 0.0.0.255 host 8.8.8.8 eq 443',
+      ' permit ip any any',
+      'interface Gi0/0',
+      ' ip access-group BLOCK-HTTPS in'
+    ].join('\n'));
+    eq('cli named ext type', cli1.type, 'extended');
+    eq('cli named ext form', cli1.form, 'named');
+    eq('cli named ext name', cli1.name, 'BLOCK-HTTPS');
+    eq('cli named ext aces', cli1.aces.length, 2);
+    eq('cli named ext bind dir', cli1.placement.dir, 'in');
+    eq('cli named ext bind cmd', cli1.placement.command, 'access-group');
+
+    var cli2 = parseCli([
+      'access-list 100 deny tcp 192.168.20.0 0.0.0.255 host 8.8.8.8 eq 443',
+      'access-list 100 permit ip any any'
+    ].join('\n'));
+    eq('cli numbered type', cli2.type, 'extended');
+    eq('cli numbered form', cli2.form, 'numbered');
+    eq('cli numbered number', cli2.number, 100);
+    eq('cli numbered aces', cli2.aces.length, 2);
+
+    var cli3 = parseCli([
+      'access-list 5 permit 192.168.1.0 0.0.0.255',
+      'line vty 0 4',
+      ' access-class 5 in'
+    ].join('\n'));
+    eq('cli vty type', cli3.type, 'standard');
+    eq('cli vty bind', cli3.placement.command, 'access-class');
+    eq('cli vty flag', cli3.placement.vty, true);
+
     var passed = t.filter(function (x) { return x.ok; }).length;
     var failed = t.length - passed;
     if (typeof console !== 'undefined') {
@@ -569,6 +758,7 @@
   // ──────────────────────────────────────────────────────────
   var API = {
     parseACE: parseACE,
+    parseCli: parseCli,
     serializeACE: serializeACE,
     matchACE: matchACE,
     wcMatch: wcMatch,
