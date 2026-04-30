@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#FAF7F2">
+<meta name="color-scheme" content="light">
+<link rel="icon" type="image/svg+xml" href="/CCNA-study/favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;1,8..60,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="css/shared.css?v=4.56">
+<title>Collision Domain Simulator — CCNA 200-301</title>
+<style>
+.kicker{font-family:var(--font-display);font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--accent);margin-bottom:var(--s-xs);font-weight:600}
+.section-label{font-family:var(--font-display);font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--accent);margin-bottom:var(--s-sm)}
+.section-title{font-size:1.35rem;margin-top:0;margin-bottom:var(--s-md);padding-bottom:var(--s-sm);border-bottom:1px solid var(--rule)}
+.section-desc{font-family:var(--font-body);font-size:.92rem;color:var(--ink-secondary);line-height:1.65;margin-bottom:var(--s-lg);max-width:65ch}
+section{margin-bottom:var(--s-2xl)}
+
+.quick-answer{background:var(--accent-dim);border:1px solid var(--accent-light);border-left:3px solid var(--accent);border-radius:var(--radius-lg);padding:20px 24px;margin-bottom:var(--s-2xl)}
+.quick-answer h2{font-family:var(--font-display);font-size:1.05rem;font-weight:700;color:var(--accent);margin:0 0 6px;border:0;padding:0}
+.quick-answer p{font-family:var(--font-body);font-size:.95rem;line-height:1.6;color:var(--ink);max-width:none}
+.quick-answer p+p{margin-top:8px}
+
+.mode-tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--s-sm);margin-bottom:var(--s-md)}
+@media (max-width:760px){.mode-tabs{grid-template-columns:1fr}}
+.mode-tab{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px 16px;cursor:pointer;transition:transform .18s var(--ease-out),border-color .15s,background .15s,box-shadow .18s;text-align:left;position:relative;overflow:hidden}
+.mode-tab:hover{border-color:var(--accent);transform:translateY(-1px);box-shadow:0 4px 14px rgba(180,83,9,.08)}
+.mode-tab.active{border-color:var(--accent);background:var(--accent-dim);box-shadow:0 0 0 2px rgba(180,83,9,.14),0 4px 14px rgba(180,83,9,.1)}
+.mode-tab:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.mode-tab h4{font-family:var(--font-display);font-size:.95rem;font-weight:700;color:var(--ink);margin:0 0 4px;display:flex;align-items:center;gap:8px}
+.mode-tab h4 .mt-tag{display:inline-block;font-family:var(--font-mono);font-size:.5rem;font-weight:800;padding:2px 5px;border-radius:3px;letter-spacing:.05em}
+.mode-tab h4 .mt-tag.l1{background:rgba(220,38,38,.14);color:#dc2626}
+.mode-tab h4 .mt-tag.l2{background:rgba(37,99,235,.14);color:#2563eb}
+.mode-tab h4 .mt-tag.mix{background:rgba(124,58,237,.14);color:#7c3aed}
+.mode-tab p{font-family:var(--font-body);font-size:.8rem;color:var(--ink-secondary);line-height:1.5;margin:0;max-width:none}
+
+.sim-panel{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;margin-bottom:var(--s-md)}
+.sim-toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:var(--s-md);padding-bottom:var(--s-md);border-bottom:1px dashed var(--rule)}
+.sim-row-label{font-family:var(--font-display);font-size:.66rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-muted);margin-right:4px}
+.btn{font-family:var(--font-display);font-size:.78rem;font-weight:600;padding:8px 14px;border:1px solid var(--border-strong);background:var(--bg-surface);color:var(--ink);border-radius:var(--radius-md);cursor:pointer;transition:all .15s;letter-spacing:.02em}
+.btn:hover{border-color:var(--accent);background:var(--accent-dim)}
+.btn:active{transform:scale(.97)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+.btn.primary:hover{filter:brightness(1.08)}
+.btn.danger{border-color:#dc2626;color:#dc2626}
+.btn.danger:hover{background:rgba(220,38,38,.08)}
+.btn.pcA{border-left:3px solid #2563eb}
+.btn.pcB{border-left:3px solid #16a34a}
+.btn.pcC{border-left:3px solid #d97706}
+.btn.pcD{border-left:3px solid #db2777}
+
+.speed-wrap{display:inline-flex;align-items:center;gap:8px;margin-left:auto;font-family:var(--font-display);font-size:.74rem;color:var(--ink-secondary)}
+.speed-wrap input[type=range]{width:120px;accent-color:var(--accent)}
+
+/* canvas / topology */
+.canvas-wrap{position:relative;background:#1a1815;border-radius:var(--radius-md);overflow:hidden;aspect-ratio:16/9}
+.canvas-wrap svg{display:block;width:100%;height:100%}
+
+.legend{display:flex;flex-wrap:wrap;gap:14px;margin-top:10px;font-family:var(--font-mono);font-size:.7rem;color:var(--ink-secondary)}
+.legend .sw{display:inline-block;width:14px;height:8px;border-radius:2px;vertical-align:middle;margin-right:5px}
+
+/* counters */
+.counters{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:var(--s-md)}
+@media (max-width:640px){.counters{grid-template-columns:repeat(2,1fr)}}
+.counter{background:var(--bg-page);border:1px solid var(--border);border-radius:var(--radius-md);padding:10px 12px}
+.counter .lbl{font-family:var(--font-display);font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-muted);margin-bottom:4px}
+.counter .val{font-family:var(--font-mono);font-size:1.3rem;font-weight:700;color:var(--ink)}
+.counter.collide .val{color:#dc2626}
+.counter.success .val{color:#16a34a}
+
+/* timeline */
+.timeline-wrap{margin-top:var(--s-md);padding:12px;background:var(--bg-page);border:1px solid var(--border);border-radius:var(--radius-md)}
+.timeline-wrap h5{font-family:var(--font-display);font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-muted);margin:0 0 8px}
+.tl-row{display:grid;grid-template-columns:50px 1fr;gap:8px;align-items:center;margin-bottom:4px}
+.tl-row .tl-lbl{font-family:var(--font-mono);font-size:.7rem;font-weight:700;color:var(--ink-secondary)}
+.tl-track{position:relative;height:14px;background:#f3f0e9;border-radius:3px;overflow:hidden}
+.tl-seg{position:absolute;top:0;bottom:0;border-radius:2px}
+.tl-seg.tx{background:#2563eb;opacity:.8}
+.tl-seg.txB{background:#16a34a;opacity:.8}
+.tl-seg.txC{background:#d97706;opacity:.8}
+.tl-seg.txD{background:#db2777;opacity:.8}
+.tl-seg.col{background:#dc2626}
+.tl-row.medium .tl-track{background:#e8e3d8}
+.tl-row.medium .tl-lbl{color:var(--accent)}
+
+/* teach */
+.teach-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:var(--s-md);margin-top:var(--s-lg)}
+@media (max-width:760px){.teach-grid{grid-template-columns:1fr}}
+.teach-card{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:18px 20px}
+.teach-card h4{font-family:var(--font-display);font-size:.95rem;font-weight:700;color:var(--ink);margin:0 0 8px;display:flex;align-items:center;gap:8px}
+.teach-card h4 .badge{font-family:var(--font-mono);font-size:.55rem;padding:2px 6px;border-radius:3px;background:var(--accent-dim);color:var(--accent);letter-spacing:.05em}
+.teach-card p{font-family:var(--font-body);font-size:.88rem;color:var(--ink-secondary);line-height:1.6;margin:0 0 8px}
+.teach-card ul{font-family:var(--font-body);font-size:.88rem;color:var(--ink-secondary);line-height:1.7;margin:0;padding-left:18px}
+.teach-card code{font-family:var(--font-mono);font-size:.82em;background:var(--accent-dim);color:var(--accent);padding:1px 5px;border-radius:3px}
+
+/* domain badges floating on canvas */
+.domain-badge{position:absolute;font-family:var(--font-mono);font-size:.62rem;font-weight:700;padding:3px 7px;border-radius:3px;letter-spacing:.05em;pointer-events:none;text-transform:uppercase}
+.domain-badge.coll{background:rgba(220,38,38,.18);color:#fca5a5;border:1px solid rgba(220,38,38,.4)}
+.domain-badge.bcast{background:rgba(37,99,235,.16);color:#93c5fd;border:1px solid rgba(37,99,235,.4)}
+
+/* signal pulse animation classes — JS injects */
+.signal{transition:none}
+.collide-flash{animation:collflash .5s ease-out}
+@keyframes collflash{0%{opacity:1}50%{opacity:.3}100%{opacity:1}}
+
+.cite{font-family:var(--font-mono);font-size:.7rem;color:var(--ink-muted);margin-top:var(--s-md);line-height:1.6}
+.cite a{color:var(--accent);text-decoration:none;border-bottom:1px dashed var(--accent)}
+</style>
+</head>
+<body>
+
+<nav id="topnav"></nav>
+
+<main class="container">
+
+  <div class="kicker">CCNA 200-301 · Layer 1 / Layer 2 fundamentals</div>
+  <h1>Collision Domain Simulator</h1>
+  <p class="lede">Watch frames travel down a shared bus, hear the JAM signal when two stations talk over each other, and see how a switch makes the problem disappear by giving every port its own collision domain.</p>
+
+  <section>
+    <div class="quick-answer">
+      <h2>The one-line answer</h2>
+      <p><strong>A hub = one collision domain shared by every port.</strong> If two devices transmit at once, the signals overlap, the hub re-amplifies the mess, every device hears garbage, JAM signal goes out, everyone backs off.</p>
+      <p><strong>A switch = every port is its own collision domain.</strong> Frames are buffered, MAC tables learned, ports run full-duplex — collisions become physically impossible. That's why hubs died.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-label">Pick a topology</div>
+    <div class="mode-tabs" id="modeTabs">
+      <button class="mode-tab active" data-mode="hub">
+        <h4>Hub <span class="mt-tag l1">L1</span></h4>
+        <p>4 PCs on a shared bus through a dumb repeater. <strong>1 collision domain · 1 broadcast domain.</strong> Half-duplex. CSMA/CD active.</p>
+      </button>
+      <button class="mode-tab" data-mode="switch">
+        <h4>Switch <span class="mt-tag l2">L2</span></h4>
+        <p>4 PCs to a learning switch. <strong>4 collision domains · 1 broadcast domain.</strong> Full-duplex. Send all you want.</p>
+      </button>
+      <button class="mode-tab" data-mode="mixed">
+        <h4>Mixed <span class="mt-tag mix">L1+L2</span></h4>
+        <p>Switch with a hub hanging off port 4. <strong>3 + 1 collision domains.</strong> Hub-side still collides, switch-side doesn't.</p>
+      </button>
+    </div>
+
+    <div class="sim-panel">
+
+      <div class="sim-toolbar">
+        <span class="sim-row-label">Send →</span>
+        <button class="btn pcA" data-send="A">PC-A</button>
+        <button class="btn pcB" data-send="B">PC-B</button>
+        <button class="btn pcC" data-send="C">PC-C</button>
+        <button class="btn pcD" data-send="D">PC-D</button>
+        <button class="btn primary" id="btnBoth">Both at once (A+B)</button>
+        <button class="btn danger" id="btnReset">Reset</button>
+        <span class="speed-wrap">Speed
+          <input type="range" id="speed" min="0.3" max="2.5" step="0.1" value="1">
+          <span id="speedVal">1.0×</span>
+        </span>
+      </div>
+
+      <div class="canvas-wrap">
+        <svg id="topoSvg" viewBox="0 0 800 450" preserveAspectRatio="xMidYMid meet"></svg>
+        <div class="domain-badge coll" id="badgeColl" style="top:12px;left:12px">Collision domains: 1</div>
+        <div class="domain-badge bcast" id="badgeBcast" style="top:12px;right:12px">Broadcast domains: 1</div>
+      </div>
+
+      <div class="legend">
+        <span><span class="sw" style="background:#2563eb"></span>PC-A frame</span>
+        <span><span class="sw" style="background:#16a34a"></span>PC-B frame</span>
+        <span><span class="sw" style="background:#d97706"></span>PC-C frame</span>
+        <span><span class="sw" style="background:#db2777"></span>PC-D frame</span>
+        <span><span class="sw" style="background:#dc2626"></span>Collision / JAM</span>
+      </div>
+
+      <div class="counters">
+        <div class="counter success"><div class="lbl">Frames delivered</div><div class="val" id="cntOk">0</div></div>
+        <div class="counter collide"><div class="lbl">Collisions</div><div class="val" id="cntCol">0</div></div>
+        <div class="counter"><div class="lbl">Retransmits</div><div class="val" id="cntRetx">0</div></div>
+        <div class="counter"><div class="lbl">Effective throughput</div><div class="val" id="cntThr">100%</div></div>
+      </div>
+
+      <div class="timeline-wrap">
+        <h5>Medium activity (last 30s)</h5>
+        <div id="timeline"></div>
+      </div>
+
+    </div>
+  </section>
+
+  <section>
+    <div class="section-label">What just happened</div>
+    <h2 class="section-title">Read the picture</h2>
+    <div class="teach-grid">
+      <div class="teach-card">
+        <h4>Hub mode <span class="badge">L1 repeater</span></h4>
+        <p>Hub copies every bit it sees on every port — it's a <em>multi-port repeater</em>. No memory, no MAC table, no buffering.</p>
+        <ul>
+          <li>Two stations transmit → signals overlap on the wire → <strong>collision</strong>.</li>
+          <li>Stations detect overlap (voltage spike), send a <code>JAM</code> signal so everyone knows.</li>
+          <li>Each station picks a random backoff (<code>0..2^k - 1</code> slot times, capped at k=10) and retries.</li>
+          <li>Throughput collapses fast as load grows. ~30-40% utilization is the practical ceiling.</li>
+        </ul>
+      </div>
+      <div class="teach-card">
+        <h4>Switch mode <span class="badge">L2 bridge</span></h4>
+        <p>Switch reads the destination MAC, looks it up in its <code>CAM</code> table, and forwards the frame only out the matching port.</p>
+        <ul>
+          <li>Each port = its own collision domain → <strong>collisions impossible</strong> in full-duplex.</li>
+          <li>Multiple conversations run in parallel (PC-A→PC-B and PC-C→PC-D simultaneously, no contention).</li>
+          <li>Broadcast frames (<code>FF:FF:FF:FF:FF:FF</code>) still flood every port — broadcast domain unchanged.</li>
+          <li>Routers (L3) are what break broadcast domains, not switches.</li>
+        </ul>
+      </div>
+      <div class="teach-card">
+        <h4>The exam shortcut</h4>
+        <ul>
+          <li><strong>Count collision domains</strong> = count switch ports + every hub-side bus once.</li>
+          <li><strong>Count broadcast domains</strong> = count router interfaces / VLANs.</li>
+          <li>Hub adds 0 collision domains (it <em>is</em> one). Switch adds N. Router adds N broadcast domains.</li>
+          <li>Mixed mode shows it: 3 switch-direct PCs + 1 hub bus = <strong>4 collision domains</strong>, still <strong>1 broadcast domain</strong>.</li>
+        </ul>
+      </div>
+      <div class="teach-card">
+        <h4>CSMA/CD in 4 steps</h4>
+        <ul>
+          <li><strong>CS</strong> — Carrier Sense: listen before transmit.</li>
+          <li><strong>MA</strong> — Multiple Access: anyone may try.</li>
+          <li><strong>CD</strong> — Collision Detect: keep listening while sending.</li>
+          <li>On collision → JAM (32 bits of garbage) → binary exponential backoff → retry. Modern switched + full-duplex links disable CSMA/CD entirely.</li>
+        </ul>
+      </div>
+    </div>
+
+    <p class="cite">References — <a href="https://www.networkacademy.io/ccna/ethernet/collision-domains" target="_blank" rel="noopener">NetworkAcademy.IO collision domains</a> · <a href="https://www.pearsonitcertification.com/articles/article.aspx?p=2324461" target="_blank" rel="noopener">Pearson IT — apples & oranges</a> · <a href="https://study-ccna.com/collision-broadcast-domain/" target="_blank" rel="noopener">study-ccna.com</a> · <a href="https://azizozbek.ch/blog/2018/01/csma-cd-simple-explanation-animated/" target="_blank" rel="noopener">Aziz Ozbek animated CSMA/CD</a> · <a href="https://github.com/kgilden/csma-simulator" target="_blank" rel="noopener">kgilden/csma-simulator</a></p>
+  </section>
+
+</main>
+
+<script defer src="js/nav.js?v=4.56"></script>
+<script defer src="js/store.js?v=4.56"></script>
+
+<script>
+window.collisionSim = {pageId:'collision-domain-sim', topic:'L1/L2 collision & broadcast domains'};
+</script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+  // ============================================================
+  //  Topology layout per mode
+  // ============================================================
+  const SVG = document.getElementById('topoSvg');
+  const NS = 'http://www.w3.org/2000/svg';
+  const PC_COLOR = {A:'#2563eb', B:'#16a34a', C:'#d97706', D:'#db2777'};
+
+  // Layouts: each PC has {x,y, port:'central',index} & central device has center
+  const LAYOUTS = {
+    hub: {
+      device: {x:400, y:225, w:120, h:50, label:'HUB', kind:'hub', subtitle:'L1 repeater'},
+      pcs: {
+        A:{x:120, y:120}, B:{x:680, y:120},
+        C:{x:120, y:330}, D:{x:680, y:330}
+      },
+      collDomains: 1,
+      bcastDomains: 1,
+      // a single shared bus — frames travel center-out
+      busType: 'shared'
+    },
+    switch: {
+      device: {x:400, y:225, w:140, h:50, label:'SWITCH', kind:'switch', subtitle:'L2, full-duplex'},
+      pcs: {
+        A:{x:120, y:120}, B:{x:680, y:120},
+        C:{x:120, y:330}, D:{x:680, y:330}
+      },
+      collDomains: 4,
+      bcastDomains: 1,
+      busType: 'isolated'
+    },
+    mixed: {
+      device: {x:340, y:225, w:130, h:50, label:'SWITCH', kind:'switch', subtitle:'L2'},
+      // C and D share a hub off port 4
+      hub: {x:640, y:300, w:90, h:36, label:'HUB', kind:'hub'},
+      pcs: {
+        A:{x:120, y:120}, B:{x:120, y:330},
+        C:{x:740, y:200}, D:{x:740, y:400}
+      },
+      collDomains: 4, // A, B, switch-hub link, hub-bus(C+D) — wait: 3 isolated + 1 shared = 4
+      bcastDomains: 1,
+      busType: 'hybrid'
+    }
+  };
+
+  let mode = 'hub';
+  let speed = 1.0;
+  let inflight = []; // active signals
+  let timelineEvents = []; // {pc, t0, t1, kind:'tx'|'col'}
+  let simStartT = performance.now();
+  let counters = {ok:0, col:0, retx:0, attempts:0};
+
+  // ============================================================
+  //  Render topology SVG
+  // ============================================================
+  function render(){
+    const L = LAYOUTS[mode];
+    SVG.innerHTML = '';
+
+    // collision domain regions (translucent)
+    if (mode === 'hub') {
+      drawDomain(40, 70, 720, 320, 'rgba(220,38,38,0.10)', 'rgba(220,38,38,0.5)');
+    } else if (mode === 'switch') {
+      // 4 small regions, one per PC-port
+      Object.entries(L.pcs).forEach(([k,p])=>{
+        const cx=(p.x+L.device.x+L.device.w/2)/2;
+        const cy=(p.y+L.device.y+L.device.h/2)/2;
+        drawDomain(Math.min(p.x,cx)-30, Math.min(p.y,cy)-30,
+                   Math.abs(p.x-cx)+60, Math.abs(p.y-cy)+60,
+                   'rgba(22,163,74,0.10)', 'rgba(22,163,74,0.5)');
+      });
+    } else if (mode === 'mixed') {
+      // A and B isolated regions to switch
+      ['A','B'].forEach(k=>{
+        const p=L.pcs[k];
+        const cx=(p.x+L.device.x+L.device.w/2)/2;
+        const cy=(p.y+L.device.y+L.device.h/2)/2;
+        drawDomain(Math.min(p.x,cx)-25, Math.min(p.y,cy)-25,
+                   Math.abs(p.x-cx)+55, Math.abs(p.y-cy)+55,
+                   'rgba(22,163,74,0.10)', 'rgba(22,163,74,0.5)');
+      });
+      // switch-hub link (its own collision domain, but trivial)
+      const sx=L.device.x+L.device.w, sy=L.device.y+L.device.h/2;
+      const hx=L.hub.x, hy=L.hub.y+L.hub.h/2;
+      drawDomain(Math.min(sx,hx)-15, Math.min(sy,hy)-20,
+                 Math.abs(sx-hx)+30, Math.abs(sy-hy)+40,
+                 'rgba(22,163,74,0.10)', 'rgba(22,163,74,0.5)');
+      // hub bus + C + D — RED (still collides)
+      drawDomain(L.hub.x-30, L.hub.y-50, L.hub.w+150, L.hub.h+150,
+                 'rgba(220,38,38,0.12)', 'rgba(220,38,38,0.5)');
+    }
+
+    // cables
+    Object.entries(L.pcs).forEach(([k,p])=>{
+      let target = {x: L.device.x + L.device.w/2, y: L.device.y + L.device.h/2};
+      if (mode === 'mixed' && (k==='C' || k==='D')) {
+        target = {x: L.hub.x + L.hub.w/2, y: L.hub.y + L.hub.h/2};
+      }
+      drawCable(p.x+30, p.y+20, target.x, target.y, k);
+    });
+    if (mode === 'mixed') {
+      drawCable(L.device.x+L.device.w, L.device.y+L.device.h/2,
+                L.hub.x, L.hub.y+L.hub.h/2, 'switch-hub');
+    }
+
+    // central device
+    drawDevice(L.device);
+    if (mode === 'mixed') drawDevice(L.hub);
+
+    // PCs
+    Object.entries(L.pcs).forEach(([k,p])=>drawPC(k, p.x, p.y));
+
+    // domain badges
+    document.getElementById('badgeColl').textContent =
+      `Collision domains: ${L.collDomains}`;
+    document.getElementById('badgeBcast').textContent =
+      `Broadcast domains: ${L.bcastDomains}`;
+  }
+
+  function drawDomain(x,y,w,h,fill,stroke){
+    const r = document.createElementNS(NS,'rect');
+    r.setAttribute('x',x); r.setAttribute('y',y);
+    r.setAttribute('width',w); r.setAttribute('height',h);
+    r.setAttribute('rx',12);
+    r.setAttribute('fill',fill);
+    r.setAttribute('stroke',stroke);
+    r.setAttribute('stroke-dasharray','6 4');
+    r.setAttribute('stroke-width','1.5');
+    SVG.appendChild(r);
+  }
+
+  function drawCable(x1,y1,x2,y2,key){
+    const l = document.createElementNS(NS,'line');
+    l.setAttribute('x1',x1); l.setAttribute('y1',y1);
+    l.setAttribute('x2',x2); l.setAttribute('y2',y2);
+    l.setAttribute('stroke','#4a4538');
+    l.setAttribute('stroke-width','3');
+    l.setAttribute('stroke-linecap','round');
+    l.dataset.cable = key;
+    SVG.appendChild(l);
+  }
+
+  function drawDevice(d){
+    const g = document.createElementNS(NS,'g');
+    const r = document.createElementNS(NS,'rect');
+    r.setAttribute('x',d.x); r.setAttribute('y',d.y);
+    r.setAttribute('width',d.w); r.setAttribute('height',d.h);
+    r.setAttribute('rx',6);
+    r.setAttribute('fill', d.kind==='hub' ? '#3b1f1a' : '#1e2f4a');
+    r.setAttribute('stroke', d.kind==='hub' ? '#dc2626' : '#3b82f6');
+    r.setAttribute('stroke-width','2');
+    g.appendChild(r);
+
+    const t = document.createElementNS(NS,'text');
+    t.setAttribute('x', d.x+d.w/2);
+    t.setAttribute('y', d.y+d.h/2 + 1);
+    t.setAttribute('text-anchor','middle');
+    t.setAttribute('dominant-baseline','middle');
+    t.setAttribute('fill','#fff');
+    t.setAttribute('font-family','Space Grotesk');
+    t.setAttribute('font-weight','700');
+    t.setAttribute('font-size','14');
+    t.textContent = d.label;
+    g.appendChild(t);
+
+    if (d.subtitle) {
+      const s = document.createElementNS(NS,'text');
+      s.setAttribute('x', d.x+d.w/2);
+      s.setAttribute('y', d.y+d.h+14);
+      s.setAttribute('text-anchor','middle');
+      s.setAttribute('fill','#b8b3a8');
+      s.setAttribute('font-family','JetBrains Mono');
+      s.setAttribute('font-size','9');
+      s.textContent = d.subtitle;
+      g.appendChild(s);
+    }
+    SVG.appendChild(g);
+  }
+
+  function drawPC(label, x, y){
+    const g = document.createElementNS(NS,'g');
+    g.dataset.pc = label;
+    const r = document.createElementNS(NS,'rect');
+    r.setAttribute('x',x); r.setAttribute('y',y);
+    r.setAttribute('width',60); r.setAttribute('height',40);
+    r.setAttribute('rx',4);
+    r.setAttribute('fill','#2a2620');
+    r.setAttribute('stroke', PC_COLOR[label]);
+    r.setAttribute('stroke-width','2');
+    g.appendChild(r);
+
+    const t = document.createElementNS(NS,'text');
+    t.setAttribute('x', x+30); t.setAttribute('y', y+24);
+    t.setAttribute('text-anchor','middle');
+    t.setAttribute('fill','#fff');
+    t.setAttribute('font-family','Space Grotesk');
+    t.setAttribute('font-weight','700');
+    t.setAttribute('font-size','13');
+    t.textContent = 'PC-'+label;
+    g.appendChild(t);
+    SVG.appendChild(g);
+  }
+
+  // ============================================================
+  //  Frame send + animation
+  // ============================================================
+  function sendFrame(pc){
+    counters.attempts++;
+    const L = LAYOUTS[mode];
+    const src = L.pcs[pc];
+    const goesViaHub = (mode === 'mixed' && (pc === 'C' || pc === 'D'));
+    const firstHop = goesViaHub
+      ? {x: L.hub.x + L.hub.w/2, y: L.hub.y + L.hub.h/2}
+      : {x: L.device.x + L.device.w/2, y: L.device.y + L.device.h/2};
+
+    const startX = src.x + 30, startY = src.y + 20;
+
+    // Phase 1: PC → first device (always travels)
+    const sig = createSignal(pc, startX, startY);
+    SVG.appendChild(sig);
+    const t0 = performance.now();
+    const dur1 = 600 / speed;
+    inflight.push({el:sig, pc, phase:1, t0, dur:dur1,
+                   from:{x:startX,y:startY}, to:firstHop, mode, viaHub:goesViaHub});
+
+    addTimelineEvent(pc, t0, t0+dur1, 'tx');
+  }
+
+  function createSignal(pc, x, y){
+    const c = document.createElementNS(NS,'circle');
+    c.setAttribute('cx',x); c.setAttribute('cy',y);
+    c.setAttribute('r','7');
+    c.setAttribute('fill', PC_COLOR[pc]);
+    c.setAttribute('stroke','#fff');
+    c.setAttribute('stroke-width','1.5');
+    c.classList.add('signal');
+    c.dataset.pc = pc;
+    return c;
+  }
+
+  function fanOutFromHub(srcPc, hubX, hubY, hubKind){
+    // Replicate signal out to every other PC connected to that hub
+    const L = LAYOUTS[mode];
+    const targets = [];
+    if (hubKind === 'hub' && mode === 'hub') {
+      Object.entries(L.pcs).forEach(([k,p])=>{
+        if (k !== srcPc) targets.push({k, x:p.x+30, y:p.y+20});
+      });
+    } else if (hubKind === 'hub' && mode === 'mixed') {
+      // mixed-mode hub serves C, D — and uplinks to switch
+      ['C','D'].forEach(k=>{
+        if (k !== srcPc) targets.push({k, x:L.pcs[k].x+30, y:L.pcs[k].y+20});
+      });
+      // also uplink to switch (so switch can forward to A or B)
+      targets.push({k:'switch', x:L.device.x+L.device.w, y:L.device.y+L.device.h/2});
+    } else if (hubKind === 'switch') {
+      // switch forwards to one specific port (random destination ≠ src)
+      const candidates = Object.keys(L.pcs).filter(k=>k!==srcPc);
+      const dest = candidates[Math.floor(Math.random()*candidates.length)];
+      const p = L.pcs[dest];
+      // mixed: if dest is C/D, route via hub
+      if (mode === 'mixed' && (dest === 'C' || dest === 'D')) {
+        targets.push({k:'mixhub', x:L.hub.x, y:L.hub.y+L.hub.h/2, finalDest:dest});
+      } else {
+        targets.push({k:dest, x:p.x+30, y:p.y+20});
+      }
+    }
+
+    targets.forEach(tgt=>{
+      const sig2 = createSignal(srcPc, hubX, hubY);
+      SVG.appendChild(sig2);
+      const t0 = performance.now();
+      const dur = 600 / speed;
+      inflight.push({el:sig2, pc:srcPc, phase:2, t0, dur,
+                     from:{x:hubX,y:hubY}, to:{x:tgt.x,y:tgt.y},
+                     mode, finalK:tgt.k, finalDest:tgt.finalDest});
+    });
+  }
+
+  function tick(now){
+    // detect collisions: any hub-side signals from different PCs in same domain
+    const collisionPairs = detectCollisions();
+    if (collisionPairs.length) {
+      handleCollision(collisionPairs);
+    }
+
+    // advance positions
+    for (let i = inflight.length - 1; i >= 0; i--) {
+      const s = inflight[i];
+      const dt = now - s.t0;
+      const p = Math.min(1, dt / s.dur);
+      const x = s.from.x + (s.to.x - s.from.x) * p;
+      const y = s.from.y + (s.to.y - s.from.y) * p;
+      s.el.setAttribute('cx', x);
+      s.el.setAttribute('cy', y);
+      if (p >= 1) {
+        // signal arrived
+        SVG.removeChild(s.el);
+        inflight.splice(i, 1);
+        // continue routing
+        if (s.phase === 1) {
+          const L = LAYOUTS[mode];
+          if (mode === 'hub') {
+            fanOutFromHub(s.pc, L.device.x+L.device.w/2, L.device.y+L.device.h/2, 'hub');
+          } else if (mode === 'switch') {
+            fanOutFromHub(s.pc, L.device.x+L.device.w/2, L.device.y+L.device.h/2, 'switch');
+          } else if (mode === 'mixed') {
+            if (s.viaHub) {
+              // arrived at hub first
+              fanOutFromHub(s.pc, L.hub.x+L.hub.w/2, L.hub.y+L.hub.h/2, 'hub');
+            } else {
+              fanOutFromHub(s.pc, L.device.x+L.device.w/2, L.device.y+L.device.h/2, 'switch');
+            }
+          }
+        } else if (s.phase === 2) {
+          // signal reached its final hop
+          if (s.finalK === 'switch') {
+            // mixed: forward through switch to A or B (random)
+            const candidates = ['A','B'];
+            const dest = candidates[Math.floor(Math.random()*candidates.length)];
+            const p2 = LAYOUTS[mode].pcs[dest];
+            const sig3 = createSignal(s.pc, s.to.x, s.to.y);
+            SVG.appendChild(sig3);
+            inflight.push({el:sig3, pc:s.pc, phase:3,
+              t0:performance.now(), dur:600/speed,
+              from:s.to, to:{x:p2.x+30,y:p2.y+20}});
+          } else if (s.finalK === 'mixhub') {
+            // switch → hub uplink, then fan out to finalDest
+            const p2 = LAYOUTS[mode].pcs[s.finalDest];
+            const sig3 = createSignal(s.pc, s.to.x, s.to.y);
+            SVG.appendChild(sig3);
+            inflight.push({el:sig3, pc:s.pc, phase:3,
+              t0:performance.now(), dur:600/speed,
+              from:s.to, to:{x:p2.x+30,y:p2.y+20}});
+          } else {
+            // delivered
+            counters.ok++;
+            updateCounters();
+          }
+        } else if (s.phase === 3) {
+          counters.ok++;
+          updateCounters();
+        }
+      }
+    }
+
+    drawTimeline();
+    requestAnimationFrame(tick);
+  }
+
+  function detectCollisions(){
+    // group inflight phase-1 (or phase-2 on hub bus) by domain
+    const collisions = [];
+    if (mode === 'switch') return collisions; // never collides
+
+    if (mode === 'hub') {
+      // any 2+ phase-1 signals from different PCs at same time = collision
+      const ph1 = inflight.filter(s => s.phase === 1);
+      const pcs = [...new Set(ph1.map(s => s.pc))];
+      if (pcs.length >= 2) {
+        collisions.push({domain:'hub-bus', sigs: ph1.filter(s=>!s._marked)});
+      }
+    } else if (mode === 'mixed') {
+      // hub-side (C, D, and switch-hub uplink) shares a domain
+      const hubSide = inflight.filter(s =>
+        (s.phase === 1 && s.viaHub) ||
+        (s.phase === 2 && (s.pc === 'C' || s.pc === 'D')) ||
+        (s.finalK === 'mixhub')
+      );
+      const pcs = [...new Set(hubSide.map(s => s.pc))];
+      if (pcs.length >= 2) {
+        collisions.push({domain:'mixed-hub', sigs: hubSide.filter(s=>!s._marked)});
+      }
+    }
+    return collisions;
+  }
+
+  function handleCollision(pairs){
+    pairs.forEach(p=>{
+      const fresh = p.sigs.filter(s=>!s._marked);
+      if (fresh.length === 0) return;
+      counters.col++;
+      const now = performance.now();
+      const involved = [...new Set(fresh.map(s=>s.pc))];
+      involved.forEach(pc=> addTimelineEvent(pc, now, now+250, 'col'));
+
+      fresh.forEach(s=>{
+        s._marked = true;
+        s.el.setAttribute('fill','#dc2626');
+        s.el.setAttribute('r','11');
+        s.el.classList.add('collide-flash');
+      });
+
+      // wipe after JAM
+      setTimeout(()=>{
+        fresh.forEach(s=>{
+          const i = inflight.indexOf(s);
+          if (i>=0) {
+            try { SVG.removeChild(s.el); } catch(e){}
+            inflight.splice(i,1);
+          }
+        });
+        // exponential backoff retry — schedule retx
+        involved.forEach((pc, i)=>{
+          counters.retx++;
+          const backoff = (300 + Math.random() * 700 * (i+1)) / speed;
+          setTimeout(()=> sendFrame(pc), backoff);
+        });
+        updateCounters();
+      }, 400);
+    });
+  }
+
+  // ============================================================
+  //  Counters + timeline
+  // ============================================================
+  function updateCounters(){
+    document.getElementById('cntOk').textContent = counters.ok;
+    document.getElementById('cntCol').textContent = counters.col;
+    document.getElementById('cntRetx').textContent = counters.retx;
+    const total = counters.attempts;
+    const eff = total === 0 ? 100 : Math.min(100, Math.round(100 * counters.ok / total));
+    document.getElementById('cntThr').textContent = eff + '%';
+  }
+
+  function addTimelineEvent(pc, t0, t1, kind){
+    timelineEvents.push({pc, t0, t1, kind});
+    if (timelineEvents.length > 200) timelineEvents.shift();
+  }
+
+  function drawTimeline(){
+    const tl = document.getElementById('timeline');
+    const now = performance.now();
+    const window_ms = 30000;
+    const cutoff = now - window_ms;
+    const lanes = ['A','B','C','D','MED'];
+    let html = '';
+    lanes.forEach(lane=>{
+      const isMed = lane === 'MED';
+      const lbl = isMed ? 'MEDIUM' : 'PC-'+lane;
+      let segs = '';
+      timelineEvents.forEach(e=>{
+        if (e.t1 < cutoff) return;
+        const matches = isMed
+          ? true
+          : e.pc === lane;
+        if (!matches) return;
+        const a = Math.max(0, (e.t0 - cutoff) / window_ms * 100);
+        const b = Math.min(100, (e.t1 - cutoff) / window_ms * 100);
+        const cls = e.kind === 'col' ? 'col' : ('tx'+(e.pc==='B'?'B':e.pc==='C'?'C':e.pc==='D'?'D':''));
+        segs += `<div class="tl-seg ${cls}" style="left:${a}%;width:${b-a}%"></div>`;
+      });
+      html += `<div class="tl-row ${isMed?'medium':''}">
+                 <div class="tl-lbl">${lbl}</div>
+                 <div class="tl-track">${segs}</div>
+               </div>`;
+    });
+    tl.innerHTML = html;
+  }
+
+  // ============================================================
+  //  Wire up controls
+  // ============================================================
+  document.querySelectorAll('#modeTabs .mode-tab').forEach(t=>{
+    t.addEventListener('click', ()=>{
+      document.querySelectorAll('#modeTabs .mode-tab').forEach(x=>x.classList.remove('active'));
+      t.classList.add('active');
+      mode = t.dataset.mode;
+      reset();
+    });
+  });
+
+  document.querySelectorAll('[data-send]').forEach(b=>{
+    b.addEventListener('click', ()=> sendFrame(b.dataset.send));
+  });
+
+  document.getElementById('btnBoth').addEventListener('click', ()=>{
+    sendFrame('A');
+    sendFrame('B');
+  });
+
+  document.getElementById('btnReset').addEventListener('click', reset);
+
+  document.getElementById('speed').addEventListener('input', e=>{
+    speed = parseFloat(e.target.value);
+    document.getElementById('speedVal').textContent = speed.toFixed(1) + '×';
+  });
+
+  function reset(){
+    inflight.forEach(s=>{ try{SVG.removeChild(s.el);}catch(e){} });
+    inflight = [];
+    timelineEvents = [];
+    counters = {ok:0, col:0, retx:0, attempts:0};
+    simStartT = performance.now();
+    updateCounters();
+    render();
+  }
+
+  render();
+  updateCounters();
+  requestAnimationFrame(tick);
+});
+</script>
+
+</body>
+</html>
