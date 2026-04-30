@@ -1617,6 +1617,177 @@
     window.toggleBit = toggleBit;
     window.toggleExtended = toggleExtended;
     window.toggleTrap = toggleTrap;
+
+  // ══════════════════════════════════════════════════════════════
+  //  SEVEN-SECOND TABLE — hover tooltips
+  // ══════════════════════════════════════════════════════════════
+  (function initSubnetTooltips() {
+    var rows = document.querySelectorAll('#seven-second-tbody .subnet-row');
+    if (!rows.length) return;
+    var tip = document.createElement('div');
+    tip.className = 'subnet-tooltip';
+    document.body.appendChild(tip);
+
+    function bin(n) {
+      var s = '';
+      for (var i = 7; i >= 0; i--) s += ((n >> i) & 1);
+      return s;
+    }
+
+    rows.forEach(function(row) {
+      row.addEventListener('mouseenter', function() {
+        var mask = parseInt(row.dataset.mask, 10);
+        var nets = parseInt(row.dataset.nets, 10);
+        var addrs = parseInt(row.dataset.addrs, 10);
+        var cidrs = row.dataset.cidrs.split(',');
+        var magic = mask === 0 ? 256 : 256 - mask;
+        var blocks = [];
+        for (var i = 0; i < Math.min(nets, 4); i++) blocks.push('.' + (i * addrs));
+        if (nets > 4) blocks.push('…');
+        tip.innerHTML =
+          '<strong>Magic number:</strong> 256 &minus; ' + mask + ' = ' + magic +
+          '<br><strong>Block size:</strong> ' + addrs + ' addresses' +
+          '<br><strong>Mask binary:</strong> <span class="tt-binary">' + bin(mask) + '</span>' +
+          '<br><strong>Networks:</strong> ' + nets + ' &times; <strong>Addrs:</strong> ' + addrs + ' = 256' +
+          '<br><strong>Example /' + cidrs[3] + ':</strong> 192.168.1' + blocks.join(', ');
+        tip.classList.add('visible');
+      });
+      row.addEventListener('mousemove', function(e) {
+        var x = Math.min(e.clientX + 18, window.innerWidth - 380);
+        var y = Math.min(e.clientY + 18, window.innerHeight - 180);
+        tip.style.left = x + 'px';
+        tip.style.top = y + 'px';
+      });
+      row.addEventListener('mouseleave', function() {
+        tip.classList.remove('visible');
+      });
+      row.addEventListener('click', function() {
+        var cidrs = row.dataset.cidrs.split(',');
+        var lastCidr = parseInt(cidrs[3], 10);
+        if (window.__halvingPaint) window.__halvingPaint(lastCidr);
+        var slider = document.getElementById('bbSlider');
+        if (slider && window.__bbUpdate) {
+          slider.value = lastCidr;
+          window.__bbUpdate(lastCidr);
+        }
+        document.querySelectorAll('.halving-pill').forEach(function(p) {
+          p.classList.toggle('active', p.dataset.cidr === String(lastCidr));
+        });
+      });
+    });
+  })();
+
+  // ══════════════════════════════════════════════════════════════
+  //  HALVING GRID — click CIDR, watch addresses split
+  // ══════════════════════════════════════════════════════════════
+  (function initHalvingGrid() {
+    var controls = document.getElementById('halvingControls');
+    var grid = document.getElementById('halvingGrid');
+    if (!controls || !grid) return;
+
+    var cells = [];
+    for (var i = 0; i < 256; i++) {
+      var c = document.createElement('div');
+      c.className = 'halving-cell';
+      grid.appendChild(c);
+      cells.push(c);
+    }
+
+    var palette = ['#FCA5A5', '#FCD34D', '#86EFAC', '#93C5FD',
+                   '#C4B5FD', '#F9A8D4', '#FDBA74', '#67E8F9',
+                   '#FECACA', '#FDE68A', '#BBF7D0', '#BFDBFE',
+                   '#DDD6FE', '#FBCFE8', '#FED7AA', '#A5F3FC'];
+
+    function paint(cidr) {
+      var hostBits = Math.min(32 - cidr, 8);
+      hostBits = Math.max(hostBits, 0);
+      var addrPerSubnet = Math.pow(2, hostBits);
+      var nets = 256 / addrPerSubnet;
+      for (var i = 0; i < 256; i++) {
+        var blockIdx = Math.floor(i / addrPerSubnet);
+        cells[i].style.background = palette[blockIdx % palette.length];
+      }
+      document.getElementById('hgNetworks').textContent = nets;
+      document.getElementById('hgAddresses').textContent = addrPerSubnet;
+      document.getElementById('hgProduct').textContent = (nets * addrPerSubnet);
+    }
+    window.__halvingPaint = paint;
+
+    var prefixes = [24, 25, 26, 27, 28, 29, 30, 31, 32];
+    prefixes.forEach(function(p) {
+      var pill = document.createElement('button');
+      pill.className = 'halving-pill';
+      pill.textContent = '/' + p;
+      pill.dataset.cidr = p;
+      pill.addEventListener('click', function() {
+        controls.querySelectorAll('.halving-pill').forEach(function(b) { b.classList.remove('active'); });
+        pill.classList.add('active');
+        paint(p);
+      });
+      controls.appendChild(pill);
+    });
+
+    controls.querySelector('.halving-pill').classList.add('active');
+    paint(24);
+  })();
+
+  // ══════════════════════════════════════════════════════════════
+  //  BIT-BORROWING SLIDER — drag prefix, derive everything
+  // ══════════════════════════════════════════════════════════════
+  (function initBitBorrowing() {
+    var slider = document.getElementById('bbSlider');
+    if (!slider) return;
+
+    var bitEls = [];
+    for (var oct = 0; oct < 4; oct++) {
+      var container = document.getElementById('bbOctet' + oct);
+      for (var b = 0; b < 8; b++) {
+        var el = document.createElement('div');
+        el.className = 'bb-bit';
+        container.appendChild(el);
+        bitEls.push(el);
+      }
+    }
+
+    function update(prefix) {
+      document.getElementById('bbCidr').textContent = '/' + prefix;
+      for (var i = 0; i < 32; i++) {
+        bitEls[i].classList.toggle('on', i < prefix);
+      }
+      var octets = [0, 0, 0, 0];
+      for (var k = 0; k < prefix; k++) {
+        octets[Math.floor(k / 8)] |= (1 << (7 - (k % 8)));
+      }
+      document.getElementById('bbMask').textContent = octets.join('.');
+
+      var maskOctet, magic;
+      if (prefix === 0) { maskOctet = 0; magic = 256; }
+      else if (prefix === 32) { maskOctet = 255; magic = 1; }
+      else {
+        var firstNon255 = Math.floor(prefix / 8);
+        maskOctet = octets[firstNon255];
+        magic = 256 - maskOctet;
+      }
+
+      var hostBitsInOctet = (32 - prefix) % 8;
+      if (hostBitsInOctet === 0 && prefix !== 0) hostBitsInOctet = 8;
+      if (prefix === 0) hostBitsInOctet = 8;
+      var addrInOctet = Math.pow(2, hostBitsInOctet);
+      var netsInOctet = 256 / addrInOctet;
+      if (prefix === 0) { addrInOctet = 256; netsInOctet = 1; }
+
+      document.getElementById('bbMagic').textContent = magic;
+      document.getElementById('bbNets').textContent = netsInOctet;
+      document.getElementById('bbAddrs').textContent = addrInOctet;
+    }
+    window.__bbUpdate = update;
+
+    slider.addEventListener('input', function() {
+      update(parseInt(slider.value, 10));
+    });
+    update(24);
+  })();
+
   });</script>
 <script defer src="js/tutor.js"></script>
 </body>
