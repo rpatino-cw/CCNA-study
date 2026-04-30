@@ -155,6 +155,24 @@
     return params.get('obj') || '1.1';
   }
 
+  function parentObjective(obj) {
+    const parts = String(obj || '').split('.');
+    if (parts.length <= 2) return null;
+    return parts.slice(0, 2).join('.');
+  }
+
+  function resolveBucket(data, obj) {
+    if (!data) return { key: obj, value: null, fellBack: false };
+    if (data[obj]) return { key: obj, value: data[obj], fellBack: false };
+    const parent = parentObjective(obj);
+    if (parent && data[parent]) return { key: parent, value: data[parent], fellBack: true };
+    return { key: obj, value: null, fellBack: false };
+  }
+
+  function fallbackBanner(obj, parentKey) {
+    return `<div class="drawer-fallback" style="font-size:.78rem;color:var(--ink-muted,#a8a29e);font-style:italic;margin:0 0 14px;padding:8px 10px;background:var(--accent-dim,#fffbeb);border-left:2px solid var(--accent,#b45309);border-radius:3px">Showing parent objective <strong>${escapeHtml(parentKey)}</strong> — no specific extracts for <strong>${escapeHtml(obj)}</strong> yet.</div>`;
+  }
+
   async function loadData(kind) {
     if (cache[kind] !== undefined) return cache[kind];
     try {
@@ -176,12 +194,14 @@
   async function renderBooks(refId) {
     const data = await loadData('books');
     const obj = getObjective();
-    const entries = (data && data[obj]) || [];
+    const resolved = resolveBucket(data, obj);
+    const entries = Array.isArray(resolved.value) ? resolved.value : [];
     if (!entries.length) {
       els.body.innerHTML = `<div class="drawer-empty">References coming soon — book extracts not yet generated for objective ${escapeHtml(obj)}.</div>`;
       return;
     }
-    els.body.innerHTML = entries.map(e => {
+    const banner = resolved.fellBack ? fallbackBanner(obj, resolved.key) : '';
+    els.body.innerHTML = banner + entries.map(e => {
       const id = `ocg-vol${e.volume}-p${e.page}`;
       const isTarget = refId === id;
       const paras = (e.paragraphs || []).map(p => `<p>${escapeHtml(p)}</p>`).join('');
@@ -200,7 +220,8 @@
   async function renderTips(refId) {
     const data = await loadData('tips');
     const obj = getObjective();
-    const bucket = (data && data[obj]) || { popular: [], trending: [] };
+    const resolved = resolveBucket(data, obj);
+    const bucket = resolved.value || { popular: [], trending: [] };
     const popular = bucket.popular || [];
     const trending = bucket.trending || [];
 
@@ -208,6 +229,7 @@
       els.body.innerHTML = `<div class="drawer-empty">Community tips coming soon — none collected yet for objective ${escapeHtml(obj)}.</div>`;
       return;
     }
+    const banner = resolved.fellBack ? fallbackBanner(obj, resolved.key) : '';
 
     const tipHtml = t => `<div class="tip">
       <div class="tip-text">${escapeHtml(t.tip || '')}</div>
@@ -223,7 +245,7 @@
       ${trending.length ? trending.map(tipHtml).join('') : '<div class="drawer-empty" style="margin-top:0">none yet</div>'}
     </section>`;
 
-    els.body.innerHTML = popSection + trendSection;
+    els.body.innerHTML = banner + popSection + trendSection;
 
     if (refId) {
       const seg = String(refId).split('-').pop();
