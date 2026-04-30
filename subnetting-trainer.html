@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#FAF7F2">
+  <title>Subnet Mask Trainer — CIDR ↔ Mask</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="icon" type="image/svg+xml" href="/CCNA-study/favicon.svg">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:wght@600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap">
+  <link rel="stylesheet" href="css/shared.css?v=4.56">
+  <style>
+    .page-header { padding: var(--s-xl) 0 var(--s-lg); border-bottom: 2px solid var(--ink); margin-bottom: var(--s-xl); display: flex; align-items: flex-start; justify-content: space-between; gap: var(--s-lg); flex-wrap: wrap; }
+    .page-header h1 { font-family: var(--font-display); font-size: 2.6rem; font-weight: 700; letter-spacing: -0.04em; line-height: 1; margin-bottom: 6px; }
+    .page-header-sub { font-family: var(--font-display); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-muted); }
+
+    .section-nav-wrapper { position: sticky; top: 0; z-index: 100; background: var(--bg); border-bottom: 1px solid var(--border); margin-bottom: var(--s-2xl); padding: var(--s-sm) 0; }
+    .section-nav { display: flex; gap: var(--s-xs); overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; flex-wrap: nowrap; }
+    .section-nav::-webkit-scrollbar { display: none; }
+    .section-nav a { display: inline-block; padding: 5px 12px; border-radius: 20px; border: 1px solid var(--border); background: var(--bg-surface); font-family: var(--font-display); font-size: 0.72rem; font-weight: 500; letter-spacing: 0.02em; color: var(--ink-secondary); text-decoration: none; white-space: nowrap; transition: all var(--transition); flex-shrink: 0; }
+    .section-nav a:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+
+    .section-block { margin-bottom: var(--s-3xl); scroll-margin-top: 60px; }
+    .section-kicker { font-family: var(--font-display); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--ink-muted); margin-bottom: var(--s-xs); }
+    .section-block h2 { font-family: var(--font-display); font-size: 1.7rem; font-weight: 700; letter-spacing: -0.03em; margin-bottom: var(--s-md); border-bottom: 1px solid var(--border); padding-bottom: var(--s-sm); }
+    .section-block p { font-family: var(--font-body); font-size: 1rem; line-height: 1.7; color: var(--ink-secondary); margin-bottom: var(--s-md); max-width: 72ch; }
+
+    .visual-block { background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 24px; margin-bottom: var(--s-md); overflow-x: auto; }
+    .block-label { font-family: var(--font-display); font-size: 0.78rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--accent); margin-bottom: 12px; }
+
+    .calc-btn { font-family: var(--font-display); font-size: 0.82rem; font-weight: 700; padding: 10px 20px; border-radius: 6px; border: none; background: var(--ink); color: var(--bg); cursor: pointer; transition: all 0.15s; }
+    .calc-btn:hover { background: #44403C; transform: translateY(-1px); }
+    .calc-btn:active { transform: scale(0.97); }
+    .calc-btn.ghost { background: transparent; color: var(--ink); border: 1px solid var(--border-strong); }
+    .calc-btn.ghost:hover { background: var(--bg-recessed); }
+
+    .learn-banner { background: var(--accent-dim); border: 2px solid var(--accent-light); border-radius: var(--radius-lg); padding: 16px 24px; margin-bottom: var(--s-xl); text-align: center; }
+    .learn-banner a { font-family: var(--font-display); font-size: 0.88rem; font-weight: 700; color: var(--accent); text-decoration: none; }
+    .learn-banner a:hover { text-decoration: underline; }
+
+    /* ── Teach mode ─────────────────────────────────────────── */
+    .teach-input-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 18px; }
+    .teach-input-row label { font-family: var(--font-display); font-size: 0.85rem; font-weight: 600; }
+    .teach-input { font-family: var(--font-mono); font-size: 1.1rem; font-weight: 700; padding: 8px 14px; width: 90px; border: 2px solid var(--border); border-radius: 8px; background: var(--bg-surface); text-align: center; }
+    .teach-input:focus { border-color: var(--accent); outline: none; }
+
+    .teach-step { background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 20px; margin-bottom: 12px; opacity: 0; transform: translateY(8px); transition: opacity 0.4s, transform 0.4s; }
+    .teach-step.show { opacity: 1; transform: translateY(0); }
+    .teach-step-num { display: inline-block; width: 22px; height: 22px; line-height: 22px; text-align: center; border-radius: 50%; background: var(--accent); color: white; font-family: var(--font-display); font-size: 0.75rem; font-weight: 700; margin-right: 8px; }
+    .teach-step-title { font-family: var(--font-display); font-size: 0.95rem; font-weight: 700; display: inline; }
+    .teach-step-body { font-family: var(--font-body); font-size: 0.92rem; line-height: 1.7; color: var(--ink-secondary); margin-top: 8px; }
+    .teach-step-body code { font-family: var(--font-mono); background: var(--bg-recessed); padding: 1px 6px; border-radius: 4px; font-size: 0.88rem; color: var(--ink); }
+
+    .octet-row { display: flex; gap: 8px; margin: 12px 0; flex-wrap: wrap; }
+    .octet-cell { flex: 1; min-width: 130px; padding: 10px 12px; background: var(--bg-surface); border: 1px solid var(--border); border-radius: 8px; text-align: center; }
+    .octet-cell.full { border-color: var(--accent); background: var(--accent-dim); }
+    .octet-cell.partial { border-color: #F59E0B; background: #FEF3C7; }
+    .octet-cell.zero { opacity: 0.55; }
+    .octet-bin { font-family: var(--font-mono); font-size: 0.82rem; color: var(--ink-secondary); margin-bottom: 4px; letter-spacing: 0.5px; }
+    .octet-dec { font-family: var(--font-display); font-size: 1.4rem; font-weight: 700; color: var(--ink); }
+    .octet-tag { font-family: var(--font-display); font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-muted); margin-top: 2px; }
+
+    .bit-table { width: 100%; border-collapse: collapse; margin-top: 10px; font-family: var(--font-mono); font-size: 0.88rem; }
+    .bit-table th, .bit-table td { padding: 8px 10px; text-align: center; border: 1px solid var(--border); }
+    .bit-table th { background: var(--bg-recessed); font-family: var(--font-display); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em; }
+    .bit-table tr.hl td { background: var(--accent-dim); color: var(--accent); font-weight: 700; }
+
+    /* ── Simulator ──────────────────────────────────────────── */
+    .sim-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    @media (max-width: 720px) { .sim-grid { grid-template-columns: 1fr; } }
+    .sim-card { background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 18px; }
+    .sim-card-label { font-family: var(--font-display); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-muted); margin-bottom: 4px; }
+    .sim-card-val { font-family: var(--font-mono); font-size: 1.3rem; font-weight: 700; color: var(--ink); word-break: break-all; }
+    .sim-card-val.big { font-size: 1.6rem; }
+    .sim-card-sub { font-family: var(--font-body); font-size: 0.78rem; color: var(--ink-secondary); margin-top: 4px; }
+
+    .slider-row { margin-bottom: 18px; }
+    .slider-row .lab { display: flex; justify-content: space-between; font-family: var(--font-display); font-size: 0.82rem; margin-bottom: 6px; }
+    .slider-row .lab b { font-family: var(--font-mono); color: var(--accent); }
+    input[type="range"].cidr-slider { width: 100%; accent-color: var(--accent); }
+
+    .bitstrip { display: flex; gap: 2px; margin-top: 14px; flex-wrap: wrap; }
+    .bitstrip .bit { width: 22px; height: 28px; display: flex; align-items: center; justify-content: center; font-family: var(--font-mono); font-size: 0.78rem; font-weight: 700; border-radius: 3px; background: var(--bg-recessed); color: var(--ink-muted); }
+    .bitstrip .bit.on { background: var(--accent); color: white; }
+    .bitstrip .sep { width: 6px; }
+
+    /* ── Quiz ──────────────────────────────────────────────── */
+    .quiz-wrap { max-width: 680px; }
+    .q-progress { font-family: var(--font-display); font-size: 0.75rem; color: var(--ink-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: var(--s-sm); }
+    .q-text { font-family: var(--font-body); font-size: 1.1rem; line-height: 1.6; margin-bottom: var(--s-md); padding: var(--s-md) var(--s-lg); background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius-lg); }
+    .q-text code { font-family: var(--font-mono); background: var(--bg-recessed); padding: 2px 8px; border-radius: 4px; font-weight: 700; color: var(--accent); }
+
+    .quiz-input-row { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+    .quiz-input { flex: 1; min-width: 200px; font-family: var(--font-mono); font-size: 1rem; padding: 12px 16px; border: 2px solid var(--border); border-radius: 8px; background: var(--bg-surface); }
+    .quiz-input:focus { border-color: var(--accent); outline: none; }
+
+    .feedback-msg { font-family: var(--font-display); font-size: 0.88rem; font-weight: 600; padding: 12px 16px; border-radius: var(--radius); margin-bottom: var(--s-sm); display: none; line-height: 1.6; }
+    .feedback-msg.correct { background: #F0FDF4; border: 1px solid #BBF7D0; color: #166534; display: block; }
+    .feedback-msg.wrong { background: #FEF2F2; border: 1px solid #FECACA; color: #991B1B; display: block; }
+    .feedback-msg .why { font-family: var(--font-mono); font-weight: 500; font-size: 0.82rem; margin-top: 6px; opacity: 0.85; }
+
+    .score-card { background: var(--bg-surface); border: 2px solid var(--border-strong); border-radius: var(--radius-lg); padding: var(--s-xl); text-align: center; display: none; }
+    .score-card.visible { display: block; }
+    .score-big { font-family: var(--font-display); font-size: 4rem; font-weight: 700; color: var(--accent); letter-spacing: -0.05em; line-height: 1; margin-bottom: var(--s-sm); }
+    .score-sub { font-family: var(--font-body); font-size: 1rem; color: var(--ink-secondary); margin-bottom: var(--s-lg); }
+
+    .quiz-meta { display: flex; gap: 16px; flex-wrap: wrap; font-family: var(--font-mono); font-size: 0.82rem; color: var(--ink-secondary); margin-bottom: 14px; }
+    .quiz-meta b { color: var(--ink); }
+
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <nav class="top-nav"></nav>
+  <script defer src="js/nav.js?v=3"></script>
+
+  <div class="page-header">
+    <div>
+      <div class="page-header-sub">CCNA 200-301 &mdash; Trainer</div>
+      <h1>Subnet Mask Trainer</h1>
+    </div>
+  </div>
+
+  <div class="learn-banner">
+    <a href="subnetting-visual.html">&larr; Visual Guide</a>
+    &nbsp;·&nbsp;
+    <a href="subnetting-mastery.html">Mastery Drills &rarr;</a>
+  </div>
+
+  <div class="section-nav-wrapper">
+    <nav class="section-nav">
+      <a href="#teach">Teach</a>
+      <a href="#simulator">Simulator</a>
+      <a href="#quiz">Quiz</a>
+    </nav>
+  </div>
+
+  <!-- ══ TEACH ══════════════════════════════════════════════ -->
+  <section class="section-block" id="teach">
+    <div class="section-kicker">Step-by-Step</div>
+    <h2>Teach Me — CIDR to Subnet Mask</h2>
+    <p>Type any CIDR prefix from <code>/0</code> to <code>/32</code>. The page builds the mask in front of you, octet by octet, so the math sticks.</p>
+
+    <div class="visual-block">
+      <div class="block-label">Input</div>
+      <div class="teach-input-row">
+        <label for="teachInput">Prefix:</label>
+        <span style="font-family:var(--font-mono);font-size:1.4rem;font-weight:700">/</span>
+        <input type="number" id="teachInput" class="teach-input" min="0" max="32" value="25">
+        <button class="calc-btn" onclick="runTeach()">Convert</button>
+        <button class="calc-btn ghost" onclick="randomTeach()">Random</button>
+      </div>
+
+      <div id="teachSteps"></div>
+    </div>
+  </section>
+
+  <!-- ══ SIMULATOR ══════════════════════════════════════════ -->
+  <section class="section-block" id="simulator">
+    <div class="section-kicker">Live</div>
+    <h2>Simulator — Drag the Slider</h2>
+    <p>Drag the slider. Mask, binary view, host count, and network count all update in real time. Build muscle memory for the bit table.</p>
+
+    <div class="visual-block">
+      <div class="block-label">Prefix Length</div>
+      <div class="slider-row">
+        <div class="lab"><span>/0</span><span>Current: <b id="simCidr">/24</b></span><span>/32</span></div>
+        <input type="range" class="cidr-slider" id="simSlider" min="0" max="32" value="24">
+      </div>
+
+      <div class="sim-grid">
+        <div class="sim-card">
+          <div class="sim-card-label">Subnet Mask (decimal)</div>
+          <div class="sim-card-val big" id="simMask">255.255.255.0</div>
+        </div>
+        <div class="sim-card">
+          <div class="sim-card-label">Wildcard Mask</div>
+          <div class="sim-card-val" id="simWild">0.0.0.255</div>
+          <div class="sim-card-sub">ACL inverse of mask</div>
+        </div>
+        <div class="sim-card">
+          <div class="sim-card-label">Usable Hosts</div>
+          <div class="sim-card-val big" id="simHosts">254</div>
+          <div class="sim-card-sub" id="simHostsFormula">2^8 − 2</div>
+        </div>
+        <div class="sim-card">
+          <div class="sim-card-label">Total Addresses</div>
+          <div class="sim-card-val" id="simTotal">256</div>
+          <div class="sim-card-sub">Network + broadcast included</div>
+        </div>
+        <div class="sim-card">
+          <div class="sim-card-label">Class</div>
+          <div class="sim-card-val" id="simClass">C-default</div>
+          <div class="sim-card-sub" id="simClassNote">Classful era boundary</div>
+        </div>
+        <div class="sim-card">
+          <div class="sim-card-label">Subnets per /24</div>
+          <div class="sim-card-val" id="simSubnets">1</div>
+          <div class="sim-card-sub">If borrowed from a /24</div>
+        </div>
+      </div>
+
+      <div style="margin-top:18px">
+        <div class="sim-card-label">Binary View (32 bits)</div>
+        <div class="bitstrip" id="simBits"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ QUIZ ══════════════════════════════════════════════ -->
+  <section class="section-block" id="quiz">
+    <div class="section-kicker">10 Random Questions</div>
+    <h2>Quiz — CIDR ↔ Mask</h2>
+    <p>10 questions, mixed direction. Type the answer. Score saved per session.</p>
+
+    <div class="quiz-wrap">
+      <div class="quiz-meta">
+        <span>Question: <b id="qNum">1</b> / 10</span>
+        <span>Score: <b id="qScore">0</b></span>
+        <span>Streak: <b id="qStreak">0</b></span>
+      </div>
+
+      <div id="quizArea">
+        <div class="q-progress" id="qProgress">Question 1 of 10</div>
+        <div class="q-text" id="qText">Loading…</div>
+        <div class="quiz-input-row">
+          <input type="text" id="quizInput" class="quiz-input" placeholder="Type your answer…" autocomplete="off">
+          <button class="calc-btn" onclick="submitQuiz()">Check</button>
+          <button class="calc-btn ghost" onclick="skipQuiz()">Skip</button>
+        </div>
+        <div class="feedback-msg" id="quizFeedback"></div>
+        <div id="quizNextWrap" class="hidden" style="margin-top:10px">
+          <button class="calc-btn" onclick="nextQuiz()">Next &rarr;</button>
+        </div>
+      </div>
+
+      <div class="score-card" id="quizScore">
+        <div class="score-big" id="scoreBig">—</div>
+        <div class="score-sub" id="scoreSub"></div>
+        <button class="calc-btn" onclick="startQuiz()">Try Again</button>
+      </div>
+    </div>
+  </section>
+
+</div><!-- /container -->
+
+<script defer src="js/store.js"></script>
+<script defer src="js/sync.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  // ── Shared math ──────────────────────────────────────────
+  function cidrToMask(n) {
+    if (n < 0 || n > 32) return null;
+    const bits = ('1'.repeat(n) + '0'.repeat(32 - n));
+    return [0,8,16,24].map(i => parseInt(bits.substr(i,8), 2)).join('.');
+  }
+  function maskToCidr(mask) {
+    const parts = mask.split('.').map(Number);
+    if (parts.length !== 4 || parts.some(p => isNaN(p) || p < 0 || p > 255)) return null;
+    let bits = '';
+    for (const p of parts) bits += p.toString(2).padStart(8, '0');
+    if (!/^1*0*$/.test(bits)) return null;
+    return bits.replace(/0/g, '').length;
+  }
+  function wildcard(mask) {
+    return mask.split('.').map(p => 255 - Number(p)).join('.');
+  }
+  function classOf(n) {
+    if (n < 8) return { name: 'sub-A', note: 'Larger than /8 — supernet' };
+    if (n === 8) return { name: 'A-default', note: 'Classful /8' };
+    if (n < 16) return { name: 'A-subnet', note: 'Class A subnetted' };
+    if (n === 16) return { name: 'B-default', note: 'Classful /16' };
+    if (n < 24) return { name: 'B-subnet', note: 'Class B subnetted' };
+    if (n === 24) return { name: 'C-default', note: 'Classful /24' };
+    if (n < 31) return { name: 'C-subnet', note: 'Class C subnetted' };
+    if (n === 31) return { name: 'P2P', note: 'Point-to-point (RFC 3021)' };
+    return { name: 'Host', note: 'Single host route' };
+  }
+  function hostsFor(n) {
+    if (n === 32) return { hosts: 1, formula: '1 (host route)' };
+    if (n === 31) return { hosts: 2, formula: '2 (P2P, RFC 3021)' };
+    const total = Math.pow(2, 32 - n);
+    return { hosts: total - 2, formula: `2^${32-n} − 2` };
+  }
+  const BIT_VALS = [128, 192, 224, 240, 248, 252, 254, 255];
+
+  // ══ TEACH MODE ═══════════════════════════════════════════
+  const teachInput = document.getElementById('teachInput');
+  const teachSteps = document.getElementById('teachSteps');
+
+  function runTeach() {
+    const n = parseInt(teachInput.value, 10);
+    if (isNaN(n) || n < 0 || n > 32) {
+      teachSteps.innerHTML = '<div class="teach-step show" style="color:#991B1B">Enter a number from 0 to 32.</div>';
+      return;
+    }
+    const mask = cidrToMask(n);
+    const fullOctets = Math.floor(n / 8);
+    const partialBits = n % 8;
+    const partialVal = partialBits === 0 ? 0 : BIT_VALS[partialBits - 1];
+    const octets = mask.split('.').map(Number);
+
+    const steps = [];
+
+    steps.push(`
+      <div class="teach-step">
+        <span class="teach-step-num">1</span>
+        <span class="teach-step-title">Read the prefix as bits</span>
+        <div class="teach-step-body">
+          <code>/${n}</code> means the first <strong>${n}</strong> bits of the 32-bit mask are <code>1</code>, the rest are <code>0</code>.
+          <br>So the mask in binary is:
+          <div style="font-family:var(--font-mono);font-size:0.92rem;margin-top:8px;letter-spacing:1px;word-break:break-all">
+            ${octets.map(o => o.toString(2).padStart(8, '0')).join(' . ')}
+          </div>
+        </div>
+      </div>`);
+
+    steps.push(`
+      <div class="teach-step">
+        <span class="teach-step-num">2</span>
+        <span class="teach-step-title">Group into octets (8 bits each)</span>
+        <div class="teach-step-body">
+          ${fullOctets > 0 ? `<strong>${fullOctets}</strong> full octet${fullOctets>1?'s':''} of all 1s = <code>255</code>.` : 'No full octets.'}
+          ${partialBits > 0 ? ` Then <strong>${partialBits}</strong> partial bit${partialBits>1?'s':''} in octet ${fullOctets+1}.` : ''}
+          ${fullOctets+ (partialBits>0?1:0) < 4 ? ` The rest are zero.` : ''}
+          <div class="octet-row">
+            ${octets.map((v, i) => {
+              let cls = 'zero', tag = '0';
+              if (i < fullOctets) { cls = 'full'; tag = 'all 1s'; }
+              else if (i === fullOctets && partialBits > 0) { cls = 'partial'; tag = `${partialBits} bits`; }
+              return `<div class="octet-cell ${cls}">
+                <div class="octet-bin">${v.toString(2).padStart(8, '0')}</div>
+                <div class="octet-dec">${v}</div>
+                <div class="octet-tag">octet ${i+1} · ${tag}</div>
+              </div>`;
+            }).join('')}
+          </div>
+        </div>
+      </div>`);
+
+    if (partialBits > 0) {
+      const rows = BIT_VALS.map((v, i) => {
+        const bits = i + 1;
+        const cls = bits === partialBits ? 'hl' : '';
+        return `<tr class="${cls}"><td>${bits}</td><td>${'1'.repeat(bits) + '0'.repeat(8-bits)}</td><td>${v}</td></tr>`;
+      }).join('');
+      steps.push(`
+        <div class="teach-step">
+          <span class="teach-step-num">3</span>
+          <span class="teach-step-title">Use the bit-value table for the partial octet</span>
+          <div class="teach-step-body">
+            <strong>${partialBits} bit${partialBits>1?'s':''}</strong> of 1s in an octet = <code>${partialVal}</code>. Memorize this table — it shows up everywhere.
+            <table class="bit-table">
+              <thead><tr><th>Bits</th><th>Binary</th><th>Decimal</th></tr></thead>
+              <tbody>${rows}</tbody>
+            </table>
+          </div>
+        </div>`);
+    }
+
+    const finalStepNum = partialBits > 0 ? 4 : 3;
+    const h = hostsFor(n);
+    steps.push(`
+      <div class="teach-step">
+        <span class="teach-step-num">${finalStepNum}</span>
+        <span class="teach-step-title">Final answer</span>
+        <div class="teach-step-body">
+          <code>/${n}</code> &nbsp;=&nbsp; <strong style="font-size:1.15rem;color:var(--accent);font-family:var(--font-mono)">${mask}</strong>
+          <br>Wildcard: <code>${wildcard(mask)}</code>
+          &nbsp;·&nbsp; Hosts: <code>${h.hosts.toLocaleString()}</code> (${h.formula})
+          &nbsp;·&nbsp; Total: <code>${Math.pow(2, 32-n).toLocaleString()}</code>
+        </div>
+      </div>`);
+
+    teachSteps.innerHTML = steps.join('');
+    requestAnimationFrame(() => {
+      teachSteps.querySelectorAll('.teach-step').forEach((el, i) => {
+        setTimeout(() => el.classList.add('show'), i * 180);
+      });
+    });
+  }
+  function randomTeach() {
+    teachInput.value = Math.floor(Math.random() * 25) + 8;
+    runTeach();
+  }
+  teachInput.addEventListener('keydown', e => { if (e.key === 'Enter') runTeach(); });
+  window.runTeach = runTeach;
+  window.randomTeach = randomTeach;
+  runTeach();
+
+  // ══ SIMULATOR ════════════════════════════════════════════
+  const simSlider = document.getElementById('simSlider');
+  const simBits = document.getElementById('simBits');
+
+  function paintBits(n) {
+    const cells = [];
+    for (let i = 0; i < 32; i++) {
+      cells.push(`<div class="bit ${i < n ? 'on' : ''}">${i < n ? '1' : '0'}</div>`);
+      if (i % 8 === 7 && i < 31) cells.push('<div class="sep"></div>');
+    }
+    simBits.innerHTML = cells.join('');
+  }
+  function updateSim() {
+    const n = parseInt(simSlider.value, 10);
+    const mask = cidrToMask(n);
+    const h = hostsFor(n);
+    const c = classOf(n);
+    document.getElementById('simCidr').textContent = '/' + n;
+    document.getElementById('simMask').textContent = mask;
+    document.getElementById('simWild').textContent = wildcard(mask);
+    document.getElementById('simHosts').textContent = h.hosts.toLocaleString();
+    document.getElementById('simHostsFormula').textContent = h.formula;
+    document.getElementById('simTotal').textContent = Math.pow(2, 32-n).toLocaleString();
+    document.getElementById('simClass').textContent = c.name;
+    document.getElementById('simClassNote').textContent = c.note;
+    const subs = n >= 24 ? Math.pow(2, n - 24) : (n < 24 ? 'fewer than 1' : 1);
+    document.getElementById('simSubnets').textContent = typeof subs === 'number' ? subs.toLocaleString() : subs;
+    paintBits(n);
+  }
+  simSlider.addEventListener('input', updateSim);
+  updateSim();
+
+  // ══ QUIZ ═════════════════════════════════════════════════
+  const quizFeedback = document.getElementById('quizFeedback');
+  const quizInput = document.getElementById('quizInput');
+  const qText = document.getElementById('qText');
+  const qProgress = document.getElementById('qProgress');
+  const qNum = document.getElementById('qNum');
+  const qScoreEl = document.getElementById('qScore');
+  const qStreakEl = document.getElementById('qStreak');
+  const quizArea = document.getElementById('quizArea');
+  const quizScore = document.getElementById('quizScore');
+  const nextWrap = document.getElementById('quizNextWrap');
+
+  let quiz = [];
+  let qIndex = 0, qScore = 0, qStreak = 0, qBestStreak = 0, qAnswered = false;
+
+  function makeQuestion() {
+    const n = Math.floor(Math.random() * 25) + 8; // /8..32
+    const mask = cidrToMask(n);
+    // 50/50 direction
+    if (Math.random() < 0.5) {
+      return {
+        prompt: `Convert <code>/${n}</code> to a dotted-decimal subnet mask.`,
+        accept: [mask],
+        why: `/${n} = ${n} ones → ${mask}`,
+        type: 'cidr2mask'
+      };
+    } else {
+      return {
+        prompt: `Convert mask <code>${mask}</code> to CIDR notation.`,
+        accept: [`/${n}`, `${n}`],
+        why: `${mask} has ${n} contiguous 1-bits → /${n}`,
+        type: 'mask2cidr'
+      };
+    }
+  }
+  function startQuiz() {
+    quiz = Array.from({length: 10}, makeQuestion);
+    qIndex = 0; qScore = 0; qStreak = 0; qBestStreak = 0; qAnswered = false;
+    quizArea.classList.remove('hidden');
+    quizScore.classList.remove('visible');
+    nextWrap.classList.add('hidden');
+    quizFeedback.className = 'feedback-msg';
+    quizFeedback.style.display = 'none';
+    quizInput.value = '';
+    quizInput.disabled = false;
+    renderQ();
+  }
+  function renderQ() {
+    const q = quiz[qIndex];
+    qText.innerHTML = q.prompt;
+    qProgress.textContent = `Question ${qIndex + 1} of ${quiz.length}`;
+    qNum.textContent = qIndex + 1;
+    qScoreEl.textContent = qScore;
+    qStreakEl.textContent = qStreak;
+    quizFeedback.className = 'feedback-msg';
+    quizFeedback.style.display = 'none';
+    nextWrap.classList.add('hidden');
+    quizInput.value = '';
+    quizInput.disabled = false;
+    quizInput.focus();
+    qAnswered = false;
+  }
+  function submitQuiz() {
+    if (qAnswered) return;
+    const q = quiz[qIndex];
+    const ans = quizInput.value.trim().toLowerCase().replace(/\s+/g, '');
+    const ok = q.accept.some(a => a.toLowerCase().replace(/\s+/g, '') === ans);
+    qAnswered = true;
+    quizInput.disabled = true;
+    if (ok) {
+      qScore++; qStreak++; qBestStreak = Math.max(qBestStreak, qStreak);
+      quizFeedback.className = 'feedback-msg correct';
+      quizFeedback.innerHTML = `Correct. <div class="why">${q.why}</div>`;
+    } else {
+      qStreak = 0;
+      quizFeedback.className = 'feedback-msg wrong';
+      quizFeedback.innerHTML = `Wrong. Answer: <strong>${q.accept[0]}</strong><div class="why">${q.why}</div>`;
+    }
+    qScoreEl.textContent = qScore;
+    qStreakEl.textContent = qStreak;
+    nextWrap.classList.remove('hidden');
+  }
+  function skipQuiz() {
+    if (qAnswered) return;
+    const q = quiz[qIndex];
+    qStreak = 0;
+    qAnswered = true;
+    quizInput.disabled = true;
+    quizFeedback.className = 'feedback-msg wrong';
+    quizFeedback.innerHTML = `Skipped. Answer: <strong>${q.accept[0]}</strong><div class="why">${q.why}</div>`;
+    qStreakEl.textContent = qStreak;
+    nextWrap.classList.remove('hidden');
+  }
+  function nextQuiz() {
+    qIndex++;
+    if (qIndex >= quiz.length) {
+      quizArea.classList.add('hidden');
+      quizScore.classList.add('visible');
+      const pct = Math.round((qScore / quiz.length) * 100);
+      document.getElementById('scoreBig').textContent = `${qScore}/${quiz.length}`;
+      let msg = '';
+      if (pct === 100) msg = 'Perfect run. Speed is the next gear.';
+      else if (pct >= 80) msg = 'Solid. A few more sessions and the bit table is automatic.';
+      else if (pct >= 60) msg = 'Getting there. Re-run Teach mode on the ones you missed.';
+      else msg = 'Slow down in Teach mode first. Then come back.';
+      document.getElementById('scoreSub').innerHTML = `${msg}<br>Best streak: <strong>${qBestStreak}</strong>`;
+      return;
+    }
+    renderQ();
+  }
+  quizInput.addEventListener('keydown', e => {
+    if (e.key !== 'Enter') return;
+    if (qAnswered) nextQuiz(); else submitQuiz();
+  });
+  window.submitQuiz = submitQuiz;
+  window.skipQuiz = skipQuiz;
+  window.nextQuiz = nextQuiz;
+  window.startQuiz = startQuiz;
+  startQuiz();
+});
+</script>
+</body>
+</html>
