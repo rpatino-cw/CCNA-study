@@ -1,0 +1,1087 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#FAF7F2">
+<meta name="color-scheme" content="light">
+<link rel="icon" type="image/svg+xml" href="/CCNA-study/favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;1,8..60,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="css/shared.css?v=4.56">
+<title>QoS Simulator — CCNA 200-301 (4.7)</title>
+<style>
+.kicker{font-family:var(--font-display);font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--accent);margin-bottom:var(--s-xs);font-weight:600}
+.section-label{font-family:var(--font-display);font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--accent);margin-bottom:var(--s-sm)}
+.section-title{font-size:1.35rem;margin-top:0;margin-bottom:var(--s-md);padding-bottom:var(--s-sm);border-bottom:1px solid var(--rule)}
+.section-desc{font-family:var(--font-body);font-size:.92rem;color:var(--ink-secondary);line-height:1.65;margin-bottom:var(--s-lg);max-width:65ch}
+section{margin-bottom:var(--s-2xl)}
+
+.quick-answer{background:var(--accent-dim);border:1px solid var(--accent-light);border-left:3px solid var(--accent);border-radius:var(--radius-lg);padding:20px 24px;margin-bottom:var(--s-2xl)}
+.quick-answer h2{font-family:var(--font-display);font-size:1.05rem;font-weight:700;color:var(--accent);margin:0 0 6px;border:0;padding:0}
+.quick-answer p{font-family:var(--font-body);font-size:.95rem;line-height:1.6;color:var(--ink);max-width:none}
+.quick-answer p+p{margin-top:8px}
+
+.mode-tabs{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--s-sm);margin-bottom:var(--s-md)}
+@media (max-width:980px){.mode-tabs{grid-template-columns:repeat(2,1fr)}}
+@media (max-width:560px){.mode-tabs{grid-template-columns:1fr}}
+.mode-tab{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:12px 14px;cursor:pointer;transition:all .18s var(--ease-out);text-align:left;position:relative;overflow:hidden}
+.mode-tab:hover{border-color:var(--accent);transform:translateY(-1px);box-shadow:0 4px 14px rgba(180,83,9,.08)}
+.mode-tab.active{border-color:var(--accent);background:var(--accent-dim);box-shadow:0 0 0 2px rgba(180,83,9,.14),0 4px 14px rgba(180,83,9,.1)}
+.mode-tab:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.mode-tab h4{font-family:var(--font-display);font-size:.86rem;font-weight:700;color:var(--ink);margin:0 0 4px;display:flex;align-items:center;gap:6px}
+.mode-tab h4 .mt-tag{display:inline-block;font-family:var(--font-mono);font-size:.5rem;font-weight:800;padding:2px 5px;border-radius:3px;letter-spacing:.05em;background:rgba(180,83,9,.14);color:var(--accent)}
+.mode-tab p{font-family:var(--font-body);font-size:.74rem;color:var(--ink-secondary);line-height:1.5;margin:0;max-width:none}
+
+.sim-panel{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;margin-bottom:var(--s-md)}
+.sim-toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:var(--s-md);padding-bottom:var(--s-md);border-bottom:1px dashed var(--rule)}
+.sim-row-label{font-family:var(--font-display);font-size:.66rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-muted);margin-right:4px}
+.btn{font-family:var(--font-display);font-size:.78rem;font-weight:600;padding:8px 14px;border:1px solid var(--border-strong);background:var(--bg-surface);color:var(--ink);border-radius:var(--radius-md);cursor:pointer;transition:all .15s;letter-spacing:.02em}
+.btn:hover{border-color:var(--accent);background:var(--accent-dim)}
+.btn:active{transform:scale(.97)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+.btn.primary:hover{filter:brightness(1.08)}
+.btn.danger{border-color:#dc2626;color:#dc2626}
+.btn.voice{border-left:3px solid #dc2626}
+.btn.video{border-left:3px solid #7c3aed}
+.btn.data{border-left:3px solid #2563eb}
+
+.module{display:none}
+.module.active{display:block}
+
+.exam-tip{background:#fef3c7;border:1px solid #fbbf24;border-left:3px solid #d97706;border-radius:var(--radius-md);padding:12px 16px;margin-top:var(--s-md);font-family:var(--font-body);font-size:.86rem;line-height:1.55;color:#78350f}
+.exam-tip strong{color:#92400e;font-family:var(--font-display);text-transform:uppercase;font-size:.7rem;letter-spacing:.08em;display:block;margin-bottom:4px}
+
+/* === Module 1 — Why QoS === */
+.metric-grid{display:grid;grid-template-columns:1fr 1fr;gap:var(--s-md);margin-top:var(--s-md)}
+@media (max-width:760px){.metric-grid{grid-template-columns:1fr}}
+.metric-card{background:var(--bg-page);border:1px solid var(--border);border-radius:var(--radius-md);padding:14px 16px}
+.metric-card label{display:block;font-family:var(--font-display);font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-muted);margin-bottom:6px}
+.metric-card .val{font-family:var(--font-mono);font-size:1.1rem;font-weight:700;color:var(--ink);margin-bottom:8px}
+.metric-card input[type=range]{width:100%;accent-color:var(--accent)}
+.traffic-row{display:grid;grid-template-columns:80px 1fr 60px;gap:10px;align-items:center;padding:10px 0;border-bottom:1px dashed var(--rule)}
+.traffic-row:last-child{border:0}
+.traffic-row .name{font-family:var(--font-display);font-weight:700;font-size:.86rem;color:var(--ink)}
+.traffic-row .name.voice{color:#dc2626}
+.traffic-row .name.video{color:#7c3aed}
+.traffic-row .name.data{color:#2563eb}
+.bar-track{height:14px;background:#f3f0e9;border-radius:7px;overflow:hidden;position:relative}
+.bar-fill{height:100%;border-radius:7px;transition:width .4s var(--ease-out),background .4s}
+.bar-fill.ok{background:linear-gradient(90deg,#16a34a,#22c55e)}
+.bar-fill.warn{background:linear-gradient(90deg,#f59e0b,#fbbf24)}
+.bar-fill.bad{background:linear-gradient(90deg,#dc2626,#ef4444)}
+.score{font-family:var(--font-mono);font-weight:700;font-size:.9rem;text-align:right}
+.score.ok{color:#16a34a}.score.warn{color:#d97706}.score.bad{color:#dc2626}
+
+/* === Module 2 — Pipeline === */
+.pipeline-svg-wrap{background:#1a1815;border-radius:var(--radius-md);overflow:hidden;padding:10px}
+.pipeline-svg-wrap svg{display:block;width:100%;height:auto}
+.stage-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-top:var(--s-md)}
+@media (max-width:980px){.stage-grid{grid-template-columns:repeat(3,1fr)}}
+@media (max-width:560px){.stage-grid{grid-template-columns:repeat(2,1fr)}}
+.stage-btn{background:var(--bg-page);border:1px solid var(--border);border-radius:var(--radius-md);padding:10px;cursor:pointer;font-family:var(--font-display);font-size:.74rem;font-weight:600;color:var(--ink);transition:all .15s;text-align:center}
+.stage-btn:hover{border-color:var(--accent);background:var(--accent-dim)}
+.stage-btn.active{border-color:var(--accent);background:var(--accent);color:#fff}
+.stage-detail{background:var(--bg-page);border:1px solid var(--border);border-left:3px solid var(--accent);border-radius:var(--radius-md);padding:14px 18px;margin-top:var(--s-sm);font-family:var(--font-body);font-size:.9rem;line-height:1.6;color:var(--ink-secondary);min-height:80px}
+.stage-detail strong{color:var(--ink);display:block;font-family:var(--font-display);font-size:.78rem;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
+
+/* === Module 3 — Marking === */
+.byte-decoder{background:var(--bg-page);border:1px solid var(--border);border-radius:var(--radius-md);padding:18px;margin-top:var(--s-md)}
+.byte-row{display:flex;gap:6px;justify-content:center;margin-bottom:var(--s-md)}
+.bit{width:54px;height:64px;border:1px solid var(--border-strong);border-radius:6px;background:var(--bg-surface);cursor:pointer;font-family:var(--font-mono);font-size:1.4rem;font-weight:700;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--ink);transition:all .15s;position:relative;user-select:none}
+.bit:hover{border-color:var(--accent)}
+.bit.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+.bit .pos{font-family:var(--font-mono);font-size:.55rem;color:var(--ink-muted);position:absolute;top:3px;right:5px;font-weight:600}
+.bit.on .pos{color:rgba(255,255,255,.7)}
+.bit .label-tag{font-family:var(--font-mono);font-size:.5rem;font-weight:700;position:absolute;bottom:3px}
+.bit.dscp{border-top:3px solid #2563eb}
+.bit.ecn{border-top:3px solid #7c3aed}
+.byte-readout{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:var(--s-md)}
+@media (max-width:760px){.byte-readout{grid-template-columns:repeat(2,1fr)}}
+.readout{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-md);padding:10px 12px}
+.readout .lbl{font-family:var(--font-display);font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-muted);margin-bottom:4px}
+.readout .val{font-family:var(--font-mono);font-size:1.1rem;font-weight:700;color:var(--ink)}
+.readout .name{font-family:var(--font-mono);font-size:.74rem;color:var(--accent);margin-top:2px}
+
+.dscp-table{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:var(--s-md)}
+@media (max-width:760px){.dscp-table{grid-template-columns:repeat(2,1fr)}}
+.dscp-cell{background:var(--bg-page);border:1px solid var(--border);border-radius:6px;padding:8px 10px;cursor:pointer;transition:all .15s}
+.dscp-cell:hover{border-color:var(--accent);background:var(--accent-dim)}
+.dscp-cell .nm{font-family:var(--font-display);font-size:.78rem;font-weight:700;color:var(--ink)}
+.dscp-cell .vals{font-family:var(--font-mono);font-size:.7rem;color:var(--ink-secondary)}
+.dscp-cell.ef{border-left:3px solid #dc2626}
+.dscp-cell.cs{border-left:3px solid #2563eb}
+.dscp-cell.af{border-left:3px solid #16a34a}
+.dscp-cell.be{border-left:3px solid #6b7280}
+
+.trust-lab{margin-top:var(--s-lg);background:var(--bg-page);border:1px solid var(--border);border-radius:var(--radius-md);padding:18px}
+.trust-lab svg{display:block;max-width:100%;height:auto}
+
+/* === Module 4 — Queue Race === */
+.queue-canvas{background:#1a1815;border-radius:var(--radius-md);width:100%;height:auto;display:block}
+.queue-stats{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-top:var(--s-md)}
+@media (max-width:980px){.queue-stats{grid-template-columns:repeat(2,1fr)}}
+.qstat{background:var(--bg-page);border:1px solid var(--border);border-radius:var(--radius-md);padding:10px}
+.qstat .nm{font-family:var(--font-display);font-size:.66rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-muted);margin-bottom:4px}
+.qstat .v{font-family:var(--font-mono);font-size:.84rem;color:var(--ink);line-height:1.5}
+.qstat .v span{display:inline-block;min-width:30px}
+.qstat .v .voice{color:#dc2626}
+.qstat .v .video{color:#7c3aed}
+.qstat .v .data{color:#2563eb}
+.qstat .v .drop{color:#dc2626;font-weight:700}
+
+/* === Module 5 — Police vs Shape === */
+.bucket-canvas{background:#1a1815;border-radius:var(--radius-md);width:100%;height:auto;display:block}
+.ps-controls{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:var(--s-md)}
+@media (max-width:760px){.ps-controls{grid-template-columns:1fr}}
+.ps-controls .metric-card{margin:0}
+
+/* === Module 6 — WRED === */
+.wred-canvas{background:#1a1815;border-radius:var(--radius-md);width:100%;height:auto;display:block}
+.wred-toggle{display:flex;gap:10px;margin-top:var(--s-md);flex-wrap:wrap}
+
+/* === Module 7 — Quiz / Cheat === */
+.quiz-card{background:var(--bg-page);border:1px solid var(--border);border-radius:var(--radius-md);padding:18px;margin-bottom:var(--s-md)}
+.quiz-card .q{font-family:var(--font-display);font-weight:600;font-size:1rem;color:var(--ink);margin-bottom:12px;line-height:1.5}
+.quiz-card .opts{display:grid;gap:8px}
+.quiz-opt{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-md);padding:10px 14px;cursor:pointer;font-family:var(--font-body);font-size:.9rem;color:var(--ink);text-align:left;transition:all .15s}
+.quiz-opt:hover{border-color:var(--accent)}
+.quiz-opt.correct{background:rgba(22,163,74,.12);border-color:#16a34a;color:#15803d}
+.quiz-opt.wrong{background:rgba(220,38,38,.1);border-color:#dc2626;color:#991b1b}
+.quiz-opt.disabled{cursor:default;opacity:.6}
+.quiz-explain{margin-top:10px;padding:10px 14px;background:var(--accent-dim);border-radius:var(--radius-md);font-family:var(--font-body);font-size:.85rem;color:var(--ink);line-height:1.5;display:none}
+.quiz-explain.show{display:block}
+.quiz-progress{font-family:var(--font-mono);font-size:.78rem;color:var(--ink-muted);margin-bottom:var(--s-sm)}
+
+.cheat{background:var(--bg-page);border:1px solid var(--border);border-radius:var(--radius-md);padding:18px;margin-top:var(--s-md);font-family:var(--font-body);font-size:.86rem;line-height:1.65}
+.cheat h4{font-family:var(--font-display);font-size:.9rem;font-weight:700;color:var(--ink);margin:0 0 8px;text-transform:uppercase;letter-spacing:.06em}
+.cheat table{width:100%;border-collapse:collapse;margin:8px 0}
+.cheat th,.cheat td{text-align:left;padding:6px 8px;border-bottom:1px dashed var(--rule);font-family:var(--font-mono);font-size:.78rem}
+.cheat th{font-family:var(--font-display);text-transform:uppercase;letter-spacing:.06em;font-size:.66rem;color:var(--ink-muted);font-weight:700}
+
+.cite{font-family:var(--font-mono);font-size:.7rem;color:var(--ink-muted);margin-top:var(--s-md);line-height:1.6}
+.cite a{color:var(--accent);text-decoration:none;border-bottom:1px dashed var(--accent)}
+</style>
+</head>
+<body>
+
+<nav class="top-nav"></nav>
+
+<main class="container">
+
+  <div class="kicker">CCNA 200-301 · Section 4.7 · QoS Forwarding</div>
+  <h1>QoS Simulator</h1>
+  <p class="lede">Voice, video, and data don't share a link fairly without help. Move the sliders, inject the bursts, click the bits — every QoS concept you'll see on the exam, made physical.</p>
+
+  <section>
+    <div class="quick-answer">
+      <h2>The one-line answer</h2>
+      <p><strong>QoS = give important traffic priority over the rest.</strong> Classify it (NBAR / ACL), mark it (DSCP / CoS), queue it (LLQ for voice, CBWFQ for video, FIFO for the rest), and either drop or shape what doesn't fit.</p>
+      <p><strong>The four enemies:</strong> bandwidth, delay, jitter, loss. Voice hates delay+jitter+loss. Video hates jitter+loss. Bulk data only hates loss. QoS lets each get what it actually needs.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-label">Pick a topic</div>
+    <div class="mode-tabs" id="modeTabs">
+      <button class="mode-tab active" data-mode="why"><h4>1 · Why QoS <span class="mt-tag">4.7</span></h4><p>The 4 metrics — bandwidth, delay, jitter, loss. Drag sliders. Watch voice die first.</p></button>
+      <button class="mode-tab" data-mode="pipe"><h4>2 · Pipeline <span class="mt-tag">order</span></h4><p>Classify → Mark → Queue → Schedule. Click each stage to see what it does.</p></button>
+      <button class="mode-tab" data-mode="mark"><h4>3 · Marking <span class="mt-tag">DSCP</span></h4><p>The ToS byte, decoded bit-by-bit. EF=46, AF31=26, CS6=48. Click bits.</p></button>
+      <button class="mode-tab" data-mode="queue"><h4>4 · Queue race <span class="mt-tag">LLQ</span></h4><p>FIFO vs PQ vs WFQ vs CBWFQ vs LLQ — same traffic, 5 different fates.</p></button>
+      <button class="mode-tab" data-mode="ps"><h4>5 · Police vs shape <span class="mt-tag">bucket</span></h4><p>Token bucket animated. Police drops red. Shape buffers blue. Adjust CIR.</p></button>
+      <button class="mode-tab" data-mode="wred"><h4>6 · Tail drop / WRED <span class="mt-tag">avoid</span></h4><p>Watch TCP global sync wreck a queue. Then turn WRED on and watch it heal.</p></button>
+      <button class="mode-tab" data-mode="quiz"><h4>7 · Quiz + cheat <span class="mt-tag">recap</span></h4><p>Eight questions. Then a printable cheat sheet you can study from.</p></button>
+    </div>
+
+    <!-- ===== Module 1 — Why QoS ===== -->
+    <div class="module active" data-module="why">
+      <div class="sim-panel">
+        <div class="sim-row-label" style="margin-bottom:8px">Link conditions</div>
+        <div class="metric-grid">
+          <div class="metric-card">
+            <label>Bandwidth available</label>
+            <div class="val"><span id="bwVal">10</span> Mbps</div>
+            <input type="range" id="bw" min="1" max="100" value="10">
+          </div>
+          <div class="metric-card">
+            <label>One-way delay</label>
+            <div class="val"><span id="delayVal">40</span> ms</div>
+            <input type="range" id="delay" min="0" max="500" value="40">
+          </div>
+          <div class="metric-card">
+            <label>Jitter</label>
+            <div class="val"><span id="jitterVal">5</span> ms</div>
+            <input type="range" id="jitter" min="0" max="100" value="5">
+          </div>
+          <div class="metric-card">
+            <label>Packet loss</label>
+            <div class="val"><span id="lossVal">0</span> %</div>
+            <input type="range" id="loss" min="0" max="20" step="0.5" value="0">
+          </div>
+        </div>
+
+        <div style="margin-top:var(--s-lg)">
+          <div class="sim-row-label" style="margin-bottom:8px">Traffic-type health</div>
+          <div class="traffic-row"><div class="name voice">Voice</div><div class="bar-track"><div class="bar-fill" id="voiceBar"></div></div><div class="score" id="voiceScore">100</div></div>
+          <div class="traffic-row"><div class="name video">Video</div><div class="bar-track"><div class="bar-fill" id="videoBar"></div></div><div class="score" id="videoScore">100</div></div>
+          <div class="traffic-row"><div class="name data">Bulk data</div><div class="bar-track"><div class="bar-fill" id="dataBar"></div></div><div class="score" id="dataScore">100</div></div>
+        </div>
+
+        <div class="exam-tip"><strong>Exam tip — the 4 metrics</strong>
+        Voice cares about <em>delay (≤150ms one-way), jitter (≤30ms), loss (≤1%)</em>. Video tolerates more delay but still hates jitter and loss. Bulk data cares only about throughput and tolerates retransmits. Memorize: <code>150 / 30 / 1</code> for voice.
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== Module 2 — Pipeline ===== -->
+    <div class="module" data-module="pipe">
+      <div class="sim-panel">
+        <div class="sim-row-label" style="margin-bottom:8px">Watch a packet flow</div>
+        <div class="pipeline-svg-wrap">
+          <svg id="pipeSvg" viewBox="0 0 900 200" preserveAspectRatio="xMidYMid meet">
+            <defs>
+              <linearGradient id="pkgrad" x1="0" x2="1"><stop offset="0" stop-color="#fbbf24"/><stop offset="1" stop-color="#f59e0b"/></linearGradient>
+            </defs>
+            <line x1="40" y1="100" x2="860" y2="100" stroke="#3a3530" stroke-width="2" stroke-dasharray="4 6"/>
+            <g id="stages"></g>
+            <g id="pktG"><rect id="pkt" x="20" y="84" width="32" height="32" rx="6" fill="url(#pkgrad)" stroke="#fef3c7" stroke-width="1.5"/></g>
+          </svg>
+        </div>
+        <div class="stage-grid" id="stageGrid">
+          <button class="stage-btn active" data-stage="0">1 · Ingress</button>
+          <button class="stage-btn" data-stage="1">2 · Classify</button>
+          <button class="stage-btn" data-stage="2">3 · Mark</button>
+          <button class="stage-btn" data-stage="3">4 · Queue</button>
+          <button class="stage-btn" data-stage="4">5 · Schedule</button>
+          <button class="stage-btn" data-stage="5">6 · Egress</button>
+        </div>
+        <div class="stage-detail" id="stageDetail"></div>
+        <div class="exam-tip"><strong>Exam tip — pipeline order</strong>
+        Order matters: <em>classify before mark, mark before queue, queue before schedule.</em> Trust boundary lives at classify — the closer to the source you mark, the less work every downstream device does. The phrase: <code>"mark at the edge, trust in the core."</code>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== Module 3 — Marking ===== -->
+    <div class="module" data-module="mark">
+      <div class="sim-panel">
+        <div class="sim-row-label" style="margin-bottom:8px">Click bits to flip them — see DSCP, IP Precedence, ECN resolve live</div>
+        <div class="byte-decoder">
+          <div class="byte-row" id="byteRow"></div>
+          <div class="byte-readout">
+            <div class="readout"><div class="lbl">DSCP (6 bits)</div><div class="val" id="dscpDec">0</div><div class="name" id="dscpName">CS0 / Default</div></div>
+            <div class="readout"><div class="lbl">IP Precedence (3 bits)</div><div class="val" id="ippDec">0</div><div class="name" id="ippName">Routine</div></div>
+            <div class="readout"><div class="lbl">ECN (2 bits)</div><div class="val" id="ecnDec">00</div><div class="name" id="ecnName">Not-ECT</div></div>
+            <div class="readout"><div class="lbl">Full ToS byte</div><div class="val" id="tosDec">0x00</div><div class="name" id="tosBin">00000000</div></div>
+          </div>
+        </div>
+
+        <div class="sim-row-label" style="margin-top:var(--s-lg);margin-bottom:8px">Common DSCP values — click to load into the decoder</div>
+        <div class="dscp-table" id="dscpTable"></div>
+
+        <div class="trust-lab">
+          <div class="sim-row-label" style="margin-bottom:8px">Trust boundary in action</div>
+          <svg viewBox="0 0 700 220" preserveAspectRatio="xMidYMid meet">
+            <rect x="0" y="0" width="700" height="220" fill="#fafaf7"/>
+            <g><rect x="30" y="60" width="120" height="80" rx="8" fill="#fff" stroke="#dc2626" stroke-width="2"/>
+              <text x="90" y="90" text-anchor="middle" font-family="Space Grotesk" font-size="13" font-weight="700" fill="#dc2626">IP Phone</text>
+              <text x="90" y="108" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#dc2626">CoS 5 / EF</text>
+              <text x="90" y="124" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#666">trusted</text>
+            </g>
+            <g><rect x="30" y="160" width="120" height="50" rx="8" fill="#fff" stroke="#2563eb" stroke-width="2"/>
+              <text x="90" y="180" text-anchor="middle" font-family="Space Grotesk" font-size="13" font-weight="700" fill="#2563eb">PC</text>
+              <text x="90" y="198" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#666">untrusted</text>
+            </g>
+            <line x1="150" y1="100" x2="290" y2="100" stroke="#16a34a" stroke-width="2.5" marker-end="url(#arr)"/>
+            <line x1="150" y1="185" x2="290" y2="185" stroke="#dc2626" stroke-width="2.5" stroke-dasharray="6 4" marker-end="url(#arr)"/>
+            <text x="220" y="92" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#16a34a">CoS 5 → kept</text>
+            <text x="220" y="178" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#dc2626">CoS 5 → remarked → 0</text>
+            <g><rect x="290" y="80" width="160" height="120" rx="10" fill="#fff" stroke="#d97706" stroke-width="2.5"/>
+              <text x="370" y="115" text-anchor="middle" font-family="Space Grotesk" font-size="14" font-weight="700" fill="#d97706">Access Switch</text>
+              <text x="370" y="135" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#666">trust device cisco-phone</text>
+              <text x="370" y="152" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#666">port = trust boundary</text>
+              <text x="370" y="172" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#666">PC traffic → CoS 0</text>
+            </g>
+            <line x1="450" y1="140" x2="590" y2="140" stroke="#16a34a" stroke-width="2.5" marker-end="url(#arr)"/>
+            <text x="520" y="132" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#16a34a">CoS 5 / DSCP EF</text>
+            <g><rect x="590" y="100" width="100" height="80" rx="8" fill="#fff" stroke="#16a34a" stroke-width="2"/>
+              <text x="640" y="135" text-anchor="middle" font-family="Space Grotesk" font-size="13" font-weight="700" fill="#16a34a">Core / WAN</text>
+              <text x="640" y="155" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#666">trusts upstream</text>
+            </g>
+            <defs><marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#666"/></marker></defs>
+          </svg>
+          <div class="exam-tip"><strong>Exam tip — trust boundary</strong>
+          Trust the phone (it always marks voice EF / CoS 5). <em>Don't</em> trust the PC — a user could mark their gaming traffic CoS 5 and starve real voice. Cisco best-practice: place the trust boundary at the access port using <code>mls qos trust device cisco-phone</code> or AutoQoS.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== Module 4 — Queue Race ===== -->
+    <div class="module" data-module="queue">
+      <div class="sim-panel">
+        <div class="sim-toolbar">
+          <span class="sim-row-label">Inject →</span>
+          <button class="btn voice" id="injVoice">Voice burst</button>
+          <button class="btn video" id="injVideo">Video burst</button>
+          <button class="btn data" id="injData">Data burst</button>
+          <button class="btn primary" id="injMix">Mixed flood</button>
+          <button class="btn danger" id="qReset">Reset</button>
+          <span class="speed-wrap" style="margin-left:auto;display:inline-flex;align-items:center;gap:8px;font-family:var(--font-display);font-size:.74rem;color:var(--ink-secondary)">Speed
+            <input type="range" id="qSpeed" min="0.3" max="3" step="0.1" value="1" style="width:120px;accent-color:var(--accent)">
+            <span id="qSpeedVal">1.0×</span>
+          </span>
+        </div>
+        <canvas id="queueCanvas" class="queue-canvas" width="900" height="380"></canvas>
+        <div class="queue-stats" id="queueStats"></div>
+        <div class="exam-tip"><strong>Exam tip — five queueing strategies</strong>
+        <strong style="display:inline;text-transform:none;letter-spacing:0;font-family:inherit;font-size:inherit">FIFO</strong> first-in-first-out, no fairness · <strong style="display:inline;text-transform:none;letter-spacing:0;font-family:inherit;font-size:inherit">PQ</strong> high-priority always served first (starves low) · <strong style="display:inline;text-transform:none;letter-spacing:0;font-family:inherit;font-size:inherit">WFQ</strong> weighted fair share automatically · <strong style="display:inline;text-transform:none;letter-spacing:0;font-family:inherit;font-size:inherit">CBWFQ</strong> manual class-based bandwidth guarantees · <strong style="display:inline;text-transform:none;letter-spacing:0;font-family:inherit;font-size:inherit">LLQ</strong> = CBWFQ + a strict-priority queue (voice) that's also <em>policed</em> so it can't starve the rest. <strong style="display:inline;text-transform:none;letter-spacing:0;font-family:inherit;font-size:inherit">LLQ is what Cisco recommends for VoIP.</strong>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== Module 5 — Police vs Shape ===== -->
+    <div class="module" data-module="ps">
+      <div class="sim-panel">
+        <div class="ps-controls">
+          <div class="metric-card">
+            <label>Offered rate</label>
+            <div class="val"><span id="psOffered">8</span> Mbps</div>
+            <input type="range" id="psOff" min="1" max="20" step="0.5" value="8">
+          </div>
+          <div class="metric-card">
+            <label>CIR (committed rate)</label>
+            <div class="val"><span id="psCir">5</span> Mbps</div>
+            <input type="range" id="psCirIn" min="1" max="15" step="0.5" value="5">
+          </div>
+          <div class="metric-card">
+            <label>Burst (Bc)</label>
+            <div class="val"><span id="psBc">8</span> KB</div>
+            <input type="range" id="psBcIn" min="1" max="32" value="8">
+          </div>
+        </div>
+        <canvas id="bucketCanvas" class="bucket-canvas" width="900" height="320" style="margin-top:var(--s-md)"></canvas>
+        <div class="exam-tip"><strong>Exam tip — police vs shape</strong>
+        <strong style="display:inline;text-transform:none;letter-spacing:0;font-family:inherit;font-size:inherit">Police</strong> = drop or remark excess. <em>Inbound</em> direction. No buffer, no delay, but loss spikes for TCP. <strong style="display:inline;text-transform:none;letter-spacing:0;font-family:inherit;font-size:inherit">Shape</strong> = buffer excess and release at CIR. <em>Outbound</em> direction. Adds delay but smooths the flow. Cisco mnemonic: <code>"police inbound, shape outbound."</code> Both use a token bucket; the difference is what happens when the bucket is empty.
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== Module 6 — Tail Drop / WRED ===== -->
+    <div class="module" data-module="wred">
+      <div class="sim-panel">
+        <div class="wred-toggle">
+          <button class="btn primary" id="wredMode" data-mode="tail">Currently: Tail Drop — click to switch to WRED</button>
+          <button class="btn" id="wredInject">Inject 4 TCP flows</button>
+          <button class="btn danger" id="wredReset">Reset</button>
+        </div>
+        <canvas id="wredCanvas" class="wred-canvas" width="900" height="360" style="margin-top:var(--s-md)"></canvas>
+        <div class="exam-tip"><strong>Exam tip — congestion avoidance</strong>
+        <strong style="display:inline;text-transform:none;letter-spacing:0;font-family:inherit;font-size:inherit">Tail drop</strong> = once the queue fills, drop everything. Triggers <em>TCP global synchronization</em> — every flow backs off together, link goes idle, all ramp up together, queue refills, repeat. <strong style="display:inline;text-transform:none;letter-spacing:0;font-family:inherit;font-size:inherit">WRED</strong> (Weighted Random Early Detection) drops random packets <em>before</em> the queue is full, scaled by drop probability per DSCP class. Different flows back off at different times → link stays utilized.
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== Module 7 — Quiz + Cheat ===== -->
+    <div class="module" data-module="quiz">
+      <div class="sim-panel">
+        <div class="quiz-progress" id="quizProg">Question 1 of 8 · score 0</div>
+        <div id="quizHost"></div>
+        <button class="btn primary" id="quizRestart" style="margin-top:var(--s-md);display:none">Restart quiz</button>
+
+        <div class="cheat" id="cheatSheet">
+          <h4>Printable cheat sheet — section 4.7</h4>
+          <p><strong>The 4 metrics:</strong> bandwidth, delay (≤150ms voice), jitter (≤30ms voice), loss (≤1% voice).</p>
+          <h4 style="margin-top:14px">DSCP quick table</h4>
+          <table>
+            <tr><th>Name</th><th>DSCP</th><th>Binary</th><th>Use</th></tr>
+            <tr><td>EF</td><td>46</td><td>101110</td><td>Voice (RTP)</td></tr>
+            <tr><td>CS6</td><td>48</td><td>110000</td><td>Network control / routing</td></tr>
+            <tr><td>CS7</td><td>56</td><td>111000</td><td>Reserved / link-state</td></tr>
+            <tr><td>AF41</td><td>34</td><td>100010</td><td>Interactive video</td></tr>
+            <tr><td>AF31</td><td>26</td><td>011010</td><td>Streaming video / signaling</td></tr>
+            <tr><td>AF21</td><td>18</td><td>010010</td><td>High-priority data</td></tr>
+            <tr><td>AF11</td><td>10</td><td>001010</td><td>Low-priority data</td></tr>
+            <tr><td>CS0 / BE</td><td>0</td><td>000000</td><td>Best-effort default</td></tr>
+          </table>
+          <h4 style="margin-top:14px">Queueing decision tree</h4>
+          <p>Voice → <strong>LLQ</strong> (strict priority + policer). Video / mission-critical → <strong>CBWFQ</strong> with a bandwidth guarantee. Bulk / scavenger → default class with <strong>WRED</strong>. Never <strong>PQ alone</strong> in production — it starves everything below the top queue.</p>
+          <h4 style="margin-top:14px">Police vs Shape</h4>
+          <table>
+            <tr><th></th><th>Police</th><th>Shape</th></tr>
+            <tr><td>Direction</td><td>Inbound</td><td>Outbound</td></tr>
+            <tr><td>Excess</td><td>Drop / remark</td><td>Buffer + delay</td></tr>
+            <tr><td>Adds latency?</td><td>No</td><td>Yes</td></tr>
+            <tr><td>Use case</td><td>Enforce SLA at edge</td><td>Match downstream slow link</td></tr>
+          </table>
+          <h4 style="margin-top:14px">Marking — where</h4>
+          <p>Switch (Layer 2) marks <strong>CoS</strong> in the 802.1Q tag (3 bits, 0-7). Router (Layer 3) marks <strong>DSCP</strong> in the IP ToS byte (6 bits, 0-63). End-to-end QoS = mark DSCP at the edge, every router/switch trusts it from there. AutoQoS or <code>mls qos trust device cisco-phone</code> creates the trust boundary.</p>
+        </div>
+      </div>
+    </div>
+
+  </section>
+
+  <p class="cite">Cisco CCNA 200-301 v1.1 official cert guide · §4.7 QoS Forwarding · sources: RFC 2474 (DSCP), RFC 3168 (ECN), RFC 3246 (EF PHB), RFC 2597 (AF PHB).</p>
+
+</main>
+
+<script defer src="js/nav.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+
+  /* ========== Tab switching with persistence ========== */
+  var TABS = document.querySelectorAll('#modeTabs .mode-tab');
+  var MODS = document.querySelectorAll('.module');
+  var savedTab = localStorage.getItem('qos_sim_tab') || 'why';
+  function showTab(m) {
+    TABS.forEach(t => t.classList.toggle('active', t.dataset.mode === m));
+    MODS.forEach(x => x.classList.toggle('active', x.dataset.module === m));
+    localStorage.setItem('qos_sim_tab', m);
+    if (m === 'queue') startQueue();
+    if (m === 'ps') startBucket();
+    if (m === 'wred') startWred();
+    if (m === 'pipe') drawPipe();
+  }
+  TABS.forEach(t => t.addEventListener('click', () => showTab(t.dataset.mode)));
+  showTab(savedTab);
+
+  /* ========== Module 1 — Why QoS ========== */
+  var bw = document.getElementById('bw'), delay = document.getElementById('delay'),
+      jit = document.getElementById('jitter'), loss = document.getElementById('loss');
+  function scoreVoice(b, d, j, l) {
+    var s = 100;
+    if (b < 0.1) s -= 70;
+    if (d > 150) s -= (d - 150) * 0.4;
+    if (j > 30) s -= (j - 30) * 1.2;
+    if (l > 1) s -= (l - 1) * 12;
+    return Math.max(0, Math.min(100, Math.round(s)));
+  }
+  function scoreVideo(b, d, j, l) {
+    var s = 100;
+    if (b < 2) s -= (2 - b) * 30;
+    if (d > 250) s -= (d - 250) * 0.2;
+    if (j > 50) s -= (j - 50) * 0.8;
+    if (l > 2) s -= (l - 2) * 8;
+    return Math.max(0, Math.min(100, Math.round(s)));
+  }
+  function scoreData(b, d, j, l) {
+    var s = 100;
+    if (b < 0.5) s -= (0.5 - b) * 80;
+    if (l > 5) s -= (l - 5) * 4;
+    return Math.max(0, Math.min(100, Math.round(s)));
+  }
+  function applyBar(barId, scoreId, score) {
+    var bar = document.getElementById(barId), sc = document.getElementById(scoreId);
+    bar.style.width = score + '%';
+    var cls = score >= 70 ? 'ok' : score >= 35 ? 'warn' : 'bad';
+    bar.className = 'bar-fill ' + cls;
+    sc.className = 'score ' + cls;
+    sc.textContent = score;
+  }
+  function refreshMetrics() {
+    var b = +bw.value, d = +delay.value, j = +jit.value, l = +loss.value;
+    document.getElementById('bwVal').textContent = b;
+    document.getElementById('delayVal').textContent = d;
+    document.getElementById('jitterVal').textContent = j;
+    document.getElementById('lossVal').textContent = l;
+    applyBar('voiceBar', 'voiceScore', scoreVoice(b, d, j, l));
+    applyBar('videoBar', 'videoScore', scoreVideo(b, d, j, l));
+    applyBar('dataBar', 'dataScore', scoreData(b, d, j, l));
+  }
+  [bw, delay, jit, loss].forEach(el => el.addEventListener('input', refreshMetrics));
+  refreshMetrics();
+
+  /* ========== Module 2 — Pipeline ========== */
+  var STAGES = [
+    { x: 80, label: 'Ingress', detail: { t: 'Ingress', d: 'Packet arrives on a router or switch interface. No QoS decision yet — just an IP header (DSCP) or 802.1Q tag (CoS) we may or may not trust.' } },
+    { x: 220, label: 'Classify', detail: { t: 'Classify', d: 'Match the packet — by ACL (5-tuple), NBAR (deep packet inspection of port-changing apps like Skype), or trust the existing DSCP/CoS marking. This is also where the trust boundary lives.' } },
+    { x: 360, label: 'Mark', detail: { t: 'Mark', d: 'Write a value into the IP ToS byte (DSCP, 6 bits, 0-63) or the 802.1Q tag (CoS, 3 bits, 0-7). Done at the edge so every downstream device knows the packet\'s class without re-inspecting it.' } },
+    { x: 500, label: 'Queue', detail: { t: 'Queue', d: 'Drop the packet into one of several software queues based on its marking. Voice → LLQ (priority). Video → CBWFQ class. Best-effort → default class. Each queue can have WRED enabled to dodge tail-drop.' } },
+    { x: 640, label: 'Schedule', detail: { t: 'Schedule', d: 'The scheduler picks which queue gets the next packet onto the physical line. LLQ always wins (until policed). CBWFQ classes get their guaranteed share of bandwidth. Default class fights for the leftovers.' } },
+    { x: 780, label: 'Egress', detail: { t: 'Egress', d: 'Packet leaves the interface. If a downstream device is slower (e.g. you\'re a 1Gbps router talking to a 100Mbps WAN), shaping happens here so the downstream\'s policer doesn\'t drop you.' } }
+  ];
+  var stageG = document.getElementById('stages');
+  stageG.innerHTML = STAGES.map((s, i) => `
+    <g><circle cx="${s.x}" cy="100" r="18" fill="#2a2520" stroke="#d97706" stroke-width="1.5"/>
+       <text x="${s.x}" y="105" text-anchor="middle" font-family="JetBrains Mono" font-size="13" font-weight="700" fill="#fef3c7">${i + 1}</text>
+       <text x="${s.x}" y="142" text-anchor="middle" font-family="Space Grotesk" font-size="11" font-weight="600" fill="#fef3c7">${s.label}</text></g>`).join('');
+  var pipePktX = 20, pipeAnimRunning = false;
+  function drawPipe() {
+    if (pipeAnimRunning) return;
+    pipeAnimRunning = true;
+    var pkt = document.getElementById('pkt');
+    function step() {
+      pipePktX += 2;
+      if (pipePktX > 870) pipePktX = 20;
+      pkt.setAttribute('x', pipePktX);
+      // light up nearest stage
+      var nearest = 0, mind = 1e9;
+      STAGES.forEach((s, i) => { var d = Math.abs(s.x - pipePktX - 16); if (d < mind) { mind = d; nearest = i; } });
+      document.querySelectorAll('.stage-btn').forEach((b, i) => b.classList.toggle('active', i === nearest));
+      var s = STAGES[nearest];
+      var det = document.getElementById('stageDetail');
+      det.innerHTML = '<strong>' + s.detail.t + '</strong>' + s.detail.d;
+      if (document.querySelector('.module.active').dataset.module === 'pipe')
+        requestAnimationFrame(step);
+      else pipeAnimRunning = false;
+    }
+    requestAnimationFrame(step);
+  }
+  document.querySelectorAll('.stage-btn').forEach(b => b.addEventListener('click', () => {
+    var i = +b.dataset.stage; var s = STAGES[i];
+    var det = document.getElementById('stageDetail');
+    det.innerHTML = '<strong>' + s.detail.t + '</strong>' + s.detail.d;
+  }));
+
+  /* ========== Module 3 — Marking ========== */
+  // Bits are indexed 7..0 left to right (MSB first), like the actual ToS byte.
+  // Bits 7-2 = DSCP, Bits 1-0 = ECN. (Old: 7-5 = IPP, 4-0 = ToS+MBZ.)
+  var bits = [0, 0, 0, 0, 0, 0, 0, 0]; // bits[0] = MSB (bit 7)
+  var byteRow = document.getElementById('byteRow');
+  function renderBits() {
+    byteRow.innerHTML = bits.map((v, i) => {
+      var pos = 7 - i;
+      var isEcn = pos < 2;
+      return `<div class="bit ${v ? 'on' : ''} ${isEcn ? 'ecn' : 'dscp'}" data-i="${i}">
+        <span class="pos">${pos}</span>
+        <span>${v}</span>
+        <span class="label-tag">${isEcn ? 'ECN' : 'DSCP'}</span>
+      </div>`;
+    }).join('');
+    byteRow.querySelectorAll('.bit').forEach(b => b.addEventListener('click', () => {
+      var i = +b.dataset.i; bits[i] ^= 1; renderBits(); updateReadout();
+    }));
+  }
+  var DSCP_NAMES = {
+    0: 'CS0 / BE (Default)', 8: 'CS1 / Scavenger', 10: 'AF11', 12: 'AF12', 14: 'AF13',
+    16: 'CS2', 18: 'AF21', 20: 'AF22', 22: 'AF23',
+    24: 'CS3', 26: 'AF31', 28: 'AF32', 30: 'AF33',
+    32: 'CS4', 34: 'AF41 (interactive video)', 36: 'AF42', 38: 'AF43',
+    40: 'CS5', 46: 'EF (voice)', 48: 'CS6 (network control)', 56: 'CS7'
+  };
+  var IPP_NAMES = ['Routine', 'Priority', 'Immediate', 'Flash', 'Flash-Override', 'Critical', 'Internet', 'Network'];
+  var ECN_NAMES = { '00': 'Not-ECT', '01': 'ECT(1)', '10': 'ECT(0)', '11': 'CE (congestion)' };
+  function updateReadout() {
+    var dscp = (bits[0] << 5) | (bits[1] << 4) | (bits[2] << 3) | (bits[3] << 2) | (bits[4] << 1) | bits[5];
+    var ipp = (bits[0] << 2) | (bits[1] << 1) | bits[2];
+    var ecn = '' + bits[6] + bits[7];
+    var tos = 0; bits.forEach((v, i) => tos |= v << (7 - i));
+    document.getElementById('dscpDec').textContent = dscp;
+    document.getElementById('dscpName').textContent = DSCP_NAMES[dscp] || '(non-standard)';
+    document.getElementById('ippDec').textContent = ipp;
+    document.getElementById('ippName').textContent = IPP_NAMES[ipp];
+    document.getElementById('ecnDec').textContent = ecn;
+    document.getElementById('ecnName').textContent = ECN_NAMES[ecn] || ecn;
+    document.getElementById('tosDec').textContent = '0x' + tos.toString(16).padStart(2, '0').toUpperCase();
+    document.getElementById('tosBin').textContent = bits.join('');
+  }
+  renderBits(); updateReadout();
+
+  var DSCP_TABLE = [
+    { n: 'EF', v: 46, c: 'ef', use: 'Voice / RTP' },
+    { n: 'CS6', v: 48, c: 'cs', use: 'Routing' },
+    { n: 'CS7', v: 56, c: 'cs', use: 'Link-state' },
+    { n: 'AF41', v: 34, c: 'af', use: 'Video' },
+    { n: 'AF31', v: 26, c: 'af', use: 'Signaling' },
+    { n: 'AF21', v: 18, c: 'af', use: 'Hi data' },
+    { n: 'AF11', v: 10, c: 'af', use: 'Lo data' },
+    { n: 'CS0', v: 0, c: 'be', use: 'Best-effort' }
+  ];
+  var dscpTbl = document.getElementById('dscpTable');
+  dscpTbl.innerHTML = DSCP_TABLE.map(d =>
+    `<button class="dscp-cell ${d.c}" data-v="${d.v}">
+      <div class="nm">${d.n}</div>
+      <div class="vals">DSCP ${d.v} · ${d.v.toString(2).padStart(6, '0')}</div>
+      <div class="vals">${d.use}</div>
+    </button>`).join('');
+  dscpTbl.querySelectorAll('.dscp-cell').forEach(b => b.addEventListener('click', () => {
+    var v = +b.dataset.v;
+    // load DSCP into bits[0..5], leave ECN at 00
+    for (var i = 0; i < 6; i++) bits[i] = (v >> (5 - i)) & 1;
+    bits[6] = 0; bits[7] = 0;
+    renderBits(); updateReadout();
+  }));
+
+  /* ========== Module 4 — Queue Race ========== */
+  var qcv = document.getElementById('queueCanvas'), qctx = qcv.getContext('2d');
+  var qSpeedR = document.getElementById('qSpeed'), qSpeedV = document.getElementById('qSpeedVal');
+  qSpeedR.addEventListener('input', e => qSpeedV.textContent = (+e.target.value).toFixed(1) + '×');
+  var qStartedOnce = false;
+  // Each queue model holds an array of packets and stats
+  var QUEUES = ['FIFO', 'PQ', 'WFQ', 'CBWFQ', 'LLQ'];
+  function emptyQ() { return { pkts: [], sent: { voice: 0, video: 0, data: 0 }, drop: { voice: 0, video: 0, data: 0 }, lastClass: null, classRR: 0 }; }
+  var Qs = QUEUES.reduce((o, n) => (o[n] = emptyQ(), o), {});
+  var Qcap = 14;
+  var Qfeed = []; // shared input bus [{cls, t, color}]
+  var qLastTick = 0;
+
+  function injPkt(cls) {
+    Qfeed.push({ cls: cls, t: performance.now() });
+  }
+  function bulkInject(n, cls) {
+    for (var i = 0; i < n; i++) setTimeout(() => injPkt(cls), i * 60);
+  }
+  function injBurst(kind) {
+    if (kind === 'voice') bulkInject(8, 'voice');
+    if (kind === 'video') bulkInject(10, 'video');
+    if (kind === 'data') bulkInject(20, 'data');
+    if (kind === 'mix') { bulkInject(8, 'voice'); bulkInject(10, 'video'); bulkInject(25, 'data'); }
+  }
+  document.getElementById('injVoice').addEventListener('click', () => injBurst('voice'));
+  document.getElementById('injVideo').addEventListener('click', () => injBurst('video'));
+  document.getElementById('injData').addEventListener('click', () => injBurst('data'));
+  document.getElementById('injMix').addEventListener('click', () => injBurst('mix'));
+  document.getElementById('qReset').addEventListener('click', () => {
+    QUEUES.forEach(n => Qs[n] = emptyQ());
+    Qfeed = []; renderQ();
+  });
+
+  function admit(qName, pkt) {
+    var q = Qs[qName];
+    if (q.pkts.length >= Qcap) { q.drop[pkt.cls]++; return; }
+    q.pkts.push(pkt);
+  }
+  function dispatch(qName) {
+    var q = Qs[qName];
+    if (!q.pkts.length) return null;
+    if (qName === 'FIFO') {
+      return q.pkts.shift();
+    }
+    if (qName === 'PQ') {
+      // strict priority: voice > video > data, no fairness
+      var idx = q.pkts.findIndex(p => p.cls === 'voice');
+      if (idx === -1) idx = q.pkts.findIndex(p => p.cls === 'video');
+      if (idx === -1) idx = 0;
+      return q.pkts.splice(idx, 1)[0];
+    }
+    if (qName === 'WFQ') {
+      // fair share: round-robin between traffic classes by weight
+      var classes = ['voice', 'video', 'data'];
+      var weights = [3, 2, 1];
+      for (var step = 0; step < classes.length * 4; step++) {
+        var c = classes[q.classRR % classes.length];
+        var w = weights[q.classRR % classes.length];
+        q.classRR++;
+        // serve up to weight packets from this class if available
+        var idx = q.pkts.findIndex(p => p.cls === c);
+        if (idx !== -1) return q.pkts.splice(idx, 1)[0];
+      }
+      return q.pkts.shift();
+    }
+    if (qName === 'CBWFQ') {
+      // configured bandwidth share: voice 30% video 50% data 20%
+      var total = q.sent.voice + q.sent.video + q.sent.data + 1;
+      var frac = { voice: q.sent.voice / total, video: q.sent.video / total, data: q.sent.data / total };
+      var target = { voice: 0.30, video: 0.50, data: 0.20 };
+      var deficits = ['voice', 'video', 'data'].map(c => ({ c: c, def: target[c] - frac[c] }));
+      deficits.sort((a, b) => b.def - a.def);
+      for (var i = 0; i < deficits.length; i++) {
+        var idx = q.pkts.findIndex(p => p.cls === deficits[i].c);
+        if (idx !== -1) return q.pkts.splice(idx, 1)[0];
+      }
+      return q.pkts.shift();
+    }
+    if (qName === 'LLQ') {
+      // priority queue for voice (with policer), CBWFQ for the rest
+      var nowS = performance.now() / 1000;
+      q._policeWindow = q._policeWindow || nowS;
+      q._policeCount = q._policeCount || 0;
+      // reset window every 1s
+      if (nowS - q._policeWindow > 1) { q._policeWindow = nowS; q._policeCount = 0; }
+      var voiceIdx = q.pkts.findIndex(p => p.cls === 'voice');
+      if (voiceIdx !== -1 && q._policeCount < 4) { // policer: 4 voice/sec max in priority lane
+        q._policeCount++;
+        return q.pkts.splice(voiceIdx, 1)[0];
+      }
+      // fall through to CBWFQ-style for remaining
+      var total = q.sent.voice + q.sent.video + q.sent.data + 1;
+      var frac = { voice: q.sent.voice / total, video: q.sent.video / total, data: q.sent.data / total };
+      var target = { voice: 0.10, video: 0.55, data: 0.35 };
+      var deficits = ['voice', 'video', 'data'].map(c => ({ c: c, def: target[c] - frac[c] }));
+      deficits.sort((a, b) => b.def - a.def);
+      for (var i = 0; i < deficits.length; i++) {
+        var idx2 = q.pkts.findIndex(p => p.cls === deficits[i].c);
+        if (idx2 !== -1) return q.pkts.splice(idx2, 1)[0];
+      }
+      return q.pkts.shift();
+    }
+  }
+
+  function tickQueues(dt) {
+    // admit all feed packets to all queues (replicate simulation)
+    while (Qfeed.length) {
+      var pkt = Qfeed.shift();
+      QUEUES.forEach(n => admit(n, { cls: pkt.cls }));
+    }
+    // each queue dispatches up to N packets per tick (link rate = 4 pkt/sec scaled by speed)
+    var rate = 4 * (+qSpeedR.value);
+    var ppt = Math.max(1, Math.round(rate * dt));
+    QUEUES.forEach(n => {
+      for (var i = 0; i < ppt; i++) {
+        var p = dispatch(n);
+        if (!p) break;
+        Qs[n].sent[p.cls]++;
+      }
+    });
+  }
+
+  function renderQ() {
+    var w = qcv.width, h = qcv.height;
+    qctx.fillStyle = '#1a1815'; qctx.fillRect(0, 0, w, h);
+    var rowH = 60;
+    var lblW = 80;
+    var queueAreaW = w - lblW - 30;
+    var slotW = queueAreaW / Qcap;
+    QUEUES.forEach((n, i) => {
+      var y = 18 + i * rowH;
+      qctx.fillStyle = '#fef3c7'; qctx.font = '700 13px Space Grotesk';
+      qctx.fillText(n, 12, y + 26);
+      // queue track
+      qctx.fillStyle = '#2a2520'; qctx.fillRect(lblW, y + 14, queueAreaW, 24);
+      qctx.strokeStyle = '#3a3530'; qctx.strokeRect(lblW, y + 14, queueAreaW, 24);
+      // packets
+      Qs[n].pkts.forEach((p, j) => {
+        var x = lblW + (Qcap - 1 - j) * slotW + 2;
+        var col = p.cls === 'voice' ? '#dc2626' : p.cls === 'video' ? '#7c3aed' : '#2563eb';
+        qctx.fillStyle = col;
+        qctx.fillRect(x, y + 16, slotW - 4, 20);
+      });
+      // exit arrow
+      qctx.fillStyle = '#fef3c7'; qctx.font = '600 11px JetBrains Mono';
+      qctx.fillText('→ link', lblW + queueAreaW + 4, y + 30);
+    });
+    // legend
+    qctx.fillStyle = '#94a3b8'; qctx.font = '500 11px JetBrains Mono';
+    qctx.fillText('voice', lblW, h - 8);
+    qctx.fillStyle = '#dc2626'; qctx.fillRect(lblW + 38, h - 18, 14, 12);
+    qctx.fillStyle = '#94a3b8'; qctx.fillText('video', lblW + 70, h - 8);
+    qctx.fillStyle = '#7c3aed'; qctx.fillRect(lblW + 108, h - 18, 14, 12);
+    qctx.fillStyle = '#94a3b8'; qctx.fillText('data', lblW + 140, h - 8);
+    qctx.fillStyle = '#2563eb'; qctx.fillRect(lblW + 172, h - 18, 14, 12);
+    qctx.fillStyle = '#94a3b8'; qctx.fillText('queue cap = ' + Qcap + ' · oldest packet on the right exits next', lblW + 210, h - 8);
+    // stat tiles (HTML)
+    var st = document.getElementById('queueStats');
+    st.innerHTML = QUEUES.map(n => {
+      var q = Qs[n];
+      return `<div class="qstat"><div class="nm">${n}</div><div class="v">
+        <span class="voice">V ${q.sent.voice}</span> <span class="video">v ${q.sent.video}</span> <span class="data">D ${q.sent.data}</span><br>
+        <span class="drop">drop ${q.drop.voice + q.drop.video + q.drop.data}</span>
+      </div></div>`;
+    }).join('');
+  }
+
+  function startQueue() {
+    if (qStartedOnce) return;
+    qStartedOnce = true;
+    qLastTick = performance.now();
+    function loop() {
+      var now = performance.now();
+      var dt = Math.min(0.1, (now - qLastTick) / 1000);
+      qLastTick = now;
+      tickQueues(dt);
+      renderQ();
+      requestAnimationFrame(loop);
+    }
+    requestAnimationFrame(loop);
+  }
+
+  /* ========== Module 5 — Police vs Shape ========== */
+  var bcv = document.getElementById('bucketCanvas'), bctx = bcv.getContext('2d');
+  var psOff = document.getElementById('psOff'), psCirIn = document.getElementById('psCirIn'), psBcIn = document.getElementById('psBcIn');
+  function refreshPS() {
+    document.getElementById('psOffered').textContent = (+psOff.value).toFixed(1);
+    document.getElementById('psCir').textContent = (+psCirIn.value).toFixed(1);
+    document.getElementById('psBc').textContent = +psBcIn.value;
+  }
+  [psOff, psCirIn, psBcIn].forEach(el => el.addEventListener('input', refreshPS));
+  refreshPS();
+  // Token bucket model
+  var bucket = { tokens: 8, lastT: 0 };
+  var shaperBuf = [];
+  var psStarted = false;
+  var psStats = { policeIn: 0, policeOut: 0, policeDrop: 0, shapeIn: 0, shapeOut: 0, shapeBuf: 0 };
+
+  function startBucket() {
+    if (psStarted) return;
+    psStarted = true;
+    bucket.lastT = performance.now();
+    function loop() {
+      var now = performance.now();
+      var dt = (now - bucket.lastT) / 1000;
+      bucket.lastT = now;
+      var cir = +psCirIn.value;       // Mbps
+      var bc = +psBcIn.value;          // KB capacity
+      var offered = +psOff.value;      // Mbps
+      // tokens refill at CIR rate, capped at Bc
+      bucket.tokens = Math.min(bc, bucket.tokens + cir * dt * 125 / 1000); // KB
+      // packet size 1KB, rate offered Mbps -> KB/s = offered*125
+      var pktsThisTick = offered * 125 * dt; // approx KB worth
+      // policer
+      var policeOk = Math.min(pktsThisTick, bucket.tokens);
+      var policeDrop = pktsThisTick - policeOk;
+      psStats.policeIn += pktsThisTick;
+      psStats.policeOut += policeOk;
+      psStats.policeDrop += policeDrop;
+      bucket.tokens -= policeOk;
+      // shaper: buffer excess (separate token bucket, same params)
+      shaperBuf.push({ kb: pktsThisTick });
+      var shapeOk = 0; var consumed = cir * dt * 125 / 1000;
+      while (shaperBuf.length && consumed > 0) {
+        var head = shaperBuf[0];
+        var take = Math.min(head.kb, consumed);
+        head.kb -= take; consumed -= take; shapeOk += take;
+        if (head.kb <= 0.001) shaperBuf.shift();
+      }
+      psStats.shapeIn += pktsThisTick;
+      psStats.shapeOut += shapeOk;
+      psStats.shapeBuf = shaperBuf.reduce((a, p) => a + p.kb, 0);
+      drawBucket();
+      if (document.querySelector('.module.active').dataset.module === 'ps')
+        requestAnimationFrame(loop);
+      else psStarted = false;
+    }
+    requestAnimationFrame(loop);
+  }
+  function drawBucket() {
+    var w = bcv.width, h = bcv.height;
+    bctx.fillStyle = '#1a1815'; bctx.fillRect(0, 0, w, h);
+    bctx.font = '700 13px Space Grotesk'; bctx.fillStyle = '#fef3c7';
+    bctx.fillText('POLICER  (drops excess, no buffer)', 30, 24);
+    bctx.fillText('SHAPER  (buffers excess, releases at CIR)', 480, 24);
+    // policer column
+    var bx = 60, by = 60, bw_ = 100, bh = 200;
+    bctx.strokeStyle = '#fbbf24'; bctx.lineWidth = 2;
+    bctx.strokeRect(bx, by, bw_, bh);
+    var bc = +psBcIn.value;
+    var fillP = Math.min(1, bucket.tokens / bc);
+    bctx.fillStyle = '#fbbf24';
+    bctx.fillRect(bx + 2, by + bh - fillP * (bh - 4), bw_ - 4, fillP * (bh - 4));
+    bctx.font = '600 11px JetBrains Mono'; bctx.fillStyle = '#fef3c7';
+    bctx.fillText('tokens: ' + bucket.tokens.toFixed(1) + ' KB', bx, by + bh + 18);
+    bctx.fillText('cap (Bc): ' + bc + ' KB', bx, by + bh + 32);
+    // input arrow
+    bctx.strokeStyle = '#2563eb'; bctx.lineWidth = 3;
+    bctx.beginPath(); bctx.moveTo(20, by + 30); bctx.lineTo(bx, by + 30); bctx.stroke();
+    bctx.fillStyle = '#2563eb'; bctx.fillText('in: ' + (+psOff.value).toFixed(1) + ' Mbps', 20, by - 10);
+    // output (green if tokens available, red drops)
+    bctx.strokeStyle = '#16a34a'; bctx.lineWidth = 3;
+    bctx.beginPath(); bctx.moveTo(bx + bw_, by + 30); bctx.lineTo(bx + bw_ + 60, by + 30); bctx.stroke();
+    bctx.fillStyle = '#16a34a'; bctx.fillText('out', bx + bw_ + 8, by - 10);
+    // drop arrow
+    bctx.strokeStyle = '#dc2626'; bctx.lineWidth = 3; bctx.setLineDash([6, 6]);
+    bctx.beginPath(); bctx.moveTo(bx + bw_ / 2, by + bh); bctx.lineTo(bx + bw_ / 2, by + bh + 50); bctx.stroke();
+    bctx.setLineDash([]);
+    bctx.fillStyle = '#dc2626'; bctx.fillText('drop', bx + bw_ / 2 - 15, by + bh + 80);
+    // policer stats
+    bctx.fillStyle = '#fef3c7'; bctx.font = '600 11px JetBrains Mono';
+    var pIn = psStats.policeIn, pOut = psStats.policeOut, pDr = psStats.policeDrop;
+    var pPct = pIn > 0 ? (pDr / pIn * 100).toFixed(1) : '0';
+    bctx.fillText('in: ' + pIn.toFixed(0) + ' KB', 220, 80);
+    bctx.fillText('out: ' + pOut.toFixed(0) + ' KB', 220, 96);
+    bctx.fillStyle = '#dc2626';
+    bctx.fillText('dropped: ' + pDr.toFixed(0) + ' KB (' + pPct + '%)', 220, 112);
+
+    // shaper column
+    var sx = 540;
+    bctx.strokeStyle = '#fbbf24'; bctx.lineWidth = 2;
+    bctx.strokeRect(sx, by, bw_, bh);
+    // shaper buffer fill
+    var sBuf = psStats.shapeBuf;
+    var sFill = Math.min(1, sBuf / 30);
+    bctx.fillStyle = '#7c3aed';
+    bctx.fillRect(sx + 2, by + bh - sFill * (bh - 4), bw_ - 4, sFill * (bh - 4));
+    bctx.font = '600 11px JetBrains Mono'; bctx.fillStyle = '#fef3c7';
+    bctx.fillText('buffered: ' + sBuf.toFixed(1) + ' KB', sx, by + bh + 18);
+    bctx.fillText('CIR: ' + (+psCirIn.value).toFixed(1) + ' Mbps', sx, by + bh + 32);
+    // input arrow
+    bctx.strokeStyle = '#2563eb'; bctx.lineWidth = 3;
+    bctx.beginPath(); bctx.moveTo(500, by + 30); bctx.lineTo(sx, by + 30); bctx.stroke();
+    // output
+    bctx.strokeStyle = '#16a34a'; bctx.lineWidth = 3;
+    bctx.beginPath(); bctx.moveTo(sx + bw_, by + 30); bctx.lineTo(sx + bw_ + 60, by + 30); bctx.stroke();
+    bctx.fillStyle = '#fef3c7'; bctx.font = '600 11px JetBrains Mono';
+    bctx.fillText('in: ' + psStats.shapeIn.toFixed(0) + ' KB', sx + 160, 80);
+    bctx.fillText('out: ' + psStats.shapeOut.toFixed(0) + ' KB', sx + 160, 96);
+    bctx.fillStyle = '#7c3aed';
+    bctx.fillText('still buffered: ' + psStats.shapeBuf.toFixed(1) + ' KB', sx + 160, 112);
+    // delay note
+    bctx.fillStyle = '#fbbf24';
+    bctx.fillText('→ adds delay, no loss', sx + 160, 128);
+  }
+
+  /* ========== Module 6 — Tail Drop / WRED ========== */
+  var wcv = document.getElementById('wredCanvas'), wctx = wcv.getContext('2d');
+  var wMode = 'tail'; // 'tail' or 'wred'
+  var wQueue = []; var wCap = 50;
+  var wFlows = []; // [{rate, color, drops}]
+  var wHist = []; // last 200 queue depths for chart
+  var wStarted = false;
+  document.getElementById('wredMode').addEventListener('click', e => {
+    wMode = wMode === 'tail' ? 'wred' : 'tail';
+    e.target.textContent = 'Currently: ' + (wMode === 'tail' ? 'Tail Drop — click to switch to WRED' : 'WRED — click to switch back to Tail Drop');
+    e.target.classList.toggle('primary', wMode === 'tail');
+  });
+  document.getElementById('wredInject').addEventListener('click', () => {
+    var cols = ['#dc2626', '#7c3aed', '#2563eb', '#16a34a'];
+    wFlows = cols.map(c => ({ rate: 12, color: c, drops: 0, sent: 0, backoffUntil: 0 }));
+  });
+  document.getElementById('wredReset').addEventListener('click', () => {
+    wFlows = []; wQueue = []; wHist = [];
+  });
+
+  function startWred() {
+    if (wStarted) return;
+    wStarted = true;
+    var lastT = performance.now();
+    function loop() {
+      var now = performance.now();
+      var dt = (now - lastT) / 1000; lastT = now;
+      // each flow tries to push packets if not in backoff
+      wFlows.forEach(f => {
+        if (now < f.backoffUntil) return;
+        var n = Math.round(f.rate * dt);
+        for (var i = 0; i < n; i++) {
+          var dropProb = 0;
+          if (wMode === 'tail') {
+            if (wQueue.length >= wCap) { f.drops++; continue; }
+          } else {
+            // WRED: linear from 20%-cap of length to 100%-cap, max prob 0.4
+            var minTh = wCap * 0.4, maxTh = wCap * 0.9, maxPb = 0.4;
+            var L = wQueue.length;
+            if (L > maxTh) dropProb = 1;
+            else if (L > minTh) dropProb = ((L - minTh) / (maxTh - minTh)) * maxPb;
+          }
+          if (Math.random() < dropProb) { f.drops++; f.rate = Math.max(2, f.rate * 0.5); f.backoffUntil = now + 250 + Math.random() * 350; continue; }
+          if (wQueue.length >= wCap) { f.drops++; continue; }
+          wQueue.push({ flow: f });
+          f.sent++;
+        }
+        // slow ramp up if not in backoff
+        if (now > f.backoffUntil) f.rate = Math.min(20, f.rate + dt * 4);
+      });
+      // drain at link rate (8 pkts/sec)
+      var drain = Math.round(8 * dt);
+      for (var k = 0; k < drain && wQueue.length; k++) wQueue.shift();
+      // record depth
+      wHist.push(wQueue.length); if (wHist.length > 200) wHist.shift();
+      drawWred();
+      if (document.querySelector('.module.active').dataset.module === 'wred')
+        requestAnimationFrame(loop);
+      else wStarted = false;
+    }
+    requestAnimationFrame(loop);
+  }
+  function drawWred() {
+    var w = wcv.width, h = wcv.height;
+    wctx.fillStyle = '#1a1815'; wctx.fillRect(0, 0, w, h);
+    wctx.fillStyle = '#fef3c7'; wctx.font = '700 14px Space Grotesk';
+    wctx.fillText('Queue (cap ' + wCap + ')', 30, 28);
+    wctx.fillText('Mode: ' + (wMode === 'tail' ? 'Tail Drop' : 'WRED'), w - 220, 28);
+    // queue depth bar
+    var qx = 30, qy = 40, qh = 24, qw = w - 60;
+    wctx.strokeStyle = '#3a3530'; wctx.strokeRect(qx, qy, qw, qh);
+    var fillW = (wQueue.length / wCap) * qw;
+    wctx.fillStyle = wQueue.length > wCap * 0.85 ? '#dc2626' : wQueue.length > wCap * 0.5 ? '#f59e0b' : '#16a34a';
+    wctx.fillRect(qx, qy, fillW, qh);
+    // WRED thresholds
+    if (wMode === 'wred') {
+      var minTh = wCap * 0.4, maxTh = wCap * 0.9;
+      wctx.strokeStyle = '#fbbf24'; wctx.setLineDash([4, 4]);
+      var x1 = qx + (minTh / wCap) * qw, x2 = qx + (maxTh / wCap) * qw;
+      wctx.beginPath(); wctx.moveTo(x1, qy - 4); wctx.lineTo(x1, qy + qh + 4); wctx.stroke();
+      wctx.beginPath(); wctx.moveTo(x2, qy - 4); wctx.lineTo(x2, qy + qh + 4); wctx.stroke();
+      wctx.setLineDash([]);
+      wctx.fillStyle = '#fbbf24'; wctx.font = '500 10px JetBrains Mono';
+      wctx.fillText('min', x1 - 8, qy + qh + 18); wctx.fillText('max', x2 - 10, qy + qh + 18);
+    }
+    wctx.fillStyle = '#fef3c7'; wctx.font = '500 11px JetBrains Mono';
+    wctx.fillText(wQueue.length + ' / ' + wCap, qx + qw + 6 - 60, qy + qh + 18);
+    // history chart
+    var cy = 100, ch = 160;
+    wctx.fillStyle = '#fef3c7'; wctx.font = '700 13px Space Grotesk';
+    wctx.fillText('Queue depth (last 200 ticks)', 30, cy - 8);
+    wctx.strokeStyle = '#3a3530';
+    wctx.strokeRect(30, cy, w - 60, ch);
+    if (wHist.length > 1) {
+      wctx.beginPath();
+      wctx.strokeStyle = '#fbbf24'; wctx.lineWidth = 2;
+      var xs = (w - 60) / 200;
+      wHist.forEach((v, i) => {
+        var px = 30 + i * xs, py = cy + ch - (v / wCap) * ch;
+        if (i === 0) wctx.moveTo(px, py); else wctx.lineTo(px, py);
+      });
+      wctx.stroke();
+    }
+    // flow stats
+    var fy = cy + ch + 24;
+    wctx.fillStyle = '#fef3c7'; wctx.font = '700 12px Space Grotesk';
+    wctx.fillText('Per-flow rate · drops:', 30, fy);
+    wFlows.forEach((f, i) => {
+      var fx = 30 + (i % 4) * 200;
+      var fy2 = fy + 18 + Math.floor(i / 4) * 18;
+      wctx.fillStyle = f.color;
+      wctx.fillRect(fx, fy2 - 9, 12, 12);
+      wctx.fillStyle = '#fef3c7'; wctx.font = '500 11px JetBrains Mono';
+      wctx.fillText('flow ' + (i + 1) + '  rate=' + f.rate.toFixed(1) + '  drops=' + f.drops, fx + 18, fy2);
+    });
+    if (!wFlows.length) {
+      wctx.fillStyle = '#94a3b8'; wctx.font = '500 11px JetBrains Mono';
+      wctx.fillText('Click "Inject 4 TCP flows" to start', 30, fy + 18);
+    }
+  }
+
+  /* ========== Module 7 — Quiz ========== */
+  var QUIZ = [
+    { q: 'Which DSCP value is used for voice (RTP)?', opts: ['CS6 (48)', 'EF (46)', 'AF41 (34)', 'AF11 (10)'], a: 1, why: 'Voice = EF, Expedited Forwarding, decimal 46. CS6 is for routing protocols, AF41 for interactive video.' },
+    { q: 'Cisco best-practice queueing for VoIP traffic is:', opts: ['PQ', 'WFQ', 'CBWFQ', 'LLQ'], a: 3, why: 'LLQ adds a strict-priority queue to CBWFQ but POLICES the priority queue so voice can\'t starve other classes. PQ alone would starve.' },
+    { q: 'A traffic policer that exceeds CIR will:', opts: ['Buffer the excess', 'Drop or remark the excess', 'Mark it ECN-CE', 'Halt the link'], a: 1, why: 'Policers drop or remark excess — no buffering, no delay. Shapers buffer.' },
+    { q: 'Tail drop causes which TCP pathology?', opts: ['Slow start', 'Global synchronization', 'Congestion window collapse to zero', 'Silly window syndrome'], a: 1, why: 'When tail drop hits, all TCP flows back off together → link goes idle → all ramp up together. WRED fixes this with random early drops.' },
+    { q: 'On a Cisco access switch, where is the trust boundary normally placed?', opts: ['On the uplink to the core', 'At the access port (with cisco-phone trust)', 'On the WAN interface', 'On the SVI for the management VLAN'], a: 1, why: 'Trust boundary at the access port: phone is trusted, attached PC is not. Closer to source = less rework downstream.' },
+    { q: 'Which is true about IP Precedence vs DSCP?', opts: ['DSCP uses 3 bits, IPP uses 6', 'DSCP uses 6 bits, IPP uses 3 — DSCP includes IPP as the top 3 bits (CS values)', 'They occupy different bytes', 'DSCP is L2, IPP is L3'], a: 1, why: 'DSCP = 6 bits (0-63), IPP = legacy 3-bit field. The CS class selectors (CS0-CS7) overlay IPP for backward compatibility.' },
+    { q: 'Which queueing strategy starves lower-class traffic if higher-priority traffic is constant?', opts: ['WFQ', 'CBWFQ', 'Strict PQ (alone, no policer)', 'FIFO'], a: 2, why: 'Strict PQ always serves the top queue first. If voice never stops, data never gets a turn. LLQ solves this by policing the priority queue.' },
+    { q: 'A 1Gbps router connects to a 100Mbps WAN. To avoid the carrier policer dropping bursts you should:', opts: ['Police inbound at 100Mbps', 'Shape outbound to 100Mbps', 'Mark all traffic CS0', 'Disable QoS'], a: 1, why: '"Police inbound, shape outbound." Shape on egress to match the slow downstream — the carrier\'s policer would drop your bursts otherwise.' }
+  ];
+  var qi = 0, qScore = 0;
+  function renderQuiz() {
+    var host = document.getElementById('quizHost');
+    document.getElementById('quizRestart').style.display = qi >= QUIZ.length ? 'inline-block' : 'none';
+    document.getElementById('quizProg').textContent = qi >= QUIZ.length ? 'Done — score ' + qScore + ' / ' + QUIZ.length : 'Question ' + (qi + 1) + ' of ' + QUIZ.length + ' · score ' + qScore;
+    if (qi >= QUIZ.length) {
+      var pct = Math.round(qScore / QUIZ.length * 100);
+      var msg = pct >= 88 ? 'Exam-ready on 4.7. Review the cheat sheet once more and move on.'
+              : pct >= 63 ? 'Solid foundation, but rerun the modules on the weak spots.'
+              : 'Replay modules 3 (marking) and 4 (queueing) — those carry most exam weight.';
+      host.innerHTML = '<div class="quiz-card"><div class="q">Final score: ' + qScore + ' / ' + QUIZ.length + ' (' + pct + '%)</div><div class="quiz-explain show">' + msg + '</div></div>';
+      return;
+    }
+    var Q = QUIZ[qi];
+    host.innerHTML = `<div class="quiz-card">
+      <div class="q">${qi + 1}. ${Q.q}</div>
+      <div class="opts" id="optsHost">${Q.opts.map((o, i) => `<button class="quiz-opt" data-i="${i}">${String.fromCharCode(65 + i)}. ${o}</button>`).join('')}</div>
+      <div class="quiz-explain" id="qExplain"></div>
+    </div>`;
+    host.querySelectorAll('.quiz-opt').forEach(b => b.addEventListener('click', () => {
+      var pick = +b.dataset.i;
+      host.querySelectorAll('.quiz-opt').forEach((x, i) => {
+        x.classList.add('disabled');
+        if (i === Q.a) x.classList.add('correct');
+        else if (i === pick) x.classList.add('wrong');
+      });
+      var exp = document.getElementById('qExplain');
+      exp.classList.add('show');
+      exp.innerHTML = (pick === Q.a ? '<strong style="color:#15803d">Correct.</strong> ' : '<strong style="color:#991b1b">Not quite.</strong> ') + Q.why;
+      if (pick === Q.a) qScore++;
+      setTimeout(() => { qi++; renderQuiz(); }, 2400);
+    }));
+  }
+  document.getElementById('quizRestart').addEventListener('click', () => { qi = 0; qScore = 0; renderQuiz(); });
+  renderQuiz();
+
+});
+</script>
+
+</body>
+</html>

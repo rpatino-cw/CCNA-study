@@ -77,7 +77,7 @@ ${ctx.transcript}
 """
 
 Open the eval. Return JSON: { "question": "<your first question>" }. Single-sentence question. Begin with the most important concept on the objective.`;
-    const data = await window.gemini.generate(sys, user, FIRST_SCHEMA);
+    const data = await window.gemini.generate(sys, user, FIRST_SCHEMA, { trusted: true });
     const q = String((data && data.question) || '').trim();
     if (!q) throw new Error('Examiner returned no question.');
     if (!window.gemini.scopeValidate(q, ctx.forbiddenTerms)) {
@@ -102,7 +102,7 @@ Candidate answer (A${exchangeNum}): ${candidateAnswer}
 Current consecutive ≥9 streak (before this exchange): ${streak}
 Current exchange number (this one): ${exchangeNum} of ${MAX_EXCHANGES}.
 Score this exchange and either ask the next question or stop. Return JSON only.`;
-    const data = await window.gemini.generate(sys, user, VERDICT_SCHEMA);
+    const data = await window.gemini.generate(sys, user, VERDICT_SCHEMA, { trusted: true });
     const out = {
       score: Math.min(10, Math.max(1, parseInt(data.score, 10) || 0)),
       feedback: String(data.feedback || '').trim(),

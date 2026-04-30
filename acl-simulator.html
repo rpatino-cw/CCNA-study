@@ -1,0 +1,798 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#FAF7F2">
+<meta name="color-scheme" content="light">
+<link rel="icon" type="image/svg+xml" href="/CCNA-study/favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;1,8..60,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="css/shared.css?v=4.56">
+<title>ACL Table Simulator — CCNA 200-301</title>
+<style>
+/* ═══ ACL Simulator — editorial theme on top of shared.css ═══ */
+.kicker{font-family:var(--font-display);font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--accent);margin-bottom:var(--s-xs);font-weight:600}
+.section-label{font-family:var(--font-display);font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--accent);margin-bottom:var(--s-sm)}
+.section-title{font-size:1.35rem;margin-top:0;margin-bottom:var(--s-md);padding-bottom:var(--s-sm);border-bottom:1px solid var(--rule)}
+.section-desc{font-family:var(--font-body);font-size:.92rem;color:var(--ink-secondary);line-height:1.65;margin-bottom:var(--s-lg);max-width:65ch}
+section{margin-bottom:var(--s-2xl)}
+
+.quick-answer{background:var(--accent-dim);border:1px solid var(--accent-light);border-left:3px solid var(--accent);border-radius:var(--radius-lg);padding:20px 24px;margin-bottom:var(--s-2xl)}
+.quick-answer h2{font-family:var(--font-display);font-size:1.05rem;font-weight:700;color:var(--accent);margin:0 0 6px;border:0;padding:0}
+.quick-answer p{font-family:var(--font-body);font-size:.95rem;line-height:1.6;color:var(--ink);max-width:none}
+
+/* Mission card */
+.mission-card{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px 24px;margin-bottom:var(--s-md);position:relative}
+.mission-row{display:flex;flex-wrap:wrap;gap:14px;align-items:center;margin-bottom:10px}
+.mission-id{font-family:var(--font-mono);font-size:.7rem;font-weight:700;color:var(--accent);background:var(--accent-dim);padding:3px 9px;border-radius:100px;border:1px solid var(--accent-light)}
+.mission-title{font-family:var(--font-display);font-size:1.1rem;font-weight:700;color:var(--ink);margin:0}
+.mission-diff{font-family:var(--font-mono);font-size:.62rem;text-transform:uppercase;color:var(--ink-muted);letter-spacing:.05em}
+.mission-brief{font-family:var(--font-body);font-size:.95rem;line-height:1.6;color:var(--ink-secondary);margin:0}
+.mission-select{font-family:var(--font-display);font-size:.85rem;padding:6px 12px;border:1.5px solid var(--border);border-radius:var(--radius);background:var(--bg-surface);color:var(--ink);cursor:pointer}
+
+/* Coverage bar */
+.coverage{display:flex;align-items:center;gap:12px;margin-top:10px}
+.coverage-bar{flex:1;height:6px;background:var(--bg-recessed);border-radius:3px;overflow:hidden}
+.coverage-fill{height:100%;background:linear-gradient(90deg, var(--accent), #d97706);transition:width .4s var(--ease-out)}
+.coverage-text{font-family:var(--font-mono);font-size:.75rem;font-weight:700;color:var(--accent)}
+
+/* 2-column workspace */
+.workspace{display:grid;grid-template-columns:1fr 1fr;gap:var(--s-md);margin-bottom:var(--s-md)}
+@media (max-width:1100px){.workspace{grid-template-columns:1fr}}
+
+.panel{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:18px}
+.panel-title{font-family:var(--font-display);font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-muted);margin:0 0 12px}
+
+/* ACL editor table */
+.acl-mode-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;font-family:var(--font-display);font-size:.7rem}
+.mode-btn{padding:5px 11px;border:1.5px solid var(--border);border-radius:var(--radius);background:var(--bg-surface);color:var(--ink-secondary);cursor:pointer;font-weight:600;text-transform:uppercase;letter-spacing:.04em;font-size:.65rem;transition:all .15s}
+.mode-btn:hover{border-color:var(--accent);color:var(--accent)}
+.mode-btn.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+
+.acl-table{width:100%;border-collapse:collapse;font-family:var(--font-mono);font-size:.78rem}
+.acl-table th{text-align:left;padding:6px 8px;font-family:var(--font-display);font-size:.62rem;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-muted);border-bottom:1px solid var(--rule);font-weight:700}
+.acl-table td{padding:4px 6px;border-bottom:1px solid var(--rule)}
+.acl-table input,.acl-table select{font-family:var(--font-mono);font-size:.76rem;padding:4px 6px;border:1px solid var(--border);border-radius:4px;background:var(--bg-input);color:var(--ink);width:100%;box-sizing:border-box}
+.acl-table input:focus,.acl-table select:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 2px rgba(180,83,9,.15)}
+.acl-table tr.implicit{background:var(--bg-recessed);opacity:.7}
+.acl-table tr.implicit td{color:var(--ink-muted);font-style:italic}
+.acl-table tr.matched{background:rgba(22,163,74,.08)}
+.acl-table tr.matched-deny{background:rgba(220,38,38,.08)}
+.acl-table .row-line{font-weight:700;color:var(--accent);width:42px}
+.acl-table .row-action{width:75px}
+.acl-table .row-proto{width:62px}
+.acl-table .row-flags{width:90px}
+.acl-table .row-counter{width:56px;text-align:right;font-weight:700;color:var(--ink-muted)}
+.acl-table .row-rm{width:28px;text-align:center}
+.acl-table .row-rm button{background:none;border:none;color:var(--ink-muted);cursor:pointer;font-size:1.1rem;line-height:1}
+.acl-table .row-rm button:hover{color:var(--prof-weak)}
+
+.acl-controls{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
+.btn{font-family:var(--font-display);font-size:.74rem;font-weight:600;padding:7px 14px;border:2px solid var(--border);border-radius:var(--radius);cursor:pointer;background:var(--bg-surface);color:var(--ink-secondary);transition:all .15s}
+.btn:hover{border-color:var(--accent);color:var(--accent)}
+.btn.primary{background:var(--ink);color:var(--bg);border-color:var(--ink);padding:8px 18px}
+.btn.primary:hover{background:#292524;color:var(--bg)}
+.btn.accent{background:var(--accent);color:#fff;border-color:var(--accent)}
+.btn.accent:hover{background:#92400e;color:#fff}
+
+/* Topology */
+.topo{position:relative;background:var(--bg-recessed);border:1px solid var(--border);border-radius:var(--radius);height:260px;margin-bottom:12px;overflow:hidden}
+.topo svg{width:100%;height:100%;display:block}
+.topo-node{cursor:pointer}
+.topo-node text{font-family:var(--font-display);font-size:11px;font-weight:700;fill:var(--ink)}
+.topo-node .sub{font-family:var(--font-mono);font-size:9px;fill:var(--ink-muted);font-weight:400}
+.topo-iface{cursor:pointer}
+.topo-iface circle{fill:var(--bg-surface);stroke:var(--border-strong);stroke-width:1.5;transition:all .2s}
+.topo-iface:hover circle{stroke:var(--accent);fill:var(--accent-dim)}
+.topo-iface.applied circle{fill:var(--accent);stroke:var(--accent)}
+.topo-iface.applied text{fill:#fff}
+.topo-iface text{font-family:var(--font-mono);font-size:9px;fill:var(--ink);font-weight:700;pointer-events:none}
+
+.placement-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:10px;font-family:var(--font-display);font-size:.78rem}
+.placement-row .lbl{font-size:.62rem;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-muted);font-weight:700}
+.placement-row select{font-family:var(--font-mono);font-size:.78rem;padding:5px 8px;border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-input);color:var(--ink)}
+
+/* Packet tester */
+.packet-form{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;margin-bottom:10px}
+.packet-form label{display:flex;flex-direction:column;gap:3px;font-family:var(--font-display);font-size:.62rem;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-muted);font-weight:700}
+.packet-form input,.packet-form select{font-family:var(--font-mono);font-size:.8rem;padding:5px 8px;border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-input);color:var(--ink)}
+.packet-form input:focus,.packet-form select:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 2px rgba(180,83,9,.15)}
+
+.result{padding:14px 16px;border-radius:var(--radius);background:var(--bg-recessed);border-left:3px solid var(--ink-muted);font-family:var(--font-body);font-size:.88rem;line-height:1.55;min-height:54px}
+.result.permit{border-left-color:var(--prof-strong);background:var(--prof-strong-bg)}
+.result.deny{border-left-color:var(--prof-weak);background:rgba(220,38,38,.06)}
+.result strong{font-family:var(--font-display);font-weight:700;color:var(--ink)}
+.result code{font-family:var(--font-mono);font-size:.78rem;background:var(--bg-surface);padding:1px 6px;border-radius:3px;color:var(--accent);border:1px solid var(--border)}
+
+/* Mistake feed */
+.mistake-feed{margin-top:var(--s-md)}
+.trap{background:#fef3c7;border:1px solid #fde68a;border-left:4px solid #d97706;border-radius:var(--radius);padding:12px 16px;margin-bottom:8px;animation:slidein .3s var(--ease-out)}
+.trap-id{font-family:var(--font-mono);font-size:.66rem;font-weight:700;color:#92400e;background:#fde68a;padding:2px 8px;border-radius:100px;display:inline-block;margin-bottom:4px}
+.trap-msg{font-family:var(--font-display);font-size:.92rem;font-weight:600;color:var(--ink);margin-bottom:6px}
+.trap-fix{font-family:var(--font-body);font-size:.84rem;color:var(--ink-secondary);line-height:1.5}
+.trap-fix strong{color:var(--ink)}
+.trap-quote{font-family:var(--font-body);font-size:.78rem;color:var(--ink-muted);font-style:italic;margin-top:6px;padding-top:6px;border-top:1px dashed #fde68a}
+@keyframes slidein{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
+
+/* Cheat sheet sidecar */
+.cheat-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;font-family:var(--font-body);font-size:.82rem}
+.cheat-grid > div{padding:8px 10px;background:var(--bg-recessed);border-radius:var(--radius);line-height:1.4}
+.cheat-grid strong{font-family:var(--font-display);color:var(--accent);font-weight:700;font-size:.7rem;text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:2px}
+.cheat-grid code{font-family:var(--font-mono);font-size:.75rem;color:var(--ink)}
+
+/* Grade panel */
+.grade{margin-top:14px;padding:14px 16px;border-radius:var(--radius);background:var(--bg-recessed);border:1px solid var(--border)}
+.grade-row{display:flex;align-items:center;gap:8px;font-family:var(--font-mono);font-size:.78rem;margin-bottom:4px;color:var(--ink-secondary)}
+.grade-row.ok{color:var(--prof-strong)}
+.grade-row.fail{color:var(--prof-weak)}
+.grade-row .check{font-weight:700}
+
+/* Model answer reveal */
+.model-answer{margin-top:14px;padding:12px 14px;background:var(--bg-recessed);border-radius:var(--radius);border-left:3px solid var(--accent);font-family:var(--font-mono);font-size:.78rem;line-height:1.5;white-space:pre-wrap;color:var(--ink-secondary);display:none}
+.model-answer.visible{display:block}
+.model-answer-title{font-family:var(--font-display);font-size:.7rem;font-weight:700;color:var(--accent);margin-bottom:6px;text-transform:uppercase;letter-spacing:.06em}
+
+/* Coverage map */
+.cov-map{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:6px;font-family:var(--font-mono);font-size:.72rem}
+.cov-pill{padding:5px 9px;border-radius:var(--radius);background:var(--bg-recessed);border:1px solid var(--border);color:var(--ink-muted);display:flex;align-items:center;gap:5px}
+.cov-pill.hit{background:var(--prof-strong-bg);border-color:var(--prof-strong);color:var(--prof-strong)}
+.cov-pill.hit::before{content:'✓ ';font-weight:700}
+
+</style>
+</head>
+<body>
+<nav class="top-nav"></nav>
+
+<main class="container">
+  <div class="kicker">CCNA 200-301 · Objective 5.6</div>
+  <h1>ACL Table Simulator</h1>
+
+  <div class="quick-answer">
+    <h2>How to use</h2>
+    <p>Pick a mission. Build the ACL row by row. Pick the router + interface + direction. Send test packets — watch which line matches (or hits the implicit deny). Wrong wildcard, wrong placement, or bad order? The simulator catches it as a <strong>trap</strong> and explains the exam quote behind it.</p>
+  </div>
+
+  <!-- Mission card -->
+  <section>
+    <div class="mission-card">
+      <div class="mission-row">
+        <span class="mission-id" id="missionId">M1</span>
+        <h2 class="mission-title" id="missionTitle">Loading…</h2>
+        <span class="mission-diff" id="missionDiff"></span>
+        <select class="mission-select" id="missionSelect" style="margin-left:auto"></select>
+      </div>
+      <p class="mission-brief" id="missionBrief">—</p>
+      <div class="coverage">
+        <span class="coverage-text" id="covText">0 / 14</span>
+        <div class="coverage-bar"><div class="coverage-fill" id="covFill" style="width:0%"></div></div>
+        <button class="btn" id="modelBtn">Reveal model answer</button>
+      </div>
+      <div class="model-answer" id="modelAnswer">
+        <div class="model-answer-title">Model answer</div>
+        <span id="modelAnswerBody"></span>
+      </div>
+    </div>
+  </section>
+
+  <!-- Workspace: ACL editor + Topology/Packet -->
+  <div class="workspace">
+    <!-- Left: ACL editor -->
+    <div class="panel">
+      <div class="panel-title">ACL Editor</div>
+      <div class="acl-mode-row">
+        <span class="lbl" style="font-family:var(--font-display);font-size:.62rem;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-muted);font-weight:700;margin-right:6px">Type</span>
+        <button class="mode-btn active" data-mode-type="standard">Standard</button>
+        <button class="mode-btn" data-mode-type="extended">Extended</button>
+        <span style="width:14px"></span>
+        <span class="lbl" style="font-family:var(--font-display);font-size:.62rem;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-muted);font-weight:700;margin-right:6px">Form</span>
+        <button class="mode-btn active" data-mode-form="numbered">Numbered</button>
+        <button class="mode-btn" data-mode-form="named">Named</button>
+        <input type="number" id="aclNumber" value="10" min="1" max="2699" style="width:62px;font-family:var(--font-mono);font-size:.74rem;padding:4px 6px;border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-input);color:var(--ink);margin-left:6px">
+        <input type="text" id="aclName" value="MY-ACL" placeholder="ACL name" style="width:120px;font-family:var(--font-mono);font-size:.74rem;padding:4px 6px;border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-input);color:var(--ink);margin-left:6px;display:none">
+      </div>
+
+      <table class="acl-table" id="aclTable">
+        <thead>
+          <tr>
+            <th class="row-line">#</th>
+            <th class="row-action">Action</th>
+            <th class="row-proto ext-only">Proto</th>
+            <th>Source</th>
+            <th class="ext-only">Src port</th>
+            <th class="ext-only">Destination</th>
+            <th class="ext-only">Dst port</th>
+            <th class="row-flags">Flags</th>
+            <th class="row-counter">Hits</th>
+            <th class="row-rm"></th>
+          </tr>
+        </thead>
+        <tbody id="aclBody"></tbody>
+      </table>
+
+      <div class="acl-controls">
+        <button class="btn" id="addRowBtn">+ Add ACE</button>
+        <button class="btn" id="clearBtn">Clear ACL</button>
+        <button class="btn primary" id="gradeBtn">Grade attempt</button>
+      </div>
+      <div class="grade" id="gradePanel" style="display:none"></div>
+    </div>
+
+    <!-- Right: Topology + Packet tester -->
+    <div class="panel">
+      <div class="panel-title">Topology &amp; Placement</div>
+      <div class="topo">
+        <svg id="topoSvg" viewBox="0 0 600 260" preserveAspectRatio="xMidYMid meet"></svg>
+      </div>
+      <div class="placement-row">
+        <span class="lbl">Direction</span>
+        <select id="dirSelect">
+          <option value="in">in (entering interface)</option>
+          <option value="out">out (leaving interface)</option>
+        </select>
+        <span class="lbl" style="margin-left:6px">Bind cmd</span>
+        <select id="bindSelect">
+          <option value="access-group">ip access-group (interface)</option>
+          <option value="access-class">access-class (line vty)</option>
+          <option value="traffic-filter">ipv6 traffic-filter</option>
+        </select>
+      </div>
+
+      <div class="panel-title" style="margin-top:18px">Packet Tester</div>
+      <div class="packet-form">
+        <label>Source IP <input type="text" id="pSrc" value="192.168.10.50"></label>
+        <label>Dest IP <input type="text" id="pDst" value="10.0.0.5"></label>
+        <label>Proto
+          <select id="pProto">
+            <option value="tcp">tcp</option>
+            <option value="udp">udp</option>
+            <option value="icmp">icmp</option>
+            <option value="ip">ip</option>
+          </select>
+        </label>
+        <label>Src port <input type="number" id="pSrcPort" value="50000"></label>
+        <label>Dst port <input type="number" id="pDstPort" value="80"></label>
+        <label>TCP flags
+          <select id="pTcpFlags">
+            <option value="">— none —</option>
+            <option value="syn">SYN</option>
+            <option value="ack">ACK (established)</option>
+            <option value="rst">RST</option>
+          </select>
+        </label>
+      </div>
+      <div style="display:flex;gap:8px;margin-bottom:10px">
+        <button class="btn accent" id="sendPktBtn">Send packet</button>
+        <button class="btn" id="resetCountersBtn">Reset counters</button>
+      </div>
+      <div class="result" id="pktResult">Send a packet to see how the ACL evaluates it.</div>
+    </div>
+  </div>
+
+  <!-- Mistake feed -->
+  <section>
+    <div class="section-label">Trap Detector</div>
+    <h2 class="section-title">Mistake Feed</h2>
+    <p class="section-desc">Builds the live list of traps your current ACL + placement triggers. The simulator never auto-fixes — it explains, with the cheat-sheet quote that maps to each trap.</p>
+    <div class="mistake-feed" id="mistakeFeed">
+      <p style="font-family:var(--font-body);color:var(--ink-muted);font-style:italic;font-size:.88rem">No traps yet. Build an ACL — the engine watches every change.</p>
+    </div>
+  </section>
+
+  <!-- Coverage map -->
+  <section>
+    <div class="section-label">Exam coverage</div>
+    <h2 class="section-title">CCNA 5.6 sub-objectives covered</h2>
+    <div class="cov-map" id="covMap"></div>
+  </section>
+
+  <!-- Cheat sheet sidecar -->
+  <section>
+    <div class="section-label">Quick reference</div>
+    <h2 class="section-title">Day 34 + Day 35 must-know</h2>
+    <div class="cheat-grid">
+      <div><strong>Standard range</strong>1-99, 1300-1999</div>
+      <div><strong>Extended range</strong>100-199, 2000-2699</div>
+      <div><strong>Standard ACL filters</strong>Source IP only</div>
+      <div><strong>Extended ACL filters</strong>Proto + src + dst + L4 ports</div>
+      <div><strong>Apply standard</strong>Close to <em>destination</em></div>
+      <div><strong>Apply extended</strong>Close to <em>source</em></div>
+      <div><strong>Wildcard /24</strong><code>0.0.0.255</code> (NOT 255.255.255.0)</div>
+      <div><strong>Wildcard host</strong><code>0.0.0.0</code> or <code>host X</code></div>
+      <div><strong>Wildcard any</strong><code>0.0.0.0 255.255.255.255</code> or <code>any</code></div>
+      <div><strong>Implicit deny</strong>Hidden <code>deny ip any any</code> at end</div>
+      <div><strong>VTY ACL</strong><code>access-class N in</code> (NOT ip access-group)</div>
+      <div><strong>Bind on interface</strong><code>ip access-group N {in|out}</code></div>
+      <div><strong>Insert/delete entry</strong>Named mode only</div>
+      <div><strong>established</strong>TCP only — matches ACK/RST</div>
+      <div><strong>Resequence</strong><code>ip access-list resequence N start step</code></div>
+      <div><strong>Common ports</strong>21 ftp · 22 ssh · 23 telnet · 25 smtp · 53 dns · 80 http · 443 https</div>
+    </div>
+  </section>
+</main>
+
+<script defer src="js/nav.js"></script>
+<script defer src="js/acl-engine.js"></script>
+<script>
+window.aclSimulatorState = window.aclSimulatorState || {};
+</script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  var state = {
+    mode: { type: 'standard', form: 'numbered' },
+    acl: [],     // array of ACE objects (same shape as engine expects)
+    rawRows: [], // raw editor rows preserving in-progress entries
+    placement: { router: null, iface: null, dir: 'in', bind: 'access-group', vty: false, numbered: true, aclNumber: 10, aclName: 'MY-ACL' },
+    scenarios: [],
+    currentScenario: null,
+    completedIds: JSON.parse(localStorage.getItem('acl_sim_completed') || '[]'),
+    coveredObjectives: JSON.parse(localStorage.getItem('acl_sim_objectives') || '[]'),
+    hitCounts: {},
+    trapsSeen: JSON.parse(localStorage.getItem('acl_sim_traps') || '[]')
+  };
+  window.aclSimulatorState = state;
+
+  // ─── Load scenarios ────────────────────────────────
+  fetch('data/acl-scenarios.json').then(function (r) { return r.json(); }).then(function (data) {
+    state.scenarios = data.scenarios;
+    populateMissionSelect();
+    loadScenario(state.scenarios[0]);
+    updateCoverage();
+  }).catch(function (e) {
+    document.getElementById('missionBrief').textContent = 'Could not load scenarios.json — ' + e.message;
+  });
+
+  function populateMissionSelect() {
+    var sel = document.getElementById('missionSelect');
+    sel.innerHTML = state.scenarios.map(function (s) {
+      var done = state.completedIds.indexOf(s.id) !== -1 ? ' ✓' : '';
+      return '<option value="' + s.id + '">' + s.id + ' — ' + s.title + done + '</option>';
+    }).join('');
+    sel.onchange = function () {
+      var sc = state.scenarios.find(function (x) { return x.id === sel.value; });
+      if (sc) loadScenario(sc);
+    };
+  }
+
+  function loadScenario(sc) {
+    state.currentScenario = sc;
+    document.getElementById('missionId').textContent = sc.id;
+    document.getElementById('missionTitle').textContent = sc.title;
+    document.getElementById('missionDiff').textContent = sc.difficulty + ' · ' + sc.type;
+    document.getElementById('missionBrief').textContent = sc.brief;
+    document.getElementById('modelAnswerBody').textContent = (sc.modelAnswer || []).join('\n');
+    document.getElementById('modelAnswer').classList.remove('visible');
+
+    // If scenario has 'broken' starter ACL (audit/repair), seed it
+    if (sc.broken && sc.broken.length) {
+      state.rawRows = sc.broken.map(function (line) { return parsedToRaw(ACL.parseACE(line)); });
+    } else {
+      state.rawRows = [];
+    }
+
+    // Mode default
+    if (sc.type === 'standard') setMode({ type: 'standard', form: 'named' });
+    else if (sc.type === 'vty') setMode({ type: 'standard', form: 'numbered' });
+    else if (sc.type === 'ipv6') setMode({ type: 'extended', form: 'named' });
+    else setMode({ type: 'extended', form: 'numbered' });
+
+    // Topology + default packet tester values
+    drawTopology(sc.topology);
+    if (sc.topology && sc.topology.endpoints) {
+      var ep = sc.topology.endpoints;
+      var keys = Object.keys(ep);
+      if (keys.length >= 2) {
+        var pcKey = keys.find(function (k) { return /pc|inside|mgmt/i.test(k); }) || keys[0];
+        var srvKey = keys.find(function (k) { return /server|outside|badguy/i.test(k); }) || keys[1];
+        document.getElementById('pSrc').value = ep[pcKey];
+        document.getElementById('pDst').value = ep[srvKey];
+      }
+    }
+
+    state.placement.vty = !!sc.topology && !!sc.topology.vty;
+    if (state.placement.vty) {
+      document.getElementById('bindSelect').value = 'access-class';
+      state.placement.bind = 'access-class';
+    } else {
+      document.getElementById('bindSelect').value = 'access-group';
+      state.placement.bind = 'access-group';
+    }
+
+    renderACL();
+    document.getElementById('gradePanel').style.display = 'none';
+    document.getElementById('pktResult').textContent = 'Send a packet to see how the ACL evaluates it.';
+    document.getElementById('pktResult').className = 'result';
+  }
+
+  // ─── Mode toggle ───────────────────────────────────
+  function setMode(m) {
+    state.mode = Object.assign({}, state.mode, m);
+    state.placement.numbered = state.mode.form === 'numbered';
+    document.querySelectorAll('[data-mode-type]').forEach(function (b) {
+      b.classList.toggle('active', b.dataset.modeType === state.mode.type);
+    });
+    document.querySelectorAll('[data-mode-form]').forEach(function (b) {
+      b.classList.toggle('active', b.dataset.modeForm === state.mode.form);
+    });
+    document.getElementById('aclNumber').style.display = state.mode.form === 'numbered' ? '' : 'none';
+    document.getElementById('aclName').style.display = state.mode.form === 'named' ? '' : 'none';
+    // Hide extended-only columns
+    var extOnly = state.mode.type === 'extended';
+    document.querySelectorAll('.acl-table .ext-only').forEach(function (el) {
+      el.style.display = extOnly ? '' : 'none';
+    });
+    renderACL();
+  }
+  document.querySelectorAll('[data-mode-type]').forEach(function (b) {
+    b.onclick = function () { setMode({ type: b.dataset.modeType }); };
+  });
+  document.querySelectorAll('[data-mode-form]').forEach(function (b) {
+    b.onclick = function () { setMode({ form: b.dataset.modeForm }); };
+  });
+  document.getElementById('aclNumber').oninput = function () {
+    state.placement.aclNumber = parseInt(this.value, 10) || 10;
+    runTrapScan();
+  };
+  document.getElementById('aclName').oninput = function () {
+    state.placement.aclName = this.value;
+  };
+
+  // ─── ACL editor rows ───────────────────────────────
+  function emptyRow() {
+    return { action: 'permit', proto: 'ip', srcIp: '', srcWc: '', srcPortOp: '', srcPort: '', dstIp: '', dstWc: '', dstPortOp: '', dstPort: '', flags: '' };
+  }
+  function parsedToRaw(ace) {
+    if (!ace || ace.error) return emptyRow();
+    var r = emptyRow();
+    r.action = ace.action;
+    r.proto = ace.proto || 'ip';
+    if (ace.src) {
+      r.srcIp = ace.src.any ? 'any' : (ace.src.host ? ace.src.ip : ace.src.ip);
+      r.srcWc = ace.src.host ? 'host' : (ace.src.any ? '' : ace.src.wildcard);
+    }
+    if (ace.srcPort) { r.srcPortOp = ace.srcPort.op; r.srcPort = ace.srcPort.b ? (ace.srcPort.a + '-' + ace.srcPort.b) : ace.srcPort.a; }
+    if (ace.dst) {
+      r.dstIp = ace.dst.any ? 'any' : (ace.dst.host ? ace.dst.ip : ace.dst.ip);
+      r.dstWc = ace.dst.host ? 'host' : (ace.dst.any ? '' : ace.dst.wildcard);
+    }
+    if (ace.dstPort) { r.dstPortOp = ace.dstPort.op; r.dstPort = ace.dstPort.b ? (ace.dstPort.a + '-' + ace.dstPort.b) : ace.dstPort.a; }
+    r.flags = (ace.flags || []).join(' ');
+    return r;
+  }
+  function rawToString(r) {
+    var parts = [r.action];
+    if (state.mode.type === 'extended') parts.push(r.proto);
+    parts.push(addrPart(r.srcIp, r.srcWc));
+    if (r.srcPortOp) parts.push(portPart(r.srcPortOp, r.srcPort));
+    if (state.mode.type === 'extended') parts.push(addrPart(r.dstIp, r.dstWc));
+    if (r.dstPortOp && state.mode.type === 'extended') parts.push(portPart(r.dstPortOp, r.dstPort));
+    if (r.flags) parts.push(r.flags);
+    return parts.filter(Boolean).join(' ');
+  }
+  function addrPart(ip, wc) {
+    if (!ip) return '';
+    if (ip === 'any' || wc === 'any') return 'any';
+    if (wc === 'host' || wc === '') return 'host ' + ip;
+    return ip + ' ' + wc;
+  }
+  function portPart(op, val) {
+    if (!val) return '';
+    var s = String(val);
+    if (op === 'range' && s.indexOf('-') !== -1) {
+      var p = s.split('-'); return 'range ' + p[0].trim() + ' ' + p[1].trim();
+    }
+    return op + ' ' + s;
+  }
+
+  function renderACL() {
+    var body = document.getElementById('aclBody');
+    body.innerHTML = '';
+    state.rawRows.forEach(function (r, idx) {
+      var tr = document.createElement('tr');
+      var line = (idx + 1) * 10;
+      var hits = state.hitCounts[line] || 0;
+      var ext = state.mode.type === 'extended';
+      tr.dataset.line = line;
+      tr.innerHTML =
+        '<td class="row-line">' + line + '</td>' +
+        '<td class="row-action"><select data-k="action"><option value="permit">permit</option><option value="deny">deny</option></select></td>' +
+        (ext ? '<td class="row-proto ext-only"><select data-k="proto"><option>ip</option><option>tcp</option><option>udp</option><option>icmp</option><option>ospf</option><option>eigrp</option></select></td>' : '<td class="ext-only" style="display:none"></td>') +
+        '<td><div style="display:flex;gap:3px"><input data-k="srcIp" placeholder="any | host | IP" style="flex:1"><input data-k="srcWc" placeholder="wcard | host" style="width:88px"></div></td>' +
+        (ext ? '<td class="ext-only"><div style="display:flex;gap:3px"><select data-k="srcPortOp"><option value=""></option><option>eq</option><option>gt</option><option>lt</option><option>neq</option><option>range</option></select><input data-k="srcPort" placeholder="port" style="width:64px"></div></td>' : '<td class="ext-only" style="display:none"></td>') +
+        (ext ? '<td class="ext-only"><div style="display:flex;gap:3px"><input data-k="dstIp" placeholder="any | host | IP" style="flex:1"><input data-k="dstWc" placeholder="wcard | host" style="width:88px"></div></td>' : '<td class="ext-only" style="display:none"></td>') +
+        (ext ? '<td class="ext-only"><div style="display:flex;gap:3px"><select data-k="dstPortOp"><option value=""></option><option>eq</option><option>gt</option><option>lt</option><option>neq</option><option>range</option></select><input data-k="dstPort" placeholder="port" style="width:64px"></div></td>' : '<td class="ext-only" style="display:none"></td>') +
+        '<td class="row-flags"><input data-k="flags" placeholder="established · log · time-range X"></td>' +
+        '<td class="row-counter">' + hits + '</td>' +
+        '<td class="row-rm"><button title="Remove row" data-rm="' + idx + '">×</button></td>';
+
+      // Bind values
+      tr.querySelectorAll('[data-k]').forEach(function (el) {
+        el.value = r[el.dataset.k] || '';
+        el.oninput = function () { r[el.dataset.k] = el.value; rebuildAcl(); };
+        el.onchange = function () { r[el.dataset.k] = el.value; rebuildAcl(); };
+      });
+
+      body.appendChild(tr);
+    });
+
+    // Implicit deny ghost row
+    var ext = state.mode.type === 'extended';
+    var ghost = document.createElement('tr');
+    ghost.className = 'implicit';
+    var ghostText = ext ? 'deny ip any any' : 'deny any';
+    ghost.innerHTML =
+      '<td class="row-line">∞</td>' +
+      '<td class="row-action">deny</td>' +
+      (ext ? '<td class="ext-only">ip</td>' : '<td class="ext-only" style="display:none"></td>') +
+      '<td>any</td>' +
+      (ext ? '<td class="ext-only">—</td>' : '<td class="ext-only" style="display:none"></td>') +
+      (ext ? '<td class="ext-only">any</td>' : '<td class="ext-only" style="display:none"></td>') +
+      (ext ? '<td class="ext-only">—</td>' : '<td class="ext-only" style="display:none"></td>') +
+      '<td class="row-flags">implicit</td>' +
+      '<td class="row-counter">' + (state.hitCounts['implicit'] || 0) + '</td>' +
+      '<td class="row-rm" title="' + ghostText + '"></td>';
+    body.appendChild(ghost);
+
+    // Remove button handlers
+    body.querySelectorAll('[data-rm]').forEach(function (b) {
+      b.onclick = function () {
+        state.rawRows.splice(parseInt(b.dataset.rm, 10), 1);
+        rebuildAcl();
+      };
+    });
+
+    rebuildAcl();
+  }
+
+  function rebuildAcl() {
+    state.acl = state.rawRows.map(function (r, idx) {
+      var s = rawToString(r);
+      if (!s || /^(permit|deny)\s*$/.test(s)) return null;
+      var parsed = ACL.parseACE(s);
+      parsed._raw = s;
+      parsed.line = (idx + 1) * 10;
+      return parsed;
+    }).filter(Boolean);
+    runTrapScan();
+  }
+
+  document.getElementById('addRowBtn').onclick = function () {
+    var row = emptyRow();
+    if (state.mode.type === 'extended') row.proto = 'tcp';
+    state.rawRows.push(row);
+    renderACL();
+  };
+  document.getElementById('clearBtn').onclick = function () {
+    state.rawRows = []; state.hitCounts = {}; renderACL();
+  };
+
+  // ─── Topology rendering ────────────────────────────
+  function drawTopology(topo) {
+    var svg = document.getElementById('topoSvg');
+    if (!topo) { svg.innerHTML = ''; return; }
+    var routers = topo.routers || ['R1', 'R2', 'R3'];
+    var endpoints = topo.endpoints || {};
+    var endpointKeys = Object.keys(endpoints);
+    var vty = !!topo.vty;
+    state.placement.router = null;
+    state.placement.iface = null;
+
+    var w = 600, h = 260;
+    var midY = h / 2;
+    var nRouters = routers.length;
+    var pad = 80;
+    var span = w - pad * 2;
+    var routerX = function (i) { return pad + (nRouters === 1 ? span / 2 : (span * i) / (nRouters - 1)); };
+
+    var html = '';
+    // Endpoint left
+    if (endpointKeys[0]) {
+      var pcX = 32, pcY = midY - 60;
+      html += '<g class="topo-node"><rect x="' + (pcX - 26) + '" y="' + (pcY - 16) + '" width="52" height="32" rx="4" fill="var(--bg-surface)" stroke="var(--border-strong)"/>';
+      html += '<text x="' + pcX + '" y="' + (pcY + 4) + '" text-anchor="middle">PC</text>';
+      html += '<text class="sub" x="' + pcX + '" y="' + (pcY + 28) + '" text-anchor="middle">' + endpoints[endpointKeys[0]] + '</text></g>';
+      // Link to first router
+      html += '<line x1="' + (pcX + 26) + '" y1="' + pcY + '" x2="' + (routerX(0) - 22) + '" y2="' + midY + '" stroke="var(--border-strong)" stroke-width="1.5"/>';
+    }
+    // Routers + interfaces
+    routers.forEach(function (rname, i) {
+      var rx = routerX(i);
+      html += '<g class="topo-node">';
+      html += '<circle cx="' + rx + '" cy="' + midY + '" r="22" fill="var(--bg-surface)" stroke="var(--border-strong)" stroke-width="1.5"/>';
+      html += '<text x="' + rx + '" y="' + (midY + 4) + '" text-anchor="middle">' + rname + '</text>';
+      html += '</g>';
+      // Inter-router link
+      if (i < nRouters - 1) {
+        var rx2 = routerX(i + 1);
+        html += '<line x1="' + (rx + 22) + '" y1="' + midY + '" x2="' + (rx2 - 22) + '" y2="' + midY + '" stroke="var(--border-strong)" stroke-width="1.5"/>';
+      }
+      // Two interfaces per router (in/out facing)
+      var ifaces = [
+        { id: rname + '-Gi0/0', side: 'L', x: rx - 38, y: midY - 28 },
+        { id: rname + '-Gi0/1', side: 'R', x: rx + 38, y: midY - 28 }
+      ];
+      ifaces.forEach(function (ifc) {
+        html += '<g class="topo-iface" data-router="' + rname + '" data-iface="' + ifc.id + '">';
+        html += '<circle cx="' + ifc.x + '" cy="' + ifc.y + '" r="11"/>';
+        html += '<text x="' + ifc.x + '" y="' + (ifc.y + 3) + '" text-anchor="middle">' + ifc.id.split('-')[1] + '</text>';
+        html += '</g>';
+      });
+    });
+    // Endpoint right
+    if (endpointKeys[1]) {
+      var srvX = w - 32, srvY = midY - 60;
+      html += '<g class="topo-node"><rect x="' + (srvX - 36) + '" y="' + (srvY - 16) + '" width="72" height="32" rx="4" fill="var(--bg-surface)" stroke="var(--border-strong)"/>';
+      html += '<text x="' + srvX + '" y="' + (srvY + 4) + '" text-anchor="middle">Server</text>';
+      html += '<text class="sub" x="' + srvX + '" y="' + (srvY + 28) + '" text-anchor="middle">' + endpoints[endpointKeys[1]] + '</text></g>';
+      html += '<line x1="' + (srvX - 36) + '" y1="' + srvY + '" x2="' + (routerX(nRouters - 1) + 22) + '" y2="' + midY + '" stroke="var(--border-strong)" stroke-width="1.5"/>';
+    }
+
+    // VTY pill
+    if (vty) {
+      html += '<g><rect x="' + (routerX(0) - 30) + '" y="' + (midY + 30) + '" width="60" height="20" rx="10" fill="#fef3c7" stroke="#d97706"/>';
+      html += '<text x="' + routerX(0) + '" y="' + (midY + 44) + '" text-anchor="middle" font-family="var(--font-mono)" font-size="9" fill="#92400e">line vty</text></g>';
+    }
+
+    svg.innerHTML = html;
+
+    // Bind clicks
+    svg.querySelectorAll('.topo-iface').forEach(function (g) {
+      g.onclick = function () {
+        svg.querySelectorAll('.topo-iface').forEach(function (x) { x.classList.remove('applied'); });
+        g.classList.add('applied');
+        state.placement.router = g.dataset.router;
+        state.placement.iface = g.dataset.iface;
+        runTrapScan();
+      };
+    });
+  }
+
+  document.getElementById('dirSelect').onchange = function () {
+    state.placement.dir = this.value;
+    runTrapScan();
+  };
+  document.getElementById('bindSelect').onchange = function () {
+    state.placement.bind = this.value;
+    state.placement.command = this.value;
+    runTrapScan();
+  };
+
+  // ─── Packet send ───────────────────────────────────
+  document.getElementById('sendPktBtn').onclick = function () {
+    var pkt = {
+      srcIp: document.getElementById('pSrc').value.trim(),
+      dstIp: document.getElementById('pDst').value.trim(),
+      proto: document.getElementById('pProto').value,
+      srcPort: parseInt(document.getElementById('pSrcPort').value, 10) || null,
+      dstPort: parseInt(document.getElementById('pDstPort').value, 10) || null
+    };
+    var flags = document.getElementById('pTcpFlags').value;
+    if (flags) {
+      pkt.tcpFlags = {}; pkt.tcpFlags[flags] = true;
+    }
+    var ev = ACL.evaluate(state.acl, pkt);
+    // Update counters
+    if (ev.line === 'implicit') {
+      state.hitCounts['implicit'] = (state.hitCounts['implicit'] || 0) + 1;
+    } else {
+      state.hitCounts[ev.line] = (state.hitCounts[ev.line] || 0) + 1;
+    }
+    // Highlight matched row
+    document.querySelectorAll('#aclBody tr').forEach(function (tr) { tr.classList.remove('matched', 'matched-deny'); });
+    if (ev.line !== 'implicit') {
+      var row = document.querySelector('#aclBody tr[data-line="' + ev.line + '"]');
+      if (row) row.classList.add(ev.action === 'permit' ? 'matched' : 'matched-deny');
+    } else {
+      var ghost = document.querySelector('#aclBody tr.implicit');
+      if (ghost) ghost.classList.add('matched-deny');
+    }
+    renderResult(ev, pkt);
+    renderACL();
+  };
+  document.getElementById('resetCountersBtn').onclick = function () {
+    state.hitCounts = {}; renderACL();
+  };
+
+  function renderResult(ev, pkt) {
+    var box = document.getElementById('pktResult');
+    var verdict = ev.action === 'permit' ? 'PERMITTED' : 'DROPPED';
+    var lineLabel = ev.line === 'implicit' ? 'implicit deny' : ('line ' + ev.line);
+    var aceStr = ev.ace ? ACL.serializeACE(ev.ace) : 'deny ip any any (implicit)';
+    var pktStr = pkt.proto + ' ' + pkt.srcIp + ':' + (pkt.srcPort || '-') + ' → ' + pkt.dstIp + ':' + (pkt.dstPort || '-');
+    box.className = 'result ' + ev.action;
+    box.innerHTML =
+      '<strong>' + verdict + '</strong> at <strong>' + lineLabel + '</strong><br>' +
+      '<code>' + pktStr + '</code><br>' +
+      'matched: <code>' + aceStr + '</code>' +
+      (ev.implicit ? '<br><em>No explicit line matched — every ACL has a hidden <code>deny ip any any</code> at the bottom.</em>' : '');
+  }
+
+  // ─── Trap scan ─────────────────────────────────────
+  function runTrapScan() {
+    var sc = state.currentScenario;
+    var topo = sc ? sc.topology : {};
+    var placement = Object.assign({}, state.placement);
+    if (sc && sc.placement && sc.placement.requireLog) placement.requireLog = true;
+    var hits = ACL.detectTraps(state.acl, placement, topo);
+    renderTraps(hits);
+  }
+
+  function renderTraps(hits) {
+    var feed = document.getElementById('mistakeFeed');
+    if (!hits.length) {
+      feed.innerHTML = '<p style="font-family:var(--font-body);color:var(--ink-muted);font-style:italic;font-size:.88rem">No traps active. Build away — engine is watching.</p>';
+      return;
+    }
+    feed.innerHTML = hits.map(function (h) {
+      // Track unique trap IDs ever seen
+      if (state.trapsSeen.indexOf(h.id) === -1) {
+        state.trapsSeen.push(h.id);
+        localStorage.setItem('acl_sim_traps', JSON.stringify(state.trapsSeen));
+      }
+      return '<div class="trap"><span class="trap-id">' + h.id + (h.line ? ' · line ' + (h.line * 10) : '') + '</span>' +
+             '<div class="trap-msg">' + h.msg + '</div>' +
+             '<div class="trap-fix"><strong>Fix:</strong> ' + h.fix + '</div>' +
+             '<div class="trap-quote">' + (h.examTrap || '') + '</div></div>';
+    }).join('');
+  }
+
+  // ─── Grade ─────────────────────────────────────────
+  document.getElementById('gradeBtn').onclick = function () {
+    var sc = state.currentScenario;
+    if (!sc) return;
+    var grade = ACL.gradeAttempt(sc, state.acl, state.placement);
+    var box = document.getElementById('gradePanel');
+    box.style.display = '';
+    var rows = grade.results.map(function (r) {
+      var cls = r.ok ? 'ok' : 'fail';
+      var check = r.ok ? '✓' : '✗';
+      return '<div class="grade-row ' + cls + '"><span class="check">' + check + '</span>' +
+             '<code>' + r.pkt.proto + ' ' + r.pkt.srcIp + ' → ' + r.pkt.dstIp + ':' + (r.pkt.dstPort || '-') + '</code>' +
+             ' want <strong>' + r.want + '</strong> got <strong>' + r.got + '</strong>' +
+             (r.line && r.line !== 'implicit' ? ' (line ' + r.line + ')' : '') +
+             '</div>';
+    }).join('');
+    var hdr = '<div style="font-family:var(--font-display);font-size:.95rem;font-weight:700;color:' + (grade.pass ? 'var(--prof-strong)' : 'var(--prof-weak)') + ';margin-bottom:8px">' +
+              (grade.pass ? '✓ Mission complete' : '✗ Not yet — ' + grade.score + ' packets correct') + '</div>';
+    box.innerHTML = hdr + rows;
+    if (grade.pass) {
+      if (state.completedIds.indexOf(sc.id) === -1) {
+        state.completedIds.push(sc.id);
+        localStorage.setItem('acl_sim_completed', JSON.stringify(state.completedIds));
+      }
+      (sc.objectives || []).forEach(function (o) {
+        if (state.coveredObjectives.indexOf(o) === -1) state.coveredObjectives.push(o);
+      });
+      localStorage.setItem('acl_sim_objectives', JSON.stringify(state.coveredObjectives));
+      populateMissionSelect();
+      document.getElementById('missionSelect').value = sc.id;
+      updateCoverage();
+    }
+  };
+
+  document.getElementById('modelBtn').onclick = function () {
+    document.getElementById('modelAnswer').classList.toggle('visible');
+  };
+
+  // ─── Coverage map ──────────────────────────────────
+  function updateCoverage() {
+    var allObj = [
+      '5.6.std-numbered','5.6.std-named','5.6.ext-numbered','5.6.ext-named',
+      '5.6.host-keyword','5.6.placement','5.6.direction','5.6.implicit-deny',
+      '5.6.wildcard','5.6.ports','5.6.port-range','5.6.ext-protocols',
+      '5.6.named-mode','5.6.resequence','5.6.vty','5.6.established',
+      '5.6.time-range','5.6.ipv6','5.6.log','5.6.audit','5.6.order','5.6.numbered'
+    ];
+    var hit = allObj.filter(function (o) { return state.coveredObjectives.indexOf(o) !== -1; }).length;
+    document.getElementById('covText').textContent = state.completedIds.length + ' / ' + state.scenarios.length;
+    document.getElementById('covFill').style.width = (state.scenarios.length ? (state.completedIds.length / state.scenarios.length * 100) : 0) + '%';
+    document.getElementById('covMap').innerHTML = allObj.map(function (o) {
+      var cls = state.coveredObjectives.indexOf(o) !== -1 ? 'cov-pill hit' : 'cov-pill';
+      return '<div class="' + cls + '">' + o.replace('5.6.', '') + '</div>';
+    }).join('');
+  }
+});
+</script>
+</body>
+</html>

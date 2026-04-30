@@ -267,6 +267,15 @@
         }
         block = candidate;
       } catch (e) {
+        if (e && e.name === 'GeminiGuardError') {
+          target.innerHTML = '<div class="explainer-empty explainer-offtopic">' +
+            '<strong>Off-topic — try a CCNA concept</strong>' +
+            '<p>This explainer only covers CCNA 200-301 / Network+ topics ' +
+            '(OSI, TCP/IP, subnetting, switching, routing, wireless, security fundamentals, ' +
+            'automation, DHCP/DNS/NAT/QoS, cabling).</p>' +
+            '</div>';
+          return;
+        }
         target.innerHTML = '<p class="explainer-empty">Couldn\'t reach Gemini: ' + escapeHtml(e.message || 'unknown error') + '</p>';
         return;
       }

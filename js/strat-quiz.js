@@ -107,7 +107,7 @@ ${transcript}
     let lastErr = null;
     for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
       try {
-        const data = await window.gemini.generate(sysPrompt, userPrompt, QUESTION_SCHEMA);
+        const data = await window.gemini.generate(sysPrompt, userPrompt, QUESTION_SCHEMA, { trusted: true });
         const qs = (data && data.questions) || [];
         if (qs.length !== 10) {
           lastErr = new Error(`expected 10 questions, got ${qs.length}`);

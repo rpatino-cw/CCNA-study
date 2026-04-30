@@ -84,7 +84,7 @@
     if (typeof input !== 'string') return { error: 'invalid input' };
 
     var t = input.trim().split(/\s+/);
-    if (t.length < 3) return { error: 'too short' };
+    if (t.length < 2) return { error: 'too short' };
 
     var ace = { action: null, proto: null, src: null, srcPort: null, dst: null, dstPort: null, flags: [], remark: null };
     var i = 0;
