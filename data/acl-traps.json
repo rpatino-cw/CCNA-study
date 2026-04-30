@@ -1,0 +1,134 @@
+{
+  "version": 1,
+  "comment": "Detector logic lives in js/acl-engine.js — DETECTORS map. This file is the human-facing catalog used to render the mistake feed and the cheat-sheet sidecar.",
+  "traps": [
+    {
+      "id": "M01",
+      "title": "Order trap — permit any before deny",
+      "summary": "`permit ip any any` placed above a `deny ...` makes the deny line dead. ACLs are top-down, first-match-wins.",
+      "fix": "Move the deny ABOVE the permit-any.",
+      "examQuote": "Day 34: \"Order matters — permit any before a deny X makes the deny useless.\"",
+      "objective": "5.6.order"
+    },
+    {
+      "id": "M02",
+      "title": "Forgotten implicit deny",
+      "summary": "Every ACL has an invisible `deny ip any any` at the end. If your ACL only has deny lines, everything else gets dropped.",
+      "fix": "Either add an explicit `permit ip any any` at the bottom, or trust the implicit deny on purpose.",
+      "examQuote": "Day 34: \"Implicit deny is NOT visible in `show access-lists` — but it is always there.\"",
+      "objective": "5.6.implicit-deny"
+    },
+    {
+      "id": "M03",
+      "title": "Wildcard inverted",
+      "summary": "Wildcard masks are the INVERSE of subnet masks. /24 = `0.0.0.255`, NOT `255.255.255.0`.",
+      "fix": "Subnet-mask + wildcard = `255.255.255.255`. /26 → mask `.192`, wildcard `.63`.",
+      "examQuote": "Day 34: \"Wildcard mask is NOT subnet mask — it is the inverse.\"",
+      "objective": "5.6.wildcard"
+    },
+    {
+      "id": "M04",
+      "title": "Bare IP in extended",
+      "summary": "Extended ACLs reject a bare IP. Must use `host X` or explicit wildcard `0.0.0.0`.",
+      "fix": "`permit tcp 1.1.1.1 host 2.2.2.2` → `permit tcp host 1.1.1.1 host 2.2.2.2`.",
+      "examQuote": "Day 35: \"Bare IP without `host` is NOT valid in extended ACLs.\"",
+      "objective": "5.6.host-keyword"
+    },
+    {
+      "id": "M05",
+      "title": "Standard ACL placed near source",
+      "summary": "Standard ACLs filter on source IP only — placing one near source over-blocks every dest, not just the one you wanted to protect.",
+      "fix": "Apply Standard ACL CLOSE TO DESTINATION.",
+      "examQuote": "Day 34: \"Place standard ACLs near the destination — else you over-block.\"",
+      "objective": "5.6.placement"
+    },
+    {
+      "id": "M06",
+      "title": "Extended ACL placed near destination",
+      "summary": "Extended ACLs are specific. Placing them near the destination wastes upstream bandwidth carrying traffic that will be dropped anyway.",
+      "fix": "Apply Extended ACL CLOSE TO SOURCE.",
+      "examQuote": "Day 35: \"Apply close to source — drop unwanted traffic before it travels.\"",
+      "objective": "5.6.placement"
+    },
+    {
+      "id": "M07",
+      "title": "Wrong direction (in vs out)",
+      "summary": "An ACL applied `in` checks packets ENTERING the interface; `out` checks LEAVING. Wrong direction = packet never inspected.",
+      "fix": "Trace the packet's path: which interface does it enter / leave on the router that owns this ACL?",
+      "examQuote": "Day 34: \"One ACL per interface per direction.\"",
+      "objective": "5.6.direction"
+    },
+    {
+      "id": "M08",
+      "title": "Two ACLs same interface, same direction",
+      "summary": "Cisco only allows ONE ACL per interface per direction. A second `ip access-group` in the same direction REPLACES the first.",
+      "fix": "Combine the rules into a single ACL.",
+      "examQuote": "Day 34: \"You CANNOT apply two ACLs in the same direction on one interface.\"",
+      "objective": "5.6.direction"
+    },
+    {
+      "id": "M09",
+      "title": "HTTP/HTTPS over UDP",
+      "summary": "HTTP=80 and HTTPS=443 are TCP. Common quiz trap.",
+      "fix": "Use `tcp eq 80` and `tcp eq 443`.",
+      "examQuote": "Day 35: \"HTTP/HTTPS use TCP, NOT UDP.\"",
+      "objective": "5.6.ports"
+    },
+    {
+      "id": "M10",
+      "title": "All-deny ACL — implicit deny eats unrelated traffic",
+      "summary": "Only deny lines means the implicit `deny any` drops every other packet too — even traffic you wanted to permit.",
+      "fix": "Add `permit ip any any` (extended) or `permit any` (standard) as the final entry.",
+      "examQuote": "Day 35: \"Implicit deny ip any any at end — always remember explicit permit if needed.\"",
+      "objective": "5.6.implicit-deny"
+    },
+    {
+      "id": "M11",
+      "title": "host + wildcard mutually exclusive",
+      "summary": "`host 1.1.1.1 0.0.0.255` is invalid. `host` is its own /32 shortcut.",
+      "fix": "Pick one: `host 1.1.1.1` OR `1.1.1.1 0.0.0.0`.",
+      "examQuote": "Day 34: \"host = /32 shortcut; adding wildcard is invalid.\"",
+      "objective": "5.6.host-keyword"
+    },
+    {
+      "id": "M12",
+      "title": "VTY uses `access-class`, not `access-group`",
+      "summary": "On `line vty 0 4` the command to bind an ACL is `access-class N in`. `ip access-group` is for interfaces.",
+      "fix": "Switch to `access-class N in` under `line vty`.",
+      "examQuote": "Day 35 EXTRA: \"VTY ACL applies inbound with `access-class N in`.\"",
+      "objective": "5.6.vty"
+    },
+    {
+      "id": "M13",
+      "title": "Numbered ACL refuses single-line insert",
+      "summary": "In numbered global config you cannot insert or delete a single entry. Convert to NAMED ACL — then sequence numbers let you insert / delete cleanly.",
+      "fix": "`ip access-list extended NAME` then `15 permit ...` to insert.",
+      "examQuote": "Day 35: \"Named mode: can insert / delete single entries.\"",
+      "objective": "5.6.named-mode"
+    },
+    {
+      "id": "M14",
+      "title": "`established` on UDP",
+      "summary": "`established` matches TCP packets with ACK or RST set. UDP has no connection state — flag is invalid.",
+      "fix": "Use `established` only with `tcp`.",
+      "examQuote": "Day 35 EXTRA: \"established matches return TCP traffic with ACK/RST.\"",
+      "objective": "5.6.established"
+    },
+    {
+      "id": "M15",
+      "title": "ACL number range mismatched to ACL type",
+      "summary": "Standard = 1-99 / 1300-1999. Extended = 100-199 / 2000-2699. Number ≠ shape => invalid.",
+      "fix": "Pick a number that matches the rule type, OR convert to a NAMED ACL.",
+      "examQuote": "Day 34: standard ranges. Day 35: extended ranges.",
+      "objective": "5.6.numbered"
+    },
+    {
+      "id": "M16",
+      "title": "Forgot the `log` keyword for an audit",
+      "summary": "Without `log`, you can see hit counters but no per-match syslog event. Use `log` when you need an audit trail.",
+      "fix": "Append `log` to the ACE you want to audit.",
+      "examQuote": "Day 34 EXTRA: `log` triggers syslog on every match.",
+      "objective": "5.6.log"
+    }
+  ]
+}

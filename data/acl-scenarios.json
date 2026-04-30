@@ -1,0 +1,358 @@
+{
+  "version": 1,
+  "objective": "5.6 — Configure and verify ACLs",
+  "scenarios": [
+    {
+      "id": "M1",
+      "title": "Block a subnet from one server (Standard ACL)",
+      "difficulty": "easy",
+      "type": "standard",
+      "objectives": ["5.6", "5.6.std-numbered", "5.6.placement"],
+      "tagsTraps": ["M03", "M05"],
+      "brief": "Block all hosts in 192.168.10.0/24 from reaching server 10.0.0.5. Allow everything else. Use a STANDARD ACL.",
+      "topology": {
+        "routers": ["R1", "R2", "R3"],
+        "links": [["PC", "R1"], ["R1", "R2"], ["R2", "R3"], ["R3", "Server"]],
+        "endpoints": { "PC": "192.168.10.50", "Server": "10.0.0.5" },
+        "srcRouter": "R1",
+        "destRouter": "R3",
+        "standardNearDest": true
+      },
+      "expectedOutcomes": [
+        { "pkt": { "srcIp": "192.168.10.50", "dstIp": "10.0.0.5", "proto": "tcp", "srcPort": 50000, "dstPort": 80 }, "action": "deny", "why": "10.0.0.5 was the protected server" },
+        { "pkt": { "srcIp": "192.168.20.10", "dstIp": "10.0.0.5", "proto": "tcp", "srcPort": 50001, "dstPort": 80 }, "action": "permit", "why": "Different subnet — allowed" },
+        { "pkt": { "srcIp": "192.168.10.99", "dstIp": "10.0.0.5", "proto": "icmp" }, "action": "deny", "why": "Standard ACL filters source IP only — protocol does not matter" }
+      ],
+      "modelAnswer": [
+        "ip access-list standard BLOCK-SUBNET",
+        " deny 192.168.10.0 0.0.0.255",
+        " permit any",
+        "interface Gi0/2",
+        " ip access-group BLOCK-SUBNET in   ! Apply on R3 inbound — close to destination"
+      ]
+    },
+    {
+      "id": "M2",
+      "title": "Permit only one host into VLAN 99 (Named Standard)",
+      "difficulty": "easy",
+      "type": "standard",
+      "objectives": ["5.6.std-named", "5.6.host-keyword"],
+      "tagsTraps": ["M02", "M10"],
+      "brief": "Only host 172.16.5.20 should reach VLAN 99 (10.99.0.0/16). All other sources blocked. Use a NAMED standard ACL.",
+      "topology": {
+        "routers": ["R1", "R2", "R3"],
+        "links": [["PC", "R1"], ["R1", "R2"], ["R2", "R3"], ["R3", "Server"]],
+        "endpoints": { "PC": "172.16.5.20", "Server": "10.99.0.10" },
+        "srcRouter": "R1",
+        "destRouter": "R3",
+        "standardNearDest": true
+      },
+      "expectedOutcomes": [
+        { "pkt": { "srcIp": "172.16.5.20", "dstIp": "10.99.0.10", "proto": "tcp", "dstPort": 22 }, "action": "permit", "why": "Whitelisted host" },
+        { "pkt": { "srcIp": "172.16.5.21", "dstIp": "10.99.0.10", "proto": "tcp", "dstPort": 22 }, "action": "deny", "why": "Same subnet but not the host — implicit deny" },
+        { "pkt": { "srcIp": "10.0.0.99", "dstIp": "10.99.0.10", "proto": "tcp", "dstPort": 80 }, "action": "deny", "why": "Different subnet — implicit deny" }
+      ],
+      "modelAnswer": [
+        "ip access-list standard VLAN99-WHITELIST",
+        " permit host 172.16.5.20",
+        "! Implicit deny any drops everything else"
+      ]
+    },
+    {
+      "id": "M3",
+      "title": "Block HTTPS to one server (Extended ACL)",
+      "difficulty": "medium",
+      "type": "extended",
+      "objectives": ["5.6.ext-numbered", "5.6.placement", "5.6.ports"],
+      "tagsTraps": ["M06", "M09"],
+      "brief": "Block HTTPS (TCP/443) from 192.168.20.0/24 to host 8.8.8.8. Permit everything else. Use EXTENDED numbered ACL applied close to source.",
+      "topology": {
+        "routers": ["R1", "R2", "R3"],
+        "links": [["PC", "R1"], ["R1", "R2"], ["R2", "R3"], ["R3", "Server"]],
+        "endpoints": { "PC": "192.168.20.50", "Server": "8.8.8.8" },
+        "srcRouter": "R1",
+        "destRouter": "R3",
+        "extendedNearSource": true
+      },
+      "expectedOutcomes": [
+        { "pkt": { "srcIp": "192.168.20.50", "dstIp": "8.8.8.8", "proto": "tcp", "srcPort": 50000, "dstPort": 443 }, "action": "deny", "why": "HTTPS to protected server" },
+        { "pkt": { "srcIp": "192.168.20.50", "dstIp": "8.8.8.8", "proto": "tcp", "srcPort": 50000, "dstPort": 80 }, "action": "permit", "why": "HTTP allowed — only 443 blocked" },
+        { "pkt": { "srcIp": "192.168.20.50", "dstIp": "1.1.1.1", "proto": "tcp", "srcPort": 50000, "dstPort": 443 }, "action": "permit", "why": "Different destination" }
+      ],
+      "modelAnswer": [
+        "access-list 100 deny tcp 192.168.20.0 0.0.0.255 host 8.8.8.8 eq 443",
+        "access-list 100 permit ip any any",
+        "interface Gi0/0",
+        " ip access-group 100 in   ! R1 inbound — close to source"
+      ]
+    },
+    {
+      "id": "M4",
+      "title": "Allow only ephemeral source ports (port range)",
+      "difficulty": "medium",
+      "type": "extended",
+      "objectives": ["5.6.ext-named", "5.6.port-range"],
+      "tagsTraps": ["M04"],
+      "brief": "Allow TCP from clients only when source port is ephemeral (49152-65535) to web server 10.10.10.10. Block other source ports.",
+      "topology": {
+        "routers": ["R1", "R2", "R3"],
+        "links": [["PC", "R1"], ["R1", "R2"], ["R2", "R3"], ["R3", "Server"]],
+        "endpoints": { "PC": "10.20.30.40", "Server": "10.10.10.10" },
+        "srcRouter": "R1",
+        "destRouter": "R3",
+        "extendedNearSource": true
+      },
+      "expectedOutcomes": [
+        { "pkt": { "srcIp": "10.20.30.40", "dstIp": "10.10.10.10", "proto": "tcp", "srcPort": 55000, "dstPort": 80 }, "action": "permit", "why": "Source port in ephemeral range" },
+        { "pkt": { "srcIp": "10.20.30.40", "dstIp": "10.10.10.10", "proto": "tcp", "srcPort": 1024, "dstPort": 80 }, "action": "deny", "why": "Below ephemeral range" }
+      ],
+      "modelAnswer": [
+        "ip access-list extended EPHEMERAL-ONLY",
+        " permit tcp any range 49152 65535 host 10.10.10.10",
+        "! Implicit deny drops other source ports"
+      ]
+    },
+    {
+      "id": "M5",
+      "title": "Block ICMP only — permit TCP",
+      "difficulty": "medium",
+      "type": "extended",
+      "objectives": ["5.6.ext-protocols"],
+      "tagsTraps": ["M10"],
+      "brief": "From 192.168.30.0/24 block all ICMP (no ping) to host 10.50.50.50, but permit TCP and UDP.",
+      "topology": {
+        "routers": ["R1", "R2", "R3"],
+        "links": [["PC", "R1"], ["R1", "R2"], ["R2", "R3"], ["R3", "Server"]],
+        "endpoints": { "PC": "192.168.30.5", "Server": "10.50.50.50" },
+        "srcRouter": "R1",
+        "destRouter": "R3",
+        "extendedNearSource": true
+      },
+      "expectedOutcomes": [
+        { "pkt": { "srcIp": "192.168.30.5", "dstIp": "10.50.50.50", "proto": "icmp" }, "action": "deny", "why": "ICMP blocked" },
+        { "pkt": { "srcIp": "192.168.30.5", "dstIp": "10.50.50.50", "proto": "tcp", "dstPort": 22 }, "action": "permit", "why": "TCP permitted" },
+        { "pkt": { "srcIp": "192.168.30.5", "dstIp": "10.50.50.50", "proto": "udp", "dstPort": 53 }, "action": "permit", "why": "UDP permitted" }
+      ],
+      "modelAnswer": [
+        "ip access-list extended NO-PING",
+        " deny icmp 192.168.30.0 0.0.0.255 host 10.50.50.50",
+        " permit ip any any"
+      ]
+    },
+    {
+      "id": "M6",
+      "title": "Diagnostic — wrong placement on purpose (learn the cost)",
+      "difficulty": "medium",
+      "type": "extended",
+      "objectives": ["5.6.placement"],
+      "tagsTraps": ["M05", "M06"],
+      "brief": "Apply Standard ACL `deny 192.168.10.0 0.0.0.255` near the source (R1 outbound) and watch what happens. Then move it. The simulator shows the difference in collateral drops.",
+      "diagnostic": true,
+      "topology": {
+        "routers": ["R1", "R2", "R3"],
+        "links": [["PC", "R1"], ["R1", "R2"], ["R2", "R3"], ["R3", "Server"]],
+        "endpoints": { "PC": "192.168.10.50", "Server": "10.0.0.5" },
+        "srcRouter": "R1",
+        "destRouter": "R3",
+        "standardNearDest": true,
+        "otherDestinations": ["10.0.0.5", "10.10.10.10", "10.20.20.20"]
+      },
+      "expectedOutcomes": [
+        { "pkt": { "srcIp": "192.168.10.50", "dstIp": "10.10.10.10", "proto": "tcp", "dstPort": 80 }, "action": "permit", "why": "Standard ACL placed at R3 only blocks traffic to that subnet, not other dests — placement matters" }
+      ],
+      "modelAnswer": [
+        "! Wrong-first attempt: apply at R1 outbound — over-blocks ALL traffic from 192.168.10.0/24",
+        "! Correct: apply Standard ACL at R3 inbound — only blocks reaching that subnet"
+      ]
+    },
+    {
+      "id": "M7",
+      "title": "Restrict SSH to the router (VTY ACL)",
+      "difficulty": "medium",
+      "type": "vty",
+      "objectives": ["5.6.vty"],
+      "tagsTraps": ["M12"],
+      "brief": "Allow only the management subnet 192.168.1.0/24 to SSH/Telnet INTO the router. Use a VTY ACL with `access-class`.",
+      "topology": {
+        "routers": ["R1"],
+        "links": [["MgmtPC", "R1"], ["BadGuy", "R1"]],
+        "endpoints": { "MgmtPC": "192.168.1.10", "BadGuy": "203.0.113.99" },
+        "vty": true
+      },
+      "expectedOutcomes": [
+        { "pkt": { "srcIp": "192.168.1.10", "dstIp": "10.0.0.1", "proto": "tcp", "dstPort": 22 }, "action": "permit", "why": "From management subnet" },
+        { "pkt": { "srcIp": "203.0.113.99", "dstIp": "10.0.0.1", "proto": "tcp", "dstPort": 22 }, "action": "deny", "why": "Untrusted source" }
+      ],
+      "modelAnswer": [
+        "access-list 5 permit 192.168.1.0 0.0.0.255",
+        "line vty 0 4",
+        " access-class 5 in    ! NOT ip access-group"
+      ]
+    },
+    {
+      "id": "M8",
+      "title": "Insert a new entry between two lines (Named only)",
+      "difficulty": "hard",
+      "type": "extended",
+      "objectives": ["5.6.named-mode", "5.6.resequence"],
+      "tagsTraps": ["M13"],
+      "brief": "Existing named ACL has line 10 (deny X) and line 20 (permit any). Insert a new permit at line 15 — only possible in named mode.",
+      "topology": {
+        "routers": ["R1", "R2", "R3"],
+        "endpoints": { "PC": "10.0.0.10", "Server": "10.10.10.10" },
+        "srcRouter": "R1",
+        "destRouter": "R3"
+      },
+      "expectedOutcomes": [
+        { "pkt": { "srcIp": "10.0.0.10", "dstIp": "10.10.10.10", "proto": "tcp", "dstPort": 22 }, "action": "permit", "why": "New line 15 catches this before line 20" }
+      ],
+      "modelAnswer": [
+        "ip access-list extended NAMED-ACL",
+        " 15 permit tcp host 10.0.0.10 host 10.10.10.10 eq 22",
+        "! Numbered ACL would refuse this insert"
+      ]
+    },
+    {
+      "id": "M9",
+      "title": "Allow internal users out, block unsolicited inbound (`established`)",
+      "difficulty": "hard",
+      "type": "extended",
+      "objectives": ["5.6.established"],
+      "tagsTraps": ["M14"],
+      "brief": "Inside hosts (192.168.0.0/16) initiate TCP to internet. Block any TCP inbound that is NOT a response. Use `established`.",
+      "topology": {
+        "routers": ["R1"],
+        "endpoints": { "Inside": "192.168.5.10", "Outside": "8.8.8.8" }
+      },
+      "expectedOutcomes": [
+        { "pkt": { "srcIp": "8.8.8.8", "dstIp": "192.168.5.10", "proto": "tcp", "tcpFlags": { "ack": true } }, "action": "permit", "why": "Return traffic ACK set" },
+        { "pkt": { "srcIp": "8.8.8.8", "dstIp": "192.168.5.10", "proto": "tcp", "tcpFlags": { "syn": true } }, "action": "deny", "why": "Unsolicited SYN — no ACK/RST" }
+      ],
+      "modelAnswer": [
+        "ip access-list extended STATEFUL-IN",
+        " permit tcp any 192.168.0.0 0.0.255.255 established"
+      ]
+    },
+    {
+      "id": "M10",
+      "title": "Audit + repair a broken ACL",
+      "difficulty": "hard",
+      "type": "audit",
+      "objectives": ["5.6.audit", "5.6.order"],
+      "tagsTraps": ["M01"],
+      "brief": "Existing ACL is broken: `permit ip any any` was placed BEFORE the deny. Fix the order so the deny actually takes effect.",
+      "topology": {
+        "routers": ["R1", "R2", "R3"],
+        "endpoints": { "PC": "192.168.99.10", "Server": "10.0.0.5" },
+        "srcRouter": "R1",
+        "destRouter": "R3"
+      },
+      "broken": [
+        "permit ip any any",
+        "deny tcp 192.168.99.0 0.0.0.255 host 10.0.0.5 eq 23"
+      ],
+      "expectedOutcomes": [
+        { "pkt": { "srcIp": "192.168.99.10", "dstIp": "10.0.0.5", "proto": "tcp", "dstPort": 23 }, "action": "deny", "why": "After fix, deny matches first" }
+      ],
+      "modelAnswer": [
+        "! Reorder: deny first, permit-any last",
+        "ip access-list extended FIXED",
+        " deny tcp 192.168.99.0 0.0.0.255 host 10.0.0.5 eq 23",
+        " permit ip any any"
+      ]
+    },
+    {
+      "id": "M11",
+      "title": "Permit FTP control + data (5-tuple)",
+      "difficulty": "hard",
+      "type": "extended",
+      "objectives": ["5.6.ext-protocols", "5.6.ports"],
+      "tagsTraps": [],
+      "brief": "Permit only FTP from 10.1.1.0/24 to FTP server 10.99.99.5. FTP needs both control (TCP/21) and data (TCP/20). Block everything else.",
+      "topology": {
+        "routers": ["R1", "R2", "R3"],
+        "endpoints": { "PC": "10.1.1.50", "Server": "10.99.99.5" },
+        "srcRouter": "R1",
+        "destRouter": "R3"
+      },
+      "expectedOutcomes": [
+        { "pkt": { "srcIp": "10.1.1.50", "dstIp": "10.99.99.5", "proto": "tcp", "dstPort": 21 }, "action": "permit", "why": "FTP control" },
+        { "pkt": { "srcIp": "10.1.1.50", "dstIp": "10.99.99.5", "proto": "tcp", "dstPort": 20 }, "action": "permit", "why": "FTP data" },
+        { "pkt": { "srcIp": "10.1.1.50", "dstIp": "10.99.99.5", "proto": "tcp", "dstPort": 22 }, "action": "deny", "why": "SSH not permitted" }
+      ],
+      "modelAnswer": [
+        "ip access-list extended FTP-ONLY",
+        " permit tcp 10.1.1.0 0.0.0.255 host 10.99.99.5 eq 21",
+        " permit tcp 10.1.1.0 0.0.0.255 host 10.99.99.5 eq 20"
+      ]
+    },
+    {
+      "id": "M12",
+      "title": "Time-range — business hours only (extra)",
+      "difficulty": "hard",
+      "type": "extended",
+      "objectives": ["5.6.time-range"],
+      "tagsTraps": [],
+      "brief": "Permit social media traffic only outside business hours. Use `time-range` keyword. (Engine treats time-range as informational — focus is on syntax.)",
+      "topology": {
+        "routers": ["R1"],
+        "endpoints": { "PC": "10.0.0.10", "Server": "8.8.8.8" }
+      },
+      "expectedOutcomes": [
+        { "pkt": { "srcIp": "10.0.0.10", "dstIp": "8.8.8.8", "proto": "tcp", "dstPort": 443 }, "action": "permit", "why": "Outside business hours window" }
+      ],
+      "modelAnswer": [
+        "time-range AFTER-HOURS",
+        " periodic weekdays 17:00 to 23:59",
+        "ip access-list extended SOCIAL",
+        " permit tcp any host 8.8.8.8 eq 443 time-range AFTER-HOURS"
+      ]
+    },
+    {
+      "id": "M13",
+      "title": "IPv6 ACL — block one /64 from a server",
+      "difficulty": "medium",
+      "type": "ipv6",
+      "objectives": ["5.6.ipv6"],
+      "tagsTraps": [],
+      "brief": "IPv6 ACL syntax — uses prefix-length, NOT wildcard. Block 2001:db8:cafe::/64 from reaching server 2001:db8::1, permit all else. (Engine matches on simplified IPv6 prefix.)",
+      "ipv6": true,
+      "topology": {
+        "routers": ["R1", "R2", "R3"],
+        "endpoints": { "PC": "2001:db8:cafe::10", "Server": "2001:db8::1" },
+        "srcRouter": "R1",
+        "destRouter": "R3"
+      },
+      "expectedOutcomes": [],
+      "modelAnswer": [
+        "ipv6 access-list V6-BLOCK",
+        " deny ipv6 2001:db8:cafe::/64 host 2001:db8::1",
+        " permit ipv6 any any",
+        "interface Gi0/0",
+        " ipv6 traffic-filter V6-BLOCK in"
+      ]
+    },
+    {
+      "id": "M14",
+      "title": "Counter audit — `log` keyword",
+      "difficulty": "easy",
+      "type": "extended",
+      "objectives": ["5.6.log"],
+      "tagsTraps": ["M16"],
+      "brief": "You suspect host 10.0.0.66 is hammering the server. Add a deny entry WITH `log` so each match generates a syslog message you can audit.",
+      "topology": {
+        "routers": ["R1"],
+        "endpoints": { "PC": "10.0.0.66", "Server": "10.99.99.99" }
+      },
+      "placement": { "requireLog": true },
+      "expectedOutcomes": [
+        { "pkt": { "srcIp": "10.0.0.66", "dstIp": "10.99.99.99", "proto": "tcp", "dstPort": 80 }, "action": "deny", "why": "Logged drop" }
+      ],
+      "modelAnswer": [
+        "ip access-list extended AUDIT",
+        " deny ip host 10.0.0.66 host 10.99.99.99 log",
+        " permit ip any any"
+      ]
+    }
+  ]
+}
