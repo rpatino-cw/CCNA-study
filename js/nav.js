@@ -192,7 +192,7 @@
   // Beta badge + bug report
   var beta = document.createElement('div');
   beta.className = 'beta-badge';
-  beta.innerHTML = '<a href="' + fixHref('changelog.html') + '" class="beta-tag" style="text-decoration:none">ALPHA v5.6.0</a><a href="' + fixHref('bug-report.html') + '" class="beta-bug">Report Bug</a>';
+  beta.innerHTML = '<a href="' + fixHref('changelog.html') + '" class="beta-tag" style="text-decoration:none">ALPHA v6.0.1</a><a href="' + fixHref('bug-report.html') + '" class="beta-bug">Report Bug</a>';
   document.body.appendChild(beta);
 
   // Auto-load backup script on every page
@@ -214,6 +214,11 @@
   var settingsScript = document.createElement('script');
   settingsScript.src = fixHref('js/settings.js');
   document.body.appendChild(settingsScript);
+
+  // v6 intro — one-time landing reveal, self-gated
+  var v6Script = document.createElement('script');
+  v6Script.src = fixHref('js/v6-intro.js');
+  document.body.appendChild(v6Script);
 
   // Help pill — shows after 2 minutes of inactivity, points to AI tutor
   var pn = location.pathname;
