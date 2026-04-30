@@ -1266,6 +1266,7 @@
           updateSubtitle();
           // Re-render everything
           renderDecks();
+          renderObjectiveBar();
           renderStats();
           renderModes();
           renderSidebar();
@@ -1274,18 +1275,132 @@
       });
     }
 
+    // ── Render objective filter bar (domain pills + objective dropdown) ─
+    function renderObjectiveBar() {
+      var el = document.getElementById('fc-objective-bar');
+      if (!el) return;
+
+      // Count cards per domain for the current deck
+      var deckPool = (currentDeck === 'all') ? masterCards : masterCards.filter(function(c) { return c.deck === currentDeck; });
+      var domainCounts = { all: deckPool.length, '1': 0, '2': 0, '3': 0, '4': 0, '5': 0, '6': 0 };
+      deckPool.forEach(function(c) {
+        var meta = SECTION_OBJECTIVES[c.section];
+        if (meta) domainCounts[meta.domain] = (domainCounts[meta.domain] || 0) + 1;
+      });
+
+      var html = '<span class="fc-obj-label">Domain</span><div class="fc-domain-row">';
+      html += '<button class="fc-domain-btn' + (currentDomain === 'all' ? ' active' : '') + '" data-domain="all">All<span class="dom-count">' + domainCounts.all + '</span></button>';
+      ['1','2','3','4','5','6'].forEach(function(d) {
+        html += '<button class="fc-domain-btn' + (currentDomain === d ? ' active' : '') +
+                '" data-domain="' + d + '" title="' + DOMAIN_NAMES[d] + '">D' + d +
+                '<span class="dom-count">' + (domainCounts[d] || 0) + '</span></button>';
+      });
+      html += '</div>';
+
+      // Objective dropdown — populated based on current domain
+      var availableObjectives = collectAvailableObjectives(deckPool);
+      html += '<span class="fc-obj-label" style="margin-left:var(--s-md)">Objective</span>';
+      html += '<select class="fc-obj-select" id="fc-obj-select">';
+      html += '<option value="all">All objectives</option>';
+      availableObjectives.forEach(function(o) {
+        var title = OBJECTIVE_TITLES[o] || '';
+        html += '<option value="' + o + '"' + (currentObjective === o ? ' selected' : '') + '>' +
+                o + (title ? ' — ' + title : '') + '</option>';
+      });
+      html += '</select>';
+
+      // Reset link if any filter active
+      if (currentDomain !== 'all' || currentObjective !== 'all') {
+        html += '<button class="fc-domain-btn" id="fc-obj-reset" style="margin-left:auto">Clear filters</button>';
+      }
+
+      el.innerHTML = html;
+
+      el.querySelectorAll('.fc-domain-btn[data-domain]').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+          var d = btn.getAttribute('data-domain');
+          if (d === currentDomain) return;
+          currentDomain = d;
+          // Reset objective if it's no longer valid in the new domain
+          if (currentObjective !== 'all' && currentObjective.indexOf(d + '.') !== 0 && d !== 'all') {
+            currentObjective = 'all';
+          }
+          applyFilterChange();
+        });
+      });
+
+      var sel = document.getElementById('fc-obj-select');
+      if (sel) {
+        sel.addEventListener('change', function() {
+          currentObjective = sel.value;
+          // If user picked an objective, sync domain to its parent
+          if (currentObjective !== 'all') {
+            var dom = currentObjective.split('.')[0];
+            if (DOMAIN_NAMES[dom]) currentDomain = dom;
+          }
+          applyFilterChange();
+        });
+      }
+
+      var reset = document.getElementById('fc-obj-reset');
+      if (reset) {
+        reset.addEventListener('click', function() {
+          currentDomain = 'all';
+          currentObjective = 'all';
+          applyFilterChange();
+        });
+      }
+    }
+
+    function collectAvailableObjectives(pool) {
+      var seen = {};
+      pool.forEach(function(c) {
+        var meta = SECTION_OBJECTIVES[c.section];
+        if (!meta) return;
+        if (currentDomain !== 'all' && meta.domain !== currentDomain) return;
+        meta.objectives.forEach(function(o) { seen[o] = true; });
+      });
+      return Object.keys(seen).sort(function(a, b) {
+        var pa = a.split('.').map(Number);
+        var pb = b.split('.').map(Number);
+        return pa[0] - pb[0] || pa[1] - pb[1];
+      });
+    }
+
+    function applyFilterChange() {
+      // Reset session state when filter changes
+      currentMode = null;
+      currentQueue = [];
+      currentIndex = -1;
+      currentSectionId = null;
+      session = { reviewed: 0, correct: 0 };
+      updateSubtitle();
+      renderObjectiveBar();
+      renderStats();
+      renderModes();
+      renderSidebar();
+      renderCardArea();
+      updateSessionBar();
+    }
+
     function updateSubtitle() {
       var el = document.getElementById('fc-subtitle');
       if (!el) return;
       var cards = getFilteredCards();
       var sections = getActiveSections();
+      var filterTag = '';
+      if (currentObjective !== 'all') {
+        filterTag = ' — filter: ' + currentObjective + (OBJECTIVE_TITLES[currentObjective] ? ' ' + OBJECTIVE_TITLES[currentObjective] : '');
+      } else if (currentDomain !== 'all') {
+        filterTag = ' — filter: Domain ' + currentDomain + ' (' + DOMAIN_NAMES[currentDomain] + ')';
+      }
       if (currentDeck === 'all') {
-        el.textContent = cards.length + ' cards across ' + sections.length + ' topics — spaced repetition powered by SM-2';
+        el.textContent = cards.length + ' cards across ' + sections.length + ' topics' + filterTag;
       } else if (currentDeck === 'flackbox') {
-        el.textContent = cards.length + ' Flackbox cards across ' + sections.length + ' topics — spaced repetition powered by SM-2';
+        el.textContent = cards.length + ' Flackbox cards across ' + sections.length + ' topics' + filterTag;
       } else {
         var label = DECK_LABELS[currentDeck] || currentDeck;
-        el.textContent = cards.length + ' ' + label + ' questions — spaced repetition powered by SM-2';
+        el.textContent = cards.length + ' ' + label + ' questions' + filterTag;
       }
     }
 
@@ -1682,6 +1797,7 @@
 
     // ── Initialize ────────────────────────────────────────────
     renderDecks();
+    renderObjectiveBar();
     renderStats();
     renderModes();
     renderSidebar();
