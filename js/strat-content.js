@@ -739,7 +739,12 @@
       }
 
       var anchor = leaf && leafMeta ? leafMeta.cheat_anchor : null;
-      populateTranscript(theory, mapping, anchor).then(function () {
+      var cheatMapping = Object.assign({}, mapping);
+      if (obj === '1.1.a') {
+        cheatMapping['1'] = 'day-01-network-devices-fastpass.md';
+        anchor = null;
+      }
+      populateTranscript(theory, cheatMapping, anchor).then(function () {
         // Sync quiz scope to leaf id so strat-quiz prompts use the leaf, not the parent
         if (leaf && window.stratState && window.stratState.setCurrentObj) {
           try { window.stratState.setCurrentObj(obj); } catch (_) {}
