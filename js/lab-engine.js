@@ -224,31 +224,34 @@
 
     // Mode navigation
     if (lower === 'enable' || lower === 'en') {
-      if (dev.mode === 'user') { dev.mode = 'priv'; return ''; }
+      if (dev.mode === 'user') { dev.mode = 'priv'; }
+      this.checkObjectives();
       return '';
     }
     if (lower === 'configure terminal' || lower === 'conf t') {
-      if (dev.mode === 'priv') { dev.mode = 'config'; return 'Enter configuration commands, one per line. End with CNTL/Z.'; }
+      if (dev.mode === 'priv') { dev.mode = 'config'; this.checkObjectives(); return 'Enter configuration commands, one per line. End with CNTL/Z.'; }
       return '% Invalid input detected';
     }
     if (lower === 'exit') {
-      if (dev.mode === 'config-if' || dev.mode === 'config-subif') { dev.mode = 'config'; dev.currentInterface = null; return ''; }
-      if (dev.mode === 'config-router') { dev.mode = 'config'; return ''; }
-      if (dev.mode === 'config-line') { dev.mode = 'config'; return ''; }
-      if (dev.mode === 'config-vlan') { dev.mode = 'config'; return ''; }
-      if (dev.mode === 'config-dhcp') { dev.mode = 'config'; return ''; }
-      if (dev.mode === 'config-ext-nacl') { dev.mode = 'config'; return ''; }
-      if (dev.mode === 'config') { dev.mode = 'priv'; return ''; }
-      if (dev.mode === 'priv') { dev.mode = 'user'; return ''; }
+      if (dev.mode === 'config-if' || dev.mode === 'config-subif') { dev.mode = 'config'; dev.currentInterface = null; this.checkObjectives(); return ''; }
+      if (dev.mode === 'config-router') { dev.mode = 'config'; this.checkObjectives(); return ''; }
+      if (dev.mode === 'config-line') { dev.mode = 'config'; this.checkObjectives(); return ''; }
+      if (dev.mode === 'config-vlan') { dev.mode = 'config'; this.checkObjectives(); return ''; }
+      if (dev.mode === 'config-dhcp') { dev.mode = 'config'; this.checkObjectives(); return ''; }
+      if (dev.mode === 'config-ext-nacl') { dev.mode = 'config'; this.checkObjectives(); return ''; }
+      if (dev.mode === 'config') { dev.mode = 'priv'; this.checkObjectives(); return ''; }
+      if (dev.mode === 'priv') { dev.mode = 'user'; this.checkObjectives(); return ''; }
       return '';
     }
     if (lower === 'end') {
       dev.mode = 'priv';
       dev.currentInterface = null;
+      this.checkObjectives();
       return '';
     }
     if (lower === 'disable') {
       dev.mode = 'user';
+      this.checkObjectives();
       return '';
     }
 
@@ -264,6 +267,7 @@
         dev.mode = 'config-if';
         if (!dev.interfaces[ifName]) dev.interfaces[ifName] = { up: true };
       }
+      this.checkObjectives();
       return '';
     }
 
