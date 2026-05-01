@@ -526,6 +526,18 @@
         </table>
       </div>
       <div style="font-family:var(--font-display);font-size:.72rem;color:var(--ink-muted);margin-top:10px;line-height:1.6"><strong>How to build it:</strong> Memorize one row → <code style="background:#FFF;padding:2px 6px;border-radius:4px">128 64 32 16 8 4 2 1</code>. Addresses column = that row top-to-bottom. Networks column = same row bottom-to-top, then double (256). Mask column = running sum (128, +64=192, +32=224…). CIDR columns = count 1–32 in groups of 8.</div>
+
+      <div style="background:#FEF3C7;border:1px solid #F59E0B;border-radius:var(--radius-lg);padding:14px 16px;margin-top:14px;font-family:var(--font-body);font-size:.85rem;line-height:1.55;color:#1F2937">
+        <div style="font-family:var(--font-display);font-size:.74rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#92400E;margin-bottom:6px">Reality check — where the cheat bends</div>
+        <div>The "Addresses" column is <strong>block size in the splitting octet</strong>, not always total hosts. It equals total addresses <strong>only on the rightmost column (/25–/32)</strong>.</div>
+        <div style="margin-top:8px;font-family:var(--font-mono);font-size:.78rem;line-height:1.7">
+          <div><code>/25</code> → 128 addresses total <span style="color:#15803D">✓ matches the "128"</span></div>
+          <div><code>/17</code> → <strong>32,768</strong> addresses total (the "128" is the step in octet&nbsp;3, not host count)</div>
+          <div><code>/9</code>&nbsp; → <strong>8,388,608</strong> addresses total (the "128" is step in octet&nbsp;2)</div>
+          <div><code>/1</code>&nbsp; → <strong>2,147,483,648</strong> addresses total (the "128" is step in octet&nbsp;1)</div>
+        </div>
+        <div style="margin-top:8px">Why it still works on the exam: most subnetting questions live in the 4th octet (/24–/30), where Addresses = host count. For /9–/24, the same number tells you <em>which boundary</em> a subnet starts on — same arithmetic, just one octet to the left. Hover any cell below for the per-row honest read.</div>
+      </div>
     </div>
 
     <div style="background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;margin-bottom:var(--s-md)">
@@ -540,7 +552,7 @@
       </div>
     </div>
     <p style="font-family:var(--font-body);font-size:.82rem;color:var(--ink-muted);line-height:1.5">This is the same method from <a href="https://www.youtube.com/results?search_query=professor+messer+seven+second+subnetting" target="_blank" style="color:#16A34A">Professor Messer's Seven Second Subnetting</a>. For Network+, this table answers every subnetting question on the exam. No binary conversion needed.</p>
-    <p style="font-family:var(--font-body);font-size:.82rem;color:var(--ink-muted);line-height:1.5;margin-top:8px"><strong>Tip:</strong> Hover any row above to see binary, magic number, and a worked example. Or scroll down to play with the visual tools.</p>
+    <p style="font-family:var(--font-body);font-size:.82rem;color:var(--ink-muted);line-height:1.5;margin-top:8px"><strong>Tip:</strong> Hover <em>any individual cell</em> above — each CIDR, mask, networks, and addresses cell explains what that specific number means in context, how it relates to the rest of the row, and where the cheat bends vs. matches reality. Click a row to sync the visual tools below.</p>
   </div>
 
   <!-- ═══════════════════════════════════════════════════════════
@@ -2035,7 +2047,9 @@
   })();
 
   // ══════════════════════════════════════════════════════════════
-  //  SEVEN-SECOND TABLE — hover tooltips
+  //  SEVEN-SECOND TABLE — per-cell hover tooltips
+  //  Each cell explains its number in context, relates it to the
+  //  rest of the row, and is honest about where the cheat bends.
   // ══════════════════════════════════════════════════════════════
   (function initSubnetTooltips() {
     var rows = document.querySelectorAll('#seven-second-tbody .subnet-row');
@@ -2044,38 +2058,116 @@
     tip.className = 'subnet-tooltip';
     document.body.appendChild(tip);
 
-    function bin(n) {
-      var s = '';
-      for (var i = 7; i >= 0; i--) s += ((n >> i) & 1);
-      return s;
+    var COLS = ['c1','c9','c17','c25','mask','nets','addrs'];
+    var OCTET_NAME = ['1st','2nd','3rd','4th'];
+
+    function bin(n) { var s=''; for (var i=7;i>=0;i--) s+=((n>>i)&1); return s; }
+    function totalIPs(cidr) { return Math.pow(2, 32 - cidr); }
+    function usable(cidr) {
+      if (cidr >= 32) return 1;
+      if (cidr === 31) return 2;
+      return totalIPs(cidr) - 2;
+    }
+    function fmt(n) {
+      if (n >= 1e9) return (n / 1e9).toFixed(2).replace(/\.?0+$/, '') + 'B';
+      if (n >= 1e6) return (n / 1e6).toFixed(2).replace(/\.?0+$/, '') + 'M';
+      return Math.round(n).toLocaleString();
+    }
+    function maskForGroup(grp, mask) {
+      var oct = [0,0,0,0];
+      for (var k = 0; k < grp; k++) oct[k] = 255;
+      oct[grp] = mask;
+      return oct.join('.');
+    }
+
+    // Defensive: make sure each td knows its column
+    rows.forEach(function(row) {
+      Array.from(row.children).forEach(function(td, i) {
+        if (!td.dataset.col) td.dataset.col = COLS[i];
+      });
+    });
+
+    function buildTip(row, col) {
+      var mask = parseInt(row.dataset.mask, 10);
+      var nets = parseInt(row.dataset.nets, 10);
+      var addrs = parseInt(row.dataset.addrs, 10);
+      var cidrs = row.dataset.cidrs.split(',').map(function(c){return parseInt(c,10);});
+      var magic = mask === 0 ? 256 : (256 - mask);
+
+      // CIDR cells (c1, c9, c17, c25)
+      if (col.charAt(0) === 'c') {
+        var grp = COLS.indexOf(col); // 0..3
+        var cidr = cidrs[grp];
+        var total = totalIPs(cidr);
+        var hosts = usable(cidr);
+        var fullMask = maskForGroup(grp, mask);
+        var verdict = (grp === 3)
+          ? '<em style="color:#4ADE80">Row\'s "Addresses=' + addrs + '" matches total hosts &check;</em>'
+          : '<em style="color:#FCD34D">Row\'s "Addresses=' + addrs + '" is the octet step here, NOT total hosts</em>';
+        return ''
+          + '<strong>/' + cidr + '</strong> &mdash; ' + cidr + ' network bits, ' + (32 - cidr) + ' host bits'
+          + '<br>Splits the <strong>' + OCTET_NAME[grp] + ' octet</strong>'
+          + '<br>Full mask: <span class="tt-binary">' + fullMask + '</span>'
+          + '<br>Total addresses: <strong>' + fmt(total) + '</strong>'
+          + '<br>Usable hosts: <strong>' + fmt(hosts) + '</strong>'
+          + '<br>' + verdict;
+      }
+
+      // Mask cell
+      if (col === 'mask') {
+        return ''
+          + '<strong>Mask octet ' + mask + '</strong> &mdash; binary <span class="tt-binary">' + bin(mask) + '</span>'
+          + '<br>Drops into the splitting octet:'
+          + '<br>/' + cidrs[0] + ': <span class="tt-binary">' + maskForGroup(0,mask) + '</span>'
+          + '<br>/' + cidrs[1] + ': <span class="tt-binary">' + maskForGroup(1,mask) + '</span>'
+          + '<br>/' + cidrs[2] + ': <span class="tt-binary">' + maskForGroup(2,mask) + '</span>'
+          + '<br>/' + cidrs[3] + ': <span class="tt-binary">' + maskForGroup(3,mask) + '</span>'
+          + '<br>Magic number: 256 &minus; ' + mask + ' = <strong>' + magic + '</strong>';
+      }
+
+      // Networks cell
+      if (col === 'nets') {
+        return ''
+          + '<strong>Networks: ' + nets + '</strong> &mdash; subnets that fit in the parent block'
+          + '<br>/' + cidrs[0] + ':&nbsp; ' + nets + ' nets across all of IPv4'
+          + '<br>/' + cidrs[1] + ': ' + nets + ' nets per /8'
+          + '<br>/' + cidrs[2] + ': ' + nets + ' nets per /16'
+          + '<br>/' + cidrs[3] + ': ' + nets + ' nets per /24'
+          + '<br><strong>' + nets + ' &times; ' + addrs + ' = 256</strong> (always &mdash; one octet)';
+      }
+
+      // Addresses cell — the honest one
+      if (col === 'addrs') {
+        var c25 = cidrs[3];
+        return ''
+          + '<strong>Addresses: ' + addrs + '</strong> &mdash; block size in the splitting octet'
+          + '<br>(the step between consecutive subnet boundaries)'
+          + '<br><br><em style="color:#FCD34D">Honest read by CIDR:</em>'
+          + '<br>/' + cidrs[0] + ': total = <strong>' + fmt(totalIPs(cidrs[0])) + '</strong> &mdash; "' + addrs + '" is octet-1 step'
+          + '<br>/' + cidrs[1] + ': total = <strong>' + fmt(totalIPs(cidrs[1])) + '</strong> &mdash; "' + addrs + '" is octet-2 step'
+          + '<br>/' + cidrs[2] + ': total = <strong>' + fmt(totalIPs(cidrs[2])) + '</strong> &mdash; "' + addrs + '" is octet-3 step'
+          + '<br>/' + c25 + ': total = <strong>' + fmt(totalIPs(c25)) + '</strong> <span style="color:#4ADE80">&check; matches "' + addrs + '"</span>';
+      }
+      return '';
+    }
+
+    function placeTip(e) {
+      var x = Math.min(e.clientX + 18, window.innerWidth - 380);
+      var y = Math.min(e.clientY + 18, window.innerHeight - 240);
+      tip.style.left = x + 'px';
+      tip.style.top = y + 'px';
     }
 
     rows.forEach(function(row) {
-      row.addEventListener('mouseenter', function() {
-        var mask = parseInt(row.dataset.mask, 10);
-        var nets = parseInt(row.dataset.nets, 10);
-        var addrs = parseInt(row.dataset.addrs, 10);
-        var cidrs = row.dataset.cidrs.split(',');
-        var magic = mask === 0 ? 256 : 256 - mask;
-        var blocks = [];
-        for (var i = 0; i < Math.min(nets, 4); i++) blocks.push('.' + (i * addrs));
-        if (nets > 4) blocks.push('…');
-        tip.innerHTML =
-          '<strong>Magic number:</strong> 256 &minus; ' + mask + ' = ' + magic +
-          '<br><strong>Block size:</strong> ' + addrs + ' addresses' +
-          '<br><strong>Mask binary:</strong> <span class="tt-binary">' + bin(mask) + '</span>' +
-          '<br><strong>Networks:</strong> ' + nets + ' &times; <strong>Addrs:</strong> ' + addrs + ' = 256' +
-          '<br><strong>Example /' + cidrs[3] + ':</strong> 192.168.1' + blocks.join(', ');
-        tip.classList.add('visible');
-      });
-      row.addEventListener('mousemove', function(e) {
-        var x = Math.min(e.clientX + 18, window.innerWidth - 380);
-        var y = Math.min(e.clientY + 18, window.innerHeight - 180);
-        tip.style.left = x + 'px';
-        tip.style.top = y + 'px';
-      });
-      row.addEventListener('mouseleave', function() {
-        tip.classList.remove('visible');
+      Array.from(row.children).forEach(function(td) {
+        td.addEventListener('mouseenter', function() {
+          tip.innerHTML = buildTip(row, td.dataset.col);
+          tip.classList.add('visible');
+        });
+        td.addEventListener('mouseleave', function() {
+          tip.classList.remove('visible');
+        });
+        td.addEventListener('mousemove', placeTip);
       });
       row.addEventListener('click', function() {
         var cidrs = row.dataset.cidrs.split(',');
