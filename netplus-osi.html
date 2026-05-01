@@ -382,115 +382,303 @@ LAYERS.forEach(function(layer, i){
 });
 
 
-/* ── Section 2: Encapsulation Animation ───────────────────── */
-var encapCanvas = document.getElementById('encapCanvas');
-var encapLabel = document.getElementById('encapLabel');
+/* ── Section 0: Mnemonic ──────────────────────────────────── */
+var MNEMO_DOWN = [
+  {n:7, word:'All',        letter:'A', layer:'Application'},
+  {n:6, word:'People',     letter:'P', layer:'Presentation'},
+  {n:5, word:'Seem',       letter:'S', layer:'Session'},
+  {n:4, word:'To',         letter:'T', layer:'Transport'},
+  {n:3, word:'Need',       letter:'N', layer:'Network'},
+  {n:2, word:'Data',       letter:'D', layer:'Data Link'},
+  {n:1, word:'Processing', letter:'P', layer:'Physical'}
+];
+var MNEMO_UP = [
+  {n:1, word:'Please',  letter:'P', layer:'Physical'},
+  {n:2, word:'Do',      letter:'D', layer:'Data Link'},
+  {n:3, word:'Not',     letter:'N', layer:'Network'},
+  {n:4, word:'Throw',   letter:'T', layer:'Transport'},
+  {n:5, word:'Sausage', letter:'S', layer:'Session'},
+  {n:6, word:'Pizza',   letter:'P', layer:'Presentation'},
+  {n:7, word:'Away',    letter:'A', layer:'Application'}
+];
+var mnemoStrip = document.getElementById('mnemoStrip');
+var mnemoDirBtn = document.getElementById('mnemoDir');
+var mnemoRevealBtn = document.getElementById('mnemoRevealAll');
+var mnemoHideBtn = document.getElementById('mnemoHideAll');
+
+function renderMnemo(){
+  var dir = mnemoDirBtn.getAttribute('data-dir');
+  var data = dir === 'down' ? MNEMO_DOWN : MNEMO_UP;
+  mnemoStrip.innerHTML = '';
+  data.forEach(function(m){
+    var color = COLORS[7 - m.n];
+    var card = document.createElement('div');
+    card.className = 'mnemo-card';
+    card.innerHTML =
+      '<div class="mnemo-num" style="color:' + color + '">L' + m.n + '</div>' +
+      '<div class="mnemo-word"><span class="mnemo-letter">' + m.letter + '</span>' + m.word.slice(1) + '</div>' +
+      '<div class="mnemo-layer">' + m.layer + '</div>';
+    card.addEventListener('click', function(){ card.classList.toggle('revealed'); });
+    mnemoStrip.appendChild(card);
+  });
+}
+mnemoDirBtn.addEventListener('click', function(){
+  var cur = mnemoDirBtn.getAttribute('data-dir');
+  var next = cur === 'down' ? 'up' : 'down';
+  mnemoDirBtn.setAttribute('data-dir', next);
+  mnemoDirBtn.textContent = next === 'down' ? 'Top→Bottom (L7→L1)' : 'Bottom→Top (L1→L7)';
+  renderMnemo();
+});
+mnemoRevealBtn.addEventListener('click', function(){
+  mnemoStrip.querySelectorAll('.mnemo-card').forEach(function(c){ c.classList.add('revealed'); });
+});
+mnemoHideBtn.addEventListener('click', function(){
+  mnemoStrip.querySelectorAll('.mnemo-card').forEach(function(c){ c.classList.remove('revealed'); });
+});
+renderMnemo();
+
+
+/* ── Section 2: Two-Host Encap Journey ────────────────────── */
+var REAL = {
+  srcIP:'10.0.0.5', dstIP:'93.184.216.34',
+  srcMAC:'AA:BB:CC:11:22:33', dstMAC:'00:1B:21:3A:5F:9E',
+  srcPort:'52431', dstPort:'443',
+  payload:'GET / HTTP/1.1  Host: example.com'
+};
+
+var HEADERS = {
+  frame:  {label:'Eth Hdr',  val:'dst:' + REAL.dstMAC + ' src:' + REAL.srcMAC, color:COLORS[5], bg:'#ECFDF5', tip:'Layer 2 frame header. dst MAC is the next-hop gateway on this LAN, NOT the final server. Each router rewrites both MACs.'},
+  ip:     {label:'IP Hdr',   val:'src:' + REAL.srcIP + '  dst:' + REAL.dstIP,   color:COLORS[4], bg:'#ECFEFF', tip:'Layer 3 IP header. src/dst IPs survive the whole trip across routers; only MAC changes hop-to-hop.'},
+  tcp:    {label:'TCP Hdr',  val:'sport:' + REAL.srcPort + ' dport:' + REAL.dstPort, color:COLORS[3], bg:'#EFF6FF', tip:'Layer 4 TCP header. Port 443 = HTTPS. Sequence/ACK numbers track reliable delivery.'},
+  tls:    {label:'TLS Rec',  val:'TLS 1.3 ApplicationData (encrypted)', color:COLORS[1], bg:'#F5F3FF', tip:'Layer 6 TLS record. Encrypts the L7 payload. Only the receiver with the session key decrypts it.'},
+  payload:{label:'Payload',  val:REAL.payload, color:'#1F2937', tip:'Layer 7 application data — the actual HTTP request your browser is sending.'},
+  fcs:    {label:'FCS',      val:'CRC-32 0x4A2C9E1F', color:COLORS[5], bg:'#ECFDF5', tip:'Layer 2 frame trailer. CRC over the frame; receiver recomputes and discards if mismatch.'}
+};
+
+var STEPS = [
+  {side:'sender', layer:7, action:'Browser builds HTTP request',                    pdu:'Data',    op:'set',  segs:['payload']},
+  {side:'sender', layer:6, action:'TLS encrypts the payload',                       pdu:'Data',    op:'wrap', add:'tls'},
+  {side:'sender', layer:5, action:'Session manages the connection (no header)',     pdu:'Data',    op:'noop'},
+  {side:'sender', layer:4, action:'TCP adds ports — sport:52431 dport:443',     pdu:'Segment', op:'wrap', add:'tcp'},
+  {side:'sender', layer:3, action:'IP adds source & destination IP',                pdu:'Packet',  op:'wrap', add:'ip'},
+  {side:'sender', layer:2, action:'Ethernet adds MAC header & FCS trailer',         pdu:'Frame',   op:'frame'},
+  {side:'sender', layer:1, action:'NIC converts the frame to bits, sends on wire',  pdu:'Bits',    op:'bits'},
+  {side:'wire',   layer:0, action:'Bits travel through cable / switches / routers', pdu:'Bits',    op:'wire'},
+  {side:'recv',   layer:1, action:'Receiver NIC reads bits, reassembles the frame', pdu:'Frame',   op:'unbits'},
+  {side:'recv',   layer:2, action:'Eth checks dst MAC & FCS, then strips frame',    pdu:'Packet',  op:'unframe'},
+  {side:'recv',   layer:3, action:'IP checks dst IP matches, strips IP header',     pdu:'Segment', op:'strip', remove:'ip'},
+  {side:'recv',   layer:4, action:'TCP reads dport 443, hands to HTTPS service',    pdu:'Data',    op:'strip', remove:'tcp'},
+  {side:'recv',   layer:5, action:'Session forwards data to the app instance',      pdu:'Data',    op:'noop'},
+  {side:'recv',   layer:6, action:'TLS decrypts the payload',                       pdu:'Data',    op:'strip', remove:'tls'},
+  {side:'recv',   layer:7, action:'Web server reads the GET request, responds',     pdu:'Data',    op:'final'}
+];
+
+var senderStackEl = document.getElementById('senderStack');
+var receiverStackEl = document.getElementById('receiverStack');
+var packetStackEl = document.getElementById('packetStack');
+var packetTitleEl = document.getElementById('packetTitle');
+var journeyStatusEl = document.getElementById('journeyStatus');
+var journeyWireEl = document.getElementById('journeyWire');
+var journeyLegendEl = document.getElementById('journeyLegend');
 var encapStepBtn = document.getElementById('encapStep');
+var encapBackBtn = document.getElementById('encapBack');
 var encapResetBtn = document.getElementById('encapReset');
 var encapAutoBtn = document.getElementById('encapAuto');
 
-var ENCAP_STEPS = [
-  {label:'Layer 7-5: Application Data', layers:'Application / Presentation / Session', wrappers:[], pdu:'Data'},
-  {label:'Layer 4: Add TCP/UDP Header (Port)', layers:'Transport', wrappers:[{text:'TCP Hdr', color:'#2563EB'}], pdu:'Segment'},
-  {label:'Layer 3: Add IP Header (IP Address)', layers:'Network', wrappers:[{text:'IP Hdr', color:'#0891B2'},{text:'TCP Hdr', color:'#2563EB'}], pdu:'Packet'},
-  {label:'Layer 2: Add Frame Header + Trailer (MAC)', layers:'Data Link', wrappers:[{text:'Frame Hdr', color:'#059669'},{text:'IP Hdr', color:'#0891B2'},{text:'TCP Hdr', color:'#2563EB'}], pdu:'Frame', trailer:{text:'FCS', color:'#059669'}},
-  {label:'Layer 1: Convert to Bits', layers:'Physical', wrappers:[], pdu:'Bits', isBits:true},
-];
-
-var currentEncapStep = -1;
-var autoTimer = null;
-
-function renderEncap(){
-  encapCanvas.innerHTML = '';
-  for(var s = 0; s <= currentEncapStep && s < ENCAP_STEPS.length; s++){
-    if(s > 0){
-      var arrow = document.createElement('div');
-      arrow.className = 'encap-arrow visible';
-      arrow.textContent = '\u2193';
-      encapCanvas.appendChild(arrow);
-    }
-
-    var step = ENCAP_STEPS[s];
+function buildHostStack(el, side){
+  el.innerHTML = '';
+  [7,6,5,4,3,2,1].forEach(function(n){
+    var L = LAYERS[7-n];
     var row = document.createElement('div');
-    row.className = 'encap-step visible';
-    row.style.transitionDelay = (s * 0.08) + 's';
+    row.className = 'j-row';
+    row.id = side + '-row-' + n;
+    row.innerHTML =
+      '<div class="j-num" style="background:' + L.color + '">' + n + '</div>' +
+      '<div class="j-name">' + L.name + '</div>' +
+      '<span class="j-pdu">' + L.pdu + '</span>' +
+      '<div class="j-action"></div>';
+    el.appendChild(row);
+  });
+}
+buildHostStack(senderStackEl, 'snd');
+buildHostStack(receiverStackEl, 'rcv');
 
-    if(step.isBits){
-      row.innerHTML = '<div style="font-family:var(--font-mono);font-size:.82rem;color:var(--ink);letter-spacing:2px;padding:8px 16px;border:2px dashed ' + COLORS[6] + ';border-radius:4px">01001000 01100101 01101100 01101100 01101111 ...</div>';
-    } else {
-      var html = '';
-      // Opening wrappers (headers)
-      step.wrappers.forEach(function(w){
-        html += '<div class="encap-wrapper" style="border-color:' + w.color + ';color:' + w.color + '"><span class="encap-label">' + w.text + '</span>';
-      });
-      // Data core
-      html += '<div class="encap-data-core">DATA</div>';
-      // Close wrappers
-      step.wrappers.forEach(function(){ html += '</div>'; });
-      // Trailer if present
-      if(step.trailer){
-        // We need to wrap the entire thing. Restructure:
-        var fullHtml = '<div class="encap-wrapper" style="border-color:' + step.trailer.color + ';color:' + step.trailer.color + '"><span class="encap-label">' + step.wrappers[0].text + '</span>';
-        for(var wi = 1; wi < step.wrappers.length; wi++){
-          fullHtml += '<div class="encap-wrapper" style="border-color:' + step.wrappers[wi].color + ';color:' + step.wrappers[wi].color + '"><span class="encap-label">' + step.wrappers[wi].text + '</span>';
-        }
-        fullHtml += '<div class="encap-data-core">DATA</div>';
-        for(var wj = 1; wj < step.wrappers.length; wj++) fullHtml += '</div>';
-        fullHtml += '<span class="encap-label">' + step.trailer.text + '</span></div>';
-        html = fullHtml;
-      }
-      row.innerHTML = html;
-    }
+var LEGEND_ITEMS = [
+  {label:'Frame / FCS (L2)', color:COLORS[5]},
+  {label:'IP (L3)',          color:COLORS[4]},
+  {label:'TCP (L4)',         color:COLORS[3]},
+  {label:'TLS (L6)',         color:COLORS[1]},
+  {label:'Payload (L7)',     color:'#1F2937'}
+];
+LEGEND_ITEMS.forEach(function(li){
+  var t = document.createElement('span');
+  t.className = 'lg-tag';
+  t.innerHTML = '<span class="lg-swatch" style="background:' + li.color + '"></span>' + li.label;
+  journeyLegendEl.appendChild(t);
+});
 
-    encapCanvas.appendChild(row);
+var packetSegs = [];
+var asBits = false;
+var stepIdx = -1;
+var jAutoTimer = null;
+
+function renderPacket(animateKey, animateMode){
+  packetStackEl.innerHTML = '';
+  if(asBits){
+    var bits = document.createElement('div');
+    bits.className = 'packet-seg bits';
+    bits.innerHTML = '<div class="seg-label" style="color:#6EE7B7">Layer 1 — Bits on Wire</div>' +
+                     '<div class="seg-val">01001000 01010100 01010100 01010000 ...</div>';
+    packetStackEl.appendChild(bits);
+    return;
   }
+  if(packetSegs.length === 0){
+    packetStackEl.innerHTML = '<div class="packet-seg payload" style="background:transparent;color:var(--ink-muted);border:1px dashed var(--border)"><div class="seg-val">— click Step to begin —</div></div>';
+    return;
+  }
+  packetSegs.forEach(function(key){
+    var H = HEADERS[key];
+    var seg = document.createElement('div');
+    var isPayload = key === 'payload';
+    seg.className = 'packet-seg' + (isPayload ? ' payload' : '');
+    if(!isPayload){
+      seg.style.background = H.bg || '#fff';
+      seg.style.color = H.color;
+      seg.style.borderLeft = '3px solid ' + H.color;
+    }
+    seg.title = H.tip + '\n\n' + H.label + ': ' + H.val;
+    seg.innerHTML = '<div class="seg-label">' + H.label + '</div><div class="seg-val">' + H.val + '</div>';
+    if(animateKey === key && animateMode === 'enter') seg.classList.add('entering');
+    packetStackEl.appendChild(seg);
+  });
+}
 
-  if(currentEncapStep >= 0 && currentEncapStep < ENCAP_STEPS.length){
-    var cs = ENCAP_STEPS[currentEncapStep];
-    encapLabel.textContent = cs.label + '  (' + cs.pdu + ')';
-  } else if(currentEncapStep < 0){
-    encapLabel.textContent = 'Click Step to begin';
+function highlightRow(side, layer){
+  document.querySelectorAll('.j-row').forEach(function(r){ r.classList.remove('active'); });
+  if(side === 'sender'){
+    for(var n = 7; n > layer; n--){
+      var r = document.getElementById('snd-row-' + n);
+      if(r) r.classList.add('done');
+    }
+    var cur = document.getElementById('snd-row-' + layer);
+    if(cur){ cur.classList.add('active'); cur.classList.remove('done'); }
+  } else if(side === 'recv'){
+    for(var m = 1; m < layer; m++){
+      var rr = document.getElementById('rcv-row-' + m);
+      if(rr) rr.classList.add('done');
+    }
+    var curR = document.getElementById('rcv-row-' + layer);
+    if(curR){ curR.classList.add('active'); curR.classList.remove('done'); }
   }
 }
 
-encapStepBtn.addEventListener('click', function(){
-  if(currentEncapStep < ENCAP_STEPS.length - 1){
-    currentEncapStep++;
-    renderEncap();
+function setRowAction(side, layer, text){
+  var prefix = side === 'sender' ? 'snd' : 'rcv';
+  var row = document.getElementById(prefix + '-row-' + layer);
+  if(row){ row.querySelector('.j-action').textContent = text; }
+}
+
+function applyStep(idx, animate){
+  var s = STEPS[idx];
+  if(s.op === 'set'){ packetSegs = s.segs.slice(); asBits = false; }
+  else if(s.op === 'wrap'){ packetSegs.unshift(s.add); asBits = false; }
+  else if(s.op === 'frame'){ packetSegs.unshift('frame'); packetSegs.push('fcs'); asBits = false; }
+  else if(s.op === 'bits' || s.op === 'wire'){ asBits = true; }
+  else if(s.op === 'unbits'){ asBits = false; }
+  else if(s.op === 'unframe'){ packetSegs = packetSegs.filter(function(k){ return k !== 'frame' && k !== 'fcs'; }); asBits = false; }
+  else if(s.op === 'strip'){ packetSegs = packetSegs.filter(function(k){ return k !== s.remove; }); asBits = false; }
+  else if(s.op === 'final' || s.op === 'noop'){ /* no packet change */ }
+
+  var animKey = null, animMode = null;
+  if(animate){
+    if(s.op === 'wrap'){ animKey = s.add; animMode = 'enter'; }
+    if(s.op === 'frame'){ animKey = 'frame'; animMode = 'enter'; }
+    if(s.op === 'set'){ animKey = 'payload'; animMode = 'enter'; }
   }
-  if(currentEncapStep >= ENCAP_STEPS.length - 1){
+  renderPacket(animKey, animMode);
+
+  if(s.side === 'sender' || s.side === 'recv'){
+    highlightRow(s.side, s.layer);
+    setRowAction(s.side, s.layer, s.action);
+  } else {
+    document.querySelectorAll('.j-row').forEach(function(r){ r.classList.remove('active'); });
+  }
+
+  if(s.side === 'wire'){ journeyWireEl.classList.add('active'); }
+  else { journeyWireEl.classList.remove('active'); }
+
+  journeyStatusEl.innerHTML = '<strong>' + (s.side === 'sender' ? 'Sender' : s.side === 'recv' ? 'Receiver' : 'Wire') + '</strong> ' +
+    (s.layer ? '— Layer ' + s.layer : '') +
+    '<span class="status-pdu">PDU: ' + s.pdu + '</span>';
+  packetTitleEl.textContent = 'Live Packet — ' + s.pdu + (s.side === 'sender' ? ' (encapsulating)' : s.side === 'recv' ? ' (decapsulating)' : ' (in transit)');
+}
+
+function resetJourney(){
+  if(jAutoTimer){ clearInterval(jAutoTimer); jAutoTimer = null; encapAutoBtn.textContent = 'Auto-Play'; }
+  packetSegs = [];
+  asBits = false;
+  stepIdx = -1;
+  document.querySelectorAll('.j-row').forEach(function(r){
+    r.classList.remove('active','done');
+    var act = r.querySelector('.j-action');
+    if(act) act.textContent = '';
+  });
+  journeyWireEl.classList.remove('active');
+  renderPacket();
+  packetTitleEl.textContent = 'Live Packet — (not started)';
+  journeyStatusEl.textContent = 'Click Step to start the journey from your PC’s browser.';
+  encapStepBtn.disabled = false;
+  encapStepBtn.innerHTML = 'Step →';
+  encapBackBtn.disabled = true;
+}
+resetJourney();
+
+encapStepBtn.addEventListener('click', function(){
+  if(stepIdx < STEPS.length - 1){
+    stepIdx++;
+    applyStep(stepIdx, true);
+    encapBackBtn.disabled = false;
+  }
+  if(stepIdx >= STEPS.length - 1){
     encapStepBtn.disabled = true;
     encapStepBtn.textContent = 'Done';
   }
 });
 
-encapResetBtn.addEventListener('click', function(){
-  if(autoTimer){ clearInterval(autoTimer); autoTimer = null; encapAutoBtn.textContent = 'Auto-Play'; }
-  currentEncapStep = -1;
+encapBackBtn.addEventListener('click', function(){
+  if(stepIdx <= 0){ resetJourney(); return; }
+  stepIdx--;
+  packetSegs = []; asBits = false;
+  document.querySelectorAll('.j-row').forEach(function(r){
+    r.classList.remove('active','done');
+    var act = r.querySelector('.j-action');
+    if(act) act.textContent = '';
+  });
+  for(var k = 0; k <= stepIdx; k++){ applyStep(k, false); }
   encapStepBtn.disabled = false;
-  encapStepBtn.textContent = 'Step';
-  renderEncap();
+  encapStepBtn.innerHTML = 'Step →';
+  if(stepIdx < 0) encapBackBtn.disabled = true;
 });
 
+encapResetBtn.addEventListener('click', resetJourney);
+
 encapAutoBtn.addEventListener('click', function(){
-  if(autoTimer){ clearInterval(autoTimer); autoTimer = null; encapAutoBtn.textContent = 'Auto-Play'; return; }
+  if(jAutoTimer){ clearInterval(jAutoTimer); jAutoTimer = null; encapAutoBtn.textContent = 'Auto-Play'; return; }
+  if(stepIdx >= STEPS.length - 1) resetJourney();
   encapAutoBtn.textContent = 'Pause';
-  currentEncapStep = -1;
-  renderEncap();
-  autoTimer = setInterval(function(){
-    if(currentEncapStep < ENCAP_STEPS.length - 1){
-      currentEncapStep++;
-      renderEncap();
+  jAutoTimer = setInterval(function(){
+    if(stepIdx < STEPS.length - 1){
+      stepIdx++;
+      applyStep(stepIdx, true);
+      encapBackBtn.disabled = false;
     } else {
-      clearInterval(autoTimer); autoTimer = null;
+      clearInterval(jAutoTimer); jAutoTimer = null;
       encapAutoBtn.textContent = 'Auto-Play';
       encapStepBtn.disabled = true;
       encapStepBtn.textContent = 'Done';
     }
-  }, 1200);
+  }, 1300);
 });
-
-renderEncap();
 
 
 /* ── Section 3: Protocol Sorting Game ─────────────────────── */
