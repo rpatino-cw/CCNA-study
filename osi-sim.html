@@ -1,0 +1,903 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#0F172A">
+<title>OSI Model Simulator — CCNA 200-301</title>
+<link rel="icon" type="image/svg+xml" href="/CCNA-study/favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="css/shared.css">
+<style>
+html,body{margin:0;padding:0;background:#0F172A}
+.sim-page{min-height:100vh;background:#0F172A;color:#E2E8F0;font-family:'Space Grotesk',system-ui,sans-serif;display:flex;flex-direction:column}
+
+/* ── Topbar ── */
+.sim-topbar{display:flex;align-items:center;gap:10px;padding:9px 14px;background:#1E293B;border-bottom:1px solid #334155;flex-wrap:wrap;flex-shrink:0}
+.sim-topbar h1{font-size:.95rem;font-weight:700;color:#F8FAFC;margin:0;letter-spacing:-.01em;white-space:nowrap}
+.back-sim{font-size:.72rem;color:#64748B;text-decoration:none;flex-shrink:0;transition:color .15s}
+.back-sim:hover{color:#94A3B8}
+.sim-scenario{font-family:'Space Grotesk',sans-serif;font-size:.75rem;font-weight:600;padding:5px 9px;border:1px solid #475569;border-radius:6px;background:#0F172A;color:#E2E8F0;cursor:pointer}
+.sim-controls{display:flex;align-items:center;gap:5px;margin-left:auto;flex-wrap:wrap}
+.sim-btn{font-family:'Space Grotesk',sans-serif;font-size:.7rem;font-weight:700;padding:6px 12px;border:1px solid #475569;border-radius:6px;background:#1E293B;color:#E2E8F0;cursor:pointer;transition:all .15s;letter-spacing:.02em}
+.sim-btn:hover:not(:disabled){border-color:#F59E0B;color:#F59E0B}
+.sim-btn.primary{background:#F59E0B;color:#0F172A;border-color:#F59E0B}
+.sim-btn.primary:hover:not(:disabled){background:#FBBF24}
+.sim-btn:disabled{opacity:.3;cursor:default}
+.speed-sel{font-family:'Space Grotesk',sans-serif;font-size:.7rem;padding:5px 7px;border:1px solid #475569;border-radius:6px;background:#0F172A;color:#E2E8F0}
+.step-ctr{font-family:'JetBrains Mono',monospace;font-size:.65rem;color:#475569;white-space:nowrap}
+
+/* ── Mnemonic bar ── */
+.mnemonic-bar{display:flex;flex-shrink:0;border-bottom:1px solid #1E293B}
+.mn{flex:1;padding:4px 2px;text-align:center;font-size:.52rem;font-weight:700;text-transform:uppercase;letter-spacing:.03em;opacity:.35;transition:opacity .25s,background .25s;cursor:pointer;line-height:1.4}
+.mn:hover{opacity:.65}
+.mn.on{opacity:1}
+.mn-7{background:rgba(99,102,241,.12);color:#A5B4FC}  .mn-6{background:rgba(139,92,246,.12);color:#C4B5FD}
+.mn-5{background:rgba(236,72,153,.12);color:#F9A8D4}
+.mn-4{background:rgba(239,68,68,.12);color:#FCA5A5}
+.mn-3{background:rgba(245,158,11,.12);color:#FCD34D}
+.mn-2{background:rgba(16,185,129,.12);color:#6EE7B7}
+.mn-1{background:rgba(59,130,246,.12);color:#93C5FD}
+
+/* ── Progress ── */
+.sim-prog{height:3px;background:#1E293B;flex-shrink:0}
+.sim-prog-fill{height:100%;background:#F59E0B;transition:width .35s ease;border-radius:0 2px 2px 0}
+
+/* ── Main 3-col ── */
+.sim-main{display:grid;grid-template-columns:155px 1fr 155px;flex:1;min-height:0;overflow:hidden}
+
+/* ── OSI stacks ── */
+.osi-stack{display:flex;flex-direction:column;background:#0B1120;border-right:1px solid #1E293B;padding:6px;gap:3px;overflow:hidden}
+.osi-stack.rx{border-right:none;border-left:1px solid #1E293B}
+.stack-lbl{font-size:.55rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#334155;text-align:center;padding:3px 0 5px;flex-shrink:0}
+.osi-layer{padding:7px 9px;border-radius:5px;border:1px solid transparent;cursor:pointer;transition:background .2s,border-color .2s,box-shadow .2s;flex:1;display:flex;flex-direction:column;justify-content:center;min-height:0;user-select:none}
+.osi-layer:hover{opacity:.9}
+.l-num{font-family:'JetBrains Mono',monospace;font-size:.52rem;font-weight:700;opacity:.55;margin-bottom:1px}
+.l-name{font-size:.7rem;font-weight:700;line-height:1.1}
+.l-pdu{font-family:'JetBrains Mono',monospace;font-size:.52rem;opacity:.5;margin-top:2px}
+.l-proto{font-size:.55rem;opacity:.45;margin-top:1px;line-height:1.3}
+
+.ly7{background:rgba(99,102,241,.1);border-color:rgba(99,102,241,.18);color:#A5B4FC}
+.ly7.on{background:rgba(99,102,241,.32);border-color:#6366F1;color:#E0E7FF;box-shadow:0 0 18px rgba(99,102,241,.45)}
+.ly6{background:rgba(139,92,246,.1);border-color:rgba(139,92,246,.18);color:#C4B5FD}
+.ly6.on{background:rgba(139,92,246,.32);border-color:#8B5CF6;color:#EDE9FE;box-shadow:0 0 18px rgba(139,92,246,.45)}
+.ly5{background:rgba(236,72,153,.1);border-color:rgba(236,72,153,.18);color:#F9A8D4}
+.ly5.on{background:rgba(236,72,153,.32);border-color:#EC4899;color:#FCE7F3;box-shadow:0 0 18px rgba(236,72,153,.45)}
+.ly4{background:rgba(239,68,68,.1);border-color:rgba(239,68,68,.18);color:#FCA5A5}
+.ly4.on{background:rgba(239,68,68,.32);border-color:#EF4444;color:#FEE2E2;box-shadow:0 0 18px rgba(239,68,68,.45)}
+.ly3{background:rgba(245,158,11,.1);border-color:rgba(245,158,11,.18);color:#FCD34D}
+.ly3.on{background:rgba(245,158,11,.32);border-color:#F59E0B;color:#FEF3C7;box-shadow:0 0 18px rgba(245,158,11,.45)}
+.ly2{background:rgba(16,185,129,.1);border-color:rgba(16,185,129,.18);color:#6EE7B7}
+.ly2.on{background:rgba(16,185,129,.32);border-color:#10B981;color:#D1FAE5;box-shadow:0 0 18px rgba(16,185,129,.45)}
+.ly1{background:rgba(59,130,246,.1);border-color:rgba(59,130,246,.18);color:#93C5FD}
+.ly1.on{background:rgba(59,130,246,.32);border-color:#3B82F6;color:#DBEAFE;box-shadow:0 0 18px rgba(59,130,246,.45)}
+
+/* ── Center ── */
+.sim-center{display:flex;flex-direction:column;overflow:hidden;background:#0F172A}
+
+/* ── Topology ── */
+.topo-wrap{flex:1;min-height:0;position:relative;overflow:hidden}
+.topo-svg{width:100%;height:100%;display:block}
+.dev-lbl{font-family:'JetBrains Mono',monospace;font-size:9px;fill:#64748B}
+.dev-lbl-sm{font-family:'JetBrains Mono',monospace;font-size:7.5px;fill:#475569}
+.link{stroke:#1E293B;stroke-width:2;transition:stroke .3s,stroke-width .3s}
+.link.hot{stroke:#F59E0B;stroke-width:3;stroke-dasharray:7 3;animation:linkdash .8s linear infinite}
+@keyframes linkdash{to{stroke-dashoffset:-20}}
+.dev-rect{rx:7;ry:7;fill:#1E293B;stroke:#334155;stroke-width:1.5;transition:stroke .25s,stroke-width .25s,filter .25s}
+.dev-rect.hot{stroke:#F59E0B;stroke-width:2.5;filter:drop-shadow(0 0 8px rgba(245,158,11,.6))}
+
+/* Packet dot */
+.pkt{transition:cx .55s cubic-bezier(.4,0,.2,1),cy .55s cubic-bezier(.4,0,.2,1);filter:drop-shadow(0 0 6px #F59E0B)}
+
+/* ── Packet structure ── */
+.pkt-vis{padding:7px 12px;background:#0B1120;border-top:1px solid #1E293B;flex-shrink:0}
+.pkt-vis-lbl{font-size:.55rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#334155;margin-bottom:5px}
+.pkt-hdrs{display:flex;align-items:stretch;gap:2px;height:28px;font-family:'JetBrains Mono',monospace;font-size:.6rem;font-weight:700}
+.ph{display:flex;align-items:center;justify-content:center;border-radius:4px;white-space:nowrap;padding:0 7px;transition:all .35s;flex-shrink:0}
+.ph.eth{background:#10B981;color:#022C22;min-width:52px}
+.ph.ip{background:#F59E0B;color:#1C0A00;min-width:40px}
+.ph.tcp{background:#EF4444;color:#450A0A;min-width:44px}
+.ph.udp{background:#EC4899;color:#500724;min-width:44px}
+.ph.icmp{background:#EF4444;color:#450A0A;min-width:52px}
+.ph.arp{background:#10B981;color:#022C22;min-width:48px}
+.ph.data{background:#6366F1;color:#E0E7FF;flex:1;min-width:60px}
+.ph.bits{background:#3B82F6;color:#EFF6FF;min-width:36px;font-size:.52rem}
+
+/* ── Step info ── */
+.step-info{padding:9px 13px;background:#111827;border-top:1px solid #1E293B;flex-shrink:0}
+.step-title{font-size:.8rem;font-weight:700;color:#F8FAFC;margin-bottom:3px;line-height:1.3}
+.step-desc{font-size:.73rem;color:#94A3B8;line-height:1.55}
+.step-fact{margin-top:6px;padding:6px 10px;background:rgba(245,158,11,.08);border-left:3px solid #F59E0B;border-radius:0 4px 4px 0;font-size:.7rem;color:#FCD34D;line-height:1.45}
+
+/* ── Bottom panels ── */
+.sim-bottom{display:grid;grid-template-columns:1fr 1fr;height:200px;border-top:1px solid #1E293B;flex-shrink:0}
+.panel{display:flex;flex-direction:column;overflow:hidden}
+.panel.log{border-right:1px solid #1E293B}
+.panel-head{padding:5px 11px;background:#1E293B;border-bottom:1px solid #334155;font-size:.58rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#475569;display:flex;align-items:center;gap:7px;flex-shrink:0}
+.ph-dot{width:6px;height:6px;border-radius:50%}
+.ph-dot.g{background:#10B981}
+.ph-dot.a{background:#F59E0B}
+.panel-body{flex:1;overflow-y:auto;padding:7px 11px;font-family:'JetBrains Mono',monospace;font-size:.65rem;line-height:1.6;scrollbar-width:thin;scrollbar-color:#334155 transparent}
+.panel-body::-webkit-scrollbar{width:4px}
+.panel-body::-webkit-scrollbar-track{background:transparent}
+.panel-body::-webkit-scrollbar-thumb{background:#334155;border-radius:2px}
+
+/* Log entries */
+.le{display:flex;gap:7px;margin-bottom:3px;animation:fadeUp .25s ease}
+@keyframes fadeUp{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:none}}
+.le-t{color:#334155;flex-shrink:0}
+.le-lyr{padding:1px 5px;border-radius:3px;font-size:.56rem;font-weight:700;flex-shrink:0;letter-spacing:.03em}
+.le-lyr.l7{background:rgba(99,102,241,.2);color:#A5B4FC}
+.le-lyr.l6{background:rgba(139,92,246,.2);color:#C4B5FD}
+.le-lyr.l5{background:rgba(236,72,153,.2);color:#F9A8D4}
+.le-lyr.l4{background:rgba(239,68,68,.2);color:#FCA5A5}
+.le-lyr.l3{background:rgba(245,158,11,.2);color:#FCD34D}
+.le-lyr.l2{background:rgba(16,185,129,.2);color:#6EE7B7}
+.le-lyr.l1{background:rgba(59,130,246,.2);color:#93C5FD}
+.le-lyr.dev{background:rgba(100,116,139,.2);color:#94A3B8}
+.le-msg{color:#CBD5E1;word-break:break-word}
+
+/* Terminal */
+.term-body{color:#4ADE80;white-space:pre-wrap;word-break:break-all}
+.tl{display:block;margin-bottom:1px}
+.tl.p{color:#475569}
+.tl.h{color:#60A5FA;font-weight:700}
+.tl.w{color:#FBBF24}
+.tl.e{color:#F87171}
+.tl.r{color:#4ADE80}
+
+/* ── Layer detail popup ── */
+.ldetail{position:fixed;z-index:9999;background:#1E293B;border:1px solid #475569;border-radius:10px;padding:13px 15px;max-width:270px;width:270px;box-shadow:0 20px 60px rgba(0,0,0,.7);display:none}
+.ldetail.show{display:block}
+.ld-close{float:right;background:none;border:none;color:#475569;cursor:pointer;font-size:.95rem;padding:0;line-height:1;margin:-2px -2px 0 0}
+.ld-close:hover{color:#94A3B8}
+.ld-num{font-family:'JetBrains Mono',monospace;font-size:.58rem;font-weight:700;margin-bottom:3px}
+.ld-name{font-size:.9rem;font-weight:700;margin-bottom:5px}
+.ld-pdu{font-family:'JetBrains Mono',monospace;font-size:.67rem;color:#64748B;margin-bottom:8px}
+.ld-sec{font-size:.56rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#475569;margin:7px 0 3px}
+.ld-txt{font-size:.7rem;line-height:1.65;color:#CBD5E1}
+
+/* ── Mobile ── */
+@media(max-width:680px){
+  .sim-main{grid-template-columns:1fr}
+  .osi-stack{display:none}
+  .sim-bottom{grid-template-columns:1fr;height:auto}
+  .panel.log{height:165px;border-right:none;border-bottom:1px solid #1E293B}
+  .panel.term{height:150px}
+  .mn{font-size:.48rem}
+}
+@media(max-width:900px){
+  .sim-main{grid-template-columns:125px 1fr 125px}
+  .l-proto{display:none}
+  .osi-stack{padding:4px}
+  .osi-layer{padding:5px 7px}
+}
+</style>
+</head>
+<body>
+<div class="sim-page">
+
+  <nav class="top-nav" id="main-nav"></nav>
+  <script defer src="js/nav.js?v=3"></script>
+
+  <!-- Topbar -->
+  <div class="sim-topbar">
+    <a class="back-sim" href="core.html">← CORE</a>
+    <h1>OSI Model Simulator</h1>
+    <select class="sim-scenario" id="scenSel">
+      <option value="ping">📡 ICMP Ping</option>
+      <option value="http">🌐 HTTP GET + TCP Handshake</option>
+      <option value="arp">📋 ARP Request / Reply</option>
+      <option value="dhcp">🏠 DHCP DORA</option>
+    </select>
+    <div class="sim-controls">
+      <button class="sim-btn" id="btnBack" title="Previous (←)">◀</button>
+      <button class="sim-btn primary" id="btnPlay" title="Play/Pause (Space)">▶ Play</button>
+      <button class="sim-btn" id="btnFwd" title="Next (→)">▶▶</button>
+      <select class="speed-sel" id="speedSel">
+        <option value="2200">Slow</option>
+        <option value="1300" selected>Normal</option>
+        <option value="650">Fast</option>
+      </select>
+      <span class="step-ctr" id="stepCtr">1 / 1</span>
+    </div>
+  </div>
+
+  <!-- Mnemonic bar -->
+  <div class="mnemonic-bar">
+    <div class="mn mn-7" data-l="7">L7<br>Application<br><span style="opacity:.6;font-weight:400">Please</span></div>
+    <div class="mn mn-6" data-l="6">L6<br>Presentation<br><span style="opacity:.6;font-weight:400">Do</span></div>
+    <div class="mn mn-5" data-l="5">L5<br>Session<br><span style="opacity:.6;font-weight:400">Not</span></div>
+    <div class="mn mn-4" data-l="4">L4<br>Transport<br><span style="opacity:.6;font-weight:400">Throw</span></div>
+    <div class="mn mn-3" data-l="3">L3<br>Network<br><span style="opacity:.6;font-weight:400">Sausage</span></div>
+    <div class="mn mn-2" data-l="2">L2<br>Data Link<br><span style="opacity:.6;font-weight:400">Pizza</span></div>
+    <div class="mn mn-1" data-l="1">L1<br>Physical<br><span style="opacity:.6;font-weight:400">Away</span></div>
+  </div>
+
+  <!-- Progress bar -->
+  <div class="sim-prog"><div class="sim-prog-fill" id="progFill" style="width:0%"></div></div>
+
+  <!-- Main -->
+  <div class="sim-main">
+
+    <!-- Sender OSI -->
+    <div class="osi-stack tx" id="txStack">
+      <div class="stack-lbl">SENDER — PC</div>
+    </div>
+
+    <!-- Center -->
+    <div class="sim-center">
+
+      <!-- Topology SVG -->
+      <div class="topo-wrap">
+        <svg class="topo-svg" id="topoSvg" viewBox="0 0 620 190" preserveAspectRatio="xMidYMid meet">
+          <!-- Subnet labels -->
+          <text x="90" y="30" text-anchor="middle" class="dev-lbl-sm">192.168.1.0/24</text>
+          <line x1="30" y1="34" x2="148" y2="34" stroke="#1E293B" stroke-width="1"/>
+          <text x="490" y="30" text-anchor="middle" class="dev-lbl-sm">10.0.0.0/24</text>
+          <line x1="400" y1="34" x2="580" y2="34" stroke="#1E293B" stroke-width="1"/>
+
+          <!-- Links -->
+          <line class="link" id="lk-pc-sw1"  x1="82"  y1="105" x2="188" y2="105"/>
+          <line class="link" id="lk-sw1-r1"  x1="228" y1="105" x2="290" y2="105"/>
+          <line class="link" id="lk-r1-sw2"  x1="330" y1="105" x2="392" y2="105"/>
+          <line class="link" id="lk-sw2-srv" x1="432" y1="105" x2="538" y2="105"/>
+
+          <!-- PC -->
+          <g id="dev-pc">
+            <rect class="dev-rect" x="22" y="81" width="60" height="48"/>
+            <text x="52" y="101" text-anchor="middle" font-size="18">💻</text>
+            <text x="52" y="116" text-anchor="middle" class="dev-lbl">PC</text>
+            <text x="52" y="126" text-anchor="middle" class="dev-lbl-sm">192.168.1.10</text>
+          </g>
+
+          <!-- SW1 -->
+          <g id="dev-sw1">
+            <rect class="dev-rect" x="188" y="85" width="40" height="40"/>
+            <text x="208" y="103" text-anchor="middle" font-size="15">🔀</text>
+            <text x="208" y="116" text-anchor="middle" class="dev-lbl">SW1</text>
+            <text x="208" y="124" text-anchor="middle" class="dev-lbl-sm">L2</text>
+          </g>
+
+          <!-- Router -->
+          <g id="dev-r1">
+            <rect class="dev-rect" x="290" y="85" width="40" height="40"/>
+            <text x="310" y="103" text-anchor="middle" font-size="15">🔁</text>
+            <text x="310" y="116" text-anchor="middle" class="dev-lbl">R1</text>
+            <text x="310" y="124" text-anchor="middle" class="dev-lbl-sm">L3</text>
+          </g>
+
+          <!-- SW2 -->
+          <g id="dev-sw2">
+            <rect class="dev-rect" x="392" y="85" width="40" height="40"/>
+            <text x="412" y="103" text-anchor="middle" font-size="15">🔀</text>
+            <text x="412" y="116" text-anchor="middle" class="dev-lbl">SW2</text>
+            <text x="412" y="124" text-anchor="middle" class="dev-lbl-sm">L2</text>
+          </g>
+
+          <!-- Server -->
+          <g id="dev-srv">
+            <rect class="dev-rect" x="538" y="81" width="60" height="48"/>
+            <text x="568" y="101" text-anchor="middle" font-size="18">🖥️</text>
+            <text x="568" y="116" text-anchor="middle" class="dev-lbl">Server</text>
+            <text x="568" y="126" text-anchor="middle" class="dev-lbl-sm">10.0.0.1</text>
+          </g>
+
+          <!-- Packet dot -->
+          <circle class="pkt" id="pktDot" cx="-50" cy="105" r="9" fill="#F59E0B" style="display:none"/>
+          <!-- Packet label -->
+          <text class="pkt" id="pktLbl" x="-50" y="85" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="8" fill="#FCD34D" style="display:none"></text>
+
+          <!-- Layer processing bands (shown on routers/switches) -->
+          <text x="310" y="158" text-anchor="middle" class="dev-lbl-sm" id="r1LayerHint"></text>
+          <text x="208" y="158" text-anchor="middle" class="dev-lbl-sm" id="sw1LayerHint"></text>
+          <text x="412" y="158" text-anchor="middle" class="dev-lbl-sm" id="sw2LayerHint"></text>
+        </svg>
+      </div>
+
+      <!-- Packet structure -->
+      <div class="pkt-vis">
+        <div class="pkt-vis-lbl">Packet structure — encapsulation view</div>
+        <div class="pkt-hdrs" id="pktHdrs">
+          <span style="font-size:.65rem;color:#334155;font-family:'JetBrains Mono',monospace">— press Play to start —</span>
+        </div>
+      </div>
+
+      <!-- Step description -->
+      <div class="step-info">
+        <div class="step-title" id="stepTitle">Select a scenario and press Play</div>
+        <div class="step-desc" id="stepDesc">Four scenarios: ICMP Ping walks the full 7-layer encapsulation. HTTP GET shows the TCP 3-way handshake. ARP shows how MAC addresses are resolved. DHCP shows how IPs are assigned dynamically. Use ← → or Space to navigate.</div>
+        <div class="step-fact" id="stepFact" style="display:none"></div>
+      </div>
+    </div>
+
+    <!-- Receiver OSI -->
+    <div class="osi-stack rx" id="rxStack">
+      <div class="stack-lbl">RECEIVER — Server</div>
+    </div>
+
+  </div>
+
+  <!-- Bottom: log + terminal -->
+  <div class="sim-bottom">
+    <div class="panel log">
+      <div class="panel-head"><div class="ph-dot g"></div> Event Log</div>
+      <div class="panel-body" id="logBody">
+        <div class="le"><span class="le-t">0.0s</span><span class="le-lyr dev">SYS</span><span class="le-msg">Simulator ready — select a scenario and press Play</span></div>
+      </div>
+    </div>
+    <div class="panel term">
+      <div class="panel-head"><div class="ph-dot a"></div> Terminal / Packet Capture</div>
+      <div class="panel-body term-body" id="termBody"><span class="tl p">C:\&gt; _</span></div>
+    </div>
+  </div>
+
+</div><!-- sim-page -->
+
+<!-- Layer detail popup -->
+<div class="ldetail" id="ldetail">
+  <button class="ld-close" id="ldClose">✕</button>
+  <div class="ld-num" id="ldNum"></div>
+  <div class="ld-name" id="ldName"></div>
+  <div class="ld-pdu" id="ldPdu"></div>
+  <div class="ld-sec">Protocols (CCNA)</div>
+  <div class="ld-txt" id="ldProtos"></div>
+  <div class="ld-sec">Key Concepts</div>
+  <div class="ld-txt" id="ldConcepts"></div>
+  <div class="ld-sec">Devices at this layer</div>
+  <div class="ld-txt" id="ldDevices"></div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+
+/* ═══════════════════════════════════════════════════════════
+   LAYER REFERENCE DATA (CCNA scope only)
+═══════════════════════════════════════════════════════════ */
+var LAYERS = [
+  { n:7, name:'Application',  pdu:'Data',                    cls:'ly7', color:'#6366F1',
+    protos:'HTTP (80), HTTPS (443), FTP (20/21), SSH (22), Telnet (23), DNS (53), DHCP (67/68), SMTP (25), SNMP (161)',
+    concepts:'User-facing services. Provides network services directly to applications. Data originates here. No packaging yet — just the raw payload.',
+    devices:'Hosts (PCs, servers, phones)' },
+  { n:6, name:'Presentation', pdu:'Data',                    cls:'ly6', color:'#8B5CF6',
+    protos:'SSL/TLS, JPEG, MPEG, GIF, ASCII, EBCDIC, encryption standards',
+    concepts:'Data translation, encryption/decryption (SSL/TLS), and compression. Ensures data from one system is readable by another. HTTPS encryption happens here.',
+    devices:'Hosts' },
+  { n:5, name:'Session',      pdu:'Data',                    cls:'ly5', color:'#EC4899',
+    protos:'NetBIOS, RPC, PPTP, SQL sessions, NFS',
+    concepts:'Establishes, manages, and terminates sessions. Controls dialog mode: simplex (one-way), half-duplex (take turns), full-duplex (simultaneous). Often invisible in TCP/IP.',
+    devices:'Hosts' },
+  { n:4, name:'Transport',    pdu:'Segment (TCP) / Datagram (UDP)', cls:'ly4', color:'#EF4444',
+    protos:'TCP (reliable, connection-oriented), UDP (unreliable, connectionless)',
+    concepts:'End-to-end delivery. TCP: 3-way handshake (SYN/SYN-ACK/ACK), sequencing, ACKs, retransmission, flow control (windowing), error recovery. UDP: no handshake, low overhead, used for DNS/DHCP/VoIP.',
+    devices:'Hosts (layer-4 firewalls, load balancers)' },
+  { n:3, name:'Network',      pdu:'Packet',                  cls:'ly3', color:'#F59E0B',
+    protos:'IPv4, IPv6, ICMP, OSPF, EIGRP, BGP',
+    concepts:'Logical IP addressing. Routing between networks. TTL (decremented per hop). Fragmentation. Routers operate here. IP header: src IP, dst IP, TTL, protocol, checksum.',
+    devices:'Routers, Layer-3 switches (multilayer switches)' },
+  { n:2, name:'Data Link',    pdu:'Frame',                   cls:'ly2', color:'#10B981',
+    protos:'Ethernet (802.3), Wi-Fi (802.11), 802.1Q VLANs, PPP, HDLC, ARP',
+    concepts:'MAC addressing. Framing. CRC error detection. Switches operate here. Two sublayers: LLC (upper) and MAC (lower). MAC address = 48-bit hardware address (OUI + device ID).',
+    devices:'Switches, bridges, NICs, wireless APs' },
+  { n:1, name:'Physical',     pdu:'Bits',                    cls:'ly1', color:'#3B82F6',
+    protos:'1000BASE-T (Cat6), 10GBASE-SR (fiber), 802.11 radio, DSL, coax',
+    concepts:'Raw bit transmission: electrical signals, light pulses, or radio waves. No addressing, no error correction. Bit rate, encoding, cable type, connectors, voltage levels.',
+    devices:'Hubs, repeaters, cables, NICs, modems, transceivers, antennas' },
+];
+
+/* ═══════════════════════════════════════════════════════════
+   TOPOLOGY DEVICE POSITIONS
+═══════════════════════════════════════════════════════════ */
+var POS = { pc:{x:52,y:85}, sw1:{x:208,y:85}, r1:{x:310,y:85}, sw2:{x:412,y:85}, srv:{x:568,y:85} };
+
+/* ═══════════════════════════════════════════════════════════
+   SCENARIOS
+   sL = sender active layer, rL = receiver active layer
+   devs = highlighted device ids, links = highlighted link ids
+   hdrs = packet header classes (outermost first)
+   hint = device processing hint text
+═══════════════════════════════════════════════════════════ */
+var SC = {
+
+ping: {
+  label:'ICMP Ping',
+  termInit:'C:\\> ping 10.0.0.1\nPinging 10.0.0.1 with 32 bytes of data:',
+  steps:[
+    { sL:7, devs:['pc'], hdrs:[],
+      title:'L7 Application — User runs ping 10.0.0.1',
+      desc:'The OS receives the ping command. ICMP (Internet Control Message Protocol) is invoked. An ICMP Echo Request message is created with type=8, code=0, a 32-byte payload, and a sequence number. ICMP is technically a Layer 3 protocol but is triggered from the application level.',
+      fact:'ICMP has NO port numbers — it is L3, not L4. Ping = ICMP type 8 (Echo Request). The reply is ICMP type 0 (Echo Reply). "Ping of death" and network reachability testing are classic CCNA topics.',
+      log:{lyr:'l7', msg:'Application: ICMP Echo Request created → dst 10.0.0.1, type=8, seq=1, 32-byte payload'},
+      term:'' },
+    { sL:6, devs:['pc'], hdrs:['data'],
+      title:'L6 Presentation — Data encoding',
+      desc:'The Presentation layer handles format translation, encryption, and compression. For ICMP ping, there is no transformation — the 32-byte binary payload passes through as-is. For HTTPS, this is where TLS encryption would wrap the data before handing it to L4.',
+      fact:'SSL/TLS encryption occurs at L6. When your browser shows a padlock, it means L6 negotiated a TLS session. AES-256 encryption, certificate validation, and key exchange all happen at the Presentation layer.',
+      log:{lyr:'l6', msg:'Presentation: 32-byte payload encoded (no encryption for ICMP)'},
+      term:'' },
+    { sL:5, devs:['pc'], hdrs:['data'],
+      title:'L5 Session — Session management (N/A for ICMP)',
+      desc:'The Session layer establishes, manages, and terminates sessions. ICMP is connectionless — there is no session to manage. Sessions are relevant for protocols like SQL database connections, NFS file sessions, and RPC calls.',
+      fact:'Session layer controls dialog mode: Simplex = one direction only. Half-duplex = one at a time (like a walkie-talkie). Full-duplex = simultaneous both directions (like a phone call). Ethernet is full-duplex.',
+      log:{lyr:'l5', msg:'Session: ICMP is connectionless — no session required'},
+      term:'' },
+    { sL:4, devs:['pc'], hdrs:['data'],
+      title:'L4 Transport — ICMP bypasses TCP/UDP',
+      desc:'ICMP does not use TCP or UDP. It is carried directly in the IP payload with Protocol=1. This is why ping has no port numbers. If this were HTTP, TCP would add a 20-byte segment header here with src port, dst port, sequence number, ACK number, flags, and window size.',
+      fact:'TCP port numbers for CCNA: HTTP=80, HTTPS=443, SSH=22, Telnet=23, FTP-data=20, FTP-ctrl=21, DNS=53, DHCP-server=67, DHCP-client=68, TFTP=69, SMTP=25, SNMP=161/162, RDP=3389.',
+      log:{lyr:'l4', msg:'Transport: ICMP bypasses L4 — no TCP/UDP header, no port numbers'},
+      term:'' },
+    { sL:3, devs:['pc'], hdrs:['ip','data'],
+      title:'L3 Network — IP header added',
+      desc:'The Network layer builds the IPv4 header (20 bytes): Version=4, IHL=5, DSCP=0, Total Length=52, ID, Flags (DF=1), Fragment Offset=0, TTL=64, Protocol=1 (ICMP), Header Checksum, Src IP=192.168.1.10, Dst IP=10.0.0.1. The TTL starts at 64 (Linux/Mac) or 128 (Windows).',
+      fact:'TTL (Time To Live): each router decrements TTL by 1. If TTL reaches 0, the router drops the packet and sends ICMP "Time Exceeded" — this is exactly how traceroute works. Protocol field: 1=ICMP, 6=TCP, 17=UDP, 89=OSPF.',
+      log:{lyr:'l3', msg:'Network: IP header added | src=192.168.1.10 dst=10.0.0.1 TTL=64 proto=1(ICMP) len=52'},
+      term:'IP Header:\n  Version: 4 | IHL: 20 bytes\n  Src: 192.168.1.10\n  Dst: 10.0.0.1\n  TTL: 64 | Protocol: 1 (ICMP)\n  Checksum: 0xC2A1' },
+    { sL:2, devs:['pc'], hdrs:['eth','ip','data'],
+      title:'L2 Data Link — Ethernet frame built (after ARP)',
+      desc:'PC checks its ARP cache for the gateway IP (192.168.1.1). It finds the MAC (from a prior ARP exchange) and builds an Ethernet frame: Dst MAC = R1 g0/0 (AA:11:22:33:44:55), Src MAC = PC NIC (AA:BB:CC:11:11:11), EtherType = 0x0800 (IPv4), followed by a 4-byte CRC trailer.',
+      fact:'Key rule: switches forward by MAC (L2); routers route by IP (L3). The dst MAC is the GATEWAY\'s MAC, not the server\'s — the IP destination stays 10.0.0.1 the whole path, but the MAC changes at every hop.',
+      log:{lyr:'l2', msg:'Data Link: Ethernet frame | dst=AA:11:22:33:44:55 (R1 g0/0) src=AA:BB:CC:11:11:11 EtherType=0x0800'},
+      term:'Ethernet Frame:\n  Dst MAC: AA:11:22:33:44:55 (R1 g0/0)\n  Src MAC: AA:BB:CC:11:11:11 (PC NIC)\n  EtherType: 0x0800 (IPv4)\n  Frame length: 74 bytes\n  FCS: 0x3F2A1C8B' },
+    { sL:1, devs:['pc'], links:['lk-pc-sw1'], hdrs:['bits','eth','ip','data'],
+      title:'L1 Physical — 74-byte frame → 592 bits on the wire',
+      desc:'The NIC serializes the Ethernet frame as electrical signals on Cat6 copper at 1 Gbps. L1 has no intelligence — it is purely raw signal. The preamble (7 bytes, alternating 1s and 0s) syncs the receiver clock. The SFD (Start Frame Delimiter) marks the start of the actual frame.',
+      fact:'L1 devices: hubs (repeat to all ports — one collision domain), repeaters, cables. A hub means all attached devices share bandwidth and collision domain. A switch creates a separate collision domain per port — this is a major CCNA distinction.',
+      log:{lyr:'l1', msg:'Physical: 592 bits serialized at 1 Gbps on Cat6 → SW1'},
+      term:'--- Wire capture: PC Gi0 ---\n0000: FF AA 11 22 33 44 55 AA BB CC 11 11 11 08 00 45\n0010: 00 00 34 1A B2 40 00 40 01 C2 A1 C0 A8 01 0A 0A\n0020: 00 00 01 08 00 F7 7D 00 01 00 01 61 62 63 64 65' },
+    { devs:['sw1'], links:['lk-pc-sw1','lk-sw1-r1'], hdrs:['eth','ip','data'],
+      hint:'sw1:L2 forward',
+      title:'SW1 — Layer 2 MAC forwarding',
+      desc:'SW1 receives the frame on Fa0/1. It reads the DESTINATION MAC (AA:11:22:33:44:55 = R1 g0/0) from its MAC address table and forwards out the correct uplink port. SW1 also LEARNS the source MAC (PC = AA:BB:CC:11:11:11 → Fa0/1). SW1 never opens the IP header — it is a pure L2 device.',
+      fact:'MAC table operations — Learn: record src MAC + port. Forward: send out the known port. Flood: if destination MAC unknown, send out all ports except incoming (unknown unicast flooding). MAC entries age out after 300 seconds by default.',
+      log:{lyr:'dev', msg:'SW1: dst MAC AA:11:22:33:44:55 → Fa0/24 (uplink R1) | learned PC MAC on Fa0/1'},
+      term:'SW1# show mac address-table\nVlan  Mac Address        Type    Ports\n   1  aabb.cc11.1111     DYNAMIC Fa0/1   ← PC\n   1  aa11.2233.4455     DYNAMIC Fa0/24  ← R1 g0/0' },
+    { devs:['r1'], links:['lk-sw1-r1','lk-r1-sw2'], hdrs:['eth','ip','data'],
+      hint:'r1:L1→L3 route',
+      title:'R1 — Layer 3 routing: strip L2, route IP, new L2 header',
+      desc:'R1 receives the frame, strips the Ethernet header (L2), reads the IP dst (10.0.0.1). It looks up its routing table: "10.0.0.0/24 directly connected via G0/1." It DECREMENTS TTL: 64→63, recalculates checksum, then builds a BRAND NEW Ethernet frame with new src/dst MACs for the 10.0.0.0/24 segment and sends it out G0/1.',
+      fact:'Critical CCNA rule: IP header (src/dst IP) stays the same end-to-end across the entire path. Only the L2 MAC addresses change hop-by-hop. "show ip route" shows the routing table. C = connected, S = static, O = OSPF, D = EIGRP.',
+      log:{lyr:'l3', msg:'R1: route 10.0.0.0/24 via G0/1 | TTL 64→63 | new L2: dst=DD:EE:FF:22:22:22 src=AA:11:22:33:44:56'},
+      term:'R1# show ip route\nC  192.168.1.0/24 [0/0] via GigabitEthernet0/0\nC  10.0.0.0/24   [0/0] via GigabitEthernet0/1\n\nR1: TTL decremented: 64 → 63\nR1: New L2 header built for 10.0.0.0/24 segment' },
+    { devs:['sw2'], links:['lk-r1-sw2','lk-sw2-srv'], hdrs:['eth','ip','data'],
+      hint:'sw2:L2 forward',
+      title:'SW2 — Layer 2 forwarding to server',
+      desc:'SW2 receives the re-framed packet from R1. It checks its MAC table, finds DD:EE:FF:22:22:22 (Server) → Fa0/2, and forwards it directly. Same L2 process as SW1. The IP payload is still intact and unmodified since it left the PC.',
+      fact:'A switch in the forwarding path never modifies the IP header or payload — it only reads and modifies the Ethernet frame (L2). Only routers interact with L3 headers.',
+      log:{lyr:'dev', msg:'SW2: dst MAC DD:EE:FF:22:22:22 → Fa0/2 (Server)'},
+      term:'SW2# show mac address-table\n   1  ddee.ff22.2222     DYNAMIC Fa0/2   ← Server\n   1  aa11.2233.4456     DYNAMIC Fa0/1   ← R1 g0/1' },
+    { rL:1, devs:['srv'], links:['lk-sw2-srv'], hdrs:['eth','ip','data'],
+      title:'Server L1 Physical — Bits received and reconstructed',
+      desc:'The server NIC receives the electrical signal. The preamble synchronizes the clock. The SFD marks the frame start. The NIC reconstructs all 592 bits into the original 74-byte frame and passes it up to L2.',
+      fact:'Ethernet FCS (Frame Check Sequence) = 4-byte CRC at the end of every frame. If the calculated CRC doesn\'t match the received CRC, the frame is silently DISCARDED at L2 — no retransmission at L1/L2. TCP (L4) handles retransmission.',
+      log:{lyr:'l1', msg:'Server L1: 592 bits received → 74-byte frame reconstructed, FCS OK'},
+      term:'--- Server eth0 capture ---\nFrame 1: 74 bytes\nPreamble: OK | SFD: OK | FCS: VALID ✓' },
+    { rL:2, devs:['srv'], hdrs:['ip','data'],
+      title:'Server L2 Data Link — Ethernet frame stripped',
+      desc:'Server checks dst MAC (DD:EE:FF:22:22:22) — matches its own NIC. FCS (CRC) validated — no corruption. Ethernet header stripped. EtherType=0x0800 tells L2 to hand the payload to IPv4 (L3). The L2 frame is now gone.',
+      fact:'If dst MAC = FF:FF:FF:FF:FF:FF, it is a broadcast — all devices in the VLAN process it (ARP, DHCP). If dst MAC = 01:00:5E:xx:xx:xx, it is a multicast. If it matches your own MAC, process it. Otherwise, drop it.',
+      log:{lyr:'l2', msg:'Server L2: dst MAC match ✓ | FCS valid ✓ | Ethernet stripped | EtherType 0x0800 → IPv4'},
+      term:'Ethernet decapsulated:\n  Dst MAC: DD:EE:FF:22:22:22 ✓ (matches NIC)\n  Src MAC: AA:11:22:33:44:56 (R1 g0/1)\n  EtherType: 0x0800 → pass to IP' },
+    { rL:3, devs:['srv'], hdrs:['data'],
+      title:'Server L3 Network — IP header processed',
+      desc:'Server reads IP dst (10.0.0.1) — matches its own interface. Protocol=1 (ICMP). TTL=63 (started at 64, decremented once by R1). IP header stripped. The ICMP payload is passed to the ICMP handler. If IP dst didn\'t match, the server would drop the packet.',
+      fact:'IP protocol field numbers: 1=ICMP, 6=TCP, 17=UDP, 89=OSPF. These appear in ACL configs (ip access-list extended) and "debug ip packet" output. Fragment Offset and More Fragments flag handle IP fragmentation (rarely needed with modern MTU discovery).',
+      log:{lyr:'l3', msg:'Server L3: dst=10.0.0.1 ✓ | proto=1(ICMP) | TTL=63 (1 hop) | IP header stripped'},
+      term:'IP header analysis:\n  Dst: 10.0.0.1 ✓ (my address)\n  Protocol: 1 (ICMP)\n  TTL: 63  ← decremented at R1\n  → Payload passed to ICMP' },
+    { rL:4, devs:['srv'], hdrs:['data'],
+      title:'Server L4 Transport — ICMP has no L4 header',
+      desc:'ICMP does not have a separate Transport header. The ICMP message is read directly: Type=8 (Echo Request), Code=0, Identifier=0x0001, Sequence=1, Data=32 bytes. For TCP, L4 would read port numbers here and deliver to the correct listening process (socket).',
+      fact:'Socket = IP address + Port. A web server listens on socket 10.0.0.1:80. Your browser sends from 192.168.1.10:54321. The 4-tuple (src IP, src port, dst IP, dst port) uniquely identifies each TCP connection.',
+      log:{lyr:'l4', msg:'Server L4: ICMP has no L4 header | type=8(Echo Request) code=0 seq=1 id=0x0001'},
+      term:'ICMP message:\n  Type: 8 (Echo Request)\n  Code: 0\n  Identifier: 0x0001\n  Sequence: 1\n  Data: 32 bytes (abcdefghijklmnop...)' },
+    { rL:7, devs:['srv'], hdrs:[],
+      title:'Server L5–L7 — Echo Reply generated and sent back',
+      desc:'The OS ICMP handler receives the Echo Request, generates an ICMP Echo Reply (Type=0, Code=0, same ID and Sequence). The reply travels back through all OSI layers on the server (L7→L1), across the network in reverse (Server→SW2→R1→SW1→PC), and the PC prints the result.',
+      fact:'The PC gets the reply with TTL=63 (server sent TTL=64, decremented by R1 = 63). The RTT (round-trip time) confirms reachability. If 0 replies: host unreachable, firewall blocking ICMP, or wrong route. "extended ping" on Cisco IOS lets you specify src interface, repeat count, TTL, etc.',
+      log:{lyr:'l7', msg:'Server L7: ICMP Echo Reply (type=0) sent → PC receives: Reply from 10.0.0.1: bytes=32 time=1ms TTL=63'},
+      term:'Reply from 10.0.0.1: bytes=32 time=1ms TTL=63\nReply from 10.0.0.1: bytes=32 time=1ms TTL=63\nReply from 10.0.0.1: bytes=32 time=1ms TTL=63\nReply from 10.0.0.1: bytes=32 time=1ms TTL=63\n\nPing statistics for 10.0.0.1:\n  Packets: Sent=4, Received=4, Lost=0 (0%)\nApprox round trip: min=1ms max=2ms avg=1ms' },
+  ]
+},
+
+http: {
+  label:'HTTP GET + TCP',
+  termInit:'Browser → http://10.0.0.1/\nInitiating TCP connection to 10.0.0.1:80...',
+  steps:[
+    { sL:7, devs:['pc'], hdrs:[],
+      title:'L7 Application — Browser initiates HTTP GET',
+      desc:'The browser wants to load http://10.0.0.1/. Before sending the HTTP request, TCP must establish a connection (3-way handshake). The HTTP GET message is: "GET / HTTP/1.1\\r\\nHost: 10.0.0.1\\r\\n\\r\\n". This is the Application layer data — it has not been encapsulated yet.',
+      fact:'HTTP methods: GET (retrieve resource), POST (submit data), PUT (update), DELETE (remove). HTTP uses TCP port 80. HTTPS uses TCP port 443 (HTTP + TLS). HTTP/1.1 uses persistent connections by default (Connection: keep-alive).',
+      log:{lyr:'l7', msg:'Application: HTTP GET / HTTP/1.1 prepared → needs TCP connection first'},
+      term:'HTTP Request prepared:\nGET / HTTP/1.1\nHost: 10.0.0.1\nUser-Agent: Mozilla/5.0\nAccept: text/html\nConnection: keep-alive\n' },
+    { sL:4, devs:['pc'], hdrs:['tcp','data'],
+      title:'L4 Transport — TCP SYN (Handshake Step 1 of 3)',
+      desc:'TCP starts the 3-way handshake. Step 1: PC sends a TCP SYN segment. Flags=[SYN], Src port=54321 (ephemeral, chosen by OS), Dst port=80 (HTTP), Sequence number=1000 (random ISN). No data yet — just establishing the connection. The SYN "synchronizes" sequence numbers.',
+      fact:'Ephemeral ports (client-side): 1024–65535. Well-known ports (server-side): 0–1023. TCP connection state after SYN sent: SYN_SENT. Server state after receiving SYN: SYN_RECEIVED. After full handshake: ESTABLISHED.',
+      log:{lyr:'l4', msg:'Transport: TCP SYN | sport=54321 dport=80 seq=1000 ack=0 flags=[SYN] win=65535'},
+      term:'TCP SYN:\n  Src port: 54321 (ephemeral)\n  Dst port: 80 (HTTP)\n  Seq: 1000 (ISN)\n  Ack: 0\n  Flags: [SYN]\n  Window: 65535 bytes' },
+    { rL:4, devs:['srv'], links:['lk-pc-sw1','lk-sw1-r1','lk-r1-sw2','lk-sw2-srv'], hdrs:['tcp','data'],
+      title:'Server L4 Transport — TCP SYN-ACK (Handshake Step 2 of 3)',
+      desc:'Server receives the SYN, allocates a socket, and replies with SYN-ACK. Flags=[SYN,ACK], Src port=80, Dst port=54321, Server ISN=5000, Ack=1001 (client ISN+1, meaning "I got seq 1000, send seq 1001 next"). The server is now in SYN_RECEIVED state.',
+      fact:'ACK number = next expected sequence number. If client sent seq=1000 (1 byte of SYN), server ACKs 1001. TCP windowing: the sender can send up to "window size" bytes before needing an ACK — this is how TCP achieves throughput without waiting for every individual ACK.',
+      log:{lyr:'l4', msg:'Server L4: TCP SYN-ACK | sport=80 dport=54321 seq=5000 ack=1001 flags=[SYN,ACK]'},
+      term:'TCP SYN-ACK:\n  Src port: 80\n  Dst port: 54321\n  Seq: 5000 (server ISN)\n  Ack: 1001 (client ISN+1 ✓)\n  Flags: [SYN, ACK]' },
+    { sL:4, devs:['pc'], hdrs:['tcp','data'],
+      title:'PC L4 Transport — TCP ACK (Handshake Step 3 of 3)',
+      desc:'PC receives the SYN-ACK, verifies Ack=1001 (correct), and sends the final ACK. Flags=[ACK], Seq=1001, Ack=5001 (server ISN+1). No data yet. Both sides are now ESTABLISHED. TCP connection is ready. This completes the 3-way handshake in ~1 RTT.',
+      fact:'3-way handshake = SYN → SYN-ACK → ACK. Connection teardown = FIN → FIN-ACK → ACK (4-way: FIN, ACK, FIN, ACK). Half-open connections (SYN flood attack) fill the SYN queue — mitigated with SYN cookies.',
+      log:{lyr:'l4', msg:'PC L4: TCP ACK | seq=1001 ack=5001 flags=[ACK] | *** CONNECTION ESTABLISHED ***'},
+      term:'TCP ACK:\n  Seq: 1001 | Ack: 5001\n  Flags: [ACK]\n\n>>> TCP Connection ESTABLISHED <<<\n>>> PC:54321 ↔ Server:80 <<<' },
+    { sL:7, devs:['pc'], links:['lk-pc-sw1','lk-sw1-r1','lk-r1-sw2','lk-sw2-srv'], hdrs:['tcp','data'],
+      title:'L7 Application — HTTP GET sent over TCP connection',
+      desc:'With TCP established, the browser sends the HTTP GET request. The HTTP data is the payload inside a TCP segment. TCP guarantees delivery: if the segment is lost, TCP retransmits automatically. The application (HTTP) doesn\'t need to handle reliability — TCP does it.',
+      fact:'TCP flow control: receiver advertises its buffer size in the "window" field. Sender cannot send more than window size at once. TCP congestion control (slow start, congestion avoidance) prevents overwhelming the network — not on CCNA 200-301 but awareness is good.',
+      log:{lyr:'l7', msg:'Application: HTTP GET / HTTP/1.1 sent | seq=1001 len=78 bytes | TCP delivers reliably'},
+      term:'HTTP transmitted (TCP seq=1001):\nGET / HTTP/1.1\nHost: 10.0.0.1\nConnection: keep-alive\n\n[TCP segments and delivers]' },
+    { rL:7, devs:['srv'], hdrs:[],
+      title:'Server L7 — HTTP 200 OK response',
+      desc:'The web server processes the GET request and sends HTTP 200 OK with the HTML page. This response also travels through all OSI layers back to the PC. After all data is transferred, TCP closes the connection with a FIN-ACK-FIN-ACK exchange (4-way teardown).',
+      fact:'Common HTTP codes: 200 OK, 301 Moved Permanently, 302 Found (redirect), 400 Bad Request, 401 Unauthorized, 403 Forbidden, 404 Not Found, 500 Internal Server Error. DNS (port 53) resolves hostnames to IPs — always happens before HTTP if a domain name is used.',
+      log:{lyr:'l7', msg:'Server L7: HTTP 200 OK | Content-Type: text/html | Content-Length: 1024 | sent to PC'},
+      term:'HTTP/1.1 200 OK\nContent-Type: text/html; charset=UTF-8\nContent-Length: 1024\nServer: Apache/2.4\n\n<html><body><h1>CCNA Study System</h1></body></html>\n\nTCP FIN-ACK teardown follows...' },
+  ]
+},
+
+arp: {
+  label:'ARP Request / Reply',
+  termInit:'C:\\> arp -a\nInterface: 192.168.1.10\n  (no entry for 192.168.1.1 — ARP cache miss)',
+  steps:[
+    { sL:3, devs:['pc'], hdrs:[],
+      title:'L3 Network — ARP cache miss for default gateway',
+      desc:'PC needs to send an IP packet to 10.0.0.1 (different subnet). PC checks: "Is 10.0.0.1 in my subnet 192.168.1.0/24?" No. So PC sends to its default gateway (192.168.1.1). It checks the ARP cache for 192.168.1.1. Cache miss — no MAC known. ARP request must be sent.',
+      fact:'ARP (Address Resolution Protocol) maps IP → MAC within a subnet. RFC 826. PC only ARPs for: (a) hosts on the same subnet, or (b) the default gateway for everything else. You NEVER ARP for a remote host across a router.',
+      log:{lyr:'l3', msg:'Network: dst 10.0.0.1 is remote → need gateway 192.168.1.1 MAC | ARP cache miss'},
+      term:'C:\\> arp -a\n\nInterface: 192.168.1.10 --- 0x3\n  Internet Address    Physical Address\n  (no entry for 192.168.1.1)\n\nSending ARP Request...' },
+    { sL:2, devs:['pc'], hdrs:['eth','data'],
+      title:'L2 Data Link — ARP Request broadcast',
+      desc:'PC builds an ARP Request: "Who has 192.168.1.1? Tell AA:BB:CC:11:11:11." The Ethernet frame uses BROADCAST dst MAC (FF:FF:FF:FF:FF:FF) so every device on the LAN receives it. Sender\'s own IP and MAC are included so the responder can reply directly.',
+      fact:'ARP Request = broadcast (FF:FF:FF:FF:FF:FF). ARP Reply = unicast (directly back to requester). Gratuitous ARP = device ARPs for its own IP to announce itself or update caches (used after HSRP failover, IP change, or NIC replacement).',
+      log:{lyr:'l2', msg:'Data Link: ARP Request | dst=FF:FF:FF:FF:FF:FF | opcode=1 | who-has 192.168.1.1?'},
+      term:'ARP Request packet:\n  Dst MAC: FF:FF:FF:FF:FF:FF (Broadcast)\n  Src MAC: AA:BB:CC:11:11:11\n  EtherType: 0x0806 (ARP)\n  Opcode: 1 (Request)\n  Sender IP:  192.168.1.10\n  Sender MAC: AA:BB:CC:11:11:11\n  Target IP:  192.168.1.1\n  Target MAC: 00:00:00:00:00:00 (unknown)' },
+    { devs:['sw1'], links:['lk-pc-sw1','lk-sw1-r1'], hdrs:['eth','data'],
+      hint:'sw1:flood broadcast',
+      title:'SW1 — Floods ARP broadcast to all ports',
+      desc:'SW1 receives the broadcast frame (dst=FF:FF:FF:FF:FF:FF). Rule: broadcasts are flooded out ALL ports in the same VLAN except the incoming port. Every device on the LAN gets this frame. SW1 also learns PC\'s MAC from the source field.',
+      fact:'Excessive broadcast traffic = "broadcast storm." CCNA mitigation: VLANs limit broadcast domains (each VLAN is its own broadcast domain), STP prevents L2 loops that cause storms, and port security limits MAC addresses per port.',
+      log:{lyr:'dev', msg:'SW1: broadcast → flood all VLAN 1 ports | learned PC MAC AA:BB:CC:11:11:11 on Fa0/1'},
+      term:'SW1# show mac address-table\n   1  aabb.cc11.1111  DYNAMIC  Fa0/1 ← just learned from ARP src' },
+    { rL:2, devs:['r1'], hdrs:['data'],
+      hint:'r1:ARP reply',
+      title:'R1 — Recognizes its IP, sends ARP Reply (unicast)',
+      desc:'R1 g0/0 receives the broadcast. It checks: "Is 192.168.1.1 one of my interface IPs?" YES. R1 sends a unicast ARP Reply: "192.168.1.1 is at AA:11:22:33:44:55." R1 also caches PC\'s entry in its own ARP table (192.168.1.10 → AA:BB:CC:11:11:11).',
+      fact:'"show ip arp" on Cisco IOS shows the ARP table: IP, Age, MAC, Interface. ARP entries age out after 4 hours on Cisco IOS (240 min default). "clear ip arp" clears the entire table. Static ARP entries can be created with "arp <ip> <mac> arpa".',
+      log:{lyr:'l2', msg:'R1: 192.168.1.1 = my G0/0 | ARP Reply unicast → AA:BB:CC:11:11:11 (PC)'},
+      term:'ARP Reply from R1:\n  Dst MAC: AA:BB:CC:11:11:11 (PC)\n  Src MAC: AA:11:22:33:44:55 (R1 G0/0)\n  Opcode: 2 (Reply)\n  Sender IP:  192.168.1.1\n  Sender MAC: AA:11:22:33:44:55\n  Target IP:  192.168.1.10' },
+    { sL:3, devs:['pc'], hdrs:[],
+      title:'PC — ARP cache updated, IP communication ready',
+      desc:'PC receives the ARP Reply, extracts R1\'s MAC (AA:11:22:33:44:55), stores it in the ARP cache (192.168.1.1 → AA:11:22:33:44:55). ARP cache entries last 2 min (Windows) to 20 min (varies by OS). Now PC can build the correct Ethernet frame and send the original IP packet.',
+      fact:'Proxy ARP: a router answers ARP requests on behalf of remote hosts (allows hosts with no default gateway to still communicate). Cisco IOS enables proxy ARP by default. Disable with "no ip proxy-arp" on the interface.',
+      log:{lyr:'l3', msg:'PC: ARP cache updated | 192.168.1.1 → AA:11:22:33:44:55 | original IP packet can now be sent'},
+      term:'C:\\> arp -a\n\nInterface: 192.168.1.10 --- 0x3\n  Internet Address    Physical Address    Type\n  192.168.1.1         aa-11-22-33-44-55   dynamic ← RESOLVED\n\nOriginal IP packet now has correct dst MAC.' },
+  ]
+},
+
+dhcp: {
+  label:'DHCP DORA',
+  termInit:'PC boots — no IP address assigned\nInitiating DHCP DORA (Discover→Offer→Request→ACK)...',
+  steps:[
+    { sL:7, devs:['pc'], hdrs:[],
+      title:'L7 Application — DHCP client starts (DORA process)',
+      desc:'PC boots with no IP address. The DHCP client begins the DORA process. DHCP dynamically assigns: IP address, subnet mask, default gateway, DNS server, and lease time. DORA = Discover (broadcast), Offer (server reply), Request (broadcast confirmation), Acknowledge (server confirms).',
+      fact:'DHCP DORA: D=Discover (client broadcast), O=Offer (server unicast/broadcast), R=Request (client broadcast), A=ACK (server). Uses UDP ports 67 (server) and 68 (client). Lease time: client renews at 50% (unicast), then 87.5% (broadcast), then gets new lease.',
+      log:{lyr:'l7', msg:'Application: DHCP client starts | no IP | initiating DORA process'},
+      term:'DHCP client starting...\nInterface: Gi0 (no IP)\nInitiating DHCP Discover...' },
+    { sL:4, devs:['pc'], hdrs:['udp','data'],
+      title:'L4 Transport — UDP (not TCP!) ports 68→67',
+      desc:'DHCP uses UDP — not TCP. Reason: the client has no IP address yet, so a TCP 3-way handshake is impossible. UDP\'s 8-byte header is used: Src port=68 (DHCP client), Dst port=67 (DHCP server). UDP is "fire and forget" — if the DHCP server doesn\'t respond, the client retransmits.',
+      fact:'UDP vs TCP: UDP = no handshake, no ACK, no ordering, 8-byte header, fast. TCP = handshake, ACKs, ordering, retransmission, 20-byte header, reliable. Use UDP when: speed > reliability (DHCP, DNS queries, TFTP, SNMP traps, VoIP, video streaming).',
+      log:{lyr:'l4', msg:'Transport: UDP | sport=68 (DHCP client) dport=67 (DHCP server) | no connection possible yet'},
+      term:'UDP header:\n  Src port: 68 (DHCP client)\n  Dst port: 67 (DHCP server)\n  Length: 308 bytes\n  Checksum: 0x1A2B' },
+    { sL:3, devs:['pc'], hdrs:['ip','udp','data'],
+      title:'L3 Network — IP 0.0.0.0 → 255.255.255.255',
+      desc:'PC has no IP, so src IP=0.0.0.0. Dst IP=255.255.255.255 (limited broadcast — reaches all devices on local subnet, NOT forwarded by routers by default). If the DHCP server is on a different subnet, the router needs "ip helper-address" configured to relay the broadcast as unicast.',
+      fact:'"ip helper-address <server-ip>" on a Cisco router interface converts DHCP broadcasts to unicast and forwards to the DHCP server on another subnet. This is configured on the interface FACING THE CLIENTS (not the server). Exam-favorite topic.',
+      log:{lyr:'l3', msg:'Network: src=0.0.0.0 (no IP) dst=255.255.255.255 (limited broadcast) proto=17(UDP) TTL=64'},
+      term:'IP header:\n  Src: 0.0.0.0       ← no IP yet\n  Dst: 255.255.255.255  ← limited broadcast\n  Protocol: 17 (UDP)\n  TTL: 64' },
+    { sL:2, devs:['pc'], links:['lk-pc-sw1'], hdrs:['eth','ip','udp','data'],
+      title:'L2 + L1 — DHCP Discover broadcast sent',
+      desc:'Ethernet dst MAC = FF:FF:FF:FF:FF:FF (broadcast). Src MAC = PC\'s hardware MAC (known from NIC). SW1 floods the broadcast to all LAN ports. Every device receives it — only a DHCP server responds. The Discover includes the client\'s hardware MAC so the server can track offers.',
+      fact:'DHCP Discover includes: DHCP Message Type option (1=Discover), Client ID (MAC address), Requested IP (optional), Parameter Request List (asks for specific options like gateway, DNS, NTP). The server matches an offer to the client via the MAC address in the payload.',
+      log:{lyr:'l2', msg:'Data Link: Ethernet broadcast | dst=FF:FF:FF:FF:FF:FF | DHCP Discover flooded to all LAN'},
+      term:'DHCP Discover:\n  Opcode: 1 (Boot Request)\n  Hardware type: Ethernet\n  Client MAC: AA:BB:CC:11:11:11\n  Your IP: 0.0.0.0\n  Options:\n    53 DHCP Message Type: Discover\n    55 Parameter Request List: subnet, gateway, DNS' },
+    { rL:7, devs:['srv'], hdrs:[],
+      title:'Server — DHCP Offer sent back',
+      desc:'The DHCP server receives the Discover, selects an available IP from its pool (192.168.1.20), and sends a DHCP Offer. Offer includes: your IP=192.168.1.20, subnet=255.255.255.0, gateway=192.168.1.1, DNS=8.8.8.8, lease=86400s. Multiple DHCP servers may respond — client picks the first Offer.',
+      fact:'DHCP Offer → DHCP Request → DHCP ACK: the Request is still a BROADCAST (not unicast) so all DHCP servers see it and know whether their offer was accepted or not (losing servers release their reserved IP back to the pool). ACK finalizes the lease.',
+      log:{lyr:'l7', msg:'Server: DHCP Offer | offered IP=192.168.1.20/24 gw=192.168.1.1 dns=8.8.8.8 lease=86400s'},
+      term:'DHCP Offer → DHCP Request → DHCP ACK:\n\nOffer:\n  Your IP:   192.168.1.20\n  Subnet:    255.255.255.0\n  Gateway:   192.168.1.1\n  DNS:       8.8.8.8\n  Lease:     86400 sec (24h)\n\nACK received. PC now has:\n  IP:  192.168.1.20/24\n  GW:  192.168.1.1\n  DNS: 8.8.8.8\n  Lease expires: 24h' },
+  ]
+},
+
+}; // end SC
+
+/* ═══════════════════════════════════════════════════════════
+   BUILD OSI STACKS
+═══════════════════════════════════════════════════════════ */
+function buildStack(stackId, labelText) {
+  var stack = document.getElementById(stackId);
+  stack.innerHTML = '<div class="stack-lbl">' + labelText + '</div>';
+  LAYERS.forEach(function(l) {
+    var d = document.createElement('div');
+    d.className = 'osi-layer ' + l.cls;
+    d.id = stackId + '-l' + l.n;
+    d.setAttribute('tabindex','0');
+    d.setAttribute('role','button');
+    d.setAttribute('aria-label','Layer ' + l.n + ': ' + l.name + '. Click for details.');
+    d.innerHTML =
+      '<div class="l-num">L' + l.n + '</div>' +
+      '<div class="l-name">' + l.name + '</div>' +
+      '<div class="l-pdu">' + (l.pdu.length > 20 ? l.pdu.split(' ')[0] : l.pdu) + '</div>' +
+      '<div class="l-proto">' + l.protos.split(',').slice(0,2).join(',') + '</div>';
+    d.addEventListener('click', function(e) { showDetail(l, e); });
+    d.addEventListener('keydown', function(e) { if (e.key==='Enter'||e.key===' ') showDetail(l,e); });
+    stack.appendChild(d);
+  });
+}
+buildStack('txStack','SENDER — PC');
+buildStack('rxStack','RECEIVER — Server');
+
+/* ═══════════════════════════════════════════════════════════
+   LAYER DETAIL POPUP
+═══════════════════════════════════════════════════════════ */
+function showDetail(l, e) {
+  var det = document.getElementById('ldetail');
+  document.getElementById('ldNum').textContent = 'Layer ' + l.n;
+  document.getElementById('ldNum').style.color = l.color;
+  document.getElementById('ldName').textContent = l.name;
+  document.getElementById('ldName').style.color = l.color;
+  document.getElementById('ldPdu').textContent = 'PDU: ' + l.pdu;
+  document.getElementById('ldProtos').textContent = l.protos;
+  document.getElementById('ldConcepts').textContent = l.concepts;
+  document.getElementById('ldDevices').textContent = l.devices;
+  det.className = 'ldetail show';
+  var bx = Math.min(e.clientX + 12, window.innerWidth - 285);
+  var by = Math.min(e.clientY - 30, window.innerHeight - 320);
+  det.style.left = bx + 'px';
+  det.style.top  = Math.max(8, by) + 'px';
+}
+document.getElementById('ldClose').addEventListener('click', function() {
+  document.getElementById('ldetail').className = 'ldetail';
+});
+document.addEventListener('click', function(e) {
+  var det = document.getElementById('ldetail');
+  if (det.classList.contains('show') && !det.contains(e.target) && !e.target.closest('.osi-layer')) {
+    det.className = 'ldetail';
+  }
+});
+
+/* ═══════════════════════════════════════════════════════════
+   HEADER LABELS
+═══════════════════════════════════════════════════════════ */
+var HDR_LABEL = { eth:'ETH', ip:'IP', tcp:'TCP', udp:'UDP', icmp:'ICMP', arp:'ARP', data:'DATA', bits:'~BITS~' };
+
+/* ═══════════════════════════════════════════════════════════
+   APPLY STEP
+═══════════════════════════════════════════════════════════ */
+var simStart = Date.now();
+
+function applyStep(step, steps) {
+  if (!step) return;
+
+  // OSI stack highlights
+  LAYERS.forEach(function(l) {
+    var tx = document.getElementById('txStack-l' + l.n);
+    var rx = document.getElementById('rxStack-l' + l.n);
+    if (tx) tx.classList.toggle('on', l.n === step.sL);
+    if (rx) rx.classList.toggle('on', l.n === step.rL);
+  });
+
+  // Mnemonic bar
+  var activeL = step.sL || step.rL || null;
+  document.querySelectorAll('.mn').forEach(function(m) {
+    m.classList.toggle('on', parseInt(m.dataset.l) === activeL);
+  });
+
+  // Device highlights
+  ['pc','sw1','r1','sw2','srv'].forEach(function(id) {
+    var rect = document.querySelector('#dev-' + id + ' .dev-rect');
+    var active = step.devs && step.devs.indexOf(id) >= 0;
+    if (rect) {
+      rect.classList.toggle('hot', active);
+      rect.setAttribute('stroke', active ? '#F59E0B' : '#334155');
+    }
+  });
+
+  // Link highlights
+  ['lk-pc-sw1','lk-sw1-r1','lk-r1-sw2','lk-sw2-srv'].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    var active = step.links && step.links.indexOf(id) >= 0;
+    el.classList.toggle('hot', active);
+    el.setAttribute('stroke', active ? '#F59E0B' : '#1E293B');
+    el.setAttribute('stroke-width', active ? '3' : '2');
+  });
+
+  // Packet dot
+  var dot = document.getElementById('pktDot');
+  var lbl = document.getElementById('pktLbl');
+  var mainDev = step.devs && step.devs[0];
+  if (mainDev && POS[mainDev]) {
+    dot.style.display = '';
+    lbl.style.display = '';
+    dot.setAttribute('cx', POS[mainDev].x);
+    dot.setAttribute('cy', POS[mainDev].y - 18);
+    lbl.setAttribute('x', POS[mainDev].x);
+    lbl.setAttribute('y', POS[mainDev].y - 30);
+    var hc = step.hdrs && step.hdrs.length;
+    lbl.textContent = hc ? step.hdrs[step.hdrs.length - 1].toUpperCase() : '';
+  } else {
+    dot.style.display = 'none';
+    lbl.style.display = 'none';
+  }
+
+  // Device hints
+  ['r1','sw1','sw2'].forEach(function(id) {
+    var el = document.getElementById(id + 'LayerHint');
+    if (el) el.textContent = (step.hint && step.hint.startsWith(id+':')) ? step.hint.split(':')[1] : '';
+  });
+
+  // Packet headers visualization
+  var hdrEl = document.getElementById('pktHdrs');
+  if (step.hdrs && step.hdrs.length > 0) {
+    hdrEl.innerHTML = step.hdrs.map(function(h) {
+      return '<div class="ph ' + h + '">' + (HDR_LABEL[h] || h.toUpperCase()) + '</div>';
+    }).join('') + '<div class="ph data" style="opacity:.3;font-size:.52rem">payload</div>';
+  } else {
+    var ph = step.sL ? 'encapsulating...' : step.rL ? 'decapsulated' : '—';
+    hdrEl.innerHTML = '<span style="font-size:.62rem;color:#334155;font-family:\'JetBrains Mono\',monospace">' + ph + '</span>';
+  }
+
+  // Step info
+  document.getElementById('stepTitle').textContent = step.title;
+  document.getElementById('stepDesc').textContent = step.desc;
+  var factEl = document.getElementById('stepFact');
+  if (step.fact) {
+    factEl.textContent = '📌 ' + step.fact;
+    factEl.style.display = 'block';
+  } else {
+    factEl.style.display = 'none';
+  }
+
+  // Log entry
+  if (step.log) {
+    var elapsed = ((Date.now() - simStart) / 1000).toFixed(1) + 's';
+    var log = document.getElementById('logBody');
+    var e2 = document.createElement('div');
+    e2.className = 'le';
+    e2.innerHTML =
+      '<span class="le-t">' + elapsed + '</span>' +
+      '<span class="le-lyr ' + step.log.lyr + '">' + step.log.lyr.toUpperCase() + '</span>' +
+      '<span class="le-msg">' + step.log.msg + '</span>';
+    log.appendChild(e2);
+    log.scrollTop = log.scrollHeight;
+  }
+
+  // Terminal
+  if (step.term) {
+    var term = document.getElementById('termBody');
+    step.term.split('\n').forEach(function(line) {
+      var sp = document.createElement('span');
+      sp.className = 'tl ' + (
+        /^(C:\\|R1#|SW\d#|Server#|---|\s*0[0-9a-f]{3}:)/.test(line) ? 'p' :
+        /^(IP|TCP|UDP|ARP|ICMP|DHCP|HTTP|Ethernet|Frame|DHCP )/.test(line) ? 'h' :
+        /^>>>/.test(line) ? 'w' :
+        /^(Reply|Ping stats|C:\\>|DHCP client|Browser)/.test(line) ? 'r' : 'r'
+      );
+      sp.textContent = line || ' ';
+      term.appendChild(sp);
+      term.appendChild(document.createElement('br'));
+    });
+    term.scrollTop = term.scrollHeight;
+  }
+
+  // Progress
+  var total = steps.length;
+  var pct = ((stepIdx + 1) / total * 100).toFixed(1);
+  document.getElementById('progFill').style.width = pct + '%';
+  document.getElementById('stepCtr').textContent = (stepIdx + 1) + ' / ' + total;
+  document.getElementById('btnBack').disabled = stepIdx === 0;
+  document.getElementById('btnFwd').disabled  = stepIdx === total - 1;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   NAVIGATION
+═══════════════════════════════════════════════════════════ */
+var scenario = 'ping';
+var stepIdx  = 0;
+var playing  = false;
+var timer    = null;
+
+function steps() { return SC[scenario].steps; }
+
+function goTo(i) {
+  var s = steps();
+  stepIdx = Math.max(0, Math.min(i, s.length - 1));
+  applyStep(s[stepIdx], s);
+}
+
+function loadScenario(key) {
+  scenario = key;
+  stepIdx  = 0;
+  stopPlay();
+  simStart = Date.now();
+  // Clear panels
+  document.getElementById('logBody').innerHTML = '';
+  var term = document.getElementById('termBody');
+  term.innerHTML = '';
+  var init = SC[key].termInit || '';
+  init.split('\n').forEach(function(line) {
+    var sp = document.createElement('span');
+    sp.className = 'tl p';
+    sp.textContent = line;
+    term.appendChild(sp);
+    term.appendChild(document.createElement('br'));
+  });
+  goTo(0);
+}
+
+function startPlay() {
+  playing = true;
+  document.getElementById('btnPlay').textContent = '⏸ Pause';
+  document.getElementById('btnPlay').classList.remove('primary');
+  tick();
+}
+function stopPlay() {
+  playing = false;
+  clearTimeout(timer);
+  document.getElementById('btnPlay').textContent = '▶ Play';
+  document.getElementById('btnPlay').classList.add('primary');
+}
+function tick() {
+  var s = steps();
+  if (stepIdx >= s.length - 1) { stopPlay(); return; }
+  goTo(stepIdx + 1);
+  if (playing) {
+    var spd = parseInt(document.getElementById('speedSel').value) || 1300;
+    timer = setTimeout(tick, spd);
+  }
+}
+
+document.getElementById('btnPlay').addEventListener('click', function() {
+  if (playing) stopPlay(); else startPlay();
+});
+document.getElementById('btnBack').addEventListener('click', function() { stopPlay(); goTo(stepIdx - 1); });
+document.getElementById('btnFwd').addEventListener('click',  function() { stopPlay(); goTo(stepIdx + 1); });
+document.getElementById('scenSel').addEventListener('change', function() { loadScenario(this.value); });
+
+document.addEventListener('keydown', function(e) {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+  if (e.key === 'ArrowRight' || e.key === 'l') { stopPlay(); goTo(stepIdx + 1); }
+  if (e.key === 'ArrowLeft'  || e.key === 'h') { stopPlay(); goTo(stepIdx - 1); }
+  if (e.key === ' ') { e.preventDefault(); playing ? stopPlay() : startPlay(); }
+});
+
+/* ── Mnemonic bar clickable ── */
+document.querySelectorAll('.mn').forEach(function(m) {
+  m.addEventListener('click', function() {
+    var l = LAYERS.find(function(x) { return x.n === parseInt(m.dataset.l); });
+    if (l) {
+      var rect = m.getBoundingClientRect();
+      showDetail(l, { clientX: rect.left, clientY: rect.bottom, target: m });
+    }
+  });
+});
+
+/* ── Init ── */
+loadScenario('ping');
+
+}); // DOMContentLoaded
+</script>
+</body>
+</html>

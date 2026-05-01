@@ -18,7 +18,10 @@
     { text: 'CORE', href: 'core.html' },
     { text: 'Roadmap', href: 'roadmap.html' },
     { text: 'Guide', href: 'guide.html' },
-    { text: 'Learn', href: 'learn-hub.html' },
+    { text: 'Learn', children: [
+      { text: 'Learn Hub', href: 'learn-hub.html' },
+      { text: 'OSI Model Sim', href: 'osi-sim.html' },
+    ]},
     { text: 'Practice', href: 'practice-hub.html' },
     { text: 'Plan', children: [
       { text: 'Sprint', href: 'sprint.html' },
