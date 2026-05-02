@@ -55,7 +55,8 @@
   // Render a single markdown cheat sheet inline; returns Promise that resolves when done.
   // If `anchor` provided, slice to that ## sub-section only (leaf mode).
   function renderCheatSheet(file, container, anchor) {
-    return fetch('data/cheat-sheets/' + file)
+    var bust = (new URLSearchParams(location.search).get('b')) || String(Date.now()).slice(0, 10);
+    return fetch('data/cheat-sheets/' + file + '?v=' + encodeURIComponent(bust))
       .then(function (r) { if (!r.ok) throw new Error('not found: ' + file); return r.text(); })
       .then(function (text) {
         // Strip frontmatter
