@@ -143,8 +143,28 @@ section{margin-bottom:var(--s-2xl)}
 .howto-body span{font-family:var(--font-body);font-size:.82rem;color:var(--ink-secondary);line-height:1.45}
 
 /* Step badge on panel titles */
-.step-badge{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;background:var(--accent);color:#fff;font-family:var(--font-display);font-weight:700;font-size:.7rem;margin-right:8px;vertical-align:middle}
+.step-badge{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;background:var(--ink-muted);color:#fff;font-family:var(--font-display);font-weight:700;font-size:.7rem;margin-right:8px;vertical-align:middle;transition:background .25s var(--ease-out)}
 .panel-hint{font-family:var(--font-body);font-size:.8rem;color:var(--ink-secondary);margin:-6px 0 12px;line-height:1.45}
+
+/* Guided flow states ─ panels react to which step is active */
+[data-flow-step]{transition:opacity .35s var(--ease-out),box-shadow .35s var(--ease-out),border-color .35s var(--ease-out),filter .35s var(--ease-out)}
+[data-flow-step].flow-locked{opacity:.5;filter:saturate(.55)}
+[data-flow-step].flow-active{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-light),0 10px 28px rgba(180,83,9,.08)}
+[data-flow-step].flow-active .step-badge{background:var(--accent);animation:stepPulse 2s var(--ease-out) infinite}
+[data-flow-step].flow-done .step-badge{background:var(--prof-strong)}
+[data-flow-step].flow-done .step-badge .step-num{display:none}
+[data-flow-step].flow-done .step-badge::after{content:'✓'}
+@keyframes stepPulse{0%,100%{box-shadow:0 0 0 0 rgba(180,83,9,.4)}50%{box-shadow:0 0 0 6px rgba(180,83,9,0)}}
+
+.step-status{font-family:var(--font-display);font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;padding:3px 9px;border-radius:100px;margin-left:auto;color:var(--ink-muted);background:var(--bg-recessed);white-space:nowrap}
+[data-flow-step].flow-active .step-status{background:var(--accent);color:#fff}
+[data-flow-step].flow-done .step-status{background:var(--prof-strong);color:#fff}
+.step-status::before{content:'○ '}
+[data-flow-step].flow-active .step-status::before{content:'→ '}
+[data-flow-step].flow-done .step-status::before{content:'✓ '}
+
+/* Make panel titles flex so status pill can right-align */
+.panel-title{display:flex;align-items:center;gap:4px}
 
 /* Goal panel — test packets shown up front */
 .goal-list{margin-top:14px;padding-top:14px;border-top:1px dashed var(--rule)}
@@ -242,14 +262,15 @@ section{margin-bottom:var(--s-2xl)}
   </div>
 
   <!-- Mission card -->
-  <section>
+  <section data-flow-step="1">
     <div class="mission-card">
       <div class="mission-row">
-        <span class="step-badge" style="width:24px;height:24px;font-size:.78rem">1</span>
+        <span class="step-badge" style="width:24px;height:24px;font-size:.78rem"><span class="step-num">1</span></span>
         <span class="mission-id" id="missionId" style="display:none">M1</span>
         <h2 class="mission-title" id="missionTitle">Loading…</h2>
         <span class="mission-diff" id="missionDiff"></span>
-        <select class="mission-select" id="missionSelect" style="margin-left:auto" aria-label="Pick a mission"></select>
+        <span class="step-status">Pick a mission</span>
+        <select class="mission-select" id="missionSelect" style="margin-left:10px" aria-label="Pick a mission"></select>
       </div>
       <p class="mission-brief" id="missionBrief">—</p>
       <div class="coverage">
@@ -271,8 +292,8 @@ section{margin-bottom:var(--s-2xl)}
   <!-- Workspace: ACL editor + Topology/Packet -->
   <div class="workspace">
     <!-- Left: ACL editor -->
-    <div class="panel">
-      <div class="panel-title"><span class="step-badge">2</span>ACL Editor</div>
+    <div class="panel" data-flow-step="2">
+      <div class="panel-title"><span class="step-badge"><span class="step-num">2</span></span>ACL Editor<span class="step-status">Build ACL</span></div>
       <p class="panel-hint">Click <strong>+ Add ACE</strong> below to add a row. Fill source (and destination, if Extended). Order matters — top row checked first.</p>
       <div class="mode-pill" id="modePill">
         <span class="lock">🔒</span>
@@ -337,9 +358,10 @@ section{margin-bottom:var(--s-2xl)}
       <div class="grade" id="gradePanel" style="display:none"></div>
     </div>
 
-    <!-- Right: Topology + Packet tester -->
-    <div class="panel">
-      <div class="panel-title"><span class="step-badge">3</span>Topology &amp; Placement</div>
+    <!-- Right: Topology + Packet tester (split for guided flow) -->
+    <div style="display:flex;flex-direction:column;gap:var(--s-md)">
+    <div class="panel" data-flow-step="3">
+      <div class="panel-title"><span class="step-badge"><span class="step-num">3</span></span>Topology &amp; Placement<span class="step-status">Place on router</span></div>
       <p class="panel-hint">Click a small circle on a router to apply the ACL there (it turns orange). Then choose direction: <code>in</code> = traffic entering that interface.</p>
       <div class="topo">
         <svg id="topoSvg" viewBox="0 0 600 260" preserveAspectRatio="xMidYMid meet"></svg>
@@ -360,7 +382,9 @@ section{margin-bottom:var(--s-2xl)}
         </details>
       </div>
 
-      <div class="panel-title" style="margin-top:18px"><span class="step-badge">4</span>Packet Tester</div>
+    </div><!-- /step 3 panel -->
+    <div class="panel" data-flow-step="4">
+      <div class="panel-title"><span class="step-badge"><span class="step-num">4</span></span>Packet Tester<span class="step-status">Test &amp; grade</span></div>
       <p class="panel-hint">Set source/dest IP + port, click <strong>Send packet</strong>. The matching ACL row highlights green (permit) or red (deny). Goal: get the right verdict for every test packet, then <strong>Grade attempt</strong>.</p>
       <div class="packet-form">
         <label>Source IP <input type="text" id="pSrc" value="192.168.10.50"></label>
@@ -389,7 +413,8 @@ section{margin-bottom:var(--s-2xl)}
         <button class="btn" id="resetCountersBtn">Reset counters</button>
       </div>
       <div class="result" id="pktResult">Send a packet to see how the ACL evaluates it.</div>
-    </div>
+    </div><!-- /step 4 panel -->
+    </div><!-- /right column wrapper -->
   </div>
 
   <!-- Console practice -->
@@ -482,6 +507,9 @@ document.addEventListener('DOMContentLoaded', function () {
   };
   window.aclSimulatorState = state;
 
+  // Initial flow render — steps 2-4 locked until mission loads
+  setTimeout(function () { if (typeof refreshFlow === 'function') refreshFlow(); }, 0);
+
   // ─── Load scenarios ────────────────────────────────
   fetch('data/acl-scenarios.json').then(function (r) { return r.json(); }).then(function (data) {
     state.scenarios = data.scenarios;
@@ -556,6 +584,8 @@ document.addEventListener('DOMContentLoaded', function () {
     document.getElementById('gradePanel').style.display = 'none';
     document.getElementById('pktResult').textContent = 'Send a packet to see how the ACL evaluates it.';
     document.getElementById('pktResult').className = 'result';
+    state._testedOnce = false;
+    refreshFlow();
   }
 
   // ─── Goal list (test packets shown up front) ───────
@@ -587,6 +617,27 @@ document.addEventListener('DOMContentLoaded', function () {
         document.getElementById('pTcpFlags').value = (p.tcpFlags && Object.keys(p.tcpFlags)[0]) || '';
         document.getElementById('pSrc').scrollIntoView({ behavior: 'smooth', block: 'center' });
       };
+    });
+  }
+
+  // ─── Guided flow state ─────────────────────────────
+  function refreshFlow() {
+    var hasMission = !!state.currentScenario;
+    var hasAce = state.acl && state.acl.length > 0;
+    var hasPlacement = !!state.placement.iface;
+    var hasTested = !!state._testedOnce;
+
+    var statuses = {
+      1: hasMission ? 'done' : 'active',
+      2: !hasMission ? 'locked' : (hasAce ? 'done' : 'active'),
+      3: !hasAce ? 'locked' : (hasPlacement ? 'done' : 'active'),
+      4: !hasPlacement ? 'locked' : (hasTested ? 'done' : 'active')
+    };
+    document.querySelectorAll('[data-flow-step]').forEach(function (el) {
+      var s = parseInt(el.dataset.flowStep, 10);
+      var st = statuses[s];
+      el.classList.remove('flow-locked', 'flow-active', 'flow-done');
+      if (st) el.classList.add('flow-' + st);
     });
   }
 
@@ -813,6 +864,7 @@ document.addEventListener('DOMContentLoaded', function () {
       return parsed;
     }).filter(Boolean);
     runTrapScan();
+    refreshFlow();
   }
 
   document.getElementById('addRowBtn').onclick = function () {
@@ -902,6 +954,7 @@ document.addEventListener('DOMContentLoaded', function () {
         state.placement.router = g.dataset.router;
         state.placement.iface = g.dataset.iface;
         runTrapScan();
+        refreshFlow();
       };
     });
   }
@@ -947,6 +1000,8 @@ document.addEventListener('DOMContentLoaded', function () {
     }
     renderResult(ev, pkt);
     renderACL();
+    state._testedOnce = true;
+    refreshFlow();
   };
   document.getElementById('resetCountersBtn').onclick = function () {
     state.hitCounts = {}; renderACL();
@@ -1289,6 +1344,7 @@ document.addEventListener('DOMContentLoaded', function () {
             g.classList.toggle('applied', match);
           });
           runTrapScan();
+          refreshFlow();
           conPrint('  ACL ' + (con.aclName || state.placement.aclNumber) + ' applied ' + m[2] + ' on ' + con.iface, 'ok');
           return;
         }
