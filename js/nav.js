@@ -23,6 +23,7 @@
     { text: 'Learn', children: [
       { text: 'Learn Hub', href: 'learn-hub.html' },
       { text: 'Domain 3 — IP Connectivity (25%)', href: 'domain-3.html' },
+      { text: 'Routing &amp; Forwarding', href: 'routing-forwarding.html' },
       { text: 'OSI Model Sim', href: 'osi-sim.html' },
       { text: 'Cheat Sheet', href: 'cheat-sheet.html' },
       { text: 'Exam Cram', href: 'exam-cram.html' },
