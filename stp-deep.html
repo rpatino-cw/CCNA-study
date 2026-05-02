@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#FAF7F2">
+<meta name="color-scheme" content="light">
+<link rel="icon" type="image/svg+xml" href="/CCNA-study/favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;1,8..60,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="css/shared.css?v=4.56">
+<title>STP Deep Dive — CCNA 200-301</title>
+<style>
+.kicker{font-family:var(--font-display);font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--accent);margin-bottom:var(--s-xs);font-weight:600}
+.section-label{font-family:var(--font-display);font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--accent);margin-bottom:var(--s-sm)}
+.section-title{font-size:1.35rem;margin-top:0;margin-bottom:var(--s-md);padding-bottom:var(--s-sm);border-bottom:1px solid var(--rule)}
+.section-desc{font-family:var(--font-body);font-size:.92rem;color:var(--ink-secondary);line-height:1.65;margin-bottom:var(--s-lg);max-width:72ch}
+section{margin-bottom:var(--s-2xl)}
+.back-wrap{margin-bottom:var(--s-md)}
+.quick-answer{background:var(--accent-dim);border:1px solid var(--accent-light);border-left:3px solid var(--accent);border-radius:var(--radius-lg);padding:20px 24px;margin-bottom:var(--s-2xl)}
+.quick-answer h2{font-family:var(--font-display);font-size:1.05rem;font-weight:700;color:var(--accent);margin:0 0 6px;border:0;padding:0}
+.quick-answer p{font-family:var(--font-body);font-size:.95rem;line-height:1.6;color:var(--ink);max-width:none}
+
+/* TOC */
+.toc{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:var(--s-sm);margin-bottom:var(--s-2xl)}
+.toc a{display:block;background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:12px 14px;text-decoration:none;color:var(--ink);transition:all .15s}
+.toc a:hover{border-color:var(--accent);background:rgba(180,83,9,.02);transform:translateY(-1px)}
+.toc-num{font-family:var(--font-mono);font-size:.7rem;color:var(--ink-muted);font-weight:700;display:block;margin-bottom:2px}
+.toc-title{font-family:var(--font-display);font-size:.92rem;font-weight:600}
+
+/* Cards / panels */
+.panel{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px 24px;margin-bottom:var(--s-md)}
+.panel h3{font-family:var(--font-display);font-size:1.02rem;font-weight:700;margin:0 0 var(--s-sm);color:var(--ink)}
+.panel p{font-family:var(--font-body);font-size:.9rem;line-height:1.65;color:var(--ink-secondary);margin-bottom:var(--s-sm);max-width:72ch}
+.panel p:last-child{margin-bottom:0}
+.panel ul{font-family:var(--font-body);font-size:.9rem;line-height:1.7;color:var(--ink-secondary);padding-left:18px;margin:0 0 var(--s-sm)}
+.panel ul li{margin-bottom:4px}
+.panel code,p code,td code,li code{font-family:var(--font-mono);font-size:.82em;background:var(--bg-recessed);padding:1px 6px;border-radius:3px;color:var(--accent)}
+.panel strong{color:var(--ink);font-family:var(--font-display);font-weight:600}
+
+/* Two-col grid */
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:var(--s-md)}
+@media (max-width:820px){.two-col{grid-template-columns:1fr}}
+
+/* Tables */
+.ref-table{width:100%;border-collapse:collapse;background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;margin-bottom:var(--s-md)}
+.ref-table th{font-family:var(--font-display);font-size:.66rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-muted);padding:10px 14px;text-align:left;background:var(--bg-recessed);border-bottom:1px solid var(--border)}
+.ref-table td{font-family:var(--font-body);font-size:.86rem;padding:10px 14px;border-bottom:1px solid var(--border);color:var(--ink-secondary);vertical-align:top}
+.ref-table tr:last-child td{border-bottom:none}
+.ref-table td.sym{font-family:var(--font-mono);font-weight:700;color:var(--accent);font-size:.82rem;white-space:nowrap}
+.ref-table td.center{text-align:center}
+.ref-table td code{background:var(--bg-recessed);padding:1px 6px;border-radius:3px;color:var(--accent);font-family:var(--font-mono);font-size:.78rem}
+
+/* Code blocks */
+.cmd{background:#1c1917;border-radius:var(--radius);padding:14px 18px;margin-bottom:var(--s-md);overflow-x:auto}
+.cmd pre{font-family:var(--font-mono);font-size:.82rem;line-height:1.7;color:#e7e5e4;margin:0;white-space:pre}
+.cmd .prompt{color:#a8a29e}
+.cmd .c{color:#fde68a}
+.cmd .x{color:#57534e}
+.cmd-label{font-family:var(--font-display);font-size:.66rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#78716c;margin-bottom:6px}
+
+/* State machine */
+.state-row{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin:var(--s-md) 0}
+@media (max-width:780px){.state-row{grid-template-columns:1fr 1fr}}
+.state{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px;text-align:center;position:relative}
+.state .nm{font-family:var(--font-display);font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;color:var(--ink)}
+.state .ti{font-family:var(--font-mono);font-size:.72rem;color:var(--accent);margin-bottom:6px}
+.state .ds{font-family:var(--font-body);font-size:.78rem;line-height:1.5;color:var(--ink-secondary)}
+.state.s-blocking{border-left:3px solid #dc2626}
+.state.s-listening{border-left:3px solid #d97706}
+.state.s-learning{border-left:3px solid #2563eb}
+.state.s-forwarding{border-left:3px solid #16a34a}
+.state.s-disabled{border-left:3px solid #78716c}
+
+/* Callouts */
+.callout{background:var(--bg-recessed);border-radius:var(--radius-lg);padding:var(--s-md) var(--s-lg);margin-bottom:var(--s-md);border-left:3px solid var(--accent)}
+.callout.warn{border-left-color:#dc2626}
+.callout.tip{border-left-color:#16a34a}
+.callout.gotcha{border-left-color:#d97706}
+.callout-title{font-family:var(--font-display);font-size:.72rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);margin-bottom:6px}
+.callout.warn .callout-title{color:#dc2626}
+.callout.tip .callout-title{color:#16a34a}
+.callout.gotcha .callout-title{color:#d97706}
+.callout p{font-family:var(--font-body);font-size:.88rem;line-height:1.6;color:var(--ink);margin:0;max-width:72ch}
+.callout p+p{margin-top:6px}
+
+/* BPDU bit-field */
+.bpdu-fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;margin-top:var(--s-sm)}
+.bpdu-field{background:var(--bg-recessed);border:1px solid var(--border);border-radius:var(--radius);padding:10px 12px}
+.bpdu-field .nm{font-family:var(--font-mono);font-size:.7rem;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px}
+.bpdu-field .by{font-family:var(--font-mono);font-size:.62rem;color:var(--ink-muted);margin-bottom:4px}
+.bpdu-field .ds{font-family:var(--font-body);font-size:.78rem;color:var(--ink-secondary);line-height:1.4}
+
+/* Topology ASCII */
+.ascii{font-family:var(--font-mono);font-size:.82rem;line-height:1.55;background:var(--bg-recessed);border-radius:var(--radius-lg);padding:18px 22px;overflow-x:auto;color:var(--ink-secondary);margin-bottom:var(--s-md);white-space:pre}
+
+/* Linked-out cards */
+.outlinks{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:var(--s-sm)}
+.outlink{display:block;background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px 18px;text-decoration:none;transition:all .15s}
+.outlink:hover{border-color:var(--accent);background:rgba(180,83,9,.02)}
+.outlink .lab{font-family:var(--font-display);font-size:.68rem;text-transform:uppercase;letter-spacing:.08em;color:var(--accent);font-weight:700;margin-bottom:4px}
+.outlink .ti{font-family:var(--font-display);font-size:.95rem;font-weight:600;color:var(--ink);margin-bottom:4px}
+.outlink .ds{font-family:var(--font-body);font-size:.8rem;color:var(--ink-secondary);line-height:1.5}
+
+/* Election walkthrough */
+.election-step{display:grid;grid-template-columns:48px 1fr;gap:var(--s-md);background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px 18px;margin-bottom:var(--s-sm)}
+.election-step .num{font-family:var(--font-mono);font-weight:700;font-size:.92rem;color:var(--accent);background:var(--accent-light);border-radius:100px;width:36px;height:36px;display:flex;align-items:center;justify-content:center;align-self:start}
+.election-step .body{font-family:var(--font-body);font-size:.9rem;line-height:1.6;color:var(--ink-secondary)}
+.election-step .body strong{color:var(--ink);font-family:var(--font-display);font-weight:600}
+.election-step .body code{font-family:var(--font-mono);font-size:.78rem;background:var(--bg-recessed);padding:1px 6px;border-radius:3px;color:var(--accent)}
+
+/* Compare grid */
+.compare{display:grid;grid-template-columns:1fr 1fr 1fr;gap:var(--s-sm)}
+@media (max-width:820px){.compare{grid-template-columns:1fr}}
+.compare-col{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:18px}
+.compare-col h4{font-family:var(--font-display);font-size:.92rem;font-weight:700;color:var(--ink);margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid var(--border)}
+.compare-col ul{font-family:var(--font-body);font-size:.84rem;line-height:1.65;color:var(--ink-secondary);padding-left:16px;margin:0}
+.compare-col ul li{margin-bottom:4px}
+
+/* Quick card */
+.studycard{background:linear-gradient(180deg,var(--bg-surface) 0%,var(--bg-recessed) 100%);border:1px solid var(--border);border-radius:var(--radius-lg);padding:24px 28px}
+.studycard h3{font-family:var(--font-display);font-size:1.05rem;font-weight:700;color:var(--ink);margin-bottom:var(--s-md)}
+.studycard ul{font-family:var(--font-body);font-size:.88rem;line-height:1.75;color:var(--ink);padding-left:18px;margin:0}
+.studycard ul li{margin-bottom:6px}
+.studycard ul li code{font-family:var(--font-mono);font-size:.8em;background:var(--bg-recessed);padding:1px 5px;border-radius:3px;color:var(--accent)}
+.studycard ul li strong{font-family:var(--font-display);color:var(--ink)}
+</style>
+</head>
+<body>
+<nav class="top-nav"></nav>
+<script defer src="js/nav.js?v=3"></script>
+
+<div class="container-wide">
+  <div class="back-wrap"><a class="back-link" href="core.html">&larr; Back to CORE</a></div>
+
+  <header class="page-header">
+    <div class="kicker">SPANNING TREE PROTOCOL · TOPICS 2.4 · 2.5</div>
+    <h1>STP Deep Dive</h1>
+    <p class="subtitle">Why a flat Layer-2 network needs a referee — and exactly how 802.1D, 802.1w, and Cisco's flavors do that job.</p>
+  </header>
+
+  <div class="quick-answer">
+    <h2>What problem does STP solve?</h2>
+    <p>Ethernet frames have <strong>no TTL</strong>. A loop in a Layer-2 topology turns one broadcast into a storm that saturates the link, destabilizes the MAC address table, and duplicates unicast frames forever — all in milliseconds. STP runs a distributed algorithm across every switch to <strong>elect one root</strong>, calculate the lowest-cost path back to it from every other switch, and <strong>logically block</strong> the redundant ports so the topology becomes a tree. When a link fails, STP recomputes and unblocks a backup port. RSTP (802.1w) and Cisco's Rapid-PVST+ do the same job in seconds instead of ~50 s.</p>
+  </div>
+
+  <!-- TOC -->
+  <section>
+    <div class="section-label">Index</div>
+    <h2 class="section-title">Jump to</h2>
+    <div class="toc">
+      <a href="#why"><span class="toc-num">01</span><span class="toc-title">Why STP exists — the loop disasters</span></a>
+      <a href="#bpdu"><span class="toc-num">02</span><span class="toc-title">BPDU anatomy</span></a>
+      <a href="#bid"><span class="toc-num">03</span><span class="toc-title">Bridge ID &amp; sys-id-extension</span></a>
+      <a href="#election"><span class="toc-num">04</span><span class="toc-title">Root-bridge election</span></a>
+      <a href="#roles"><span class="toc-num">05</span><span class="toc-title">Port roles &amp; cost</span></a>
+      <a href="#states"><span class="toc-num">06</span><span class="toc-title">802.1D port states &amp; timers</span></a>
+      <a href="#tcn"><span class="toc-num">07</span><span class="toc-title">Topology change (TCN)</span></a>
+      <a href="#rstp"><span class="toc-num">08</span><span class="toc-title">RSTP 802.1w — fast convergence</span></a>
+      <a href="#flavors"><span class="toc-num">09</span><span class="toc-title">PVST+ vs Rapid-PVST+ vs MSTP</span></a>
+      <a href="#protect"><span class="toc-num">10</span><span class="toc-title">PortFast, BPDU Guard, Root/Loop Guard</span></a>
+      <a href="#config"><span class="toc-num">11</span><span class="toc-title">Cisco IOS config</span></a>
+      <a href="#exam"><span class="toc-num">12</span><span class="toc-title">Exam traps &amp; study card</span></a>
+    </div>
+  </section>
+
+  <!-- 01 WHY -->
+  <section id="why">
+    <div class="section-label">01 · Why STP exists</div>
+    <h2 class="section-title">The three loop disasters</h2>
+    <p class="section-desc">L2 has no <code>TTL</code> and no IP-style routing decision. Drop a single redundant link in without STP and you get all three failures simultaneously — usually within seconds.</p>
+
+    <div class="two-col">
+      <div class="panel">
+        <h3>1. Broadcast storm</h3>
+        <p>One broadcast (ARP, DHCP, CDP) loops endlessly through the redundant path. Each switch re-floods it on every other port. CPU and links saturate. Sometimes hits 100% utilization in under a second.</p>
+      </div>
+      <div class="panel">
+        <h3>2. MAC table instability</h3>
+        <p>Same source MAC arrives on two different ports as the broadcast loops. The switch flips the MAC entry back and forth between ports — dynamic learning collapses. Forwarding decisions become random.</p>
+      </div>
+      <div class="panel">
+        <h3>3. Duplicate frame delivery</h3>
+        <p>Unicast frames also loop. The destination receives multiple copies of every frame. Upper-layer apps see corruption or session resets. TCP handles it; UDP voice/video does not.</p>
+      </div>
+      <div class="panel">
+        <h3>Why a router is fine</h3>
+        <p>Routers decrement the IP <code>TTL</code> on every hop and drop at zero. They also don't flood broadcasts past the L3 boundary. A loop at L3 burns out in 64–255 hops. A loop at L2 burns until you unplug a cable.</p>
+      </div>
+    </div>
+
+    <div class="callout">
+      <div class="callout-title">Mental model</div>
+      <p>STP is not "off" by default — every Cisco switch ships with PVST+ or Rapid-PVST+ enabled on every VLAN. You only meet STP when you misconfigure it (wrong root, wrong cost, PortFast on an uplink) or when it converges too slowly for an outage.</p>
+    </div>
+  </section>
+
+  <!-- 02 BPDU -->
+  <section id="bpdu">
+    <div class="section-label">02 · BPDU</div>
+    <h2 class="section-title">Bridge Protocol Data Unit</h2>
+    <p class="section-desc">Switches don't share routing tables — they share <strong>BPDUs</strong>. Every switch periodically multicasts its view of "who is root, what's my cost to root, what's my BID, what port is this." Compare incoming BPDUs to your own and the topology emerges.</p>
+
+    <div class="panel">
+      <h3>Two BPDU types</h3>
+      <ul>
+        <li><strong>Configuration BPDU</strong> — sent every <code>2 s</code> (Hello timer) by the root. Carries root BID, root path cost, sender BID, port ID, message age, max age, hello, forward delay. This is the "I'm root, here's my view" advertisement that propagates the tree.</li>
+        <li><strong>TCN BPDU</strong> (Topology Change Notification) — tiny BPDU sent <strong>upstream</strong> toward the root when a port changes state. Triggers a MAC table flush. RSTP replaces this with a TC flag inside the regular BPDU.</li>
+      </ul>
+      <p><strong>Destination MAC:</strong> <code>01:80:C2:00:00:00</code> — the IEEE bridge group multicast. Switches consume it; they do not forward it as a normal frame.</p>
+    </div>
+
+    <div class="panel">
+      <h3>Configuration BPDU — key fields</h3>
+      <div class="bpdu-fields">
+        <div class="bpdu-field"><div class="nm">Protocol ID</div><div class="by">2 B</div><div class="ds">Always <code>0x0000</code> (IEEE STP).</div></div>
+        <div class="bpdu-field"><div class="nm">Version</div><div class="by">1 B</div><div class="ds"><code>0x00</code> = 802.1D, <code>0x02</code> = 802.1w (RSTP), <code>0x03</code> = 802.1s (MST).</div></div>
+        <div class="bpdu-field"><div class="nm">BPDU Type</div><div class="by">1 B</div><div class="ds"><code>0x00</code> = Config, <code>0x80</code> = TCN, <code>0x02</code> = RSTP/MST.</div></div>
+        <div class="bpdu-field"><div class="nm">Flags</div><div class="by">1 B</div><div class="ds">TC (topology change), TCA (TCN ack). RSTP adds Proposal/Agreement, role, learning, forwarding.</div></div>
+        <div class="bpdu-field"><div class="nm">Root BID</div><div class="by">8 B</div><div class="ds">2 B priority + 6 B MAC of the root. Decides the whole tree.</div></div>
+        <div class="bpdu-field"><div class="nm">Root Path Cost</div><div class="by">4 B</div><div class="ds">Sender's accumulated cost to the root. Receiver adds its own ingress link cost.</div></div>
+        <div class="bpdu-field"><div class="nm">Sender BID</div><div class="by">8 B</div><div class="ds">BID of the switch transmitting this BPDU (used for tiebreakers).</div></div>
+        <div class="bpdu-field"><div class="nm">Port ID</div><div class="by">2 B</div><div class="ds">Sender's port priority (1 B) + port number (1 B). Final tiebreaker for designated port.</div></div>
+        <div class="bpdu-field"><div class="nm">Message Age</div><div class="by">2 B</div><div class="ds">Hops away from root. Incremented per hop. Discard at <code>Max Age</code>.</div></div>
+        <div class="bpdu-field"><div class="nm">Max Age</div><div class="by">2 B</div><div class="ds">Default <code>20 s</code>. How long a non-root waits without hearing from root before reconverging.</div></div>
+        <div class="bpdu-field"><div class="nm">Hello Time</div><div class="by">2 B</div><div class="ds">Default <code>2 s</code>. BPDU emit cadence (root sets it).</div></div>
+        <div class="bpdu-field"><div class="nm">Forward Delay</div><div class="by">2 B</div><div class="ds">Default <code>15 s</code>. Time spent in Listening + Learning each.</div></div>
+      </div>
+    </div>
+
+    <div class="callout gotcha">
+      <div class="callout-title">Gotcha — only the root sets timers</div>
+      <p>Hello/MaxAge/ForwardDelay come from the <strong>root's</strong> BPDU, not from the local switch's config. Setting <code>spanning-tree vlan 10 hello-time 1</code> on a leaf switch does nothing unless that switch becomes root. To change tree-wide timers, set them on the root or use <code>root primary</code> + timer commands.</p>
+    </div>
+  </section>
+
+  <!-- 03 BID -->
+  <section id="bid">
+    <div class="section-label">03 · Bridge ID</div>
+    <h2 class="section-title">Bridge ID — the identity used in every comparison</h2>
+    <p class="section-desc">Every BID is 8 bytes. Originally <code>2 B priority + 6 B MAC</code>. PVST+ split the priority into <code>4 b priority + 12 b VLAN ID</code> so one chassis can advertise a different BID per VLAN.</p>
+
+    <div class="ascii">Original 802.1D BID (8 bytes)
+┌────────────────┬────────────────────────────────────────────┐
+│ Priority (2 B) │ MAC Address (6 B)                          │
+│ 0–65535        │ Burned-in chassis MAC                      │
+└────────────────┴────────────────────────────────────────────┘
+
+PVST+ extended BID (Cisco default — 802.1t)
+┌────────┬────────────┬────────────────────────────────────────┐
+│ Pri    │ Sys-ID-Ext │ MAC Address (6 B)                      │
+│ 4 bits │ 12 bits    │                                        │
+│ × 4096 │ = VLAN ID  │                                        │
+└────────┴────────────┴────────────────────────────────────────┘
+
+  Effective priority field = (Pri × 4096) + VLAN ID
+  Default Pri = 32768 → VLAN 1 BID priority = 32769
+                      → VLAN 10 BID priority = 32778</div>
+
+    <div class="panel">
+      <h3>Why priority is restricted to multiples of 4096</h3>
+      <p>The low 12 bits hold the VLAN. Only the top 4 bits are the configurable priority. Valid priority values are <code>0, 4096, 8192, 12288 … 61440</code>. <strong>Default is 32768.</strong> IOS rejects anything not a multiple of 4096.</p>
+      <p><code>spanning-tree vlan 10 priority 4096</code> sets BID priority for VLAN 10 to <code>4096 + 10 = 4106</code>. The "<code>+ 10</code>" is the sys-id-ext baked into the BID; you cannot remove it on a Cisco PVST+ switch.</p>
+    </div>
+
+    <div class="panel">
+      <h3>Lower BID wins — every comparison, no exceptions</h3>
+      <ol>
+        <li>Compare <strong>priority</strong> first.</li>
+        <li>If tied, compare <strong>MAC address</strong> (lower wins).</li>
+      </ol>
+      <p>This single rule decides root election, tiebreakers in port-role selection, and even who becomes designated on a shared segment.</p>
+    </div>
+  </section>
+
+  <!-- 04 ELECTION -->
+  <section id="election">
+    <div class="section-label">04 · Election</div>
+    <h2 class="section-title">Root-bridge election walkthrough</h2>
+    <p class="section-desc">Every switch boots assuming <em>it</em> is the root. It sends BPDUs claiming root. Then it listens. As soon as it hears a <strong>better</strong> BPDU (lower BID), it stops claiming root and starts relaying that better BPDU. After a few hello cycles, the entire L2 domain agrees on one root.</p>
+
+    <div class="election-step"><div class="num">1</div><div class="body"><strong>Boot.</strong> Switch sends BPDU with <code>Root BID = own BID</code>, <code>Root Path Cost = 0</code>.</div></div>
+    <div class="election-step"><div class="num">2</div><div class="body"><strong>Receive a superior BPDU</strong> — one with a lower Root BID. Stop claiming. Cache that root.</div></div>
+    <div class="election-step"><div class="num">3</div><div class="body"><strong>Forward it.</strong> On every other port, send BPDUs with the <em>cached root BID</em> and the <em>incremented path cost</em> = received cost + ingress port cost.</div></div>
+    <div class="election-step"><div class="num">4</div><div class="body"><strong>Pick the root port (RP)</strong> = the port on which the lowest-cost path to root arrived. Tiebreakers (in order): lowest sender BID → lowest sender port priority → lowest sender port number.</div></div>
+    <div class="election-step"><div class="num">5</div><div class="body"><strong>Pick designated ports (DP)</strong> per segment. On each link, the side with the better BPDU advertisement is designated. Root's ports are always DP.</div></div>
+    <div class="election-step"><div class="num">6</div><div class="body"><strong>Block leftovers.</strong> Any port that is neither RP nor DP becomes <strong>Blocking</strong> (802.1D) or <strong>Alternate/Backup</strong> (802.1w). It still hears BPDUs but never forwards data.</div></div>
+
+    <div class="callout tip">
+      <div class="callout-title">Forcing the right root</div>
+      <p>Never trust the default 32768 priority. The oldest switch with the lowest MAC wins by accident — usually the wrong box. Hard-pin the core: <code>spanning-tree vlan 1-1005 priority 4096</code> on the intended root, <code>8192</code> on the secondary.</p>
+    </div>
+
+    <div class="panel">
+      <h3>Worked example — three-switch triangle</h3>
+      <div class="ascii">Priorities (default 32768) + last MAC byte:
+  SW1: 32768.AA   SW2: 32768.BB   SW3: 32768.CC
+
+           SW1 ──── SW2
+            \      /
+             \    /
+              SW3
+
+Step 1: All three claim root → SW1 wins (lowest MAC AA &lt; BB &lt; CC).
+Step 2: SW2 root port = port toward SW1, cost 4 (1 Gb).
+        SW3 root port = port toward SW1, cost 4 (1 Gb).
+Step 3: SW1↔SW2 link: SW1 designated. SW2 side: root port (already chosen).
+        SW1↔SW3 link: SW1 designated. SW3 side: root port.
+        SW2↔SW3 link: tie at cost 4 from each side → SW2 wins (lower MAC).
+                      SW2 = designated, SW3 = blocking (alternate).
+
+Result: One blocked port on SW3, toward SW2. Loop broken.</div>
+    </div>
+  </section>
+
+  <!-- 05 ROLES -->
+  <section id="roles">
+    <div class="section-label">05 · Port roles &amp; cost</div>
+    <h2 class="section-title">Port roles and path cost</h2>
+
+    <table class="ref-table">
+      <thead><tr><th>Role</th><th>Per switch / per segment</th><th>Forwards data?</th><th>Notes</th></tr></thead>
+      <tbody>
+        <tr><td class="sym">Root Port (RP)</td><td>One per non-root switch</td><td class="center">Yes</td><td>Lowest-cost path back to root. Root has zero RPs.</td></tr>
+        <tr><td class="sym">Designated Port (DP)</td><td>One per segment</td><td class="center">Yes</td><td>Forwards on that segment. Every root port faces a DP on the other side. Every active segment has exactly one DP.</td></tr>
+        <tr><td class="sym">Non-Designated (Blocking)</td><td>802.1D term</td><td class="center">No</td><td>Hears BPDUs, drops data. Stays here until topology changes.</td></tr>
+        <tr><td class="sym">Alternate</td><td>802.1w</td><td class="center">No</td><td>Backup root path. Provides RP if current RP fails. Replaces "blocking" on shared LANs heading to root.</td></tr>
+        <tr><td class="sym">Backup</td><td>802.1w</td><td class="center">No</td><td>Backup designated port — only exists when a switch has two ports on the <em>same shared segment</em> (rare, hub-attached).</td></tr>
+        <tr><td class="sym">Disabled</td><td>Admin or err-disabled</td><td class="center">No</td><td>Not in STP at all.</td></tr>
+      </tbody>
+    </table>
+
+    <div class="panel">
+      <h3>Path cost — original IEEE values vs. revised (long)</h3>
+      <table class="ref-table">
+        <thead><tr><th>Link speed</th><th>Original 802.1D (short, 16-bit)</th><th>Revised 802.1t (long, 32-bit)</th></tr></thead>
+        <tbody>
+          <tr><td>10 Mbps</td><td>100</td><td>2,000,000</td></tr>
+          <tr><td>100 Mbps (Fast Ethernet)</td><td><code>19</code></td><td>200,000</td></tr>
+          <tr><td>1 Gbps</td><td><code>4</code></td><td>20,000</td></tr>
+          <tr><td>10 Gbps</td><td>2</td><td>2,000</td></tr>
+          <tr><td>100 Gbps</td><td>—</td><td>200</td></tr>
+          <tr><td>1 Tbps</td><td>—</td><td>20</td></tr>
+        </tbody>
+      </table>
+      <p><strong>Cisco default = short (legacy).</strong> Switch to long with <code>spanning-tree pathcost method long</code> on every switch in the domain — mismatched methods break path calculation.</p>
+    </div>
+
+    <div class="callout gotcha">
+      <div class="callout-title">Gotcha — root path cost is added on ingress</div>
+      <p>BPDU arrives saying "cost 19." The receiving switch adds the <strong>cost of the port it arrived on</strong>, not the egress port. If a 1-Gb port receives a BPDU from a 100-Mb upstream link, the local cost increment is the <code>4</code> for the local 1-Gb port, not 19. New total = received 19 + local 4 = 23.</p>
+    </div>
+  </section>
+
+  <!-- 06 STATES -->
+  <section id="states">
+    <div class="section-label">06 · 802.1D states</div>
+    <h2 class="section-title">Port states &amp; the 50-second convergence</h2>
+    <p class="section-desc">Classic 802.1D walks every port through five states. Total time for a port to go from "link up" to "forwarding data" is <strong>up to 50 seconds</strong>: 20 s Max Age (if waiting on a stale root) + 15 s Listening + 15 s Learning.</p>
+
+    <div class="state-row">
+      <div class="state s-disabled"><div class="nm">Disabled</div><div class="ti">admin</div><div class="ds">Shut down or err-disabled. No BPDUs, no data.</div></div>
+      <div class="state s-blocking"><div class="nm">Blocking</div><div class="ti">≤ 20 s</div><div class="ds">Receives BPDUs. Drops data. No MAC learning. Initial state on link-up.</div></div>
+      <div class="state s-listening"><div class="nm">Listening</div><div class="ti">15 s</div><div class="ds">Sends &amp; receives BPDUs to elect roles. Drops data. No MAC learning.</div></div>
+      <div class="state s-learning"><div class="nm">Learning</div><div class="ti">15 s</div><div class="ds">Builds MAC table from incoming frames. Still drops data frames.</div></div>
+      <div class="state s-forwarding"><div class="nm">Forwarding</div><div class="ti">stable</div><div class="ds">Normal data forwarding + MAC learning + BPDU send/receive.</div></div>
+    </div>
+
+    <table class="ref-table">
+      <thead><tr><th>State</th><th>Receive BPDUs</th><th>Send BPDUs</th><th>Learn MACs</th><th>Forward data</th></tr></thead>
+      <tbody>
+        <tr><td>Disabled</td><td class="center">—</td><td class="center">—</td><td class="center">—</td><td class="center">—</td></tr>
+        <tr><td>Blocking</td><td class="center">✓</td><td class="center">—</td><td class="center">—</td><td class="center">—</td></tr>
+        <tr><td>Listening</td><td class="center">✓</td><td class="center">✓</td><td class="center">—</td><td class="center">—</td></tr>
+        <tr><td>Learning</td><td class="center">✓</td><td class="center">✓</td><td class="center">✓</td><td class="center">—</td></tr>
+        <tr><td>Forwarding</td><td class="center">✓</td><td class="center">✓</td><td class="center">✓</td><td class="center">✓</td></tr>
+      </tbody>
+    </table>
+
+    <div class="panel">
+      <h3>The 50-second math (worst case after a link failure)</h3>
+      <ul>
+        <li><strong>20 s — Max Age.</strong> Indirect failure. The blocked port stops hearing BPDUs from root and waits Max Age before declaring the path lost.</li>
+        <li><strong>15 s — Listening.</strong> Sends/receives BPDUs to compute new roles.</li>
+        <li><strong>15 s — Learning.</strong> Populates MAC table without forwarding to avoid floods.</li>
+      </ul>
+      <p>Direct failure (port goes down on the local switch) skips Max Age — convergence drops to ~30 s. Either way, RSTP fixes this.</p>
+    </div>
+  </section>
+
+  <!-- 07 TCN -->
+  <section id="tcn">
+    <div class="section-label">07 · Topology change</div>
+    <h2 class="section-title">Topology Change Notification &amp; MAC flush</h2>
+    <div class="panel">
+      <h3>Why MACs must flush</h3>
+      <p>Suppose a host's traffic was egressing via SW3's blocking port becoming forwarding. Every switch in the path has stale MAC entries pointing at the old route. Without flushing, frames go to a black hole until the default 5-minute aging timer expires.</p>
+    </div>
+
+    <div class="panel">
+      <h3>802.1D TCN flow</h3>
+      <ol>
+        <li>Switch detects a port going to/from forwarding.</li>
+        <li>Sends a <strong>TCN BPDU</strong> upstream toward the root via its root port.</li>
+        <li>Each upstream switch acknowledges with <code>TCA</code> flag and forwards the TCN further upstream.</li>
+        <li>Root receives the TCN. For the next <strong>Forward Delay + Max Age</strong> seconds (default 35 s), root sets the <strong>TC flag</strong> in every BPDU it sends.</li>
+        <li>Every switch receiving a BPDU with TC set <strong>shortens its MAC aging timer from 300 s to <code>15 s</code></strong>. Stale entries die quickly; new entries are learned at the new path.</li>
+      </ol>
+    </div>
+
+    <div class="callout gotcha">
+      <div class="callout-title">Gotcha — flapping access ports flood the tree</div>
+      <p>An access port going up/down emits a TCN every time. Multiply by hundreds of users plugging laptops in — the tree triggers a domain-wide MAC age-shortening on every plug event. PortFast suppresses TCNs for edge ports.</p>
+    </div>
+  </section>
+
+  <!-- 08 RSTP -->
+  <section id="rstp">
+    <div class="section-label">08 · RSTP 802.1w</div>
+    <h2 class="section-title">Rapid STP — same tree, three states, ~6 s convergence</h2>
+    <p class="section-desc">RSTP is wire-compatible with 802.1D — it interoperates by falling back. The differences are in <em>how</em> the tree is built and how fast it heals.</p>
+
+    <div class="state-row">
+      <div class="state s-blocking"><div class="nm">Discarding</div><div class="ti">stable</div><div class="ds">Combines 802.1D Disabled + Blocking + Listening. Drops data, no MAC learning, can hear BPDUs.</div></div>
+      <div class="state s-learning"><div class="nm">Learning</div><div class="ti">transient</div><div class="ds">Builds MAC table. Same as 802.1D.</div></div>
+      <div class="state s-forwarding"><div class="nm">Forwarding</div><div class="ti">stable</div><div class="ds">Same as 802.1D.</div></div>
+    </div>
+
+    <div class="panel">
+      <h3>Why it's fast — proposal/agreement handshake</h3>
+      <p>Instead of waiting timers, two RSTP switches connected by a <strong>point-to-point full-duplex</strong> link negotiate directly:</p>
+      <ol>
+        <li>Upstream switch sends a BPDU with the <strong>Proposal</strong> flag set, claiming designated.</li>
+        <li>Downstream switch <strong>syncs</strong> — temporarily blocks every other non-edge port to guarantee no loop forms.</li>
+        <li>Downstream replies with <strong>Agreement</strong> flag set on its new root port.</li>
+        <li>Upstream port goes straight to forwarding. The wave repeats outward.</li>
+      </ol>
+      <p>Convergence under failure: typically <strong>1–6 seconds</strong>, often sub-second with healthy peers.</p>
+    </div>
+
+    <div class="panel">
+      <h3>Three RSTP link types</h3>
+      <table class="ref-table">
+        <thead><tr><th>Link type</th><th>Detected by</th><th>Behavior</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Point-to-Point</strong></td><td>Full duplex</td><td>Eligible for fast proposal/agreement.</td></tr>
+          <tr><td><strong>Shared</strong></td><td>Half duplex (hub)</td><td>Falls back to 802.1D timers — no fast convergence.</td></tr>
+          <tr><td><strong>Edge</strong></td><td>Manual (PortFast)</td><td>Skips listening/learning. Goes straight to forwarding. No TCN generated.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="panel">
+      <h3>RSTP topology changes</h3>
+      <p>RSTP doesn't use TCN BPDUs. When a non-edge port transitions to forwarding, the originating switch:</p>
+      <ul>
+        <li>Sets the <strong>TC flag</strong> directly in regular BPDUs for <code>2× Hello</code> seconds.</li>
+        <li><strong>Floods</strong> these BPDUs out every non-edge designated port and the root port (not just toward root).</li>
+        <li>Every switch receiving a TC-flagged BPDU <strong>flushes all MACs</strong> on every port except the one that received the BPDU.</li>
+      </ul>
+      <p>Faster convergence + faster MAC re-learning = the new path actually carries traffic in a couple of seconds.</p>
+    </div>
+
+    <div class="callout">
+      <div class="callout-title">Backwards compatibility</div>
+      <p>If an RSTP switch detects 802.1D BPDUs on a port, it falls back to legacy timers on that port only. The rest of the tree stays RSTP. Mix carefully — one legacy box can drag a region back to 50-second land.</p>
+    </div>
+  </section>
+
+  <!-- 09 FLAVORS -->
+  <section id="flavors">
+    <div class="section-label">09 · Cisco flavors</div>
+    <h2 class="section-title">PVST+ vs Rapid-PVST+ vs MSTP</h2>
+    <p class="section-desc">Cisco runs <strong>one STP instance per VLAN</strong>. Up to 1005 VLANs → up to 1005 trees, each with its own root, its own port states, its own BPDUs. Great for traffic engineering, brutal on CPU at scale. MSTP fixes the scale problem.</p>
+
+    <div class="compare">
+      <div class="compare-col">
+        <h4>PVST+ (legacy default)</h4>
+        <ul>
+          <li>One STP per VLAN.</li>
+          <li>802.1D timers — convergence ~50 s.</li>
+          <li>Cisco proprietary BPDU encoding.</li>
+          <li>BID uses sys-id-ext (priority + VLAN).</li>
+          <li>Default on older IOS.</li>
+        </ul>
+      </div>
+      <div class="compare-col">
+        <h4>Rapid-PVST+ (Cisco default today)</h4>
+        <ul>
+          <li>One STP per VLAN, but uses 802.1w mechanics.</li>
+          <li>Convergence ~1–6 s.</li>
+          <li>Three port states (Discarding / Learning / Forwarding).</li>
+          <li>Backwards compatible with 802.1D.</li>
+          <li>Enable: <code>spanning-tree mode rapid-pvst</code>.</li>
+        </ul>
+      </div>
+      <div class="compare-col">
+        <h4>MSTP / 802.1s</h4>
+        <ul>
+          <li>Maps many VLANs into a few <strong>instances</strong>.</li>
+          <li>One STP run per instance — CPU-friendly at scale.</li>
+          <li>Standards-based, multi-vendor.</li>
+          <li>Same RSTP fast convergence underneath.</li>
+          <li>Enable: <code>spanning-tree mode mst</code> + region config.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="callout">
+      <div class="callout-title">Per-VLAN load balancing</div>
+      <p>Make SW1 root for odd VLANs and SW2 root for even VLANs. Each VLAN's blocked port is on a different switch, so both uplinks carry traffic. <code>spanning-tree vlan 10,20,30 priority 4096</code> on SW1 + <code>spanning-tree vlan 40,50,60 priority 4096</code> on SW2.</p>
+    </div>
+  </section>
+
+  <!-- 10 PROTECTION -->
+  <section id="protect">
+    <div class="section-label">10 · Protection features</div>
+    <h2 class="section-title">PortFast, BPDU Guard, Root Guard, Loop Guard</h2>
+
+    <table class="ref-table">
+      <thead><tr><th>Feature</th><th>Where applied</th><th>Trigger</th><th>Reaction</th><th>Recovery</th></tr></thead>
+      <tbody>
+        <tr><td class="sym">PortFast</td><td>Edge access ports</td><td>Link comes up</td><td>Skip Listening + Learning. Forward immediately.</td><td>Always on.</td></tr>
+        <tr><td class="sym">BPDU Guard</td><td>PortFast ports</td><td>BPDU received</td><td><strong>err-disable</strong> the port.</td><td>Manual <code>shut/no shut</code> or errdisable recovery.</td></tr>
+        <tr><td class="sym">BPDU Filter</td><td>PortFast ports (rare)</td><td>BPDU received</td><td>Drop BPDUs. Port stays up.</td><td>n/a — but disables STP protection.</td></tr>
+        <tr><td class="sym">Root Guard</td><td>DP ports facing downstream switches</td><td>Superior BPDU received</td><td>Port → <strong>root-inconsistent</strong> (blocking).</td><td>Auto when superior BPDUs stop.</td></tr>
+        <tr><td class="sym">Loop Guard</td><td>RP and Alternate ports</td><td>BPDUs <em>stop</em> arriving (unidirectional link)</td><td>Port → <strong>loop-inconsistent</strong> (blocking).</td><td>Auto when BPDUs resume.</td></tr>
+        <tr><td class="sym">UDLD</td><td>Fiber inter-switch links</td><td>One-way fiber detected</td><td>err-disable the port.</td><td>Manual or errdisable recovery.</td></tr>
+      </tbody>
+    </table>
+
+    <div class="callout warn">
+      <div class="callout-title">Never PortFast a switch-to-switch link</div>
+      <p>PortFast assumes there is no switch on the other end. If you enable it on an inter-switch port, BPDUs are missed during the fast transition window and a loop can form. BPDU Guard is the safety net — pair them globally with <code>spanning-tree portfast bpduguard default</code>.</p>
+    </div>
+
+    <div class="two-col">
+      <div class="panel">
+        <h3>Root Guard vs BPDU Guard</h3>
+        <p><strong>BPDU Guard</strong> assumes <em>no BPDU at all</em>. Edge ports.</p>
+        <p><strong>Root Guard</strong> assumes <em>BPDUs are fine, but never a superior one</em>. Trunk-toward-access ports where you don't trust the downstream not to claim root.</p>
+      </div>
+      <div class="panel">
+        <h3>Loop Guard vs UDLD</h3>
+        <p><strong>Loop Guard</strong> reacts when BPDUs <em>stop</em>. Software-only — works on any link.</p>
+        <p><strong>UDLD</strong> actively probes the fiber pair and detects unidirectional failure even when BPDUs aren't expected. Layer-2 protocol on fiber.</p>
+        <p>Best practice on fiber inter-switch links: <strong>both</strong>.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 11 CONFIG -->
+  <section id="config">
+    <div class="section-label">11 · IOS commands</div>
+    <h2 class="section-title">Cisco config &amp; verification cheat sheet</h2>
+
+    <div class="cmd">
+      <div class="cmd-label">Mode &amp; root election</div>
+      <pre><span class="prompt">SW(config)#</span> <span class="c">spanning-tree mode rapid-pvst</span>            <span class="x">! Cisco modern default</span>
+<span class="prompt">SW(config)#</span> <span class="c">spanning-tree vlan 1-4094 priority 4096</span>     <span class="x">! force root</span>
+<span class="prompt">SW(config)#</span> <span class="c">spanning-tree vlan 1-4094 root primary</span>       <span class="x">! macro: priority 24576 (or 4096 below current)</span>
+<span class="prompt">SW(config)#</span> <span class="c">spanning-tree vlan 1-4094 root secondary</span>     <span class="x">! macro: priority 28672</span>
+<span class="prompt">SW(config)#</span> <span class="c">spanning-tree pathcost method long</span>           <span class="x">! 32-bit costs (recommended &gt; 1 G)</span></pre>
+    </div>
+
+    <div class="cmd">
+      <div class="cmd-label">Port-level tuning</div>
+      <pre><span class="prompt">SW(config-if)#</span> <span class="c">spanning-tree cost 1000</span>               <span class="x">! manually pin port cost</span>
+<span class="prompt">SW(config-if)#</span> <span class="c">spanning-tree port-priority 64</span>        <span class="x">! lower wins tiebreaker (default 128)</span>
+<span class="prompt">SW(config-if)#</span> <span class="c">spanning-tree link-type point-to-point</span> <span class="x">! force RSTP fast P2A even on half-duplex</span></pre>
+    </div>
+
+    <div class="cmd">
+      <div class="cmd-label">Edge ports &amp; protection</div>
+      <pre><span class="prompt">SW(config-if)#</span> <span class="c">spanning-tree portfast</span>                <span class="x">! per-interface (access ports)</span>
+<span class="prompt">SW(config)#</span>    <span class="c">spanning-tree portfast default</span>        <span class="x">! global — applies to all access ports</span>
+<span class="prompt">SW(config-if)#</span> <span class="c">spanning-tree bpduguard enable</span>        <span class="x">! per-interface</span>
+<span class="prompt">SW(config)#</span>    <span class="c">spanning-tree portfast bpduguard default</span> <span class="x">! global — every PortFast port</span>
+<span class="prompt">SW(config-if)#</span> <span class="c">spanning-tree guard root</span>              <span class="x">! Root Guard on DP toward downstream</span>
+<span class="prompt">SW(config-if)#</span> <span class="c">spanning-tree guard loop</span>              <span class="x">! Loop Guard on RP/Alternate</span>
+<span class="prompt">SW(config)#</span>    <span class="c">spanning-tree loopguard default</span>       <span class="x">! global Loop Guard</span>
+<span class="prompt">SW(config)#</span>    <span class="c">errdisable recovery cause bpduguard</span>
+<span class="prompt">SW(config)#</span>    <span class="c">errdisable recovery interval 300</span>      <span class="x">! seconds</span></pre>
+    </div>
+
+    <div class="cmd">
+      <div class="cmd-label">Verification — read these in this order</div>
+      <pre><span class="prompt">SW#</span> <span class="c">show spanning-tree</span>                            <span class="x">! per-VLAN summary</span>
+<span class="prompt">SW#</span> <span class="c">show spanning-tree vlan 10</span>                    <span class="x">! root, BID, port roles, costs, timers</span>
+<span class="prompt">SW#</span> <span class="c">show spanning-tree vlan 10 detail</span>             <span class="x">! per-port deep info</span>
+<span class="prompt">SW#</span> <span class="c">show spanning-tree root</span>                       <span class="x">! who is root, cost, RP for each VLAN</span>
+<span class="prompt">SW#</span> <span class="c">show spanning-tree summary</span>                    <span class="x">! mode, totals, default flags</span>
+<span class="prompt">SW#</span> <span class="c">show spanning-tree interface fa0/1</span>            <span class="x">! one port across all VLANs</span>
+<span class="prompt">SW#</span> <span class="c">show spanning-tree inconsistentports</span>          <span class="x">! Root/Loop Guard alerts live here</span></pre>
+    </div>
+  </section>
+
+  <!-- 12 EXAM -->
+  <section id="exam">
+    <div class="section-label">12 · Exam &amp; study</div>
+    <h2 class="section-title">Common exam traps</h2>
+
+    <div class="panel">
+      <h3>Six gotchas worth a question each</h3>
+      <ul>
+        <li><strong>Priority isn't 32768</strong> — it's <code>32768 + VLAN ID</code> in any output. Memorize <code>32769, 32778, 32788…</code></li>
+        <li><strong>Root path cost is added on ingress.</strong> Receiving cost 19 + my port cost 4 = 23, regardless of upstream interface.</li>
+        <li><strong>Cost values:</strong> 100 Mbps = <code>19</code>, 1 Gbps = <code>4</code>, 10 Gbps = <code>2</code>. Long method is different — match the question's context.</li>
+        <li><strong>Tiebreaker order</strong> for choosing root port when costs tie: lower sender BID → lower sender port priority → lower sender port number.</li>
+        <li><strong>BPDU Guard ⇒ err-disable.</strong> Root Guard ⇒ root-inconsistent. Loop Guard ⇒ loop-inconsistent. Don't swap them on a multiple-choice.</li>
+        <li><strong>Rapid-PVST+ port states are 3, not 5.</strong> Discarding / Learning / Forwarding. The exam loves mixing 802.1D and 802.1w terminology.</li>
+      </ul>
+    </div>
+
+    <div class="studycard">
+      <h3>One-page study card</h3>
+      <ul>
+        <li><strong>BPDU dest MAC:</strong> <code>01:80:C2:00:00:00</code></li>
+        <li><strong>Hello / MaxAge / ForwardDelay:</strong> <code>2 / 20 / 15</code> seconds (root sets them).</li>
+        <li><strong>802.1D convergence:</strong> ~50 s. <strong>RSTP:</strong> ~1–6 s.</li>
+        <li><strong>Bridge ID:</strong> 4 b priority + 12 b VLAN ID + 6 B MAC. Default priority <code>32768</code>, multiples of 4096.</li>
+        <li><strong>Lower BID wins.</strong> Tie on priority → lower MAC wins.</li>
+        <li><strong>Port roles:</strong> Root, Designated, Alternate (RSTP) / Blocking (legacy), Backup, Disabled.</li>
+        <li><strong>States 802.1D:</strong> Disabled → Blocking → Listening → Learning → Forwarding.</li>
+        <li><strong>States RSTP:</strong> Discarding → Learning → Forwarding.</li>
+        <li><strong>PortFast:</strong> edge only. Skips listening/learning.</li>
+        <li><strong>BPDU Guard:</strong> err-disables a PortFast port that hears a BPDU.</li>
+        <li><strong>Root Guard:</strong> blocks superior BPDU. Recovers on its own.</li>
+        <li><strong>Loop Guard:</strong> protects against silent failure (BPDUs stop arriving).</li>
+        <li><strong>Cisco default mode:</strong> Rapid-PVST+ on modern IOS. One instance per VLAN.</li>
+        <li><strong>Force a root:</strong> <code>spanning-tree vlan X priority 4096</code>.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- LINKS -->
+  <section>
+    <div class="section-label">Connected pages</div>
+    <h2 class="section-title">Practice + simulate</h2>
+    <div class="outlinks">
+      <a class="outlink" href="visuals/stp.html"><div class="lab">Interactive</div><div class="ti">STP / RSTP Visualizer</div><div class="ds">Click through port states, root election, BPDU flooding, port transitions.</div></a>
+      <a class="outlink" href="labs/lab-pt2-stp-etherchannel.html"><div class="lab">Packet Tracer</div><div class="ti">PT Lab 2 — STP root + EtherChannel</div><div class="ds">Hands-on: priorities, LACP, blocking ports, PortFast, BPDU Guard.</div></a>
+      <a class="outlink" href="cheat-sheet.html#stp"><div class="lab">Reference</div><div class="ti">Cheat sheet — STP section</div><div class="ds">Compact recall card. Print it before the exam.</div></a>
+      <a class="outlink" href="diagnostic.html?topic=2.5"><div class="lab">Quiz</div><div class="ti">Topic 2.5 diagnostic</div><div class="ds">Mini-test on STP fundamentals.</div></a>
+    </div>
+  </section>
+
+  <footer class="footer">CCNA 200-301 Study System — STP Deep Dive</footer>
+</div>
+
+<script defer src="js/store.js"></script>
+<script defer src="js/sync.js"></script>
+<script defer src="js/tutor.js"></script>
+</body>
+</html>
