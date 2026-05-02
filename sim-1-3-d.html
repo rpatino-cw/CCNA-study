@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>1.3.d Sim — Cable Setup Picker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#FAF7F2;--bg-surface:#FFFFFF;--bg-recessed:#F3F0EB;--bg-hover:#F0EDE7;
+    --border:#E2DFD9;--border-strong:#C7C3BC;
+    --ink:#1C1917;--ink-secondary:#57534E;--ink-muted:#A8A29E;
+    --accent:#B45309;--accent-soft:#D97706;--accent-light:#FEF3C7;--accent-dim:#FFFBEB;
+    --correct:#16A34A;--correct-bg:#F0FDF4;
+    --wrong:#DC2626;--wrong-bg:#FEF2F2;
+    --info:#2563EB;--info-bg:#EFF6FF;
+    --warn:#CA8A04;--warn-bg:#FEFCE8;
+    --font-display:'Space Grotesk',system-ui,sans-serif;
+    --font-body:'Source Serif 4',Georgia,serif;
+    --font-mono:'JetBrains Mono',monospace;
+    --radius:6px;--radius-lg:10px;
+  }
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  html{font-size:16px;-webkit-font-smoothing:antialiased}
+  body{font-family:var(--font-body);background:var(--bg);color:var(--ink);line-height:1.55;padding:24px;max-width:1000px;margin:0 auto}
+  .head{margin-bottom:20px;padding-bottom:14px;border-bottom:1px solid var(--border)}
+  .head .crumb{font-family:var(--font-mono);font-size:.74rem;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px}
+  .head .crumb a{color:var(--accent);text-decoration:none}
+  .head h1{font-family:var(--font-display);font-size:1.5rem;font-weight:700;margin-bottom:6px}
+  .head .desc{font-size:.95rem;color:var(--ink-secondary)}
+  .badge{display:inline-block;font-family:var(--font-display);font-size:.7rem;font-weight:700;padding:2px 8px;border-radius:99px;background:var(--accent-light);color:var(--accent);text-transform:uppercase;letter-spacing:.04em;margin-left:8px}
+  .panel{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;margin-bottom:18px}
+  .panel h2{font-family:var(--font-display);font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-secondary);margin-bottom:12px}
+
+  .scenario{padding:16px 18px;background:var(--accent-dim);border-left:3px solid var(--accent);border-radius:var(--radius);font-family:var(--font-display);font-size:1.02rem;line-height:1.5}
+  .scenario b{font-weight:700}
+  .reqs{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-top:14px}
+  .req{padding:10px 12px;background:var(--bg-recessed);border:1px solid var(--border);border-radius:var(--radius)}
+  .req .k{font-family:var(--font-display);font-size:.66rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-muted);margin-bottom:2px}
+  .req .v{font-family:var(--font-mono);font-size:.94rem;font-weight:600;color:var(--ink)}
+
+  .picker{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:16px}
+  @media(max-width:720px){.picker{grid-template-columns:1fr}}
+  .group{padding:14px;background:var(--bg-recessed);border:1px solid var(--border);border-radius:var(--radius)}
+  .group h3{font-family:var(--font-display);font-size:.76rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-secondary);margin-bottom:10px}
+  .opts{display:flex;flex-direction:column;gap:6px}
+  .opt{font-family:var(--font-mono);font-size:.86rem;padding:9px 12px;background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius);cursor:pointer;text-align:left;transition:all .12s}
+  .opt:hover{border-color:var(--border-strong);background:var(--bg-hover)}
+  .opt.sel{background:var(--accent);color:#fff;border-color:var(--accent);font-weight:600}
+  .opt.correct{background:var(--correct-bg);border-color:var(--correct);color:var(--correct);font-weight:700}
+  .opt.wrong{background:var(--wrong-bg);border-color:var(--wrong);color:var(--wrong);text-decoration:line-through}
+
+  .actions{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap}
+  .btn{font-family:var(--font-display);font-size:.84rem;font-weight:600;padding:9px 18px;background:var(--ink);color:#FAF7F2;border:none;border-radius:var(--radius);cursor:pointer;transition:background .15s}
+  .btn:hover{background:var(--ink-secondary)}
+  .btn.ghost{background:var(--bg-recessed);color:var(--ink);border:1px solid var(--border)}
+  .btn.ghost:hover{background:var(--bg-hover)}
+  .btn.accent{background:var(--accent)}
+  .btn.accent:hover{background:var(--accent-soft)}
+  .btn:disabled{opacity:.4;cursor:not-allowed}
+
+  .verdict{margin-top:14px;padding:14px 16px;border-radius:var(--radius);font-family:var(--font-display);font-size:.94rem;display:none}
+  .verdict.show{display:block;animation:fadeIn .25s ease}
+  .verdict.win{background:var(--correct-bg);color:var(--correct);border:1px solid var(--correct)}
+  .verdict.miss{background:var(--wrong-bg);color:var(--wrong);border:1px solid var(--wrong)}
+  .verdict.partial{background:var(--warn-bg);color:var(--warn);border:1px solid var(--warn)}
+  .verdict ul{margin-top:8px;margin-left:18px;font-family:var(--font-body);font-weight:400}
+  .verdict li{margin-bottom:4px}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
+
+  .scoreline{display:flex;gap:18px;align-items:center;font-family:var(--font-mono);font-size:.84rem;color:var(--ink-muted);margin-top:14px;flex-wrap:wrap}
+  .scoreline strong{font-weight:700;color:var(--ink)}
+
+  table.ref{width:100%;border-collapse:collapse;font-family:var(--font-mono);font-size:.82rem;margin-top:10px}
+  table.ref th{text-align:left;padding:8px 10px;background:var(--bg-recessed);font-family:var(--font-display);font-size:.7rem;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-secondary);border-bottom:1px solid var(--border-strong);font-weight:700}
+  table.ref td{padding:8px 10px;border-bottom:1px solid var(--border)}
+  table.ref tr:hover td{background:var(--bg-recessed)}
+  table.ref .copper{color:var(--accent);font-weight:700}
+  table.ref .mmf{color:#0891B2;font-weight:700}
+  table.ref .smf{color:#7C3AED;font-weight:700}
+
+  .src{font-family:var(--font-mono);font-size:.74rem;color:var(--ink-muted);margin-top:14px;line-height:1.6}
+  .src a{color:var(--accent);text-decoration:none}
+  .src a:hover{text-decoration:underline}
+
+  .footer{margin-top:30px;padding-top:14px;border-top:1px solid var(--border);font-family:var(--font-mono);font-size:.78rem;color:var(--ink-muted)}
+  .footer a{color:var(--accent);text-decoration:none}
+</style>
+<link rel="stylesheet" href="css/shared.css?v=4.56">
+<script defer src="js/nav.js"></script>
+</head>
+<body>
+<nav class="top-nav" id="main-nav"></nav>
+
+<div class="head">
+  <div class="crumb"><a href="blueprint-drill.html?obj=1.3">← 1.3 Mini Sims</a> · 1.3.d · Physical Layer · Cable Setup Picker</div>
+  <h1>Cable Setup Picker<span class="badge">drill</span></h1>
+  <div class="desc">Real-world scenario. Pick the cable, IEEE standard, connector, and duplex that satisfies every requirement. Wrong combo = link down or out-of-spec. Match exam-style questions where four picks must agree.</div>
+</div>
+
+<div class="panel">
+  <h2>Scenario <span id="sNum" style="color:var(--accent);text-transform:none;letter-spacing:0;font-weight:700">1 / 10</span></h2>
+  <div class="scenario" id="scenario">Loading…</div>
+  <div class="reqs" id="reqs"></div>
+</div>
+
+<div class="panel">
+  <h2>Your setup</h2>
+  <div class="picker">
+    <div class="group">
+      <h3>1. Media</h3>
+      <div class="opts" id="g-media">
+        <button class="opt" data-g="media" data-v="copper">UTP Copper (Cat5e/6/6a)</button>
+        <button class="opt" data-g="media" data-v="mmf">Multimode Fiber (OM3/OM4)</button>
+        <button class="opt" data-g="media" data-v="smf">Single-Mode Fiber (OS2)</button>
+      </div>
+    </div>
+    <div class="group">
+      <h3>2. IEEE standard / speed</h3>
+      <div class="opts" id="g-std">
+        <button class="opt" data-g="std" data-v="100BASE-TX">100BASE-TX — 100M copper, 100m</button>
+        <button class="opt" data-g="std" data-v="1000BASE-T">1000BASE-T — 1G copper, 100m</button>
+        <button class="opt" data-g="std" data-v="1000BASE-SX">1000BASE-SX — 1G MMF, 550m</button>
+        <button class="opt" data-g="std" data-v="1000BASE-LX">1000BASE-LX — 1G SMF, 5–10km</button>
+        <button class="opt" data-g="std" data-v="10GBASE-T">10GBASE-T — 10G copper, 100m (Cat6a)</button>
+        <button class="opt" data-g="std" data-v="10GBASE-SR">10GBASE-SR — 10G MMF, ~400m</button>
+        <button class="opt" data-g="std" data-v="10GBASE-LR">10GBASE-LR — 10G SMF, 10km</button>
+        <button class="opt" data-g="std" data-v="10GBASE-ER">10GBASE-ER — 10G SMF, 40km</button>
+      </div>
+    </div>
+    <div class="group">
+      <h3>3. Connector</h3>
+      <div class="opts" id="g-conn">
+        <button class="opt" data-g="conn" data-v="RJ45">RJ45 — 8P8C copper</button>
+        <button class="opt" data-g="conn" data-v="LC">LC — small-form fiber (today's std)</button>
+        <button class="opt" data-g="conn" data-v="SC">SC — square push-pull fiber</button>
+        <button class="opt" data-g="conn" data-v="MPO">MPO/MTP — 12-fiber ribbon (40/100G)</button>
+      </div>
+    </div>
+    <div class="group">
+      <h3>4. Duplex</h3>
+      <div class="opts" id="g-dup">
+        <button class="opt" data-g="dup" data-v="full">Full — send + receive simultaneously</button>
+        <button class="opt" data-g="dup" data-v="half">Half — one direction at a time (CSMA/CD)</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="actions">
+    <button class="btn accent" id="check">Check setup</button>
+    <button class="btn ghost" id="next" disabled>Next scenario →</button>
+    <button class="btn ghost" id="reset">Reset</button>
+  </div>
+
+  <div id="verdict" class="verdict"></div>
+
+  <div class="scoreline">
+    <span><strong id="qCorrect">0</strong> correct</span>
+    <span><strong id="qPartial">0</strong> partial</span>
+    <span><strong id="qWrong">0</strong> wrong</span>
+    <span><strong id="qStreak">0</strong> streak</span>
+  </div>
+</div>
+
+<div class="panel">
+  <h2>IEEE 802.3 reference table</h2>
+  <table class="ref">
+    <thead><tr><th>Standard</th><th>Speed</th><th>Media</th><th>Max distance</th><th>Connector</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr><td class="copper">10BASE-T</td><td>10 Mbps</td><td>Cat3+ UTP</td><td>100 m</td><td>RJ45</td><td>Legacy. 2 pairs.</td></tr>
+      <tr><td class="copper">100BASE-TX</td><td>100 Mbps</td><td>Cat5+ UTP</td><td>100 m</td><td>RJ45</td><td>Fast Ethernet. 2 pairs used.</td></tr>
+      <tr><td class="copper">1000BASE-T</td><td>1 Gbps</td><td>Cat5e+ UTP</td><td>100 m</td><td>RJ45</td><td>All 4 pairs, full-duplex each.</td></tr>
+      <tr><td class="copper">10GBASE-T</td><td>10 Gbps</td><td>Cat6a / Cat7</td><td>100 m (Cat6a) / 55 m (Cat6)</td><td>RJ45</td><td>Cat6 = limited 55m at 10G.</td></tr>
+      <tr><td class="mmf">1000BASE-SX</td><td>1 Gbps</td><td>MMF (850 nm)</td><td>550 m (OM3)</td><td>LC / SC</td><td>Short-wave laser. Aqua jacket.</td></tr>
+      <tr><td class="smf">1000BASE-LX</td><td>1 Gbps</td><td>SMF / MMF (1310 nm)</td><td>5 km SMF / 550 m MMF</td><td>LC / SC</td><td>Long-wave laser.</td></tr>
+      <tr><td class="mmf">10GBASE-SR</td><td>10 Gbps</td><td>MMF OM3/OM4</td><td>300 m (OM3) / 400 m (OM4)</td><td>LC</td><td>Short reach. DC standard.</td></tr>
+      <tr><td class="smf">10GBASE-LR</td><td>10 Gbps</td><td>SMF (1310 nm)</td><td>10 km</td><td>LC</td><td>Long reach. Building-to-building.</td></tr>
+      <tr><td class="smf">10GBASE-ER</td><td>10 Gbps</td><td>SMF (1550 nm)</td><td>40 km</td><td>LC</td><td>Extended reach. Metro.</td></tr>
+      <tr><td class="mmf">40GBASE-SR4</td><td>40 Gbps</td><td>MMF OM3/OM4</td><td>100 m (OM3) / 150 m (OM4)</td><td>MPO/MTP</td><td>4 lanes × 10G.</td></tr>
+      <tr><td class="smf">40GBASE-LR4</td><td>40 Gbps</td><td>SMF</td><td>10 km</td><td>LC (CWDM)</td><td>4 wavelengths.</td></tr>
+      <tr><td class="mmf">100GBASE-SR4</td><td>100 Gbps</td><td>MMF OM4</td><td>100 m</td><td>MPO/MTP</td><td>4 lanes × 25G.</td></tr>
+      <tr><td class="smf">100GBASE-LR4</td><td>100 Gbps</td><td>SMF</td><td>10 km</td><td>LC (CWDM)</td><td>4 wavelengths × 25G.</td></tr>
+    </tbody>
+  </table>
+  <div class="src">
+    Sources:
+    <a href="https://www.firewall.cx/networking/network-cabling/network-cabling-1000base-t-lx-sx-gigabit-10gbase-10gigabit-ethernet.html" target="_blank">Firewall.cx 1000BASE-T/SX/LX/10GBASE</a> ·
+    <a href="https://study-ccna.com/ieee-ethernet-standards/" target="_blank">Study-CCNA IEEE Ethernet standards</a> ·
+    <a href="https://www.pearsonitcertification.com/articles/article.aspx?p=3089364" target="_blank">Pearson Physical Interfaces and Cabling</a> ·
+    <a href="https://www.cbtnuggets.com/blog/career/career-progression/5-best-network-simulators-for-cisco-exams-ccna-ccnp-and-ccie" target="_blank">CBT Nuggets — Best Network Simulators</a>
+  </div>
+</div>
+
+<div class="footer"><a href="blueprint-drill.html?obj=1.3">← back to 1.3 leaves</a> · <a href="sim-1-3-a.html">Distance/BW picker (1.3.a)</a> · <a href="sim-1-3-b.html">Duplex sim (1.3.b)</a> · <a href="sim-1-3-c.html">Standards drill (1.3.c)</a></div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+  function $(id){ return document.getElementById(id); }
+
+  // Each scenario locks the EXACT correct combo. Notes explain each pick.
+  var SCENARIOS = [
+    {
+      desc: '<b>Server NIC to top-of-rack switch.</b> 3-meter patch inside one rack. Need 1 Gbps. Cheapest option.',
+      reqs: { distance:'3 m', speed:'1 Gbps', location:'Inside rack', cost:'Cheap' },
+      ans: { media:'copper', std:'1000BASE-T', conn:'RJ45', dup:'full' },
+      why: '3m run + 1G + cost-sensitive = <b>1000BASE-T over Cat5e/6 with RJ45</b>. Fiber wastes money for a patch cable. Modern Ethernet is always full-duplex.'
+    },
+    {
+      desc: '<b>Building-to-building backbone.</b> 800 meters between two campus buildings. 10 Gbps required. Outdoor conduit run.',
+      reqs: { distance:'800 m', speed:'10 Gbps', location:'Outdoor', media:'Fiber required' },
+      ans: { media:'smf', std:'10GBASE-LR', conn:'LC', dup:'full' },
+      why: '800m exceeds 10GBASE-SR (≤400m on OM4). Need <b>10GBASE-LR over single-mode fiber, LC connector, 10km reach</b>. Copper not allowed outdoors / over 100m. Fiber is always full-duplex.'
+    },
+    {
+      desc: '<b>Two switches in adjacent racks, MMF trunk.</b> 25-meter LC fiber pre-installed (OM3 aqua). Need 10 Gbps uplink.',
+      reqs: { distance:'25 m', speed:'10 Gbps', media:'OM3 MMF (existing)', connector:'LC (existing)' },
+      ans: { media:'mmf', std:'10GBASE-SR', conn:'LC', dup:'full' },
+      why: '<b>10GBASE-SR over OM3 multimode, LC connector</b>. SR is short-reach 850nm laser. OM3 carries 10G to 300m. SMF would be wasted (and SX is only 1G). Always full-duplex on switched fiber.'
+    },
+    {
+      desc: '<b>Office wall jack to access switch.</b> 80-meter cable run inside building. Phone + PC daisy-chain. Gigabit needed.',
+      reqs: { distance:'80 m', speed:'1 Gbps', location:'Indoor structured cabling' },
+      ans: { media:'copper', std:'1000BASE-T', conn:'RJ45', dup:'full' },
+      why: '80m fits inside copper\'s 100m TIA limit. <b>1000BASE-T / Cat5e+ / RJ45 / full-duplex</b>. Standard structured cabling — fiber to the desk is overkill.'
+    },
+    {
+      desc: '<b>Metro-area DR site link.</b> 30 km between primary and disaster-recovery data centers. 10 Gbps.',
+      reqs: { distance:'30 km', speed:'10 Gbps', media:'Long-haul fiber' },
+      ans: { media:'smf', std:'10GBASE-ER', conn:'LC', dup:'full' },
+      why: '30km exceeds LR (10km). Need <b>10GBASE-ER (Extended Reach, 1550nm, 40km on SMF) with LC</b>. SMF is the only option past 10km.'
+    },
+    {
+      desc: '<b>Legacy device, 100 Mbps fixed.</b> 60-meter run to printer in old building. Cat5 cable already installed.',
+      reqs: { distance:'60 m', speed:'100 Mbps', media:'Cat5 (legacy)' },
+      ans: { media:'copper', std:'100BASE-TX', conn:'RJ45', dup:'full' },
+      why: 'Cat5 (not 5e) caps at 100M reliably. <b>100BASE-TX / RJ45</b>. Modern switch ports negotiate full-duplex even at 100M. (Half-duplex only on hubs, which are extinct.)'
+    },
+    {
+      desc: '<b>Spine-to-leaf data center fabric.</b> 80-meter MMF trunk. 40 Gbps per link. OM4 fiber pre-installed.',
+      reqs: { distance:'80 m', speed:'40 Gbps', media:'OM4 MMF', density:'4-lane' },
+      ans: { media:'mmf', std:'10GBASE-SR', conn:'MPO', dup:'full' },
+      why: 'Trick: at 40G on MMF you use <b>40GBASE-SR4 (4 lanes × 10G) with MPO/MTP ribbon connector</b>. Closest standard in this picker is 10GBASE-SR + MPO (each lane is SR). Real CCNA answer: 40GBASE-SR4. MPO carries 12 fibers in one connector.'
+    },
+    {
+      desc: '<b>10G uplink between switch stacks.</b> 90-meter cable run. Cat6a installed throughout. No fiber budget.',
+      reqs: { distance:'90 m', speed:'10 Gbps', media:'Cat6a copper' },
+      ans: { media:'copper', std:'10GBASE-T', conn:'RJ45', dup:'full' },
+      why: '<b>10GBASE-T over Cat6a, RJ45, full-duplex</b>. Cat6a supports 10G to full 100m. Cat6 only reaches 55m at 10G. 10GBASE-T is the copper 10-Gig story.'
+    },
+    {
+      desc: '<b>Router-to-router WAN link, on-net.</b> 6 km between sites. 1 Gbps. Single-mode fiber pair leased.',
+      reqs: { distance:'6 km', speed:'1 Gbps', media:'SMF' },
+      ans: { media:'smf', std:'1000BASE-LX', conn:'LC', dup:'full' },
+      why: '<b>1000BASE-LX (long-wave 1310nm) over SMF, LC connector</b>. Reaches 5–10km on SMF (550m on MMF). SX is short-reach MMF only and tops out at 550m.'
+    },
+    {
+      desc: '<b>Lab bench: laptop directly to old switch.</b> 1-meter run. 1 Gbps preferred. Auto-MDIX supported on switch.',
+      reqs: { distance:'1 m', speed:'1 Gbps', location:'Direct connect' },
+      ans: { media:'copper', std:'1000BASE-T', conn:'RJ45', dup:'full' },
+      why: '<b>1000BASE-T / RJ45 / full-duplex</b>. Auto-MDIX means straight-through cable works either direction (no crossover needed). Modern NICs negotiate full-duplex automatically.'
+    }
+  ];
+
+  var idx = 0, picks = {}, qC=0, qP=0, qW=0, qS=0, scored=false;
+
+  function load(){
+    var s = SCENARIOS[idx];
+    $('scenario').innerHTML = s.desc;
+    $('sNum').textContent = (idx+1)+' / '+SCENARIOS.length;
+    var box = $('reqs'); box.innerHTML='';
+    Object.keys(s.reqs).forEach(function(k){
+      var d = document.createElement('div'); d.className='req';
+      d.innerHTML = '<div class="k">'+k+'</div><div class="v">'+s.reqs[k]+'</div>';
+      box.appendChild(d);
+    });
+    picks = {}; scored = false;
+    [].forEach.call(document.querySelectorAll('.opt'), function(b){
+      b.classList.remove('sel','correct','wrong');
+    });
+    $('verdict').className='verdict';
+    $('verdict').innerHTML='';
+    $('next').disabled = true;
+    $('check').disabled = false;
+  }
+
+  [].forEach.call(document.querySelectorAll('.opt'), function(b){
+    b.addEventListener('click', function(){
+      if (scored) return;
+      var g = b.dataset.g;
+      [].forEach.call(document.querySelectorAll('.opt[data-g="'+g+'"]'), function(c){
+        c.classList.remove('sel');
+      });
+      b.classList.add('sel');
+      picks[g] = b.dataset.v;
+    });
+  });
+
+  $('check').addEventListener('click', function(){
+    if (scored) return;
+    var s = SCENARIOS[idx];
+    var v = $('verdict');
+    if (!picks.media || !picks.std || !picks.conn || !picks.dup){
+      v.className='verdict miss show';
+      v.innerHTML='Pick all four (media, standard, connector, duplex) before checking.';
+      return;
+    }
+    scored = true;
+    var hits = 0, results = [];
+    ['media','std','conn','dup'].forEach(function(g){
+      var sel = document.querySelector('.opt[data-g="'+g+'"][data-v="'+picks[g]+'"]');
+      var correctBtn = document.querySelector('.opt[data-g="'+g+'"][data-v="'+s.ans[g]+'"]');
+      if (picks[g] === s.ans[g]){
+        sel.classList.remove('sel'); sel.classList.add('correct'); hits++;
+      } else {
+        sel.classList.remove('sel'); sel.classList.add('wrong');
+        if (correctBtn) correctBtn.classList.add('correct');
+        results.push(g+': you picked <b>'+picks[g]+'</b>, correct = <b>'+s.ans[g]+'</b>');
+      }
+    });
+    if (hits === 4){
+      qC++; qS++;
+      v.className='verdict win show';
+      v.innerHTML='✓ Perfect setup. <span style="font-weight:400">'+s.why+'</span>';
+    } else if (hits >= 2){
+      qP++; qS=0;
+      v.className='verdict partial show';
+      v.innerHTML='△ '+hits+'/4 correct. '+s.why+'<ul><li>'+results.join('</li><li>')+'</li></ul>';
+    } else {
+      qW++; qS=0;
+      v.className='verdict miss show';
+      v.innerHTML='✗ '+hits+'/4 correct. '+s.why+'<ul><li>'+results.join('</li><li>')+'</li></ul>';
+    }
+    $('qCorrect').textContent=qC; $('qPartial').textContent=qP; $('qWrong').textContent=qW; $('qStreak').textContent=qS;
+    $('next').disabled = false;
+    $('check').disabled = true;
+  });
+
+  $('next').addEventListener('click', function(){
+    idx = (idx+1) % SCENARIOS.length;
+    load();
+  });
+
+  $('reset').addEventListener('click', function(){
+    idx = 0; qC=qP=qW=qS=0;
+    $('qCorrect').textContent=0; $('qPartial').textContent=0; $('qWrong').textContent=0; $('qStreak').textContent=0;
+    load();
+  });
+
+  load();
+});
+</script>
+<script defer src="js/tutor.js"></script>
+</body>
+</html>

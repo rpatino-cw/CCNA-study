@@ -1,0 +1,849 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#FAF7F2">
+<title>Magic Number Subnetting — The Messer Method</title>
+<meta name="color-scheme" content="light">
+<link rel="icon" type="image/svg+xml" href="/CCNA-study/favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=JetBrains+Mono:wght@400;600;700&display=swap">
+<link rel="stylesheet" href="css/shared.css?v=4.56">
+
+<style>
+/* ── Page-specific components (theme tokens come from shared.css) ── */
+
+/* Hero */
+.mn-hero { padding: var(--s-md) 0 var(--s-lg); border-bottom: 2px solid var(--ink); margin-bottom: var(--s-xl); }
+.mn-kicker { font-family: var(--font-display); font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em; color: var(--accent); margin-bottom: 8px; }
+.mn-hero h1 { font-family: var(--font-display); font-size: 3rem; font-weight: 700; letter-spacing: -0.03em; line-height: 1.05; margin-bottom: 14px; }
+.mn-hero h1 .em { color: var(--accent); font-style: italic; }
+.mn-hero .lede { font-family: var(--font-body); font-size: 1.1rem; color: var(--ink-secondary); max-width: 64ch; line-height: 1.6; }
+.mn-hero .meta { margin-top: var(--s-md); display: flex; gap: var(--s-md); flex-wrap: wrap; align-items: center; font-family: var(--font-display); font-size: 0.75rem; color: var(--ink-muted); }
+.mn-hero .meta a { color: var(--accent); text-decoration: none; border-bottom: 1px solid var(--accent-light); padding-bottom: 1px; }
+.mn-hero .meta a:hover { border-bottom-color: var(--accent); }
+
+/* Sections */
+.mn-section { margin-bottom: var(--s-2xl); scroll-margin-top: 60px; }
+.mn-section-num { font-family: var(--font-mono); font-size: 0.78rem; color: var(--ink-muted); margin-bottom: 4px; }
+.mn-section h2 { font-family: var(--font-display); font-size: 1.7rem; font-weight: 700; letter-spacing: -0.02em; margin-bottom: var(--s-sm); padding-bottom: var(--s-sm); border-bottom: 1px solid var(--rule); margin-top: 0; }
+.mn-section .deck { font-family: var(--font-body); font-size: 1rem; color: var(--ink-secondary); margin-bottom: var(--s-md); max-width: 64ch; line-height: 1.65; }
+
+/* Sticky sub-nav (sections) */
+.mn-snav { position: sticky; top: 0; z-index: 50; background: rgba(250,247,242,0.92); backdrop-filter: blur(8px); border-bottom: 1px solid var(--border); padding: 10px 0; margin-bottom: var(--s-lg); margin-left: calc(-1 * var(--s-lg)); margin-right: calc(-1 * var(--s-lg)); padding-left: var(--s-lg); padding-right: var(--s-lg); display: flex; gap: 6px; flex-wrap: wrap; }
+.mn-pill { font-family: var(--font-mono); font-size: 0.72rem; padding: 6px 12px; border-radius: 12px; border: 1px solid var(--border); background: var(--bg-surface); color: var(--ink-muted); cursor: pointer; text-decoration: none; transition: all 0.15s; }
+.mn-pill:hover { border-color: var(--accent); color: var(--accent); }
+.mn-pill.active { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+
+/* Cards */
+.mn-card { background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 22px 24px; margin-bottom: var(--s-md); }
+.mn-card.tinted { background: var(--accent-dim); border-color: var(--accent-light); }
+.mn-card.green { background: #F0FDF4; border-color: #BBF7D0; }
+.mn-card .lbl { font-family: var(--font-display); font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--accent); margin-bottom: 10px; }
+.mn-card.green .lbl { color: #16A34A; }
+
+/* Formula display */
+.mn-formula {
+  font-family: var(--font-mono);
+  font-size: 1.45rem;
+  font-weight: 600;
+  text-align: center;
+  padding: 22px 16px;
+  background: var(--bg-recessed);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  letter-spacing: 0.02em;
+}
+.mn-formula .accent { color: var(--accent); }
+.mn-formula .sub { display: block; font-size: 0.78rem; font-family: var(--font-body); color: var(--ink-muted); margin-top: 8px; font-weight: 400; letter-spacing: 0; }
+
+/* Calculator grid */
+.mn-calc-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s-md); }
+@media (max-width: 700px) { .mn-calc-grid { grid-template-columns: 1fr; } }
+.mn-input-block { display: flex; flex-direction: column; gap: 8px; }
+.mn-input-block label { font-family: var(--font-display); font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-muted); }
+.mn-input { font-family: var(--font-mono); font-size: 1.05rem; padding: 12px 14px; border: 2px solid var(--border); border-radius: var(--radius); background: var(--bg-surface); width: 100%; transition: border-color 0.15s; color: var(--ink); }
+.mn-input:focus { border-color: var(--accent); outline: none; }
+.mn-output { font-family: var(--font-mono); font-size: 1.6rem; font-weight: 700; color: var(--accent); padding: 12px 14px; border-radius: var(--radius); background: var(--accent-dim); min-height: 56px; display: flex; align-items: center; justify-content: center; transition: all 0.25s var(--ease-out); }
+.mn-output.flash { animation: mnpulse 0.4s var(--ease-out); }
+@keyframes mnpulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.04); background: var(--accent-light); }
+  100% { transform: scale(1); }
+}
+
+/* Preset chip row */
+.mn-presets { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
+.mn-preset { font-family: var(--font-mono); font-size: 0.78rem; padding: 5px 11px; border-radius: 12px; border: 1px solid var(--border); background: var(--bg-surface); cursor: pointer; transition: all 0.15s; color: var(--ink-secondary); }
+.mn-preset:hover { border-color: var(--accent); color: var(--accent); }
+.mn-preset.active { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+
+/* Mask anatomy row */
+.mn-anatomy { display: flex; gap: 6px; align-items: stretch; justify-content: center; flex-wrap: wrap; margin: 20px 0; }
+.mn-octet { flex: 1; min-width: 130px; max-width: 200px; padding: 14px 12px; background: var(--bg-surface); border: 2px solid var(--border); border-radius: var(--radius-lg); text-align: center; transition: all 0.3s var(--ease-out); }
+.mn-octet.zero { background: var(--bg-recessed); color: var(--ink-muted); }
+.mn-octet.full { background: #EFF6FF; border-color: #BFDBFE; color: #2563EB; }
+.mn-octet.interesting { background: var(--accent-dim); border-color: var(--accent); transform: scale(1.05); box-shadow: 0 6px 16px rgba(180,83,9,0.12); }
+.mn-octet .o-num { font-family: var(--font-mono); font-size: 1.8rem; font-weight: 700; line-height: 1; }
+.mn-octet .o-label { font-family: var(--font-display); font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.08em; margin-top: 6px; opacity: 0.75; }
+.mn-octet.interesting .o-label { color: var(--accent); opacity: 1; font-weight: 700; }
+.mn-octdot { display: flex; align-items: center; font-family: var(--font-mono); font-size: 1.6rem; color: var(--ink-muted); padding: 0 4px; }
+
+/* Steps */
+.mn-steps { list-style: none; counter-reset: mnstep; padding: 0; margin: 0; }
+.mn-step { display: flex; gap: 16px; padding: 18px 0; border-bottom: 1px solid var(--border); opacity: 0.35; transition: opacity 0.4s var(--ease-out); }
+.mn-step.on { opacity: 1; }
+.mn-step:last-child { border-bottom: none; }
+.mn-stepnum { counter-increment: mnstep; flex-shrink: 0; width: 36px; height: 36px; border-radius: 50%; background: var(--bg-recessed); color: var(--ink-muted); display: flex; align-items: center; justify-content: center; font-family: var(--font-display); font-size: 0.85rem; font-weight: 700; transition: all 0.3s; }
+.mn-stepnum::before { content: counter(mnstep); }
+.mn-step.on .mn-stepnum { background: var(--accent); color: #fff; }
+.mn-stepbody { flex: 1; }
+.mn-stepbody h4 { font-family: var(--font-display); font-size: 1rem; font-weight: 600; margin-bottom: 4px; margin-top: 0; padding-bottom: 0; border: none; }
+.mn-stepbody p { font-size: 0.95rem; color: var(--ink-secondary); max-width: none; margin-bottom: 4px; }
+.mn-stepmath { font-family: var(--font-mono); font-size: 0.92rem; margin-top: 8px; padding: 8px 12px; border-radius: var(--radius); background: var(--bg-recessed); display: inline-block; }
+.mn-stepmath .v { color: var(--accent); font-weight: 700; }
+
+.mn-controls { display: flex; gap: 8px; margin-top: var(--s-md); }
+.mn-btn { font-family: var(--font-display); font-size: 0.82rem; font-weight: 600; padding: 10px 18px; border-radius: var(--radius); border: 1px solid var(--ink); background: var(--ink); color: var(--bg); cursor: pointer; transition: all 0.15s; }
+.mn-btn:hover { background: #44403C; border-color: #44403C; }
+.mn-btn.ghost { background: transparent; color: var(--ink); }
+.mn-btn.ghost:hover { background: var(--ink); color: var(--bg); }
+.mn-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* Subnet ladder */
+.mn-ladder { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 4px; margin: var(--s-md) 0; }
+.mn-rung { padding: 12px 8px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg-surface); text-align: center; font-family: var(--font-mono); font-size: 0.85rem; font-weight: 600; transition: all 0.3s var(--ease-out); }
+.mn-rung .range { display: block; font-size: 0.7rem; color: var(--ink-muted); margin-top: 4px; font-weight: 400; }
+.mn-rung.match { background: #16A34A; border-color: #16A34A; color: #fff; transform: scale(1.04); box-shadow: 0 4px 12px rgba(22,163,74,0.25); }
+.mn-rung.match .range { color: rgba(255,255,255,0.85); }
+
+/* Result tags */
+.mn-tags { display: flex; gap: 10px; flex-wrap: wrap; margin-top: var(--s-md); }
+.mn-tag { font-family: var(--font-mono); font-size: 0.85rem; font-weight: 600; padding: 8px 14px; border-radius: var(--radius); display: inline-flex; flex-direction: column; gap: 2px; }
+.mn-tag .t-label { font-family: var(--font-display); font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.06em; opacity: 0.75; font-weight: 600; }
+.mn-tag.subnet { background: #2563EB; color: #fff; }
+.mn-tag.broadcast { background: #DC2626; color: #fff; }
+.mn-tag.first { background: #16A34A; color: #fff; }
+.mn-tag.last { background: #15803D; color: #fff; }
+.mn-tag.hosts { background: var(--ink); color: var(--bg); }
+
+/* Practice */
+.mn-q { font-family: var(--font-body); font-size: 1.05rem; line-height: 1.7; margin-bottom: var(--s-md); }
+.mn-q code { font-family: var(--font-mono); background: var(--bg-recessed); padding: 2px 8px; border-radius: 4px; font-size: 0.95em; color: var(--ink); }
+.mn-q-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+@media (max-width: 600px) { .mn-q-grid { grid-template-columns: 1fr; } }
+.mn-q-row { display: flex; flex-direction: column; gap: 4px; }
+.mn-q-row label { font-family: var(--font-display); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-muted); }
+.mn-fb { margin-top: var(--s-md); padding: 12px 16px; border-radius: var(--radius); font-family: var(--font-mono); font-size: 0.92rem; display: none; }
+.mn-fb.right { display: block; background: #F0FDF4; color: #16A34A; border: 1px solid #BBF7D0; }
+.mn-fb.wrong { display: block; background: #FEF2F2; color: #DC2626; border: 1px solid #FECACA; }
+.mn-score { font-family: var(--font-mono); font-size: 0.85rem; color: var(--ink-muted); margin-top: 8px; }
+
+/* Cheat */
+.mn-cheat { width: 100%; border-collapse: collapse; font-family: var(--font-mono); font-size: 0.85rem; }
+.mn-cheat th { font-family: var(--font-display); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-muted); font-weight: 600; padding: 10px 12px; text-align: left; border-bottom: 2px solid var(--rule); }
+.mn-cheat td { padding: 8px 12px; border-bottom: 1px solid var(--border); }
+.mn-cheat tr:hover td { background: var(--bg-recessed); }
+.mn-cheat .mc { color: #2563EB; font-weight: 700; }
+.mn-cheat .magic { color: var(--accent); font-weight: 700; }
+
+/* Reveal */
+.mn-reveal { opacity: 0; transform: translateY(18px); transition: opacity 0.6s var(--ease-out), transform 0.6s var(--ease-out); }
+.mn-reveal.visible { opacity: 1; transform: translateY(0); }
+
+@media (prefers-reduced-motion: reduce) {
+  .mn-reveal, .mn-step, .mn-output, .mn-rung, .mn-octet { transition: none; transform: none; }
+  @keyframes mnpulse { 0%,100% { transform: none; } }
+}
+
+/* Footer */
+.mn-foot { margin-top: var(--s-2xl); padding-top: var(--s-lg); border-top: 1px solid var(--rule); font-family: var(--font-display); font-size: 0.78rem; color: var(--ink-muted); }
+.mn-foot a { color: var(--accent); text-decoration: none; }
+.mn-foot a:hover { text-decoration: underline; }
+</style>
+</head>
+
+<body>
+<div class="container-wide">
+
+<nav class="top-nav" id="main-nav"></nav>
+
+<!-- ─────────── HERO ─────────── -->
+<header class="mn-hero">
+  <div class="mn-kicker">The Messer Method · CCNA / Net+ Subnetting</div>
+  <h1>The <span class="em">magic number</span> turns subnetting into arithmetic.</h1>
+  <p class="lede">
+    Professor Messer's shortcut. No binary math. No conversion table. Just one subtraction,
+    one multiplication, and a column of numbers. Every subnet ID, broadcast, and host range
+    falls out in seconds — once you see the pattern.
+  </p>
+  <div class="meta">
+    <span>Method by <a href="https://www.professormesser.com/network-plus/n10-009/n10-009-video/magic-number-subnetting-n10-009/" target="_blank" rel="noopener">Professor Messer (N10-009 · 1.7)</a></span>
+    <span>·</span>
+    <span>Interactive explainer · CCNA prep</span>
+  </div>
+</header>
+
+<nav class="mn-snav">
+  <a href="#idea" class="mn-pill">Idea</a>
+  <a href="#anatomy" class="mn-pill">Mask anatomy</a>
+  <a href="#formula" class="mn-pill">Formula</a>
+  <a href="#walkthrough" class="mn-pill">Walkthrough</a>
+  <a href="#ladder" class="mn-pill">Ladder</a>
+  <a href="#solver" class="mn-pill">Solver</a>
+  <a href="#practice" class="mn-pill">Practice</a>
+  <a href="#cheat" class="mn-pill">Cheat card</a>
+</nav>
+
+<!-- ─────────── 1. THE IDEA ─────────── -->
+<section class="mn-section" id="idea">
+  <div class="mn-section-num">01</div>
+  <h2>The idea, in one breath</h2>
+  <p class="deck">
+    A subnet mask only ever has <em>one</em> octet doing real work. Find that octet,
+    subtract it from 256, and you've got a number that tells you exactly how big each
+    subnet is and where every boundary sits.
+  </p>
+
+  <div class="mn-card tinted mn-reveal">
+    <div class="lbl">Why it works</div>
+    <p style="margin-bottom:10px; max-width:none;">
+      A mask octet is either <strong>255</strong> (all network bits, frozen),
+      <strong>0</strong> (all host bits, free), or <strong>something in between</strong> —
+      that "in between" octet is where the network is sliced.
+    </p>
+    <p style="max-width:none;">
+      <strong>256 − that octet = the magic number.</strong> It's the size of one subnet
+      block, measured in the same octet. Walk up the column in jumps of that size and
+      you hit every subnet ID in the network.
+    </p>
+  </div>
+</section>
+
+<!-- ─────────── 2. MASK ANATOMY ─────────── -->
+<section class="mn-section" id="anatomy">
+  <div class="mn-section-num">02</div>
+  <h2>Find the interesting octet</h2>
+  <p class="deck">
+    The "interesting" octet is the one that's neither 0 nor 255. Click any preset to
+    watch it light up.
+  </p>
+
+  <div class="mn-card">
+    <div class="mn-presets" style="margin-bottom:14px">
+      <button class="mn-preset" data-mask="255.255.255.192">/26 · 255.255.255.192</button>
+      <button class="mn-preset active" data-mask="255.255.255.224">/27 · 255.255.255.224</button>
+      <button class="mn-preset" data-mask="255.255.255.240">/28 · 255.255.255.240</button>
+      <button class="mn-preset" data-mask="255.255.255.248">/29 · 255.255.255.248</button>
+      <button class="mn-preset" data-mask="255.255.240.0">/20 · 255.255.240.0</button>
+      <button class="mn-preset" data-mask="255.255.192.0">/18 · 255.255.192.0</button>
+    </div>
+
+    <div class="mn-anatomy" id="anatomy-row"></div>
+
+    <div class="mn-formula" style="margin-top:18px">
+      Magic number = <span class="accent">256</span> − <span id="ana-octet">224</span> = <span class="accent" id="ana-magic">32</span>
+      <span class="sub">block size, measured in the interesting octet</span>
+    </div>
+  </div>
+</section>
+
+<!-- ─────────── 3. FORMULA / CALCULATOR ─────────── -->
+<section class="mn-section" id="formula">
+  <div class="mn-section-num">03</div>
+  <h2>Type a mask, get the magic number</h2>
+  <p class="deck">
+    Try any subnet mask. Drop in the CIDR or full dotted-decimal — the calculator finds
+    the interesting octet and runs the subtraction for you.
+  </p>
+
+  <div class="mn-card">
+    <div class="mn-calc-grid">
+      <div class="mn-input-block">
+        <label for="calc-mask">Mask (CIDR or dotted)</label>
+        <input type="text" class="mn-input" id="calc-mask" value="/27" placeholder="/27 or 255.255.255.224">
+        <div class="mn-presets">
+          <button class="mn-preset" data-cidr="/24">/24</button>
+          <button class="mn-preset" data-cidr="/25">/25</button>
+          <button class="mn-preset" data-cidr="/26">/26</button>
+          <button class="mn-preset" data-cidr="/27">/27</button>
+          <button class="mn-preset" data-cidr="/28">/28</button>
+          <button class="mn-preset" data-cidr="/29">/29</button>
+          <button class="mn-preset" data-cidr="/20">/20</button>
+          <button class="mn-preset" data-cidr="/19">/19</button>
+        </div>
+      </div>
+
+      <div class="mn-input-block">
+        <label>Magic number</label>
+        <div class="mn-output" id="calc-magic">32</div>
+        <div style="font-family:var(--font-mono); font-size:0.82rem; color:var(--ink-muted); margin-top:6px;">
+          <span id="calc-explain">Interesting octet: <strong>224</strong> &nbsp;·&nbsp; 256 − 224 = 32</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ─────────── 4. WALKTHROUGH ─────────── -->
+<section class="mn-section" id="walkthrough">
+  <div class="mn-section-num">04</div>
+  <h2>Messer's worked example</h2>
+  <p class="deck">
+    Given <code style="font-family:var(--font-mono); background:var(--bg-recessed); padding:2px 8px; border-radius:4px;">192.168.1.0/24</code>,
+    design a subnet scheme supporting <strong>at least 40 devices per subnet</strong>.
+    Step through the method as Messer teaches it.
+  </p>
+
+  <div class="mn-card">
+    <ol class="mn-steps" id="steps">
+
+      <li class="mn-step on">
+        <div class="mn-stepnum"></div>
+        <div class="mn-stepbody">
+          <h4>Count the host bits you need</h4>
+          <p>40 usable devices means we need at least 40 + 2 (network + broadcast) = 42 addresses.</p>
+          <div class="mn-stepmath">2<sup>5</sup> = 32 (too small) &nbsp;·&nbsp; 2<sup>6</sup> = <span class="v">64</span> ✓</div>
+          <p style="margin-top:6px">Six host bits gives 64 addresses, 62 usable. Plenty.</p>
+        </div>
+      </li>
+
+      <li class="mn-step">
+        <div class="mn-stepnum"></div>
+        <div class="mn-stepbody">
+          <h4>Borrow the rest for the network</h4>
+          <p>32 total bits − 6 host bits = <strong>26 network bits</strong>. New mask: <strong>/26</strong>.</p>
+          <div class="mn-stepmath">/26 → 255.255.255.<span class="v">192</span></div>
+        </div>
+      </li>
+
+      <li class="mn-step">
+        <div class="mn-stepnum"></div>
+        <div class="mn-stepbody">
+          <h4>Identify the interesting octet</h4>
+          <p>The fourth octet is neither 0 nor 255. <strong>192</strong> is the interesting octet.</p>
+        </div>
+      </li>
+
+      <li class="mn-step">
+        <div class="mn-stepnum"></div>
+        <div class="mn-stepbody">
+          <h4>Run the magic number</h4>
+          <div class="mn-stepmath">256 − <span class="v">192</span> = <span class="v">64</span></div>
+          <p style="margin-top:6px">Each subnet is 64 addresses wide in the fourth octet.</p>
+        </div>
+      </li>
+
+      <li class="mn-step">
+        <div class="mn-stepnum"></div>
+        <div class="mn-stepbody">
+          <h4>Walk the subnet IDs</h4>
+          <p>Start at 0, jump by the magic number until you hit 256.</p>
+          <div class="mn-stepmath">192.168.1.<span class="v">0</span> · <span class="v">64</span> · <span class="v">128</span> · <span class="v">192</span></div>
+          <p style="margin-top:6px">Four subnets, each holding 62 usable hosts. Done — no binary required.</p>
+        </div>
+      </li>
+
+      <li class="mn-step">
+        <div class="mn-stepnum"></div>
+        <div class="mn-stepbody">
+          <h4>Read the boundaries off the column</h4>
+          <div class="mn-tags">
+            <span class="mn-tag subnet"><span class="t-label">Subnet ID</span>192.168.1.64</span>
+            <span class="mn-tag first"><span class="t-label">First host</span>.65</span>
+            <span class="mn-tag last"><span class="t-label">Last host</span>.126</span>
+            <span class="mn-tag broadcast"><span class="t-label">Broadcast</span>.127</span>
+          </div>
+          <p style="margin-top:10px; font-size:0.92rem; color:var(--ink-secondary)">
+            Broadcast = next subnet ID − 1. First/last host = subnet ID + 1 / broadcast − 1.
+          </p>
+        </div>
+      </li>
+    </ol>
+
+    <div class="mn-controls">
+      <button class="mn-btn ghost" id="step-reset">Reset</button>
+      <button class="mn-btn" id="step-next">Next step →</button>
+    </div>
+  </div>
+</section>
+
+<!-- ─────────── 5. SUBNET LADDER ─────────── -->
+<section class="mn-section" id="ladder">
+  <div class="mn-section-num">05</div>
+  <h2>The subnet ladder</h2>
+  <p class="deck">
+    Watch the magic number stamp out subnets across the range. Pick a mask — every subnet
+    ID is just <em>magic × n</em>, and the broadcast is one short of the next rung.
+  </p>
+
+  <div class="mn-card">
+    <div class="mn-presets" style="margin-bottom:14px">
+      <button class="mn-preset" data-ladder="/25">/25 · magic 128</button>
+      <button class="mn-preset active" data-ladder="/26">/26 · magic 64</button>
+      <button class="mn-preset" data-ladder="/27">/27 · magic 32</button>
+      <button class="mn-preset" data-ladder="/28">/28 · magic 16</button>
+      <button class="mn-preset" data-ladder="/29">/29 · magic 8</button>
+      <button class="mn-preset" data-ladder="/30">/30 · magic 4</button>
+    </div>
+    <div class="mn-ladder" id="ladder"></div>
+    <p style="font-family:var(--font-mono); font-size:0.82rem; color:var(--ink-muted); text-align:center; margin-top:8px;">
+      Each rung = one subnet · range = subnet ID through (next − 1)
+    </p>
+  </div>
+</section>
+
+<!-- ─────────── 6. SOLVER ─────────── -->
+<section class="mn-section" id="solver">
+  <div class="mn-section-num">06</div>
+  <h2>Find any host's subnet</h2>
+  <p class="deck">
+    Drop in any IP and mask. The solver finds the interesting octet, computes the magic
+    number, and walks the column until it lands on the subnet your host belongs to.
+  </p>
+
+  <div class="mn-card">
+    <div class="mn-calc-grid">
+      <div class="mn-input-block">
+        <label for="solv-ip">Host IP</label>
+        <input type="text" class="mn-input" id="solv-ip" value="172.16.45.218">
+      </div>
+      <div class="mn-input-block">
+        <label for="solv-mask">Mask</label>
+        <input type="text" class="mn-input" id="solv-mask" value="/22">
+      </div>
+    </div>
+
+    <div id="solv-output" style="margin-top:var(--s-md)"></div>
+  </div>
+</section>
+
+<!-- ─────────── 7. PRACTICE ─────────── -->
+<section class="mn-section" id="practice">
+  <div class="mn-section-num">07</div>
+  <h2>Drill it</h2>
+  <p class="deck">
+    Random magic-number problems. Aim for &lt;15 seconds each. The exam doesn't give
+    you a calculator, but it does give you scratch paper.
+  </p>
+
+  <div class="mn-card">
+    <div class="mn-q" id="q-prompt">Loading…</div>
+
+    <div class="mn-q-grid">
+      <div class="mn-q-row">
+        <label>Subnet ID</label>
+        <input type="text" class="mn-input" id="q-subnet" placeholder="e.g. 10.0.32.0">
+      </div>
+      <div class="mn-q-row">
+        <label>Broadcast</label>
+        <input type="text" class="mn-input" id="q-broadcast" placeholder="e.g. 10.0.63.255">
+      </div>
+    </div>
+
+    <div class="mn-controls">
+      <button class="mn-btn" id="q-check">Check</button>
+      <button class="mn-btn ghost" id="q-skip">Skip / new question</button>
+      <button class="mn-btn ghost" id="q-show">Show answer</button>
+    </div>
+
+    <div class="mn-fb" id="q-feedback"></div>
+    <div class="mn-score" id="q-score">Score: 0 / 0</div>
+  </div>
+</section>
+
+<!-- ─────────── 8. CHEAT CARD ─────────── -->
+<section class="mn-section" id="cheat">
+  <div class="mn-section-num">08</div>
+  <h2>Cheat card</h2>
+  <p class="deck">
+    Print this. Tape it inside a notebook. Eight rows, every prefix you'll see on the exam.
+  </p>
+
+  <div class="mn-card">
+    <table class="mn-cheat">
+      <thead>
+        <tr>
+          <th>CIDR</th>
+          <th>Mask</th>
+          <th>Interesting octet</th>
+          <th>Magic #</th>
+          <th>Hosts / subnet</th>
+          <th>Subnets / class C</th>
+        </tr>
+      </thead>
+      <tbody id="cheat-body"></tbody>
+    </table>
+  </div>
+
+  <div class="mn-card green" style="margin-top:var(--s-md)">
+    <div class="lbl">The four lines you'll write on scratch paper</div>
+    <ol style="font-family:var(--font-body); font-size:1rem; line-height:1.9; padding-left:24px;">
+      <li>Mask in dotted decimal — circle the octet that isn't 0 or 255.</li>
+      <li>Magic number = 256 − that octet.</li>
+      <li>Walk the column: 0, +magic, +magic, +magic … stop at 256.</li>
+      <li>Subnet your host is in = largest column number ≤ host's interesting octet.</li>
+    </ol>
+  </div>
+</section>
+
+<footer class="mn-foot">
+  Method © <a href="https://www.professormesser.com/" target="_blank" rel="noopener">Professor Messer</a> ·
+  Original video: <a href="https://www.professormesser.com/network-plus/n10-009/n10-009-video/magic-number-subnetting-n10-009/" target="_blank" rel="noopener">N10-009 · 1.7 — Magic Number Subnetting</a> ·
+  Companion: <a href="https://www.professormesser.com/network-plus/n10-009/n10-009-video/seven-second-subnetting-n10-009/" target="_blank" rel="noopener">Seven-Second Subnetting</a> ·
+  Interactive explainer for CCNA / Net+ prep
+</footer>
+
+</div><!-- /container-wide -->
+
+<script defer src="js/nav.js"></script>
+<script defer src="js/group-chat.js?v=4"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+
+// ── Helpers ──────────────────────────────────────────────────
+const cidrToMask = (cidr) => {
+  const n = +cidr.replace('/', '');
+  const oct = [0,0,0,0];
+  let bits = n;
+  for (let i = 0; i < 4; i++) {
+    if (bits >= 8) { oct[i] = 255; bits -= 8; }
+    else if (bits > 0) { oct[i] = 256 - Math.pow(2, 8 - bits); bits = 0; }
+  }
+  return oct;
+};
+
+const parseMask = (raw) => {
+  raw = String(raw || '').trim();
+  if (raw.startsWith('/')) {
+    const n = +raw.slice(1);
+    if (isNaN(n) || n < 1 || n > 32) return null;
+    return { cidr: n, octets: cidrToMask('/' + n) };
+  }
+  const parts = raw.split('.').map(Number);
+  if (parts.length !== 4 || parts.some(p => isNaN(p) || p < 0 || p > 255)) return null;
+  let cidr = 0;
+  for (const p of parts) cidr += (p.toString(2).match(/1/g) || []).length;
+  return { cidr, octets: parts };
+};
+
+const parseIP = (raw) => {
+  const parts = String(raw || '').trim().split('.').map(Number);
+  if (parts.length !== 4 || parts.some(p => isNaN(p) || p < 0 || p > 255)) return null;
+  return parts;
+};
+
+const findInteresting = (octets) => {
+  for (let i = 0; i < 4; i++) if (octets[i] !== 0 && octets[i] !== 255) return i;
+  return octets.lastIndexOf(255);
+};
+
+const computeMagic = (octets) => {
+  for (let i = 0; i < 4; i++) if (octets[i] !== 0 && octets[i] !== 255) return 256 - octets[i];
+  return 256;
+};
+
+// ── Section 02: Mask anatomy ─────────────────────────────────
+const renderAnatomy = (maskStr) => {
+  const parts = maskStr.split('.').map(Number);
+  const idx = findInteresting(parts);
+  const row = document.getElementById('anatomy-row');
+  row.innerHTML = '';
+  parts.forEach((v, i) => {
+    const card = document.createElement('div');
+    let cls = 'mn-octet'; let label = '';
+    if (v === 0) { cls += ' zero'; label = 'host'; }
+    else if (v === 255) { cls += ' full'; label = 'network'; }
+    if (i === idx && v !== 0 && v !== 255) { cls += ' interesting'; label = 'interesting'; }
+    card.className = cls;
+    card.innerHTML = `<div class="o-num">${v}</div><div class="o-label">${label}</div>`;
+    row.appendChild(card);
+    if (i < 3) {
+      const dot = document.createElement('div');
+      dot.className = 'mn-octdot'; dot.textContent = '·';
+      row.appendChild(dot);
+    }
+  });
+  const v = parts[idx];
+  const magic = (v === 0 || v === 255) ? 256 : 256 - v;
+  document.getElementById('ana-octet').textContent = (v === 255 || v === 0) ? '256 (octet boundary)' : v;
+  document.getElementById('ana-magic').textContent = magic;
+};
+
+document.querySelectorAll('[data-mask]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('[data-mask]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    renderAnatomy(btn.dataset.mask);
+  });
+});
+renderAnatomy('255.255.255.224');
+
+// ── Section 03: Calculator ───────────────────────────────────
+const calcInput = document.getElementById('calc-mask');
+const calcMagic = document.getElementById('calc-magic');
+const calcExplain = document.getElementById('calc-explain');
+
+const updateCalc = () => {
+  const m = parseMask(calcInput.value);
+  if (!m) {
+    calcMagic.textContent = '—';
+    calcExplain.textContent = 'Enter a CIDR like /27 or a dotted mask like 255.255.255.224';
+    return;
+  }
+  const idx = findInteresting(m.octets);
+  const v = m.octets[idx];
+  let magic;
+  if (v === 0 || v === 255) {
+    magic = 256;
+    calcExplain.innerHTML = `Mask falls on an octet boundary · whole-octet magic = <strong>256</strong>`;
+  } else {
+    magic = 256 - v;
+    const octName = ['1st','2nd','3rd','4th'][idx];
+    calcExplain.innerHTML = `Interesting octet (${octName}): <strong>${v}</strong> &nbsp;·&nbsp; 256 − ${v} = <strong>${magic}</strong>`;
+  }
+  calcMagic.textContent = magic;
+  calcMagic.classList.remove('flash');
+  void calcMagic.offsetWidth;
+  calcMagic.classList.add('flash');
+};
+
+calcInput.addEventListener('input', updateCalc);
+document.querySelectorAll('[data-cidr]').forEach(btn => {
+  btn.addEventListener('click', () => { calcInput.value = btn.dataset.cidr; updateCalc(); });
+});
+updateCalc();
+
+// ── Section 04: Walkthrough stepper ──────────────────────────
+let currentStep = 0;
+const steps = document.querySelectorAll('#steps .mn-step');
+const updateSteps = () => {
+  steps.forEach((s, i) => s.classList.toggle('on', i <= currentStep));
+  document.getElementById('step-next').disabled = currentStep >= steps.length - 1;
+};
+document.getElementById('step-next').addEventListener('click', () => {
+  if (currentStep < steps.length - 1) {
+    currentStep++; updateSteps();
+    steps[currentStep].scrollIntoView({behavior:'smooth', block:'center'});
+  }
+});
+document.getElementById('step-reset').addEventListener('click', () => {
+  currentStep = 0; updateSteps();
+  document.getElementById('walkthrough').scrollIntoView({behavior:'smooth', block:'start'});
+});
+
+// ── Section 05: Ladder ───────────────────────────────────────
+const renderLadder = (cidr) => {
+  const m = parseMask(cidr);
+  const magic = computeMagic(m.octets);
+  const ladder = document.getElementById('ladder');
+  ladder.innerHTML = '';
+  const useThird = m.cidr <= 24;
+  const subnetCount = Math.min(256 / magic, 16);
+  for (let i = 0; i < subnetCount; i++) {
+    const id = i * magic;
+    const next = (i + 1) * magic;
+    const broadcast = next - 1;
+    const rung = document.createElement('div');
+    rung.className = 'mn-rung';
+    const ipBase = useThird ? `10.0.${id}.0` : `192.168.1.${id}`;
+    const ipBcast = useThird ? `10.0.${broadcast}.255` : `192.168.1.${broadcast}`;
+    rung.innerHTML = `${ipBase}<span class="range">→ ${ipBcast}</span>`;
+    ladder.appendChild(rung);
+  }
+};
+
+document.querySelectorAll('[data-ladder]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('[data-ladder]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    renderLadder(btn.dataset.ladder);
+  });
+});
+renderLadder('/26');
+
+// ── Section 06: Solver ───────────────────────────────────────
+const solve = (ipStr, maskStr) => {
+  const ip = parseIP(ipStr);
+  const m = parseMask(maskStr);
+  if (!ip || !m) return null;
+
+  const idx = findInteresting(m.octets);
+  const v = m.octets[idx];
+  if (v === 0 || v === 255) {
+    const subnet = [...ip];
+    const startZero = (v === 255 ? idx + 1 : idx);
+    for (let i = startZero; i < 4; i++) subnet[i] = 0;
+    const bcast = [...subnet];
+    for (let i = startZero; i < 4; i++) bcast[i] = 255;
+    return {
+      ip, mask: m, magic: 'whole-octet', interestingIdx: idx, interestingVal: v,
+      subnet, broadcast: bcast,
+      first: [...subnet.slice(0,3), Math.min(255, subnet[3]+1)],
+      last: [...bcast.slice(0,3), Math.max(0, bcast[3]-1)],
+      hosts: m.cidr === 32 ? 1 : (m.cidr === 31 ? 2 : Math.pow(2, 32 - m.cidr) - 2),
+      column: null
+    };
+  }
+
+  const magic = 256 - v;
+  const hostV = ip[idx];
+  const subnetV = Math.floor(hostV / magic) * magic;
+  const broadcastV = subnetV + magic - 1;
+
+  const subnet = [...ip]; subnet[idx] = subnetV;
+  for (let i = idx + 1; i < 4; i++) subnet[i] = 0;
+  const bcast = [...ip]; bcast[idx] = broadcastV;
+  for (let i = idx + 1; i < 4; i++) bcast[i] = 255;
+
+  const first = [...subnet]; first[3] += 1;
+  const last = [...bcast]; last[3] -= 1;
+
+  const column = [];
+  for (let n = 0; n < 256; n += magic) column.push(n);
+
+  return {
+    ip, mask: m, magic, interestingIdx: idx, interestingVal: v,
+    subnet, broadcast: bcast, first, last,
+    hosts: Math.pow(2, 32 - m.cidr) - 2,
+    column, columnHit: subnetV
+  };
+};
+
+const fmt = (a) => a.join('.');
+const renderSolverOutput = (result) => {
+  const out = document.getElementById('solv-output');
+  if (!result) {
+    out.innerHTML = `<div style="color:#DC2626; font-family:var(--font-mono); padding:12px;">Invalid IP or mask</div>`;
+    return;
+  }
+  let columnHTML = '';
+  if (result.column) {
+    columnHTML = `<div style="margin-top:14px"><div style="font-family:var(--font-display); font-size:0.72rem; text-transform:uppercase; letter-spacing:0.06em; color:var(--ink-muted); margin-bottom:8px;">The column · jumps of ${result.magic}</div><div class="mn-ladder">${
+      result.column.map(n => `<div class="mn-rung ${n === result.columnHit ? 'match' : ''}">${n}<span class="range">${n === result.columnHit ? 'host lives here' : '—'}</span></div>`).join('')
+    }</div></div>`;
+  }
+  out.innerHTML = `
+    <div class="mn-formula" style="margin-bottom:14px">
+      Interesting octet [<span class="accent">${['1st','2nd','3rd','4th'][result.interestingIdx]}</span>] = ${result.interestingVal}
+      &nbsp;·&nbsp; Magic = <span class="accent">${result.magic}</span>
+    </div>
+    <div class="mn-tags">
+      <span class="mn-tag subnet"><span class="t-label">Subnet ID</span>${fmt(result.subnet)}</span>
+      <span class="mn-tag first"><span class="t-label">First host</span>${fmt(result.first)}</span>
+      <span class="mn-tag last"><span class="t-label">Last host</span>${fmt(result.last)}</span>
+      <span class="mn-tag broadcast"><span class="t-label">Broadcast</span>${fmt(result.broadcast)}</span>
+      <span class="mn-tag hosts"><span class="t-label">Usable hosts</span>${result.hosts.toLocaleString()}</span>
+    </div>
+    ${columnHTML}
+  `;
+};
+
+const updateSolver = () => {
+  renderSolverOutput(solve(
+    document.getElementById('solv-ip').value,
+    document.getElementById('solv-mask').value
+  ));
+};
+document.getElementById('solv-ip').addEventListener('input', updateSolver);
+document.getElementById('solv-mask').addEventListener('input', updateSolver);
+updateSolver();
+
+// ── Section 07: Practice ─────────────────────────────────────
+let qScore = { right: 0, total: 0 };
+let qCurrent = null;
+
+const newQuestion = () => {
+  const cidrPool = [22, 23, 24, 25, 26, 27, 28, 29];
+  const cidr = cidrPool[Math.floor(Math.random() * cidrPool.length)];
+  const m = parseMask('/' + cidr);
+  const bases = [
+    () => [10, Math.floor(Math.random()*256), Math.floor(Math.random()*256), Math.floor(Math.random()*256)],
+    () => [172, 16 + Math.floor(Math.random()*16), Math.floor(Math.random()*256), Math.floor(Math.random()*256)],
+    () => [192, 168, Math.floor(Math.random()*256), Math.floor(Math.random()*256)]
+  ];
+  const ip = bases[Math.floor(Math.random()*bases.length)]();
+  qCurrent = solve(ip.join('.'), '/' + cidr);
+  document.getElementById('q-prompt').innerHTML =
+    `Host <code>${ip.join('.')}</code> with mask <code>/${cidr}</code> (${m.octets.join('.')}). What's the subnet ID and broadcast?`;
+  document.getElementById('q-subnet').value = '';
+  document.getElementById('q-broadcast').value = '';
+  document.getElementById('q-feedback').className = 'mn-fb';
+};
+
+document.getElementById('q-check').addEventListener('click', () => {
+  if (!qCurrent) return;
+  const subAns = document.getElementById('q-subnet').value.trim();
+  const bcastAns = document.getElementById('q-broadcast').value.trim();
+  const expectedSub = qCurrent.subnet.join('.');
+  const expectedBcast = qCurrent.broadcast.join('.');
+  qScore.total++;
+  const fb = document.getElementById('q-feedback');
+  if (subAns === expectedSub && bcastAns === expectedBcast) {
+    qScore.right++;
+    fb.className = 'mn-fb right';
+    fb.textContent = `✓ Correct. Subnet ${expectedSub} · Broadcast ${expectedBcast} · Magic was ${qCurrent.magic}.`;
+  } else {
+    fb.className = 'mn-fb wrong';
+    fb.textContent = `✗ Subnet should be ${expectedSub} · Broadcast should be ${expectedBcast} · Magic = ${qCurrent.magic}`;
+  }
+  document.getElementById('q-score').textContent = `Score: ${qScore.right} / ${qScore.total}`;
+});
+
+document.getElementById('q-skip').addEventListener('click', newQuestion);
+
+document.getElementById('q-show').addEventListener('click', () => {
+  if (!qCurrent) return;
+  document.getElementById('q-subnet').value = qCurrent.subnet.join('.');
+  document.getElementById('q-broadcast').value = qCurrent.broadcast.join('.');
+  const fb = document.getElementById('q-feedback');
+  fb.className = 'mn-fb right';
+  fb.textContent = `Magic number: ${qCurrent.magic} · Walked the column to land on ${qCurrent.subnet.join('.')}`;
+});
+
+newQuestion();
+
+// ── Section 08: Cheat ────────────────────────────────────────
+const cheatRows = [
+  { cidr: '/24', mask: '255.255.255.0',   octet: 0,   magic: 256, hosts: 254, subnets: 1 },
+  { cidr: '/25', mask: '255.255.255.128', octet: 128, magic: 128, hosts: 126, subnets: 2 },
+  { cidr: '/26', mask: '255.255.255.192', octet: 192, magic: 64,  hosts: 62,  subnets: 4 },
+  { cidr: '/27', mask: '255.255.255.224', octet: 224, magic: 32,  hosts: 30,  subnets: 8 },
+  { cidr: '/28', mask: '255.255.255.240', octet: 240, magic: 16,  hosts: 14,  subnets: 16 },
+  { cidr: '/29', mask: '255.255.255.248', octet: 248, magic: 8,   hosts: 6,   subnets: 32 },
+  { cidr: '/30', mask: '255.255.255.252', octet: 252, magic: 4,   hosts: 2,   subnets: 64 },
+  { cidr: '/31', mask: '255.255.255.254', octet: 254, magic: 2,   hosts: 2,   subnets: 128 }
+];
+document.getElementById('cheat-body').innerHTML = cheatRows.map(r => `
+  <tr>
+    <td>${r.cidr}</td>
+    <td class="mc">${r.mask}</td>
+    <td>${r.octet === 0 ? '— (boundary)' : r.octet}</td>
+    <td class="magic">${r.magic}</td>
+    <td>${r.hosts}</td>
+    <td>${r.subnets}</td>
+  </tr>
+`).join('');
+
+// ── Reveals + sticky-pill active ─────────────────────────────
+const io = new IntersectionObserver((entries) => {
+  entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+}, { threshold: 0.1 });
+document.querySelectorAll('.mn-reveal').forEach(el => io.observe(el));
+
+const sections = [...document.querySelectorAll('.mn-section')];
+const pills = [...document.querySelectorAll('.mn-pill')];
+window.addEventListener('scroll', () => {
+  const y = window.scrollY + 120;
+  let active = sections[0]?.id;
+  for (const s of sections) { if (s.offsetTop <= y) active = s.id; }
+  pills.forEach(p => p.classList.toggle('active', p.getAttribute('href') === '#' + active));
+});
+
+}); // DOMContentLoaded
+</script>
+
+</body>
+</html>

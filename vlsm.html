@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#FAF7F2">
+  <title>VLSM Calculator — CCNA Study</title>
+  <meta name="description" content="VLSM subnet allocator. Input a base CIDR plus a list of host requirements; get networks, masks, wildcards, broadcast, and step-by-step math.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="icon" type="image/svg+xml" href="/CCNA-study/favicon.svg">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:wght@600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap">
+  <link rel="stylesheet" href="css/shared.css?v=4.56">
+  <style>
+    .vlsm-page { max-width: 1180px; margin: 0 auto; padding: 0 var(--s-md) var(--s-3xl); }
+    .vlsm-hero { padding: var(--s-xl) 0 var(--s-lg); border-bottom: 2px solid var(--ink); margin-bottom: var(--s-xl); }
+    .vlsm-hero h1 { font-family: var(--font-display); font-size: 2.6rem; font-weight: 700; letter-spacing: -0.04em; line-height: 1; margin-bottom: 6px; }
+    .vlsm-hero-sub { font-family: var(--font-display); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-muted); margin-bottom: var(--s-sm); }
+    .vlsm-hero p { font-family: var(--font-body); font-size: 1rem; line-height: 1.7; color: var(--ink-secondary); max-width: 70ch; }
+
+    .vlsm-grid { display: grid; grid-template-columns: 360px 1fr; gap: var(--s-xl); align-items: start; }
+    @media (max-width: 880px) { .vlsm-grid { grid-template-columns: 1fr; } }
+
+    .vlsm-panel { background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 20px; margin-bottom: var(--s-lg); }
+    .vlsm-panel h3 { font-family: var(--font-display); font-size: 0.78rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--accent); margin-bottom: 12px; }
+
+    .vlsm-field { margin-bottom: 14px; }
+    .vlsm-field label { display: block; font-family: var(--font-display); font-size: 0.78rem; font-weight: 600; color: var(--ink-secondary); margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.04em; }
+    .vlsm-input { font-family: var(--font-mono); font-size: 1rem; font-weight: 600; padding: 9px 12px; border: 2px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--ink); width: 100%; box-sizing: border-box; }
+    .vlsm-input:focus { border-color: var(--accent); outline: none; }
+    .vlsm-input.bad { border-color: #DC2626; background: #FEF2F2; }
+    .vlsm-help { font-family: var(--font-mono); font-size: 0.72rem; color: var(--ink-muted); margin-top: 4px; }
+
+    .seg-row { display: grid; grid-template-columns: 1fr 90px auto; gap: 6px; margin-bottom: 8px; }
+    .seg-list { list-style: none; padding: 0; margin: 0 0 12px; }
+    .seg-list li { display: grid; grid-template-columns: 1fr 70px auto; gap: 8px; align-items: center; padding: 6px 8px; border-radius: 6px; font-family: var(--font-mono); font-size: 0.82rem; border: 1px solid var(--border); margin-bottom: 4px; background: var(--bg); }
+    .seg-list .seg-color { width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 6px; vertical-align: middle; }
+    .seg-list .seg-hosts { color: var(--ink-muted); font-size: 0.78rem; }
+    .seg-list .seg-rm { background: transparent; border: none; cursor: pointer; color: var(--ink-muted); font-family: var(--font-display); font-size: 1rem; padding: 2px 6px; border-radius: 4px; }
+    .seg-list .seg-rm:hover { color: #DC2626; background: #FEF2F2; }
+
+    .btn { font-family: var(--font-display); font-size: 0.8rem; font-weight: 700; padding: 9px 16px; border-radius: 6px; border: none; cursor: pointer; transition: all 0.15s; }
+    .btn-primary { background: var(--ink); color: var(--bg); }
+    .btn-primary:hover { background: #44403C; transform: translateY(-1px); }
+    .btn-ghost { background: transparent; color: var(--ink); border: 1px solid var(--border-strong, var(--border)); }
+    .btn-ghost:hover { background: var(--bg-recessed); }
+    .btn-sm { font-size: 0.74rem; padding: 6px 12px; }
+
+    .preset-row { display: flex; gap: 6px; flex-wrap: wrap; }
+    .preset-btn { font-family: var(--font-display); font-size: 0.74rem; font-weight: 600; padding: 6px 12px; border-radius: 14px; border: 1px solid var(--border); background: var(--bg); cursor: pointer; transition: all 0.15s; }
+    .preset-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+
+    .results-empty { background: var(--bg-surface); border: 2px dashed var(--border); border-radius: var(--radius-lg); padding: 60px 24px; text-align: center; }
+    .results-empty h2 { font-family: var(--font-display); font-size: 1.2rem; font-weight: 700; margin-bottom: 8px; color: var(--ink-muted); }
+    .results-empty p { font-family: var(--font-body); font-size: 0.92rem; color: var(--ink-muted); }
+
+    .results-section { background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 20px; margin-bottom: var(--s-md); }
+    .results-section h3 { font-family: var(--font-display); font-size: 0.78rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--accent); margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+
+    .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: var(--s-md); }
+    @media (max-width: 720px) { .stats-grid { grid-template-columns: repeat(2, 1fr); } }
+    .stat-card { background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 14px; }
+    .stat-label { font-family: var(--font-display); font-size: 0.66rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-muted); margin-bottom: 4px; }
+    .stat-val { font-family: var(--font-mono); font-size: 1.4rem; font-weight: 700; color: var(--ink); }
+    .stat-card.warn .stat-val { color: #B45309; }
+    .stat-card.bad .stat-val { color: #DC2626; }
+
+    .alloc-bar { width: 100%; height: 56px; background: var(--bg-recessed); border-radius: 10px; overflow: hidden; display: flex; border: 2px solid var(--border); margin-bottom: 6px; position: relative; }
+    .alloc-seg { height: 100%; display: flex; align-items: center; justify-content: center; font-family: var(--font-mono); font-size: 0.7rem; font-weight: 600; color: #fff; transition: width 0.5s var(--ease-out); overflow: hidden; white-space: nowrap; padding: 0 6px; cursor: pointer; }
+    .alloc-seg:hover { filter: brightness(1.1); }
+    .alloc-seg.gap { background: repeating-linear-gradient(45deg, var(--bg-recessed), var(--bg-recessed) 6px, var(--border) 6px, var(--border) 12px); }
+    .alloc-free { height: 100%; flex: 1; display: flex; align-items: center; justify-content: center; font-family: var(--font-mono); font-size: 0.72rem; color: var(--ink-muted); }
+    .alloc-tip { font-family: var(--font-mono); font-size: 0.7rem; color: var(--ink-muted); margin-bottom: 14px; text-align: right; }
+
+    .vlsm-table { width: 100%; border-collapse: collapse; font-family: var(--font-mono); font-size: 0.82rem; }
+    .vlsm-table th { font-family: var(--font-display); font-size: 0.66rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-muted); font-weight: 600; padding: 8px 8px; text-align: left; border-bottom: 2px solid var(--rule, var(--border)); white-space: nowrap; }
+    .vlsm-table td { padding: 8px 8px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+    .vlsm-table tr.row-main { cursor: pointer; transition: background 0.15s; }
+    .vlsm-table tr.row-main:hover { background: var(--bg-recessed); }
+    .vlsm-table tr.row-main.open { background: var(--accent-dim); }
+    .vlsm-table tr.row-error td { background: #FEF2F2; color: #991B1B; }
+    .vlsm-table .row-color { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 6px; vertical-align: middle; }
+    .vlsm-table .row-name { font-family: var(--font-display); font-weight: 700; color: var(--ink); }
+    .vlsm-table .row-need { color: var(--ink-muted); }
+    .vlsm-table .row-prefix { color: var(--accent); font-weight: 700; }
+    .vlsm-table .row-wasted { color: #B45309; font-size: 0.72rem; }
+    .vlsm-table .expand-arrow { display: inline-block; transition: transform 0.2s; color: var(--ink-muted); margin-right: 4px; font-size: 0.7rem; }
+    .vlsm-table tr.row-main.open .expand-arrow { transform: rotate(90deg); }
+
+    .row-detail { background: var(--bg); }
+    .row-detail td { padding: 16px 20px; border-bottom: 1px solid var(--border); }
+    .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+    @media (max-width: 720px) { .detail-grid { grid-template-columns: 1fr; } }
+    .detail-block h4 { font-family: var(--font-display); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-muted); margin-bottom: 8px; }
+    .step { background: var(--bg-surface); border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; margin-bottom: 8px; font-family: var(--font-body); font-size: 0.86rem; line-height: 1.6; color: var(--ink-secondary); }
+    .step b { color: var(--ink); font-family: var(--font-display); }
+    .step code { font-family: var(--font-mono); background: var(--bg-recessed); padding: 1px 5px; border-radius: 3px; color: var(--ink); font-size: 0.84rem; }
+
+    .bit-ruler { display: flex; gap: 0; font-family: var(--font-mono); font-size: 0.7rem; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; background: var(--bg-surface); margin-top: 4px; }
+    .bit-cell { flex: 1; padding: 6px 0; text-align: center; border-right: 1px solid var(--border); }
+    .bit-cell:last-child { border-right: none; }
+    .bit-cell.net { background: var(--accent-dim); color: var(--accent); font-weight: 700; }
+    .bit-cell.host { background: var(--bg); color: var(--ink-muted); }
+    .bit-octet-sep { width: 2px; background: var(--ink); }
+    .bit-legend { display: flex; gap: 14px; font-family: var(--font-display); font-size: 0.7rem; color: var(--ink-muted); margin-top: 6px; }
+    .bit-swatch { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 4px; vertical-align: middle; }
+
+    .err-banner { background: #FEF2F2; border: 1px solid #FCA5A5; color: #991B1B; padding: 10px 14px; border-radius: 8px; font-family: var(--font-body); font-size: 0.88rem; margin-bottom: var(--s-md); }
+    .err-banner b { font-family: var(--font-display); }
+
+    .actions-row { display: flex; gap: 8px; flex-wrap: wrap; }
+
+    .crumb { font-family: var(--font-display); font-size: 0.72rem; color: var(--ink-muted); margin-bottom: var(--s-sm); }
+    .crumb a { color: var(--ink-muted); text-decoration: none; }
+    .crumb a:hover { color: var(--accent); }
+
+    .toast { position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%) translateY(40px); background: var(--ink); color: var(--bg); font-family: var(--font-display); font-size: 0.82rem; font-weight: 600; padding: 10px 18px; border-radius: 22px; opacity: 0; transition: all 0.3s var(--ease-out); pointer-events: none; z-index: 1100; }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  </style>
+</head>
+<body>
+  <nav class="top-nav"></nav>
+
+  <main class="vlsm-page">
+    <div class="vlsm-hero">
+      <div class="crumb"><a href="subnetting-visual.html">← Subnetting Visual Guide</a></div>
+      <div class="vlsm-hero-sub">CCNA · IPv4 Subnetting · VLSM</div>
+      <h1>VLSM Calculator</h1>
+      <p>Variable Length Subnet Masking — carve any base network into right-sized pieces. Enter a base CIDR plus a list of host requirements; this tool sorts largest-first, allocates aligned blocks, and shows the math. Click any result row to expand step-by-step reasoning and the bit ruler.</p>
+    </div>
+
+    <div class="vlsm-grid">
+      <!-- LEFT: controls -->
+      <div>
+        <div class="vlsm-panel">
+          <h3>1. Base Network</h3>
+          <div class="vlsm-field">
+            <label for="baseCidr">CIDR Notation</label>
+            <input id="baseCidr" class="vlsm-input" type="text" value="192.168.1.0/24" autocomplete="off">
+            <div class="vlsm-help">Examples: <code>10.0.0.0/8</code> &middot; <code>172.16.0.0/16</code> &middot; <code>192.168.1.0/24</code></div>
+          </div>
+          <div id="baseInfo" class="vlsm-help" style="font-family:var(--font-body);font-size:.82rem;color:var(--ink-secondary);margin-top:6px"></div>
+        </div>
+
+        <div class="vlsm-panel">
+          <h3>2. Add Segments</h3>
+          <div class="seg-row">
+            <input id="segName" class="vlsm-input" type="text" placeholder="Department / Site" autocomplete="off">
+            <input id="segHosts" class="vlsm-input" type="number" placeholder="Hosts" min="1" autocomplete="off">
+            <button class="btn btn-primary btn-sm" onclick="addSegment()">+ Add</button>
+          </div>
+          <ul id="segList" class="seg-list"></ul>
+          <div class="actions-row">
+            <button class="btn btn-ghost btn-sm" onclick="resetAll()">Reset</button>
+            <button class="btn btn-ghost btn-sm" onclick="exportCSV()">Copy CSV</button>
+          </div>
+        </div>
+
+        <div class="vlsm-panel">
+          <h3>3. Presets</h3>
+          <div class="preset-row">
+            <button class="preset-btn" onclick="loadPreset('office')">Office</button>
+            <button class="preset-btn" onclick="loadPreset('campus')">Campus</button>
+            <button class="preset-btn" onclick="loadPreset('wan')">WAN /30 mesh</button>
+            <button class="preset-btn" onclick="loadPreset('lab')">Home Lab</button>
+            <button class="preset-btn" onclick="loadPreset('exam')">Exam-style</button>
+          </div>
+        </div>
+
+        <div class="vlsm-panel" style="font-family:var(--font-body);font-size:.84rem;line-height:1.65;color:var(--ink-secondary)">
+          <h3>VLSM Rule</h3>
+          Always allocate <b>largest segment first</b>. Round host count to next power of two, then add 2 (network + broadcast). Each block must start on its own size boundary — that is what makes the network/host bit split clean.
+        </div>
+      </div>
+
+      <!-- RIGHT: results -->
+      <div>
+        <div id="errBanner" class="err-banner" style="display:none"></div>
+
+        <div id="resultsEmpty" class="results-empty">
+          <h2>No allocations yet</h2>
+          <p>Add segments on the left, then results appear here automatically.</p>
+        </div>
+
+        <div id="resultsBox" style="display:none">
+          <div class="results-section">
+            <h3>
+              <span>Allocation Map</span>
+              <span style="font-family:var(--font-mono);font-size:.7rem;color:var(--ink-muted);font-weight:400;text-transform:none;letter-spacing:0">click a segment to scroll to its row</span>
+            </h3>
+            <div class="alloc-bar" id="allocBar"></div>
+            <div class="alloc-tip" id="allocTip"></div>
+            <div class="stats-grid" id="statsGrid"></div>
+          </div>
+
+          <div class="results-section">
+            <h3>
+              <span>Subnet Table</span>
+              <span style="display:flex;gap:6px;align-items:center">
+                <button class="btn btn-ghost btn-sm" id="sortBtn" onclick="toggleSort()">Sort: original</button>
+              </span>
+            </h3>
+            <div style="overflow-x:auto">
+              <table class="vlsm-table" id="vlsmTable">
+                <thead>
+                  <tr>
+                    <th>Segment</th>
+                    <th>Need</th>
+                    <th>Network</th>
+                    <th>First</th>
+                    <th>Last</th>
+                    <th>Broadcast</th>
+                    <th>Mask</th>
+                    <th>Wildcard</th>
+                    <th>Prefix</th>
+                    <th>Block</th>
+                    <th>Wasted</th>
+                  </tr>
+                </thead>
+                <tbody id="vlsmBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <div id="toast" class="toast"></div>
+
+  <script defer src="js/store.js"></script>
+  <script defer src="js/nav.js"></script>
+  <script>
+  document.addEventListener('DOMContentLoaded', function () {
+    var COLORS = ['#2563EB','#16A34A','#D97706','#DC2626','#7C3AED','#0891B2','#BE185D','#4F46E5','#059669','#EA580C','#9333EA','#0EA5E9'];
+    var STORAGE_KEY = 'vlsm_v2_state';
+    var sortMode = 'original'; // or 'size'
+
+    var state = {
+      base: '192.168.1.0/24',
+      segments: []
+    };
+
+    var PRESETS = {
+      office:  { base: '192.168.1.0/24', segs: [['Engineering',60],['Sales',28],['Guest',12],['Mgmt',6],['Link to ISP',2]] },
+      campus:  { base: '172.16.0.0/22',  segs: [['Lecture-Hall',500],['Library',200],['Faculty',120],['Admin',60],['IoT',30],['Backbone',2]] },
+      wan:     { base: '10.10.0.0/24',   segs: [['Site-A↔B',2],['Site-A↔C',2],['Site-B↔C',2],['Site-A↔D',2],['Site-B↔D',2],['Site-C↔D',2]] },
+      lab:     { base: '192.168.0.0/24', segs: [['LAN',50],['DMZ',6],['Mgmt',6],['Lab-VM',14]] },
+      exam:    { base: '172.16.0.0/16',  segs: [['HQ',8000],['Branch-1',2000],['Branch-2',1000],['Branch-3',500],['DMZ',60],['Mgmt',14],['WAN-1',2],['WAN-2',2]] }
+    };
+
+    // ── IP math (32-bit unsigned) ───────────────────────────────
+    function ipToInt(s) {
+      var p = s.split('.');
+      if (p.length !== 4) return null;
+      var n = 0;
+      for (var i = 0; i < 4; i++) {
+        var x = parseInt(p[i], 10);
+        if (isNaN(x) || x < 0 || x > 255 || String(x) !== String(p[i]).replace(/^0+(?=\d)/,'')) return null;
+        n = n * 256 + x;
+      }
+      return n >>> 0;
+    }
+    function intToIp(n) {
+      n = n >>> 0;
+      return [(n>>>24)&255,(n>>>16)&255,(n>>>8)&255,n&255].join('.');
+    }
+    function prefixToMask(p) {
+      if (p === 0) return 0;
+      return ((0xFFFFFFFF << (32 - p)) >>> 0);
+    }
+    function neededPrefix(hosts) {
+      // hosts + 2 (net + bcast), round up to next pow2, return prefix
+      var need = hosts + 2;
+      var size = 1, pfx = 32;
+      while (size < need && pfx > 0) { size *= 2; pfx--; }
+      return { prefix: pfx, size: size };
+    }
+    function parseCidr(s) {
+      s = (s || '').trim();
+      var m = s.match(/^(\d+\.\d+\.\d+\.\d+)\/(\d+)$/);
+      if (!m) return { ok: false, err: 'Use format like 192.168.1.0/24' };
+      var ip = ipToInt(m[1]);
+      var pfx = parseInt(m[2], 10);
+      if (ip === null) return { ok: false, err: 'Invalid IP — each octet must be 0–255' };
+      if (isNaN(pfx) || pfx < 1 || pfx > 30) return { ok: false, err: 'Prefix must be /1–/30' };
+      var mask = prefixToMask(pfx);
+      var network = (ip & mask) >>> 0;
+      if (network !== ip) {
+        return { ok: false, err: 'IP isn’t the network address — try ' + intToIp(network) + '/' + pfx };
+      }
+      var size = Math.pow(2, 32 - pfx);
+      return { ok: true, ip: network, prefix: pfx, mask: mask, size: size };
+    }
+
+    // ── Allocation ──────────────────────────────────────────────
+    function allocate() {
+      var base = parseCidr(state.base);
+      if (!base.ok) return { ok: false, err: base.err };
+
+      // Sort largest-first for placement; remember original index
+      var indexed = state.segments.map(function (s, i) { return { i: i, name: s.name, hosts: s.hosts }; });
+      var byBig = indexed.slice().sort(function (a, b) { return b.hosts - a.hosts; });
+
+      var cursor = base.ip;
+      var endExclusive = (base.ip + base.size) >>> 0;
+      var rawAllocs = [];
+
+      byBig.forEach(function (seg) {
+        var n = neededPrefix(seg.hosts);
+        // Align cursor up to block size
+        var aligned = Math.ceil(cursor / n.size) * n.size;
+        var gapBefore = aligned - cursor;
+        if (aligned + n.size > endExclusive) {
+          rawAllocs.push({ origIdx: seg.i, name: seg.name, need: seg.hosts, error: true, msg: 'Doesn’t fit — base /' + base.prefix + ' too small' });
+          return;
+        }
+        var net = aligned >>> 0;
+        var bcast = (aligned + n.size - 1) >>> 0;
+        var first = (net + 1) >>> 0;
+        var last = (bcast - 1) >>> 0;
+        rawAllocs.push({
+          origIdx: seg.i,
+          name: seg.name,
+          need: seg.hosts,
+          prefix: n.prefix,
+          size: n.size,
+          net: net, bcast: bcast, first: first, last: last,
+          mask: prefixToMask(n.prefix),
+          wildcard: (~prefixToMask(n.prefix)) >>> 0,
+          usable: n.size - 2,
+          wasted: n.size - 2 - seg.hosts,
+          gapBefore: gapBefore,
+          startOffset: aligned - base.ip,
+          color: COLORS[seg.i % COLORS.length]
+        });
+        cursor = aligned + n.size;
+      });
+
+      // Detect any segment with hosts requiring prefix > base
+      rawAllocs.forEach(function (a) {
+        if (!a.error && a.size > base.size) { a.error = true; a.msg = 'Segment too big for base'; }
+      });
+
+      var used = 0;
+      rawAllocs.forEach(function (a) { if (!a.error) used += a.size; });
+
+      return {
+        ok: true,
+        base: base,
+        allocs: rawAllocs,
+        used: used,
+        unused: base.size - used,
+        utilization: base.size === 0 ? 0 : (used / base.size) * 100
+      };
+    }
+
+    // ── Render ──────────────────────────────────────────────────
+    function render() {
+      saveState();
+      var base = parseCidr(state.base);
+      var baseInput = document.getElementById('baseCidr');
+      var errBanner = document.getElementById('errBanner');
+
+      if (!base.ok) {
+        baseInput.classList.add('bad');
+        errBanner.style.display = 'block';
+        errBanner.innerHTML = '<b>Base network:</b> ' + base.err;
+        document.getElementById('baseInfo').textContent = '';
+        showResults(false);
+        renderSegList();
+        return;
+      }
+      baseInput.classList.remove('bad');
+      errBanner.style.display = 'none';
+
+      document.getElementById('baseInfo').innerHTML =
+        'Base: <code>' + intToIp(base.ip) + '/' + base.prefix + '</code> &middot; ' +
+        base.size.toLocaleString() + ' addresses (' + (base.size - 2).toLocaleString() + ' usable) &middot; ' +
+        'mask <code>' + intToIp(base.mask) + '</code>';
+
+      renderSegList();
+      if (state.segments.length === 0) { showResults(false); return; }
+
+      var result = allocate();
+      if (!result.ok) {
+        errBanner.style.display = 'block';
+        errBanner.innerHTML = '<b>Allocation:</b> ' + result.err;
+        showResults(false);
+        return;
+      }
+      showResults(true);
+      renderBar(result);
+      renderStats(result);
+      renderTable(result);
+    }
+
+    function showResults(on) {
+      document.getElementById('resultsEmpty').style.display = on ? 'none' : '';
+      document.getElementById('resultsBox').style.display = on ? '' : 'none';
+    }
+
+    function renderSegList() {
+      var ul = document.getElementById('segList');
+      if (state.segments.length === 0) {
+        ul.innerHTML = '<li style="display:block;text-align:center;color:var(--ink-muted);font-style:italic;background:transparent;border:1px dashed var(--border)">No segments yet — add one above or pick a preset</li>';
+        return;
+      }
+      ul.innerHTML = state.segments.map(function (s, i) {
+        var col = COLORS[i % COLORS.length];
+        return '<li>' +
+          '<span><span class="seg-color" style="background:' + col + '"></span><b>' + escapeHtml(s.name) + '</b></span>' +
+          '<span class="seg-hosts">' + s.hosts + ' hosts</span>' +
+          '<button class="seg-rm" onclick="removeSegment(' + i + ')" title="Remove">×</button>' +
+          '</li>';
+      }).join('');
+    }
+
+    function renderBar(result) {
+      var bar = document.getElementById('allocBar');
+      var tip = document.getElementById('allocTip');
+      var size = result.base.size;
+      var html = '';
+      // Walk allocs in ORDER OF PLACEMENT (sort by startOffset)
+      var placed = result.allocs.filter(function (a) { return !a.error; })
+        .slice().sort(function (a, b) { return a.startOffset - b.startOffset; });
+
+      var prevEnd = 0;
+      placed.forEach(function (a) {
+        var gap = a.startOffset - prevEnd;
+        if (gap > 0) {
+          html += '<div class="alloc-seg gap" style="width:' + (gap / size * 100) + '%" title="alignment gap (' + gap + ')"></div>';
+        }
+        var pct = a.size / size * 100;
+        var label = pct >= 8 ? a.name + ' /' + a.prefix : '';
+        html += '<div class="alloc-seg" style="width:' + pct + '%;background:' + a.color + '" title="' + escapeHtml(a.name) + ' /' + a.prefix + ' — ' + a.size + ' addrs" onclick="scrollToRow(' + a.origIdx + ')">' + escapeHtml(label) + '</div>';
+        prevEnd = a.startOffset + a.size;
+      });
+      var freeAddrs = size - prevEnd;
+      if (freeAddrs > 0) {
+        html += '<div class="alloc-free">' + freeAddrs.toLocaleString() + ' addresses free</div>';
+      }
+      bar.innerHTML = html;
+      tip.textContent = result.used.toLocaleString() + ' / ' + size.toLocaleString() + ' addresses used (' + result.utilization.toFixed(1) + '%)';
+    }
+
+    function renderStats(result) {
+      var grid = document.getElementById('statsGrid');
+      var u = result.utilization;
+      var cls = u > 95 ? 'bad' : (u > 80 ? 'warn' : '');
+      var errCount = result.allocs.filter(function (a) { return a.error; }).length;
+      grid.innerHTML =
+        statCard('Subnets', result.allocs.length - errCount) +
+        statCard('Used IPs', result.used.toLocaleString()) +
+        statCard('Free IPs', result.unused.toLocaleString()) +
+        statCard('Utilization', u.toFixed(1) + '%', cls) +
+        (errCount > 0 ? statCard('Overflow', errCount, 'bad') : '');
+    }
+    function statCard(label, val, cls) {
+      return '<div class="stat-card ' + (cls || '') + '"><div class="stat-label">' + label + '</div><div class="stat-val">' + val + '</div></div>';
+    }
+
+    function renderTable(result) {
+      var rows = result.allocs.slice();
+      if (sortMode === 'size') {
+        rows.sort(function (a, b) { return (b.need || 0) - (a.need || 0); });
+      } else {
+        rows.sort(function (a, b) { return a.origIdx - b.origIdx; });
+      }
+      var body = document.getElementById('vlsmBody');
+      body.innerHTML = rows.map(function (a) {
+        if (a.error) {
+          return '<tr class="row-error"><td>' + escapeHtml(a.name) + '</td><td>' + a.need + '</td><td colspan="9">' + escapeHtml(a.msg) + '</td></tr>';
+        }
+        var rowId = 'row-' + a.origIdx;
+        return '<tr class="row-main" id="' + rowId + '" data-idx="' + a.origIdx + '" onclick="toggleRow(' + a.origIdx + ')">' +
+            '<td><span class="expand-arrow">▶</span><span class="row-color" style="background:' + a.color + '"></span><span class="row-name">' + escapeHtml(a.name) + '</span></td>' +
+            '<td class="row-need">' + a.need + '</td>' +
+            '<td>' + intToIp(a.net) + '</td>' +
+            '<td>' + intToIp(a.first) + '</td>' +
+            '<td>' + intToIp(a.last) + '</td>' +
+            '<td>' + intToIp(a.bcast) + '</td>' +
+            '<td>' + intToIp(a.mask) + '</td>' +
+            '<td>' + intToIp(a.wildcard) + '</td>' +
+            '<td class="row-prefix">/' + a.prefix + '</td>' +
+            '<td>' + a.size + '</td>' +
+            '<td class="row-wasted">' + a.wasted + '</td>' +
+          '</tr>' +
+          '<tr class="row-detail" id="detail-' + a.origIdx + '" style="display:none"><td colspan="11">' + buildDetail(a, result.base) + '</td></tr>';
+      }).join('');
+    }
+
+    function buildDetail(a, base) {
+      var maskBin = toBin(a.mask);
+      var netBin = toBin(a.net);
+      var bitsHtml = '';
+      for (var i = 0; i < 32; i++) {
+        var isNet = i < a.prefix;
+        bitsHtml += '<div class="bit-cell ' + (isNet ? 'net' : 'host') + '" title="bit ' + (i+1) + (isNet ? ' (network)' : ' (host)') + '">' + netBin.charAt(i) + '</div>';
+        if (i === 7 || i === 15 || i === 23) bitsHtml += '<div class="bit-octet-sep"></div>';
+      }
+      var maskOct = intToIp(a.mask);
+      var wildOct = intToIp(a.wildcard);
+      return (
+        '<div class="detail-grid">' +
+          '<div class="detail-block">' +
+            '<h4>Step-by-step math</h4>' +
+            '<div class="step"><b>1. Need:</b> ' + a.need + ' usable hosts &rarr; add 2 for network + broadcast = <code>' + (a.need + 2) + '</code></div>' +
+            '<div class="step"><b>2. Round up to next power of 2:</b> ' + (a.need + 2) + ' &rarr; <code>' + a.size + '</code> addresses</div>' +
+            '<div class="step"><b>3. Prefix:</b> 32 &minus; log<sub>2</sub>(' + a.size + ') = <code>/' + a.prefix + '</code> &mdash; ' + (32 - a.prefix) + ' host bits</div>' +
+            '<div class="step"><b>4. Mask:</b> ' + a.prefix + ' on-bits &rarr; <code>' + maskOct + '</code></div>' +
+            '<div class="step"><b>5. Wildcard:</b> inverse of mask &rarr; <code>' + wildOct + '</code></div>' +
+            '<div class="step"><b>6. Range:</b> <code>' + intToIp(a.net) + '</code> &mdash; network &middot; <code>' + intToIp(a.first) + '</code> &mdash; first usable &middot; <code>' + intToIp(a.last) + '</code> &mdash; last usable &middot; <code>' + intToIp(a.bcast) + '</code> &mdash; broadcast</div>' +
+            (a.wasted > 0 ? '<div class="step"><b>Wasted:</b> ' + a.wasted + ' addresses (block ' + a.size + ' &minus; needed ' + a.need + ' &minus; 2 reserved)</div>' : '') +
+          '</div>' +
+          '<div class="detail-block">' +
+            '<h4>Bit ruler — 32 bits in this network</h4>' +
+            '<div class="bit-ruler">' + bitsHtml + '</div>' +
+            '<div class="bit-legend"><span><span class="bit-swatch" style="background:var(--accent-dim);border:1px solid var(--accent)"></span>network bits (' + a.prefix + ')</span><span><span class="bit-swatch" style="background:var(--bg);border:1px solid var(--border)"></span>host bits (' + (32 - a.prefix) + ')</span></div>' +
+            '<h4 style="margin-top:14px">Mask in binary</h4>' +
+            '<div class="bit-ruler">' + buildMaskBits(maskBin) + '</div>' +
+            '<div style="font-family:var(--font-body);font-size:.78rem;color:var(--ink-muted);margin-top:8px">Network bits identify the subnet; host bits identify devices inside it. Flipping any host bit stays inside the same subnet.</div>' +
+          '</div>' +
+        '</div>'
+      );
+    }
+    function buildMaskBits(maskBin) {
+      var out = '';
+      for (var i = 0; i < 32; i++) {
+        var on = maskBin.charAt(i) === '1';
+        out += '<div class="bit-cell ' + (on ? 'net' : 'host') + '">' + (on ? '1' : '0') + '</div>';
+        if (i === 7 || i === 15 || i === 23) out += '<div class="bit-octet-sep"></div>';
+      }
+      return out;
+    }
+    function toBin(n) {
+      var s = (n >>> 0).toString(2);
+      while (s.length < 32) s = '0' + s;
+      return s;
+    }
+
+    // ── Interactions ────────────────────────────────────────────
+    window.addSegment = function () {
+      var name = document.getElementById('segName').value.trim();
+      var hosts = parseInt(document.getElementById('segHosts').value, 10);
+      if (!name) { toast('Add a segment name'); document.getElementById('segName').focus(); return; }
+      if (!hosts || hosts < 1) { toast('Enter a host count'); document.getElementById('segHosts').focus(); return; }
+      if (hosts > 16777214) { toast('Host count too large'); return; }
+      state.segments.push({ name: name, hosts: hosts });
+      document.getElementById('segName').value = '';
+      document.getElementById('segHosts').value = '';
+      document.getElementById('segName').focus();
+      render();
+    };
+    window.removeSegment = function (i) { state.segments.splice(i, 1); render(); };
+    window.resetAll = function () {
+      if (!confirm('Clear base network and all segments?')) return;
+      state = { base: '192.168.1.0/24', segments: [] };
+      document.getElementById('baseCidr').value = state.base;
+      sortMode = 'original';
+      document.getElementById('sortBtn').textContent = 'Sort: original';
+      render();
+    };
+    window.loadPreset = function (key) {
+      var p = PRESETS[key];
+      if (!p) return;
+      state.base = p.base;
+      state.segments = p.segs.map(function (pair) { return { name: pair[0], hosts: pair[1] }; });
+      document.getElementById('baseCidr').value = state.base;
+      render();
+      toast('Loaded preset: ' + key);
+    };
+    window.toggleSort = function () {
+      sortMode = (sortMode === 'original') ? 'size' : 'original';
+      document.getElementById('sortBtn').textContent = 'Sort: ' + sortMode;
+      render();
+    };
+    window.toggleRow = function (idx) {
+      var main = document.getElementById('row-' + idx);
+      var detail = document.getElementById('detail-' + idx);
+      if (!main || !detail) return;
+      var open = main.classList.toggle('open');
+      detail.style.display = open ? '' : 'none';
+    };
+    window.scrollToRow = function (idx) {
+      var main = document.getElementById('row-' + idx);
+      if (!main) return;
+      if (!main.classList.contains('open')) toggleRow(idx);
+      main.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    };
+    window.exportCSV = function () {
+      var r = allocate();
+      if (!r || !r.ok) { toast('Nothing to export yet'); return; }
+      var header = ['Segment','HostsNeeded','Network','First','Last','Broadcast','Mask','Wildcard','Prefix','BlockSize','Wasted'];
+      var lines = [header.join(',')];
+      r.allocs.forEach(function (a) {
+        if (a.error) { lines.push([a.name, a.need, 'ERROR', '', '', '', '', '', '', '', a.msg].join(',')); return; }
+        lines.push([a.name, a.need, intToIp(a.net), intToIp(a.first), intToIp(a.last), intToIp(a.bcast), intToIp(a.mask), intToIp(a.wildcard), '/' + a.prefix, a.size, a.wasted].join(','));
+      });
+      var text = lines.join('\n');
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(text).then(function () { toast('Copied CSV to clipboard'); });
+      } else {
+        var ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select();
+        try { document.execCommand('copy'); toast('Copied CSV'); } catch (e) { toast('Copy failed'); }
+        document.body.removeChild(ta);
+      }
+    };
+
+    function escapeHtml(s) {
+      return String(s).replace(/[&<>"']/g, function (c) { return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'})[c]; });
+    }
+
+    function toast(msg) {
+      var t = document.getElementById('toast');
+      t.textContent = msg;
+      t.classList.add('show');
+      clearTimeout(toast._t);
+      toast._t = setTimeout(function () { t.classList.remove('show'); }, 1800);
+    }
+
+    function saveState() {
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (e) {}
+    }
+    function loadState() {
+      try {
+        var raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return;
+        var s = JSON.parse(raw);
+        if (s && typeof s.base === 'string' && Array.isArray(s.segments)) state = s;
+      } catch (e) {}
+    }
+
+    // Wire base CIDR input
+    document.getElementById('baseCidr').addEventListener('input', function (e) {
+      state.base = e.target.value;
+      render();
+    });
+    // Enter-key shortcuts
+    document.getElementById('segName').addEventListener('keydown', function (e) { if (e.key === 'Enter') document.getElementById('segHosts').focus(); });
+    document.getElementById('segHosts').addEventListener('keydown', function (e) { if (e.key === 'Enter') addSegment(); });
+
+    loadState();
+    document.getElementById('baseCidr').value = state.base;
+    if (state.segments.length === 0) {
+      // Default preset on first visit
+      loadPreset('office');
+    } else {
+      render();
+    }
+  });
+  </script>
+</body>
+</html>

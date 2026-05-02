@@ -24,6 +24,9 @@
       { text: 'Cheat Sheet', href: 'cheat-sheet.html' },
       { text: 'Topology Labs', href: 'topology-labs.html' },
       { text: 'Ports → Tunnels', href: 'ports-tunnels.html' },
+      { text: 'Subnetting Visual', href: 'subnetting-visual.html' },
+      { text: 'VLSM Calculator', href: 'vlsm.html' },
+      { text: 'Magic Number', href: 'magic-number.html' },
     ]},
     { text: 'Practice', children: [
       { text: 'Practice Hub', href: 'practice-hub.html' },
@@ -53,6 +56,7 @@
       { text: 'Topology Explorer', href: 'netplus-topology.html' },
       { text: 'Ports → Tunnels', href: 'ports-tunnels.html' },
       { text: 'Subnetting', href: 'subnetting-visual.html' },
+      { text: 'Magic Number', href: 'magic-number.html' },
       { text: 'Devices & Topologies', href: 'devices.html' },
       { text: 'Glossary', href: 'netplus-glossary.html' },
       { text: 'Cheat Sheet', href: 'netplus-cheatsheet.html' },
