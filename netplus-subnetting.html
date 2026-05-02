@@ -54,6 +54,20 @@
   .ext-table tr:hover td{background:var(--bg-recessed)}
   .ext-step{padding:10px 14px;border-radius:var(--radius);margin-bottom:6px;background:var(--bg-surface);border-left:3px solid var(--border);font-family:var(--font-body);font-size:.85rem;line-height:1.6}
   .ext-step strong{font-family:var(--font-mono)}
+
+  /* Scratchpad */
+  .scratch-toggle{text-align:center;margin:var(--s-md) 0 var(--s-sm)}
+  .scratch-btn{font-family:var(--font-display);font-size:.82rem;font-weight:700;padding:10px 24px;border-radius:var(--radius);border:2px solid var(--np);background:var(--bg-surface);color:var(--np);cursor:pointer;transition:all .15s}
+  .scratch-btn:hover{background:var(--np);color:#fff}
+  .scratch-btn.open{background:var(--np);color:#fff}
+  .scratch-pad{margin:0 auto var(--s-md);max-width:760px;border:1px solid var(--border);border-radius:var(--radius);background:#fff;padding:8px;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+  .scratch-tools{display:flex;gap:6px;margin-bottom:6px;flex-wrap:wrap;align-items:center}
+  .scratch-tools button{font-family:var(--font-display);font-size:.74rem;font-weight:700;padding:6px 12px;border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-surface);color:var(--ink-secondary);cursor:pointer;transition:all .12s}
+  .scratch-tools button.active{border-color:var(--np);color:var(--np);background:rgba(220,38,38,.05)}
+  .scratch-tools button.danger{color:#DC2626;border-color:#FECACA;margin-left:auto}
+  .scratch-tools button.danger:hover{background:#FEF2F2}
+  .scratch-hint{font-family:var(--font-body);font-size:.72rem;color:var(--ink-muted);padding:0 4px}
+  #scratchCanvas{display:block;width:100%;height:440px;background:#FAF7F2;border-radius:calc(var(--radius) - 2px);touch-action:none;cursor:crosshair}
 </style>
 </head>
 <body>
@@ -125,6 +139,20 @@
   <div class="np-quiz-nav">
     <span class="np-score" id="subnetScore">0 / 0</span>
     <button class="btn btn-primary btn-sm" id="subnetNext" style="background:var(--np)">Next Question</button>
+  </div>
+
+  <!-- ── Scratchpad (iPad + Pencil) ──────────────────────────── -->
+  <div class="scratch-toggle">
+    <button class="scratch-btn" id="scratchBtn" type="button">Scratch with iPad + Pencil</button>
+  </div>
+  <div class="scratch-pad" id="scratchPad" hidden>
+    <div class="scratch-tools">
+      <button type="button" data-tool="pen" class="active">Pen</button>
+      <button type="button" data-tool="eraser">Eraser</button>
+      <span class="scratch-hint">Pencil pressure supported. Saves automatically.</span>
+      <button type="button" data-tool="clear" class="danger">Clear</button>
+    </div>
+    <canvas id="scratchCanvas"></canvas>
   </div>
 
   <!-- ── Extended Reference ──────────────────────────────────── -->
@@ -233,6 +261,102 @@ if(localStorage.getItem('np_subnet_ext')==='1'){
   document.getElementById('extBtn').innerHTML='Hide Reference \u2191';
 }
 
+/* \u2500\u2500 Scratchpad \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 */
+(function initScratch(){
+  var btn=document.getElementById('scratchBtn');
+  var pad=document.getElementById('scratchPad');
+  var cv=document.getElementById('scratchCanvas');
+  if(!btn||!pad||!cv)return;
+  var ctx=cv.getContext('2d'),tool='pen',drawing=false,last=null,dpr=window.devicePixelRatio||1;
+  var KEY_IMG='np_subnet_scratch_img',KEY_OPEN='np_subnet_scratch_open';
+
+  function fit(preserve){
+    var snap=preserve?cv.toDataURL():null;
+    var rect=cv.getBoundingClientRect();
+    cv.width=Math.max(1,Math.floor(rect.width*dpr));
+    cv.height=Math.max(1,Math.floor(rect.height*dpr));
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+    ctx.lineCap='round';ctx.lineJoin='round';
+    if(snap){var i=new Image();i.onload=function(){ctx.drawImage(i,0,0,rect.width,rect.height);};i.src=snap;}
+  }
+  function loadSaved(){
+    var saved=localStorage.getItem(KEY_IMG);if(!saved)return;
+    var rect=cv.getBoundingClientRect();
+    var i=new Image();i.onload=function(){ctx.drawImage(i,0,0,rect.width,rect.height);};i.src=saved;
+  }
+  function save(){try{localStorage.setItem(KEY_IMG,cv.toDataURL('image/png'));}catch(e){}}
+  function pos(e){var r=cv.getBoundingClientRect();return{x:e.clientX-r.left,y:e.clientY-r.top};}
+  function lineWidth(e){
+    if(tool==='eraser')return 22;
+    var p=(e.pressure&&e.pressure!==0.5)?e.pressure:0.5;
+    return Math.max(1,p*3.2+0.6);
+  }
+  function down(e){
+    if(tool==='clear')return;
+    drawing=true;last=pos(e);
+    try{cv.setPointerCapture(e.pointerId);}catch(_){ }
+    e.preventDefault();
+  }
+  function move(e){
+    if(!drawing)return;
+    var p=pos(e);
+    ctx.globalCompositeOperation=tool==='eraser'?'destination-out':'source-over';
+    ctx.strokeStyle='#1a1a1a';
+    ctx.lineWidth=lineWidth(e);
+    ctx.beginPath();ctx.moveTo(last.x,last.y);ctx.lineTo(p.x,p.y);ctx.stroke();
+    last=p;e.preventDefault();
+  }
+  function up(){if(!drawing)return;drawing=false;save();}
+  cv.addEventListener('pointerdown',down);
+  cv.addEventListener('pointermove',move);
+  cv.addEventListener('pointerup',up);
+  cv.addEventListener('pointercancel',up);
+  cv.addEventListener('pointerleave',up);
+
+  document.querySelectorAll('.scratch-tools button').forEach(function(b){
+    b.addEventListener('click',function(){
+      var t=b.dataset.tool;
+      if(t==='clear'){
+        ctx.setTransform(1,0,0,1,0,0);
+        ctx.clearRect(0,0,cv.width,cv.height);
+        ctx.setTransform(dpr,0,0,dpr,0,0);
+        ctx.lineCap='round';ctx.lineJoin='round';
+        save();
+        return;
+      }
+      tool=t;
+      document.querySelectorAll('.scratch-tools button[data-tool="pen"],.scratch-tools button[data-tool="eraser"]').forEach(function(x){
+        x.classList.toggle('active',x.dataset.tool===tool);
+      });
+    });
+  });
+
+  function open(){
+    pad.removeAttribute('hidden');
+    btn.classList.add('open');
+    btn.textContent='Hide Scratchpad';
+    requestAnimationFrame(function(){fit(false);loadSaved();});
+    localStorage.setItem(KEY_OPEN,'1');
+  }
+  function close(){
+    save();
+    pad.setAttribute('hidden','');
+    btn.classList.remove('open');
+    btn.textContent='Scratch with iPad + Pencil';
+    localStorage.setItem(KEY_OPEN,'0');
+  }
+  btn.addEventListener('click',function(){
+    if(pad.hasAttribute('hidden'))open();else close();
+  });
+
+  var resizeT=null;
+  window.addEventListener('resize',function(){
+    if(pad.hasAttribute('hidden'))return;
+    clearTimeout(resizeT);resizeT=setTimeout(function(){fit(true);},120);
+  });
+
+  if(localStorage.getItem(KEY_OPEN)==='1')open();
+})();
 
     window.toggleExt = toggleExt;
   });</script>
