@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>1.3.e Sim — Fiber Mechanism: Why MMF, Why SMF</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/shared.css">
+<style>
+  :root{
+    --bg:#FAF7F2;--bg-surface:#FFFFFF;--bg-recessed:#F3F0EB;
+    --border:#E2DFD9;--border-strong:#C7C3BC;
+    --ink:#1C1917;--ink-secondary:#57534E;--ink-muted:#A8A29E;
+    --accent:#B45309;--accent-soft:#D97706;--accent-light:#FEF3C7;
+    --correct:#16A34A;--correct-bg:#F0FDF4;
+    --wrong:#DC2626;--wrong-bg:#FEF2F2;
+    --info:#2563EB;--info-bg:#EFF6FF;
+    --font-display:'Space Grotesk',system-ui,sans-serif;
+    --font-body:'Source Serif 4',Georgia,serif;
+    --font-mono:'JetBrains Mono',monospace;
+    --radius:6px;--radius-lg:10px;
+  }
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  html{font-size:16px;-webkit-font-smoothing:antialiased}
+  body{font-family:var(--font-body);background:var(--bg);color:var(--ink);line-height:1.55;padding:24px;max-width:920px;margin:0 auto}
+  .head{margin-bottom:20px;padding-bottom:14px;border-bottom:1px solid var(--border)}
+  .head .crumb{font-family:var(--font-mono);font-size:.74rem;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px}
+  .head .crumb a{color:var(--accent);text-decoration:none}
+  .head h1{font-family:var(--font-display);font-size:1.5rem;font-weight:700;margin-bottom:6px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .head .badge{font-family:var(--font-mono);font-size:.66rem;background:var(--accent-light);color:var(--accent);padding:3px 8px;border-radius:99px;text-transform:uppercase;letter-spacing:.08em;font-weight:700}
+  .head .desc{font-size:.95rem;color:var(--ink-secondary)}
+  .panel{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;margin-bottom:18px}
+  .panel h2{font-family:var(--font-display);font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-secondary);margin-bottom:12px}
+  .panel h2 em{font-style:normal;color:var(--accent);text-transform:none;letter-spacing:0;font-weight:700}
+  .btn{font-family:var(--font-display);font-size:.84rem;font-weight:600;padding:8px 14px;background:var(--ink);color:#FAF7F2;border:none;border-radius:var(--radius);cursor:pointer;transition:all .15s}
+  .btn.ghost{background:var(--bg-recessed);color:var(--ink);border:1px solid var(--border)}
+  .btn.ghost:hover{border-color:var(--border-strong)}
+  .btn.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+  .btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+  .row{margin-bottom:14px}
+  .row label{display:flex;justify-content:space-between;align-items:baseline;font-family:var(--font-display);font-size:.86rem;font-weight:600;color:var(--ink-secondary);margin-bottom:4px}
+  .row .v{font-family:var(--font-mono);font-size:.86rem;color:var(--ink);font-weight:700}
+  input[type=range]{width:100%;accent-color:var(--accent)}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+  @media(max-width:680px){.grid2,.grid3{grid-template-columns:1fr}}
+  .stat{padding:10px 12px;background:var(--bg-recessed);border:1px solid var(--border);border-radius:var(--radius);font-family:var(--font-mono);font-size:.82rem}
+  .stat .k{color:var(--ink-muted);font-size:.72rem;text-transform:uppercase;letter-spacing:.06em}
+  .stat .n{font-size:1.05rem;font-weight:700;color:var(--ink)}
+  svg.scene{width:100%;background:#0c0a09;border-radius:var(--radius);margin-top:10px;display:block}
+  svg.chart{width:100%;background:#fff;border:1px solid var(--border);border-radius:var(--radius);display:block}
+  .verdict{margin-top:14px;padding:12px 16px;border-radius:var(--radius);font-family:var(--font-display);font-size:.94rem;font-weight:600;display:none}
+  .verdict.show{display:block;animation:fadeIn .25s ease}
+  .verdict.info{background:var(--info-bg);color:var(--info);border:1px solid var(--info)}
+  .verdict.ok{background:var(--correct-bg);color:var(--correct);border:1px solid var(--correct)}
+  .verdict.warn{background:var(--wrong-bg);color:var(--wrong);border:1px solid var(--wrong)}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
+  table.why{width:100%;border-collapse:collapse;margin-top:8px}
+  table.why th,table.why td{text-align:left;padding:10px 8px;border-bottom:1px solid var(--border);font-size:.88rem;vertical-align:top}
+  table.why th{font-family:var(--font-display);font-size:.76rem;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-secondary);font-weight:700;background:var(--bg-recessed)}
+  table.why td:first-child{font-family:var(--font-display);font-weight:700;color:var(--accent);width:30%}
+  table.why td:nth-child(2){width:25%;font-family:var(--font-mono);font-size:.82rem;color:var(--ink)}
+  .quiz .stem{font-family:var(--font-display);font-size:1.02rem;font-weight:600;margin-bottom:12px;padding:14px;background:var(--accent-light);border-left:3px solid var(--accent);border-radius:var(--radius)}
+  .quiz .opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px}
+  .opt{background:var(--bg-recessed);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;font-family:var(--font-mono);font-size:.85rem;cursor:pointer;text-align:left;transition:all .15s;line-height:1.4}
+  .opt:hover{border-color:var(--border-strong);background:var(--bg-surface)}
+  .opt.correct{background:var(--correct-bg);border-color:var(--correct);color:var(--correct);font-weight:700}
+  .opt.wrong{background:var(--wrong-bg);border-color:var(--wrong);color:var(--wrong)}
+  .scoreline{font-family:var(--font-mono);font-size:.84rem;color:var(--ink-muted);margin-top:10px;display:flex;gap:18px;align-items:center;flex-wrap:wrap}
+  .footer{margin-top:30px;padding-top:14px;border-top:1px solid var(--border);font-family:var(--font-mono);font-size:.78rem;color:var(--ink-muted)}
+  .footer a{color:var(--accent);text-decoration:none}
+  .micro{font-family:var(--font-mono);font-size:.78rem;color:var(--ink-muted);margin-top:8px;line-height:1.55}
+  .micro strong{color:var(--ink-secondary)}
+  .legend{display:flex;gap:14px;font-family:var(--font-mono);font-size:.78rem;color:var(--ink-muted);margin-top:8px;flex-wrap:wrap}
+  .legend .sw{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:middle}
+</style>
+</head>
+<body>
+
+<div class="head">
+  <div class="crumb"><a href="blueprint-drill.html?obj=1.3">← 1.3 Cabling</a> / 1.3.e</div>
+  <h1>Fiber Mechanism: Why MMF, Why SMF<span class="badge">deep dive</span></h1>
+  <div class="desc">You know one runs short and one runs long. This sim shows <em>why</em> — the physics underneath. Five reasons sit beneath "long vs short": modal dispersion, attenuation window, source cost, connector tolerance, bandwidth × distance product. Each panel below isolates one.</div>
+</div>
+
+<!-- ─────────── PANEL 1: cross-section ─────────── -->
+<div class="panel">
+  <h2>Cross-section — <em>core size is the whole story</em></h2>
+  <div class="btn-row">
+    <button class="btn ghost active" data-fiber="om3">MMF — OM3/OM4 (50 µm core)</button>
+    <button class="btn ghost" data-fiber="om1">MMF — OM1 (62.5 µm core, legacy)</button>
+    <button class="btn ghost" data-fiber="smf">SMF — OS2 (9 µm core)</button>
+  </div>
+  <svg class="scene" id="cross" viewBox="0 0 600 240" preserveAspectRatio="xMidYMid meet" style="height:240px">
+    <!-- jacket -->
+    <circle cx="300" cy="120" r="115" fill="none" stroke="#FBBF24" stroke-width="4" stroke-dasharray="6 4" opacity=".5"/>
+    <text x="300" y="20" font-family="JetBrains Mono" font-size="11" fill="#FBBF24" text-anchor="middle">jacket (color-coded outer)</text>
+    <!-- cladding (always 125 µm = radius 100) -->
+    <circle cx="300" cy="120" r="100" fill="#1f1f24" stroke="#475569" stroke-width="1.5"/>
+    <text x="300" y="232" font-family="JetBrains Mono" font-size="11" fill="#94A3B8" text-anchor="middle">cladding 125 µm (always)</text>
+    <!-- core (variable) -->
+    <circle id="coreCirc" cx="300" cy="120" r="40" fill="#fef3c7" stroke="#FBBF24" stroke-width="2"/>
+    <text id="coreLabel" x="300" y="124" font-family="JetBrains Mono" font-size="13" fill="#1C1917" text-anchor="middle" font-weight="700">50 µm</text>
+    <!-- size legend -->
+    <text id="useCase" x="20" y="40" font-family="Space Grotesk" font-size="13" fill="#FBBF24" font-weight="700">In-DC, in-row, &lt; 550 m</text>
+  </svg>
+  <div id="crossInfo" class="micro"><strong>OM3/OM4 (50 µm):</strong> the workhorse inside data centers. Big core = LED/VCSEL works fine, connectors are forgiving, but light has many valid bounce angles ("modes") which causes modal dispersion (next panel).</div>
+  <div class="legend"><span><span class="sw" style="background:#FBBF24"></span>core (light travels here)</span><span><span class="sw" style="background:#1f1f24;border:1px solid #475569"></span>cladding (lower refractive index — bounces light back in)</span></div>
+</div>
+
+<!-- ─────────── PANEL 2: TIR + light source ─────────── -->
+<div class="panel">
+  <h2>Total internal reflection — <em>what bounces inside the core</em></h2>
+  <div class="btn-row">
+    <button class="btn ghost active" data-mode="mmf-led">MMF + LED (cheap, broad spectrum)</button>
+    <button class="btn ghost" data-mode="mmf-vcsel">MMF + VCSEL (10G+, narrower)</button>
+    <button class="btn ghost" data-mode="smf-laser">SMF + DFB Laser (1310/1550 nm)</button>
+  </div>
+  <svg class="scene" id="tir" viewBox="0 0 600 220" preserveAspectRatio="none" style="height:220px">
+    <!-- core walls -->
+    <line id="topW" x1="40" y1="60" x2="560" y2="60" stroke="#475569" stroke-width="2"/>
+    <line id="botW" x1="40" y1="160" x2="560" y2="160" stroke="#475569" stroke-width="2"/>
+    <text x="20" y="55" font-family="JetBrains Mono" font-size="10" fill="#94A3B8">cladding</text>
+    <text x="20" y="175" font-family="JetBrains Mono" font-size="10" fill="#94A3B8">cladding</text>
+    <text id="modeLabel" x="300" y="20" font-family="Space Grotesk" font-size="13" fill="#FBBF24" text-anchor="middle" font-weight="700">MMF + LED — multiple modes, modal dispersion ahead</text>
+    <text id="srcLabel" x="40" y="200" font-family="JetBrains Mono" font-size="10" fill="#94A3B8">source: LED ~$5, broad emission cone</text>
+    <text id="rxLabel" x="560" y="200" font-family="JetBrains Mono" font-size="10" fill="#94A3B8" text-anchor="end">receiver</text>
+    <g id="tirRays"></g>
+  </svg>
+  <div id="tirInfo" class="micro"><strong>How it works:</strong> light hits the cladding boundary at a shallow angle and reflects fully back into the core (total internal reflection). The cladding has a slightly lower refractive index — that's the "wall." With a 50 µm core, an LED/VCSEL fills <em>many</em> valid angles. With a 9 µm core, geometry only allows one mode. <strong>One mode = no smearing.</strong></div>
+</div>
+
+<!-- ─────────── PANEL 3: pulse smear ─────────── -->
+<div class="panel">
+  <h2>Pulse smear — <em>modal dispersion in action</em></h2>
+  <div class="btn-row">
+    <button class="btn ghost active" data-pulse="om3">OM3 (DMD ≈ 0.5 ns/km)</button>
+    <button class="btn ghost" data-pulse="om4">OM4 (DMD ≈ 0.2 ns/km)</button>
+    <button class="btn ghost" data-pulse="smf">SMF (chromatic ≈ 0 at km scale)</button>
+  </div>
+  <div class="row"><label>Distance <span class="v" id="pdistV">100 m</span></label><input id="pdist" type="range" min="0" max="100" value="20"></div>
+  <div class="grid2">
+    <div>
+      <div class="stat"><div class="k">Input pulse @ TX (10 G, 1 bit)</div><div class="n" id="inW">100 ps</div></div>
+      <svg class="chart" id="inP" viewBox="0 0 300 100" style="height:100px;margin-top:8px"></svg>
+    </div>
+    <div>
+      <div class="stat"><div class="k">Output pulse @ RX</div><div class="n" id="outW">100 ps</div></div>
+      <svg class="chart" id="outP" viewBox="0 0 300 100" style="height:100px;margin-top:8px"></svg>
+    </div>
+  </div>
+  <div id="pVerdict" class="verdict info show">Slide distance — watch the right pulse smear past the bit period (100 ps for 10G). Once it crosses, neighboring bits collide → ISI → bit errors.</div>
+  <div class="micro"><strong>Math:</strong> output_width = √(input² + (DMD × L)²). Input pulse = 100 ps (one bit at 10 Gbps). When output > 100 ps, the pulse leaks into the next bit slot → intersymbol interference → link fails. SMF dispersion at 1310 nm with a narrow DFB laser is so small it doesn't move the needle inside 10 km.</div>
+</div>
+
+<!-- ─────────── PANEL 4: five reasons table ─────────── -->
+<div class="panel">
+  <h2>Five reasons — <em>beyond "long vs short"</em></h2>
+  <table class="why">
+    <thead><tr><th>Reason</th><th>Numbers</th><th>What it means</th></tr></thead>
+    <tbody>
+      <tr><td>1. Modal dispersion</td><td>OM3: 0.5 ns/km<br>OM4: 0.2 ns/km<br>SMF: ~0</td><td>The headline. MMF has multiple light paths; they arrive at different times; pulse smears. SMF has one mode, no smear.</td></tr>
+      <tr><td>2. Attenuation window</td><td>850 nm: 2.5 dB/km<br>1310 nm: 0.35 dB/km<br>1550 nm: 0.20 dB/km</td><td>Glass loss has valleys at 1310/1550 nm (used by SMF lasers). MMF runs at 850 nm where loss is ~10× higher.</td></tr>
+      <tr><td>3. Source cost</td><td>LED ≈ $5<br>VCSEL ≈ $20<br>DFB laser ≈ $200</td><td>MMF cheaps out on the source. SMF needs a coherent laser tuned to the attenuation valley — order of magnitude more.</td></tr>
+      <tr><td>4. Connector tolerance</td><td>50 µm core = forgiving<br>9 µm core = precision</td><td>Misalign 50 µm cores by a micron, light still couples. Misalign 9 µm cores by a micron, you lose half the signal. SMF wants factory-polished connectors.</td></tr>
+      <tr><td>5. BW × distance product</td><td>OM3: 2 000 MHz·km<br>OM4: 4 700 MHz·km<br>SMF: effectively unlimited</td><td>Hard ceiling on (speed × length). Once you exceed it, no MMF rating fixes it. SMF has no real ceiling at CCNA scale.</td></tr>
+    </tbody>
+  </table>
+  <svg class="chart" id="atten" viewBox="0 0 600 180" style="height:180px;margin-top:14px"></svg>
+  <div class="micro"><strong>Reading the curve:</strong> glass attenuation vs wavelength. The two valleys (1310 / 1550 nm) are why SMF picks those windows. The 850 nm bump is where MMF sits — cheap LEDs/VCSELs work there but loss is much higher. This single graph explains half the cost difference.</div>
+</div>
+
+<!-- ─────────── PANEL 5: quiz ─────────── -->
+<div class="panel quiz">
+  <h2>Quiz — <em>pick the reason, not just the answer</em></h2>
+  <div class="stem" id="qStem">Loading…</div>
+  <div class="opts" id="qOpts"></div>
+  <div class="scoreline">
+    <span><strong id="qC">0</strong> correct</span>
+    <span><strong id="qW">0</strong> wrong</span>
+    <span><strong id="qS">0</strong> streak</span>
+    <span style="margin-left:auto"><button class="btn ghost" id="qNext">Next ↻</button></span>
+  </div>
+  <div id="qExplain" class="verdict info"></div>
+</div>
+
+<div class="footer"><a href="blueprint-drill.html?obj=1.3">← back to 1.3 leaves</a> · <a href="sim-1-3-a.html">1.3.a Fiber &amp; Copper</a> · <a href="sim-1-3-c.html">1.3.c IEEE 802.3 Standards</a></div>
+
+<script>
+(function(){
+  function $(id){return document.getElementById(id);}
+  function svgNS(t){return document.createElementNS('http://www.w3.org/2000/svg',t);}
+
+  // ─── Panel 1: cross-section ─────────────────────────────────
+  var FIBERS = {
+    om3:{coreUm:50, r:40, color:'#fef3c7', stroke:'#FBBF24', use:'In-DC, in-row, < 550 m', desc:'<strong>OM3/OM4 (50 µm):</strong> the workhorse inside data centers. Big core = LED/VCSEL works fine, connectors are forgiving, but light has many valid bounce angles ("modes") which causes modal dispersion (next panel).'},
+    om1:{coreUm:62.5, r:50, color:'#fde68a', stroke:'#F59E0B', use:'Legacy buildings, ≤ 1G short runs', desc:'<strong>OM1 (62.5 µm):</strong> legacy multimode found in old buildings. Larger core = even more modes = even worse modal dispersion. Mostly seen patching into existing infrastructure; not specified for new installs.'},
+    smf:{coreUm:9, r:7, color:'#fef3c7', stroke:'#FBBF24', use:'Between buildings, between DCs, 10 km +', desc:'<strong>SMF (9 µm):</strong> a tiny core means only <em>one</em> propagation mode survives. No modal dispersion. Pairs with a 1310 / 1550 nm laser at the glass\'s lowest-loss windows. The 9 µm core also drives the cost up — connectors must be precision-polished, lasers are expensive.'}
+  };
+  function setFiber(k){
+    var f = FIBERS[k];
+    $('coreCirc').setAttribute('r', f.r);
+    $('coreCirc').setAttribute('fill', f.color);
+    $('coreCirc').setAttribute('stroke', f.stroke);
+    $('coreLabel').textContent = f.coreUm + ' µm';
+    $('useCase').textContent = f.use;
+    $('crossInfo').innerHTML = f.desc;
+    document.querySelectorAll('[data-fiber]').forEach(function(b){
+      b.classList.toggle('active', b.dataset.fiber===k);
+    });
+  }
+  document.querySelectorAll('[data-fiber]').forEach(function(b){
+    b.addEventListener('click', function(){ setFiber(b.dataset.fiber); });
+  });
+
+  // ─── Panel 2: TIR + source ──────────────────────────────────
+  var MODES = {
+    'mmf-led':{
+      label:'MMF + LED — multiple modes, modal dispersion ahead',
+      src:'source: LED ~$5, broad emission cone',
+      info:'<strong>LED + 50 µm core:</strong> light enters at many angles; each bounces a different number of times; each takes a different total path length. Different paths = different arrival times = pulse smears. Cheap and fine for short runs.',
+      rays:[{c:'#60A5FA',a:14,phase:0},{c:'#A78BFA',a:24,phase:0.4},{c:'#34D399',a:34,phase:0.8},{c:'#F87171',a:44,phase:1.2}]
+    },
+    'mmf-vcsel':{
+      label:'MMF + VCSEL — fewer modes, controlled launch',
+      src:'source: VCSEL ~$20, narrower angle',
+      info:'<strong>VCSEL + OM3/OM4:</strong> vertical-cavity laser narrows the launch angle so fewer modes light up. That\'s how 10G/40G stretch from ~80 m (LED limit) up to 300-550 m on OM3/OM4. Still multimode, just better-controlled.',
+      rays:[{c:'#60A5FA',a:18,phase:0},{c:'#34D399',a:26,phase:0.6}]
+    },
+    'smf-laser':{
+      label:'SMF + DFB laser — one mode only, no smear',
+      src:'source: DFB laser ~$200, 1310/1550 nm',
+      info:'<strong>DFB laser + 9 µm core:</strong> geometry only permits one propagation mode. One path, one arrival time, no smear. Loss is also lowest at 1310/1550 nm. The whole equation flips: distance is no longer the limit, attenuation/dispersion are — and both are engineered around (EDFA, DCF, coherent DSP).',
+      rays:[{c:'#FBBF24',straight:true}]
+    }
+  };
+  function drawTIR(k){
+    var m = MODES[k];
+    $('modeLabel').textContent = m.label;
+    $('srcLabel').textContent = m.src;
+    $('tirInfo').innerHTML = m.info;
+    var g = $('tirRays');
+    while(g.firstChild) g.removeChild(g.firstChild);
+    if (m.rays[0].straight){
+      // SMF — single straight ray
+      var line = svgNS('line');
+      line.setAttribute('x1',40); line.setAttribute('y1',110);
+      line.setAttribute('x2',560); line.setAttribute('y2',110);
+      line.setAttribute('stroke','#FBBF24'); line.setAttribute('stroke-width',2.4);
+      g.appendChild(line);
+      var dot = svgNS('circle');
+      dot.setAttribute('r',4); dot.setAttribute('fill','#FBBF24');
+      g.appendChild(dot);
+      dot.animate([{cx:40,cy:110},{cx:560,cy:110}],{duration:1100,iterations:Infinity});
+    } else {
+      m.rays.forEach(function(r){
+        // bouncing zigzag between top wall (y=60) and bottom wall (y=160) using sine
+        var pts=[];
+        for(var x=40;x<=560;x+=4){
+          var y = 110 + Math.sin((x-40+r.a*3)/r.a*Math.PI)*48;
+          pts.push(x+','+y);
+        }
+        var poly = svgNS('polyline');
+        poly.setAttribute('points', pts.join(' '));
+        poly.setAttribute('stroke', r.c);
+        poly.setAttribute('stroke-width', 2);
+        poly.setAttribute('fill','none');
+        poly.setAttribute('opacity', .85);
+        g.appendChild(poly);
+      });
+    }
+    document.querySelectorAll('[data-mode]').forEach(function(b){
+      b.classList.toggle('active', b.dataset.mode===k);
+    });
+  }
+  document.querySelectorAll('[data-mode]').forEach(function(b){
+    b.addEventListener('click', function(){ drawTIR(b.dataset.mode); });
+  });
+
+  // ─── Panel 3: pulse smear ───────────────────────────────────
+  // distance slider 0..100 maps to log scale 1m..10000m
+  function distFromSlider(v){ // v: 0..100
+    return Math.round(Math.pow(10, v/100*4));  // 10^0..10^4 = 1..10000 m
+  }
+  var DMD = { om3:0.5, om4:0.2, smf:0.001 }; // ns/km
+  var pulseMode = 'om3';
+  var INPUT_NS = 0.1; // 100 ps = 1 bit at 10 Gbps
+  var BIT_NS = 0.1;
+
+  function gauss(x, mu, sigma){
+    return Math.exp(-Math.pow((x-mu)/sigma,2)/2);
+  }
+  function drawPulse(svg, widthNs, color, label){
+    while(svg.firstChild) svg.removeChild(svg.firstChild);
+    var w = 300, h = 100;
+    // axis
+    var ax = svgNS('line');
+    ax.setAttribute('x1',10); ax.setAttribute('y1',h-15);
+    ax.setAttribute('x2',w-10); ax.setAttribute('y2',h-15);
+    ax.setAttribute('stroke','#C7C3BC'); ax.setAttribute('stroke-width',1);
+    svg.appendChild(ax);
+    // bit-period markers (every 100 ps)
+    for (var t=-3;t<=3;t++){
+      var x = w/2 + t*40;  // 40 px per 100 ps
+      var tick = svgNS('line');
+      tick.setAttribute('x1',x); tick.setAttribute('y1',h-15);
+      tick.setAttribute('x2',x); tick.setAttribute('y2',h-10);
+      tick.setAttribute('stroke','#A8A29E');
+      svg.appendChild(tick);
+    }
+    // pulse — gaussian centered, sigma = widthNs/2.355 (FWHM)
+    var sigma = widthNs/2.355;
+    var pts = [];
+    var maxAmp = h-30;
+    for (var i=0;i<=120;i++){
+      var ns = (i/120 - 0.5) * 0.7;  // ±350 ps span
+      var y = (h-15) - gauss(ns, 0, sigma) * maxAmp;
+      var px = 10 + (i/120)*(w-20);
+      pts.push(px+','+y);
+    }
+    var poly = svgNS('polyline');
+    poly.setAttribute('points', pts.join(' '));
+    poly.setAttribute('stroke', color);
+    poly.setAttribute('stroke-width', 2.5);
+    poly.setAttribute('fill','none');
+    svg.appendChild(poly);
+    // ISI threshold (1 bit period = 100 ps wide envelope)
+    var thr = svgNS('rect');
+    thr.setAttribute('x', w/2 - 20);
+    thr.setAttribute('y', 8);
+    thr.setAttribute('width', 40);
+    thr.setAttribute('height', h-23);
+    thr.setAttribute('fill','#FEF2F2');
+    thr.setAttribute('stroke','#DC2626');
+    thr.setAttribute('stroke-dasharray','3 3');
+    thr.setAttribute('opacity', '.4');
+    svg.insertBefore(thr, svg.firstChild);
+    // label
+    var t = svgNS('text');
+    t.setAttribute('x', w/2); t.setAttribute('y', 16);
+    t.setAttribute('text-anchor','middle');
+    t.setAttribute('font-family','JetBrains Mono');
+    t.setAttribute('font-size','10');
+    t.setAttribute('fill','#57534E');
+    t.textContent = label;
+    svg.appendChild(t);
+  }
+  function updatePulse(){
+    var v = parseInt($('pdist').value, 10);
+    var d_m = distFromSlider(v);
+    var d_km = d_m / 1000;
+    var dmd = DMD[pulseMode];
+    var disp = dmd * d_km; // ns
+    var out_ns = Math.sqrt(INPUT_NS*INPUT_NS + disp*disp);
+    $('pdistV').textContent = d_m >= 1000 ? (d_km).toFixed(1)+' km' : d_m+' m';
+    $('inW').textContent = (INPUT_NS*1000).toFixed(0)+' ps';
+    $('outW').textContent = (out_ns*1000).toFixed(0)+' ps';
+    drawPulse($('inP'), INPUT_NS, '#16A34A', '100 ps · 1 bit @ 10G');
+    drawPulse($('outP'), out_ns, out_ns > BIT_NS ? '#DC2626' : '#16A34A',
+      out_ns > BIT_NS ? 'SMEARED — overlaps next bit' : 'Sharp — within 1 bit');
+    var v2 = $('pVerdict');
+    if (out_ns <= BIT_NS*1.05){
+      v2.className='verdict ok show';
+      v2.textContent = 'Pulse holds within the 100 ps bit period — link is healthy.';
+    } else if (out_ns <= BIT_NS*2){
+      v2.className='verdict info show';
+      v2.textContent = 'Pulse approaching ISI threshold — eye diagram is closing. BER climbs.';
+    } else {
+      v2.className='verdict warn show';
+      v2.textContent = 'Pulse smears across multiple bit periods — ISI dominates. Link fails. ' + (pulseMode!=='smf' ? 'Switch to SMF or shorten the run.' : '');
+    }
+  }
+  document.querySelectorAll('[data-pulse]').forEach(function(b){
+    b.addEventListener('click', function(){
+      pulseMode = b.dataset.pulse;
+      document.querySelectorAll('[data-pulse]').forEach(function(x){ x.classList.toggle('active', x===b); });
+      updatePulse();
+    });
+  });
+  $('pdist').addEventListener('input', updatePulse);
+
+  // ─── Panel 4: attenuation curve ─────────────────────────────
+  function drawAtten(){
+    var svg = $('atten');
+    var w = 600, h = 180, mL = 50, mR = 20, mT = 20, mB = 30;
+    var pw = w-mL-mR, ph = h-mT-mB;
+    // axes
+    var xa = svgNS('line'); xa.setAttribute('x1',mL); xa.setAttribute('y1',h-mB); xa.setAttribute('x2',w-mR); xa.setAttribute('y2',h-mB); xa.setAttribute('stroke','#1C1917'); svg.appendChild(xa);
+    var ya = svgNS('line'); ya.setAttribute('x1',mL); ya.setAttribute('y1',mT); ya.setAttribute('x2',mL); ya.setAttribute('y2',h-mB); ya.setAttribute('stroke','#1C1917'); svg.appendChild(ya);
+    // labels
+    function txt(x,y,s,opts){var t=svgNS('text');t.setAttribute('x',x);t.setAttribute('y',y);t.setAttribute('font-family','JetBrains Mono');t.setAttribute('font-size','10');t.setAttribute('fill', opts&&opts.fill||'#57534E');if(opts&&opts.anchor)t.setAttribute('text-anchor',opts.anchor);if(opts&&opts.weight)t.setAttribute('font-weight',opts.weight);t.textContent=s;svg.appendChild(t);}
+    txt(w/2, h-6, 'wavelength (nm)', {anchor:'middle'});
+    txt(15, mT+ph/2, 'loss', {});
+    txt(15, mT+ph/2+12, 'dB/km', {});
+    // x: 700..1700 nm
+    var xMin=700, xMax=1700;
+    var yMin=0, yMax=4;
+    function X(nm){ return mL + (nm-xMin)/(xMax-xMin) * pw; }
+    function Y(db){ return h - mB - (db-yMin)/(yMax-yMin) * ph; }
+    // ticks
+    [800,1000,1200,1400,1600].forEach(function(nm){
+      var x = X(nm);
+      var t = svgNS('line'); t.setAttribute('x1',x); t.setAttribute('y1',h-mB); t.setAttribute('x2',x); t.setAttribute('y2',h-mB+4); t.setAttribute('stroke','#1C1917'); svg.appendChild(t);
+      txt(x, h-mB+15, nm, {anchor:'middle'});
+    });
+    [1,2,3,4].forEach(function(db){
+      var y = Y(db);
+      var t = svgNS('line'); t.setAttribute('x1',mL-4); t.setAttribute('y1',y); t.setAttribute('x2',mL); t.setAttribute('y2',y); t.setAttribute('stroke','#1C1917'); svg.appendChild(t);
+      txt(mL-7, y+3, db, {anchor:'end'});
+    });
+    // attenuation curve — approximate: high at 700, dip ~1310, hump ~1380 (water peak), dip ~1550, rises 1600+
+    function loss(nm){
+      // very rough analytic: Rayleigh tail + water peak + IR rise
+      var rayleigh = Math.pow(800/nm, 4) * 1.6;
+      var waterPeak = 1.2 * Math.exp(-Math.pow((nm-1380)/30, 2));
+      var ir = Math.max(0, (nm-1600)/100) * 1.5;
+      return rayleigh + waterPeak + ir + 0.18;
+    }
+    var pts=[];
+    for (var nm=xMin; nm<=xMax; nm+=10){
+      pts.push(X(nm)+','+Y(Math.min(loss(nm),yMax)));
+    }
+    var poly = svgNS('polyline');
+    poly.setAttribute('points', pts.join(' '));
+    poly.setAttribute('stroke','#B45309'); poly.setAttribute('stroke-width', 2.2);
+    poly.setAttribute('fill','none');
+    svg.appendChild(poly);
+    // markers for 850, 1310, 1550
+    [{nm:850,who:'850 nm — MMF',c:'#DC2626'},{nm:1310,who:'1310 nm — SMF (O-band)',c:'#16A34A'},{nm:1550,who:'1550 nm — SMF (C-band)',c:'#16A34A'}].forEach(function(m){
+      var x = X(m.nm), y = Y(loss(m.nm));
+      var c = svgNS('circle'); c.setAttribute('cx',x); c.setAttribute('cy',y); c.setAttribute('r',5); c.setAttribute('fill',m.c); svg.appendChild(c);
+      txt(x, y-9, m.who, {anchor:'middle', fill:m.c, weight:'700'});
+      txt(x, y+18, loss(m.nm).toFixed(2)+' dB/km', {anchor:'middle', fill:m.c});
+    });
+  }
+
+  // ─── Panel 5: quiz ──────────────────────────────────────────
+  var POOL = [
+    { q:'OM4 fiber is rated at 4 700 MHz·km. You need 25 Gbps over 400 m. Will it work?',
+      a:'No — 25 G × 400 m = 10 GHz·km, exceeds the rating',
+      d:['Yes — distance is under 500 m','Yes — OM4 always supports 25G','No — copper is the only option'],
+      why:'Bandwidth × distance product is a HARD ceiling. 25 GHz × 0.4 km = 10 GHz·km > 4.7 GHz·km. The fiber physically can\'t carry it cleanly. Drop speed, shorten run, or move to SMF.' },
+    { q:'Why does SMF use 1310 nm and 1550 nm specifically?',
+      a:'Glass attenuation has its lowest valleys at those wavelengths',
+      d:['They are easier to detect','They are immune to bending','They match copper standards'],
+      why:'Silica glass has minima around 1310 (~0.35 dB/km) and 1550 (~0.20 dB/km). DFB lasers are tuned to those windows. MMF at 850 nm sits at ~2.5 dB/km — an order of magnitude worse.' },
+    { q:'Why is a DFB laser more expensive than an LED?',
+      a:'It produces a coherent, narrow-linewidth beam at a precise wavelength',
+      d:['It uses more electricity','It has a longer warranty','It only works underwater'],
+      why:'A DFB laser carves out one narrow wavelength band and emits coherently — needed to launch a single mode into a 9 µm core. LEDs are broad and incoherent: cheap, but useless for SMF.' },
+    { q:'Two DC switches sit 80 m apart on the same row. Which fiber is the right call from a $$$ standpoint?',
+      a:'OM3/OM4 multimode with VCSEL optics',
+      d:['SMF with DFB laser','OM1 legacy multimode','RG-6 coax'],
+      why:'SMF works but the transceiver pair costs 3-5× more. At 80 m, MMF is well inside its bandwidth × distance ceiling — pick the cheap option.' },
+    { q:'You measure 600 m run, 10 G, OM3 fiber. Link won\'t come up clean. Why?',
+      a:'Modal dispersion smears pulses past the OM3 limit (~300 m at 10G)',
+      d:['Cladding is too thick','Connectors are wrong color','Wavelength is too short'],
+      why:'OM3 at 10G tops out around 300 m. At 600 m the pulse smears past the 100 ps bit period — ISI dominates. Move to OM4 (~400m), OM5, or SMF.' },
+    { q:'Why does the 9 µm core demand precision-polished connectors?',
+      a:'Sub-micron misalignment loses a large fraction of the signal',
+      d:['Glass is fragile','Lasers are hot','UV light leaks out'],
+      why:'Couple a 9 µm spot into a 9 µm spot — you have no alignment margin. Off by 1 µm and you\'re overlapping ~80% of beam area. Field-terminating SMF without precision tooling is a recipe for high insertion loss.' },
+    { q:'You see "OM3" stamped on aqua jacket. What does the "3" mean physically?',
+      a:'The bandwidth × distance grade — 2 000 MHz·km at 850 nm, laser-optimized',
+      d:['Three modes propagate','Three layers of cladding','Three connectors per fiber'],
+      why:'OM ratings (OM1 200, OM2 500, OM3 2000, OM4 4700, OM5 wideband) are bandwidth × distance figures of merit. Higher = either further at the same speed, or faster at the same length.' },
+    { q:'On SMF over 80 km the pulse stays sharp. So what limits SMF instead?',
+      a:'Attenuation (and at very long distances, chromatic dispersion)',
+      d:['Modal dispersion','Connector color','Jacket material'],
+      why:'SMF dodges modal dispersion by design. Real limits become loss budget (dB) and chromatic dispersion. Engineered around with EDFAs, DCF, and coherent DSP — none of which fix modal dispersion.' }
+  ];
+  var qC=0,qW=0,qS=0;
+  function pickQ(){
+    var p = POOL[Math.floor(Math.random()*POOL.length)];
+    var opts = [p.a].concat(p.d).sort(function(){return Math.random()-.5;});
+    $('qStem').textContent = p.q;
+    $('qExplain').className = 'verdict info';
+    var box = $('qOpts'); box.innerHTML='';
+    opts.forEach(function(o){
+      var b = document.createElement('button');
+      b.className = 'opt'; b.textContent = o;
+      b.addEventListener('click', function(){
+        if (b.classList.contains('correct') || b.classList.contains('wrong')) return;
+        if (o === p.a){ b.classList.add('correct'); qC++; qS++; }
+        else {
+          b.classList.add('wrong'); qW++; qS = 0;
+          [].forEach.call(box.children, function(c){ if (c.textContent===p.a) c.classList.add('correct'); });
+        }
+        $('qC').textContent = qC; $('qW').textContent = qW; $('qS').textContent = qS;
+        var v = $('qExplain'); v.className='verdict info show'; v.textContent = 'Why: '+p.why;
+      });
+      box.appendChild(b);
+    });
+  }
+  $('qNext').addEventListener('click', pickQ);
+
+  // ─── boot ───────────────────────────────────────────────────
+  setFiber('om3');
+  drawTIR('mmf-led');
+  updatePulse();
+  drawAtten();
+  pickQ();
+})();
+</script>
+<script defer src="js/tutor.js"></script>
+</body>
+</html>
