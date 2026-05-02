@@ -1,0 +1,1081 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Domain 3 — IP Connectivity (25%) · CCNA Visual Deep Dive</title>
+<meta name="description" content="The heaviest-weight CCNA domain, dumped visually. Routing tables, longest-prefix match, AD ladder, static routing types, OSPFv2 state machine, FHRPs.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/shared.css?v=4.56">
+<style>
+  :root{
+    --bg:#FAF7F2;--bg-surface:#FFFFFF;--bg-recessed:#F3F0EB;
+    --border:#E2DFD9;--border-strong:#C7C3BC;
+    --ink:#1C1917;--ink-secondary:#57534E;--ink-muted:#A8A29E;
+    --accent:#B45309;--accent-soft:#D97706;--accent-light:#FEF3C7;
+    --correct:#16A34A;--correct-bg:#F0FDF4;
+    --wrong:#DC2626;--wrong-bg:#FEF2F2;
+    --info:#2563EB;--info-bg:#EFF6FF;
+    --purple:#7C3AED;--purple-bg:#F5F3FF;
+    --teal:#0D9488;--teal-bg:#F0FDFA;
+    --font-display:'Space Grotesk',system-ui,sans-serif;
+    --font-body:'Source Serif 4',Georgia,serif;
+    --font-mono:'JetBrains Mono',monospace;
+    --radius:6px;--radius-lg:12px;
+  }
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  html{font-size:16px;-webkit-font-smoothing:antialiased;scroll-behavior:smooth}
+  body{font-family:var(--font-body);background:var(--bg);color:var(--ink);line-height:1.6;padding:0}
+  .wrap{max-width:1100px;margin:0 auto;padding:24px}
+
+  /* HERO */
+  .hero{position:relative;background:linear-gradient(135deg,#1C1917 0%,#3F3833 100%);color:#FAF7F2;border-radius:var(--radius-lg);padding:44px 36px;margin:24px 0 32px;overflow:hidden}
+  .hero .crumb{font-family:var(--font-mono);font-size:.74rem;color:var(--accent-soft);text-transform:uppercase;letter-spacing:.12em;margin-bottom:10px}
+  .hero h1{font-family:var(--font-display);font-size:2.6rem;font-weight:700;line-height:1.05;margin-bottom:12px}
+  .hero h1 .pct{color:var(--accent-soft);font-feature-settings:"tnum"}
+  .hero .lead{font-size:1.1rem;color:#D6D3D1;max-width:640px}
+  .hero .pill-row{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px}
+  .hero .pill{font-family:var(--font-mono);font-size:.78rem;font-weight:700;padding:6px 12px;border-radius:100px;background:rgba(217,119,6,.15);border:1px solid rgba(217,119,6,.4);color:var(--accent-light);cursor:pointer;text-decoration:none;transition:all .2s}
+  .hero .pill:hover{background:rgba(217,119,6,.3);transform:translateY(-1px)}
+  .hero-svg{position:absolute;right:-40px;bottom:-20px;width:480px;height:280px;opacity:.55;pointer-events:none}
+
+  /* WEIGHT BAR */
+  .weight-card{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:24px;margin-bottom:28px}
+  .weight-card h2{font-family:var(--font-display);font-size:1.05rem;font-weight:700;margin-bottom:16px}
+  .domain-bars{display:grid;gap:10px}
+  .bar-row{display:grid;grid-template-columns:170px 1fr 50px;gap:14px;align-items:center;font-family:var(--font-mono);font-size:.85rem}
+  .bar-row.active .bar-fill{background:var(--accent)}
+  .bar-row.active .pct-num{color:var(--accent);font-weight:700}
+  .bar-track{height:14px;background:var(--bg-recessed);border-radius:7px;overflow:hidden;position:relative}
+  .bar-fill{height:100%;background:var(--ink-muted);border-radius:7px;transform-origin:left;transform:scaleX(0);transition:transform 1.2s cubic-bezier(.16,1,.3,1)}
+  .bar-row.run .bar-fill{transform:scaleX(1)}
+  .pct-num{text-align:right}
+
+  /* TOC */
+  .toc{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;margin-bottom:32px}
+  .toc a{display:block;padding:14px 16px;background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius);text-decoration:none;color:var(--ink);transition:all .15s}
+  .toc a:hover{border-color:var(--accent);box-shadow:0 2px 8px rgba(180,83,9,.08);transform:translateY(-1px)}
+  .toc .num{font-family:var(--font-mono);font-size:.78rem;color:var(--accent);font-weight:700;text-transform:uppercase;letter-spacing:.08em}
+  .toc .ttl{font-family:var(--font-display);font-size:.96rem;font-weight:600;margin-top:4px}
+  .toc .meta{font-family:var(--font-mono);font-size:.74rem;color:var(--ink-muted);margin-top:6px}
+
+  /* SECTIONS */
+  section.bigsec{margin-bottom:48px;scroll-margin-top:24px}
+  section.bigsec > .head{display:flex;align-items:baseline;gap:14px;margin-bottom:12px;flex-wrap:wrap}
+  section.bigsec > .head .num{font-family:var(--font-mono);font-size:.84rem;color:var(--accent);font-weight:700;background:var(--accent-light);padding:4px 10px;border-radius:var(--radius);letter-spacing:.06em}
+  section.bigsec > .head h2{font-family:var(--font-display);font-size:1.7rem;font-weight:700}
+  section.bigsec > .desc{color:var(--ink-secondary);font-size:1.02rem;margin-bottom:18px;max-width:780px}
+  .panel{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:22px;margin-bottom:18px}
+  .panel h3{font-family:var(--font-display);font-size:1rem;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+  .panel h3 .dot{width:8px;height:8px;border-radius:50%;background:var(--accent)}
+  .panel h4{font-family:var(--font-display);font-size:.84rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-secondary);margin:14px 0 8px}
+
+  /* WHY box */
+  .why{background:var(--accent-light);border-left:3px solid var(--accent);padding:14px 16px;border-radius:var(--radius);margin-bottom:18px;font-size:.96rem}
+  .why strong{font-family:var(--font-display);text-transform:uppercase;letter-spacing:.05em;font-size:.78rem;color:var(--accent);display:block;margin-bottom:4px}
+
+  /* CODE */
+  .code{font-family:var(--font-mono);font-size:.86rem;background:#1C1917;color:#FAF7F2;padding:16px;border-radius:var(--radius);overflow-x:auto;line-height:1.7;white-space:pre}
+  .code .ln{display:block;padding:2px 4px;border-radius:3px;transition:background .25s;cursor:pointer}
+  .code .ln:hover{background:rgba(217,119,6,.12)}
+  .code .ln.hl{background:rgba(217,119,6,.32);color:#FEF3C7}
+  .code .c{color:#A8A29E}
+  .code .k{color:#FBBF24}
+  .code .s{color:#86EFAC}
+  .code .ad{cursor:pointer;border-bottom:1px dashed #D97706}
+
+  /* ROUTING TABLE LEGEND */
+  .legend{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px;margin-top:14px;font-family:var(--font-mono);font-size:.86rem}
+  .legend .item{padding:10px 12px;background:var(--bg-recessed);border-radius:var(--radius);border:1px solid var(--border);cursor:pointer;transition:all .15s}
+  .legend .item:hover{border-color:var(--accent);background:var(--accent-light)}
+  .legend .item .k{font-weight:700;color:var(--accent);margin-right:6px}
+
+  /* INTERACTIVE: Longest Match */
+  .lpm{margin-top:14px}
+  .lpm .ip-input{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
+  .lpm input{font-family:var(--font-mono);font-size:1.05rem;padding:8px 12px;border:1px solid var(--border-strong);border-radius:var(--radius);background:var(--bg-surface);min-width:180px}
+  .lpm .ladder{font-family:var(--font-mono);font-size:.9rem;display:grid;gap:6px;margin-top:14px}
+  .lpm .row{display:grid;grid-template-columns:46px 1fr 90px 90px;gap:12px;align-items:center;padding:10px 14px;background:var(--bg-recessed);border:1px solid var(--border);border-radius:var(--radius);transition:all .3s}
+  .lpm .row.match{background:var(--correct-bg);border-color:var(--correct)}
+  .lpm .row.match .pfx{color:var(--correct);font-weight:700}
+  .lpm .row.win{background:var(--accent-light);border-color:var(--accent);transform:translateX(8px);box-shadow:0 4px 14px rgba(180,83,9,.18)}
+  .lpm .row.win .pfx{color:var(--accent);font-weight:700}
+  .lpm .row .pl{color:var(--ink-muted);font-size:.78rem}
+  .lpm .row.match .pl{color:var(--correct)}
+  .lpm .row.win .pl{color:var(--accent)}
+  .lpm .verdict{margin-top:14px;padding:12px 16px;background:var(--accent-light);border:1px solid var(--accent);color:var(--accent);border-radius:var(--radius);font-family:var(--font-display);font-weight:600;display:none}
+  .lpm .verdict.show{display:block;animation:fadeIn .3s}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
+
+  /* AD CHART */
+  .ad-chart{margin-top:14px;display:grid;gap:8px}
+  .ad-row{display:grid;grid-template-columns:160px 1fr 60px;gap:12px;align-items:center;font-family:var(--font-mono);font-size:.86rem;cursor:pointer;padding:6px 8px;border-radius:var(--radius);transition:background .15s}
+  .ad-row:hover{background:var(--bg-recessed)}
+  .ad-row .ad-bar{height:12px;background:linear-gradient(90deg,var(--correct) 0%,var(--correct) 5%,var(--accent) 25%,var(--wrong) 100%);border-radius:6px;position:relative;overflow:hidden}
+  .ad-row .ad-bar::before{content:"";position:absolute;left:0;top:0;bottom:0;background:var(--bg-recessed);border-right:2px solid var(--ink);width:var(--w,0%)}
+  .ad-row .ad-num{font-weight:700;text-align:right}
+
+  /* STATIC ROUTING TILES */
+  .tile-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-top:14px}
+  .tile{background:var(--bg-recessed);border:1px solid var(--border);border-radius:var(--radius);padding:14px;transition:all .15s;cursor:pointer}
+  .tile:hover{border-color:var(--accent);transform:translateY(-2px);box-shadow:0 4px 12px rgba(180,83,9,.08)}
+  .tile h5{font-family:var(--font-display);font-size:.96rem;font-weight:700;margin-bottom:6px}
+  .tile .ex{font-family:var(--font-mono);font-size:.82rem;color:var(--accent);background:var(--bg-surface);padding:6px 8px;border-radius:4px;margin-top:8px;display:block;border:1px solid var(--border);overflow-x:auto;white-space:nowrap}
+  .tile p{font-size:.92rem;color:var(--ink-secondary)}
+
+  /* OSPF STATE MACHINE */
+  .ospf-states{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-top:14px;font-family:var(--font-mono);font-size:.74rem;text-align:center}
+  .ospf-state{padding:14px 6px;background:var(--bg-recessed);border:1px solid var(--border);border-radius:var(--radius);cursor:pointer;transition:all .3s;position:relative}
+  .ospf-state.active{background:var(--accent);color:#fff;border-color:var(--accent);transform:scale(1.05)}
+  .ospf-state.done{background:var(--correct-bg);border-color:var(--correct);color:var(--correct)}
+  .ospf-state .num{font-size:.66rem;color:var(--ink-muted);display:block;margin-bottom:4px}
+  .ospf-state.active .num,.ospf-state.done .num{color:inherit;opacity:.8}
+  .ospf-detail{margin-top:14px;padding:14px;background:var(--info-bg);border:1px solid var(--info);border-radius:var(--radius);font-size:.92rem;min-height:64px}
+  .ospf-detail strong{color:var(--info);font-family:var(--font-display)}
+  .ospf-controls{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
+
+  /* DR/BDR diagram */
+  .drbdr-svg{width:100%;height:280px;margin-top:14px;background:var(--bg-recessed);border:1px solid var(--border);border-radius:var(--radius)}
+
+  /* FHRP comparison */
+  .fhrp-table{width:100%;border-collapse:collapse;margin-top:14px;font-size:.9rem}
+  .fhrp-table th,.fhrp-table td{padding:10px 12px;border-bottom:1px solid var(--border);text-align:left;vertical-align:top}
+  .fhrp-table th{background:var(--bg-recessed);font-family:var(--font-display);font-size:.74rem;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-secondary)}
+  .fhrp-table td:first-child{font-family:var(--font-display);font-weight:700}
+  .fhrp-table tr:hover td{background:var(--accent-light)}
+  .fhrp-table .tag{display:inline-block;font-family:var(--font-mono);font-size:.74rem;padding:2px 8px;border-radius:100px;background:var(--accent-light);color:var(--accent);font-weight:700}
+  .fhrp-table .tag.cisco{background:var(--info-bg);color:var(--info)}
+  .fhrp-table .tag.std{background:var(--correct-bg);color:var(--correct)}
+
+  /* HSRP failover anim */
+  .failover-svg{width:100%;height:300px;background:var(--bg-recessed);border:1px solid var(--border);border-radius:var(--radius);margin-top:14px}
+
+  /* BTN */
+  .btn{font-family:var(--font-display);font-size:.84rem;font-weight:600;padding:8px 16px;background:var(--ink);color:#FAF7F2;border:none;border-radius:var(--radius);cursor:pointer;transition:all .15s}
+  .btn:hover{background:var(--ink-secondary);transform:translateY(-1px)}
+  .btn.ghost{background:var(--bg-recessed);color:var(--ink);border:1px solid var(--border)}
+  .btn.ghost:hover{background:var(--bg-surface)}
+  .btn.accent{background:var(--accent)}
+  .btn.accent:hover{background:var(--accent-soft)}
+
+  /* Cheat grid */
+  .cheat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:10px;margin-top:14px}
+  .cheat{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px}
+  .cheat h5{font-family:var(--font-display);font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--accent);margin-bottom:8px}
+  .cheat code{display:block;font-family:var(--font-mono);font-size:.82rem;background:var(--bg-recessed);padding:6px 10px;border-radius:4px;margin-bottom:4px;overflow-x:auto;white-space:nowrap}
+
+  /* Resource links */
+  .reslink{display:grid;grid-template-columns:1fr auto;gap:14px;align-items:center;padding:12px 14px;background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius);text-decoration:none;color:var(--ink);transition:all .15s;margin-bottom:8px}
+  .reslink:hover{border-color:var(--accent);background:var(--accent-light)}
+  .reslink .desc{font-size:.86rem;color:var(--ink-secondary);margin-top:2px}
+  .reslink h5{font-family:var(--font-display);font-size:.96rem;font-weight:700}
+  .reslink .src{font-family:var(--font-mono);font-size:.74rem;color:var(--accent);text-transform:uppercase;letter-spacing:.06em}
+
+  /* Mini topology svg */
+  .topo-svg{width:100%;max-height:340px;margin-top:14px;background:var(--bg-recessed);border:1px solid var(--border);border-radius:var(--radius)}
+
+  /* Shared SVG */
+  .pulse{animation:pulse 2.4s ease-in-out infinite}
+  @keyframes pulse{0%,100%{opacity:.4}50%{opacity:1}}
+  .floatpkt{animation:floatpkt 4s linear infinite}
+  @keyframes floatpkt{from{offset-distance:0%}to{offset-distance:100%}}
+
+  /* footer */
+  .footer{margin-top:48px;padding:24px 0;border-top:1px solid var(--border);font-family:var(--font-mono);font-size:.82rem;color:var(--ink-muted);text-align:center}
+  .footer a{color:var(--accent);text-decoration:none}
+
+  /* Mobile */
+  @media (max-width:780px){
+    .hero h1{font-size:1.8rem}
+    .hero{padding:30px 22px}
+    .hero-svg{display:none}
+    .ospf-states{grid-template-columns:repeat(4,1fr)}
+    .bar-row{grid-template-columns:120px 1fr 40px}
+    .lpm .row{grid-template-columns:40px 1fr 70px;font-size:.78rem}
+    .lpm .row .nh{display:none}
+  }
+</style>
+<script defer src="js/nav.js"></script>
+</head>
+<body>
+<nav class="top-nav"></nav>
+
+<div class="wrap">
+
+  <!-- HERO -->
+  <header class="hero">
+    <div class="crumb"><a href="core.html" style="color:inherit">CORE</a> &rsaquo; Domain 3</div>
+    <h1>IP Connectivity <span class="pct">25%</span></h1>
+    <p class="lead">The heaviest-weight CCNA domain. Routing decisions, the table that drives them, OSPFv2 single area, and what keeps gateways alive when the active router dies.</p>
+    <div class="pill-row">
+      <a class="pill" href="#s1">3.1 Routing table</a>
+      <a class="pill" href="#s2">3.2 Forwarding decision</a>
+      <a class="pill" href="#s3">3.3 Static routing</a>
+      <a class="pill" href="#s4">3.4 OSPFv2</a>
+      <a class="pill" href="#s5">3.5 FHRPs</a>
+      <a class="pill" href="#cheat">Commands</a>
+      <a class="pill" href="#research">Research links</a>
+    </div>
+    <svg class="hero-svg" viewBox="0 0 480 280">
+      <defs>
+        <radialGradient id="rg1" cx="50%" cy="50%"><stop offset="0%" stop-color="#D97706" stop-opacity=".6"/><stop offset="100%" stop-color="#D97706" stop-opacity="0"/></radialGradient>
+      </defs>
+      <circle cx="80" cy="140" r="60" fill="url(#rg1)"/>
+      <circle cx="240" cy="80" r="60" fill="url(#rg1)"/>
+      <circle cx="240" cy="200" r="60" fill="url(#rg1)"/>
+      <circle cx="400" cy="140" r="60" fill="url(#rg1)"/>
+      <line x1="80" y1="140" x2="240" y2="80" stroke="#D97706" stroke-width="1.5" opacity=".5"/>
+      <line x1="80" y1="140" x2="240" y2="200" stroke="#D97706" stroke-width="1.5" opacity=".5"/>
+      <line x1="240" y1="80" x2="400" y2="140" stroke="#D97706" stroke-width="1.5" opacity=".5"/>
+      <line x1="240" y1="200" x2="400" y2="140" stroke="#D97706" stroke-width="1.5" opacity=".5"/>
+      <g><circle r="4" fill="#FBBF24"><animateMotion dur="3.4s" repeatCount="indefinite" path="M80 140 L240 80 L400 140 L240 200 Z"/></circle></g>
+      <g><circle r="4" fill="#FBBF24"><animateMotion dur="3.4s" begin="1.7s" repeatCount="indefinite" path="M80 140 L240 200 L400 140 L240 80 Z"/></circle></g>
+      <g font-family="JetBrains Mono" font-size="11" fill="#FAF7F2" font-weight="700">
+        <text x="80" y="144" text-anchor="middle">R1</text>
+        <text x="240" y="84" text-anchor="middle">R2</text>
+        <text x="240" y="204" text-anchor="middle">R3</text>
+        <text x="400" y="144" text-anchor="middle">R4</text>
+      </g>
+    </svg>
+  </header>
+
+  <!-- WEIGHT BAR -->
+  <div class="weight-card" id="weights">
+    <h2>Why Domain 3 wins your study time</h2>
+    <div class="domain-bars">
+      <div class="bar-row" data-w="20"><span>1. Network Fundamentals</span><div class="bar-track"><div class="bar-fill" style="width:80%"></div></div><span class="pct-num">20%</span></div>
+      <div class="bar-row" data-w="20"><span>2. Network Access</span><div class="bar-track"><div class="bar-fill" style="width:80%"></div></div><span class="pct-num">20%</span></div>
+      <div class="bar-row active" data-w="25"><span>3. IP Connectivity</span><div class="bar-track"><div class="bar-fill" style="width:100%"></div></div><span class="pct-num">25%</span></div>
+      <div class="bar-row" data-w="10"><span>4. IP Services</span><div class="bar-track"><div class="bar-fill" style="width:40%"></div></div><span class="pct-num">10%</span></div>
+      <div class="bar-row" data-w="15"><span>5. Security Fundamentals</span><div class="bar-track"><div class="bar-fill" style="width:60%"></div></div><span class="pct-num">15%</span></div>
+      <div class="bar-row" data-w="10"><span>6. Automation & Programmability</span><div class="bar-track"><div class="bar-fill" style="width:40%"></div></div><span class="pct-num">10%</span></div>
+    </div>
+    <p style="margin-top:14px;font-size:.92rem;color:var(--ink-secondary)">If a 100-question exam has ~25 IP-Connectivity questions and you score 90% there, you bank ~22 right answers. Miss this domain and the rest can't catch you up.</p>
+  </div>
+
+  <!-- TOC -->
+  <nav class="toc" aria-label="Domain 3 sub-objectives">
+    <a href="#s1"><div class="num">3.1</div><div class="ttl">Routing table components</div><div class="meta">Codes · prefixes · AD/metric · next-hop</div></a>
+    <a href="#s2"><div class="num">3.2</div><div class="ttl">Forwarding decision</div><div class="meta">Longest match · AD ladder · metric</div></a>
+    <a href="#s3"><div class="num">3.3</div><div class="ttl">Static routing v4/v6</div><div class="meta">Default · network · host · floating</div></a>
+    <a href="#s4"><div class="num">3.4</div><div class="ttl">OSPFv2 single area</div><div class="meta">Adjacency · DR/BDR · router-id</div></a>
+    <a href="#s5"><div class="num">3.5</div><div class="ttl">FHRPs</div><div class="meta">HSRP · VRRP · GLBP</div></a>
+  </nav>
+
+  <!-- ============== 3.1 ============== -->
+  <section class="bigsec" id="s1">
+    <div class="head"><span class="num">3.1</span><h2>Routing table components</h2></div>
+    <p class="desc">The routing table is the router's contract with itself: every destination network it has heard of, where to forward toward it, and how trustworthy that information is. Read it left to right.</p>
+
+    <div class="why"><strong>Exam trap</strong>One destination can have multiple candidate routes; only one ends up in this table. Learn to read why.</div>
+
+    <div class="panel">
+      <h3><span class="dot"></span>Anatomy of a single line</h3>
+      <p style="font-size:.94rem;color:var(--ink-secondary);margin-bottom:10px">Click any colored token to learn what it means.</p>
+      <pre class="code"><span class="ln" data-k="O">O    10.1.2.0/24 [110/65] via 10.0.0.2, 00:12:34, GigabitEthernet0/1</span>
+<span class="ln" data-k="C">C    10.0.0.0/30 is directly connected, GigabitEthernet0/1</span>
+<span class="ln" data-k="L">L    10.0.0.1/32 is directly connected, GigabitEthernet0/1</span>
+<span class="ln" data-k="S">S    10.99.0.0/16 [1/0] via 192.0.2.5</span>
+<span class="ln" data-k="Sd">S*   0.0.0.0/0 [1/0] via 203.0.113.1</span>
+<span class="ln" data-k="D">D    172.16.4.0/24 [90/2170112] via 10.0.0.6, 01:14:09, GigabitEthernet0/2</span>
+<span class="ln" data-k="B">B    192.168.50.0/24 [20/0] via 198.51.100.1, 03:55:01</span></pre>
+
+      <div id="codeDetail" class="why" style="margin-top:14px;display:none"></div>
+
+      <h4>Source codes you must recognize</h4>
+      <div class="legend">
+        <div class="item" data-k="C"><span class="k">C</span>directly connected</div>
+        <div class="item" data-k="L"><span class="k">L</span>local /32 (own interface IP)</div>
+        <div class="item" data-k="S"><span class="k">S</span>static</div>
+        <div class="item" data-k="Sd"><span class="k">S*</span>static default (gateway of last resort)</div>
+        <div class="item" data-k="O"><span class="k">O</span>OSPF intra-area</div>
+        <div class="item" data-k="O IA"><span class="k">O IA</span>OSPF inter-area</div>
+        <div class="item" data-k="O E1"><span class="k">O E1</span>OSPF external type-1 (cost grows)</div>
+        <div class="item" data-k="O E2"><span class="k">O E2</span>OSPF external type-2 (cost flat)</div>
+        <div class="item" data-k="D"><span class="k">D</span>EIGRP</div>
+        <div class="item" data-k="B"><span class="k">B</span>BGP</div>
+        <div class="item" data-k="R"><span class="k">R</span>RIP</div>
+        <div class="item" data-k="i"><span class="k">i</span>IS-IS</div>
+      </div>
+
+      <h4>What the brackets mean: <code style="font-family:var(--font-mono);background:var(--bg-recessed);padding:2px 6px;border-radius:4px">[AD/metric]</code></h4>
+      <p style="font-size:.94rem;color:var(--ink-secondary)">First number = administrative distance (how trusted the source is). Second = metric (how good this path is, source-specific units).</p>
+    </div>
+  </section>
+
+  <!-- ============== 3.2 ============== -->
+  <section class="bigsec" id="s2">
+    <div class="head"><span class="num">3.2</span><h2>How a router picks a path</h2></div>
+    <p class="desc">Three filters in strict order: longest prefix match → administrative distance → metric. The first filter to find a single winner stops the contest.</p>
+
+    <div class="panel">
+      <h3><span class="dot"></span>Step 1 · Longest prefix match (most specific wins)</h3>
+      <p style="font-size:.94rem;color:var(--ink-secondary);margin-bottom:6px">Type any destination and watch the table filter. Longest prefix that still matches takes the packet — it doesn't matter which protocol learned it at this stage.</p>
+
+      <div class="lpm">
+        <div class="ip-input">
+          <label style="font-family:var(--font-mono);font-size:.82rem;color:var(--ink-muted)">Destination IP:</label>
+          <input id="lpmInput" type="text" value="10.1.2.55" placeholder="e.g. 10.1.2.55">
+          <button class="btn accent" onclick="runLPM()">Forward this packet →</button>
+          <button class="btn ghost" onclick="randomDest()">Random</button>
+        </div>
+
+        <div class="ladder" id="lpmLadder">
+          <!-- rendered by JS -->
+        </div>
+
+        <div id="lpmVerdict" class="verdict"></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h3><span class="dot"></span>Step 2 · Administrative distance ladder</h3>
+      <p style="font-size:.94rem;color:var(--ink-secondary)">When two protocols hand the router the same prefix length, the lower AD wins. Memorize this ladder cold — exam expects it.</p>
+
+      <div class="ad-chart">
+        <div class="ad-row" style="--w:0%"><span>Connected</span><div class="ad-bar"></div><span class="ad-num">0</span></div>
+        <div class="ad-row" style="--w:1%"><span>Static (next-hop)</span><div class="ad-bar"></div><span class="ad-num">1</span></div>
+        <div class="ad-row" style="--w:5%"><span>EIGRP summary</span><div class="ad-bar"></div><span class="ad-num">5</span></div>
+        <div class="ad-row" style="--w:20%"><span>External BGP</span><div class="ad-bar"></div><span class="ad-num">20</span></div>
+        <div class="ad-row" style="--w:90%"><span>EIGRP internal</span><div class="ad-bar"></div><span class="ad-num">90</span></div>
+        <div class="ad-row" style="--w:100%"><span>IGRP <span style="color:var(--ink-muted)">(legacy)</span></span><div class="ad-bar"></div><span class="ad-num">100</span></div>
+        <div class="ad-row" style="--w:110%"><span>OSPF</span><div class="ad-bar"></div><span class="ad-num">110</span></div>
+        <div class="ad-row" style="--w:115%"><span>IS-IS</span><div class="ad-bar"></div><span class="ad-num">115</span></div>
+        <div class="ad-row" style="--w:120%"><span>RIP</span><div class="ad-bar"></div><span class="ad-num">120</span></div>
+        <div class="ad-row" style="--w:170%"><span>EIGRP external</span><div class="ad-bar"></div><span class="ad-num">170</span></div>
+        <div class="ad-row" style="--w:200%"><span>iBGP</span><div class="ad-bar"></div><span class="ad-num">200</span></div>
+        <div class="ad-row" style="--w:255%"><span>Unknown / unreachable</span><div class="ad-bar"></div><span class="ad-num">255</span></div>
+      </div>
+      <p style="font-size:.86rem;color:var(--ink-muted);font-family:var(--font-mono);margin-top:14px">Mnemonic: <strong style="color:var(--accent)">CSE-EI-OISR-EE-iU</strong> — Connected, Static, EIGRP-summ, eBGP, EIGRP, IGRP, OSPF, IS-IS, RIP, EIGRP-ext, iBGP, Unknown.</p>
+    </div>
+
+    <div class="panel">
+      <h3><span class="dot"></span>Step 3 · Metric (only inside the same protocol)</h3>
+      <p style="font-size:.94rem;color:var(--ink-secondary)">If both routes were learned by the same protocol with the same prefix, the lower metric installs. Equal metric → load-balance (ECMP).</p>
+      <table class="fhrp-table" style="margin-top:8px">
+        <thead><tr><th>Protocol</th><th>Metric formula</th><th>Defaults that matter</th></tr></thead>
+        <tbody>
+          <tr><td>OSPF</td><td>cumulative cost = sum of egress interface costs</td><td>cost = 10⁸ / bandwidth (default reference 100 Mbps)</td></tr>
+          <tr><td>EIGRP</td><td>composite (BW + delay by default)</td><td>K1=K3=1, K2=K4=K5=0</td></tr>
+          <tr><td>RIP</td><td>hop count</td><td>max 15, 16 = unreachable</td></tr>
+          <tr><td>BGP</td><td>path attributes (Local-pref, AS-path, MED, …)</td><td>not exam-critical for CCNA</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="panel">
+      <h3><span class="dot"></span>The full decision flow</h3>
+      <svg viewBox="0 0 800 320" class="topo-svg" style="background:var(--bg-recessed)">
+        <defs>
+          <marker id="arr" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
+            <polygon points="0 0, 8 3, 0 6" fill="#1C1917"/>
+          </marker>
+        </defs>
+        <g font-family="Space Grotesk" font-size="13" font-weight="600">
+          <rect x="20" y="20" width="180" height="60" rx="8" fill="#FFFFFF" stroke="#1C1917" stroke-width="1.5"/>
+          <text x="110" y="48" text-anchor="middle">Packet arrives</text>
+          <text x="110" y="66" text-anchor="middle" font-family="JetBrains Mono" font-size="11" fill="#57534E">dest IP = X</text>
+
+          <rect x="260" y="20" width="220" height="60" rx="8" fill="#FEF3C7" stroke="#B45309" stroke-width="1.5"/>
+          <text x="370" y="48" text-anchor="middle">Find longest prefix match</text>
+          <text x="370" y="66" text-anchor="middle" font-family="JetBrains Mono" font-size="11" fill="#57534E">/32 → /31 → /30 …</text>
+
+          <rect x="540" y="20" width="240" height="60" rx="8" fill="#EFF6FF" stroke="#2563EB" stroke-width="1.5"/>
+          <text x="660" y="44" text-anchor="middle">Tie? Lower AD wins</text>
+          <text x="660" y="62" text-anchor="middle" font-family="JetBrains Mono" font-size="11" fill="#57534E">connected=0, static=1, OSPF=110</text>
+
+          <rect x="540" y="120" width="240" height="60" rx="8" fill="#F5F3FF" stroke="#7C3AED" stroke-width="1.5"/>
+          <text x="660" y="148" text-anchor="middle">Still tied? Lower metric</text>
+          <text x="660" y="166" text-anchor="middle" font-family="JetBrains Mono" font-size="11" fill="#57534E">same protocol → ECMP if equal</text>
+
+          <rect x="260" y="220" width="220" height="60" rx="8" fill="#F0FDF4" stroke="#16A34A" stroke-width="1.5"/>
+          <text x="370" y="248" text-anchor="middle">Install winner in RIB</text>
+          <text x="370" y="266" text-anchor="middle" font-family="JetBrains Mono" font-size="11" fill="#57534E">forward via FIB → next-hop</text>
+
+          <rect x="20" y="220" width="180" height="60" rx="8" fill="#FEF2F2" stroke="#DC2626" stroke-width="1.5"/>
+          <text x="110" y="248" text-anchor="middle">No match?</text>
+          <text x="110" y="266" text-anchor="middle" font-family="JetBrains Mono" font-size="11" fill="#57534E">drop · ICMP unreachable</text>
+
+          <line x1="200" y1="50" x2="258" y2="50" stroke="#1C1917" stroke-width="1.5" marker-end="url(#arr)"/>
+          <line x1="480" y1="50" x2="538" y2="50" stroke="#1C1917" stroke-width="1.5" marker-end="url(#arr)"/>
+          <line x1="660" y1="80" x2="660" y2="118" stroke="#1C1917" stroke-width="1.5" marker-end="url(#arr)"/>
+          <line x1="540" y1="150" x2="482" y2="240" stroke="#1C1917" stroke-width="1.5" marker-end="url(#arr)"/>
+          <line x1="260" y1="240" x2="202" y2="240" stroke="#DC2626" stroke-width="1.5" marker-end="url(#arr)" stroke-dasharray="4 4"/>
+          <text x="232" y="232" font-family="JetBrains Mono" font-size="10" fill="#DC2626">no default</text>
+        </g>
+      </svg>
+    </div>
+  </section>
+
+  <!-- ============== 3.3 ============== -->
+  <section class="bigsec" id="s3">
+    <div class="head"><span class="num">3.3</span><h2>Static routing — IPv4 & IPv6</h2></div>
+    <p class="desc">Hand-written routes. Predictable, low-overhead, brittle. Four flavors map to the entire CCNA blueprint.</p>
+
+    <div class="panel">
+      <h3><span class="dot"></span>The four shapes — click each tile</h3>
+      <div class="tile-grid">
+        <div class="tile" onclick="showStatic('default')">
+          <h5>Default route (gateway of last resort)</h5>
+          <p>Catches everything not in the table. Push branch traffic to the ISP with one line.</p>
+          <span class="ex">ip route 0.0.0.0 0.0.0.0 203.0.113.1</span>
+        </div>
+        <div class="tile" onclick="showStatic('network')">
+          <h5>Network route</h5>
+          <p>Specific destination subnet. Most common static.</p>
+          <span class="ex">ip route 10.99.0.0 255.255.0.0 192.0.2.5</span>
+        </div>
+        <div class="tile" onclick="showStatic('host')">
+          <h5>Host route (/32 or /128)</h5>
+          <p>Pinpoint one address. Useful for management hosts, SLA probes, blackholes.</p>
+          <span class="ex">ip route 192.168.50.10 255.255.255.255 10.0.0.2</span>
+        </div>
+        <div class="tile" onclick="showStatic('floating')">
+          <h5>Floating static (backup)</h5>
+          <p>AD bumped above the dynamic protocol so it only installs when the primary route disappears.</p>
+          <span class="ex">ip route 10.99.0.0 255.255.0.0 198.51.100.1 130</span>
+        </div>
+      </div>
+      <div id="staticDetail" class="why" style="margin-top:18px;display:none"></div>
+    </div>
+
+    <div class="panel">
+      <h3><span class="dot"></span>Recursive vs directly-attached vs fully-specified</h3>
+      <table class="fhrp-table">
+        <thead><tr><th>Form</th><th>Syntax</th><th>What the router does</th><th>When to use</th></tr></thead>
+        <tbody>
+          <tr><td>Recursive</td><td><code>ip route 10.0.0.0 255.0.0.0 192.0.2.5</code></td><td>Looks up <em>192.0.2.5</em> in its own table to find the egress interface — extra lookup per packet without CEF.</td><td>Default — works on any media.</td></tr>
+          <tr><td>Directly attached</td><td><code>ip route 10.0.0.0 255.0.0.0 Serial0/0</code></td><td>Treats the destination as on-link. ARPs every dest IP — only safe on point-to-point links.</td><td>P2P serial / GRE only.</td></tr>
+          <tr><td>Fully specified</td><td><code>ip route 10.0.0.0 255.0.0.0 GigabitEthernet0/1 192.0.2.5</code></td><td>Both the egress interface and the next-hop are pinned. No recursion, no ARPing arbitrary hosts.</td><td>Multi-access (Ethernet) when you want to be explicit.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="panel">
+      <h3><span class="dot"></span>IPv6 mirrors</h3>
+      <p style="font-size:.94rem;color:var(--ink-secondary);margin-bottom:10px">Same shapes, different keyword. Always enable v6 routing first.</p>
+      <pre class="code"><span class="c"># enable v6 forwarding</span>
+<span class="k">ipv6 unicast-routing</span>
+
+<span class="c"># default route</span>
+<span class="k">ipv6 route</span> ::/0 2001:db8:abcd::1
+
+<span class="c"># network route</span>
+<span class="k">ipv6 route</span> 2001:db8:99::/48 2001:db8:0:1::2
+
+<span class="c"># host route (/128)</span>
+<span class="k">ipv6 route</span> 2001:db8:50::10/128 2001:db8:0:1::2
+
+<span class="c"># floating static (default AD=1, raise above dynamic)</span>
+<span class="k">ipv6 route</span> 2001:db8:99::/48 2001:db8:0:2::2 130
+
+<span class="c"># link-local next-hop MUST include exit interface</span>
+<span class="k">ipv6 route</span> 2001:db8:99::/48 GigabitEthernet0/1 fe80::2</pre>
+      <div class="why" style="margin-top:14px"><strong>Trap</strong>Link-local next-hops are not routable globally. Every router has its own fe80::/10 — you must specify the egress interface.</div>
+    </div>
+  </section>
+
+  <!-- ============== 3.4 ============== -->
+  <section class="bigsec" id="s4">
+    <div class="head"><span class="num">3.4</span><h2>OSPFv2 — single area</h2></div>
+    <p class="desc">Open Shortest Path First. Link-state, AD 110, hello/dead 10/40 on broadcast and P2P. Builds an identical LSDB on every router in the area, then runs Dijkstra.</p>
+
+    <div class="why"><strong>Single area = area 0</strong>CCNA scope is a single area, conventionally the backbone (area 0). Multi-area is CCNP territory but the exam still expects you to know what an ABR / LSDB is.</div>
+
+    <div class="panel">
+      <h3><span class="dot"></span>Neighbor adjacency state machine — click play</h3>
+      <p style="font-size:.94rem;color:var(--ink-secondary)">From silent to fully synchronized. A single missed hello drops you back to Down.</p>
+
+      <div class="ospf-states" id="ospfStates">
+        <div class="ospf-state" data-i="0"><span class="num">0</span>Down</div>
+        <div class="ospf-state" data-i="1"><span class="num">1</span>Init</div>
+        <div class="ospf-state" data-i="2"><span class="num">2</span>2-Way</div>
+        <div class="ospf-state" data-i="3"><span class="num">3</span>ExStart</div>
+        <div class="ospf-state" data-i="4"><span class="num">4</span>Exchange</div>
+        <div class="ospf-state" data-i="5"><span class="num">5</span>Loading</div>
+        <div class="ospf-state" data-i="6"><span class="num">6</span>Full</div>
+      </div>
+
+      <div class="ospf-detail" id="ospfDetail">
+        <strong>Click a state, or press Play.</strong> Each state corresponds to a specific OSPF packet type and what gets exchanged.
+      </div>
+
+      <div class="ospf-controls">
+        <button class="btn accent" onclick="ospfPlay()">▶ Play sequence</button>
+        <button class="btn ghost" onclick="ospfReset()">Reset</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h3><span class="dot"></span>Adjacency requirements (must all match)</h3>
+      <table class="fhrp-table">
+        <thead><tr><th>Field</th><th>Why it must match</th></tr></thead>
+        <tbody>
+          <tr><td>Area ID</td><td>Routers refuse to flood LSAs across mismatched areas.</td></tr>
+          <tr><td>Hello & Dead intervals</td><td>Listener and talker have to agree on the heartbeat clock.</td></tr>
+          <tr><td>Subnet (same prefix on the link)</td><td>OSPFv2 requires the two interfaces to share an IP subnet.</td></tr>
+          <tr><td>MTU</td><td>If different, stuck in ExStart/Exchange — DBD packets get dropped.</td></tr>
+          <tr><td>Authentication (if enabled)</td><td>Same type (none / clear / md5) and same key on both sides.</td></tr>
+          <tr><td>Network type compatibility</td><td>Broadcast ↔ broadcast, P2P ↔ P2P. Mismatches break DR election.</td></tr>
+          <tr><td>Stub flag</td><td>Both sides agree the area is stub or it's not.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="panel">
+      <h3><span class="dot"></span>Network types — point-to-point vs broadcast (DR/BDR)</h3>
+      <p style="font-size:.94rem;color:var(--ink-secondary)">Broadcast segments elect a Designated Router so n routers exchange LSAs as 2(n-1) flows instead of n(n-1)/2. Click to highlight.</p>
+
+      <svg viewBox="0 0 800 280" class="drbdr-svg" id="drbdrSvg">
+        <defs>
+          <radialGradient id="rgDR"><stop offset="0%" stop-color="#16A34A" stop-opacity=".3"/><stop offset="100%" stop-color="#16A34A" stop-opacity="0"/></radialGradient>
+          <radialGradient id="rgBDR"><stop offset="0%" stop-color="#2563EB" stop-opacity=".3"/><stop offset="100%" stop-color="#2563EB" stop-opacity="0"/></radialGradient>
+        </defs>
+        <line x1="100" y1="140" x2="700" y2="140" stroke="#57534E" stroke-width="3"/>
+        <text x="400" y="130" text-anchor="middle" font-family="JetBrains Mono" font-size="11" fill="#57534E">multi-access segment 10.0.0.0/24</text>
+
+        <g class="rt" data-role="dr" onclick="hilDR(this)" style="cursor:pointer">
+          <circle cx="180" cy="80" r="42" fill="url(#rgDR)"/>
+          <rect x="150" y="50" width="60" height="40" rx="6" fill="#16A34A" stroke="#0F7A33" stroke-width="2"/>
+          <text x="180" y="76" text-anchor="middle" fill="#fff" font-family="Space Grotesk" font-size="13" font-weight="700">R1</text>
+          <text x="180" y="40" text-anchor="middle" font-family="Space Grotesk" font-size="11" font-weight="700" fill="#16A34A">DR</text>
+          <line x1="180" y1="92" x2="180" y2="138" stroke="#16A34A" stroke-width="2"/>
+        </g>
+        <g class="rt" data-role="bdr" onclick="hilBDR(this)" style="cursor:pointer">
+          <circle cx="320" cy="80" r="42" fill="url(#rgBDR)"/>
+          <rect x="290" y="50" width="60" height="40" rx="6" fill="#2563EB" stroke="#1E40AF" stroke-width="2"/>
+          <text x="320" y="76" text-anchor="middle" fill="#fff" font-family="Space Grotesk" font-size="13" font-weight="700">R2</text>
+          <text x="320" y="40" text-anchor="middle" font-family="Space Grotesk" font-size="11" font-weight="700" fill="#2563EB">BDR</text>
+          <line x1="320" y1="92" x2="320" y2="138" stroke="#2563EB" stroke-width="2"/>
+        </g>
+        <g class="rt" data-role="drother" onclick="hilOther(this)" style="cursor:pointer">
+          <rect x="450" y="50" width="60" height="40" rx="6" fill="#57534E" stroke="#1C1917" stroke-width="2"/>
+          <text x="480" y="76" text-anchor="middle" fill="#fff" font-family="Space Grotesk" font-size="13" font-weight="700">R3</text>
+          <text x="480" y="40" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#57534E">DROTHER</text>
+          <line x1="480" y1="92" x2="480" y2="138" stroke="#57534E" stroke-width="2"/>
+        </g>
+        <g class="rt" data-role="drother" onclick="hilOther(this)" style="cursor:pointer">
+          <rect x="600" y="50" width="60" height="40" rx="6" fill="#57534E" stroke="#1C1917" stroke-width="2"/>
+          <text x="630" y="76" text-anchor="middle" fill="#fff" font-family="Space Grotesk" font-size="13" font-weight="700">R4</text>
+          <text x="630" y="40" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#57534E">DROTHER</text>
+          <line x1="630" y1="92" x2="630" y2="138" stroke="#57534E" stroke-width="2"/>
+        </g>
+
+        <text x="180" y="170" text-anchor="middle" font-family="JetBrains Mono" font-size="11" fill="#16A34A" font-weight="700">multicast 224.0.0.6 (AllDRouters)</text>
+        <text x="400" y="200" text-anchor="middle" font-family="JetBrains Mono" font-size="11" fill="#1C1917">DROTHERs send LSAs to DR/BDR</text>
+        <text x="400" y="220" text-anchor="middle" font-family="JetBrains Mono" font-size="11" fill="#1C1917">DR floods to everyone via 224.0.0.5 (AllSPFRouters)</text>
+        <text x="400" y="252" text-anchor="middle" font-family="Space Grotesk" font-size="13" font-weight="700">Election: highest priority &gt; highest router-id. 0 = never DR.</text>
+      </svg>
+    </div>
+
+    <div class="panel">
+      <h3><span class="dot"></span>Router-ID selection (in this exact order)</h3>
+      <ol style="margin-left:20px;font-size:.94rem;line-height:1.9">
+        <li><code style="background:var(--bg-recessed);padding:2px 6px;border-radius:4px;font-family:var(--font-mono)">router-id A.B.C.D</code> command (manual). <strong>Wins everything.</strong></li>
+        <li>Highest <strong>up loopback</strong> IPv4 address.</li>
+        <li>Highest <strong>up physical</strong> interface IPv4 address.</li>
+      </ol>
+      <div class="why" style="margin-top:14px"><strong>Stale RID gotcha</strong>The router caches its RID. After changing IPs or adding a loopback, run <code>clear ip ospf process</code> for the new RID to take effect.</div>
+    </div>
+
+    <div class="panel">
+      <h3><span class="dot"></span>Minimum config that brings up an adjacency</h3>
+      <pre class="code"><span class="c">! On both routers:</span>
+<span class="k">router ospf</span> 1
+ <span class="k">router-id</span> 1.1.1.1
+ <span class="k">network</span> 10.0.0.0 0.0.0.255 <span class="k">area</span> 0
+ <span class="k">passive-interface</span> default
+ <span class="k">no passive-interface</span> GigabitEthernet0/1
+
+<span class="c">! Or interface-mode (modern, preferred):</span>
+<span class="k">interface</span> GigabitEthernet0/1
+ <span class="k">ip ospf</span> 1 <span class="k">area</span> 0
+ <span class="k">ip ospf network point-to-point</span>   <span class="c">! skip DR election on a /30</span>
+ <span class="k">ip ospf hello-interval</span> 10
+ <span class="k">ip ospf dead-interval</span> 40
+
+<span class="c">! Verify:</span>
+<span class="k">show ip ospf neighbor</span>          <span class="c">! state should be FULL or 2-WAY (DROTHER↔DROTHER)</span>
+<span class="k">show ip ospf interface</span> brief
+<span class="k">show ip route ospf</span></pre>
+    </div>
+
+    <div class="panel">
+      <h3><span class="dot"></span>Wildcard math — common confusion</h3>
+      <p style="font-size:.94rem;color:var(--ink-secondary)">OSPF uses an inverted mask. Flip every bit of the subnet mask.</p>
+      <table class="fhrp-table">
+        <thead><tr><th>Subnet mask</th><th>Wildcard</th><th>Catches</th></tr></thead>
+        <tbody>
+          <tr><td>255.255.255.0</td><td>0.0.0.255</td><td>One /24</td></tr>
+          <tr><td>255.255.255.252</td><td>0.0.0.3</td><td>One /30</td></tr>
+          <tr><td>255.255.0.0</td><td>0.0.255.255</td><td>One /16 (256× /24s)</td></tr>
+          <tr><td>255.255.255.255</td><td>0.0.0.0</td><td>Exactly one IP — useful for <code>network 1.1.1.1 0.0.0.0 area 0</code> on a loopback.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ============== 3.5 ============== -->
+  <section class="bigsec" id="s5">
+    <div class="head"><span class="num">3.5</span><h2>First-Hop Redundancy Protocols</h2></div>
+    <p class="desc">Hosts only know one default gateway. FHRPs put a virtual IP/MAC behind two or more routers so that gateway never disappears.</p>
+
+    <div class="panel">
+      <h3><span class="dot"></span>The three you must know</h3>
+      <table class="fhrp-table">
+        <thead><tr><th>Protocol</th><th>Owner</th><th>Virtual MAC</th><th>Hello / Hold</th><th>Active selection</th><th>Load share?</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>HSRP <span class="tag cisco">Cisco</span></td>
+            <td>Cisco proprietary</td>
+            <td>0000.0c07.ac<em>XX</em> (group ID)</td>
+            <td>3 s / 10 s (default)</td>
+            <td>Highest <strong>priority</strong> (default 100), then highest IP. Preempt off by default.</td>
+            <td>Per-subnet only (different groups on different VLANs)</td>
+          </tr>
+          <tr>
+            <td>VRRP <span class="tag std">RFC 5798</span></td>
+            <td>IETF open standard</td>
+            <td>0000.5e00.01<em>XX</em></td>
+            <td>1 s / 3 s (default)</td>
+            <td>Highest priority. Preempt <strong>on</strong> by default. The router owning the VIP is master automatically (priority 255).</td>
+            <td>Per-subnet only</td>
+          </tr>
+          <tr>
+            <td>GLBP <span class="tag cisco">Cisco</span></td>
+            <td>Cisco proprietary</td>
+            <td>0007.b400.<em>XXYY</em></td>
+            <td>3 s / 10 s</td>
+            <td>One Active Virtual Gateway (AVG) elects up to 4 Active Virtual Forwarders (AVFs).</td>
+            <td><strong>Yes — true per-host load share.</strong> AVG hands out different vMACs.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="panel">
+      <h3><span class="dot"></span>HSRP failover — animated</h3>
+      <p style="font-size:.94rem;color:var(--ink-secondary)">PC has gateway 10.0.0.254 (the VIP). Press fail to drop the active router and watch standby take over.</p>
+
+      <svg viewBox="0 0 800 300" class="failover-svg" id="hsrpSvg">
+        <defs>
+          <linearGradient id="lgGreen" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#86EFAC"/><stop offset="100%" stop-color="#16A34A"/></linearGradient>
+          <linearGradient id="lgRed" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#FCA5A5"/><stop offset="100%" stop-color="#DC2626"/></linearGradient>
+        </defs>
+
+        <!-- PC -->
+        <g>
+          <rect x="60" y="120" width="80" height="60" rx="8" fill="#FAF7F2" stroke="#1C1917" stroke-width="2"/>
+          <text x="100" y="146" text-anchor="middle" font-family="Space Grotesk" font-size="13" font-weight="700">PC</text>
+          <text x="100" y="166" text-anchor="middle" font-family="JetBrains Mono" font-size="10">GW: .254</text>
+        </g>
+
+        <!-- Switch -->
+        <g>
+          <rect x="240" y="125" width="80" height="50" rx="6" fill="#1C1917"/>
+          <text x="280" y="155" text-anchor="middle" fill="#fff" font-family="Space Grotesk" font-size="12" font-weight="700">SW1</text>
+        </g>
+
+        <!-- R1 (Active) -->
+        <g id="r1">
+          <rect x="440" y="40" width="120" height="70" rx="8" fill="url(#lgGreen)" stroke="#16A34A" stroke-width="2"/>
+          <text x="500" y="68" text-anchor="middle" fill="#fff" font-family="Space Grotesk" font-size="14" font-weight="700">R1</text>
+          <text x="500" y="86" text-anchor="middle" fill="#fff" font-family="JetBrains Mono" font-size="10">.1 · pri 110</text>
+          <text x="500" y="100" text-anchor="middle" fill="#fff" font-family="Space Grotesk" font-size="11" font-weight="700" id="r1Role">ACTIVE</text>
+        </g>
+
+        <!-- R2 (Standby) -->
+        <g id="r2">
+          <rect x="440" y="190" width="120" height="70" rx="8" fill="#FAF7F2" stroke="#A8A29E" stroke-width="2"/>
+          <text x="500" y="218" text-anchor="middle" font-family="Space Grotesk" font-size="14" font-weight="700">R2</text>
+          <text x="500" y="236" text-anchor="middle" font-family="JetBrains Mono" font-size="10">.2 · pri 100</text>
+          <text x="500" y="250" text-anchor="middle" font-family="Space Grotesk" font-size="11" font-weight="700" fill="#57534E" id="r2Role">STANDBY</text>
+        </g>
+
+        <!-- VIP -->
+        <g>
+          <rect x="640" y="120" width="120" height="70" rx="8" fill="#FEF3C7" stroke="#B45309" stroke-width="2" stroke-dasharray="4 3"/>
+          <text x="700" y="148" text-anchor="middle" font-family="Space Grotesk" font-size="13" font-weight="700">Virtual IP</text>
+          <text x="700" y="168" text-anchor="middle" font-family="JetBrains Mono" font-size="11" fill="#B45309" font-weight="700">10.0.0.254</text>
+          <text x="700" y="182" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#57534E">vMAC 0000.0c07.acXX</text>
+        </g>
+
+        <!-- Wires -->
+        <line x1="140" y1="150" x2="240" y2="150" stroke="#57534E" stroke-width="2"/>
+        <line x1="320" y1="150" x2="440" y2="75" stroke="#57534E" stroke-width="2"/>
+        <line x1="320" y1="150" x2="440" y2="225" stroke="#57534E" stroke-width="2"/>
+        <line x1="560" y1="75" x2="640" y2="140" stroke="#16A34A" stroke-width="3" id="wireR1"/>
+        <line x1="560" y1="225" x2="640" y2="170" stroke="#A8A29E" stroke-width="2" stroke-dasharray="4 4" id="wireR2"/>
+
+        <!-- packet -->
+        <circle id="hsrpPkt" r="6" fill="#FBBF24" stroke="#B45309" stroke-width="1">
+          <animateMotion dur="2.5s" repeatCount="indefinite" id="pktMotion">
+            <mpath href="#pktPath"/>
+          </animateMotion>
+        </circle>
+        <path id="pktPath" d="M100 150 L280 150 L500 75 L700 150" fill="none" stroke="none"/>
+      </svg>
+
+      <div class="ospf-controls">
+        <button class="btn accent" onclick="hsrpFail()">⚡ Fail R1</button>
+        <button class="btn ghost" onclick="hsrpRestore()">Restore</button>
+      </div>
+      <div id="hsrpLog" class="why" style="margin-top:14px"><strong>Status</strong>R1 = Active (priority 110). R2 sends hellos every 3 s, watching for the dead timer (10 s).</div>
+    </div>
+
+    <div class="panel">
+      <h3><span class="dot"></span>Object tracking (interface tracking)</h3>
+      <p style="font-size:.94rem;color:var(--ink-secondary)">A common HSRP/VRRP gotcha: the WAN goes down but the LAN side stays up, so the active router happily forwards traffic into a black hole. Tracking solves this.</p>
+      <pre class="code"><span class="c">! decrement priority by 20 if WAN interface drops</span>
+<span class="k">track</span> 1 <span class="k">interface</span> GigabitEthernet0/2 <span class="k">line-protocol</span>
+<span class="k">interface</span> GigabitEthernet0/1
+ <span class="k">standby</span> 10 <span class="k">ip</span> 10.0.0.254
+ <span class="k">standby</span> 10 <span class="k">priority</span> 110
+ <span class="k">standby</span> 10 <span class="k">preempt</span>
+ <span class="k">standby</span> 10 <span class="k">track</span> 1 <span class="k">decrement</span> 20</pre>
+    </div>
+
+    <div class="panel">
+      <h3><span class="dot"></span>Pick-the-protocol decision</h3>
+      <svg viewBox="0 0 800 240" class="topo-svg">
+        <defs>
+          <marker id="arrFhrp" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
+            <polygon points="0 0, 8 3, 0 6" fill="#1C1917"/>
+          </marker>
+        </defs>
+        <g font-family="Space Grotesk" font-size="13">
+          <rect x="40" y="20" width="200" height="50" rx="8" fill="#FFFFFF" stroke="#1C1917" stroke-width="1.5"/>
+          <text x="140" y="48" text-anchor="middle" font-weight="600">Need gateway redundancy</text>
+
+          <rect x="40" y="120" width="200" height="60" rx="8" fill="#EFF6FF" stroke="#2563EB"/>
+          <text x="140" y="146" text-anchor="middle" font-weight="700" fill="#2563EB">Multi-vendor?</text>
+          <text x="140" y="164" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#2563EB">→ VRRP</text>
+
+          <rect x="290" y="120" width="200" height="60" rx="8" fill="#FEF3C7" stroke="#B45309"/>
+          <text x="390" y="146" text-anchor="middle" font-weight="700" fill="#B45309">All-Cisco simple?</text>
+          <text x="390" y="164" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#B45309">→ HSRP</text>
+
+          <rect x="540" y="120" width="220" height="60" rx="8" fill="#F5F3FF" stroke="#7C3AED"/>
+          <text x="650" y="146" text-anchor="middle" font-weight="700" fill="#7C3AED">Need true load-share?</text>
+          <text x="650" y="164" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#7C3AED">→ GLBP</text>
+
+          <line x1="140" y1="70" x2="140" y2="118" stroke="#1C1917" stroke-width="1.5" marker-end="url(#arrFhrp)"/>
+          <line x1="240" y1="45" x2="390" y2="118" stroke="#1C1917" stroke-width="1.5" marker-end="url(#arrFhrp)"/>
+          <line x1="240" y1="45" x2="650" y2="118" stroke="#1C1917" stroke-width="1.5" marker-end="url(#arrFhrp)"/>
+        </g>
+      </svg>
+    </div>
+  </section>
+
+  <!-- ============== CHEAT ============== -->
+  <section class="bigsec" id="cheat">
+    <div class="head"><span class="num">CMD</span><h2>Verification cheat — keep this open during labs</h2></div>
+
+    <div class="cheat-grid">
+      <div class="cheat">
+        <h5>Routing table</h5>
+        <code>show ip route</code>
+        <code>show ip route 10.1.2.0</code>
+        <code>show ip route ospf</code>
+        <code>show ip route static</code>
+        <code>show ip route summary</code>
+      </div>
+      <div class="cheat">
+        <h5>OSPF neighbor / state</h5>
+        <code>show ip ospf neighbor</code>
+        <code>show ip ospf interface brief</code>
+        <code>show ip ospf interface Gi0/1</code>
+        <code>show ip ospf database</code>
+        <code>debug ip ospf adj</code>
+      </div>
+      <div class="cheat">
+        <h5>HSRP / VRRP / GLBP</h5>
+        <code>show standby</code>
+        <code>show standby brief</code>
+        <code>show vrrp brief</code>
+        <code>show glbp brief</code>
+        <code>debug standby events</code>
+      </div>
+      <div class="cheat">
+        <h5>Static routing</h5>
+        <code>ip route &lt;net&gt; &lt;mask&gt; &lt;next-hop|if&gt; [AD]</code>
+        <code>ipv6 route &lt;prefix&gt; &lt;next-hop|if&gt;</code>
+        <code>show running-config | i ^ip route</code>
+        <code>show running-config | i ^ipv6 route</code>
+      </div>
+      <div class="cheat">
+        <h5>Forwarding plane</h5>
+        <code>show ip cef</code>
+        <code>show ip cef 10.1.2.55</code>
+        <code>show adjacency</code>
+        <code>show arp</code>
+      </div>
+      <div class="cheat">
+        <h5>Reachability</h5>
+        <code>ping 10.1.2.1 source loopback0</code>
+        <code>traceroute 10.1.2.1</code>
+        <code>ping 10.1.2.1 size 1500 df-bit</code>
+        <code>show ipv6 neighbors</code>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============== RESEARCH ============== -->
+  <section class="bigsec" id="research">
+    <div class="head"><span class="num">REF</span><h2>External research — picked, not dumped</h2></div>
+    <p class="desc">Free, exam-aligned, mostly visual. Open in tabs. Read the Cisco RFC summaries before you read the RFCs.</p>
+
+    <div class="panel">
+      <h3><span class="dot"></span>Cisco — official</h3>
+      <a class="reslink" href="https://learningcontent.cisco.com/documents/marketing/exam-topics/200-301-CCNA-v1.1.pdf" target="_blank" rel="noopener"><div><h5>200-301 CCNA v1.1 exam topics (PDF)</h5><p class="desc">Source of truth for every objective, weight, and verb ("describe" vs "configure"). Read it twice.</p></div><span class="src">cisco.com</span></a>
+      <a class="reslink" href="https://www.cisco.com/c/en/us/td/docs/ios-xml/ios/iproute_ospf/configuration/15-mt/iro-15-mt-book.html" target="_blank" rel="noopener"><div><h5>OSPF configuration guide (IOS 15)</h5><p class="desc">Authoritative command reference — same syntax appears in CCNA labs.</p></div><span class="src">cisco.com</span></a>
+      <a class="reslink" href="https://www.cisco.com/c/en/us/support/docs/ip/border-gateway-protocol-bgp/15986-admin-distance.html" target="_blank" rel="noopener"><div><h5>"What is administrative distance?"</h5><p class="desc">The original Cisco doc the AD ladder comes from. Memorize the table on page 1.</p></div><span class="src">cisco.com</span></a>
+      <a class="reslink" href="https://www.cisco.com/c/en/us/support/docs/ip/hot-standby-router-protocol-hsrp/9234-hsrpguidetoc.html" target="_blank" rel="noopener"><div><h5>HSRP — features and functionality</h5><p class="desc">Includes vMAC structure, state machine, preempt explanation.</p></div><span class="src">cisco.com</span></a>
+    </div>
+
+    <div class="panel">
+      <h3><span class="dot"></span>RFCs — short, and you only need to skim them</h3>
+      <a class="reslink" href="https://www.rfc-editor.org/rfc/rfc2328" target="_blank" rel="noopener"><div><h5>RFC 2328 — OSPF Version 2</h5><p class="desc">Section 10 is the neighbor state machine you just animated above.</p></div><span class="src">IETF</span></a>
+      <a class="reslink" href="https://www.rfc-editor.org/rfc/rfc5798" target="_blank" rel="noopener"><div><h5>RFC 5798 — VRRPv3</h5><p class="desc">Why VRRP defaults preempt to on and timers to 1 s / 3 s.</p></div><span class="src">IETF</span></a>
+      <a class="reslink" href="https://www.rfc-editor.org/rfc/rfc2281" target="_blank" rel="noopener"><div><h5>RFC 2281 — HSRP</h5><p class="desc">Cisco-authored informational RFC. Read once, ever.</p></div><span class="src">IETF</span></a>
+      <a class="reslink" href="https://www.rfc-editor.org/rfc/rfc4861" target="_blank" rel="noopener"><div><h5>RFC 4861 — IPv6 Neighbor Discovery</h5><p class="desc">Why IPv6 next-hops are link-local and why static routes need an exit interface.</p></div><span class="src">IETF</span></a>
+    </div>
+
+    <div class="panel">
+      <h3><span class="dot"></span>Free video courses (visual learners)</h3>
+      <a class="reslink" href="https://www.youtube.com/playlist?list=PLxbwE86jKRgMpuZuLBivzlM8s2Dk5lXBQ" target="_blank" rel="noopener"><div><h5>Jeremy's IT Lab — full CCNA 200-301 series</h5><p class="desc">120+ free videos. Day 25-32 cover Domain 3 cold. Pair with the labs in <a href="jeremy-labs.html">jeremy-labs.html</a>.</p></div><span class="src">YouTube</span></a>
+      <a class="reslink" href="https://www.youtube.com/c/davidbombal" target="_blank" rel="noopener"><div><h5>David Bombal — OSPF deep dives & Packet Tracer labs</h5><p class="desc">Hands-on configs you can mirror in Packet Tracer or CML.</p></div><span class="src">YouTube</span></a>
+      <a class="reslink" href="https://www.youtube.com/@KeithBarker" target="_blank" rel="noopener"><div><h5>Keith Barker — CBT Nuggets free clips</h5><p class="desc">Whiteboard-heavy explanations of routing tables and FHRPs.</p></div><span class="src">YouTube</span></a>
+    </div>
+
+    <div class="panel">
+      <h3><span class="dot"></span>Practice labs</h3>
+      <a class="reslink" href="https://www.netacad.com/courses/packet-tracer" target="_blank" rel="noopener"><div><h5>Cisco Packet Tracer (free with NetAcad signup)</h5><p class="desc">Build the OSPF + HSRP topology on this page in 20 minutes.</p></div><span class="src">netacad.com</span></a>
+      <a class="reslink" href="https://www.subnettingpractice.com/" target="_blank" rel="noopener"><div><h5>subnettingpractice.com</h5><p class="desc">Wildcard masks and prefix lengths. 15 min/day, your stated drill.</p></div><span class="src">web</span></a>
+      <a class="reslink" href="https://github.com/nleiva/learning-network-automation" target="_blank" rel="noopener"><div><h5>Cisco DevNet sandbox — IOS XE Always-On</h5><p class="desc">Free remote routers to ssh into and verify show commands. No download.</p></div><span class="src">devnet</span></a>
+    </div>
+
+    <div class="panel">
+      <h3><span class="dot"></span>Inside this site — drill these next</h3>
+      <a class="reslink" href="sim-3-1.html"><div><h5>Sim 3.1 — Routing Table Components</h5><p class="desc">Click-through drill on every code letter and bracket field.</p></div><span class="src">internal</span></a>
+      <a class="reslink" href="sim-3-2.html"><div><h5>Sim 3.2 — Forwarding Decision</h5><p class="desc">Run the longest-match → AD → metric ladder against scenarios.</p></div><span class="src">internal</span></a>
+      <a class="reslink" href="sim-3-3.html"><div><h5>Sim 3.3 — Static Routing</h5><p class="desc">Build default, network, host, and floating routes side by side.</p></div><span class="src">internal</span></a>
+      <a class="reslink" href="sim-3-4.html"><div><h5>Sim 3.4 — OSPFv2 Single Area</h5><p class="desc">Bring up an adjacency, watch states, troubleshoot mismatched MTUs.</p></div><span class="src">internal</span></a>
+      <a class="reslink" href="sim-3-5.html"><div><h5>Sim 3.5 — FHRPs</h5><p class="desc">HSRP/VRRP/GLBP behavior comparison.</p></div><span class="src">internal</span></a>
+      <a class="reslink" href="ospf-mastery.html"><div><h5>OSPF Mastery</h5><p class="desc">Deeper dive: LSA types, LSDB, troubleshooting flowchart.</p></div><span class="src">internal</span></a>
+      <a class="reslink" href="path-selection.html"><div><h5>Path Selection</h5><p class="desc">Visualize AD vs metric vs longest-match with click-through scenarios.</p></div><span class="src">internal</span></a>
+      <a class="reslink" href="cheat-sheet.html"><div><h5>Master cheat sheet</h5><p class="desc">All 6 domains in one page, dense.</p></div><span class="src">internal</span></a>
+    </div>
+  </section>
+
+  <div class="footer">
+    Domain 3 of 6 · CCNA 200-301 v1.1 · Pages: <a href="core.html">core</a> · <a href="cheat-sheet.html">cheat</a> · <a href="exam-tricks.html">tricks</a>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+
+  /* ── Animate weight bars on scroll ───────────────── */
+  var bars = document.querySelectorAll('.bar-row');
+  var io = new IntersectionObserver(function(entries){
+    entries.forEach(function(e){
+      if(e.isIntersecting){ e.target.classList.add('run'); io.unobserve(e.target); }
+    });
+  }, {threshold:.4});
+  bars.forEach(function(b){ io.observe(b); });
+
+  /* ── 3.1 Source-code legend click ────────────────── */
+  var CODE_DETAIL = {
+    'O':  ['OSPF intra-area', 'Route learned via OSPFv2 inside the same area as the router. Shows source = O, AD = 110, metric = cumulative cost. The /24 was advertised by another router on the same area.'],
+    'C':  ['Connected', 'A subnet attached to an up/up interface. AD = 0 — most trusted. No metric needed.'],
+    'L':  ['Local /32 host route', 'The router\'s own IP on that interface. Lets the router recognize traffic addressed to itself.'],
+    'S':  ['Static (recursive)', 'Hand-configured route. AD = 1 (next-hop) or 0 (exit-interface). Metric is always 0.'],
+    'Sd': ['Default static (gateway of last resort)', 'Static 0.0.0.0/0. The * marks the candidate default. If multiple defaults exist the lowest-AD wins.'],
+    'D':  ['EIGRP internal', 'AD = 90. Metric is the composite (BW + delay). EIGRP external routes show as D EX with AD 170.'],
+    'B':  ['BGP', 'eBGP = 20, iBGP = 200. Brackets show [AD/MED] not a real metric.'],
+    'O IA':['OSPF inter-area','Same protocol, different area. ABR re-originated the prefix into your area as a Type-3 LSA.'],
+    'O E1':['OSPF external Type-1','Redistributed into OSPF, cost grows as the LSA crosses the AS.'],
+    'O E2':['OSPF external Type-2','Redistributed, cost stays fixed at the redistribution boundary (default).'],
+    'R':  ['RIP', 'AD = 120. Metric is hop count, max 15.'],
+    'i':  ['IS-IS', 'AD = 115. CCNA only requires recognition.'],
+  };
+  function showCode(k){
+    var d = CODE_DETAIL[k]; if(!d) return;
+    var box = document.getElementById('codeDetail');
+    box.innerHTML = '<strong>'+k+' — '+d[0]+'</strong>'+d[1];
+    box.style.display = 'block';
+    document.querySelectorAll('.code .ln').forEach(function(l){ l.classList.toggle('hl', l.dataset.k === k); });
+  }
+  document.querySelectorAll('.code .ln').forEach(function(l){ l.addEventListener('click', function(){ showCode(l.dataset.k); }); });
+  document.querySelectorAll('.legend .item').forEach(function(i){ i.addEventListener('click', function(){ showCode(i.dataset.k); }); });
+
+  /* ── 3.2 Longest-prefix-match ladder ─────────────── */
+  var TABLE = [
+    {pfx:'10.1.2.55', pl:32, nh:'10.0.0.99', src:'host'},
+    {pfx:'10.1.2.0',  pl:24, nh:'10.0.0.2',  src:'OSPF'},
+    {pfx:'10.1.0.0',  pl:16, nh:'10.0.0.6',  src:'EIGRP'},
+    {pfx:'10.0.0.0',  pl:8,  nh:'10.0.0.10', src:'static'},
+    {pfx:'192.168.50.0', pl:24, nh:'198.51.100.1', src:'BGP'},
+    {pfx:'0.0.0.0',   pl:0,  nh:'203.0.113.1',src:'static-default'},
+  ];
+  function ipToInt(ip){ return ip.split('.').reduce(function(a,o){ return (a<<8 >>>0) + parseInt(o,10); }, 0)>>>0; }
+  function matches(dest, pfx, pl){
+    if(pl===0) return true;
+    var mask = pl===0 ? 0 : (0xFFFFFFFF << (32-pl)) >>> 0;
+    return (ipToInt(dest) & mask) === (ipToInt(pfx) & mask);
+  }
+  function renderLadder(dest){
+    var ladder = document.getElementById('lpmLadder');
+    var html = '';
+    var winner = null;
+    var sorted = TABLE.slice().sort(function(a,b){ return b.pl - a.pl; });
+    sorted.forEach(function(r){
+      var m = false;
+      try { m = matches(dest, r.pfx, r.pl); } catch(e){}
+      if(m && winner===null) winner = r;
+      var cls = m ? 'match' : '';
+      if(r === winner) cls += ' will-win';
+      html += '<div class="row '+cls+'">'+
+        '<span class="pl">/'+r.pl+'</span>'+
+        '<span class="pfx">'+r.pfx+'/'+r.pl+'</span>'+
+        '<span class="src" style="color:var(--ink-muted)">'+r.src+'</span>'+
+        '<span class="nh" style="color:var(--ink-muted);font-size:.78rem">→ '+r.nh+'</span>'+
+        '</div>';
+    });
+    ladder.innerHTML = html;
+    return winner;
+  }
+  window.runLPM = function(){
+    var dest = document.getElementById('lpmInput').value.trim();
+    var v = document.getElementById('lpmVerdict');
+    if(!/^\d+\.\d+\.\d+\.\d+$/.test(dest)){
+      v.className='verdict show'; v.textContent='Not a valid IPv4 address.'; return;
+    }
+    var w = renderLadder(dest);
+    setTimeout(function(){
+      var rows = document.querySelectorAll('.lpm .row');
+      rows.forEach(function(r){
+        if(r.classList.contains('will-win')){ r.classList.add('win'); }
+      });
+      v.className = 'verdict show';
+      if(w){
+        v.textContent = '🎯  Forwarded out toward '+w.nh+' via the '+w.src+' /'+w.pl+' route.';
+      }else{
+        v.textContent = 'No matching route — packet dropped (no default).';
+        v.style.color='var(--wrong)'; v.style.background='var(--wrong-bg)'; v.style.borderColor='var(--wrong)';
+      }
+    }, 350);
+  };
+  window.randomDest = function(){
+    var pool = ['10.1.2.55','10.1.2.250','10.1.45.7','10.5.5.5','192.168.50.99','172.16.0.1','8.8.8.8','10.0.0.6'];
+    document.getElementById('lpmInput').value = pool[Math.floor(Math.random()*pool.length)];
+    runLPM();
+  };
+  renderLadder('10.1.2.55');
+
+  /* ── 3.3 Static route detail ─────────────────────── */
+  var STATIC = {
+    'default':  ['Default route (0.0.0.0/0)','Catches every destination not explicitly in the table. Branch routers point this at the ISP. Without it, unknown destinations get dropped.'],
+    'network':  ['Network route','The bread-and-butter static. Pin one subnet to a specific next-hop. Backup paths are usually network routes with bumped AD (floating).'],
+    'host':     ['Host route /32','Points one IP, nothing else. Used to redirect a single management server, terminate SLA probes, or null-route an attacker (host route + Null0).'],
+    'floating': ['Floating static','Same destination as a dynamic-protocol route, but with AD ≥ that protocol so it sits idle. When the dynamic route disappears, the static "floats" into the table. Classic backup-WAN trick.'],
+  };
+  window.showStatic = function(k){
+    var d = STATIC[k]; if(!d) return;
+    var box = document.getElementById('staticDetail');
+    box.innerHTML = '<strong>'+d[0]+'</strong>'+d[1];
+    box.style.display = 'block';
+  };
+
+  /* ── 3.4 OSPF state machine ──────────────────────── */
+  var OSPF_DETAIL = [
+    ['Down','No hellos heard from a neighbor in this state. The interface just came up or the dead-timer expired.'],
+    ['Init','Heard a hello from a neighbor but our own router-id was not in their hello — adjacency not yet bidirectional.'],
+    ['2-Way','Both routers see each other. On a broadcast network, DROTHERs stay here with each other; only DR/BDR proceed to Full.'],
+    ['ExStart','Master/slave election (highest router-id is master) and initial DD sequence number set. Common stuck state when MTU mismatches.'],
+    ['Exchange','DBD packets exchanged — summary of each router\'s LSDB. Each side compares to its own and queues unknown LSAs.'],
+    ['Loading','LSRs requested, LSUs sent for the missing LSAs. The LSDB fills.'],
+    ['Full','LSDB fully synchronized. Routes computed via Dijkstra and installed. This is the steady state for adjacencies on P2P or with the DR/BDR.']
+  ];
+  function ospfShow(i){
+    document.querySelectorAll('.ospf-state').forEach(function(s,j){
+      s.classList.toggle('active', j === i);
+      s.classList.toggle('done',   j  <  i);
+    });
+    var d = OSPF_DETAIL[i];
+    document.getElementById('ospfDetail').innerHTML = '<strong>'+i+' — '+d[0]+'.</strong> '+d[1];
+  }
+  document.querySelectorAll('.ospf-state').forEach(function(s){
+    s.addEventListener('click', function(){ ospfShow(parseInt(s.dataset.i,10)); });
+  });
+  var ospfTimer = null;
+  window.ospfPlay = function(){
+    if(ospfTimer) clearInterval(ospfTimer);
+    var i = 0;
+    ospfShow(i);
+    ospfTimer = setInterval(function(){
+      i++;
+      if(i > 6){ clearInterval(ospfTimer); ospfTimer = null; return; }
+      ospfShow(i);
+    }, 1100);
+  };
+  window.ospfReset = function(){
+    if(ospfTimer){ clearInterval(ospfTimer); ospfTimer = null; }
+    document.querySelectorAll('.ospf-state').forEach(function(s){ s.classList.remove('active','done'); });
+    document.getElementById('ospfDetail').innerHTML = '<strong>Click a state, or press Play.</strong> Each state corresponds to a specific OSPF packet type and what gets exchanged.';
+  };
+
+  /* ── DR/BDR highlight ────────────────────────────── */
+  window.hilDR    = function(){ alert('DR (Designated Router) — receives all LSAs from this segment via 224.0.0.6 and re-floods to everyone via 224.0.0.5. Reduces n²/2 floods to 2n.'); };
+  window.hilBDR   = function(){ alert('BDR — listens silently. Becomes DR if the DR\'s dead-timer expires. The BDR is *not* a backup of the BDR — it is itself elected.'); };
+  window.hilOther = function(){ alert('DROTHER — full adjacency only with DR and BDR. With other DROTHERs the state stays at 2-Way. Cuts adjacency count drastically.'); };
+
+  /* ── HSRP failover ───────────────────────────────── */
+  var hsrpState = 'normal';
+  window.hsrpFail = function(){
+    if(hsrpState==='failed') return;
+    hsrpState='failed';
+    var r1 = document.getElementById('r1');
+    var r2 = document.getElementById('r2');
+    r1.querySelector('rect').setAttribute('fill','url(#lgRed)');
+    r1.querySelector('rect').setAttribute('stroke','#DC2626');
+    document.getElementById('r1Role').textContent = 'DOWN';
+    setTimeout(function(){
+      r2.querySelector('rect').setAttribute('fill','url(#lgGreen)');
+      r2.querySelector('rect').setAttribute('stroke','#16A34A');
+      document.getElementById('r2Role').textContent = 'ACTIVE';
+      document.getElementById('r2Role').setAttribute('fill','#fff');
+      document.getElementById('wireR1').setAttribute('stroke','#A8A29E');
+      document.getElementById('wireR1').setAttribute('stroke-dasharray','4 4');
+      document.getElementById('wireR2').setAttribute('stroke','#16A34A');
+      document.getElementById('wireR2').removeAttribute('stroke-dasharray');
+      document.getElementById('pktPath').setAttribute('d','M100 150 L280 150 L500 225 L700 150');
+      document.getElementById('hsrpLog').innerHTML = '<strong>Failover</strong>R1 missed 3 hellos (10 s dead). R2 promoted to Active, sends gratuitous ARP for 10.0.0.254. Hosts reach gateway via R2 — the VIP and vMAC never changed.';
+    }, 600);
+  };
+  window.hsrpRestore = function(){
+    hsrpState='normal';
+    var r1 = document.getElementById('r1');
+    var r2 = document.getElementById('r2');
+    r1.querySelector('rect').setAttribute('fill','url(#lgGreen)');
+    r1.querySelector('rect').setAttribute('stroke','#16A34A');
+    document.getElementById('r1Role').textContent = 'ACTIVE';
+    r2.querySelector('rect').setAttribute('fill','#FAF7F2');
+    r2.querySelector('rect').setAttribute('stroke','#A8A29E');
+    document.getElementById('r2Role').textContent = 'STANDBY';
+    document.getElementById('r2Role').setAttribute('fill','#57534E');
+    document.getElementById('wireR1').setAttribute('stroke','#16A34A');
+    document.getElementById('wireR1').removeAttribute('stroke-dasharray');
+    document.getElementById('wireR2').setAttribute('stroke','#A8A29E');
+    document.getElementById('wireR2').setAttribute('stroke-dasharray','4 4');
+    document.getElementById('pktPath').setAttribute('d','M100 150 L280 150 L500 75 L700 150');
+    document.getElementById('hsrpLog').innerHTML = '<strong>Status</strong>R1 = Active (priority 110, preempt). R2 returned to Standby. Convergence on real hardware: ~10 s without BFD, ~50 ms with BFD.';
+  };
+
+});
+</script>
+</body>
+</html>

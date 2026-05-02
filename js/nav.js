@@ -10,6 +10,8 @@
     'Practice': 'Active testing — quizzes, labs, exams, games',
     'Plan': 'Study scheduling — sprint plans and strategy',
     'Study Group': 'Study with friends — compare progress, chat, compete',
+    'Ekere Labs': 'Ekere Labs — Train Like a Network Engineer (embedded PWA)',
+    'CCNA Prep': 'CCNA Prep — Boson, hardcore, and IP connectivity drills',
   };
 
   /* ── Two complete NAV configs — pick one based on cert track ─── */
@@ -20,6 +22,7 @@
     { text: 'Guide', href: 'guide.html' },
     { text: 'Learn', children: [
       { text: 'Learn Hub', href: 'learn-hub.html' },
+      { text: 'Domain 3 — IP Connectivity (25%)', href: 'domain-3.html' },
       { text: 'OSI Model Sim', href: 'osi-sim.html' },
       { text: 'Cheat Sheet', href: 'cheat-sheet.html' },
       { text: 'Topology Labs', href: 'topology-labs.html' },
@@ -27,12 +30,16 @@
       { text: 'Subnetting Visual', href: 'subnetting-visual.html' },
       { text: 'VLSM Calculator', href: 'vlsm.html' },
       { text: 'Magic Number', href: 'magic-number.html' },
+      { text: 'IPv6 Visual', href: 'ipv6.html' },
     ]},
     { text: 'Practice', children: [
       { text: 'Practice Hub', href: 'practice-hub.html' },
       { text: '3rd Party Games List', href: 'games-list.html' },
     ]},
+    { text: 'Ekere Labs', href: 'ekere-labs.html' },
+    { text: 'CCNA Prep', href: 'ccna-prep.html' },
     { text: 'Plan', children: [
+      { text: "What's New", href: 'whats-new.html' },
       { text: 'Sprint', href: 'sprint.html' },
       { text: 'Strategy', href: 'strategy.html' },
       { text: 'Strat Overview', href: 'strat-core.html' },
@@ -209,7 +216,7 @@
   // Beta badge + bug report
   var beta = document.createElement('div');
   beta.className = 'beta-badge';
-  beta.innerHTML = '<a href="' + fixHref('changelog.html') + '" class="beta-tag" style="text-decoration:none">ALPHA v6.11.2</a><a href="' + fixHref('bug-report.html') + '" class="beta-bug">Report Bug</a>';
+  beta.innerHTML = '<a href="' + fixHref('changelog.html') + '" class="beta-tag" style="text-decoration:none">ALPHA v6.12.0</a><a href="' + fixHref('bug-report.html') + '" class="beta-bug">Report Bug</a>';
   document.body.appendChild(beta);
 
   // Auto-load backup script on every page
