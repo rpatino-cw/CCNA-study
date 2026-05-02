@@ -52,7 +52,23 @@ Node means a device or participant in the network. In this video, the important 
 
 Do not overthink it:
 
-Visual ID: `client-server-flow` (defined in the Visual Generation JSON near the end).
+<figure style="margin:14px 0">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 200" role="img" aria-label="Client requests service from server; server replies" style="max-width:100%;height:auto;display:block;margin:0 auto;background:#fff;border:1px solid #e5e7eb;border-radius:6px;padding:8px">
+  <defs><marker id="csa" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="#334155"/></marker></defs>
+  <rect x="30" y="60" width="150" height="80" rx="8" fill="#DBEAFE" stroke="#1e40af" stroke-width="1.5"/>
+  <text x="105" y="95" text-anchor="middle" font-family="system-ui,sans-serif" font-size="15" font-weight="700" fill="#1f2937">Client</text>
+  <text x="105" y="116" text-anchor="middle" font-family="system-ui,sans-serif" font-size="11" fill="#475569">requests service</text>
+  <rect x="420" y="60" width="150" height="80" rx="8" fill="#D1FAE5" stroke="#166534" stroke-width="1.5"/>
+  <text x="495" y="95" text-anchor="middle" font-family="system-ui,sans-serif" font-size="15" font-weight="700" fill="#1f2937">Server</text>
+  <text x="495" y="116" text-anchor="middle" font-family="system-ui,sans-serif" font-size="11" fill="#475569">provides service</text>
+  <line x1="180" y1="86" x2="415" y2="86" stroke="#334155" stroke-width="2" marker-end="url(#csa)"/>
+  <line x1="420" y1="116" x2="185" y2="116" stroke="#334155" stroke-width="2" marker-end="url(#csa)"/>
+  <text x="297" y="80" text-anchor="middle" font-family="system-ui,sans-serif" font-size="12" font-weight="600" fill="#1f2937">request</text>
+  <text x="297" y="135" text-anchor="middle" font-family="system-ui,sans-serif" font-size="12" font-weight="600" fill="#1f2937">reply</text>
+  <text x="300" y="180" text-anchor="middle" font-family="system-ui,sans-serif" font-style="italic" font-size="11" fill="#64748b">Network carries traffic between the two</text>
+</svg>
+<figcaption style="text-align:center;font-style:italic;font-size:.85rem;color:#64748b;margin-top:6px">Client asks; server provides.</figcaption>
+</figure>
 
 Examples:
 
@@ -68,7 +84,50 @@ Key exam trap: a device is not always one thing forever. A phone can be a client
 
 Jeremy's branch-network idea:
 
-Visual ID: `branch-network-topology` (defined in the Visual Generation JSON near the end).
+<figure style="margin:14px 0">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 380 640" role="img" aria-label="New York LAN connects through firewall and router across the Internet WAN to Tokyo LAN" style="max-width:100%;height:auto;display:block;margin:0 auto;background:#fff;border:1px solid #e5e7eb;border-radius:6px;padding:10px">
+  <defs><marker id="bna" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="#334155"/></marker></defs>
+  <text x="190" y="14" text-anchor="middle" font-family="system-ui,sans-serif" font-size="11" font-weight="700" fill="#475569" letter-spacing=".08em">NEW YORK LAN</text>
+  <rect x="40" y="22" width="90" height="40" rx="6" fill="#DBEAFE" stroke="#1e40af" stroke-width="1.5"/>
+  <text x="85" y="46" text-anchor="middle" font-family="system-ui,sans-serif" font-size="13" font-weight="600" fill="#1f2937">PC1</text>
+  <rect x="170" y="22" width="90" height="40" rx="6" fill="#DBEAFE" stroke="#1e40af" stroke-width="1.5"/>
+  <text x="215" y="46" text-anchor="middle" font-family="system-ui,sans-serif" font-size="13" font-weight="600" fill="#1f2937">PC2</text>
+  <line x1="85" y1="62" x2="125" y2="92" stroke="#334155" stroke-width="1.4"/>
+  <line x1="215" y1="62" x2="175" y2="92" stroke="#334155" stroke-width="1.4"/>
+  <rect x="100" y="92" width="100" height="40" rx="6" fill="#D1FAE5" stroke="#166534" stroke-width="1.5"/>
+  <text x="150" y="116" text-anchor="middle" font-family="system-ui,sans-serif" font-size="13" font-weight="600" fill="#1f2937">SW1</text>
+  <text x="220" y="116" font-family="system-ui,sans-serif" font-size="10" fill="#166534">switch = same LAN</text>
+  <line x1="150" y1="132" x2="150" y2="152" stroke="#334155" stroke-width="1.5" marker-end="url(#bna)"/>
+  <rect x="100" y="155" width="100" height="40" rx="6" fill="#FEE2E2" stroke="#991b1b" stroke-width="1.5"/>
+  <text x="150" y="179" text-anchor="middle" font-family="system-ui,sans-serif" font-size="13" font-weight="600" fill="#1f2937">FW1</text>
+  <text x="220" y="179" font-family="system-ui,sans-serif" font-size="10" fill="#991b1b">firewall = allow/deny</text>
+  <line x1="150" y1="195" x2="150" y2="215" stroke="#334155" stroke-width="1.5" marker-end="url(#bna)"/>
+  <rect x="100" y="218" width="100" height="40" rx="6" fill="#FED7AA" stroke="#9a3412" stroke-width="1.5"/>
+  <text x="150" y="242" text-anchor="middle" font-family="system-ui,sans-serif" font-size="13" font-weight="600" fill="#1f2937">R1</text>
+  <text x="220" y="242" font-family="system-ui,sans-serif" font-size="10" fill="#9a3412">router = networks</text>
+  <line x1="150" y1="258" x2="150" y2="284" stroke="#334155" stroke-width="1.5" marker-end="url(#bna)"/>
+  <ellipse cx="150" cy="312" rx="92" ry="26" fill="#E5E7EB" stroke="#475569" stroke-width="1.5" stroke-dasharray="4 3"/>
+  <text x="150" y="316" text-anchor="middle" font-family="system-ui,sans-serif" font-size="12" font-weight="600" fill="#1f2937">Internet / WAN</text>
+  <text x="265" y="316" font-family="system-ui,sans-serif" font-size="10" fill="#475569">cloud = hidden</text>
+  <line x1="150" y1="338" x2="150" y2="358" stroke="#334155" stroke-width="1.5" marker-end="url(#bna)"/>
+  <rect x="100" y="361" width="100" height="40" rx="6" fill="#FED7AA" stroke="#9a3412" stroke-width="1.5"/>
+  <text x="150" y="385" text-anchor="middle" font-family="system-ui,sans-serif" font-size="13" font-weight="600" fill="#1f2937">R2</text>
+  <line x1="150" y1="401" x2="150" y2="421" stroke="#334155" stroke-width="1.5" marker-end="url(#bna)"/>
+  <rect x="100" y="424" width="100" height="40" rx="6" fill="#FEE2E2" stroke="#991b1b" stroke-width="1.5"/>
+  <text x="150" y="448" text-anchor="middle" font-family="system-ui,sans-serif" font-size="13" font-weight="600" fill="#1f2937">FW2</text>
+  <line x1="150" y1="464" x2="150" y2="484" stroke="#334155" stroke-width="1.5" marker-end="url(#bna)"/>
+  <rect x="100" y="487" width="100" height="40" rx="6" fill="#D1FAE5" stroke="#166534" stroke-width="1.5"/>
+  <text x="150" y="511" text-anchor="middle" font-family="system-ui,sans-serif" font-size="13" font-weight="600" fill="#1f2937">SW2</text>
+  <line x1="125" y1="527" x2="85" y2="557" stroke="#334155" stroke-width="1.4"/>
+  <line x1="175" y1="527" x2="215" y2="557" stroke="#334155" stroke-width="1.4"/>
+  <rect x="40" y="560" width="90" height="40" rx="6" fill="#DBEAFE" stroke="#1e40af" stroke-width="1.5"/>
+  <text x="85" y="584" text-anchor="middle" font-family="system-ui,sans-serif" font-size="13" font-weight="600" fill="#1f2937">SRV1</text>
+  <rect x="170" y="560" width="90" height="40" rx="6" fill="#DBEAFE" stroke="#1e40af" stroke-width="1.5"/>
+  <text x="215" y="584" text-anchor="middle" font-family="system-ui,sans-serif" font-size="13" font-weight="600" fill="#1f2937">SRV2</text>
+  <text x="190" y="624" text-anchor="middle" font-family="system-ui,sans-serif" font-size="11" font-weight="700" fill="#475569" letter-spacing=".08em">TOKYO LAN</text>
+</svg>
+<figcaption style="text-align:center;font-style:italic;font-size:.85rem;color:#64748b;margin-top:6px">Switches connect local hosts; routers connect networks; firewalls control traffic.</figcaption>
+</figure>
 
 How to read it:
 
@@ -84,7 +143,46 @@ How to read it:
 
 Use this decision tree when reading CCNA questions:
 
-Visual ID: `traffic-decision-flow` (defined in the Visual Generation JSON near the end).
+<figure style="margin:14px 0">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 460 500" role="img" aria-label="Decision flow: same-LAN traffic uses switch; remote traffic uses router and is gated by firewall" style="max-width:100%;height:auto;display:block;margin:0 auto;background:#fff;border:1px solid #e5e7eb;border-radius:6px;padding:8px">
+  <defs><marker id="dfa" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="#334155"/></marker></defs>
+  <rect x="120" y="14" width="220" height="44" rx="22" fill="#F1F5F9" stroke="#475569" stroke-width="1.5"/>
+  <text x="230" y="40" text-anchor="middle" font-family="system-ui,sans-serif" font-size="13" font-weight="600" fill="#1f2937">Host wants to send traffic</text>
+  <line x1="230" y1="58" x2="230" y2="80" stroke="#334155" stroke-width="1.5" marker-end="url(#dfa)"/>
+  <polygon points="230,84 340,138 230,192 120,138" fill="#FEF3C7" stroke="#854d0e" stroke-width="1.5"/>
+  <text x="230" y="132" text-anchor="middle" font-family="system-ui,sans-serif" font-size="13" font-weight="600" fill="#1f2937">Same LAN /</text>
+  <text x="230" y="150" text-anchor="middle" font-family="system-ui,sans-serif" font-size="13" font-weight="600" fill="#1f2937">VLAN?</text>
+  <line x1="120" y1="138" x2="80" y2="138" stroke="#334155" stroke-width="1.5"/>
+  <line x1="80" y1="138" x2="80" y2="220" stroke="#334155" stroke-width="1.5" marker-end="url(#dfa)"/>
+  <text x="98" y="130" font-family="system-ui,sans-serif" font-size="11" font-weight="700" fill="#166534">YES</text>
+  <rect x="10" y="222" width="160" height="58" rx="6" fill="#D1FAE5" stroke="#166534" stroke-width="1.5"/>
+  <text x="90" y="246" text-anchor="middle" font-family="system-ui,sans-serif" font-size="13" font-weight="600" fill="#1f2937">Forward via Switch</text>
+  <text x="90" y="265" text-anchor="middle" font-family="system-ui,sans-serif" font-size="10" fill="#166534">same LAN = switch</text>
+  <line x1="230" y1="192" x2="230" y2="218" stroke="#334155" stroke-width="1.5" marker-end="url(#dfa)"/>
+  <text x="244" y="208" font-family="system-ui,sans-serif" font-size="11" font-weight="700" fill="#9a3412">NO</text>
+  <rect x="190" y="222" width="240" height="58" rx="6" fill="#FED7AA" stroke="#9a3412" stroke-width="1.5"/>
+  <text x="310" y="246" text-anchor="middle" font-family="system-ui,sans-serif" font-size="13" font-weight="600" fill="#1f2937">Send to default gateway</text>
+  <text x="310" y="265" text-anchor="middle" font-family="system-ui,sans-serif" font-size="10" fill="#9a3412">remote network = router</text>
+  <line x1="310" y1="280" x2="310" y2="300" stroke="#334155" stroke-width="1.5" marker-end="url(#dfa)"/>
+  <polygon points="310,304 410,348 310,392 210,348" fill="#FEF3C7" stroke="#854d0e" stroke-width="1.5"/>
+  <text x="310" y="342" text-anchor="middle" font-family="system-ui,sans-serif" font-size="13" font-weight="600" fill="#1f2937">Firewall</text>
+  <text x="310" y="360" text-anchor="middle" font-family="system-ui,sans-serif" font-size="13" font-weight="600" fill="#1f2937">allows?</text>
+  <line x1="210" y1="348" x2="170" y2="348" stroke="#334155" stroke-width="1.5"/>
+  <line x1="170" y1="348" x2="170" y2="420" stroke="#334155" stroke-width="1.5" marker-end="url(#dfa)"/>
+  <text x="186" y="340" font-family="system-ui,sans-serif" font-size="11" font-weight="700" fill="#166534">YES</text>
+  <rect x="60" y="422" width="220" height="58" rx="6" fill="#FED7AA" stroke="#9a3412" stroke-width="1.5"/>
+  <text x="170" y="446" text-anchor="middle" font-family="system-ui,sans-serif" font-size="13" font-weight="600" fill="#1f2937">Router forwards remotely</text>
+  <text x="170" y="465" text-anchor="middle" font-family="system-ui,sans-serif" font-size="10" fill="#9a3412">allowed = router routes it</text>
+  <line x1="410" y1="348" x2="430" y2="348" stroke="#334155" stroke-width="1.5"/>
+  <line x1="430" y1="348" x2="430" y2="420" stroke="#334155" stroke-width="1.5"/>
+  <line x1="430" y1="420" x2="380" y2="420" stroke="#334155" stroke-width="1.5" marker-end="url(#dfa)"/>
+  <text x="412" y="340" font-family="system-ui,sans-serif" font-size="11" font-weight="700" fill="#991b1b">NO</text>
+  <rect x="300" y="422" width="80" height="58" rx="6" fill="#FEE2E2" stroke="#991b1b" stroke-width="1.5"/>
+  <text x="340" y="446" text-anchor="middle" font-family="system-ui,sans-serif" font-size="12" font-weight="600" fill="#1f2937">Drop /</text>
+  <text x="340" y="463" text-anchor="middle" font-family="system-ui,sans-serif" font-size="12" font-weight="600" fill="#1f2937">block</text>
+</svg>
+<figcaption style="text-align:center;font-style:italic;font-size:.85rem;color:#64748b;margin-top:6px">Local = switch · remote = router · permit/deny = firewall.</figcaption>
+</figure>
 
 Same LAN example:
 
@@ -252,7 +350,28 @@ If PC1 wants to talk to PC2 in the same LAN, it does not need the default gatewa
 
 If PC1 wants to talk to SRV1 in another LAN, it sends traffic to the default gateway.
 
-Visual ID: `default-gateway-path` (defined in the Visual Generation JSON near the end).
+<figure style="margin:14px 0">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 200" role="img" aria-label="PC sends remote-bound traffic through switch to default gateway router toward remote networks" style="max-width:100%;height:auto;display:block;margin:0 auto;background:#fff;border:1px solid #e5e7eb;border-radius:6px;padding:8px">
+  <defs><marker id="dga" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="#334155"/></marker></defs>
+  <rect x="10" y="60" width="100" height="56" rx="6" fill="#DBEAFE" stroke="#1e40af" stroke-width="1.5"/>
+  <text x="60" y="85" text-anchor="middle" font-family="system-ui,sans-serif" font-size="13" font-weight="700" fill="#1f2937">PC</text>
+  <text x="60" y="104" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="10" fill="#475569">10.1.1.10</text>
+  <line x1="110" y1="88" x2="140" y2="88" stroke="#334155" stroke-width="1.5" marker-end="url(#dga)"/>
+  <rect x="142" y="60" width="100" height="56" rx="6" fill="#D1FAE5" stroke="#166534" stroke-width="1.5"/>
+  <text x="192" y="93" text-anchor="middle" font-family="system-ui,sans-serif" font-size="13" font-weight="700" fill="#1f2937">Switch</text>
+  <line x1="242" y1="88" x2="272" y2="88" stroke="#334155" stroke-width="1.5" marker-end="url(#dga)"/>
+  <rect x="274" y="60" width="120" height="56" rx="6" fill="#FED7AA" stroke="#9a3412" stroke-width="1.5"/>
+  <text x="334" y="83" text-anchor="middle" font-family="system-ui,sans-serif" font-size="13" font-weight="700" fill="#1f2937">Router</text>
+  <text x="334" y="103" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="10" fill="#475569">10.1.1.1</text>
+  <text x="334" y="138" text-anchor="middle" font-family="system-ui,sans-serif" font-size="11" font-style="italic" fill="#9a3412">default gateway</text>
+  <line x1="394" y1="88" x2="424" y2="88" stroke="#334155" stroke-width="1.5" marker-end="url(#dga)"/>
+  <ellipse cx="490" cy="88" rx="60" ry="32" fill="#E5E7EB" stroke="#475569" stroke-width="1.5" stroke-dasharray="4 3"/>
+  <text x="490" y="84" text-anchor="middle" font-family="system-ui,sans-serif" font-size="12" font-weight="600" fill="#1f2937">Remote</text>
+  <text x="490" y="100" text-anchor="middle" font-family="system-ui,sans-serif" font-size="12" font-weight="600" fill="#1f2937">networks</text>
+  <text x="280" y="170" text-anchor="middle" font-family="system-ui,sans-serif" font-style="italic" font-size="11" fill="#64748b">Same-LAN traffic skips the gateway · remote-bound traffic must use it</text>
+</svg>
+<figcaption style="text-align:center;font-style:italic;font-size:.85rem;color:#64748b;margin-top:6px">Remote destination? Send to the default gateway.</figcaption>
+</figure>
 
 Exam phrase to burn in:
 
@@ -352,7 +471,34 @@ These are in the current CCNA 200-301 network components objective, so know the 
 
 An access point lets wireless clients connect to the wired LAN.
 
-Visual ID: `wireless-ap-topology` (defined in the Visual Generation JSON near the end).
+<figure style="margin:14px 0">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 620 200" role="img" aria-label="Wireless client connects via Wi-Fi to access point, then to switch, router, and the Internet" style="max-width:100%;height:auto;display:block;margin:0 auto;background:#fff;border:1px solid #e5e7eb;border-radius:6px;padding:8px">
+  <defs><marker id="apa" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="#334155"/></marker></defs>
+  <rect x="10" y="60" width="110" height="56" rx="6" fill="#DBEAFE" stroke="#1e40af" stroke-width="1.5"/>
+  <text x="65" y="85" text-anchor="middle" font-family="system-ui,sans-serif" font-size="13" font-weight="700" fill="#1f2937">Wireless</text>
+  <text x="65" y="104" text-anchor="middle" font-family="system-ui,sans-serif" font-size="11" fill="#475569">client (phone)</text>
+  <path d="M125 78 Q140 70 155 78" fill="none" stroke="#7e22ce" stroke-width="1.5"/>
+  <path d="M120 86 Q140 75 160 86" fill="none" stroke="#7e22ce" stroke-width="1.5"/>
+  <path d="M125 96 Q140 88 155 96" fill="none" stroke="#7e22ce" stroke-width="1.5"/>
+  <text x="143" y="58" text-anchor="middle" font-family="system-ui,sans-serif" font-size="10" font-style="italic" fill="#7e22ce">Wi-Fi</text>
+  <rect x="170" y="60" width="100" height="56" rx="6" fill="#E9D5FF" stroke="#6b21a8" stroke-width="1.5"/>
+  <text x="220" y="93" text-anchor="middle" font-family="system-ui,sans-serif" font-size="14" font-weight="700" fill="#1f2937">AP</text>
+  <line x1="270" y1="88" x2="298" y2="88" stroke="#334155" stroke-width="1.5" marker-end="url(#apa)"/>
+  <rect x="300" y="60" width="90" height="56" rx="6" fill="#D1FAE5" stroke="#166534" stroke-width="1.5"/>
+  <text x="345" y="93" text-anchor="middle" font-family="system-ui,sans-serif" font-size="13" font-weight="700" fill="#1f2937">Switch</text>
+  <line x1="390" y1="88" x2="418" y2="88" stroke="#334155" stroke-width="1.5" marker-end="url(#apa)"/>
+  <rect x="420" y="60" width="90" height="56" rx="6" fill="#FED7AA" stroke="#9a3412" stroke-width="1.5"/>
+  <text x="465" y="93" text-anchor="middle" font-family="system-ui,sans-serif" font-size="13" font-weight="700" fill="#1f2937">Router</text>
+  <line x1="510" y1="88" x2="538" y2="88" stroke="#334155" stroke-width="1.5" marker-end="url(#apa)"/>
+  <ellipse cx="582" cy="88" rx="34" ry="26" fill="#E5E7EB" stroke="#475569" stroke-width="1.5" stroke-dasharray="4 3"/>
+  <text x="582" y="92" text-anchor="middle" font-family="system-ui,sans-serif" font-size="11" font-weight="600" fill="#1f2937">Internet</text>
+  <text x="220" y="142" text-anchor="middle" font-family="system-ui,sans-serif" font-size="10" fill="#6b21a8">wireless access</text>
+  <text x="345" y="142" text-anchor="middle" font-family="system-ui,sans-serif" font-size="10" fill="#166534">wired LAN</text>
+  <text x="465" y="142" text-anchor="middle" font-family="system-ui,sans-serif" font-size="10" fill="#9a3412">other networks</text>
+  <text x="320" y="180" text-anchor="middle" font-family="system-ui,sans-serif" font-style="italic" font-size="11" fill="#64748b">AP bridges Wi-Fi clients to the wired LAN — it is not a router</text>
+</svg>
+<figcaption style="text-align:center;font-style:italic;font-size:.85rem;color:#64748b;margin-top:6px">AP = wireless access; switch = wired LAN; router = other networks.</figcaption>
+</figure>
 
 Exam shortcuts:
 
@@ -419,7 +565,46 @@ If the question says an AP, phone, or camera needs power without a separate powe
 
 ## One Picture: Who Does What?
 
-Visual ID: `network-roles-overview` (defined in the Visual Generation JSON near the end).
+<figure style="margin:14px 0">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 240" role="img" aria-label="All Day 1 roles in one path: client to switch to firewall to router across WAN to remote server" style="max-width:100%;height:auto;display:block;margin:0 auto;background:#fff;border:1px solid #e5e7eb;border-radius:6px;padding:8px">
+  <defs><marker id="nra" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="#334155"/></marker></defs>
+  <rect x="10" y="70" width="90" height="50" rx="6" fill="#DBEAFE" stroke="#1e40af" stroke-width="1.5"/>
+  <text x="55" y="100" text-anchor="middle" font-family="system-ui,sans-serif" font-size="13" font-weight="700" fill="#1f2937">Client</text>
+  <text x="55" y="142" text-anchor="middle" font-family="system-ui,sans-serif" font-size="10" fill="#1e40af">requests</text>
+  <text x="55" y="156" text-anchor="middle" font-family="system-ui,sans-serif" font-size="10" fill="#1e40af">service</text>
+  <line x1="100" y1="95" x2="118" y2="95" stroke="#334155" stroke-width="1.5" marker-end="url(#nra)"/>
+  <rect x="120" y="70" width="90" height="50" rx="6" fill="#D1FAE5" stroke="#166534" stroke-width="1.5"/>
+  <text x="165" y="100" text-anchor="middle" font-family="system-ui,sans-serif" font-size="13" font-weight="700" fill="#1f2937">Switch</text>
+  <text x="165" y="142" text-anchor="middle" font-family="system-ui,sans-serif" font-size="10" fill="#166534">same-LAN</text>
+  <text x="165" y="156" text-anchor="middle" font-family="system-ui,sans-serif" font-size="10" fill="#166534">connectivity</text>
+  <line x1="210" y1="95" x2="228" y2="95" stroke="#334155" stroke-width="1.5" marker-end="url(#nra)"/>
+  <rect x="230" y="70" width="90" height="50" rx="6" fill="#FEE2E2" stroke="#991b1b" stroke-width="1.5"/>
+  <text x="275" y="100" text-anchor="middle" font-family="system-ui,sans-serif" font-size="13" font-weight="700" fill="#1f2937">Firewall</text>
+  <text x="275" y="142" text-anchor="middle" font-family="system-ui,sans-serif" font-size="10" fill="#991b1b">permit /</text>
+  <text x="275" y="156" text-anchor="middle" font-family="system-ui,sans-serif" font-size="10" fill="#991b1b">deny policy</text>
+  <line x1="320" y1="95" x2="338" y2="95" stroke="#334155" stroke-width="1.5" marker-end="url(#nra)"/>
+  <rect x="340" y="70" width="90" height="50" rx="6" fill="#FED7AA" stroke="#9a3412" stroke-width="1.5"/>
+  <text x="385" y="100" text-anchor="middle" font-family="system-ui,sans-serif" font-size="13" font-weight="700" fill="#1f2937">Router</text>
+  <text x="385" y="142" text-anchor="middle" font-family="system-ui,sans-serif" font-size="10" fill="#9a3412">connects</text>
+  <text x="385" y="156" text-anchor="middle" font-family="system-ui,sans-serif" font-size="10" fill="#9a3412">networks</text>
+  <line x1="430" y1="95" x2="448" y2="95" stroke="#334155" stroke-width="1.5" marker-end="url(#nra)"/>
+  <ellipse cx="500" cy="95" rx="48" ry="28" fill="#E5E7EB" stroke="#475569" stroke-width="1.5" stroke-dasharray="4 3"/>
+  <text x="500" y="99" text-anchor="middle" font-family="system-ui,sans-serif" font-size="12" font-weight="600" fill="#1f2937">WAN</text>
+  <text x="500" y="142" text-anchor="middle" font-family="system-ui,sans-serif" font-size="10" fill="#475569">hidden</text>
+  <text x="500" y="156" text-anchor="middle" font-family="system-ui,sans-serif" font-size="10" fill="#475569">network</text>
+  <line x1="548" y1="95" x2="568" y2="95" stroke="#334155" stroke-width="1.5" marker-end="url(#nra)"/>
+  <rect x="570" y="70" width="110" height="50" rx="6" fill="#DBEAFE" stroke="#1e40af" stroke-width="1.5"/>
+  <text x="625" y="100" text-anchor="middle" font-family="system-ui,sans-serif" font-size="13" font-weight="700" fill="#1f2937">Server</text>
+  <text x="625" y="142" text-anchor="middle" font-family="system-ui,sans-serif" font-size="10" fill="#1e40af">provides</text>
+  <text x="625" y="156" text-anchor="middle" font-family="system-ui,sans-serif" font-size="10" fill="#1e40af">service</text>
+  <text x="50" y="32" font-family="system-ui,sans-serif" font-size="11" font-weight="700" fill="#475569" letter-spacing=".06em">ENDPOINT</text>
+  <line x1="13" y1="50" x2="98" y2="50" stroke="#94a3b8" stroke-width="1" stroke-dasharray="2 2"/>
+  <line x1="568" y1="50" x2="682" y2="50" stroke="#94a3b8" stroke-width="1" stroke-dasharray="2 2"/>
+  <text x="600" y="32" font-family="system-ui,sans-serif" font-size="11" font-weight="700" fill="#475569" letter-spacing=".06em">ENDPOINT</text>
+  <text x="345" y="200" text-anchor="middle" font-family="system-ui,sans-serif" font-style="italic" font-size="11" fill="#64748b">Identify devices by role, not by hardware appearance</text>
+</svg>
+<figcaption style="text-align:center;font-style:italic;font-size:.85rem;color:#64748b;margin-top:6px">Endpoint = source/dest · Switch = LAN · Router = networks · Firewall = policy.</figcaption>
+</figure>
 
 Verbal version:
 
@@ -723,7 +908,44 @@ Common PoE-powered devices:
 
 When reading a diagram, identify the device role by position and traffic function.
 
-Visual ID: `topology-reading-pattern` (defined in the Visual Generation JSON near the end).
+<figure style="margin:14px 0">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 600" role="img" aria-label="Standard topology read order from client through switch firewall router WAN to remote server" style="max-width:100%;height:auto;display:block;margin:0 auto;background:#fff;border:1px solid #e5e7eb;border-radius:6px;padding:8px">
+  <defs><marker id="tra" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="#334155"/></marker></defs>
+  <rect x="80" y="14" width="120" height="40" rx="6" fill="#DBEAFE" stroke="#1e40af" stroke-width="1.5"/>
+  <text x="140" y="38" text-anchor="middle" font-family="system-ui,sans-serif" font-size="13" font-weight="700" fill="#1f2937">Client</text>
+  <text x="216" y="38" font-family="system-ui,sans-serif" font-size="11" fill="#1e40af">requests</text>
+  <line x1="140" y1="54" x2="140" y2="74" stroke="#334155" stroke-width="1.5" marker-end="url(#tra)"/>
+  <rect x="80" y="78" width="120" height="40" rx="6" fill="#D1FAE5" stroke="#166534" stroke-width="1.5"/>
+  <text x="140" y="102" text-anchor="middle" font-family="system-ui,sans-serif" font-size="13" font-weight="700" fill="#1f2937">Switch</text>
+  <text x="216" y="102" font-family="system-ui,sans-serif" font-size="11" fill="#166534">forwards locally</text>
+  <line x1="140" y1="118" x2="140" y2="138" stroke="#334155" stroke-width="1.5" marker-end="url(#tra)"/>
+  <rect x="80" y="142" width="120" height="40" rx="6" fill="#FEE2E2" stroke="#991b1b" stroke-width="1.5"/>
+  <text x="140" y="166" text-anchor="middle" font-family="system-ui,sans-serif" font-size="13" font-weight="700" fill="#1f2937">Firewall</text>
+  <text x="216" y="166" font-family="system-ui,sans-serif" font-size="11" fill="#991b1b">checks policy</text>
+  <line x1="140" y1="182" x2="140" y2="202" stroke="#334155" stroke-width="1.5" marker-end="url(#tra)"/>
+  <rect x="80" y="206" width="120" height="40" rx="6" fill="#FED7AA" stroke="#9a3412" stroke-width="1.5"/>
+  <text x="140" y="230" text-anchor="middle" font-family="system-ui,sans-serif" font-size="13" font-weight="700" fill="#1f2937">Router</text>
+  <text x="216" y="230" font-family="system-ui,sans-serif" font-size="11" fill="#9a3412">forwards remotely</text>
+  <line x1="140" y1="246" x2="140" y2="270" stroke="#334155" stroke-width="1.5" marker-end="url(#tra)"/>
+  <ellipse cx="140" cy="295" rx="76" ry="22" fill="#E5E7EB" stroke="#475569" stroke-width="1.5" stroke-dasharray="4 3"/>
+  <text x="140" y="299" text-anchor="middle" font-family="system-ui,sans-serif" font-size="12" font-weight="600" fill="#1f2937">WAN / Internet</text>
+  <line x1="140" y1="317" x2="140" y2="338" stroke="#334155" stroke-width="1.5" marker-end="url(#tra)"/>
+  <rect x="80" y="342" width="120" height="40" rx="6" fill="#FED7AA" stroke="#9a3412" stroke-width="1.5"/>
+  <text x="140" y="366" text-anchor="middle" font-family="system-ui,sans-serif" font-size="13" font-weight="700" fill="#1f2937">Remote Router</text>
+  <line x1="140" y1="382" x2="140" y2="402" stroke="#334155" stroke-width="1.5" marker-end="url(#tra)"/>
+  <rect x="80" y="406" width="120" height="40" rx="6" fill="#D1FAE5" stroke="#166534" stroke-width="1.5"/>
+  <text x="140" y="430" text-anchor="middle" font-family="system-ui,sans-serif" font-size="13" font-weight="700" fill="#1f2937">Remote Switch</text>
+  <line x1="140" y1="446" x2="140" y2="466" stroke="#334155" stroke-width="1.5" marker-end="url(#tra)"/>
+  <rect x="80" y="470" width="120" height="40" rx="6" fill="#DBEAFE" stroke="#1e40af" stroke-width="1.5"/>
+  <text x="140" y="494" text-anchor="middle" font-family="system-ui,sans-serif" font-size="13" font-weight="700" fill="#1f2937">Server</text>
+  <text x="216" y="494" font-family="system-ui,sans-serif" font-size="11" fill="#1e40af">provides</text>
+  <text x="160" y="538" text-anchor="middle" font-family="system-ui,sans-serif" font-style="italic" font-size="11" fill="#64748b">Read every CCNA topology in this</text>
+  <text x="160" y="554" text-anchor="middle" font-family="system-ui,sans-serif" font-style="italic" font-size="11" fill="#64748b">order: source → switch → firewall →</text>
+  <text x="160" y="570" text-anchor="middle" font-family="system-ui,sans-serif" font-style="italic" font-size="11" fill="#64748b">router → WAN → router → switch →</text>
+  <text x="160" y="586" text-anchor="middle" font-family="system-ui,sans-serif" font-style="italic" font-size="11" fill="#64748b">destination</text>
+</svg>
+<figcaption style="text-align:center;font-style:italic;font-size:.85rem;color:#64748b;margin-top:6px">Read topology diagrams by device function and traffic path.</figcaption>
+</figure>
 
 Read the path like this:
 
