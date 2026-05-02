@@ -22,7 +22,10 @@
       { text: 'Learn Hub', href: 'learn-hub.html' },
       { text: 'OSI Model Sim', href: 'osi-sim.html' },
     ]},
-    { text: 'Practice', href: 'practice-hub.html' },
+    { text: 'Practice', children: [
+      { text: 'Practice Hub', href: 'practice-hub.html' },
+      { text: '3rd Party Games List', href: 'games-list.html' },
+    ]},
     { text: 'Plan', children: [
       { text: 'Sprint', href: 'sprint.html' },
       { text: 'Strategy', href: 'strategy.html' },
@@ -65,6 +68,7 @@
       { text: 'Troubleshooting', href: 'netplus-troubleshoot.html' },
       { text: 'Exam Sim', href: 'netplus-exam.html' },
       { text: 'Daily Challenge', href: 'netplus-daily.html' },
+      { text: '3rd Party Games List', href: 'games-list.html' },
     ]},
     { text: 'Plan', children: [
       { text: '4-Week Sprint', href: 'netplus-sprint.html' },
@@ -196,7 +200,7 @@
   // Beta badge + bug report
   var beta = document.createElement('div');
   beta.className = 'beta-badge';
-  beta.innerHTML = '<a href="' + fixHref('changelog.html') + '" class="beta-tag" style="text-decoration:none">ALPHA v6.10.9</a><a href="' + fixHref('bug-report.html') + '" class="beta-bug">Report Bug</a>';
+  beta.innerHTML = '<a href="' + fixHref('changelog.html') + '" class="beta-tag" style="text-decoration:none">ALPHA v6.10.10</a><a href="' + fixHref('bug-report.html') + '" class="beta-bug">Report Bug</a>';
   document.body.appendChild(beta);
 
   // Auto-load backup script on every page
