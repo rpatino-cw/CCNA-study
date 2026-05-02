@@ -178,6 +178,23 @@ section{margin-bottom:var(--s-2xl)}
 .advanced[open] > summary::before{content:'▾ '}
 .advanced > summary:hover{color:var(--accent)}
 
+/* Console (IOS practice) */
+.console-panel{background:#0f1620;color:#cbd5e1;border-radius:var(--radius-lg);padding:14px 16px;font-family:var(--font-mono);font-size:.82rem;line-height:1.55;border:1px solid #1f2937}
+.console-out{min-height:140px;max-height:280px;overflow-y:auto;white-space:pre-wrap;margin-bottom:10px}
+.console-out .cmd{color:#a3e635}
+.console-out .err{color:#fca5a5}
+.console-out .ok{color:#86efac}
+.console-out .info{color:#fcd34d}
+.console-out .promptline{color:#22d3ee}
+.console-in{display:flex;gap:6px;align-items:center;background:#1a2332;padding:7px 10px;border-radius:6px}
+.console-prompt{color:#22d3ee;font-weight:600;flex-shrink:0;white-space:nowrap}
+.console-in input{flex:1;background:transparent;border:0;color:#a3e635;font-family:var(--font-mono);font-size:.85rem;outline:none;caret-color:#a3e635}
+.console-tips{margin-top:10px;font-size:.74rem;color:#64748b;font-family:var(--font-body);font-style:italic}
+.console-tips code{background:#1a2332;color:#a3e635;padding:1px 5px;border-radius:3px;font-family:var(--font-mono);font-style:normal}
+.console-quick{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.console-quick button{font-family:var(--font-mono);font-size:.72rem;background:#1a2332;color:#a3e635;border:1px solid #334155;border-radius:4px;padding:3px 8px;cursor:pointer}
+.console-quick button:hover{background:#22304a;border-color:#a3e635}
+
 /* Coverage map */
 .cov-map{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:6px;font-family:var(--font-mono);font-size:.72rem}
 .cov-pill{padding:5px 9px;border-radius:var(--radius);background:var(--bg-recessed);border:1px solid var(--border);color:var(--ink-muted);display:flex;align-items:center;gap:5px}
@@ -374,6 +391,33 @@ section{margin-bottom:var(--s-2xl)}
       <div class="result" id="pktResult">Send a packet to see how the ACL evaluates it.</div>
     </div>
   </div>
+
+  <!-- Console practice -->
+  <section>
+    <div class="section-label">Drill — IOS commands</div>
+    <h2 class="section-title">Console Practice <span style="font-size:.7rem;color:var(--ink-muted);font-weight:400;margin-left:6px">optional · trains real CLI</span></h2>
+    <p class="section-desc">Type real Cisco IOS commands. Each accepted line builds the ACL table on the left in real time. Start with <code>enable</code>. Type <code>?</code> at any prompt for a list of commands.</p>
+    <div class="console-panel">
+      <div class="console-out" id="consoleOut"><span class="info">R1 console — start with <span class="cmd">enable</span></span></div>
+      <div class="console-in">
+        <span class="console-prompt" id="consolePrompt">R1&gt;</span>
+        <input id="consoleInput" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="type a command, press Enter">
+      </div>
+      <div class="console-quick" id="consoleQuick">
+        <button data-cmd="enable">enable</button>
+        <button data-cmd="configure terminal">configure terminal</button>
+        <button data-cmd="ip access-list standard MY-ACL">ip access-list standard MY-ACL</button>
+        <button data-cmd="permit host 192.168.1.10">permit host 192.168.1.10</button>
+        <button data-cmd="exit">exit</button>
+        <button data-cmd="interface Gi0/1">interface Gi0/1</button>
+        <button data-cmd="ip access-group MY-ACL in">ip access-group MY-ACL in</button>
+        <button data-cmd="end">end</button>
+        <button data-cmd="show access-lists">show access-lists</button>
+        <button data-cmd="?">?</button>
+      </div>
+      <div class="console-tips">Tip: clicks above paste a command into the prompt — press Enter to submit. Modes: <code>R1&gt;</code> user, <code>R1#</code> privileged, <code>R1(config)#</code> global, <code>R1(config-std-nacl)#</code> ACL edit, <code>R1(config-if)#</code> interface.</div>
+    </div>
+  </section>
 
   <!-- Mistake feed -->
   <section>
@@ -1075,6 +1119,208 @@ document.addEventListener('DOMContentLoaded', function () {
     document.getElementById('cliStatus').style.color = 'var(--prof-strong)';
     document.getElementById('cliStatus').textContent = '✓ exported ' + state.acl.length + ' ACE' + (state.acl.length === 1 ? '' : 's');
   };
+
+  // ─── Tiny IOS console ──────────────────────────────
+  var con = {
+    mode: 'user', // user · priv · global · std-nacl · ext-nacl · iface
+    hostname: 'R1',
+    aclName: null,
+    aclType: null,
+    iface: null,
+    history: [],
+    histIdx: -1
+  };
+
+  function conPrompt() {
+    switch (con.mode) {
+      case 'user': return con.hostname + '>';
+      case 'priv': return con.hostname + '#';
+      case 'global': return con.hostname + '(config)#';
+      case 'std-nacl': return con.hostname + '(config-std-nacl)#';
+      case 'ext-nacl': return con.hostname + '(config-ext-nacl)#';
+      case 'iface': return con.hostname + '(config-if)#';
+    }
+    return '?>';
+  }
+  function conRefreshPrompt() { document.getElementById('consolePrompt').textContent = conPrompt(); }
+  function conPrint(text, cls) {
+    var out = document.getElementById('consoleOut');
+    var span = document.createElement('div');
+    if (cls) span.className = cls;
+    span.textContent = text;
+    out.appendChild(span);
+    out.scrollTop = out.scrollHeight;
+  }
+  function conEcho(line) { conPrint(conPrompt() + ' ' + line, 'promptline'); }
+
+  function conHelp() {
+    var help = {
+      'user': ['enable               — enter privileged mode'],
+      'priv': [
+        'configure terminal   — enter global config',
+        'show access-lists    — list ACLs and hit counters',
+        'show running-config  — print current config',
+        'disable / exit       — back to user mode'
+      ],
+      'global': [
+        'ip access-list standard NAME    — create/edit named standard ACL',
+        'ip access-list extended NAME    — create/edit named extended ACL',
+        'access-list N permit|deny ...   — numbered ACL one-liner',
+        'interface Gi0/0                 — enter interface',
+        'exit / end                      — leave config'
+      ],
+      'std-nacl': [
+        'permit|deny SOURCE              — e.g. permit host 1.2.3.4',
+        'permit|deny SUBNET WILDCARD     — e.g. deny 192.168.10.0 0.0.0.255',
+        'permit|deny any                 — match anything',
+        'exit                            — back to global config'
+      ],
+      'ext-nacl': [
+        'permit|deny PROTO SRC DST [eq PORT]',
+        '   e.g. deny tcp 192.168.10.0 0.0.0.255 host 8.8.8.8 eq 443',
+        'exit                            — back to global config'
+      ],
+      'iface': [
+        'ip access-group NAME in|out     — apply ACL on this interface',
+        'exit / end                      — leave interface'
+      ]
+    };
+    conPrint('Available commands at ' + conPrompt() + ':', 'info');
+    (help[con.mode] || []).forEach(function (l) { conPrint('  ' + l, 'info'); });
+  }
+
+  function conReset() {
+    con.mode = 'user'; con.aclName = null; con.aclType = null; con.iface = null;
+    conRefreshPrompt();
+  }
+
+  function conAddAce(text) {
+    if (!window.ACL || !ACL.parseACE) { conPrint('% ACL engine not loaded', 'err'); return; }
+    var parsed = ACL.parseACE(text);
+    if (!parsed || parsed.error) { conPrint('% Invalid ACE — ' + (parsed && parsed.error || 'parse failed'), 'err'); return; }
+    state.rawRows.push(parsedToRaw(parsed));
+    renderACL();
+    conPrint('  + line ' + (state.rawRows.length * 10) + ': ' + ACL.serializeACE(parsed), 'ok');
+  }
+
+  function conShowAcls() {
+    if (!state.acl.length) { conPrint('% No access lists configured', 'info'); return; }
+    var label = (state.mode.form === 'named' ? state.placement.aclName : state.placement.aclNumber) || 'MY-ACL';
+    conPrint((state.mode.type === 'standard' ? 'Standard' : 'Extended') + ' IP access list ' + label, 'info');
+    state.acl.forEach(function (ace, i) {
+      var hits = state.hitCounts[(i + 1) * 10] || 0;
+      conPrint('    ' + ((i + 1) * 10) + ' ' + ACL.serializeACE(ace) + (hits ? ' (' + hits + ' matches)' : ''));
+    });
+  }
+
+  function conShowRun() {
+    if (!state.acl.length) { conPrint('% (no ACL configured)', 'info'); return; }
+    var label = (state.mode.form === 'named' ? state.placement.aclName : state.placement.aclNumber) || 'MY-ACL';
+    if (state.mode.form === 'named') {
+      conPrint('ip access-list ' + state.mode.type + ' ' + label, 'info');
+      state.acl.forEach(function (ace) { conPrint(' ' + ACL.serializeACE(ace)); });
+    } else {
+      state.acl.forEach(function (ace) { conPrint('access-list ' + label + ' ' + ACL.serializeACE(ace)); });
+    }
+    if (state.placement.iface) {
+      var ifn = state.placement.iface.split('-')[1] || state.placement.iface;
+      conPrint('interface ' + ifn, 'info');
+      conPrint(' ip access-group ' + label + ' ' + (state.placement.dir || 'in'));
+    }
+  }
+
+  function conExec(raw) {
+    var line = (raw || '').trim();
+    conEcho(line);
+    if (!line) return;
+    if (line === '?') return conHelp();
+    var m;
+    switch (con.mode) {
+      case 'user':
+        if (/^en(able)?$/i.test(line)) { con.mode = 'priv'; conRefreshPrompt(); return; }
+        break;
+      case 'priv':
+        if (/^conf(igure)?\s+t(erminal)?$/i.test(line)) { con.mode = 'global'; conRefreshPrompt(); return; }
+        if (/^sh(ow)?\s+access-lists?$/i.test(line)) return conShowAcls();
+        if (/^sh(ow)?\s+run(ning-config)?$/i.test(line)) return conShowRun();
+        if (/^(disable|exit|end)$/i.test(line)) { con.mode = 'user'; conRefreshPrompt(); return; }
+        break;
+      case 'global':
+        if (m = line.match(/^ip\s+access-list\s+(standard|extended)\s+(\S+)$/i)) {
+          con.aclType = m[1].toLowerCase(); con.aclName = m[2];
+          con.mode = (con.aclType === 'standard') ? 'std-nacl' : 'ext-nacl';
+          setMode({ type: con.aclType, form: 'named' });
+          document.getElementById('aclName').value = con.aclName;
+          state.placement.aclName = con.aclName;
+          conRefreshPrompt();
+          return;
+        }
+        if (m = line.match(/^access-list\s+(\d+)\s+(.+)$/i)) {
+          var num = parseInt(m[1], 10);
+          var typeNum = (num <= 99 || (num >= 1300 && num <= 1999)) ? 'standard' : 'extended';
+          setMode({ type: typeNum, form: 'numbered' });
+          document.getElementById('aclNumber').value = num;
+          state.placement.aclNumber = num;
+          conAddAce(m[2]);
+          return;
+        }
+        if (m = line.match(/^int(erface)?\s+(\S+)$/i)) {
+          con.iface = m[2]; con.mode = 'iface'; conRefreshPrompt();
+          return;
+        }
+        if (/^(exit|end)$/i.test(line)) { con.mode = 'priv'; conRefreshPrompt(); return; }
+        break;
+      case 'std-nacl':
+      case 'ext-nacl':
+        if (/^(permit|deny)\b/i.test(line)) { conAddAce(line); return; }
+        if (/^exit$/i.test(line)) { con.mode = 'global'; conRefreshPrompt(); return; }
+        if (/^end$/i.test(line)) { con.mode = 'priv'; conRefreshPrompt(); return; }
+        break;
+      case 'iface':
+        if (m = line.match(/^ip\s+access-group\s+(\S+)\s+(in|out)$/i)) {
+          state.placement.router = con.hostname;
+          state.placement.iface = con.hostname + '-' + con.iface;
+          state.placement.dir = m[2].toLowerCase();
+          state.placement.bind = 'access-group';
+          document.getElementById('dirSelect').value = state.placement.dir;
+          // Highlight matching iface in topology
+          document.querySelectorAll('.topo-iface').forEach(function (g) {
+            var match = g.dataset.iface && g.dataset.iface.toLowerCase().indexOf(con.iface.toLowerCase()) !== -1;
+            g.classList.toggle('applied', match);
+          });
+          runTrapScan();
+          conPrint('  ACL ' + (con.aclName || state.placement.aclNumber) + ' applied ' + m[2] + ' on ' + con.iface, 'ok');
+          return;
+        }
+        if (/^(exit)$/i.test(line)) { con.mode = 'global'; conRefreshPrompt(); return; }
+        if (/^end$/i.test(line)) { con.mode = 'priv'; conRefreshPrompt(); return; }
+        break;
+    }
+    conPrint('% Invalid input or not allowed at ' + conPrompt() + ' — type ? for help', 'err');
+  }
+
+  (function wireConsole() {
+    var input = document.getElementById('consoleInput');
+    if (!input) return;
+    input.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') {
+        var line = input.value;
+        con.history.push(line); con.histIdx = con.history.length;
+        conExec(line);
+        input.value = '';
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        if (con.histIdx > 0) { con.histIdx--; input.value = con.history[con.histIdx] || ''; }
+      } else if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        if (con.histIdx < con.history.length - 1) { con.histIdx++; input.value = con.history[con.histIdx] || ''; }
+        else { con.histIdx = con.history.length; input.value = ''; }
+      }
+    });
+    document.querySelectorAll('#consoleQuick button').forEach(function (b) {
+      b.onclick = function () { input.value = b.dataset.cmd; input.focus(); };
+    });
+  })();
 
   // ─── Coverage map ──────────────────────────────────
   function updateCoverage() {
