@@ -21,6 +21,9 @@
     { text: 'Learn', children: [
       { text: 'Learn Hub', href: 'learn-hub.html' },
       { text: 'OSI Model Sim', href: 'osi-sim.html' },
+      { text: 'Cheat Sheet', href: 'cheat-sheet.html' },
+      { text: 'Topology Labs', href: 'topology-labs.html' },
+      { text: 'Ports → Tunnels', href: 'ports-tunnels.html' },
     ]},
     { text: 'Practice', children: [
       { text: 'Practice Hub', href: 'practice-hub.html' },
@@ -48,6 +51,7 @@
       { text: 'Routing Protocols', href: 'netplus-routing.html' },
       { text: 'Wireless Standards', href: 'netplus-wireless.html' },
       { text: 'Topology Explorer', href: 'netplus-topology.html' },
+      { text: 'Ports → Tunnels', href: 'ports-tunnels.html' },
       { text: 'Subnetting', href: 'subnetting-visual.html' },
       { text: 'Devices & Topologies', href: 'devices.html' },
       { text: 'Glossary', href: 'netplus-glossary.html' },
