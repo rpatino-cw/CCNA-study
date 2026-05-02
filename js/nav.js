@@ -25,6 +25,7 @@
       { text: 'Domain 3 — IP Connectivity (25%)', href: 'domain-3.html' },
       { text: 'OSI Model Sim', href: 'osi-sim.html' },
       { text: 'Cheat Sheet', href: 'cheat-sheet.html' },
+      { text: 'Exam Cram', href: 'exam-cram.html' },
       { text: 'Topology Labs', href: 'topology-labs.html' },
       { text: 'Ports → Tunnels', href: 'ports-tunnels.html' },
       { text: 'Subnetting Visual', href: 'subnetting-visual.html' },
