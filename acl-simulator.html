@@ -146,6 +146,27 @@ section{margin-bottom:var(--s-2xl)}
 .step-badge{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;background:var(--accent);color:#fff;font-family:var(--font-display);font-weight:700;font-size:.7rem;margin-right:8px;vertical-align:middle}
 .panel-hint{font-family:var(--font-body);font-size:.8rem;color:var(--ink-secondary);margin:-6px 0 12px;line-height:1.45}
 
+/* Goal panel — test packets shown up front */
+.goal-list{margin-top:14px;padding-top:14px;border-top:1px dashed var(--rule)}
+.goal-list-title{font-family:var(--font-display);font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-muted);margin-bottom:8px}
+.goal-list-title .hint{font-weight:400;text-transform:none;letter-spacing:0;color:var(--ink-muted);font-size:.7rem;font-style:italic;margin-left:6px}
+.goal-item{display:flex;gap:10px;align-items:center;padding:8px 12px;margin-bottom:6px;background:var(--bg-recessed);border-radius:var(--radius);cursor:pointer;border-left:3px solid var(--ink-muted);transition:background .15s}
+.goal-item:hover{background:var(--accent-dim)}
+.goal-item.permit{border-left-color:var(--prof-strong)}
+.goal-item.deny{border-left-color:var(--prof-weak)}
+.goal-verdict{font-family:var(--font-display);font-weight:700;font-size:.62rem;letter-spacing:.05em;width:54px;text-align:center;padding:3px 6px;border-radius:3px;color:#fff;flex-shrink:0}
+.goal-item.permit .goal-verdict{background:var(--prof-strong)}
+.goal-item.deny .goal-verdict{background:var(--prof-weak)}
+.goal-pkt{font-family:var(--font-mono);font-size:.76rem;color:var(--ink);flex-shrink:0}
+.goal-why{font-family:var(--font-body);font-size:.78rem;color:var(--ink-secondary);font-style:italic}
+
+/* Structured address cell (Any / Host / Subnet) */
+.addr-cell{display:flex;gap:3px;align-items:stretch}
+.addr-cell select{font-family:var(--font-display);font-size:.7rem;padding:4px 6px;border:1px solid var(--border);border-radius:4px;background:var(--bg-input);color:var(--ink);width:78px;flex-shrink:0;font-weight:600}
+.addr-cell input{font-family:var(--font-mono);font-size:.76rem;padding:4px 6px;border:1px solid var(--border);border-radius:4px;background:var(--bg-input);color:var(--ink);box-sizing:border-box}
+.addr-cell .addr-ip{flex:1;min-width:80px}
+.addr-cell .addr-wc{width:90px}
+
 /* Auto-set mode pill (replaces Type/Form toggles for novices) */
 .mode-pill{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;background:var(--accent-dim);border:1px solid var(--accent-light);border-radius:100px;font-family:var(--font-mono);font-size:.72rem;color:var(--accent);font-weight:600;margin-bottom:12px}
 .mode-pill .lock{font-size:.7rem;opacity:.7}
@@ -222,6 +243,10 @@ section{margin-bottom:var(--s-2xl)}
       <div class="model-answer" id="modelAnswer">
         <div class="model-answer-title">Model answer</div>
         <span id="modelAnswerBody"></span>
+      </div>
+      <div class="goal-list">
+        <div class="goal-list-title">Test packets you'll be graded on <span class="hint">— click any to load it into the Packet Tester</span></div>
+        <div id="goalListBody"></div>
       </div>
     </div>
   </section>
@@ -480,9 +505,50 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     renderACL();
+    renderGoalList(sc);
     document.getElementById('gradePanel').style.display = 'none';
     document.getElementById('pktResult').textContent = 'Send a packet to see how the ACL evaluates it.';
     document.getElementById('pktResult').className = 'result';
+  }
+
+  // ─── Goal list (test packets shown up front) ───────
+  function renderGoalList(sc) {
+    var body = document.getElementById('goalListBody');
+    if (!body) return;
+    var outcomes = sc && sc.expectedOutcomes || [];
+    if (!outcomes.length) { body.innerHTML = '<p style="font-family:var(--font-body);color:var(--ink-muted);font-style:italic;font-size:.82rem;margin:0">No test packets defined for this mission.</p>'; return; }
+    body.innerHTML = outcomes.map(function (o, i) {
+      var verdict = o.action === 'permit' ? 'PERMIT' : 'DENY';
+      var pkt = o.pkt;
+      var portStr = pkt.dstPort ? ':' + pkt.dstPort : '';
+      var pktLine = (pkt.proto || 'ip') + ' ' + pkt.srcIp + ' → ' + pkt.dstIp + portStr;
+      return '<div class="goal-item ' + o.action + '" data-idx="' + i + '" title="Click to load into Packet Tester">' +
+        '<span class="goal-verdict">' + verdict + '</span>' +
+        '<span class="goal-pkt">' + pktLine + '</span>' +
+        '<span class="goal-why">' + (o.why || '') + '</span>' +
+        '</div>';
+    }).join('');
+    body.querySelectorAll('[data-idx]').forEach(function (el) {
+      el.onclick = function () {
+        var o = outcomes[parseInt(el.dataset.idx, 10)];
+        var p = o.pkt;
+        document.getElementById('pSrc').value = p.srcIp || '';
+        document.getElementById('pDst').value = p.dstIp || '';
+        document.getElementById('pProto').value = p.proto || 'ip';
+        document.getElementById('pSrcPort').value = p.srcPort || '';
+        document.getElementById('pDstPort').value = p.dstPort || '';
+        document.getElementById('pTcpFlags').value = (p.tcpFlags && Object.keys(p.tcpFlags)[0]) || '';
+        document.getElementById('pSrc').scrollIntoView({ behavior: 'smooth', block: 'center' });
+      };
+    });
+  }
+
+  // CIDR /N → wildcard mask
+  function cidrToWc(n) {
+    if (n < 0 || n > 32) return '';
+    var bits = 32 - n;
+    var total = bits === 32 ? 0xFFFFFFFF : (Math.pow(2, bits) - 1);
+    return [(total >>> 24) & 255, (total >>> 16) & 255, (total >>> 8) & 255, total & 255].join('.');
   }
 
   // ─── Mode toggle ───────────────────────────────────
@@ -527,7 +593,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
   // ─── ACL editor rows ───────────────────────────────
   function emptyRow() {
-    return { action: 'permit', proto: 'ip', srcIp: '', srcWc: '', srcPortOp: '', srcPort: '', dstIp: '', dstWc: '', dstPortOp: '', dstPort: '', flags: '' };
+    return { action: 'permit', proto: 'ip', srcKind: 'any', srcIp: 'any', srcWc: '', srcPortOp: '', srcPort: '', dstKind: 'any', dstIp: 'any', dstWc: '', dstPortOp: '', dstPort: '', flags: '' };
   }
   function parsedToRaw(ace) {
     if (!ace || ace.error) return emptyRow();
@@ -535,12 +601,14 @@ document.addEventListener('DOMContentLoaded', function () {
     r.action = ace.action;
     r.proto = ace.proto || 'ip';
     if (ace.src) {
-      r.srcIp = ace.src.any ? 'any' : (ace.src.host ? ace.src.ip : ace.src.ip);
+      r.srcKind = ace.src.any ? 'any' : (ace.src.host ? 'host' : 'subnet');
+      r.srcIp = ace.src.any ? 'any' : ace.src.ip;
       r.srcWc = ace.src.host ? 'host' : (ace.src.any ? '' : ace.src.wildcard);
     }
     if (ace.srcPort) { r.srcPortOp = ace.srcPort.op; r.srcPort = ace.srcPort.b ? (ace.srcPort.a + '-' + ace.srcPort.b) : ace.srcPort.a; }
     if (ace.dst) {
-      r.dstIp = ace.dst.any ? 'any' : (ace.dst.host ? ace.dst.ip : ace.dst.ip);
+      r.dstKind = ace.dst.any ? 'any' : (ace.dst.host ? 'host' : 'subnet');
+      r.dstIp = ace.dst.any ? 'any' : ace.dst.ip;
       r.dstWc = ace.dst.host ? 'host' : (ace.dst.any ? '' : ace.dst.wildcard);
     }
     if (ace.dstPort) { r.dstPortOp = ace.dstPort.op; r.dstPort = ace.dstPort.b ? (ace.dstPort.a + '-' + ace.dstPort.b) : ace.dstPort.a; }
@@ -585,19 +653,75 @@ document.addEventListener('DOMContentLoaded', function () {
         '<td class="row-line">' + line + '</td>' +
         '<td class="row-action"><select data-k="action"><option value="permit">permit</option><option value="deny">deny</option></select></td>' +
         (ext ? '<td class="row-proto ext-only"><select data-k="proto"><option>ip</option><option>tcp</option><option>udp</option><option>icmp</option><option>ospf</option><option>eigrp</option></select></td>' : '<td class="ext-only" style="display:none"></td>') +
-        '<td><div style="display:flex;gap:3px"><input data-k="srcIp" placeholder="any | host | IP" style="flex:1"><input data-k="srcWc" placeholder="wcard | host" style="width:88px"></div></td>' +
+        '<td><div class="addr-cell">' +
+          '<select data-k="srcKind"><option value="any">Any</option><option value="host">Host</option><option value="subnet">Subnet</option></select>' +
+          '<input data-k="srcIp" placeholder="IP address" class="addr-ip">' +
+          '<input data-k="srcWc" placeholder="0.0.0.255" class="addr-wc">' +
+        '</div></td>' +
         (ext ? '<td class="ext-only"><div style="display:flex;gap:3px"><select data-k="srcPortOp"><option value=""></option><option>eq</option><option>gt</option><option>lt</option><option>neq</option><option>range</option></select><input data-k="srcPort" placeholder="port" style="width:64px"></div></td>' : '<td class="ext-only" style="display:none"></td>') +
-        (ext ? '<td class="ext-only"><div style="display:flex;gap:3px"><input data-k="dstIp" placeholder="any | host | IP" style="flex:1"><input data-k="dstWc" placeholder="wcard | host" style="width:88px"></div></td>' : '<td class="ext-only" style="display:none"></td>') +
+        (ext ? '<td class="ext-only"><div class="addr-cell">' +
+          '<select data-k="dstKind"><option value="any">Any</option><option value="host">Host</option><option value="subnet">Subnet</option></select>' +
+          '<input data-k="dstIp" placeholder="IP address" class="addr-ip">' +
+          '<input data-k="dstWc" placeholder="0.0.0.255" class="addr-wc">' +
+        '</div></td>' : '<td class="ext-only" style="display:none"></td>') +
         (ext ? '<td class="ext-only"><div style="display:flex;gap:3px"><select data-k="dstPortOp"><option value=""></option><option>eq</option><option>gt</option><option>lt</option><option>neq</option><option>range</option></select><input data-k="dstPort" placeholder="port" style="width:64px"></div></td>' : '<td class="ext-only" style="display:none"></td>') +
         '<td class="row-flags"><input data-k="flags" placeholder="established · log · time-range X"></td>' +
         '<td class="row-counter">' + hits + '</td>' +
         '<td class="row-rm"><button title="Remove row" data-rm="' + idx + '">×</button></td>';
 
-      // Bind values
+      // Bind values + structured-cell handlers
       tr.querySelectorAll('[data-k]').forEach(function (el) {
-        el.value = r[el.dataset.k] || '';
-        el.oninput = function () { r[el.dataset.k] = el.value; rebuildAcl(); };
-        el.onchange = function () { r[el.dataset.k] = el.value; rebuildAcl(); };
+        var k = el.dataset.k;
+        el.value = r[k] != null ? r[k] : '';
+        el.oninput = function () {
+          r[k] = el.value;
+          // CIDR auto-fill: if user types "192.168.10.0/24" in subnet IP, split it
+          if ((k === 'srcIp' || k === 'dstIp') && el.value.indexOf('/') !== -1) {
+            var m = el.value.match(/^(\S+)\/(\d+)$/);
+            if (m) {
+              var side = k === 'srcIp' ? 'src' : 'dst';
+              r[side + 'Kind'] = 'subnet';
+              r[side + 'Ip'] = m[1];
+              r[side + 'Wc'] = cidrToWc(parseInt(m[2], 10));
+              rebuildAcl();
+              renderACL();
+              return;
+            }
+          }
+          rebuildAcl();
+        };
+        el.onchange = function () {
+          r[k] = el.value;
+          // Kind change rewrites ip/wc shape
+          if (k === 'srcKind' || k === 'dstKind') {
+            var side = k === 'srcKind' ? 'src' : 'dst';
+            var kind = el.value;
+            if (kind === 'any') { r[side + 'Ip'] = 'any'; r[side + 'Wc'] = ''; }
+            else if (kind === 'host') {
+              if (r[side + 'Ip'] === 'any') r[side + 'Ip'] = '';
+              r[side + 'Wc'] = 'host';
+            } else { // subnet
+              if (r[side + 'Ip'] === 'any') r[side + 'Ip'] = '';
+              if (r[side + 'Wc'] === 'host' || !r[side + 'Wc']) r[side + 'Wc'] = '';
+            }
+            rebuildAcl();
+            renderACL();
+            return;
+          }
+          rebuildAcl();
+        };
+      });
+
+      // Visibility per kind (any → hide IP+wc, host → show IP, subnet → show both)
+      ['src', 'dst'].forEach(function (side) {
+        var kindSel = tr.querySelector('[data-k="' + side + 'Kind"]');
+        if (!kindSel) return;
+        var ipEl = tr.querySelector('[data-k="' + side + 'Ip"]');
+        var wcEl = tr.querySelector('[data-k="' + side + 'Wc"]');
+        var k = kindSel.value;
+        if (ipEl) ipEl.style.display = (k === 'any') ? 'none' : '';
+        if (wcEl) wcEl.style.display = (k === 'subnet') ? '' : 'none';
+        if (ipEl && k === 'any') ipEl.value = '';
       });
 
       body.appendChild(tr);
