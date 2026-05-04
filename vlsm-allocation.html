@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#FAF7F2">
+  <title>VLSM Allocation Worksheet — CCNA Practice</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+  <link rel="icon" type="image/svg+xml" href="/CCNA-study/favicon.svg">
+  <link rel="stylesheet" href="css/shared.css?v=4.56">
+  <style>
+    .page-header {
+      padding: var(--s-xl) 0 var(--s-lg);
+      border-bottom: 2px solid var(--ink);
+      margin-bottom: var(--s-xl);
+    }
+    .page-header h1 {
+      font-family: var(--font-display);
+      font-size: 2.6rem;
+      font-weight: 700;
+      letter-spacing: -0.04em;
+      line-height: 1;
+      margin-bottom: 6px;
+    }
+    .page-header-sub {
+      font-family: var(--font-display);
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--ink-muted);
+    }
+    .page-header p { color: var(--ink-secondary); margin-top: 10px; max-width: 720px; }
+
+    .layout-grid {
+      display: grid;
+      grid-template-columns: 1fr 280px;
+      gap: var(--s-lg);
+      align-items: start;
+    }
+    @media (max-width: 900px) { .layout-grid { grid-template-columns: 1fr; } }
+
+    .visual-block { background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 20px; margin-bottom: var(--s-md); }
+
+    .pill-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; align-items: center; }
+    .pill-label { font-family: var(--font-display); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-muted); margin-right: 8px; }
+    .pill { font-family: var(--font-display); font-size: 0.75rem; padding: 6px 14px; border-radius: 16px; border: 1px solid var(--border); background: var(--bg-surface); cursor: pointer; transition: all 0.15s; }
+    .pill:hover { border-color: var(--accent); color: var(--accent); }
+    .pill.active { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+
+    .scenario-card {
+      border: 2px solid var(--ink);
+      border-radius: var(--radius-lg);
+      padding: 22px;
+      background: var(--bg);
+      margin-bottom: 14px;
+    }
+    .parent-line { font-family: var(--font-mono); font-size: 1.1rem; color: var(--ink); margin-bottom: 4px; }
+    .parent-line strong { color: var(--accent); }
+    .parent-meta { font-family: var(--font-mono); font-size: 0.85rem; color: var(--ink-secondary); margin-bottom: 16px; }
+
+    .alloc-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-family: var(--font-mono);
+      font-size: 0.88rem;
+      margin-bottom: 14px;
+    }
+    .alloc-table th {
+      text-align: left;
+      padding: 8px 10px;
+      border-bottom: 2px solid var(--ink);
+      font-family: var(--font-display);
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--ink-muted);
+      font-weight: 600;
+    }
+    .alloc-table td {
+      padding: 6px 10px;
+      border-bottom: 1px dashed var(--border);
+      vertical-align: middle;
+    }
+    .alloc-table tr.current { background: rgba(220, 95, 45, 0.08); }
+    .alloc-table tr.solved { color: var(--ink-secondary); }
+    .alloc-table tr.solved td:first-child { color: var(--ink); }
+    .alloc-input {
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+      padding: 5px 8px;
+      width: 130px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      background: var(--bg-surface);
+    }
+    .alloc-input:focus { border-color: var(--accent); outline: none; }
+    .alloc-input.disabled { background: var(--bg-recessed); color: var(--ink-secondary); }
+    .alloc-input.right { border-color: #6bbf6b; background: #d6f5d6; color: #1a4d1a; }
+    .alloc-input.wrong { border-color: #c46b6b; background: #f9d6d6; color: #5a1a1a; }
+    .row-status { font-family: var(--font-display); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--ink-muted); }
+    .row-status.ok { color: #1a7d1a; }
+    .row-status.bad { color: #b91c1c; }
+
+    .drill-meta { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; margin-bottom: 14px; font-family: var(--font-mono); font-size: 0.82rem; color: var(--ink-secondary); }
+    .drill-meta .dm-val { font-weight: 700; color: var(--ink); }
+
+    .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px; }
+    .btn-action { font-family: var(--font-display); font-size: 0.85rem; font-weight: 600; padding: 9px 18px; border-radius: 8px; border: 1px solid var(--ink); background: var(--ink); color: var(--bg); cursor: pointer; transition: all 0.15s; }
+    .btn-action:hover { background: var(--accent); border-color: var(--accent); }
+    .btn-action.secondary { background: var(--bg-surface); color: var(--ink); }
+    .btn-action.ghost { background: none; border-color: var(--border); color: var(--ink-muted); }
+
+    .feedback { margin-top: 14px; padding: 12px 14px; border-radius: 8px; font-family: var(--font-mono); font-size: 0.9rem; display: none; }
+    .feedback.right { background: #d6f5d6; color: #1a4d1a; border: 1px solid #6bbf6b; display: block; }
+    .feedback.wrong { background: #f9d6d6; color: #5a1a1a; border: 1px solid #c46b6b; display: block; }
+
+    .teach {
+      margin-top: 16px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px 20px;
+      background: var(--bg-surface);
+    }
+    .teach-title { font-family: var(--font-display); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-muted); margin-bottom: 10px; display: flex; justify-content: space-between; }
+    .teach-toggle { font-family: var(--font-display); font-size: 0.72rem; padding: 4px 10px; border-radius: 12px; border: 1px solid var(--border); background: var(--bg); cursor: pointer; }
+    .teach-step { display: flex; gap: 12px; padding: 8px 0; border-top: 1px dashed var(--border); }
+    .teach-step:first-of-type { border-top: none; }
+    .teach-num { flex-shrink: 0; width: 24px; height: 24px; border-radius: 12px; background: var(--ink); color: var(--bg); font-family: var(--font-display); font-size: 0.78rem; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+    .teach-body { flex: 1; font-family: var(--font-mono); font-size: 0.88rem; line-height: 1.55; color: var(--ink); }
+    .teach-body code { background: var(--bg); padding: 1px 5px; border-radius: 3px; }
+
+    .ref-card {
+      position: sticky;
+      top: 80px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 16px;
+      background: var(--bg-surface);
+      font-family: var(--font-mono);
+      font-size: 0.78rem;
+    }
+    .ref-card h3 { font-family: var(--font-display); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-muted); margin: 0 0 10px; }
+    .ref-card table { width: 100%; border-collapse: collapse; }
+    .ref-card th, .ref-card td { text-align: right; padding: 3px 6px; border-bottom: 1px dashed var(--border); }
+    .ref-card th { font-family: var(--font-display); font-size: 0.7rem; text-transform: uppercase; color: var(--ink-muted); font-weight: 600; }
+    .ref-card td:first-child, .ref-card th:first-child { text-align: left; }
+
+    details > summary { cursor: pointer; font-family: var(--font-display); font-size: 0.85rem; font-weight: 600; padding: 8px 0; }
+  </style>
+</head>
+<body>
+  <nav class="top-nav"></nav>
+
+  <div class="container">
+    <header class="page-header">
+      <div class="page-header-sub">CCNA · Domain 1.6 · VLSM</div>
+      <h1>VLSM Allocation Worksheet</h1>
+      <p>Real-world VLSM: given a parent network and a list of department host requirements, allocate subnets biggest-first. Boson and the actual exam love this. Type each row's network, mask, broadcast.</p>
+    </header>
+
+    <div class="layout-grid">
+      <main>
+
+        <section class="visual-block">
+          <div class="pill-row">
+            <span class="pill-label">Difficulty</span>
+            <button class="pill active" data-diff="easy" onclick="setDiff(this)">Easy (3 depts)</button>
+            <button class="pill" data-diff="medium" onclick="setDiff(this)">Medium (4 depts)</button>
+            <button class="pill" data-diff="hard" onclick="setDiff(this)">Hard (5–6 depts)</button>
+          </div>
+          <div class="drill-meta">
+            <span>Streak <strong class="dm-val" id="vsStreak">0</strong></span>
+            <span>Best <strong class="dm-val" id="vsBest">--</strong></span>
+            <span>Solved <strong class="dm-val" id="vsScore">0/0</strong></span>
+            <button class="btn-action ghost" style="margin-left:auto;font-size:0.75rem;padding:5px 12px" onclick="vsReset()">Reset score</button>
+          </div>
+
+          <div class="scenario-card">
+            <div class="parent-line">Parent network: <strong id="vsParent"></strong></div>
+            <div class="parent-meta" id="vsParentMeta"></div>
+
+            <table class="alloc-table">
+              <thead>
+                <tr>
+                  <th style="width:18%">Department</th>
+                  <th style="width:12%">Hosts needed</th>
+                  <th style="width:24%">Network address</th>
+                  <th style="width:22%">Mask (or /N)</th>
+                  <th style="width:18%">Broadcast</th>
+                  <th style="width:6%"></th>
+                </tr>
+              </thead>
+              <tbody id="vsTbody"></tbody>
+            </table>
+
+            <div class="actions">
+              <button class="btn-action" onclick="vsCheckRow()">Check current row</button>
+              <button class="btn-action secondary" onclick="vsHint()">Hint</button>
+              <button class="btn-action ghost" onclick="vsNew()">New scenario</button>
+              <button class="btn-action ghost" onclick="vsRevealAll()">Reveal all</button>
+            </div>
+            <div class="feedback" id="vsFeedback"></div>
+          </div>
+
+          <div class="teach" id="vsTeach" style="display:none">
+            <div class="teach-title">
+              <span>Step-by-step solver</span>
+              <button class="teach-toggle" onclick="vsToggleTeach()">Hide</button>
+            </div>
+            <div id="vsTeachBody"></div>
+          </div>
+        </section>
+
+        <section class="visual-block">
+          <details>
+            <summary>How VLSM allocation works (recipe)</summary>
+            <div style="margin-top:10px;font-family:var(--font-mono);font-size:0.88rem;line-height:1.65">
+              <ol style="margin:0 0 0 22px">
+                <li><strong>Sort biggest-first.</strong> Allocate the largest host requirement first. Always.</li>
+                <li><strong>For each department:</strong>
+                  <ul style="margin:4px 0 4px 18px">
+                    <li>Find smallest <code>h</code> where <code>2^h - 2 ≥ hosts</code>. That's your host bits.</li>
+                    <li>Prefix = <code>32 - h</code>. Block size = <code>2^h</code>.</li>
+                  </ul>
+                </li>
+                <li><strong>Round the pointer up</strong> to the nearest multiple of block size (subnets must align to their own block boundary).</li>
+                <li><strong>Assign:</strong> network = pointer, mask = prefix, broadcast = network + block − 1.</li>
+                <li><strong>Advance pointer</strong> = network + block. Move to next department.</li>
+                <li><strong>Stop and fail</strong> if pointer ≥ parent broadcast.</li>
+              </ol>
+              <div style="margin-top:10px"><strong>Example.</strong> 192.168.1.0/24 — HR 50, Eng 25, Sales 12, Mgmt 2.</div>
+              <pre style="margin:6px 0;font-size:0.82rem">HR    50 → 6 host bits → /26, block 64 → 192.168.1.0/26    bcast .63
+Eng   25 → 5 host bits → /27, block 32 → 192.168.1.64/27   bcast .95
+Sales 12 → 4 host bits → /28, block 16 → 192.168.1.96/28   bcast .111
+Mgmt   2 → 2 host bits → /30, block  4 → 192.168.1.112/30  bcast .115</pre>
+            </div>
+          </details>
+        </section>
+
+      </main>
+
+      <aside>
+        <div class="ref-card">
+          <h3>Block size cheat</h3>
+          <table>
+            <thead><tr><th>Hosts</th><th>Bits</th><th>Prefix</th><th>Block</th></tr></thead>
+            <tbody>
+              <tr><td>1–2</td><td>2</td><td>/30</td><td>4</td></tr>
+              <tr><td>3–6</td><td>3</td><td>/29</td><td>8</td></tr>
+              <tr><td>7–14</td><td>4</td><td>/28</td><td>16</td></tr>
+              <tr><td>15–30</td><td>5</td><td>/27</td><td>32</td></tr>
+              <tr><td>31–62</td><td>6</td><td>/26</td><td>64</td></tr>
+              <tr><td>63–126</td><td>7</td><td>/25</td><td>128</td></tr>
+              <tr><td>127–254</td><td>8</td><td>/24</td><td>256</td></tr>
+              <tr><td>255–510</td><td>9</td><td>/23</td><td>512</td></tr>
+              <tr><td>511–1022</td><td>10</td><td>/22</td><td>1024</td></tr>
+            </tbody>
+          </table>
+          <div style="margin-top:10px;color:var(--ink-muted);font-size:0.72rem">Hosts column shows <strong>usable</strong> range. Subtract 2 from total.</div>
+        </div>
+        <div class="ref-card" style="margin-top:14px">
+          <h3>Mask map</h3>
+          <table>
+            <tbody>
+              <tr><td>/24</td><td>255.255.255.0</td></tr>
+              <tr><td>/25</td><td>255.255.255.128</td></tr>
+              <tr><td>/26</td><td>255.255.255.192</td></tr>
+              <tr><td>/27</td><td>255.255.255.224</td></tr>
+              <tr><td>/28</td><td>255.255.255.240</td></tr>
+              <tr><td>/29</td><td>255.255.255.248</td></tr>
+              <tr><td>/30</td><td>255.255.255.252</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+<script defer src="js/nav.js?v=4.56"></script>
+<script>
+window.vsConfig = { storageKey: 'ccna_vs_best' };
+</script>
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+
+  // ─── IP arithmetic ─────────────────────────────────────────
+  function ipToInt(ip) {
+    var p = ip.split('.').map(Number);
+    return ((p[0] << 24) >>> 0) + (p[1] << 16) + (p[2] << 8) + p[3];
+  }
+  function intToIp(n) {
+    return [ (n >>> 24) & 255, (n >>> 16) & 255, (n >>> 8) & 255, n & 255 ].join('.');
+  }
+  function prefixToMask(p) {
+    var oct = [0,0,0,0]; var rem = p;
+    for (var i = 0; i < 4; i++) { var t = Math.min(8, rem); oct[i] = (256 - Math.pow(2, 8 - t)) & 255; rem -= t; if (rem <= 0) break; }
+    return oct.join('.');
+  }
+  function bitsForHosts(h) { var b = 0; while (Math.pow(2, b) - 2 < h) b++; return b; }
+  function alignUp(n, block) { var rem = n % block; return rem === 0 ? n : n + (block - rem); }
+  function normIP(s) { return s.trim().replace(/\s+/g, ''); }
+  function normMask(s) {
+    s = normIP(s).toLowerCase();
+    if (s.charAt(0) === '/') return s;
+    if (/^\d+$/.test(s) && +s >= 0 && +s <= 32) return '/' + s;
+    return s;
+  }
+
+  // ─── Department name pool ──────────────────────────────────
+  var DEPTS = ['HR','Engineering','Sales','Mgmt','Finance','IT','Ops','Support','Marketing','Legal','Logistics','R&D'];
+  function pickDepts(n) {
+    var pool = DEPTS.slice();
+    var out = [];
+    for (var i = 0; i < n && pool.length; i++) {
+      var idx = Math.floor(Math.random() * pool.length);
+      out.push(pool.splice(idx, 1)[0]);
+    }
+    return out;
+  }
+  function randInt(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
+  function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+
+  // ─── Parent pool ───────────────────────────────────────────
+  var PARENTS = [
+    { ip: '192.168.1.0', cidr: 24 },
+    { ip: '192.168.10.0', cidr: 24 },
+    { ip: '10.10.10.0', cidr: 24 },
+    { ip: '172.16.5.0', cidr: 24 },
+    { ip: '192.168.0.0', cidr: 23 },
+    { ip: '172.16.0.0', cidr: 22 },
+  ];
+
+  // ─── Scenario generator ────────────────────────────────────
+  function genScenario() {
+    var diffMap = { easy: 3, medium: 4, hard: randInt(5, 6) };
+    var deptCount = diffMap[state.diff] || 3;
+    var parent = pick(PARENTS);
+    var parentSize = Math.pow(2, 32 - parent.cidr);
+    var depts = pickDepts(deptCount);
+    var hostsList = genHosts(deptCount, parent.cidr);
+    if (!hostsList) return genScenario();
+
+    var rows = depts.map(function(name, i){ return { name: name, hosts: hostsList[i] }; });
+    rows.sort(function(a, b){ return b.hosts - a.hosts; });
+
+    var solved = solve(parent, rows);
+    if (!solved) return genScenario();
+    return { parent: parent, rows: solved };
+  }
+
+  function genHosts(count, parentCidr) {
+    var available = 32 - parentCidr;
+    var maxBudget = Math.pow(2, available);
+    for (var attempt = 0; attempt < 30; attempt++) {
+      var hosts = [];
+      var totalBlocks = 0;
+      for (var i = 0; i < count; i++) {
+        var h = pick([
+          randInt(2, 14),
+          randInt(15, 60),
+          randInt(60, 120),
+          randInt(15, 30),
+          randInt(40, 60),
+        ]);
+        if (parentCidr <= 22) h = pick([h, randInt(100, 250), randInt(2, 14)]);
+        hosts.push(h);
+      }
+      var ok = true;
+      hosts.forEach(function(h){
+        var b = bitsForHosts(h);
+        totalBlocks += Math.pow(2, b);
+      });
+      if (totalBlocks <= maxBudget * 0.8) return hosts;
+    }
+    return null;
+  }
+
+  function solve(parent, rows) {
+    var pointer = ipToInt(parent.ip);
+    var parentEnd = pointer + Math.pow(2, 32 - parent.cidr) - 1;
+    var solved = [];
+    for (var i = 0; i < rows.length; i++) {
+      var r = rows[i];
+      var bits = bitsForHosts(r.hosts);
+      var prefix = 32 - bits;
+      var block = Math.pow(2, bits);
+      pointer = alignUp(pointer, block);
+      if (pointer + block - 1 > parentEnd) return null;
+      solved.push({
+        name: r.name,
+        hosts: r.hosts,
+        bits: bits,
+        prefix: prefix,
+        block: block,
+        network: intToIp(pointer),
+        mask: prefixToMask(prefix),
+        broadcast: intToIp(pointer + block - 1),
+        firstUsable: intToIp(pointer + 1),
+        lastUsable: intToIp(pointer + block - 2),
+      });
+      pointer = pointer + block;
+    }
+    return solved;
+  }
+
+  // ─── State ─────────────────────────────────────────────────
+  var state = {
+    diff: 'easy',
+    scenario: null,
+    rowIdx: 0,
+    rowStatus: [],
+    streak: 0,
+    correct: 0,
+    total: 0,
+    best: parseInt(localStorage.getItem(window.vsConfig.storageKey) || '0', 10),
+    teachOpen: true,
+  };
+
+  // ─── Render ────────────────────────────────────────────────
+  function render() {
+    var s = state.scenario;
+    if (!s) return;
+    document.getElementById('vsParent').textContent = s.parent.ip + '/' + s.parent.cidr + '  (mask ' + prefixToMask(s.parent.cidr) + ')';
+    document.getElementById('vsParentMeta').textContent = 'Allocate biggest first. Each row: network address, mask (or /N), broadcast.';
+
+    var html = '';
+    s.rows.forEach(function(r, i){
+      var rowClass = '';
+      if (i === state.rowIdx) rowClass = 'current';
+      else if (state.rowStatus[i] === 'ok') rowClass = 'solved';
+
+      var inputs = '';
+      var disabled = state.rowStatus[i] === 'ok' || i > state.rowIdx ? '' : '';
+      var locked = state.rowStatus[i] === 'ok';
+      var inputCls = locked ? 'alloc-input disabled' : 'alloc-input';
+      var fieldDisabled = locked ? 'disabled' : (i > state.rowIdx ? 'disabled' : '');
+
+      if (locked) {
+        inputs =
+          '<td><input class="alloc-input disabled" disabled value="' + r.network + '"></td>' +
+          '<td><input class="alloc-input disabled" disabled value="' + r.mask + ' (/' + r.prefix + ')"></td>' +
+          '<td><input class="alloc-input disabled" disabled value="' + r.broadcast + '"></td>';
+      } else {
+        inputs =
+          '<td><input class="alloc-input" id="vsNet' + i + '" placeholder="x.x.x.x" ' + fieldDisabled + ' onkeydown="if(event.key===&quot;Enter&quot;)vsCheckRow()"></td>' +
+          '<td><input class="alloc-input" id="vsMask' + i + '" placeholder="255.x.x.x or /N" ' + fieldDisabled + ' onkeydown="if(event.key===&quot;Enter&quot;)vsCheckRow()"></td>' +
+          '<td><input class="alloc-input" id="vsBcast' + i + '" placeholder="x.x.x.x" ' + fieldDisabled + ' onkeydown="if(event.key===&quot;Enter&quot;)vsCheckRow()"></td>';
+      }
+
+      var status = state.rowStatus[i] === 'ok' ? '<span class="row-status ok">✓</span>' : (state.rowStatus[i] === 'bad' ? '<span class="row-status bad">✗</span>' : '');
+
+      html += '<tr class="' + rowClass + '">' +
+        '<td><strong>' + r.name + '</strong></td>' +
+        '<td>' + r.hosts + '</td>' +
+        inputs +
+        '<td>' + status + '</td>' +
+      '</tr>';
+    });
+    document.getElementById('vsTbody').innerHTML = html;
+
+    var nextEl = document.getElementById('vsNet' + state.rowIdx);
+    if (nextEl) nextEl.focus();
+  }
+
+  function buildTeach(highlight) {
+    var s = state.scenario;
+    if (!s) return [];
+    var pointer = ipToInt(s.parent.ip);
+    var parentEnd = pointer + Math.pow(2, 32 - s.parent.cidr) - 1;
+    var steps = [
+      'Parent: <strong>' + s.parent.ip + '/' + s.parent.cidr + '</strong>. Range: ' + intToIp(pointer) + ' – ' + intToIp(parentEnd) + '.',
+      'Sort by hosts needed, biggest first. Already done: ' + s.rows.map(function(r){ return r.name + '(' + r.hosts + ')'; }).join(' > ') + '.'
+    ];
+    var ptr = pointer;
+    s.rows.forEach(function(r, i){
+      ptr = alignUp(ptr, r.block);
+      var emph = (highlight === i) ? ' style="background:rgba(220,95,45,0.08);padding:6px 8px;border-radius:4px"' : '';
+      steps.push(
+        '<span' + emph + '><strong>' + r.name + '</strong> needs ' + r.hosts + ' hosts → ' +
+        '2^' + r.bits + ' - 2 = ' + (Math.pow(2, r.bits) - 2) + ' (≥ ' + r.hosts + '). Bits = <strong>' + r.bits + '</strong>, prefix <strong>/' + r.prefix + '</strong>, block <strong>' + r.block + '</strong>.<br>' +
+        'Align pointer up to multiple of ' + r.block + ': pointer = <strong>' + intToIp(ptr) + '</strong>.<br>' +
+        'Network = <code>' + r.network + '</code>, mask = <code>' + r.mask + '</code> (/' + r.prefix + '), broadcast = <code>' + r.broadcast + '</code>.<br>' +
+        'Advance pointer: ' + intToIp(ptr) + ' + ' + r.block + ' = <strong>' + intToIp(ptr + r.block) + '</strong>.</span>'
+      );
+      ptr = ptr + r.block;
+    });
+    return steps;
+  }
+
+  function renderTeach(highlight) {
+    var steps = buildTeach(highlight);
+    var html = '';
+    for (var i = 0; i < steps.length; i++) {
+      html += '<div class="teach-step"><div class="teach-num">' + (i + 1) + '</div><div class="teach-body">' + steps[i] + '</div></div>';
+    }
+    document.getElementById('vsTeachBody').innerHTML = html;
+    document.getElementById('vsTeach').style.display = state.teachOpen ? 'block' : 'none';
+  }
+
+  window.vsToggleTeach = function() {
+    state.teachOpen = !state.teachOpen;
+    document.getElementById('vsTeach').style.display = state.teachOpen ? 'block' : 'none';
+  };
+
+  // ─── Actions ───────────────────────────────────────────────
+  window.vsNew = function() {
+    state.scenario = genScenario();
+    state.rowIdx = 0;
+    state.rowStatus = state.scenario.rows.map(function(){ return null; });
+    document.getElementById('vsFeedback').className = 'feedback';
+    document.getElementById('vsFeedback').textContent = '';
+    document.getElementById('vsTeach').style.display = 'none';
+    render();
+  };
+
+  window.vsCheckRow = function() {
+    if (!state.scenario) { window.vsNew(); return; }
+    var i = state.rowIdx;
+    if (i >= state.scenario.rows.length) {
+      document.getElementById('vsFeedback').className = 'feedback right';
+      document.getElementById('vsFeedback').textContent = 'Already complete. New scenario?';
+      return;
+    }
+    var r = state.scenario.rows[i];
+    var net = normIP(document.getElementById('vsNet' + i).value);
+    var mask = normMask(document.getElementById('vsMask' + i).value);
+    var bcast = normIP(document.getElementById('vsBcast' + i).value);
+
+    var maskOK = (mask === r.mask) || (mask === '/' + r.prefix) || (mask === String(r.prefix));
+    var ok = (net === r.network) && maskOK && (bcast === r.broadcast);
+
+    var fb = document.getElementById('vsFeedback');
+    state.total++;
+    if (ok) {
+      state.correct++;
+      state.streak++;
+      if (state.streak > state.best) {
+        state.best = state.streak;
+        localStorage.setItem(window.vsConfig.storageKey, String(state.best));
+      }
+      state.rowStatus[i] = 'ok';
+      state.rowIdx++;
+      fb.className = 'feedback right';
+      if (state.rowIdx >= state.scenario.rows.length) {
+        fb.innerHTML = '<strong>Scenario complete.</strong> All ' + state.scenario.rows.length + ' subnets allocated correctly. Click <em>New scenario</em> for another.';
+      } else {
+        fb.innerHTML = '<strong>' + r.name + ' correct.</strong> Move to <strong>' + state.scenario.rows[state.rowIdx].name + '</strong> (' + state.scenario.rows[state.rowIdx].hosts + ' hosts).';
+      }
+    } else {
+      state.streak = 0;
+      state.rowStatus[i] = 'bad';
+      fb.className = 'feedback wrong';
+      fb.innerHTML = 'Wrong for <strong>' + r.name + '</strong>. Expected: net <code>' + r.network + '</code>, mask <code>' + r.mask + '</code> (/' + r.prefix + '), bcast <code>' + r.broadcast + '</code>. See solver below.';
+      state.teachOpen = true;
+      renderTeach(i);
+    }
+    document.getElementById('vsStreak').textContent = state.streak;
+    document.getElementById('vsBest').textContent = state.best || '--';
+    document.getElementById('vsScore').textContent = state.correct + '/' + state.total;
+    render();
+  };
+
+  window.vsHint = function() {
+    if (!state.scenario) return;
+    var i = state.rowIdx;
+    if (i >= state.scenario.rows.length) return;
+    var r = state.scenario.rows[i];
+    var fb = document.getElementById('vsFeedback');
+    fb.className = 'feedback wrong';
+    fb.style.background = '#fff4d6';
+    fb.style.color = '#5a4a1a';
+    fb.style.borderColor = '#c4a36b';
+    fb.innerHTML = '<strong>Hint for ' + r.name + ' (' + r.hosts + ' hosts):</strong> Need ' + r.bits + ' host bits → /' + r.prefix + ', block size ' + r.block + '.';
+  };
+
+  window.vsRevealAll = function() {
+    if (!state.scenario) return;
+    state.scenario.rows.forEach(function(r, i){ state.rowStatus[i] = 'ok'; });
+    state.rowIdx = state.scenario.rows.length;
+    state.streak = 0;
+    state.teachOpen = true;
+    renderTeach(-1);
+    var fb = document.getElementById('vsFeedback');
+    fb.className = 'feedback wrong';
+    fb.style.background = '';
+    fb.style.color = '';
+    fb.style.borderColor = '';
+    fb.innerHTML = 'Revealed. Solver below shows full walkthrough. Try a new scenario without revealing.';
+    render();
+  };
+
+  window.vsReset = function() {
+    state.streak = 0;
+    state.correct = 0;
+    state.total = 0;
+    document.getElementById('vsStreak').textContent = '0';
+    document.getElementById('vsScore').textContent = '0/0';
+  };
+
+  window.setDiff = function(btn) {
+    document.querySelectorAll('.pill[data-diff]').forEach(function(p){ p.classList.remove('active'); });
+    btn.classList.add('active');
+    state.diff = btn.dataset.diff;
+    window.vsNew();
+  };
+
+  // Init
+  document.getElementById('vsBest').textContent = state.best || '--';
+  window.vsNew();
+});
+</script>
+</body>
+</html>
