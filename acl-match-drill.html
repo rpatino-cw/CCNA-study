@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#FAF7F2">
+  <title>ACL Match Drill — Permit or Deny?</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+  <link rel="icon" type="image/svg+xml" href="/CCNA-study/favicon.svg">
+  <link rel="stylesheet" href="css/shared.css?v=4.56">
+  <style>
+    .page-header { padding: var(--s-xl) 0 var(--s-lg); border-bottom: 2px solid var(--ink); margin-bottom: var(--s-xl); }
+    .page-header h1 { font-family: var(--font-display); font-size: 2.6rem; font-weight: 700; letter-spacing: -0.04em; line-height: 1; margin-bottom: 6px; }
+    .page-header-sub { font-family: var(--font-display); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-muted); }
+    .page-header p { color: var(--ink-secondary); margin-top: 10px; max-width: 720px; }
+
+    .layout-grid { display: grid; grid-template-columns: 1fr 280px; gap: var(--s-lg); align-items: start; }
+    @media (max-width: 900px) { .layout-grid { grid-template-columns: 1fr; } }
+
+    .visual-block { background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 20px; margin-bottom: var(--s-md); }
+
+    .pill-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; align-items: center; }
+    .pill-label { font-family: var(--font-display); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-muted); margin-right: 8px; }
+    .pill { font-family: var(--font-display); font-size: 0.75rem; padding: 6px 14px; border-radius: 16px; border: 1px solid var(--border); background: var(--bg-surface); cursor: pointer; transition: all 0.15s; }
+    .pill:hover { border-color: var(--accent); color: var(--accent); }
+    .pill.active { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+
+    .drill-meta { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; margin-bottom: 14px; font-family: var(--font-mono); font-size: 0.82rem; color: var(--ink-secondary); }
+    .drill-meta .dm-val { font-weight: 700; color: var(--ink); }
+
+    .q-card { border: 2px solid var(--ink); border-radius: var(--radius-lg); padding: 22px; background: var(--bg); margin-bottom: 14px; }
+    .q-prompt { font-family: var(--font-display); font-size: 1.1rem; font-weight: 600; line-height: 1.4; margin-bottom: 12px; }
+
+    .acl-block { font-family: var(--font-mono); font-size: 0.88rem; line-height: 1.65; padding: 14px 16px; background: #11171f; color: #e5e9ef; border-radius: 8px; margin-bottom: 12px; overflow-x: auto; }
+    .acl-line { display: block; }
+    .acl-num { color: #6f8c9c; padding-right: 8px; user-select: none; }
+    .acl-permit { color: #6bbf6b; }
+    .acl-deny { color: #ef6b6b; }
+    .acl-keyword { color: #c4a36b; }
+    .acl-line.matched { background: rgba(120, 200, 120, 0.18); border-radius: 4px; padding: 0 4px; margin: 0 -4px; }
+    .acl-line.dim { opacity: 0.55; }
+
+    .packet-block { font-family: var(--font-mono); font-size: 0.92rem; padding: 12px 16px; background: var(--bg-surface); border-radius: 8px; margin-bottom: 14px; border-left: 4px solid var(--accent); }
+    .packet-block strong { color: var(--ink); }
+
+    .input-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 12px; }
+    .input-row label { font-family: var(--font-display); font-size: 0.75rem; color: var(--ink-muted); text-transform: uppercase; letter-spacing: 0.04em; }
+    .drill-input { font-family: var(--font-mono); font-size: 1rem; padding: 10px 14px; border: 2px solid var(--border); border-radius: 8px; background: var(--bg-surface); transition: border-color 0.15s; width: 200px; }
+    .drill-input:focus { border-color: var(--accent); outline: none; }
+
+    .actions { display: flex; gap: 8px; flex-wrap: wrap; }
+    .btn-action { font-family: var(--font-display); font-size: 0.85rem; font-weight: 600; padding: 9px 18px; border-radius: 8px; border: 1px solid var(--ink); background: var(--ink); color: var(--bg); cursor: pointer; transition: all 0.15s; }
+    .btn-action:hover { background: var(--accent); border-color: var(--accent); }
+    .btn-action.permit { background: #1a7d1a; border-color: #1a7d1a; }
+    .btn-action.permit:hover { background: #155f15; }
+    .btn-action.deny { background: #b91c1c; border-color: #b91c1c; }
+    .btn-action.deny:hover { background: #8e1414; }
+    .btn-action.secondary { background: var(--bg-surface); color: var(--ink); }
+    .btn-action.ghost { background: none; border-color: var(--border); color: var(--ink-muted); }
+
+    .feedback { margin-top: 14px; padding: 12px 14px; border-radius: 8px; font-family: var(--font-mono); font-size: 0.9rem; display: none; }
+    .feedback.right { background: #d6f5d6; color: #1a4d1a; border: 1px solid #6bbf6b; display: block; }
+    .feedback.wrong { background: #f9d6d6; color: #5a1a1a; border: 1px solid #c46b6b; display: block; }
+
+    .teach { margin-top: 16px; border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 20px; background: var(--bg-surface); }
+    .teach-title { font-family: var(--font-display); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-muted); margin-bottom: 10px; display: flex; justify-content: space-between; }
+    .teach-toggle { font-family: var(--font-display); font-size: 0.72rem; padding: 4px 10px; border-radius: 12px; border: 1px solid var(--border); background: var(--bg); cursor: pointer; }
+    .teach-step { display: flex; gap: 12px; padding: 8px 0; border-top: 1px dashed var(--border); }
+    .teach-step:first-of-type { border-top: none; }
+    .teach-num { flex-shrink: 0; width: 24px; height: 24px; border-radius: 12px; background: var(--ink); color: var(--bg); font-family: var(--font-display); font-size: 0.78rem; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+    .teach-body { flex: 1; font-family: var(--font-mono); font-size: 0.85rem; line-height: 1.55; color: var(--ink); }
+    .teach-body code { background: var(--bg); padding: 1px 5px; border-radius: 3px; }
+
+    .ref-card { position: sticky; top: 80px; border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 16px; background: var(--bg-surface); font-family: var(--font-mono); font-size: 0.78rem; }
+    .ref-card h3 { font-family: var(--font-display); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-muted); margin: 0 0 10px; }
+
+    details > summary { cursor: pointer; font-family: var(--font-display); font-size: 0.85rem; font-weight: 600; padding: 8px 0; }
+  </style>
+</head>
+<body>
+  <nav class="top-nav"></nav>
+
+  <div class="container">
+    <header class="page-header">
+      <div class="page-header-sub">CCNA · Domain 5.6 · ACL</div>
+      <h1>ACL Match Drill</h1>
+      <p>Top-down ACL evaluation: given a Cisco ACL and a packet, find the first line that matches and apply its action. Includes traps Cisco loves — line ordering, implicit deny, "any" vs explicit ranges, host vs wildcard. Standard and extended ACLs.</p>
+      <p style="margin-top:8px"><strong>Build/configure:</strong> <a href="acl-simulator.html" style="color:var(--accent);font-weight:600">ACL Simulator</a> ·
+        <strong>Topology view:</strong> <a href="path-selection.html" style="color:var(--accent);font-weight:600">Path Selection</a></p>
+    </header>
+
+    <div class="layout-grid">
+      <main>
+
+        <section class="visual-block">
+          <div class="pill-row">
+            <span class="pill-label">ACL type</span>
+            <button class="pill active" data-type="all" onclick="setType(this)">All</button>
+            <button class="pill" data-type="standard" onclick="setType(this)">Standard</button>
+            <button class="pill" data-type="extended" onclick="setType(this)">Extended</button>
+          </div>
+          <div class="pill-row">
+            <span class="pill-label">Question type</span>
+            <button class="pill active" data-qt="all" onclick="setQT(this)">All</button>
+            <button class="pill" data-qt="action" onclick="setQT(this)">Permit/Deny?</button>
+            <button class="pill" data-qt="line" onclick="setQT(this)">Which line fires?</button>
+          </div>
+          <div class="drill-meta">
+            <span>Streak <strong class="dm-val" id="amStreak">0</strong></span>
+            <span>Best <strong class="dm-val" id="amBest">--</strong></span>
+            <span>Score <strong class="dm-val" id="amScore">0/0</strong></span>
+            <button class="btn-action ghost" style="margin-left:auto;font-size:0.75rem;padding:5px 12px" onclick="amReset()">Reset score</button>
+          </div>
+
+          <div class="q-card">
+            <div class="q-prompt" id="amPrompt"></div>
+            <div class="acl-block" id="amAcl"></div>
+            <div class="packet-block" id="amPacket"></div>
+            <div id="amInputArea"></div>
+            <div class="actions">
+              <button class="btn-action" id="amCheckBtn" onclick="amCheck()">Check</button>
+              <button class="btn-action secondary" onclick="amHint()">Hint</button>
+              <button class="btn-action ghost" onclick="amNew()">New question</button>
+            </div>
+            <div class="feedback" id="amFeedback"></div>
+          </div>
+
+          <div class="teach" id="amTeach" style="display:none">
+            <div class="teach-title">
+              <span>Top-down evaluation walkthrough</span>
+              <button class="teach-toggle" onclick="amToggleTeach()">Hide</button>
+            </div>
+            <div id="amTeachBody"></div>
+          </div>
+        </section>
+
+        <section class="visual-block">
+          <details>
+            <summary>How ACL evaluation works (recipe)</summary>
+            <div style="margin-top:10px;font-family:var(--font-mono);font-size:0.88rem;line-height:1.65">
+              <ol style="margin:0 0 0 22px">
+                <li><strong>Top-down, first match wins.</strong> Walk the ACL line-by-line. The first line whose pattern fits the packet decides — permit or deny — and evaluation STOPS.</li>
+                <li><strong>Implicit deny at the end.</strong> If no line matches, the packet is dropped. Always.</li>
+                <li><strong>Wildcard mask, not subnet mask.</strong> Inverted bits — <code>0</code> = must match, <code>1</code> = don't care. <code>0.0.0.255</code> = match the first 3 octets exactly, last octet anything.</li>
+                <li><strong>Standard ACL (1-99):</strong> matches source IP only. Apply close to destination.</li>
+                <li><strong>Extended ACL (100-199):</strong> matches protocol + src + dst + ports. Apply close to source.</li>
+                <li><strong>Keywords:</strong> <code>host 1.2.3.4</code> = <code>1.2.3.4 0.0.0.0</code>; <code>any</code> = <code>0.0.0.0 255.255.255.255</code>.</li>
+              </ol>
+              <div style="margin-top:10px"><strong>Trap example.</strong> What does Cisco love? Putting a broad permit BEFORE a specific deny. The broad permit fires first, the deny never gets reached. The drill catches this.</div>
+            </div>
+          </details>
+        </section>
+
+      </main>
+
+      <aside>
+        <div class="ref-card">
+          <h3>Wildcard quick map</h3>
+          <table style="width:100%;border-collapse:collapse">
+            <thead><tr><th style="text-align:left">Wildcard</th><th style="text-align:right">Equivalent</th></tr></thead>
+            <tbody>
+              <tr><td>0.0.0.0</td><td style="text-align:right">single host</td></tr>
+              <tr><td>0.0.0.3</td><td style="text-align:right">/30 (4 IPs)</td></tr>
+              <tr><td>0.0.0.7</td><td style="text-align:right">/29 (8 IPs)</td></tr>
+              <tr><td>0.0.0.15</td><td style="text-align:right">/28 (16 IPs)</td></tr>
+              <tr><td>0.0.0.31</td><td style="text-align:right">/27</td></tr>
+              <tr><td>0.0.0.63</td><td style="text-align:right">/26</td></tr>
+              <tr><td>0.0.0.127</td><td style="text-align:right">/25</td></tr>
+              <tr><td>0.0.0.255</td><td style="text-align:right">/24</td></tr>
+              <tr><td>0.0.255.255</td><td style="text-align:right">/16</td></tr>
+              <tr><td>255.255.255.255</td><td style="text-align:right">any</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="ref-card" style="margin-top:14px">
+          <h3>Common ports</h3>
+          <table style="width:100%;border-collapse:collapse">
+            <tbody>
+              <tr><td>22</td><td style="text-align:right">SSH</td></tr>
+              <tr><td>23</td><td style="text-align:right">Telnet</td></tr>
+              <tr><td>25</td><td style="text-align:right">SMTP</td></tr>
+              <tr><td>53</td><td style="text-align:right">DNS</td></tr>
+              <tr><td>67/68</td><td style="text-align:right">DHCP</td></tr>
+              <tr><td>80</td><td style="text-align:right">HTTP</td></tr>
+              <tr><td>123</td><td style="text-align:right">NTP</td></tr>
+              <tr><td>161</td><td style="text-align:right">SNMP</td></tr>
+              <tr><td>443</td><td style="text-align:right">HTTPS</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+<script defer src="js/nav.js?v=4.56"></script>
+<script>
+window.amConfig = { storageKey: 'ccna_am_best' };
+</script>
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+
+  // ─── IP / wildcard math ────────────────────────────────────
+  function ipToInt(ip) {
+    var p = ip.split('.').map(Number);
+    return ((p[0] << 24) >>> 0) + (p[1] << 16) + (p[2] << 8) + p[3];
+  }
+  function matchWild(packetIp, baseIp, wildcard) {
+    var p = ipToInt(packetIp);
+    var b = ipToInt(baseIp);
+    var w = ipToInt(wildcard);
+    var mask = (~w) >>> 0;
+    return ((p ^ b) & mask) === 0;
+  }
+  function matchPort(packetPort, op, val, val2) {
+    if (op === 'any') return true;
+    if (op === 'eq') return packetPort === val;
+    if (op === 'gt') return packetPort > val;
+    if (op === 'lt') return packetPort < val;
+    if (op === 'neq') return packetPort !== val;
+    if (op === 'range') return packetPort >= val && packetPort <= val2;
+    return true;
+  }
+  function randInt(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
+  function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+  function pickN(arr, n) {
+    var pool = arr.slice();
+    var out = [];
+    for (var i = 0; i < n && pool.length; i++) {
+      out.push(pool.splice(Math.floor(Math.random() * pool.length), 1)[0]);
+    }
+    return out;
+  }
+
+  // ─── ACE shape ─────────────────────────────────────────────
+  // { action: 'permit'|'deny', proto: 'ip'|'tcp'|'udp'|'icmp', src, srcWild, dst, dstWild, dstPortOp, dstPort, dstPort2 }
+
+  function evaluateACL(acl, packet) {
+    for (var i = 0; i < acl.lines.length; i++) {
+      var ace = acl.lines[i];
+      var srcOK = matchWild(packet.src, ace.src, ace.srcWild);
+      if (acl.kind === 'standard') {
+        if (srcOK) return { action: ace.action, lineIdx: i, ace: ace };
+        continue;
+      }
+      // extended
+      var dstOK = matchWild(packet.dst, ace.dst, ace.dstWild);
+      var protoOK = (ace.proto === 'ip') || (ace.proto === packet.proto);
+      var portOK = (ace.proto === 'icmp' || ace.proto === 'ip') ? true :
+        matchPort(packet.dstPort, ace.dstPortOp || 'any', ace.dstPort, ace.dstPort2);
+      if (srcOK && dstOK && protoOK && portOK) return { action: ace.action, lineIdx: i, ace: ace };
+    }
+    return { action: 'deny', lineIdx: -1, ace: null };
+  }
+
+  function aceToString(ace, kind) {
+    if (kind === 'standard') {
+      var srcStr = (ace.src === '0.0.0.0' && ace.srcWild === '255.255.255.255') ? 'any' :
+        (ace.srcWild === '0.0.0.0' ? 'host ' + ace.src : ace.src + ' ' + ace.srcWild);
+      return ace.action + ' ' + srcStr;
+    }
+    function ipStr(ip, wild) {
+      if (ip === '0.0.0.0' && wild === '255.255.255.255') return 'any';
+      if (wild === '0.0.0.0') return 'host ' + ip;
+      return ip + ' ' + wild;
+    }
+    var out = ace.action + ' ' + ace.proto + ' ' + ipStr(ace.src, ace.srcWild) + ' ' + ipStr(ace.dst, ace.dstWild);
+    if (ace.proto === 'tcp' || ace.proto === 'udp') {
+      if (ace.dstPortOp === 'eq') out += ' eq ' + (ace.dstPortName || ace.dstPort);
+      else if (ace.dstPortOp === 'gt') out += ' gt ' + ace.dstPort;
+      else if (ace.dstPortOp === 'lt') out += ' lt ' + ace.dstPort;
+      else if (ace.dstPortOp === 'range') out += ' range ' + ace.dstPort + ' ' + ace.dstPort2;
+    }
+    return out;
+  }
+
+  function colorize(line) {
+    return line
+      .replace(/^(permit|deny)/, function(m){ return '<span class="acl-' + m + '">' + m + '</span>'; })
+      .replace(/\b(host|any|eq|gt|lt|range|tcp|udp|ip|icmp)\b/g, '<span class="acl-keyword">$1</span>');
+  }
+
+  // ─── Generators ────────────────────────────────────────────
+  var SUBNETS = [
+    { net: '192.168.1.0', wild: '0.0.0.255', label: '192.168.1.0/24' },
+    { net: '192.168.2.0', wild: '0.0.0.255', label: '192.168.2.0/24' },
+    { net: '10.0.0.0', wild: '0.255.255.255', label: '10.0.0.0/8' },
+    { net: '10.1.0.0', wild: '0.0.255.255', label: '10.1.0.0/16' },
+    { net: '172.16.0.0', wild: '0.0.255.255', label: '172.16.0.0/16' },
+    { net: '172.16.5.0', wild: '0.0.0.255', label: '172.16.5.0/24' },
+    { net: '203.0.113.0', wild: '0.0.0.255', label: '203.0.113.0/24' },
+  ];
+
+  var COMMON_PORTS = [
+    { num: 22, name: 'ssh' },
+    { num: 23, name: 'telnet' },
+    { num: 25, name: 'smtp' },
+    { num: 53, name: 'domain' },
+    { num: 80, name: 'www' },
+    { num: 443, name: 'https' },
+    { num: 3389, name: '3389' },
+  ];
+
+  function ipInSubnet(net, wild) {
+    // Pick a random IP that falls within the subnet
+    var n = ipToInt(net);
+    var w = ipToInt(wild);
+    var size = (w + 1) >>> 0;
+    var offset = randInt(1, Math.max(1, size - 2));
+    var ip = (n + offset) >>> 0;
+    return [(ip >>> 24) & 255, (ip >>> 16) & 255, (ip >>> 8) & 255, ip & 255].join('.');
+  }
+  function ipOutsideSubnet(net, wild) {
+    // Pick a random external IP, not in any common range
+    for (var attempt = 0; attempt < 10; attempt++) {
+      var candidate = randInt(1, 254) + '.' + randInt(0, 254) + '.' + randInt(0, 254) + '.' + randInt(1, 254);
+      if (!matchWild(candidate, net, wild)) return candidate;
+    }
+    return '8.8.8.8';
+  }
+
+  function genStandardACL() {
+    var sub1 = pick(SUBNETS);
+    var sub2 = pick(SUBNETS.filter(function(s){ return s !== sub1; }));
+    var lines = [];
+    var setup = pick([
+      // Permit one subnet, deny another, implicit deny rest
+      [{ action: 'permit', src: sub1.net, srcWild: sub1.wild },
+       { action: 'deny',   src: sub2.net, srcWild: sub2.wild }],
+      // Deny one host, permit subnet
+      [{ action: 'deny',   src: ipInSubnet(sub1.net, sub1.wild), srcWild: '0.0.0.0' },
+       { action: 'permit', src: sub1.net, srcWild: sub1.wild }],
+      // Permit subnet then permit any (catches rest)
+      [{ action: 'permit', src: sub1.net, srcWild: sub1.wild },
+       { action: 'permit', src: '0.0.0.0', srcWild: '255.255.255.255' }],
+      // TRAP: permit any FIRST, specific deny never reached
+      [{ action: 'permit', src: '0.0.0.0', srcWild: '255.255.255.255' },
+       { action: 'deny',   src: sub1.net, srcWild: sub1.wild }],
+    ]);
+    return { kind: 'standard', number: pick([1, 5, 10, 50]), lines: setup };
+  }
+
+  function genExtendedACL() {
+    var sub1 = pick(SUBNETS);
+    var sub2 = pick(SUBNETS.filter(function(s){ return s !== sub1; }));
+    var port = pick(COMMON_PORTS);
+    var setup = pick([
+      // Allow web from sub1 to sub2, deny rest
+      [{ action: 'permit', proto: 'tcp', src: sub1.net, srcWild: sub1.wild, dst: sub2.net, dstWild: sub2.wild, dstPortOp: 'eq', dstPort: 80, dstPortName: 'www' }],
+      // Permit from sub1 anything, then explicit deny telnet (TRAP — never fires)
+      [{ action: 'permit', proto: 'ip', src: sub1.net, srcWild: sub1.wild, dst: '0.0.0.0', dstWild: '255.255.255.255' },
+       { action: 'deny',   proto: 'tcp', src: sub1.net, srcWild: sub1.wild, dst: '0.0.0.0', dstWild: '255.255.255.255', dstPortOp: 'eq', dstPort: 23, dstPortName: 'telnet' }],
+      // Specific deny then broad permit (correct order)
+      [{ action: 'deny',   proto: 'tcp', src: sub1.net, srcWild: sub1.wild, dst: sub2.net, dstWild: sub2.wild, dstPortOp: 'eq', dstPort: 23, dstPortName: 'telnet' },
+       { action: 'permit', proto: 'ip', src: sub1.net, srcWild: sub1.wild, dst: '0.0.0.0', dstWild: '255.255.255.255' }],
+      // Permit ssh from any to sub1 host
+      [{ action: 'permit', proto: 'tcp', src: '0.0.0.0', srcWild: '255.255.255.255', dst: ipInSubnet(sub1.net, sub1.wild), dstWild: '0.0.0.0', dstPortOp: 'eq', dstPort: 22, dstPortName: 'ssh' },
+       { action: 'deny',   proto: 'ip', src: '0.0.0.0', srcWild: '255.255.255.255', dst: sub1.net, dstWild: sub1.wild }],
+    ]);
+    return { kind: 'extended', number: pick([100, 101, 110, 150]), lines: setup };
+  }
+
+  function genPacket(acl) {
+    var sample = acl.lines[randInt(0, acl.lines.length - 1)];
+    if (acl.kind === 'standard') {
+      var srcIp;
+      if (sample.srcWild === '255.255.255.255') {
+        srcIp = randInt(1, 254) + '.' + randInt(0, 254) + '.' + randInt(0, 254) + '.' + randInt(1, 254);
+      } else {
+        srcIp = ipInSubnet(sample.src, sample.srcWild);
+      }
+      // Sometimes test outside-all-rules to provoke implicit deny
+      if (Math.random() < 0.25) {
+        srcIp = ipOutsideSubnet(SUBNETS[0].net, '0.0.255.255');
+      }
+      return { src: srcIp, dst: 'n/a', proto: 'ip' };
+    } else {
+      var srcIp2;
+      var dstIp;
+      var dstPort;
+      var proto;
+      if (sample.srcWild === '255.255.255.255') {
+        srcIp2 = randInt(1, 254) + '.' + randInt(0, 254) + '.' + randInt(0, 254) + '.' + randInt(1, 254);
+      } else {
+        srcIp2 = ipInSubnet(sample.src, sample.srcWild);
+      }
+      if (sample.dstWild === '255.255.255.255') {
+        dstIp = randInt(1, 254) + '.' + randInt(0, 254) + '.' + randInt(0, 254) + '.' + randInt(1, 254);
+      } else {
+        dstIp = ipInSubnet(sample.dst, sample.dstWild);
+      }
+      proto = (sample.proto === 'ip') ? pick(['tcp', 'udp']) : sample.proto;
+      if (proto === 'tcp' || proto === 'udp') {
+        dstPort = sample.dstPortOp === 'eq' ? sample.dstPort : pick([22, 23, 80, 443, 53, 8080]);
+        if (Math.random() < 0.3) dstPort = pick([22, 23, 80, 443]);
+      }
+      // Sometimes provoke implicit deny by jumbling
+      if (Math.random() < 0.25) {
+        srcIp2 = ipOutsideSubnet(SUBNETS[0].net, '0.0.255.255');
+      }
+      return { src: srcIp2, dst: dstIp, proto: proto, dstPort: dstPort };
+    }
+  }
+
+  // ─── State ─────────────────────────────────────────────────
+  var state = {
+    type: 'all',
+    qt: 'all',
+    current: null,
+    streak: 0,
+    correct: 0,
+    total: 0,
+    best: parseInt(localStorage.getItem(window.amConfig.storageKey) || '0', 10),
+    teachOpen: true,
+  };
+
+  function pickType() {
+    if (state.type === 'standard') return 'standard';
+    if (state.type === 'extended') return 'extended';
+    return Math.random() < 0.5 ? 'standard' : 'extended';
+  }
+  function pickQT() {
+    var types = ['action', 'line'];
+    return state.qt === 'all' ? pick(types) : state.qt;
+  }
+
+  function genQuestion() {
+    var aclKind = pickType();
+    var acl = aclKind === 'standard' ? genStandardACL() : genExtendedACL();
+    var packet = genPacket(acl);
+    var result = evaluateACL(acl, packet);
+    var qt = pickQT();
+    return { acl: acl, packet: packet, result: result, qt: qt };
+  }
+
+  // ─── Render ────────────────────────────────────────────────
+  function renderQuestion() {
+    var q = state.current;
+    var acl = q.acl;
+    var packet = q.packet;
+    var promptEl = document.getElementById('amPrompt');
+    var aclEl = document.getElementById('amAcl');
+    var pktEl = document.getElementById('amPacket');
+    var inputArea = document.getElementById('amInputArea');
+    document.getElementById('amFeedback').className = 'feedback';
+    document.getElementById('amFeedback').textContent = '';
+    document.getElementById('amTeach').style.display = 'none';
+
+    // ACL block
+    var aclLines = acl.lines.map(function(ace, i){
+      return '<span class="acl-line"><span class="acl-num">' + (i + 1) + '</span>access-list ' + acl.number + ' ' + colorize(aceToString(ace, acl.kind)) + '</span>';
+    }).join('');
+    aclEl.innerHTML = aclLines;
+
+    // Packet block
+    if (acl.kind === 'standard') {
+      pktEl.innerHTML = 'Packet arriving — source IP: <strong>' + packet.src + '</strong>';
+    } else {
+      var portStr = (packet.proto === 'tcp' || packet.proto === 'udp') ? ' port <strong>' + packet.dstPort + '</strong>' : '';
+      pktEl.innerHTML = 'Packet — proto: <strong>' + packet.proto + '</strong>, src: <strong>' + packet.src + '</strong>, dst: <strong>' + packet.dst + '</strong>' + portStr;
+    }
+
+    if (q.qt === 'action') {
+      promptEl.innerHTML = '<strong>Permit or deny?</strong> Walk the ACL top-down.';
+      inputArea.innerHTML =
+        '<div class="input-row">' +
+          '<button class="btn-action permit" onclick="amPickAction(\'permit\')">PERMIT</button>' +
+          '<button class="btn-action deny" onclick="amPickAction(\'deny\')">DENY</button>' +
+        '</div>';
+      document.getElementById('amCheckBtn').style.display = 'none';
+    } else {
+      promptEl.innerHTML = '<strong>Which line fires?</strong> Type the line number, or <code>0</code> for implicit deny.';
+      inputArea.innerHTML =
+        '<div class="input-row"><label>Line number:</label><input class="drill-input" id="amAns" placeholder="1, 2, ... or 0 for implicit" style="width:160px" onkeydown="if(event.key===&quot;Enter&quot;)amCheck()"></div>';
+      document.getElementById('amCheckBtn').style.display = 'inline-block';
+      setTimeout(function(){ var el = document.getElementById('amAns'); if (el) el.focus(); }, 30);
+    }
+  }
+
+  function buildTeach() {
+    var q = state.current;
+    var acl = q.acl;
+    var packet = q.packet;
+    var steps = ['Walk the ACL top-down. First match wins. No match → implicit deny.'];
+    for (var i = 0; i < acl.lines.length; i++) {
+      var ace = acl.lines[i];
+      var srcOK = matchWild(packet.src, ace.src, ace.srcWild);
+      var line = 'Line ' + (i + 1) + ': <code>' + aceToString(ace, acl.kind) + '</code><br>';
+      if (acl.kind === 'standard') {
+        line += '  Source ' + packet.src + ' vs ' + ace.src + '/' + ace.srcWild + ' → ' + (srcOK ? '<strong>match</strong>' : 'no match') + '.';
+        if (srcOK) {
+          line += ' Apply action: <strong>' + ace.action.toUpperCase() + '</strong>. Stop.';
+          steps.push(line);
+          break;
+        }
+      } else {
+        var dstOK = matchWild(packet.dst, ace.dst, ace.dstWild);
+        var protoOK = ace.proto === 'ip' || ace.proto === packet.proto;
+        var portOK = (ace.proto === 'tcp' || ace.proto === 'udp') ? matchPort(packet.dstPort, ace.dstPortOp || 'any', ace.dstPort, ace.dstPort2) : true;
+        line += '  src ' + (srcOK ? '✓' : '✗') + ' · dst ' + (dstOK ? '✓' : '✗') + ' · proto ' + (protoOK ? '✓' : '✗') + ' · port ' + (portOK ? '✓' : '✗');
+        if (srcOK && dstOK && protoOK && portOK) {
+          line += ' → <strong>match</strong>. Apply action: <strong>' + ace.action.toUpperCase() + '</strong>. Stop.';
+          steps.push(line);
+          break;
+        } else {
+          line += ' → no match, continue.';
+        }
+      }
+      steps.push(line);
+    }
+    if (q.result.lineIdx === -1) {
+      steps.push('No line matched. <strong>Implicit deny</strong> applies. Result: DENY.');
+    }
+    return steps;
+  }
+
+  function renderTeach() {
+    var steps = buildTeach();
+    var html = '';
+    for (var i = 0; i < steps.length; i++) {
+      html += '<div class="teach-step"><div class="teach-num">' + (i + 1) + '</div><div class="teach-body">' + steps[i] + '</div></div>';
+    }
+    document.getElementById('amTeachBody').innerHTML = html;
+    document.getElementById('amTeach').style.display = state.teachOpen ? 'block' : 'none';
+
+    // Highlight the matched line
+    var aclLines = document.querySelectorAll('#amAcl .acl-line');
+    aclLines.forEach(function(el, i){
+      el.classList.remove('matched', 'dim');
+      if (state.current.result.lineIdx === i) el.classList.add('matched');
+      else if (state.current.result.lineIdx >= 0 && i > state.current.result.lineIdx) el.classList.add('dim');
+    });
+  }
+
+  window.amToggleTeach = function() {
+    state.teachOpen = !state.teachOpen;
+    document.getElementById('amTeach').style.display = state.teachOpen ? 'block' : 'none';
+  };
+
+  // ─── Actions ───────────────────────────────────────────────
+  window.amNew = function() {
+    state.current = genQuestion();
+    renderQuestion();
+  };
+
+  function recordResult(ok) {
+    state.total++;
+    var fb = document.getElementById('amFeedback');
+    if (ok) {
+      state.correct++;
+      state.streak++;
+      if (state.streak > state.best) {
+        state.best = state.streak;
+        localStorage.setItem(window.amConfig.storageKey, String(state.best));
+      }
+      fb.className = 'feedback right';
+      fb.textContent = 'Correct. Streak ' + state.streak + '.';
+    } else {
+      state.streak = 0;
+      fb.className = 'feedback wrong';
+      var q = state.current;
+      var ans = q.qt === 'action' ? q.result.action.toUpperCase() : (q.result.lineIdx === -1 ? '0 (implicit deny)' : (q.result.lineIdx + 1));
+      fb.innerHTML = 'Wrong. Answer: <strong>' + ans + '</strong>. See walkthrough below.';
+      state.teachOpen = true;
+      renderTeach();
+    }
+    document.getElementById('amStreak').textContent = state.streak;
+    document.getElementById('amBest').textContent = state.best || '--';
+    document.getElementById('amScore').textContent = state.correct + '/' + state.total;
+  }
+
+  window.amPickAction = function(choice) {
+    if (!state.current) return;
+    var ok = (state.current.result.action === choice);
+    recordResult(ok);
+    if (ok) renderTeach();
+  };
+
+  window.amCheck = function() {
+    if (!state.current) { window.amNew(); return; }
+    var q = state.current;
+    if (q.qt !== 'line') return;
+    var raw = (document.getElementById('amAns').value || '').trim();
+    var n = parseInt(raw, 10);
+    var expected = q.result.lineIdx === -1 ? 0 : q.result.lineIdx + 1;
+    var ok = (n === expected);
+    recordResult(ok);
+    if (ok) renderTeach();
+  };
+
+  window.amHint = function() {
+    if (!state.current) return;
+    var fb = document.getElementById('amFeedback');
+    fb.className = 'feedback wrong';
+    fb.style.background = '#fff4d6';
+    fb.style.color = '#5a4a1a';
+    fb.style.borderColor = '#c4a36b';
+    var q = state.current;
+    var hint;
+    if (q.qt === 'action') {
+      hint = q.result.lineIdx === -1 ? 'No line matches. Remember the implicit deny.' : 'Line ' + (q.result.lineIdx + 1) + ' is the first match.';
+    } else {
+      hint = q.result.lineIdx === -1 ? 'No line matches. Use 0 for implicit deny.' : 'Walk top-down — check each line\'s source/dest/port against the packet.';
+    }
+    fb.textContent = 'Hint: ' + hint;
+  };
+
+  window.amReset = function() {
+    state.streak = 0;
+    state.correct = 0;
+    state.total = 0;
+    document.getElementById('amStreak').textContent = '0';
+    document.getElementById('amScore').textContent = '0/0';
+  };
+
+  window.setType = function(btn) {
+    document.querySelectorAll('.pill[data-type]').forEach(function(p){ p.classList.remove('active'); });
+    btn.classList.add('active');
+    state.type = btn.dataset.type;
+    window.amNew();
+  };
+  window.setQT = function(btn) {
+    document.querySelectorAll('.pill[data-qt]').forEach(function(p){ p.classList.remove('active'); });
+    btn.classList.add('active');
+    state.qt = btn.dataset.qt;
+    window.amNew();
+  };
+
+  document.getElementById('amBest').textContent = state.best || '--';
+  window.amNew();
+});
+</script>
+</body>
+</html>

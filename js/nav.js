@@ -43,6 +43,7 @@
       { text: 'VLSM Allocation Worksheet', href: 'vlsm-allocation.html' },
       { text: 'Subnet Summarization', href: 'subnet-summarization.html' },
       { text: 'OSPF Cost Drill', href: 'ospf-cost-drill.html' },
+      { text: 'ACL Match Drill', href: 'acl-match-drill.html' },
       { text: '3rd Party Games List', href: 'games-list.html' },
     ]},
     { text: '3rd Party Apps', children: [
