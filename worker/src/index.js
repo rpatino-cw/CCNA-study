@@ -7,6 +7,7 @@ export { Routing } from './routing.js';
 export { Wildcard } from './wildcard.js';
 export { Ports } from './ports.js';
 export { Nat } from './nat.js';
+export { Stp } from './stp.js';
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -67,6 +68,13 @@ export default {
     if (m) {
       const id = env.NATS.idFromName(m[1].toUpperCase());
       return env.NATS.get(id).fetch(request);
+    }
+
+    // /stp/:id — STP Bridge Election
+    m = url.pathname.match(/^\/stp\/([A-Z0-9]{4,8})$/i);
+    if (m) {
+      const id = env.STPS.idFromName(m[1].toUpperCase());
+      return env.STPS.get(id).fetch(request);
     }
 
     return new Response('Not found', { status: 404, headers: CORS });

@@ -16,19 +16,30 @@
     presetId: null,
     preset: null,
     aps: new Map(),           // id -> { id, model, x, y, radios, status }
+    infra: new Map(),         // id -> { id, type, x, y } (Phase 4)
     pxPerMeter: 20,
     idSeq: 0,
-    selectedId: null
+    infraSeq: 0,
+    selectedId: null,
+    lastScore: null
   };
 
   let planEl = null;
   let catalogEl = null;
   let statusEl = null;
   let rfCanvasEl = null;
+  let scoreEl = null;
+  let capwapSvg = null;
+  let infraButtonsEl = null;
 
   function nextId() {
     state.idSeq += 1;
     return 'ap-' + state.idSeq;
+  }
+
+  function nextInfraId(type) {
+    state.infraSeq += 1;
+    return type + '-' + state.infraSeq;
   }
 
   // Trigger RF heatmap redraw if APLabRF is loaded. Phase-2 wiring.
@@ -36,6 +47,17 @@
     if (window.APLabRF && typeof window.APLabRF.recompute === 'function') {
       window.APLabRF.recompute(getLayout());
     }
+  }
+
+  // Phase-4: recompute scoring + redraw CAPWAP tunnels + status pills.
+  function recomputeScore() {
+    if (!window.APLabScore) return;
+    const wlans = (window.APLabConfig && typeof window.APLabConfig.getWlans === 'function')
+      ? window.APLabConfig.getWlans() : [];
+    state.lastScore = window.APLabScore.compute(getLayout(), state.preset, wlans, { band: '5' });
+    renderScoreboard();
+    renderCapwapLines();
+    refreshAllApPills();
   }
 
   // Backward-compat: legacy APs lack mode / rrm / ft / kv / vlan / ip — apply defaults.
@@ -97,8 +119,10 @@
     }
     loadFromStorage();
     renderAllAPs();
+    renderAllInfra();
     updateStatus();
     recomputeRF();
+    recomputeScore();
   }
 
   function placeAP(model, xM, yM) {
@@ -126,6 +150,7 @@
     saveToStorage();
     updateStatus();
     recomputeRF();
+    recomputeScore();
     return id;
   }
 
@@ -141,6 +166,7 @@
     }
     saveToStorage();
     recomputeRF();
+    recomputeScore();
   }
 
   function cloneAP(id) {
@@ -160,6 +186,7 @@
     saveToStorage();
     updateStatus();
     recomputeRF();
+    recomputeScore();
     return newId;
   }
 
@@ -172,6 +199,50 @@
     saveToStorage();
     updateStatus();
     recomputeRF();
+    recomputeScore();
+  }
+
+  // ── Phase 4: infrastructure (WLC / RADIUS) ───────────────────
+  function placeInfra(type, xM, yM) {
+    const def = (window.APLabData.infraCatalog || []).find(i => i.type === type);
+    if (!def) return null;
+    // Singleton: only one of each type
+    const existing = Array.from(state.infra.values()).find(i => i.type === type);
+    if (existing) return existing.id;
+    const id = nextInfraId(type);
+    const item = {
+      id, type,
+      x: clamp(xM != null ? xM : 2, 0.5, state.preset.widthM - 0.5),
+      y: clamp(yM != null ? yM : 2, 0.5, state.preset.heightM - 0.5)
+    };
+    state.infra.set(id, item);
+    renderInfraItem(item);
+    saveToStorage();
+    recomputeScore();
+    return id;
+  }
+
+  function moveInfra(id, xM, yM) {
+    const it = state.infra.get(id);
+    if (!it) return;
+    it.x = clamp(xM, 0.5, state.preset.widthM - 0.5);
+    it.y = clamp(yM, 0.5, state.preset.heightM - 0.5);
+    const el = planEl.querySelector('[data-infra-id="' + id + '"]');
+    if (el) {
+      el.style.left = (it.x * state.pxPerMeter) + 'px';
+      el.style.top  = (it.y * state.pxPerMeter) + 'px';
+    }
+    saveToStorage();
+    recomputeScore();
+  }
+
+  function deleteInfra(id) {
+    if (!state.infra.has(id)) return;
+    state.infra.delete(id);
+    const el = planEl.querySelector('[data-infra-id="' + id + '"]');
+    if (el) el.remove();
+    saveToStorage();
+    recomputeScore();
   }
 
   function getLayout() {
@@ -192,6 +263,9 @@
         vlan: ap.vlan,
         ip: ap.ip,
         wlcJoinState: ap.wlcJoinState
+      })),
+      infra: Array.from(state.infra.values()).map(it => ({
+        id: it.id, type: it.type, x: round2(it.x), y: round2(it.y)
       }))
     };
   }
@@ -200,26 +274,38 @@
     if (!layout || layout.version !== LAYOUT_VERSION) return;
     if (layout.presetId !== state.presetId) return;
     state.aps.clear();
+    state.infra.clear();
     state.idSeq = 0;
+    state.infraSeq = 0;
     layout.aps.forEach(ap => {
       const hydrated = hydrateDefaults({ ...ap, radios: ap.radios.map(r => ({ ...r })) });
       state.aps.set(ap.id, hydrated);
       const n = parseInt(ap.id.split('-')[1], 10);
       if (Number.isFinite(n) && n > state.idSeq) state.idSeq = n;
     });
+    (layout.infra || []).forEach(it => {
+      state.infra.set(it.id, { ...it });
+      const n = parseInt(it.id.split('-')[1], 10);
+      if (Number.isFinite(n) && n > state.infraSeq) state.infraSeq = n;
+    });
     renderAllAPs();
+    renderAllInfra();
     saveToStorage();
     updateStatus();
     recomputeRF();
+    recomputeScore();
   }
 
   function reset() {
     state.aps.clear();
+    state.infra.clear();
     state.selectedId = null;
     localStorage.removeItem(STORAGE_KEY);
     renderAllAPs();
+    renderAllInfra();
     updateStatus();
     recomputeRF();
+    recomputeScore();
   }
 
   // ── persistence ──────────────────────────────────────────────
@@ -246,12 +332,19 @@
 
   function loadLayoutInternal(layout) {
     state.aps.clear();
+    state.infra.clear();
     state.idSeq = 0;
+    state.infraSeq = 0;
     layout.aps.forEach(ap => {
       const hydrated = hydrateDefaults({ ...ap, radios: ap.radios.map(r => ({ ...r })) });
       state.aps.set(ap.id, hydrated);
       const n = parseInt(ap.id.split('-')[1], 10);
       if (Number.isFinite(n) && n > state.idSeq) state.idSeq = n;
+    });
+    (layout.infra || []).forEach(it => {
+      state.infra.set(it.id, { ...it });
+      const n = parseInt(it.id.split('-')[1], 10);
+      if (Number.isFinite(n) && n > state.infraSeq) state.infraSeq = n;
     });
   }
 
@@ -271,6 +364,15 @@
         '<button class="aplab-btn aplab-btn-ghost" id="aplab-reset">Reset Layout</button>' +
       '</div>' +
       '<div class="aplab-status" id="aplab-status">No APs placed.</div>' +
+      '<div class="aplab-infra-controls">' +
+        '<h3 class="aplab-h3">Infrastructure</h3>' +
+        '<div class="aplab-infra-btns" id="aplab-infra-btns"></div>' +
+        '<p class="aplab-infra-hint">Click to add to the floor; lightweight APs draw a CAPWAP tunnel to the WLC. WPA-Enterprise WLANs need a RADIUS server.</p>' +
+      '</div>' +
+      '<div class="aplab-scoreboard" id="aplab-scoreboard">' +
+        '<h3 class="aplab-h3">Design Score</h3>' +
+        '<div class="aplab-score-empty">Place APs to score the design.</div>' +
+      '</div>' +
       '<div class="aplab-rf-controls">' +
         '<h3 class="aplab-h3">RF Heatmap</h3>' +
         '<div class="aplab-toggle" role="group" aria-label="Heatmap layer">' +
@@ -312,6 +414,14 @@
     rfCanvas.id = 'aplab-rf';
     plan.appendChild(rfCanvas);
 
+    // CAPWAP tunnel SVG layer (Phase 4)
+    const svgNS = 'http://www.w3.org/2000/svg';
+    capwapSvg = document.createElementNS(svgNS, 'svg');
+    capwapSvg.setAttribute('class', 'aplab-capwap-svg');
+    capwapSvg.setAttribute('width', String(state.preset.widthM * state.pxPerMeter));
+    capwapSvg.setAttribute('height', String(state.preset.heightM * state.pxPerMeter));
+    plan.appendChild(capwapSvg);
+
     planWrap.appendChild(plan);
     main.appendChild(planWrap);
 
@@ -322,8 +432,11 @@
     rfCanvasEl = rfCanvas;
     catalogEl = sidebar.querySelector('#aplab-catalog');
     statusEl = sidebar.querySelector('#aplab-status');
+    scoreEl = sidebar.querySelector('#aplab-scoreboard');
+    infraButtonsEl = sidebar.querySelector('#aplab-infra-btns');
 
     renderCatalog();
+    renderInfraButtons();
     renderLegend(sidebar.querySelector('#aplab-legend-list'));
 
     sidebar.querySelector('#aplab-reset').addEventListener('click', () => {
@@ -390,6 +503,152 @@
         '<span>' + mat.label + '</span>';
       ul.appendChild(li);
     });
+  }
+
+  // ── Phase 4: infra panel + items + CAPWAP + scoreboard ───────
+  function renderInfraButtons() {
+    if (!infraButtonsEl) return;
+    infraButtonsEl.innerHTML = '';
+    (window.APLabData.infraCatalog || []).forEach(def => {
+      const btn = document.createElement('button');
+      btn.className = 'aplab-infra-btn';
+      btn.dataset.infraType = def.type;
+      btn.innerHTML =
+        '<span class="aplab-infra-glyph" style="background:' + def.color + '">' + def.glyph + '</span>' +
+        '<span class="aplab-infra-label">+ ' + def.label + '</span>';
+      btn.addEventListener('click', () => {
+        const existing = Array.from(state.infra.values()).find(i => i.type === def.type);
+        if (existing) {
+          // toggle delete on second click
+          deleteInfra(existing.id);
+        } else {
+          // place at top-left corner area
+          placeInfra(def.type, 3, 3);
+        }
+        renderInfraButtonsState();
+      });
+      infraButtonsEl.appendChild(btn);
+    });
+    renderInfraButtonsState();
+  }
+
+  function renderInfraButtonsState() {
+    if (!infraButtonsEl) return;
+    Array.from(infraButtonsEl.querySelectorAll('.aplab-infra-btn')).forEach(btn => {
+      const t = btn.dataset.infraType;
+      const placed = Array.from(state.infra.values()).some(i => i.type === t);
+      btn.classList.toggle('is-placed', placed);
+      btn.querySelector('.aplab-infra-label').textContent = placed ? '− Remove ' + t.toUpperCase() : '+ Add ' + t.toUpperCase();
+    });
+  }
+
+  function renderInfraItem(item) {
+    const def = (window.APLabData.infraCatalog || []).find(i => i.type === item.type);
+    if (!def) return;
+    let el = planEl.querySelector('[data-infra-id="' + item.id + '"]');
+    if (!el) {
+      el = document.createElement('div');
+      el.className = 'aplab-infra-item aplab-infra-item-' + item.type;
+      el.dataset.infraId = item.id;
+      el.draggable = true;
+      el.innerHTML =
+        '<div class="aplab-infra-icon" style="background:' + def.color + '">' + def.glyph + '</div>' +
+        '<div class="aplab-infra-tag">' + def.label + '</div>';
+      el.addEventListener('dragstart', ev => {
+        ev.dataTransfer.effectAllowed = 'move';
+        ev.dataTransfer.setData('text/aplab-infra-move', item.id);
+        ev.dataTransfer.setData('text/plain', 'aplab-infra-move:' + item.id);
+        el.classList.add('dragging');
+      });
+      el.addEventListener('dragend', () => el.classList.remove('dragging'));
+      el.addEventListener('contextmenu', ev => {
+        ev.preventDefault();
+        ev.stopPropagation();
+        if (confirm('Remove ' + def.label + '?')) deleteInfra(item.id);
+      });
+      planEl.appendChild(el);
+    }
+    el.style.left = (item.x * state.pxPerMeter) + 'px';
+    el.style.top  = (item.y * state.pxPerMeter) + 'px';
+  }
+
+  function renderAllInfra() {
+    if (!planEl) return;
+    Array.from(planEl.querySelectorAll('.aplab-infra-item')).forEach(el => el.remove());
+    state.infra.forEach(item => renderInfraItem(item));
+    renderInfraButtonsState();
+    renderCapwapLines();
+  }
+
+  function renderCapwapLines() {
+    if (!capwapSvg) return;
+    while (capwapSvg.firstChild) capwapSvg.removeChild(capwapSvg.firstChild);
+    const wlc = Array.from(state.infra.values()).find(i => i.type === 'wlc');
+    if (!wlc) return;
+    const px = state.pxPerMeter;
+    state.aps.forEach(ap => {
+      const mode = ap.mode || 'local';
+      if (mode === 'autonomous') return;
+      const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      line.setAttribute('x1', String(ap.x * px));
+      line.setAttribute('y1', String(ap.y * px));
+      line.setAttribute('x2', String(wlc.x * px));
+      line.setAttribute('y2', String(wlc.y * px));
+      line.setAttribute('class', 'aplab-capwap-line');
+      capwapSvg.appendChild(line);
+    });
+  }
+
+  function refreshAllApPills() {
+    if (!planEl || !state.lastScore) return;
+    const status = state.lastScore.apStatus || {};
+    Array.from(planEl.querySelectorAll('.aplab-ap')).forEach(el => {
+      const id = el.dataset.apId;
+      let pill = el.querySelector('.aplab-ap-pill');
+      const s = status[id] || 'up';
+      if (!pill) {
+        pill = document.createElement('span');
+        pill.className = 'aplab-ap-pill';
+        el.appendChild(pill);
+      }
+      pill.classList.remove('is-up', 'is-orphan', 'is-radius', 'is-misc');
+      if (s === 'up') {
+        pill.classList.add('is-up');
+        pill.title = 'Up';
+      } else if (s === 'orphan') {
+        pill.classList.add('is-orphan');
+        pill.title = 'Orphan — no WLC placed';
+      } else if (s === 'radius_missing') {
+        pill.classList.add('is-radius');
+        pill.title = 'WPA-Enterprise WLAN active but no RADIUS server placed';
+      } else {
+        pill.classList.add('is-misc');
+        pill.title = 'Misconfigured';
+      }
+    });
+  }
+
+  function renderScoreboard() {
+    if (!scoreEl) return;
+    const s = state.lastScore;
+    if (!s || (s.coverage.sampledCells === 0)) {
+      scoreEl.innerHTML =
+        '<h3 class="aplab-h3">Design Score</h3>' +
+        '<div class="aplab-score-empty">Place APs to score the design.</div>';
+      return;
+    }
+    const pct = function (n) { return Math.round(n * 100) + '%'; };
+    const totalClass = s.total >= 80 ? 'good' : s.total >= 50 ? 'mid' : 'low';
+    scoreEl.innerHTML =
+      '<h3 class="aplab-h3">Design Score</h3>' +
+      '<div class="aplab-score-total aplab-score-' + totalClass + '">' + s.total + ' <span>/100</span></div>' +
+      '<ul class="aplab-score-list">' +
+        '<li><span>Coverage</span><span>' + pct(s.coverage.percent) + '</span></li>' +
+        '<li><span>Roaming</span><span>' + pct(s.roaming.percent) + '</span></li>' +
+        '<li><span>CCI penalty</span><span>' + pct(s.cci.penalty) + ' (' + s.cci.hotCells + ' hot cells)</span></li>' +
+        '<li><span>ACI penalty</span><span>' + pct(s.aci.penalty) + ' (' + s.aci.adjacentPairs + ' pairs)</span></li>' +
+        '<li><span>Capacity</span><span>' + pct(s.capacity.score) + ' (' + s.capacity.apCount + ' APs)</span></li>' +
+      '</ul>';
   }
 
   function renderPlanBackdrop() {

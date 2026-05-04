@@ -116,5 +116,23 @@
     { id: 'wlan-2', name: 'Guest', band: '5',    security: 'open',     vlan: 20, hidden: false, broadcast: true, passphrase: '',          radiusServer: '' }
   ];
 
-  window.APLabData = { presets, wallMaterials, apCatalog, wlanSecurityModes, apModes, defaultWlans };
+  // ── Phase 4: infrastructure items (placeable on plan) ────────
+  const infraCatalog = [
+    {
+      type: 'wlc',
+      label: 'WLC',
+      description: 'Wireless LAN Controller — terminates CAPWAP tunnels from lightweight APs',
+      glyph: 'WLC',
+      color: '#2563EB'
+    },
+    {
+      type: 'radius',
+      label: 'RADIUS',
+      description: 'AAA server — required for WPA2/3-Enterprise authentication',
+      glyph: 'AAA',
+      color: '#7C3AED'
+    }
+  ];
+
+  window.APLabData = { presets, wallMaterials, apCatalog, wlanSecurityModes, apModes, defaultWlans, infraCatalog };
 })();
