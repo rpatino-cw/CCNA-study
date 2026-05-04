@@ -12,6 +12,7 @@
     'Study Group': 'Study with friends — compare progress, chat, compete',
     'Ekere Labs': 'Ekere Labs — Train Like a Network Engineer (embedded PWA)',
     'CCNA Prep': 'CCNA Prep — Boson, hardcore, and IP connectivity drills',
+    '3rd Party Apps': 'Embedded 3rd party study apps — Ekere Labs, CCNA Prep',
   };
 
   /* ── Two complete NAV configs — pick one based on cert track ─── */
@@ -37,8 +38,10 @@
       { text: 'Practice Hub', href: 'practice-hub.html' },
       { text: '3rd Party Games List', href: 'games-list.html' },
     ]},
-    { text: 'Ekere Labs', href: 'ekere-labs.html' },
-    { text: 'CCNA Prep', href: 'ccna-prep.html' },
+    { text: '3rd Party Apps', children: [
+      { text: 'Ekere Labs', href: 'ekere-labs.html' },
+      { text: 'CCNA Prep', href: 'ccna-prep.html' },
+    ]},
     { text: 'Plan', children: [
       { text: "What's New", href: 'whats-new.html' },
       { text: 'Sprint', href: 'sprint.html' },
