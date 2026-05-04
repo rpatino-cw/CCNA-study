@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#FAF7F2">
+  <title>Hard Subnetting — Two-Constraint Drill</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+  <link rel="icon" type="image/svg+xml" href="/CCNA-study/favicon.svg">
+  <link rel="stylesheet" href="css/shared.css?v=4.56">
+  <style>
+    .page-header {
+      padding: var(--s-xl) 0 var(--s-lg);
+      border-bottom: 2px solid var(--ink);
+      margin-bottom: var(--s-xl);
+    }
+    .page-header h1 {
+      font-family: var(--font-display);
+      font-size: 2.6rem;
+      font-weight: 700;
+      letter-spacing: -0.04em;
+      line-height: 1;
+      margin-bottom: 6px;
+    }
+    .page-header-sub {
+      font-family: var(--font-display);
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--ink-muted);
+    }
+    .page-header p { color: var(--ink-secondary); margin-top: 10px; max-width: 720px; }
+
+    .layout-grid {
+      display: grid;
+      grid-template-columns: 1fr 280px;
+      gap: var(--s-lg);
+      align-items: start;
+    }
+    @media (max-width: 900px) { .layout-grid { grid-template-columns: 1fr; } }
+
+    .visual-block { background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 20px; margin-bottom: var(--s-md); }
+
+    .pill-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; align-items: center; }
+    .pill-label { font-family: var(--font-display); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-muted); margin-right: 8px; }
+    .pill { font-family: var(--font-display); font-size: 0.75rem; padding: 6px 14px; border-radius: 16px; border: 1px solid var(--border); background: var(--bg-surface); cursor: pointer; transition: all 0.15s; }
+    .pill:hover { border-color: var(--accent); color: var(--accent); }
+    .pill.active { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+
+    .drill-meta { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; margin-bottom: 14px; font-family: var(--font-mono); font-size: 0.82rem; color: var(--ink-secondary); }
+    .drill-meta .dm-val { font-weight: 700; color: var(--ink); }
+
+    .q-card {
+      border: 2px solid var(--ink);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      background: var(--bg);
+      margin-bottom: 14px;
+    }
+    .q-prompt { font-family: var(--font-display); font-size: 1.25rem; font-weight: 600; line-height: 1.4; color: var(--ink); margin-bottom: 8px; }
+    .q-meta { font-family: var(--font-mono); font-size: 0.85rem; color: var(--ink-secondary); margin-bottom: 14px; }
+    .q-meta strong { color: var(--ink); }
+
+    .drill-input { font-family: var(--font-mono); font-size: 1rem; padding: 12px 16px; width: 100%; border: 2px solid var(--border); border-radius: 8px; background: var(--bg-surface); transition: border-color 0.15s; }
+    .drill-input:focus { border-color: var(--accent); outline: none; }
+    .drill-actions { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+    .btn-action { font-family: var(--font-display); font-size: 0.85rem; font-weight: 600; padding: 9px 18px; border-radius: 8px; border: 1px solid var(--ink); background: var(--ink); color: var(--bg); cursor: pointer; transition: all 0.15s; }
+    .btn-action:hover { background: var(--accent); border-color: var(--accent); }
+    .btn-action.secondary { background: var(--bg-surface); color: var(--ink); }
+    .btn-action.ghost { background: none; border-color: var(--border); color: var(--ink-muted); }
+
+    .feedback { margin-top: 14px; padding: 12px 14px; border-radius: 8px; font-family: var(--font-mono); font-size: 0.9rem; display: none; }
+    .feedback.right { background: #d6f5d6; color: #1a4d1a; border: 1px solid #6bbf6b; display: block; }
+    .feedback.wrong { background: #f9d6d6; color: #5a1a1a; border: 1px solid #c46b6b; display: block; }
+
+    .teach {
+      margin-top: 16px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px 20px;
+      background: var(--bg-surface);
+    }
+    .teach-title { font-family: var(--font-display); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-muted); margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    .teach-toggle { font-family: var(--font-display); font-size: 0.72rem; padding: 4px 10px; border-radius: 12px; border: 1px solid var(--border); background: var(--bg); cursor: pointer; }
+    .teach-step { display: flex; gap: 12px; padding: 8px 0; border-top: 1px dashed var(--border); }
+    .teach-step:first-of-type { border-top: none; padding-top: 4px; }
+    .teach-num { flex-shrink: 0; width: 24px; height: 24px; border-radius: 12px; background: var(--ink); color: var(--bg); font-family: var(--font-display); font-size: 0.78rem; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+    .teach-body { flex: 1; font-family: var(--font-mono); font-size: 0.88rem; line-height: 1.55; color: var(--ink); }
+    .teach-body code { background: var(--bg); padding: 1px 5px; border-radius: 3px; }
+
+    .ref-card {
+      position: sticky;
+      top: 80px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 16px;
+      background: var(--bg-surface);
+      font-family: var(--font-mono);
+      font-size: 0.78rem;
+    }
+    .ref-card h3 { font-family: var(--font-display); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-muted); margin: 0 0 10px; }
+    .ref-card table { width: 100%; border-collapse: collapse; }
+    .ref-card th, .ref-card td { text-align: right; padding: 3px 6px; border-bottom: 1px dashed var(--border); }
+    .ref-card th { font-family: var(--font-display); font-size: 0.7rem; text-transform: uppercase; color: var(--ink-muted); font-weight: 600; }
+    .ref-card td:first-child, .ref-card th:first-child { text-align: left; }
+    .ref-card .row-emph { background: rgba(0,0,0,0.03); }
+
+    .examples-block { font-family: var(--font-mono); font-size: 0.82rem; line-height: 1.7; color: var(--ink-secondary); }
+    .examples-block strong { color: var(--ink); }
+
+    details > summary { cursor: pointer; font-family: var(--font-display); font-size: 0.85rem; font-weight: 600; padding: 8px 0; }
+  </style>
+</head>
+<body>
+  <nav class="top-nav"></nav>
+
+  <div class="container">
+    <header class="page-header">
+      <div class="page-header-sub">CCNA · Domain 1.6</div>
+      <h1>Hard Subnetting</h1>
+      <p>Two-constraint problems: given a parent CIDR, find the mask that satisfies both subnet count and host count. The kind of question Cisco loves.</p>
+    </header>
+
+    <div class="layout-grid">
+      <main>
+
+        <section class="visual-block">
+          <div class="pill-row">
+            <span class="pill-label">Difficulty</span>
+            <button class="pill active" data-diff="easy" onclick="setDiff(this)">Easy</button>
+            <button class="pill" data-diff="medium" onclick="setDiff(this)">Medium</button>
+            <button class="pill" data-diff="hard" onclick="setDiff(this)">Hard</button>
+            <button class="pill" data-diff="all" onclick="setDiff(this)">All</button>
+          </div>
+          <div class="pill-row">
+            <span class="pill-label">Question Type</span>
+            <button class="pill active" data-qt="all" onclick="setQT(this)">All</button>
+            <button class="pill" data-qt="mask" onclick="setQT(this)">Mask From Counts</button>
+            <button class="pill" data-qt="max-hosts" onclick="setQT(this)">Max Hosts</button>
+            <button class="pill" data-qt="max-subnets" onclick="setQT(this)">Max Subnets</button>
+            <button class="pill" data-qt="fits" onclick="setQT(this)">Fits Or Not</button>
+            <button class="pill" data-qt="reverse" onclick="setQT(this)">Reverse Mask</button>
+          </div>
+          <div class="drill-meta">
+            <span>Timer <strong class="dm-val" id="hsTimer">0:00</strong></span>
+            <span>Streak <strong class="dm-val" id="hsStreak">0</strong></span>
+            <span>Best <strong class="dm-val" id="hsBest">--</strong></span>
+            <span>Score <strong class="dm-val" id="hsScore">0/0</strong></span>
+            <label style="margin-left:auto;display:flex;align-items:center;gap:6px;font-size:0.78rem;cursor:pointer">
+              <input type="checkbox" id="hsTraining"> Training wheels (show steps before answering)
+            </label>
+          </div>
+
+          <div class="q-card">
+            <div class="q-prompt" id="hsPrompt">Click <em>New question</em> to begin.</div>
+            <div class="q-meta" id="hsMeta"></div>
+            <input type="text" class="drill-input" id="hsInput" placeholder="Type your answer (e.g. 255.255.252.0 or /22)" onkeydown="if(event.key==='Enter')hsCheck()">
+            <div class="drill-actions">
+              <button class="btn-action" onclick="hsCheck()">Check</button>
+              <button class="btn-action secondary" onclick="hsHint()">Hint</button>
+              <button class="btn-action ghost" onclick="hsNew()">New question</button>
+            </div>
+            <div class="feedback" id="hsFeedback"></div>
+          </div>
+
+          <div class="teach" id="hsTeach" style="display:none">
+            <div class="teach-title">
+              <span>Step-by-step solver</span>
+              <button class="teach-toggle" onclick="hsToggleTeach()">Hide</button>
+            </div>
+            <div id="hsTeachBody"></div>
+          </div>
+        </section>
+
+        <section class="visual-block examples-block">
+          <details>
+            <summary>How the math works (universal recipe)</summary>
+            <div style="margin-top:10px">
+              For any "<strong>given parent CIDR, need N subnets and H hosts</strong>" question:
+              <ol style="margin:10px 0 10px 22px">
+                <li><strong>Bits to borrow for subnets (s):</strong> smallest <code>s</code> where <code>2^s ≥ N</code>.</li>
+                <li><strong>Bits to keep for hosts (h):</strong> smallest <code>h</code> where <code>2^h - 2 ≥ H</code>.</li>
+                <li><strong>Budget check:</strong> parent prefix + s + h ≤ 32. If over, problem doesn't fit.</li>
+                <li><strong>New prefix:</strong> parent prefix + s.</li>
+                <li><strong>Mask:</strong> convert /N to dotted-decimal (8 ones per full octet, partial via 256 - block size).</li>
+              </ol>
+              <strong>Example.</strong> 172.16.0.0/16, 40 subnets, 830 hosts.<br>
+              s = ceil(log2 40) = 6 (because 2^6 = 64 ≥ 40).<br>
+              h: 2^10 - 2 = 1022 ≥ 830, so h = 10.<br>
+              16 + 6 + 10 = 32 ✓<br>
+              New prefix = /16 + 6 = <strong>/22</strong> → mask <strong>255.255.252.0</strong>.<br>
+              Result: 64 subnets, 1022 hosts each.
+            </div>
+          </details>
+          <details style="margin-top:10px">
+            <summary>Powers of 2 — must memorize</summary>
+            <pre style="font-size:0.85rem;line-height:1.5;margin:8px 0">2^1  = 2          2^9  = 512
+2^2  = 4          2^10 = 1024
+2^3  = 8          2^11 = 2048
+2^4  = 16         2^12 = 4096
+2^5  = 32         2^13 = 8192
+2^6  = 64         2^14 = 16384
+2^7  = 128        2^15 = 32768
+2^8  = 256        2^16 = 65536</pre>
+            For host counts subtract 2 (network + broadcast). For subnet counts no subtraction (modern routers; CCNA assumes ip subnet-zero).
+          </details>
+        </section>
+
+      </main>
+
+      <aside>
+        <div class="ref-card">
+          <h3>Power-of-2 Reference</h3>
+          <table>
+            <thead><tr><th>Bits</th><th>Total</th><th>Hosts</th></tr></thead>
+            <tbody id="powTable"></tbody>
+          </table>
+          <div style="margin-top:10px;color:var(--ink-muted);font-size:0.72rem">Hosts = total - 2 (network + broadcast).</div>
+        </div>
+        <div class="ref-card" style="margin-top:14px">
+          <h3>Octet Bit Map</h3>
+          <table>
+            <thead><tr><th>Bits On</th><th>Octet</th></tr></thead>
+            <tbody>
+              <tr><td>0</td><td>0</td></tr>
+              <tr><td>1</td><td>128</td></tr>
+              <tr><td>2</td><td>192</td></tr>
+              <tr><td>3</td><td>224</td></tr>
+              <tr><td>4</td><td>240</td></tr>
+              <tr><td>5</td><td>248</td></tr>
+              <tr><td>6</td><td>252</td></tr>
+              <tr><td>7</td><td>254</td></tr>
+              <tr><td>8</td><td>255</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+<script defer src="js/nav.js?v=4.56"></script>
+<script>
+window.hsConfig = { storageKey: 'ccna_hs_best', maxBitBudget: 32 };
+</script>
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+
+  // ─── Power-of-2 reference table ─────────────────────────────
+  (function fillPow(){
+    var rows = '';
+    for (var i = 1; i <= 16; i++) {
+      var total = Math.pow(2, i);
+      var hosts = total - 2;
+      var emph = (i === 6 || i === 8 || i === 10 || i === 16) ? ' class="row-emph"' : '';
+      rows += '<tr' + emph + '><td>' + i + '</td><td>' + total + '</td><td>' + hosts + '</td></tr>';
+    }
+    document.getElementById('powTable').innerHTML = rows;
+  })();
+
+  // ─── State ─────────────────────────────────────────────────
+  var state = {
+    diff: 'easy',
+    qt: 'all',
+    current: null,
+    streak: 0,
+    correct: 0,
+    total: 0,
+    timer: null,
+    elapsed: 0,
+    best: parseInt(localStorage.getItem(window.hsConfig.storageKey) || '0', 10),
+    teachOpen: true,
+  };
+
+  // ─── Parametric generator ──────────────────────────────────
+  var PARENTS = {
+    easy: [
+      { ip: '192.168.1.0', cidr: 24 },
+      { ip: '192.168.10.0', cidr: 24 },
+      { ip: '10.20.30.0', cidr: 24 },
+    ],
+    medium: [
+      { ip: '172.16.0.0', cidr: 16 },
+      { ip: '192.168.0.0', cidr: 16 },
+      { ip: '172.20.0.0', cidr: 16 },
+    ],
+    hard: [
+      { ip: '10.0.0.0', cidr: 8 },
+      { ip: '172.16.0.0', cidr: 12 },
+      { ip: '10.0.0.0', cidr: 8 },
+    ],
+  };
+
+  function randInt(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
+  function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+
+  function bitsForSubnets(n) {
+    var b = 0; while (Math.pow(2, b) < n) b++; return b;
+  }
+  function bitsForHosts(h) {
+    var b = 0; while (Math.pow(2, b) - 2 < h) b++; return b;
+  }
+  function prefixToMask(p) {
+    var oct = [0,0,0,0]; var rem = p;
+    for (var i = 0; i < 4; i++) { var t = Math.min(8, rem); oct[i] = (256 - Math.pow(2, 8 - t)) & 255; rem -= t; if (rem <= 0) break; }
+    return oct.join('.');
+  }
+
+  function pickParent() {
+    var bucket = state.diff === 'all' ? pick(['easy','medium','hard']) : state.diff;
+    return pick(PARENTS[bucket]);
+  }
+
+  function pickQT() {
+    var types = ['mask', 'max-hosts', 'max-subnets', 'fits', 'reverse'];
+    return state.qt === 'all' ? pick(types) : state.qt;
+  }
+
+  function genQuestion() {
+    for (var attempt = 0; attempt < 20; attempt++) {
+      var parent = pickParent();
+      var qt = pickQT();
+      var q = buildQ(parent, qt);
+      if (q) return q;
+    }
+    return null;
+  }
+
+  function buildQ(parent, qt) {
+    var pCIDR = parent.cidr;
+    var available = 32 - pCIDR;
+    if (available < 4) return null;
+
+    if (qt === 'mask') {
+      var s = randInt(2, Math.min(8, available - 3));
+      var subnets = randInt(Math.pow(2, s - 1) + 1, Math.pow(2, s));
+      var maxH = available - s;
+      var h = randInt(Math.max(2, maxH - 2), maxH);
+      var hosts = randInt(Math.pow(2, h - 1), Math.pow(2, h) - 3);
+      var actS = bitsForSubnets(subnets);
+      var actH = bitsForHosts(hosts);
+      if (pCIDR + actS + actH > 32) return null;
+      var newPrefix = pCIDR + actS;
+      return {
+        type: 'mask',
+        prompt: 'What subnet mask gives <strong>' + subnets + ' subnets</strong> with at least <strong>' + hosts + ' hosts</strong> per subnet, starting from <strong>' + parent.ip + '/' + pCIDR + '</strong>?',
+        meta: 'Parent: ' + parent.ip + '/' + pCIDR + '  ·  Need: ≥' + subnets + ' subnets, ≥' + hosts + ' hosts',
+        answers: [prefixToMask(newPrefix), '/' + newPrefix, String(newPrefix)],
+        teach: [
+          'Subnets needed: <strong>' + subnets + '</strong>. Smallest power of 2 that holds it: 2^' + actS + ' = ' + Math.pow(2, actS) + '. Borrow <strong>' + actS + '</strong> bit(s).',
+          'Hosts needed: <strong>' + hosts + '</strong>. Smallest <code>2^h - 2 ≥ ' + hosts + '</code>: 2^' + actH + ' - 2 = ' + (Math.pow(2, actH) - 2) + '. Keep <strong>' + actH + '</strong> host bit(s).',
+          'Bit budget: parent ' + pCIDR + ' + borrow ' + actS + ' + hosts ' + actH + ' = <strong>' + (pCIDR + actS + actH) + '</strong>. (Must be ≤ 32.)',
+          'New prefix: ' + pCIDR + ' + ' + actS + ' = <strong>/' + newPrefix + '</strong>.',
+          'Convert /' + newPrefix + ' to dotted-decimal: <strong>' + prefixToMask(newPrefix) + '</strong>.',
+          'Result: ' + Math.pow(2, actS) + ' subnets × ' + (Math.pow(2, actH) - 2) + ' usable hosts.'
+        ],
+        hint: 'Borrow ' + actS + ' bits for subnets, keep ' + actH + ' for hosts. Mask = /' + newPrefix + '.'
+      };
+    }
+
+    if (qt === 'max-hosts') {
+      var s2 = randInt(2, Math.min(10, available - 2));
+      var subnets2 = Math.pow(2, s2);
+      var newPrefix2 = pCIDR + s2;
+      var hostBits = 32 - newPrefix2;
+      var maxHosts = Math.pow(2, hostBits) - 2;
+      return {
+        type: 'max-hosts',
+        prompt: 'Starting from <strong>' + parent.ip + '/' + pCIDR + '</strong>, you create <strong>' + subnets2 + ' equal subnets</strong>. <strong>Max usable hosts per subnet?</strong>',
+        meta: 'Parent: ' + parent.ip + '/' + pCIDR + '  ·  Need: ' + subnets2 + ' subnets',
+        answers: [String(maxHosts)],
+        teach: [
+          'Subnets needed: ' + subnets2 + '. log2(' + subnets2 + ') = <strong>' + s2 + '</strong> bits to borrow.',
+          'New prefix: ' + pCIDR + ' + ' + s2 + ' = <strong>/' + newPrefix2 + '</strong>.',
+          'Host bits remaining: 32 - ' + newPrefix2 + ' = <strong>' + hostBits + '</strong>.',
+          'Max usable hosts: 2^' + hostBits + ' - 2 = <strong>' + maxHosts + '</strong>.',
+          'Mask: ' + prefixToMask(newPrefix2) + '.'
+        ],
+        hint: 'Borrow ' + s2 + ' for subnets → /' + newPrefix2 + ' → ' + maxHosts + ' usable hosts.'
+      };
+    }
+
+    if (qt === 'max-subnets') {
+      var h2 = randInt(2, Math.min(12, available - 2));
+      var hosts2 = Math.pow(2, h2) - 2;
+      var newPrefix3 = 32 - h2;
+      if (newPrefix3 < pCIDR) return null;
+      var borrowed = newPrefix3 - pCIDR;
+      var maxSubnets = Math.pow(2, borrowed);
+      return {
+        type: 'max-subnets',
+        prompt: 'Starting from <strong>' + parent.ip + '/' + pCIDR + '</strong>, each subnet must support at least <strong>' + hosts2 + ' usable hosts</strong>. <strong>Max number of subnets?</strong>',
+        meta: 'Parent: ' + parent.ip + '/' + pCIDR + '  ·  Need: ≥' + hosts2 + ' hosts/subnet',
+        answers: [String(maxSubnets)],
+        teach: [
+          'Hosts needed: ' + hosts2 + '. Smallest h where 2^h - 2 ≥ ' + hosts2 + ': h = <strong>' + h2 + '</strong>.',
+          'New prefix: 32 - ' + h2 + ' = <strong>/' + newPrefix3 + '</strong>.',
+          'Bits borrowed from parent: ' + newPrefix3 + ' - ' + pCIDR + ' = <strong>' + borrowed + '</strong>.',
+          'Max subnets: 2^' + borrowed + ' = <strong>' + maxSubnets + '</strong>.',
+          'Mask: ' + prefixToMask(newPrefix3) + '.'
+        ],
+        hint: 'Reserve ' + h2 + ' host bits → /' + newPrefix3 + ' → ' + maxSubnets + ' subnets.'
+      };
+    }
+
+    if (qt === 'fits') {
+      var s4 = randInt(2, 8);
+      var subnets4 = randInt(Math.pow(2, s4 - 1) + 1, Math.pow(2, s4));
+      var h4 = randInt(2, 12);
+      var hosts4 = randInt(Math.pow(2, h4 - 1), Math.pow(2, h4) - 3);
+      var aS = bitsForSubnets(subnets4);
+      var aH = bitsForHosts(hosts4);
+      var fits = (pCIDR + aS + aH) <= 32;
+      return {
+        type: 'fits',
+        prompt: 'Can <strong>' + parent.ip + '/' + pCIDR + '</strong> support <strong>' + subnets4 + ' subnets</strong> with <strong>' + hosts4 + ' hosts each</strong>? (<em>yes / no</em>)',
+        meta: 'Parent: ' + parent.ip + '/' + pCIDR + '  ·  Test: ' + subnets4 + ' × ' + hosts4,
+        answers: fits ? ['yes', 'y'] : ['no', 'n'],
+        teach: [
+          'Subnets ' + subnets4 + ' → ' + aS + ' bits to borrow.',
+          'Hosts ' + hosts4 + ' → ' + aH + ' host bits (2^' + aH + ' - 2 = ' + (Math.pow(2, aH) - 2) + ').',
+          'Bit budget: ' + pCIDR + ' + ' + aS + ' + ' + aH + ' = <strong>' + (pCIDR + aS + aH) + '</strong>.',
+          fits ? 'Total ≤ 32 → <strong>fits</strong>. Use /' + (pCIDR + aS) + ' = ' + prefixToMask(pCIDR + aS) + '.' : 'Total > 32 → <strong>does not fit</strong>. Need bigger parent or fewer subnets/hosts.'
+        ],
+        hint: 'Add bits: ' + pCIDR + ' + ' + aS + ' + ' + aH + ' = ' + (pCIDR + aS + aH) + '. Compare to 32.'
+      };
+    }
+
+    if (qt === 'reverse') {
+      var add = randInt(2, Math.min(10, available - 2));
+      var newPrefix4 = pCIDR + add;
+      var subs5 = Math.pow(2, add);
+      var hosts5 = Math.pow(2, 32 - newPrefix4) - 2;
+      return {
+        type: 'reverse',
+        prompt: 'Given parent <strong>' + parent.ip + '/' + pCIDR + '</strong> and new mask <strong>' + prefixToMask(newPrefix4) + '</strong> (/' + newPrefix4 + '), how many subnets × usable hosts? Answer as <code>S×H</code>.',
+        meta: 'Parent: ' + parent.ip + '/' + pCIDR + '  ·  New mask: /' + newPrefix4,
+        answers: [subs5 + 'x' + hosts5, subs5 + ' x ' + hosts5, subs5 + '×' + hosts5, subs5 + '*' + hosts5],
+        teach: [
+          'Bits borrowed: ' + newPrefix4 + ' - ' + pCIDR + ' = <strong>' + add + '</strong>.',
+          'Number of subnets: 2^' + add + ' = <strong>' + subs5 + '</strong>.',
+          'Host bits: 32 - ' + newPrefix4 + ' = <strong>' + (32 - newPrefix4) + '</strong>.',
+          'Usable hosts: 2^' + (32 - newPrefix4) + ' - 2 = <strong>' + hosts5 + '</strong>.',
+          'Final: <strong>' + subs5 + ' subnets × ' + hosts5 + ' hosts</strong>.'
+        ],
+        hint: subs5 + ' subnets × ' + hosts5 + ' hosts.'
+      };
+    }
+
+    return null;
+  }
+
+  // ─── Render ────────────────────────────────────────────────
+  function startTimer() {
+    state.elapsed = 0;
+    if (state.timer) clearInterval(state.timer);
+    state.timer = setInterval(function(){
+      state.elapsed++;
+      var m = Math.floor(state.elapsed / 60);
+      var s = state.elapsed % 60;
+      document.getElementById('hsTimer').textContent = m + ':' + (s < 10 ? '0' : '') + s;
+    }, 1000);
+  }
+
+  function stopTimer() {
+    if (state.timer) clearInterval(state.timer);
+    state.timer = null;
+  }
+
+  function renderTeach(steps) {
+    var html = '';
+    for (var i = 0; i < steps.length; i++) {
+      html += '<div class="teach-step"><div class="teach-num">' + (i + 1) + '</div><div class="teach-body">' + steps[i] + '</div></div>';
+    }
+    document.getElementById('hsTeachBody').innerHTML = html;
+    var box = document.getElementById('hsTeach');
+    box.style.display = state.teachOpen ? 'block' : 'none';
+  }
+
+  window.hsToggleTeach = function() {
+    state.teachOpen = !state.teachOpen;
+    document.getElementById('hsTeach').style.display = state.teachOpen ? 'block' : 'none';
+  };
+
+  function showQuestion(q) {
+    state.current = q;
+    document.getElementById('hsPrompt').innerHTML = q.prompt;
+    document.getElementById('hsMeta').innerHTML = q.meta;
+    document.getElementById('hsInput').value = '';
+    document.getElementById('hsInput').focus();
+    document.getElementById('hsFeedback').className = 'feedback';
+    document.getElementById('hsFeedback').textContent = '';
+    var trainingOn = document.getElementById('hsTraining').checked;
+    if (trainingOn) {
+      renderTeach(q.teach);
+      state.teachOpen = true;
+    } else {
+      document.getElementById('hsTeach').style.display = 'none';
+    }
+    startTimer();
+  }
+
+  window.hsNew = function() {
+    var q = genQuestion();
+    if (!q) {
+      document.getElementById('hsPrompt').textContent = 'Could not generate a question with these settings — pick a different difficulty/type.';
+      return;
+    }
+    showQuestion(q);
+  };
+
+  window.hsCheck = function() {
+    if (!state.current) { window.hsNew(); return; }
+    var raw = document.getElementById('hsInput').value.trim().toLowerCase().replace(/\s+/g, '');
+    var ok = state.current.answers.some(function(a){ return a.toLowerCase().replace(/\s+/g, '') === raw; });
+    var fb = document.getElementById('hsFeedback');
+    state.total++;
+    if (ok) {
+      state.correct++;
+      state.streak++;
+      if (state.streak > state.best) {
+        state.best = state.streak;
+        localStorage.setItem(window.hsConfig.storageKey, String(state.best));
+      }
+      fb.className = 'feedback right';
+      fb.textContent = 'Correct. ' + state.elapsed + 's. Streak ' + state.streak + '.';
+    } else {
+      state.streak = 0;
+      fb.className = 'feedback wrong';
+      fb.innerHTML = 'Wrong. Correct answer: <strong>' + state.current.answers[0] + '</strong>. See solver below.';
+    }
+    document.getElementById('hsStreak').textContent = state.streak;
+    document.getElementById('hsBest').textContent = state.best;
+    document.getElementById('hsScore').textContent = state.correct + '/' + state.total;
+    state.teachOpen = true;
+    renderTeach(state.current.teach);
+    stopTimer();
+  };
+
+  window.hsHint = function() {
+    if (!state.current) return;
+    var fb = document.getElementById('hsFeedback');
+    fb.className = 'feedback wrong';
+    fb.style.background = '#fff4d6';
+    fb.style.color = '#5a4a1a';
+    fb.style.borderColor = '#c4a36b';
+    fb.textContent = 'Hint: ' + state.current.hint;
+  };
+
+  window.setDiff = function(btn) {
+    document.querySelectorAll('.pill[data-diff]').forEach(function(p){ p.classList.remove('active'); });
+    btn.classList.add('active');
+    state.diff = btn.dataset.diff;
+  };
+  window.setQT = function(btn) {
+    document.querySelectorAll('.pill[data-qt]').forEach(function(p){ p.classList.remove('active'); });
+    btn.classList.add('active');
+    state.qt = btn.dataset.qt;
+  };
+
+  // Initial state
+  document.getElementById('hsBest').textContent = state.best || '--';
+  window.hsNew();
+});
+</script>
+</body>
+</html>

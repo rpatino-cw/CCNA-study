@@ -37,6 +37,8 @@
     ]},
     { text: 'Practice', children: [
       { text: 'Practice Hub', href: 'practice-hub.html' },
+      { text: 'Subnetting Mastery', href: 'subnetting-mastery.html' },
+      { text: 'Hard Subnetting (2-constraint)', href: 'subnetting-hard.html' },
       { text: '3rd Party Games List', href: 'games-list.html' },
     ]},
     { text: '3rd Party Apps', children: [
