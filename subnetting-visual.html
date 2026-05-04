@@ -565,7 +565,7 @@
           </tbody>
         </table>
       </div>
-      <div style="font-family:var(--font-display);font-size:.72rem;color:var(--ink-muted);margin-top:10px;line-height:1.7"><strong>How to build it:</strong> Memorize one row → <code style="background:#FFF;padding:2px 6px;border-radius:4px">128 64 32 16 8 4 2 1</code>. Addresses (Magic) column = that row top-to-bottom. # of Subnets column = same row bottom-to-top, then double (256). Mask column = running sum (128, +64=192, +32=224…). Binary mask = count of 1s = CIDR bits in interesting octet. <strong>Wildcard</strong> = magic − 1 (or 255 − mask). <strong>Exponent</strong> = 2<sup>n</sup> = # of Subnets. <strong>Hosts</strong> = magic − 2 (only valid when 4th octet is interesting, i.e. /25–/30; /31 = 2 hosts P2P per RFC 3021†; /32 = host route). <strong>Block boundaries</strong> = count by magic in 4th octet — shows where each subnet starts. Sanity check: # of Subnets × Magic = 256 every row.</div>
+      <div style="font-family:var(--font-display);font-size:.72rem;color:var(--ink-muted);margin-top:10px;line-height:1.7"><strong>How to build it:</strong> Memorize one row → <code style="background:#FFF;padding:2px 6px;border-radius:4px">128 64 32 16 8 4 2 1</code>. Addresses (Magic) column = that row top-to-bottom. # of Subnets column = same row bottom-to-top, then double (256). Mask column = running sum (128, +64=192, +32=224…). Binary mask = count of 1s = CIDR bits in interesting octet. <strong>Wildcard</strong> = magic − 1 (or 255 − mask). <strong>Exponent</strong> = 2<sup>n</sup> = # of Subnets. <strong>Hosts</strong> = magic − 2 for /25–/30 only. For /1–/24, use the universal formula: <code>2<sup>(32−CIDR)</sup> − 2</code> (e.g. /20 → 2<sup>12</sup>−2 = 4094 hosts). /31 = 2 hosts P2P per RFC 3021†; /32 = host route. <strong>Block boundaries</strong> = count by magic in 4th octet — shows where each subnet starts. Sanity check: # of Subnets × Magic = 256 every row.</div>
 
       <div style="background:#FEF3C7;border:1px solid #F59E0B;border-radius:var(--radius-lg);padding:14px 16px;margin-top:14px;font-family:var(--font-body);font-size:.85rem;line-height:1.55;color:#1F2937">
         <div style="font-family:var(--font-display);font-size:.74rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#92400E;margin-bottom:6px">Reality check — where the cheat bends</div>
@@ -2242,14 +2242,14 @@
         var c25h = cidrs[3];
         var hostsAt25 = (c25h >= 31) ? (c25h === 31 ? '2 (P2P, RFC 3021)' : '1 (host route)') : (magic - 2);
         return ''
-          + '<strong>Hosts: ' + (magic - 2) + '</strong> &mdash; <em style="color:#FCD34D">only valid for /' + c25h + '</em>'
-          + '<br>Math: magic &minus; 2 = ' + magic + ' &minus; 2 = <strong>' + (magic - 2) + '</strong>'
+          + '<strong>Hosts: ' + (magic - 2) + '</strong> &mdash; <em style="color:#FCD34D">column value valid only for /' + c25h + '</em>'
+          + '<br>Quick math (4th oct): magic &minus; 2 = ' + magic + ' &minus; 2 = <strong>' + (magic - 2) + '</strong>'
           + '<br>(&minus;2: subnet ID + broadcast reserved)'
-          + '<br><br><em style="color:#FCD34D">Honest read by CIDR:</em>'
-          + '<br>/' + cidrs[0] + ': hosts = <strong>' + fmt(usable(cidrs[0])) + '</strong>'
-          + '<br>/' + cidrs[1] + ': hosts = <strong>' + fmt(usable(cidrs[1])) + '</strong>'
-          + '<br>/' + cidrs[2] + ': hosts = <strong>' + fmt(usable(cidrs[2])) + '</strong>'
-          + '<br>/' + c25h + ': hosts = <strong>' + hostsAt25 + '</strong> <span style="color:#4ADE80">&check; column value</span>';
+          + '<br><br><em style="color:#FCD34D">Universal formula: 2<sup>(32&minus;CIDR)</sup> &minus; 2</em>'
+          + '<br>/' + cidrs[0] + ': 2<sup>' + (32-cidrs[0]) + '</sup>&minus;2 = <strong>' + fmt(usable(cidrs[0])) + '</strong>'
+          + '<br>/' + cidrs[1] + ': 2<sup>' + (32-cidrs[1]) + '</sup>&minus;2 = <strong>' + fmt(usable(cidrs[1])) + '</strong>'
+          + '<br>/' + cidrs[2] + ': 2<sup>' + (32-cidrs[2]) + '</sup>&minus;2 = <strong>' + fmt(usable(cidrs[2])) + '</strong>'
+          + '<br>/' + c25h + ': 2<sup>' + (32-c25h) + '</sup>&minus;2 = <strong>' + hostsAt25 + '</strong> <span style="color:#4ADE80">&check; column value</span>';
       }
 
       // Block boundaries cell — 4th octet only
@@ -2281,17 +2281,17 @@
 
     // Derivation correlation map — what cells light up when you hover any cell
     var CORR = {
-      c1:        ['mask','addrs'],
-      c9:        ['mask','addrs'],
-      c17:       ['mask','addrs'],
-      c25:       ['mask','addrs'],
+      c1:        ['mask','wildcard','addrs','nets','exponent'],
+      c9:        ['mask','wildcard','addrs','nets','exponent'],
+      c17:       ['mask','wildcard','addrs','nets','exponent'],
+      c25:       ['mask','wildcard','addrs','nets','exponent','hosts','blocks'],
       mask:      ['wildcard','addrs','exponent'],
       wildcard:  ['mask','addrs'],
       addrs:     ['mask','wildcard','nets','hosts','blocks'],
       nets:      ['addrs','exponent'],
       exponent:  ['nets','mask'],
-      hosts:     ['addrs'],
-      blocks:    ['addrs']
+      hosts:     ['addrs','c25'],
+      blocks:    ['addrs','c25']
     };
 
     function clearCorr() {

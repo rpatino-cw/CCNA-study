@@ -85,6 +85,18 @@
     .tutor-msg.bot strong { font-weight: 700; }
     .tutor-msg.bot ul, .tutor-msg.bot ol { margin: 6px 0; padding-left: 18px; }
     .tutor-msg.bot li { margin-bottom: 3px; }
+    .tutor-msg.bot a {
+      color: #B45309; text-decoration: underline; text-underline-offset: 2px;
+      font-weight: 600;
+    }
+    .tutor-msg.bot a:hover { color: #92400E; }
+    .tutor-nav-btn {
+      display: inline-block; margin: 4px 6px 0 0; padding: 5px 12px;
+      background: #B45309; color: #FAF7F2; border: none; border-radius: 14px;
+      font-family: 'Space Grotesk', sans-serif; font-size: 0.74rem; font-weight: 600;
+      cursor: pointer; text-decoration: none;
+    }
+    .tutor-nav-btn:hover { background: #92400E; }
 
     .tutor-msg.typing {
       align-self: flex-start; background: #FFFFFF; border: 1px solid #E2DFD9;
@@ -246,17 +258,93 @@
     requestAnimationFrame(() => { messagesEl.scrollTop = messagesEl.scrollHeight; });
   }
 
+  // ── Page index for client-side navigation fallback ────────
+  const PAGE_INDEX = {
+    'subnetting': 'subnetting-visual.html',
+    'subnet': 'subnetting-visual.html',
+    'subnet mask': 'subnetting-trainer.html',
+    'cidr': 'cidr-3d.html',
+    'vlsm': 'vlsm.html',
+    'magic number': 'magic-number.html',
+    'ipv6': 'ipv6.html',
+    'osi': 'osi-sim.html',
+    'arp': 'arp-explainer.html',
+    'ospf': 'ospf-mastery.html',
+    'stp': 'stp-deep.html',
+    'spanning tree': 'stp-deep.html',
+    'acl': 'acl-simulator.html',
+    'packet journey': 'packet-journey.html',
+    'flashcards': 'flashcards.html',
+    'quiz': 'quiz.html',
+    'cheat sheet': 'cheat-sheet.html',
+    'command': 'command-ref.html',
+    'commands': 'command-ref.html',
+    'ios': 'command-ref.html',
+    'glossary': 'glossary.html',
+    'guide': 'guide.html',
+    'roadmap': 'roadmap.html',
+    'knowledge map': 'knowledge-map.html',
+    'exam cram': 'exam-cram.html',
+    'exam sim': 'exam-sim.html',
+    'exam': 'exam-replica.html',
+    'diagnostic': 'diagnostic.html',
+    'jeremy': 'jeremy-labs.html',
+    'ekere': 'ekere-labs.html',
+    'etherchannel': 'etherchannel-lab.html',
+    'wireless': 'wireless-ap-lab.html',
+    'lab': 'network-lab.html',
+    'core': 'core.html',
+    'home': 'core.html',
+    'dashboard': 'core.html',
+  };
+
+  // Detect navigation intent in user prompt → returns matched URL or null
+  function matchNavIntent(text) {
+    const t = text.toLowerCase();
+    const intent = /\b(take me to|go to|open|navigate to|show me the|bring me to|let me see the|jump to|learn|study|practice)\b/.test(t)
+      || /\b(page|webepage|webpage)\b/.test(t);
+    if (!intent) return null;
+    let best = null, bestLen = 0;
+    for (const key of Object.keys(PAGE_INDEX)) {
+      if (t.includes(key) && key.length > bestLen) { best = PAGE_INDEX[key]; bestLen = key.length; }
+    }
+    return best;
+  }
+
+  function pageTitleForUrl(url) {
+    for (const [k, v] of Object.entries(PAGE_INDEX)) if (v === url) return k;
+    return url;
+  }
+
   // ── Markdown-light ─────────────────────────────────────────
   function renderMarkdown(text) {
     // Strip pt-topology JSON blocks (rendered as buttons instead)
     text = text.replace(/```pt-topology[\s\S]*?```/g, '');
-    return escapeHtml(text)
+    // Extract markdown links BEFORE escaping, then re-inject as anchors
+    const links = [];
+    text = text.replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, (_, label, href) => {
+      const i = links.push({ label, href }) - 1;
+      return ` LINK${i} `;
+    });
+    let html = escapeHtml(text)
       .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
       .replace(/`([^`]+)`/g, '<code>$1</code>')
       .replace(/^\- (.+)$/gm, '<li>$1</li>')
       .replace(/^(\d+)\. (.+)$/gm, '<li>$2</li>')
       .replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>')
       .replace(/\n/g, '<br>');
+    html = html.replace(/ LINK(\d+) /g, (_, i) => {
+      const { label, href } = links[+i];
+      const safeHref = escapeAttr(href);
+      const isLocal = !/^https?:/i.test(href);
+      const target = isLocal ? '' : ' target="_blank" rel="noopener"';
+      return `<a href="${safeHref}"${target}>${escapeHtml(label)}</a>`;
+    });
+    return html;
+  }
+
+  function escapeAttr(s) {
+    return String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   }
 
   function escapeHtml(s) {
@@ -301,6 +389,23 @@
 
       history.push({ role: 'model', text: reply });
       appendMessage('bot', reply);
+
+      // Client-side navigation fallback — if user asked to navigate but reply has no link,
+      // inject a quick "Open <page>" button based on intent + topic match.
+      const navUrl = matchNavIntent(text);
+      const replyHasLink = /\]\([^)\s]+\)/.test(reply);
+      if (navUrl && !replyHasLink) {
+        const msgs = messagesEl.querySelectorAll('.tutor-msg.bot');
+        const lastMsg = msgs[msgs.length - 1];
+        if (lastMsg) {
+          const btn = document.createElement('a');
+          btn.className = 'tutor-nav-btn';
+          btn.href = navUrl;
+          btn.textContent = 'Open ' + pageTitleForUrl(navUrl);
+          lastMsg.appendChild(document.createElement('br'));
+          lastMsg.appendChild(btn);
+        }
+      }
 
       // Check for PT topology blocks and auto-build
       tryBuildPTTopology(reply);
