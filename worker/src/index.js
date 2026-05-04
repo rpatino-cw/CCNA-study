@@ -10,6 +10,7 @@ export { Nat } from './nat.js';
 export { Stp } from './stp.js';
 export { Ospf } from './ospf.js';
 export { Wifi } from './wifi.js';
+export { Suite } from './suite.js';
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -91,6 +92,13 @@ export default {
     if (m) {
       const id = env.WIFIS.idFromName(m[1].toUpperCase());
       return env.WIFIS.get(id).fetch(request);
+    }
+
+    // /suite/:id — Game Night (host-led mega-lobby across all 9 games)
+    m = url.pathname.match(/^\/suite\/([A-Z0-9]{4,8})$/i);
+    if (m) {
+      const id = env.SUITES.idFromName(m[1].toUpperCase());
+      return env.SUITES.get(id).fetch(request);
     }
 
     return new Response('Not found', { status: 404, headers: CORS });
