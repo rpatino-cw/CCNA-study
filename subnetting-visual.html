@@ -2334,6 +2334,15 @@
       });
     }
 
+    // Hard exclusions: columns that should NEVER light up from a given source,
+    // even via 2-step BFS. Hosts and Block boundaries are 4th-octet only, so
+    // hovering /1-/24 CIDR cells must not reach them through addrs.
+    var EXCLUDE = {
+      c1:  ['hosts', 'blocks'],
+      c9:  ['hosts', 'blocks'],
+      c17: ['hosts', 'blocks']
+    };
+
     // BFS depth 2 from source — returns sets of 1-step and 2-step neighbors
     function computeCorrelations(sourceCol) {
       var oneStep = new Set(CORR[sourceCol] || []);
@@ -2342,6 +2351,11 @@
         (CORR[neighbor] || []).forEach(function(n2) {
           if (n2 !== sourceCol && !oneStep.has(n2)) twoStep.add(n2);
         });
+      });
+      // Apply hard exclusions
+      (EXCLUDE[sourceCol] || []).forEach(function(blocked) {
+        oneStep.delete(blocked);
+        twoStep.delete(blocked);
       });
       return { oneStep: oneStep, twoStep: twoStep };
     }

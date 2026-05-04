@@ -3,6 +3,7 @@
 
 export { Room } from './room.js';
 export { Auction } from './auction.js';
+export { Routing } from './routing.js';
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -35,6 +36,13 @@ export default {
     if (m) {
       const id = env.AUCTIONS.idFromName(m[1].toUpperCase());
       return env.AUCTIONS.get(id).fetch(request);
+    }
+
+    // /route/:id — Route Lookup
+    m = url.pathname.match(/^\/route\/([A-Z0-9]{4,8})$/i);
+    if (m) {
+      const id = env.ROUTES.idFromName(m[1].toUpperCase());
+      return env.ROUTES.get(id).fetch(request);
     }
 
     return new Response('Not found', { status: 404, headers: CORS });
