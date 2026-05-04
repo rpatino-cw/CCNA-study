@@ -202,7 +202,8 @@
     state.aps.clear();
     state.idSeq = 0;
     layout.aps.forEach(ap => {
-      state.aps.set(ap.id, { ...ap, radios: ap.radios.map(r => ({ ...r })) });
+      const hydrated = hydrateDefaults({ ...ap, radios: ap.radios.map(r => ({ ...r })) });
+      state.aps.set(ap.id, hydrated);
       const n = parseInt(ap.id.split('-')[1], 10);
       if (Number.isFinite(n) && n > state.idSeq) state.idSeq = n;
     });
