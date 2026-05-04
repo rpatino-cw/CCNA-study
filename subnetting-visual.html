@@ -234,6 +234,10 @@
   .subnet-row td { transition: color 0.45s var(--ease-out), background 0.45s var(--ease-out); }
   .subnet-row td.col-hidden { color: transparent !important; }
   .subnet-row td.col-just-revealed { background: #FEF3C7 !important; }
+  /* Derivation correlation highlights — fire on cell hover */
+  .subnet-row td.corr-source { box-shadow: inset 0 0 0 2px #6366F1; background: rgba(99,102,241,0.20) !important; }
+  .subnet-row td.corr-related { box-shadow: inset 0 0 0 2px #818CF8; background: rgba(99,102,241,0.10) !important; }
+  .subnet-row td.corr-related::after { content: '↔'; position: absolute; font-size: 0.65rem; color: #6366F1; opacity: 0; }
 
   /* Walkthrough panel */
   .walk-bar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 12px; }
@@ -572,7 +576,7 @@
           <div><code>/9</code>&nbsp; → <strong>8,388,608</strong> addresses total (the "128" is step in octet&nbsp;2)</div>
           <div><code>/1</code>&nbsp; → <strong>2,147,483,648</strong> addresses total (the "128" is step in octet&nbsp;1)</div>
         </div>
-        <div style="margin-top:8px">Why it still works on the exam: most subnetting questions live in the 4th octet (/24–/30), where Addresses = host count. For /9–/24, the same number tells you <em>which boundary</em> a subnet starts on — same arithmetic, just one octet to the left. Hover any cell below for the per-row honest read.</div>
+        <div style="margin-top:8px">Why it still works on the exam: most subnetting questions live in the 4th octet (/24–/30), where Addresses = host count. For /9–/24, the same number tells you <em>which boundary</em> a subnet starts on — same arithmetic, just one octet to the left. Hover any cell below — tooltip shows the per-row honest read, and the cells it derives from light up indigo so you can see the math chain at a glance.</div>
       </div>
     </div>
 
@@ -2267,14 +2271,52 @@
       tip.style.top = y + 'px';
     }
 
+    // Derivation correlation map — what cells light up when you hover any cell
+    var CORR = {
+      c1:        ['mask','addrs'],
+      c9:        ['mask','addrs'],
+      c17:       ['mask','addrs'],
+      c25:       ['mask','addrs'],
+      mask:      ['wildcard','addrs','exponent'],
+      wildcard:  ['mask','addrs'],
+      addrs:     ['mask','wildcard','nets','hosts','blocks'],
+      nets:      ['addrs','exponent'],
+      exponent:  ['nets','mask'],
+      hosts:     ['addrs'],
+      blocks:    ['addrs']
+    };
+
+    function clearCorr() {
+      document.querySelectorAll('#seven-second-tbody td.corr-source, #seven-second-tbody td.corr-related').forEach(function(t) {
+        t.classList.remove('corr-source');
+        t.classList.remove('corr-related');
+      });
+    }
+
+    function applyCorr(row, sourceCol) {
+      // Skip if walkthrough running (hidden cells present)
+      if (row.querySelector('td.col-hidden')) return;
+      var related = CORR[sourceCol] || [];
+      Array.from(row.children).forEach(function(td) {
+        if (td.dataset.col === sourceCol) {
+          td.classList.add('corr-source');
+        } else if (related.indexOf(td.dataset.col) !== -1) {
+          td.classList.add('corr-related');
+        }
+      });
+    }
+
     rows.forEach(function(row) {
       Array.from(row.children).forEach(function(td) {
         td.addEventListener('mouseenter', function() {
           tip.innerHTML = buildTip(row, td.dataset.col);
           tip.classList.add('visible');
+          clearCorr();
+          applyCorr(row, td.dataset.col);
         });
         td.addEventListener('mouseleave', function() {
           tip.classList.remove('visible');
+          clearCorr();
         });
         td.addEventListener('mousemove', placeTip);
       });
