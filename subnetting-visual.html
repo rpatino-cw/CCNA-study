@@ -2011,23 +2011,29 @@
     var closeBtn = document.getElementById('walkCloseBtn');
 
     var rows = document.querySelectorAll('#seven-second-tbody tr.subnet-row');
-    var colOrder = ['c1', 'c9', 'c17', 'c25', 'mask', 'nets', 'addrs'];
+    var colOrder = ['c1', 'c9', 'c17', 'c25', 'mask', 'wildcard', 'nets', 'addrs', 'exponent', 'hosts', 'blocks'];
     rows.forEach(function(row) {
       Array.from(row.children).forEach(function(td, i) {
         td.dataset.col = colOrder[i];
       });
     });
 
+    // Cumulative show-set helper — each stage adds its column to all previous
+    var ALL_BEFORE_CIDR = ['addrs', 'nets', 'mask', 'wildcard', 'exponent'];
     var stages = [
       { msg: 'Start with a blank table. The whole thing builds from <strong>one row of numbers</strong> you memorize. Click Next to see it.', show: [] },
-      { msg: '<strong>Step 1 — Addresses column.</strong> Memorize this row: <code>128, 64, 32, 16, 8, 4, 2, 1</code>. Powers of 2, halving each step. Write it top-to-bottom in the rightmost column.', show: ['addrs'], highlight: ['addrs'] },
-      { msg: '<strong>Step 2 — Networks column.</strong> Same numbers reversed (then double the last one to 256): <code>2, 4, 8, 16, 32, 64, 128, 256</code>. Or shortcut: <em>Networks = 256 ÷ Addresses</em>. Networks × Addresses always = 256.', show: ['addrs', 'nets'], highlight: ['nets'] },
-      { msg: '<strong>Step 3 — Masks column.</strong> Running sum from your memorized row. Start at <code>128</code>. Add the next Address value each step: 128+64=<code>192</code>, +32=<code>224</code>, +16=<code>240</code>, +8=<code>248</code>, +4=<code>252</code>, +2=<code>254</code>, +1=<code>255</code>.', show: ['addrs', 'nets', 'mask'], highlight: ['mask'] },
-      { msg: '<strong>Step 4 — CIDR /1–/8.</strong> Number the rows 1 through 8 in the leftmost column. Covers the first octet.', show: ['addrs', 'nets', 'mask', 'c1'], highlight: ['c1'] },
-      { msg: '<strong>Step 5 — CIDR /9–/16.</strong> Each next column adds 8 to the previous. Same pattern, second octet.', show: ['addrs', 'nets', 'mask', 'c1', 'c9'], highlight: ['c9'] },
-      { msg: '<strong>Step 6 — CIDR /17–/24.</strong> Add 8 again. Third octet.', show: ['addrs', 'nets', 'mask', 'c1', 'c9', 'c17'], highlight: ['c17'] },
-      { msg: '<strong>Step 7 — CIDR /25–/32.</strong> Last column. Fourth octet — most CCNA subnetting questions live here.', show: ['addrs', 'nets', 'mask', 'c1', 'c9', 'c17', 'c25'], highlight: ['c25'] },
-      { msg: '<strong>Done.</strong> That\'s the whole table from one memorized row. Drill it daily — goal: under 90 seconds at exam start. Click Restart to run it again, or Close to play with the table.', show: ['addrs', 'nets', 'mask', 'c1', 'c9', 'c17', 'c25'], highlight: [] }
+      { msg: '<strong>Step 1 — Addresses (Magic) column.</strong> Memorize this row: <code>128, 64, 32, 16, 8, 4, 2, 1</code>. Powers of 2, halving each step. Write it top-to-bottom. <em>This is the keystone — every other column derives from it.</em>', show: ['addrs'], highlight: ['addrs'] },
+      { msg: '<strong>Step 2 — Networks column.</strong> Same numbers reversed, then double the last to 256: <code>2, 4, 8, 16, 32, 64, 128, 256</code>. Shortcut: <em>Networks = 256 ÷ Magic</em>. Sanity check: Networks × Magic = 256 every row.', show: ['addrs', 'nets'], highlight: ['nets'] },
+      { msg: '<strong>Step 3 — Mask column (decimal + binary).</strong> Running sum: 128, +64=<code>192</code>, +32=<code>224</code>, +16=<code>240</code>, +8=<code>248</code>, +4=<code>252</code>, +2=<code>254</code>, +1=<code>255</code>. Binary above each = count of 1s left-to-right (row 3 = <code>11100000</code> = three 1s = three borrowed bits).', show: ['addrs', 'nets', 'mask'], highlight: ['mask'] },
+      { msg: '<strong>Step 4 — Wildcard column.</strong> <code>Wildcard = Magic − 1</code>. Or: 255 − Mask. Sanity: Mask + Wildcard = 255 always. Used for ACL match statements and OSPF <code>network</code> commands.', show: ['addrs', 'nets', 'mask', 'wildcard'], highlight: ['wildcard'] },
+      { msg: '<strong>Step 5 — Exponent column.</strong> <code>2<sup>n</sup> = Networks</code>. n = count of 1s in mask binary = bits borrowed for the network. Row 3: 2³ = 8 networks. Drill all 8: 2¹=2, 2²=4, 2³=8, 2⁴=16, 2⁵=32, 2⁶=64, 2⁷=128, 2⁸=256.', show: ['addrs', 'nets', 'mask', 'wildcard', 'exponent'], highlight: ['exponent'] },
+      { msg: '<strong>Step 6 — CIDR /1–/8.</strong> Number rows 1–8 in leftmost column. Covers the <em>first</em> octet. /8 = Class A boundary.', show: ALL_BEFORE_CIDR.concat(['c1']), highlight: ['c1'] },
+      { msg: '<strong>Step 7 — CIDR /9–/16.</strong> Add 8 to previous column. <em>Second</em> octet. /16 = Class B boundary.', show: ALL_BEFORE_CIDR.concat(['c1', 'c9']), highlight: ['c9'] },
+      { msg: '<strong>Step 8 — CIDR /17–/24.</strong> Add 8 again. <em>Third</em> octet. /24 = Class C boundary, typical LAN.', show: ALL_BEFORE_CIDR.concat(['c1', 'c9', 'c17']), highlight: ['c17'] },
+      { msg: '<strong>Step 9 — CIDR /25–/32.</strong> Last CIDR column. <em>Fourth</em> octet — where most CCNA subnetting questions live.', show: ALL_BEFORE_CIDR.concat(['c1', 'c9', 'c17', 'c25']), highlight: ['c25'] },
+      { msg: '<strong>Step 10 — Hosts column</strong> <span style="color:#A78BFA">(purple = /25–/32 ONLY).</span> <code>Hosts = Magic − 2</code> (subnet ID + broadcast reserved). Row 3 /27 = 30 hosts. Edge cases: /31 = 2 (P2P, RFC 3021), /32 = host route.', show: ALL_BEFORE_CIDR.concat(['c1', 'c9', 'c17', 'c25', 'hosts']), highlight: ['hosts'] },
+      { msg: '<strong>Step 11 — Block boundaries column</strong> <span style="color:#A78BFA">(purple = 4th octet ONLY).</span> Count by Magic in 4th octet — shows where /27 subnets START. Row 3: 0, 32, 64, 96, 128, 160, 192, 224. To find a host\'s subnet, round its 4th octet DOWN to nearest Magic.', show: ALL_BEFORE_CIDR.concat(['c1', 'c9', 'c17', 'c25', 'hosts', 'blocks']), highlight: ['blocks'] },
+      { msg: '<strong>Done.</strong> Whole 9-column table built from one memorized row of 8 numbers. Drill daily — goal: full table under 90 seconds at exam start. Restart to run again, or Close to play with the table.', show: ALL_BEFORE_CIDR.concat(['c1', 'c9', 'c17', 'c25', 'hosts', 'blocks']), highlight: [] }
   ];
 
     var current = 0;
