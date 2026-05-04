@@ -6,8 +6,33 @@
  */
 (function () {
   const HISTORY_KEY = 'ccna_chat_history_v1';
+  const AUTONAV_KEY = 'ccna_chat_autonav';
   const MAX_TURNS = 30;
   const MAX_INPUT = 1500;
+  const AUTONAV_DELAY_MS = 1500;
+
+  function pagesIndexUrl() {
+    const path = location.pathname;
+    const dir = path.substring(0, path.lastIndexOf('/') + 1);
+    return dir + 'data/pages-index.json';
+  }
+
+  async function loadPagesIndex() {
+    try {
+      const res = await fetch(pagesIndexUrl(), { cache: 'no-cache' });
+      if (!res.ok) return [];
+      const arr = await res.json();
+      return Array.isArray(arr) ? arr : [];
+    } catch (_) { return []; }
+  }
+
+  function autonavOn() {
+    return localStorage.getItem(AUTONAV_KEY) !== '0';
+  }
+
+  function setAutonav(on) {
+    localStorage.setItem(AUTONAV_KEY, on ? '1' : '0');
+  }
 
   document.addEventListener('DOMContentLoaded', function () {
     const msgs = document.getElementById('msgs');
@@ -16,17 +41,41 @@
     const send = document.getElementById('send');
     const btnKey = document.getElementById('btn-key');
     const btnClear = document.getElementById('btn-clear');
+    const btnAutonav = document.getElementById('btn-autonav');
     const keyStatus = document.getElementById('key-status');
     const counter = document.getElementById('counter');
     const suggestions = document.getElementById('suggestions');
 
     let history = loadHistory();
     let busy = false;
+    let pagesIndex = [];
+    let pagesBySlug = {};
+
+    loadPagesIndex().then(function (idx) {
+      pagesIndex = idx;
+      pagesBySlug = {};
+      for (const p of idx) pagesBySlug[p.slug] = p;
+    });
 
     renderHistory();
     refreshKeyStatus();
+    refreshAutonavBtn();
     updateCounter();
     autoSize(input);
+
+    if (btnAutonav) {
+      btnAutonav.addEventListener('click', function () {
+        setAutonav(!autonavOn());
+        refreshAutonavBtn();
+      });
+    }
+
+    function refreshAutonavBtn() {
+      if (!btnAutonav) return;
+      const on = autonavOn();
+      btnAutonav.textContent = 'Auto-jump: ' + (on ? 'on' : 'off');
+      btnAutonav.setAttribute('aria-pressed', on ? 'true' : 'false');
+    }
 
     btnKey.addEventListener('click', async function () {
       const k = await window.gemini.promptForKey({ force: false, prefill: window.gemini.getKey() || '' });
@@ -88,13 +137,15 @@
       const typing = appendTyping();
 
       try {
-        const reply = await window.gemini.generateText(null, text);
+        const reply = await window.gemini.generateChat(text, history.slice(0, -1), pagesIndex);
         typing.remove();
-        const clean = String(reply || '').trim();
-        if (!clean) {
+        const answer = String((reply && reply.answer) || '').trim();
+        const nav = (reply && Array.isArray(reply.nav)) ? reply.nav : [];
+        if (!answer && !nav.length) {
           appendError('Empty reply from Gemini. Try again.');
         } else {
-          pushMessage({ role: 'bot', text: clean });
+          pushMessage({ role: 'bot', text: answer || '(navigating…)', nav: nav });
+          maybeAutoNavigate(nav);
         }
       } catch (e) {
         typing.remove();
@@ -147,6 +198,60 @@
         div.innerHTML = renderBotMarkdown(m.text);
       }
       msgs.appendChild(div);
+      if (m.role === 'bot' && Array.isArray(m.nav) && m.nav.length) {
+        msgs.appendChild(renderNavCards(m.nav));
+      }
+    }
+
+    function renderNavCards(nav) {
+      const wrap = document.createElement('div');
+      wrap.className = 'chat-nav-cards';
+      for (const n of nav) {
+        const page = pagesBySlug[n.slug];
+        if (!page) continue;
+        const card = document.createElement('a');
+        card.className = 'chat-nav-card';
+        card.href = page.href;
+        card.innerHTML =
+          '<div class="chat-nav-card-label">' + escapeHtml(n.label || page.slug) + '</div>' +
+          '<div class="chat-nav-card-why">' + escapeHtml(n.why || page.blurb || '') + '</div>' +
+          '<div class="chat-nav-card-cta">Open →</div>';
+        wrap.appendChild(card);
+      }
+      return wrap;
+    }
+
+    function escapeHtml(s) {
+      return String(s || '').replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+    }
+
+    function maybeAutoNavigate(nav) {
+      if (!autonavOn()) return;
+      if (!nav || nav.length !== 1) return;
+      const target = nav[0];
+      if (!target || target.confidence !== 'high') return;
+      const page = pagesBySlug[target.slug];
+      if (!page) return;
+      const toast = buildAutonavToast(page);
+      msgs.appendChild(toast.el);
+      scrollBottom();
+      const t = setTimeout(function () {
+        toast.el.remove();
+        location.href = page.href;
+      }, AUTONAV_DELAY_MS);
+      toast.cancel.addEventListener('click', function () {
+        clearTimeout(t);
+        toast.el.remove();
+      });
+    }
+
+    function buildAutonavToast(page) {
+      const el = document.createElement('div');
+      el.className = 'chat-nav-toast';
+      el.innerHTML =
+        '<span>Taking you to <strong>' + escapeHtml(page.slug) + '</strong>…</span>' +
+        '<button type="button" class="chat-nav-toast-cancel">Cancel</button>';
+      return { el: el, cancel: el.querySelector('.chat-nav-toast-cancel') };
     }
 
     function appendTyping() {
