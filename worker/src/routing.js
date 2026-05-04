@@ -101,7 +101,7 @@ export class Routing {
 
 // ── Problem generator ───────────────────────────────────────────────────
 
-function generateProblem() {
+export function generateProblem() {
   // Pick a destination and build 4 candidate routes. Exactly one is the LPM
   // winner (or the default route, if no specific route matches).
   const dest = randomDest();
@@ -207,7 +207,7 @@ function matches(ip, network, prefix) {
   return (ipToInt(ip) & mask) === (ipToInt(network) & mask);
 }
 
-function checkAnswer(problem, given) {
+export function checkAnswer(problem, given) {
   if (typeof given !== 'string') return false;
   const norm = given.trim().toUpperCase();
   return norm === problem.correct;

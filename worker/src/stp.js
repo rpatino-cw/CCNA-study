@@ -102,7 +102,7 @@ export class Stp {
 
 // ── Problem generator ───────────────────────────────────────────────────
 
-function generateProblem() {
+export function generateProblem() {
   // Scenario types:
   //  - 50% all-same-priority (default 32768) → pure MAC tie-break, drills correct mental model
   //  - 30% one switch has clearly lower priority → easy
@@ -189,7 +189,7 @@ function randomMac() {
   return [oct(),oct(),oct(),oct(),oct(),oct()].join(':');
 }
 
-function checkAnswer(problem, given) {
+export function checkAnswer(problem, given) {
   if (typeof given !== 'string') return false;
   return given.trim().toUpperCase() === problem.correct;
 }

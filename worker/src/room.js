@@ -121,7 +121,7 @@ export class Room {
 
 // ── Subnet problem generator ─────────────────────────────────────────────
 
-function generateProblem() {
+export function generateProblem() {
   const prefix = 8 + Math.floor(Math.random() * 23); // /8../30
   const ip = randomIp();
   const ask = pickAsk(prefix);
@@ -163,7 +163,7 @@ function solve(problem) {
   }
 }
 
-function checkAnswer(problem, given) {
+export function checkAnswer(problem, given) {
   if (typeof given !== 'string') return false;
   const expected = solve(problem);
   return normalize(given) === normalize(expected);

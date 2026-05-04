@@ -131,7 +131,7 @@ export class Ports {
 
 // ── Problem generator ───────────────────────────────────────────────────
 
-function generateProblem() {
+export function generateProblem() {
   const entry = PORTS[Math.floor(Math.random() * PORTS.length)];
   const direction = Math.random() < 0.5 ? 's2p' : 'p2s';
   // s2p = "given service, what port?"  → answer is number (and proto)
@@ -149,7 +149,7 @@ function normalize(s) {
   return String(s||'').trim().toLowerCase().replace(/\s+/g,' ').replace(/[\-_/]/g,' ').replace(/\s+/g,' ').trim();
 }
 
-function checkAnswer(problem, given) {
+export function checkAnswer(problem, given) {
   if (typeof given !== 'string') return false;
   const norm = normalize(given);
 

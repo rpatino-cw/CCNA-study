@@ -117,7 +117,7 @@ const PRETTY = {
   'outside-global':'Outside Global',
 };
 
-function generateProblem() {
+export function generateProblem() {
   const insideLocal  = randomPrivate();
   const insideGlobal = randomPublic();
   // 70% of rounds: simple outbound NAT (outside local == outside global).
@@ -181,7 +181,7 @@ function randomPublic() {
 function r256() { return Math.floor(Math.random()*256); }
 function r1to254() { return 1 + Math.floor(Math.random()*254); }
 
-function checkAnswer(problem, given) {
+export function checkAnswer(problem, given) {
   if (typeof given !== 'string') return false;
   return given.trim().toUpperCase() === problem.correct;
 }

@@ -100,7 +100,7 @@ export class Wildcard {
 
 // ── Problem generator ───────────────────────────────────────────────────
 
-function generateProblem() {
+export function generateProblem() {
   // Pick a /prefix in the meaningful range for ACL-style wildcards.
   // /8..30 covers exam scope. Skip /31 /32 (no inverse interesting).
   const prefix = 8 + Math.floor(Math.random() * 23); // 8..30
@@ -127,7 +127,7 @@ function wildcardOf(prefix) {
   return intToIp((~maskOf(prefix)) >>> 0);
 }
 
-function checkAnswer(problem, given) {
+export function checkAnswer(problem, given) {
   if (typeof given !== 'string') return false;
   const norm = given.trim().toLowerCase().replace(/\s+/g,'');
 

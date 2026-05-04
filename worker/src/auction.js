@@ -109,7 +109,7 @@ export class Auction {
 
 // ── VLSM problem generator ──────────────────────────────────────────────
 
-function generateProblem() {
+export function generateProblem() {
   // Tenant needs N hosts. Player must answer the smallest prefix that fits.
   const hostsTarget = randomHosts();
   const tenant = TENANTS[Math.floor(Math.random() * TENANTS.length)];
@@ -135,7 +135,7 @@ function smallestPrefixForHosts(n) {
   return Math.max(0, Math.min(32, prefix));
 }
 
-function checkAnswer(problem, given) {
+export function checkAnswer(problem, given) {
   if (typeof given !== 'string') return false;
   const norm = String(given).trim().toLowerCase().replace(/\s+/g, '').replace(/^\//, '');
   const want = smallestPrefixForHosts(problem.hosts);

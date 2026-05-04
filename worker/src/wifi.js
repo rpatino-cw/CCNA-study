@@ -120,7 +120,7 @@ export class Wifi {
 
 // ── Problem generator ───────────────────────────────────────────────────
 
-function generateProblem() {
+export function generateProblem() {
   const target = STANDARDS[Math.floor(Math.random()*STANDARDS.length)];
   const distractors = ALL_STANDARDS.filter(s => s !== target.std);
   shuffle(distractors);
@@ -144,7 +144,7 @@ function shuffle(a) {
   return a;
 }
 
-function checkAnswer(problem, given) {
+export function checkAnswer(problem, given) {
   if (typeof given !== 'string') return false;
   return given.trim().toUpperCase() === problem.correct;
 }
