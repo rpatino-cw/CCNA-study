@@ -474,6 +474,11 @@ document.addEventListener('DOMContentLoaded', function() {
     const reset = $('ssReset');
     if (reset) reset.onclick = () => ws && ws.send(JSON.stringify({type:'reset'}));
 
+    // Detach previous keyboard handler if any
+    if (stage._keyHandler) {
+      document.removeEventListener('keydown', stage._keyHandler);
+      stage._keyHandler = null;
+    }
     stage.querySelectorAll('.rl-route[data-letter]').forEach(btn => {
       btn.onclick = () => {
         const letter = btn.dataset.letter;
@@ -481,23 +486,19 @@ document.addEventListener('DOMContentLoaded', function() {
         ws && ws.send(JSON.stringify({type:'answer', answer: letter}));
       };
     });
-    // Keyboard: A/B/C/D
+    // Keyboard: A/B/C/D when round live
     if (lastState.match.status === 'playing' && !lastState.match.answeredBy) {
       const keyHandler = (e) => {
         const k = e.key.toUpperCase();
         if (['A','B','C','D'].includes(k)) {
           ws && ws.send(JSON.stringify({type:'answer', answer: k}));
           document.removeEventListener('keydown', keyHandler);
+          stage._keyHandler = null;
         }
       };
       document.addEventListener('keydown', keyHandler);
       stage._keyHandler = keyHandler;
     }
-    if (stage._keyHandlerCleanup) stage._keyHandlerCleanup();
-    stage._keyHandlerCleanup = () => {
-      if (stage._keyHandler) document.removeEventListener('keydown', stage._keyHandler);
-      stage._keyHandler = null;
-    };
 
     stage.querySelectorAll('[data-action="rename"]').forEach(b => b.onclick = renameInline);
   }
