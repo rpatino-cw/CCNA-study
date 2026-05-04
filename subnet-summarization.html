@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#FAF7F2">
+  <title>Subnet Summarization — Route Aggregation Drill</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+  <link rel="icon" type="image/svg+xml" href="/CCNA-study/favicon.svg">
+  <link rel="stylesheet" href="css/shared.css?v=4.56">
+  <style>
+    .page-header {
+      padding: var(--s-xl) 0 var(--s-lg);
+      border-bottom: 2px solid var(--ink);
+      margin-bottom: var(--s-xl);
+    }
+    .page-header h1 { font-family: var(--font-display); font-size: 2.6rem; font-weight: 700; letter-spacing: -0.04em; line-height: 1; margin-bottom: 6px; }
+    .page-header-sub { font-family: var(--font-display); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-muted); }
+    .page-header p { color: var(--ink-secondary); margin-top: 10px; max-width: 720px; }
+
+    .layout-grid { display: grid; grid-template-columns: 1fr 280px; gap: var(--s-lg); align-items: start; }
+    @media (max-width: 900px) { .layout-grid { grid-template-columns: 1fr; } }
+
+    .visual-block { background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 20px; margin-bottom: var(--s-md); }
+
+    .pill-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; align-items: center; }
+    .pill-label { font-family: var(--font-display); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-muted); margin-right: 8px; }
+    .pill { font-family: var(--font-display); font-size: 0.75rem; padding: 6px 14px; border-radius: 16px; border: 1px solid var(--border); background: var(--bg-surface); cursor: pointer; transition: all 0.15s; }
+    .pill:hover { border-color: var(--accent); color: var(--accent); }
+    .pill.active { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+
+    .drill-meta { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; margin-bottom: 14px; font-family: var(--font-mono); font-size: 0.82rem; color: var(--ink-secondary); }
+    .drill-meta .dm-val { font-weight: 700; color: var(--ink); }
+
+    .q-card { border: 2px solid var(--ink); border-radius: var(--radius-lg); padding: 24px; background: var(--bg); margin-bottom: 14px; }
+    .q-prompt { font-family: var(--font-display); font-size: 1.1rem; font-weight: 600; line-height: 1.4; margin-bottom: 12px; }
+    .net-list { font-family: var(--font-mono); font-size: 0.95rem; line-height: 1.9; color: var(--ink); padding: 12px 16px; background: var(--bg-surface); border-radius: 8px; margin-bottom: 14px; }
+    .net-list .item { display: block; }
+
+    .input-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 12px; }
+    .input-row label { font-family: var(--font-display); font-size: 0.75rem; color: var(--ink-muted); text-transform: uppercase; letter-spacing: 0.04em; }
+    .drill-input { font-family: var(--font-mono); font-size: 1rem; padding: 10px 14px; border: 2px solid var(--border); border-radius: 8px; background: var(--bg-surface); transition: border-color 0.15s; }
+    .drill-input:focus { border-color: var(--accent); outline: none; }
+    .drill-input.net { width: 180px; }
+    .drill-input.mask { width: 200px; }
+    .drill-input.boolean { width: 100px; }
+
+    .actions { display: flex; gap: 8px; flex-wrap: wrap; }
+    .btn-action { font-family: var(--font-display); font-size: 0.85rem; font-weight: 600; padding: 9px 18px; border-radius: 8px; border: 1px solid var(--ink); background: var(--ink); color: var(--bg); cursor: pointer; transition: all 0.15s; }
+    .btn-action:hover { background: var(--accent); border-color: var(--accent); }
+    .btn-action.secondary { background: var(--bg-surface); color: var(--ink); }
+    .btn-action.ghost { background: none; border-color: var(--border); color: var(--ink-muted); }
+
+    .feedback { margin-top: 14px; padding: 12px 14px; border-radius: 8px; font-family: var(--font-mono); font-size: 0.9rem; display: none; }
+    .feedback.right { background: #d6f5d6; color: #1a4d1a; border: 1px solid #6bbf6b; display: block; }
+    .feedback.wrong { background: #f9d6d6; color: #5a1a1a; border: 1px solid #c46b6b; display: block; }
+
+    .teach { margin-top: 16px; border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 20px; background: var(--bg-surface); }
+    .teach-title { font-family: var(--font-display); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-muted); margin-bottom: 10px; display: flex; justify-content: space-between; }
+    .teach-toggle { font-family: var(--font-display); font-size: 0.72rem; padding: 4px 10px; border-radius: 12px; border: 1px solid var(--border); background: var(--bg); cursor: pointer; }
+    .teach-step { display: flex; gap: 12px; padding: 8px 0; border-top: 1px dashed var(--border); }
+    .teach-step:first-of-type { border-top: none; }
+    .teach-num { flex-shrink: 0; width: 24px; height: 24px; border-radius: 12px; background: var(--ink); color: var(--bg); font-family: var(--font-display); font-size: 0.78rem; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+    .teach-body { flex: 1; font-family: var(--font-mono); font-size: 0.85rem; line-height: 1.55; color: var(--ink); }
+    .teach-body code { background: var(--bg); padding: 1px 5px; border-radius: 3px; }
+
+    .binary-grid { font-family: var(--font-mono); font-size: 0.8rem; line-height: 1.5; background: var(--bg); border-radius: 6px; padding: 12px; margin: 8px 0; overflow-x: auto; }
+    .binary-grid table { border-collapse: collapse; }
+    .binary-grid td { padding: 1px 3px; }
+    .binary-grid .label { color: var(--ink-secondary); padding-right: 12px; }
+    .bit-match { background: #d6f5d6; color: #1a4d1a; font-weight: 700; }
+    .bit-diff { background: #f9d6d6; color: #5a1a1a; }
+    .bit-host { color: var(--ink-muted); }
+
+    .ref-card { position: sticky; top: 80px; border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 16px; background: var(--bg-surface); font-family: var(--font-mono); font-size: 0.78rem; }
+    .ref-card h3 { font-family: var(--font-display); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-muted); margin: 0 0 10px; }
+
+    details > summary { cursor: pointer; font-family: var(--font-display); font-size: 0.85rem; font-weight: 600; padding: 8px 0; }
+  </style>
+</head>
+<body>
+  <nav class="top-nav"></nav>
+
+  <div class="container">
+    <header class="page-header">
+      <div class="page-header-sub">CCNA · Domain 3 · Route Summarization</div>
+      <h1>Subnet Summarization</h1>
+      <p>Given a list of contiguous subnets, find the single summary route (supernet) that covers them all. Critical for keeping routing tables small. The exam tests both directions: derive the summary, or verify which networks fall inside one.</p>
+      <p style="margin-top:8px"><strong>Related:</strong>
+        <a href="subnetting-hard.html" style="color:var(--accent);font-weight:600">Hard Subnetting</a> ·
+        <a href="vlsm-allocation.html" style="color:var(--accent);font-weight:600">VLSM Allocation</a></p>
+    </header>
+
+    <div class="layout-grid">
+      <main>
+
+        <section class="visual-block">
+          <div class="pill-row">
+            <span class="pill-label">Difficulty</span>
+            <button class="pill active" data-diff="easy" onclick="setDiff(this)">Easy (2 nets)</button>
+            <button class="pill" data-diff="medium" onclick="setDiff(this)">Medium (4 nets)</button>
+            <button class="pill" data-diff="hard" onclick="setDiff(this)">Hard (8 nets)</button>
+          </div>
+          <div class="pill-row">
+            <span class="pill-label">Question type</span>
+            <button class="pill active" data-qt="all" onclick="setQT(this)">All</button>
+            <button class="pill" data-qt="summarize" onclick="setQT(this)">Find summary</button>
+            <button class="pill" data-qt="contains" onclick="setQT(this)">Is X in summary?</button>
+            <button class="pill" data-qt="count" onclick="setQT(this)">How many networks?</button>
+          </div>
+          <div class="drill-meta">
+            <span>Streak <strong class="dm-val" id="ssStreak">0</strong></span>
+            <span>Best <strong class="dm-val" id="ssBest">--</strong></span>
+            <span>Score <strong class="dm-val" id="ssScore">0/0</strong></span>
+            <button class="btn-action ghost" style="margin-left:auto;font-size:0.75rem;padding:5px 12px" onclick="ssReset()">Reset score</button>
+          </div>
+
+          <div class="q-card">
+            <div class="q-prompt" id="ssPrompt">Click <em>New question</em> to begin.</div>
+            <div class="net-list" id="ssNetList" style="display:none"></div>
+            <div id="ssInputArea"></div>
+            <div class="actions">
+              <button class="btn-action" onclick="ssCheck()">Check</button>
+              <button class="btn-action secondary" onclick="ssHint()">Hint</button>
+              <button class="btn-action ghost" onclick="ssNew()">New question</button>
+            </div>
+            <div class="feedback" id="ssFeedback"></div>
+          </div>
+
+          <div class="teach" id="ssTeach" style="display:none">
+            <div class="teach-title">
+              <span>Binary alignment + walkthrough</span>
+              <button class="teach-toggle" onclick="ssToggleTeach()">Hide</button>
+            </div>
+            <div id="ssTeachBody"></div>
+          </div>
+        </section>
+
+        <section class="visual-block">
+          <details>
+            <summary>How summarization works (recipe)</summary>
+            <div style="margin-top:10px;font-family:var(--font-mono);font-size:0.88rem;line-height:1.65">
+              <ol style="margin:0 0 0 22px">
+                <li><strong>Write each network in binary.</strong> 32 bits per address.</li>
+                <li><strong>Mark the leading bits that match in ALL addresses.</strong> Walk left-to-right; the first column where any two networks differ ends the match.</li>
+                <li><strong>Common-bit count = summary prefix length.</strong></li>
+                <li><strong>Summary network</strong> = take any of the input networks and zero out everything past the common bits.</li>
+                <li><strong>Sanity check:</strong> the summary must cover ALL inputs and not extend further than needed.</li>
+              </ol>
+              <div style="margin-top:10px"><strong>Example.</strong> Summarize 192.168.0.0/24, 192.168.1.0/24, 192.168.2.0/24, 192.168.3.0/24.</div>
+              <pre style="margin:6px 0;font-size:0.82rem">192.168.0.0  =  11000000.10101000.000000<u>00</u>.00000000
+192.168.1.0  =  11000000.10101000.000000<u>01</u>.00000000
+192.168.2.0  =  11000000.10101000.000000<u>10</u>.00000000
+192.168.3.0  =  11000000.10101000.000000<u>11</u>.00000000
+                                       ^^^^^^^^ first 22 bits match
+Summary:        11000000.10101000.00000000.00000000  →  192.168.0.0/22</pre>
+              <div style="margin-top:8px"><strong>Trap:</strong> if the bottom 2 bits ranged 1, 2, 3, 4 instead of 0–3, no clean /22 summary exists. Networks must be aligned to the summary boundary.</div>
+            </div>
+          </details>
+        </section>
+
+      </main>
+
+      <aside>
+        <div class="ref-card">
+          <h3>Quick patterns</h3>
+          <table style="width:100%;border-collapse:collapse">
+            <thead><tr><th style="text-align:left">Inputs</th><th style="text-align:right">Sum</th></tr></thead>
+            <tbody>
+              <tr><td>2 × /24 (aligned)</td><td>/23</td></tr>
+              <tr><td>4 × /24</td><td>/22</td></tr>
+              <tr><td>8 × /24</td><td>/21</td></tr>
+              <tr><td>16 × /24</td><td>/20</td></tr>
+              <tr><td>2 × /26</td><td>/25</td></tr>
+              <tr><td>4 × /26</td><td>/24</td></tr>
+              <tr><td>2 × /16</td><td>/15</td></tr>
+              <tr><td>4 × /16</td><td>/14</td></tr>
+              <tr><td>256 × /24</td><td>/16</td></tr>
+            </tbody>
+          </table>
+          <div style="margin-top:10px;color:var(--ink-muted);font-size:0.72rem">N inputs at prefix /P → summary = /(P − log2(N)). Inputs must be contiguous AND aligned to the summary boundary.</div>
+        </div>
+        <div class="ref-card" style="margin-top:14px">
+          <h3>Mask map</h3>
+          <table style="width:100%;border-collapse:collapse">
+            <tbody>
+              <tr><td>/13</td><td style="text-align:right">255.248.0.0</td></tr>
+              <tr><td>/14</td><td style="text-align:right">255.252.0.0</td></tr>
+              <tr><td>/15</td><td style="text-align:right">255.254.0.0</td></tr>
+              <tr><td>/16</td><td style="text-align:right">255.255.0.0</td></tr>
+              <tr><td>/20</td><td style="text-align:right">255.255.240.0</td></tr>
+              <tr><td>/21</td><td style="text-align:right">255.255.248.0</td></tr>
+              <tr><td>/22</td><td style="text-align:right">255.255.252.0</td></tr>
+              <tr><td>/23</td><td style="text-align:right">255.255.254.0</td></tr>
+              <tr><td>/24</td><td style="text-align:right">255.255.255.0</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+<script defer src="js/nav.js?v=4.56"></script>
+<script>
+window.ssConfig = { storageKey: 'ccna_ss_best' };
+</script>
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+
+  // ─── IP arithmetic ─────────────────────────────────────────
+  function ipToInt(ip) {
+    var p = ip.split('.').map(Number);
+    return ((p[0] << 24) >>> 0) + (p[1] << 16) + (p[2] << 8) + p[3];
+  }
+  function intToIp(n) {
+    return [ (n >>> 24) & 255, (n >>> 16) & 255, (n >>> 8) & 255, n & 255 ].join('.');
+  }
+  function prefixToMask(p) {
+    var oct = [0,0,0,0]; var rem = p;
+    for (var i = 0; i < 4; i++) { var t = Math.min(8, rem); oct[i] = (256 - Math.pow(2, 8 - t)) & 255; rem -= t; if (rem <= 0) break; }
+    return oct.join('.');
+  }
+  function intToBinary(n) {
+    var s = (n >>> 0).toString(2);
+    while (s.length < 32) s = '0' + s;
+    return s.match(/.{8}/g).join('.');
+  }
+  function commonPrefixBits(ips) {
+    if (ips.length === 1) return 32;
+    var first = ips[0];
+    var minMatch = 32;
+    for (var i = 1; i < ips.length; i++) {
+      var xor = (first ^ ips[i]) >>> 0;
+      var matching = xor === 0 ? 32 : 32 - Math.floor(Math.log2(xor)) - 1;
+      if (xor === 0) matching = 32;
+      else {
+        // count leading zeros in 32-bit word
+        var bits = xor.toString(2);
+        matching = 32 - bits.length;
+      }
+      if (matching < minMatch) minMatch = matching;
+    }
+    return minMatch;
+  }
+  function applyMask(ip, prefix) {
+    if (prefix === 0) return 0;
+    if (prefix === 32) return ip >>> 0;
+    var mask = (0xFFFFFFFF << (32 - prefix)) >>> 0;
+    return (ip & mask) >>> 0;
+  }
+  function randInt(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
+  function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+  function normIP(s) { return s.trim().replace(/\s+/g, ''); }
+  function normMask(s) {
+    s = normIP(s).toLowerCase();
+    if (s.charAt(0) === '/') return s;
+    if (/^\d+$/.test(s) && +s >= 0 && +s <= 32) return '/' + s;
+    return s;
+  }
+
+  // ─── Generator ─────────────────────────────────────────────
+  function genSummarize(count, basePrefix) {
+    // Pick a parent boundary that's `count` blocks of /basePrefix wide.
+    var summaryBits = Math.log2(count);
+    if (summaryBits !== Math.floor(summaryBits)) summaryBits = Math.ceil(summaryBits);
+    var summaryPrefix = basePrefix - summaryBits;
+    var blockSize = Math.pow(2, 32 - basePrefix);
+    var summaryBlock = Math.pow(2, 32 - summaryPrefix);
+
+    // Pick a random starting boundary aligned to summaryBlock.
+    var startInt;
+    if (basePrefix >= 24) {
+      // Stay in 192.168.x or 10.x.x or 172.16.x
+      var third = Math.floor(Math.random() * (256 - count));
+      // Align to summaryBlock at the appropriate octet
+      var alignFactor = Math.pow(2, summaryBits);
+      third = Math.floor(third / alignFactor) * alignFactor;
+      var basePool = [
+        '192.168.' + third + '.0',
+        '10.' + randInt(0, 50) + '.' + third + '.0',
+        '172.16.' + third + '.0',
+      ];
+      startInt = ipToInt(pick(basePool));
+    } else {
+      // Larger summaries
+      var second = Math.floor(Math.random() * 64) * Math.pow(2, summaryBits - 8 < 0 ? 0 : summaryBits - 8);
+      startInt = ipToInt('10.' + (second & 255) + '.0.0');
+      startInt = applyMask(startInt, summaryPrefix);
+    }
+
+    var nets = [];
+    for (var i = 0; i < count; i++) {
+      nets.push(startInt + i * blockSize);
+    }
+
+    return {
+      type: 'summarize',
+      networks: nets.map(function(n){ return { ip: intToIp(n), prefix: basePrefix, int: n }; }),
+      answer: {
+        net: intToIp(startInt),
+        prefix: summaryPrefix,
+        mask: prefixToMask(summaryPrefix),
+      }
+    };
+  }
+
+  function genContains(diff) {
+    // Build a summary, then ask if a candidate IP/network is inside.
+    var seed = genSummarize(diff === 'easy' ? 4 : (diff === 'medium' ? 4 : 8), diff === 'hard' ? 24 : 24);
+    var summary = seed.answer;
+    var summaryInt = ipToInt(summary.net);
+    var summarySize = Math.pow(2, 32 - summary.prefix);
+    var candidate;
+    var inside = Math.random() < 0.5;
+    if (inside) {
+      candidate = summaryInt + randInt(0, summarySize - 1);
+    } else {
+      // Pick something just outside.
+      candidate = (summaryInt + summarySize + randInt(0, summarySize - 1)) >>> 0;
+    }
+    return {
+      type: 'contains',
+      summary: summary,
+      candidate: intToIp(candidate),
+      answer: { yesno: inside ? 'yes' : 'no' }
+    };
+  }
+
+  function genCount() {
+    // Given summary X/P and original-prefix /Q, how many /Q networks fit?
+    var basePrefix = pick([24, 25, 26]);
+    var bits = pick([2, 3, 4]);
+    var summaryPrefix = basePrefix - bits;
+    var third = Math.floor(Math.random() * 64) * Math.pow(2, bits);
+    var net = '192.168.' + (third & 255) + '.0';
+    return {
+      type: 'count',
+      summary: { net: net, prefix: summaryPrefix, mask: prefixToMask(summaryPrefix) },
+      basePrefix: basePrefix,
+      answer: { count: Math.pow(2, bits) }
+    };
+  }
+
+  // ─── State ─────────────────────────────────────────────────
+  var state = {
+    diff: 'easy',
+    qt: 'all',
+    current: null,
+    streak: 0,
+    correct: 0,
+    total: 0,
+    best: parseInt(localStorage.getItem(window.ssConfig.storageKey) || '0', 10),
+    teachOpen: true,
+  };
+
+  function pickQType() {
+    var types = ['summarize', 'contains', 'count'];
+    return state.qt === 'all' ? pick(types) : state.qt;
+  }
+
+  function genQuestion() {
+    var qt = pickQType();
+    if (qt === 'summarize') {
+      var counts = { easy: 2, medium: 4, hard: 8 };
+      var count = counts[state.diff];
+      var basePrefix = state.diff === 'hard' ? pick([24, 16]) : 24;
+      return genSummarize(count, basePrefix);
+    } else if (qt === 'contains') {
+      return genContains(state.diff);
+    } else {
+      return genCount();
+    }
+  }
+
+  // ─── Render ────────────────────────────────────────────────
+  function renderQuestion() {
+    var q = state.current;
+    var prompt = document.getElementById('ssPrompt');
+    var netList = document.getElementById('ssNetList');
+    var inputArea = document.getElementById('ssInputArea');
+    document.getElementById('ssFeedback').className = 'feedback';
+    document.getElementById('ssFeedback').textContent = '';
+    document.getElementById('ssTeach').style.display = 'none';
+
+    if (q.type === 'summarize') {
+      prompt.innerHTML = 'Find the <strong>single summary route</strong> that covers all of these networks:';
+      netList.style.display = 'block';
+      netList.innerHTML = q.networks.map(function(n){ return '<span class="item">' + n.ip + '/' + n.prefix + '</span>'; }).join('');
+      inputArea.innerHTML =
+        '<div class="input-row">' +
+          '<label>Summary network:</label>' +
+          '<input class="drill-input net" id="ssNet" placeholder="x.x.x.x" onkeydown="if(event.key===&quot;Enter&quot;)ssCheck()">' +
+          '<label>Mask or prefix:</label>' +
+          '<input class="drill-input mask" id="ssMask" placeholder="255.x.x.x or /N" onkeydown="if(event.key===&quot;Enter&quot;)ssCheck()">' +
+        '</div>';
+      setTimeout(function(){ document.getElementById('ssNet').focus(); }, 30);
+    } else if (q.type === 'contains') {
+      prompt.innerHTML = 'Is the network/address <strong>' + q.candidate + '</strong> covered by the summary route <strong>' + q.summary.net + '/' + q.summary.prefix + '</strong>?';
+      netList.style.display = 'none';
+      inputArea.innerHTML =
+        '<div class="input-row">' +
+          '<label>Yes or no:</label>' +
+          '<input class="drill-input boolean" id="ssYesNo" placeholder="yes / no" onkeydown="if(event.key===&quot;Enter&quot;)ssCheck()">' +
+        '</div>';
+      setTimeout(function(){ document.getElementById('ssYesNo').focus(); }, 30);
+    } else if (q.type === 'count') {
+      prompt.innerHTML = 'How many <strong>/' + q.basePrefix + '</strong> networks fit inside the summary route <strong>' + q.summary.net + '/' + q.summary.prefix + '</strong>?';
+      netList.style.display = 'none';
+      inputArea.innerHTML =
+        '<div class="input-row">' +
+          '<label>Count:</label>' +
+          '<input class="drill-input boolean" id="ssCount" placeholder="number" onkeydown="if(event.key===&quot;Enter&quot;)ssCheck()">' +
+        '</div>';
+      setTimeout(function(){ document.getElementById('ssCount').focus(); }, 30);
+    }
+  }
+
+  function buildBinaryGrid(q) {
+    if (q.type !== 'summarize') return '';
+    var prefix = q.answer.prefix;
+    var rows = q.networks.map(function(n){
+      var bin = intToBinary(n.int);
+      var html = '<tr><td class="label">' + n.ip + '</td><td>';
+      // Walk each bit
+      var pos = 0;
+      var bits = bin.replace(/\./g, '');
+      var out = '';
+      for (var i = 0; i < bits.length; i++) {
+        var cls = i < prefix ? 'bit-match' : 'bit-host';
+        out += '<span class="' + cls + '">' + bits[i] + '</span>';
+        if ((i + 1) % 8 === 0 && i < 31) out += '.';
+      }
+      html += out + '</td></tr>';
+      return html;
+    }).join('');
+    var sumBin = intToBinary(ipToInt(q.answer.net)).replace(/\./g, '');
+    var sumOut = '';
+    for (var i = 0; i < 32; i++) {
+      var cls = i < prefix ? 'bit-match' : 'bit-host';
+      sumOut += '<span class="' + cls + '">' + sumBin[i] + '</span>';
+      if ((i + 1) % 8 === 0 && i < 31) sumOut += '.';
+    }
+    rows += '<tr style="border-top:2px solid var(--ink)"><td class="label" style="font-weight:700">Summary</td><td>' + sumOut + '</td></tr>';
+    return '<div class="binary-grid"><table>' + rows + '</table><div style="margin-top:6px;color:var(--ink-muted);font-size:0.72rem">Green = matching bits. Gray = host bits (vary across inputs).</div></div>';
+  }
+
+  function buildTeach(q) {
+    if (q.type === 'summarize') {
+      var n = q.networks.length;
+      return [
+        'Inputs: ' + n + ' networks, all /' + q.networks[0].prefix + '. Need to find the longest common prefix.',
+        'Walk each address in binary, left-to-right. Mark bits as <span class="bit-match" style="padding:0 3px">matching</span> or <span class="bit-diff" style="padding:0 3px">differing</span>:' + buildBinaryGrid(q),
+        'First ' + q.answer.prefix + ' bits match across all addresses → summary prefix is <strong>/' + q.answer.prefix + '</strong>.',
+        'Take any input, zero out the host bits → summary network = <strong>' + q.answer.net + '</strong>.',
+        'Final summary: <code>' + q.answer.net + '/' + q.answer.prefix + '</code> (mask ' + q.answer.mask + '). Covers ' + n + ' × /' + q.networks[0].prefix + ' = ' + Math.pow(2, q.networks[0].prefix - q.answer.prefix) + ' subnets total.'
+      ];
+    }
+    if (q.type === 'contains') {
+      var summaryInt = ipToInt(q.summary.net);
+      var summarySize = Math.pow(2, 32 - q.summary.prefix);
+      var summaryEnd = (summaryInt + summarySize - 1) >>> 0;
+      return [
+        'Summary range: <strong>' + q.summary.net + '</strong> – <strong>' + intToIp(summaryEnd) + '</strong> (' + summarySize + ' addresses).',
+        'Candidate: <strong>' + q.candidate + '</strong> = ' + ipToInt(q.candidate) + '.',
+        'Range check: ' + ipToInt(q.candidate) + ' ' + (q.answer.yesno === 'yes' ? '∈' : '∉') + ' [' + summaryInt + ', ' + summaryEnd + '] → answer = <strong>' + q.answer.yesno + '</strong>.'
+      ];
+    }
+    if (q.type === 'count') {
+      var diff = q.basePrefix - q.summary.prefix;
+      return [
+        'Summary prefix: /' + q.summary.prefix + '. Base prefix: /' + q.basePrefix + '.',
+        'Bit difference: ' + q.basePrefix + ' − ' + q.summary.prefix + ' = ' + diff + '.',
+        'Number of /' + q.basePrefix + ' networks inside: 2^' + diff + ' = <strong>' + q.answer.count + '</strong>.'
+      ];
+    }
+    return [];
+  }
+
+  function renderTeach() {
+    var steps = buildTeach(state.current);
+    var html = '';
+    for (var i = 0; i < steps.length; i++) {
+      html += '<div class="teach-step"><div class="teach-num">' + (i + 1) + '</div><div class="teach-body">' + steps[i] + '</div></div>';
+    }
+    document.getElementById('ssTeachBody').innerHTML = html;
+    document.getElementById('ssTeach').style.display = state.teachOpen ? 'block' : 'none';
+  }
+
+  window.ssToggleTeach = function() {
+    state.teachOpen = !state.teachOpen;
+    document.getElementById('ssTeach').style.display = state.teachOpen ? 'block' : 'none';
+  };
+
+  // ─── Actions ───────────────────────────────────────────────
+  window.ssNew = function() {
+    state.current = genQuestion();
+    renderQuestion();
+  };
+
+  window.ssCheck = function() {
+    if (!state.current) { window.ssNew(); return; }
+    var q = state.current;
+    var ok = false;
+    var fb = document.getElementById('ssFeedback');
+
+    if (q.type === 'summarize') {
+      var net = normIP(document.getElementById('ssNet').value);
+      var mask = normMask(document.getElementById('ssMask').value);
+      var maskOK = (mask === q.answer.mask) || (mask === '/' + q.answer.prefix) || (mask === String(q.answer.prefix));
+      ok = (net === q.answer.net) && maskOK;
+    } else if (q.type === 'contains') {
+      var yn = normIP(document.getElementById('ssYesNo').value).toLowerCase();
+      ok = (yn === q.answer.yesno) || (yn === q.answer.yesno.charAt(0));
+    } else if (q.type === 'count') {
+      var c = normIP(document.getElementById('ssCount').value);
+      ok = (c === String(q.answer.count));
+    }
+
+    state.total++;
+    if (ok) {
+      state.correct++;
+      state.streak++;
+      if (state.streak > state.best) {
+        state.best = state.streak;
+        localStorage.setItem(window.ssConfig.storageKey, String(state.best));
+      }
+      fb.className = 'feedback right';
+      fb.textContent = 'Correct. Streak ' + state.streak + '.';
+    } else {
+      state.streak = 0;
+      fb.className = 'feedback wrong';
+      var ans;
+      if (q.type === 'summarize') ans = q.answer.net + '/' + q.answer.prefix + ' (mask ' + q.answer.mask + ')';
+      else if (q.type === 'contains') ans = q.answer.yesno;
+      else ans = q.answer.count;
+      fb.innerHTML = 'Wrong. Answer: <strong>' + ans + '</strong>. See walkthrough below.';
+      state.teachOpen = true;
+      renderTeach();
+    }
+    document.getElementById('ssStreak').textContent = state.streak;
+    document.getElementById('ssBest').textContent = state.best || '--';
+    document.getElementById('ssScore').textContent = state.correct + '/' + state.total;
+  };
+
+  window.ssHint = function() {
+    if (!state.current) return;
+    var fb = document.getElementById('ssFeedback');
+    fb.className = 'feedback wrong';
+    fb.style.background = '#fff4d6';
+    fb.style.color = '#5a4a1a';
+    fb.style.borderColor = '#c4a36b';
+    var q = state.current;
+    if (q.type === 'summarize') {
+      fb.innerHTML = 'Hint: ' + q.networks.length + ' networks at /' + q.networks[0].prefix + ' → summary prefix = /' + q.networks[0].prefix + ' − log2(' + q.networks.length + ') = /' + q.answer.prefix + '.';
+    } else if (q.type === 'contains') {
+      fb.innerHTML = 'Hint: summary covers ' + Math.pow(2, 32 - q.summary.prefix) + ' addresses starting at ' + q.summary.net + '.';
+    } else {
+      fb.innerHTML = 'Hint: 2^(base − summary) = 2^' + (q.basePrefix - q.summary.prefix) + '.';
+    }
+  };
+
+  window.ssReset = function() {
+    state.streak = 0;
+    state.correct = 0;
+    state.total = 0;
+    document.getElementById('ssStreak').textContent = '0';
+    document.getElementById('ssScore').textContent = '0/0';
+  };
+
+  window.setDiff = function(btn) {
+    document.querySelectorAll('.pill[data-diff]').forEach(function(p){ p.classList.remove('active'); });
+    btn.classList.add('active');
+    state.diff = btn.dataset.diff;
+    window.ssNew();
+  };
+  window.setQT = function(btn) {
+    document.querySelectorAll('.pill[data-qt]').forEach(function(p){ p.classList.remove('active'); });
+    btn.classList.add('active');
+    state.qt = btn.dataset.qt;
+    window.ssNew();
+  };
+
+  // Init
+  document.getElementById('ssBest').textContent = state.best || '--';
+  window.ssNew();
+});
+</script>
+</body>
+</html>
