@@ -137,7 +137,10 @@
       const typing = appendTyping();
 
       try {
-        const reply = await window.gemini.generateChat(text, history.slice(0, -1), pagesIndex);
+        // trusted:true bypasses topic classifier — chat needs to handle navigation verbs
+        // ("take me to settings") that classifier rejects as off-topic. Blocklist + LOCK_PROMPT
+        // still apply, so jailbreaks and off-topic content are still refused.
+        const reply = await window.gemini.generateChat(text, history.slice(0, -1), pagesIndex, { trusted: true });
         typing.remove();
         const answer = String((reply && reply.answer) || '').trim();
         const nav = (reply && Array.isArray(reply.nav)) ? reply.nav : [];
