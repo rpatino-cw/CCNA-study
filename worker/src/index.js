@@ -5,6 +5,7 @@ export { Room } from './room.js';
 export { Auction } from './auction.js';
 export { Routing } from './routing.js';
 export { Wildcard } from './wildcard.js';
+export { Ports } from './ports.js';
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -51,6 +52,13 @@ export default {
     if (m) {
       const id = env.WILDCARDS.idFromName(m[1].toUpperCase());
       return env.WILDCARDS.get(id).fetch(request);
+    }
+
+    // /ports/:id — Port Patrol
+    m = url.pathname.match(/^\/ports\/([A-Z0-9]{4,8})$/i);
+    if (m) {
+      const id = env.PORTS.idFromName(m[1].toUpperCase());
+      return env.PORTS.get(id).fetch(request);
     }
 
     return new Response('Not found', { status: 404, headers: CORS });
