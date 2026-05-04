@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#FAF7F2">
+  <title>Subnet Counting — How Many /N Fit in /M</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="icon" type="image/svg+xml" href="/CCNA-study/favicon.svg">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Serif+4:wght@400;600&family=JetBrains+Mono:wght@400;600;700&display=swap">
+  <link rel="stylesheet" href="css/shared.css?v=4.56">
+  <style>
+    /* ── Page Header ─────────────────────────────────────────────── */
+    .page-header { padding: var(--s-xl) 0 var(--s-lg); border-bottom: 2px solid var(--ink); margin-bottom: var(--s-xl); display: flex; align-items: flex-start; justify-content: space-between; gap: var(--s-lg); flex-wrap: wrap; }
+    .page-header h1 { font-family: var(--font-display); font-size: 2.6rem; font-weight: 700; letter-spacing: -0.04em; line-height: 1; margin-bottom: 6px; }
+    .page-header-sub { font-family: var(--font-display); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-muted); }
+
+    /* ── Sticky Section Nav ─────────────────────────────────────── */
+    .section-nav-wrapper { position: sticky; top: 0; z-index: 100; background: var(--bg); border-bottom: 1px solid var(--border); margin-bottom: var(--s-2xl); padding: var(--s-sm) 0; }
+    .section-nav { display: flex; gap: var(--s-xs); overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; flex-wrap: nowrap; }
+    .section-nav::-webkit-scrollbar { display: none; }
+    .section-nav a { display: inline-block; padding: 5px 12px; border-radius: 20px; border: 1px solid var(--border); background: var(--bg-surface); font-family: var(--font-display); font-size: 0.72rem; font-weight: 500; letter-spacing: 0.02em; color: var(--ink-secondary); text-decoration: none; white-space: nowrap; transition: all var(--transition); flex-shrink: 0; }
+    .section-nav a:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+
+    /* ── Sections ───────────────────────────────────────────────── */
+    .section-block { margin-bottom: var(--s-3xl); scroll-margin-top: 60px; }
+    .section-kicker { font-family: var(--font-display); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--ink-muted); margin-bottom: var(--s-xs); }
+    .section-block h2 { font-family: var(--font-display); font-size: 1.7rem; font-weight: 700; letter-spacing: -0.03em; margin-bottom: var(--s-md); border-bottom: 1px solid var(--border); padding-bottom: var(--s-sm); }
+    .section-block p { font-family: var(--font-body); font-size: 1rem; line-height: 1.7; color: var(--ink-secondary); margin-bottom: var(--s-md); max-width: 72ch; }
+
+    /* ── Buttons ─────────────────────────────────────────────────── */
+    .btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 18px; border-radius: var(--radius); border: 1px solid var(--border-strong); background: var(--bg-surface); font-family: var(--font-display); font-size: 0.82rem; font-weight: 600; color: var(--ink); cursor: pointer; transition: all var(--transition); text-decoration: none; }
+    .btn:hover { border-color: var(--ink); background: var(--bg-recessed); }
+    .btn-primary { background: var(--accent); border-color: var(--accent); color: white; }
+    .btn-primary:hover { background: #92400e; border-color: #92400e; }
+
+    /* ── Equation Hero ───────────────────────────────────────────── */
+    .eq-hero { background: linear-gradient(135deg, var(--accent-dim) 0%, var(--bg-surface) 100%); border: 2px solid var(--accent-light); border-radius: var(--radius-lg); padding: var(--s-xl); margin-bottom: var(--s-xl); text-align: center; }
+    .eq-formula { font-family: var(--font-mono); font-size: 2.4rem; font-weight: 700; color: var(--ink); letter-spacing: -0.02em; line-height: 1.2; margin-bottom: var(--s-sm); }
+    .eq-formula .eq-part { padding: 4px 10px; border-radius: 6px; transition: all 320ms cubic-bezier(.16, 1, .3, 1); cursor: help; display: inline-block; }
+    .eq-formula .eq-child { background: rgba(180, 83, 9, 0.10); color: var(--accent); }
+    .eq-formula .eq-parent { background: rgba(28, 25, 23, 0.06); color: var(--ink); }
+    .eq-formula .eq-result { background: var(--prof-strong-bg); color: var(--prof-strong); }
+    .eq-formula .eq-part:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+    .eq-caption { font-family: var(--font-display); font-size: 0.88rem; color: var(--ink-secondary); letter-spacing: 0.02em; }
+    .eq-legend { display: flex; gap: var(--s-md); justify-content: center; margin-top: var(--s-md); flex-wrap: wrap; font-family: var(--font-display); font-size: 0.78rem; }
+    .eq-legend span { display: inline-flex; align-items: center; gap: 6px; }
+    .eq-dot { width: 10px; height: 10px; border-radius: 50%; }
+
+    /* ── Live Calculator ─────────────────────────────────────────── */
+    .live-calc { background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: var(--s-lg); margin-bottom: var(--s-xl); }
+    .calc-row { display: grid; grid-template-columns: 1fr 1fr auto; gap: var(--s-md); align-items: end; margin-bottom: var(--s-md); }
+    @media (max-width: 600px) { .calc-row { grid-template-columns: 1fr; } }
+    .calc-field label { display: block; font-family: var(--font-display); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-muted); margin-bottom: 6px; }
+    .calc-field input, .calc-field select { font-family: var(--font-mono); font-size: 1.1rem; font-weight: 600; padding: 10px 14px; width: 100%; border: 2px solid var(--border); border-radius: 6px; background: var(--bg-surface); transition: border-color var(--transition); color: var(--ink); }
+    .calc-field input:focus, .calc-field select:focus { border-color: var(--accent); outline: none; }
+    .calc-output { background: var(--bg-recessed); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: var(--s-md) var(--s-lg); font-family: var(--font-mono); font-size: 1rem; line-height: 1.8; }
+    .calc-output .co-big { font-size: 2.2rem; font-weight: 700; color: var(--accent); display: block; line-height: 1.1; margin: 4px 0 8px; }
+    .calc-output .co-eq { color: var(--ink-secondary); font-size: 0.92rem; }
+    .calc-output.invalid .co-big { color: var(--prof-weak); }
+
+    /* ── Bit-Borrow Visualizer ───────────────────────────────────── */
+    .bit-viz { background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: var(--s-lg); margin-bottom: var(--s-xl); overflow: hidden; }
+    .bit-viz-title { font-family: var(--font-display); font-size: 0.78rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--accent); margin-bottom: var(--s-md); }
+    .bit-strip { display: flex; gap: 3px; margin-bottom: var(--s-md); flex-wrap: wrap; }
+    .bit-cell { width: 30px; height: 30px; display: inline-flex; align-items: center; justify-content: center; border-radius: 4px; font-family: var(--font-mono); font-weight: 700; font-size: 0.82rem; transition: all 420ms cubic-bezier(.16, 1, .3, 1); border: 1px solid var(--border); background: var(--bg-recessed); color: var(--ink-muted); }
+    .bit-cell.network { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+    .bit-cell.borrowed { background: var(--accent); color: white; border-color: var(--accent); animation: bitFlip 600ms cubic-bezier(.16, 1, .3, 1); }
+    .bit-cell.host { background: var(--bg-surface); color: var(--ink-faint); }
+    @keyframes bitFlip { 0% { transform: rotateY(0); background: var(--bg-recessed); } 50% { transform: rotateY(90deg); } 100% { transform: rotateY(0); background: var(--accent); } }
+    @media (prefers-reduced-motion: reduce) { .bit-cell.borrowed { animation: none; } }
+    .bit-octet-sep { width: 6px; }
+    .bit-legend { display: flex; gap: var(--s-md); flex-wrap: wrap; font-family: var(--font-display); font-size: 0.78rem; color: var(--ink-secondary); }
+    .bit-legend span { display: inline-flex; align-items: center; gap: 6px; }
+    .bit-legend-swatch { width: 14px; height: 14px; border-radius: 3px; display: inline-block; }
+
+    .child-fan { display: flex; gap: 6px; margin-top: var(--s-md); flex-wrap: wrap; }
+    .child-block { padding: 8px 14px; border-radius: 6px; background: var(--accent-dim); border: 1px solid var(--accent-light); font-family: var(--font-mono); font-size: 0.82rem; color: var(--accent); font-weight: 700; opacity: 0; transform: translateY(-8px); transition: all 360ms cubic-bezier(.16, 1, .3, 1); }
+    .child-block.shown { opacity: 1; transform: translateY(0); }
+
+    /* ── Worked Examples Grid ────────────────────────────────────── */
+    .ex-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: var(--s-md); margin-bottom: var(--s-lg); }
+    .ex-card { background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: var(--s-md) var(--s-lg); transition: all var(--transition); }
+    .ex-card:hover { border-color: var(--accent); transform: translateY(-2px); box-shadow: 0 6px 18px rgba(0,0,0,0.05); }
+    .ex-q { font-family: var(--font-display); font-weight: 700; font-size: 1rem; color: var(--ink); margin-bottom: var(--s-sm); }
+    .ex-step { font-family: var(--font-mono); font-size: 0.88rem; color: var(--ink-secondary); margin-bottom: 4px; line-height: 1.6; }
+    .ex-step .ex-arrow { color: var(--accent); font-weight: 700; }
+    .ex-final { font-family: var(--font-mono); font-size: 1.3rem; font-weight: 700; color: var(--prof-strong); margin-top: var(--s-sm); padding-top: var(--s-sm); border-top: 1px dashed var(--border); }
+
+    /* ── Reference Table ─────────────────────────────────────────── */
+    .ref-table { width: 100%; border-collapse: collapse; background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; font-family: var(--font-mono); }
+    .ref-table th { background: var(--ink); color: var(--bg); font-family: var(--font-display); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.06em; padding: 10px 14px; text-align: left; }
+    .ref-table td { padding: 10px 14px; border-top: 1px solid var(--border); font-size: 0.92rem; }
+    .ref-table tr:hover td { background: var(--accent-dim); }
+    .ref-table .rt-count { font-weight: 700; color: var(--accent); }
+
+    /* ── Quiz ────────────────────────────────────────────────────── */
+    .practice-wrap { max-width: 680px; }
+    .q-text { font-family: var(--font-body); font-size: 1.1rem; line-height: 1.6; margin-bottom: var(--s-md); padding: var(--s-md) var(--s-lg); background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius-lg); }
+    .q-progress { font-family: var(--font-display); font-size: 0.75rem; color: var(--ink-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: var(--s-sm); }
+    .choices { display: flex; flex-direction: column; gap: var(--s-sm); margin-bottom: var(--s-md); }
+    .choice-btn { display: flex; align-items: center; gap: var(--s-sm); padding: 10px 16px; border: 1px solid var(--border-strong); border-radius: var(--radius); background: var(--bg-surface); font-family: var(--font-mono); font-size: 0.95rem; cursor: pointer; text-align: left; transition: all var(--transition); width: 100%; }
+    .choice-btn:hover:not([disabled]) { border-color: var(--accent); background: var(--accent-dim); }
+    .choice-btn.correct { border-color: var(--prof-strong); background: var(--prof-strong-bg); color: var(--prof-strong); }
+    .choice-btn.wrong { border-color: var(--prof-weak); background: var(--prof-weak-bg); color: var(--prof-weak); }
+    .choice-label { font-weight: 700; font-family: var(--font-display); font-size: 0.75rem; color: var(--ink-muted); }
+    .feedback-msg { font-family: var(--font-display); font-size: 0.88rem; font-weight: 600; padding: 8px 14px; border-radius: var(--radius); margin-bottom: var(--s-sm); display: none; }
+    .feedback-msg.correct { background: var(--prof-strong-bg); color: var(--prof-strong); display: block; }
+    .feedback-msg.wrong { background: var(--prof-weak-bg); color: var(--prof-weak); display: block; }
+    .score-card { background: var(--bg-surface); border: 2px solid var(--border-strong); border-radius: var(--radius-lg); padding: var(--s-xl); text-align: center; display: none; position: relative; overflow: hidden; }
+    .score-card.visible { display: block; }
+    .score-big { font-family: var(--font-display); font-size: 4rem; font-weight: 700; color: var(--accent); letter-spacing: -0.05em; line-height: 1; margin-bottom: var(--s-sm); }
+    .score-sub { font-family: var(--font-body); font-size: 1rem; color: var(--ink-secondary); margin-bottom: var(--s-lg); }
+    .confetti-dot { position: absolute; width: 8px; height: 8px; border-radius: 50%; pointer-events: none; }
+
+    /* ── Drill ───────────────────────────────────────────────────── */
+    .drill-block { background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: var(--s-lg); margin-bottom: var(--s-md); }
+    .drill-meta { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; margin-bottom: 14px; font-family: var(--font-mono); font-size: 0.82rem; color: var(--ink-secondary); }
+    .drill-meta .dm-val { font-weight: 700; color: var(--ink); }
+    .drill-q { font-family: var(--font-mono); font-size: 1.2rem; color: var(--ink); margin-bottom: 14px; line-height: 1.5; font-weight: 600; }
+    .drill-input { font-family: var(--font-mono); font-size: 1.1rem; padding: 12px 16px; width: 100%; border: 2px solid var(--border); border-radius: 8px; background: var(--bg-surface); transition: border-color var(--transition); }
+    .drill-input:focus { border-color: var(--accent); outline: none; }
+    .drill-actions { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+    .calc-btn { font-family: var(--font-display); font-size: 0.82rem; font-weight: 700; padding: 10px 20px; border-radius: 6px; border: none; background: var(--ink); color: var(--bg); cursor: pointer; transition: all var(--transition); }
+    .calc-btn:hover { background: #44403C; }
+    .drill-feedback { padding: 14px 18px; border-radius: 8px; margin-top: 14px; font-family: var(--font-body); font-size: 0.92rem; line-height: 1.7; display: none; }
+    .drill-feedback.show { display: block; }
+    .drill-feedback.correct { background: var(--prof-strong-bg); border: 1px solid #BBF7D0; color: #166534; }
+    .drill-feedback.wrong { background: var(--prof-weak-bg); border: 1px solid #FECACA; color: #991B1B; }
+
+    /* ── Banner ──────────────────────────────────────────────────── */
+    .learn-banner { background: var(--accent-dim); border: 2px solid var(--accent-light); border-radius: var(--radius-lg); padding: 16px 24px; margin-bottom: var(--s-xl); text-align: center; }
+    .learn-banner a { font-family: var(--font-display); font-size: 0.88rem; font-weight: 700; color: var(--accent); text-decoration: none; }
+    .learn-banner a:hover { text-decoration: underline; }
+
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <nav class="top-nav"></nav>
+  <script defer src="js/nav.js?v=3"></script>
+
+  <div class="page-header">
+    <div>
+      <div class="page-header-sub">CCNA 200-301 &mdash; Subnet Counting</div>
+      <h1>How Many /N Fit in /M?</h1>
+    </div>
+  </div>
+
+  <div class="learn-banner">
+    <a href="subnetting-visual.html">&larr; Visual Guide</a>
+    &nbsp;·&nbsp;
+    <a href="subnetting-mastery.html">Subnetting Mastery</a>
+    &nbsp;·&nbsp;
+    <a href="subnetting-hard.html">Hard Subnetting (2-constraint) &rarr;</a>
+  </div>
+
+  <div class="section-nav-wrapper">
+    <nav class="section-nav">
+      <a href="#equation">The Equation</a>
+      <a href="#bits">Bit-Borrow</a>
+      <a href="#calc">Live Calc</a>
+      <a href="#examples">Worked Examples</a>
+      <a href="#table">Quick Table</a>
+      <a href="#quiz">Quiz</a>
+      <a href="#drill">Speed Drill</a>
+    </nav>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════ -->
+  <!-- SECTION 1 — The Equation                                  -->
+  <!-- ══════════════════════════════════════════════════════════ -->
+  <section class="section-block" id="equation">
+    <div class="section-kicker">Core Formula</div>
+    <h2>The Equation</h2>
+    <p>One question type, one formula. "How many /26s fit in a /24?" reduces to subtraction and a power of two. Hover the colored parts to see what each number means.</p>
+
+    <div class="eq-hero">
+      <div class="eq-formula">
+        <span class="eq-part eq-result" title="Number of child subnets that fit">subnets</span>
+        =
+        2<sup>(<span class="eq-part eq-child" title="Child prefix — the smaller subnet (bigger number)">child</span> &minus; <span class="eq-part eq-parent" title="Parent prefix — the bigger subnet (smaller number)">parent</span>)</sup>
+      </div>
+      <div class="eq-caption">child &gt; parent. Difference = bits borrowed = subnet count exponent.</div>
+      <div class="eq-legend">
+        <span><span class="eq-dot" style="background:var(--accent)"></span>child</span>
+        <span><span class="eq-dot" style="background:var(--ink)"></span>parent</span>
+        <span><span class="eq-dot" style="background:var(--prof-strong)"></span>result</span>
+      </div>
+    </div>
+
+    <p><strong>Why it works:</strong> every bit you borrow doubles the number of subnets. Borrow 1 bit → 2 subnets. Borrow 2 bits → 4. Borrow 3 → 8. The exponent is the count of bits you stole from host space and gave to network space.</p>
+
+    <p><strong>Shortcut for the exam:</strong> just count the gap between the two prefix lengths and raise 2 to that power. /24 to /26 = gap of 2 = 2<sup>2</sup> = 4. Done.</p>
+  </section>
+
+  <!-- ══════════════════════════════════════════════════════════ -->
+  <!-- SECTION 2 — Bit-Borrow Visualizer                          -->
+  <!-- ══════════════════════════════════════════════════════════ -->
+  <section class="section-block" id="bits">
+    <div class="section-kicker">See It Happen</div>
+    <h2>Watch the Bits Borrow</h2>
+    <p>The mask is just 32 bits. Start with /24 (24 network bits, 8 host bits). To go to /26, two host bits flip to network bits — those are the borrowed bits. Each borrowed bit doubles the subnet count. Click the buttons to step through.</p>
+
+    <div class="bit-viz">
+      <div class="bit-viz-title">32-bit mask — borrowing in action</div>
+      <div class="bit-strip" id="bitStrip"></div>
+      <div class="bit-legend">
+        <span><span class="bit-legend-swatch" style="background:var(--ink)"></span>Network bit (parent)</span>
+        <span><span class="bit-legend-swatch" style="background:var(--accent)"></span>Borrowed bit (now network)</span>
+        <span><span class="bit-legend-swatch" style="background:var(--bg-surface);border:1px solid var(--border)"></span>Host bit</span>
+      </div>
+      <div style="margin-top:var(--s-md);display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+        <span style="font-family:var(--font-display);font-size:0.82rem;color:var(--ink-secondary);margin-right:6px">Parent /<span id="parentLabel">24</span> &rarr; Child /<span id="childLabel">24</span></span>
+        <button class="calc-btn" onclick="bitStep(-1)">&minus; Borrow Less</button>
+        <button class="calc-btn" onclick="bitStep(1)">+ Borrow More</button>
+        <button class="calc-btn" onclick="bitReset()" style="background:var(--border);color:var(--ink)">Reset</button>
+      </div>
+      <div style="margin-top:var(--s-md);font-family:var(--font-mono);font-size:1.05rem;color:var(--ink)">
+        Borrowed: <strong id="borrowedNum" style="color:var(--accent)">0</strong> bit(s) &nbsp;&rarr;&nbsp;
+        Subnets: <strong id="subnetsNum" style="color:var(--prof-strong);font-size:1.4rem">1</strong>
+      </div>
+      <div class="child-fan" id="childFan"></div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════════════════ -->
+  <!-- SECTION 3 — Live Calculator                                -->
+  <!-- ══════════════════════════════════════════════════════════ -->
+  <section class="section-block" id="calc">
+    <div class="section-kicker">Try Your Own</div>
+    <h2>Live Calculator</h2>
+    <p>Type any parent and child prefix. The answer updates as you type. Catches off-by-one mistakes the second they happen.</p>
+
+    <div class="live-calc">
+      <div class="calc-row">
+        <div class="calc-field">
+          <label for="parentInput">Parent prefix (bigger subnet)</label>
+          <input type="number" id="parentInput" min="0" max="32" value="24" oninput="updateCalc()">
+        </div>
+        <div class="calc-field">
+          <label for="childInput">Child prefix (smaller subnet)</label>
+          <input type="number" id="childInput" min="0" max="32" value="26" oninput="updateCalc()">
+        </div>
+      </div>
+      <div class="calc-output" id="calcOutput"></div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════════════════ -->
+  <!-- SECTION 4 — Worked Examples                                -->
+  <!-- ══════════════════════════════════════════════════════════ -->
+  <section class="section-block" id="examples">
+    <div class="section-kicker">Step-by-Step</div>
+    <h2>Worked Examples</h2>
+    <p>Four exam-style problems with the same three-step pattern: find the gap, raise 2 to that power, write the answer.</p>
+
+    <div class="ex-grid">
+      <div class="ex-card">
+        <div class="ex-q">How many /26s fit in a /24?</div>
+        <div class="ex-step">1. Gap <span class="ex-arrow">&rarr;</span> 26 &minus; 24 = 2</div>
+        <div class="ex-step">2. Power <span class="ex-arrow">&rarr;</span> 2<sup>2</sup></div>
+        <div class="ex-step">3. Compute <span class="ex-arrow">&rarr;</span> 2 &times; 2 = 4</div>
+        <div class="ex-final">= 4 subnets</div>
+      </div>
+      <div class="ex-card">
+        <div class="ex-q">How many /27s fit in a /22?</div>
+        <div class="ex-step">1. Gap <span class="ex-arrow">&rarr;</span> 27 &minus; 22 = 5</div>
+        <div class="ex-step">2. Power <span class="ex-arrow">&rarr;</span> 2<sup>5</sup></div>
+        <div class="ex-step">3. Compute <span class="ex-arrow">&rarr;</span> 32</div>
+        <div class="ex-final">= 32 subnets</div>
+      </div>
+      <div class="ex-card">
+        <div class="ex-q">How many /30s fit in a /24?</div>
+        <div class="ex-step">1. Gap <span class="ex-arrow">&rarr;</span> 30 &minus; 24 = 6</div>
+        <div class="ex-step">2. Power <span class="ex-arrow">&rarr;</span> 2<sup>6</sup></div>
+        <div class="ex-step">3. Compute <span class="ex-arrow">&rarr;</span> 64</div>
+        <div class="ex-final">= 64 subnets (p2p workhorse)</div>
+      </div>
+      <div class="ex-card">
+        <div class="ex-q">How many /24s fit in a /16?</div>
+        <div class="ex-step">1. Gap <span class="ex-arrow">&rarr;</span> 24 &minus; 16 = 8</div>
+        <div class="ex-step">2. Power <span class="ex-arrow">&rarr;</span> 2<sup>8</sup></div>
+        <div class="ex-step">3. Compute <span class="ex-arrow">&rarr;</span> 256</div>
+        <div class="ex-final">= 256 subnets</div>
+      </div>
+      <div class="ex-card">
+        <div class="ex-q">How many /29s fit in a /27?</div>
+        <div class="ex-step">1. Gap <span class="ex-arrow">&rarr;</span> 29 &minus; 27 = 2</div>
+        <div class="ex-step">2. Power <span class="ex-arrow">&rarr;</span> 2<sup>2</sup></div>
+        <div class="ex-step">3. Compute <span class="ex-arrow">&rarr;</span> 4</div>
+        <div class="ex-final">= 4 subnets</div>
+      </div>
+      <div class="ex-card">
+        <div class="ex-q">How many /28s fit in a /20?</div>
+        <div class="ex-step">1. Gap <span class="ex-arrow">&rarr;</span> 28 &minus; 20 = 8</div>
+        <div class="ex-step">2. Power <span class="ex-arrow">&rarr;</span> 2<sup>8</sup></div>
+        <div class="ex-step">3. Compute <span class="ex-arrow">&rarr;</span> 256</div>
+        <div class="ex-final">= 256 subnets</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════════════════ -->
+  <!-- SECTION 5 — Quick Table                                    -->
+  <!-- ══════════════════════════════════════════════════════════ -->
+  <section class="section-block" id="table">
+    <div class="section-kicker">Reference</div>
+    <h2>Quick Table — Powers of 2</h2>
+    <p>Memorize columns 1 through 8. The exam never goes much higher. The "borrow bits" column is your gap; "subnets" is the answer.</p>
+
+    <table class="ref-table">
+      <thead>
+        <tr><th>Borrow bits (gap)</th><th>Power</th><th>Subnets</th><th>Example</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>1</td><td>2<sup>1</sup></td><td class="rt-count">2</td><td>/24 &rarr; /25</td></tr>
+        <tr><td>2</td><td>2<sup>2</sup></td><td class="rt-count">4</td><td>/24 &rarr; /26</td></tr>
+        <tr><td>3</td><td>2<sup>3</sup></td><td class="rt-count">8</td><td>/24 &rarr; /27</td></tr>
+        <tr><td>4</td><td>2<sup>4</sup></td><td class="rt-count">16</td><td>/24 &rarr; /28</td></tr>
+        <tr><td>5</td><td>2<sup>5</sup></td><td class="rt-count">32</td><td>/24 &rarr; /29</td></tr>
+        <tr><td>6</td><td>2<sup>6</sup></td><td class="rt-count">64</td><td>/24 &rarr; /30</td></tr>
+        <tr><td>7</td><td>2<sup>7</sup></td><td class="rt-count">128</td><td>/24 &rarr; /31</td></tr>
+        <tr><td>8</td><td>2<sup>8</sup></td><td class="rt-count">256</td><td>/16 &rarr; /24</td></tr>
+        <tr><td>9</td><td>2<sup>9</sup></td><td class="rt-count">512</td><td>/15 &rarr; /24</td></tr>
+        <tr><td>10</td><td>2<sup>10</sup></td><td class="rt-count">1024</td><td>/14 &rarr; /24</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ══════════════════════════════════════════════════════════ -->
+  <!-- SECTION 6 — Quiz                                           -->
+  <!-- ══════════════════════════════════════════════════════════ -->
+  <section class="section-block" id="quiz">
+    <div class="section-kicker">Multiple Choice</div>
+    <h2>Quiz — 12 Questions</h2>
+    <p>Random pull from the question pool. Answer all 12 to see your score. Hit ≥10 to ring the bell.</p>
+
+    <div class="practice-wrap">
+      <div id="practiceArea">
+        <div class="q-progress" id="qProgress">Question 1 of 12</div>
+        <div class="q-text" id="qText">Loading…</div>
+        <div class="choices" id="choices"></div>
+        <div class="feedback-msg" id="feedbackMsg"></div>
+        <div id="nextBtnWrap" class="hidden">
+          <button class="btn btn-primary" onclick="nextQuestion()">Next &rarr;</button>
+        </div>
+      </div>
+      <div class="score-card" id="scoreCard">
+        <div class="score-big" id="scoreBig">—</div>
+        <div class="score-sub" id="scoreSub"></div>
+        <button class="btn btn-primary" onclick="startPractice()">Try Again</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════════════════ -->
+  <!-- SECTION 7 — Drill                                          -->
+  <!-- ══════════════════════════════════════════════════════════ -->
+  <section class="section-block" id="drill">
+    <div class="section-kicker">Type Your Answer</div>
+    <h2>Speed Drill</h2>
+    <p>Random "how many /N fit in /M" questions. Type the number, hit Enter. Target: under 10 seconds each.</p>
+
+    <div class="drill-block">
+      <div class="drill-meta">
+        <span>Timer: <strong class="dm-val" id="drillTimer">0:00</strong></span>
+        <span>Streak: <strong class="dm-val" id="drillStreak">0</strong></span>
+        <span>Best: <strong class="dm-val" id="drillBest">--</strong></span>
+        <span>Score: <strong class="dm-val" id="drillScore">0/0</strong></span>
+      </div>
+      <div class="drill-q" id="drillQ"></div>
+      <input type="text" class="drill-input" id="drillInput" placeholder="Type a number..." onkeydown="if(event.key==='Enter')checkDrill()">
+      <div class="drill-actions">
+        <button class="calc-btn" onclick="checkDrill()">Check</button>
+        <button class="calc-btn" onclick="showDrillHint()" style="background:var(--border);color:var(--ink)">Hint</button>
+        <button class="calc-btn" onclick="skipDrill()" style="background:none;border:1px solid var(--border);color:var(--ink-muted)">Skip</button>
+      </div>
+      <div class="drill-feedback" id="drillFeedback"></div>
+    </div>
+  </section>
+
+</div><!-- /container -->
+
+<script>
+// ──────────────────────────────────────────────────────────────
+// BIT-BORROW VISUALIZER
+// ──────────────────────────────────────────────────────────────
+var PARENT = 24;
+var borrowed = 0;
+
+function renderBitStrip() {
+  var strip = document.getElementById('bitStrip');
+  var html = '';
+  for (var i = 0; i < 32; i++) {
+    var cls = 'bit-cell';
+    var bit = '0';
+    if (i < PARENT) { cls += ' network'; bit = '1'; }
+    else if (i < PARENT + borrowed) { cls += ' borrowed'; bit = '1'; }
+    else { cls += ' host'; bit = '0'; }
+    html += '<span class="' + cls + '">' + bit + '</span>';
+    if (i === 7 || i === 15 || i === 23) html += '<span class="bit-octet-sep"></span>';
+  }
+  strip.innerHTML = html;
+  document.getElementById('childLabel').textContent = PARENT + borrowed;
+  document.getElementById('parentLabel').textContent = PARENT;
+  document.getElementById('borrowedNum').textContent = borrowed;
+  document.getElementById('subnetsNum').textContent = Math.pow(2, borrowed).toLocaleString();
+  renderChildFan();
+}
+
+function renderChildFan() {
+  var fan = document.getElementById('childFan');
+  var count = Math.pow(2, borrowed);
+  var max = Math.min(count, 32);
+  var html = '';
+  for (var i = 0; i < max; i++) {
+    html += '<span class="child-block" style="transition-delay:' + (i * 30) + 'ms">/'+(PARENT+borrowed)+' #'+(i+1)+'</span>';
+  }
+  if (count > max) html += '<span class="child-block" style="transition-delay:' + (max * 30) + 'ms">… +' + (count - max) + ' more</span>';
+  fan.innerHTML = html;
+  requestAnimationFrame(function() {
+    document.querySelectorAll('.child-block').forEach(function(el) { el.classList.add('shown'); });
+  });
+}
+
+function bitStep(delta) {
+  var next = borrowed + delta;
+  if (next < 0) next = 0;
+  if (PARENT + next > 32) next = 32 - PARENT;
+  borrowed = next;
+  renderBitStrip();
+}
+
+function bitReset() {
+  borrowed = 0;
+  renderBitStrip();
+}
+
+// ──────────────────────────────────────────────────────────────
+// LIVE CALCULATOR
+// ──────────────────────────────────────────────────────────────
+function updateCalc() {
+  var p = parseInt(document.getElementById('parentInput').value, 10);
+  var c = parseInt(document.getElementById('childInput').value, 10);
+  var out = document.getElementById('calcOutput');
+  out.classList.remove('invalid');
+
+  if (isNaN(p) || isNaN(c) || p < 0 || c < 0 || p > 32 || c > 32) {
+    out.classList.add('invalid');
+    out.innerHTML = '<span class="co-big">—</span><span class="co-eq">Both prefixes must be 0–32.</span>';
+    return;
+  }
+  if (c < p) {
+    out.classList.add('invalid');
+    out.innerHTML = '<span class="co-big">—</span><span class="co-eq">Child must be larger than parent (smaller subnets have bigger prefix numbers).</span>';
+    return;
+  }
+  if (c === p) {
+    out.innerHTML = '<span class="co-big">1</span><span class="co-eq">Same prefix &rarr; the parent <em>is</em> the only subnet at that size.</span>';
+    return;
+  }
+  var gap = c - p;
+  var count = Math.pow(2, gap);
+  out.innerHTML =
+    '<span class="co-big">' + count.toLocaleString() + ' subnets</span>' +
+    '<span class="co-eq">2<sup>(' + c + ' &minus; ' + p + ')</sup> = 2<sup>' + gap + '</sup> = ' + count.toLocaleString() + '</span>';
+}
+
+// ──────────────────────────────────────────────────────────────
+// QUIZ — 12 questions from a pool
+// ──────────────────────────────────────────────────────────────
+function shuffle(arr) {
+  var a = arr.slice();
+  for (var i = a.length - 1; i > 0; i--) {
+    var j = Math.floor(Math.random() * (i + 1));
+    var t = a[i]; a[i] = a[j]; a[j] = t;
+  }
+  return a;
+}
+
+function fitsQuestion(parent, child) {
+  var gap = child - parent;
+  var ans = Math.pow(2, gap);
+  var wrongs = [];
+  // common traps: off-by-one exponent, wrong base, mask-octet confusion
+  wrongs.push(Math.pow(2, gap + 1));
+  wrongs.push(Math.pow(2, gap - 1) || 1);
+  wrongs.push(gap * 2);
+  // dedupe + remove correct
+  var seen = {}; seen[ans] = 1;
+  var w = [];
+  for (var i = 0; i < wrongs.length && w.length < 3; i++) {
+    if (!seen[wrongs[i]]) { seen[wrongs[i]] = 1; w.push(wrongs[i]); }
+  }
+  while (w.length < 3) {
+    var fake = ans + (w.length + 1) * 2;
+    if (!seen[fake]) { seen[fake] = 1; w.push(fake); }
+  }
+  return {
+    text: 'How many <strong>/' + child + '</strong>s fit in a <strong>/' + parent + '</strong>?',
+    choices: shuffle([String(ans)].concat(w.map(String))),
+    answer: String(ans),
+    explain: '2^(' + child + '−' + parent + ') = 2^' + gap + ' = ' + ans + '.'
+  };
+}
+
+var QUESTION_POOL = (function() {
+  var pairs = [
+    [24, 26], [24, 27], [24, 28], [24, 29], [24, 30],
+    [22, 24], [22, 26], [16, 24], [16, 20], [20, 24],
+    [27, 29], [28, 30], [25, 27], [23, 25], [21, 24],
+    [16, 18], [18, 22], [19, 24], [26, 28], [12, 16]
+  ];
+  return pairs.map(function(p) { return fitsQuestion(p[0], p[1]); });
+})();
+
+var practiceQuestions = [];
+var practiceIdx = 0;
+var practiceScore = 0;
+var practiceAnswered = false;
+var QUIZ_LEN = 12;
+
+function startPractice() {
+  practiceQuestions = shuffle(QUESTION_POOL).slice(0, QUIZ_LEN);
+  practiceIdx = 0;
+  practiceScore = 0;
+  practiceAnswered = false;
+  document.getElementById('scoreCard').classList.remove('visible');
+  document.getElementById('practiceArea').style.display = '';
+  renderQuestion();
+}
+
+function renderQuestion() {
+  if (practiceIdx >= practiceQuestions.length) { showScore(); return; }
+  var q = practiceQuestions[practiceIdx];
+  practiceAnswered = false;
+  document.getElementById('qProgress').textContent = 'Question ' + (practiceIdx + 1) + ' of ' + practiceQuestions.length;
+  document.getElementById('qText').innerHTML = q.text;
+
+  var labels = ['A', 'B', 'C', 'D'];
+  var html = '';
+  q.choices.forEach(function(c, i) {
+    html += '<button class="choice-btn" data-val="' + c + '" onclick="answerQuestion(this)">' +
+      '<span class="choice-label">' + labels[i] + '</span> ' + c +
+    '</button>';
+  });
+  document.getElementById('choices').innerHTML = html;
+
+  var fb = document.getElementById('feedbackMsg');
+  fb.className = 'feedback-msg';
+  fb.textContent = '';
+  document.getElementById('nextBtnWrap').classList.add('hidden');
+}
+
+function answerQuestion(btn) {
+  if (practiceAnswered) return;
+  practiceAnswered = true;
+  var q = practiceQuestions[practiceIdx];
+  var chosen = btn.getAttribute('data-val');
+  var correct = chosen === q.answer;
+  if (correct) practiceScore++;
+
+  var btns = document.querySelectorAll('.choice-btn');
+  btns.forEach(function(b) {
+    b.disabled = true;
+    if (b.getAttribute('data-val') === q.answer) b.classList.add('correct');
+    if (b === btn && !correct) b.classList.add('wrong');
+  });
+
+  var fb = document.getElementById('feedbackMsg');
+  if (correct) {
+    fb.className = 'feedback-msg correct';
+    fb.textContent = 'Correct — ' + q.explain;
+  } else {
+    fb.className = 'feedback-msg wrong';
+    fb.textContent = 'Incorrect. ' + q.explain;
+  }
+
+  if (practiceIdx + 1 < practiceQuestions.length) {
+    document.getElementById('nextBtnWrap').classList.remove('hidden');
+  } else {
+    setTimeout(showScore, 900);
+  }
+}
+
+function nextQuestion() {
+  practiceIdx++;
+  document.getElementById('nextBtnWrap').classList.add('hidden');
+  renderQuestion();
+}
+
+function showScore() {
+  document.getElementById('practiceArea').style.display = 'none';
+  var card = document.getElementById('scoreCard');
+  card.classList.add('visible');
+  document.getElementById('scoreBig').textContent = practiceScore + '/' + QUIZ_LEN;
+  var pct = practiceScore / QUIZ_LEN;
+  var msg;
+  if (pct === 1) msg = 'Perfect — bell rung. Move to Hard Subnetting.';
+  else if (pct >= 0.83) msg = 'Strong — exam-ready pace.';
+  else if (pct >= 0.5) msg = 'Solid — drill the table column you missed.';
+  else msg = 'Keep at it — the formula is just gap → 2^gap.';
+  document.getElementById('scoreSub').textContent = msg;
+  if (pct >= 0.83) confetti(card);
+}
+
+function confetti(host) {
+  var colors = ['#B45309', '#16A34A', '#CA8A04', '#1C1917', '#FEF3C7'];
+  for (var i = 0; i < 24; i++) {
+    var d = document.createElement('span');
+    d.className = 'confetti-dot';
+    d.style.background = colors[i % colors.length];
+    d.style.left = (Math.random() * 90 + 5) + '%';
+    d.style.top = '-12px';
+    d.style.transition = 'transform 1.4s cubic-bezier(.16, 1, .3, 1), opacity 1.4s';
+    host.appendChild(d);
+    (function(el, dx) {
+      requestAnimationFrame(function() {
+        el.style.transform = 'translate(' + dx + 'px, 240px) rotate(' + (Math.random()*540-270) + 'deg)';
+        el.style.opacity = '0';
+      });
+      setTimeout(function() { el.remove(); }, 1500);
+    })(d, (Math.random() - 0.5) * 220);
+  }
+}
+
+// ──────────────────────────────────────────────────────────────
+// DRILL
+// ──────────────────────────────────────────────────────────────
+function makeDrill() {
+  var p = 8 + Math.floor(Math.random() * 18); // 8..25
+  var gap = 1 + Math.floor(Math.random() * Math.min(8, 32 - p));
+  var c = p + gap;
+  return {
+    q: 'How many /' + c + 's fit in a /' + p + '?',
+    a: String(Math.pow(2, gap)),
+    hint: '2^(' + c + '−' + p + ')',
+    explain: '2^' + gap + ' = ' + Math.pow(2, gap) + '.'
+  };
+}
+
+var drillStreak = 0;
+var drillCorrect = 0;
+var drillTotal = 0;
+var drillStartTime = null;
+var drillTimerInterval = null;
+var drillBest = localStorage.getItem('ccna_subnet_count_best');
+var current = null;
+
+if (drillBest) document.getElementById('drillBest').textContent = drillBest + 's';
+
+function startDrillTimer() {
+  drillStartTime = Date.now();
+  clearInterval(drillTimerInterval);
+  drillTimerInterval = setInterval(function() {
+    var e = Math.floor((Date.now() - drillStartTime) / 1000);
+    var m = Math.floor(e / 60);
+    var s = e % 60;
+    document.getElementById('drillTimer').textContent = m + ':' + (s < 10 ? '0' : '') + s;
+  }, 500);
+}
+
+function newDrill() {
+  current = makeDrill();
+  document.getElementById('drillQ').textContent = current.q;
+  document.getElementById('drillInput').value = '';
+  document.getElementById('drillInput').focus();
+  var fb = document.getElementById('drillFeedback');
+  fb.className = 'drill-feedback';
+  fb.textContent = '';
+  startDrillTimer();
+}
+
+function checkDrill() {
+  if (!current) return;
+  var ans = document.getElementById('drillInput').value.trim();
+  if (!ans) return;
+  clearInterval(drillTimerInterval);
+  drillTotal++;
+  var elapsed = ((Date.now() - drillStartTime) / 1000).toFixed(1);
+  var fb = document.getElementById('drillFeedback');
+  if (ans === current.a) {
+    drillCorrect++;
+    drillStreak++;
+    fb.className = 'drill-feedback correct show';
+    fb.textContent = 'Correct! (' + elapsed + 's) — ' + current.explain;
+    document.getElementById('drillStreak').textContent = drillStreak;
+    if (!drillBest || parseFloat(elapsed) < parseFloat(drillBest)) {
+      drillBest = elapsed;
+      localStorage.setItem('ccna_subnet_count_best', elapsed);
+      document.getElementById('drillBest').textContent = elapsed + 's';
+    }
+    setTimeout(newDrill, 1500);
+  } else {
+    drillStreak = 0;
+    fb.className = 'drill-feedback wrong show';
+    fb.innerHTML = 'Not quite. Expected: <strong>' + current.a + '</strong> — ' + current.explain;
+    document.getElementById('drillStreak').textContent = 0;
+  }
+  document.getElementById('drillScore').textContent = drillCorrect + '/' + drillTotal;
+}
+
+function showDrillHint() {
+  var fb = document.getElementById('drillFeedback');
+  fb.className = 'drill-feedback show';
+  fb.style.background = 'var(--accent-dim)';
+  fb.style.border = '1px solid var(--accent-light)';
+  fb.style.color = 'var(--accent)';
+  fb.textContent = 'Hint: ' + current.hint;
+}
+
+function skipDrill() {
+  var fb = document.getElementById('drillFeedback');
+  fb.className = 'drill-feedback show';
+  fb.style.background = 'var(--bg-recessed)';
+  fb.style.border = '1px solid var(--border)';
+  fb.style.color = 'var(--ink-secondary)';
+  fb.textContent = 'Answer: ' + current.a + ' — ' + current.explain;
+  setTimeout(newDrill, 2000);
+}
+
+// ──────────────────────────────────────────────────────────────
+// INIT
+// ──────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', function() {
+  renderBitStrip();
+  updateCalc();
+  startPractice();
+  newDrill();
+});
+</script>
+<script defer src="js/tutor.js"></script>
+</body>
+</html>

@@ -38,6 +38,7 @@
     { text: 'Practice', children: [
       { text: 'Practice Hub', href: 'practice-hub.html' },
       { text: 'Subnetting Mastery', href: 'subnetting-mastery.html' },
+      { text: 'Subnet Counting (/N in /M)', href: 'subnet-count.html' },
       { text: 'Hard Subnetting (2-constraint)', href: 'subnetting-hard.html' },
       { text: '3rd Party Games List', href: 'games-list.html' },
     ]},
