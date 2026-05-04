@@ -631,7 +631,7 @@
   function renderScoreboard() {
     if (!scoreEl) return;
     const s = state.lastScore;
-    if (!s || (s.coverage.sampledCells === 0)) {
+    if (!s || state.aps.size === 0) {
       scoreEl.innerHTML =
         '<h3 class="aplab-h3">Design Score</h3>' +
         '<div class="aplab-score-empty">Place APs to score the design.</div>';
