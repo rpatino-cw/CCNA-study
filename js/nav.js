@@ -29,6 +29,7 @@
       { text: 'Exam Cram', href: 'exam-cram.html' },
       { text: 'Topology Labs', href: 'topology-labs.html' },
       { text: 'Ports → Tunnels', href: 'ports-tunnels.html' },
+      { text: 'RFCs', href: 'rfc.html' },
       { text: 'Subnetting Visual', href: 'subnetting-visual.html' },
       { text: 'VLSM Calculator', href: 'vlsm.html' },
       { text: 'Magic Number', href: 'magic-number.html' },
@@ -221,7 +222,7 @@
   // Beta badge + bug report
   var beta = document.createElement('div');
   beta.className = 'beta-badge';
-  beta.innerHTML = '<a href="' + fixHref('changelog.html') + '" class="beta-tag" style="text-decoration:none">ALPHA v6.24.0</a><a href="' + fixHref('bug-report.html') + '" class="beta-bug">Report Bug</a>';
+  beta.innerHTML = '<a href="' + fixHref('changelog.html') + '" class="beta-tag" style="text-decoration:none">ALPHA v6.24.1</a><a href="' + fixHref('bug-report.html') + '" class="beta-bug">Report Bug</a>';
   document.body.appendChild(beta);
 
   // Auto-load backup script on every page
