@@ -763,6 +763,11 @@
       const xM = (ev.clientX - rect.left) / state.pxPerMeter;
       const yM = (ev.clientY - rect.top) / state.pxPerMeter;
 
+      const infraMoveId = ev.dataTransfer.getData('text/aplab-infra-move');
+      if (infraMoveId) {
+        moveInfra(infraMoveId, xM, yM);
+        return;
+      }
       const moveId = ev.dataTransfer.getData('text/aplab-move');
       if (moveId) {
         moveAP(moveId, xM, yM);
@@ -772,6 +777,10 @@
       if (!model) {
         const fallback = ev.dataTransfer.getData('text/plain') || '';
         if (fallback.startsWith('aplab:')) model = fallback.slice(6);
+        else if (fallback.startsWith('aplab-infra-move:')) {
+          moveInfra(fallback.slice(17), xM, yM);
+          return;
+        }
       }
       if (model) placeAP(model, xM, yM);
     });
