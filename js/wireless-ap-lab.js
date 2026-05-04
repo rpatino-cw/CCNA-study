@@ -24,10 +24,18 @@
   let planEl = null;
   let catalogEl = null;
   let statusEl = null;
+  let rfCanvasEl = null;
 
   function nextId() {
     state.idSeq += 1;
     return 'ap-' + state.idSeq;
+  }
+
+  // Trigger RF heatmap redraw if APLabRF is loaded. Phase-2 wiring.
+  function recomputeRF() {
+    if (window.APLabRF && typeof window.APLabRF.recompute === 'function') {
+      window.APLabRF.recompute(getLayout());
+    }
   }
 
   // ── public API ───────────────────────────────────────────────
@@ -53,9 +61,13 @@
     bindCatalogDrag();
     bindPlanEvents();
     bindGlobalKeys();
+    if (rfCanvasEl && window.APLabRF && typeof window.APLabRF.attach === 'function') {
+      window.APLabRF.attach(rfCanvasEl, state.preset, { pxPerMeter: state.pxPerMeter });
+    }
     loadFromStorage();
     renderAllAPs();
     updateStatus();
+    recomputeRF();
   }
 
   function placeAP(model, xM, yM) {
@@ -82,6 +94,7 @@
     renderAP(ap);
     saveToStorage();
     updateStatus();
+    recomputeRF();
     return id;
   }
 
@@ -96,6 +109,7 @@
       el.style.top = (ap.y * state.pxPerMeter) + 'px';
     }
     saveToStorage();
+    recomputeRF();
   }
 
   function cloneAP(id) {
@@ -114,6 +128,7 @@
     renderAP(copy);
     saveToStorage();
     updateStatus();
+    recomputeRF();
     return newId;
   }
 
@@ -125,6 +140,7 @@
     if (state.selectedId === id) state.selectedId = null;
     saveToStorage();
     updateStatus();
+    recomputeRF();
   }
 
   function getLayout() {
@@ -155,6 +171,7 @@
     renderAllAPs();
     saveToStorage();
     updateStatus();
+    recomputeRF();
   }
 
   function reset() {
@@ -163,6 +180,7 @@
     localStorage.removeItem(STORAGE_KEY);
     renderAllAPs();
     updateStatus();
+    recomputeRF();
   }
 
   // ── persistence ──────────────────────────────────────────────
@@ -213,6 +231,25 @@
         '<button class="aplab-btn aplab-btn-ghost" id="aplab-reset">Reset Layout</button>' +
       '</div>' +
       '<div class="aplab-status" id="aplab-status">No APs placed.</div>' +
+      '<div class="aplab-rf-controls">' +
+        '<h3 class="aplab-h3">RF Heatmap</h3>' +
+        '<div class="aplab-toggle" role="group" aria-label="Heatmap layer">' +
+          '<button class="aplab-toggle-btn is-active" data-layer="aggregate">Aggregate</button>' +
+          '<button class="aplab-toggle-btn" data-layer="off">Off</button>' +
+        '</div>' +
+        '<div class="aplab-toggle" role="group" aria-label="Heatmap band">' +
+          '<button class="aplab-toggle-btn" data-band="2.4">2.4 GHz</button>' +
+          '<button class="aplab-toggle-btn is-active" data-band="5">5 GHz</button>' +
+        '</div>' +
+        '<ul class="aplab-rf-legend">' +
+          '<li><span class="aplab-rf-sw" style="background:#15803D"></span><span>≥ −55 dBm — saturated</span></li>' +
+          '<li><span class="aplab-rf-sw" style="background:#22C55E"></span><span>≥ −65 dBm — voice / data</span></li>' +
+          '<li><span class="aplab-rf-sw" style="background:#84CC16"></span><span>≥ −67 dBm — voice edge</span></li>' +
+          '<li><span class="aplab-rf-sw" style="background:#EAB308"></span><span>≥ −75 dBm — data edge</span></li>' +
+          '<li><span class="aplab-rf-sw" style="background:#F97316"></span><span>≥ −85 dBm — weak</span></li>' +
+          '<li><span class="aplab-rf-sw" style="background:#DC2626"></span><span>&lt; −85 dBm — dead</span></li>' +
+        '</ul>' +
+      '</div>' +
       '<div class="aplab-legend">' +
         '<h3 class="aplab-h3">Wall Materials</h3>' +
         '<ul id="aplab-legend-list"></ul>' +
@@ -230,6 +267,11 @@
     plan.style.width = (state.preset.widthM * state.pxPerMeter) + 'px';
     plan.style.height = (state.preset.heightM * state.pxPerMeter) + 'px';
 
+    const rfCanvas = document.createElement('canvas');
+    rfCanvas.className = 'aplab-rf-canvas';
+    rfCanvas.id = 'aplab-rf';
+    plan.appendChild(rfCanvas);
+
     planWrap.appendChild(plan);
     main.appendChild(planWrap);
 
@@ -237,6 +279,7 @@
     root.appendChild(main);
 
     planEl = plan;
+    rfCanvasEl = rfCanvas;
     catalogEl = sidebar.querySelector('#aplab-catalog');
     statusEl = sidebar.querySelector('#aplab-status');
 
@@ -245,6 +288,26 @@
 
     sidebar.querySelector('#aplab-reset').addEventListener('click', () => {
       if (confirm('Clear all placed APs?')) reset();
+    });
+
+    // RF layer + band toggle bindings
+    sidebar.querySelectorAll('[data-layer]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        sidebar.querySelectorAll('[data-layer]').forEach(function (b) { b.classList.remove('is-active'); });
+        btn.classList.add('is-active');
+        if (window.APLabRF && typeof window.APLabRF.setLayer === 'function') {
+          window.APLabRF.setLayer(btn.dataset.layer);
+        }
+      });
+    });
+    sidebar.querySelectorAll('[data-band]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        sidebar.querySelectorAll('[data-band]').forEach(function (b) { b.classList.remove('is-active'); });
+        btn.classList.add('is-active');
+        if (window.APLabRF && typeof window.APLabRF.setBand === 'function') {
+          window.APLabRF.setBand(btn.dataset.band);
+        }
+      });
     });
   }
 
