@@ -2101,7 +2101,7 @@
     tip.className = 'subnet-tooltip';
     document.body.appendChild(tip);
 
-    var COLS = ['c1','c9','c17','c25','mask','nets','addrs'];
+    var COLS = ['c1','c9','c17','c25','mask','wildcard','nets','addrs','exponent','hosts','blocks'];
     var OCTET_NAME = ['1st','2nd','3rd','4th'];
 
     function bin(n) { var s=''; for (var i=7;i>=0;i--) s+=((n>>i)&1); return s; }
@@ -2191,6 +2191,66 @@
           + '<br>/' + cidrs[2] + ': total = <strong>' + fmt(totalIPs(cidrs[2])) + '</strong> &mdash; "' + addrs + '" is octet-3 step'
           + '<br>/' + c25 + ': total = <strong>' + fmt(totalIPs(c25)) + '</strong> <span style="color:#4ADE80">&check; matches "' + addrs + '"</span>';
       }
+
+      // Wildcard cell — magic - 1, paired with mask
+      if (col === 'wildcard') {
+        var wc = magic - 1;
+        return ''
+          + '<strong>Wildcard: ' + wc + '</strong> &mdash; inverse of mask in splitting octet'
+          + '<br>Math: magic &minus; 1 = ' + magic + ' &minus; 1 = <strong>' + wc + '</strong>'
+          + '<br>Or: 255 &minus; ' + mask + ' = <strong>' + wc + '</strong>'
+          + '<br>Sanity: mask + wildcard = ' + mask + ' + ' + wc + ' = <strong>255</strong> &check;'
+          + '<br>Binary (host bits as 1s): <span class="tt-binary">' + bin(wc) + '</span>'
+          + '<br><br><em style="color:#FCD34D">Used for:</em>'
+          + '<br>&bull; ACL match statements (permit/deny)'
+          + '<br>&bull; OSPF <code>network</code> commands'
+          + '<br>&bull; Route summarization';
+      }
+
+      // Exponent cell — 2^n = networks
+      if (col === 'exponent') {
+        var n = Math.log2(nets);
+        return ''
+          + '<strong>2<sup>' + n + '</sup> = ' + nets + '</strong> &mdash; n borrowed bits in splitting octet'
+          + '<br>Mask binary (octet): <span class="tt-binary">' + bin(mask) + '</span>'
+          + '<br>Count of 1s = ' + n + ' = bits borrowed for network'
+          + '<br>2<sup>' + n + '</sup> = <strong>' + nets + ' subnets</strong> per parent block'
+          + '<br><br><em style="color:#FCD34D">Powers of 2 anchor:</em>'
+          + '<br>This row drills the <strong>2<sup>' + n + '</sup></strong> recall — memorize all 8 (2¹=2 … 2⁸=256)';
+      }
+
+      // Hosts cell — magic - 2, only true for /25-/30
+      if (col === 'hosts') {
+        var c25h = cidrs[3];
+        var hostsAt25 = (c25h >= 31) ? (c25h === 31 ? '2 (P2P, RFC 3021)' : '1 (host route)') : (magic - 2);
+        return ''
+          + '<strong>Hosts: ' + (magic - 2) + '</strong> &mdash; <em style="color:#FCD34D">only valid for /' + c25h + '</em>'
+          + '<br>Math: magic &minus; 2 = ' + magic + ' &minus; 2 = <strong>' + (magic - 2) + '</strong>'
+          + '<br>(&minus;2: subnet ID + broadcast reserved)'
+          + '<br><br><em style="color:#FCD34D">Honest read by CIDR:</em>'
+          + '<br>/' + cidrs[0] + ': hosts = <strong>' + fmt(usable(cidrs[0])) + '</strong>'
+          + '<br>/' + cidrs[1] + ': hosts = <strong>' + fmt(usable(cidrs[1])) + '</strong>'
+          + '<br>/' + cidrs[2] + ': hosts = <strong>' + fmt(usable(cidrs[2])) + '</strong>'
+          + '<br>/' + c25h + ': hosts = <strong>' + hostsAt25 + '</strong> <span style="color:#4ADE80">&check; column value</span>';
+      }
+
+      // Block boundaries cell — 4th octet only
+      if (col === 'blocks') {
+        var bounds = [];
+        for (var b = 0; b < 256; b += magic) bounds.push(b);
+        var preview = bounds.length <= 8 ? bounds.join(', ') : (bounds.slice(0,4).join(',') + ' … ' + bounds[bounds.length-1]);
+        var c25b = cidrs[3];
+        return ''
+          + '<strong>Block boundaries</strong> &mdash; where /' + c25b + ' subnets START in 4th octet'
+          + '<br>Count by magic (' + magic + '): <span class="tt-binary">' + preview + '</span>'
+          + '<br>Total: <strong>' + bounds.length + '</strong> subnets in a /24'
+          + '<br><br><em style="color:#FCD34D">How to use:</em>'
+          + '<br>Find which block a host IP lands in.'
+          + '<br>Example: 172.16.45.100 in /' + c25b + ' &rarr;'
+          + '<br>round 100 DOWN to nearest ' + magic + ' = <strong>' + (Math.floor(100 / magic) * magic) + '</strong>'
+          + '<br>Subnet ID = 172.16.45.' + (Math.floor(100 / magic) * magic);
+      }
+
       return '';
     }
 
