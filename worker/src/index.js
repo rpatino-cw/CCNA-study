@@ -2,6 +2,7 @@
 // Each room is one DO. WebSocket only.
 
 export { Room } from './room.js';
+export { Auction } from './auction.js';
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -22,13 +23,18 @@ export default {
       return new Response('ok', { headers: { ...CORS, 'content-type': 'text/plain' } });
     }
 
-    // /room/:id — WebSocket upgrade routes to that room's DO
-    const m = url.pathname.match(/^\/room\/([A-Z0-9]{4,8})$/i);
+    // /room/:id — Subnet Showdown
+    let m = url.pathname.match(/^\/room\/([A-Z0-9]{4,8})$/i);
     if (m) {
-      const roomId = m[1].toUpperCase();
-      const id = env.ROOMS.idFromName(roomId);
-      const stub = env.ROOMS.get(id);
-      return stub.fetch(request);
+      const id = env.ROOMS.idFromName(m[1].toUpperCase());
+      return env.ROOMS.get(id).fetch(request);
+    }
+
+    // /auction/:id — CIDR Auction
+    m = url.pathname.match(/^\/auction\/([A-Z0-9]{4,8})$/i);
+    if (m) {
+      const id = env.AUCTIONS.idFromName(m[1].toUpperCase());
+      return env.AUCTIONS.get(id).fetch(request);
     }
 
     return new Response('Not found', { status: 404, headers: CORS });

@@ -38,6 +38,37 @@
     }
   }
 
+  // Backward-compat: legacy APs lack mode / rrm / ft / kv / vlan / ip — apply defaults.
+  function hydrateDefaults(ap) {
+    if (ap.mode == null) ap.mode = 'local';
+    if (ap.rrmEnabled == null) ap.rrmEnabled = true;
+    if (ap.ft == null) ap.ft = false;
+    if (ap.kvEnabled == null) ap.kvEnabled = false;
+    if (ap.vlan == null) ap.vlan = 1;
+    if (ap.ip == null) ap.ip = 'dhcp';
+    if (ap.wlcJoinState == null) ap.wlcJoinState = 'Autonomous';
+    return ap;
+  }
+
+  // Open Phase-3 config modal for given AP id.
+  function openConfig(apId) {
+    if (!window.APLabConfig || typeof window.APLabConfig.openModal !== 'function') return;
+    const ap = state.aps.get(apId);
+    if (!ap) return;
+    hydrateDefaults(ap);
+    window.APLabConfig.openModal(apId, ap, {
+      onChange: function () {
+        saveToStorage();
+        recomputeRF();
+        const el = planEl.querySelector('[data-ap-id="' + apId + '"]');
+        if (el) {
+          const labelEl = el.querySelector('.aplab-ap-label');
+          if (labelEl) labelEl.textContent = apId + ' · ' + ap.model + (ap.mode && ap.mode !== 'local' ? ' [' + ap.mode + ']' : '');
+        }
+      }
+    });
+  }
+
   // ── public API ───────────────────────────────────────────────
   function init(rootEl, presetId) {
     if (!window.APLabData) {
@@ -77,7 +108,7 @@
       return null;
     }
     const id = nextId();
-    const ap = {
+    const ap = hydrateDefaults({
       id,
       model,
       x: clamp(xM, 0.5, state.preset.widthM - 0.5),
@@ -89,7 +120,7 @@
         txDbm: r.defaultTxDbm
       })),
       status: 'up'
-    };
+    });
     state.aps.set(id, ap);
     renderAP(ap);
     saveToStorage();
@@ -153,7 +184,14 @@
         x: round2(ap.x),
         y: round2(ap.y),
         radios: ap.radios.map(r => ({ ...r })),
-        status: ap.status
+        status: ap.status,
+        mode: ap.mode,
+        rrmEnabled: ap.rrmEnabled,
+        ft: ap.ft,
+        kvEnabled: ap.kvEnabled,
+        vlan: ap.vlan,
+        ip: ap.ip,
+        wlcJoinState: ap.wlcJoinState
       }))
     };
   }
@@ -209,7 +247,8 @@
     state.aps.clear();
     state.idSeq = 0;
     layout.aps.forEach(ap => {
-      state.aps.set(ap.id, { ...ap, radios: ap.radios.map(r => ({ ...r })) });
+      const hydrated = hydrateDefaults({ ...ap, radios: ap.radios.map(r => ({ ...r })) });
+      state.aps.set(ap.id, hydrated);
       const n = parseInt(ap.id.split('-')[1], 10);
       if (Number.isFinite(n) && n > state.idSeq) state.idSeq = n;
     });
@@ -416,6 +455,12 @@
         selectAP(ap.id);
       });
 
+      el.addEventListener('dblclick', ev => {
+        ev.stopPropagation();
+        ev.preventDefault();
+        openConfig(ap.id);
+      });
+
       el.addEventListener('contextmenu', ev => {
         ev.preventDefault();
         ev.stopPropagation();
@@ -502,11 +547,13 @@
     menu.style.left = x + 'px';
     menu.style.top = y + 'px';
     menu.innerHTML =
+      '<button data-act="configure">Configure</button>' +
       '<button data-act="clone">Clone</button>' +
       '<button data-act="delete">Delete</button>';
     document.body.appendChild(menu);
     menu.addEventListener('click', ev => {
       const act = ev.target.dataset.act;
+      if (act === 'configure') openConfig(id);
       if (act === 'clone') cloneAP(id);
       if (act === 'delete') deleteAP(id);
       closeApMenu();
@@ -539,6 +586,6 @@
   // ── export ───────────────────────────────────────────────────
   window.APLab = {
     init, placeAP, moveAP, cloneAP, deleteAP,
-    getLayout, loadLayout, reset
+    getLayout, loadLayout, reset, openConfig
   };
 })();

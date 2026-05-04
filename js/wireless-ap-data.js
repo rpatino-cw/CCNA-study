@@ -94,5 +94,27 @@
     }
   ];
 
-  window.APLabData = { presets, wallMaterials, apCatalog };
+  // ── Phase 3 additions ────────────────────────────────────────
+  const wlanSecurityModes = [
+    { id: 'open',         label: 'Open',                requiresPassphrase: false, requiresRadius: false, generation: 'legacy' },
+    { id: 'wpa2-psk',     label: 'WPA2 Personal (PSK)', requiresPassphrase: true,  requiresRadius: false, generation: 'wpa2'   },
+    { id: 'wpa2-ent',     label: 'WPA2 Enterprise',     requiresPassphrase: false, requiresRadius: true,  generation: 'wpa2'   },
+    { id: 'wpa3-sae',     label: 'WPA3 Personal (SAE)', requiresPassphrase: true,  requiresRadius: false, generation: 'wpa3'   },
+    { id: 'wpa3-ent',     label: 'WPA3 Enterprise',     requiresPassphrase: false, requiresRadius: true,  generation: 'wpa3'   }
+  ];
+
+  const apModes = [
+    { id: 'local',       label: 'Local',       description: 'Default; serves clients + scans on idle channels' },
+    { id: 'flexconnect', label: 'FlexConnect', description: 'Branch / WAN-edge; switches traffic locally if WLC unreachable' },
+    { id: 'monitor',     label: 'Monitor',     description: 'Sensor only; no client serving — wIPS / location' },
+    { id: 'sniffer',     label: 'Sniffer',     description: 'Captures frames + forwards to remote analyzer' },
+    { id: 'bridge',      label: 'Bridge',      description: 'Mesh / point-to-point bridge link' }
+  ];
+
+  const defaultWlans = [
+    { id: 'wlan-1', name: 'Corp',  band: 'both', security: 'wpa2-psk', vlan: 10, hidden: false, broadcast: true, passphrase: 'corppass1', radiusServer: '' },
+    { id: 'wlan-2', name: 'Guest', band: '5',    security: 'open',     vlan: 20, hidden: false, broadcast: true, passphrase: '',          radiusServer: '' }
+  ];
+
+  window.APLabData = { presets, wallMaterials, apCatalog, wlanSecurityModes, apModes, defaultWlans };
 })();
