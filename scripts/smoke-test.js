@@ -9,9 +9,34 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
+const { execSync } = require('child_process');
 
 const ROOT = path.resolve(__dirname, '..');
 const PORT = 9847;
+
+// Free the port if a stale smoke server is still listening (concurrent push,
+// crashed playwright, killed parent, etc). Skip on Windows; only kill node
+// processes we own.
+function freePortIfStale() {
+  try {
+    const pidsRaw = execSync(`lsof -ti:${PORT} -sTCP:LISTEN`, { stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim();
+    if (!pidsRaw) return;
+    const pids = pidsRaw.split('\n').filter(Boolean);
+    for (const pid of pids) {
+      try {
+        const cmd = execSync(`ps -p ${pid} -o command=`, { stdio: ['ignore', 'pipe', 'ignore'] }).toString();
+        if (/smoke-test\.js/.test(cmd)) {
+          process.stderr.write(`Reclaiming port ${PORT} from stale smoke-test pid ${pid}\n`);
+          process.kill(parseInt(pid, 10), 'SIGKILL');
+        }
+      } catch (_) { /* process already gone */ }
+    }
+    // Brief settle for kernel to release the socket.
+    const start = Date.now();
+    while (Date.now() - start < 1500) { /* spin briefly */ }
+  } catch (_) { /* lsof not available or no listener */ }
+}
+freePortIfStale();
 
 const STATIC_PAGES = [
   'packet-journey.html',

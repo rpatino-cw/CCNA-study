@@ -173,6 +173,15 @@
             </div>
             <div id="hsTeachBody"></div>
           </div>
+
+          <div class="visual-block" style="margin-top:14px;background:var(--bg)">
+            <div class="teach-title" style="margin-bottom:8px">
+              <span>Median time per question type</span>
+              <button class="teach-toggle" onclick="hsResetTiming()">Reset</button>
+            </div>
+            <div id="hsTimingBody" style="font-family:var(--font-mono);font-size:0.82rem;color:var(--ink-secondary);line-height:1.7"></div>
+            <div style="font-size:0.72rem;color:var(--ink-muted);margin-top:6px">Slower types = weakness target. Updates after each correct answer.</div>
+          </div>
         </section>
 
         <section class="visual-block examples-block">
@@ -243,7 +252,7 @@
 
 <script defer src="js/nav.js?v=4.56"></script>
 <script>
-window.hsConfig = { storageKey: 'ccna_hs_best', maxBitBudget: 32 };
+window.hsConfig = { storageKey: 'ccna_hs_best', timingKey: 'ccna_hs_timing', maxBitBudget: 32 };
 </script>
 <script>
 document.addEventListener('DOMContentLoaded', function(){
@@ -272,6 +281,35 @@ document.addEventListener('DOMContentLoaded', function(){
     elapsed: 0,
     best: parseInt(localStorage.getItem(window.hsConfig.storageKey) || '0', 10),
     teachOpen: true,
+    timing: JSON.parse(localStorage.getItem(window.hsConfig.timingKey) || '{}'),
+  };
+
+  function median(arr) {
+    if (!arr.length) return null;
+    var s = arr.slice().sort(function(a,b){return a-b;});
+    var mid = Math.floor(s.length / 2);
+    return s.length % 2 ? s[mid] : (s[mid-1] + s[mid]) / 2;
+  }
+
+  function renderTiming() {
+    var labels = { 'mask':'Mask From Counts', 'max-hosts':'Max Hosts', 'max-subnets':'Max Subnets', 'fits':'Fits Or Not', 'reverse':'Reverse Mask' };
+    var keys = Object.keys(labels);
+    var rows = keys.map(function(k){
+      var arr = state.timing[k] || [];
+      if (!arr.length) return '<div>' + labels[k] + ': <span style="color:var(--ink-muted)">no data yet</span></div>';
+      var med = median(arr);
+      var n = arr.length;
+      var slowest = Math.max.apply(null, arr);
+      return '<div>' + labels[k] + ': <strong style="color:var(--ink)">' + med.toFixed(1) + 's</strong> median ' +
+        '<span style="color:var(--ink-muted)">(n=' + n + ', max ' + slowest + 's)</span></div>';
+    });
+    document.getElementById('hsTimingBody').innerHTML = rows.join('');
+  }
+
+  window.hsResetTiming = function() {
+    state.timing = {};
+    localStorage.removeItem(window.hsConfig.timingKey);
+    renderTiming();
   };
 
   // ─── Parametric generator ──────────────────────────────────
@@ -524,6 +562,11 @@ document.addEventListener('DOMContentLoaded', function(){
         state.best = state.streak;
         localStorage.setItem(window.hsConfig.storageKey, String(state.best));
       }
+      var qtype = state.current.type;
+      if (!state.timing[qtype]) state.timing[qtype] = [];
+      state.timing[qtype].push(state.elapsed);
+      if (state.timing[qtype].length > 50) state.timing[qtype].shift();
+      localStorage.setItem(window.hsConfig.timingKey, JSON.stringify(state.timing));
       fb.className = 'feedback right';
       fb.textContent = 'Correct. ' + state.elapsed + 's. Streak ' + state.streak + '.';
     } else {
@@ -536,6 +579,7 @@ document.addEventListener('DOMContentLoaded', function(){
     document.getElementById('hsScore').textContent = state.correct + '/' + state.total;
     state.teachOpen = true;
     renderTeach(state.current.teach);
+    renderTiming();
     stopTimer();
   };
 
@@ -562,6 +606,7 @@ document.addEventListener('DOMContentLoaded', function(){
 
   // Initial state
   document.getElementById('hsBest').textContent = state.best || '--';
+  renderTiming();
   window.hsNew();
 });
 </script>
