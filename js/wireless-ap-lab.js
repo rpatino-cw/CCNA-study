@@ -855,6 +855,7 @@
   // ── export ───────────────────────────────────────────────────
   window.APLab = {
     init, placeAP, moveAP, cloneAP, deleteAP,
-    getLayout, loadLayout, reset, openConfig
+    getLayout, loadLayout, reset, openConfig,
+    placeInfra, moveInfra, deleteInfra
   };
 })();
