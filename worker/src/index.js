@@ -4,6 +4,7 @@
 export { Room } from './room.js';
 export { Auction } from './auction.js';
 export { Routing } from './routing.js';
+export { Wildcard } from './wildcard.js';
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -43,6 +44,13 @@ export default {
     if (m) {
       const id = env.ROUTES.idFromName(m[1].toUpperCase());
       return env.ROUTES.get(id).fetch(request);
+    }
+
+    // /wildcard/:id — Wildcard Whisperer
+    m = url.pathname.match(/^\/wildcard\/([A-Z0-9]{4,8})$/i);
+    if (m) {
+      const id = env.WILDCARDS.idFromName(m[1].toUpperCase());
+      return env.WILDCARDS.get(id).fetch(request);
     }
 
     return new Response('Not found', { status: 404, headers: CORS });
