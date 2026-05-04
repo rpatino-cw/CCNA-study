@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#FAF7F2">
+  <title>OSPF Cost Drill — Path Cost Calculation</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+  <link rel="icon" type="image/svg+xml" href="/CCNA-study/favicon.svg">
+  <link rel="stylesheet" href="css/shared.css?v=4.56">
+  <style>
+    .page-header { padding: var(--s-xl) 0 var(--s-lg); border-bottom: 2px solid var(--ink); margin-bottom: var(--s-xl); }
+    .page-header h1 { font-family: var(--font-display); font-size: 2.6rem; font-weight: 700; letter-spacing: -0.04em; line-height: 1; margin-bottom: 6px; }
+    .page-header-sub { font-family: var(--font-display); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-muted); }
+    .page-header p { color: var(--ink-secondary); margin-top: 10px; max-width: 720px; }
+
+    .layout-grid { display: grid; grid-template-columns: 1fr 280px; gap: var(--s-lg); align-items: start; }
+    @media (max-width: 900px) { .layout-grid { grid-template-columns: 1fr; } }
+
+    .visual-block { background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 20px; margin-bottom: var(--s-md); }
+
+    .pill-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; align-items: center; }
+    .pill-label { font-family: var(--font-display); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-muted); margin-right: 8px; }
+    .pill { font-family: var(--font-display); font-size: 0.75rem; padding: 6px 14px; border-radius: 16px; border: 1px solid var(--border); background: var(--bg-surface); cursor: pointer; transition: all 0.15s; }
+    .pill:hover { border-color: var(--accent); color: var(--accent); }
+    .pill.active { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+
+    .drill-meta { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; margin-bottom: 14px; font-family: var(--font-mono); font-size: 0.82rem; color: var(--ink-secondary); }
+    .drill-meta .dm-val { font-weight: 700; color: var(--ink); }
+
+    .q-card { border: 2px solid var(--ink); border-radius: var(--radius-lg); padding: 24px; background: var(--bg); margin-bottom: 14px; }
+    .q-prompt { font-family: var(--font-display); font-size: 1.1rem; font-weight: 600; line-height: 1.45; margin-bottom: 12px; }
+    .q-meta { font-family: var(--font-mono); font-size: 0.85rem; color: var(--ink-secondary); margin-bottom: 12px; }
+
+    .topo-block { font-family: var(--font-mono); font-size: 0.92rem; line-height: 1.85; padding: 14px 18px; background: var(--bg-surface); border-radius: 8px; margin-bottom: 14px; color: var(--ink); }
+    .topo-block .arrow { color: var(--accent); padding: 0 6px; }
+    .topo-block .iface { color: var(--ink-secondary); font-size: 0.82rem; }
+    .topo-block .label-row { display: block; margin-bottom: 4px; font-family: var(--font-display); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-muted); }
+
+    .input-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 12px; }
+    .input-row label { font-family: var(--font-display); font-size: 0.75rem; color: var(--ink-muted); text-transform: uppercase; letter-spacing: 0.04em; }
+    .drill-input { font-family: var(--font-mono); font-size: 1rem; padding: 10px 14px; border: 2px solid var(--border); border-radius: 8px; background: var(--bg-surface); transition: border-color 0.15s; width: 200px; }
+    .drill-input:focus { border-color: var(--accent); outline: none; }
+
+    .actions { display: flex; gap: 8px; flex-wrap: wrap; }
+    .btn-action { font-family: var(--font-display); font-size: 0.85rem; font-weight: 600; padding: 9px 18px; border-radius: 8px; border: 1px solid var(--ink); background: var(--ink); color: var(--bg); cursor: pointer; transition: all 0.15s; }
+    .btn-action:hover { background: var(--accent); border-color: var(--accent); }
+    .btn-action.secondary { background: var(--bg-surface); color: var(--ink); }
+    .btn-action.ghost { background: none; border-color: var(--border); color: var(--ink-muted); }
+
+    .feedback { margin-top: 14px; padding: 12px 14px; border-radius: 8px; font-family: var(--font-mono); font-size: 0.9rem; display: none; }
+    .feedback.right { background: #d6f5d6; color: #1a4d1a; border: 1px solid #6bbf6b; display: block; }
+    .feedback.wrong { background: #f9d6d6; color: #5a1a1a; border: 1px solid #c46b6b; display: block; }
+
+    .teach { margin-top: 16px; border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 20px; background: var(--bg-surface); }
+    .teach-title { font-family: var(--font-display); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-muted); margin-bottom: 10px; display: flex; justify-content: space-between; }
+    .teach-toggle { font-family: var(--font-display); font-size: 0.72rem; padding: 4px 10px; border-radius: 12px; border: 1px solid var(--border); background: var(--bg); cursor: pointer; }
+    .teach-step { display: flex; gap: 12px; padding: 8px 0; border-top: 1px dashed var(--border); }
+    .teach-step:first-of-type { border-top: none; }
+    .teach-num { flex-shrink: 0; width: 24px; height: 24px; border-radius: 12px; background: var(--ink); color: var(--bg); font-family: var(--font-display); font-size: 0.78rem; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+    .teach-body { flex: 1; font-family: var(--font-mono); font-size: 0.88rem; line-height: 1.55; color: var(--ink); }
+    .teach-body code { background: var(--bg); padding: 1px 5px; border-radius: 3px; }
+
+    .ref-card { position: sticky; top: 80px; border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 16px; background: var(--bg-surface); font-family: var(--font-mono); font-size: 0.78rem; }
+    .ref-card h3 { font-family: var(--font-display); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-muted); margin: 0 0 10px; }
+    .ref-card table { width: 100%; border-collapse: collapse; }
+    .ref-card th, .ref-card td { text-align: right; padding: 3px 6px; border-bottom: 1px dashed var(--border); }
+    .ref-card th { font-family: var(--font-display); font-size: 0.7rem; text-transform: uppercase; color: var(--ink-muted); font-weight: 600; }
+    .ref-card td:first-child, .ref-card th:first-child { text-align: left; }
+
+    details > summary { cursor: pointer; font-family: var(--font-display); font-size: 0.85rem; font-weight: 600; padding: 8px 0; }
+  </style>
+</head>
+<body>
+  <nav class="top-nav"></nav>
+
+  <div class="container">
+    <header class="page-header">
+      <div class="page-header-sub">CCNA · Domain 3.4 · OSPF</div>
+      <h1>OSPF Cost Drill</h1>
+      <p>Type-the-answer drill for OSPF cost math. Single-link cost, multi-hop path cost, best-path picker, bandwidth-from-target reverse. Counts only OUTGOING interfaces, minimum 1, default reference bandwidth 100 Mbps.</p>
+      <p style="margin-top:8px"><strong>Calculator + topology view:</strong> <a href="path-selection.html" style="color:var(--accent);font-weight:600">Path Selection Simulator</a> ·
+        <strong>States race:</strong> <a href="ospf-states.html" style="color:var(--accent);font-weight:600">OSPF States</a></p>
+    </header>
+
+    <div class="layout-grid">
+      <main>
+
+        <section class="visual-block">
+          <div class="pill-row">
+            <span class="pill-label">Difficulty</span>
+            <button class="pill active" data-diff="easy" onclick="setDiff(this)">Easy</button>
+            <button class="pill" data-diff="medium" onclick="setDiff(this)">Medium</button>
+            <button class="pill" data-diff="hard" onclick="setDiff(this)">Hard</button>
+          </div>
+          <div class="pill-row">
+            <span class="pill-label">Question type</span>
+            <button class="pill active" data-qt="all" onclick="setQT(this)">All</button>
+            <button class="pill" data-qt="single" onclick="setQT(this)">Single-link cost</button>
+            <button class="pill" data-qt="path" onclick="setQT(this)">Path cost (sum)</button>
+            <button class="pill" data-qt="best" onclick="setQT(this)">Best path</button>
+            <button class="pill" data-qt="reverse" onclick="setQT(this)">Bandwidth needed</button>
+          </div>
+          <div class="drill-meta">
+            <span>Streak <strong class="dm-val" id="ocStreak">0</strong></span>
+            <span>Best <strong class="dm-val" id="ocBest">--</strong></span>
+            <span>Score <strong class="dm-val" id="ocScore">0/0</strong></span>
+            <button class="btn-action ghost" style="margin-left:auto;font-size:0.75rem;padding:5px 12px" onclick="ocReset()">Reset score</button>
+          </div>
+
+          <div class="q-card">
+            <div class="q-prompt" id="ocPrompt">Click <em>New question</em> to begin.</div>
+            <div class="q-meta" id="ocMeta"></div>
+            <div class="topo-block" id="ocTopo" style="display:none"></div>
+            <div id="ocInputArea"></div>
+            <div class="actions">
+              <button class="btn-action" onclick="ocCheck()">Check</button>
+              <button class="btn-action secondary" onclick="ocHint()">Hint</button>
+              <button class="btn-action ghost" onclick="ocNew()">New question</button>
+            </div>
+            <div class="feedback" id="ocFeedback"></div>
+          </div>
+
+          <div class="teach" id="ocTeach" style="display:none">
+            <div class="teach-title">
+              <span>Step-by-step solver</span>
+              <button class="teach-toggle" onclick="ocToggleTeach()">Hide</button>
+            </div>
+            <div id="ocTeachBody"></div>
+          </div>
+        </section>
+
+        <section class="visual-block">
+          <details>
+            <summary>How OSPF cost works (recipe)</summary>
+            <div style="margin-top:10px;font-family:var(--font-mono);font-size:0.88rem;line-height:1.65">
+              <ol style="margin:0 0 0 22px">
+                <li><strong>Per-link cost:</strong> <code>cost = ref_bw / interface_bw</code> (integer divide, floor). Minimum 1.</li>
+                <li><strong>Default ref_bw on Cisco:</strong> 100 Mbps. So FastEth, GigE, 10GE all return cost 1 — every modern link looks the same. Fix: <code>auto-cost reference-bandwidth 100000</code> (set to 100 Gbps).</li>
+                <li><strong>Path cost</strong> = sum of <em>outgoing</em> interface costs along the path. Don't double-count ingress.</li>
+                <li><strong>Best path</strong> = lowest total cost. Ties go to multiple equal-cost routes (default 4-way ECMP).</li>
+                <li><strong>Bandwidth-from-target:</strong> if you want a specific cost N at default ref_bw, interface_bw = 100/N (in Mbps). Cost 4 = 25 Mbps; cost 64 = 1.5625 Mbps (T1 ≈ 1.544 Mbps → cost 64).</li>
+              </ol>
+              <div style="margin-top:10px"><strong>Common values @ default ref 100 Mbps:</strong></div>
+              <pre style="margin:6px 0;font-size:0.82rem">56 kbps  → 1785      T1 1.544 Mbps → 64
+64 kbps  → 1562      E1 2.048 Mbps → 48
+10 Mbps  →   10      Eth (legacy)
+100 Mbps →    1      FastEthernet
+1 Gbps   →    1      capped at min 1 (this is the bug — fix ref_bw)
+10 Gbps  →    1      capped at min 1</pre>
+            </div>
+          </details>
+        </section>
+
+      </main>
+
+      <aside>
+        <div class="ref-card">
+          <h3>Cost @ default ref (100 Mbps)</h3>
+          <table>
+            <thead><tr><th>Bandwidth</th><th>Cost</th></tr></thead>
+            <tbody>
+              <tr><td>56 kbps</td><td>1785</td></tr>
+              <tr><td>64 kbps</td><td>1562</td></tr>
+              <tr><td>T1 (1.544 Mbps)</td><td>64</td></tr>
+              <tr><td>E1 (2.048 Mbps)</td><td>48</td></tr>
+              <tr><td>10 Mbps</td><td>10</td></tr>
+              <tr><td>100 Mbps</td><td>1</td></tr>
+              <tr><td>1 Gbps</td><td>1*</td></tr>
+              <tr><td>10 Gbps</td><td>1*</td></tr>
+            </tbody>
+          </table>
+          <div style="margin-top:10px;color:var(--ink-muted);font-size:0.72rem">* capped at min 1. Increase reference-bandwidth to differentiate.</div>
+        </div>
+        <div class="ref-card" style="margin-top:14px">
+          <h3>Cost @ ref 100 Gbps (recommended)</h3>
+          <table>
+            <thead><tr><th>Bandwidth</th><th>Cost</th></tr></thead>
+            <tbody>
+              <tr><td>10 Mbps</td><td>10000</td></tr>
+              <tr><td>100 Mbps</td><td>1000</td></tr>
+              <tr><td>1 Gbps</td><td>100</td></tr>
+              <tr><td>10 Gbps</td><td>10</td></tr>
+              <tr><td>40 Gbps</td><td>2</td></tr>
+              <tr><td>100 Gbps</td><td>1</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+<script defer src="js/nav.js?v=4.56"></script>
+<script>
+window.ocConfig = { storageKey: 'ccna_oc_best' };
+</script>
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+
+  // ─── OSPF cost math ────────────────────────────────────────
+  function ospfCost(refMbps, ifMbps) {
+    var c = Math.floor(refMbps / ifMbps);
+    return Math.max(1, c);
+  }
+
+  // Bandwidth options (label + Mbps value)
+  var BANDWIDTHS = [
+    { label: '56 kbps',         mbps: 0.056 },
+    { label: '64 kbps',         mbps: 0.064 },
+    { label: '128 kbps',        mbps: 0.128 },
+    { label: '256 kbps',        mbps: 0.256 },
+    { label: '512 kbps',        mbps: 0.512 },
+    { label: 'T1 (1.544 Mbps)', mbps: 1.544 },
+    { label: 'E1 (2.048 Mbps)', mbps: 2.048 },
+    { label: '10 Mbps',         mbps: 10 },
+    { label: '100 Mbps',        mbps: 100 },
+    { label: '1 Gbps',          mbps: 1000 },
+    { label: '10 Gbps',         mbps: 10000 },
+    { label: '40 Gbps',         mbps: 40000 },
+    { label: '100 Gbps',        mbps: 100000 },
+  ];
+
+  var REF_BW_OPTIONS = [
+    { label: '100 Mbps (default)', mbps: 100 },
+    { label: '1 Gbps',             mbps: 1000 },
+    { label: '10 Gbps',            mbps: 10000 },
+    { label: '100 Gbps',           mbps: 100000 },
+  ];
+
+  function randInt(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
+  function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+  function pickN(arr, n) {
+    var pool = arr.slice();
+    var out = [];
+    for (var i = 0; i < n && pool.length; i++) {
+      out.push(pool.splice(Math.floor(Math.random() * pool.length), 1)[0]);
+    }
+    return out;
+  }
+
+  // ─── State ─────────────────────────────────────────────────
+  var state = {
+    diff: 'easy',
+    qt: 'all',
+    current: null,
+    streak: 0,
+    correct: 0,
+    total: 0,
+    best: parseInt(localStorage.getItem(window.ocConfig.storageKey) || '0', 10),
+    teachOpen: true,
+  };
+
+  function pickQType() {
+    var types = ['single', 'path', 'best', 'reverse'];
+    return state.qt === 'all' ? pick(types) : state.qt;
+  }
+
+  // ─── Generators ────────────────────────────────────────────
+  function genSingle() {
+    var ref = state.diff === 'easy' ? REF_BW_OPTIONS[0] : pick(REF_BW_OPTIONS);
+    // Filter bandwidths so cost > 1 (avoid ambiguity)
+    var pool = BANDWIDTHS.filter(function(b){ return Math.floor(ref.mbps / b.mbps) >= 1 && b.mbps <= ref.mbps; });
+    var bw = pick(pool);
+    var cost = ospfCost(ref.mbps, bw.mbps);
+    return {
+      type: 'single',
+      ref: ref,
+      bw: bw,
+      answer: cost,
+      prompt: 'Reference bandwidth = <strong>' + ref.label + '</strong>. Interface bandwidth = <strong>' + bw.label + '</strong>. <strong>OSPF cost?</strong>',
+      meta: 'Formula: cost = floor(ref / interface), minimum 1.',
+      hint: 'cost = ' + ref.mbps + ' / ' + bw.mbps + ' = ' + (ref.mbps / bw.mbps).toFixed(3) + ' → floor → ' + cost + '.'
+    };
+  }
+
+  function genPath() {
+    var ref = state.diff === 'easy' ? { label: '100 Gbps', mbps: 100000 } : pick(REF_BW_OPTIONS.slice(2));
+    var hops = state.diff === 'easy' ? 3 : (state.diff === 'medium' ? 4 : 5);
+    var pool = BANDWIDTHS.filter(function(b){ return b.mbps <= ref.mbps && ospfCost(ref.mbps, b.mbps) > 1; });
+    var links = [];
+    for (var i = 0; i < hops; i++) links.push(pick(pool));
+    var costs = links.map(function(l){ return ospfCost(ref.mbps, l.mbps); });
+    var total = costs.reduce(function(a,b){return a+b;}, 0);
+    var routers = ['R1','R2','R3','R4','R5','R6'].slice(0, hops + 1);
+    var topoLines = routers.map(function(r, i){
+      if (i === routers.length - 1) return r;
+      return r + ' <span class="arrow">━━━</span> <span class="iface">' + links[i].label + ' (cost ' + costs[i] + ')</span> <span class="arrow">━━━</span> ';
+    }).join('');
+    return {
+      type: 'path',
+      ref: ref,
+      links: links,
+      costs: costs,
+      total: total,
+      routers: routers,
+      answer: total,
+      prompt: 'Path from <strong>' + routers[0] + '</strong> to <strong>' + routers[routers.length - 1] + '</strong>. Reference bandwidth: <strong>' + ref.label + '</strong>. <strong>Total OSPF path cost?</strong>',
+      meta: 'Sum the cost of each outgoing interface along the path.',
+      topo: topoLines,
+      hint: 'Sum: ' + costs.join(' + ') + ' = ' + total + '.'
+    };
+  }
+
+  function genBest() {
+    var ref = pick(REF_BW_OPTIONS.slice(1, 3));
+    var paths = [];
+    var pool = BANDWIDTHS.filter(function(b){ return ospfCost(ref.mbps, b.mbps) > 1 && b.mbps <= ref.mbps; });
+    var labels = ['A', 'B', 'C'];
+    var totals = [];
+    for (var p = 0; p < 3; p++) {
+      var hops = randInt(2, 4);
+      var links = [];
+      for (var i = 0; i < hops; i++) links.push(pick(pool));
+      var costs = links.map(function(l){ return ospfCost(ref.mbps, l.mbps); });
+      var total = costs.reduce(function(a,b){return a+b;}, 0);
+      paths.push({ label: labels[p], hops: hops, links: links, costs: costs, total: total });
+      totals.push(total);
+    }
+    // Ensure unique winner
+    if (totals.filter(function(t){ return t === Math.min.apply(null, totals); }).length > 1) {
+      paths[0].links[0] = BANDWIDTHS[BANDWIDTHS.length - 1];
+      paths[0].costs[0] = ospfCost(ref.mbps, paths[0].links[0].mbps);
+      paths[0].total = paths[0].costs.reduce(function(a,b){return a+b;}, 0);
+    }
+    var winner = paths.reduce(function(a, b){ return a.total < b.total ? a : b; });
+    var topoLines = paths.map(function(p){
+      var line = '<strong>Path ' + p.label + ':</strong> ';
+      line += p.links.map(function(l, i){ return l.label + ' (' + p.costs[i] + ')'; }).join(' <span class="arrow">→</span> ');
+      line += '   <span class="iface">total ' + p.total + '</span>';
+      return line;
+    }).join('<br>');
+    return {
+      type: 'best',
+      ref: ref,
+      paths: paths,
+      winner: winner,
+      answer: winner.label,
+      prompt: 'Three OSPF paths to the same destination. Reference bandwidth: <strong>' + ref.label + '</strong>. <strong>Which path wins?</strong> (Answer: A, B, or C)',
+      meta: 'OSPF picks lowest cumulative cost.',
+      topo: topoLines,
+      hint: 'Path totals: ' + paths.map(function(p){return p.label+'='+p.total;}).join(', ') + '.'
+    };
+  }
+
+  function genReverse() {
+    // Given target cost + ref, what's the slowest interface bandwidth?
+    var ref = state.diff === 'easy' ? REF_BW_OPTIONS[0] : pick(REF_BW_OPTIONS.slice(1));
+    // Pick a bandwidth, compute cost, then ask for bandwidth label
+    var pool = BANDWIDTHS.filter(function(b){ return b.mbps <= ref.mbps && ospfCost(ref.mbps, b.mbps) >= 2; });
+    var bw = pick(pool);
+    var cost = ospfCost(ref.mbps, bw.mbps);
+    return {
+      type: 'reverse',
+      ref: ref,
+      bw: bw,
+      answer: bw.label,
+      prompt: 'OSPF cost on a link is exactly <strong>' + cost + '</strong>. Reference bandwidth: <strong>' + ref.label + '</strong>. What standard interface bandwidth produces this cost? (Type the speed, e.g. <code>100 Mbps</code>, <code>T1</code>, <code>1 Gbps</code>)',
+      meta: 'interface_bw = ref / cost.',
+      hint: 'Target bw = ' + ref.mbps + ' / ' + cost + ' ≈ ' + (ref.mbps / cost).toFixed(3) + ' Mbps.'
+    };
+  }
+
+  function genQuestion() {
+    var qt = pickQType();
+    if (qt === 'single') return genSingle();
+    if (qt === 'path') return genPath();
+    if (qt === 'best') return genBest();
+    if (qt === 'reverse') return genReverse();
+    return genSingle();
+  }
+
+  // ─── Render ────────────────────────────────────────────────
+  function renderQuestion() {
+    var q = state.current;
+    document.getElementById('ocPrompt').innerHTML = q.prompt;
+    document.getElementById('ocMeta').textContent = q.meta || '';
+    var topo = document.getElementById('ocTopo');
+    if (q.topo) { topo.style.display = 'block'; topo.innerHTML = q.topo; }
+    else { topo.style.display = 'none'; topo.innerHTML = ''; }
+    document.getElementById('ocFeedback').className = 'feedback';
+    document.getElementById('ocFeedback').textContent = '';
+    document.getElementById('ocTeach').style.display = 'none';
+
+    var inputArea = document.getElementById('ocInputArea');
+    if (q.type === 'best') {
+      inputArea.innerHTML = '<div class="input-row"><label>Path letter:</label><input class="drill-input" id="ocAns" placeholder="A / B / C" style="width:120px" onkeydown="if(event.key===&quot;Enter&quot;)ocCheck()"></div>';
+    } else if (q.type === 'reverse') {
+      inputArea.innerHTML = '<div class="input-row"><label>Bandwidth:</label><input class="drill-input" id="ocAns" placeholder="e.g. 100 Mbps, T1, 1 Gbps" onkeydown="if(event.key===&quot;Enter&quot;)ocCheck()"></div>';
+    } else {
+      inputArea.innerHTML = '<div class="input-row"><label>OSPF cost:</label><input class="drill-input" id="ocAns" placeholder="number" style="width:140px" onkeydown="if(event.key===&quot;Enter&quot;)ocCheck()"></div>';
+    }
+    setTimeout(function(){ var el = document.getElementById('ocAns'); if (el) el.focus(); }, 30);
+  }
+
+  function buildTeach() {
+    var q = state.current;
+    if (q.type === 'single') {
+      return [
+        'Reference: <strong>' + q.ref.mbps + ' Mbps</strong>. Interface: <strong>' + q.bw.mbps + ' Mbps</strong>.',
+        'Divide: ' + q.ref.mbps + ' / ' + q.bw.mbps + ' = <strong>' + (q.ref.mbps / q.bw.mbps).toFixed(3) + '</strong>.',
+        'Floor + apply minimum 1: cost = <strong>' + q.answer + '</strong>.'
+      ];
+    }
+    if (q.type === 'path') {
+      var hopLines = q.links.map(function(l, i){ return q.routers[i] + ' → ' + q.routers[i+1] + ' over ' + l.label + ': cost = ' + q.ref.mbps + '/' + l.mbps + ' = <strong>' + q.costs[i] + '</strong>'; });
+      return [
+        'Compute each outgoing-interface cost.',
+        hopLines.join('<br>'),
+        'Sum: ' + q.costs.join(' + ') + ' = <strong>' + q.total + '</strong>.',
+        'Path cost only counts <em>outgoing</em> interfaces. Inbound side does not add.'
+      ];
+    }
+    if (q.type === 'best') {
+      var lines = q.paths.map(function(p){ return 'Path ' + p.label + ': ' + p.costs.join(' + ') + ' = <strong>' + p.total + '</strong>'; });
+      return [
+        'Compute each path total.',
+        lines.join('<br>'),
+        'Lowest total = <strong>Path ' + q.winner.label + '</strong> at cost ' + q.winner.total + '. OSPF installs this in the routing table.'
+      ];
+    }
+    if (q.type === 'reverse') {
+      return [
+        'Cost = ref / bw. Solve for bw.',
+        'bw = ref / cost = ' + q.ref.mbps + ' / ' + q.answer.match(/\d/) + '... use exact: bw ≈ <strong>' + q.bw.mbps + ' Mbps</strong>.',
+        'Standard interface speed at that bandwidth: <strong>' + q.bw.label + '</strong>.'
+      ];
+    }
+    return [];
+  }
+
+  function renderTeach() {
+    var steps = buildTeach();
+    var html = '';
+    for (var i = 0; i < steps.length; i++) {
+      html += '<div class="teach-step"><div class="teach-num">' + (i + 1) + '</div><div class="teach-body">' + steps[i] + '</div></div>';
+    }
+    document.getElementById('ocTeachBody').innerHTML = html;
+    document.getElementById('ocTeach').style.display = state.teachOpen ? 'block' : 'none';
+  }
+
+  window.ocToggleTeach = function() {
+    state.teachOpen = !state.teachOpen;
+    document.getElementById('ocTeach').style.display = state.teachOpen ? 'block' : 'none';
+  };
+
+  function normReverse(s) {
+    return s.trim().toLowerCase()
+      .replace(/\s+/g, '')
+      .replace(/gigabits?\/?s?|gbps|gig/g, 'gbps')
+      .replace(/megabits?\/?s?|mbps|meg/g, 'mbps')
+      .replace(/kilobits?\/?s?|kbps/g, 'kbps');
+  }
+
+  // ─── Actions ───────────────────────────────────────────────
+  window.ocNew = function() {
+    state.current = genQuestion();
+    renderQuestion();
+  };
+
+  window.ocCheck = function() {
+    if (!state.current) { window.ocNew(); return; }
+    var q = state.current;
+    var raw = (document.getElementById('ocAns').value || '').trim();
+    var ok = false;
+    var fb = document.getElementById('ocFeedback');
+
+    if (q.type === 'single' || q.type === 'path') {
+      ok = (raw === String(q.answer));
+    } else if (q.type === 'best') {
+      ok = raw.toUpperCase() === q.answer;
+    } else if (q.type === 'reverse') {
+      var n = normReverse(raw);
+      var target = normReverse(q.answer);
+      ok = (n === target) || (n === target.replace(/\(.*?\)/g, '').trim());
+      // Accept aliases
+      if (!ok) {
+        if (target.indexOf('t1') >= 0 && (n === 't1' || n === '1.544mbps')) ok = true;
+        if (target.indexOf('e1') >= 0 && (n === 'e1' || n === '2.048mbps')) ok = true;
+      }
+    }
+
+    state.total++;
+    if (ok) {
+      state.correct++;
+      state.streak++;
+      if (state.streak > state.best) {
+        state.best = state.streak;
+        localStorage.setItem(window.ocConfig.storageKey, String(state.best));
+      }
+      fb.className = 'feedback right';
+      fb.textContent = 'Correct. Streak ' + state.streak + '.';
+    } else {
+      state.streak = 0;
+      fb.className = 'feedback wrong';
+      fb.innerHTML = 'Wrong. Answer: <strong>' + q.answer + '</strong>. See solver below.';
+      state.teachOpen = true;
+      renderTeach();
+    }
+    document.getElementById('ocStreak').textContent = state.streak;
+    document.getElementById('ocBest').textContent = state.best || '--';
+    document.getElementById('ocScore').textContent = state.correct + '/' + state.total;
+  };
+
+  window.ocHint = function() {
+    if (!state.current) return;
+    var fb = document.getElementById('ocFeedback');
+    fb.className = 'feedback wrong';
+    fb.style.background = '#fff4d6';
+    fb.style.color = '#5a4a1a';
+    fb.style.borderColor = '#c4a36b';
+    fb.innerHTML = 'Hint: ' + state.current.hint;
+  };
+
+  window.ocReset = function() {
+    state.streak = 0;
+    state.correct = 0;
+    state.total = 0;
+    document.getElementById('ocStreak').textContent = '0';
+    document.getElementById('ocScore').textContent = '0/0';
+  };
+
+  window.setDiff = function(btn) {
+    document.querySelectorAll('.pill[data-diff]').forEach(function(p){ p.classList.remove('active'); });
+    btn.classList.add('active');
+    state.diff = btn.dataset.diff;
+    window.ocNew();
+  };
+  window.setQT = function(btn) {
+    document.querySelectorAll('.pill[data-qt]').forEach(function(p){ p.classList.remove('active'); });
+    btn.classList.add('active');
+    state.qt = btn.dataset.qt;
+    window.ocNew();
+  };
+
+  // Init
+  document.getElementById('ocBest').textContent = state.best || '--';
+  window.ocNew();
+});
+</script>
+</body>
+</html>
