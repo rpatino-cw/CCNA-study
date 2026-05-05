@@ -34,6 +34,7 @@
       { text: 'VLSM Calculator', href: 'vlsm.html' },
       { text: 'Magic Number', href: 'magic-number.html' },
       { text: 'IPv6 Visual', href: 'ipv6.html' },
+      { text: 'Wireless AP Lab', href: 'wireless-ap-lab.html' },
     ]},
     { text: 'Practice', children: [
       { text: 'Practice Hub', href: 'practice-hub.html' },
@@ -233,7 +234,7 @@
   // Beta badge + bug report
   var beta = document.createElement('div');
   beta.className = 'beta-badge';
-  beta.innerHTML = '<a href="' + fixHref('changelog.html') + '" class="beta-tag" style="text-decoration:none">ALPHA v6.47.1</a><a href="' + fixHref('bug-report.html') + '" class="beta-bug">Report Bug</a>';
+  beta.innerHTML = '<a href="' + fixHref('changelog.html') + '" class="beta-tag" style="text-decoration:none">ALPHA v6.47.2</a><a href="' + fixHref('bug-report.html') + '" class="beta-bug">Report Bug</a>';
   document.body.appendChild(beta);
 
   // Auto-load backup script on every page
