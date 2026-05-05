@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>2.7.b Sim — WLAN Physical Infra (AP / WLC / LAG)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{--bg:#FAF7F2;--bg-surface:#FFFFFF;--bg-recessed:#F3F0EB;--border:#E2DFD9;--border-strong:#C7C3BC;--ink:#1C1917;--ink-secondary:#57534E;--ink-muted:#A8A29E;--accent:#B45309;--accent-soft:#D97706;--accent-light:#FEF3C7;--correct:#16A34A;--correct-bg:#F0FDF4;--wrong:#DC2626;--wrong-bg:#FEF2F2;--info:#2563EB;--info-bg:#EFF6FF;--access:#60A5FA;--trunk:#A78BFA;--lag:#F59E0B;--font-display:'Space Grotesk',system-ui,sans-serif;--font-body:'Source Serif 4',Georgia,serif;--font-mono:'JetBrains Mono',monospace;--radius:6px;--radius-lg:10px}
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:var(--font-body);background:var(--bg);color:var(--ink);line-height:1.55;padding:24px;max-width:920px;margin:0 auto}
+  .head{margin-bottom:20px;padding-bottom:14px;border-bottom:1px solid var(--border)}
+  .head .crumb{font-family:var(--font-mono);font-size:.74rem;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px}
+  .head h1{font-family:var(--font-display);font-size:1.5rem;font-weight:700;margin-bottom:6px}
+  .head .desc{font-size:.95rem;color:var(--ink-secondary)}
+  .panel{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;margin-bottom:18px}
+  .panel h2{font-family:var(--font-display);font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-secondary);margin-bottom:12px}
+  .intro{font-size:.96rem;color:var(--ink-secondary);margin-bottom:14px}
+  .intro strong{color:var(--ink)}
+  .btn{font-family:var(--font-display);font-size:.84rem;font-weight:600;padding:8px 16px;background:var(--ink);color:#FAF7F2;border:none;border-radius:var(--radius);cursor:pointer}
+  .btn.ghost{background:var(--bg-recessed);color:var(--ink)}
+  .btn.accent{background:var(--accent)}
+  .topo{width:100%;display:block;margin:6px auto;background:var(--bg-recessed);border:1px solid var(--border);border-radius:var(--radius)}
+  .link-row{display:grid;grid-template-columns:1.4fr 1fr 0.8fr;gap:8px;align-items:center;padding:10px 12px;background:var(--bg-recessed);border-radius:var(--radius);border:1px solid var(--border);margin-bottom:6px;font-family:var(--font-body);font-size:.92rem}
+  .link-row .desc{color:var(--ink-secondary);font-size:.86rem}
+  .link-row select{font-family:var(--font-mono);font-size:.88rem;padding:6px 8px;border:1px solid var(--border-strong);border-radius:var(--radius);background:var(--bg-surface);width:100%}
+  .link-row .mark{font-family:var(--font-mono);font-size:.82rem;font-weight:700;text-align:right;padding:4px 10px;border-radius:99px}
+  .mark.ok{background:var(--correct-bg);color:var(--correct);border:1px solid var(--correct)}
+  .mark.bad{background:var(--wrong-bg);color:var(--wrong);border:1px solid var(--wrong)}
+  .mark.idle{background:var(--bg-surface);color:var(--ink-muted);border:1px solid var(--border)}
+  .verdict{margin-top:14px;padding:12px 16px;border-radius:var(--radius);font-family:var(--font-display);font-size:.94rem;font-weight:600;background:var(--info-bg);color:var(--info);border:1px solid var(--info);display:none}
+  .verdict.show{display:block;animation:fadeIn .25s ease}
+  .verdict.win{background:var(--correct-bg);color:var(--correct);border-color:var(--correct)}
+  .verdict.miss{background:var(--wrong-bg);color:var(--wrong);border-color:var(--wrong)}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
+  .compare{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px;font-family:var(--font-body);font-size:.92rem}
+  .compare div{padding:14px;background:var(--bg-recessed);border-radius:var(--radius);border:1px solid var(--border)}
+  .compare h3{font-family:var(--font-display);font-size:.92rem;color:var(--accent);margin-bottom:6px}
+  .compare code{font-family:var(--font-mono);font-size:.86rem;background:var(--bg-surface);padding:1px 5px;border-radius:3px}
+  .frame-stage{font-family:var(--font-mono);font-size:.86rem;background:#1C1917;color:#E7E5E4;padding:14px;border-radius:var(--radius);line-height:1.65;margin-top:12px}
+  .frame-stage .v{color:#86EFAC;font-weight:700}
+  .frame-stage .x{color:#FCA5A5}
+  .frame-stage .muted{color:#A8A29E;font-style:italic}
+  .quiz{margin-top:22px}
+  .quiz .stem{font-family:var(--font-display);font-size:1.02rem;font-weight:600;margin-bottom:12px;padding:14px;background:var(--accent-light);border-left:3px solid var(--accent);border-radius:var(--radius)}
+  .quiz .opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px}
+  .opt{background:var(--bg-recessed);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;font-family:var(--font-mono);font-size:.92rem;cursor:pointer;text-align:left}
+  .opt:hover{border-color:var(--border-strong);background:var(--bg-surface)}
+  .opt.correct{background:var(--correct-bg);border-color:var(--correct);color:var(--correct);font-weight:700}
+  .opt.wrong{background:var(--wrong-bg);border-color:var(--wrong);color:var(--wrong)}
+  .why{font-family:var(--font-mono);font-size:.82rem;color:var(--ink-secondary);margin-top:10px;padding:10px 12px;background:var(--bg-recessed);border-left:3px solid var(--accent-soft);border-radius:var(--radius);display:none;line-height:1.55}
+  .why.show{display:block;animation:fadeIn .25s ease}
+  .scoreline{font-family:var(--font-mono);font-size:.84rem;color:var(--ink-muted);margin-top:10px;display:flex;gap:18px;align-items:center}
+  .scoreline strong{font-weight:700;color:var(--ink)}
+  .badge{display:inline-block;font-family:var(--font-display);font-size:.7rem;font-weight:700;padding:2px 8px;border-radius:99px;background:var(--accent-light);color:var(--accent);text-transform:uppercase;letter-spacing:.04em;margin-left:8px}
+  .footer-link{margin-top:24px;padding-top:14px;border-top:1px solid var(--border);font-family:var(--font-mono);font-size:.82rem}
+  .footer-link a{color:var(--accent);text-decoration:none}
+</style>
+<link rel="stylesheet" href="css/shared.css?v=4.56">
+<script defer src="js/nav.js"></script>
+</head>
+<body>
+<nav class="top-nav" id="main-nav"></nav>
+
+<div class="head">
+  <div class="crumb"><a href="blueprint-drill.html?obj=2.7" style="color:var(--accent);text-decoration:none">← 2.7 Mini Sims</a> · 2.7.b · Network Access · WLAN Physical Infra (AP / WLC / LAG)</div>
+  <h1>Wires Behind the Wi-Fi<span class="badge">drill</span></h1>
+  <div class="desc">Wireless looks magic but it sits on Ethernet. <strong>Lightweight APs</strong> tunnel everything in <strong>CAPWAP</strong> back to the WLC — so the AP switchport is <strong>access</strong> in the AP-management VLAN. <strong>Autonomous APs</strong> bridge SSIDs to VLANs locally — so their switchport is a <strong>trunk</strong>. <strong>WLC uplinks</strong> = trunk. <strong>WLC LAG</strong> = static EtherChannel (mode <code>on</code>) — most WLCs don't speak LACP/PAgP for LAG. Pick the right port type per link below.</div>
+</div>
+
+<div class="panel">
+  <h2>The campus stack</h2>
+  <svg class="topo" viewBox="0 0 760 320">
+    <g>
+      <text x="60" y="40" font-family="JetBrains Mono" font-size="10" fill="#374151">Clients</text>
+      <rect x="20" y="50" width="100" height="40" rx="6" fill="#FEF3C7" stroke="#F59E0B"/>
+      <text x="70" y="75" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#92400E">📱 + 💻</text>
+    </g>
+    <line x1="120" y1="70" x2="200" y2="70" stroke="#A8A29E" stroke-width="1" stroke-dasharray="3,3"/>
+    <g>
+      <rect x="200" y="50" width="120" height="40" rx="6" fill="#1F2937" stroke="#0F172A"/>
+      <text x="260" y="76" text-anchor="middle" font-family="JetBrains Mono" font-size="11" fill="#FCD34D">AP-1 · AP-2</text>
+      <text x="260" y="38" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#374151" id="apMode">Lightweight (CAPWAP)</text>
+    </g>
+    <line x1="320" y1="70" x2="430" y2="120" stroke="#60A5FA" stroke-width="3"/>
+    <text x="370" y="84" font-family="JetBrains Mono" font-size="11" font-weight="700" fill="#1E40AF">[link 1: AP→SW]</text>
+    <g>
+      <rect x="430" y="100" width="120" height="50" rx="6" fill="#1F2937" stroke="#0F172A"/>
+      <text x="490" y="130" text-anchor="middle" font-family="JetBrains Mono" font-size="11" fill="#FCD34D">Access SW</text>
+    </g>
+    <line x1="490" y1="150" x2="490" y2="210" stroke="#A78BFA" stroke-width="3"/>
+    <text x="500" y="180" font-family="JetBrains Mono" font-size="11" font-weight="700" fill="#5B21B6">[link 2: SW→Dist]</text>
+    <g>
+      <rect x="430" y="210" width="120" height="50" rx="6" fill="#1F2937" stroke="#0F172A"/>
+      <text x="490" y="240" text-anchor="middle" font-family="JetBrains Mono" font-size="11" fill="#FCD34D">Dist SW</text>
+    </g>
+    <line x1="550" y1="220" x2="660" y2="220" stroke="#F59E0B" stroke-width="3"/>
+    <line x1="550" y1="248" x2="660" y2="248" stroke="#F59E0B" stroke-width="3"/>
+    <text x="600" y="276" font-family="JetBrains Mono" font-size="11" font-weight="700" fill="#92400E">[link 3: LAG to WLC]</text>
+    <g>
+      <rect x="660" y="200" width="80" height="70" rx="6" fill="#1F2937" stroke="#0F172A"/>
+      <text x="700" y="226" text-anchor="middle" font-family="JetBrains Mono" font-size="11" fill="#FCD34D">WLC</text>
+      <text x="700" y="248" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#94A3B8">9800-CL</text>
+    </g>
+    <text x="40" y="305" font-family="Source Serif 4" font-size="11" fill="#57534E">CAPWAP tunnel: each AP → through every link → terminates at WLC. Client traffic stays inside CAPWAP until the WLC bridges it onto the dynamic-interface VLAN.</text>
+  </svg>
+</div>
+
+<div class="panel">
+  <h2>Pick the right switchport role per link</h2>
+  <p class="intro">Toggle AP mode, then pick access vs trunk for each link. Get all 3 right.</p>
+  <div style="margin-bottom:10px">
+    <label style="font-family:var(--font-display);font-size:.78rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-secondary);margin-right:8px">AP mode:</label>
+    <select id="apModeSel" style="font-family:var(--font-mono);font-size:.92rem;padding:6px 10px;border:1px solid var(--border-strong);border-radius:6px;background:var(--bg-surface)">
+      <option value="lwap">Lightweight (CAPWAP to WLC)</option>
+      <option value="auto">Autonomous (standalone)</option>
+    </select>
+  </div>
+  <div id="linkPicker"></div>
+  <div style="display:flex;gap:8px;margin-top:8px"><button class="btn accent" id="check">Check</button><button class="btn ghost" id="reveal">Reveal</button><button class="btn ghost" id="reset">Reset</button></div>
+  <div class="verdict" id="verdict"></div>
+</div>
+
+<div class="panel">
+  <h2>Why each role fits</h2>
+  <div class="compare">
+    <div><h3>Lightweight AP → Access SW</h3>
+      <strong>Access port</strong> in the AP-management VLAN. CAPWAP encapsulates ALL client traffic in IP/UDP back to the WLC. The switch only delivers one VLAN's unicast — no client-VLAN trunking required.
+    </div>
+    <div><h3>Autonomous AP → Switch</h3>
+      <strong>Trunk port</strong>. The AP itself bridges SSID-to-VLAN. Multiple SSIDs → multiple VLANs → 802.1Q-tagged uplink so the switch knows which VLAN each client frame belongs to.
+    </div>
+    <div><h3>Access SW → Dist SW</h3>
+      <strong>Trunk</strong>. Carries every client VLAN, AP-mgmt VLAN, voice, and so on between layers.
+    </div>
+    <div><h3>WLC ⇆ Dist (LAG)</h3>
+      <strong>Static EtherChannel — mode <code>on</code></strong>. Cisco WLC LAG historically uses no negotiation — both sides must be set to <code>on</code>. The bundle is a <strong>trunk</strong> carrying client + management VLANs.
+    </div>
+  </div>
+</div>
+
+<div class="panel">
+  <h2>Worked example — switch config for an LWAP and a WLC LAG</h2>
+  <div class="frame-stage"><span class="muted">! Access switch port to a lightweight AP</span>
+SW1(config)# <span class="v">interface FastEthernet0/12</span>
+SW1(config-if)# <span class="v">switchport mode access</span>
+SW1(config-if)# <span class="v">switchport access vlan 30</span>           ! AP-mgmt VLAN
+SW1(config-if)# <span class="v">spanning-tree portfast</span>
+SW1(config-if)# <span class="v">spanning-tree bpduguard enable</span>
+
+<span class="muted">! Distribution switch — LAG to WLC (mode on, both sides)</span>
+DistSW(config)# <span class="v">interface range Te1/0/47-48</span>
+DistSW(config-if-range)# <span class="v">channel-group 10 mode on</span>
+DistSW(config)# <span class="v">interface Port-channel10</span>
+DistSW(config-if)# <span class="v">switchport mode trunk</span>
+DistSW(config-if)# <span class="v">switchport trunk allowed vlan 10,20,30,99</span>
+
+<span class="muted">! WLC side (Catalyst 9800)</span>
+WLC(config)# <span class="v">port-channel load-balance src-dst-ip</span></div>
+</div>
+
+<div class="panel">
+  <h2>Faded prompt — your turn</h2>
+  <p class="intro">Migration: site replaces autonomous APs with a Catalyst 9800 WLC + lightweight APs. Existing AP switchports are configured as <strong>trunks</strong>. After the swap, what should those ports become — and why?</p>
+  <p class="intro" style="margin-top:8px"><strong>Answer:</strong> change to <strong>access ports in the AP-mgmt VLAN</strong>. Lightweight APs don't bridge SSIDs locally; CAPWAP tunnels every client frame back to the WLC. The switch only needs to carry one VLAN to the AP. Leaving them trunks works but is sloppy — wider broadcast domain, more attack surface, more confusing for the next operator.</p>
+</div>
+
+<div class="panel quiz" id="quizPanel">
+  <h2>Quiz mode</h2>
+  <div class="stem" id="quizStem">Loading…</div>
+  <div class="opts" id="quizOpts"></div>
+  <div class="why" id="why"></div>
+  <div class="scoreline">
+    <span><strong id="qCorrect">0</strong> correct</span>
+    <span><strong id="qWrong">0</strong> wrong</span>
+    <span><strong id="qStreak">0</strong> streak</span>
+    <span style="margin-left:auto"><button class="btn ghost" id="newQ">Next ↻</button></span>
+  </div>
+</div>
+
+<div class="footer-link"><a href="blueprint-drill.html?obj=2.7">← back to 2.7 leaves</a></div>
+
+<script>
+(function(){
+  var links = [
+    { id:'l1', label:'AP → Access SW',        lwap:'access', auto:'trunk', desc:'Lightweight tunnels in CAPWAP. Autonomous bridges SSIDs → VLANs locally.' },
+    { id:'l2', label:'Access SW → Dist SW',   lwap:'trunk',  auto:'trunk', desc:'Carries every client + mgmt VLAN between layers.' },
+    { id:'l3', label:'WLC ⇆ Dist SW (LAG)',   lwap:'trunk',  auto:'trunk', desc:'Static EtherChannel (mode on). Trunk-tagged client + mgmt VLANs.' }
+  ];
+  var pick = {}; links.forEach(function(l){ pick[l.id] = '?'; });
+  var apMode = 'lwap';
+
+  function paint(){
+    var box = document.getElementById('linkPicker'); box.innerHTML='';
+    links.forEach(function(l){
+      var row = document.createElement('div'); row.className='link-row';
+      row.innerHTML =
+        '<div><strong>' + l.label + '</strong><div class="desc">' + l.desc + '</div></div>'+
+        '<div><select data-id="'+l.id+'">'+
+          '<option value="?">— pick —</option>'+
+          '<option value="access">access</option>'+
+          '<option value="trunk">trunk</option>'+
+        '</select></div>'+
+        '<div class="mark idle" data-mark="'+l.id+'">—</div>';
+      box.appendChild(row);
+      var sel = row.querySelector('select');
+      sel.value = pick[l.id];
+      sel.addEventListener('change', function(e){ pick[l.id] = e.target.value; });
+    });
+    document.getElementById('apMode').textContent = apMode==='lwap' ? 'Lightweight (CAPWAP)' : 'Autonomous (standalone)';
+    document.getElementById('verdict').className='verdict';
+  }
+
+  document.getElementById('apModeSel').addEventListener('change', function(e){ apMode = e.target.value; paint(); });
+  document.getElementById('check').addEventListener('click', function(){
+    var right=0, wrong=0;
+    links.forEach(function(l){
+      var ans = apMode==='lwap' ? l.lwap : l.auto;
+      var mark = document.querySelector('[data-mark="'+l.id+'"]');
+      if (pick[l.id] === ans){ mark.className='mark ok'; mark.textContent='✓ ' + ans; right++; }
+      else if (pick[l.id]==='?'){ mark.className='mark idle'; mark.textContent='—'; }
+      else { mark.className='mark bad'; mark.textContent='✗ should be ' + ans; wrong++; }
+    });
+    var v = document.getElementById('verdict');
+    v.className = 'verdict show ' + (right===links.length ? 'win' : (wrong>0 ? 'miss' : ''));
+    v.textContent = '✓ ' + right + ' / ' + links.length + ' correct.' + (right===links.length ? ' Clean wiring.' : '');
+  });
+  document.getElementById('reveal').addEventListener('click', function(){
+    links.forEach(function(l){ pick[l.id] = apMode==='lwap' ? l.lwap : l.auto; });
+    paint();
+    links.forEach(function(l){
+      var mark = document.querySelector('[data-mark="'+l.id+'"]');
+      mark.className='mark ok'; mark.textContent='✓ ' + pick[l.id];
+    });
+    var v = document.getElementById('verdict'); v.className='verdict show win';
+    v.textContent='✓ Revealed — read each link and re-derive WHY before clicking.';
+  });
+  document.getElementById('reset').addEventListener('click', function(){
+    links.forEach(function(l){ pick[l.id]='?'; });
+    paint();
+  });
+  paint();
+
+  // ── Quiz ──
+  var qCorrect=0, qWrong=0, qStreak=0;
+  var pool = [
+    { stem:'Lightweight AP switchport mode?', opts:['Trunk','Access in AP-management VLAN; CAPWAP tunnels client VLANs','Routed','LAG'], ans:'Access in AP-management VLAN; CAPWAP tunnels client VLANs', why:'Lightweight APs don\'t bridge to VLANs locally. Every client packet is wrapped in CAPWAP and sent over IP/UDP to the WLC. The AP\'s switchport only needs one VLAN — its mgmt VLAN — so it\'s an access port.' },
+    { stem:'Autonomous AP switchport mode?', opts:['Access','Trunk; AP locally bridges each SSID to its own VLAN','Routed','LAG'], ans:'Trunk; AP locally bridges each SSID to its own VLAN', why:'Autonomous APs bridge SSID→VLAN locally. Multiple SSIDs map to multiple VLANs; the uplink must carry them all as 802.1Q tags.' },
+    { stem:'WLC uplink to a distribution switch is normally configured as:', opts:['Access','Trunk','Routed','Console'], ans:'Trunk', why:'WLC has dynamic interfaces on multiple VLANs (client VLANs + mgmt). Carrying them all between WLC and switch requires 802.1Q trunking.' },
+    { stem:'WLC LAG to switch — what mode on the switch side?', opts:['LACP active','LACP passive','PAgP desirable','Static channel-group mode on (no negotiation)'], ans:'Static channel-group mode on (no negotiation)', why:'Cisco WLCs (especially 9800 and earlier 5500) use static EtherChannel (mode on). Don\'t use LACP/PAgP — the WLC won\'t negotiate, the channel won\'t form.' },
+    { stem:'CAPWAP runs over which transport?', opts:['TCP only','UDP — control 5246, data 5247','HTTP','SNMP'], ans:'UDP — control 5246, data 5247', why:'CAPWAP (RFC 5415) uses two UDP ports. Firewalls between AP-mgmt VLAN and WLC mgmt interface must permit both.' },
+    { stem:'AP-management VLAN is:', opts:['The VLAN clients use','The VLAN APs themselves boot and CAPWAP-join from','Always VLAN 1','Same as voice'], ans:'The VLAN APs themselves boot and CAPWAP-join from', why:'APs DHCP into their mgmt VLAN, find the WLC (DHCP option 43, DNS, broadcast), and form CAPWAP tunnels from there. Client VLANs live behind the WLC.' },
+    { stem:'AP fails to join the WLC. PoE is good, link is up. First three things to check?', opts:['BGP, OSPF, MPLS','DHCP for AP-mgmt VLAN, AP→WLC reachability, switchport access VLAN matches AP-mgmt','SSL cert','HSRP'], ans:'DHCP for AP-mgmt VLAN, AP→WLC reachability, switchport access VLAN matches AP-mgmt', why:'AP onboarding 101: AP boots → DHCP → finds WLC IP → CAPWAP joins. Failure modes: no DHCP scope, ACL blocks UDP 5246/5247, switchport in wrong VLAN, MTU mismatch.' },
+    { stem:'A FlexConnect AP is:', opts:['A pure autonomous AP','A lightweight AP that locally switches some SSIDs to VLANs while keeping others central — switchport must be a TRUNK','A WLC firmware','A Cisco DNAC feature'], ans:'A lightweight AP that locally switches some SSIDs to VLANs while keeping others central — switchport must be a TRUNK', why:'FlexConnect = WLC-managed but with local data-plane switching for branch sites. Some SSIDs are bridged at the AP, so that uplink needs trunk.' },
+    { stem:'Why prefer LAG between WLC and switch over a single 10G link?', opts:['Higher per-flow speed','Resilience against single-port/cable/SFP failure plus aggregate throughput','Cheaper','Faster STP'], ans:'Resilience against single-port/cable/SFP failure plus aggregate throughput', why:'WLC = single point-of-aggregation for hundreds-to-thousands of clients. LAG keeps it reachable if one cable/SFP fails. Per-flow speed doesn\'t increase.' },
+    { stem:'WLC has 2 ports in LAG. ONE port goes down. Result:', opts:['WLC reboots','LAG continues with reduced capacity; clients keep working','All APs disconnect','STP blocks the WLC'], ans:'LAG continues with reduced capacity; clients keep working', why:'Whole point of LAG. Surviving member carries traffic; clients are unaware. WLC logs port-down; capacity halves until repair.' }
+  ];
+
+  function pickQ(){
+    var q = pool[Math.floor(Math.random()*pool.length)];
+    var opts = q.opts.slice().sort(function(){return Math.random()-.5;});
+    document.getElementById('quizStem').textContent = q.stem;
+    var bx = document.getElementById('quizOpts'); bx.innerHTML='';
+    var w = document.getElementById('why'); w.classList.remove('show'); w.textContent='';
+    opts.forEach(function(o){
+      var btn = document.createElement('button');
+      btn.className='opt'; btn.textContent=o;
+      btn.addEventListener('click', function(){
+        if (btn.classList.contains('correct')||btn.classList.contains('wrong')) return;
+        if (o===q.ans){ btn.classList.add('correct'); qCorrect++; qStreak++; }
+        else { btn.classList.add('wrong'); qWrong++; qStreak=0;
+          Array.prototype.forEach.call(bx.children, function(c){ if (c.textContent===q.ans) c.classList.add('correct'); }); }
+        w.textContent = '↳ ' + q.why; w.classList.add('show');
+        document.getElementById('qCorrect').textContent=qCorrect;
+        document.getElementById('qWrong').textContent=qWrong;
+        document.getElementById('qStreak').textContent=qStreak;
+      });
+      bx.appendChild(btn);
+    });
+  }
+  document.getElementById('newQ').addEventListener('click', pickQ);
+  pickQ();
+})();
+</script>
+<script defer src="js/tutor.js"></script>
+</body>
+</html>

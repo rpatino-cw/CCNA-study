@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>5.7.b Sim — AAA (TACACS+ vs RADIUS)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{--bg:#FAF7F2;--bg-surface:#FFFFFF;--bg-recessed:#F3F0EB;--border:#E2DFD9;--border-strong:#C7C3BC;--ink:#1C1917;--ink-secondary:#57534E;--ink-muted:#A8A29E;--accent:#B45309;--accent-soft:#D97706;--accent-light:#FEF3C7;--correct:#16A34A;--correct-bg:#F0FDF4;--wrong:#DC2626;--wrong-bg:#FEF2F2;--info:#2563EB;--info-bg:#EFF6FF;--tac:#06B6D4;--tac-bg:#CFFAFE;--rad:#EC4899;--rad-bg:#FCE7F3;--font-display:'Space Grotesk',system-ui,sans-serif;--font-body:'Source Serif 4',Georgia,serif;--font-mono:'JetBrains Mono',monospace;--radius:6px;--radius-lg:10px}
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:var(--font-body);background:var(--bg);color:var(--ink);line-height:1.55;padding:24px;max-width:920px;margin:0 auto}
+  .head{margin-bottom:20px;padding-bottom:14px;border-bottom:1px solid var(--border)}
+  .head .crumb{font-family:var(--font-mono);font-size:.74rem;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px}
+  .head h1{font-family:var(--font-display);font-size:1.5rem;font-weight:700;margin-bottom:6px}
+  .head .desc{font-size:.95rem;color:var(--ink-secondary)}
+  .panel{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;margin-bottom:18px}
+  .panel h2{font-family:var(--font-display);font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-secondary);margin-bottom:12px}
+  .intro{font-size:.96rem;color:var(--ink-secondary);margin-bottom:14px}
+  .intro strong{color:var(--ink)}
+  .btn{font-family:var(--font-display);font-size:.84rem;font-weight:600;padding:8px 16px;background:var(--ink);color:#FAF7F2;border:none;border-radius:var(--radius);cursor:pointer}
+  .btn.ghost{background:var(--bg-recessed);color:var(--ink)}
+  .btn.accent{background:var(--accent)}
+  .matrix{margin-top:14px;font-family:var(--font-body);font-size:.94rem;border-collapse:collapse;width:100%}
+  .matrix th{font-family:var(--font-display);font-size:.82rem;text-align:left;padding:8px 10px;background:var(--bg-recessed);color:var(--ink-secondary);text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid var(--border)}
+  .matrix td{padding:10px;border-bottom:1px solid var(--border);vertical-align:top}
+  .matrix td.tac{background:var(--tac-bg);color:#155E75}
+  .matrix td.rad{background:var(--rad-bg);color:#9D174D}
+  .matrix td code{font-family:var(--font-mono);font-size:.86rem;background:#fff;padding:1px 5px;border-radius:3px}
+  .scenario{margin-top:14px;padding:14px;background:var(--bg-recessed);border-radius:var(--radius);border:1px solid var(--border)}
+  .scenario .stem{font-family:var(--font-display);font-size:1rem;font-weight:600;color:var(--ink);margin-bottom:10px}
+  .scenario .opts{display:flex;gap:10px;flex-wrap:wrap}
+  .scenario .pick{font-family:var(--font-mono);font-size:.92rem;padding:10px 16px;border:2px solid var(--border-strong);border-radius:var(--radius);background:var(--bg-surface);cursor:pointer;font-weight:700}
+  .scenario .pick:hover{border-color:var(--accent)}
+  .scenario .pick.correct{background:var(--correct-bg);border-color:var(--correct);color:var(--correct)}
+  .scenario .pick.wrong{background:var(--wrong-bg);border-color:var(--wrong);color:var(--wrong)}
+  .scenario .why{font-family:var(--font-mono);font-size:.82rem;color:var(--ink-secondary);margin-top:10px;padding:10px 12px;background:var(--bg-surface);border-left:3px solid var(--accent-soft);border-radius:var(--radius);display:none;line-height:1.55}
+  .scenario .why.show{display:block;animation:fadeIn .25s ease}
+  .verdict{margin-top:14px;padding:12px 16px;border-radius:var(--radius);font-family:var(--font-display);font-size:.94rem;font-weight:600;background:var(--info-bg);color:var(--info);border:1px solid var(--info);display:none}
+  .verdict.show{display:block;animation:fadeIn .25s ease}
+  .verdict.win{background:var(--correct-bg);color:var(--correct);border-color:var(--correct)}
+  .verdict.miss{background:var(--wrong-bg);color:var(--wrong);border-color:var(--wrong)}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
+  .compare{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-top:14px;font-family:var(--font-body);font-size:.92rem}
+  .compare div{padding:14px;background:var(--bg-recessed);border-radius:var(--radius);border:1px solid var(--border)}
+  .compare h3{font-family:var(--font-display);font-size:.92rem;color:var(--accent);margin-bottom:6px}
+  .compare code{font-family:var(--font-mono);font-size:.86rem;background:var(--bg-surface);padding:1px 5px;border-radius:3px}
+  .frame-stage{font-family:var(--font-mono);font-size:.86rem;background:#1C1917;color:#E7E5E4;padding:14px;border-radius:var(--radius);line-height:1.65;margin-top:12px}
+  .frame-stage .v{color:#86EFAC;font-weight:700}
+  .frame-stage .x{color:#FCA5A5}
+  .frame-stage .muted{color:#A8A29E;font-style:italic}
+  .quiz{margin-top:22px}
+  .quiz .stem{font-family:var(--font-display);font-size:1.02rem;font-weight:600;margin-bottom:12px;padding:14px;background:var(--accent-light);border-left:3px solid var(--accent);border-radius:var(--radius)}
+  .quiz .opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px}
+  .opt{background:var(--bg-recessed);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;font-family:var(--font-mono);font-size:.92rem;cursor:pointer;text-align:left}
+  .opt:hover{border-color:var(--border-strong);background:var(--bg-surface)}
+  .opt.correct{background:var(--correct-bg);border-color:var(--correct);color:var(--correct);font-weight:700}
+  .opt.wrong{background:var(--wrong-bg);border-color:var(--wrong);color:var(--wrong)}
+  .why{font-family:var(--font-mono);font-size:.82rem;color:var(--ink-secondary);margin-top:10px;padding:10px 12px;background:var(--bg-recessed);border-left:3px solid var(--accent-soft);border-radius:var(--radius);display:none;line-height:1.55}
+  .why.show{display:block;animation:fadeIn .25s ease}
+  .scoreline{font-family:var(--font-mono);font-size:.84rem;color:var(--ink-muted);margin-top:10px;display:flex;gap:18px;align-items:center}
+  .scoreline strong{font-weight:700;color:var(--ink)}
+  .badge{display:inline-block;font-family:var(--font-display);font-size:.7rem;font-weight:700;padding:2px 8px;border-radius:99px;background:var(--accent-light);color:var(--accent);text-transform:uppercase;letter-spacing:.04em;margin-left:8px}
+  .footer-link{margin-top:24px;padding-top:14px;border-top:1px solid var(--border);font-family:var(--font-mono);font-size:.82rem}
+  .footer-link a{color:var(--accent);text-decoration:none}
+</style>
+<link rel="stylesheet" href="css/shared.css?v=4.56">
+<script defer src="js/nav.js"></script>
+</head>
+<body>
+<nav class="top-nav" id="main-nav"></nav>
+
+<div class="head">
+  <div class="crumb"><a href="blueprint-drill.html?obj=5.7" style="color:var(--accent);text-decoration:none">← 5.7 Mini Sims</a> · 5.7.b · Security · AAA (TACACS+ vs RADIUS)</div>
+  <h1>Three Letters That Aren't One Job<span class="badge">drill</span></h1>
+  <div class="desc"><strong>AAA</strong> is three things in a trench coat. <strong>Authentication</strong>: who are you? <strong>Authorization</strong>: what can you do? <strong>Accounting</strong>: what did you do? Two protocols carry it: <strong>TACACS+</strong> (Cisco-flavored, TCP/49, encrypts whole packet, separates the three As — perfect for device admin login), and <strong>RADIUS</strong> (open, UDP/1812+1813, encrypts only the password, combines AuthN+AuthZ — perfect for 802.1X / VPN / Wi-Fi).</div>
+</div>
+
+<div class="panel">
+  <h2>The 3 As — what each one decides</h2>
+  <div class="compare">
+    <div><h3>Authentication</h3>
+      <strong>WHO are you?</strong> Username + password? Cert? OTP? RSA token? The user proves identity to the AAA server. Output: yes/no + (often) a session ticket.
+    </div>
+    <div><h3>Authorization</h3>
+      <strong>WHAT can you do?</strong> After auth succeeds, the server returns a policy: which commands you can run (TACACS+ command sets), which VLAN you go on (RADIUS dynamic VLAN), what session timeout, etc.
+    </div>
+    <div><h3>Accounting</h3>
+      <strong>WHAT did you do?</strong> Per-command logs, session start/stop, bytes in/out. For audit + billing + forensics. Sent to the AAA server (and usually then to a SIEM).
+    </div>
+  </div>
+</div>
+
+<div class="panel">
+  <h2>Side-by-side comparison</h2>
+  <table class="matrix">
+    <tr><th>Dimension</th><th>TACACS+</th><th>RADIUS</th></tr>
+    <tr><td>Origin</td><td class="tac">Cisco — drafted in the 90s, now widely supported</td><td class="rad">IETF open standard (RFC 2865/2866)</td></tr>
+    <tr><td>Transport / Port</td><td class="tac"><code>TCP / 49</code></td><td class="rad"><code>UDP / 1812</code> auth (older 1645), <code>UDP / 1813</code> accounting (older 1646)</td></tr>
+    <tr><td>Encryption</td><td class="tac">Full packet body encrypted</td><td class="rad">Only the User-Password attribute encrypted; rest in clear</td></tr>
+    <tr><td>AAA model</td><td class="tac">Authentication / Authorization / Accounting are <strong>3 separate exchanges</strong> — fine-grained control</td><td class="rad">Authentication + Authorization <strong>combined</strong> in one Access-Accept reply</td></tr>
+    <tr><td>Typical use case</td><td class="tac">Device admin login (router/switch/firewall console + SSH); per-command authorization</td><td class="rad">Network access — 802.1X wired/wireless, VPN, Wi-Fi WPA2-Enterprise</td></tr>
+    <tr><td>Per-command authZ</td><td class="tac">✓ Yes — killer feature</td><td class="rad">No — too chatty per packet</td></tr>
+    <tr><td>Multi-vendor support</td><td class="tac">Excellent now (was Cisco-only forever)</td><td class="rad">Universal — every vendor speaks RADIUS</td></tr>
+  </table>
+</div>
+
+<div class="panel">
+  <h2>Pick the right protocol per scenario</h2>
+  <div id="scenarios"></div>
+  <div class="verdict" id="verdict"></div>
+</div>
+
+<div class="panel">
+  <h2>Worked example — AAA method-list config (TACACS+ for admin login)</h2>
+  <div class="frame-stage">SW1(config)# <span class="v">aaa new-model</span>
+SW1(config)# <span class="v">tacacs server ISE-1</span>
+SW1(config-server-tacacs)# <span class="v">address ipv4 10.99.1.50</span>
+SW1(config-server-tacacs)# <span class="v">key Cisco123!</span>
+
+<span class="muted">! method lists — TACACS+ first, fall back to local user if AAA server is unreachable</span>
+SW1(config)# <span class="v">aaa authentication login default group tacacs+ local</span>
+SW1(config)# <span class="v">aaa authorization exec default group tacacs+ local</span>
+SW1(config)# <span class="v">aaa authorization commands 15 default group tacacs+ local</span>
+SW1(config)# <span class="v">aaa accounting commands 15 default start-stop group tacacs+</span>
+
+<span class="muted">! apply to vty</span>
+SW1(config)# <span class="v">line vty 0 15</span>
+SW1(config-line)# <span class="v">login authentication default</span>
+SW1(config-line)# <span class="v">authorization commands 15 default</span>
+SW1(config-line)# <span class="v">accounting commands 15 default</span></div>
+  <p class="intro" style="margin-top:8px"><strong>Key habit:</strong> always include <code style="font-family:var(--font-mono);background:var(--bg-recessed);padding:1px 5px;border-radius:3px">local</code> as a fallback in method lists. If the AAA server is unreachable, you can still log in with a local account and fix the network. Forgetting this is how engineers lock themselves out of production gear.</p>
+</div>
+
+<div class="panel">
+  <h2>Faded prompt — your turn</h2>
+  <p class="intro">Helpdesk manager wants <em>"audit who ran which command on every switch — including <code>show</code> commands."</em> Which protocol + which AAA module + which command level?</p>
+  <p class="intro" style="margin-top:8px"><strong>Answer:</strong> <strong>TACACS+</strong> (RADIUS doesn't do per-command), <strong>accounting</strong> module (recording, not allowing), command level <strong>1 + 15</strong> (1 = user-mode `show`, 15 = privileged-exec).</p>
+  <div class="frame-stage" style="margin-top:8px">SW1(config)# <span class="v">aaa accounting commands 1  default start-stop group tacacs+</span>
+SW1(config)# <span class="v">aaa accounting commands 15 default start-stop group tacacs+</span></div>
+</div>
+
+<div class="panel quiz" id="quizPanel">
+  <h2>Quiz mode</h2>
+  <div class="stem" id="quizStem">Loading…</div>
+  <div class="opts" id="quizOpts"></div>
+  <div class="why" id="why"></div>
+  <div class="scoreline">
+    <span><strong id="qCorrect">0</strong> correct</span>
+    <span><strong id="qWrong">0</strong> wrong</span>
+    <span><strong id="qStreak">0</strong> streak</span>
+    <span style="margin-left:auto"><button class="btn ghost" id="newQ">Next ↻</button></span>
+  </div>
+</div>
+
+<div class="footer-link"><a href="blueprint-drill.html?obj=5.7">← back to 5.7 leaves</a></div>
+
+<script>
+(function(){
+  // scenario picks
+  var scenarios = [
+    { id:'admin', stem:'Network admins SSH into 200 switches and need per-command authorization (junior admins can run `show` but not `configure`).', tac:true,
+      whyTac:'Per-command authorization is the headline TACACS+ feature. Every command goes through the AAA server before execution.',
+      whyRad:'RADIUS does not do per-command authorization. It only knows yes-or-no at session start.' },
+    { id:'wifi', stem:'Corporate Wi-Fi using 802.1X with employee usernames/passwords, dynamic VLAN per user role.', tac:false,
+      whyTac:'TACACS+ is overkill and not what 802.1X supplicants speak.',
+      whyRad:'RADIUS is the universal 802.1X / WPA2-Enterprise protocol. Returns dynamic VLAN via the Tunnel-Private-Group-ID attribute.' },
+    { id:'vpn', stem:'Remote-access AnyConnect VPN with MFA pushed via Duo.', tac:false,
+      whyTac:'TACACS+ doesn\'t fit VPN clients.',
+      whyRad:'RADIUS is the standard VPN auth protocol. Duo proxies RADIUS to inject MFA challenge.' },
+    { id:'audit', stem:'Compliance auditor needs every command typed on every router logged with username and timestamp.', tac:true,
+      whyTac:'TACACS+ command accounting (level 1 + level 15) gives per-command logs with username/timestamp/source-IP.',
+      whyRad:'RADIUS accounting handles session start/stop and bytes — not individual commands.' },
+    { id:'mixed', stem:'Mixed-vendor environment (Cisco + Juniper + Arista) — single auth protocol for SSH login to all of them.', tac:true,
+      whyTac:'Modern TACACS+ is well-supported across vendors now. Centralized command-authZ plays nicely.',
+      whyRad:'RADIUS works for login but loses the per-command authZ. If audits demand it, TACACS+ is the better pick.' }
+  ];
+  var pickState = {};
+  function paint(){
+    var box = document.getElementById('scenarios'); box.innerHTML='';
+    scenarios.forEach(function(s){
+      var wrap = document.createElement('div'); wrap.className='scenario';
+      wrap.innerHTML =
+        '<div class="stem">'+s.stem+'</div>'+
+        '<div class="opts">'+
+          '<button class="pick" data-id="'+s.id+'" data-pick="tac">TACACS+</button>'+
+          '<button class="pick" data-id="'+s.id+'" data-pick="rad">RADIUS</button>'+
+        '</div>'+
+        '<div class="why" data-why="'+s.id+'"></div>';
+      box.appendChild(wrap);
+    });
+    document.querySelectorAll('.pick').forEach(function(b){
+      b.addEventListener('click', function(){
+        var id = b.dataset.id, pick = b.dataset.pick;
+        var s = scenarios.find(function(x){return x.id===id;});
+        var correct = (pick==='tac' && s.tac) || (pick==='rad' && !s.tac);
+        var why = document.querySelector('[data-why="'+id+'"]');
+        document.querySelectorAll('.pick[data-id="'+id+'"]').forEach(function(p){
+          p.classList.remove('correct','wrong');
+          if (p.dataset.pick === (s.tac?'tac':'rad')) p.classList.add('correct');
+        });
+        if (!correct){ b.classList.add('wrong'); }
+        why.innerHTML = '↳ ' + (correct ? '✓ ' : '✗ ') + (s.tac ? s.whyTac : s.whyRad) + (correct ? '' : ' '+(pick==='tac' ? s.whyTac : s.whyRad));
+        why.classList.add('show');
+        pickState[id] = correct;
+        var n = Object.values(pickState).filter(Boolean).length;
+        var v = document.getElementById('verdict');
+        v.className = 'verdict show ' + (n===scenarios.length ? 'win' : '');
+        v.textContent = '✓ ' + n + ' / ' + scenarios.length + ' scenarios called correctly.';
+      });
+    });
+  }
+  paint();
+
+  // ── Quiz ──
+  var qCorrect=0, qWrong=0, qStreak=0;
+  var pool = [
+    { stem:'TACACS+ port and transport?', opts:['UDP / 49','TCP / 49','UDP / 1812','TCP / 1813'], ans:'TCP / 49', why:'TACACS+ uses TCP for reliability + ordering of the three As. Port 49. RADIUS uses UDP/1812 + UDP/1813.' },
+    { stem:'RADIUS authentication port?', opts:['TCP/49','UDP/1812 (old 1645)','UDP/161','TCP/443'], ans:'UDP/1812 (old 1645)', why:'1812 (auth) and 1813 (accounting) are current. Older 1645/1646 still seen on legacy gear. UDP because RADIUS is one-shot request/response.' },
+    { stem:'Which protocol encrypts the FULL packet body?', opts:['RADIUS','TACACS+','Both','Neither'], ans:'TACACS+', why:'TACACS+ encrypts everything past the header — usernames, command names, output. RADIUS only encrypts the User-Password attribute; the rest (including username) is in clear.' },
+    { stem:'Which protocol separates Authentication, Authorization, and Accounting into 3 distinct exchanges?', opts:['RADIUS','TACACS+','Both equally','Neither'], ans:'TACACS+', why:'TACACS+ has discrete AuthN/AuthZ/Accounting transactions. RADIUS combines AuthN + AuthZ in one Access-Accept reply, with accounting as a separate exchange.' },
+    { stem:'Best fit for 802.1X / VPN / Wi-Fi WPA2-Enterprise:', opts:['TACACS+','RADIUS — universal, every vendor speaks it for network access','Local DB only','Kerberos'], ans:'RADIUS — universal, every vendor speaks it for network access', why:'Network-access (NAS) was RADIUS\' original purpose. Wi-Fi authenticators, VPN concentrators, switch 802.1X — they all speak RADIUS natively.' },
+    { stem:'Best fit for device administrative login with per-command authorization:', opts:['RADIUS','TACACS+ — per-command authorization is the killer feature','HTTP basic','Telnet anyway'], ans:'TACACS+ — per-command authorization is the killer feature', why:'TACACS+ can authorize each command before execution. Junior admins → only `show`. Senior → full enable. Audit-friendly. RADIUS cannot do this.' },
+    { stem:'You include `local` at the end of every method list. Why?', opts:['Cosmetic','Fallback if the AAA server is unreachable — log in with local account, recover the network','Required by IOS','Logs locally'], ans:'Fallback if the AAA server is unreachable — log in with local account, recover the network', why:'AAA server outage + no fallback = locked out of every device. Operational disaster. Always include `local` (or `enable`) as the last resort in `aaa authentication login` lists.' },
+    { stem:'Command-accounting at level 15 means:', opts:['User-mode `show` only','Privileged-exec / config commands','MFA','Neither'], ans:'Privileged-exec / config commands', why:'IOS has 16 privilege levels (0-15). Level 15 = full enable. Level 1 = user mode (most `show` commands). Account both for full audit; just 15 for change-only audit.' },
+    { stem:'A RADIUS Access-Accept reply can include:', opts:['Per-command policy','VLAN assignment, ACL name, session-timeout — but not per-command rules','Decrypted password','Routing table'], ans:'VLAN assignment, ACL name, session-timeout — but not per-command rules', why:'RADIUS attributes (Tunnel-Private-Group-ID for VLAN, Filter-Id for ACL, Session-Timeout) shape what the user gets at session start. Per-command policy is the wrong tool — that\'s TACACS+.' },
+    { stem:'AAA "Accounting" answers:', opts:['Who are you?','What can you do?','What did you do? — auditable record of session events / commands','Where are you?'], ans:'What did you do? — auditable record of session events / commands', why:'AuthN = identity. AuthZ = permission. Accounting = log. Three different jobs, often confused. The "did" log is what auditors want.' }
+  ];
+
+  function pickQ(){
+    var q = pool[Math.floor(Math.random()*pool.length)];
+    var opts = q.opts.slice().sort(function(){return Math.random()-.5;});
+    document.getElementById('quizStem').textContent = q.stem;
+    var bx = document.getElementById('quizOpts'); bx.innerHTML='';
+    var w = document.getElementById('why'); w.classList.remove('show'); w.textContent='';
+    opts.forEach(function(o){
+      var btn = document.createElement('button');
+      btn.className='opt'; btn.textContent=o;
+      btn.addEventListener('click', function(){
+        if (btn.classList.contains('correct')||btn.classList.contains('wrong')) return;
+        if (o===q.ans){ btn.classList.add('correct'); qCorrect++; qStreak++; }
+        else { btn.classList.add('wrong'); qWrong++; qStreak=0;
+          Array.prototype.forEach.call(bx.children, function(c){ if (c.textContent===q.ans) c.classList.add('correct'); }); }
+        w.textContent = '↳ ' + q.why; w.classList.add('show');
+        document.getElementById('qCorrect').textContent=qCorrect;
+        document.getElementById('qWrong').textContent=qWrong;
+        document.getElementById('qStreak').textContent=qStreak;
+      });
+      bx.appendChild(btn);
+    });
+  }
+  document.getElementById('newQ').addEventListener('click', pickQ);
+  pickQ();
+})();
+</script>
+<script defer src="js/tutor.js"></script>
+</body>
+</html>

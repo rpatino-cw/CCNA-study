@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>6.3.b Sim — Overlay / Underlay / Fabric</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{--bg:#FAF7F2;--bg-surface:#FFFFFF;--bg-recessed:#F3F0EB;--border:#E2DFD9;--border-strong:#C7C3BC;--ink:#1C1917;--ink-secondary:#57534E;--ink-muted:#A8A29E;--accent:#B45309;--accent-soft:#D97706;--accent-light:#FEF3C7;--correct:#16A34A;--correct-bg:#F0FDF4;--wrong:#DC2626;--wrong-bg:#FEF2F2;--info:#2563EB;--info-bg:#EFF6FF;--under:#3B82F6;--under-bg:#DBEAFE;--over:#A855F7;--over-bg:#F3E8FF;--fab:#F59E0B;--fab-bg:#FEF3C7;--font-display:'Space Grotesk',system-ui,sans-serif;--font-body:'Source Serif 4',Georgia,serif;--font-mono:'JetBrains Mono',monospace;--radius:6px;--radius-lg:10px}
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:var(--font-body);background:var(--bg);color:var(--ink);line-height:1.55;padding:24px;max-width:920px;margin:0 auto}
+  .head{margin-bottom:20px;padding-bottom:14px;border-bottom:1px solid var(--border)}
+  .head .crumb{font-family:var(--font-mono);font-size:.74rem;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px}
+  .head h1{font-family:var(--font-display);font-size:1.5rem;font-weight:700;margin-bottom:6px}
+  .head .desc{font-size:.95rem;color:var(--ink-secondary)}
+  .panel{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;margin-bottom:18px}
+  .panel h2{font-family:var(--font-display);font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-secondary);margin-bottom:12px}
+  .intro{font-size:.96rem;color:var(--ink-secondary);margin-bottom:14px}
+  .intro strong{color:var(--ink)}
+  .btn{font-family:var(--font-display);font-size:.84rem;font-weight:600;padding:8px 16px;background:var(--ink);color:#FAF7F2;border:none;border-radius:var(--radius);cursor:pointer}
+  .btn.ghost{background:var(--bg-recessed);color:var(--ink)}
+  .btn.accent{background:var(--accent)}
+  .stack-svg{width:100%;display:block;margin:6px auto;background:var(--bg-recessed);border:1px solid var(--border);border-radius:var(--radius);cursor:pointer}
+  .layer-info{margin-top:14px;padding:14px;border-radius:var(--radius);background:var(--bg-recessed);border:1px solid var(--border);min-height:80px;font-family:var(--font-body);font-size:.95rem;color:var(--ink-secondary);line-height:1.6}
+  .layer-info strong{color:var(--ink)}
+  .layer-info code{font-family:var(--font-mono);font-size:.86rem;background:var(--bg-surface);padding:1px 5px;border-radius:3px}
+  .pill-row{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+  .pill{font-family:var(--font-display);font-size:.82rem;font-weight:600;padding:8px 14px;background:var(--bg-surface);border:1.5px solid var(--border-strong);border-radius:99px;cursor:pointer;color:var(--ink-secondary)}
+  .pill.active{color:var(--ink)}
+  .pill[data-layer="under"].active{background:var(--under-bg);border-color:var(--under);color:#1E3A8A}
+  .pill[data-layer="over"].active{background:var(--over-bg);border-color:var(--over);color:#581C87}
+  .pill[data-layer="fab"].active{background:var(--fab-bg);border-color:var(--fab);color:#92400E}
+  .compare{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px;font-family:var(--font-body);font-size:.92rem}
+  .compare div{padding:14px;background:var(--bg-recessed);border-radius:var(--radius);border:1px solid var(--border)}
+  .compare h3{font-family:var(--font-display);font-size:.92rem;color:var(--accent);margin-bottom:6px}
+  .compare code{font-family:var(--font-mono);font-size:.86rem;background:var(--bg-surface);padding:1px 5px;border-radius:3px}
+  .frame-stage{font-family:var(--font-mono);font-size:.86rem;background:#1C1917;color:#E7E5E4;padding:14px;border-radius:var(--radius);line-height:1.65;margin-top:12px}
+  .frame-stage .v{color:#86EFAC;font-weight:700}
+  .frame-stage .x{color:#FCA5A5}
+  .frame-stage .muted{color:#A8A29E;font-style:italic}
+  .frame-stage .h{color:#FCD34D}
+  .quiz{margin-top:22px}
+  .quiz .stem{font-family:var(--font-display);font-size:1.02rem;font-weight:600;margin-bottom:12px;padding:14px;background:var(--accent-light);border-left:3px solid var(--accent);border-radius:var(--radius)}
+  .quiz .opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px}
+  .opt{background:var(--bg-recessed);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;font-family:var(--font-mono);font-size:.92rem;cursor:pointer;text-align:left}
+  .opt:hover{border-color:var(--border-strong);background:var(--bg-surface)}
+  .opt.correct{background:var(--correct-bg);border-color:var(--correct);color:var(--correct);font-weight:700}
+  .opt.wrong{background:var(--wrong-bg);border-color:var(--wrong);color:var(--wrong)}
+  .why{font-family:var(--font-mono);font-size:.82rem;color:var(--ink-secondary);margin-top:10px;padding:10px 12px;background:var(--bg-recessed);border-left:3px solid var(--accent-soft);border-radius:var(--radius);display:none;line-height:1.55}
+  .why.show{display:block;animation:fadeIn .25s ease}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
+  .scoreline{font-family:var(--font-mono);font-size:.84rem;color:var(--ink-muted);margin-top:10px;display:flex;gap:18px;align-items:center}
+  .scoreline strong{font-weight:700;color:var(--ink)}
+  .badge{display:inline-block;font-family:var(--font-display);font-size:.7rem;font-weight:700;padding:2px 8px;border-radius:99px;background:var(--accent-light);color:var(--accent);text-transform:uppercase;letter-spacing:.04em;margin-left:8px}
+  .footer-link{margin-top:24px;padding-top:14px;border-top:1px solid var(--border);font-family:var(--font-mono);font-size:.82rem}
+  .footer-link a{color:var(--accent);text-decoration:none}
+</style>
+<link rel="stylesheet" href="css/shared.css?v=4.56">
+<script defer src="js/nav.js"></script>
+</head>
+<body>
+<nav class="top-nav" id="main-nav"></nav>
+
+<div class="head">
+  <div class="crumb"><a href="blueprint-drill.html?obj=6.3" style="color:var(--accent);text-decoration:none">← 6.3 Mini Sims</a> · 6.3.b · Automation · Overlay / Underlay / Fabric</div>
+  <h1>Two Networks Stacked<span class="badge">drill</span></h1>
+  <div class="desc">Modern fabrics run <strong>two networks at once</strong>. The <strong>underlay</strong> is the boring physical IP network — switches, routed /31s, IS-IS or OSPF moving packets between them. The <strong>overlay</strong> is virtual tunnels (VXLAN) running <em>on top</em> of the underlay. Tenant traffic lives in the overlay. The <strong>fabric</strong> is the whole system — underlay + overlay + control plane — managed as one. Click each layer to drill in.</div>
+</div>
+
+<div class="panel">
+  <h2>The stack</h2>
+  <p class="intro">Click a layer in the diagram to read what lives there.</p>
+  <svg class="stack-svg" viewBox="0 0 760 320" id="stackSvg">
+    <!-- fabric outline (whole system) -->
+    <rect x="20" y="14" width="720" height="290" rx="14" fill="none" stroke="#F59E0B" stroke-width="2" stroke-dasharray="6,4" id="fabBox" style="cursor:pointer"/>
+    <text x="40" y="36" font-family="Space Grotesk" font-size="11" font-weight="700" fill="#92400E" id="fabLbl" style="cursor:pointer">FABRIC = underlay + overlay + control (DNA Center / ACI APIC) — click</text>
+
+    <!-- overlay -->
+    <rect x="40" y="60" width="680" height="100" rx="10" fill="#F3E8FF" stroke="#A855F7" stroke-width="2" id="overBox" style="cursor:pointer"/>
+    <text x="380" y="82" text-anchor="middle" font-family="Space Grotesk" font-size="13" font-weight="700" fill="#581C87" id="overLbl" style="cursor:pointer">OVERLAY · VXLAN tunnels (VNI 10010 = VLAN 10 tenant)</text>
+    <!-- VTEP icons + dashed tunnels -->
+    <circle cx="120" cy="120" r="14" fill="#A855F7" stroke="#581C87" stroke-width="1.5"/>
+    <text x="120" y="124" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#fff" font-weight="700">VTEP</text>
+    <circle cx="640" cy="120" r="14" fill="#A855F7" stroke="#581C87" stroke-width="1.5"/>
+    <text x="640" y="124" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#fff" font-weight="700">VTEP</text>
+    <line x1="134" y1="120" x2="626" y2="120" stroke="#A855F7" stroke-width="2" stroke-dasharray="6,4"/>
+    <text x="380" y="115" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#581C87">VXLAN tunnel (logical)</text>
+    <text x="380" y="148" text-anchor="middle" font-family="Source Serif 4" font-size="10" fill="#57534E">Tenants/VRFs/L2-stretch live here. 24-bit VNI = 16M segments (vs 4096 VLANs).</text>
+
+    <!-- underlay -->
+    <rect x="40" y="180" width="680" height="100" rx="10" fill="#DBEAFE" stroke="#3B82F6" stroke-width="2" id="underBox" style="cursor:pointer"/>
+    <text x="380" y="202" text-anchor="middle" font-family="Space Grotesk" font-size="13" font-weight="700" fill="#1E3A8A" id="underLbl" style="cursor:pointer">UNDERLAY · physical IP transport (IS-IS / OSPF on routed /31s)</text>
+    <!-- spine-leaf -->
+    <rect x="200" y="220" width="60" height="32" rx="4" fill="#1E3A8A"/>
+    <text x="230" y="240" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#fff" font-weight="700">SPINE</text>
+    <rect x="500" y="220" width="60" height="32" rx="4" fill="#1E3A8A"/>
+    <text x="530" y="240" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#fff" font-weight="700">SPINE</text>
+    <rect x="80" y="252" width="60" height="22" rx="3" fill="#3B82F6"/>
+    <text x="110" y="266" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#fff" font-weight="700">leaf</text>
+    <rect x="180" y="252" width="60" height="22" rx="3" fill="#3B82F6"/>
+    <text x="210" y="266" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#fff" font-weight="700">leaf</text>
+    <rect x="280" y="252" width="60" height="22" rx="3" fill="#3B82F6"/>
+    <text x="310" y="266" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#fff" font-weight="700">leaf</text>
+    <rect x="380" y="252" width="60" height="22" rx="3" fill="#3B82F6"/>
+    <text x="410" y="266" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#fff" font-weight="700">leaf</text>
+    <rect x="480" y="252" width="60" height="22" rx="3" fill="#3B82F6"/>
+    <text x="510" y="266" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#fff" font-weight="700">leaf</text>
+    <rect x="580" y="252" width="60" height="22" rx="3" fill="#3B82F6"/>
+    <text x="610" y="266" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#fff" font-weight="700">leaf</text>
+    <line x1="110" y1="252" x2="230" y2="252" stroke="#1E3A8A" stroke-width="1"/>
+    <line x1="210" y1="252" x2="230" y2="252" stroke="#1E3A8A" stroke-width="1"/>
+    <line x1="310" y1="252" x2="230" y2="252" stroke="#1E3A8A" stroke-width="1"/>
+    <line x1="110" y1="252" x2="530" y2="252" stroke="#1E3A8A" stroke-width="1"/>
+    <line x1="410" y1="252" x2="530" y2="252" stroke="#1E3A8A" stroke-width="1"/>
+    <line x1="610" y1="252" x2="530" y2="252" stroke="#1E3A8A" stroke-width="1"/>
+  </svg>
+  <div class="pill-row">
+    <button class="pill" data-layer="under">Underlay</button>
+    <button class="pill" data-layer="over">Overlay</button>
+    <button class="pill" data-layer="fab">Fabric</button>
+  </div>
+  <div class="layer-info" id="info">Click a layer above to drill in.</div>
+</div>
+
+<div class="panel">
+  <h2>Two-network mental model</h2>
+  <div class="compare">
+    <div><h3 style="color:#1E3A8A">Underlay (the wires + IPs)</h3>
+      Plain IP routing between switches. Spine-leaf with /31 routed links. <code>IS-IS</code> or <code>OSPF</code> finds shortest paths. Underlay forwarding is dumb and stable: "given dst IP <em>X</em>, send to next-hop." It does not know about tenants, VLANs, or services.
+    </div>
+    <div><h3 style="color:#581C87">Overlay (the tunnels)</h3>
+      <code>VXLAN</code> tunnels between leaf switches (VTEPs). Each tenant/VLAN gets a 24-bit <code>VNI</code> (16M values vs 4096 VLAN IDs). Original Ethernet frame is wrapped in IP/UDP and dropped on the underlay. Decapsulated at egress VTEP. Same VNI on both ends = same logical L2 segment.
+    </div>
+  </div>
+  <p class="intro" style="margin-top:14px"><strong>Fabric = both, plus a control plane</strong> (BGP-EVPN typically) coordinating who-owns-which-MAC + which VTEP terminates each VNI. A controller (Cisco DNA Center / ACI APIC) sits above and pushes intent.</p>
+</div>
+
+<div class="panel">
+  <h2>Worked example — packet life across a VXLAN fabric</h2>
+  <div class="frame-stage"><span class="muted">! Host A (10.10.10.5, VLAN 10) sends to Host B (10.10.10.9, also VLAN 10) — different leaf switches.</span>
+
+<span class="muted">Step 1 — at ingress leaf VTEP-1:</span>
+  Original frame: [eth-hdr | <span class="v">VLAN 10</span> | IP A → IP B | payload]
+  Lookup: VLAN 10 maps to VNI 10010. Remote VTEP for that MAC = VTEP-2 (10.0.0.2).
+
+<span class="muted">Step 2 — VXLAN encapsulation at VTEP-1:</span>
+  <span class="h">Outer L2 hdr | Outer IP src=10.0.0.1 dst=10.0.0.2 | UDP dst=4789 | VXLAN VNI=10010</span> | <span class="muted">[original frame]</span>
+  Pushed onto the underlay.
+
+<span class="muted">Step 3 — underlay forwards (IS-IS / OSPF) outer-IP from leaf 1 to spine to leaf 2:</span>
+  Underlay routers see only <span class="v">10.0.0.1 → 10.0.0.2</span>. They don't care about VNI 10010 or the inner frame.
+
+<span class="muted">Step 4 — at egress VTEP-2:</span>
+  Strip outer L2/IP/UDP/VXLAN header → recover original Ethernet frame → put on VLAN 10 → forward to Host B.
+
+<span class="muted">! Host A and Host B think they're on one big L2 segment. Underlay never knew tenant data existed.</span></div>
+</div>
+
+<div class="panel">
+  <h2>Faded prompt — your turn</h2>
+  <p class="intro">A spine-leaf link goes down between Spine-1 and Leaf-3. Tenant traffic carrying VXLAN — does it break?</p>
+  <p class="intro" style="margin-top:8px"><strong>Answer:</strong> Probably no — if there's another spine and the underlay reroutes (ECMP / SPF). The overlay tunnel is logical; it doesn't care which physical path the underlay picks. Underlay convergence happens (IS-IS/OSPF), traffic shifts to the surviving spine, VXLAN keeps tunneling. The whole point of separating underlay from overlay is this: <em>physical change → underlay reconverges → overlay invisible to tenants.</em></p>
+  <p class="intro" style="margin-top:8px">Counter-case: if Leaf-3 itself dies, the VTEP for that leaf's hosts is gone — those hosts are unreachable until the leaf is back. Overlay can't paper over a dead endpoint.</p>
+</div>
+
+<div class="panel quiz" id="quizPanel">
+  <h2>Quiz mode</h2>
+  <div class="stem" id="quizStem">Loading…</div>
+  <div class="opts" id="quizOpts"></div>
+  <div class="why" id="why"></div>
+  <div class="scoreline">
+    <span><strong id="qCorrect">0</strong> correct</span>
+    <span><strong id="qWrong">0</strong> wrong</span>
+    <span><strong id="qStreak">0</strong> streak</span>
+    <span style="margin-left:auto"><button class="btn ghost" id="newQ">Next ↻</button></span>
+  </div>
+</div>
+
+<div class="footer-link"><a href="blueprint-drill.html?obj=6.3">← back to 6.3 leaves</a></div>
+
+<script>
+(function(){
+  var info = {
+    under: '<strong style="color:#1E3A8A">Underlay</strong> — physical IP network. Spine-leaf with routed /31 links. <code>IS-IS</code> or <code>OSPF</code> running between every leaf and every spine. Forwarding is plain IP unicast. Underlay does not know about tenants, VLANs, or VRFs — its job is to deliver outer-IP packets between VTEPs.',
+    over:  '<strong style="color:#581C87">Overlay</strong> — virtual tunnels on top of the underlay, almost always <code>VXLAN</code>. Each tunnel endpoint is a <code>VTEP</code> (typically a leaf switch). Tenant Ethernet frames get wrapped: <code>outer L2 | outer IP | UDP 4789 | VXLAN VNI | original frame</code>. <code>VNI</code> is 24-bit → 16M tenants vs 4096 VLAN IDs. Hosts on the same VNI behave like one stretched L2 segment.',
+    fab:   '<strong style="color:#92400E">Fabric</strong> — the whole system. Underlay + overlay + control plane (typically <code>BGP-EVPN</code> distributing MAC + VNI reachability) + a controller (Cisco SD-Access / ACI / NX-OS VXLAN). The controller turns operator <em>intent</em> ("put HR endpoints in segment X") into config pushed across all leaves and spines.'
+  };
+  function show(layer){
+    document.getElementById('info').innerHTML = info[layer];
+    document.querySelectorAll('.pill').forEach(function(p){ p.classList.toggle('active', p.dataset.layer===layer); });
+    var hi = { under:'underBox', over:'overBox', fab:'fabBox' };
+    ['underBox','overBox','fabBox'].forEach(function(id){
+      var el = document.getElementById(id);
+      el.setAttribute('stroke-width', id===hi[layer] ? 4 : 2);
+    });
+  }
+  document.querySelectorAll('.pill').forEach(function(p){ p.addEventListener('click', function(){ show(p.dataset.layer); }); });
+  document.getElementById('underBox').addEventListener('click', function(){ show('under'); });
+  document.getElementById('overBox').addEventListener('click', function(){ show('over'); });
+  document.getElementById('fabBox').addEventListener('click', function(){ show('fab'); });
+  document.getElementById('underLbl').addEventListener('click', function(){ show('under'); });
+  document.getElementById('overLbl').addEventListener('click',  function(){ show('over'); });
+  document.getElementById('fabLbl').addEventListener('click',   function(){ show('fab'); });
+  show('under');
+
+  // ── Quiz ──
+  var qCorrect=0, qWrong=0, qStreak=0;
+  var pool = [
+    { stem:'Underlay protocol example?', opts:['VXLAN','BGP-EVPN','IS-IS or OSPF on routed /31 links','HSRP'], ans:'IS-IS or OSPF on routed /31 links', why:'Underlay = boring IP routing. Spine-leaf with point-to-point /31 routed links + IS-IS or OSPF gives ECMP and fast convergence. Same building block underneath every modern fabric.' },
+    { stem:'Overlay encapsulation in modern fabrics?', opts:['MPLS','VXLAN','GRE','PPP'], ans:'VXLAN', why:'VXLAN (RFC 7348) is the de-facto overlay. Wraps Ethernet in IP/UDP. 24-bit VNI replaces the 12-bit VLAN ID, lifting the 4094 cap to ~16M segments.' },
+    { stem:'What is "fabric"?', opts:['Just the cabling','The combination — underlay + overlay + control plane managed as one','A single switch','Fiber media'], ans:'The combination — underlay + overlay + control plane managed as one', why:'Fabric = the whole. SD-Access fabric, ACI fabric — both mean an underlay + overlay + control + a controller above orchestrating them as a single intent-driven system.' },
+    { stem:'Why use an overlay instead of plain L2 + L3?', opts:['Faster','Decouples logical tenants from physical topology; scales beyond 4096 VLANs (24-bit VNI)','Cheaper hardware','Simpler config'], ans:'Decouples logical tenants from physical topology; scales beyond 4096 VLANs (24-bit VNI)', why:'Overlays let you stretch L2 over L3, multi-tenant on shared hardware, and scale segments past the VLAN ceiling. Tenants move physically without renumbering. Tradeoff: more headers per packet + a control plane to maintain.' },
+    { stem:'A VTEP is:', opts:['A control protocol','VXLAN Tunnel Endpoint — usually a leaf switch that does the encap/decap','A server','A controller'], ans:'VXLAN Tunnel Endpoint — usually a leaf switch that does the encap/decap', why:'VTEP is the device that wraps frames into VXLAN at ingress and unwraps at egress. Almost always a leaf switch in spine-leaf topologies (sometimes a hypervisor in network-virt deployments).' },
+    { stem:'VXLAN VNI is how many bits?', opts:['12','16','24','32'], ans:'24', why:'24 bits → 16,777,216 VNIs vs the 12-bit VLAN ID\'s 4096 (4094 usable). That headroom is exactly why hyperscale + multi-tenant data centers needed VXLAN.' },
+    { stem:'Underlay link fails between Spine-1 and Leaf-3. What happens to tenant traffic riding the overlay?', opts:['Drops permanently','Underlay reroutes via remaining spine; overlay tunnels keep working — tenants don\'t notice','Tunnel must be rebuilt manually','VXLAN flushes'], ans:'Underlay reroutes via remaining spine; overlay tunnels keep working — tenants don\'t notice', why:'That\'s the whole separation-of-concerns win. Underlay convergence (ECMP / SPF) handles physical failure invisibly. Overlay is a logical construct; it follows whatever path the underlay picks.' },
+    { stem:'BGP-EVPN role in a VXLAN fabric?', opts:['Underlay routing','Overlay forwarding','Control plane — distributes MAC + VNI reachability between VTEPs','Encryption'], ans:'Control plane — distributes MAC + VNI reachability between VTEPs', why:'EVPN (RFC 7432 + 8365) is the modern control plane: tells each VTEP "MAC X belongs to VNI Y on VTEP Z." Replaces the older flood-and-learn behavior with deterministic routing of MAC reachability.' },
+    { stem:'Spine-leaf topology — every leaf is at most how many hops from every other leaf?', opts:['1','2 (leaf → spine → leaf)','3','depends'], ans:'2 (leaf → spine → leaf)', why:'East-west traffic goes leaf-up-to-spine-down-to-leaf. Always 2 hops, predictable latency. ECMP across spines doubles bandwidth. The reason spine-leaf is the standard data-center topology.' },
+    { stem:'What does "intent-based" controller do that traditional config does NOT?', opts:['Run OSPF','Translate high-level policy ("HR endpoints isolated") into per-device config across the fabric automatically','Forward packets','Replace the underlay'], ans:'Translate high-level policy ("HR endpoints isolated") into per-device config across the fabric automatically', why:'Intent = "what should be true" (policy). Controller computes the resulting per-device VRF, ACL, segment, and pushes it. Operator stops writing CLI per box. Failure → controller reconciles intent vs reality.' }
+  ];
+
+  function pickQ(){
+    var q = pool[Math.floor(Math.random()*pool.length)];
+    var opts = q.opts.slice().sort(function(){return Math.random()-.5;});
+    document.getElementById('quizStem').textContent = q.stem;
+    var bx = document.getElementById('quizOpts'); bx.innerHTML='';
+    var w = document.getElementById('why'); w.classList.remove('show'); w.textContent='';
+    opts.forEach(function(o){
+      var btn = document.createElement('button');
+      btn.className='opt'; btn.textContent=o;
+      btn.addEventListener('click', function(){
+        if (btn.classList.contains('correct')||btn.classList.contains('wrong')) return;
+        if (o===q.ans){ btn.classList.add('correct'); qCorrect++; qStreak++; }
+        else { btn.classList.add('wrong'); qWrong++; qStreak=0;
+          Array.prototype.forEach.call(bx.children, function(c){ if (c.textContent===q.ans) c.classList.add('correct'); }); }
+        w.textContent = '↳ ' + q.why; w.classList.add('show');
+        document.getElementById('qCorrect').textContent=qCorrect;
+        document.getElementById('qWrong').textContent=qWrong;
+        document.getElementById('qStreak').textContent=qStreak;
+      });
+      bx.appendChild(btn);
+    });
+  }
+  document.getElementById('newQ').addEventListener('click', pickQ);
+  pickQ();
+})();
+</script>
+<script defer src="js/tutor.js"></script>
+</body>
+</html>
