@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>2.1.c Sim — Default VLAN</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{--bg:#FAF7F2;--bg-surface:#FFFFFF;--bg-recessed:#F3F0EB;--border:#E2DFD9;--border-strong:#C7C3BC;--ink:#1C1917;--ink-secondary:#57534E;--ink-muted:#A8A29E;--accent:#B45309;--accent-soft:#D97706;--accent-light:#FEF3C7;--correct:#16A34A;--correct-bg:#F0FDF4;--wrong:#DC2626;--wrong-bg:#FEF2F2;--info:#2563EB;--info-bg:#EFF6FF;--vlan1:#FCD34D;--vlanX:#60A5FA;--font-display:'Space Grotesk',system-ui,sans-serif;--font-body:'Source Serif 4',Georgia,serif;--font-mono:'JetBrains Mono',monospace;--radius:6px;--radius-lg:10px}
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:var(--font-body);background:var(--bg);color:var(--ink);line-height:1.55;padding:24px;max-width:920px;margin:0 auto}
+  .head{margin-bottom:20px;padding-bottom:14px;border-bottom:1px solid var(--border)}
+  .head .crumb{font-family:var(--font-mono);font-size:.74rem;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px}
+  .head h1{font-family:var(--font-display);font-size:1.5rem;font-weight:700;margin-bottom:6px}
+  .head .desc{font-size:.95rem;color:var(--ink-secondary)}
+  .panel{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;margin-bottom:18px}
+  .panel h2{font-family:var(--font-display);font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-secondary);margin-bottom:12px}
+  .intro{font-size:.96rem;color:var(--ink-secondary);margin-bottom:14px}
+  .intro strong{color:var(--ink)}
+  .btn{font-family:var(--font-display);font-size:.84rem;font-weight:600;padding:8px 16px;background:var(--ink);color:#FAF7F2;border:none;border-radius:var(--radius);cursor:pointer}
+  .btn.ghost{background:var(--bg-recessed);color:var(--ink)}
+  .btn.accent{background:var(--accent)}
+  .switch-svg{width:100%;max-width:760px;display:block;margin:6px auto 12px;background:var(--bg-recessed);border:1px solid var(--border);border-radius:var(--radius)}
+  .port{cursor:pointer;transition:fill .15s ease}
+  .port:hover{stroke:var(--ink);stroke-width:2}
+  .port-label{font-family:var(--font-mono);font-size:9px;fill:var(--ink-secondary);pointer-events:none;text-anchor:middle}
+  .legend{display:flex;gap:14px;margin-top:8px;font-family:var(--font-mono);font-size:.82rem;color:var(--ink-secondary);flex-wrap:wrap}
+  .legend .sw{width:14px;height:14px;border-radius:3px;display:inline-block;vertical-align:middle;margin-right:5px;border:1px solid var(--border-strong)}
+  .show-vlan{font-family:var(--font-mono);font-size:.84rem;background:#1C1917;color:#E7E5E4;padding:14px;border-radius:var(--radius);margin-top:10px;line-height:1.55;white-space:pre}
+  .show-vlan .hl{color:#FCD34D}
+  .show-vlan .hl2{color:#60A5FA}
+  .show-vlan .muted{color:#A8A29E}
+  .compare{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px;font-family:var(--font-body);font-size:.92rem}
+  .compare div{padding:14px;background:var(--bg-recessed);border-radius:var(--radius);border:1px solid var(--border)}
+  .compare h3{font-family:var(--font-display);font-size:.92rem;color:var(--accent);margin-bottom:6px}
+  .compare code{font-family:var(--font-mono);font-size:.86rem;background:var(--bg-surface);padding:1px 5px;border-radius:3px}
+  .verdict{margin-top:14px;padding:12px 16px;border-radius:var(--radius);font-family:var(--font-display);font-size:.94rem;font-weight:600;background:var(--info-bg);color:var(--info);border:1px solid var(--info)}
+  .verdict.win{background:var(--correct-bg);color:var(--correct);border-color:var(--correct)}
+  .verdict.miss{background:var(--wrong-bg);color:var(--wrong);border-color:var(--wrong)}
+  .quiz{margin-top:22px}
+  .quiz .stem{font-family:var(--font-display);font-size:1.02rem;font-weight:600;margin-bottom:12px;padding:14px;background:var(--accent-light);border-left:3px solid var(--accent);border-radius:var(--radius)}
+  .quiz .opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px}
+  .opt{background:var(--bg-recessed);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;font-family:var(--font-mono);font-size:.92rem;cursor:pointer;text-align:left}
+  .opt:hover{border-color:var(--border-strong);background:var(--bg-surface)}
+  .opt.correct{background:var(--correct-bg);border-color:var(--correct);color:var(--correct);font-weight:700}
+  .opt.wrong{background:var(--wrong-bg);border-color:var(--wrong);color:var(--wrong)}
+  .why{font-family:var(--font-mono);font-size:.82rem;color:var(--ink-secondary);margin-top:10px;padding:10px 12px;background:var(--bg-recessed);border-left:3px solid var(--accent-soft);border-radius:var(--radius);display:none;line-height:1.55}
+  .why.show{display:block;animation:fadeIn .25s ease}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
+  .scoreline{font-family:var(--font-mono);font-size:.84rem;color:var(--ink-muted);margin-top:10px;display:flex;gap:18px;align-items:center}
+  .scoreline strong{font-weight:700;color:var(--ink)}
+  .badge{display:inline-block;font-family:var(--font-display);font-size:.7rem;font-weight:700;padding:2px 8px;border-radius:99px;background:var(--accent-light);color:var(--accent);text-transform:uppercase;letter-spacing:.04em;margin-left:8px}
+  .footer-link{margin-top:24px;padding-top:14px;border-top:1px solid var(--border);font-family:var(--font-mono);font-size:.82rem}
+  .footer-link a{color:var(--accent);text-decoration:none}
+  .controls{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0 4px}
+</style>
+<link rel="stylesheet" href="css/shared.css?v=4.56">
+<script defer src="js/nav.js"></script>
+</head>
+<body>
+<nav class="top-nav" id="main-nav"></nav>
+
+<div class="head">
+  <div class="crumb"><a href="blueprint-drill.html?obj=2.1" style="color:var(--accent);text-decoration:none">← 2.1 Mini Sims</a> · 2.1.c · Network Access · Default VLAN</div>
+  <h1>The VLAN You Forgot You Were On<span class="badge">drill</span></h1>
+  <div class="desc">Out of the box every Cisco Catalyst port lives in <strong>VLAN 1</strong> — the default. It's enabled, it spans every trunk, you can't delete it, and it carries control-plane chatter (CDP, VTP, DTP, PAgP). Best practice: <strong>move user ports off it</strong>, change the native VLAN on trunks to something unused, and never put management on VLAN 1. Click any port below to relocate it and watch <code>show vlan brief</code> follow.</div>
+</div>
+
+<div class="panel">
+  <h2>Out-of-box switch — every port in VLAN 1</h2>
+  <svg class="switch-svg" viewBox="0 0 760 220" id="switch">
+    <rect x="20" y="20" width="720" height="180" rx="10" fill="#1F2937" stroke="#0F172A" stroke-width="2"/>
+    <text x="40" y="48" font-family="JetBrains Mono" font-size="14" fill="#FCD34D" font-weight="700">SW1 — Catalyst 2960</text>
+    <text x="40" y="66" font-family="JetBrains Mono" font-size="10" fill="#94A3B8">24 ports · all default to VLAN 1</text>
+    <g id="ports"></g>
+    <rect x="660" y="80" width="60" height="60" rx="4" fill="#0F172A" stroke="#475569"/>
+    <text x="690" y="104" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#94A3B8">UPLINK</text>
+    <text x="690" y="124" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#FCD34D">trunk</text>
+  </svg>
+  <div class="legend">
+    <span><span class="sw" style="background:#FCD34D"></span>VLAN 1 (default)</span>
+    <span><span class="sw" style="background:#60A5FA"></span>VLAN 10 (DATA)</span>
+    <span><span class="sw" style="background:#86EFAC"></span>VLAN 20 (VOICE)</span>
+    <span><span class="sw" style="background:#FCA5A5"></span>VLAN 99 (MGMT)</span>
+  </div>
+  <div class="controls">
+    <button class="btn ghost" id="moveBlock1">Move ports 1–8 → VLAN 10</button>
+    <button class="btn ghost" id="moveBlock2">Move ports 9–16 → VLAN 20</button>
+    <button class="btn ghost" id="moveBlock3">Move port 24 → VLAN 99</button>
+    <button class="btn accent" id="resetSw">Reset to factory</button>
+  </div>
+  <div class="show-vlan" id="showVlan"></div>
+</div>
+
+<div class="panel">
+  <h2>What's special about VLAN 1</h2>
+  <div class="compare">
+    <div><h3>Built-in behavior</h3>
+      <ul style="padding-left:18px;line-height:1.7">
+        <li>Cannot be deleted — reserved by IOS</li>
+        <li>Default for every access port</li>
+        <li>Default native VLAN on every trunk</li>
+        <li>Carries CDP, VTP, DTP, PAgP, STP control frames</li>
+      </ul>
+    </div>
+    <div><h3>Why it's a security risk</h3>
+      <ul style="padding-left:18px;line-height:1.7">
+        <li>VLAN 1 spans every trunk by default — any port leaks to every switch</li>
+        <li>Attacker on a forgotten VLAN-1 port shares L2 broadcast with management</li>
+        <li>VLAN-hopping (double-tag) targets default native VLAN 1</li>
+        <li>NSA / CIS hardening guides explicitly call out moving off VLAN 1</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<div class="panel">
+  <h2>Worked example — harden a fresh switch</h2>
+  <div class="show-vlan"><span class="muted">! before — every port still on VLAN 1</span>
+SW1# <span class="hl">show vlan brief</span>
+VLAN Name                             Status    Ports
+---- -------------------------------- --------- -----------------------
+<span class="hl">1    default                          active    Fa0/1, Fa0/2, Fa0/3, Fa0/4 ...</span>
+
+<span class="muted">! commands</span>
+SW1(config)# <span class="hl2">vlan 10</span>
+SW1(config-vlan)# <span class="hl2">name DATA</span>
+SW1(config)# <span class="hl2">interface range fa0/1 - 8</span>
+SW1(config-if-range)# <span class="hl2">switchport mode access</span>
+SW1(config-if-range)# <span class="hl2">switchport access vlan 10</span>
+
+<span class="muted">! after — first 8 ports off VLAN 1</span>
+SW1# <span class="hl">show vlan brief</span>
+VLAN Name                             Status    Ports
+---- -------------------------------- --------- -----------------------
+1    default                          active    Fa0/9, Fa0/10, Fa0/11 ...
+<span class="hl2">10   DATA                             active    Fa0/1, Fa0/2, Fa0/3 ... Fa0/8</span></div>
+</div>
+
+<div class="panel">
+  <h2>Faded prompt — your turn</h2>
+  <p class="intro">Audit team flagged: <strong>"VLAN 1 active on user-facing ports."</strong> Your move:</p>
+  <ol style="padding-left:22px;line-height:1.85;font-family:var(--font-body)">
+    <li>Create a non-default user VLAN (e.g. <code style="font-family:var(--font-mono);background:var(--bg-recessed);padding:1px 5px;border-radius:3px">vlan 10</code>).</li>
+    <li>Reassign every access port to that VLAN — <code style="font-family:var(--font-mono);background:var(--bg-recessed);padding:1px 5px;border-radius:3px">switchport access vlan 10</code>.</li>
+    <li>On every trunk, change the native VLAN to an unused, user-free VLAN (e.g. 999) — <code style="font-family:var(--font-mono);background:var(--bg-recessed);padding:1px 5px;border-radius:3px">switchport trunk native vlan 999</code>.</li>
+    <li>Shut unused ports — <code style="font-family:var(--font-mono);background:var(--bg-recessed);padding:1px 5px;border-radius:3px">interface range</code> + <code style="font-family:var(--font-mono);background:var(--bg-recessed);padding:1px 5px;border-radius:3px">shutdown</code>.</li>
+  </ol>
+  <p class="intro" style="margin-top:12px">VLAN 1 still <em>exists</em> after this — you just don't <em>use</em> it. That's the right answer.</p>
+</div>
+
+<div class="panel quiz" id="quizPanel">
+  <h2>Quiz mode</h2>
+  <div class="stem" id="quizStem">Loading…</div>
+  <div class="opts" id="quizOpts"></div>
+  <div class="why" id="why"></div>
+  <div class="scoreline">
+    <span><strong id="qCorrect">0</strong> correct</span>
+    <span><strong id="qWrong">0</strong> wrong</span>
+    <span><strong id="qStreak">0</strong> streak</span>
+    <span style="margin-left:auto"><button class="btn ghost" id="newQ">Next ↻</button></span>
+  </div>
+</div>
+
+<div class="footer-link"><a href="blueprint-drill.html?obj=2.1">← back to 2.1 leaves</a></div>
+
+<script>
+(function(){
+  // ── Switch port simulator ──
+  var portCount = 24;
+  var assignments = [];
+  for (var i=0;i<portCount;i++) assignments.push(1);
+  var vlanColors = { 1:'#FCD34D', 10:'#60A5FA', 20:'#86EFAC', 99:'#FCA5A5' };
+  var vlanNames  = { 1:'default', 10:'DATA', 20:'VOICE', 99:'MGMT' };
+
+  function drawPorts(){
+    var g = document.getElementById('ports'); g.innerHTML='';
+    var startX = 50, startY = 95, w = 22, h = 36, gap = 4;
+    for (var i=0;i<portCount;i++){
+      var col = i % 12, row = Math.floor(i / 12);
+      var x = startX + col*(w+gap), y = startY + row*(h+gap+10);
+      var v = assignments[i];
+      var rect = document.createElementNS('http://www.w3.org/2000/svg','rect');
+      rect.setAttribute('x', x); rect.setAttribute('y', y);
+      rect.setAttribute('width', w); rect.setAttribute('height', h);
+      rect.setAttribute('rx', 3); rect.setAttribute('fill', vlanColors[v]);
+      rect.setAttribute('stroke', '#0F172A'); rect.setAttribute('stroke-width', 1);
+      rect.setAttribute('class', 'port');
+      rect.setAttribute('data-port', i+1);
+      rect.addEventListener('click', cyclePort);
+      g.appendChild(rect);
+      var lbl = document.createElementNS('http://www.w3.org/2000/svg','text');
+      lbl.setAttribute('x', x + w/2); lbl.setAttribute('y', y + h + 10);
+      lbl.setAttribute('class','port-label');
+      lbl.textContent = (i+1);
+      g.appendChild(lbl);
+    }
+  }
+
+  function cyclePort(e){
+    var p = parseInt(e.target.getAttribute('data-port'),10) - 1;
+    var seq = [1, 10, 20, 99];
+    var idx = seq.indexOf(assignments[p]);
+    assignments[p] = seq[(idx+1) % seq.length];
+    drawPorts(); renderShow();
+  }
+
+  function renderShow(){
+    var byVlan = {};
+    for (var v in vlanColors) byVlan[v] = [];
+    assignments.forEach(function(v, i){ byVlan[v].push('Fa0/'+(i+1)); });
+    var lines = [];
+    lines.push('SW1# show vlan brief');
+    lines.push('');
+    lines.push('VLAN Name                             Status    Ports');
+    lines.push('---- -------------------------------- --------- -----------------------');
+    [1,10,20,99].forEach(function(v){
+      if (byVlan[v].length===0 && v!==1) return;
+      var pStr = byVlan[v].length ? byVlan[v].join(', ') : '<no ports>';
+      var pad = (' ' + v).slice(-4);
+      var name = (vlanNames[v] + '                                 ').slice(0, 32);
+      var marker = (v===1 ? 'hl' : (v===10 || v===20 ? 'hl2' : ''));
+      lines.push((marker?'<span class="'+marker+'">':'') + pad + ' ' + name + ' active    ' + pStr + (marker?'</span>':''));
+    });
+    document.getElementById('showVlan').innerHTML = lines.join('\n');
+  }
+
+  function moveBlock(from, to, vlan){
+    for (var i=from-1;i<=to-1;i++) assignments[i] = vlan;
+    drawPorts(); renderShow();
+  }
+
+  document.getElementById('moveBlock1').addEventListener('click', function(){ moveBlock(1, 8, 10); });
+  document.getElementById('moveBlock2').addEventListener('click', function(){ moveBlock(9, 16, 20); });
+  document.getElementById('moveBlock3').addEventListener('click', function(){ moveBlock(24, 24, 99); });
+  document.getElementById('resetSw').addEventListener('click', function(){
+    for (var i=0;i<portCount;i++) assignments[i] = 1;
+    drawPorts(); renderShow();
+  });
+  drawPorts(); renderShow();
+
+  // ── Quiz ──
+  var qCorrect=0, qWrong=0, qStreak=0;
+  var pool = [
+    { stem:'Default VLAN on a Cisco Catalyst switch?', opts:['VLAN 0','VLAN 1','VLAN 100','VLAN 1002'], ans:'VLAN 1', why:'VLAN 1 ships enabled and active on every Catalyst. Every access port belongs to it until you change it. It is reserved and cannot be deleted.' },
+    { stem:'Can you delete VLAN 1?', opts:['Yes — `no vlan 1`','No — reserved by IOS','Only with `vtp prune`','Only on L3 switches'], ans:'No — reserved by IOS', why:'VLAN 1, plus 1002–1005 (legacy FDDI/Token Ring), are reserved. IOS rejects deletion. You can stop using it for user/management traffic, but the row stays.' },
+    { stem:'Why is VLAN 1 a security concern?', opts:['It is encrypted','It spans every trunk by default — leaks to every switch','It uses 802.1X','It cannot carry data'], ans:'It spans every trunk by default — leaks to every switch', why:'Trunks carry every VLAN unless pruned, and VLAN 1 is the default native — control traffic (CDP/VTP/DTP) rides untagged. Any forgotten VLAN-1 port reaches the management plane.' },
+    { stem:'A new user-facing access port is plugged in. With no config applied, which VLAN is it in?', opts:['VLAN 0','VLAN 1','None — port is up/down','VLAN 1002'], ans:'VLAN 1', why:'Default behavior. Until `switchport access vlan X` runs, every access port lives on VLAN 1.' },
+    { stem:'Best-practice native VLAN on a trunk?', opts:['VLAN 1 — leave it','An unused VLAN (e.g. 999) with no user hosts','Whichever VLAN has the most users','Same as the management VLAN'], ans:'An unused VLAN (e.g. 999) with no user hosts', why:'Native VLAN traffic is untagged across the trunk. If you keep VLAN 1 as native AND user, double-tagging attacks become trivial. Use a black-hole VLAN as native, prune VLAN 1 from the trunk.' },
+    { stem:'Which control protocols ride VLAN 1 by default?', opts:['HTTPS, SSH','CDP, VTP, DTP, PAgP, STP','BGP, OSPF','SNMP only'], ans:'CDP, VTP, DTP, PAgP, STP', why:'VLAN 1 is the historic L2 control-plane VLAN. These ride untagged on the native VLAN of every trunk; that is one reason hardening guides want them isolated.' },
+    { stem:'After running `no switchport access vlan 50` on Fa0/1, where does Fa0/1 land?', opts:['Shut','VLAN 1','VLAN 0','Last assigned VLAN'], ans:'VLAN 1', why:'Removing the access-VLAN assignment falls back to the default — VLAN 1. Same when you erase startup-config.' },
+    { stem:'Which command changes the management VLAN on a Catalyst access switch?', opts:['`vlan management 99`','Move SVI: `interface vlan 99` + `ip address …` + `no shut` (and remove `interface vlan 1`)','`switchport mode management 99`','`config-mgmt 99`'], ans:'Move SVI: `interface vlan 99` + `ip address …` + `no shut` (and remove `interface vlan 1`)', why:'There is no special "management VLAN" knob — you just create an SVI on a non-default VLAN and assign the IP there, then shut the VLAN-1 SVI. Trunks carrying that VLAN reach the box.' },
+    { stem:'The default VLAN of an `Et1/0` trunk port (no native specified) is:', opts:['VLAN 0','VLAN 1','VLAN 4094','None'], ans:'VLAN 1', why:'802.1Q native VLAN defaults to 1 unless overridden with `switchport trunk native vlan X`. Mismatched native VLANs across a trunk cause CDP-logged warnings.' },
+    { stem:'Easiest way to spot orphan ports still on VLAN 1 after a hardening pass?', opts:['`show running-config`','`show vlan brief` — VLAN 1 row lists every port still defaulted','Reload the switch','`debug vlan`'], ans:'`show vlan brief` — VLAN 1 row lists every port still defaulted', why:'`show vlan brief` summarizes which ports belong to each VLAN. After a clean hardening pass, the VLAN-1 row should only show shut/unused ports — anything else is an orphan.' }
+  ];
+
+  function pickQ(){
+    var q = pool[Math.floor(Math.random()*pool.length)];
+    var opts = q.opts.slice().sort(function(){return Math.random()-.5;});
+    document.getElementById('quizStem').textContent = q.stem;
+    var bx = document.getElementById('quizOpts'); bx.innerHTML='';
+    document.getElementById('why').classList.remove('show');
+    document.getElementById('why').textContent = '';
+    opts.forEach(function(o){
+      var btn = document.createElement('button');
+      btn.className='opt'; btn.textContent=o;
+      btn.addEventListener('click', function(){
+        if (btn.classList.contains('correct')||btn.classList.contains('wrong')) return;
+        var w = document.getElementById('why');
+        if (o===q.ans){ btn.classList.add('correct'); qCorrect++; qStreak++; }
+        else { btn.classList.add('wrong'); qWrong++; qStreak=0;
+          Array.prototype.forEach.call(bx.children, function(c){ if (c.textContent===q.ans) c.classList.add('correct'); }); }
+        w.textContent = '↳ ' + q.why;
+        w.classList.add('show');
+        document.getElementById('qCorrect').textContent=qCorrect;
+        document.getElementById('qWrong').textContent=qWrong;
+        document.getElementById('qStreak').textContent=qStreak;
+      });
+      bx.appendChild(btn);
+    });
+  }
+  document.getElementById('newQ').addEventListener('click', pickQ);
+  pickQ();
+})();
+</script>
+<script defer src="js/tutor.js"></script>
+</body>
+</html>

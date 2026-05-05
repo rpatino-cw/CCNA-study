@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>2.1.b Sim — Voice VLAN</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{--bg:#FAF7F2;--bg-surface:#FFFFFF;--bg-recessed:#F3F0EB;--border:#E2DFD9;--border-strong:#C7C3BC;--ink:#1C1917;--ink-secondary:#57534E;--ink-muted:#A8A29E;--accent:#B45309;--accent-soft:#D97706;--accent-light:#FEF3C7;--correct:#16A34A;--correct-bg:#F0FDF4;--wrong:#DC2626;--wrong-bg:#FEF2F2;--info:#2563EB;--info-bg:#EFF6FF;--data:#60A5FA;--voice:#86EFAC;--font-display:'Space Grotesk',system-ui,sans-serif;--font-body:'Source Serif 4',Georgia,serif;--font-mono:'JetBrains Mono',monospace;--radius:6px;--radius-lg:10px}
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:var(--font-body);background:var(--bg);color:var(--ink);line-height:1.55;padding:24px;max-width:920px;margin:0 auto}
+  .head{margin-bottom:20px;padding-bottom:14px;border-bottom:1px solid var(--border)}
+  .head .crumb{font-family:var(--font-mono);font-size:.74rem;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px}
+  .head h1{font-family:var(--font-display);font-size:1.5rem;font-weight:700;margin-bottom:6px}
+  .head .desc{font-size:.95rem;color:var(--ink-secondary)}
+  .panel{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;margin-bottom:18px}
+  .panel h2{font-family:var(--font-display);font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-secondary);margin-bottom:12px}
+  .intro{font-size:.96rem;color:var(--ink-secondary);margin-bottom:14px}
+  .intro strong{color:var(--ink)}
+  .btn{font-family:var(--font-display);font-size:.84rem;font-weight:600;padding:8px 16px;background:var(--ink);color:#FAF7F2;border:none;border-radius:var(--radius);cursor:pointer}
+  .btn.ghost{background:var(--bg-recessed);color:var(--ink)}
+  .btn.accent{background:var(--accent)}
+  .topology{width:100%;display:block;margin:6px auto 8px;background:var(--bg-recessed);border:1px solid var(--border);border-radius:var(--radius)}
+  .config-edit{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:12px}
+  .config-edit textarea{font-family:var(--font-mono);font-size:.86rem;width:100%;min-height:200px;padding:12px;border:1px solid var(--border-strong);border-radius:var(--radius);background:#1C1917;color:#E7E5E4;line-height:1.55;resize:vertical}
+  .config-edit .colhead{font-family:var(--font-display);font-size:.78rem;font-weight:700;letter-spacing:.06em;color:var(--ink-secondary);text-transform:uppercase;margin-bottom:6px}
+  .controls{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+  .verdict{margin-top:14px;padding:12px 16px;border-radius:var(--radius);font-family:var(--font-display);font-size:.94rem;font-weight:600;background:var(--info-bg);color:var(--info);border:1px solid var(--info);display:none}
+  .verdict.show{display:block;animation:fadeIn .25s ease}
+  .verdict.win{background:var(--correct-bg);color:var(--correct);border-color:var(--correct)}
+  .verdict.miss{background:var(--wrong-bg);color:var(--wrong);border-color:var(--wrong)}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
+  .compare{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px;font-family:var(--font-body);font-size:.92rem}
+  .compare div{padding:14px;background:var(--bg-recessed);border-radius:var(--radius);border:1px solid var(--border)}
+  .compare h3{font-family:var(--font-display);font-size:.92rem;color:var(--accent);margin-bottom:6px}
+  .compare code{font-family:var(--font-mono);font-size:.86rem;background:var(--bg-surface);padding:1px 5px;border-radius:3px}
+  .quiz{margin-top:22px}
+  .quiz .stem{font-family:var(--font-display);font-size:1.02rem;font-weight:600;margin-bottom:12px;padding:14px;background:var(--accent-light);border-left:3px solid var(--accent);border-radius:var(--radius)}
+  .quiz .opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px}
+  .opt{background:var(--bg-recessed);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;font-family:var(--font-mono);font-size:.92rem;cursor:pointer;text-align:left}
+  .opt:hover{border-color:var(--border-strong);background:var(--bg-surface)}
+  .opt.correct{background:var(--correct-bg);border-color:var(--correct);color:var(--correct);font-weight:700}
+  .opt.wrong{background:var(--wrong-bg);border-color:var(--wrong);color:var(--wrong)}
+  .why{font-family:var(--font-mono);font-size:.82rem;color:var(--ink-secondary);margin-top:10px;padding:10px 12px;background:var(--bg-recessed);border-left:3px solid var(--accent-soft);border-radius:var(--radius);display:none;line-height:1.55}
+  .why.show{display:block;animation:fadeIn .25s ease}
+  .scoreline{font-family:var(--font-mono);font-size:.84rem;color:var(--ink-muted);margin-top:10px;display:flex;gap:18px;align-items:center}
+  .scoreline strong{font-weight:700;color:var(--ink)}
+  .badge{display:inline-block;font-family:var(--font-display);font-size:.7rem;font-weight:700;padding:2px 8px;border-radius:99px;background:var(--accent-light);color:var(--accent);text-transform:uppercase;letter-spacing:.04em;margin-left:8px}
+  .footer-link{margin-top:24px;padding-top:14px;border-top:1px solid var(--border);font-family:var(--font-mono);font-size:.82rem}
+  .footer-link a{color:var(--accent);text-decoration:none}
+  .frame-flow{font-family:var(--font-mono);font-size:.86rem;background:#1C1917;color:#E7E5E4;padding:14px;border-radius:var(--radius);margin-top:10px;line-height:1.7}
+  .frame-flow .v{color:#86EFAC;font-weight:700}
+  .frame-flow .d{color:#60A5FA}
+  .frame-flow .muted{color:#A8A29E;font-style:italic}
+</style>
+<link rel="stylesheet" href="css/shared.css?v=4.56">
+<script defer src="js/nav.js"></script>
+</head>
+<body>
+<nav class="top-nav" id="main-nav"></nav>
+
+<div class="head">
+  <div class="crumb"><a href="blueprint-drill.html?obj=2.1" style="color:var(--accent);text-decoration:none">← 2.1 Mini Sims</a> · 2.1.b · Network Access · Voice VLAN</div>
+  <h1>One Port, Two VLANs<span class="badge">drill</span></h1>
+  <div class="desc">An IP phone is a tiny 3-port switch: <strong>uplink, PC pass-through, internal phone</strong>. Plug a laptop into the phone, plug the phone into the wall — both share one switchport. The switch tags voice traffic on the <strong>voice VLAN</strong> and leaves data <strong>untagged</strong> on the access VLAN. The phone learns its tag from <strong>CDP / LLDP-MED</strong>. Build the config below — break it on purpose to see what fails.</div>
+</div>
+
+<div class="panel">
+  <h2>The daisy-chain</h2>
+  <svg class="topology" viewBox="0 0 760 220">
+    <rect x="20" y="80" width="100" height="60" rx="8" fill="#1F2937" stroke="#0F172A"/>
+    <text x="70" y="116" text-anchor="middle" font-family="JetBrains Mono" font-size="11" fill="#FCD34D">PC</text>
+    <text x="70" y="160" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#374151">VLAN 10 (data)</text>
+
+    <line x1="120" y1="110" x2="220" y2="110" stroke="#60A5FA" stroke-width="3" stroke-dasharray="6,3"/>
+    <text x="170" y="100" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#1E40AF">untagged data</text>
+
+    <rect x="220" y="70" width="120" height="80" rx="8" fill="#0F172A" stroke="#475569"/>
+    <text x="280" y="100" text-anchor="middle" font-family="JetBrains Mono" font-size="11" fill="#FCD34D">IP Phone</text>
+    <text x="280" y="118" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#94A3B8">3-port switch</text>
+    <text x="280" y="135" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#86EFAC">VLAN 110 (voice)</text>
+
+    <line x1="340" y1="110" x2="440" y2="110" stroke="#86EFAC" stroke-width="3" stroke-dasharray="6,3"/>
+    <text x="390" y="100" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#15803D">tagged 110 + untagged 10</text>
+
+    <rect x="440" y="70" width="220" height="80" rx="8" fill="#1F2937" stroke="#0F172A"/>
+    <text x="460" y="98" font-family="JetBrains Mono" font-size="12" fill="#FCD34D" font-weight="700">SW1 — Fa0/1 (access port)</text>
+    <text x="460" y="116" font-family="JetBrains Mono" font-size="9" fill="#94A3B8">switchport mode access</text>
+    <text x="460" y="130" font-family="JetBrains Mono" font-size="9" fill="#94A3B8">switchport access vlan 10</text>
+    <text x="460" y="144" font-family="JetBrains Mono" font-size="9" fill="#86EFAC">switchport voice vlan 110</text>
+  </svg>
+  <p class="intro" style="margin-top:6px">A voice-VLAN port is <strong>not</strong> a trunk. It looks like an access port that quietly passes one extra tagged VLAN — the voice VLAN — and the switch only accepts that one tag. Everything else from the wall stays untagged on the access VLAN.</p>
+</div>
+
+<div class="panel">
+  <h2>Build the config</h2>
+  <p class="intro">Edit on the left, watch the verdict on the right. Toggle each error to see the symptom.</p>
+  <div class="config-edit">
+    <div>
+      <div class="colhead">SW1 interface Fa0/1</div>
+      <textarea id="cfg" spellcheck="false" wrap="off">interface FastEthernet0/1
+ description Phone + PC daisy-chain
+ switchport mode access
+ switchport access vlan 10
+ switchport voice vlan 110
+ spanning-tree portfast
+ spanning-tree bpduguard enable
+ mls qos trust device cisco-phone</textarea>
+    </div>
+    <div>
+      <div class="colhead">What the wire actually carries</div>
+      <div id="frameFlow" class="frame-flow"></div>
+    </div>
+  </div>
+  <div class="controls">
+    <button class="btn ghost" data-bug="no-voice">Bug: drop the voice VLAN line</button>
+    <button class="btn ghost" data-bug="trunk">Bug: change to mode trunk</button>
+    <button class="btn ghost" data-bug="same-vlan">Bug: voice = data VLAN</button>
+    <button class="btn accent" id="reset">Reset to good config</button>
+  </div>
+  <div class="verdict" id="verdict"></div>
+</div>
+
+<div class="panel">
+  <h2>Why one port and not a trunk</h2>
+  <div class="compare">
+    <div><h3>Voice-VLAN access port</h3>
+      Switch behavior: untagged data → access VLAN, tagged voice → voice VLAN. Phone learns the voice tag via CDP/LLDP-MED. <code>show interface trunk</code> does NOT list it as a trunk. Mac-learning on this port is per-VLAN, both sides clean.
+    </div>
+    <div><h3>Trunk</h3>
+      Carries every allowed VLAN as 802.1Q-tagged. Native VLAN traps. PC behind a phone would have to participate in 802.1Q (most NICs don't). Mac-learning gets noisy. Wrong tool for end-user ports.
+    </div>
+  </div>
+</div>
+
+<div class="panel">
+  <h2>Worked example — verifying the port</h2>
+  <div class="frame-flow"><span class="muted">! voice-VLAN access port — note "trunk" is NOT in the output</span>
+SW1# <span class="d">show interfaces FastEthernet0/1 switchport</span>
+Name: Fa0/1
+Switchport: Enabled
+<span class="v">Administrative Mode: static access</span>
+Operational Mode: static access
+<span class="d">Access Mode VLAN: 10 (DATA)</span>
+Trunking Native Mode VLAN: 1 (default)
+<span class="v">Voice VLAN: 110 (VOICE)</span>
+Trunking VLANs Enabled: ALL
+...
+
+SW1# <span class="d">show cdp neighbor detail | include Phone|Port|Voice</span>
+<span class="v">Device ID: SEP00112233AABB (Cisco IP Phone 7945)</span>
+Interface: FastEthernet0/1, Port ID (outgoing port): SW PORT
+<span class="v">Voice VLAN: 110</span></div>
+</div>
+
+<div class="panel">
+  <h2>Faded prompt — your turn</h2>
+  <p class="intro">Phone won't register. PC behind it has DHCP and reaches the gateway. Sniff shows no 802.1Q tag from the phone. Which one line is missing?</p>
+  <ul style="padding-left:22px;line-height:1.85;font-family:var(--font-body)">
+    <li><strong>Answer:</strong> <code style="font-family:var(--font-mono);background:var(--bg-recessed);padding:1px 5px;border-radius:3px">switchport voice vlan 110</code> on Fa0/1.</li>
+    <li>Without it, CDP/LLDP-MED never advertises a voice VLAN to the phone, so the phone tags nothing and falls back to the access VLAN, where the call manager isn't reachable.</li>
+  </ul>
+</div>
+
+<div class="panel quiz" id="quizPanel">
+  <h2>Quiz mode</h2>
+  <div class="stem" id="quizStem">Loading…</div>
+  <div class="opts" id="quizOpts"></div>
+  <div class="why" id="why"></div>
+  <div class="scoreline">
+    <span><strong id="qCorrect">0</strong> correct</span>
+    <span><strong id="qWrong">0</strong> wrong</span>
+    <span><strong id="qStreak">0</strong> streak</span>
+    <span style="margin-left:auto"><button class="btn ghost" id="newQ">Next ↻</button></span>
+  </div>
+</div>
+
+<div class="footer-link"><a href="blueprint-drill.html?obj=2.1">← back to 2.1 leaves</a></div>
+
+<script>
+(function(){
+  var goodCfg = 'interface FastEthernet0/1\n description Phone + PC daisy-chain\n switchport mode access\n switchport access vlan 10\n switchport voice vlan 110\n spanning-tree portfast\n spanning-tree bpduguard enable\n mls qos trust device cisco-phone';
+
+  function parseCfg(){
+    var t = document.getElementById('cfg').value;
+    var modeAccess = /switchport\s+mode\s+access/i.test(t);
+    var modeTrunk  = /switchport\s+mode\s+trunk/i.test(t);
+    var accessM = t.match(/switchport\s+access\s+vlan\s+(\d+)/i);
+    var voiceM  = t.match(/switchport\s+voice\s+vlan\s+(\d+)/i);
+    return {
+      modeAccess: modeAccess,
+      modeTrunk: modeTrunk,
+      accessVlan: accessM ? parseInt(accessM[1],10) : null,
+      voiceVlan:  voiceM  ? parseInt(voiceM[1],10)  : null,
+      portfast:   /spanning-tree\s+portfast/i.test(t),
+      bpduguard:  /spanning-tree\s+bpduguard\s+enable/i.test(t),
+      trustQos:   /mls\s+qos\s+trust\s+device\s+cisco-phone/i.test(t)
+    };
+  }
+
+  function render(){
+    var c = parseCfg();
+    var v = document.getElementById('verdict');
+    var ff = document.getElementById('frameFlow');
+    var bad = [];
+    if (c.modeTrunk) bad.push('Mode trunk — wrong tool for an end-user port. PC behind phone would need 802.1Q.');
+    if (!c.modeAccess && !c.modeTrunk) bad.push('No mode set — defaults to dynamic, security risk.');
+    if (c.accessVlan===null) bad.push('No access VLAN — data falls back to VLAN 1.');
+    if (c.voiceVlan===null) bad.push('No voice VLAN — phone gets no CDP/LLDP-MED tag, voice falls back untagged onto data VLAN, registration fails.');
+    if (c.accessVlan && c.voiceVlan && c.accessVlan===c.voiceVlan) bad.push('Voice VLAN equals access VLAN — defeats QoS isolation; phone and PC compete on one broadcast domain.');
+    if (c.modeAccess && !c.portfast) bad.push('No PortFast — DHCP times out on phone and PC during STP listening/learning (~30s).');
+    if (c.portfast && !c.bpduguard) bad.push('PortFast without BPDU Guard — rogue switch could form a loop.');
+
+    v.className = 'verdict show ' + (bad.length ? 'miss' : 'win');
+    v.textContent = bad.length ? '✗ ' + bad.join('  ·  ') : '✓ Voice + data sharing one access port. CDP advertises voice VLAN ' + c.voiceVlan + '. PortFast skips listening/learning. BPDU Guard catches rogue gear. QoS trusts the phone.';
+
+    var tagged = c.voiceVlan!==null && c.modeAccess && !c.modeTrunk;
+    var avlan = c.accessVlan || '?';
+    var vvlan = c.voiceVlan || '?';
+    ff.innerHTML =
+      '<div><span class="muted">SW1 ← phone uplink:</span></div>'+
+      '<div>  data frame from PC:    <span class="d">untagged → VLAN ' + avlan + '</span></div>'+
+      '<div>  voice frame from phone: ' + (tagged
+        ? '<span class="v">802.1Q tag ' + vvlan + ' → VLAN ' + vvlan + '</span>'
+        : '<span class="v" style="color:#FCA5A5">untagged (BUG) → falls back to VLAN ' + avlan + '</span>') +
+      '</div>'+
+      '<div></div>'+
+      '<div><span class="muted">CDP advertisement to phone:</span></div>'+
+      '<div>  Voice VLAN: <span class="v">' + (c.voiceVlan || '— (none advertised)') + '</span></div>'+
+      '<div>  Trust QoS: <span class="v">' + (c.trustQos ? 'cisco-phone' : '— (default untrusted)') + '</span></div>';
+  }
+
+  document.querySelectorAll('[data-bug]').forEach(function(b){
+    b.addEventListener('click', function(){
+      var t = goodCfg;
+      switch (b.dataset.bug){
+        case 'no-voice':  t = t.replace(/\s+switchport\s+voice\s+vlan\s+\d+\n/, '\n'); break;
+        case 'trunk':     t = t.replace(/switchport\s+mode\s+access/, 'switchport mode trunk'); break;
+        case 'same-vlan': t = t.replace(/switchport\s+voice\s+vlan\s+\d+/, 'switchport voice vlan 10'); break;
+      }
+      document.getElementById('cfg').value = t; render();
+    });
+  });
+  document.getElementById('reset').addEventListener('click', function(){
+    document.getElementById('cfg').value = goodCfg; render();
+  });
+  document.getElementById('cfg').addEventListener('input', render);
+  render();
+
+  // ── Quiz ──
+  var qCorrect=0, qWrong=0, qStreak=0;
+  var pool = [
+    { stem:'On a voice-VLAN access port, voice frames are:', opts:['Untagged','802.1Q-tagged with the voice VLAN ID','Tagged native','Tagged with VLAN 1'], ans:'802.1Q-tagged with the voice VLAN ID', why:'The phone tags voice with the voice-VLAN ID it learned via CDP/LLDP-MED. Data from the PC stays untagged on the access VLAN. One port, two VLANs.' },
+    { stem:'How does the phone learn which VLAN to tag voice with?', opts:['DHCP option 150','CDP or LLDP-MED', 'STP', 'manual on phone'], ans:'CDP or LLDP-MED', why:'On a Cisco network the switch tells the phone via CDP TLVs (or vendor-neutral LLDP-MED) — that includes the voice VLAN ID and QoS markings. Option 150 is for the phone\'s call-manager TFTP target, not the VLAN.' },
+    { stem:'Phone won\'t register, but PC behind it has DHCP. Likely cause?', opts:['Wrong subnet mask','Missing `switchport voice vlan` line','Native VLAN mismatch','Wrong duplex'], ans:'Missing `switchport voice vlan` line', why:'Without that command, the switch never advertises a voice VLAN. Phone tags nothing, voice traffic lands on the data VLAN, never reaches the call manager.' },
+    { stem:'A voice-VLAN access port shows up in `show interface trunk` as:', opts:['A trunk','Not listed — it is access mode','In err-disabled','As native-VLAN-only'], ans:'Not listed — it is access mode', why:'Voice-VLAN access ports are NOT trunks. They are a special access-port behavior that allows one extra tagged VLAN. `show interface trunk` lists only real trunks.' },
+    { stem:'Recommended companion features on a voice-VLAN port:', opts:['STP root guard + storm-control only','PortFast + BPDU Guard + QoS trust device cisco-phone','LACP + UDLD','HSRP'], ans:'PortFast + BPDU Guard + QoS trust device cisco-phone', why:'PortFast skips listening/learning so DHCP works on PC + phone boot. BPDU Guard kills the port if a rogue switch shows up. `mls qos trust device cisco-phone` honors phone-marked CoS for voice priority.' },
+    { stem:'Why pair voice + data on one port instead of running two cables?', opts:['Cheaper cabling and a single PoE drop powers the phone','Required by 802.11','Faster STP','Avoids ARP'], ans:'Cheaper cabling and a single PoE drop powers the phone', why:'Daisy-chain saves a cable per cube, leverages PoE on the phone uplink, simplifies moves/adds/changes. Voice VLAN is the trick that lets one port carry both isolated VLANs cleanly.' },
+    { stem:'Voice VLAN equals data VLAN. What breaks?', opts:['Nothing','QoS isolation and L2 broadcast separation — voice quality suffers under load','Only DHCP','Only PoE'], ans:'QoS isolation and L2 broadcast separation — voice quality suffers under load', why:'Whole point of separate voice VLAN is class-of-service prioritization and a small voice-only broadcast domain. Collapsing them puts voice and PC traffic in the same queue and the same flood domain — packet loss in burst, jitter in calls.' },
+    { stem:'Correct configuration order:', opts:['voice vlan → access vlan → mode access','mode access → access vlan → voice vlan','mode trunk → voice vlan → access vlan','vlan 10 → vlan 110 (no interface commands)'], ans:'mode access → access vlan → voice vlan', why:'Mode first, then assign access VLAN, then voice VLAN. Voice-VLAN command is rejected if the port is not in access mode (or auto, on older IOS).' },
+    { stem:'`switchport voice vlan dot1p` instead of a VLAN number means:', opts:['Use VLAN 1','Tag voice with VLAN 0 + 802.1p priority bits — for phones that only understand priority, not VLAN','Disable voice','Use a random VLAN'], ans:'Tag voice with VLAN 0 + 802.1p priority bits — for phones that only understand priority, not VLAN', why:'`dot1p` mode tells the phone to use VLAN 0 (priority-only) tagging — no VLAN ID, just CoS bits. Edge case for legacy phones; modern Cisco phones get a real voice VLAN ID.' },
+    { stem:'Best port-security setting for a voice-VLAN access port?', opts:['Maximum 1 MAC','Maximum 2 MACs (or higher) — phone + PC','Disable port-security','Sticky to gateway only'], ans:'Maximum 2 MACs (or higher) — phone + PC', why:'Phone is its own MAC, PC is its own MAC — that\'s minimum 2. Most shops set max 3 (MAC + spare). Setting it to 1 err-disables when the PC plugs in.' }
+  ];
+
+  function pickQ(){
+    var q = pool[Math.floor(Math.random()*pool.length)];
+    var opts = q.opts.slice().sort(function(){return Math.random()-.5;});
+    document.getElementById('quizStem').textContent = q.stem;
+    var bx = document.getElementById('quizOpts'); bx.innerHTML='';
+    var w = document.getElementById('why'); w.classList.remove('show'); w.textContent='';
+    opts.forEach(function(o){
+      var btn = document.createElement('button');
+      btn.className='opt'; btn.textContent=o;
+      btn.addEventListener('click', function(){
+        if (btn.classList.contains('correct')||btn.classList.contains('wrong')) return;
+        if (o===q.ans){ btn.classList.add('correct'); qCorrect++; qStreak++; }
+        else { btn.classList.add('wrong'); qWrong++; qStreak=0;
+          Array.prototype.forEach.call(bx.children, function(c){ if (c.textContent===q.ans) c.classList.add('correct'); }); }
+        w.textContent = '↳ ' + q.why; w.classList.add('show');
+        document.getElementById('qCorrect').textContent=qCorrect;
+        document.getElementById('qWrong').textContent=qWrong;
+        document.getElementById('qStreak').textContent=qStreak;
+      });
+      bx.appendChild(btn);
+    });
+  }
+  document.getElementById('newQ').addEventListener('click', pickQ);
+  pickQ();
+})();
+</script>
+<script defer src="js/tutor.js"></script>
+</body>
+</html>
