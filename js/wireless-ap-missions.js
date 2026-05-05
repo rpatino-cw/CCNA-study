@@ -157,6 +157,23 @@
         { id: 'cci_020', label: 'CCI penalty ≤ 0.20', check: ({ score }) => score && score.cci.penalty <= 0.20 },
         { id: 'cap_80', label: 'Capacity score ≥ 0.80', check: ({ score }) => score && score.capacity.score >= 0.80 }
       ]
+    },
+    {
+      id: 't3',
+      type: 'test',
+      title: 'TEST · Warehouse w/ metal racking',
+      intro: 'Switch to the Warehouse preset. Metal racks (−25 dB each) chop coverage. Place ≥ 6 APs, hit ≥ 80% coverage, low CCI, all status up.',
+      hints: [
+        'Tip: place APs between rack rows — cells are tiny when signal must cross metal.',
+        'Use 5 GHz with high Tx power for short, sharp cells.'
+      ],
+      preferredPreset: 'warehouse_1f',
+      criteria: [
+        { id: 'aps_6_t3', label: '≥ 6 APs', check: ({ layout }) => layout.aps.length >= 6 },
+        { id: 'cov_80_t3', label: 'Coverage ≥ 80%', check: ({ score }) => score && score.coverage.percent >= 0.80 },
+        { id: 'cci_025', label: 'CCI penalty ≤ 0.25', check: ({ score }) => score && score.cci.penalty <= 0.25 },
+        { id: 'all_up_t3', label: 'All APs status = up', check: ({ score, layout }) => score && layout.aps.every(a => score.apStatus[a.id] === 'up') }
+      ]
     }
   ];
 

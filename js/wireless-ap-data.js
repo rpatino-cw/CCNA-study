@@ -12,6 +12,29 @@
   };
 
   const presets = {
+    warehouse_1f: {
+      id: 'warehouse_1f',
+      name: 'Warehouse — 50 × 30 m, metal racking',
+      widthM: 50,
+      heightM: 30,
+      walls: [
+        // Outer concrete shell
+        { x1: 0,  y1: 0,  x2: 50, y2: 0,  material: 'concrete' },
+        { x1: 50, y1: 0,  x2: 50, y2: 30, material: 'concrete' },
+        { x1: 50, y1: 30, x2: 0,  y2: 30, material: 'concrete' },
+        { x1: 0,  y1: 30, x2: 0,  y2: 0,  material: 'concrete' },
+        // 3 metal rack rows running E-W (heavy attenuation)
+        { x1: 5, y1: 10, x2: 45, y2: 10, material: 'metal' },
+        { x1: 5, y1: 15, x2: 45, y2: 15, material: 'metal' },
+        { x1: 5, y1: 20, x2: 45, y2: 20, material: 'metal' }
+      ],
+      labels: [
+        { x: 25, y: 5,    text: 'Bay A — Receiving' },
+        { x: 25, y: 12.5, text: 'Bay B' },
+        { x: 25, y: 17.5, text: 'Bay C' },
+        { x: 25, y: 25,   text: 'Bay D — Shipping' }
+      ]
+    },
     office_1f: {
       id: 'office_1f',
       name: '1F Office — 40 × 25 m',

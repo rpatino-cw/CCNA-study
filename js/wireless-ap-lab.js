@@ -8,6 +8,7 @@
   'use strict';
 
   const STORAGE_KEY = 'apLab.layout.v1';
+  const PRESET_KEY = 'apLab.preset.v1';
   const LAYOUT_VERSION = 1;
 
   // ── module state ─────────────────────────────────────────────
@@ -313,6 +314,19 @@
     recomputeScore();
   }
 
+  // Phase 6: switch the active building preset. Wipes layout + reinits view.
+  function switchPreset(presetId) {
+    const preset = APLabData.presets[presetId];
+    if (!preset) return false;
+    try { localStorage.setItem(PRESET_KEY, presetId); } catch (e) {}
+    localStorage.removeItem(STORAGE_KEY);
+    if (window.APLabMissions && typeof window.APLabMissions.reset === 'function') {
+      window.APLabMissions.reset();
+    }
+    if (state.rootEl) init(state.rootEl, presetId);
+    return true;
+  }
+
   // ── persistence ──────────────────────────────────────────────
   function saveToStorage() {
     try {
@@ -362,6 +376,10 @@
     const sidebar = document.createElement('aside');
     sidebar.className = 'aplab-sidebar';
     sidebar.innerHTML =
+      '<div class="aplab-preset-row">' +
+        '<label class="aplab-preset-label" for="aplab-preset-sel">Preset</label>' +
+        '<select id="aplab-preset-sel" class="aplab-input"></select>' +
+      '</div>' +
       '<h2 class="aplab-h">AP Catalog</h2>' +
       '<p class="aplab-hint">Drag an AP onto the floor plan.</p>' +
       '<div class="aplab-catalog" id="aplab-catalog"></div>' +
@@ -452,6 +470,26 @@
 
     sidebar.querySelector('#aplab-reset').addEventListener('click', () => {
       if (confirm('Clear all placed APs?')) reset();
+    });
+
+    // Preset switcher (Phase 6)
+    const presetSel = sidebar.querySelector('#aplab-preset-sel');
+    Object.keys(APLabData.presets).forEach(function (pid) {
+      const o = document.createElement('option');
+      o.value = pid;
+      o.textContent = APLabData.presets[pid].name;
+      if (pid === state.presetId) o.selected = true;
+      presetSel.appendChild(o);
+    });
+    presetSel.addEventListener('change', function () {
+      const pid = presetSel.value;
+      if (pid && pid !== state.presetId) {
+        if (confirm('Switching preset will clear the current layout and mission. Continue?')) {
+          switchPreset(pid);
+        } else {
+          presetSel.value = state.presetId;
+        }
+      }
     });
 
     // RF layer + band toggle bindings
@@ -1008,6 +1046,7 @@
   window.APLab = {
     init, placeAP, moveAP, cloneAP, deleteAP,
     getLayout, loadLayout, reset, openConfig,
-    placeInfra, moveInfra, deleteInfra
+    placeInfra, moveInfra, deleteInfra,
+    switchPreset
   };
 })();
