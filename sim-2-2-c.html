@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>2.2.c Sim — Native VLAN</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{--bg:#FAF7F2;--bg-surface:#FFFFFF;--bg-recessed:#F3F0EB;--border:#E2DFD9;--border-strong:#C7C3BC;--ink:#1C1917;--ink-secondary:#57534E;--ink-muted:#A8A29E;--accent:#B45309;--accent-soft:#D97706;--accent-light:#FEF3C7;--correct:#16A34A;--correct-bg:#F0FDF4;--wrong:#DC2626;--wrong-bg:#FEF2F2;--info:#2563EB;--info-bg:#EFF6FF;--vlan1:#FCD34D;--font-display:'Space Grotesk',system-ui,sans-serif;--font-body:'Source Serif 4',Georgia,serif;--font-mono:'JetBrains Mono',monospace;--radius:6px;--radius-lg:10px}
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:var(--font-body);background:var(--bg);color:var(--ink);line-height:1.55;padding:24px;max-width:920px;margin:0 auto}
+  .head{margin-bottom:20px;padding-bottom:14px;border-bottom:1px solid var(--border)}
+  .head .crumb{font-family:var(--font-mono);font-size:.74rem;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px}
+  .head h1{font-family:var(--font-display);font-size:1.5rem;font-weight:700;margin-bottom:6px}
+  .head .desc{font-size:.95rem;color:var(--ink-secondary)}
+  .panel{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;margin-bottom:18px}
+  .panel h2{font-family:var(--font-display);font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-secondary);margin-bottom:12px}
+  .intro{font-size:.96rem;color:var(--ink-secondary);margin-bottom:14px}
+  .intro strong{color:var(--ink)}
+  .btn{font-family:var(--font-display);font-size:.84rem;font-weight:600;padding:8px 16px;background:var(--ink);color:#FAF7F2;border:none;border-radius:var(--radius);cursor:pointer}
+  .btn.ghost{background:var(--bg-recessed);color:var(--ink)}
+  .btn.accent{background:var(--accent)}
+  .topology-svg{width:100%;display:block;margin:6px auto;background:var(--bg-recessed);border:1px solid var(--border);border-radius:var(--radius)}
+  .ctrl-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+  .ctrl-row .col{padding:12px;background:var(--bg-recessed);border-radius:var(--radius);border:1px solid var(--border)}
+  .ctrl-row label{font-family:var(--font-display);font-size:.76rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-secondary);display:block;margin-bottom:4px}
+  .ctrl-row input{font-family:var(--font-mono);font-size:.92rem;padding:8px 10px;border:1px solid var(--border-strong);border-radius:var(--radius);background:var(--bg-surface);width:100%}
+  .frame-stage{font-family:var(--font-mono);font-size:.86rem;background:#1C1917;color:#E7E5E4;padding:14px;border-radius:var(--radius);line-height:1.65;margin-top:12px}
+  .frame-stage .v{color:#86EFAC}
+  .frame-stage .d{color:#FCD34D}
+  .frame-stage .x{color:#FCA5A5}
+  .frame-stage .muted{color:#A8A29E;font-style:italic}
+  .verdict{margin-top:14px;padding:12px 16px;border-radius:var(--radius);font-family:var(--font-display);font-size:.94rem;font-weight:600;background:var(--info-bg);color:var(--info);border:1px solid var(--info);display:none}
+  .verdict.show{display:block;animation:fadeIn .25s ease}
+  .verdict.win{background:var(--correct-bg);color:var(--correct);border-color:var(--correct)}
+  .verdict.miss{background:var(--wrong-bg);color:var(--wrong);border-color:var(--wrong)}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
+  .compare{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px;font-family:var(--font-body);font-size:.92rem}
+  .compare div{padding:14px;background:var(--bg-recessed);border-radius:var(--radius);border:1px solid var(--border)}
+  .compare h3{font-family:var(--font-display);font-size:.92rem;color:var(--accent);margin-bottom:6px}
+  .compare code{font-family:var(--font-mono);font-size:.86rem;background:var(--bg-surface);padding:1px 5px;border-radius:3px}
+  .quiz{margin-top:22px}
+  .quiz .stem{font-family:var(--font-display);font-size:1.02rem;font-weight:600;margin-bottom:12px;padding:14px;background:var(--accent-light);border-left:3px solid var(--accent);border-radius:var(--radius)}
+  .quiz .opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px}
+  .opt{background:var(--bg-recessed);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;font-family:var(--font-mono);font-size:.92rem;cursor:pointer;text-align:left}
+  .opt:hover{border-color:var(--border-strong);background:var(--bg-surface)}
+  .opt.correct{background:var(--correct-bg);border-color:var(--correct);color:var(--correct);font-weight:700}
+  .opt.wrong{background:var(--wrong-bg);border-color:var(--wrong);color:var(--wrong)}
+  .why{font-family:var(--font-mono);font-size:.82rem;color:var(--ink-secondary);margin-top:10px;padding:10px 12px;background:var(--bg-recessed);border-left:3px solid var(--accent-soft);border-radius:var(--radius);display:none;line-height:1.55}
+  .why.show{display:block;animation:fadeIn .25s ease}
+  .scoreline{font-family:var(--font-mono);font-size:.84rem;color:var(--ink-muted);margin-top:10px;display:flex;gap:18px;align-items:center}
+  .scoreline strong{font-weight:700;color:var(--ink)}
+  .badge{display:inline-block;font-family:var(--font-display);font-size:.7rem;font-weight:700;padding:2px 8px;border-radius:99px;background:var(--accent-light);color:var(--accent);text-transform:uppercase;letter-spacing:.04em;margin-left:8px}
+  .footer-link{margin-top:24px;padding-top:14px;border-top:1px solid var(--border);font-family:var(--font-mono);font-size:.82rem}
+  .footer-link a{color:var(--accent);text-decoration:none}
+</style>
+<link rel="stylesheet" href="css/shared.css?v=4.56">
+<script defer src="js/nav.js"></script>
+</head>
+<body>
+<nav class="top-nav" id="main-nav"></nav>
+
+<div class="head">
+  <div class="crumb"><a href="blueprint-drill.html?obj=2.2" style="color:var(--accent);text-decoration:none">← 2.2 Mini Sims</a> · 2.2.c · Network Access · Native VLAN</div>
+  <h1>The One Untagged VLAN<span class="badge">drill</span></h1>
+  <div class="desc">802.1Q trunks tag every VLAN — except <strong>one</strong>. The <em>native VLAN</em> rides untagged across the wire. Default = VLAN 1. Both ends MUST agree (CDP screams if they don't). Best practice: pick an unused VLAN (like 999), prune VLAN 1, and never put user hosts on the native. Build the trunk below and watch the frames flip.</div>
+</div>
+
+<div class="panel">
+  <h2>What "untagged native" means</h2>
+  <svg class="topology-svg" viewBox="0 0 760 230">
+    <rect x="20" y="60" width="160" height="80" rx="8" fill="#1F2937" stroke="#0F172A"/>
+    <text x="100" y="92" text-anchor="middle" font-family="JetBrains Mono" font-size="13" fill="#FCD34D" font-weight="700">SW1</text>
+    <text x="100" y="112" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#94A3B8" id="sw1Native"></text>
+    <text x="100" y="128" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#94A3B8">trunk Gi0/1</text>
+
+    <line x1="180" y1="100" x2="580" y2="100" stroke="#94A3B8" stroke-width="3"/>
+    <g id="frameTrack"></g>
+
+    <rect x="580" y="60" width="160" height="80" rx="8" fill="#1F2937" stroke="#0F172A"/>
+    <text x="660" y="92" text-anchor="middle" font-family="JetBrains Mono" font-size="13" fill="#FCD34D" font-weight="700">SW2</text>
+    <text x="660" y="112" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#94A3B8" id="sw2Native"></text>
+    <text x="660" y="128" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#94A3B8">trunk Gi0/24</text>
+
+    <text x="380" y="180" text-anchor="middle" font-family="Space Grotesk" font-size="11" font-weight="600" fill="#57534E">Trunk carries: <tspan fill="#86EFAC">VLAN 10 (tagged)</tspan> · <tspan fill="#60A5FA">VLAN 20 (tagged)</tspan> · <tspan id="nativeColor" fill="#FCD34D">native (untagged)</tspan></text>
+    <text x="380" y="200" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#A8A29E" id="mismatchWarn"></text>
+  </svg>
+  <div class="ctrl-row">
+    <div class="col">
+      <label>SW1 native VLAN</label>
+      <input type="number" id="n1" value="1" min="1" max="4094">
+    </div>
+    <div class="col">
+      <label>SW2 native VLAN</label>
+      <input type="number" id="n2" value="1" min="1" max="4094">
+    </div>
+  </div>
+  <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
+    <button class="btn ghost" data-preset="match">Both sides 999 (best practice)</button>
+    <button class="btn ghost" data-preset="mismatch">SW1=1 / SW2=99 (mismatch)</button>
+    <button class="btn ghost" data-preset="default">Both default (VLAN 1)</button>
+  </div>
+  <div class="frame-stage" id="frameStage"></div>
+  <div class="verdict" id="verdict"></div>
+</div>
+
+<div class="panel">
+  <h2>The traps</h2>
+  <div class="compare">
+    <div><h3>Mismatch</h3>
+      SW1 native VLAN 1, SW2 native VLAN 99. Untagged frames from SW1 land in VLAN 99 on SW2 and vice versa — silent VLAN-bridging. CDP catches it: <code>%CDP-4-NATIVE_VLAN_MISMATCH discovered on FastEthernet0/1 (1), with SW2 (99)</code>. STP recalculates. Production traffic crosses VLANs without anyone meaning to.
+    </div>
+    <div><h3>Double-tagging attack (VLAN hopping)</h3>
+      Attacker on access VLAN that equals trunk's native sends a frame with TWO 802.1Q tags. SW1 strips the outer (native, untagged) and forwards. SW2 sees the inner tag and delivers to the target VLAN. Mitigation: native VLAN ≠ user VLAN, prune unused VLANs, <code>vlan dot1q tag native</code> globally so even native gets tagged.
+    </div>
+  </div>
+</div>
+
+<div class="panel">
+  <h2>Worked example — show interface trunk</h2>
+  <div class="frame-stage"><span class="muted">! both sides agree on native VLAN 999</span>
+SW1# <span class="d">show interfaces gi0/1 trunk</span>
+Port        Mode             Encapsulation  Status        <span class="v">Native vlan</span>
+Gi0/1       on               802.1q         trunking      <span class="v">999</span>
+Port        Vlans allowed on trunk
+Gi0/1       1-4094
+
+<span class="muted">! mismatch surfaces in CDP</span>
+SW1# <span class="d">show log | include MISMATCH</span>
+*Mar 1 00:08:12: <span class="x">%CDP-4-NATIVE_VLAN_MISMATCH: Native VLAN mismatch discovered on Gi0/1 (1), with SW2 Gi0/24 (99)</span></div>
+</div>
+
+<div class="panel">
+  <h2>Faded prompt — your turn</h2>
+  <p class="intro">Hosts in VLAN 1 on SW1 are reaching hosts in VLAN 99 on SW2. The trunk is up, both ends are in 802.1Q, no static routes connect 1↔99. What is misconfigured?</p>
+  <p class="intro" style="margin-top:8px"><strong>Answer:</strong> native VLAN mismatch — SW1 native is 1, SW2 native is 99. Untagged frames cross the trunk and get dropped into whichever native VLAN the receiving switch claims. Fix: align native on both sides AND move it to an unused VLAN (e.g. 999) per hardening guides.</p>
+  <p class="intro" style="margin-top:8px">Bonus: enable <code style="font-family:var(--font-mono);background:var(--bg-recessed);padding:1px 5px;border-radius:3px">vlan dot1q tag native</code> globally so even the native VLAN gets explicitly tagged on the wire. Defeats double-tagging at the cost of a bit of overhead.</p>
+</div>
+
+<div class="panel quiz" id="quizPanel">
+  <h2>Quiz mode</h2>
+  <div class="stem" id="quizStem">Loading…</div>
+  <div class="opts" id="quizOpts"></div>
+  <div class="why" id="why"></div>
+  <div class="scoreline">
+    <span><strong id="qCorrect">0</strong> correct</span>
+    <span><strong id="qWrong">0</strong> wrong</span>
+    <span><strong id="qStreak">0</strong> streak</span>
+    <span style="margin-left:auto"><button class="btn ghost" id="newQ">Next ↻</button></span>
+  </div>
+</div>
+
+<div class="footer-link"><a href="blueprint-drill.html?obj=2.2">← back to 2.2 leaves</a></div>
+
+<script>
+(function(){
+  function render(){
+    var n1 = parseInt(document.getElementById('n1').value,10) || 1;
+    var n2 = parseInt(document.getElementById('n2').value,10) || 1;
+    document.getElementById('sw1Native').textContent = 'native VLAN ' + n1;
+    document.getElementById('sw2Native').textContent = 'native VLAN ' + n2;
+    var col = (n1===1 || n2===1) ? '#FCD34D' : '#A78BFA';
+    document.getElementById('nativeColor').setAttribute('fill', col);
+
+    // animate frame chips on the wire
+    var track = document.getElementById('frameTrack'); track.innerHTML='';
+    var frames = [
+      { vlan: 10, tagged: true,  fill:'#86EFAC', label:'VLAN 10 [tagged]', x: 200 },
+      { vlan: 20, tagged: true,  fill:'#60A5FA', label:'VLAN 20 [tagged]', x: 350 },
+      { vlan: n1, tagged: false, fill: col,      label:'native ' + n1 + ' [UNTAGGED]', x: 500 }
+    ];
+    frames.forEach(function(f){
+      var g = document.createElementNS('http://www.w3.org/2000/svg','g');
+      var r = document.createElementNS('http://www.w3.org/2000/svg','rect');
+      r.setAttribute('x', f.x); r.setAttribute('y', 86);
+      r.setAttribute('width', 110); r.setAttribute('height', 28);
+      r.setAttribute('rx', 4); r.setAttribute('fill', f.fill); r.setAttribute('opacity', .85);
+      r.setAttribute('stroke', '#0F172A');
+      g.appendChild(r);
+      var t = document.createElementNS('http://www.w3.org/2000/svg','text');
+      t.setAttribute('x', f.x + 55); t.setAttribute('y', 105);
+      t.setAttribute('text-anchor','middle');
+      t.setAttribute('font-family','JetBrains Mono');
+      t.setAttribute('font-size','9');
+      t.setAttribute('fill','#1C1917');
+      t.textContent = f.label;
+      g.appendChild(t);
+      track.appendChild(g);
+    });
+
+    var fs = document.getElementById('frameStage');
+    var v = document.getElementById('verdict'); v.className='verdict show';
+    if (n1 === n2) {
+      var hard = (n1 === 1) ? '⚠ matches but native = VLAN 1 — CIS / NSA hardening guides recommend changing.' : '✓ matches AND off VLAN 1 — clean.';
+      v.classList.add('win');
+      v.textContent = '✓ Native VLAN agrees on both sides (' + n1 + '). ' + hard;
+      fs.innerHTML =
+        '<div><span class="muted">SW1 puts an untagged frame on the wire:</span></div>'+
+        '<div>  Ethernet header → no 802.1Q tag → payload</div>'+
+        '<div><span class="muted">SW2 receives, no tag found, places it in:</span></div>'+
+        '<div>  <span class="v">native VLAN ' + n1 + '</span> ← matches both ends → delivered correctly.</div>';
+      document.getElementById('mismatchWarn').textContent = '';
+    } else {
+      v.classList.add('miss');
+      v.textContent = '✗ Native VLAN MISMATCH — SW1=' + n1 + ', SW2=' + n2 + '. CDP logs syslog; untagged traffic crosses VLAN boundaries.';
+      fs.innerHTML =
+        '<div><span class="muted">SW1 puts an untagged frame on the wire:</span></div>'+
+        '<div>  Ethernet header → no 802.1Q tag → payload  <span class="muted">(came from VLAN ' + n1 + ' on SW1)</span></div>'+
+        '<div><span class="muted">SW2 receives, no tag found, places it in:</span></div>'+
+        '<div>  <span class="x">native VLAN ' + n2 + ' on SW2</span> ← WRONG VLAN. Silent L2 bridge between VLAN ' + n1 + ' and VLAN ' + n2 + '.</div>'+
+        '<div></div>'+
+        '<div><span class="muted">SW1 syslog:</span></div>'+
+        '<div>  <span class="x">%CDP-4-NATIVE_VLAN_MISMATCH discovered on Gi0/1 (' + n1 + '), with SW2 Gi0/24 (' + n2 + ')</span></div>';
+      document.getElementById('mismatchWarn').textContent = '⚠ MISMATCH — silent VLAN bridging';
+    }
+  }
+
+  document.getElementById('n1').addEventListener('input', render);
+  document.getElementById('n2').addEventListener('input', render);
+  document.querySelectorAll('[data-preset]').forEach(function(b){
+    b.addEventListener('click', function(){
+      var p = b.dataset.preset;
+      if (p==='match'){ document.getElementById('n1').value=999; document.getElementById('n2').value=999; }
+      else if (p==='mismatch'){ document.getElementById('n1').value=1; document.getElementById('n2').value=99; }
+      else { document.getElementById('n1').value=1; document.getElementById('n2').value=1; }
+      render();
+    });
+  });
+  render();
+
+  // ── Quiz ──
+  var qCorrect=0, qWrong=0, qStreak=0;
+  var pool = [
+    { stem:'How is native-VLAN traffic carried on a 802.1Q trunk?', opts:['Tagged with VLAN 0','Untagged','Tagged with the native VLAN ID','Encrypted'], ans:'Untagged', why:'Native VLAN is the one VLAN that does NOT get an 802.1Q tag on the wire. ISL was different (always tagged), but ISL is dead.' },
+    { stem:'Default native VLAN on a 802.1Q trunk?', opts:['VLAN 0','VLAN 1','VLAN 1002','VLAN 4094'], ans:'VLAN 1', why:'Native defaults to 1 unless you set `switchport trunk native vlan X`. That default is the entire reason VLAN 1 is a hardening target.' },
+    { stem:'How does a switch detect a native VLAN mismatch?', opts:['STP error','CDP TLV — peer advertises its native; mismatch logs syslog','LLDP probe','HSRP'], ans:'CDP TLV — peer advertises its native; mismatch logs syslog', why:'CDP carries each switch\'s native VLAN. If the neighbor\'s differs, IOS logs `%CDP-4-NATIVE_VLAN_MISMATCH`. LLDP carries similar info via 802.1 LLDP TLVs.' },
+    { stem:'Hosts in VLAN 1 on SW1 are reaching hosts in VLAN 99 on SW2 across one trunk. Most likely cause?', opts:['Routing leak','Native VLAN mismatch — untagged frames cross VLAN boundaries','Wrong duplex','HSRP failure'], ans:'Native VLAN mismatch — untagged frames cross VLAN boundaries', why:'Mismatched native VLANs silently bridge two VLANs together for any untagged frame. Fix: align native on both sides AND move it off VLAN 1.' },
+    { stem:'Best-practice native VLAN choice?', opts:['VLAN 1','Same as voice VLAN','An unused VLAN (e.g. 999) with no user hosts and pruned everywhere else','Same as management VLAN'], ans:'An unused VLAN (e.g. 999) with no user hosts and pruned everywhere else', why:'CIS / Cisco hardening guides: native VLAN must be a black-hole VLAN — no user devices ever on it. Prevents double-tag attack and means an attacker on a real user VLAN can\'t inject untagged frames.' },
+    { stem:'A double-tagging attack succeeds when:', opts:['No 802.1Q at all','Trunk\'s native VLAN equals the attacker\'s access VLAN','VLAN 1000 is in use','HSRP is on'], ans:'Trunk\'s native VLAN equals the attacker\'s access VLAN', why:'Attacker frames a packet with two tags. SW1 strips the outer (because it matches native and is therefore untagged on egress). SW2 sees the inner tag and forwards into the target VLAN. Mitigation: native VLAN ≠ any user VLAN.' },
+    { stem:'`vlan dot1q tag native` (global config) does what?', opts:['Disables trunking','Forces every native-VLAN frame to be 802.1Q-tagged on the wire','Encrypts trunks','Drops native traffic'], ans:'Forces every native-VLAN frame to be 802.1Q-tagged on the wire', why:'When you don\'t trust your native VLAN, this command tags everything. Defeats double-tagging entirely. Costs a few bytes per frame; both ends must support it (Cisco-to-Cisco safe; mixed-vendor — test).' },
+    { stem:'Native VLAN must match between which devices?', opts:['Only on Cisco switches','Both ends of every 802.1Q trunk','Only on multi-vendor links','Only on access ports'], ans:'Both ends of every 802.1Q trunk', why:'Tag handling is per-link. Each trunk pair must agree on native, otherwise untagged frames misroute. Different trunks within the same campus can use different natives — only the two ends of one trunk must agree.' },
+    { stem:'A trunk shows `Native vlan: 1` but the user expects `999`. Where to look?', opts:['`show vlan brief`','`show interfaces gi0/1 trunk` — check the Native vlan column','`show ip route`','`show running-config | begin nat`'], ans:'`show interfaces gi0/1 trunk` — check the Native vlan column', why:'The `show interfaces … trunk` command is the canonical view of trunk state — encap, mode, native, allowed VLANs. First place to look for any trunk-related issue.' },
+    { stem:'A trunk between Cisco and a third-party switch — which is portable for native?', opts:['ISL — universal','802.1Q with explicit `switchport trunk native vlan` set on both sides to the same number','DTP','VTP'], ans:'802.1Q with explicit `switchport trunk native vlan` set on both sides to the same number', why:'ISL is Cisco-only and effectively dead. 802.1Q is the universal standard. Be explicit about the native — don\'t rely on defaults across vendors.' }
+  ];
+
+  function pickQ(){
+    var q = pool[Math.floor(Math.random()*pool.length)];
+    var opts = q.opts.slice().sort(function(){return Math.random()-.5;});
+    document.getElementById('quizStem').textContent = q.stem;
+    var bx = document.getElementById('quizOpts'); bx.innerHTML='';
+    var w = document.getElementById('why'); w.classList.remove('show'); w.textContent='';
+    opts.forEach(function(o){
+      var btn = document.createElement('button');
+      btn.className='opt'; btn.textContent=o;
+      btn.addEventListener('click', function(){
+        if (btn.classList.contains('correct')||btn.classList.contains('wrong')) return;
+        if (o===q.ans){ btn.classList.add('correct'); qCorrect++; qStreak++; }
+        else { btn.classList.add('wrong'); qWrong++; qStreak=0;
+          Array.prototype.forEach.call(bx.children, function(c){ if (c.textContent===q.ans) c.classList.add('correct'); }); }
+        w.textContent = '↳ ' + q.why; w.classList.add('show');
+        document.getElementById('qCorrect').textContent=qCorrect;
+        document.getElementById('qWrong').textContent=qWrong;
+        document.getElementById('qStreak').textContent=qStreak;
+      });
+      bx.appendChild(btn);
+    });
+  }
+  document.getElementById('newQ').addEventListener('click', pickQ);
+  pickQ();
+})();
+</script>
+<script defer src="js/tutor.js"></script>
+</body>
+</html>
