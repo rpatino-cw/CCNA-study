@@ -62,6 +62,9 @@
   .scoreline{font-family:var(--font-mono);font-size:.84rem;color:var(--ink-muted);margin-top:10px;display:flex;gap:18px}
   .scoreline strong{color:var(--ink)}
   .cfg{font-family:var(--font-mono);font-size:.86rem;background:var(--ink);color:#FAF7F2;padding:14px;border-radius:var(--radius);white-space:pre-wrap;margin-top:10px}
+  .why{font-family:var(--font-mono);font-size:.82rem;color:var(--ink-secondary);margin-top:10px;padding:10px 12px;background:var(--bg-recessed);border-left:3px solid var(--accent-soft);border-radius:var(--radius);display:none;line-height:1.55}
+  .why.show{display:block;animation:fadeIn .25s ease}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
 </style>
 <link rel="stylesheet" href="css/shared.css?v=4.56">
 <script defer src="js/nav.js"></script>
@@ -144,6 +147,7 @@ R1# copy scp: flash:</div>
   <h2>Quiz</h2>
   <div class="stem" id="qStem">Loading…</div>
   <div class="opts" id="qOpts"></div>
+  <div class="why" id="qWhy"></div>
   <div class="scoreline">
     <span><strong id="qC">0</strong> correct</span>
     <span><strong id="qW">0</strong> wrong</span>
@@ -192,26 +196,28 @@ R1# copy scp: flash:</div>
 
   var qC=0,qW=0;
   var pool=[
-    {q:'TFTP uses which transport and port?',a:'UDP 69',o:['UDP 69','TCP 69','TCP 20','TCP 21']},
-    {q:'FTP control channel uses which port?',a:'TCP 21',o:['TCP 20','TCP 21','TCP 22','UDP 21']},
-    {q:'FTP active-mode data channel uses which port?',a:'TCP 20',o:['TCP 20','TCP 21','TCP 22','UDP 20']},
-    {q:'TFTP authentication?',a:'none',o:['none','username/password','RSA key','Kerberos']},
-    {q:'Best use case for TFTP?',a:'IOS image upload on trusted LAN',o:['public file sharing','IOS image upload on trusted LAN','encrypted backup','SSH replacement']},
-    {q:'FTP passive mode is required when…',a:'client is behind NAT',o:['client is behind NAT','server is behind NAT','using IPv6 only','transferring binary']},
-    {q:'TFTP block size (default)?',a:'512 bytes',o:['64 bytes','128 bytes','512 bytes','1500 bytes']},
-    {q:'Why is FTP login considered insecure?',a:'username and password are plaintext',o:['username and password are plaintext','only IPv4 supported','UDP cannot be encrypted','requires Kerberos']},
-    {q:'Modern secure replacement for FTP?',a:'SFTP or FTPS',o:['SFTP or FTPS','TFTP','HTTP','SMB']},
-    {q:'TFTP error recovery?',a:'stop-and-wait ACK per block',o:['stop-and-wait ACK per block','TCP retransmit','none','sliding window']}
+    {q:'You\'re uploading an IOS image to a Catalyst from a local TFTP server. What transport/port does the file ride?',a:'UDP 69',o:['UDP 69','TCP 69','TCP 20','TCP 21'],why:'TFTP = Trivial FTP. UDP/69. No TCP, no auth, no encryption. Stop-and-wait ACKs at the application layer make up for UDP\'s lack of reliability. Use ONLY on trusted LANs (lab, image push) — never over the internet.'},
+    {q:'FTP control channel uses which port?',a:'TCP 21',o:['TCP 20','TCP 21','TCP 22','UDP 21'],why:'FTP control = TCP/21 (commands: USER, PASS, LIST, GET, PUT). Data = TCP/20 in active mode (server → client) or a high port in passive (client → server). Two channels is the FTP weirdness.'},
+    {q:'FTP active-mode data channel uses which port?',a:'TCP 20',o:['TCP 20','TCP 21','TCP 22','UDP 20'],why:'Active mode: client tells server "send to TCP/X"; server originates from TCP/20 to client\'s X. Hates NAT/firewalls because the SERVER initiates the data connection. Passive mode flips this — server tells client to connect to a high port the server opens.'},
+    {q:'TFTP authentication mechanism?',a:'none',o:['none','username/password','RSA key','Kerberos'],why:'TFTP has zero auth. No username, no password, no key. Anyone who can reach UDP/69 and knows a filename can read it. That\'s why it lives only on trusted segments behind ACLs.'},
+    {q:'Best use case for TFTP today?',a:'IOS image upload on trusted LAN',o:['public file sharing','IOS image upload on trusted LAN','encrypted backup','SSH replacement'],why:'TFTP\'s niche: Cisco IOS/firmware image transfer, PXE boot, IP-phone config provisioning — all on trusted LANs where speed matters more than auth/encryption. Public file sharing → use HTTPS or SFTP.'},
+    {q:'A FTP client behind NAT can\'t download. Switch to which mode?',a:'client is behind NAT',o:['client is behind NAT','server is behind NAT','using IPv6 only','transferring binary'],why:'Active-mode FTP requires the SERVER to open a connection back to the CLIENT — NAT eats that. Passive mode flips it: client opens both connections to the server. Modern clients default to passive for this reason.'},
+    {q:'TFTP default block size?',a:'512 bytes',o:['64 bytes','128 bytes','512 bytes','1500 bytes'],why:'Original RFC 1350: 512 bytes per block, with stop-and-wait ACK after each. RFC 2348 added Block Size Option for negotiating bigger blocks (up to 65,464) — much faster on modern networks but only if both ends support the option.'},
+    {q:'Why is FTP login considered insecure for the public internet?',a:'username and password are plaintext',o:['username and password are plaintext','only IPv4 supported','UDP cannot be encrypted','requires Kerberos'],why:'FTP USER/PASS commands cross the wire in plaintext. Anyone sniffing the control channel grabs creds. Also data is unencrypted. SFTP (over SSH) and FTPS (FTP over TLS) fix both problems.'},
+    {q:'Modern secure replacement for FTP?',a:'SFTP or FTPS',o:['SFTP or FTPS','TFTP','HTTP','SMB'],why:'SFTP = SSH File Transfer Protocol, runs over TCP/22. Single channel, encrypted, key-based auth. FTPS = old FTP wrapped in TLS, retains two-channel weirdness but encrypted. SFTP is preferred for new deployments.'},
+    {q:'TFTP error recovery model?',a:'stop-and-wait ACK per block',o:['stop-and-wait ACK per block','TCP retransmit','none','sliding window'],why:'Because TFTP rides UDP, it does its own reliability at the application layer: send block N → wait for ACK N → send N+1. Loss of either packet triggers a timeout-and-retransmit. Simple, slow, RFC-1350 baseline.'}
   ];
   function pick(){
     var q=pool[Math.floor(Math.random()*pool.length)];
     document.getElementById('qStem').textContent=q.q;
     var box=document.getElementById('qOpts'); box.innerHTML='';
+    var why=document.getElementById('qWhy'); why.classList.remove('show'); why.textContent='';
     q.o.slice().sort(function(){return Math.random()-.5}).forEach(function(o){
       var b=document.createElement('button'); b.className='opt'; b.textContent=o;
       b.addEventListener('click',function(){
         if(b.classList.contains('correct')||b.classList.contains('wrong'))return;
         if(o===q.a){b.classList.add('correct');qC++} else{b.classList.add('wrong');qW++; Array.prototype.forEach.call(box.children,function(c){if(c.textContent===q.a)c.classList.add('correct')})}
+        why.textContent='↳ '+q.why; why.classList.add('show');
         document.getElementById('qC').textContent=qC; document.getElementById('qW').textContent=qW;
       });
       box.appendChild(b);

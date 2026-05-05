@@ -64,6 +64,9 @@
   .opt.wrong{background:var(--wrong-bg);border-color:var(--wrong);color:var(--wrong)}
   .scoreline{font-family:var(--font-mono);font-size:.84rem;color:var(--ink-muted);margin-top:10px;display:flex;gap:18px}
   .scoreline strong{color:var(--ink)}
+  .why{font-family:var(--font-mono);font-size:.82rem;color:var(--ink-secondary);margin-top:10px;padding:10px 12px;background:var(--bg-recessed);border-left:3px solid var(--accent-soft);border-radius:var(--radius);display:none;line-height:1.55}
+  .why.show{display:block;animation:fadeIn .25s ease}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
 </style>
 <link rel="stylesheet" href="css/shared.css?v=4.56">
 <script defer src="js/nav.js"></script>
@@ -103,6 +106,7 @@
   <h2>Quiz</h2>
   <div class="stem" id="qStem">Loading…</div>
   <div class="opts" id="qOpts"></div>
+  <div class="why" id="qWhy"></div>
   <div class="scoreline">
     <span><strong id="qC">0</strong> correct</span>
     <span><strong id="qW">0</strong> wrong</span>
@@ -149,28 +153,30 @@
 
   var qC=0,qW=0;
   var pool=[
-    {q:'Severity 0 means…',a:'Emergency — system unusable',o:['Emergency — system unusable','Debug','Notice','Information']},
-    {q:'Severity 7 means…',a:'Debug — verbose troubleshooting',o:['Critical','Debug — verbose troubleshooting','Emergency','Warning']},
-    {q:'`logging trap 4` will send which levels?',a:'0 through 4',o:['only level 4','0 through 4','4 through 7','all levels']},
-    {q:'Which level is "Error"?',a:'3',o:['2','3','4','5']},
-    {q:'Which level is "Warning"?',a:'4',o:['3','4','5','6']},
-    {q:'Which level is "Critical"?',a:'2',o:['1','2','3','4']},
-    {q:'Default Cisco syslog port?',a:'UDP 514',o:['UDP 514','TCP 514','UDP 161','TCP 22']},
-    {q:'`debugging` keyword maps to which numeric level?',a:'7',o:['0','3','5','7']},
-    {q:'Of these, which is more severe?',a:'Critical (2)',o:['Notice (5)','Warning (4)','Critical (2)','Debug (7)']},
-    {q:'You set `logging trap notifications`. Which level number is that?',a:'5',o:['3','4','5','6']},
-    {q:'Mnemonic: "Every Awesome Cisco Engineer Will Need Ice-cream Daily" — what is the third word\'s level?',a:'Critical (2)',o:['Emergency (0)','Alert (1)','Critical (2)','Error (3)']},
-    {q:'Higher numeric severity means…',a:'less urgent',o:['more urgent','less urgent','encrypted','authenticated']}
+    {q:'A router logs `%PLATFORM_THERMAL-0-EMERG: System overtemp`. What does the `0` mean?',a:'Emergency — system unusable',o:['Emergency — system unusable','Debug','Notice','Information'],why:'Lower number = higher urgency on Cisco syslog. Level 0 = Emergency, "system is unusable." A 0-EMERG log means stop everything and look at this device — thermal shutdown, power failure, hardware death.'},
+    {q:'`%DEBUG-7-DEBUG: ARP packet src=...` shows up in your logs. What\'s level 7?',a:'Debug — verbose troubleshooting',o:['Critical','Debug — verbose troubleshooting','Emergency','Warning'],why:'Level 7 = Debug — the most verbose, designed to be enabled temporarily for troubleshooting then turned off. Don\'t leave `logging trap debugging` on in production; it floods the syslog server.'},
+    {q:'`logging trap 4` will send which levels to the server?',a:'0 through 4',o:['only level 4','0 through 4','4 through 7','all levels'],why:'`logging trap N` sends levels 0 through N — every severity at LEAST as urgent as the threshold. `logging trap 4` = warnings and worse. `logging trap 7` = everything.'},
+    {q:'Which level is "Error"?',a:'3',o:['2','3','4','5'],why:'Level 3 = Error. Mnemonic: 0 Emergency, 1 Alert, 2 Critical, 3 Error, 4 Warning, 5 Notification, 6 Informational, 7 Debug. ("Every Awesome Cisco Engineer Will Need Ice-cream Daily.")'},
+    {q:'Which level is "Warning"?',a:'4',o:['3','4','5','6'],why:'Level 4 = Warning. Default `logging trap` value on most Cisco platforms. Sends 0–4: emergencies, alerts, critical, error, warning. 5 (notification) and below are filtered out by default.'},
+    {q:'Which level is "Critical"?',a:'2',o:['1','2','3','4'],why:'Level 2 = Critical. BGP neighbor reset, fan failure, primary-route loss are typical 2-CRIT events. More urgent than error (3), less than alert (1).'},
+    {q:'Default Cisco syslog port?',a:'UDP 514',o:['UDP 514','TCP 514','UDP 161','TCP 22'],why:'UDP/514 is the historical syslog port. UDP is fire-and-forget — fast but lossy. Modern enterprises use TCP/6514 + TLS for reliable + encrypted syslog. UDP/161 = SNMP. TCP/22 = SSH.'},
+    {q:'`debugging` keyword maps to which numeric level?',a:'7',o:['0','3','5','7'],why:'Cisco accepts the keyword OR the number on `logging trap`. `logging trap debugging` ≡ `logging trap 7`. Other keywords: emergencies(0), alerts(1), critical(2), errors(3), warnings(4), notifications(5), informational(6).'},
+    {q:'Of these, which is more severe?',a:'Critical (2)',o:['Notice (5)','Warning (4)','Critical (2)','Debug (7)'],why:'Lower number = more urgent. Critical (2) outranks Warning (4), Notice (5), Debug (7). The hierarchy is meant to be skimmed top-down: stop at the first critical line.'},
+    {q:'You set `logging trap notifications`. Which level number is that?',a:'5',o:['3','4','5','6'],why:'Notifications = level 5. So the device will send 0–5 (everything down through "interface up/down" type events) but filter informational(6) and debug(7).'},
+    {q:'Mnemonic "Every Awesome Cisco Engineer Will Need Ice-cream Daily" — third word maps to which level?',a:'Critical (2)',o:['Emergency (0)','Alert (1)','Critical (2)','Error (3)'],why:'E(0) Every · A(1) Awesome · C(2) Cisco · E(3) Engineer · W(4) Will · N(5) Need · I(6) Ice-cream · D(7) Daily. Third word = Cisco = Critical = level 2.'},
+    {q:'Higher numeric severity means…',a:'less urgent',o:['more urgent','less urgent','encrypted','authenticated'],why:'Reverse-intuitive but worth burning in: 7 (debug) is LEAST urgent, 0 (emergency) is MOST. Same pattern as STP cost (lower=better) and route admin distance (lower=better). Lower number wins.'}
   ];
   function pick(){
     var q=pool[Math.floor(Math.random()*pool.length)];
     document.getElementById('qStem').textContent=q.q;
     var box=document.getElementById('qOpts'); box.innerHTML='';
+    var why=document.getElementById('qWhy'); why.classList.remove('show'); why.textContent='';
     q.o.slice().sort(function(){return Math.random()-.5}).forEach(function(o){
       var b=document.createElement('button'); b.className='opt'; b.textContent=o;
       b.addEventListener('click',function(){
         if(b.classList.contains('correct')||b.classList.contains('wrong'))return;
         if(o===q.a){b.classList.add('correct');qC++} else{b.classList.add('wrong');qW++; Array.prototype.forEach.call(box.children,function(c){if(c.textContent===q.a)c.classList.add('correct')})}
+        why.textContent='↳ '+q.why; why.classList.add('show');
         document.getElementById('qC').textContent=qC; document.getElementById('qW').textContent=qW;
       });
       box.appendChild(b);

@@ -55,6 +55,9 @@
   .opt.wrong{background:var(--wrong-bg);border-color:var(--wrong);color:var(--wrong)}
   .scoreline{font-family:var(--font-mono);font-size:.84rem;color:var(--ink-muted);margin-top:10px;display:flex;gap:18px}
   .scoreline strong{color:var(--ink)}
+  .why{font-family:var(--font-mono);font-size:.82rem;color:var(--ink-secondary);margin-top:10px;padding:10px 12px;background:var(--bg-recessed);border-left:3px solid var(--accent-soft);border-radius:var(--radius);display:none;line-height:1.55}
+  .why.show{display:block;animation:fadeIn .25s ease}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
 </style>
 <link rel="stylesheet" href="css/shared.css?v=4.56">
 <script defer src="js/nav.js"></script>
@@ -104,6 +107,7 @@ R1# show ntp associations
   <h2>Quiz</h2>
   <div class="stem" id="qStem">Loading…</div>
   <div class="opts" id="qOpts"></div>
+  <div class="why" id="qWhy"></div>
   <div class="scoreline">
     <span><strong id="qC">0</strong> correct</span>
     <span><strong id="qW">0</strong> wrong</span>
@@ -154,25 +158,27 @@ R1# show ntp associations
 
   var qC=0,qW=0;
   var pool=[
-    {q:'NTP uses which transport and port?',a:'UDP 123',o:['UDP 123','TCP 123','UDP 53','TCP 22']},
-    {q:'Stratum 0 represents…',a:'atomic/GPS reference clock',o:['atomic/GPS reference clock','primary NTP server','client device','unsynced device']},
-    {q:'A device shows stratum 16. Meaning?',a:'Unsynchronized',o:['Most accurate','Unsynchronized','Authoritative','Lost packets']},
-    {q:'R1 syncs to a stratum-2 server. What is R1\'s stratum?',a:'3',o:['1','2','3','16']},
-    {q:'Maximum useful stratum value before "unreachable"?',a:'15',o:['7','15','16','127']},
-    {q:'Which command points R1 at an NTP server?',a:'ntp server 10.0.0.1',o:['ntp server 10.0.0.1','ntp 10.0.0.1','clock source 10.0.0.1','ip ntp 10.0.0.1']},
-    {q:'NTP authentication uses…',a:'symmetric key (MD5/SHA)',o:['symmetric key (MD5/SHA)','RSA cert','no auth available','OAuth token']},
-    {q:'Why does NTP matter for security logs?',a:'correlation across devices needs synced timestamps',o:['it encrypts logs','correlation across devices needs synced timestamps','it compresses logs','syslog requires it']},
-    {q:'`prefer` keyword on ntp server line does what?',a:'marks it as the preferred peer when multiple are configured',o:['authenticates the peer','marks it as the preferred peer when multiple are configured','enables symmetric mode','rejects others']}
+    {q:'A 5-minute clock skew on R1 is causing TLS handshakes to a logging server to fail. Which protocol/port fixes it?',a:'UDP 123',o:['UDP 123','TCP 123','UDP 53','TCP 22'],why:'NTP runs on UDP/123. TCP/123 isn\'t a thing, UDP/53 is DNS, TCP/22 is SSH. NTP is intentionally UDP — small packets, time-critical, no point retransmitting stale time.'},
+    {q:'Stratum 0 represents…',a:'atomic/GPS reference clock',o:['atomic/GPS reference clock','primary NTP server','client device','unsynced device'],why:'Stratum 0 = the reference source itself (atomic clock, GPS receiver, radio). It feeds a stratum-1 server directly but is NOT on the network. Stratum 1 = first network-reachable server.'},
+    {q:'A device shows stratum 16. Meaning?',a:'Unsynchronized',o:['Most accurate','Unsynchronized','Authoritative','Lost packets'],why:'Stratum 16 is the marker for "unreachable / unsynchronized." Real strata are 1–15. If `show ntp status` reports 16, the device fell off its peer and is currently running on its own oscillator.'},
+    {q:'R1 syncs to a stratum-2 server. What is R1\'s stratum?',a:'3',o:['1','2','3','16'],why:'A client takes the peer\'s stratum + 1. Stratum 2 peer → R1 becomes stratum 3. Each hop adds error budget; depth >5 in production is usually a sign of a misdesigned hierarchy.'},
+    {q:'Maximum useful stratum value before "unreachable"?',a:'15',o:['7','15','16','127'],why:'Strata 1–15 are usable. 16 means unsynchronized. The protocol can carry 0–15, and 16 is reserved as the unreachable sentinel.'},
+    {q:'You need R1 to point at NTP server 10.0.0.1. Which command?',a:'ntp server 10.0.0.1',o:['ntp server 10.0.0.1','ntp 10.0.0.1','clock source 10.0.0.1','ip ntp 10.0.0.1'],why:'`ntp server <ip>` is the IOS syntax. `ntp peer` exists too (mutual sync between equals). `clock source` is a serial-interface clocking command, unrelated.'},
+    {q:'NTP authentication uses…',a:'symmetric key (MD5/SHA)',o:['symmetric key (MD5/SHA)','RSA cert','no auth available','OAuth token'],why:'NTP auth is shared-secret HMAC: `ntp authentication-key 1 md5 <key>` + `ntp trusted-key 1` + `ntp server 10.0.0.1 key 1`. Prevents a rogue device from poisoning the time. NTPv4 supports SHA1; pre-shared still.'},
+    {q:'A SOC analyst can\'t correlate firewall and switch logs during an incident — timestamps are 4 minutes off. Root cause?',a:'correlation across devices needs synced timestamps',o:['it encrypts logs','correlation across devices needs synced timestamps','it compresses logs','syslog requires it'],why:'Without NTP, every box drifts independently. Log lines from one device line up with the wrong events on another, and timeline reconstruction is impossible. NTP isn\'t a security feature on its own — but it\'s a prerequisite for forensics.'},
+    {q:'You configure two NTP servers on R1 and want a tiebreaker. The `prefer` keyword does what?',a:'marks it as the preferred peer when multiple are configured',o:['authenticates the peer','marks it as the preferred peer when multiple are configured','enables symmetric mode','rejects others'],why:'`ntp server 10.0.0.1 prefer` tells R1 "use this one if it\'s reachable, even if another has a slightly better stratum." Without it, NTP picks via algorithm; with it, you express operator preference.'}
   ];
   function pick(){
     var q=pool[Math.floor(Math.random()*pool.length)];
     document.getElementById('qStem').textContent=q.q;
     var box=document.getElementById('qOpts'); box.innerHTML='';
+    var why=document.getElementById('qWhy'); why.classList.remove('show'); why.textContent='';
     q.o.slice().sort(function(){return Math.random()-.5}).forEach(function(o){
       var b=document.createElement('button'); b.className='opt'; b.textContent=o;
       b.addEventListener('click',function(){
         if(b.classList.contains('correct')||b.classList.contains('wrong'))return;
         if(o===q.a){b.classList.add('correct');qC++} else{b.classList.add('wrong');qW++; Array.prototype.forEach.call(box.children,function(c){if(c.textContent===q.a)c.classList.add('correct')})}
+        why.textContent='↳ '+q.why; why.classList.add('show');
         document.getElementById('qC').textContent=qC; document.getElementById('qW').textContent=qW;
       });
       box.appendChild(b);
