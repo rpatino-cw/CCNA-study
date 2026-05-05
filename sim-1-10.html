@@ -64,6 +64,9 @@
   .opt.wrong{background:var(--wrong-bg);border-color:var(--wrong);color:var(--wrong)}
   .scoreline{font-family:var(--font-mono);font-size:.84rem;color:var(--ink-muted);margin-top:10px;display:flex;gap:18px;align-items:center}
   .scoreline strong{font-weight:700;color:var(--ink)}
+  .why{font-family:var(--font-mono);font-size:.82rem;color:var(--ink-secondary);margin-top:10px;padding:10px 12px;background:var(--bg-recessed);border-left:3px solid var(--accent-soft);border-radius:var(--radius);display:none;line-height:1.55}
+  .why.show{display:block;animation:fadeIn .25s ease}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
   .badge{display:inline-block;font-family:var(--font-display);font-size:.7rem;font-weight:700;padding:2px 8px;border-radius:99px;background:var(--accent-light);color:var(--accent);text-transform:uppercase;letter-spacing:.04em;margin-left:8px}
   .footnote{font-family:var(--font-mono);font-size:.78rem;color:var(--ink-muted);margin-top:12px}
 </style>
@@ -101,6 +104,7 @@
   <h2>Quiz mode <span style="color:var(--accent);text-transform:none;letter-spacing:0;font-weight:700">— command-to-OS mapping</span></h2>
   <div class="stem" id="quizStem">Loading…</div>
   <div class="opts" id="quizOpts"></div>
+  <div class="why" id="quizWhy"></div>
   <div class="scoreline">
     <span><strong id="qCorrect">0</strong> correct</span>
     <span><strong id="qWrong">0</strong> wrong</span>
@@ -257,24 +261,25 @@
 
   var qCorrect=0,qWrong=0,qStreak=0;
   var pool = [
-    {q:'Which command shows IPv4, MAC, gateway, DNS on Windows?',a:'ipconfig /all',o:['ipconfig /all','ifconfig','ip a','netstat -rn']},
-    {q:'macOS — display config for the Wi-Fi/Ethernet interface en0?',a:'ifconfig en0',o:['ifconfig en0','ipconfig en0','ip a en0','show interface en0']},
-    {q:'Modern Linux — preferred way to dump all interface IPs?',a:'ip a',o:['ip a','ipconfig','show ip int br','arp -a']},
-    {q:'Test reachability to a public IP on any OS?',a:'ping 8.8.8.8',o:['ping 8.8.8.8','traceroute 8.8.8.8','ipconfig 8.8.8.8','show route 8.8.8.8']},
-    {q:'See learned MAC-to-IP mappings on Windows?',a:'arp -a',o:['arp -a','ipconfig /arp','ip neigh','show mac']},
-    {q:'View default gateway on Linux?',a:'ip route',o:['ip route','ipconfig','arp -a','netstat -i']},
-    {q:'Which OS does NOT have ifconfig by default in 2025?',a:'Modern Windows',o:['Modern Windows','macOS','Ubuntu','Fedora']},
-    {q:'On Win, what field shows the MAC address?',a:'Physical Address',o:['Physical Address','Hardware ID','Link Layer','Ether Addr']},
-    {q:'On macOS, what field shows MAC?',a:'ether',o:['ether','HWaddr','Physical Address','link/mac']},
-    {q:'Linux ip a — what tag shows MAC?',a:'link/ether',o:['link/ether','HWaddr','Physical','ether']},
-    {q:'Which command shows DNS servers configured on macOS Wi-Fi?',a:'networksetup -getdnsservers Wi-Fi',o:['networksetup -getdnsservers Wi-Fi','ipconfig /dns','cat /etc/resolv.conf','dnscmd']},
-    {q:'Ping reply with TTL=117 means roughly?',a:'~11 hops away (256-117 wraps; common Win=128 default)',o:['~11 hops away (256-117 wraps; common Win=128 default)','117ms latency','117 packets sent','117 retries']}
+    {q:'Which command shows IPv4, MAC, gateway, DNS on Windows?',a:'ipconfig /all',o:['ipconfig /all','ifconfig','ip a','netstat -rn'],why:'`ipconfig` alone shows IP/mask/gateway. The `/all` switch adds MAC (Physical Address), DNS, DHCP server, lease times. `ifconfig` is Unix-flavor; `ip a` is modern Linux.'},
+    {q:'macOS — display config for the Wi-Fi/Ethernet interface en0?',a:'ifconfig en0',o:['ifconfig en0','ipconfig en0','ip a en0','show interface en0'],why:'macOS keeps BSD-style `ifconfig`. Wi-Fi is usually en0 or en1; en0 is built-in Ethernet on Macs that have it. `ipconfig` on macOS exists but is a different DHCP-only utility, not the inspection tool.'},
+    {q:'Modern Linux — preferred way to dump all interface IPs?',a:'ip a',o:['ip a','ipconfig','show ip int br','arp -a'],why:'`ip a` (alias for `ip addr show`) replaced `ifconfig` on most modern distros. Same data, more consistent output, integrated with `ip route`, `ip neigh`, `ip link`. `ifconfig` may or may not be installed.'},
+    {q:'Test reachability to a public IP on any OS?',a:'ping 8.8.8.8',o:['ping 8.8.8.8','traceroute 8.8.8.8','ipconfig 8.8.8.8','show route 8.8.8.8'],why:'`ping` works on Windows/macOS/Linux. ICMP echo, basic L3 reachability + RTT. Traceroute is for hop-by-hop diagnosis, not a quick reachability check. 8.8.8.8 (Google DNS) is the canonical target — always up.'},
+    {q:'See learned MAC-to-IP mappings on Windows?',a:'arp -a',o:['arp -a','ipconfig /arp','ip neigh','show mac'],why:'`arp -a` shows the local ARP cache on every OS that has ARP. Linux modern equivalent: `ip neigh`. Cisco IOS: `show ip arp`. The `ip neigh` form is more accurate; `arp -a` is older.'},
+    {q:'View default gateway on Linux?',a:'ip route',o:['ip route','ipconfig','arp -a','netstat -i'],why:'`ip route` shows the routing table, with `default via X.X.X.X` as the gateway line. Older alternative: `route -n`. `netstat -rn` works too. Windows: `route print` or `ipconfig`.'},
+    {q:'Which OS does NOT have ifconfig by default in 2025?',a:'Modern Windows',o:['Modern Windows','macOS','Ubuntu','Fedora'],why:'Windows uses `ipconfig` (different tool). Linux distros increasingly drop `ifconfig` from the default install (use `ip` from iproute2). macOS still ships BSD `ifconfig`. None of these are "wrong" — each ecosystem evolved its own.'},
+    {q:'On Windows, what field shows the MAC address?',a:'Physical Address',o:['Physical Address','Hardware ID','Link Layer','Ether Addr'],why:'`ipconfig /all` labels MAC as "Physical Address." It is the L2 MAC even though Microsoft uses the friendlier label. Look for it on Ethernet adapter or Wireless LAN adapter sections.'},
+    {q:'On macOS, what field shows MAC?',a:'ether',o:['ether','HWaddr','Physical Address','link/mac'],why:'macOS / BSD `ifconfig` labels the MAC as `ether` followed by colon-hex. Linux iproute2 labels it `link/ether`. Old Linux net-tools: `HWaddr`. Windows: `Physical Address`. Different labels, same 48-bit value.'},
+    {q:'Linux ip a — what tag shows MAC?',a:'link/ether',o:['link/ether','HWaddr','Physical','ether'],why:'iproute2 standardizes link-layer info as `link/ether <mac>` plus broadcast. Net-tools-era `ifconfig` showed `HWaddr <mac>`. Same address, different label depending on tool generation.'},
+    {q:'Which command shows DNS servers configured on macOS Wi-Fi?',a:'networksetup -getdnsservers Wi-Fi',o:['networksetup -getdnsservers Wi-Fi','ipconfig /dns','cat /etc/resolv.conf','dnscmd'],why:'macOS scoped DNS settings live with `networksetup` (per service). `cat /etc/resolv.conf` may show stale data on macOS — managed by mDNSResponder, not editable directly. `scutil --dns` is also useful.'},
+    {q:'Ping reply with TTL=117 means roughly?',a:'~11 hops away (Win default 128 minus 117)',o:['~11 hops away (Win default 128 minus 117)','117ms latency','117 packets sent','117 retries'],why:'TTL is decremented at each routed hop. Default starting TTL by OS: Windows 128, Linux/macOS 64, Cisco 255. Reply TTL 117 from a Windows source means it crossed ~11 routers (128-117). Useful for fingerprinting AND counting hops without traceroute.'}
   ];
   function pickQ(){
     var q = pool[Math.floor(Math.random()*pool.length)];
     var opts = q.o.slice().sort(function(){return Math.random()-.5;});
     document.getElementById('quizStem').textContent = q.q;
     var box=document.getElementById('quizOpts'); box.innerHTML='';
+    var why=document.getElementById('quizWhy'); why.classList.remove('show'); why.textContent='';
     opts.forEach(function(o){
       var b=document.createElement('button'); b.className='opt'; b.textContent=o;
       b.addEventListener('click', function(){
@@ -282,6 +287,7 @@
         if (o===q.a){ b.classList.add('correct'); qCorrect++; qStreak++; }
         else { b.classList.add('wrong'); qWrong++; qStreak=0;
           Array.prototype.forEach.call(box.children,function(c){ if(c.textContent===q.a) c.classList.add('correct'); }); }
+        why.textContent='↳ '+q.why; why.classList.add('show');
         document.getElementById('qCorrect').textContent=qCorrect;
         document.getElementById('qWrong').textContent=qWrong;
         document.getElementById('qStreak').textContent=qStreak;

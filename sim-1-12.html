@@ -67,6 +67,9 @@
   .opt.wrong{background:var(--wrong-bg);border-color:var(--wrong);color:var(--wrong)}
   .scoreline{font-family:var(--font-mono);font-size:.84rem;color:var(--ink-muted);margin-top:10px;display:flex;gap:18px;align-items:center}
   .scoreline strong{color:var(--ink)}
+  .why{font-family:var(--font-mono);font-size:.82rem;color:var(--ink-secondary);margin-top:10px;padding:10px 12px;background:var(--bg-recessed);border-left:3px solid var(--accent-soft);border-radius:var(--radius);display:none;line-height:1.55}
+  .why.show{display:block;animation:fadeIn .25s ease}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
   .badge{display:inline-block;font-family:var(--font-display);font-size:.7rem;font-weight:700;padding:2px 8px;border-radius:99px;background:var(--accent-light);color:var(--accent);text-transform:uppercase;letter-spacing:.04em;margin-left:8px}
 </style>
 <link rel="stylesheet" href="css/shared.css?v=4.56">
@@ -111,6 +114,7 @@
   <h2>Quiz mode</h2>
   <div class="stem" id="quizStem">Loading…</div>
   <div class="opts" id="quizOpts"></div>
+  <div class="why" id="quizWhy"></div>
   <div class="scoreline">
     <span><strong id="qCorrect">0</strong> correct</span>
     <span><strong id="qWrong">0</strong> wrong</span>
@@ -178,22 +182,23 @@
 
   var qCorrect=0,qWrong=0,qStreak=0;
   var pool = [
-    {q:'Containers differ from VMs because they:',a:'share the host OS kernel',o:['share the host OS kernel','run on bare metal only','have their own hypervisor','virtualize hardware']},
-    {q:'Type-1 hypervisor example:',a:'ESXi',o:['ESXi','VirtualBox','Docker','VMware Workstation']},
-    {q:'Type-2 hypervisor example:',a:'VirtualBox',o:['VirtualBox','ESXi','Hyper-V Server','Xen']},
-    {q:'A VRF lets a single router:',a:'maintain multiple isolated routing tables',o:['maintain multiple isolated routing tables','run multiple OSes','virtualize CPU','span multiple chassis']},
-    {q:'Two tenants both use 10.0.0.0/8 on the same router. The fix:',a:'put each in its own VRF',o:['put each in its own VRF','NAT both','renumber one','add a second router']},
-    {q:'A container starts in roughly:',a:'~1 second',o:['~1 second','30 seconds','5 minutes','same as VM']},
-    {q:'Best fit for "100 microservices on one host":',a:'containers',o:['containers','VMs','bare metal','VRFs']},
-    {q:'Best fit for "run Windows + Linux on the same physical box":',a:'Type-1 hypervisor',o:['Type-1 hypervisor','containers','VRFs','dual boot']},
-    {q:'Layer-3 device equivalent of VRF in Layer-2:',a:'VLAN',o:['VLAN','SSID','VPC','VTI']},
-    {q:'Why does Docker need fewer resources than KVM?',a:'no guest kernel — shares host kernel',o:['no guest kernel — shares host kernel','smaller binary','no networking','no security']}
+    {q:'Containers differ from VMs because they:',a:'share the host OS kernel',o:['share the host OS kernel','run on bare metal only','have their own hypervisor','virtualize hardware'],why:'Containers wrap a process tree with namespaces + cgroups but use the HOST kernel. No hypervisor, no guest OS. That\'s why containers start in ~1s and a VM takes ~30s — there\'s no kernel to boot.'},
+    {q:'Type-1 hypervisor example:',a:'ESXi',o:['ESXi','VirtualBox','Docker','VMware Workstation'],why:'Type-1 (bare-metal) runs DIRECTLY on hardware: ESXi, Hyper-V Server, Xen, KVM-on-Linux. Type-2 runs ON TOP of a host OS: VirtualBox, VMware Workstation, Parallels. Docker is neither — it\'s containers.'},
+    {q:'Type-2 hypervisor example:',a:'VirtualBox',o:['VirtualBox','ESXi','Hyper-V Server','Xen'],why:'Type-2 hypervisors are apps you install ON your existing OS — VirtualBox, VMware Workstation, Parallels Desktop. Convenient for desktop dev. Type-1 (ESXi etc.) is what production runs on.'},
+    {q:'A VRF lets a single router:',a:'maintain multiple isolated routing tables',o:['maintain multiple isolated routing tables','run multiple OSes','virtualize CPU','span multiple chassis'],why:'VRF (Virtual Routing and Forwarding) is a per-tenant routing table. One physical router, N logical routers, N independent FIBs. Used in MPLS L3VPN, segmenting management networks, multi-tenant DC.'},
+    {q:'Two tenants both use 10.0.0.0/8 on the same router. The fix:',a:'put each in its own VRF',o:['put each in its own VRF','NAT both','renumber one','add a second router'],why:'VRFs solve overlapping address spaces. Each tenant gets its own routing table; their 10.x.x.x routes don\'t collide. Without VRF you\'d have to NAT or renumber — both worse.'},
+    {q:'A container starts in roughly:',a:'~1 second',o:['~1 second','30 seconds','5 minutes','same as VM'],why:'Container start = exec a process inside namespaces. No kernel boot, no init system overhead. Sub-second on warm hosts. VMs need to boot a guest kernel + userspace = tens of seconds at best.'},
+    {q:'Best fit for "100 microservices on one host":',a:'containers',o:['containers','VMs','bare metal','VRFs'],why:'Microservices = many small processes, frequent deploys. Containers nail this: low overhead, fast restart, identical artifact across dev/prod. VMs are too heavyweight for 100 of anything.'},
+    {q:'Best fit for "run Windows + Linux on the same physical box":',a:'Type-1 hypervisor',o:['Type-1 hypervisor','containers','VRFs','dual boot'],why:'Mixed OS = need different kernels. Containers can\'t do that (one kernel, host\'s). Type-1 hypervisor (ESXi, Hyper-V, KVM) virtualizes hardware so each VM runs its own kernel — Windows VM next to Linux VM, both running side-by-side.'},
+    {q:'Layer-3 router-level equivalent of VRF, but at Layer-2 in switching, is:',a:'VLAN',o:['VLAN','SSID','VPC','VTI'],why:'VLANs partition a switch into multiple L2 broadcast domains; VRFs partition a router into multiple L3 routing tables. Both achieve "one box, many isolated networks." VLAN ↔ VRF is the canonical L2/L3 analogy.'},
+    {q:'Why does Docker need fewer resources than KVM?',a:'no guest kernel — shares host kernel',o:['no guest kernel — shares host kernel','smaller binary','no networking','no security'],why:'KVM virtualizes hardware so each VM runs its own kernel + libs (often GBs of RAM). Docker shares the host kernel and only ships userspace bits — typical container is 10-100MB. Tradeoff: no Windows containers on a Linux host.'}
   ];
   function pickQ(){
     var q = pool[Math.floor(Math.random()*pool.length)];
     var opts = q.o.slice().sort(function(){return Math.random()-.5;});
     document.getElementById('quizStem').textContent = q.q;
     var box=document.getElementById('quizOpts'); box.innerHTML='';
+    var why=document.getElementById('quizWhy'); why.classList.remove('show'); why.textContent='';
     opts.forEach(function(o){
       var b=document.createElement('button'); b.className='opt'; b.textContent=o;
       b.addEventListener('click', function(){
@@ -201,6 +206,7 @@
         if (o===q.a){ b.classList.add('correct'); qCorrect++; qStreak++; }
         else { b.classList.add('wrong'); qWrong++; qStreak=0;
           Array.prototype.forEach.call(box.children,function(c){ if(c.textContent===q.a) c.classList.add('correct'); }); }
+        why.textContent='↳ '+q.why; why.classList.add('show');
         document.getElementById('qCorrect').textContent=qCorrect;
         document.getElementById('qWrong').textContent=qWrong;
         document.getElementById('qStreak').textContent=qStreak;

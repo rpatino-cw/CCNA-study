@@ -67,6 +67,9 @@
   .opt.wrong{background:var(--wrong-bg);border-color:var(--wrong);color:var(--wrong)}
   .scoreline{font-family:var(--font-mono);font-size:.84rem;color:var(--ink-muted);margin-top:10px;display:flex;gap:18px}
   .scoreline strong{color:var(--ink)}
+  .why{font-family:var(--font-mono);font-size:.82rem;color:var(--ink-secondary);margin-top:10px;padding:10px 12px;background:var(--bg-recessed);border-left:3px solid var(--accent-soft);border-radius:var(--radius);display:none;line-height:1.55}
+  .why.show{display:block;animation:fadeIn .25s ease}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
   .footnote{font-family:var(--font-mono);font-size:.78rem;color:var(--ink-muted);margin-top:10px}
 </style>
 <link rel="stylesheet" href="css/shared.css?v=4.56">
@@ -129,6 +132,7 @@
   <h2>Quiz</h2>
   <div class="stem" id="qStem">Loading…</div>
   <div class="opts" id="qOpts"></div>
+  <div class="why" id="qWhy"></div>
   <div class="scoreline">
     <span><strong id="qC">0</strong> correct</span>
     <span><strong id="qW">0</strong> wrong</span>
@@ -189,27 +193,29 @@
 
   var qC=0,qW=0;
   var pool2=[
-    {q:'PC-A is 10.0.0.10. R1 translates to 203.0.113.5. What is 10.0.0.10 called?',a:'inside-local',o:['inside-local','inside-global','outside-local','outside-global']},
-    {q:'Same scenario. What is 203.0.113.5 called?',a:'inside-global',o:['inside-local','inside-global','outside-local','outside-global']},
-    {q:'PC-A talks to 8.8.8.8. From R1\'s view, 8.8.8.8 is the…',a:'outside-global',o:['inside-local','inside-global','outside-local','outside-global']},
-    {q:'You have 200 internal users and one public IP. Which NAT mode?',a:'PAT (overload)',o:['Static NAT','Dynamic NAT','PAT (overload)','No NAT']},
-    {q:'A web server must always be reachable at 203.0.113.50. Which mode?',a:'Static NAT',o:['Static NAT','Dynamic NAT','PAT','DHCP reservation']},
-    {q:'Dynamic NAT pool of 5 IPs, 6th host requests. What happens?',a:'Packet dropped',o:['Packet dropped','Falls back to PAT','Overwrites oldest','Routes without NAT']},
-    {q:'PAT uniquely identifies flows using…',a:'source port',o:['source port','MAC address','TTL','VLAN ID']},
-    {q:'Which command enables NAT overload on Cisco?',a:'ip nat inside source list 1 interface g0/0 overload',o:['ip nat inside source list 1 interface g0/0 overload','ip nat outside','ip nat pool overload','nat enable']},
-    {q:'NAT primarily solves which problem?',a:'IPv4 address exhaustion',o:['IPv4 address exhaustion','Routing loops','DNS poisoning','Slow ARP']},
-    {q:'Which range is NOT RFC1918 private?',a:'169.254.0.0/16',o:['10.0.0.0/8','172.16.0.0/12','192.168.0.0/16','169.254.0.0/16']}
+    {q:'PC-A is 10.0.0.10. R1 translates to 203.0.113.5. What is 10.0.0.10 called?',a:'inside-local',o:['inside-local','inside-global','outside-local','outside-global'],why:'Cisco NAT terminology: inside-local = the host\'s real address inside (private 10.x). inside-global = how the OUTSIDE world sees it (public 203.x). Memory aid: "local" = before NAT, "global" = after NAT (from inside\'s perspective).'},
+    {q:'Same scenario. What is 203.0.113.5 called?',a:'inside-global',o:['inside-local','inside-global','outside-local','outside-global'],why:'It\'s an INSIDE host (your network), shown from the GLOBAL (public) point of view → inside-global. The same host has two names at NAT: 10.0.0.10 (inside-local) and 203.0.113.5 (inside-global).'},
+    {q:'PC-A talks to 8.8.8.8. From R1\'s view, 8.8.8.8 is the…',a:'outside-global',o:['inside-local','inside-global','outside-local','outside-global'],why:'8.8.8.8 is on the OUTSIDE, viewed in its GLOBAL (true) form → outside-global. (Outside-local would be a destination IP that NAT itself rewrites — used for destination-NAT of incoming traffic, less common.)'},
+    {q:'You have 200 internal users and one public IP. Which NAT mode?',a:'PAT (overload)',o:['Static NAT','Dynamic NAT','PAT (overload)','No NAT'],why:'PAT (Port Address Translation) = NAT overload. Many-to-one. Each flow gets a unique source port on the public IP, so 200 users share one IP. This is what every home router does.'},
+    {q:'A web server must always be reachable at 203.0.113.50. Which mode?',a:'Static NAT',o:['Static NAT','Dynamic NAT','PAT','DHCP reservation'],why:'Static NAT = permanent 1:1 mapping. Always on, both directions, predictable port. Used for inbound services (DNS, web, mail). Dynamic and PAT are unsuitable for inbound because the mapping is unpredictable.'},
+    {q:'Dynamic NAT pool of 5 IPs, 6th host requests. What happens?',a:'Packet dropped',o:['Packet dropped','Falls back to PAT','Overwrites oldest','Routes without NAT'],why:'Dynamic NAT is 1:1 from a pool. Out of pool addresses → drop. Unless explicitly configured with PAT-fallback (`overload`), the 6th host gets nothing. The fix: bigger pool OR add `overload` so PAT shares a single pool IP.'},
+    {q:'PAT uniquely identifies flows using…',a:'source port',o:['source port','MAC address','TTL','VLAN ID'],why:'PAT rewrites source IP AND source port. Unique tuple per flow: (public_IP, src_port). Up to ~64K active translations per public IP. Replies come back to the assigned port; router unwraps and forwards.'},
+    {q:'Which command enables NAT overload on Cisco?',a:'ip nat inside source list 1 interface g0/0 overload',o:['ip nat inside source list 1 interface g0/0 overload','ip nat outside','ip nat pool overload','nat enable'],why:'`ip nat inside source list <ACL> interface <egress> overload` is the canonical PAT command. ACL identifies which inside hosts to translate; interface gives the public IP; `overload` enables port-multiplex.'},
+    {q:'NAT primarily solves which problem?',a:'IPv4 address exhaustion',o:['IPv4 address exhaustion','Routing loops','DNS poisoning','Slow ARP'],why:'NAT was a 1990s response to running out of IPv4. Internal RFC-1918 + one or a few public IPs let billions of devices share the public space. IPv6 is the long-term fix; NAT is the workaround that\'s now permanent.'},
+    {q:'Which range is NOT RFC1918 private?',a:'169.254.0.0/16',o:['10.0.0.0/8','172.16.0.0/12','192.168.0.0/16','169.254.0.0/16'],why:'169.254.0.0/16 = APIPA (link-local). Hosts assign themselves a 169.254.x.x when DHCP fails — local segment only, not routable. RFC-1918 private space: 10/8, 172.16/12, 192.168/16.'}
   ];
   function pick(){
     var q=pool2[Math.floor(Math.random()*pool2.length)];
     document.getElementById('qStem').textContent=q.q;
     var box=document.getElementById('qOpts'); box.innerHTML='';
+    var why=document.getElementById('qWhy'); why.classList.remove('show'); why.textContent='';
     q.o.slice().sort(function(){return Math.random()-.5}).forEach(function(o){
       var b=document.createElement('button'); b.className='opt'; b.textContent=o;
       b.addEventListener('click',function(){
         if(b.classList.contains('correct')||b.classList.contains('wrong'))return;
         if(o===q.a){b.classList.add('correct');qC++}
         else{b.classList.add('wrong');qW++; Array.prototype.forEach.call(box.children,function(c){if(c.textContent===q.a)c.classList.add('correct')})}
+        why.textContent='↳ '+q.why; why.classList.add('show');
         document.getElementById('qC').textContent=qC; document.getElementById('qW').textContent=qW;
       });
       box.appendChild(b);

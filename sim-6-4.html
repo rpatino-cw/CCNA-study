@@ -52,6 +52,9 @@
   .opt.wrong{background:var(--wrong-bg);border-color:var(--wrong);color:var(--wrong)}
   .scoreline{font-family:var(--font-mono);font-size:.84rem;color:var(--ink-muted);margin-top:10px;display:flex;gap:18px;align-items:center}
   .scoreline strong{font-weight:700;color:var(--ink)}
+  .why{font-family:var(--font-mono);font-size:.82rem;color:var(--ink-secondary);margin-top:10px;padding:10px 12px;background:var(--bg-recessed);border-left:3px solid var(--accent-soft);border-radius:var(--radius);display:none;line-height:1.55}
+  .why.show{display:block;animation:fadeIn .25s ease}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
   .badge{display:inline-block;font-family:var(--font-display);font-size:.7rem;font-weight:700;padding:2px 8px;border-radius:99px;background:var(--accent-light);color:var(--accent);text-transform:uppercase;letter-spacing:.04em;margin-left:8px}
   .footer-link{margin-top:24px;padding-top:14px;border-top:1px solid var(--border);font-family:var(--font-mono);font-size:.82rem}
   .footer-link a{color:var(--accent);text-decoration:none}
@@ -109,6 +112,7 @@
   <h2>Quiz mode</h2>
   <div class="stem" id="quizStem">Loading…</div>
   <div class="opts" id="quizOpts"></div>
+  <div class="why" id="quizWhy"></div>
   <div class="scoreline">
     <span><strong id="qCorrect">0</strong> correct</span>
     <span><strong id="qWrong">0</strong> wrong</span>
@@ -162,22 +166,23 @@
 
   var qCorrect=0, qWrong=0, qStreak=0;
   var pool = [
-    { stem:'Which verb reads a resource?', opts:['GET','POST','PUT','DELETE'], ans:'GET' },
-    { stem:'Which verb creates and is NOT idempotent?', opts:['GET','POST','PUT','PATCH'], ans:'POST' },
-    { stem:'Status 201 means:', opts:['Created','OK','Bad Request','Server Error'], ans:'Created' },
-    { stem:'Status 401 vs 403:', opts:['Same thing','401=not authenticated, 403=auth\'d but forbidden','401=server error, 403=client error','Both server errors'], ans:'401=not authenticated, 403=auth\'d but forbidden' },
-    { stem:'PUT vs PATCH:', opts:['Same','PUT replaces entirely, PATCH partial update','PUT partial, PATCH full','PUT for create only'], ans:'PUT replaces entirely, PATCH partial update' },
-    { stem:'DELETE called twice on same resource:', opts:['Different result each time','First success, second 404 — still idempotent','Crashes server','Returns 500'], ans:'First success, second 404 — still idempotent' },
-    { stem:'Status 500 means:', opts:['Client error','Server error','Success','Redirect'], ans:'Server error' },
-    { stem:'REST is stateless, meaning:', opts:['Server forgets you','Each request is self-contained','Database has no state','TCP only'], ans:'Each request is self-contained' },
-    { stem:'Most common payload format in modern REST:', opts:['XML','JSON','YAML','CSV'], ans:'JSON' },
-    { stem:'Status 204 returned by which verb most often?', opts:['GET','POST','DELETE','PATCH'], ans:'DELETE' }
+    { stem:'Which verb reads a resource?', opts:['GET','POST','PUT','DELETE'], ans:'GET', why:'GET = read. Safe (no server state change), idempotent (same result every call), cacheable. The HTTP/REST baseline.' },
+    { stem:'Which verb creates and is NOT idempotent?', opts:['GET','POST','PUT','PATCH'], ans:'POST', why:'POST is create-or-action; calling it N times creates N resources (or triggers N actions). PUT, in contrast, IS idempotent — same PUT N times = same final state.' },
+    { stem:'Status 201 means:', opts:['Created','OK','Bad Request','Server Error'], ans:'Created', why:'201 Created = resource was successfully created. Server typically returns the new resource representation + a Location header pointing to it. 200 OK is the generic "succeeded with data."' },
+    { stem:'Status 401 vs 403:', opts:['Same thing','401=not authenticated, 403=auth\'d but forbidden','401=server error, 403=client error','Both server errors'], ans:'401=not authenticated, 403=auth\'d but forbidden', why:'401 = "I don\'t know who you are" — send creds. 403 = "I know who you are, but you can\'t do that" — perms problem. Common confusion: APIs sometimes incorrectly return 401 when they mean 403.' },
+    { stem:'PUT vs PATCH:', opts:['Same','PUT replaces entirely, PATCH partial update','PUT partial, PATCH full','PUT for create only'], ans:'PUT replaces entirely, PATCH partial update', why:'PUT replaces the resource with the body you sent — fields you omit get DELETED. PATCH applies a partial update — only listed fields change. Choose PATCH for "update one field" so you don\'t accidentally wipe others.' },
+    { stem:'DELETE called twice on same resource:', opts:['Different result each time','First success (200/204), second 404 — still idempotent','Crashes server','Returns 500'], ans:'First success (200/204), second 404 — still idempotent', why:'Idempotent = end-state is the same regardless of how many times you call. After DELETE, the resource is gone — calling DELETE again leaves it gone (so end-state is identical). Different status codes don\'t break idempotency.' },
+    { stem:'Status 500 means:', opts:['Client error','Server error','Success','Redirect'], ans:'Server error', why:'5xx = server\'s fault. 500 Internal Server Error = generic crash; 502 = bad gateway (upstream broke); 503 = service unavailable; 504 = upstream timeout. 4xx = client\'s fault, 5xx = server\'s.' },
+    { stem:'REST is stateless, meaning:', opts:['Server forgets you','Each request is self-contained — server keeps no per-client session state','Database has no state','TCP only'], ans:'Each request is self-contained — server keeps no per-client session state', why:'Each request must carry everything needed (auth token, params). The server doesn\'t remember "this client is on step 3 of a wizard." That\'s why REST scales horizontally — any server can handle any request.' },
+    { stem:'Most common payload format in modern REST:', opts:['XML','JSON','YAML','CSV'], ans:'JSON', why:'JSON dominates because it\'s human-readable, javascript-native, and supported by every language. XML is older + verbose (still used in SOAP and some enterprise APIs). YAML is config, not API payloads. CSV is tabular, not structured.' },
+    { stem:'Status 204 returned by which verb most often?', opts:['GET','POST','DELETE','PATCH'], ans:'DELETE', why:'204 No Content = success, no body needed. DELETE is the canonical use — "deleted, here\'s nothing to return." PUT/PATCH may also return 204 when the update succeeded. GET returning 204 is unusual (success with empty body).' }
   ];
   function pickQ(){
     var q = pool[Math.floor(Math.random()*pool.length)];
     var opts = q.opts.slice().sort(function(){return Math.random()-.5;});
     document.getElementById('quizStem').textContent = q.stem;
     var bx = document.getElementById('quizOpts'); bx.innerHTML='';
+    var why=document.getElementById('quizWhy'); why.classList.remove('show'); why.textContent='';
     opts.forEach(function(o){
       var btn = document.createElement('button');
       btn.className='opt'; btn.textContent=o;
@@ -186,6 +191,7 @@
         if (o===q.ans){ btn.classList.add('correct'); qCorrect++; qStreak++; }
         else { btn.classList.add('wrong'); qWrong++; qStreak=0;
           Array.prototype.forEach.call(bx.children, function(c){ if (c.textContent===q.ans) c.classList.add('correct'); }); }
+        why.textContent='↳ '+q.why; why.classList.add('show');
         document.getElementById('qCorrect').textContent=qCorrect;
         document.getElementById('qWrong').textContent=qWrong;
         document.getElementById('qStreak').textContent=qStreak;

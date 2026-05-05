@@ -51,6 +51,9 @@
   .opt.wrong{background:var(--wrong-bg);border-color:var(--wrong);color:var(--wrong)}
   .scoreline{font-family:var(--font-mono);font-size:.84rem;color:var(--ink-muted);margin-top:10px;display:flex;gap:18px;align-items:center}
   .scoreline strong{font-weight:700;color:var(--ink)}
+  .why{font-family:var(--font-mono);font-size:.82rem;color:var(--ink-secondary);margin-top:10px;padding:10px 12px;background:var(--bg-recessed);border-left:3px solid var(--accent-soft);border-radius:var(--radius);display:none;line-height:1.55}
+  .why.show{display:block;animation:fadeIn .25s ease}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
   .badge{display:inline-block;font-family:var(--font-display);font-size:.7rem;font-weight:700;padding:2px 8px;border-radius:99px;background:var(--accent-light);color:var(--accent);text-transform:uppercase;letter-spacing:.04em;margin-left:8px}
   .footer-link{margin-top:24px;padding-top:14px;border-top:1px solid var(--border);font-family:var(--font-mono);font-size:.82rem}
   .footer-link a{color:var(--accent);text-decoration:none}
@@ -98,6 +101,7 @@
   <h2>Quiz mode</h2>
   <div class="stem" id="quizStem">Loading…</div>
   <div class="opts" id="quizOpts"></div>
+  <div class="why" id="quizWhy"></div>
   <div class="scoreline">
     <span><strong id="qCorrect">0</strong> correct</span>
     <span><strong id="qWrong">0</strong> wrong</span>
@@ -147,22 +151,23 @@
 
   var qCorrect=0, qWrong=0, qStreak=0;
   var pool = [
-    { stem:'Which tool is push-based + agentless?', opts:['Ansible','Puppet','Chef','Salt'], ans:'Ansible' },
-    { stem:'Which is procedural (write steps in order)?', opts:['Ansible','Terraform','Puppet','Chef'], ans:'Chef' },
-    { stem:'Terraform is best known for:', opts:['Cloud IaC + declarative','Linux package install','SSH-based push','Replacing Bash'], ans:'Cloud IaC + declarative' },
-    { stem:'Pull-based agent model is which pair?', opts:['Ansible/Terraform','Puppet/Chef','Terraform/Chef','Ansible/Puppet'], ans:'Puppet/Chef' },
-    { stem:'Declarative vs procedural — declarative says:', opts:['Do these steps','Achieve this end state','Run only on Tuesday','Crash on error'], ans:'Achieve this end state' },
-    { stem:'Ansible config language:', opts:['Ruby','YAML','HCL','Python only'], ans:'YAML' },
-    { stem:'Terraform language:', opts:['YAML','HCL','Ruby','XML'], ans:'HCL' },
-    { stem:'Best for ad-hoc \"run this on 100 routers right now\":', opts:['Ansible','Puppet','Chef','Terraform'], ans:'Ansible' },
-    { stem:'Tool with state file tracking infra:', opts:['Ansible','Terraform','Puppet','Chef'], ans:'Terraform' },
-    { stem:'Push vs pull — pull means:', opts:['Master shoves config out','Each node fetches its config from master','Faster than push','Same as push'], ans:'Each node fetches its config from master' }
+    { stem:'Which tool is push-based + agentless?', opts:['Ansible','Puppet','Chef','Salt'], ans:'Ansible', why:'Ansible pushes config over SSH — no agent installed on targets. That makes it the easiest to start with on network gear (most network OS supports SSH but not Ruby/Python agents). Puppet/Chef require an agent on each node.' },
+    { stem:'Which is procedural (write steps in order)?', opts:['Ansible','Terraform','Puppet','Chef'], ans:'Chef', why:'Chef recipes describe procedural steps in Ruby. Puppet is declarative (describe end state). Ansible is a hybrid (mostly declarative tasks but ordered). Terraform is purely declarative.' },
+    { stem:'Terraform is best known for:', opts:['Cloud IaC + declarative','Linux package install','SSH-based push','Replacing Bash'], ans:'Cloud IaC + declarative', why:'Terraform = Infrastructure as Code for cloud + on-prem. Declarative (HCL describes desired state) and stateful (tracks what it built in a state file). Best for "create 12 EC2 instances and a VPC." Not the right tool for in-OS package installs.' },
+    { stem:'Pull-based agent model is which pair?', opts:['Ansible/Terraform','Puppet/Chef','Terraform/Chef','Ansible/Puppet'], ans:'Puppet/Chef', why:'Puppet and Chef install an agent on each node; the agent periodically pulls its catalog from the master. Ansible pushes from the controller (no agent). Pull scales well; push is simpler.' },
+    { stem:'Declarative vs procedural — declarative says:', opts:['Do these steps','Achieve this end state','Run only on Tuesday','Crash on error'], ans:'Achieve this end state', why:'Declarative = describe WHAT you want (12 servers in this state); the tool figures out how. Procedural = describe HOW (step 1, step 2). Declarative is idempotent by design and easier to reason about across reruns.' },
+    { stem:'Ansible config language:', opts:['Ruby','YAML','HCL','Python only'], ans:'YAML', why:'Ansible playbooks are YAML. The Ansible engine is Python, but operators write YAML tasks. Easy on-ramp; no programming-language barrier.' },
+    { stem:'Terraform language:', opts:['YAML','HCL','Ruby','XML'], ans:'HCL', why:'HCL = HashiCorp Configuration Language. Looks similar to JSON but with comments, expressions, modules. Designed specifically for IaC declarations.' },
+    { stem:'Best for ad-hoc "run this on 100 routers right now":', opts:['Ansible','Puppet','Chef','Terraform'], ans:'Ansible', why:'Ad-hoc runs are Ansible\'s sweet spot. `ansible -i inventory all -m command -a "show ver"` runs across 100 devices in seconds. No agent, no state file, no compile step. Perfect for network engineers automating CLI.' },
+    { stem:'Tool with state file tracking infra:', opts:['Ansible','Terraform','Puppet','Chef'], ans:'Terraform', why:'Terraform maintains a state file (terraform.tfstate) describing what it created. On the next run, it diffs intended vs actual and applies only the difference. Other tools (Ansible) are typically stateless or use a separate inventory.' },
+    { stem:'Push vs pull — pull means:', opts:['Master shoves config out','Each node fetches its config from master','Faster than push','Same as push'], ans:'Each node fetches its config from master', why:'Pull = node-initiated. Agent on the node phones home every N minutes, gets its catalog, applies. Push = master-initiated. Both work; pull scales to thousands more easily because the master isn\'t the bottleneck.' }
   ];
   function pickQ(){
     var q = pool[Math.floor(Math.random()*pool.length)];
     var opts = q.opts.slice().sort(function(){return Math.random()-.5;});
     document.getElementById('quizStem').textContent = q.stem;
     var bx = document.getElementById('quizOpts'); bx.innerHTML='';
+    var why=document.getElementById('quizWhy'); why.classList.remove('show'); why.textContent='';
     opts.forEach(function(o){
       var btn = document.createElement('button');
       btn.className='opt'; btn.textContent=o;
@@ -171,6 +176,7 @@
         if (o===q.ans){ btn.classList.add('correct'); qCorrect++; qStreak++; }
         else { btn.classList.add('wrong'); qWrong++; qStreak=0;
           Array.prototype.forEach.call(bx.children, function(c){ if (c.textContent===q.ans) c.classList.add('correct'); }); }
+        why.textContent='↳ '+q.why; why.classList.add('show');
         document.getElementById('qCorrect').textContent=qCorrect;
         document.getElementById('qWrong').textContent=qWrong;
         document.getElementById('qStreak').textContent=qStreak;

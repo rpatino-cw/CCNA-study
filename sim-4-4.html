@@ -52,6 +52,9 @@
   .opt.wrong{background:var(--wrong-bg);border-color:var(--wrong);color:var(--wrong)}
   .scoreline{font-family:var(--font-mono);font-size:.84rem;color:var(--ink-muted);margin-top:10px;display:flex;gap:18px}
   .scoreline strong{color:var(--ink)}
+  .why{font-family:var(--font-mono);font-size:.82rem;color:var(--ink-secondary);margin-top:10px;padding:10px 12px;background:var(--bg-recessed);border-left:3px solid var(--accent-soft);border-radius:var(--radius);display:none;line-height:1.55}
+  .why.show{display:block;animation:fadeIn .25s ease}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
 </style>
 <link rel="stylesheet" href="css/shared.css?v=4.56">
 <script defer src="js/nav.js"></script>
@@ -113,6 +116,7 @@
   <h2>Quiz</h2>
   <div class="stem" id="qStem">Loading…</div>
   <div class="opts" id="qOpts"></div>
+  <div class="why" id="qWhy"></div>
   <div class="scoreline">
     <span><strong id="qC">0</strong> correct</span>
     <span><strong id="qW">0</strong> wrong</span>
@@ -145,26 +149,28 @@
 
   var qC=0,qW=0;
   var pool=[
-    {q:'NMS polls agent on which port?',a:'UDP 161',o:['UDP 161','UDP 162','TCP 161','TCP 162']},
-    {q:'Agent sends Trap to NMS on which port?',a:'UDP 162',o:['UDP 161','UDP 162','TCP 161','TCP 162']},
-    {q:'Which SNMP version supports auth + encryption?',a:'v3',o:['v1','v2c','v3','v4']},
-    {q:'Which version uses community strings only?',a:'v1 and v2c',o:['v1 only','v2c only','v1 and v2c','v3']},
-    {q:'Difference between Trap and Inform?',a:'Inform requires acknowledgment',o:['Inform requires acknowledgment','Trap is encrypted','Inform is faster','no difference']},
-    {q:'sysUpTime OID is 1.3.6.1.2.1.1.3.0. What does the leading 1.3.6.1 represent?',a:'iso.org.dod.internet',o:['iso.org.dod.internet','cisco enterprise','private mgmt','interface stats']},
-    {q:'GetBulk was introduced in…',a:'v2c',o:['v1','v2c','v3','all']},
-    {q:'Best v3 security level?',a:'authPriv',o:['noAuthNoPriv','authNoPriv','authPriv','community']},
-    {q:'Which is unsolicited (agent-initiated)?',a:'Trap',o:['Get','GetNext','Set','Trap']},
-    {q:'A community string acts like…',a:'a plaintext password',o:['a plaintext password','an encryption key','a hostname','an MAC address']}
+    {q:'NMS polls agent on which port?',a:'UDP 161',o:['UDP 161','UDP 162','TCP 161','TCP 162'],why:'NMS sends Get/GetNext/GetBulk/Set on UDP/161 (the agent listens). Agent sends asynchronous Trap/Inform on UDP/162 (NMS listens). Two ports — the convention to remember.'},
+    {q:'Agent sends Trap to NMS on which port?',a:'UDP 162',o:['UDP 161','UDP 162','TCP 161','TCP 162'],why:'Notification port = UDP/162. NMS receives unsolicited Traps and Informs here. Polling port = UDP/161 (in the other direction). 161 in, 162 out.'},
+    {q:'Which SNMP version supports auth + encryption?',a:'v3',o:['v1','v2c','v3','v4'],why:'v3 added the User Security Model: per-user auth (HMAC-MD5/SHA) + privacy (DES/AES). v1 and v2c rely only on community strings — plaintext password. v4 doesn\'t exist on the CCNA. Use v3 in production.'},
+    {q:'Which version uses community strings only?',a:'v1 and v2c',o:['v1 only','v2c only','v1 and v2c','v3'],why:'v1 and v2c both authenticate with community strings (the "c" in v2c = community-based). v3 abandoned that for proper users + auth + privacy. If you see `snmp-server community public RO` you\'re in v1/v2c land.'},
+    {q:'Difference between Trap and Inform?',a:'Inform requires acknowledgment',o:['Inform requires acknowledgment','Trap is encrypted','Inform is faster','no difference'],why:'Trap = fire-and-forget (UDP, no ACK). Inform = ACKed (agent retransmits if NMS doesn\'t respond). Inform is reliable but heavier. Use Inform for events you can\'t afford to lose; Trap for high-volume telemetry.'},
+    {q:'sysUpTime OID is 1.3.6.1.2.1.1.3.0. What does the leading 1.3.6.1 represent?',a:'iso.org.dod.internet',o:['iso.org.dod.internet','cisco enterprise','private mgmt','interface stats'],why:'OIDs walk a global tree: 1=iso, 1.3=org, 1.3.6=dod, 1.3.6.1=internet. From there, 2.1 = mgmt.mib-2 (standard), 4.1 = private.enterprises (vendor-specific, .9 = Cisco). The first 4 numbers root every OID.'},
+    {q:'GetBulk was introduced in…',a:'v2c',o:['v1','v2c','v3','all'],why:'v1 had only Get/GetNext/Set. v2c added GetBulk to walk many MIB rows in one request — much faster than thousands of GetNext calls. v3 added security but kept v2c\'s PDU set.'},
+    {q:'Best v3 security level?',a:'authPriv',o:['noAuthNoPriv','authNoPriv','authPriv','community'],why:'v3 has 3 levels: noAuthNoPriv (basically equivalent to community), authNoPriv (signed but cleartext), authPriv (signed AND encrypted). Production = authPriv with SHA + AES. Anything less is a fig leaf.'},
+    {q:'Which is unsolicited (agent-initiated)?',a:'Trap',o:['Get','GetNext','Set','Trap'],why:'Get / GetNext / GetBulk / Set are NMS-initiated polls. Trap (and Inform) is agent-initiated — the device pushes an alert when something happens (link down, threshold crossed) without waiting to be polled.'},
+    {q:'A community string acts like…',a:'a plaintext password',o:['a plaintext password','an encryption key','a hostname','an MAC address'],why:'Community = plaintext shared secret in v1/v2c. Travels in cleartext over UDP. Anyone sniffing UDP/161 grabs it. That\'s why v3 exists. Common defaults to NEVER leave: `public` (RO), `private` (RW).'}
   ];
   function pick(){
     var q=pool[Math.floor(Math.random()*pool.length)];
     document.getElementById('qStem').textContent=q.q;
     var box=document.getElementById('qOpts'); box.innerHTML='';
+    var why=document.getElementById('qWhy'); why.classList.remove('show'); why.textContent='';
     q.o.slice().sort(function(){return Math.random()-.5}).forEach(function(o){
       var b=document.createElement('button'); b.className='opt'; b.textContent=o;
       b.addEventListener('click',function(){
         if(b.classList.contains('correct')||b.classList.contains('wrong'))return;
         if(o===q.a){b.classList.add('correct');qC++} else{b.classList.add('wrong');qW++; Array.prototype.forEach.call(box.children,function(c){if(c.textContent===q.a)c.classList.add('correct')})}
+        why.textContent='↳ '+q.why; why.classList.add('show');
         document.getElementById('qC').textContent=qC; document.getElementById('qW').textContent=qW;
       });
       box.appendChild(b);

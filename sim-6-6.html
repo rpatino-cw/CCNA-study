@@ -48,6 +48,9 @@
   .opt.wrong{background:var(--wrong-bg);border-color:var(--wrong);color:var(--wrong)}
   .scoreline{font-family:var(--font-mono);font-size:.84rem;color:var(--ink-muted);margin-top:10px;display:flex;gap:18px;align-items:center}
   .scoreline strong{font-weight:700;color:var(--ink)}
+  .why{font-family:var(--font-mono);font-size:.82rem;color:var(--ink-secondary);margin-top:10px;padding:10px 12px;background:var(--bg-recessed);border-left:3px solid var(--accent-soft);border-radius:var(--radius);display:none;line-height:1.55}
+  .why.show{display:block;animation:fadeIn .25s ease}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
   .badge{display:inline-block;font-family:var(--font-display);font-size:.7rem;font-weight:700;padding:2px 8px;border-radius:99px;background:var(--accent-light);color:var(--accent);text-transform:uppercase;letter-spacing:.04em;margin-left:8px}
   .footer-link{margin-top:24px;padding-top:14px;border-top:1px solid var(--border);font-family:var(--font-mono);font-size:.82rem}
   .footer-link a{color:var(--accent);text-decoration:none}
@@ -113,6 +116,7 @@
   <h2>Quiz mode</h2>
   <div class="stem" id="quizStem">Loading…</div>
   <div class="opts" id="quizOpts"></div>
+  <div class="why" id="quizWhy"></div>
   <div class="scoreline">
     <span><strong id="qCorrect">0</strong> correct</span>
     <span><strong id="qWrong">0</strong> wrong</span>
@@ -148,22 +152,23 @@
 
   var qCorrect=0, qWrong=0, qStreak=0;
   var pool = [
-    { stem:'LLM stands for:', opts:['Long-lived memory','Large Language Model','Layer-link mediator','Local LAN matcher'], ans:'Large Language Model' },
-    { stem:'Hallucination in LLMs means:', opts:['LLM crash','Confident output that\'s actually false','Slow response','Image generation'], ans:'Confident output that\'s actually false' },
-    { stem:'RAG stands for:', opts:['Retrieval-Augmented Generation','Random Access Generator','Routed AI Graph','Recurrent Attention Gate'], ans:'Retrieval-Augmented Generation' },
-    { stem:'Best way to reduce hallucination on company-specific facts:', opts:['Higher temperature','RAG with company docs','Bigger model','Longer prompt'], ans:'RAG with company docs' },
-    { stem:'Temperature controls:', opts:['Speed','Randomness/creativity of output','Token count','Latency'], ans:'Randomness/creativity of output' },
-    { stem:'Context window =', opts:['CPU cycles','Max tokens model can read at once','Display size','Wall-clock latency'], ans:'Max tokens model can read at once' },
-    { stem:'A token is roughly:', opts:['1 character','1 word always','~4 chars / sub-word unit','1 sentence'], ans:'~4 chars / sub-word unit' },
-    { stem:'Strong prompts typically include:', opts:['Just the question','Role + task + format + constraints','Long backstory','Random context'], ans:'Role + task + format + constraints' },
-    { stem:'Fine-tuning differs from RAG because:', opts:['Same thing','Fine-tuning re-trains weights; RAG injects docs at runtime','Fine-tuning is cheaper','RAG requires GPUs'], ans:'Fine-tuning re-trains weights; RAG injects docs at runtime' },
-    { stem:'Safe-use rule for LLM-generated config:', opts:['Apply directly','Always verify against docs/test before applying','Email to manager','Print and shred'], ans:'Always verify against docs/test before applying' }
+    { stem:'LLM stands for:', opts:['Long-lived memory','Large Language Model','Layer-link mediator','Local LAN matcher'], ans:'Large Language Model', why:'LLM = Large Language Model. Trained on tens of billions of parameters from text. Predicts next token given prior context. GPT, Claude, Gemini, Llama are all LLMs.' },
+    { stem:'Hallucination in LLMs means:', opts:['LLM crash','Confident output that\'s actually false','Slow response','Image generation'], ans:'Confident output that\'s actually false', why:'Hallucination = the model confidently states something incorrect. Risk is highest on niche facts, version-specific info, internal docs. Why network engineers should NEVER paste LLM-generated config into prod without verifying.' },
+    { stem:'RAG stands for:', opts:['Retrieval-Augmented Generation','Random Access Generator','Routed AI Graph','Recurrent Attention Gate'], ans:'Retrieval-Augmented Generation', why:'RAG retrieves relevant docs at query time and feeds them to the LLM as context. Reduces hallucination on company-specific or recent info. Pattern: vector-search → retrieve top-K → inject into prompt → LLM answers.' },
+    { stem:'Best way to reduce hallucination on company-specific facts:', opts:['Higher temperature','RAG with company docs','Bigger model','Longer prompt'], ans:'RAG with company docs', why:'No model knows YOUR ACL standards or your VLAN scheme. RAG indexes your docs and pulls them into the prompt. Higher temperature = MORE hallucination. Bigger models help slightly but don\'t fix domain-specific gaps.' },
+    { stem:'Temperature controls:', opts:['Speed','Randomness/creativity of output','Token count','Latency'], ans:'Randomness/creativity of output', why:'Temperature 0 = always pick highest-probability token (deterministic). 1+ = sample from softmax distribution (creative, riskier). For factual/config use, 0–0.3. For brainstorming, 0.7–1.0.' },
+    { stem:'Context window =', opts:['CPU cycles','Max tokens the model can read at once','Display size','Wall-clock latency'], ans:'Max tokens the model can read at once', why:'Context window caps how much input + output the model can hold simultaneously. 8K, 32K, 128K, 1M tokens depending on model. Past the limit, oldest content gets cut off (or you fail).' },
+    { stem:'A token is roughly:', opts:['1 character','1 word always','~4 chars / sub-word unit','1 sentence'], ans:'~4 chars / sub-word unit', why:'Tokens are sub-word pieces from a tokenizer. English averages ~4 chars per token, ~0.75 tokens per word. "OSPF" might be 2 tokens. Code/JSON uses more tokens per visible character than English prose.' },
+    { stem:'Strong prompts typically include:', opts:['Just the question','Role + task + format + constraints','Long backstory','Random context'], ans:'Role + task + format + constraints', why:'Strong prompt: "You are a CCNA tutor (role). Explain BPDU Guard (task) in 3 bullets (format). Don\'t mention port-security (constraint)." Each component reduces ambiguity and improves output reliability.' },
+    { stem:'Fine-tuning differs from RAG because:', opts:['Same thing','Fine-tuning re-trains weights; RAG injects docs at runtime','Fine-tuning is cheaper','RAG requires GPUs'], ans:'Fine-tuning re-trains weights; RAG injects docs at runtime', why:'Fine-tuning permanently bakes new behavior/knowledge into model weights — expensive, slow, hard to update. RAG keeps the model untouched and supplements at query time — cheap, fast to update, easier to audit.' },
+    { stem:'Safe-use rule for LLM-generated config:', opts:['Apply directly','Always verify against docs/test before applying','Email to manager','Print and shred'], ans:'Always verify against docs/test before applying', why:'LLMs hallucinate plausible-looking commands that don\'t exist or have wrong syntax for the target IOS version. Always paste output into a lab device or vendor docs before applying to production. Treat AI like a smart but unreliable junior.' }
   ];
   function pickQ(){
     var q = pool[Math.floor(Math.random()*pool.length)];
     var opts = q.opts.slice().sort(function(){return Math.random()-.5;});
     document.getElementById('quizStem').textContent = q.stem;
     var bx = document.getElementById('quizOpts'); bx.innerHTML='';
+    var why=document.getElementById('quizWhy'); why.classList.remove('show'); why.textContent='';
     opts.forEach(function(o){
       var btn = document.createElement('button');
       btn.className='opt'; btn.textContent=o;
@@ -172,6 +177,7 @@
         if (o===q.ans){ btn.classList.add('correct'); qCorrect++; qStreak++; }
         else { btn.classList.add('wrong'); qWrong++; qStreak=0;
           Array.prototype.forEach.call(bx.children, function(c){ if (c.textContent===q.ans) c.classList.add('correct'); }); }
+        why.textContent='↳ '+q.why; why.classList.add('show');
         document.getElementById('qCorrect').textContent=qCorrect;
         document.getElementById('qWrong').textContent=qWrong;
         document.getElementById('qStreak').textContent=qStreak;
