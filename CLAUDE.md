@@ -46,10 +46,28 @@ Fonts load from `<link>` tags in HTML `<head>`, NOT from CSS `@import`. Every pa
 <link rel="stylesheet" href="css/shared.css">
 ```
 
+## AI Tutor Chat Box (MANDATORY on every page)
+
+Every site page must mount the floating AI tutor before `</body>`:
+
+```html
+<script defer src="js/tutor.js"></script>
+</body>
+```
+
+Subdirectory pages use `../js/tutor.js`. Exclusions are hardcoded in
+`scripts/verify-tutor-coverage.sh` (chat.html, regression fixtures,
+worktrees, worker source, external/, ekere-labs TWA shell). Adding a new
+page without the tutor blocks `git push` via the pre-push hook.
+
+When scaffolding a new page, copy the script tag in the same patch — never
+"add it later." The lint will catch it, but the keystroke cost up front is
+zero.
+
 ## Auto-changelog
 
 Pre-push hook (`hooks/pre-push`) auto-bumps the version and updates `changelog.html` on every push. Script: `scripts/auto-changelog.sh`.
 
 ## Pre-push Checks
 
-The pre-push hook runs (in order): auto-changelog, lint checks, exam integrity, nav refs, smoke tests, nav click-tests, visual regression, and Lighthouse CI audit. Lighthouse blocks push if perf < 70, a11y < 85, or best-practices < 80.
+The pre-push hook runs (in order): auto-changelog, lint checks, exam integrity, nav refs, nav coverage, pages-index, **tutor coverage**, smoke tests, nav click-tests, e2e skip-flow, visual regression, and Lighthouse CI audit. Lighthouse blocks push if perf < 70, a11y < 85, or best-practices < 80.
