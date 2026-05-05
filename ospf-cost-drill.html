@@ -4,10 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#FAF7F2">
-  <title>OSPF Cost Drill — Path Cost Calculation</title>
+  <title>OSPF · Path Cost — CCNA</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
   <link rel="icon" type="image/svg+xml" href="/CCNA-study/favicon.svg">
   <link rel="stylesheet" href="css/shared.css?v=4.56">
   <style>
@@ -103,23 +102,28 @@
             <button class="pill" data-qt="best" onclick="setQT(this)">Best path</button>
             <button class="pill" data-qt="reverse" onclick="setQT(this)">Bandwidth needed</button>
           </div>
-          <div class="drill-meta">
-            <span>Streak <strong class="dm-val" id="ocStreak">0</strong></span>
-            <span>Best <strong class="dm-val" id="ocBest">--</strong></span>
-            <span>Score <strong class="dm-val" id="ocScore">0/0</strong></span>
-            <button class="btn-action ghost" style="margin-left:auto;font-size:0.75rem;padding:5px 12px" onclick="ocReset()">Reset score</button>
+          <div class="drill-meta-compact">
+            <span>Streak <strong class="dmc-val" id="ocStreak">0</strong></span>
+            <span class="dmc-sep">·</span>
+            <span>Best <strong class="dmc-val" id="ocBest">--</strong></span>
+            <span class="dmc-sep">·</span>
+            <span><strong class="dmc-val" id="ocScore">0/0</strong></span>
+            <button class="dmc-reset" onclick="ocReset()">reset</button>
           </div>
 
           <div class="q-card">
-            <div class="q-prompt" id="ocPrompt">Click <em>New question</em> to begin.</div>
+            <div class="q-prompt q-prompt-big" id="ocPrompt">Click <em>New question</em> to begin.</div>
             <div class="q-meta" id="ocMeta"></div>
             <div class="topo-block" id="ocTopo" style="display:none"></div>
+            <div class="viz-block" id="ocPathViz" style="display:none"></div>
             <div id="ocInputArea"></div>
             <div class="actions">
               <button class="btn-action" onclick="ocCheck()">Check</button>
-              <button class="btn-action secondary" onclick="ocHint()">Hint</button>
+              <button class="btn-action btn-hint" onclick="ocHint()">Hint</button>
               <button class="btn-action ghost" onclick="ocNew()">New question</button>
             </div>
+            
+            <div class="kbd-hint"><kbd>Enter</kbd> check · <kbd>N</kbd> new question</div>
             <div class="feedback" id="ocFeedback"></div>
           </div>
 
@@ -379,6 +383,21 @@ document.addEventListener('DOMContentLoaded', function(){
     var topo = document.getElementById('ocTopo');
     if (q.topo) { topo.style.display = 'block'; topo.innerHTML = q.topo; }
     else { topo.style.display = 'none'; topo.innerHTML = ''; }
+    var pathViz = document.getElementById('ocPathViz');
+    if (q.type === 'path' && q.routers && q.links) {
+      var parts = ['<div class="path-cost-line">'];
+      q.routers.forEach(function(r, i){
+        var isLast = i === q.routers.length - 1;
+        parts.push('<div class="pcl-node' + (isLast ? ' is-root' : '') + '">' + r + (isLast ? ' ★' : '') + '</div>');
+        if (!isLast) {
+          parts.push('<div class="pcl-link"><span>' + q.links[i].label + '<br>cost ' + q.costs[i] + '</span></div>');
+        }
+      });
+      parts.push('</div>');
+      pathViz.innerHTML = parts.join('');
+      pathViz.style.display = 'block';
+      topo.style.display = 'none';
+    } else { pathViz.style.display = 'none'; }
     document.getElementById('ocFeedback').className = 'feedback';
     document.getElementById('ocFeedback').textContent = '';
     document.getElementById('ocTeach').style.display = 'none';
@@ -533,6 +552,23 @@ document.addEventListener('DOMContentLoaded', function(){
     state.qt = btn.dataset.qt;
     window.ocNew();
   };
+    // Streak milestone celebration
+    (function(){
+      var streakEl = document.getElementById('ocStreak');
+      if (!streakEl) return;
+      var observer = new MutationObserver(function(mutations){
+        mutations.forEach(function(m){
+          var v = parseInt(streakEl.textContent, 10);
+          if (v === 5 || v === 10 || v === 25) {
+            streakEl.classList.remove('milestone-flash');
+            void streakEl.offsetWidth;
+            streakEl.classList.add('milestone-flash');
+          }
+        });
+      });
+      observer.observe(streakEl, { childList: true, characterData: true, subtree: true });
+    })();
+
 
   // Init
   document.getElementById('ocBest').textContent = state.best || '--';

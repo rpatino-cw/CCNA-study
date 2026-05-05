@@ -4,10 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#FAF7F2">
-  <title>DHCP Drill — DORA, Options, Relay</title>
+  <title>DHCP · DORA, Options, Relay — CCNA</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
   <link rel="icon" type="image/svg+xml" href="/CCNA-study/favicon.svg">
   <link rel="stylesheet" href="css/shared.css?v=4.56">
   <style>
@@ -77,22 +76,37 @@
             <button class="pill" data-qt="ports" onclick="setQT(this)">Ports / direction</button>
             <button class="pill" data-qt="lease" onclick="setQT(this)">Lease renewal</button>
           </div>
-          <div class="drill-meta">
-            <span>Streak <strong class="dm-val" id="dhStreak">0</strong></span>
-            <span>Best <strong class="dm-val" id="dhBest">--</strong></span>
-            <span>Score <strong class="dm-val" id="dhScore">0/0</strong></span>
-            <button class="btn-action ghost" style="margin-left:auto;font-size:0.75rem;padding:5px 12px" onclick="dhReset()">Reset</button>
+          <div class="drill-meta-compact">
+            <span>Streak <strong class="dmc-val" id="dhStreak">0</strong></span>
+            <span class="dmc-sep">·</span>
+            <span>Best <strong class="dmc-val" id="dhBest">--</strong></span>
+            <span class="dmc-sep">·</span>
+            <span><strong class="dmc-val" id="dhScore">0/0</strong></span>
+            <button class="dmc-reset" onclick="dhReset()">reset</button>
           </div>
           <div class="q-card">
-            <div class="q-prompt" id="dhPrompt"></div>
+            <div class="q-prompt q-prompt-big" id="dhPrompt"></div>
+            <div class="viz-block" id="dhDoraFlow" style="display:none">
+              <div class="dora-flow">
+                <div class="dora-step" data-step="discover"><span class="dora-letter">D</span><span class="dora-name">Discover</span></div>
+                <span class="dora-arrow">→</span>
+                <div class="dora-step" data-step="offer"><span class="dora-letter">O</span><span class="dora-name">Offer</span></div>
+                <span class="dora-arrow">→</span>
+                <div class="dora-step" data-step="request"><span class="dora-letter">R</span><span class="dora-name">Request</span></div>
+                <span class="dora-arrow">→</span>
+                <div class="dora-step" data-step="ack"><span class="dora-letter">A</span><span class="dora-name">Ack</span></div>
+              </div>
+            </div>
             <div class="scenario" id="dhScenario" style="display:none"></div>
             <div class="config-block" id="dhConfig" style="display:none"></div>
             <div id="dhInputArea"></div>
             <div class="actions">
               <button class="btn-action" onclick="dhCheck()">Check</button>
-              <button class="btn-action secondary" onclick="dhHint()">Hint</button>
+              <button class="btn-action btn-hint" onclick="dhHint()">Hint</button>
               <button class="btn-action ghost" onclick="dhNew()">New question</button>
             </div>
+            
+            <div class="kbd-hint"><kbd>Enter</kbd> check · <kbd>N</kbd> new question</div>
             <div class="feedback" id="dhFeedback"></div>
           </div>
           <div class="teach" id="dhTeach" style="display:none">
@@ -286,6 +300,14 @@ document.addEventListener('DOMContentLoaded', function(){
     document.getElementById('dhFeedback').className = 'feedback';
     document.getElementById('dhFeedback').textContent = '';
     document.getElementById('dhTeach').style.display = 'none';
+    var doraFlow = document.getElementById('dhDoraFlow');
+    var currentStep = (q.answer || '').toLowerCase();
+    if (q.type === 'dora' && /^(discover|offer|request|ack)$/.test(currentStep)) {
+      doraFlow.style.display = 'block';
+      doraFlow.querySelectorAll('.dora-step').forEach(function(s){
+        s.classList.toggle('dora-active', s.dataset.step === currentStep);
+      });
+    } else { doraFlow.style.display = 'none'; }
     var cfg = document.getElementById('dhConfig');
     if (q.config) {
       cfg.style.display = 'block';
@@ -349,6 +371,23 @@ document.addEventListener('DOMContentLoaded', function(){
   window.setQT = function(btn) { document.querySelectorAll('.pill[data-qt]').forEach(function(p){p.classList.remove('active');}); btn.classList.add('active'); state.qt = btn.dataset.qt; window.dhNew(); };
 
   document.getElementById('dhBest').textContent = state.best || '--';
+    // Streak milestone celebration
+    (function(){
+      var streakEl = document.getElementById('dhStreak');
+      if (!streakEl) return;
+      var observer = new MutationObserver(function(mutations){
+        mutations.forEach(function(m){
+          var v = parseInt(streakEl.textContent, 10);
+          if (v === 5 || v === 10 || v === 25) {
+            streakEl.classList.remove('milestone-flash');
+            void streakEl.offsetWidth;
+            streakEl.classList.add('milestone-flash');
+          }
+        });
+      });
+      observer.observe(streakEl, { childList: true, characterData: true, subtree: true });
+    })();
+
   window.dhNew();
 });
 </script>

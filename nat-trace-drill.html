@@ -4,10 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#FAF7F2">
-  <title>NAT Translation Trace — CCNA Drill</title>
+  <title>NAT · Translation Trace — CCNA</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
   <link rel="icon" type="image/svg+xml" href="/CCNA-study/favicon.svg">
   <link rel="stylesheet" href="css/shared.css?v=4.56">
   <style>
@@ -102,23 +101,28 @@
             <button class="pill" data-qt="reverse" onclick="setQT(this)">Reverse trace</button>
             <button class="pill" data-qt="identify" onclick="setQT(this)">Identify NAT type</button>
           </div>
-          <div class="drill-meta">
-            <span>Streak <strong class="dm-val" id="ntStreak">0</strong></span>
-            <span>Best <strong class="dm-val" id="ntBest">--</strong></span>
-            <span>Score <strong class="dm-val" id="ntScore">0/0</strong></span>
-            <button class="btn-action ghost" style="margin-left:auto;font-size:0.75rem;padding:5px 12px" onclick="ntReset()">Reset score</button>
+          <div class="drill-meta-compact">
+            <span>Streak <strong class="dmc-val" id="ntStreak">0</strong></span>
+            <span class="dmc-sep">·</span>
+            <span>Best <strong class="dmc-val" id="ntBest">--</strong></span>
+            <span class="dmc-sep">·</span>
+            <span><strong class="dmc-val" id="ntScore">0/0</strong></span>
+            <button class="dmc-reset" onclick="ntReset()">reset</button>
           </div>
 
           <div class="q-card">
-            <div class="q-prompt" id="ntPrompt"></div>
+            <div class="q-prompt q-prompt-big" id="ntPrompt"></div>
             <div class="config-block" id="ntConfig"></div>
             <div class="scenario-block" id="ntScenario"></div>
+            <div class="viz-block" id="ntHeaders" style="display:none"></div>
             <div id="ntInputArea"></div>
             <div class="actions">
               <button class="btn-action" onclick="ntCheck()">Check</button>
-              <button class="btn-action secondary" onclick="ntHint()">Hint</button>
+              <button class="btn-action btn-hint" onclick="ntHint()">Hint</button>
               <button class="btn-action ghost" onclick="ntNew()">New question</button>
             </div>
+            
+            <div class="kbd-hint"><kbd>Enter</kbd> check · <kbd>N</kbd> new question</div>
             <div class="feedback" id="ntFeedback"></div>
           </div>
 
@@ -395,6 +399,38 @@ document.addEventListener('DOMContentLoaded', function(){
     document.getElementById('ntPrompt').innerHTML = q.type === 'identify' ? 'Identify the NAT type from the config:' : 'Trace the NAT translation:';
     document.getElementById('ntConfig').innerHTML = renderConfig(q.config);
     document.getElementById('ntScenario').innerHTML = q.scenario;
+    var hdr = document.getElementById('ntHeaders');
+    if (q.type === 'static' || q.type === 'pat' || q.type === 'reverse') {
+      var beforeSrc, beforeDst, afterSrc, afterDst, beforeProto = 'tcp';
+      if (q.type === 'static') {
+        beforeSrc = q.config.find(function(l){return /static/.test(l);}).split(/\s+/).slice(-2)[0];
+        afterSrc = q.answer;
+        beforeDst = '8.8.8.8:443'; afterDst = beforeDst;
+      } else if (q.type === 'pat') {
+        beforeSrc = q.assignments[q.askIdx].host + ':' + q.assignments[q.askIdx].srcPort;
+        afterSrc = q.answer;
+        beforeDst = '8.8.8.8:443'; afterDst = beforeDst;
+      } else { // reverse
+        beforeSrc = '8.8.8.8:443'; afterSrc = beforeSrc;
+        beforeDst = (function(){ for (var i = 2; i < q.config.length; i++) { var parts = q.config[i].split(/\s+/); if (parts[1]) return parts[1]; } return '?'; })();
+        afterDst = q.answer;
+      }
+      hdr.innerHTML =
+        '<div class="nat-headers">' +
+          '<div class="nat-pkt">' +
+            '<div class="nat-label">' + (q.type === 'reverse' ? 'Inbound (before de-NAT)' : 'Inside (before NAT)') + '</div>' +
+            '<div class="nat-row"><span class="nat-key">src</span><span>' + beforeSrc + '</span></div>' +
+            '<div class="nat-row"><span class="nat-key">dst</span><span>' + beforeDst + '</span></div>' +
+          '</div>' +
+          '<div class="nat-arrow-big">→</div>' +
+          '<div class="nat-pkt">' +
+            '<div class="nat-label">' + (q.type === 'reverse' ? 'Inside (after de-NAT)' : 'Outside (after NAT)') + '</div>' +
+            '<div class="nat-row ' + (beforeSrc !== afterSrc ? 'nat-changed' : '') + '"><span class="nat-key">src</span><span>' + afterSrc + '</span></div>' +
+            '<div class="nat-row ' + (beforeDst !== afterDst ? 'nat-changed' : '') + '"><span class="nat-key">dst</span><span>' + afterDst + '</span></div>' +
+          '</div>' +
+        '</div>';
+      hdr.style.display = 'block';
+    } else { hdr.style.display = 'none'; }
     document.getElementById('ntFeedback').className = 'feedback';
     document.getElementById('ntFeedback').textContent = '';
     document.getElementById('ntTeach').style.display = 'none';
@@ -487,6 +523,23 @@ document.addEventListener('DOMContentLoaded', function(){
   };
 
   document.getElementById('ntBest').textContent = state.best || '--';
+    // Streak milestone celebration
+    (function(){
+      var streakEl = document.getElementById('ntStreak');
+      if (!streakEl) return;
+      var observer = new MutationObserver(function(mutations){
+        mutations.forEach(function(m){
+          var v = parseInt(streakEl.textContent, 10);
+          if (v === 5 || v === 10 || v === 25) {
+            streakEl.classList.remove('milestone-flash');
+            void streakEl.offsetWidth;
+            streakEl.classList.add('milestone-flash');
+          }
+        });
+      });
+      observer.observe(streakEl, { childList: true, characterData: true, subtree: true });
+    })();
+
   window.ntNew();
 });
 </script>

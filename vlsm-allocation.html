@@ -4,10 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#FAF7F2">
-  <title>VLSM Allocation Worksheet — CCNA Practice</title>
+  <title>VLSM · Allocation Worksheet — CCNA</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
   <link rel="icon" type="image/svg+xml" href="/CCNA-study/favicon.svg">
   <link rel="stylesheet" href="css/shared.css?v=4.56">
   <style>
@@ -173,16 +172,19 @@
             <button class="pill" data-diff="medium" onclick="setDiff(this)">Medium (4 depts)</button>
             <button class="pill" data-diff="hard" onclick="setDiff(this)">Hard (5–6 depts)</button>
           </div>
-          <div class="drill-meta">
-            <span>Streak <strong class="dm-val" id="vsStreak">0</strong></span>
-            <span>Best <strong class="dm-val" id="vsBest">--</strong></span>
-            <span>Solved <strong class="dm-val" id="vsScore">0/0</strong></span>
-            <button class="btn-action ghost" style="margin-left:auto;font-size:0.75rem;padding:5px 12px" onclick="vsReset()">Reset score</button>
+          <div class="drill-meta-compact">
+            <span>Streak <strong class="dmc-val" id="vsStreak">0</strong></span>
+            <span class="dmc-sep">·</span>
+            <span>Best <strong class="dmc-val" id="vsBest">--</strong></span>
+            <span class="dmc-sep">·</span>
+            <span><strong class="dmc-val" id="vsScore">0/0</strong></span>
+            <button class="dmc-reset" onclick="vsReset()">reset</button>
           </div>
 
           <div class="scenario-card">
             <div class="parent-line">Parent network: <strong id="vsParent"></strong></div>
             <div class="parent-meta" id="vsParentMeta"></div>
+            <div class="vlsm-bar" id="vsBlockBar" style="margin-bottom:14px"></div>
 
             <table class="alloc-table">
               <thead>
@@ -200,10 +202,12 @@
 
             <div class="actions">
               <button class="btn-action" onclick="vsCheckRow()">Check current row</button>
-              <button class="btn-action secondary" onclick="vsHint()">Hint</button>
+              <button class="btn-action btn-hint" onclick="vsHint()">Hint</button>
               <button class="btn-action ghost" onclick="vsNew()">New scenario</button>
               <button class="btn-action ghost" onclick="vsRevealAll()">Reveal all</button>
             </div>
+            
+            <div class="kbd-hint"><kbd>Enter</kbd> check · <kbd>N</kbd> new question</div>
             <div class="feedback" id="vsFeedback"></div>
           </div>
 
@@ -463,6 +467,24 @@ document.addEventListener('DOMContentLoaded', function(){
     });
     document.getElementById('vsTbody').innerHTML = html;
 
+    // Block chunk visualization
+    var bar = document.getElementById('vsBlockBar');
+    if (bar && s) {
+      var parentSize = Math.pow(2, 32 - s.parent.cidr);
+      var allocated = 0;
+      var chunks = [];
+      s.rows.forEach(function(r, i){
+        var pct = (r.block / parentSize) * 100;
+        var cls = state.rowStatus[i] === 'ok' ? 'vc-allocated' : (i === state.rowIdx ? 'vc-current' : 'vc-free');
+        chunks.push('<div class="vlsm-chunk ' + cls + '" style="flex:0 0 ' + pct.toFixed(2) + '%" title="' + r.name + ' /' + r.prefix + '">' + r.name + ' /' + r.prefix + '</div>');
+        allocated += r.block;
+      });
+      var freePct = ((parentSize - allocated) / parentSize) * 100;
+      if (freePct > 0.5) {
+        chunks.push('<div class="vlsm-chunk vc-free" style="flex:0 0 ' + freePct.toFixed(2) + '%">free</div>');
+      }
+      bar.innerHTML = chunks.join('');
+    }
     var nextEl = document.getElementById('vsNet' + state.rowIdx);
     if (nextEl) nextEl.focus();
   }
@@ -608,6 +630,23 @@ document.addEventListener('DOMContentLoaded', function(){
     state.diff = btn.dataset.diff;
     window.vsNew();
   };
+    // Streak milestone celebration
+    (function(){
+      var streakEl = document.getElementById('vsStreak');
+      if (!streakEl) return;
+      var observer = new MutationObserver(function(mutations){
+        mutations.forEach(function(m){
+          var v = parseInt(streakEl.textContent, 10);
+          if (v === 5 || v === 10 || v === 25) {
+            streakEl.classList.remove('milestone-flash');
+            void streakEl.offsetWidth;
+            streakEl.classList.add('milestone-flash');
+          }
+        });
+      });
+      observer.observe(streakEl, { childList: true, characterData: true, subtree: true });
+    })();
+
 
   // Init
   document.getElementById('vsBest').textContent = state.best || '--';

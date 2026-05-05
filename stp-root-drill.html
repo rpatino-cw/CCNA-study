@@ -4,10 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#FAF7F2">
-  <title>STP Root Bridge Drill — Bridge ID Math</title>
+  <title>STP · Root Bridge — CCNA</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
   <link rel="icon" type="image/svg+xml" href="/CCNA-study/favicon.svg">
   <link rel="stylesheet" href="css/shared.css?v=4.56">
   <style>
@@ -76,21 +75,26 @@
             <button class="pill" data-qt="cost" onclick="setQT(this)">Path cost to root</button>
             <button class="pill" data-qt="priority" onclick="setQT(this)">Priority for VLAN</button>
           </div>
-          <div class="drill-meta">
-            <span>Streak <strong class="dm-val" id="srStreak">0</strong></span>
-            <span>Best <strong class="dm-val" id="srBest">--</strong></span>
-            <span>Score <strong class="dm-val" id="srScore">0/0</strong></span>
-            <button class="btn-action ghost" style="margin-left:auto;font-size:0.75rem;padding:5px 12px" onclick="srReset()">Reset</button>
+          <div class="drill-meta-compact">
+            <span>Streak <strong class="dmc-val" id="srStreak">0</strong></span>
+            <span class="dmc-sep">·</span>
+            <span>Best <strong class="dmc-val" id="srBest">--</strong></span>
+            <span class="dmc-sep">·</span>
+            <span><strong class="dmc-val" id="srScore">0/0</strong></span>
+            <button class="dmc-reset" onclick="srReset()">reset</button>
           </div>
           <div class="q-card">
-            <div class="q-prompt" id="srPrompt"></div>
+            <div class="q-prompt q-prompt-big" id="srPrompt"></div>
+            <div class="viz-block" id="srTopoSvg" style="display:none"></div>
             <div id="srBody"></div>
             <div id="srInputArea"></div>
             <div class="actions">
               <button class="btn-action" onclick="srCheck()">Check</button>
-              <button class="btn-action secondary" onclick="srHint()">Hint</button>
+              <button class="btn-action btn-hint" onclick="srHint()">Hint</button>
               <button class="btn-action ghost" onclick="srNew()">New question</button>
             </div>
+            
+            <div class="kbd-hint"><kbd>Enter</kbd> check · <kbd>N</kbd> new question</div>
             <div class="feedback" id="srFeedback"></div>
           </div>
           <div class="teach" id="srTeach" style="display:none">
@@ -287,6 +291,38 @@ document.addEventListener('DOMContentLoaded', function(){
     document.getElementById('srFeedback').textContent = '';
     document.getElementById('srTeach').style.display = 'none';
 
+    var topoBox = document.getElementById('srTopoSvg');
+    if (q.type === 'root') {
+      var n = q.switches.length;
+      var W = 520, H = 200;
+      var radius = 70;
+      var cx = W/2, cy = H/2 + 10;
+      var svgParts = ['<svg class="topo-svg" viewBox="0 0 ' + W + ' ' + H + '">'];
+      var positions = [];
+      for (var i = 0; i < n; i++) {
+        var angle = (i / n) * 2 * Math.PI - Math.PI/2;
+        positions.push({ x: cx + radius * Math.cos(angle) * 1.5, y: cy + radius * Math.sin(angle) });
+      }
+      // Draw mesh edges
+      for (var i = 0; i < n; i++) {
+        for (var j = i + 1; j < n; j++) {
+          svgParts.push('<line class="topo-link" x1="' + positions[i].x + '" y1="' + positions[i].y + '" x2="' + positions[j].x + '" y2="' + positions[j].y + '"/>');
+        }
+      }
+      // Draw switch nodes (root reveal happens after check)
+      q.switches.forEach(function(s, i){
+        var p = positions[i];
+        svgParts.push('<rect class="switch-node" x="' + (p.x - 30) + '" y="' + (p.y - 18) + '" width="60" height="36" rx="4"/>');
+        svgParts.push('<text x="' + p.x + '" y="' + (p.y + 4) + '" text-anchor="middle">' + s.name + '</text>');
+      });
+      svgParts.push('</svg>');
+      topoBox.innerHTML = svgParts.join('');
+      topoBox.style.display = 'block';
+      topoBox.dataset.switches = JSON.stringify(q.switches.map(function(s){return s.name;}));
+      topoBox.dataset.winner = q.winner.name;
+    } else {
+      topoBox.style.display = 'none';
+    }
     var body = document.getElementById('srBody');
     if (q.type === 'root') {
       var rows = q.switches.map(function(s){ return '<tr><td>' + s.name + '</td><td>' + s.priority + '</td><td>' + s.mac + '</td></tr>'; }).join('');
@@ -314,6 +350,16 @@ document.addEventListener('DOMContentLoaded', function(){
     document.getElementById('srTeachBody').innerHTML = html;
     document.getElementById('srTeach').style.display = state.teachOpen ? 'block' : 'none';
     if (state.current.type === 'root') {
+      // Highlight root in SVG topology
+      var topoBox = document.getElementById('srTopoSvg');
+      if (topoBox && topoBox.dataset.switches) {
+        var names = JSON.parse(topoBox.dataset.switches);
+        var winnerIdx = names.indexOf(topoBox.dataset.winner);
+        var rects = topoBox.querySelectorAll('rect.switch-node');
+        if (rects[winnerIdx]) rects[winnerIdx].classList.add('is-root');
+        var texts = topoBox.querySelectorAll('text');
+        if (texts[winnerIdx]) texts[winnerIdx].classList.add('root-label');
+      }
       var rows = document.querySelectorAll('.switch-table tbody tr');
       rows.forEach(function(r){
         if (r.cells[0].textContent === state.current.winner.name) r.classList.add('winner');
@@ -367,6 +413,23 @@ document.addEventListener('DOMContentLoaded', function(){
   window.setQT = function(btn) { document.querySelectorAll('.pill[data-qt]').forEach(function(p){p.classList.remove('active');}); btn.classList.add('active'); state.qt = btn.dataset.qt; window.srNew(); };
 
   document.getElementById('srBest').textContent = state.best || '--';
+    // Streak milestone celebration
+    (function(){
+      var streakEl = document.getElementById('srStreak');
+      if (!streakEl) return;
+      var observer = new MutationObserver(function(mutations){
+        mutations.forEach(function(m){
+          var v = parseInt(streakEl.textContent, 10);
+          if (v === 5 || v === 10 || v === 25) {
+            streakEl.classList.remove('milestone-flash');
+            void streakEl.offsetWidth;
+            streakEl.classList.add('milestone-flash');
+          }
+        });
+      });
+      observer.observe(streakEl, { childList: true, characterData: true, subtree: true });
+    })();
+
   window.srNew();
 });
 </script>

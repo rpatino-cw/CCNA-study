@@ -4,10 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#FAF7F2">
-  <title>Wireless Channels Drill — 2.4 / 5 / 6 GHz</title>
+  <title>Wireless · Channels & Bands — CCNA</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
   <link rel="icon" type="image/svg+xml" href="/CCNA-study/favicon.svg">
   <link rel="stylesheet" href="css/shared.css?v=4.56">
   <style>
@@ -74,21 +73,53 @@
             <button class="pill" data-qt="dfs" onclick="setQT(this)">DFS rules</button>
             <button class="pill" data-qt="band-id" onclick="setQT(this)">Identify band</button>
           </div>
-          <div class="drill-meta">
-            <span>Streak <strong class="dm-val" id="wcStreak">0</strong></span>
-            <span>Best <strong class="dm-val" id="wcBest">--</strong></span>
-            <span>Score <strong class="dm-val" id="wcScore">0/0</strong></span>
-            <button class="btn-action ghost" style="margin-left:auto;font-size:0.75rem;padding:5px 12px" onclick="wcReset()">Reset</button>
+          <div class="drill-meta-compact">
+            <span>Streak <strong class="dmc-val" id="wcStreak">0</strong></span>
+            <span class="dmc-sep">·</span>
+            <span>Best <strong class="dmc-val" id="wcBest">--</strong></span>
+            <span class="dmc-sep">·</span>
+            <span><strong class="dmc-val" id="wcScore">0/0</strong></span>
+            <button class="dmc-reset" onclick="wcReset()">reset</button>
           </div>
           <div class="q-card">
-            <div class="q-prompt" id="wcPrompt"></div>
+            <div class="q-prompt q-prompt-big" id="wcPrompt"></div>
+            <div class="viz-block spectrum-bar" id="wcSpectrum" style="display:none">
+              <div class="spectrum-band">
+                <span class="sb-label">2.4 GHz</span>
+                <div class="sb-track">
+                  <div class="sb-ch sb-non-overlap" style="left:0%;width:30%">1</div>
+                  <div class="sb-ch sb-non-overlap" style="left:35%;width:30%">6</div>
+                  <div class="sb-ch sb-non-overlap" style="left:70%;width:30%">11</div>
+                </div>
+              </div>
+              <div class="spectrum-band">
+                <span class="sb-label">5 GHz</span>
+                <div class="sb-track">
+                  <div class="sb-ch" style="left:0%;width:5%">36</div>
+                  <div class="sb-ch" style="left:5.5%;width:5%">40</div>
+                  <div class="sb-ch" style="left:11%;width:5%">44</div>
+                  <div class="sb-ch" style="left:16.5%;width:5%">48</div>
+                  <div class="sb-ch sb-dfs" style="left:25%;width:5%">52</div>
+                  <div class="sb-ch sb-dfs" style="left:30.5%;width:5%">56</div>
+                  <div class="sb-ch sb-dfs" style="left:36%;width:5%">60</div>
+                  <div class="sb-ch sb-dfs" style="left:41.5%;width:5%">64</div>
+                  <div class="sb-ch" style="left:78%;width:5%">149</div>
+                  <div class="sb-ch" style="left:83.5%;width:5%">153</div>
+                  <div class="sb-ch" style="left:89%;width:5%">157</div>
+                  <div class="sb-ch" style="left:94.5%;width:5%">161</div>
+                </div>
+              </div>
+              <div style="margin-top:6px;font-size:0.7rem;color:var(--ink-muted)"><span style="background:rgba(120,200,120,0.3);padding:1px 6px">non-overlap</span> · <span style="background:rgba(196,163,107,0.25);padding:1px 6px">DFS</span></div>
+            </div>
             <div class="scenario" id="wcScenario" style="display:none"></div>
             <div id="wcInputArea"></div>
             <div class="actions">
               <button class="btn-action" onclick="wcCheck()">Check</button>
-              <button class="btn-action secondary" onclick="wcHint()">Hint</button>
+              <button class="btn-action btn-hint" onclick="wcHint()">Hint</button>
               <button class="btn-action ghost" onclick="wcNew()">New question</button>
             </div>
+            
+            <div class="kbd-hint"><kbd>Enter</kbd> check · <kbd>N</kbd> new question</div>
             <div class="feedback" id="wcFeedback"></div>
           </div>
           <div class="teach" id="wcTeach" style="display:none">
@@ -278,6 +309,9 @@ document.addEventListener('DOMContentLoaded', function(){
     document.getElementById('wcFeedback').className = 'feedback';
     document.getElementById('wcFeedback').textContent = '';
     document.getElementById('wcTeach').style.display = 'none';
+    var spec = document.getElementById('wcSpectrum');
+    if (q.type === 'non-overlap' || q.type === '3-ap-plan' || q.type === 'dfs' || q.type === 'band-id') spec.style.display = 'block';
+    else spec.style.display = 'none';
     document.getElementById('wcInputArea').innerHTML =
       '<div class="input-row"><label>Answer:</label><input class="drill-input" id="wcAns" placeholder="" onkeydown="if(event.key===&quot;Enter&quot;)wcCheck()"></div>';
     setTimeout(function(){ var el = document.getElementById('wcAns'); if (el) el.focus(); }, 30);
@@ -346,6 +380,23 @@ document.addEventListener('DOMContentLoaded', function(){
   window.setQT = function(btn) { document.querySelectorAll('.pill[data-qt]').forEach(function(p){p.classList.remove('active');}); btn.classList.add('active'); state.qt = btn.dataset.qt; window.wcNew(); };
 
   document.getElementById('wcBest').textContent = state.best || '--';
+    // Streak milestone celebration
+    (function(){
+      var streakEl = document.getElementById('wcStreak');
+      if (!streakEl) return;
+      var observer = new MutationObserver(function(mutations){
+        mutations.forEach(function(m){
+          var v = parseInt(streakEl.textContent, 10);
+          if (v === 5 || v === 10 || v === 25) {
+            streakEl.classList.remove('milestone-flash');
+            void streakEl.offsetWidth;
+            streakEl.classList.add('milestone-flash');
+          }
+        });
+      });
+      observer.observe(streakEl, { childList: true, characterData: true, subtree: true });
+    })();
+
   window.wcNew();
 });
 </script>
