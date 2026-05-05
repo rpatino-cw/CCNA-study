@@ -26,7 +26,8 @@ const GAMES = {
 };
 
 const GAME_KEYS = Object.keys(GAMES);
-const HOST_IDLE_MS = 30 * 1000; // 30s before "Claim host" enables for others
+const HOST_IDLE_MS = 30 * 1000;     // 30s before "Claim host" enables for others
+const ROUND_TIMEOUT_MS = 30 * 1000; // 30s per problem before auto-advance
 
 export class Suite {
   constructor(state, env) {
@@ -38,6 +39,30 @@ export class Suite {
     this.activeGame = null;              // null = no game running
     this.problem = null;                 // current problem
     this.answeredBy = null;              // first correct player id
+    this.problemDeadline = 0;            // wall-clock ms when round auto-advances
+    this.timeoutHandle = null;           // setTimeout handle for auto-advance
+  }
+
+  // Start a new problem in the current activeGame. Cancels any pending timeout.
+  startNewProblem() {
+    if (this.timeoutHandle) { clearTimeout(this.timeoutHandle); this.timeoutHandle = null; }
+    if (!this.activeGame) {
+      this.problem = null;
+      this.answeredBy = null;
+      this.problemDeadline = 0;
+      return;
+    }
+    this.problem = GAMES[this.activeGame].mod.generateProblem();
+    this.answeredBy = null;
+    this.problemDeadline = Date.now() + ROUND_TIMEOUT_MS;
+    const deadlineSnapshot = this.problemDeadline;
+    this.timeoutHandle = setTimeout(() => {
+      // Only auto-advance if nothing changed since we scheduled
+      if (this.activeGame && !this.answeredBy && this.problemDeadline === deadlineSnapshot) {
+        this.startNewProblem();
+        this.broadcastState();
+      }
+    }, ROUND_TIMEOUT_MS);
   }
 
   async fetch(request) {
@@ -96,8 +121,16 @@ export class Suite {
       const key = String(msg.game || '').toLowerCase();
       if (!GAMES[key]) return;
       this.activeGame = key;
-      this.problem = GAMES[key].mod.generateProblem();
-      this.answeredBy = null;
+      this.startNewProblem();
+      this.lastHostAction = Date.now();
+      this.broadcastState();
+      return;
+    }
+
+    if (msg.type === 'pick-random' && me.id === this.hostId) {
+      const key = GAME_KEYS[Math.floor(Math.random() * GAME_KEYS.length)];
+      this.activeGame = key;
+      this.startNewProblem();
       this.lastHostAction = Date.now();
       this.broadcastState();
       return;
@@ -105,17 +138,18 @@ export class Suite {
 
     if (msg.type === 'next-round' && me.id === this.hostId) {
       if (!this.activeGame) return;
-      this.problem = GAMES[this.activeGame].mod.generateProblem();
-      this.answeredBy = null;
+      this.startNewProblem();
       this.lastHostAction = Date.now();
       this.broadcastState();
       return;
     }
 
     if (msg.type === 'end-game' && me.id === this.hostId) {
+      if (this.timeoutHandle) { clearTimeout(this.timeoutHandle); this.timeoutHandle = null; }
       this.activeGame = null;
       this.problem = null;
       this.answeredBy = null;
+      this.problemDeadline = 0;
       this.lastHostAction = Date.now();
       this.broadcastState();
       return;
@@ -150,12 +184,12 @@ export class Suite {
         this.answeredBy = me.id;
         me.total += 1;
         me.perGame[this.activeGame] = (me.perGame[this.activeGame] || 0) + 1;
+        if (this.timeoutHandle) { clearTimeout(this.timeoutHandle); this.timeoutHandle = null; }
         this.broadcastState();
         // Auto-advance: same game, new problem after a brief pause.
         setTimeout(() => {
           if (this.activeGame && this.answeredBy === me.id) {
-            this.problem = GAMES[this.activeGame].mod.generateProblem();
-            this.answeredBy = null;
+            this.startNewProblem();
             this.broadcastState();
           }
         }, 1800);
@@ -186,6 +220,9 @@ export class Suite {
       activeLabel: this.activeGame ? GAMES[this.activeGame].label : null,
       problem: this.problem,
       answeredBy: this.answeredBy,
+      problemDeadline: this.problemDeadline,
+      now: Date.now(),
+      roundTimeoutMs: ROUND_TIMEOUT_MS,
     });
     for (const ws of this.sessions.keys()) {
       try { ws.send(payload); } catch {}

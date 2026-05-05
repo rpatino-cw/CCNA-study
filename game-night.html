@@ -69,9 +69,14 @@
 .gn-host-actions button:hover{border-color:var(--accent);color:var(--accent)}
 
 /* Active game banner */
-.gn-active-banner{padding:12px 18px;text-align:center;background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);margin-bottom:14px;font-family:var(--font-display)}
+.gn-active-banner{padding:12px 18px;background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);margin-bottom:14px;font-family:var(--font-display);position:relative;overflow:hidden}
+.gn-active-banner .gn-active-row{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
 .gn-active-banner .gn-active-label{font-size:.7rem;text-transform:uppercase;letter-spacing:.1em;color:var(--ink-muted)}
 .gn-active-banner .gn-active-name{font-size:1.1rem;font-weight:700;color:var(--ink);margin-top:2px}
+.gn-active-banner .gn-active-timer{font-family:var(--font-mono);font-size:.95rem;font-weight:700;color:var(--accent);min-width:42px;text-align:right}
+.gn-active-banner .gn-active-timer.warn{color:#b91c1c}
+.gn-active-banner .gn-active-bar{position:absolute;left:0;bottom:0;height:3px;background:linear-gradient(90deg,#d97706,#b45309);transition:width .25s linear;width:100%}
+.gn-active-banner .gn-active-bar.warn{background:linear-gradient(90deg,#dc2626,#991b1b)}
 
 /* Idle / waiting card */
 .gn-idle{padding:32px;text-align:center;background:var(--bg-surface);border:1px dashed var(--border);border-radius:var(--radius-lg);margin-bottom:14px}
@@ -217,7 +222,7 @@ document.addEventListener('DOMContentLoaded', function() {
     ws.addEventListener('message', e => {
       let msg; try { msg = JSON.parse(e.data); } catch { return; }
       if (msg.type === 'hello') { me = msg.you; gamesIndex = msg.games || gamesIndex; }
-      if (msg.type === 'state') { lastState = msg; updateMe(); render(); }
+      if (msg.type === 'state') { msg._localNow = Date.now(); lastState = msg; updateMe(); render(); }
       if (msg.type === 'wrong') { showToast('Wrong — try again', 'err'); }
     });
     ws.addEventListener('close', () => renderDisconnected());
@@ -358,7 +363,8 @@ document.addEventListener('DOMContentLoaded', function() {
       '<div class="gn-host-panel-label">Host controls — pick a game</div>' +
       '<div class="gn-game-grid">' + buttons + '</div>' +
       '<div class="gn-host-actions">' +
-        (lastState.activeGame ? '<button id="gnNext">↻ Next round (same game)</button><button id="gnEnd">✕ End game</button>' : '') +
+        '<button id="gnRandom">🎲 Random game</button>' +
+        (lastState.activeGame ? '<button id="gnNext">↻ Next round</button><button id="gnEnd">✕ End game</button>' : '') +
         '<button id="gnReset">⟲ Reset scores</button>' +
       '</div>' +
     '</div>';
@@ -370,10 +376,29 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   function renderActiveBanner() {
+    const remain = remainingMs();
+    const total = lastState.roundTimeoutMs || 30000;
+    const pct = Math.max(0, Math.min(100, Math.round((remain / total) * 100)));
+    const secs = Math.max(0, Math.ceil(remain / 1000));
+    const warn = remain <= 5000;
+    const showTimer = lastState.problem && !lastState.answeredBy;
     return '<div class="gn-active-banner">' +
-      '<div class="gn-active-label">Now playing</div>' +
-      '<div class="gn-active-name">' + esc(lastState.activeLabel || lastState.activeGame) + '</div>' +
+      '<div class="gn-active-row">' +
+        '<div>' +
+          '<div class="gn-active-label">Now playing</div>' +
+          '<div class="gn-active-name">' + esc(lastState.activeLabel || lastState.activeGame) + '</div>' +
+        '</div>' +
+        (showTimer ? '<div class="gn-active-timer' + (warn ? ' warn' : '') + '" id="gnTimer">' + secs + 's</div>' : '') +
+      '</div>' +
+      (showTimer ? '<div class="gn-active-bar' + (warn ? ' warn' : '') + '" id="gnTimerBar" style="width:' + pct + '%"></div>' : '') +
     '</div>';
+  }
+
+  function remainingMs() {
+    if (!lastState || !lastState.problemDeadline) return 0;
+    // Server sends `now` so we can correct for clock skew.
+    const skew = (lastState._localNow || Date.now()) - (lastState.now || Date.now());
+    return Math.max(0, lastState.problemDeadline + skew - Date.now());
   }
 
   function renderIdle(iAmHost) {
@@ -528,6 +553,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     const nextBtn = $('gnNext'); if (nextBtn) nextBtn.onclick = () => send({ type:'next-round' });
     const endBtn = $('gnEnd'); if (endBtn) endBtn.onclick = () => send({ type:'end-game' });
+    const randomBtn = $('gnRandom'); if (randomBtn) randomBtn.onclick = () => send({ type:'pick-random' });
     const resetBtn = $('gnReset'); if (resetBtn) resetBtn.onclick = () => { if (confirm('Reset all scores?')) send({ type:'reset-scores' }); };
 
     const claim = $('gnClaim'); if (claim) claim.onclick = () => send({ type:'claim-host' });
@@ -588,6 +614,21 @@ document.addEventListener('DOMContentLoaded', function() {
     try { document.execCommand('copy'); cb(); } catch {}
     document.body.removeChild(ta);
   }
+
+  // ── Timer tick — refresh countdown DOM in-place, every 250ms ───────
+  setInterval(() => {
+    const t = $('gnTimer'); const bar = $('gnTimerBar');
+    if (!t || !bar || !lastState) return;
+    const remain = remainingMs();
+    const total = lastState.roundTimeoutMs || 30000;
+    const secs = Math.max(0, Math.ceil(remain / 1000));
+    const pct = Math.max(0, Math.min(100, (remain / total) * 100));
+    const warn = remain <= 5000;
+    t.textContent = secs + 's';
+    t.classList.toggle('warn', warn);
+    bar.style.width = pct + '%';
+    bar.classList.toggle('warn', warn);
+  }, 250);
 
   // ── Boot ────────────────────────────────────────────────────────────
   const urlRoom = (params.get('room') || '').toUpperCase();

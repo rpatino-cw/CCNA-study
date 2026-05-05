@@ -31,6 +31,7 @@
   let scoreEl = null;
   let capwapSvg = null;
   let infraButtonsEl = null;
+  let missionEl = null;
 
   function nextId() {
     state.idSeq += 1;
@@ -50,14 +51,18 @@
   }
 
   // Phase-4: recompute scoring + redraw CAPWAP tunnels + status pills.
+  // Phase-5: also evaluate active mission against current state.
   function recomputeScore() {
     if (!window.APLabScore) return;
     const wlans = (window.APLabConfig && typeof window.APLabConfig.getWlans === 'function')
       ? window.APLabConfig.getWlans() : [];
-    state.lastScore = window.APLabScore.compute(getLayout(), state.preset, wlans, { band: '5' });
+    const band = (window.APLabRF && typeof window.APLabRF.getBand === 'function')
+      ? window.APLabRF.getBand() : '5';
+    state.lastScore = window.APLabScore.compute(getLayout(), state.preset, wlans, { band: band });
     renderScoreboard();
     renderCapwapLines();
     refreshAllApPills();
+    renderMissionPanel();
   }
 
   // Backward-compat: legacy APs lack mode / rrm / ft / kv / vlan / ip — apply defaults.
@@ -373,6 +378,10 @@
         '<h3 class="aplab-h3">Design Score</h3>' +
         '<div class="aplab-score-empty">Place APs to score the design.</div>' +
       '</div>' +
+      '<div class="aplab-mission" id="aplab-mission">' +
+        '<h3 class="aplab-h3">Mission</h3>' +
+        '<div class="aplab-mission-body"></div>' +
+      '</div>' +
       '<div class="aplab-rf-controls">' +
         '<h3 class="aplab-h3">RF Heatmap</h3>' +
         '<div class="aplab-toggle" role="group" aria-label="Heatmap layer">' +
@@ -434,9 +443,11 @@
     statusEl = sidebar.querySelector('#aplab-status');
     scoreEl = sidebar.querySelector('#aplab-scoreboard');
     infraButtonsEl = sidebar.querySelector('#aplab-infra-btns');
+    missionEl = sidebar.querySelector('#aplab-mission');
 
     renderCatalog();
     renderInfraButtons();
+    renderMissionPanel();
     renderLegend(sidebar.querySelector('#aplab-legend-list'));
 
     sidebar.querySelector('#aplab-reset').addEventListener('click', () => {
@@ -626,6 +637,147 @@
         pill.title = 'Misconfigured';
       }
     });
+  }
+
+  // Phase 5: mission panel — list, start, criteria checklist, radar button.
+  function renderMissionPanel() {
+    if (!missionEl) return;
+    if (!window.APLabMissions) {
+      missionEl.querySelector('.aplab-mission-body').innerHTML =
+        '<div class="aplab-mission-empty">Mission engine not loaded.</div>';
+      return;
+    }
+    const M = window.APLabMissions;
+    const cur = M.current();
+    const body = missionEl.querySelector('.aplab-mission-body');
+    body.innerHTML = '';
+
+    // Selector
+    const sel = document.createElement('select');
+    sel.className = 'aplab-input aplab-mission-select';
+    const placeholder = document.createElement('option');
+    placeholder.value = '';
+    placeholder.textContent = 'Select a mission…';
+    sel.appendChild(placeholder);
+    M.list.forEach(function (m) {
+      const o = document.createElement('option');
+      o.value = m.id;
+      o.textContent = (m.type === 'test' ? '⚑ ' : '· ') + m.title;
+      if (cur && cur.id === m.id) o.selected = true;
+      sel.appendChild(o);
+    });
+    body.appendChild(sel);
+
+    const btnRow = document.createElement('div');
+    btnRow.className = 'aplab-mission-btns';
+
+    const startBtn = document.createElement('button');
+    startBtn.className = 'aplab-btn aplab-btn-ghost';
+    startBtn.textContent = cur ? 'Restart' : 'Start';
+    startBtn.addEventListener('click', function () {
+      const id = sel.value;
+      if (!id) return;
+      M.start(id);
+      renderMissionPanel();
+      recomputeScore();
+    });
+    btnRow.appendChild(startBtn);
+
+    body.appendChild(btnRow);
+
+    if (cur) {
+      const intro = document.createElement('p');
+      intro.className = 'aplab-mission-intro';
+      intro.textContent = cur.intro;
+      body.appendChild(intro);
+
+      const evalRes = M.evaluate(state.lastScore, getLayout(),
+        (window.APLabConfig && window.APLabConfig.getWlans) ? window.APLabConfig.getWlans() : [],
+        { band: (window.APLabRF && window.APLabRF.getBand) ? window.APLabRF.getBand() : '5' }
+      );
+
+      if (evalRes && evalRes.criteria) {
+        const ul = document.createElement('ul');
+        ul.className = 'aplab-mission-criteria';
+        evalRes.criteria.forEach(function (c) {
+          const li = document.createElement('li');
+          li.className = c.met ? 'is-met' : '';
+          li.innerHTML = '<span class="aplab-mission-tick">' + (c.met ? '✓' : '○') + '</span>' + '<span>' + escapeHtml(c.label) + '</span>';
+          ul.appendChild(li);
+        });
+        body.appendChild(ul);
+
+        if (evalRes.complete) {
+          const banner = document.createElement('div');
+          banner.className = 'aplab-mission-complete';
+          banner.innerHTML = '✓ Mission complete' + (evalRes.score != null ? ' &middot; Score ' + evalRes.score + '/100' : '');
+          body.appendChild(banner);
+
+          // Next button only for guided missions
+          if (cur.type === 'guided') {
+            const nextBtn = document.createElement('button');
+            nextBtn.className = 'aplab-btn';
+            nextBtn.textContent = 'Next mission →';
+            nextBtn.addEventListener('click', function () {
+              M.next();
+              renderMissionPanel();
+              recomputeScore();
+            });
+            body.appendChild(nextBtn);
+          }
+        }
+      }
+
+      // DFS radar button — show in g8 or whenever a DFS-channel AP exists
+      const layout = getLayout();
+      const hasDfs = layout.aps.some(function (ap) {
+        const r5 = (ap.radios || []).find(function (r) { return r.band === '5'; });
+        return r5 && [52,56,60,64,100,104,108,112,116,132,136,140].indexOf(r5.channel) !== -1;
+      });
+      if (cur.id === 'g8' || hasDfs) {
+        const radarBtn = document.createElement('button');
+        radarBtn.className = 'aplab-btn aplab-btn-radar';
+        radarBtn.textContent = '⚡ Trigger DFS Radar';
+        radarBtn.disabled = !hasDfs;
+        radarBtn.title = hasDfs ? 'Force any AP on a DFS channel to migrate' : 'Set an AP\'s 5 GHz channel to a DFS channel (52–144) first';
+        radarBtn.addEventListener('click', function () {
+          const result = window.APLabMissions.triggerRadar();
+          if (result.migrated.length > 0) {
+            const list = result.migrated.map(function (m) { return m.apId + ': ' + m.oldCh + '→' + m.newCh; }).join(', ');
+            alert('DFS radar event! Migrated: ' + list);
+          } else {
+            alert('No APs on DFS channels — radar event had no effect.');
+          }
+          recomputeScore();
+        });
+        body.appendChild(radarBtn);
+      }
+
+      if (cur.hints && cur.hints.length > 0) {
+        const hints = document.createElement('details');
+        hints.className = 'aplab-mission-hints';
+        const sum = document.createElement('summary');
+        sum.textContent = 'Hints (' + cur.hints.length + ')';
+        hints.appendChild(sum);
+        const ul = document.createElement('ul');
+        cur.hints.forEach(function (h) {
+          const li = document.createElement('li');
+          li.textContent = h;
+          ul.appendChild(li);
+        });
+        hints.appendChild(ul);
+        body.appendChild(hints);
+      }
+    } else {
+      const empty = document.createElement('p');
+      empty.className = 'aplab-mission-empty';
+      empty.textContent = 'Pick a mission from the dropdown to begin.';
+      body.appendChild(empty);
+    }
+  }
+
+  function escapeHtml(s) {
+    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   }
 
   function renderScoreboard() {
