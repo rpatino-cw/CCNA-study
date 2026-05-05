@@ -89,6 +89,7 @@
     </div>
   </div>
   <div id="verdict" class="verdict"></div>
+  <div style="font-family:var(--font-mono);font-size:.78rem;background:#1C1917;color:#E7E5E4;border-radius:8px;padding:12px;max-height:160px;overflow-y:auto;line-height:1.55;margin-top:14px" id="sdnLog"><div style="color:#A8A29E;font-style:italic">cause drift or push policy to populate event log</div></div>
 </div>
 
 <div class="panel">
@@ -118,25 +119,39 @@
 
 <script>
 (function(){
+  function logSdn(text,color){
+    var box=document.getElementById('sdnLog');
+    if(box.firstChild && box.firstChild.style.fontStyle==='italic') box.innerHTML='';
+    var d=new Date(); var ts=String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')+':'+String(d.getSeconds()).padStart(2,'0');
+    var row=document.createElement('div');
+    row.style.cssText='padding:3px 0;border-bottom:1px dashed #333;display:flex;gap:8px;color:'+(color||'#E7E5E4');
+    row.innerHTML='<span style="color:#A8A29E;flex-shrink:0;min-width:60px">'+ts+'</span><span>'+text+'</span>';
+    box.appendChild(row); box.scrollTop=box.scrollHeight;
+  }
   document.getElementById('drift').addEventListener('click', function(){
     var ids = ['t1','t2','t3','t4'];
+    var changes = ['admin1: R1 changed VLAN scheme','admin2: R2 added an ACL','admin3: R3 fixed an MTU','admin4: R4 enabled OSPF'];
     ids.forEach(function(id, i){
       setTimeout(function(){
         document.getElementById(id).classList.add('drift');
+        logSdn('R'+(i+1)+' ← '+changes[i]+' (manual CLI, no audit)','#FCA5A5');
       }, i*300);
     });
     setTimeout(function(){
       var v = document.getElementById('verdict');
       v.className='verdict miss show';
       v.textContent = '✗ Config drift. Each router was touched separately by different engineers, different days. R2 has wrong VLAN, R3 missing ACL, R4 different MTU. Hours to debug.';
+      logSdn('drift verdict: 4 routers, 4 different states. nobody knows current intent.','#FCD34D');
     }, 1300);
   });
   document.getElementById('apply').addEventListener('click', function(){
     var ids = ['c1','c2','c3','c4'];
+    logSdn('controller: parse intent → compute per-device config','#86EFAC');
     ids.forEach(function(id, i){
       setTimeout(function(){
         var el = document.getElementById(id);
         el.classList.remove('drift'); el.classList.add('aligned');
+        logSdn('R'+(i+1)+' ← controller pushed config (NETCONF)','#86EFAC');
       }, i*200);
     });
     var tids = ['t1','t2','t3','t4'];

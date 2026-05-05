@@ -72,12 +72,25 @@
 </div>
 
 <div class="panel">
-  <h2>Virtual API client</h2>
+  <h2>Virtual API client + animated request/response</h2>
   <div class="req-row"><label>Method</label><select id="verb"><option>GET</option><option>POST</option><option>PUT</option><option>DELETE</option><option>PATCH</option></select></div>
   <div class="req-row"><label>URL</label><input id="url" value="/api/v1/devices/router1"></div>
   <div class="req-row"><label>Body</label><textarea id="body" placeholder='JSON body for POST/PUT/PATCH'>{"hostname":"R1","mtu":1500}</textarea></div>
-  <button class="btn accent" id="send">Send →</button>
-  <div class="response" id="resp">// no response yet</div>
+  <button class="btn accent" id="send">▶ Send →</button>
+  <svg viewBox="0 0 600 160" id="restStage" style="width:100%;display:block;background:var(--bg-recessed);border:1px solid var(--border);border-radius:8px;margin-top:14px;min-height:160px">
+    <text x="80" y="20" font-family="Space Grotesk" font-size="11" font-weight="700" fill="#57534E" text-anchor="middle" letter-spacing="1">CLIENT (Python)</text>
+    <text x="500" y="20" font-family="Space Grotesk" font-size="11" font-weight="700" fill="#57534E" text-anchor="middle" letter-spacing="1">API SERVER (DNAC)</text>
+    <g><rect x="20" y="40" width="120" height="50" rx="8" fill="#7C2D12" stroke="#0F172A" stroke-width="1.5"/>
+      <text x="80" y="62" text-anchor="middle" font-family="JetBrains Mono" font-size="11" font-weight="700" fill="#FCD34D">requests</text>
+      <text x="80" y="78" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#94A3B8">https client</text></g>
+    <g><rect x="440" y="40" width="120" height="50" rx="8" fill="#1E3A8A" stroke="#0F172A" stroke-width="1.5"/>
+      <text x="500" y="62" text-anchor="middle" font-family="JetBrains Mono" font-size="11" font-weight="700" fill="#FCD34D">DNAC :443</text>
+      <text x="500" y="78" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#94A3B8">JSON over HTTPS</text></g>
+    <line x1="140" y1="65" x2="440" y2="65" stroke="#94A3B8" stroke-width="2" stroke-dasharray="4,3"/>
+    <text x="290" y="55" font-family="JetBrains Mono" font-size="9" fill="#A8A29E" text-anchor="middle">TLS · OAuth2 token</text>
+    <g id="restBubbles"></g>
+  </svg>
+  <div class="response" id="resp">// no response yet — fire a request</div>
 </div>
 
 <div class="panel">
@@ -126,7 +139,44 @@
 <script>
 (function(){
   var devices = { router1:{hostname:'R1',mtu:1500,ip:'10.0.0.1'}, router2:{hostname:'R2',mtu:1500,ip:'10.0.0.2'} };
+  var ns='http://www.w3.org/2000/svg';
+  function flyBubble(label, fromX, toX, color){
+    if(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    var g=document.createElementNS(ns,'g'); g.setAttribute('opacity','1');
+    g.style.transition='transform 0.6s cubic-bezier(.16,1,.3,1), opacity 0.25s';
+    g.setAttribute('transform','translate('+fromX+',65)');
+    var rect=document.createElementNS(ns,'rect');
+    rect.setAttribute('x',-65); rect.setAttribute('y',-12); rect.setAttribute('width',130); rect.setAttribute('height',24); rect.setAttribute('rx',12);
+    rect.setAttribute('fill',color); rect.setAttribute('stroke','#0F172A'); rect.setAttribute('stroke-width','1');
+    g.appendChild(rect);
+    var text=document.createElementNS(ns,'text');
+    text.setAttribute('x',0); text.setAttribute('y',0); text.setAttribute('font-family','JetBrains Mono'); text.setAttribute('font-size','9'); text.setAttribute('font-weight','700'); text.setAttribute('fill','#fff'); text.setAttribute('text-anchor','middle'); text.setAttribute('dominant-baseline','middle');
+    text.textContent=label;
+    g.appendChild(text);
+    document.getElementById('restBubbles').appendChild(g);
+    setTimeout(function(){ g.setAttribute('transform','translate('+toX+',65)'); },20);
+    setTimeout(function(){ g.setAttribute('opacity','0'); },650);
+    setTimeout(function(){ if(g.parentNode) g.parentNode.removeChild(g); },1000);
+  }
   document.getElementById('send').addEventListener('click', function(){
+    document.getElementById('restBubbles').innerHTML='';
+    var v=document.getElementById('verb').value;
+    var verbColor = v==='GET'?'#16A34A':v==='POST'?'#F59E0B':v==='PUT'?'#3B82F6':v==='DELETE'?'#DC2626':'#A855F7';
+    flyBubble(v+' '+document.getElementById('url').value, 80, 500, verbColor);
+    setTimeout(function(){
+      // status-coded reply
+      var rs=document.getElementById('resp');
+      var status='200';
+      // Parse final status from rendering (existing logic populates resp)
+      // We fire reply bubble after the existing handler runs
+      setTimeout(function(){
+        var m=rs.innerHTML.match(/(\d{3})/);
+        if(m) status=m[1];
+        var cls=status[0];
+        var col = cls==='2'?'#16A34A':cls==='4'?'#DC2626':cls==='5'?'#7F1D1D':'#3B82F6';
+        flyBubble(status+' reply (JSON)', 500, 80, col);
+      },50);
+    },650);
     var verb = document.getElementById('verb').value;
     var url = document.getElementById('url').value;
     var body = document.getElementById('body').value;

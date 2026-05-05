@@ -42,6 +42,7 @@
     { text: 'Practice', children: [
       { text: 'Practice Hub', href: 'practice-hub.html' },
       { text: 'Subnetting Mastery', href: 'subnetting-mastery.html' },
+      { text: 'Subnet Terms (Rapid)', href: 'subnet-terms.html' },
       { text: 'Subnet Counting (/N in /M)', href: 'subnet-count.html' },
       { text: 'Hard Subnetting (2-constraint)', href: 'subnetting-hard.html' },
       { text: 'VLSM Allocation Worksheet', href: 'vlsm-allocation.html' },
