@@ -47,6 +47,8 @@
   .opt.wrong{background:var(--wrong-bg);border-color:var(--wrong);color:var(--wrong)}
   .scoreline{font-family:var(--font-mono);font-size:.84rem;color:var(--ink-muted);margin-top:10px;display:flex;gap:18px;align-items:center}
   .scoreline strong{font-weight:700;color:var(--ink)}
+  .why{font-family:var(--font-mono);font-size:.82rem;color:var(--ink-secondary);margin-top:10px;padding:10px 12px;background:var(--bg-recessed);border-left:3px solid var(--accent-soft);border-radius:var(--radius);display:none;line-height:1.55}
+  .why.show{display:block;animation:fadeIn .25s ease}
   .badge{display:inline-block;font-family:var(--font-display);font-size:.7rem;font-weight:700;padding:2px 8px;border-radius:99px;background:var(--accent-light);color:var(--accent);text-transform:uppercase;letter-spacing:.04em;margin-left:8px}
   .footer-link{margin-top:24px;padding-top:14px;border-top:1px solid var(--border);font-family:var(--font-mono);font-size:.82rem}
   .footer-link a{color:var(--accent);text-decoration:none}
@@ -103,6 +105,7 @@
   <h2>Quiz mode</h2>
   <div class="stem" id="quizStem">Loading…</div>
   <div class="opts" id="quizOpts"></div>
+  <div class="why" id="quizWhy"></div>
   <div class="scoreline">
     <span><strong id="qCorrect">0</strong> correct</span>
     <span><strong id="qWrong">0</strong> wrong</span>
@@ -147,22 +150,23 @@
 
   var qCorrect=0, qWrong=0, qStreak=0;
   var pool = [
-    { stem:'In SDN, the control plane is:', opts:['Distributed across each device','Centralized in a controller','Removed entirely','On the data plane'], ans:'Centralized in a controller' },
-    { stem:'Per-packet forwarding decisions live on the:', opts:['Data plane','Control plane','Management plane','Application plane'], ans:'Data plane' },
-    { stem:'Traditional networking biggest pain point:', opts:['Cost','Config drift across devices','Speed','Power'], ans:'Config drift across devices' },
-    { stem:'Which plane handles SSH/SNMP/NETCONF?', opts:['Data','Control','Management','Forwarding'], ans:'Management' },
-    { stem:'OSPF runs on which plane?', opts:['Data','Control','Management','Application'], ans:'Control' },
-    { stem:'SDN separates control plane FROM:', opts:['Power','Data plane','Hardware','Cables'], ans:'Data plane' },
-    { stem:'Benefit of centralized control plane?', opts:['Faster cables','Single source of truth, push policy once','More devices','Cheaper hardware'], ans:'Single source of truth, push policy once' },
-    { stem:'Per-device CLI scales poorly because:', opts:['CLI is slow','Each change is N×operator-hours','Routers reject CLI','It\'s deprecated'], ans:'Each change is N×operator-hours' },
-    { stem:'Cisco DNA Center is an example of:', opts:['Traditional CLI','SDN controller','Routing protocol','Switch OS'], ans:'SDN controller' },
-    { stem:'In SDN, data plane usually stays:', opts:['Centralized','Distributed on each device','Removed','In the cloud'], ans:'Distributed on each device' }
+    { stem:'In SDN, the control plane is:', opts:['Distributed across each device','Centralized in a controller','Removed entirely','On the data plane'], ans:'Centralized in a controller', why:'SDN\'s defining move: take routing/policy decisions OFF every box and put them on a controller. Devices become forwarders that follow controller-pushed flow rules. The data plane stays distributed, just dumber.' },
+    { stem:'Per-packet forwarding decisions live on the:', opts:['Data plane','Control plane','Management plane','Application plane'], ans:'Data plane', why:'Per-packet = data plane. Anything done at line-rate by ASIC/TCAM (FIB lookup, dot1q tag, ACL match) is data plane. Per-flow setup is control plane. Operator console talk is management plane.' },
+    { stem:'Why does traditional networking hurt at scale?', opts:['Cost','Config drift across devices — same change rolled out N times by hand, every box slightly different','Speed','Power'], ans:'Config drift across devices — same change rolled out N times by hand, every box slightly different', why:'200 switches × 1 manual change per switch = 200 chances to typo. Configs drift, audit gets impossible, troubleshooting starts with "is this box even configured the same way as the others?" Centralized config kills the drift.' },
+    { stem:'Which plane handles SSH/SNMP/NETCONF/RESTCONF?', opts:['Data','Control','Management','Forwarding'], ans:'Management', why:'Anything that lets a human or tool TALK to the device (SSH, SNMP, NETCONF, syslog) is management plane. Anything the device uses to TALK to other devices to make decisions (OSPF, BGP, STP, ARP) is control plane.' },
+    { stem:'OSPF runs on which plane?', opts:['Data','Control','Management','Application'], ans:'Control', why:'OSPF is a routing protocol — devices exchange LSAs, run SPF, build the routing table. Decision-making → control plane. The result (FIB) is then used by the data plane.' },
+    { stem:'SDN separates the control plane FROM:', opts:['Power','Data plane','Hardware','Cables'], ans:'Data plane', why:'SDN architecture: control plane logically centralized on a controller, data plane stays on switches. The southbound API (OpenFlow / NETCONF) is how the controller programs the data plane.' },
+    { stem:'Benefit of centralized control plane?', opts:['Faster cables','Single source of truth — push policy once, applies everywhere','More devices','Cheaper hardware'], ans:'Single source of truth — push policy once, applies everywhere', why:'One policy in the controller becomes per-device config across the fabric, automatically. No drift, audit-friendly, change windows shrink from "200 device touches" to one push. Trade-off: the controller becomes critical infrastructure.' },
+    { stem:'Per-device CLI scales poorly because:', opts:['CLI is slow','Each change costs operator-hours × number-of-devices, plus a probability of typo per box','Routers reject CLI','It\'s deprecated'], ans:'Each change costs operator-hours × number-of-devices, plus a probability of typo per box', why:'Linear human cost + non-zero error rate per box. 100 devices × 5 min each = 8 hours, and at 1% typo rate you have ~1 broken box every change. Automation/SDN turns this O(N) into O(1).' },
+    { stem:'Cisco DNA Center / Catalyst Center is an example of:', opts:['Traditional CLI','SDN / controller-based platform','Routing protocol','Switch OS'], ans:'SDN / controller-based platform', why:'DNA Center is Cisco\'s campus-fabric controller. Northbound it talks to admins / apps via REST. Southbound it programs switches via NETCONF/RESTCONF/CLI. Plus telemetry, intent-based config, AI assistance.' },
+    { stem:'In SDN, data plane usually stays:', opts:['Centralized in the controller','Distributed on each device — controller programs it via southbound API','Removed','In the cloud'], ans:'Distributed on each device — controller programs it via southbound API', why:'Forwarding silicon stays where the packets are — on the switches/routers. Centralizing the FIB on a controller would mean every packet passes through one box, which kills throughput. Only DECISIONS centralize.' }
   ];
   function pickQ(){
     var q = pool[Math.floor(Math.random()*pool.length)];
     var opts = q.opts.slice().sort(function(){return Math.random()-.5;});
     document.getElementById('quizStem').textContent = q.stem;
     var bx = document.getElementById('quizOpts'); bx.innerHTML='';
+    var why=document.getElementById('quizWhy'); why.classList.remove('show'); why.textContent='';
     opts.forEach(function(o){
       var btn = document.createElement('button');
       btn.className='opt'; btn.textContent=o;
@@ -171,6 +175,7 @@
         if (o===q.ans){ btn.classList.add('correct'); qCorrect++; qStreak++; }
         else { btn.classList.add('wrong'); qWrong++; qStreak=0;
           Array.prototype.forEach.call(bx.children, function(c){ if (c.textContent===q.ans) c.classList.add('correct'); }); }
+        why.textContent='↳ '+q.why; why.classList.add('show');
         document.getElementById('qCorrect').textContent=qCorrect;
         document.getElementById('qWrong').textContent=qWrong;
         document.getElementById('qStreak').textContent=qStreak;

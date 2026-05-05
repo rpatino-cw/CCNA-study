@@ -59,6 +59,8 @@
   .opt.wrong{background:var(--wrong-bg);border-color:var(--wrong);color:var(--wrong)}
   .scoreline{font-family:var(--font-mono);font-size:.84rem;color:var(--ink-muted);margin-top:10px;display:flex;gap:18px;align-items:center}
   .scoreline strong{font-weight:700;color:var(--ink)}
+  .why{font-family:var(--font-mono);font-size:.82rem;color:var(--ink-secondary);margin-top:10px;padding:10px 12px;background:var(--bg-recessed);border-left:3px solid var(--accent-soft);border-radius:var(--radius);display:none;line-height:1.55}
+  .why.show{display:block;animation:fadeIn .25s ease}
   .footnote{font-family:var(--font-mono);font-size:.78rem;color:var(--ink-muted);margin-top:12px;line-height:1.5}
   .badge{display:inline-block;font-family:var(--font-display);font-size:.7rem;font-weight:700;padding:2px 8px;border-radius:99px;background:var(--accent-light);color:var(--accent);text-transform:uppercase;letter-spacing:.04em;margin-left:8px}
   .footer-link{margin-top:24px;padding-top:14px;border-top:1px solid var(--border);font-family:var(--font-mono);font-size:.82rem}
@@ -135,6 +137,7 @@
   <h2>Quiz mode</h2>
   <div class="stem" id="quizStem">Loading…</div>
   <div class="opts" id="quizOpts"></div>
+  <div class="why" id="quizWhy"></div>
   <div class="scoreline">
     <span><strong id="qCorrect">0</strong> correct</span>
     <span><strong id="qWrong">0</strong> wrong</span>
@@ -195,22 +198,23 @@
 
   var qCorrect=0, qWrong=0, qStreak=0;
   var pool = [
-    { stem:'IKE Phase 1 produces what?', opts:['IPsec SA','ISAKMP SA','ESP header','Routing table'], ans:'ISAKMP SA' },
-    { stem:'Site-to-site VPN typically uses which mode?', opts:['Transport','Tunnel','Aggressive','Main only'], ans:'Tunnel' },
-    { stem:'AH provides which IPsec service?', opts:['Encryption only','Authentication only','Both encryption + auth','Compression'], ans:'Authentication only' },
-    { stem:'ESP provides:', opts:['Encryption only','Authentication only','Both encryption + auth','Compression'], ans:'Both encryption + auth' },
-    { stem:'Remote-access VPN client (AnyConnect) typically uses:', opts:['IPsec only','SSL/TLS or IPsec','Plaintext','Telnet'], ans:'SSL/TLS or IPsec' },
-    { stem:'Diffie-Hellman is used in IPsec to:', opts:['Encrypt data','Securely exchange a shared secret over insecure channel','Authenticate users','Compress packets'], ans:'Securely exchange a shared secret over insecure channel' },
-    { stem:'Phase 2 negotiation happens:', opts:['Before Phase 1','In plaintext','Inside the Phase 1 tunnel','Over a separate TCP session'], ans:'Inside the Phase 1 tunnel' },
-    { stem:'Tunnel mode adds which to the original packet?', opts:['ESP trailer only','New outer IP header','Compression','Nothing'], ans:'New outer IP header' },
-    { stem:'Site-to-site VPN is typically:', opts:['Always-on, router-to-router','Per-user, on-demand','TCP-based','UDP 53'], ans:'Always-on, router-to-router' },
-    { stem:'IPsec runs at which OSI layer?', opts:['L2','L3','L4','L7'], ans:'L3' }
+    { stem:'IKE Phase 1 produces what?', opts:['IPsec SA','ISAKMP SA','ESP header','Routing table'], ans:'ISAKMP SA', why:'Phase 1 builds the bidirectional ISAKMP (IKE) management SA — the secure channel used to negotiate Phase 2. Phase 2 then produces the unidirectional IPsec SAs (one per direction) that actually carry user data.' },
+    { stem:'Site-to-site VPN typically uses which IPsec mode?', opts:['Transport','Tunnel','Aggressive','Main only'], ans:'Tunnel', why:'Tunnel mode encapsulates the entire original IP packet inside a NEW outer IP header — exactly what S2S needs (the original src/dst is private, the outer is public/peer-to-peer). Transport mode keeps the original header; used host-to-host (e.g. inside an L2TP/IPsec session).' },
+    { stem:'AH provides which IPsec service?', opts:['Encryption only','Authentication + integrity, NO encryption','Both encryption + auth','Compression'], ans:'Authentication + integrity, NO encryption', why:'AH (proto 51) authenticates and integrity-protects every byte of the packet — but does not encrypt. Rarely used in modern designs because ESP (proto 50) does both. AH also breaks NAT (it auths the IP header).' },
+    { stem:'ESP provides:', opts:['Encryption only','Authentication only','Encryption + auth + integrity','Compression'], ans:'Encryption + auth + integrity', why:'ESP (proto 50) is the workhorse: encrypts payload, authenticates, integrity-protects. Modern S2S/RA VPNs use ESP, almost never AH. ESP is also NAT-traversable (with UDP/4500 encapsulation).' },
+    { stem:'Remote-access VPN client (AnyConnect) typically uses:', opts:['IPsec only','SSL/TLS or IPsec','Plaintext','Telnet'], ans:'SSL/TLS or IPsec', why:'AnyConnect supports both. SSL/TLS (TCP/443 or UDP/443 DTLS) traverses NAT/firewalls more easily — often the default. IPsec/IKEv2 is preferred when performance matters. Both deliver per-user authentication via RADIUS, AD, or certs.' },
+    { stem:'Diffie-Hellman is used in IPsec to:', opts:['Encrypt data','Securely exchange a shared secret over an insecure channel','Authenticate users','Compress packets'], ans:'Securely exchange a shared secret over an insecure channel', why:'DH is the key-exchange. Both peers agree on a shared symmetric key without ever transmitting it. Even an attacker watching every packet can\'t derive the key. The shared key then drives ESP encryption.' },
+    { stem:'Phase 2 negotiation happens:', opts:['Before Phase 1','In plaintext','Inside the Phase 1 tunnel','Over a separate TCP session'], ans:'Inside the Phase 1 tunnel', why:'Phase 1 builds the secure ISAKMP channel; Phase 2 messages ride INSIDE that channel, encrypted with the Phase-1 SA. So the Phase 2 negotiation itself is protected — no one can sniff the IPsec SA proposals.' },
+    { stem:'Tunnel mode adds which to the original packet?', opts:['ESP trailer only','A new outer IP header','Compression only','Nothing'], ans:'A new outer IP header', why:'Tunnel mode wraps the original packet (header + payload) in a NEW IP header (peer-to-peer endpoints) plus an ESP/AH header. That\'s why you see the inner private 10.x.x.x untouched — only the outer is public.' },
+    { stem:'Site-to-site VPN is typically:', opts:['Always-on, router-to-router','Per-user, on-demand','TCP-based','UDP 53'], ans:'Always-on, router-to-router', why:'S2S is permanent IPsec SAs between two routers/firewalls (HQ↔branch). User devices never see it — they just route traffic that happens to go through a VPN. RA VPN is the per-user, on-demand cousin.' },
+    { stem:'IPsec runs at which OSI layer?', opts:['L2','L3','L4','L7'], ans:'L3', why:'IPsec is a network-layer (L3) protocol suite — it operates on IP packets directly, not Ethernet frames or TCP segments. SSL/TLS VPNs (AnyConnect SSL mode) are L7 wrappers around the same idea.' }
   ];
   function pickQ(){
     var q = pool[Math.floor(Math.random()*pool.length)];
     var opts = q.opts.slice().sort(function(){return Math.random()-.5;});
     document.getElementById('quizStem').textContent = q.stem;
     var bx = document.getElementById('quizOpts'); bx.innerHTML='';
+    var why=document.getElementById('quizWhy'); why.classList.remove('show'); why.textContent='';
     opts.forEach(function(o){
       var btn = document.createElement('button');
       btn.className='opt'; btn.textContent=o;
@@ -219,6 +223,7 @@
         if (o===q.ans){ btn.classList.add('correct'); qCorrect++; qStreak++; }
         else { btn.classList.add('wrong'); qWrong++; qStreak=0;
           Array.prototype.forEach.call(bx.children, function(c){ if (c.textContent===q.ans) c.classList.add('correct'); }); }
+        why.textContent='↳ '+q.why; why.classList.add('show');
         document.getElementById('qCorrect').textContent=qCorrect;
         document.getElementById('qWrong').textContent=qWrong;
         document.getElementById('qStreak').textContent=qStreak;

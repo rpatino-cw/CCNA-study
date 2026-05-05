@@ -51,6 +51,8 @@
   .opt.wrong{background:var(--wrong-bg);border-color:var(--wrong);color:var(--wrong)}
   .scoreline{font-family:var(--font-mono);font-size:.84rem;color:var(--ink-muted);margin-top:10px;display:flex;gap:18px;align-items:center}
   .scoreline strong{font-weight:700;color:var(--ink)}
+  .why{font-family:var(--font-mono);font-size:.82rem;color:var(--ink-secondary);margin-top:10px;padding:10px 12px;background:var(--bg-recessed);border-left:3px solid var(--accent-soft);border-radius:var(--radius);display:none;line-height:1.55}
+  .why.show{display:block;animation:fadeIn .25s ease}
   .footnote{font-family:var(--font-mono);font-size:.78rem;color:var(--ink-muted);margin-top:12px;line-height:1.5}
   .badge{display:inline-block;font-family:var(--font-display);font-size:.7rem;font-weight:700;padding:2px 8px;border-radius:99px;background:var(--accent-light);color:var(--accent);text-transform:uppercase;letter-spacing:.04em;margin-left:8px}
   .footer-link{margin-top:24px;padding-top:14px;border-top:1px solid var(--border);font-family:var(--font-mono);font-size:.82rem}
@@ -93,6 +95,7 @@
   <h2>Quiz mode <span style="color:var(--accent);text-transform:none;letter-spacing:0;font-weight:700">— predict before peeking</span></h2>
   <div class="stem" id="quizStem">Loading…</div>
   <div class="opts" id="quizOpts"></div>
+  <div class="why" id="quizWhy"></div>
   <div class="scoreline">
     <span><strong id="qCorrect">0</strong> correct</span>
     <span><strong id="qWrong">0</strong> wrong</span>
@@ -141,22 +144,23 @@
 
   var qCorrect=0, qWrong=0, qStreak=0;
   var pool = [
-    { stem:'Who owns final risk-posture reporting to the board?', opts:['CISO','SysAdmin','Developer','End User'], ans:'CISO' },
-    { stem:'Annual security awareness training is primarily aimed at:', opts:['CISO','SysAdmin','End Users','Auditors'], ans:'End Users' },
-    { stem:'Who enforces password policy on the network?', opts:['CISO','SysAdmin','Developer','HR'], ans:'SysAdmin' },
-    { stem:'Tailgating into a secure area is a failure of which control?', opts:['Patching','User awareness','Encryption','Logging'], ans:'User awareness' },
-    { stem:'A mantrap (interlocking double-door) is a control owned by:', opts:['CISO','Facilities','SysAdmin','Auditor'], ans:'Facilities' },
-    { stem:'Which is NOT a security program element per CCNA blueprint?', opts:['User awareness','Training','Physical access','Marketing campaigns'], ans:'Marketing campaigns' },
-    { stem:'A vendor needs to enter the data hall. Who escorts them?', opts:['Anyone','Facilities or designated escort','The vendor signs themselves in','CISO must be present'], ans:'Facilities or designated escort' },
-    { stem:'Phishing email reported by user → next step?', opts:['Delete and forget','Forward to security team','Reply to sender','Click the link to verify'], ans:'Forward to security team' },
-    { stem:'Difference between awareness and training?', opts:['Same thing','Awareness=ongoing/cultural; training=formal/structured','Training is shorter','Awareness is only for execs'], ans:'Awareness=ongoing/cultural; training=formal/structured' },
-    { stem:'A developer commits AWS keys to GitHub. Whose policy failed?', opts:['CISO','Developer','Both — policy + execution','GitHub'], ans:'Both — policy + execution' }
+    { stem:'Who owns final risk-posture reporting to the board?', opts:['CISO','SysAdmin','Developer','End User'], ans:'CISO', why:'CISO (Chief Information Security Officer) is the executive accountable for risk posture, communicates it up to the board / CEO. SysAdmins implement, developers build, end users follow policy — but the buck stops with the CISO.' },
+    { stem:'A user can\'t spot a phishing email. Which security program element addresses this?', opts:['CISO','SysAdmin','User awareness training','Auditors'], ans:'User awareness training', why:'Phishing defense is a training problem, not a tech problem. CCNA blueprint 5.2 explicitly lists user awareness + formal training as program elements. Filters help, but the human is the last layer.' },
+    { stem:'Who enforces password policy on the network?', opts:['CISO','SysAdmin','Developer','HR'], ans:'SysAdmin', why:'CISO defines policy. SysAdmin enforces via tooling — AD complexity rules, MFA, lockout, SSH key requirements. HR may handle hire/fire workflows, but the technical enforcement lives with admins.' },
+    { stem:'Someone holds the door for a stranger and lets them into a secure area. This is a failure of:', opts:['Patching','User awareness','Encryption','Logging'], ans:'User awareness', why:'Tailgating is a social-engineering attack — the lock works, the policy says "don\'t hold the door for strangers," but the human breaks the chain. Awareness training is the control. Mantraps mitigate technically.' },
+    { stem:'A mantrap (interlocking double-door) is a control owned by:', opts:['CISO','Facilities','SysAdmin','Auditor'], ans:'Facilities', why:'Physical access controls — mantraps, badge readers, cameras, fencing — are a Facilities responsibility. CISO sets requirements; Facilities builds and maintains. SysAdmin handles digital, not turnstiles.' },
+    { stem:'Which is NOT a CCNA-blueprint security program element?', opts:['User awareness','Training','Physical access','Marketing campaigns'], ans:'Marketing campaigns', why:'Cisco CCNA 200-301 5.2 lists exactly three program elements: user awareness, training, physical access control. Marketing isn\'t in the blueprint (and isn\'t a security control).' },
+    { stem:'A vendor needs to enter the data hall. Who escorts them?', opts:['Anyone','Facilities or designated escort','The vendor signs themselves in','CISO must be present'], ans:'Facilities or designated escort', why:'Visitor escort is a physical-access standard. Facilities or a trained internal escort accompanies vendors, logs entry/exit, and confines them to authorized zones. Self sign-in defeats the control.' },
+    { stem:'User reports a suspicious email. Next step in incident response?', opts:['Delete and forget','Forward to security team for triage','Reply to sender','Click the link to verify'], ans:'Forward to security team for triage', why:'Reporting > deletion. The security team needs the headers + payload to grade campaigns, block infrastructure, search for other recipients, and possibly notify a customer. Clicking to "verify" is exactly what the attacker wanted.' },
+    { stem:'Difference between awareness and training?', opts:['Same thing','Awareness=ongoing/cultural; training=formal/structured','Training is shorter','Awareness is only for execs'], ans:'Awareness=ongoing/cultural; training=formal/structured', why:'Awareness = continuous low-touch nudges (posters, phishing tests, weekly tip emails). Training = scheduled formal sessions with measurable outcomes (annual SAT, role-specific cyber). CCNA expects you to know they\'re distinct.' },
+    { stem:'A developer commits AWS keys to a public GitHub repo. Where did the program fail?', opts:['CISO','Developer','Both — policy + execution; defense in depth missing','GitHub'], ans:'Both — policy + execution; defense in depth missing', why:'Real-world programs use defense in depth: dev training (don\'t commit secrets), pre-commit hooks (catch them automatically), secret scanning (GitHub + GitLeaks), short-lived creds, key rotation. Multiple layers failed if a key reached prod GitHub. No single owner.' }
   ];
   function pickQ(){
     var q = pool[Math.floor(Math.random()*pool.length)];
     var opts = q.opts.slice().sort(function(){return Math.random()-.5;});
     document.getElementById('quizStem').textContent = q.stem;
     var b2 = document.getElementById('quizOpts'); b2.innerHTML='';
+    var why=document.getElementById('quizWhy'); why.classList.remove('show'); why.textContent='';
     opts.forEach(function(o){
       var btn = document.createElement('button');
       btn.className='opt'; btn.textContent=o;
@@ -165,6 +169,7 @@
         if (o===q.ans){ btn.classList.add('correct'); qCorrect++; qStreak++; }
         else { btn.classList.add('wrong'); qWrong++; qStreak=0;
           Array.prototype.forEach.call(b2.children, function(c){ if (c.textContent===q.ans) c.classList.add('correct'); }); }
+        why.textContent='↳ '+q.why; why.classList.add('show');
         document.getElementById('qCorrect').textContent=qCorrect;
         document.getElementById('qWrong').textContent=qWrong;
         document.getElementById('qStreak').textContent=qStreak;
