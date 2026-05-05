@@ -58,6 +58,21 @@
   .why{font-family:var(--font-mono);font-size:.82rem;color:var(--ink-secondary);margin-top:10px;padding:10px 12px;background:var(--bg-recessed);border-left:3px solid var(--accent-soft);border-radius:var(--radius);display:none;line-height:1.55}
   .why.show{display:block;animation:fadeIn .25s ease}
   @keyframes fadeIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
+  .stage-wrap{display:grid;grid-template-columns:2fr 1fr;gap:14px;margin-top:10px}
+  @media (max-width:760px){.stage-wrap{grid-template-columns:1fr}}
+  .stage-svg{width:100%;display:block;background:var(--bg-recessed);border:1px solid var(--border);border-radius:var(--radius);min-height:200px}
+  .seq-log{font-family:var(--font-mono);font-size:.78rem;background:#1C1917;color:#E7E5E4;border-radius:var(--radius);padding:12px;max-height:200px;overflow-y:auto;line-height:1.55}
+  .seq-log .row{padding:3px 0;border-bottom:1px dashed #333;display:flex;gap:8px}
+  .seq-log .row:last-child{border-bottom:0}
+  .seq-log .ts{color:#A8A29E;flex-shrink:0;min-width:60px}
+  .seq-log .row.q{color:#FCD34D}
+  .seq-log .row.r{color:#86EFAC}
+  .seq-log .row.idle{color:#A8A29E;font-style:italic}
+  .ntp-bubble{transition:transform 0.6s cubic-bezier(.16,1,.3,1),opacity 0.25s}
+  .ntp-bubble rect{fill:#F59E0B;stroke:#92400E;stroke-width:1}
+  .ntp-bubble.reply rect{fill:#16A34A;stroke:#14532D}
+  .ntp-bubble text{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;fill:#fff;text-anchor:middle;dominant-baseline:middle}
+  @media (prefers-reduced-motion:reduce){.ntp-bubble{transition:none}}
 </style>
 <link rel="stylesheet" href="css/shared.css?v=4.56">
 <script defer src="js/nav.js"></script>
@@ -84,14 +99,32 @@
 </div>
 
 <div class="panel">
-  <h2>Client Clock Sim</h2>
+  <h2>Client Clock + NTP exchange (animated)</h2>
   <div class="clock drift" id="clock">14:23:08</div>
-  <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
+  <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:8px">
     <button class="btn ghost" id="drift">Let it drift</button>
-    <button class="btn accent" id="sync">ntp server 10.0.0.1 — sync</button>
+    <button class="btn accent" id="sync">▶ ntp server 10.0.0.1 — sync</button>
     <button class="btn ghost" id="stop">Stop</button>
   </div>
   <div id="verdict" class="verdict info" style="display:none;margin-top:12px"></div>
+  <div class="stage-wrap">
+    <svg class="stage-svg" viewBox="0 0 600 200" id="ntpStage">
+      <text x="100" y="20" font-family="Space Grotesk" font-size="11" font-weight="700" fill="#57534E" text-anchor="middle" letter-spacing="1">CLIENT (R1)</text>
+      <text x="500" y="20" font-family="Space Grotesk" font-size="11" font-weight="700" fill="#57534E" text-anchor="middle" letter-spacing="1">NTP SERVER (stratum 2)</text>
+      <g><rect x="40" y="40" width="120" height="60" rx="8" fill="#7C2D12" stroke="#0F172A" stroke-width="1.5"/>
+        <text x="100" y="64" text-anchor="middle" font-family="JetBrains Mono" font-size="11" font-weight="700" fill="#FCD34D">R1</text>
+        <text x="100" y="80" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#94A3B8" id="r1Stratum">stratum 16 (unsynced)</text>
+        <text x="100" y="92" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#94A3B8">drift +8s/min</text></g>
+      <g><rect x="440" y="40" width="120" height="60" rx="8" fill="#1E3A8A" stroke="#0F172A" stroke-width="1.5"/>
+        <text x="500" y="64" text-anchor="middle" font-family="JetBrains Mono" font-size="11" font-weight="700" fill="#FCD34D">10.0.0.1</text>
+        <text x="500" y="80" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#94A3B8">stratum 2</text>
+        <text x="500" y="92" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#94A3B8">ref .GPS.</text></g>
+      <line x1="160" y1="70" x2="440" y2="70" stroke="#94A3B8" stroke-width="2" stroke-dasharray="4,3"/>
+      <text x="300" y="60" font-family="JetBrains Mono" font-size="9" fill="#A8A29E" text-anchor="middle">UDP 123 ↔ UDP 123</text>
+      <g id="ntpBubbles"></g>
+    </svg>
+    <div class="seq-log" id="ntpLog"></div>
+  </div>
 
   <div class="cfg">R1(config)# ntp server 10.0.0.1
 R1(config)# ntp server 192.5.41.41 prefer
@@ -146,13 +179,50 @@ R1# show ntp associations
     document.getElementById('verdict').textContent='✗ Drifting 8s per tick. Logs across devices won\'t correlate. TLS will reject on +5min skew.';
     timer=setInterval(tick,200);
   });
+  function logNtp(text,cls){
+    var box=document.getElementById('ntpLog');
+    var row=document.createElement('div'); row.className='row '+(cls||'');
+    var d=new Date(); var ts=String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')+':'+String(d.getSeconds()).padStart(2,'0');
+    row.innerHTML='<span class="ts">'+ts+'</span><span>'+text+'</span>';
+    box.appendChild(row); box.scrollTop=box.scrollHeight;
+  }
+  function ntpBubble(label,cls,fromX,toX){
+    if(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return Promise.resolve();
+    var ns='http://www.w3.org/2000/svg';
+    var g=document.createElementNS(ns,'g'); g.setAttribute('class','ntp-bubble '+(cls||'')); g.setAttribute('opacity','1');
+    g.setAttribute('transform','translate('+fromX+',70)');
+    var rect=document.createElementNS(ns,'rect');
+    rect.setAttribute('x',-65); rect.setAttribute('y',-12); rect.setAttribute('width',130); rect.setAttribute('height',24); rect.setAttribute('rx',12);
+    g.appendChild(rect);
+    var text=document.createElementNS(ns,'text'); text.setAttribute('x',0); text.setAttribute('y',0); text.textContent=label;
+    g.appendChild(text);
+    document.getElementById('ntpBubbles').appendChild(g);
+    return new Promise(function(r){ setTimeout(function(){ g.setAttribute('transform','translate('+toX+',70)'); setTimeout(function(){ g.setAttribute('opacity','0'); setTimeout(function(){ if(g.parentNode) g.parentNode.removeChild(g); r(); },300);},650); },20); });
+  }
+
   document.getElementById('sync').addEventListener('click',function(){
-    clearInterval(timer); driftRate=0; t=new Date();
-    var c=document.getElementById('clock'); c.className='clock synced';
-    c.textContent=String(t.getHours()).padStart(2,'0')+':'+String(t.getMinutes()).padStart(2,'0')+':'+String(t.getSeconds()).padStart(2,'0');
-    var v=document.getElementById('verdict'); v.style.display='block'; v.className='verdict win';
-    v.textContent='✓ Snapped to NTP server. Stratum 3. UDP/123 used. Drift rate now zero.';
-    timer=setInterval(tick,1000);
+    clearInterval(timer); driftRate=0;
+    var btn=document.getElementById('sync'); btn.disabled=true;
+    document.getElementById('ntpBubbles').innerHTML='';
+    document.getElementById('ntpLog').innerHTML='';
+    logNtp('R1 → 10.0.0.1 :123 ntp client request (T1 set)','q');
+    ntpBubble('client req T1','',100,500)
+      .then(function(){
+        logNtp('10.0.0.1 → R1 :123 server reply (T2 receive, T3 transmit, stratum=2)','r');
+        return ntpBubble('reply T2 T3 strat=2','reply',500,100);
+      })
+      .then(function(){
+        logNtp('R1 computes offset = ((T2-T1)+(T3-T4))/2 → ~+8.3s','idle');
+        logNtp('✓ clock snapped, R1 stratum = 3 (peer +1)','r');
+        document.getElementById('r1Stratum').textContent='stratum 3 (synced)';
+        t=new Date();
+        var c=document.getElementById('clock'); c.className='clock synced';
+        c.textContent=String(t.getHours()).padStart(2,'0')+':'+String(t.getMinutes()).padStart(2,'0')+':'+String(t.getSeconds()).padStart(2,'0');
+        var v=document.getElementById('verdict'); v.style.display='block'; v.className='verdict win';
+        v.textContent='✓ Snapped to NTP server. Stratum 3. UDP/123 used. Drift rate now zero.';
+        timer=setInterval(tick,1000);
+        btn.disabled=false;
+      });
   });
   document.getElementById('stop').addEventListener('click',function(){clearInterval(timer)});
 

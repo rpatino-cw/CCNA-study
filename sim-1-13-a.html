@@ -60,6 +60,15 @@
   .scoreline{font-family:var(--font-mono);font-size:.84rem;color:var(--ink-muted);margin-top:10px;display:flex;gap:18px;align-items:center}
   .scoreline strong{color:var(--ink)}
   .badge{display:inline-block;font-family:var(--font-display);font-size:.7rem;font-weight:700;padding:2px 8px;border-radius:99px;background:var(--accent-light);color:var(--accent);text-transform:uppercase;letter-spacing:.04em;margin-left:8px}
+  .seq-log{font-family:var(--font-mono);font-size:.78rem;background:#1C1917;color:#E7E5E4;border-radius:8px;padding:12px;max-height:160px;overflow-y:auto;line-height:1.55;margin-top:14px}
+  .seq-log .row{padding:3px 0;border-bottom:1px dashed #333;display:flex;gap:8px}
+  .seq-log .row:last-child{border-bottom:0}
+  .seq-log .ts{color:#A8A29E;flex-shrink:0;min-width:60px}
+  .seq-log .row.recv{color:#FCD34D}
+  .seq-log .row.learn{color:#86EFAC}
+  .seq-log .row.fwd{color:#93C5FD}
+  .seq-log .row.flood{color:#FCA5A5}
+  .seq-log .row.idle{color:#A8A29E;font-style:italic}
 </style>
 <link rel="stylesheet" href="css/shared.css?v=4.56">
 <script defer src="js/nav.js"></script>
@@ -100,6 +109,7 @@
   <h2 style="margin-top:18px">MAC Address Table</h2>
   <table class="table"><thead><tr><th>MAC</th><th>Port</th><th>Type</th></tr></thead><tbody id="macTbl"><tr><td colspan="3" style="color:var(--ink-muted)">empty</td></tr></tbody></table>
   <div class="verdict" id="verdict">Send aa:01 → aa:02. First time, table is empty for aa:02 → flood. Switch learns aa:01 lives on Port 1.</div>
+  <div class="seq-log" id="switchLog"><div class="row idle"><span class="ts">--:--:--</span><span>fire a frame to populate event log</span></div></div>
 </div>
 
 <div class="panel quiz">
@@ -146,6 +156,14 @@
     setTimeout(cb, 580);
   }
 
+  function logRow(text,cls){
+    var box=document.getElementById('switchLog');
+    var row=document.createElement('div'); row.className='row '+(cls||'');
+    var d=new Date(); var ts=String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')+':'+String(d.getSeconds()).padStart(2,'0');
+    row.innerHTML='<span class="ts">'+ts+'</span><span>'+text+'</span>';
+    box.appendChild(row); box.scrollTop=box.scrollHeight;
+  }
+
   function send(){
     var src = document.getElementById('src').value;
     var dst = document.getElementById('dst').value;
@@ -153,8 +171,11 @@
     clearActive();
     var srcPort = portByMac[src];
     document.getElementById('pc'+srcPort).classList.add('active');
+    logRow('frame received on Port '+srcPort+': src='+src+' dst='+dst,'recv');
 
+    var wasKnown = macTable[src];
     macTable[src] = srcPort; renderTable();
+    if (!wasKnown) logRow('learned src '+src+' → Port '+srcPort,'learn');
 
     var pkt = document.getElementById('pkt');
     pkt.style.display='block';
@@ -166,16 +187,19 @@
         var v = document.getElementById('verdict');
         if (dst === 'ff:ff'){
           v.className='verdict miss'; v.textContent='Broadcast frame — flood out all ports except '+srcPort+'.';
+          logRow('broadcast '+dst+' → flood ports '+[1,2,3,4].filter(function(p){return p!==srcPort;}).join(','),'flood');
           floodTo(srcPort);
         } else if (macTable[dst]){
           var dp = macTable[dst];
           v.className='verdict win'; v.textContent='✓ '+dst+' is on Port '+dp+'. Forward out only Port '+dp+'.';
+          logRow('table hit: '+dst+' → Port '+dp+' — unicast forward','fwd');
           flyTo(pcCoords[dp].x, pcCoords[dp].y, function(){
             document.getElementById('pc'+dp).classList.add('dest');
             pkt.style.display='none';
           });
         } else {
           v.className='verdict miss'; v.textContent='✗ '+dst+' unknown — flood out every port except '+srcPort+'.';
+          logRow('table miss: '+dst+' unknown → flood ports '+[1,2,3,4].filter(function(p){return p!==srcPort;}).join(','),'flood');
           floodTo(srcPort);
         }
       });

@@ -67,6 +67,18 @@
   .why{font-family:var(--font-mono);font-size:.82rem;color:var(--ink-secondary);margin-top:10px;padding:10px 12px;background:var(--bg-recessed);border-left:3px solid var(--accent-soft);border-radius:var(--radius);display:none;line-height:1.55}
   .why.show{display:block;animation:fadeIn .25s ease}
   @keyframes fadeIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
+  .stage-svg{width:100%;display:block;background:var(--bg-recessed);border:1px solid var(--border);border-radius:var(--radius);min-height:170px;margin-top:10px}
+  .syslog-bubble{transition:transform 0.7s linear,opacity 0.25s}
+  .syslog-bubble rect{stroke-width:1}
+  .syslog-bubble.s0 rect,.syslog-bubble.s1 rect,.syslog-bubble.s2 rect{fill:#DC2626;stroke:#7F1D1D}
+  .syslog-bubble.s3 rect{fill:#EA580C;stroke:#7C2D12}
+  .syslog-bubble.s4 rect{fill:#F59E0B;stroke:#92400E}
+  .syslog-bubble.s5 rect{fill:#3B82F6;stroke:#1E3A8A}
+  .syslog-bubble.s6 rect{fill:#16A34A;stroke:#14532D}
+  .syslog-bubble.s7 rect{fill:#A8A29E;stroke:#57534E}
+  .syslog-bubble.dropped rect{opacity:.35}
+  .syslog-bubble text{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;fill:#fff;text-anchor:middle;dominant-baseline:middle}
+  @media (prefers-reduced-motion:reduce){.syslog-bubble{transition:none}}
 </style>
 <link rel="stylesheet" href="css/shared.css?v=4.56">
 <script defer src="js/nav.js"></script>
@@ -95,9 +107,24 @@
   <div class="mnem"><b>Mnemonic:</b> <span style="font-family:var(--font-mono)">E</span>very <span style="font-family:var(--font-mono)">A</span>wesome <span style="font-family:var(--font-mono)">C</span>isco <span style="font-family:var(--font-mono)">E</span>ngineer <span style="font-family:var(--font-mono)">W</span>ill <span style="font-family:var(--font-mono)">N</span>eed <span style="font-family:var(--font-mono)">I</span>ce-cream <span style="font-family:var(--font-mono)">D</span>aily — Emergency, Alert, Critical, Error, Warning, Notice, Informational, Debug</div>
   <div style="font-family:var(--font-mono);font-size:.84rem;color:var(--ink-secondary)">Current config: <code id="cfg" style="background:var(--ink);color:#FAF7F2;padding:2px 8px;border-radius:4px">logging trap 4</code> — sends levels 0–4 to syslog server (UDP 514)</div>
 
+  <svg class="stage-svg" viewBox="0 0 600 170" id="syslogStage">
+    <text x="80" y="20" font-family="Space Grotesk" font-size="11" font-weight="700" fill="#57534E" text-anchor="middle" letter-spacing="1">ROUTER</text>
+    <text x="500" y="20" font-family="Space Grotesk" font-size="11" font-weight="700" fill="#57534E" text-anchor="middle" letter-spacing="1">SYSLOG SERVER (UDP 514)</text>
+    <g><rect x="20" y="40" width="120" height="50" rx="8" fill="#7C2D12" stroke="#0F172A" stroke-width="1.5"/>
+      <text x="80" y="62" text-anchor="middle" font-family="JetBrains Mono" font-size="11" font-weight="700" fill="#FCD34D">R1</text>
+      <text x="80" y="78" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#94A3B8">producing events</text></g>
+    <g><rect x="440" y="40" width="120" height="50" rx="8" fill="#1E3A8A" stroke="#0F172A" stroke-width="1.5"/>
+      <text x="500" y="62" text-anchor="middle" font-family="JetBrains Mono" font-size="11" font-weight="700" fill="#FCD34D">10.0.0.50</text>
+      <text x="500" y="78" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#94A3B8">syslog server</text></g>
+    <line x1="140" y1="65" x2="440" y2="65" stroke="#94A3B8" stroke-width="2" stroke-dasharray="4,3"/>
+    <text x="290" y="55" font-family="JetBrains Mono" font-size="9" fill="#A8A29E" text-anchor="middle">filter cutoff at &lt;trap&gt;</text>
+    <line x1="290" y1="35" x2="290" y2="100" stroke="#DC2626" stroke-width="2" stroke-dasharray="2,4" id="filterLine"/>
+    <text x="290" y="118" font-family="JetBrains Mono" font-size="9" fill="#DC2626" text-anchor="middle" id="filterLabel">↑ trap=4 — drops 5,6,7</text>
+    <g id="syslogBubbles"></g>
+  </svg>
   <div class="log" id="log"></div>
   <div style="margin-top:10px;display:flex;gap:8px">
-    <button class="btn accent" id="fire">Fire sample messages</button>
+    <button class="btn accent" id="fire">▶ Fire sample messages</button>
     <button class="btn ghost" id="clear">Clear</button>
   </div>
 </div>
@@ -133,17 +160,44 @@
     trap=n;
     document.querySelectorAll('.lvl').forEach(function(el){el.classList.toggle('active',parseInt(el.dataset.l)===n)});
     document.getElementById('cfg').textContent='logging trap '+n;
+    var dropped=[];
+    for(var i=n+1;i<=7;i++) dropped.push(i);
+    document.getElementById('filterLabel').textContent='↑ trap='+n+(dropped.length?' — drops '+dropped.join(','):' — sends ALL');
     fire();
+  }
+  function makeSyslogBubble(label,sev,dropped){
+    if(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    var ns='http://www.w3.org/2000/svg';
+    var g=document.createElementNS(ns,'g'); g.setAttribute('class','syslog-bubble s'+sev+(dropped?' dropped':''));
+    g.setAttribute('opacity','1'); g.setAttribute('transform','translate(80,65)');
+    var rect=document.createElementNS(ns,'rect');
+    rect.setAttribute('x',-55); rect.setAttribute('y',-11); rect.setAttribute('width',110); rect.setAttribute('height',22); rect.setAttribute('rx',11);
+    g.appendChild(rect);
+    var text=document.createElementNS(ns,'text'); text.setAttribute('x',0); text.setAttribute('y',0); text.textContent=label;
+    g.appendChild(text);
+    document.getElementById('syslogBubbles').appendChild(g);
+    setTimeout(function(){
+      if(dropped){
+        // Travel halfway to filter line then fade
+        g.setAttribute('transform','translate(290,65)');
+        setTimeout(function(){ g.setAttribute('opacity','0'); setTimeout(function(){ if(g.parentNode) g.parentNode.removeChild(g); },300); },650);
+      } else {
+        g.setAttribute('transform','translate(500,65)');
+        setTimeout(function(){ g.setAttribute('opacity','0'); setTimeout(function(){ if(g.parentNode) g.parentNode.removeChild(g); },300); },750);
+      }
+    },20);
   }
   function fire(){
     var box=document.getElementById('log'); box.innerHTML='';
+    document.getElementById('syslogBubbles').innerHTML='';
     samples.forEach(function(s,i){
       setTimeout(function(){
         var r=document.createElement('div');
         r.className='row sev'+s.l+' '+(s.l<=trap?'shown':'hidden');
         r.textContent=(s.l<=trap?'✓ SENT  ':'✗ DROP  ')+'Apr 29 '+String(14+Math.floor(i/4)).padStart(2,'0')+':'+String(20+i*7%60).padStart(2,'0')+':00 '+s.m;
         box.appendChild(r); box.scrollTop=box.scrollHeight;
-      },i*120);
+        makeSyslogBubble('sev '+s.l, s.l, s.l>trap);
+      },i*250);
     });
   }
   document.querySelectorAll('.lvl').forEach(function(el){el.addEventListener('click',function(){setLevel(parseInt(el.dataset.l))})});
