@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>6.3.c Sim — Northbound / Southbound APIs</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{--bg:#FAF7F2;--bg-surface:#FFFFFF;--bg-recessed:#F3F0EB;--border:#E2DFD9;--border-strong:#C7C3BC;--ink:#1C1917;--ink-secondary:#57534E;--ink-muted:#A8A29E;--accent:#B45309;--accent-soft:#D97706;--accent-light:#FEF3C7;--correct:#16A34A;--correct-bg:#F0FDF4;--wrong:#DC2626;--wrong-bg:#FEF2F2;--info:#2563EB;--info-bg:#EFF6FF;--nb:#10B981;--nb-bg:#D1FAE5;--sb:#3B82F6;--sb-bg:#DBEAFE;--font-display:'Space Grotesk',system-ui,sans-serif;--font-body:'Source Serif 4',Georgia,serif;--font-mono:'JetBrains Mono',monospace;--radius:6px;--radius-lg:10px}
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:var(--font-body);background:var(--bg);color:var(--ink);line-height:1.55;padding:24px;max-width:920px;margin:0 auto}
+  .head{margin-bottom:20px;padding-bottom:14px;border-bottom:1px solid var(--border)}
+  .head .crumb{font-family:var(--font-mono);font-size:.74rem;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px}
+  .head h1{font-family:var(--font-display);font-size:1.5rem;font-weight:700;margin-bottom:6px}
+  .head .desc{font-size:.95rem;color:var(--ink-secondary)}
+  .panel{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;margin-bottom:18px}
+  .panel h2{font-family:var(--font-display);font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-secondary);margin-bottom:12px}
+  .intro{font-size:.96rem;color:var(--ink-secondary);margin-bottom:14px}
+  .intro strong{color:var(--ink)}
+  .btn{font-family:var(--font-display);font-size:.84rem;font-weight:600;padding:8px 16px;background:var(--ink);color:#FAF7F2;border:none;border-radius:var(--radius);cursor:pointer}
+  .btn.ghost{background:var(--bg-recessed);color:var(--ink)}
+  .btn.accent{background:var(--accent)}
+  .stack-svg{width:100%;display:block;margin:6px auto;background:var(--bg-recessed);border:1px solid var(--border);border-radius:var(--radius)}
+  .lanes{display:grid;grid-template-rows:auto auto;gap:10px;margin-top:10px}
+  .lane{padding:14px 16px;border-radius:var(--radius-lg);min-height:90px;border:2px dashed transparent;transition:all .15s;display:flex;flex-direction:column;gap:6px}
+  .lane.nb{background:var(--nb-bg);border-color:var(--nb)}
+  .lane.sb{background:var(--sb-bg);border-color:var(--sb)}
+  .lane-head{font-family:var(--font-display);font-size:.84rem;font-weight:700;color:var(--ink);display:flex;justify-content:space-between;align-items:center}
+  .lane-head .tag{font-family:var(--font-mono);font-size:.72rem;font-weight:600;padding:2px 8px;border-radius:99px;background:#FFF;color:var(--ink-secondary);border:1px solid var(--border)}
+  .chip-tray{display:flex;flex-wrap:wrap;gap:6px;min-height:28px}
+  .chip{font-family:var(--font-mono);font-size:.82rem;padding:6px 12px;background:#FFF;border:1.5px solid var(--border-strong);border-radius:99px;cursor:pointer;user-select:none;transition:all .15s}
+  .chip:hover{border-color:var(--accent);box-shadow:0 2px 6px rgba(180,83,9,.12)}
+  .chip.in-nb{background:var(--nb-bg);border-color:var(--nb);color:#065F46}
+  .chip.in-sb{background:var(--sb-bg);border-color:var(--sb);color:#1E3A8A}
+  .chip.correct{background:var(--correct-bg);border-color:var(--correct);color:var(--correct);font-weight:700}
+  .chip.wrong{background:var(--wrong-bg);border-color:var(--wrong);color:var(--wrong);text-decoration:line-through}
+  .controls{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+  .verdict{margin-top:14px;padding:12px 16px;border-radius:var(--radius);font-family:var(--font-display);font-size:.94rem;font-weight:600;background:var(--info-bg);color:var(--info);border:1px solid var(--info);display:none}
+  .verdict.show{display:block;animation:fadeIn .25s ease}
+  .verdict.win{background:var(--correct-bg);color:var(--correct);border-color:var(--correct)}
+  .verdict.miss{background:var(--wrong-bg);color:var(--wrong);border-color:var(--wrong)}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
+  .compare{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px;font-family:var(--font-body);font-size:.92rem}
+  .compare div{padding:14px;background:var(--bg-recessed);border-radius:var(--radius);border:1px solid var(--border)}
+  .compare h3{font-family:var(--font-display);font-size:.92rem;color:var(--accent);margin-bottom:6px}
+  .compare code{font-family:var(--font-mono);font-size:.86rem;background:var(--bg-surface);padding:1px 5px;border-radius:3px}
+  .code-block{font-family:var(--font-mono);font-size:.84rem;background:#1C1917;color:#E7E5E4;padding:14px;border-radius:var(--radius);line-height:1.6;overflow-x:auto;margin-top:10px}
+  .code-block .verb{color:#FCD34D;font-weight:700}
+  .code-block .url{color:#86EFAC}
+  .code-block .key{color:#93C5FD}
+  .code-block .muted{color:#A8A29E;font-style:italic}
+  .quiz{margin-top:22px}
+  .quiz .stem{font-family:var(--font-display);font-size:1.02rem;font-weight:600;margin-bottom:12px;padding:14px;background:var(--accent-light);border-left:3px solid var(--accent);border-radius:var(--radius)}
+  .quiz .opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px}
+  .opt{background:var(--bg-recessed);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;font-family:var(--font-mono);font-size:.92rem;cursor:pointer;text-align:left}
+  .opt:hover{border-color:var(--border-strong);background:var(--bg-surface)}
+  .opt.correct{background:var(--correct-bg);border-color:var(--correct);color:var(--correct);font-weight:700}
+  .opt.wrong{background:var(--wrong-bg);border-color:var(--wrong);color:var(--wrong)}
+  .why{font-family:var(--font-mono);font-size:.82rem;color:var(--ink-secondary);margin-top:10px;padding:10px 12px;background:var(--bg-recessed);border-left:3px solid var(--accent-soft);border-radius:var(--radius);display:none;line-height:1.55}
+  .why.show{display:block;animation:fadeIn .25s ease}
+  .scoreline{font-family:var(--font-mono);font-size:.84rem;color:var(--ink-muted);margin-top:10px;display:flex;gap:18px;align-items:center}
+  .scoreline strong{font-weight:700;color:var(--ink)}
+  .badge{display:inline-block;font-family:var(--font-display);font-size:.7rem;font-weight:700;padding:2px 8px;border-radius:99px;background:var(--accent-light);color:var(--accent);text-transform:uppercase;letter-spacing:.04em;margin-left:8px}
+  .footer-link{margin-top:24px;padding-top:14px;border-top:1px solid var(--border);font-family:var(--font-mono);font-size:.82rem}
+  .footer-link a{color:var(--accent);text-decoration:none}
+</style>
+<link rel="stylesheet" href="css/shared.css?v=4.56">
+<script defer src="js/nav.js"></script>
+</head>
+<body>
+<nav class="top-nav" id="main-nav"></nav>
+
+<div class="head">
+  <div class="crumb"><a href="blueprint-drill.html?obj=6.3" style="color:var(--accent);text-decoration:none">← 6.3 Mini Sims</a> · 6.3.c · Automation · Northbound &amp; Southbound APIs</div>
+  <h1>The Controller Sandwich<span class="badge">drill</span></h1>
+  <div class="desc">A controller sits in the middle. <strong>Apps + humans</strong> sit above and call <strong>northbound APIs</strong> (REST, JSON — high-level: "give me all sites"). <strong>Devices</strong> sit below and the controller talks to them via <strong>southbound APIs</strong> (NETCONF, RESTCONF, OpenFlow, gNMI — low-level: "edit this YANG node"). Up = abstract / business. Down = concrete / device.</div>
+</div>
+
+<div class="panel">
+  <h2>The sandwich</h2>
+  <svg class="stack-svg" viewBox="0 0 760 280">
+    <rect x="60" y="20" width="640" height="50" rx="6" fill="#FFFBEB" stroke="#F59E0B" stroke-width="1.5"/>
+    <text x="380" y="40" text-anchor="middle" font-family="Space Grotesk" font-size="13" font-weight="700" fill="#92400E">Apps · scripts · UIs · operators</text>
+    <text x="380" y="58" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#92400E">"give me all sites with bandwidth &gt; 80%"</text>
+
+    <text x="380" y="92" text-anchor="middle" font-family="JetBrains Mono" font-size="11" fill="#065F46" font-weight="700">↑↓ NORTHBOUND API (REST / JSON · high-level intent)</text>
+
+    <rect x="60" y="105" width="640" height="60" rx="6" fill="#FEF3C7" stroke="#F59E0B" stroke-width="2"/>
+    <text x="380" y="128" text-anchor="middle" font-family="Space Grotesk" font-size="14" font-weight="700" fill="#92400E">CONTROLLER</text>
+    <text x="380" y="148" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#92400E">Cisco DNA Center / Catalyst Center · ACI APIC · Meraki Dashboard · WLC</text>
+
+    <text x="380" y="184" text-anchor="middle" font-family="JetBrains Mono" font-size="11" fill="#1E3A8A" font-weight="700">↑↓ SOUTHBOUND API (NETCONF · RESTCONF · OpenFlow · gNMI · CLI)</text>
+
+    <rect x="60" y="200" width="640" height="60" rx="6" fill="#DBEAFE" stroke="#3B82F6" stroke-width="1.5"/>
+    <text x="380" y="222" text-anchor="middle" font-family="Space Grotesk" font-size="13" font-weight="700" fill="#1E3A8A">Network devices (switches · routers · APs)</text>
+    <text x="380" y="240" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#1E3A8A">"set interface Gi1/0/3 description Gold-VLAN-trunk"</text>
+  </svg>
+  <p class="intro" style="margin-top:6px"><strong>Compass test:</strong> if you're <em>going up</em> (abstract, intent, business) you're hitting a <em>northbound</em> API. If you're <em>going down</em> (concrete, device-specific config) you're hitting a <em>southbound</em> API.</p>
+</div>
+
+<div class="panel">
+  <h2>NB vs SB at a glance</h2>
+  <div class="compare">
+    <div><h3 style="color:#065F46">Northbound</h3>
+      Faces apps + humans. Coarse-grained. Speaks <code>REST</code> + <code>JSON</code>. Authentication usually OAuth / token. Examples: <code>GET /dna/intent/api/v1/network-device</code>, <code>POST /onboarding/pnp-device</code>, the Meraki Dashboard API, controller webhooks.
+    </div>
+    <div><h3 style="color:#1E3A8A">Southbound</h3>
+      Faces devices. Fine-grained, often model-driven. <code>NETCONF</code> over SSH (with YANG models), <code>RESTCONF</code> over HTTPS, <code>gNMI</code> over gRPC, <code>OpenFlow</code>, and yes — even old-school CLI/SNMP/TFTP count. Telemetry usually lives here too.
+    </div>
+  </div>
+</div>
+
+<div class="panel">
+  <h2>Drop the chip into the right API direction</h2>
+  <p class="intro">Click a chip to cycle: <strong>tray → northbound → southbound → tray</strong>.</p>
+  <div class="lanes">
+    <div class="lane nb">
+      <div class="lane-head">Northbound <span class="tag">apps ↔ controller · REST/JSON</span></div>
+      <div class="chip-tray" id="laneNB"></div>
+    </div>
+    <div class="lane sb">
+      <div class="lane-head">Southbound <span class="tag">controller ↔ devices · NETCONF/OpenFlow/gNMI</span></div>
+      <div class="chip-tray" id="laneSB"></div>
+    </div>
+  </div>
+  <div style="margin-top:12px"><div class="lane" style="background:var(--bg-recessed);border-color:var(--border);border-style:solid">
+    <div class="lane-head">Tray (unplaced)</div>
+    <div class="chip-tray" id="laneTray"></div>
+  </div></div>
+  <div class="controls">
+    <button class="btn accent" id="check">Check</button>
+    <button class="btn ghost" id="reveal">Reveal answers</button>
+    <button class="btn ghost" id="resetChips">Reset</button>
+  </div>
+  <div class="verdict" id="verdict"></div>
+</div>
+
+<div class="panel">
+  <h2>Worked example — Python script using a northbound API</h2>
+  <div class="code-block"><span class="muted"># 1) Operator runs Python on laptop</span>
+<span class="key">import</span> requests
+url = <span class="url">"https://dnac.example.com/dna/intent/api/v1/network-device"</span>
+hdr = {<span class="url">"X-Auth-Token"</span>: token}
+r = requests.<span class="verb">get</span>(url, headers=hdr)              <span class="muted"># NORTHBOUND call</span>
+devices = r.json()[<span class="url">"response"</span>]
+
+<span class="muted"># 2) DNA Center — having received the NB call — fans out SOUTHBOUND</span>
+<span class="muted">#    to each device via NETCONF/RESTCONF, gathering data per device:</span>
+<span class="muted">#    &lt;rpc&gt;&lt;get-config&gt;&lt;source&gt;&lt;running/&gt;&lt;/source&gt;&lt;/get-config&gt;&lt;/rpc&gt;</span>
+<span class="muted">#    Returns YANG-modeled data. Controller assembles + responds to the laptop.</span></div>
+  <p class="intro" style="margin-top:10px">Two API calls happened — one northbound (Python → controller, REST/JSON) and many southbound (controller → switches, NETCONF/YANG). The Python script never touched a switch directly. That's the whole point.</p>
+</div>
+
+<div class="panel">
+  <h2>Faded prompt — your turn</h2>
+  <p class="intro">Question: a Python script uses <code style="font-family:var(--font-mono);background:var(--bg-recessed);padding:1px 5px;border-radius:3px">ncclient</code> to send <code style="font-family:var(--font-mono);background:var(--bg-recessed);padding:1px 5px;border-radius:3px">edit-config</code> directly to a switch. Which side is that?</p>
+  <p class="intro"><strong>Answer:</strong> <em>southbound</em>. The script is doing what a controller would normally do — talking NETCONF to a device. There's no controller in this picture; the script became the "controller" for one device. NB vs SB is about <em>direction relative to the controller layer</em>, not about who's typing the command.</p>
+</div>
+
+<div class="panel quiz" id="quizPanel">
+  <h2>Quiz mode</h2>
+  <div class="stem" id="quizStem">Loading…</div>
+  <div class="opts" id="quizOpts"></div>
+  <div class="why" id="why"></div>
+  <div class="scoreline">
+    <span><strong id="qCorrect">0</strong> correct</span>
+    <span><strong id="qWrong">0</strong> wrong</span>
+    <span><strong id="qStreak">0</strong> streak</span>
+    <span style="margin-left:auto"><button class="btn ghost" id="newQ">Next ↻</button></span>
+  </div>
+</div>
+
+<div class="footer-link"><a href="blueprint-drill.html?obj=6.3">← back to 6.3 leaves</a></div>
+
+<script>
+(function(){
+  var chips = [
+    { id:'rest-dnac',   label:'Python REST → DNA Center',  side:'nb' },
+    { id:'meraki-dash', label:'Meraki Dashboard API call', side:'nb' },
+    { id:'webhook',     label:'Controller → Slack webhook',side:'nb' },
+    { id:'gui-click',   label:'Operator clicks "Apply" in WLC GUI', side:'nb' },
+    { id:'netconf',     label:'NETCONF edit-config to switch', side:'sb' },
+    { id:'restconf',    label:'RESTCONF PATCH (YANG)',     side:'sb' },
+    { id:'openflow',    label:'OpenFlow flow-mod',          side:'sb' },
+    { id:'gnmi',        label:'gNMI streaming telemetry',   side:'sb' },
+    { id:'ssh-cli',     label:'Controller SSH-to-switch CLI', side:'sb' },
+    { id:'snmp-poll',   label:'Controller SNMP poll of device', side:'sb' }
+  ];
+  var placement = {}; chips.forEach(function(c){ placement[c.id]='tray'; });
+
+  function paint(){
+    ['Tray','NB','SB'].forEach(function(L){ document.getElementById('lane'+L).innerHTML=''; });
+    chips.forEach(function(c){
+      var bin = placement[c.id];
+      var el = document.createElement('button'); el.type='button';
+      el.className = 'chip' + (bin!=='tray' ? ' in-'+bin : '');
+      el.textContent = c.label; el.dataset.id = c.id;
+      el.addEventListener('click', function(){
+        var seq = ['tray','nb','sb'];
+        placement[c.id] = seq[(seq.indexOf(placement[c.id])+1) % seq.length];
+        paint();
+      });
+      var laneId = bin==='tray' ? 'laneTray' : ('lane' + bin.toUpperCase());
+      document.getElementById(laneId).appendChild(el);
+    });
+  }
+
+  function clearMarks(){ document.querySelectorAll('.chip').forEach(function(el){ el.classList.remove('correct','wrong'); }); }
+
+  document.getElementById('check').addEventListener('click', function(){
+    clearMarks();
+    var right=0, wrong=0, untouched=0;
+    chips.forEach(function(c){
+      var p = placement[c.id];
+      var el = document.querySelector('.chip[data-id="'+c.id+'"]');
+      if (p==='tray'){ untouched++; }
+      else if (p===c.side){ el.classList.add('correct'); right++; }
+      else { el.classList.add('wrong'); wrong++; }
+    });
+    var v = document.getElementById('verdict');
+    v.className='verdict show ' + (right===chips.length ? 'win' : (wrong>0 ? 'miss' : ''));
+    v.textContent = '✓ ' + right + ' correct  ·  ' + wrong + ' wrong  ·  ' + untouched + ' still in tray.';
+  });
+  document.getElementById('reveal').addEventListener('click', function(){
+    chips.forEach(function(c){ placement[c.id] = c.side; });
+    paint();
+    document.querySelectorAll('.chip').forEach(function(el){ el.classList.add('correct'); });
+    var v = document.getElementById('verdict'); v.className='verdict show win';
+    v.textContent='✓ Revealed — read each lane and re-derive WHY each chip belongs there.';
+  });
+  document.getElementById('resetChips').addEventListener('click', function(){
+    chips.forEach(function(c){ placement[c.id]='tray'; });
+    document.getElementById('verdict').className='verdict';
+    paint();
+  });
+  paint();
+
+  // ── Quiz ──
+  var qCorrect=0, qWrong=0, qStreak=0;
+  var pool = [
+    { stem:'Northbound APIs typically use:', opts:['REST + JSON over HTTPS','NETCONF over SSH','OpenFlow','SNMP traps'], ans:'REST + JSON over HTTPS', why:'Northbound = controller exposes REST/JSON to apps. It is what a Python script + Postman talk. NETCONF/OpenFlow are southbound (controller → device).' },
+    { stem:'Southbound API examples include:', opts:['REST/JSON','NETCONF, RESTCONF, OpenFlow, gNMI','HTTP/2 only','Webhooks'], ans:'NETCONF, RESTCONF, OpenFlow, gNMI', why:'Southbound = controller talking to devices. NETCONF (RFC 6241) over SSH with YANG models. RESTCONF over HTTPS. OpenFlow for flow-table programming. gNMI for streaming telemetry.' },
+    { stem:'A Python script hitting Cisco DNA Center to list switches is which API direction?', opts:['Northbound — script → controller','Southbound — script → device','Both at once','Eastbound'], ans:'Northbound — script → controller', why:'Script sits above the controller, calling REST. The controller fans out southbound to devices on its own. NB and SB are defined relative to the controller.' },
+    { stem:'YANG is:', opts:['A controller','A southbound transport','A data-modeling language used by NETCONF/RESTCONF','A southbound API itself'], ans:'A data-modeling language used by NETCONF/RESTCONF', why:'YANG (RFC 7950) describes the schema of config + state data. NETCONF and RESTCONF carry YANG-modeled XML/JSON. YANG ≠ a protocol — it is the model the protocol carries.' },
+    { stem:'Which direction does an automation engineer\'s script normally hit FIRST?', opts:['Southbound — straight to device','Northbound — script → controller; controller fans out southbound','Both simultaneously','Westbound'], ans:'Northbound — script → controller; controller fans out southbound', why:'Whole point of a controller is one place to point your tooling. NB call hits controller; controller does the southbound fanout, abstraction, and aggregation.' },
+    { stem:'OpenFlow lives at:', opts:['Northbound','Southbound','Both','Neither'], ans:'Southbound', why:'OpenFlow is the canonical SDN southbound — controller installs flow rules on switches. Apps don\'t speak OpenFlow; controllers do.' },
+    { stem:'Which API direction handles "intent" requests like give me all sites with utilization > 80%?', opts:['Northbound','Southbound','Eastbound','Both equally'], ans:'Northbound', why:'Intent / business-level queries are northbound. The controller decomposes them into device-level southbound calls and aggregates the answer back. Abstraction belongs above, not below.' },
+    { stem:'gNMI uses which transport?', opts:['SSH','gRPC over HTTP/2','UDP','TCP/443 only'], ans:'gRPC over HTTP/2', why:'gNMI = gRPC Network Management Interface. Runs over gRPC (HTTP/2 + protobuf). Designed for streaming telemetry — much faster than SNMP polling.' },
+    { stem:'Telemetry that streams device counters out continuously is:', opts:['Northbound','Southbound — devices push to controller','Eastbound','None'], ans:'Southbound — devices push to controller', why:'Streaming telemetry (model-driven, gNMI/NETCONF) is a southbound mechanism — the controller subscribes, the device pushes. The controller may then expose aggregated metrics northbound to a dashboard.' },
+    { stem:'Two controllers federating between regions exchange data — direction is called:', opts:['Northbound','Southbound','East-west','None'], ans:'East-west', why:'Beyond NB/SB, the SDN community calls controller-to-controller communication "east-west." Important when you have multiple controllers (multi-domain SD-WAN, federated DNA Centers). Not on the strict CCNA blueprint, but useful context.' }
+  ];
+
+  function pickQ(){
+    var q = pool[Math.floor(Math.random()*pool.length)];
+    var opts = q.opts.slice().sort(function(){return Math.random()-.5;});
+    document.getElementById('quizStem').textContent = q.stem;
+    var bx = document.getElementById('quizOpts'); bx.innerHTML='';
+    var w = document.getElementById('why'); w.classList.remove('show'); w.textContent='';
+    opts.forEach(function(o){
+      var btn = document.createElement('button');
+      btn.className='opt'; btn.textContent=o;
+      btn.addEventListener('click', function(){
+        if (btn.classList.contains('correct')||btn.classList.contains('wrong')) return;
+        if (o===q.ans){ btn.classList.add('correct'); qCorrect++; qStreak++; }
+        else { btn.classList.add('wrong'); qWrong++; qStreak=0;
+          Array.prototype.forEach.call(bx.children, function(c){ if (c.textContent===q.ans) c.classList.add('correct'); }); }
+        w.textContent = '↳ ' + q.why; w.classList.add('show');
+        document.getElementById('qCorrect').textContent=qCorrect;
+        document.getElementById('qWrong').textContent=qWrong;
+        document.getElementById('qStreak').textContent=qStreak;
+      });
+      bx.appendChild(btn);
+    });
+  }
+  document.getElementById('newQ').addEventListener('click', pickQ);
+  pickQ();
+})();
+</script>
+<script defer src="js/tutor.js"></script>
+</body>
+</html>

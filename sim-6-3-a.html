@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>6.3.a Sim — Control vs Data Plane</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{--bg:#FAF7F2;--bg-surface:#FFFFFF;--bg-recessed:#F3F0EB;--border:#E2DFD9;--border-strong:#C7C3BC;--ink:#1C1917;--ink-secondary:#57534E;--ink-muted:#A8A29E;--accent:#B45309;--accent-soft:#D97706;--accent-light:#FEF3C7;--correct:#16A34A;--correct-bg:#F0FDF4;--wrong:#DC2626;--wrong-bg:#FEF2F2;--info:#2563EB;--info-bg:#EFF6FF;--ctrl:#8B5CF6;--ctrl-bg:#EDE9FE;--data:#0EA5E9;--data-bg:#E0F2FE;--mgmt:#F59E0B;--mgmt-bg:#FEF3C7;--font-display:'Space Grotesk',system-ui,sans-serif;--font-body:'Source Serif 4',Georgia,serif;--font-mono:'JetBrains Mono',monospace;--radius:6px;--radius-lg:10px}
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:var(--font-body);background:var(--bg);color:var(--ink);line-height:1.55;padding:24px;max-width:920px;margin:0 auto}
+  .head{margin-bottom:20px;padding-bottom:14px;border-bottom:1px solid var(--border)}
+  .head .crumb{font-family:var(--font-mono);font-size:.74rem;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px}
+  .head h1{font-family:var(--font-display);font-size:1.5rem;font-weight:700;margin-bottom:6px}
+  .head .desc{font-size:.95rem;color:var(--ink-secondary)}
+  .panel{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;margin-bottom:18px}
+  .panel h2{font-family:var(--font-display);font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-secondary);margin-bottom:12px}
+  .intro{font-size:.96rem;color:var(--ink-secondary);margin-bottom:14px}
+  .intro strong{color:var(--ink)}
+  .btn{font-family:var(--font-display);font-size:.84rem;font-weight:600;padding:8px 16px;background:var(--ink);color:#FAF7F2;border:none;border-radius:var(--radius);cursor:pointer}
+  .btn.ghost{background:var(--bg-recessed);color:var(--ink)}
+  .btn.accent{background:var(--accent)}
+  .lanes{display:grid;grid-template-rows:auto auto;gap:10px;margin-top:10px}
+  .lane{padding:14px 16px;border-radius:var(--radius-lg);min-height:90px;border:2px dashed transparent;transition:all .15s;display:flex;flex-direction:column;gap:6px}
+  .lane.ctrl{background:var(--ctrl-bg);border-color:var(--ctrl)}
+  .lane.data{background:var(--data-bg);border-color:var(--data)}
+  .lane.mgmt{background:var(--mgmt-bg);border-color:var(--mgmt)}
+  .lane-head{font-family:var(--font-display);font-size:.84rem;font-weight:700;color:var(--ink);display:flex;justify-content:space-between;align-items:center}
+  .lane-head .tag{font-family:var(--font-mono);font-size:.72rem;font-weight:600;padding:2px 8px;border-radius:99px;background:#FFF;color:var(--ink-secondary);border:1px solid var(--border)}
+  .chip-tray{display:flex;flex-wrap:wrap;gap:6px;min-height:28px}
+  .chip{font-family:var(--font-mono);font-size:.82rem;padding:6px 12px;background:#FFF;border:1.5px solid var(--border-strong);border-radius:99px;cursor:pointer;user-select:none;transition:all .15s}
+  .chip:hover{border-color:var(--accent);box-shadow:0 2px 6px rgba(180,83,9,.12)}
+  .chip.in-ctrl{background:var(--ctrl-bg);border-color:var(--ctrl);color:#5B21B6}
+  .chip.in-data{background:var(--data-bg);border-color:var(--data);color:#075985}
+  .chip.in-mgmt{background:var(--mgmt-bg);border-color:var(--mgmt);color:#92400E}
+  .chip.correct{background:var(--correct-bg);border-color:var(--correct);color:var(--correct);font-weight:700}
+  .chip.wrong{background:var(--wrong-bg);border-color:var(--wrong);color:var(--wrong);text-decoration:line-through}
+  .controls{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+  .verdict{margin-top:14px;padding:12px 16px;border-radius:var(--radius);font-family:var(--font-display);font-size:.94rem;font-weight:600;background:var(--info-bg);color:var(--info);border:1px solid var(--info);display:none}
+  .verdict.show{display:block;animation:fadeIn .25s ease}
+  .verdict.win{background:var(--correct-bg);color:var(--correct);border-color:var(--correct)}
+  .verdict.miss{background:var(--wrong-bg);color:var(--wrong);border-color:var(--wrong)}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
+  .compare{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px;font-family:var(--font-body);font-size:.92rem}
+  .compare div{padding:14px;background:var(--bg-recessed);border-radius:var(--radius);border:1px solid var(--border)}
+  .compare h3{font-family:var(--font-display);font-size:.92rem;color:var(--accent);margin-bottom:6px}
+  .compare code{font-family:var(--font-mono);font-size:.86rem;background:var(--bg-surface);padding:1px 5px;border-radius:3px}
+  .arch-svg{width:100%;display:block;margin:6px auto;background:var(--bg-recessed);border:1px solid var(--border);border-radius:var(--radius)}
+  .quiz{margin-top:22px}
+  .quiz .stem{font-family:var(--font-display);font-size:1.02rem;font-weight:600;margin-bottom:12px;padding:14px;background:var(--accent-light);border-left:3px solid var(--accent);border-radius:var(--radius)}
+  .quiz .opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px}
+  .opt{background:var(--bg-recessed);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;font-family:var(--font-mono);font-size:.92rem;cursor:pointer;text-align:left}
+  .opt:hover{border-color:var(--border-strong);background:var(--bg-surface)}
+  .opt.correct{background:var(--correct-bg);border-color:var(--correct);color:var(--correct);font-weight:700}
+  .opt.wrong{background:var(--wrong-bg);border-color:var(--wrong);color:var(--wrong)}
+  .why{font-family:var(--font-mono);font-size:.82rem;color:var(--ink-secondary);margin-top:10px;padding:10px 12px;background:var(--bg-recessed);border-left:3px solid var(--accent-soft);border-radius:var(--radius);display:none;line-height:1.55}
+  .why.show{display:block;animation:fadeIn .25s ease}
+  .scoreline{font-family:var(--font-mono);font-size:.84rem;color:var(--ink-muted);margin-top:10px;display:flex;gap:18px;align-items:center}
+  .scoreline strong{font-weight:700;color:var(--ink)}
+  .badge{display:inline-block;font-family:var(--font-display);font-size:.7rem;font-weight:700;padding:2px 8px;border-radius:99px;background:var(--accent-light);color:var(--accent);text-transform:uppercase;letter-spacing:.04em;margin-left:8px}
+  .footer-link{margin-top:24px;padding-top:14px;border-top:1px solid var(--border);font-family:var(--font-mono);font-size:.82rem}
+  .footer-link a{color:var(--accent);text-decoration:none}
+</style>
+<link rel="stylesheet" href="css/shared.css?v=4.56">
+<script defer src="js/nav.js"></script>
+</head>
+<body>
+<nav class="top-nav" id="main-nav"></nav>
+
+<div class="head">
+  <div class="crumb"><a href="blueprint-drill.html?obj=6.3" style="color:var(--accent);text-decoration:none">← 6.3 Mini Sims</a> · 6.3.a · Automation · Control vs Data Plane</div>
+  <h1>Three Planes, Three Jobs<span class="badge">drill</span></h1>
+  <div class="desc">Every router/switch has three planes running side-by-side: <strong>control</strong> (decisions: routing protocols, ARP, STP), <strong>data</strong> (forwarding: CEF, TCAM lookup, send-the-packet), <strong>management</strong> (humans + tools: SSH, SNMP, NETCONF). Traditional networks: every device runs all three. SDN: <em>control plane lifts onto a controller</em>, data plane stays on the box. Drop the chips into the right lane.</div>
+</div>
+
+<div class="panel">
+  <h2>The three planes (1-second mental model)</h2>
+  <div class="compare" style="grid-template-columns:1fr 1fr 1fr">
+    <div style="background:var(--ctrl-bg);border-color:var(--ctrl)"><h3 style="color:#5B21B6">Control plane</h3>How the device <em>decides</em>. Builds the routing table, the MAC table, STP topology. Slow path: CPU-driven. Examples: OSPF, BGP, ARP learning, STP BPDU calc.</div>
+    <div style="background:var(--data-bg);border-color:var(--data)"><h3 style="color:#075985">Data plane</h3>How the device <em>forwards</em>. Takes a packet, looks up the FIB / MAC table, ships it out. Fast path: ASIC / TCAM. Per-packet, line-rate. Examples: CEF FIB lookup, dot1q tag insert, ACL match in hardware.</div>
+    <div style="background:var(--mgmt-bg);border-color:var(--mgmt)"><h3 style="color:#92400E">Management plane</h3>How <em>you</em> talk to the box. Out-of-band config + observability. Examples: SSH, SNMP polling, syslog, NETCONF, RESTCONF, console.</div>
+  </div>
+</div>
+
+<div class="panel">
+  <h2>Drop the function into its plane</h2>
+  <p class="intro">Click a chip to cycle: <strong>tray → control → data → management → tray</strong>. Click <strong>Check</strong> to grade. Each chip belongs to <em>exactly one</em> plane.</p>
+  <div class="lanes">
+    <div class="lane ctrl">
+      <div class="lane-head">Control plane <span class="tag">decisions · CPU · slow path</span></div>
+      <div class="chip-tray" id="laneCtrl"></div>
+    </div>
+    <div class="lane data">
+      <div class="lane-head">Data plane <span class="tag">forwarding · ASIC · line rate</span></div>
+      <div class="chip-tray" id="laneData"></div>
+    </div>
+    <div class="lane mgmt">
+      <div class="lane-head">Management plane <span class="tag">humans + tools</span></div>
+      <div class="chip-tray" id="laneMgmt"></div>
+    </div>
+  </div>
+  <div style="margin-top:12px"><div class="lane" style="background:var(--bg-recessed);border-color:var(--border);border-style:solid">
+    <div class="lane-head">Tray (unplaced)</div>
+    <div class="chip-tray" id="laneTray"></div>
+  </div></div>
+  <div class="controls">
+    <button class="btn accent" id="check">Check</button>
+    <button class="btn ghost" id="reveal">Reveal answers</button>
+    <button class="btn ghost" id="resetChips">Reset</button>
+  </div>
+  <div class="verdict" id="verdict"></div>
+</div>
+
+<div class="panel">
+  <h2>Traditional vs SDN — what moves</h2>
+  <svg class="arch-svg" viewBox="0 0 760 260">
+    <text x="190" y="24" text-anchor="middle" font-family="Space Grotesk" font-size="13" font-weight="700" fill="#1C1917">Traditional</text>
+    <text x="570" y="24" text-anchor="middle" font-family="Space Grotesk" font-size="13" font-weight="700" fill="#1C1917">SDN / Controller-based</text>
+
+    <g>
+      <rect x="40" y="40" width="300" height="60" rx="6" fill="#EDE9FE" stroke="#8B5CF6" stroke-width="1.5"/>
+      <text x="190" y="62" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#5B21B6">CONTROL PLANE</text>
+      <text x="190" y="82" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#5B21B6">on every device</text>
+      <rect x="40" y="110" width="300" height="60" rx="6" fill="#E0F2FE" stroke="#0EA5E9" stroke-width="1.5"/>
+      <text x="190" y="132" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#075985">DATA PLANE</text>
+      <text x="190" y="152" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#075985">on every device</text>
+      <text x="190" y="200" text-anchor="middle" font-family="Source Serif 4" font-size="11" fill="#57534E">Each device runs OSPF/BGP/STP</text>
+      <text x="190" y="218" text-anchor="middle" font-family="Source Serif 4" font-size="11" fill="#57534E">+ forwarding ASIC. CLI per box.</text>
+    </g>
+    <g>
+      <rect x="420" y="40" width="300" height="60" rx="6" fill="#FEF3C7" stroke="#F59E0B" stroke-width="2"/>
+      <text x="570" y="62" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#92400E">CONTROLLER (centralized)</text>
+      <text x="570" y="82" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#92400E">CONTROL PLANE LIVES HERE</text>
+      <line x1="570" y1="100" x2="570" y2="110" stroke="#A8A29E" stroke-dasharray="3,3"/>
+      <text x="650" y="108" font-family="JetBrains Mono" font-size="9" fill="#A8A29E">SB API</text>
+      <rect x="420" y="110" width="300" height="60" rx="6" fill="#E0F2FE" stroke="#0EA5E9" stroke-width="1.5"/>
+      <text x="570" y="132" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#075985">DATA PLANE</text>
+      <text x="570" y="152" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#075985">on every device (the only thing left)</text>
+      <text x="570" y="200" text-anchor="middle" font-family="Source Serif 4" font-size="11" fill="#57534E">Devices become "dumb forwarders."</text>
+      <text x="570" y="218" text-anchor="middle" font-family="Source Serif 4" font-size="11" fill="#57534E">Controller pushes flow rules / config.</text>
+    </g>
+  </svg>
+  <p class="intro" style="margin-top:6px"><strong>Mental shortcut:</strong> ask "where does the FIB live?" Traditional: on the device. SDN: still on the device — but built by a controller, not by OSPF running locally. Data plane never moves; control plane is what gets centralized.</p>
+</div>
+
+<div class="panel">
+  <h2>Worked example — packet life on a traditional router</h2>
+  <ol style="padding-left:22px;line-height:1.85;font-family:var(--font-body)">
+    <li><strong>Boot</strong> → IOS starts OSPF process. <span style="color:#5B21B6">Control plane</span> exchanges hellos, builds LSDB, runs SPF, installs best routes into RIB.</li>
+    <li>RIB feeds <strong>FIB</strong> in TCAM. <span style="color:#075985">Data plane</span> now has hardware-ready forwarding table.</li>
+    <li>Packet arrives → ASIC does longest-prefix-match in TCAM → rewrites L2 header → ships out the egress port. <span style="color:#075985">Data plane only.</span></li>
+    <li>Operator types <code style="font-family:var(--font-mono);background:var(--bg-recessed);padding:1px 5px;border-radius:3px">show ip route</code> over SSH. <span style="color:#92400E">Management plane</span> reads the RIB and prints it.</li>
+  </ol>
+</div>
+
+<div class="panel">
+  <h2>Faded prompt — your turn</h2>
+  <p class="intro">A vendor pitches "we centralized the control plane." Translate: <strong>routing decisions are computed off-box and pushed down</strong>. The forwarding ASIC stays. CLI per box may go away (replaced by API). Management plane shifts toward the controller too.</p>
+  <p class="intro">Counter-question worth asking: "What happens to data forwarding if the controller dies?" Different vendors handle this differently — Cisco SD-Access keeps cached forwarding alive (graceful failure). Pure OpenFlow with no fallback drops everything not in the flow table.</p>
+</div>
+
+<div class="panel quiz" id="quizPanel">
+  <h2>Quiz mode</h2>
+  <div class="stem" id="quizStem">Loading…</div>
+  <div class="opts" id="quizOpts"></div>
+  <div class="why" id="why"></div>
+  <div class="scoreline">
+    <span><strong id="qCorrect">0</strong> correct</span>
+    <span><strong id="qWrong">0</strong> wrong</span>
+    <span><strong id="qStreak">0</strong> streak</span>
+    <span style="margin-left:auto"><button class="btn ghost" id="newQ">Next ↻</button></span>
+  </div>
+</div>
+
+<div class="footer-link"><a href="blueprint-drill.html?obj=6.3">← back to 6.3 leaves</a></div>
+
+<script>
+(function(){
+  // chip,label,plane (ctrl/data/mgmt)
+  var chips = [
+    { id:'ospf-hello',  label:'OSPF Hello',                plane:'ctrl' },
+    { id:'cef-fib',     label:'CEF FIB lookup',            plane:'data' },
+    { id:'arp-learn',   label:'ARP learning',              plane:'ctrl' },
+    { id:'mac-table-lookup',  label:'MAC table lookup',    plane:'data' },
+    { id:'stp-bpdu',    label:'STP BPDU calc',             plane:'ctrl' },
+    { id:'dot1q-rewrite', label:'802.1Q tag insert',       plane:'data' },
+    { id:'bgp-bestpath',  label:'BGP best-path selection', plane:'ctrl' },
+    { id:'acl-tcam',    label:'ACL match in TCAM',         plane:'data' },
+    { id:'ssh-login',   label:'SSH config session',        plane:'mgmt' },
+    { id:'snmp-walk',   label:'SNMP poll / get',           plane:'mgmt' },
+    { id:'syslog-send', label:'Syslog message',            plane:'mgmt' },
+    { id:'netconf-edit',label:'NETCONF edit-config',       plane:'mgmt' }
+  ];
+  var placement = {}; // chip id → 'tray' / 'ctrl' / 'data' / 'mgmt'
+  chips.forEach(function(c){ placement[c.id] = 'tray'; });
+
+  function paint(){
+    ['Tray','Ctrl','Data','Mgmt'].forEach(function(L){ document.getElementById('lane'+L).innerHTML=''; });
+    chips.forEach(function(c){
+      var bin = placement[c.id];
+      var el = document.createElement('button'); el.type='button';
+      el.className = 'chip' + (bin!=='tray' ? ' in-'+bin : '');
+      el.textContent = c.label; el.dataset.id = c.id;
+      el.addEventListener('click', function(){
+        var seq = ['tray','ctrl','data','mgmt'];
+        placement[c.id] = seq[(seq.indexOf(placement[c.id])+1) % seq.length];
+        paint();
+      });
+      var laneId = bin==='tray' ? 'laneTray' : ('lane' + bin.charAt(0).toUpperCase()+bin.slice(1));
+      document.getElementById(laneId).appendChild(el);
+    });
+  }
+
+  function clearMarks(){
+    document.querySelectorAll('.chip').forEach(function(el){ el.classList.remove('correct','wrong'); });
+  }
+
+  document.getElementById('check').addEventListener('click', function(){
+    clearMarks();
+    var right=0, wrong=0, untouched=0;
+    chips.forEach(function(c){
+      var p = placement[c.id];
+      var el = document.querySelector('.chip[data-id="'+c.id+'"]');
+      if (p==='tray'){ untouched++; }
+      else if (p===c.plane){ el.classList.add('correct'); right++; }
+      else { el.classList.add('wrong'); wrong++; }
+    });
+    var v = document.getElementById('verdict');
+    v.className='verdict show ' + (right===chips.length ? 'win' : (wrong>0 ? 'miss' : ''));
+    v.textContent = '✓ ' + right + ' correct  ·  ' + wrong + ' wrong  ·  ' + untouched + ' still in tray. ' +
+      (right===chips.length ? 'Clean sheet — every function placed in the right plane.' : 'Wrong placements crossed out. Click them to cycle to the right lane.');
+  });
+
+  document.getElementById('reveal').addEventListener('click', function(){
+    chips.forEach(function(c){ placement[c.id] = c.plane; });
+    paint();
+    document.querySelectorAll('.chip').forEach(function(el){ el.classList.add('correct'); });
+    var v = document.getElementById('verdict'); v.className='verdict show win';
+    v.textContent='✓ Revealed — read each lane top-to-bottom and re-derive WHY each chip belongs there before you click around.';
+  });
+
+  document.getElementById('resetChips').addEventListener('click', function(){
+    chips.forEach(function(c){ placement[c.id] = 'tray'; });
+    document.getElementById('verdict').className='verdict';
+    paint();
+  });
+
+  paint();
+
+  // ── Quiz ──
+  var qCorrect=0, qWrong=0, qStreak=0;
+  var pool = [
+    { stem:'Which plane builds the routing table?', opts:['Control','Data','Management','None'], ans:'Control', why:'Routing protocols (OSPF, BGP, EIGRP) are control-plane processes. They exchange messages, run algorithms (SPF, best-path), and install results into the RIB. The data plane consumes the result, it doesn\'t build it.' },
+    { stem:'Which plane forwards a packet using the FIB?', opts:['Control','Data','Management','Either'], ans:'Data', why:'FIB lookup is per-packet, line-rate, in TCAM/ASIC. That is the data plane by definition. Anything done per-packet at hardware speed is data plane.' },
+    { stem:'In SDN, what moves where?', opts:['Data plane centralizes on the controller','Control plane centralizes on the controller; data plane stays on the device','Management plane disappears','Everything moves to the cloud'], ans:'Control plane centralizes on the controller; data plane stays on the device', why:'SDN\'s defining move is decoupling the control plane from the device and putting it on a centralized controller. The forwarding silicon stays — switches become "programmable forwarders" taking instructions over a southbound API.' },
+    { stem:'STP BPDU processing belongs to:', opts:['Control','Data','Management','None'], ans:'Control', why:'STP topology computation (root election, port states) is control-plane logic running on the switch CPU. The result is a forwarding state per port, which is then enforced by the data plane.' },
+    { stem:'CEF (Cisco Express Forwarding) is:', opts:['Routing protocol','Hardware-friendly forwarding table built from the RIB — data plane','Encryption protocol','SNMP MIB'], ans:'Hardware-friendly forwarding table built from the RIB — data plane', why:'CEF is the FIB structure. The control plane builds RIB → FIB; the data plane uses the FIB at line-rate. CEF lives in the data plane (with a copy on CPU as a fallback for punted packets).' },
+    { stem:'Which is a management-plane action?', opts:['ARP request','OSPF LSA flood','SNMP get-request','MAC address learning'], ans:'SNMP get-request', why:'Management plane = how operators / tools talk to the device. SNMP, SSH, NETCONF, RESTCONF, syslog all live here. ARP and OSPF are control. MAC learning is control (table built) → data (table used).' },
+    { stem:'A packet arrives that misses the FIB. What happens?', opts:['Dropped silently','Punted to CPU control plane for slow-path lookup, then forwarded','Sent back to source','Looped'], ans:'Punted to CPU control plane for slow-path lookup, then forwarded', why:'FIB miss = data plane can\'t handle it in hardware. Packet is "punted" up to the CPU for software lookup. This is why a flood of FIB misses (e.g., target attack) can melt a router CPU.' },
+    { stem:'Which protocol BOTH talks to the data plane (programs flows) AND is southbound API in OpenFlow SDN?', opts:['SNMP','OpenFlow','BGP','ICMP'], ans:'OpenFlow', why:'OpenFlow is the canonical southbound protocol. It tells switches what flow rules to install. The switch then forwards in hardware according to those rules — pure data-plane execution under control-plane direction.' },
+    { stem:'Why is "control plane policing" (CoPP) configured?', opts:['Speed up data plane','Protect the device CPU from being overwhelmed by control-plane and management-plane traffic','Filter user data','Compress packets'], ans:'Protect the device CPU from being overwhelmed by control-plane and management-plane traffic', why:'CoPP rate-limits traffic destined to the CPU (BGP/OSPF/SNMP/SSH/punted packets). If a flood reaches the CPU, the device can lose adjacencies, drop control sessions, even crash. CoPP is a hardening basic.' },
+    { stem:'In a controller-based fabric, the device boots with no controller reachable. Forwarding behavior?', opts:['Always wide-open','Vendor-dependent: cached state, stop-and-wait, or full failure','Always full failure','Always pass-through'], ans:'Vendor-dependent: cached state, stop-and-wait, or full failure', why:'Pure stateless OpenFlow fails closed (drop unmatched). Cisco SD-Access/ACI keep a cached forwarding state and run "headless" briefly. Knowing the failure mode is a real-world design choice.' }
+  ];
+
+  function pickQ(){
+    var q = pool[Math.floor(Math.random()*pool.length)];
+    var opts = q.opts.slice().sort(function(){return Math.random()-.5;});
+    document.getElementById('quizStem').textContent = q.stem;
+    var bx = document.getElementById('quizOpts'); bx.innerHTML='';
+    var w = document.getElementById('why'); w.classList.remove('show'); w.textContent='';
+    opts.forEach(function(o){
+      var btn = document.createElement('button');
+      btn.className='opt'; btn.textContent=o;
+      btn.addEventListener('click', function(){
+        if (btn.classList.contains('correct')||btn.classList.contains('wrong')) return;
+        if (o===q.ans){ btn.classList.add('correct'); qCorrect++; qStreak++; }
+        else { btn.classList.add('wrong'); qWrong++; qStreak=0;
+          Array.prototype.forEach.call(bx.children, function(c){ if (c.textContent===q.ans) c.classList.add('correct'); }); }
+        w.textContent = '↳ ' + q.why; w.classList.add('show');
+        document.getElementById('qCorrect').textContent=qCorrect;
+        document.getElementById('qWrong').textContent=qWrong;
+        document.getElementById('qStreak').textContent=qStreak;
+      });
+      bx.appendChild(btn);
+    });
+  }
+  document.getElementById('newQ').addEventListener('click', pickQ);
+  pickQ();
+})();
+</script>
+<script defer src="js/tutor.js"></script>
+</body>
+</html>
