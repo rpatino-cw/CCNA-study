@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>2.4.b Sim — PortFast + BPDU Guard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{--bg:#FAF7F2;--bg-surface:#FFFFFF;--bg-recessed:#F3F0EB;--border:#E2DFD9;--border-strong:#C7C3BC;--ink:#1C1917;--ink-secondary:#57534E;--ink-muted:#A8A29E;--accent:#B45309;--accent-soft:#D97706;--accent-light:#FEF3C7;--correct:#16A34A;--correct-bg:#F0FDF4;--wrong:#DC2626;--wrong-bg:#FEF2F2;--info:#2563EB;--info-bg:#EFF6FF;--block:#9CA3AF;--listen:#FCD34D;--learn:#FB923C;--forward:#16A34A;--err:#DC2626;--font-display:'Space Grotesk',system-ui,sans-serif;--font-body:'Source Serif 4',Georgia,serif;--font-mono:'JetBrains Mono',monospace;--radius:6px;--radius-lg:10px}
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:var(--font-body);background:var(--bg);color:var(--ink);line-height:1.55;padding:24px;max-width:920px;margin:0 auto}
+  .head{margin-bottom:20px;padding-bottom:14px;border-bottom:1px solid var(--border)}
+  .head .crumb{font-family:var(--font-mono);font-size:.74rem;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px}
+  .head h1{font-family:var(--font-display);font-size:1.5rem;font-weight:700;margin-bottom:6px}
+  .head .desc{font-size:.95rem;color:var(--ink-secondary)}
+  .panel{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;margin-bottom:18px}
+  .panel h2{font-family:var(--font-display);font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-secondary);margin-bottom:12px}
+  .intro{font-size:.96rem;color:var(--ink-secondary);margin-bottom:14px}
+  .intro strong{color:var(--ink)}
+  .btn{font-family:var(--font-display);font-size:.84rem;font-weight:600;padding:8px 16px;background:var(--ink);color:#FAF7F2;border:none;border-radius:var(--radius);cursor:pointer}
+  .btn.ghost{background:var(--bg-recessed);color:var(--ink)}
+  .btn.accent{background:var(--accent)}
+  .timeline{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:12px}
+  .lane-card{background:var(--bg-recessed);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px}
+  .lane-card h3{font-family:var(--font-display);font-size:.92rem;color:var(--accent);margin-bottom:8px}
+  .state-bar{display:flex;height:34px;border-radius:6px;overflow:hidden;border:1px solid var(--border-strong);font-family:var(--font-mono);font-size:.74rem;font-weight:700;color:#1C1917}
+  .seg{display:flex;align-items:center;justify-content:center;border-right:1px solid rgba(255,255,255,.4)}
+  .seg:last-child{border-right:0}
+  .seg.block{background:#9CA3AF;color:#fff}
+  .seg.listen{background:var(--listen)}
+  .seg.learn{background:var(--learn);color:#fff}
+  .seg.forward{background:var(--forward);color:#fff}
+  .seg.err{background:var(--err);color:#fff}
+  .ticker{font-family:var(--font-mono);font-size:.78rem;color:var(--ink-secondary);margin-top:6px}
+  .lane-card .timer{font-family:var(--font-mono);font-size:1.15rem;font-weight:700;color:var(--ink);margin-top:8px}
+  .lane-card .verdict{margin-top:10px;padding:10px 12px;border-radius:6px;font-family:var(--font-display);font-size:.92rem;font-weight:600}
+  .lane-card .verdict.win{background:var(--correct-bg);color:var(--correct);border:1px solid var(--correct)}
+  .lane-card .verdict.miss{background:var(--wrong-bg);color:var(--wrong);border:1px solid var(--wrong)}
+  .controls{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+  .legend{display:flex;gap:12px;font-family:var(--font-mono);font-size:.78rem;color:var(--ink-secondary);flex-wrap:wrap;margin-top:14px}
+  .legend .sw{width:14px;height:14px;border-radius:3px;display:inline-block;vertical-align:middle;margin-right:5px;border:1px solid var(--border-strong)}
+  .compare{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px;font-family:var(--font-body);font-size:.92rem}
+  .compare div{padding:14px;background:var(--bg-recessed);border-radius:var(--radius);border:1px solid var(--border)}
+  .compare h3{font-family:var(--font-display);font-size:.92rem;color:var(--accent);margin-bottom:6px}
+  .compare code{font-family:var(--font-mono);font-size:.86rem;background:var(--bg-surface);padding:1px 5px;border-radius:3px}
+  .frame-stage{font-family:var(--font-mono);font-size:.86rem;background:#1C1917;color:#E7E5E4;padding:14px;border-radius:var(--radius);line-height:1.65;margin-top:12px}
+  .frame-stage .v{color:#86EFAC;font-weight:700}
+  .frame-stage .x{color:#FCA5A5}
+  .frame-stage .muted{color:#A8A29E;font-style:italic}
+  .quiz{margin-top:22px}
+  .quiz .stem{font-family:var(--font-display);font-size:1.02rem;font-weight:600;margin-bottom:12px;padding:14px;background:var(--accent-light);border-left:3px solid var(--accent);border-radius:var(--radius)}
+  .quiz .opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px}
+  .opt{background:var(--bg-recessed);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;font-family:var(--font-mono);font-size:.92rem;cursor:pointer;text-align:left}
+  .opt:hover{border-color:var(--border-strong);background:var(--bg-surface)}
+  .opt.correct{background:var(--correct-bg);border-color:var(--correct);color:var(--correct);font-weight:700}
+  .opt.wrong{background:var(--wrong-bg);border-color:var(--wrong);color:var(--wrong)}
+  .why{font-family:var(--font-mono);font-size:.82rem;color:var(--ink-secondary);margin-top:10px;padding:10px 12px;background:var(--bg-recessed);border-left:3px solid var(--accent-soft);border-radius:var(--radius);display:none;line-height:1.55}
+  .why.show{display:block;animation:fadeIn .25s ease}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
+  .scoreline{font-family:var(--font-mono);font-size:.84rem;color:var(--ink-muted);margin-top:10px;display:flex;gap:18px;align-items:center}
+  .scoreline strong{font-weight:700;color:var(--ink)}
+  .badge{display:inline-block;font-family:var(--font-display);font-size:.7rem;font-weight:700;padding:2px 8px;border-radius:99px;background:var(--accent-light);color:var(--accent);text-transform:uppercase;letter-spacing:.04em;margin-left:8px}
+  .footer-link{margin-top:24px;padding-top:14px;border-top:1px solid var(--border);font-family:var(--font-mono);font-size:.82rem}
+  .footer-link a{color:var(--accent);text-decoration:none}
+</style>
+<link rel="stylesheet" href="css/shared.css?v=4.56">
+<script defer src="js/nav.js"></script>
+</head>
+<body>
+<nav class="top-nav" id="main-nav"></nav>
+
+<div class="head">
+  <div class="crumb"><a href="blueprint-drill.html?obj=2.4" style="color:var(--accent);text-decoration:none">← 2.4 Mini Sims</a> · 2.4.b · Network Access · PortFast + BPDU Guard</div>
+  <h1>The Edge-Port Fast Track<span class="badge">drill</span></h1>
+  <div class="desc">A fresh access port sits in <strong>blocking → listening → learning → forwarding</strong> — about <strong>30 seconds</strong> on classic 802.1D. PCs and phones time out DHCP. <strong>PortFast</strong> skips listening + learning so the port forwards immediately. <strong>BPDU Guard</strong> watches for any incoming BPDU and err-disables the port instantly if a rogue switch shows up. Press play below — race a normal port vs a PortFast+BPDU-Guard port.</div>
+</div>
+
+<div class="panel">
+  <h2>The race — host plugs in</h2>
+  <div class="timeline">
+    <div class="lane-card">
+      <h3>Plain access port (no PortFast)</h3>
+      <div class="state-bar" id="barPlain">
+        <div class="seg block"   style="width:20%">block</div>
+        <div class="seg listen"  style="width:35%">listen 15s</div>
+        <div class="seg learn"   style="width:35%">learn 15s</div>
+        <div class="seg forward" style="width:10%">fwd</div>
+      </div>
+      <div class="ticker" id="tickerPlain">elapsed 0s</div>
+      <div class="timer" id="timePlain">0s</div>
+      <div class="verdict miss" id="vPlain">PC sends DHCP DISCOVER... times out before forwarding. No IP. User calls helpdesk.</div>
+    </div>
+    <div class="lane-card">
+      <h3>PortFast + BPDU Guard</h3>
+      <div class="state-bar" id="barFast">
+        <div class="seg forward" style="width:100%">FORWARDING (immediate)</div>
+      </div>
+      <div class="ticker" id="tickerFast">elapsed 0s</div>
+      <div class="timer" id="timeFast">0s</div>
+      <div class="verdict win" id="vFast">DHCP DORA in &lt;1s. PC has IP. User happy.</div>
+    </div>
+  </div>
+  <div class="controls">
+    <button class="btn accent" id="play">▶ Play race (PC plugs in)</button>
+    <button class="btn ghost" id="rogue">⚠ Plug in a rogue SWITCH instead</button>
+    <button class="btn ghost" id="resetTl">Reset</button>
+  </div>
+  <div class="legend">
+    <span><span class="sw" style="background:#9CA3AF"></span>Blocking</span>
+    <span><span class="sw" style="background:#FCD34D"></span>Listening (15s)</span>
+    <span><span class="sw" style="background:#FB923C"></span>Learning (15s)</span>
+    <span><span class="sw" style="background:#16A34A"></span>Forwarding</span>
+    <span><span class="sw" style="background:#DC2626"></span>err-disabled (BPDU Guard)</span>
+  </div>
+</div>
+
+<div class="panel">
+  <h2>What each command does (and why pair them)</h2>
+  <div class="compare">
+    <div><h3>spanning-tree portfast</h3>
+      Marks the port as an <em>edge port</em>. Skips listening + learning on link-up — straight to forwarding. <strong>The risk:</strong> if you accidentally connect another switch here, you bypass the loop-prevention timer that would have caught it. Result = instant L2 loop, broadcast storm, network down.
+    </div>
+    <div><h3>spanning-tree bpduguard enable</h3>
+      Watches the port for any <em>received</em> BPDU. Real PCs / phones / printers don't send BPDUs — only switches do. If one shows up: port goes <strong>err-disabled</strong>, traffic stops, syslog. Pair with PortFast and the rogue-switch failure mode is converted from "global outage" to "one dead port and a log line."
+    </div>
+  </div>
+  <p class="intro" style="margin-top:14px"><strong>Cisco shorthand:</strong> set both globally — <code>spanning-tree portfast default</code> + <code>spanning-tree portfast bpduguard default</code> — so every port that becomes access mode automatically gets both. Override on uplinks where appropriate.</p>
+</div>
+
+<div class="panel">
+  <h2>Worked example — output you actually see</h2>
+  <div class="frame-stage"><span class="muted">! healthy state — host on a portfast+bpduguard port</span>
+SW1# <span class="v">show spanning-tree interface fa0/1 detail | begin Portfast</span>
+The port is in the <span class="v">portfast</span> mode
+Bpdu guard is <span class="v">enabled</span> by default
+
+<span class="muted">! someone plugs in a rogue 8-port switch</span>
+*Mar 1 00:13:47.082: %SPANTREE-2-BLOCK_BPDUGUARD: Received BPDU on port FastEthernet0/1
+*Mar 1 00:13:47.083: <span class="x">%PM-4-ERR_DISABLE: bpduguard error detected on Fa0/1, putting Fa0/1 in err-disable state</span>
+*Mar 1 00:13:47.084: %LINEPROTO-5-UPDOWN: Line protocol on Interface FastEthernet0/1, changed state to down
+*Mar 1 00:13:47.084: %LINK-3-UPDOWN: Interface FastEthernet0/1, changed state to down
+
+SW1# <span class="v">show interfaces status err-disabled</span>
+Port      Name               Status       Reason             Err-disabled Vlans
+Fa0/1     User cube 14       err-disabled <span class="x">bpduguard</span></div>
+  <p class="intro" style="margin-top:8px">Recovery: <code style="font-family:var(--font-mono);background:var(--bg-recessed);padding:1px 5px;border-radius:3px">shutdown</code> + <code style="font-family:var(--font-mono);background:var(--bg-recessed);padding:1px 5px;border-radius:3px">no shutdown</code> on the port — or set <code style="font-family:var(--font-mono);background:var(--bg-recessed);padding:1px 5px;border-radius:3px">errdisable recovery cause bpduguard</code> + <code style="font-family:var(--font-mono);background:var(--bg-recessed);padding:1px 5px;border-radius:3px">errdisable recovery interval 300</code> globally so it auto-recovers after 5 min.</p>
+</div>
+
+<div class="panel">
+  <h2>Faded prompt — your turn</h2>
+  <p class="intro">Helpdesk ticket: <em>"Office floor 3 has DHCP timeouts when users plug in. Once they unplug + replug a few times, it eventually works."</em> What's the fix in two commands?</p>
+  <p class="intro" style="margin-top:8px"><strong>Answer:</strong></p>
+  <div class="frame-stage" style="margin-top:0">SW1(config)# <span class="v">interface range fa0/1 - 24</span>
+SW1(config-if-range)# <span class="v">spanning-tree portfast</span>
+SW1(config-if-range)# <span class="v">spanning-tree bpduguard enable</span></div>
+  <p class="intro" style="margin-top:8px">PortFast skips ~30s of listening/learning. BPDU Guard catches a rogue switch if one ever lands on these "user" ports.</p>
+</div>
+
+<div class="panel quiz" id="quizPanel">
+  <h2>Quiz mode</h2>
+  <div class="stem" id="quizStem">Loading…</div>
+  <div class="opts" id="quizOpts"></div>
+  <div class="why" id="why"></div>
+  <div class="scoreline">
+    <span><strong id="qCorrect">0</strong> correct</span>
+    <span><strong id="qWrong">0</strong> wrong</span>
+    <span><strong id="qStreak">0</strong> streak</span>
+    <span style="margin-left:auto"><button class="btn ghost" id="newQ">Next ↻</button></span>
+  </div>
+</div>
+
+<div class="footer-link"><a href="blueprint-drill.html?obj=2.4">← back to 2.4 leaves</a></div>
+
+<script>
+(function(){
+  var timer=null, t=0;
+  function setBar(barId, segs){
+    var bar = document.getElementById(barId);
+    bar.innerHTML='';
+    segs.forEach(function(s){
+      var d = document.createElement('div');
+      d.className='seg ' + s.cls;
+      d.style.width = s.w + '%';
+      d.textContent = s.label;
+      bar.appendChild(d);
+    });
+  }
+  function play(rogue){
+    stop();
+    t = 0;
+    document.getElementById('vPlain').textContent = rogue
+      ? 'Rogue switch on port — but BPDU not yet received because plain port is still in BLOCKING/LISTENING (where it actually does process BPDUs). At least it caught the loop here. Slow but safe.'
+      : 'PC sends DHCP DISCOVER... times out before forwarding. No IP. User calls helpdesk.';
+    document.getElementById('vFast').textContent = rogue
+      ? 'PortFast jumped straight to FORWARDING. Rogue switch BPDU arrives → BPDU Guard fires → port err-disabled. One dead port instead of a network meltdown.'
+      : 'DHCP DORA in <1s. PC has IP. User happy.';
+
+    if (rogue){
+      // both lanes end differently
+      setBar('barPlain', [
+        {cls:'block',  w:20, label:'block'},
+        {cls:'listen', w:35, label:'listen 15s'},
+        {cls:'learn',  w:35, label:'learn 15s'},
+        {cls:'block',  w:10, label:'BLOCK (loop avoided)'}
+      ]);
+      setBar('barFast', [
+        {cls:'forward', w:60, label:'FORWARDING'},
+        {cls:'err',     w:40, label:'err-disabled (BPDU Guard)'}
+      ]);
+    } else {
+      setBar('barPlain', [
+        {cls:'block',   w:20, label:'block'},
+        {cls:'listen',  w:35, label:'listen 15s'},
+        {cls:'learn',   w:35, label:'learn 15s'},
+        {cls:'forward', w:10, label:'fwd'}
+      ]);
+      setBar('barFast', [
+        {cls:'forward', w:100, label:'FORWARDING (immediate)'}
+      ]);
+    }
+    timer = setInterval(function(){
+      t += 1;
+      var fastLabel, plainLabel;
+      if (rogue){
+        fastLabel = t < 3 ? 'forwarding... carrying loop traffic' : 'BPDU Guard fired @ '+t+'s — err-disabled';
+        plainLabel = t < 15 ? 'blocking ('+t+'s)' : (t < 30 ? 'listening ('+(t-15)+'s into listen)' : (t < 45 ? 'learning' : 'still blocking — never forwarded, BPDU caught'));
+      } else {
+        fastLabel = 'forwarding from t=0 — DHCP done @ ~1s';
+        plainLabel = t < 15 ? 'listening ('+t+'s / 15s)' : (t < 30 ? 'learning ('+(t-15)+'s / 15s)' : 'forwarding from t≈30s');
+      }
+      document.getElementById('tickerPlain').textContent = plainLabel;
+      document.getElementById('tickerFast').textContent  = fastLabel;
+      document.getElementById('timePlain').textContent = t + 's';
+      document.getElementById('timeFast').textContent  = (rogue ? Math.min(t, 4) : Math.min(t, 1)) + 's';
+      if (t >= 32){ stop(); }
+    }, 200);
+  }
+  function stop(){ if (timer){ clearInterval(timer); timer = null; } }
+  function resetTl(){
+    stop(); t = 0;
+    setBar('barPlain', [
+      {cls:'block',   w:20, label:'block'},
+      {cls:'listen',  w:35, label:'listen 15s'},
+      {cls:'learn',   w:35, label:'learn 15s'},
+      {cls:'forward', w:10, label:'fwd'}
+    ]);
+    setBar('barFast', [{cls:'forward', w:100, label:'FORWARDING (immediate)'}]);
+    document.getElementById('tickerPlain').textContent = 'elapsed 0s';
+    document.getElementById('tickerFast').textContent  = 'elapsed 0s';
+    document.getElementById('timePlain').textContent = '0s';
+    document.getElementById('timeFast').textContent  = '0s';
+    document.getElementById('vPlain').textContent = 'PC sends DHCP DISCOVER... times out before forwarding. No IP. User calls helpdesk.';
+    document.getElementById('vPlain').className = 'verdict miss';
+    document.getElementById('vFast').textContent  = 'DHCP DORA in <1s. PC has IP. User happy.';
+    document.getElementById('vFast').className = 'verdict win';
+  }
+  document.getElementById('play').addEventListener('click',  function(){ play(false); });
+  document.getElementById('rogue').addEventListener('click', function(){ play(true); });
+  document.getElementById('resetTl').addEventListener('click', resetTl);
+  resetTl();
+
+  // ── Quiz ──
+  var qCorrect=0, qWrong=0, qStreak=0;
+  var pool = [
+    { stem:'How long does a default 802.1D port take to start forwarding from blocking?', opts:['~1 s','~10 s','~30 s (15 listen + 15 learn)','~60 s'], ans:'~30 s (15 listen + 15 learn)', why:'802.1D timers: 15 s listening + 15 s learning. Plus blocking at start. Real-world impact: PCs and DHCP often time out before the port forwards.' },
+    { stem:'PortFast does what?', opts:['Disables STP entirely','Skips listening + learning so an edge port forwards immediately on link-up','Doubles the forward delay','Disables BPDUs'], ans:'Skips listening + learning so an edge port forwards immediately on link-up', why:'PortFast is a hint: "this is an edge port (host), not a switch-to-switch link." Cisco lets it bypass listen/learn. STP is still running on the port — it just starts in forwarding.' },
+    { stem:'BPDU Guard reaction to a received BPDU on a PortFast port?', opts:['Logs but keeps forwarding','err-disables the port immediately','Doubles the timer','Sends a BPDU back'], ans:'err-disables the port immediately', why:'A BPDU on an edge port means a switch is plugged in there — exactly what PortFast assumed wouldn\'t happen. Err-disable converts that latent loop into a hard-failed port + syslog.' },
+    { stem:'Where should PortFast NEVER be enabled?', opts:['On a host port','On a port connected to another switch','On a phone port','On a printer port'], ans:'On a port connected to another switch', why:'PortFast on a switch-to-switch link skips loop prevention. If a temporary loop forms during convergence, you get a broadcast storm and the network goes down. PortFast is for end-host ports only.' },
+    { stem:'Why pair `bpduguard` with `portfast`?', opts:['They cancel out','PortFast skips loop checks; BPDU Guard catches the rogue-switch case PortFast assumes won\'t happen','Required by IOS','Speeds up forwarding'], ans:'PortFast skips loop checks; BPDU Guard catches the rogue-switch case PortFast assumes won\'t happen', why:'PortFast is "trust me, no switches here." BPDU Guard is "but if I\'m wrong, kill the port instead of melting the network." Always together.' },
+    { stem:'After BPDU Guard err-disables Fa0/1, how do you bring it back?', opts:['Reload the switch','`shutdown` then `no shutdown` on the port (or wait for `errdisable recovery cause bpduguard` if configured)','`reset interface`','`clear spanning-tree`'], ans:'`shutdown` then `no shutdown` on the port (or wait for `errdisable recovery cause bpduguard` if configured)', why:'Manual recovery is shut/no-shut. For unattended sites, configure `errdisable recovery cause bpduguard` + `errdisable recovery interval 300` to auto-recover after 5 minutes.' },
+    { stem:'Which is the global default to apply PortFast to every access port?', opts:['`spanning-tree portfast all`','`spanning-tree portfast default` (only takes effect on access mode)','`mode portfast`','`portfast enable`'], ans:'`spanning-tree portfast default` (only takes effect on access mode)', why:'Global command applies to ports that come up as access (not trunk). Trunk ports keep normal STP. Pair with `spanning-tree portfast bpduguard default` to harden every edge port at once.' },
+    { stem:'`spanning-tree bpdufilter enable` (per-port) is:', opts:['Same as BPDU Guard','Stops sending AND ignores received BPDUs — DANGEROUS, can hide loops','A loop-prevention feature','Required for PortFast'], ans:'Stops sending AND ignores received BPDUs — DANGEROUS, can hide loops', why:'BPDU Filter on an edge port silences STP entirely. Sounds tempting but if a switch plugs in, you\'re running with no loop detection. BPDU Guard is the safe choice; BPDU Filter is for very specific, narrow cases.' },
+    { stem:'A new IP phone connects but the PC behind it gets DHCP. Phone never registers. Cause likely:', opts:['BPDU Guard','PortFast missing — phone DHCP timed out before listen/learn finished','Rogue switch','Native VLAN'], ans:'PortFast missing — phone DHCP timed out before listen/learn finished', why:'Voice traffic hates the 30s STP delay. Phones often have shorter DHCP timeouts than PCs. Always enable PortFast on voice-VLAN ports.' },
+    { stem:'PortFast on a TRUNK port — IOS allows it?', opts:['Never','Yes — but only with `spanning-tree portfast trunk` (special form, edge-trunk to a host like a hypervisor)','Always','Disables the trunk'], ans:'Yes — but only with `spanning-tree portfast trunk` (special form, edge-trunk to a host like a hypervisor)', why:'Edge-case: a server with VLAN-tagging NICs (ESXi vSwitch) appears as a trunk peer but is really an end-host. `portfast trunk` enables fast transition for that scenario. Still pair with BPDU Guard.' }
+  ];
+
+  function pickQ(){
+    var q = pool[Math.floor(Math.random()*pool.length)];
+    var opts = q.opts.slice().sort(function(){return Math.random()-.5;});
+    document.getElementById('quizStem').textContent = q.stem;
+    var bx = document.getElementById('quizOpts'); bx.innerHTML='';
+    var w = document.getElementById('why'); w.classList.remove('show'); w.textContent='';
+    opts.forEach(function(o){
+      var btn = document.createElement('button');
+      btn.className='opt'; btn.textContent=o;
+      btn.addEventListener('click', function(){
+        if (btn.classList.contains('correct')||btn.classList.contains('wrong')) return;
+        if (o===q.ans){ btn.classList.add('correct'); qCorrect++; qStreak++; }
+        else { btn.classList.add('wrong'); qWrong++; qStreak=0;
+          Array.prototype.forEach.call(bx.children, function(c){ if (c.textContent===q.ans) c.classList.add('correct'); }); }
+        w.textContent = '↳ ' + q.why; w.classList.add('show');
+        document.getElementById('qCorrect').textContent=qCorrect;
+        document.getElementById('qWrong').textContent=qWrong;
+        document.getElementById('qStreak').textContent=qStreak;
+      });
+      bx.appendChild(btn);
+    });
+  }
+  document.getElementById('newQ').addEventListener('click', pickQ);
+  pickQ();
+})();
+</script>
+<script defer src="js/tutor.js"></script>
+</body>
+</html>
